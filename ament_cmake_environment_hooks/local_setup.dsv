@@ -1,0 +1,2 @@
+source;share/drone_std/environment/ament_prefix_path.sh
+source;share/drone_std/environment/path.sh

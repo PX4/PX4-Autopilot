@@ -46,6 +46,7 @@ parameters:
                 25: BATTERY_FULL_VOLTAGE
                 26: FORMIC_CROSSHAIRS
                 27: TOTAL_ACTIVATED_TIME
+                28: BARO_ALTITUDE
             default: 16383
 
         # OSD Crosshairs Vertical Position

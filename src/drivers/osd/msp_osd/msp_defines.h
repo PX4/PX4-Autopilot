@@ -508,6 +508,16 @@ struct msp_rendor_distance_sensor_t {
 	char str[8]; // distance in meters (e.g., "12.34")
 } __attribute__((packed));
 
+struct msp_baro_altitude_t {
+	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs = 0x00;
+	uint8_t iconIndex = 0x7F; // baro altitude icon (using altitude icon)
+
+	char str[8]; // barometric altitude in meters (e.g., "123.45")
+} __attribute__((packed));
+
 struct msp_rendor_total_arm_time_t {
 	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
 	uint8_t screenYPosition;

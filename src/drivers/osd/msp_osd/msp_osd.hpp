@@ -107,6 +107,7 @@ enum SymbolIndex : uint8_t {
 	BATTERY_FULL_VOLTAGE	= 25,
 	FORMIC_CROSSHAIRS	= 26,
 	TOTAL_ACTIVATED_TIME	= 27,
+	BARO_ALTITUDE		= 28,
 };
 
 class MspOsd : public ModuleBase<MspOsd>, public ModuleParams, public px4::ScheduledWorkItem
@@ -172,6 +173,7 @@ private:
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _estimator_aid_src_rng_hgt_sub{ORB_ID(estimator_aid_src_rng_hgt)};
+	uORB::Subscription _estimator_aid_src_baro_hgt_sub{ORB_ID(estimator_aid_src_baro_hgt)};
 	uORB::Subscription _total_arm_time_sub{ORB_ID(total_arm_time)};
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _dds_flag_sub{ORB_ID(dds_flag)};

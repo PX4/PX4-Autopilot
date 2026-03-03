@@ -463,6 +463,17 @@ void MspOsd::Run()
 			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_distance_sensor_t));
 		}
 	}
+	// MSP_BARO_ALTITUDE
+	{
+		estimator_aid_source1d_s estimator_aid_src_baro_hgt{};
+		_estimator_aid_src_baro_hgt_sub.copy(&estimator_aid_src_baro_hgt);
+
+		if (enabled(SymbolIndex::BARO_ALTITUDE)) {
+			const auto msg = msp_osd::construct_rendor_BARO_ALT(estimator_aid_src_baro_hgt);
+
+			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_baro_altitude_t));
+		}
+	}
 
 	// MSP_TOTAL_ARM_TIME
 	{

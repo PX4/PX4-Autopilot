@@ -1,7 +1,7 @@
 {
   // Enable parameter hints and hover information globally
   "editor.parameterHints.enabled": true,
-  "editor.hover.enabled": true,
+  "editor.hover.enabled": "on",
   "editor.quickSuggestions": {
     "other": true,
     "comments": false,
@@ -95,5 +95,28 @@
   "editor.codeLens": true,
   "dotnet.completion.showCompletionItemsFromUnimportedNamespaces": true,
   "dotnet.formatting.organizeImportsOnFormat": true,
-  "dotnet.defaultSolution": "disable"
+  "dotnet.defaultSolution": "disable",
+  "ROS2.distro": "humble",
+  "python.autoComplete.extraPaths": [
+    "/home/naor/Desktop/formic/control/debug_tools/install/logger_operation/local/lib/python3.10/dist-packages",
+    "/home/naor/git/control/Drone_Op/install/tof_drone/local/lib/python3.10/dist-packages",
+    "/home/naor/git/control/Drone_Op/install/stl_helper/local/lib/python3.10/dist-packages",
+    "/home/naor/git/control/Drone_Op/install/px4_msgs/local/lib/python3.10/dist-packages",
+    "/home/naor/Desktop/formic/control/Drone_Op/install/tof_drone/local/lib/python3.10/dist-packages",
+    "/home/naor/Desktop/formic/control/Drone_Op/install/stl_helper/local/lib/python3.10/dist-packages",
+    "/home/naor/Desktop/formic/control/Drone_Op/install/px4_msgs/local/lib/python3.10/dist-packages",
+    "/opt/ros/humble/lib/python3.10/site-packages",
+    "/opt/ros/humble/local/lib/python3.10/dist-packages"
+  ],
+  "python.analysis.extraPaths": [
+    "/home/naor/Desktop/formic/control/debug_tools/install/logger_operation/local/lib/python3.10/dist-packages",
+    "/home/naor/git/control/Drone_Op/install/tof_drone/local/lib/python3.10/dist-packages",
+    "/home/naor/git/control/Drone_Op/install/stl_helper/local/lib/python3.10/dist-packages",
+    "/home/naor/git/control/Drone_Op/install/px4_msgs/local/lib/python3.10/dist-packages",
+    "/home/naor/Desktop/formic/control/Drone_Op/install/tof_drone/local/lib/python3.10/dist-packages",
+    "/home/naor/Desktop/formic/control/Drone_Op/install/stl_helper/local/lib/python3.10/dist-packages",
+    "/home/naor/Desktop/formic/control/Drone_Op/install/px4_msgs/local/lib/python3.10/dist-packages",
+    "/opt/ros/humble/lib/python3.10/site-packages",
+    "/opt/ros/humble/local/lib/python3.10/dist-packages"
+  ]
 }

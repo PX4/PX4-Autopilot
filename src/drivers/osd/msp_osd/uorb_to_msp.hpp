@@ -141,6 +141,8 @@ msp_status_t construct_MSP_STATUS(const vehicle_status_s &vehicle_status);
 
 msp_rendor_distance_sensor_t construct_rendor_DISTANCE_SENSOR(const estimator_aid_source1d_s &estimator_aid_src_rng_hgt);
 
+msp_baro_altitude_t construct_rendor_BARO_ALT(const estimator_aid_source1d_s &estimator_aid_src_baro_hgt);
+
 msp_rendor_total_arm_time_t construct_rendor_TOTAL_ARM_TIME(const total_arm_time_s &total_arm_time);
 
 msp_rendor_total_arm_time_t construct_rendor_TOTAL_ACTIVATED_TIME(const vehicle_status_s &vehicle_status);

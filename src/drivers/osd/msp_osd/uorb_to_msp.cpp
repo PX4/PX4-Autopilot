@@ -614,7 +614,7 @@ msp_rendor_distance_sensor_t construct_rendor_DISTANCE_SENSOR(const estimator_ai
 	msp_rendor_distance_sensor_t distance = {0}; // Initialize all fields to zero
 
 	distance.subCommand = MSP_DP_WRITE_STRING; // 0x03 Write string
-	distance.screenYPosition = 0x06;
+	distance.screenYPosition = 0x07;
 	distance.screenXPosition = 0x02;
 	distance.iconAttrs = 0x00;
 	distance.iconIndex = 0xB1; // Use altitude icon (similar to distance/height measurement)
@@ -640,36 +640,31 @@ msp_rendor_distance_sensor_t construct_rendor_DISTANCE_SENSOR(const estimator_ai
 	return distance;
 }
 
-msp_rendor_total_arm_time_t construct_rendor_TOTAL_ARM_TIME(const total_arm_time_s &total_arm_time)
+
+msp_baro_altitude_t construct_rendor_BARO_ALT(const estimator_aid_source1d_s &__orb_estimator_aid_src_baro_hgt)
 {
-	msp_rendor_total_arm_time_t render_total_arm_time = {}; // Initialize all fields to zero
+	msp_baro_altitude_t baro_altitude = {0}; // Initialize all fields to zero
 
-	render_total_arm_time.subCommand = MSP_DP_WRITE_STRING; // 0x03 Write string
-	render_total_arm_time.screenYPosition = 0x07;
-	render_total_arm_time.screenXPosition = 0x02;
-	render_total_arm_time.iconAttrs = 0x00;
-	render_total_arm_time.iconIndex = MCP_TIMER_ICON; // Timer/clock icon (common Betaflight timer icon index)
+	baro_altitude.subCommand = MSP_DP_WRITE_STRING; // 0x03 Write string
+	baro_altitude.screenYPosition = 0x06;
+	baro_altitude.screenXPosition = 0x02;
+	baro_altitude.iconAttrs = 0x00;
+	baro_altitude.iconIndex = 0x7F; // Use altitude icon
 
-	// if (osd_format == 0) {
-	// 	crosshairs.iconIndex = MCP_ARDUPILOT(MSP_ICON_AUTOCONFIG_CROSSHAIRS); // ardupilotconfig
-	// } else {
-	// 	crosshairs.iconIndex = MSP_ICON_AUTOCONFIG_CROSSHAIRS; // autoconfig
-	// }
-
-
-	// render_total_arm_time.iconIndex = 0xBC; // Timer/clock icon (common Betaflight timer icon index)
-
-	// Convert milliseconds to mm:ss format
-	uint64_t total_seconds = total_arm_time.total_arm_time_ms / 1000;
-	int minutes = total_seconds / 60;
-	int seconds = total_seconds % 60;
-
-	// Format as "mm:ss" (e.g., "05:23" for 5 minutes 23 seconds)
-	memset(&render_total_arm_time.str[0], 0, sizeof(render_total_arm_time.str));
-	snprintf(&render_total_arm_time.str[0], sizeof(render_total_arm_time.str), "%02d:%02d", minutes, seconds);
-
-	return render_total_arm_time;
+	float alt = __orb_estimator_aid_src_baro_hgt.observation;
+	PX4_INFO("Baro Altitude: %.2f", (double)alt);
+	if (PX4_ISFINITE(alt) && __orb_estimator_aid_src_baro_hgt.fused) {
+		memset(&baro_altitude.str[0], 0, sizeof(baro_altitude.str));
+		snprintf(&baro_altitude.str[0], sizeof(baro_altitude.str), "%.2f", static_cast<double>(alt));
+	}
+	else {
+		memset(&baro_altitude.str[0], 0, sizeof(baro_altitude.str));
+		snprintf(&baro_altitude.str[0], sizeof(baro_altitude.str), "N.A");
+	}
+	return baro_altitude;
 }
+
+
 
 msp_rendor_formic_ring_t construct_rendor_FORMIC_RING(const dds_flag_s &dds_flag)
 {
@@ -681,9 +676,6 @@ msp_rendor_formic_ring_t construct_rendor_FORMIC_RING(const dds_flag_s &dds_flag
 	formic_ring.iconAttrs = 0x00;
 	formic_ring.iconIndex = 0x00; // no icon
 
-	// PX4_INFO("DDS connected: %d\n", (int)dds_flag.dds_connected);
-	
-	// Set str to "FORMIC: V" if DDS is connected, "FORMIC: X" if not connected
 	if (dds_flag.dds_connected) {
 		snprintf(&formic_ring.str[0], sizeof(formic_ring.str), "FORMIC:V");
 	} else {
@@ -726,6 +718,28 @@ msp_rendor_total_arm_time_t construct_rendor_TOTAL_ACTIVATED_TIME(const vehicle_
 	// Convert microseconds to mm:ss format
 	// timestamp is in microseconds since system start
 	uint64_t total_seconds = vehicle_status.timestamp / 1000000ULL; // Convert microseconds to seconds
+	int minutes = total_seconds / 60;
+	int seconds = total_seconds % 60;
+
+	// Format as "mm:ss" (e.g., "05:23" for 5 minutes 23 seconds)
+	memset(&render_total_arm_time.str[0], 0, sizeof(render_total_arm_time.str));
+	snprintf(&render_total_arm_time.str[0], sizeof(render_total_arm_time.str), "%02d:%02d", minutes, seconds);
+
+	return render_total_arm_time;
+}
+
+
+msp_rendor_total_arm_time_t construct_rendor_TOTAL_ARM_TIME(const total_arm_time_s &total_arm_time)
+{
+	msp_rendor_total_arm_time_t render_total_arm_time = {}; // Initialize all fields to zero
+
+	render_total_arm_time.subCommand = MSP_DP_WRITE_STRING; // 0x03 Write string
+	render_total_arm_time.screenYPosition = 0x09;
+	render_total_arm_time.screenXPosition = 0x02;
+	render_total_arm_time.iconAttrs = 0x00;
+	render_total_arm_time.iconIndex = MCP_TIMER_ICON; // Timer/clock icon (common Betaflight timer icon index)
+
+	uint64_t total_seconds = total_arm_time.total_arm_time_ms / 1000;
 	int minutes = total_seconds / 60;
 	int seconds = total_seconds % 60;
 
