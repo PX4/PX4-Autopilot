@@ -175,7 +175,7 @@
 	/* PH4  */  GPIO_ADC3_INP15
 
 /* Define Channel numbers must match above GPIO pin IN(n)*/
-#define ADC_SCALED_VDD_3V3_SENSORS1_CHANNEL     /* PA0  */  ADC1_CH(16)
+#define ADC_SCALED_VDD_3V3_SENSORS_CHANNEL     /* PA0  */  ADC1_CH(16)
 #define ADC_SCALED_V5_CHANNEL                   /* PB1  */  ADC1_CH(5)
 #define ADC_ADC3_6V6_CHANNEL                    /* PC2  */  ADC3_CH(12)
 #define ADC_ADC3_3V3_CHANNEL                    /* PC3  */  ADC3_CH(13)
@@ -183,7 +183,7 @@
 #define ADC_HW_REV_SENSE_CHANNEL                /* PH4  */  ADC3_CH(15)
 
 #define ADC_CHANNELS \
-	((1 << ADC_SCALED_VDD_3V3_SENSORS1_CHANNEL) | \
+	((1 << ADC_SCALED_VDD_3V3_SENSORS_CHANNEL) | \
 	 (1 << ADC_SCALED_V5_CHANNEL)               | \
 	 (1 << ADC_ADC3_6V6_CHANNEL)                | \
 	 (1 << ADC_ADC3_3V3_CHANNEL))
@@ -254,7 +254,6 @@
 #define GPIO_VDD_5V_PERIPH_nOC          /* PE15 */ (GPIO_INPUT |GPIO_FLOAT|GPIO_PORTE|GPIO_PIN15)
 #define GPIO_VDD_5V_HIPOWER_nEN         /* PG10 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN10)
 #define GPIO_VDD_5V_HIPOWER_nOC         /* PF13 */ (GPIO_INPUT |GPIO_FLOAT|GPIO_PORTF|GPIO_PIN13)
-#define GPIO_VDD_3V3_SENSORS4_EN        /* PG8  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTG|GPIO_PIN8)
 #define GPIO_VDD_3V3_SPEKTRUM_POWER_EN  /* PH2  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTH|GPIO_PIN2)
 #define GPIO_VDD_3V3_SD_CARD_EN         /* PC13 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN13)
 
@@ -276,7 +275,6 @@
 
 #define VDD_5V_PERIPH_EN(on_true)          px4_arch_gpiowrite(GPIO_VDD_5V_PERIPH_nEN, !(on_true))
 #define VDD_5V_HIPOWER_EN(on_true)         px4_arch_gpiowrite(GPIO_VDD_5V_HIPOWER_nEN, !(on_true))
-#define VDD_3V3_SENSORS4_EN(on_true)       px4_arch_gpiowrite(GPIO_VDD_3V3_SENSORS4_EN, (on_true))
 #define VDD_3V3_SPEKTRUM_POWER_EN(on_true) px4_arch_gpiowrite(GPIO_VDD_3V3_SPEKTRUM_POWER_EN, (on_true))
 #define READ_VDD_3V3_SPEKTRUM_POWER_EN()   px4_arch_gpioread(GPIO_VDD_3V3_SPEKTRUM_POWER_EN)
 #define VDD_3V3_SD_CARD_EN(on_true)        px4_arch_gpiowrite(GPIO_VDD_3V3_SD_CARD_EN, (on_true))
@@ -436,7 +434,6 @@
 		GPIO_VDD_5V_PERIPH_nOC,           \
 		GPIO_VDD_5V_HIPOWER_nEN,          \
 		GPIO_VDD_5V_HIPOWER_nOC,          \
-		GPIO_VDD_3V3_SENSORS4_EN,         \
 		GPIO_VDD_3V3_SPEKTRUM_POWER_EN,   \
 		GPIO_VDD_3V3_SD_CARD_EN,          \
 		GPIO_PD15,                        \
