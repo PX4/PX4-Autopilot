@@ -37,7 +37,12 @@
 
 #include <dataman_client/DatamanClient.hpp>
 
-__EXPORT bool dataman_check_is_running();
+__EXPORT bool dataman_check_is_running() __attribute__((weak));
+
+bool dataman_check_is_running()
+{
+	return true;
+}
 
 DatamanClient::DatamanClient()
 {
