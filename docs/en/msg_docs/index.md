@@ -22,12 +22,12 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [BatteryStatus](BatteryStatus.md) — Battery status.
 - [ConfigOverrides](ConfigOverrides.md) — Configurable overrides by (external) modes or mode executors.
 - [Event](Event.md) — Events interface.
-- [FixedWingLateralSetpoint](FixedWingLateralSetpoint.md) — Fixed Wing Lateral Setpoint message. Used by the fw_lateral_longitudinal_control module. At least one of course, airspeed_direction, or lateral_acceleration must be finite.
-- [FixedWingLongitudinalSetpoint](FixedWingLongitudinalSetpoint.md) — Fixed Wing Longitudinal Setpoint message. Used by the fw_lateral_longitudinal_control module. If pitch_direct and throttle_direct are not both finite, then the controller relies on altitude/height_rate and equivalent_airspeed to control vertical motion. If both altitude and height_rate are NAN, the controller maintains the current altitude.
-- [GotoSetpoint](GotoSetpoint.md) — Position and (optional) heading setpoints with corresponding speed constraints. Setpoints are intended as inputs to position and heading smoothers, respectively. Setpoints do not need to be kinematically consistent. Optional heading setpoints may be specified as controlled by the respective flag. Unset optional setpoints are not controlled. Unset optional constraints default to vehicle specifications.
+- [FixedWingLateralSetpoint](FixedWingLateralSetpoint.md) — Fixed Wing Lateral Setpoint message.
+- [FixedWingLongitudinalSetpoint](FixedWingLongitudinalSetpoint.md) — Fixed Wing Longitudinal Setpoint message.
+- [GotoSetpoint](GotoSetpoint.md) — Position and (optional) heading setpoints with corresponding speed constraints.
 - [HomePosition](HomePosition.md) — GPS home position in WGS84 coordinates.
-- [LateralControlConfiguration](LateralControlConfiguration.md) — Fixed Wing Lateral Control Configuration message. Used by the fw_lateral_longitudinal_control module to constrain FixedWingLateralSetpoint messages.
-- [LongitudinalControlConfiguration](LongitudinalControlConfiguration.md) — Fixed Wing Longitudinal Control Configuration message. Used by the fw_lateral_longitudinal_control module and TECS to constrain FixedWingLongitudinalSetpoint messages. and configure the resultant setpoints.
+- [LateralControlConfiguration](LateralControlConfiguration.md) — Fixed Wing Lateral Control Configuration message.
+- [LongitudinalControlConfiguration](LongitudinalControlConfiguration.md) — Fixed Wing Longitudinal Control Configuration message.
 - [ManualControlSetpoint](ManualControlSetpoint.md)
 - [ModeCompleted](ModeCompleted.md) — Mode completion result, published by an active mode. The possible values of nav_state are defined in the VehicleStatus msg. Note that this is not always published (e.g. when a user switches modes or on. failsafe activation).
 - [RaptorInput](RaptorInput.md) — Raptor Input.

@@ -18479,7 +18479,7 @@ See COM_OBL_RC_ACT to configure action.
 
 ### COM_PARACHUTE (`INT32`) {#COM_PARACHUTE}
 
-Expect and require a healthy MAVLink parachute system.
+Require MAVLink parachute system to be present and healthy.
 
 | Reboot | minValue | maxValue | increment | default      | unit |
 | ------ | -------- | -------- | --------- | ------------ | ---- |
