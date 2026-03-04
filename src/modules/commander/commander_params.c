@@ -657,7 +657,7 @@ PARAM_DEFINE_INT32(COM_DLL_EXCEPT, 0);
 PARAM_DEFINE_INT32(COM_ACT_FAIL_ACT, 0);
 
 /**
- * Expect and require a healthy MAVLink parachute system
+ * Require MAVLink parachute system to be present and healthy
  *
  * @boolean
  * @group Commander
