@@ -33,7 +33,7 @@ This consists of a single _C_ file and a _cmake_ definition (which tells the too
      ```c
      /****************************************************************************
       *
-      *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
+      *   Copyright (c) 2012-2026 PX4 Development Team. All rights reserved.
       *
       * Redistribution and use in source and binary forms, with or without
       * modification, are permitted provided that the following conditions
@@ -140,7 +140,6 @@ This consists of a single _C_ file and a _cmake_ definition (which tells the too
    px4_add_module(
    	MODULE examples__px4_simple_app
    	MAIN px4_simple_app
-   	STACK_MAIN 2000
    	SRCS
    		px4_simple_app.c
    	DEPENDS
@@ -179,11 +178,10 @@ In order to run it you first need to make sure that it is built as part of PX4.
 Applications are added to the build/firmware in the appropriate board-level _px4board_ file for your target:
 
 - PX4 SITL (Simulator): [PX4-Autopilot/boards/px4/sitl/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/sitl/default.px4board)
-- Pixhawk v1/2: [PX4-Autopilot/boards/px4/fmu-v2/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v2/default.px4board)
-- Pixracer (px4/fmu-v4): [PX4-Autopilot/boards/px4/fmu-v4/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v4/default.px4board)
+- Pixhawk 6X (px4/fmu-v6x): [PX4-Autopilot/boards/px4/fmu-v6x/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6x/default.px4board)
 - _px4board_ files for other boards can be found in [PX4-Autopilot/boards/](https://github.com/PX4/PX4-Autopilot/tree/main/boards)
 
-To enable the compilation of the application into the firmware add the corresponding Kconfig key `CONFIG_EXAMPLES_PX4_SIMPLE_APP=y` in the _px4board_ file or run [boardconfig](../hardware/porting_guide_config.md#px4-menuconfig-setup) `make px4_fmu-v4_default boardconfig`:
+To enable the compilation of the application into the firmware add the corresponding Kconfig key `CONFIG_EXAMPLES_PX4_SIMPLE_APP=y` in the _px4board_ file or run [boardconfig](../hardware/porting_guide_config.md#px4-menuconfig-setup) `make px4_sitl_default boardconfig`:
 
 ```
 examples  --->
@@ -191,14 +189,13 @@ examples  --->
 ```
 
 ::: info
-The line will already be present for most files, because the examples are included in firmware by default.
+Examples are opt-in and not included in firmware by default. You must explicitly enable them as shown above.
 :::
 
 Build the example using the board-specific command:
 
-- jMAVSim Simulator: `make px4_sitl_default jmavsim`
-- Pixhawk v1/2: `make px4_fmu-v2_default` (or just `make px4_fmu-v2`)
-- Pixhawk v3: `make px4_fmu-v4_default`
+- Gazebo Simulator: `make px4_sitl gz_x500`
+- Pixhawk 6X: `make px4_fmu-v6x_default`
 - Other boards: [Building the Code](../dev_setup/building_px4.md#building-for-nuttx)
 
 ## Test App (Hardware)
@@ -207,8 +204,7 @@ Build the example using the board-specific command:
 
 Enable the uploader and then reset the board:
 
-- Pixhawk v1/2: `make px4_fmu-v2_default upload`
-- Pixhawk v3: `make px4_fmu-v4_default upload`
+- Pixhawk 6X: `make px4_fmu-v6x_default upload`
 
 It should print before you reset the board a number of compile messages and at the end:
 
@@ -293,14 +289,14 @@ The benefits of the PX4 hardware abstraction comes into play here!
 There is no need to interact in any way with sensor drivers and no need to update your app if the board or sensors are updated.
 :::
 
-Individual message channels between applications are called [topics](../middleware/uorb.md). For this tutorial, we are interested in the [SensorCombined](https://github.com/PX4/PX4-Autopilot/blob/main/msg/SensorCombined.msg) topic, which holds the synchronized sensor data of the complete system.
+Individual message channels between applications are called [topics](../middleware/uorb.md). For this tutorial, we are interested in the [VehicleAcceleration](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleAcceleration.msg) topic, which holds the filtered vehicle acceleration data.
 
 Subscribing to a topic is straightforward:
 
 ```cpp
-#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/vehicle_acceleration.h>
 ..
-int sensor_sub_fd = orb_subscribe(ORB_ID(sensor_combined));
+int sensor_sub_fd = orb_subscribe(ORB_ID(vehicle_acceleration));
 ```
 
 The `sensor_sub_fd` is a topic handle and can be used to very efficiently perform a blocking wait for new data.
@@ -311,9 +307,9 @@ Adding `poll()` to the subscription looks like (_pseudocode, look for the full i
 
 ```cpp
 #include <poll.h>
-#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/vehicle_acceleration.h>
 ..
-int sensor_sub_fd = orb_subscribe(ORB_ID(sensor_combined));
+int sensor_sub_fd = orb_subscribe(ORB_ID(vehicle_acceleration));
 
 /* one could wait for multiple topics with this technique, just using one here */
 px4_pollfd_struct_t fds[] = {
@@ -326,13 +322,13 @@ while (true) {
 	..
 	if (fds[0].revents & POLLIN) {
 		/* obtained data for the first file descriptor */
-		struct sensor_combined_s raw;
+		struct vehicle_acceleration_s accel;
 		/* copy sensors raw data into local buffer */
-		orb_copy(ORB_ID(sensor_combined), sensor_sub_fd, &raw);
+		orb_copy(ORB_ID(vehicle_acceleration), sensor_sub_fd, &accel);
 		PX4_INFO("Accelerometer:\t%8.4f\t%8.4f\t%8.4f",
-					(double)raw.accelerometer_m_s2[0],
-					(double)raw.accelerometer_m_s2[1],
-					(double)raw.accelerometer_m_s2[2]);
+					(double)accel.xyz[0],
+					(double)accel.xyz[1],
+					(double)accel.xyz[2]);
 	}
 }
 ```
@@ -340,7 +336,7 @@ while (true) {
 Compile the app again by entering:
 
 ```sh
-make
+make px4_sitl_default
 ```
 
 ### Testing the uORB Subscription
@@ -399,7 +395,7 @@ The [complete example code](https://github.com/PX4/PX4-Autopilot/blob/main/src/e
 ```c
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -448,7 +444,7 @@ The [complete example code](https://github.com/PX4/PX4-Autopilot/blob/main/src/e
 #include <math.h>
 
 #include <uORB/uORB.h>
-#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_attitude.h>
 
 __EXPORT int px4_simple_app_main(int argc, char *argv[]);
@@ -457,8 +453,8 @@ int px4_simple_app_main(int argc, char *argv[])
 {
 	PX4_INFO("Hello Sky!");
 
-	/* subscribe to sensor_combined topic */
-	int sensor_sub_fd = orb_subscribe(ORB_ID(sensor_combined));
+	/* subscribe to vehicle_acceleration topic */
+	int sensor_sub_fd = orb_subscribe(ORB_ID(vehicle_acceleration));
 	/* limit the update rate to 5 Hz */
 	orb_set_interval(sensor_sub_fd, 200);
 
@@ -499,20 +495,20 @@ int px4_simple_app_main(int argc, char *argv[])
 
 			if (fds[0].revents & POLLIN) {
 				/* obtained data for the first file descriptor */
-				struct sensor_combined_s raw;
+				struct vehicle_acceleration_s accel;
 				/* copy sensors raw data into local buffer */
-				orb_copy(ORB_ID(sensor_combined), sensor_sub_fd, &raw);
+				orb_copy(ORB_ID(vehicle_acceleration), sensor_sub_fd, &accel);
 				PX4_INFO("Accelerometer:\t%8.4f\t%8.4f\t%8.4f",
-					 (double)raw.accelerometer_m_s2[0],
-					 (double)raw.accelerometer_m_s2[1],
-					 (double)raw.accelerometer_m_s2[2]);
+					 (double)accel.xyz[0],
+					 (double)accel.xyz[1],
+					 (double)accel.xyz[2]);
 
 				/* set att and publish this information for other apps
 				 the following does not have any meaning, it's just an example
 				*/
-				att.q[0] = raw.accelerometer_m_s2[0];
-				att.q[1] = raw.accelerometer_m_s2[1];
-				att.q[2] = raw.accelerometer_m_s2[2];
+				att.q[0] = accel.xyz[0];
+				att.q[1] = accel.xyz[1];
+				att.q[2] = accel.xyz[2];
 
 				orb_publish(ORB_ID(vehicle_attitude), att_pub, &att);
 			}
