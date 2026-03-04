@@ -81,7 +81,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 
 	if (_vtol_type == nullptr) {
 		PX4_ERR("vtol type allocation failed");
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -310,7 +310,7 @@ VtolAttitudeControl::Run()
 
 	if (_vtol_type == nullptr) {
 		PX4_ERR("vtol type unavailable");
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
