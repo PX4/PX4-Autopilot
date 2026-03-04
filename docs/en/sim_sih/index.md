@@ -32,7 +32,7 @@ The Desktop computer is only used to display the virtual vehicle.
 
 ### Benefits
 
-SIH provides several benefits over HITL:
+SIH provides several benefits over standard HITL:
 
 - It ensures synchronous timing by avoiding the bidirectional connection to the computer.
   As a result the user does not need such a powerful desktop computer.
@@ -40,6 +40,7 @@ SIH provides several benefits over HITL:
   Developers who are familiar with PX4 can more easily incorporate their own mathematical model into the simulator.
   They can, for instance, modify the aerodynamic model, or noise level of the sensors, or even add a sensor to be simulated.
 - The physical parameters representing the vehicle (such as mass, inertia, and maximum thrust force) can easily be modified from the [SIH parameters](../advanced_config/parameter_reference.md#simulation-in-hardware).
+- Since PX4 v1.17, the propeller model for the aircraft, tailsitter and VTOL pusher is based on [UIUC propeller data site]([url](https://m-selig.ae.illinois.edu/props/propDB.html)). The maximum thrust force is therefore realistically reduced as the aircraft speed is increased.
 
 ## Requirements
 
