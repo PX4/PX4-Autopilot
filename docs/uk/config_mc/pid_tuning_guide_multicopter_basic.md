@@ -140,7 +140,6 @@ Make sure to have assigned a [Kill switch](../config/safety.md#emergency-switche
 13. Повторіть процес налаштування контролера нахилу для всіх осей.
 
 14. Повторіть процес налаштування контролерів швидкості та позицій (на всіх осях).
-
     - Використовуйте режим позиції при налаштуванні цих контролерів
     - Select the **Simple position control** option in the _Position control mode ..._ selector (this allows direct control for the generation of step inputs)
 

@@ -19,27 +19,28 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    container:
+      image: px4io/px4-dev:v1.16.0-rc1-258-g0369abd556
+
     strategy:
       matrix:
-        config: [
-          px4_fmu-v5_default,
-          ]
+        config:
+          - px4_fmu-v5_default
 
     steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Build PX4 and Run Test [${{ matrix.config }}]
-      uses: addnab/docker-run-action@v3
-      with:
-        image: px4io/px4-dev:v1.16.0-rc1-258-g0369abd556
-        options: -v ${{ github.workspace }}:/workspace
+      - name: Build PX4 and Run Test [${{ matrix.config }}]
         run: |
-          cd /workspace
-          git config --global --add safe.directory /workspace
-          export PX4_EXTRA_NUTTX_CONFIG="CONFIG_NSH_LOGIN_PASSWORD=\"test\";CONFIG_NSH_CONSOLE_LOGIN=y"
+          cd "$GITHUB_WORKSPACE"
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          export PX4_EXTRA_NUTTX_CONFIG='CONFIG_NSH_LOGIN_PASSWORD="test";CONFIG_NSH_CONSOLE_LOGIN=y'
           echo "PX4_EXTRA_NUTTX_CONFIG: $PX4_EXTRA_NUTTX_CONFIG"
+
           make ${{ matrix.config }} nuttx_context
+
           echo "Check that the config option is set"
           grep CONFIG_NSH_LOGIN_PASSWORD build/${{ matrix.config }}/NuttX/nuttx/.config

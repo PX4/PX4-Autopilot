@@ -44,6 +44,8 @@
 #include "Roboclaw.hpp"
 #include <termios.h>
 
+ModuleBase::Descriptor Roboclaw::desc{task_spawn, custom_command, print_usage};
+
 Roboclaw::Roboclaw(const char *device_name, const char *bad_rate_parameter) :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default)
 {
@@ -170,7 +172,7 @@ void Roboclaw::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		_mixing_output.unregister();
 		return;
 	}
@@ -476,8 +478,8 @@ int Roboclaw::task_spawn(int argc, char *argv[])
 	Roboclaw *instance = new Roboclaw(device_name, baud_rate_parameter_value);
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 		instance->ScheduleNow();
 		return OK;
 
@@ -486,8 +488,8 @@ int Roboclaw::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	printf("Ending task_spawn");
 
@@ -535,5 +537,5 @@ int Roboclaw::print_status()
 
 extern "C" __EXPORT int roboclaw_main(int argc, char *argv[])
 {
-	return Roboclaw::main(argc, argv);
+	return ModuleBase::main(Roboclaw::desc, argc, argv);
 }

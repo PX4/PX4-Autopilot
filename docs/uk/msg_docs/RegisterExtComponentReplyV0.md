@@ -1,6 +1,37 @@
+---
+pageClass: is-wide-page
+---
+
 # RegisterExtComponentReplyV0 (UORB message)
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/px4_msgs_old/msg/RegisterExtComponentReplyV0.msg)
+**TOPICS:** register_extcomponent_replyv0
+
+## Fields
+
+| Назва                                                                               | Тип        | Unit [Frame] | Range/Enum | Опис                                                            |
+| ----------------------------------------------------------------------------------- | ---------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------------- |
+| timestamp                                                                           | `uint64`   |                                                                  |            | time since system start (microseconds)       |
+| request_id                                                     | `uint64`   |                                                                  |            | ID from the request                                             |
+| name                                                                                | `char[25]` |                                                                  |            | name from the request                                           |
+| px4_ros2_api_version | `uint16`   |                                                                  |            |                                                                 |
+| success                                                                             | `bool`     |                                                                  |            |                                                                 |
+| arming_check_id                           | `int8`     |                                                                  |            | arming check registration ID (-1 if invalid) |
+| mode_id                                                        | `int8`     |                                                                  |            | assigned mode ID (-1 if invalid)             |
+| mode_executor_id                          | `int8`     |                                                                  |            | assigned mode executor ID (-1 if invalid)    |
+
+## Constants
+
+| Назва                                                                                       | Тип      | Значення | Опис |
+| ------------------------------------------------------------------------------------------- | -------- | -------- | ---- |
+| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION                        | `uint32` | 0        |      |
+| <a href="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH | `uint8`  | 2        |      |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/px4_msgs_old/msg/RegisterExtComponentReplyV0.msg)
+
+:::details
+Click here to see original file
 
 ```c
 uint32 MESSAGE_VERSION = 0
@@ -18,5 +49,6 @@ int8 mode_id              # assigned mode ID (-1 if invalid)
 int8 mode_executor_id     # assigned mode executor ID (-1 if invalid)
 
 uint8 ORB_QUEUE_LENGTH = 2
-
 ```
+
+:::

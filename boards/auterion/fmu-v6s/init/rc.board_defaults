@@ -34,5 +34,8 @@ nshterm /dev/ttyS3 &
 # Start the time_persistor to cyclically store the RTC in FRAM
 time_persistor start
 
+# Start the task_watchdog as we do not have the logger watchdog
+task_watchdog start
+
 # Start the ESC telemetry
 dshot telemetry -d /dev/ttyS5 -x

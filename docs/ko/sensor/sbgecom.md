@@ -82,9 +82,7 @@ To use the sbgECom driver:
    In this case, MAVLink messages will be updated with the newly selected sensor.
 
    If you don't want to have this fallback mechanism, you must disable unwanted sensors.
-
-:::
-   4. If using the sbgECom as an INS, disable EKF2 using [EKF2_EN](../advanced_config/parameter_reference.md#EKF2_EN).
+   ::: 4. If using the sbgECom as an INS, disable EKF2 using [EKF2_EN](../advanced_config/parameter_reference.md#EKF2_EN).
 
 6. Restart PX4.
 

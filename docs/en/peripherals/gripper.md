@@ -72,7 +72,6 @@ To set the actuation timeout:
 
    There are two easy ways to open and close the gripper.
    While the drone is on a bench and the propellers are removed:
-
    - Run the `payload_deliverer` test in the QGC [MAVLink Shell](../debug/mavlink_shell.md):
 
      ```sh

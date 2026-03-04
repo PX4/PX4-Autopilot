@@ -90,6 +90,9 @@ jobs:
         mkdir -p /opt/px4_ws/src
         cd /opt/px4_ws/src
         git clone --recursive https://github.com/Auterion/px4-ros2-interface-lib.git
+        # Ignore python packages due to compilation issue (can be enabled when updating ROS)
+        touch px4-ros2-interface-lib/px4_ros2_py/COLCON_IGNORE || true
+        touch px4-ros2-interface-lib/examples/python/COLCON_IGNORE || true
         cd ..
         # Copy messages to ROS workspace
         "${PX4_DIR}/Tools/copy_to_ros_ws.sh" "$(pwd)"

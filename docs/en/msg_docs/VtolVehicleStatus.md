@@ -1,8 +1,37 @@
+---
+pageClass: is-wide-page
+---
+
 # VtolVehicleStatus (UORB message)
 
-VEHICLE_VTOL_STATE, should match 1:1 MAVLinks's MAV_VTOL_STATE
+VEHICLE_VTOL_STATE, should match 1:1 MAVLinks's MAV_VTOL_STATE.
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VtolVehicleStatus.msg)
+**TOPICS:** vtol_vehicle_status
+
+## Fields
+
+| Name                      | Type     | Unit [Frame] | Range/Enum | Description                                                           |
+| ------------------------- | -------- | ------------ | ---------- | --------------------------------------------------------------------- |
+| timestamp                 | `uint64` |              |            | time since system start (microseconds)                                |
+| vehicle_vtol_state        | `uint8`  |              |            | current state of the vtol, see VEHICLE_VTOL_STATE                     |
+| fixed_wing_system_failure | `bool`   |              |            | vehicle in fixed-wing system failure failsafe mode (after quad-chute) |
+
+## Constants
+
+| Name                                                                                  | Type     | Value | Description |
+| ------------------------------------------------------------------------------------- | -------- | ----- | ----------- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                         | `uint32` | 0     |
+| <a id="#VEHICLE_VTOL_STATE_UNDEFINED"></a> VEHICLE_VTOL_STATE_UNDEFINED               | `uint8`  | 0     |
+| <a id="#VEHICLE_VTOL_STATE_TRANSITION_TO_FW"></a> VEHICLE_VTOL_STATE_TRANSITION_TO_FW | `uint8`  | 1     |
+| <a id="#VEHICLE_VTOL_STATE_TRANSITION_TO_MC"></a> VEHICLE_VTOL_STATE_TRANSITION_TO_MC | `uint8`  | 2     |
+| <a id="#VEHICLE_VTOL_STATE_MC"></a> VEHICLE_VTOL_STATE_MC                             | `uint8`  | 3     |
+| <a id="#VEHICLE_VTOL_STATE_FW"></a> VEHICLE_VTOL_STATE_FW                             | `uint8`  | 4     |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VtolVehicleStatus.msg)
+
+::: details Click here to see original file
 
 ```c
 # VEHICLE_VTOL_STATE, should match 1:1 MAVLinks's MAV_VTOL_STATE
@@ -20,5 +49,6 @@ uint64 timestamp			# time since system start (microseconds)
 uint8 vehicle_vtol_state		# current state of the vtol, see VEHICLE_VTOL_STATE
 
 bool fixed_wing_system_failure		# vehicle in fixed-wing system failure failsafe mode (after quad-chute)
-
 ```
+
+:::

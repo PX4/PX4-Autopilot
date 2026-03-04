@@ -7,15 +7,20 @@ Support for rover is [experimental](../airframes/index.md#experimental-vehicles)
 Maintainer volunteers, [contribution](../contribute/index.md) of new features, new frame configurations, or other improvements would all be very welcome!
 :::
 
+::: tip
+Rover is not in the default PX4 firmware downloaded from QGC.
+Unlike for other vehicle types you will need to install it as custom firmware.
+For more information see [Flashing the Rover Build](../config_rover/index.md#flashing-the-rover-build).
+:::
+
 ![Rovers](../../assets/airframes/rover/rovers.png)
 
-
 PX4 provides support for the three most common types of rovers:
-| Rover Type                        | Steering                                                                                                                                                      |
+| Rover Type | Steering |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [**Ackermann**](#ackermann)       | Direction is controlled by pointing wheels in the direction of travel. This kind of steering is used on most commercial vehicles, including cars, trucks etc. |
-| [**Differential**](#differential) | Direction is controlled by moving the left- and right-side wheels at different speeds.                                                                        |
-| [**Mecanum**](#mecanum)           | Direction is controlled by moving each mecanum wheel individually at different speeds and in different directions.                                            |
+| [**Ackermann**](#ackermann) | Direction is controlled by pointing wheels in the direction of travel. This kind of steering is used on most commercial vehicles, including cars, trucks etc. |
+| [**Differential**](#differential) | Direction is controlled by moving the left- and right-side wheels at different speeds. |
+| [**Mecanum**](#mecanum) | Direction is controlled by moving each mecanum wheel individually at different speeds and in different directions. |
 
 The supported frames can be seen in [Airframes Reference > Rover](../airframes/airframe_reference.md#rover).
 

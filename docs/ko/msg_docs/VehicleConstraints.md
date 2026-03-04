@@ -1,9 +1,28 @@
+---
+pageClass: is-wide-page
+---
+
 # VehicleConstraints (UORB message)
 
-Local setpoint constraints in NED frame
-setting something to NaN means that no limit is provided
+Local setpoint constraints in NED frame. setting something to NaN means that no limit is provided.
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/VehicleConstraints.msg)
+**TOPICS:** vehicle_constraints
+
+## Fields
+
+| 명칭                                | 형식        | Unit [Frame] | Range/Enum | 설명                                                                                             |
+| --------------------------------- | --------- | ---------------------------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------- |
+| timestamp                         | `uint64`  |                                                                  |            | time since system start (microseconds)                                      |
+| speed_up     | `float32` |                                                                  |            | in meters/sec                                                                                  |
+| speed_down   | `float32` |                                                                  |            | in meters/sec                                                                                  |
+| want_takeoff | `bool`    |                                                                  |            | tell the controller to initiate takeoff when idling (ignored during flight) |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/VehicleConstraints.msg)
+
+:::details
+Click here to see original file
 
 ```c
 # Local setpoint constraints in NED frame
@@ -15,5 +34,6 @@ float32 speed_up # in meters/sec
 float32 speed_down # in meters/sec
 
 bool want_takeoff # tell the controller to initiate takeoff when idling (ignored during flight)
-
 ```
+
+:::

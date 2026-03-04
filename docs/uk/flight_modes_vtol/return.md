@@ -49,7 +49,6 @@ VTOL підтримує [інші типи повернення PX4](../flight_m
   Місійний маршрут посадки для літального апарату типу VTOL складається з [MAV_CMD_DO_LAND_START](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_LAND_START), однієї або кількох маршрутних точок розташування та [MAV_CMD_NAV_VTOL_LAND](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_VTOL_LAND).
 
 - Якщо призначенням є точка збору або домашня локація, апарат:
-
   - Переводиться в режим ожидання/спірального спуску на висоту [RTL_DESCEND_ALT](#RTL_DESCEND_ALT).
   - Кружляє протягом короткого часу, визначеного [RTL_LAND_DELAY](#RTL_LAND_DELAY).
   - Повертається по напрямку до призначення (центр кругового руху).

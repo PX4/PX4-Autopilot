@@ -79,6 +79,8 @@ enum class Register : uint8_t {
 	CNTL2           = 0x0B, // Control Register 2
 
 	CHIP_ID         = 0x00,
+
+	REG_29 = 0x29,
 };
 
 // STATUS
@@ -90,11 +92,11 @@ enum STATUS_BIT : uint8_t {
 // CNTL1
 enum CNTL1_BIT : uint8_t {
 	// OSR2[7:6]
-	OSR2_8          =  Bit7 | Bit6, // 00
+	OSR2_4          =  Bit7, // 10
 	// OSR1[5:4]
 	OSR1_8          =  Bit5 | Bit4, // 11
 	// ODR[3:2]
-	ODR_50HZ        =  Bit2,        // 01
+	ODR_200HZ        =  Bit3 | Bit2, // 11
 	// MODE[1:0]
 	MODE_CONTINUOUS = Bit1 | Bit0,  // 11
 };

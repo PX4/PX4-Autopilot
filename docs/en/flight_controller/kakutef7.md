@@ -2,11 +2,11 @@
 
 <Badge type="info" text="Discontinued" />
 
-:::warning
+::: warning
 This frame has been [discontinued](../flight_controller/autopilot_experimental.md) and is no longer commercially available.
 :::
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://holybro.com/) for hardware support or compliance issues.
 :::
@@ -34,13 +34,13 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - 6 PWM outputs
 - Built-in OSD chip (AB7456 via SPI)
 
-## Where to Buy
+## Where to Buy {#store}
 
 The board can be bought from one of the following shops (for example):
 
 - [getfpv](https://www.getfpv.com/holybro-kakute-f7-tekko32-f3-metal-65a-4-in-1-esc-combo.html)
 
-:::tip
+::: tip
 The _Kakute F7_ is designed to work with the _Tekko32_ 4-in-1 ESC and they can be bought in combination.
 :::
 
@@ -84,7 +84,7 @@ Download the [kakutef7_bl.hex](https://github.com/PX4/PX4-Autopilot/raw/main/doc
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make holybro_kakutef7_default
 ```
 
@@ -93,7 +93,7 @@ make holybro_kakutef7_default
 The firmware can be installed in any of the normal ways:
 
 - Build and upload the source
-  ```
+  ```sh
   make holybro_kakutef7_default upload
   ```
 - [Load the firmware](../config/firmware.md) using _QGroundControl_.

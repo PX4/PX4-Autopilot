@@ -335,7 +335,7 @@ The configuration can be done using the [UXRCE-DDS parameters](../advanced_confi
   - [UXRCE_DDS_NS_IDX](../advanced_config/parameter_reference.md#UXRCE_DDS_NS_IDX) <Badge type="tip" text="PX4 v1.17" />: Index-based namespace definition.
     Setting this parameter to any value other than `-1` creates a namespace with the prefix `uav_` and the specified value, e.g. `uav_0`, `uav_1`, etc.
     See [namespace](#customizing-the-namespace) for methods to define richer or arbitrary namespaces.
-  - [`UXRCE_DDS_FLCTRL`](../advanced_config/parameter_reference.md#UXRCE_DDS_FLCTRL) <Badge type="tip" text="PX4 main" />: Serial port hardware flow control enable.
+  - [`UXRCE_DDS_FLCTRL`](../advanced_config/parameter_reference.md#UXRCE_DDS_FLCTRL) <Badge type="tip" text="main (planned for: PX4 v1.18)" />: Serial port hardware flow control enable.
     To use hardware flow control, a custom MicroXRCE Agent needs to be adopted. Please refer to [this PR](https://github.com/eProsima/Micro-XRCE-DDS-Agent/pull/407) for the required changes, cherry-pick them on top of the [agent version](#build-run-within-ros-2-workspace) you need to use and then run the agent with the additional `--flow-control` option.
 
 :::info

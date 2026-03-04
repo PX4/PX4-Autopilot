@@ -47,7 +47,7 @@ In _QGroundControl_:
 3. Start the [batt_smbus driver](../modules/modules_driver.md) in the console.
    For example, to run two BatMons on the same bus:
    ```sh
-   batt_smbus start -X -b 1 -a 11 # External bus 1, address 0x0b  
+   batt_smbus start -X -b 1 -a 11 # External bus 1, address 0x0b
    batt_smbus start -X -b 1 -a 12 # External bus 1, address 0x0c
    ```
 

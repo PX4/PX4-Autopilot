@@ -7,7 +7,7 @@ const { site } = useData();
 
 <div v-if="site.title !== 'PX4 Guide (main)'">
   <div class="custom-block danger">
-    <p class="custom-block-title">This page may be out out of date. <a href="https://docs.px4.io/main/en/test_and_ci/test_flights.html">See the latest version</a>.</p>
+    <p class="custom-block-title">This page may be out out of date. <a href="https://docs.px4.io/main/en/test_and_ci/test_flights">See the latest version</a>.</p>
   </div>
 </div>
 

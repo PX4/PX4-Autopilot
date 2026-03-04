@@ -1,8 +1,45 @@
+---
+pageClass: is-wide-page
+---
+
 # GpioConfig (повідомлення UORB)
 
-Конфігурація GPIO
+GPIO configuration.
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/GpioConfig.msg)
+**TOPICS:** gpio_config
+
+## Fields
+
+| Назва                          | Тип      | Unit [Frame] | Range/Enum | Опис                                                      |
+| ------------------------------ | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| timestamp                      | `uint64` |                                                                  |            | time since system start (microseconds) |
+| device_id | `uint32` |                                                                  |            | Device id                                                 |
+| mask                           | `uint32` |                                                                  |            | Pin mask                                                  |
+| state                          | `uint32` |                                                                  |            | Initial pin output state                                  |
+| config                         | `uint32` |                                                                  |            |                                                           |
+
+## Constants
+
+| Назва                                                                                                      | Тип      | Значення | Опис   |
+| ---------------------------------------------------------------------------------------------------------- | -------- | -------- | ------ |
+| <a href="#INPUT			"></a> INPUT                                                                             | `uint32` | 0        | 0x0000 |
+| <a href="#OUTPUT			"></a> OUTPUT                                                                           | `uint32` | 1        | 0x0001 |
+| <a href="#PULLUP			"></a> PULLUP                                                                           | `uint32` | 16       | 0x0010 |
+| <a href="#PULLDOWN			"></a> PULLDOWN                                                                       | `uint32` | 32       | 0x0020 |
+| <a href="#OPENDRAIN		"></a> OPENDRAIN                                                                      | `uint32` | 256      | 0x0100 |
+| <a href="#INPUT_FLOATING		"></a> INPUT_FLOATING                                       | `uint32` | 0        | 0x0000 |
+| <a href="#INPUT_PULLUP		"></a> INPUT_PULLUP                                           | `uint32` | 16       | 0x0010 |
+| <a href="#INPUT_PULLDOWN		"></a> INPUT_PULLDOWN                                       | `uint32` | 32       | 0x0020 |
+| <a href="#OUTPUT_PUSHPULL		"></a> OUTPUT_PUSHPULL                                     | `uint32` | 0        | 0x0000 |
+| <a href="#OUTPUT_OPENDRAIN		"></a> OUTPUT_OPENDRAIN                                   | `uint32` | 256      | 0x0100 |
+| <a href="#OUTPUT_OPENDRAIN_PULLUP	"></a> OUTPUT_OPENDRAIN_PULLUP | `uint32` | 272      | 0x0110 |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/GpioConfig.msg)
+
+:::details
+Click here to see original file
 
 ```c
 # GPIO configuration
@@ -33,5 +70,6 @@ uint32 OUTPUT_OPENDRAIN		= 256	# 0x0100
 uint32 OUTPUT_OPENDRAIN_PULLUP	= 272	# 0x0110
 
 uint32 config
-
 ```
+
+:::

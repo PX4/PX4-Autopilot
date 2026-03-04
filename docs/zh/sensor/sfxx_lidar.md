@@ -1,4 +1,4 @@
-# LightWare Lidar (SF1X/SF02/LW20/SF45)
+# LightWare Lidar (SF1X/SF02/LW20/SF45/GRF250/GRF500)
 
 LightWare develops a range of light-weight, general purpose, laser altimeters ("Lidar") suitable for mounting on UAVs.
 These are useful for applications including terrain following, precision hovering (e.g. for photography), warning of regulatory height limits, anti-collision sensing etc.
@@ -15,6 +15,8 @@ The following models are supported by PX4, and can be connected to either the I2
 | [LW20/C](https://lightware.co.za/products/lw20-c-100-m) | 100                          | I2C bus           | Waterproofed (IP67) with servo for sense-and-avoid applications                            |
 | [SF30/D](https://lightwarelidar.com/shop/sf30-d-200-m/) | 200                          | I2C bus           | Waterproofed (IP67)                                                                        |
 | [SF45/B](../sensor/sf45_rotating_lidar.md)              | 50                           | Serial            | Rotary Lidar (Used for [Collision Prevention](../computer_vision/collision_prevention.md)) |
+| [GRF250](https://lightwarelidar.com/shop/grf-250/)      | 250                          | I2C               | Gimbal Range Finder                                                                                           |
+| [GRF500](https://lightwarelidar.com/shop/grf-500/)      | 500                          | I2C               | Gimbal Range Finder                                                                                           |
 
 :::details
 Discontinued

@@ -6,7 +6,7 @@ Pixhawk is the reference hardware platform for PX4, and runs PX4 on the [NuttX](
 
 Manufacturers have created many different boards based on the open designs, with form factors that are optimised for applications from cargo carrying though to first person view (FPV) racers.
 
-:::tip
+::: tip
 For computationally intensive tasks (e.g. computer vision) you will need a separate companion computer (e.g. [Raspberry Pi 2/3 Navio2](../flight_controller/raspberry_pi_navio2.md)) or a platform with an integrated companion solution.
 :::
 
@@ -102,21 +102,21 @@ At very high level, the main differences are:
 
 ### FMUv6 Comparison
 
-| Feature            | **FMUv6X-RT**         | **FMUv6X**        | **FMUv6C**        |
-| ------------------ | --------------------- | ----------------- | ------------------ |
-| **FMU MCU**        | NXP i.MX RT1176       | STM32H753         | STM32H743V         |
-| **RAM**            | 2 MB                  | 1 MB              | 1 MB               |
-| **Flash**          | 64 MB Octal SPI       | 2 MB internal     | 2 MB internal      |
-| **IO MCU**         | STM32F103             | STM32F103         | STM32F103          |
-| **Secure Element** | NXP SE051             | NXP SE051         | Not supported      |
-| **PAB Standard**   | Supported             | Supported         | Not supported      |
-| **Ethernet**       | Supported             | Supported         | Not supported      |
-| **IMUs**           | 3×                    | 3×                | 2×                 |
-| **Barometers**     | 2×                    | 2×                | 1×                 |
-| **Magnetometer**   | 1×                    | 1×                | 1×                 |
-| **FMU PWM**        | 12×                   | 8×                | 8×                 |
-| **IO PWM**         | 8×                    | 8×                | 8×                 |
-| **CAN Bus**        | 3×                    | 2×                | 2×                 |
+| Feature            | **FMUv6X-RT**   | **FMUv6X**    | **FMUv6C**    |
+| ------------------ | --------------- | ------------- | ------------- |
+| **FMU MCU**        | NXP i.MX RT1176 | STM32H753     | STM32H743V    |
+| **RAM**            | 2 MB            | 1 MB          | 1 MB          |
+| **Flash**          | 64 MB Octal SPI | 2 MB internal | 2 MB internal |
+| **IO MCU**         | STM32F103       | STM32F103     | STM32F103     |
+| **Secure Element** | NXP SE051       | NXP SE051     | Not supported |
+| **PAB Standard**   | Supported       | Supported     | Not supported |
+| **Ethernet**       | Supported       | Supported     | Not supported |
+| **IMUs**           | 3×              | 3×            | 2×            |
+| **Barometers**     | 2×              | 2×            | 1×            |
+| **Magnetometer**   | 1×              | 1×            | 1×            |
+| **FMU PWM**        | 12×             | 8×            | 8×            |
+| **IO PWM**         | 8×              | 8×            | 8×            |
+| **CAN Bus**        | 3×              | 2×            | 2×            |
 
 ### Licensing and Trademarks
 
@@ -135,7 +135,7 @@ Products that are based on independently created schematics are considered origi
 Product names/brands can also be trademarked.
 Trademarked names may not be used without the permission of the owner.
 
-:::tip
+::: tip
 _Pixhawk_ is a trademark, and cannot be used in product names without permission.
 :::
 

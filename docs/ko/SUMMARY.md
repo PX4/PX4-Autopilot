@@ -93,6 +93,7 @@
     - [후방 이동 튜닝](config_vtol/vtol_back_transition_tuning.md)
     - [항속 센서 미장착 VTOL](config_vtol/vtol_without_airspeed_sensor.md)
     - [VTOL 날씨 풍향](config_vtol/vtol_weathervane.md)
+    - [VTOL Ice Shedding](config_vtol/vtol_ice_shedding.md)
   - [비행 모드 ](flight_modes_vtol/index.md)
     - [Mission Mode (VTOL)](flight_modes_vtol/mission.md)
     - [Return Mode (VTOL)](flight_modes_vtol/return.md)
@@ -178,6 +179,7 @@
       - [CubePilot Cube Orange (CubePilot)](flight_controller/cubepilot_cube_orange.md)
       - [CubePilot Cube Yellow (CubePilot)](flight_controller/cubepilot_cube_yellow.md)
         - [Cube 배선 퀵 스타트](assembly/quick_start_cube.md)
+      - [Gear Up AirBrainH743](flight_controller/gearup_airbrainh743.md)
       - [Holybro Kakute H7v2](flight_controller/kakuteh7v2.md)
       - [Holybro Kakute H7mini](flight_controller/kakuteh7mini.md)
       - [Holybro Kakute H7](flight_controller/kakuteh7.md)
@@ -254,7 +256,7 @@
       - [Benewake TFmini 라이다](sensor/tfmini.md)
       - [LeddarOne 라이다](sensor/leddar_one.md)
       - [Lidar-Lite](sensor/lidar_lite.md)
-      - [Lightware Lidars (SF/LW)](sensor/sfxx_lidar.md)
+      - [Lightware Lidars (SF/LW/GRF)](sensor/sfxx_lidar.md)
         - [Lightware SF45 Rotary Lidar](sensor/sf45_rotating_lidar.md)
       - [TeraRanger ](sensor/teraranger.md)
       - [✘ Lanbao PSK-CM8JL65-CC5](sensor/cm8jl65_ir_distance_sensor.md)
@@ -360,6 +362,8 @@
     - [TBS Crossfire (CRSF) Telemetry](telemetry/crsf_telemetry.md)
 
     - [Satellite Comms (Iridium/RockBlock)](advanced_features/satcom_roadblock.md)
+
+    - [Analog Video Transmitters](vtx/index.md)
 
   - [Power Systems](power_systems/index.md)
     - [Battery Estimation Tuning](config/battery.md)
@@ -929,6 +933,7 @@
   - [라이센스](contribute/licenses.md)
 
 - [출시](releases/index.md)
+  - [Release Process](releases/release_process.md)
   - [main (alpha)](releases/main.md)
   - [1.17 (alpha)](releases/1.17.md)
   - [1.16 (stable)](releases/1.16.md)

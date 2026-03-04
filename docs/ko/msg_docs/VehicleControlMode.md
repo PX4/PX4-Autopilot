@@ -1,6 +1,44 @@
+---
+pageClass: is-wide-page
+---
+
 # VehicleControlMode (UORB message)
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleControlMode.msg)
+**TOPICS:** vehicle_control_mode config_control_setpoints
+
+## Fields
+
+| 명칭                                                                                                                            | 형식       | Unit [Frame] | Range/Enum | 설명                                                                               |
+| ----------------------------------------------------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------- |
+| timestamp                                                                                                                     | `uint64` |                                                                  |            | time since system start (microseconds)                        |
+| flag_armed                                                                                               | `bool`   |                                                                  |            | synonym for actuator_armed.armed            |
+| flag_multicopter_position_control_enabled | `bool`   |                                                                  |            |                                                                                  |
+| flag_control_manual_enabled                                    | `bool`   |                                                                  |            | true if manual input is mixed in                                                 |
+| flag_control_auto_enabled                                      | `bool`   |                                                                  |            | true if onboard autopilot should act                                             |
+| flag_control_offboard_enabled                                  | `bool`   |                                                                  |            | true if offboard control should be used                                          |
+| flag_control_position_enabled                                  | `bool`   |                                                                  |            | true if position is controlled                                                   |
+| flag_control_velocity_enabled                                  | `bool`   |                                                                  |            | true if horizontal velocity (implies direction) is controlled |
+| flag_control_altitude_enabled                                  | `bool`   |                                                                  |            | true if altitude is controlled                                                   |
+| flag_control_climb_rate_enabled           | `bool`   |                                                                  |            | true if climb rate is controlled                                                 |
+| flag_control_acceleration_enabled                              | `bool`   |                                                                  |            | true if acceleration is controlled                                               |
+| flag_control_attitude_enabled                                  | `bool`   |                                                                  |            | true if attitude stabilization is mixed in                                       |
+| flag_control_rates_enabled                                     | `bool`   |                                                                  |            | true if rates are stabilized                                                     |
+| flag_control_allocation_enabled                                | `bool`   |                                                                  |            | true if control allocation is enabled                                            |
+| flag_control_termination_enabled                               | `bool`   |                                                                  |            | true if flighttermination is enabled                                             |
+| source_id                                                                                                | `uint8`  |                                                                  |            | Mode ID (nav_state)                      |
+
+## Constants
+
+| 명칭                                                                   | 형식       | Value | 설명 |
+| -------------------------------------------------------------------- | -------- | ----- | -- |
+| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 0     |    |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleControlMode.msg)
+
+:::details
+Click here to see original file
 
 ```c
 uint32 MESSAGE_VERSION = 0
@@ -27,5 +65,6 @@ bool flag_control_termination_enabled		# true if flighttermination is enabled
 uint8 source_id                  # Mode ID (nav_state)
 
 # TOPICS vehicle_control_mode config_control_setpoints
-
 ```
+
+:::

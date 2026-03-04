@@ -140,7 +140,6 @@ Make sure to have assigned a [Kill switch](../config/safety.md#emergency-switche
 13. 모든 축에서 자세 콘트롤러에 대하여 튜닝 프로세스를 반복하십시오.
 
 14. Repeat the tuning process for the velocity and positions controllers (on all the axes).
-
     - Use Position mode when tuning these controllers
     - Select the **Simple position control** option in the _Position control mode ..._ selector (this allows direct control for the generation of step inputs)
 

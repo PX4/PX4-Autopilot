@@ -1,11 +1,38 @@
+---
+pageClass: is-wide-page
+---
+
 # Ekf2Timestamps (повідомлення UORB)
 
-це повідомлення містить (відносні) відмітки часу введення датчиків, які використовує EKF2.
-Це може бути використано для відтворення.
+це повідомлення містить (відносні) відмітки часу введення датчиків, які використовує EKF2. Це може бути використано для відтворення.
 
-поле мітки часу - це посилання на час ekf2 і відповідає мітці часу теми sensor_combined.
+**TOPICS:** ekf2_timestamps
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/Ekf2Timestamps.msg)
+## Fields
+
+| Назва                                                                                                              | Тип      | Unit [Frame] | Range/Enum | Опис                                                      |
+| ------------------------------------------------------------------------------------------------------------------ | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| timestamp                                                                                                          | `uint64` |                                                                  |            | time since system start (microseconds) |
+| airspeed_timestamp_rel                                                   | `int16`  |                                                                  |            |                                                           |
+| airspeed_validated_timestamp_rel                    | `int16`  |                                                                  |            |                                                           |
+| distance_sensor_timestamp_rel                       | `int16`  |                                                                  |            |                                                           |
+| optical_flow_timestamp_rel                          | `int16`  |                                                                  |            |                                                           |
+| vehicle_air_data_timestamp_rel | `int16`  |                                                                  |            |                                                           |
+| vehicle_magnetometer_timestamp_rel                  | `int16`  |                                                                  |            |                                                           |
+| visual_odometry_timestamp_rel                       | `int16`  |                                                                  |            |                                                           |
+
+## Constants
+
+| Назва                                                                                                           | Тип     | Значення | Опис                                                          |
+| --------------------------------------------------------------------------------------------------------------- | ------- | -------- | ------------------------------------------------------------- |
+| <a href="#RELATIVE_TIMESTAMP_INVALID"></a> RELATIVE_TIMESTAMP_INVALID | `int16` | 32767    | (0x7fff) If one of the relative timestamps |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/Ekf2Timestamps.msg)
+
+:::details
+Click here to see original file
 
 ```c
 # this message contains the (relative) timestamps of the sensor inputs used by EKF2.
@@ -32,5 +59,6 @@ int16 vehicle_magnetometer_timestamp_rel
 int16 visual_odometry_timestamp_rel
 
 # Note: this is a high-rate logged topic, so it needs to be as small as possible
-
 ```
+
+:::

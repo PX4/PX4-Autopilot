@@ -106,7 +106,6 @@ The following ports are commonly mapped to specific functions on all boards:
 
   This is configured by default as a MAVLink port the onboard profile (for companion computers).
   The configuration for MAVLink is unique to this port (it doesn't use the `MAV_X_CONFIG` parameters).
-
   - [SYS_USB_AUTO](../advanced_config/parameter_reference.md#SYS_USB_AUTO) sets whether the port is set to no partiular protocol, autodetects the protocol, or sets the comms link to MAVLink.
   - [USB_MAV_MODE](../advanced_config/parameter_reference.md#USB_MAV_MODE) sets the MAVLink profile that is used if MAVLink is set or detected.
 

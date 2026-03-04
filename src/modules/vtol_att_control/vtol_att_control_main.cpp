@@ -54,6 +54,8 @@
 using namespace matrix;
 using namespace time_literals;
 
+ModuleBase::Descriptor VtolAttitudeControl::desc{task_spawn, custom_command, print_usage};
+
 VtolAttitudeControl::VtolAttitudeControl() :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
@@ -74,7 +76,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 		_vtol_type = new Standard(this);
 
 	} else {
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 	}
 
 	_flaps_setpoint_pub.advertise();
@@ -147,7 +149,7 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 
 			uint8_t result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
-			const int transition_command_param1 = int(vehicle_command.param1 + 0.5f);
+			const int transition_command_param1 = static_cast<int>(lround(vehicle_command.param1));
 
 			// deny transition from MC to FW in Takeoff, Land, RTL and Orbit
 			if (transition_command_param1 == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW &&
@@ -160,7 +162,7 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 
 			} else {
 				_transition_command = transition_command_param1;
-				_immediate_transition = (PX4_ISFINITE(vehicle_command.param2)) ? int(vehicle_command.param2 + 0.5f) : false;
+				_immediate_transition = (PX4_ISFINITE(vehicle_command.param2)) ? static_cast<int>(lround(vehicle_command.param2)) : false;
 
 				// reset fixed_wing_system_failure flag when a new transition to FW is triggered
 				if (_transition_command == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW) {
@@ -285,7 +287,7 @@ VtolAttitudeControl::Run()
 	if (should_exit()) {
 		_vehicle_torque_setpoint_virtual_fw_sub.unregisterCallback();
 		_vehicle_torque_setpoint_virtual_mc_sub.unregisterCallback();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -307,7 +309,7 @@ VtolAttitudeControl::Run()
 			_initialized = true;
 
 		} else {
-			exit_and_cleanup();
+			exit_and_cleanup(desc);
 			return;
 		}
 	}
@@ -500,8 +502,8 @@ VtolAttitudeControl::task_spawn(int argc, char *argv[])
 	VtolAttitudeControl *instance = new VtolAttitudeControl();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -512,8 +514,8 @@ VtolAttitudeControl::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -546,5 +548,5 @@ fw_att_control is the fixed wing attitude controller.
 
 int vtol_att_control_main(int argc, char *argv[])
 {
-	return VtolAttitudeControl::main(argc, argv);
+	return ModuleBase::main(VtolAttitudeControl::desc, argc, argv);
 }

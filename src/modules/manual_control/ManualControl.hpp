@@ -55,9 +55,11 @@
 
 using namespace time_literals;
 
-class ManualControl : public ModuleBase<ManualControl>, public ModuleParams, public px4::ScheduledWorkItem
+class ManualControl : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	ManualControl();
 	~ManualControl() override;
 
@@ -149,6 +151,7 @@ private:
 		(ParamBool<px4::params::MAN_ARM_GESTURE>) _param_man_arm_gesture,
 		(ParamFloat<px4::params::MAN_KILL_GEST_T>) _param_man_kill_gest_t,
 		(ParamBool<px4::params::COM_ARM_SWISBTN>) _param_com_arm_swisbtn,
+		(ParamInt<px4::params::RC_MAP_PAY_SW>) _param_rc_map_pay_sw,
 		(ParamInt<px4::params::COM_FLTMODE1>) _param_fltmode_1,
 		(ParamInt<px4::params::COM_FLTMODE2>) _param_fltmode_2,
 		(ParamInt<px4::params::COM_FLTMODE3>) _param_fltmode_3,

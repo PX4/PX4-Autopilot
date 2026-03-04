@@ -63,9 +63,11 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_magnetometer.h>
 
-class SbgEcom : public ModuleBase<SbgEcom>, public ModuleParams, public px4::ScheduledWorkItem
+class SbgEcom : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+
+	static Descriptor desc;
 
 	SbgEcom(const char *port, uint32_t baudrate, const char *config_file, const char *config_string);
 	~SbgEcom() override;

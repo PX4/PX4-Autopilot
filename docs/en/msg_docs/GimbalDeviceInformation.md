@@ -1,8 +1,54 @@
+---
+pageClass: is-wide-page
+---
+
 # GimbalDeviceInformation (UORB message)
 
+**TOPICS:** gimbal_device_information
 
+## Fields
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/GimbalDeviceInformation.msg)
+| Name             | Type        | Unit [Frame] | Range/Enum | Description                            |
+| ---------------- | ----------- | ------------ | ---------- | -------------------------------------- |
+| timestamp        | `uint64`    |              |            | time since system start (microseconds) |
+| vendor_name      | `uint8[32]` |              |            |
+| model_name       | `uint8[32]` |              |            |
+| custom_name      | `uint8[32]` |              |            |
+| firmware_version | `uint32`    |              |            |
+| hardware_version | `uint32`    |              |            |
+| uid              | `uint64`    |              |            |
+| cap_flags        | `uint16`    |              |            |
+| custom_cap_flags | `uint16`    |              |            |
+| roll_min         | `float32`   | rad          |            |
+| roll_max         | `float32`   | rad          |            |
+| pitch_min        | `float32`   | rad          |            |
+| pitch_max        | `float32`   | rad          |            |
+| yaw_min          | `float32`   | rad          |            |
+| yaw_max          | `float32`   | rad          |            |
+| gimbal_device_id | `uint8`     |              |            |
+
+## Constants
+
+| Name                                                                                                      | Type     | Value | Description |
+| --------------------------------------------------------------------------------------------------------- | -------- | ----- | ----------- |
+| <a id="#GIMBAL_DEVICE_CAP_FLAGS_HAS_RETRACT"></a> GIMBAL_DEVICE_CAP_FLAGS_HAS_RETRACT                     | `uint32` | 1     |
+| <a id="#GIMBAL_DEVICE_CAP_FLAGS_HAS_NEUTRAL"></a> GIMBAL_DEVICE_CAP_FLAGS_HAS_NEUTRAL                     | `uint32` | 2     |
+| <a id="#GIMBAL_DEVICE_CAP_FLAGS_HAS_ROLL_AXIS"></a> GIMBAL_DEVICE_CAP_FLAGS_HAS_ROLL_AXIS                 | `uint32` | 4     |
+| <a id="#GIMBAL_DEVICE_CAP_FLAGS_HAS_ROLL_FOLLOW"></a> GIMBAL_DEVICE_CAP_FLAGS_HAS_ROLL_FOLLOW             | `uint32` | 8     |
+| <a id="#GIMBAL_DEVICE_CAP_FLAGS_HAS_ROLL_LOCK"></a> GIMBAL_DEVICE_CAP_FLAGS_HAS_ROLL_LOCK                 | `uint32` | 16    |
+| <a id="#GIMBAL_DEVICE_CAP_FLAGS_HAS_PITCH_AXIS"></a> GIMBAL_DEVICE_CAP_FLAGS_HAS_PITCH_AXIS               | `uint32` | 32    |
+| <a id="#GIMBAL_DEVICE_CAP_FLAGS_HAS_PITCH_FOLLOW"></a> GIMBAL_DEVICE_CAP_FLAGS_HAS_PITCH_FOLLOW           | `uint32` | 64    |
+| <a id="#GIMBAL_DEVICE_CAP_FLAGS_HAS_PITCH_LOCK"></a> GIMBAL_DEVICE_CAP_FLAGS_HAS_PITCH_LOCK               | `uint32` | 128   |
+| <a id="#GIMBAL_DEVICE_CAP_FLAGS_HAS_YAW_AXIS"></a> GIMBAL_DEVICE_CAP_FLAGS_HAS_YAW_AXIS                   | `uint32` | 256   |
+| <a id="#GIMBAL_DEVICE_CAP_FLAGS_HAS_YAW_FOLLOW"></a> GIMBAL_DEVICE_CAP_FLAGS_HAS_YAW_FOLLOW               | `uint32` | 512   |
+| <a id="#GIMBAL_DEVICE_CAP_FLAGS_HAS_YAW_LOCK"></a> GIMBAL_DEVICE_CAP_FLAGS_HAS_YAW_LOCK                   | `uint32` | 1024  |
+| <a id="#GIMBAL_DEVICE_CAP_FLAGS_SUPPORTS_INFINITE_YAW"></a> GIMBAL_DEVICE_CAP_FLAGS_SUPPORTS_INFINITE_YAW | `uint32` | 2048  |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/GimbalDeviceInformation.msg)
+
+::: details Click here to see original file
 
 ```c
 uint64 timestamp						# time since system start (microseconds)
@@ -41,5 +87,6 @@ float32 yaw_min # [rad]
 float32 yaw_max # [rad]
 
 uint8 gimbal_device_id
-
 ```
+
+:::

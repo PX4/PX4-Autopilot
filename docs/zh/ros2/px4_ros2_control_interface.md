@@ -14,7 +14,7 @@ Experimental
 
 :::
 
-这[PX4 ROS 2接口库](../ros2/px4_ros2_interface_lib.md)是一个 C++ 库，可简化从 ROS 2 控制 PX4 的操作。
+The [PX4 ROS 2 Interface Library](../ros2/px4_ros2_interface_lib.md) is a C++ library (with Python bindings) that simplifies controlling PX4 from ROS 2.
 
 开发者可使用该库创建并动态注册以 ROS 2 编写的模式。
 这些模式会动态注册到 PX4 中，并且对于地面站或其他外部系统而言，它们看起来就像是 PX4 的一部分。
@@ -25,6 +25,12 @@ Experimental
 
 PX4 ROS 2 模式相较于 PX4 内部模式，更易于实现和维护，并且在处理能力与既有代码库资源方面，能为开发者提供更丰富的支持。
 除非该模式属于安全关键型、对时序有严格要求或需要极高的更新速率，或者你的飞行器没有搭载伴随计算机，否则你应优先[考虑使用 PX4 ROS 2 模式，而非 PX4 内部模式](../concept/flight_modes.md#internal-vs-external-modes)。
+
+:::tip
+If you want to use Python, check out the [examples in the repository](https://github.com/Auterion/px4-ros2-interface-lib/tree/main/examples/python).
+Not all classes have Python bindings yet — the [supported bindings are here](https://auterion.github.io/px4-ros2-interface-lib/python/index.html).
+You are welcome to add and contribute missing classes.
+:::
 
 ## 综述
 

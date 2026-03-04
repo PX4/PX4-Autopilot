@@ -129,6 +129,22 @@ public:
 
 	virtual int16_t send_message(const char *messageName, int32_t length, uint8_t *data) = 0;
 
+
+	//=========================================================================
+	//     INTERFACES FOR Lifecycle messages
+	//=========================================================================
+
+	/**
+	 * @brief Interface to notify the remote entity of a shutdown.
+	 *
+	 * @return
+	 * 	0 = success; This means the shutdown is successfully sent to the receiver
+	 * 		Note: This does not mean that the receiver has received it.
+	 *  otherwise = failure.
+	 */
+
+	virtual int16_t shutdown() { return 0; }
+
 };
 
 /**

@@ -13,7 +13,7 @@ At the time of writing, parts of the PX4 ROS 2 Control Interface are experimenta
 
 :::
 
-The [PX4 ROS 2 Interface Library](../ros2/px4_ros2_interface_lib.md) is a C++ library that simplifies controlling PX4 from ROS 2.
+The [PX4 ROS 2 Interface Library](../ros2/px4_ros2_interface_lib.md) is a C++ library (with Python bindings) that simplifies controlling PX4 from ROS 2.
 
 Developers use the library to create and dynamically register modes written using ROS 2.
 These modes are dynamically registered with PX4, and appear to be part of PX4 to a ground station or other external system.
@@ -24,6 +24,12 @@ These classes abstract the internal setpoints used by PX4, and that can therefor
 
 PX4 ROS 2 modes are easier to implement and maintain than PX4 internal modes, and provide more resources for developers in terms of processing power and pre-existing libraries.
 Unless the mode is safety-critical, requires strict timing or very high update rates, or your vehicle doesn't have a companion computer, you should [consider using PX4 ROS 2 modes in preference to PX4 internal modes](../concept/flight_modes.md#internal-vs-external-modes).
+
+::: tip
+If you want to use Python, check out the [examples in the repository](https://github.com/Auterion/px4-ros2-interface-lib/tree/main/examples/python).
+Not all classes have Python bindings yet — the [supported bindings are here](https://auterion.github.io/px4-ros2-interface-lib/python/index.html).
+You are welcome to add and contribute missing classes.
+:::
 
 ## Overview
 

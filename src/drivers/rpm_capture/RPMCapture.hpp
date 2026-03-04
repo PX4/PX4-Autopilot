@@ -47,9 +47,11 @@
 
 using namespace time_literals;
 
-class RPMCapture : public ModuleBase<RPMCapture>, public px4::ScheduledWorkItem, public ModuleParams
+class RPMCapture : public ModuleBase, public px4::ScheduledWorkItem, public ModuleParams
 {
 public:
+	static Descriptor desc;
+
 	RPMCapture();
 	virtual ~RPMCapture();
 

@@ -51,6 +51,7 @@
 #include <sys/boardctl.h>
 #endif
 
+
 static uORB::DeviceMaster *g_dev = nullptr;
 
 int uorb_start(void)
@@ -111,6 +112,18 @@ int uorb_top(char **topic_filter, int num_filters)
 	boardctl(ORBIOCDEVMASTERCMD, ORB_DEVMASTER_TOP);
 #endif
 	return OK;
+}
+
+void uorb_shutdown(void)
+{
+#ifdef CONFIG_ORB_COMMUNICATOR
+	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
+
+	if (ch) {
+		ch->shutdown();
+	}
+
+#endif /* CONFIG_ORB_COMMUNICATOR */
 }
 
 orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *data)

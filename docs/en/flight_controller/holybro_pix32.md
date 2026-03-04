@@ -2,7 +2,7 @@
 
 <Badge type="info" text="Discontinued" />
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://holybro.com/) for hardware support or compliance issues.
 :::
@@ -15,7 +15,7 @@ It runs the PX4 flight stack on the [NuttX](https://nuttx.apache.org/) OS.
 
 As a CC-BY-SA 3.0 licensed Open Hardware design, schematics and design files should be [available here](https://github.com/pixhawk/Hardware).
 
-:::tip
+::: tip
 The Holybro pix32 is software compatible with the [3DR Pixhawk 1](../flight_controller/pixhawk.md).
 It is not connector compatible, but is otherwise physically very similar to the 3DR Pixhawk or mRo Pixhawk.
 :::
@@ -56,7 +56,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - External microUSB port
 - Molex PicoBlade connectors
 
-## Where to Buy
+## Where to Buy {#store}
 
 [shop.holybro.com](https://holybro.com/products/pix32pixhawk-flight-controller)
 
@@ -67,14 +67,14 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v2_default
 ```
 

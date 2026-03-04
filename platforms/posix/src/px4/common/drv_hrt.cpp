@@ -51,7 +51,7 @@
 #include <errno.h>
 #include "hrt_work.h"
 
-// Voxl2 board specific API definitions to get time offset
+// Voxl board specific API definitions to get time
 #if defined(CONFIG_MUORB_APPS_SYNC_TIMESTAMP)
 #include "fc_sensor.h"
 #endif
@@ -112,29 +112,6 @@ hrt_abstime hrt_absolute_time()
 #else // defined(ENABLE_LOCKSTEP_SCHEDULER)
 	struct timespec ts;
 	px4_clock_gettime(CLOCK_MONOTONIC, &ts);
-
-# if defined(CONFIG_MUORB_APPS_SYNC_TIMESTAMP)
-	hrt_abstime temp_abstime = ts_to_abstime(&ts);
-	int apps_time_offset = fc_sensor_get_time_offset();
-
-	if (apps_time_offset < 0) {
-		hrt_abstime temp_offset = -apps_time_offset;
-
-		if (temp_offset >= temp_abstime) {
-			temp_abstime = 0;
-
-		} else {
-			temp_abstime -= temp_offset;
-		}
-
-	} else {
-		temp_abstime += (hrt_abstime) apps_time_offset;
-	}
-
-	ts.tv_sec = temp_abstime / 1000000;
-	ts.tv_nsec = (temp_abstime % 1000000) * 1000;
-# endif // defined(CONFIG_MUORB_APPS_SYNC_TIMESTAMP)
-
 	return ts_to_abstime(&ts);
 #endif // defined(ENABLE_LOCKSTEP_SCHEDULER)
 }
@@ -476,8 +453,21 @@ int px4_clock_gettime(clockid_t clk_id, struct timespec *tp)
 	}
 
 #endif // defined(ENABLE_LOCKSTEP_SCHEDULER)
-	return system_clock_gettime(clk_id, tp);
 
+	int rv = system_clock_gettime(clk_id, tp);
+
+# if defined(CONFIG_MUORB_APPS_SYNC_TIMESTAMP)
+
+	// On VOXL use DSP clock as reference for MONOTONIC
+	if (clk_id == CLOCK_MONOTONIC) {
+		hrt_abstime temp_abstime = fc_sensor_get_dsp_timestamp_us();
+		tp->tv_sec = temp_abstime / 1000000;
+		tp->tv_nsec = (temp_abstime % 1000000) * 1000;
+	}
+
+# endif // defined(CONFIG_MUORB_APPS_SYNC_TIMESTAMP)
+
+	return rv;
 }
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)

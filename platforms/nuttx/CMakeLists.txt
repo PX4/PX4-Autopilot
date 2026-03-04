@@ -598,6 +598,7 @@ if(NOT NUTTX_DIR MATCHES "external")
 		add_custom_target(jlink-nuttx ALL
 			DEPENDS ${NUTTX_DIR}/tools/jlink-nuttx.so
 		)
+		add_dependencies(jlink-nuttx nuttx_context)
 
 		# JLINK_RTOS_PATH used by launch.json.in
 		set(JLINK_RTOS_PATH ${NUTTX_DIR}/tools/jlink-nuttx.so)

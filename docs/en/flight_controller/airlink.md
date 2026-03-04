@@ -1,6 +1,6 @@
 # Sky-Drones AIRLink
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://sky-drones.com/) for hardware support or compliance issues.
 :::
@@ -26,15 +26,13 @@ AIRLink has two computers and integrated LTE Module:
 ## Specifications
 
 - **Sensors**
-
-  - 3x Accelerometers, 3x Gyroscopes, 3x Magnetometers, 3x Pressure sensorss
+  - 3x Accelerometers, 3x Gyroscopes, 3x Magnetometers, 3x Pressure sensors
   - GNSS, Rangefinders, Lidars, Optical Flow, Cameras
   - 3x-redundant IMU
   - Vibration dampening
   - Temperature stabilization
 
 - **Flight Controller**
-
   - STM32F7, ARM Cortex M7 with FPU, 216 MHz, 2MB Flash, 512 kB RAM
   - STM32F1, I/O co-processor
   - Ethernet, 10/100 Mbps
@@ -51,7 +49,6 @@ AIRLink has two computers and integrated LTE Module:
   - Safety switch / LED option
 
 - **AI Mission Computer**
-
   - 6-Core CPU: Dual-Core Cortex-A72 + Quad-Core Cortex-A53
   - GPU Mali-T864, OpenGL ES1.1/2.0/3.0/3.1
   - VPU with 4K VP8/9, 4K 10bits H265/H264 60fps Decoding
@@ -65,7 +62,6 @@ AIRLink has two computers and integrated LTE Module:
   - 2x Video: 4-Lane MIPI CSI (FPV Camera) and 4-Lane MIPI CSI with HMDI Input (Payload Camera)
 
 - **LTE/5G Connectivity Module**
-
   - Up to 600 Mbps bandwidth
   - 5G sub-6 and mmWave, SA and NSA operations
   - 4G Cat 20, up to 7xCA, 256-QAM DL/UL, 2xCA UL
@@ -75,7 +71,7 @@ AIRLink has two computers and integrated LTE Module:
   - Antenna, 4x4 MIMO
   - Bands: Worldwide
 
-## Where to Buy
+## Where to Buy {#store}
 
 Purchase from the original Sky-Drones Store (worldwide shipping with 1-2 days order processing time):
 
@@ -96,7 +92,7 @@ The standard set contains:
 - 1x FPV camera with CSI cable
 - 1x WiFi antenna with MMCX connector
 - 2x/4x LTE/5G antenna with MMCX connector
-- 1x HDMI to mini HDMI cable1x set of cables (7 cables for all connectors)
+- 1x HDMI to mini HDMI cable, 1x set of cables (7 cables for all connectors)
 
 [AIRLink Telemetry](https://sky-drones.com/sets/airlink-telemetry-set.html) based on the Microhard LAN/IP-based RF micromodule is available as an add-on and is fully compatible with AIRLink.
 
@@ -142,7 +138,6 @@ SmartAP AIRLink's Core edition is intended for medium to high volume production 
 ![Left side](../../assets/flight_controller/airlink/airlink-interfaces-left.jpg)
 
 - **Left side interfaces:**
-
   - Power input with voltage & current monitoring
   - AI Mission Computer micro SD card
   - Flight Controller micro SD card
@@ -169,12 +164,12 @@ SmartAP AIRLink's Core edition is intended for medium to high volume production 
 - **RC Connector - JST GH SM06B-GHS-TB**
 
   | Pin number | Pin name | Direction | Voltage | Function    |
-  | ---------- | -------- | --------- | ------- | ----------- |
+  | ---------- | -------- | --------- | ------- | ----------- | --- | --- | ------ |
   | 1          | 5V       | OUT       | +5V     | 5V output   |
   | 2          | PPM_IN   | IN        | +3.3V   | PPM input   |
   | 3          | RSSI_IN  | IN        | +3.3V   | RSSI input  |
   | 4          | FAN_OUT  | OUT       | +5V     | Fan output  |
-  | 5          | SBUS_OUT | OUT       | +3.3V   | SBUS output | 6 | GND | Ground |
+  | 5          | SBUS_OUT | OUT       | +3.3V   | SBUS output | 6   | GND | Ground |
 
 * **FMU SD card - microSD**
 
@@ -183,7 +178,6 @@ SmartAP AIRLink's Core edition is intended for medium to high volume production 
 ![Right side](../../assets/flight_controller/airlink/airlink-interfaces-right.jpg)
 
 - **Right side interfaces:**
-
   - Ethernet port with power output
   - Telemetry port
   - Second GPS port
@@ -247,7 +241,6 @@ SmartAP AIRLink's Core edition is intended for medium to high volume production 
 ![Front side](../../assets/flight_controller/airlink/airlink-interfaces-front.jpg)
 
 - **Front side interfaces:**
-
   - Main GNSS and compass port
   - Main telemetry port
   - CSI camera input
@@ -305,7 +298,6 @@ SmartAP AIRLink's Core edition is intended for medium to high volume production 
 ![Back side](../../assets/flight_controller/airlink/airlink-interfaces-back.jpg)
 
 - **Rear side interfaces:**
-
   - SBUS input
   - 16 PWM output channels
   - 2x LTE antenna sockets (MIMO)
@@ -352,14 +344,14 @@ AIRLink has 16 PWM ouputs. Main outputs 1-8 and connected to IO MCU. AUX outputs
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make sky-drones_smartap-airlink
 ```
 

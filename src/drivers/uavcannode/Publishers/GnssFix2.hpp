@@ -113,10 +113,10 @@ public:
 			}
 
 			// Diagonal matrix
-			// position variances -- Xx, Yy, Zz
-			fix2.covariance.push_back(gps.eph);
-			fix2.covariance.push_back(gps.eph);
-			fix2.covariance.push_back(gps.epv);
+			// position variances -- Xx, Yy, Zz (eph/epv are std dev in meters, must square for variance)
+			fix2.covariance.push_back(gps.eph * gps.eph);
+			fix2.covariance.push_back(gps.eph * gps.eph);
+			fix2.covariance.push_back(gps.epv * gps.epv);
 			// velocity variance -- Vxx, Vyy, Vzz
 			fix2.covariance.push_back(gps.s_variance_m_s);
 			fix2.covariance.push_back(gps.s_variance_m_s);

@@ -1,8 +1,33 @@
+---
+pageClass: is-wide-page
+---
+
 # VehicleRatesSetpoint (UORB message)
 
+**TOPICS:** vehicle_rates_setpoint
 
+## Fields
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleRatesSetpoint.msg)
+| Name           | Type         | Unit [Frame] | Range/Enum | Description                                              |
+| -------------- | ------------ | ------------ | ---------- | -------------------------------------------------------- |
+| timestamp      | `uint64`     |              |            | time since system start (microseconds)                   |
+| roll           | `float32`    | rad/s        |            | roll rate setpoint                                       |
+| pitch          | `float32`    | rad/s        |            | pitch rate setpoint                                      |
+| yaw            | `float32`    | rad/s        |            | yaw rate setpoint                                        |
+| thrust_body    | `float32[3]` |              |            | Normalized thrust command in body NED frame [-1,1]       |
+| reset_integral | `bool`       |              |            | Reset roll/pitch/yaw integrals (navigation logic change) |
+
+## Constants
+
+| Name                                          | Type     | Value | Description |
+| --------------------------------------------- | -------- | ----- | ----------- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 0     |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleRatesSetpoint.msg)
+
+::: details Click here to see original file
 
 ```c
 uint32 MESSAGE_VERSION = 0
@@ -19,5 +44,6 @@ float32 yaw		# [rad/s] yaw rate setpoint
 float32[3] thrust_body	# Normalized thrust command in body NED frame [-1,1]
 
 bool reset_integral # Reset roll/pitch/yaw integrals (navigation logic change)
-
 ```
+
+:::

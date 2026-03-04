@@ -416,12 +416,8 @@ bool SerialImpl::getSingleWireMode() const
 
 bool SerialImpl::setSingleWireMode()
 {
-	if (enable) {
-		PX4_ERR("Qurt platform does not support single wire mode");
-		return false;
-	}
-
-	return true;
+	PX4_ERR("Qurt platform does not support single wire mode");
+	return false;
 }
 
 bool SerialImpl::getSwapRxTxMode() const
@@ -431,12 +427,8 @@ bool SerialImpl::getSwapRxTxMode() const
 
 bool SerialImpl::setSwapRxTxMode()
 {
-	if (enable) {
-		PX4_ERR("Qurt platform does not support swap rx tx mode");
-		return false;
-	}
-
-	return true;
+	PX4_ERR("Qurt platform does not support swap rx tx mode");
+	return false;
 }
 
 bool SerialImpl::setInvertedMode(bool enable)

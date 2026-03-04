@@ -33,13 +33,11 @@ This module can be purchased as bundle with [Pixhawk 4](../assembly/quick_start_
 
 [Pixhawk 4 Power Module (PM07)](https://holybro.com/collections/power-modules-pdbs/products/pixhawk-4-power-module-pm07)
 
-
 ## Wiring/Connections
 
 Wiring and connection information can be found in: [Pixhawk 4 > Power](../assembly/quick_start_pixhawk4.md#power).
 
 ![Pixhawk 4 - Power Management Board](../../assets/hardware/power_module/holybro_pm07/pixhawk4_power_management_board.png)
-
 
 ## Further Information
 

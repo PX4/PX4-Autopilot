@@ -152,7 +152,6 @@ The RTK GPS connection is essentially plug and play:
    ![survey-in](../../assets/qgc/setup/rtk/qgc_rtk_survey-in.png)
 
 4. 测量完成：
-
    - The RTK GPS icon changes to white and _QGroundControl_ starts to stream position data to the vehicle:
 
      ![RTK streaming](../../assets/qgc/setup/rtk/qgc_rtk_streaming.png)

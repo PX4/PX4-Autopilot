@@ -14,7 +14,7 @@ The directory structure/layout is shown below.
 | `/etc/`                 | Extra config. See [System Startup > Replacing the System Startup][replace system start]. |
 | `/log/`                 | Full [flight logs](../dev_log/logging.md)                                                |
 | `/mission_log/`         | Reduced flight logs                                                                      |
-| `/fw/`                  | [DroneCAN](../dronecan/index.md) firmware                                               |
+| `/fw/`                  | [DroneCAN](../dronecan/index.md) firmware                                                |
 | `/uavcan.db/`           | DroneCAN DNA server DB + logs                                                            |
 | `/params`               | Parameters (if not in FRAM/FLASH)                                                        |
 | `/dataman`              | Mission storage file                                                                     |

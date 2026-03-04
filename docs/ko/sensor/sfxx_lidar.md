@@ -1,4 +1,4 @@
-# LightWare Lidar (SF1X/SF02/LW20/SF45)
+# LightWare Lidar (SF1X/SF02/LW20/SF45/GRF250/GRF500)
 
 LightWare는 UAV에 장착에 적합한 경량의 범용 레이저 고도계( "라이다")를 개발합니다.
 지형 추적, 정밀 호버링 (예 : 사진 촬영), 규제 높이 제한 경고, 충돌 방지 감지 등에 사용됩니다.
@@ -15,6 +15,8 @@ LightWare는 UAV에 장착에 적합한 경량의 범용 레이저 고도계( "�
 | [LW20/C](https://lightware.co.za/products/lw20-c-100-m) | 100                       | I2C 버스       | 감지 및 회피 애플리케이션을 위한 서보가 있는 방수 (IP67)                                                        |
 | [SF30/D](https://lightwarelidar.com/shop/sf30-d-200-m/) | 200                       | I2C 버스       | Waterproofed (IP67)                                                                        |
 | [SF45/B](../sensor/sf45_rotating_lidar.md)              | 50                        | 직렬           | Rotary Lidar (Used for [Collision Prevention](../computer_vision/collision_prevention.md)) |
+| [GRF250](https://lightwarelidar.com/shop/grf-250/)      | 250                       | I2C          | Gimbal Range Finder                                                                                           |
+| [GRF500](https://lightwarelidar.com/shop/grf-500/)      | 500                       | I2C          | Gimbal Range Finder                                                                                           |
 
 :::details
 Discontinued

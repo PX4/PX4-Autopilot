@@ -30,7 +30,7 @@ The diagrams use the standard [PX4 notation](../contribute/notation.md) (and eac
 
   ::: info
   The IMU pipeline is:
-  gyro data > apply calibration parameters > remove estimated bias > notch filter (`IMU_GYRO_NF0_BW` and `IMU_GYRO_NF0_FRQ`) > low-pass filter (`IMU_GYRO_CUTOFF`) > vehicle_angular_velocity (_filtered angular rate used by the P and I controllers_) > derivative -> low-pass filter (`IMU_DGYRO_CUTOFF`) > vehicle_angular_acceleration (_filtered angular acceleration used by the D controller_)
+  gyro data > apply calibration parameters > remove estimated bias > notch filter (`IMU_GYRO_NF0_BW` and `IMU_GYRO_NF0_FRQ`) > low-pass filter (`IMU_GYRO_CUTOFF`) > vehicle_angular_velocity (\_filtered angular rate used by the P and I controllers_) > derivative -> low-pass filter (`IMU_DGYRO_CUTOFF`) > vehicle_angular_acceleration (\_filtered angular acceleration used by the D controller_)
 
   ![IMU pipeline](../../assets/diagrams/px4_imu_pipeline.png)
 
@@ -177,7 +177,7 @@ The angular position of the control effectors (ailerons, elevators, rudders, ...
 Крім того, оскільки керуючі поверхні ефективніші при високій швидкості і менш ефективні при низькій швидкості, контролер, налаштований на крейсерську швидкість, масштабується за допомогою вимірів швидкості повітря (якщо використовується такий датчик).
 
 :::info
-If no airspeed sensor is used then gain scheduling for the FW attitude controller is  disabled (it's open loop); no correction is/can be made in TECS using airspeed feedback.
+If no airspeed sensor is used then gain scheduling for the FW attitude controller is disabled (it's open loop); no correction is/can be made in TECS using airspeed feedback.
 :::
 
 The feedforward gain is used to compensate for aerodynamic damping.
@@ -187,7 +187,7 @@ The feedforward gain is used to compensate for aerodynamic damping.
 ### Поворотна координація
 
 Контролери крену та тангажу мають однакову структуру, і довжинна та поперечна динаміка вважаються достатньо роз'єднаними, щоб працювати незалежно один від одного.
-Контролер курсу, однак, генерує встановлення швидкості курсу, використовуючи обмеження координації повороту для мінімізації бокового прискорення, що виникає, коли літак слідкує.  Алгоритм узгодження повороту базується виключно на узгодженому розрахунку геометрії повороту.
+Контролер курсу, однак, генерує встановлення швидкості курсу, використовуючи обмеження координації повороту для мінімізації бокового прискорення, що виникає, коли літак слідкує. Алгоритм узгодження повороту базується виключно на узгодженому розрахунку геометрії повороту.
 
 $$\dot{\Psi}_{sp} = \frac{g}{V_T} \tan{\phi_{sp}} \cos{\theta_{sp}}$$
 

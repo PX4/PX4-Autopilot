@@ -93,6 +93,7 @@
     - [Настройка Зворотнього Переходу](config_vtol/vtol_back_transition_tuning.md)
     - [ВЗІП Датчик польоту](config_vtol/vtol_without_airspeed_sensor.md)
     - [VTOL Weather Vane](config_vtol/vtol_weathervane.md)
+    - [VTOL Ice Shedding](config_vtol/vtol_ice_shedding.md)
   - [Режим польоту](flight_modes_vtol/index.md)
     - [Mission Mode (VTOL)](flight_modes_vtol/mission.md)
     - [Return Mode (VTOL)](flight_modes_vtol/return.md)
@@ -178,6 +179,7 @@
       - [CubePilot Cube Orange (CubePilot)](flight_controller/cubepilot_cube_orange.md)
       - [CubePilot Cube Yellow (CubePilot)](flight_controller/cubepilot_cube_yellow.md)
         - [Швидке підключення Cube](assembly/quick_start_cube.md)
+      - [Gear Up AirBrainH743](flight_controller/gearup_airbrainh743.md)
       - [Holybro Kakute H7v2](flight_controller/kakuteh7v2.md)
       - [Holybro Kakute H7mini](flight_controller/kakuteh7mini.md)
       - [Holybro Kakute H7](flight_controller/kakuteh7.md)
@@ -254,7 +256,7 @@
       - [Benewake TFmini Lidar](sensor/tfmini.md)
       - [LeddarOne Lidar](sensor/leddar_one.md)
       - [Lidar-Lite](sensor/lidar_lite.md)
-      - [Lightware Lidars (SF/LW)](sensor/sfxx_lidar.md)
+      - [Lightware Lidars (SF/LW/GRF)](sensor/sfxx_lidar.md)
         - [Lightware SF45 Rotary Lidar](sensor/sf45_rotating_lidar.md)
       - [TeraRanger](sensor/teraranger.md)
       - [✘ Lanbao PSK-CM8JL65-CC5](sensor/cm8jl65_ir_distance_sensor.md)
@@ -360,6 +362,8 @@
     - [TBS Crossfire (CRSF) телеметрія](telemetry/crsf_telemetry.md)
 
     - [Супутниковий зв'язок (Iridium/RockBlock)](advanced_features/satcom_roadblock.md)
+
+    - [Analog Video Transmitters](vtx/index.md)
 
   - [Енергетичні системи](power_systems/index.md)
     - [Налаштування оцінки батареї](config/battery.md)
@@ -929,6 +933,7 @@
   - [Ліцензії](contribute/licenses.md)
 
 - [Релізи](releases/index.md)
+  - [Release Process](releases/release_process.md)
   - [main (alpha)](releases/main.md)
   - [1.17 (alpha)](releases/1.17.md)
   - [1.16 (stable)](releases/1.16.md)

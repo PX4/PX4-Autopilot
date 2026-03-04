@@ -1,6 +1,43 @@
+---
+pageClass: is-wide-page
+---
+
 # DronecanNodeStatus (UORB message)
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/DronecanNodeStatus.msg)
+**TOPICS:** dronecan_nodestatus
+
+## Fields
+
+| 参数名                                                                                        | 类型       | Unit [Frame] | Range/Enum | 描述                                                        |
+| ------------------------------------------------------------------------------------------ | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| timestamp                                                                                  | `uint64` |                                                                  |            | time since system start (microseconds) |
+| node_id                                                               | `uint16` |                                                                  |            | The node ID which this data comes from                    |
+| uptime_sec                                                            | `uint32` |                                                                  |            | Node uptime                                               |
+| health                                                                                     | `uint8`  |                                                                  |            |                                                           |
+| mode                                                                                       | `uint8`  |                                                                  |            |                                                           |
+| sub_mode                                                              | `uint8`  |                                                                  |            |                                                           |
+| vendor_specific_status_code | `uint16` |                                                                  |            |                                                           |
+
+## Constants
+
+| 参数名                                                                                                 | 类型      | 值 | 描述                                                                                                |
+| --------------------------------------------------------------------------------------------------- | ------- | - | ------------------------------------------------------------------------------------------------- |
+| <a href="#HEALTH_OK"></a> HEALTH_OK                                            | `uint8` | 0 | The node is functioning properly.                                                 |
+| <a href="#HEALTH_WARNING"></a> HEALTH_WARNING                                  | `uint8` | 1 | A critical parameter went out of range or the node encountered a minor failure.   |
+| <a href="#HEALTH_ERROR"></a> HEALTH_ERROR                                      | `uint8` | 2 | The node encountered a major failure.                                             |
+| <a href="#HEALTH_CRITICAL"></a> HEALTH_CRITICAL                                | `uint8` | 3 | The node suffered a fatal malfunction.                                            |
+| <a href="#MODE_OPERATIONAL"></a> MODE_OPERATIONAL                              | `uint8` | 0 | Normal operating mode.                                                            |
+| <a href="#MODE_INITIALIZATION"></a> MODE_INITIALIZATION                        | `uint8` | 1 | Initialization is in progress; this mode is entered immediately after startup.    |
+| <a href="#MODE_MAINTENANCE"></a> MODE_MAINTENANCE                              | `uint8` | 2 | E.g. calibration, the bootloader is running, etc. |
+| <a href="#MODE_SOFTWARE_UPDATE"></a> MODE_SOFTWARE_UPDATE | `uint8` | 3 | New software/firmware is being loaded.                                            |
+| <a href="#MODE_OFFLINE"></a> MODE_OFFLINE                                      | `uint8` | 7 | The node is no longer available.                                                  |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/DronecanNodeStatus.msg)
+
+:::details
+Click here to see original file
 
 ```c
 uint64 timestamp					# time since system start (microseconds)
@@ -44,5 +81,6 @@ uint8 sub_mode
 # Optional, vendor-specific node status code, e.g. a fault code or a status bitmask.
 #
 uint16 vendor_specific_status_code
-
 ```
+
+:::

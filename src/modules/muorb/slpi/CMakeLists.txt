@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2022 ModalAI, Inc. All rights reserved.
+#   Copyright (c) 2022-2026 ModalAI, Inc. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,6 +30,17 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
+px4_add_module(
+	MODULE modules__muorb__slpi__main
+	MAIN muorb
+	COMPILE_FLAGS
+		-Wno-cast-align # TODO: fix and enable
+	INCLUDES
+		../aggregator
+	SRCS
+		muorb_main.cpp
+)
 
 px4_add_library(modules__muorb__slpi
 	uORBProtobufChannel.cpp

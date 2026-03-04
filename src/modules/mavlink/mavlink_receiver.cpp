@@ -213,6 +213,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_follow_target(msg);
 		break;
 
+	case MAVLINK_MSG_ID_GLOBAL_POSITION_SENSOR:
+		handle_message_global_position_sensor(msg);
+		break;
+
 	case MAVLINK_MSG_ID_LANDING_TARGET:
 		handle_message_landing_target(msg);
 		break;
@@ -1989,6 +1993,10 @@ MavlinkReceiver::handle_message_tunnel(mavlink_message_t *msg)
 		_esc_serial_passthru_pub.publish(tunnel);
 		break;
 
+	case MAV_TUNNEL_PAYLOAD_TYPE_MODALAI_IO_UART_PASSTHRU:
+		_io_serial_passthru_pub.publish(tunnel);
+		break;
+
 	default:
 		_mavlink_tunnel_pub.publish(tunnel);
 		break;
@@ -2171,6 +2179,10 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 
 			case MAV_TYPE_ADSB:
 				_heartbeat_type_adsb = now;
+				break;
+
+			case MAV_TYPE_FLARM:
+				_heartbeat_type_flarm = now;
 				break;
 
 			case MAV_TYPE_CAMERA:
@@ -2475,6 +2487,31 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 	gps.timestamp = hrt_absolute_time();
 
 	_sensor_gps_pub.publish(gps);
+}
+
+void
+MavlinkReceiver::handle_message_global_position_sensor(mavlink_message_t *msg)
+{
+	mavlink_global_position_sensor_t global_pos;
+	mavlink_msg_global_position_sensor_decode(msg, &global_pos);
+
+	aux_global_position_s aux_global_position{};
+	const hrt_abstime now = hrt_absolute_time();
+	aux_global_position.timestamp = now;
+	aux_global_position.timestamp_sample = now;
+
+	aux_global_position.id = global_pos.id;
+	aux_global_position.source = global_pos.source;
+
+	aux_global_position.lat = global_pos.lat * 1e-7;
+	aux_global_position.lon = global_pos.lon * 1e-7;
+	aux_global_position.alt = global_pos.alt;
+
+	aux_global_position.lat_lon_reset_counter = 0;
+	aux_global_position.eph = global_pos.eph;
+	aux_global_position.epv = global_pos.epv;
+
+	_aux_global_position_pub.publish(aux_global_position);
 }
 
 void
@@ -2921,6 +2958,7 @@ void MavlinkReceiver::CheckHeartbeats(const hrt_abstime &t, bool force)
 		tstatus.heartbeat_type_onboard_controller      = (t <= TIMEOUT + _heartbeat_type_onboard_controller);
 		tstatus.heartbeat_type_gimbal                  = (t <= TIMEOUT + _heartbeat_type_gimbal);
 		tstatus.heartbeat_type_adsb                    = (t <= TIMEOUT + _heartbeat_type_adsb);
+		tstatus.heartbeat_type_flarm                   = (t <= TIMEOUT + _heartbeat_type_flarm);
 		tstatus.heartbeat_type_camera                  = (t <= TIMEOUT + _heartbeat_type_camera);
 		tstatus.heartbeat_type_parachute               = (t <= TIMEOUT + _heartbeat_type_parachute);
 		tstatus.heartbeat_type_open_drone_id           = (t <= TIMEOUT + _heartbeat_type_open_drone_id);

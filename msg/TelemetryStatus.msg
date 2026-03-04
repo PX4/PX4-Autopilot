@@ -43,6 +43,7 @@ bool heartbeat_type_gcs                     # MAV_TYPE_GCS
 bool heartbeat_type_onboard_controller      # MAV_TYPE_ONBOARD_CONTROLLER
 bool heartbeat_type_gimbal                  # MAV_TYPE_GIMBAL
 bool heartbeat_type_adsb                    # MAV_TYPE_ADSB
+bool heartbeat_type_flarm                   # MAV_TYPE_FLARM
 bool heartbeat_type_camera                  # MAV_TYPE_CAMERA
 bool heartbeat_type_parachute               # MAV_TYPE_PARACHUTE
 bool heartbeat_type_open_drone_id           # MAV_TYPE_ODID

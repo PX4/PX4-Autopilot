@@ -1,6 +1,6 @@
 # S-Vehicle E2
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 :::
 
@@ -58,11 +58,12 @@ These flight controllers are [manufacturer supported](../flight_controller/autop
 - 1x Dedicated Debug Port
   - FMU Debug
 
-## Purchase Channels
+## Purchase Channels {#store}
 
 Order from [S-Vehicle](https://svehicle.cn/).
 
 ## Radio Control
+
 A Radio Control (RC) system is required if you want to manually control your vehicle (PX4 does not require a radio system for autonomous flight modes).
 
 You will need to select a compatible transmitter/receiver and then bind them so that they communicate (read the instructions that come with your specific transmitter/receiver).
