@@ -34,6 +34,14 @@ if DRIVERS_UAVCANNODE
         bool "Include GNSS fix"
         default n
 
+    config UAVCANNODE_HARDPOINT_COMMAND
+        bool "Include hardpoint commands"
+        default n
+
+    config UAVCANNODE_GNSS_FIX2
+        bool "Include GNSS Fix2 publisher"
+        default y
+
     config UAVCANNODE_HYGROMETER_MEASUREMENT
         bool "Include hygrometer measurement"
         default n
@@ -57,6 +65,10 @@ if DRIVERS_UAVCANNODE
     config UAVCANNODE_RAW_AIR_DATA
         bool "Include raw air data"
         default n
+
+    config UAVCANNODE_RAW_IMU
+        bool "Include raw IMU"
+	default n
 
     config UAVCANNODE_RTK_DATA
         bool "Include RTK data"

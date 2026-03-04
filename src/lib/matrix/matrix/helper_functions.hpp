@@ -97,7 +97,7 @@ Integer wrap(Integer x, Integer low, Integer high)
 template<typename Type>
 Type wrap_pi(Type x)
 {
-	return wrap(x, Type(-M_PI_PRECISE), Type(M_PI_PRECISE));
+	return wrap(x, Type(-M_PI), Type(M_PI));
 }
 
 /**
@@ -106,7 +106,7 @@ Type wrap_pi(Type x)
 template<typename Type>
 Type wrap_2pi(Type x)
 {
-	return wrap(x, Type(0), Type((2 * M_PI_PRECISE)));
+	return wrap(x, Type(0), Type((2 * M_PI)));
 }
 
 /**
@@ -134,7 +134,7 @@ Type unwrap(const Type last_x, const Type new_x, const Type low, const Type high
 template<typename Type>
 Type unwrap_pi(const Type last_angle, const Type new_angle)
 {
-	return unwrap(last_angle, new_angle, Type(-M_PI_PRECISE), Type(M_PI_PRECISE));
+	return unwrap(last_angle, new_angle, Type(-M_PI), Type(M_PI));
 }
 
 /**

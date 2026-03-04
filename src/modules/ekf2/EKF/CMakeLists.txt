@@ -33,7 +33,6 @@
 
 add_subdirectory(bias_estimator)
 add_subdirectory(output_predictor)
-add_subdirectory(lat_lon_alt)
 
 set(EKF_LIBS)
 set(EKF_SRCS)
@@ -59,10 +58,6 @@ list(APPEND EKF_SRCS
 
 if(CONFIG_EKF2_AIRSPEED)
 	list(APPEND EKF_SRCS aid_sources/airspeed/airspeed_fusion.cpp)
-endif()
-
-if(CONFIG_EKF2_AUX_GLOBAL_POSITION)
-	list(APPEND EKF_SRCS aid_sources/aux_global_position/aux_global_position.cpp)
 endif()
 
 if(CONFIG_EKF2_AUXVEL)
@@ -91,8 +86,8 @@ endif()
 
 if(CONFIG_EKF2_GNSS)
 	list(APPEND EKF_SRCS
+		aid_sources/gnss/gnss_checks.cpp
 		aid_sources/gnss/gnss_height_control.cpp
-		aid_sources/gnss/gps_checks.cpp
 		aid_sources/gnss/gps_control.cpp
 	)
 

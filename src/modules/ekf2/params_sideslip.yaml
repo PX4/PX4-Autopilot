@@ -6,8 +6,8 @@ parameters:
       description:
         short: Enable synthetic sideslip fusion
         long: 'For reliable wind estimation both sideslip and airspeed fusion (see
-          EKF2_ARSP_THR) should be enabled. Only applies to fixed-wing vehicles (or
-          VTOLs in fixed-wing mode). Note: side slip fusion is currently not supported
+          EKF2_ARSP_THR) should be enabled. Only applies to vehicles in fixed-wing mode
+          or with airspeed fusion active. Note: side slip fusion is currently not supported
           for tailsitters.'
       type: boolean
       default: 0

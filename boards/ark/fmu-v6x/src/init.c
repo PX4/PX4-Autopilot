@@ -46,7 +46,6 @@
  ****************************************************************************/
 
 #include "board_config.h"
-#include "spix_sync.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -150,8 +149,13 @@ __EXPORT void board_on_reset(int status)
 		px4_arch_configgpio(PX4_MAKE_GPIO_INPUT(io_timer_channel_get_as_pwm_input(i)));
 	}
 
+	/*
+	 * On resets invoked from system (not boot) ensure we establish a low
+	 * output state on PWM pins to disarm the ESC and prevent the reset from potentially
+	 * spinning up the motors.
+	 */
 	if (status >= 0) {
-		up_mdelay(6);
+		up_mdelay(100);
 	}
 }
 
@@ -284,10 +288,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	}
 
 #endif /* CONFIG_MMCSD */
-
-	/* Configure the SPIX_SYNC output */
-	spix_sync_servo_init(BOARD_SPIX_SYNC_FREQ);
-	spix_sync_servo_set(0, 150);
 
 	return OK;
 }

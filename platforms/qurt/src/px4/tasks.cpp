@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * Copyright (C) 2022 ModalAI, Inc. All rights reserved.
+ * Copyright (C) 2022-2026 ModalAI, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,6 +40,8 @@
 #include <drivers/drv_hrt.h>
 #include <pthread.h>
 #include "hrt_work.h"
+
+#define MODULE_NAME "tasks"
 
 #define PX4_TASK_STACK_SIZE 8192
 #define PX4_TASK_MAX_NAME_LENGTH 32
@@ -129,7 +131,7 @@ static px4_task_t px4_task_spawn_internal(const char *name, int priority, px4_ma
 	int task_index = 0;
 	char *p = (char *)argv;
 
-	PX4_INFO("Creating pthread %s\n", name);
+	PX4_INFO("Creating pthread %s", name);
 
 	if (task_mutex_initialized == false) {
 		task_mutex_initialized = true;
@@ -242,6 +244,7 @@ static px4_task_t px4_task_spawn_internal(const char *name, int priority, px4_ma
 				 (void *) &taskmap[task_index]);
 
 	if (retcode != PX4_OK) {
+		pthread_attr_destroy(&taskmap[task_index].attr);
 		pthread_mutex_unlock(&task_mutex);
 		PX4_ERR("Couldn't create pthread %s", name);
 		return -1;
@@ -256,7 +259,7 @@ static px4_task_t px4_task_spawn_internal(const char *name, int priority, px4_ma
 
 	pthread_mutex_unlock(&task_mutex);
 
-	return i;
+	return task_index;
 }
 
 px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_size, px4_main_t entry,
@@ -290,15 +293,25 @@ int px4_task_delete(px4_task_t id)
 
 	if (pthread_self() == pid) {
 		pthread_join(pid, nullptr);
+		pthread_attr_destroy(&taskmap[id].attr);
 		taskmap[id].isused = false;
 		pthread_mutex_unlock(&task_mutex);
 		pthread_exit(nullptr);
 
 	} else {
 		rv = pthread_cancel(pid);
+		pthread_mutex_unlock(&task_mutex);
+
+		if (rv == 0) {
+			pthread_join(pid, nullptr);
+		}
+
+		pthread_mutex_lock(&task_mutex);
 	}
 
+	pthread_attr_destroy(&taskmap[id].attr);
 	taskmap[id].isused = false;
+	pthread_mutex_unlock(&task_mutex);
 
 	return rv;
 }
@@ -313,6 +326,7 @@ void px4_task_exit(int ret)
 	for (i = 0; i < PX4_MAX_TASKS; ++i) {
 		if (taskmap[i].tid == pid) {
 			pthread_mutex_lock(&task_mutex);
+			pthread_attr_destroy(&taskmap[i].attr);
 			taskmap[i].isused = false;
 			break;
 		}
@@ -323,9 +337,8 @@ void px4_task_exit(int ret)
 
 	} else {
 		PX4_DEBUG("px4_task_exit: %s", taskmap[i].name);
+		pthread_mutex_unlock(&task_mutex);
 	}
-
-	pthread_mutex_unlock(&task_mutex);
 
 	pthread_exit((void *)(unsigned long)ret);
 }

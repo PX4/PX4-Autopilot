@@ -41,8 +41,6 @@
 #ifndef EKF_SENSOR_RANGE_FINDER_HPP
 #define EKF_SENSOR_RANGE_FINDER_HPP
 
-#include "Sensor.hpp"
-
 #include <matrix/math.hpp>
 #include <lib/mathlib/math/filter/MedianFilter.hpp>
 
@@ -60,17 +58,17 @@ struct rangeSample {
 static constexpr uint64_t RNG_MAX_INTERVAL =
 	200e3;  ///< Maximum allowable time interval between range finder measurements (uSec)
 
-class SensorRangeFinder : public Sensor
+class SensorRangeFinder
 {
 public:
 	SensorRangeFinder() = default;
-	~SensorRangeFinder() override = default;
+	~SensorRangeFinder() = default;
 
 	void runChecks(uint64_t current_time_us, const matrix::Dcmf &R_to_earth);
-	bool isHealthy() const override { return _is_sample_valid; }
-	bool isDataHealthy() const override { return _is_sample_ready && _is_sample_valid; }
+	bool isHealthy() const { return _is_sample_valid; }
+	bool isDataHealthy() const { return _is_sample_ready && _is_sample_valid; }
 	bool isDataReady() const { return _is_sample_ready; }
-	bool isRegularlySendingData() const override { return _is_regularly_sending_data; }
+	bool isRegularlySendingData() const { return _is_regularly_sending_data; }
 	bool isStuckDetectorEnabled() const { return _stuck_threshold > 0.f; }
 
 	void setSample(const rangeSample &sample)
@@ -120,8 +118,6 @@ public:
 	float getValidMinVal() const { return _rng_valid_min_val; }
 	float getValidMaxVal() const { return _rng_valid_max_val; }
 
-	void setFaulty(bool faulty = true) { _is_faulty = faulty; }
-
 private:
 	void updateSensorToEarthRotation(const matrix::Dcmf &R_to_earth);
 
@@ -131,6 +127,7 @@ private:
 	bool isDataContinuous() const { return _dt_data_lpf < 2e6f; }
 	bool isTiltOk() const { return _cos_tilt_rng_to_earth > _range_cos_max_tilt; }
 	bool isDataInRange() const;
+	bool isQualityOk(uint64_t current_time_us) const;
 	void updateStuckCheck();
 	void updateFogCheck(const float dist_bottom, const uint64_t time_us);
 
@@ -140,7 +137,6 @@ private:
 	bool _is_sample_valid{};	///< true if range finder sample retrieved from buffer is valid
 	bool _is_regularly_sending_data{false}; ///< true if the interval between two samples is less than the maximum expected interval
 	uint64_t _time_last_valid_us{};	///< time the last range finder measurement was ready (uSec)
-	bool _is_faulty{false};         ///< the sensor should not be used anymore
 
 	/*
 	 * Stuck check
@@ -184,6 +180,7 @@ private:
 	float _max_fog_dist{0.f};	//< maximum distance at which the range finder could detect fog (m)
 	math::MedianFilter<float, 5> _median_dist{};
 	float _prev_median_dist{0.f};
+
 };
 
 } // namespace sensor

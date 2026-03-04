@@ -1,0 +1,44 @@
+name: Docs - Crowdin - Upload Guide sources (en)
+
+# https://github.com/crowdin/github-action/tree/master
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/en/**'
+  #pull_request:
+  #  types:
+  #    - closed
+  #  branches:
+  #    - main
+  #  paths:
+  #    - 'docs/en/**'
+  workflow_dispatch:
+
+jobs:
+  upload-to-crowdin:
+    #if: github.event.pull_request.merged == true || github.event_name == 'push'  || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: crowdin push
+        uses: crowdin/github-action@v2
+        with:
+          config: 'docs/crowdin_docs.yml'
+          upload_sources: true
+          upload_translations: false
+          download_translations: false
+          crowdin_branch_name: main
+        env:
+          # A classic GitHub Personal Access Token with the 'repo' scope selected (the user should have write access to the repository).
+          GITHUB_TOKEN: ${{ secrets.PX4BUILDBOT_ACCESSTOKEN }}
+
+          # A numeric ID, found at https://crowdin.com/project/<projectName>/tools/api
+          CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_DOCS_PROJECT_ID }}
+
+          # Visit https://crowdin.com/settings#api-key to create this token
+          CROWDIN_PERSONAL_TOKEN: ${{ secrets.PX4BUILDBOT_CROWDIN_PERSONAL_TOKEN }}

@@ -42,13 +42,17 @@ void ParachuteChecks::checkAndReport(const Context &context, Report &reporter)
 		return;
 	}
 
+	reporter.failsafeFlags().parachute_unhealthy =
+		!context.status().parachute_system_present ||
+		!context.status().parachute_system_healthy;
+
 	if (!context.status().parachute_system_present) {
 		/* EVENT
 		 * @description
-		 * Parachute system failed to report. Make sure it it setup and installed properly.
+		 * No MAVLink parachute heartbeat detected. Check connection, power, configuration.
 		 *
 		 * <profile name="dev">
-		 * This check can be configured via <param>COM_PARACHUTE</param> parameter.
+		 * Enabled by <param>COM_PARACHUTE</param>
 		 * </profile>
 		 */
 		reporter.healthFailure(NavModes::All, health_component_t::parachute, events::ID("check_parachute_missing"),
@@ -62,10 +66,10 @@ void ParachuteChecks::checkAndReport(const Context &context, Report &reporter)
 
 		/* EVENT
 		 * @description
-		 * Parachute system reported being unhealth.
+		 * MAVLink parachute system reports unhealthy status.
 		 *
 		 * <profile name="dev">
-		 * This check can be configured via <param>COM_PARACHUTE</param> parameter.
+		 * Enabled by <param>COM_PARACHUTE</param>
 		 * </profile>
 		 */
 		reporter.healthFailure(NavModes::All, health_component_t::parachute, events::ID("check_parachute_unhealthy"),

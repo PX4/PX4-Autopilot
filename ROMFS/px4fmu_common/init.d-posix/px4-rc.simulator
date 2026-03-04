@@ -4,196 +4,22 @@
 # Simulator IMU data provided at 250 Hz
 param set-default IMU_INTEG_RATE 250
 
+# For simulation, allow registering modes while armed for developer convenience
+param set-default COM_MODE_ARM_CHK 1
+
 if [ "$PX4_SIMULATOR" = "sihsim" ] || [ "$(param show -q SYS_AUTOSTART)" -eq "0" ]; then
-
-	echo "INFO  [init] SIH simulator"
-
-	if [ -n "${PX4_HOME_LAT}" ]; then
-		param set SIH_LOC_LAT0 ${PX4_HOME_LAT}
-	fi
-
-	if [ -n "${PX4_HOME_LON}" ]; then
-		param set SIH_LOC_LON0 ${PX4_HOME_LON}
-	fi
-	if [ -n "${PX4_HOME_ALT}" ]; then
-		param set SIH_LOC_H0 ${PX4_HOME_ALT}
-	fi
-
-	if simulator_sih start; then
-
-		if param compare -s SENS_EN_BAROSIM 1
-		then
-			sensor_baro_sim start
-		fi
-		if param compare -s SENS_EN_GPSSIM 1
-		then
-			sensor_gps_sim start
-		fi
-		if param compare -s SENS_EN_MAGSIM 1
-		then
-			sensor_mag_sim start
-		fi
-
-	else
-		echo "ERROR [init] simulator_sih failed to start"
-		exit 1
-	fi
+    # Run SIH
+    . px4-rc.sihsim
 
 elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" = "1" ]; then
-	# Use Gazebo
-
-	echo "INFO  [init] Gazebo simulator"
-
-	# Only start up Gazebo if PX4_GZ_STANDALONE is not set.
-	if [ -z "${PX4_GZ_STANDALONE}" ]; then
-
-		# "gz sim" only available in Garden and later
-		GZ_SIM_VERSIONS=$(gz sim --versions 2>&1)
-		if [ $? -eq 0 ] && [ "${GZ_SIM_VERSIONS}" != "" ]
-		then
-			# "gz sim" from Garden on
-			gz_command="gz"
-			gz_sub_command="sim"
-
-			# Specify render engine if `GZ_SIM_RENDER_ENGINE` is set
-			# (for example, if you want to use Ogre 1.x instead of Ogre 2.x):
-			if [ -n "${PX4_GZ_SIM_RENDER_ENGINE}" ]; then
-				echo "INFO  [init] Setting Gazebo render engine to '${PX4_GZ_SIM_RENDER_ENGINE}'!"
-				gz_sub_command="${gz_sub_command} --render-engine ${PX4_GZ_SIM_RENDER_ENGINE}"
-			fi
-		else
-			echo "ERROR [init] Gazebo gz please install gz-garden"
-			exit 1
-		fi
-
-		# look for running ${gz_command} gazebo world
-		gz_world=$( ${gz_command} topic -l | grep -m 1 -e "^/world/.*/clock" | sed 's/\/world\///g; s/\/clock//g' )
-
-		# shellcheck disable=SC2153
-		if [ -z "${gz_world}" ] && [ -n "${PX4_GZ_WORLD}" ]; then
-
-			# source generated gz_env.sh for GZ_SIM_RESOURCE_PATH
-			if [ -f ./gz_env.sh ]; then
-				. ./gz_env.sh
-
-			elif [ -f ../gz_env.sh ]; then
-				. ../gz_env.sh
-			fi
-
-			echo "INFO  [init] starting gazebo with world: ${PX4_GZ_WORLDS}/${PX4_GZ_WORLD}.sdf"
-
-			${gz_command} ${gz_sub_command} --verbose=1 -r -s "${PX4_GZ_WORLDS}/${PX4_GZ_WORLD}.sdf" &
-
-			if [ -z "${HEADLESS}" ]; then
-				# HEADLESS not set, starting gui
-				${gz_command} ${gz_sub_command} -g &
-			fi
-
-		else
-			# Gazebo is already running, do not start the simulator, nor the GUI
-			echo "INFO  [init] gazebo already running world: ${gz_world}"
-			PX4_GZ_WORLD=${gz_world}
-		fi
-	else
-		echo "INFO  [init] Standalone PX4 launch, waiting for Gazebo"
-	fi
-
-	# start gz_bridge
-	if [ -n "${PX4_SIM_MODEL#*gz_}" ] && [ -z "${PX4_GZ_MODEL_NAME}" ]; then
-		# model specified, gz_bridge will spawn model
-
-		if [ -n "${PX4_GZ_MODEL_POSE}" ]; then
-			# model pose provided: [x, y, z, roll, pitch, yaw]
-
-			# Clean potential input line formatting.
-			model_pose="$( echo "${PX4_GZ_MODEL_POSE}" | sed -e 's/^[ \t]*//; s/[ \t]*$//; s/,/ /g; s/  / /g; s/ /,/g' )"
-			echo "INFO  [init] PX4_GZ_MODEL_POSE set, spawning at: ${model_pose}"
-
-		else
-			# model pose not provided, origin will be used
-
-			echo "WARN  [init] PX4_GZ_MODEL_POSE not set, spawning at origin."
-			model_pose="0,0,0,0,0,0"
-		fi
-
-		# start gz bridge with pose arg.
-		if ! gz_bridge start -p "${model_pose}" -m "${PX4_SIM_MODEL#*gz_}" -w "${PX4_GZ_WORLD}" -i "${px4_instance}"; then
-			echo "ERROR [init] gz_bridge failed to start and spawn model"
-			exit 1
-		fi
-
-	elif [ -n "${PX4_GZ_MODEL_NAME}" ]; then
-		# model name specificed, gz_bridge will attach to existing model
-
-		echo "INFO  [init] PX4_GZ_MODEL_NAME set, PX4 will attach to existing model"
-		if ! gz_bridge start -n "${PX4_GZ_MODEL_NAME}" -w "${PX4_GZ_WORLD}"; then
-			echo "ERROR [init] gz_bridge failed to start and attach to existing model"
-			exit 1
-		fi
-
-	else
-		echo "ERROR [init] failed to pass only PX4_GZ_MODEL_NAME or PX4_SIM_MODEL"
-		exit 1
-	fi
-
-	# Start the sensor simulator modules
-	if param compare -s SENS_EN_BAROSIM 1
-	then
-		sensor_baro_sim start
-	fi
-	if param compare -s SENS_EN_GPSSIM 1
-	then
-		sensor_gps_sim start
-	fi
-	if param compare -s SENS_EN_MAGSIM 1
-	then
-		sensor_mag_sim start
-	fi
-	if param compare -s SENS_EN_ARSPDSIM 1
-	then
-		sensor_airspeed_sim start
-	fi
+    # Run Gazebo (gz)
+    . px4-rc.gzsim
 
 elif [ "$PX4_SIM_MODEL" = "jmavsim_iris" ] || [ "$(param show -q SYS_AUTOSTART)" -eq "10017" ]; then
-
-	echo "INFO  [init] jMAVSim simulator"
-
-	if jps | grep -i jmavsim; then
-		kill "$(jps | grep -i jmavsim | awk '{print $1}')" || true
-		sleep 1
-	fi
-
-	param set IMU_INTEG_RATE 250
-	./jmavsim_run.sh -l -r 250 &
-
-	simulator_mavlink start -h localhost $((4560+px4_instance))
+    # Run jMAVSim
+    . px4-rc.jmavsim
 
 else
-	# otherwise start simulator (mavlink) module
-
-	# EKF2 specifics
-	param set-default EKF2_GPS_DELAY 10
-	param set-default EKF2_MULTI_IMU 3
-	param set-default SENS_IMU_MODE 0
-
-	simulator_tcp_port=$((4560+px4_instance))
-
-	# Check if PX4_SIM_HOSTNAME environment variable is empty
-	# If empty check if PX4_SIM_HOST_ADDR environment variable is empty
-	# If both are empty use localhost for simulator
-	if [ -z "${PX4_SIM_HOSTNAME}" ]; then
-
-		if [ -z "${PX4_SIM_HOST_ADDR}" ]; then
-			echo "INFO  [init] PX4_SIM_HOSTNAME: localhost"
-			simulator_mavlink start -c $simulator_tcp_port
-		else
-			echo "INFO  [init] PX4_SIM_HOSTNAME: ${PX4_SIM_HOST_ADDR}"
-			simulator_mavlink start -t "${PX4_SIM_HOST_ADDR}" "${simulator_tcp_port}"
-		fi
-
-	else
-		echo "INFO  [init] PX4_SIM_HOSTNAME: ${PX4_SIM_HOSTNAME}"
-		simulator_mavlink start -h "${PX4_SIM_HOSTNAME}" "${simulator_tcp_port}"
-	fi
-
+    # Run simulator_mavlink module for interface with gazebo-classic
+    . px4-rc.mavlinksim
 fi

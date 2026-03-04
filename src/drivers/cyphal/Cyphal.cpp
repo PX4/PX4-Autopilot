@@ -435,7 +435,7 @@ void CyphalNode::sendPortList()
 	_uavcan_node_port_List_last = now;
 }
 
-bool UavcanMixingInterface::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+bool UavcanMixingInterface::updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 		unsigned num_control_groups_updated)
 {
 	// Note: This gets called from MixingOutput from within its update() function
@@ -445,7 +445,7 @@ bool UavcanMixingInterface::updateOutputs(bool stop_motors, uint16_t outputs[MAX
 	auto publisher = static_cast<UavcanEscController *>(_pub_manager.getPublisher("esc"));
 
 	if (publisher) {
-		publisher->update_outputs(stop_motors, outputs, num_outputs);
+		publisher->update_outputs(outputs, num_outputs);
 	}
 
 	return true;

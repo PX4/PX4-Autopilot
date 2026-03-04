@@ -46,11 +46,8 @@ void ManualControlSelector::updateWithNewInputSample(uint64_t now, const manual_
 	// First check if the chosen input got invalid, so it can get replaced
 	updateValidityOfChosenInput(now);
 
-	const bool update_existing_input = _setpoint.valid && (input.data_source == _setpoint.data_source);
-	const bool start_using_new_input = !_setpoint.valid;
-
-	// Switch to new input if it's valid and we don't already have a valid one
-	if (isInputValid(input, now) && (update_existing_input || start_using_new_input)) {
+	// Update with input sample if it's valid and should be chosen according to COM_RC_IN_MODE
+	if (isInputValid(input, now)) {
 		_setpoint = input;
 		_setpoint.valid = true;
 		_setpoint.timestamp = now; // timestamp_sample is preserved
@@ -66,28 +63,73 @@ void ManualControlSelector::updateWithNewInputSample(uint64_t now, const manual_
 bool ManualControlSelector::isInputValid(const manual_control_setpoint_s &input, uint64_t now) const
 {
 	// Check for timeout
-	const bool sample_from_the_past = now >= input.timestamp_sample;
-	const bool sample_newer_than_timeout = now - input.timestamp_sample < _timeout;
+	const bool sample_newer_than_timeout = now < input.timestamp_sample + _timeout;
 
 	// Check if source matches the configuration
-	const bool source_rc_matched = (_rc_in_mode == 0) && (input.data_source == manual_control_setpoint_s::SOURCE_RC);
-	const bool source_mavlink_matched = (_rc_in_mode == 1) &&
-					    (input.data_source == manual_control_setpoint_s::SOURCE_MAVLINK_0
-					     || input.data_source == manual_control_setpoint_s::SOURCE_MAVLINK_1
-					     || input.data_source == manual_control_setpoint_s::SOURCE_MAVLINK_2
-					     || input.data_source == manual_control_setpoint_s::SOURCE_MAVLINK_3
-					     || input.data_source == manual_control_setpoint_s::SOURCE_MAVLINK_4
-					     || input.data_source == manual_control_setpoint_s::SOURCE_MAVLINK_5);
-	const bool source_any_matched = (_rc_in_mode == 2);
-	const bool source_first_matched = (_rc_in_mode == 3) &&
-					  (input.data_source == _first_valid_source
-					   || _first_valid_source == manual_control_setpoint_s::SOURCE_UNKNOWN);
+	bool match = false;
 
-	return sample_from_the_past && sample_newer_than_timeout && input.valid
-	       && (source_rc_matched || source_mavlink_matched || source_any_matched || source_first_matched);
+	switch (_rc_in_mode) { // COM_RC_IN_MODE
+	case RcInMode::RcOnly:
+		match = isRc(input.data_source);
+		break;
+
+	case RcInMode::MavLinkOnly:
+		match = isMavlink(input.data_source) && ((input.data_source == _setpoint.data_source) || !_setpoint.valid);
+		break;
+
+	case RcInMode::RcOrMavlinkWithFallback:
+		match = (input.data_source == _setpoint.data_source) || !_setpoint.valid;
+		break;
+
+	case RcInMode::RcOrMavlinkKeepFirst:
+		match = (input.data_source == _first_valid_source)
+			|| (_first_valid_source == manual_control_setpoint_s::SOURCE_UNKNOWN);
+		break;
+
+	case RcInMode::PriorityRcThenMavlinkAscending:
+		match = !_setpoint.valid || (input.data_source <= _setpoint.data_source);
+		break;
+
+	case RcInMode::PriorityMavlinkAscendingThenRc:
+		match = !_setpoint.valid
+			|| (isRc(input.data_source) && isRc(_setpoint.data_source))
+			|| (isMavlink(input.data_source) && (isRc(_setpoint.data_source) || input.data_source <= _setpoint.data_source));
+		break;
+
+	case RcInMode::PriorityRcThenMavlinkDescending:
+		match = !_setpoint.valid
+			|| isRc(input.data_source)
+			|| (isMavlink(input.data_source) && isMavlink(_setpoint.data_source) && input.data_source >= _setpoint.data_source);
+		break;
+
+	case RcInMode::PriorityMavlinkDescendingThenRc:
+		match = !_setpoint.valid || (input.data_source >= _setpoint.data_source);
+		break;
+
+	case RcInMode::DisableManualControl:
+	default:
+		break;
+	}
+
+	return sample_newer_than_timeout && input.valid && match;
 }
 
 manual_control_setpoint_s &ManualControlSelector::setpoint()
 {
 	return _setpoint;
+}
+
+bool ManualControlSelector::isRc(uint8_t source)
+{
+	return source == manual_control_setpoint_s::SOURCE_RC;
+}
+
+bool ManualControlSelector::isMavlink(uint8_t source)
+{
+	return (source == manual_control_setpoint_s::SOURCE_MAVLINK_0
+		|| source == manual_control_setpoint_s::SOURCE_MAVLINK_1
+		|| source == manual_control_setpoint_s::SOURCE_MAVLINK_2
+		|| source == manual_control_setpoint_s::SOURCE_MAVLINK_3
+		|| source == manual_control_setpoint_s::SOURCE_MAVLINK_4
+		|| source == manual_control_setpoint_s::SOURCE_MAVLINK_5);
 }

@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2019-2022 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2019-2025 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -65,6 +65,8 @@
 #include <drivers/drv_hrt.h>        // to get the real time
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
+#include <lib/geo/geo.h>
+#include <lib/lat_lon_alt/lat_lon_alt.hpp>
 #include <lib/perf/perf_counter.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
@@ -84,14 +86,19 @@
 
 using namespace time_literals;
 
-class Sih : public ModuleBase<Sih>, public ModuleParams
+class Sih : public ModuleBase, public ModuleParams
 {
 public:
+	static Descriptor desc;
+
 	Sih();
 	virtual ~Sih();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int run_trampoline(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static Sih *instantiate(int argc, char *argv[]);
@@ -129,10 +136,10 @@ private:
 	uORB::Publication<vehicle_global_position_s>  _global_position_ground_truth_pub{ORB_ID(vehicle_global_position_groundtruth)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-	uORB::Subscription _actuator_out_sub{ORB_ID(actuator_outputs)};
+	uORB::Subscription _actuator_out_sub{ORB_ID(actuator_outputs_sim)};
 
 	// hard constants
-	static constexpr uint16_t NB_MOTORS = 6;
+	static constexpr uint16_t NUM_ACTUATORS_MAX = 9;
 	static constexpr float T1_C = 15.0f;                        // ground temperature in Celsius
 	static constexpr float T1_K = T1_C - atmosphere::kAbsoluteNullCelsius;   // ground temperature in Kelvin
 	static constexpr float TEMP_GRADIENT = -6.5f / 1000.0f;    // temperature gradient in degrees per metre
@@ -143,13 +150,11 @@ private:
 	static constexpr float RP = 0.1f; 	// radius of the propeller [m]
 	static constexpr float FLAP_MAX = M_PI_F / 12.0f; // 15 deg, maximum control surface deflection
 
-	void init_variables();
-
 	// read the motor signals outputted from the mixer
 	void read_motors(const float dt);
 
 	// generate the motors thrust and torque in the body frame
-	void generate_force_and_torques();
+	void generate_force_and_torques(const float dt);
 
 	// apply the equations of motion of a rigid body and integrate one step
 	void equations_of_motion(const float dt);
@@ -159,9 +164,22 @@ private:
 	void send_airspeed(const hrt_abstime &time_now_us);
 	void send_dist_snsr(const hrt_abstime &time_now_us);
 	void publish_ground_truth(const hrt_abstime &time_now_us);
-	void generate_fw_aerodynamics();
+	void generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, const float yaw_cmd, const float thrust);
 	void generate_ts_aerodynamics();
+	void generate_rover_ackermann_dynamics(const float throttle_cmd, const float steering_cmd, const float dt);
 	void sensor_step();
+	static float computeGravity(double lat);
+
+	void ecefToNed();
+	static matrix::Dcmf computeRotEcefToNed(const LatLonAlt &lla);
+
+	struct Wgs84 {
+		static constexpr double equatorial_radius = 6378137.0;
+		static constexpr double eccentricity = 0.0818191908425;
+		static constexpr double eccentricity2 = eccentricity * eccentricity;
+		static constexpr double gravity_equator = 9.7803253359;
+	};
+
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	void lockstep_loop();
@@ -185,23 +203,29 @@ private:
 	bool        _grounded{true};// whether the vehicle is on the ground
 
 	matrix::Vector3f    _T_B{};           // thrust force in body frame [N]
-	matrix::Vector3f    _Fa_I{};          // aerodynamic force in inertial frame [N]
 	matrix::Vector3f    _Mt_B{};          // thruster moments in the body frame [Nm]
 	matrix::Vector3f    _Ma_B{};          // aerodynamic moments in the body frame [Nm]
-	matrix::Vector3f    _p_I{};           // inertial position [m]
-	matrix::Vector3f    _v_I{};           // inertial velocity [m/s]
-	matrix::Vector3f    _v_B{};           // body frame velocity [m/s]
-	matrix::Vector3f    _p_I_dot{};       // inertial position differential
-	matrix::Vector3f    _v_I_dot{};       // inertial velocity differential
-	matrix::Quatf       _q{};             // quaternion attitude
-	matrix::Dcmf        _C_IB{};          // body to inertial transformation
+	matrix::Vector3f    _lpos{};          // position in a local tangent-plane frame [m]
+	matrix::Vector3f    _v_N{};           // velocity in local navigation frame (NED, body-fixed) [m/s]
+	matrix::Vector3f    _v_N_dot{};       // time derivative of velocity in local navigation frame [m/s2]
+	matrix::Quatf       _q{};             // quaternion attitude in local navigation frame
 	matrix::Vector3f    _w_B{};           // body rates in body frame [rad/s]
-	matrix::Quatf       _dq{};            // quaternion differential
-	matrix::Vector3f    _w_B_dot{};       // body rates differential
-	float       _u[NB_MOTORS] {};         // thruster signals
 
-	enum class VehicleType {MC, FW, TS};
-	VehicleType _vehicle = VehicleType::MC;
+	LatLonAlt _lla{};
+
+	// Quantities in Earth-centered-Earth-fixed coordinates
+	matrix::Vector3f    _Fa_E{};          // aerodynamic force in ECEF frame [N]
+	matrix::Vector3f    _specific_force_E{};
+	matrix::Quatf       _q_E{matrix::Eulerf(0.f, -M_PI_2_F, 0.f)};
+	matrix::Vector3d    _p_E{Wgs84::equatorial_radius, 0.0, 0.0};
+	matrix::Vector3f    _v_E{};
+	matrix::Vector3f    _v_E_dot{};
+	matrix::Dcmf        _R_N2E;           // local navigation to ECEF frame rotation matrix
+
+	float _u[NUM_ACTUATORS_MAX] {}; // thruster signals
+
+	enum class VehicleType {Quadcopter, FixedWing, TailsitterVTOL, StandardVTOL, Hexacopter, RoverAckermann, First = Quadcopter, Last = RoverAckermann}; // numbering dependent on parameter SIH_VEHICLE_TYPE
+	VehicleType _vehicle = VehicleType::Quadcopter;
 
 	// aerodynamic segments for the fixedwing
 	AeroSeg _wing_l = AeroSeg(SPAN / 2.0f, MAC, -4.0f, matrix::Vector3f(0.0f, -SPAN / 4.0f, 0.0f), 3.0f,
@@ -218,7 +242,7 @@ private:
 	static constexpr const float TS_CM = 0.115f;	// longitudinal position of the CM from trailing edge
 	static constexpr const float TS_RP = 0.0625f;	// propeller radius [m]
 	static constexpr const float TS_DEF_MAX = math::radians(39.0f); 	// max deflection
-	matrix::Dcmf _C_BS = matrix::Dcmf(matrix::Eulerf(0.0f, math::radians(90.0f), 0.0f)); // segment to body 90 deg pitch
+	matrix::Dcmf _R_S2B = matrix::Dcmf(matrix::Eulerf(0.0f, math::radians(90.0f), 0.0f)); // segment to body 90 deg pitch
 	AeroSeg _ts[NB_TS_SEG] = {
 		AeroSeg(0.0225f, 0.110f, 0.0f, matrix::Vector3f(0.083f - TS_CM, -0.239f, 0.0f), 0.0f, TS_AR),
 		AeroSeg(0.0383f, 0.125f, 0.0f, matrix::Vector3f(0.094f - TS_CM, -0.208f, 0.0f), 0.0f, TS_AR, 0.063f),
@@ -235,22 +259,10 @@ private:
 		AeroSeg(0.0225f, 0.110f, 0.0f, matrix::Vector3f(0.083f - TS_CM,  0.239f, 0.0f), 0.0f, TS_AR)
 	};
 
-	// AeroSeg _ts[NB_TS_SEG] = {
-	// 	AeroSeg(0.0225f, 0.110f, -90.0f, matrix::Vector3f(0.0f, -0.239f, TS_CM-0.083f), 0.0f, TS_AR),
-	// 	AeroSeg(0.0383f, 0.125f, -90.0f, matrix::Vector3f(0.0f, -0.208f, TS_CM-0.094f), 0.0f, TS_AR, 0.063f),
-	// 	AeroSeg(0.0884f, 0.148f, -90.0f, matrix::Vector3f(0.0f, -0.143f, TS_CM-0.111f), 0.0f, TS_AR, 0.063f, TS_RP),
-	// 	AeroSeg(0.0633f, 0.176f, -90.0f, matrix::Vector3f(0.0f, -0.068f, TS_CM-0.132f), 0.0f, TS_AR, 0.063f),
-	// 	AeroSeg(0.0750f, 0.231f, -90.0f, matrix::Vector3f(0.0f,  0.000f, TS_CM-0.173f), 0.0f, TS_AR),
-	// 	AeroSeg(0.0633f, 0.176f, -90.0f, matrix::Vector3f(0.0f,  0.068f, TS_CM-0.132f), 0.0f, TS_AR, 0.063f),
-	// 	AeroSeg(0.0884f, 0.148f, -90.0f, matrix::Vector3f(0.0f,  0.143f, TS_CM-0.111f), 0.0f, TS_AR, 0.063f, TS_RP),
-	// 	AeroSeg(0.0383f, 0.125f, -90.0f, matrix::Vector3f(0.0f,  0.208f, TS_CM-0.094f), 0.0f, TS_AR, 0.063f),
-	// 	AeroSeg(0.0225f, 0.110f, -90.0f, matrix::Vector3f(0.0f,  0.239f, TS_CM-0.083f), 0.0f, TS_AR)
-	// 	};
-
 	// parameters
-	float _MASS, _T_MAX, _Q_MAX, _L_ROLL, _L_PITCH, _KDV, _KDW, _H0, _T_TAU;
-	double _LAT0, _LON0, _COS_LAT0;
-	matrix::Vector3f _W_I;  // weight of the vehicle in inertial frame [N]
+	MapProjection _lpos_ref{};
+	float _lpos_ref_alt;
+	float _MASS, _T_MAX, _Q_MAX, _L_ROLL, _L_PITCH, _KDV, _KDW, _T_TAU;
 	matrix::Matrix3f _I;    // vehicle inertia matrix
 	matrix::Matrix3f _Im1;  // inverse of the inertia matrix
 

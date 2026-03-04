@@ -1,0 +1,64 @@
+---
+pageClass: is-wide-page
+---
+
+# Ekf2Timestamps (повідомлення UORB)
+
+це повідомлення містить (відносні) відмітки часу введення датчиків, які використовує EKF2. Це може бути використано для відтворення.
+
+**TOPICS:** ekf2_timestamps
+
+## Fields
+
+| Назва                                                                                                              | Тип      | Unit [Frame] | Range/Enum | Опис                                                      |
+| ------------------------------------------------------------------------------------------------------------------ | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| timestamp                                                                                                          | `uint64` |                                                                  |            | time since system start (microseconds) |
+| airspeed_timestamp_rel                                                   | `int16`  |                                                                  |            |                                                           |
+| airspeed_validated_timestamp_rel                    | `int16`  |                                                                  |            |                                                           |
+| distance_sensor_timestamp_rel                       | `int16`  |                                                                  |            |                                                           |
+| optical_flow_timestamp_rel                          | `int16`  |                                                                  |            |                                                           |
+| vehicle_air_data_timestamp_rel | `int16`  |                                                                  |            |                                                           |
+| vehicle_magnetometer_timestamp_rel                  | `int16`  |                                                                  |            |                                                           |
+| visual_odometry_timestamp_rel                       | `int16`  |                                                                  |            |                                                           |
+
+## Constants
+
+| Назва                                                                                                           | Тип     | Значення | Опис                                                          |
+| --------------------------------------------------------------------------------------------------------------- | ------- | -------- | ------------------------------------------------------------- |
+| <a href="#RELATIVE_TIMESTAMP_INVALID"></a> RELATIVE_TIMESTAMP_INVALID | `int16` | 32767    | (0x7fff) If one of the relative timestamps |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/Ekf2Timestamps.msg)
+
+:::details
+Click here to see original file
+
+```c
+# this message contains the (relative) timestamps of the sensor inputs used by EKF2.
+# It can be used for reproducible replay.
+
+# the timestamp field is the ekf2 reference time and matches the timestamp of
+# the sensor_combined topic.
+
+uint64 timestamp			 # time since system start (microseconds)
+
+int16 RELATIVE_TIMESTAMP_INVALID = 32767 # (0x7fff) If one of the relative timestamps
+                                         # is set to this value, it means the associated sensor values did not update
+
+# timestamps are relative to the main timestamp and are in 0.1 ms (timestamp +
+# *_timestamp_rel = absolute timestamp). For int16, this allows a maximum
+# difference of +-3.2s to the sensor_combined topic.
+
+int16 airspeed_timestamp_rel
+int16 airspeed_validated_timestamp_rel
+int16 distance_sensor_timestamp_rel
+int16 optical_flow_timestamp_rel
+int16 vehicle_air_data_timestamp_rel
+int16 vehicle_magnetometer_timestamp_rel
+int16 visual_odometry_timestamp_rel
+
+# Note: this is a high-rate logged topic, so it needs to be as small as possible
+```
+
+:::

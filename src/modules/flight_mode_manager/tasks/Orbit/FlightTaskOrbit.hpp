@@ -45,6 +45,7 @@
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/orbit_status.h>
 #include <lib/slew_rate/SlewRateYaw.hpp>
+#include <lib/motion_planning/HeadingSmoothing.hpp>
 #include <lib/motion_planning/PositionSmoothing.hpp>
 #include <lib/motion_planning/VelocitySmoothing.hpp>
 #include <lib/slew_rate/SlewRate.hpp>
@@ -71,7 +72,6 @@ protected:
 private:
 	/* TODO: Should be controlled by params */
 	static constexpr float _radius_min = 1.f;
-	static constexpr float _velocity_max = 10.f;
 	static constexpr float _acceleration_max = 2.f;
 	static constexpr float _horizontal_acceptance_radius = 2.f;
 
@@ -127,7 +127,7 @@ private:
 	bool _started_clockwise{true};
 	bool _currently_orbiting{false};
 	float _initial_heading = 0.f; /**< the heading of the drone when the orbit command was issued */
-	SlewRateYaw<float> _slew_rate_yaw;
+	HeadingSmoothing _heading_smoothing;
 	SlewRate<float> _slew_rate_velocity;
 
 	orb_advert_t _mavlink_log_pub{nullptr};
@@ -138,6 +138,7 @@ private:
 		(ParamInt<px4::params::MC_ORBIT_YAW_MOD>) _param_mc_orbit_yaw_mod,
 		(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise, /**< cruise speed for circle approach */
 		(ParamFloat<px4::params::MPC_YAWRAUTO_MAX>) _param_mpc_yawrauto_max,
+		(ParamFloat<px4::params::MPC_YAWRAUTO_ACC>) _param_mpc_yawrauto_acc,
 		(ParamFloat<px4::params::MPC_XY_TRAJ_P>) _param_mpc_xy_traj_p,
 		(ParamFloat<px4::params::NAV_MC_ALT_RAD>)
 		_param_nav_mc_alt_rad, //vertical acceptance radius at which waypoints are updated
@@ -147,6 +148,7 @@ private:
 		(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _param_mpc_acc_up_max,
 		(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _param_mpc_acc_down_max,
 		(ParamFloat<px4::params::MPC_Z_V_AUTO_UP>) _param_mpc_z_v_auto_up,
-		(ParamFloat<px4::params::MPC_Z_V_AUTO_DN>) _param_mpc_z_v_auto_dn
+		(ParamFloat<px4::params::MPC_Z_V_AUTO_DN>) _param_mpc_z_v_auto_dn,
+		(ParamFloat<px4::params::MPC_XY_VEL_MAX>) _param_mpc_xy_vel_max
 	)
 };

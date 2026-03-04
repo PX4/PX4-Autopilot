@@ -52,6 +52,6 @@ if __name__ == '__main__':
         package_dir = interface_file.parent.absolute()
 
         convert_msg_to_idl(
-            package_dir, 'px4',
+            package_dir, 'px4_msgs',
             interface_file.absolute().relative_to(package_dir),
             interface_file.parent)

@@ -109,7 +109,7 @@ LidarLitePWM::measure()
 		return PX4_ERROR;
 	}
 
-	const float current_distance = float(_pwm.pulse_width) * 1e-3f;   /* 10 usec = 1 cm distance for LIDAR-Lite */
+	const float current_distance = static_cast<float>(_pwm.pulse_width) * 1e-3f; // 1us = 1mm distance for LIDAR-Lite
 
 	/* Due to a bug in older versions of the LidarLite firmware, we have to reset sensor on (distance == 0) */
 	if (current_distance <= 0.0f) {

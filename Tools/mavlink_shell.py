@@ -191,7 +191,7 @@ def main():
                         cur_history_index = len(command_history)
                     mav_serialport.write(cur_line+'\n')
                     cur_line = ''
-                elif ord(ch) == 127: # backslash
+                elif ord(ch) == 8: # backspace
                     if len(cur_line) > 0:
                         erase_last_n_chars(1)
                         cur_line = cur_line[:-1]

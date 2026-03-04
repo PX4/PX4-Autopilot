@@ -35,6 +35,7 @@
 
 using matrix::AxisAnglef;
 using matrix::Dcmf;
+using matrix::Eulerf;
 using matrix::Quatf;
 using matrix::Vector2f;
 using matrix::Vector3f;
@@ -109,7 +110,11 @@ void OutputPredictor::reset()
 
 	_R_to_earth_now.setIdentity();
 	_vel_imu_rel_body_ned.setZero();
-	_vel_deriv.setZero();
+	_delta_vel_sum.setZero();
+	_delta_vel_dt = 0.f;
+
+	_delta_angle_sum.setIdentity();
+	_delta_angle_sum_dt = 0.f;
 
 	_delta_angle_corr.setZero();
 
@@ -195,6 +200,7 @@ void OutputPredictor::calculateOutputStates(const uint64_t time_us, const Vector
 	const Quatf dq(AxisAnglef{delta_angle_corrected});
 
 	// rotate the previous INS quaternion by the delta quaternions
+	const Quatf quat_nominal_before_update = _output_new.quat_nominal;
 	_output_new.quat_nominal = _output_new.quat_nominal * dq;
 
 	// the quaternions must always be normalised after modification
@@ -210,9 +216,8 @@ void OutputPredictor::calculateOutputStates(const uint64_t time_us, const Vector
 	delta_vel_earth(2) += CONSTANTS_ONE_G * delta_velocity_dt;
 
 	// calculate the earth frame velocity derivatives
-	if (delta_velocity_dt > 0.001f) {
-		_vel_deriv = delta_vel_earth / delta_velocity_dt;
-	}
+	_delta_vel_sum += delta_vel_earth;
+	_delta_vel_dt += delta_velocity_dt;
 
 	// save the previous velocity so we can use trapezoidal integration
 	const Vector3f vel_last(_output_new.vel);
@@ -244,9 +249,19 @@ void OutputPredictor::calculateOutputStates(const uint64_t time_us, const Vector
 	}
 
 	// update auxiliary yaw estimate
-	const Vector3f unbiased_delta_angle = delta_angle - delta_angle_bias_scaled;
-	const float spin_del_ang_D = unbiased_delta_angle.dot(Vector3f(_R_to_earth_now.row(2)));
-	_unaided_yaw = matrix::wrap_pi(_unaided_yaw + spin_del_ang_D);
+	// rotate the state quternion by the delta quaternion only corrected for bias without EKF corrections
+	const Quatf delta_quat_unaided = Quatf(AxisAnglef(delta_angle - delta_angle_bias_scaled));
+	const float yaw_state = Eulerf(quat_nominal_before_update).psi();
+	const Quatf quat_unaided = quat_nominal_before_update * delta_quat_unaided;
+	const float yaw_without_aiding = Eulerf(quat_unaided).psi();
+	// Yaw before delta quaternion applied and yaw after. The difference is the delta yaw. Accumulate it.
+	const float unaided_delta_yaw = yaw_without_aiding - yaw_state;
+	_unaided_yaw = matrix::wrap_pi(_unaided_yaw + unaided_delta_yaw);
+
+	// angular velocity downsampling
+	_delta_angle_sum *= delta_quat_unaided;
+	_delta_angle_sum.normalize();
+	_delta_angle_sum_dt += delta_angle_dt;
 }
 
 void OutputPredictor::correctOutputStates(const uint64_t time_delayed_us,
@@ -388,4 +403,34 @@ void OutputPredictor::applyCorrectionToOutputBuffer(const Vector3f &vel_correcti
 
 	// update output state to corrected values
 	_output_new = _output_buffer.get_newest();
+}
+
+matrix::Vector3f OutputPredictor::getVelocityDerivative() const
+{
+	if (_delta_vel_dt > FLT_EPSILON) {
+		return _delta_vel_sum / _delta_vel_dt;
+
+	} else {
+		return matrix::Vector3f(0.f, 0.f, 0.f);
+	}
+}
+
+void OutputPredictor::resetVelocityDerivativeAccumulation()
+{
+	_delta_vel_dt = 0.f;
+	_delta_vel_sum.setZero();
+}
+
+Vector3f OutputPredictor::getAngularVelocityAndResetAccumulator()
+{
+	Vector3f angular_velocity;
+
+	if (_delta_angle_sum_dt > FLT_EPSILON) {
+		angular_velocity = AxisAnglef(_delta_angle_sum) / _delta_angle_sum_dt;
+	}
+
+	_delta_angle_sum.setIdentity();
+	_delta_angle_sum_dt = 0.f;
+
+	return angular_velocity;
 }

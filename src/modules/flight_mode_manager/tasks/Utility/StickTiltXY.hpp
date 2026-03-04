@@ -62,11 +62,17 @@ public:
 	 */
 	matrix::Vector2f generateAccelerationSetpoints(matrix::Vector2f stick_xy, const float dt, const float yaw,
 			const float yaw_setpoint);
+
+	matrix::Vector2f generateAccelerationSetpointsForAltitudeCruise(matrix::Vector2f stick_xy, const float dt,
+			const float yaw, const float yaw_setpoint);
+
+	void reset();
 private:
 	void updateParams() override;
 
 	float _maximum_acceleration{0.f};
 	AlphaFilter<matrix::Vector2f> _man_input_filter;
+	matrix::Vector2f _altitude_cruise_acceleration{};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_MAN_TILT_MAX>) _param_mpc_man_tilt_max, ///< maximum tilt allowed for manual flight

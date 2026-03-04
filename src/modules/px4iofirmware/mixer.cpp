@@ -156,13 +156,13 @@ mixer_tick()
 	    (source == MIX_DISARMED) && 				/* and if we ended up not changing the default mixer */
 	    should_arm && 						/* and we should be armed, so we intended to provide outputs */
 	    (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_INITIALIZED)) { 	/* and FMU is initialized */
-		atomic_modify_or(&r_setup_arming, PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE); /* then FMU is dead -> terminate flight */
+		atomic_modify_or(&r_setup_arming, PX4IO_P_SETUP_ARMING_TERMINATION); /* then FMU is dead -> terminate flight */
 	}
 
 	/*
-	 * Check if we should force failsafe - and do it if we have to
+	 * If terminated output failsafe values
 	 */
-	if (r_setup_arming & PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE) {
+	if (r_setup_arming & PX4IO_P_SETUP_ARMING_TERMINATION) {
 		source = MIX_FAILSAFE;
 	}
 

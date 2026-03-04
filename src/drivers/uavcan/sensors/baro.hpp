@@ -38,7 +38,6 @@
 #pragma once
 
 #include "sensor_bridge.hpp"
-
 #include <uavcan/equipment/air_data/StaticPressure.hpp>
 #include <uavcan/equipment/air_data/StaticTemperature.hpp>
 
@@ -47,7 +46,7 @@ class UavcanBarometerBridge : public UavcanSensorBridgeBase
 public:
 	static const char *const NAME;
 
-	UavcanBarometerBridge(uavcan::INode &node);
+	UavcanBarometerBridge(uavcan::INode &node, NodeInfoPublisher *node_info_publisher);
 
 	const char *get_name() const override { return NAME; }
 

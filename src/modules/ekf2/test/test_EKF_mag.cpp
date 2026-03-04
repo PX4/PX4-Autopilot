@@ -214,3 +214,98 @@ TEST_F(EkfMagTest, suddenInclinationChange)
 	EXPECT_FALSE(_ekf_wrapper.isIntendingMagHeadingFusion());
 	EXPECT_FALSE(_ekf_wrapper.isIntendingMag3DFusion());
 }
+
+TEST_F(EkfMagTest, velocityRotationOnYawReset)
+{
+	// GIVEN: Mag fusion is active and vehicle is flying with airspeed
+	const float initial_mag_heading = M_PI_F / 4.f; // 45 degrees
+	Vector3f mag_data(0.2f * cosf(initial_mag_heading), -0.2f * sinf(initial_mag_heading), 0.4f);
+	_sensor_simulator._mag.setData(mag_data);
+	_sensor_simulator.runSeconds(_init_duration_s);
+
+	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
+	_ekf->set_is_fixed_wing(true);
+
+	const float airspeed_body = 15.0f; // 15 m/s airspeed in body X direction
+	_sensor_simulator.startAirspeedSensor();
+	_sensor_simulator._airspeed.setData(airspeed_body, airspeed_body);
+
+	_ekf_wrapper.enableBetaFusion();
+	_sensor_simulator.runSeconds(3);
+
+	// initial state
+	const Vector3f vel_before = _ekf->getVelocity();
+	const float yaw_before = _ekf_wrapper.getYawAngle();
+	const matrix::Dcm2f R_ned_to_body_before(-yaw_before);
+	const Vector2f vel_body_before = R_ned_to_body_before * Vector2f(vel_before);
+
+	// WHEN: Mag heading suddenly changes by more than 0.3 rad (90 degrees)
+	const float new_mag_heading = yaw_before + M_PI_F / 2.f;
+	mag_data = Vector3f(0.2f * cosf(new_mag_heading), -0.2f * sinf(new_mag_heading), 0.4f);
+	_sensor_simulator._mag.setData(mag_data);
+	_sensor_simulator.runSeconds(8.f);
+
+	// THEN: the yaw should be reset to the new mag heading
+	const float yaw_after = _ekf_wrapper.getYawAngle();
+	EXPECT_NEAR(yaw_after, new_mag_heading, radians(5.0f))
+			<< "Yaw after: " << degrees(yaw_after)
+			<< " Expected: " << degrees(new_mag_heading);
+
+	// AND: the NED velocity should be rotated to maintain consistent body-frame velocity
+	const Vector3f vel_after = _ekf->getVelocity();
+
+	// Calculate body-frame velocity after reset
+	const matrix::Dcm2f R_ned_to_body_after(-yaw_after);
+	const Vector2f vel_body_after = R_ned_to_body_after * Vector2f(vel_after);
+
+	// Body-frame velocity should remain approximately the same
+	EXPECT_NEAR(vel_body_before(0), vel_body_after(0), 1.0f)
+			<< "Body-frame velocity X before: " << vel_body_before(0)
+			<< " after: " << vel_body_after(0);
+	EXPECT_NEAR(vel_body_before(1), vel_body_after(1), 1.0f)
+			<< "Body-frame velocity Y before: " << vel_body_before(1)
+			<< " after: " << vel_body_after(1);
+
+	// Verify that the yaw change was sufficient to trigger velocity rotation (> 0.3 rad)
+	const float yaw_change = fabsf(wrap_pi(yaw_after - yaw_before));
+	EXPECT_GT(yaw_change, 0.3f) << "Yaw change: " << degrees(yaw_change) << " deg";
+}
+
+TEST_F(EkfMagTest, magFaultCleared)
+{
+	// GIVEN: biased mag data
+	_sensor_simulator._mag.setBias(Vector3f(-0.3f, 0.2f, 0.f));
+	_ekf_wrapper.enableGpsFusion();
+	_sensor_simulator.startGps();
+	_sensor_simulator.runSeconds(11);
+
+	// THEN: the initial heading is incorrect
+	EXPECT_NEAR(degrees(_ekf_wrapper.getYawAngle()), -110.f, 5.f);
+	EXPECT_TRUE(_ekf_wrapper.isIntendingMagHeadingFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingMag3DFusion());
+
+	// WHEN: motion allows the yaw estimator to converge
+	_sensor_simulator.setTrajectoryTargetVelocity(Vector3f(2.f, -2.f, -1.f));
+	_ekf->set_in_air_status(true);
+
+	_sensor_simulator.runTrajectorySeconds(3.f);
+
+	// THEN: the heading error is detected, solved and mag is declared faulty
+	EXPECT_FALSE(_ekf_wrapper.isIntendingMagHeadingFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingMag3DFusion());
+	EXPECT_TRUE(_ekf_wrapper.isMagFaultDetected());
+
+	// BUT when: the mag disturbance is gone
+	_sensor_simulator._mag.setBias(Vector3f());
+	_sensor_simulator.setTrajectoryTargetVelocity(Vector3f(0.f, 0.f, 0.f));
+
+	_sensor_simulator.runTrajectorySeconds(7.f);
+
+	// THEN: the fault is cleared and mag fusion restarts
+	EXPECT_FALSE(_ekf_wrapper.isMagFaultDetected());
+	EXPECT_TRUE(_ekf_wrapper.isMagHeadingConsistent());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingMagFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingMagHeadingFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingMag3DFusion()); // because in-flight alignment is required
+}

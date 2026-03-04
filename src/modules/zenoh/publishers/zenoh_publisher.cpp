@@ -44,7 +44,8 @@
 
 Zenoh_Publisher::Zenoh_Publisher()
 {
-	this->_topic[0] = 0x0;
+	_attachment.sequence_number = 0;
+	_attachment.rmw_gid_size = RMW_GID_STORAGE_SIZE;
 }
 
 Zenoh_Publisher::~Zenoh_Publisher()
@@ -58,38 +59,57 @@ int Zenoh_Publisher::undeclare_publisher()
 	return 0;
 }
 
-int Zenoh_Publisher::declare_publisher(z_owned_session_t s, const char *keyexpr)
+int Zenoh_Publisher::declare_publisher(z_owned_session_t s, const char *keyexpr, uint8_t *gid)
 {
-	strncpy(this->_topic, keyexpr, sizeof(this->_topic));
-
 	z_view_keyexpr_t ke;
-	z_view_keyexpr_from_str(&ke, this->_topic);
 
-	if (z_declare_publisher(&_pub, z_loan(s), z_loan(ke), NULL) < 0) {
+	if (z_view_keyexpr_from_str(&ke, keyexpr) < 0) {
+		printf("%s is not a valid key expression\n", keyexpr);
+		return -1;
+	}
+
+	if (z_declare_publisher(z_loan(s), &_pub, z_loan(ke), NULL) < 0) {
 		printf("Unable to declare publisher for key expression!\n");
 		return -1;
 	}
 
-	if (!z_publisher_check(&_pub)) {
-		printf("Unable to declare publisher for key expression!\n");
-		return -1;
-	}
+	memcpy(_attachment.rmw_gid, gid, RMW_GID_STORAGE_SIZE);
 
 	return 0;
 }
 
-int8_t Zenoh_Publisher::publish(const uint8_t *buf, int size)
+z_result_t Zenoh_Publisher::publish(const uint8_t *buf, int size)
 {
+	z_result_t ret;
+
 	z_publisher_put_options_t options;
 	z_publisher_put_options_default(&options);
-	options.encoding = NULL;
+
+	_attachment.sequence_number++;
+	_attachment.time = hrt_absolute_time();
+
+	z_owned_bytes_t z_attachment;
+	ret = z_bytes_from_static_buf(&z_attachment, (const uint8_t *)&_attachment, RMW_ATTACHEMENT_SIZE);
+
+	if (ret != Z_OK) {
+		return ret;
+	}
+
+	options.attachment = z_move(z_attachment);
 
 	z_owned_bytes_t payload;
-	z_bytes_serialize_from_slice(&payload, buf, size);
+	ret = z_bytes_copy_from_buf(&payload, buf, size);
+
+	if (ret != Z_OK) {
+		return ret;
+	}
+
 	return z_publisher_put(z_loan(_pub), z_move(payload), &options);
 }
 
 void Zenoh_Publisher::print()
 {
-	printf("Topic: %s\n", this->_topic);
+	z_view_string_t keystr;
+	z_keyexpr_as_view_string(z_publisher_keyexpr(z_loan(_pub)), &keystr);
+	printf("Topic: %.*s\n", (int)z_string_len(z_loan(keystr)), z_string_data(z_loan(keystr)));
 }

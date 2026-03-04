@@ -125,10 +125,15 @@ int AerotennaULanding::collect()
 
 			index--;
 		}
+
+	} else {
+		return -EAGAIN;
 	}
 
 	if (!checksum_passed) {
-		return -EAGAIN;
+		perf_count(_comms_errors);
+		perf_end(_sample_perf);
+		return -EBADMSG;
 	}
 
 	_px4_rangefinder.update(timestamp_sample, distance_m);

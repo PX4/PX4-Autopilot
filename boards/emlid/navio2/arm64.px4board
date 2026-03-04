@@ -1,0 +1,1 @@
+CONFIG_BOARD_TOOLCHAIN="aarch64-linux-gnu"

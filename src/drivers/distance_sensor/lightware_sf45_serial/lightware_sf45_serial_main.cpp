@@ -41,7 +41,7 @@ namespace lightware_sf45
 
 SF45LaserSerial *g_dev{nullptr};
 
-static int start(const char *port, uint8_t rotation)
+static int start(const char *port)
 {
 	if (g_dev != nullptr) {
 		PX4_WARN("already started");
@@ -54,7 +54,7 @@ static int start(const char *port, uint8_t rotation)
 	}
 
 	/* create the driver */
-	g_dev = new SF45LaserSerial(port, rotation);
+	g_dev = new SF45LaserSerial(port);
 
 	if (g_dev == nullptr) {
 		return -1;
@@ -102,7 +102,6 @@ static int usage()
 
 Serial bus driver for the Lightware SF45/b Laser rangefinder.
 
-Setup/usage information: https://docs.px4.io/master/en/sensor/sfxx_lidar.html
 
 ### Examples
 
@@ -116,7 +115,6 @@ $ lightware_sf45_serial stop
 	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start driver");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
-	PRINT_MODULE_USAGE_PARAM_INT('R', 25, 0, 25, "Sensor rotation - downward facing by default", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop driver");
 	return PX4_OK;
 }
@@ -125,18 +123,13 @@ $ lightware_sf45_serial stop
 
 extern "C" __EXPORT int lightware_sf45_serial_main(int argc, char *argv[])
 {
-	uint8_t rotation = distance_sensor_s::ROTATION_FORWARD_FACING;
 	const char *device_path = nullptr;
 	int ch;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "R:d:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
-		case 'R':
-			rotation = (uint8_t)atoi(myoptarg);
-			break;
-
 		case 'd':
 			device_path = myoptarg;
 			break;
@@ -153,7 +146,7 @@ extern "C" __EXPORT int lightware_sf45_serial_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[myoptind], "start")) {
-		return lightware_sf45::start(device_path, rotation);
+		return lightware_sf45::start(device_path);
 
 	} else if (!strcmp(argv[myoptind], "stop")) {
 		return lightware_sf45::stop();

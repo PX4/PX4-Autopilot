@@ -50,6 +50,7 @@ protected:
 IIS2MDC_I2C::IIS2MDC_I2C(const I2CSPIDriverConfig &config) :
 	I2C(config)
 {
+	_retries = 10;
 }
 
 int IIS2MDC_I2C::probe()

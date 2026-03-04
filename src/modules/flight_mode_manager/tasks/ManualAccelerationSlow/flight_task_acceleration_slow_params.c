@@ -156,3 +156,17 @@ PARAM_DEFINE_FLOAT(MC_SLOW_DEF_VVEL, 1.f);
  * @group Multicopter Position Slow Mode
  */
 PARAM_DEFINE_FLOAT(MC_SLOW_DEF_YAWR, 45.f);
+
+/**
+ * RC_MAP_AUX{N} to allow for gimbal pitch rate control in position slow mode
+ *
+ * @value 0 No pitch rate input
+ * @value 1 AUX1
+ * @value 2 AUX2
+ * @value 3 AUX3
+ * @value 4 AUX4
+ * @value 5 AUX5
+ * @value 6 AUX6
+ * @group Multicopter Position Slow Mode
+ */
+PARAM_DEFINE_INT32(MC_SLOW_MAP_PTCH, 0);

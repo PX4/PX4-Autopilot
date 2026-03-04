@@ -42,6 +42,7 @@ import os
 import argparse
 import re
 import sys
+import json
 
 try:
     import em
@@ -124,7 +125,7 @@ def generate_by_template(output_file, template_file, em_globals):
     return True
 
 
-def generate_topics_list_file_from_files(files, outputdir, template_filename, templatedir):
+def generate_topics_list_file_from_files(files, outputdir, template_filename, templatedir, rihs_path):
     # generate cpp file with topics list
     filenames = []
     for filename in [os.path.basename(p) for p in files if os.path.basename(p).endswith(".msg")]:
@@ -138,11 +139,27 @@ def generate_topics_list_file_from_files(files, outputdir, template_filename, te
     for filename in [os.path.basename(p) for p in files if os.path.basename(p).endswith(".msg")]:
         full_base_names.append(filename.replace(".msg",""))
 
-    topics = []
-    for msg_filename in files:
-        topics.extend(get_topics(msg_filename))
+    rihs01_hashes = dict()
+    if rihs_path != '':
+        for topic in full_base_names:
+            with open(rihs_path + "/msg/" + topic + ".json") as f:
+                d = json.load(f)
+                assert d['type_hashes'][0]['hash_string'][:7] == 'RIHS01_'
 
-    tl_globals = {"msgs": filenames, "topics": topics, "datatypes": datatypes, "full_base_names": full_base_names}
+                rihs01_hash = d['type_hashes'][0]['hash_string'][7:]
+
+                byte_array = [f"0x{rihs01_hash[i:i+2]}" for i in range(0, len(rihs01_hash), 2)]
+                c_code = f"{{ {', '.join(byte_array)} }};"
+                rihs01_hashes[topic] = c_code
+
+    topics = []
+    datatypes_with_topics = dict()
+    for msg_filename in files:
+        datatype = re.sub(r'(?<!^)(?=[A-Z])', '_', os.path.basename(msg_filename)).lower().replace(".msg","")
+        datatypes_with_topics[datatype] = get_topics(msg_filename)
+        topics.extend(datatypes_with_topics[datatype])
+
+    tl_globals = {"msgs": filenames, "topics": topics, "datatypes": datatypes, "full_base_names": full_base_names, "rihs01_hashes": rihs01_hashes, "datatypes_with_topics": datatypes_with_topics}
     tl_template_file = os.path.join(templatedir, template_filename)
     tl_out_file = os.path.join(outputdir, template_filename.replace(".em", ""))
 
@@ -162,13 +179,15 @@ if __name__ == "__main__":
     parser.add_argument('-p', dest='prefix', default='',
                         help='string added as prefix to the output file '
                         ' name when converting directories')
+    parser.add_argument('--rihs', dest='rihs', default='',
+                        help='path where rihs01 json files located')
     args = parser.parse_args()
 
     if args.zenoh_config:
-        generate_topics_list_file_from_files(args.file, args.outputdir, ZENOH_TEMPLATE_FILE[0], args.templatedir)
+        generate_topics_list_file_from_files(args.file, args.outputdir, ZENOH_TEMPLATE_FILE[0], args.templatedir, args.rihs)
         exit(0)
     elif args.zenoh_pub_sub:
-        generate_topics_list_file_from_files(args.file, args.outputdir, ZENOH_TEMPLATE_FILE[1], args.templatedir)
+        generate_topics_list_file_from_files(args.file, args.outputdir, ZENOH_TEMPLATE_FILE[1], args.templatedir, args.rihs)
         exit(0)
     else:
         print('Error: either --headers or --sources must be specified')

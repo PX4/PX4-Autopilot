@@ -1,0 +1,24 @@
+runners:
+  x86-small-runner:
+    cpu: [1, 2]
+    ram: [1, 4]
+    disk: default
+    spot: price-capacity-optimized
+    image: ubuntu24-full-x64
+    extras: s3-cache
+  x86-firmware-builder:
+    cpu: [4, 8]
+    ram: [8, 16]
+    disk: default
+    family: ["c7i", "m7i", "r7i"]
+    spot: price-capacity-optimized
+    image: ubuntu24-full-x64
+    extras: s3-cache
+  arm64-firmware-builder:
+    cpu: [4, 8]
+    ram: [8, 16]
+    disk: default
+    family: ["c7g", "m7g", "r7g"]
+    spot: price-capacity-optimized
+    image: ubuntu24-full-arm64
+    extras: s3-cache

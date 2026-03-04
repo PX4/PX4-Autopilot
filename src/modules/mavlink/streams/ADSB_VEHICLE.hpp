@@ -77,7 +77,7 @@ private:
 			msg.lon = pos.lon * 1e7;
 			msg.altitude_type = pos.altitude_type;
 			msg.altitude = pos.altitude * 1e3f;
-			msg.heading = (pos.heading + M_PI_F) / M_PI_F * 180.0f * 100.0f;
+			msg.heading = pos.heading / M_PI_F * 180.0f * 100.0f;
 			msg.hor_velocity = pos.hor_velocity * 100.0f;
 			msg.ver_velocity = pos.ver_velocity * 100.0f;
 			memcpy(&msg.callsign[0], &pos.callsign[0], sizeof(msg.callsign));

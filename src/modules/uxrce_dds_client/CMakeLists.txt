@@ -31,7 +31,7 @@
 #
 ############################################################################
 
-if(${CMAKE_VERSION} VERSION_LESS "3.11")
+if(${CMAKE_VERSION} VERSION_LESS_EQUAL "3.15")
 	message(WARNING "skipping uxrce_dds_client, Micro-XRCE-DDS-Client needs to be fixed to work with CMAKE_VERSION ${CMAKE_VERSION}")
 
 else()
@@ -63,7 +63,6 @@ else()
 	endif()
 
 	include(ExternalProject)
-
 	ExternalProject_Add(
 		libmicroxrceddsclient_project
 		PREFIX      ${microxrceddsclient_build_dir}
@@ -117,7 +116,6 @@ else()
 
 	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/dds_topics.h
 		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_dds_topics.py
-			--topic-msg-dir ${PX4_SOURCE_DIR}/msg
 			--client-outdir ${CMAKE_CURRENT_BINARY_DIR}
 			--dds-topics-file ${CMAKE_CURRENT_SOURCE_DIR}/dds_topics.yaml
 			--template_file ${CMAKE_CURRENT_SOURCE_DIR}/dds_topics.h.em
@@ -140,7 +138,6 @@ else()
 			# -DDEBUG_BUILD
 			${MAX_CUSTOM_OPT_LEVEL}
 		SRCS
-			${CMAKE_CURRENT_BINARY_DIR}/dds_topics.h
 			uxrce_dds_client.cpp
 			uxrce_dds_client.h
 			vehicle_command_srv.cpp

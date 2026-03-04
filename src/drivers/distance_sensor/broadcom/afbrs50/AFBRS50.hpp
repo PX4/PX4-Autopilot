@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,12 +31,6 @@
  *
  ****************************************************************************/
 
-/**
- * @file AFBRS50.hpp
- *
- * Driver for the Broadcom AFBR-S50 connected via SPI.
- *
- */
 #pragma once
 
 #include "argus.h"
@@ -51,72 +45,67 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/parameter_update.h>
 
-using namespace time_literals;
-
 class AFBRS50 : public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 	AFBRS50(const uint8_t device_orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 	~AFBRS50() override;
 
+	enum class STATE : uint8_t {
+		CONFIGURE,
+		TRIGGER,
+		COLLECT,
+	};
+
 	int init();
-
-	/**
-	 * Diagnostics - print some basic information about the driver.
-	 */
-	void print_info();
-
-	/**50
-	 * Stop the automatic measurement state machine.
-	 */
-	void stop();
-
-	int test();
-
-	bool _testing = false;
+	void printInfo();
 
 private:
 	void Run() override;
 
-	void Evaluate_rate();
+	void recordCallbackError();
+	void schedule(STATE state);
+	bool processMeasurement();
+	void updateMeasurementRateFromRange();
 
-	void ProcessMeasurement(argus_hnd_t *hnd);
+	static status_t measurementReadyCallback(status_t status, argus_hnd_t *hnd);
 
-	static status_t measurement_ready_callback(status_t status, argus_hnd_t *hnd);
+	status_t setRateAndDfm(uint32_t rate_hz, argus_dfm_mode_t dfm_mode);
+	argus_mode_t argusModeFromParameter();
 
-	void get_info();
-	status_t set_rate_and_dfm(uint32_t rate_hz, argus_dfm_mode_t dfm_mode);
+private:
+	argus_hnd_t *_hnd {nullptr};
 
-	argus_hnd_t *_hnd{nullptr};
-
-	enum class STATE : uint8_t {
-		TEST,
-		CONFIGURE,
-		COLLECT,
-		STOP
-	} _state{STATE::CONFIGURE};
+	STATE _state{STATE::CONFIGURE};
 
 	PX4Rangefinder _px4_rangefinder;
 
-	hrt_abstime _measurement_time{0};
 	hrt_abstime _last_rate_switch{0};
 
-	perf_counter_t _sample_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": sample interval")};
+	perf_counter_t _sample_perf{perf_alloc(PC_COUNT, MODULE_NAME": sample count")};
+	perf_counter_t _callback_error{perf_alloc(PC_COUNT, MODULE_NAME": callback error")};
+	perf_counter_t _process_measurement_error{perf_alloc(PC_COUNT, MODULE_NAME": process measure error")};
+	perf_counter_t _status_not_ready_perf{perf_alloc(PC_COUNT, MODULE_NAME": not ready")};
+	perf_counter_t _trigger_fail_perf{perf_alloc(PC_COUNT, MODULE_NAME": trigger fail")};
+	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": loop interval")};
 
-	uint32_t _measure_interval{1000000 / 50}; // 50Hz
+
 	float _current_distance{0};
 	int8_t _current_quality{0};
-	float _max_distance;
-	float _min_distance;
-	uint32_t _current_rate{0};
+	float _max_distance{30.f};
+	int _current_rate{0};
+
+	hrt_abstime _trigger_time{0};
 
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 
+	uint32_t _measurement_inverval {1000000 / 50}; // 50Hz
+
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SENS_AFBR_MODE>)   _p_sens_afbr_mode,
-		(ParamInt<px4::params::SENS_AFBR_S_RATE>)  _p_sens_afbr_s_rate,
-		(ParamInt<px4::params::SENS_AFBR_L_RATE>)  _p_sens_afbr_l_rate,
+		(ParamInt<px4::params::SENS_AFBR_S_RATE>) _p_sens_afbr_s_rate,
+		(ParamInt<px4::params::SENS_AFBR_L_RATE>) _p_sens_afbr_l_rate,
 		(ParamInt<px4::params::SENS_AFBR_THRESH>) _p_sens_afbr_thresh,
-		(ParamInt<px4::params::SENS_AFBR_HYSTER>)    _p_sens_afbr_hyster
+		(ParamInt<px4::params::SENS_AFBR_HYSTER>) _p_sens_afbr_hyster
 	);
 };

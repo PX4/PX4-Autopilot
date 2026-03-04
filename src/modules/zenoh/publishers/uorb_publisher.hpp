@@ -45,24 +45,37 @@
 #include <uORB/Subscription.hpp>
 #include <dds_serializer.h>
 
-#define CDR_SAFETY_MARGIN 12
+#define CDR_SAFETY_MARGIN 24
 
 class uORB_Zenoh_Publisher : public Zenoh_Publisher
 {
 public:
-	uORB_Zenoh_Publisher(const orb_metadata *meta, const uint32_t *ops) :
+	uORB_Zenoh_Publisher(const orb_metadata *meta, const uint32_t *ops, int instance) :
 		Zenoh_Publisher(),
 		_uorb_meta{meta},
 		_cdr_ops(ops)
 	{
-		_uorb_sub = orb_subscribe(meta);
+		if (instance <= 0) { // default (<0) or =0
+			_uorb_sub = orb_subscribe(meta); // orb_subscribe subscribes to the 0th/first instance by default
+
+		} else { // otherwise
+			_uorb_sub = orb_subscribe_multi(meta, instance);
+		}
 	};
 
 	~uORB_Zenoh_Publisher() override = default;
 
 	// Update the uORB Subscription and broadcast a Zenoh ROS2 message
-	virtual int8_t update() override
+	virtual z_result_t update() override
 	{
+#ifdef CONFIG_ZENOH_PUB_ON_MATCHING
+		z_matching_status_t status;
+
+		if (z_publisher_get_matching_status(z_loan(_pub), &status) == _Z_RES_OK && !status.matching) {
+			return _Z_RES_OK;
+		}
+
+#endif
 		uint8_t data[_uorb_meta->o_size];
 		orb_copy(_uorb_meta, _uorb_sub, data);
 
@@ -70,10 +83,10 @@ public:
 		memcpy(buf, ros2_header, sizeof(ros2_header));
 
 		dds_ostream_t os;
-		os.m_buffer = buf;
-		os.m_index = (uint32_t)sizeof(ros2_header);
+		os.m_buffer = &buf[4];
+		os.m_index = 0;
 		os.m_size = (uint32_t)sizeof(ros2_header) + _uorb_meta->o_size + CDR_SAFETY_MARGIN;
-		os.m_xcdr_version = DDSI_RTPS_CDR_ENC_VERSION_2;
+		os.m_xcdr_version = DDSI_RTPS_CDR_ENC_VERSION_1;
 
 		if (dds_stream_write(&os,
 				     &dds_allocator,
@@ -96,6 +109,11 @@ public:
 	{
 		printf("uORB %s -> ", _uorb_meta->o_name);
 		Zenoh_Publisher::print();
+	}
+
+	const char *getName()
+	{
+		return _uorb_meta->o_name;
 	}
 
 private:

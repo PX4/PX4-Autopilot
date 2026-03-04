@@ -42,11 +42,13 @@ static constexpr const auto TIME_FILE_PATH = PX4_STORAGEDIR "/time_save.bin";
 
 using namespace time_literals;
 
-class TimePersistor : public ModuleBase<TimePersistor>, public ModuleParams, public px4::ScheduledWorkItem
+class TimePersistor : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 	TimePersistor();
 	~TimePersistor() override;
+
+	static Descriptor desc;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);

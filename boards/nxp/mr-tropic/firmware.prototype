@@ -1,0 +1,13 @@
+{
+    "board_id": 37,
+    "magic": "PX4FWv1",
+    "description": "Firmware for the MR-TROPIC board",
+    "image": "",
+    "build_time": 0,
+    "summary": "MR-TROPIC",
+    "version": "0.1",
+    "image_size": 0,
+    "image_maxsize": 3932160,
+    "git_identity": "",
+    "board_revision": 0
+}

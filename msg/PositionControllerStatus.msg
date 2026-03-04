@@ -7,6 +7,4 @@ float32 target_bearing		# Bearing angle from aircraft to current target [rad]
 float32 xtrack_error		# Signed track error [m]
 float32 wp_dist			# Distance to active (next) waypoint [m]
 float32 acceptance_radius	# Current horizontal acceptance radius [m]
-float32 yaw_acceptance		# Yaw acceptance error[rad]
-float32 altitude_acceptance	# Current vertical acceptance error [m]
 uint8 type			# Current (applied) position setpoint type (see PositionSetpoint.msg)

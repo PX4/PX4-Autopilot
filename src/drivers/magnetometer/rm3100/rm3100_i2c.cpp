@@ -39,6 +39,8 @@
 
 #include <px4_platform_common/px4_config.h>
 
+#if defined(CONFIG_I2C)
+
 #include <assert.h>
 #include <errno.h>
 #include <stdint.h>
@@ -129,3 +131,5 @@ int RM3100_I2C::write(unsigned address, void *data, unsigned count)
 
 	return transfer(&buf[0], count + 1, nullptr, 0);
 }
+
+#endif // CONFIG_I2C

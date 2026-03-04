@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -53,13 +53,11 @@ private:
 		param_t min;
 		param_t trim;
 		param_t max;
-		param_t dz;
 	};
 	struct ParamValues {
 		float min;
 		float trim;
 		float max;
-		float dz;
 	};
 
 	ParamHandles _param_handles[input_rc_s::RC_INPUT_MAX_CHANNELS];

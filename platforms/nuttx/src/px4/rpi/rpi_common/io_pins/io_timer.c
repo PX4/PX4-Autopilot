@@ -65,6 +65,10 @@
 // Each timer also has double buffered wrap (rTOP) and level (rCC) registers so the value can
 // change while PWM is running.
 
+#ifdef CONFIG_BOARD_PWM_FREQ
+#define BOARD_PWM_FREQ CONFIG_BOARD_PWM_FREQ
+#endif
+
 #if !defined(BOARD_PWM_FREQ)
 #define BOARD_PWM_FREQ 1000000
 #endif

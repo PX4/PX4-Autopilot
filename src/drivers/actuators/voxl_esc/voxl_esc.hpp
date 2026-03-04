@@ -49,7 +49,7 @@
 #include <uORB/topics/led_control.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/actuator_test.h>
-#include <uORB/topics/buffer128.h>
+#include <uORB/topics/mavlink_tunnel.h>
 
 #include <px4_platform_common/Serial.hpp>
 
@@ -58,9 +58,11 @@
 
 using namespace device;
 
-class VoxlEsc : public ModuleBase<VoxlEsc>, public OutputModuleInterface
+class VoxlEsc : public ModuleBase, public OutputModuleInterface
 {
 public:
+	static Descriptor desc;
+
 	VoxlEsc();
 	virtual ~VoxlEsc();
 
@@ -81,7 +83,7 @@ public:
 	void print_params();
 
 	/** @see OutputModuleInterface */
-	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+	bool updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 	virtual int	init();
@@ -117,8 +119,8 @@ private:
 
 	static constexpr uint16_t DISARMED_VALUE = 0;
 
-	static constexpr uint16_t VOXL_ESC_PWM_MIN = 0;
-	static constexpr uint16_t VOXL_ESC_PWM_MAX = 800;
+	static constexpr int VOXL_ESC_PWM_MIN = 1;
+	static constexpr int VOXL_ESC_PWM_MAX = 800;
 	static constexpr uint16_t VOXL_ESC_DEFAULT_RPM_MIN = 5000;
 	static constexpr uint16_t VOXL_ESC_DEFAULT_RPM_MAX = 17000;
 
@@ -129,17 +131,27 @@ private:
 	static constexpr uint32_t VOXL_ESC_MODE_TURTLE_AUX1 = 1;
 	static constexpr uint32_t VOXL_ESC_MODE_TURTLE_AUX2 = 2;
 
-	static constexpr uint16_t VOXL_ESC_EXT_RPM =
-		39;                // minimum firmware version for extended RPM command support
-	static constexpr uint16_t VOXL_ESC_RPM_MAX = INT16_MAX -
-			1;		// 32K, Limit max standard range RPM to prevent overflow (rpm packet packing function accepts int32_t)
-	static constexpr uint16_t VOXL_ESC_RPM_MAX_EXT = UINT16_MAX -
-			5;	// 65K, Limit max extended range RPM to prevent overflow (rpm packet packing function accepts int32_t)
+	// minimum firmware version for extended RPM command support
+	static constexpr uint16_t VOXL_ESC_EXT_RPM = 39;
+	// 32K, Limit max standard range RPM to prevent overflow (rpm packet packing function accepts int32_t)
+	static constexpr uint16_t VOXL_ESC_RPM_MAX = INT16_MAX - 1;
+	// 65K, Limit max extended range RPM to prevent overflow (rpm packet packing function accepts int32_t)
+	static constexpr uint16_t VOXL_ESC_RPM_MAX_EXT = UINT16_MAX - 5;
 
 	static constexpr uint16_t VOXL_ESC_NUM_INIT_RETRIES = 3;
 
-	//static constexpr uint16_t max_pwm(uint16_t pwm) { return math::min(pwm, VOXL_ESC_PWM_MAX); }
-	//static constexpr uint16_t max_rpm(uint16_t rpm) { return math::min(rpm, VOXL_ESC_RPM_MAX); }
+	static constexpr float    VOXL_ESC_GPIO_CTL_DISABLED_SETPOINT = -0.1f;
+	static constexpr float    VOXL_ESC_GPIO_CTL_THRESHOLD = 0.0f;
+
+	static constexpr uint32_t VOXL_ESC_GPIO_CTL_AUX1 = 1;
+	static constexpr uint32_t VOXL_ESC_GPIO_CTL_AUX2 = 2;
+	static constexpr uint32_t VOXL_ESC_GPIO_CTL_AUX3 = 3;
+	static constexpr uint32_t VOXL_ESC_GPIO_CTL_AUX4 = 4;
+	static constexpr uint32_t VOXL_ESC_GPIO_CTL_AUX5 = 5;
+	static constexpr uint32_t VOXL_ESC_GPIO_CTL_AUX6 = 6;
+
+	static constexpr int32_t VOXL_ESC_RPM_CMDS = 0;
+	static constexpr int32_t VOXL_ESC_PWM_CMDS = 1;
 
 	Serial			_uart_port{};
 
@@ -152,6 +164,7 @@ private:
 		float		turtle_stick_minf{0.15f};
 		float		turtle_cosphi{0.99f};
 		int32_t		baud_rate{VOXL_ESC_DEFAULT_BAUD};
+		float		pwr_min{0.05f};
 		int32_t		rpm_min{VOXL_ESC_DEFAULT_RPM_MIN};
 		int32_t		rpm_max{VOXL_ESC_DEFAULT_RPM_MAX};
 		int32_t		function_map[VOXL_ESC_OUTPUT_CHANNELS] {0, 0, 0, 0};
@@ -161,6 +174,8 @@ private:
 		int32_t		publish_battery_status{0};
 		int32_t		esc_warn_temp_threshold{0};
 		int32_t		esc_over_temp_threshold{0};
+		int32_t		gpio_ctl_channel{0};
+		int32_t		cmd_type{0};
 	} voxl_esc_params_t;
 
 	struct EscChan {
@@ -205,7 +220,7 @@ private:
 	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription	_actuator_test_sub{ORB_ID(actuator_test)};
 	uORB::Subscription	_led_update_sub{ORB_ID(led_control)};
-	uORB::Subscription	_voxl2_io_data_sub{ORB_ID(voxl2_io_data)};
+	uORB::Subscription	_esc_serial_passthru_sub{ORB_ID(esc_serial_passthru)};
 
 	uORB::Publication<actuator_outputs_s> _outputs_debug_pub{ORB_ID(actuator_outputs_debug)};
 	uORB::Publication<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
@@ -213,6 +228,8 @@ private:
 	bool _extended_rpm{false};
 	bool _need_version_info{true};
 	QC_ESC_EXTENDED_VERSION_INFO _version_info[VOXL_ESC_OUTPUT_CHANNELS];
+
+	int _min_active_pwm{1};
 
 	voxl_esc_params_t	_parameters;
 	int			update_params();
@@ -223,6 +240,11 @@ private:
 	int32_t			_rpm_turtle_min{0};
 	int32_t			_rpm_fullscale{0};
 	manual_control_setpoint_s _manual_control_setpoint{};
+
+	int32_t			_gpio_write_counter{0};
+	bool			_gpio_ctl_en{false};
+	bool			_gpio_ctl_high{true};
+	bool			_prev_gpio_ctl_high{true};
 
 	uint16_t		_cmd_id{0};
 	Command			_current_cmd;
@@ -237,13 +259,15 @@ private:
 	int			_fb_idx;
 	uint32_t		_rx_crc_error_count{0};
 	uint32_t		_rx_packet_count{0};
+	uint32_t		_rx_power_status_count{0};
 
 	static const uint8_t	READ_BUF_SIZE = 128;
 	uint8_t			_read_buf[READ_BUF_SIZE];
 
 	Battery			_battery;
-	static constexpr unsigned _battery_report_interval{100_ms};
+	static constexpr unsigned _battery_report_interval{20_ms};
 	hrt_abstime		_last_battery_report_time;
+	hrt_abstime		_last_uart_passthru{0};
 
 	bool			_device_initialized{false};
 

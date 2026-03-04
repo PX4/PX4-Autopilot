@@ -49,6 +49,8 @@
 
 using namespace time_literals;
 
+ModuleBase::Descriptor GhstRc::desc{task_spawn, custom_command, print_usage};
+
 uint32_t GhstRc::baudrate = GHST_BAUDRATE;
 
 GhstRc::GhstRc(const char *device) :
@@ -114,8 +116,8 @@ int GhstRc::task_spawn(int argc, char *argv[])
 		return PX4_ERROR;
 	}
 
-	_object.store(instance);
-	_task_id = task_id_is_work_queue;
+	desc.object.store(instance);
+	desc.task_id = task_id_is_work_queue;
 
 	instance->ScheduleNow();
 
@@ -174,7 +176,7 @@ void GhstRc::Run()
 	if (should_exit()) {
 		ScheduleClear();
 		_rc_fd = -1;
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -207,15 +209,15 @@ void GhstRc::Run()
 
 	if (new_bytes > 0) {
 		_bytes_rx += new_bytes;
-		int8_t ghst_rssi = -1;
-		bool rc_updated = ghst_parse(cycle_timestamp, &_rcs_buf[0], new_bytes, &_raw_rc_values[0], &ghst_rssi,
+		ghstLinkStatistics_t link_stats = { .rssi_pct = -1, .rssi_dbm = NAN, .link_quality = 0 };
+		bool rc_updated = ghst_parse(cycle_timestamp, &_rcs_buf[0], new_bytes, &_raw_rc_values[0], &link_stats,
 					     &_raw_rc_count, GHST_MAX_NUM_CHANNELS);
 
 		if (rc_updated) {
 			_last_packet_seen = time_now_us;
 			// we have a new GHST frame. Publish it.
 			_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_GHST;
-			fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp, false, false, 0, ghst_rssi);
+			fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp, false, false, 0, link_stats.rssi_pct);
 
 			// ghst telemetry works on fmu-v5
 			// on other Pixhawk (-related) boards we cannot write to the RC UART
@@ -308,5 +310,5 @@ This module parses the GHST RC uplink protocol and can generate GHST downlink te
 
 extern "C" __EXPORT int ghst_rc_main(int argc, char *argv[])
 {
-	return GhstRc::main(argc, argv);
+	return ModuleBase::main(GhstRc::desc, argc, argv);
 }

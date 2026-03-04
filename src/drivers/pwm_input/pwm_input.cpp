@@ -34,6 +34,8 @@
 #include "pwm_input.h"
 #include <px4_arch/io_timer.h>
 
+ModuleBase::Descriptor PWMIN::desc{task_spawn, custom_command, print_usage};
+
 int
 PWMIN::task_spawn(int argc, char *argv[])
 {
@@ -44,8 +46,8 @@ PWMIN::task_spawn(int argc, char *argv[])
 		return PX4_ERROR;
 	}
 
-	_object.store(pwmin);
-	_task_id = task_id_is_work_queue;
+	desc.object.store(pwmin);
+	desc.task_id = task_id_is_work_queue;
 
 	pwmin->start();
 
@@ -148,7 +150,7 @@ PWMIN::pwmin_tim_isr(int irq, void *context, void *arg)
 	/* ack the interrupts we just read */
 	rSR = 0;
 
-	auto obj = get_instance();
+	auto obj = get_instance<PWMIN>(desc);
 
 	if (obj != nullptr) {
 		obj->publish(status, period, pulse_width);
@@ -218,5 +220,5 @@ PWMIN::custom_command(int argc, char *argv[])
 
 extern "C" __EXPORT int pwm_input_main(int argc, char *argv[])
 {
-	return PWMIN::main(argc, argv);
+	return ModuleBase::main(PWMIN::desc, argc, argv);
 }

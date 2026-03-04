@@ -109,16 +109,16 @@ public:
 
 	void remove_icao_address_from_conflict_list(int traffic_index);
 
-	void add_icao_address_from_conflict_list(uint32_t icao_address);
+	void add_icao_address_from_conflict_list(uint32_t icao_address, hrt_abstime now);
 
-	void get_traffic_state();
+	void get_traffic_state(hrt_abstime now);
 
 	void set_conflict_detection_params(float crosstrack_separation, float vertical_separation,
 					   int collision_time_threshold, uint8_t traffic_avoidance_mode);
 
 
 	bool send_traffic_warning(int traffic_direction, int traffic_seperation, uint16_t tr_flags,
-				  char tr_callsign[UTM_CALLSIGN_LENGTH], uint32_t icao_address);
+				  char tr_callsign[UTM_CALLSIGN_LENGTH], uint32_t icao_address, hrt_abstime now);
 
 	transponder_report_s _transponder_report{};
 
@@ -129,8 +129,7 @@ public:
 			  float hor_velocity, float ver_velocity, int emitter_type, uint32_t icao_address, double lat_uav, double lon_uav,
 			  float &alt_uav);
 
-	void run_fake_traffic(double &lat_uav, double &lon_uav,
-			      float &alt_uav);
+	void run_fake_traffic(double &lat_uav, double &lon_uav, float &alt_uav);
 
 	void remove_expired_conflicts();
 

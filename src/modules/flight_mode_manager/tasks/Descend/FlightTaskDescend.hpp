@@ -37,10 +37,10 @@
 
 #pragma once
 
+#include <lib/sticks/Sticks.hpp>
+#include <lib/stick_yaw/StickYaw.hpp>
 #include "FlightTask.hpp"
-#include "Sticks.hpp"
 #include "StickTiltXY.hpp"
-#include "StickYaw.hpp"
 
 class FlightTaskDescend : public FlightTask
 {

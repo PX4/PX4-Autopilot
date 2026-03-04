@@ -54,7 +54,6 @@ public:
 	{
 		// construct new default display
 		md_ = std::make_unique<MessageDisplay>(PERIOD, DWELL);
-		return;
 	}
 };
 
@@ -65,7 +64,7 @@ TEST_F(MessageDisplayTest, testMessageDisplayConstruction)
 	ASSERT_TRUE(static_cast<bool>(md_));
 
 	// verify default message
-	char message[FULL_MSG_LENGTH];
+	char message[FULL_MSG_BUFFER];
 	md_->get(message, 0);
 	EXPECT_STREQ(message, "INITIALIZING");
 }
@@ -150,6 +149,7 @@ TEST_F(MessageDisplayTest, testMessageDisplayWarning)
 
 		// get substring that we should be seeing
 		strncpy(correct, &ground_truth[i], FULL_MSG_LENGTH);
+		correct[FULL_MSG_BUFFER - 1] = '\0';
 		EXPECT_STREQ(message, correct);
 
 		// update time
@@ -159,5 +159,6 @@ TEST_F(MessageDisplayTest, testMessageDisplayWarning)
 	// verify that we wrap around as expected at the end
 	md_->get(message, stamp);
 	strncpy(correct, ground_truth, FULL_MSG_LENGTH);
+	correct[FULL_MSG_BUFFER - 1] = '\0';
 	EXPECT_STREQ(message, correct);
 }

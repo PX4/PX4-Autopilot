@@ -1,0 +1,76 @@
+---
+pageClass: is-wide-page
+---
+
+# SensorGnssRelative (UORB message)
+
+GNSS relative positioning information in NED frame. The NED frame is defined as the local topological system at the reference station.
+
+**TOPICS:** sensor_gnss_relative
+
+## Fields
+
+| Name                         | Type         | Unit [Frame] | Range/Enum | Description                                                                                                                                                     |
+| ---------------------------- | ------------ | ------------ | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| timestamp                    | `uint64`     |              |            | time since system start (microseconds)                                                                                                                          |
+| timestamp_sample             | `uint64`     |              |            | time since system start (microseconds)                                                                                                                          |
+| device_id                    | `uint32`     |              |            | unique device ID for the sensor that does not change between power cycles                                                                                       |
+| time_utc_usec                | `uint64`     |              |            | Timestamp (microseconds, UTC), this is the timestamp which comes from the gps module. It might be unavailable right after cold start, indicated by a value of 0 |
+| reference_station_id         | `uint16`     |              |            | Reference Station ID                                                                                                                                            |
+| position                     | `float32[3]` |              |            | GPS NED relative position vector (m)                                                                                                                            |
+| position_accuracy            | `float32[3]` |              |            | Accuracy of relative position (m)                                                                                                                               |
+| heading                      | `float32`    |              |            | Heading of the relative position vector (radians)                                                                                                               |
+| heading_accuracy             | `float32`    |              |            | Accuracy of heading of the relative position vector (radians)                                                                                                   |
+| position_length              | `float32`    |              |            | Length of the position vector (m)                                                                                                                               |
+| accuracy_length              | `float32`    |              |            | Accuracy of the position length (m)                                                                                                                             |
+| gnss_fix_ok                  | `bool`       |              |            | GNSS valid fix (i.e within DOP & accuracy masks)                                                                                                                |
+| differential_solution        | `bool`       |              |            | differential corrections were applied                                                                                                                           |
+| relative_position_valid      | `bool`       |              |            |
+| carrier_solution_floating    | `bool`       |              |            | carrier phase range solution with floating ambiguities                                                                                                          |
+| carrier_solution_fixed       | `bool`       |              |            | carrier phase range solution with fixed ambiguities                                                                                                             |
+| moving_base_mode             | `bool`       |              |            | if the receiver is operating in moving base mode                                                                                                                |
+| reference_position_miss      | `bool`       |              |            | extrapolated reference position was used to compute moving base solution this epoch                                                                             |
+| reference_observations_miss  | `bool`       |              |            | extrapolated reference observations were used to compute moving base solution this epoch                                                                        |
+| heading_valid                | `bool`       |              |            |
+| relative_position_normalized | `bool`       |              |            | the components of the relative position vector (including the high-precision parts) are normalized                                                              |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/SensorGnssRelative.msg)
+
+::: details Click here to see original file
+
+```c
+# GNSS relative positioning information in NED frame. The NED frame is defined as the local topological system at the reference station.
+
+uint64 timestamp                  # time since system start (microseconds)
+uint64 timestamp_sample           # time since system start (microseconds)
+
+uint32 device_id                  # unique device ID for the sensor that does not change between power cycles
+
+uint64 time_utc_usec              # Timestamp (microseconds, UTC), this is the timestamp which comes from the gps module. It might be unavailable right after cold start, indicated by a value of 0
+
+uint16 reference_station_id       # Reference Station ID
+
+float32[3] position               # GPS NED relative position vector (m)
+float32[3] position_accuracy      # Accuracy of relative position (m)
+
+float32 heading                   # Heading of the relative position vector (radians)
+float32 heading_accuracy          # Accuracy of heading of the relative position vector (radians)
+
+float32 position_length           # Length of the position vector (m)
+float32 accuracy_length           # Accuracy of the position length (m)
+
+bool gnss_fix_ok                  # GNSS valid fix (i.e within DOP & accuracy masks)
+bool differential_solution        # differential corrections were applied
+bool relative_position_valid
+bool carrier_solution_floating    # carrier phase range solution with floating ambiguities
+bool carrier_solution_fixed       # carrier phase range solution with fixed ambiguities
+bool moving_base_mode             # if the receiver is operating in moving base mode
+bool reference_position_miss      # extrapolated reference position was used to compute moving base solution this epoch
+bool reference_observations_miss  # extrapolated reference observations were used to compute moving base solution this epoch
+bool heading_valid
+bool relative_position_normalized # the components of the relative position vector (including the high-precision parts) are normalized
+```
+
+:::

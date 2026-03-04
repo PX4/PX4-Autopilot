@@ -108,3 +108,11 @@ foreach(NameAndValue ${ConfigContents})
 		set(${Name} ${Value} CACHE INTERNAL "NUTTX DEFCONFIG: ${Name}" FORCE)
 	endif()
 endforeach()
+
+# Add CONFIG_ARCH_CHIP to boardconfig by merging
+execute_process(
+	COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS}
+	${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/kconfig/merge_config.py Kconfig ${BOARD_CONFIG} ${BOARD_CONFIG} ${PX4_BINARY_DIR}/NuttX/nuttx/.config
+	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+	OUTPUT_VARIABLE DUMMY_RESULTS
+)

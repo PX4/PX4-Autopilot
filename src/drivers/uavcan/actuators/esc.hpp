@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2014-2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,6 +38,7 @@
  *     uavcan.equipment.esc.RawCommand
  *     uavcan.equipment.esc.RPMCommand
  *     uavcan.equipment.esc.Status
+ *     uavcan.equipment.esc.StatusExtended
  *
  * @author Pavel Kirienko <pavel.kirienko@gmail.com>
  */
@@ -47,19 +48,20 @@
 #include <uavcan/uavcan.hpp>
 #include <uavcan/equipment/esc/RawCommand.hpp>
 #include <uavcan/equipment/esc/Status.hpp>
-#include <lib/perf/perf_counter.h>
+#include <uavcan/equipment/esc/StatusExtended.hpp>
 #include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/actuator_outputs.h>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/esc_status.h>
-#include <drivers/drv_hrt.h>
-#include <lib/mixer_module/mixer_module.hpp>
+#include <uORB/topics/esc_report.h>
+#include <uORB/topics/dronecan_node_status.h>
+#include "../node_info.hpp"
 
 class UavcanEscController
 {
 public:
 	static constexpr int MAX_ACTUATORS = esc_status_s::CONNECTED_ESC_MAX;
 	static constexpr unsigned MAX_RATE_HZ = 400;
-	static constexpr uint16_t DISARMED_OUTPUT_VALUE = UINT16_MAX;
 
 	static_assert(uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize >= MAX_ACTUATORS, "Too many actuators");
 
@@ -69,12 +71,16 @@ public:
 
 	int init();
 
-	void update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs);
+	bool initialized() { return _initialized; };
+
+	void update_outputs(uint16_t outputs[MAX_ACTUATORS], uint8_t output_array_size);
 
 	/**
 	 * Sets the number of rotors and enable timer
 	 */
 	void set_rotor_count(uint8_t count);
+
+	void set_node_info_publisher(NodeInfoPublisher *publisher) { _node_info_publisher = publisher; }
 
 	static int max_output_value() { return uavcan::equipment::esc::RawCommand::FieldTypes::cmd::RawValueType::max(); }
 
@@ -85,21 +91,37 @@ private:
 	 * ESC status message reception will be reported via this callback.
 	 */
 	void esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status> &msg);
+	/**
+	 * ESC extended status message reception will be stored via this callback.
+	 */
+	void esc_status_extended_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::StatusExtended> &msg);
 
 	/**
 	 * Checks all the ESCs freshness based on timestamp, if an ESC exceeds the timeout then is flagged offline.
 	 */
 	uint8_t check_escs_status();
 
+	/**
+	 * Gets failure flags for a specific ESC
+	 */
+	uint32_t get_failures(uint8_t esc_index);
+
 	typedef uavcan::MethodBinder<UavcanEscController *,
 		void (UavcanEscController::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status>&)> StatusCbBinder;
 
 	typedef uavcan::MethodBinder<UavcanEscController *,
+		void (UavcanEscController::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::StatusExtended>&)> StatusExtendedCbBinder;
+
+	typedef uavcan::MethodBinder<UavcanEscController *,
 		void (UavcanEscController::*)(const uavcan::TimerEvent &)> TimerCbBinder;
+
+	bool _initialized = false;
 
 	esc_status_s	_esc_status{};
 
 	uORB::PublicationMulti<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
+	uORB::SubscriptionMultiArray<dronecan_node_status_s, ORB_MULTI_MAX_INSTANCES> _dronecan_node_status_subs{ORB_ID::dronecan_node_status};
+	uORB::Subscription _device_information_sub{ORB_ID(device_information)};
 
 	uint8_t		_rotor_count{0};
 
@@ -110,9 +132,7 @@ private:
 	uavcan::INode								&_node;
 	uavcan::Publisher<uavcan::equipment::esc::RawCommand>			_uavcan_pub_raw_cmd;
 	uavcan::Subscriber<uavcan::equipment::esc::Status, StatusCbBinder>	_uavcan_sub_status;
+	uavcan::Subscriber<uavcan::equipment::esc::StatusExtended, StatusExtendedCbBinder> _uavcan_sub_status_extended;
 
-	/*
-	 * ESC states
-	 */
-	uint8_t				_max_number_of_nonzero_outputs{0};
+	NodeInfoPublisher *_node_info_publisher{nullptr};
 };

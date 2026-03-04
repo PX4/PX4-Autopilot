@@ -45,6 +45,7 @@
 #include <mavsdk/plugins/offboard/offboard.h>
 #include <mavsdk/plugins/telemetry/telemetry.h>
 #include <mavsdk/plugins/param/param.h>
+#include <mavsdk/plugins/events/events.h>
 #include "catch2/catch.hpp"
 #include <atomic>
 #include <chrono>
@@ -118,7 +119,7 @@ public:
 	void transition_to_multicopter();
 	void wait_until_disarmed(std::chrono::seconds timeout_duration = std::chrono::seconds(60));
 	void wait_until_hovering(); // TODO: name suggests, that function waits for drone velocity to be zero and not just drone in the air
-	void wait_until_altitude(float rel_altitude_m, std::chrono::seconds timeout);
+	void wait_until_altitude(float rel_altitude_m, std::chrono::seconds timeout, float delta = 0.5f);
 	void wait_until_fixedwing(std::chrono::seconds timeout);
 	void wait_until_speed_lower_than(float speed, std::chrono::seconds timeout);
 	void prepare_square_mission(MissionOptions mission_options);
@@ -149,7 +150,6 @@ public:
 	void check_current_altitude(float target_rel_altitude_m, float max_distance_m = 1.5f);
 	void execute_rtl_when_reaching_mission_sequence(int sequence_number);
 	void send_custom_mavlink_command(const MavlinkPassthrough::CommandInt &command);
-	void send_custom_mavlink_message(mavlink_message_t &message);
 	void add_mavlink_message_callback(uint16_t message_id, std::function< void(const mavlink_message_t &)> callback);
 
 	void enable_fixedwing_mectrics();
@@ -162,24 +162,6 @@ public:
 	void set_param_int(const std::string &param, int32_t value)
 	{
 		CHECK(_param->set_param_int(param, value) == Param::Result::Success);
-	}
-
-protected:
-	mavsdk::Param *getParams() const { return _param.get();}
-	mavsdk::Telemetry *getTelemetry() const { return _telemetry.get();}
-	mavsdk::ManualControl *getManualControl() const { return _manual_control.get();}
-	MavlinkPassthrough *getMavlinkPassthrough() const { return _mavlink_passthrough.get();}
-	std::shared_ptr<System> get_system() { return _mavsdk.systems().at(0);}
-	mavsdk::geometry::CoordinateTransformation get_coordinate_transformation();
-	bool ground_truth_horizontal_position_close_to(const Telemetry::GroundTruth &target_pos, float acceptance_radius_m);
-
-	const Telemetry::GroundTruth &getHome()
-	{
-		// Check if home was stored before it is accessed
-		CHECK(_home.absolute_altitude_m != NAN);
-		CHECK(_home.latitude_deg != NAN);
-		CHECK(_home.longitude_deg != NAN);
-		return _home;
 	}
 
 	template<typename Rep, typename Period>
@@ -205,6 +187,25 @@ protected:
 		} else {
 			std::this_thread::sleep_for(duration);
 		}
+	}
+
+protected:
+	mavsdk::Param *getParams() const { return _param.get();}
+	mavsdk::Telemetry *getTelemetry() const { return _telemetry.get();}
+	mavsdk::MissionRaw *getMissionRaw() const { return _mission_raw.get();}
+	mavsdk::ManualControl *getManualControl() const { return _manual_control.get();}
+	MavlinkPassthrough *getMavlinkPassthrough() const { return _mavlink_passthrough.get();}
+	std::shared_ptr<System> get_system() { return _mavsdk.systems().at(0);}
+	mavsdk::geometry::CoordinateTransformation get_coordinate_transformation();
+	bool ground_truth_horizontal_position_close_to(const Telemetry::GroundTruth &target_pos, float acceptance_radius_m);
+
+	const Telemetry::GroundTruth &getHome()
+	{
+		// Check if home was stored before it is accessed
+		CHECK(_home.absolute_altitude_m != NAN);
+		CHECK(_home.latitude_deg != NAN);
+		CHECK(_home.longitude_deg != NAN);
+		return _home;
 	}
 
 private:
@@ -282,8 +283,7 @@ private:
 	}
 
 
-
-	mavsdk::Mavsdk _mavsdk{};
+	mavsdk::Mavsdk _mavsdk{Mavsdk::Configuration{ComponentType::GroundStation}};
 	std::unique_ptr<mavsdk::Action> _action{};
 	std::unique_ptr<mavsdk::Failure> _failure{};
 	std::unique_ptr<mavsdk::Info> _info{};
@@ -294,9 +294,14 @@ private:
 	std::unique_ptr<mavsdk::Offboard> _offboard{};
 	std::unique_ptr<mavsdk::Param> _param{};
 	std::unique_ptr<mavsdk::Telemetry> _telemetry{};
+	std::unique_ptr<mavsdk::Events> _events{};
 
 	Telemetry::GroundTruth _home{NAN, NAN, NAN};
 
+	mavsdk::Telemetry::PositionHandle _check_altitude_handle{};
+
 	std::atomic<bool> _should_exit {false};
 	std::thread _real_time_report_thread {};
+
+	mavsdk::Events::EventsHandle _events_handle{};
 };

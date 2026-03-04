@@ -45,8 +45,10 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/pps_capture.h>
 
 #include "gps_blending.hpp"
+#include "PpsTimeSync.hpp"
 
 using namespace time_literals;
 
@@ -88,9 +90,12 @@ private:
 		{this, ORB_ID(sensor_gps), 1},
 	};
 
+	uORB::Subscription _pps_capture_sub{ORB_ID(pps_capture)};
+
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
 	GpsBlending _gps_blending;
+	PpsTimeSync _pps_time_sync;
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SENS_GPS_MASK>) _param_sens_gps_mask,

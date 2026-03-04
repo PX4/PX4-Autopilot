@@ -1,0 +1,5 @@
+menuconfig MODULES_SIMULATION_SYSTEM_POWER_SIMULATOR
+	bool "system_power_simulator"
+	default n
+	---help---
+		Enable support for system_power_simulator

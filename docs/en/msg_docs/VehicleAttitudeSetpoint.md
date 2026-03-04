@@ -1,0 +1,47 @@
+---
+pageClass: is-wide-page
+---
+
+# VehicleAttitudeSetpoint (UORB message)
+
+**TOPICS:** vehicle_attitude_setpoint mc_virtual_attitude_setpoint fw_virtual_attitude_setpoint
+
+## Fields
+
+| Name             | Type         | Unit [Frame] | Range/Enum | Description                                        |
+| ---------------- | ------------ | ------------ | ---------- | -------------------------------------------------- |
+| timestamp        | `uint64`     |              |            | time since system start (microseconds)             |
+| yaw_sp_move_rate | `float32`    |              |            | rad/s (commanded by user)                          |
+| q_d              | `float32[4]` |              |            | Desired quaternion for quaternion control          |
+| thrust_body      | `float32[3]` |              |            | Normalized thrust command in body FRD frame [-1,1] |
+
+## Constants
+
+| Name                                          | Type     | Value | Description |
+| --------------------------------------------- | -------- | ----- | ----------- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 1     |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleAttitudeSetpoint.msg)
+
+::: details Click here to see original file
+
+```c
+uint32 MESSAGE_VERSION = 1
+
+uint64 timestamp		# time since system start (microseconds)
+
+float32 yaw_sp_move_rate	# rad/s (commanded by user)
+
+# For quaternion-based attitude control
+float32[4] q_d			# Desired quaternion for quaternion control
+
+# For clarification: For multicopters thrust_body[0] and thrust[1] are usually 0 and thrust[2] is the negative throttle demand.
+# For fixed wings thrust_x is the throttle demand and thrust_y, thrust_z will usually be zero.
+float32[3] thrust_body		# Normalized thrust command in body FRD frame [-1,1]
+
+# TOPICS vehicle_attitude_setpoint mc_virtual_attitude_setpoint fw_virtual_attitude_setpoint
+```
+
+:::

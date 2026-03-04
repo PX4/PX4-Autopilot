@@ -74,6 +74,12 @@ static_assert(sizeof(navigation_mode_group_t) == sizeof(NavModes), "type mismatc
 static_assert(vehicle_status_s::NAVIGATION_STATE_MAX <= CHAR_BIT *sizeof(navigation_mode_group_t),
 	      "type too small, use next larger type");
 
+// Type to pass two mode groups in one struct to have the same number of function arguments to facilitate events parsing
+struct NavModesMessageFail {
+	NavModes message_modes; ///< modes in which there's user messageing but arming is allowed
+	NavModes fail_modes; ///< modes in which checks fail which must be a subset of message_modes
+};
+
 static inline NavModes operator|(NavModes a, NavModes b)
 {
 	return static_cast<NavModes>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
@@ -250,6 +256,14 @@ public:
 
 	void armingCheckFailure(NavModes required_modes, HealthComponentIndex component, uint32_t event_id,
 				const events::LogLevels &log_levels, const char *message);
+
+	/**
+	 * Overloaded variant of armingCheckFailure() which allows to separately specify modes in which a message should be emitted and a subset in which arming is blocked
+	 * @param required_modes .message_modes modes in which to put out the event and hence user message.
+	 *                       .failing_modes modes in which to to fail arming. Has to be a subset of message_modes to never disallow arming without a reason.
+	 */
+	void armingCheckFailure(NavModesMessageFail required_modes, HealthComponentIndex component,
+				uint32_t event_id, const events::LogLevels &log_levels, const char *message);
 
 	void clearArmingBits(NavModes modes);
 

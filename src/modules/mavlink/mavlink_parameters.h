@@ -77,6 +77,17 @@ public:
 
 	void handle_message(const mavlink_message_t *msg);
 
+	/**
+	 * Check if parameters are sent out. This includes:
+	 * - while sending all parameters
+	 * - while sending a single requested parameter
+	 * - while sending out changed parameters
+	 */
+	bool send_active() const
+	{
+		return hrt_absolute_time() < _last_param_sent + 2_s;
+	}
+
 private:
 	int		_send_all_index{-1};
 
@@ -100,6 +111,14 @@ protected:
 	bool send_untransmitted();
 
 	int send_param(param_t param, int component_id = -1);
+
+	/**
+	 * Send error message.
+	 * /// @return true if a error message was sent
+	 */
+	int send_error(MAV_PARAM_ERROR error, const char *param_id = nullptr,
+		       const int param_index = -1, int target_system = -1,
+		       int target_component = -1, int component_id = -1);
 
 #if defined(CONFIG_MAVLINK_UAVCAN_PARAMETERS)
 	/**
@@ -161,5 +180,8 @@ protected:
 
 	Mavlink &_mavlink;
 
+	hrt_abstime _last_param_sent{0};
+
 	bool _first_send{false};
+	hrt_abstime _last_param_sent_timestamp{0}; // time at which the last parameter was sent
 };

@@ -116,7 +116,7 @@ private:
 	float _time_estimate{0.f}; 		/**< Accumulated time estimate [s] */
 	bool _is_valid{false};		/**< Checks if time estimate is valid */
 
-	uint8_t _vehicle_type{vehicle_status_s::VEHICLE_TYPE_UNKNOWN}; /**< the defined vehicle type to use for the calculation*/
+	uint8_t _vehicle_type{vehicle_status_s::VEHICLE_TYPE_ROTARY_WING}; /**< the defined vehicle type to use for the calculation*/
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RTL_TIME_FACTOR>) _param_rtl_time_factor,  /**< Safety factory for safe time estimate */
@@ -129,6 +129,7 @@ private:
 	param_t		_param_fw_sink_rate{PARAM_INVALID};     /**< FW descend speed parameter */
 
 	param_t 	_param_fw_airspeed_trim{PARAM_INVALID}; /**< FW cruise airspeed parameter */
+	param_t 	_param_fw_gnd_spd_min{PARAM_INVALID}; /**< FW min groundspeed parameter */
 	param_t 	_param_mpc_xy_cruise{PARAM_INVALID};  	/**< MC horizontal cruise speed parameter */
 	param_t 	_param_rover_cruise_speed{PARAM_INVALID}; /**< Rover cruise speed parameter */
 

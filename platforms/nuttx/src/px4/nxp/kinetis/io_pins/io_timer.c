@@ -79,6 +79,10 @@ static int io_timer_handler7(int irq, void *context, void *arg);
  * FTM0 will drive FMU_CH1-4, FTM3 will drive FMU_CH5,6, and
  * U_TRI. FTM2 will be used as input capture on U_ECH
  */
+#ifdef CONFIG_BOARD_PWM_FREQ
+#define BOARD_PWM_FREQ CONFIG_BOARD_PWM_FREQ
+#endif
+
 #if !defined(BOARD_PWM_FREQ)
 #define BOARD_PWM_FREQ 1000000
 #endif

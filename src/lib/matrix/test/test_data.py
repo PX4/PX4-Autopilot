@@ -1,7 +1,9 @@
-from __future__ import print_function
+#!/usr/bin/env python3
+
 from pylab import *
 from pprint import pprint
 import scipy.linalg
+import sys
 
 # test cases, derived from doc/nasa_rotation_def.pdf
 
@@ -47,7 +49,7 @@ def quat_prod(q, r):
 def dcm_to_euler(dcm):
     return array([
         arctan(dcm[2,1]/ dcm[2,2]),
-        arctan(-dcm[2,0]/ std::sqrt(1 - dcm[2,0]**2)),
+        arctan(-dcm[2,0]/ (1 - dcm[2,0]**2)**0.5),
         arctan(dcm[1,0]/ dcm[0,0]),
     ])
 
@@ -75,6 +77,7 @@ psi = 0.3
 print('euler', phi, theta, psi)
 
 q = euler_to_quat(phi, theta, psi)
+FLT_EPSILON = sys.float_info.epsilon
 assert(abs(norm(q) - 1) < FLT_EPSILON)
 assert(abs(norm(q) - 1) < FLT_EPSILON)
 assert(norm(array(quat_to_euler(q)) - array([phi, theta, psi])) < FLT_EPSILON)

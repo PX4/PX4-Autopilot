@@ -63,19 +63,13 @@ bool check_battery_disconnected(orb_advert_t *mavlink_log_pub)
 
 	const bool recent_battery_measurement = hrt_absolute_time() < (battery_status_sub.get().timestamp + 1_s);
 
-	if (!recent_battery_measurement) {
-		// We have to send this message for now because "battery unavailable" gets ignored by QGC
+	if (recent_battery_measurement && battery_status_sub.get().connected) {
 		calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "Disconnect battery and try again");
 		return false;
-	}
 
-	// Make sure battery is reported to be disconnected
-	if (recent_battery_measurement && !battery_status_sub.get().connected) {
+	} else {
 		return true;
 	}
-
-	calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "Disconnect battery and try again");
-	return false;
 }
 
 static void set_motor_actuators(uORB::Publication<actuator_test_s> &publisher, float value, bool release_control)

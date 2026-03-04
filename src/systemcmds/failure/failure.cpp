@@ -175,12 +175,6 @@ extern "C" __EXPORT int failure_main(int argc, char *argv[])
 		return 0;
 	}
 
-	if (argc < 3) {
-		PX4_ERR("Not enough arguments.");
-		print_usage();
-		return 1;
-	}
-
 	const char *myoptarg = nullptr;
 	int ch = 0;
 	int myoptind = 1;
@@ -198,6 +192,12 @@ extern "C" __EXPORT int failure_main(int argc, char *argv[])
 			print_usage();
 			return 1;
 		}
+	}
+
+	if ((argc < 3) || (myoptind + 1) >= argc) {
+		print_usage();
+		PX4_ERR("Not enough arguments.");
+		return 1;
 	}
 
 	const char *requested_failure_unit = argv[myoptind];

@@ -59,7 +59,6 @@
 #define BOARD_ARMED_STATE_LED  LED_BLUE
 
 #define FLASH_BASED_PARAMS
-#define RAM_BASED_MISSIONS
 
 // Hacks for MAVLink RC button input
 #define ATL_MANTIS_RC_INPUT_HACKS
@@ -122,7 +121,9 @@
 #define BOARD_REAR_LED_MASK  (1 << 1) | (1 << 2)
 
 /* HEATER */
-#define GPIO_HEATER_OUTPUT   /* PA7  T14CH1 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN7)
+#define GPIO_HEATER_OUTPUT
+#define HEATER_NUM 	1
+#define GPIO_HEATER1_OUTPUT  /* PA7  T14CH1 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN7)
 
 #define BOARD_HAS_LED_PWM              1
 #define BOARD_LED_PWM_DRIVE_ACTIVE_LOW 1
@@ -183,7 +184,7 @@
 		PX4_ADC_GPIO,                     \
 		GPIO_HW_REV_DRIVE,                \
 		GPIO_HW_VER_DRIVE,                \
-		GPIO_HEATER_OUTPUT,               \
+		GPIO_HEATER1_OUTPUT,              \
 		GPIO_VDD_3V3_SD_CARD_EN,          \
 		GPIO_OTGFS_VBUS                   \
 	}

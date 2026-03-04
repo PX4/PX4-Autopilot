@@ -128,7 +128,6 @@ PARAM_DEFINE_FLOAT(WEIGHT_GROSS, -1.0f);
  *
  * @unit m/s
  * @min 1.0
- * @max 15.0
  * @decimal 1
  * @increment 0.5
  * @group FW Performance
@@ -144,7 +143,6 @@ PARAM_DEFINE_FLOAT(FW_T_CLMB_MAX, 5.0f);
  *
  * @unit m/s
  * @min 1.0
- * @max 5.0
  * @decimal 1
  * @increment 0.5
  * @group FW Performance
@@ -212,3 +210,16 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_MIN, 10.0f);
  * @group FW Performance
  */
 PARAM_DEFINE_FLOAT(FW_AIRSPD_MAX, 20.0f);
+
+/**
+ * Airspeed scale with full flaps
+ *
+ * Factor applied to the minimum and stall airspeed when flaps are fully deployed.
+ *
+ * @min 0.5
+ * @max 1
+ * @decimal 2
+ * @increment 0.01
+ * @group FW Performance
+ */
+PARAM_DEFINE_FLOAT(FW_AIRSPD_FLP_SC, 1.f);

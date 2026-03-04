@@ -74,6 +74,8 @@ using namespace time_literals;
 namespace px4
 {
 
+ModuleBase::Descriptor Replay::desc{task_spawn, custom_command, print_usage};
+
 char *Replay::_replay_file = nullptr;
 
 Replay::CompatSensorCombinedDtType::CompatSensorCombinedDtType(int gyro_integral_dt_offset_log,
@@ -721,10 +723,6 @@ Replay::nextDataMessage(std::ifstream &file, Subscription &subscription, int msg
 		}
 
 		switch (message_header.msg_type) {
-		case (int)ULogMessageType::ADD_LOGGED_MSG:
-			readAndAddSubscription(file, message_header.msg_size);
-			break;
-
 		case (int)ULogMessageType::DATA:
 			file.read((char *)&file_msg_id, sizeof(file_msg_id));
 
@@ -734,6 +732,7 @@ Replay::nextDataMessage(std::ifstream &file, Subscription &subscription, int msg
 						subscription.next_read_pos = cur_pos;
 						file.seekg(subscription.timestamp_offset, ios::cur);
 						file.read((char *)&subscription.next_timestamp, sizeof(subscription.next_timestamp));
+						subscription.published = false;
 						done = true;
 
 					} else { //sanity check failed!
@@ -751,6 +750,7 @@ Replay::nextDataMessage(std::ifstream &file, Subscription &subscription, int msg
 			break;
 
 		case (int)ULogMessageType::REMOVE_LOGGED_MSG: //skip these
+		case (int)ULogMessageType::ADD_LOGGED_MSG:
 		case (int)ULogMessageType::PARAMETER:
 		case (int)ULogMessageType::DROPOUT:
 		case (int)ULogMessageType::INFO:
@@ -904,22 +904,31 @@ Replay::run()
 
 	PX4_INFO("Replay in progress...");
 
+	// Find and add all subscriptions
 	ulog_message_header_s message_header;
 	replay_file.seekg(_data_section_start);
 
-	//we know the next message must be an ADD_LOGGED_MSG
-	ReadAndAndAddSubResult res;
-
-	do {
+	while (true) {
+		//we are in the Definition & Data Section Message Header section
 		replay_file.read((char *)&message_header, ULOG_MSG_HEADER_LEN);
-		res = readAndAddSubscription(replay_file, message_header.msg_size);
 
-		if (res == ReadAndAndAddSubResult::kFailure) {
-			PX4_ERR("Failed to read subscription");
-			return;
+		if (!replay_file) {
+			// end of file
+			break;
 		}
 
-	} while (res != ReadAndAndAddSubResult::kSuccess);
+		if (message_header.msg_type == (int)ULogMessageType::ADD_LOGGED_MSG) {
+			readAndAddSubscription(replay_file, message_header.msg_size);
+
+		} else {
+			// Not important for now, skip
+			replay_file.seekg(message_header.msg_size, ios::cur);
+		}
+	}
+
+	// Rewind back to the begining of the data section
+	replay_file.seekg(_data_section_start);
+	replay_file.clear();
 
 	const uint64_t timestamp_offset = getTimestampOffset();
 	uint32_t nr_published_messages = 0;
@@ -1121,6 +1130,7 @@ Replay::publishTopic(Subscription &sub, void *data)
 
 	if (published) {
 		++sub.publication_counter;
+		sub.published = true;
 	}
 
 	return published;
@@ -1141,6 +1151,14 @@ Replay::custom_command(int argc, char *argv[])
 }
 
 int
+Replay::run_trampoline(int argc, char *argv[])
+{
+	return ModuleBase::run_trampoline_impl(desc, [](int ac, char *av[]) -> ModuleBase * {
+		return Replay::instantiate(ac, av);
+	}, argc, argv);
+}
+
+int
 Replay::task_spawn(int argc, char *argv[])
 {
 	// check if a log file was found
@@ -1153,15 +1171,15 @@ Replay::task_spawn(int argc, char *argv[])
 		return -1;
 	}
 
-	_task_id = px4_task_spawn_cmd("replay",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_MAX - 5,
-				      4000,
-				      (px4_main_t)&run_trampoline,
-				      (char *const *)argv);
+	desc.task_id = px4_task_spawn_cmd("replay",
+					  SCHED_DEFAULT,
+					  SCHED_PRIORITY_MAX - 5,
+					  4000,
+					  (px4_main_t)&run_trampoline,
+					  (char *const *)argv);
 
-	if (_task_id < 0) {
-		_task_id = -1;
+	if (desc.task_id < 0) {
+		desc.task_id = -1;
 		return -errno;
 	}
 
@@ -1241,7 +1259,7 @@ The module is typically used together with uORB publisher rules, to specify whic
 The replay module will just publish all messages that are found in the log. It also applies the parameters from
 the log.
 
-The replay procedure is documented on the [System-wide Replay](https://docs.px4.io/main/en/debug/system_wide_replay.html)
+The replay procedure is documented on the [System-wide Replay](../debug/system_wide_replay.md)
 page.
 )DESCR_STR");
 

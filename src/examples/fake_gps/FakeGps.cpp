@@ -35,6 +35,8 @@
 
 using namespace time_literals;
 
+ModuleBase::Descriptor FakeGps::desc{task_spawn, custom_command, print_usage};
+
 FakeGps::FakeGps(double latitude_deg, double longitude_deg, double altitude_m) :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default),
@@ -54,7 +56,7 @@ void FakeGps::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -87,6 +89,14 @@ void FakeGps::Run()
 	sensor_gps.satellites_used = 14;
 	sensor_gps.timestamp = hrt_absolute_time();
 	_sensor_gps_pub.publish(sensor_gps);
+
+	sensor_gnss_status_s sensor_gnss_status{};
+	sensor_gnss_status.quality_corrections = 0;
+	sensor_gnss_status.quality_receiver = 9;
+	sensor_gnss_status.quality_gnss_signals = 10;
+	sensor_gnss_status.quality_post_processing = 255;
+	sensor_gnss_status.timestamp = hrt_absolute_time();
+	_sensor_gnss_status_pub.publish(sensor_gnss_status);
 }
 
 int FakeGps::task_spawn(int argc, char *argv[])
@@ -94,8 +104,8 @@ int FakeGps::task_spawn(int argc, char *argv[])
 	FakeGps *instance = new FakeGps();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -106,8 +116,8 @@ int FakeGps::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -137,5 +147,5 @@ int FakeGps::print_usage(const char *reason)
 
 extern "C" __EXPORT int fake_gps_main(int argc, char *argv[])
 {
-	return FakeGps::main(argc, argv);
+	return ModuleBase::main(FakeGps::desc, argc, argv);
 }

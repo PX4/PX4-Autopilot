@@ -77,7 +77,7 @@
  *
  * Description:
  *   All STM32 architectures must provide the following entry point.  This entry point
- *   is called early in the intitialization -- after all memory has been configured
+ *   is called early in the initialization -- after all memory has been configured
  *   and mapped but before any devices have been initialized.
  *
  ************************************************************************************/
@@ -86,7 +86,7 @@ __EXPORT void stm32_boardinitialize(void)
 {
 	/* configure GPIOs */
 
-	stm32_configgpio(GPIO_HEATER_OUTPUT);
+	stm32_configgpio(GPIO_HEATER1_OUTPUT);
 
 	/* LEDS - default to off */
 	stm32_configgpio(GPIO_LED_AMBER);
@@ -141,5 +141,5 @@ __EXPORT void stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_PWM8);
 
 	/* disable heater */
-	HEATER_OUTPUT_EN(false);
+	HEATER1_OUTPUT_EN(false);
 }

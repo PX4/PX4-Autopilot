@@ -78,7 +78,7 @@ static constexpr uint32_t CONVERGENCE_WINDOW = 500;
 // Outlier rejection and filter reset
 //
 // Samples with round-trip time higher than MAX_RTT_SAMPLE are not used to update the filter.
-// More than MAX_CONSECUTIVE_HIGH_RTT number of such events in a row will throw a warning
+// More than MAX_CONSECUTIVE_HIGH_RTT number of such events in a row will throw a debug message
 // but not reset the filter.
 // Samples whose calculated clock offset is more than MAX_DEVIATION_SAMPLE off from the current
 // estimate are not used to update the filter. More than MAX_CONSECUTIVE_HIGH_DEVIATION number

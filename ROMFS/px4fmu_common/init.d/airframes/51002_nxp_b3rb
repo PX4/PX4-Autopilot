@@ -1,0 +1,31 @@
+#!/bin/sh
+#
+# @name NXP B3RB Rover Ackermann
+#
+# @type Rover
+# @class Rover
+#
+# @board px4_fmu-v2 exclude
+# @board bitcraze_crazyflie exclude
+#
+
+. ${R}etc/init.d/rc.rover_ackermann_defaults
+
+param set-default BAT1_N_CELLS 3
+
+# Set geometry & output configration
+param set-default PWM_MAIN_FUNC1 201
+param set-default PWM_MAIN_FUNC2 101
+param set-default PWM_MAIN_FUNC3 101
+param set-default PWM_MAIN_DIS1 1500
+param set-default PWM_MAIN_DIS2 0
+param set-default PWM_MAIN_DIS3 1500
+param set-default PWM_MAIN_MIN1 1000
+param set-default PWM_MAIN_MIN2 2500
+param set-default PWM_MAIN_MIN3 0
+param set-default PWM_MAIN_MAX1 2000
+param set-default PWM_MAIN_MAX2 2500
+param set-default PWM_MAIN_MAX3 50
+param set-default PWM_MAIN_TIM0 400
+param set-default PWM_MAIN_TIM1 400
+param set-default PWM_MAIN_TIM2 20000

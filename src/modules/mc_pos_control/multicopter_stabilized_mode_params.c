@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * Maximal tilt angle in Stabilized or Altitude mode
+ * Maximal tilt angle in Stabilized, Altitude and Altitude Cruise mode
  *
  * @unit deg
  * @min 1
@@ -75,21 +75,22 @@ PARAM_DEFINE_FLOAT(MPC_MANTHR_MIN, 0.08f);
 /**
  * Thrust curve mapping in Stabilized Mode
  *
- * This parameter defines how the throttle stick input is mapped to collective thrust
- * in Stabilized mode.
+ * Defines how the throttle stick is mapped to collective thrust in Stabilized mode.
  *
- * In case the default is used ('Rescale to hover thrust'), the stick input is linearly
- * rescaled, such that a centered stick corresponds to the hover throttle (see MPC_THR_HOVER).
+ * Rescale to hover thrust estimate:
+ *   Stick input is linearly rescaled, such that a centered throttle stick corresponds to the hover thrust estimator's output.
  *
- * Select 'No Rescale' to directly map the stick 1:1 to the output. This can be useful
- * in case the hover thrust is very low and the default would lead to too much distortion
- * (e.g. if hover thrust is set to 20%, then 80% of the upper thrust range is squeezed into the
- * upper half of the stick range).
+ * No rescale:
+ *   Directly map the stick 1:1 to the output.
+ *   Can be useful with very low hover thrust which leads to much distortion and the upper half getting sensitive.
  *
- * Note: In case MPC_THR_HOVER is set to 50%, the modes 0 and 1 are the same.
+ * Rescale to hover thrust parameter:
+ *   Similar to rescaling to the hover thrust estimate, but it uses the hover thrust parameter value (see MPC_THR_HOVER) instead of estimated value.
+ *   With MPC_THR_HOVER 0.5 it's equivalent to No rescale.
  *
- * @value 0 Rescale to hover thrust
- * @value 1 No Rescale
+ * @value 0 Rescale to estimate
+ * @value 1 No rescale
+ * @value 2 Rescale to parameter
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_INT32(MPC_THR_CURVE, 0);

@@ -93,7 +93,7 @@ bool Ekf::fuseMag(const Vector3f &mag, const float R_MAG, VectorState &H, estima
 
 			// we need to re-initialise covariances and abort this fusion step
 			if (update_all_states) {
-				resetQuatCov(_params.mag_heading_noise);
+				resetQuatCov(_params.ekf2_head_noise);
 			}
 
 			resetMagEarthCov();
@@ -108,6 +108,10 @@ bool Ekf::fuseMag(const Vector3f &mag, const float R_MAG, VectorState &H, estima
 			if (!update_tilt) {
 				Kfusion(State::quat_nominal.idx + 0) = 0.f;
 				Kfusion(State::quat_nominal.idx + 1) = 0.f;
+
+				// Also avoid corruption of the XY gyro biases
+				Kfusion(State::gyro_bias.idx + 0) = 0.f;
+				Kfusion(State::gyro_bias.idx + 1) = 0.f;
 			}
 
 		} else {
@@ -140,7 +144,7 @@ bool Ekf::fuseMag(const Vector3f &mag, const float R_MAG, VectorState &H, estima
 	return true;
 }
 
-bool Ekf::fuseDeclination(float decl_measurement_rad, float R, bool update_all_states)
+bool Ekf::fuseDeclination(float decl_measurement_rad, float R, bool update_all_states, bool update_tilt)
 {
 	VectorState H;
 	float decl_pred;
@@ -160,7 +164,17 @@ bool Ekf::fuseDeclination(float decl_measurement_rad, float R, bool update_all_s
 	// Calculate the Kalman gains
 	VectorState Kfusion = P * H / innovation_variance;
 
-	if (!update_all_states) {
+	if (update_all_states) {
+		if (!update_tilt) {
+			Kfusion(State::quat_nominal.idx + 0) = 0.f;
+			Kfusion(State::quat_nominal.idx + 1) = 0.f;
+
+			// Also avoid corruption of the XY gyro biases
+			Kfusion(State::gyro_bias.idx + 0) = 0.f;
+			Kfusion(State::gyro_bias.idx + 1) = 0.f;
+		}
+
+	} else {
 		// zero non-mag Kalman gains if not updating all states
 
 		// copy mag_I and mag_B Kalman gains

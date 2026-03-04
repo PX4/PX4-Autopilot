@@ -98,7 +98,7 @@ struct Header {
 	uint8_t sync1;
 	uint8_t sync2;
 	uint16_t crc;
-	BlockID id_number: 13;
+	uint16_t id_number: 13;
 	uint16_t id_revision: 3;
 	uint16_t length;
 	uint32_t tow;
@@ -143,7 +143,7 @@ struct PVTGeodetic {
 		MissingBaseStationCoordinates = 9,
 		MissingRequiredRTKFixedPosition = 10,
 	};
-	ModeType mode_type: 4;
+	uint8_t mode_type: 4;
 	uint8_t mode_reserved: 2;
 	uint8_t mode_base_fixed: 1;
 	uint8_t mode_2d: 1;
@@ -243,9 +243,14 @@ struct QualityInd {
 };
 
 struct RFBand {
+	enum class InfoMode : uint8_t {
+		Suppressed   = 1,
+		Mitigated    = 2,
+		Interference = 8
+	};
 	uint32_t frequency;
 	uint16_t bandwidth;
-	uint8_t  info_mode: 4;
+	uint8_t info_mode: 4;
 	uint8_t  info_reserved: 2;
 	uint8_t  info_antenna_id: 2;
 };
@@ -261,6 +266,15 @@ struct RFStatus {
 };
 
 struct GALAuthStatus {
+	enum class OSNMAStatus : uint16_t {
+		Disabled                   = 0,
+		Initializing               = 1,
+		AwaitingTrustedTimeInfo    = 2,
+		InitFailedInconsistentTime = 3,
+		InitFailedKROOTInvalid     = 4,
+		InitFailedInvalidParam     = 5,
+		Authenticating             = 6,
+	};
 	uint16_t osnma_status_status: 3;
 	uint16_t osnma_status_initialization_progress: 8;
 	uint16_t osnma_status_trusted_time_source: 3;
@@ -271,6 +285,8 @@ struct GALAuthStatus {
 	uint64_t gal_authentic_mask;
 	uint64_t gps_active_mask;
 	uint64_t gps_authentic_mask;
+
+	OSNMAStatus osnmaStatus() const { return static_cast<OSNMAStatus>(osnma_status_status); }
 };
 
 struct VelCovGeodetic {
@@ -314,8 +330,8 @@ struct AttEuler {
 		InsufficientMeasurements = 1,
 	};
 	uint8_t nr_sv;
-	Error error_aux1: 2;
-	Error error_aux2: 2;
+	uint8_t error_aux1: 2;
+	uint8_t error_aux2: 2;
 	uint8_t error_reserved: 3;
 	uint8_t error_not_requested: 1;
 	uint16_t mode;
@@ -334,8 +350,8 @@ struct AttCovEuler {
 		InsufficientMeasurements = 1,
 	};
 	uint8_t reserved;
-	Error error_aux1: 2;
-	Error error_aux2: 2;
+	uint8_t error_aux1: 2;
+	uint8_t error_aux2: 2;
 	uint8_t error_reserved: 3;
 	uint8_t error_not_requested: 1;
 	float cov_headhead;

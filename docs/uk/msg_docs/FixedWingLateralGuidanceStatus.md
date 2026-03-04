@@ -1,0 +1,48 @@
+---
+pageClass: is-wide-page
+---
+
+# FixedWingLateralGuidanceStatus (UORB message)
+
+Fixed Wing Lateral Guidance Status message. Published by fw_pos_control module to report the resultant lateral setpoints and NPFG debug outputs.
+
+**TOPICS:** fixed_winglateral_guidancestatus
+
+## Fields
+
+| Назва                                                                                | Тип       | Unit [Frame] | Range/Enum                                                                     | Опис                                                                                                                                                     |
+| ------------------------------------------------------------------------------------ | --------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| timestamp                                                                            | `uint64`  |                                                                  |                                                                                | time since system start (microseconds)                                                                                                |
+| course_setpoint                                                 | `float32` | rad                                                              | [-pi : pi] | Desired direction of travel over ground w.r.t (true) North. Set by guidance law       |
+| lateral_acceleration_ff                    | `float32` | FRD                                                              |                                                                                | lateral acceleration demand only for maintaining curvature                                                                                               |
+| bearing_feas                                                    | `float32` |                                                                  | [0 : 1]    | bearing feasibility                                                                                                                                      |
+| bearing_feas_on_track | `float32` |                                                                  | [0 : 1]    | on-track bearing feasibility                                                                                                                             |
+| signed_track_error                         | `float32` | m                                                                |                                                                                | signed track error                                                                                                                                       |
+| track_error_bound                          | `float32` | m                                                                |                                                                                | track error bound                                                                                                                                        |
+| adapted_period                                                  | `float32` | s                                                                |                                                                                | adapted period (if auto-tuning enabled)                                                                                               |
+| wind_est_valid                             | `uint8`   | boolean                                                          |                                                                                | true = wind estimate is valid and/or being used by controller (also indicates if wind estimate usage is disabled despite being valid) |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/FixedWingLateralGuidanceStatus.msg)
+
+:::details
+Click here to see original file
+
+```c
+# Fixed Wing Lateral Guidance Status message
+# Published by fw_pos_control module to report the resultant lateral setpoints and NPFG debug outputs
+
+uint64 timestamp                # time since system start (microseconds)
+
+float32 course_setpoint         # [rad] [@range -pi, pi] Desired direction of travel over ground w.r.t (true) North. Set by guidance law
+float32 lateral_acceleration_ff # [m/s^2] [FRD] lateral acceleration demand only for maintaining curvature
+float32 bearing_feas            # [@range 0,1] bearing feasibility
+float32 bearing_feas_on_track   # [@range 0,1] on-track bearing feasibility
+float32 signed_track_error      # [m] signed track error
+float32 track_error_bound       # [m] track error bound
+float32 adapted_period          # [s] adapted period (if auto-tuning enabled)
+uint8 wind_est_valid            # [boolean] true = wind estimate is valid and/or being used by controller (also indicates if wind estimate usage is disabled despite being valid)
+```
+
+:::

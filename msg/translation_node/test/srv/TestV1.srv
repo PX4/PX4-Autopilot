@@ -1,0 +1,4 @@
+uint32 MESSAGE_VERSION = 1
+uint64 request_a
+---
+uint8 response_a

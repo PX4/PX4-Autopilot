@@ -44,7 +44,6 @@
 
 #include <px4_platform_common/module.h>
 #include <uORB/topics/uORBTopics.hpp>
-#include <uORB/topics/ekf2_timestamps.h>
 
 namespace px4
 {
@@ -56,15 +55,20 @@ namespace px4
  * to replay. This is necessary because data messages from different subscriptions don't need to be in
  * monotonic increasing order.
  */
-class Replay : public ModuleBase<Replay>
+class Replay : public ModuleBase
 {
 public:
+	static Descriptor desc;
+
 	Replay() = default;
 
 	virtual ~Replay();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int run_trampoline(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static Replay *instantiate(int argc, char *argv[]);
@@ -141,8 +145,10 @@ protected:
 		CompatBase *compat = nullptr;
 
 		// statistics
-		int error_counter = 0;
+		int approx_timestamp_counter = 0;
 		int publication_counter = 0;
+
+		bool published = false;
 	};
 
 	/**
@@ -200,8 +206,7 @@ protected:
 	/**
 	 * Find next data message for this subscription, starting with the stored file offset.
 	 * Skip the first message, and if found, read the timestamp and store the new file offset.
-	 * This also takes care of new subscriptions and parameter updates. When reaching EOF,
-	 * the subscription is set to invalid.
+	 * When reaching EOF, the subscription is set to invalid.
 	 * File seek position is arbitrary after this call.
 	 * @return false on file error
 	 */

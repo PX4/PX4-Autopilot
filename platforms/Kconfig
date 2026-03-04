@@ -1,0 +1,5 @@
+if PLATFORM_NUTTX
+rsource "nuttx/Kconfig"
+endif
+
+rsource "common/Kconfig"

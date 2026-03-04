@@ -56,7 +56,7 @@ void OffboardChecks::checkAndReport(const Context &context, Report &reporter)
 		} else if (offboard_control_mode.velocity && reporter.failsafeFlags().local_velocity_invalid) {
 			offboard_available = false;
 
-		} else if (offboard_control_mode.acceleration && reporter.failsafeFlags().local_velocity_invalid) {
+		} else if (offboard_control_mode.acceleration && reporter.failsafeFlags().attitude_invalid) {
 			// OFFBOARD acceleration handled by position controller
 			offboard_available = false;
 		}

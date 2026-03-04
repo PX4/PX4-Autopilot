@@ -70,6 +70,70 @@ PARAM_DEFINE_INT32(GPS_DUMP_COMM, 0);
 PARAM_DEFINE_INT32(GPS_UBX_DYNMODEL, 7);
 
 /**
+ * u-blox GPS DGNSS timeout
+ *
+ * When set to 0 (default), default DGNSS timeout set by u-blox will be used.
+ *
+ * @min 0
+ * @max 255
+ * @unit s
+ *
+ * @reboot_required true
+ *
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_UBX_DGNSS_TO, 0);
+
+/**
+ * u-blox GPS minimum satellite signal level for navigation
+ *
+ * When set to 0 (default), default minimum satellite signal level set by u-blox wll be used.
+ *
+ * @min 0
+ * @max 255
+ * @unit dBHz
+ *
+ * @reboot_required true
+ *
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_UBX_MIN_CNO, 0);
+
+/**
+ * u-blox GPS minimum elevation for a GNSS satellite to be used in navigation
+ *
+ * When set to 0 (default), default minimum elevation set by u-blox will be used.
+ *
+ * @min 0
+ * @max 127
+ * @unit deg
+ *
+ * @reboot_required true
+ *
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_UBX_MIN_ELEV, 0);
+
+/**
+ * u-blox GPS output rate
+ *
+ * Configure the output rate of u-blox GPS receivers (protocol v27+).
+ * When set to 0, automatic rate selection is used based on the receiver model.
+ * Default rates: M9N=8Hz, F9P L1L2=5Hz, F9P L1L5=5Hz, Others=10Hz.
+ *
+ * Note: Higher rates reduce satellite count (e.g., >8Hz limits to 16 SVs on M9N).
+ * Max rates vary by model and RTK mode: F9P L1L2=5-7Hz, F9P L1L5=7-8Hz, X20=25Hz.
+ * High rates at 115200 baud may cause dropouts.
+ *
+ * @min 0
+ * @max 25
+ * @unit Hz
+ * @reboot_required true
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_UBX_RATE, 0);
+
+/**
  * Enable sat info (if available)
  *
  * Enable publication of satellite info (ORB_ID(satellite_info)) if possible.
@@ -94,6 +158,7 @@ PARAM_DEFINE_INT32(GPS_SAT_INFO, 0);
  * F9P units are connected to each other.
  * Modes 3 and 4 only require UART1 on each F9P connected to the Autopilot or Can Node. UART RX DMA is required.
  * RTK is still possible with this setup.
+ * Mode 6 is intended for use with a ground control station (not necessarily an RTK correction base).
  *
  * @min 0
  * @max 1
@@ -103,6 +168,7 @@ PARAM_DEFINE_INT32(GPS_SAT_INFO, 0);
  * @value 3 Heading (Rover With Moving Base UART1 Connected to Autopilot Or Can Node At 921600)
  * @value 4 Moving Base (Moving Base UART1 Connected to Autopilot Or Can Node At 921600)
  * @value 5 Rover with Static Base on UART2 (similar to Default, except coming in on UART2)
+ * @value 6 Ground Control Station (UART2 outputs NMEA)
  *
  * @reboot_required true
  * @group GPS
@@ -141,6 +207,45 @@ PARAM_DEFINE_INT32(GPS_UBX_BAUD2, 230400);
  * @group GPS
  */
 PARAM_DEFINE_INT32(GPS_UBX_CFG_INTF, 0);
+
+/**
+ * Enable MSM7 message output for PPK workflow.
+ *
+ * @boolean
+ * @reboot_required true
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_UBX_PPK, 0);
+
+/**
+ * u-blox GPS jamming detection high sensitivity mode
+ *
+ * Enables or disables the high sensitivity mode for the u-blox jamming detection
+ * (CFG-SEC-JAMDET_SENSITIVITY_HI). When enabled, the receiver uses a
+ * more sensitive algorithm to detect jamming. Disabling this may reduce false
+ * positives in electrically noisy environments.
+ *
+ * @boolean
+ * @reboot_required true
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_UBX_JAM_DET, 1);
+
+/**
+ * Wipes the flash config of UBX modules.
+ *
+ * Some UBX modules have a FLASH that allows to store persistent configuration that will be loaded on start.
+ * PX4 does override all configuration parameters it needs in RAM, which takes precedence over the values in FLASH.
+ * However, configuration parameters that are not overriden by PX4 can still cause unexpected problems during flight.
+ * To avoid these kind of problems a clean config can be reached by wiping the FLASH on boot.
+ *
+ * Note: Currently only supported on UBX.
+ *
+ * @reboot_required true
+ * @group GPS
+ * @boolean
+ */
+PARAM_DEFINE_INT32(GPS_CFG_WIPE, 0);
 
 /**
  * Heading/Yaw offset for dual antenna GPS

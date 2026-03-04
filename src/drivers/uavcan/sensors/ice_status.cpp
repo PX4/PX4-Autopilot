@@ -41,7 +41,7 @@
 const char *const UavcanIceStatusBridge::NAME = "ice_status";
 
 UavcanIceStatusBridge::UavcanIceStatusBridge(uavcan::INode &node) :
-	UavcanSensorBridgeBase("uavcan_ice_status", ORB_ID(internal_combustion_engine_status)),
+	UavcanSensorBridgeBase("uavcan_ice_status", ORB_ID(internal_combustion_engine_status), nullptr),
 	_sub_ice_status_data(node)
 { }
 

@@ -196,8 +196,10 @@
 /* HEATER
  * PWM in future
  */
-#define GPIO_HEATER_OUTPUT   /* PB10  T2CH3 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN10)
-#define HEATER_OUTPUT_EN(on_true)	       px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, (on_true))
+#define GPIO_HEATER_OUTPUT
+#define HEATER_NUM 	1
+#define GPIO_HEATER1_OUTPUT  /* PB10  T2CH3 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN10)
+#define HEATER1_OUTPUT_EN(on_true)	       px4_arch_gpiowrite(GPIO_HEATER1_OUTPUT, (on_true))
 
 /* PC12 is nARMED
  *  The GPIO will be set as input while not armed HW will have external HW Pull UP.
@@ -286,8 +288,6 @@
 #define HRT_PPM_CHANNEL         /* T8C1 */  1  /* use capture/compare channel 1 */
 #define GPIO_PPM_IN             /* PI5 T8C1 */ GPIO_TIM8_CH1IN_2
 
-/* RC Serial port */
-#define RC_SERIAL_PORT                     "/dev/ttyS5"
 /* Some RC protocols are bi-directional, therefore we need a half-duplex UART */
 #define RC_SERIAL_SINGLEWIRE
 /* The STM32 UART by default wires half-duplex mode to the TX pin, but our
@@ -401,7 +401,7 @@
 		GPIO_CAN1_RX,                     \
 		GPIO_CAN2_TX,                     \
 		GPIO_CAN2_RX,                     \
-		GPIO_HEATER_OUTPUT,               \
+		GPIO_HEATER1_OUTPUT,              \
 		GPIO_nPOWER_IN_A,                 \
 		GPIO_nPOWER_IN_B,                 \
 		GPIO_nPOWER_IN_C,                 \

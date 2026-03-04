@@ -404,7 +404,7 @@ TEST_F(EkfFusionLogicTest, doBaroHeightFusionTimeout)
 	_ekf_wrapper.enableGpsHeightFusion();
 	_sensor_simulator.runSeconds(11);
 	reset_logging_checker.capturePostResetState();
-	EXPECT_TRUE(reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(2));
+	EXPECT_TRUE(reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(1));
 	EXPECT_TRUE(reset_logging_checker.isVerticalPositionResetCounterIncreasedBy(1));
 
 	// AND: the baro data jumps by a lot
@@ -415,7 +415,7 @@ TEST_F(EkfFusionLogicTest, doBaroHeightFusionTimeout)
 	// THEN: EKF should fallback to GPS height (without reset)
 	EXPECT_FALSE(_ekf_wrapper.isIntendingBaroHeightFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
-	EXPECT_TRUE(reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(2));
+	EXPECT_TRUE(reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(1));
 	EXPECT_TRUE(reset_logging_checker.isVerticalPositionResetCounterIncreasedBy(1));
 }
 

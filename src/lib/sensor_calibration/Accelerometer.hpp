@@ -88,7 +88,7 @@ public:
 	matrix::Vector3f BiasCorrectedSensorOffset(const matrix::Vector3f &bias) const
 	{
 		// updated calibration offset = existing offset + bias rotated to sensor frame and unscaled
-		return _offset + (_rotation.I() * bias).edivide(_scale);
+		return _offset + (_rotation.T() * bias).edivide(_scale);
 	}
 
 	bool ParametersLoad();

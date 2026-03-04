@@ -56,12 +56,12 @@ TEST_CASE("Fly VTOL Loiter with airspeed failure", "[vtol_airspeed_fail]")
 
 
 	// tester.wait_until_altitude(50.f, std::chrono::seconds(30));
-	std::this_thread::sleep_for(std::chrono::seconds(10));
+	tester.sleep_for(std::chrono::seconds(10));
 	tester.inject_failure(mavsdk::Failure::FailureUnit::SensorAirspeed, mavsdk::Failure::FailureType::Wrong, 0,
 			      mavsdk::Failure::Result::Success);
 
 
-	std::this_thread::sleep_for(std::chrono::seconds(10));
+	tester.sleep_for(std::chrono::seconds(10));
 
 	tester.check_airspeed_is_invalid(); // it's enough to check once after landing, as invalidation is permanent
 }

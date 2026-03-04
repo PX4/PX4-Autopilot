@@ -105,3 +105,51 @@ parameters:
             category: System
             reboot_required: true
             default: 0
+
+        UXRCE_DDS_TX_TO:
+            description:
+                short: TX rate timeout configuration
+                long: |
+                    Specifies after how many seconds without sending data the DDS connection is reestablished.
+                    A value less than one disables the TX rate timeout.
+            type: int32
+            category: System
+            reboot_required: true
+            default: 3
+            unit: s
+
+        UXRCE_DDS_RX_TO:
+            description:
+                short: RX rate timeout configuration
+                long: |
+                    Specifies after how many seconds without receiving data the DDS connection is reestablished.
+                    A value less than one disables the RX rate timeout.
+            type: int32
+            category: System
+            reboot_required: true
+            default: -1
+            unit: s
+
+        UXRCE_DDS_NS_IDX:
+            description:
+                short: Define an index-based message namespace
+                long: |
+                    Defines an index-based namespace for DDS messages, e.g, uav_0, uav_1, up to uav_9999
+                    A value less than zero leaves the namespace empty
+            type: int32
+            min: -1
+            max: 9999
+            category: System
+            reboot_required: true
+            default: -1
+
+        UXRCE_DDS_FLCTRL:
+            description:
+                short: Enable serial flow control for UXRCE interface
+                long: |
+                    This is used to enable flow control for the serial uXRCE instance.
+                    Used for reliable high bandwidth communication.
+            type: boolean
+            category: System
+            reboot_required: true
+            default: 0

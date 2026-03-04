@@ -113,7 +113,7 @@ static int gimbal_thread_main(int argc, char *argv[])
 	thread_data.input_objs[thread_data.input_objs_len++] = thread_data.test_input;
 
 	switch (params.mnt_mode_in) {
-	case 0:
+	case MNT_MODE_IN_AUTO:
 		// Automatic
 		// MAVLINK_V2 as well as RC input are supported together.
 		// Whichever signal is updated last, gets control, for RC there is a deadzone
@@ -123,19 +123,19 @@ static int gimbal_thread_main(int argc, char *argv[])
 		thread_data.input_objs[thread_data.input_objs_len++] = new InputRC(params);
 		break;
 
-	case 1: // RC only
+	case MNT_MODE_IN_RC: // RC only
 		thread_data.input_objs[thread_data.input_objs_len++] = new InputRC(params);
 		break;
 
-	case 2: // MAVLINK_ROI commands only (to be deprecated)
+	case MNT_MODE_IN_MAVLINK_ROI: // MAVLINK_ROI commands only (to be deprecated)
 		thread_data.input_objs[thread_data.input_objs_len++] = new InputMavlinkROI(params);
 		break;
 
-	case 3: // MAVLINK_DO_MOUNT commands only (to be deprecated)
+	case MNT_MODE_IN_MAVLINK_DO_MOUNT: // MAVLINK_DO_MOUNT commands only (to be deprecated)
 		thread_data.input_objs[thread_data.input_objs_len++] = new InputMavlinkCmdMount(params);
 		break;
 
-	case 4: //MAVLINK_V2
+	case MNT_MODE_IN_MAVLINK_V2: //MAVLINK_V2
 		thread_data.input_objs[thread_data.input_objs_len++] = new InputMavlinkGimbalV2(params);
 		break;
 
@@ -165,21 +165,21 @@ static int gimbal_thread_main(int argc, char *argv[])
 	}
 
 	switch (params.mnt_mode_out) {
-	case 0: //AUX
+	case MNT_MODE_OUT_AUX: //AUX
 		thread_data.output_obj = new OutputRC(params);
 
 		if (!thread_data.output_obj) { alloc_failed = true; }
 
 		break;
 
-	case 1: //MAVLink gimbal v1 protocol
+	case MNT_MODE_OUT_MAVLINK_V1: //MAVLink gimbal v1 protocol
 		thread_data.output_obj = new OutputMavlinkV1(params);
 
 		if (!thread_data.output_obj) { alloc_failed = true; }
 
 		break;
 
-	case 2: //MAVLink gimbal v2 protocol
+	case MNT_MODE_OUT_MAVLINK_V2: //MAVLink gimbal v2 protocol
 		thread_data.output_obj = new OutputMavlinkV2(params);
 
 		if (!thread_data.output_obj) { alloc_failed = true; }
@@ -254,14 +254,26 @@ static int gimbal_thread_main(int argc, char *argv[])
 				}
 			}
 
-			if (params.mnt_do_stab == 1) {
-				thread_data.output_obj->set_stabilize(true, true, true);
+			switch (params.mnt_do_stab) {
+			case MntDoStabilize::ALL_AXES: {
+					thread_data.output_obj->set_stabilize(true, true, true);
+					break;
+				}
 
-			} else if (params.mnt_do_stab == 2) {
-				thread_data.output_obj->set_stabilize(false, false, true);
+			case MntDoStabilize::YAW_LOCK: {
+					thread_data.output_obj->set_stabilize(false, false, true);
+					break;
+				}
 
-			} else {
-				thread_data.output_obj->set_stabilize(false, false, false);
+			case MntDoStabilize::PITCH_LOCK: {
+					thread_data.output_obj->set_stabilize(false, true, false);
+					break;
+				}
+
+			default: {
+					thread_data.output_obj->set_stabilize(false, false, false);
+					break;
+				}
 			}
 
 			if (thread_data.output_obj->check_and_handle_setpoint_timeout(thread_data.control_data, hrt_absolute_time())) {
@@ -276,7 +288,7 @@ static int gimbal_thread_main(int argc, char *argv[])
 
 			// Only publish the mount orientation if the mode is not mavlink v1 or v2
 			// If the gimbal speaks mavlink it publishes its own orientation.
-			if (params.mnt_mode_out != 1 && params.mnt_mode_out != 2) { // 1 = MAVLink v1, 2 = MAVLink v2
+			if (params.mnt_mode_out != MNT_MODE_OUT_MAVLINK_V1 && params.mnt_mode_out != MNT_MODE_OUT_MAVLINK_V2) {
 				thread_data.output_obj->publish();
 			}
 
@@ -533,12 +545,10 @@ void update_params(ParameterHandles &param_handles, Parameters &params)
 	param_get(param_handles.mnt_man_roll, &params.mnt_man_roll);
 	param_get(param_handles.mnt_man_yaw, &params.mnt_man_yaw);
 	param_get(param_handles.mnt_do_stab, &params.mnt_do_stab);
-	param_get(param_handles.mnt_range_pitch, &params.mnt_range_pitch);
+	param_get(param_handles.mnt_max_pitch, &params.mnt_max_pitch);
+	param_get(param_handles.mnt_min_pitch, &params.mnt_min_pitch);
 	param_get(param_handles.mnt_range_roll, &params.mnt_range_roll);
 	param_get(param_handles.mnt_range_yaw, &params.mnt_range_yaw);
-	param_get(param_handles.mnt_off_pitch, &params.mnt_off_pitch);
-	param_get(param_handles.mnt_off_roll, &params.mnt_off_roll);
-	param_get(param_handles.mnt_off_yaw, &params.mnt_off_yaw);
 	param_get(param_handles.mav_sysid, &params.mav_sysid);
 	param_get(param_handles.mav_compid, &params.mav_compid);
 	param_get(param_handles.mnt_rate_pitch, &params.mnt_rate_pitch);
@@ -546,6 +556,7 @@ void update_params(ParameterHandles &param_handles, Parameters &params)
 	param_get(param_handles.mnt_rc_in_mode, &params.mnt_rc_in_mode);
 	param_get(param_handles.mnt_lnd_p_min, &params.mnt_lnd_p_min);
 	param_get(param_handles.mnt_lnd_p_max, &params.mnt_lnd_p_max);
+	param_get(param_handles.mnt_tau, &params.mnt_tau);
 }
 
 bool initialize_params(ParameterHandles &param_handles, Parameters &params)
@@ -558,12 +569,10 @@ bool initialize_params(ParameterHandles &param_handles, Parameters &params)
 	param_handles.mnt_man_roll = param_find("MNT_MAN_ROLL");
 	param_handles.mnt_man_yaw = param_find("MNT_MAN_YAW");
 	param_handles.mnt_do_stab = param_find("MNT_DO_STAB");
-	param_handles.mnt_range_pitch = param_find("MNT_RANGE_PITCH");
+	param_handles.mnt_max_pitch = param_find("MNT_MAX_PITCH");
+	param_handles.mnt_min_pitch = param_find("MNT_MIN_PITCH");
 	param_handles.mnt_range_roll = param_find("MNT_RANGE_ROLL");
 	param_handles.mnt_range_yaw = param_find("MNT_RANGE_YAW");
-	param_handles.mnt_off_pitch = param_find("MNT_OFF_PITCH");
-	param_handles.mnt_off_roll = param_find("MNT_OFF_ROLL");
-	param_handles.mnt_off_yaw = param_find("MNT_OFF_YAW");
 	param_handles.mav_sysid = param_find("MAV_SYS_ID");
 	param_handles.mav_compid = param_find("MAV_COMP_ID");
 	param_handles.mnt_rate_pitch = param_find("MNT_RATE_PITCH");
@@ -571,6 +580,7 @@ bool initialize_params(ParameterHandles &param_handles, Parameters &params)
 	param_handles.mnt_rc_in_mode = param_find("MNT_RC_IN_MODE");
 	param_handles.mnt_lnd_p_min = param_find("MNT_LND_P_MIN");
 	param_handles.mnt_lnd_p_max = param_find("MNT_LND_P_MAX");
+	param_handles.mnt_tau = param_find("MNT_TAU");
 
 	if (param_handles.mnt_mode_in == PARAM_INVALID ||
 	    param_handles.mnt_mode_out == PARAM_INVALID ||
@@ -580,19 +590,18 @@ bool initialize_params(ParameterHandles &param_handles, Parameters &params)
 	    param_handles.mnt_man_roll == PARAM_INVALID ||
 	    param_handles.mnt_man_yaw == PARAM_INVALID ||
 	    param_handles.mnt_do_stab == PARAM_INVALID ||
-	    param_handles.mnt_range_pitch == PARAM_INVALID ||
+	    param_handles.mnt_max_pitch == PARAM_INVALID ||
+	    param_handles.mnt_min_pitch == PARAM_INVALID ||
 	    param_handles.mnt_range_roll == PARAM_INVALID ||
 	    param_handles.mnt_range_yaw == PARAM_INVALID ||
-	    param_handles.mnt_off_pitch == PARAM_INVALID ||
-	    param_handles.mnt_off_roll == PARAM_INVALID ||
-	    param_handles.mnt_off_yaw == PARAM_INVALID ||
 	    param_handles.mav_sysid == PARAM_INVALID ||
 	    param_handles.mav_compid == PARAM_INVALID ||
 	    param_handles.mnt_rate_pitch == PARAM_INVALID ||
 	    param_handles.mnt_rate_yaw == PARAM_INVALID ||
 	    param_handles.mnt_rc_in_mode == PARAM_INVALID ||
 	    param_handles.mnt_lnd_p_min == PARAM_INVALID ||
-	    param_handles.mnt_lnd_p_max == PARAM_INVALID
+	    param_handles.mnt_lnd_p_max == PARAM_INVALID ||
+	    param_handles.mnt_tau == PARAM_INVALID
 	   ) {
 		return false;
 	}
@@ -609,7 +618,7 @@ static void usage()
 Mount/gimbal Gimbal control driver. It maps several different input methods (eg. RC or MAVLink) to a configured
 output (eg. AUX channels or MAVLink).
 
-Documentation how to use it is on the [gimbal_control](https://docs.px4.io/main/en/advanced/gimbal_control.html) page.
+Documentation how to use it is on the [gimbal_control](../advanced/gimbal_control.md) page.
 
 ### Examples
 Test the output by setting a angles (all omitted axes are set to 0):

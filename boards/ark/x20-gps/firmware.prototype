@@ -1,0 +1,13 @@
+{
+    "board_id": 89,
+    "magic": "PX4FWv1",
+    "description": "Firmware for the ARK X20 GPS",
+    "image": "",
+    "build_time": 0,
+    "summary": "ARKX20GPS",
+    "version": "0.1",
+    "image_size": 0,
+    "image_maxsize": 2080768,
+    "git_identity": "",
+    "board_revision": 0
+}

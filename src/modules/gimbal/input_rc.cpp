@@ -130,16 +130,20 @@ InputRC::UpdateResult InputRC::_read_control_data_from_subscription(ControlData 
 
 		if (_parameters.mnt_rc_in_mode == 0) {
 			// We scale manual input from roll -180..180, pitch -90..90, yaw, -180..180 degrees.
-			matrix::Eulerf euler(new_aux_values[0] * math::radians(180.f),
+			// We use 179.99 instead of 180 so to avoid that the conversion between quaternions and Euler representation
+			// (when new_aux_value = 1) gives the equivalent angle (e.g., -180 instead of 180).
+			matrix::Eulerf euler(new_aux_values[0] * math::radians(179.99f),
 					     new_aux_values[1] * math::radians(90.f),
-					     new_aux_values[2] * math::radians(180.f));
+					     new_aux_values[2] * math::radians(179.99f));
 
 			matrix::Quatf q(euler);
 			q.copyTo(control_data.type_data.angle.q);
 
 			control_data.type_data.angle.frames[0] = ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;
 			control_data.type_data.angle.frames[1] = ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;
-			control_data.type_data.angle.frames[2] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
+			control_data.type_data.angle.frames[2] = (_parameters.mnt_do_stab == MntDoStabilize::ALL_AXES
+					|| _parameters.mnt_do_stab == MntDoStabilize::YAW_LOCK) ?
+					ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame : ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
 
 			control_data.type_data.angle.angular_velocity[0] = NAN;
 			control_data.type_data.angle.angular_velocity[1] = NAN;

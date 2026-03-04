@@ -1,0 +1,30 @@
+__max_num_config_instances: &max_num_config_instances 1
+
+module_name: TLA2528
+
+parameters:
+  - group: ADC
+    definitions:
+      ADC_TLA2528_EN:
+        description:
+            short: Enable TLA2528
+            long: |
+                Enable the driver for the TLA2528
+        type: boolean
+        reboot_required: true
+        default: 0
+
+
+      ADC_TLA2528_REFV:
+        description:
+            short: Applied reference Voltage.
+            long: |
+                The voltage applied to the TLA2528 board as reference
+        type: float
+        unit: V
+        min: 2.0
+        max: 3.0
+        decimal: 2
+        increment: 0.01
+        reboot_required: true
+        default: 2.5

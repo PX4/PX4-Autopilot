@@ -40,8 +40,11 @@
 
 #include <mathlib/mathlib.h>
 #include <px4_platform_common/posix.h>
-#include <px4_platform_common/crypto.h>
 #include <px4_platform_common/log.h>
+
+#if defined(PX4_CRYPTO)
+# include <px4_platform_common/crypto.h>
+#endif // PX4_CRYPTO
 
 #if defined(__PX4_NUTTX)
 # include <malloc.h>
@@ -88,7 +91,7 @@ LogWriterFile::~LogWriterFile()
 }
 
 #if defined(PX4_CRYPTO)
-bool LogWriterFile::init_logfile_encryption(const char *filename)
+bool LogWriterFile::init_logfile_encryption(const LogType type)
 {
 	if (_algorithm == CRYPTO_NONE) {
 		_min_blocksize = 1;
@@ -151,39 +154,18 @@ bool LogWriterFile::init_logfile_encryption(const char *filename)
 
 	rsa_crypto.close();
 
-	// Write the encrypted key to the disk
-
-	// Allocate a buffer for filename
-	size_t fnlen = strlen(filename);
-	char *tmp_buf = (char *)malloc(fnlen + 1);
-
-	if (!tmp_buf) {
-		PX4_ERR("out of memory");
-		free(key);
-		return false;
-	}
-
-	// Copy the original logfile name, and append 'k' to the filename
-
-	memcpy(tmp_buf, filename, fnlen + 1);
-	tmp_buf[fnlen - 1] = 'k';
-	tmp_buf[fnlen] = 0;
-
-	int key_fd = ::open((const char *)tmp_buf, O_CREAT | O_WRONLY, PX4_O_MODE_666);
-
-	// The file name is no longer needed, free it
-	free(tmp_buf);
-	tmp_buf = nullptr;
+	// Write the encrypted key to the beginning of the opened log file
+	int key_fd = _buffers[(int)type].fd();
 
 	if (key_fd < 0) {
-		PX4_ERR("Can't open key file, errno: %d", errno);
+		PX4_ERR("Log file not open for storing the key, errno: %d", errno);
 		free(key);
 		return false;
 	}
 
-	// write the header to the key exchange file
+	// write header and key to the beginning of the log file
 	struct ulog_key_header_s keyfile_header = {
-		.magic = {'U', 'L', 'o', 'g', 'K', 'e', 'y'},
+		.magic = {'U', 'L', 'o', 'g', 'E', 'n', 'c'},
 		.hdr_ver = 1,
 		.timestamp = hrt_absolute_time(),
 		.exchange_algorithm = CRYPTO_RSA_OAEP,
@@ -192,20 +174,14 @@ bool LogWriterFile::init_logfile_encryption(const char *filename)
 		.initdata_size = (uint16_t)nonce_size
 	};
 
-	size_t hdr_sz = ::write(key_fd, (uint8_t *)&keyfile_header, sizeof(keyfile_header));
-	size_t written = 0;
-
-	if (hdr_sz == sizeof(keyfile_header)) {
-		// Header write succeeded, write the  key
-		written = ::write(key_fd, key, key_size + nonce_size);
-	}
+	size_t written = ::write(key_fd, (uint8_t *)&keyfile_header, sizeof(keyfile_header));
+	written += ::write(key_fd, key, key_size + nonce_size);
 
 	// Free temporary memory allocations
 	free(key);
-	::close(key_fd);
 
 	// Check that writing to the disk succeeded
-	if (written != key_size + nonce_size) {
+	if (written != sizeof(keyfile_header) + key_size + nonce_size) {
 		PX4_ERR("Writing the encryption key to disk fail");
 		return false;
 	}
@@ -241,18 +217,22 @@ bool LogWriterFile::start_log(LogType type, const char *filename)
 		}
 	}
 
-#if PX4_CRYPTO
-	bool enc_init = init_logfile_encryption(filename);
+	if (_buffers[(int)type].start_log(filename)) {
 
-	if (!enc_init) {
-		PX4_ERR("Failed to start encrypted logging");
-		_crypto.close();
-		return false;
-	}
+#if PX4_CRYPTO
+		bool enc_init = init_logfile_encryption(type);
+
+		if (!enc_init) {
+			PX4_ERR("Failed to start encrypted logging");
+			_crypto.close();
+			_buffers[(int)type]._should_run = false;
+			_buffers[(int)type].close_file();
+			_buffers[(int)type].reset();
+			return false;
+		}
 
 #endif
 
-	if (_buffers[(int)type].start_log(filename)) {
 		PX4_INFO("Opened %s log file: %s", log_type_str(type), filename);
 		notify();
 		return true;
@@ -311,7 +291,11 @@ int LogWriterFile::thread_start()
 	param.sched_priority = SCHED_PRIORITY_DEFAULT - 40;
 	(void)pthread_attr_setschedparam(&thr_attr, &param);
 
+#ifdef CONFIG_FS_LITTLEFS
+	pthread_attr_setstacksize(&thr_attr, PX4_STACK_ADJUSTED(1800));  /* littlefs needs more stack */
+#else
 	pthread_attr_setstacksize(&thr_attr, PX4_STACK_ADJUSTED(1170));
+#endif
 
 	int ret = pthread_create(&_thread, &thr_attr, &LogWriterFile::run_helper, this);
 	pthread_attr_destroy(&thr_attr);
@@ -401,7 +385,7 @@ void LogWriterFile::run()
 #if defined(PX4_CRYPTO)
 				// Split into min blocksize chunks, so it is good for encrypting in pieces
 				available = (available / _min_blocksize) * _min_blocksize;
-#endif
+#endif // PX4_CRYPTO
 
 				/* if sufficient data available or partial read or terminating, write data */
 				if (available >= min_available[i] || is_part || (!buffer._should_run && available > 0)) {
@@ -431,7 +415,7 @@ void LogWriterFile::run()
 						}
 					}
 
-#endif
+#endif // PX4_CRYPTO
 
 					int written = buffer.write_to_file(read_ptr, available, call_fsync);
 
@@ -492,7 +476,7 @@ void LogWriterFile::run()
 				/* close the crypto session */
 
 				_crypto.close();
-#endif
+#endif // PX4_CRYPTO
 
 				break;
 			}

@@ -96,7 +96,7 @@ public:
 	static struct work_s	_work_publisher;
 
 private:
-	int _capture_channel = 5; ///< by default, use FMU output 6
+	int _capture_channel{-1};
 
 	// Publishers
 	uORB::Publication<vehicle_command_ack_s>	_command_ack_pub{ORB_ID(vehicle_command_ack)};

@@ -58,3 +58,20 @@ PARAM_DEFINE_INT32(MAN_ARM_GESTURE, 1);
  * @max 15
  */
 PARAM_DEFINE_FLOAT(MAN_KILL_GEST_T, -1.f);
+
+/**
+ * Deadzone for sticks (only specific use cases)
+ *
+ * Range around stick center ignored to prevent
+ * vehicle drift from stick hardware inaccuracy.
+ *
+ * Does not apply to any precise constant input like
+ * throttle and attitude or rate piloting.
+ *
+ * @min 0
+ * @max 1
+ * @decimal 2
+ * @increment 0.01
+ * @group Manual Control
+ */
+PARAM_DEFINE_FLOAT(MAN_DEADZONE, 0.1f);

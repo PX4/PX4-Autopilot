@@ -54,9 +54,11 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/wheel_encoders.h>
 
-class Roboclaw : public ModuleBase<Roboclaw>, public OutputModuleInterface
+class Roboclaw : public ModuleBase, public OutputModuleInterface
 {
 public:
+	static Descriptor desc;
+
 	/**
 	 * @param device_name Name of the serial port e.g. "/dev/ttyS2"
 	 * @param bad_rate_parameter Name of the parameter that holds the baud rate of this serial port
@@ -77,7 +79,7 @@ public:
 	void Run() override;
 
 	/** @see OutputModuleInterface */
-	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+	bool updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 	void setMotorSpeed(Motor motor, float value); ///< rev/sec

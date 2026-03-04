@@ -38,7 +38,6 @@
 #pragma once
 
 #include <uORB/topics/differential_pressure.h>
-
 #include "sensor_bridge.hpp"
 
 #include <uavcan/equipment/air_data/RawAirData.hpp>
@@ -48,7 +47,7 @@ class UavcanDifferentialPressureBridge : public UavcanSensorBridgeBase
 public:
 	static const char *const NAME;
 
-	UavcanDifferentialPressureBridge(uavcan::INode &node);
+	UavcanDifferentialPressureBridge(uavcan::INode &node, NodeInfoPublisher *node_info_publisher);
 
 	const char *get_name() const override { return NAME; }
 
@@ -63,4 +62,5 @@ private:
 		AirCbBinder;
 
 	uavcan::Subscriber<uavcan::equipment::air_data::RawAirData, AirCbBinder> _sub_air;
+
 };

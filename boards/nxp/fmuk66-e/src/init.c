@@ -120,8 +120,13 @@ void board_on_reset(int status)
 		px4_arch_configgpio(PX4_MAKE_GPIO_INPUT(io_timer_channel_get_as_pwm_input(i)));
 	}
 
+	/*
+	 * On resets invoked from system (not boot) ensure we establish a low
+	 * output state on PWM pins to disarm the ESC and prevent the reset from potentially
+	 * spinning up the motors.
+	 */
 	if (status >= 0) {
-		up_mdelay(6);
+		up_mdelay(100);
 	}
 }
 
@@ -166,7 +171,7 @@ __EXPORT void board_peripheral_reset(int ms)
  *
  * Description:
  *   All Kinetis architectures must provide the following entry point.  This entry point
- *   is called early in the intitialization -- after all memory has been configured
+ *   is called early in the initialization -- after all memory has been configured
  *   and mapped but before any devices have been initialized.
  *
  ************************************************************************************/

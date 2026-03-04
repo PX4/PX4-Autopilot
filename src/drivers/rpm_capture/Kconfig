@@ -1,0 +1,5 @@
+menuconfig DRIVERS_RPM_CAPTURE
+	bool "rpm_capture"
+	default n
+	---help---
+		Enable support for rpm_capture

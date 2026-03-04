@@ -1,0 +1,7 @@
+config LIB_RL_TOOLS
+	bool "RLtools"
+	default n
+	---help---
+		RLtools is a header-only library for reinforcement learning and neural networks.
+		It enables running trained RL policies on embedded devices.
+		This library is used for running RL-based controllers on the PX4 autopilot.

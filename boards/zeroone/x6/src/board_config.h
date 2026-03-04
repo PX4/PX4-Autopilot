@@ -215,18 +215,21 @@
 #define GPIO_HW_VER_SENSE      /* PH3 */  GPIO_ADC3_INP14
 #define HW_INFO_INIT_PREFIX    "ZeroOneX6"
 
-#define BOARD_NUM_SPI_CFG_HW_VERSIONS 2
+#define BOARD_NUM_SPI_CFG_HW_VERSIONS 3
 //                 Base/FMUM
-#define ZeroOneX6_0     HW_FMUM_ID(0x0)   // ZeroOneX6,     Sensor Set  Rev 0
-#define ZeroOneX6_1     HW_FMUM_ID(0x1)   // ZeroOneX6,     Sensor Set  Rev 1
+#define ZeroOneX6_0     HW_FMUM_ID(0x0)   // ZeroOneX6,
+#define ZeroOneX6_1     HW_FMUM_ID(0x1)   // ZeroOneX6 Pro,
+#define ZeroOneX6_2     HW_FMUM_ID(0x2)   // reserved
 
 #define UAVCAN_NUM_IFACES_RUNTIME  1
 
 /* HEATER
  * PWM in future
  */
-#define GPIO_HEATER_OUTPUT   /* PB10  T2CH3 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN10)
-#define HEATER_OUTPUT_EN(on_true)	       px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, (on_true))
+#define GPIO_HEATER_OUTPUT
+#define HEATER_NUM 	1
+#define GPIO_HEATER1_OUTPUT  /* PB10  T2CH3 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN10)
+#define HEATER1_OUTPUT_EN(on_true)	       px4_arch_gpiowrite(GPIO_HEATER1_OUTPUT, (on_true))
 
 /* PE6 is nARMED
  *  The GPIO will be set as input while not armed HW will have external HW Pull UP.
@@ -243,6 +246,10 @@
 /* PWM
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS   9
+
+/* PWM Power */
+#define GPIO_PWM_VOLT_SEL               /* PD15  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTG|GPIO_PIN6)
+#define PWM_5V_VOLT_SEL(on_true)        px4_arch_gpiowrite(GPIO_PWM_VOLT_SEL, (on_true))
 
 /* Power supply control and monitoring GPIOs */
 
@@ -437,7 +444,7 @@
 		GPIO_CAN1_RX,                     \
 		GPIO_CAN2_TX,                     \
 		GPIO_CAN2_RX,                     \
-		GPIO_HEATER_OUTPUT,               \
+		GPIO_HEATER1_OUTPUT,              \
 		GPIO_nPOWER_IN_A,                 \
 		GPIO_nPOWER_IN_B,                 \
 		GPIO_nPOWER_IN_C,                 \
@@ -457,7 +464,8 @@
 		GPIO_nSAFETY_SWITCH_LED_OUT_INIT, \
 		GPIO_SAFETY_SWITCH_IN,            \
 		GPIO_PG6,                         \
-		GPIO_nARMED_INIT                  \
+		GPIO_nARMED_INIT,                 \
+		GPIO_PWM_VOLT_SEL                \
 	}
 
 #define BOARD_ENABLE_CONSOLE_BUFFER

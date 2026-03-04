@@ -85,10 +85,32 @@ endif()
 if(PX4_ETHERNET)
 	set(added_arguments ${added_arguments} --ethernet)
 endif()
+# Check if board has an rc.board_airframes file to filter airframes
+set(board_airframes_file "${PX4_BOARD_DIR}/init/rc.board_airframes")
+set(airframes_whitelist "")
+if(EXISTS "${board_airframes_file}")
+	message(STATUS "ROMFS: Using board-specific airframes list: ${board_airframes_file}")
+	file(STRINGS "${board_airframes_file}" airframes_whitelist)
+	# Remove comments and empty lines
+	list(FILTER airframes_whitelist EXCLUDE REGEX "^[ \t]*#")
+	list(FILTER airframes_whitelist EXCLUDE REGEX "^[ \t]*$")
+endif()
+
 # create list of relative romfs file names
 set(romfs_copy_files_relative)
 foreach(romfs_file IN LISTS romfs_copy_files)
 	string(REPLACE "${romfs_src_dir}/" "" romfs_file_rel ${romfs_file})
+
+	# If we have an airframes whitelist, filter airframe files
+	if(airframes_whitelist AND romfs_file_rel MATCHES "^init.d/airframes/")
+		# Extract just the filename
+		get_filename_component(airframe_name "${romfs_file_rel}" NAME)
+		# Check if it's in the whitelist
+		if(NOT "${airframe_name}" IN_LIST airframes_whitelist)
+			continue()
+		endif()
+	endif()
+
 	list(APPEND romfs_copy_files_relative ${romfs_file_rel})
 endforeach()
 # copy the ROMFS files by creating a tar and extracting it to the build
@@ -202,6 +224,31 @@ foreach(board_rc_file ${OPTIONAL_BOARD_RC})
 
 endforeach()
 
+if(config_additional_init)
+	if(EXISTS "${PX4_BOARD_DIR}/init/${config_additional_init}")
+		file(RELATIVE_PATH rc_file_relative ${PX4_SOURCE_DIR} ${PX4_BOARD_DIR}/init/${config_additional_init})
+		message(STATUS "ROMFS:  Adding ${rc_file_relative} -> /etc/init.d/rc.additional_init")
+
+		add_custom_command(
+			OUTPUT
+				${romfs_gen_root_dir}/init.d/rc.additional_init
+				${config_additional_init}.stamp
+			COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PX4_BOARD_DIR}/init/${config_additional_init} ${romfs_gen_root_dir}/init.d/rc.additional_init
+			COMMAND ${CMAKE_COMMAND} -E touch ${config_additional_init}.stamp
+			DEPENDS
+				${PX4_BOARD_DIR}/init/${config_additional_init}
+				romfs_copy.stamp
+			COMMENT "ROMFS: copying ${config_additional_init}"
+		)
+
+		list(APPEND extras_dependencies
+			${config_additional_init}.stamp
+			)
+	else()
+		message(FATAL_ERROR "BOARD_ADDITIONAL_INIT file not found at: ${PX4_BOARD_DIR}/init/${config_additional_init}")
+	endif()
+endif()
+
 
 # board extras
 set(OPTIONAL_BOARD_EXTRAS)
@@ -216,12 +263,33 @@ foreach(board_extra_file ${OPTIONAL_BOARD_EXTRAS})
 		if(CONFIG_SYSTEMCMDS_BL_UPDATE)
 			# generate rc.board_bootloader_upgrade
 			set(BOARD_FIRMWARE_BIN "${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin")
-			configure_file(${PX4_SOURCE_DIR}/platforms/nuttx/init/rc.board_bootloader_upgrade.in ${romfs_gen_root_dir}/init.d/rc.board_bootloader_upgrade @ONLY)
+			message(STATUS "ROMFS:  Adding platforms/nuttx/init/rc.board_bootloader_upgrade -> /etc/init.d/rc.board_bootloader_upgrade")
+
+			# Generate the file using configure_file at configure time to a temporary location
+			set(bootloader_upgrade_tmp ${CMAKE_CURRENT_BINARY_DIR}/rc.board_bootloader_upgrade.tmp)
+			configure_file(${PX4_SOURCE_DIR}/platforms/nuttx/init/rc.board_bootloader_upgrade.in ${bootloader_upgrade_tmp} @ONLY)
+
+			# Then copy it at build time with proper dependencies
+			add_custom_command(
+				OUTPUT
+					${romfs_gen_root_dir}/init.d/rc.board_bootloader_upgrade
+					rc.board_bootloader_upgrade.stamp
+				COMMAND ${CMAKE_COMMAND} -E copy_if_different ${bootloader_upgrade_tmp} ${romfs_gen_root_dir}/init.d/rc.board_bootloader_upgrade
+				COMMAND ${CMAKE_COMMAND} -E touch rc.board_bootloader_upgrade.stamp
+				DEPENDS
+					${bootloader_upgrade_tmp}
+					${PX4_SOURCE_DIR}/platforms/nuttx/init/rc.board_bootloader_upgrade.in
+					romfs_copy.stamp
+				COMMENT "ROMFS: copying rc.board_bootloader_upgrade"
+			)
+
+			list(APPEND extras_dependencies
+				rc.board_bootloader_upgrade.stamp
+			)
 		else()
 			# remove bootloader from extras
 			list(REMOVE_ITEM OPTIONAL_BOARD_EXTRAS ${board_extra_file})
 		endif()
-
 	endif()
 endforeach()
 

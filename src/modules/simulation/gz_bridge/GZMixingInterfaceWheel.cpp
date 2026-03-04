@@ -51,6 +51,8 @@ bool GZMixingInterfaceWheel::init(const std::string &model_name)
 		return false;
 	}
 
+	pthread_mutex_init(&_node_mutex, nullptr);
+
 	_wheel_encoders_pub.advertise();
 
 	ScheduleNow();
@@ -58,7 +60,7 @@ bool GZMixingInterfaceWheel::init(const std::string &model_name)
 	return true;
 }
 
-bool GZMixingInterfaceWheel::updateOutputs(bool stop_wheels, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+bool GZMixingInterfaceWheel::updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 		unsigned num_control_groups_updated)
 {
 	unsigned active_output_count = 0;

@@ -35,7 +35,7 @@ if(EXISTS ${BOARD_DEFCONFIG})
 	# Depend on BOARD_DEFCONFIG so that we reconfigure on config change
 	set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${BOARD_DEFCONFIG})
 
-	if(${LABEL} MATCHES "default" OR ${LABEL} MATCHES "recovery" OR ${LABEL} MATCHES "bootloader" OR ${LABEL} MATCHES "canbootloader")
+	if(${LABEL} MATCHES "default" OR ${LABEL} MATCHES "performance-test" OR ${LABEL} MATCHES "bootloader" OR ${LABEL} MATCHES "canbootloader")
 		# Generate boardconfig from saved defconfig
 		execute_process(
 			COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS}
@@ -337,6 +337,11 @@ if(EXISTS ${BOARD_DEFCONFIG})
 		if(UAVCAN_PERIPHERALS)
 			set(config_uavcan_peripheral_firmware ${UAVCAN_PERIPHERALS} CACHE INTERNAL "UAVCAN peripheral firmware" FORCE)
 		endif()
+	endif()
+
+	# ADDITIONAL INIT
+	if(ADDITIONAL_INIT)
+		set(config_additional_init ${ADDITIONAL_INIT} CACHE INTERNAL "additional init" FORCE)
 	endif()
 
 	if(UAVCAN_INTERFACES)

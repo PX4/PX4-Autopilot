@@ -79,7 +79,11 @@
 # define HRT_TIMER_BASE		STM32_TIM1_BASE
 # define HRT_TIMER_POWER_REG	STM32_RCC_APB2ENR
 # define HRT_TIMER_POWER_BIT	RCC_APB2ENR_TIM1EN
+#if defined(CONFIG_ARCH_CHIP_STM32H7)
+# define HRT_TIMER_VECTOR	STM32_IRQ_TIMCC
+#else
 # define HRT_TIMER_VECTOR	STM32_IRQ_TIM1CC
+#endif
 # define HRT_TIMER_CLOCK	STM32_APB2_TIM1_CLKIN
 # if CONFIG_STM32_TIM1
 #  error must not set CONFIG_STM32_TIM1=y and HRT_TIMER=1
@@ -156,8 +160,17 @@
 # if CONFIG_STM32_TIM11
 #  error must not set CONFIG_STM32_TIM11=y and HRT_TIMER=11
 # endif
+#elif HRT_TIMER == 12
+# define HRT_TIMER_BASE		STM32_TIM12_BASE
+# define HRT_TIMER_POWER_REG	STM32_RCC_APB1ENR
+# define HRT_TIMER_POWER_BIT	RCC_APB1LENR_TIM12EN
+# define HRT_TIMER_VECTOR	STM32_IRQ_TIM12
+# define HRT_TIMER_CLOCK	STM32_APB1_TIM12_CLKIN
+# if CONFIG_STM32_TIM12
+#  error must not set CONFIG_STM32_TIM12=y and HRT_TIMER=12
+# endif
 #else
-# error HRT_TIMER must be a value between 1 and 11
+# error HRT_TIMER must be a value between 1 and 12
 #endif
 
 /*
@@ -223,7 +236,6 @@
 /*
  * Specific registers and bits used by HRT sub-functions
  */
-/* FIXME! There is an interaction in the CCMR registers that prevents using Chan 1 as the timer and chan 2 as the PPM*/
 #if HRT_TIMER_CHANNEL == 1
 # define rCCR_HRT	rCCR1			/* compare register for HRT */
 # define DIER_HRT	GTIM_DIER_CC1IE		/* interrupt enable for HRT */
@@ -297,13 +309,12 @@ int hrt_ioctl(unsigned int cmd, unsigned long arg);
 #  define GTIM_CCER_CC4NP 0
 #  define PPM_EDGE_FLIP
 # endif
-/* FIXME! There is an interaction in the CCMR registers that prevents using Chan 1 as the timer and chan 2 as the PPM*/
 # if HRT_PPM_CHANNEL == 1
 #  define rCCR_PPM	rCCR1			/* capture register for PPM */
 #  define DIER_PPM	GTIM_DIER_CC1IE		/* capture interrupt (non-DMA mode) */
 #  define SR_INT_PPM	GTIM_SR_CC1IF		/* capture interrupt (non-DMA mode) */
 #  define SR_OVF_PPM	GTIM_SR_CC1OF		/* capture overflow (non-DMA mode) */
-#  define CCMR1_PPM	1			/* not on TI1/TI2 */
+#  define CCMR1_PPM	(1 << 0)		/* not on TI1/TI2 */
 #  define CCMR2_PPM	0			/* on TI3, not on TI4 */
 #  define CCER_PPM	(GTIM_CCER_CC1E | GTIM_CCER_CC1P | GTIM_CCER_CC1NP) /* CC1, both edges */
 #  define CCER_PPM_FLIP	GTIM_CCER_CC1P
@@ -312,7 +323,7 @@ int hrt_ioctl(unsigned int cmd, unsigned long arg);
 #  define DIER_PPM	GTIM_DIER_CC2IE		/* capture interrupt (non-DMA mode) */
 #  define SR_INT_PPM	GTIM_SR_CC2IF		/* capture interrupt (non-DMA mode) */
 #  define SR_OVF_PPM	GTIM_SR_CC2OF		/* capture overflow (non-DMA mode) */
-#  define CCMR1_PPM	2			/* not on TI1/TI2 */
+#  define CCMR1_PPM	(1 << 8)		/* not on TI1/TI2 */
 #  define CCMR2_PPM	0			/* on TI3, not on TI4 */
 #  define CCER_PPM	(GTIM_CCER_CC2E | GTIM_CCER_CC2P | GTIM_CCER_CC2NP) /* CC2, both edges */
 #  define CCER_PPM_FLIP	GTIM_CCER_CC2P
@@ -322,7 +333,7 @@ int hrt_ioctl(unsigned int cmd, unsigned long arg);
 #  define SR_INT_PPM	GTIM_SR_CC3IF		/* capture interrupt (non-DMA mode) */
 #  define SR_OVF_PPM	GTIM_SR_CC3OF		/* capture overflow (non-DMA mode) */
 #  define CCMR1_PPM	0			/* not on TI1/TI2 */
-#  define CCMR2_PPM	1			/* on TI3, not on TI4 */
+#  define CCMR2_PPM	(1 << 0)		/* on TI3, not on TI4 */
 #  define CCER_PPM	(GTIM_CCER_CC3E | GTIM_CCER_CC3P | GTIM_CCER_CC3NP) /* CC3, both edges */
 #  define CCER_PPM_FLIP	GTIM_CCER_CC3P
 # elif HRT_PPM_CHANNEL == 4
@@ -331,7 +342,7 @@ int hrt_ioctl(unsigned int cmd, unsigned long arg);
 #  define SR_INT_PPM	GTIM_SR_CC4IF		/* capture interrupt (non-DMA mode) */
 #  define SR_OVF_PPM	GTIM_SR_CC4OF		/* capture overflow (non-DMA mode) */
 #  define CCMR1_PPM	0			/* not on TI1/TI2 */
-#  define CCMR2_PPM	2			/* on TI3, not on TI4 */
+#  define CCMR2_PPM	(1 << 8)		/* on TI3, not on TI4 */
 #  define CCER_PPM	(GTIM_CCER_CC4E | GTIM_CCER_CC4P | GTIM_CCER_CC4NP) /* CC4, both edges */
 #  define CCER_PPM_FLIP	GTIM_CCER_CC4P
 # else

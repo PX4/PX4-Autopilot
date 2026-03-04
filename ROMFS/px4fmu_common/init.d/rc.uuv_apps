@@ -16,6 +16,6 @@ control_allocator start
 uuv_att_control start
 
 #
-# Start UUV Land Detector.
+# Start UUV Position Controller.
 #
-land_detector start rover
+uuv_pos_control start

@@ -1,0 +1,65 @@
+#!/bin/sh
+# @name SIH Rover Ackermann
+# @type Rover
+# @class Rover
+
+. ${R}etc/init.d/rc.rover_ackermann_defaults
+
+set VEHICLE_TYPE rover_ackermann
+param set-default CA_AIRFRAME 5         # Rover (Ackermann)
+param set-default CA_R_REV 1            # Motor is assumed to be reversible
+param set-default EKF2_MAG_TYPE 1       # Make sure magnetometer is fused even when not driving
+param set-default NAV_ACC_RAD 0.5       # Waypoint acceptance radius
+param set-default EKF2_GBIAS_INIT 0.01
+param set-default EKF2_ANGERR_INIT 0.01
+
+param set-default SIH_VEHICLE_TYPE 5 # sih as rover ackermann
+param set-default SYS_HITL 2 # set SYS_HITL to 2 to start the SIH and avoid sensors startup
+
+param set-default HIL_ACT_FUNC1 201 # Steering
+param set-default HIL_ACT_FUNC2 101 # Throttle
+param set-default SIH_MASS 20
+param set-default SIH_IXX 0.4333
+param set-default SIH_IYY 1.6833
+param set-default SIH_IZZ 2.0833
+param set-default SIH_IXZ 0
+param set-default SIH_KDV 50
+param set-default SIH_KDW 10
+
+# Ackermann Parameters
+param set-default RA_WHEEL_BASE 0.321
+param set-default RA_ACC_RAD_GAIN 2
+param set-default RA_ACC_RAD_MAX 3
+param set-default RA_MAX_STR_ANG 0.5236
+param set-default RA_STR_RATE_LIM 360
+
+# Rate Control Parameters
+param set-default RO_YAW_RATE_I 0.01
+param set-default RO_YAW_RATE_P 0.25
+param set-default RO_YAW_RATE_LIM 180
+param set-default RO_YAW_ACCEL_LIM 400
+param set-default RO_YAW_DECEL_LIM 800
+param set-default RO_YAW_RATE_CORR 1
+
+# Attitude Control Parameters
+param set-default RO_YAW_P 5
+
+# Velocity Control Parameters
+param set-default RO_ACCEL_LIM 3
+param set-default RO_DECEL_LIM 3
+param set-default RO_JERK_LIM 10
+param set-default RO_MAX_THR_SPEED 3.2
+param set-default RO_SPEED_LIM 3
+param set-default RO_SPEED_I 0.001
+param set-default RO_SPEED_P 0.001
+param set-default RO_SPEED_RED 1
+
+# Pure Pursuit parameters
+param set-default PP_LOOKAHD_GAIN 1
+param set-default PP_LOOKAHD_MAX 10
+param set-default PP_LOOKAHD_MIN 1
+
+# Pure Pursuit parameters
+param set-default PP_LOOKAHD_GAIN 1
+param set-default PP_LOOKAHD_MAX 10
+param set-default PP_LOOKAHD_MIN 1

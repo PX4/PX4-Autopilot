@@ -55,6 +55,7 @@ public:
 	void on_active() override;
 
 	void setTransitionAltitudeAbsolute(const float alt_amsl) {_transition_alt_amsl = alt_amsl; }
+	void setTransitionDirection(const float tran_bear) {_transition_direction_deg = tran_bear; }
 
 	void setLoiterLocation(matrix::Vector2d loiter_location) { _loiter_location = loiter_location; }
 	void setLoiterHeight(const float height_m) { _loiter_height = height_m; }
@@ -70,8 +71,10 @@ private:
 	} _takeoff_state;
 
 	float _transition_alt_amsl{0.f};	// absolute altitude at which vehicle will transition to forward flight
+	float _takeoff_alt_msl{0.f};
 	matrix::Vector2d _loiter_location;
 	float _loiter_height{0};
+	float _transition_direction_deg{NAN};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::VTO_LOITER_ALT>) _param_loiter_alt

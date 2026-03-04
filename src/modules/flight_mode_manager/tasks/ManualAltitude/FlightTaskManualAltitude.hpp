@@ -39,10 +39,10 @@
 
 #pragma once
 
+#include <lib/stick_yaw/StickYaw.hpp>
+#include <lib/sticks/Sticks.hpp>
 #include "FlightTask.hpp"
-#include "Sticks.hpp"
 #include "StickTiltXY.hpp"
-#include "StickYaw.hpp"
 #include <uORB/Subscription.hpp>
 
 class FlightTaskManualAltitude : public FlightTask
@@ -53,12 +53,15 @@ public:
 	bool activate(const trajectory_setpoint_s &last_setpoint) override;
 	bool updateInitialize() override;
 	bool update() override;
+	void setMaxDistanceToGround(float max_distance) { _max_distance_to_ground = max_distance; }
 
 protected:
 	void _ekfResetHandlerHeading(float delta_psi) override; /**< adjust heading setpoint in case of EKF reset event */
 	void _ekfResetHandlerHagl(float delta_hagl) override;
 
 	virtual void _updateSetpoints(); /**< updates all setpoints */
+	virtual void _updateYawSetpoint();
+	virtual void _updateXYSetpoint();
 	virtual void _scaleSticks(); /**< scales sticks to velocity in z */
 	bool _checkTakeoff() override;
 	void _updateConstraintsFromEstimator();

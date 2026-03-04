@@ -57,7 +57,6 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
-#include <drivers/drv_hrt.h>
 #include <px4_platform_common/events.h>
 
 using namespace time_literals;
@@ -211,8 +210,14 @@ void Mission::setActiveMissionItems()
 
 		// prevent fixed wing lateral guidance from loitering at a waypoint as part of a mission landing if the altitude
 		// is not achieved.
-		if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING && isLanding() &&
-		    _mission_item.nav_cmd == NAV_CMD_WAYPOINT) {
+		const bool fw_on_mission_landing = _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+						   && isLanding() &&
+						   _mission_item.nav_cmd == NAV_CMD_WAYPOINT;
+		const bool mc_landing_after_transition = _vehicle_status_sub.get().vehicle_type ==
+				vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && _vehicle_status_sub.get().is_vtol &&
+				new_work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND;
+
+		if (fw_on_mission_landing || mc_landing_after_transition) {
 			pos_sp_triplet->current.alt_acceptance_radius = FLT_MAX;
 		}
 
@@ -256,6 +261,10 @@ void Mission::setActiveMissionItems()
 		} else {
 			pos_sp_triplet->next.valid = false;
 		}
+
+	} else if (_mission_item.nav_cmd == NAV_CMD_DELAY) {
+		// Invalidate next waypoint to ensure vehicle holds position and doesn't try to track ahead
+		pos_sp_triplet->next.valid = false;
 
 	} else {
 		handleVtolTransition(new_work_item_type, next_mission_items, num_found_items);

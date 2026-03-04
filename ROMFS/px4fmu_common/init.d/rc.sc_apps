@@ -1,0 +1,10 @@
+#!/bin/sh
+#
+# Standard apps for sr. Attitude/Position estimator, Attitude/Position control.
+#
+# NOTE: Script variables are declared/initialized/unset in the rcS script.
+#
+
+control_allocator start
+
+spacecraft start

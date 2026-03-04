@@ -64,6 +64,7 @@ static const FunctionProvider all_function_providers[] = {
 	{OutputFunction::Gripper, &FunctionGripper::allocate},
 	{OutputFunction::RC_Roll, OutputFunction::RC_AUXMax, &FunctionManualRC::allocate},
 	{OutputFunction::Gimbal_Roll, OutputFunction::Gimbal_Yaw, &FunctionGimbal::allocate},
+	{OutputFunction::IC_Engine_Ignition, OutputFunction::IC_Engine_Starter, &FunctionICEControl::allocate},
 };
 
 MixingOutput::MixingOutput(const char *param_prefix, uint8_t max_num_outputs, OutputModuleInterface &interface,
@@ -82,7 +83,7 @@ MixingOutput::MixingOutput(const char *param_prefix, uint8_t max_num_outputs, Ou
 	_armed.prearmed = false;
 	_armed.ready_to_arm = false;
 	_armed.lockdown = false;
-	_armed.force_failsafe = false;
+	_armed.termination = false;
 	_armed.in_esc_calibration_mode = false;
 
 	px4_sem_init(&_lock, 0, 1);
@@ -119,6 +120,8 @@ void MixingOutput::initParamHandles(const uint8_t instance_start)
 		_param_handles[i].disarmed = param_find(param_name);
 		snprintf(param_name, sizeof(param_name), "%s_%s%d", _param_prefix, "MIN", i + instance_start);
 		_param_handles[i].min = param_find(param_name);
+		snprintf(param_name, sizeof(param_name), "%s_%s%d", _param_prefix, "CENT", i + instance_start);
+		_param_handles[i].center = param_find(param_name);
 		snprintf(param_name, sizeof(param_name), "%s_%s%d", _param_prefix, "MAX", i + instance_start);
 		_param_handles[i].max = param_find(param_name);
 		snprintf(param_name, sizeof(param_name), "%s_%s%d", _param_prefix, "FAIL", i + instance_start);
@@ -141,9 +144,9 @@ void MixingOutput::printStatus() const
 	PX4_INFO_RAW("Channel Configuration:\n");
 
 	for (unsigned i = 0; i < _max_num_outputs; i++) {
-		PX4_INFO_RAW("Channel %i: func: %3i, value: %i, failsafe: %d, disarmed: %d, min: %d, max: %d\n", i,
+		PX4_INFO_RAW("Channel %i: func: %3i, value: %i, failsafe: %d, disarmed: %d, min: %d, max: %d, center: %d\n", i,
 			     (int)_function_assignment[i], _current_output_value[i],
-			     actualFailsafeValue(i), _disarmed_value[i], _min_value[i], _max_value[i]);
+			     actualFailsafeValue(i), _disarmed_value[i], _min_value[i], _max_value[i], _center_value[i]);
 	}
 }
 
@@ -172,6 +175,10 @@ void MixingOutput::updateParams()
 			_min_value[i] = val;
 		}
 
+		if (_param_handles[i].center != PARAM_INVALID && param_get(_param_handles[i].center, &val) == 0) {
+			_center_value[i] = val;
+		}
+
 		if (_param_handles[i].max != PARAM_INVALID && param_get(_param_handles[i].max, &val) == 0) {
 			_max_value[i] = val;
 		}
@@ -181,6 +188,7 @@ void MixingOutput::updateParams()
 			_min_value[i] = _max_value[i];
 			_max_value[i] = tmp;
 		}
+
 
 		if (_param_handles[i].failsafe != PARAM_INVALID && param_get(_param_handles[i].failsafe, &val) == 0) {
 			_failsafe_value[i] = val;
@@ -371,6 +379,14 @@ void MixingOutput::setAllMinValues(uint16_t value)
 	}
 }
 
+void MixingOutput::setAllCenterValues(uint16_t value)
+{
+	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
+		_param_handles[i].center = PARAM_INVALID;
+		_center_value[i] = value;
+	}
+}
+
 void MixingOutput::setAllMaxValues(uint16_t value)
 {
 	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
@@ -457,7 +473,7 @@ bool MixingOutput::update()
 
 	// Send output if any function mapped or one last disabling sample
 	if (!all_disabled || !_was_all_disabled) {
-		if (!_armed.armed && !_armed.manual_lockdown) {
+		if (!_armed.armed && !_armed.kill) {
 			_actuator_test.overrideValues(outputs, _max_num_outputs);
 		}
 
@@ -472,18 +488,14 @@ bool MixingOutput::update()
 void
 MixingOutput::limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updates)
 {
-	bool stop_motors = !_throttle_armed && !_actuator_test.inTestMode();
-
-	if (_armed.lockdown || _armed.manual_lockdown) {
+	if (_armed.lockdown || _armed.kill) {
 		// overwrite outputs in case of lockdown with disarmed values
 		for (size_t i = 0; i < _max_num_outputs; i++) {
 			_current_output_value[i] = _disarmed_value[i];
 		}
 
-		stop_motors = true;
-
-	} else if (_armed.force_failsafe) {
-		// overwrite outputs in case of force_failsafe with _failsafe_value values
+	} else if (_armed.termination) {
+		// Overwrite outputs with _failsafe_value when terminated
 		for (size_t i = 0; i < _max_num_outputs; i++) {
 			_current_output_value[i] = actualFailsafeValue(i);
 		}
@@ -512,7 +524,7 @@ MixingOutput::limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updat
 	}
 
 	/* now return the outputs to the driver */
-	if (_interface.updateOutputs(stop_motors, _current_output_value, _max_num_outputs, has_updates)) {
+	if (_interface.updateOutputs(_current_output_value, _max_num_outputs, has_updates)) {
 		actuator_outputs_s actuator_outputs{};
 		setAndPublishActuatorOutputs(_max_num_outputs, actuator_outputs);
 
@@ -531,17 +543,41 @@ uint16_t MixingOutput::output_limit_calc_single(int i, float value) const
 		value = -1.f * value;
 	}
 
-	const float output = math::interpolate(value, -1.f, 1.f,
-					       static_cast<float>(_min_value[i]), static_cast<float>(_max_value[i]));
+	float output = _disarmed_value[i];
+
+	if (((_function_assignment[i] >= OutputFunction::Servo1
+	      && _function_assignment[i] <= OutputFunction::ServoMax) || _function_assignment[i] == OutputFunction::Landing_Gear_Wheel
+	     || (_function_assignment[i] >= OutputFunction::Gimbal_Roll
+		 && _function_assignment[i] <= OutputFunction::Gimbal_Yaw))
+	    && _param_handles[i].center != PARAM_INVALID
+	    && _center_value[i] >= 800
+	    && _center_value[i] <= 2200) {
+
+		/* bi-linear interpolation */
+		if (value < 0.0f) {
+			output = math::interpolate(value, -1.f, 0.0f,
+						   static_cast<float>(_min_value[i]), static_cast<float>(_center_value[i]));
+
+		} else {
+			output = math::interpolate(value, 0.0f, 1.0f,
+						   static_cast<float>(_center_value[i]), static_cast<float>(_max_value[i]));
+		}
+
+	}
+
+	// Everything except servos, or if center is not set
+	else {
+		output = math::interpolate(value, -1.f, 1.f,
+					   static_cast<float>(_min_value[i]), static_cast<float>(_max_value[i]));
+	}
 
 	return math::constrain(lroundf(output), 0L, static_cast<long>(UINT16_MAX));
+
 }
 
 void
 MixingOutput::output_limit_calc(const bool armed, const int num_channels, const float output[MAX_ACTUATORS])
 {
-	const bool pre_armed = armNoThrottle();
-
 	// time to slowly ramp up the ESCs
 	static constexpr hrt_abstime RAMP_TIME_US = 500_ms;
 
@@ -588,7 +624,7 @@ MixingOutput::output_limit_calc(const bool armed, const int num_channels, const 
 	 */
 	auto local_limit_state = _output_state;
 
-	if (pre_armed) {
+	if (isPrearmed()) {
 		local_limit_state = OutputLimitState::ON;
 	}
 

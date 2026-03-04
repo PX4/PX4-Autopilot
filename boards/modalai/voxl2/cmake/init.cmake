@@ -31,4 +31,34 @@
 #
 ############################################################################
 
+# Initialize libfc-sensor-api submodule (fetches from GitLab if not present)
+execute_process(
+	COMMAND Tools/check_submodules.sh boards/modalai/voxl2/libfc-sensor-api
+	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+)
+
 include_directories(${PX4_BOARD_DIR}/libfc-sensor-api/inc)
+
+# Build libfc_sensor.so stub library automatically if not already built
+set(FC_SENSOR_LIB ${PX4_BOARD_DIR}/libfc-sensor-api/build/libfc_sensor.so)
+if(NOT EXISTS ${FC_SENSOR_LIB})
+	execute_process(
+		COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BOARD_DIR}/libfc-sensor-api/build
+	)
+	execute_process(
+		COMMAND ${CMAKE_COMMAND} -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER} ..
+		WORKING_DIRECTORY ${PX4_BOARD_DIR}/libfc-sensor-api/build
+		RESULT_VARIABLE FC_SENSOR_CMAKE_RESULT
+	)
+	if(NOT FC_SENSOR_CMAKE_RESULT EQUAL 0)
+		message(FATAL_ERROR "Failed to configure libfc_sensor stub library")
+	endif()
+	execute_process(
+		COMMAND ${CMAKE_COMMAND} --build .
+		WORKING_DIRECTORY ${PX4_BOARD_DIR}/libfc-sensor-api/build
+		RESULT_VARIABLE FC_SENSOR_BUILD_RESULT
+	)
+	if(NOT FC_SENSOR_BUILD_RESULT EQUAL 0)
+		message(FATAL_ERROR "Failed to build libfc_sensor stub library")
+	endif()
+endif()

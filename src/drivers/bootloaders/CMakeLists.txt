@@ -43,6 +43,17 @@ target_link_libraries(drivers_bootloaders PRIVATE crc)
 
 # generate bootloader_app_shared_t
 if(NOT "${PX4_BOARD_LABEL}" MATCHES  "canbootloader")
+	# Check if UAVCAN board identity variables are defined
+	# These are only set for UAVCAN node boards (CAN peripherals like can-gps, cannode, etc.)
+	if(NOT DEFINED uavcanblid_hw_version_major OR NOT DEFINED uavcanblid_hw_version_minor OR
+	   NOT DEFINED uavcanblid_sw_version_major OR NOT DEFINED uavcanblid_sw_version_minor)
+		message(FATAL_ERROR
+			"CONFIG_DRIVERS_BOOTLOADERS is only supported on UAVCAN node boards.\n"
+			"This board (${PX4_BOARD}) does not have UAVCAN board identity defined.\n"
+			"Please disable CONFIG_DRIVERS_BOOTLOADERS in boardconfig (make ${PX4_CONFIG} boardconfig).\n"
+			"Note: This option is only needed for CAN peripheral boards (e.g., can-gps, cannode, can-flow).")
+	endif()
+
 	set(HW_MAJOR ${uavcanblid_hw_version_major})
 	set(HW_MINOR ${uavcanblid_hw_version_minor})
 	set(SW_MAJOR ${uavcanblid_sw_version_major})

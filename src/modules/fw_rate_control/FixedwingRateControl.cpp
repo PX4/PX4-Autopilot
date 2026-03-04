@@ -36,16 +36,17 @@
 using namespace time_literals;
 using namespace matrix;
 
-using math::constrain;
 using math::interpolate;
 using math::radians;
+
+ModuleBase::Descriptor FixedwingRateControl::desc{task_spawn, custom_command, print_usage};
 
 FixedwingRateControl::FixedwingRateControl(bool vtol) :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
 	_actuator_controls_status_pub(vtol ? ORB_ID(actuator_controls_status_1) : ORB_ID(actuator_controls_status_0)),
-	_vehicle_torque_setpoint_pub(vtol ? ORB_ID(vehicle_torque_setpoint_virtual_fw) : ORB_ID(vehicle_torque_setpoint)),
 	_vehicle_thrust_setpoint_pub(vtol ? ORB_ID(vehicle_thrust_setpoint_virtual_fw) : ORB_ID(vehicle_thrust_setpoint)),
+	_vehicle_torque_setpoint_pub(vtol ? ORB_ID(vehicle_torque_setpoint_virtual_fw) : ORB_ID(vehicle_torque_setpoint)),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
 	_handle_param_vt_fw_difthr_en = param_find("VT_FW_DIFTHR_EN");
@@ -83,10 +84,6 @@ FixedwingRateControl::parameters_update()
 
 	_rate_control.setIntegratorLimit(
 		Vector3f(_param_fw_rr_imax.get(), _param_fw_pr_imax.get(), _param_fw_yr_imax.get()));
-
-	_rate_control.setFeedForwardGain(
-		// set FF gains to 0 as we add the FF control outside of the rate controller
-		Vector3f(0.f, 0.f, 0.f));
 
 	if (_handle_param_vt_fw_difthr_en != PARAM_INVALID) {
 		param_get(_handle_param_vt_fw_difthr_en, &_param_vt_fw_difthr_en);
@@ -127,13 +124,14 @@ FixedwingRateControl::vehicle_manual_poll()
 
 			} else {
 				// Manual/direct control, filled in FW-frame. Note that setpoints will get transformed to body frame prior publishing.
+				const float airspeed_scaling_sq = _airspeed_scaling * _airspeed_scaling;
 
 				_vehicle_torque_setpoint.xyz[0] = math::constrain(_manual_control_setpoint.roll * _param_fw_man_r_sc.get() +
-								  _param_trim_roll.get(), -1.f, 1.f);
+								  _param_trim_roll.get() * airspeed_scaling_sq, -1.f, 1.f);
 				_vehicle_torque_setpoint.xyz[1] = math::constrain(-_manual_control_setpoint.pitch * _param_fw_man_p_sc.get() +
-								  _param_trim_pitch.get(), -1.f, 1.f);
+								  _param_trim_pitch.get() * airspeed_scaling_sq, -1.f, 1.f);
 				_vehicle_torque_setpoint.xyz[2] = math::constrain(_manual_control_setpoint.yaw * _param_fw_man_y_sc.get() +
-								  _param_trim_yaw.get(), -1.f, 1.f);
+								  _param_trim_yaw.get() * airspeed_scaling_sq, -1.f, 1.f);
 
 				_vehicle_thrust_setpoint.xyz[0] = math::constrain((_manual_control_setpoint.throttle + 1.f) * .5f, 0.f, 1.f);
 			}
@@ -153,7 +151,7 @@ FixedwingRateControl::vehicle_land_detected_poll()
 	}
 }
 
-float FixedwingRateControl::get_airspeed_and_update_scaling()
+float FixedwingRateControl::get_airspeed_and_update_scaling(float dt)
 {
 	_airspeed_validated_sub.update();
 	const bool airspeed_valid = PX4_ISFINITE(_airspeed_validated_sub.get().calibrated_airspeed_m_s)
@@ -165,6 +163,13 @@ float FixedwingRateControl::get_airspeed_and_update_scaling()
 	if (_param_fw_use_airspd.get() && airspeed_valid) {
 		/* prevent numerical drama by requiring 0.5 m/s minimal speed */
 		airspeed = math::max(0.5f, _airspeed_validated_sub.get().calibrated_airspeed_m_s);
+
+		if (dt > 1.f) {
+			_airspeed_filter_for_torque_scaling.reset(airspeed);
+
+		} else {
+			airspeed = _airspeed_filter_for_torque_scaling.update(airspeed, dt);
+		}
 
 	} else {
 		// VTOL: if we have no airspeed available and we are in hover mode then assume the lowest airspeed possible
@@ -183,10 +188,16 @@ float FixedwingRateControl::get_airspeed_and_update_scaling()
 	 *
 	 * Forcing the scaling to this value allows reasonable handheld tests.
 	 */
-	const float airspeed_constrained = constrain(constrain(airspeed, _param_fw_airspd_stall.get(),
-					   _param_fw_airspd_max.get()), 0.1f, 1000.0f);
 
-	_airspeed_scaling = (_param_fw_arsp_scale_en.get()) ? (_param_fw_airspd_trim.get() / airspeed_constrained) : 1.0f;
+
+	if (_param_fw_arsp_scale_en.get()) {
+		const float min_airspeed = math::max(_param_fw_airspd_stall.get(), 0.1f);
+		const float airspeed_constrained = math::max(airspeed, min_airspeed);
+		_airspeed_scaling = _param_fw_airspd_trim.get() / airspeed_constrained;
+
+	} else {
+		_airspeed_scaling = 1.0f;
+	}
 
 	return airspeed;
 }
@@ -195,7 +206,7 @@ void FixedwingRateControl::Run()
 {
 	if (should_exit()) {
 		_vehicle_angular_velocity_sub.unregisterCallback();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -271,16 +282,27 @@ void FixedwingRateControl::Run()
 
 		if (_vcontrol_mode.flag_control_rates_enabled) {
 
-			const float airspeed = get_airspeed_and_update_scaling();
+			const float airspeed = get_airspeed_and_update_scaling(dt);
 
 			/* reset integrals where needed */
 			if (_rates_sp.reset_integral) {
 				_rate_control.resetIntegral();
 			}
 
-			// Reset integrators if the aircraft is on ground or not in a state where the fw attitude controller is run
-			if (_landed || !_in_fw_or_transition_wo_tailsitter_transition) {
+			launch_detection_status_s launch_detection_status{};
+			_launch_detection_status_sub.copy(&launch_detection_status);
 
+			bool control_surfaces_locked = false;
+
+			if (hrt_elapsed_time(&launch_detection_status.timestamp) < 100_ms
+			    && launch_detection_status.selected_control_surface_disarmed) {
+				control_surfaces_locked = true;
+			}
+
+			// Reset integrators if the aircraft is on ground or not in a state where the fw attitude controller is run
+			if (_landed || !_in_fw_or_transition_wo_tailsitter_transition || control_surfaces_locked) {
+
+				_gain_compression.reset();
 				_rate_control.resetIntegral();
 			}
 
@@ -323,6 +345,7 @@ void FixedwingRateControl::Run()
 
 			/* bi-linear interpolation over airspeed for actuator trim scheduling */
 			Vector3f trim(_param_trim_roll.get(), _param_trim_pitch.get(), _param_trim_yaw.get());
+			trim *= _airspeed_scaling * _airspeed_scaling;
 
 			if (airspeed < _param_fw_airspd_trim.get()) {
 				trim(0) += interpolate(airspeed, _param_fw_airspd_min.get(), _param_fw_airspd_trim.get(),
@@ -354,17 +377,20 @@ void FixedwingRateControl::Run()
 					body_rates_setpoint = Vector3f(-_rates_sp.yaw, _rates_sp.pitch, _rates_sp.roll);
 				}
 
-				// Run attitude RATE controllers which need the desired attitudes from above, add trim.
-				const Vector3f angular_acceleration_setpoint = _rate_control.update(rates, body_rates_setpoint, angular_accel, dt,
-						_landed);
-
 				const Vector3f gain_ff(_param_fw_rr_ff.get(), _param_fw_pr_ff.get(), _param_fw_yr_ff.get());
-				const Vector3f feedforward = gain_ff.emult(body_rates_setpoint) * _airspeed_scaling;
+				const Vector3f scaled_gain_ff = gain_ff / _airspeed_scaling;
+				_rate_control.setFeedForwardGain(scaled_gain_ff);
 
-				Vector3f control_u = angular_acceleration_setpoint * _airspeed_scaling * _airspeed_scaling + feedforward;
+				// Run attitude RATE controllers which need the desired attitudes from above, add trim.
+				const Vector3f angular_acceleration_setpoint = _rate_control.update(rates, body_rates_setpoint, angular_accel, dt, _landed);
 
-				// Special case yaw in Acro: if the parameter FW_ACRO_YAW_CTL is not set then don't control yaw
-				if (!_vcontrol_mode.flag_control_attitude_enabled && !_param_fw_acro_yaw_en.get()) {
+				Vector3f control_u = _gain_compression.getGains().emult(angular_acceleration_setpoint * _airspeed_scaling * _airspeed_scaling);
+
+				_gain_compression.update(control_u, dt);
+
+				// Special case yaw in Acro: if the parameter FW_ACRO_YAW_EN is not set then don't rate-control yaw
+				if (!_vcontrol_mode.flag_control_attitude_enabled && _vcontrol_mode.flag_control_manual_enabled
+				    && !_param_fw_acro_yaw_en.get()) {
 					control_u(2) = _manual_control_setpoint.yaw * _param_fw_man_y_sc.get();
 					_rate_control.resetIntegral(2);
 				}
@@ -404,6 +430,7 @@ void FixedwingRateControl::Run()
 
 		} else {
 			// full manual
+			_gain_compression.reset();
 			_rate_control.resetIntegral();
 		}
 
@@ -525,8 +552,8 @@ int FixedwingRateControl::task_spawn(int argc, char *argv[])
 	FixedwingRateControl *instance = new FixedwingRateControl(vtol);
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -537,8 +564,8 @@ int FixedwingRateControl::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -571,5 +598,5 @@ fw_rate_control is the fixed-wing rate controller.
 
 extern "C" __EXPORT int fw_rate_control_main(int argc, char *argv[])
 {
-	return FixedwingRateControl::main(argc, argv);
+	return ModuleBase::main(FixedwingRateControl::desc, argc, argv);
 }

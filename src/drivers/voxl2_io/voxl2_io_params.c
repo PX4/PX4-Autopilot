@@ -32,34 +32,73 @@
  ****************************************************************************/
 
 /**
- * UART M0065 baud rate
+ * VOXL2_IO UART baud rate
  *
- * Default rate is 921600, which is used for communicating with M0065.
+ * Default rate is 921600, which is used for communicating with VOXL2_IO board
  *
  * @group VOXL2 IO
  * @unit bit/s
  */
 PARAM_DEFINE_INT32(VOXL2_IO_BAUD, 921600);
 
+
 /**
- * M0065 PWM Min
+ * VOXL2_IO Disabled PWM
  *
- * Minimum duration (microseconds) for M0065 PWM
+ * Pulse duration in disabled state (microseconds) for VOXL2_IO board
  *
  * @min 0
  * @max 2000
  * @group VOXL2 IO
  * @unit us
  */
-PARAM_DEFINE_INT32(VOXL2_IO_MIN, 1000);
+PARAM_DEFINE_INT32(VOXL2_IO_DIS, 1000);
 
 /**
- * M0065 PWM Max
+ * VOXL2_IO Min PWM
  *
- * Maximum duration (microseconds) for M0065 PWM
+ * Minimum duration (microseconds) for VOXL2_IO board
+ *
+ * @min 0
+ * @max 2000
+ * @group VOXL2 IO
+ * @unit us
+ */
+
+PARAM_DEFINE_INT32(VOXL2_IO_MIN, 1100);
+
+/**
+ * VOXL2_IO Max PWM
+ *
+ * Maximum duration (microseconds) for VOXL2_IO board
  * @min 0
  * @max 2000
  * @group VOXL2 IO
  * @unit us
  */
 PARAM_DEFINE_INT32(VOXL2_IO_MAX, 2000);
+
+
+/**
+ * VOXL2_IO Calibration Min PWM
+ *
+ * Minimum duration (microseconds) for VOXL2_IO board
+ *
+ * @min 0
+ * @max 2000
+ * @group VOXL2 IO
+ * @unit us
+ */
+
+PARAM_DEFINE_INT32(VOXL2_IO_CMIN, 1050);
+
+/**
+ * VOXL2_IO Calibration Max PWM
+ *
+ * Maximum duration (microseconds) for VOXL2_IO board
+ * @min 0
+ * @max 2000
+ * @group VOXL2 IO
+ * @unit us
+ */
+PARAM_DEFINE_INT32(VOXL2_IO_CMAX, 2000);

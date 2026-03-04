@@ -55,6 +55,16 @@ public:
 		}
 	}
 
+	template<typename S>
+	Matrix(const Matrix<S, M, N> &aa)
+	{
+		for (size_t i = 0; i < M; i++) {
+			for (size_t j = 0; j < N; j++) {
+				_data[i][j] = static_cast<Type>(aa(i, j));
+			}
+		}
+	}
+
 	template<size_t P, size_t Q>
 	Matrix(const Slice<Type, M, N, P, Q> &in_slice)
 	{

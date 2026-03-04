@@ -15,3 +15,8 @@ config BOARD_USE_PROBES
 
 	---help---
 		Select to use GPIO FMU-CH1-8, CAP1  to provide timing signals from selected drivers.
+
+config BOARD_USE_RAMFUNCS
+	bool "Allow the usage of RAM functions on this board"
+	default n
+	select ARCH_HAVE_RAMFUNCS

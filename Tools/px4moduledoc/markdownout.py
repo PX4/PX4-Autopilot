@@ -40,25 +40,25 @@ The generated files will be written to the `modules` directory.
 ## Categories
 """
         for category in sorted(module_groups):
-            result += "- [%s](modules_%s.md)\n" % (category.capitalize(), category)
+            result += f"- [{category.capitalize()}](modules_{category}.md)\n"
 
         self._outputs['main'] = result
 
         for category in sorted(module_groups):
-            result = "# Modules Reference: %s\n" % category.capitalize()
+            result = f"# Modules Reference: {category.capitalize()}\n\n"
             subcategories = module_groups[category]
+
             if len(subcategories) > 1:
-                result += 'Subcategories:\n'
-                for subcategory in subcategories:
+                result += 'Subcategories:\n\n'
+                for subcategory in sorted(subcategories): 
                     if subcategory == '':
                         continue
                     subcategory_label = subcategory.replace('_', ' ').title()
                     subcategory_file_name = category+'_'+subcategory
-                    result += '- [%s](modules_%s.md)\n' % (subcategory_label, subcategory_file_name)
+                    result += f'- [{subcategory_label}](modules_{subcategory_file_name}.md)\n'
 
                     # add a sub-page for the subcategory
-                    result_subpage = '# Modules Reference: %s (%s)\n' % \
-                        (subcategory_label, category.capitalize())
+                    result_subpage = f'# Modules Reference: {subcategory_label} ({category.capitalize()})\n'
                     result_subpage += self._ProcessModules(subcategories[subcategory])
                     self._outputs[subcategory_file_name] = result_subpage
 
@@ -68,14 +68,14 @@ The generated files will be written to the `modules` directory.
     def _ProcessModules(self, module_list):
         result = ''
         for module in module_list:
-            result += "## %s\n" % module.name()
-            result += "Source: [%s](https://github.com/PX4/PX4-Autopilot/tree/main/src/%s)\n\n" % (module.scope(), module.scope())
+            result += f"\n## {module.name()}\n\n"
+            result += f"Source: [{module.scope()}](https://github.com/PX4/PX4-Autopilot/tree/main/src/{module.scope()})\n\n"
             doc = module.documentation()
             if len(doc) > 0:
-                result += "%s\n" % doc
+                result += f"{doc}\n"
             usage_string = module.usage_string()
             if len(usage_string) > 0:
-                result += '<a id="%s_usage"></a>\n### Usage\n```\n%s\n```\n' % (module.name(), usage_string)
+                result += f'### Usage {{#{module.name()}_usage}}\n\n```\n{usage_string}\n```\n'
         return result
 
     def Save(self, dirname):

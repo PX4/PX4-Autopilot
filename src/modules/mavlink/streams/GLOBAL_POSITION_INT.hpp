@@ -35,7 +35,6 @@
 #define GLOBAL_POSITION_INT_HPP
 
 #include <uORB/topics/home_position.h>
-#include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 
@@ -61,7 +60,6 @@ private:
 	uORB::Subscription _gpos_sub{ORB_ID(vehicle_global_position)};
 	uORB::Subscription _lpos_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _home_sub{ORB_ID(home_position)};
-	uORB::Subscription _air_data_sub{ORB_ID(vehicle_air_data)};
 
 	bool send() override
 	{

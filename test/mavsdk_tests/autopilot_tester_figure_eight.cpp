@@ -1,7 +1,7 @@
 
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023-2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,8 +39,9 @@
 #include <future>
 #include <vector>
 
+
 #include <mavsdk/plugins/mavlink_passthrough/mavlink_passthrough.h>
-#include <mavlink/development/mavlink_msg_figure_eight_execution_status.h>
+
 
 using namespace mavsdk::geometry;
 
@@ -103,7 +104,8 @@ void AutopilotTesterFigureEight::check_tracks_figure_eight(std::chrono::seconds 
 		order_to_fly = std::vector<int32_t> {0, 3, 2, 1, 0, 6, 5, 4, 0};
 	}
 
-	getTelemetry()->subscribe_position_velocity_ned([&figure_eight_point_of_interest, &prom, corridor_radius_m,
+	Telemetry::PositionVelocityNedHandle handle = getTelemetry()->subscribe_position_velocity_ned(
+				[&figure_eight_point_of_interest, &prom, &handle, corridor_radius_m,
 					 &order_to_fly, this](Telemetry::PositionVelocityNed position_velocity_ned) {
 		static size_t index{0};
 		int32_t close_index{-1};
@@ -129,14 +131,14 @@ void AutopilotTesterFigureEight::check_tracks_figure_eight(std::chrono::seconds 
 			} else { // reached an out of order point
 
 				if (index > 0U) { // only set to false if we already hve passed the first center point
-					getTelemetry()->subscribe_position_velocity_ned(nullptr);
+					getTelemetry()->unsubscribe_position_velocity_ned(handle);
 					prom.set_value(false);
 				}
 			}
 		}
 
 		if (index + 1 == order_to_fly.size()) {
-			getTelemetry()->subscribe_position_velocity_ned(nullptr);
+			getTelemetry()->unsubscribe_position_velocity_ned(handle);
 			prom.set_value(true);
 		}
 	});

@@ -75,7 +75,11 @@
 #include "streams/ESTIMATOR_STATUS.hpp"
 #include "streams/EXTENDED_SYS_STATE.hpp"
 #include "streams/FLIGHT_INFORMATION.hpp"
+#include "streams/GLOBAL_POSITION_SENSOR.hpp"
 #include "streams/GLOBAL_POSITION_INT.hpp"
+#if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
+#include "streams/GNSS_INTEGRITY.hpp"
+#endif
 #include "streams/GPS_GLOBAL_ORIGIN.hpp"
 #include "streams/GPS_RAW_INT.hpp"
 #include "streams/GPS_RTCM_DATA.hpp"
@@ -116,7 +120,6 @@
 #include "streams/SYSTEM_TIME.hpp"
 #include "streams/TIME_ESTIMATE_TO_TARGET.hpp"
 #include "streams/TIMESYNC.hpp"
-#include "streams/TRAJECTORY_REPRESENTATION_WAYPOINTS.hpp"
 #include "streams/VFR_HUD.hpp"
 #include "streams/VIBRATION.hpp"
 #include "streams/WIND_COV.hpp"
@@ -382,9 +385,6 @@ static const StreamListItem streams_list[] = {
 #if defined(MANUAL_CONTROL_HPP)
 	create_stream_list_item<MavlinkStreamManualControl>(),
 #endif // MANUAL_CONTROL_HPP
-#if defined(TRAJECTORY_REPRESENTATION_WAYPOINTS_HPP)
-	create_stream_list_item<MavlinkStreamTrajectoryRepresentationWaypoints>(),
-#endif // TRAJECTORY_REPRESENTATION_WAYPOINTS_HPP
 #if defined(OPTICAL_FLOW_RAD_HPP)
 	create_stream_list_item<MavlinkStreamOpticalFlowRad>(),
 #endif // OPTICAL_FLOW_RAD_HPP
@@ -508,12 +508,18 @@ static const StreamListItem streams_list[] = {
 #if defined(UAVIONIX_ADSB_OUT_DYNAMIC_HPP)
 	create_stream_list_item<MavlinkStreamUavionixADSBOutDynamic>(),
 #endif // UAVIONIX_ADSB_OUT_DYNAMIC_HPP
+#if defined(GNSS_INTEGRITY_HPP)
+	create_stream_list_item<MavlinkStreamGNSSIntegrity>(),
+#endif // GNSS_INTEGRITY_HPP
 #if defined(AVAILABLE_MODES_HPP)
 	create_stream_list_item<MavlinkStreamAvailableModes>(),
 #endif // AVAILABLE_MODES_HPP
 #if defined(CURRENT_MODE_HPP)
 	create_stream_list_item<MavlinkStreamCurrentMode>(),
 #endif // CURRENT_MODE_HPP
+#if defined(GLOBAL_POSITION_SENSOR_HPP)
+	create_stream_list_item<MavlinkStreamGlobalPositionSensor>(),
+#endif // GLOBAL_POSITION_SENSOR_HPP
 };
 
 const char *get_stream_name(const uint16_t msg_id)

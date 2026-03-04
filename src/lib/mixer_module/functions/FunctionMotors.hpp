@@ -68,7 +68,11 @@ public:
 
 	float value(OutputFunction func) override { return _data.control[(int)func - (int)OutputFunction::Motor1]; }
 
+#if defined(CONFIG_DRIVERS_UAVCANNODE)
+	bool allowPrearmControl() const override { return true; }
+#else
 	bool allowPrearmControl() const override { return false; }
+#endif
 
 	uORB::SubscriptionCallbackWorkItem *subscriptionCallback() override { return &_topic; }
 
@@ -76,7 +80,7 @@ public:
 
 	static inline void updateValues(uint32_t reversible, float thrust_factor, float *values, int num_values)
 	{
-		if (thrust_factor > 0.f && thrust_factor <= 1.f) {
+		if (thrust_factor > FLT_EPSILON && thrust_factor <= 1.f) {
 			// thrust factor
 			//  rel_thrust = factor * x^2 + (1-factor) * x,
 			const float a = thrust_factor;
@@ -87,16 +91,17 @@ public:
 			const float tmp2 = b * b / (4.f * a * a);
 
 			for (int i = 0; i < num_values; ++i) {
-				float control = values[i];
 
-				if (control > 0.f) {
-					values[i] = -tmp1 + sqrtf(tmp2 + (control / a));
+				const float control = values[i];
 
-				} else if (control < -0.f) {
-					values[i] =  tmp1 - sqrtf(tmp2 - (control / a));
+				if (PX4_ISFINITE(control)) {
+					if (control > FLT_EPSILON) {
+						values[i] = -tmp1 + sqrtf(tmp2 + (control / a));
 
-				} else {
-					values[i] = 0.f;
+					} else if (control < -FLT_EPSILON) {
+						values[i] =  tmp1 - sqrtf(tmp2 - (control / a));
+
+					}
 				}
 			}
 		}

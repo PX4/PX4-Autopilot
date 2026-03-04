@@ -52,9 +52,11 @@
 
 using namespace time_literals;
 
-class PWMSim : public ModuleBase<PWMSim>, public OutputModuleInterface
+class PWMSim : public ModuleBase, public OutputModuleInterface
 {
 public:
+	static Descriptor desc;
+
 	PWMSim(bool hil_mode_enabled);
 	~PWMSim() override;
 
@@ -70,7 +72,7 @@ public:
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
 
-	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+	bool updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 private:

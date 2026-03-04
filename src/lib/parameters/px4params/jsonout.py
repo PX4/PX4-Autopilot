@@ -5,7 +5,7 @@ import sys
 
 
 class JsonOutput():
-    def __init__(self, groups, board, inject_xml_file_name):
+    def __init__(self, groups, board):
         all_json=dict()
         all_json['version']=1
         all_params=[]

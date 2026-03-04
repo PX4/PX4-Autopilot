@@ -155,7 +155,7 @@ parameters:
                                 'm/s^3/sqrt(Hz)', 'm/s/sqrt(Hz)', 's/(1000*PWM)', '%m/s', 'min', 'us/C',
                                 'N/(m/s)', 'Nm/(rad/s)', 'Nm', 'N',
                                 'rpm',
-                                'normalized_thrust/s', 'normalized_thrust', 'norm', 'SD']
+                                'normalized_thrust/s', 'normalized_thrust', 'norm', 'SD', 'dBHz']
                         bit:
                             # description of all bits for type bitmask.
                             # The first bit is 0.
@@ -345,6 +345,28 @@ actuator_output:
                                         max: 65536
                                     default:
                                         # Default maximum value
+                                        type: integer
+                                        min: 0
+                                        max: 65536
+                                    show_if:
+                                        # ui only shows the param if this condition is true
+                                        type: string
+                                        regex: *condition_regex
+                            center:
+                                type: dict
+                                schema:
+                                    min:
+                                        # Minimum center value
+                                        type: integer
+                                        min: 0
+                                        max: 65536
+                                    max:
+                                        # Maximum center value
+                                        type: integer
+                                        min: 0
+                                        max: 65536
+                                    default:
+                                        # Default center value
                                         type: integer
                                         min: 0
                                         max: 65536

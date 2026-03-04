@@ -1,0 +1,78 @@
+#!/bin/sh
+# @name Generic Mecanum Rover
+# @type Rover
+# @class Rover
+
+. ${R}etc/init.d/rc.rover_mecanum_defaults
+
+PX4_SIMULATOR=${PX4_SIMULATOR:=gz}
+PX4_GZ_WORLD=${PX4_GZ_WORLD:=rover}
+PX4_SIM_MODEL=${PX4_SIM_MODEL:=rover_mecanum}
+
+param set-default SIM_GZ_EN 1 # Gazebo bridge
+
+param set-default NAV_ACC_RAD 0.5
+
+# Mecanum Parameters
+param set-default RM_WHEEL_TRACK 0.6
+param set-default RM_YAW_STK_GAIN 0.6
+
+# Rover Control Parameters
+param set-default RO_ACCEL_LIM 3
+param set-default RO_DECEL_LIM 5
+param set-default RO_JERK_LIM 30
+param set-default RO_MAX_THR_SPEED 2.1
+
+# Rover Rate Control Parameters
+param set-default RO_YAW_RATE_I 0.1
+param set-default RO_YAW_RATE_P 0.1
+param set-default RO_YAW_RATE_LIM 120
+param set-default RO_YAW_ACCEL_LIM 240
+param set-default RO_YAW_DECEL_LIM 1000
+param set-default RO_YAW_RATE_CORR 1.75
+param set-default RO_YAW_EXPO 0.85
+param set-default RO_YAW_SUPEXPO 0.3
+
+# Rover Attitude Control Parameters
+param set-default RO_YAW_P 5
+
+# Velocity Control Parameters
+param set-default RO_ACCEL_LIM 4
+param set-default RO_DECEL_LIM 6
+param set-default RO_JERK_LIM 10
+param set-default RO_MAX_THR_SPEED 3.1
+param set-default RO_SPEED_LIM 2.5
+param set-default RO_SPEED_I 0.01
+param set-default RO_SPEED_P 0.1
+param set-default RO_SPEED_RED 0.5
+
+# Pure Pursuit parameters
+param set-default PP_LOOKAHD_GAIN 0.5
+param set-default PP_LOOKAHD_MAX 10
+param set-default PP_LOOKAHD_MIN 1
+
+# Simulated sensors
+param set-default SENS_EN_MAGSIM 1
+
+# Actuator mapping
+param set-default SIM_GZ_WH_FUNC1 104 # left wheel back
+param set-default SIM_GZ_WH_MIN1 70
+param set-default SIM_GZ_WH_MAX1 130
+param set-default SIM_GZ_WH_DIS1 100
+
+param set-default SIM_GZ_WH_FUNC2 103 # right wheel back
+param set-default SIM_GZ_WH_MIN2 70
+param set-default SIM_GZ_WH_MAX2 130
+param set-default SIM_GZ_WH_DIS2 100
+
+param set-default SIM_GZ_WH_FUNC3 102 # left wheel front
+param set-default SIM_GZ_WH_MIN3 70
+param set-default SIM_GZ_WH_MAX3 130
+param set-default SIM_GZ_WH_DIS3 100
+
+param set-default SIM_GZ_WH_FUNC4 101 # right wheel front
+param set-default SIM_GZ_WH_MIN4 70
+param set-default SIM_GZ_WH_MAX4 130
+param set-default SIM_GZ_WH_DIS4 100
+
+param set-default SIM_GZ_WH_REV 0

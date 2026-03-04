@@ -34,7 +34,7 @@ depends on MODULES_EKF2
 menuconfig EKF2_AUX_GLOBAL_POSITION
 depends on MODULES_EKF2
 	bool "aux global position fusion support"
-	default n
+	default y
 	---help---
 		EKF2 auxiliary global position fusion support.
 

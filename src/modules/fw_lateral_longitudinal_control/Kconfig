@@ -1,0 +1,5 @@
+menuconfig MODULES_FW_LATERAL_LONGITUDINAL_CONTROL
+	bool "fw_lateral_longitudinal_control"
+	default n
+	---help---
+		Enable support for fw_lat_lon_control

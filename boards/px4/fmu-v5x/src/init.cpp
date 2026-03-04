@@ -74,7 +74,6 @@
 #include <px4_platform/gpio.h>
 #include <px4_platform/board_determine_hw_info.h>
 #include <px4_platform/board_dma_alloc.h>
-#include <px4_platform/gpio/mcp23009.hpp>
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -145,8 +144,13 @@ __EXPORT void board_on_reset(int status)
 		px4_arch_configgpio(PX4_MAKE_GPIO_INPUT(io_timer_channel_get_as_pwm_input(i)));
 	}
 
+	/*
+	 * On resets invoked from system (not boot) ensure we establish a low
+	 * output state on PWM pins to disarm the ESC and prevent the reset from potentially
+	 * spinning up the motors.
+	 */
 	if (status >= 0) {
-		up_mdelay(6);
+		up_mdelay(100);
 	}
 }
 
@@ -274,13 +278,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	}
 
 #endif /* CONFIG_MMCSD */
-
-	ret = mcp23009_register_gpios(3, 0x25);
-
-	if (ret != OK) {
-		led_on(LED_RED);
-		return ret;
-	}
 
 	return OK;
 }

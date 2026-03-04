@@ -150,7 +150,7 @@ build_eam_response(uint8_t *buffer, size_t *size)
 	msg.eam_sensor_id = EAM_SENSOR_ID;
 	msg.sensor_text_id = EAM_SENSOR_TEXT_ID;
 
-	msg.temperature1 = (uint8_t)(airdata.baro_temp_celcius + 20);
+	msg.temperature1 = (uint8_t)(airdata.ambient_temperature + 20);
 	msg.temperature2 = msg.temperature1 - BOARD_TEMP_OFFSET_DEG;
 
 	msg.main_voltage_L = (uint8_t)(battery.voltage_v * 10);

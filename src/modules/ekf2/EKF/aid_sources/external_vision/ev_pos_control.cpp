@@ -49,7 +49,7 @@ void Ekf::controlEvPosFusion(const imuSample &imu_sample, const extVisionSample 
 					   || (_control_status_prev.flags.yaw_align != _control_status.flags.yaw_align);
 
 	// determine if we should use EV position aiding
-	bool continuing_conditions_passing = (_params.ev_ctrl & static_cast<int32_t>(EvCtrl::HPOS))
+	bool continuing_conditions_passing = (_params.ekf2_ev_ctrl & static_cast<int32_t>(EvCtrl::HPOS))
 					     && _control_status.flags.tilt_align
 					     && PX4_ISFINITE(ev_sample.pos(0))
 					     && PX4_ISFINITE(ev_sample.pos(1));
@@ -70,7 +70,7 @@ void Ekf::controlEvPosFusion(const imuSample &imu_sample, const extVisionSample 
 			pos = ev_sample.pos - pos_offset_earth;
 			pos_cov = matrix::diag(ev_sample.position_var);
 
-			if (_control_status.flags.gps) {
+			if (_control_status.flags.gnss_pos) {
 				_ev_pos_b_est.setFusionActive();
 
 			} else {
@@ -109,7 +109,7 @@ void Ekf::controlEvPosFusion(const imuSample &imu_sample, const extVisionSample 
 				pos_cov(i, i) = math::max(pos_cov(i, i), orientation_var_max);
 			}
 
-			if (_control_status.flags.gps) {
+			if (_control_status.flags.gnss_pos) {
 				_ev_pos_b_est.setFusionActive();
 
 			} else {
@@ -128,10 +128,10 @@ void Ekf::controlEvPosFusion(const imuSample &imu_sample, const extVisionSample 
 
 #if defined(CONFIG_EKF2_GNSS)
 
-	// increase minimum variance if GPS active (position reference)
-	if (_control_status.flags.gps) {
+	// increase minimum variance if GNSS is active (position reference)
+	if (_control_status.flags.gnss_pos) {
 		for (int i = 0; i < 2; i++) {
-			pos_cov(i, i) = math::max(pos_cov(i, i), sq(_params.gps_pos_noise));
+			pos_cov(i, i) = math::max(pos_cov(i, i), sq(_params.ekf2_gps_p_noise));
 		}
 	}
 
@@ -142,13 +142,13 @@ void Ekf::controlEvPosFusion(const imuSample &imu_sample, const extVisionSample 
 	const Vector2f measurement{pos(0), pos(1)};
 
 	const Vector2f measurement_var{
-		math::max(pos_cov(0, 0), sq(_params.ev_pos_noise), sq(0.01f)),
-		math::max(pos_cov(1, 1), sq(_params.ev_pos_noise), sq(0.01f))
+		math::max(pos_cov(0, 0), sq(_params.ekf2_evp_noise), sq(0.01f)),
+		math::max(pos_cov(1, 1), sq(_params.ekf2_evp_noise), sq(0.01f))
 	};
 
 	const bool measurement_valid = measurement.isAllFinite() && measurement_var.isAllFinite();
 
-	// bias fusion activated (GPS activated)
+	// bias fusion activated (GNSS position activated)
 	if (!bias_fusion_was_active && _ev_pos_b_est.fusionActive()) {
 		if (quality_sufficient) {
 			// reset the bias estimator
@@ -169,7 +169,7 @@ void Ekf::controlEvPosFusion(const imuSample &imu_sample, const extVisionSample 
 			      pos_obs_var,                                            // observation variance
 			      position_estimate - position,                           // innovation
 			      Vector2f(getStateVariance<State::pos>()) + pos_obs_var, // innovation variance
-			      math::max(_params.ev_pos_innov_gate, 1.f));             // innovation gate
+			      math::max(_params.ekf2_evp_gate, 1.f));             // innovation gate
 
 	// update the bias estimator before updating the main filter but after
 	// using its current state to compute the vertical position innovation
@@ -213,7 +213,7 @@ void Ekf::startEvPosFusion(const Vector2f &measurement, const Vector2f &measurem
 {
 	// activate fusion
 	// TODO:  (_params.position_sensor_ref == PositionSensor::EV)
-	if (_control_status.flags.gps) {
+	if (_control_status.flags.gnss_pos) {
 		ECL_INFO("starting %s fusion", EV_AID_SRC_NAME);
 		_ev_pos_b_est.setBias(-getLocalHorizontalPosition() + measurement);
 		_ev_pos_b_est.setFusionActive();
@@ -240,7 +240,7 @@ void Ekf::updateEvPosFusion(const Vector2f &measurement, const Vector2f &measure
 
 		if (quality_sufficient) {
 
-			if (!_control_status.flags.gps) {
+			if (!_control_status.flags.gnss_pos) {
 				ECL_INFO("reset to %s", EV_AID_SRC_NAME);
 				_information_events.flags.reset_pos_to_vision = true;
 				resetHorizontalPositionTo(measurement, measurement_var);
@@ -275,14 +275,14 @@ void Ekf::updateEvPosFusion(const Vector2f &measurement, const Vector2f &measure
 			// Data seems good, attempt a reset
 			ECL_WARN("%s fusion failing, resetting", EV_AID_SRC_NAME);
 
-			if (_control_status.flags.gps && !pos_xy_fusion_failing) {
+			if (_control_status.flags.gnss_pos && !pos_xy_fusion_failing) {
 				// reset EV position bias
 				_ev_pos_b_est.setBias(-Vector2f(getLocalHorizontalPosition()) + measurement);
 
 			} else {
 				_information_events.flags.reset_pos_to_vision = true;
 
-				if (_control_status.flags.gps) {
+				if (_control_status.flags.gnss_pos) {
 					resetHorizontalPositionTo(measurement - _ev_pos_b_est.getBias(), measurement_var + _ev_pos_b_est.getBiasVar());
 					_ev_pos_b_est.setBias(-getLocalHorizontalPosition() + measurement);
 

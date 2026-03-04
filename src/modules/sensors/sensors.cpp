@@ -43,6 +43,8 @@
 
 #include "sensors.hpp"
 
+ModuleBase::Descriptor Sensors::desc{task_spawn, custom_command, print_usage};
+
 Sensors::Sensors(bool hil_enabled) :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
@@ -278,32 +280,15 @@ void Sensors::diff_pres_poll()
 
 		vehicle_air_data_s air_data{};
 		_vehicle_air_data_sub.copy(&air_data);
-
-		float air_temperature_celsius = NAN;
-
-		// assume anything outside of a (generous) operating range of -40C to 125C is invalid
-		if (PX4_ISFINITE(diff_pres.temperature) && (diff_pres.temperature >= -40.f) && (diff_pres.temperature <= 125.f)) {
-
-			air_temperature_celsius = diff_pres.temperature;
-
-		} else {
-			// differential pressure temperature invalid, check barometer
-			if ((air_data.timestamp != 0) && PX4_ISFINITE(air_data.baro_temp_celcius)
-			    && (air_data.baro_temp_celcius >= -40.f) && (air_data.baro_temp_celcius <= 125.f)) {
-
-				// TODO: review PCB_TEMP_ESTIMATE_DEG, ignore for external baro
-				air_temperature_celsius = air_data.baro_temp_celcius - PCB_TEMP_ESTIMATE_DEG;
-			}
-		}
+		const float temperature = air_data.ambient_temperature;
 
 		// push raw data into validator
-		float airspeed_input[3] { diff_pres.differential_pressure_pa, air_temperature_celsius, 0.0f };
+		float airspeed_input[3] { diff_pres.differential_pressure_pa, 0.0f, 0.0f };
 		_airspeed_validator.put(diff_pres.timestamp_sample, airspeed_input, diff_pres.error_count, 100); // TODO: real priority?
 
 		// accumulate average for publication
 		_diff_pres_timestamp_sum += diff_pres.timestamp_sample;
 		_diff_pres_pressure_sum += diff_pres.differential_pressure_pa;
-		_diff_pres_temperature_sum += air_temperature_celsius;
 		_baro_pressure_sum += air_data.baro_pressure_pa;
 		_diff_pres_count++;
 
@@ -313,12 +298,10 @@ void Sensors::diff_pres_poll()
 			const uint64_t timestamp_sample = _diff_pres_timestamp_sum / _diff_pres_count;
 			const float differential_pressure_pa = _diff_pres_pressure_sum / _diff_pres_count - _parameters.diff_pres_offset_pa;
 			const float baro_pressure_pa = _baro_pressure_sum / _diff_pres_count;
-			const float temperature = _diff_pres_temperature_sum / _diff_pres_count;
 
 			// reset
 			_diff_pres_timestamp_sum = 0;
 			_diff_pres_pressure_sum = 0;
-			_diff_pres_temperature_sum = 0;
 			_baro_pressure_sum = 0;
 			_diff_pres_count = 0;
 
@@ -354,7 +337,6 @@ void Sensors::diff_pres_poll()
 				airspeed.timestamp_sample = timestamp_sample;
 				airspeed.indicated_airspeed_m_s = indicated_airspeed_m_s;
 				airspeed.true_airspeed_m_s = true_airspeed_m_s;
-				airspeed.air_temperature_celsius = temperature;
 				airspeed.confidence = _airspeed_validator.confidence(hrt_absolute_time());
 				airspeed.timestamp = hrt_absolute_time();
 				_airspeed_pub.publish(airspeed);
@@ -522,7 +504,7 @@ void Sensors::Run()
 			sub.unregisterCallback();
 		}
 
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -667,8 +649,8 @@ int Sensors::task_spawn(int argc, char *argv[])
 	Sensors *instance = new Sensors(hil_enabled);
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -679,8 +661,8 @@ int Sensors::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -795,5 +777,5 @@ It runs in its own thread and polls on the currently selected gyro topic.
 
 extern "C" __EXPORT int sensors_main(int argc, char *argv[])
 {
-	return Sensors::main(argc, argv);
+	return ModuleBase::main(Sensors::desc, argc, argv);
 }

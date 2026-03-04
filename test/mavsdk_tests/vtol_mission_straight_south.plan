@@ -41,7 +41,7 @@
                 "AltitudeMode": 1,
                 "MISSION_ITEM_ID": "2",
                 "autoContinue": true,
-                "command": 21,
+                "command": 85,
                 "doJumpId": 2,
                 "frame": 3,
                 "params": [

@@ -106,16 +106,32 @@ float PositionSmoothing::_getMaxXYSpeed(const Vector3f(&waypoints)[3]) const
 
 float PositionSmoothing::_getMaxZSpeed(const Vector3f(&waypoints)[3]) const
 {
+	const Vector3f &start_position = {_trajectory[0].getCurrentPosition(),
+					  _trajectory[1].getCurrentPosition(),
+					  _trajectory[2].getCurrentPosition()
+					 };
+	const Vector3f &target = waypoints[1];
+	const Vector3f &next_target = waypoints[2];
 
-	const auto &target = waypoints[1];
+	const Vector2f start_position_xy_z = {start_position.xy().norm(), start_position(2)};
+	const Vector2f target_xy_z = {target.xy().norm(), target(2)};
+	const Vector2f next_target_xy_z = {next_target.xy().norm(), next_target(2)};
 
-	Vector3f pos_traj(_trajectory[0].getCurrentPosition(),
-			  _trajectory[1].getCurrentPosition(),
-			  _trajectory[2].getCurrentPosition());
+	float arrival_z_speed = 0.0f;
+	const bool target_next_different = fabsf(target(2) - next_target(2)) > 0.001f;
 
-	const float distance_start_target = fabs(target(2) - pos_traj(2));
-	const float arrival_z_speed = 0.f;
+	if (target_next_different) {
+		const float alpha = acosf(Vector2f((target_xy_z - start_position_xy_z)).unit_or_zero().dot(
+						  Vector2f((target_xy_z - next_target_xy_z)).unit_or_zero()));
 
+		const float safe_alpha = math::constrain(alpha, 0.f, M_PI_F - FLT_EPSILON);
+		float accel_tmp = _trajectory[2].getMaxAccel();
+		float max_speed_in_turn = math::trajectory::computeMaxSpeedInWaypoint(safe_alpha, accel_tmp,
+					  _vertical_acceptance_radius);
+		arrival_z_speed = math::min(max_speed_in_turn, _trajectory[2].getMaxVel());
+	}
+
+	const float distance_start_target = fabs(target(2) - start_position(2));
 	float max_speed = math::min(_trajectory[2].getMaxVel(), math::trajectory::computeMaxSpeedFromDistance(
 					    _trajectory[2].getMaxJerk(), _trajectory[2].getMaxAccel(),
 					    distance_start_target, arrival_z_speed));

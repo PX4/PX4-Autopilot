@@ -39,37 +39,7 @@
  * @author Mathieu Bresciani <mathieu@auterion.com>
  */
 
-/**
- * Start the autotuning sequence
- *
- * WARNING: this will inject steps to the rate controller
- * and can be dangerous. Only activate if you know what you
- * are doing, and in a safe environment.
- *
- * Any motion of the remote stick will abort the signal
- * injection and reset this parameter
- * Best is to perform the identification in position or
- * hold mode.
- * Increase the amplitude of the injected signal using
- * FW_AT_SYSID_AMP for more signal/noise ratio
- *
- * @boolean
- * @group Autotune
- */
-PARAM_DEFINE_INT32(FW_AT_START, 0);
 
-/**
- * Amplitude of the injected signal
- *
- * This parameter scales the signal sent to the
- * rate controller during system identification.
- *
- * @min 0.1
- * @max 6.0
- * @decimal 1
- * @group Autotune
- */
-PARAM_DEFINE_FLOAT(FW_AT_SYSID_AMP, 1.0);
 
 /**
  * Controls when to apply the new gains
@@ -105,9 +75,9 @@ PARAM_DEFINE_INT32(FW_AT_APPLY, 2);
 PARAM_DEFINE_INT32(FW_AT_AXES, 3);
 
 /**
- * Enable/disable auto tuning using an RC AUX input
+ * Enable/disable auto tuning using a manual control AUX input
  *
- * Defines which RC_MAP_AUXn parameter maps the RC channel used to enable/disable auto tuning.
+ * Defines which RC_MAP_AUXn parameter maps the manual control channel used to enable/disable auto tuning.
  *
  * @value 0 Disable
  * @value 1 Aux1
@@ -146,7 +116,7 @@ PARAM_DEFINE_FLOAT(FW_AT_SYSID_F0, 1.f);
  * @unit Hz
  * @group Autotune
  */
-PARAM_DEFINE_FLOAT(FW_AT_SYSID_F1, 20.f);
+PARAM_DEFINE_FLOAT(FW_AT_SYSID_F1, 10.f);
 
 /**
  * Maneuver time for each axis
@@ -171,4 +141,4 @@ PARAM_DEFINE_FLOAT(FW_AT_SYSID_TIME, 10.f);
  * @value 2 Logarithmic sine sweep
  * @group Autotune
  */
-PARAM_DEFINE_INT32(FW_AT_SYSID_TYPE, 0);
+PARAM_DEFINE_INT32(FW_AT_SYSID_TYPE, 1);

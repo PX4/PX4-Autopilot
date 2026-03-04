@@ -1,0 +1,48 @@
+---
+pageClass: is-wide-page
+---
+
+# SensorsStatus (UORB message)
+
+Sensor check metrics. This will be zero for a sensor that's primary or unpopulated.
+
+**TOPICS:** sensors_status_baro sensors_status_mag
+
+## Fields
+
+| Name              | Type         | Unit [Frame] | Range/Enum | Description                                              |
+| ----------------- | ------------ | ------------ | ---------- | -------------------------------------------------------- |
+| timestamp         | `uint64`     |              |            | time since system start (microseconds)                   |
+| device_id_primary | `uint32`     |              |            | current primary device id for reference                  |
+| device_ids        | `uint32[4]`  |              |            |
+| inconsistency     | `float32[4]` |              |            | magnitude of difference between sensor instance and mean |
+| healthy           | `bool[4]`    |              |            | sensor healthy                                           |
+| priority          | `uint8[4]`   |              |            |
+| enabled           | `bool[4]`    |              |            |
+| external          | `bool[4]`    |              |            |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/SensorsStatus.msg)
+
+::: details Click here to see original file
+
+```c
+#
+# Sensor check metrics. This will be zero for a sensor that's primary or unpopulated.
+#
+uint64 timestamp # time since system start (microseconds)
+
+uint32 device_id_primary       # current primary device id for reference
+
+uint32[4] device_ids
+float32[4] inconsistency       # magnitude of difference between sensor instance and mean
+bool[4] healthy                # sensor healthy
+uint8[4] priority
+bool[4] enabled
+bool[4] external
+
+# TOPICS sensors_status_baro sensors_status_mag
+```
+
+:::

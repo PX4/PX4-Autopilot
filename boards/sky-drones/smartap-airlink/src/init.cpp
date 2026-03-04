@@ -142,8 +142,13 @@ __EXPORT void board_on_reset(int status)
 		px4_arch_configgpio(PX4_MAKE_GPIO_INPUT(io_timer_channel_get_as_pwm_input(i)));
 	}
 
+	/*
+	 * On resets invoked from system (not boot) ensure we establish a low
+	 * output state on PWM pins to disarm the ESC and prevent the reset from potentially
+	 * spinning up the motors.
+	 */
 	if (status >= 0) {
-		up_mdelay(6);
+		up_mdelay(100);
 	}
 }
 
@@ -248,8 +253,8 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	}
 
 	// Power down the heater
-	px4_arch_configgpio(GPIO_HEATER_OUTPUT);
-	px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, 1);
+	px4_arch_configgpio(GPIO_HEATER1_OUTPUT);
+	px4_arch_gpiowrite(GPIO_HEATER1_OUTPUT, 1);
 
 #ifdef CONFIG_MMCSD
 	int ret = stm32_sdio_initialize();

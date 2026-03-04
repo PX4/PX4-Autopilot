@@ -28,7 +28,7 @@ parameters:
           where the range finder may be inside its minimum measurements distance when
           on ground.
       type: float
-      default: 0.1
+      default: 0.01
       min: 0.01
       unit: m
       decimal: 2

@@ -79,9 +79,11 @@ using namespace time_literals;
 /*
  * This driver connects to TAP ESCs via serial.
  */
-class TAP_ESC : public ModuleBase<TAP_ESC>, public OutputModuleInterface
+class TAP_ESC : public ModuleBase, public OutputModuleInterface
 {
 public:
+	static Descriptor desc;
+
 	TAP_ESC(const char *device, uint8_t channels_count);
 	virtual ~TAP_ESC();
 
@@ -99,7 +101,7 @@ public:
 
 	int init();
 
-	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+	bool updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 private:

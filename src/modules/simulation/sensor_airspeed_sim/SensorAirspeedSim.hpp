@@ -49,14 +49,17 @@
 
 using namespace time_literals;
 
+static constexpr float ABSOLUTE_ZERO_C = -273.15; // absolute 0 temperature [C]
 static constexpr float TEMPERATURE_MSL = 288.15; // temperature at MSL [K] (15 [C])
 static constexpr float PRESSURE_MSL = 101325.0; // pressure at MSL [Pa]
 static constexpr float LAPSE_RATE = 0.0065; // reduction in temperature with altitude for troposphere [K/m]
 static constexpr float AIR_DENSITY_MSL = 1.225; // air density at MSL [kg/m^3]
 
-class SensorAirspeedSim : public ModuleBase<SensorAirspeedSim>, public ModuleParams, public px4::ScheduledWorkItem
+class SensorAirspeedSim : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	SensorAirspeedSim();
 	~SensorAirspeedSim() override;
 

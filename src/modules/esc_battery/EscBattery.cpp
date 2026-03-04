@@ -37,10 +37,12 @@
 
 using namespace time_literals;
 
+ModuleBase::Descriptor EscBattery::desc{task_spawn, custom_command, print_usage};
+
 EscBattery::EscBattery() :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::lp_default),
-	_battery(1, this, ESC_BATTERY_INTERVAL_US, battery_status_s::BATTERY_SOURCE_ESCS)
+	_battery(1, this, ESC_BATTERY_INTERVAL_US, battery_status_s::SOURCE_ESCS)
 {
 }
 
@@ -68,7 +70,7 @@ EscBattery::Run()
 {
 	if (should_exit()) {
 		_esc_status_sub.unregisterCallback();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -91,17 +93,24 @@ EscBattery::Run()
 		const uint8_t online_esc_count = math::countSetBits(esc_status.esc_online_flags);
 		float average_voltage_v = 0.0f;
 		float total_current_a = 0.0f;
+		float average_temperature_c = 0.0f;
 
 		for (unsigned i = 0; i < esc_status.esc_count; ++i) {
 			if ((1 << i) & esc_status.esc_online_flags) {
 				average_voltage_v += esc_status.esc[i].esc_voltage;
 				total_current_a += esc_status.esc[i].esc_current;
+
+				if (PX4_ISFINITE(esc_status.esc[i].esc_temperature)) {
+					average_temperature_c += esc_status.esc[i].esc_temperature;
+				}
 			}
 		}
 
 		average_voltage_v /= online_esc_count;
+		average_temperature_c /= online_esc_count;
 
 		_battery.setConnected(true);
+		_battery.updateTemperature(average_temperature_c);
 		_battery.updateVoltage(average_voltage_v);
 		_battery.updateCurrent(total_current_a);
 		_battery.updateAndPublishBatteryStatus(esc_status.timestamp);
@@ -113,8 +122,8 @@ int EscBattery::task_spawn(int argc, char *argv[])
 	EscBattery *instance = new EscBattery();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -125,8 +134,8 @@ int EscBattery::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -158,5 +167,5 @@ This implements using information from the ESC status and publish it as battery 
 
 extern "C" __EXPORT int esc_battery_main(int argc, char *argv[])
 {
-	return EscBattery::main(argc, argv);
+	return ModuleBase::main(EscBattery::desc, argc, argv);
 }

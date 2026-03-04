@@ -79,7 +79,7 @@ private:
 
 	bool RegisterCheck(const register_config_t &reg_cfg);
 
-	uint8_t RegisterRead(Register reg);
+	int RegisterRead(Register reg);
 	void RegisterWrite(Register reg, uint8_t value);
 	void RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits);
 

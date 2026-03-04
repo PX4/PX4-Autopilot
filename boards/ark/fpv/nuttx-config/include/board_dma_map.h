@@ -34,75 +34,25 @@
 #pragma once
 
 // DMAMUX1 Using at most 8 Channels on DMA1 --------   Assigned
-//                                                     V
-
-// Timer 4 Channel 1                               /* DMA1:29 TIM4CH1 */
-
-#define DMAMAP_SPI1_RX    DMAMAP_DMA12_SPI1RX_0   /* 1 DMA1:37 IIM-42653 */
-#define DMAMAP_SPI1_TX    DMAMAP_DMA12_SPI1TX_0   /* 2 DMA1:38 IIM-42653 */
-
-//#define DMAMAP_SPI2_RX    DMAMAP_DMA12_SPI2RX_0  /* 3 DMA1:39 ICM-42688-P */
-//#define DMAMAP_SPI2_TX    DMAMAP_DMA12_SPI2TX_0  /* 4 DMA1:40 ICM-42688-P */
-
-#define DMAMAP_USART1_RX  DMAMAP_DMA12_USART1RX_0 /*  DMA1:41  GPS1 */
-#define DMAMAP_USART1_TX  DMAMAP_DMA12_USART1TX_0 /*  DMA1:42  GPS1 */
-
-//#define DMAMAP_USART3_RX  DMAMAP_DMA12_USART3RX_0 /*  DMA1:45 DEBUG */
-//#define DMAMAP_USART3_TX  DMAMAP_DMA12_USART3TX_0 /*  DMA1:46 DEBUG */
-
-// Timer 8 Channel 1                               /* DMA1:47 TIM8CH1 */
-// Timer 8 Channel 2                               /* DMA1:48 TIM8CH2 */
-// Timer 8 Channel 3                               /* DMA1:49 TIM8CH3 */
-// Timer 8 Channel 4                               /* DMA1:50 TIM8CH4 */
-
-// Timer 5 Channel 1                               /* DMA1:55 TIM5CH1 */
-// Timer 5 Channel 2                               /* DMA1:56 TIM5CH2 */
-// Timer 5 Channel 3                               /* DMA1:57 TIM5CH3 */
-// Timer 5 Channel 4                               /* DMA1:58 TIM5CH4 */
-
-// #define DMAMAP_UART4_RX   DMAMAP_DMA12_UART4RX_0  /*  DMA1:63 UART4 */
-// #define DMAMAP_UART4_TX   DMAMAP_DMA12_UART4TX_0  /*  DMA1:64 UART4 */
-
-#define DMAMAP_USART6_RX  DMAMAP_DMA12_USART6RX_0 /* 5 DMA1:71 RC */
-// #define DMAMAP_USART6_TX  DMAMAP_DMA12_USART6TX_0 /* 6 DMA1:72 RC */
-
-// Assigned in timer_config.cpp
-
-// Timer 4                                          /* 7 DMA1:32 TIM4UP */
-// Timer 5                                          /* 8 DMA1:50 TIM5UP */
+#define DMAMAP_SPI1_RX    DMAMAP_DMA12_SPI1RX_0     // 1 DMA1:37 IIM-42653
+#define DMAMAP_SPI1_TX    DMAMAP_DMA12_SPI1TX_0     // 2 DMA1:38 IIM-42653
+#define DMAMAP_USART1_RX  DMAMAP_DMA12_USART1RX_0   // 3 DMA1:41 GPS1
+#define DMAMAP_USART1_TX  DMAMAP_DMA12_USART1TX_0   // 4 DMA1:42 GPS1
+#define DMAMAP_USART6_RX  DMAMAP_DMA12_USART6RX_0   // 5 DMA1:71 RC
+#define DMAMAP_USART6_TX  DMAMAP_DMA12_USART6TX_0   // 6 DMA1:72 RC
+// Timer 4 (DMAMAP_DMA12_TIM4UP_0)                  // 7 DMA1:32 TIM4UP/TIM4CH1-4
+// Timer 5 (DMAMAP_DMA12_TIM5UP_0)                  // 8 DMA1:50 TIM5UP/TIM5CH1-4
 
 // DMAMUX2 Using at most 8 Channels on DMA2 --------   Assigned
-//                                                     V
-
-// Timer 4 Channel 1                               /* DMA2:29 TIM4CH1 */
-
-#define DMAMAP_USART2_RX  DMAMAP_DMA12_USART2RX_1   /* 3 DMA2:43 TELEM3 */
-#define DMAMAP_USART2_TX  DMAMAP_DMA12_USART2TX_1   /* 4 DMA2:44 TELEM3 */
-
-#define DMAMAP_USART3_RX  DMAMAP_DMA12_USART3RX_1   /* 3 DMA2:45 DEBUG */
-#define DMAMAP_USART3_TX  DMAMAP_DMA12_USART3TX_1   /* 4 DMA2:46 DEBUG */
-
-// Timer 8 Channel 1                                 /* DMA2:47 TIM8CH1 */
-// Timer 8 Channel 2                                 /* DMA2:48 TIM8CH2 */
-// Timer 8 Channel 3                                 /* DMA2:49 TIM8CH3 */
-// Timer 8 Channel 4                                 /* DMA2:50 TIM8CH4 */
-
-// Timer 5 Channel 1                                 /* DMA2:55 TIM5CH1 */
-// Timer 5 Channel 2                                 /* DMA2:56 TIM5CH2 */
-// Timer 5 Channel 3                                 /* DMA2:57 TIM5CH3 */
-// Timer 5 Channel 4                                 /* DMA2:58 TIM5CH4 */
-
-//#define DMAMAP_SPI3_RX    DMAMAP_DMA12_SPI3RX_1     /* 1 DMA2:61 BMI088 */
-//#define DMAMAP_SPI3_TX    DMAMAP_DMA12_SPI3TX_1     /* 2 DMA2:62 BMI088 */
-
-#define DMAMAP_UART5_RX   DMAMAP_DMA12_UART5RX_1    /* 5 DMA2:65 TELEM2 */
-#define DMAMAP_UART5_TX   DMAMAP_DMA12_UART5TX_1    /* 6 DMA2:66 TELEM2 */
-
-#define DMAMAP_UART7_RX   DMAMAP_DMA12_UART7RX_1    /* 7 DMA1:79 TELEM1 */
-#define DMAMAP_UART7_TX   DMAMAP_DMA12_UART7TX_1    /* 8 DMA1:80 TELEM1 */
+#define DMAMAP_USART2_RX  DMAMAP_DMA12_USART2RX_1   // 1 DMA2:43 VTX
+#define DMAMAP_UART5_RX   DMAMAP_DMA12_UART5RX_1    // 2 DMA2:65 VTX
+#define DMAMAP_UART5_TX   DMAMAP_DMA12_UART5TX_1    // 3 DMA2:66 VTX
+#define DMAMAP_UART7_RX   DMAMAP_DMA12_UART7RX_1    // 4 DMA2:79 TELEM1
+#define DMAMAP_UART7_TX   DMAMAP_DMA12_UART7TX_1    // 5 DMA2:80 TELEM1
+#define DMAMAP_USART3_RX  DMAMAP_DMA12_USART3RX_1   // 6 DMA2:45 DEBUG
+#define DMAMAP_USART3_TX  DMAMAP_DMA12_USART3TX_1   // 7 DMA2:46 DEBUG
+// available
 
 // DMAMUX2 Using at most 8 Channels on BDMA --------   Assigned
-//                                                     V
-
-#define DMAMAP_SPI6_RX    DMAMAP_BDMA_SPI6_RX       /* 1 BDMA:11 SPI J11 */
-#define DMAMAP_SPI6_TX    DMAMAP_BDMA_SPI6_TX       /* 2 BDMA:12 SPI J11 */
+#define DMAMAP_SPI6_RX    DMAMAP_BDMA_SPI6_RX       // 1 BDMA:11 SPI J11
+#define DMAMAP_SPI6_TX    DMAMAP_BDMA_SPI6_TX       // 2 BDMA:12 SPI J11

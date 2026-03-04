@@ -41,6 +41,8 @@
 
 using namespace std;
 
+ModuleBase::Descriptor VoxlSaveCalParams::desc{task_spawn, custom_command, print_usage};
+
 static bool debug = false;
 
 VoxlSaveCalParams::VoxlSaveCalParams() :
@@ -145,7 +147,7 @@ VoxlSaveCalParams::Run()
 {
 	if (should_exit()) {
 		_parameter_primary_set_value_request_sub.unregisterCallback();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -186,8 +188,8 @@ int VoxlSaveCalParams::task_spawn(int argc, char *argv[])
 	VoxlSaveCalParams *instance = new VoxlSaveCalParams();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -198,8 +200,8 @@ int VoxlSaveCalParams::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -230,5 +232,5 @@ This implements autosaving of calibration parameters on VOXL2 platform.
 
 extern "C" __EXPORT int voxl_save_cal_params_main(int argc, char *argv[])
 {
-	return VoxlSaveCalParams::main(argc, argv);
+	return ModuleBase::main(VoxlSaveCalParams::desc, argc, argv);
 }

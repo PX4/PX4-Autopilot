@@ -52,7 +52,6 @@
 #include <dataman_client/DatamanClient.hpp>
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
-#include <lib/adsb/AdsbConflict.h>
 #include <lib/mathlib/mathlib.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
@@ -115,13 +114,6 @@ Navigator::Navigator() :
 	_distance_sensor_mode_change_request_pub.get().request_on_off = distance_sensor_mode_change_request_s::REQUEST_OFF;
 	_distance_sensor_mode_change_request_pub.update();
 
-	// Update the timeout used in mission_block (which can't hold it's own parameters)
-	_mission.set_payload_deployment_timeout(_param_mis_payload_delivery_timeout.get());
-
-	_adsb_conflict.set_conflict_detection_params(_param_nav_traff_a_hor_ct.get(),
-			_param_nav_traff_a_ver.get(),
-			_param_nav_traff_collision_time.get(), _param_nav_traff_avoid.get());
-
 	reset_triplets();
 }
 
@@ -149,7 +141,12 @@ void Navigator::params_update()
 		param_get(_handle_mpc_acc_hor, &_param_mpc_acc_hor);
 	}
 
-	_mission.set_payload_deployment_timeout(_param_mis_payload_delivery_timeout.get());
+	_mission.set_command_timeout(_param_mis_command_tout.get());
+#if CONFIG_NAVIGATOR_ADSB
+	_adsb_conflict.set_conflict_detection_params(_param_nav_traff_a_hor_ct.get(),
+			_param_nav_traff_a_ver.get(),
+			_param_nav_traff_collision_time.get(), _param_nav_traff_avoid.get());
+#endif // CONFIG_NAVIGATOR_ADSB
 }
 
 void Navigator::run()
@@ -371,7 +368,7 @@ void Navigator::run()
 
 
 						} else {
-							rep->current.loiter_radius = get_loiter_radius();
+							rep->current.loiter_radius = get_default_loiter_rad();
 						}
 
 						if (PX4_ISFINITE(curr->current.loiter_minor_radius) && fabsf(curr->current.loiter_minor_radius) > FLT_EPSILON) {
@@ -474,7 +471,7 @@ void Navigator::run()
 						rep->current.loiter_radius = curr->current.loiter_radius;
 
 					} else {
-						rep->current.loiter_radius = get_loiter_radius();
+						rep->current.loiter_radius = get_default_loiter_rad();
 					}
 
 					rep->current.loiter_direction_counter_clockwise = curr->current.loiter_direction_counter_clockwise;
@@ -512,8 +509,8 @@ void Navigator::run()
 				if (geofence_allows_position(position_setpoint)) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
 					rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
-					rep->current.loiter_radius = get_loiter_radius();
-					rep->current.loiter_direction_counter_clockwise = false;
+					rep->current.loiter_radius = get_default_loiter_rad();
+					rep->current.loiter_direction_counter_clockwise = get_default_loiter_CCW();
 					rep->current.loiter_orientation = 0.0f;
 					rep->current.loiter_pattern = position_setpoint_s::LOITER_TYPE_ORBIT;
 					rep->current.cruising_throttle = get_cruising_throttle();
@@ -528,7 +525,7 @@ void Navigator::run()
 
 					if (PX4_ISFINITE(cmd.param1)) {
 						rep->current.loiter_radius = fabsf(cmd.param1);
-						rep->current.loiter_direction_counter_clockwise = cmd.param1 < 0;
+						rep->current.loiter_direction_counter_clockwise = cmd.param1 < -FLT_EPSILON;
 					}
 
 					rep->current.lat = position_setpoint.lat;
@@ -560,8 +557,8 @@ void Navigator::run()
 				if (geofence_allows_position(position_setpoint)) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
 					rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
-					rep->current.loiter_minor_radius = fabsf(get_loiter_radius());
-					rep->current.loiter_direction_counter_clockwise = get_loiter_radius() < 0;
+					rep->current.loiter_minor_radius = fabsf(get_default_loiter_rad());
+					rep->current.loiter_direction_counter_clockwise = get_default_loiter_CCW();
 					rep->current.loiter_orientation = 0.0f;
 					rep->current.loiter_pattern = position_setpoint_s::LOITER_TYPE_FIGUREEIGHT;
 					rep->current.cruising_speed = get_cruising_speed();
@@ -574,7 +571,7 @@ void Navigator::run()
 
 					if (PX4_ISFINITE(cmd.param1)) {
 						rep->current.loiter_radius = fabsf(cmd.param1);
-						rep->current.loiter_direction_counter_clockwise = cmd.param1 < 0;
+						rep->current.loiter_direction_counter_clockwise = cmd.param1 < -FLT_EPSILON;
 					}
 
 					rep->current.loiter_radius = math::max(rep->current.loiter_radius, 2.0f * rep->current.loiter_minor_radius);
@@ -607,8 +604,8 @@ void Navigator::run()
 				rep->previous.lon = get_global_position()->lon;
 				rep->previous.alt = get_global_position()->alt;
 
-				rep->current.loiter_radius = get_loiter_radius();
-				rep->current.loiter_direction_counter_clockwise = false;
+				rep->current.loiter_radius = get_default_loiter_rad();
+				rep->current.loiter_direction_counter_clockwise = get_default_loiter_CCW();
 				rep->current.type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
 				rep->current.cruising_speed = -1.f; // reset to default
 
@@ -643,6 +640,10 @@ void Navigator::run()
 
 				rep->next.valid = false;
 
+				// Fixed-wing: vehicle will takeoff towards these coordinates and establish on a loiter there
+				_takeoff.setLoiterPosition(matrix::Vector2d(cmd.param5, cmd.param6));
+				_takeoff.setLoiterAltitudeAmsl(cmd.param7);
+
 				// CMD_NAV_TAKEOFF is acknowledged by commander
 
 #if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
@@ -650,6 +651,10 @@ void Navigator::run()
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_VTOL_TAKEOFF) {
 
 				_vtol_takeoff.setTransitionAltitudeAbsolute(cmd.param7);
+
+				if (std::fabs(cmd.param2 - 3.0f) < FLT_EPSILON) { // Specified transition direction
+					_vtol_takeoff.setTransitionDirection(cmd.param4);
+				}
 
 				// after the transition the vehicle will establish on a loiter at this position
 				_vtol_takeoff.setLoiterLocation(matrix::Vector2d(cmd.param5, cmd.param6));
@@ -665,10 +670,10 @@ void Navigator::run()
 				uint8_t result{vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED};
 
 				if (_mission.get_land_start_available()) {
-					vehicle_command_s vcmd = {};
-					vcmd.command = vehicle_command_s::VEHICLE_CMD_MISSION_START;
-					vcmd.param1 = _mission.get_land_start_index();
-					publish_vehicle_cmd(&vcmd);
+					vehicle_command_s vehicle_command{};
+					vehicle_command.command = vehicle_command_s::VEHICLE_CMD_MISSION_START;
+					vehicle_command.param1 = _mission.get_land_start_index();
+					publish_vehicle_command(vehicle_command);
 
 				} else {
 					PX4_WARN("planned mission landing not available");
@@ -754,10 +759,27 @@ void Navigator::run()
 				reset_cruising_speed();
 				set_cruising_throttle();
 			}
+
+			else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_AUTOTUNE_ENABLE) {
+
+
+				if (fabsf(cmd.param1 - 1.f) > FLT_EPSILON) {
+					// only support enabling autotune (consistent with autotune module)
+					events::send(events::ID("navigator_autotune_unsupported_input"), {events::Log::Warning, events::LogInternal::Warning},
+						     "Provided autotune command is not supported. To enable autotune in mission, set param1 to 1");
+
+				} else if (fabsf(cmd.param2) > FLT_EPSILON) {
+					// warn user about axis selection
+					events::send(events::ID("navigator_autotune_unsupported_ax"), {events::Log::Warning, events::LogInternal::Info},
+						     "Autotune axis selection not supported through Mission. Use FW_AT_AXES to set axes for fixed-wing vehicles");
+				}
+			}
 		}
 
+#if CONFIG_NAVIGATOR_ADSB
 		/* Check for traffic */
 		check_traffic();
+#endif // CONFIG_NAVIGATOR_ADSB
 
 		/* Check geofence violation */
 		geofence_breach_check();
@@ -820,6 +842,7 @@ void Navigator::run()
 		case vehicle_status_s::NAVIGATION_STATE_MANUAL:
 		case vehicle_status_s::NAVIGATION_STATE_ACRO:
 		case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
+		case vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE:
 		case vehicle_status_s::NAVIGATION_STATE_POSCTL:
 		case vehicle_status_s::NAVIGATION_STATE_DESCEND:
 		case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
@@ -865,10 +888,10 @@ void Navigator::run()
 		if (_vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_DESCEND &&
 		    _vstatus.is_vtol && _vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING &&
 		    force_vtol()) {
-			vehicle_command_s vcmd = {};
-			vcmd.command = NAV_CMD_DO_VTOL_TRANSITION;
-			vcmd.param1 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-			publish_vehicle_cmd(&vcmd);
+			vehicle_command_s vehicle_command{};
+			vehicle_command.command = NAV_CMD_DO_VTOL_TRANSITION;
+			vehicle_command.param1 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+			publish_vehicle_command(vehicle_command);
 			mavlink_log_info(&_mavlink_log_pub, "Transition to hover mode and descend.\t");
 			events::send(events::ID("navigator_transition_descend"), events::Log::Critical,
 				     "Transition to hover mode and descend");
@@ -900,6 +923,8 @@ void Navigator::run()
 		if (_mission_result_updated) {
 			publish_mission_result();
 		}
+
+		neutralize_gimbal_if_control_activated();
 
 		publish_navigator_status();
 
@@ -938,7 +963,7 @@ void Navigator::geofence_breach_check()
 			vertical_test_point_distance = _gf_breach_avoidance.computeVerticalBrakingDistanceMultirotor();
 
 		} else {
-			test_point_distance = 2.0f * get_loiter_radius();
+			test_point_distance = 2.0f * get_default_loiter_rad();
 			vertical_test_point_distance = 5.0f;
 
 			if (hrt_absolute_time() - pos_ctrl_status.timestamp < 100000 && PX4_ISFINITE(pos_ctrl_status.nav_bearing)) {
@@ -1053,7 +1078,7 @@ void Navigator::geofence_breach_check()
 				rep->current.lon = loiter_longitude;
 				rep->current.alt = loiter_altitude_amsl;
 				rep->current.valid = true;
-				rep->current.loiter_radius = get_loiter_radius();
+				rep->current.loiter_radius = get_default_loiter_rad();
 				rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 				rep->current.cruising_throttle = get_cruising_throttle();
 				rep->current.acceptance_radius = get_acceptance_radius();
@@ -1072,17 +1097,24 @@ void Navigator::geofence_breach_check()
 	}
 }
 
+int Navigator::run_trampoline(int argc, char *argv[])
+{
+	return ModuleBase::run_trampoline_impl(desc, [](int ac, char *av[]) -> ModuleBase * {
+		return Navigator::instantiate(ac, av);
+	}, argc, argv);
+}
+
 int Navigator::task_spawn(int argc, char *argv[])
 {
-	_task_id = px4_task_spawn_cmd("navigator",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_NAVIGATION,
-				      PX4_STACK_ADJUSTED(2200),
-				      (px4_main_t)&run_trampoline,
-				      (char *const *)argv);
+	desc.task_id = px4_task_spawn_cmd("navigator",
+					  SCHED_DEFAULT,
+					  SCHED_PRIORITY_NAVIGATION,
+					  PX4_STACK_ADJUSTED(2230),
+					  (px4_main_t)&run_trampoline,
+					  (char *const *)argv);
 
-	if (_task_id < 0) {
-		_task_id = -1;
+	if (desc.task_id < 0) {
+		desc.task_id = -1;
 		return -errno;
 	}
 
@@ -1143,12 +1175,11 @@ float Navigator::get_altitude_acceptance_radius()
 
 	} else {
 		float alt_acceptance_radius = _param_nav_mc_alt_rad.get();
+		const position_setpoint_s &curr_sp = get_position_setpoint_triplet()->current;
 
-		const position_controller_status_s &pos_ctrl_status = _position_controller_status_sub.get();
+		if (PX4_ISFINITE(curr_sp.alt_acceptance_radius) && curr_sp.alt_acceptance_radius > FLT_EPSILON) {
+			alt_acceptance_radius = curr_sp.alt_acceptance_radius;
 
-		if ((pos_ctrl_status.timestamp > _pos_sp_triplet.timestamp)
-		    && pos_ctrl_status.altitude_acceptance > alt_acceptance_radius) {
-			alt_acceptance_radius = pos_ctrl_status.altitude_acceptance;
 		}
 
 		return alt_acceptance_radius;
@@ -1171,7 +1202,7 @@ void Navigator::reset_position_setpoint(position_setpoint_s &sp)
 	sp.lat = static_cast<double>(NAN);
 	sp.lon = static_cast<double>(NAN);
 	sp.yaw = NAN;
-	sp.loiter_radius = get_loiter_radius();
+	sp.loiter_radius = get_default_loiter_rad();
 	sp.acceptance_radius = get_default_acceptance_radius();
 	sp.cruising_speed = get_cruising_speed();
 	sp.cruising_throttle = get_cruising_throttle();
@@ -1210,14 +1241,6 @@ bool Navigator::get_yaw_to_be_accepted(float mission_item_yaw)
 {
 	float yaw = mission_item_yaw;
 
-	const position_controller_status_s &pos_ctrl_status = _position_controller_status_sub.get();
-
-	// if yaw_acceptance from position controller is NaN overwrite the mission item yaw such that
-	// the waypoint can be reached from any direction
-	if ((pos_ctrl_status.timestamp > _pos_sp_triplet.timestamp) && !PX4_ISFINITE(pos_ctrl_status.yaw_acceptance)) {
-		yaw = pos_ctrl_status.yaw_acceptance;
-	}
-
 	return PX4_ISFINITE(yaw);
 }
 
@@ -1226,50 +1249,47 @@ void Navigator::load_fence_from_file(const char *filename)
 	_geofence.loadFromFile(filename);
 }
 
+#if CONFIG_NAVIGATOR_ADSB
 void Navigator::take_traffic_conflict_action()
 {
 
-	vehicle_command_s vcmd = {};
+	vehicle_command_s vehicle_command{};
 
 	switch (_adsb_conflict._conflict_detection_params.traffic_avoidance_mode) {
 
 	case 2: {
 			_rtl.set_return_alt_min(true);
-			vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH;
-			publish_vehicle_cmd(&vcmd);
+			vehicle_command.command = vehicle_command_s::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH;
+			publish_vehicle_command(vehicle_command);
 			break;
 		}
 
 	case 3: {
-			vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_LAND;
-			publish_vehicle_cmd(&vcmd);
+			vehicle_command.command = vehicle_command_s::VEHICLE_CMD_NAV_LAND;
+			publish_vehicle_command(vehicle_command);
 			break;
 
 		}
 
 	case 4: {
 
-			vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_LOITER_UNLIM;
-			publish_vehicle_cmd(&vcmd);
+			vehicle_command.command = vehicle_command_s::VEHICLE_CMD_NAV_LOITER_UNLIM;
+			publish_vehicle_command(vehicle_command);
 			break;
 
 		}
 	}
-
 }
 
 void Navigator::run_fake_traffic()
 {
-
 	_adsb_conflict.run_fake_traffic(get_global_position()->lat, get_global_position()->lon,
 					get_global_position()->alt);
 }
 
 void Navigator::check_traffic()
 {
-
 	if (_traffic_sub.updated()) {
-
 		_traffic_sub.copy(&_adsb_conflict._transponder_report);
 
 		uint16_t required_flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS |
@@ -1288,8 +1308,8 @@ void Navigator::check_traffic()
 	}
 
 	_adsb_conflict.remove_expired_conflicts();
-
 }
+#endif // CONFIG_NAVIGATOR_ADSB
 
 bool Navigator::abort_landing()
 {
@@ -1323,20 +1343,23 @@ bool Navigator::force_vtol()
 
 int Navigator::custom_command(int argc, char *argv[])
 {
-	if (!is_running()) {
+	if (!is_running(desc)) {
 		print_usage("not running");
 		return 1;
 	}
 
 	if (!strcmp(argv[0], "fencefile")) {
-		get_instance()->load_fence_from_file(GEOFENCE_FILENAME);
+		get_instance<Navigator>(desc)->load_fence_from_file(GEOFENCE_FILENAME);
 		return 0;
+
+#if CONFIG_NAVIGATOR_ADSB
 
 	} else if (!strcmp(argv[0], "fake_traffic")) {
 
-		get_instance()->run_fake_traffic();
+		get_instance<Navigator>(desc)->run_fake_traffic();
 
 		return 0;
+#endif // CONFIG_NAVIGATOR_ADSB
 	}
 
 	return print_usage("unknown command");
@@ -1402,34 +1425,32 @@ void Navigator::publish_navigator_status()
 	}
 }
 
-void Navigator::publish_vehicle_cmd(vehicle_command_s *vcmd)
+void Navigator::publish_vehicle_command(vehicle_command_s &vehicle_command)
 {
-	vcmd->timestamp = hrt_absolute_time();
-	vcmd->source_system = _vstatus.system_id;
-	vcmd->source_component = _vstatus.component_id;
-	vcmd->target_system = _vstatus.system_id;
-	vcmd->confirmation = false;
-	vcmd->from_external = false;
+	vehicle_command.timestamp = hrt_absolute_time();
+	vehicle_command.source_system = _vstatus.system_id;
+	vehicle_command.source_component = _vstatus.component_id;
+	vehicle_command.target_system = _vstatus.system_id;
+	vehicle_command.confirmation = false;
+	vehicle_command.from_external = false;
 
 	int target_camera_component_id;
 
 	// The camera commands are not processed on the autopilot but will be
 	// sent to the mavlink links to other components.
-	switch (vcmd->command) {
-
-
+	switch (vehicle_command.command) {
 	case NAV_CMD_IMAGE_START_CAPTURE:
 
-		if (static_cast<int>(vcmd->param3) == 1) {
-			// When sending a single capture we need to include the sequence number, thus camera_trigger needs to handle this cmd
-			vcmd->param1 = 0.0f;
-			vcmd->param2 = 0.0f;
-			vcmd->param3 = 0.0f;
-			vcmd->param4 = 0.0f;
-			vcmd->param5 = 1.0;
-			vcmd->param6 = 0.0;
-			vcmd->param7 = 0.0f;
-			vcmd->command = vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL;
+		if (static_cast<int>(vehicle_command.param3) == 1) {
+			// When sending a single capture we need to include the sequence number, thus camera_trigger needs to handle this command
+			vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL;
+			vehicle_command.param1 = 0.f; // Session control hide lens
+			vehicle_command.param2 = 0.f; // Zoom absolute position
+			vehicle_command.param3 = 0.f; // Zoom step
+			vehicle_command.param4 = 0.f; // Focus lock
+			vehicle_command.param5 = 1.; // Shoot command
+			vehicle_command.param6 = 0.; // Command identity
+			vehicle_command.param7 = 0.f; // Shot identifier
 
 		} else {
 			// We are only capturing multiple if param3 is 0 or > 1.
@@ -1437,65 +1458,65 @@ void Navigator::publish_vehicle_cmd(vehicle_command_s *vcmd)
 			_is_capturing_images = true;
 		}
 
-		target_camera_component_id = static_cast<int>(vcmd->param1); // Target id from param 1
+		target_camera_component_id = static_cast<int>(vehicle_command.param1); // Target id from param 1
 
 		if (target_camera_component_id > 0 && target_camera_component_id < 256) {
-			vcmd->target_component = target_camera_component_id;
+			vehicle_command.target_component = target_camera_component_id;
 
 		} else {
-			vcmd->target_component = 100; // MAV_COMP_ID_CAMERA
+			vehicle_command.target_component = 100; // MAV_COMP_ID_CAMERA
 		}
 
 		break;
 
 	case NAV_CMD_IMAGE_STOP_CAPTURE:
 		_is_capturing_images = false;
-		target_camera_component_id = static_cast<int>(vcmd->param1); // Target id from param 1
+		target_camera_component_id = static_cast<int>(vehicle_command.param1); // Target id from param 1
 
 		if (target_camera_component_id > 0 && target_camera_component_id < 256) {
-			vcmd->target_component = target_camera_component_id;
+			vehicle_command.target_component = target_camera_component_id;
 
 		} else {
-			vcmd->target_component = 100; // MAV_COMP_ID_CAMERA
+			vehicle_command.target_component = 100; // MAV_COMP_ID_CAMERA
 		}
 
 		break;
 
 	case NAV_CMD_SET_CAMERA_MODE:
-		target_camera_component_id = static_cast<int>(vcmd->param1); // Target id from param 1
+		target_camera_component_id = static_cast<int>(vehicle_command.param1); // Target id from param 1
 
 		if (target_camera_component_id > 0 && target_camera_component_id < 256) {
-			vcmd->target_component = target_camera_component_id;
+			vehicle_command.target_component = target_camera_component_id;
 
 		} else {
-			vcmd->target_component = 100; // MAV_COMP_ID_CAMERA
+			vehicle_command.target_component = 100; // MAV_COMP_ID_CAMERA
 		}
 
 		break;
 
 	case NAV_CMD_SET_CAMERA_SOURCE:
-		target_camera_component_id = static_cast<int>(vcmd->param1); // Target id from param 1
+		target_camera_component_id = static_cast<int>(vehicle_command.param1); // Target id from param 1
 
 		if (target_camera_component_id > 0 && target_camera_component_id < 256) {
-			vcmd->target_component = target_camera_component_id;
+			vehicle_command.target_component = target_camera_component_id;
 
 		} else {
-			vcmd->target_component = 100; // MAV_COMP_ID_CAMERA
+			vehicle_command.target_component = 100; // MAV_COMP_ID_CAMERA
 		}
 
 		break;
 
 	case NAV_CMD_VIDEO_START_CAPTURE:
 	case NAV_CMD_VIDEO_STOP_CAPTURE:
-		vcmd->target_component = 100; // MAV_COMP_ID_CAMERA
+		vehicle_command.target_component = 100; // MAV_COMP_ID_CAMERA
 		break;
 
 	default:
-		vcmd->target_component = 0;
+		vehicle_command.target_component = 0;
 		break;
 	}
 
-	_vehicle_cmd_pub.publish(*vcmd);
+	_vehicle_cmd_pub.publish(vehicle_command);
 }
 
 void Navigator::publish_distance_sensor_mode_request()
@@ -1541,24 +1562,24 @@ void Navigator::publish_vehicle_command_ack(const vehicle_command_s &cmd, uint8_
 
 void Navigator::acquire_gimbal_control()
 {
-	vehicle_command_s vcmd = {};
-	vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_CONFIGURE;
-	vcmd.param1 = _vstatus.system_id;
-	vcmd.param2 = _vstatus.component_id;
-	vcmd.param3 = -1.0f; // Leave unchanged.
-	vcmd.param4 = -1.0f; // Leave unchanged.
-	publish_vehicle_cmd(&vcmd);
+	vehicle_command_s vehicle_command{};
+	vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_CONFIGURE;
+	vehicle_command.param1 = _vstatus.system_id; // Take primary control
+	vehicle_command.param2 = _vstatus.component_id;
+	vehicle_command.param3 = -1.f; // Leave secondary control unchanged
+	vehicle_command.param4 = -1.f;
+	publish_vehicle_command(vehicle_command);
 }
 
 void Navigator::release_gimbal_control()
 {
-	vehicle_command_s vcmd = {};
-	vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_CONFIGURE;
-	vcmd.param1 = -3.0f; // Remove control if it had it.
-	vcmd.param2 = -3.0f; // Remove control if it had it.
-	vcmd.param3 = -1.0f; // Leave unchanged.
-	vcmd.param4 = -1.0f; // Leave unchanged.
-	publish_vehicle_cmd(&vcmd);
+	vehicle_command_s vehicle_command{};
+	vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_CONFIGURE;
+	vehicle_command.param1 = -3.f; // Remove primary control if it was taken
+	vehicle_command.param2 = -3.f;
+	vehicle_command.param3 = -1.f; // Leave secondary control unchanged
+	vehicle_command.param4 = -1.f;
+	publish_vehicle_command(vehicle_command);
 }
 
 
@@ -1566,12 +1587,12 @@ void
 Navigator::stop_capturing_images()
 {
 	if (_is_capturing_images) {
-		vehicle_command_s vcmd = {};
-		vcmd.command = NAV_CMD_IMAGE_STOP_CAPTURE;
-		vcmd.param1 = 0.0f;
-		publish_vehicle_cmd(&vcmd);
+		vehicle_command_s vehicle_command{};
+		vehicle_command.command = NAV_CMD_IMAGE_STOP_CAPTURE;
+		vehicle_command.param1 = 0.f;
+		publish_vehicle_command(vehicle_command);
 
-		// _is_capturing_images is reset inside publish_vehicle_cmd.
+		// _is_capturing_images is reset inside publish_vehicle_command.
 	}
 }
 
@@ -1617,24 +1638,45 @@ void Navigator::mode_completed(uint8_t nav_state, uint8_t result)
 void Navigator::disable_camera_trigger()
 {
 	// Disable camera trigger
-	vehicle_command_s cmd {};
-	cmd.command = vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL;
+	vehicle_command_s vehicle_command{};
+	vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL;
 	// Pause trigger
-	cmd.param1 = -1.0f;
-	cmd.param3 = 1.0f;
-	publish_vehicle_cmd(&cmd);
+	vehicle_command.param1 = -1.f;
+	vehicle_command.param3 = 1.f;
+	publish_vehicle_command(vehicle_command);
 }
 
 void Navigator::set_gimbal_neutral()
 {
-	vehicle_command_s vcmd = {};
-	vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_PITCHYAW;
-	vcmd.param1 = NAN;
-	vcmd.param2 = NAN;
-	vcmd.param3 = NAN;
-	vcmd.param4 = NAN;
-	vcmd.param5 = gimbal_manager_set_attitude_s::GIMBAL_MANAGER_FLAGS_NEUTRAL;
-	publish_vehicle_cmd(&vcmd);
+	vehicle_command_s vehicle_command{};
+	vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_PITCHYAW;
+	vehicle_command.param1 = NAN; // Don't set any angles
+	vehicle_command.param2 = NAN;
+	vehicle_command.param3 = NAN; // Don't set any angular velocities
+	vehicle_command.param4 = NAN;
+	vehicle_command.param5 = gimbal_manager_set_attitude_s::GIMBAL_MANAGER_FLAGS_NEUTRAL;
+	publish_vehicle_command(vehicle_command);
+}
+
+void Navigator::activate_set_gimbal_neutral_timer(const hrt_abstime timestamp)
+{
+	if (_gimbal_neutral_activation_time == UINT64_MAX) {
+		_gimbal_neutral_activation_time = timestamp;
+	}
+}
+
+void Navigator::neutralize_gimbal_if_control_activated()
+{
+	const hrt_abstime now{hrt_absolute_time()};
+
+	// The time delay must be sufficiently long to allow flight tasks to complete its
+	// destruction and release gimbal control before the navigator takes control of the gimbal.
+	if (_gimbal_neutral_activation_time != UINT64_MAX && now > _gimbal_neutral_activation_time + 250_ms) {
+		acquire_gimbal_control();
+		set_gimbal_neutral();
+		release_gimbal_control();
+		_gimbal_neutral_activation_time = UINT64_MAX;
+	}
 }
 
 void Navigator::sendWarningDescentStoppedDueToTerrain()
@@ -1682,5 +1724,5 @@ controller.
  */
 extern "C" __EXPORT int navigator_main(int argc, char *argv[])
 {
-	return Navigator::main(argc, argv);
+	return ModuleBase::main(Navigator::desc, argc, argv);
 }

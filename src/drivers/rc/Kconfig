@@ -7,6 +7,6 @@ menu "RC"
         select DRIVERS_RC_GHST_RC
         select DRIVERS_RC_SBUS_RC
         ---help---
-            Enable default set of magnetometer drivers
+            Enable default set of radio control drivers
     rsource "*/Kconfig"
 endmenu
