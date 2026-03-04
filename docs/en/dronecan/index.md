@@ -283,19 +283,11 @@ Note that DroneCAN ESCs should be on their own dedicated CAN interface(s) becaus
 
 ### Lights
 
-PX4 can control LEDs via DroneCAN [LightsCommand](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#lightscommand) messages.
+PX4 can control external LEDs on a connected DroneCAN peripheral using the standard DroneCAN [LightsCommand](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#lightscommand) message.
+Up to 2 lights acan be controlled.
+Each light can independently show [system status colours](../getting_started/led_meanings.md#ui-led), a fixed colour (commonly used for indciating aircraft orientation), or switch between both depending on arm state.
 
-Configuration:
-
-1. Set [UAVCAN_LGT_NUM](../advanced_config/parameter_reference.md#UAVCAN_LGT_NUM) to the number of lights (0 disables, maximum 2). You need to reboot and reopen the ground station to have parameters for new instances available.
-2. [UAVCAN_LGT_MODE](../advanced_config/parameter_reference.md#UAVCAN_LGT_MODE) controls when lights should be in active state (always off, when armed, when prearmed, always on).
-3. For each light slot (0 to NUM-1), set:
-   - `UAVCAN_LGT_IDx`: The `light_id` matching your peripheral.
-   - `UAVCAN_LGT_FNx`: The light function. Available options:
-     - System status light
-     - Static colors which light up when `UAVCAN_LGT_MODE` is active.
-     - Hybrid modes where the Status is shown when `UAVCAN_LGT_MODE` is inactive, and a static color when active.
-4. Reboot for changes to take effect.
+See [DroneCAN Lights](lights.md) for full configuration details.
 
 ## QGC CANNODE Parameter Configuration
 
