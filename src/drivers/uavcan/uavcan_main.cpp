@@ -618,17 +618,12 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 	_param_opcode_client.setCallback(ExecuteOpcodeCallback(this, &UavcanNode::cb_opcode));
 	_param_restartnode_client.setCallback(RestartNodeCallback(this, &UavcanNode::cb_restart));
 
-	if (uavcan_enable > 1) {
-		_servers = new UavcanServers(_node, _node_info_retriever);
-
-		if (_servers) {
-			int rv = _servers->init();
-
-			if (rv < 0) {
-				PX4_ERR("UavcanServers init: %d", rv);
-			}
-		}
-	}
+	/* NOTE: UavcanServers (file server, node DB, firmware migration) is NOT
+	 * started here. It requires SD card file I/O which may not be ready yet
+	 * during early boot. Creation and init is deferred to Run() where it
+	 * waits for dataman to confirm file I/O readiness.
+	 */
+	_servers_init_pending = (uavcan_enable > 1);
 
 	// Start the Node
 	return _node.start();
@@ -751,9 +746,29 @@ UavcanNode::Run()
 		_node_info_retriever.invalidateAll();
 	}
 
-	// Defer UAVCAN firmware migration from SD root until file I/O is confirmed ready
-	if (_servers != nullptr) {
-		_servers->migrateFWFromRootIfReady();
+	// Deferred UavcanServers init: wait for SD card file I/O to be ready
+	if (_servers_init_pending && _servers == nullptr) {
+		if (UavcanServers::isFileIOReady()) {
+			_servers = new UavcanServers(_node, _node_info_retriever);
+
+			if (_servers) {
+				int rv = _servers->init();
+
+				if (rv < 0) {
+					PX4_ERR("UavcanServers init: %d", rv);
+					delete _servers;
+					_servers = nullptr;
+
+				} else {
+					PX4_INFO("UavcanServers started (deferred)");
+					_servers_init_pending = false;
+				}
+
+			} else {
+				PX4_ERR("UavcanServers alloc failed");
+				_servers_init_pending = false;
+			}
+		}
 	}
 
 	_node.spinOnce(); // expected to be non-blocking

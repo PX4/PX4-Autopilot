@@ -379,6 +379,7 @@ private:
 	bool are_node_params_dirty(uint8_t node_id) const { return bool((_param_dirty_bitmap[node_id >> 5] >> (node_id & 31)) & 1); }
 
 	bool _check_fw{false};
+	bool _servers_init_pending{false};
 
 	UavcanServers   *_servers{nullptr};
 };
