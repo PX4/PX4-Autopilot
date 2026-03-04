@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include <pthread.h>
 #include <perf/perf_counter.h>
 #include "mavlink_bridge_header.h"
 
@@ -102,6 +103,7 @@ private:
 private:
 	LogHandlerState _state{LogHandlerState::Idle};
 	Mavlink &_mavlink;
+	pthread_mutex_t _mutex{};
 
 	// Log list
 	LogListRequest _list_request{};

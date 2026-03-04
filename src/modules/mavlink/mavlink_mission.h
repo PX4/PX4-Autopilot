@@ -45,6 +45,7 @@
 
 #pragma once
 
+#include <pthread.h>
 #include <dataman_client/DatamanClient.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
@@ -87,7 +88,7 @@ class MavlinkMissionManager
 public:
 	explicit MavlinkMissionManager(Mavlink &mavlink);
 
-	~MavlinkMissionManager() = default;
+	~MavlinkMissionManager() { pthread_mutex_destroy(&_mutex); }
 
 	/**
 	 * Handle sending of messages. Call this regularly at a fixed frequency.
@@ -160,6 +161,7 @@ private:
 	MavlinkRateLimiter	_slow_rate_limiter{1000 * 1000};		///< Rate limit sending of the current WP sequence to 1 Hz
 
 	Mavlink &_mavlink;
+	pthread_mutex_t _mutex{};
 
 	static constexpr unsigned int	FILESYSTEM_ERRCOUNT_NOTIFY_LIMIT =
 		2;	///< Error count limit before stopping to report FS errors
