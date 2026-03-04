@@ -884,6 +884,8 @@ int Sih::print_status()
 	(_R_N2E.transpose() * _Fa_E).print();
 	PX4_INFO("Aerodynamic moments body frame (Nm)");
 	_Ma_B.print();
+	PX4_INFO("Thruster forces in body frame (N)");
+	_T_B.print();
 	PX4_INFO("Thruster moments in body frame (Nm)");
 	_Mt_B.print();
 	return 0;

@@ -311,6 +311,7 @@ private:
 		(ParamFloat<px4::params::SIH_F_DIA_INCH>) _sih_forward_diameter_inch,
 		(ParamFloat<px4::params::SIH_F_RPM_MAX>) _sih_forward_rpm_max,
 
+		(ParamInt<px4::params::BAT1_SOURCE>) _bat1_source,
 		(ParamInt<px4::params::SIH_VEHICLE_TYPE>) _sih_vtype
 	)
 };
