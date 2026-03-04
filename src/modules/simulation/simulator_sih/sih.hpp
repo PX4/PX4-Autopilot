@@ -315,6 +315,7 @@ private:
 		(ParamFloat<px4::params::SIH_F_CP2>) _sih_f_cp2,
 		(ParamFloat<px4::params::SIH_F_DIA_INCH>) _sih_forward_diameter_inch,
 		(ParamFloat<px4::params::SIH_F_RPM_MAX>) _sih_forward_rpm_max,
+		(ParamInt<px4::params::BAT1_SOURCE>) _bat1_source,
 		(ParamInt<px4::params::SIH_VEHICLE_TYPE>) _sih_vtype,
 		(ParamFloat<px4::params::SIH_WIND_N>) _sih_wind_n,
 		(ParamFloat<px4::params::SIH_WIND_E>) _sih_wind_e
