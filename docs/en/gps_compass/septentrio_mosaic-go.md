@@ -2,8 +2,8 @@
 
 The Septentrio mosaic-go receivers are evaluation kits for their mosaic-X5 and mosaic-H receiver modules.
 Because of their small size and low weight, they are ideal for autopilot applications.
-The available variants are the [mosaic-go](https://www.septentrio.com/en/products/gps/gnss-receiver-modules/mosaic-go-evaluation-kit)
-and [mosaic-go heading](https://www.septentrio.com/en/products/gps/gnss-receiver-modules/mosaic-h-evaluation-kit).
+The available variants are the [mosaic-go](https://www.septentrio.com/en/products/gnss-receivers/gnss-receiver-modules/mosaic-go-evaluation-kit)
+and [mosaic-go heading](https://www.septentrio.com/en/products/gnss-receivers/gnss-receiver-modules/mosaic-h-evaluation-kit).
 
 ![Mosaic go Highly Accurate GNSS Receiver Module](../../assets/hardware/gps/septentrio_sbf/mosaic-go.png)
 

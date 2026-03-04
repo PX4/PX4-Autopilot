@@ -559,6 +559,7 @@
         - [Airspeed](msg_docs/Airspeed.md)
         - [AirspeedWind](msg_docs/AirspeedWind.md)
         - [AutotuneAttitudeControlStatus](msg_docs/AutotuneAttitudeControlStatus.md)
+        - [AuxGlobalPosition](msg_docs/AuxGlobalPosition.md)
         - [BatteryInfo](msg_docs/BatteryInfo.md)
         - [ButtonEvent](msg_docs/ButtonEvent.md)
         - [CameraCapture](msg_docs/CameraCapture.md)
