@@ -399,6 +399,7 @@
     - [PX4 DroneCAN Firmware](dronecan/px4_cannode_fw.md)
     - [ARK CANnode](dronecan/ark_cannode.md)
     - [RaccoonLab CAN Nodes](dronecan/raccoonlab_nodes.md)
+    - [DroneCAN Lights](dronecan/lights.md)
   - [Cable Wiring](assembly/cable_wiring.md)
   - [Companion Computers](companion_computer/index.md)
     - [Pixhawk + Companion Setup](companion_computer/pixhawk_companion.md)
