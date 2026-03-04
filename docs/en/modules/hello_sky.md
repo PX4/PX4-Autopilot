@@ -12,13 +12,15 @@ These are covered in [Application/Module Template](../modules/module_template.md
 
 You will require the following:
 
-- [PX4 SITL Simulator](../simulation/index.md) _or_ a [PX4-compatible flight controller](../flight_controller/index.md).
+- [Gazebo Simulator](../sim_gazebo_gz/index.md) (or another [PX4 SITL Simulator](../simulation/index.md)) _or_ a [PX4-compatible flight controller](../flight_controller/index.md).
 - [PX4 Development Toolchain](../dev_setup/dev_env.md) for the desired target.
 - [Download the PX4 Source Code](../dev_setup/building_px4.md#download-the-px4-source-code) from Github
 
 The source code [PX4-Autopilot/src/examples/px4_simple_app](https://github.com/PX4/PX4-Autopilot/tree/main/src/examples/px4_simple_app) directory contains a completed version of this tutorial that you can review if you get stuck.
 
-- Rename (or delete) the **px4_simple_app** directory.
+::: tip
+Rename (or delete) the **px4_simple_app** directory.
+:::
 
 ## Minimal Application
 
@@ -26,7 +28,7 @@ In this section we create a _minimal application_ that just prints out `Hello Sk
 This consists of a single _C_ file and a _cmake_ definition (which tells the toolchain how to build the application).
 
 1. Create a new directory **PX4-Autopilot/src/examples/px4_simple_app**.
-1. Create a new C file in that directory named **px4_simple_app.c**:
+2. Create a new C file in that directory named **px4_simple_app.c**:
    - Copy in the default header to the top of the page.
      This should be present in all contributed files!
 
@@ -66,7 +68,7 @@ This consists of a single _C_ file and a _cmake_ definition (which tells the too
      ```
 
    - Copy the following code below the default header.
-     This should be present in all contributed files!
+     Similar code should be present in all contributed files!
 
      ```c
      /**
@@ -82,8 +84,8 @@ This consists of a single _C_ file and a _cmake_ definition (which tells the too
 
      int px4_simple_app_main(int argc, char *argv[])
      {
-     	PX4_INFO("Hello Sky!");
-     	return OK;
+      PX4_INFO("Hello Sky!");
+      return OK;
      }
      ```
 
@@ -101,7 +103,7 @@ This consists of a single _C_ file and a _cmake_ definition (which tells the too
 
      :::
 
-1. Create and open a new _cmake_ definition file named **CMakeLists.txt**.
+3. Create and open a new _cmake_ definition file named **CMakeLists.txt**.
    Copy in the text below:
 
    ```cmake
@@ -138,13 +140,16 @@ This consists of a single _C_ file and a _cmake_ definition (which tells the too
    #
    ############################################################################
    px4_add_module(
-   	MODULE examples__px4_simple_app
-   	MAIN px4_simple_app
-   	SRCS
-   		px4_simple_app.c
-   	DEPENDS
-   	)
+    MODULE examples__px4_simple_app
+    MAIN px4_simple_app
+    SRCS
+     px4_simple_app.c
+    DEPENDS
+    )
    ```
+
+   Note that in your own modules you'd use the current copyright year!
+   We're using `2015` here to match the example.
 
    The `px4_add_module()` method builds a static library from a module description.
    - The `MODULE` block is the Firmware-unique name of the module (by convention the module name is prefixed by parent directories back to `src`).
@@ -160,15 +165,15 @@ This consists of a single _C_ file and a _cmake_ definition (which tells the too
    You can then run your command by loading the file at runtime using the `dyn` command: `dyn ./examples__px4_simple_app.px4mod`
    :::
 
-1. Create and open a new _Kconfig_ definition file named **Kconfig** and define your symbol for naming (see [Kconfig naming convention](../hardware/porting_guide_config.md#px4-kconfig-symbol-naming-convention)).
+4. Create and open a new _Kconfig_ definition file named **Kconfig** and define your symbol for naming (see [Kconfig naming convention](../hardware/porting_guide_config.md#px4-kconfig-symbol-naming-convention)).
    Copy in the text below:
 
-   ```text
+   ```txt
    menuconfig EXAMPLES_PX4_SIMPLE_APP
-   	bool "px4_simple_app"
-   	default n
-   	---help---
-   		Enable support for px4_simple_app
+    bool "px4_simple_app"
+    default n
+    ---help---
+     Enable support for px4_simple_app
    ```
 
 ## Build the Application/Firmware
@@ -181,22 +186,31 @@ Applications are added to the build/firmware in the appropriate board-level _px4
 - Pixhawk 6X (px4/fmu-v6x): [PX4-Autopilot/boards/px4/fmu-v6x/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6x/default.px4board)
 - _px4board_ files for other boards can be found in [PX4-Autopilot/boards/](https://github.com/PX4/PX4-Autopilot/tree/main/boards)
 
-To enable the compilation of the application into the firmware add the corresponding Kconfig key `CONFIG_EXAMPLES_PX4_SIMPLE_APP=y` in the _px4board_ file or run [boardconfig](../hardware/porting_guide_config.md#px4-menuconfig-setup) `make px4_sitl_default boardconfig`:
+To enable the compilation of the application into the firmware add the corresponding Kconfig key `CONFIG_EXAMPLES_PX4_SIMPLE_APP=y` in the _px4board_ file or run [boardconfig](../hardware/porting_guide_config.md#px4-menuconfig-setup).
 
+For example, to edit the board config for FMUv6x you would do:
+
+```sh
+make fmu-v6x_default boardconfig
 ```
+
+And then enable the app in the _boardconfig_ UI as shown:
+
+```txt
 examples  --->
     [x] PX4 Simple app  ----
 ```
 
 ::: info
-Examples are opt-in and not included in firmware by default. You must explicitly enable them as shown above.
+Examples are opt-in and not included in firmware by default (although they are in SITL).
+You must explicitly enable them as shown above.
 :::
 
 Build the example using the board-specific command:
 
 - Gazebo Simulator: `make px4_sitl gz_x500`
 - Pixhawk 6X: `make px4_fmu-v6x_default`
-- Other boards: [Building the Code](../dev_setup/building_px4.md#building-for-nuttx)
+- Other boards: [Building the Code](../dev_setup/building_px4.md)
 
 ## Test App (Hardware)
 
@@ -317,19 +331,19 @@ px4_pollfd_struct_t fds[] = {
 };
 
 while (true) {
-	/* wait for sensor update of 1 file descriptor for 1000 ms (1 second) */
-	int poll_ret = px4_poll(fds, 1, 1000);
-	..
-	if (fds[0].revents & POLLIN) {
-		/* obtained data for the first file descriptor */
-		struct vehicle_acceleration_s accel;
-		/* copy sensors raw data into local buffer */
-		orb_copy(ORB_ID(vehicle_acceleration), sensor_sub_fd, &accel);
-		PX4_INFO("Accelerometer:\t%8.4f\t%8.4f\t%8.4f",
-					(double)accel.xyz[0],
-					(double)accel.xyz[1],
-					(double)accel.xyz[2]);
-	}
+ /* wait for sensor update of 1 file descriptor for 1000 ms (1 second) */
+ int poll_ret = px4_poll(fds, 1, 1000);
+ ..
+ if (fds[0].revents & POLLIN) {
+  /* obtained data for the first file descriptor */
+  struct vehicle_acceleration_s accel;
+  /* copy sensors raw data into local buffer */
+  orb_copy(ORB_ID(vehicle_acceleration), sensor_sub_fd, &accel);
+  PX4_INFO("Accelerometer:\t%8.4f\t%8.4f\t%8.4f",
+     (double)accel.xyz[0],
+     (double)accel.xyz[1],
+     (double)accel.xyz[2]);
+ }
 }
 ```
 
@@ -451,77 +465,77 @@ __EXPORT int px4_simple_app_main(int argc, char *argv[]);
 
 int px4_simple_app_main(int argc, char *argv[])
 {
-	PX4_INFO("Hello Sky!");
+ PX4_INFO("Hello Sky!");
 
-	/* subscribe to vehicle_acceleration topic */
-	int sensor_sub_fd = orb_subscribe(ORB_ID(vehicle_acceleration));
-	/* limit the update rate to 5 Hz */
-	orb_set_interval(sensor_sub_fd, 200);
+ /* subscribe to vehicle_acceleration topic */
+ int sensor_sub_fd = orb_subscribe(ORB_ID(vehicle_acceleration));
+ /* limit the update rate to 5 Hz */
+ orb_set_interval(sensor_sub_fd, 200);
 
-	/* advertise attitude topic */
-	struct vehicle_attitude_s att;
-	memset(&att, 0, sizeof(att));
-	orb_advert_t att_pub = orb_advertise(ORB_ID(vehicle_attitude), &att);
+ /* advertise attitude topic */
+ struct vehicle_attitude_s att;
+ memset(&att, 0, sizeof(att));
+ orb_advert_t att_pub = orb_advertise(ORB_ID(vehicle_attitude), &att);
 
-	/* one could wait for multiple topics with this technique, just using one here */
-	px4_pollfd_struct_t fds[] = {
-		{ .fd = sensor_sub_fd,   .events = POLLIN },
-		/* there could be more file descriptors here, in the form like:
-		 * { .fd = other_sub_fd,   .events = POLLIN },
-		 */
-	};
+ /* one could wait for multiple topics with this technique, just using one here */
+ px4_pollfd_struct_t fds[] = {
+  { .fd = sensor_sub_fd,   .events = POLLIN },
+  /* there could be more file descriptors here, in the form like:
+   * { .fd = other_sub_fd,   .events = POLLIN },
+   */
+ };
 
-	int error_counter = 0;
+ int error_counter = 0;
 
-	for (int i = 0; i < 5; i++) {
-		/* wait for sensor update of 1 file descriptor for 1000 ms (1 second) */
-		int poll_ret = px4_poll(fds, 1, 1000);
+ for (int i = 0; i < 5; i++) {
+  /* wait for sensor update of 1 file descriptor for 1000 ms (1 second) */
+  int poll_ret = px4_poll(fds, 1, 1000);
 
-		/* handle the poll result */
-		if (poll_ret == 0) {
-			/* this means none of our providers is giving us data */
-			PX4_ERR("Got no data within a second");
+  /* handle the poll result */
+  if (poll_ret == 0) {
+   /* this means none of our providers is giving us data */
+   PX4_ERR("Got no data within a second");
 
-		} else if (poll_ret < 0) {
-			/* this is seriously bad - should be an emergency */
-			if (error_counter < 10 || error_counter % 50 == 0) {
-				/* use a counter to prevent flooding (and slowing us down) */
-				PX4_ERR("ERROR return value from poll(): %d", poll_ret);
-			}
+  } else if (poll_ret < 0) {
+   /* this is seriously bad - should be an emergency */
+   if (error_counter < 10 || error_counter % 50 == 0) {
+    /* use a counter to prevent flooding (and slowing us down) */
+    PX4_ERR("ERROR return value from poll(): %d", poll_ret);
+   }
 
-			error_counter++;
+   error_counter++;
 
-		} else {
+  } else {
 
-			if (fds[0].revents & POLLIN) {
-				/* obtained data for the first file descriptor */
-				struct vehicle_acceleration_s accel;
-				/* copy sensors raw data into local buffer */
-				orb_copy(ORB_ID(vehicle_acceleration), sensor_sub_fd, &accel);
-				PX4_INFO("Accelerometer:\t%8.4f\t%8.4f\t%8.4f",
-					 (double)accel.xyz[0],
-					 (double)accel.xyz[1],
-					 (double)accel.xyz[2]);
+   if (fds[0].revents & POLLIN) {
+    /* obtained data for the first file descriptor */
+    struct vehicle_acceleration_s accel;
+    /* copy sensors raw data into local buffer */
+    orb_copy(ORB_ID(vehicle_acceleration), sensor_sub_fd, &accel);
+    PX4_INFO("Accelerometer:\t%8.4f\t%8.4f\t%8.4f",
+      (double)accel.xyz[0],
+      (double)accel.xyz[1],
+      (double)accel.xyz[2]);
 
-				/* set att and publish this information for other apps
-				 the following does not have any meaning, it's just an example
-				*/
-				att.q[0] = accel.xyz[0];
-				att.q[1] = accel.xyz[1];
-				att.q[2] = accel.xyz[2];
+    /* set att and publish this information for other apps
+     the following does not have any meaning, it's just an example
+    */
+    att.q[0] = accel.xyz[0];
+    att.q[1] = accel.xyz[1];
+    att.q[2] = accel.xyz[2];
 
-				orb_publish(ORB_ID(vehicle_attitude), att_pub, &att);
-			}
+    orb_publish(ORB_ID(vehicle_attitude), att_pub, &att);
+   }
 
-			/* there could be more file descriptors here, in the form like:
-			 * if (fds[1..n].revents & POLLIN) {}
-			 */
-		}
-	}
+   /* there could be more file descriptors here, in the form like:
+    * if (fds[1..n].revents & POLLIN) {}
+    */
+  }
+ }
 
-	PX4_INFO("exiting");
+ PX4_INFO("exiting");
 
-	return 0;
+ return 0;
 }
 ```
 
