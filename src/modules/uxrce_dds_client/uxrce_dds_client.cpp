@@ -55,6 +55,8 @@ static constexpr uint8_t TIMESYNC_MAX_TIMEOUTS = 10;
 
 using namespace time_literals;
 
+ModuleBase::Descriptor UxrceddsClient::desc{task_spawn, custom_command, print_usage};
+
 static void on_time(uxrSession *session, int64_t current_time, int64_t client_transmit_timestamp,
 		    int64_t agent_receive_timestamp, int64_t originate_timestamp, void *args)
 {
@@ -849,17 +851,23 @@ bool UxrceddsClient::setBaudrate(int fd, unsigned baud)
 	}
 
 	/* set baud rate */
-	if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
+	termios_state = cfsetispeed(&uart_config, speed);
+
+	if (termios_state < 0) {
 		PX4_ERR("ERR: %d (cfsetispeed)", termios_state);
 		return false;
 	}
 
-	if ((termios_state = cfsetospeed(&uart_config, speed)) < 0) {
+	termios_state = cfsetospeed(&uart_config, speed);
+
+	if (termios_state < 0) {
 		PX4_ERR("ERR: %d (cfsetospeed)", termios_state);
 		return false;
 	}
 
-	if ((termios_state = tcsetattr(fd, TCSANOW, &uart_config)) < 0) {
+	termios_state = tcsetattr(fd, TCSANOW, &uart_config);
+
+	if (termios_state < 0) {
 		PX4_ERR("ERR: %d (tcsetattr)", termios_state);
 		return false;
 	}
@@ -914,17 +922,24 @@ int UxrceddsClient::custom_command(int argc, char *argv[])
 	return print_usage("unknown command");
 }
 
+int UxrceddsClient::run_trampoline(int argc, char *argv[])
+{
+	return ModuleBase::run_trampoline_impl(desc, [](int ac, char *av[]) -> ModuleBase * {
+		return UxrceddsClient::instantiate(ac, av);
+	}, argc, argv);
+}
+
 int UxrceddsClient::task_spawn(int argc, char *argv[])
 {
-	_task_id = px4_task_spawn_cmd("uxrce_dds_client",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_DEFAULT,
-				      PX4_STACK_ADJUSTED(8000),
-				      (px4_main_t)&run_trampoline,
-				      (char *const *)argv);
+	desc.task_id = px4_task_spawn_cmd("uxrce_dds_client",
+					  SCHED_DEFAULT,
+					  SCHED_PRIORITY_DEFAULT,
+					  PX4_STACK_ADJUSTED(8000),
+					  (px4_main_t)&run_trampoline,
+					  (char *const *)argv);
 
-	if (_task_id < 0) {
-		_task_id = -1;
+	if (desc.task_id < 0) {
+		desc.task_id = -1;
 		return -errno;
 	}
 
@@ -1126,5 +1141,5 @@ $ uxrce_dds_client start -t udp -h 127.0.0.1 -p 15555
 
 extern "C" __EXPORT int uxrce_dds_client_main(int argc, char *argv[])
 {
-	return UxrceddsClient::main(argc, argv);
+	return ModuleBase::main(UxrceddsClient::desc, argc, argv);
 }

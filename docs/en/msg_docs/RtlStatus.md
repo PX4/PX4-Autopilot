@@ -19,13 +19,13 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Name                                                                                          | Type    | Value | Description                                                                                                                                                 |
-| --------------------------------------------------------------------------------------------- | ------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a href="#RTL_STATUS_TYPE_NONE"></a> RTL_STATUS_TYPE_NONE                                     | `uint8` | 0     | pending if evaluation can't pe performed currently e.g. when it is still loading the safe points                                                            |
-| <a href="#RTL_STATUS_TYPE_DIRECT_SAFE_POINT"></a> RTL_STATUS_TYPE_DIRECT_SAFE_POINT           | `uint8` | 1     | chosen to directly go to a safe point or home position                                                                                                      |
-| <a href="#RTL_STATUS_TYPE_DIRECT_MISSION_LAND"></a> RTL_STATUS_TYPE_DIRECT_MISSION_LAND       | `uint8` | 2     | going straight to the beginning of the mission landing                                                                                                      |
-| <a href="#RTL_STATUS_TYPE_FOLLOW_MISSION"></a> RTL_STATUS_TYPE_FOLLOW_MISSION                 | `uint8` | 3     | Following the mission from start index to mission landing. Start index is current WP if in Mission mode, and closest WP otherwise.                          |
-| <a href="#RTL_STATUS_TYPE_FOLLOW_MISSION_REVERSE"></a> RTL_STATUS_TYPE_FOLLOW_MISSION_REVERSE | `uint8` | 4     | Following the mission in reverse from start index to the beginning of the mission. Start index is previous WP if in Mission mode, and closest WP otherwise. |
+| Name                                                                                        | Type    | Value | Description                                                                                                                                                 |
+| ------------------------------------------------------------------------------------------- | ------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="#RTL_STATUS_TYPE_NONE"></a> RTL_STATUS_TYPE_NONE                                     | `uint8` | 0     | pending if evaluation can't pe performed currently e.g. when it is still loading the safe points                                                            |
+| <a id="#RTL_STATUS_TYPE_DIRECT_SAFE_POINT"></a> RTL_STATUS_TYPE_DIRECT_SAFE_POINT           | `uint8` | 1     | chosen to directly go to a safe point or home position                                                                                                      |
+| <a id="#RTL_STATUS_TYPE_DIRECT_MISSION_LAND"></a> RTL_STATUS_TYPE_DIRECT_MISSION_LAND       | `uint8` | 2     | going straight to the beginning of the mission landing                                                                                                      |
+| <a id="#RTL_STATUS_TYPE_FOLLOW_MISSION"></a> RTL_STATUS_TYPE_FOLLOW_MISSION                 | `uint8` | 3     | Following the mission from start index to mission landing. Start index is current WP if in Mission mode, and closest WP otherwise.                          |
+| <a id="#RTL_STATUS_TYPE_FOLLOW_MISSION_REVERSE"></a> RTL_STATUS_TYPE_FOLLOW_MISSION_REVERSE | `uint8` | 4     | Following the mission in reverse from start index to the beginning of the mission. Start index is previous WP if in Mission mode, and closest WP otherwise. |
 
 ## Source Message
 

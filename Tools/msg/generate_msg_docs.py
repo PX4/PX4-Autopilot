@@ -17,10 +17,10 @@ VALID_FIELDS = { #Note, also have to add the message types as those can be field
     'uint32'
 }
 
-ALLOWED_UNITS = set(["m", "m/s", "m/s^2", "(m/s)^2", "deg", "deg/s", "rad", "rad/s", "rad^2", "rpm" ,"V", "A", "mA", "mAh", "W", "dBm", "h", "s", "ms", "us", "Ohm", "MB", "Kb/s", "degC","Pa","%","-"])
+ALLOWED_UNITS = set(["m", "m/s", "m/s^2", "(m/s)^2", "deg", "deg/s", "rad", "rad/s", "rad^2", "rpm" ,"V", "A", "mA", "mAh", "W", "Wh", "dBm", "h", "minutes", "s", "ms", "us", "Ohm", "MB", "Kb/s", "degC","Pa", "%", "norm", "-"])
 invalid_units = set()
-ALLOWED_FRAMES = set(["NED","Body"])
-ALLOWED_INVALID_VALUES = set(["NaN", "0"])
+ALLOWED_FRAMES = set(["NED", "Body", "FRD", "ENU"])
+ALLOWED_INVALID_VALUES = set(["NaN", "0", "-1"])
 ALLOWED_CONSTANTS_NOT_IN_ENUM = set(["ORB_QUEUE_LENGTH","MESSAGE_VERSION"])
 
 class Error:
@@ -36,14 +36,14 @@ class Error:
 
 
         if 'trailing_whitespace' == self.type:
-            if self.issueString.strip():    
+            if self.issueString.strip():
                 print(f"NOTE: Line has trailing whitespace ({self.message}: {self.linenumber}): {self.issueString}")
             else:
                 print(f"NOTE: Line has trailing whitespace ({self.message}: {self.linenumber})")
         elif 'leading_whitespace_field_or_constant' == self.type:
-            print(f"NOTE: Whitespace before field or constant ({self.message}: {self.linenumber}): {self.issueString}")             
+            print(f"NOTE: Whitespace before field or constant ({self.message}: {self.linenumber}): {self.issueString}")
         elif 'field_or_constant_has_multiple_whitepsace' == self.type:
-            print(f"NOTE: Field/constant has more than one sequential whitespace character ({self.message}: {self.linenumber}): {self.issueString}") 
+            print(f"NOTE: Field/constant has more than one sequential whitespace character ({self.message}: {self.linenumber}): {self.issueString}")
         elif 'empty_start_line' == self.type:
             print(f"NOTE: Empty line at start of file ({self.message}: {self.linenumber})")
         elif 'internal_comment' == self.type:
@@ -191,7 +191,7 @@ class CommandParam:
                             if not "unknown_frame" in self.parent.errors:
                                 self.parent.errors["unknown_frame"] = []
                             self.parent.errors["unknown_frame"].append(error)
-                        """    
+                        """
                     else:
                         print(f"WARNING: Unhandled metadata in message comment: {item}")
                         # TODO - report errors for different kinds of metadata
@@ -202,9 +202,9 @@ class CommandParam:
 
                     if item == "-":
                         unit = ""
-                    
+
                     if unit and unit not in self.units:
-                        self.units.append(unit) 
+                        self.units.append(unit)
 
                     if unit not in ALLOWED_UNITS:
                         invalid_units.add(unit)
@@ -221,7 +221,7 @@ class CommandParam:
         print(f"   paramText: {self.paramText}\n  unit:  {self.units}\n  enums: {self.enums}\n  lineNumber: {self.lineNumber}\n  range: {self.range}\n  minValue: {self.minValue}\n  maxValue: {self.maxValue}\n  invalidValue: {self.invalidValue}\n  frameValue: {self.frameValue}\n  parent: {self.parent}\n  ")
 
 
-        
+
 class CommandConstant:
     """
     Represents a constant that is a command definition.
@@ -252,9 +252,9 @@ class CommandConstant:
         if not self.comment: # This is an bug for a command
             #print(f"Debug WARNING: NO COMMENT in CommandConstant: {self.name}")  ## TODO make into ERROR
             return
-            
+
         # Parse command comment to get the description and parameters.
-        # print(f"Debug CommandConstant: {self.comment}") 
+        # print(f"Debug CommandConstant: {self.comment}")
         if not "|" in self.comment:
             # This is an error for a command constant
             error = Error("command_no_params_pipes", self.parent.filename, self.line_number, self.comment, self.name)
@@ -263,7 +263,7 @@ class CommandConstant:
                 self.parent.errors["command_no_params_pipes"] = []
             self.parent.errors["command_no_params_pipes"].append(error)
             return
-        
+
         # Split on pipes
         commandSplit = self.comment.split("|")
         if len(commandSplit) < 9:
@@ -318,7 +318,7 @@ Param | Units | Range/Enum | Description
 
                 output+=f"{i} | {", ".join(val.units)}|{', '.join(f"[{e}](#{e})" for e in val.enums)}{rangeVal} | {val.description}\n"
             else:
-                output+=f"{i} | | | ?\n"                
+                output+=f"{i} | | | ?\n"
 
         output+=f"\n"
         return output
@@ -419,7 +419,7 @@ class MessageField:
 class UORBMessage:
     """
     Represents a whole message, including fields, enums, commands, constants.
-    The parser function delegates the parsing of each part of the message to 
+    The parser function delegates the parsing of each part of the message to
     more appropriate classes, once the specific type of line has been identified.
     """
 
@@ -511,11 +511,11 @@ pageClass: is-wide-page
             markdown += "--- | --- | --- |---\n"
             for name, command in self.commandConstants.items():
                 description = f" {command.comment} " if enum.comment else " "
-                markdown += f'<a href="#{name}"></a> {name} | `{command.type}` | {command.value} |{description}\n'            
+                markdown += f'<a id="#{name}"></a> {name} | `{command.type}` | {command.value} |{description}\n'
             """
             for commandConstant in self.commandConstants.values():
                 #print(commandConstant)
-                markdown += commandConstant.markdown_out()     
+                markdown += commandConstant.markdown_out()
 
         # Generate enum docs
         if len(self.enums) > 0:
@@ -529,7 +529,7 @@ pageClass: is-wide-page
 
                 for enumValueName, enumValue in enum.enumValues.items():
                     description = f" {enumValue.comment} " if enumValue.comment else " "
-                    markdown += f'<a href="#{enumValueName}"></a> {enumValueName} | `{enumValue.type}` | {enumValue.value} |{description}\n'
+                    markdown += f'<a id="#{enumValueName}"></a> {enumValueName} | `{enumValue.type}` | {enumValue.value} |{description}\n'
 
         # Generate table for constants docs
         if len(self.constantFields) > 0:
@@ -538,7 +538,7 @@ pageClass: is-wide-page
             markdown += "--- | --- | --- |---\n"
             for name, enum in self.constantFields.items():
                 description = f" {enum.comment} " if enum.comment else " "
-                markdown += f'<a href="#{name}"></a> {name} | `{enum.type}` | {enum.value} |{description}\n'
+                markdown += f'<a id="#{name}"></a> {name} | `{enum.type}` | {enum.value} |{description}\n'
 
 
 
@@ -635,8 +635,8 @@ pageClass: is-wide-page
             temp = fieldOrConstant.split("=")
             value = temp[-1]
             typeAndName = temp[0].split(" ")
-            type = typeAndName[0]
-            name = typeAndName[1]
+            type = typeAndName[0].strip()
+            name = typeAndName[1].strip()
             if name.startswith("VEHICLE_CMD_") and parentMessage.name == 'VehicleCommand': #it's a command.
                 #print(f"DEBUG: startswith VEHICLE_CMD_ {name}")
                 commandConstant = CommandConstant(name, type, value, comment, line_number, parentMessage)
@@ -708,7 +708,7 @@ pageClass: is-wide-page
                     if stripped_line.startswith("#"):
                         # Its an internal comment
                         stripped_line=stripped_line[1:].strip()
-                        
+
                         if stripped_line:
                             #print(f"{self.filename}: Internal comment: [{line_number}]\n {line}")
                             error = Error("internal_comment", self.filename, line_number, line)
@@ -723,16 +723,16 @@ pageClass: is-wide-page
                             self.errors["internal_comment_empty"].append(error)
                             #pass # Empty comment
                         continue
-                    
+
                     # Must be a field or a comment.
                     self.handleField(line, line_number, parentMessage=self)
 
             # Fix up topics if the topic is empty
             def camel_to_snake(name):
-                # Match upper case not at start of string
-                s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
-                # Handle cases with multiple capital first letter
-                return re.sub('([A-Z]+)([A-Z][a-z]*)', r'\1_\2', s1).lower()
+                # Insert underscore between lowercase/digit and uppercase letter
+                s1 = re.sub('([a-z0-9])([A-Z])', r'\1_\2', name)
+                # Insert underscore between consecutive uppercase and uppercase+lowercase
+                return re.sub('([A-Z]+)([A-Z][a-z])', r'\1_\2', s1).lower()
 
             defaultTopic = camel_to_snake(self.name)
             if len(self.topics) == 0:
@@ -745,7 +745,7 @@ pageClass: is-wide-page
                     error = Error("topic_error", self.filename, "", f"WARNING: TOPIC {defaultTopic} unnecessarily declared for {self.name}")
                 else:
                     # Declared topic is not default topic
-                    error = Error("topic_error", self.filename, "", f"NOTE: TOPIC {self.topics[1]}: Only Declared topic is not default topic {defaultTopic} for {self.name}")
+                    error = Error("topic_error", self.filename, "", f"NOTE: TOPIC {self.topics[0]}: Only Declared topic is not default topic {defaultTopic} for {self.name}")
                 if not "topic_error" in self.errors:
                     self.errors["topic_error"] = []
                     self.errors["topic_error"].append(error)
@@ -833,11 +833,9 @@ def generate_dds_yaml_doc(allMessageFiles, output_file = 'dds_topics.md'):
         for message in data["subscriptions"]:
             all_message_types.add(message['type'].split("::")[-1])
             all_topics.add(message['topic'].split('/')[-1])
-        if data["subscriptions_multi"]: # There is none now
-            dds_markdown += "None\n"
-            for message in data["subscriptions_multi"]:
-                all_message_types.add(message['type'].split("::")[-1])
-                all_topics.add(message['topic'].split('/')[-1])
+        for message in (data.get("subscriptions_multi") or []):
+            all_message_types.add(message['type'].split("::")[-1])
+            all_topics.add(message['topic'].split('/')[-1])
         for message in allMessageFiles:
             all_messages_in_source.add(message.split('/')[-1].split('.')[0])
         messagesNotExported = all_messages_in_source - all_message_types
@@ -874,13 +872,17 @@ Topic | Type| Rate Limit
 
         dds_markdown += "\n## Subscriptions Multi\n\n"
 
-        if not data["subscriptions_multi"]: # There is none now
+        subscriptions_multi = data.get("subscriptions_multi") or []
+        if not subscriptions_multi:
             dds_markdown += "None\n"
         else:
-            print("Warning - we now have subscription_multi data - check format")
-            dds_markdown += "Topic | Type\n--- | ---\n"
-            for message in data["subscriptions_multi"]:
-                dds_markdown += f"{message['topic']} | {message['type']}\n"
+            dds_markdown += "Topic | Type | Route Field | Max Instances\n--- | --- | --- | ---\n"
+            for message in subscriptions_multi:
+                type = message['type']
+                px4Type = type.split("::")[-1]
+                route_field = f"`{message['route_field']}`" if 'route_field' in message else "-"
+                max_instances = message.get('max_instances', '-')
+                dds_markdown += f"{message['topic']} | [{type}](../msg_docs/{px4Type}.md) | {route_field} | {max_instances}\n"
 
         if messagesNotExported:
             # Print the topics that are not exported to DDS
@@ -944,9 +946,6 @@ if __name__ == "__main__":
 
     for msg_file in msg_files:
         # Add messages to set of allowed types (compound types)
-        #msg_type = msg_file.rsplit('/')[-1]
-        #msg_type = msg_type.rsplit('\\')[-1]
-        #msg_type = msg_type.rsplit('.')[0]
         msg_name = os.path.splitext(os.path.basename(msg_file))[0]
         msgTypes.add(msg_name)
 

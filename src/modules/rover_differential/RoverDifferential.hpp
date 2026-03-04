@@ -59,10 +59,12 @@
 #include "DifferentialDriveModes/DifferentialManualMode/DifferentialManualMode.hpp"
 #include "DifferentialDriveModes/DifferentialOffboardMode/DifferentialOffboardMode.hpp"
 
-class RoverDifferential : public ModuleBase<RoverDifferential>, public ModuleParams,
+class RoverDifferential : public ModuleBase, public ModuleParams,
 	public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	/**
 	 * @brief Constructor for RoverDifferential
 	 */

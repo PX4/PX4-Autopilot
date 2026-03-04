@@ -40,6 +40,8 @@
 
 using namespace time_literals;
 
+ModuleBase::Descriptor SafetyButton::desc{task_spawn, custom_command, print_usage};
+
 static constexpr uint8_t CYCLE_COUNT{30}; /* safety switch must be held for 1 second to activate */
 
 // Define the various LED flash sequences for each system state.
@@ -150,7 +152,7 @@ void
 SafetyButton::Run()
 {
 	if (should_exit()) {
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -183,8 +185,8 @@ SafetyButton::task_spawn(int argc, char *argv[])
 		return ret;
 	}
 
-	_object.store(instance);
-	_task_id = task_id_is_work_queue;
+	desc.object.store(instance);
+	desc.task_id = task_id_is_work_queue;
 
 	return ret;
 }
@@ -230,5 +232,5 @@ extern "C" __EXPORT int safety_button_main(int argc, char *argv[]);
 int
 safety_button_main(int argc, char *argv[])
 {
-	return SafetyButton::main(argc, argv);
+	return ModuleBase::main(SafetyButton::desc, argc, argv);
 }

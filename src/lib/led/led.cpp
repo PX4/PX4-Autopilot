@@ -161,7 +161,9 @@ int LedController::update(LedControlData &control_data)
 			if (current_blink_duration > 0) {
 				++num_blinking_leds;
 
-				if ((_states[i].current_blinking_time += blink_delta_t) > current_blink_duration) {
+				_states[i].current_blinking_time += blink_delta_t;
+
+				if (_states[i].current_blinking_time > current_blink_duration) {
 					_states[i].current_blinking_time -= current_blink_duration;
 
 					if (cur_data.blink_times_left == 246) {

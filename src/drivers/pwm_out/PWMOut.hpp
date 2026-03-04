@@ -53,9 +53,11 @@
 
 using namespace time_literals;
 
-class PWMOut final : public ModuleBase<PWMOut>, public OutputModuleInterface
+class PWMOut final : public ModuleBase, public OutputModuleInterface
 {
 public:
+	static Descriptor desc;
+
 	PWMOut();
 	~PWMOut() override;
 

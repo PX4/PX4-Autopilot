@@ -151,10 +151,12 @@ static constexpr float POST_TOUCHDOWN_CLAMP_TIME = 0.5f;
 // [] Stick deadzon
 static constexpr float kStickDeadBand = 0.06f;
 
-class FixedWingModeManager final : public ModuleBase<FixedWingModeManager>, public ModuleParams,
+class FixedWingModeManager final : public ModuleBase, public ModuleParams,
 	public px4::WorkItem
 {
 public:
+	static Descriptor desc;
+
 	FixedWingModeManager();
 	~FixedWingModeManager() override;
 

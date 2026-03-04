@@ -6,6 +6,8 @@
 
 #include <sys/stat.h>
 
+ModuleBase::Descriptor Raptor::desc{task_spawn, custom_command, print_usage};
+
 Raptor::Raptor(): ModuleParams(nullptr), ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
 {
 	// node state
@@ -184,6 +186,7 @@ bool Raptor::init()
 			rewind(f);
 			bool successfully_loaded = false;
 			using SPEC = rlt::persist::backends::tar::ReaderGroupSpecification<TI, rlt::persist::backends::tar::PosixFileData<TI>>;
+
 			rlt::persist::backends::tar::ReaderGroup<SPEC> reader_group;
 			reader_group.data.f = f;
 			reader_group.data.size = size;
@@ -453,7 +456,7 @@ void Raptor::Run()
 		}
 
 		ScheduleClear();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -969,8 +972,8 @@ int Raptor::task_spawn(int argc, char *argv[])
 	Raptor *instance = new Raptor();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -981,8 +984,8 @@ int Raptor::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -1006,7 +1009,7 @@ int Raptor::custom_command(int argc, char *argv[])
 				return PX4_ERROR;
 			}
 
-			Raptor *instance = get_instance();
+			Raptor *instance = get_instance<Raptor>(desc);
 
 			if (instance == nullptr) {
 				PX4_ERR("mc_raptor is not running");
@@ -1073,5 +1076,5 @@ RAPTOR Policy Flight Mode
 
 extern "C" __EXPORT int mc_raptor_main(int argc, char *argv[])
 {
-	return Raptor::main(argc, argv);
+	return ModuleBase::main(Raptor::desc, argc, argv);
 }

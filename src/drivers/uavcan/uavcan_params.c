@@ -132,10 +132,14 @@ PARAM_DEFINE_FLOAT(UAVCAN_ECU_MAXF, 15.0f);
 PARAM_DEFINE_INT32(UAVCAN_ECU_FUELT, 1);
 
 /**
- * UAVCAN ANTI_COLLISION light operating mode
+ * UAVCAN Navigation light operating mode
  *
  * This parameter defines the minimum condition under which the system will command
- * lights with anti-collision function to turn on (white).
+ * Navigation lights to turn on. Affects lights with functions: Anti-collision, Colored Navigation Lights or Hybrid lights.
+ *
+ * For hybrid functions (StatusOrAntiCollision, etc.), the light
+ * displays status colors when this mode is inactive, and switches to the
+ * navigation light function when this mode becomes active.
  *
  *  0 - Always off
  *  1 - When autopilot is armed
@@ -151,7 +155,7 @@ PARAM_DEFINE_INT32(UAVCAN_ECU_FUELT, 1);
  * @reboot_required true
  * @group UAVCAN
  */
-PARAM_DEFINE_INT32(UAVCAN_LGT_ANTCL, 2);
+PARAM_DEFINE_INT32(UAVCAN_LGT_MODE, 1);
 
 /**
  * publish Arming Status stream

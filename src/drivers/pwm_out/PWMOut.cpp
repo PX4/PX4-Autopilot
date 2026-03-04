@@ -35,6 +35,8 @@
 
 #include <px4_platform_common/sem.hpp>
 
+ModuleBase::Descriptor PWMOut::desc{task_spawn, custom_command, print_usage};
+
 PWMOut::PWMOut() :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default)
 {
@@ -158,7 +160,7 @@ void PWMOut::Run()
 		ScheduleClear();
 		_mixing_output.unregister();
 
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -202,8 +204,8 @@ int PWMOut::task_spawn(int argc, char *argv[])
 		return -1;
 	}
 
-	_object.store(instance);
-	_task_id = task_id_is_work_queue;
+	desc.object.store(instance);
+	desc.task_id = task_id_is_work_queue;
 	instance->ScheduleNow();
 	return 0;
 }
@@ -332,5 +334,5 @@ px4io driver is used for main ones.
 
 extern "C" __EXPORT int pwm_out_main(int argc, char *argv[])
 {
-	return PWMOut::main(argc, argv);
+	return ModuleBase::main(PWMOut::desc, argc, argv);
 }

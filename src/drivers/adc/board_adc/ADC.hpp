@@ -62,9 +62,11 @@ using namespace time_literals;
 
 #define ADC_TOTAL_CHANNELS 		32
 
-class ADC : public ModuleBase<ADC>, public px4::ScheduledWorkItem
+class ADC : public ModuleBase, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	ADC(uint32_t base_address = SYSTEM_ADC_BASE, uint32_t channels = ADC_CHANNELS, bool publish_adc_report = true);
 
 	~ADC() override;

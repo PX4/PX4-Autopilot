@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # FuelTankStatus (UORB message)
 
-**TOPICS:** fuel_tankstatus
+**TOPICS:** fuel_tank_status
 
 ## Fields
 
@@ -22,11 +22,11 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Name                                                        | Type    | Value | Description                                                                                                                                                 |
-| ----------------------------------------------------------- | ------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a href="#MAV_FUEL_TYPE_UNKNOWN"></a> MAV_FUEL_TYPE_UNKNOWN | `uint8` | 0     | fuel type not specified. Fuel levels are normalized (i.e., maximum is 1, and other levels are relative to 1).                                               |
-| <a href="#MAV_FUEL_TYPE_LIQUID"></a> MAV_FUEL_TYPE_LIQUID   | `uint8` | 1     | represents generic liquid fuels, such as gasoline or diesel. Fuel levels are measured in millilitres (ml), and flow rates in millilitres per second (ml/s). |
-| <a href="#MAV_FUEL_TYPE_GAS"></a> MAV_FUEL_TYPE_GAS         | `uint8` | 2     | represents a gas fuel, such as hydrogen, methane, or propane. Fuel levels are in kilo-Pascal (kPa), and flow rates are in milliliters per second (ml/s).    |
+| Name                                                      | Type    | Value | Description                                                                                                                                                 |
+| --------------------------------------------------------- | ------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="#MAV_FUEL_TYPE_UNKNOWN"></a> MAV_FUEL_TYPE_UNKNOWN | `uint8` | 0     | fuel type not specified. Fuel levels are normalized (i.e., maximum is 1, and other levels are relative to 1).                                               |
+| <a id="#MAV_FUEL_TYPE_LIQUID"></a> MAV_FUEL_TYPE_LIQUID   | `uint8` | 1     | represents generic liquid fuels, such as gasoline or diesel. Fuel levels are measured in millilitres (ml), and flow rates in millilitres per second (ml/s). |
+| <a id="#MAV_FUEL_TYPE_GAS"></a> MAV_FUEL_TYPE_GAS         | `uint8` | 2     | represents a gas fuel, such as hydrogen, methane, or propane. Fuel levels are in kilo-Pascal (kPa), and flow rates are in milliliters per second (ml/s).    |
 
 ## Source Message
 

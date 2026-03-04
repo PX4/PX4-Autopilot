@@ -42,6 +42,8 @@
 #include "loiter.h"
 #include "navigator.h"
 
+ModuleBase::Descriptor Navigator::desc{task_spawn, custom_command, print_usage};
+
 Loiter::Loiter(Navigator *navigator) :
 	MissionBlock(navigator, vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER),
 	ModuleParams(navigator)

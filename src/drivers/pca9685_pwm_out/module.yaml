@@ -7,6 +7,7 @@ actuator_output:
         disarmed: { min: 800, max: 2200, default: 1000 }
         min: { min: 800, max: 1400, default: 1100 }
         max: { min: 1600, max: 2200, default: 1900 }
+        center: { min: 800, max: 2200}
         failsafe: { min: 800, max: 2200 }
       custom_params:
         - name: 'DUTY_EN'

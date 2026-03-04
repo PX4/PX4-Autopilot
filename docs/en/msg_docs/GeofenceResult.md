@@ -18,14 +18,14 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Name                                                    | Type    | Value | Description                     |
-| ------------------------------------------------------- | ------- | ----- | ------------------------------- | ------ |
-| <a href="#GF_ACTION_NONE"></a> GF_ACTION_NONE           | `uint8` | 0     | no action on geofence violation |
-| <a href="#GF_ACTION_WARN"></a> GF_ACTION_WARN           | `uint8` | 1     | critical mavlink message        |
-| <a href="#GF_ACTION_LOITER"></a> GF_ACTION_LOITER       | `uint8` | 2     | switch to AUTO                  | LOITER |
-| <a href="#GF_ACTION_RTL"></a> GF_ACTION_RTL             | `uint8` | 3     | switch to AUTO                  | RTL    |
-| <a href="#GF_ACTION_TERMINATE"></a> GF_ACTION_TERMINATE | `uint8` | 4     | flight termination              |
-| <a href="#GF_ACTION_LAND"></a> GF_ACTION_LAND           | `uint8` | 5     | switch to AUTO                  | LAND   |
+| Name                                                  | Type    | Value | Description                     |
+| ----------------------------------------------------- | ------- | ----- | ------------------------------- | ------ |
+| <a id="#GF_ACTION_NONE"></a> GF_ACTION_NONE           | `uint8` | 0     | no action on geofence violation |
+| <a id="#GF_ACTION_WARN"></a> GF_ACTION_WARN           | `uint8` | 1     | critical mavlink message        |
+| <a id="#GF_ACTION_LOITER"></a> GF_ACTION_LOITER       | `uint8` | 2     | switch to AUTO                  | LOITER |
+| <a id="#GF_ACTION_RTL"></a> GF_ACTION_RTL             | `uint8` | 3     | switch to AUTO                  | RTL    |
+| <a id="#GF_ACTION_TERMINATE"></a> GF_ACTION_TERMINATE | `uint8` | 4     | flight termination              |
+| <a id="#GF_ACTION_LAND"></a> GF_ACTION_LAND           | `uint8` | 5     | switch to AUTO                  | LAND   |
 
 ## Source Message
 

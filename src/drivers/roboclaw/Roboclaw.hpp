@@ -54,9 +54,11 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/wheel_encoders.h>
 
-class Roboclaw : public ModuleBase<Roboclaw>, public OutputModuleInterface
+class Roboclaw : public ModuleBase, public OutputModuleInterface
 {
 public:
+	static Descriptor desc;
+
 	/**
 	 * @param device_name Name of the serial port e.g. "/dev/ttyS2"
 	 * @param bad_rate_parameter Name of the parameter that holds the baud rate of this serial port

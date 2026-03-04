@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2025 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2025-2026 ModalAI, Inc. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,10 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
 px4_add_module(
-	MODULE drivers__core_heater
-	MAIN core_heater
-	COMPILE_FLAGS
+	MODULE modules__sensor_baro_bridge
+	MAIN sensor_baro_bridge
+	INCLUDES
+		${CMAKE_CURRENT_SOURCE_DIR}/../../lib/mpa
 	SRCS
-		core_heater.cpp
+		sensor_baro_bridge.cpp
+	DEPENDS
+		mpa
 	)

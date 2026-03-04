@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # RegisterExtComponentReplyV0 (UORB message)
 
-**TOPICS:** register_extcomponent_replyv0
+**TOPICS:** register_ext_component_reply_v0
 
 ## Fields
 
@@ -21,10 +21,10 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Name                                              | Type     | Value | Description |
-| ------------------------------------------------- | -------- | ----- | ----------- |
-| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION   | `uint32` | 0     |
-| <a href="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH | `uint8`  | 2     |
+| Name                                            | Type     | Value | Description |
+| ----------------------------------------------- | -------- | ----- | ----------- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION   | `uint32` | 0     |
+| <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH | `uint8`  | 2     |
 
 ## Source Message
 

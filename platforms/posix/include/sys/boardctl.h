@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
+ * Copyright (C) 2025-2026 ModalAI, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,64 +31,14 @@
  *
  ****************************************************************************/
 
-/**
- * @file core_heater_params.c
- * Core Heater parameters.
- *
- */
+#pragma once
 
-/**
- * Target IMU device ID to regulate temperature.
- *
- * @category system
- * @group Sensors
- */
-PARAM_DEFINE_INT32(CORE_TEMP_ID, 0);
+#include <board_config.h>
 
-/**
- * Target IMU temperature.
- *
- * @category system
- * @group Sensors
- * @unit celcius
- * @min 0
- * @max 85.0
- * @decimal 3
- */
-PARAM_DEFINE_FLOAT(CORE_IMU_TEMP, 55.0f);
+#if defined(CONFIG_BOARDCTL_RESET)
 
-/**
- * IMU heater controller feedforward value.
- *
- * @category system
- * @group Sensors
- * @unit %
- * @min 0
- * @max 1.0
- * @decimal 3
- */
-PARAM_DEFINE_FLOAT(CORE_IMU_TEMP_FF, 0.05f);
+#define BOARDIOC_RESET (1<<0)
 
-/**
- * IMU heater controller integrator gain value.
- *
- * @category system
- * @group Sensors
- * @unit us/C
- * @min 0
- * @max 1.0
- * @decimal 3
- */
-PARAM_DEFINE_FLOAT(CORE_IMU_TEMP_I, 0.025f);
+extern "C" __EXPORT int boardctl(unsigned int cmd, uintptr_t arg);
 
-/**
- * IMU heater controller proportional gain value.
- *
- * @category system
- * @group Sensors
- * @unit us/C
- * @min 0
- * @max 2.0
- * @decimal 3
- */
-PARAM_DEFINE_FLOAT(CORE_IMU_TEMP_P, 1.0f);
+#endif
