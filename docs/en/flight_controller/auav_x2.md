@@ -57,7 +57,6 @@ mRobotics is the distributor for the AUAV Products from August 2017.
 
 ## Key Links
 
-- [User Manual](http://arsovtech.com/wp-content/uploads/2015/08/AUAV-X2-user-manual-EN.pdf)
 - [DIY Drones Post](https://diydrones.com/profiles/blogs/introducing-the-auav-x2-1-flight-controller)
 
 ## Wiring Guide

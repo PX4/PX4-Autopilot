@@ -40,6 +40,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_combined.h>
 
+ModuleBase::Descriptor TemplateModule::desc{task_spawn, custom_command, print_usage};
 
 int TemplateModule::print_status()
 {
@@ -52,14 +53,14 @@ int TemplateModule::print_status()
 int TemplateModule::custom_command(int argc, char *argv[])
 {
 	/*
-	if (!is_running()) {
+	if (!is_running(desc)) {
 		print_usage("not running");
 		return 1;
 	}
 
 	// additional custom commands can be handled like this:
 	if (!strcmp(argv[0], "do-something")) {
-		get_instance()->do_something();
+		get_instance<TemplateModule>(desc)->do_something();
 		return 0;
 	}
 	 */

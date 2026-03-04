@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018-19 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,67 +31,47 @@
  *
  ****************************************************************************/
 
-/**
- * @file heater_params.c
- * Heater parameters.
- *
- * @author Mark Sauder <mcsauder@gmail.com>
- * @author Alex Klimaj <alexklimaj@gmail.com>
- * @author Jake Dahl <dahl.jakejacob@gmail.com>
- */
+#include <gtest/gtest.h>
+#include "StickYaw.hpp"
 
-/**
- * Target IMU device ID to regulate temperature.
- *
- * @category system
- * @group Sensors
- */
-PARAM_DEFINE_INT32(SENS_TEMP_ID, 0);
+#include <px4_platform_common/defines.h>
 
-/**
- * Target IMU temperature.
- *
- * @category system
- * @group Sensors
- * @unit celcius
- * @min 0
- * @max 85.0
- * @decimal 3
- */
-PARAM_DEFINE_FLOAT(SENS_IMU_TEMP, 55.0f);
+TEST(StickYawTest, UnaidedYawNanTransitionNoYawJump)
+{
+	// When unaided_yaw transitions from finite to NAN mid-flight,
+	// the yaw setpoint must not jump discontinuously.
+	// See: https://github.com/PX4/PX4-Autopilot/pull/25710
 
-/**
- * IMU heater controller feedforward value.
- *
- * @category system
- * @group Sensors
- * @unit %
- * @min 0
- * @max 1.0
- * @decimal 3
- */
-PARAM_DEFINE_FLOAT(SENS_IMU_TEMP_FF, 0.05f);
+	param_control_autosave(false);
 
-/**
- * IMU heater controller integrator gain value.
- *
- * @category system
- * @group Sensors
- * @unit us/C
- * @min 0
- * @max 1.0
- * @decimal 3
- */
-PARAM_DEFINE_FLOAT(SENS_IMU_TEMP_I, 0.025f);
+	StickYaw stick_yaw{nullptr};
+	float yawspeed_sp = 0.f;
+	float yaw_sp = NAN;
+	const float dt = 0.01f;
 
-/**
- * IMU heater controller proportional gain value.
- *
- * @category system
- * @group Sensors
- * @unit us/C
- * @min 0
- * @max 2.0
- * @decimal 3
- */
-PARAM_DEFINE_FLOAT(SENS_IMU_TEMP_P, 1.0f);
+	// Phase 1: Establish yaw lock at yaw=0 with unaided_yaw=0
+	stick_yaw.reset(0.f, 0.f);
+
+	for (int i = 0; i < 10; i++) {
+		stick_yaw.generateYawSetpoint(yawspeed_sp, yaw_sp, 0.f, 0.f, dt, 0.f);
+	}
+
+	EXPECT_NEAR(yaw_sp, 0.f, 0.01f);
+
+	// Phase 2: Simulate EKF yaw correction — yaw jumps to 0.3 rad while
+	// unaided_yaw stays at 0. This creates a yaw_error of 0.3 and triggers
+	// the convergence detector, building up _yaw_correction ≈ 0.3.
+	for (int i = 0; i < 5; i++) {
+		stick_yaw.generateYawSetpoint(yawspeed_sp, yaw_sp, 0.f, 0.3f, dt, 0.f);
+	}
+
+	const float yaw_sp_before = yaw_sp;
+	ASSERT_TRUE(PX4_ISFINITE(yaw_sp_before));
+
+	// Phase 3: unaided_yaw becomes NAN — yaw setpoint must not jump.
+	stick_yaw.generateYawSetpoint(yawspeed_sp, yaw_sp, 0.f, 0.3f, dt, NAN);
+
+	EXPECT_NEAR(yaw_sp, yaw_sp_before, 0.01f)
+			<< "Yaw setpoint jumped from " << yaw_sp_before << " to " << yaw_sp
+			<< " when unaided_yaw became NAN";
+}

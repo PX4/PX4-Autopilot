@@ -17,10 +17,10 @@ VALID_FIELDS = { #Note, also have to add the message types as those can be field
     'uint32'
 }
 
-ALLOWED_UNITS = set(["m", "m/s", "m/s^2", "(m/s)^2", "deg", "deg/s", "rad", "rad/s", "rad^2", "rpm" ,"V", "A", "mA", "mAh", "W", "dBm", "h", "s", "ms", "us", "Ohm", "MB", "Kb/s", "degC","Pa","%","-"])
+ALLOWED_UNITS = set(["m", "m/s", "m/s^2", "(m/s)^2", "deg", "deg/s", "rad", "rad/s", "rad^2", "rpm" ,"V", "A", "mA", "mAh", "W", "Wh", "dBm", "h", "minutes", "s", "ms", "us", "Ohm", "MB", "Kb/s", "degC","Pa", "%", "norm", "-"])
 invalid_units = set()
-ALLOWED_FRAMES = set(["NED","Body"])
-ALLOWED_INVALID_VALUES = set(["NaN", "0"])
+ALLOWED_FRAMES = set(["NED", "Body", "FRD", "ENU"])
+ALLOWED_INVALID_VALUES = set(["NaN", "0", "-1"])
 ALLOWED_CONSTANTS_NOT_IN_ENUM = set(["ORB_QUEUE_LENGTH","MESSAGE_VERSION"])
 
 class Error:
@@ -833,11 +833,9 @@ def generate_dds_yaml_doc(allMessageFiles, output_file = 'dds_topics.md'):
         for message in data["subscriptions"]:
             all_message_types.add(message['type'].split("::")[-1])
             all_topics.add(message['topic'].split('/')[-1])
-        if data["subscriptions_multi"]: # There is none now
-            dds_markdown += "None\n"
-            for message in data["subscriptions_multi"]:
-                all_message_types.add(message['type'].split("::")[-1])
-                all_topics.add(message['topic'].split('/')[-1])
+        for message in (data.get("subscriptions_multi") or []):
+            all_message_types.add(message['type'].split("::")[-1])
+            all_topics.add(message['topic'].split('/')[-1])
         for message in allMessageFiles:
             all_messages_in_source.add(message.split('/')[-1].split('.')[0])
         messagesNotExported = all_messages_in_source - all_message_types
@@ -874,13 +872,17 @@ Topic | Type| Rate Limit
 
         dds_markdown += "\n## Subscriptions Multi\n\n"
 
-        if not data["subscriptions_multi"]: # There is none now
+        subscriptions_multi = data.get("subscriptions_multi") or []
+        if not subscriptions_multi:
             dds_markdown += "None\n"
         else:
-            print("Warning - we now have subscription_multi data - check format")
-            dds_markdown += "Topic | Type\n--- | ---\n"
-            for message in data["subscriptions_multi"]:
-                dds_markdown += f"{message['topic']} | {message['type']}\n"
+            dds_markdown += "Topic | Type | Route Field | Max Instances\n--- | --- | --- | ---\n"
+            for message in subscriptions_multi:
+                type = message['type']
+                px4Type = type.split("::")[-1]
+                route_field = f"`{message['route_field']}`" if 'route_field' in message else "-"
+                max_instances = message.get('max_instances', '-')
+                dds_markdown += f"{message['topic']} | [{type}](../msg_docs/{px4Type}.md) | {route_field} | {max_instances}\n"
 
         if messagesNotExported:
             # Print the topics that are not exported to DDS

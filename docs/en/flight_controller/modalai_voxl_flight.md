@@ -41,7 +41,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 | Video                 | 4k30 Video Capture h.264/5 w/ 720p FPV                                                                                                                                  |
 | Camera Interfaces     | Support for MIPI-CSI2, USB UVC, HDMI                                                                                                                                    |
 | Wi-Fi                 | Pre-certified Wi-Fi module [QCNFA324 FCC ID:PPD-QCNFA324](https://fccid.io/PPD-QCNFA324), QCA6174A modem, 802.11ac 2x2 Dual-band, Bluetooth 4.2 (dual-mode)             |
-| 4G LTE                | [Optional add-on module](https://www.modalai.com/collections/voxl-add-ons/products/voxl-lte)                                                                            |
+| 4G LTE                | Optional add-on module                                                                                                                                                  |
 | Microhard pDDL        | [Optional add-on module](https://www.modalai.com/collections/voxl-add-ons/products/voxl-microhard-modem-usb-hub)                                                        |
 | GNSS                  | WGR7640 10Hz                                                                                                                                                            |
 | I/O                   | 1x USB3.0 OTG (ADB port), 1x USB2.0 (expansion port), 2x UART, 3x I2C, additional GPIO and SPI can be configured                                                        |
