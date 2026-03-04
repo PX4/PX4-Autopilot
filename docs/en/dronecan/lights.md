@@ -23,7 +23,7 @@ The following have been tested:
 3. Set the `light_id` and [light functions](#light_functions) of each light:
    - [UAVCAN_LGT_ID0](../advanced_config/parameter_reference.md#UAVCAN_LGT_ID0) / [UAVCAN_LGT_ID1](../advanced_config/parameter_reference.md#UAVCAN_LGT_ID1): Set to a `light_id` value (as defined by the specific product).
    - [UAVCAN_LGT_FN0](../advanced_config/parameter_reference.md#UAVCAN_LGT_FN0) / [UAVCAN_LGT_FN1](../advanced_config/parameter_reference.md#UAVCAN_LGT_FN1): Choose the desired [light function](#light_functions).
-4. Set [UAVCAN_LGT_MODE](#UAVCAN_LGT_MODE) to control when navigation colours activate.
+4. Set [UAVCAN_LGT_MODE](#UAVCAN_LGT_MODE) to control when fixed "orientation" colours activate.
 5. Reboot for changes to take effect.
 
 ### Light Functions {#light_functions}
