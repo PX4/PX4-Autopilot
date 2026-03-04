@@ -164,6 +164,10 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 
 			VectorState K = P * H / innovation_variance(axis_index);
 
+			// As drag fusion is often biased (due to approximate model or changing wind), using it to update the heading estimate
+			// can lead to unwanted heading corrections during acceleration and deceleration phases.
+			K(State::quat_nominal.idx + 2) = 0.f;
+
 			measurementUpdate(K, H, R_ACC, innovation(axis_index));
 		}
 	}

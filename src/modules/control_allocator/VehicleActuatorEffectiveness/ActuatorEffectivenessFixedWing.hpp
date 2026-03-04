@@ -38,6 +38,7 @@
 #include "ActuatorEffectivenessControlSurfaces.hpp"
 
 #include <uORB/topics/normalized_unsigned_setpoint.h>
+#include <uORB/topics/launch_detection_status.h>
 
 class ActuatorEffectivenessFixedWing : public ModuleParams, public ActuatorEffectiveness
 {
@@ -60,6 +61,7 @@ private:
 
 	uORB::Subscription _flaps_setpoint_sub{ORB_ID(flaps_setpoint)};
 	uORB::Subscription _spoilers_setpoint_sub{ORB_ID(spoilers_setpoint)};
+	uORB::Subscription _launch_detection_status_sub{ORB_ID(launch_detection_status)};
 
 	int _first_control_surface_idx{0}; ///< applies to matrix 1
 

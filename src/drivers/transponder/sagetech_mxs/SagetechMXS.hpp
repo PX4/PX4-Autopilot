@@ -65,9 +65,11 @@
 
 using namespace time_literals;
 
-class SagetechMXS : public ModuleBase<SagetechMXS>, public ModuleParams, public px4::ScheduledWorkItem
+class SagetechMXS : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	SagetechMXS(const char *port);
 	~SagetechMXS() override;
 

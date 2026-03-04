@@ -33,7 +33,6 @@ To create a package delivery mission (with a Gripper):
 1. Create a normal mission with a `Takeoff` mission item, and additional waypoints for your required flight path.
 
 2. Add a waypoint on the map for where you'd like to release the package.
-
    - To drop the package while flying set an appropriate altitude for the waypoint (and ensure the waypoint is at a safe location to drop the package).
 
    - If you'd like to land the vehicle to make the delivery you will need to change the `Waypoint` to a `Land` mission item.

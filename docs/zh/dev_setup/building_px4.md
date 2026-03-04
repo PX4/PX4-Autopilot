@@ -39,16 +39,6 @@ git clone https://github.com/PX4/PX4-Autopilot.git --recursive
 make px4_sitl gz_x500
 ```
 
-:::details
-如果您安装的是 Gazebo Classic
-使用以下命令启动 [Gazebo SITL](../sim_gazebo_classic/index.md)：
-
-```sh
-make px4_sitl gazebo-classic
-```
-
-:::
-
 这将显示 PX4 控制台：
 
 ![PX4 控制台](../../assets/toolchain/console_gazebo.png)
@@ -88,6 +78,16 @@ pxh> commander takeoff
 cd PX4-Autopilot
 make px4_fmu-v5_default
 ```
+
+:::tip
+You can also build using the [px4-dev Docker container](../test_and_ci/docker.md) without installing the toolchain locally.
+From the PX4-Autopilot directory:
+
+```sh
+./Tools/docker_run.sh 'make px4_fmu-v5_default'
+```
+
+:::
 
 运行成功后将输出类似结果：
 
@@ -145,7 +145,8 @@ make px4_fmu-v5_default
 - [Pixhawk 1 (FMUv2)](../flight_controller/pixhawk.md): `make px4_fmu-v2_default`
 
   :::warning
-  您**必须**使用受支持的GCC版本来构建此开发板（例如与[CI/docker](../test_and_ci/docker.md)中使用的相同版本），否则需从构建中移除相关模块。 使用不受支持的GCC进行构建可能会失败，因为PX4接近板载1MB闪存的容量限制。
+  You **must** use a supported version of GCC to build this board (e.g. the `gcc-arm-none-eabi` package from the current Ubuntu LTS, which is the same toolchain used by CI) or remove modules from the build.
+  使用不受支持的GCC进行构建可能会失败，因为PX4接近板载1MB闪存的容量限制。
 
 :::
 
@@ -211,7 +212,7 @@ make distclean
 这对于`make px4_fmu-v2_default` 构建是常见的，它的 flash 大小被限制在 1MB。
 
 如果您正在构建_vanilla_master 分支，最可能的原因是使用不支持的 GCC版本。
-在这种情况下，安装[开发者工具链](../dev_setup/dev_env.md)说明中指定的版本。
+In this case, install the `gcc-arm-none-eabi` package from the current Ubuntu LTS as described in the [Developer Toolchain](../dev_setup/dev_env.md) instructions.
 
 如果在构建自己的分支，您可能已将固件大小增加到超过1MB的限制。
 在这种情况下，您需要从构建中删除您不需要的任何驱动程序/模块。
@@ -224,7 +225,7 @@ PX4构建系统打开大量文件，因此您可能会超出此数量。
 构建工具链为很多文件报 `Too many open files`，如下所示：
 
 ```sh
-/usr/local/Cellar/gcc-arm-none-eabi/20171218/bin/../lib/gcc/arm-none-eabi/7.2.1/../../../../arm-none-eabi/bin/ld: cannot find NuttX/nuttx/fs/libfs.a: Too many open files
+arm-none-eabi-ld: cannot find NuttX/nuttx/fs/libfs.a: Too many open files
 ```
 
 解决方案是增加允许打开文件的最大数量（例如增加到300）。
@@ -247,34 +248,9 @@ xcode-select --install
 sudo ln -s /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/* /usr/local/include/
 ```
 
-### Ubuntu 18.04：涉及arm_none_eabi_gcc的编译错误
-
-与 arm_none_eabi_gcc 相关的构建问题可能是由于损坏的g++工具链安装引起的。
-您可以通过检查缺少的依赖项来验证这一点：
-
-```sh
-arm-none-eabi-gcc --version
-arm-none-eabi-g++ --version
-arm-none-eabi-gdb --version
-arm-none-eabi-size --version
-```
-
-缺少依赖项的 bash 输出示例：
-
-```sh
-arm-none-eabi-gdb --version
-arm-none-eabi-gdb: command not found
-```
-
-这个问题可以通过删除和[重新安装编译器](https://askubuntu.com/questions/1243252/how-to-install-arm-none-eabi-gdb-on-ubuntu-20-04-lts-focal-fossa)来解决。
-
-### Ubuntu 18.04：Visual Studio Code 无法监视此大型工作区中的文件更改
-
-请参阅[Visual Studio 代码 IDE (VSCode) > 疑难解答](../dev_setup/vscode.md#troubleshooting)。
-
 ### 导入Python软件包失败
 
-在运行 `make px4_sitl jmavsim` 命令时，“导入失败”错误表示某些Python 软件包未安装(如预期般安装)。
+"Failed to import" errors when running the `make px4_sitl gz_x500` command indicates that some Python packages are not installed (where expected).
 
 ```sh
 Failed to import jinja2: No module named 'jinja2'
@@ -282,12 +258,12 @@ Failed to import jinja2: No module named 'jinja2'
     pip3 install --user jinja2
 ```
 
-如果您已经安装了这些依赖关系，这可能是因为计算机上存在多个 Python 版本（例如 Python 2.7.16 和 Python 3.8.3），并且该模块不存在于构建工具链使用的版本中。
+If you have already installed these dependencies this may be because there is more than one Python version on the computer (e.g. Python 2.7.16 and Python 3.8.3), and the module is not present in the version used by the build toolchain.
 
-您应该能够按照所示明确安装依赖项来解决此问题。
+You should be able to fix this by installing the dependencies from the repository's requirements file:
 
 ```sh
-pip3 install --user pyserial empty toml numpy pandas jinja2 pyyaml pyros-genmsg packaging
+pip3 install --user -r Tools/setup/requirements.txt
 ```
 
 ## PX4 创建生成目标

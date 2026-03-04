@@ -1,8 +1,43 @@
+---
+pageClass: is-wide-page
+---
+
 # RegisterExtComponentRequest (UORB message)
 
-Request to register an external component
+Request to register an external component.
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/RegisterExtComponentRequest.msg)
+**TOPICS:** register_extcomponent_request
+
+## Fields
+
+| 명칭                                                                                          | 형식         | Unit [Frame] | Range/Enum | 설명                                                                                                                         |
+| ------------------------------------------------------------------------------------------- | ---------- | ---------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------- |
+| timestamp                                                                                   | `uint64`   |                                                                  |            | time since system start (microseconds)                                                                  |
+| request_id                                                             | `uint64`   |                                                                  |            | ID, set this to a random value                                                                                             |
+| name                                                                                        | `char[25]` |                                                                  |            | either the requested mode name, or component name                                                                          |
+| px4_ros2_api_version         | `uint16`   |                                                                  |            | Set to LATEST_PX4_ROS2_API_VERSION     |
+| register_arming_check                             | `bool`     |                                                                  |            |                                                                                                                            |
+| register_mode                                                          | `bool`     |                                                                  |            | registering a mode also requires arming_check to be set                                               |
+| register_mode_executor                            | `bool`     |                                                                  |            | registering an executor also requires a mode to be registered (which is the owned mode by the executor) |
+| enable_replace_internal_mode | `bool`     |                                                                  |            | set to true if an internal mode should be replaced                                                                         |
+| replace_internal_mode                             | `uint8`    |                                                                  |            | vehicle_status::NAVIGATION_STATE_\*                                   |
+| activate_mode_immediately                         | `bool`     |                                                                  |            | switch to the registered mode (can only be set in combination with an executor)                         |
+| not_user_selectable                               | `bool`     |                                                                  |            | mode cannot be selected by the user                                                                                        |
+
+## Constants
+
+| 명칭                                                                                                                                                          | 형식       | Value | 설명                                                                                                                                                                                                                     |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                                                                        | `uint32` | 1     |                                                                                                                                                                                                                        |
+| <a href="#LATEST_PX4_ROS2_API_VERSION"></a> LATEST_PX4_ROS2_API_VERSION | `uint16` | 1     | API version compatibility. Increase this on a breaking semantic change. Changes to any message field are detected separately and do not require an API version change. |
+| <a href="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH                                                                 | `uint8`  | 2     |                                                                                                                                                                                                                        |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/RegisterExtComponentRequest.msg)
+
+:::details
+Click here to see original file
 
 ```c
 # Request to register an external component
@@ -29,5 +64,6 @@ bool activate_mode_immediately     # switch to the registered mode (can only be 
 bool not_user_selectable           # mode cannot be selected by the user
 
 uint8 ORB_QUEUE_LENGTH = 2
-
 ```
+
+:::

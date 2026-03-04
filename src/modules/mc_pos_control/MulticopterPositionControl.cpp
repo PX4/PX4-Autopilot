@@ -41,6 +41,8 @@
 
 using namespace matrix;
 
+ModuleBase::Descriptor MulticopterPositionControl::desc{task_spawn, custom_command, print_usage};
+
 MulticopterPositionControl::MulticopterPositionControl(bool vtol) :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
@@ -292,7 +294,7 @@ void MulticopterPositionControl::parameters_update(bool force)
 					    "Hover thrust has been constrained by min/max thrust", _param_mpc_thr_hover.get());
 		}
 
-		if (!_param_mpc_use_hte.get() || !_hover_thrust_initialized) {
+		if (!_hover_thrust_initialized) {
 			_control.setHoverThrust(_param_mpc_thr_hover.get());
 			_hover_thrust_initialized = true;
 		}
@@ -379,7 +381,7 @@ void MulticopterPositionControl::Run()
 {
 	if (should_exit()) {
 		_local_pos_sub.unregisterCallback();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -401,7 +403,7 @@ void MulticopterPositionControl::Run()
 		if (_vehicle_control_mode_sub.updated()) {
 			const bool previous_position_control_enabled = _vehicle_control_mode.flag_multicopter_position_control_enabled;
 
-			if (_vehicle_control_mode_sub.update(&_vehicle_control_mode)) {
+			if (_vehicle_control_mode_sub.copy(&_vehicle_control_mode)) {
 				if (!previous_position_control_enabled && _vehicle_control_mode.flag_multicopter_position_control_enabled) {
 					_time_position_control_enabled = _vehicle_control_mode.timestamp;
 
@@ -415,10 +417,10 @@ void MulticopterPositionControl::Run()
 
 		_vehicle_land_detected_sub.update(&_vehicle_land_detected);
 
-		if (_param_mpc_use_hte.get()) {
+		if (_hover_thrust_estimate_sub.updated()) {
 			hover_thrust_estimate_s hte;
 
-			if (_hover_thrust_estimate_sub.update(&hte)) {
+			if (_hover_thrust_estimate_sub.copy(&hte)) {
 				if (hte.valid) {
 					_control.updateHoverThrust(hte.hover_thrust);
 				}
@@ -743,8 +745,8 @@ int MulticopterPositionControl::task_spawn(int argc, char *argv[])
 	MulticopterPositionControl *instance = new MulticopterPositionControl(vtol);
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -755,8 +757,8 @@ int MulticopterPositionControl::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -793,5 +795,5 @@ logging.
 
 extern "C" __EXPORT int mc_pos_control_main(int argc, char *argv[])
 {
-	return MulticopterPositionControl::main(argc, argv);
+	return ModuleBase::main(MulticopterPositionControl::desc, argc, argv);
 }

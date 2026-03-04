@@ -24,13 +24,13 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Name                                                    | Type    | Value | Description                               |
-| ------------------------------------------------------- | ------- | ----- | ----------------------------------------- |
-| <a href="#LOGGER_TYPE_FULL"></a> LOGGER_TYPE_FULL       | `uint8` | 0     | Normal, full size log                     |
-| <a href="#LOGGER_TYPE_MISSION"></a> LOGGER_TYPE_MISSION | `uint8` | 1     | reduced mission log (e.g. for geotagging) |
-| <a href="#BACKEND_FILE"></a> BACKEND_FILE               | `uint8` | 1     |
-| <a href="#BACKEND_MAVLINK"></a> BACKEND_MAVLINK         | `uint8` | 2     |
-| <a href="#BACKEND_ALL"></a> BACKEND_ALL                 | `uint8` | 3     |
+| Name                                                  | Type    | Value | Description                               |
+| ----------------------------------------------------- | ------- | ----- | ----------------------------------------- |
+| <a id="#LOGGER_TYPE_FULL"></a> LOGGER_TYPE_FULL       | `uint8` | 0     | Normal, full size log                     |
+| <a id="#LOGGER_TYPE_MISSION"></a> LOGGER_TYPE_MISSION | `uint8` | 1     | reduced mission log (e.g. for geotagging) |
+| <a id="#BACKEND_FILE"></a> BACKEND_FILE               | `uint8` | 1     |
+| <a id="#BACKEND_MAVLINK"></a> BACKEND_MAVLINK         | `uint8` | 2     |
+| <a id="#BACKEND_ALL"></a> BACKEND_ALL                 | `uint8` | 3     |
 
 ## Source Message
 

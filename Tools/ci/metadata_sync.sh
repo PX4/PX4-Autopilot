@@ -123,7 +123,7 @@ generate_parameters() {
     if [[ "$VERBOSE" == "true" ]]; then
         make parameters_metadata
     else
-        make parameters_metadata >/dev/null 2>&1
+        make parameters_metadata >/dev/null
     fi
 }
 
@@ -132,7 +132,7 @@ generate_airframes() {
     if [[ "$VERBOSE" == "true" ]]; then
         make airframe_metadata
     else
-        make airframe_metadata >/dev/null 2>&1
+        make airframe_metadata >/dev/null
     fi
 }
 
@@ -141,7 +141,7 @@ generate_modules() {
     if [[ "$VERBOSE" == "true" ]]; then
         make module_documentation
     else
-        make module_documentation >/dev/null 2>&1
+        make module_documentation >/dev/null
     fi
 }
 
@@ -150,7 +150,7 @@ generate_msg_docs() {
     if [[ "$VERBOSE" == "true" ]]; then
         make msg_docs
     else
-        make msg_docs >/dev/null 2>&1
+        make msg_docs >/dev/null
     fi
 }
 
@@ -159,7 +159,7 @@ generate_uorb_graphs() {
     if [[ "$VERBOSE" == "true" ]]; then
         make uorb_graphs
     else
-        make uorb_graphs >/dev/null 2>&1
+        make uorb_graphs >/dev/null
     fi
 }
 
@@ -169,7 +169,7 @@ generate_failsafe_web() {
     if [[ "$VERBOSE" == "true" ]]; then
         make failsafe_web
     else
-        make failsafe_web >/dev/null 2>&1
+        make failsafe_web >/dev/null
     fi
 }
 

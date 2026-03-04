@@ -657,7 +657,7 @@ PARAM_DEFINE_INT32(COM_DLL_EXCEPT, 0);
 PARAM_DEFINE_INT32(COM_ACT_FAIL_ACT, 0);
 
 /**
- * Expect and require a healthy MAVLink parachute system
+ * Require MAVLink parachute system to be present and healthy
  *
  * @boolean
  * @group Commander
@@ -812,9 +812,9 @@ PARAM_DEFINE_FLOAT(COM_LKDOWN_TKO, 3.0f);
 PARAM_DEFINE_INT32(COM_ARM_SDCARD, 1);
 
 /**
- * Enable FMU SD card hardfault detection check
+ * Enable FMU SD card hardfault / watchdog detection check
  *
- * This check detects if there are hardfault files present on the
+ * This check detects if there are hardfault / watchdog files present on the
  * SD card. If so, and the parameter is enabled, arming is prevented.
  *
  * @group Commander
@@ -835,6 +835,21 @@ PARAM_DEFINE_INT32(COM_ARM_HFLT_CHK, 1);
  * @value 2 Enforce Open Drone ID system presence
  */
 PARAM_DEFINE_INT32(COM_ARM_ODID, 0);
+
+/**
+ * Enable Traffic Avoidance system detection check
+ *
+ * This check detects if a traffic avoidance system (ADSB/FLARM transponder)
+ * is missing. Depending on the value of the parameter, the check can be
+ * disabled, warn only, or deny arming.
+ *
+ * @group Commander
+ * @value 0 Disabled
+ * @value 1 Warning only
+ * @value 2 Enforce for all modes
+ * @value 3 Enforce for mission modes only
+ */
+PARAM_DEFINE_INT32(COM_ARM_TRAFF, 0);
 
 /**
  * Enforced delay between arming and further navigation

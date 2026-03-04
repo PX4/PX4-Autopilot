@@ -52,39 +52,39 @@ GPS position in WGS84 coordinates. the field 'timestamp' is for the position & v
 
 ## Constants
 
-| Name                                                                                | Type     | Value | Description                                |
-| ----------------------------------------------------------------------------------- | -------- | ----- | ------------------------------------------ |
-| <a href="#FIX_TYPE_NONE"></a> FIX_TYPE_NONE                                         | `uint8`  | 1     | Value 0 is also valid to represent no fix. |
-| <a href="#FIX_TYPE_2D"></a> FIX_TYPE_2D                                             | `uint8`  | 2     |
-| <a href="#FIX_TYPE_3D"></a> FIX_TYPE_3D                                             | `uint8`  | 3     |
-| <a href="#FIX_TYPE_RTCM_CODE_DIFFERENTIAL"></a> FIX_TYPE_RTCM_CODE_DIFFERENTIAL     | `uint8`  | 4     |
-| <a href="#FIX_TYPE_RTK_FLOAT"></a> FIX_TYPE_RTK_FLOAT                               | `uint8`  | 5     |
-| <a href="#FIX_TYPE_RTK_FIXED"></a> FIX_TYPE_RTK_FIXED                               | `uint8`  | 6     |
-| <a href="#FIX_TYPE_EXTRAPOLATED"></a> FIX_TYPE_EXTRAPOLATED                         | `uint8`  | 8     |
-| <a href="#JAMMING_STATE_UNKNOWN"></a> JAMMING_STATE_UNKNOWN                         | `uint8`  | 0     | default                                    |
-| <a href="#JAMMING_STATE_OK"></a> JAMMING_STATE_OK                                   | `uint8`  | 1     |
-| <a href="#JAMMING_STATE_MITIGATED"></a> JAMMING_STATE_MITIGATED                     | `uint8`  | 2     |
-| <a href="#JAMMING_STATE_DETECTED"></a> JAMMING_STATE_DETECTED                       | `uint8`  | 3     |
-| <a href="#SPOOFING_STATE_UNKNOWN"></a> SPOOFING_STATE_UNKNOWN                       | `uint8`  | 0     | default                                    |
-| <a href="#SPOOFING_STATE_OK"></a> SPOOFING_STATE_OK                                 | `uint8`  | 1     |
-| <a href="#SPOOFING_STATE_MITIGATED"></a> SPOOFING_STATE_MITIGATED                   | `uint8`  | 2     |
-| <a href="#SPOOFING_STATE_DETECTED"></a> SPOOFING_STATE_DETECTED                     | `uint8`  | 3     |
-| <a href="#AUTHENTICATION_STATE_UNKNOWN"></a> AUTHENTICATION_STATE_UNKNOWN           | `uint8`  | 0     | default                                    |
-| <a href="#AUTHENTICATION_STATE_INITIALIZING"></a> AUTHENTICATION_STATE_INITIALIZING | `uint8`  | 1     |
-| <a href="#AUTHENTICATION_STATE_ERROR"></a> AUTHENTICATION_STATE_ERROR               | `uint8`  | 2     |
-| <a href="#AUTHENTICATION_STATE_OK"></a> AUTHENTICATION_STATE_OK                     | `uint8`  | 3     |
-| <a href="#AUTHENTICATION_STATE_DISABLED"></a> AUTHENTICATION_STATE_DISABLED         | `uint8`  | 4     |
-| <a href="#SYSTEM_ERROR_OK"></a> SYSTEM_ERROR_OK                                     | `uint32` | 0     | default                                    |
-| <a href="#SYSTEM_ERROR_INCOMING_CORRECTIONS"></a> SYSTEM_ERROR_INCOMING_CORRECTIONS | `uint32` | 1     |
-| <a href="#SYSTEM_ERROR_CONFIGURATION"></a> SYSTEM_ERROR_CONFIGURATION               | `uint32` | 2     |
-| <a href="#SYSTEM_ERROR_SOFTWARE"></a> SYSTEM_ERROR_SOFTWARE                         | `uint32` | 4     |
-| <a href="#SYSTEM_ERROR_ANTENNA"></a> SYSTEM_ERROR_ANTENNA                           | `uint32` | 8     |
-| <a href="#SYSTEM_ERROR_EVENT_CONGESTION"></a> SYSTEM_ERROR_EVENT_CONGESTION         | `uint32` | 16    |
-| <a href="#SYSTEM_ERROR_CPU_OVERLOAD"></a> SYSTEM_ERROR_CPU_OVERLOAD                 | `uint32` | 32    |
-| <a href="#SYSTEM_ERROR_OUTPUT_CONGESTION"></a> SYSTEM_ERROR_OUTPUT_CONGESTION       | `uint32` | 64    |
-| <a href="#RTCM_MSG_USED_UNKNOWN"></a> RTCM_MSG_USED_UNKNOWN                         | `uint8`  | 0     |
-| <a href="#RTCM_MSG_USED_NOT_USED"></a> RTCM_MSG_USED_NOT_USED                       | `uint8`  | 1     |
-| <a href="#RTCM_MSG_USED_USED"></a> RTCM_MSG_USED_USED                               | `uint8`  | 2     |
+| Name                                                                              | Type     | Value | Description                                |
+| --------------------------------------------------------------------------------- | -------- | ----- | ------------------------------------------ |
+| <a id="#FIX_TYPE_NONE"></a> FIX_TYPE_NONE                                         | `uint8`  | 1     | Value 0 is also valid to represent no fix. |
+| <a id="#FIX_TYPE_2D"></a> FIX_TYPE_2D                                             | `uint8`  | 2     |
+| <a id="#FIX_TYPE_3D"></a> FIX_TYPE_3D                                             | `uint8`  | 3     |
+| <a id="#FIX_TYPE_RTCM_CODE_DIFFERENTIAL"></a> FIX_TYPE_RTCM_CODE_DIFFERENTIAL     | `uint8`  | 4     |
+| <a id="#FIX_TYPE_RTK_FLOAT"></a> FIX_TYPE_RTK_FLOAT                               | `uint8`  | 5     |
+| <a id="#FIX_TYPE_RTK_FIXED"></a> FIX_TYPE_RTK_FIXED                               | `uint8`  | 6     |
+| <a id="#FIX_TYPE_EXTRAPOLATED"></a> FIX_TYPE_EXTRAPOLATED                         | `uint8`  | 8     |
+| <a id="#JAMMING_STATE_UNKNOWN"></a> JAMMING_STATE_UNKNOWN                         | `uint8`  | 0     | default                                    |
+| <a id="#JAMMING_STATE_OK"></a> JAMMING_STATE_OK                                   | `uint8`  | 1     |
+| <a id="#JAMMING_STATE_MITIGATED"></a> JAMMING_STATE_MITIGATED                     | `uint8`  | 2     |
+| <a id="#JAMMING_STATE_DETECTED"></a> JAMMING_STATE_DETECTED                       | `uint8`  | 3     |
+| <a id="#SPOOFING_STATE_UNKNOWN"></a> SPOOFING_STATE_UNKNOWN                       | `uint8`  | 0     | default                                    |
+| <a id="#SPOOFING_STATE_OK"></a> SPOOFING_STATE_OK                                 | `uint8`  | 1     |
+| <a id="#SPOOFING_STATE_MITIGATED"></a> SPOOFING_STATE_MITIGATED                   | `uint8`  | 2     |
+| <a id="#SPOOFING_STATE_DETECTED"></a> SPOOFING_STATE_DETECTED                     | `uint8`  | 3     |
+| <a id="#AUTHENTICATION_STATE_UNKNOWN"></a> AUTHENTICATION_STATE_UNKNOWN           | `uint8`  | 0     | default                                    |
+| <a id="#AUTHENTICATION_STATE_INITIALIZING"></a> AUTHENTICATION_STATE_INITIALIZING | `uint8`  | 1     |
+| <a id="#AUTHENTICATION_STATE_ERROR"></a> AUTHENTICATION_STATE_ERROR               | `uint8`  | 2     |
+| <a id="#AUTHENTICATION_STATE_OK"></a> AUTHENTICATION_STATE_OK                     | `uint8`  | 3     |
+| <a id="#AUTHENTICATION_STATE_DISABLED"></a> AUTHENTICATION_STATE_DISABLED         | `uint8`  | 4     |
+| <a id="#SYSTEM_ERROR_OK"></a> SYSTEM_ERROR_OK                                     | `uint32` | 0     | default                                    |
+| <a id="#SYSTEM_ERROR_INCOMING_CORRECTIONS"></a> SYSTEM_ERROR_INCOMING_CORRECTIONS | `uint32` | 1     |
+| <a id="#SYSTEM_ERROR_CONFIGURATION"></a> SYSTEM_ERROR_CONFIGURATION               | `uint32` | 2     |
+| <a id="#SYSTEM_ERROR_SOFTWARE"></a> SYSTEM_ERROR_SOFTWARE                         | `uint32` | 4     |
+| <a id="#SYSTEM_ERROR_ANTENNA"></a> SYSTEM_ERROR_ANTENNA                           | `uint32` | 8     |
+| <a id="#SYSTEM_ERROR_EVENT_CONGESTION"></a> SYSTEM_ERROR_EVENT_CONGESTION         | `uint32` | 16    |
+| <a id="#SYSTEM_ERROR_CPU_OVERLOAD"></a> SYSTEM_ERROR_CPU_OVERLOAD                 | `uint32` | 32    |
+| <a id="#SYSTEM_ERROR_OUTPUT_CONGESTION"></a> SYSTEM_ERROR_OUTPUT_CONGESTION       | `uint32` | 64    |
+| <a id="#RTCM_MSG_USED_UNKNOWN"></a> RTCM_MSG_USED_UNKNOWN                         | `uint8`  | 0     |
+| <a id="#RTCM_MSG_USED_NOT_USED"></a> RTCM_MSG_USED_NOT_USED                       | `uint8`  | 1     |
+| <a id="#RTCM_MSG_USED_USED"></a> RTCM_MSG_USED_USED                               | `uint8`  | 2     |
 
 ## Source Message
 

@@ -36,5 +36,5 @@
 #include <drivers/drv_sensor.h>
 
 constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-	initSPIBus(1, {initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P), }),
+	initSPIBus(1, {initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P), initSPIDevice(DRV_IMU_DEVTYPE_BMI270), }),
 };

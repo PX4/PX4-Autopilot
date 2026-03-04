@@ -39,16 +39,6 @@ Navigate into the **PX4-Autopilot** directory and start [Gazebo SITL](../sim_gaz
 make px4_sitl gz_x500
 ```
 
-:::details
-If you installed Gazebo Classic
-Start  [Gazebo Classic SITL](../sim_gazebo_classic/index.md) using the following command:
-
-```sh
-make px4_sitl gazebo-classic
-```
-
-:::
-
 This will bring up the PX4 console:
 
 ![PX4 Console](../../assets/toolchain/console_gazebo.png)
@@ -88,6 +78,16 @@ For example, to build for [Pixhawk 4](../flight_controller/pixhawk4.md) hardware
 cd PX4-Autopilot
 make px4_fmu-v4_default
 ```
+
+:::tip
+You can also build using the [px4-dev Docker container](../test_and_ci/docker.md) without installing the toolchain locally.
+From the PX4-Autopilot directory:
+
+```sh
+./Tools/docker_run.sh 'make px4_fmu-v5_default'
+```
+
+:::
 
 A successful run will end with similar output to:
 
@@ -145,7 +145,8 @@ The following list shows the build commands for the [Pixhawk standard](../flight
 - [Pixhawk 1 (FMUv2)](../flight_controller/pixhawk.md): `make px4_fmu-v2_default`
 
   :::warning
-  You **must** use a supported version of GCC to build this board (e.g. the same as used by [CI/docker](../test_and_ci/docker.md)) or remove modules from the build. PX4가 보드의 1MB 플래시 제한에 가깝기 때문에, 지원되지 않는 GCC로 빌드가 실패할 수 있습니다.
+  You **must** use a supported version of GCC to build this board (e.g. the `gcc-arm-none-eabi` package from the current Ubuntu LTS, which is the same toolchain used by CI) or remove modules from the build.
+  PX4가 보드의 1MB 플래시 제한에 가깝기 때문에, 지원되지 않는 GCC로 빌드가 실패할 수 있습니다.
 
 :::
 
@@ -211,7 +212,7 @@ The `region 'flash' overflowed by XXXX bytes` error indicates that the firmware 
 This is common for `make px4_fmu-v2_default` builds, where the flash size is limited to 1MB.
 
 If you're building the _vanilla_ master branch, the most likely cause is using an unsupported version of GCC.
-In this case, install the version specified in the [Developer Toolchain](../dev_setup/dev_env.md) instructions.
+In this case, install the `gcc-arm-none-eabi` package from the current Ubuntu LTS as described in the [Developer Toolchain](../dev_setup/dev_env.md) instructions.
 
 If building your own branch, it is possible that you have increased the firmware size over the 1MB limit.
 PX4 빌드 시스템은 많은 수의 파일을 오픈하므로, 이 갯수를 초과할 수 있습니다.
@@ -224,7 +225,7 @@ The PX4 build system opens a large number of files, so you may exceed this numbe
 The build toolchain will then report `Too many open files` for many files, as shown below:
 
 ```sh
-/usr/local/Cellar/gcc-arm-none-eabi/20171218/bin/../lib/gcc/arm-none-eabi/7.2.1/../../../../arm-none-eabi/bin/ld: cannot find NuttX/nuttx/fs/libfs.a: Too many open files
+arm-none-eabi-ld: cannot find NuttX/nuttx/fs/libfs.a: Too many open files
 ```
 
 The solution is to increase the maximum allowed number of open files (e.g. to 300).
@@ -247,34 +248,9 @@ xcode-select --install
 sudo ln -s /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/* /usr/local/include/
 ```
 
-### Ubuntu 18.04: arm_none_eabi_gcc와 관련된 컴파일 오류
-
-Build issues related to `arm_none_eabi_gcc`may be due to a broken g++ toolchain installation.
-You can verify that this is the case by checking for missing dependencies using:
-
-```sh
-arm-none-eabi-gcc --version
-arm-none-eabi-g++ --version
-arm-none-eabi-gdb --version
-arm-none-eabi-size --version
-```
-
-Example of bash output with missing dependencies:
-
-```sh
-arm-none-eabi-gdb --version
-arm-none-eabi-gdb: command not found
-```
-
-This can be resolved by removing and [reinstalling the compiler](https://askubuntu.com/questions/1243252/how-to-install-arm-none-eabi-gdb-on-ubuntu-20-04-lts-focal-fossa).
-
-### Ubuntu 18.04: Visual Studio Code는 이 큰 작업 영역에서 파일 변경 사항을 감시할 수 없습니다.
-
-See [Visual Studio Code IDE (VSCode) > Troubleshooting](../dev_setup/vscode.md#troubleshooting).
-
 ### Python 패키지를 가져오지 못했습니다.
 
-"Failed to import" errors when running the `make px4_sitl jmavsim` command indicates that some Python packages are not installed (where expected).
+"Failed to import" errors when running the `make px4_sitl gz_x500` command indicates that some Python packages are not installed (where expected).
 
 ```sh
 Failed to import jinja2: No module named 'jinja2'
@@ -282,12 +258,12 @@ You may need to install it using:
     pip3 install --user jinja2
 ```
 
-다음과 같이 종속성을 명시적으로 설치하여, 이 문제를 해결할 수 있습니다.
+If you have already installed these dependencies this may be because there is more than one Python version on the computer (e.g. Python 2.7.16 and Python 3.8.3), and the module is not present in the version used by the build toolchain.
 
-You should be able to fix this by explicitly installing the dependencies as shown:
+You should be able to fix this by installing the dependencies from the repository's requirements file:
 
 ```sh
-pip3 install --user pyserial empty toml numpy pandas jinja2 pyyaml pyros-genmsg packaging
+pip3 install --user -r Tools/setup/requirements.txt
 ```
 
 ## PX4 빌드 타겟 만들기

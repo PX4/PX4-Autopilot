@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 ParameterSetUsedRequest : Used by a remote to update the used flag for a parameter on the primary.
 
-**TOPICS:** parameter_setused_request
+**TOPICS:** parameter_set_used_request
 
 ## Fields
 
@@ -17,9 +17,9 @@ ParameterSetUsedRequest : Used by a remote to update the used flag for a paramet
 
 ## Constants
 
-| Name                                              | Type    | Value | Description |
-| ------------------------------------------------- | ------- | ----- | ----------- |
-| <a href="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH | `uint8` | 64    |
+| Name                                            | Type    | Value | Description |
+| ----------------------------------------------- | ------- | ----- | ----------- |
+| <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH | `uint8` | 64    |
 
 ## Source Message
 

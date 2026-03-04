@@ -1,10 +1,10 @@
 # Omnibus F4 SD
 
-:::warning
+::: warning
 This flight controller has been [discontinued](../flight_controller/autopilot_experimental.md) and is no longer commercially available.
 :::
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the manufacturer for support or compliance issues.
 :::
@@ -23,7 +23,7 @@ These are the main differences compared to a [Pixracer](../flight_controller/pix
 - Same board dimensions as a _Pixracer_, but slightly smaller form factor (because it has less connectors)
 - Integrated OSD (not yet implemented in software)
 
-:::tip
+::: tip
 All the usual PX4 features can still be used for your racer!
 :::
 
@@ -46,15 +46,15 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - Built-in current sensor
 - Built-in OSD chip (AB7456 via SPI)
 
-## Where to Buy
+## Where to Buy {#store}
 
 The board is produced by different vendors, with some variations (e.g. with or without a barometer).
 
-:::tip
+::: tip
 PX4 is compatible with boards that support the Betaflight OMNIBUSF4SD target (if _OMNIBUSF4SD_ is present on the product page the board should work with PX4).
 :::
 
-:::tip
+::: tip
 Any Omnibus F4 labeled derivative (e.g. clone) should work as well. However, power distribution on these boards is of varying quality.
 :::
 
@@ -193,7 +193,7 @@ On the handheld controller (e.g. Taranis) you will also need a [Transmitter Modu
 This can be plugged into the back of the RC controller.
 
 ::: info
-The referenced links above contains the documentation for the TX/RX modules.
+The referenced links above contain the documentation for the TX/RX modules.
 :::
 
 #### Setup
@@ -225,7 +225,7 @@ Download the [omnibusf4sd_bl.hex](https://github.com/PX4/PX4-Autopilot/raw/main/
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make omnibus_f4sd_default
 ```
 
@@ -233,7 +233,7 @@ make omnibus_f4sd_default
 
 You can use either pre-built firmware or your own custom firmware.
 
-:::warning  
+::: warning  
 If you use [CRSF Telemetry](../telemetry/crsf_telemetry.md#px4-configuration) in your radio system, as describe above, then you must use custom firmware.
 :::
 
@@ -241,7 +241,7 @@ The firmware can be installed in any of the normal ways:
 
 - Build and upload the source
 
-  ```
+  ```sh
   make omnibus_f4sd_default upload
   ```
 

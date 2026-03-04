@@ -10,4 +10,8 @@
 - [v1.13](../releases/1.13.md)
 - [v1.12](../releases/1.12.md)
 
-PX4自动驾驶仪项目的完整发布存档可在[GitHub](https://github.com/PX4/PX4-Autopilot/releases)上找到。
+The full archive of releases for the PX4 autopilot project can be found on [GitHub](https://github.com/PX4/PX4-Autopilot/releases).
+
+:::info
+For maintainers, see [Release Process](../releases/release_process.md) for the tagging and publishing workflow.
+:::

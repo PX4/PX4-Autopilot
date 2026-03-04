@@ -28,7 +28,7 @@ TFI2CADT01 виконує операцію XOR на викликаній адр�
 ## Приклад використання
 
 The tachometer sensor [TFRPM01](../sensor/thunderfly_tachometer.md) can be set to two different addresses using a solder jumper.
-Якщо автопілот має три шини, тільки 6 датчиків можуть бути підключені і жодна шина не залишається вільною (2 доступні адреси \* 3 порти I2C).
+If the autopilot has three buses, only 6 sensors can be connected and no bus remains free (2 available addresses \* 3 I2C ports).
 У деяких мультикоптерах або рішеннях VTOL є необхідність вимірювати оберти хвилину RPM 8 або більше елементів.
 The [TFI2CADT01](https://www.tindie.com/products/26353/) is highly recommended in this case.
 

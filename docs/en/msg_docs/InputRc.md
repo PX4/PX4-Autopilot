@@ -28,26 +28,26 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Name                                                                            | Type    | Value | Description                                                                      |
-| ------------------------------------------------------------------------------- | ------- | ----- | -------------------------------------------------------------------------------- |
-| <a href="#RC_INPUT_SOURCE_UNKNOWN"></a> RC_INPUT_SOURCE_UNKNOWN                 | `uint8` | 0     |
-| <a href="#RC_INPUT_SOURCE_PX4FMU_PPM"></a> RC_INPUT_SOURCE_PX4FMU_PPM           | `uint8` | 1     |
-| <a href="#RC_INPUT_SOURCE_PX4IO_PPM"></a> RC_INPUT_SOURCE_PX4IO_PPM             | `uint8` | 2     |
-| <a href="#RC_INPUT_SOURCE_PX4IO_SPEKTRUM"></a> RC_INPUT_SOURCE_PX4IO_SPEKTRUM   | `uint8` | 3     |
-| <a href="#RC_INPUT_SOURCE_PX4IO_SBUS"></a> RC_INPUT_SOURCE_PX4IO_SBUS           | `uint8` | 4     |
-| <a href="#RC_INPUT_SOURCE_PX4IO_ST24"></a> RC_INPUT_SOURCE_PX4IO_ST24           | `uint8` | 5     |
-| <a href="#RC_INPUT_SOURCE_MAVLINK"></a> RC_INPUT_SOURCE_MAVLINK                 | `uint8` | 6     |
-| <a href="#RC_INPUT_SOURCE_QURT"></a> RC_INPUT_SOURCE_QURT                       | `uint8` | 7     |
-| <a href="#RC_INPUT_SOURCE_PX4FMU_SPEKTRUM"></a> RC_INPUT_SOURCE_PX4FMU_SPEKTRUM | `uint8` | 8     |
-| <a href="#RC_INPUT_SOURCE_PX4FMU_SBUS"></a> RC_INPUT_SOURCE_PX4FMU_SBUS         | `uint8` | 9     |
-| <a href="#RC_INPUT_SOURCE_PX4FMU_ST24"></a> RC_INPUT_SOURCE_PX4FMU_ST24         | `uint8` | 10    |
-| <a href="#RC_INPUT_SOURCE_PX4FMU_SUMD"></a> RC_INPUT_SOURCE_PX4FMU_SUMD         | `uint8` | 11    |
-| <a href="#RC_INPUT_SOURCE_PX4FMU_DSM"></a> RC_INPUT_SOURCE_PX4FMU_DSM           | `uint8` | 12    |
-| <a href="#RC_INPUT_SOURCE_PX4IO_SUMD"></a> RC_INPUT_SOURCE_PX4IO_SUMD           | `uint8` | 13    |
-| <a href="#RC_INPUT_SOURCE_PX4FMU_CRSF"></a> RC_INPUT_SOURCE_PX4FMU_CRSF         | `uint8` | 14    |
-| <a href="#RC_INPUT_SOURCE_PX4FMU_GHST"></a> RC_INPUT_SOURCE_PX4FMU_GHST         | `uint8` | 15    |
-| <a href="#RC_INPUT_MAX_CHANNELS"></a> RC_INPUT_MAX_CHANNELS                     | `uint8` | 18    | Maximum number of R/C input channels in the system. S.Bus has up to 18 channels. |
-| <a href="#RSSI_MAX"></a> RSSI_MAX                                               | `int8`  | 100   |
+| Name                                                                          | Type    | Value | Description                                                                      |
+| ----------------------------------------------------------------------------- | ------- | ----- | -------------------------------------------------------------------------------- |
+| <a id="#RC_INPUT_SOURCE_UNKNOWN"></a> RC_INPUT_SOURCE_UNKNOWN                 | `uint8` | 0     |
+| <a id="#RC_INPUT_SOURCE_PX4FMU_PPM"></a> RC_INPUT_SOURCE_PX4FMU_PPM           | `uint8` | 1     |
+| <a id="#RC_INPUT_SOURCE_PX4IO_PPM"></a> RC_INPUT_SOURCE_PX4IO_PPM             | `uint8` | 2     |
+| <a id="#RC_INPUT_SOURCE_PX4IO_SPEKTRUM"></a> RC_INPUT_SOURCE_PX4IO_SPEKTRUM   | `uint8` | 3     |
+| <a id="#RC_INPUT_SOURCE_PX4IO_SBUS"></a> RC_INPUT_SOURCE_PX4IO_SBUS           | `uint8` | 4     |
+| <a id="#RC_INPUT_SOURCE_PX4IO_ST24"></a> RC_INPUT_SOURCE_PX4IO_ST24           | `uint8` | 5     |
+| <a id="#RC_INPUT_SOURCE_MAVLINK"></a> RC_INPUT_SOURCE_MAVLINK                 | `uint8` | 6     |
+| <a id="#RC_INPUT_SOURCE_QURT"></a> RC_INPUT_SOURCE_QURT                       | `uint8` | 7     |
+| <a id="#RC_INPUT_SOURCE_PX4FMU_SPEKTRUM"></a> RC_INPUT_SOURCE_PX4FMU_SPEKTRUM | `uint8` | 8     |
+| <a id="#RC_INPUT_SOURCE_PX4FMU_SBUS"></a> RC_INPUT_SOURCE_PX4FMU_SBUS         | `uint8` | 9     |
+| <a id="#RC_INPUT_SOURCE_PX4FMU_ST24"></a> RC_INPUT_SOURCE_PX4FMU_ST24         | `uint8` | 10    |
+| <a id="#RC_INPUT_SOURCE_PX4FMU_SUMD"></a> RC_INPUT_SOURCE_PX4FMU_SUMD         | `uint8` | 11    |
+| <a id="#RC_INPUT_SOURCE_PX4FMU_DSM"></a> RC_INPUT_SOURCE_PX4FMU_DSM           | `uint8` | 12    |
+| <a id="#RC_INPUT_SOURCE_PX4IO_SUMD"></a> RC_INPUT_SOURCE_PX4IO_SUMD           | `uint8` | 13    |
+| <a id="#RC_INPUT_SOURCE_PX4FMU_CRSF"></a> RC_INPUT_SOURCE_PX4FMU_CRSF         | `uint8` | 14    |
+| <a id="#RC_INPUT_SOURCE_PX4FMU_GHST"></a> RC_INPUT_SOURCE_PX4FMU_GHST         | `uint8` | 15    |
+| <a id="#RC_INPUT_MAX_CHANNELS"></a> RC_INPUT_MAX_CHANNELS                     | `uint8` | 18    | Maximum number of R/C input channels in the system. S.Bus has up to 18 channels. |
+| <a id="#RSSI_MAX"></a> RSSI_MAX                                               | `int8`  | 100   |
 
 ## Source Message
 

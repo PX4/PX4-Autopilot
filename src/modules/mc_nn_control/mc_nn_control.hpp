@@ -80,10 +80,12 @@
 #include <uORB/topics/arming_check_reply.h>
 
 using namespace time_literals; // For the 1_s in the subscription interval
-class MulticopterNeuralNetworkControl : public ModuleBase<MulticopterNeuralNetworkControl>, public ModuleParams,
+class MulticopterNeuralNetworkControl : public ModuleBase, public ModuleParams,
 	public px4::WorkItem
 {
 public:
+
+	static Descriptor desc;
 
 	MulticopterNeuralNetworkControl();
 	~MulticopterNeuralNetworkControl() override;

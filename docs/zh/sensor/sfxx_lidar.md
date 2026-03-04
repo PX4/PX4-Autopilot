@@ -1,4 +1,4 @@
-# LightWare Lidar (SF1X/SF02/LW20/SF45)
+# LightWare Lidar (SF1X/SF02/LW20/SF45/GRF250/GRF500)
 
 LightWare develops a range of light-weight, general purpose, laser altimeters ("Lidar") suitable for mounting on UAVs.
 These are useful for applications including terrain following, precision hovering (e.g. for photography), warning of regulatory height limits, anti-collision sensing etc.

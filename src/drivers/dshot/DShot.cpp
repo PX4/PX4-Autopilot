@@ -37,6 +37,8 @@
 
 #include <px4_platform_common/sem.hpp>
 
+ModuleBase::Descriptor DShot::desc{task_spawn, custom_command, print_usage};
+
 char DShot::_telemetry_device[] {};
 bool DShot::_telemetry_swap_rxtx{false};
 px4::atomic_bool DShot::_request_telemetry_init{false};
@@ -81,8 +83,8 @@ int DShot::task_spawn(int argc, char *argv[])
 	DShot *instance = new DShot();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init() == PX4_OK) {
 			return PX4_OK;
@@ -93,8 +95,8 @@ int DShot::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -466,7 +468,7 @@ void DShot::Run()
 		ScheduleClear();
 		_mixing_output.unregister();
 
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -698,16 +700,16 @@ int DShot::custom_command(int argc, char *argv[])
 
 	for (unsigned i = 0; i < sizeof(commands) / sizeof(commands[0]); ++i) {
 		if (!strcmp(verb, commands[i].name)) {
-			if (!is_running()) {
+			if (!is_running(desc)) {
 				PX4_ERR("module not running");
 				return -1;
 			}
 
-			return get_instance()->send_command_thread_safe(commands[i].command, commands[i].num_repetitions, motor_index);
+			return get_instance<DShot>(desc)->send_command_thread_safe(commands[i].command, commands[i].num_repetitions, motor_index);
 		}
 	}
 
-	if (!is_running()) {
+	if (!is_running(desc)) {
 		int ret = DShot::task_spawn(argc, argv);
 
 		if (ret) {
@@ -805,5 +807,5 @@ After saving, the reversed direction will be regarded as the normal one. So to r
 
 extern "C" __EXPORT int dshot_main(int argc, char *argv[])
 {
-	return DShot::main(argc, argv);
+	return ModuleBase::main(DShot::desc, argc, argv);
 }

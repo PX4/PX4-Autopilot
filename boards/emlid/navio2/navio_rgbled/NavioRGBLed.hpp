@@ -40,9 +40,11 @@
 
 #include <lib/led/led.h>
 
-class NavioRGBLed : public ModuleBase<NavioRGBLed>, public px4::ScheduledWorkItem
+class NavioRGBLed : public ModuleBase, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	NavioRGBLed();
 	~NavioRGBLed() override;
 

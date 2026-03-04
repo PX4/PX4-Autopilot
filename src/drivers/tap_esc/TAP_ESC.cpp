@@ -35,6 +35,8 @@
 
 #include <px4_platform_common/sem.hpp>
 
+ModuleBase::Descriptor TAP_ESC::desc{task_spawn, custom_command, print_usage};
+
 TAP_ESC::TAP_ESC(char const *const device, uint8_t channels_count):
 	OutputModuleInterface(MODULE_NAME, px4::serial_port_to_wq(device)),
 	_mixing_output{"TAP_ESC", channels_count, *this, MixingOutput::SchedulingPolicy::Auto, true},
@@ -333,7 +335,7 @@ void TAP_ESC::Run()
 		ScheduleClear();
 		_mixing_output.unregister();
 
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -356,7 +358,7 @@ void TAP_ESC::Run()
 
 		} else {
 			PX4_ERR("init failed");
-			exit_and_cleanup();
+			exit_and_cleanup(desc);
 		}
 
 	} else {
@@ -456,8 +458,8 @@ int TAP_ESC::task_spawn(int argc, char *argv[])
 		return -1;
 	}
 
-	_object.store(instance);
-	_task_id = task_id_is_work_queue;
+	desc.object.store(instance);
+	desc.task_id = task_id_is_work_queue;
 	instance->ScheduleNow();
 	return 0;
 }
@@ -510,5 +512,5 @@ tap_esc start -d /dev/ttyS2 -n <1-8>
 
 extern "C" __EXPORT int tap_esc_main(int argc, char *argv[])
 {
-	return TAP_ESC::main(argc, argv);
+	return ModuleBase::main(TAP_ESC::desc, argc, argv);
 }

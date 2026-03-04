@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # GimbalDeviceInformation (UORB message)
 
-**TOPICS:** gimbal_deviceinformation
+**TOPICS:** gimbal_device_information
 
 ## Fields
 
@@ -29,20 +29,20 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Name                                                                                                        | Type     | Value | Description |
-| ----------------------------------------------------------------------------------------------------------- | -------- | ----- | ----------- |
-| <a href="#GIMBAL_DEVICE_CAP_FLAGS_HAS_RETRACT"></a> GIMBAL_DEVICE_CAP_FLAGS_HAS_RETRACT                     | `uint32` | 1     |
-| <a href="#GIMBAL_DEVICE_CAP_FLAGS_HAS_NEUTRAL"></a> GIMBAL_DEVICE_CAP_FLAGS_HAS_NEUTRAL                     | `uint32` | 2     |
-| <a href="#GIMBAL_DEVICE_CAP_FLAGS_HAS_ROLL_AXIS"></a> GIMBAL_DEVICE_CAP_FLAGS_HAS_ROLL_AXIS                 | `uint32` | 4     |
-| <a href="#GIMBAL_DEVICE_CAP_FLAGS_HAS_ROLL_FOLLOW"></a> GIMBAL_DEVICE_CAP_FLAGS_HAS_ROLL_FOLLOW             | `uint32` | 8     |
-| <a href="#GIMBAL_DEVICE_CAP_FLAGS_HAS_ROLL_LOCK"></a> GIMBAL_DEVICE_CAP_FLAGS_HAS_ROLL_LOCK                 | `uint32` | 16    |
-| <a href="#GIMBAL_DEVICE_CAP_FLAGS_HAS_PITCH_AXIS"></a> GIMBAL_DEVICE_CAP_FLAGS_HAS_PITCH_AXIS               | `uint32` | 32    |
-| <a href="#GIMBAL_DEVICE_CAP_FLAGS_HAS_PITCH_FOLLOW"></a> GIMBAL_DEVICE_CAP_FLAGS_HAS_PITCH_FOLLOW           | `uint32` | 64    |
-| <a href="#GIMBAL_DEVICE_CAP_FLAGS_HAS_PITCH_LOCK"></a> GIMBAL_DEVICE_CAP_FLAGS_HAS_PITCH_LOCK               | `uint32` | 128   |
-| <a href="#GIMBAL_DEVICE_CAP_FLAGS_HAS_YAW_AXIS"></a> GIMBAL_DEVICE_CAP_FLAGS_HAS_YAW_AXIS                   | `uint32` | 256   |
-| <a href="#GIMBAL_DEVICE_CAP_FLAGS_HAS_YAW_FOLLOW"></a> GIMBAL_DEVICE_CAP_FLAGS_HAS_YAW_FOLLOW               | `uint32` | 512   |
-| <a href="#GIMBAL_DEVICE_CAP_FLAGS_HAS_YAW_LOCK"></a> GIMBAL_DEVICE_CAP_FLAGS_HAS_YAW_LOCK                   | `uint32` | 1024  |
-| <a href="#GIMBAL_DEVICE_CAP_FLAGS_SUPPORTS_INFINITE_YAW"></a> GIMBAL_DEVICE_CAP_FLAGS_SUPPORTS_INFINITE_YAW | `uint32` | 2048  |
+| Name                                                                                                      | Type     | Value | Description |
+| --------------------------------------------------------------------------------------------------------- | -------- | ----- | ----------- |
+| <a id="#GIMBAL_DEVICE_CAP_FLAGS_HAS_RETRACT"></a> GIMBAL_DEVICE_CAP_FLAGS_HAS_RETRACT                     | `uint32` | 1     |
+| <a id="#GIMBAL_DEVICE_CAP_FLAGS_HAS_NEUTRAL"></a> GIMBAL_DEVICE_CAP_FLAGS_HAS_NEUTRAL                     | `uint32` | 2     |
+| <a id="#GIMBAL_DEVICE_CAP_FLAGS_HAS_ROLL_AXIS"></a> GIMBAL_DEVICE_CAP_FLAGS_HAS_ROLL_AXIS                 | `uint32` | 4     |
+| <a id="#GIMBAL_DEVICE_CAP_FLAGS_HAS_ROLL_FOLLOW"></a> GIMBAL_DEVICE_CAP_FLAGS_HAS_ROLL_FOLLOW             | `uint32` | 8     |
+| <a id="#GIMBAL_DEVICE_CAP_FLAGS_HAS_ROLL_LOCK"></a> GIMBAL_DEVICE_CAP_FLAGS_HAS_ROLL_LOCK                 | `uint32` | 16    |
+| <a id="#GIMBAL_DEVICE_CAP_FLAGS_HAS_PITCH_AXIS"></a> GIMBAL_DEVICE_CAP_FLAGS_HAS_PITCH_AXIS               | `uint32` | 32    |
+| <a id="#GIMBAL_DEVICE_CAP_FLAGS_HAS_PITCH_FOLLOW"></a> GIMBAL_DEVICE_CAP_FLAGS_HAS_PITCH_FOLLOW           | `uint32` | 64    |
+| <a id="#GIMBAL_DEVICE_CAP_FLAGS_HAS_PITCH_LOCK"></a> GIMBAL_DEVICE_CAP_FLAGS_HAS_PITCH_LOCK               | `uint32` | 128   |
+| <a id="#GIMBAL_DEVICE_CAP_FLAGS_HAS_YAW_AXIS"></a> GIMBAL_DEVICE_CAP_FLAGS_HAS_YAW_AXIS                   | `uint32` | 256   |
+| <a id="#GIMBAL_DEVICE_CAP_FLAGS_HAS_YAW_FOLLOW"></a> GIMBAL_DEVICE_CAP_FLAGS_HAS_YAW_FOLLOW               | `uint32` | 512   |
+| <a id="#GIMBAL_DEVICE_CAP_FLAGS_HAS_YAW_LOCK"></a> GIMBAL_DEVICE_CAP_FLAGS_HAS_YAW_LOCK                   | `uint32` | 1024  |
+| <a id="#GIMBAL_DEVICE_CAP_FLAGS_SUPPORTS_INFINITE_YAW"></a> GIMBAL_DEVICE_CAP_FLAGS_SUPPORTS_INFINITE_YAW | `uint32` | 2048  |
 
 ## Source Message
 

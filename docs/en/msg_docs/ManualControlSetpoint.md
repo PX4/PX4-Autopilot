@@ -30,17 +30,17 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Name                                              | Type     | Value | Description              |
-| ------------------------------------------------- | -------- | ----- | ------------------------ |
-| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION   | `uint32` | 0     |
-| <a href="#SOURCE_UNKNOWN"></a> SOURCE_UNKNOWN     | `uint8`  | 0     |
-| <a href="#SOURCE_RC"></a> SOURCE_RC               | `uint8`  | 1     | radio control (input_rc) |
-| <a href="#SOURCE_MAVLINK_0"></a> SOURCE_MAVLINK_0 | `uint8`  | 2     | mavlink instance 0       |
-| <a href="#SOURCE_MAVLINK_1"></a> SOURCE_MAVLINK_1 | `uint8`  | 3     | mavlink instance 1       |
-| <a href="#SOURCE_MAVLINK_2"></a> SOURCE_MAVLINK_2 | `uint8`  | 4     | mavlink instance 2       |
-| <a href="#SOURCE_MAVLINK_3"></a> SOURCE_MAVLINK_3 | `uint8`  | 5     | mavlink instance 3       |
-| <a href="#SOURCE_MAVLINK_4"></a> SOURCE_MAVLINK_4 | `uint8`  | 6     | mavlink instance 4       |
-| <a href="#SOURCE_MAVLINK_5"></a> SOURCE_MAVLINK_5 | `uint8`  | 7     | mavlink instance 5       |
+| Name                                            | Type     | Value | Description              |
+| ----------------------------------------------- | -------- | ----- | ------------------------ |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION   | `uint32` | 0     |
+| <a id="#SOURCE_UNKNOWN"></a> SOURCE_UNKNOWN     | `uint8`  | 0     |
+| <a id="#SOURCE_RC"></a> SOURCE_RC               | `uint8`  | 1     | radio control (input_rc) |
+| <a id="#SOURCE_MAVLINK_0"></a> SOURCE_MAVLINK_0 | `uint8`  | 2     | mavlink instance 0       |
+| <a id="#SOURCE_MAVLINK_1"></a> SOURCE_MAVLINK_1 | `uint8`  | 3     | mavlink instance 1       |
+| <a id="#SOURCE_MAVLINK_2"></a> SOURCE_MAVLINK_2 | `uint8`  | 4     | mavlink instance 2       |
+| <a id="#SOURCE_MAVLINK_3"></a> SOURCE_MAVLINK_3 | `uint8`  | 5     | mavlink instance 3       |
+| <a id="#SOURCE_MAVLINK_4"></a> SOURCE_MAVLINK_4 | `uint8`  | 6     | mavlink instance 4       |
+| <a id="#SOURCE_MAVLINK_5"></a> SOURCE_MAVLINK_5 | `uint8`  | 7     | mavlink instance 5       |
 
 ## Source Message
 

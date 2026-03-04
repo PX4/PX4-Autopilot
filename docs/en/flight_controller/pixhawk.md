@@ -1,11 +1,11 @@
 # 3DR Pixhawk 1 Flight Controller (Discontinued)
 
-:::warning
+::: warning
 This flight controller has been [discontinued](../flight_controller/autopilot_experimental.md) and is no longer commercially available.
 You can use the [mRo Pixhawk](../flight_controller/mro_pixhawk.md) as a drop-in replacement.
 :::
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the manufacturer for support or compliance issues.
 :::
@@ -46,7 +46,7 @@ Connectivity
 - S.BUS / PPM / Spektrum input
 - S.BUS output
 
-# Where to Buy
+# Where to Buy {#store}
 
 Originally manufactured by 3DR&reg; this board was the original standard microcontroller platform for PX4&reg;. While the board is no longer manufactured by 3DR, you can use the [mRo Pixhawk](../flight_controller/mro_pixhawk.md) as a drop-in replacement.
 
@@ -127,14 +127,14 @@ As a CC-BY-SA 3.0 licensed Open Hardware design, all schematics and design files
 Pixhawk ports are shown below.
 These use Hirose DF13 connectors (predating the JST-GH connectors defined in the Pixhawk connector standard).
 
-:::warning
+::: warning
 Many 3DR Pixhawk clones use Molex picoblade connectors instead of DF13 connectors.
 They have rectangular instead of square pins, and cannot be assumed to be compatible.
 :::
 
 ![Pixhawk Connectors](../../assets/flight_controller/pixhawk1/pixhawk_connectors.png)
 
-:::tip
+::: tip
 The `RC IN` port is for RC receivers only and provides sufficient power for that purpose.
 **NEVER** connect any servos, power supplies or batteries to it or to the receiver connected to it.
 :::
@@ -262,7 +262,7 @@ Due to space constraints two ports are on one connector.
 
 The [PX4 System Console](../debug/system_console.md) runs on the port labeled [SERIAL4/5](#serial-4-5-port).
 
-:::tip
+::: tip
 A convenient way to connect to the console is to use a [Zubax BugFace BF1](https://github.com/Zubax/bugface_bf1), as it comes with connectors that can be used with several different Pixhawk devices.
 Simply connect the 6-pos DF13 1:1 cable on the [Zubax BugFace BF1](https://github.com/Zubax/bugface_bf1) to the Pixhawk `SERIAL4/5` port.
 
@@ -310,14 +310,14 @@ All Pixhawk FMUv2 boards have a similar SWD port.
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v2_default
 ```
 

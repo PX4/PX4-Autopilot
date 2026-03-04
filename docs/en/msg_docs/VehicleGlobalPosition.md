@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Fused global position in WGS84. This struct contains global position estimation. It is not the raw GPS. measurement (@see vehicle_gps_position). This topic is usually published by the position. estimator, which will take more sources of information into account than just GPS,. e.g. control inputs of the vehicle in a Kalman-filter implementation.
 
-**TOPICS:** vehicle_global_position vehicle_global_position_groundtruth external_ins_global_position estimator_global_position aux_global_position
+**TOPICS:** vehicle_global_position vehicle_global_position_groundtruth external_ins_global_position estimator_global_position
 
 ## Fields
 
@@ -33,9 +33,9 @@ Fused global position in WGS84. This struct contains global position estimation.
 
 ## Constants
 
-| Name                                            | Type     | Value | Description |
-| ----------------------------------------------- | -------- | ----- | ----------- |
-| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 0     |
+| Name                                          | Type     | Value | Description |
+| --------------------------------------------- | -------- | ----- | ----------- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 0     |
 
 ## Source Message
 
@@ -80,7 +80,6 @@ bool dead_reckoning		# True if this position is estimated through dead-reckoning
 
 # TOPICS vehicle_global_position vehicle_global_position_groundtruth external_ins_global_position
 # TOPICS estimator_global_position
-# TOPICS aux_global_position
 ```
 
 :::

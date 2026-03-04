@@ -23,7 +23,7 @@ IMUs (accelerometers/gyroscopes) should not be attached via I2C (typically the [
 
 Drivers should `#include <drivers/device/i2c.h>` and then provide an implementation of the abstract base class `I2C` defined in **I2C.hpp** for the target hardware (i.e. for NuttX [here](https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/drivers/device/nuttx/I2C.hpp)).
 
-A small number of drivers will also need to include headers for their type of device (**drv_\*.h**) in [/src/drivers/](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers) - e.g. [drv_led.h](https://github.com/PX4/PX4-Autopilot/blob/main/src/drivers/drv_led.h).
+A small number of drivers will also need to include headers for their type of device (**drv\_\*.h**) in [/src/drivers/](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers) - e.g. [drv_led.h](https://github.com/PX4/PX4-Autopilot/blob/main/src/drivers/drv_led.h).
 
 Для включення драйвера в прошивку потрібно додати драйвер до файлу cmake, специфічного для плати, який відповідає цілі, для якої ви хочете збудувати.
 Ви можете це зробити для одного драйвера:

@@ -66,7 +66,7 @@ Upgrade to ROS 2 for existing projects as soon as possible.
 
 DroneKit-Python is a MAVLink API written in Python.
 It is not optimised for use with PX4, and has not be maintained for some years.
-Legacy docs for using PX4 and DroneKit can be found here: [PX4 v1.12 > DroneKit](https://docs.px4.io/v1.12/en/robotics/dronekit.html).
+Legacy docs for using PX4 and DroneKit can be found here: [PX4 v1.12 > DroneKit](https://docs.px4.io/v1.12/en/robotics/dronekit).
 
 ::: tip
 [MAVSDK](https://mavsdk.mavlink.io/) is the recommended MAVLink API for use with PX4.

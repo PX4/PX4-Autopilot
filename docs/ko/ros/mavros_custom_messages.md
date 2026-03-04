@@ -68,6 +68,7 @@ Follow _Source Installation_ instructions from [mavlink/mavros](https://github.c
    ```
 
 2. Edit **mavros_plugins.xml** (in **workspace/src/mavros/mavros_extras**) and add the following lines:
+
    ```xml
    <class name="keyboard_command" type="mavros::extra_plugins::KeyboardCommandPlugin" base_class_type="mavros::plugin::PluginBase">
         <description>Accepts keyboard command.</description>
@@ -75,10 +76,11 @@ Follow _Source Installation_ instructions from [mavlink/mavros](https://github.c
    ```
 
 3. Edit **CMakeLists.txt** (in **workspace/src/mavros/mavros_extras**) and add the following line in `add_library`.
+
    ```cmake
-   add_library( 
+   add_library(
    ...
-     src/plugins/keyboard_command.cpp 
+     src/plugins/keyboard_command.cpp
    )
    ```
 
@@ -148,6 +150,7 @@ Follow _Source Installation_ instructions from [mavlink/mavros](https://github.c
 
 4. Edit **mavlink_receiver.cpp** (in **PX4-Autopilot/src/modules/mavlink**).
    여기에서 PX4는 ROS에서 보낸 MAVLink 메시지를 수신하고, 이를 uORB 주제로 게시합니다.
+
    ```cpp
    ...
    void MavlinkReceiver::handle_message(mavlink_message_t *msg)
@@ -227,7 +230,7 @@ Follow _Source Installation_ instructions from [mavlink/mavros](https://github.c
 
        int error_counter = 0;
 
-       for (int i = 0; i < 10; i++)
+      for (int i = 0; i < 10; i++)
        {
            int poll_ret = px4_poll(fds, 1, 1000);
 
@@ -264,10 +267,10 @@ Follow _Source Installation_ instructions from [mavlink/mavros](https://github.c
 
    ```
     menuconfig MODULES_KEY_RECEIVER
-    bool "key_receiver"
-    default n
-    ---help---
-    	Enable support for key_receiver
+   bool "key_receiver"
+   default n
+   ---help---
+   	Enable support for key_receiver
 
    ```
 
@@ -309,6 +312,7 @@ MODULES
 ### ROS 빌드
 
 1. Clean the previously built PX4-Autopilot directory. In the root of **PX4-Autopilot** directory:
+
    ```sh
    make clean
    ```
@@ -349,6 +353,7 @@ MODULES
 
 1. Enter the Pixhawk nutshell through UDP.
    Replace xxx.xx.xxx.xxx with your IP.
+
    ```sh
    cd PX4-Autopilot/Tools
    ./mavlink_shell.py xxx.xx.xxx.xxx:14557 --baudrate 57600

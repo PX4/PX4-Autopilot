@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # EstimatorEventFlags (UORB message)
 
-**TOPICS:** estimator_eventflags
+**TOPICS:** estimator_event_flags
 
 ## Fields
 

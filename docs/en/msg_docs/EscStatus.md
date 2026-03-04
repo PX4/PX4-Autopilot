@@ -20,15 +20,15 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Name                                                                    | Type    | Value | Description                                                       |
-| ----------------------------------------------------------------------- | ------- | ----- | ----------------------------------------------------------------- |
-| <a href="#CONNECTED_ESC_MAX"></a> CONNECTED_ESC_MAX                     | `uint8` | 8     | The number of ESCs supported. Current (Q2/2013) we support 8 ESCs |
-| <a href="#ESC_CONNECTION_TYPE_PPM"></a> ESC_CONNECTION_TYPE_PPM         | `uint8` | 0     | Traditional PPM ESC                                               |
-| <a href="#ESC_CONNECTION_TYPE_SERIAL"></a> ESC_CONNECTION_TYPE_SERIAL   | `uint8` | 1     | Serial Bus connected ESC                                          |
-| <a href="#ESC_CONNECTION_TYPE_ONESHOT"></a> ESC_CONNECTION_TYPE_ONESHOT | `uint8` | 2     | One Shot PPM                                                      |
-| <a href="#ESC_CONNECTION_TYPE_I2C"></a> ESC_CONNECTION_TYPE_I2C         | `uint8` | 3     | I2C                                                               |
-| <a href="#ESC_CONNECTION_TYPE_CAN"></a> ESC_CONNECTION_TYPE_CAN         | `uint8` | 4     | CAN-Bus                                                           |
-| <a href="#ESC_CONNECTION_TYPE_DSHOT"></a> ESC_CONNECTION_TYPE_DSHOT     | `uint8` | 5     | DShot                                                             |
+| Name                                                                  | Type    | Value | Description                                                       |
+| --------------------------------------------------------------------- | ------- | ----- | ----------------------------------------------------------------- |
+| <a id="#CONNECTED_ESC_MAX"></a> CONNECTED_ESC_MAX                     | `uint8` | 8     | The number of ESCs supported. Current (Q2/2013) we support 8 ESCs |
+| <a id="#ESC_CONNECTION_TYPE_PPM"></a> ESC_CONNECTION_TYPE_PPM         | `uint8` | 0     | Traditional PPM ESC                                               |
+| <a id="#ESC_CONNECTION_TYPE_SERIAL"></a> ESC_CONNECTION_TYPE_SERIAL   | `uint8` | 1     | Serial Bus connected ESC                                          |
+| <a id="#ESC_CONNECTION_TYPE_ONESHOT"></a> ESC_CONNECTION_TYPE_ONESHOT | `uint8` | 2     | One Shot PPM                                                      |
+| <a id="#ESC_CONNECTION_TYPE_I2C"></a> ESC_CONNECTION_TYPE_I2C         | `uint8` | 3     | I2C                                                               |
+| <a id="#ESC_CONNECTION_TYPE_CAN"></a> ESC_CONNECTION_TYPE_CAN         | `uint8` | 4     | CAN-Bus                                                           |
+| <a id="#ESC_CONNECTION_TYPE_DSHOT"></a> ESC_CONNECTION_TYPE_DSHOT     | `uint8` | 5     | DShot                                                             |
 
 ## Source Message
 

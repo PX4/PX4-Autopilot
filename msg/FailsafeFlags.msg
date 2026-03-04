@@ -44,6 +44,12 @@ uint8 battery_warning                 # Battery warning level (see BatteryStatus
 bool battery_low_remaining_time       # Low battery based on remaining flight time
 bool battery_unhealthy                # Battery unhealthy
 
+# Failure detector
+bool fd_critical_failure              # Critical failure (attitude/altitude limit exceeded, or external ATS)
+bool fd_esc_arming_failure            # ESC failed to arm
+bool fd_imbalanced_prop               # Imbalanced propeller detected
+bool fd_motor_failure                 # Motor failure
+
 # Other
 bool geofence_breached        	      # Geofence breached (one or multiple)
 bool mission_failure                  # Mission failure
@@ -52,9 +58,4 @@ bool wind_limit_exceeded              # Wind limit exceeded
 bool flight_time_limit_exceeded       # Maximum flight time exceeded
 bool position_accuracy_low            # Position estimate has dropped below threshold, but is currently still declared valid
 bool navigator_failure        	      # Navigator failed to execute a mode
-
-# Failure detector
-bool fd_critical_failure              # Critical failure (attitude/altitude limit exceeded, or external ATS)
-bool fd_esc_arming_failure            # ESC failed to arm
-bool fd_imbalanced_prop               # Imbalanced propeller detected
-bool fd_motor_failure                 # Motor failure
+bool parachute_unhealthy              # Parachute system missing or unhealthy

@@ -48,9 +48,11 @@
 
 using namespace time_literals;
 
-class SensorGpsSim : public ModuleBase<SensorGpsSim>, public ModuleParams, public px4::ScheduledWorkItem
+class SensorGpsSim : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	SensorGpsSim();
 	~SensorGpsSim() override;
 

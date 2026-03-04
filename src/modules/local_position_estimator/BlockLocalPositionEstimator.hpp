@@ -60,7 +60,7 @@ static const float BETA_TABLE[7] = {0,
 				    19.6465647819,
 				   };
 
-class BlockLocalPositionEstimator : public ModuleBase<BlockLocalPositionEstimator>, public ModuleParams,
+class BlockLocalPositionEstimator : public ModuleBase, public ModuleParams,
 	public px4::WorkItem, public control::SuperBlock
 {
 // dynamics:
@@ -110,6 +110,8 @@ class BlockLocalPositionEstimator : public ModuleBase<BlockLocalPositionEstimato
 //      land (detects when landed)): pz (always measures agl = 0)
 //
 public:
+	static Descriptor desc;
+
 
 	BlockLocalPositionEstimator();
 	~BlockLocalPositionEstimator() override = default;

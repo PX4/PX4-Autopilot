@@ -111,7 +111,7 @@ Vector4f MecanumActControl::computeInverseKinematics(float throttle_body_x, floa
 	const Matrix<float, 3, 1> input(input_data);
 	const float m_data[12] = {1.f, -1.f, -1.f, 1.f, 1.f, 1.f, 1.f, 1.f, -1.f, 1.f, -1.f, 1.f};
 	const Matrix<float, 4, 3> m(m_data);
-	const Vector4f motor_commands = m * input;
+	Vector4f motor_commands = m * input;
 
 	return motor_commands;
 }

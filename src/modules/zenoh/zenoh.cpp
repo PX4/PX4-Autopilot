@@ -52,6 +52,8 @@
 // Auto-generated header to all uORB <-> CDR conversions
 #include <uorb_pubsub_factory.hpp>
 
+ModuleBase::Descriptor ZENOH::desc{task_spawn, custom_command, print_usage};
+
 #define Z_PUBLISH
 #define Z_SUBSCRIBE
 
@@ -113,6 +115,8 @@ int ZENOH::generate_rmw_zenoh_topic_keyexpr(const char *topic, const uint8_t *ri
 	if (type_name) {
 		strncpy(type, type_name, TOPIC_INFO_SIZE);
 		toCamelCase(type); // Convert uORB type to camel case
+
+#ifdef CONFIG_ZENOH_KEY_TYPE_HASH
 		return snprintf(keyexpr, KEYEXPR_SIZE, "%" PRId32 "%s/"
 				KEYEXPR_MSG_NAME "%s_/RIHS01_"
 				"%02x%02x%02x%02x%02x%02x%02x%02x"
@@ -129,6 +133,11 @@ int ZENOH::generate_rmw_zenoh_topic_keyexpr(const char *topic, const uint8_t *ri
 				rihs_hash[24], rihs_hash[25], rihs_hash[26], rihs_hash[27],
 				rihs_hash[28], rihs_hash[29], rihs_hash[30], rihs_hash[31]
 			       );
+#else
+		return snprintf(keyexpr, KEYEXPR_SIZE, "%" PRId32 "%s/"
+				KEYEXPR_MSG_NAME "%s_/TypeHashNotSupported",
+				_zenoh_domain_id.get(), topic, type);
+#endif
 	}
 
 	return -1;
@@ -153,6 +162,7 @@ int ZENOH::generate_rmw_zenoh_topic_liveliness_keyexpr(const z_id_t *id, const c
 		str++;
 	}
 
+#ifdef CONFIG_ZENOH_KEY_TYPE_HASH
 	return snprintf(keyexpr, KEYEXPR_SIZE,
 			"@ros2_lv/%" PRId32 "/"
 			"%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x/"
@@ -182,6 +192,25 @@ int ZENOH::generate_rmw_zenoh_topic_liveliness_keyexpr(const z_id_t *id, const c
 			rihs_hash[24], rihs_hash[25], rihs_hash[26], rihs_hash[27],
 			rihs_hash[28], rihs_hash[29], rihs_hash[30], rihs_hash[31]
 		       );
+#else
+	return snprintf(keyexpr, KEYEXPR_SIZE,
+			"@ros2_lv/%" PRId32 "/"
+			"%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x/"
+			"0/11/%s/%%/%%/px4_%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x/%s/"
+			KEYEXPR_MSG_NAME "%s_/TypeHashNotSupported"
+			"/::,7:,:,:,,",
+			_zenoh_domain_id.get(),
+			id->id[0], id->id[1],  id->id[2], id->id[3], id->id[4], id->id[5], id->id[6],
+			id->id[7], id->id[8],  id->id[9], id->id[10], id->id[11], id->id[12], id->id[13],
+			id->id[14], id->id[15],
+			entity_str,
+			_px4_guid[0], _px4_guid[1], _px4_guid[2], _px4_guid[3],
+			_px4_guid[4], _px4_guid[5], _px4_guid[6], _px4_guid[7],
+			_px4_guid[8], _px4_guid[9], _px4_guid[10], _px4_guid[11],
+			_px4_guid[12], _px4_guid[13], _px4_guid[14], _px4_guid[15],
+			topic_lv, type_camel_case
+		       );
+#endif
 }
 
 int ZENOH::setupSession()
@@ -459,7 +488,7 @@ void ZENOH::run()
 	z_drop(z_session_move(&_s));
 
 	connected = false;
-	exit_and_cleanup();
+	exit_and_cleanup(desc);
 }
 
 int ZENOH::custom_command(int argc, char *argv[])
@@ -534,6 +563,13 @@ int ZENOH::print_status()
 	return 0;
 }
 
+int ZENOH::run_trampoline(int argc, char *argv[])
+{
+	return ModuleBase::run_trampoline_impl(desc, [](int ac, char *av[]) -> ModuleBase * {
+		return ZENOH::instantiate(ac, av);
+	}, argc, argv);
+}
+
 int ZENOH::task_spawn(int argc, char *argv[])
 {
 
@@ -550,7 +586,7 @@ int ZENOH::task_spawn(int argc, char *argv[])
 		return -errno;
 
 	} else {
-		_task_id = task_id;
+		desc.task_id = task_id;
 		return 0;
 	}
 }
@@ -562,5 +598,5 @@ ZENOH *ZENOH::instantiate(int argc, char *argv[])
 
 int zenoh_main(int argc, char *argv[])
 {
-	return ZENOH::main(argc, argv);
+	return ModuleBase::main(ZENOH::desc, argc, argv);
 }

@@ -20,14 +20,14 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Name                                                                    | Type    | Value | Description |
-| ----------------------------------------------------------------------- | ------- | ----- | ----------- |
-| <a href="#STATUS_SUCCESS"></a> STATUS_SUCCESS                           | `uint8` | 0     |
-| <a href="#STATUS_FAILURE_ID_ERR"></a> STATUS_FAILURE_ID_ERR             | `uint8` | 1     |
-| <a href="#STATUS_FAILURE_NO_DATA"></a> STATUS_FAILURE_NO_DATA           | `uint8` | 2     |
-| <a href="#STATUS_FAILURE_READ_FAILED"></a> STATUS_FAILURE_READ_FAILED   | `uint8` | 3     |
-| <a href="#STATUS_FAILURE_WRITE_FAILED"></a> STATUS_FAILURE_WRITE_FAILED | `uint8` | 4     |
-| <a href="#STATUS_FAILURE_CLEAR_FAILED"></a> STATUS_FAILURE_CLEAR_FAILED | `uint8` | 5     |
+| Name                                                                  | Type    | Value | Description |
+| --------------------------------------------------------------------- | ------- | ----- | ----------- |
+| <a id="#STATUS_SUCCESS"></a> STATUS_SUCCESS                           | `uint8` | 0     |
+| <a id="#STATUS_FAILURE_ID_ERR"></a> STATUS_FAILURE_ID_ERR             | `uint8` | 1     |
+| <a id="#STATUS_FAILURE_NO_DATA"></a> STATUS_FAILURE_NO_DATA           | `uint8` | 2     |
+| <a id="#STATUS_FAILURE_READ_FAILED"></a> STATUS_FAILURE_READ_FAILED   | `uint8` | 3     |
+| <a id="#STATUS_FAILURE_WRITE_FAILED"></a> STATUS_FAILURE_WRITE_FAILED | `uint8` | 4     |
+| <a id="#STATUS_FAILURE_CLEAR_FAILED"></a> STATUS_FAILURE_CLEAR_FAILED | `uint8` | 5     |
 
 ## Source Message
 

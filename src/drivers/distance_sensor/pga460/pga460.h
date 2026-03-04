@@ -207,9 +207,11 @@
 #define P2_THR_15       0x0     //reg addr      0x7E
 #define THR_CRC         0x1D    //reg addr      0x7F
 
-class PGA460 : public ModuleBase<PGA460>
+class PGA460 : public ModuleBase
 {
 public:
+
+	static Descriptor desc;
 
 	PGA460(const char *port = PGA460_DEFAULT_PORT);
 
@@ -244,6 +246,11 @@ public:
 	 * @see ModuleBase::task_spawn().
 	 */
 	static int task_spawn(int argc, char *argv[]);
+
+	/**
+	 * @see ModuleBase
+	 */
+	static int run_trampoline(int argc, char *argv[]);
 
 	/**
 	 * @brief Closes the serial port.

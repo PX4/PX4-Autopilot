@@ -59,7 +59,6 @@ To use the VectorNav driver:
 4. Allow the VectorNav driver to initialize by restarting PX4.
 
 5. Configure driver as either an external INS or to provide raw data:
-
    - If using the VectorNav as an external INS, set [VN_MODE](../advanced_config/parameter_reference.md#VN_MODE) to `INS`.
      This disables EKF2.
    - If using the VectorNav as external inertial sensors:

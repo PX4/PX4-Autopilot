@@ -65,9 +65,11 @@ enum class FlightTaskError : int {
 	ActivationFailed = -2
 };
 
-class FlightModeManager : public ModuleBase<FlightModeManager>, public ModuleParams, public px4::WorkItem
+class FlightModeManager : public ModuleBase, public ModuleParams, public px4::WorkItem
 {
 public:
+	static Descriptor desc;
+
 	FlightModeManager();
 	~FlightModeManager() override;
 

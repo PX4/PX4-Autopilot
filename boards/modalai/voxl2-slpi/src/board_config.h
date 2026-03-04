@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 ModalAI, Inc. All rights reserved.
+ *   Copyright (c) 2022-2026 ModalAI, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,7 +39,7 @@
 
 #pragma once
 
-#define BOARD_HAS_NO_RESET
+#define CONFIG_BOARDCTL_RESET
 #define BOARD_HAS_NO_BOOTLOADER
 /*
  * I2C buses
