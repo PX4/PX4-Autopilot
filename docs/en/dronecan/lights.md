@@ -3,7 +3,7 @@
 PX4 can control external LEDs on a connected DroneCAN peripheral using the standard DroneCAN [LightsCommand](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#lightscommand) message.
 
 Up to 2 lights are supported.
-These can show [system status colours](../getting_started/led_meanings.md#ui-led), a fixed navigation colour (used for indicating aircraft orientation), or switch between both depending on arm state.
+These can show [system status colours](../getting_started/led_meanings.md#ui-led), a fixed colour (used for indicating aircraft orientation), or switch between both depending on arm state.
 
 ## Supported Devices
 
@@ -11,7 +11,7 @@ Any DroneCAN peripheral implementing the standard `LightsCommand` message type s
 
 The following have been tested:
 
-- **Vertiq ESC LED add-ons**: Each ESC exposes two light IDs — one RGB (for status) and one white (for navigation).
+- **Vertiq ESC LED add-ons**: Each ESC exposes two light IDs — one RGB (for status) and one white.
   The `light_id` for each is calculated as `esc_index × 3 + BASE_ID`, where `BASE_ID` is 1 for RGB and 2 for white.
   See [Vertiq](../peripherals/vertiq.md) for other ESC setup details.
 

@@ -284,8 +284,8 @@ Note that DroneCAN ESCs should be on their own dedicated CAN interface(s) becaus
 ### Lights
 
 PX4 can control external LEDs on a connected DroneCAN peripheral using the standard DroneCAN [LightsCommand](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#lightscommand) message.
-Up to 2 light slots are supported.
-Each light can independently show [system status colours](../getting_started/led_meanings.md#ui-led), a fixed navigation colour (used for indciating aircraft orientation), or switch between both depending on arm state.
+Up to 2 lights acan be controlled.
+Each light can independently show [system status colours](../getting_started/led_meanings.md#ui-led), a fixed colour (commonly used for indciating aircraft orientation), or switch between both depending on arm state.
 
 See [DroneCAN Lights](lights.md) for full configuration details.
 
