@@ -46,8 +46,9 @@ Release notes are built incrementally in [`main.md`](../releases/main.md), which
 4. Verify that documentation for all included contributions is complete
 5. Search for instances of `main (planned for:` and replace with the release version now that it is known.
    So, for example `<Badge type="tip" text="main (planned for PX4 v1.xx" />` is replaced with `<Badge type="tip" text="PX4 v1.xx" />`.
-   
+
    Note that once the name of the next version is confirmed, badges may use the second form (e.g. `<Badge type="tip" text="PX4 v1.18" />`.
+
 6. Search for instances of `<Badge type="warning" text="Experimental" />`.
    Remove this for features that are considered core and/or stable.
 
