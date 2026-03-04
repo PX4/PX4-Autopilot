@@ -299,7 +299,7 @@ void FwLateralLongitudinalControl::Run()
 			float roll_body = PX4_ISFINITE(roll_sp) ? roll_sp : 0.0f;
 			float pitch_body = PX4_ISFINITE(pitch_sp) ? pitch_sp : 0.0f;
 
-			float yaw_body = _yaw + sinf(roll_body) * 0.45f;
+			float yaw_body = _yaw;
 
 			const float thrust_body_x = PX4_ISFINITE(throttle_sp) ? throttle_sp : 0.0f;
 
@@ -610,7 +610,6 @@ void FwLateralLongitudinalControl::updateAttitude() {
 		const Eulerf euler_angles(R);
 		_long_control_state.pitch_rad = euler_angles.theta();
 		_yaw = euler_angles.psi();
-		_roll = euler_angles.phi();
 
 		// load factor due to banking
 		const float load_factor_from_bank_angle = 1.0f / max(cosf(euler_angles.phi()), FLT_EPSILON);
