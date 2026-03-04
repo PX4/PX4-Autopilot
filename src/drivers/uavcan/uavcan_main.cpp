@@ -751,6 +751,11 @@ UavcanNode::Run()
 		_node_info_retriever.invalidateAll();
 	}
 
+	// Defer UAVCAN firmware migration from SD root until file I/O is confirmed ready
+	if (_servers != nullptr) {
+		_servers->migrateFWFromRootIfReady();
+	}
+
 	_node.spinOnce(); // expected to be non-blocking
 
 	publish_can_interface_statuses();

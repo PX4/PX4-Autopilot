@@ -187,6 +187,7 @@ px4_add_module(
 	DEPENDS
 		px4_uavcan_dsdlc
 
+		dataman_client
 		button_publisher
 		drivers_rangefinder
 		led

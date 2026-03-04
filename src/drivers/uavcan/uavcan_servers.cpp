@@ -131,14 +131,43 @@ int UavcanServers::init()
 		return ret;
 	}
 
+	/* NOTE: migrateFWFromRoot() is intentionally NOT called here.
+	 * It is deferred to migrateFWFromRootIfReady() which is called from
+	 * UavcanNode::Run(). This avoids heavy SD card I/O during early boot
+	 * which can cause SD card failures when a new UAVCAN binary is on the
+	 * root of the SD card.
+	 */
+
+	/*  Start the Node   */
+	return 0;
+}
+
+bool UavcanServers::migrateFWFromRootIfReady()
+{
+	if (_fw_migrated) {
+		return true;
+	}
+
+	/* Use a dataman test read to confirm file I/O / SD card is ready.
+	 * If dataman can successfully read from its storage backend,
+	 * the SD card is accessible and it's safe to proceed. */
+	DatamanClient dm_client;
+	dataman_compat_s compat{};
+
+	if (!dm_client.readSync(DM_KEY_COMPAT, 0, reinterpret_cast<uint8_t *>(&compat), sizeof(compat), 500_ms)) {
+		return false;
+	}
+
+	PX4_INFO("File I/O ready, migrating UAVCAN firmware from SD root");
+
 	/*
 	Check for firmware in the root directory, move it to appropriate location on
 	the SD card, as defined by the APDesc.
 	*/
 	migrateFWFromRoot(UAVCAN_FIRMWARE_PATH, UAVCAN_SD_ROOT_PATH);
 
-	/*  Start the Node   */
-	return 0;
+	_fw_migrated = true;
+	return true;
 }
 
 void UavcanServers::migrateFWFromRoot(const char *sd_path, const char *sd_root_path)

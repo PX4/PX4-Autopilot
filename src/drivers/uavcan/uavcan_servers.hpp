@@ -46,6 +46,7 @@
 #include <uavcan_posix/firmware_version_checker.hpp>
 
 #include "uavcan_module.hpp"
+#include <lib/dataman_client/DatamanClient.hpp>
 
 /**
  * @file uavcan_servers.hpp
@@ -67,6 +68,17 @@ public:
 
 	int init();
 
+	/**
+	 * @brief Migrate firmware from SD card root once file I/O is confirmed ready.
+	 *
+	 * Uses a dataman test read to verify SD card accessibility before
+	 * performing the migration. Safe to call repeatedly from Run() —
+	 * it will only execute the migration once.
+	 *
+	 * @return true once migration has been completed (or skipped), false if still waiting.
+	 */
+	bool migrateFWFromRootIfReady();
+
 	bool guessIfAllDynamicNodesAreAllocated() { return _server_instance.guessIfAllDynamicNodesAreAllocated(); }
 
 private:
@@ -84,4 +96,6 @@ private:
 	uavcan::BasicFileServer _fw_server;
 
 	uavcan::NodeInfoRetriever &_node_info_retriever;
+
+	bool _fw_migrated{false};
 };
