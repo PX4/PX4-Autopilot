@@ -45,9 +45,9 @@ Each function is represented by a value that defines two behaviours: one when th
 Notes:
 
 - The [system status colours](../getting_started/led_meanings.md#ui-led) is the same LED pattern used by the flight controller's onboard status LED (e.g. red when disarmed, green when armed and ready).
-- A _navigation colour_ is a fixed colour used for aircraft orientation awareness, following standard aviation conventions. For example red on the port side, green on starboard, or white to the rear.
+- A fixed colour, commonly used to indicate aircraft orientation. For example it is a common convention to have a red light on the port side, green on starboard, or white to the rear.
   These colours do not change with flight controller state.
-- For _hybrid_ functions, such as `Status/Red`, the light shows the Status colour while the activation mode is inactive, then switches to the navigation colour once the mode becomes active.
+- For _hybrid_ functions, such as `Status/Red`, the light shows the Status colour while the activation mode is inactive, then switches to the "fixed" light colour once the mode becomes active.
 
 ### Activation Mode (`UAVCAN_LGT_MODE`) {#UAVCAN_LGT_MODE}
 
