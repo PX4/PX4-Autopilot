@@ -106,7 +106,7 @@ You can also start your simulation, and _then_ attach `gdb`:
    ```
 
    As the script runs, note the **SITL COMMAND:** output text located right above the large "PX4" text.
-   Він перерахує місце розташування вашого файлу px4 bin для подальшого використання.
+   It will list the location of your PX4 bin file for later use.
 
    ```sh
    SITL COMMAND: "<px4 bin file>" "<build dir>"/etc

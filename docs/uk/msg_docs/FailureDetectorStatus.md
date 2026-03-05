@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # FailureDetectorStatus (повідомлення UORB)
 
-**TOPICS:** failure_detectorstatus
+**TOPICS:** failure_detector_status
 
 ## Fields
 

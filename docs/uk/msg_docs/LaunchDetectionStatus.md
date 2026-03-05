@@ -6,22 +6,23 @@ pageClass: is-wide-page
 
 Status of the launch detection state machine (fixed-wing only).
 
-**TOPICS:** launch_detectionstatus
+**TOPICS:** launch_detection_status
 
 ## Fields
 
-| Назва                                                            | Тип      | Unit [Frame] | Range/Enum | Опис                                                      |
-| ---------------------------------------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| timestamp                                                        | `uint64` |                                                                  |            | time since system start (microseconds) |
-| launch_detection_state | `uint8`  |                                                                  |            |                                                           |
+| Назва                                                                                            | Тип      | Unit [Frame] | Range/Enum | Опис                                                                                                                             |
+| ------------------------------------------------------------------------------------------------ | -------- | ---------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| timestamp                                                                                        | `uint64` |                                                                  |            | time since system start (microseconds)                                                                        |
+| launch_detection_state                                 | `uint8`  |                                                                  |            |                                                                                                                                  |
+| selected_control_surface_disarmed | `bool`   |                                                                  |            | flag indicating whether selected actuators should kept disarmed (have to be configured in control allocation) |
 
 ## Constants
 
-| Назва                                                                                                                                                                         | Тип     | Значення | Опис                                                                                                                                                                    |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a href="#STATE_WAITING_FOR_LAUNCH"></a> STATE_WAITING_FOR_LAUNCH                                              | `uint8` | 0        | waiting for launch                                                                                                                                                      |
-| <a href="#STATE_LAUNCH_DETECTED_DISABLED_MOTOR"></a> STATE_LAUNCH_DETECTED_DISABLED_MOTOR | `uint8` | 1        | launch detected, but keep motor(s) disabled (e.g. because it can't spin freely while on catapult) |
-| <a href="#STATE_FLYING"></a> STATE_FLYING                                                                                                                | `uint8` | 2        | launch detected, use normal takeoff/flying configuration                                                                                                                |
+| Назва                                                                                                                                                                       | Тип     | Значення | Опис                                                                                                                                                                    |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="#STATE_WAITING_FOR_LAUNCH"></a> STATE_WAITING_FOR_LAUNCH                                              | `uint8` | 0        | waiting for launch                                                                                                                                                      |
+| <a id="#STATE_LAUNCH_DETECTED_DISABLED_MOTOR"></a> STATE_LAUNCH_DETECTED_DISABLED_MOTOR | `uint8` | 1        | launch detected, but keep motor(s) disabled (e.g. because it can't spin freely while on catapult) |
+| <a id="#STATE_FLYING"></a> STATE_FLYING                                                                                                                | `uint8` | 2        | launch detected, use normal takeoff/flying configuration                                                                                                                |
 
 ## Source Message
 
@@ -40,6 +41,8 @@ uint8 STATE_LAUNCH_DETECTED_DISABLED_MOTOR 	= 1 # launch detected, but keep moto
 uint8 STATE_FLYING 				= 2 # launch detected, use normal takeoff/flying configuration
 
 uint8 launch_detection_state
+
+bool selected_control_surface_disarmed		# [-] flag indicating whether selected actuators should kept disarmed (have to be configured in control allocation)
 ```
 
 :::

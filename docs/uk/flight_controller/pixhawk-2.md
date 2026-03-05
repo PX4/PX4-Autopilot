@@ -46,9 +46,7 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
 - Потужний багатотональний п'єзозвуковий індикатор
 - Карта microSD для високошвидкісної фіксації даних протягом тривалого періоду часу
 
-<a id="stores"></a>
-
-## Де купити
+## Where to Buy {#store}
 
 [Cube Black](https://www.cubepilot.com/#/reseller/list) (Reseller list)
 
@@ -154,7 +152,7 @@ It is pre-built and automatically installed by _QGroundControl_ when appropriate
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v3_default
 ```
 

@@ -14,7 +14,7 @@ Vehicles are [hand or catapult launched](#catapult-hand-launch) by default, but 
   - Flying vehicles will failsafe if they lose the altitude estimate.
   - Disarmed vehicles can switch to mode without valid altitude estimate but can't arm.
 - Перемикачі радіокерування можна використовувати для зміни режимів польоту.
-- Рух стіка радіокерування ігнорується при зліті за допомогою катапульти, але може бути використана для легкого перекочування транспортного засобу при зльоті зі злітної смуги.
+- RC stick movement is ignored in catapult takeoff but can be used to nudge the vehicle in runway takeoff.
 - The [Failure Detector](../config/safety.md#failure-detector) will automatically stop the engines if there is a problem on takeoff.
 
 <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/commander/ModeUtil/mode_requirements.cpp -->
@@ -85,6 +85,7 @@ The vehicle always respects normal FW max/min throttle settings during takeoff (
 In _catapult/hand-launch mode_ the vehicle waits to detect launch (based on acceleration trigger).
 On launch it enables the motor(s) and climbs with the maximum climb rate [FW_T_CLMB_MAX](#FW_T_CLMB_MAX) while keeping the pitch setpoint above [FW_TKO_PITCH_MIN](#FW_TKO_PITCH_MIN).
 Once it reaches [MIS_TAKEOFF_ALT](#MIS_TAKEOFF_ALT) it will automatically switch to [Hold mode](../flight_modes_fw/hold.md) and loiter.
+It is possible to delay the activation of the motors and control surfaces separately, see parameters [FW_LAUN_MOT_DEL](#FW_LAUN_MOT_DEL), [FW_LAUN_CS_LK_DY](#FW_LAUN_CS_LK_DY) and [CA_CS_LAUN_LK](#CA_CS_LAUN_LK). The later is also exposed in the actuator configuration page under the advanced view.
 
 Всі рухи стіку радіоуправління ігноруються під час повного взлітного процесу.
 
@@ -99,16 +100,18 @@ Once it reaches [MIS_TAKEOFF_ALT](#MIS_TAKEOFF_ALT) it will automatically switch
 
 The _launch detector_ is affected by the following parameters:
 
-| Параметр                                                                                                                                                                   | Опис                                                                                                                  |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| <a id="FW_LAUN_DETCN_ON"></a>[FW_LAUN_DETCN_ON](../advanced_config/parameter_reference.md#FW_LAUN_DETCN_ON) | Увімкнути автоматичне визначення запуску. Якщо вимкнені двигуни обертаються при підготовці до польоту |
-| <a id="FW_LAUN_AC_THLD"></a>[FW_LAUN_AC_THLD](../advanced_config/parameter_reference.md#FW_LAUN_AC_THLD)    | Поріг прискорення (прискорення в напрямку руху тіла повинно бути вище цієї величини)               |
-| <a id="FW_LAUN_AC_T"></a>[FW_LAUN_AC_T](../advanced_config/parameter_reference.md#FW_LAUN_AC_T)             | Час спрацьовування (прискорення повинно бути вище порогу на цю кількість секунд)                   |
-| <a id="FW_LAUN_MOT_DEL"></a>[FW_LAUN_MOT_DEL](../advanced_config/parameter_reference.md#FW_LAUN_MOT_DEL)    | Затримка від виявлення запуску до відкручування мотору                                                                |
+| Параметр                                                                                                                                                                                        | Опис                                                                                                                  |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| <a id="FW_LAUN_DETCN_ON"></a>[FW_LAUN_DETCN_ON](../advanced_config/parameter_reference.md#FW_LAUN_DETCN_ON)                      | Увімкнути автоматичне визначення запуску. Якщо вимкнені двигуни обертаються при підготовці до польоту |
+| <a id="FW_LAUN_AC_THLD"></a>[FW_LAUN_AC_THLD](../advanced_config/parameter_reference.md#FW_LAUN_AC_THLD)                         | Поріг прискорення (прискорення в напрямку руху тіла повинно бути вище цієї величини)               |
+| <a id="FW_LAUN_AC_T"></a>[FW_LAUN_AC_T](../advanced_config/parameter_reference.md#FW_LAUN_AC_T)                                  | Час спрацьовування (прискорення повинно бути вище порогу на цю кількість секунд)                   |
+| <a id="FW_LAUN_MOT_DEL"></a>[FW_LAUN_MOT_DEL](../advanced_config/parameter_reference.md#FW_LAUN_MOT_DEL)                         | Затримка від виявлення запуску до відкручування мотору                                                                |
+| <a id="FW_LAUN_CS_LK_DY"></a>[FW_LAUN_CS_LK_DY](../advanced_config/parameter_reference.md#FW_LAUN_CS_LK_DY) | Delay from launch detection to unlocking the control surfaces                                                         |
+| <a id="CA_CS_LAUN_LK"></a>[CA_CS_LAUN_LK](../advanced_config/parameter_reference.md#CA_CS_LAUN_LK)                               | Bitmask to select which control surfaces are to be locked during launch                                               |
 
 ## Runway Takeoff {#runway_launch}
 
-Зліт зі злітної смуги можна використовувати тільки для транспортних засобів з посадковим шасі та керованим колесом.
+Runway takeoffs can be used by vehicles with landing gear and steerable wheel (only).
 You will first need to enable the wheel controller using the parameter [FW_W_EN](#FW_W_EN).
 
 Транспортний засіб повинен бути в центрі та вирівняний по злітній смузі, коли починається зльот.

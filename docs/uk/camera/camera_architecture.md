@@ -36,7 +36,7 @@ PX4 повинен бути налаштований для маршрутиза
 Ця робота виконується трьома компонентами PX4: [`camera_trigger` driver](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/camera_trigger), [`camera_capture` driver](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/camera_capture), модуль `camera-feedback` (../modules/modules_system.md#camera-feedback).
 
 `camera_trigger` підписується на тему [VehicleCommand](../msg_docs/VehicleCommand.md) та відстежує оновлення в [команди, які він підтримує](../camera/fc_connected_camera.md#mavlink-command-interface).
-Ці оновлення відбуваються, коли отримано команду через MAVLink або коли [елемент камери досягнутий у місії](#camera-commands-in-missions).
+These updates occur when either a command is received via MAVLink or when a [camera item is reached in a mission](#camera-commands-in-missions).
 
 Команди увімкнення та вимкнення спрацьовують, а також налаштовують спрацьовування за часовими та відстаневими інтервалами.
 Водій відстежує ці інтервали, і коли це потрібно, спрацьовують виходи.

@@ -130,9 +130,9 @@ Pixhawk®️sco6X-RT ідеально підходить для розробни
 - Інші характеристики:
   - Operating & storage temperature: -40 ~ 85°c
 
-## Де купити
+## Where to Buy {#store}
 
-Order from [Holybro](https://holybro.com/products/fmuv6x-rt-developer-edition).
+Order from [Holybro](https://holybro.com/products/pixhawk-6x-rt).
 
 ## Зборка/інсталяція
 
@@ -207,13 +207,11 @@ It is pre-built and automatically installed by _QGroundControl_ when appropriate
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v6xrt_default
 ```
 
-<a id="debug_port"></a>
-
-## Відладочний порт
+## Debug Port {#debug_port}
 
 The [PX4 System Console](../debug/system_console.md) and [SWD interface](../debug/swd_debug.md) run on the **FMU Debug** port.
 

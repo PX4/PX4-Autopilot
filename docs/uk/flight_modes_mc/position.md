@@ -78,7 +78,7 @@ All the parameters in the [Multicopter Position Control](../advanced_config/para
 ### Втрата позиції / безпека
 
 Режим позиціонування залежить від наявності прийнятної оцінки позиції.
-If the estimate falls below acceptable levels, for example due to GPS loss, this may trigger a [Position (GPS) Loss Failsafe](../config/safety.md#position-gnss-loss-failsafe).
+If the estimate falls below acceptable levels, for example due to GPS loss, this may trigger a [Position (GPS) Loss Failsafe](../config/safety.md#position-loss-failsafe).
 Залежно від конфігурації, наявності пульта дистанційного керування та наявності достатньої оцінки висоти, PX4 може переключитися в режим висоти, ручний режим, режим посадки або завершити роботу.
 
 ## Дивіться також

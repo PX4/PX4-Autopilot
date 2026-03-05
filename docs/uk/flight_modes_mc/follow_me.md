@@ -31,7 +31,7 @@ The vehicle will automatically yaw to face and follow the target from a specifie
 Користувачі можуть налаштувати кут слідування, висоту та відстань за допомогою пульта дистанційного керування, як показано вище:
 
 - _Follow Height_ is controlled with the `up-down` input ("Throttle").
-  Центруйте палицю, щоб тримати відстеження цілі на постійній висоті. Підніміть або опустіть палицю, щоб налаштувати висоту.
+  Center the stick to keep follow the target at a constant height. Підніміть або опустіть палицю, щоб налаштувати висоту.
 - _Follow Distance_ is controlled with the `forward-back` input ("Pitch").
   Тиснення палиці вперед збільшує відстань слідування, витягування назад зменшує відстань.
 - _Follow Angle_ is controlled with the `left-right` input ("Roll").
@@ -117,7 +117,7 @@ The altitude control mode determine whether the vehicle altitude is relative to 
 - `2D + Terrain` makes the drone follow at a fixed height relative to the terrain underneath it, using information from a distance sensor.
   - If the vehicle does not have a distance sensor following will be identical to `2D tracking`.
   - Датчики відстані не завжди точні, і транспортні засоби можуть бути "скачущими" під час польоту в цьому режимі.
-  - Зверніть увагу, що висота вимірюється відносно землі під транспортним засобом, а не цільового об'єкта.
+  - Note that height is relative to the ground underneath the vehicle, not the follow target.
     Дрон може не слідувати за змінами висоти цілі!
 
 - `3D tracking` mode makes the drone follow at a height relative to the follow target, as supplied by its GPS sensor.
