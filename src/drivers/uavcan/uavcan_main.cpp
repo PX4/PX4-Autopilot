@@ -761,7 +761,7 @@ UavcanNode::Run()
 					_servers_init_pending = false;
 
 				} else {
-					PX4_INFO("UavcanServers started (deferred)");
+					PX4_INFO("UavcanServers started");
 					_servers_init_pending = false;
 				}
 
