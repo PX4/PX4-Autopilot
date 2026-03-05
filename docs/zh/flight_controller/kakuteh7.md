@@ -36,7 +36,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - Dimensions: 35x35mm
 - Weight: 8g
 
-## 购买渠道
+## Where to Buy {#store}
 
 The board can be bought from one of the following shops (for example):
 
@@ -102,7 +102,7 @@ The firmware can be installed in any of the normal ways:
   You can use either pre-built firmware or your own custom firmware.
 
 :::info
-If you are loading the pre-built firmware via QGroundcontrol, you must use QGC Daily or QGC version newer than 4.1.7.
+If you are loading the pre-built firmware via QGroundControl, you must use QGC Daily or QGC version newer than 4.1.7.
 :::
 
 ## PX4 配置

@@ -19,7 +19,7 @@ At high level, some of the key features are:
 - Internal vibration isolation system.
 - Dual high-performance, low-noise IMUs on board are designed for demanding stabilization applications.
 
-A summary of the key features, [assembly](../assembly/quick_start_durandal.md), and [purchase](#purchase) links can be found below.
+A summary of the key features, [assembly](../assembly/quick_start_durandal.md), and [purchase](#store) links can be found below.
 
 :::info
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
@@ -86,9 +86,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 For more information see: [Durandal Technical Data Sheet](https://cdn.shopify.com/s/files/1/0604/5905/7341/files/Durandal_technical_data_sheet_90f8875d-8035-4632-a936-a0d178062077.pdf).
 
-<a id="purchase"></a>
-
-## 购买渠道
+## Where to Buy {#store}
 
 Order from [Holybro](https://holybro.com/products/durandal).
 
@@ -162,7 +160,7 @@ It is pre-built and automatically installed by _QGroundControl_ when appropriate
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make holybro_durandal-v1_default
 ```
 

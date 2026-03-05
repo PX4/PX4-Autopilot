@@ -21,7 +21,7 @@ This version of ROS uses the [MAVROS](../ros/mavros_installation.md) package to 
 - [ROS Installation on RPi](../ros/raspberrypi_installation.md)
 - [External Position Estimation (Vision/Motion based)](../ros/external_position_estimation.md)
 
-## Further Infomration
+## 更多信息
 
 - [XTDrone](https://github.com/robin-shaun/XTDrone/blob/master/README.en.md) - ROS + PX4 simulation environment for computer vision.
   The [XTDrone Manual](https://www.yuque.com/xtdrone/manual_en) has everything you need to get started!
