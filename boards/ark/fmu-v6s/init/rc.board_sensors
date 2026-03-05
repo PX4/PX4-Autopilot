@@ -68,10 +68,10 @@ then
 fi
 
 # Internal SPI bus IIM42653
-iim42653 -R 3 -s -b 1 start
+iim42653 -R 0 -s -b 1 start
 
 # Internal magnetometer on I2C
-iis2mdc -I start
+iis2mdc -R 4 -I start
 
 # Internal Baro on I2C
 bmp388 -I start
