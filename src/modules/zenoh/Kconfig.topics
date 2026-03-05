@@ -393,10 +393,6 @@ menu "Zenoh publishers/subscribers"
 		bool "mag_worker_data"
 		default n
 
-	config ZENOH_PUBSUB_MAGNETOMETER_BIAS_ESTIMATE
-		bool "magnetometer_bias_estimate"
-		default n
-
 	config ZENOH_PUBSUB_MANUAL_CONTROL_SETPOINT
 		bool "manual_control_setpoint"
 		default n
@@ -968,7 +964,6 @@ config ZENOH_PUBSUB_ALL_SELECTION
 	select ZENOH_PUBSUB_LOG_MESSAGE
 	select ZENOH_PUBSUB_LOGGER_STATUS
 	select ZENOH_PUBSUB_MAG_WORKER_DATA
-	select ZENOH_PUBSUB_MAGNETOMETER_BIAS_ESTIMATE
 	select ZENOH_PUBSUB_MANUAL_CONTROL_SETPOINT
 	select ZENOH_PUBSUB_MANUAL_CONTROL_SWITCHES
 	select ZENOH_PUBSUB_MAVLINK_LOG
