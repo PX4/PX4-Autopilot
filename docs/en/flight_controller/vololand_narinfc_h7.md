@@ -1,16 +1,14 @@
-# [NarinFC-H7 VOLOLAND Inc.](https://vololand.com/pages/product/computer "NarinFC-H7")
-
-## Introduction
+# VOLOLAND NarinFC-H7
 
 The NarinFC-H7 is a flight controller produced by [VOLOLAND Inc.](https://vololand.com "VOLOLAND Inc.")
 
-NarinFC-H7 is an advanced autopilot family designed in-house by VOLOLAND Inc..
+NarinFC-H7 is an advanced autopilot family designed in-house by VOLOLAND Inc.
 
 It uses a higher-performance STM32H7 processor and integrates industrial-grade sensors.
 
 Compared with previous autopilots, it has better performance and higher reliability.
 
-![NarinFC-H7](../../assets/flight_controller/narinfc_h7/NarinFC_Header.jpg "NarinFC")
+![NarinFC-H7](../../assets/flight_controller/narinfc_h7/narinfc_header.jpg "NarinFC")
 
 ## Features/Specifications
 
@@ -43,17 +41,17 @@ Compared with previous autopilots, it has better performance and higher reliabil
     - 93.4mm x 46.4mm x 34.1mm
     - 106g
 
-## Where to Buy
+## Where to Buy {#store}
 
 [VOLOLAND Inc.](https://vololand.com "VOLOLAND Inc.")
 
 ## Outline Dimensions
 
-![Outline Dimensions](../../assets/flight_controller/narinfc_h7/2.Outline_Dimensions.png "Outline Dimensions")
+![Outline Dimensions](../../assets/flight_controller/narinfc_h7/2_outline_dimensions.png "Outline Dimensions")
 
 ## Wiring Diagram
 
-![Wire Diagram](../../assets/flight_controller/narinfc_h7/3.Wire_Diagram.png "Wire Diagram")
+![Wire Diagram](../../assets/flight_controller/narinfc_h7/3_wire_diagram.png "Wire Diagram")
 
 ## UART Mapping (Port Diagram & Pin outs)
 
@@ -70,18 +68,18 @@ Compared with previous autopilots, it has better performance and higher reliabil
     
   Serial protocols can be adjusted to personal preferences.
   
-![Port Diagram & Pin outs](../../assets/flight_controller/narinfc_h7/4.Port_Diagram_Pin_outs_Diagram-A.png "Port Diagram-A")
+![Port Diagram & Pin outs](../../assets/flight_controller/narinfc_h7/4_port_diagram_pin_outs_diagram-a.png "Port Diagram-A")
 
 #### 1. TELEM1, TELEM2 Port
 
-![TELEM Pinout](../../assets/flight_controller/narinfc_h7/4.1.TELEM1,TELEM2_Port_JST_GH_6P_Connector.png "TELEM Pinout")
+![TELEM Pinout](../../assets/flight_controller/narinfc_h7/4_1_telem1_telem2_port_jst_gh_6p_connector.png "TELEM Pinout")
 
   - JST GH 6P connector
   - TELEMETRY Port
 
 #### 2. CAN1, CAN2 Port
 
-![CAN Port](../../assets/flight_controller/narinfc_h7/4.2.CAN1,CAN2_Port_JST_HG_4P_Connector.png "CAN Port")
+![CAN Port](../../assets/flight_controller/narinfc_h7/4_2_can1_can2_port_jst_hg_4p_connector.png "CAN Port")
 
   - JST GH 4P connector
   - Communication Protocol: UAVCAN v0 (default), UAVCAN v1 (limited support)
@@ -90,13 +88,13 @@ Compared with previous autopilots, it has better performance and higher reliabil
 
 #### 3. I2C, I2C2, I2C3, I2C4 Port
 
-![I2C Port](../../assets/flight_controller/narinfc_h7/4.3.I2C1,I2C2,I2C3,I2C4_Port_JST_GH_4P_Connector.png "I2C Port")
+![I2C Port](../../assets/flight_controller/narinfc_h7/4_3_i2c1_i2c2_i2c3_i2c4_port_jst_gh_4p_connector.png "I2C Port")
 
   - JST GH 4P connector
 
 #### 4. UART4 Port
 
-![UART Port](../../assets/flight_controller/narinfc_h7/4.4.UART4_Port_JST_GH_6P_Connector.png "UART Port")
+![UART Port](../../assets/flight_controller/narinfc_h7/4_4_uart4_port_jst_gh_6p_connector.png "UART Port")
   
   - JST GH 6P connector
 
@@ -104,30 +102,30 @@ Compared with previous autopilots, it has better performance and higher reliabil
 #### 5. RSSI Port
   - RSSI input
 
-![SPI Port](../../assets/flight_controller/narinfc_h7/13.RSSI.png "RSSI input")
+![SPI Port](../../assets/flight_controller/narinfc_h7/13_rssi.png "RSSI input")
 
 
 #### 6. GPS & Safety Port
 
-![GPS & Safety Port](../../assets/flight_controller/narinfc_h7/4.5.GPS_Safety_Port_JST_GH_10P_Connector.png "GPS & Safety Port")
+![GPS & Safety Port](../../assets/flight_controller/narinfc_h7/4_5_gps_safety_port_jst_gh_10p_connector.png "GPS & Safety Port")
 
   - JST GH 10P connector
   - GPS NODMA
 
-![Port Diagram & Pin outs](../../assets/flight_controller/narinfc_h7/4.Port_Diagram_Pin_outs_Diagram-B.png "Port Diagram-B")
+![Port Diagram & Pin outs](../../assets/flight_controller/narinfc_h7/4_port_diagram_pin_outs_diagram-b.png "Port Diagram-B")
 
 #### 7. PWM & RC_IN
 
 The NarinFC-H7 supports up to 14 PWM outputs. Outputs are grouped and all outputs within their group must be the same protocol.
 
-![PWM Out](../../assets/flight_controller/narinfc_h7/4.6.PWM_Out_M1-M14.png "PWM Out")
+![PWM Out](../../assets/flight_controller/narinfc_h7/4_6_pwm_out_m1-m14.png "PWM Out")
   
   - 2.54mm pitch DuPont connector
   - RC_IN : Remote control receiver
 
 #### 8. Power Input
 
-![Power Input](../../assets/flight_controller/narinfc_h7/4.7.Power_Input.png "Power Input")
+![Power Input](../../assets/flight_controller/narinfc_h7/4_7_power_input.png "Power Input")
 
   - 2mm pitch DuPont connector
 
@@ -135,12 +133,12 @@ The NarinFC-H7 supports up to 14 PWM outputs. Outputs are grouped and all output
 #### 9. ADC Port
   - ADC input
 
-![SPI Port](../../assets/flight_controller/narinfc_h7/12.ADC.png "ADC input")
+![SPI Port](../../assets/flight_controller/narinfc_h7/12_adc.png "ADC input")
 
 #### 10. DEBUG/UART7 Port
 UART7(SERIAL6) is labeled DEBUG RX/TX below
 
-![DEBUG Port](../../assets/flight_controller/narinfc_h7/4.8.DEBUG_Port_JST_HG_6P_Connector.png "DEBUG Port")
+![DEBUG Port](../../assets/flight_controller/narinfc_h7/4_8_debug_port_jst_hg_6p_connector.png "DEBUG Port")
   
   - JST GH 6P connector
   - DEBUG NODMA
@@ -150,7 +148,7 @@ UART7(SERIAL6) is labeled DEBUG RX/TX below
 
 #### 12. SPI Port
 
-![SPI Port](../../assets/flight_controller/narinfc_h7/4.10.SPI_Port_JST_GH_7P_Connector.png "SPI Port")
+![SPI Port](../../assets/flight_controller/narinfc_h7/4_10_spi_port_jst_gh_7p_connector.png "SPI Port")
 
   - JST GH 7P connector
   - SPI Port
@@ -211,6 +209,3 @@ This board comes with PX4 firmware pre-installed and other vehicle/revision PX4 
 
 The board comes pre-installed with an PX4 bootloader, allowing the loading of \*.px4 firmware files with any PX4 compatible ground station, such as QGroundControl.
 
-<br>
-
-# [VOLOLAND Inc.](https://vololand.com "VOLOLAND Inc.")
