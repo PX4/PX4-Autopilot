@@ -23219,12 +23219,9 @@ tail_output += CA_HELI_YAW_TH_S \* throttle
 
 Ice shedding cycle period.
 
-Ice shedding prevents ice buildup in VTOL aircraft motors by
-periodically spinning inactive rotors. When enabled (period
-
-> 0), every cycle lasts for the defined period and includes
-> a 2‑second spin at 0.01 motor output. If period <= 0, the
-> feature is disabled.
+Ice shedding prevents ice buildup in VTOL aircraft motors by periodically spinning inactive rotors.
+When enabled (period > 0), every cycle lasts for the defined period and includes a 2-second spin at 0.01 motor output.
+If period <= 0, the feature is disabled.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
