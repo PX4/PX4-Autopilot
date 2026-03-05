@@ -47,7 +47,6 @@
 #include <lib/drivers/device/spi.h>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/geo/geo.h>
-#include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/i2c_spi_buses.h>
@@ -124,15 +123,16 @@ private:
 	uint8_t _checked_register{0};
 	static constexpr uint8_t size_register_cfg{3};
 	register_config_t _register_cfg[size_register_cfg] {
-		// Register              | Set bits, Clear bits
-		{ Register::USER_GPIO_CFG1, USER_GPIO_CFG1_BIT::GPIO3_DR, 0},
+		// Register | Set bits, Clear bits
+		{Register::USER_GPIO_CFG1, USER_GPIO_CFG1_BIT::GPIO3_DR, 0},
 		{
-			Register::USER_DATA_CFG,  USER_DATA_CFG_BIT::WORD_SIZE_32 | USER_DATA_CFG_BIT::TEMPERATURE_EN | USER_DATA_CFG_BIT::DATA_CNTR_EN |
+			Register::USER_DATA_CFG,
+			USER_DATA_CFG_BIT::WORD_SIZE_32 | USER_DATA_CFG_BIT::TEMPERATURE_EN | USER_DATA_CFG_BIT::DATA_CNTR_EN |
 			USER_DATA_CFG_BIT::Z_GYRO_EN | USER_DATA_CFG_BIT::Y_GYRO_EN | USER_DATA_CFG_BIT::X_GYRO_EN |
 			USER_DATA_CFG_BIT::Z_ACCEL_EN | USER_DATA_CFG_BIT::Y_ACCEL_EN | USER_DATA_CFG_BIT::X_ACCEL_EN,
 			USER_DATA_CFG_BIT::Z_DELTANG_EN | USER_DATA_CFG_BIT::Y_DELTANG_EN | USER_DATA_CFG_BIT::X_DELTANG_EN |
 			USER_DATA_CFG_BIT::Z_DELTVEL_EN | USER_DATA_CFG_BIT::Y_DELTVEL_EN | USER_DATA_CFG_BIT::X_DELTVEL_EN
 		},
-		{ Register::MSC_CTRL, MSC_CTRL_BIT::FILT_BW_500Hz, 0},
+		{Register::MSC_CTRL, MSC_CTRL_BIT::FILT_BW_500Hz, 0},
 	};
 };

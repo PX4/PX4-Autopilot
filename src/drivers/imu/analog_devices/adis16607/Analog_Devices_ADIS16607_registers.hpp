@@ -43,16 +43,16 @@
 #include <cstdint>
 
 // TODO: move to a central header
-static constexpr uint16_t Bit0  = (1 << 0);
-static constexpr uint16_t Bit1  = (1 << 1);
-static constexpr uint16_t Bit2  = (1 << 2);
-static constexpr uint16_t Bit3  = (1 << 3);
-static constexpr uint16_t Bit4  = (1 << 4);
-static constexpr uint16_t Bit5  = (1 << 5);
-static constexpr uint16_t Bit6  = (1 << 6);
-static constexpr uint16_t Bit7  = (1 << 7);
-static constexpr uint16_t Bit8  = (1 << 8);
-static constexpr uint16_t Bit9  = (1 << 9);
+static constexpr uint16_t Bit0 = (1 << 0);
+static constexpr uint16_t Bit1 = (1 << 1);
+static constexpr uint16_t Bit2 = (1 << 2);
+static constexpr uint16_t Bit3 = (1 << 3);
+static constexpr uint16_t Bit4 = (1 << 4);
+static constexpr uint16_t Bit5 = (1 << 5);
+static constexpr uint16_t Bit6 = (1 << 6);
+static constexpr uint16_t Bit7 = (1 << 7);
+static constexpr uint16_t Bit8 = (1 << 8);
+static constexpr uint16_t Bit9 = (1 << 9);
 static constexpr uint16_t Bit10 = (1 << 10);
 static constexpr uint16_t Bit11 = (1 << 11);
 static constexpr uint16_t Bit12 = (1 << 12);
@@ -62,46 +62,36 @@ static constexpr uint16_t Bit15 = (1 << 15);
 
 namespace Analog_Devices_ADIS16607
 {
-static constexpr uint32_t SPI_SPEED = 10 * 1000 * 1000;       // 10 MHz SPI serial interface
-
+static constexpr uint32_t SPI_SPEED = 10 * 1000 * 1000; // 10 MHz SPI serial interface
 static constexpr uint16_t DIR_READ = 0x80;
-
-static constexpr uint16_t device_identification = 0x6000;
-
+static constexpr uint16_t DEVICE_IDENTIFICATION = 0x6000;
+static constexpr uint16_t SPI_HALFDUPLEX_KEY_VALUE = 0xB4B4;
 static constexpr uint32_t SAMPLE_INTERVAL_US = 125; // 8000 Hz
 
 enum class Register : uint16_t {
 	DEV_ID = 0x00,
-
 	DIAG_STAT = 0x05,
-
 	USER_GPIO_CFG1 = 0x2F,
-
 	SPI_HALFDUPLEX_KEY = 0x32,
-
 	USER_DATA_CFG = 0x34,
-
 	USER_FIFO_CFG = 0x35,
-
 	SOFT_RESET = 0x36,
-
 	MSC_CTRL = 0x39,
 };
 
 // DIAG_STAT
 enum DIAG_STAT_BIT : uint16_t {
-	Gyro_CST_fault       		= Bit15, // The gyro continuous self-test has failed.
-	Accelerometer_CST_fault         = Bit14,  // An accelerometer continuous self-test has failed
-	Gyro_fault              	= Bit13,  // The gyro sensor has been disabled
-	Accelerometer_overload_or_fault = Bit12,  // The accelerometer has been disabled
-	Power_supplies_fault            = Bit11,  // Fault in Any of the Power Supplies
-	SDSP_fault              	= Bit10,  // SDSP Combined Error Status
-	BL_fault                	= Bit9,  // Bootloader Fault
-	FW_fault     			= Bit8,  // Firmware Faults.
-	SYNC_LOST 			= Bit2,  // DPLL Has lost its sync input
-	DPLL_UnLocked           	= Bit1,  // Status of the DPLL
-	FIFO_Threshold_Met 		= Bit0, // 1 Indicates that the FIFO contains at least the desired number of samples, as set in the FIFO_SAMPLES register
-
+	Gyro_CST_fault = Bit15, // The gyro continuous self-test has failed.
+	Accelerometer_CST_fault = Bit14, // An accelerometer continuous self-test has failed
+	Gyro_fault = Bit13, // The gyro sensor has been disabled
+	Accelerometer_overload_or_fault = Bit12, // The accelerometer has been disabled
+	Power_supplies_fault = Bit11, // Fault in Any of the Power Supplies
+	SDSP_fault = Bit10, // SDSP Combined Error Status
+	BL_fault = Bit9, // Bootloader Fault
+	FW_fault = Bit8, // Firmware Faults.
+	SYNC_LOST = Bit2, // DPLL Has lost its sync input
+	DPLL_UnLocked = Bit1, // Status of the DPLL
+	FIFO_Threshold_Met = Bit0, // FIFO contains at least the desired number of samples
 };
 
 // USER_GPIO_CFG1
@@ -112,7 +102,7 @@ enum USER_GPIO_CFG1_BIT : uint16_t {
 // USER_DATA_CFG
 enum USER_DATA_CFG_BIT : uint16_t {
 	WORD_SIZE_32 = Bit15, // 32-bit Output Word Length
-	DATA_CNTR_EN   = Bit14, // Enable Output Data Counter
+	DATA_CNTR_EN = Bit14, // Enable Output Data Counter
 	TEMPERATURE_EN = Bit12, // Enable Temperature Sensor
 	Z_DELTANG_EN = Bit11,
 	Y_DELTANG_EN = Bit10,
@@ -133,12 +123,15 @@ enum USER_FIFO_CFG_BIT : uint16_t {
 	CLEAR_FIFOB = Bit15, // Clear the FIFO pointers to reset it
 };
 
+// SOFT_RESET
+enum SOFT_RESET_BIT : uint16_t {
+	RESET = Bit0, // Trigger soft reset
+};
+
 // MSC_CTRL
 enum MSC_CTRL_BIT : uint16_t {
 	FILT_BW_500Hz = Bit8, // fc= 500 Hz
-	Self_test_1 = Bit6,  // enable Self-Test mode
+	Self_test_1 = Bit6, // enable Self-Test mode
 };
-
-
 
 } // namespace Analog_Devices_ADIS16607

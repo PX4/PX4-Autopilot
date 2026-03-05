@@ -103,12 +103,12 @@ int ADIS16607::probe()
 	}
 
 	// lock the device to half duplex SPI mode
-	RegisterWrite(Register::SPI_HALFDUPLEX_KEY, 0xB4B4);
+	RegisterWrite(Register::SPI_HALFDUPLEX_KEY, SPI_HALFDUPLEX_KEY_VALUE);
 
-	const uint16_t DEV_ID = RegisterRead(Register::DEV_ID);
+	const uint16_t device_id = RegisterRead(Register::DEV_ID);
 
-	if (DEV_ID != device_identification) {
-		PX4_ERR("unexpected DEV_ID 0x%02x", DEV_ID);
+	if (device_id != DEVICE_IDENTIFICATION) {
+		PX4_ERR("unexpected DEV_ID 0x%02x", device_id);
 		return PX4_ERROR;
 	}
 
@@ -122,7 +122,7 @@ void ADIS16607::RunImpl()
 	switch (_state) {
 	case STATE::RESET:
 		perf_count(_reset_perf);
-		RegisterWrite(Register::SOFT_RESET, 0x01);
+		RegisterWrite(Register::SOFT_RESET, SOFT_RESET_BIT::RESET);
 		_reset_timestamp = now;
 		_failure_count = 0;
 		_state = STATE::WAIT_FOR_RESET;
@@ -131,12 +131,12 @@ void ADIS16607::RunImpl()
 
 	case STATE::WAIT_FOR_RESET:
 		// lock the device to half duplex SPI mode
-		RegisterWrite(Register::SPI_HALFDUPLEX_KEY, 0xB4B4);
+		RegisterWrite(Register::SPI_HALFDUPLEX_KEY, SPI_HALFDUPLEX_KEY_VALUE);
 		// These bits are cleared when read
 		RegisterRead(Register::DIAG_STAT);
 
 		if (_self_test_passed) {
-			if ((RegisterRead(Register::DEV_ID) == device_identification)) {
+			if ((RegisterRead(Register::DEV_ID) == DEVICE_IDENTIFICATION)) {
 				// if reset succeeded then configure
 				_state = STATE::CONFIGURE;
 				ScheduleNow();
@@ -144,7 +144,7 @@ void ADIS16607::RunImpl()
 			} else {
 				// RESET not complete
 				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-					PX4_DEBUG("Reset failed, retrying");
+					PX4_WARN("Reset failed, retrying");
 					_state = STATE::RESET;
 					ScheduleDelayed(100_ms);
 
@@ -164,10 +164,10 @@ void ADIS16607::RunImpl()
 
 	case STATE::SELF_TEST_CHECK: {
 			// read DIAG_STAT to check result
-			const uint16_t DIAG_STAT = RegisterRead(Register::DIAG_STAT);
+			const uint16_t diag_stat = RegisterRead(Register::DIAG_STAT);
 
-			if (DIAG_STAT != 0) {
-				PX4_ERR("self test failed, resetting. DIAG_STAT: %#X", DIAG_STAT);
+			if (diag_stat != 0) {
+				PX4_ERR("self test failed, resetting. DIAG_STAT: %#X", diag_stat);
 				_state = STATE::RESET;
 				ScheduleDelayed(3_s);
 
@@ -199,11 +199,11 @@ void ADIS16607::RunImpl()
 		} else {
 			// CONFIGURE not complete
 			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-				PX4_DEBUG("Configure failed, resetting");
+				PX4_WARN("Configure failed, resetting");
 				_state = STATE::RESET;
 
 			} else {
-				PX4_DEBUG("Configure failed, retrying");
+				PX4_WARN("Configure failed, retrying");
 			}
 
 			ScheduleDelayed(100_ms);
@@ -230,7 +230,6 @@ void ADIS16607::RunImpl()
 			}
 
 			bool success = false;
-			// __attribute__((packed))
 			struct BurstRead {
 				uint16_t cmd;
 				uint16_t DIAG_STAT;
@@ -279,8 +278,7 @@ void ADIS16607::RunImpl()
 
 				buffer.TEMP_OUT = (int16_t)be16toh(buffer.TEMP_OUT);
 
-				float temperature = 0;
-				temperature = (float)(buffer.TEMP_OUT) * 0.005f + 25.0f;
+				float temperature = (float)(buffer.TEMP_OUT) * 0.005f + 25.0f;
 
 				_px4_accel.set_temperature(temperature);
 				_px4_gyro.set_temperature(temperature);
