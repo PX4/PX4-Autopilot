@@ -84,8 +84,8 @@ This consists of a single _C_ file and a _cmake_ definition (which tells the too
 
      int px4_simple_app_main(int argc, char *argv[])
      {
-      PX4_INFO("Hello Sky!");
-      return OK;
+     	PX4_INFO("Hello Sky!");
+     	return OK;
      }
      ```
 
@@ -140,12 +140,13 @@ This consists of a single _C_ file and a _cmake_ definition (which tells the too
    #
    ############################################################################
    px4_add_module(
-    MODULE examples__px4_simple_app
-    MAIN px4_simple_app
-    SRCS
-     px4_simple_app.c
-    DEPENDS
-    )
+   	MODULE examples__px4_simple_app
+   	MAIN px4_simple_app
+   	STACK_MAIN 2000
+   	SRCS
+   		px4_simple_app.c
+   	DEPENDS
+   	)
    ```
 
    Note that in your own modules you'd use the current copyright year!
@@ -170,10 +171,10 @@ This consists of a single _C_ file and a _cmake_ definition (which tells the too
 
    ```txt
    menuconfig EXAMPLES_PX4_SIMPLE_APP
-    bool "px4_simple_app"
-    default n
-    ---help---
-     Enable support for px4_simple_app
+   	bool "px4_simple_app"
+   	default n
+   	---help---
+   		Enable support for px4_simple_app
    ```
 
 ## Build the Application/Firmware
@@ -331,19 +332,19 @@ px4_pollfd_struct_t fds[] = {
 };
 
 while (true) {
- /* wait for sensor update of 1 file descriptor for 1000 ms (1 second) */
- int poll_ret = px4_poll(fds, 1, 1000);
- ..
- if (fds[0].revents & POLLIN) {
-  /* obtained data for the first file descriptor */
-  struct vehicle_acceleration_s accel;
-  /* copy sensors raw data into local buffer */
-  orb_copy(ORB_ID(vehicle_acceleration), sensor_sub_fd, &accel);
-  PX4_INFO("Accelerometer:\t%8.4f\t%8.4f\t%8.4f",
-     (double)accel.xyz[0],
-     (double)accel.xyz[1],
-     (double)accel.xyz[2]);
- }
+/* wait for sensor update of 1 file descriptor for 1000 ms (1 second) */
+int poll_ret = px4_poll(fds, 1, 1000);
+..
+if (fds[0].revents & POLLIN) {
+	/* obtained data for the first file descriptor */
+	struct vehicle_acceleration_s accel;
+	/* copy sensors raw data into local buffer */
+	orb_copy(ORB_ID(vehicle_acceleration), sensor_sub_fd, &accel);
+	PX4_INFO("Accelerometer:\t%8.4f\t%8.4f\t%8.4f",
+		(double)accel.xyz[0],
+		(double)accel.xyz[1],
+		(double)accel.xyz[2]);
+}
 }
 ```
 
