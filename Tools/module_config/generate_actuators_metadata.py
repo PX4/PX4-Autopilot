@@ -180,7 +180,6 @@ def get_actuator_output(yaml_config, output_functions, timer_config_file, verbos
                 channel_labels = [process_channel_label(module_name, label, no_prefix)
                     for label in group['channel_labels']]
                 standard_params = group.get('standard_params', [])
-                center = group.get('center', None)
                 extra_function_groups = group.get('extra_function_groups', [])
                 pwm_timer_param = group.get('pwm_timer_param', None)
                 if 'timer_config_file' in group:
@@ -190,7 +189,7 @@ def get_actuator_output(yaml_config, output_functions, timer_config_file, verbos
                 timer_groups = get_timer_groups(timer_config_file, verbose)
                 timer_output_groups, timer_params = get_output_groups(timer_groups,
                     param_prefix, channel_labels,
-                    standard_params, center, extra_function_groups, pwm_timer_param,
+                    standard_params, extra_function_groups, pwm_timer_param,
                     verbose=verbose)
                 output_groups.extend(timer_output_groups)
             else:
@@ -234,15 +233,15 @@ def get_actuator_output(yaml_config, output_functions, timer_config_file, verbos
         per_channel_params = []
         param_prefix = process_param_prefix(group['param_prefix'])
         standard_params = group.get('standard_params', {})
-        center = group.get('center', None)
         standard_params_array = [
-            ( 'function', 'Function', 'FUNC', False ),
-            ( 'disarmed', 'Disarmed', 'DIS', False ),
-            ( 'min', 'Minimum', 'MIN', False ),
-            ( 'max', 'Maximum', 'MAX', False ),
-            ( 'failsafe', 'Failsafe', 'FAIL', True ),
+            ( 'function', 'Function', 'FUNC', False, True ),
+            ( 'disarmed', 'Disarmed', 'DIS', False, True ),
+            ( 'min', 'Minimum', 'MIN', False, True ),
+            ( 'center', 'Center\n(for Servos)', 'CENT', False, False ),
+            ( 'max', 'Maximum', 'MAX', False, True ),
+            ( 'failsafe', 'Failsafe', 'FAIL', True, True ),
             ]
-        for key, label, param_suffix, advanced in standard_params_array:
+        for key, label, param_suffix, advanced, has_function in standard_params_array:
             show_if = None
             if key in standard_params and 'show_if' in standard_params[key]:
                 show_if = standard_params[key]['show_if']
@@ -251,20 +250,12 @@ def get_actuator_output(yaml_config, output_functions, timer_config_file, verbos
                 param = {
                         'label': label,
                         'name': param_prefix+'_'+param_suffix+'${i}',
-                        'function': key,
                     }
+                if has_function: param['function'] = key
                 if advanced: param['advanced'] = True
                 if show_if: param['show-if'] = show_if
                 per_channel_params.append(param)
 
-        if center is not None:
-            center_param = {
-                'label': 'Center\n(for Servos)',
-                'name': param_prefix+'_CENT${i}',
-            }
-            if 'show_if' in center:
-                center_param['show-if'] = center['show_if']
-            per_channel_params.append(center_param)
         param = {
                 'label': 'Rev Range\n(for Servos)',
                 'name': param_prefix+'_REV',
