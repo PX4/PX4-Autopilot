@@ -25,12 +25,12 @@ Sensor readings in SI-unit form. These fields are scaled and offset-compensated 
 
 ## Constants
 
-| 명칭                                                                                                              | 형식      | Value      | 설명                                                                                                                                        |
-| --------------------------------------------------------------------------------------------------------------- | ------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| <a href="#RELATIVE_TIMESTAMP_INVALID"></a> RELATIVE_TIMESTAMP_INVALID | `int32` | 2147483647 | (0x7fffffff) If one of the relative timestamps is set to this value, it means the associated sensor values are invalid |
-| <a href="#CLIPPING_X"></a> CLIPPING_X                                                      | `uint8` | 1          |                                                                                                                                           |
-| <a href="#CLIPPING_Y"></a> CLIPPING_Y                                                      | `uint8` | 2          |                                                                                                                                           |
-| <a href="#CLIPPING_Z"></a> CLIPPING_Z                                                      | `uint8` | 4          |                                                                                                                                           |
+| 명칭                                                                                                            | 형식      | Value      | 설명                                                                                                                                        |
+| ------------------------------------------------------------------------------------------------------------- | ------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="#RELATIVE_TIMESTAMP_INVALID"></a> RELATIVE_TIMESTAMP_INVALID | `int32` | 2147483647 | (0x7fffffff) If one of the relative timestamps is set to this value, it means the associated sensor values are invalid |
+| <a id="#CLIPPING_X"></a> CLIPPING_X                                                      | `uint8` | 1          |                                                                                                                                           |
+| <a id="#CLIPPING_Y"></a> CLIPPING_Y                                                      | `uint8` | 2          |                                                                                                                                           |
+| <a id="#CLIPPING_Z"></a> CLIPPING_Z                                                      | `uint8` | 4          |                                                                                                                                           |
 
 ## Source Message
 

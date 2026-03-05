@@ -49,7 +49,7 @@ Source: [modules/ekf2](https://github.com/PX4/PX4-Autopilot/tree/main/src/module
 
 확장 칼만 필터를 사용한 태도 및 위치 추정기입니다. 멀티콥터와 고정익에 사용됩니다.
 
-The documentation can be found on the [ECL/EKF Overview & Tuning](https://docs.px4.io/main/en/advanced_config/tuning_the_ecl_ekf.html) page.
+The documentation can be found on the [ECL/EKF Overview & Tuning](../advanced_config/tuning_the_ecl_ekf.md) page.
 
 ekf2 can be started in replay mode (`-r`): in this mode, it does not access the system time, but only uses the
 timestamps from the sensor topics.

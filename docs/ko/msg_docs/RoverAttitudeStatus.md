@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Rover Attitude Status.
 
-**TOPICS:** rover_attitudestatus
+**TOPICS:** rover_attitude_status
 
 ## Fields
 

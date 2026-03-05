@@ -25,10 +25,10 @@ pageClass: is-wide-page
 
 ## Constants
 
-| 명칭                                                         | 형식      | Value | 설명 |
-| ---------------------------------------------------------- | ------- | ----- | -- |
-| <a href="#MODE_GPIO"></a> MODE_GPIO   | `uint8` | 1     |    |
-| <a href="#MODE_PX4IO"></a> MODE_PX4IO | `uint8` | 2     |    |
+| 명칭                                                       | 형식      | Value | 설명 |
+| -------------------------------------------------------- | ------- | ----- | -- |
+| <a id="#MODE_GPIO"></a> MODE_GPIO   | `uint8` | 1     |    |
+| <a id="#MODE_PX4IO"></a> MODE_PX4IO | `uint8` | 2     |    |
 
 ## Source Message
 

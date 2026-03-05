@@ -1,6 +1,6 @@
 # Zenoh (PX4 ROS 2 rmw_zenoh)
 
-<Badge type="tip" text="main (planned for: PX4 v1.17)" /> <Badge type="warning" text="Experimental" />
+<Badge type="tip" text="PX4 v1.17" /> <Badge type="warning" text="Experimental" />
 
 :::warning
 실험
@@ -49,6 +49,11 @@ ros2 run rmw_zenoh_cpp rmw_zenohd
 
 For more information about the Zenoh Router see the [rmw_zenoh](https://github.com/ros2/rmw_zenoh?tab=readme-ov-file#start-the-zenoh-router) documentation.
 
+:::note
+From ROS 2 Jazzy onward, `rmw_zenoh` topic key expressions include the message type hash (RIHS01, as defined in REP-2016). This prevents interoperability with ROS 2 Humble and earlier.
+For more information about key expressions, refer to the [rmw_zenoh design documentation](https://github.com/ros2/rmw_zenoh/blob/jazzy/docs/design.md#topic-and-service-name-mapping-to-zenoh-key-expressions).
+:::
+
 ## PX4 Zenoh-Pico Node Setup
 
 ### PX4 Firmware
@@ -79,6 +84,12 @@ You can check if Zenoh is present at runtime by using QGroundControl to [find th
 If present, the module is installed.
 :::
 
+:::warning
+Interoperability with ROS 2 Humble and earlier requires setting `CONFIG_ZENOH_KEY_TYPE_HASH=n` to disable the
+inclusion of the message type hash (RIHS01, as defined in REP-2016) in the Zenoh key expression.
+Note that this will break compatibility with ROS 2 Jazzy and later.
+:::
+
 ### Enable Zenoh on PX4 Startup
 
 Set the [ZENOH_ENABLE](../advanced_config/parameter_reference.md#ZENOH_ENABLE) parameter to `1` to enable Zenoh on PX4 startup.
@@ -94,7 +105,7 @@ If you're using a different IP for the Zenoh daemon, run the following command (
 zenoh config net client tcp/10.41.10.1:7447#iface=eth0
 ```
 
-Note that for the simulation target with Zeroh (`px4_sitl_zenoh`) you won't need to make any changes because the default IP address of the Zenoh daemon is set to `localhost`.
+Note that for the simulation target with Zenoh (`px4_sitl_zenoh`) you won't need to make any changes because the default IP address of the Zenoh daemon is set to `localhost`.
 
 :::warning
 Any changes to the network configuration require a PX4 system reboot to take effect.
@@ -199,3 +210,7 @@ Subscription count: 0
 The [PX4 ROS 2 Interface Library](../ros2/px4_ros2_interface_lib.md) works out of the box with Zenoh as a transport backend.
 This means you can publish and subscribe to PX4 topics over Zenoh without changing your ROS 2 nodes or dealing with DDS configuration.
 For setup details and supported message types, refer to the [PX4 ROS 2 Interface Library](../ros2/px4_ros2_interface_lib.md).
+
+:::info
+The PX4 ROS 2 Interface Library is not compatible with ROS 2 Humble and earlier, as it requires the message type hash (RIHS01, as defined in REP-2016) to be included in the Zenoh key expression.
+:::

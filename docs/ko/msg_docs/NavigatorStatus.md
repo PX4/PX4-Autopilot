@@ -18,10 +18,10 @@ Current status of a Navigator mode. The possible values of nav_state are defined
 
 ## Constants
 
-| 명칭                                                             | 형식      | Value | 설명                                                  |
-| -------------------------------------------------------------- | ------- | ----- | --------------------------------------------------- |
-| <a href="#FAILURE_NONE"></a> FAILURE_NONE | `uint8` | 0     |                                                     |
-| <a href="#FAILURE_HAGL"></a> FAILURE_HAGL | `uint8` | 1     | Target altitude exceeds maximum height above ground |
+| 명칭                                                           | 형식      | Value | 설명                                                  |
+| ------------------------------------------------------------ | ------- | ----- | --------------------------------------------------- |
+| <a id="#FAILURE_NONE"></a> FAILURE_NONE | `uint8` | 0     |                                                     |
+| <a id="#FAILURE_HAGL"></a> FAILURE_HAGL | `uint8` | 1     | Target altitude exceeds maximum height above ground |
 
 ## Source Message
 
