@@ -51,6 +51,7 @@
 
 #include "uavcan_main.hpp"
 #include "uavcan_servers.hpp"
+#include <lib/dataman_client/DatamanClient.hpp>
 
 #include <uavcan_posix/dynamic_node_id_server/file_event_tracer.hpp>
 #include <uavcan_posix/dynamic_node_id_server/file_storage_backend.hpp>

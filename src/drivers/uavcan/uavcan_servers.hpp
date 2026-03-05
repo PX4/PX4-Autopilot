@@ -46,7 +46,6 @@
 #include <uavcan_posix/firmware_version_checker.hpp>
 
 #include "uavcan_module.hpp"
-#include <lib/dataman_client/DatamanClient.hpp>
 
 /**
  * @file uavcan_servers.hpp
