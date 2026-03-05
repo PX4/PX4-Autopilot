@@ -40,6 +40,11 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/actuator_armed.h>
+
+static constexpr unsigned MAX_GPS_SENS = 4;
+
+using namespace time_literals;
 
 class MavlinkStreamOpenDroneIdLocation : public MavlinkStream
 {
@@ -66,6 +71,8 @@ private:
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _sensor_gps_sub{ORB_ID(sensor_gps)};
+	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
 
 	bool send() override
 	{
@@ -92,6 +99,34 @@ private:
 		msg.timestamp_accuracy = MAV_ODID_TIME_ACC_UNKNOWN;
 
 		bool updated = false;
+		const uint8_t num_gps_instances = orb_group_count(ORB_ID(sensor_gps));
+		const bool vehicle_has_gps = num_gps_instances > 0;
+		bool gps_timeout = true;
+
+		if (num_gps_instances > MAX_GPS_SENS) {
+			PX4_WARN("Number of GPS instances exceeds maximum (%d)", MAX_GPS_SENS);
+			msg.status = MAV_ODID_STATUS_REMOTE_ID_SYSTEM_FAILURE;
+			updated = true;
+
+		} else {
+
+			for (uint8_t gps_index = 0; gps_index < num_gps_instances; gps_index++) { // Check all GPS instances if any present
+				uORB::SubscriptionMultiArray<sensor_gps_s, MAX_GPS_SENS> sensor_gps_sub{ORB_ID::sensor_gps};
+
+				sensor_gps_s sensor_gps_data;
+				sensor_gps_sub[gps_index].update(&sensor_gps_data);
+
+				if (hrt_elapsed_time(&sensor_gps_data.timestamp) < 3_s) {
+					gps_timeout = false;
+					break;
+				}
+			}
+
+			if (!vehicle_has_gps || gps_timeout) {
+				msg.status = MAV_ODID_STATUS_REMOTE_ID_SYSTEM_FAILURE;
+				updated = true;
+			}
+		}
 
 		// status: MAV_ODID_STATUS_GROUND/MAV_ODID_STATUS_AIRBORNE
 		if (_vehicle_land_detected_sub.advertised()) {
@@ -110,12 +145,27 @@ private:
 			}
 		}
 
+		if (_actuator_armed_sub.updated()) {
+			actuator_armed_s actuator_armed{};
+			_actuator_armed_sub.copy(&actuator_armed);
+
+			if (actuator_armed.force_failsafe || actuator_armed.lockdown || actuator_armed.manual_lockdown) {
+				msg.status = MAV_ODID_STATUS_EMERGENCY;
+				updated = true;
+			}
+		}
+
 		// status: MAV_ODID_STATUS_EMERGENCY
 		if (_vehicle_status_sub.advertised()) {
 			vehicle_status_s vehicle_status{};
 
 			if (_vehicle_status_sub.copy(&vehicle_status) && hrt_elapsed_time(&vehicle_status.timestamp) < 10_s) {
 				if (vehicle_status.failsafe && (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED)) {
+					msg.status = MAV_ODID_STATUS_EMERGENCY;
+					updated = true;
+
+				} else if (vehicle_status.failsafe_and_user_took_over
+					   || vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_TERMINATION) {
 					msg.status = MAV_ODID_STATUS_EMERGENCY;
 					updated = true;
 				}
