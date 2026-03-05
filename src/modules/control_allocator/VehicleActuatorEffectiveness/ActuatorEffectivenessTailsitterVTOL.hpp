@@ -72,6 +72,9 @@ public:
 
 	void allocateAuxilaryControls(const float dt, int matrix_index, ActuatorVector &actuator_sp) override;
 
+	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index, ActuatorVector &actuator_sp,
+			    const ActuatorVector &actuator_min, const ActuatorVector &actuator_max) override;
+
 	void setFlightPhase(const FlightPhase &flight_phase) override;
 
 	const char *name() const override { return "VTOL Tailsitter"; }
@@ -83,6 +86,9 @@ protected:
 	uint32_t _forwards_motors_mask{};
 
 	int _first_control_surface_idx{0}; ///< applies to matrix 1
+
+	// Default true, if false we allow turning off motors in fixed-wing
+	bool _mc_motors_needed_for_rate_control{true};
 
 	uORB::Subscription _flaps_setpoint_sub{ORB_ID(flaps_setpoint)};
 	uORB::Subscription _spoilers_setpoint_sub{ORB_ID(spoilers_setpoint)};

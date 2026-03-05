@@ -56,8 +56,11 @@ ActuatorEffectivenessTailsitterVTOL::getEffectivenessMatrix(Configuration &confi
 
 	// MC motors
 	configuration.selected_matrix = 0;
+
+	_mc_motors_needed_for_rate_control = _mc_rotors.geometry().num_rotors > 3;
+
 	// enable MC yaw control if more than 3 rotors
-	_mc_rotors.enableYawByDifferentialThrust(_mc_rotors.geometry().num_rotors > 3);
+	_mc_rotors.enableYawByDifferentialThrust(_mc_motors_needed_for_rate_control);
 	const bool mc_rotors_added_successfully = _mc_rotors.addActuators(configuration);
 
 	// Control Surfaces
@@ -84,6 +87,35 @@ void ActuatorEffectivenessTailsitterVTOL::allocateAuxilaryControls(const float d
 
 		if (_spoilers_setpoint_sub.copy(&spoilers_setpoint)) {
 			_control_surfaces.applySpoilers(spoilers_setpoint.normalized_setpoint, _first_control_surface_idx, dt, actuator_sp);
+		}
+	}
+}
+
+void ActuatorEffectivenessTailsitterVTOL::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
+		int matrix_index, ActuatorVector &actuator_sp, const ActuatorVector &actuator_min, const ActuatorVector &actuator_max)
+{
+	// If the "MC" motors are not needed for fixed-wing rate control, switch them off on low thrust.
+	// The threshold of 2% was determined empirically (RC stick inaccuracy)
+	if (!_mc_motors_needed_for_rate_control && _flight_phase == FlightPhase::FORWARD_FLIGHT) {
+
+		const int num_rotors = _mc_rotors.geometry().num_rotors;
+
+		// Find out whether *all* forward rotors have low thrust. If only a subset has low thrust,
+		// swiching the subset off would produce unpredictable torque response
+		bool all_forwards_motors_low_thrust = true;
+
+		for (int i = 0; i < num_rotors; i++) {
+			if ((_forwards_motors_mask & (1 << i)) && actuator_sp(i) > 0.02f) {
+				all_forwards_motors_low_thrust = false;
+			}
+		}
+
+		// Check inside of the loop to always be close to worst case performance
+		for (int i = 0; i < num_rotors; i++) {
+			if (all_forwards_motors_low_thrust && _forwards_motors_mask & (1 << i)) {
+				// NaN is later translated to disarmed PWM
+				actuator_sp(i) = NAN;
+			}
 		}
 	}
 }
