@@ -141,7 +141,6 @@ def get_timer_groups(timer_config_file, verbose=False):
 def get_output_groups(timer_groups, param_prefix="PWM_MAIN",
         channel_labels=["PWM Main", "PWM Capture"],
         standard_params=[],
-    center=None,
         extra_function_groups=[], pwm_timer_param=None,
         verbose=False):
     """ convert the timer groups into an output_groups section of module.yaml
@@ -183,9 +182,6 @@ def get_output_groups(timer_groups, param_prefix="PWM_MAIN",
             'channel_label_module_name_prefix': False,
         }
 
-        if center is not None:
-            group['center'] = deepcopy(center)
-
         if pwm_timer_param is not None:
             pwm_timer_param_cp = deepcopy(pwm_timer_param)
             timer_param_name = param_prefix+'_TIM'+str(timer_index)
@@ -202,9 +198,6 @@ def get_output_groups(timer_groups, param_prefix="PWM_MAIN",
 
                 for standard_param in group['standard_params']:
                     group['standard_params'][standard_param]['show_if'] = timer_param_name + '>=-1'
-
-                if 'center' in group:
-                    group['center']['show_if'] = timer_param_name + '>=-1'
 
                 # indicate support for changing motor spin direction
                 group['supported_actions'] = {
