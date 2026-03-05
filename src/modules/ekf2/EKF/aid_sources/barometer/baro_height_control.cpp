@@ -85,20 +85,20 @@ void Ekf::controlBaroHeightFusion(const imuSample &imu_sample)
 						measurement_var + bias_est.getBiasVar(),  // observation variance
 						math::max(_params.ekf2_baro_gate, 1.f)); // innovation gate
 
-		// Compensate for positive static pressure transients (negative vertical position innovations)
-		// caused by rotor wash ground interaction by applying a temporary deadzone to baro innovations.
+		// Compensate for static pressure transients caused by rotor wash ground interaction
+		// by applying a temporary deadzone to baro innovations.
+		// The direction of the pressure transient depends on the baro location on the airframe,
+		// so the deadzone is applied symmetrically to both positive and negative innovations.
 		if (_control_status.flags.gnd_effect && (_params.ekf2_gnd_eff_dz > 0.f)) {
 
-			const float deadzone_start = 0.0f;
-			const float deadzone_end = deadzone_start + _params.ekf2_gnd_eff_dz;
+			if (aid_src.innovation > _params.ekf2_gnd_eff_dz) {
+				aid_src.innovation -= _params.ekf2_gnd_eff_dz;
 
-			if (aid_src.innovation < -deadzone_start) {
-				if (aid_src.innovation <= -deadzone_end) {
-					aid_src.innovation += deadzone_end;
+			} else if (aid_src.innovation < -_params.ekf2_gnd_eff_dz) {
+				aid_src.innovation += _params.ekf2_gnd_eff_dz;
 
-				} else {
-					aid_src.innovation = -deadzone_start;
-				}
+			} else {
+				aid_src.innovation = 0.f;
 			}
 		}
 

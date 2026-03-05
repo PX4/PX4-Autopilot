@@ -311,7 +311,7 @@ struct parameters {
 	float baro_bias_nsd{0.13f};             ///< process noise for barometric height bias estimation (m/s/sqrt(Hz))
 	float ekf2_baro_gate{5.0f};             ///< barometric and GPS height innovation consistency gate size (STD)
 
-	float ekf2_gnd_eff_dz{5.0f};            ///< Size of deadzone applied to negative baro innovations when ground effect compensation is active (m)
+	float ekf2_gnd_eff_dz{5.0f};            ///< Size of deadzone applied to baro innovations when ground effect compensation is active (m)
 	float ekf2_gnd_max_hgt{0.5f};           ///< Height above ground at which baro ground effect becomes insignificant (m)
 
 # if defined(CONFIG_EKF2_BARO_COMPENSATION)
@@ -553,7 +553,7 @@ uint64_t mag_fault               :
 		1; ///< 18 - true when the magnetometer has been declared faulty and is no longer being used
 		uint64_t fuse_aspd               : 1; ///< 19 - true when airspeed measurements are being fused
 uint64_t gnd_effect              :
-		1; ///< 20 - true when protection from ground effect induced static pressure rise is active
+		1; ///< 20 - true when protection from ground effect induced static pressure transients is active
 uint64_t rng_stuck               :
 		1; ///< 21 - true when rng data wasn't ready for more than 10s and new rng values haven't changed enough
 uint64_t gnss_yaw                 :
