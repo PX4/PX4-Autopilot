@@ -54,6 +54,7 @@
 #include <version/version.h>
 
 #include <arch/chip/chip.h>
+#include <sys/statfs.h>
 
 #include <uORB/topics/esc_status.h>
 
@@ -528,10 +529,14 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 
 #endif
 
-	// Actuators
-#if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
 	int32_t uavcan_enable = -1;
 	(void)param_get(param_find("UAVCAN_ENABLE"), &uavcan_enable);
+
+	// UavcanServers requires SD card access. Defer to Run() until mounted.
+	_servers_init_pending = (uavcan_enable > 1);
+
+	// Actuators
+#if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
 
 	if (uavcan_enable > 2) {
 
@@ -617,18 +622,6 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 	_param_getset_client.setCallback(GetSetCallback(this, &UavcanNode::cb_getset));
 	_param_opcode_client.setCallback(ExecuteOpcodeCallback(this, &UavcanNode::cb_opcode));
 	_param_restartnode_client.setCallback(RestartNodeCallback(this, &UavcanNode::cb_restart));
-
-	if (uavcan_enable > 1) {
-		_servers = new UavcanServers(_node, _node_info_retriever);
-
-		if (_servers) {
-			int rv = _servers->init();
-
-			if (rv < 0) {
-				PX4_ERR("UavcanServers init: %d", rv);
-			}
-		}
-	}
 
 	// Start the Node
 	return _node.start();
@@ -749,6 +742,29 @@ UavcanNode::Run()
 	if (_check_fw) {
 		_check_fw = false;
 		_node_info_retriever.invalidateAll();
+	}
+
+	// Deferred UavcanServers init: wait for SD card before allocating.
+	struct statfs statfs_buf;
+
+	bool sd_ready = (statfs(UAVCAN_SD_ROOT_PATH, &statfs_buf) == 0) && (statfs_buf.f_blocks > 0);
+
+	if (_servers_init_pending && sd_ready) {
+		_servers_init_pending = false;
+		_servers = new UavcanServers(_node, _node_info_retriever);
+
+		if (_servers) {
+			int rv = _servers->init();
+
+			if (rv < 0) {
+				PX4_ERR("UavcanServers init failed: %d", rv);
+				delete _servers;
+				_servers = nullptr;
+			}
+
+		} else {
+			PX4_ERR("UavcanServers alloc failed");
+		}
 	}
 
 	_node.spinOnce(); // expected to be non-blocking
