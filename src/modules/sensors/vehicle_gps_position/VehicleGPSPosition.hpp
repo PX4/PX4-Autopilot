@@ -97,10 +97,11 @@ private:
 	GpsBlending _gps_blending;
 	PpsTimeSync _pps_time_sync;
 
-	struct GpsOffsetSlot {
+	struct GpsParamSlot {
 		uint32_t device_id{0};
 		matrix::Vector3f offset{};
-	} _gps_offset_slots[GPS_MAX_RECEIVERS] {};
+		hrt_abstime delay_us{110_ms};
+	} _gps_param_slots[GPS_MAX_RECEIVERS] {};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SENS_GPS_MASK>) _param_sens_gps_mask,
@@ -113,7 +114,9 @@ private:
 		(ParamInt<px4::params::SENS_GPS1_ID>) _param_sens_gps1_id,
 		(ParamFloat<px4::params::SENS_GPS1_OFFX>) _param_sens_gps1_offx,
 		(ParamFloat<px4::params::SENS_GPS1_OFFY>) _param_sens_gps1_offy,
-		(ParamFloat<px4::params::SENS_GPS1_OFFZ>) _param_sens_gps1_offz
+		(ParamFloat<px4::params::SENS_GPS1_OFFZ>) _param_sens_gps1_offz,
+		(ParamInt<px4::params::SENS_GPS0_DELAY>) _param_sens_gps0_delay,
+		(ParamInt<px4::params::SENS_GPS1_DELAY>) _param_sens_gps1_delay
 	)
 };
 }; // namespace sensors

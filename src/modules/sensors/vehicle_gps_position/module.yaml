@@ -106,3 +106,19 @@ parameters:
             decimal: 3
             num_instances: *max_num_gps_instances
             instance_start: 0
+
+        SENS_GPS${i}_DELAY:
+            description:
+                short: GPS ${i} measurement delay
+                long: |
+                    GPS measurement delay relative to IMU measurements.
+                    Matched to physical GPS receiver via SENS_GPS${i}_ID.
+                    Only applied when the GPS driver does not provide its own
+                    timestamp_sample correction.
+            type: int32
+            default: 110
+            unit: ms
+            min: 0
+            max: 300
+            num_instances: *max_num_gps_instances
+            instance_start: 0
