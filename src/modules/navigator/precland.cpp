@@ -459,6 +459,11 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 {
 	vehicle_local_position_s *vehicle_local_position = _navigator->get_local_position();
 
+	auto is_final_approach = [&]() -> bool {
+		return _target_pose_valid && _target_pose.abs_pos_valid
+		&& (_target_pose.z_abs - vehicle_local_position->z) < _param_pld_fappr_alt.get();
+	};
+
 	switch (state) {
 	case PrecLandState::Start:
 		return _search_cnt <= _param_pld_max_srch.get();
@@ -487,7 +492,7 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 		// if we're already in this state, only leave it if target becomes unusable, don't care about horizontall offset to target
 		if (_state == PrecLandState::DescendAboveTarget) {
 			// if we're close to the ground, we're more critical of target timeouts so we quickly go into descend
-			if (check_state_conditions(PrecLandState::FinalApproach)) {
+			if (is_final_approach()) {
 				return hrt_absolute_time() - _target_pose.timestamp < 500000; // 0.5s
 
 			} else {
@@ -502,8 +507,7 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 		}
 
 	case PrecLandState::FinalApproach:
-		return _target_pose_valid && _target_pose.abs_pos_valid
-		       && (_target_pose.z_abs - vehicle_local_position->z) < _param_pld_fappr_alt.get();
+		return is_final_approach();
 
 	case PrecLandState::Search:
 		return true;
