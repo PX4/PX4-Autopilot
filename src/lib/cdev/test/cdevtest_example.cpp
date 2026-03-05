@@ -205,7 +205,7 @@ int CDevExample::do_poll(int fd, int timeout, int iterations, int delayms_after_
 	bool mustblock = (timeout < 0);
 
 	// Test indefinte blocking poll
-	while ((!appState.exitRequested()) && (loop_count < iterations)) {
+	while ((appState.isRunning()) && (loop_count < iterations)) {
 		pollret = px4_poll(fds, 1, timeout);
 
 		if (pollret < 0) {
