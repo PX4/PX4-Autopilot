@@ -45,7 +45,7 @@ Events metadata is also added to the log files, allowing log analysis tools (suc
 
 Binaries for flight controller targets with constrained memory do not store the parameter metadata in the binary, but instead reference the same data stored on `px4-travis.s3.amazonaws.com`.
 This applies, for example, to the [Omnibus F4 SD](../flight_controller/omnibus_f4_sd.md).
-The metadata is uploaded via [github CI](https://github.com/PX4/PX4-Autopilot/blob/main/.github/workflows/metadata.yml) for all build targets (and hence will only be available once parameters have been merged into main).
+The metadata is uploaded via the [build_all_targets](https://github.com/PX4/PX4-Autopilot/blob/main/.github/workflows/build_all_targets.yml) GitHub CI workflow for all build targets (and hence will only be available once parameters have been merged into main).
 
 :::info
 You can identify memory constrained boards because they specify `CONFIG_BOARD_CONSTRAINED_FLASH=y` in their [px4board definition file](https://github.com/PX4/PX4-Autopilot/blob/main/boards/omnibus/f4sd/default.px4board).
@@ -60,6 +60,7 @@ The metadata JSON files for CI builds of `main` are also copied to the github re
 This integrates with Crowdin to get translations, which are stored in the [translated](https://github.com/PX4/PX4-Metadata-Translations/tree/main/translated) folder as xz-compressed translation files for each language.
 These are referenced by the vehicle component metadata, and are downloaded when needed.
 For more information see [PX4-Metadata-Translations](https://github.com/PX4/PX4-Metadata-Translations/) and [Component Metadata Protocol > Translation](https://mavlink.io/en/services/component_information.html#translation).
+This is orchestrated by the [docs-orchestrator](https://github.com/PX4/PX4-Autopilot/blob/main/.github/workflows/docs-orchestrator.yml) GitHub CI workflow, which also regenerates auto-generated documentation such as parameter reference, airframe reference, and uORB message docs.
 
 :::info
 The parameter XML file of the main branch is copied into the QGC source tree via CI and is used as a fallback in cases where no metadata is available via the component metadata protocol (this approach predates the existence of the component metadata protocol).

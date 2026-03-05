@@ -36,7 +36,7 @@ Almost everything you need is provided in the RTF kit (the links next to compone
 - Pusher motor power system
 - Carbon fiber tubes and mounts
 - G10 motor mounts
-- 1 x [3700mah 4S 30C Lipo battery](https://www.overlander.co.uk/batteries/lipo-batteries/power-packs/3700mah-4s-14-8v-25c-lipo-battery-overlander-sport.html)
+- 1 x [3700mah 4S 30C Lipo battery](https://wheelspinmodels.co.uk/i/3700mah-4s-14.8v-25c-lipo-battery-overlander-262221/)
 - Dropix power distribution board and cable
 
 The kit does not come with a radio receiver or (optional) telemetry modules.

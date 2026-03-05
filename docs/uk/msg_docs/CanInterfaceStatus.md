@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # CanInterfaceStatus (повідомлення UORB)
 
-**TOPICS:** can_interfacestatus
+**TOPICS:** can_interface_status
 
 ## Fields
 

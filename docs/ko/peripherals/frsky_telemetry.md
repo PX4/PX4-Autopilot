@@ -167,7 +167,7 @@ D-Port receivers transmit the following messages (from [here](https://github.com
 
 ## FrSky 텔레메트리 수신기
 
-Pixhawk/PX4는 D (이전) 및 S (신규) FrSky 텔레메트리를 지원합니다. 아래 표는 D/S.PORT 텔레메트리를 지원하는 FrSky 수신기들입니다 (이론상 모두 작동함).
+Pixhawk/PX4는 D (이전) 및 S (신규) FrSky 텔레메트리를 지원합니다. The table below lists all FrSky receivers that support telemetry via a D/S.PORT (in theory all of these should work).
 
 :::tip
 Note that the X series receivers listed below are recommended (e.g. XSR, X8R). R 및 G 시리즈는 테스트팀에 의해 검증되지 않았지만 작동하여야 합니다.
@@ -214,8 +214,8 @@ You will need connectors that are appropriate for your autopilot (e.g. _JST-GH c
 Pixracer에는 S.PORT와 UART 간의 신호 변환 장치가 포함되어 있지만, 다른 보드의 경우 UART-S.PORT 어댑터가 필요합니다.
 아래에서 구매 가능합니다.
 
-- [FrSky FUL-1](https://www.frsky-rc.com/product/ful-1/): [unmannedtech.co.uk](https://www.unmannedtechshop.co.uk/frsky-transmitter-receiver-upgrade-adapter-ful-1/)
-- SPC: [getfpv.com](https://www.getfpv.com/frsky-smart-port-converter-cable.html), [unmannedtechshop.co.uk](https://www.unmannedtechshop.co.uk/frsky-smart-port-converter-spc/)
+- [FrSky FUL-1](https://www.frsky-rc.com/product/ful-1/): [unmannedtech.co.uk](https://www.unmannedtechshop.co.uk/products/frsky-transmitter-receiver-upgrade-adapter-ful-1)
+- SPC: [getfpv.com](https://www.getfpv.com/frsky-smart-port-converter-cable.html), [unmannedtechshop.co.uk](https://www.unmannedtechshop.co.uk/products/frsky-smart-port-converter-spc)
 
 다른 보드에서의 연결 방법은 아래에 기술되어 있습니다.
 

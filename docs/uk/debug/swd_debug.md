@@ -1,6 +1,6 @@
 # Порт для налагодження SWD
 
-PX4 runs on ARM Cortex-M microcontrollers, which contain dedicated hardware for interactive debugging via the [_Serial Wire Debug (SWD)_][swd] interface and non-invasive profiling and high-bandwidth tracing via the [_Serial Wire Ouput (SWO)_][itm] and [_TRACE_ pins][etm].
+PX4 runs on ARM Cortex-M microcontrollers, which contain dedicated hardware for interactive debugging via the [_Serial Wire Debug (SWD)_][swd] interface and non-invasive profiling and high-bandwidth tracing via the [_Serial Wire Output (SWO)_][itm] and [_TRACE_ pins][etm].
 
 Інтерфейс відладки SWD дозволяє прямий, низькорівневий, апаратний доступ до процесора мікроконтролера та периферійних пристроїв, тому він не залежить від будь-якого програмного забезпечення на пристрої.
 Отже, його можна використовувати для налагодження завантажувальних програм та операційних систем, таких як NuttX.
@@ -27,9 +27,7 @@ SWO-пін може випромінювати дані профілювання
 Піни TRACE потребують спеціалізованих засобів відлагодження для роботи з високою пропускною здатністю та наступним декодуванням потоку даних.
 Зазвичай вони недоступні і зазвичай використовуються лише для відлагодження дуже конкретних питань з часом.
 
-<a id="debug-ports"></a>
-
-## Порти налагодження автопілота
+## Autopilot Debug Ports {#debug-ports}
 
 Flight controllers commonly provide a single debug port that exposes both the [SWD Interface](#debug-signals) and [System Console](system_console).
 
@@ -40,23 +38,35 @@ However there are still many boards that use different pinouts or connectors, so
 
 <a id="port-information"></a>
 
-| Автопілот                                                                                              | Відладочний порт                                                                                                                                                  |
-| :----------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Holybro Pixhawk 6X-RT (FMUv6X-RT)                                                   | [Pixhawk Debug Full](#pixhawk-debug-full)                                                                                                                         |
-| Holybro Pixhawk 6X (FMUv6x)                                                         | [Pixhawk Debug Full](#pixhawk-debug-full)                                                                                                                         |
-| Holybro Pixhawk 5X (FMUv5x)                                                         | [Pixhawk Debug Full](#pixhawk-debug-full)                                                                                                                         |
-| [Holybro Durandal](../flight_controller/durandal.md#debug-port)                                        | [Pixhawk Debug Mini](#pixhawk-debug-mini)                                                                                                                         |
-| [Holybro Kakute F7](../flight_controller/kakutef7.md#debug-port)                                       | Паяльні майданчики                                                                                                                                                |
-| [Holybro Pixhawk 4 Mini](../flight_controller/pixhawk4_mini.md#debug-port) (FMUv5)  | [Pixhawk Debug Mini](#pixhawk-debug-mini)                                                                                                                         |
-| [Holybro Pixhawk 4](../flight_controller/pixhawk4.md#debug_port) (FMUv5)            | [Pixhawk Debug Mini](#pixhawk-debug-mini)                                                                                                                         |
-| [Drotek Pixhawk 3 Pro](../flight_controller/pixhawk3_pro.md#debug-port) (FMU-v4pro) | [Pixhawk Debug Mini](#pixhawk-debug-mini)                                                                                                                         |
-| [CUAV V5+](../flight_controller/cuav_v5_plus.md#debug-port)                                            | 6-pin JST GH<br>Digikey: [BM06B-GHS-TBT(LF)(SN)(N)][bm06b-ghs-tbt(lf)(sn)(n)] (vertical mount), [SM06B-GHS-TBT(LF)(SN)(N)][sm06b-ghs-tbt(lf)(sn)(n)] (side mount) |
-| [CUAV V5nano](../flight_controller/cuav_v5_nano.md#debug_port)                                         | 6-pin JST GH<br>Digikey: [BM06B-GHS-TBT(LF)(SN)(N)][bm06b-ghs-tbt(lf)(sn)(n)] (vertical mount), [SM06B-GHS-TBT(LF)(SN)(N)][sm06b-ghs-tbt(lf)(sn)(n)] (side mount) |
-| [3DR Pixhawk](../flight_controller/pixhawk.md#swd-port)                                                | ARM 10-pin JTAG Connector (also used for FMUv2 boards including: _mRo Pixhawk_, _HobbyKing HKPilot32_).        |
+| Автопілот                                                                                               | Відладочний порт                                                         |
+| :------------------------------------------------------------------------------------------------------ | :----------------------------------------------------------------------- |
+| [Holybro Pixhawk 6X-RT](../flight_controller/pixhawk6x-rt.md#debug_port) (FMUv6X-RT) | [Pixhawk Debug Full](#pixhawk-debug-full)                                |
+| [Holybro Pixhawk 6X](../flight_controller/pixhawk6x.md#debug_port) (FMUv6x)          | [Pixhawk Debug Full](#pixhawk-debug-full)                                |
+| [Holybro Pixhawk 5X](../flight_controller/pixhawk5x.md#debug_port) (FMUv5x)          | [Pixhawk Debug Full](#pixhawk-debug-full)                                |
+| [Holybro Durandal](../flight_controller/durandal.md#debug-port)                                         | [Pixhawk Debug Mini](#pixhawk-debug-mini)                                |
+| [Holybro Pixhawk 4](../flight_controller/pixhawk4.md#debug_port) (FMUv5)             | [Pixhawk Debug Mini](#pixhawk-debug-mini)                                |
+| [Holybro Pixhawk 6X Pro](../flight_controller/pixhawk6x_pro.md#debug-port)                              | [Pixhawk Debug Full](#pixhawk-debug-full)                                |
+| [Holybro Pixhawk 6C](../flight_controller/pixhawk6c.md#debug_port)                                      | [Pixhawk Debug Full](#pixhawk-debug-full)                                |
+| [Holybro Pixhawk 6C Mini](../flight_controller/pixhawk6c_mini.md#debug_port)                            | [Pixhawk Debug Mini](#pixhawk-debug-mini)                                |
+| [Holybro Pix32 v6](../flight_controller/holybro_pix32_v6.md#debug_port)                                 | [Pixhawk Debug Full](#pixhawk-debug-full)                                |
+| [Holybro Pix32 v5](../flight_controller/holybro_pix32_v5.md#debug-port)                                 | [Pixhawk Debug Mini](#pixhawk-debug-mini)                                |
+| [Holybro Kakute H7](../flight_controller/kakuteh7.md#debug-port)                                        | SWD pads and system console                                              |
+| [Holybro Kakute H7 mini](../flight_controller/kakuteh7mini.md#debug-port)                               | SWD pads and system console                                              |
+| [Holybro Kakute H7 V2](../flight_controller/kakuteh7v2.md#debug-port)                                   | SWD pads and system console                                              |
+| [CUAV V5+](../flight_controller/cuav_v5_plus.md#debug-port)                                             | Custom port but comes with adaptor cable                                 |
+| [CUAV V5nano](../flight_controller/cuav_v5_nano.md#debug_port)                                          | Custom port but comes with adaptor cable                                 |
+| [CUAV Pixhawk V6X](../flight_controller/cuav_pixhawk_v6x.md#debug_port)                                 | [Pixhawk Debug Full](#pixhawk-debug-full)                                |
+| [CUAV X25-SUPER](../flight_controller/cuav_x25-super.md#debug_port)                                     | [Pixhawk Debug Mini] |
+| [CUAV X25-EVO](../flight_controller/cuav_x25-evo.md#debug_port)                                         | [Pixhawk Debug Mini] |
+| [CUAV Nora](../flight_controller/cuav_nora.md#debug-port)                                               | Custom port but comes with adaptor cable.                |
+| [ARK Pixhawk Autopilot Bus Carrier](../flight_controller/ark_pab.md#debug-port)                         | [Pixhawk Debug Full](#pixhawk-debug-full)                                |
+| [NXP MR-VMU-RT1176](../flight_controller/nxp_mr_vmu_rt1176.md#debug_port)                               | [Pixhawk Debug Full](#pixhawk-debug-full)                                |
+| [mRo Pixracer](../flight_controller/pixracer.md#debug-port)                                             | [Pixhawk Debug Mini](#pixhawk-debug-mini)                                |
+| [S-Vehicle E2](../flight_controller/svehicle_e2.md#debug-port)                                          | [Pixhawk Debug Mini] |
+| [AP-H743-R1](../flight_controller/x-mav_ap-h743r1.md#debug-port)                                        | 4-pin JST GH (SWD only)                               |
+| [mRo Control Zero F7](../flight_controller/mro_control_zero_f7.md#debug_port)                           |                                                                          |
 
-<a id="pixhawk-standard-debug-ports"></a>
-
-## Стандарт роз'ємів Pixhawk Debug Портів
+## Pixhawk Connector Standard Debug Ports {#pixhawk-standard-debug-ports}
 
 Проект Pixhawk визначив стандартну схему виводів та тип роз'єму для різних випусків Pixhawk FMU:
 
@@ -64,16 +74,16 @@ However there are still many boards that use different pinouts or connectors, so
 Check your [specific board](#port-information) to confirm the port used.
 :::
 
-| Версія FMU | Версія Pixhawk                                                  | Відладочний порт                          |
-| :--------- | :-------------------------------------------------------------- | :---------------------------------------- |
-| FMUv2      | [Pixhawk / Pixhawk 1](../flight_controller/pixhawk.md#swd-port) | 10 pin ARM Debug                          |
-| FMUv3      | Pixhawk 2                                                       | 6 pin SUR Debug                           |
-| FMUv4      | Pixhawk 3                                                       | [Pixhawk Debug Mini](#pixhawk-debug-mini) |
-| FMUv5      | Pixhawk 4 FMUv5                                                 | [Pixhawk Debug Mini](#pixhawk-debug-mini) |
-| FMUv5X     | Pixhawk 5X                                                      | [Pixhawk Debug Full](#pixhawk-debug-full) |
-| FMUv6      | Pixhawk 6                                                       | [Pixhawk Debug Full](#pixhawk-debug-full) |
-| FMUv6X     | Pixhawk 6X                                                      | [Pixhawk Debug Full](#pixhawk-debug-full) |
-| FMUv6X-RT  | Pixhawk 6X-RT                                                   | [Pixhawk Debug Full](#pixhawk-debug-full) |
+| Версія FMU | Версія Pixhawk      | Відладочний порт                          |
+| :--------- | :------------------ | :---------------------------------------- |
+| FMUv2      | Pixhawk / Pixhawk 1 | 10 pin ARM Debug                          |
+| FMUv3      | Pixhawk 2           | 6 pin SUR Debug                           |
+| FMUv4      | Pixhawk 3           | [Pixhawk Debug Mini](#pixhawk-debug-mini) |
+| FMUv5      | Pixhawk 4 FMUv5     | [Pixhawk Debug Mini](#pixhawk-debug-mini) |
+| FMUv5X     | Pixhawk 5X          | [Pixhawk Debug Full](#pixhawk-debug-full) |
+| FMUv6      | Pixhawk 6           | [Pixhawk Debug Full](#pixhawk-debug-full) |
+| FMUv6X     | Pixhawk 6X          | [Pixhawk Debug Full](#pixhawk-debug-full) |
+| FMUv6X-RT  | Pixhawk 6X-RT       | [Pixhawk Debug Full](#pixhawk-debug-full) |
 
 :::info
 There FMU and Pixhawk versions are (only) consistent after FMUv5X.
@@ -142,9 +152,7 @@ You can connect to the debug port using a [cable like this one](https://www.digi
 
 ![10-pin JST SH Cable](../../assets/debug/cable_10pin_jst_sh.jpg)
 
-<a id="debug-probes"></a>
-
-## Зонди налагодження для апаратного забезпечення PX4
+## Debug Probes for PX4 Hardware {#debug-probes}
 
 Flight controllers commonly provide a [single debug port](#autopilot-debug-ports) that exposes both the [SWD Interface](#debug-signals) and [System Console](system_console).
 
@@ -217,5 +225,3 @@ Where possible, we highly recommend that you create or obtain an adapter board r
 [swd]: https://developer.arm.com/documentation/ihi0031/a/The-Serial-Wire-Debug-Port--SW-DP-
 [itm]: https://developer.arm.com/documentation/ddi0403/d/Appendices/Debug-ITM-and-DWT-Packet-Protocol?lang=en
 [etm]: https://developer.arm.com/documentation/ihi0064/latest/
-[bm06b-ghs-tbt(lf)(sn)(n)]: https://www.digikey.com/en/products/detail/jst-sales-america-inc/BM06B-GHS-TBT/807804
-[sm06b-ghs-tbt(lf)(sn)(n)]: https://www.digikey.com/en/products/detail/jst-sales-america-inc/SM06B-GHS-TB/807790

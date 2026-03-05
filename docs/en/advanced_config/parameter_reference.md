@@ -18479,7 +18479,7 @@ See COM_OBL_RC_ACT to configure action.
 
 ### COM_PARACHUTE (`INT32`) {#COM_PARACHUTE}
 
-Expect and require a healthy MAVLink parachute system.
+Require MAVLink parachute system to be present and healthy.
 
 | Reboot | minValue | maxValue | increment | default      | unit |
 | ------ | -------- | -------- | --------- | ------------ | ---- |
@@ -38828,6 +38828,22 @@ Vehicle type.
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          |           | 0       |      |
+
+### SIH_WIND_E (`FLOAT`) {#SIH_WIND_E}
+
+Wind velocity from east direction.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0.0     | m/s  |
+
+### SIH_WIND_N (`FLOAT`) {#SIH_WIND_N}
+
+Wind velocity from north direction.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0.0     | m/s  |
 
 ## Simulator
 

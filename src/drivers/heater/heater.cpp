@@ -417,9 +417,14 @@ void Heater::Run()
 			_temperature_target_met = false;
 		}
 
-		_heater_on = true;
-		heater_on();
-		ScheduleDelayed(_controller_time_on_usec);
+		if (_controller_time_on_usec > 0) {
+			_heater_on = true;
+			heater_on();
+			ScheduleDelayed(_controller_time_on_usec);
+
+		} else {
+			ScheduleDelayed(CONTROLLER_PERIOD_DEFAULT);
+		}
 	}
 
 	publish_status();

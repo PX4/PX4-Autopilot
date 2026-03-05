@@ -66,7 +66,7 @@ In this case the wire will normally be connected to the flight controller servo 
 
 PWM motors and servos are configured using the [Actuator Configuration](../config/actuators.md) screen in QGroundControl.
 
-After assigning outputs and basic calibration, you may then wish to peform an [ESC Calibration](../advanced_config/esc_calibration.md).
+After assigning outputs and basic calibration, you may then wish to perform an [ESC Calibration](../advanced_config/esc_calibration.md).
 
 Additional PX4 PWM configuration parameters can be found here: [PWM Outputs](../advanced_config/parameter_reference.md#pwm-outputs).
 

@@ -13,7 +13,7 @@ The PX4 battery/power module configuration (via the ADC interface) is covered in
 For easiest assembly use a power module or PDB recommended by your FC manufacturer, and sized for your power requirements.
 
 The Pixhawk connector standard requires that the VCC line must provide at least 2.5A continuous current and default to 5.3V.
-In in practice flight controllers may have different recommendations or preferences, so if you don't (or can't) use a recommended module, check that the module matches your FC's requirements.
+In practice flight controllers may have different recommendations or preferences, so if you don't (or can't) use a recommended module, check that the module matches your FC's requirements.
 :::
 
 This section provides information about a number of power modules and power distribution boards (see FC manufacturer docs for more options):

@@ -17,9 +17,9 @@ pageClass: is-wide-page
 
 ## Constants
 
-| 명칭                                                         | 형식      | Value | 설명 |
-| ---------------------------------------------------------- | ------- | ----- | -- |
-| <a href="#ARRAY_SIZE"></a> ARRAY_SIZE | `uint8` | 58    |    |
+| 명칭                                                       | 형식      | Value | 설명 |
+| -------------------------------------------------------- | ------- | ----- | -- |
+| <a id="#ARRAY_SIZE"></a> ARRAY_SIZE | `uint8` | 58    |    |
 
 ## Source Message
 

@@ -141,7 +141,7 @@ It can be run directly in a debugger, however be careful to only run one test pe
     }
     ```
 
-    `OPTION` can be `OPT_NOALLTEST`,`OPT_NOJIGTEST` or `0` and is considered if within px4 shell one of the two commands are called:
+    `OPTION` can be `OPT_NOALLTEST`,`OPT_NOJIGTEST` or `0` and is considered if within PX4 shell one of the two commands are called:
 
     ```sh
     pxh> tests all

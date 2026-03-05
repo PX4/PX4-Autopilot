@@ -35,6 +35,13 @@ if MODULES_ZENOH
                 Uses the Zenoh matching feature to check whether a publisher has subscribers.
                 If so, only then publish the data. This is still experimental
 
+    config ZENOH_KEY_TYPE_HASH
+        bool "Include the type hash in Zenoh key expression"
+        default y
+        ---help---
+                Uses the message type hash (RIHS01, as defined in REP-2016) in the Zenoh key
+                expression (supported by ROS2 Jazzy and later).
+                Set to false to use in ROS2 Humble and earlier.
 
     # Choose exactly one item
     choice ZENOH_PUBSUB_SELECTION

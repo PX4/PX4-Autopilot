@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 GNSS relative positioning information in NED frame. The NED frame is defined as the local topological system at the reference station.
 
-**TOPICS:** sensor_gnssrelative
+**TOPICS:** sensor_gnss_relative
 
 ## Fields
 

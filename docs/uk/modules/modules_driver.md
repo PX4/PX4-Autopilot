@@ -363,7 +363,7 @@ Source: [modules/gimbal](https://github.com/PX4/PX4-Autopilot/tree/main/src/modu
 Mount/gimbal Gimbal control driver. It maps several different input methods (eg. RC or MAVLink) to a configured
 output (eg. AUX channels or MAVLink).
 
-Documentation how to use it is on the [gimbal_control](https://docs.px4.io/main/en/advanced/gimbal_control.html) page.
+Documentation how to use it is on the [gimbal_control](../advanced/gimbal_control.md) page.
 
 ### Приклади
 
@@ -1109,7 +1109,7 @@ px4io <command> [arguments...]
 
 ## rgbled
 
-Source: [drivers/lights/rgbled](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/rgbled)
+Source: [drivers/lights/rgbled_ncp5623c](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/rgbled_ncp5623c)
 
 ### Usage {#rgbled_usage}
 
@@ -1124,7 +1124,9 @@ rgbled <command> [arguments...]
      [-f <val>]  bus frequency in kHz
      [-q]        quiet startup (no message if no device found)
      [-a <val>]  I2C address
-                 default: 85
+                 default: 57
+     [-o <val>]  RGB PWM Assignment
+                 default: 123
 
    stop
 

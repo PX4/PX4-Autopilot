@@ -12,7 +12,7 @@ _Pix32 v6_<sup>&reg;</sup> is the latest update to the pix32 v5 flight controlle
 <img src="../../assets/flight_controller/pix32v6/pix32v6_fc_only.png" width="550px" title="pix32v6 Upright Image" />
 
 <!--
-:::tip
+::: tip
 This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md) by the PX4 maintenance and test teams.
 :::
 -->
@@ -93,7 +93,7 @@ Pix32 v6’s H7 MCU містить ядро Arm® Cortex®-M7 до 480 MHz, ма
 - Інші характеристики:
   - Operating & storage temperature: -40 ~ 85°c
 
-## Де купити
+## Where to Buy {#store}
 
 Order from [Holybro](https://holybro.com/products/pix32-v6).
 
@@ -156,13 +156,11 @@ It is pre-built and automatically installed by _QGroundControl_ when appropriate
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v6c_default
 ```
 
-<a id="debug_port"></a>
-
-## Відладочний порт
+## Debug Port {#debug_port}
 
 The [PX4 System Console](../debug/system_console.md) and [SWD interface](../debug/swd_debug.md) run on the **FMU Debug** port.
 

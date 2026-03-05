@@ -105,7 +105,7 @@ For example, the following implements a minimal subscriber and publisher node th
 #include <px4_msgs/msg/vehicle_attitude.hpp>
 
 // Template function to get the message version suffix
-// The correct message version is directly inferred from the message defintion
+// The correct message version is directly inferred from the message definition
 template <typename T>
 std::string getMessageNameVersion() {
     if (T::MESSAGE_VERSION == 0) return "";

@@ -4,7 +4,7 @@ Drone APIs let you write code to control and integrate with PX4-powered vehicles
 
 For example, you might want to create new "smart" flight modes, or custom geofence modes, or integrate new hardware.
 Drone APIs allow you to do this using high level instructions in your programming language of choice, and the code can then run on-vehicle in a [companion computer](../companion_computer/index.md), or from a ground station.
-Under the the hood the APIs communicate with PX4 using [MAVLink](../middleware/mavlink.md) or [uXRCE-DDS](../middleware/uxrce_dds.md).
+Under the hood the APIs communicate with PX4 using [MAVLink](../middleware/mavlink.md) or [uXRCE-DDS](../middleware/uxrce_dds.md).
 
 PX4 supports the following SDKs/Robotics tools:
 

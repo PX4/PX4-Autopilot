@@ -58,7 +58,7 @@ The Pixhawk® 6C Mini is perfect for developers at corporate research labs, star
   - Вхід USB Power: 4.75~5.25V
   - Вхід Servo Rail: 0\~36V
 - Номінальний струм:
-  - \`TELEM1\`\` обмежувач максимального вихідного струму: 1A
+  - `TELEM1` Max output current limiter: 1A
   - Комбінований обмежувач вихідного струму всіх інших портів: 1A
 
 ### **Mechanical data**
@@ -94,7 +94,7 @@ The Pixhawk® 6C Mini is perfect for developers at corporate research labs, star
 - Інші характеристики:
   - Operating & storage temperature: -40 ~ 85°c
 
-## Де купити
+## Where to Buy {#store}
 
 Order from [Holybro](https://holybro.com/products/pixhawk-6c-mini).
 
@@ -165,13 +165,11 @@ It is pre-built and automatically installed by _QGroundControl_ when appropriate
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v6c_default
 ```
 
-<a id="debug_port"></a>
-
-## Відладочний порт
+## Debug Port {#debug_port}
 
 The [PX4 System Console](../debug/system_console.md) and [SWD interface](../debug/swd_debug.md) run on the **FMU Debug** port.
 

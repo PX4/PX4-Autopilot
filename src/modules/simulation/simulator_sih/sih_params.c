@@ -339,3 +339,19 @@ PARAM_DEFINE_FLOAT(SIH_T_TAU, 0.05f);
  * @group Simulation In Hardware
  */
 PARAM_DEFINE_INT32(SIH_VEHICLE_TYPE, 0);
+
+/**
+ * Wind velocity from north direction.
+ *
+ * @unit m/s
+ * @group Simulation In Hardware
+ */
+PARAM_DEFINE_FLOAT(SIH_WIND_N, 0.0f);
+
+/**
+ * Wind velocity from east direction.
+ *
+ * @unit m/s
+ * @group Simulation In Hardware
+ */
+PARAM_DEFINE_FLOAT(SIH_WIND_E, 0.0f);
