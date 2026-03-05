@@ -27,27 +27,22 @@ Follow the instructions below to install jMAVSim on macOS.
 
 ### macOS
 
-To setup the environment for [jMAVSim](../sim_jmavsim/index.md) simulation:
+jMAVSim requires OpenJDK 17 or later. Install it via Homebrew:
 
-1. Install a recent version of Java (e.g. Java 15).
-   You can download [Java 15 (or later) from Oracle](https://www.oracle.com/java/technologies/downloads/?er=221886) or use [Eclipse Temurin](https://adoptium.net):
+```sh
+brew install openjdk@17
+```
 
-   ```sh
-   brew install --cask temurin
-   ```
+Homebrew's OpenJDK is keg-only, so you need to set `JAVA_HOME` for jMAVSim to find it. Add this to your shell profile (e.g. `~/.zshrc`):
 
-1. Install jMAVSim:
+```sh
+export JAVA_HOME=$(/usr/libexec/java_home -v 17)
+```
 
-   ```sh
-   brew install px4-sim-jmavsim
-   ```
-
-   :::warning
-   PX4 v1.11 and beyond require at least JDK 15 for jMAVSim simulation.
-
-   For earlier versions, macOS users might see the error `Exception in thread "main" java.lang.UnsupportedClassVersionError:`.
-   You can find the fix in the [jMAVSim with SITL > Troubleshooting](../sim_jmavsim/index.md#troubleshooting)).
-   :::
+:::info
+PX4 v1.11 and beyond require at least JDK 15 for jMAVSim simulation.
+OpenJDK 17 is the recommended LTS version.
+:::
 
 ## Simulation Environment
 
@@ -234,6 +229,73 @@ The simulation can be [interfaced to ROS](../simulation/ros_interface.md) the sa
 - The startup scripts are discussed in [System Startup](../concept/system_startup.md).
 - The simulated root file system ("`/`" directory) is created inside the build directory here: `build/px4_sitl_default/rootfs`.
 
+## Display-Only Mode
+
+jMAVSim can run as a display-only renderer for other simulators (like [SIH](../sim_sih/index.md)), with its internal physics disabled.
+In this mode, jMAVSim receives vehicle position via MAVLink and only renders the 3D view.
+
+To use jMAVSim as a display for SIH running in SITL:
+
+```sh
+# Start SIH first
+make px4_sitl_sih sihsim_quadx
+
+# In another terminal, start jMAVSim in display-only mode
+./Tools/simulation/jmavsim/jmavsim_run.sh -p 19410 -u -q -o
+```
+
+For SIH running on flight controller hardware:
+
+```sh
+./Tools/simulation/jmavsim/jmavsim_run.sh -q -d /dev/ttyACM0 -b 2000000 -o
+```
+
+Use `-a` for airplane display or `-t` for tailsitter display.
+
+## Command-Line Reference
+
+The `jmavsim_run.sh` launch script accepts the following flags:
+
+| Flag | Description |
+|---|---|
+| `-b <rate>` | Serial baud rate (default: 921600) |
+| `-d <device>` | Serial device path (e.g., `/dev/ttyACM0`) |
+| `-u` | Use UDP connection instead of serial |
+| `-i <id>` | Simulated MAVLink system ID |
+| `-p <port>` | UDP port (default: 14560) |
+| `-q` | No interactive console |
+| `-s <port>` | TCP serial port |
+| `-r <rate>` | Render rate in Hz |
+| `-l` | Enable lockstep |
+| `-o` | Display-only mode (disable physics, render only) |
+| `-a` | Use airplane model |
+| `-t` | Use tailsitter model |
+| `HEADLESS=1` | Environment variable: run without GUI window |
+
+## How jMAVSim Works
+
+jMAVSim is a Java-based lightweight simulator that communicates with PX4 via MAVLink HIL (Hardware-In-the-Loop) messages.
+
+In normal mode:
+1. PX4 sends actuator commands via `HIL_ACTUATOR_CONTROLS`
+2. jMAVSim runs its physics engine to compute the vehicle state
+3. jMAVSim sends sensor data back via `HIL_SENSOR` and `HIL_GPS`
+
+In **display-only mode** (`-o` flag), jMAVSim disables its physics engine and only reads `HIL_STATE_QUATERNION` messages to render the vehicle position. This allows it to visualize vehicles from other simulators like SIH.
+
+jMAVSim supports lockstep synchronization with PX4 (enabled with `-l` flag), ensuring deterministic simulation results.
+
+## Keyboard Shortcuts
+
+Camera modes in the jMAVSim 3D view:
+
+| Key | Camera Mode |
+|---|---|
+| **F** | First person (attached to vehicle) |
+| **S** | Stationary (fixed position) |
+| **G** | Gimbal (follows vehicle orientation) |
+| **(default)** | Third person follow |
+
 ## Troubleshooting
 
 ### java.long.NoClassDefFoundError
@@ -324,8 +386,8 @@ Exception in thread "main" java.lang.UnsupportedClassVersionError: me/drton/jmav
 This error is telling you, you need a more recent version of Java in your environment.
 Class file version 58 corresponds to jdk14, version 59 to jdk15, version 60 to jdk 16 etc.
 
-To fix it under macOS, we recommend installing OpenJDK through homebrew
+To fix it under macOS, install a newer OpenJDK via Homebrew:
 
 ```sh
-brew install --cask adoptopenjdk16
+brew install openjdk@17
 ```
