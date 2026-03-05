@@ -27,9 +27,7 @@ The SWO pin can emit low-overhead, real-time profiling data with nanosecond time
 The TRACE pins require specialized debug probes to deal with the high bandwidth and subsequent datastream decoding.
 They are usually not accessible and are typically only used to debug very specific timing issues.
 
-<a id="debug-ports"></a>
-
-## Autopilot Debug Ports
+## Autopilot Debug Ports {#debug-ports}
 
 Flight controllers commonly provide a single debug port that exposes both the [SWD Interface](#debug-signals) and [System Console](system_console).
 
@@ -46,21 +44,15 @@ The debug port location and pinouts for a subset of autopilots are linked below:
 | Holybro Pixhawk 6X (FMUv6x)                                                         | [Pixhawk Debug Full](#pixhawk-debug-full)                                                                                                                         |
 | Holybro Pixhawk 5X (FMUv5x)                                                         | [Pixhawk Debug Full](#pixhawk-debug-full)                                                                                                                         |
 | [Holybro Durandal](../flight_controller/durandal.md#debug-port)                     | [Pixhawk Debug Mini](#pixhawk-debug-mini)                                                                                                                         |
-| [Holybro Kakute F7](../flight_controller/kakutef7.md#debug-port)                    | Solder pads                                                                                                                                                       |
-| [Holybro Pixhawk 4 Mini](../flight_controller/pixhawk4_mini.md#debug-port) (FMUv5)  | [Pixhawk Debug Mini](#pixhawk-debug-mini)                                                                                                                         |
 | [Holybro Pixhawk 4](../flight_controller/pixhawk4.md#debug_port) (FMUv5)            | [Pixhawk Debug Mini](#pixhawk-debug-mini)                                                                                                                         |
-| [Drotek Pixhawk 3 Pro](../flight_controller/pixhawk3_pro.md#debug-port) (FMU-v4pro) | [Pixhawk Debug Mini](#pixhawk-debug-mini)                                                                                                                         |
 | [CUAV V5+](../flight_controller/cuav_v5_plus.md#debug-port)                         | 6-pin JST GH<br>Digikey: [BM06B-GHS-TBT(LF)(SN)(N)][bm06b-ghs-tbt(lf)(sn)(n)] (vertical mount), [SM06B-GHS-TBT(LF)(SN)(N)][sm06b-ghs-tbt(lf)(sn)(n)] (side mount) |
 | [CUAV V5nano](../flight_controller/cuav_v5_nano.md#debug_port)                      | 6-pin JST GH<br>Digikey: [BM06B-GHS-TBT(LF)(SN)(N)][bm06b-ghs-tbt(lf)(sn)(n)] (vertical mount), [SM06B-GHS-TBT(LF)(SN)(N)][sm06b-ghs-tbt(lf)(sn)(n)] (side mount) |
-| [3DR Pixhawk](../flight_controller/pixhawk.md#swd-port)                             | ARM 10-pin JTAG Connector (also used for FMUv2 boards including: _mRo Pixhawk_, _HobbyKing HKPilot32_).                                                           |
 
-<a id="pixhawk-standard-debug-ports"></a>
-
-## Pixhawk Connector Standard Debug Ports
+## Pixhawk Connector Standard Debug Ports {#pixhawk-standard-debug-ports}
 
 The Pixhawk project has defines a standard pinout and connector type for different Pixhawk FMU releases:
 
-:::tip
+::: tip
 Check your [specific board](#port-information) to confirm the port used.
 :::
 
@@ -142,9 +134,7 @@ You can connect to the debug port using a [cable like this one](https://www.digi
 
 ![10-pin JST SH Cable](../../assets/debug/cable_10pin_jst_sh.jpg)
 
-<a id="debug-probes"></a>
-
-## Debug Probes for PX4 Hardware
+## Debug Probes for PX4 Hardware {#debug-probes}
 
 Flight controllers commonly provide a [single debug port](#autopilot-debug-ports) that exposes both the [SWD Interface](#debug-signals) and [System Console](system_console).
 
