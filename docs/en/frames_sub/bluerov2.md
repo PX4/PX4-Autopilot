@@ -40,7 +40,7 @@ the [Airframe Reference](../airframes/airframe_reference.md#vectored-6-dof-uuv):
 | Manual   | Direct manual control of yaw and thrust.                                                                             |
 | Acro     | Manual control of yaw/thrust, but keeps roll/pitch zero                                                              |
 | Altitude | Manual control of x/y thrust and yaw. Control of height with PID, manually controlled by user. Keeps roll/pitch zero |
-| Position | Controls x/y/z and yaw. Manually controlled by user. Keeps roll/pitch zero                                          |
+| Position | Controls x/y/z and yaw. Manually controlled by user. Keeps roll/pitch zero                                           |
 
 ## Airframe Configuration
 
