@@ -59,7 +59,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### Simulation
 
-- TBD
+- SIH: Add option to set wind velocity ([PX4-Autopilot#26467](https://github.com/PX4-Autopilot/pull/26467))
 
 <!-- MOVED THIS TO v1.17
 
