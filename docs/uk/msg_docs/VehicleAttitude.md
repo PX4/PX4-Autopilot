@@ -1,9 +1,35 @@
+---
+pageClass: is-wide-page
+---
+
 # VehicleAttitude (повідомлення UORB)
 
-Це повідомлення подібне до повідомлення mavlink ATTITUDE_QUATERNION, але для використання на борту
-Для кватерніону використовується конвенція Гамільтона, а порядок має вигляд q(w, x, y, z)
+This is similar to the mavlink message ATTITUDE_QUATERNION, but for onboard use. The quaternion uses the Hamilton convention, and the order is q(w, x, y, z).
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleAttitude.msg)
+**TOPICS:** vehicle_attitude vehicle_attitude_groundtruth external_ins_attitude estimator_attitude
+
+## Fields
+
+| Назва                                                        | Тип          | Unit [Frame] | Range/Enum | Опис                                                               |
+| ------------------------------------------------------------ | ------------ | ---------------------------------------------------------------- | ---------- | ------------------------------------------------------------------ |
+| timestamp                                                    | `uint64`     |                                                                  |            | time since system start (microseconds)          |
+| timestamp_sample                        | `uint64`     |                                                                  |            | the timestamp of the raw data (microseconds)    |
+| q                                                            | `float32[4]` |                                                                  |            | Quaternion rotation from the FRD body frame to the NED earth frame |
+| delta_q_reset      | `float32[4]` |                                                                  |            | Amount by which quaternion has changed during last reset           |
+| quat_reset_counter | `uint8`      |                                                                  |            | Quaternion reset counter                                           |
+
+## Constants
+
+| Назва                                                                | Тип      | Значення | Опис |
+| -------------------------------------------------------------------- | -------- | -------- | ---- |
+| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 0        |      |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleAttitude.msg)
+
+:::details
+Click here to see original file
 
 ```c
 # This is similar to the mavlink message ATTITUDE_QUATERNION, but for onboard use
@@ -21,5 +47,6 @@ uint8 quat_reset_counter        # Quaternion reset counter
 
 # TOPICS vehicle_attitude vehicle_attitude_groundtruth external_ins_attitude
 # TOPICS estimator_attitude
-
 ```
+
+:::

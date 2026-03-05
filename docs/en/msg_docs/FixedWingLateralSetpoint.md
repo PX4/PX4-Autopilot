@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Fixed Wing Lateral Setpoint message. Used by the fw_lateral_longitudinal_control module. At least one of course, airspeed_direction, or lateral_acceleration must be finite.
 
-**TOPICS:** fixed_winglateral_setpoint
+**TOPICS:** fixed_wing_lateral_setpoint
 
 ## Fields
 
@@ -19,9 +19,9 @@ Fixed Wing Lateral Setpoint message. Used by the fw_lateral_longitudinal_control
 
 ## Constants
 
-| Name                                            | Type     | Value | Description |
-| ----------------------------------------------- | -------- | ----- | ----------- |
-| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 0     |
+| Name                                          | Type     | Value | Description |
+| --------------------------------------------- | -------- | ----- | ----------- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 0     |
 
 ## Source Message
 

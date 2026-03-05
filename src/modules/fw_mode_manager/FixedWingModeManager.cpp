@@ -33,12 +33,10 @@
 
 #include "FixedWingModeManager.hpp"
 
+#include <cmath>
 #include <px4_platform_common/events.h>
 #include <uORB/topics/longitudinal_control_configuration.h>
 
-using math::constrain;
-using math::max;
-using math::min;
 using math::radians;
 
 using matrix::Dcmf;
@@ -48,6 +46,8 @@ using matrix::Vector2f;
 using matrix::Vector2d;
 using matrix::Vector3f;
 using matrix::wrap_pi;
+
+ModuleBase::Descriptor FixedWingModeManager::desc{task_spawn, custom_command, print_usage};
 
 const fixed_wing_lateral_setpoint_s empty_lateral_control_setpoint = {.timestamp = 0, .course = NAN, .airspeed_direction = NAN, .lateral_acceleration = NAN};
 const fixed_wing_longitudinal_setpoint_s empty_longitudinal_control_setpoint = {.timestamp = 0, .altitude = NAN, .height_rate = NAN, .equivalent_airspeed = NAN, .pitch_direct = NAN, .throttle_direct = NAN};
@@ -140,7 +140,7 @@ FixedWingModeManager::vehicle_command_poll()
 
 		} else if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_CHANGE_SPEED) {
 
-			if ((static_cast<uint8_t>(vehicle_command.param1 + .5f) == vehicle_command_s::SPEED_TYPE_AIRSPEED)) {
+			if ((static_cast<uint8_t>(lroundf(vehicle_command.param1)) == vehicle_command_s::SPEED_TYPE_AIRSPEED)) {
 				if (vehicle_command.param2 > FLT_EPSILON) {	// param2 is an equivalent airspeed setpoint
 					if (_control_mode_current == FW_POSCTRL_MODE_AUTO) {
 						_pos_sp_triplet.current.cruising_speed = vehicle_command.param2;
@@ -1210,6 +1210,7 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 			_takeoff_init_position = global_position;
 			_takeoff_ground_alt = _current_altitude;
 			_launch_current_yaw = _yaw;
+			_time_launch_detected = now;
 		}
 
 		const Vector2f launch_local_position = _global_local_proj_ref.project(_takeoff_init_position(0),
@@ -1285,6 +1286,9 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 		launch_detection_status_s launch_detection_status;
 		launch_detection_status.timestamp = now;
 		launch_detection_status.launch_detection_state = _launchDetector.getLaunchDetected();
+		launch_detection_status.selected_control_surface_disarmed =
+			hrt_elapsed_time(&_time_launch_detected) < _param_fw_laun_cs_lk_dy.get() * 1_s
+			|| _time_launch_detected == 0;
 		_launch_detection_status_pub.publish(launch_detection_status);
 	}
 
@@ -1380,6 +1384,7 @@ FixedWingModeManager::control_auto_takeoff_no_nav(const hrt_abstime &now, const 
 		if (!_launch_detected && _launchDetector.getLaunchDetected() > launch_detection_status_s::STATE_WAITING_FOR_LAUNCH) {
 			_launch_detected = true;
 			_takeoff_ground_alt = _current_altitude;
+			_time_launch_detected = now;
 		}
 
 		/* Launch has been detected, hence we have to control the plane. */
@@ -1411,6 +1416,9 @@ FixedWingModeManager::control_auto_takeoff_no_nav(const hrt_abstime &now, const 
 		launch_detection_status_s launch_detection_status;
 		launch_detection_status.timestamp = now;
 		launch_detection_status.launch_detection_state = _launchDetector.getLaunchDetected();
+		launch_detection_status.selected_control_surface_disarmed =
+			hrt_elapsed_time(&_time_launch_detected) < _param_fw_laun_cs_lk_dy.get() * 1_s
+			|| _time_launch_detected == 0;
 		_launch_detection_status_pub.publish(launch_detection_status);
 	}
 
@@ -1986,7 +1994,7 @@ FixedWingModeManager::Run()
 {
 	if (should_exit()) {
 		_local_pos_sub.unregisterCallback();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -2314,6 +2322,8 @@ FixedWingModeManager::reset_takeoff_state()
 	_launchDetector.reset();
 
 	_launch_detected = false;
+
+	_time_launch_detected = 0;
 
 	_takeoff_ground_alt = _current_altitude;
 }
@@ -2739,8 +2749,8 @@ int FixedWingModeManager::task_spawn(int argc, char *argv[])
 	FixedWingModeManager *instance = new FixedWingModeManager();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -2751,8 +2761,8 @@ int FixedWingModeManager::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -2786,5 +2796,5 @@ lateral-longitudinal controller and and controllers below that (attitude, rate).
 
 extern "C" __EXPORT int fw_mode_manager_main(int argc, char *argv[])
 {
-	return FixedWingModeManager::main(argc, argv);
+	return ModuleBase::main(FixedWingModeManager::desc, argc, argv);
 }

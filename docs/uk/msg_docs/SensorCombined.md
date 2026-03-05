@@ -1,9 +1,43 @@
+---
+pageClass: is-wide-page
+---
+
 # SensorCombined (Повідомлення UORB)
 
-Вимірювання сенсорів у вигляді одиниць SI.
-Ці поля масштабуються та компенсуються зміщенням, де це можливо, і не змінюються з ревізіями плати та оновленнями сенсора.
+Вимірювання сенсорів у вигляді одиниць SI. These fields are scaled and offset-compensated where possible and do not. change with board revisions and sensor updates.
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/SensorCombined.msg)
+**TOPICS:** sensor_combined
+
+## Fields
+
+| Назва                                                                      | Тип          | Unit [Frame] | Range/Enum | Опис                                                                                                                            |
+| -------------------------------------------------------------------------- | ------------ | ---------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| timestamp                                                                  | `uint64`     |                                                                  |            | time since system start (microseconds)                                                                       |
+| gyro_rad                                              | `float32[3]` |                                                                  |            | average angular rate measured in the FRD body frame XYZ-axis in rad/s over the last gyro sampling period                        |
+| gyro_integral_dt                 | `uint32`     |                                                                  |            | gyro measurement sampling period in microseconds                                                                                |
+| accelerometer_timestamp_relative | `int32`      |                                                                  |            | timestamp + accelerometer_timestamp_relative = Accelerometer timestamp                |
+| accelerometer_m_s2               | `float32[3]` |                                                                  |            | average value acceleration measured in the FRD body frame XYZ-axis in m/s^2 over the last accelerometer sampling period         |
+| accelerometer_integral_dt        | `uint32`     |                                                                  |            | accelerometer measurement sampling period in microseconds                                                                       |
+| accelerometer_clipping                                | `uint8`      |                                                                  |            | bitfield indicating if there was any accelerometer clipping (per axis) during the integration time frame     |
+| gyro_clipping                                         | `uint8`      |                                                                  |            | bitfield indicating if there was any gyro clipping (per axis) during the integration time frame              |
+| accel_calibration_count          | `uint8`      |                                                                  |            | Calibration changed counter. Monotonically increases whenever accelermeter calibration changes. |
+| gyro_calibration_count           | `uint8`      |                                                                  |            | Calibration changed counter. Monotonically increases whenever rate gyro calibration changes.    |
+
+## Constants
+
+| Назва                                                                                                           | Тип     | Значення   | Опис                                                                                                                                      |
+| --------------------------------------------------------------------------------------------------------------- | ------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| <a href="#RELATIVE_TIMESTAMP_INVALID"></a> RELATIVE_TIMESTAMP_INVALID | `int32` | 2147483647 | (0x7fffffff) If one of the relative timestamps is set to this value, it means the associated sensor values are invalid |
+| <a href="#CLIPPING_X"></a> CLIPPING_X                                                      | `uint8` | 1          |                                                                                                                                           |
+| <a href="#CLIPPING_Y"></a> CLIPPING_Y                                                      | `uint8` | 2          |                                                                                                                                           |
+| <a href="#CLIPPING_Z"></a> CLIPPING_Z                                                      | `uint8` | 4          |                                                                                                                                           |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/SensorCombined.msg)
+
+:::details
+Click here to see original file
 
 ```c
 # Sensor readings in SI-unit form.
@@ -31,5 +65,6 @@ uint8 gyro_clipping             # bitfield indicating if there was any gyro clip
 
 uint8 accel_calibration_count   # Calibration changed counter. Monotonically increases whenever accelermeter calibration changes.
 uint8 gyro_calibration_count    # Calibration changed counter. Monotonically increases whenever rate gyro calibration changes.
-
 ```
+
+:::

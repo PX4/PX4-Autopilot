@@ -170,7 +170,6 @@ To enable this MAVLink instance on the FC:
    ![Image of baseboard showing FC USB-C connector](../../assets/companion_computer/holybro_pixhawk_rpi_cm4_baseboard/baseboard_fc_usb_c.jpg)
 
 2. [Set the parameters](../advanced_config/parameters.md):
-
    - `MAV_1_CONFIG` = `102`
    - `MAV_1_MODE = 2`
    - `SER_TEL2_BAUD` = `921600`
@@ -184,7 +183,6 @@ On the RPi side:
 1. Connect to the RPi (using WiFi, a router, or a WiFi Dongle).
 
 2. Enable the RPi serial port by running `RPi-config`
-
    - Go to `3 Interface Options`, then `I6 Serial Port`.
      Then choose:
      - `login shell accessible over serial → No`

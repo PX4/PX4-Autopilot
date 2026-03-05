@@ -3,6 +3,7 @@
 add_library(px4_layer
 		${KERNEL_SRCS}
 		${PX4_SOURCE_DIR}/platforms/common/Serial.cpp
+		${PX4_SOURCE_DIR}/platforms/common/module_base.cpp
 		SerialImpl.cpp
 	)
 

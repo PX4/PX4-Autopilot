@@ -115,7 +115,6 @@ The altitude control mode determine whether the vehicle altitude is relative to 
   The relative distance to the drone to the target will change as you ascend and descend (use with care in hilly terrain).
 
 - `2D + Terrain` makes the drone follow at a fixed height relative to the terrain underneath it, using information from a distance sensor.
-
   - If the vehicle does not have a distance sensor following will be identical to `2D tracking`.
   - Distance sensors aren't always accurate and vehicles may be "jumpy" when flying in this mode.
   - Note that that height is relative to the ground underneath the vehicle, not the follow target.

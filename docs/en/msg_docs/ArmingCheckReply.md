@@ -13,7 +13,7 @@ The request is sent regularly to all registered ROS modes, even while armed, so 
 Note that the external component is identified by its registration_id, which is allocated to the component during registration (arming_check_id in RegisterExtComponentReply).
 The message is not used by internal/FMU components, as their mode requirements are known at compile time.
 
-**TOPICS:** arming_checkreply
+**TOPICS:** arming_check_reply
 
 ## Fields
 
@@ -45,16 +45,16 @@ The message is not used by internal/FMU components, as their mode requirements a
 
 ### HEALTH_COMPONENT_INDEX {#HEALTH_COMPONENT_INDEX}
 
-| Name                                                                    | Type    | Value | Description                                               |
-| ----------------------------------------------------------------------- | ------- | ----- | --------------------------------------------------------- |
-| <a href="#HEALTH_COMPONENT_INDEX_NONE"></a> HEALTH_COMPONENT_INDEX_NONE | `uint8` | 0     | Index of health component for which this response applies |
+| Name                                                                  | Type    | Value | Description                                               |
+| --------------------------------------------------------------------- | ------- | ----- | --------------------------------------------------------- |
+| <a id="#HEALTH_COMPONENT_INDEX_NONE"></a> HEALTH_COMPONENT_INDEX_NONE | `uint8` | 0     | Index of health component for which this response applies |
 
 ## Constants
 
-| Name                                              | Type     | Value | Description |
-| ------------------------------------------------- | -------- | ----- | ----------- |
-| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION   | `uint32` | 1     |
-| <a href="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH | `uint8`  | 4     |
+| Name                                            | Type     | Value | Description |
+| ----------------------------------------------- | -------- | ----- | ----------- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION   | `uint32` | 1     |
+| <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH | `uint8`  | 4     |
 
 ## Source Message
 

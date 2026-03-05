@@ -145,7 +145,6 @@ Enter the following commands (in sequence) a terminal to configure Ubuntu for RP
    ```
 
 3. Go to the **Interface Option** and then click **Serial Port**.
-
    - Select **No** to disable serial login shell.
    - Select **Yes** to enable the serial interface.
    - Click **Finish** and restart the RPi.
@@ -164,7 +163,6 @@ Enter the following commands (in sequence) a terminal to configure Ubuntu for RP
    ```
 
 6. Then save the file and restart the RPi.
-
    - In `nano` you can save the file using the following sequence of keyboard shortcuts: **ctrl+x**, **ctrl+y**, **Enter**.
 
 7. Check that the serial port is available.

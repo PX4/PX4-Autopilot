@@ -1,10 +1,29 @@
+---
+pageClass: is-wide-page
+---
+
 # LandingGearWheel (повідомлення UORB)
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/LandingGearWheel.msg)
+**TOPICS:** landing_gearwheel
+
+## Fields
+
+| Назва                                                               | Тип       | Unit [Frame] | Range/Enum | Опис                                                                                                         |
+| ------------------------------------------------------------------- | --------- | ---------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------ |
+| timestamp                                                           | `uint64`  |                                                                  |            | time since system start (microseconds)                                                    |
+| normalized_wheel_setpoint | `float32` |                                                                  |            | negative is turning left, positive turning right [-1, 1] |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/LandingGearWheel.msg)
+
+:::details
+Click here to see original file
 
 ```c
 uint64 timestamp # time since system start (microseconds)
 
 float32 normalized_wheel_setpoint	# negative is turning left, positive turning right [-1, 1]
-
 ```
+
+:::

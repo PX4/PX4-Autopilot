@@ -86,9 +86,11 @@ using matrix::Vector2f;
 
 static constexpr float sq(float x) { return x * x; };
 
-class MicroStrain : public ModuleBase<MicroStrain>, public ModuleParams, public px4::ScheduledWorkItem
+class MicroStrain : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	MicroStrain(const char *_device);
 	~MicroStrain() override;
 

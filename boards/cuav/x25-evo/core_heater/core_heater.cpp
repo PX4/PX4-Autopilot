@@ -43,6 +43,8 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_io_heater.h>
 
+ModuleBase::Descriptor Core_Heater::desc{task_spawn, custom_command, print_usage};
+
 #  ifndef GPIO_CORE_HEATER_OUTPUT
 #  error "To use the heater driver, the board_config.h must define and initialize GPIO_CORE_HEATER_OUTPUT"
 #  endif
@@ -62,7 +64,7 @@ Core_Heater::~Core_Heater()
 int Core_Heater::custom_command(int argc, char *argv[])
 {
 	// Check if the driver is running.
-	if (!is_running()) {
+	if (!is_running(desc)) {
 		PX4_INFO("not running");
 		return PX4_ERROR;
 	}
@@ -117,7 +119,7 @@ bool Core_Heater::initialize_topics()
 void Core_Heater::Run()
 {
 	if (should_exit()) {
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -216,8 +218,8 @@ int Core_Heater::task_spawn(int argc, char *argv[])
 		return PX4_ERROR;
 	}
 
-	_object.store(core_heater);
-	_task_id = task_id_is_work_queue;
+	desc.object.store(core_heater);
+	desc.task_id = task_id_is_work_queue;
 
 	core_heater->start();
 	return 0;
@@ -257,5 +259,5 @@ Background process running periodically on the LP work queue to regulate IMU tem
 
 extern "C" __EXPORT int core_heater_main(int argc, char *argv[])
 {
-	return Core_Heater::main(argc, argv);
+	return ModuleBase::main(Core_Heater::desc, argc, argv);
 }

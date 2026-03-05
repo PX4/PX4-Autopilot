@@ -1,6 +1,6 @@
 # CUAV C-RTK
 
-The [CUAV C-RTK GPS receiver](https://www.cuav.net/en/c_rtk_9ps/) is an [RTK GPS module](../gps_compass/rtk_gps.md) for the mass market.
+The [CUAV C-RTK GPS receiver](https://www.cuav.net/en/c-rtk-9ps-en/) is an [RTK GPS module](../gps_compass/rtk_gps.md) for the mass market.
 A complete RTK system consists of at least two C-RTK modules \(one for the base station and the others for the aircraft\). Using RTK, PX4 can get its position with centimetre-level accuracy, which is much more accurate than can be provided by a normal GPS.
 
 <img src="../../assets/hardware/gps/rtk_c-rtk.jpg" width="500px" title="C-RTK" />
@@ -8,7 +8,7 @@ A complete RTK system consists of at least two C-RTK modules \(one for the base 
 ## Where to Buy
 
 - [cuav taobao](https://item.taobao.com/item.htm?id=565380634341&spm=2014.21600712.0.0)
-- [cuav aliexpress](https://www.aliexpress.com/store/product/CUAV-NEW-Flight-Controller-GPS-C-RTK-differential-positioning-navigation-module-GPS-for-PIX4-Pixhawk-pixhack/3257035_32853894248.html?spm=2114.12010608.0.0.75592fadQKPPEn)
+- [cuav aliexpress](https://www.aliexpress.com/item/32853894248.html?spm=2114.12010608.0.0.75592fadQKPPEn)
 
 ## Configuration
 

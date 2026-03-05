@@ -93,7 +93,7 @@ _New_ experimental boards are allocated [VER and REV IDs](#ver_rev_id) based on 
 This category includes all boards that aren't supported by the PX4 project or a manufacturer, and that fall outside the"experimental" support.
 
 - Board is somewhat compatible on paper with something we already support, and it would take minimal effort to raise it to "experimental", but neither the dev-team or the manufacturer are currently pursuing this
-- Manufacturer/Owner of hardware violates our [Code of Conduct](https://discuss.px4.io/t/code-of-conduct/13655)
+- Manufacturer/Owner of hardware violates our [Code of Conduct](https://discuss.px4.io/t/px4-community-code-of-conduct/13655)
 - Closed source, where any of the necessary tools/libs/drivers/etc needed to add support for a board is deemed incompatible due to licensing restrictions
 - Board doesn't meet minimum requirements outlined in the General requirements
 

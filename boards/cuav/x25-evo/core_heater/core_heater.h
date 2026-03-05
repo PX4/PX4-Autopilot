@@ -56,9 +56,11 @@ using namespace time_literals;
 #define CONTROLLER_PERIOD_DEFAULT    10000
 #define TEMPERATURE_TARGET_THRESHOLD 2.5f
 
-class Core_Heater : public ModuleBase<Core_Heater>, public ModuleParams, public px4::ScheduledWorkItem
+class Core_Heater : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	Core_Heater();
 
 	virtual ~Core_Heater();

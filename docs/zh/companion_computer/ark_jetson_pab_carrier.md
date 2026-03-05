@@ -12,19 +12,16 @@ The [ARK Jetson Pixhawk Autopilot Bus (PAB) Carrier](https://arkelectron.gitbook
 ## 产品规格
 
 - **Power Requirements**
-
   - 5V
   - 4A minimum (dependent on usage and peripherals)
 
 - **Additional Features**
-
   - Pixhawk Autopilot Bus (PAB) Form Factor ([PAB Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-010%20Pixhawk%20Autopilot%20Bus%20Standard.pdf))
   - MicroSD Slot
   - USA-built, NDAA compliant
   - Integrated 1W heater for sensor stability in extreme conditions
 
 - **Physical Details**
-
   - Weight:
     - Without Jetson and Flight Controller – 80g
     - With Jetson, no heatsink or Flight Controller – 108g

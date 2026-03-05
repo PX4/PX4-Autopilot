@@ -17,9 +17,9 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Name                                  | Type    | Value | Description |
-| ------------------------------------- | ------- | ----- | ----------- |
-| <a href="#ARRAY_SIZE"></a> ARRAY_SIZE | `uint8` | 58    |
+| Name                                | Type    | Value | Description |
+| ----------------------------------- | ------- | ----- | ----------- |
+| <a id="#ARRAY_SIZE"></a> ARRAY_SIZE | `uint8` | 58    |
 
 ## Source Message
 

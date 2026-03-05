@@ -58,9 +58,11 @@
 
 using namespace device;
 
-class VoxlEsc : public ModuleBase<VoxlEsc>, public OutputModuleInterface
+class VoxlEsc : public ModuleBase, public OutputModuleInterface
 {
 public:
+	static Descriptor desc;
+
 	VoxlEsc();
 	virtual ~VoxlEsc();
 

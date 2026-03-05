@@ -77,30 +77,21 @@ protected:
 	bool _get_rotational_movement() override { return _rotational_movement; }
 	bool _get_close_to_ground_or_skipped_check() override { return _close_to_ground_or_skipped_check; }
 
-	void _set_hysteresis_factor(const int factor) override;
 private:
 	bool _is_close_to_ground();
 
-	/** Time in us that freefall has to hold before triggering freefall */
-	static constexpr hrt_abstime FREEFALL_TRIGGER_TIME_US = 300_ms;
-
-	/** Distance above ground below which entering ground contact state is possible when distance to ground is available. */
-	static constexpr float DIST_FROM_GROUND_THRESHOLD = 1.0f;
-
 	struct {
 		param_t minThrottle;
-		param_t hoverThrottle;
+		param_t mpc_thr_hover;
 		param_t minManThrottle;
-		param_t useHoverThrustEstimate;
 		param_t landSpeed;
 		param_t crawlSpeed;
 	} _paramHandle{};
 
 	struct {
 		float minThrottle;
-		float hoverThrottle;
+		float mpc_thr_hover;
 		float minManThrottle;
-		bool useHoverThrustEstimate;
 		float landSpeed;
 		float crawlSpeed;
 	} _params{};
@@ -112,17 +103,19 @@ private:
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _takeoff_status_sub{ORB_ID(takeoff_status)};
 
+	float _hover_thrust_estimate{NAN};
 	hrt_abstime _hover_thrust_estimate_last_valid{0};
 	bool _hover_thrust_estimate_valid{false};
 
 	bool _flag_control_climb_rate_enabled{false};
-	bool _hover_thrust_initialized{false};
 
 	float _vehicle_thrust_setpoint_throttle{0.f};
 
 	uint8_t _takeoff_state{takeoff_status_s::TAKEOFF_STATE_DISARMED};
 
 	systemlib::Hysteresis _minimum_thrust_8s_hysteresis{false};
+
+	bool _dist_bottom_is_observable{false}; ///< there was a valid distance to bottom estimate before so we have a downwards facing distance sensor
 
 	bool _in_descend{false};		///< vehicle is commanded to desend
 	bool _horizontal_movement{false};	///< vehicle is moving horizontally
@@ -134,7 +127,6 @@ private:
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		LandDetector,
-		(ParamFloat<px4::params::LNDMC_TRIG_TIME>)   _param_lndmc_trig_time,
 		(ParamFloat<px4::params::LNDMC_ROT_MAX>)    _param_lndmc_rot_max,
 		(ParamFloat<px4::params::LNDMC_XY_VEL_MAX>) _param_lndmc_xy_vel_max,
 		(ParamFloat<px4::params::LNDMC_Z_VEL_MAX>)  _param_lndmc_z_vel_max,

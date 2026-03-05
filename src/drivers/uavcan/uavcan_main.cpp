@@ -468,7 +468,7 @@ UavcanNode::fill_node_info()
 	char fw_git_short[9] = {};
 	std::memmove(fw_git_short, px4_firmware_version_string(), 8);
 	char *end = nullptr;
-	swver.vcs_commit = std::strtol(fw_git_short, &end, 16);
+	swver.vcs_commit = std::strtoul(fw_git_short, &end, 16);
 	swver.optional_field_flags |= swver.OPTIONAL_FIELD_FLAG_VCS_COMMIT;
 
 	// Too verbose for normal operation
@@ -1161,6 +1161,11 @@ UavcanNode::print_info()
 	printf("\tReserved:  %" PRIu16 " blocks\n", _pool_allocator.getNumReservedBlocks());
 	printf("\tAllocated: %" PRIu16 " blocks\n", _pool_allocator.getNumAllocatedBlocks());
 
+	printf("\n");
+
+	// See https://github.com/PX4/PX4-Autopilot/issues/22871
+	printf("WARNING: CAN error counter values below may increase during this function call due to internal counter reading implementation.\n");
+	printf("Do not fully trust these counters until this issue is fixed.\n");
 	printf("\n");
 
 	// UAVCAN node perfcounters

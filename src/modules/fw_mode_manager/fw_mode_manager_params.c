@@ -581,6 +581,21 @@ PARAM_DEFINE_INT32(FW_LND_ABORT, 3);
 PARAM_DEFINE_INT32(FW_LAUN_DETCN_ON, 0);
 
 /**
+ * Control surface launch delay
+ *
+ * Locks control surfaces during pre-launch (armed) and until this time since launch has passed.
+ * Only affects control surfaces that have corresponding flag set, and not active for runway takeoff.
+ * Set to 0 to disable any surface locking after arming.
+ *
+ * @unit s
+ * @min 0.0
+ * @decimal 1
+ * @increment 0.1
+ * @group FW Auto Takeoff
+ */
+PARAM_DEFINE_FLOAT(FW_LAUN_CS_LK_DY, 0.f);
+
+/**
  * Flaps setting during take-off
  *
  * Sets a fraction of full flaps during take-off.

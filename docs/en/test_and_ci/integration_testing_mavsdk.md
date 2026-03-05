@@ -7,7 +7,7 @@ In future we plan to generalise them for any platform/hardware.
 
 The instructions below explain how to setup and run the tests locally.
 
-:::note
+::: info
 This is the recommended integration test framework for PX4.
 :::
 

@@ -1,8 +1,35 @@
+---
+pageClass: is-wide-page
+---
+
 # SensorsStatusImu (UORB message)
 
 Sensor check metrics. This will be zero for a sensor that's primary or unpopulated.
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/SensorsStatusImu.msg)
+**TOPICS:** sensors_statusimu
+
+## Fields
+
+| 명칭                                                                                                            | 형식           | Unit [Frame] | Range/Enum | 설명                                                                                                                |
+| ------------------------------------------------------------------------------------------------------------- | ------------ | ---------------------------------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------- |
+| timestamp                                                                                                     | `uint64`     |                                                                  |            | time since system start (microseconds)                                                         |
+| accel_device_id_primary                        | `uint32`     |                                                                  |            | current primary accel device id for reference                                                                     |
+| accel_device_ids                                                    | `uint32[4]`  |                                                                  |            |                                                                                                                   |
+| accel_inconsistency_m_s_s | `float32[4]` |                                                                  |            | magnitude of acceleration difference between IMU instance and mean in m/s^2.                      |
+| accel_healthy                                                                            | `bool[4]`    |                                                                  |            |                                                                                                                   |
+| accel_priority                                                                           | `uint8[4]`   |                                                                  |            |                                                                                                                   |
+| gyro_device_id_primary                         | `uint32`     |                                                                  |            | current primary gyro device id for reference                                                                      |
+| gyro_device_ids                                                     | `uint32[4]`  |                                                                  |            |                                                                                                                   |
+| gyro_inconsistency_rad_s                       | `float32[4]` |                                                                  |            | magnitude of angular rate difference between IMU instance and mean in (rad/s). |
+| gyro_healthy                                                                             | `bool[4]`    |                                                                  |            |                                                                                                                   |
+| gyro_priority                                                                            | `uint8[4]`   |                                                                  |            |                                                                                                                   |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/SensorsStatusImu.msg)
+
+:::details
+Click here to see original file
 
 ```c
 #
@@ -23,5 +50,6 @@ uint32[4] gyro_device_ids
 float32[4] gyro_inconsistency_rad_s # magnitude of angular rate difference between IMU instance and mean in (rad/s).
 bool[4] gyro_healthy
 uint8[4] gyro_priority
-
 ```
+
+:::

@@ -40,6 +40,7 @@ set(EXTRA_DEPENDS)
 add_library(px4_layer
 	px4_posix_impl.cpp
 	tasks.cpp
+	${PX4_SOURCE_DIR}/platforms/common/module_base.cpp
 	px4_sem.cpp
 	px4_init.cpp
 	lib_crc32.c

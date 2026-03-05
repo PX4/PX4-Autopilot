@@ -39,6 +39,8 @@ exec find boards msg src platforms test \
     -path src/lib/cdrstream/rosidl -prune -o \
     -path src/modules/zenoh/zenoh-pico -prune -o \
     -path boards/modalai/voxl2/libfc-sensor-api -prune -o \
+    -path boards/modalai/voxl2/src/lib/mpa/libmodal-json -prune -o \
+    -path boards/modalai/voxl2/src/lib/mpa/libmodal-pipe -prune -o \
     -path src/drivers/actuators/vertiq_io/iq-module-communication-cpp -prune -o \
     -path src/lib/tensorflow_lite_micro/tflite_micro -prune -o \
     -path src/drivers/ins/sbgecom/sbgECom -prune -o \

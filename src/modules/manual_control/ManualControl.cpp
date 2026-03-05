@@ -37,6 +37,8 @@
 #include <lib/systemlib/mavlink_log.h>
 #include <uORB/topics/vehicle_command.h>
 
+ModuleBase::Descriptor ManualControl::desc{task_spawn, custom_command, print_usage};
+
 ManualControl::ManualControl() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
@@ -69,7 +71,7 @@ void ManualControl::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -541,8 +543,8 @@ int ManualControl::task_spawn(int argc, char *argv[])
 	ManualControl *instance = new ManualControl();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -553,8 +555,8 @@ int ManualControl::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -627,5 +629,5 @@ int8_t ManualControl::navStateFromParam(int32_t param_value)
 
 extern "C" __EXPORT int manual_control_main(int argc, char *argv[])
 {
-	return ManualControl::main(argc, argv);
+	return ModuleBase::main(ManualControl::desc, argc, argv);
 }

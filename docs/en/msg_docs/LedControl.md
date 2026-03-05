@@ -21,27 +21,27 @@ LED control: control a single or multiple LED's. These are the externally visibl
 
 ## Constants
 
-| Name                                                | Type    | Value | Description                                                                             |
-| --------------------------------------------------- | ------- | ----- | --------------------------------------------------------------------------------------- |
-| <a href="#COLOR_OFF"></a> COLOR_OFF                 | `uint8` | 0     | this is only used in the drivers                                                        |
-| <a href="#COLOR_RED"></a> COLOR_RED                 | `uint8` | 1     |
-| <a href="#COLOR_GREEN"></a> COLOR_GREEN             | `uint8` | 2     |
-| <a href="#COLOR_BLUE"></a> COLOR_BLUE               | `uint8` | 3     |
-| <a href="#COLOR_YELLOW"></a> COLOR_YELLOW           | `uint8` | 4     |
-| <a href="#COLOR_PURPLE"></a> COLOR_PURPLE           | `uint8` | 5     |
-| <a href="#COLOR_AMBER"></a> COLOR_AMBER             | `uint8` | 6     |
-| <a href="#COLOR_CYAN"></a> COLOR_CYAN               | `uint8` | 7     |
-| <a href="#COLOR_WHITE"></a> COLOR_WHITE             | `uint8` | 8     |
-| <a href="#MODE_OFF"></a> MODE_OFF                   | `uint8` | 0     | turn LED off                                                                            |
-| <a href="#MODE_ON"></a> MODE_ON                     | `uint8` | 1     | turn LED on                                                                             |
-| <a href="#MODE_DISABLED"></a> MODE_DISABLED         | `uint8` | 2     | disable this priority (switch to lower priority setting)                                |
-| <a href="#MODE_BLINK_SLOW"></a> MODE_BLINK_SLOW     | `uint8` | 3     |
-| <a href="#MODE_BLINK_NORMAL"></a> MODE_BLINK_NORMAL | `uint8` | 4     |
-| <a href="#MODE_BLINK_FAST"></a> MODE_BLINK_FAST     | `uint8` | 5     |
-| <a href="#MODE_BREATHE"></a> MODE_BREATHE           | `uint8` | 6     | continuously increase & decrease brightness (solid color if driver does not support it) |
-| <a href="#MODE_FLASH"></a> MODE_FLASH               | `uint8` | 7     | two fast blinks (on/off) with timing as in MODE_BLINK_FAST and then off for a while     |
-| <a href="#MAX_PRIORITY"></a> MAX_PRIORITY           | `uint8` | 2     | maximum priority (minimum is 0)                                                         |
-| <a href="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH   | `uint8` | 8     | needs to match BOARD_MAX_LEDS                                                           |
+| Name                                              | Type    | Value | Description                                                                             |
+| ------------------------------------------------- | ------- | ----- | --------------------------------------------------------------------------------------- |
+| <a id="#COLOR_OFF"></a> COLOR_OFF                 | `uint8` | 0     | this is only used in the drivers                                                        |
+| <a id="#COLOR_RED"></a> COLOR_RED                 | `uint8` | 1     |
+| <a id="#COLOR_GREEN"></a> COLOR_GREEN             | `uint8` | 2     |
+| <a id="#COLOR_BLUE"></a> COLOR_BLUE               | `uint8` | 3     |
+| <a id="#COLOR_YELLOW"></a> COLOR_YELLOW           | `uint8` | 4     |
+| <a id="#COLOR_PURPLE"></a> COLOR_PURPLE           | `uint8` | 5     |
+| <a id="#COLOR_AMBER"></a> COLOR_AMBER             | `uint8` | 6     |
+| <a id="#COLOR_CYAN"></a> COLOR_CYAN               | `uint8` | 7     |
+| <a id="#COLOR_WHITE"></a> COLOR_WHITE             | `uint8` | 8     |
+| <a id="#MODE_OFF"></a> MODE_OFF                   | `uint8` | 0     | turn LED off                                                                            |
+| <a id="#MODE_ON"></a> MODE_ON                     | `uint8` | 1     | turn LED on                                                                             |
+| <a id="#MODE_DISABLED"></a> MODE_DISABLED         | `uint8` | 2     | disable this priority (switch to lower priority setting)                                |
+| <a id="#MODE_BLINK_SLOW"></a> MODE_BLINK_SLOW     | `uint8` | 3     |
+| <a id="#MODE_BLINK_NORMAL"></a> MODE_BLINK_NORMAL | `uint8` | 4     |
+| <a id="#MODE_BLINK_FAST"></a> MODE_BLINK_FAST     | `uint8` | 5     |
+| <a id="#MODE_BREATHE"></a> MODE_BREATHE           | `uint8` | 6     | continuously increase & decrease brightness (solid color if driver does not support it) |
+| <a id="#MODE_FLASH"></a> MODE_FLASH               | `uint8` | 7     | two fast blinks (on/off) with timing as in MODE_BLINK_FAST and then off for a while     |
+| <a id="#MAX_PRIORITY"></a> MAX_PRIORITY           | `uint8` | 2     | maximum priority (minimum is 0)                                                         |
+| <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH   | `uint8` | 8     | needs to match BOARD_MAX_LEDS                                                           |
 
 ## Source Message
 

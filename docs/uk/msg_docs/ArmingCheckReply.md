@@ -1,6 +1,10 @@
+---
+pageClass: is-wide-page
+---
+
 # ArmingCheckReply (повідомлення UORB)
 
-Arming check reply
+Arming check reply.
 
 This is a response to an ArmingCheckRequest message sent by the FMU to an external component, such as a ROS 2 navigation mode.
 The response contains the current set of external mode requirements, and a queue of events indicating recent failures to set the mode (which the FMU may then forward to a ground station).
@@ -9,7 +13,55 @@ The request is sent regularly to all registered ROS modes, even while armed, so 
 Note that the external component is identified by its registration_id, which is allocated to the component during registration (arming_check_id in RegisterExtComponentReply).
 The message is not used by internal/FMU components, as their mode requirements are known at compile time.
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/ArmingCheckReply.msg)
+**TOPICS:** arming_checkreply
+
+## Fields
+
+| Назва                                                                                                                | Тип        | Unit [Frame] | Range/Enum                                                                                  | Опис                                                                                                                                                                                   |
+| -------------------------------------------------------------------------------------------------------------------- | ---------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| timestamp                                                                                                            | `uint64`   | us                                                               |                                                                                             | Time since system start.                                                                                                                                               |
+| request_id                                                                                      | `uint8`    |                                                                  |                                                                                             | Id of ArmingCheckRequest for which this is a response                                                                                                                                  |
+| registration_id                                                                                 | `uint8`    |                                                                  |                                                                                             | Id of external component emitting this response                                                                                                                                        |
+| health_component_index                                                     | `uint8`    |                                                                  | [HEALTH_COMPONENT_INDEX](#HEALTH_COMPONENT_INDEX) |                                                                                                                                                                                        |
+| health_component_is_present                           | `bool`     |                                                                  |                                                                                             | Unused. Intended for use with health events interface (health_component_t in events.json) |
+| health_component_warning                                                   | `bool`     |                                                                  |                                                                                             | Unused. Intended for use with health events interface (health_component_t in events.json) |
+| health_component_error                                                     | `bool`     |                                                                  |                                                                                             | Unused. Intended for use with health events interface (health_component_t in events.json) |
+| can_arm_and_run                                       | `bool`     |                                                                  |                                                                                             | True if the component can arm. For navigation mode components, true if the component can arm in the mode or switch to the mode when already armed                      |
+| num_events                                                                                      | `uint8`    |                                                                  |                                                                                             | Number of queued failure messages (Event) in the events field                                                                                                       |
+| events                                                                                                               | `Event[5]` |                                                                  |                                                                                             | Arming failure reasons (Queue of events to report to GCS)                                                                                                           |
+| mode_req_angular_velocity                             | `bool`     |                                                                  |                                                                                             | Requires angular velocity estimate (e.g. from gyroscope)                                                                            |
+| mode_req_attitude                                                          | `bool`     |                                                                  |                                                                                             | Requires an attitude estimate                                                                                                                                                          |
+| mode_req_local_alt                                    | `bool`     |                                                                  |                                                                                             | Requires a local altitude estimate                                                                                                                                                     |
+| mode_req_local_position                               | `bool`     |                                                                  |                                                                                             | Requires a local position estimate                                                                                                                                                     |
+| mode_req_local_position_relaxed  | `bool`     |                                                                  |                                                                                             | Requires a more relaxed global position estimate                                                                                                                                       |
+| mode_req_global_position                              | `bool`     |                                                                  |                                                                                             | Requires a global position estimate                                                                                                                                                    |
+| mode_req_global_position_relaxed | `bool`     |                                                                  |                                                                                             | Requires a relaxed global position estimate                                                                                                                                            |
+| mode_req_mission                                                           | `bool`     |                                                                  |                                                                                             | Requires an uploaded mission                                                                                                                                                           |
+| mode_req_home_position                                | `bool`     |                                                                  |                                                                                             | Requires a home position (such as RTL/Return mode)                                                                                                                  |
+| mode_req_prevent_arming                               | `bool`     |                                                                  |                                                                                             | Prevent arming (such as in Land mode)                                                                                                                               |
+| mode_req_manual_control                               | `bool`     |                                                                  |                                                                                             | Requires a manual controller                                                                                                                                                           |
+
+## Enums
+
+### HEALTH_COMPONENT_INDEX {#HEALTH_COMPONENT_INDEX}
+
+| Назва                                                                                                                                  | Тип     | Значення | Опис                                                      |
+| -------------------------------------------------------------------------------------------------------------------------------------- | ------- | -------- | --------------------------------------------------------- |
+| <a href="#HEALTH_COMPONENT_INDEX_NONE"></a> HEALTH_COMPONENT_INDEX_NONE | `uint8` | 0        | Index of health component for which this response applies |
+
+## Constants
+
+| Назва                                                                                       | Тип      | Значення | Опис |
+| ------------------------------------------------------------------------------------------- | -------- | -------- | ---- |
+| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION                        | `uint32` | 1        |      |
+| <a href="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH | `uint8`  | 4        |      |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/ArmingCheckReply.msg)
+
+:::details
+Click here to see original file
 
 ```c
 # Arming check reply
@@ -55,5 +107,6 @@ bool mode_req_prevent_arming           # Prevent arming (such as in Land mode)
 bool mode_req_manual_control           # Requires a manual controller
 
 uint8 ORB_QUEUE_LENGTH  = 4
-
 ```
+
+:::

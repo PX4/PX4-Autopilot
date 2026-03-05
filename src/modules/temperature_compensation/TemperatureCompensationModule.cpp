@@ -42,6 +42,8 @@
 
 using namespace temperature_compensation;
 
+ModuleBase::Descriptor TemperatureCompensationModule::desc{task_spawn, custom_command, print_usage};
+
 TemperatureCompensationModule::TemperatureCompensationModule() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default),
@@ -361,8 +363,8 @@ int TemperatureCompensationModule::task_spawn(int argc, char *argv[])
 	TemperatureCompensationModule *instance = new TemperatureCompensationModule();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -373,8 +375,8 @@ int TemperatureCompensationModule::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -428,7 +430,7 @@ int TemperatureCompensationModule::custom_command(int argc, char *argv[])
 			}
 		}
 
-		if (!is_running()) {
+		if (!is_running(desc)) {
 			PX4_WARN("background task not running");
 
 			if (task_spawn(0, nullptr) != PX4_OK) {
@@ -501,5 +503,5 @@ a temperature cycle.
 
 extern "C" __EXPORT int temperature_compensation_main(int argc, char *argv[])
 {
-	return TemperatureCompensationModule::main(argc, argv);
+	return ModuleBase::main(TemperatureCompensationModule::desc, argc, argv);
 }

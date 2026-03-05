@@ -18,6 +18,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [AirspeedValidated](AirspeedValidated.md) — Validated airspeed.
 - [ArmingCheckReply](ArmingCheckReply.md) — Arming check reply.
 - [ArmingCheckRequest](ArmingCheckRequest.md) — Arming check request.
+- [AuxGlobalPosition](AuxGlobalPosition.md) — Auxiliary global position.
 - [BatteryStatus](BatteryStatus.md) — Battery status.
 - [ConfigOverrides](ConfigOverrides.md) — Configurable overrides by (external) modes or mode executors.
 - [Event](Event.md) — Events interface.
@@ -39,7 +40,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [VehicleAttitude](VehicleAttitude.md) — This is similar to the mavlink message ATTITUDE_QUATERNION, but for onboard use. The quaternion uses the Hamilton convention, and the order is q(w, x, y, z).
 - [VehicleAttitudeSetpoint](VehicleAttitudeSetpoint.md)
 - [VehicleCommand](VehicleCommand.md) — Vehicle Command uORB message. Used for commanding a mission / action / etc. Follows the MAVLink COMMAND_INT / COMMAND_LONG definition.
-- [VehicleCommandAck](VehicleCommandAck.md) — Vehicle Command Ackonwledgement uORB message. Used for acknowledging the vehicle command being received. Follows the MAVLink COMMAND_ACK message definition.
+- [VehicleCommandAck](VehicleCommandAck.md) — Vehicle Command Acknowledgement uORB message.
 - [VehicleControlMode](VehicleControlMode.md)
 - [VehicleGlobalPosition](VehicleGlobalPosition.md) — Fused global position in WGS84. This struct contains global position estimation. It is not the raw GPS. measurement (@see vehicle_gps_position). This topic is usually published by the position. estimator, which will take more sources of information into account than just GPS,. e.g. control inputs of the vehicle in a Kalman-filter implementation.
 - [VehicleLandDetected](VehicleLandDetected.md)
@@ -267,5 +268,8 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [RegisterExtComponentReplyV0](RegisterExtComponentReplyV0.md)
 - [RegisterExtComponentRequestV0](RegisterExtComponentRequestV0.md) — Request to register an external component.
 - [VehicleAttitudeSetpointV0](VehicleAttitudeSetpointV0.md)
+- [VehicleCommandAckV0](VehicleCommandAckV0.md) — Vehicle Command Ackonwledgement uORB message. Used for acknowledging the vehicle command being received. Follows the MAVLink COMMAND_ACK message definition.
+- [VehicleGlobalPositionV0](VehicleGlobalPositionV0.md) — Fused global position in WGS84. This struct contains global position estimation. It is not the raw GPS. measurement (@see vehicle_gps_position). This topic is usually published by the position. estimator, which will take more sources of information into account than just GPS,. e.g. control inputs of the vehicle in a Kalman-filter implementation.
 - [VehicleLocalPositionV0](VehicleLocalPositionV0.md) — Fused local position in NED. The coordinate system origin is the vehicle position at the time when the EKF2-module was started.
 - [VehicleStatusV0](VehicleStatusV0.md) — Encodes the system state of the vehicle published by commander.
+- [VehicleStatusV1](VehicleStatusV1.md) — Encodes the system state of the vehicle published by commander.

@@ -71,10 +71,12 @@ private:
 	struct i2c_master_s *_i2c {nullptr};
 };
 
-class AuterionAutostarter : public ModuleBase<AuterionAutostarter>, public px4::ScheduledWorkItem
+class AuterionAutostarter : public ModuleBase, public px4::ScheduledWorkItem
 {
 
 public:
+	static Descriptor desc;
+
 	AuterionAutostarter();
 	virtual ~AuterionAutostarter();
 

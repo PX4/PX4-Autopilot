@@ -18,15 +18,15 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Name                                                          | Type    | Value | Description                                          |
-| ------------------------------------------------------------- | ------- | ----- | ---------------------------------------------------- |
-| <a href="#ACTION_RELEASE_CONTROL"></a> ACTION_RELEASE_CONTROL | `uint8` | 0     | exit test mode for the given function                |
-| <a href="#ACTION_DO_CONTROL"></a> ACTION_DO_CONTROL           | `uint8` | 1     | enable actuator test mode                            |
-| <a href="#FUNCTION_MOTOR1"></a> FUNCTION_MOTOR1               | `uint8` | 101   |
-| <a href="#MAX_NUM_MOTORS"></a> MAX_NUM_MOTORS                 | `uint8` | 12    |
-| <a href="#FUNCTION_SERVO1"></a> FUNCTION_SERVO1               | `uint8` | 201   |
-| <a href="#MAX_NUM_SERVOS"></a> MAX_NUM_SERVOS                 | `uint8` | 8     |
-| <a href="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH             | `uint8` | 16    | >= MAX_NUM_MOTORS to support code in esc_calibration |
+| Name                                                        | Type    | Value | Description                                          |
+| ----------------------------------------------------------- | ------- | ----- | ---------------------------------------------------- |
+| <a id="#ACTION_RELEASE_CONTROL"></a> ACTION_RELEASE_CONTROL | `uint8` | 0     | exit test mode for the given function                |
+| <a id="#ACTION_DO_CONTROL"></a> ACTION_DO_CONTROL           | `uint8` | 1     | enable actuator test mode                            |
+| <a id="#FUNCTION_MOTOR1"></a> FUNCTION_MOTOR1               | `uint8` | 101   |
+| <a id="#MAX_NUM_MOTORS"></a> MAX_NUM_MOTORS                 | `uint8` | 12    |
+| <a id="#FUNCTION_SERVO1"></a> FUNCTION_SERVO1               | `uint8` | 201   |
+| <a id="#MAX_NUM_SERVOS"></a> MAX_NUM_SERVOS                 | `uint8` | 8     |
+| <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH             | `uint8` | 16    | >= MAX_NUM_MOTORS to support code in esc_calibration |
 
 ## Source Message
 

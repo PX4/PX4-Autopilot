@@ -51,8 +51,6 @@
 #include <systemlib/mavlink_log.h>
 #include <px4_platform_common/events.h>
 
-#include "navigator.h"
-
 static uint32_t crc32_for_fence_point(const mission_fence_point_s &fence_point, uint32_t prev_crc32)
 {
 	union {

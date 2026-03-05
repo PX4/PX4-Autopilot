@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # MagWorkerData (UORB message)
 
-**TOPICS:** mag_workerdata
+**TOPICS:** mag_worker_data
 
 ## Fields
 
@@ -23,9 +23,9 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Name                              | Type    | Value | Description |
-| --------------------------------- | ------- | ----- | ----------- |
-| <a href="#MAX_MAGS"></a> MAX_MAGS | `uint8` | 4     |
+| Name                            | Type    | Value | Description |
+| ------------------------------- | ------- | ----- | ----------- |
+| <a id="#MAX_MAGS"></a> MAX_MAGS | `uint8` | 4     |
 
 ## Source Message
 

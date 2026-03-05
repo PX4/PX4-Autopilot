@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Fixed Wing Longitudinal Control Configuration message. Used by the fw_lateral_longitudinal_control module and TECS to constrain FixedWingLongitudinalSetpoint messages. and configure the resultant setpoints.
 
-**TOPICS:** longitudinal_controlconfiguration
+**TOPICS:** longitudinal_control_configuration
 
 ## Fields
 
@@ -25,9 +25,9 @@ Fixed Wing Longitudinal Control Configuration message. Used by the fw_lateral_lo
 
 ## Constants
 
-| Name                                            | Type     | Value | Description |
-| ----------------------------------------------- | -------- | ----- | ----------- |
-| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 0     |
+| Name                                          | Type     | Value | Description |
+| --------------------------------------------- | -------- | ----- | ----------- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 0     |
 
 ## Source Message
 

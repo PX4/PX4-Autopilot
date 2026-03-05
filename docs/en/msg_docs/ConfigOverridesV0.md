@@ -21,12 +21,12 @@ Configurable overrides by (external) modes or mode executors.
 
 ## Constants
 
-| Name                                                                | Type     | Value | Description |
-| ------------------------------------------------------------------- | -------- | ----- | ----------- |
-| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION                     | `uint32` | 0     |
-| <a href="#SOURCE_TYPE_MODE"></a> SOURCE_TYPE_MODE                   | `int8`   | 0     |
-| <a href="#SOURCE_TYPE_MODE_EXECUTOR"></a> SOURCE_TYPE_MODE_EXECUTOR | `int8`   | 1     |
-| <a href="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH                   | `uint8`  | 4     |
+| Name                                                              | Type     | Value | Description |
+| ----------------------------------------------------------------- | -------- | ----- | ----------- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                     | `uint32` | 0     |
+| <a id="#SOURCE_TYPE_MODE"></a> SOURCE_TYPE_MODE                   | `int8`   | 0     |
+| <a id="#SOURCE_TYPE_MODE_EXECUTOR"></a> SOURCE_TYPE_MODE_EXECUTOR | `int8`   | 1     |
+| <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH                   | `uint8`  | 4     |
 
 ## Source Message
 

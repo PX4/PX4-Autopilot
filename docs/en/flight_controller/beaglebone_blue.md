@@ -2,7 +2,7 @@
 
 <LinkedBadge type="warning" text="Experimental" url="../flight_controller/autopilot_experimental.md"/>
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://beagleboard.org/blue) for hardware support or compliance issues.
 :::
@@ -23,7 +23,7 @@ _BeagleBone Blue_ images can be found here:
 Information about flashing OS images can be found on [this page](https://github.com/beagleboard/beaglebone-blue/wiki/Flashing-firmware).
 Other useful information can be found in the [FAQ](<https://github.com/beagleboard/beaglebone-blue/wiki/Frequently-Asked-Questions-(FAQ)>).
 
-:::tip
+::: tip
 Optionally you can update to a realtime kernel, and if you do, re-check if _librobotcontrol_ works properly with the realtime kernel.
 :::
 
@@ -33,7 +33,7 @@ The latest OS images at time of updating this document is [AM3358 Debian 10.3 20
 
 The recommended way to build PX4 for _BeagleBone Blue_ is to compile on a development computer and upload the PX4 executable binary directly to the BeagleBone Blue.
 
-:::tip
+::: tip
 This approach is recommended over [native build](#native_builds) due to speed of deployment and ease of use.
 :::
 
@@ -79,7 +79,7 @@ echo "PermitRootLogin yes" >>  /etc/ssh/sshd_config && systemctl restart sshd
    For _rsync_ over SSH with key authentication, follow the steps here (on the development machine):
    1. Generate an SSH key if you have not previously done so:
 
-      ```
+      ```sh
       ssh-keygen -t rsa
       ```
 
@@ -89,13 +89,13 @@ echo "PermitRootLogin yes" >>  /etc/ssh/sshd_config && systemctl restart sshd
 
    1. Define the BeagleBone Blue board as `beaglebone` in **/etc/hosts** and copy the public SSH key to the board for password-less SSH access:
 
-      ```
+      ```sh
       ssh-copy-id debian@beaglebone
       ```
 
    1. Alternatively you can use the beaglebone's IP directly:
 
-      ```
+      ```sh
       ssh-copy-id debian@<IP>
       ```
 
@@ -115,7 +115,7 @@ echo "PermitRootLogin yes" >>  /etc/ssh/sshd_config && systemctl restart sshd
 
          The ARM Cross Compiler for _BeagleBone Blue_ can be found at [Linaro Toolchain Binaries site](https://www.linaro.org/downloads/#gnu_and_llvm).
 
-         :::tip
+         ::: tip
          GCC in the toolchain should be compatible with kernel in _BeagleBone Blue_.
          General rule of thumb is to choose a toolchain where version of GCC is not higher than version of GCC which comes with the OS image on _BeagleBone Blue_.
          :::
@@ -129,7 +129,7 @@ echo "PermitRootLogin yes" >>  /etc/ssh/sshd_config && systemctl restart sshd
          tar -xf gcc-linaro-13.0.0-2022.06-x86_64_arm-linux-gnueabihf.tar.xz
          ```
 
-         :::tip
+         ::: tip
          The GCC version of the toolchain should be compatible with kernel in _BeagleBone Blue_.
          :::
 
@@ -147,7 +147,7 @@ echo "PermitRootLogin yes" >>  /etc/ssh/sshd_config && systemctl restart sshd
 
       1. Setup other dependencies by downloading the PX4 source code and then running the setup scripts:
 
-         ````
+         ````sh
          git clone https://github.com/PX4/PX4-Autopilot.git --recursive
          ols
          ```
@@ -166,7 +166,7 @@ echo "PermitRootLogin yes" >>  /etc/ssh/sshd_config && systemctl restart sshd
 
 Compile and Upload
 
-```
+```sh
 make beaglebone_blue_default upload
 ```
 
@@ -185,9 +185,7 @@ sudo ./bin/px4 -s px4.config
 Currently _librobotcontrol_ requires root access.
 :::
 
-<a id="native_builds"></a>
-
-## Native Builds (optional)
+## Native Builds (optional) {#native_builds}
 
 You can also natively build PX4 builds directly on the BeagleBone Blue.
 
@@ -211,7 +209,7 @@ Run the following commands on the BeagleBone Blue (i.e. via SSH):
 
 ## Changes in config
 
-All changes can be made in de px4.config file directly on beaglebone.
+All changes can be made in the px4.config file directly on beaglebone.
 For example, you can change the WIFI to wlan.
 
 ::: info
@@ -290,8 +288,6 @@ For a quadcopter with GPS and an SBUS receiver, here are typical connections:
 
 1. Connect the ESC of motor 1, 2, 3 and 4 to channel 1, 2, 3 and 4 of servo outputs on BeagleBone Blue, respectively.
    If your ESC connector contains a power output pin, remove it and do not connect it to the power output pin of the servo channel on the BeagleBone Blue.
-
-1. Connect the above mentioned converted SBUS signal to the dsm2 port if you have the matching connector for dsm2, otherwise connect it to any other available UART port and change the corresponding port in **/home/debian/px4/px4.config** accordingly.
-
-1. Connect the signals of GPS module to GPS port on the BeagleBone Blue.
+2. Connect the above mentioned converted SBUS signal to the dsm2 port if you have the matching connector for dsm2, otherwise connect it to any other available UART port and change the corresponding port in **/home/debian/px4/px4.config** accordingly.
+3. Connect the signals of GPS module to GPS port on the BeagleBone Blue.
    Note that the signal pins of the GPS port on the BeagleBone Blue are only 3.3V tolerant, so choose your GPS module accordingly.

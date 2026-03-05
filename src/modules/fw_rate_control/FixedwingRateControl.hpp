@@ -70,6 +70,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_torque_setpoint.h>
+#include <uORB/topics/launch_detection_status.h>
 
 using matrix::Eulerf;
 using matrix::Quatf;
@@ -78,10 +79,12 @@ using uORB::SubscriptionData;
 
 using namespace time_literals;
 
-class FixedwingRateControl final : public ModuleBase<FixedwingRateControl>, public ModuleParams,
+class FixedwingRateControl final : public ModuleBase, public ModuleParams,
 	public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	FixedwingRateControl(bool vtol = false);
 	~FixedwingRateControl() override;
 
@@ -110,6 +113,7 @@ private:
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_rates_sub{ORB_ID(vehicle_angular_velocity)};
+	uORB::Subscription _launch_detection_status_sub{ORB_ID(launch_detection_status)};
 
 	uORB::SubscriptionMultiArray<control_allocator_status_s, 2> _control_allocator_status_subs{ORB_ID::control_allocator_status};
 

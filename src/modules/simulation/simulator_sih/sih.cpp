@@ -53,9 +53,13 @@ using namespace math;
 using namespace matrix;
 using namespace time_literals;
 
+ModuleBase::Descriptor Sih::desc{task_spawn, custom_command, print_usage};
+
 Sih::Sih() :
 	ModuleParams(nullptr)
-{}
+{
+	srand(1234); // initialize the random seed once before calling generate_wgn()
+}
 
 Sih::~Sih()
 {
@@ -68,7 +72,6 @@ void Sih::run()
 	_px4_accel.set_temperature(T1_C);
 	_px4_gyro.set_temperature(T1_C);
 
-	init_variables();
 	parameters_updated();
 
 	const hrt_abstime task_start = hrt_absolute_time();
@@ -84,7 +87,7 @@ void Sih::run()
 #else
 	realtime_loop();
 #endif
-	exit_and_cleanup();
+	exit_and_cleanup(desc);
 }
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
@@ -98,7 +101,6 @@ static uint64_t micros()
 
 void Sih::lockstep_loop()
 {
-
 	int rate = math::min(_imu_gyro_ratemax.get(), _imu_integration_rate.get());
 
 	// default to 400Hz (2500 us interval)
@@ -280,22 +282,6 @@ void Sih::parameters_updated()
 	_distance_snsr_override = _sih_distance_snsr_override.get();
 
 	_T_TAU = _sih_thrust_tau.get();
-}
-
-void Sih::init_variables()
-{
-	srand(1234);    // initialize the random seed once before calling generate_wgn()
-
-	_lpos = Vector3f(0.0f, 0.0f, 0.0f);
-	_v_N = Vector3f(0.0f, 0.0f, 0.0f);
-	_v_N_dot = Vector3f(0.0f, 0.0f, 0.0f);
-	_p_E = Vector3d(Wgs84::equatorial_radius, 0.0, 0.0);
-	_v_E = Vector3f(0.0f, 0.0f, 0.0f);
-	_q = Quatf(1.0f, 0.0f, 0.0f, 0.0f);
-	_q_E = Quatf(Eulerf(0.f, -M_PI_2_F, 0.f));
-	_w_B = Vector3f(0.0f, 0.0f, 0.0f);
-
-	_u[0] = _u[1] = _u[2] = _u[3] = 0.0f;
 }
 
 void Sih::read_motors(const float dt)
@@ -845,17 +831,24 @@ int Sih::print_status()
 	return 0;
 }
 
+int Sih::run_trampoline(int argc, char *argv[])
+{
+	return ModuleBase::run_trampoline_impl(desc, [](int ac, char *av[]) -> ModuleBase * {
+		return Sih::instantiate(ac, av);
+	}, argc, argv);
+}
+
 int Sih::task_spawn(int argc, char *argv[])
 {
-	_task_id = px4_task_spawn_cmd("sih",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_MAX,
-				      1560,
-				      (px4_main_t)&run_trampoline,
-				      (char *const *)argv);
+	desc.task_id = px4_task_spawn_cmd("sih",
+					  SCHED_DEFAULT,
+					  SCHED_PRIORITY_MAX,
+					  1560,
+					  (px4_main_t)&run_trampoline,
+					  (char *const *)argv);
 
-	if (_task_id < 0) {
-		_task_id = -1;
+	if (desc.task_id < 0) {
+		desc.task_id = -1;
 		return -errno;
 	}
 
@@ -914,5 +907,5 @@ Most of the variables are declared global in the .hpp file to avoid stack overfl
 
 extern "C" __EXPORT int simulator_sih_main(int argc, char *argv[])
 {
-	return Sih::main(argc, argv);
+	return ModuleBase::main(Sih::desc, argc, argv);
 }

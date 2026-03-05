@@ -21,9 +21,9 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Name                                                            | Type    | Value | Description |
-| --------------------------------------------------------------- | ------- | ----- | ----------- |
-| <a href="#SAT_INFO_MAX_SATELLITES"></a> SAT_INFO_MAX_SATELLITES | `uint8` | 40    |
+| Name                                                          | Type    | Value | Description |
+| ------------------------------------------------------------- | ------- | ----- | ----------- |
+| <a id="#SAT_INFO_MAX_SATELLITES"></a> SAT_INFO_MAX_SATELLITES | `uint8` | 40    |
 
 ## Source Message
 
