@@ -73,7 +73,7 @@ To [build PX4](../dev_setup/building_px4.md) for this target:
 make mro_ctrl-zero-f7
 ```
 
-## Debug Ports
+## Debug Ports {#debug_port}
 
 ### Console Port
 

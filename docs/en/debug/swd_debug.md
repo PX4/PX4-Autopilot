@@ -64,7 +64,7 @@ The debug port location and pinouts for a subset of autopilots are linked below:
 | [mRo Pixracer](../flight_controller/pixracer.md#debug-port)                          | [Pixhawk Debug Mini](#pixhawk-debug-mini) |
 | [S-Vehicle E2](../flight_controller/svehicle_e2.md#debug-port)                       | [Pixhawk Debug Mini]                      |
 | [AP-H743-R1](../flight_controller/x-mav_ap-h743r1.md#debug-port)                     | 4-pin JST GH (SWD only)                   |
-| [mRo Control Zero F7](../flight_controller/mro_control_zero_f7.md#debug-port)        |                                           |
+| [mRo Control Zero F7](../flight_controller/mro_control_zero_f7.md#debug_port)        |                                           |
 
 ## Pixhawk Connector Standard Debug Ports {#pixhawk-standard-debug-ports}
 
@@ -74,16 +74,16 @@ The Pixhawk project has defines a standard pinout and connector type for differe
 Check your [specific board](#port-information) to confirm the port used.
 :::
 
-| FMU Version | Pixhawk Version                                                 | Debug Port                                |
-| :---------- | :-------------------------------------------------------------- | :---------------------------------------- |
-| FMUv2       | [Pixhawk / Pixhawk 1](../flight_controller/pixhawk.md#swd-port) | 10 pin ARM Debug                          |
-| FMUv3       | Pixhawk 2                                                       | 6 pin SUR Debug                           |
-| FMUv4       | Pixhawk 3                                                       | [Pixhawk Debug Mini](#pixhawk-debug-mini) |
-| FMUv5       | Pixhawk 4 FMUv5                                                 | [Pixhawk Debug Mini](#pixhawk-debug-mini) |
-| FMUv5X      | Pixhawk 5X                                                      | [Pixhawk Debug Full](#pixhawk-debug-full) |
-| FMUv6       | Pixhawk 6                                                       | [Pixhawk Debug Full](#pixhawk-debug-full) |
-| FMUv6X      | Pixhawk 6X                                                      | [Pixhawk Debug Full](#pixhawk-debug-full) |
-| FMUv6X-RT   | Pixhawk 6X-RT                                                   | [Pixhawk Debug Full](#pixhawk-debug-full) |
+| FMU Version | Pixhawk Version     | Debug Port                                |
+| :---------- | :------------------ | :---------------------------------------- |
+| FMUv2       | Pixhawk / Pixhawk 1 | 10 pin ARM Debug                          |
+| FMUv3       | Pixhawk 2           | 6 pin SUR Debug                           |
+| FMUv4       | Pixhawk 3           | [Pixhawk Debug Mini](#pixhawk-debug-mini) |
+| FMUv5       | Pixhawk 4 FMUv5     | [Pixhawk Debug Mini](#pixhawk-debug-mini) |
+| FMUv5X      | Pixhawk 5X          | [Pixhawk Debug Full](#pixhawk-debug-full) |
+| FMUv6       | Pixhawk 6           | [Pixhawk Debug Full](#pixhawk-debug-full) |
+| FMUv6X      | Pixhawk 6X          | [Pixhawk Debug Full](#pixhawk-debug-full) |
+| FMUv6X-RT   | Pixhawk 6X-RT       | [Pixhawk Debug Full](#pixhawk-debug-full) |
 
 ::: info
 There FMU and Pixhawk versions are (only) consistent after FMUv5X.
