@@ -201,7 +201,15 @@ void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<flo
 			// in FW directly use throttle sp
 			if (_flight_phase == FlightPhase::FORWARD_FLIGHT) {
 				for (int i = 0; i < _first_tilt_idx; ++i) {
-					actuator_sp(i) = tiltrotor_extra_controls.collective_thrust_normalized_setpoint;
+
+					// Stop motors if thrust setpoint is below 2%. This threshold was determined empirically (RC stick inaccuracy)
+					if (tiltrotor_extra_controls.collective_thrust_normalized_setpoint > 0.02f) {
+						actuator_sp(i) = tiltrotor_extra_controls.collective_thrust_normalized_setpoint;
+
+					} else {
+						actuator_sp(i) = NAN;
+					}
+
 				}
 			}
 		}
