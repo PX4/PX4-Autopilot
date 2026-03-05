@@ -283,25 +283,17 @@ void ADIS16607::RunImpl()
 				_px4_accel.set_temperature(temperature);
 				_px4_gyro.set_temperature(temperature);
 
-				int32_t accel_x = (int32_t)((int32_t)(be16toh(buffer.X_ACCL_HIGH_OUT) << 16 | be16toh(buffer.X_ACCL_LOW_OUT)) >> 8);
-				int32_t accel_y = (int32_t)((int32_t)(be16toh(buffer.Y_ACCL_HIGH_OUT) << 16 | be16toh(buffer.Y_ACCL_LOW_OUT)) >> 8);
-				int32_t accel_z = (int32_t)((int32_t)(be16toh(buffer.Z_ACCL_HIGH_OUT) << 16 | be16toh(buffer.Z_ACCL_LOW_OUT)) >> 8);
-
 				// sensor's frame is +x forward, +y left, +z up
 				//  flip y & z to publish right handed with z down (x forward, y right, z down)
-				accel_y = (accel_y == INT16_MIN) ? INT16_MAX : -accel_y;
-				accel_z = (accel_z == INT16_MIN) ? INT16_MAX : -accel_z;
+				float accel_x = (be16toh(buffer.X_ACCL_HIGH_OUT) << 16 | be16toh(buffer.X_ACCL_LOW_OUT)) >> 8;
+				float accel_y = -1 * ((be16toh(buffer.Y_ACCL_HIGH_OUT) << 16 | be16toh(buffer.Y_ACCL_LOW_OUT)) >> 8);
+				float accel_z = -1 * ((be16toh(buffer.Z_ACCL_HIGH_OUT) << 16 | be16toh(buffer.Z_ACCL_LOW_OUT)) >> 8);
+
+				float gyro_x = (be16toh(buffer.X_GYRO_HIGH_OUT) << 16 | be16toh(buffer.X_GYRO_LOW_OUT)) >> 8;
+				float gyro_y = -1 * ((be16toh(buffer.Y_GYRO_HIGH_OUT) << 16 | be16toh(buffer.Y_GYRO_LOW_OUT)) >> 8);
+				float gyro_z = -1 * ((be16toh(buffer.Z_GYRO_HIGH_OUT) << 16 | be16toh(buffer.Z_GYRO_LOW_OUT)) >> 8);
 
 				_px4_accel.update(timestamp_sample, accel_x, accel_y, accel_z);
-
-				int32_t gyro_x = (int32_t)((int32_t)(be16toh(buffer.X_GYRO_HIGH_OUT) << 16 | be16toh(buffer.X_GYRO_LOW_OUT)) >> 8);
-				int32_t gyro_y = (int32_t)((int32_t)(be16toh(buffer.Y_GYRO_HIGH_OUT) << 16 | be16toh(buffer.Y_GYRO_LOW_OUT)) >> 8);
-				int32_t gyro_z = (int32_t)((int32_t)(be16toh(buffer.Z_GYRO_HIGH_OUT) << 16 | be16toh(buffer.Z_GYRO_LOW_OUT)) >> 8);
-				// sensor's frame is +x forward, +y left, +z up
-				//  flip y & z to publish right handed with z down (x forward, y right, z down)
-				gyro_y = (gyro_y == INT16_MIN) ? INT16_MAX : -gyro_y;
-				gyro_z = (gyro_z == INT16_MIN) ? INT16_MAX : -gyro_z;
-
 				_px4_gyro.update(timestamp_sample, gyro_x, gyro_y, gyro_z);
 
 				success = true;
