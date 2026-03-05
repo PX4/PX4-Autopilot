@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Pure pursuit status.
 
-**TOPICS:** pure_pursuitstatus
+**TOPICS:** pure_pursuit_status
 
 ## Fields
 

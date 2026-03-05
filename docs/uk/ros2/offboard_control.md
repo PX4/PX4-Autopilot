@@ -143,7 +143,7 @@ After 10 cycles `publish_vehicle_command()` is called to change to offboard mode
 The implementations of the `publish_offboard_control_mode()` and `publish_trajectory_setpoint()` methods are shown below.
 These publish the [OffboardControlMode](../msg_docs/OffboardControlMode.md) and [TrajectorySetpoint](../msg_docs/TrajectorySetpoint.md) messages to PX4 (respectively).
 
-The `OffboardControlMode` is required in order to inform PX4 of the _type_ of offboard control behing used.
+The `OffboardControlMode` is required in order to inform PX4 of the _type_ of offboard control being used.
 Here we're only using _position control_, so the `position` field is set to `true` and all the other fields are set to `false`.
 
 ```cpp

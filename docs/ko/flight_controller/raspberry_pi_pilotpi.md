@@ -175,7 +175,7 @@ ADC 3 & 4 will have VCC driven by:
 시스템 rc 스크립트는 해당 값을 확인하고, PX4가 시스템 부팅시 시작 여부를 결정합니다.
 
 - 켜짐: 자동으로 PX4 시작
-- 꺼짐: PX4를 시작하지 않습니다.
+- Off: don't start PX4
 
 ## 개발자 가이드
 

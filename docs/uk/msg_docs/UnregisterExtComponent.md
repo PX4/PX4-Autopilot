@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # UnregisterExtComponent (UORB message)
 
-**TOPICS:** unregister_extcomponent
+**TOPICS:** unregister_ext_component
 
 ## Fields
 
@@ -18,9 +18,9 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Назва                                                                | Тип      | Значення | Опис |
-| -------------------------------------------------------------------- | -------- | -------- | ---- |
-| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 0        |      |
+| Назва                                                              | Тип      | Значення | Опис |
+| ------------------------------------------------------------------ | -------- | -------- | ---- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 0        |      |
 
 ## Source Message
 

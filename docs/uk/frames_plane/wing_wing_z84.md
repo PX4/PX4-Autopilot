@@ -33,7 +33,7 @@ Any small (>=12A) ESC will do:
 - Приймач FrSky D4R-II або йому еквівалентний (з'єднаний за допомогою перемички з виходом PPM sum відповідно до інструкції)
 - [Mini telemetry set](../flight_controller/pixfalcon.md#availability) for Holybro pix32
 - [Digital airspeed sensor](../flight_controller/pixfalcon.md#availability) for Holybro pix32 / Pixfalcon
-- 1800 mAh 2S LiPo Battery - e.g. [Team Orion 1800mAh 7.4V 50C 2S1P](https://teamorion.com/en/batteries-en/lipo/soft-case/team-orion-lipo-1800-2s-7-4v-50c-xt60-en/)
+- 1800 mAh 2S LiPo Battery - e.g. Team Orion 1800mAh 7.4V 50C 2S1P with XT 60 plug.
 
 ### Рекомендовані запасні частини
 

@@ -72,7 +72,7 @@ It is pre-built and automatically installed by _QGroundControl_ when appropriate
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v3_default
 ```
 

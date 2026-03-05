@@ -9,7 +9,7 @@
 
 卫星通信链接需要以下组成部件：
 
-- A [RockBlock 9603 Iridium Satellite Modem](https://www.iridium.com/products/ground-control-rockblock-9603/) module connected to a Pixhawk flashed with the PX4 Autopilot.
+- A [RockBlock 9603 Iridium Satellite Modem](https://www.iridium.com/products/rockblock-9603) module connected to a Pixhawk flashed with the PX4 Autopilot.
 - 运行 Ubuntu 系统的消息中继服务器。
 - A ground station computer running _QGroundControl_ on Ubuntu Linux
 
@@ -58,13 +58,13 @@ The default baud rate of the module is 19200. However, the PX4 _iridiumsbd_ driv
 
 2. Change the baud rate:
 
-   ```
+   ```sh
    AT+IPR=9
    ```
 
 3. Reconnect to the model now with a 115200/8-N-1 setting and save the configuration using:
 
-   ```
+   ```sh
    AT&W0
    ```
 
@@ -78,7 +78,7 @@ There is no need to set the baud rate for the port, as this is configured by the
 :::info
 If the configuration parameter is not available in _QGroundControl_ then you may need to [add the driver to the firmware](../peripherals/serial_configuration.md#parameter_not_in_firmware):
 
-```
+```txt
 drivers/telemetry/iridiumsbd
 ```
 

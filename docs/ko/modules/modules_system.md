@@ -321,7 +321,7 @@ Source: [drivers/heater](https://github.com/PX4/PX4-Autopilot/tree/main/src/driv
 
 ### 설명
 
-Background process running periodically on the LP work queue to regulate IMU temperature at a setpoint.
+Background process running periodically on the INS{i} queue to regulate IMU temperature at a setpoint.
 
 This task can be started at boot from the startup scripts by setting SENS_EN_THERMAL or via CLI.
 
@@ -732,7 +732,7 @@ The module is typically used together with uORB publisher rules, to specify whic
 The replay module will just publish all messages that are found in the log. It also applies the parameters from
 the log.
 
-The replay procedure is documented on the [System-wide Replay](https://docs.px4.io/main/en/debug/system_wide_replay.html)
+The replay procedure is documented on the [System-wide Replay](../debug/system_wide_replay.md)
 page.
 
 ### Usage {#replay_usage}
@@ -915,6 +915,30 @@ Source: [modules/simulation/system_power_simulator](https://github.com/PX4/PX4-A
 system_power_simulation <command> [arguments...]
  Commands:
    start
+
+   stop
+
+   status        print status info
+```
+
+## task_watchdog
+
+Source: [modules/task_watchdog](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/task_watchdog)
+
+### 설명
+
+Detects when a higher-priority task starves the system by running too long.
+When starvation is detected, dumps the offending task's registers and stack,
+and saves a cpuload snapshot.
+
+### Usage {#task_watchdog_usage}
+
+```
+task_watchdog <command> [arguments...]
+ Commands:
+   start
+
+   trigger       Manually trigger the watchdog
 
    stop
 

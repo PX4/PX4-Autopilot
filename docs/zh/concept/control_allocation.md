@@ -2,7 +2,7 @@
 
 :::info
 Control allocation replaces the legacy mixing approach used in PX4 v1.13 and earlier.
-For PX4 v1.13 documentation see: [Mixing & Actuators](https://docs.px4.io/v1.13/en/concept/mixing.html), [Geometry Files](https://docs.px4.io/v1.13/en/concept/geometry_files.html) and [Adding a New Airframe Configuration](https://docs.px4.io/v1.13/en/dev_airframes/adding_a_new_frame.html).
+For PX4 v1.13 documentation see: [Mixing & Actuators](https://docs.px4.io/v1.13/en/concept/mixing), [Geometry Files](https://docs.px4.io/v1.13/en/concept/geometry_files) and [Adding a New Airframe Configuration](https://docs.px4.io/v1.13/en/dev_airframes/adding_a_new_frame).
 :::
 
 PX4从核心控制器获取所需的扭矩和推力指令，并将它们转换为控制电机或作动器的驱动指令。

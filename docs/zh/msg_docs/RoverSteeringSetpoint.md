@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Rover Steering setpoint.
 
-**TOPICS:** rover_steeringsetpoint
+**TOPICS:** rover_steering_setpoint
 
 ## Fields
 

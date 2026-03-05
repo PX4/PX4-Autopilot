@@ -44,8 +44,8 @@ python simulation-gazebo --overwrite
   Там введіть "resource spawner" та у "Fuel resources" додайте власника "px4".
   Ви можете перетягнути будь-яку PX4 модель у вашу симуляцію.
 
-  :::info
-  Ці моделі взяті з вебсервера, який називається [Gazebo Fuel](https://app.gazebosim.org/dashboard), що по суті діє як онлайн база всіх світів та типів моделей, які можуть бути запущені у Gazebo.
+  ::: info
+  These models are taken from an web-server called [Gazebo Fuel](https://app.gazebosim.org/PX4), which essentially acts as an online database for all types of models and worlds that can be launched in Gazebo.
 
 :::
 

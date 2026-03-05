@@ -301,7 +301,7 @@ where `ARGS` is a list of environment variables including:
 - `PX4_GZ_FOLLOW_OFFSET_X`, `PX4_GZ_FOLLOW_OFFSET_Y`, `PX4_GZ_FOLLOW_OFFSET_Z`:
   Set the relative offset of the follow camera to the vehicle.
 
-The PX4 Gazebo worlds and and models databases [can be found on GitHub here](https://github.com/PX4/PX4-gazebo-models).
+The PX4 Gazebo worlds and models databases [can be found on GitHub here](https://github.com/PX4/PX4-gazebo-models).
 
 ::: info
 `gz_env.sh.in` is compiled and made available in `$PX4_DIR/build/px4_sitl_default/rootfs/gz_env.sh`

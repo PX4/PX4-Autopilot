@@ -71,7 +71,7 @@ An all-in-one design that simplifies installation, with an onboard infrared LED 
 ### Інші Камери/Сенсори
 
 Також можна використовувати дошку/квадрокоптер, яка має вбудовану камеру.
-For this the [Optical Flow repo](https://github.com/PX4/OpticalFlow) can be used (see also [snap_cam](https://github.com/PX4/snap_cam)).
+For this the [Optical Flow repo](https://github.com/PX4/PX4-OpticalFlow) can be used (see also [snap_cam](https://github.com/PX4/snap_cam)).
 
 ## Далекомір
 

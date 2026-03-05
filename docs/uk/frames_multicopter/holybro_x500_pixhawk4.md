@@ -118,7 +118,7 @@ Additionally you will need a battery and receiver ([compatible radio system](../
    _Figure 7_: ESC power module and signal wiring
 
    Колір на верхній частині двигуна вказує на напрямок обертання (зображення 7-1), чорний кінчик - за годинниковою стрілкою, а білий - проти годинникової стрілки.
-   Переконайтеся, що при виборі напрямку двигуна ви дотримуєтесь орієнтира px4 quadrotor x airframe (зображення 7-2).
+   Make sure the follow the PX4 quadrotor x airframe reference for motor direction (figure 7-2).
 
    <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/quadx.png" width="240">
 

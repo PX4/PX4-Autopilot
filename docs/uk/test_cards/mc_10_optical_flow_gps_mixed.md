@@ -48,7 +48,7 @@ Ensure that the drone can go into [Altitude](../flight_modes_mc/altitude.md) / [
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Drone should maintain position hold via optical flow
 
-❏ GPS Degredation
+❏ GPS Degradation
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Takeoff in position mode in GPS rich environment (outdoors)
 

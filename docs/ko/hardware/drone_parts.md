@@ -1,4 +1,4 @@
-# Hardware Hardware Selection & Setup
+# Hardware Selection & Setup
 
 PX4 완제품 기체와 자체 제작 드론의 부품들에 대하여 설명합니다.
 

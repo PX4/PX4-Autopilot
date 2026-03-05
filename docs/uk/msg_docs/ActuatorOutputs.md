@@ -16,10 +16,10 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Назва                                                                                                                                 | Тип     | Значення | Опис                |
-| ------------------------------------------------------------------------------------------------------------------------------------- | ------- | -------- | ------------------- |
-| <a href="#NUM_ACTUATOR_OUTPUTS"></a> NUM_ACTUATOR_OUTPUTS                                   | `uint8` | 16       |                     |
-| <a href="#NUM_ACTUATOR_OUTPUT_GROUPS	"></a> NUM_ACTUATOR_OUTPUT_GROUPS | `uint8` | 4        | for sanity checking |
+| Назва                                                                                                                              | Тип     | Значення | Опис                |
+| ---------------------------------------------------------------------------------------------------------------------------------- | ------- | -------- | ------------------- |
+| <a id="#NUM_ACTUATOR_OUTPUTS"></a> NUM_ACTUATOR_OUTPUTS                                  | `uint8` | 16       |                     |
+| <a id="#NUM_ACTUATOR_OUTPUT_GROUPS"></a> NUM_ACTUATOR_OUTPUT_GROUPS | `uint8` | 4        | for sanity checking |
 
 ## Source Message
 

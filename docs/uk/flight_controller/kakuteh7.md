@@ -36,7 +36,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - Розміри: 35 x 35мм
 - Вага: 8г
 
-## Де купити
+## Where to Buy {#store}
 
 Плату можна придбати в одному з наступних магазинів (наприклад):
 
@@ -102,7 +102,7 @@ make holybro_kakuteh7_default
   Ви можете використовувати або готове вбудоване програмне забезпечення, або власне користувацьке програмне забезпечення.
 
 :::info
-Якщо ви завантажуєте готове програмне забезпечення через QGroundcontrol, вам необхідно використовувати щоденну версію QGC або версію QGC новішу за 4.1.7.
+If you are loading the pre-built firmware via QGroundControl, you must use QGC Daily or QGC version newer than 4.1.7.
 :::
 
 ## Конфігурація PX4

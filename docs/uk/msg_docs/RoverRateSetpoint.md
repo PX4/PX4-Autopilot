@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Rover Rate setpoint.
 
-**TOPICS:** rover_ratesetpoint
+**TOPICS:** rover_rate_setpoint
 
 ## Fields
 

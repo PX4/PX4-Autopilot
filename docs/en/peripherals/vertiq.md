@@ -46,7 +46,7 @@ Standard Vertiq ESC modules do not include LEDs.
 :::
 
 Vertiq LED Add-on modules have two LEDs per ESC (RGB for status, White for anti-collision).
-See [DroneCAN Lights](../dronecan/index.md#lights) for configuration instructions.
+See [DroneCAN Lights](../dronecan/lights.md) for configuration instructions.
 
 The `light_id` for each LED is calculated as: `esc_index × 3 + BASE_ID`, where `BASE_ID` is 1 for RGB and 2 for White.
 
