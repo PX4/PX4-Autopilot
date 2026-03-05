@@ -38829,6 +38829,22 @@ Vehicle type.
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          |           | 0       |      |
 
+### SIH_WIND_E (`FLOAT`) {#SIH_WIND_E}
+
+Wind velocity from east direction.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0.0     | m/s  |
+
+### SIH_WIND_N (`FLOAT`) {#SIH_WIND_N}
+
+Wind velocity from north direction.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0.0     | m/s  |
+
 ## Simulator
 
 ### SIM_AGP_FAIL (`INT32`) {#SIM_AGP_FAIL}
