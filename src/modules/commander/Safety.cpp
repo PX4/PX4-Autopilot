@@ -51,7 +51,7 @@ Safety::Safety()
 	}
 }
 
-bool Safety::safetyButtonHandler()
+bool Safety::safetyButtonHandler(bool is_toggle)
 {
 	if (!_safety_disabled) {
 		if (!_button_available && _safety_button_sub.advertised()) {
@@ -61,7 +61,10 @@ bool Safety::safetyButtonHandler()
 		button_event_s button_event;
 
 		while (_safety_button_sub.update(&button_event)) {
-			_safety_off |= button_event.triggered; // triggered safety button activates safety off
+			if (button_event.triggered) {
+				// triggered safety button either toggles value or activates safety off
+				_safety_off = (is_toggle) ? !_safety_off : true;
+			}
 		}
 	}
 
