@@ -34,7 +34,7 @@ Code that wants to subscribe/publish to PX4 does have a dependency on client-sid
 
 ## Code Generation
 
-The PX4 [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client) is generated at build time and included in PX4 firmare by default.
+The PX4 [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client) is generated at build time and included in PX4 firmware by default.
 The agent has no dependency on client code.
 It can be built standalone or in a ROS 2 workspace, or installed as a snap package on Ubuntu.
 

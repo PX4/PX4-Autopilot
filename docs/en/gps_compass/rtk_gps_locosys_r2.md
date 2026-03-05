@@ -22,8 +22,8 @@ The fast time-to-first-fix, RTK convergence, superior sensitivity, low power con
 - Fast TTFF at low signal level
 - Free hybrid ephemeris prediction to achieve faster cold start
 - Default 5Hz, up to 10 Hz update rate (SBAS support 5Hz only)
-- Build-in super capacitor to reserve system data for rapid satellite acquisition
-- Build-in 3 axis compass function
+- Built-in super capacitor to reserve system data for rapid satellite acquisition
+- Built-in 3 axis compass function
 - Three LED indicator for Power, PPS and Data transmit
 
 ![LOCOSYS Hawk R2](../../assets/hardware/gps/locosys_hawk_a1/locosys_hawk_a1_gps.png)

@@ -56,7 +56,7 @@ See [here](../modules/modules_driver.md#dshot) for a full reference of the suppo
 
 The most important ones are:
 
-- Make a motor connected to to FMU output pin 1 beep (helps with identifying motors)
+- Make a motor connected to FMU output pin 1 beep (helps with identifying motors)
 
   ```sh
   dshot beep1 -m 1
