@@ -167,7 +167,7 @@ private:
 	uORB::Publication<esc_status_s> _esc_status_pub{ORB_ID(esc_status)}; //We want to publish our ESC Status to anyone who will listen
 
 	// Subscriptions
-	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 10_ms};
 
 	//We need to know what's going on with the actuator test to make sure we handle it properly
 	uORB::Subscription _actuator_test_sub{ORB_ID(actuator_test)};
