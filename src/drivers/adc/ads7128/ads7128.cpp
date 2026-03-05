@@ -336,7 +336,14 @@ void ADS7128::RunImpl()
 		perf_end(_cycle_perf);
 
 		if (ret != PX4_OK) {
-			_state = STATE::RESET;
+
+			consecutive_fails++;
+
+			if(consecutive_fails > 10){
+				_state = STATE::RESET;
+				consecutive_fails = 0;
+			}
+
 			perf_count(_comms_errors);
 		}
 
