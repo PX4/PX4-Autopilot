@@ -38,15 +38,33 @@ The debug port location and pinouts for a subset of autopilots are linked below:
 
 <a id="port-information"></a>
 
-| Autopilot                                                                           | Debug Port                                                                                                                                                        |
-| :---------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Holybro Pixhawk 6X-RT (FMUv6X-RT)                                                   | [Pixhawk Debug Full](#pixhawk-debug-full)                                                                                                                         |
-| Holybro Pixhawk 6X (FMUv6x)                                                         | [Pixhawk Debug Full](#pixhawk-debug-full)                                                                                                                         |
-| Holybro Pixhawk 5X (FMUv5x)                                                         | [Pixhawk Debug Full](#pixhawk-debug-full)                                                                                                                         |
-| [Holybro Durandal](../flight_controller/durandal.md#debug-port)                     | [Pixhawk Debug Mini](#pixhawk-debug-mini)                                                                                                                         |
-| [Holybro Pixhawk 4](../flight_controller/pixhawk4.md#debug_port) (FMUv5)            | [Pixhawk Debug Mini](#pixhawk-debug-mini)                                                                                                                         |
-| [CUAV V5+](../flight_controller/cuav_v5_plus.md#debug-port)                         | 6-pin JST GH<br>Digikey: [BM06B-GHS-TBT(LF)(SN)(N)][bm06b-ghs-tbt(lf)(sn)(n)] (vertical mount), [SM06B-GHS-TBT(LF)(SN)(N)][sm06b-ghs-tbt(lf)(sn)(n)] (side mount) |
-| [CUAV V5nano](../flight_controller/cuav_v5_nano.md#debug_port)                      | 6-pin JST GH<br>Digikey: [BM06B-GHS-TBT(LF)(SN)(N)][bm06b-ghs-tbt(lf)(sn)(n)] (vertical mount), [SM06B-GHS-TBT(LF)(SN)(N)][sm06b-ghs-tbt(lf)(sn)(n)] (side mount) |
+| Autopilot                                                                            | Debug Port                                |
+| :----------------------------------------------------------------------------------- | :---------------------------------------- |
+| [Holybro Pixhawk 6X-RT](../flight_controller/pixhawk6x-rt.md#debug_port) (FMUv6X-RT) | [Pixhawk Debug Full](#pixhawk-debug-full) |
+| [Holybro Pixhawk 6X](../flight_controller/pixhawk6x.md#debug_port) (FMUv6x)          | [Pixhawk Debug Full](#pixhawk-debug-full) |
+| [Holybro Pixhawk 5X](../flight_controller/pixhawk5x.md#debug_port) (FMUv5x)          | [Pixhawk Debug Full](#pixhawk-debug-full) |
+| [Holybro Durandal](../flight_controller/durandal.md#debug-port)                      | [Pixhawk Debug Mini](#pixhawk-debug-mini) |
+| [Holybro Pixhawk 4](../flight_controller/pixhawk4.md#debug_port) (FMUv5)             | [Pixhawk Debug Mini](#pixhawk-debug-mini) |
+| [Holybro Pixhawk 6X Pro](../flight_controller/pixhawk6x_pro.md#debug-port)           | [Pixhawk Debug Full](#pixhawk-debug-full) |
+| [Holybro Pixhawk 6C](../flight_controller/pixhawk6c.md#debug_port)                   | [Pixhawk Debug Full](#pixhawk-debug-full) |
+| [Holybro Pixhawk 6C Mini](../flight_controller/pixhawk6c_mini.md#debug_port)         | [Pixhawk Debug Mini](#pixhawk-debug-mini) |
+| [Holybro Pix32 v6](../flight_controller/holybro_pix32_v6.md#debug_port)              | [Pixhawk Debug Full](#pixhawk-debug-full) |
+| [Holybro Pix32 v5](../flight_controller/holybro_pix32_v5.md#debug-port)              | [Pixhawk Debug Mini](#pixhawk-debug-mini) |
+| [Holybro Kakute H7](../flight_controller/kakuteh7.md#debug-port)                     | SWD pads and system console               |
+| [Holybro Kakute H7 mini](../flight_controller/kakuteh7mini.md#debug-port)            | SWD pads and system console               |
+| [Holybro Kakute H7 V2](../flight_controller/kakuteh7v2.md#debug-port)                | SWD pads and system console               |
+| [CUAV V5+](../flight_controller/cuav_v5_plus.md#debug-port)                          | Custom port but comes with adaptor cable  |
+| [CUAV V5nano](../flight_controller/cuav_v5_nano.md#debug_port)                       | Custom port but comes with adaptor cable  |
+| [CUAV Pixhawk V6X](../flight_controller/cuav_pixhawk_v6x.md#debug_port)              | [Pixhawk Debug Full](#pixhawk-debug-full) |
+| [CUAV X25-SUPER](../flight_controller/cuav_x25-super.md#debug_port)                  | [Pixhawk Debug Mini]                      |
+| [CUAV X25-EVO](../flight_controller/cuav_x25-evo.md#debug_port)                      | [Pixhawk Debug Mini]                      |
+| [CUAV Nora](../flight_controller/cuav_nora.md#debug-port)                            | Custom port but comes with adaptor cable. |
+| [ARK Pixhawk Autopilot Bus Carrier](../flight_controller/ark_pab.md#debug-port)      | [Pixhawk Debug Full](#pixhawk-debug-full) |
+| [NXP MR-VMU-RT1176](../flight_controller/nxp_mr_vmu_rt1176.md#debug_port)            | [Pixhawk Debug Full](#pixhawk-debug-full) |
+| [mRo Pixracer](../flight_controller/pixracer.md#debug-port)                          | [Pixhawk Debug Mini](#pixhawk-debug-mini) |
+| [S-Vehicle E2](../flight_controller/svehicle_e2.md#debug-port)                       | [Pixhawk Debug Mini]                      |
+| [AP-H743-R1](../flight_controller/x-mav_ap-h743r1.md#debug-port)                     | 4-pin JST GH (SWD only)                   |
+| [mRo Control Zero F7](../flight_controller/mro_control_zero_f7.md#debug-port)        |                                           |
 
 ## Pixhawk Connector Standard Debug Ports {#pixhawk-standard-debug-ports}
 
@@ -207,5 +225,3 @@ This reduces the risk or poor wiring contributing to debugging problems, and has
 [swd]: https://developer.arm.com/documentation/ihi0031/a/The-Serial-Wire-Debug-Port--SW-DP-
 [itm]: https://developer.arm.com/documentation/ddi0403/d/Appendices/Debug-ITM-and-DWT-Packet-Protocol?lang=en
 [etm]: https://developer.arm.com/documentation/ihi0064/latest/
-[bm06b-ghs-tbt(lf)(sn)(n)]: https://www.digikey.com/en/products/detail/jst-sales-america-inc/BM06B-GHS-TBT/807804
-[sm06b-ghs-tbt(lf)(sn)(n)]: https://www.digikey.com/en/products/detail/jst-sales-america-inc/SM06B-GHS-TB/807790
