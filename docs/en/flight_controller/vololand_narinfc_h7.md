@@ -1,211 +1,205 @@
 # VOLOLAND NarinFC-H7
 
-The NarinFC-H7 is a flight controller produced by [VOLOLAND Inc.](https://vololand.com "VOLOLAND Inc.")
+<Badge type="tip" text="PX4 v1.18" />
 
-NarinFC-H7 is an advanced autopilot family designed in-house by VOLOLAND Inc.
+::: warning
+PX4 does not manufacture this (or any) autopilot.
+Contact the [manufacturer](https://vololand.com) for hardware support or compliance issues.
+:::
 
-It uses a higher-performance STM32H7 processor and integrates industrial-grade sensors.
+The NarinFC-H7 is an advanced flight controller produced by [VOLOLAND Inc.](https://vololand.com).
+It uses a high-performance STM32H7 processor and integrates industrial-grade sensors for improved performance and reliability.
 
-Compared with previous autopilots, it has better performance and higher reliability.
+![NarinFC-H7](../../assets/flight_controller/narinfc_h7/narinfc_header.jpg)
 
-![NarinFC-H7](../../assets/flight_controller/narinfc_h7/narinfc_header.jpg "NarinFC")
+::: info
+This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
+:::
 
-## Features/Specifications
+## Key Features
 
--  **Processor**
-    - STM32H743
+### Processors & Sensors
 
--  **Sensors**
-    - Accelerometer/Gyroscope: ADIS16470
-    - Accelerometer/Gyroscope: ICM-20649
-	- Accelerometer/Gyroscope: BMI088
-	- Magnetometer: RM3100
-	- Barometer: MS5611*2
+- FMU Processor: STM32H743
+- On-board sensors:
+  - Accelerometer/Gyroscope: ADIS16470
+  - Accelerometer/Gyroscope: ICM-20649
+  - Accelerometer/Gyroscope: BMI088
+  - Magnetometer: RM3100
+  - Barometer: MS5611 x2
 
--  **Interfaces**
-    - 14 PWM servo outputs
-	- Support multiple RC inputs (SBus / CPPM / DSM)
-    - Analog/PWM RSSI input
-	- 2 GPS ports (GPS and UART4 ports)
-	- 4 ⅹ I2C buses
-	- 2 ⅹ CAN bus ports
-	- 2 ⅹ Power ports
-	- 2 ⅹ ADC ports
-	- 1 ⅹ USB port
+### Interfaces
 
--  **Power**
-    - Power 4.3V ~ 5.4V
-    - USB Input 4.75V ~ 5.25V
+- 14 PWM servo outputs
+- Multiple RC inputs (SBus / CPPM / DSM)
+- Analog/PWM RSSI input
+- 2 GPS ports (GPS and UART4)
+- 4x I2C buses
+- 2x CAN bus ports
+- 2x Power ports
+- 2x ADC ports
+- 1x USB port
 
--  **Size and Dimensions**
-    - 93.4mm x 46.4mm x 34.1mm
-    - 106g
+### Electrical Data
+
+- Power input: 4.3V ~ 5.4V
+- USB input: 4.75V ~ 5.25V
+
+### Mechanical Data
+
+- Dimensions: 93.4 x 46.4 x 34.1 mm
+- Weight: 106g
 
 ## Where to Buy {#store}
 
-[VOLOLAND Inc.](https://vololand.com "VOLOLAND Inc.")
+Order from [VOLOLAND Inc.](https://vololand.com).
 
-## Outline Dimensions
+## Connections
 
-![Outline Dimensions](../../assets/flight_controller/narinfc_h7/2_outline_dimensions.png "Outline Dimensions")
+![Wire Diagram](../../assets/flight_controller/narinfc_h7/3_wire_diagram.png)
 
-## Wiring Diagram
+## Dimensions
 
-![Wire Diagram](../../assets/flight_controller/narinfc_h7/3_wire_diagram.png "Wire Diagram")
+![Outline Dimensions](../../assets/flight_controller/narinfc_h7/2_outline_dimensions.png)
 
-## UART Mapping (Port Diagram & Pin outs)
+## Pinouts
 
- UART corresponding to each SERIAL port, and its default protocol, are shown below:
+![Port Diagram A](../../assets/flight_controller/narinfc_h7/4_port_diagram_pin_outs_diagram-a.png)
 
-  - SERIAL0 = USB (MAVLink2 default)
-  - SERIAL1 = USART2,Telemetry1 (MAVlink2 default,DMA-enabled) 
-  - SERIAL2 = USART6,Telemetry2 (MAVlink2 default,DMA-enabled) 
-  - SERIAL3 = USART1,GPS1 (GPS default, DMA-enabled)
-  - SERIAL4 = UART4,GPS2 (GPS2 default)
-  - SERIAL5 = UART8 (not available except on custom carrier boards)(USER default,DMA-enabled)
-  - SERIAL6 = UART7,DEBUG (USER)
-  - SERIAL7 = USB2 (MAVLink2 default)
-    
-  Serial protocols can be adjusted to personal preferences.
-  
-![Port Diagram & Pin outs](../../assets/flight_controller/narinfc_h7/4_port_diagram_pin_outs_diagram-a.png "Port Diagram-A")
+### TELEM1 / TELEM2 Port
 
-#### 1. TELEM1, TELEM2 Port
+![TELEM Pinout](../../assets/flight_controller/narinfc_h7/4_1_telem1_telem2_port_jst_gh_6p_connector.png)
 
-![TELEM Pinout](../../assets/flight_controller/narinfc_h7/4_1_telem1_telem2_port_jst_gh_6p_connector.png "TELEM Pinout")
+- JST GH 6P connector
 
-  - JST GH 6P connector
-  - TELEMETRY Port
+### CAN1 / CAN2 Port
 
-#### 2. CAN1, CAN2 Port
+![CAN Port](../../assets/flight_controller/narinfc_h7/4_2_can1_can2_port_jst_hg_4p_connector.png)
 
-![CAN Port](../../assets/flight_controller/narinfc_h7/4_2_can1_can2_port_jst_hg_4p_connector.png "CAN Port")
+- JST GH 4P connector
+- Communication Protocol: UAVCAN v0 (default), UAVCAN v1 (limited support)
+- Pin Configuration: CAN_H, CAN_L, VCC, GND
 
-  - JST GH 4P connector
-  - Communication Protocol: UAVCAN v0 (default), UAVCAN v1 (limited support)
-  - Power Supply: Typically provides 5V or 12V output
-  - Pin Configuration: Usually includes CAN_H, CAN_L, VCC, and GND
+### I2C1, I2C2, I2C3, I2C4 Port
 
-#### 3. I2C, I2C2, I2C3, I2C4 Port
+![I2C Port](../../assets/flight_controller/narinfc_h7/4_3_i2c1_i2c2_i2c3_i2c4_port_jst_gh_4p_connector.png)
 
-![I2C Port](../../assets/flight_controller/narinfc_h7/4_3_i2c1_i2c2_i2c3_i2c4_port_jst_gh_4p_connector.png "I2C Port")
+- JST GH 4P connector
 
-  - JST GH 4P connector
+### UART4 Port
 
-#### 4. UART4 Port
+![UART Port](../../assets/flight_controller/narinfc_h7/4_4_uart4_port_jst_gh_6p_connector.png)
 
-![UART Port](../../assets/flight_controller/narinfc_h7/4_4_uart4_port_jst_gh_6p_connector.png "UART Port")
-  
-  - JST GH 6P connector
+- JST GH 6P connector
 
+### RSSI Port
 
-#### 5. RSSI Port
-  - RSSI input
+![RSSI input](../../assets/flight_controller/narinfc_h7/13_rssi.png)
 
-![SPI Port](../../assets/flight_controller/narinfc_h7/13_rssi.png "RSSI input")
+- RSSI input
 
+### GPS & Safety Port
 
-#### 6. GPS & Safety Port
+![GPS & Safety Port](../../assets/flight_controller/narinfc_h7/4_5_gps_safety_port_jst_gh_10p_connector.png)
 
-![GPS & Safety Port](../../assets/flight_controller/narinfc_h7/4_5_gps_safety_port_jst_gh_10p_connector.png "GPS & Safety Port")
+- JST GH 10P connector
 
-  - JST GH 10P connector
-  - GPS NODMA
+![Port Diagram B](../../assets/flight_controller/narinfc_h7/4_port_diagram_pin_outs_diagram-b.png)
 
-![Port Diagram & Pin outs](../../assets/flight_controller/narinfc_h7/4_port_diagram_pin_outs_diagram-b.png "Port Diagram-B")
+### PWM & RC_IN
 
-#### 7. PWM & RC_IN
+The NarinFC-H7 supports up to 14 PWM outputs.
 
-The NarinFC-H7 supports up to 14 PWM outputs. Outputs are grouped and all outputs within their group must be the same protocol.
+![PWM Out](../../assets/flight_controller/narinfc_h7/4_6_pwm_out_m1-m14.png)
 
-![PWM Out](../../assets/flight_controller/narinfc_h7/4_6_pwm_out_m1-m14.png "PWM Out")
-  
-  - 2.54mm pitch DuPont connector
-  - RC_IN : Remote control receiver
+- 2.54mm pitch DuPont connector
+- RC_IN: Remote control receiver
 
-#### 8. Power Input
+### Power Input
 
-![Power Input](../../assets/flight_controller/narinfc_h7/4_7_power_input.png "Power Input")
+![Power Input](../../assets/flight_controller/narinfc_h7/4_7_power_input.png)
 
-  - 2mm pitch DuPont connector
+- 2mm pitch DuPont connector
 
+### ADC Port
 
-#### 9. ADC Port
-  - ADC input
+![ADC input](../../assets/flight_controller/narinfc_h7/12_adc.png)
 
-![SPI Port](../../assets/flight_controller/narinfc_h7/12_adc.png "ADC input")
+### DEBUG / UART7 Port
 
-#### 10. DEBUG/UART7 Port
-UART7(SERIAL6) is labeled DEBUG RX/TX below
+UART7 is labelled DEBUG RX/TX.
 
-![DEBUG Port](../../assets/flight_controller/narinfc_h7/4_8_debug_port_jst_hg_6p_connector.png "DEBUG Port")
-  
-  - JST GH 6P connector
-  - DEBUG NODMA
+![DEBUG Port](../../assets/flight_controller/narinfc_h7/4_8_debug_port_jst_hg_6p_connector.png)
 
-#### 11. USB Port
-  - USB C Type
+- JST GH 6P connector
 
-#### 12. SPI Port
+### USB Port
 
-![SPI Port](../../assets/flight_controller/narinfc_h7/4_10_spi_port_jst_gh_7p_connector.png "SPI Port")
+- USB-C
 
-  - JST GH 7P connector
-  - SPI Port
+### SPI Port
 
-#### 13. SD CARD
-  - SD CARD
+![SPI Port](../../assets/flight_controller/narinfc_h7/4_10_spi_port_jst_gh_7p_connector.png)
+
+- JST GH 7P connector
+
+## Serial Port Mapping
+
+| UART   | Device     | Port   |
+| ------ | ---------- | ------ |
+| USART1 | /dev/ttyS0 | GPS1   |
+| USART2 | /dev/ttyS1 | TELEM1 |
+| UART4  | /dev/ttyS2 | GPS2   |
+| USART6 | /dev/ttyS3 | TELEM2 |
+| UART8  | /dev/ttyS4 | User   |
+| UART7  | /dev/ttyS5 | Debug  |
 
 ## PWM Output
 
-The NarinFC-H7 supports up to 14 PWM outputs. All outputs except M13 and M14 support DShot. Outputs 1-8 support Bi-Directional DShot.
+The NarinFC-H7 supports up to 14 PWM outputs.
+All outputs except M13 and M14 support DShot.
+Outputs 1-8 support Bi-Directional DShot.
 
 The 14 PWM outputs are in 4 groups:
-  - Outputs 1, 2, 3 and 4 in group1
-  - Outputs 5, 6, 7 and 8 in group2
-  - Outputs 9, 10, 11 and 12 in group3
-  - Outputs 13 and 14 in group4
 
-ALL outputs within the same group need to use the same output rate and protocol.
+- Outputs 1, 2, 3, and 4 in group1
+- Outputs 5, 6, 7, and 8 in group2
+- Outputs 9, 10, 11, and 12 in group3
+- Outputs 13 and 14 in group4
 
-## GPIOs
+All outputs within the same group must use the same output rate and protocol.
 
-The 14 outputs can be used as GPIOs (relays, buttons, RPM etc). To use them you need to set the output’s ``SERVOx_FUNCTION`` to -1. See GPIOs page for more information.
+## Analog Inputs
 
-The numbering of the GPIOs for use in the PIN parameters in PX4 is:
+The NarinFC-H7 has 2 user-accessible analog inputs:
 
-- PWM1(M1) 50
-- PWM2(M2) 51
-- PWM3(M3) 52
-- PWM4(M4) 53
-- PWM5(M5) 54
-- PWM6(M6) 55
-- PWM7(M7) 56
-- PWM8(M8) 57
-- PWM9(M9) 58
-- PWM10(M10) 59
-- PWM11(M11) 60
-- PWM12(M12) 61
-- PWM13(M13) 62
-- PWM14(M14) 63
+- ADC Pin4 → SPARE1_ADC1 (6.6V tolerant)
+- ADC Pin18 → SPARE2_ADC1 (3.3V tolerant)
 
-## Analog inputs
+Additional internal ADC channels:
 
-The NarinFC-H7 has 2 analog inputs, one 6V tolerant and one 3.3V tolerant
+- ADC Pin16 → BATT_VOLTAGE_SENS
+- ADC Pin17 → BATT_CURRENT_SENS
+- ADC Pin14 → BATT2_VOLTAGE_SENS
+- ADC Pin2 → BATT2_CURRENT_SENS
+- ADC Pin6 → RSSI_IN
+- ADC Pin8 → VDD_5V_SENS
+- ADC Pin11 → SCALED_V3V3
 
-- ADC Pin16 -> BATT_VOLTAGE_SENS
-- ADC Pin17 -> BATT_CURRENT_SENS
-- ADC Pin14 -> BATT2_VOLTAGE_SENS
-- ADC Pin2  -> BATT2_VOLTAGE_SENS
-- ADC Pin4  -> SPARE1_ADC1(6.6V)
-- ADC Pin18 -> SPARE2_ADC1(3.3V)
-- ADC Pin6  -> RSSI_IN_ADC1(3.3V)
-- ADC Pin8  -> VDD_5V_SENS
-- ADC Pin11 -> SCALED_V3V3
+## Building Firmware
 
-## Loading Firmware
+::: tip
+Most users will not need to build this firmware!
+It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
+:::
 
-This board comes with PX4 firmware pre-installed and other vehicle/revision PX4 firmware can be loaded using most Ground Control Stations.
+To [build PX4](../dev_setup/building_px4.md) for this target:
 
-The board comes pre-installed with an PX4 bootloader, allowing the loading of \*.px4 firmware files with any PX4 compatible ground station, such as QGroundControl.
+```sh
+make narinfc_h7_default
+```
 
+## Supported Platforms / Airframes
+
+Any multicopter / airplane / rover or boat that can be controlled with normal RC servos or Futaba S-Bus servos.
+The complete set of supported configurations can be seen in the [Airframes Reference](../airframes/airframe_reference.md).
