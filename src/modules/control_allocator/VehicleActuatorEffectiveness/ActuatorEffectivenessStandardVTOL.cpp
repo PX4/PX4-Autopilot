@@ -83,14 +83,6 @@ void ActuatorEffectivenessStandardVTOL::allocateAuxilaryControls(const float dt,
 	}
 }
 
-void ActuatorEffectivenessStandardVTOL::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
-		int matrix_index, ActuatorVector &actuator_sp, const ActuatorVector &actuator_min, const ActuatorVector &actuator_max)
-{
-	if (matrix_index == 0) {
-		stopMaskedMotorsWithZeroThrust(_forwards_motors_mask, actuator_sp);
-	}
-}
-
 void ActuatorEffectivenessStandardVTOL::setFlightPhase(const FlightPhase &flight_phase)
 {
 	if (_flight_phase == flight_phase) {
@@ -99,16 +91,15 @@ void ActuatorEffectivenessStandardVTOL::setFlightPhase(const FlightPhase &flight
 
 	ActuatorEffectiveness::setFlightPhase(flight_phase);
 
-	// update stopped motors
 	switch (flight_phase) {
 	case FlightPhase::FORWARD_FLIGHT:
-		_stopped_motors_mask |= _upwards_motors_mask;
+		_stopped_motors_mask_due_to_flight_phase = _upwards_motors_mask;
 		break;
 
 	case FlightPhase::HOVER_FLIGHT:
 	case FlightPhase::TRANSITION_FF_TO_HF:
 	case FlightPhase::TRANSITION_HF_TO_FF:
-		_stopped_motors_mask &= ~_upwards_motors_mask;
+		_stopped_motors_mask_due_to_flight_phase = 0;
 		break;
 	}
 }

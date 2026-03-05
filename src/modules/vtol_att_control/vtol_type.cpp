@@ -533,6 +533,12 @@ float VtolType::pusher_assist()
 		q_sp.copyTo(_v_att_sp->q_d);
 	}
 
+	// Stop motor by sending NAN (see VehicleThrustSetpoint.msg) if setpoint
+	// below 2%. This value was determined empirically (RC stick inaccuracy)
+	if (forward_thrust < 0.02f) {
+		forward_thrust = NAN;
+	}
+
 	return forward_thrust;
 
 }
