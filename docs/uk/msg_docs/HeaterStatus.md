@@ -25,10 +25,10 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Назва                                                      | Тип     | Значення | Опис |
-| ---------------------------------------------------------- | ------- | -------- | ---- |
-| <a href="#MODE_GPIO"></a> MODE_GPIO   | `uint8` | 1        |      |
-| <a href="#MODE_PX4IO"></a> MODE_PX4IO | `uint8` | 2        |      |
+| Назва                                                    | Тип     | Значення | Опис |
+| -------------------------------------------------------- | ------- | -------- | ---- |
+| <a id="#MODE_GPIO"></a> MODE_GPIO   | `uint8` | 1        |      |
+| <a id="#MODE_PX4IO"></a> MODE_PX4IO | `uint8` | 2        |      |
 
 ## Source Message
 

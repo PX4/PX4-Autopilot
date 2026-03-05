@@ -11,7 +11,7 @@ The following list is non-exhaustive.
 
 | ESC Device                     | Protocols                            | Firmwares                | Notes                                                 |
 | ------------------------------ | ------------------------------------ | ------------------------ | ----------------------------------------------------- |
-| [ARK 4IN1 ESC]                 | [Dshot], [PWM]                       | [AM32]                   | Has versions with/without connnectors                 |
+| [ARK 4IN1 ESC]                 | [Dshot], [PWM]                       | [AM32]                   | Has versions with/without connectors                  |
 | [Holybro Kotleta 20]           | [DroneCAN], [PWM]                    | [PX4 Sapog ESC Firmware] |                                                       |
 | [Vertiq Motor & ESC modules]   | [Dshot], [OneShot], Multishot, [PWM] | Vertiq firmware          | Larger modules support DroneCAN, ESC and Motor in one |
 | [RaccoonLab CAN PWM ESC nodes] | [DroneCAN], Cyphal                   |                          | Cyphal and DroneCAN notes for PWM ESC                 |

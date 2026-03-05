@@ -14,7 +14,7 @@ Some RTK GNSS setups can provide yaw/heading information, as an alternative to t
 
 ## Пристрої, що підтримуються
 
-PX4 supports the [u-blox M8P](https://www.u-blox.com/en/product/neo-m8p), [u-blox F9P](https://www.u-blox.com/en/product/zed-f9p-module) and the [Trimble MB-Two](https://oemgnss.trimble.com/en/products/receiver-modules/mb-two) GPS, and products that incorporate them.
+PX4 supports the [u-blox M8P](https://www.u-blox.com/en/product/neo-m8p-series), [u-blox F9P](https://www.u-blox.com/en/product/zed-f9p-module) and the [Trimble MB-Two](https://oemgnss.trimble.com/en/products/receiver-modules/mb-two) GPS, and products that incorporate them.
 
 Список сумісних пристроїв RTK нижче, які очікуються для роботи з PX4 (він виключає припинені пристрої).
 Таблиця вказує пристрої, які також виводять курсову відмітку, а також можуть надавати курсову відмітку, коли використовуються дві одиниці на транспортному засобі.
@@ -57,7 +57,7 @@ PX4 supports the [u-blox M8P](https://www.u-blox.com/en/product/neo-m8p), [u-blo
 | [Septentrio AsteRx-m3 Pro](../gps_compass/septentrio_asterx-rib.md)                                                  |        AsteRx        |     ✓    |            |      [Septentrio Dual Antenna]      |  ✓  |
 | [Septentrio mosaic-go](../gps_compass/septentrio_mosaic-go.md)                                                       | mosaic X5 / mosaic H |     ✓    |            |      [Septentrio Dual Antenna]      |  ✓  |
 | [SIRIUS RTK GNSS ROVER (F9P)](https://store-drotek.com/911-sirius-rtk-gnss-rover-f9p.html)        |          F9P         |     ✓    |            |              [Dual F9P]             |     |
-| [SparkFun GPS-RTK2 Board - ZED-F9P](https://www.sparkfun.com/products/15136)                                         |          F9P         |     ✓    |            |              [Dual F9P]             |     |
+| [SparkFun GPS-RTK2 Board - ZED-F9P](https://www.sparkfun.com/sparkfun-gps-rtk2-board-zed-f9p-qwiic-gps-15136.html)   |          F9P         |     ✓    |            |              [Dual F9P]             |     |
 | [Trimble MB-Two](../gps_compass/rtk_gps_trimble_mb_two.md)                                                           |          F9P         |     ✓    |            |                  ✓                  |     |
 
 <!-- links used in above table -->

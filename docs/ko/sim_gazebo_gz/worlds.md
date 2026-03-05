@@ -104,4 +104,4 @@ The PX4 toolchain will automatically spawn a world that has the same name as the
 
 The model specific worlds are:
 
-- [Aruco world](#aruco): Default world with an [ArUco marker](https://docs.opencv.org/4.x/d5/dae/tutorial_aruco_detection.html) that can be used with with [x500_mono_cam_down](../sim_gazebo_gz/vehicles.md#x500-quadrotor-with-monocular-camera-down-facing) for testing [precision landing](../advanced_features/precland.md).
+- [Aruco world](#aruco): Default world with an [ArUco marker](https://docs.opencv.org/4.x/d5/dae/tutorial_aruco_detection.html) that can be used with [x500_mono_cam_down](../sim_gazebo_gz/vehicles.md#x500-quadrotor-with-monocular-camera-down-facing) for testing [precision landing](../advanced_features/precland.md).

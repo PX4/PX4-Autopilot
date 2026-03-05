@@ -28,7 +28,7 @@
 - Роз'єм стандарту SPI для Pixhawk
   - 7-контактний JST-GH
 - Коннектор PWM
-  - 10-контактний JST-SH
+  - 10 Pin JST
   - 8 PWM виводів
   - Відповідно до схеми підключення штирьових роз'ємів Pixhawk 4 PWM
 - Роз'єм для налагодження стандарту Pixhawk
@@ -77,7 +77,7 @@ DroneCAN configuration in PX4 is explained in more detail in [DroneCAN > Enablin
 
 Вам потрібно буде увімкнути підписника, відповідного для кожного з сенсорів, які підключені до ARK CANnode.
 
-This is done using the the parameters named like `UAVCAN_SUB_*` in the parameter reference (such as [UAVCAN_SUB_ASPD](../advanced_config/parameter_reference.md#UAVCAN_SUB_ASPD), [UAVCAN_SUB_BARO](../advanced_config/parameter_reference.md#UAVCAN_SUB_BARO) etc.).
+This is done using the parameters named like `UAVCAN_SUB_*` in the parameter reference (such as [UAVCAN_SUB_ASPD](../advanced_config/parameter_reference.md#UAVCAN_SUB_ASPD), [UAVCAN_SUB_BARO](../advanced_config/parameter_reference.md#UAVCAN_SUB_BARO) etc.).
 
 ## Конфігурування CANNode Ark
 

@@ -100,14 +100,14 @@
 :::tab C++
 
 ```c++
-#include <0>
-#include <1>
-#include <2>
-#include <3>
+#include <string>
+#include <rclcpp/rclcpp.hpp>
+#include <px4_msgs/msg/vehicle_command.hpp>
+#include <px4_msgs/msg/vehicle_attitude.hpp>
 
 // Template function to get the message version suffix
-// The correct message version is directly inferred from the message defintion
-template <4>
+// The correct message version is directly inferred from the message definition
+template <typename T>
 std::string getMessageNameVersion() {
     if (T::MESSAGE_VERSION == 0) return "";
     return "_v" + std::to_string(T::MESSAGE_VERSION);
@@ -117,13 +117,13 @@ class MinimalPubSub : public rclcpp::Node {
   public:
     MinimalPubSub() : Node("minimal_pub_sub") {
       // Use template function to define the correct topics automatically
-      const std::string sub_topic = "/fmu/out/vehicle_attitude" + getMessageNameVersion<5>();
-      const std::string pub_topic = "/fmu/in/vehicle_command" + getMessageNameVersion<6>();
+      const std::string sub_topic = "/fmu/out/vehicle_attitude" + getMessageNameVersion<px4_msgs::msg::VehicleAttitude>();
+      const std::string pub_topic = "/fmu/in/vehicle_command" + getMessageNameVersion<px4_msgs::msg::VehicleCommand>();
 
-      _subscription = this->create_subscription<5>(
+      _subscription = this->create_subscription<px4_msgs::msg::VehicleAttitude>(
           sub_topic, 10,
           std::bind(&MinimalPubSub::attitude_callback, this, std::placeholders::_1));
-      _publisher = this->create_publisher<6>(pub_topic, 10);
+      _publisher = this->create_publisher<px4_msgs::msg::VehicleCommand>(pub_topic, 10);
     }
 
   private:
@@ -131,8 +131,8 @@ class MinimalPubSub : public rclcpp::Node {
       RCLCPP_INFO(this->get_logger(), "Received attitude message.");
     }
 
-    rclcpp::Publisher<6>::SharedPtr _publisher;
-    rclcpp::Subscription<5>::SharedPtr _subscription;
+    rclcpp::Publisher<px4_msgs::msg::VehicleCommand>::SharedPtr _publisher;
+    rclcpp::Subscription<px4_msgs::msg::VehicleAttitude>::SharedPtr _subscription;
 };
 ```
 

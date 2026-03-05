@@ -56,7 +56,7 @@ See [here](../modules/modules_driver.md#dshot) for a full reference of the suppo
 
 The most important ones are:
 
-- Make a motor connected to to FMU output pin 1 beep (helps with identifying motors)
+- Make a motor connected to FMU output pin 1 beep (helps with identifying motors)
 
   ```sh
   dshot beep1 -m 1
@@ -128,7 +128,7 @@ The provided telemetry includes:
 To enable this feature (on ESCs that support it):
 
 1. Join all the telemetry wires from all the ESCs together, and then connect them to one of the RX pins on an unused flight controller serial port.
-1. Enable telemetry on that serial port using [DSHOT_TEL_CFG](../advanced_config/parameter_reference.md#DSHOT_TEL_CFG).
+2. Enable telemetry on that serial port using [DSHOT_TEL_CFG](../advanced_config/parameter_reference.md#DSHOT_TEL_CFG).
 
 After a reboot you can check if telemetry is working (make sure the battery is connected) using:
 
@@ -145,7 +145,7 @@ The default value for these is 14 poles, which is typical for 5-inch prop motors
 [Extended DShot Telemetry (EDT)](#extended-dshot-telemetry-edt) can provide temperature, voltage, and current through the BDShot signal — no serial telemetry wire needed.
 :::
 
-:::tip
+::: tip
 Not all DSHOT-capable ESCs support `[esc_info]`(e.g. APD 80F3x), even when telemetry is supported and enabled.
 The resulting error is:
 

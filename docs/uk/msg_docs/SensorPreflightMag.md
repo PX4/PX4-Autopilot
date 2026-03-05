@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Метрики перевірки сенсорів перед польотом. The topic will not be updated when the vehicle is armed.
 
-**TOPICS:** sensor_preflightmag
+**TOPICS:** sensor_preflight_mag
 
 ## Fields
 

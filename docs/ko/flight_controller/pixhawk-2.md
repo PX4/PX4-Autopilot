@@ -47,9 +47,7 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
 - 고전력 멀티톤 피에조 오디오 표시기
 - 장기간 고속 로깅용 microSD 카드
 
-<a id="stores"></a>
-
-## 구매처
+## Where to Buy {#store}
 
 [Cube Black](https://www.cubepilot.com/#/reseller/list) (Reseller list)
 
@@ -155,7 +153,7 @@ It is pre-built and automatically installed by _QGroundControl_ when appropriate
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v3_default
 ```
 

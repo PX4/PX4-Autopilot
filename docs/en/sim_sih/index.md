@@ -114,7 +114,7 @@ CONFIG_MODULES_SIMULATION_SENSOR_MAG_SIM=y
 
 :::
 
-As an alterative to updating configuration files manually, you can use the following command to launch a GUI configuration tool, and interactively enable the required modules at the path: **modules > Simulation > simulator_sih**.
+As an alternative to updating configuration files manually, you can use the following command to launch a GUI configuration tool, and interactively enable the required modules at the path: **modules > Simulation > simulator_sih**.
 For example, to update the fmu-v6x configuration you would use:
 
 ```sh
@@ -148,6 +148,12 @@ The `sih` module is started on reboot, and the vehicle should be displayed on th
 The airplane needs to takeoff in manual mode at full throttle.
 Also, if the airplane crashes the state estimator might lose its fix.
 :::
+
+## Simulation Configuration
+
+### Wind
+
+SIH supports setting a wind velocity with the PX4 parameters [`SIH_WIND_N`](../advanced_config/parameter_reference.md#SIH_WIND_E) and [`SIH_WIND_E`](../advanced_config/parameter_reference.md#SIH_WIND_E) [m/s]. The parameters can also be changed during flight to simulate changing wind.
 
 ## Display/Visualisation (optional)
 

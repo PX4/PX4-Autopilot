@@ -71,7 +71,7 @@ If you see the vehicle "twitch" during landing (turn down the motors, and then i
 ## Flight Controls/Commands
 
 Vehicle movement is controlled using the 4 basic commands: roll, yaw, pitch and throttle.
-As the throttle is increased the rotors spin faster and the vehicle moves up, if the vehicle pitches forward then some of that that force will move the vehicle forward, if it rolls to the left/right, then some of that force will move the vehicle left/right, and changing the yaw spins the vehicle on its axis over the ground plane.
+As the throttle is increased the rotors spin faster and the vehicle moves up, if the vehicle pitches forward then some of that force will move the vehicle forward, if it rolls to the left/right, then some of that force will move the vehicle left/right, and changing the yaw spins the vehicle on its axis over the ground plane.
 
 These commands therefore allow you to move left/right, spin left/right, forward/back, and up/down, respectively, as shown on the [Mode 2](../getting_started/rc_transmitter_receiver.md#remote-control-units-for-aircraft) RC controller shown below.
 

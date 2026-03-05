@@ -67,7 +67,7 @@ The consensus [appears to be](https://discuss.px4.io/t/vio-vs-optical-flow/34680
 
 Optical flow:
 
-- 向下光学流使得你能够通过陀螺仪的角速度来校正角平面速度。
+- Downward facing optical flow gives you a planar velocity that's corrected for angular velocity with the gyro.
 - 需要准确的地面距离并假定地面为平面。
   在这种情况下，它可能与VIO一样准确可靠(例如室内飞行)
 - 它比VIO更健壮，因为它的状态较少。

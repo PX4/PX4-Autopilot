@@ -29,9 +29,9 @@ pageClass: is-wide-page
 
 ## Constants
 
-| 명칭                                                                   | 형식       | Value | 설명 |
-| -------------------------------------------------------------------- | -------- | ----- | -- |
-| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 0     |    |
+| 명칭                                                                 | 형식       | Value | 설명 |
+| ------------------------------------------------------------------ | -------- | ----- | -- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 0     |    |
 
 ## Source Message
 

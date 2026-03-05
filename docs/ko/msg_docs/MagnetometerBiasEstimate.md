@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # MagnetometerBiasEstimate (UORB message)
 
-**TOPICS:** magnetometer_biasestimate
+**TOPICS:** magnetometer_bias_estimate
 
 ## Fields
 

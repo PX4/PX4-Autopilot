@@ -61,7 +61,7 @@ The Pixhawk® V6X is ideal for corporate research labs, academic research and co
 - 16- PWM servo outputs
 - 1 Dedicated R/C input for Spektrum / DSM and S.Bus with analog / PWM RSSI input
 - 3 TELEM Ports（with full flow control）
-- 1 UART4(Seial and I2C)
+- 1 UART4(Serial and I2C)
 - 2 GPS ports
   - 1 full GPS plus Safety Switch Port(GPS1)
   - 1 basic GPS port(with I2C,GPS2)
@@ -104,7 +104,7 @@ The Pixhawk® V6X is ideal for corporate research labs, academic research and co
 
     ![Pixhawk V6X](../../assets/flight_controller/cuav_pixhawk_v6x/core.png)
 
-## 购买渠道
+## Where to Buy {#store}
 
 Order from [CUAV](https://store.cuav.net/).
 
@@ -173,13 +173,11 @@ It is pre-built and automatically installed by _QGroundControl_ when appropriate
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v6x_default
 ```
 
-<a id="debug_port"></a>
-
-## 调试接口
+## Debug Port {#debug_port}
 
 The [PX4 System Console](../debug/system_console.md) and [SWD interface](../debug/swd_debug.md) run on the **FMU Debug** port.
 

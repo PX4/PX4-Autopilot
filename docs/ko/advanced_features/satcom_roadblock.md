@@ -9,7 +9,7 @@
 
 위성 통신에는 다음의 요소들이 필요합니다.
 
-- A [RockBlock 9603 Iridium Satellite Modem](https://www.iridium.com/products/ground-control-rockblock-9603/) module connected to a Pixhawk flashed with the PX4 Autopilot.
+- A [RockBlock 9603 Iridium Satellite Modem](https://www.iridium.com/products/rockblock-9603) module connected to a Pixhawk flashed with the PX4 Autopilot.
 - Ubuntu Linux를 실행하는 메시지 릴레이 서버
 - A ground station computer running _QGroundControl_ on Ubuntu Linux
 
@@ -58,13 +58,13 @@ To [switch between the two antennas modes](https://docs.groundcontrol.com/iot/ro
 
 2. baudrate 속도를 변경합니다.
 
-   ```
+   ```sh
    AT+IPR=9
    ```
 
 3. 이제 115200/8-N-1 설정을 사용하여 모델에 다시 연결하고 다음을 사용하여 설정을 저장합니다.
 
-   ```
+   ```sh
    AT&W0
    ```
 
@@ -78,7 +78,7 @@ To [switch between the two antennas modes](https://docs.groundcontrol.com/iot/ro
 :::info
 If the configuration parameter is not available in _QGroundControl_ then you may need to [add the driver to the firmware](../peripherals/serial_configuration.md#parameter_not_in_firmware):
 
-```
+```txt
 drivers/telemetry/iridiumsbd
 ```
 

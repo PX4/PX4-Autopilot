@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # OpenDroneIdArmStatus (UORB message)
 
-**TOPICS:** open_droneid_armstatus
+**TOPICS:** open_drone_id_arm_status
 
 ## Fields
 

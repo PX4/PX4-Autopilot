@@ -72,7 +72,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
   - 36x36 мм із зразком кріплення 30.5\*30.5, отвори M4.
   - Втулки з м’яким кріпленням від M4 до M3 постачаються.
 
-## Де купити
+## Where to Buy {#store}
 
 The SPRacingH7EXTREME is available from the [Seriously Pro shop](https://shop.seriouslypro.com/sp-racing-h7-extreme).
 

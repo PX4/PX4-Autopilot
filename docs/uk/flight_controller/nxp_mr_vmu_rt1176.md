@@ -147,7 +147,7 @@ Similar variants will be available from our licensees.
 - Інші характеристики:
   - Operating & storage temperature: -40 ~ 85°c
 
-## Де купити
+## Where to Buy {#store}
 
 Order from [NXP](https://www.nxp.com).
 
