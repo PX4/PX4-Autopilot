@@ -51,7 +51,6 @@ ADIS16607::ADIS16607(const I2CSPIDriverConfig &config) :
 ADIS16607::~ADIS16607()
 {
 	perf_free(_reset_perf);
-	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
 	perf_free(_perf_crc_bad);
 	perf_free(_drdy_missed_perf);
@@ -89,7 +88,6 @@ void ADIS16607::print_status()
 	I2CSPIDriverBase::print_status();
 
 	perf_print_counter(_reset_perf);
-	perf_print_counter(_bad_register_perf);
 	perf_print_counter(_bad_transfer_perf);
 	perf_print_counter(_perf_crc_bad);
 	perf_print_counter(_drdy_missed_perf);
@@ -313,19 +311,6 @@ void ADIS16607::RunImpl()
 				if (_failure_count > 10) {
 					Reset();
 					return;
-				}
-			}
-
-			if (!success || hrt_elapsed_time(&_last_config_check_timestamp) > 100_ms) {
-				// check configuration registers periodically or immediately following any failure
-				if (RegisterCheck(_register_cfg[_checked_register])) {
-					_last_config_check_timestamp = now;
-					_checked_register = (_checked_register + 1) % size_register_cfg;
-
-				} else {
-					// register check failed, force reset
-					perf_count(_bad_register_perf);
-					Reset();
 				}
 			}
 		}

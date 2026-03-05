@@ -98,13 +98,11 @@ private:
 	PX4Gyroscope _px4_gyro;
 
 	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": reset")};
-	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
 	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
 	perf_counter_t _perf_crc_bad{perf_counter_t(perf_alloc(PC_COUNT, MODULE_NAME": CRC16 bad"))};
 	perf_counter_t _drdy_missed_perf{nullptr};
 
 	hrt_abstime _reset_timestamp{0};
-	hrt_abstime _last_config_check_timestamp{0};
 	int _failure_count{0};
 
 	px4::atomic<hrt_abstime> _drdy_timestamp_sample{0};
@@ -120,9 +118,7 @@ private:
 		READ,
 	} _state{STATE::RESET};
 
-	uint8_t _checked_register{0};
-	static constexpr uint8_t size_register_cfg{3};
-	register_config_t _register_cfg[size_register_cfg] {
+	register_config_t _register_cfg[3] {
 		// Register | Set bits, Clear bits
 		{Register::USER_GPIO_CFG1, USER_GPIO_CFG1_BIT::GPIO3_DR, 0},
 		{
