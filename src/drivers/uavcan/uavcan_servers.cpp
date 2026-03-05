@@ -147,10 +147,19 @@ bool UavcanServers::isFileIOReady()
 	/* Use a dataman test read to confirm file I/O / SD card is ready.
 	 * If dataman can successfully read from its storage backend,
 	 * the SD card is accessible and it's safe to proceed with
-	 * operations that create directories, files, and databases on the SD card. */
-	DatamanClient dm_client;
+	 * operations that create directories, files, and databases on the SD card.
+	 * Throttled to avoid repeated blocking calls on every Run() cycle. */
+	static hrt_abstime last_check{0};
+
+	if (last_check != 0 && hrt_elapsed_time(&last_check) < 2_s) {
+		return false;
+	}
+
+	last_check = hrt_absolute_time();
+
+	static DatamanClient dm_client;
 	dataman_compat_s compat{};
-	return dm_client.readSync(DM_KEY_COMPAT, 0, reinterpret_cast<uint8_t *>(&compat), sizeof(compat), 500_ms);
+	return dm_client.readSync(DM_KEY_COMPAT, 0, reinterpret_cast<uint8_t *>(&compat), sizeof(compat), 50_ms);
 }
 
 void UavcanServers::migrateFWFromRoot(const char *sd_path, const char *sd_root_path)

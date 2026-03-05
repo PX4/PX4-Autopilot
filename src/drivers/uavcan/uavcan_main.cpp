@@ -758,6 +758,7 @@ UavcanNode::Run()
 					PX4_ERR("UavcanServers init: %d", rv);
 					delete _servers;
 					_servers = nullptr;
+					_servers_init_pending = false;
 
 				} else {
 					PX4_INFO("UavcanServers started (deferred)");
