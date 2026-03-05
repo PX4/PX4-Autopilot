@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2021 PX4 Development Team. All rights reserved.
  *   Author: Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -49,7 +49,8 @@ using atmosphere::getDensityFromPressureAndTemp;
 using atmosphere::kAirDensitySeaLevelStandardAtmos;
 
 float calc_IAS_corrected(enum AIRSPEED_COMPENSATION_MODEL pmodel, enum AIRSPEED_SENSOR_MODEL smodel,
-			 float tube_len, float tube_dia_mm, float differential_pressure, float pressure_ambient, float temperature_celsius)
+			 float tube_len, float tube_dia_mm, float venturi_input_crs, float venturi_1st_crs,
+			 float venturi_2nd_crs, float differential_pressure, float pressure_ambient, float temperature_celsius)
 {
 	if (!PX4_ISFINITE(temperature_celsius)) {
 		temperature_celsius = 15.f; // ICAO Standard Atmosphere 15 degrees Celsius
@@ -141,6 +142,31 @@ float calc_IAS_corrected(enum AIRSPEED_COMPENSATION_MODEL pmodel, enum AIRSPEED_
 				}
 				break;
 
+			case AIRSPEED_COMPENSATION_TFSLOT: {
+					const float dp_corr = dp * 96600.0f / pressure_ambient;
+					// flow through sensor
+					float flow_SDP33 = (300.805f - 300.878f / (0.00344205f * powf(dp_corr, 0.68698f) + 1.0f)) * 1.29f / rho_air;
+
+					// for too small readings the compensation might result in a negative flow which causes numerical issues
+					if (flow_SDP33 < 0.0f) {
+						flow_SDP33 = 0.0f;
+					}
+
+					float dp_pitot = 0.0f;
+
+					dp_pitot = (0.0032f * flow_SDP33 * flow_SDP33 + 0.0123f * flow_SDP33 + 1.0f) * 1.29f / rho_air;
+
+					// pressure drop through tube
+					const float dp_tube = (flow_SDP33 * 0.674f) / 450.0f * tube_len * rho_air / 1.29f;
+
+					// speed at pitot-tube tip due to flow through sensor
+					dv = 0.125f * flow_SDP33;
+
+					// sum of all pressure drops
+					dp_tot = dp_corr + dp_tube + dp_pitot;
+				}
+				break;
+
 			default: {
 					// do nothing
 				}
@@ -156,14 +182,30 @@ float calc_IAS_corrected(enum AIRSPEED_COMPENSATION_MODEL pmodel, enum AIRSPEED_
 		break;
 	}
 
-	// computed airspeed without correction for inflow-speed at tip of pitot-tube
-	const float airspeed_uncorrected = sqrtf(2.0f * dp_tot / kAirDensitySeaLevelStandardAtmos);
-
-	// corrected airspeed
-	const float airspeed_corrected = airspeed_uncorrected + dv;
 
 	// return result with correct sign
-	return (differential_pressure > 0.0f) ? airspeed_corrected : -airspeed_corrected;
+	if (pmodel == AIRSPEED_COMPENSATION_TFSLOT) {
+		// computed airspeed without correction for inflow-speed at tip of pitot-tube
+		const float airspeed_uncorrected = sqrtf(((2.0f * dp_tot) / (rho_air * powf((venturi_1st_crs / venturi_2nd_crs),
+						   4) - 1)));
+
+		// corrected airspeed
+		const float airspeed_corrected = airspeed_uncorrected + dv;
+
+		// TFSLOT has reversed polarity
+		return (differential_pressure > 0.0f) ? - airspeed_corrected : airspeed_corrected;
+
+	} else {
+
+
+		// computed airspeed without correction for inflow-speed at tip of pitot-tube
+		const float airspeed_uncorrected = sqrtf(2.0f * dp_tot / CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
+
+		// corrected airspeed
+		const float airspeed_corrected = airspeed_uncorrected + dv;
+
+		return (differential_pressure > 0.0f) ? airspeed_corrected : -airspeed_corrected;
+	}
 }
 
 float calc_IAS(float differential_pressure)

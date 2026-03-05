@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -68,6 +68,9 @@ Sensors::Sensors(bool hil_enabled) :
 	_parameter_handles.air_cmodel = param_find("CAL_AIR_CMODEL");
 	_parameter_handles.air_tube_length = param_find("CAL_AIR_TUBELEN");
 	_parameter_handles.air_tube_diameter_mm = param_find("CAL_AIR_TUBED_MM");
+	_parameter_handles.air_venturi_crossection_diameter_out = param_find("CAL_AIR_ENT_CRS");
+	_parameter_handles.air_venturi_crossection_diameter_1st = param_find("CAL_AIR_SMP1_CRS");
+	_parameter_handles.air_venturi_crossection_diameter_2nd = param_find("CAL_AIR_SMP2_CRS");
 
 	_airspeed_validator.set_timeout(300000);
 	_airspeed_validator.set_equal_value_threshold(100);
@@ -175,6 +178,10 @@ int Sensors::parameters_update()
 	param_get(_parameter_handles.air_cmodel, &_parameters.air_cmodel);
 	param_get(_parameter_handles.air_tube_length, &_parameters.air_tube_length);
 	param_get(_parameter_handles.air_tube_diameter_mm, &_parameters.air_tube_diameter_mm);
+	param_get(_parameter_handles.air_venturi_crossection_diameter_out, &_parameters.air_venturi_crossection_diameter_out);
+	param_get(_parameter_handles.air_venturi_crossection_diameter_1st, &_parameters.air_venturi_crossection_diameter_1st);
+	param_get(_parameter_handles.air_venturi_crossection_diameter_2nd, &_parameters.air_venturi_crossection_diameter_2nd);
+
 #endif // CONFIG_SENSORS_VEHICLE_AIRSPEED
 
 	_voted_sensors_update.parametersUpdate();
@@ -326,7 +333,9 @@ void Sensors::diff_pres_poll()
 
 			float indicated_airspeed_m_s = calc_IAS_corrected((enum AIRSPEED_COMPENSATION_MODEL)_parameters.air_cmodel,
 						       smodel, _parameters.air_tube_length, _parameters.air_tube_diameter_mm,
-						       differential_pressure_pa, baro_pressure_pa, temperature);
+						       _parameters.air_venturi_crossection_diameter_out, _parameters.air_venturi_crossection_diameter_1st,
+						       _parameters.air_venturi_crossection_diameter_2nd, differential_pressure_pa,
+						       baro_pressure_pa, temperature);
 
 			// assume that CAS = IAS as we don't have an CAS-scale here
 			float true_airspeed_m_s = calc_TAS_from_CAS(indicated_airspeed_m_s, baro_pressure_pa, temperature);
