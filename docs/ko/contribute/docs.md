@@ -56,7 +56,7 @@ If you already have a clone of the [PX4-Autopilot](https://github.com/PX4/PX4-Au
 라이브러리 소스를 로컬 컴퓨터로 가져오려면 git 명령어를 사용하여야 합니다.
 아래 지침은 git을 가져와 로컬 컴퓨터에서 사용하는 방법을 설명합니다.
 
-1. Download git for your computer from [https://git-scm.com/downloads](https://git-scm.com/downloads)
+1. Download git for your computer from [https://git-scm.com/downloads/](https://git-scm.com/downloads/)
 
 2. [Sign up](https://github.com/signup) for Github if you haven't already
 
@@ -84,10 +84,10 @@ If you already have a clone of the [PX4-Autopilot](https://github.com/PX4/PX4-Au
 6. Add a _remote_ called "upstream" to point to the "official" PX4 version of the library:
 
    ```sh
-   git remote add upstream https://github.com/PX4/PX4-Autopilot.git
+   git remote add upstream https://github.com/PX4/PX4-Autopilot
    ```
 
-   :::tip
+   ::: tip
    A "remote" is a handle to a particular repository.
    The remote named _origin_ is created by default when you clone the repository, and points to _your fork_ of the guide.
    Above you create a new remote _upstream_ that points to the PX4 project version of the documents.
@@ -167,7 +167,9 @@ Within the repository you created above:
    yarn install
    ```
 
-4. Preview and serve the library:
+4. (Optional) [Build the docs for PX4 metadata](#building-px4-docs-metadata) if your source contains changes to parameter or module docs that you want to check.
+
+5. Preview and serve the library:
 
    ```sh
    yarn docs:dev
@@ -177,7 +179,7 @@ Within the repository you created above:
      This will be something like: `http://localhost:5173/px4_user_guide/`.
    - Stop serving using **CTRL+C** in the terminal prompt.
 
-5. Open previewed pages in your local editor:
+6. Open previewed pages in your local editor:
 
    First specify a local text editor file using the `EDITOR` environment variable, before calling `yarn start` to preview the library.
    For example, you can enable VSCode as your default editor by entering:
@@ -196,7 +198,7 @@ Within the repository you created above:
 
    The **Open in your editor** link at the bottom of each page will then open the current page in the editor (this replaces the _Open in GitHub_ link).
 
-6. 다음을 사용하여 라이브러리를 빌드합니다.
+7. 다음을 사용하여 라이브러리를 빌드합니다.
 
    ```sh
    # Ubuntu
@@ -210,6 +212,32 @@ Within the repository you created above:
 Use `yarn start` to preview changes _as you make them_ (documents are updated and served very quickly).
 Before submitting a PR you should also build it using `yarn docs:build`, as this can highlight issues that are not visible when using `yarn start`.
 :::
+
+#### Building PX4 docs metadata
+
+PX4 Metadata is not automatically updated in the local docs tree when you make changes to source.
+This can result in broken links showing up during testing if you link to new parameters, modules, airframes, or other content that is generated from source.
+
+You can generate the metadata and copy it into the tree on _Ubuntu_ (only) using the convenient yarn command:
+
+```sh
+# Ubuntu
+yarn build_docs_metadata_ubuntu
+```
+
+:::info
+The generated metadata docs should not be included in PRs as they will complicate reveiwing (metadata is automatically generated when a PR merges in main).
+It is not a problem if you do add such metadata, as it will be swamped on merge.
+:::
+
+#### Check for broken links
+
+You can use the following command to check for broken links in the whole document:
+
+```sh
+# Ubuntu
+yarn linkcheck
+```
 
 ### 소스 코드 구조
 

@@ -6,7 +6,7 @@ LIDAR-Lite는 드론, 로봇 또는 무인 차량용 소형 고성능 광학 원
 
 ## 구매처
 
-- [LIDAR-Lite v3](https://buy.garmin.com/en-AU/AU/p/557294) (5cm - 40m)
+- [LIDAR-Lite v3](https://www.garmin.com/en-AU/p/557294/) (5cm - 40m)
 
 ## 핀배열
 
