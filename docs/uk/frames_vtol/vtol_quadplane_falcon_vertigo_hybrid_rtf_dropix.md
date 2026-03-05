@@ -36,7 +36,7 @@ The _Falcon Vertigo Hybrid VTOL_ is a quadplane VTOL aircraft that has been desi
 - Система потужності двигуна-штовхача
 - Вуглецеві труби та кріплення
 - Кронштейни для мотора G10
-- 1 x [3700mah 4S 30C Lipo battery](https://www.overlander.co.uk/batteries/lipo-batteries/power-packs/3700mah-4s-14-8v-25c-lipo-battery-overlander-sport.html)
+- 1 x [3700mah 4S 30C Lipo battery](https://wheelspinmodels.co.uk/i/3700mah-4s-14.8v-25c-lipo-battery-overlander-262221/)
 - Плата розподілу живлення Dropix та кабель
 
 Набір не постачається з радіоприймачем або (опціональними) модулями телеметрії.

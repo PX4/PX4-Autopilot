@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # EstimatorEventFlags (повідомлення UORB)
 
-**TOPICS:** estimator_eventflags
+**TOPICS:** estimator_event_flags
 
 ## Fields
 

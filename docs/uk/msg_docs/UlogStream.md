@@ -21,10 +21,10 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Назва                                                                                       | Тип     | Значення | Опис                                                                                 |
-| ------------------------------------------------------------------------------------------- | ------- | -------- | ------------------------------------------------------------------------------------ |
-| <a href="#FLAGS_NEED_ACK"></a> FLAGS_NEED_ACK     | `uint8` | 1        | if set, this message requires to be acked.                           |
-| <a href="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH | `uint8` | 16       | TODO: we might be able to reduce this if mavlink polled on the topic |
+| Назва                                                                                     | Тип     | Значення | Опис                                                                                 |
+| ----------------------------------------------------------------------------------------- | ------- | -------- | ------------------------------------------------------------------------------------ |
+| <a id="#FLAGS_NEED_ACK"></a> FLAGS_NEED_ACK     | `uint8` | 1        | if set, this message requires to be acked.                           |
+| <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH | `uint8` | 16       | TODO: we might be able to reduce this if mavlink polled on the topic |
 
 ## Source Message
 
