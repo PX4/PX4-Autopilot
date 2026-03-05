@@ -18,4 +18,4 @@ This interface allows PX4 to stream a proposed path to a companion computer, and
 This enables features such obstacle avoidance in missions and safer landing to be provided by a planner on a companion computer.
 
 This actual code is still present in code at time of writing (PX4 v1.15).
-Information about the API and associated features can be found in the [PX4 v1.14 docs](https://docs.px4.io/v1.14/en/computer_vision/path_planning_interface.html).
+Information about the API and associated features can be found in the [PX4 v1.14 docs](https://docs.px4.io/v1.14/en/computer_vision/path_planning_interface).

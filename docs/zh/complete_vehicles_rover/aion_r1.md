@@ -33,7 +33,7 @@ For this build this includes an [Auterion Skynode](../companion_computer/auterio
 If using a standard Pixhawk you could connect the RoboClaw to the Autopilot without an Adapter Board.
 :::
 
-The RoboClaw should be connected to a suitable suitable serial (UART) port on the flight controller, such as `GPS2` or `TELEM1`.
+The RoboClaw should be connected to a suitable serial (UART) port on the flight controller, such as `GPS2` or `TELEM1`.
 Other RoboClaw wiring is detailed in the [RoboClaw User Manual](https://downloads.basicmicro.com/docs/roboclaw_user_manual.pdf) 'Packet Serial Wiring' section and shown below (this setup has been validated for compatibility).
 
 ![Serial Wiring Encoders](../../assets/airframes/rover/aion_r1/wiring_r1.jpg)
