@@ -482,8 +482,8 @@ int px4_simple_app_main(int argc, char *argv[])
 	px4_pollfd_struct_t fds[] = {
 		{ .fd = sensor_sub_fd,   .events = POLLIN },
 		/* there could be more file descriptors here, in the form like:
-		* { .fd = other_sub_fd,   .events = POLLIN },
-		*/
+		 * { .fd = other_sub_fd,   .events = POLLIN },
+		 */
 	};
 
 	int error_counter = 0;
@@ -504,33 +504,33 @@ int px4_simple_app_main(int argc, char *argv[])
 				PX4_ERR("ERROR return value from poll(): %d", poll_ret);
 			}
 
-		error_counter++;
+			error_counter++;
 
-	} else {
+		} else {
 
-	if (fds[0].revents & POLLIN) {
-		/* obtained data for the first file descriptor */
-		struct vehicle_acceleration_s accel;
-		/* copy sensors raw data into local buffer */
-		orb_copy(ORB_ID(vehicle_acceleration), sensor_sub_fd, &accel);
-		PX4_INFO("Accelerometer:\t%8.4f\t%8.4f\t%8.4f",
-			(double)accel.xyz[0],
-			(double)accel.xyz[1],
-			(double)accel.xyz[2]);
+			if (fds[0].revents & POLLIN) {
+				/* obtained data for the first file descriptor */
+				struct vehicle_acceleration_s accel;
+				/* copy sensors raw data into local buffer */
+				orb_copy(ORB_ID(vehicle_acceleration), sensor_sub_fd, &accel);
+				PX4_INFO("Accelerometer:\t%8.4f\t%8.4f\t%8.4f",
+					 (double)accel.xyz[0],
+					 (double)accel.xyz[1],
+					 (double)accel.xyz[2]);
 
-			/* set att and publish this information for other apps
-			the following does not have any meaning, it's just an example
-			*/
-			att.q[0] = accel.xyz[0];
-			att.q[1] = accel.xyz[1];
-			att.q[2] = accel.xyz[2];
+				/* set att and publish this information for other apps
+				 the following does not have any meaning, it's just an example
+				*/
+				att.q[0] = accel.xyz[0];
+				att.q[1] = accel.xyz[1];
+				att.q[2] = accel.xyz[2];
 
-			orb_publish(ORB_ID(vehicle_attitude), att_pub, &att);
-		}
+				orb_publish(ORB_ID(vehicle_attitude), att_pub, &att);
+			}
 
-		/* there could be more file descriptors here, in the form like:
-		* if (fds[1..n].revents & POLLIN) {}
-		*/
+			/* there could be more file descriptors here, in the form like:
+			 * if (fds[1..n].revents & POLLIN) {}
+			 */
 		}
 	}
 
