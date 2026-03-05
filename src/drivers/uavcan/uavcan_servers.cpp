@@ -151,7 +151,7 @@ bool UavcanServers::isFileIOReady()
 	 * Throttled to avoid repeated blocking calls on every Run() cycle. */
 	static hrt_abstime last_check{0};
 
-	if (last_check != 0 && hrt_elapsed_time(&last_check) < 2_s) {
+	if (last_check != 0 && hrt_elapsed_time(&last_check) < 100_ms) {
 		return false;
 	}
 
