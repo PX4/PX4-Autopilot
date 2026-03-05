@@ -82,6 +82,7 @@ px4_add_romfs_files(
 	4011_gz_lawnmower
 	4013_gz_x500_lidar_2d
 	4014_gz_x500_mono_cam_down
+	4015_gz_x500_lidar_2d_down
 	4016_gz_x500_lidar_down
 	4017_gz_x500_lidar_front
 	4018_gz_quadtailsitter
