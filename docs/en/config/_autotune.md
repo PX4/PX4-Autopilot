@@ -124,7 +124,7 @@ Additional notes:
 <div v-if="$frontmatter.frame === 'Multicopter'">
 
 - The instructions above tune the vehicle in [Altitude mode](../flight_modes_mc/altitude.md).
-  You can instead takeoff in [Takeoff mode](../flight_modes_mc/takeoff.md) and tune in [Position mode](../flight_modes_mc/position.md) if the vehicle is is _known_ to be stable in these modes.
+  You can instead takeoff in [Takeoff mode](../flight_modes_mc/takeoff.md) and tune in [Position mode](../flight_modes_mc/position.md) if the vehicle is _known_ to be stable in these modes.
 
 </div>
 <div v-else-if="$frontmatter.frame === 'Plane'">
@@ -241,7 +241,7 @@ To map a switch:
 2. Set [RC_MAP_AUX1](../advanced_config/parameter_reference.md#RC_MAP_AUX1) to match the RC channel for your switch (you can use any of `RC_MAP_AUX1` to `RC_MAP_AUX6`).
 3. Set [FW_AT_MAN_AUX](../advanced_config/parameter_reference.md#FW_AT_MAN_AUX) to the selected channel (i.e. `1: Aux 1` if you mapped `RC_MAP_AUX1`).
 
-The auto tuner will be disabled when the switch is below `0.5` (on the manual control setpoint range of of `[-1, 1]`) and enabled when the switch channel is above `0.5`.
+The auto tuner will be disabled when the switch is below `0.5` (on the manual control setpoint range of `[-1, 1]`) and enabled when the switch channel is above `0.5`.
 
 If using an RC AUX switch to enable autotuning, make sure to [select the tuning axes](#select-tuning-axis) before flight.
 

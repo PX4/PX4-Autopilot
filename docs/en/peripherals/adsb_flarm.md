@@ -53,7 +53,7 @@ The TX and RX on the flight controller must be connected to the RX and TX on the
 
 ### Port Configuration
 
-The recievers are configured in the same way as any other [MAVLink Peripheral](../peripherals/mavlink_peripherals.md).
+The receivers are configured in the same way as any other [MAVLink Peripheral](../peripherals/mavlink_peripherals.md).
 The only _specific_ setup is that the port baud rate must be set to 57600 and the a low-bandwidth profile (`MAV_X_MODE`).
 
 Assuming you have connected the device to the TELEM2 port, [set the parameters](../advanced_config/parameters.md) as shown:
@@ -74,7 +74,7 @@ Configure the action when there is a potential collision using the parameter bel
 | Parameter                                                                                                   | Description                                                                                                                                                                       |
 | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="NAV_TRAFF_AVOID"></a>[NAV_TRAFF_AVOID](../advanced_config/parameter_reference.md#NAV_TRAFF_AVOID)    | Enable traffic avoidance mode specify avoidance response. 0: Disable, 1: Warn only, 2: Return mode, 3: Land mode.                                                                 |
-| <a id="NAV_TRAFF_A_HOR"></a>[NAV_TRAFF_A_HOR](../advanced_config/parameter_reference.md#NAV_TRAFF_A_HOR)    | Horizonal radius of cylinder around the vehicle that defines its airspace (i.e. the airspace in the ground plane).                                                                |
+| <a id="NAV_TRAFF_A_HOR"></a>[NAV_TRAFF_A_HOR](../advanced_config/parameter_reference.md#NAV_TRAFF_A_HOR)    | Horizontal radius of cylinder around the vehicle that defines its airspace (i.e. the airspace in the ground plane).                                                               |
 | <a id="NAV_TRAFF_A_VER"></a>[NAV_TRAFF_A_VER](../advanced_config/parameter_reference.md#NAV_TRAFF_A_VER)    | Vertical height above and below vehicle of the cylinder that defines its airspace (also see [NAV_TRAFF_A_HOR](#NAV_TRAFF_A_HOR)).                                                 |
 | <a id="NAV_TRAFF_COLL_T"></a>[NAV_TRAFF_COLL_T](../advanced_config/parameter_reference.md#NAV_TRAFF_COLL_T) | Collision time threshold. Avoidance will trigger if the estimated time until collision drops below this value (the estimated time is based on relative speed of traffic and UAV). |
 
@@ -136,8 +136,8 @@ Use with care in real flight!
 To enable this feature:
 
 1. Uncomment the code in `AdsbConflict::run_fake_traffic()`([AdsbConflict.cpp](https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/adsb/AdsbConflict.cpp#L342C1-L342C1)).
-1. Rebuild and run PX4.
-1. Execute the [`navigator fake_traffic` command](../modules/modules_controller.md#navigator) in the [QGroundControl MAVLink Shell](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/analyze_view/mavlink_console.html) (or some other [PX4 Console or MAVLink shell](../debug/consoles.md), such as the PX4 simulator terminal).
+2. Rebuild and run PX4.
+3. Execute the [`navigator fake_traffic` command](../modules/modules_controller.md#navigator) in the [QGroundControl MAVLink Shell](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/analyze_view/mavlink_console.html) (or some other [PX4 Console or MAVLink shell](../debug/consoles.md), such as the PX4 simulator terminal).
 
 The code in `run_fake_traffic()` is then executed.
 You should see ADS-B warnings in the Console/MAVLink shell, and QGC should also show an ADS-B traffic popup.
@@ -147,7 +147,7 @@ These simulate ADS-B traffic where there may be a conflict, where there won't be
 
 ::: details Information about the test methods
 
-The relevent methods are defined in [AdsbConflict.cpp](https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/adsb/AdsbConflict.cpp#L342C1-L342C1).
+The relevant methods are defined in [AdsbConflict.cpp](https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/adsb/AdsbConflict.cpp#L342C1-L342C1).
 
 #### `run_fake_traffic()` method
 

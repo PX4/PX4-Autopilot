@@ -114,7 +114,7 @@ CONFIG_MODULES_SIMULATION_SENSOR_MAG_SIM=y
 
 :::
 
-As an alterative to updating configuration files manually, you can use the following command to launch a GUI configuration tool, and interactively enable the required modules at the path: **modules > Simulation > simulator_sih**.
+As an alternative to updating configuration files manually, you can use the following command to launch a GUI configuration tool, and interactively enable the required modules at the path: **modules > Simulation > simulator_sih**.
 For example, to update the fmu-v6x configuration you would use:
 
 ```sh

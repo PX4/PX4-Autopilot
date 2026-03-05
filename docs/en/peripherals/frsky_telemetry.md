@@ -166,7 +166,7 @@ D-Port receivers transmit the following messages (from [here](https://github.com
 
 ## FrSky Telemetry Receivers
 
-Pixhawk/PX4 supports D (old) and S (new) FrSky telemetry. The table belows all FrSky receivers that support telemetry via a D/S.PORT (in theory all of these should work).
+Pixhawk/PX4 supports D (old) and S (new) FrSky telemetry. The table below lists all FrSky receivers that support telemetry via a D/S.PORT (in theory all of these should work).
 
 :::tip
 Note that the X series receivers listed below are recommended (e.g. XSR, X8R). The R and G series have not been tested/validated by the test team, but should work.

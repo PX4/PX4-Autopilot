@@ -59,7 +59,7 @@ Missions can be paused by switching out of mission mode to any other mode (such 
 If the vehicle was not capturing images when it was paused, on resuming it will head from its _current position_ towards the same waypoint as it as was heading towards originally.
 If the vehicle was capturing images (has camera trigger items) it will instead head from its current position towards the last waypoint it traveled through (before pausing), and then retrace its path at the same speed and with the same camera triggering behaviour.
 This ensures that in survey/camera missions the planned path is captured.
-A mission can be uploaded while the vehicle is paused, in which which case the current active mission item is set to 1.
+A mission can be uploaded while the vehicle is paused, in which case the current active mission item is set to 1.
 
 ::: info
 When a mission is paused while the camera on the vehicle was triggering, PX4 sets the current active mission item to the previous waypoint, so that when the mission is restarted the vehicle will retrace its last mission leg.

@@ -81,7 +81,7 @@ The airplane needs some assembly out of the box.
 Servos, wings, and the tail will need to be installed.
 
 ::: info
-For this portion of assembly, the instructions included with the kit should be sufficent, but some helpful tips are listed below.
+For this portion of assembly, the instructions included with the kit should be sufficient, but some helpful tips are listed below.
 :::
 
 ### Gluing Foam
@@ -209,7 +209,7 @@ An alternative carrier board is the Holybro Pixhawk 5X carrier.
 
 The carrier comes installed in a plastic case.
 While the case does look nice, it is extra weight, so the carrier was removed from the case.
-Once removed from the case, the ARK6X was installed, and a protective cover fitted ontop.
+Once removed from the case, the ARK6X was installed, and a protective cover fitted on top.
 
 ![Flight computer carrier board](../../assets/airframes/fw/reptile_dragon_2/holybro_5x.jpg)
 
@@ -337,7 +337,7 @@ For more information see [TBS Crossfire (CRSF) Telemetry](../telemetry/crsf_tele
 
 ### `msp_osd` Module
 
-The `msp_osd` module steams MSP telemetry to a selected serial port.
+The `msp_osd` module streams MSP telemetry to a selected serial port.
 The Caddx Vista Air Unit supports listening to MSP telemetry and will show the received telemetry values in its OSD (on screen display).
 
 1. In the PX4 board config tool, navigate to the `drivers` submenu, then scroll down to highlight `OSD`.

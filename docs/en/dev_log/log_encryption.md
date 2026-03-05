@@ -141,7 +141,7 @@ Note that the value is generated fresh for each log, and any value specified in 
 You can use choose different locations for your keys as long as they aren't used by anything else.
 :::
 
-The key in `CONFIG_PUBLIC_KEY1` is the public key used to wrap the symmetric key in the the beginning of `.ulge` file (by default: see [SDLOG_EXCH_KEY](../advanced_config/parameter_reference.md#SDLOG_EXCH_KEY)).
+The key in `CONFIG_PUBLIC_KEY1` is the public key used to wrap the symmetric key in the beginning of `.ulge` file (by default: see [SDLOG_EXCH_KEY](../advanced_config/parameter_reference.md#SDLOG_EXCH_KEY)).
 You can use the `rsa2048.pub` key for testing, or replace it with the path to your own public key in the file (see [Generate RSA Public & Private Keys](#generate-rsa-public-private-keys)).
 
 Build the firmware like this:

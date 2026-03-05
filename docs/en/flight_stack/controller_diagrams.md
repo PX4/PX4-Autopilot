@@ -109,7 +109,7 @@ Increasing aircraft pitch angle will cause an increase in height but also a decr
 Increasing the throttle will increase airspeed but also height will increase due to the increase in lift.
 Therefore, we have two inputs (pitch angle and throttle) which both affect the two outputs (airspeed and altitude) which makes the control problem challenging.
 
-TECS offers a solution by respresenting the problem in terms of energies rather than the original setpoints.
+TECS offers a solution by representing the problem in terms of energies rather than the original setpoints.
 The total energy of an aircraft is the sum of kinetic and potential energy. Thrust (via throttle control) increases the total energy state of the aircraft. A given total energy state can be achieved by arbitrary combinations of potential and kinetic energies.
 In other words, flying at a high altitude but at a slow speed can be equivalent to flying at a low altitude but at a faster airspeed in a total energy sense. We refer to this as the specific energy balance and it is calculated from the current altitude and true airspeed setpoint.
 The specific energy balance is controlled via the aircraft pitch angle.

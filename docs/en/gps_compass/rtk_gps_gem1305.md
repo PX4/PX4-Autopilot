@@ -77,7 +77,7 @@ The 1.25mm pitch 6P connector (from left: PIN1 to PIN6) supports UART for GNSS a
 ## Hardware Setup
 
 RTK requires a base RTK module attached to the ground station, and a rover RTK module on the vehicle.
-The data from the base needs to be transmitted to the drone via telemetry radio and inputed into the RTK receiver on the rover.
+The data from the base needs to be transmitted to the drone via telemetry radio and inputted into the RTK receiver on the rover.
 
 ![RTK setup overview](../../assets/hardware/gps/datagnss_gem1305/setup_overview.png)
 

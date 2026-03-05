@@ -27,7 +27,7 @@ The following kits are currently available:
 ## Build Guides
 
 The build guides below show how to assemble a number of kits.
-Many kits vary only a little between revisions (for example, the new kit might simply upgrade the flight controller used, and is otherwise identical), so these are likely to be be useful for building the kits in the section above.
+Many kits vary only a little between revisions (for example, the new kit might simply upgrade the flight controller used, and is otherwise identical), so these are likely to be useful for building the kits in the section above.
 
 - [Holybro X500 v2 (Pixhawk 6C)](../frames_multicopter/holybro_x500v2_pixhawk6c.md)
 - [Holybro X500 v2 (Pixhawk 5X)](../frames_multicopter/holybro_x500V2_pixhawk5x.md) — Discontinued (v2 kit uses Pixhawk 6c)
