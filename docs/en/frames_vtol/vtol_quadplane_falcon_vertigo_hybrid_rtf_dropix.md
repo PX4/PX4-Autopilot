@@ -2,6 +2,7 @@
 
 :::warning Discontinued
 The Falcon Venturi FPV Wing frame on which this vehicle is based is no longer available.
+The Dropix FC used by this vehicle is discontinued.
 :::
 
 The _Falcon Vertigo Hybrid VTOL_ is a quadplane VTOL aircraft that has been designed to work with PX4 and the Dropix (Pixhawk compatible) flight controller. It can carry a small GoPro camera.
@@ -12,7 +13,7 @@ The components can also be purchased separately.
 Key information:
 
 - **Frame:** Falcon Vertigo Hybrid VTOL
-- **Flight controller:** Dropix
+- **Flight controller:** Dropix (Discontineud)
 - **Wing span:** 1.3m
 
 ![Falcon Vertigo Hybrid VTOL RTF](../../assets/airframes/vtol/falcon_vertigo/falcon_vertigo_complete.jpg)
@@ -112,10 +113,6 @@ The RTF kit requires the following assembly.
 This kit includes Dropix flight controller with most of the required electronics pre-connected (if you use another Pixhawk-compatible flight controller the connections are similar).
 
 <img src="../../assets/airframes/vtol/falcon_vertigo/falcon_vertigo_23_dropix_and_other_electronics.jpg" width="500px" title="Falcon Vertigo Electronics" />
-
-::: info
-General information about connecting Dropix can be found in [Dropix Flight Controller](../flight_controller/dropix.md).
-:::
 
 #### Connect the ESC power connector and pass the signals cables to the flight controller
 
