@@ -83,7 +83,6 @@ private:
 		WORK
 	};
 	STATE _state{STATE::RESET};
-	<<< <<< < HEAD
 
 	int consecutive_fails{0};
 	== == == =
