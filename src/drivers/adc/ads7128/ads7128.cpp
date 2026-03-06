@@ -85,12 +85,7 @@ int ADS7128::init()
 	_adc_report.v_ref = _adc_ads7128_refv.get();
 	_adc_report.resolution = 4096;
 
-<<<<<<< HEAD
 	ScheduleNow();
-=======
-	ScheduleClear();
-	ScheduleOnInterval(SAMPLE_INTERVAL, SAMPLE_INTERVAL);
->>>>>>> c1d1d6c244914f7a34fc58503a8797661c646b2f
 	return PX4_OK;
 }
 
@@ -106,23 +101,11 @@ int ADS7128::poll_calibrate()
 	uint8_t send_data[2] = {READ, GENERAL_CFG};
 	uint8_t recv_data;
 
-<<<<<<< HEAD
 	int ret = transfer(&send_data[0], 2, nullptr, 0);
 	ret |= transfer(nullptr, 0, &recv_data, 1);
 
 	if (ret == PX4_OK && !(recv_data & 2u)) {
 		return PX4_OK;
-=======
-	for (int i = 0; i < 3; i++) {
-		int ret = transfer(&send_data[0], 2, nullptr, 0);
-		ret |= transfer(nullptr, 0, &recv_data, 1);
-
-		if (ret == PX4_OK && !(recv_data & 2u)) {
-			return PX4_OK;
-		}
-
-		px4_usleep(10000);
->>>>>>> c1d1d6c244914f7a34fc58503a8797661c646b2f
 	}
 
 	return PX4_ERROR;
@@ -140,23 +123,11 @@ int ADS7128::poll_reset()
 	uint8_t send_data[2] = {READ, GENERAL_CFG};
 	uint8_t recv_data;
 
-<<<<<<< HEAD
 	int ret = transfer(&send_data[0], 2, nullptr, 0);
 	ret |= transfer(nullptr, 0, &recv_data, 1);
 
 	if (ret == PX4_OK && !(recv_data & 1u)) {
 		return PX4_OK;
-=======
-	for (int i = 0; i < 3; i++) {
-		int ret = transfer(&send_data[0], 2, nullptr, 0);
-		ret |= transfer(nullptr, 0, &recv_data, 1);
-
-		if (ret == PX4_OK && !(recv_data & 1u)) {
-			return PX4_OK;
-		}
-
-		px4_usleep(10000);
->>>>>>> c1d1d6c244914f7a34fc58503a8797661c646b2f
 	}
 
 	return PX4_ERROR;
@@ -230,11 +201,7 @@ int ADS7128::probe()
 			return PX4_OK;
 		}
 
-<<<<<<< HEAD
 		px4_usleep(10000);
-=======
-		px4_sleep(1);
->>>>>>> c1d1d6c244914f7a34fc58503a8797661c646b2f
 	}
 
 	return PX4_ERROR;
@@ -320,10 +287,7 @@ void ADS7128::RunImpl()
 			perf_count(_comms_errors);
 		}
 
-<<<<<<< HEAD
 		ScheduleDelayed(SAMPLE_INTERVAL * 2); // Reset should take around 10ms to finish => double the sample interval to be safe
-=======
->>>>>>> c1d1d6c244914f7a34fc58503a8797661c646b2f
 		break;
 
 	case STATE::CONFIGURE:
@@ -339,10 +303,7 @@ void ADS7128::RunImpl()
 			perf_count(_comms_errors);
 		}
 
-<<<<<<< HEAD
 		ScheduleDelayed(SAMPLE_INTERVAL); // Calibration should only take around 50 microseconds to finish
-=======
->>>>>>> c1d1d6c244914f7a34fc58503a8797661c646b2f
 		break;
 
 	case STATE::CALIBRATE:
@@ -356,10 +317,7 @@ void ADS7128::RunImpl()
 			perf_count(_comms_errors);
 		}
 
-<<<<<<< HEAD
 		ScheduleDelayed(SAMPLE_INTERVAL);
-=======
->>>>>>> c1d1d6c244914f7a34fc58503a8797661c646b2f
 		break;
 
 	case STATE::WORK:
@@ -367,12 +325,11 @@ void ADS7128::RunImpl()
 
 		ret = adc_get();
 		_adc_report.timestamp = hrt_absolute_time();
-		_adc_report_pub.publish(_adc_report);
+
 
 		perf_end(_cycle_perf);
 
 		if (ret != PX4_OK) {
-<<<<<<< HEAD
 
 			consecutive_fails++;
 
@@ -382,15 +339,11 @@ void ADS7128::RunImpl()
 			}
 
 			perf_count(_comms_errors);
+		}else{
+			_adc_report_pub.publish(_adc_report);
 		}
 
 		ScheduleDelayed(SAMPLE_INTERVAL);
-=======
-			_state = STATE::RESET;
-			perf_count(_comms_errors);
-		}
-
->>>>>>> c1d1d6c244914f7a34fc58503a8797661c646b2f
 		break;
 	}
 
