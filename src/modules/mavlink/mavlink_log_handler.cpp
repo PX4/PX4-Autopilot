@@ -527,7 +527,7 @@ void MavlinkLogHandler::delete_all_logs(const char *dir, unsigned depth)
 	// Log structure is log/yyyy-mm-dd/file.ulg (2 levels). Cap recursion to prevent stack overflow.
 	static constexpr unsigned MAX_DEPTH = 3;
 
-	if (depth > MAX_DEPTH) {
+	if (depth >= MAX_DEPTH) {
 		PX4_DEBUG("Max depth reached: %s", dir);
 		return;
 	}
