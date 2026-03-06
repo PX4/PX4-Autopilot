@@ -84,8 +84,7 @@ int TLA2528::init()
 	_adc_report.v_ref = _adc_tla2528_refv.get();
 	_adc_report.resolution = 4096;
 
-	ScheduleClear();
-	ScheduleOnInterval(SAMPLE_INTERVAL, SAMPLE_INTERVAL);
+	ScheduleNow();
 	return PX4_OK;
 }
 
@@ -263,14 +262,14 @@ int TLA2528::configure()
 
 void TLA2528::exit_and_cleanup()
 {
-	I2CSPIDriverBase::exit_and_cleanup();	// nothing to do
+	I2CSPIDriverBase::exit_and_cleanup();
 }
 
 void TLA2528::RunImpl()
 {
 	if (should_exit()) {
 		PX4_INFO("stopping");
-		return;	// stop and return immediately to avoid unexpected schedule from stopping procedure
+		return;
 	}
 
 	int ret;
@@ -281,8 +280,13 @@ void TLA2528::RunImpl()
 
 		if (ret == PX4_OK) {
 			_state = STATE::CONFIGURE;
+
+		} else {
+			_state = STATE::RESET;
+			perf_count(_comms_errors);
 		}
 
+		ScheduleDelayed(SAMPLE_INTERVAL * 2); // Reset should take around 10ms to finish => double the sample interval to be safe
 		break;
 
 	case STATE::CONFIGURE:
@@ -295,8 +299,10 @@ void TLA2528::RunImpl()
 
 		} else {
 			_state = STATE::RESET;
+			perf_count(_comms_errors);
 		}
 
+		ScheduleDelayed(SAMPLE_INTERVAL); // Calibration should only take around 50 microseconds to finish
 		break;
 
 	case STATE::CALIBRATE:
@@ -307,16 +313,36 @@ void TLA2528::RunImpl()
 
 		} else {
 			_state = STATE::RESET;
+			perf_count(_comms_errors);
 		}
 
+		ScheduleDelayed(SAMPLE_INTERVAL);
 		break;
 
 	case STATE::WORK:
 		perf_begin(_cycle_perf);
-		adc_get();
+
+		ret = adc_get();
 		_adc_report.timestamp = hrt_absolute_time();
-		_adc_report_pub.publish(_adc_report);
+
 		perf_end(_cycle_perf);
+
+		if (ret != PX4_OK) {
+
+			consecutive_fails++;
+
+			if (consecutive_fails > 10) {
+				_state = STATE::RESET;
+				consecutive_fails = 0;
+			}
+
+			perf_count(_comms_errors);
+
+		} else {
+			_adc_report_pub.publish(_adc_report);
+		}
+
+		ScheduleDelayed(SAMPLE_INTERVAL);
 		break;
 	}
 
