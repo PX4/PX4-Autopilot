@@ -1,0 +1,108 @@
+__max_num_gps_instances: &max_num_gps_instances 2
+
+module_name: vehicle_gps_position
+
+parameters:
+    - group: Sensors
+      definitions:
+        SENS_GPS_MASK:
+            description:
+                short: Multi GPS Blending Control Mask
+                long: |
+                    Set bits in the following positions to set which GPS accuracy metrics will
+                    be used to calculate the blending weight. Set to zero to disable and always
+                    used first GPS instance.
+            type: bitmask
+            bit:
+                0: use speed accuracy
+                1: use hpos accuracy
+                2: use vpos accuracy
+            default: 7
+            min: 0
+            max: 7
+
+        SENS_GPS_TAU:
+            description:
+                short: Multi GPS Blending Time Constant
+                long: |
+                    Sets the longest time constant that will be applied to the calculation of GPS
+                    position and height offsets used to correct data from multiple GPS data for
+                    steady state position differences.
+            type: float
+            default: 10.0
+            unit: s
+            decimal: 1
+            min: 1.0
+            max: 100.0
+
+        SENS_GPS_PRIME:
+            description:
+                short: Multi GPS primary instance
+                long: |
+                    When no blending is active, this defines the preferred GPS receiver instance.
+                    The GPS selection logic waits until the primary receiver is available to
+                    send data to the EKF even if a secondary instance is already available.
+                    The secondary instance is then only used if the primary one times out.
+
+                    To select a DroneCAN GPS, set this to the node ID.
+
+                    This parameter has no effect if blending is active.
+            type: int32
+            default: 0
+            min: -1
+            max: 127
+            values:
+                -1: Auto (equal priority)
+                0: Main serial GPS
+                1: Secondary serial GPS
+        SENS_GPS${i}_ID:
+            description:
+                short: GPS ${i} device ID
+                long: |
+                    Device ID of the GPS receiver for antenna offset slot ${i}.
+                    Set to 0 to disable this slot. When all slots are 0, offsets are
+                    matched by uORB instance index (only reliable for serial GPS).
+            category: System
+            type: int32
+            default: 0
+            num_instances: *max_num_gps_instances
+            instance_start: 0
+
+        SENS_GPS${i}_OFFX:
+            description:
+                short: GPS ${i} antenna X position
+                long: |
+                    Forward axis relative to vehicle centre of gravity.
+                    Matched to physical GPS receiver via SENS_GPS${i}_ID.
+            type: float
+            default: 0.0
+            unit: m
+            decimal: 3
+            num_instances: *max_num_gps_instances
+            instance_start: 0
+
+        SENS_GPS${i}_OFFY:
+            description:
+                short: GPS ${i} antenna Y position
+                long: |
+                    Right axis relative to vehicle centre of gravity.
+                    Matched to physical GPS receiver via SENS_GPS${i}_ID.
+            type: float
+            default: 0.0
+            unit: m
+            decimal: 3
+            num_instances: *max_num_gps_instances
+            instance_start: 0
+
+        SENS_GPS${i}_OFFZ:
+            description:
+                short: GPS ${i} antenna Z position
+                long: |
+                    Down axis relative to vehicle centre of gravity.
+                    Matched to physical GPS receiver via SENS_GPS${i}_ID.
+            type: float
+            default: 0.0
+            unit: m
+            decimal: 3
+            num_instances: *max_num_gps_instances
+            instance_start: 0

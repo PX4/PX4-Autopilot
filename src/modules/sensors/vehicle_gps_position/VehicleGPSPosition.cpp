@@ -102,6 +102,15 @@ void VehicleGPSPosition::ParametersUpdate(bool force)
 		if (math::isInRange(gps_prime, -1, 1)) {
 			_gps_blending.setPrimaryInstance(gps_prime);
 		}
+
+		_gps_offset_slots[0] = {
+			static_cast<uint32_t>(_param_sens_gps0_id.get()),
+			{_param_sens_gps0_offx.get(), _param_sens_gps0_offy.get(), _param_sens_gps0_offz.get()}
+		};
+		_gps_offset_slots[1] = {
+			static_cast<uint32_t>(_param_sens_gps1_id.get()),
+			{_param_sens_gps1_offx.get(), _param_sens_gps1_offy.get(), _param_sens_gps1_offz.get()}
+		};
 	}
 }
 
@@ -130,6 +139,26 @@ void VehicleGPSPosition::Run()
 			any_gps_updated = true;
 
 			_sensor_gps_sub[i].copy(&gps_data);
+
+			// Match device_id to antenna offset slot
+			matrix::Vector3f antenna_offset{};
+			bool matched = false;
+
+			for (uint8_t slot = 0; slot < GPS_MAX_RECEIVERS; slot++) {
+				if (_gps_offset_slots[slot].device_id != 0
+				    && _gps_offset_slots[slot].device_id == gps_data.device_id) {
+					antenna_offset = _gps_offset_slots[slot].offset;
+					matched = true;
+					break;
+				}
+			}
+
+			// Fallback: if no device IDs configured, match by instance index
+			if (!matched && _gps_offset_slots[0].device_id == 0 && _gps_offset_slots[1].device_id == 0) {
+				antenna_offset = _gps_offset_slots[i].offset;
+			}
+
+			_gps_blending.setAntennaOffset(antenna_offset, i);
 			_gps_blending.setGpsData(gps_data, i);
 
 			if (math::isInRange(static_cast<int>(gps_prime), 2, 127)) {
@@ -158,6 +187,11 @@ void VehicleGPSPosition::Run()
 			if (_gps_blending.getSelectedGps() == GpsBlending::GPS_MAX_RECEIVERS_BLEND) {
 				gps_output.device_id = 0;
 			}
+
+			const matrix::Vector3f &out_offset = _gps_blending.getOutputAntennaOffset();
+			gps_output.antenna_offset_x = out_offset(0);
+			gps_output.antenna_offset_y = out_offset(1);
+			gps_output.antenna_offset_z = out_offset(2);
 
 			gps_output.timestamp_sample = _pps_time_sync.correct_gps_timestamp(gps_output.timestamp, gps_output.time_utc_usec);
 			_vehicle_gps_position_pub.publish(gps_output);
