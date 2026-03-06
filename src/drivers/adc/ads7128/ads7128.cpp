@@ -202,7 +202,7 @@ int ADS7128::probe()
 			return PX4_OK;
 		}
 
-		px4_sleep(1);
+		px4_usleep(10000);
 	}
 
 	return PX4_ERROR;
