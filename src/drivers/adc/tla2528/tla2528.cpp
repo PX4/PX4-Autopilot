@@ -170,18 +170,20 @@ void TLA2528::adc_get()
 
 int TLA2528::probe()
 {
-	for (int i = 0; i < 3; i++) {
-		// Select channel 0
-		uint8_t send_data[3];
-		send_data[0] = WRITE;
-		send_data[1] = CHANNEL_SEL;
-		send_data[2] = 0x00;            // Channel 0
-		int ret = transfer(&send_data[0], 3, nullptr, 0);
+	uint8_t send_data[3];
+	uint8_t recv_data[2];
 
+	for (int i = 0; i < 3; i++) {
 		// Put device in in manual mode
 		send_data[0] = WRITE;
 		send_data[1] = OPMODE_CFG;
 		send_data[2] = 0x00;
+		int ret = transfer(&send_data[0], 3, nullptr, 0);
+
+		// Select channel 0
+		send_data[0] = WRITE;
+		send_data[1] = CHANNEL_SEL;
+		send_data[2] = 0x00;            // Channel 0
 		ret |= transfer(&send_data[0], 3, nullptr, 0);
 
 		// Set device in debug mode (should respond with 0xA5AX to all reads)
@@ -191,7 +193,6 @@ int TLA2528::probe()
 		ret |= transfer(&send_data[0], 3, nullptr, 0);
 
 		// Read
-		uint8_t recv_data[2];
 		ret |= transfer(nullptr, 0, &recv_data[0], 2);
 
 		// Turn debug mode off
@@ -204,7 +205,7 @@ int TLA2528::probe()
 			return PX4_OK;
 		}
 
-		px4_sleep(1);
+		px4_usleep(10000);
 	}
 
 	return PX4_ERROR;
