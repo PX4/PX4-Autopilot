@@ -85,8 +85,7 @@ int ADS7128::init()
 	_adc_report.v_ref = _adc_ads7128_refv.get();
 	_adc_report.resolution = 4096;
 
-	ScheduleClear();
-	ScheduleOnInterval(SAMPLE_INTERVAL, SAMPLE_INTERVAL);
+	ScheduleNow();
 	return PX4_OK;
 }
 
@@ -288,6 +287,7 @@ void ADS7128::RunImpl()
 			perf_count(_comms_errors);
 		}
 
+		ScheduleDelayed(SAMPLE_INTERVAL * 2); // Reset should take around 10ms to finish => double the sample interval to be safe
 		break;
 
 	case STATE::CONFIGURE:
@@ -303,6 +303,7 @@ void ADS7128::RunImpl()
 			perf_count(_comms_errors);
 		}
 
+		ScheduleDelayed(SAMPLE_INTERVAL); // Calibration should only take around 50 microseconds to finish
 		break;
 
 	case STATE::CALIBRATE:
@@ -316,6 +317,7 @@ void ADS7128::RunImpl()
 			perf_count(_comms_errors);
 		}
 
+		ScheduleDelayed(SAMPLE_INTERVAL);
 		break;
 
 	case STATE::WORK:
@@ -339,6 +341,7 @@ void ADS7128::RunImpl()
 			perf_count(_comms_errors);
 		}
 
+		ScheduleDelayed(SAMPLE_INTERVAL);
 		break;
 	}
 
