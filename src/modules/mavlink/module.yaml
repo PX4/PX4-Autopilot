@@ -238,3 +238,19 @@ parameters:
             type: boolean
             reboot_required: true
             default: false
+
+    - group: MAVLink
+      definitions:
+        MAV_SHELL_EN:
+            description:
+                short: Enable remote shell via MAVLink SERIAL_CONTROL
+                long: |
+                    Controls whether the PX4 shell is accessible over MAVLink SERIAL_CONTROL.
+                    Enable only for development, debugging, or field diagnostics.
+
+                    0: Disabled (secure default for hardware)
+                    1: Enabled (default for SITL)
+
+            type: boolean
+            reboot_required: false
+            default: false
