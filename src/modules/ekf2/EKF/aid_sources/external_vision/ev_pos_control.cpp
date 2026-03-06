@@ -103,9 +103,9 @@ void Ekf::controlEvPosFusion(const imuSample &imu_sample, const extVisionSample 
 
 			// Position variance contribution from orientation uncertainty: δp = δθ × p
 			pos_cov(0, 0) += sq(ev_sample.pos(2)) * ev_sample.orientation_var(1)   // pitch
-				       + sq(ev_sample.pos(1)) * ev_sample.orientation_var(2);   // yaw
+					 + sq(ev_sample.pos(1)) * ev_sample.orientation_var(2);   // yaw
 			pos_cov(1, 1) += sq(ev_sample.pos(0)) * ev_sample.orientation_var(2)   // yaw
-				       + sq(ev_sample.pos(2)) * ev_sample.orientation_var(0);   // roll
+					 + sq(ev_sample.pos(2)) * ev_sample.orientation_var(0);   // roll
 
 			if (_control_status.flags.gnss_pos) {
 				_ev_pos_b_est.setFusionActive();

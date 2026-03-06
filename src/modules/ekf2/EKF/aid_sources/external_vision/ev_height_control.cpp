@@ -69,7 +69,7 @@ void Ekf::controlEvHeightFusion(const imuSample &imu_sample, const extVisionSamp
 
 			// Position variance contribution from orientation uncertainty: δp_z = δθ_roll·py - δθ_pitch·px
 			pos_cov(2, 2) += sq(ev_sample.pos(1)) * ev_sample.orientation_var(0)   // roll
-				       + sq(ev_sample.pos(0)) * ev_sample.orientation_var(1);   // pitch
+					 + sq(ev_sample.pos(0)) * ev_sample.orientation_var(1);   // pitch
 		}
 	}
 
