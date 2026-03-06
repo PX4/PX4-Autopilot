@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -55,20 +55,20 @@ public:
 			slots[i] = {UINT16_MAX, param_value_u{}};
 		}
 
-		_slots.store(slots);
+		_slots = slots;
 	}
 
 	virtual ~DynamicSparseLayer()
 	{
-		if (_slots.load()) {
-			free(_slots.load());
+		if (_slots) {
+			free(_slots);
 		}
 	}
 
 	bool store(param_t param, param_value_u value) override
 	{
 		AtomicTransaction transaction;
-		Slot *slots = _slots.load();
+		Slot *slots = _slots;
 
 		const int index = _getIndex(param);
 
@@ -84,7 +84,7 @@ public:
 				return false;
 			}
 
-			_slots.load()[_next_slot++] = {param, value};
+			_slots[_next_slot++] = {param, value};
 			_sort();
 		}
 
@@ -101,7 +101,7 @@ public:
 	{
 		px4::AtomicBitset<PARAM_COUNT> set;
 		const AtomicTransaction transaction;
-		Slot *slots = _slots.load();
+		Slot *slots = _slots;
 
 		for (int i = 0; i < _next_slot; i++) {
 			set.set(slots[i].param);
@@ -113,7 +113,7 @@ public:
 	param_value_u get(param_t param) const override
 	{
 		const AtomicTransaction transaction;
-		Slot *slots = _slots.load();
+		Slot *slots = _slots;
 
 		const int index = _getIndex(param);
 
@@ -128,7 +128,7 @@ public:
 	{
 		const AtomicTransaction transaction;
 		int index = _getIndex(param);
-		Slot *slots = _slots.load();
+		Slot *slots = _slots;
 
 		if (index < _next_slot) {
 			slots[index] = {UINT16_MAX, param_value_u{}};
@@ -144,11 +144,13 @@ public:
 
 	int size() const override
 	{
+		const AtomicTransaction transaction;
 		return _next_slot;
 	}
 
 	int byteSize() const override
 	{
+		const AtomicTransaction transaction;
 		return _n_slots * sizeof(Slot);
 	}
 
@@ -165,14 +167,14 @@ private:
 
 	void _sort()
 	{
-		qsort(_slots.load(), _n_slots, sizeof(Slot), _slotCompare);
+		qsort(_slots, _n_slots, sizeof(Slot), _slotCompare);
 	}
 
 	int _getIndex(param_t param) const
 	{
 		int left = 0;
 		int right = _next_slot - 1;
-		Slot *slots = _slots.load();
+		Slot *slots = _slots;
 
 		while (left <= right) {
 			int mid = (left + right) / 2;
@@ -197,42 +199,46 @@ private:
 			return false;
 		}
 
-		int max_retries = 5;
+		unsigned max_retries = 5;
 
 		// As malloc uses locking, so we need to re-enable IRQ's during malloc/free and
-		// then atomically exchange the buffer
+		// then exchange the buffer inside a critical section.
 		while (_next_slot >= _n_slots && max_retries-- > 0) {
-			Slot *previous_slots = nullptr;
-			Slot *new_slots = nullptr;
-
-			do {
-				previous_slots = _slots.load();
-				transaction.unlock();
-
-				if (new_slots) {
-					free(new_slots);
-				}
-
-				new_slots = (Slot *) malloc(sizeof(Slot) * (_n_slots + _n_grow));
-				transaction.lock();
-
-				if (new_slots == nullptr) {
-					return false;
-				}
-
-			} while (!_slots.compare_exchange(&previous_slots, new_slots));
-
-			memcpy(new_slots, previous_slots, sizeof(Slot) * _n_slots);
-
-			for (int i = _n_slots; i < _n_slots + _n_grow; i++) {
-				new_slots[i] = {UINT16_MAX, param_value_u{}};
-			}
-
-			_n_slots += _n_grow;
+			const int n_slots_new = _n_slots + _n_grow;
 
 			transaction.unlock();
-			free(previous_slots);
+			Slot *new_slots = (Slot *) malloc(sizeof(Slot) * n_slots_new);
 			transaction.lock();
+
+			if (new_slots == nullptr) {
+				return false;
+			}
+
+			if (_n_slots + _n_grow == n_slots_new) {
+				Slot *previous_slots = _slots;
+				memcpy(new_slots, previous_slots, sizeof(Slot) * _n_slots);
+
+				for (int i = _n_slots; i < n_slots_new; i++) {
+					new_slots[i] = {UINT16_MAX, param_value_u{}};
+				}
+
+				_slots = new_slots;
+				_n_slots = n_slots_new;
+
+				transaction.unlock();
+				free(previous_slots);
+				transaction.lock();
+				// After freeing previous_slots, we still need to continue the loop, because we just unlocked
+				// the critical section, so the buffer might already be full again at this point.
+
+			} else {
+				// If we end up here then another thread (successfully) increased the buffer already.
+				// So we can drop the new buffer but we will still need to check again if we need to
+				// increase the buffer even more.
+				transaction.unlock();
+				free(new_slots);
+				transaction.lock();
+			}
 		}
 
 		return _next_slot < _n_slots;
@@ -241,5 +247,5 @@ private:
 	int _next_slot = 0;
 	int _n_slots = 0;
 	const int _n_grow;
-	px4::atomic<Slot *> _slots{nullptr};
+	Slot *_slots{nullptr};
 };
