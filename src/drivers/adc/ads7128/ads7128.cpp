@@ -333,13 +333,14 @@ void ADS7128::RunImpl()
 
 			consecutive_fails++;
 
-			if(consecutive_fails > 10){
+			if (consecutive_fails > 10) {
 				_state = STATE::RESET;
 				consecutive_fails = 0;
 			}
 
 			perf_count(_comms_errors);
-		}else{
+
+		} else {
 			_adc_report_pub.publish(_adc_report);
 		}
 

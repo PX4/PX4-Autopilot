@@ -83,9 +83,9 @@ private:
 		WORK
 	};
 	STATE _state{STATE::RESET};
-<<<<<<< HEAD
+	<<< <<< < HEAD
 
 	int consecutive_fails{0};
-=======
->>>>>>> c1d1d6c244914f7a34fc58503a8797661c646b2f
+	== == == =
+		>>> >>> > c1d1d6c244914f7a34fc58503a8797661c646b2f
 };
