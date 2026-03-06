@@ -73,7 +73,7 @@ private:
 	int configure();
 	int init_calibrate();
 	int poll_calibrate();
-	void adc_get();
+	int adc_get();
 	void exit_and_cleanup() override;
 
 	enum class STATE : uint8_t {
@@ -83,4 +83,6 @@ private:
 		WORK
 	};
 	STATE _state{STATE::RESET};
+
+	int consecutive_fails{0};
 };
