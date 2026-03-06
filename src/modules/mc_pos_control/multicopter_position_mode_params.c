@@ -129,3 +129,19 @@ PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 5.f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_JERK_MAX, 8.f);
+
+/**
+ * Multicopter Actuator Control Mode
+ *
+ * Specifies how the position controller generates its output.
+ * This should only be set to Direct Force for fully-actuated vehicles
+ * that can generate lateral forces without tilting the main frame (e.g., tilting rotors).
+ *
+ * @value 0 Body Tilt (default)
+ * @value 1 Direct Force
+ * @min 0
+ * @max 1
+ * @reboot_required true
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_INT32(MPC_ACT_MODE, 0);
