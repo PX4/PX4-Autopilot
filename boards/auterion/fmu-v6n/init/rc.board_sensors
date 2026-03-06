@@ -58,18 +58,35 @@ pm_selector_auterion start
 # Auterion's INA238 uses a shunt value of 0.0003 instead of 0.0005.
 param set-default INA238_SHUNT 0.0003
 
-# Internal SPI BMI088
-bmi088 -A -R 6 -s start
-bmi088 -G -R 6 -s start
+# HW base 0x13 (19dec) has the whole FMU rotated by 180 deg yaw
+if ver hwbasecmp 013
+then
+	# Internal SPI BMI088
+	bmi088 -A -R 2 -s start
+	bmi088 -G -R 2 -s start
 
-# Internal SPI bus ICM42688p
-icm42688p -R 12 -s start
+	# Internal SPI bus ICM42688p
+	icm42688p -R 8 -s start
 
-# Internal SPI bus ICM20602
-icm20602 -R 6 -s start
+	# Internal SPI bus ICM20602
+	icm20602 -R 2 -s start
 
-# Internal magnetometer on I2C
-bmm150 -I -R 0 start
+	# Internal magnetometer on I2C
+	bmm150 -I -R 4 start
+else
+	# Internal SPI BMI088
+	bmi088 -A -R 6 -s start
+	bmi088 -G -R 6 -s start
+
+	# Internal SPI bus ICM42688p
+	icm42688p -R 12 -s start
+
+	# Internal SPI bus ICM20602
+	icm20602 -R 6 -s start
+
+	# Internal magnetometer on I2C
+	bmm150 -I -R 0 start
+fi
 
 # External compass on GPS1/I2C1 (the 3rd external bus): standard Holybro Pixhawk 4 or CUAV V5 GPS/compass puck (with lights, safety button, and buzzer)
 ist8310 -X -b 1 -R 10 start
