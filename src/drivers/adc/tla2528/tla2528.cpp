@@ -52,6 +52,8 @@
 #define CHANNEL_SEL	0x11
 #define AUTO_SEQ_CH_SEL	0x12
 
+#define RECENT_CH0_LSB	0xA0
+
 TLA2528::TLA2528(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config),
@@ -131,41 +133,35 @@ int TLA2528::poll_reset()
 	return PX4_ERROR;
 }
 
-void TLA2528::adc_get()
+int TLA2528::adc_get()
 {
-	// Start sequential read
-	uint8_t send_data[3] = {SET_BIT, SEQUENCE_CFG, 0x10};
+	uint8_t send_data[2];
 	uint8_t recv_data[2];
-	int ret = transfer(&send_data[0], 3, nullptr, 0);
+	send_data[0] = READ;
 
-	if (ret != PX4_OK) {
-		perf_count(_comms_errors);
-		return;
-	}
+	for (int i = 0; i < 8; i++) {
+		// Read LSB data
+		send_data[1] = RECENT_CH0_LSB + (i * 2);
+		int ret = transfer(&send_data[0], 2, nullptr, 0);
+		ret |= transfer(nullptr, 0, &recv_data[0], 1);
 
-	// Read data
-	for (int i = 0; i < NUM_CHANNELS; i++) {
-		ret = transfer(nullptr, 0, &recv_data[0], 2);
+		// Read MSB data
+		send_data[1] = RECENT_CH0_LSB + (i * 2) + 1;
+		ret |= transfer(&send_data[0], 2, nullptr, 0);
+		ret |= transfer(nullptr, 0, &recv_data[1], 1);
+
+		uint16_t raw_value = (((uint16_t)recv_data[1]) << 4) | (recv_data[0] >> 4);
 
 		if (ret == PX4_OK) {
-			uint16_t tmp = ((uint16_t)recv_data[0]) << 8;
-			uint16_t measurement = (tmp | recv_data[1]) >> 4;
-			uint8_t ch_id = recv_data[1] & 0x0F;
-
-			_adc_report.channel_id[i] = ch_id;
-			_adc_report.raw_data[i] = measurement;
+			_adc_report.channel_id[i] = i;
+			_adc_report.raw_data[i] = raw_value;
 
 		} else {
-			perf_count(_comms_errors);
+			return PX4_ERROR;
 		}
 	}
 
-	// Stop sequential read
-	send_data[0] = CLEAR_BIT;
-	send_data[1] = SEQUENCE_CFG;
-	send_data[2] = 0x10;
-	transfer(&send_data[0], 3, nullptr, 0);
-	return;
+	return PX4_OK;
 }
 
 int TLA2528::probe()
