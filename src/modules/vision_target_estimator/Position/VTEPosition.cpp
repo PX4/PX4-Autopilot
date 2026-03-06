@@ -1,0 +1,1506 @@
+/****************************************************************************
+ *
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+/**
+ * @file VTEPosition.cpp
+ * @brief Estimate the state of a target by processing and fusing sensor data in a Kalman Filter.
+ *
+ * @author Jonas Perolini <jonspero@me.com>
+ *
+ */
+
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
+#include <drivers/drv_hrt.h>
+
+#include "VTEPosition.h"
+
+#define USEC2SEC_F 1e-6f
+
+namespace vision_target_estimator
+{
+
+using namespace matrix;
+
+VTEPosition::VTEPosition() :
+	ModuleParams(nullptr)
+{
+	_targetPosePub.advertise();
+	_targetEstimatorStatePub.advertise();
+	_vte_aid_gps_pos_target_pub.advertise();
+	_vte_aid_gps_pos_mission_pub.advertise();
+	_vte_aid_gps_vel_uav_pub.advertise();
+	_vte_aid_gps_vel_target_pub.advertise();
+	_vte_aid_fiducial_marker_pub.advertise();
+
+	updateParams();
+}
+
+VTEPosition::~VTEPosition()
+{
+	perf_free(_vte_predict_perf);
+	perf_free(_vte_update_perf);
+}
+
+bool VTEPosition::shouldEmitWarning(hrt_abstime &last_warn)
+{
+	const hrt_abstime now = hrt_absolute_time();
+
+	if ((last_warn == 0) || (now < last_warn) || ((now - last_warn) > kWarnThrottleIntervalUs)) {
+		last_warn = now;
+		return true;
+	}
+
+	return false;
+}
+
+bool VTEPosition::init()
+{
+	// Check valid vtest_derivation/generated/state.h
+	if (vtest::Axis::size != 3) {
+		PX4_ERR("VTE: Invalid axis size: %d, expected 3. Generate vtest_derivation/derivation.py",
+			static_cast<int>(vtest::Axis::size));
+		return false;
+	}
+
+#if defined(CONFIG_VTEST_MOVING)
+	PX4_INFO("VTE for moving target init");
+	PX4_WARN("VTE for moving targets has not been thoroughly tested");
+
+	if (vtest::State::size != 5) {
+		PX4_ERR("VTE: Invalid state size: %d, expected 5. Generate vtest_derivation/derivation.py",
+			static_cast<int>(vtest::State::size));
+		return false;
+	}
+
+	_param_mpc_z_v_auto_dn = param_find("MPC_Z_V_AUTO_DN");
+#else
+	PX4_INFO("VTE for static target init");
+
+	if (vtest::State::size != 3) {
+		PX4_ERR("VTE: Invalid state size: %d, expected 3. Generate vtest_derivation/derivation.py",
+			static_cast<int>(vtest::State::size));
+		return false;
+	}
+
+#endif // CONFIG_VTEST_MOVING
+
+	for (int axis = 0; axis < vtest::Axis::size; ++axis) {
+		_target_est_pos[axis].resetHistory();
+	}
+
+	return true;
+}
+
+void VTEPosition::resetFilter()
+{
+	_estimator_initialized = false;
+	_last_relative_meas_fused_time = 0;
+	_bias_set = false;
+	_mission_land_position.valid = false;
+
+	for (int axis = 0; axis < vtest::Axis::size; ++axis) {
+		_target_est_pos[axis].resetHistory();
+	}
+}
+
+void VTEPosition::update(const Vector3f &acc_ned)
+{
+	if (_parameter_update_sub.updated()) {
+		updateParams();
+	}
+
+	checkMeasurementInputs();
+
+	// Predict the target state using a constant relative-acceleration model.
+	if (_estimator_initialized) {
+		const hrt_abstime now_us = hrt_absolute_time();
+
+		if (now_us < _last_predict) {
+			resetFilter();
+			PX4_WARN("VTEposition invalid _last_predict time");
+			return;
+		}
+
+		const uint64_t dt_us = now_us - _last_predict;
+
+		// guard against large dt for which the constant acceleration assumption does not hold
+		static constexpr uint64_t kMaxValidDeltaTimeUs = 100_ms; // filter runs at 50Hz, expect dt = 20_ms
+
+		if (dt_us > kMaxValidDeltaTimeUs) {
+			resetFilter();
+			PX4_WARN("VTEposition stale, reseting filter");
+			return;
+		}
+
+		const float dt = dt_us * USEC2SEC_F;
+		perf_begin(_vte_predict_perf);
+		predictionStep(acc_ned, dt);
+		perf_end(_vte_predict_perf);
+
+		_last_predict = now_us;
+	}
+
+	// Update with the newest observations, fuse if the filter is initialised,
+	// and publish any resulting innovations.
+	if (performUpdateStep(acc_ned)) {
+		_last_update = _last_predict;
+	}
+
+	if (_estimator_initialized) {
+		// Store the post-fusion posterior snapshot at the current timestamp for OOSM fusion.
+		for (int axis = 0; axis < vtest::Axis::size; ++axis) {
+			_target_est_pos[axis].pushHistory(_last_predict);
+		}
+
+		publishTarget();
+	}
+}
+
+bool VTEPosition::initEstimator(const Matrix<float, vtest::Axis::size, vtest::State::size>
+				&state_init)
+{
+	// Get initial variance from params
+	const float state_pos_var = _param_vte_pos_unc_in.get();
+	const float state_vel_var = _param_vte_vel_unc_in.get();
+	const float state_bias_var = _param_vte_bias_unc_in.get();
+
+	const Vector3f state_pos_var_vect(state_pos_var, state_pos_var, state_pos_var);
+	const Vector3f state_vel_var_vect(state_vel_var, state_vel_var, state_vel_var);
+	const Vector3f state_bias_var_vect(state_bias_var, state_bias_var, state_bias_var);
+
+	matrix::Matrix <float, vtest::Axis::size, vtest::State::size> state_var_init;
+	state_var_init.col(vtest::State::pos_rel) = state_pos_var_vect;
+	state_var_init.col(vtest::State::vel_uav) = state_vel_var_vect;
+	state_var_init.col(vtest::State::bias) = state_bias_var_vect;
+
+#if defined(CONFIG_VTEST_MOVING)
+	const float state_acc_var = _param_vte_acc_unc_in.get();
+	const float state_target_vel_var = _param_vte_vel_unc_in.get();
+	const Vector3f state_acc_var_vect(state_acc_var, state_acc_var, state_acc_var);
+	const Vector3f state_target_vel_var_vect(state_target_vel_var, state_target_vel_var, state_target_vel_var);
+	state_var_init.col(vtest::State::acc_target) = state_acc_var_vect;
+	state_var_init.col(vtest::State::vel_target) = state_target_vel_var_vect;
+
+#endif // CONFIG_VTEST_MOVING
+
+	for (int i = 0; i < vtest::Axis::size; i++) {
+
+		_target_est_pos[i].setState(state_init.row(i));
+		_target_est_pos[i].setStateCovarianceDiag(state_var_init.row(i));
+	}
+
+	// Debug INFO
+	PX4_DEBUG("Rel pos init %.2f %.2f %.2f", (double)state_init(vtest::Axis::x, vtest::State::pos_rel),
+		  (double)state_init(vtest::Axis::y, vtest::State::pos_rel), (double)state_init(vtest::Axis::z,
+				  vtest::State::pos_rel));
+	PX4_DEBUG("Vel uav init %.2f %.2f %.2f", (double)state_init(vtest::Axis::x, vtest::State::vel_uav),
+		  (double)state_init(vtest::Axis::y, vtest::State::vel_uav), (double)state_init(vtest::Axis::z,
+				  vtest::State::vel_uav));
+	PX4_DEBUG("GNSS bias init %.2f %.2f %.2f", (double)state_init(vtest::Axis::x, vtest::State::bias),
+		  (double)state_init(vtest::Axis::y, vtest::State::bias), (double)state_init(vtest::Axis::z,
+				  vtest::State::bias));
+
+#if defined(CONFIG_VTEST_MOVING)
+	PX4_DEBUG("Target acc init %.2f %.2f %.2f", (double)state_init(vtest::Axis::x,
+			vtest::State::acc_target),
+		  (double)state_init(vtest::Axis::y, vtest::State::acc_target), (double)state_init(vtest::Axis::z,
+				  vtest::State::acc_target));
+	PX4_DEBUG("Target vel init %.2f %.2f %.2f", (double)state_init(vtest::Axis::x,
+			vtest::State::vel_target),
+		  (double)state_init(vtest::Axis::y, vtest::State::vel_target), (double)state_init(vtest::Axis::z,
+				  vtest::State::vel_target));
+#endif // CONFIG_VTEST_MOVING
+
+	return true;
+}
+
+void VTEPosition::predictionStep(const Vector3f &vehicle_acc_ned, const float dt)
+{
+	//Decoupled dynamics, we neglect the off diag elements.
+	for (int i = 0; i < vtest::Axis::size; i++) {
+#if defined(CONFIG_VTEST_MOVING)
+		_target_est_pos[i].setTargetAccVar(_target_acc_unc);
+#endif // CONFIG_VTEST_MOVING
+
+		// We assume an isotropic uncertainty (cov = sigma^2 * I)
+		// The rotated input covariance from body to NED R*(sigma^2 * I)*R^T = sigma^2*I because R*R^T = I.
+		_target_est_pos[i].setBiasVar(_bias_unc);
+		_target_est_pos[i].setInputVar(_uav_acc_unc);
+
+		_target_est_pos[i].predict(dt, vehicle_acc_ned(i));
+	}
+}
+
+bool VTEPosition::performUpdateStep(const Vector3f &vehicle_acc_ned)
+{
+	// Gather observations and tag the fusion mask bits for each new valid source.
+	resetObservations();
+	ObsValidMaskU fusion_mask{};
+	processObservations(fusion_mask, _obs_buffer);
+
+	if (fusion_mask.value == 0) {
+		return false;
+	}
+
+	if (!_estimator_initialized) {
+		if (!hasNewPositionSensorData(fusion_mask)) {
+			return false;
+		}
+
+		if (!initializeEstimator(fusion_mask, _obs_buffer)) {
+			return false;
+		}
+	}
+
+	if (!_bias_set) {
+		updateBiasIfObservable(fusion_mask, _obs_buffer);
+	}
+
+	return fuseActiveMeasurements(vehicle_acc_ned, fusion_mask, _obs_buffer);
+}
+
+void VTEPosition::resetObservations()
+{
+	for (auto &obs : _obs_buffer) {
+		obs = {};
+	}
+}
+
+void VTEPosition::processObservations(ObsValidMaskU &fusion_mask,
+				      TargetObs observations[kObsTypeCount])
+{
+	if (_vte_aid_mask.flags.use_vision_pos) {
+		fusion_mask.flags.fuse_vision = processObsVision(observations[obsIndex(ObsType::Fiducial_marker)]);
+	}
+
+	if (updateUavGpsData()) {
+		if (_vte_aid_mask.flags.use_mission_pos && _mission_land_position.valid) {
+			fusion_mask.flags.fuse_mission_pos = processObsGNSSPosMission(observations[obsIndex(ObsType::Mission_gps_pos)]);
+		}
+
+		if (_vte_aid_mask.flags.use_uav_gps_vel && _uav_gps_vel.valid) {
+			fusion_mask.flags.fuse_uav_gps_vel = processObsGNSSVelUav(observations[obsIndex(ObsType::Uav_gps_vel)]);
+		}
+	}
+
+	target_gnss_s target_gnss{};
+
+	if (_target_gnss_sub.update(&target_gnss)) {
+		const bool target_gps_position_valid = isTargetGpsPositionValid(target_gnss);
+
+		if (_vte_aid_mask.flags.use_target_gps_pos && _uav_gps_position.valid
+		    && target_gps_position_valid && target_gnss.abs_pos_updated) {
+			fusion_mask.flags.fuse_target_gps_pos = processObsGNSSPosTarget(target_gnss,
+								observations[obsIndex(ObsType::Target_gps_pos)]);
+		}
+
+#if defined(CONFIG_VTEST_MOVING)
+
+		if (isTargetGpsVelocityValid(target_gnss)) {
+
+			updateTargetGpsVelocity(target_gnss);
+
+			if (_vte_aid_mask.flags.use_target_gps_vel && _target_gps_vel.valid) {
+				fusion_mask.flags.fuse_target_gps_vel = ProcessObsGNSSVelTarget(target_gnss,
+									observations[obsIndex(ObsType::Target_gps_vel)]);
+			}
+		}
+
+#endif // CONFIG_VTEST_MOVING
+
+	}
+}
+
+bool VTEPosition::isVisionDataValid(const fiducial_marker_pos_report_s &fiducial_marker_pose)
+{
+	if (!isMeasRecent(fiducial_marker_pose.timestamp_sample)) {
+		if (shouldEmitWarning(_vision_pos_warn_last)) {
+			PX4_WARN("VTE: Vision data too old!");
+		}
+
+		return false;
+	}
+
+	const bool finite_measurement = PX4_ISFINITE(fiducial_marker_pose.rel_pos[0])
+					&& PX4_ISFINITE(fiducial_marker_pose.rel_pos[1])
+					&& PX4_ISFINITE(fiducial_marker_pose.rel_pos[2]);
+
+	if (!finite_measurement) {
+		if (shouldEmitWarning(_vision_pos_warn_last)) {
+			PX4_WARN("VTE: Vision meas is corrupt!");
+		}
+
+		return false;
+	}
+
+
+	// if vision relies on the reported covariance, check it
+	if (!_ev_noise_md) {
+
+		const bool finite_cov = PX4_ISFINITE(fiducial_marker_pose.cov_rel_pos[0])
+					&& PX4_ISFINITE(fiducial_marker_pose.cov_rel_pos[1])
+					&& PX4_ISFINITE(fiducial_marker_pose.cov_rel_pos[2]);
+
+		if (!finite_cov) {
+			if (shouldEmitWarning(_vision_pos_warn_last)) {
+				PX4_WARN("VTE: Vision cov is corrupt!");
+			}
+
+			return false;
+		}
+	}
+
+	// Rotate vision observation into vc-NED using the reported attitude quaternion
+	const bool finite_q = PX4_ISFINITE(fiducial_marker_pose.q[0])
+			      && PX4_ISFINITE(fiducial_marker_pose.q[1])
+			      && PX4_ISFINITE(fiducial_marker_pose.q[2])
+			      && PX4_ISFINITE(fiducial_marker_pose.q[3]);
+
+	if (!finite_q) {
+		if (shouldEmitWarning(_vision_pos_warn_last)) {
+			PX4_WARN("VTE: Vision attitude quaternion is corrupt!");
+		}
+
+		return false;
+	}
+
+	return true;
+}
+
+bool VTEPosition::isUavGpsPositionValid()
+{
+	if (!isMeasRecent(_uav_gps_position.timestamp)) {
+		return false;
+	}
+
+	if (!isLatLonAltValid(_uav_gps_position.lat_deg, _uav_gps_position.lon_deg,
+			      _uav_gps_position.alt_m, "UAV GPS ", &_uav_gps_pos_warn_last)) {
+		return false;
+	}
+
+	if (_gps_pos_is_offset && !_gps_pos_offset_ned.valid) {
+		PX4_DEBUG("Uav Gps position invalid offset!"); // Debug because this message can spam
+		return false;
+	}
+
+	return true;
+}
+
+bool VTEPosition::isUavGpsVelocityValid()
+{
+	if (!PX4_ISFINITE(_uav_gps_vel.xyz(vtest::Axis::x)) ||
+	    !PX4_ISFINITE(_uav_gps_vel.xyz(vtest::Axis::y)) ||
+	    !PX4_ISFINITE(_uav_gps_vel.xyz(vtest::Axis::z))) {
+		if (shouldEmitWarning(_uav_gps_vel_warn_last)) {
+			PX4_WARN("UAV GPS velocity not finite! vx: %.1f, vy: %.1f, vz: %.1f",
+				 (double)_uav_gps_vel.xyz(vtest::Axis::x), (double)_uav_gps_vel.xyz(vtest::Axis::y),
+				 (double)_uav_gps_vel.xyz(vtest::Axis::z));
+		}
+
+		return false;
+	}
+
+	if (!isMeasRecent(_uav_gps_vel.timestamp)) {
+		return false;
+	}
+
+	if (_gps_pos_is_offset && !_velocity_offset_ned.valid) {
+		PX4_DEBUG("Uav Gps velocity invalid offset!");
+		return false;
+	}
+
+	return true;
+}
+
+bool VTEPosition::updateUavGpsData()
+{
+	sensor_gps_s vehicle_gps_position;
+	const bool vehicle_gps_position_updated = _vehicle_gps_position_sub.update(&vehicle_gps_position);
+
+	if (vehicle_gps_position_updated) {
+		// Position
+		_uav_gps_position.lat_deg = vehicle_gps_position.latitude_deg;
+		_uav_gps_position.lon_deg = vehicle_gps_position.longitude_deg;
+		_uav_gps_position.alt_m = (float)vehicle_gps_position.altitude_msl_m;
+		_uav_gps_position.timestamp = vehicle_gps_position.timestamp_sample;
+		_uav_gps_position.eph = vehicle_gps_position.eph;
+		_uav_gps_position.epv = vehicle_gps_position.epv;
+		_uav_gps_position.valid = isUavGpsPositionValid();
+
+		// Velocity
+		_uav_gps_vel.timestamp = vehicle_gps_position.timestamp_sample;
+		_uav_gps_vel.xyz(vtest::Axis::x) = vehicle_gps_position.vel_n_m_s;
+		_uav_gps_vel.xyz(vtest::Axis::y) = vehicle_gps_position.vel_e_m_s;
+		_uav_gps_vel.xyz(vtest::Axis::z) = vehicle_gps_position.vel_d_m_s;
+		_uav_gps_vel.uncertainty = vehicle_gps_position.s_variance_m_s;
+		_uav_gps_vel.valid = vehicle_gps_position.vel_ned_valid && isUavGpsVelocityValid();
+
+	} else {
+		// Check if stored data is still valid
+		_uav_gps_position.valid = _uav_gps_position.valid && isMeasRecent(_uav_gps_position.timestamp);
+		_uav_gps_vel.valid = _uav_gps_vel.valid && isMeasRecent(_uav_gps_vel.timestamp);
+	}
+
+	return vehicle_gps_position_updated;
+}
+
+#if defined(CONFIG_VTEST_MOVING)
+void VTEPosition::updateTargetGpsVelocity(const target_gnss_s &target_gnss)
+{
+	_target_gps_vel.timestamp = target_gnss.timestamp_sample;
+	_target_gps_vel.valid = isMeasRecent(target_gnss.timestamp_sample);
+
+	_target_gps_vel.xyz(vtest::Axis::x) = target_gnss.vel_n_m_s;
+	_target_gps_vel.xyz(vtest::Axis::y) = target_gnss.vel_e_m_s;
+	_target_gps_vel.xyz(vtest::Axis::z) = target_gnss.vel_d_m_s;
+}
+#endif // CONFIG_VTEST_MOVING
+
+bool VTEPosition::isTargetGpsPositionValid(const target_gnss_s &target_gnss)
+{
+	if (!isMeasRecent(target_gnss.timestamp_sample)) {
+		return false;
+	}
+
+	if (!isLatLonAltValid(target_gnss.latitude_deg, target_gnss.longitude_deg,
+			      target_gnss.altitude_msl_m, "Target GPS ", &_target_gps_pos_warn_last)) {
+		return false;
+	}
+
+	return true;
+}
+
+bool VTEPosition::isTargetGpsVelocityValid(const target_gnss_s &target_gnss)
+{
+	if (!isMeasRecent(target_gnss.timestamp_sample)) {
+		return false;
+	}
+
+	if (!target_gnss.vel_ned_updated ||
+	    !PX4_ISFINITE(target_gnss.vel_n_m_s) ||
+	    !PX4_ISFINITE(target_gnss.vel_e_m_s) ||
+	    !PX4_ISFINITE(target_gnss.vel_d_m_s)) {
+		if (shouldEmitWarning(_target_gps_vel_warn_last)) {
+			PX4_WARN("Target GPS velocity is corrupt!");
+		}
+
+		return false;
+	}
+
+	return true;
+}
+
+bool VTEPosition::initializeEstimator(const ObsValidMaskU &fusion_mask,
+				      const TargetObs observations[kObsTypeCount])
+{
+	if (!hasNewPositionSensorData(fusion_mask)) {
+		return false;
+	}
+
+	// Check for initial velocity estimate
+	const bool has_initial_velocity_estimate = (_local_velocity.valid && isMeasRecent(_local_velocity.timestamp)) ||
+			(_uav_gps_vel.valid && isMeasRecent(_uav_gps_vel.timestamp));
+
+	if (!has_initial_velocity_estimate) {
+		if (shouldEmitWarning(_init_vel_warn_last)) {
+			PX4_WARN("No UAV velocity estimate. Estimator cannot be started.");
+		}
+
+		return false;
+	}
+
+	// Initialize state variables
+	Vector3f initial_position{};
+	Vector3f initial_uav_velocity{};
+	Vector3f initial_bias{};
+#if defined(CONFIG_VTEST_MOVING)
+	Vector3f initial_target_accel {};	// Assume null target absolute acceleration
+	Vector3f initial_target_velocity{};
+#endif // CONFIG_VTEST_MOVING
+
+	// Get the initial position based on the current valid observations
+	selectInitialPosition(fusion_mask, observations, initial_position);
+
+	// Compute initial bias if needed
+	if (shouldSetBias(fusion_mask)) {
+		PX4_DEBUG("VTE Position setting GNSS bias.");
+		initial_bias = _pos_rel_gnss.xyz - initial_position;
+		_bias_set = true;
+	}
+
+#if defined(CONFIG_VTEST_MOVING)
+
+	if (_target_gps_vel.valid && (isMeasRecent(_target_gps_vel.timestamp))) {
+		initial_target_velocity = _target_gps_vel.xyz;
+	}
+
+#endif // CONFIG_VTEST_MOVING
+
+	// Define initial UAV velocity
+	if (_uav_gps_vel.valid && isMeasRecent(_uav_gps_vel.timestamp)) {
+		initial_uav_velocity = _uav_gps_vel.xyz;
+
+	} else if (_local_velocity.valid && isMeasRecent(_local_velocity.timestamp)) {
+		initial_uav_velocity = _local_velocity.xyz;
+	}
+
+	// Initialize estimator state
+	matrix::Matrix <float, vtest::Axis::size, vtest::State::size> state_init;
+	state_init.col(vtest::State::pos_rel) = initial_position;
+	state_init.col(vtest::State::vel_uav) = initial_uav_velocity;
+	state_init.col(vtest::State::bias) = initial_bias;
+
+#if defined(CONFIG_VTEST_MOVING)
+	state_init.col(vtest::State::acc_target) = initial_target_accel;
+	state_init.col(vtest::State::vel_target) = initial_target_velocity;
+#endif // CONFIG_VTEST_MOVING
+
+	if (!initEstimator(state_init)) {
+		resetFilter();
+		return false;
+	}
+
+	PX4_DEBUG("VTE Position Estimator properly initialized.");
+	_estimator_initialized = true;
+	_last_update = hrt_absolute_time();
+	_last_predict = _last_update;
+
+	for (int axis = 0; axis < vtest::Axis::size; ++axis) {
+		_target_est_pos[axis].resetHistory();
+	}
+
+	return true;
+}
+
+void VTEPosition::selectInitialPosition(const ObsValidMaskU &fusion_mask,
+					const TargetObs observations[kObsTypeCount], matrix::Vector3f &initial_position)
+{
+	// Non-GNSS observations must have priority as this function is also used to get the initial GNSS bias
+	if (fusion_mask.flags.fuse_vision) {
+		initial_position = observations[obsIndex(ObsType::Fiducial_marker)].meas_xyz;
+		return;
+	}
+
+	if (fusion_mask.flags.fuse_target_gps_pos) {
+		initial_position = observations[obsIndex(ObsType::Target_gps_pos)].meas_xyz;
+		return;
+	}
+
+	if (fusion_mask.flags.fuse_mission_pos) {
+		initial_position = observations[obsIndex(ObsType::Mission_gps_pos)].meas_xyz;
+	}
+}
+
+void VTEPosition::updateBiasIfObservable(const ObsValidMaskU &fusion_mask,
+		const TargetObs observations[kObsTypeCount])
+{
+	if (!shouldSetBias(fusion_mask)) {
+		return;
+	}
+
+	PX4_INFO("Second relative position measurement available, setting position and bias.");
+
+	// Get the initial position based on the current valid observations
+	Vector3f initial_position{};
+	selectInitialPosition(fusion_mask, observations, initial_position);
+
+	// Compute the initial bias
+	const Vector3f initial_bias = _pos_rel_gnss.xyz - initial_position;
+
+	// Reset filter's state and variance
+	const float pos_var = _param_vte_pos_unc_in.get();
+	const float bias_var = _param_vte_bias_unc_in.get();
+
+	for (int axis = 0; axis < vtest::Axis::size; ++axis) {
+		KF_position &filter = _target_est_pos[axis];
+		matrix::Vector<float, vtest::State::size>  state = filter.getState();
+		state(vtest::State::bias) = initial_bias(axis);
+		state(vtest::State::pos_rel) = initial_position(axis);
+		filter.setState(state);
+
+		matrix::Vector<float, vtest::State::size> state_var = filter.getStateCovarianceDiag();
+		state_var(vtest::State::bias) = bias_var;
+		state_var(vtest::State::pos_rel) = pos_var;
+		filter.setStateCovarianceDiag(state_var);
+
+		// Bias initialization is a state reset: restart OOSM history to avoid mixing pre/post-reset states.
+		filter.resetHistory();
+	}
+
+	PX4_DEBUG("Rel pos init %.2f %.2f %.2f", (double)initial_position(vtest::Axis::x),
+		  (double)initial_position(vtest::Axis::y), (double)initial_position(vtest::Axis::z));
+
+	PX4_DEBUG("GNSS bias init %.2f %.2f %.2f", (double)initial_bias(vtest::Axis::x),
+		  (double)initial_bias(vtest::Axis::y), (double)initial_bias(vtest::Axis::z));
+
+	_bias_set = true;
+}
+
+bool VTEPosition::fuseActiveMeasurements(const matrix::Vector3f &vehicle_acc_ned, ObsValidMaskU &fusion_mask,
+		const TargetObs observations[kObsTypeCount])
+{
+	struct FusionJob {
+		hrt_abstime timestamp{};
+		ObsType type{ObsType::Type_count};
+		const TargetObs *obs{nullptr};
+	};
+
+	FusionJob jobs[kObsTypeCount] {};
+	size_t job_count = 0;
+
+	auto add_job = [&](ObsType type) {
+		const TargetObs &obs = observations[obsIndex(type)];
+
+		if ((job_count >= kObsTypeCount) || (obs.timestamp == 0)) {
+			return;
+		}
+
+		jobs[job_count++] = FusionJob{obs.timestamp, type, &obs};
+	};
+
+	bool position_fused = false;
+
+	if (fusion_mask.flags.fuse_target_gps_pos) {
+		add_job(ObsType::Target_gps_pos);
+	}
+
+	if (fusion_mask.flags.fuse_mission_pos) {
+		add_job(ObsType::Mission_gps_pos);
+	}
+
+	if (fusion_mask.flags.fuse_vision) {
+		add_job(ObsType::Fiducial_marker);
+	}
+
+	if (fusion_mask.flags.fuse_uav_gps_vel) {
+		add_job(ObsType::Uav_gps_vel);
+	}
+
+#if defined(CONFIG_VTEST_MOVING)
+
+	if (fusion_mask.flags.fuse_target_gps_vel) {
+		add_job(ObsType::Target_gps_vel);
+	}
+
+#endif // CONFIG_VTEST_MOVING
+
+	// Fuse strictly in timestamp order (oldest -> newest) to keep the OOSM approximation consistent.
+	for (size_t i = 1; i < job_count; ++i) {
+		FusionJob key = jobs[i];
+		size_t j = i;
+
+		while ((j > 0) && (jobs[j - 1].timestamp > key.timestamp)) {
+			jobs[j] = jobs[j - 1];
+			--j;
+		}
+
+		jobs[j] = key;
+	}
+
+	for (size_t i = 0; i < job_count; ++i) {
+		const FusionJob &job = jobs[i];
+
+		const bool fused = (job.obs != nullptr) && fuseMeas(vehicle_acc_ned, *job.obs);
+
+		switch (job.type) {
+		case ObsType::Target_gps_pos:
+		case ObsType::Mission_gps_pos:
+			position_fused |= fused;
+			break;
+
+		case ObsType::Fiducial_marker:
+			position_fused |= fused;
+
+			if (fused) {
+				_last_relative_meas_fused_time = hrt_absolute_time();
+			}
+
+			break;
+
+		case ObsType::Uav_gps_vel:
+		case ObsType::Target_gps_vel:
+		case ObsType::Type_count:
+			break;
+		}
+	}
+
+	return position_fused;
+}
+
+/*Vision observation: [rx, ry, rz]*/
+bool VTEPosition::processObsVision(TargetObs &obs)
+{
+	fiducial_marker_pos_report_s report;
+
+	if (!_fiducial_marker_pos_report_sub.update(&report) || !isVisionDataValid(report)) {
+		return false;
+	}
+
+	const matrix::Quaternionf quat_att(report.q);
+	const Vector3f vision_rel(report.rel_pos);
+	const Vector3f vision_ned = quat_att.rotateVector(vision_rel);
+
+	// Rotate covariance matrix to vc-NED
+	SquareMatrix<float, vtest::Axis::size> cov_rotated;
+
+	// Use uncertainty from parameters or from vision messages
+	if (_ev_noise_md) {
+		static constexpr float kDefaultVisionUncDistanceM = 10.f;
+		// Uncertainty proportional to the vertical distance
+		const float range = _range_sensor.valid ? _range_sensor.dist_bottom : kDefaultVisionUncDistanceM;
+		const float meas_unc = fmaxf(sq(sqrtf(_min_ev_pos_var) * range), _min_ev_pos_var);
+		cov_rotated = diag(Vector3f(meas_unc, meas_unc, meas_unc));
+
+	} else {
+		const SquareMatrix<float, vtest::Axis::size> covMat = diag(Vector3f(
+					fmaxf(report.cov_rel_pos[0], _min_ev_pos_var),
+					fmaxf(report.cov_rel_pos[1], _min_ev_pos_var),
+					fmaxf(report.cov_rel_pos[2], _min_ev_pos_var)));
+		const matrix::Dcmf R_att = matrix::Dcm<float>(quat_att);
+		cov_rotated = R_att * covMat * R_att.transpose();
+	}
+
+	// Relative position
+	if (!PX4_ISFINITE(vision_ned(0)) || !PX4_ISFINITE(vision_ned(1)) || !PX4_ISFINITE(vision_ned(2))) {
+		if (shouldEmitWarning(_vision_pos_warn_last)) {
+			PX4_WARN("VTE: Vision position NED is corrupt!");
+		}
+
+		return false;
+	}
+
+	obs.timestamp = report.timestamp_sample;
+
+	obs.type = ObsType::Fiducial_marker;
+	obs.updated(vtest::Axis::x) = true;
+	obs.updated(vtest::Axis::y) = true;
+	obs.updated(vtest::Axis::z) = true;
+
+	// Assume noise correlation negligible:
+	obs.meas_h_xyz(vtest::Axis::x, vtest::State::pos_rel) = 1;
+	obs.meas_h_xyz(vtest::Axis::y, vtest::State::pos_rel) = 1;
+	obs.meas_h_xyz(vtest::Axis::z, vtest::State::pos_rel) = 1;
+
+	obs.meas_xyz = vision_ned;
+
+	// Assume off diag elements ~ 0
+	obs.meas_unc_xyz(vtest::Axis::x) = cov_rotated(vtest::Axis::x, vtest::Axis::x);
+	obs.meas_unc_xyz(vtest::Axis::y) = cov_rotated(vtest::Axis::y, vtest::Axis::y);
+	obs.meas_unc_xyz(vtest::Axis::z) = cov_rotated(vtest::Axis::z, vtest::Axis::z);
+
+	return true;
+}
+
+/*Drone GNSS velocity observation: [vel_uav_x, vel_uav_y ,vel_uav_z]*/
+bool VTEPosition::processObsGNSSVelUav(TargetObs &obs) const
+{
+	Vector3f vel_uav_ned = _uav_gps_vel.xyz;
+
+	if (_gps_pos_is_offset) {
+		if (!_velocity_offset_ned.valid
+		    || !isTimeDifferenceWithin(_velocity_offset_ned.timestamp, _uav_gps_vel.timestamp, _meas_updated_timeout_us)) {
+			return false;
+		}
+
+		vel_uav_ned -= _velocity_offset_ned.xyz;
+	}
+
+	obs.meas_xyz = vel_uav_ned;
+
+	obs.meas_h_xyz(vtest::Axis::x, vtest::State::vel_uav) = 1;
+	obs.meas_h_xyz(vtest::Axis::y, vtest::State::vel_uav) = 1;
+	obs.meas_h_xyz(vtest::Axis::z, vtest::State::vel_uav) = 1;
+
+	const float unc = fmaxf(sq(_uav_gps_vel.uncertainty), _min_gps_vel_var);
+	obs.meas_unc_xyz(vtest::Axis::x) = unc;
+	obs.meas_unc_xyz(vtest::Axis::y) = unc;
+	obs.meas_unc_xyz(vtest::Axis::z) = unc;
+
+	obs.timestamp = _uav_gps_vel.timestamp;
+
+	obs.type = ObsType::Uav_gps_vel;
+
+	obs.updated(vtest::Axis::x) = true;
+	obs.updated(vtest::Axis::y) = true;
+	obs.updated(vtest::Axis::z) = true;
+
+	return true;
+}
+
+#if defined(CONFIG_VTEST_MOVING)
+
+/*Target GNSS velocity observation: [r_dotx, r_doty, r_dotz]*/
+bool VTEPosition::ProcessObsGNSSVelTarget(const target_gnss_s &target_gnss, TargetObs &obs) const
+{
+	// If the target is moving, the relative velocity is expressed as the drone verlocity - the target velocity
+	obs.meas_xyz(vtest::Axis::x) = target_gnss.vel_n_m_s;
+	obs.meas_xyz(vtest::Axis::y) = target_gnss.vel_e_m_s;
+	obs.meas_xyz(vtest::Axis::z) = target_gnss.vel_d_m_s;
+
+	const float unc = fmaxf(sq(target_gnss.s_acc_m_s), _min_gps_vel_var);
+
+	obs.meas_unc_xyz(vtest::Axis::x) = unc;
+	obs.meas_unc_xyz(vtest::Axis::y) = unc;
+	obs.meas_unc_xyz(vtest::Axis::z) = unc;
+
+	obs.meas_h_xyz(vtest::Axis::x, vtest::State::vel_target) = 1;
+	obs.meas_h_xyz(vtest::Axis::y, vtest::State::vel_target) = 1;
+	obs.meas_h_xyz(vtest::Axis::z, vtest::State::vel_target) = 1;
+
+	obs.timestamp = target_gnss.timestamp_sample;
+
+	obs.type = ObsType::Target_gps_vel;
+
+	obs.updated(vtest::Axis::x) = true;
+	obs.updated(vtest::Axis::y) = true;
+	obs.updated(vtest::Axis::z) = true;
+
+	return true;
+}
+
+#endif // CONFIG_VTEST_MOVING
+
+/*Target GNSS mission observation: [rx + bx, ry + by, rz + bz]*/
+bool VTEPosition::processObsGNSSPosMission(TargetObs &obs)
+{
+	// Obtain GPS relative measurements in NED as target_global - uav_gps_global followed by global2local transformation
+	Vector3f gps_relative_pos;
+	get_vector_to_next_waypoint(_uav_gps_position.lat_deg, _uav_gps_position.lon_deg,
+				    _mission_land_position.lat_deg, _mission_land_position.lon_deg,
+				    &gps_relative_pos(0), &gps_relative_pos(1));
+
+	// Down direction (if the drone is above the target, the relative position is positive)
+	gps_relative_pos(2) = _uav_gps_position.alt_m - _mission_land_position.alt_m;
+
+	// Offset gps relative position to the center of mass:
+	if (_gps_pos_is_offset) {
+
+		if (!_gps_pos_offset_ned.valid
+		    || !isTimeDifferenceWithin(_gps_pos_offset_ned.timestamp, _uav_gps_position.timestamp, _meas_updated_timeout_us)) {
+			return false;
+		}
+
+		gps_relative_pos += _gps_pos_offset_ned.xyz;
+	}
+
+	const float gps_unc_horizontal = fmaxf(sq(_uav_gps_position.eph), _min_gps_pos_var);
+	const float gps_unc_vertical = fmaxf(sq(_uav_gps_position.epv), _min_gps_pos_var);
+
+	// GPS already in NED, no rotation required.
+	// Obs: [pos_rel + bias]
+	obs.meas_h_xyz(vtest::Axis::x, vtest::State::pos_rel) = 1;
+	obs.meas_h_xyz(vtest::Axis::y, vtest::State::pos_rel) = 1;
+	obs.meas_h_xyz(vtest::Axis::z, vtest::State::pos_rel) = 1;
+
+	obs.timestamp = _uav_gps_position.timestamp;
+
+	obs.meas_xyz = gps_relative_pos;
+
+	obs.meas_unc_xyz(vtest::Axis::x) = gps_unc_horizontal;
+	obs.meas_unc_xyz(vtest::Axis::y) = gps_unc_horizontal;
+	obs.meas_unc_xyz(vtest::Axis::z) = gps_unc_vertical;
+
+	if (_bias_set) {
+		obs.meas_h_xyz(vtest::Axis::x, vtest::State::bias) = 1;
+		obs.meas_h_xyz(vtest::Axis::y, vtest::State::bias) = 1;
+		obs.meas_h_xyz(vtest::Axis::z, vtest::State::bias) = 1;
+	}
+
+	obs.type = ObsType::Mission_gps_pos;
+
+	obs.updated(vtest::Axis::x) = true;
+	obs.updated(vtest::Axis::y) = true;
+	obs.updated(vtest::Axis::z) = true;
+
+	// If the target GPS fusion is enabled give it priority over the GPS relative position measurement.
+	if (!_vte_aid_mask.flags.use_target_gps_pos || !(isMeasRecent(_pos_rel_gnss.timestamp))) {
+		_pos_rel_gnss.timestamp = obs.timestamp;
+		_pos_rel_gnss.valid = (PX4_ISFINITE(gps_relative_pos(0)) && PX4_ISFINITE(gps_relative_pos(1))
+				       && PX4_ISFINITE(gps_relative_pos(2)));
+		_pos_rel_gnss.xyz = gps_relative_pos;
+	}
+
+	return true;
+}
+
+/*Target GNSS observation: [rx + bx, ry + by, rz + bz]*/
+bool VTEPosition::processObsGNSSPosTarget(const target_gnss_s &target_gnss, TargetObs &obs)
+{
+	const int64_t time_diff_us = signedTimeDiffUs(target_gnss.timestamp_sample, _uav_gps_position.timestamp);
+	const float dt_sync_us = fabsf(static_cast<float>(time_diff_us));
+
+	if (dt_sync_us > _meas_recent_timeout_us) {
+		PX4_DEBUG("Time diff between UAV GNSS and target GNNS too high: %.2f [ms] > timeout: %.2f [ms]",
+			  (double)(dt_sync_us / 1000), (double)(_meas_recent_timeout_us / 1000));
+		return false;
+	}
+
+	double uav_lat_deg = _uav_gps_position.lat_deg;
+	double uav_lon_deg = _uav_gps_position.lon_deg;
+	float uav_alt_m = _uav_gps_position.alt_m;
+
+	const float dt_sync_s = static_cast<float>(time_diff_us) * USEC2SEC_F;
+	const float dt_sync_s_abs = fabsf(dt_sync_s);
+	bool uav_position_interpolated = false;
+
+	static constexpr float kMinTimesSyncNoInterpolationS = 0.1f;
+
+	// Compensate UAV motion during the latency interval
+	if (dt_sync_s_abs > kMinTimesSyncNoInterpolationS && _uav_gps_vel.valid
+	    && isTimeDifferenceWithin(_uav_gps_vel.timestamp, _uav_gps_position.timestamp, _meas_updated_timeout_us)) {
+		const matrix::Vector3f uav_vel_ned = _uav_gps_vel.xyz;
+		const float delta_n = uav_vel_ned(vtest::Axis::x) * dt_sync_s;
+		const float delta_e = uav_vel_ned(vtest::Axis::y) * dt_sync_s;
+
+		double lat_res = uav_lat_deg;
+		double lon_res = uav_lon_deg;
+		add_vector_to_global_position(uav_lat_deg, uav_lon_deg, delta_n, delta_e, &lat_res, &lon_res);
+		uav_lat_deg = lat_res;
+		uav_lon_deg = lon_res;
+		uav_alt_m = _uav_gps_position.alt_m - uav_vel_ned(vtest::Axis::z) * dt_sync_s;
+		uav_position_interpolated = true;
+	}
+
+	// Obtain GPS relative measurements in NED as target_global - uav_gps_global followed by global2local transformation
+	Vector3f gps_relative_pos;
+	get_vector_to_next_waypoint(uav_lat_deg, uav_lon_deg,
+				    target_gnss.latitude_deg, target_gnss.longitude_deg,
+				    &gps_relative_pos(0), &gps_relative_pos(1));
+
+	// Down direction (if the drone is above the target, the relative position is positive)
+	gps_relative_pos(2) = uav_alt_m - target_gnss.altitude_msl_m;
+
+	// Offset gps relative position to the center of mass:
+	if (_gps_pos_is_offset) {
+		if (!_gps_pos_offset_ned.valid
+		    || !isTimeDifferenceWithin(_gps_pos_offset_ned.timestamp, _uav_gps_position.timestamp, _meas_updated_timeout_us)) {
+
+			return false;
+		}
+
+		gps_relative_pos += _gps_pos_offset_ned.xyz;
+	}
+
+	// Var(aX - bY) = a^2 Var(X) + b^2Var(Y) - 2ab Cov(X,Y)
+	const float propagation_unc = uav_position_interpolated
+				      ? sq(_uav_gps_vel.uncertainty * dt_sync_s_abs) : 0.f;
+	const float gps_unc_horizontal = fmaxf(sq(_uav_gps_position.eph), _min_gps_pos_var)
+					 + fmaxf(sq(target_gnss.eph), _min_gps_pos_var)
+					 + propagation_unc;
+	const float gps_unc_vertical = fmaxf(sq(_uav_gps_position.epv), _min_gps_pos_var)
+				       + fmaxf(sq(target_gnss.epv), _min_gps_pos_var)
+				       + propagation_unc;
+
+	// GPS already in NED, no rotation required.
+	// Obs: [pos_rel + bias]
+	obs.meas_h_xyz(vtest::Axis::x, vtest::State::pos_rel) = 1;
+	obs.meas_h_xyz(vtest::Axis::y, vtest::State::pos_rel) = 1;
+	obs.meas_h_xyz(vtest::Axis::z, vtest::State::pos_rel) = 1;
+
+	if (_bias_set) {
+		obs.meas_h_xyz(vtest::Axis::x, vtest::State::bias) = 1;
+		obs.meas_h_xyz(vtest::Axis::y, vtest::State::bias) = 1;
+		obs.meas_h_xyz(vtest::Axis::z, vtest::State::bias) = 1;
+	}
+
+	obs.timestamp = target_gnss.timestamp_sample;
+
+	obs.meas_xyz = gps_relative_pos;
+
+	obs.meas_unc_xyz(vtest::Axis::x) = gps_unc_horizontal;
+	obs.meas_unc_xyz(vtest::Axis::y) = gps_unc_horizontal;
+	obs.meas_unc_xyz(vtest::Axis::z) = gps_unc_vertical;
+
+	obs.type = ObsType::Target_gps_pos;
+
+	obs.updated(vtest::Axis::x) = true;
+	obs.updated(vtest::Axis::y) = true;
+	obs.updated(vtest::Axis::z) = true;
+
+	// Keep track of the gps relative position
+	_pos_rel_gnss.timestamp = obs.timestamp;
+	_pos_rel_gnss.valid = (PX4_ISFINITE(gps_relative_pos(0)) && PX4_ISFINITE(gps_relative_pos(1))
+			       && PX4_ISFINITE(gps_relative_pos(2)));
+	_pos_rel_gnss.xyz = gps_relative_pos;
+
+	return true;
+}
+
+bool VTEPosition::fuseMeas(const Vector3f &vehicle_acc_ned, const TargetObs &target_obs)
+{
+	perf_begin(_vte_update_perf);
+
+	vte_aid_source3d_s target_innov = {};
+	target_innov.timestamp_sample = target_obs.timestamp;
+	target_innov.timestamp = hrt_absolute_time();
+	target_innov.time_last_predict = _last_predict;
+	target_innov.time_since_meas_ms = static_cast<float>(signedTimeDiffUs(_last_predict, target_obs.timestamp)) * 1e-3f;
+
+	bool any_axis_fused = false;
+	uint8_t history_steps = 0;
+
+	for (int j = 0; j < vtest::Axis::size; j++) {
+
+		if (!target_obs.updated(j)) {
+			target_innov.fusion_status[j] = static_cast<uint8_t>(FusionStatus::IDLE);
+			continue; // nothing to do for this axis
+		}
+
+		const ScalarMeas meas_input{target_obs.timestamp, target_obs.meas_xyz(j),
+					    target_obs.meas_unc_xyz(j), target_obs.meas_h_xyz.row(j)};
+
+		target_innov.observation[j] = meas_input.val;
+		target_innov.observation_variance[j] = meas_input.unc;
+
+		perf_begin(_vte_fusion_perf);
+		const FusionResult result = _target_est_pos[j].fuseScalarAtTime(meas_input, _last_predict, _nis_threshold);
+		perf_end(_vte_fusion_perf);
+
+		target_innov.innovation[j]          = result.innov;
+		target_innov.innovation_variance[j] = result.innov_var;
+		target_innov.test_ratio[j]          = result.test_ratio;
+		target_innov.fusion_status[j]       = static_cast<uint8_t>(result.status);
+		any_axis_fused |= (result.status == FusionStatus::FUSED_CURRENT ||
+				   result.status == FusionStatus::FUSED_OOSM);
+
+		if (result.status == FusionStatus::FUSED_OOSM) {
+			history_steps = math::max(result.history_steps, history_steps);
+		}
+	}
+
+	target_innov.history_steps = history_steps;
+
+	perf_end(_vte_update_perf);
+	publishInnov(target_innov, target_obs.type);
+
+	return any_axis_fused;
+}
+
+void VTEPosition::publishInnov(const vte_aid_source3d_s &target_innov, const ObsType type)
+{
+	// Publish innovations
+	switch (type) {
+	case ObsType::Target_gps_pos:
+		_vte_aid_gps_pos_target_pub.publish(target_innov);
+		break;
+
+	case ObsType::Mission_gps_pos:
+		_vte_aid_gps_pos_mission_pub.publish(target_innov);
+		break;
+
+	case ObsType::Uav_gps_vel:
+		_vte_aid_gps_vel_uav_pub.publish(target_innov);
+		break;
+
+	case ObsType::Target_gps_vel:
+		_vte_aid_gps_vel_target_pub.publish(target_innov);
+		break;
+
+	case ObsType::Fiducial_marker:
+		_vte_aid_fiducial_marker_pub.publish(target_innov);
+		break;
+
+	case ObsType::Type_count:
+		break;
+	}
+}
+
+void VTEPosition::publishTarget()
+{
+	_vte_state = {};
+	_target_pose = {};
+
+	_target_pose.timestamp = _last_predict;
+	_vte_state.timestamp = _last_predict;
+
+	_target_pose.rel_pos_valid = !hasTimedOut(_last_update, _target_valid_timeout_us);
+
+#if defined(CONFIG_VTEST_MOVING)
+	_target_pose.is_static = false;
+#else
+	_target_pose.is_static = true;
+#endif // CONFIG_VTEST_MOVING
+
+	// Get state
+	const matrix::Vector<float, vtest::State::size> &state_x = _target_est_pos[vtest::Axis::x].getState();
+	const matrix::Vector<float, vtest::State::size> &state_y = _target_est_pos[vtest::Axis::y].getState();
+	const matrix::Vector<float, vtest::State::size> &state_z = _target_est_pos[vtest::Axis::z].getState();
+
+	const matrix::Vector<float, vtest::State::size> state_var_x = _target_est_pos[vtest::Axis::x].getStateCovarianceDiag();
+	const matrix::Vector<float, vtest::State::size> state_var_y = _target_est_pos[vtest::Axis::y].getStateCovarianceDiag();
+	const matrix::Vector<float, vtest::State::size> state_var_z = _target_est_pos[vtest::Axis::z].getStateCovarianceDiag();
+
+	// Fill target relative pose
+	_target_pose.x_rel = state_x(vtest::State::pos_rel);
+	_target_pose.y_rel = state_y(vtest::State::pos_rel);
+	_target_pose.z_rel = state_z(vtest::State::pos_rel);
+
+	_target_pose.cov_x_rel = state_var_x(vtest::State::pos_rel);
+	_target_pose.cov_y_rel = state_var_y(vtest::State::pos_rel);
+	_target_pose.cov_z_rel = state_var_z(vtest::State::pos_rel);
+
+	// Fill target relative velocity
+	_target_pose.vx_rel = -state_x(vtest::State::vel_uav);
+	_target_pose.vy_rel = -state_y(vtest::State::vel_uav);
+	_target_pose.vz_rel = -state_z(vtest::State::vel_uav);
+
+	_target_pose.cov_vx_rel = state_var_x(vtest::State::vel_uav);
+	_target_pose.cov_vy_rel = state_var_y(vtest::State::vel_uav);
+	_target_pose.cov_vz_rel = state_var_z(vtest::State::vel_uav);
+
+#if defined(CONFIG_VTEST_MOVING)
+	// If target is moving, relative velocity = vel_target - vel_uav
+	_target_pose.vx_rel += state_x(vtest::State::vel_target);
+	_target_pose.vy_rel += state_y(vtest::State::vel_target);
+	_target_pose.vz_rel += state_z(vtest::State::vel_target);
+
+	// Var(aX + bY) = a^2 Var(x) + b^2 Var(y) + 2abCov(X,Y)
+	_target_pose.cov_vx_rel += state_var_x(vtest::State::vel_target);
+	_target_pose.cov_vy_rel += state_var_y(vtest::State::vel_target);
+	_target_pose.cov_vz_rel += state_var_z(vtest::State::vel_target);
+
+#endif // CONFIG_VTEST_MOVING
+
+	// Fill vision target estimator state
+	_vte_state.rel_pos[0] = _target_pose.x_rel;
+	_vte_state.rel_pos[1] = _target_pose.y_rel;
+	_vte_state.rel_pos[2] = _target_pose.z_rel;
+
+	_vte_state.cov_rel_pos[0] = _target_pose.cov_x_rel;
+	_vte_state.cov_rel_pos[1] = _target_pose.cov_y_rel;
+	_vte_state.cov_rel_pos[2] = _target_pose.cov_z_rel;
+
+	// Fill uav velocity
+	_vte_state.vel_uav[0] = state_x(vtest::State::vel_uav);
+	_vte_state.vel_uav[1] = state_y(vtest::State::vel_uav);
+	_vte_state.vel_uav[2] = state_z(vtest::State::vel_uav);
+
+	_vte_state.cov_vel_uav[0] = state_var_x(vtest::State::vel_uav);
+	_vte_state.cov_vel_uav[1] = state_var_y(vtest::State::vel_uav);
+	_vte_state.cov_vel_uav[2] = state_var_z(vtest::State::vel_uav);
+
+	_vte_state.bias[0] = state_x(vtest::State::bias);
+	_vte_state.bias[1] = state_y(vtest::State::bias);
+	_vte_state.bias[2] = state_z(vtest::State::bias);
+
+	_vte_state.cov_bias[0] = state_var_x(vtest::State::bias);
+	_vte_state.cov_bias[1] = state_var_y(vtest::State::bias);
+	_vte_state.cov_bias[2] = state_var_z(vtest::State::bias);
+
+#if defined(CONFIG_VTEST_MOVING)
+
+	_vte_state.vel_target[0] = state_x(vtest::State::vel_target);
+	_vte_state.vel_target[1] = state_y(vtest::State::vel_target);
+	_vte_state.vel_target[2] = state_z(vtest::State::vel_target);
+
+	_vte_state.cov_vel_target[0] = state_var_x(vtest::State::vel_target);
+	_vte_state.cov_vel_target[1] = state_var_y(vtest::State::vel_target);
+	_vte_state.cov_vel_target[2] = state_var_z(vtest::State::vel_target);
+
+	_vte_state.acc_target[0] = state_x(vtest::State::acc_target);
+	_vte_state.acc_target[1] = state_y(vtest::State::acc_target);
+	_vte_state.acc_target[2] = state_z(vtest::State::acc_target);
+
+	_vte_state.cov_acc_target[0] = state_var_x(vtest::State::acc_target);
+	_vte_state.cov_acc_target[1] = state_var_y(vtest::State::acc_target);
+	_vte_state.cov_acc_target[2] = state_var_z(vtest::State::acc_target);
+
+#endif // CONFIG_VTEST_MOVING
+
+	// If the target is static, valid and vision obs was fused recently, use the relative to aid the EKF2 state estimation.
+	// Check performed in EKF2 to use target vel: if (landing_target_pose.is_static && landing_target_pose.rel_vel_valid)
+	const hrt_abstime now = hrt_absolute_time();
+	_target_pose.rel_vel_valid = _target_pose.is_static && _param_vte_ekf_aid.get() && _target_pose.rel_pos_valid &&
+				     (_last_relative_meas_fused_time != 0) && (now >= _last_relative_meas_fused_time) &&
+				     (now - _last_relative_meas_fused_time) < _meas_recent_timeout_us;
+
+	// Prec land does not check _target_pose.abs_pos_valid. Only send the target if abs pose valid.
+	if (_local_position.valid && _target_pose.rel_pos_valid) {
+		_target_pose.x_abs = _target_pose.x_rel + _local_position.xyz(0);
+		_target_pose.y_abs = _target_pose.y_rel + _local_position.xyz(1);
+		_target_pose.z_abs = _target_pose.z_rel + _local_position.xyz(2);
+		_target_pose.abs_pos_valid = true;
+
+#if defined(CONFIG_VTEST_MOVING)
+
+		// If the target is moving, move towards its expected location
+		float mpc_z_v_auto_dn = _mpc_z_v_auto_dn;
+
+		static constexpr float kMinAbsMpcZVAutoDnMps = 1e-3f;
+
+		if (fabsf(mpc_z_v_auto_dn) < kMinAbsMpcZVAutoDnMps) {
+			mpc_z_v_auto_dn = (mpc_z_v_auto_dn >= 0.f) ? kMinAbsMpcZVAutoDnMps : -kMinAbsMpcZVAutoDnMps;
+		}
+
+		float intersection_time_s = fabsf(_target_pose.z_rel / mpc_z_v_auto_dn);
+		intersection_time_s = math::constrain(intersection_time_s, _param_vte_moving_t_min.get(),
+						      _param_vte_moving_t_max.get());
+
+		// Anticipate where the target will be
+		_target_pose.x_abs += _vte_state.vel_target[0] * intersection_time_s;
+		_target_pose.y_abs += _vte_state.vel_target[1] * intersection_time_s;
+		_target_pose.z_abs += _vte_state.vel_target[2] * intersection_time_s;
+
+#endif // CONFIG_VTEST_MOVING
+
+		_targetPosePub.publish(_target_pose);
+
+	}
+
+	_targetEstimatorStatePub.publish(_vte_state);
+
+	// TODO: decide what to do with Bias lim
+	float bias_lim = _param_vte_bias_lim.get();
+
+	if (((float)fabs(_vte_state.bias[0]) > bias_lim
+	     || (float)fabs(_vte_state.bias[1]) > bias_lim || (float)fabs(_vte_state.bias[2]) > bias_lim)) {
+
+		PX4_DEBUG("Bias exceeds limit: %.2f bias x: %.2f bias y: %.2f bias z: %.2f", (double)bias_lim,
+			  (double)_vte_state.bias[0], (double)_vte_state.bias[1], (double)_vte_state.bias[2]);
+
+		// resetFilter();
+	}
+
+}
+
+void VTEPosition::checkMeasurementInputs()
+{
+	// Make sure range sensor, local position and local velocity are up to date.
+	if (_range_sensor.valid) {
+		_range_sensor.valid = isMeasUpdated(_range_sensor.timestamp);
+	}
+
+	if (_local_position.valid) {
+		_local_position.valid = isMeasUpdated(_local_position.timestamp);
+	}
+
+	if (_local_velocity.valid) {
+		_local_velocity.valid = isMeasUpdated(_local_velocity.timestamp);
+	}
+
+#if defined(CONFIG_VTEST_MOVING)
+
+	if (_target_gps_vel.valid) {
+		_target_gps_vel.valid = isMeasUpdated(_target_gps_vel.timestamp);
+	}
+
+#endif // CONFIG_VTEST_MOVING
+
+	if (_pos_rel_gnss.valid) {
+		_pos_rel_gnss.valid = isMeasUpdated(_pos_rel_gnss.timestamp);
+	}
+
+	if (_velocity_offset_ned.valid) {
+		_velocity_offset_ned.valid = isMeasUpdated(_velocity_offset_ned.timestamp);
+	}
+
+	if (_gps_pos_offset_ned.valid) {
+		_gps_pos_offset_ned.valid = isMeasUpdated(_gps_pos_offset_ned.timestamp);
+	}
+
+	if (_uav_gps_vel.valid) {
+		_uav_gps_vel.valid = isMeasUpdated(_uav_gps_vel.timestamp);
+	}
+}
+
+void VTEPosition::set_gps_pos_offset(const matrix::Vector3f &xyz, const bool gps_is_offset)
+{
+	_gps_pos_is_offset = gps_is_offset;
+	_gps_pos_offset_ned.xyz = xyz;
+	_gps_pos_offset_ned.valid = PX4_ISFINITE(xyz(0))
+				    && PX4_ISFINITE(xyz(1))
+				    && PX4_ISFINITE(xyz(2));
+	_gps_pos_offset_ned.timestamp = hrt_absolute_time();
+}
+
+void VTEPosition::set_vel_offset(const matrix::Vector3f &xyz)
+{
+	_velocity_offset_ned.xyz = xyz;
+	_velocity_offset_ned.valid = PX4_ISFINITE(xyz(0))
+				     && PX4_ISFINITE(xyz(1))
+				     && PX4_ISFINITE(xyz(2));
+	_velocity_offset_ned.timestamp = hrt_absolute_time();
+}
+
+void VTEPosition::set_range_sensor(const float dist, const bool valid, hrt_abstime timestamp)
+{
+	_range_sensor.valid = valid && isMeasUpdated(timestamp) && (PX4_ISFINITE(dist) && dist > 0.f);
+	_range_sensor.dist_bottom = dist;
+	_range_sensor.timestamp = timestamp;
+}
+
+void VTEPosition::set_local_velocity(const matrix::Vector3f &vel_xyz, const bool vel_valid, hrt_abstime timestamp)
+{
+	_local_velocity.xyz = vel_xyz;
+	_local_velocity.valid = vel_valid && isMeasUpdated(timestamp);
+	_local_velocity.timestamp = timestamp;
+}
+
+void VTEPosition::set_local_position(const matrix::Vector3f &xyz, const bool pos_valid, hrt_abstime timestamp)
+{
+	_local_position.xyz = xyz;
+	_local_position.valid = pos_valid && isMeasUpdated(timestamp);
+	_local_position.timestamp = timestamp;
+}
+
+void VTEPosition::set_mission_position(const double lat_deg, const double lon_deg, const float alt_m)
+{
+	if (_vte_aid_mask.flags.use_mission_pos) {
+		_mission_land_position.lat_deg = lat_deg;
+		_mission_land_position.lon_deg = lon_deg;
+		_mission_land_position.alt_m = alt_m;
+		_mission_land_position.valid = isLatLonAltValid(_mission_land_position.lat_deg, _mission_land_position.lon_deg,
+					       _mission_land_position.alt_m, "Mission position ", &_mission_pos_warn_last);
+
+		if (_mission_land_position.valid) {
+			PX4_INFO("Mission position lat %.8f, lon %.8f [deg], alt %.1f [m]", lat_deg,
+				 lon_deg, (double)(alt_m));
+
+		} else {
+			if (shouldEmitWarning(_mission_pos_status_warn_last)) {
+				PX4_WARN("Mission position not used because not valid");
+			}
+		}
+
+	} else {
+		_mission_land_position.valid = false;
+	}
+}
+
+void VTEPosition::updateParams()
+{
+	parameter_update_s pupdate;
+	_parameter_update_sub.copy(&pupdate);
+
+	ModuleParams::updateParams();
+
+	_target_acc_unc = _param_vte_acc_t_unc.get();
+	_bias_unc = _param_vte_bias_unc.get();
+	_uav_acc_unc = _param_vte_acc_d_unc.get();
+	_ev_noise_md = _param_vte_ev_noise_md.get();
+	const float new_gps_vel_noise = _param_vte_gps_vel_noise.get();
+	const float new_gps_pos_noise = _param_vte_gps_pos_noise.get();
+	const float new_ev_pos_noise = _param_vte_ev_pos_noise.get();
+	const float new_nis_threshold = _param_vte_pos_nis_thre.get();
+
+	if (PX4_ISFINITE(new_gps_pos_noise) && new_gps_pos_noise > kMinObservationNoise) {
+		_min_gps_pos_var = new_gps_pos_noise * new_gps_pos_noise;
+
+	} else {
+		PX4_WARN("VTE: VTE_GPS_POS_NOISE %.1f <= %.1f, keeping previous value",
+			 (double)new_gps_pos_noise, (double)kMinObservationNoise);
+	}
+
+	if (PX4_ISFINITE(new_gps_vel_noise) && new_gps_vel_noise > kMinObservationNoise) {
+		_min_gps_vel_var = new_gps_vel_noise * new_gps_vel_noise;
+
+	} else {
+		PX4_WARN("VTE: VTE_GPS_VEL_NOISE %.1f <= %.1f, keeping previous value",
+			 (double)new_gps_vel_noise, (double)kMinObservationNoise);
+	}
+
+	if (PX4_ISFINITE(new_ev_pos_noise) && new_ev_pos_noise > kMinObservationNoise) {
+		_min_ev_pos_var = new_ev_pos_noise * new_ev_pos_noise;
+
+	} else {
+		PX4_WARN("VTE: VTE_EV_POS_NOISE %.1f <= %.1f, keeping previous value",
+			 (double)new_ev_pos_noise, (double)kMinObservationNoise);
+	}
+
+	if (PX4_ISFINITE(new_nis_threshold) && new_nis_threshold > kMinNisThreshold) {
+		_nis_threshold = new_nis_threshold;
+
+	} else {
+		PX4_WARN("VTE: VTE_POS_NIS_THRE %.1f <= %.1f, keeping previous value",
+			 (double)new_nis_threshold, (double)kMinNisThreshold);
+	}
+
+#if defined(CONFIG_VTEST_MOVING)
+
+	if (_param_mpc_z_v_auto_dn != PARAM_INVALID) {
+		float new_mpc_z_v_auto_dn = _mpc_z_v_auto_dn;
+
+		if (param_get(_param_mpc_z_v_auto_dn, &new_mpc_z_v_auto_dn) == PX4_OK) {
+			_mpc_z_v_auto_dn = new_mpc_z_v_auto_dn;
+		}
+	}
+
+#endif // CONFIG_VTEST_MOVING
+}
+
+bool VTEPosition::isLatLonAltValid(double lat_deg, double lon_deg, float alt_m, const char *who,
+				   hrt_abstime *warn_last)
+{
+	// all finite
+	if (!PX4_ISFINITE(lat_deg) || !PX4_ISFINITE(lon_deg) || !PX4_ISFINITE(alt_m)) {
+		if (who && (!warn_last || shouldEmitWarning(*warn_last))) {
+			PX4_WARN("%s position not finite! lat: %.8f, lon: %.8f, alt: %.1f",
+				 who, lat_deg, lon_deg, (double)alt_m);
+		}
+
+		return false;
+	}
+
+	// latitude/longitude within symmetric geographic ranges
+	if ((fabs(lat_deg) > kLatAbsMaxDeg) || (fabs(lon_deg) > kLonAbsMaxDeg)) {
+		if (who && (!warn_last || shouldEmitWarning(*warn_last))) {
+			PX4_WARN("%s lat/lon out of range! lat: %.8f, lon: %.8f", who, lat_deg, lon_deg);
+		}
+
+		return false;
+	}
+
+	// (0,0) sentinel is considered invalid
+	if ((fabs(lat_deg) < DBL_EPSILON) && (fabs(lon_deg) < DBL_EPSILON)) {
+		if (who && (!warn_last || shouldEmitWarning(*warn_last))) {
+			PX4_WARN("%s position near (0,0)!", who);
+		}
+
+		return false;
+	}
+
+	// altitude window
+	if ((alt_m < kAltMinM) || (alt_m > kAltMaxM)) {
+		if (who && (!warn_last || shouldEmitWarning(*warn_last))) {
+			PX4_WARN("%s altitude out of range! alt: %.1f [m] (limits: %.1f;%.1f)",
+				 who, (double)alt_m, (double)kAltMinM, (double)kAltMaxM);
+		}
+
+		return false;
+	}
+
+	return true;
+}
+
+} // namespace vision_target_estimator
