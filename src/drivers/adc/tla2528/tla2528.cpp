@@ -214,34 +214,53 @@ int TLA2528::probe()
 int TLA2528::configure()
 {
 	uint8_t send_data[3];
-	// Configure pins as analog
-	send_data[0] = SET_BIT;
+
+	// Configure all channels as AIN (Clear all bits in PIN_CFG and GPIO_CFG)
+	send_data[0] = CLEAR_BIT;
 	send_data[1] = PIN_CFG;
-	send_data[2] = 0x00;
+	send_data[2] = 0xFF;
 	int ret = transfer(&send_data[0], 3, nullptr, 0);
 
-	// Append channel-id to measurements
-	send_data[0] = SET_BIT;
-	send_data[1] = DATA_CFG;
-	send_data[2] = 0x10;
-	ret |= transfer(&send_data[0], 3, nullptr, 0);
-
-	// Activate all pins
-	send_data[0] = SET_BIT;
-	send_data[1] = AUTO_SEQ_CH_SEL;
+	send_data[0] = CLEAR_BIT;
+	send_data[1] = GPIO_CFG;
 	send_data[2] = 0xFF;
 	ret |= transfer(&send_data[0], 3, nullptr, 0);
 
-	// Set seq-mode
-	send_data[0] = SET_BIT;
+	// Enable analog inputs for sequencing (AUTO_SEQ_CHSEL)
+	send_data[0] = WRITE;
+	send_data[1] = AUTO_SEQ_CH_SEL;
+	send_data[2] = 0xFF;  // Select all channels
+	ret |= transfer(&send_data[0], 3, nullptr, 0);
+
+	// Select Auto-sequence mode (SEQ_MODE = 01b)
+	send_data[0] = WRITE;
 	send_data[1] = SEQUENCE_CFG;
 	send_data[2] = 0x01;
 	ret |= transfer(&send_data[0], 3, nullptr, 0);
 
-	if (ret != PX4_OK) {
-		perf_count(_comms_errors);
-		PX4_DEBUG("TLA2528::Configuring failed (%i)", ret);
-	}
+	// Set mode to autonomous monitoring (CONV_MODE = 01b)
+	send_data[0] = WRITE;
+	send_data[1] = OPMODE_CFG;
+	send_data[2] = 0x20;
+	ret |= transfer(&send_data[0], 3, nullptr, 0);
+
+	// Enable statistics module (STAT_EN = 1)
+	send_data[0] = SET_BIT;
+	send_data[1] = GENERAL_CFG;
+	send_data[2] = 0x20;
+	ret |= transfer(&send_data[0], 3, nullptr, 0);
+
+	// Start channel sequence (SEQ_START = 1)
+	send_data[0] = SET_BIT;
+	send_data[1] = SEQUENCE_CFG;
+	send_data[2] = 0x10;
+	ret |= transfer(&send_data[0], 3, nullptr, 0);
+
+	// Provide the first start of conversion (From the datasheet: "The first start of conversion must be provided by the host")
+	send_data[0] = SET_BIT;
+	send_data[1] = GENERAL_CFG;
+	send_data[2] = 0x08;
+	ret |= transfer(&send_data[0], 3, nullptr, 0);
 
 	return ret;
 }
