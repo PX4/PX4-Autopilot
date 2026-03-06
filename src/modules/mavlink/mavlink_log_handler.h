@@ -96,7 +96,7 @@ private:
 	bool log_entry_from_id(uint16_t log_id, LogEntry *entry);
 
 	// Log erase
-	void delete_all_logs(const char *dir);
+	void delete_all_logs(const char *dir, unsigned depth = 0);
 
 
 private:
