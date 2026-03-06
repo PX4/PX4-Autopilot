@@ -1,0 +1,12 @@
+menuconfig MODULES_FW_GUIDANCE_CONTROL
+	bool "fw_guidance_control"
+	default n
+	---help---
+		Enable support for fw_guidance_control
+
+menuconfig USER_FW_MODE_MANAGER
+	bool "fw_guidance_control running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && MODULES_FW_MODE_MANAGER
+	---help---
+		Put fw_guidance_control in userspace memory
