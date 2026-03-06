@@ -13,7 +13,13 @@ control_allocator start
 #
 # Start Multicopter Rate Controller.
 #
-mc_rate_control start
+if param greater -s MC_INDI_EN 0
+then
+	mc_indi_rate_control start
+else
+	mc_rate_control start
+fi
+
 
 #
 # Start Multicopter Attitude Controller.
