@@ -42,7 +42,7 @@ PX4 може використовувати це як [зовнішній INS] (
 
 Якщо використовується продукт з підтримкою GNSS, антена GNSS повинна бути жорстко монтуватися щодо інерційного датчика та мати необмежений вид на небо. Якщо використовується продукт з підтримкою двоканальної ГНСС (VN-3X0), друга антена повинна бути жорстко змонтована щодо первинної антени та інерціального датчика з неперешкодженим видом на небо.
 
-Для отримання додаткових вимог і рекомендацій щодо монтажу, див. відповідний [Керівний початок роботи](https://www.vectornav.com/resources/quick-start-guides).
+For more mounting requirements and recommendations, see the relevant [Quick Start Guide](https://www.vectornav.com/resources/technical-documentation/quick-start-guides).
 
 ## Конфігурація прошивки
 
@@ -82,7 +82,7 @@ PX4 може використовувати це як [зовнішній INS] (
 
 ## Конфігурація VectorNav
 
-Визначення для всіх команд та реєстрів, на які посилаються в цьому розділі, можна знайти в відповідному [VectorNav ICD](https://www.vectornav.com/resources/interface-control-documents).
+Definitions for all commands and registers referenced in this section can be found in the respective [VectorNav ICD](https://www.vectornav.com/resources/technical-documentation/interface-control-documents).
 
 Під час ініціалізації PX4 налаштовує пристрій VectorNav наступним чином:
 
@@ -137,5 +137,5 @@ PX4 може використовувати це як [зовнішній INS] (
 
 ## Характеристики обладнання
 
-- [Короткі описи продуктів](https://www.vectornav.com/resources/product-briefs)
-- [Документи з даними](https://www.vectornav.com/resources/datasheets)
+- [Product Briefs](https://www.vectornav.com/resources/product-information/product-briefs)
+- [Datasheets](https://www.vectornav.com/resources/technical-documentation/datasheets)

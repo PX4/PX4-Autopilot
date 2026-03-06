@@ -18,11 +18,11 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Назва                                                                                               | Тип      | Значення | Опис                                           |
-| --------------------------------------------------------------------------------------------------- | -------- | -------- | ---------------------------------------------- |
-| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                | `uint32` | 0        |                                                |
-| <a href="#RESULT_SUCCESS"></a> RESULT_SUCCESS                                  | `uint8`  | 0        |                                                |
-| <a href="#RESULT_FAILURE_OTHER"></a> RESULT_FAILURE_OTHER | `uint8`  | 100      | Mode failed (generic error) |
+| Назва                                                                                             | Тип      | Значення | Опис                                           |
+| ------------------------------------------------------------------------------------------------- | -------- | -------- | ---------------------------------------------- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                | `uint32` | 0        |                                                |
+| <a id="#RESULT_SUCCESS"></a> RESULT_SUCCESS                                  | `uint8`  | 0        |                                                |
+| <a id="#RESULT_FAILURE_OTHER"></a> RESULT_FAILURE_OTHER | `uint8`  | 100      | Mode failed (generic error) |
 
 ## Source Message
 

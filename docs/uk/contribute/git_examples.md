@@ -22,7 +22,7 @@
   ```sh
   cd PX4-Autopilot
   git submodule update --init --recursive
-  git remote add upstream https://github.com/PX4/PX4-Autopilot.git
+  git remote add upstream https://github.com/PX4/PX4-Autopilot
   ```
 
 - You should have now two remote repositories: One repository is called `upstream` that points to PX4/PX4-Autopilot, and one repository `origin` that points to your forked copy of the PX4 repository.
@@ -49,7 +49,7 @@
   git add <file name>
   ```
 
-  If you prefer having a GUI to add your files see [Gitk](https://git-scm.com/book/en/v2/Git-in-Other-Environments-Graphical-Interfaces) or [`git add -p`](https://nuclearsquid.com/writings/git-add/).
+  If you prefer having a GUI to add your files see [Gitk](https://git-scm.com/book/en/v2/Appendix-A:-Git-in-Other-Environments-Graphical-Interfaces) or [`git add -p`](https://nuclearsquid.com/writings/git-add/).
 
 -
 
@@ -59,7 +59,7 @@
 
   For a good commit message, please refer to the [Source Code Management](../contribute/code.md#commits-and-commit-messages) section.
 
-- Some time might have passed and the [upstream main](https://github.com/PX4/PX4-Autopilot.git) has changed.
+- Some time might have passed and the [upstream main](https://github.com/PX4/PX4-Autopilot) has changed.
   PX4 prefers a linear commit history and uses [git rebase](https://git-scm.com/book/en/v2/Git-Branching-Rebasing).
   Щоб включити найновіші зміни з початкової версії до локальної гілки, перейдіть до головної гілки
 
@@ -139,7 +139,7 @@ To get the source code for a _specific older release_ (tag):
 1. Clone the PX4-Autopilot repo and navigate into _PX4-Autopilot_ directory:
 
    ```sh
-   git clone https://github.com/PX4/PX4-Autopilot.git
+   git clone https://github.com/PX4/PX4-Autopilot
    cd PX4-Autopilot
    ```
 
@@ -179,7 +179,7 @@ The are [listed here](https://github.com/PX4/PX4-Autopilot/branches/all?query=re
 - Clone the PX4-Autopilot repo and navigate into _PX4-Autopilot_ directory:
 
   ```sh
-  git clone https://github.com/PX4/PX4-Autopilot.git
+  git clone https://github.com/PX4/PX4-Autopilot
   cd PX4-Autopilot
   ```
 

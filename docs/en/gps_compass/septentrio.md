@@ -10,7 +10,7 @@ Certain receivers are recommended for autopilot applications because of their ph
 
   Dual-antenna, ultra-low-power GNSS rover receiver with support for heading.
 
-- [AsteRx-m3 Pro+](https://www.septentrio.com/en/products/gps/gnss-boards/asterx-m3-pro-plus)
+- [AsteRx-m3 Pro+](https://www.septentrio.com/en/products/gnss-receivers/gnss-boards/asterx-m3-pro-plus)
 
   Dual-antenna, ultra-low-power versatile GNSS rover and base receiver with support for heading.
 
@@ -19,7 +19,7 @@ Certain receivers are recommended for autopilot applications because of their ph
   Single-antenna evaluation kit with support for L5 frequency band, based on the mosaic-X5 GNSS
   receiver module.
 
-- [mosaic-go heading](https://www.septentrio.com/en/products/gps/gnss-receiver-modules/mosaic-h-evaluation-kit)
+- [mosaic-go heading](https://www.septentrio.com/en/products/gnss-receivers/gnss-receiver-modules/mosaic-h-evaluation-kit)
 
   Dual-antenna evaluation kit with support for heading, based on the mosaic-H GNSS receiver module.
 

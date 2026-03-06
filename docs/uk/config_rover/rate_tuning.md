@@ -11,7 +11,7 @@ Configure the following [parameters](../advanced_config/parameters.md) in QGroun
 1. [RO_YAW_RATE_LIM](#RO_YAW_RATE_LIM): Maximum yaw rate you want to allow for your rover.
 
    :::tip
-   Limiting the yaw rate is necessary if the rover is prone rolling over, loosing traction at high speeds or if passenger comfort is important.
+   Limiting the yaw rate is necessary if the rover is prone rolling over, losing traction at high speeds or if passenger comfort is important.
    Small rovers especially can be prone to rolling over when steering aggressively at high speeds.
 
    If this is the case:

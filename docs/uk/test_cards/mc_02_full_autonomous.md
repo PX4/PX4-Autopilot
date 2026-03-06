@@ -54,7 +54,7 @@ Plan a mission on the ground. Ensure the mission has
 - Зліт повинен бути плавним, коли газ піднято
 - Місія має бути завантажена при першій спробі
 - Дрон повинен автоматично злетіти після ввімкнення автоматичного режиму
-- Vehicle shoud adjust height to RTL altitude before returning home
+- Vehicle should adjust height to RTL altitude before returning home
 - Після посадки, коптер не повинен підскакувати на землі
 
 <!--

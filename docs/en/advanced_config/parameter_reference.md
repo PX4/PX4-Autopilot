@@ -18479,7 +18479,7 @@ See COM_OBL_RC_ACT to configure action.
 
 ### COM_PARACHUTE (`INT32`) {#COM_PARACHUTE}
 
-Expect and require a healthy MAVLink parachute system.
+Require MAVLink parachute system to be present and healthy.
 
 | Reboot | minValue | maxValue | increment | default      | unit |
 | ------ | -------- | -------- | --------- | ------------ | ---- |
@@ -23219,12 +23219,9 @@ tail_output += CA_HELI_YAW_TH_S \* throttle
 
 Ice shedding cycle period.
 
-Ice shedding prevents ice buildup in VTOL aircraft motors by
-periodically spinning inactive rotors. When enabled (period
-
-> 0), every cycle lasts for the defined period and includes
-> a 2‑second spin at 0.01 motor output. If period <= 0, the
-> feature is disabled.
+Ice shedding prevents ice buildup in VTOL aircraft motors by periodically spinning inactive rotors.
+When enabled (period > 0), every cycle lasts for the defined period and includes a 2-second spin at 0.01 motor output.
+If period <= 0, the feature is disabled.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -38828,6 +38825,22 @@ Vehicle type.
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          |           | 0       |      |
+
+### SIH_WIND_E (`FLOAT`) {#SIH_WIND_E}
+
+Wind velocity from east direction.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0.0     | m/s  |
+
+### SIH_WIND_N (`FLOAT`) {#SIH_WIND_N}
+
+Wind velocity from north direction.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0.0     | m/s  |
 
 ## Simulator
 

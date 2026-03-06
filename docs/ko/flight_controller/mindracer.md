@@ -66,7 +66,7 @@ It is pre-built and automatically installed by _QGroundControl_ when appropriate
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make airmind_mindpx-v2_default
 ```
 
@@ -79,7 +79,7 @@ MindRacer에는 Adapt IO 보드가 부착되어 있습니다.
 MindRacer에는 UART-USB 변환기가 내장되어 있습니다.
 보조 컴퓨터를 연결하려면 인터페이스 보드에 MindRacer를 적재후, 보조 컴퓨터를 인터페이스 보드의 USB 포트에 연결합니다.
 
-그리고, 최대 BAUD 속도는 px4 제품군과 동일하며 최대 921600입니다.
+And the max BAUD rate is the same as for the PX4 family, which is up to 921600.
 
 ### 사용자 가이드
 
@@ -87,7 +87,7 @@ MindRacer에는 UART-USB 변환기가 내장되어 있습니다.
 The user guide is [here](http://mindpx.net/assets/accessories/mindracer_user_guide_v1.2.pdf)
 :::
 
-## 구매처
+## Where to Buy {#store}
 
 MindRacer is available at [AirMind Store](https://airmind.mindpx.net/catalog).
 Amazon<sup>&reg;</sup> 또는 eBay<sup>&reg;</sup>에서도 MindRacer를 구매할 수 있습니다.

@@ -16,10 +16,10 @@ pageClass: is-wide-page
 
 ## Constants
 
-| 명칭                                                                                            | 형식      | Value | 설명 |
-| --------------------------------------------------------------------------------------------- | ------- | ----- | -- |
-| <a href="#GF_STATUS_LOADING"></a> GF_STATUS_LOADING | `uint8` | 0     |    |
-| <a href="#GF_STATUS_READY"></a> GF_STATUS_READY     | `uint8` | 1     |    |
+| 명칭                                                                                          | 형식      | Value | 설명 |
+| ------------------------------------------------------------------------------------------- | ------- | ----- | -- |
+| <a id="#GF_STATUS_LOADING"></a> GF_STATUS_LOADING | `uint8` | 0     |    |
+| <a id="#GF_STATUS_READY"></a> GF_STATUS_READY     | `uint8` | 1     |    |
 
 ## Source Message
 

@@ -86,7 +86,7 @@ DroneCAN configuration in PX4 is explained in more detail in [DroneCAN > Enablin
 
 ### Конфігурація позиції датчика
 
-- For the the single Rover the module should be mounted with the included mast.
+- For the single Rover the module should be mounted with the included mast.
 - For the Dual ZED-F9P setup (moving baseline), the DroneCAN modules should be placed at least 30cm apart on the airframe and elevated on a mast also.
   See the following [mast](https://holybro.com/products/30-antenna-mount?_pos=20&_sid=67b49d76b&_ss=r).
 - F9P module arrow(s) should be pointing forward with respect to the autopilot orientation.

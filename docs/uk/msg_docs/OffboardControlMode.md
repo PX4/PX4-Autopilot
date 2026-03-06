@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Off-board control mode.
 
-**TOPICS:** offboard_controlmode
+**TOPICS:** offboard_control_mode
 
 ## Fields
 

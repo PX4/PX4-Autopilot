@@ -17,10 +17,10 @@ param set-default MAV_2_UDP_PRT 14550
 param set-default SENS_EN_INA226 1
 param set-default SENS_EN_THERMAL 1
 param set-default SENS_IMU_MODE 1
-param set-default SENS_IMU_TEMP 10.0
-#param set-default SENS_IMU_TEMP_FF 0.0
-#param set-default SENS_IMU_TEMP_I 0.025
-#param set-default SENS_IMU_TEMP_P 1.0
+param set-default HEATER1_TEMP 10.0
+#param set-default HEATER1_TEMP_FF 0.0
+#param set-default HEATER1_TEMP_I 0.025
+#param set-default HEATER1_TEMP_P 1.0
 
 param set-default UAVCAN_ESC_IFACE 2
 

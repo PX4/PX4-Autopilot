@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Глобальний набір точки встановлення у форматі координат WGS84. Ось наступні три способи вказівань (або просто наступні два або один).
 
-**TOPICS:** position_setpointtriplet
+**TOPICS:** position_setpoint_triplet
 
 ## Fields
 

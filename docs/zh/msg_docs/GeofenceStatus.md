@@ -16,10 +16,10 @@ pageClass: is-wide-page
 
 ## Constants
 
-| 参数名                                                                                           | 类型      | 值 | 描述 |
-| --------------------------------------------------------------------------------------------- | ------- | - | -- |
-| <a href="#GF_STATUS_LOADING"></a> GF_STATUS_LOADING | `uint8` | 0 |    |
-| <a href="#GF_STATUS_READY"></a> GF_STATUS_READY     | `uint8` | 1 |    |
+| 参数名                                                                                         | 类型      | 值 | 描述 |
+| ------------------------------------------------------------------------------------------- | ------- | - | -- |
+| <a id="#GF_STATUS_LOADING"></a> GF_STATUS_LOADING | `uint8` | 0 |    |
+| <a id="#GF_STATUS_READY"></a> GF_STATUS_READY     | `uint8` | 1 |    |
 
 ## Source Message
 

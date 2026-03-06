@@ -76,7 +76,7 @@ IMU data should be published at 800Hz (400Hz if using VN-300).
 
 ## VectorNav Configuration
 
-Definitions for all commands and registers referenced in this section can be found in the respective [VectorNav ICD](https://www.vectornav.com/resources/interface-control-documents). <!-- Link needs manual checking-->
+Definitions for all commands and registers referenced in this section can be found in the respective [VectorNav ICD](https://www.vectornav.com/resources/technical-documentation/interface-control-documents).
 
 Upon initialization, PX4 configures the VectorNav unit as follows:
 

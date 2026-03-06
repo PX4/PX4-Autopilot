@@ -5,7 +5,7 @@ PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://www.cuav.net) for hardware support or compliance issues.
 :::
 
-The [Nora](https://doc.cuav.net/flight-controller/x7/en/nora.html)<sup>&reg;</sup> flight controller is a high-performance autopilot.
+The [Nora](https://doc.cuav.net/controller/x7/en/nora-plus.html)<sup>&reg;</sup> flight controller is a high-performance autopilot.
 It is an ideal choice for industrial drones and large-scale heavy-duty drones.
 It is mainly supplied to commercial manufacturers.
 
@@ -31,7 +31,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - High performance processor
 
 :::tip
-The manufacturer [CUAV Docs](https://doc.cuav.net/flight-controller/x7/en/nora.html) are the canonical reference for Nora.
+The manufacturer [CUAV Docs](https://doc.cuav.net/controller/x7/en/nora-plus.html) are the canonical reference for Nora.
 They should be used by preference as they contain the most complete and up to date information.
 :::
 
@@ -76,14 +76,14 @@ When it runs PX4 firmware, only 8 PWM outputs work.
 The remaining 6 PWM ports are still being adapted (so it is not compatible with VOLT at time of writing).
 :::
 
-## 购买渠道
+## Where to Buy {#store}
 
 - [CUAV Store](https://store.cuav.net)<\br>
 - [CUAV Aliexpress](https://www.aliexpress.com/item/4001042501927.html?gps-id=8041884&scm=1007.14677.110221.0&scm_id=1007.14677.110221.0&scm-url=1007.14677.110221.0&pvid=3dc0a3ba-fa82-43d2-b0b3-6280e4329cef&spm=a2g0o.store_home.promoteRecommendProducts_7913969.58)
 
 ## Connections (Wiring)
 
-[CUAV nora Wiring Quickstart](https://doc.cuav.net/flight-controller/x7/en/quick-start/quick-start-nora.html)
+[CUAV nora Wiring Quickstart](https://doc.cuav.net/controller/x7/en/quick-start/quick-start-nora.html)
 
 ## Size and Pinouts
 
@@ -120,7 +120,7 @@ It is pre-built and automatically installed by _QGroundControl_ when appropriate
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make cuav_nora_default
 ```
 
@@ -171,6 +171,6 @@ The complete set of supported configurations can be seen in the [Airframes Refer
 
 ## 更多信息
 
-- [Quick start](https://doc.cuav.net/flight-controller/x7/en/quick-start/quick-start-nora.html)
+- [Quick start](https://doc.cuav.net/controller/x7/en/quick-start/quick-start-nora.html)
 - [CUAV docs](https://doc.cuav.net/)
 - [nora schematic](https://github.com/cuav/hardware/tree/master/X7_Autopilot)
