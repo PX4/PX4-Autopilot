@@ -102,15 +102,11 @@ int ADS7128::poll_calibrate()
 	uint8_t send_data[2] = {READ, GENERAL_CFG};
 	uint8_t recv_data;
 
-	for (int i = 0; i < 3; i++) {
-		int ret = transfer(&send_data[0], 2, nullptr, 0);
-		ret |= transfer(nullptr, 0, &recv_data, 1);
+	int ret = transfer(&send_data[0], 2, nullptr, 0);
+	ret |= transfer(nullptr, 0, &recv_data, 1);
 
-		if (ret == PX4_OK && !(recv_data & 2u)) {
-			return PX4_OK;
-		}
-
-		px4_usleep(10000);
+	if (ret == PX4_OK && !(recv_data & 2u)) {
+		return PX4_OK;
 	}
 
 	return PX4_ERROR;
@@ -128,15 +124,11 @@ int ADS7128::poll_reset()
 	uint8_t send_data[2] = {READ, GENERAL_CFG};
 	uint8_t recv_data;
 
-	for (int i = 0; i < 3; i++) {
-		int ret = transfer(&send_data[0], 2, nullptr, 0);
-		ret |= transfer(nullptr, 0, &recv_data, 1);
+	int ret = transfer(&send_data[0], 2, nullptr, 0);
+	ret |= transfer(nullptr, 0, &recv_data, 1);
 
-		if (ret == PX4_OK && !(recv_data & 1u)) {
-			return PX4_OK;
-		}
-
-		px4_usleep(10000);
+	if (ret == PX4_OK && !(recv_data & 1u)) {
+		return PX4_OK;
 	}
 
 	return PX4_ERROR;
