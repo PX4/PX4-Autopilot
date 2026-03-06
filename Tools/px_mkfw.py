@@ -102,10 +102,10 @@ if args.description != None:
 if args.git_identity != None:
 	git_dir = os.path.join(args.git_identity, '.git')
 	p = subprocess.run(["git", "--git-dir", git_dir, "describe", "--exclude", "ext/*", "--always", "--tags"],
-		capture_output=True, text=True)
+		stdout=subprocess.PIPE, text=True)
 	desc['git_identity']	= p.stdout.strip()
 	p = subprocess.run(["git", "--git-dir", git_dir, "rev-parse", "--verify", "HEAD"],
-		capture_output=True, text=True)
+		stdout=subprocess.PIPE, text=True)
 	desc['git_hash']	= p.stdout.strip()
 if args.parameter_xml != None:
 	f = open(args.parameter_xml, "rb")
