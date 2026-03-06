@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2025 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -89,17 +89,8 @@ int TLA2528::init()
 
 int TLA2528::init_calibrate()
 {
-	uint8_t send_data[3];
-	send_data[0] = SET_BIT;
-	send_data[1] = GENERAL_CFG;
-	send_data[2] = 0x02;
+	uint8_t send_data[3] = {SET_BIT, GENERAL_CFG, 0x02};
 	int ret = transfer(&send_data[0], 3, nullptr, 0);
-
-	if (ret != PX4_OK) {
-		PX4_DEBUG("TLA2528::Initializing Calibration failed (%i)", ret);
-		perf_count(_comms_errors);
-	}
-
 	return ret;
 }
 
@@ -123,17 +114,8 @@ int TLA2528::poll_calibrate()
 
 int TLA2528::init_reset()
 {
-	uint8_t send_data[3];
-	send_data[0] = SET_BIT;
-	send_data[1] = GENERAL_CFG;
-	send_data[2] = 0x01;
+	uint8_t send_data[3] = {SET_BIT, GENERAL_CFG, 0x01};
 	int ret = transfer(&send_data[0], 3, nullptr, 0);
-
-	if (ret != PX4_OK) {
-		PX4_DEBUG("TLA2528::Initializing Reset failed (%i)", ret);
-		perf_count(_comms_errors);
-	}
-
 	return ret;
 }
 
