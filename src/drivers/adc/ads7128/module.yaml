@@ -22,9 +22,18 @@ parameters:
                 The voltage applied to the ADS7128 board as reference
         type: float
         unit: V
+<<<<<<< HEAD
         min: 2.35
         max: 5.5
         decimal: 2
         increment: 0.01
         reboot_required: true
         default: 3.3
+=======
+        min: 2.0
+        max: 3.0
+        decimal: 2
+        increment: 0.01
+        reboot_required: true
+        default: 2.5
+>>>>>>> c1d1d6c244914f7a34fc58503a8797661c646b2f
