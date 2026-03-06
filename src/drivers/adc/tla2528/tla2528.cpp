@@ -96,20 +96,17 @@ int TLA2528::init_calibrate()
 
 int TLA2528::poll_calibrate()
 {
-	uint8_t send_data[2];
+	uint8_t send_data[2] = {READ, GENERAL_CFG};
 	uint8_t recv_data;
-	send_data[0] = READ;
-	send_data[1] = GENERAL_CFG;
+
 	int ret = transfer(&send_data[0], 2, nullptr, 0);
 	ret |= transfer(nullptr, 0, &recv_data, 1);
 
-	if (recv_data & 2u) {
-		PX4_DEBUG("TLA2528::Calibration not yet finished");
-		perf_count(_comms_errors);
-		return PX4_ERROR;
+	if (ret == PX4_OK && !(recv_data & 2u)) {
+		return PX4_OK;
 	}
 
-	return ret;
+	return PX4_ERROR;
 }
 
 int TLA2528::init_reset()
@@ -121,24 +118,17 @@ int TLA2528::init_reset()
 
 int TLA2528::poll_reset()
 {
-	uint8_t send_data[2];
+	uint8_t send_data[2] = {READ, GENERAL_CFG};
 	uint8_t recv_data;
-	send_data[0] = READ;
-	send_data[1] = GENERAL_CFG;
+
 	int ret = transfer(&send_data[0], 2, nullptr, 0);
 	ret |= transfer(nullptr, 0, &recv_data, 1);
 
-	if (ret != PX4_OK) {
-		perf_count(_comms_errors);
-		return ret;
+	if (ret == PX4_OK && !(recv_data & 1u)) {
+		return PX4_OK;
 	}
 
-	if (recv_data & 1u) {
-		PX4_DEBUG("TLA2528::Reset not finished");
-		return PX4_ERROR;
-	}
-
-	return ret;
+	return PX4_ERROR;
 }
 
 void TLA2528::adc_get()
