@@ -42,10 +42,10 @@ matrix::Matrix<Scalar, 3, 3> YawEstPredictCovariance(const matrix::Matrix<Scalar
   const Scalar _tmp2 = -_tmp0 * d_vel(1, 0) - _tmp1 * d_vel(0, 0);
   const Scalar _tmp3 = P(0, 2) + P(2, 2) * _tmp2;
   const Scalar _tmp4 =
-      std::pow(_tmp0, Scalar(2)) * d_vel_var + std::pow(_tmp1, Scalar(2)) * d_vel_var;
+      ((_tmp0) * (_tmp0)) * d_vel_var + ((_tmp1) * (_tmp1)) * d_vel_var;
   const Scalar _tmp5 = _tmp0 * d_vel(0, 0) - _tmp1 * d_vel(1, 0);
   const Scalar _tmp6 = P(1, 2) + P(2, 2) * _tmp5;
-  const Scalar _tmp7 = std::pow(d_ang, Scalar(2)) + 1;
+  const Scalar _tmp7 = ((d_ang) * (d_ang)) + 1;
 
   // Output terms (1)
   matrix::Matrix<Scalar, 3, 3> _res;
@@ -57,7 +57,7 @@ matrix::Matrix<Scalar, 3, 3> YawEstPredictCovariance(const matrix::Matrix<Scalar
   _res(1, 1) = P(1, 1) + P(2, 1) * _tmp5 + _tmp4 + _tmp5 * _tmp6;
   _res(0, 2) = _tmp3 * _tmp7;
   _res(1, 2) = _tmp6 * _tmp7;
-  _res(2, 2) = P(2, 2) * std::pow(_tmp7, Scalar(2)) + d_ang_var;
+  _res(2, 2) = P(2, 2) * ((_tmp7) * (_tmp7)) + d_ang_var;
 
   return _res;
 }  // NOLINT(readability/fn_size)

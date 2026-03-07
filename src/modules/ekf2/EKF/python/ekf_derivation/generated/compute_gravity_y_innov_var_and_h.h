@@ -35,8 +35,8 @@ void ComputeGravityYInnovVarAndH(const matrix::Matrix<Scalar, 25, 1>& state,
 
   // Intermediate terms (2)
   const Scalar _tmp0 = -2 * state(0, 0) * state(3, 0) + 2 * state(1, 0) * state(2, 0);
-  const Scalar _tmp1 = -std::pow(state(0, 0), Scalar(2)) + std::pow(state(1, 0), Scalar(2)) -
-                       std::pow(state(2, 0), Scalar(2)) + std::pow(state(3, 0), Scalar(2));
+  const Scalar _tmp1 = -((state(0, 0)) * (state(0, 0))) + ((state(1, 0)) * (state(1, 0))) -
+                       ((state(2, 0)) * (state(2, 0))) + ((state(3, 0)) * (state(3, 0)));
 
   // Output terms (2)
   if (innov_var != nullptr) {

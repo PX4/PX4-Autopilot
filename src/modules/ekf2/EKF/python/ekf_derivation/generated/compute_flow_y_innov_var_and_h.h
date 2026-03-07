@@ -38,8 +38,8 @@ void ComputeFlowYInnovVarAndH(const matrix::Matrix<Scalar, 25, 1>& state,
   const Scalar _tmp0 = 2 * state(0, 0);
   const Scalar _tmp1 = 2 * state(1, 0);
   const Scalar _tmp2 = -_tmp0 * state(2, 0) + _tmp1 * state(3, 0);
-  const Scalar _tmp3 = 1 - 2 * std::pow(state(2, 0), Scalar(2));
-  const Scalar _tmp4 = _tmp3 - 2 * std::pow(state(1, 0), Scalar(2));
+  const Scalar _tmp3 = 1 - 2 * ((state(2, 0)) * (state(2, 0)));
+  const Scalar _tmp4 = _tmp3 - 2 * ((state(1, 0)) * (state(1, 0)));
   const Scalar _tmp5 = -epsilon * (2 * math::min<Scalar>(0, (((state(24, 0) - state(9, 0)) > 0) -
                                                             ((state(24, 0) - state(9, 0)) < 0))) +
                                    1) -
@@ -50,10 +50,10 @@ void ComputeFlowYInnovVarAndH(const matrix::Matrix<Scalar, 25, 1>& state,
   const Scalar _tmp9 = _tmp2 * _tmp8;
   const Scalar _tmp10 = _tmp0 * state(3, 0) + _tmp1 * state(2, 0);
   const Scalar _tmp11 = _tmp10 * _tmp8;
-  const Scalar _tmp12 = _tmp3 - 2 * std::pow(state(3, 0), Scalar(2));
+  const Scalar _tmp12 = _tmp3 - 2 * ((state(3, 0)) * (state(3, 0)));
   const Scalar _tmp13 = _tmp10 * state(5, 0) + _tmp12 * state(4, 0) + _tmp2 * state(6, 0);
   const Scalar _tmp14 =
-      _tmp13 * _tmp4 * (((_tmp5) > 0) - ((_tmp5) < 0)) / std::pow(_tmp6, Scalar(2));
+      _tmp13 * _tmp4 * (((_tmp5) > 0) - ((_tmp5) < 0)) / ((_tmp6) * (_tmp6));
   const Scalar _tmp15 = 4 * state(4, 0);
   const Scalar _tmp16 = 2 * state(5, 0);
   const Scalar _tmp17 = 4 * _tmp13 * _tmp7;

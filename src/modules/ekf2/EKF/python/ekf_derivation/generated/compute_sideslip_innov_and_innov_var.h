@@ -35,8 +35,8 @@ void ComputeSideslipInnovAndInnovVar(const matrix::Matrix<Scalar, 25, 1>& state,
   // Input arrays
 
   // Intermediate terms (49)
-  const Scalar _tmp0 = 1 - 2 * std::pow(state(3, 0), Scalar(2));
-  const Scalar _tmp1 = _tmp0 - 2 * std::pow(state(1, 0), Scalar(2));
+  const Scalar _tmp0 = 1 - 2 * ((state(3, 0)) * (state(3, 0)));
+  const Scalar _tmp1 = _tmp0 - 2 * ((state(1, 0)) * (state(1, 0)));
   const Scalar _tmp2 = -state(23, 0) + state(5, 0);
   const Scalar _tmp3 = 2 * state(3, 0);
   const Scalar _tmp4 = _tmp3 * state(0, 0);
@@ -47,17 +47,17 @@ void ComputeSideslipInnovAndInnovVar(const matrix::Matrix<Scalar, 25, 1>& state,
   const Scalar _tmp9 = 2 * state(2, 0);
   const Scalar _tmp10 = _tmp5 * state(0, 0) + _tmp9 * state(3, 0);
   const Scalar _tmp11 = _tmp1 * _tmp2 + _tmp10 * state(6, 0) + _tmp7 * _tmp8;
-  const Scalar _tmp12 = _tmp0 - 2 * std::pow(state(2, 0), Scalar(2));
+  const Scalar _tmp12 = _tmp0 - 2 * ((state(2, 0)) * (state(2, 0)));
   const Scalar _tmp13 = _tmp4 + _tmp6;
   const Scalar _tmp14 = _tmp5 * state(3, 0) - _tmp9 * state(0, 0);
   const Scalar _tmp15 = _tmp12 * _tmp8 + _tmp13 * _tmp2 + _tmp14 * state(6, 0);
   const Scalar _tmp16 = _tmp15 + epsilon * ((((_tmp15) > 0) - ((_tmp15) < 0)) + Scalar(0.5));
   const Scalar _tmp17 = Scalar(1.0) / (_tmp16);
   const Scalar _tmp18 = _tmp1 * _tmp17;
-  const Scalar _tmp19 = std::pow(_tmp16, Scalar(2));
+  const Scalar _tmp19 = ((_tmp16) * (_tmp16));
   const Scalar _tmp20 = _tmp11 / _tmp19;
   const Scalar _tmp21 = _tmp13 * _tmp20;
-  const Scalar _tmp22 = _tmp19 / (std::pow(_tmp11, Scalar(2)) + _tmp19);
+  const Scalar _tmp22 = _tmp19 / (((_tmp11) * (_tmp11)) + _tmp19);
   const Scalar _tmp23 = _tmp22 * (-_tmp18 + _tmp21);
   const Scalar _tmp24 = _tmp12 * _tmp20;
   const Scalar _tmp25 = _tmp17 * _tmp7;

@@ -34,8 +34,8 @@ matrix::Matrix<Scalar, 24, 1> ComputeSideslipH(const matrix::Matrix<Scalar, 25, 
   const Scalar _tmp1 = 2 * state(1, 0);
   const Scalar _tmp2 = 2 * state(6, 0);
   const Scalar _tmp3 = _tmp2 * state(3, 0);
-  const Scalar _tmp4 = 1 - 2 * std::pow(state(3, 0), Scalar(2));
-  const Scalar _tmp5 = _tmp4 - 2 * std::pow(state(2, 0), Scalar(2));
+  const Scalar _tmp4 = 1 - 2 * ((state(3, 0)) * (state(3, 0)));
+  const Scalar _tmp5 = _tmp4 - 2 * ((state(2, 0)) * (state(2, 0)));
   const Scalar _tmp6 = 2 * state(0, 0);
   const Scalar _tmp7 = _tmp6 * state(3, 0);
   const Scalar _tmp8 = 2 * state(2, 0);
@@ -47,13 +47,13 @@ matrix::Matrix<Scalar, 24, 1> ComputeSideslipH(const matrix::Matrix<Scalar, 25, 
   const Scalar _tmp14 = _tmp13 + epsilon * ((((_tmp13) > 0) - ((_tmp13) < 0)) + Scalar(0.5));
   const Scalar _tmp15 = Scalar(1.0) / (_tmp14);
   const Scalar _tmp16 = _tmp2 * state(0, 0);
-  const Scalar _tmp17 = std::pow(_tmp14, Scalar(2));
-  const Scalar _tmp18 = _tmp4 - 2 * std::pow(state(1, 0), Scalar(2));
+  const Scalar _tmp17 = ((_tmp14) * (_tmp14));
+  const Scalar _tmp18 = _tmp4 - 2 * ((state(1, 0)) * (state(1, 0)));
   const Scalar _tmp19 = -_tmp7 + _tmp9;
   const Scalar _tmp20 = _tmp6 * state(1, 0) + _tmp8 * state(3, 0);
   const Scalar _tmp21 = _tmp0 * _tmp19 + _tmp11 * _tmp18 + _tmp20 * state(6, 0);
   const Scalar _tmp22 = _tmp21 / _tmp17;
-  const Scalar _tmp23 = _tmp17 / (_tmp17 + std::pow(_tmp21, Scalar(2)));
+  const Scalar _tmp23 = _tmp17 / (_tmp17 + ((_tmp21) * (_tmp21)));
   const Scalar _tmp24 = (Scalar(1) / Scalar(2)) * _tmp23;
   const Scalar _tmp25 = _tmp24 * (_tmp15 * (_tmp0 * _tmp1 + _tmp3) -
                                   _tmp22 * (-4 * _tmp0 * state(2, 0) + _tmp1 * _tmp11 - _tmp16));

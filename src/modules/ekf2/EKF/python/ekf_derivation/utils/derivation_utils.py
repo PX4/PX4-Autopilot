@@ -72,6 +72,9 @@ def generate_px4_function(function_name, output_names):
             line = line.replace("Eigen", "matrix")
             line = line.replace("matrix/Dense", "matrix/math.hpp")
 
+            # Replace std::pow(x, Scalar(2)) with (x) * (x) to avoid expensive library calls
+            line = re.sub(r'std::pow\(([^()]*(?:\([^()]*\)[^()]*)*), Scalar\(2\)\)', r'((\1) * (\1))', line)
+
             # don't allow underscore + uppercase identifier naming (always reserved for any use)
             line = re.sub(r'_([A-Z])', lambda x: '_' + x.group(1).lower(), line)
 
