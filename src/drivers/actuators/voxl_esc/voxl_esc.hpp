@@ -176,6 +176,7 @@ private:
 		int32_t		esc_over_temp_threshold{0};
 		int32_t		gpio_ctl_channel{0};
 		int32_t		cmd_type{0};
+		int32_t		turtle_button_on{-1};
 	} voxl_esc_params_t;
 
 	struct EscChan {
