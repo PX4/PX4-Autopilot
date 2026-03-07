@@ -112,3 +112,38 @@ keys/
 
 # metadata
 _emscripten_sdk/
+
+# AI coding agents -- only AGENTS.md is committed
+# Tool-specific configs, settings, and local state
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+.cursor/
+.cursorrules
+.cursorignore
+.cursorindexingignore
+.windsurf/
+.windsurfrules
+.codeiumignore
+.aider*
+.clinerules
+.clinerules-*
+.clineignore
+.continue/
+.continuerc.json
+.continueignore
+.codex/
+.amazonq/
+.augment/
+.augmentignore
+.augment-guidelines
+.cody/
+.junie/
+.tabnine_root
+.tabnineignore
+GEMINI.md
+.gemini/
+.geminiignore
+.aiexclude
+.mcp.json
+.claudeignore
