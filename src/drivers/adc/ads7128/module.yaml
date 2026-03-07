@@ -1,20 +1,20 @@
 __max_num_config_instances: &max_num_config_instances 1
 
-module_name: TLA2528
+module_name: ADS7128
 
 parameters:
   - group: ADC
     definitions:
-      ADC_TLA2528_REFV:
+      ADC_ADS7128_REFV:
         description:
             short: Applied reference Voltage.
             long: |
-                The voltage applied to the TLA2528 board as reference
+                The voltage applied to the ADS7128 board as reference
         type: float
         unit: V
-        min: 2.0
-        max: 3.0
+        min: 2.35
+        max: 5.5
         decimal: 2
         increment: 0.01
         reboot_required: true
-        default: 2.5
+        default: 3.3
