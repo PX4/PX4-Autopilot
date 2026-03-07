@@ -42,7 +42,7 @@ parameters:
     EKF2_GND_EFF_DZ:
       description:
         short: Baro deadzone range for height fusion
-        long: Sets the value of deadzone applied to negative baro innovations. Deadzone
+        long: Sets the value of deadzone applied to baro innovations. Deadzone
           is enabled when EKF2_GND_EFF_DZ > 0.
       type: float
       default: 4.0
@@ -53,8 +53,8 @@ parameters:
     EKF2_GND_MAX_HGT:
       description:
         short: Height above ground level for ground effect zone
-        long: Sets the maximum distance to the ground level where negative baro innovations
-          are expected.
+        long: Sets the maximum distance to the ground level where baro ground effect
+          is expected.
       type: float
       default: 0.5
       min: 0.0
