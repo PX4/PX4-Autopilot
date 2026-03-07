@@ -333,6 +333,7 @@ bootloaders_update: \
 	cuav_fmu-v6x_bootloader \
 	cuav_x25-evo_bootloader \
 	cuav_x25-super_bootloader \
+	cuav_x25-mega_bootloader \
 	cubepilot_cubeorange_bootloader \
 	cubepilot_cubeorangeplus_bootloader \
 	hkust_nxt-dual_bootloader \
