@@ -32,8 +32,8 @@ matrix::Matrix<Scalar, 24, 1> ComputeAirspeedH(const matrix::Matrix<Scalar, 25, 
   // Intermediate terms (5)
   const Scalar _tmp0 = -state(23, 0) + state(5, 0);
   const Scalar _tmp1 = -state(22, 0) + state(4, 0);
-  const Scalar _tmp2 = std::pow(Scalar(std::pow(_tmp0, Scalar(2)) + std::pow(_tmp1, Scalar(2)) +
-                                       epsilon + std::pow(state(6, 0), Scalar(2))),
+  const Scalar _tmp2 = std::pow(Scalar((_tmp0) * (_tmp0) + (_tmp1) * (_tmp1) +
+                                       epsilon + (state(6, 0)) * (state(6, 0))),
                                 Scalar(Scalar(-1) / Scalar(2)));
   const Scalar _tmp3 = _tmp1 * _tmp2;
   const Scalar _tmp4 = _tmp0 * _tmp2;

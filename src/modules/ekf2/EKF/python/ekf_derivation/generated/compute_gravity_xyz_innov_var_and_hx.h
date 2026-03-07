@@ -39,9 +39,9 @@ void ComputeGravityXyzInnovVarAndHx(const matrix::Matrix<Scalar, 25, 1>& state,
   const Scalar _tmp2 = 2 * state(2, 0);
   const Scalar _tmp3 = _tmp2 * state(1, 0);
   const Scalar _tmp4 = _tmp1 - _tmp3;
-  const Scalar _tmp5 = std::pow(state(3, 0), Scalar(2));
-  const Scalar _tmp6 = std::pow(state(0, 0), Scalar(2));
-  const Scalar _tmp7 = std::pow(state(1, 0), Scalar(2)) - std::pow(state(2, 0), Scalar(2));
+  const Scalar _tmp5 = (state(3, 0)) * (state(3, 0));
+  const Scalar _tmp6 = (state(0, 0)) * (state(0, 0));
+  const Scalar _tmp7 = (state(1, 0)) * (state(1, 0)) - (state(2, 0)) * (state(2, 0));
   const Scalar _tmp8 = -_tmp5 + _tmp6 + _tmp7;
   const Scalar _tmp9 = _tmp1 + _tmp3;
   const Scalar _tmp10 = _tmp5 - _tmp6 + _tmp7;

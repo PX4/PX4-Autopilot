@@ -59,7 +59,7 @@ void ComputeMagZInnovVarAndH(const matrix::Matrix<Scalar, 25, 1>& state,
   const Scalar _tmp10 =
       -_tmp2 * state(2, 0) - _tmp4 * state(1, 0) + _tmp6 * state(0, 0) + _tmp7 * state(3, 0);
   const Scalar _tmp11 =
-      -2 * std::pow(state(1, 0), Scalar(2)) - 2 * std::pow(state(2, 0), Scalar(2)) + 1;
+      -2 * (state(1, 0)) * (state(1, 0)) - 2 * (state(2, 0)) * (state(2, 0)) + 1;
   const Scalar _tmp12 = 2 * state(2, 0);
   const Scalar _tmp13 = _tmp12 * state(3, 0) - _tmp3 * state(0, 0);
   const Scalar _tmp14 = _tmp12 * state(0, 0) + _tmp3 * state(3, 0);

@@ -42,18 +42,18 @@ void ComputeFlowXyInnovVarAndHx(const matrix::Matrix<Scalar, 25, 1>& state,
   const Scalar _tmp3 = _tmp2 * state(1, 0);
   const Scalar _tmp4 = -_tmp1 + _tmp3;
   const Scalar _tmp5 = _tmp0 * state(1, 0) + _tmp2 * state(3, 0);
-  const Scalar _tmp6 = -2 * std::pow(state(3, 0), Scalar(2));
-  const Scalar _tmp7 = 1 - 2 * std::pow(state(1, 0), Scalar(2));
+  const Scalar _tmp6 = -2 * (state(3, 0)) * (state(3, 0));
+  const Scalar _tmp7 = 1 - 2 * (state(1, 0)) * (state(1, 0));
   const Scalar _tmp8 = _tmp6 + _tmp7;
   const Scalar _tmp9 = _tmp4 * state(4, 0) + _tmp5 * state(6, 0) + _tmp8 * state(5, 0);
-  const Scalar _tmp10 = -2 * std::pow(state(2, 0), Scalar(2));
+  const Scalar _tmp10 = -2 * (state(2, 0)) * (state(2, 0));
   const Scalar _tmp11 = _tmp10 + _tmp7;
   const Scalar _tmp12 = -epsilon * (2 * math::min<Scalar>(0, (((state(24, 0) - state(9, 0)) > 0) -
                                                              ((state(24, 0) - state(9, 0)) < 0))) +
                                     1) -
                         state(24, 0) + state(9, 0);
   const Scalar _tmp13 = std::fabs(_tmp12);
-  const Scalar _tmp14 = _tmp11 * (((_tmp12) > 0) - ((_tmp12) < 0)) / std::pow(_tmp13, Scalar(2));
+  const Scalar _tmp14 = _tmp11 * (((_tmp12) > 0) - ((_tmp12) < 0)) / (_tmp13) * (_tmp13);
   const Scalar _tmp15 = _tmp14 * _tmp9;
   const Scalar _tmp16 = Scalar(1.0) / (_tmp13);
   const Scalar _tmp17 = _tmp11 * _tmp16;

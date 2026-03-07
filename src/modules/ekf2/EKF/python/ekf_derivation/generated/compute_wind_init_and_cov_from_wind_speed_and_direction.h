@@ -37,9 +37,9 @@ void ComputeWindInitAndCovFromWindSpeedAndDirection(
   // Intermediate terms (5)
   const Scalar _tmp0 = std::cos(wind_direction);
   const Scalar _tmp1 = std::sin(wind_direction);
-  const Scalar _tmp2 = std::pow(_tmp0, Scalar(2));
-  const Scalar _tmp3 = std::pow(_tmp1, Scalar(2));
-  const Scalar _tmp4 = wind_direction_var * std::pow(wind_speed, Scalar(2));
+  const Scalar _tmp2 = (_tmp0) * (_tmp0);
+  const Scalar _tmp3 = (_tmp1) * (_tmp1);
+  const Scalar _tmp4 = wind_direction_var * (wind_speed) * (wind_speed);
 
   // Output terms (2)
   if (wind != nullptr) {

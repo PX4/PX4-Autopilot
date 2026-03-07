@@ -39,18 +39,18 @@ void ComputeGnssYawPredInnovVarAndH(const matrix::Matrix<Scalar, 25, 1>& state,
   // Input arrays
 
   // Intermediate terms (29)
-  const Scalar _tmp0 = 1 - 2 * std::pow(state(3, 0), Scalar(2));
+  const Scalar _tmp0 = 1 - 2 * (state(3, 0)) * (state(3, 0));
   const Scalar _tmp1 = std::sin(antenna_yaw_offset);
   const Scalar _tmp2 = 2 * state(0, 0) * state(3, 0);
   const Scalar _tmp3 = 2 * state(1, 0) * state(2, 0);
   const Scalar _tmp4 = std::cos(antenna_yaw_offset);
   const Scalar _tmp5 =
-      _tmp1 * (_tmp0 - 2 * std::pow(state(1, 0), Scalar(2))) + _tmp4 * (_tmp2 + _tmp3);
+      _tmp1 * (_tmp0 - 2 * (state(1, 0)) * (state(1, 0))) + _tmp4 * (_tmp2 + _tmp3);
   const Scalar _tmp6 =
-      _tmp1 * (-_tmp2 + _tmp3) + _tmp4 * (_tmp0 - 2 * std::pow(state(2, 0), Scalar(2)));
+      _tmp1 * (-_tmp2 + _tmp3) + _tmp4 * (_tmp0 - 2 * (state(2, 0)) * (state(2, 0)));
   const Scalar _tmp7 = _tmp6 + epsilon * ((((_tmp6) > 0) - ((_tmp6) < 0)) + Scalar(0.5));
   const Scalar _tmp8 = 2 * _tmp1;
-  const Scalar _tmp9 = std::pow(_tmp7, Scalar(2));
+  const Scalar _tmp9 = (_tmp7) * (_tmp7);
   const Scalar _tmp10 = _tmp5 / _tmp9;
   const Scalar _tmp11 = _tmp10 * _tmp8;
   const Scalar _tmp12 = 4 * _tmp1;
@@ -58,7 +58,7 @@ void ComputeGnssYawPredInnovVarAndH(const matrix::Matrix<Scalar, 25, 1>& state,
   const Scalar _tmp14 = Scalar(1.0) / (_tmp7);
   const Scalar _tmp15 =
       -_tmp11 * state(2, 0) + _tmp14 * (-_tmp12 * state(1, 0) + _tmp13 * state(2, 0));
-  const Scalar _tmp16 = (Scalar(1) / Scalar(2)) * _tmp9 / (std::pow(_tmp5, Scalar(2)) + _tmp9);
+  const Scalar _tmp16 = (Scalar(1) / Scalar(2)) * _tmp9 / ((_tmp5) * (_tmp5) + _tmp9);
   const Scalar _tmp17 = _tmp15 * _tmp16;
   const Scalar _tmp18 = _tmp13 * _tmp14;
   const Scalar _tmp19 = _tmp11 * state(3, 0) + _tmp18 * state(3, 0);

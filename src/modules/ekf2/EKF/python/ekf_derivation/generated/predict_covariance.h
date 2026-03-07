@@ -49,13 +49,13 @@ matrix::Matrix<Scalar, 24, 24> PredictCovariance(const matrix::Matrix<Scalar, 25
   const Scalar _tmp4 = _tmp3 * state(2, 0);
   const Scalar _tmp5 = _tmp4 * dt;
   const Scalar _tmp6 = _tmp2 - _tmp5;
-  const Scalar _tmp7 = std::pow(state(3, 0), Scalar(2));
+  const Scalar _tmp7 = (state(3, 0)) * (state(3, 0));
   const Scalar _tmp8 = _tmp7 * dt;
-  const Scalar _tmp9 = std::pow(state(0, 0), Scalar(2));
+  const Scalar _tmp9 = (state(0, 0)) * (state(0, 0));
   const Scalar _tmp10 = -_tmp9 * dt;
-  const Scalar _tmp11 = std::pow(state(2, 0), Scalar(2));
+  const Scalar _tmp11 = (state(2, 0)) * (state(2, 0));
   const Scalar _tmp12 = _tmp11 * dt;
-  const Scalar _tmp13 = std::pow(state(1, 0), Scalar(2));
+  const Scalar _tmp13 = (state(1, 0)) * (state(1, 0));
   const Scalar _tmp14 = _tmp13 * dt;
   const Scalar _tmp15 = _tmp10 + _tmp12 - _tmp14 + _tmp8;
   const Scalar _tmp16 = _tmp13 + _tmp7;
@@ -158,7 +158,7 @@ matrix::Matrix<Scalar, 24, 24> PredictCovariance(const matrix::Matrix<Scalar, 25
                         P(14, 13) * _tmp64 + P(2, 13) * _tmp79 + P(3, 13);
   const Scalar _tmp94 = P(1, 14) * _tmp75 - P(12, 14) * _tmp57 - P(13, 14) * _tmp61 -
                         P(14, 14) * _tmp64 + P(2, 14) * _tmp79 + P(3, 14);
-  const Scalar _tmp95 = std::pow(dt, Scalar(2));
+  const Scalar _tmp95 = (dt) * (dt);
   const Scalar _tmp96 = _tmp95 * accel_var(0, 0);
   const Scalar _tmp97 = _tmp95 * accel_var(1, 0);
   const Scalar _tmp98 = _tmp95 * accel_var(2, 0);
@@ -236,30 +236,30 @@ matrix::Matrix<Scalar, 24, 24> PredictCovariance(const matrix::Matrix<Scalar, 25
 
   _res.setZero();
 
-  _res(0, 0) = std::pow(_tmp15, Scalar(2)) * gyro_var + _tmp15 * _tmp27 + _tmp18 * _tmp26 +
-               std::pow(_tmp23, Scalar(2)) * gyro_var + _tmp23 * _tmp25 + _tmp24 * _tmp6 +
-               std::pow(_tmp6, Scalar(2)) * gyro_var;
+  _res(0, 0) = (_tmp15) * (_tmp15) * gyro_var + _tmp15 * _tmp27 + _tmp18 * _tmp26 +
+               (_tmp23) * (_tmp23) * gyro_var + _tmp23 * _tmp25 + _tmp24 * _tmp6 +
+               (_tmp6) * (_tmp6) * gyro_var;
   _res(0, 1) = _tmp15 * _tmp38 + _tmp18 * _tmp35 + _tmp24 * _tmp34 + _tmp25 * _tmp29 +
                _tmp27 * _tmp36 + _tmp29 * _tmp37 + _tmp34 * _tmp39;
-  _res(1, 1) = _tmp18 * _tmp43 + std::pow(_tmp29, Scalar(2)) * gyro_var + _tmp29 * _tmp40 +
-               std::pow(_tmp34, Scalar(2)) * gyro_var + _tmp34 * _tmp41 +
-               std::pow(_tmp36, Scalar(2)) * gyro_var + _tmp36 * _tmp42;
+  _res(1, 1) = _tmp18 * _tmp43 + (_tmp29) * (_tmp29) * gyro_var + _tmp29 * _tmp40 +
+               (_tmp34) * (_tmp34) * gyro_var + _tmp34 * _tmp41 +
+               (_tmp36) * (_tmp36) * gyro_var + _tmp36 * _tmp42;
   _res(0, 2) = _tmp15 * _tmp47 * gyro_var + _tmp18 * _tmp46 + _tmp24 * _tmp44 + _tmp25 * _tmp45 +
                _tmp27 * _tmp47 + _tmp37 * _tmp45 + _tmp39 * _tmp44;
   _res(1, 2) = _tmp18 * _tmp48 + _tmp29 * _tmp45 * gyro_var + _tmp34 * _tmp44 * gyro_var +
                _tmp38 * _tmp47 + _tmp40 * _tmp45 + _tmp41 * _tmp44 + _tmp42 * _tmp47;
-  _res(2, 2) = _tmp18 * _tmp51 + std::pow(_tmp44, Scalar(2)) * gyro_var + _tmp44 * _tmp50 +
-               std::pow(_tmp45, Scalar(2)) * gyro_var + _tmp45 * _tmp49 +
-               std::pow(_tmp47, Scalar(2)) * gyro_var + _tmp47 * _tmp52;
+  _res(2, 2) = _tmp18 * _tmp51 + (_tmp44) * (_tmp44) * gyro_var + _tmp44 * _tmp50 +
+               (_tmp45) * (_tmp45) * gyro_var + _tmp45 * _tmp49 +
+               (_tmp47) * (_tmp47) * gyro_var + _tmp47 * _tmp52;
   _res(0, 3) = _tmp35 * _tmp75 + _tmp46 * _tmp79 - _tmp53 * _tmp57 - _tmp58 * _tmp61 -
                _tmp62 * _tmp64 + _tmp80;
   _res(1, 3) = _tmp43 * _tmp75 + _tmp48 * _tmp79 - _tmp57 * _tmp81 - _tmp61 * _tmp82 -
                _tmp64 * _tmp83 + _tmp84;
   _res(2, 3) = _tmp51 * _tmp79 - _tmp57 * _tmp85 - _tmp61 * _tmp87 - _tmp64 * _tmp88 +
                _tmp75 * _tmp86 + _tmp89;
-  _res(3, 3) = std::pow(_tmp56, Scalar(2)) * _tmp96 - _tmp57 * _tmp90 +
-               std::pow(_tmp60, Scalar(2)) * _tmp97 - _tmp61 * _tmp93 +
-               std::pow(_tmp63, Scalar(2)) * _tmp98 - _tmp64 * _tmp94 + _tmp75 * _tmp91 +
+  _res(3, 3) = (_tmp56) * (_tmp56) * _tmp96 - _tmp57 * _tmp90 +
+               (_tmp60) * (_tmp60) * _tmp97 - _tmp61 * _tmp93 +
+               (_tmp63) * (_tmp63) * _tmp98 - _tmp64 * _tmp94 + _tmp75 * _tmp91 +
                _tmp79 * _tmp92 + _tmp99;
   _res(0, 4) = -_tmp102 * _tmp58 + _tmp105 * _tmp46 - _tmp108 * _tmp62 - _tmp110 * _tmp53 +
                _tmp113 * _tmp26 + _tmp114;
@@ -270,11 +270,11 @@ matrix::Matrix<Scalar, 24, 24> PredictCovariance(const matrix::Matrix<Scalar, 25
   _res(3, 4) = _tmp101 * _tmp120 - _tmp102 * _tmp93 + _tmp105 * _tmp92 + _tmp107 * _tmp122 -
                _tmp108 * _tmp94 + _tmp109 * _tmp119 - _tmp110 * _tmp90 + _tmp113 * _tmp121 +
                _tmp123;
-  _res(4, 4) = std::pow(_tmp101, Scalar(2)) * _tmp97 - _tmp102 * _tmp125 +
+  _res(4, 4) = (_tmp101) * (_tmp101) * _tmp97 - _tmp102 * _tmp125 +
                _tmp105 * (P(0, 2) * _tmp113 - P(12, 2) * _tmp110 - P(13, 2) * _tmp102 -
                           P(14, 2) * _tmp108 + P(2, 2) * _tmp105 + P(4, 2)) +
-               std::pow(_tmp107, Scalar(2)) * _tmp98 - _tmp108 * _tmp126 +
-               std::pow(_tmp109, Scalar(2)) * _tmp96 - _tmp110 * _tmp127 + _tmp113 * _tmp124 +
+               (_tmp107) * (_tmp107) * _tmp98 - _tmp108 * _tmp126 +
+               (_tmp109) * (_tmp109) * _tmp96 - _tmp110 * _tmp127 + _tmp113 * _tmp124 +
                _tmp128;
   _res(0, 5) = -_tmp130 * _tmp62 + _tmp131 * _tmp35 - _tmp132 * _tmp58 - _tmp133 * _tmp53 +
                _tmp134 * _tmp26 + _tmp135;
@@ -289,14 +289,14 @@ matrix::Matrix<Scalar, 24, 24> PredictCovariance(const matrix::Matrix<Scalar, 25
                _tmp131 * (P(0, 1) * _tmp113 - P(12, 1) * _tmp110 - P(13, 1) * _tmp102 -
                           P(14, 1) * _tmp108 + P(2, 1) * _tmp105 + P(4, 1)) +
                _tmp139;
-  _res(5, 5) = std::pow(_tmp129, Scalar(2)) * _tmp98 - _tmp130 * _tmp140 +
+  _res(5, 5) = (_tmp129) * (_tmp129) * _tmp98 - _tmp130 * _tmp140 +
                _tmp131 * (P(0, 1) * _tmp134 + P(1, 1) * _tmp131 - P(12, 1) * _tmp133 -
                           P(13, 1) * _tmp132 - P(14, 1) * _tmp130 + P(5, 1)) -
                _tmp132 * _tmp141 - _tmp133 * _tmp142 +
                _tmp134 * (P(0, 0) * _tmp134 + P(1, 0) * _tmp131 - P(12, 0) * _tmp133 -
                           P(13, 0) * _tmp132 - P(14, 0) * _tmp130 + P(5, 0)) +
-               _tmp143 + std::pow(_tmp66, Scalar(2)) * _tmp96 +
-               std::pow(_tmp73, Scalar(2)) * _tmp97;
+               _tmp143 + (_tmp66) * (_tmp66) * _tmp96 +
+               (_tmp73) * (_tmp73) * _tmp97;
   _res(0, 6) =
       P(0, 6) * _tmp18 + P(10, 6) * _tmp23 + P(11, 6) * _tmp6 + P(9, 6) * _tmp15 + _tmp80 * dt;
   _res(1, 6) =

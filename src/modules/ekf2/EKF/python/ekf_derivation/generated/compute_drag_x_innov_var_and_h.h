@@ -45,8 +45,8 @@ void ComputeDragXInnovVarAndH(const matrix::Matrix<Scalar, 25, 1>& state,
   const Scalar _tmp3 = _tmp2 * state(2, 0);
   const Scalar _tmp4 = _tmp1 + _tmp3;
   const Scalar _tmp5 = _tmp4 * cm;
-  const Scalar _tmp6 = -2 * std::pow(state(3, 0), Scalar(2));
-  const Scalar _tmp7 = -2 * std::pow(state(2, 0), Scalar(2));
+  const Scalar _tmp6 = -2 * (state(3, 0)) * (state(3, 0));
+  const Scalar _tmp7 = -2 * (state(2, 0)) * (state(2, 0));
   const Scalar _tmp8 = _tmp6 + _tmp7 + 1;
   const Scalar _tmp9 = -state(22, 0) + state(4, 0);
   const Scalar _tmp10 = -state(23, 0) + state(5, 0);
@@ -61,7 +61,7 @@ void ComputeDragXInnovVarAndH(const matrix::Matrix<Scalar, 25, 1>& state,
   const Scalar _tmp19 = _tmp2 * state(0, 0);
   const Scalar _tmp20 = _tmp18 - _tmp19;
   const Scalar _tmp21 = _tmp12 + _tmp13;
-  const Scalar _tmp22 = 1 - 2 * std::pow(state(1, 0), Scalar(2));
+  const Scalar _tmp22 = 1 - 2 * (state(1, 0)) * (state(1, 0));
   const Scalar _tmp23 = _tmp22 + _tmp7;
   const Scalar _tmp24 = _tmp10 * _tmp20 + _tmp21 * _tmp9 + _tmp23 * state(6, 0);
   const Scalar _tmp25 = 2 * _tmp24;
@@ -72,8 +72,8 @@ void ComputeDragXInnovVarAndH(const matrix::Matrix<Scalar, 25, 1>& state,
   const Scalar _tmp30 = _tmp10 * _tmp27 + _tmp28 * _tmp9 + _tmp29 * state(6, 0);
   const Scalar _tmp31 = 2 * _tmp30;
   const Scalar _tmp32 = _tmp27 * _tmp31;
-  const Scalar _tmp33 = std::sqrt(Scalar(std::pow(_tmp15, Scalar(2)) + std::pow(_tmp24, Scalar(2)) +
-                                         std::pow(_tmp30, Scalar(2)) + epsilon));
+  const Scalar _tmp33 = std::sqrt(Scalar((_tmp15) * (_tmp15) + (_tmp24) * (_tmp24) +
+                                         (_tmp30) * (_tmp30) + epsilon));
   const Scalar _tmp34 = cd * rho;
   const Scalar _tmp35 = Scalar(0.25) * _tmp15 * _tmp34 / _tmp33;
   const Scalar _tmp36 = Scalar(0.5) * _tmp33 * _tmp34;

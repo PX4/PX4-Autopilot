@@ -43,11 +43,11 @@ void ComputeWindInitAndCovFromAirspeed(const matrix::Matrix<Scalar, 3, 1>& v_loc
   // Intermediate terms (9)
   const Scalar _tmp0 = std::cos(heading);
   const Scalar _tmp1 = std::sin(heading);
-  const Scalar _tmp2 = std::pow(_tmp1, Scalar(2));
-  const Scalar _tmp3 = std::pow(airspeed, Scalar(2));
+  const Scalar _tmp2 = (_tmp1) * (_tmp1);
+  const Scalar _tmp3 = (airspeed) * (airspeed);
   const Scalar _tmp4 = _tmp3 * sideslip_var;
   const Scalar _tmp5 = _tmp3 * heading_var;
-  const Scalar _tmp6 = std::pow(_tmp0, Scalar(2));
+  const Scalar _tmp6 = (_tmp0) * (_tmp0);
   const Scalar _tmp7 = _tmp0 * _tmp1;
   const Scalar _tmp8 = -_tmp4 * _tmp7 - _tmp5 * _tmp7 + _tmp7 * airspeed_var;
 
