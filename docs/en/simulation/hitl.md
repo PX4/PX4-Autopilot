@@ -12,6 +12,8 @@ This approach has the benefit of testing most of the actual flight code on the r
 
 PX4 supports HITL for multicopters (using [jMAVSim](../sim_jmavsim/index.md) or [Gazebo Classic](../sim_gazebo_classic/index.md)) and VTOL (using Gazebo Classic).
 
+For a comparison of HITL and SIH on hardware, see [Hardware Simulation](hardware.md).
+
 <a id="compatible_airframe"></a>
 
 ## HITL-Compatible Airframes
