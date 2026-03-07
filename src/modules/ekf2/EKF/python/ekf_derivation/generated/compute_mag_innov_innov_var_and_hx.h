@@ -43,8 +43,8 @@ void ComputeMagInnovInnovVarAndHx(const matrix::Matrix<Scalar, 25, 1>& state,
   // Input arrays
 
   // Intermediate terms (68)
-  const Scalar _tmp0 = -2 * std::pow(state(3, 0), Scalar(2));
-  const Scalar _tmp1 = 1 - 2 * std::pow(state(2, 0), Scalar(2));
+  const Scalar _tmp0 = -2 * ((state(3, 0)) * (state(3, 0)));
+  const Scalar _tmp1 = 1 - 2 * ((state(2, 0)) * (state(2, 0)));
   const Scalar _tmp2 = _tmp0 + _tmp1;
   const Scalar _tmp3 = 2 * state(3, 0);
   const Scalar _tmp4 = _tmp3 * state(0, 0);
@@ -55,7 +55,7 @@ void ComputeMagInnovInnovVarAndHx(const matrix::Matrix<Scalar, 25, 1>& state,
   const Scalar _tmp9 = 2 * state(1, 0);
   const Scalar _tmp10 = _tmp9 * state(3, 0);
   const Scalar _tmp11 = _tmp10 - _tmp8;
-  const Scalar _tmp12 = -2 * std::pow(state(1, 0), Scalar(2));
+  const Scalar _tmp12 = -2 * ((state(1, 0)) * (state(1, 0)));
   const Scalar _tmp13 = _tmp0 + _tmp12 + 1;
   const Scalar _tmp14 = _tmp5 * state(3, 0);
   const Scalar _tmp15 = _tmp9 * state(0, 0);

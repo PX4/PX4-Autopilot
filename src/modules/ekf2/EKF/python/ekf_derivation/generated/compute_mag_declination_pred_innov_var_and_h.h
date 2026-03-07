@@ -40,7 +40,7 @@ void ComputeMagDeclinationPredInnovVarAndH(const matrix::Matrix<Scalar, 25, 1>& 
   const Scalar _tmp0 =
       epsilon * ((((state(16, 0)) > 0) - ((state(16, 0)) < 0)) + Scalar(0.5)) + state(16, 0);
   const Scalar _tmp1 =
-      Scalar(1.0) / (std::pow(_tmp0, Scalar(2)) + std::pow(state(17, 0), Scalar(2)));
+      Scalar(1.0) / (((_tmp0) * (_tmp0)) + ((state(17, 0)) * (state(17, 0))));
   const Scalar _tmp2 = _tmp1 * state(17, 0);
   const Scalar _tmp3 = _tmp0 * _tmp1;
 

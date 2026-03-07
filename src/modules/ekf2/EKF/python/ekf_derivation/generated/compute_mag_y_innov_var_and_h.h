@@ -44,7 +44,7 @@ void ComputeMagYInnovVarAndH(const matrix::Matrix<Scalar, 25, 1>& state,
   const Scalar _tmp3 = 2 * state(3, 0);
   const Scalar _tmp4 = _tmp0 * state(1, 0) - _tmp3 * state(0, 0);
   const Scalar _tmp5 =
-      -2 * std::pow(state(1, 0), Scalar(2)) - 2 * std::pow(state(3, 0), Scalar(2)) + 1;
+      -2 * ((state(1, 0)) * (state(1, 0))) - 2 * ((state(3, 0)) * (state(3, 0))) + 1;
   const Scalar _tmp6 = _tmp1 * state(18, 0) - _tmp3 * state(16, 0);
   const Scalar _tmp7 = (Scalar(1) / Scalar(2)) * _tmp6;
   const Scalar _tmp8 = (Scalar(1) / Scalar(2)) * _tmp1 * state(16, 0) +

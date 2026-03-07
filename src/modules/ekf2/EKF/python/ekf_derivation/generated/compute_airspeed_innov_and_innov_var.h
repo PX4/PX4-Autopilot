@@ -39,8 +39,8 @@ void ComputeAirspeedInnovAndInnovVar(const matrix::Matrix<Scalar, 25, 1>& state,
   // Intermediate terms (7)
   const Scalar _tmp0 = -state(23, 0) + state(5, 0);
   const Scalar _tmp1 = -state(22, 0) + state(4, 0);
-  const Scalar _tmp2 = std::sqrt(Scalar(std::pow(_tmp0, Scalar(2)) + std::pow(_tmp1, Scalar(2)) +
-                                        epsilon + std::pow(state(6, 0), Scalar(2))));
+  const Scalar _tmp2 = std::sqrt(Scalar(((_tmp0) * (_tmp0)) + ((_tmp1) * (_tmp1)) +
+                                        epsilon + ((state(6, 0)) * (state(6, 0)))));
   const Scalar _tmp3 = Scalar(1.0) / (_tmp2);
   const Scalar _tmp4 = _tmp3 * state(6, 0);
   const Scalar _tmp5 = _tmp1 * _tmp3;

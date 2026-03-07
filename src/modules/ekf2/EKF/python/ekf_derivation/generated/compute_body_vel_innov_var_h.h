@@ -67,8 +67,8 @@ void ComputeBodyVelInnovVarH(const matrix::Matrix<Scalar, 25, 1>& state,
   const Scalar _tmp25 = 2 * state(0, 0) * state(3, 0);
   const Scalar _tmp26 = _tmp12 * state(2, 0);
   const Scalar _tmp27 = _tmp25 + _tmp26;
-  const Scalar _tmp28 = -2 * std::pow(state(3, 0), Scalar(2));
-  const Scalar _tmp29 = 1 - 2 * std::pow(state(2, 0), Scalar(2));
+  const Scalar _tmp28 = -2 * ((state(3, 0)) * (state(3, 0)));
+  const Scalar _tmp29 = 1 - 2 * ((state(2, 0)) * (state(2, 0)));
   const Scalar _tmp30 = _tmp28 + _tmp29;
   const Scalar _tmp31 = _tmp14 * _tmp19 + _tmp15 * _tmp18 - _tmp4 * _tmp9 - _tmp5 * _tmp8;
   const Scalar _tmp32 = _tmp14 * _tmp5 - _tmp15 * _tmp4 - _tmp18 * _tmp9 + _tmp19 * _tmp8;
@@ -76,7 +76,7 @@ void ComputeBodyVelInnovVarH(const matrix::Matrix<Scalar, 25, 1>& state,
   const Scalar _tmp34 = _tmp21 * state(3, 0);
   const Scalar _tmp35 = _tmp12 * state(0, 0);
   const Scalar _tmp36 = _tmp34 + _tmp35;
-  const Scalar _tmp37 = -2 * std::pow(state(1, 0), Scalar(2));
+  const Scalar _tmp37 = -2 * ((state(1, 0)) * (state(1, 0)));
   const Scalar _tmp38 = _tmp28 + _tmp37 + 1;
   const Scalar _tmp39 = 2 * state(4, 0);
   const Scalar _tmp40 = _tmp39 * state(3, 0);
