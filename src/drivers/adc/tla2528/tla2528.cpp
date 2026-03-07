@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2025 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -52,6 +52,8 @@
 #define CHANNEL_SEL	0x11
 #define AUTO_SEQ_CH_SEL	0x12
 
+#define RECENT_CH0_LSB	0xA0
+
 TLA2528::TLA2528(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config),
@@ -82,134 +84,101 @@ int TLA2528::init()
 	_adc_report.v_ref = _adc_tla2528_refv.get();
 	_adc_report.resolution = 4096;
 
-	ScheduleClear();
-	ScheduleOnInterval(SAMPLE_INTERVAL, SAMPLE_INTERVAL);
+	ScheduleNow();
 	return PX4_OK;
 }
 
 int TLA2528::init_calibrate()
 {
-	uint8_t send_data[3];
-	send_data[0] = SET_BIT;
-	send_data[1] = GENERAL_CFG;
-	send_data[2] = 0x02;
+	uint8_t send_data[3] = {SET_BIT, GENERAL_CFG, 0x02};
 	int ret = transfer(&send_data[0], 3, nullptr, 0);
-
-	if (ret != PX4_OK) {
-		PX4_DEBUG("TLA2528::Initializing Calibration failed (%i)", ret);
-		perf_count(_comms_errors);
-	}
-
 	return ret;
 }
 
 int TLA2528::poll_calibrate()
 {
-	uint8_t send_data[2];
+	uint8_t send_data[2] = {READ, GENERAL_CFG};
 	uint8_t recv_data;
-	send_data[0] = READ;
-	send_data[1] = GENERAL_CFG;
+
 	int ret = transfer(&send_data[0], 2, nullptr, 0);
 	ret |= transfer(nullptr, 0, &recv_data, 1);
 
-	if (recv_data & 2u) {
-		PX4_DEBUG("TLA2528::Calibration not yet finished");
-		perf_count(_comms_errors);
-		return PX4_ERROR;
+	if (ret == PX4_OK && !(recv_data & 2u)) {
+		return PX4_OK;
 	}
 
-	return ret;
+	return PX4_ERROR;
 }
 
 int TLA2528::init_reset()
 {
-	uint8_t send_data[3];
-	send_data[0] = SET_BIT;
-	send_data[1] = GENERAL_CFG;
-	send_data[2] = 0x01;
+	uint8_t send_data[3] = {SET_BIT, GENERAL_CFG, 0x01};
 	int ret = transfer(&send_data[0], 3, nullptr, 0);
-
-	if (ret != PX4_OK) {
-		PX4_DEBUG("TLA2528::Initializing Reset failed (%i)", ret);
-		perf_count(_comms_errors);
-	}
-
 	return ret;
 }
 
 int TLA2528::poll_reset()
 {
-	uint8_t send_data[2];
+	uint8_t send_data[2] = {READ, GENERAL_CFG};
 	uint8_t recv_data;
-	send_data[0] = READ;
-	send_data[1] = GENERAL_CFG;
+
 	int ret = transfer(&send_data[0], 2, nullptr, 0);
 	ret |= transfer(nullptr, 0, &recv_data, 1);
 
-	if (ret != PX4_OK) {
-		perf_count(_comms_errors);
-		return ret;
+	if (ret == PX4_OK && !(recv_data & 1u)) {
+		return PX4_OK;
 	}
 
-	if (recv_data & 1u) {
-		PX4_DEBUG("TLA2528::Reset not finished");
-		return PX4_ERROR;
-	}
-
-	return ret;
+	return PX4_ERROR;
 }
 
-void TLA2528::adc_get()
+int TLA2528::adc_get()
 {
-	// Start sequential read
-	uint8_t send_data[3] = {SET_BIT, SEQUENCE_CFG, 0x10};
+	uint8_t send_data[2];
 	uint8_t recv_data[2];
-	int ret = transfer(&send_data[0], 3, nullptr, 0);
+	send_data[0] = READ;
 
-	if (ret != PX4_OK) {
-		perf_count(_comms_errors);
-		return;
-	}
+	for (int i = 0; i < 8; i++) {
+		// Read LSB data
+		send_data[1] = RECENT_CH0_LSB + (i * 2);
+		int ret = transfer(&send_data[0], 2, nullptr, 0);
+		ret |= transfer(nullptr, 0, &recv_data[0], 1);
 
-	// Read data
-	for (int i = 0; i < NUM_CHANNELS; i++) {
-		ret = transfer(nullptr, 0, &recv_data[0], 2);
+		// Read MSB data
+		send_data[1] = RECENT_CH0_LSB + (i * 2) + 1;
+		ret |= transfer(&send_data[0], 2, nullptr, 0);
+		ret |= transfer(nullptr, 0, &recv_data[1], 1);
+
+		uint16_t raw_value = (((uint16_t)recv_data[1]) << 4) | (recv_data[0] >> 4);
 
 		if (ret == PX4_OK) {
-			uint16_t tmp = ((uint16_t)recv_data[0]) << 8;
-			uint16_t measurement = (tmp | recv_data[1]) >> 4;
-			uint8_t ch_id = recv_data[1] & 0x0F;
-
-			_adc_report.channel_id[i] = ch_id;
-			_adc_report.raw_data[i] = measurement;
+			_adc_report.channel_id[i] = i;
+			_adc_report.raw_data[i] = raw_value;
 
 		} else {
-			perf_count(_comms_errors);
+			return PX4_ERROR;
 		}
 	}
 
-	// Stop sequential read
-	send_data[0] = CLEAR_BIT;
-	send_data[1] = SEQUENCE_CFG;
-	send_data[2] = 0x10;
-	transfer(&send_data[0], 3, nullptr, 0);
-	return;
+	return PX4_OK;
 }
 
 int TLA2528::probe()
 {
-	for (int i = 0; i < 3; i++) {
-		// Select channel 0
-		uint8_t send_data[3];
-		send_data[0] = WRITE;
-		send_data[1] = CHANNEL_SEL;
-		send_data[2] = 0x00;            // Channel 0
-		int ret = transfer(&send_data[0], 3, nullptr, 0);
+	uint8_t send_data[3];
+	uint8_t recv_data[2];
 
+	for (int i = 0; i < 3; i++) {
 		// Put device in in manual mode
 		send_data[0] = WRITE;
 		send_data[1] = OPMODE_CFG;
 		send_data[2] = 0x00;
+		int ret = transfer(&send_data[0], 3, nullptr, 0);
+
+		// Select channel 0
+		send_data[0] = WRITE;
+		send_data[1] = CHANNEL_SEL;
+		send_data[2] = 0x00;            // Channel 0
 		ret |= transfer(&send_data[0], 3, nullptr, 0);
 
 		// Set device in debug mode (should respond with 0xA5AX to all reads)
@@ -219,7 +188,6 @@ int TLA2528::probe()
 		ret |= transfer(&send_data[0], 3, nullptr, 0);
 
 		// Read
-		uint8_t recv_data[2];
 		ret |= transfer(nullptr, 0, &recv_data[0], 2);
 
 		// Turn debug mode off
@@ -232,7 +200,7 @@ int TLA2528::probe()
 			return PX4_OK;
 		}
 
-		px4_sleep(1);
+		px4_usleep(10000);
 	}
 
 	return PX4_ERROR;
@@ -241,48 +209,67 @@ int TLA2528::probe()
 int TLA2528::configure()
 {
 	uint8_t send_data[3];
-	// Configure pins as analog
-	send_data[0] = SET_BIT;
+
+	// Configure all channels as AIN (Clear all bits in PIN_CFG and GPIO_CFG)
+	send_data[0] = CLEAR_BIT;
 	send_data[1] = PIN_CFG;
-	send_data[2] = 0x00;
+	send_data[2] = 0xFF;
 	int ret = transfer(&send_data[0], 3, nullptr, 0);
 
-	// Append channel-id to measurements
-	send_data[0] = SET_BIT;
-	send_data[1] = DATA_CFG;
-	send_data[2] = 0x10;
-	ret |= transfer(&send_data[0], 3, nullptr, 0);
-
-	// Activate all pins
-	send_data[0] = SET_BIT;
-	send_data[1] = AUTO_SEQ_CH_SEL;
+	send_data[0] = CLEAR_BIT;
+	send_data[1] = GPIO_CFG;
 	send_data[2] = 0xFF;
 	ret |= transfer(&send_data[0], 3, nullptr, 0);
 
-	// Set seq-mode
-	send_data[0] = SET_BIT;
+	// Enable analog inputs for sequencing (AUTO_SEQ_CHSEL)
+	send_data[0] = WRITE;
+	send_data[1] = AUTO_SEQ_CH_SEL;
+	send_data[2] = 0xFF;  // Select all channels
+	ret |= transfer(&send_data[0], 3, nullptr, 0);
+
+	// Select Auto-sequence mode (SEQ_MODE = 01b)
+	send_data[0] = WRITE;
 	send_data[1] = SEQUENCE_CFG;
 	send_data[2] = 0x01;
 	ret |= transfer(&send_data[0], 3, nullptr, 0);
 
-	if (ret != PX4_OK) {
-		perf_count(_comms_errors);
-		PX4_DEBUG("TLA2528::Configuring failed (%i)", ret);
-	}
+	// Set mode to autonomous monitoring (CONV_MODE = 01b)
+	send_data[0] = WRITE;
+	send_data[1] = OPMODE_CFG;
+	send_data[2] = 0x20;
+	ret |= transfer(&send_data[0], 3, nullptr, 0);
+
+	// Enable statistics module (STAT_EN = 1)
+	send_data[0] = SET_BIT;
+	send_data[1] = GENERAL_CFG;
+	send_data[2] = 0x20;
+	ret |= transfer(&send_data[0], 3, nullptr, 0);
+
+	// Start channel sequence (SEQ_START = 1)
+	send_data[0] = SET_BIT;
+	send_data[1] = SEQUENCE_CFG;
+	send_data[2] = 0x10;
+	ret |= transfer(&send_data[0], 3, nullptr, 0);
+
+	// Provide the first start of conversion (From the datasheet: "The first start of conversion must be provided by the host")
+	send_data[0] = SET_BIT;
+	send_data[1] = GENERAL_CFG;
+	send_data[2] = 0x08;
+	ret |= transfer(&send_data[0], 3, nullptr, 0);
 
 	return ret;
 }
 
 void TLA2528::exit_and_cleanup()
 {
-	I2CSPIDriverBase::exit_and_cleanup();	// nothing to do
+	I2CSPIDriverBase::exit_and_cleanup();
 }
 
 void TLA2528::RunImpl()
 {
 	if (should_exit()) {
 		PX4_INFO("stopping");
-		return;	// stop and return immediately to avoid unexpected schedule from stopping procedure
+		return;
 	}
 
 	int ret;
@@ -293,8 +280,13 @@ void TLA2528::RunImpl()
 
 		if (ret == PX4_OK) {
 			_state = STATE::CONFIGURE;
+
+		} else {
+			_state = STATE::RESET;
+			perf_count(_comms_errors);
 		}
 
+		ScheduleDelayed(SAMPLE_INTERVAL * 2); // Reset should take around 10ms to finish => double the sample interval to be safe
 		break;
 
 	case STATE::CONFIGURE:
@@ -307,8 +299,10 @@ void TLA2528::RunImpl()
 
 		} else {
 			_state = STATE::RESET;
+			perf_count(_comms_errors);
 		}
 
+		ScheduleDelayed(SAMPLE_INTERVAL); // Calibration should only take around 50 microseconds to finish
 		break;
 
 	case STATE::CALIBRATE:
@@ -319,16 +313,36 @@ void TLA2528::RunImpl()
 
 		} else {
 			_state = STATE::RESET;
+			perf_count(_comms_errors);
 		}
 
+		ScheduleDelayed(SAMPLE_INTERVAL);
 		break;
 
 	case STATE::WORK:
 		perf_begin(_cycle_perf);
-		adc_get();
+
+		ret = adc_get();
 		_adc_report.timestamp = hrt_absolute_time();
-		_adc_report_pub.publish(_adc_report);
+
 		perf_end(_cycle_perf);
+
+		if (ret != PX4_OK) {
+
+			consecutive_fails++;
+
+			if (consecutive_fails > 10) {
+				_state = STATE::RESET;
+				consecutive_fails = 0;
+			}
+
+			perf_count(_comms_errors);
+
+		} else {
+			_adc_report_pub.publish(_adc_report);
+		}
+
+		ScheduleDelayed(SAMPLE_INTERVAL);
 		break;
 	}
 
