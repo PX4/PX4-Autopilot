@@ -73,6 +73,15 @@ void GZGimbal::Run()
 	const float dt = (now - _last_time_update) / 1e6f;
 	_last_time_update = now;
 
+	// Update vehicle attitude from groundtruth for frame transformations
+	if (_vehicle_attitude_sub.updated()) {
+		vehicle_attitude_s vehicle_att;
+
+		if (_vehicle_attitude_sub.copy(&vehicle_att)) {
+			_q_vehicle = matrix::Quatf(vehicle_att.q);
+		}
+	}
+
 	updateParameters();
 
 	if (pollSetpoint()) {
@@ -103,14 +112,16 @@ void GZGimbal::gimbalIMUCallback(const gz::msgs::IMU &IMU_data)
 	pthread_mutex_lock(&_node_mutex);
 
 	static const matrix::Quatf q_FLU_to_FRD = matrix::Quatf(0.0f, 1.0f, 0.0f, 0.0f);
-	static const matrix::Quatf q_ENU_to_NED = matrix::Quatf(0.0f, cosf(M_PI_4_F), cosf(M_PI_4_F), 0.0f);
+	static const matrix::Quatf q_ENU_to_NED = matrix::Quatf(0.0f, 0.707107, 0.707107, 0.0f);
 
-	// Get the gimbal orientation. Gimbal frame is FLU in Gazebo, reference frame is ENU in Gazebo
+	// Get the gimbal orientation in world frame. Gimbal frame is FLU in Gazebo, world frame is ENU.
+	// The IMU reports absolute orientation in world frame (ENU).
 	const matrix::Quatf q_gimbal_FLU = matrix::Quatf(IMU_data.orientation().w(),
 					   IMU_data.orientation().x(),
 					   IMU_data.orientation().y(),
 					   IMU_data.orientation().z());
 
+	// Convert from ENU/FLU (Gazebo) to NED/FRD (PX4) world frame
 	_q_gimbal = q_ENU_to_NED * q_gimbal_FLU * q_FLU_to_FRD.inversed();
 
 	matrix::Vector3f rate = q_FLU_to_FRD.rotateVector(matrix::Vector3f(IMU_data.angular_velocity().x(),
@@ -140,10 +151,24 @@ bool GZGimbal::pollSetpoint()
 		gimbal_device_set_attitude_s msg;
 
 		if (_gimbal_device_set_attitude_sub.copy(&msg)) {
-			const matrix::Eulerf gimbal_att_stp(matrix::Quatf(msg.q));
-			_roll_stp = gimbal_att_stp.phi();
-			_pitch_stp = gimbal_att_stp.theta();
-			_yaw_stp = gimbal_att_stp.psi();
+			// Extract Euler angles from setpoint quaternion (in earth/world frame if LOCK flags set)
+			const matrix::Quatf q_gimbal_setpoint(msg.q);
+			const matrix::Eulerf euler_setpoint(q_gimbal_setpoint);
+
+			// Get vehicle Euler angles for compensation
+			const matrix::Eulerf euler_vehicle(_q_vehicle);
+
+			// Check which axes are in absolute/earth frame (indicated by LOCK flags)
+			const bool roll_lock = msg.flags & gimbal_device_set_attitude_s::GIMBAL_DEVICE_FLAGS_ROLL_LOCK;
+			const bool pitch_lock = msg.flags & gimbal_device_set_attitude_s::GIMBAL_DEVICE_FLAGS_PITCH_LOCK;
+			const bool yaw_lock = msg.flags & gimbal_device_set_attitude_s::GIMBAL_DEVICE_FLAGS_YAW_LOCK;
+
+			// Per-axis compensation: if locked (earth frame), subtract vehicle attitude
+			// This follows the same logic as the gimbal manager in output.cpp
+			_roll_stp = roll_lock ? (euler_setpoint.phi() - euler_vehicle.phi()) : euler_setpoint.phi();
+			_pitch_stp = pitch_lock ? (euler_setpoint.theta() - euler_vehicle.theta()) : euler_setpoint.theta();
+			_yaw_stp = yaw_lock ? (euler_setpoint.psi() - euler_vehicle.psi()) : euler_setpoint.psi();
+
 			_roll_rate_stp = msg.angular_velocity_x;
 			_pitch_rate_stp = msg.angular_velocity_y;
 			_yaw_rate_stp = msg.angular_velocity_z;
