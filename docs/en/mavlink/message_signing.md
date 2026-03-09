@@ -124,4 +124,3 @@ These are safety-critical messages that may originate from systems that don't su
   A graceful shutdown also persists the current timestamp, but since most vehicles are powered off by pulling the battery, the timestamp will typically reset to the value from the last key provisioning on reboot.
 - **No encryption**: Message signing provides authentication and integrity, but messages are still sent in plaintext.
   An eavesdropper can read message contents but cannot forge or modify them without the key.
-
