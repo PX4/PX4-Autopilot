@@ -84,6 +84,22 @@ private:
 
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
+	// GPS Markov process noise state
+	float _gps_pos_noise_n{0.0f};
+	float _gps_pos_noise_e{0.0f};
+	float _gps_pos_noise_d{0.0f};
+	float _gps_vel_noise_n{0.0f};
+	float _gps_vel_noise_e{0.0f};
+	float _gps_vel_noise_d{0.0f};
+
+	// Gauss-Markov noise parameters, rate-corrected from GZBridge (30 Hz) to SIH (8 Hz)
+	static constexpr float _pos_noise_amplitude{0.8f};
+	static constexpr float _pos_random_walk{0.02f};
+	static constexpr float _pos_markov_time{0.76f};
+	static constexpr float _vel_noise_amplitude{0.05f};
+	static constexpr float _vel_noise_density{0.4f};
+	static constexpr float _vel_markov_time{0.54f};
+
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SIM_GPS_USED>) _sim_gps_used
 	)
