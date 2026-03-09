@@ -438,6 +438,7 @@ ControlAllocator::Run()
 								_control_allocation[i]->getActuatorMin(), _control_allocation[i]->getActuatorMax());
 
 			if (i == 0) {
+				// The motors are always in allocation 0
 				handle_stopped_motors(now);
 			}
 
@@ -611,7 +612,7 @@ ControlAllocator::handle_stopped_motors(const hrt_abstime now)
 					       | _motor_stop_mask;
 
 	// Handle stopped motors by setting NaN
-	const unsigned int allocation_index = 0;
+	const unsigned int allocation_index = 0;  // Motors always in allocation 0
 	_control_allocation[allocation_index]->applyNanToActuators(stopped_motors);
 
 	// Apply ice shedding, which applies _only_ to stopped motors
@@ -619,7 +620,7 @@ ControlAllocator::handle_stopped_motors(const hrt_abstime now)
 	const float ice_shedding_output = get_ice_shedding_output(now);
 
 	if (ice_shedding_output > FLT_EPSILON && !any_stopped_motor_failed) {
-		for (int motors_idx = 0; motors_idx < _num_actuators[0] && motors_idx < actuator_motors_s::NUM_CONTROLS; motors_idx++) {
+		for (int motors_idx = 0; motors_idx < _num_actuators[allocation_index] && motors_idx < actuator_motors_s::NUM_CONTROLS; motors_idx++) {
 			if (stopped_motors & 1u << motors_idx) {
 				_control_allocation[allocation_index]->_actuator_sp(motors_idx) = ice_shedding_output;
 			}
