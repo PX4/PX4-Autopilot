@@ -951,8 +951,6 @@ private:
 	void resetHeightToLastKnown();
 	void stopFakeHgtFusion();
 
-	void controlZeroInnovationHeadingUpdate();
-
 #if defined(CONFIG_EKF2_AUXVEL)
 	// control fusion of auxiliary velocity observations
 	void controlAuxVelFusion(const imuSample &imu_sample);

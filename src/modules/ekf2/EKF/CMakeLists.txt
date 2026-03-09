@@ -53,7 +53,6 @@ list(APPEND EKF_SRCS
 	aid_sources/fake_pos_control.cpp
 	aid_sources/ZeroGyroUpdate.cpp
 	aid_sources/ZeroVelocityUpdate.cpp
-	aid_sources/zero_innovation_heading_update.cpp
 )
 
 if(CONFIG_EKF2_AIRSPEED)
