@@ -43325,6 +43325,24 @@ UART ESC Turtle Mode Crash Flip Motor STICK_MINF.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 0.0      | 100.0    | 1.0       | 0.15    |      |
 
+### VOXL_ESC_T_ON (`INT32`) {#VOXL_ESC_T_ON}
+
+UART ESC Turtle Mode button index for MAVLink manual control.
+
+Specifies which button in the MAVLink MANUAL_CONTROL buttons field
+activates turtle mode. Only used when data source is a MAVLink instance.
+When data source is RC, turtle mode activation uses the AUX channel
+selected by VOXL_ESC_MODE instead.
+Set to -1 to disable turtle mode activation via MAVLink buttons.
+
+**Values:**
+
+- `-1`: Disabled
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | -1       | 15       |           | -1      |      |
+
 ### VOXL_ESC_T_OVER (`INT32`) {#VOXL_ESC_T_OVER}
 
 UART ESC Over-Temperature Threshold (Degrees C).
