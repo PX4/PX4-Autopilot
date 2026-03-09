@@ -168,4 +168,8 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 
 	// check if we are no longer fusing measurements that directly constrain velocity drift
 	updateDeadReckoningStatus();
+
+	const bool yaw_aiding = _control_status.flags.mag_hdg || _control_status.flags.mag_3D
+				|| _control_status.flags.ev_yaw || _control_status.flags.gnss_yaw;
+	_control_status.flags.heading_observable = isNorthEastAidingActive() || yaw_aiding;
 }

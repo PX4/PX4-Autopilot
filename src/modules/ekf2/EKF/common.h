@@ -594,7 +594,7 @@ uint64_t gnss_fault              :
 uint64_t gnss_hgt_fault              :
 		1; ///< 47 - true if GNSS measurements (alt) have been declared faulty and are no longer used
 		uint64_t in_transition 	         : 1; ///< 48 - true if the vehicle is in vtol transition
-
+		uint64_t heading_observable      : 1; ///< 49 - true when heading is observable
 	} flags;
 	uint64_t value;
 };
