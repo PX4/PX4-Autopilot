@@ -27295,6 +27295,20 @@ control is reset.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 1        | 250      |           | 5       | s    |
 
+### MAV_SIGN_CFG (`INT32`) {#MAV_SIGN_CFG}
+
+MAVLink protocol signing.
+
+**Values:**
+
+- `0`: Message signing disabled
+- `1`: Signing enabled except on USB
+- `2`: Signing always enabled
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |      |
+
 ### MAV_SIK_RADIO_ID (`INT32`) {#MAV_SIK_RADIO_ID}
 
 MAVLink SiK Radio ID.
