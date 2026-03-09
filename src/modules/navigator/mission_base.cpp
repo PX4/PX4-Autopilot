@@ -1459,12 +1459,11 @@ bool MissionBase::canRunMissionFeasibility()
 
 void MissionBase::updateMissionAltAfterHomeChanged()
 {
-	const float home_alt = _navigator->get_home_position()->alt;
-
 	if (_navigator->get_home_position()->update_count > _home_update_counter) {
 
-		if (PX4_ISFINITE(_last_home_alt)) {
-			const float altitude_diff = home_alt - _last_home_alt;
+		if (item_contains_position(_mission_item)) {
+			const float new_alt = get_absolute_altitude_for_item(_mission_item);
+			const float altitude_diff = new_alt - _navigator->get_position_setpoint_triplet()->current.alt;
 
 			if (_navigator->get_position_setpoint_triplet()->previous.valid
 			    && PX4_ISFINITE(_navigator->get_position_setpoint_triplet()->previous.alt)) {
@@ -1483,6 +1482,4 @@ void MissionBase::updateMissionAltAfterHomeChanged()
 
 		_home_update_counter = _navigator->get_home_position()->update_count;
 	}
-
-	_last_home_alt = home_alt;
 }
