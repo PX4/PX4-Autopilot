@@ -1,3 +1,4 @@
+
 // #define DEBUG_BUILD
 #include "GZGimbal.hpp"
 
@@ -143,6 +144,7 @@ void GZGimbal::updateParameters()
 	param_get(_mnt_min_pitch_handle, &_mnt_min_pitch);
 	param_get(_mnt_range_yaw_handle, &_mnt_range_yaw);
 	param_get(_mnt_mode_out_handle, &_mnt_mode_out);
+
 }
 
 bool GZGimbal::pollSetpoint()
@@ -168,6 +170,11 @@ bool GZGimbal::pollSetpoint()
 			_roll_stp = roll_lock ? (euler_setpoint.phi() - euler_vehicle.phi()) : euler_setpoint.phi();
 			_pitch_stp = pitch_lock ? (euler_setpoint.theta() - euler_vehicle.theta()) : euler_setpoint.theta();
 			_yaw_stp = yaw_lock ? (euler_setpoint.psi() - euler_vehicle.psi()) : euler_setpoint.psi();
+
+			// To avoid gimbal lock constrain -90 degree
+			if (_pitch_stp < -1.569f) {
+				_pitch_stp = -1.5359f;
+			}
 
 			_roll_rate_stp = msg.angular_velocity_x;
 			_pitch_rate_stp = msg.angular_velocity_y;
@@ -248,12 +255,13 @@ void GZGimbal::publishDeviceAttitude()
 	gimbal_att.target_component = 0; // Broadcast
 	gimbal_att.device_flags = gimbal_device_attitude_status_s::DEVICE_FLAGS_YAW_IN_EARTH_FRAME;
 	_q_gimbal.copyTo(gimbal_att.q);
+
 	gimbal_att.angular_velocity_x = _gimbal_rate[0];
 	gimbal_att.angular_velocity_y = _gimbal_rate[1];
 	gimbal_att.angular_velocity_z = _gimbal_rate[2];
 	gimbal_att.failure_flags = 0;
 	gimbal_att.timestamp = hrt_absolute_time();
-
+	gimbal_att.gimbal_device_id = _gimbal_device_id;
 	_gimbal_device_attitude_status_pub.publish(gimbal_att);
 }
 
