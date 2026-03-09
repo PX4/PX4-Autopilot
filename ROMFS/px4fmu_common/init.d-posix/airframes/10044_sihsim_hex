@@ -18,6 +18,7 @@ param set-default SENS_EN_BAROSIM 1
 param set-default SENS_EN_MAGSIM 1
 
 param set SIH_VEHICLE_TYPE 4
+param set-default MAV_TYPE 13
 
 # Symmetric hexacopter X clockwise motor numbering
 param set-default CA_ROTOR_COUNT 6
