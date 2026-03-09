@@ -56,7 +56,7 @@ PARAM_DEFINE_INT32(MAV_COMP_ID, 1);
  * @value 1 Signing enabled except on USB
  * @value 2 Signing always enabled
  */
-PARAM_DEFINE_INT32(MAV_SIGN_MODE, 0);
+PARAM_DEFINE_INT32(MAV_SIGN_CFG, 0);
 
 /**
  * MAVLink protocol version

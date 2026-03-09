@@ -1,6 +1,6 @@
 # MAVLink Message Signing
 
-[MAVLink 2 message signing](https://mavlink.io/en/guide/message_signing.html) allows PX4 to cryptographically verify that incoming MAVLink messages originate from a trusted source, and reject messages from untrusted senders.
+[MAVLink 2 message signing](https://mavlink.io/en/guide/message_signing.html) allows PX4 to cryptographically verify that incoming MAVLink messages originate from a trusted source (authentication).
 
 ::: info
 This mechanism does not _encrypt_ the message payload.
@@ -10,16 +10,14 @@ This mechanism does not _encrypt_ the message payload.
 
 When signing is enabled, PX4 appends a 13-byte [signature](https://mavlink.io/en/guide/message_signing.html#signature) to every outgoing MAVLink 2 message.
 
-<!-- It uses HMAC-SHA256 signatures appended to each message. -->
-
 Incoming messages are checked against the shared secret key, and unsigned or incorrectly signed messages are rejected (with [exceptions for safety-critical messages](#unsigned-message-allowlist)).
 
 The signing implementation is built into the MAVLink module and is always available — no special build flags are required.
-It is enabled and disabled at runtime through the [MAV_SIGN_MODE](../advanced_config/parameter_reference.md#MAV_SIGN_MODE) parameter.
+It is enabled and disabled at runtime through the [MAV_SIGN_CFG](../advanced_config/parameter_reference.md#MAV_SIGN_CFG) parameter.
 
 ## Enable/Disable Signing
 
-The [MAV_SIGN_MODE](../advanced_config/parameter_reference.md#MAV_SIGN_MODE) parameter controls whether signing is active:
+The [MAV_SIGN_CFG](../advanced_config/parameter_reference.md#MAV_SIGN_CFG) parameter controls whether signing is active:
 
 | Value | Mode               | Description                                                                                            |
 | ----- | ------------------ | ------------------------------------------------------------------------------------------------------ |
@@ -28,11 +26,11 @@ The [MAV_SIGN_MODE](../advanced_config/parameter_reference.md#MAV_SIGN_MODE) par
 | 2     | Always             | Signing is enforced on all links, including USB.                                                       |
 
 ::: warning
-Setting `MAV_SIGN_MODE` alone does not enable signing — a secret key must also be present (see [Key Provisioning](#key-provisioning) below).
+Setting `MAV_SIGN_CFG` alone does not enable signing — a secret key must also be present (see [Key Provisioning](#key-provisioning) below).
 If no key has been set (or the key is all zeros with a zero timestamp), all messages are accepted regardless of this parameter.
 :::
 
-To **disable** signing, set `MAV_SIGN_MODE` to zero.
+To **disable** signing, set `MAV_SIGN_CFG` to zero.
 
 ## Key Provisioning
 
@@ -43,7 +41,7 @@ This message contains:
 - A 64-bit initial timestamp
 
 ::: warning
-For security, PX4 only accepts `SETUP_SIGNING` messages received on a **USB serial** (UART) connection.
+For security, PX4 only accepts `SETUP_SIGNING` messages received on a **USB** connection.
 The message is silently ignored on all other link types (telemetry radios, network, and so on).
 This ensures that an attacker cannot remotely change the signing key.
 :::
@@ -53,7 +51,7 @@ This ensures that an attacker cannot remotely change the signing key.
 The secret key and timestamp are stored on the SD card at:
 
 ```txt
-/mavlink/.secret
+/mavlink/mavlink-signing-key.bin
 ```
 
 The file is a 40-byte binary file:
@@ -84,13 +82,13 @@ Note that this requires physical access to the vehicle, and therefore provides t
 
 1. The MAVLink module calls `MavlinkSignControl::start()` during startup.
 2. The `/mavlink/` directory is created if it doesn't exist.
-3. The `.secret` file is opened (or created empty).
+3. The `mavlink-signing-key.bin` file is opened (or created empty).
 4. If a valid key is found (non-zero key or timestamp), signing is marked as initialized.
 5. The `accept_unsigned` callback is registered with the MAVLink library.
 
 ### Outgoing Messages
 
-When signing is initialized, the `MAVLINK_SIGNING_FLAG_SIGN_OUTGOING` flag is set, which causes the MAVLink library to automatically append an HMAC-SHA256 signature to every outgoing MAVLink 2 message.
+When signing is initialized, the `MAVLINK_SIGNING_FLAG_SIGN_OUTGOING` flag is set, which causes the MAVLink library to automatically append a [SHA-256 based signature](https://mavlink.io/en/guide/message_signing.html#signature) to every outgoing MAVLink 2 message.
 
 ### Incoming Messages
 
@@ -99,7 +97,7 @@ If the message is unsigned or has an invalid signature, the library calls the `a
 
 1. **Signing not initialized** — If no key has been loaded, all messages are accepted.
 2. **Allowlisted message** — Certain [safety-critical messages](#unsigned-message-allowlist) are always accepted.
-3. **Sign mode** — The `MAV_SIGN_MODE` parameter determines behavior:
+3. **Sign mode** — The `MAV_SIGN_CFG` parameter determines behavior:
    - Mode 0 (disabled): All unsigned messages are accepted.
    - Mode 1 (non-USB): Unsigned messages are accepted only on USB links.
    - Mode 2 (always): Unsigned messages are rejected on all links.
@@ -119,7 +117,7 @@ These are safety-critical messages that may originate from systems that don't su
 
 - **Physical access required for key setup**: The `SETUP_SIGNING` message is only accepted over USB, so an attacker must have physical access to the vehicle to provision or change the key.
 - **Key not exposed via parameters**: The secret key is stored in a separate file on the SD card, not as a MAVLink parameter, so it cannot be read back through the parameter protocol.
-- **SD card access**: Anyone with physical access to the SD card can read or modify the `.secret` file, or just remove the card.
+- **SD card access**: Anyone with physical access to the SD card can read or modify the `mavlink-signing-key.bin` file, or just remove the card.
   Ensure physical security of the vehicle if signing is used as a security control.
 - **Replay protection**: The MAVLink signing protocol includes a timestamp that prevents replay attacks.
   The on-disk timestamp is updated when a new key is provisioned via `SETUP_SIGNING`.

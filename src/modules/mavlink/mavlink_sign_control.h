@@ -43,7 +43,7 @@
 
 #define MAVLINK_SD_ROOT_PATH    CONFIG_BOARD_ROOT_PATH "/"
 #define MAVLINK_FOLDER_PATH MAVLINK_SD_ROOT_PATH"/mavlink"
-#define MAVLINK_SECRET_FILE MAVLINK_FOLDER_PATH"/.secret"
+#define MAVLINK_SECRET_FILE MAVLINK_FOLDER_PATH"/mavlink-signing-key.bin"
 
 #define MAVLINK_SECRET_KEY_TIMESTAMP_LENGTH 8 ///< size of timestamp in bytes
 #define MAVLINK_SECRET_KEY_LENGTH 32 ///< size of key in bytes
