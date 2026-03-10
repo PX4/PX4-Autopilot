@@ -231,10 +231,10 @@ TelemetryStatus DShotTelemetry::decodeTelemetryResponse(uint8_t *buffer, int len
 			if (checksum == checksum_data) {
 
 				uint8_t temperature = _frame_buffer[0];
-				int16_t voltage = (_frame_buffer[1] << 8) | _frame_buffer[2];
-				int16_t current = (_frame_buffer[3] << 8) | _frame_buffer[4];
+				uint16_t voltage = (_frame_buffer[1] << 8) | _frame_buffer[2];
+				uint16_t current = (_frame_buffer[3] << 8) | _frame_buffer[4];
 				// int16_t consumption = (_frame_buffer[5]) << 8 | _frame_buffer[6];
-				int16_t erpm = (_frame_buffer[7] << 8) | _frame_buffer[8];
+				uint16_t erpm = (_frame_buffer[7] << 8) | _frame_buffer[8];
 
 				esc_data->timestamp = hrt_absolute_time();
 				esc_data->temperature = (float)temperature;
