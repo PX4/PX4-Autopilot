@@ -88,3 +88,22 @@ int ActuatorEffectiveness::Configuration::totalNumActuators() const
 
 	return total_count;
 }
+
+ActuatorEffectiveness::ActuatorBitmask ActuatorEffectiveness::getStoppedMotors() const
+{
+	// Motors can be stopped (here) for two reasons. They can
+	// additionally be stopped in the ControlAllocator, due to motor
+	// failure.
+
+	//  a) because they are generally not used in the given flight phase.
+	ActuatorEffectiveness::ActuatorBitmask stopped_motors_mask = _stopped_motors_mask_due_to_flight_phase;
+
+	//  b) because the thrust setpoint in a given direction is NaN
+	if (_longitudinal_motors_stopped_by_thrust) { stopped_motors_mask |= _motor_direction_bitmasks.longitudinal; }
+
+	if (_lateral_motors_stopped_by_thrust) { stopped_motors_mask |= _motor_direction_bitmasks.lateral; }
+
+	if (_vertical_motors_stopped_by_thrust) { stopped_motors_mask |= _motor_direction_bitmasks.vertical; }
+
+	return stopped_motors_mask;
+}

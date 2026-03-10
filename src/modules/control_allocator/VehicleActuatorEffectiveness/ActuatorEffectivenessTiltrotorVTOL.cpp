@@ -83,6 +83,7 @@ ActuatorEffectivenessTiltrotorVTOL::getEffectivenessMatrix(Configuration &config
 			     << configuration.num_actuators[(int)ActuatorType::MOTORS];
 
 	const bool mc_rotors_added_successfully = _mc_rotors.addActuators(configuration);
+	_mc_rotors.setMotorDirectionBitmasks(_motor_direction_bitmasks);
 	_motors = _mc_rotors.getMotors();
 
 	// Control Surfaces
@@ -247,16 +248,15 @@ void ActuatorEffectivenessTiltrotorVTOL::setFlightPhase(const FlightPhase &fligh
 
 	ActuatorEffectiveness::setFlightPhase(flight_phase);
 
-	// update stopped motors
 	switch (flight_phase) {
 	case FlightPhase::FORWARD_FLIGHT:
-		_stopped_motors_mask |= _untiltable_motors;
+		_stopped_motors_mask_due_to_flight_phase = _untiltable_motors;
 		break;
 
 	case FlightPhase::HOVER_FLIGHT:
 	case FlightPhase::TRANSITION_FF_TO_HF:
 	case FlightPhase::TRANSITION_HF_TO_FF:
-		_stopped_motors_mask = 0;
+		_stopped_motors_mask_due_to_flight_phase = 0;
 		break;
 	}
 }
