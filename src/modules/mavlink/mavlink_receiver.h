@@ -64,7 +64,9 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/autotune_attitude_control_status.h>
+#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
 #include <uORB/topics/esc_eeprom_write.h>
+#endif
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/camera_status.h>
@@ -335,7 +337,10 @@ private:
 	uORB::Publication<vehicle_odometry_s>			_mocap_odometry_pub{ORB_ID(vehicle_mocap_odometry)};
 	uORB::Publication<vehicle_odometry_s>			_visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
 	uORB::Publication<vehicle_rates_setpoint_s>		_rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};
+
+#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
 	uORB::Publication<esc_eeprom_write_s>			_esc_eeprom_write_pub{ORB_ID(esc_eeprom_write)};
+#endif
 
 #if !defined(CONSTRAINED_FLASH)
 	uORB::Publication<debug_array_s>			_debug_array_pub {ORB_ID(debug_array)};
