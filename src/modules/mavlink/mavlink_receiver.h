@@ -65,6 +65,7 @@
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/autotune_attitude_control_status.h>
 #include <uORB/topics/esc_eeprom_write.h>
+#include <uORB/topics/esc_status.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/camera_status.h>
 #include <uORB/topics/cellular_status.h>

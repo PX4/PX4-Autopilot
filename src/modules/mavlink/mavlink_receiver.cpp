@@ -1337,6 +1337,11 @@ MavlinkReceiver::handle_message_esc_eeprom(mavlink_message_t *msg)
 	eeprom.firmware = message.firmware;
 	eeprom.index = message.esc_index;
 
+	if (eeprom.index != 255 && eeprom.index >= esc_status_s::CONNECTED_ESC_MAX) {
+		PX4_ERR("ESC EEPROM: invalid esc_index %u", eeprom.index);
+		return;
+	}
+
 	uint8_t min_length = sizeof(eeprom.data);
 	int length = message.length;
 

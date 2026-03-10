@@ -181,8 +181,14 @@ void DShot::select_next_command()
 				PX4_ERR("esc_eeprom_write lost, generation %u -> %u", last_generation, current_generation);
 			}
 
-			PX4_INFO("ESC%u: starting programming mode", _esc_eeprom_write.index + 1);
-			_dshot_programming_active = true;
+			if (_esc_eeprom_write.index != 255
+			    && _esc_eeprom_write.index >= esc_status_s::CONNECTED_ESC_MAX) {
+				PX4_ERR("esc_eeprom_write: invalid index %u", _esc_eeprom_write.index);
+
+			} else {
+				PX4_INFO("ESC%u: starting programming mode", _esc_eeprom_write.index + 1);
+				_dshot_programming_active = true;
+			}
 		}
 	}
 
@@ -861,6 +867,11 @@ void DShot::handle_esc_request_eeprom(const vehicle_command_s &command)
 	PX4_INFO("esc_index: %d", (int)command.param2);
 
 	int esc_index = command.param2;
+
+	if (esc_index != 255 && (esc_index < 0 || esc_index >= esc_status_s::CONNECTED_ESC_MAX)) {
+		PX4_ERR("ESC_REQUEST_EEPROM: invalid esc_index %d", esc_index);
+		return;
+	}
 
 	// Mark as unread to re-trigger settings request
 	if (esc_index == 255) {
