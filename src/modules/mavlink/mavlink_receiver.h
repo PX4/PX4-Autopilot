@@ -339,7 +339,7 @@ private:
 	uORB::Publication<vehicle_rates_setpoint_s>		_rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};
 
 #if defined(MAVLINK_MSG_ID_ESC_EEPROM)
-	uORB::Publication<esc_eeprom_write_s>			_esc_eeprom_write_pub{ORB_ID(esc_eeprom_write)};
+	uORB::Publication<esc_eeprom_write_s>			_esc_eeprom_write_pub {ORB_ID(esc_eeprom_write)};
 #endif
 
 #if !defined(CONSTRAINED_FLASH)
