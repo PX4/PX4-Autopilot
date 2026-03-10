@@ -78,7 +78,7 @@ bool AM32Settings::decodeInfoResponse(const uint8_t *buf, int size)
 	// Store data for retrieval later if requested
 	memcpy(&_eeprom_data, buf, EEPROM_SIZE);
 
-	// Publish data immedietly
+	// Publish data immediately
 	publish_latest();
 
 	return true;
