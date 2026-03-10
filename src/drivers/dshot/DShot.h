@@ -59,6 +59,14 @@ static constexpr uint32_t DSHOT150 = 150000u;
 static constexpr uint32_t DSHOT300 = 300000u;
 static constexpr uint32_t DSHOT600 = 600000u;
 
+/// Timer config values from PWM_TIM param (matches pwm_out/module.yaml enum)
+static constexpr int32_t TIM_CONFIG_DSHOT150  = -5;
+static constexpr int32_t TIM_CONFIG_DSHOT300  = -4;
+static constexpr int32_t TIM_CONFIG_DSHOT600  = -3;
+static constexpr int32_t TIM_CONFIG_BDSHOT150 = -8;
+static constexpr int32_t TIM_CONFIG_BDSHOT300 = -7;
+static constexpr int32_t TIM_CONFIG_BDSHOT600 = -6;
+
 static constexpr uint16_t DSHOT_DISARM_VALUE = 0;
 static constexpr uint16_t DSHOT_MIN_THROTTLE = 1;
 static constexpr uint16_t DSHOT_MAX_THROTTLE = 1999;

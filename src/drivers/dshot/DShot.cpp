@@ -1008,21 +1008,21 @@ bool DShot::initialize_dshot()
 		param_get(handle, &tim_config);
 
 		// Check if this timer is configured for DShot
-		if (tim_config == -5 || tim_config == -8) {
+		if (tim_config == TIM_CONFIG_DSHOT150 || tim_config == TIM_CONFIG_BDSHOT150) {
 			_dshot_frequency = DSHOT150;
 			dshot_timer_channels |= timer_channels;
 
-		} else if (tim_config == -4 || tim_config == -7) {
+		} else if (tim_config == TIM_CONFIG_DSHOT300 || tim_config == TIM_CONFIG_BDSHOT300) {
 			_dshot_frequency = DSHOT300;
 			dshot_timer_channels |= timer_channels;
 
-		} else if (tim_config == -3 || tim_config == -6) {
+		} else if (tim_config == TIM_CONFIG_DSHOT600 || tim_config == TIM_CONFIG_BDSHOT600) {
 			_dshot_frequency = DSHOT600;
 			dshot_timer_channels |= timer_channels;
 		}
 
 		// Bidirectional DShot
-		if (tim_config < -5) {
+		if (tim_config == TIM_CONFIG_BDSHOT150 || tim_config == TIM_CONFIG_BDSHOT300 || tim_config == TIM_CONFIG_BDSHOT600) {
 			_bdshot_timer_channels |= timer_channels;
 		}
 	}
