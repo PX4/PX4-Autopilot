@@ -77,10 +77,10 @@ public:
 	const char *name() const override { return "VTOL Tailsitter"; }
 
 protected:
+	void updateMotorMasks();
+
 	ActuatorEffectivenessRotors _mc_rotors;
 	ActuatorEffectivenessControlSurfaces _control_surfaces;
-
-	ActuatorBitmask _forwards_motors_mask{};
 
 	int _first_control_surface_idx{0}; ///< applies to matrix 1
 

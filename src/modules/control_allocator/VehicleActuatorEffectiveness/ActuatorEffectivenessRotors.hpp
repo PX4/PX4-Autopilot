@@ -129,8 +129,10 @@ public:
 	void enableThreeDimensionalThrust(bool enable) { _geometry.three_dimensional_thrust_disabled = !enable; }
 
 	ActuatorBitmask getMotors() const;
+
 	ActuatorBitmask getUpwardsMotors() const;
 	ActuatorBitmask getForwardsMotors() const;
+	ActuatorBitmask getSidewaysMotors() const;
 
 private:
 	void updateParams() override;

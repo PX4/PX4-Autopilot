@@ -267,6 +267,11 @@ ActuatorBitmask ActuatorEffectivenessRotors::getMotors() const
 	return motors;
 }
 
+// These three allow an angle deviation of 8.1 deg. Motor tilt for yaw actuation
+// could reasonably be more. Alternatively, we could classify the motors such
+// that every rotor points in a defined direction, putting the decision
+// boundaries at 45 deg. TODO revisit
+
 ActuatorBitmask ActuatorEffectivenessRotors::getUpwardsMotors() const
 {
 	ActuatorBitmask upwards_motors = 0;
@@ -295,6 +300,22 @@ ActuatorBitmask ActuatorEffectivenessRotors::getForwardsMotors() const
 	}
 
 	return forward_motors;
+}
+
+ActuatorBitmask ActuatorEffectivenessRotors::getSidewaysMotors() const
+{
+	ActuatorBitmask sideways_motors = 0;
+
+	for (int i = 0; i < _geometry.num_rotors; ++i) {
+		const Vector3f &axis = _geometry.rotors[i].axis;
+
+		// This includes both left and right pointing motors, in contrast to the other two directions...
+		if (fabsf(axis(0)) < 0.1f && fabsf(axis(1)) > 0.5f && fabsf(axis(2)) < 0.1f) {
+			sideways_motors |= 1u << i;
+		}
+	}
+
+	return sideways_motors;
 }
 
 bool

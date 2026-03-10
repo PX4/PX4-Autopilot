@@ -59,6 +59,10 @@ ActuatorEffectivenessMCTilt::getEffectivenessMatrix(Configuration &configuration
 	_tilts.updateTorqueSign(_mc_rotors.geometry());
 	const bool tilts_added_successfully = _tilts.addActuators(configuration);
 
+	_forwards_motors_mask = _mc_rotors.getForwardsMotors();
+	_sideways_motors_mask = _mc_rotors.getSidewaysMotors();
+	_upwards_motors_mask = _mc_rotors.getUpwardsMotors();
+
 	// Set offset such that tilts point upwards when control input == 0 (trim is 0 if min_angle == -max_angle).
 	// Note that we don't set configuration.trim here, because in the case of trim == +-1, yaw is always saturated
 	// and reduced to 0 with the sequential desaturation method. Instead we add it after.

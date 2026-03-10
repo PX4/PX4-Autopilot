@@ -52,5 +52,9 @@ ActuatorEffectivenessMultirotor::getEffectivenessMatrix(Configuration &configura
 	// Motors
 	const bool rotors_added_successfully = _mc_rotors.addActuators(configuration);
 
+	_forwards_motors_mask = _mc_rotors.getForwardsMotors();
+	_sideways_motors_mask = _mc_rotors.getSidewaysMotors();
+	_upwards_motors_mask = _mc_rotors.getUpwardsMotors();
+
 	return rotors_added_successfully;
 }

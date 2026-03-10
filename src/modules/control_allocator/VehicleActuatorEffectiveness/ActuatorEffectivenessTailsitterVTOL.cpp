@@ -59,6 +59,7 @@ ActuatorEffectivenessTailsitterVTOL::getEffectivenessMatrix(Configuration &confi
 	// enable MC yaw control if more than 3 rotors
 	_mc_rotors.enableYawByDifferentialThrust(_mc_rotors.geometry().num_rotors > 3);
 	const bool mc_rotors_added_successfully = _mc_rotors.addActuators(configuration);
+	updateMotorMasks();
 
 	// Control Surfaces
 	configuration.selected_matrix = 1;
@@ -96,17 +97,29 @@ void ActuatorEffectivenessTailsitterVTOL::setFlightPhase(const FlightPhase &flig
 
 	ActuatorEffectiveness::setFlightPhase(flight_phase);
 
-	// update stopped motors
-	switch (flight_phase) {
+	updateMotorMasks();
+
+}
+
+void ActuatorEffectivenessTailsitterVTOL::updateMotorMasks()
+{
+	switch (_flight_phase) {
 	case FlightPhase::FORWARD_FLIGHT:
+
+		// TODO only set this mask if the motors are not needed for rate control, watching one or both of:
+		//  - _mc_rotors.geometry().num_rotors > 3 (used in getEffectivenessMatrix to enable MC yaw control)
+		//  - VT_FW_DIFTHR_EN (the general switch for this -- are the two equivalent?)
+
 		_forwards_motors_mask = _mc_rotors.getUpwardsMotors(); // allocation frame they stay upwards
+		_upwards_motors_mask = 0;
 		break;
 
 	case FlightPhase::HOVER_FLIGHT:
 	case FlightPhase::TRANSITION_FF_TO_HF:
 	case FlightPhase::TRANSITION_HF_TO_FF:
 		_forwards_motors_mask = 0;
-		_stopped_motors_mask = 0;
+		_upwards_motors_mask = _mc_rotors.getUpwardsMotors();
+
 		break;
 	}
 }
