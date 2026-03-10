@@ -58,7 +58,7 @@ public:
 	bool commandResponseStarted();
 
 	void setExpectCommandResponse(int motor_index, uint16_t command);
-	void initSettingsHandlers(ESCType esc_type, uint8_t output_mask);
+	void initSettingsHandlers(ESCType esc_type, uint16_t output_mask);
 	void publish_esc_settings();
 
 private:

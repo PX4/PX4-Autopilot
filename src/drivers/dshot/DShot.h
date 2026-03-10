@@ -152,8 +152,8 @@ private:
 	uint32_t _serial_telem_online_mask = 0; // Mask indicating telem receive status for serial telem
 	uint32_t _serial_telem_errors[DSHOT_MAXIMUM_CHANNELS] = {};
 	uint32_t _bdshot_telem_errors[DSHOT_MAXIMUM_CHANNELS] = {};
-	uint8_t _bdshot_edt_requested_mask = 0;
-	uint8_t _settings_requested_mask = 0;
+	uint16_t _bdshot_edt_requested_mask = 0;
+	uint16_t _settings_requested_mask = 0;
 
 	// Array of timestamps indicating when the telemetry came online
 	hrt_abstime _serial_telem_online_timestamps[DSHOT_MAXIMUM_CHANNELS] = {};

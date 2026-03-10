@@ -192,17 +192,17 @@ void DShot::select_next_command()
 	// - Settings Programming
 
 	// EDT Request mask
-	uint8_t needs_edt_request_mask = _bdshot_telem_online_mask & ~_bdshot_edt_requested_mask;
+	uint16_t needs_edt_request_mask = _bdshot_telem_online_mask & ~_bdshot_edt_requested_mask;
 
 	// Settings Request mask
-	uint8_t needs_settings_request_mask = _serial_telem_online_mask & ~_settings_requested_mask;
+	uint16_t needs_settings_request_mask = _serial_telem_online_mask & ~_settings_requested_mask;
 
 	bool serial_telem_delay_elapsed = hrt_absolute_time() > _serial_telem_delay_until;
 
 	_current_command.clear();
 
 	// EDT Request: use motor-order masks since needs_edt_request_mask is in motor order
-	uint8_t edt_motors_to_request = _bdshot_motor_mask & needs_edt_request_mask;
+	uint16_t edt_motors_to_request = _bdshot_motor_mask & needs_edt_request_mask;
 
 	if (_bdshot_edt_enabled && edt_motors_to_request != 0) {
 		// Find first motor that needs EDT request and has been online long enough
@@ -227,7 +227,7 @@ void DShot::select_next_command()
 
 	} else if (_serial_telemetry_enabled && serial_telem_delay_elapsed && (_motor_mask & needs_settings_request_mask)) {
 		// Settings Request: use motor-order masks since needs_settings_request_mask is in motor order
-		uint8_t settings_motors_to_request = _motor_mask & needs_settings_request_mask;
+		uint16_t settings_motors_to_request = _motor_mask & needs_settings_request_mask;
 
 		// Find first motor that needs settings request
 		for (int motor_index = 0; motor_index < DSHOT_MAXIMUM_CHANNELS; motor_index++) {
@@ -244,6 +244,11 @@ void DShot::select_next_command()
 		}
 
 	} else if (_dshot_programming_active) {
+		// Motor mask for programming: all motors or single motor
+		const uint16_t programming_motor_mask = _esc_eeprom_write.index == 255
+				? (uint16_t)((1u << esc_status_s::CONNECTED_ESC_MAX) - 1)
+				: (uint16_t)(1u << _esc_eeprom_write.index);
+
 		// Settings programming state machine
 		if (_programming_state == ProgrammingState::Idle) {
 			// Get next setting address/value to program
@@ -294,7 +299,7 @@ void DShot::select_next_command()
 				// _programming_state = ProgrammingState::Save;
 				_current_command.command = DSHOT_CMD_SAVE_SETTINGS;
 				_current_command.num_repetitions = 6;
-				_current_command.motor_mask = _esc_eeprom_write.index == 255 ? 255 : (1 << _esc_eeprom_write.index);
+				_current_command.motor_mask = programming_motor_mask;
 				_programming_state = ProgrammingState::Idle;
 
 				// Clear the written mask for this motor for next time
@@ -302,8 +307,8 @@ void DShot::select_next_command()
 				_settings_written_mask[1] = 0;
 
 				// Mark as offline and unread so that we read again
-				// _serial_telem_online_mask &= ~(_esc_eeprom_write.index == 255 ? 255 : (1 << _esc_eeprom_write.index));
-				_settings_requested_mask &= ~(_esc_eeprom_write.index == 255 ? 255 : (1 << _esc_eeprom_write.index));
+				// _serial_telem_online_mask &= ~(programming_motor_mask);
+				_settings_requested_mask &= ~(programming_motor_mask);
 
 				_serial_telem_delay_until = hrt_absolute_time() + 500_ms;
 			}
@@ -313,28 +318,28 @@ void DShot::select_next_command()
 		case ProgrammingState::EnterMode:
 			_current_command.command = DSHOT_CMD_ENTER_PROGRAMMING_MODE;
 			_current_command.num_repetitions = 6;
-			_current_command.motor_mask = _esc_eeprom_write.index == 255 ? 255 : (1 << _esc_eeprom_write.index);
+			_current_command.motor_mask = programming_motor_mask;
 			_programming_state = ProgrammingState::SendAddress;
 			break;
 
 		case ProgrammingState::SendAddress:
 			_current_command.command = _programming_address;
 			_current_command.num_repetitions = 1;
-			_current_command.motor_mask = _esc_eeprom_write.index == 255 ? 255 : (1 << _esc_eeprom_write.index);
+			_current_command.motor_mask = programming_motor_mask;
 			_programming_state = ProgrammingState::SendValue;
 			break;
 
 		case ProgrammingState::SendValue:
 			_current_command.command = _programming_value;
 			_current_command.num_repetitions = 1;
-			_current_command.motor_mask = _esc_eeprom_write.index == 255 ? 255 : (1 << _esc_eeprom_write.index);
+			_current_command.motor_mask = programming_motor_mask;
 			_programming_state = ProgrammingState::ExitMode;
 			break;
 
 		case ProgrammingState::ExitMode:
 			_current_command.command = DSHOT_CMD_EXIT_PROGRAMMING_MODE;
 			_current_command.num_repetitions = 1;
-			_current_command.motor_mask = _esc_eeprom_write.index == 255 ? 255 : (1 << _esc_eeprom_write.index);
+			_current_command.motor_mask = programming_motor_mask;
 			_programming_state = ProgrammingState::Idle;
 			break;
 

@@ -85,7 +85,7 @@ int DShotTelemetry::init(const char *port, bool swap_rxtx)
 	return PX4_OK;
 }
 
-void DShotTelemetry::initSettingsHandlers(ESCType esc_type, uint8_t output_mask)
+void DShotTelemetry::initSettingsHandlers(ESCType esc_type, uint16_t output_mask)
 {
 	if (_settings_initialized) {
 		return;
