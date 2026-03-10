@@ -220,9 +220,9 @@ public:
 	 */
 	void stopMotorsBasedOnThrustSetpoint(const matrix::Vector3f &thrust_sp)
 	{
-		_forwards_motors_stopped_by_thrust = !PX4_ISFINITE(thrust_sp(0));
-		_sideways_motors_stopped_by_thrust = !PX4_ISFINITE(thrust_sp(1));
-		_upwards_motors_stopped_by_thrust = !PX4_ISFINITE(thrust_sp(2));
+		_longitudinal_motors_stopped_by_thrust = !PX4_ISFINITE(thrust_sp(0));
+		_lateral_motors_stopped_by_thrust = !PX4_ISFINITE(thrust_sp(1));
+		_vertical_motors_stopped_by_thrust = !PX4_ISFINITE(thrust_sp(2));
 	}
 
 protected:
@@ -231,15 +231,17 @@ protected:
 	// ActuatorEffectivenessRotors::get{Upwards,Forwards,Sideways}Motors()
 	// They can alternatively be set to zero to completely disable stopping motors based on NaN thrust
 
-	ActuatorBitmask _upwards_motors_mask{};
-	ActuatorBitmask _forwards_motors_mask{};
-	ActuatorBitmask _sideways_motors_mask{};
+	struct MotorDirectionBitmasks {
+		ActuatorBitmask longitudinal{};
+		ActuatorBitmask lateral{};
+		ActuatorBitmask vertical{};
+	} _motor_direction_bitmasks;
 
 	FlightPhase _flight_phase{FlightPhase::HOVER_FLIGHT};
 	ActuatorBitmask _stopped_motors_mask_due_to_flight_phase{};
 
-	bool _forwards_motors_stopped_by_thrust{false};
-	bool _upwards_motors_stopped_by_thrust{false};
-	bool _sideways_motors_stopped_by_thrust{false};
+	bool _longitudinal_motors_stopped_by_thrust{false};
+	bool _vertical_motors_stopped_by_thrust{false};
+	bool _lateral_motors_stopped_by_thrust{false};
 
 };

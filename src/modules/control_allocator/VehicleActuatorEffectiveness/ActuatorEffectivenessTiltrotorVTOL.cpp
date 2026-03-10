@@ -83,8 +83,7 @@ ActuatorEffectivenessTiltrotorVTOL::getEffectivenessMatrix(Configuration &config
 			     << configuration.num_actuators[(int)ActuatorType::MOTORS];
 
 	const bool mc_rotors_added_successfully = _mc_rotors.addActuators(configuration);
-	_forwards_motors_mask = _mc_rotors.getForwardsMotors();
-	_upwards_motors_mask = _mc_rotors.getUpwardsMotors();
+	_mc_rotors.setMotorDirectionBitmasks(_motor_direction_bitmasks);
 	_motors = _mc_rotors.getMotors();
 
 	// Control Surfaces

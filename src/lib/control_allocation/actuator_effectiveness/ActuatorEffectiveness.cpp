@@ -95,15 +95,15 @@ ActuatorEffectiveness::ActuatorBitmask ActuatorEffectiveness::getStoppedMotors()
 	// additionally be stopped in the ControlAllocator, due to motor
 	// failure.
 
-	//  a) they are turned off because they are generally not used in the given flight phase.
+	//  a) because they are generally not used in the given flight phase.
 	ActuatorEffectiveness::ActuatorBitmask stopped_motors_mask = _stopped_motors_mask_due_to_flight_phase;
 
-	//  b) they are stopped because the thrust setpoint in a given direction is NaN
-	if (_forwards_motors_stopped_by_thrust) { stopped_motors_mask |= _forwards_motors_mask; }
+	//  b) because the thrust setpoint in a given direction is NaN
+	if (_longitudinal_motors_stopped_by_thrust) { stopped_motors_mask |= _motor_direction_bitmasks.longitudinal; }
 
-	if (_upwards_motors_stopped_by_thrust) { stopped_motors_mask |= _upwards_motors_mask; }
+	if (_lateral_motors_stopped_by_thrust) { stopped_motors_mask |= _motor_direction_bitmasks.lateral; }
 
-	if (_sideways_motors_stopped_by_thrust) { stopped_motors_mask |= _sideways_motors_mask; }
+	if (_vertical_motors_stopped_by_thrust) { stopped_motors_mask |= _motor_direction_bitmasks.vertical; }
 
 	return stopped_motors_mask;
 }

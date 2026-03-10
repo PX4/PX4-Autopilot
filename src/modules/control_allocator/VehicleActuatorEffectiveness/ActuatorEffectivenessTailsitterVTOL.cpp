@@ -106,19 +106,22 @@ void ActuatorEffectivenessTailsitterVTOL::updateMotorMasks()
 	switch (_flight_phase) {
 	case FlightPhase::FORWARD_FLIGHT:
 
-		// TODO only set this mask if the motors are not needed for rate control, watching one or both of:
-		//  - _mc_rotors.geometry().num_rotors > 3 (used in getEffectivenessMatrix to enable MC yaw control)
-		//  - VT_FW_DIFTHR_EN (the general switch for this -- are the two equivalent?)
+		_mc_rotors.setMotorDirectionBitmasks(_motor_direction_bitmasks);
 
-		_forwards_motors_mask = _mc_rotors.getUpwardsMotors(); // allocation frame they stay upwards
-		_upwards_motors_mask = 0;
+		// Exchange forwards and upwards bitmasks - allocation frame
+		// upwards direction now points forwards
+		{
+			const ActuatorBitmask tmp = _motor_direction_bitmasks.longitudinal;
+			_motor_direction_bitmasks.longitudinal = _motor_direction_bitmasks.vertical;
+			_motor_direction_bitmasks.vertical = tmp;
+		}
+
 		break;
 
 	case FlightPhase::HOVER_FLIGHT:
 	case FlightPhase::TRANSITION_FF_TO_HF:
 	case FlightPhase::TRANSITION_HF_TO_FF:
-		_forwards_motors_mask = 0;
-		_upwards_motors_mask = _mc_rotors.getUpwardsMotors();
+		_mc_rotors.setMotorDirectionBitmasks(_motor_direction_bitmasks);
 
 		break;
 	}

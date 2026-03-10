@@ -52,8 +52,7 @@ ActuatorEffectivenessStandardVTOL::getEffectivenessMatrix(Configuration &configu
 	configuration.selected_matrix = 0;
 	_rotors.enablePropellerTorqueNonUpwards(false);
 	const bool mc_rotors_added_successfully = _rotors.addActuators(configuration);
-	_upwards_motors_mask = _rotors.getUpwardsMotors();
-	_forwards_motors_mask = _rotors.getForwardsMotors();
+	_rotors.setMotorDirectionBitmasks(_motor_direction_bitmasks);
 
 	// Control Surfaces
 	configuration.selected_matrix = 1;
@@ -93,7 +92,7 @@ void ActuatorEffectivenessStandardVTOL::setFlightPhase(const FlightPhase &flight
 
 	switch (flight_phase) {
 	case FlightPhase::FORWARD_FLIGHT:
-		_stopped_motors_mask_due_to_flight_phase = _upwards_motors_mask;
+		_stopped_motors_mask_due_to_flight_phase = _motor_direction_bitmasks.vertical;
 		break;
 
 	case FlightPhase::HOVER_FLIGHT:
