@@ -1008,16 +1008,24 @@ bool DShot::initialize_dshot()
 		param_get(handle, &tim_config);
 
 		// Check if this timer is configured for DShot
+		uint32_t freq = 0;
+
 		if (tim_config == TIM_CONFIG_DSHOT150 || tim_config == TIM_CONFIG_BDSHOT150) {
-			_dshot_frequency = DSHOT150;
-			dshot_timer_channels |= timer_channels;
+			freq = DSHOT150;
 
 		} else if (tim_config == TIM_CONFIG_DSHOT300 || tim_config == TIM_CONFIG_BDSHOT300) {
-			_dshot_frequency = DSHOT300;
-			dshot_timer_channels |= timer_channels;
+			freq = DSHOT300;
 
 		} else if (tim_config == TIM_CONFIG_DSHOT600 || tim_config == TIM_CONFIG_BDSHOT600) {
-			_dshot_frequency = DSHOT600;
+			freq = DSHOT600;
+		}
+
+		if (freq > 0) {
+			if (_dshot_frequency != 0 && _dshot_frequency != freq) {
+				PX4_WARN("Mixed DShot frequencies across timers, using latest");
+			}
+
+			_dshot_frequency = freq;
 			dshot_timer_channels |= timer_channels;
 		}
 
