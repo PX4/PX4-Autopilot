@@ -958,6 +958,10 @@ int up_dshot_arm(bool armed)
 
 int up_bdshot_num_errors(uint8_t channel)
 {
+	if (channel >= MAX_TIMER_IO_CHANNELS) {
+		return 0;
+	}
+
 	return read_fail_crc[channel];
 }
 
@@ -968,6 +972,10 @@ int up_bdshot_get_erpm(uint8_t channel, int *erpm)
 	bool channel_initialized = timer_configs[timer_index].initialized_channels[timer_channel_index];
 
 	int status = PX4_ERROR;
+
+	if (channel >= MAX_TIMER_IO_CHANNELS) {
+		return status;
+	}
 
 	if (channel_initialized && _erpms[channel].ready) {
 		*erpm = _erpms[channel].erpm;
@@ -981,6 +989,10 @@ int up_bdshot_get_erpm(uint8_t channel, int *erpm)
 int up_bdshot_get_extended_telemetry(uint8_t channel, int type, uint8_t *value)
 {
 	int result = PX4_ERROR;
+
+	if (channel >= MAX_TIMER_IO_CHANNELS) {
+		return result;
+	}
 
 	switch (type) {
 	case DSHOT_EDT_TEMPERATURE:
