@@ -1,0 +1,13 @@
+Package: voxl-px4
+Version: 0.0.0
+Section: devel
+Priority: optional
+Architecture: arm64
+Depends: libfc-sensor (>=1.0.10),
+ voxl-px4-params (>=0.3.10),
+ voxl3-system-image(>=0.0.2) | voxl2-system-image(>=1.5.4) | rb5-system-image(>=1.6.2),
+ modalai-slpi(>=1.1.16) | modalai-adsp(>=1.0.2)
+Replaces: px4-rb5-flight
+Conflicts: px4-rb5-flight
+Maintainer: Eric Katzfey <eric.katzfey@modalai.com>
+Description: ModalAI PX4 flight controller for VOXL2

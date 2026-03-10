@@ -181,6 +181,17 @@ jobs:
           name: px4_${{matrix.group}}_build_artifacts
           path: artifacts/
 
+      - name: Build voxl2 Debian Package
+        if: contains(matrix.targets, 'modalai_voxl2')
+        run: ./Tools/packaging/voxl2/make_package.sh
+
+      - name: Upload voxl2 Debian Package
+        if: contains(matrix.targets, 'modalai_voxl2')
+        uses: actions/upload-artifact@v4
+        with:
+          name: voxl-px4-deb
+          path: Tools/packaging/voxl2/*.deb
+
       - name: Cache Post Build Stats
         if: always()
         run: |
@@ -265,5 +276,7 @@ jobs:
         with:
           draft: true
           prerelease: ${{ steps.upload-location.outputs.is_prerelease == 'true' }}
-          files: artifacts/*.px4
+          files: |
+            artifacts/*.px4
+            artifacts/*.deb
           name: ${{ steps.upload-location.outputs.uploadlocation }}
