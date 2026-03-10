@@ -277,13 +277,10 @@ void DShot::select_next_command()
 			}
 
 			if (next_index >= 0) {
-				// Set up the motor mask based on the index in the write request
 				if (_esc_eeprom_write.index == 255) {
-					// _current_command.motor_mask = 0xFF;  // Apply to all ESCs
 					PX4_INFO("ESC ALL: Writing setting at index %d, value %u", next_index, _esc_eeprom_write.data[next_index]);
 
 				} else {
-					// _current_command.motor_mask = (1 << _esc_eeprom_write.index);
 					PX4_INFO("ESC%d: Writing setting at index %d, value %u", _esc_eeprom_write.index + 1, next_index,
 						 _esc_eeprom_write.data[next_index]);
 				}
@@ -302,7 +299,6 @@ void DShot::select_next_command()
 				PX4_INFO("All settings written at time %.2fs", (double)hrt_absolute_time() / 1000000.);
 
 				_dshot_programming_active = false;
-				// _programming_state = ProgrammingState::Save;
 				_current_command.command = DSHOT_CMD_SAVE_SETTINGS;
 				_current_command.num_repetitions = 6;
 				_current_command.motor_mask = programming_motor_mask;

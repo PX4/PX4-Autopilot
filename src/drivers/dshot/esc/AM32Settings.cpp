@@ -50,7 +50,6 @@ int AM32Settings::getExpectedResponseSize()
 
 void AM32Settings::publish_latest()
 {
-	// PX4_INFO("publish_latest()");
 	esc_eeprom_read_s data = {};
 	data.timestamp = hrt_absolute_time();
 	data.firmware = 1; // ESC_FIRMWARE_AM32
