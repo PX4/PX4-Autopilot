@@ -94,7 +94,7 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 		updateAirspeed(airspeed_sample, _aid_src_airspeed);
 
 		const bool continuing_conditions_passing = _control_status.flags.in_air && (_control_status.flags.fixed_wing
-				|| _control_status.flags.in_transition_to_fw)
+				|| _control_status.flags.in_transition)
 				&& !_control_status.flags.fake_pos;
 
 		const bool is_airspeed_significant = airspeed_sample.true_airspeed > _params.ekf2_arsp_thr;

@@ -268,7 +268,7 @@ struct systemFlagUpdate {
 	bool is_fixed_wing{false};
 	bool gnd_effect{false};
 	bool constant_pos{false};
-	bool in_transition_to_fw{false};
+	bool in_transition{false};
 };
 
 struct parameters {
@@ -593,7 +593,7 @@ uint64_t gnss_fault              :
 		uint64_t yaw_manual              : 1; ///< 46 - true if yaw has been reset manually
 uint64_t gnss_hgt_fault              :
 		1; ///< 47 - true if GNSS measurements (alt) have been declared faulty and are no longer used
-		uint64_t in_transition_to_fw 	 : 1; ///< 48 - true if the vehicle is in transition to fw
+		uint64_t in_transition 	         : 1; ///< 48 - true if the vehicle is in vtol transition
 
 	} flags;
 	uint64_t value;
