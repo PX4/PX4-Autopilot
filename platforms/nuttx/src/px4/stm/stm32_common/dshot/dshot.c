@@ -516,6 +516,10 @@ void dma_burst_finished_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 
 	timer_config_t *timer = &timer_configs[timer_index];
 
+	// TODO: revisit logic for DMA failure handling (does it occur?)
+	// if (status != DMA_STATUS_SUCCESS) {
+	// }
+
 	// For standard DShot or BDShot during boot: no capture needed
 	if (!timer->bidirectional || (hrt_absolute_time() <= ESC_BOOT_DELAY_US)) {
 		return;
