@@ -187,7 +187,7 @@ private:
 
 	// Perf counters
 	perf_counter_t	_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
-	perf_counter_t	_bdshot_success_perf{perf_alloc(PC_COUNT, MODULE_NAME": bdshot success")};
+	perf_counter_t	_bdshot_recv_perf{perf_alloc(PC_COUNT, MODULE_NAME": bdshot recv")};
 	perf_counter_t	_bdshot_error_perf{perf_alloc(PC_COUNT, MODULE_NAME": bdshot error")};
 	perf_counter_t	_serial_telem_success_perf{perf_alloc(PC_COUNT, MODULE_NAME": serial telem success")};
 	perf_counter_t	_serial_telem_error_perf{perf_alloc(PC_COUNT, MODULE_NAME": serial telem error")};

@@ -61,7 +61,7 @@ DShot::~DShot()
 	up_dshot_arm(false);
 
 	perf_free(_cycle_perf);
-	perf_free(_bdshot_success_perf);
+	perf_free(_bdshot_recv_perf);
 	perf_free(_bdshot_error_perf);
 	perf_free(_serial_telem_success_perf);
 	perf_free(_serial_telem_error_perf);
@@ -668,7 +668,7 @@ bool DShot::process_bdshot_telemetry()
 		}
 	}
 
-	perf_count(_bdshot_success_perf);
+	perf_count(_bdshot_recv_perf);
 
 	return true;
 }
@@ -1018,7 +1018,7 @@ bool DShot::initialize_dshot()
 
 		if (freq > 0) {
 			if (_dshot_frequency != 0 && _dshot_frequency != freq) {
-				PX4_WARN("Mixed DShot frequencies across timers, using latest");
+				PX4_WARN("Mixed DShot frequencies across timers, using freq: %lu", freq);
 			}
 
 			_dshot_frequency = freq;
@@ -1171,7 +1171,7 @@ int DShot::print_status()
 	perf_print_counter(_cycle_perf);
 
 	if (_bdshot_output_mask) {
-		perf_print_counter(_bdshot_success_perf);
+		perf_print_counter(_bdshot_recv_perf);
 		perf_print_counter(_bdshot_error_perf);
 	}
 
