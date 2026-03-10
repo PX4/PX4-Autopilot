@@ -135,7 +135,7 @@ static uint32_t _bdshot_channel_mask = 0xFFFFFFFF;
 static uint32_t _dshot_frequency = 0;
 static bool     _edt_enabled = false; // Extended DShot Telemetry
 
-static bool _bdshot_cycle_complete[MAX_IO_TIMERS] = { [0 ...(MAX_IO_TIMERS - 1)] = true };
+static volatile bool _bdshot_cycle_complete[MAX_IO_TIMERS] = { [0 ...(MAX_IO_TIMERS - 1)] = true };
 
 // Online flags, set if ESC is reponding with valid BDShot frames
 #define BDSHOT_OFFLINE_COUNT 200
