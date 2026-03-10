@@ -252,8 +252,8 @@ void DShot::select_next_command()
 	} else if (_dshot_programming_active) {
 		// Motor mask for programming: all motors or single motor
 		const uint16_t programming_motor_mask = _esc_eeprom_write.index == 255
-				? (uint16_t)((1u << esc_status_s::CONNECTED_ESC_MAX) - 1)
-				: (uint16_t)(1u << _esc_eeprom_write.index);
+							? (uint16_t)((1u << esc_status_s::CONNECTED_ESC_MAX) - 1)
+							: (uint16_t)(1u << _esc_eeprom_write.index);
 
 		// Settings programming state machine
 		if (_programming_state == ProgrammingState::Idle) {
@@ -773,11 +773,6 @@ void DShot::handle_vehicle_commands()
 			break;
 
 		case vehicle_command_s::VEHICLE_CMD_ESC_REQUEST_EEPROM:
-			handle_esc_request_eeprom(command);
-			break;
-
-		case vehicle_command_s::VEHICLE_CMD_REQUEST_MESSAGE:
-			PX4_INFO("VEHICLE_CMD_REQUEST_MESSAGE: param1: %f", (double)command.param1);
 			handle_esc_request_eeprom(command);
 			break;
 
