@@ -608,9 +608,9 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 
 #if defined(MAVLINK_MSG_ID_ESC_EEPROM)
 
-		// NOTE: ESC_EEPROM message request handling is deferred - DShot driver handles and triggers reading
+		// Translate ESC_EEPROM request into the PX4 internal command so the DShot driver handles it
 		if (message_id == MAVLINK_MSG_ID_ESC_EEPROM) {
-			PX4_INFO("publishing MAV_CMD_REQUEST_MESSAGE for MAVLINK_MSG_ID_ESC_EEPROM");
+			vehicle_command.command = vehicle_command_s::VEHICLE_CMD_ESC_REQUEST_EEPROM;
 			_cmd_pub.publish(vehicle_command);
 
 		} else
