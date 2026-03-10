@@ -55,7 +55,7 @@ using namespace matrix;
 using ActuatorBitmask = ActuatorEffectiveness::ActuatorBitmask;
 
 static constexpr float MIN_AXIS_DOMINANT = 0.5f;
-static constexpr float MAX_AXIS_NEGLIGIBLE = 0.5f;
+static constexpr float MAX_AXIS_NEGLIGIBLE = 0.1f;
 
 class ActuatorEffectivenessRotors : public ModuleParams, public ActuatorEffectiveness
 {

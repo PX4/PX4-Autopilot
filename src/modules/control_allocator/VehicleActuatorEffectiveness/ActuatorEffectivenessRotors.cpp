@@ -270,10 +270,10 @@ bool ActuatorEffectivenessRotors::isAlignedWithAxis(const Vector3f &axis_abs, in
 {
 	for (int i = 0; i < 3; ++i) {
 		if (i == primary_idx) {
-			if (axis_abs(i) <= 0.1f) { return false; }
+			if (axis_abs(i) <= MAX_AXIS_NEGLIGIBLE) { return false; }
 
 		} else {
-			if (axis_abs(i) >= 0.5f) { return false; }
+			if (axis_abs(i) >= MIN_AXIS_DOMINANT) { return false; }
 		}
 	}
 
