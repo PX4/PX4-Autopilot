@@ -55,7 +55,7 @@ void lm_sphere_fit_iteration(const float x[], const float y[], const float z[],
 	float residual = 0.0f;
 
 	// Gauss Newton Part common for all kind of extensions including LM
-	for (uint16_t k = 0; k < samples_collected; k++) {
+	for (size_t k = 0; k < samples_collected; k++) {
 
 		float sphere_jacob[4];
 		//Calculate Jacobian
@@ -118,7 +118,7 @@ void lm_sphere_fit_iteration(const float x[], const float y[], const float z[],
 	}
 
 	// Calculate mean squared residuals
-	for (uint16_t k = 0; k < samples_collected; k++) {
+	for (size_t k = 0; k < samples_collected; k++) {
 		float A = (params.diag(0)    * (x[k] - fit1_params[1])) + (params.offdiag(0) * (y[k] - fit1_params[2])) +
 			  (params.offdiag(1) *
 			   (z[k] + fit1_params[3]));
@@ -188,7 +188,7 @@ void lm_ellipsoid_fit_iteration(const float x[], const float y[], const float z[
 	float ellipsoid_jacob[9];
 
 	// Gauss Newton Part common for all kind of extensions including LM
-	for (uint16_t k = 0; k < samples_collected; k++) {
+	for (size_t k = 0; k < samples_collected; k++) {
 
 		// Calculate Jacobian
 		float A = (params.diag(0)    * (x[k] - params.offset(0))) + (params.offdiag(0) * (y[k] - params.offset(1))) +
@@ -255,7 +255,7 @@ void lm_ellipsoid_fit_iteration(const float x[], const float y[], const float z[
 	}
 
 	// Calculate mean squared residuals
-	for (uint16_t k = 0; k < samples_collected; k++) {
+	for (size_t k = 0; k < samples_collected; k++) {
 		float A = (fit1_params[3]    * (x[k] - fit1_params[0])) + (fit1_params[6] * (y[k] - fit1_params[1])) + (fit1_params[7] *
 				(z[k] - fit1_params[2]));
 		float B = (fit1_params[6] * (x[k] - fit1_params[0])) + (fit1_params[4]   * (y[k] - fit1_params[1])) + (fit1_params[8] *

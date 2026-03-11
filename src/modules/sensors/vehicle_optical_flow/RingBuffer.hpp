@@ -76,9 +76,9 @@ public:
 	bool peak_first_older_than(const uint64_t &timestamp, T *sample)
 	{
 		// start looking from newest observation data
-		for (uint8_t i = 0; i < SIZE; i++) {
-			int index = (_head - i);
-			index = index < 0 ? SIZE + index : index;
+		for (size_t i = 0; i < SIZE; i++) {
+			int index = static_cast<int>(_head) - static_cast<int>(i);
+			index = index < 0 ? static_cast<int>(SIZE) + index : index;
 
 			if (timestamp >= _buffer[index].time_us && timestamp < _buffer[index].time_us + (uint64_t)100'000) {
 				*sample = _buffer[index];
@@ -98,9 +98,9 @@ public:
 	bool pop_first_older_than(const uint64_t &timestamp, T *sample)
 	{
 		// start looking from newest observation data
-		for (uint8_t i = 0; i < SIZE; i++) {
-			int index = (_head - i);
-			index = index < 0 ? SIZE + index : index;
+		for (size_t i = 0; i < SIZE; i++) {
+			int index = static_cast<int>(_head) - static_cast<int>(i);
+			index = index < 0 ? static_cast<int>(SIZE) + index : index;
 
 			if (timestamp >= _buffer[index].time_us && timestamp < _buffer[index].time_us + (uint64_t)100'000) {
 				*sample = _buffer[index];
@@ -113,7 +113,7 @@ public:
 					_first_write = true;
 
 				} else {
-					_tail = (index + 1) % SIZE;
+					_tail = (index + 1) % static_cast<int>(SIZE);
 				}
 
 				_buffer[index].time_us = 0;
@@ -137,9 +137,9 @@ public:
 			return false;
 		}
 
-		for (uint8_t i = 0; i < SIZE; i++) {
+		for (size_t i = 0; i < SIZE; i++) {
 
-			uint8_t index = (_tail + i) % SIZE;
+			size_t index = (_tail + i) % SIZE;
 
 			if (_buffer[index].time_us >= timestamp_oldest && _buffer[index].time_us <= timestamp_newest) {
 				*sample = _buffer[index];
@@ -147,7 +147,7 @@ public:
 				// Now we can set the tail to the item which
 				// comes after the one we removed since we don't
 				// want to have any older data in the buffer
-				if (index == _head) {
+				if (index == (size_t)_head) {
 					_tail = _head;
 					_first_write = true;
 
@@ -194,12 +194,12 @@ public:
 
 	int get_total_size() const { return sizeof(*this) + sizeof(T) * SIZE; }
 
-	uint8_t entries() const
+	size_t entries() const
 	{
-		int count = 0;
+		size_t count = 0;
 
-		for (uint8_t i = 0; i < SIZE; i++) {
-			if (_buffer[i].time_us != 0) {
+		for (const auto &item : _buffer) {
+			if (item.time_us != 0) {
 				count++;
 			}
 		}
