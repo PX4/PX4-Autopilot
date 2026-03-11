@@ -63,7 +63,7 @@ enum class TelemetryStatus {
 	ParseError = 4,
 };
 
-inline int count_set_bits(int mask)
+inline uint32_t count_set_bits(uint32_t mask)
 {
 	int count = 0;
 

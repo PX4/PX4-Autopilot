@@ -1077,7 +1077,7 @@ int DShot::print_status()
 
 	// Configuration
 	PX4_INFO("Configuration:");
-	PX4_INFO("  Output Mask:        0x%02lx (%d channels)", (unsigned long)_output_mask, count_set_bits(_output_mask));
+	PX4_INFO("  Output Mask:        0x%02lx (%lu channels)", (unsigned long)_output_mask, count_set_bits(_output_mask));
 	PX4_INFO("  BDShot Telemetry:   %s", _bdshot_output_mask ? "Enabled" : "Disabled");
 	PX4_INFO("  Serial Telemetry:   %s", _serial_telemetry_enabled ? "Enabled" : "Disabled");
 	PX4_INFO("  Extended DShot:     %s", _bdshot_edt_enabled ? "Enabled" : "Disabled");
