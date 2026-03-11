@@ -185,26 +185,27 @@ void SdCardChecks::checkAndReport(const Context &context, Report &reporter)
 
 	if (!sdcard_logging_enabled) {
 		// Check if any SDLOG parameter differs from its default
-		auto param_changed = [](param_t p) {
-			int32_t val, def;
-			return (param_get(p, &val) == 0 && param_get_default_value(p, &def) == 0 && val != def);
-		};
+		const param_t sdlog_params[] = {_param_sdlog_mode, _param_sdlog_profile, _param_sdlog_mission, _param_sdlog_dirs_max};
+		bool sdlog_params_changed = false;
 
-		const bool sdlog_params_changed = (param_changed(_param_sdlog_mode) ||
-						   param_changed(_param_sdlog_profile) ||
-						   param_changed(_param_sdlog_mission) ||
-						   param_changed(_param_sdlog_dirs_max));
+		for (auto p : sdlog_params) {
+			int32_t val, def;
+
+			if (param_get(p, &val) == 0 && param_get_default_value(p, &def) == 0 && val != def) {
+				sdlog_params_changed = true;
+				break;
+			}
+		}
 
 		if (sdlog_params_changed) {
 
 			/* EVENT
 			 * @description
 			 * SD logging parameters (SDLOG_*) have been modified, but SD card logging
-			 * is not enabled in <param>SDLOG_BACKEND</param>. These parameters will have no effect.
+			 * is not enabled in <param>SDLOG_BACKEND</param>.
 			 *
 			 * <profile name="dev">
-			 * Either enable SD card logging in <param>SDLOG_BACKEND</param>,
-			 * or reset the SDLOG parameters to their default values.
+			 * These parameters will have no effect.
 			 * </profile>
 			 */
 			reporter.healthFailure(NavModes::None, health_component_t::logging,
