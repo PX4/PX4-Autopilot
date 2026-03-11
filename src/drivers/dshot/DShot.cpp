@@ -186,7 +186,7 @@ void DShot::select_next_command()
 				PX4_ERR("esc_eeprom_write: invalid index %u", _esc_eeprom_write.index);
 
 			} else {
-				PX4_INFO("ESC%u: starting programming mode", _esc_eeprom_write.index + 1);
+				PX4_DEBUG("ESC%u: starting programming mode", _esc_eeprom_write.index + 1);
 				_dshot_programming_active = true;
 			}
 		}
@@ -226,7 +226,7 @@ void DShot::select_next_command()
 				_current_command.command = DSHOT_EXTENDED_TELEMETRY_ENABLE;
 				_current_command.motor_mask = (1 << motor_index);
 				_bdshot_edt_requested_mask |= (1 << motor_index);
-				PX4_INFO("ESC%d: requesting EDT at time %.2fs", motor_index + 1, (double)now / 1000000.);
+				PX4_DEBUG("ESC%d: requesting EDT at time %.2fs", motor_index + 1, (double)now / 1000000.);
 				break;
 			}
 		}
@@ -244,7 +244,7 @@ void DShot::select_next_command()
 				_current_command.motor_mask = (1 << motor_index);
 				_current_command.expect_response = true;
 				_settings_requested_mask |= (1 << motor_index);
-				PX4_INFO("ESC%d: requesting Settings at time %.2fs", motor_index + 1, (double)now / 1000000.);
+				PX4_DEBUG("ESC%d: requesting Settings at time %.2fs", motor_index + 1, (double)now / 1000000.);
 				break;
 			}
 		}
@@ -278,11 +278,11 @@ void DShot::select_next_command()
 
 			if (next_index >= 0) {
 				if (_esc_eeprom_write.index == 255) {
-					PX4_INFO("ESC ALL: Writing setting at index %d, value %u", next_index, _esc_eeprom_write.data[next_index]);
+					PX4_DEBUG("ESC ALL: Writing setting at index %d, value %u", next_index, _esc_eeprom_write.data[next_index]);
 
 				} else {
-					PX4_INFO("ESC%d: Writing setting at index %d, value %u", _esc_eeprom_write.index + 1, next_index,
-						 _esc_eeprom_write.data[next_index]);
+					PX4_DEBUG("ESC%d: Writing setting at index %d, value %u", _esc_eeprom_write.index + 1, next_index,
+						  _esc_eeprom_write.data[next_index]);
 				}
 
 				_programming_address = next_index;
@@ -296,7 +296,7 @@ void DShot::select_next_command()
 
 			} else {
 				// All settings have been written
-				PX4_INFO("All settings written at time %.2fs", (double)hrt_absolute_time() / 1000000.);
+				PX4_DEBUG("All settings written at time %.2fs", (double)hrt_absolute_time() / 1000000.);
 
 				_dshot_programming_active = false;
 				_current_command.command = DSHOT_CMD_SAVE_SETTINGS;
@@ -807,7 +807,7 @@ void DShot::handle_configure_actuator(const vehicle_command_s &command)
 
 	if ((motor_index >= 0) && (motor_index < DSHOT_MAXIMUM_CHANNELS)) {
 		int type = (int)(command.param1 + 0.5f);
-		PX4_INFO("motor_index: %i type: %i", motor_index, type);
+		PX4_DEBUG("motor_index: %i type: %i", motor_index, type);
 		_current_command.clear();
 		_current_command.command = DSHOT_CMD_MOTOR_STOP;
 		_current_command.num_repetitions = 10;
@@ -856,8 +856,8 @@ void DShot::handle_configure_actuator(const vehicle_command_s &command)
 
 void DShot::handle_esc_request_eeprom(const vehicle_command_s &command)
 {
-	PX4_INFO("Received ESC_REQUEST_EEPROM");
-	PX4_INFO("esc_index: %d", (int)command.param2);
+	PX4_DEBUG("Received ESC_REQUEST_EEPROM");
+	PX4_DEBUG("esc_index: %d", (int)command.param2);
 
 	int esc_index = command.param2;
 
@@ -868,11 +868,11 @@ void DShot::handle_esc_request_eeprom(const vehicle_command_s &command)
 
 	// Mark as unread to re-trigger settings request
 	if (esc_index == 255) {
-		PX4_INFO("mark all unread");
+		PX4_DEBUG("mark all unread");
 		_settings_requested_mask = 0;
 
 	} else {
-		PX4_INFO("mark one unread");
+		PX4_DEBUG("mark one unread");
 		_settings_requested_mask &= ~(1 << esc_index);
 	}
 
@@ -928,7 +928,7 @@ void DShot::update_params()
 
 void DShot::mixerChanged()
 {
-	PX4_INFO("mixerChanged");
+	PX4_DEBUG("mixerChanged");
 
 	_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_DSHOT;
 
@@ -953,12 +953,12 @@ void DShot::mixerChanged()
 	// bool needs_init = !_hardware_initialized || (new_output_mask != _output_mask);
 
 	if (!_hardware_initialized) {
-		PX4_INFO("Output mask changed: 0x%lx -> 0x%lx", _output_mask, new_output_mask);
+		PX4_DEBUG("Output mask changed: 0x%lx -> 0x%lx", _output_mask, new_output_mask);
 		_output_mask = new_output_mask;
 		_motor_mask = new_motor_mask;
 
 		uint32_t new_bdshot_output_mask = _bdshot_timer_channels & _output_mask;
-		PX4_INFO("BDShot Output mask changed: 0x%lx -> 0x%lx", _bdshot_output_mask, new_bdshot_output_mask);
+		PX4_DEBUG("BDShot Output mask changed: 0x%lx -> 0x%lx", _bdshot_output_mask, new_bdshot_output_mask);
 		_bdshot_output_mask = new_bdshot_output_mask;
 
 		// Compute motor-order BDShot mask
@@ -975,9 +975,8 @@ void DShot::mixerChanged()
 		}
 
 		_bdshot_motor_mask = new_bdshot_motor_mask;
-		PX4_INFO("Motor mask: 0x%lx, BDShot motor mask: 0x%lx", _motor_mask, _bdshot_motor_mask);
+		PX4_DEBUG("Motor mask: 0x%lx, BDShot motor mask: 0x%lx", _motor_mask, _bdshot_motor_mask);
 
-		PX4_INFO("up_dshot_init");
 		up_dshot_init(_output_mask, _bdshot_output_mask, _dshot_frequency, _bdshot_edt_enabled);
 		up_dshot_arm(true);
 		_hardware_initialized = true;
