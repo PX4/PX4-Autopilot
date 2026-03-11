@@ -30,6 +30,7 @@ These services are known to be supported in some form:
 - [Landing Target Protocol](https://mavlink.io/en/services/landing_target.html)
 - [Manual Control (Joystick) Protocol](https://mavlink.io/en/services/manual_control.html)
 - [MAVLink Id Assignment (sysid, compid)](https://mavlink.io/en/services/mavlink_id_assignment.html)
+- [Message Signing](../mavlink/message_signing.md) ([MAVLink spec](https://mavlink.io/en/guide/message_signing.html))
 - [Mission Protocol](https://mavlink.io/en/services/mission.html)
 - [Offboard Control Protocol](https://mavlink.io/en/services/offboard_control.html)
 - [Remote ID](../peripherals/remote_id.md) ([Open Drone ID Protocol](https://mavlink.io/en/services/opendroneid.html))
