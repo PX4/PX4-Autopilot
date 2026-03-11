@@ -35,6 +35,7 @@
 
 #include <drivers/device/device.h>
 #include <lib/led/led.h>
+#include <lib/mathlib/mathlib.h>
 #include <lib/mixer_module/mixer_module.hpp>
 #include <lib/perf/perf_counter.h>
 
@@ -83,7 +84,7 @@ public:
 	void print_params();
 
 	/** @see OutputModuleInterface */
-	bool updateOutputs(uint16_t outputs[MAX_ACTUATORS],
+	bool updateOutputs(float outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 	virtual int	init();

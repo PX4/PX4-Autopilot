@@ -85,7 +85,7 @@ int UavcanEscController::init()
 	return res;
 }
 
-void UavcanEscController::update_outputs(uint16_t outputs[MAX_ACTUATORS], uint8_t output_array_size)
+void UavcanEscController::update_outputs(float outputs[MAX_ACTUATORS], uint8_t output_array_size)
 {
 	// TODO: configurable rate limit
 	const auto timestamp = _node.getMonotonicTime();
@@ -99,7 +99,8 @@ void UavcanEscController::update_outputs(uint16_t outputs[MAX_ACTUATORS], uint8_
 	uavcan::equipment::esc::RawCommand msg{};
 
 	for (unsigned i = 0; i < output_array_size; i++) {
-		msg.cmd.push_back(static_cast<int>(outputs[i]));
+		const float clamped = outputs[i] > 8191.f ? 8191.f : (outputs[i] < -8192.f ? -8192.f : outputs[i]);
+		msg.cmd.push_back(static_cast<int>(clamped));
 	}
 
 	_uavcan_pub_raw_cmd.broadcast(msg);

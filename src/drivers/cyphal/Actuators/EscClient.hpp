@@ -169,7 +169,7 @@ public:
 	{
 	}
 
-	void update_outputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs)
+	void update_outputs(float outputs[MAX_ACTUATORS], unsigned num_outputs)
 	{
 		if (_port_id == 0 || _port_id == CANARD_PORT_ID_UNSET) {
 			return;
@@ -178,7 +178,7 @@ public:
 		uint8_t max_num_outputs = MAX_ACTUATORS > num_outputs ? num_outputs : MAX_ACTUATORS;
 
 		for (int8_t i = max_num_outputs - 1; i >= _max_number_of_nonzero_outputs; i--) {
-			if (outputs[i] != 0) {
+			if (outputs[i] != 0.f) {
 				_max_number_of_nonzero_outputs = i + 1;
 				break;
 			}

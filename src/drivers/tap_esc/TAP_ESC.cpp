@@ -243,7 +243,7 @@ void TAP_ESC::send_tune_packet(EscbusTunePacket &tune_packet)
 	tap_esc_common::send_packet(_uart_fd, buzzer_packet, -1);
 }
 
-bool TAP_ESC::updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+bool TAP_ESC::updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs,
 			    unsigned num_control_groups_updated)
 {
 	if (_initialized) {
@@ -252,26 +252,26 @@ bool TAP_ESC::updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_output
 		// We need to remap from the system default to what PX4's normal scheme is
 		switch (num_outputs) {
 		case 4:
-			motor_out[0] = outputs[2];
-			motor_out[1] = outputs[1];
-			motor_out[2] = outputs[3];
-			motor_out[3] = outputs[0];
+			motor_out[0] = (uint16_t)math::constrain(outputs[2], 0.f, 65535.f);
+			motor_out[1] = (uint16_t)math::constrain(outputs[1], 0.f, 65535.f);
+			motor_out[2] = (uint16_t)math::constrain(outputs[3], 0.f, 65535.f);
+			motor_out[3] = (uint16_t)math::constrain(outputs[0], 0.f, 65535.f);
 			break;
 
 		case 6:
-			motor_out[0] = outputs[3];
-			motor_out[1] = outputs[0];
-			motor_out[2] = outputs[4];
-			motor_out[3] = outputs[2];
-			motor_out[4] = outputs[1];
-			motor_out[5] = outputs[5];
+			motor_out[0] = (uint16_t)math::constrain(outputs[3], 0.f, 65535.f);
+			motor_out[1] = (uint16_t)math::constrain(outputs[0], 0.f, 65535.f);
+			motor_out[2] = (uint16_t)math::constrain(outputs[4], 0.f, 65535.f);
+			motor_out[3] = (uint16_t)math::constrain(outputs[2], 0.f, 65535.f);
+			motor_out[4] = (uint16_t)math::constrain(outputs[1], 0.f, 65535.f);
+			motor_out[5] = (uint16_t)math::constrain(outputs[5], 0.f, 65535.f);
 			break;
 
 		default:
 
 			// Use the system defaults
 			for (uint8_t i = 0; i < num_outputs; ++i) {
-				motor_out[i] = outputs[i];
+				motor_out[i] = (uint16_t)math::constrain(outputs[i], 0.f, 65535.f);
 			}
 
 			break;
