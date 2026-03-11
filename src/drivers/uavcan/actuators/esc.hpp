@@ -73,7 +73,7 @@ public:
 
 	bool initialized() { return _initialized; };
 
-	void update_outputs(uint16_t outputs[MAX_ACTUATORS], uint8_t output_array_size);
+	void update_outputs(float outputs[MAX_ACTUATORS], uint8_t output_array_size);
 
 	/**
 	 * Sets the number of rotors and enable timer

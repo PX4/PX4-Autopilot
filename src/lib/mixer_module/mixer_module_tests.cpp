@@ -87,7 +87,7 @@ public:
 		was_scheduled = true;
 	}
 
-	bool updateOutputs(uint16_t outputs_[MAX_ACTUATORS],
+	bool updateOutputs(float outputs_[MAX_ACTUATORS],
 			   unsigned num_outputs_, unsigned num_control_groups_updated) override
 	{
 		memcpy(outputs, outputs_, sizeof(outputs));
@@ -168,7 +168,7 @@ public:
 		mixer_changed = false;
 	}
 
-	uint16_t outputs[MAX_ACTUATORS] {};
+	float outputs[MAX_ACTUATORS] {};
 	int num_outputs{0};
 	int num_updates{0};
 	bool was_scheduled{false};
@@ -400,7 +400,7 @@ TEST_F(MixerModuleTest, arming)
 
 	test_module.reset();
 
-	// set motor 5 reversible: expect output to be in center when commanding to 0
+	// set motor 5 reversible: at CA=0, expect disarmed_value (neutral point = raw_cmd 0)
 	test_module.sendActuatorArmed(true, false);
 	test_module.sendMotors({0.f, 0.f, 0.f, 0.f, 0.f, 1.f, 1.f, 1.f}, 1u << 4);
 	mixing_output.update();
@@ -414,7 +414,7 @@ TEST_F(MixerModuleTest, arming)
 			EXPECT_EQ(test_module.outputs[i], MIN_VALUE);
 
 		} else if (i == 3) {
-			EXPECT_EQ(test_module.outputs[i], (MAX_VALUE - MIN_VALUE) * 0.5f + MIN_VALUE);
+			EXPECT_EQ(test_module.outputs[i], (float)DISARMED_VALUE);
 
 		} else {
 			EXPECT_EQ(test_module.outputs[i], DISARMED_VALUE);
@@ -480,7 +480,7 @@ public:
 			 bool support_esc_calibration, bool ramp_up = true)
 		: MixingOutput(param_prefix, max_num_outputs, interface, scheduling_policy, support_esc_calibration, ramp_up)
 	{};
-	uint16_t output_limit_calc_single(int i, float value) const { return MixingOutput::output_limit_calc_single(i, value); }
+	float output_limit_calc_single(int i, float value) const { return MixingOutput::output_limit_calc_single(i, value); }
 };
 
 TEST_F(MixerModuleTest, OutputLimitCalcSingle)

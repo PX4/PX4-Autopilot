@@ -145,7 +145,7 @@ void MixingOutput::printStatus() const
 
 	for (unsigned i = 0; i < _max_num_outputs; i++) {
 		PX4_INFO_RAW("Channel %i: func: %3i, value: %i, failsafe: %d, disarmed: %d, min: %d, max: %d, center: %d\n", i,
-			     (int)_function_assignment[i], _current_output_value[i],
+			     (int)_function_assignment[i], (int)_current_output_value[i],
 			     actualFailsafeValue(i), _disarmed_value[i], _min_value[i], _max_value[i], _center_value[i]);
 	}
 }
@@ -513,11 +513,11 @@ MixingOutput::limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updat
 		static constexpr uint16_t PWM_CALIBRATION_HIGH = 2000;
 
 		for (int i = 0; i < _max_num_outputs; i++) {
-			if (_current_output_value[i] == _min_value[i]) {
+			if ((uint16_t)_current_output_value[i] == _min_value[i]) {
 				_current_output_value[i] = PWM_CALIBRATION_LOW;
 			}
 
-			if (_current_output_value[i] == _max_value[i]) {
+			if ((uint16_t)_current_output_value[i] == _max_value[i]) {
 				_current_output_value[i] = PWM_CALIBRATION_HIGH;
 			}
 		}
@@ -532,7 +532,7 @@ MixingOutput::limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updat
 	}
 }
 
-uint16_t MixingOutput::output_limit_calc_single(int i, float value) const
+float MixingOutput::output_limit_calc_single(int i, float value) const
 {
 	// check for invalid / disabled channels
 	if (!PX4_ISFINITE(value)) {
@@ -541,6 +541,16 @@ uint16_t MixingOutput::output_limit_calc_single(int i, float value) const
 
 	if (_reverse_output_mask & (1 << i)) {
 		value = -1.f * value;
+	}
+
+	// Reversible motors: map CA [-1, +1] symmetrically around disarmed_value.
+	// disarmed_value encodes raw_cmd=0 (motor stopped), so it is the correct neutral point.
+	// min_param is intentionally ignored here: the user does not need to change any parameters
+	// when a motor dynamically becomes reversible due to a failure event.
+	if (_reversible_mask & (1u << i)) {
+		const float disarmed = static_cast<float>(_disarmed_value[i]);
+		const float half_range = static_cast<float>(_max_value[i]) - disarmed;
+		return disarmed + math::constrain(value, -1.f, 1.f) * half_range;
 	}
 
 	float output = _disarmed_value[i];
@@ -571,7 +581,7 @@ uint16_t MixingOutput::output_limit_calc_single(int i, float value) const
 					   static_cast<float>(_min_value[i]), static_cast<float>(_max_value[i]));
 	}
 
-	return math::constrain(lroundf(output), 0L, static_cast<long>(UINT16_MAX));
+	return static_cast<float>(math::constrain(lroundf(output), 0L, static_cast<long>(UINT16_MAX)));
 
 }
 
@@ -647,7 +657,7 @@ MixingOutput::output_limit_calc(const bool armed, const int num_channels, const 
 
 			for (int i = 0; i < num_channels; i++) {
 				// Ramp from disarmed value to currently desired output that would apply without ramp
-				uint16_t desired_output = output_limit_calc_single(i, output[i]);
+				float desired_output = output_limit_calc_single(i, output[i]);
 				_current_output_value[i] = _disarmed_value[i] + progress * (desired_output - _disarmed_value[i]);
 			}
 		}
@@ -700,7 +710,7 @@ MixingOutput::actualFailsafeValue(int index) const
 			default_failsafe = _functions[index]->defaultFailsafeValue(_function_assignment[index]);
 		}
 
-		value = output_limit_calc_single(index, default_failsafe);
+		value = (uint16_t)math::constrain(lroundf(output_limit_calc_single(index, default_failsafe)), 0L, static_cast<long>(UINT16_MAX));
 
 	} else {
 		value = _failsafe_value[index];
