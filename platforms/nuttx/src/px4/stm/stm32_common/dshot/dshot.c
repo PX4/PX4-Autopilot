@@ -161,11 +161,10 @@ typedef struct {
 // Adaptive base interval per channel (ticks per bit)
 static float _base_interval[MAX_TIMER_IO_CHANNELS] = { [0 ...(MAX_TIMER_IO_CHANNELS - 1)] = 21.0f };
 
-erpm_data_t _erpms[MAX_TIMER_IO_CHANNELS] = {};
-
-edt_data_t _edt_temp[MAX_TIMER_IO_CHANNELS] = {};
-edt_data_t _edt_volt[MAX_TIMER_IO_CHANNELS] = {};
-edt_data_t _edt_curr[MAX_TIMER_IO_CHANNELS] = {};
+static erpm_data_t _erpms[MAX_TIMER_IO_CHANNELS] = {};
+static edt_data_t _edt_temp[MAX_TIMER_IO_CHANNELS] = {};
+static edt_data_t _edt_volt[MAX_TIMER_IO_CHANNELS] = {};
+static edt_data_t _edt_curr[MAX_TIMER_IO_CHANNELS] = {};
 
 static float calculate_rate_hz(uint64_t last_timestamp, float last_rate_hz, uint64_t timestamp);
 
