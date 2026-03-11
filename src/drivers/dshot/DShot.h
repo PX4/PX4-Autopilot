@@ -46,10 +46,6 @@
 
 using namespace time_literals;
 
-#if !defined(DIRECT_PWM_OUTPUT_CHANNELS)
-#  error "board_config.h needs to define DIRECT_PWM_OUTPUT_CHANNELS"
-#endif
-
 static_assert(DSHOT_MAXIMUM_CHANNELS <= 16, "DShot driver uses uint16_t bitmasks");
 
 static constexpr hrt_abstime ESC_INIT_TELEM_DELAY = 5_s;
@@ -135,7 +131,7 @@ private:
 	void handle_esc_request_eeprom(const vehicle_command_s &command);
 
 	// Mixer
-	MixingOutput _mixing_output{PARAM_PREFIX, DIRECT_PWM_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
+	MixingOutput _mixing_output{PARAM_PREFIX, DSHOT_MAXIMUM_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 
 	// Actuator-order masks (indexed by output channel)
 	uint32_t _output_mask{0};

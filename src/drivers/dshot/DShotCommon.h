@@ -36,6 +36,10 @@
 #include <drivers/drv_hrt.h>
 #include <board_config.h>
 
+#if !defined(DIRECT_PWM_OUTPUT_CHANNELS)
+#  error "board_config.h needs to define DIRECT_PWM_OUTPUT_CHANNELS"
+#endif
+
 static constexpr int DSHOT_MAXIMUM_CHANNELS = DIRECT_PWM_OUTPUT_CHANNELS;
 
 enum class TelemetrySource {

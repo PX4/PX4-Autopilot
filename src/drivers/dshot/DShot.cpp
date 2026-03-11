@@ -912,7 +912,7 @@ void DShot::update_params()
 	_mixing_output.setAllMinValues(dshot_min_value);
 
 	// Do not use the minimum parameter for reversible outputs
-	for (uint8_t i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
+	for (uint8_t i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
 		if (_mixing_output.reversibleOutputs() & (1 << i)) {
 			_mixing_output.minValue(i) = DSHOT_MIN_THROTTLE;
 		}
