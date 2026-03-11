@@ -4202,6 +4202,102 @@ Custom PWM rates can be used by directly setting any value >0.
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          |           | 400     |      |
 
+### PWM_MAIN_CENT1 (`INT32`) {#PWM_MAIN_CENT1}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+MAIN 1 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |      |
+
+### PWM_MAIN_CENT2 (`INT32`) {#PWM_MAIN_CENT2}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+MAIN 2 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |      |
+
+### PWM_MAIN_CENT3 (`INT32`) {#PWM_MAIN_CENT3}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+MAIN 3 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |      |
+
+### PWM_MAIN_CENT4 (`INT32`) {#PWM_MAIN_CENT4}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+MAIN 4 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |      |
+
+### PWM_MAIN_CENT5 (`INT32`) {#PWM_MAIN_CENT5}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+MAIN 5 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |      |
+
+### PWM_MAIN_CENT6 (`INT32`) {#PWM_MAIN_CENT6}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+MAIN 6 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |      |
+
+### PWM_MAIN_CENT7 (`INT32`) {#PWM_MAIN_CENT7}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+MAIN 7 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |      |
+
+### PWM_MAIN_CENT8 (`INT32`) {#PWM_MAIN_CENT8}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+MAIN 8 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |      |
+
 ### PWM_MAIN_DIS1 (`INT32`) {#PWM_MAIN_DIS1}
 
 <Badge type="warning" text="This parameter is only present on some boards." />
