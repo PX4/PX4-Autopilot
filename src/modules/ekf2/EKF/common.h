@@ -289,7 +289,7 @@ static constexpr uint8_t MAX_AGP_INSTANCES = 4;
 
 
 struct FusionSensor {
-	bool exists{false};
+	bool enabled{false};
 	int32_t intended{0};
 };
 
