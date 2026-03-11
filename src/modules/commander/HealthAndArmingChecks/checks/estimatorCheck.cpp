@@ -138,6 +138,8 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 {
 	if (!context.isArmed() && estimator_status.pre_flt_fail_innov_heading) {
 		/* EVENT
+		 * @description
+		 * Apply manual heading reset. Recalibrate compass if error persists.
 		 */
 		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
 					    events::ID("check_estimator_heading_not_stable"),
