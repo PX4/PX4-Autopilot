@@ -180,8 +180,10 @@ struct RcvTopicsPubs {
 @[    end for]@
 
 	uint32_t num_payload_received{};
+	bool _allow_publishing{false};
 
 	bool init(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId reliable_in_stream_id, uxrStreamId best_effort_in_stream_id, uxrObjectId participant_id, const char *client_namespace);
+	void allow_publishing(bool enabled) { _allow_publishing = enabled; }
 };
 
 static void on_topic_update(uxrSession *session, uxrObjectId object_id, uint16_t request_id, uxrStreamId stream_id,
@@ -190,6 +192,8 @@ static void on_topic_update(uxrSession *session, uxrObjectId object_id, uint16_t
 	RcvTopicsPubs *pubs = (RcvTopicsPubs *)args;
 	const int64_t time_offset_us = session->time_offset / 1000; // ns -> us
 	pubs->num_payload_received += length;
+
+	if(!pubs->_allow_publishing) return;
 
 	switch (object_id.id) {
 @[    for idx, sub in enumerate(subscriptions)]@

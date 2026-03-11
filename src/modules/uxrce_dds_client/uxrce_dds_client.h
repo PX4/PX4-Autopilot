@@ -41,6 +41,7 @@
 #include <uORB/topics/message_format_request.h>
 #include <uORB/topics/message_format_response.h>
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/vehicle_status.h>
 
 #include <lib/timesync/Timesync.hpp>
 
@@ -138,6 +139,7 @@ private:
 
 	uORB::Publication<message_format_response_s> _message_format_response_pub{ORB_ID(message_format_response)};
 	uORB::Subscription _message_format_request_sub{ORB_ID(message_format_request)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	/** Synchronizes the system clock if the time is off by more than 5 seconds */
 	void syncSystemClock(uxrSession *session);
@@ -202,6 +204,8 @@ private:
 	bool _connected{false};
 	bool _session_created{false};
 	bool _timesync_converged{false};
+	bool _offboard_mode_enabled{false};
+	bool _safe_dds_mode{true};
 
 	Timesync _timesync{timesync_status_s::SOURCE_PROTOCOL_DDS};
 
@@ -216,6 +220,7 @@ private:
 		(ParamInt<px4::params::UXRCE_DDS_SYNCT>) _param_uxrce_dds_synct,
 		(ParamInt<px4::params::UXRCE_DDS_TX_TO>) _param_uxrce_dds_tx_to,
 		(ParamInt<px4::params::UXRCE_DDS_RX_TO>) _param_uxrce_dds_rx_to,
-		(ParamInt<px4::params::UXRCE_DDS_FLCTRL>) _param_uxrce_dds_flctrl
+		(ParamInt<px4::params::UXRCE_DDS_FLCTRL>) _param_uxrce_dds_flctrl,
+		(ParamInt<px4::params::UXRCE_DDS_SAFE>) _param_uxrce_dds_safe
 	)
 };
