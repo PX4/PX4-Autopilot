@@ -34,8 +34,8 @@
 #pragma once
 
 #include <drivers/drv_hrt.h>
-
 #include "fw_wheel_controller.h"
+#include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
@@ -157,13 +157,11 @@ private:
 		(ParamFloat<px4::params::FW_WR_IMAX>) _param_fw_wr_imax,
 		(ParamFloat<px4::params::FW_WR_P>) _param_fw_wr_p,
 
-		(ParamFloat<px4::params::FW_YAW_WEIGHT>) _param_fw_yaw_weight,
 		(ParamFloat<px4::params::FW_Y_RMAX>) _param_fw_y_rmax,
 		(ParamFloat<px4::params::FW_MAN_YR_MAX>) _param_man_yr_max
 	)
 
 	matrix::Vector3f _proportional_gain;
-	float _yaw_w{1.0f};
 	WheelController _wheel_ctrl;
 
 	void parameters_update();
