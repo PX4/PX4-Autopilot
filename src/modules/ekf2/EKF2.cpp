@@ -2029,6 +2029,11 @@ void EKF2::PublishFusionControl(const hrt_abstime &timestamp)
 	msg.drag_intended = _fc.drag.intended;
 	msg.mag_intended  = _fc.mag.intended;
 	msg.imu_intended  = _fc.imu.intended;
+
+#if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION)
+	msg.agp_active    = _ekf.getAgpFusingBitmask();
+#endif
+
 	msg.timestamp     = _replay_mode ? timestamp : hrt_absolute_time();
 	_estimator_fc_pub.publish(msg);
 }

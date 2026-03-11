@@ -1463,6 +1463,9 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("ESC_INFO", 1.0f);
 		configure_stream_local("ESC_STATUS", 1.0f);
 		configure_stream_local("ESTIMATOR_STATUS", 0.5f);
+#if defined(MAVLINK_MSG_ID_ESTIMATOR_SENSOR_FUSION_STATUS)
+		configure_stream_local("ESTIMATOR_SENSOR_FUSION_STATUS", 1.0f);
+#endif
 		configure_stream_local("EXTENDED_SYS_STATE", 1.0f);
 		configure_stream_local("GIMBAL_DEVICE_ATTITUDE_STATUS", 5.0f);
 		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 5.0f);
@@ -1539,6 +1542,9 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("CURRENT_MODE", 0.5f);
 		configure_stream_local("EFI_STATUS", 2.0f);
 		configure_stream_local("ESTIMATOR_STATUS", 1.0f);
+#if defined(MAVLINK_MSG_ID_ESTIMATOR_SENSOR_FUSION_STATUS)
+		configure_stream_local("ESTIMATOR_SENSOR_FUSION_STATUS", 1.0f);
+#endif
 		configure_stream_local("EXTENDED_SYS_STATE", 5.0f);
 		configure_stream_local("GIMBAL_DEVICE_ATTITUDE_STATUS", 5.0f);
 		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 5.0f);
@@ -1705,6 +1711,9 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("ESC_INFO", 10.0f);
 		configure_stream_local("ESC_STATUS", 10.0f);
 		configure_stream_local("ESTIMATOR_STATUS", 5.0f);
+#if defined(MAVLINK_MSG_ID_ESTIMATOR_SENSOR_FUSION_STATUS)
+		configure_stream_local("ESTIMATOR_SENSOR_FUSION_STATUS", 1.0f);
+#endif
 		configure_stream_local("EXTENDED_SYS_STATE", 2.0f);
 		configure_stream_local("GLOBAL_POSITION_INT", 10.0f);
 #if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
