@@ -198,21 +198,6 @@ PARAM_DEFINE_FLOAT(FW_W_RMAX, 30.0f);
 PARAM_DEFINE_FLOAT(FW_WR_FF, 0.2f);
 
 /**
- * Yaw weight
- *
- * Scales yaw-error correction through the pitch-rate setpoint in non-linear attitude control.
- *
- * For yaw control tuning use FW_Y_RMAX and rate controller tuning. This ratio has no impact on yaw gain.
- *
- * @min 0.0
- * @max 2.0
- * @decimal 2
- * @increment 0.1
- * @group FW Attitude Control
- */
-PARAM_DEFINE_FLOAT(FW_YAW_WEIGHT, 1.0f);
-
-/**
  * Pitch setpoint offset (pitch at level flight)
  *
  * An airframe specific offset of the pitch setpoint in degrees, the value is
