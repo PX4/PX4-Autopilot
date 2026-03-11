@@ -208,8 +208,8 @@ private:
 			command = 0;
 			num_repetitions = 0;
 			motor_mask = 0;
-			save = 0;
-			expect_response = 0;
+			save = false;
+			expect_response = false;
 		}
 	};
 
