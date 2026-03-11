@@ -121,7 +121,7 @@ private:
 	bool process_serial_telemetry();
 	bool process_bdshot_telemetry();
 
-	void consume_esc_data(const EscData &data, TelemetrySource source);
+	void consume_esc_data(const EscData &data);
 
 	uint16_t calculate_output_value(uint16_t raw, int index);
 	uint16_t convert_output_to_3d_scaling(uint16_t output);

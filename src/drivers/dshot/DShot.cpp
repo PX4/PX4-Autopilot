@@ -471,6 +471,7 @@ bool DShot::process_serial_telemetry()
 		int motor_index = (int)_mixing_output.outputFunction(actuator_channel) - (int)OutputFunction::Motor1;
 
 		EscData esc {};
+		esc.source = TelemetrySource::Serial;
 		esc.actuator_channel = actuator_channel;
 		esc.motor_index = motor_index;
 
@@ -487,7 +488,7 @@ bool DShot::process_serial_telemetry()
 
 			// Online mask is in motor order for consistency with BDShot
 			if (_serial_telem_online_mask & (1 << motor_index)) {
-				consume_esc_data(esc, TelemetrySource::Serial);
+				consume_esc_data(esc);
 				all_telem_sampled = set_next_telemetry_index();
 				perf_count(_serial_telem_success_perf);
 
@@ -514,7 +515,7 @@ bool DShot::process_serial_telemetry()
 			_serial_telem_online_mask &= ~(1 << motor_index);
 			_serial_telem_online_timestamps[actuator_channel] = 0;
 			// Consume an empty EscData to zero the data
-			consume_esc_data(esc, TelemetrySource::Serial);
+			consume_esc_data(esc);
 			all_telem_sampled = set_next_telemetry_index();
 			perf_count(_serial_telem_timeout_perf);
 			break;
@@ -526,7 +527,7 @@ bool DShot::process_serial_telemetry()
 			_serial_telem_online_mask &= ~(1 << motor_index);
 			_serial_telem_online_timestamps[actuator_channel] = 0;
 			// Consume an empty EscData to zero the data
-			consume_esc_data(esc, TelemetrySource::Serial);
+			consume_esc_data(esc);
 			all_telem_sampled = set_next_telemetry_index();
 			_serial_telem_delay_until = hrt_absolute_time() + 1_s;
 			perf_count(_serial_telem_error_perf);
@@ -596,6 +597,7 @@ bool DShot::process_bdshot_telemetry()
 		}
 
 		EscData esc = {};
+		esc.source = TelemetrySource::BDShot;
 
 		// Map actuator channel to motor index
 		int motor_index = (int)_mixing_output.outputFunction(output_channel) - (int)OutputFunction::Motor1;
@@ -664,7 +666,7 @@ bool DShot::process_bdshot_telemetry()
 				perf_count(_bdshot_error_perf);
 			}
 
-			consume_esc_data(esc, TelemetrySource::BDShot);
+			consume_esc_data(esc);
 		}
 	}
 
@@ -673,7 +675,7 @@ bool DShot::process_bdshot_telemetry()
 	return true;
 }
 
-void DShot::consume_esc_data(const EscData &esc, TelemetrySource source)
+void DShot::consume_esc_data(const EscData &esc)
 {
 	int actuator_channel = esc.actuator_channel;
 	int motor_index = esc.motor_index;
@@ -703,7 +705,7 @@ void DShot::consume_esc_data(const EscData &esc, TelemetrySource source)
 	_esc_status.esc[motor_index].esc_errorcount = _serial_telem_errors[actuator_channel] +
 			_bdshot_telem_errors[actuator_channel];
 
-	if (source == TelemetrySource::Serial) {
+	if (esc.source == TelemetrySource::Serial) {
 		// Only use SerialTelemetry eRPM when BDShot is disabled
 		if (!is_bdshot) {
 			_esc_status.esc[motor_index].timestamp = esc.timestamp;
@@ -714,7 +716,7 @@ void DShot::consume_esc_data(const EscData &esc, TelemetrySource source)
 		_esc_status.esc[motor_index].esc_current = esc.current;
 		_esc_status.esc[motor_index].esc_temperature = esc.temperature;
 
-	} else if (source == TelemetrySource::BDShot) {
+	} else if (esc.source == TelemetrySource::BDShot) {
 		_esc_status.esc[motor_index].timestamp = esc.timestamp;
 		_esc_status.esc[motor_index].esc_rpm = esc.erpm / (get_pole_count(motor_index) / 2);
 
