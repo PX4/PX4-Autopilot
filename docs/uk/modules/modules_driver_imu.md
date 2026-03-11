@@ -130,6 +130,32 @@ adis16507 <command> [arguments...]
    status        print status info
 ```
 
+## adis16607
+
+Source: [drivers/imu/analog_devices/adis16607](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/analog_devices/adis16607)
+
+### Usage {#adis16607_usage}
+
+```
+adis16607 <command> [arguments...]
+ Commands:
+   start
+     [-s]        Internal SPI bus(es)
+     [-S]        External SPI bus(es)
+     [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
+                 (default=1))
+     [-c <val>]  chip-select pin (for internal SPI) or index (for external SPI)
+     [-m <val>]  SPI mode
+     [-f <val>]  bus frequency in kHz
+     [-q]        quiet startup (no message if no device found)
+     [-R <val>]  Rotation
+                 default: 0
+
+   stop
+
+   status        print status info
+```
+
 ## bmi055
 
 Source: [drivers/imu/bosch/bmi055](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/bosch/bmi055)
