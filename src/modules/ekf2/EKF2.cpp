@@ -987,94 +987,75 @@ void EKF2::VerifyParams()
 
 void EKF2::initFusionControl()
 {
-	_boot_param = param_find("EKF2_EN_BOOT");
-	int32_t boot_mask = 4095; // default: all enabled
-	if (_boot_param != PARAM_INVALID) {
-		param_get(_boot_param, &boot_mask);
+	_sens_en_param = param_find("EKF2_SENS_EN");
+	int32_t sens_en = 4095; // default: all enabled
+	if (_sens_en_param != PARAM_INVALID) {
+		param_get(_sens_en_param, &sens_en);
 	}
 
 	// bit layout: 0=GPS 1=OF 2=EV 3..6=AGP0..3 7=BARO 8=RNG 9=DRAG 10=MAG 11=IMU
 #if defined(CONFIG_EKF2_GNSS)
-	_fc.gps.exists = boot_mask & (1 << 0);
-	_fc.gps.intended = _fc.gps.exists ? _params->ekf2_gps_ctrl : 0;
+	_fc.gps.enabled = sens_en & (1 << 0);
+	_fc.gps.intended = _fc.gps.enabled ? _params->ekf2_gps_ctrl : 0;
 #endif
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	_fc.of.exists   = boot_mask & (1 << 1);
-	_fc.of.intended = _fc.of.exists ? _params->ekf2_of_ctrl : 0;
+	_fc.of.enabled   = sens_en & (1 << 1);
+	_fc.of.intended = _fc.of.enabled ? _params->ekf2_of_ctrl : 0;
 #endif
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
-	_fc.ev.exists   = boot_mask & (1 << 2);
-	_fc.ev.intended = _fc.ev.exists ? _params->ekf2_ev_ctrl : 0;
+	_fc.ev.enabled   = sens_en & (1 << 2);
+	_fc.ev.intended = _fc.ev.enabled ? _params->ekf2_ev_ctrl : 0;
 #endif
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION)
 	for (uint8_t i = 0; i < MAX_AGP_INSTANCES; i++) {
-		_fc.agp[i].exists = boot_mask & (1 << (3 + i));
+		_fc.agp[i].enabled = sens_en & (1 << (3 + i));
 		int32_t agp_param_val = 0;
 		if (_param_ekf2_agp_ctrl[i] != PARAM_INVALID) {
 			param_get(_param_ekf2_agp_ctrl[i], &agp_param_val);
 		}
-		_fc.agp[i].intended = _fc.agp[i].exists ? agp_param_val : 0;
+		_fc.agp[i].intended = _fc.agp[i].enabled ? agp_param_val : 0;
 	}
 #endif
 #if defined(CONFIG_EKF2_BAROMETER)
-	_fc.baro.exists = boot_mask & (1 << 7);
-	_fc.baro.intended = _fc.baro.exists ? _params->ekf2_baro_ctrl : 0;
+	_fc.baro.enabled = sens_en & (1 << 7);
+	_fc.baro.intended = _fc.baro.enabled ? _params->ekf2_baro_ctrl : 0;
 #endif
 #if defined(CONFIG_EKF2_RANGE_FINDER)
-	_fc.rng.exists  = boot_mask & (1 << 8);
-	_fc.rng.intended = _fc.rng.exists ? _params->ekf2_rng_ctrl : 0;
+	_fc.rng.enabled  = sens_en & (1 << 8);
+	_fc.rng.intended = _fc.rng.enabled ? _params->ekf2_rng_ctrl : 0;
 #endif
 #if defined(CONFIG_EKF2_DRAG_FUSION)
-	_fc.drag.exists = boot_mask & (1 << 9);
-	_fc.drag.intended = _fc.drag.exists ? _params->ekf2_drag_ctrl : 0;
+	_fc.drag.enabled = sens_en & (1 << 9);
+	_fc.drag.intended = _fc.drag.enabled ? _params->ekf2_drag_ctrl : 0;
 #endif
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-	_fc.mag.exists  = boot_mask & (1 << 10);
-	_fc.mag.intended = _fc.mag.exists ? _params->ekf2_mag_type : 5;
+	_fc.mag.enabled  = sens_en & (1 << 10);
+	_fc.mag.intended = _fc.mag.enabled ? _params->ekf2_mag_type : 5;
 #endif
-	_fc.imu.exists  = boot_mask & (1 << 11);
-	_fc.imu.intended = _fc.imu.exists ? _params->ekf2_imu_ctrl : 0;
+	_fc.imu.enabled  = sens_en & (1 << 11);
+	_fc.imu.intended = _fc.imu.enabled ? _params->ekf2_imu_ctrl : 0;
 }
 
 void EKF2::updateFusionIntended()
 {
-	if (_fc.gps.intended != 0) {
-		_fc.gps.intended = _params->ekf2_gps_ctrl;
-	}
-	if (_fc.of.intended != 0) {
-		_fc.of.intended = _params->ekf2_of_ctrl;
-	}
-	if (_fc.ev.intended != 0) {
-		_fc.ev.intended = _params->ekf2_ev_ctrl;
-	}
+	_fc.gps.intended = _fc.gps.enabled ? _params->ekf2_gps_ctrl : 0;
+	_fc.of.intended = _fc.of.enabled ? _params->ekf2_of_ctrl : 0;
+	_fc.ev.intended = _fc.ev.enabled ? _params->ekf2_ev_ctrl : 0;
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION)
 	for (uint8_t i = 0; i < MAX_AGP_INSTANCES; i++) {
-		if (_fc.agp[i].intended != 0) {
-			int32_t agp_param_val = 0;
-			if (_param_ekf2_agp_ctrl[i] != PARAM_INVALID) {
-				param_get(_param_ekf2_agp_ctrl[i], &agp_param_val);
-			}
-			_fc.agp[i].intended = agp_param_val;
+		int32_t agp_param_val = 0;
+		if (_param_ekf2_agp_ctrl[i] != PARAM_INVALID) {
+			param_get(_param_ekf2_agp_ctrl[i], &agp_param_val);
 		}
+		_fc.agp[i].intended = _fc.agp[i].enabled ? agp_param_val : 0;
 	}
 #endif
-	if (_fc.baro.intended != 0) {
-		_fc.baro.intended = _params->ekf2_baro_ctrl;
-	}
-	if (_fc.rng.intended != 0) {
-		_fc.rng.intended = _params->ekf2_rng_ctrl;
-	}
-	if (_fc.drag.intended != 0) {
-		_fc.drag.intended = _params->ekf2_drag_ctrl;
-	}
-	if (_fc.mag.intended != 5) {
-		_fc.mag.intended = _params->ekf2_mag_type;
-	}
-	if (_fc.imu.intended != 0) {
-		_fc.imu.intended = _params->ekf2_imu_ctrl;
-	}
+	_fc.baro.intended = _fc.baro.enabled ? _params->ekf2_baro_ctrl : 0;
+	_fc.rng.intended = _fc.rng.enabled ? _params->ekf2_rng_ctrl : 0;
+	_fc.drag.intended = _fc.drag.enabled ? _params->ekf2_drag_ctrl : 0;
+	_fc.mag.intended = _fc.mag.enabled ? _params->ekf2_mag_type : 5;
+	_fc.imu.intended = _fc.imu.enabled ? _params->ekf2_imu_ctrl : 0;
 }
-
 
 void EKF2::handleSensorFusionCommand(const vehicle_command_s &cmd, vehicle_command_ack_s &ack)
 {
@@ -1087,71 +1068,71 @@ void EKF2::handleSensorFusionCommand(const vehicle_command_s &cmd, vehicle_comma
 
 	switch (sensor) {
 	case vehicle_command_s::FUSION_SOURCE_GPS:
-		_fc.gps.exists = enable;
+		_fc.gps.enabled = enable;
 		_fc.gps.intended = enable ? _param_ekf2_gps_ctrl.get() : 0;
-		updateBootParam(0, enable);
+		updateSensEnParam(0, enable);
 		supported = true;
 		break;
 
 	case vehicle_command_s::FUSION_SOURCE_OF:
-		_fc.of.exists = enable;
+		_fc.of.enabled = enable;
 		_fc.of.intended = enable ? _param_ekf2_of_ctrl.get() : 0;
-		updateBootParam(1, enable);
+		updateSensEnParam(1, enable);
 		supported = true;
 		break;
 
 	case vehicle_command_s::FUSION_SOURCE_EV:
-		_fc.ev.exists = enable;
+		_fc.ev.enabled = enable;
 		_fc.ev.intended = enable ? _param_ekf2_ev_ctrl.get() : 0;
-		updateBootParam(2, enable);
+		updateSensEnParam(2, enable);
 		supported = true;
 		break;
 
 	case vehicle_command_s::FUSION_SOURCE_AGP:
 		if (instance < MAX_AGP_INSTANCES) {
-			_fc.agp[instance].exists = enable;
+			_fc.agp[instance].enabled = enable;
 			int32_t agp_param_val = 0;
 			if (_param_ekf2_agp_ctrl[instance] != PARAM_INVALID) {
 				param_get(_param_ekf2_agp_ctrl[instance], &agp_param_val);
 			}
 			_fc.agp[instance].intended = enable ? agp_param_val : 0;
-			updateBootParam(3 + instance, enable);
+			updateSensEnParam(3 + instance, enable);
 			supported = true;
 		}
 		break;
 
 	case vehicle_command_s::FUSION_SOURCE_BARO:
-		_fc.baro.exists = enable;
+		_fc.baro.enabled = enable;
 		_fc.baro.intended = enable ? _param_ekf2_baro_ctrl.get() : 0;
-		updateBootParam(7, enable);
+		updateSensEnParam(7, enable);
 		supported = true;
 		break;
 
 	case vehicle_command_s::FUSION_SOURCE_RNG:
-		_fc.rng.exists = enable;
+		_fc.rng.enabled = enable;
 		_fc.rng.intended = enable ? _param_ekf2_rng_ctrl.get() : 0;
-		updateBootParam(8, enable);
+		updateSensEnParam(8, enable);
 		supported = true;
 		break;
 
 	case vehicle_command_s::FUSION_SOURCE_DRAG:
-		_fc.drag.exists = enable;
+		_fc.drag.enabled = enable;
 		_fc.drag.intended = enable ? _param_ekf2_drag_ctrl.get() : 0;
-		updateBootParam(9, enable);
+		updateSensEnParam(9, enable);
 		supported = true;
 		break;
 
 	case vehicle_command_s::FUSION_SOURCE_MAG:
-		_fc.mag.exists = enable;
+		_fc.mag.enabled = enable;
 		_fc.mag.intended = enable ? _param_ekf2_mag_type.get() : 5;
-		updateBootParam(10, enable);
+		updateSensEnParam(10, enable);
 		supported = true;
 		break;
 
 	case vehicle_command_s::FUSION_SOURCE_IMU:
-		_fc.imu.exists = enable;
+		_fc.imu.enabled = enable;
 		_fc.imu.intended = enable ? _param_ekf2_imu_ctrl.get() : 0;
-		updateBootParam(11, enable);
+		updateSensEnParam(11, enable);
 		supported = true;
 		break;
 	}
@@ -1159,22 +1140,22 @@ void EKF2::handleSensorFusionCommand(const vehicle_command_s &cmd, vehicle_comma
 	ack.result = supported ? vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED : vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
 }
 
-void EKF2::updateBootParam(uint8_t bit, bool enable)
+void EKF2::updateSensEnParam(uint8_t bit, bool enable)
 {
-	if (_boot_param == PARAM_INVALID) {
+	if (_sens_en_param == PARAM_INVALID) {
 		return;
 	}
 
-	int32_t boot_mask = 0;
-	param_get(_boot_param, &boot_mask);
+	int32_t sens_en = 0;
+	param_get(_sens_en_param, &sens_en);
 
 	if (enable) {
-		boot_mask |= (1 << bit);
+		sens_en |= (1 << bit);
 	} else {
-		boot_mask &= ~(1 << bit);
+		sens_en &= ~(1 << bit);
 	}
 
-	param_set_no_notification(_boot_param, &boot_mask);
+	param_set_no_notification(_sens_en_param, &sens_en);
 }
 
 void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)

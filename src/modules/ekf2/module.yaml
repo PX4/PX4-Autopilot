@@ -194,12 +194,12 @@ parameters:
       type: boolean
       default: 0
 
-    EKF2_EN_BOOT:
+    EKF2_SENS_EN:
       description:
-        short: Sensor fusion enable at boot
-        long: 'Bitmask to control which sensor fusion sources are active at boot.
-          Sources whose bit is cleared will be disabled at startup.
-          They can be toggled at runtime via MAVLink command
+        short: Sensor fusion enable bitmask
+        long: 'Bitmask to control which sensor fusion sources are enabled.
+          Sources whose bit is cleared will be disabled.
+          Can be toggled at runtime via MAVLink command
           (VEHICLE_CMD_SET_EKF_SENSOR_FUSION), which also updates this param.'
       type: bitmask
       bit:

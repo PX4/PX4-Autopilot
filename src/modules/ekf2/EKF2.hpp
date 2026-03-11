@@ -400,12 +400,12 @@ private:
 	param_t _param_ekf2_agp_ctrl[MAX_AGP_INSTANCES] {PARAM_INVALID, PARAM_INVALID, PARAM_INVALID, PARAM_INVALID};
 #endif
 
-	param_t _boot_param{PARAM_INVALID};
+	param_t _sens_en_param{PARAM_INVALID};
 
 	void initFusionControl();
 	void updateFusionIntended();
 	void handleSensorFusionCommand(const vehicle_command_s &cmd, vehicle_command_ack_s &ack);
-	void updateBootParam(uint8_t bit, bool enable);
+	void updateSensEnParam(uint8_t bit, bool enable);
 
 	uORB::SubscriptionCallbackWorkItem _sensor_combined_sub{this, ORB_ID(sensor_combined)};
 	uORB::SubscriptionCallbackWorkItem _vehicle_imu_sub{this, ORB_ID(vehicle_imu)};
