@@ -178,5 +178,44 @@ void SdCardChecks::checkAndReport(const Context &context, Report &reporter)
 #endif /* CONFIG_MODULES_TASK_WATCHDOG */
 
 #endif /* __PX4_NUTTX */
+	// Check if SDLOG parameters are set to non-default values while SD card logging is disabled
+	int32_t sdlog_backend = 0;
+	param_get(_param_sdlog_backend, &sdlog_backend);
+	const bool sdcard_logging_enabled = (sdlog_backend & 1) != 0;
+
+	if (!sdcard_logging_enabled) {
+		// Check if any SDLOG parameter differs from its default
+		auto param_changed = [](param_t p) {
+			int32_t val, def;
+			return (param_get(p, &val) == 0 && param_get_default_value(p, &def) == 0 && val != def);
+		};
+
+		const bool sdlog_params_changed = (param_changed(_param_sdlog_mode) ||
+						   param_changed(_param_sdlog_profile) ||
+						   param_changed(_param_sdlog_mission) ||
+						   param_changed(_param_sdlog_dirs_max));
+
+		if (sdlog_params_changed) {
+
+			/* EVENT
+			 * @description
+			 * SD logging parameters (SDLOG_*) have been modified, but SD card logging
+			 * is not enabled in <param>SDLOG_BACKEND</param>. These parameters will have no effect.
+			 *
+			 * <profile name="dev">
+			 * Either enable SD card logging in <param>SDLOG_BACKEND</param>,
+			 * or reset the SDLOG parameters to their default values.
+			 * </profile>
+			 */
+			reporter.healthFailure(NavModes::None, health_component_t::logging,
+					       events::ID("check_sdlog_params_no_sdcard"),
+					       events::Log::Warning, "SDLOG parameters ineffective without SD card logging");
+
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_warning(reporter.mavlink_log_pub(), "SDLOG parameters set but SD card logging disabled");
+			}
+		}
+	}
+
 #endif /* PX4_STORAGEDIR */
 }
