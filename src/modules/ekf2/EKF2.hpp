@@ -396,9 +396,18 @@ private:
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Publication<vehicle_command_ack_s> _vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
-#if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION)
-	param_t _param_ekf2_agp_ctrl[MAX_AGP_INSTANCES] {PARAM_INVALID, PARAM_INVALID, PARAM_INVALID, PARAM_INVALID};
-#endif
+	struct FusionEntry {
+		FusionSensor *sensor;
+		param_t param;
+		uint8_t sens_en_bit;
+		uint8_t sensor_id;
+		int8_t instance;     // -1 = any instance
+		int32_t disabled_val;
+	};
+
+	static constexpr uint8_t MAX_SENSOR_TABLE = 9 + (MAX_AGP_INSTANCES - 1); // 12
+	FusionEntry _sensor_table[MAX_SENSOR_TABLE] {};
+	uint8_t _num_sensor_table{0};
 
 	param_t _sens_en_param{PARAM_INVALID};
 

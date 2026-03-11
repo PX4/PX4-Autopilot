@@ -217,16 +217,6 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_abl_tau(_params->ekf2_abl_tau),
 	_param_ekf2_gyr_b_lim(_params->ekf2_gyr_b_lim)
 {
-#if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION)
-	char param_name[20] {};
-
-	for (uint8_t i = 0; i < MAX_AGP_INSTANCES; i++) {
-		snprintf(param_name, sizeof(param_name), "EKF2_AGP%d_CTRL", i);
-		_param_ekf2_agp_ctrl[i] = param_find(param_name);
-	}
-
-#endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
-
 	initFusionControl();
 	AdvertiseTopics();
 }
@@ -989,155 +979,106 @@ void EKF2::initFusionControl()
 {
 	_sens_en_param = param_find("EKF2_SENS_EN");
 	int32_t sens_en = 4095; // default: all enabled
+
 	if (_sens_en_param != PARAM_INVALID) {
 		param_get(_sens_en_param, &sens_en);
 	}
 
+	_num_sensor_table = 0;
+
+	auto add = [this, sens_en](FusionSensor & sensor, uint8_t sens_en_bit, uint8_t sensor_id,
+	int8_t instance, param_t param, int32_t disabled_val = 0) {
+		if (_num_sensor_table < MAX_SENSOR_TABLE) {
+			sensor.enabled = sens_en & (1 << sens_en_bit);
+			int32_t param_val = disabled_val;
+
+			if (param != PARAM_INVALID) {
+				param_get(param, &param_val);
+			}
+
+			sensor.intended = sensor.enabled ? param_val : disabled_val;
+			_sensor_table[_num_sensor_table++] = {&sensor, param, sens_en_bit, sensor_id, instance, disabled_val};
+		}
+	};
+
 	// bit layout: 0=GPS 1=OF 2=EV 3..6=AGP0..3 7=BARO 8=RNG 9=DRAG 10=MAG 11=IMU
 #if defined(CONFIG_EKF2_GNSS)
-	_fc.gps.enabled = sens_en & (1 << 0);
-	_fc.gps.intended = _fc.gps.enabled ? _params->ekf2_gps_ctrl : 0;
+	add(_fc.gps,  0, vehicle_command_s::FUSION_SOURCE_GPS,  -1, _param_ekf2_gps_ctrl.handle());
 #endif
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	_fc.of.enabled   = sens_en & (1 << 1);
-	_fc.of.intended = _fc.of.enabled ? _params->ekf2_of_ctrl : 0;
+	add(_fc.of,   1, vehicle_command_s::FUSION_SOURCE_OF,   -1, _param_ekf2_of_ctrl.handle());
 #endif
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
-	_fc.ev.enabled   = sens_en & (1 << 2);
-	_fc.ev.intended = _fc.ev.enabled ? _params->ekf2_ev_ctrl : 0;
+	add(_fc.ev,   2, vehicle_command_s::FUSION_SOURCE_EV,   -1, _param_ekf2_ev_ctrl.handle());
 #endif
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION)
+
 	for (uint8_t i = 0; i < MAX_AGP_INSTANCES; i++) {
-		_fc.agp[i].enabled = sens_en & (1 << (3 + i));
-		int32_t agp_param_val = 0;
-		if (_param_ekf2_agp_ctrl[i] != PARAM_INVALID) {
-			param_get(_param_ekf2_agp_ctrl[i], &agp_param_val);
+
+		char param_name[20] {};
+		snprintf(param_name, sizeof(param_name), "EKF2_AGP%d_CTRL", i);
+		const param_t param_agp_ctrl = param_find_no_notification(param_name);
+
+		if (param_used(param_agp_ctrl) > 0) {
+			add(_fc.agp[i], 3 + i, vehicle_command_s::FUSION_SOURCE_AGP, static_cast<int8_t>(i), param_agp_ctrl);
 		}
-		_fc.agp[i].intended = _fc.agp[i].enabled ? agp_param_val : 0;
 	}
+
 #endif
 #if defined(CONFIG_EKF2_BAROMETER)
-	_fc.baro.enabled = sens_en & (1 << 7);
-	_fc.baro.intended = _fc.baro.enabled ? _params->ekf2_baro_ctrl : 0;
+	add(_fc.baro, 7, vehicle_command_s::FUSION_SOURCE_BARO, -1, _param_ekf2_baro_ctrl.handle());
 #endif
 #if defined(CONFIG_EKF2_RANGE_FINDER)
-	_fc.rng.enabled  = sens_en & (1 << 8);
-	_fc.rng.intended = _fc.rng.enabled ? _params->ekf2_rng_ctrl : 0;
+	add(_fc.rng,  8, vehicle_command_s::FUSION_SOURCE_RNG,  -1, _param_ekf2_rng_ctrl.handle());
 #endif
 #if defined(CONFIG_EKF2_DRAG_FUSION)
-	_fc.drag.enabled = sens_en & (1 << 9);
-	_fc.drag.intended = _fc.drag.enabled ? _params->ekf2_drag_ctrl : 0;
+	add(_fc.drag, 9, vehicle_command_s::FUSION_SOURCE_DRAG, -1, _param_ekf2_drag_ctrl.handle());
 #endif
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-	_fc.mag.enabled  = sens_en & (1 << 10);
-	_fc.mag.intended = _fc.mag.enabled ? _params->ekf2_mag_type : 5;
+	add(_fc.mag, 10, vehicle_command_s::FUSION_SOURCE_MAG,  -1, _param_ekf2_mag_type.handle(), 5);
 #endif
-	_fc.imu.enabled  = sens_en & (1 << 11);
-	_fc.imu.intended = _fc.imu.enabled ? _params->ekf2_imu_ctrl : 0;
+	add(_fc.imu, 11, vehicle_command_s::FUSION_SOURCE_IMU,  -1, _param_ekf2_imu_ctrl.handle());
 }
 
 void EKF2::updateFusionIntended()
 {
-	_fc.gps.intended = _fc.gps.enabled ? _params->ekf2_gps_ctrl : 0;
-	_fc.of.intended = _fc.of.enabled ? _params->ekf2_of_ctrl : 0;
-	_fc.ev.intended = _fc.ev.enabled ? _params->ekf2_ev_ctrl : 0;
-#if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION)
-	for (uint8_t i = 0; i < MAX_AGP_INSTANCES; i++) {
-		int32_t agp_param_val = 0;
-		if (_param_ekf2_agp_ctrl[i] != PARAM_INVALID) {
-			param_get(_param_ekf2_agp_ctrl[i], &agp_param_val);
+	for (uint8_t i = 0; i < _num_sensor_table; i++) {
+		FusionEntry &e = _sensor_table[i];
+		int32_t param_val = e.disabled_val;
+
+		if (e.param != PARAM_INVALID) {
+			param_get(e.param, &param_val);
 		}
-		_fc.agp[i].intended = _fc.agp[i].enabled ? agp_param_val : 0;
+
+		e.sensor->intended = e.sensor->enabled ? param_val : e.disabled_val;
 	}
-#endif
-	_fc.baro.intended = _fc.baro.enabled ? _params->ekf2_baro_ctrl : 0;
-	_fc.rng.intended = _fc.rng.enabled ? _params->ekf2_rng_ctrl : 0;
-	_fc.drag.intended = _fc.drag.enabled ? _params->ekf2_drag_ctrl : 0;
-	_fc.mag.intended = _fc.mag.enabled ? _params->ekf2_mag_type : 5;
-	_fc.imu.intended = _fc.imu.enabled ? _params->ekf2_imu_ctrl : 0;
 }
 
 void EKF2::handleSensorFusionCommand(const vehicle_command_s &cmd, vehicle_command_ack_s &ack)
 {
 	const uint8_t sensor = static_cast<uint8_t>(cmd.param1);
 	const uint8_t instance = PX4_ISFINITE(cmd.param2) ? static_cast<uint8_t>(cmd.param2) : 0;
-	const int32_t action = static_cast<int32_t>(cmd.param3);  // 0 = disable, 1 = enable
+	const bool enable = (static_cast<int32_t>(cmd.param3) == 1);
 
-	const bool enable = (action == 1);
-	bool supported = false;
+	for (uint8_t i = 0; i < _num_sensor_table; i++) {
+		FusionEntry &e = _sensor_table[i];
 
-	switch (sensor) {
-	case vehicle_command_s::FUSION_SOURCE_GPS:
-		_fc.gps.enabled = enable;
-		_fc.gps.intended = enable ? _param_ekf2_gps_ctrl.get() : 0;
-		updateSensEnParam(0, enable);
-		supported = true;
-		break;
+		if (e.sensor_id == sensor && (e.instance == -1 || e.instance == instance)) {
+			e.sensor->enabled = enable;
+			int32_t param_val = e.disabled_val;
 
-	case vehicle_command_s::FUSION_SOURCE_OF:
-		_fc.of.enabled = enable;
-		_fc.of.intended = enable ? _param_ekf2_of_ctrl.get() : 0;
-		updateSensEnParam(1, enable);
-		supported = true;
-		break;
-
-	case vehicle_command_s::FUSION_SOURCE_EV:
-		_fc.ev.enabled = enable;
-		_fc.ev.intended = enable ? _param_ekf2_ev_ctrl.get() : 0;
-		updateSensEnParam(2, enable);
-		supported = true;
-		break;
-
-	case vehicle_command_s::FUSION_SOURCE_AGP:
-		if (instance < MAX_AGP_INSTANCES) {
-			_fc.agp[instance].enabled = enable;
-			int32_t agp_param_val = 0;
-			if (_param_ekf2_agp_ctrl[instance] != PARAM_INVALID) {
-				param_get(_param_ekf2_agp_ctrl[instance], &agp_param_val);
+			if (e.param != PARAM_INVALID) {
+				param_get(e.param, &param_val);
 			}
-			_fc.agp[instance].intended = enable ? agp_param_val : 0;
-			updateSensEnParam(3 + instance, enable);
-			supported = true;
+
+			e.sensor->intended = enable ? param_val : e.disabled_val;
+			updateSensEnParam(e.sens_en_bit, enable);
+			ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+			return;
 		}
-		break;
-
-	case vehicle_command_s::FUSION_SOURCE_BARO:
-		_fc.baro.enabled = enable;
-		_fc.baro.intended = enable ? _param_ekf2_baro_ctrl.get() : 0;
-		updateSensEnParam(7, enable);
-		supported = true;
-		break;
-
-	case vehicle_command_s::FUSION_SOURCE_RNG:
-		_fc.rng.enabled = enable;
-		_fc.rng.intended = enable ? _param_ekf2_rng_ctrl.get() : 0;
-		updateSensEnParam(8, enable);
-		supported = true;
-		break;
-
-	case vehicle_command_s::FUSION_SOURCE_DRAG:
-		_fc.drag.enabled = enable;
-		_fc.drag.intended = enable ? _param_ekf2_drag_ctrl.get() : 0;
-		updateSensEnParam(9, enable);
-		supported = true;
-		break;
-
-	case vehicle_command_s::FUSION_SOURCE_MAG:
-		_fc.mag.enabled = enable;
-		_fc.mag.intended = enable ? _param_ekf2_mag_type.get() : 5;
-		updateSensEnParam(10, enable);
-		supported = true;
-		break;
-
-	case vehicle_command_s::FUSION_SOURCE_IMU:
-		_fc.imu.enabled = enable;
-		_fc.imu.intended = enable ? _param_ekf2_imu_ctrl.get() : 0;
-		updateSensEnParam(11, enable);
-		supported = true;
-		break;
 	}
 
-	ack.result = supported ? vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED : vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+	ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
 }
 
 void EKF2::updateSensEnParam(uint8_t bit, bool enable)
@@ -1151,6 +1092,7 @@ void EKF2::updateSensEnParam(uint8_t bit, bool enable)
 
 	if (enable) {
 		sens_en |= (1 << bit);
+
 	} else {
 		sens_en &= ~(1 << bit);
 	}
