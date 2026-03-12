@@ -797,7 +797,7 @@ void DShot::handle_configure_actuator(const vehicle_command_s &command)
 	command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
 
 	if ((motor_index >= 0) && (motor_index < DSHOT_MAXIMUM_CHANNELS)) {
-		int type = (int)(command.param1 + 0.5f);
+		int type = lroundf(command.param1);
 		PX4_DEBUG("motor_index: %i type: %i", motor_index, type);
 		_current_command.clear();
 		_current_command.command = DSHOT_CMD_MOTOR_STOP;
@@ -850,7 +850,7 @@ void DShot::handle_esc_request_eeprom(const vehicle_command_s &command)
 	PX4_DEBUG("Received ESC_REQUEST_EEPROM");
 	PX4_DEBUG("esc_index: %d", (int)command.param2);
 
-	int esc_index = command.param2;
+	int esc_index = lroundf(command.param2);
 
 	if (esc_index != 255 && (esc_index < 0 || esc_index >= esc_status_s::CONNECTED_ESC_MAX)) {
 		PX4_ERR("ESC_REQUEST_EEPROM: invalid esc_index %d", esc_index);
