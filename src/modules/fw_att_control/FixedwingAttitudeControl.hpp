@@ -35,7 +35,6 @@
 
 #include <drivers/drv_hrt.h>
 #include "fw_wheel_controller.h"
-#include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
