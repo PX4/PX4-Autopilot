@@ -48,7 +48,7 @@ then
 	fi
 fi
 
-adis16607 -s start
+adis16607 -s -b 1 start
 iim42652 -s -b 2 -R 2 -C 32768 start
 iim42653 -s -b 5 -R 12 start
 
