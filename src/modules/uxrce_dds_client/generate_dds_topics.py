@@ -146,8 +146,8 @@ whitelist_topics = set()
 if args.whitelist_file and os.path.exists(args.whitelist_file):
     with open(args.whitelist_file, 'r') as f:
         whitelist_data = yaml.safe_load(f)
-        if whitelist_data and 'whitelist' in whitelist_data:
-            whitelist_topics = set(whitelist_data['whitelist'])
+        if whitelist_data and '__whitelist' in whitelist_data:
+            whitelist_topics = set(whitelist_data['__whitelist'])
 
 merged_em_globals['whitelist_topics'] = whitelist_topics
 

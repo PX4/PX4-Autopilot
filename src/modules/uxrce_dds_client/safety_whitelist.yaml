@@ -1,2 +1,2 @@
-whitelist:
+__whitelist:
   - vehicle_command
