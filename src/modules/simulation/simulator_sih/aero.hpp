@@ -79,19 +79,23 @@ private:
 public:
 
 	// public implicit constructor
-	Thruster() {
-		Thruster(0.1f,1000.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f);
-	}
+	Thruster() : Thruster(0.1f, 1000.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f) {}
 
 	/** public explicit constructor for static model
 	 * using the maximum thrust and torque.
 	 * In this case, the prop diameter and RPM are not needed.
 	 */
 	Thruster(float Tmax, float Qmax) {
+		_d_m = 0.0f;
+		_rpm_max = 0.0f;
+		CT0 = 0.0f;
+		CT1 = 0.0f;
+		CT2 = 0.0f;
+		CP0 = 0.0f;
+		CP1 = 0.0f;
+		CP2 = 0.0f;
 		T_MAX = Tmax;
 		Q_MAX = Qmax;
-		CT0 = 0.0f;
-		CP0 = 0.0f;
 	}
 
 	/** public explicit constructor
