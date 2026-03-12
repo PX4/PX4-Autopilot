@@ -156,6 +156,12 @@ The airplane needs to takeoff in manual mode at full throttle.
 Крім того, якщо літак розбився, оцінювач стану може втратити своє виправлення.
 :::
 
+## Simulation Configuration
+
+### Wind
+
+SIH supports setting a wind velocity with the PX4 parameters [`SIH_WIND_N`](../advanced_config/parameter_reference.md#SIH_WIND_E) and [`SIH_WIND_E`](../advanced_config/parameter_reference.md#SIH_WIND_E) [m/s]. The parameters can also be changed during flight to simulate changing wind.
+
 ## Display/Visualisation (optional)
 
 The SIH-simulated vehicle can be displayed using [jMAVSim](../sim_jmavsim/index.md) as a visualiser.

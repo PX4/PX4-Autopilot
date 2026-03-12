@@ -567,9 +567,9 @@ MavlinkMissionManager::send()
 	} else if (_state != MAVLINK_WPM_STATE_IDLE && (_time_last_recv > 0)
 		   && hrt_elapsed_time(&_time_last_recv) > MAVLINK_MISSION_PROTOCOL_TIMEOUT_DEFAULT) {
 
-		_mavlink.send_statustext_critical("Operation timeout\t");
-		events::send(events::ID("mavlink_mission_op_timeout"), events::Log::Error,
-			     "Operation timeout, aborting transfer");
+		_mavlink.send_statustext_critical("Mission sync timeout\t");
+		events::send(events::ID("mavlink_mission_sync_timeout"), events::Log::Error,
+			     "Mission sync timeout, aborting transfer");
 
 		PX4_DEBUG("WPM: Last operation (state=%d) timed out, changing state to MAVLINK_WPM_STATE_IDLE", _state);
 

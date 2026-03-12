@@ -2016,7 +2016,7 @@ void Commander::run()
 			_vehicle_status.timestamp = hrt_absolute_time();
 			_vehicle_status_pub.publish(_vehicle_status);
 
-			_failure_detector.publishStatus();
+			_failure_detector.publishStatus(_health_and_arming_checks.getEscArmStatus(), _health_and_arming_checks.getMotorFailureMask());
 		}
 
 		checkWorkerThread();
@@ -2032,8 +2032,10 @@ void Commander::run()
 
 		perf_end(_loop_perf);
 
-		// sleep if there are no vehicle_commands or action_requests to process
-		if (!_vehicle_command_sub.updated() && !_action_request_sub.updated()) {
+		// Always sleep during calibration to avoid competing with calibration
+		// worker threads for CPU. Otherwise, sleep only when idle.
+		if (_vehicle_status.calibration_enabled
+		    || (!_vehicle_command_sub.updated() && !_action_request_sub.updated())) {
 			px4_usleep(COMMANDER_MONITORING_INTERVAL);
 		}
 	}

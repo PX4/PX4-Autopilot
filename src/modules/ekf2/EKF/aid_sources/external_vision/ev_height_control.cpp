@@ -57,7 +57,7 @@ void Ekf::controlEvHeightFusion(const imuSample &imu_sample, const extVisionSamp
 	Matrix3f pos_cov{matrix::diag(ev_sample.position_var)};
 
 	// rotate EV to the EKF reference frame unless we're operating entirely in vision frame
-	if (!(_control_status.flags.ev_yaw && _control_status.flags.ev_pos)) {
+	if (!(_control_status.flags.ev_yaw && _control_status.flags.ev_pos) && ev_sample.pos_frame == PositionFrame::LOCAL_FRAME_FRD) {
 
 		const Quatf q_error(_ev_q_error_filt.getState());
 

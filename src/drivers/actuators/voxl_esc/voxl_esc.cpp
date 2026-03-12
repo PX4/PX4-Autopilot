@@ -290,6 +290,7 @@ int VoxlEsc::load_params(voxl_esc_params_t *params, ch_assign_t *map)
 	param_get(param_find("VOXL_ESC_T_EXPO"),  &params->turtle_motor_expo);
 	param_get(param_find("VOXL_ESC_T_MINF"),  &params->turtle_stick_minf);
 	param_get(param_find("VOXL_ESC_T_COSP"),  &params->turtle_cosphi);
+	param_get(param_find("VOXL_ESC_T_ON"),    &params->turtle_button_on);
 
 	param_get(param_find("VOXL_ESC_FUNC1"),  &params->function_map[0]);
 	param_get(param_find("VOXL_ESC_FUNC2"),  &params->function_map[1]);
@@ -359,6 +360,12 @@ int VoxlEsc::load_params(voxl_esc_params_t *params, ch_assign_t *map)
 	if (params->turtle_cosphi < 0.0f || params->turtle_cosphi > 100.0f) {
 		PX4_ERR("Invalid parameter VOXL_ESC_T_COSP.  Please verify parameters.");
 		params->turtle_cosphi = 0.0f;
+		ret = PX4_ERROR;
+	}
+
+	if (params->turtle_button_on < -1 || params->turtle_button_on > 15) {
+		PX4_ERR("Invalid parameter VOXL_ESC_T_ON.  Please verify parameters.");
+		params->turtle_button_on = -1;
 		ret = PX4_ERROR;
 	}
 
@@ -1493,21 +1500,28 @@ void VoxlEsc::Run()
 
 			if (!_outputs_on) {
 
-				float setpoint = VOXL_ESC_MODE_DISABLED_SETPOINT;
+				bool activate = false;
 
-				if (_parameters.mode == VOXL_ESC_MODE_TURTLE_AUX1) {
-					setpoint = _manual_control_setpoint.aux1;
+				if (_manual_control_setpoint.data_source >= manual_control_setpoint_s::SOURCE_MAVLINK_0
+				    && _parameters.turtle_button_on >= 0) {
+					// MAVLink source: use buttons field directly
+					activate = (_manual_control_setpoint.buttons & (1 << _parameters.turtle_button_on)) != 0;
 
-				} else if (_parameters.mode == VOXL_ESC_MODE_TURTLE_AUX2) {
-					setpoint = _manual_control_setpoint.aux2;
+				} else if (_manual_control_setpoint.data_source == manual_control_setpoint_s::SOURCE_RC) {
+					// RC source: use aux channel as before
+					float setpoint = VOXL_ESC_MODE_DISABLED_SETPOINT;
+
+					if (_parameters.mode == VOXL_ESC_MODE_TURTLE_AUX1) {
+						setpoint = _manual_control_setpoint.aux1;
+
+					} else if (_parameters.mode == VOXL_ESC_MODE_TURTLE_AUX2) {
+						setpoint = _manual_control_setpoint.aux2;
+					}
+
+					activate = (setpoint > VOXL_ESC_MODE_THRESHOLD);
 				}
 
-				if (setpoint > VOXL_ESC_MODE_THRESHOLD) {
-					_turtle_mode_en = true;
-
-				} else {
-					_turtle_mode_en = false;
-				}
+				_turtle_mode_en = activate;
 			}
 		}
 
@@ -1696,6 +1710,7 @@ void VoxlEsc::print_params()
 	PX4_INFO("Params: VOXL_ESC_T_EXPO: %" PRId32, _parameters.turtle_motor_expo);
 	PX4_INFO("Params: VOXL_ESC_T_MINF: %f",       (double)_parameters.turtle_stick_minf);
 	PX4_INFO("Params: VOXL_ESC_T_COSP: %f",       (double)_parameters.turtle_cosphi);
+	PX4_INFO("Params: VOXL_ESC_T_ON:   %" PRId32, _parameters.turtle_button_on);
 
 	PX4_INFO("Params: VOXL_ESC_VLOG: %" PRId32,    _parameters.verbose_logging);
 	PX4_INFO("Params: VOXL_ESC_PUB_BST: %" PRId32, _parameters.publish_battery_status);
