@@ -189,6 +189,24 @@ for manufacturer in sorted(os.scandir(os.path.join(source_dir, '../boards')), ke
                 if target is not None:
                     build_configs.append(target)
 
+# Remove companion targets from CI groups (parent target builds them via Make prerequisite)
+for manufacturer in sorted(os.scandir(os.path.join(source_dir, '../boards')), key=lambda e: e.name):
+    if not manufacturer.is_dir():
+        continue
+    for board in sorted(os.scandir(manufacturer.path), key=lambda e: e.name):
+        if not board.is_dir():
+            continue
+        companion_file = os.path.join(board.path, 'companion_targets')
+        if os.path.exists(companion_file):
+            with open(companion_file) as f:
+                companions = {l.strip() for l in f if l.strip() and not l.startswith('#')}
+            for arch in grouped_targets:
+                for man in grouped_targets[arch]['manufacturers']:
+                    grouped_targets[arch]['manufacturers'][man] = [
+                        t for t in grouped_targets[arch]['manufacturers'][man]
+                        if t not in companions
+                    ]
+
 if(verbose):
     import pprint
     print("============================")
