@@ -72,6 +72,7 @@ void Sih::run()
 	_px4_accel.set_temperature(T1_C);
 	_px4_gyro.set_temperature(T1_C);
 
+	init_position_reference();
 	parameters_updated();
 
 	const hrt_abstime task_start = hrt_absolute_time();
@@ -246,27 +247,6 @@ void Sih::parameters_updated()
 	_KDV = _sih_kdv.get();
 	_KDW = _sih_kdw.get();
 
-	if (!_lpos_ref.isInitialized()
-	    || (fabsf(static_cast<float>(_lpos_ref.getProjectionReferenceLat()) - _sih_lat0.get()) > FLT_EPSILON)
-	    || (fabsf(static_cast<float>(_lpos_ref.getProjectionReferenceLon()) - _sih_lon0.get()) > FLT_EPSILON)
-	    || (fabsf(_lpos_ref_alt - _sih_h0.get()) > FLT_EPSILON)) {
-		_lpos_ref.initReference(static_cast<double>(_sih_lat0.get()), static_cast<double>(_sih_lon0.get()));
-		_lpos_ref_alt = _sih_h0.get();
-
-		// Reset earth position, velocity and attitude
-		_lla.setLatitudeDeg(static_cast<double>(_sih_lat0.get()));
-		_lla.setLongitudeDeg(static_cast<double>(_sih_lon0.get()));
-		_lla.setAltitude(_lpos_ref_alt);
-		_p_E = _lla.toEcef();
-
-		const Dcmf R_E2N = computeRotEcefToNed(_lla);
-		_R_N2E = R_E2N.transpose();
-		_v_E = _R_N2E * _v_N;
-
-		_q_E = Quatf(_R_N2E) * _q;
-		_q_E.normalize();
-	}
-
 	_MASS = _sih_mass.get();
 
 	_I = diag(Vector3f(_sih_ixx.get(), _sih_iyy.get(), _sih_izz.get()));
@@ -284,6 +264,37 @@ void Sih::parameters_updated()
 	_T_TAU = _sih_thrust_tau.get();
 
 	_v_wind_N = Vector3f(_sih_wind_n.get(), _sih_wind_e.get(), 0.f);
+}
+
+void Sih::init_position_reference()
+{
+	// Reset earth position, velocity and attitude
+	_lla.setLatitudeDeg(static_cast<double>(_sih_lat0.get()));
+	_lla.setLongitudeDeg(static_cast<double>(_sih_lon0.get()));
+	_lla.setAltitude(_sih_h0.get());
+	_p_E = _lla.toEcef();
+
+	// Store ECEF reference position - this is the origin of the local frame
+	_p_E_ref = _p_E;
+
+	// Get canonical LLA from ECEF for reference initialization
+	_lla = LatLonAlt::fromEcef(_p_E);
+
+	// Initialize MapProjection reference (used for reprojection and publishing ref_lat/ref_lon)
+	_lpos_ref.initReference(_lla.latitude_deg(), _lla.longitude_deg());
+	_lpos_ref_alt = _lla.altitude();
+
+	// Store reference frame rotation (fixed, used for local position computation)
+	_R_E2N_ref = computeRotEcefToNed(_lla);
+
+	// Local position is exactly at origin since p_E == p_E_ref
+	_lpos.setZero();
+
+	_R_N2E = _R_E2N_ref.transpose();
+	_v_E = _R_N2E * _v_N;
+
+	_q_E = Quatf(_R_N2E) * _q;
+	_q_E.normalize();
 }
 
 void Sih::read_motors(const float dt)
@@ -392,6 +403,7 @@ void Sih::generate_ts_aerodynamics()
 	// the aerodynamic is resolved in a frame like a standard aircraft (nose-right-belly)
 	Vector3f v_ts = _R_S2B.transpose() * v_B;
 	Vector3f w_ts = _R_S2B.transpose() * _w_B;
+	// NED convention: _lpos(2) is negative when above reference, so altitude = ref - (-height) = ref + height
 	float altitude = _lpos_ref_alt - _lpos(2);
 
 	Vector3f Fa_ts{};
@@ -563,8 +575,10 @@ void Sih::equations_of_motion(const float dt)
 
 	ecefToNed();
 
-	_lpos_ref.project(_lla.latitude_deg(), _lla.longitude_deg(), _lpos(0), _lpos(1));
-	_lpos(2) = -(_lla.altitude() - _lpos_ref_alt);
+	// Compute local position directly from ECEF difference (avoids lat/lon precision issues)
+	// Use the fixed reference rotation to maintain a consistent local frame
+	const Vector3d dp_E = _p_E - _p_E_ref;
+	_lpos = _R_E2N_ref * Vector3f(dp_E);
 }
 
 void Sih::ecefToNed()
@@ -741,13 +755,18 @@ void Sih::publish_ground_truth(const hrt_abstime &time_now_us)
 
 	{
 		// publish global position groundtruth
+		// Use MapProjection reproject to ensure consistency with local position
 		vehicle_global_position_s global_position{};
 		global_position.timestamp_sample = time_now_us;
-		global_position.lat = _lla.latitude_deg();
-		global_position.lon = _lla.longitude_deg();
-		global_position.alt = _lla.altitude();
+
+		double lat, lon;
+		_lpos_ref.reproject(_lpos(0), _lpos(1), lat, lon);
+		global_position.lat = lat;
+		global_position.lon = lon;
+		// NED convention: _lpos(2) is negative when above reference, so alt = ref - (-height) = ref + height
+		global_position.alt = static_cast<double>(_lpos_ref_alt) - static_cast<double>(_lpos(2));
 		global_position.alt_ellipsoid = global_position.alt;
-		global_position.terrain_alt = -_lpos(2);
+		global_position.terrain_alt = static_cast<double>(_lpos_ref_alt);
 		global_position.timestamp = hrt_absolute_time();
 		_global_position_ground_truth_pub.publish(global_position);
 	}

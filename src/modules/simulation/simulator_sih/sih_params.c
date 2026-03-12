@@ -242,6 +242,7 @@ PARAM_DEFINE_FLOAT(SIH_KDW, 0.025f);
  * @unit deg
  * @min -90
  * @max  90
+ * @reboot_required true
  * @group Simulation In Hardware
  */
 PARAM_DEFINE_FLOAT(SIH_LOC_LAT0, 47.397742f);
@@ -257,6 +258,7 @@ PARAM_DEFINE_FLOAT(SIH_LOC_LAT0, 47.397742f);
  * @unit deg
  * @min -180
  * @max  180
+ * @reboot_required true
  * @group Simulation In Hardware
  */
 PARAM_DEFINE_FLOAT(SIH_LOC_LON0, 8.545594f);
@@ -278,6 +280,7 @@ PARAM_DEFINE_FLOAT(SIH_LOC_LON0, 8.545594f);
  * @max 8848.0
  * @decimal 2
  * @increment 0.01
+ * @reboot_required true
  * @group Simulation In Hardware
  */
 PARAM_DEFINE_FLOAT(SIH_LOC_H0, 489.4f);
