@@ -258,17 +258,21 @@ void Sih::parameters_updated()
 			_thruster[i] = Thruster(_F_T_MAX,_F_Q_MAX);
 		}
 	}
+
 	if (_sih_f_ct0.get() > 0.0f && _sih_f_cp0.get() > 0.0f) {
 		_F_T_MAX = _thruster[0].get_T_max();
-		if (fabsf(_F_T_MAX-_sih_f_thrust_max.get()) > 1.0e-5f) {
+
+		if (fabsf(_F_T_MAX - _sih_f_thrust_max.get()) > 1.0e-5f) {
 			_sih_f_thrust_max.set(_F_T_MAX);
 			_sih_f_thrust_max.commit();
 			PX4_INFO("SIH_F_CT0 > 0 and SIH_F_CP0 > 0, using propeller dynamic model, overriding SIH_F_T_MAX");
 		}
 	}
+
 	if (_sih_f_cp0.get() > 0.0f) {
 		_F_Q_MAX = _thruster[0].get_Q_max();
-		if (fabsf(_F_Q_MAX-_sih_f_torque_max.get()) > 1.0e-5f) {
+
+		if (fabsf(_F_Q_MAX - _sih_f_torque_max.get()) > 1.0e-5f) {
 			_sih_f_torque_max.set(_F_Q_MAX);
 			_sih_f_torque_max.commit();
 			PX4_INFO("SIH_F_CP0 > 0, using propeller dynamic model, overriding SIH_F_Q_MAX");
