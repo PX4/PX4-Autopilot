@@ -144,7 +144,7 @@ void VehicleGPSPosition::Run()
 
 			// Match device_id to receiver slot
 			matrix::Vector3f antenna_offset{};
-			hrt_abstime delay_us = 110_ms;
+			hrt_abstime delay_us = 110_ms; // matches SENS_GPS*_DELAY default
 			bool matched = false;
 
 			for (uint8_t slot = 0; slot < GPS_MAX_RECEIVERS; slot++) {
