@@ -22,7 +22,7 @@ for build_dir_path in build/*/ ; do
   # ROS 2 msgs
   cp $build_dir_path/events/all_events.json.xz artifacts/$build_dir/
   # SBOM
-  cp $build_dir_path/sbom.spdx.json artifacts/$build_dir/ 2>/dev/null || true
+  cp $build_dir_path/$build_dir.sbom.spdx.json artifacts/$build_dir/ 2>/dev/null || true
   # Module Docs
   ls -la artifacts/$build_dir
   echo "----------"

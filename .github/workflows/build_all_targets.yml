@@ -267,5 +267,5 @@ jobs:
           prerelease: ${{ steps.upload-location.outputs.is_prerelease == 'true' }}
           files: |
             artifacts/*.px4
-            artifacts/**/*.spdx.json
+            artifacts/**/*.sbom.spdx.json
           name: ${{ steps.upload-location.outputs.uploadlocation }}

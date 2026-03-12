@@ -27,12 +27,12 @@ Typical SBOM size: 70-100 packages, ~500 lines, ~20 KB JSON.
 SBOMs are generated automatically as part of every CMake build. The output file is:
 
 ```
-build/<target>/sbom.spdx.json
+build/<target>/<target>.sbom.spdx.json
 ```
 
 For example:
 ```
-build/px4_fmu-v6x_default/sbom.spdx.json
+build/px4_fmu-v6x_default/px4_fmu-v6x_default.sbom.spdx.json
 ```
 
 The generator script is `Tools/ci/generate_sbom.py`. It uses only Python standard library (no pip dependencies).
@@ -59,7 +59,7 @@ python3 Tools/ci/generate_sbom.py \
     --board px4_fmu-v6x_default \
     --modules-file build/px4_fmu-v6x_default/config_module_list.txt \
     --compiler arm-none-eabi-gcc \
-    --output build/px4_fmu-v6x_default/sbom.spdx.json
+    --output build/px4_fmu-v6x_default/px4_fmu-v6x_default.sbom.spdx.json
 ```
 
 ## Artifacts
@@ -68,7 +68,7 @@ SBOMs are available in:
 
 | Location | Path |
 |----------|------|
-| Build directory | `build/<target>/sbom.spdx.json` |
+| Build directory | `build/<target>/<target>.sbom.spdx.json` |
 | GitHub Releases | Alongside `.px4` firmware files |
 | S3 | Same directory as firmware artifacts |
 
@@ -79,7 +79,7 @@ Validate an SBOM against the SPDX JSON schema:
 ```sh
 python3 -c "
 import json
-doc = json.load(open('build/px4_sitl_default/sbom.spdx.json'))
+doc = json.load(open('build/px4_sitl_default/px4_sitl_default.sbom.spdx.json'))
 assert doc['spdxVersion'] == 'SPDX-2.3'
 assert doc['dataLicense'] == 'CC0-1.0'
 assert len(doc['packages']) > 0

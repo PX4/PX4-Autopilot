@@ -47,7 +47,7 @@ if(GENERATE_SBOM)
 	list(JOIN module_list "\n" module_list_content)
 	file(GENERATE OUTPUT ${sbom_module_list_file} CONTENT "${module_list_content}\n")
 
-	set(sbom_output "${PX4_BINARY_DIR}/sbom.spdx.json")
+	set(sbom_output "${PX4_BINARY_DIR}/${PX4_CONFIG}.sbom.spdx.json")
 
 	add_custom_command(
 		OUTPUT ${sbom_output}
