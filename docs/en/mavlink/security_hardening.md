@@ -1,5 +1,7 @@
 # MAVLink Security Hardening for Production Deployments
 
+<Badge type="tip" text="PX4 v1.17" />
+
 MAVLink is an open communication protocol designed for lightweight, low-latency communication between drones and ground stations.
 By default, all MAVLink messages are unauthenticated.
 This is intentional for development and testing, but **production deployments must enable [message signing](message_signing.md)** to prevent unauthorized access.
