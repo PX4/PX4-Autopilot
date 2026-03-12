@@ -272,6 +272,9 @@ The dynamic models for the various vehicles are:
 - Tailsitter: based on Chiappinelli (2018), see references below
 - Rover: bicycle model with linear tire model
 
+Since PX4 v1.17, the propeller model for fixed-wing, tailsitter, and VTOL pusher vehicles is based on [UIUC propeller data](https://m-selig.ae.illinois.edu/props/propDB.html).
+The maximum thrust force is realistically reduced as aircraft speed increases.
+
 **References:**
 
 1. PX4 Development Team, "SIH Dynamic Model," PX4-Autopilot, 2019. [PDF](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/simulation/SIH_dynamic_model.pdf)
