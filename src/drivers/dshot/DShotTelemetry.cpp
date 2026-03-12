@@ -140,11 +140,10 @@ int DShotTelemetry::parseCommandResponse()
 	uint8_t buf[COMMAND_RESPONSE_MAX_SIZE] = {};
 	int bytes = _uart.read(buf, sizeof(buf));
 
-	// Handle potential overflow: reset and clamp to buffer size
+	// Handle potential overflow, fail out
 	if (_command_response_position + bytes >= COMMAND_RESPONSE_MAX_SIZE) {
 		PX4_ERR("command response overflow");
-		_command_response_position = 0;
-		bytes = bytes < (int)COMMAND_RESPONSE_MAX_SIZE ? bytes : (int)COMMAND_RESPONSE_MAX_SIZE;
+		return -1;
 	}
 
 	// Add bytes to buffer
