@@ -359,7 +359,9 @@ void DShot::update_motor_outputs(uint16_t outputs[MAX_ACTUATORS], int num_output
 
 		bool set_telemetry_bit = false;
 
-		if (_telemetry_motor_index == i) {
+		int motor_index = (int)_mixing_output.outputFunction(i) - (int)OutputFunction::Motor1;
+
+		if (_telemetry_motor_index == motor_index) {
 			if (_serial_telemetry_enabled && _telemetry.telemetryResponseFinished() && _telemetry.commandResponseFinished()) {
 				if (hrt_absolute_time() > _serial_telem_delay_until) {
 					set_telemetry_bit = true;
@@ -463,8 +465,7 @@ bool DShot::process_serial_telemetry()
 
 	} else {
 
-		// Note: _telemetry_motor_index is actually an actuator channel (iterates via set_next_telemetry_index)
-		int motor_index = (int)_mixing_output.outputFunction(_telemetry_motor_index) - (int)OutputFunction::Motor1;
+		int motor_index = _telemetry_motor_index;
 
 		EscData esc {};
 		esc.source = TelemetrySource::Serial;
@@ -535,21 +536,21 @@ bool DShot::process_serial_telemetry()
 
 bool DShot::set_next_telemetry_index()
 {
-	int start_index = (_telemetry_motor_index + 1) % DSHOT_MAXIMUM_CHANNELS;
-	int next_motor_index = (_telemetry_motor_index + 1) % DSHOT_MAXIMUM_CHANNELS;
+	int actuator_index = 0;
+	int next_actuator_index = actuator_index;
 
 	do {
-		bool is_motor = _mixing_output.isMotor(next_motor_index);
-		bool already_requested = _telemetry_requested_mask & (1 << next_motor_index);
+		bool is_motor = _mixing_output.isMotor(next_actuator_index);
+		bool already_requested = _telemetry_requested_mask & (1 << next_actuator_index);
 
 		if (is_motor && !already_requested) {
-			_telemetry_motor_index = next_motor_index;
-			_telemetry_requested_mask |= (1 << next_motor_index);
+			_telemetry_motor_index = next_actuator_index;
+			_telemetry_requested_mask |= (1 << next_actuator_index);
 			break;
 		}
 
-		next_motor_index = (next_motor_index + 1) % DSHOT_MAXIMUM_CHANNELS;
-	} while (next_motor_index != start_index);
+		next_actuator_index = (next_actuator_index + 1) % DSHOT_MAXIMUM_CHANNELS;
+	} while (next_actuator_index != actuator_index);
 
 	// Check if all motors have been sampled
 	if (count_set_bits(_telemetry_requested_mask) >= count_set_bits(_output_mask)) {
@@ -598,7 +599,6 @@ bool DShot::process_bdshot_telemetry()
 			esc.motor_index = motor_index;
 			esc.timestamp = now;
 
-			// Error counts are stored in actuator order
 			_bdshot_telem_errors[motor_index] = up_bdshot_num_errors(output_channel);
 
 			if (up_bdshot_channel_online(output_channel)) {
