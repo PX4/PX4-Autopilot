@@ -131,11 +131,12 @@ static const uint32_t gcr_decode[32] = {
 // and thus delay the processing of the data. This should never happen in a properly working system, as the
 // jitter would have to be longer than the control allocator update interval. A warning is issued if this
 // ever does occur.
-static uint32_t _bdshot_channel_mask = 0xFFFFFFFF;
-static uint32_t _dshot_frequency = 0;
-static bool     _edt_enabled = false; // Extended DShot Telemetry
-
 static volatile bool _bdshot_cycle_complete[MAX_IO_TIMERS] = { [0 ...(MAX_IO_TIMERS - 1)] = true };
+
+static uint32_t _bdshot_channel_mask = 0;
+static uint32_t _dshot_frequency = 0;
+static bool _edt_enabled = false; // Extended DShot Telemetry
+
 
 // Online flags, set if ESC is reponding with valid BDShot frames
 #define BDSHOT_OFFLINE_COUNT 200
