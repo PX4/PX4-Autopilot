@@ -143,6 +143,9 @@ void DShotTelemetry::parseCommandResponse()
 	// Handle potential overflow, fail out
 	if (_command_response_position + bytes >= COMMAND_RESPONSE_MAX_SIZE) {
 		PX4_ERR("command response overflow");
+		_command_response_motor_index = -1;
+		_command_response_start = 0;
+		_command_response_position = 0;
 		return;
 	}
 
