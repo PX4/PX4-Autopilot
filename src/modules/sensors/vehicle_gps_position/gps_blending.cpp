@@ -341,6 +341,15 @@ bool GpsBlending::blend_gps_data(uint64_t hrt_now_us)
 		// offsets for each physical receiver
 		sensor_gps_s gps_blended_state = gps_blend_states(blend_weights);
 
+		// blend antenna offsets using the same weights
+		_output_antenna_offset.zero();
+
+		for (uint8_t i = 0; i < GPS_MAX_RECEIVERS_BLEND; i++) {
+			if (blend_weights[i] > 0.0f) {
+				_output_antenna_offset += _antenna_offset[i] * blend_weights[i];
+			}
+		}
+
 		update_gps_offsets(gps_blended_state);
 
 		// calculate a blended output from the offset corrected receiver data
@@ -355,10 +364,8 @@ bool GpsBlending::blend_gps_data(uint64_t hrt_now_us)
 	return true;
 }
 
-sensor_gps_s GpsBlending::gps_blend_states(float blend_weights[GPS_MAX_RECEIVERS_BLEND])
+sensor_gps_s GpsBlending::gps_blend_states(float blend_weights[GPS_MAX_RECEIVERS_BLEND]) const
 {
-	_output_antenna_offset.zero();
-
 	// Use the GPS with the highest weighting as the reference position
 	float best_weight = 0.0f;
 
@@ -441,9 +448,6 @@ sensor_gps_s GpsBlending::gps_blend_states(float blend_weights[GPS_MAX_RECEIVERS
 			}
 		}
 
-		if (blend_weights[i] > 0.0f) {
-			_output_antenna_offset += _antenna_offset[i] * blend_weights[i];
-		}
 	}
 
 	/*

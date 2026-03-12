@@ -112,7 +112,7 @@ private:
 	 * Calculate internal states used to blend GPS data from multiple receivers using weightings calculated
 	 * by calc_blend_weights()
 	 */
-	sensor_gps_s gps_blend_states(float blend_weights[GPS_MAX_RECEIVERS_BLEND]);
+	sensor_gps_s gps_blend_states(float blend_weights[GPS_MAX_RECEIVERS_BLEND]) const;
 
 	/*
 	 * The location in gps_blended_state will move around as the relative accuracy changes.
