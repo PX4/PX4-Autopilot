@@ -232,6 +232,9 @@ class SourceParser(object):
                         # start waiting for the next part - long comment.
                         if state == "wait-short-end":
                             state = "wait-long"
+                        if state == "wait-long-end":
+                            # Long description includes empty lines
+                            long_desc += "\n"
                     else:
                         m = self.re_comment_tag.match(comment_content)
                         if m:
