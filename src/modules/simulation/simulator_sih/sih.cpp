@@ -367,26 +367,27 @@ void Sih::generate_force_and_torques(const float dt)
 
 	} else if (_vehicle == VehicleType::FixedWing) {
 
-		_T[0] = _thruster[0].compute_thrust_from_throttle(_u[3],_v_B(0));
-		_Q[0] = _thruster[0].compute_torque_from_throttle(_u[3],_v_B(0));
+		_T[0] = _thruster[0].compute_thrust_from_throttle(_u[3], _v_B(0));
+		_Q[0] = _thruster[0].compute_torque_from_throttle(_u[3], _v_B(0));
 		_T_B = Vector3f(_T[0], 0.0f, 0.0f); 	// forward thruster
-		_Mt_B = Vector3f(_Q[0],0.0f,0.0f);	// thruster torque
+		_Mt_B = Vector3f(_Q[0], 0.0f, 0.0f);	// thruster torque
 		generate_fw_aerodynamics(_u[0], _u[1], _u[2], _T[0]);
 
 	} else if (_vehicle == VehicleType::TailsitterVTOL) {
 
 		for (size_t i = 0; i < NUM_DYN_THRUSTER; i++) {
-			_T[i] = _thruster[i].compute_thrust_from_throttle(_u[i],-_v_B(2));
-			_Q[i] = _thruster[i].compute_torque_from_throttle(_u[i],-_v_B(2));
+			_T[i] = _thruster[i].compute_thrust_from_throttle(_u[i], -_v_B(2));
+			_Q[i] = _thruster[i].compute_torque_from_throttle(_u[i], -_v_B(2));
 		}
-		_T_B = Vector3f(0.0f, 0.0f, -_T[0] -_T[1]);
+
+		_T_B = Vector3f(0.0f, 0.0f, -_T[0] - _T[1]);
 		_Mt_B = Vector3f(_L_ROLL * (_T[1] - _T[0]), 0.0f, _Q[1] - _Q[0]);
 		generate_ts_aerodynamics();
 
 	} else if (_vehicle == VehicleType::StandardVTOL) {
 
-		_T[0] = _thruster[0].compute_thrust_from_throttle(_u[7],_v_B(0));
-		_Q[0] = _thruster[0].compute_torque_from_throttle(_u[7],_v_B(0));
+		_T[0] = _thruster[0].compute_thrust_from_throttle(_u[7], _v_B(0));
+		_Q[0] = _thruster[0].compute_torque_from_throttle(_u[7], _v_B(0));
 		_T_B = Vector3f(_T[0], 0.0f, -_T_MAX * (+_u[0] + _u[1] + _u[2] + _u[3]));
 		_Mt_B = Vector3f(_L_ROLL * _T_MAX * (-_u[0] + _u[1] + _u[2] - _u[3]) + _Q[0],
 				 _L_PITCH * _T_MAX * (+_u[0] - _u[1] + _u[2] - _u[3]),
