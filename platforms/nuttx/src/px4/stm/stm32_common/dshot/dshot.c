@@ -982,15 +982,15 @@ int up_bdshot_num_errors(uint8_t channel)
 
 int up_bdshot_get_erpm(uint8_t channel, int *erpm)
 {
-	uint8_t timer_index = timer_io_channels[channel].timer_index;
-	uint8_t timer_channel_index = timer_io_channels[channel].timer_channel - 1;
-	bool channel_initialized = timer_configs[timer_index].initialized_channels[timer_channel_index];
-
 	int status = PX4_ERROR;
 
 	if (channel >= MAX_TIMER_IO_CHANNELS) {
 		return status;
 	}
+
+	uint8_t timer_index = timer_io_channels[channel].timer_index;
+	uint8_t timer_channel_index = timer_io_channels[channel].timer_channel - 1;
+	bool channel_initialized = timer_configs[timer_index].initialized_channels[timer_channel_index];
 
 	if (channel_initialized && _erpms[channel].ready) {
 		*erpm = _erpms[channel].erpm;
