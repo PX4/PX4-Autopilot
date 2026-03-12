@@ -516,6 +516,10 @@ uint16_t up_bdshot_num_channels_ready(void)
 
 int up_bdshot_num_errors(uint8_t channel)
 {
+	if (channel >= MAX_TIMER_IO_CHANNELS) {
+		return 0;
+	}
+
 	return dshot_inst[channel].crc_error_cnt + dshot_inst[channel].frame_error_cnt + dshot_inst[channel].no_response_cnt;
 }
 
