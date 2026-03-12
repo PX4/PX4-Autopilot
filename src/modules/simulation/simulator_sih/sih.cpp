@@ -251,11 +251,11 @@ void Sih::parameters_updated()
 	// update the thruster models
 	for (size_t i = 0; i < NUM_DYN_THRUSTER; i++) {
 		if (_sih_f_ct0.get() > 0.0f && _sih_f_cp0.get() > 0.0f) {
-			_thruster[i] = Thruster(_sih_forward_diameter_inch.get(),_sih_forward_rpm_max.get(),
-					_sih_f_ct0.get(),_sih_f_ct1.get(),_sih_f_ct2.get(),
-					_sih_f_cp0.get(),_sih_f_cp1.get(),_sih_f_cp2.get());
+			_thruster[i] = Thruster(_sih_forward_diameter_inch.get(), _sih_forward_rpm_max.get(),
+					       _sih_f_ct0.get(), _sih_f_ct1.get(), _sih_f_ct2.get(),
+					       _sih_f_cp0.get(), _sih_f_cp1.get(), _sih_f_cp2.get());
 		} else {
-			_thruster[i] = Thruster(_F_T_MAX,_F_Q_MAX);
+			_thruster[i] = Thruster(_F_T_MAX, _F_Q_MAX);
 		}
 	}
 
