@@ -737,7 +737,7 @@ int SeptentrioDriver::detect_serial_port(char* const port_name) {
 	// Read buffer to get the COM port
 	char buf[k_read_buffer_size];
 	size_t buffer_offset = 0;   // The offset into the string where the next data should be read to.
-	hrt_abstime timeout_time = hrt_absolute_time() + 5 * 1000 * k_receiver_ack_timeout_fast;
+	hrt_abstime timeout_time = hrt_absolute_time() + static_cast<hrt_abstime>(5 * 1000 * k_receiver_ack_timeout_fast);
 	bool response_detected = false;
 
 	// Receiver prints prompt after a message.
@@ -1176,11 +1176,11 @@ int SeptentrioDriver::process_message()
 						timespec ts;
 						memset(&ts, 0, sizeof(ts));
 						ts.tv_sec = epoch;
-						ts.tv_nsec = (header.tow % 1000) * 1000 * 1000;
+						ts.tv_nsec = static_cast<long>(header.tow % 1000) * 1000 * 1000;
 						set_clock(ts);
 
 						_sensor_gps.time_utc_usec = static_cast<uint64_t>(epoch) * 1000000ULL;
-						_sensor_gps.time_utc_usec += (header.tow % 1000) * 1000;
+						_sensor_gps.time_utc_usec += static_cast<uint64_t>(header.tow % 1000) * 1000;
 					}
 				}
 
@@ -1464,7 +1464,7 @@ bool SeptentrioDriver::send_message_and_wait_for_ack(const char *msg, const int 
 	uint16_t response_check_character = 0;
 	// Length of the message without the newline but including the preceding response part "$R: "
 	size_t response_len = strlen(msg) + 3;
-	hrt_abstime timeout_time = hrt_absolute_time() + 1000 * timeout;
+	hrt_abstime timeout_time = hrt_absolute_time() + static_cast<hrt_abstime>(1000 * timeout);
 
 	do {
 		int read_result = read(reinterpret_cast<uint8_t*>(buf), sizeof(buf), 50);
@@ -1523,7 +1523,7 @@ int SeptentrioDriver::receive(unsigned timeout)
 		}
 
 		// abort after timeout if no useful packets received
-		if (time_started + timeout * 1000 < hrt_absolute_time()) {
+		if (time_started + static_cast<hrt_abstime>(timeout * 1000) < hrt_absolute_time()) {
 			PX4_DEBUG("timed out, returning");
 			return -1;
 		}

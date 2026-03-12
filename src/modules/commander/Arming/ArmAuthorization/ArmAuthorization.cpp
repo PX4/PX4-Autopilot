@@ -241,7 +241,7 @@ void arm_auth_update(hrt_abstime now, bool param_update)
 					 "Arm auth: Authorized for the next %" PRId32 " seconds",
 					 command_ack.result_param2);
 			state = ARM_AUTH_MISSION_APPROVED;
-			auth_timeout = command_ack.timestamp + (command_ack.result_param2 * 1000000);
+			auth_timeout = command_ack.timestamp + static_cast<hrt_abstime>(command_ack.result_param2 * 1000000);
 			return;
 
 		case vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED:

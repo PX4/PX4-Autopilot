@@ -168,8 +168,7 @@ int Decoder::parse(RFStatus *message) const
 		memcpy(message, _message.payload, sizeof(RFStatus) - sizeof(RFStatus::rf_band));
 
 		for (uint8_t i = 0; i < math::min(message->n, k_max_rfband_blocks); i++) {
-			const unsigned offset = sizeof(RFStatus) - sizeof(RFStatus::rf_band) + i *
-						message->sb_length;
+			const unsigned offset = sizeof(RFStatus) - sizeof(RFStatus::rf_band) + static_cast<unsigned int>(i * message->sb_length);
 
 			if (offset + sizeof(RFBand) <= sizeof(_message.payload)) {
 				memcpy(&message->rf_band[i], &_message.payload[offset], sizeof(RFBand));

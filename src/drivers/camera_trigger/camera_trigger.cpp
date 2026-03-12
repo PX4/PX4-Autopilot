@@ -392,9 +392,9 @@ CameraTrigger::enable_keep_alive(bool on)
 		PX4_DEBUG("keep alive enable");
 
 		// schedule keep-alive up and down calls
-		hrt_call_every(&_keepalivecall_up, 0, (60000 * 1000), &CameraTrigger::keep_alive_up, this);
+		hrt_call_every(&_keepalivecall_up, 0, static_cast<hrt_abstime>(60000 * 1000), &CameraTrigger::keep_alive_up, this);
 
-		hrt_call_every(&_keepalivecall_down, 0 + (30000 * 1000), (60000 * 1000), &CameraTrigger::keep_alive_down, this);
+		hrt_call_every(&_keepalivecall_down, 0 + (30000 * 1000), static_cast<hrt_abstime>(60000 * 1000), &CameraTrigger::keep_alive_down, this);
 
 	} else {
 		PX4_DEBUG("keep alive disable");

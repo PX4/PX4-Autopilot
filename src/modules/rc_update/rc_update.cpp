@@ -245,7 +245,7 @@ void RCUpdate::rc_parameter_map_poll(bool forced)
 				_parameter_handles.rc_param[i] = param_for_used_index((unsigned)_rc_parameter_map.param_index[i]);
 
 			} else {
-				_parameter_handles.rc_param[i] = param_find(&_rc_parameter_map.param_id[i * (rc_parameter_map_s::PARAM_ID_LEN + 1)]);
+				_parameter_handles.rc_param[i] = param_find(&_rc_parameter_map.param_id[static_cast<size_t>(i) * (rc_parameter_map_s::PARAM_ID_LEN + 1)]);
 			}
 		}
 
@@ -254,7 +254,7 @@ void RCUpdate::rc_parameter_map_poll(bool forced)
 		for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
 			PX4_DEBUG("\ti %d param_id %s scale %.3f value0 %.3f, min %.3f, max %.3f",
 				  i,
-				  &_rc_parameter_map.param_id[i * (rc_parameter_map_s::PARAM_ID_LEN + 1)],
+				  &_rc_parameter_map.param_id[static_cast<size_t>(i) * (rc_parameter_map_s::PARAM_ID_LEN + 1)],
 				  (double)_rc_parameter_map.scale[i],
 				  (double)_rc_parameter_map.value0[i],
 				  (double)_rc_parameter_map.value_min[i],

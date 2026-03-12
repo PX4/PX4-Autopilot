@@ -249,7 +249,7 @@ public:
 					generation = current_generation - _meta->o_queue;
 				}
 
-				memcpy(dst, _data + (_meta->o_size * (generation % _meta->o_queue)), _meta->o_size);
+				memcpy(dst, _data + static_cast<size_t>((_meta->o_size * (generation % _meta->o_queue))), _meta->o_size);
 				ATOMIC_LEAVE;
 
 				++generation;
