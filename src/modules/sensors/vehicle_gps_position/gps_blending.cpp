@@ -86,7 +86,8 @@ void GpsBlending::update(uint64_t hrt_now_us)
 		_is_new_output_data_available =  _gps_updated[gps_select_index];
 
 		for (uint8_t i = 0; i < GPS_MAX_RECEIVERS_BLEND; i++) {
-			_gps_updated[gps_select_index] = false;
+			// clear updated flags
+			_gps_updated[i] = false;
 		}
 	}
 
