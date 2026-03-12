@@ -105,7 +105,7 @@ public:
 				// Calculate an absolute time in the future
 				struct timespec ts;
 				px4_clock_gettime(CLOCK_REALTIME, &ts);
-				uint64_t nsecs = ts.tv_nsec + (timeout_us * 1000);
+				uint64_t nsecs = ts.tv_nsec +  static_cast<uint64_t>(timeout_us * 1000);
 				static constexpr unsigned billion = (1000 * 1000 * 1000);
 				ts.tv_sec += nsecs / billion;
 				nsecs -= (nsecs / billion) * billion;

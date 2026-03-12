@@ -881,7 +881,7 @@ bool dsm_parse(const uint64_t now, const uint8_t *frame, const unsigned len, uin
 	if (channel_data_available) {
 		// Check if any channels have been absent for too long
 		for (unsigned i = 0; i < dsm_chan_count; i++) {
-			if (now - channel_buffer[i].last_seen > 50 * 1000) {
+			if (now - channel_buffer[i].last_seen > static_cast<uint64_t>(50 * 1000)) {
 				return false;
 			}
 		}

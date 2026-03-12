@@ -1087,7 +1087,7 @@ void Logger::adjust_subscription_updates()
 
 	for (int i = 0; i < _num_subscriptions; ++i) {
 		if (_subscriptions[i].get_interval_us() >= 500_ms) {
-			hrt_abstime adjustment = (_log_interval * j) % 500_ms;
+			hrt_abstime adjustment = static_cast<hrt_abstime>(_log_interval * j) % 500_ms;
 
 			if (adjustment < now) {
 				_subscriptions[i].set_last_update(now - adjustment);
