@@ -283,11 +283,11 @@
 #define GPIO_OTGFS_VBUS         /* PA9 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_100MHz|GPIO_PORTA|GPIO_PIN9)
 
 /* High-resolution timer */
-#define HRT_TIMER               3  /* use timer8 for the HRT */
-#define HRT_TIMER_CHANNEL       2  /* use capture/compare channel 3 */
+#define HRT_TIMER               3  /* use timer3 for the HRT */
+#define HRT_TIMER_CHANNEL       2  /* use capture/compare channel 2 */
 
-#define HRT_PPM_CHANNEL         /* T8C1 */  1  /* use capture/compare channel 1 */
-#define GPIO_PPM_IN       	/* PC6 T8C1 */ GPIO_TIM3_CH1IN_3
+#define HRT_PPM_CHANNEL         /* T3C1 */  1  /* use capture/compare channel 1 */
+#define GPIO_PPM_IN       	/* PC6 T3C1 */ GPIO_TIM3_CH1IN_3
 
 /* RC Serial port (unused) */
 

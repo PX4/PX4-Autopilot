@@ -3,7 +3,7 @@
 # board specific defaults
 #------------------------------------------------------------------------------
 
-Mavlink ethernet (CFG 1000)
+# Mavlink ethernet (CFG 1000)
 param set-default MAV_2_CONFIG 1000
 param set-default MAV_2_BROADCAST 1
 param set-default MAV_2_MODE 0
