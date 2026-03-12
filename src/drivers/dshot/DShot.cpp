@@ -496,12 +496,12 @@ bool DShot::process_serial_telemetry()
 				hrt_abstime now = hrt_absolute_time();
 
 				// Timestamps are in actuator order to match _esc_status.esc[]
-				if (_serial_telem_online_timestamps[actuator_channel] == 0) {
-					_serial_telem_online_timestamps[actuator_channel] = now;
+				if (_serial_telem_online_timestamps[motor_index] == 0) {
+					_serial_telem_online_timestamps[motor_index] = now;
 				}
 
 				// Mark as online only after 100_ms without errors
-				if (now - _serial_telem_online_timestamps[actuator_channel] > 100_ms) {
+				if (now - _serial_telem_online_timestamps[motor_index] > 100_ms) {
 					_serial_telem_online_mask |= (1 << motor_index);
 				}
 			}
@@ -511,9 +511,9 @@ bool DShot::process_serial_telemetry()
 		case TelemetryStatus::Timeout:
 			// Set ESC data to zeroes
 			// Error counts and timestamps are in actuator order to match _esc_status.esc[]
-			_serial_telem_errors[actuator_channel]++;
+			_serial_telem_errors[motor_index]++;
 			_serial_telem_online_mask &= ~(1 << motor_index);
-			_serial_telem_online_timestamps[actuator_channel] = 0;
+			_serial_telem_online_timestamps[motor_index] = 0;
 			// Consume an empty EscData to zero the data
 			consume_esc_data(esc);
 			all_telem_sampled = set_next_telemetry_index();
@@ -522,10 +522,10 @@ bool DShot::process_serial_telemetry()
 
 		case TelemetryStatus::ParseError:
 			// Set ESC data to zeroes
-			PX4_WARN("Telem parse error, actuator channel %u", actuator_channel);
-			_serial_telem_errors[actuator_channel]++;
+			PX4_WARN("Telem parse error, ESC %d", motor_index);
+			_serial_telem_errors[motor_index]++;
 			_serial_telem_online_mask &= ~(1 << motor_index);
-			_serial_telem_online_timestamps[actuator_channel] = 0;
+			_serial_telem_online_timestamps[motor_index] = 0;
 			// Consume an empty EscData to zero the data
 			consume_esc_data(esc);
 			all_telem_sampled = set_next_telemetry_index();
