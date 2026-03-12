@@ -85,7 +85,7 @@ void FailureDetector::publishStatus(bool esc_arm_status, uint16_t motor_failure_
 	failure_detector_status.fd_arm_escs = esc_arm_status || (motor_failure_mask != 0);
 	failure_detector_status.fd_battery = _failure_detector_status.flags.battery;
 	failure_detector_status.fd_imbalanced_prop = _failure_detector_status.flags.imbalanced_prop;
-	failure_detector_status.fd_motor = (motor_failure_mask != 0) || (_failure_injector.getMotorStopMask() != 0);
+	failure_detector_status.fd_motor = (motor_failure_mask != 0);
 	failure_detector_status.imbalanced_prop_metric = _imbalanced_prop_lpf.getState();
 	failure_detector_status.motor_failure_mask = motor_failure_mask;
 	failure_detector_status.motor_stop_mask = _failure_injector.getMotorStopMask();
