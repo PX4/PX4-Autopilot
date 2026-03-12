@@ -230,7 +230,7 @@ private:
 	uint16_t _programming_value{};
 
 	// Per-motor pole count
-	param_t _param_pole_count_handles[12] {};
+	param_t _param_pole_count_handles[esc_status_s::CONNECTED_ESC_MAX] {};
 	int get_pole_count(int motor_index);
 
 	// Parameters
