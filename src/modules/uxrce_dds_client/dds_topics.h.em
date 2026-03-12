@@ -193,16 +193,20 @@ static void on_topic_update(uxrSession *session, uxrObjectId object_id, uint16_t
 	const int64_t time_offset_us = session->time_offset / 1000; // ns -> us
 	pubs->num_payload_received += length;
 
-	if(!pubs->_allow_publishing) return;
-
-	switch (object_id.id) {
+switch (object_id.id) {
 @[    for idx, sub in enumerate(subscriptions)]@
 	case @(idx)+ (65535U / 32U) + 1: {
 			@(sub['simple_base_type'])_s data;
 
 			if (ucdr_deserialize_@(sub['simple_base_type'])(*ub, data, time_offset_us)) {
 				//print_message(ORB_ID(@(sub['simple_base_type'])), data);
+@[        if sub['topic_simple'] not in whitelist_topics]@
+				if (pubs->_allow_publishing) {
+@[        end if]@
 				pubs->@(sub['topic_simple'])_pub.publish(data);
+@[        if sub['topic_simple'] not in whitelist_topics]@
+				}
+@[        end if]@
 			}
 		}
 		break;
@@ -230,10 +234,22 @@ static void on_topic_update(uxrSession *session, uxrObjectId object_id, uint16_t
 				}
 
 				if (instance >= 0) {
+@[            if sub['topic_simple'] not in whitelist_topics]@
+					if (pubs->_allow_publishing) {
+@[            end if]@
 					pubs->@(sub['topic_simple'])_pubs[instance].publish(data);
+@[            if sub['topic_simple'] not in whitelist_topics]@
+					}
+@[            end if]@
 				}
 @[        else]@
+@[            if sub['topic_simple'] not in whitelist_topics]@
+				if (pubs->_allow_publishing) {
+@[            end if]@
 				pubs->@(sub['topic_simple'])_pub.publish(data);
+@[            if sub['topic_simple'] not in whitelist_topics]@
+				}
+@[            end if]@
 @[        end if]@
 			}
 		}

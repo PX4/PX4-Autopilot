@@ -51,6 +51,9 @@ parser.add_argument("-t", "--template_file", dest='template_file', type=str,
 
 parser.add_argument("-u", "--client-outdir", dest='clientdir', type=str,
                     help="Client output dir, by default using relative path 'src/modules/uxrce_dds_client'", default=None)
+parser.add_argument("-w", "--whitelist-file", dest='whitelist_file', type=str,
+                    help="Whitelist topics file path for topics that publish regardless of _allow_publishing flag",
+                    default=None)
 
 if len(sys.argv) <= 1:
     parser.print_usage()
@@ -138,6 +141,15 @@ merged_em_globals['subscriptions_multi'] = subs_multi
 
 merged_em_globals['type_includes'] = sorted(set(all_type_includes))
 
+# Load whitelist topics that should not be fail-safed
+whitelist_topics = set()
+if args.whitelist_file and os.path.exists(args.whitelist_file):
+    with open(args.whitelist_file, 'r') as f:
+        whitelist_data = yaml.safe_load(f)
+        if whitelist_data and 'whitelist' in whitelist_data:
+            whitelist_topics = set(whitelist_data['whitelist'])
+
+merged_em_globals['whitelist_topics'] = whitelist_topics
 
 # run interpreter
 ofile = open(output_file, 'w')
