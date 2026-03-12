@@ -193,21 +193,22 @@ static void on_topic_update(uxrSession *session, uxrObjectId object_id, uint16_t
 	const int64_t time_offset_us = session->time_offset / 1000; // ns -> us
 	pubs->num_payload_received += length;
 
-switch (object_id.id) {
+	switch (object_id.id) {
 @[    for idx, sub in enumerate(subscriptions)]@
 	case @(idx)+ (65535U / 32U) + 1: {
 			@(sub['simple_base_type'])_s data;
 
+@[        if sub['topic_simple'] == 'vehicle_command']@
 			if (ucdr_deserialize_@(sub['simple_base_type'])(*ub, data, time_offset_us)) {
 				//print_message(ORB_ID(@(sub['simple_base_type'])), data);
-@[        if sub['topic_simple'] not in whitelist_topics]@
-				if (pubs->_allow_publishing) {
-@[        end if]@
 				pubs->@(sub['topic_simple'])_pub.publish(data);
-@[        if sub['topic_simple'] not in whitelist_topics]@
-				}
-@[        end if]@
 			}
+@[        else]@
+			if (pubs->_allow_publishing && ucdr_deserialize_@(sub['simple_base_type'])(*ub, data, time_offset_us)) {
+				//print_message(ORB_ID(@(sub['simple_base_type'])), data);
+				pubs->@(sub['topic_simple'])_pub.publish(data);
+			}
+@[        end if]@
 		}
 		break;
 
@@ -216,9 +217,10 @@ switch (object_id.id) {
 	case @(idx + len(subscriptions))+ (65535U / 32U) + 1: {
 			@(sub['simple_base_type'])_s data;
 
+@[        if sub.get('route_field')]@
+@[            if sub['topic_simple'] == 'vehicle_command']@
 			if (ucdr_deserialize_@(sub['simple_base_type'])(*ub, data, time_offset_us)) {
 				//print_message(ORB_ID(@(sub['simple_base_type'])), data);
-@[        if sub.get('route_field')]@
 				int instance = -1;
 
 				for (uint8_t i = 0; i < pubs->@(sub['topic_simple'])_demux.num_assigned; i++) {
@@ -234,24 +236,44 @@ switch (object_id.id) {
 				}
 
 				if (instance >= 0) {
-@[            if sub['topic_simple'] not in whitelist_topics]@
-					if (pubs->_allow_publishing) {
-@[            end if]@
 					pubs->@(sub['topic_simple'])_pubs[instance].publish(data);
-@[            if sub['topic_simple'] not in whitelist_topics]@
+				}
+			}
+@[            else]@
+			if (pubs->_allow_publishing && ucdr_deserialize_@(sub['simple_base_type'])(*ub, data, time_offset_us)) {
+				//print_message(ORB_ID(@(sub['simple_base_type'])), data);
+				int instance = -1;
+
+				for (uint8_t i = 0; i < pubs->@(sub['topic_simple'])_demux.num_assigned; i++) {
+					if (pubs->@(sub['topic_simple'])_demux.assigned_ids[i] == data.@(sub['route_field'])) {
+						instance = i;
+						break;
 					}
-@[            end if]@
 				}
+
+				if (instance < 0 && pubs->@(sub['topic_simple'])_demux.num_assigned < @(sub['max_instances'])) {
+					instance = pubs->@(sub['topic_simple'])_demux.num_assigned++;
+					pubs->@(sub['topic_simple'])_demux.assigned_ids[instance] = data.@(sub['route_field']);
+				}
+
+				if (instance >= 0) {
+					pubs->@(sub['topic_simple'])_pubs[instance].publish(data);
+				}
+			}
+@[            end if]@
 @[        else]@
-@[            if sub['topic_simple'] not in whitelist_topics]@
-				if (pubs->_allow_publishing) {
-@[            end if]@
+@[            if sub['topic_simple'] == 'vehicle_command']@
+			if (ucdr_deserialize_@(sub['simple_base_type'])(*ub, data, time_offset_us)) {
+				//print_message(ORB_ID(@(sub['simple_base_type'])), data);
 				pubs->@(sub['topic_simple'])_pub.publish(data);
-@[            if sub['topic_simple'] not in whitelist_topics]@
-				}
+			}
+@[            else]@
+			if (pubs->_allow_publishing && ucdr_deserialize_@(sub['simple_base_type'])(*ub, data, time_offset_us)) {
+				//print_message(ORB_ID(@(sub['simple_base_type'])), data);
+				pubs->@(sub['topic_simple'])_pub.publish(data);
+			}
 @[            end if]@
 @[        end if]@
-			}
 		}
 		break;
 
