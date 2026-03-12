@@ -182,7 +182,7 @@ ReplayEkf2::publishEkf2Topics(const ekf2_timestamps_s &ekf2_timestamps, std::ifs
 	auto handle_sensor_publication = [&](int16_t timestamp_relative, uint16_t msg_id) {
 		if (timestamp_relative != ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID) {
 			// timestamp_relative is given in 0.1 ms
-			uint64_t t = timestamp_relative * 100 + ekf2_timestamps.timestamp;
+			uint64_t t = static_cast<uint64_t>(timestamp_relative * 100) + ekf2_timestamps.timestamp;
 			findTimestampAndPublish(t, msg_id, replay_file);
 		}
 	};

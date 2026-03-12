@@ -159,7 +159,7 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 
 			/* re-check size */
 			if (nullptr == _data) {
-				const size_t data_size = _meta->o_size * _meta->o_queue;
+				const size_t data_size = static_cast<size_t>(_meta->o_size * _meta->o_queue);
 				_data = (uint8_t *) px4_cache_aligned_alloc(data_size);
 
 				if (_data) {
@@ -190,7 +190,7 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 	/* wrap-around happens after ~49 days, assuming a publisher rate of 1 kHz */
 	unsigned generation = _generation.fetch_add(1);
 
-	memcpy(_data + (_meta->o_size * (generation % _meta->o_queue)), buffer, _meta->o_size);
+	memcpy(_data + static_cast<size_t>((_meta->o_size * (generation % _meta->o_queue))), buffer, _meta->o_size);
 
 	// callbacks
 	for (auto item : _callbacks) {

@@ -69,7 +69,7 @@ void ActuatorTest::update(int num_outputs, float thrust_curve)
 
 				if (in_test_mode) {
 					if (actuator_test.timeout_ms > 0) {
-						_next_timeout = now + actuator_test.timeout_ms * 1000;
+						_next_timeout = now + static_cast<hrt_abstime>(actuator_test.timeout_ms) * 1000;
 					}
 
 					float value = actuator_test.value;
