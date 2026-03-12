@@ -250,7 +250,7 @@ void Sih::parameters_updated()
 
 	// update the thruster models
 	for (size_t i = 0; i < NUM_DYN_THRUSTER; i++) {
-		if (_sih_f_ct0.get() > 0.0f) {
+		if (_sih_f_ct0.get() > 0.0f && _sih_f_cp0.get() > 0.0f) {
 			_thruster[i] = Thruster(_sih_forward_diameter_inch.get(),_sih_forward_rpm_max.get(),
 					_sih_f_ct0.get(),_sih_f_ct1.get(),_sih_f_ct2.get(),
 					_sih_f_cp0.get(),_sih_f_cp1.get(),_sih_f_cp2.get());
@@ -258,12 +258,12 @@ void Sih::parameters_updated()
 			_thruster[i] = Thruster(_F_T_MAX,_F_Q_MAX);
 		}
 	}
-	if (_sih_f_ct0.get() > 0.0f) {
+	if (_sih_f_ct0.get() > 0.0f && _sih_f_cp0.get() > 0.0f) {
 		_F_T_MAX = _thruster[0].get_T_max();
 		if (fabsf(_F_T_MAX-_sih_f_thrust_max.get()) > 1.0e-5f) {
 			_sih_f_thrust_max.set(_F_T_MAX);
 			_sih_f_thrust_max.commit();
-			PX4_INFO("SIH_F_CT0 > 0, using propeller dynamic model, overriding SIH_F_T_MAX");
+			PX4_INFO("SIH_F_CT0 > 0 and SIH_F_CP0 > 0, using propeller dynamic model, overriding SIH_F_T_MAX");
 		}
 	}
 	if (_sih_f_cp0.get() > 0.0f) {
@@ -336,8 +336,8 @@ void Sih::read_motors(const float dt)
 
 void Sih::generate_force_and_torques(const float dt)
 {
-	// velocity in body frame [m/s]
-	_v_B = _q_E.rotateVectorInverse(_v_E);
+	// air-relative velocity in body frame [m/s]
+	_v_B = _q_E.rotateVectorInverse(_R_N2E * _v_apparent_N);
 
 	if (_vehicle == VehicleType::Quadcopter) {
 
