@@ -522,9 +522,16 @@ bool MavlinkLogHandler::log_entry_from_id(uint16_t log_id, LogEntry *entry)
 	return found_entry;
 }
 
-void MavlinkLogHandler::delete_all_logs(const char *dir)
+void MavlinkLogHandler::delete_all_logs(const char *dir, unsigned depth)
 {
-	//-- Open log directory
+	// Log structure is log/yyyy-mm-dd/file.ulg (2 levels). Cap recursion to prevent stack overflow.
+	static constexpr unsigned MAX_DEPTH = 3;
+
+	if (depth >= MAX_DEPTH) {
+		PX4_DEBUG("Max depth reached: %s", dir);
+		return;
+	}
+
 	DIR *dp = opendir(dir);
 
 	if (dp == nullptr) {
@@ -534,34 +541,29 @@ void MavlinkLogHandler::delete_all_logs(const char *dir)
 	struct dirent *result = nullptr;
 
 	while ((result = readdir(dp))) {
-		// no more entries?
-		if (result == nullptr) {
-			break;
+
+		if (strcmp(result->d_name, ".") == 0 || strcmp(result->d_name, "..") == 0) {
+			continue;
 		}
 
-		if (result->d_type == PX4LOG_DIRECTORY && result->d_name[0] != '.') {
-			char filepath[PX4_MAX_FILEPATH];
-			int ret = snprintf(filepath, sizeof(filepath), "%s/%s", dir, result->d_name);
-			bool path_is_ok = (ret > 0) && (ret < (int)sizeof(filepath));
+		char filepath[PX4_MAX_FILEPATH];
+		int ret = snprintf(filepath, sizeof(filepath), "%s/%s", dir, result->d_name);
+		bool path_is_ok = (ret > 0) && (ret < (int)sizeof(filepath));
 
-			if (path_is_ok) {
-				delete_all_logs(filepath);
+		if (!path_is_ok) {
+			continue;
+		}
 
-				if (rmdir(filepath)) {
-					PX4_DEBUG("Error removing %s", filepath);
-				}
+		if (result->d_type == PX4LOG_DIRECTORY) {
+			delete_all_logs(filepath, depth + 1);
+
+			if (rmdir(filepath)) {
+				PX4_DEBUG("Error removing %s", filepath);
 			}
-		}
 
-		if (result->d_type == PX4LOG_REGULAR_FILE) {
-			char filepath[PX4_MAX_FILEPATH];
-			int ret = snprintf(filepath, sizeof(filepath), "%s/%s", dir, result->d_name);
-			bool path_is_ok = (ret > 0) && (ret < (int)sizeof(filepath));
-
-			if (path_is_ok) {
-				if (unlink(filepath)) {
-					PX4_DEBUG("Error unlinking %s", filepath);
-				}
+		} else {
+			if (unlink(filepath)) {
+				PX4_DEBUG("Error unlinking %s", filepath);
 			}
 		}
 	}

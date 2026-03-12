@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,25 +31,74 @@
  *
  ****************************************************************************/
 
-#include "armPermissionCheck.hpp"
+/**
+ * Enable Actuator Failure check
+ *
+ * If enabled, the HealthAndArmingChecks will verify that for motors, a minimum amount of ESC current per throttle
+ * level is being consumed.
+ * Otherwise this indicates an motor failure.
+ * This check only works for ESCs that report current consumption.
+ *
+ * @boolean
+ *
+ * @group Motor Failure
+ */
+PARAM_DEFINE_INT32(FD_ACT_EN, 0);
 
-void ArmPermissionChecks::checkAndReport(const Context &context, Report &reporter)
-{
-	if (_param_com_armable.get() < 1) {
-		/* EVENT
-		 * @description
-		 * Vehicle is in safety configuration and denies arming.
-		 *
-		 * <profile name="dev">
-		 * This check can be configured via <param>COM_ARMABLE</param> parameter.
-		 * </profile>
-		 */
-		reporter.armingCheckFailure(NavModes::All, health_component_t::system,
-					    events::ID("check_armable_configuration"),
-					    events::Log::Error, "Vehicle is in safety configuration");
+/**
+ * Motor Failure Current/Throttle Scale
+ *
+ * Determines the slope between expected steady state current and linearized, normalized thrust command.
+ * E.g. FD_ACT_MOT_C2T A represents the expected steady state current at 100%.
+ * FD_ACT_LOW_OFF and FD_ACT_HIGH_OFF offset the threshold from that slope.
+ *
+ * @group Motor Failure
+ * @min 0.0
+ * @max 50.0
+ * @unit A/%
+ * @decimal 2
+ * @increment 1
+ */
+PARAM_DEFINE_FLOAT(MOTFAIL_C2T, 35.f);
 
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Vehicle is in safety configuration");
-		}
-	}
-}
+/**
+ * Undercurrent motor failure limit offset
+ *
+ * threshold = FD_ACT_MOT_C2T * thrust - FD_ACT_LOW_OFF
+ *
+ * @group Motor Failure
+ * @min 0
+ * @max 30
+ * @unit A
+ * @decimal 2
+ * @increment 1
+ */
+PARAM_DEFINE_FLOAT(MOTFAIL_LOW_OFF, 10.f);
+
+/**
+ * Overcurrent motor failure limit offset
+ *
+ * threshold = FD_ACT_MOT_C2T * thrust + FD_ACT_HIGH_OFF
+ *
+ * @group Motor Failure
+ * @min 0
+ * @max 30
+ * @unit A
+ * @decimal 2
+ * @increment 1
+ */
+PARAM_DEFINE_FLOAT(MOTFAIL_HIGH_OFF, 10.f);
+
+/**
+ * Motor Failure Hysteresis Time
+ *
+ * Motor failure only triggers after current thresholds are exceeded for this time.
+ *
+ * @group Motor Failure
+ * @unit s
+ * @min 0.01
+ * @max 10
+ * @decimal 2
+ * @increment 1
+ */
+PARAM_DEFINE_FLOAT(MOTFAIL_TIME, 1.f);
