@@ -71,8 +71,6 @@ static constexpr const char *esc_fault_reason_str(esc_fault_reason_t esc_fault_r
 void EscChecks::checkAndReport(const Context &context, Report &reporter)
 {
 	const hrt_abstime now = hrt_absolute_time();
-	const hrt_abstime esc_init_time = 700_ms; // Some DShot ESCs are unresponsive for ~550ms during their initialization
-
 	esc_status_s esc_status;
 
 	// Run motor status checks even when no new ESC data arrives (to detect timeouts)
@@ -95,9 +93,9 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 
 		_motor_failure_mask = mask;
 		reporter.setIsPresent(health_component_t::motors_escs);
-		reporter.failsafeFlags().fd_motor_failure = mask != 0;
+		reporter.failsafeFlags().fd_motor_failure = (mask != 0);
 
-	} else if ((_param_com_arm_chk_escs.get() > 0) && now - _start_time > esc_init_time) { // Allow ESCs to init
+	} else if ((_param_com_arm_chk_escs.get() > 0) && now > _start_time + 3_s) { // Allow ESCs to init
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
@@ -117,8 +115,7 @@ uint16_t EscChecks::checkEscOnline(const Context &context, Report &reporter, con
 {
 	// Check if one or more the ESCs are offline
 	uint16_t mask = 0;
-	char esc_fail_msg[esc_status_s::CONNECTED_ESC_MAX * 6 + 1] {};
-	esc_fail_msg[0] = '\0';
+	char esc_fail_msg[esc_status_s::CONNECTED_ESC_MAX * 6 + 1] = "";
 
 	for (int esc_index = 0; esc_index < esc_status_s::CONNECTED_ESC_MAX; esc_index++) {
 		if (!math::isInRange(esc_status.esc[esc_index].actuator_function,

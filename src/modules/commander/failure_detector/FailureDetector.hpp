@@ -68,10 +68,8 @@ union failure_detector_status_u {
 		uint16_t pitch : 1;
 		uint16_t alt : 1;
 		uint16_t ext : 1;
-		uint16_t arm_escs : 1;
 		uint16_t battery : 1;
 		uint16_t imbalanced_prop : 1;
-		uint16_t motor : 1;
 	} flags;
 	uint16_t value {0};
 };
