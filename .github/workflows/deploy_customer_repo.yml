@@ -25,13 +25,19 @@ jobs:
       - name: Set initial references
         id: references
         run: |
-          TAG_BRANCH=${{ github.event.workflow_run.head_branch }}
-          REF_BRANCH=$(git branch -a --contains tags/$TAG_BRANCH | grep release | sed "s/.*\(release\/.*\).*/\1/p" | head -n 1)
-          VALID_RELEASE="v([0-9]+)\.([0-9]+)\.([0-9]+)-([0-9]+)\.([0-9]+)\.([0-9]+)?$"
-          RELEASE=$(echo $REF_BRANCH | sed -r 's/release\///')
-          echo "valid_tag=${VALID_RELEASE}" >> $GITHUB_OUTPUT
+          TAG_BRANCH="${{ github.event.workflow_run.head_branch }}"
+          REF_BRANCH=$(git branch -a --contains "tags/$TAG_BRANCH" | sed -n "s/.*\(release\/[0-9]\.[0-9]\).*/\1/p" | head -n 1)
+          VALID_RELEASE="^v[0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2}-[0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2}$"
+          if [ -z "$REF_BRANCH" ]; then
+            echo "Branch does not match release/X.X pattern, skipping customer deploy"
+            exit 0
+          fi
+          if [[ ! "$TAG_BRANCH" =~ $VALID_RELEASE ]]; then
+            echo "Tag does not match vX.X.X-X.X.X pattern, skipping customer deploy"
+            exit 0
+          fi
           echo "tag_branch=${TAG_BRANCH}" >> $GITHUB_OUTPUT
-          echo "release=${RELEASE}" >> $GITHUB_OUTPUT
+          echo "release_branch=${REF_BRANCH}" >> $GITHUB_OUTPUT
 
       - name: Push release branch to customers repos
         shell: bash
@@ -41,28 +47,28 @@ jobs:
           git config --global --add safe.directory '*'
           git config --global url."https://${{ secrets.AUTERION_CI_ACCESS_TOKEN }}:@github.com/".insteadOf "https://github.com/"
 
-          # Only push if it is a final release
-          if [[ "${{ steps.references.outputs.tag_branch }}" =~ ${{ steps.references.outputs.valid_tag }} ]]; then
-            echo "${CUSTOM_LIST%,}" | tr ',' '\n' > list
-            failure=0
+          echo "${CUSTOM_LIST%,}" | tr ',' '\n' > list
+          failure=0
 
-            while read url; do
-              set +e
-              if git ls-remote "$url" &> /dev/null; then
-                set -e
-                remote=$(basename "$url" .git)
-                git remote add $remote $url
-                git push -u $remote HEAD:refs/tags/${{ steps.references.outputs.tag_branch }}
-                git push -u $remote HEAD:refs/heads/auterion/v${{ steps.references.outputs.release }}
-                git remote remove $remote
-              else
-                set -e
-                echo "::warning::Repository $url is not accessible, skipping."
-                failure=1
-              fi
-            done < list
-
-            if (( failure )); then
-              exit 1
+          while read url; do
+            if ! git ls-remote "$url" &> /dev/null; then
+              echo "::warning::Repository $url is not accessible, skipping."
+              failure=1
+              continue
             fi
+
+            remote=$(basename "$url" .git)
+            git remote add "$remote" "$url"
+            if ! git push -u "$remote" HEAD:refs/tags/${{ steps.references.outputs.tag_branch }}; then
+              echo "::warning::Failed to push tag to $url"
+            fi
+            if ! git push -u "$remote" HEAD:refs/heads/${{ steps.references.outputs.release_branch }}; then
+              echo "::warning::Failed to push branch to $url"
+              failure=1
+            fi
+            git remote remove "$remote"
+          done < list
+
+          if (( failure )); then
+            exit 1
           fi
