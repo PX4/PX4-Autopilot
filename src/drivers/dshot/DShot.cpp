@@ -619,7 +619,8 @@ bool DShot::process_bdshot_telemetry()
 
 				} else {
 					// Use previous value (esc_status is indexed by motor_index)
-					esc.erpm = _esc_status.esc[motor_index].esc_rpm * (get_pole_count(motor_index) / 2);
+					int pole_count = math::max(get_pole_count(motor_index), 2); // constrain to 2 to avoid divide by zero
+					esc.erpm = _esc_status.esc[motor_index].esc_rpm * (pole_count / 2);
 				}
 
 				// Extended DShot Telemetry
@@ -697,7 +698,8 @@ void DShot::consume_esc_data(const EscData &esc)
 		// Only use SerialTelemetry eRPM when BDShot is disabled
 		if (!is_bdshot) {
 			_esc_status.esc[motor_index].timestamp = esc.timestamp;
-			_esc_status.esc[motor_index].esc_rpm = esc.erpm / (get_pole_count(motor_index) / 2);
+			int pole_count = math::max(get_pole_count(motor_index), 2); // constrain to 2 to avoid divide by zero
+			_esc_status.esc[motor_index].esc_rpm = esc.erpm / (pole_count / 2);
 		}
 
 		_esc_status.esc[motor_index].esc_voltage = esc.voltage;
@@ -706,7 +708,8 @@ void DShot::consume_esc_data(const EscData &esc)
 
 	} else if (esc.source == TelemetrySource::BDShot) {
 		_esc_status.esc[motor_index].timestamp = esc.timestamp;
-		_esc_status.esc[motor_index].esc_rpm = esc.erpm / (get_pole_count(motor_index) / 2);
+		int pole_count = math::max(get_pole_count(motor_index), 2); // constrain to 2 to avoid divide by zero
+		_esc_status.esc[motor_index].esc_rpm = esc.erpm / (pole_count / 2);
 
 		// Only use BDShot Volt/Curr/Temp when Serial Telemetry is disabled
 		if (!_serial_telemetry_enabled) {
