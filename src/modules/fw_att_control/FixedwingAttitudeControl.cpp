@@ -32,6 +32,8 @@
  ****************************************************************************/
 
 #include "FixedwingAttitudeControl.hpp"
+#include <lib/geo/geo.h>
+
 
 using namespace time_literals;
 using namespace matrix;
@@ -309,7 +311,7 @@ void FixedwingAttitudeControl::Run()
 					const float V = math::max(get_airspeed_constrained(), 0.1f);
 					const float q1 = 2.f * (q_current(0) * q_current(1) + q_current(2) * q_current(3));
 					const float r_tc_ff = CONSTANTS_ONE_G * q1 / V;
-					const float p_tc_ff = q1 * r_tc_ff / (1.f - 2.f * q_current(1) * q_current(1) - 2.f * q_current(2) * q_current(2));
+					const float p_tc_ff = 2.f * q1 * r_tc_ff / (1.f - 2.f * q_current(1) * q_current(1) - 2.f * q_current(2) * q_current(2));
 
 					body_rates_setpoint(1) += p_tc_ff;
 					body_rates_setpoint(2) += r_tc_ff;
