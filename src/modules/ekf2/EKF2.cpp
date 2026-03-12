@@ -926,6 +926,20 @@ void EKF2::VerifyParams()
 
 #endif // CONFIG_EKF2_RANGE_FINDER
 
+#if defined(CONFIG_EKF2_GNSS)
+	{
+		int32_t gps_delay_ms = 0;
+
+		if (param_get(param_find("SENS_GPS0_DELAY"), &gps_delay_ms) == PX4_OK) {
+			delay_max = math::max(delay_max, static_cast<float>(gps_delay_ms));
+		}
+
+		if (param_get(param_find("SENS_GPS1_DELAY"), &gps_delay_ms) == PX4_OK) {
+			delay_max = math::max(delay_max, static_cast<float>(gps_delay_ms));
+		}
+	}
+#endif // CONFIG_EKF2_GNSS
+
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 
 	if (_param_ekf2_of_delay.get() > delay_max) {
