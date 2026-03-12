@@ -194,6 +194,7 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		if (strcmp("EKF2_GPS_POS_Z", node->name) == 0) {
 			strcpy(node->name, "SENS_GPS0_OFFZ");
 			PX4_INFO("migrating %s -> %s", "EKF2_GPS_POS_Z", "SENS_GPS0_OFFZ");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 	}
 
@@ -204,7 +205,6 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 			param_set(param_find("SENS_GPS0_DELAY"), &delay_ms);
 			param_set(param_find("SENS_GPS1_DELAY"), &delay_ms);
 			PX4_INFO("migrating %s -> %s, %s", "EKF2_GPS_DELAY", "SENS_GPS0_DELAY", "SENS_GPS1_DELAY");
-			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 	}
 
