@@ -242,7 +242,7 @@ public:
 	 * and the max RPM rpm_max.
 	 */
 	static float throttle_to_rpm(float u, const float rpm_max) {
-		return rpm_max * sqrtf(u);
+		return rpm_max * sqrtf(fminf(fmaxf(u, 0.0f), 1.0f));
 	}
 
 	/** throttle_to_rev_s(float throttle, const float rpm_max)
