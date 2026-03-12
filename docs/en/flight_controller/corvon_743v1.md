@@ -15,6 +15,9 @@ The board uses [Pixhawk Autopilot Standard Connections](https://docs.px4.io/main
 
 <img src="../../assets/flight_controller/corvon_743v1/corvon_743v1_top.jpg" width="400px" title="CORVON 743v1 Top Baseboard" /> <img src="../../assets/flight_controller/corvon_743v1/corvon_743v1_bottom.jpg" width="400px" title="CORVON 743v1 Bottom Interfaces" />
 
+::: info
+This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
+:::
 ## Key Features
 
 - **MCU:** STM32H743VIT6 MCU (32 Bit Arm® Cortex®-M7, 480MHz, 2MB Flash, 1MB RAM)
