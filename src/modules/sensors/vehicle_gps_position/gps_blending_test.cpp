@@ -457,6 +457,38 @@ TEST_F(GpsBlendingTest, blendingFallthroughAntennaOffset)
 	EXPECT_FLOAT_EQ(out(2), offset1(2));
 }
 
+TEST_F(GpsBlendingTest, dualReceiverNoBlendingStaleFlag)
+{
+	GpsBlending gps_blending;
+
+	// GIVEN: two receivers, no blending (no accuracy metrics enabled)
+	gps_blending.setPrimaryInstance(-1);
+	gps_blending.setBlendingUseSpeedAccuracy(false);
+	gps_blending.setBlendingUseHPosAccuracy(false);
+	gps_blending.setBlendingUseVPosAccuracy(false);
+
+	sensor_gps_s gps_data0 = getDefaultGpsData();
+	sensor_gps_s gps_data1 = getDefaultGpsData();
+
+	gps_data1.satellites_used = gps_data0.satellites_used + 2; // gps1 wins selection
+
+	// First update: both receivers provide data, gps1 is selected
+	gps_blending.setGpsData(gps_data0, 0);
+	gps_blending.setGpsData(gps_data1, 1);
+	gps_blending.update(_time_now_us);
+
+	EXPECT_EQ(gps_blending.getSelectedGps(), 1);
+	EXPECT_TRUE(gps_blending.isNewOutputDataAvailable());
+
+	// Second update: NO new data from either receiver
+	// With the bug (_gps_updated[gps_select_index] instead of [i]),
+	// the non-selected instance's flag was never cleared, so this
+	// would spuriously report new data available.
+	gps_blending.update(_time_now_us);
+
+	EXPECT_FALSE(gps_blending.isNewOutputDataAvailable());
+}
+
 TEST_F(GpsBlendingTest, dualReceiverUTCTime)
 {
 	GpsBlending gps_blending;
