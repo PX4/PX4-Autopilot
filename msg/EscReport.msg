@@ -11,19 +11,8 @@ uint8 esc_cmdcount					# Counter of number of commands
 uint8 esc_state					# State of ESC - depend on Vendor
 
 uint8 actuator_function				# actuator output function (one of Motor1...MotorN)
-
 uint8 ACTUATOR_FUNCTION_MOTOR1 = 101
-uint8 ACTUATOR_FUNCTION_MOTOR2 = 102
-uint8 ACTUATOR_FUNCTION_MOTOR3 = 103
-uint8 ACTUATOR_FUNCTION_MOTOR4 = 104
-uint8 ACTUATOR_FUNCTION_MOTOR5 = 105
-uint8 ACTUATOR_FUNCTION_MOTOR6 = 106
-uint8 ACTUATOR_FUNCTION_MOTOR7 = 107
-uint8 ACTUATOR_FUNCTION_MOTOR8 = 108
-uint8 ACTUATOR_FUNCTION_MOTOR9 = 109
-uint8 ACTUATOR_FUNCTION_MOTOR10 = 110
-uint8 ACTUATOR_FUNCTION_MOTOR11 = 111
-uint8 ACTUATOR_FUNCTION_MOTOR12 = 112
+uint8 ACTUATOR_FUNCTION_MOTOR_MAX = 112 # output_functions.yaml Motor.start + Motor.count - 1
 
 uint16 failures					# Bitmask to indicate the internal ESC faults
 int8 esc_power					# Applied power 0-100 in % (negative values reserved)
