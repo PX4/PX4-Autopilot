@@ -14,16 +14,16 @@ Without message signing enabled, any device that can send MAVLink messages to th
 
 When MAVLink signing is not enabled, an attacker within communication range can:
 
-| Capability | MAVLink mechanism |
-| --- | --- |
-| Execute shell commands | `SERIAL_CONTROL` with `SERIAL_CONTROL_DEV_SHELL` |
-| Read, write, or delete files | MAVLink FTP protocol |
-| Change any flight parameter | `PARAM_SET` / `PARAM_EXT_SET` |
-| Upload or overwrite missions | Mission protocol |
-| Arm or disarm motors | `MAV_CMD_COMPONENT_ARM_DISARM` |
-| Terminate flight (crash) | `MAV_CMD_DO_FLIGHTTERMINATION` |
-| Trigger emergency landing | Spoofed `BATTERY_STATUS` |
-| Reboot the vehicle | `MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN` |
+| Capability                   | MAVLink mechanism                                |
+| ---------------------------- | ------------------------------------------------ |
+| Execute shell commands       | `SERIAL_CONTROL` with `SERIAL_CONTROL_DEV_SHELL` |
+| Read, write, or delete files | MAVLink FTP protocol                             |
+| Change any flight parameter  | `PARAM_SET` / `PARAM_EXT_SET`                    |
+| Upload or overwrite missions | Mission protocol                                 |
+| Arm or disarm motors         | `MAV_CMD_COMPONENT_ARM_DISARM`                   |
+| Terminate flight (crash)     | `MAV_CMD_DO_FLIGHTTERMINATION`                   |
+| Trigger emergency landing    | Spoofed `BATTERY_STATUS`                         |
+| Reboot the vehicle           | `MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN`              |
 
 All of these are standard MAVLink capabilities used by ground control stations.
 Without signing, there is no distinction between a legitimate GCS and an unauthorized sender.
