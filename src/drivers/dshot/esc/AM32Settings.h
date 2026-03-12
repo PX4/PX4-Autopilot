@@ -37,7 +37,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/esc_eeprom_read.h>
 
-static constexpr int EEPROM_SIZE = 48;
+static constexpr int AM32_EEPROM_SIZE = 48;
 
 class AM32Settings : public ESCSettingsInterface
 {
@@ -51,7 +51,7 @@ public:
 
 private:
 	int _esc_index{};
-	uint8_t _eeprom_data[EEPROM_SIZE] {};
+	uint8_t _eeprom_data[AM32_EEPROM_SIZE] {};
 
 	static uORB::Publication<esc_eeprom_read_s> _esc_eeprom_read_pub;
 };

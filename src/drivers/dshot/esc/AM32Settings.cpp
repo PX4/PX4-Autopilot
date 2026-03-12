@@ -35,8 +35,6 @@
 #include "../DShotCommon.h"
 #include <px4_platform_common/log.h>
 
-static constexpr int RESPONSE_SIZE = EEPROM_SIZE + 1; // 48B data + 1B CRC
-
 uORB::Publication<esc_eeprom_read_s> AM32Settings::_esc_eeprom_read_pub{ORB_ID(esc_eeprom_read)};
 
 AM32Settings::AM32Settings(int index)
@@ -45,7 +43,7 @@ AM32Settings::AM32Settings(int index)
 
 int AM32Settings::getExpectedResponseSize()
 {
-	return RESPONSE_SIZE;
+	return AM32_EEPROM_SIZE;
 }
 
 void AM32Settings::publish_latest()
@@ -61,12 +59,12 @@ void AM32Settings::publish_latest()
 
 bool AM32Settings::decodeInfoResponse(const uint8_t *buf, int size)
 {
-	if (size != RESPONSE_SIZE) {
+	if (size != AM32_EEPROM_SIZE) {
 		return false;
 	}
 
-	uint8_t checksum = crc8(buf, EEPROM_SIZE);
-	uint8_t checksum_data = buf[EEPROM_SIZE];
+	uint8_t checksum = crc8(buf, AM32_EEPROM_SIZE);
+	uint8_t checksum_data = buf[AM32_EEPROM_SIZE];
 
 	if (checksum != checksum_data) {
 		PX4_WARN("Command Response checksum failed!");
@@ -76,7 +74,7 @@ bool AM32Settings::decodeInfoResponse(const uint8_t *buf, int size)
 	PX4_DEBUG("Successfully received AM32 settings from ESC%d", _esc_index + 1);
 
 	// Store data for retrieval later if requested
-	memcpy(&_eeprom_data, buf, EEPROM_SIZE);
+	memcpy(&_eeprom_data, buf, AM32_EEPROM_SIZE);
 
 	// Publish data immediately
 	publish_latest();
