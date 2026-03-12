@@ -1,0 +1,466 @@
+#!/usr/bin/env python3
+"""Generate SPDX 2.3 JSON SBOM for a PX4 firmware build.
+
+Produces one SBOM per board target containing:
+- PX4 firmware as the primary package
+- Git submodules as CONTAINS dependencies
+- Python build requirements as BUILD_DEPENDENCY_OF packages
+- Board-specific modules as CONTAINS packages
+
+Uses only Python standard library (no pip dependencies).
+"""
+
+import argparse
+import configparser
+import json
+import re
+import subprocess
+import uuid
+from datetime import datetime, timezone
+from pathlib import Path
+
+# SPDX license identifiers for each submodule path.
+# Maintained manually; update when submodules change.
+SUBMODULE_LICENSES = {
+    "src/modules/mavlink/mavlink": "MIT",
+    "Tools/simulation/jmavsim/jMAVSim": "BSD-3-Clause",
+    "Tools/simulation/gazebo-classic/sitl_gazebo-classic": "BSD-3-Clause",
+    "src/drivers/gps/devices": "BSD-3-Clause",
+    "platforms/nuttx/NuttX/nuttx": "Apache-2.0",
+    "platforms/nuttx/NuttX/apps": "Apache-2.0",
+    "Tools/simulation/flightgear/flightgear_bridge": "BSD-3-Clause",
+    "Tools/simulation/jsbsim/jsbsim_bridge": "BSD-3-Clause",
+    "src/drivers/cyphal/libcanard": "MIT",
+    "src/drivers/cyphal/public_regulated_data_types": "MIT",
+    "src/drivers/cyphal/legacy_data_types": "MIT",
+    "src/lib/crypto/monocypher": "BSD-2-Clause",
+    "src/lib/events/libevents": "BSD-3-Clause",
+    "src/lib/crypto/libtomcrypt": "Unlicense",
+    "src/lib/crypto/libtommath": "Unlicense",
+    "src/modules/uxrce_dds_client/Micro-XRCE-DDS-Client": "Apache-2.0",
+    "src/lib/cdrstream/cyclonedds": "EPL-2.0",
+    "src/lib/cdrstream/rosidl": "Apache-2.0",
+    "src/modules/zenoh/zenoh-pico": "Apache-2.0",
+    "src/lib/heatshrink/heatshrink": "ISC",
+    "Tools/simulation/gz": "BSD-3-Clause",
+    "boards/modalai/voxl2/libfc-sensor-api": "BSD-3-Clause",
+    "src/drivers/actuators/vertiq_io/iq-module-communication-cpp": "MIT",
+    "src/drivers/uavcan/libdronecan/dsdl": "MIT",
+    "src/drivers/uavcan/libdronecan/libuavcan/dsdl_compiler/pydronecan": "MIT",
+    "test/fuzztest": "Apache-2.0",
+    "src/lib/tensorflow_lite_micro/tflite_micro": "Apache-2.0",
+    "src/drivers/ins/microstrain/mip_sdk": "MIT",
+    "src/drivers/ins/sbgecom/sbgECom": "MIT",
+    "src/modules/mc_raptor/blob": "MIT",
+    "src/lib/rl_tools/rl_tools": "MIT",
+    "boards/modalai/voxl2/src/lib/mpa/libmodal-json": "BSD-3-Clause",
+    "boards/modalai/voxl2/src/lib/mpa/libmodal-pipe": "BSD-3-Clause",
+}
+
+
+def spdx_id(name: str) -> str:
+    """Convert a name to a valid SPDX identifier (letters, digits, dots, hyphens)."""
+    return re.sub(r"[^a-zA-Z0-9.\-]", "-", name)
+
+
+def parse_gitmodules(source_dir: Path) -> list[dict]:
+    """Parse .gitmodules and return list of {name, path, url}."""
+    gitmodules_path = source_dir / ".gitmodules"
+    if not gitmodules_path.exists():
+        return []
+
+    config = configparser.ConfigParser()
+    config.read(str(gitmodules_path))
+
+    submodules = []
+    for section in config.sections():
+        if section.startswith("submodule "):
+            name = section.split('"')[1] if '"' in section else section.split(" ", 1)[1]
+            path = config.get(section, "path", fallback="")
+            url = config.get(section, "url", fallback="")
+            submodules.append({"name": name, "path": path, "url": url})
+
+    return submodules
+
+
+def get_submodule_commits(source_dir: Path) -> dict[str, str]:
+    """Get commit hashes for all submodules via git ls-tree -r (works without init)."""
+    try:
+        result = subprocess.run(
+            ["git", "ls-tree", "-r", "HEAD"],
+            cwd=str(source_dir),
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return {}
+
+    commits = {}
+    for line in result.stdout.splitlines():
+        parts = line.split()
+        if len(parts) >= 4 and parts[1] == "commit":
+            commits[parts[3]] = parts[2]
+
+    return commits
+
+
+def get_git_info(source_dir: Path) -> dict:
+    """Get PX4 git version and hash."""
+    info = {"version": "unknown", "hash": "unknown"}
+    try:
+        result = subprocess.run(
+            ["git", "describe", "--always", "--tags", "--dirty"],
+            cwd=str(source_dir),
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        info["version"] = result.stdout.strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        pass
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=str(source_dir),
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        info["hash"] = result.stdout.strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        pass
+    return info
+
+
+def parse_requirements(requirements_path: Path) -> list[dict]:
+    """Parse pip requirements.txt into list of {name, version_spec}."""
+    if not requirements_path.exists():
+        return []
+
+    deps = []
+    for line in requirements_path.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or line.startswith("-"):
+            continue
+        # Split on version specifiers
+        match = re.match(r"^([a-zA-Z0-9_\-]+)(.*)?$", line)
+        if match:
+            deps.append({
+                "name": match.group(1),
+                "version_spec": match.group(2).strip() if match.group(2) else "",
+            })
+    return deps
+
+
+def read_module_list(modules_file: Path | None, source_dir: Path) -> list[str]:
+    """Read board-specific module list from file.
+
+    Paths may be absolute; they are converted to relative paths under src/.
+    Duplicates are removed while preserving order.
+    """
+    if not modules_file or not modules_file.exists():
+        return []
+
+    seen: set[str] = set()
+    modules: list[str] = []
+    source_str = str(source_dir.resolve()) + "/"
+
+    for line in modules_file.read_text().splitlines():
+        path = line.strip()
+        if not path or path.startswith("#"):
+            continue
+        # Convert absolute path to relative
+        if path.startswith(source_str):
+            path = path[len(source_str):]
+        if path not in seen:
+            seen.add(path)
+            modules.append(path)
+
+    return modules
+
+
+def make_purl(pkg_type: str, namespace: str, name: str, version: str = "") -> str:
+    """Construct a Package URL (purl)."""
+    purl = f"pkg:{pkg_type}/{namespace}/{name}"
+    if version:
+        purl += f"@{version}"
+    return purl
+
+
+def extract_github_org_repo(url: str) -> tuple[str, str]:
+    """Extract org and repo from a git URL."""
+    # Handle https://github.com/org/repo.git and git@github.com:org/repo.git
+    match = re.search(r"github\.com[:/]([^/]+)/([^/]+?)(?:\.git)?$", url)
+    if match:
+        return match.group(1), match.group(2)
+    match = re.search(r"gitlab\.com[:/](.+?)/([^/]+?)(?:\.git)?$", url)
+    if match:
+        return match.group(1), match.group(2)
+    return "", ""
+
+
+def generate_sbom(
+    source_dir: Path,
+    board: str,
+    modules_file: "Path | None",
+    compiler: str,
+) -> dict:
+    """Generate a complete SPDX 2.3 JSON document."""
+    git_info = get_git_info(source_dir)
+    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    # Deterministic namespace using UUID5 from git hash + board
+    ns_seed = f"{git_info['hash']}:{board}"
+    doc_namespace = f"https://spdx.org/spdxdocs/{board}-{uuid.uuid5(uuid.NAMESPACE_URL, ns_seed)}"
+
+    doc = {
+        "spdxVersion": "SPDX-2.3",
+        "dataLicense": "CC0-1.0",
+        "SPDXID": "SPDXRef-DOCUMENT",
+        "name": f"PX4 Firmware SBOM for {board}",
+        "documentNamespace": doc_namespace,
+        "creationInfo": {
+            "created": timestamp,
+            "creators": [
+                "Tool: px4-generate-sbom",
+                "Organization: Dronecode Foundation",
+            ],
+            "licenseListVersion": "3.22",
+        },
+        "packages": [],
+        "relationships": [],
+    }
+
+    # Primary package: PX4 firmware
+    primary_spdx_id = f"SPDXRef-PX4-{spdx_id(board)}"
+    doc["packages"].append({
+        "SPDXID": primary_spdx_id,
+        "name": board,
+        "versionInfo": git_info["version"],
+        "packageFileName": f"{board}.px4",
+        "supplier": "Organization: Dronecode Foundation",
+        "downloadLocation": "https://github.com/PX4/PX4-Autopilot",
+        "filesAnalyzed": False,
+        "primaryPackagePurpose": "FIRMWARE",
+        "licenseConcluded": "BSD-3-Clause",
+        "licenseDeclared": "BSD-3-Clause",
+        "copyrightText": "Copyright (c) PX4 Development Team",
+        "externalRefs": [
+            {
+                "referenceCategory": "PACKAGE-MANAGER",
+                "referenceType": "purl",
+                "referenceLocator": make_purl(
+                    "github", "PX4", "PX4-Autopilot", git_info["version"]
+                ),
+            }
+        ],
+    })
+
+    doc["relationships"].append({
+        "spdxElementId": "SPDXRef-DOCUMENT",
+        "relationshipType": "DESCRIBES",
+        "relatedSpdxElement": primary_spdx_id,
+    })
+
+    # Git submodules (filtered to those relevant to this board's modules)
+    submodules = parse_gitmodules(source_dir)
+    submodule_commits = get_submodule_commits(source_dir)
+    modules = read_module_list(modules_file, source_dir)
+
+    # Submodules providing core platform support are always included
+    always_relevant_prefixes = ("platforms/",)
+
+    def submodule_is_relevant(sub_path: str) -> bool:
+        """A submodule is relevant if any board module path overlaps with it."""
+        if not modules:
+            return True  # no module list means include all
+        if sub_path.startswith(always_relevant_prefixes):
+            return True
+        for mod in modules:
+            # Module is under this submodule, or submodule is under a module
+            if mod.startswith(sub_path + "/") or sub_path.startswith(mod + "/"):
+                return True
+        return False
+
+    for sub in submodules:
+        if not submodule_is_relevant(sub["path"]):
+            continue
+        sub_path = sub["path"]
+        sub_path_id = sub_path.replace("/", "-")
+        sub_spdx_id = f"SPDXRef-Submodule-{spdx_id(sub_path_id)}"
+        commit = submodule_commits.get(sub_path, "unknown")
+        license_id = SUBMODULE_LICENSES.get(sub_path, "NOASSERTION")
+
+        org, repo = extract_github_org_repo(sub["url"])
+        download = sub["url"] if sub["url"] else "NOASSERTION"
+
+        # Use repo name from URL for human-readable name, fall back to last path component
+        display_name = repo if repo else sub_path.rsplit("/", 1)[-1]
+
+        pkg = {
+            "SPDXID": sub_spdx_id,
+            "name": display_name,
+            "versionInfo": commit,
+            "supplier": f"Organization: {org}" if org else "NOASSERTION",
+            "downloadLocation": download,
+            "filesAnalyzed": False,
+            "licenseConcluded": license_id,
+            "licenseDeclared": license_id,
+            "copyrightText": "NOASSERTION",
+        }
+
+        if org and repo:
+            pkg["externalRefs"] = [
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": make_purl("github", org, repo, commit),
+                }
+            ]
+
+        doc["packages"].append(pkg)
+        doc["relationships"].append({
+            "spdxElementId": primary_spdx_id,
+            "relationshipType": "CONTAINS",
+            "relatedSpdxElement": sub_spdx_id,
+        })
+
+    # Python build dependencies
+    requirements_path = source_dir / "Tools" / "setup" / "requirements.txt"
+    py_deps = parse_requirements(requirements_path)
+
+    for dep in py_deps:
+        dep_name = dep["name"]
+        dep_spdx_id = f"SPDXRef-PyDep-{spdx_id(dep_name)}"
+        version_str = dep["version_spec"] if dep["version_spec"] else "NOASSERTION"
+
+        doc["packages"].append({
+            "SPDXID": dep_spdx_id,
+            "name": dep_name,
+            "versionInfo": version_str,
+            "supplier": "NOASSERTION",
+            "downloadLocation": f"https://pypi.org/project/{dep_name}/",
+            "filesAnalyzed": False,
+            "primaryPackagePurpose": "APPLICATION",
+            "licenseConcluded": "NOASSERTION",
+            "licenseDeclared": "NOASSERTION",
+            "copyrightText": "NOASSERTION",
+            "externalRefs": [
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": f"pkg:pypi/{dep_name}",
+                }
+            ],
+        })
+        doc["relationships"].append({
+            "spdxElementId": dep_spdx_id,
+            "relationshipType": "BUILD_DEPENDENCY_OF",
+            "relatedSpdxElement": primary_spdx_id,
+        })
+
+    # Board-specific modules (already read above for submodule filtering)
+    for mod in modules:
+        mod_path_id = mod.replace("/", "-")
+        mod_spdx_id = f"SPDXRef-Module-{spdx_id(mod_path_id)}"
+
+        # Derive short name: strip leading src/ for readability
+        display_name = mod
+        if display_name.startswith("src/"):
+            display_name = display_name[4:]
+
+        doc["packages"].append({
+            "SPDXID": mod_spdx_id,
+            "name": display_name,
+            "versionInfo": git_info["version"],
+            "supplier": "Organization: Dronecode Foundation",
+            "downloadLocation": "https://github.com/PX4/PX4-Autopilot",
+            "filesAnalyzed": False,
+            "licenseConcluded": "BSD-3-Clause",
+            "licenseDeclared": "BSD-3-Clause",
+            "copyrightText": "NOASSERTION",
+        })
+        doc["relationships"].append({
+            "spdxElementId": primary_spdx_id,
+            "relationshipType": "CONTAINS",
+            "relatedSpdxElement": mod_spdx_id,
+        })
+
+    # Compiler as a build tool
+    if compiler:
+        compiler_spdx_id = f"SPDXRef-Compiler-{spdx_id(compiler)}"
+        doc["packages"].append({
+            "SPDXID": compiler_spdx_id,
+            "name": compiler,
+            "versionInfo": "NOASSERTION",
+            "supplier": "NOASSERTION",
+            "downloadLocation": "NOASSERTION",
+            "filesAnalyzed": False,
+            "primaryPackagePurpose": "APPLICATION",
+            "licenseConcluded": "NOASSERTION",
+            "licenseDeclared": "NOASSERTION",
+            "copyrightText": "NOASSERTION",
+        })
+        doc["relationships"].append({
+            "spdxElementId": compiler_spdx_id,
+            "relationshipType": "BUILD_TOOL_OF",
+            "relatedSpdxElement": primary_spdx_id,
+        })
+
+    return doc
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Generate SPDX 2.3 JSON SBOM for PX4 firmware"
+    )
+    parser.add_argument(
+        "--source-dir",
+        type=Path,
+        default=Path.cwd(),
+        help="PX4 source directory (default: cwd)",
+    )
+    parser.add_argument(
+        "--board",
+        required=True,
+        help="Board target name (e.g. px4_fmu-v5x_default)",
+    )
+    parser.add_argument(
+        "--modules-file",
+        type=Path,
+        default=None,
+        help="Path to config_module_list.txt",
+    )
+    parser.add_argument(
+        "--compiler",
+        default="",
+        help="Compiler identifier (e.g. arm-none-eabi-gcc)",
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        required=True,
+        help="Output SBOM file path",
+    )
+
+    args = parser.parse_args()
+
+    sbom = generate_sbom(
+        source_dir=args.source_dir,
+        board=args.board,
+        modules_file=args.modules_file,
+        compiler=args.compiler,
+    )
+
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    with open(args.output, "w") as f:
+        json.dump(sbom, f, indent=2)
+        f.write("\n")
+
+    pkg_count = len(sbom["packages"])
+    print(f"SBOM generated: {args.output} ({pkg_count} packages)")
+
+
+if __name__ == "__main__":
+    main()
