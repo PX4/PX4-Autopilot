@@ -221,7 +221,7 @@ private:
 	};
 
 	esc_eeprom_write_s _esc_eeprom_write{};
-	bool _dshot_programming_active = {};
+	bool _dshot_programming_active = {false};
 	uint32_t _settings_written_mask[2] = {};
 
 	ProgrammingState _programming_state{ProgrammingState::Idle};

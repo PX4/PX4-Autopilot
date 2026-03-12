@@ -307,10 +307,8 @@ void DShot::select_next_command()
 				_settings_written_mask[0] = 0;
 				_settings_written_mask[1] = 0;
 
-				// Mark as offline and unread so that we read again
-				// _serial_telem_online_mask &= ~(programming_motor_mask);
+				// Mark as unread so that we read again
 				_settings_requested_mask &= ~(programming_motor_mask);
-
 				_serial_telem_delay_until = hrt_absolute_time() + 500_ms;
 			}
 		}
@@ -943,12 +941,12 @@ void DShot::mixerChanged()
 	// bool needs_init = !_hardware_initialized || (new_output_mask != _output_mask);
 
 	if (!_hardware_initialized) {
-		PX4_DEBUG("Output mask changed: 0x%lx -> 0x%lx", _output_mask, new_output_mask);
+		PX4_DEBUG("Output mask changed: 0x" PRIx32 " -> 0x" PRIx32, _output_mask, new_output_mask);
 		_output_mask = new_output_mask;
 		_motor_mask = new_motor_mask;
 
 		uint32_t new_bdshot_output_mask = _bdshot_timer_channels & _output_mask;
-		PX4_DEBUG("BDShot Output mask changed: 0x%lx -> 0x%lx", _bdshot_output_mask, new_bdshot_output_mask);
+		PX4_DEBUG("BDShot Output mask changed: 0x" PRIx32 " -> 0x" PRIx32, _bdshot_output_mask, new_bdshot_output_mask);
 		_bdshot_output_mask = new_bdshot_output_mask;
 
 		// Compute motor-order BDShot mask
@@ -965,7 +963,7 @@ void DShot::mixerChanged()
 		}
 
 		_bdshot_motor_mask = new_bdshot_motor_mask;
-		PX4_DEBUG("Motor mask: 0x%lx, BDShot motor mask: 0x%lx", _motor_mask, _bdshot_motor_mask);
+		PX4_DEBUG("Motor mask: 0x" PRIx32 ", BDShot motor mask: 0x" PRIx32, _motor_mask, _bdshot_motor_mask);
 
 		up_dshot_init(_output_mask, _bdshot_output_mask, _dshot_frequency, _bdshot_edt_enabled);
 		up_dshot_arm(true);
