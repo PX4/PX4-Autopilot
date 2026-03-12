@@ -296,7 +296,7 @@ For all variants of SIH:
   For SIH on SITL you will need to explicitly enable these sensors as shown below.
   :::
 
-- `param set-default EKF2_GPS_DELAY 0` to improve state estimator performance (the assumption of instant GPS measurements would normally be unrealistic, but is accurate for SIH).
+- `param set-default SENS_GPS0_DELAY 0` to improve state estimator performance (the assumption of instant GPS measurements would normally be unrealistic, but is accurate for SIH).
 
 For SIH on FC:
 

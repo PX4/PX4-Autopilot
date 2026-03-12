@@ -129,5 +129,5 @@ See also:
 The PPS signal provides much higher temporal precision than the transmitted time data, which has latency and jitter from serial communication.
 
 ::: warning
-If the PPS driver does not sending any data for 5 seconds (despite having `PPS_CAP_ENABLE` set to 1), the `EKF2_GPS_DELAY` will be used instead for estimating the latency.
+If the PPS driver does not sending any data for 5 seconds (despite having `PPS_CAP_ENABLE` set to 1), the `SENS_GPS0_DELAY` will be used instead for estimating the latency.
 :::
