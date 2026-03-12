@@ -599,7 +599,7 @@ bool DShot::process_bdshot_telemetry()
 			esc.timestamp = now;
 
 			// Error counts are stored in actuator order
-			_bdshot_telem_errors[output_channel] = up_bdshot_num_errors(output_channel);
+			_bdshot_telem_errors[motor_index] = up_bdshot_num_errors(output_channel);
 
 			if (up_bdshot_channel_online(output_channel)) {
 
@@ -1127,8 +1127,8 @@ int DShot::print_status()
 				 motor_index + 1,
 				 bdshot_status,
 				 serial_status,
-				 (unsigned long)_bdshot_telem_errors[actuator_channel],
-				 (unsigned long)_serial_telem_errors[actuator_channel]);
+				 (unsigned long)_bdshot_telem_errors[motor_index],
+				 (unsigned long)_serial_telem_errors[motor_index]);
 		}
 
 		if (_bdshot_output_mask && _bdshot_edt_enabled) {
