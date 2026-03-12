@@ -121,7 +121,7 @@ void DShotTelemetry::initSettingsHandlers(ESCType esc_type, uint16_t output_mask
 	_settings_initialized = true;
 }
 
-int DShotTelemetry::parseCommandResponse()
+void DShotTelemetry::parseCommandResponse()
 {
 	if (hrt_elapsed_time(&_command_response_start) > 1_s) {
 		PX4_WARN("Command response timed out: %d bytes received", _command_response_position);
@@ -130,11 +130,11 @@ int DShotTelemetry::parseCommandResponse()
 		_command_response_motor_index = -1;
 		_command_response_start = 0;
 		_command_response_position = 0;
-		return -1;
+		return;
 	}
 
 	if (_uart.bytesAvailable() <= 0) {
-		return -1;
+		return;
 	}
 
 	uint8_t buf[COMMAND_RESPONSE_MAX_SIZE] = {};
@@ -143,7 +143,7 @@ int DShotTelemetry::parseCommandResponse()
 	// Handle potential overflow, fail out
 	if (_command_response_position + bytes >= COMMAND_RESPONSE_MAX_SIZE) {
 		PX4_ERR("command response overflow");
-		return -1;
+		return;
 	}
 
 	// Add bytes to buffer
@@ -151,16 +151,17 @@ int DShotTelemetry::parseCommandResponse()
 		_command_response_buffer[_command_response_position++] = buf[i];
 	}
 
-	int index = -1;
-
 	switch (_command_response_command) {
 	case DSHOT_CMD_ESC_INFO: {
+			if (_command_response_motor_index < 0 || _command_response_motor_index >= DSHOT_MAXIMUM_CHANNELS) {
+				return;
+			}
+
 			auto handler = _settings_handlers[_command_response_motor_index];
 
 			if (handler && _command_response_position == handler->getExpectedResponseSize()) {
-				if (handler->decodeInfoResponse(_command_response_buffer, _command_response_position)) {
-					index = _command_response_motor_index;
-				}
+				// TODO: handle command failures
+				handler->decodeInfoResponse(_command_response_buffer, _command_response_position);
 
 				// Reset command state
 				_command_response_position = 0;
@@ -174,8 +175,6 @@ int DShotTelemetry::parseCommandResponse()
 	default:
 		break;
 	}
-
-	return index;
 }
 
 TelemetryStatus DShotTelemetry::parseTelemetryPacket(EscData *esc_data)

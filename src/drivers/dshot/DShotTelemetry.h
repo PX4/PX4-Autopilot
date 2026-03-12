@@ -53,7 +53,7 @@ public:
 	TelemetryStatus parseTelemetryPacket(EscData *esc_data);
 
 	// Attempt to parse a command response. Returns the index of the ESC or -1 on failure.
-	int parseCommandResponse();
+	void parseCommandResponse();
 	bool commandResponseFinished();
 	bool commandResponseStarted();
 
