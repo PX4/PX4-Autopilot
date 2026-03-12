@@ -34,6 +34,7 @@
 #include "param_translation.h"
 
 
+#include <inttypes.h>
 #include <px4_platform_common/log.h>
 #include <lib/drivers/device/Device.hpp>
 #include <drivers/drv_sensor.h>
@@ -186,7 +187,7 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 				param_set(param_find(name), &node->i32);
 			}
 
-			PX4_INFO("migrating %s -> DSHOT_MOT_POL1-12 (value=%ld)", "MOT_POLE_COUNT", node->i32);
+			PX4_INFO("migrating %s -> DSHOT_MOT_POL1-12 (value=%" PRId32 ")", "MOT_POLE_COUNT", node->i32);
 			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
 		}
 	}
