@@ -48,14 +48,13 @@ enum class TelemetrySource {
 };
 
 struct EscData {
-	int actuator_channel;  // Actuator output channel 0..(DSHOT_MAXIMUM_CHANNELS-1)
 	int motor_index;       // Motor index 0..(CONNECTED_ESC_MAX-1)
 	hrt_abstime timestamp; // Sample time
 	TelemetrySource source;
 
-	float temperature;     // [deg C]
-	float voltage;         // [0.01V]
-	float current;         // [0.01A]
+	float temperature;     // [C]
+	float voltage;         // [V]
+	float current;         // [A]
 	int32_t erpm;          // [eRPM]
 };
 

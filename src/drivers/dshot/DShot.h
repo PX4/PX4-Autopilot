@@ -168,7 +168,7 @@ private:
 	static char _serial_port_path[20];
 	static bool _telemetry_swap_rxtx;
 	static px4::atomic_bool _request_telemetry_init;
-	int _telemetry_motor_index = 0;
+	int _telemetry_motor_index = 0; // Note: this is in "actuator order"
 	uint32_t _telemetry_requested_mask = 0;
 	hrt_abstime _serial_telem_delay_until = ESC_INIT_TELEM_DELAY;
 

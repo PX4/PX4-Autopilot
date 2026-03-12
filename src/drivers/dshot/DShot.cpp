@@ -467,12 +467,10 @@ bool DShot::process_serial_telemetry()
 	} else {
 
 		// Note: _telemetry_motor_index is actually an actuator channel (iterates via set_next_telemetry_index)
-		int actuator_channel = _telemetry_motor_index;
-		int motor_index = (int)_mixing_output.outputFunction(actuator_channel) - (int)OutputFunction::Motor1;
+		int motor_index = (int)_mixing_output.outputFunction(_telemetry_motor_index) - (int)OutputFunction::Motor1;
 
 		EscData esc {};
 		esc.source = TelemetrySource::Serial;
-		esc.actuator_channel = actuator_channel;
 		esc.motor_index = motor_index;
 
 		switch (_telemetry.parseTelemetryPacket(&esc)) {
@@ -604,7 +602,6 @@ bool DShot::process_bdshot_telemetry()
 
 		if ((motor_index >= 0) && (motor_index < esc_status_s::CONNECTED_ESC_MAX)) {
 
-			esc.actuator_channel = output_channel;
 			esc.motor_index = motor_index;
 			esc.timestamp = now;
 
@@ -645,17 +642,17 @@ bool DShot::process_bdshot_telemetry()
 					}
 
 					if (up_bdshot_get_extended_telemetry(output_channel, DSHOT_EDT_VOLTAGE, &value) == PX4_OK) {
-						esc.voltage = value / 4.f; // BDShot voltage is in 0.25V
+						esc.voltage = static_cast<float>(value) / 4.f; // BDShot voltage is in 0.25V
 
 					} else {
 						esc.voltage = _esc_status.esc[motor_index].esc_voltage; // use previous
 					}
 
 					if (up_bdshot_get_extended_telemetry(output_channel, DSHOT_EDT_CURRENT, &value) == PX4_OK) {
-						esc.current = value / 2.f; // BDShot current is in 0.5A
+						esc.current = static_cast<float>(value) / 2.f; // BDShot current is in 0.5A
 
 					} else {
-						esc.current = _esc_status.esc[motor_index].esc_current;  // use previous
+						esc.current = _esc_status.esc[motor_index].esc_current; // use previous
 					}
 				}
 
@@ -677,11 +674,9 @@ bool DShot::process_bdshot_telemetry()
 
 void DShot::consume_esc_data(const EscData &esc)
 {
-	int actuator_channel = esc.actuator_channel;
 	int motor_index = esc.motor_index;
 
-	if (!math::isInRange(actuator_channel, 0, DSHOT_MAXIMUM_CHANNELS - 1) ||
-	    !math::isInRange(motor_index, 0, esc_status_s::CONNECTED_ESC_MAX - 1)) {
+	if (!math::isInRange(motor_index, 0, esc_status_s::CONNECTED_ESC_MAX - 1)) {
 		return;
 	}
 
@@ -702,8 +697,8 @@ void DShot::consume_esc_data(const EscData &esc)
 	_esc_status.esc_online_flags = online_mask;
 
 	// esc_status is indexed by motor_index (Motor1=0, Motor2=1, ...)
-	_esc_status.esc[motor_index].esc_errorcount = _serial_telem_errors[actuator_channel] +
-			_bdshot_telem_errors[actuator_channel];
+	_esc_status.esc[motor_index].esc_errorcount = _serial_telem_errors[motor_index] +
+			_bdshot_telem_errors[motor_index];
 
 	if (esc.source == TelemetrySource::Serial) {
 		// Only use SerialTelemetry eRPM when BDShot is disabled
