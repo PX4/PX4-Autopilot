@@ -331,8 +331,6 @@ struct parameters {
 #if defined(CONFIG_EKF2_GNSS)
 	int32_t ekf2_gps_ctrl {static_cast<int32_t>(GnssCtrl::HPOS) | static_cast<int32_t>(GnssCtrl::VEL)};
 	int32_t ekf2_gps_mode {static_cast<int32_t>(GnssMode::kAuto)};
-	float ekf2_gps_delay{110.0f};           ///< GPS measurement delay relative to the IMU (mSec)
-
 	// position and velocity fusion
 	float ekf2_gps_v_noise{0.5f};           ///< minimum allowed observation noise for gps velocity fusion (m/sec)
 	float ekf2_gps_p_noise{0.5f};           ///< minimum allowed observation noise for gps position fusion (m)

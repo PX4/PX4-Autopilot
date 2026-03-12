@@ -103,13 +103,15 @@ void VehicleGPSPosition::ParametersUpdate(bool force)
 			_gps_blending.setPrimaryInstance(gps_prime);
 		}
 
-		_gps_offset_slots[0] = {
+		_gps_param_slots[0] = {
 			static_cast<uint32_t>(_param_sens_gps0_id.get()),
-			{_param_sens_gps0_offx.get(), _param_sens_gps0_offy.get(), _param_sens_gps0_offz.get()}
+			{_param_sens_gps0_offx.get(), _param_sens_gps0_offy.get(), _param_sens_gps0_offz.get()},
+			static_cast<hrt_abstime>(_param_sens_gps0_delay.get()) * 1000
 		};
-		_gps_offset_slots[1] = {
+		_gps_param_slots[1] = {
 			static_cast<uint32_t>(_param_sens_gps1_id.get()),
-			{_param_sens_gps1_offx.get(), _param_sens_gps1_offy.get(), _param_sens_gps1_offz.get()}
+			{_param_sens_gps1_offx.get(), _param_sens_gps1_offy.get(), _param_sens_gps1_offz.get()},
+			static_cast<hrt_abstime>(_param_sens_gps1_delay.get()) * 1000
 		};
 	}
 }
@@ -140,22 +142,32 @@ void VehicleGPSPosition::Run()
 
 			_sensor_gps_sub[i].copy(&gps_data);
 
-			// Match device_id to antenna offset slot
+			// Match device_id to receiver slot
 			matrix::Vector3f antenna_offset{};
+			hrt_abstime delay_us = 110_ms; // matches SENS_GPS*_DELAY default
 			bool matched = false;
 
 			for (uint8_t slot = 0; slot < GPS_MAX_RECEIVERS; slot++) {
-				if (_gps_offset_slots[slot].device_id != 0
-				    && _gps_offset_slots[slot].device_id == gps_data.device_id) {
-					antenna_offset = _gps_offset_slots[slot].offset;
+				if (_gps_param_slots[slot].device_id != 0
+				    && _gps_param_slots[slot].device_id == gps_data.device_id) {
+					antenna_offset = _gps_param_slots[slot].offset;
+					delay_us = _gps_param_slots[slot].delay_us;
 					matched = true;
 					break;
 				}
 			}
 
 			// Fallback: if no device IDs configured, match by instance index
-			if (!matched && _gps_offset_slots[0].device_id == 0 && _gps_offset_slots[1].device_id == 0) {
-				antenna_offset = _gps_offset_slots[i].offset;
+			if (!matched && _gps_param_slots[0].device_id == 0 && _gps_param_slots[1].device_id == 0) {
+				antenna_offset = _gps_param_slots[i].offset;
+				delay_us = _gps_param_slots[i].delay_us;
+			}
+
+			// Apply delay to timestamp_sample if the driver didn't set one
+			if (gps_data.timestamp_sample == 0 || gps_data.timestamp_sample == gps_data.timestamp) {
+				if (delay_us > 0 && gps_data.timestamp > delay_us) {
+					gps_data.timestamp_sample = gps_data.timestamp - delay_us;
+				}
 			}
 
 			_gps_blending.setAntennaOffset(antenna_offset, i);
@@ -193,7 +205,13 @@ void VehicleGPSPosition::Run()
 			gps_output.antenna_offset_y = out_offset(1);
 			gps_output.antenna_offset_z = out_offset(2);
 
-			gps_output.timestamp_sample = _pps_time_sync.correct_gps_timestamp(gps_output.timestamp, gps_output.time_utc_usec);
+			const uint64_t pps_timestamp = _pps_time_sync.correct_gps_timestamp(gps_output.timestamp, gps_output.time_utc_usec);
+
+			if (pps_timestamp != gps_output.timestamp) {
+				// PPS provided a correction — use it instead of the per-receiver delay
+				gps_output.timestamp_sample = pps_timestamp;
+			}
+
 			_vehicle_gps_position_pub.publish(gps_output);
 		}
 	}
