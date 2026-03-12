@@ -144,9 +144,8 @@ __EXPORT extern void up_bdshot_status(void);
  * When we get the erpm round-robin style, we need to get
  * and publish the erpms less often.
  *
- * @return <0 on error, OK on succes
  */
-__EXPORT extern int up_bdshot_num_channels_ready(void);
+__EXPORT extern uint16_t up_bdshot_num_channels_ready(void);
 
 /**
  * Get the total number of errors for a channel

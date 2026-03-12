@@ -958,9 +958,9 @@ int up_dshot_arm(bool armed)
 	return ret;
 }
 
-int up_bdshot_num_channels_ready(void)
+uint16_t up_bdshot_num_channels_ready(void)
 {
-	int num_ready = 0;
+	uint16_t num_ready = 0;
 
 	for (uint8_t i = 0; i < MAX_TIMER_IO_CHANNELS; ++i) {
 		if (_bdshot_processed[i]) {

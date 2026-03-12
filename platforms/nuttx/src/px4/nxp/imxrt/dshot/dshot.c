@@ -499,9 +499,9 @@ void up_bdshot_erpm(void)
 }
 
 
-int up_bdshot_num_channels_ready(void)
+uint16_t up_bdshot_num_channels_ready(void)
 {
-	int num_ready = 0;
+	uint16_t num_ready = 0;
 
 	for (unsigned i = 0; i < DSHOT_TIMERS; ++i) {
 		// We only check that data has been received, rather than if it's valid.
