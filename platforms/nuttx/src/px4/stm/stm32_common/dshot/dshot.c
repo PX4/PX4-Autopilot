@@ -788,7 +788,7 @@ float calculate_rate_hz(uint64_t last_timestamp, float last_rate_hz, uint64_t ti
 uint32_t convert_edge_intervals_to_bitstream(uint8_t timer_index, uint8_t channel_index)
 {
 	// First pass: collect all intervals
-	uint32_t intervals[CHANNEL_CAPTURE_BUFF_SIZE];
+	uint32_t intervals[CHANNEL_CAPTURE_BUFF_SIZE] = {};
 	unsigned interval_count = 0;
 
 	// We can ignore the very first data point as it's the pulse before it starts.
