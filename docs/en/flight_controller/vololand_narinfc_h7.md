@@ -113,7 +113,7 @@ The NarinFC-H7 supports up to 14 PWM outputs.
 ![PWM Out](../../assets/flight_controller/narinfc_h7/4_6_pwm_out_m1-m14.png)
 
 - 2.54mm pitch DuPont connector
-- RC_IN: Remote control receiver input is wired directly to the FMU and is enabled via the [RC_INPUT](../modules/modules_driver.md#rc-input) driver. Compatible with SBUS, CPPM, and DSM protocols.
+- RC_IN: Remote control receiver input is wired directly to the FMU and is enabled via the `rc_input` driver. Compatible with SBUS, CPPM, and DSM protocols.
 
 ### Power Input
 
