@@ -142,6 +142,7 @@ int DShotTelemetry::parseCommandResponse()
 
 	// Handle potential overflow: reset and clamp to buffer size
 	if (_command_response_position + bytes >= COMMAND_RESPONSE_MAX_SIZE) {
+		PX4_ERR("command response overflow");
 		_command_response_position = 0;
 		bytes = bytes < (int)COMMAND_RESPONSE_MAX_SIZE ? bytes : (int)COMMAND_RESPONSE_MAX_SIZE;
 	}

@@ -181,8 +181,7 @@ void DShot::select_next_command()
 				PX4_ERR("esc_eeprom_write lost, generation %u -> %u", last_generation, current_generation);
 			}
 
-			if (_esc_eeprom_write.index != 255
-			    && _esc_eeprom_write.index >= esc_status_s::CONNECTED_ESC_MAX) {
+			if (_esc_eeprom_write.index != 255 && _esc_eeprom_write.index >= esc_status_s::CONNECTED_ESC_MAX) {
 				PX4_ERR("esc_eeprom_write: invalid index %u", _esc_eeprom_write.index);
 
 			} else {
