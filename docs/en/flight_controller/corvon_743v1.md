@@ -85,13 +85,13 @@ The following image shows the port connection details, including RC, UARTs, CAN,
 
 ### Debug Port 
 
-The board features a standard **SWD Debug** interface pad array located on the right side of the board. This includes `SWCLK`, `SWDIO`, `3V3`, and `GND` for full hardware debugging. While a dedicated UART isn't strictly reserved for the NSH console by default, the full-speed USB connection provides MAVLink Console access out of the box.
+The board features a **4-pin SWD Debug** interface located on the right side of the board. This includes `SWCLK`, `SWDIO`, `3V3`, and `GND` for full hardware debugging. While a dedicated UART isn't strictly reserved for the NSH console by default, the full-speed USB connection provides MAVLink Console access out of the box.
 
 ### RC Input
 
 RC Input is mapped to **UART6** via the explicit `SBUS/CRSF` connector block. 
 - It fully supports PX4's standard `RC_INPUT` module protocols.
-- The connector exposes both `RX6` and `TX6`, which makes it fully capable of bidirectional receiver protocols such as TBS Crossfire (CRSF), ELRS, and FPort, as well as traditional single-wire standards like SBUS (which operates inverted on RX6) and PPM. 
+- The connector exposes both `RX6` and `TX6`, which makes it fully capable of bidirectional receiver protocols such as TBS Crossfire (CRSF), ELRS, and FPort, as well as traditional single-wire standards like SBUS (which operates inverted on RX6). 
 
 ## Building/Loading Firmware
 
