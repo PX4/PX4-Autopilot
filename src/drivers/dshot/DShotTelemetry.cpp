@@ -261,15 +261,6 @@ TelemetryStatus DShotTelemetry::decodeTelemetryResponse(uint8_t *buffer, int len
 	return status;
 }
 
-void DShotTelemetry::publish_esc_settings()
-{
-	for (int i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
-		if (_settings_handlers[i]) {
-			_settings_handlers[i]->publish_latest();
-		}
-	}
-}
-
 void DShotTelemetry::setExpectCommandResponse(int motor_index, uint16_t command)
 {
 	_command_response_motor_index = motor_index;
