@@ -80,7 +80,6 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 #if defined(CONFIG_EKF2_GNSS)
 	_param_ekf2_gps_ctrl(_params->ekf2_gps_ctrl),
 	_param_ekf2_gps_mode(_params->ekf2_gps_mode),
-	_param_ekf2_gps_delay(_params->ekf2_gps_delay),
 	_param_ekf2_gps_v_noise(_params->ekf2_gps_v_noise),
 	_param_ekf2_gps_p_noise(_params->ekf2_gps_p_noise),
 	_param_ekf2_gps_p_gate(_params->ekf2_gps_p_gate),
@@ -926,14 +925,6 @@ void EKF2::VerifyParams()
 	}
 
 #endif // CONFIG_EKF2_RANGE_FINDER
-
-#if defined(CONFIG_EKF2_GNSS)
-
-	if (_param_ekf2_gps_delay.get() > delay_max) {
-		delay_max = _param_ekf2_gps_delay.get();
-	}
-
-#endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 
@@ -2458,7 +2449,7 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 					     vehicle_gps_position.antenna_offset_z),
 		};
 
-		_ekf.setGpsData(gnss_sample, pps_compensation);
+		_ekf.setGpsData(gnss_sample);
 
 		const float geoid_height = altitude_ellipsoid - altitude_amsl;
 

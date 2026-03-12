@@ -514,8 +514,6 @@ private:
 #if defined(CONFIG_EKF2_GNSS)
 		(ParamExtInt<px4::params::EKF2_GPS_CTRL>) _param_ekf2_gps_ctrl,
 		(ParamExtInt<px4::params::EKF2_GPS_MODE>) _param_ekf2_gps_mode,
-		(ParamExtFloat<px4::params::EKF2_GPS_DELAY>) _param_ekf2_gps_delay,
-
 		(ParamExtFloat<px4::params::EKF2_GPS_V_NOISE>) _param_ekf2_gps_v_noise,
 		(ParamExtFloat<px4::params::EKF2_GPS_P_NOISE>) _param_ekf2_gps_p_noise,
 
