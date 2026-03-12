@@ -486,6 +486,10 @@ static void select_next_capture_channel(uint8_t timer_index)
 		if (timer_configs[timer_index].initialized_channels[next]) {
 			uint8_t output_channel = output_channel_from_timer_channel(timer_index, next);
 
+			if (output_channel >= MAX_TIMER_IO_CHANNELS) {
+				continue;
+			}
+
 			// Only capture from channels that support BDShot (have DMA mapping)
 			if (_bdshot_capture_supported[output_channel]) {
 				timer_configs[timer_index].capture_channel = next;
@@ -508,8 +512,7 @@ static uint8_t output_channel_from_timer_channel(uint8_t timer_index, uint8_t ti
 		}
 	}
 
-	// TODO: error handling?
-	return 0;
+	return MAX_TIMER_IO_CHANNELS;
 }
 
 void dma_burst_finished_callback(DMA_HANDLE handle, uint8_t status, void *arg)
@@ -654,6 +657,11 @@ static void capture_complete_callback(void *arg)
 void process_capture_results(uint8_t timer_index, uint8_t channel_index)
 {
 	uint8_t output_channel = output_channel_from_timer_channel(timer_index, channel_index);
+
+	if (output_channel >= MAX_TIMER_IO_CHANNELS) {
+		return;
+	}
+
 	uint32_t value = convert_edge_intervals_to_bitstream(timer_index, channel_index);
 
 	// Decode RLL
@@ -817,6 +825,10 @@ uint32_t convert_edge_intervals_to_bitstream(uint8_t timer_index, uint8_t channe
 	}
 
 	uint8_t output_channel = output_channel_from_timer_channel(timer_index, channel_index);
+
+	if (output_channel >= MAX_TIMER_IO_CHANNELS) {
+		return 0;
+	}
 
 	// Update base interval with low-pass filter (10% weight on new measurement)
 	// This adapts to each ESC's actual timing while filtering transient noise
