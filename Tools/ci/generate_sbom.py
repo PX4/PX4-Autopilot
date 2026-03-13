@@ -9,8 +9,6 @@ Produces one SBOM per board target containing:
 
 Uses only Python standard library (no pip dependencies).
 """
-from __future__ import annotations
-
 import argparse
 import configparser
 import json
@@ -64,7 +62,7 @@ def spdx_id(name: str) -> str:
     return re.sub(r"[^a-zA-Z0-9.\-]", "-", name)
 
 
-def parse_gitmodules(source_dir: Path) -> list[dict]:
+def parse_gitmodules(source_dir):
     """Parse .gitmodules and return list of {name, path, url}."""
     gitmodules_path = source_dir / ".gitmodules"
     if not gitmodules_path.exists():
@@ -84,7 +82,7 @@ def parse_gitmodules(source_dir: Path) -> list[dict]:
     return submodules
 
 
-def get_submodule_commits(source_dir: Path) -> dict[str, str]:
+def get_submodule_commits(source_dir):
     """Get commit hashes for all submodules via git ls-tree -r (works without init)."""
     try:
         result = subprocess.run(
@@ -134,7 +132,7 @@ def get_git_info(source_dir: Path) -> dict:
     return info
 
 
-def parse_requirements(requirements_path: Path) -> list[dict]:
+def parse_requirements(requirements_path):
     """Parse pip requirements.txt into list of {name, version_spec}."""
     if not requirements_path.exists():
         return []
@@ -154,7 +152,7 @@ def parse_requirements(requirements_path: Path) -> list[dict]:
     return deps
 
 
-def read_module_list(modules_file: Path | None, source_dir: Path) -> list[str]:
+def read_module_list(modules_file, source_dir):
     """Read board-specific module list from file.
 
     Paths may be absolute; they are converted to relative paths under src/.
@@ -163,8 +161,8 @@ def read_module_list(modules_file: Path | None, source_dir: Path) -> list[str]:
     if not modules_file or not modules_file.exists():
         return []
 
-    seen: set[str] = set()
-    modules: list[str] = []
+    seen = set()
+    modules = []
     source_str = str(source_dir.resolve()) + "/"
 
     for line in modules_file.read_text().splitlines():
@@ -189,7 +187,7 @@ def make_purl(pkg_type: str, namespace: str, name: str, version: str = "") -> st
     return purl
 
 
-def extract_git_host_org_repo(url: str) -> tuple[str, str, str]:
+def extract_git_host_org_repo(url):
     """Extract host type, org, and repo from a git URL.
 
     Returns (host, org, repo) where host is 'github', 'gitlab', or ''.
@@ -203,12 +201,7 @@ def extract_git_host_org_repo(url: str) -> tuple[str, str, str]:
     return "", "", ""
 
 
-def generate_sbom(
-    source_dir: Path,
-    board: str,
-    modules_file: "Path | None",
-    compiler: str,
-) -> dict:
+def generate_sbom(source_dir, board, modules_file, compiler):
     """Generate a complete SPDX 2.3 JSON document."""
     git_info = get_git_info(source_dir)
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
