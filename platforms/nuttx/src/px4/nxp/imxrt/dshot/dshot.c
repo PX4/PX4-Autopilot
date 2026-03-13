@@ -63,8 +63,6 @@ static const uint32_t gcr_decode[32] = {
 	0x0, 0x0, 0x8, 0x1, 0x0, 0x4, 0xC, 0x0
 };
 
-uint32_t erpms[DSHOT_TIMERS];
-
 typedef enum {
 	DSHOT_START = 0,
 	DSHOT_12BIT_FIFO,
@@ -385,7 +383,7 @@ int up_dshot_init(uint32_t channel_mask, uint32_t bdshot_channel_mask, unsigned 
 	flexio_modifyreg32(IMXRT_FLEXIO_CTRL_OFFSET, 0,
 			   FLEXIO_CTRL_FLEXEN_MASK);
 
-	return channel_mask;
+	return dshot_mask;
 }
 
 void up_bdshot_training(uint32_t channel, uint32_t value)

@@ -75,7 +75,6 @@ private:
 	hrt_abstime _command_response_start{0};
 
 	// Telemetry packet
-	EscData _latest_data{};
 	uint8_t _frame_buffer[TELEMETRY_FRAME_SIZE];
 	int _frame_position{0};
 	hrt_abstime _telemetry_request_start{0};
