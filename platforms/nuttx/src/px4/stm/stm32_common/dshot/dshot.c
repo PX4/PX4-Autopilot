@@ -748,7 +748,7 @@ void process_capture_results(uint8_t timer_index, uint8_t channel_index)
 		break;
 
 	default:
-		PX4_WARN("unknown EDT type %d", packet.type);
+		PX4_DEBUG("unknown EDT type %d", packet.type);
 		break;
 	}
 
@@ -1074,7 +1074,7 @@ void up_bdshot_status(void)
 	PX4_INFO("dshot driver stats:");
 
 	if (_bdshot_channel_mask) {
-		PX4_INFO("BDShot channel mask: 0x%2x", (unsigned)_bdshot_channel_mask);
+		PX4_INFO("BDShot channel mask: 0x%04x", (unsigned)_bdshot_channel_mask);
 
 		// Always show read counters for BDShot
 		for (int i = 0; i < MAX_TIMER_IO_CHANNELS; i++) {

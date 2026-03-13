@@ -68,7 +68,7 @@ enum class TelemetryStatus {
 
 inline uint32_t count_set_bits(uint32_t mask)
 {
-	int count = 0;
+	uint32_t count = 0;
 
 	while (mask) {
 		mask &= mask - 1;
