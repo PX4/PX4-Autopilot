@@ -229,9 +229,9 @@ private:
 	uint16_t _programming_address{};
 	uint16_t _programming_value{};
 
-	// Per-motor pole count
 	param_t _param_pole_count_handles[esc_status_s::CONNECTED_ESC_MAX] {};
-	int get_pole_count(int motor_index);
+	int32_t _pole_count_params[esc_status_s::CONNECTED_ESC_MAX] {};
+	int get_pole_count(int motor_index) const;
 
 	// Parameters
 	DEFINE_PARAMETERS(

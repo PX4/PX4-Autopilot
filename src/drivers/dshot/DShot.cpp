@@ -876,17 +876,13 @@ void DShot::handle_esc_request_eeprom(const vehicle_command_s &command)
 	_command_ack_pub.publish(command_ack);
 }
 
-int DShot::get_pole_count(int motor_index)
+int DShot::get_pole_count(int motor_index) const
 {
-	int32_t pole_count = 14;
-
-	int num_motors = (int)OutputFunction::MotorMax - ((int)OutputFunction::Motor1 - 1);
-
-	if (motor_index >= 0 && motor_index < num_motors) {
-		param_get(_param_pole_count_handles[motor_index], &pole_count);
+	if (motor_index >= 0 && motor_index < esc_status_s::CONNECTED_ESC_MAX) {
+		return _pole_count_params[motor_index];
 	}
 
-	return pole_count;
+	return 14;
 }
 
 void DShot::update_params()
@@ -909,11 +905,15 @@ void DShot::update_params()
 		}
 	}
 
-	// Update per-motor pole count param handles
-	for (int i = 0; i < 12; i++) {
+	// Update per-motor pole count param handles and cached values
+	for (int i = 0; i < esc_status_s::CONNECTED_ESC_MAX; i++) {
 		char name[20];
 		snprintf(name, sizeof(name), "DSHOT_MOT_POL%d", i + 1);
 		_param_pole_count_handles[i] = param_find(name);
+
+		int32_t pole_count = 14;
+		param_get(_param_pole_count_handles[i], &pole_count);
+		_pole_count_params[i] = pole_count;
 	}
 }
 
