@@ -516,7 +516,7 @@ uint16_t up_bdshot_num_channels_ready(void)
 
 int up_bdshot_num_errors(uint8_t channel)
 {
-	if (channel >= MAX_TIMER_IO_CHANNELS) {
+	if (channel >= DSHOT_TIMERS) {
 		return 0;
 	}
 
