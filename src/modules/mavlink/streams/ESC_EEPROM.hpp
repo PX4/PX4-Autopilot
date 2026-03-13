@@ -69,7 +69,7 @@ private:
 			msg.msg_count = 1;
 			size_t copy_len = eeprom.length < sizeof(eeprom.data) ? eeprom.length : sizeof(eeprom.data);
 			memcpy(msg.data, eeprom.data, copy_len);
-			msg.length = eeprom.length;
+			msg.length = copy_len;
 
 			mavlink_msg_esc_eeprom_send_struct(_mavlink->get_channel(), &msg);
 
