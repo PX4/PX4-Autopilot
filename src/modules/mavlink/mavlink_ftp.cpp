@@ -566,7 +566,7 @@ MavlinkFTP::_workRead(PayloadHeader *payload)
 MavlinkFTP::ErrorCode
 MavlinkFTP::_workBurst(PayloadHeader *payload, uint8_t target_system_id, uint8_t target_component_id)
 {
-	if (payload->session != 0 && _session_info.fd < 0) {
+	if (payload->session != 0 || _session_info.fd < 0) {
 		PX4_DEBUG("_workBurst: no session or no fd");
 		return kErrInvalidSession;
 	}
@@ -587,7 +587,7 @@ MavlinkFTP::_workBurst(PayloadHeader *payload, uint8_t target_system_id, uint8_t
 MavlinkFTP::ErrorCode
 MavlinkFTP::_workWrite(PayloadHeader *payload)
 {
-	if (payload->session != 0 && _session_info.fd < 0) {
+	if (payload->session != 0 || _session_info.fd < 0) {
 		PX4_DEBUG("_workWrite: no session or no fd");
 		return kErrInvalidSession;
 	}
