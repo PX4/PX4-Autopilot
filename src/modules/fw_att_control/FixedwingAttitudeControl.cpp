@@ -74,8 +74,8 @@ FixedwingAttitudeControl::init()
 void
 FixedwingAttitudeControl::parameters_update()
 {
-	_proportional_gain = matrix::Vector3f(1.0f / _param_fw_r_tc.get(),
-					      1.0f / _param_fw_p_tc.get(),
+	_proportional_gain = matrix::Vector3f(1.0f / math::max(0.01f, _param_fw_r_tc.get()),
+					      1.0f / math::max(0.01f, _param_fw_p_tc.get()),
 					      1.0f);
 
 	_wheel_ctrl.set_k_p(_param_fw_wr_p.get());
