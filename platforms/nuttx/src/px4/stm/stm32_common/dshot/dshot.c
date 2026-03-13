@@ -1000,8 +1000,10 @@ int up_bdshot_get_erpm(uint8_t channel, int *erpm)
 		status = PX4_OK;
 	}
 
-	// Mark sample read
-	_bdshot_processed[channel] = false;
+	// Mark sample read — only for channels with capture support
+	if (_bdshot_capture_supported[channel]) {
+		_bdshot_processed[channel] = false;
+	}
 
 	return status;
 }
