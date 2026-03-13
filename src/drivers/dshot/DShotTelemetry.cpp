@@ -133,12 +133,12 @@ void DShotTelemetry::parseCommandResponse()
 		return;
 	}
 
-	if (_uart.bytesAvailable() <= 0) {
-		return;
-	}
-
 	uint8_t buf[COMMAND_RESPONSE_MAX_SIZE] = {};
 	int bytes = _uart.read(buf, sizeof(buf));
+
+	if (bytes <= 0) {
+		return;
+	}
 
 	// Handle potential overflow, fail out
 	if (_command_response_position + bytes > COMMAND_RESPONSE_MAX_SIZE) {
@@ -186,12 +186,20 @@ TelemetryStatus DShotTelemetry::parseTelemetryPacket(EscData *esc_data)
 		return TelemetryStatus::NotStarted;
 	}
 
-	// read from the uart. This must be non-blocking, so check first if there is data available
-	if (_uart.bytesAvailable() <= 0) {
-		if (hrt_elapsed_time(&_telemetry_request_start) > 30_ms) {
+	hrt_abstime elapsed = hrt_elapsed_time(&_telemetry_request_start);
+
+	// At 115200 baud the 10-byte response takes ~868us. Skip polling until data could have arrived.
+	if (elapsed < 800) {
+		return TelemetryStatus::NotReady;
+	}
+
+	uint8_t buf[TELEMETRY_FRAME_SIZE];
+	int bytes = _uart.read(buf, sizeof(buf));
+
+	if (bytes <= 0) {
+		if (elapsed > 30_ms) {
 			// NOTE: this happens when sending commands, there's a window after an ESC receives
 			// a command where it will not respond to any telemetry requests
-			// PX4_INFO("ESC telemetry timeout: %d", esc_data->motor_index);
 			++_num_timeouts;
 
 			// Mark telemetry request as finished
@@ -202,9 +210,6 @@ TelemetryStatus DShotTelemetry::parseTelemetryPacket(EscData *esc_data)
 
 		return TelemetryStatus::NotReady;
 	}
-
-	uint8_t buf[TELEMETRY_FRAME_SIZE];
-	int bytes = _uart.read(buf, sizeof(buf));
 
 	return decodeTelemetryResponse(buf, bytes, esc_data);
 }
@@ -247,7 +252,6 @@ TelemetryStatus DShotTelemetry::decodeTelemetryResponse(uint8_t *buffer, int len
 
 				++_num_successful_responses;
 				status = TelemetryStatus::Ready;
-				_uart.flush();
 
 			} else {
 				++_num_checksum_errors;
