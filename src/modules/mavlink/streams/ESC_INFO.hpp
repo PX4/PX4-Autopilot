@@ -66,47 +66,38 @@ private:
 
 	static constexpr hrt_abstime ESC_TIMEOUT = 100000;
 
-	struct EscOutputInterfaceInfo {
-		uint16_t counter;
-		uint8_t esc_count;
-		uint8_t esc_connectiontype;
-		uint16_t esc_online_flags;
-	};
-
 	struct EscInfo {
 		hrt_abstime timestamp;
 		uint16_t failure_flags;
 		uint32_t error_count;
 		int16_t temperature;
+		uint8_t connectiontype;
 		bool online;
 	};
 
-	int _total_esc_count = {};
-	EscOutputInterfaceInfo _interface[MAX_NUM_MSGS] = {};
+	uint16_t _total_counter = {};
+	uint8_t _total_esc_count = {};
 	EscInfo _escs[MAX_ESC_OUTPUTS] = {};
 
 	void update_data() override
 	{
-		int subscriber_count = math::min(_esc_status_subs.size(), MAX_NUM_MSGS);
+		_total_counter = 0;
+		_total_esc_count = 0;
 
-		for (int i = 0; i < subscriber_count; i++) {
+		for (int i = 0; i < math::min(_esc_status_subs.size(), MAX_NUM_MSGS); i++) {
 			esc_status_s esc = {};
 
 			if (_esc_status_subs[i].update(&esc)) {
-				_interface[i].counter = esc.counter;
-				_interface[i].esc_count = esc.esc_count;
-				_interface[i].esc_connectiontype = esc.esc_connectiontype;
+				_total_counter += esc.counter;
+				_total_esc_count += esc.esc_count;
 
-				// Capture online_flags, we will map from index to motor number
 				uint16_t online_flags = esc.esc_online_flags;
-				_interface[i].esc_online_flags = 0;
 
 				for (int j = 0; j < esc_status_s::CONNECTED_ESC_MAX; j++) {
 					bool is_motor = math::isInRange(esc.esc[j].actuator_function,
 									esc_report_s::ACTUATOR_FUNCTION_MOTOR1, esc_report_s::ACTUATOR_FUNCTION_MOTOR_MAX);
 
 					if (is_motor) {
-						// Map OutputFunction number to index
 						int index = (int)esc.esc[j].actuator_function - esc_report_s::ACTUATOR_FUNCTION_MOTOR1;
 
 						if (index >= 0 && index < MAX_ESC_OUTPUTS) {
@@ -115,19 +106,12 @@ private:
 							_escs[index].error_count = esc.esc[j].esc_errorcount;
 							_escs[index].timestamp = esc.esc[j].timestamp;
 							_escs[index].temperature = esc.esc[j].esc_temperature * 100.f;
+							_escs[index].connectiontype = esc.esc_connectiontype;
 						}
 					}
 				}
 			}
 		}
-
-		int count = 0;
-
-		for (int i = 0; i < MAX_NUM_MSGS; i++) {
-			count += _interface[i].esc_count;
-		}
-
-		_total_esc_count = count;
 	}
 
 	bool send() override
@@ -141,10 +125,10 @@ private:
 			mavlink_esc_info_t msg = {};
 			msg.index = i * ESCS_PER_MSG;
 			msg.time_usec = now;
-			msg.counter = _interface[i].counter;
+			msg.counter = _total_counter;
 			msg.count = _total_esc_count;
-			msg.connection_type = _interface[i].esc_connectiontype;
-			msg.info = _interface[i].esc_online_flags;
+			msg.connection_type = 0;
+			msg.info = 0;
 
 			bool atleast_one_esc_updated = false;
 
@@ -158,6 +142,11 @@ private:
 					msg.failure_flags[j] = esc.failure_flags;
 					msg.error_count[j] = esc.error_count;
 					msg.temperature[j] = esc.temperature;
+
+					if (msg.connection_type == 0) {
+						msg.connection_type = esc.connectiontype;
+					}
+
 					atleast_one_esc_updated = true;
 				}
 			}
