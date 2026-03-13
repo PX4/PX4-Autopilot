@@ -43,4 +43,4 @@ px4_add_module(
 		px4_work_queue
 	)
 
-px4_add_unit_gtest(SRC FixedwingAttitudeControlTest.cpp)
+px4_add_unit_gtest(SRC FixedwingAttitudeControlTest.cpp LINKLIBS modules__fw_att_control)
