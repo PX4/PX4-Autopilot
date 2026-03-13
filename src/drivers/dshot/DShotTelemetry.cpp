@@ -207,9 +207,7 @@ TelemetryStatus DShotTelemetry::parseTelemetryPacket(EscData *esc_data)
 	int bytes = _uart.read(buf, sizeof(buf));
 
 	if (bytes <= 0) {
-		if (elapsed > 30_ms) {
-			// NOTE: this happens when sending commands, there's a window after an ESC receives
-			// a command where it will not respond to any telemetry requests
+		if (elapsed > 5_ms) {
 			++_num_timeouts;
 
 			// Mark telemetry request as finished
