@@ -362,6 +362,10 @@ MavlinkFTP::_workList(PayloadHeader *payload)
 {
 	_constructPath(_work_buffer1, _work_buffer1_len, _data_as_cstring(payload));
 
+	if (!_validatePath(_work_buffer1)) {
+		return kErrFailFileProtected;
+	}
+
 	ErrorCode errorCode = kErrNone;
 	unsigned offset = 0;
 
@@ -510,6 +514,10 @@ MavlinkFTP::_workOpen(PayloadHeader *payload, int oflag)
 
 	_constructPath(_work_buffer1, _work_buffer1_len, _data_as_cstring(payload));
 
+	if (!_validatePath(_work_buffer1)) {
+		return kErrFailFileProtected;
+	}
+
 	PX4_DEBUG("FTP: open '%s'", _work_buffer1);
 
 	uint32_t fileSize = 0;
@@ -652,7 +660,7 @@ MavlinkFTP::_workRemoveFile(PayloadHeader *payload)
 {
 	_constructPath(_work_buffer1, _work_buffer1_len, _data_as_cstring(payload));
 
-	if (!_validatePathIsWritable(_work_buffer1)) {
+	if (!_validatePath(_work_buffer1) || !_validatePathIsWritable(_work_buffer1)) {
 		return kErrFailFileProtected;
 	}
 
@@ -676,7 +684,7 @@ MavlinkFTP::_workTruncateFile(PayloadHeader *payload)
 	_constructPath(_work_buffer1, _work_buffer1_len, _data_as_cstring(payload));
 	payload->size = 0;
 
-	if (!_validatePathIsWritable(_work_buffer1)) {
+	if (!_validatePath(_work_buffer1) || !_validatePathIsWritable(_work_buffer1)) {
 		return kErrFailFileProtected;
 	}
 
@@ -837,7 +845,7 @@ MavlinkFTP::_workRename(PayloadHeader *payload)
 	_constructPath(_work_buffer1, _work_buffer1_len, ptr);
 	_constructPath(_work_buffer2, _work_buffer2_len, ptr + oldpath_sz + 1);
 
-	if (!_validatePathIsWritable(_work_buffer2)) {
+	if (!_validatePath(_work_buffer1) || !_validatePath(_work_buffer2) || !_validatePathIsWritable(_work_buffer2)) {
 		return kErrFailFileProtected;
 	}
 
@@ -860,7 +868,7 @@ MavlinkFTP::_workRemoveDirectory(PayloadHeader *payload)
 {
 	_constructPath(_work_buffer1, _work_buffer1_len, _data_as_cstring(payload));
 
-	if (!_validatePathIsWritable(_work_buffer1)) {
+	if (!_validatePath(_work_buffer1) || !_validatePathIsWritable(_work_buffer1)) {
 		return kErrFailFileProtected;
 	}
 
@@ -883,7 +891,7 @@ MavlinkFTP::_workCreateDirectory(PayloadHeader *payload)
 {
 	_constructPath(_work_buffer1, _work_buffer1_len, _data_as_cstring(payload));
 
-	if (!_validatePathIsWritable(_work_buffer1)) {
+	if (!_validatePath(_work_buffer1) || !_validatePathIsWritable(_work_buffer1)) {
 		return kErrFailFileProtected;
 	}
 
@@ -907,6 +915,10 @@ MavlinkFTP::_workCalcFileCRC32(PayloadHeader *payload)
 	uint32_t checksum = 0;
 	ssize_t bytes_read;
 	_constructPath(_work_buffer2, _work_buffer2_len, _data_as_cstring(payload));
+
+	if (!_validatePath(_work_buffer2)) {
+		return kErrFailFileProtected;
+	}
 
 	int fd = ::open(_work_buffer2, O_RDONLY);
 
@@ -1145,6 +1157,36 @@ void MavlinkFTP::send()
 		ftp_msg.target_component = _session_info.stream_target_component_id;
 		_reply(&ftp_msg);
 	} while (more_data);
+}
+
+/**
+ * Reject paths containing ".." components to prevent directory traversal
+ * outside of _root_dir. Walks the path checking each component between
+ * '/' separators. A component of exactly ".." (followed by '/' or end
+ * of string) is rejected.
+ *
+ * Examples:
+ *   "/fs/microsd/logs"         -> allowed
+ *   "/fs/microsd/../etc"       -> rejected
+ *   "../../tmp/pwned"          -> rejected
+ *   "/fs/microsd/logs/.."      -> rejected
+ *   "/fs/microsd/..hidden"     -> allowed (not a ".." component)
+ */
+bool MavlinkFTP::_validatePath(const char *path)
+{
+	const char *p = path;
+
+	while (*p != '\0') {
+		if ((p == path || *(p - 1) == '/') && p[0] == '.' && p[1] == '.'
+		    && (p[2] == '/' || p[2] == '\0')) {
+			PX4_ERR("FTP: rejecting path traversal in %s", path);
+			return false;
+		}
+
+		p++;
+	}
+
+	return true;
 }
 
 bool MavlinkFTP::_validatePathIsWritable(const char *path)
