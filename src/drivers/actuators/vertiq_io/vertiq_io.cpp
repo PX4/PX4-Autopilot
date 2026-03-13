@@ -187,7 +187,7 @@ void VertiqIo::OutputControls(float outputs[MAX_ACTUATORS])
 {
 	//Put the mixer outputs into the output message
 	for (uint8_t i = 0; i < _transmission_message.num_cvs; i++) {
-		_transmission_message.commands[i] = (uint16_t)math::constrain(outputs[i], 0.f, 65535.f);
+		_transmission_message.commands[i] = static_cast<uint16_t>(lroundf(outputs[i]));
 	}
 
 	_operational_ifci.PackageIfciCommandsForTransmission(&_transmission_message, _output_message, &_output_len);
@@ -195,8 +195,7 @@ void VertiqIo::OutputControls(float outputs[MAX_ACTUATORS])
 	_serial_interface.ProcessSerialTx();
 }
 
-bool VertiqIo::updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs,
-			     unsigned num_control_groups_updated)
+bool VertiqIo::updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, unsigned num_control_groups_updated)
 {
 #ifdef CONFIG_USE_IFCI_CONFIGURATION
 

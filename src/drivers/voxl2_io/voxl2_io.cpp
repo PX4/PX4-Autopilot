@@ -301,8 +301,7 @@ int Voxl2IO::handle_uart_passthru()
 	return num_writes;
 }
 
-bool Voxl2IO::updateOutputs(float outputs[input_rc_s::RC_INPUT_MAX_CHANNELS],
-			    unsigned num_outputs, unsigned num_control_groups_updated)
+bool Voxl2IO::updateOutputs(float outputs[input_rc_s::RC_INPUT_MAX_CHANNELS], unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	// Stop Mixer while ESCs are being calibrated
 	if (_outputs_disabled) {
@@ -326,11 +325,11 @@ bool Voxl2IO::updateOutputs(float outputs[input_rc_s::RC_INPUT_MAX_CHANNELS],
 			outputs[i] = 0;
 		}
 
-		if (fabsf(outputs[i]) > 0.f) {
+		if (fabsf(outputs[i]) > FLT_EPSILON) {
 			_pwm_on = true;
 		}
 
-		output_cmds[i] = ((uint32_t)math::constrain(outputs[i], 0.f, (float)UINT32_MAX)) * MIXER_OUTPUT_TO_CMD_SCALE;  //convert to ns
+		output_cmds[i] = static_cast<uint32_t>(lroundf(outputs[i] * MIXER_OUTPUT_TO_CMD_SCALE)); //convert to ns
 	}
 
 	Command cmd;

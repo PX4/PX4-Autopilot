@@ -41,7 +41,6 @@
 
 #include <px4_log.h>
 #include <drivers/device/device.h>
-#include <lib/mathlib/mathlib.h>
 #include <lib/mixer_module/mixer_module.hpp>
 #include <px4_platform_common/module.h>
 #include <lib/perf/perf_counter.h>
@@ -74,8 +73,7 @@ public:
 	static int custom_command(int argc, char *argv[]);
 	static int print_usage(const char *reason = nullptr);
 
-	bool updateOutputs(float *outputs, unsigned num_outputs,
-			   unsigned num_control_groups_updated) override;
+	bool updateOutputs(float *outputs, unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 	int print_status() override;
 
@@ -156,8 +154,7 @@ int PCA9685Wrapper::init()
 	return PX4_OK;
 }
 
-bool PCA9685Wrapper::updateOutputs(float *outputs, unsigned num_outputs,
-				   unsigned num_control_groups_updated)
+bool PCA9685Wrapper::updateOutputs(float *outputs, unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	if (_state != STATE::RUNNING) { return false; }
 

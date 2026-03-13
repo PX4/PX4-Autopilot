@@ -155,8 +155,7 @@ public:
 
 	uint16_t		system_status() const { return _status; }
 
-	bool updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs,
-			   unsigned num_control_groups_updated) override;
+	bool updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 private:
 	void Run() override;
@@ -375,7 +374,7 @@ bool PX4IO::updateOutputs(float outputs[MAX_ACTUATORS],
 			outputs[i] = 0;
 		}
 
-		hw_outputs[i] = (uint16_t)math::constrain(outputs[i], 0.f, 65535.f);
+		hw_outputs[i] = static_cast<uint16_t>(lroundf(outputs[i]));
 	}
 
 	if (!_test_fmu_fail) {
@@ -508,7 +507,7 @@ void PX4IO::updateFailsafe()
 	uint16_t values[PX4IO_MAX_ACTUATORS] {};
 
 	for (unsigned i = 0; i < _max_actuators; i++) {
-		values[i] = _mixing_output.actualFailsafeValue(i);
+		values[i] = static_cast<uint16_t>(lroundf(_mixing_output.actualFailsafeValue(i)));
 	}
 
 	io_reg_set(PX4IO_PAGE_FAILSAFE_PWM, 0, values, _max_actuators);

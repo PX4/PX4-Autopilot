@@ -56,8 +56,7 @@ public:
 		_node(node)
 	{}
 
-	bool updateOutputs(float outputs[MAX_ACTUATORS],
-			   unsigned num_outputs, unsigned num_control_groups_updated) override;
+	bool updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 	MixingOutput &mixingOutput() { return _mixing_output; }
 

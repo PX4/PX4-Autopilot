@@ -144,9 +144,9 @@ void MixingOutput::printStatus() const
 	PX4_INFO_RAW("Channel Configuration:\n");
 
 	for (unsigned i = 0; i < _max_num_outputs; i++) {
-		PX4_INFO_RAW("Channel %i: func: %3i, value: %i, failsafe: %d, disarmed: %d, min: %d, max: %d, center: %d\n", i,
-			     (int)_function_assignment[i], (int)_current_output_value[i],
-			     actualFailsafeValue(i), _disarmed_value[i], _min_value[i], _max_value[i], _center_value[i]);
+		PX4_INFO_RAW("Channel %2d: func: %3d, value: %.2f, failsafe: %.2f, disarmed: %d, min: %d, max: %d, center: %d\n",
+			     i, (int)_function_assignment[i], (double)_current_output_value[i], (double)actualFailsafeValue(i),
+			     _disarmed_value[i], _min_value[i], _max_value[i], _center_value[i]);
 	}
 }
 
@@ -509,15 +509,15 @@ MixingOutput::limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updat
 	// Doing so makes calibrations consistent among different configurations and hence PWM minimum and maximum have a consistent effect
 	// hence the defaults for these parameters also make most setups work out of the box
 	if (_armed.in_esc_calibration_mode) {
-		static constexpr uint16_t PWM_CALIBRATION_LOW = 1000;
-		static constexpr uint16_t PWM_CALIBRATION_HIGH = 2000;
+		static constexpr float PWM_CALIBRATION_LOW = 1000.f;
+		static constexpr float PWM_CALIBRATION_HIGH = 2000.f;
 
 		for (int i = 0; i < _max_num_outputs; i++) {
-			if (lroundf(_current_output_value[i]) == (long)_min_value[i]) {
+			if (fabsf(_current_output_value[i] - (float)_min_value[i]) < FLT_EPSILON) {
 				_current_output_value[i] = PWM_CALIBRATION_LOW;
 			}
 
-			if (lroundf(_current_output_value[i]) == (long)_max_value[i]) {
+			if (fabsf(_current_output_value[i] - (float)_max_value[i]) < FLT_EPSILON) {
 				_current_output_value[i] = PWM_CALIBRATION_HIGH;
 			}
 		}
@@ -543,16 +543,6 @@ float MixingOutput::output_limit_calc_single(int i, float value) const
 		value = -1.f * value;
 	}
 
-	// Reversible motors: map CA [-1, +1] symmetrically around disarmed_value.
-	// disarmed_value encodes raw_cmd=0 (motor stopped), so it is the correct neutral point.
-	// min_param is intentionally ignored here: the user does not need to change any parameters
-	// when a motor dynamically becomes reversible due to a failure event.
-	if (_reversible_mask & (1u << i)) {
-		const float disarmed = static_cast<float>(_disarmed_value[i]);
-		const float half_range = static_cast<float>(_max_value[i]) - disarmed;
-		return disarmed + math::constrain(value, -1.f, 1.f) * half_range;
-	}
-
 	float output = _disarmed_value[i];
 
 	if (((_function_assignment[i] >= OutputFunction::Servo1
@@ -562,17 +552,7 @@ float MixingOutput::output_limit_calc_single(int i, float value) const
 	    && _param_handles[i].center != PARAM_INVALID
 	    && _center_value[i] >= 800
 	    && _center_value[i] <= 2200) {
-
-		/* bi-linear interpolation */
-		if (value < 0.0f) {
-			output = math::interpolate(value, -1.f, 0.0f,
-						   static_cast<float>(_min_value[i]), static_cast<float>(_center_value[i]));
-
-		} else {
-			output = math::interpolate(value, 0.0f, 1.0f,
-						   static_cast<float>(_center_value[i]), static_cast<float>(_max_value[i]));
-		}
-
+		output = math::interpolateNXY(value, {-1.f, 0.f, 1.f}, {(float)_min_value[i], (float)_center_value[i], (float)_max_value[i]});
 	}
 
 	// Everything except servos, or if center is not set
@@ -698,10 +678,9 @@ MixingOutput::updateLatencyPerfCounter(const actuator_outputs_s &actuator_output
 	}
 }
 
-uint16_t
-MixingOutput::actualFailsafeValue(int index) const
+float MixingOutput::actualFailsafeValue(int index) const
 {
-	uint16_t value = 0;
+	float value = 0;
 
 	if (_failsafe_value[index] == UINT16_MAX) { // if set to default, use the one provided by the function
 		float default_failsafe = NAN;
@@ -710,10 +689,10 @@ MixingOutput::actualFailsafeValue(int index) const
 			default_failsafe = _functions[index]->defaultFailsafeValue(_function_assignment[index]);
 		}
 
-		value = (uint16_t)math::constrain(lroundf(output_limit_calc_single(index, default_failsafe)), 0L, static_cast<long>(UINT16_MAX));
+		value = output_limit_calc_single(index, default_failsafe);
 
 	} else {
-		value = _failsafe_value[index];
+		value = static_cast<float>(_failsafe_value[index]);
 	}
 
 	return value;

@@ -374,8 +374,7 @@ void DShot::mixerChanged()
 	update_num_motors();
 }
 
-bool DShot::updateOutputs(float outputs[MAX_ACTUATORS],
-			  unsigned num_outputs, unsigned num_control_groups_updated)
+bool DShot::updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	if (!_outputs_on) {
 		return false;
@@ -391,7 +390,7 @@ bool DShot::updateOutputs(float outputs[MAX_ACTUATORS],
 
 	for (int i = 0; i < (int)num_outputs; i++) {
 
-		uint16_t output = (uint16_t)math::constrain(outputs[i], 0.f, 65535.f);
+		uint16_t output = static_cast<uint16_t>(lroundf(outputs[i]));
 
 		if (output == DSHOT_DISARM_VALUE) {
 
