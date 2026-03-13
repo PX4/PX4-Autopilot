@@ -99,8 +99,7 @@ void UavcanEscController::update_outputs(float outputs[MAX_ACTUATORS], uint8_t o
 	uavcan::equipment::esc::RawCommand msg{};
 
 	for (unsigned i = 0; i < output_array_size; i++) {
-		const float clamped = outputs[i] > 8191.f ? 8191.f : (outputs[i] < -8192.f ? -8192.f : outputs[i]);
-		msg.cmd.push_back(static_cast<int>(clamped));
+		msg.cmd.push_back(static_cast<int>(lroundf(outputs[i])));
 	}
 
 	_uavcan_pub_raw_cmd.broadcast(msg);

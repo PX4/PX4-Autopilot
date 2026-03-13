@@ -252,26 +252,26 @@ bool TAP_ESC::updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs,
 		// We need to remap from the system default to what PX4's normal scheme is
 		switch (num_outputs) {
 		case 4:
-			motor_out[0] = (uint16_t)math::constrain(outputs[2], 0.f, 65535.f);
-			motor_out[1] = (uint16_t)math::constrain(outputs[1], 0.f, 65535.f);
-			motor_out[2] = (uint16_t)math::constrain(outputs[3], 0.f, 65535.f);
-			motor_out[3] = (uint16_t)math::constrain(outputs[0], 0.f, 65535.f);
+			motor_out[0] = static_cast<uint16_t>(lroundf(outputs[2]));
+			motor_out[1] = static_cast<uint16_t>(lroundf(outputs[1]));
+			motor_out[2] = static_cast<uint16_t>(lroundf(outputs[3]));
+			motor_out[3] = static_cast<uint16_t>(lroundf(outputs[0]));
 			break;
 
 		case 6:
-			motor_out[0] = (uint16_t)math::constrain(outputs[3], 0.f, 65535.f);
-			motor_out[1] = (uint16_t)math::constrain(outputs[0], 0.f, 65535.f);
-			motor_out[2] = (uint16_t)math::constrain(outputs[4], 0.f, 65535.f);
-			motor_out[3] = (uint16_t)math::constrain(outputs[2], 0.f, 65535.f);
-			motor_out[4] = (uint16_t)math::constrain(outputs[1], 0.f, 65535.f);
-			motor_out[5] = (uint16_t)math::constrain(outputs[5], 0.f, 65535.f);
+			motor_out[0] = static_cast<uint16_t>(lroundf(outputs[3]));
+			motor_out[1] = static_cast<uint16_t>(lroundf(outputs[0]));
+			motor_out[2] = static_cast<uint16_t>(lroundf(outputs[4]));
+			motor_out[3] = static_cast<uint16_t>(lroundf(outputs[2]));
+			motor_out[4] = static_cast<uint16_t>(lroundf(outputs[1]));
+			motor_out[5] = static_cast<uint16_t>(lroundf(outputs[5]));
 			break;
 
 		default:
 
 			// Use the system defaults
 			for (uint8_t i = 0; i < num_outputs; ++i) {
-				motor_out[i] = (uint16_t)math::constrain(outputs[i], 0.f, 65535.f);
+				motor_out[i] = static_cast<uint16_t>(lroundf(outputs[i]));
 			}
 
 			break;

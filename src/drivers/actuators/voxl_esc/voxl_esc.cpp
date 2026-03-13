@@ -1251,7 +1251,7 @@ bool VoxlEsc::updateOutputs(float outputs[MAX_ACTUATORS],
 	uint16_t hw_outputs[VOXL_ESC_OUTPUT_CHANNELS] {};
 
 	for (int i = 0; i < VOXL_ESC_OUTPUT_CHANNELS; i++) {
-		hw_outputs[i] = (uint16_t)math::constrain(outputs[i], 0.f, 65535.f);
+		hw_outputs[i] = static_cast<uint16_t>(lroundf(outputs[i]));
 	}
 
 	// don't use mixed values... recompute now.

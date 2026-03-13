@@ -85,8 +85,7 @@ public:
 	int print_status() override;
 
 	/** @see OutputModuleInterface */
-	bool updateOutputs(float outputs[input_rc_s::RC_INPUT_MAX_CHANNELS],
-			   unsigned num_outputs, unsigned num_control_groups_updated) override;
+	bool updateOutputs(float outputs[input_rc_s::RC_INPUT_MAX_CHANNELS], unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 	virtual int	init();
 
