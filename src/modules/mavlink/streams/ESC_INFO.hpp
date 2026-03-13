@@ -52,7 +52,7 @@ public:
 	unsigned get_size() override
 	{
 		static constexpr unsigned message_size = MAVLINK_MSG_ID_ESC_INFO_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
-		return _esc_status_subs.advertised_count() * message_size;
+		return MAX_NUM_MSGS * message_size;
 	}
 
 private:
@@ -84,10 +84,10 @@ private:
 		_total_counter = 0;
 		_total_esc_count = 0;
 
-		for (int i = 0; i < math::min(_esc_status_subs.size(), MAX_NUM_MSGS); i++) {
+		for (int i = 0; i < _esc_status_subs.size(); i++) {
 			esc_status_s esc = {};
 
-			if (_esc_status_subs[i].update(&esc)) {
+			if (_esc_status_subs[i].copy(&esc)) {
 				_total_counter += esc.counter;
 				_total_esc_count += esc.esc_count;
 
