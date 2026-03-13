@@ -75,49 +75,22 @@ MavlinkFTP::get_size()
 	}
 }
 
-#ifdef MAVLINK_FTP_UNIT_TEST
-void
-MavlinkFTP::set_unittest_worker(ReceiveMessageFunc_t rcvMsgFunc, void *worker_data)
-{
-	_utRcvMsgFunc = rcvMsgFunc;
-	_worker_data = worker_data;
-}
-#endif
-
 uint8_t
 MavlinkFTP::_getServerSystemId()
 {
-#ifdef MAVLINK_FTP_UNIT_TEST
-	// We use fake ids when unit testing
-	return MavlinkFtpTest::serverSystemId;
-#else
-	// Not unit testing, use the real thing
 	return _mavlink.get_system_id();
-#endif
 }
 
 uint8_t
 MavlinkFTP::_getServerComponentId()
 {
-#ifdef MAVLINK_FTP_UNIT_TEST
-	// We use fake ids when unit testing
-	return MavlinkFtpTest::serverComponentId;
-#else
-	// Not unit testing, use the real thing
 	return _mavlink.get_component_id();
-#endif
 }
 
 uint8_t
 MavlinkFTP::_getServerChannel()
 {
-#ifdef MAVLINK_FTP_UNIT_TEST
-	// We use fake ids when unit testing
-	return MavlinkFtpTest::serverChannel;
-#else
-	// Not unit testing, use the real thing
 	return _mavlink.get_channel();
-#endif
 }
 
 void
@@ -173,11 +146,7 @@ MavlinkFTP::_process_request(
 		if (payload->seq_number + 1 == last_payload->seq_number) {
 			// this is the same request as the one we replied to last. It means the (n)ack got lost, and the GCS
 			// resent the request
-#ifdef MAVLINK_FTP_UNIT_TEST
-			_utRcvMsgFunc(last_reply, _worker_data);
-#else
 			mavlink_msg_file_transfer_protocol_send_struct(_mavlink.get_channel(), last_reply);
-#endif
 			return;
 		}
 	}
@@ -332,12 +301,7 @@ MavlinkFTP::_reply(mavlink_file_transfer_protocol_t *ftp_req)
 
 	PX4_DEBUG("FTP: %s seq_number: %" PRIu16, payload->opcode == kRspAck ? "Ack" : "Nak", payload->seq_number);
 
-#ifdef MAVLINK_FTP_UNIT_TEST
-	// Unit test hook is set, call that instead
-	_utRcvMsgFunc(ftp_req, _worker_data);
-#else
 	mavlink_msg_file_transfer_protocol_send_struct(_mavlink.get_channel(), ftp_req);
-#endif
 
 }
 void MavlinkFTP::_constructPath(char *dst, int dst_len, const char *path) const
@@ -1055,7 +1019,6 @@ void MavlinkFTP::send()
 		return;
 	}
 
-#ifndef MAVLINK_FTP_UNIT_TEST
 	// Skip send if not enough room
 	unsigned max_bytes_to_send = _mavlink.get_free_tx_buf();
 	PX4_DEBUG("MavlinkFTP::send max_bytes_to_send(%u) get_free_tx_buf(%u)", max_bytes_to_send, _mavlink.get_free_tx_buf());
@@ -1063,8 +1026,6 @@ void MavlinkFTP::send()
 	if (max_bytes_to_send < get_size()) {
 		return;
 	}
-
-#endif
 
 	// Send stream packets until buffer is full
 
@@ -1129,8 +1090,6 @@ void MavlinkFTP::send()
 			_session_info.stream_download = false;
 
 		} else {
-#ifndef MAVLINK_FTP_UNIT_TEST
-
 			if (max_bytes_to_send < (get_size() * 2)) {
 				more_data = false;
 
@@ -1142,14 +1101,10 @@ void MavlinkFTP::send()
 				}
 
 			} else {
-#endif
 				more_data = true;
 				payload->burst_complete = false;
-#ifndef MAVLINK_FTP_UNIT_TEST
 				max_bytes_to_send -= get_size();
 			}
-
-#endif
 		}
 
 		ftp_msg.target_system = _session_info.stream_target_system_id;

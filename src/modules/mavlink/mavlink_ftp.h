@@ -64,13 +64,6 @@ public:
 	/// Handle possible FTP message
 	void handle_message(const mavlink_message_t *msg);
 
-	typedef void (*ReceiveMessageFunc_t)(const mavlink_file_transfer_protocol_t *ftp_req, void *worker_data);
-
-	/// @brief Sets up the server to run in unit test mode.
-	///	@param rcvmsgFunc Function which will be called to handle outgoing mavlink messages.
-	///	@param worker_data Data to pass to worker
-	void set_unittest_worker(ReceiveMessageFunc_t rcvMsgFunc, void *worker_data);
-
 	/// @brief This is the payload which is in mavlink_file_transfer_protocol_t.payload.
 	/// This needs to be packed, because it's typecasted from mavlink_file_transfer_protocol_t.payload, which starts
 	/// at a 3 byte offset, causing an unaligned access to seq_number and offset
@@ -184,9 +177,6 @@ private:
 	};
 	struct SessionInfo _session_info {};	///< Session info, fd=-1 for no active session
 
-	ReceiveMessageFunc_t	_utRcvMsgFunc{};	///< Unit test override for mavlink message sending
-	void			*_worker_data{nullptr};	///< Additional parameter to _utRcvMsgFunc;
-
 	Mavlink &_mavlink;
 
 	/* do not allow copying this class */
@@ -202,11 +192,7 @@ private:
 
 	// prepend a root directory to each file/dir access to avoid enumerating the full FS tree (e.g. on Linux).
 	// Path traversal via ".." is rejected by _validatePath().
-#ifdef MAVLINK_FTP_UNIT_TEST
-	static constexpr const char _root_dir[] = "";
-#else
 	static constexpr const char _root_dir[] = PX4_ROOTFSDIR;
-#endif
 	static constexpr const int _root_dir_len = sizeof(_root_dir) - 1;
 
 	bool _last_reply_valid = false;
