@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,16 +32,73 @@
  ****************************************************************************/
 
 /**
- * @file mavlink_tests.cpp
+ * Enable Actuator Failure check
+ *
+ * If enabled, the HealthAndArmingChecks will verify that for motors, a minimum amount of ESC current per throttle
+ * level is being consumed.
+ * Otherwise this indicates an motor failure.
+ * This check only works for ESCs that report current consumption.
+ *
+ * @boolean
+ *
+ * @group Motor Failure
  */
+PARAM_DEFINE_INT32(FD_ACT_EN, 0);
 
-#include <systemlib/err.h>
+/**
+ * Motor Failure Current/Throttle Scale
+ *
+ * Determines the slope between expected steady state current and linearized, normalized thrust command.
+ * E.g. FD_ACT_MOT_C2T A represents the expected steady state current at 100%.
+ * FD_ACT_LOW_OFF and FD_ACT_HIGH_OFF offset the threshold from that slope.
+ *
+ * @group Motor Failure
+ * @min 0.0
+ * @max 50.0
+ * @unit A/%
+ * @decimal 2
+ * @increment 1
+ */
+PARAM_DEFINE_FLOAT(MOTFAIL_C2T, 35.f);
 
-#include "mavlink_ftp_test.h"
+/**
+ * Undercurrent motor failure limit offset
+ *
+ * threshold = FD_ACT_MOT_C2T * thrust - FD_ACT_LOW_OFF
+ *
+ * @group Motor Failure
+ * @min 0
+ * @max 30
+ * @unit A
+ * @decimal 2
+ * @increment 1
+ */
+PARAM_DEFINE_FLOAT(MOTFAIL_LOW_OFF, 10.f);
 
-extern "C" __EXPORT int mavlink_tests_main(int argc, char *argv[]);
+/**
+ * Overcurrent motor failure limit offset
+ *
+ * threshold = FD_ACT_MOT_C2T * thrust + FD_ACT_HIGH_OFF
+ *
+ * @group Motor Failure
+ * @min 0
+ * @max 30
+ * @unit A
+ * @decimal 2
+ * @increment 1
+ */
+PARAM_DEFINE_FLOAT(MOTFAIL_HIGH_OFF, 10.f);
 
-int mavlink_tests_main(int argc, char *argv[])
-{
-	return mavlink_ftp_test() ? 0 : -1;
-}
+/**
+ * Motor Failure Hysteresis Time
+ *
+ * Motor failure only triggers after current thresholds are exceeded for this time.
+ *
+ * @group Motor Failure
+ * @unit s
+ * @min 0.01
+ * @max 10
+ * @decimal 2
+ * @increment 1
+ */
+PARAM_DEFINE_FLOAT(MOTFAIL_TIME, 1.f);

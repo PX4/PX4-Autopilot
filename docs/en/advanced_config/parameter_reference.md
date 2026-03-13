@@ -20502,7 +20502,8 @@ Measurement noise for magnetic heading fusion.
 
 Determines the reference source of height data used by the EKF.
 
-When multiple height sources are enabled at the same time, the height estimate will always converge towards the reference height source selected by this parameter. The range sensor and vision options should only be used when for operation over a flat surface as the local NED origin will move up and down with ground level. If GPS is set as reference but altitude fusion is disabled in EKF2_GPS_CTRL, the GPS altitude is still used to initiaize the bias of the other height sensors.
+When multiple height sources are enabled at the same time, the height estimate will always converge towards the reference height source selected by this parameter. The range sensor and vision options should only be used when for operation over a flat surface as the local NED origin will move up and down with ground level.
+If GPS is set as reference and EKF2_GPS_CTRL is not 0, the GPS altitude is still used to initiaize the bias of the other height sensors, regardless of the altitude fusion bit in EKF2_GPS_CTRL.
 
 **Values:**
 
@@ -22728,82 +22729,6 @@ Yaw rate proportional gain.
 | &nbsp; | 0.0      | 10       | 0.005     | 0.05    | %/rad/s |
 
 ## Failure Detector
-
-### FD_ACT_EN (`INT32`) {#FD_ACT_EN}
-
-Enable Actuator Failure check.
-
-If enabled, failure detector will verify that for motors, a minimum amount of ESC current per throttle
-level is being consumed.
-Otherwise this indicates an motor failure.
-
-| Reboot  | minValue | maxValue | increment | default      | unit |
-| ------- | -------- | -------- | --------- | ------------ | ---- |
-| &check; |          |          |           | Disabled (0) |      |
-
-### FD_ACT_HIGH_OFF (`FLOAT`) {#FD_ACT_HIGH_OFF}
-
-Overcurrent motor failure limit offset.
-
-threshold = FD_ACT_MOT_C2T \* thrust + FD_ACT_HIGH_OFF
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 30       | 1         | 10.     | A    |
-
-### FD_ACT_LOW_OFF (`FLOAT`) {#FD_ACT_LOW_OFF}
-
-Undercurrent motor failure limit offset.
-
-threshold = FD_ACT_MOT_C2T \* thrust - FD_ACT_LOW_OFF
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 30       | 1         | 10.     | A    |
-
-### FD_ACT_MOT_C2T (`FLOAT`) {#FD_ACT_MOT_C2T}
-
-Motor Failure Current/Throttle Scale.
-
-Determines the slope between expected steady state current and linearized, normalized thrust command.
-E.g. FD_ACT_MOT_C2T A represents the expected steady state current at 100%.
-FD_ACT_LOW_OFF and FD_ACT_HIGH_OFF offset the threshold from that slope.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 50.0     | 1         | 35.     | A/%  |
-
-### FD_ACT_MOT_THR (`FLOAT`) {#FD_ACT_MOT_THR}
-
-Motor Failure Thrust Threshold.
-
-Failure detection per motor only triggers above this thrust value.
-Set to 1 to disable the detection.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 1.0      | 0.01      | 0.2     | norm |
-
-### FD_ACT_MOT_TOUT (`INT32`) {#FD_ACT_MOT_TOUT}
-
-Motor Failure Hysteresis Time.
-
-Motor failure only triggers after current thresholds are exceeded for this time.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 10       | 10000    | 100       | 1000    | ms   |
-
-### FD_ESCS_EN (`INT32`) {#FD_ESCS_EN}
-
-Enable checks on ESCs that report their arming state.
-
-If enabled, failure detector will verify that all the ESCs have successfully armed when the vehicle has transitioned to the armed state.
-Timeout for receiving an acknowledgement from the ESCs is 0.3s, if no feedback is received the failure detector will auto disarm the vehicle.
-
-| Reboot | minValue | maxValue | increment | default     | unit |
-| ------ | -------- | -------- | --------- | ----------- | ---- |
-| &nbsp; |          |          |           | Enabled (1) |      |
 
 ### FD_EXT_ATS_EN (`INT32`) {#FD_EXT_ATS_EN}
 
@@ -28377,6 +28302,63 @@ needs to be changed to match a custom setting
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          |           | 0       |      |
+
+## Motor Failure
+
+### FD_ACT_EN (`INT32`) {#FD_ACT_EN}
+
+Enable Actuator Failure check.
+
+If enabled, the HealthAndArmingChecks will verify that for motors, a minimum amount of ESC current per throttle
+level is being consumed.
+Otherwise this indicates an motor failure.
+This check only works for ESCs that report current consumption.
+
+| Reboot | minValue | maxValue | increment | default      | unit |
+| ------ | -------- | -------- | --------- | ------------ | ---- |
+| &nbsp; |          |          |           | Disabled (0) |      |
+
+### MOTFAIL_C2T (`FLOAT`) {#MOTFAIL_C2T}
+
+Motor Failure Current/Throttle Scale.
+
+Determines the slope between expected steady state current and linearized, normalized thrust command.
+E.g. FD_ACT_MOT_C2T A represents the expected steady state current at 100%.
+FD_ACT_LOW_OFF and FD_ACT_HIGH_OFF offset the threshold from that slope.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.0      | 50.0     | 1         | 35.     | A/%  |
+
+### MOTFAIL_HIGH_OFF (`FLOAT`) {#MOTFAIL_HIGH_OFF}
+
+Overcurrent motor failure limit offset.
+
+threshold = FD_ACT_MOT_C2T \* thrust + FD_ACT_HIGH_OFF
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 30       | 1         | 10.     | A    |
+
+### MOTFAIL_LOW_OFF (`FLOAT`) {#MOTFAIL_LOW_OFF}
+
+Undercurrent motor failure limit offset.
+
+threshold = FD_ACT_MOT_C2T \* thrust - FD_ACT_LOW_OFF
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 30       | 1         | 10.     | A    |
+
+### MOTFAIL_TIME (`FLOAT`) {#MOTFAIL_TIME}
+
+Motor Failure Hysteresis Time.
+
+Motor failure only triggers after current thresholds are exceeded for this time.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.01     | 10       | 1         | 1.      | s    |
 
 ## Mount
 

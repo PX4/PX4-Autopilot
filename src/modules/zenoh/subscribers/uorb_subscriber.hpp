@@ -79,6 +79,14 @@ public:
 		const z_loaned_bytes_t *payload = z_sample_payload(sample);
 		size_t len = z_bytes_len(payload);
 
+		// Validate payload size to prevent stack overflow from untrusted input.
+		// CDR payload = 4-byte header + serialized data, which should not exceed o_size + 4.
+		const size_t max_payload_size = _uorb_meta->o_size + 4;
+
+		if (len > max_payload_size || len < 4) {
+			return;
+		}
+
 #if defined(Z_FEATURE_UNSTABLE_API)
 		// Check if payload is contiguous so we can decode directly on that pointer
 		z_view_slice_t view;
