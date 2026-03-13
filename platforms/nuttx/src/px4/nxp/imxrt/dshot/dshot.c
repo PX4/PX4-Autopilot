@@ -554,7 +554,7 @@ int up_bdshot_channel_online(uint8_t channel)
 		return ((dshot_inst[channel].no_response_cnt - dshot_inst[channel].last_no_response_cnt) < BDSHOT_OFFLINE_COUNT);
 	}
 
-	return -1;
+	return 0;
 }
 
 void up_bdshot_status(void)
