@@ -32,31 +32,22 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
-#include <matrix/matrix/math.hpp>
+#include "FixedwingAttitudeControl.hpp"
 
 using namespace matrix;
 
 /**
  * Computes the body rate setpoint yaw component (before turn coordination)
- * using the quaternion-based attitude controller logic from FixedwingAttitudeControl.
+ * using the shared computeAttitudeError function from FixedwingAttitudeControl.hpp.
  *
  * @param q_current Current attitude quaternion
  * @param q_sp Attitude setpoint quaternion
- * @param yaw_gain Proportional gain for yaw (typically 1.0)
  * @return Yaw rate setpoint before turn coordination feedforward
  */
-static float computeYawRateSetpointBeforeTurnCoord(const Quatf &q_current, const Quatf &q_sp, float yaw_gain)
+static float computeYawRateSetpointBeforeTurnCoord(const Quatf &q_current, const Quatf &q_sp)
 {
-	// Compute yaw offset to cancel yaw error (fixed-wing has no direct yaw authority)
-	const float yaw_offset = -2.f * (q_current(0) * q_sp(3) - q_current(1) * q_sp(2) + q_current(2) * q_sp(1) -
-					 q_current(3) * q_sp(0)) /
-				 (q_current(0) * q_sp(0) - q_current(1) * q_sp(1) - q_current(2) * q_sp(2) + q_current(3) * q_sp(3));
-
-	const Quatf q_yaw_offset = Quatf(1.f, 0.f, 0.f, yaw_offset / 2.f).normalized();
-	const Quatf q_err = (q_current.inversed() * q_yaw_offset * q_sp).canonical();
-	const Vector3f q_err_imag = 2.f * q_err.imag();
-
-	return yaw_gain * q_err_imag(2);
+	const Vector3f att_err = computeAttitudeError(q_current, q_sp);
+	return att_err(2);
 }
 
 TEST(FixedwingAttitudeControlTest, YawRateSetpointZeroBeforeTurnCoord_Identity)
@@ -65,8 +56,7 @@ TEST(FixedwingAttitudeControlTest, YawRateSetpointZeroBeforeTurnCoord_Identity)
 	const Quatf q_current;
 	const Quatf q_sp;
 
-	const float yaw_rate = computeYawRateSetpointBeforeTurnCoord(q_current, q_sp, 1.0f);
-
+	const float yaw_rate = computeYawRateSetpointBeforeTurnCoord(q_current, q_sp);
 	EXPECT_NEAR(yaw_rate, 0.f, 1e-5f);
 }
 
@@ -76,7 +66,7 @@ TEST(FixedwingAttitudeControlTest, YawRateSetpointZeroBeforeTurnCoord_PureYawErr
 	const Quatf q_current;
 	const Quatf q_sp(Eulerf(0.f, 0.f, 0.5f)); // 0.5 rad (~29 deg) yaw offset
 
-	const float yaw_rate = computeYawRateSetpointBeforeTurnCoord(q_current, q_sp, 1.0f);
+	const float yaw_rate = computeYawRateSetpointBeforeTurnCoord(q_current, q_sp);
 
 	EXPECT_NEAR(yaw_rate, 0.f, 1e-5f);
 }
@@ -87,7 +77,7 @@ TEST(FixedwingAttitudeControlTest, YawRateSetpointZeroBeforeTurnCoord_RollError)
 	const Quatf q_current;
 	const Quatf q_sp(Eulerf(0.3f, 0.f, 0.f)); // 0.3 rad roll
 
-	const float yaw_rate = computeYawRateSetpointBeforeTurnCoord(q_current, q_sp, 1.0f);
+	const float yaw_rate = computeYawRateSetpointBeforeTurnCoord(q_current, q_sp);
 
 	EXPECT_NEAR(yaw_rate, 0.f, 1e-5f);
 }
@@ -98,7 +88,7 @@ TEST(FixedwingAttitudeControlTest, YawRateSetpointZeroBeforeTurnCoord_PitchError
 	const Quatf q_current;
 	const Quatf q_sp(Eulerf(0.f, 0.2f, 0.f)); // 0.2 rad pitch
 
-	const float yaw_rate = computeYawRateSetpointBeforeTurnCoord(q_current, q_sp, 1.0f);
+	const float yaw_rate = computeYawRateSetpointBeforeTurnCoord(q_current, q_sp);
 
 	EXPECT_NEAR(yaw_rate, 0.f, 1e-5f);
 }
@@ -109,7 +99,7 @@ TEST(FixedwingAttitudeControlTest, YawRateSetpointZeroBeforeTurnCoord_CombinedEr
 	const Quatf q_current(Eulerf(0.1f, 0.05f, 0.2f));
 	const Quatf q_sp(Eulerf(0.4f, 0.15f, 0.8f));
 
-	const float yaw_rate = computeYawRateSetpointBeforeTurnCoord(q_current, q_sp, 1.0f);
+	const float yaw_rate = computeYawRateSetpointBeforeTurnCoord(q_current, q_sp);
 
 	EXPECT_NEAR(yaw_rate, 0.f, 1e-4f);
 }
@@ -120,7 +110,7 @@ TEST(FixedwingAttitudeControlTest, YawRateSetpointZeroBeforeTurnCoord_BankedTurn
 	const Quatf q_current(Eulerf(0.5f, 0.f, 0.f)); // 30 deg bank
 	const Quatf q_sp(Eulerf(0.5f, 0.f, 0.3f));     // same bank, different heading
 
-	const float yaw_rate = computeYawRateSetpointBeforeTurnCoord(q_current, q_sp, 1.0f);
+	const float yaw_rate = computeYawRateSetpointBeforeTurnCoord(q_current, q_sp);
 
 	EXPECT_NEAR(yaw_rate, 0.f, 1e-4f);
 }

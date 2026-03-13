@@ -297,21 +297,16 @@ void FixedwingAttitudeControl::Run()
 
 				if (q_sp.isAllFinite()) {
 					const Quatf q_current(att.q);
-					// We rotate the setpoint, to prevent yaw errors that we do not have authority to control.
-					const float yaw_offset = -2.f * (q_current(0) * q_sp(3) - q_current(1) * q_sp(2) + q_current(2) * q_sp(1) - q_current(3) * q_sp(0)) /
-								 (q_current(0) * q_sp(0) - q_current(1) * q_sp(1) - q_current(2) * q_sp(2) + q_current(3) * q_sp(3));
-					const Quatf q_yaw_offset = Quatf(1.f, 0.f, 0.f, yaw_offset / 2.f).normalized();
-					const Quatf q_err = (q_current.inversed() * q_yaw_offset * q_sp).canonical(); // See mc_att_control for details
-					const Vector3f q_err_imag = 2.f * q_err.imag();
+					const Vector3f att_err = computeAttitudeError(q_current, q_sp);
 
 					Vector3f body_rates_setpoint;
-					body_rates_setpoint = _proportional_gain.emult(q_err_imag);
+					body_rates_setpoint = _proportional_gain.emult(att_err);
 
 					// Turn coordination
 					const float V = math::max(get_airspeed_constrained(), 0.1f);
 					const float q1 = 2.f * (q_current(0) * q_current(1) + q_current(2) * q_current(3));
 					const float r_tc_ff = CONSTANTS_ONE_G * q1 / V;
-					const float p_tc_ff = 2.f * q1 * r_tc_ff / (1.f - 2.f * q_current(1) * q_current(1) - 2.f * q_current(2) * q_current(2));
+					const float p_tc_ff = q1 * r_tc_ff / (1.f - 2.f * q_current(1) * q_current(1) - 2.f * q_current(2) * q_current(2));
 
 					body_rates_setpoint(1) += p_tc_ff;
 					body_rates_setpoint(2) += r_tc_ff;
