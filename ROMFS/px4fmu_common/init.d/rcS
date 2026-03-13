@@ -31,10 +31,19 @@ set PARAM_FILE ""
 set PARAM_BACKUP_FILE ""
 set RC_INPUT_ARGS ""
 set STORAGE_AVAILABLE no
+set STORAGE_CHECK yes
 set SDCARD_EXT_PATH /fs/microsd/ext_autostart
 set SDCARD_FORMAT no
 set STARTUP_TUNE 1
 set VEHICLE_TYPE none
+
+# Fine-grained feature gates.
+set USE_HARDFAULT_LOG no
+set USE_EXTERNAL_AIRFRAMES no
+set USE_PARAM_BACKUPS no
+set USE_PARAM_IMPORT_DEBUG no
+set USE_TASK_WATCHDOG no
+set USE_ALT_UPDATE_DIRS no
 
 # Airframe parameter versioning
 # Value set to 1 by default but can optionally be overridden in the airframe configuration startup script.
@@ -48,53 +57,81 @@ set PARAM_DEFAULTS_VER 1
 ver all
 
 #
-# Try to mount the microSD card.
+# Optional early board init: rc.board_early
+# Can be used for setting env vars for rcS.
 #
-if [ -b "/dev/mmcsd0" ]
+set BOARD_RC_EARLY ${R}etc/init.d/rc.board_early
+if [ -f $BOARD_RC_EARLY ]
 then
-	if mount -t vfat /dev/mmcsd0 /fs/microsd
-	then
-		if [ -f "/fs/microsd/.format" ]
-		then
-			echo "INFO [init] format /dev/mmcsd0 requested (/fs/microsd/.format)"
-			set SDCARD_FORMAT yes
-			rm /fs/microsd/.format
-			umount /fs/microsd
+	. $BOARD_RC_EARLY
+fi
+unset BOARD_RC_EARLY
 
-		else
+#
+# Try to mount/check storage (rc.board_early can disable this).
+#
+if [ $STORAGE_CHECK = yes ]
+then
+	#
+	# Try to mount the microSD card.
+	#
+	if [ -b "/dev/mmcsd0" ]
+	then
+		if mount -t vfat /dev/mmcsd0 /fs/microsd
+		then
+			if [ -f "/fs/microsd/.format" ]
+			then
+				echo "INFO [init] format /dev/mmcsd0 requested (/fs/microsd/.format)"
+				set SDCARD_FORMAT yes
+				rm /fs/microsd/.format
+				umount /fs/microsd
+
+			else
+				set STORAGE_AVAILABLE yes
+			fi
+		fi
+
+		if [ $STORAGE_AVAILABLE = no -o $SDCARD_FORMAT = yes ]
+		then
+			echo "INFO [init] formatting /dev/mmcsd0"
+			set STARTUP_TUNE 15 # tune 15 = SD_ERROR (overridden to SD_INIT if format + mount succeeds)
+
+			if mkfatfs -F 32 /dev/mmcsd0
+			then
+				echo "INFO [init] card formatted"
+
+				if mount -t vfat /dev/mmcsd0 /fs/microsd
+				then
+					set STORAGE_AVAILABLE yes
+					set STARTUP_TUNE 14 # tune 14 = SD_INIT
+				else
+					echo "ERROR [init] card mount failed"
+				fi
+			else
+				echo "ERROR [init] format failed"
+			fi
+		fi
+	else
+		# Is there a device mounted for storage
+		if mft query -q -k MTD -s MTD_PARAMETERS -v /mnt/microsd
+		then
 			set STORAGE_AVAILABLE yes
 		fi
-	fi
-
-	if [ $STORAGE_AVAILABLE = no -o $SDCARD_FORMAT = yes ]
-	then
-		echo "INFO [init] formatting /dev/mmcsd0"
-		set STARTUP_TUNE 15 # tune 15 = SD_ERROR (overridden to SD_INIT if format + mount succeeds)
-
-		if mkfatfs -F 32 /dev/mmcsd0
-		then
-			echo "INFO [init] card formatted"
-
-			if mount -t vfat /dev/mmcsd0 /fs/microsd
-			then
-				set STORAGE_AVAILABLE yes
-				set STARTUP_TUNE 14 # tune 14 = SD_INIT
-			else
-				echo "ERROR [init] card mount failed"
-			fi
-		else
-			echo "ERROR [init] format failed"
-		fi
-	fi
-else
-	# Is there a device mounted for storage
-	if mft query -q -k MTD -s MTD_PARAMETERS -v /mnt/microsd
-	then
-		set STORAGE_AVAILABLE yes
 	fi
 fi
 
 if [ $STORAGE_AVAILABLE = yes ]
+then
+	set USE_HARDFAULT_LOG yes
+	set USE_EXTERNAL_AIRFRAMES yes
+	set USE_PARAM_BACKUPS yes
+	set USE_PARAM_IMPORT_DEBUG yes
+	set USE_ALT_UPDATE_DIRS yes
+	set PARAM_FILE /fs/microsd/params
+	set PARAM_BACKUP_FILE "/fs/microsd/parameters_backup.bson"
+fi
+
+if [ $USE_HARDFAULT_LOG = yes ]
 then
 	if hardfault_log check
 	then
@@ -104,7 +141,15 @@ then
 			hardfault_log reset
 		fi
 	fi
+fi
 
+if [ $USE_TASK_WATCHDOG = yes ]
+then
+	task_watchdog start
+fi
+
+if [ $USE_ALT_UPDATE_DIRS = yes ]
+then
 	# Check for an update of the ext_autostart folder, and replace the old one with it
 	if [ -e /fs/microsd/ext_autostart_new ]
 	then
@@ -112,9 +157,6 @@ then
 		rm -r $SDCARD_EXT_PATH
 		mv /fs/microsd/ext_autostart_new $SDCARD_EXT_PATH
 	fi
-
-	set PARAM_FILE /fs/microsd/params
-	set PARAM_BACKUP_FILE "/fs/microsd/parameters_backup.bson"
 fi
 
 #
@@ -155,8 +197,11 @@ else
 
 		if [ -d "/fs/microsd" ]
 		then
-			# try to make a backup copy
-			cp $PARAM_FILE /fs/microsd/param_import_fail.bson
+			if [ $USE_PARAM_IMPORT_DEBUG = yes ]
+			then
+				# save copy of the failed param file for debugging
+				cp $PARAM_FILE /fs/microsd/param_import_fail.bson
+			fi
 
 			# try importing from backup file
 			if [ -f $PARAM_BACKUP_FILE ]
@@ -174,11 +219,14 @@ else
 
 			param status
 
-			dmesg >> /fs/microsd/param_import_fail.txt &
+			if [ $USE_PARAM_IMPORT_DEBUG = yes ]
+			then
+				dmesg >> /fs/microsd/param_import_fail.txt &
+			fi
 		fi
 	fi
 
-	if [ $STORAGE_AVAILABLE = yes ]
+	if [ $USE_PARAM_BACKUPS = yes ]
 	then
 		param select-backup $PARAM_BACKUP_FILE
 	fi
@@ -234,12 +282,12 @@ else
 
 	if [ ${VEHICLE_TYPE} = none ]
 	then
-		# Run external airframe script on SD card
-		if [ $STORAGE_AVAILABLE = yes ]
+		# Run external airframe script on SD card or EEPROM-backed storage
+		if [ $USE_EXTERNAL_AIRFRAMES = yes ]
 		then
 			. ${R}etc/init.d/rc.autostart_ext
 		else
-			echo "ERROR [init] SD not mounted, skipping external airframe"
+			echo "ERROR [init] no external airframe storage, skipping"
 		fi
 	fi
 
@@ -679,9 +727,16 @@ unset PARAM_BACKUP_FILE
 unset PARAM_DEFAULTS_VER
 unset RC_INPUT_ARGS
 unset STORAGE_AVAILABLE
+unset STORAGE_CHECK
 unset SDCARD_EXT_PATH
 unset SDCARD_FORMAT
 unset STARTUP_TUNE
+unset USE_HARDFAULT_LOG
+unset USE_EXTERNAL_AIRFRAMES
+unset USE_PARAM_BACKUPS
+unset USE_PARAM_IMPORT_DEBUG
+unset USE_TASK_WATCHDOG
+unset USE_ALT_UPDATE_DIRS
 unset VEHICLE_TYPE
 
 #
