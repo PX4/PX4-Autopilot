@@ -613,7 +613,6 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 			vehicle_command_s eeprom_cmd = vehicle_command;
 			eeprom_cmd.command = vehicle_command_s::VEHICLE_CMD_ESC_REQUEST_EEPROM;
 			_cmd_pub.publish(eeprom_cmd);
-			send_ack = false;
 
 		} else
 #endif
