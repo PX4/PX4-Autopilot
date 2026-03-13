@@ -73,8 +73,6 @@ int DShot::init()
 {
 	update_params();
 
-	_bdshot_edt_enabled = _param_dshot_bidir_edt.get();
-
 	if (initialize_dshot()) {
 		ScheduleNow();
 		return PX4_OK;
@@ -233,7 +231,7 @@ void DShot::select_next_command()
 			}
 		}
 
-	} else if (_serial_telemetry_enabled && serial_telem_delay_elapsed && (_motor_mask & needs_settings_request_mask)) {
+	} else if (_esc_type != 0 && _serial_telemetry_enabled && serial_telem_delay_elapsed && (_motor_mask & needs_settings_request_mask)) {
 		// Settings Request: use motor-order masks since needs_settings_request_mask is in motor order
 		uint16_t settings_motors_to_request = _motor_mask & needs_settings_request_mask;
 
@@ -444,7 +442,7 @@ uint16_t DShot::calculate_output_value(uint16_t raw, int index)
 	uint16_t output = raw;
 
 	// Reverse output if required
-	if (_param_dshot_3d_enable.get() || (_mixing_output.reversibleOutputs() & (1u << index))) {
+	if (_3d_enabled || (_mixing_output.reversibleOutputs() & (1u << index))) {
 		output = convert_output_to_3d_scaling(raw);
 	}
 
@@ -738,7 +736,7 @@ uint16_t DShot::convert_output_to_3d_scaling(uint16_t output)
 	// This is in terms of DShot values, code below is in terms of actuator_output
 	// Direction 1) 48 is the slowest, 1047 is the fastest.
 	// Direction 2) 1049 is the slowest, 2047 is the fastest.
-	if (output >= _param_dshot_3d_dead_l.get() && output < _param_dshot_3d_dead_h.get()) {
+	if (output >= _3d_dead_l && output < _3d_dead_h) {
 		return DSHOT_DISARM_VALUE;
 	}
 
@@ -752,7 +750,7 @@ uint16_t DShot::convert_output_to_3d_scaling(uint16_t output)
 	}
 
 	float max_output = 999.f;
-	float min_output = max_output * _param_dshot_min.get();
+	float min_output = max_output * _dshot_min;
 	output = math::min(max_output, (min_output + output * (max_output - min_output) / max_output));
 
 	if (upper_range) {
@@ -903,8 +901,16 @@ void DShot::update_params()
 
 	updateParams();
 
+	// Cache params used in hot path
+	_bdshot_edt_enabled = _param_dshot_bidir_edt.get();
+	_3d_enabled = _param_dshot_3d_enable.get();
+	_3d_dead_l = _param_dshot_3d_dead_l.get();
+	_3d_dead_h = _param_dshot_3d_dead_h.get();
+	_dshot_min = _param_dshot_min.get();
+	_esc_type = _param_dshot_esc_type.get();
+
 	// Calculate minimum DShot output as percent of throttle and constrain.
-	float min_value = _param_dshot_min.get() * (float)DSHOT_MAX_THROTTLE;
+	float min_value = _dshot_min * (float)DSHOT_MAX_THROTTLE;
 	uint16_t dshot_min_value = math::constrain((uint16_t)min_value, DSHOT_MIN_THROTTLE, DSHOT_MAX_THROTTLE);
 
 	_mixing_output.setAllMinValues(dshot_min_value);

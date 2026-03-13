@@ -176,6 +176,13 @@ private:
 	bool _serial_telemetry_enabled = false;
 	bool _bdshot_edt_enabled = false;
 
+	// Cached parameters (updated in update_params())
+	bool _3d_enabled = false;
+	int _3d_dead_l = 0;
+	int _3d_dead_h = 0;
+	float _dshot_min = 0.f;
+	int _esc_type = 0;
+
 	// Hardware initialization state
 	bool _hardware_initialized = false;
 	uint32_t _dshot_frequency = 0;
