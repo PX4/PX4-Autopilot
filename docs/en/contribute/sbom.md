@@ -101,13 +101,29 @@ print(f'Valid: {len(doc[\"packages\"])} packages')
 
 For full schema validation, use the [SPDX online validator](https://tools.spdx.org/app/validate/) or the `spdx-tools` CLI.
 
-## Updating License Mappings
+## License Detection
 
-Submodule licenses are maintained in a hardcoded map in `Tools/ci/generate_sbom.py` (`SUBMODULE_LICENSES`).
-When adding or changing submodules:
+Submodule licenses are auto-detected from LICENSE/COPYING files at build time.
+The generator reads the first 100 lines and matches keywords to SPDX identifiers
+(e.g. "Permission is hereby granted" maps to `MIT`).
 
-1. Identify the license of the new submodule (check its LICENSE file or repository).
-2. Add the mapping to `SUBMODULE_LICENSES` using the [SPDX license identifier](https://spdx.org/licenses/).
-3. If the license is not in the SPDX list, use `LicenseRef-<name>`.
+When auto-detection fails or returns the wrong result,
+add an entry to `SUBMODULE_LICENSE_OVERRIDES` in `Tools/ci/generate_sbom.py`.
 
-Unmapped submodules will appear as `NOASSERTION` in the SBOM.
+### Verifying Licenses
+
+Run the verify command to check detection for all submodules:
+
+```sh
+python3 Tools/ci/generate_sbom.py --verify-licenses --source-dir .
+```
+
+This prints each submodule with its detected license, any override, and the final value.
+It exits non-zero if any submodule resolves to `NOASSERTION` without an override.
+
+### Adding a New Submodule
+
+1. Add the submodule normally.
+2. Run `--verify-licenses` to confirm the license is detected.
+3. If detection fails, add an override using the [SPDX license identifier](https://spdx.org/licenses/).
+4. If the license is not in the SPDX list, use `LicenseRef-<name>`.

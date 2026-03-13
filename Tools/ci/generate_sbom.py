@@ -18,43 +18,60 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-# SPDX license identifiers for each submodule path.
-# Maintained manually; update when submodules change.
-SUBMODULE_LICENSES = {
-    "src/modules/mavlink/mavlink": "MIT",
-    "Tools/simulation/jmavsim/jMAVSim": "BSD-3-Clause",
-    "Tools/simulation/gazebo-classic/sitl_gazebo-classic": "BSD-3-Clause",
-    "src/drivers/gps/devices": "BSD-3-Clause",
-    "platforms/nuttx/NuttX/nuttx": "Apache-2.0",
-    "platforms/nuttx/NuttX/apps": "Apache-2.0",
-    "Tools/simulation/flightgear/flightgear_bridge": "BSD-3-Clause",
-    "Tools/simulation/jsbsim/jsbsim_bridge": "BSD-3-Clause",
-    "src/drivers/cyphal/libcanard": "MIT",
-    "src/drivers/cyphal/public_regulated_data_types": "MIT",
-    "src/drivers/cyphal/legacy_data_types": "MIT",
-    "src/lib/crypto/monocypher": "BSD-2-Clause",
-    "src/lib/events/libevents": "BSD-3-Clause",
+# Ordered most-specific first: all keywords must appear for a match.
+LICENSE_PATTERNS = [
+    ("Apache-2.0",   ["Apache License", "Version 2.0"]),
+    ("MIT",          ["Permission is hereby granted"]),
+    ("BSD-3-Clause", ["Redistribution and use", "Neither the name"]),
+    ("BSD-2-Clause", ["Redistribution and use", "THIS SOFTWARE IS PROVIDED"]),
+    ("ISC",          ["Permission to use, copy, modify, and/or distribute"]),
+    ("EPL-2.0",      ["Eclipse Public License", "2.0"]),
+    ("LGPL-2.1-only", ["GNU Lesser General Public License", "Version 2.1"]),
+    ("Unlicense",    ["Unlicense"]),
+]
+
+# Manual overrides for submodules where auto-detection fails or is wrong.
+# Maps submodule path -> SPDX license identifier.
+SUBMODULE_LICENSE_OVERRIDES = {
+    # libtomcrypt LICENSE states public domain but uses non-standard wording
     "src/lib/crypto/libtomcrypt": "Unlicense",
     "src/lib/crypto/libtommath": "Unlicense",
-    "src/modules/uxrce_dds_client/Micro-XRCE-DDS-Client": "Apache-2.0",
-    "src/lib/cdrstream/cyclonedds": "EPL-2.0",
-    "src/lib/cdrstream/rosidl": "Apache-2.0",
-    "src/modules/zenoh/zenoh-pico": "Apache-2.0",
-    "src/lib/heatshrink/heatshrink": "ISC",
-    "Tools/simulation/gz": "BSD-3-Clause",
-    "boards/modalai/voxl2/libfc-sensor-api": "BSD-3-Clause",
-    "src/drivers/actuators/vertiq_io/iq-module-communication-cpp": "MIT",
-    "src/drivers/uavcan/libdronecan/dsdl": "MIT",
-    "src/drivers/uavcan/libdronecan/libuavcan/dsdl_compiler/pydronecan": "MIT",
-    "test/fuzztest": "Apache-2.0",
-    "src/lib/tensorflow_lite_micro/tflite_micro": "Apache-2.0",
-    "src/drivers/ins/microstrain/mip_sdk": "MIT",
-    "src/drivers/ins/sbgecom/sbgECom": "MIT",
-    "src/modules/mc_raptor/blob": "MIT",
-    "src/lib/rl_tools/rl_tools": "MIT",
-    "boards/modalai/voxl2/src/lib/mpa/libmodal-json": "BSD-3-Clause",
-    "boards/modalai/voxl2/src/lib/mpa/libmodal-pipe": "BSD-3-Clause",
 }
+
+LICENSE_FILENAMES = ["LICENSE", "LICENSE.md", "LICENSE.txt", "COPYING", "COPYING.md"]
+
+
+def detect_license(submodule_dir):
+    """Auto-detect SPDX license ID from LICENSE/COPYING file in a directory.
+
+    Reads the first 100 lines of the first license file found and matches
+    keywords against LICENSE_PATTERNS. Returns 'NOASSERTION' if no file
+    is found or no pattern matches.
+    """
+    for fname in LICENSE_FILENAMES:
+        license_file = submodule_dir / fname
+        if license_file.is_file():
+            try:
+                lines = license_file.read_text(errors="replace").splitlines()[:100]
+                text = "\n".join(lines)
+            except OSError:
+                continue
+
+            text_upper = text.upper()
+            for spdx_id_val, keywords in LICENSE_PATTERNS:
+                if all(kw.upper() in text_upper for kw in keywords):
+                    return spdx_id_val
+
+            return "NOASSERTION"
+
+    return "NOASSERTION"
+
+
+def get_submodule_license(source_dir, sub_path):
+    """Return the SPDX license for a submodule: override > auto-detect."""
+    if sub_path in SUBMODULE_LICENSE_OVERRIDES:
+        return SUBMODULE_LICENSE_OVERRIDES[sub_path]
+    return detect_license(source_dir / sub_path)
 
 
 def spdx_id(name: str) -> str:
@@ -286,7 +303,7 @@ def generate_sbom(source_dir, board, modules_file, compiler):
         sub_path_id = sub_path.replace("/", "-")
         sub_spdx_id = f"SPDXRef-Submodule-{spdx_id(sub_path_id)}"
         commit = submodule_commits.get(sub_path, "unknown")
-        license_id = SUBMODULE_LICENSES.get(sub_path, "NOASSERTION")
+        license_id = get_submodule_license(source_dir, sub_path)
 
         host, org, repo = extract_git_host_org_repo(sub["url"])
         download = sub["url"] if sub["url"] else "NOASSERTION"
@@ -407,6 +424,51 @@ def generate_sbom(source_dir, board, modules_file, compiler):
     return doc
 
 
+def verify_licenses(source_dir):
+    """Verify license detection for all submodules. Returns exit code."""
+    submodules = parse_gitmodules(source_dir)
+    if not submodules:
+        print("No submodules found in .gitmodules")
+        return 1
+
+    has_noassertion = False
+    print(f"{'Submodule Path':<65} {'Detected':<16} {'Override':<16} {'Final'}")
+    print("-" * 115)
+
+    for sub in submodules:
+        sub_path = sub["path"]
+        sub_dir = source_dir / sub_path
+
+        checked_out = sub_dir.is_dir() and any(sub_dir.iterdir())
+        if not checked_out:
+            detected = "(not checked out)"
+            override = SUBMODULE_LICENSE_OVERRIDES.get(sub_path, "")
+            final = override if override else "NOASSERTION"
+        else:
+            detected = detect_license(sub_dir)
+            override = SUBMODULE_LICENSE_OVERRIDES.get(sub_path, "")
+            final = override if override else detected
+
+        if final == "NOASSERTION" and checked_out:
+            has_noassertion = True
+            marker = " <-- NOASSERTION"
+        elif final == "NOASSERTION" and not checked_out:
+            marker = " (skipped)"
+        else:
+            marker = ""
+
+        print(f"{sub_path:<65} {str(detected):<16} {str(override) if override else '':<16} {final}{marker}")
+
+    print()
+    if has_noassertion:
+        print("FAIL: Some submodules resolved to NOASSERTION. "
+              "Add an entry to SUBMODULE_LICENSE_OVERRIDES or check the LICENSE file.")
+        return 1
+
+    print("OK: All submodules have a resolved license.")
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Generate SPDX 2.3 JSON SBOM for PX4 firmware"
@@ -418,8 +480,13 @@ def main():
         help="PX4 source directory (default: cwd)",
     )
     parser.add_argument(
+        "--verify-licenses",
+        action="store_true",
+        help="Verify license detection for all submodules and exit",
+    )
+    parser.add_argument(
         "--board",
-        required=True,
+        default=None,
         help="Board target name (e.g. px4_fmu-v5x_default)",
     )
     parser.add_argument(
@@ -436,11 +503,19 @@ def main():
     parser.add_argument(
         "--output",
         type=Path,
-        required=True,
+        default=None,
         help="Output SBOM file path",
     )
 
     args = parser.parse_args()
+
+    if args.verify_licenses:
+        raise SystemExit(verify_licenses(args.source_dir))
+
+    if not args.board:
+        parser.error("--board is required when not using --verify-licenses")
+    if not args.output:
+        parser.error("--output is required when not using --verify-licenses")
 
     sbom = generate_sbom(
         source_dir=args.source_dir,
