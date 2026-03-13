@@ -256,6 +256,61 @@ extern "C" __EXPORT int ver_main(int argc, char *argv[])
 					PX4_INFO_RAW("OS git-hash: %s\n", os_git_hash);
 				}
 
+#ifdef CONFIG_VER_GIT_DIFF
+				FILE *file;
+				char buf[64];
+				size_t nread;
+
+				file  = fopen("/etc/extras/modified_files", "r");
+
+				if (file) {
+					PX4_INFO_RAW("MODIFIED BUILD !!!\n");
+
+					while ((nread = fread(buf, 1, sizeof buf, file)) > 0) {
+						PX4_INFO_RAW("%.*s", nread, buf);
+					}
+
+					if (ferror(file)) {
+						/* deal with error */
+					}
+
+					fclose(file);
+				}
+
+				file  = fopen("/etc/extras/boardconfig_diff", "r");
+
+				if (file) {
+					PX4_INFO_RAW("Boardconfig diff\n");
+
+					while ((nread = fread(buf, 1, sizeof buf, file)) > 0) {
+						PX4_INFO_RAW("%.*s", nread, buf);
+					}
+
+					if (ferror(file)) {
+						/* deal with error */
+					}
+
+					fclose(file);
+				}
+
+				file  = fopen("/etc/extras/nuttx_diff", "r");
+
+				if (file) {
+					PX4_INFO_RAW("NuttX diff\n");
+
+					while ((nread = fread(buf, 1, sizeof buf, file)) > 0) {
+						PX4_INFO_RAW("%.*s", nread, buf);
+					}
+
+					if (ferror(file)) {
+						/* deal with error */
+					}
+
+					fclose(file);
+				}
+
+#endif
+
 				ret = 0;
 
 			}
