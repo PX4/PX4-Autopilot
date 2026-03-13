@@ -966,7 +966,7 @@ static int publish_queued_uorb(LockstepRuntime &rt)
 
 static void debug_state(LockstepRuntime &rt, uint64_t now_us);
 
-static void commander_lite_step(LockstepRuntime &rt, uint64_t time_us)
+[[maybe_unused]] static void commander_lite_step(LockstepRuntime &rt, uint64_t time_us)
 {
 	if (rt.cfg.enable_commander != 0) {
 		return;
@@ -1077,7 +1077,7 @@ static void commander_lite_step(LockstepRuntime &rt, uint64_t time_us)
 	rt.pub_actuator_armed.publish(armed);
 }
 
-static void commander_lite_filter_mission_result(LockstepRuntime &rt, uint64_t time_us)
+[[maybe_unused]] static void commander_lite_filter_mission_result(LockstepRuntime &rt, uint64_t time_us)
 {
 	if (rt.cfg.enable_commander != 0) {
 		return;
@@ -1118,11 +1118,10 @@ static int step_lockstep_common(LockstepRuntime &rt, uint64_t time_us)
 	// Deterministic stepping order
 	const uint64_t now = time_us;
 
-	// Commander first: it updates vehicle_status/nav_state (and triggers RTL on battery, etc).
+	// Keep legacy commander-disabled behavior for the Julia lockstep harness:
+	// when Commander is absent, external uORB injections provide arming/mode state.
 	if (rt.commander && rt.cmd_rate.should_run(now)) {
 		rt.commander->run_once();
-	} else if (rt.cmd_rate.should_run(now)) {
-		commander_lite_step(rt, now);
 	}
 
 	if (rt.nav_rate.should_run(now)) {
@@ -1148,8 +1147,6 @@ static int step_lockstep_common(LockstepRuntime &rt, uint64_t time_us)
 	if (rt.control_alloc && rt.alloc_rate.should_run(now)) {
 		rt.control_alloc->run_once();
 	}
-
-	commander_lite_filter_mission_result(rt, time_us);
 
 	maybe_force_geofence_ready(rt, time_us);
 
