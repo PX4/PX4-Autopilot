@@ -156,6 +156,7 @@ private:
 	 */
 	void _constructPath(char *dst, int dst_len, const char *path) const;
 
+	bool _validatePath(const char *path);
 	bool _validatePathIsWritable(const char *path);
 
 	/**
@@ -200,7 +201,7 @@ private:
 	hrt_abstime _last_work_buffer_access{0}; ///< timestamp when the buffers were last accessed
 
 	// prepend a root directory to each file/dir access to avoid enumerating the full FS tree (e.g. on Linux).
-	// Note that requests can still fall outside of the root dir by using ../..
+	// Path traversal via ".." is rejected by _validatePath().
 #ifdef MAVLINK_FTP_UNIT_TEST
 	static constexpr const char _root_dir[] = "";
 #else
