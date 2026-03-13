@@ -431,7 +431,7 @@ static void dshot_start_timer_burst(uint8_t timer_index)
 
 	} else {
 		// Standard DShot or BDShot during boot - no capture needed
-		stm32_dmastart(timer->dma_handle, dma_burst_finished_callback, &timer->timer_index, false);
+		stm32_dmastart(timer->dma_handle, NULL, NULL, false);
 
 		if (timer->bidirectional) {
 			// During boot, mark BDShot cycle complete immediately
