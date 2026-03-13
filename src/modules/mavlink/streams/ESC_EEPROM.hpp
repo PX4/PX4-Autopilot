@@ -79,11 +79,6 @@ private:
 		return false;
 	}
 
-	bool request_message(float param2, float param3, float param4, float param5, float param6, float param7) override
-	{
-		return emit_message(true);
-	}
-
 	bool send() override
 	{
 		return emit_message(false);
