@@ -183,8 +183,17 @@ def generate_by_template(output_file, template_file, em_globals):
 
     ofile = open(output_file, 'w')
     # todo, reuse interpreter
-    interpreter = em.Interpreter(output=ofile, globals=em_globals, options={
-                                 em.RAW_OPT: True, em.BUFFERED_OPT: True})
+    options = None
+    if hasattr(em, "RAW_OPT") and hasattr(em, "BUFFERED_OPT"):
+        options = {em.RAW_OPT: True, em.BUFFERED_OPT: True}
+
+    try:
+        if options is not None:
+            interpreter = em.Interpreter(output=ofile, globals=em_globals, options=options)
+        else:
+            interpreter = em.Interpreter(output=ofile, globals=em_globals)
+    except Exception:
+        interpreter = em.Interpreter(output=ofile, globals=em_globals)
     try:
         interpreter.file(open(template_file))
     except OSError as e:
