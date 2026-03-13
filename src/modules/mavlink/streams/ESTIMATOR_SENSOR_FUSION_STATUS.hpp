@@ -34,13 +34,13 @@
 #ifndef ESTIMATOR_SENSOR_FUSION_STATUS_HPP
 #define ESTIMATOR_SENSOR_FUSION_STATUS_HPP
 
-#include <uORB/topics/estimator_status_flags.h>
 #include <uORB/topics/estimator_fusion_control.h>
+#include <cmath>
 
 /**
  * Array index = ESTIMATOR_SENSOR_FUSION_SOURCE - 1:
  *   [0] GPS    [1] OF     [2] EV    [3] AGP
- *   [4] BARO   [5] RNG    [6] DRAG  [7] MAG   [8] IMU
+ *   [4] BARO   [5] RNG    [6] DRAG  [7] MAG   [8] ASPD
  *
  * Each element is a per-instance bitmask (bit 0 = instance 0, etc.).
  */
@@ -58,7 +58,7 @@ public:
 
 	unsigned get_size() override
 	{
-		return _estimator_status_flags_sub.advertised() ? MAVLINK_MSG_ID_ESTIMATOR_SENSOR_FUSION_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+		return _estimator_fusion_control_sub.advertised() ? MAVLINK_MSG_ID_ESTIMATOR_SENSOR_FUSION_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
@@ -71,25 +71,25 @@ private:
 	static constexpr uint8_t IDX_RNG  = 5;
 	static constexpr uint8_t IDX_DRAG = 6;
 	static constexpr uint8_t IDX_MAG  = 7;
-	static constexpr uint8_t IDX_IMU  = 8;
+	static constexpr uint8_t IDX_ASPD = 8;
 
 	explicit MavlinkStreamEstimatorSensorFusionStatus(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	uORB::Subscription _estimator_status_flags_sub{ORB_ID(estimator_status_flags)};
 	uORB::Subscription _estimator_fusion_control_sub{ORB_ID(estimator_fusion_control)};
 
 	bool send() override
 	{
-		estimator_status_flags_s flags;
+		estimator_fusion_control_s fc;
 
-		if (_estimator_status_flags_sub.update(&flags)) {
+		if (_estimator_fusion_control_sub.update(&fc)) {
 			mavlink_estimator_sensor_fusion_status_t msg{};
 
-			// --- intended: effective CTRL values with runtime overrides ---
-			estimator_fusion_control_s fc{};
-			_estimator_fusion_control_sub.copy(&fc);
+			for (int i = 0; i < 9; i++) { msg.test_ratio[i] = NAN; }
 
-			if (fc.gps_intended  != 0) { msg.intended[IDX_GPS]  = 1; }
+			// --- intended: effective CTRL values with runtime overrides ---
+			for (int i = 0; i < 2; i++) {
+				if (fc.gps_intended[i] != 0) { msg.intended[IDX_GPS] |= (1u << i); }
+			}
 
 			if (fc.of_intended   != 0) { msg.intended[IDX_OF]   = 1; }
 
@@ -103,40 +103,22 @@ private:
 
 			if (fc.mag_intended  != 0) { msg.intended[IDX_MAG]  = 1; }
 
-			if (fc.imu_intended  != 0) { msg.intended[IDX_IMU]  = 1; }
+			if (fc.aspd_intended != 0) { msg.intended[IDX_ASPD] = 1; }
 
 			for (int i = 0; i < 4; i++) {
 				if (fc.agp_intended[i] != 0) { msg.intended[IDX_AGP] |= (1u << i); }
 			}
 
 			// --- active: estimator is actually fusing data from this source ---
-			if (flags.cs_gnss_pos || flags.cs_gps_hgt || flags.cs_gnss_vel || flags.cs_gnss_yaw) {
-				msg.active[IDX_GPS] = 1;
-			}
-
-			if (flags.cs_opt_flow) {
-				msg.active[IDX_OF] = 1;
-			}
-
-			if (flags.cs_ev_pos || flags.cs_ev_hgt || flags.cs_ev_vel || flags.cs_ev_yaw) {
-				msg.active[IDX_EV] = 1;
-			}
-
-			msg.active[IDX_AGP] = fc.agp_active;
-
-			if (flags.cs_baro_hgt) {
-				msg.active[IDX_BARO] = 1;
-			}
-
-			if (flags.cs_rng_hgt) {
-				msg.active[IDX_RNG] = 1;
-			}
-
-			// Note: no cs_drag or cs_imu flags in estimator_status_flags
-
-			if (flags.cs_mag) {
-				msg.active[IDX_MAG] = 1;
-			}
+			msg.active[IDX_GPS]  = fc.gps_active;
+			msg.active[IDX_OF]   = fc.of_active;
+			msg.active[IDX_EV]   = fc.ev_active;
+			msg.active[IDX_AGP]  = fc.agp_active;
+			msg.active[IDX_BARO] = fc.baro_active;
+			msg.active[IDX_RNG]  = fc.rng_active;
+			msg.active[IDX_DRAG] = fc.drag_active;
+			msg.active[IDX_MAG]  = fc.mag_active;
+			msg.active[IDX_ASPD] = fc.aspd_active;
 
 			mavlink_msg_estimator_sensor_fusion_status_send_struct(_mavlink->get_channel(), &msg);
 			return true;
