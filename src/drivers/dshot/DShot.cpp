@@ -539,21 +539,30 @@ bool DShot::process_serial_telemetry()
 
 bool DShot::set_next_telemetry_index()
 {
-	int actuator_index = (_telemetry_motor_index + 1) % DSHOT_MAXIMUM_CHANNELS;
-	int next_actuator_index = actuator_index;
+	// Round-robin through motor indices (Motor1=0, Motor2=1, ...).
+	// _telemetry_motor_index and _telemetry_requested_mask are in motor-index domain.
+	int motor = (_telemetry_motor_index + 1) % DSHOT_MAXIMUM_CHANNELS;
+	int start_motor = motor;
 
 	do {
-		bool is_motor = _mixing_output.isMotor(next_actuator_index);
-		bool already_requested = _telemetry_requested_mask & (1 << next_actuator_index);
+		bool motor_exists = false;
 
-		if (is_motor && !already_requested) {
-			_telemetry_motor_index = next_actuator_index;
-			_telemetry_requested_mask |= (1 << next_actuator_index);
+		// Check if any actuator channel is assigned to this motor index
+		for (int ch = 0; ch < DSHOT_MAXIMUM_CHANNELS; ch++) {
+			if (_mixing_output.isMotor(ch) && ((int)_mixing_output.outputFunction(ch) - (int)OutputFunction::Motor1) == motor) {
+				motor_exists = true;
+				break;
+			}
+		}
+
+		if (motor_exists && !(_telemetry_requested_mask & (1 << motor))) {
+			_telemetry_motor_index = motor;
+			_telemetry_requested_mask |= (1 << motor);
 			break;
 		}
 
-		next_actuator_index = (next_actuator_index + 1) % DSHOT_MAXIMUM_CHANNELS;
-	} while (next_actuator_index != actuator_index);
+		motor = (motor + 1) % DSHOT_MAXIMUM_CHANNELS;
+	} while (motor != start_motor);
 
 	// Check if all motors have been sampled
 	if (count_set_bits(_telemetry_requested_mask) >= count_set_bits(_output_mask)) {
