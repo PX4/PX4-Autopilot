@@ -863,14 +863,13 @@ void DShot::handle_esc_request_eeprom(const vehicle_command_s &command)
 	PX4_DEBUG("esc_index: %d", (int)command.param2);
 
 	int esc_index = lroundf(command.param2);
+	uint8_t result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 	if (esc_index != 255 && (esc_index < 0 || esc_index >= esc_status_s::CONNECTED_ESC_MAX)) {
 		PX4_ERR("ESC_REQUEST_EEPROM: invalid esc_index %d", esc_index);
-		return;
-	}
+		result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
 
-	// Mark as unread to re-trigger settings request
-	if (esc_index == 255) {
+	} else if (esc_index == 255) {
 		PX4_DEBUG("mark all unread");
 		_settings_requested_mask = 0;
 
@@ -883,7 +882,7 @@ void DShot::handle_esc_request_eeprom(const vehicle_command_s &command)
 	command_ack.command = command.command;
 	command_ack.target_system = command.source_system;
 	command_ack.target_component = command.source_component;
-	command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+	command_ack.result = result;
 	command_ack.timestamp = hrt_absolute_time();
 	_command_ack_pub.publish(command_ack);
 }
