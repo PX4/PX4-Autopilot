@@ -506,7 +506,7 @@ uint16_t up_bdshot_num_channels_ready(void)
 	for (unsigned i = 0; i < DSHOT_TIMERS; ++i) {
 		// We only check that data has been received, rather than if it's valid.
 		// This ensures data is published even if one channel has bit errors.
-		if (bdshot_parsed_recv_mask & (1 << i)) {
+		if (bdshot_recv_mask & (1 << i)) {
 			++num_ready;
 		}
 	}
