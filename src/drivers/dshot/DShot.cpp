@@ -96,7 +96,10 @@ void DShot::Run()
 
 	_mixing_output.update();
 
-	if (process_serial_telemetry() || process_bdshot_telemetry()) {
+	bool serial_updated = process_serial_telemetry();
+	bool bdshot_updated = process_bdshot_telemetry();
+
+	if (serial_updated || bdshot_updated) {
 		_esc_status.timestamp = hrt_absolute_time();
 		_esc_status.esc_count = count_set_bits(_output_mask);
 		_esc_status.counter++;
