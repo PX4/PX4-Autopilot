@@ -513,11 +513,11 @@ MixingOutput::limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updat
 		static constexpr uint16_t PWM_CALIBRATION_HIGH = 2000;
 
 		for (int i = 0; i < _max_num_outputs; i++) {
-			if ((uint16_t)_current_output_value[i] == _min_value[i]) {
+			if (lroundf(_current_output_value[i]) == (long)_min_value[i]) {
 				_current_output_value[i] = PWM_CALIBRATION_LOW;
 			}
 
-			if ((uint16_t)_current_output_value[i] == _max_value[i]) {
+			if (lroundf(_current_output_value[i]) == (long)_max_value[i]) {
 				_current_output_value[i] = PWM_CALIBRATION_HIGH;
 			}
 		}

@@ -326,7 +326,7 @@ bool Voxl2IO::updateOutputs(float outputs[input_rc_s::RC_INPUT_MAX_CHANNELS],
 			outputs[i] = 0;
 		}
 
-		if (outputs[i]) {
+		if (fabsf(outputs[i]) > 0.f) {
 			_pwm_on = true;
 		}
 

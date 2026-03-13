@@ -142,8 +142,8 @@ bool GZMixingInterfaceServo::updateOutputs(float outputs[MAX_ACTUATORS], unsigne
 		if (_mixing_output.isFunctionSet(i)) {
 			gz::msgs::Double servo_output;
 
-			double output_range = _mixing_output.maxValue(i) - _mixing_output.minValue(i);
-			double output = _angle_min_rad[i] + _angular_range_rad[i] * (outputs[i] - _mixing_output.minValue(i)) / output_range;
+			double output_range = (double)_mixing_output.maxValue(i) - (double)_mixing_output.minValue(i);
+			double output = _angle_min_rad[i] + _angular_range_rad[i] * ((double)outputs[i] - (double)_mixing_output.minValue(i)) / output_range;
 			// std::cout << "outputs[" << i << "]: " << outputs[i] << std::endl;
 			// std::cout << "  output: " << output << std::endl;
 			servo_output.set_data(output);
