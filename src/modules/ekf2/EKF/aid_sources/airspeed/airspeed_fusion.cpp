@@ -82,7 +82,7 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 
 #endif // CONFIG_EKF2_GNSS
 
-	if (_params.ekf2_arsp_thr <= 0.f) {
+	if (_fc.aspd.intended <= 0) {
 		stopAirspeedFusion();
 		return;
 	}
@@ -97,7 +97,7 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 				|| _control_status.flags.in_transition)
 				&& !_control_status.flags.fake_pos;
 
-		const bool is_airspeed_significant = airspeed_sample.true_airspeed > _params.ekf2_arsp_thr;
+		const bool is_airspeed_significant = airspeed_sample.true_airspeed > _fc.aspd.intended;
 		const bool is_airspeed_consistent = (_aid_src_airspeed.test_ratio > 0.f && _aid_src_airspeed.test_ratio < 1.f);
 		const bool starting_conditions_passing = continuing_conditions_passing
 				&& is_airspeed_significant

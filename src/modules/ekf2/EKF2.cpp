@@ -265,7 +265,7 @@ void EKF2::AdvertiseTopics()
 
 #if defined(CONFIG_EKF2_AIRSPEED)
 
-		if (_param_ekf2_arsp_thr.get() > 0.f) {
+		if (_param_ekf2_arsp_thr.get() > 0) {
 			_estimator_aid_src_airspeed_pub.advertise();
 		}
 
@@ -987,7 +987,7 @@ void EKF2::initFusionControl()
 	_num_sensor_table = 0;
 
 	auto add = [this, sens_en](FusionSensor & sensor, uint8_t sens_en_bit, uint8_t sensor_id,
-	int8_t instance, param_t param, int32_t disabled_val = 0) {
+	int8_t instance, param_t param, uint8_t disabled_val = 0) {
 		if (_num_sensor_table < MAX_SENSOR_TABLE) {
 			sensor.enabled = sens_en & (1 << sens_en_bit);
 			int32_t param_val = disabled_val;
@@ -996,20 +996,21 @@ void EKF2::initFusionControl()
 				param_get(param, &param_val);
 			}
 
-			sensor.intended = sensor.enabled ? param_val : disabled_val;
+			sensor.intended = sensor.enabled ? static_cast<uint8_t>(param_val) : disabled_val;
 			_sensor_table[_num_sensor_table++] = {&sensor, param, sens_en_bit, sensor_id, instance, disabled_val};
 		}
 	};
 
-	// bit layout: 0=GPS 1=OF 2=EV 3..6=AGP0..3 7=BARO 8=RNG 9=DRAG 10=MAG 11=IMU
+	// bit layout: 0..1=GPS0..1 2=OF 3=EV 4..7=AGP0..3 8=BARO 9=RNG 10=DRAG 11=MAG 12=ASPD
 #if defined(CONFIG_EKF2_GNSS)
-	add(_fc.gps,  0, vehicle_command_s::FUSION_SOURCE_GPS,  -1, _param_ekf2_gps_ctrl.handle());
+	add(_fc.gps,   0, vehicle_command_s::FUSION_SOURCE_GPS, -1, _param_ekf2_gps_ctrl.handle());
+	// TODO: gps[1] reserved — no param yet, add second GPS instance here when multi-GPS CTRL is implemented
 #endif
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	add(_fc.of,   1, vehicle_command_s::FUSION_SOURCE_OF,   -1, _param_ekf2_of_ctrl.handle());
+	add(_fc.of,    2, vehicle_command_s::FUSION_SOURCE_OF,  -1, _param_ekf2_of_ctrl.handle());
 #endif
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
-	add(_fc.ev,   2, vehicle_command_s::FUSION_SOURCE_EV,   -1, _param_ekf2_ev_ctrl.handle());
+	add(_fc.ev,    3, vehicle_command_s::FUSION_SOURCE_EV,  -1, _param_ekf2_ev_ctrl.handle());
 #endif
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION)
 
@@ -1020,24 +1021,26 @@ void EKF2::initFusionControl()
 		const param_t param_agp_ctrl = param_find_no_notification(param_name);
 
 		if (param_used(param_agp_ctrl) > 0) {
-			add(_fc.agp[i], 3 + i, vehicle_command_s::FUSION_SOURCE_AGP, static_cast<int8_t>(i), param_agp_ctrl);
+			add(_fc.agp[i], 4 + i, vehicle_command_s::FUSION_SOURCE_AGP, static_cast<int8_t>(i), param_agp_ctrl);
 		}
 	}
 
 #endif
 #if defined(CONFIG_EKF2_BAROMETER)
-	add(_fc.baro, 7, vehicle_command_s::FUSION_SOURCE_BARO, -1, _param_ekf2_baro_ctrl.handle());
+	add(_fc.baro,  8, vehicle_command_s::FUSION_SOURCE_BARO, -1, _param_ekf2_baro_ctrl.handle());
 #endif
 #if defined(CONFIG_EKF2_RANGE_FINDER)
-	add(_fc.rng,  8, vehicle_command_s::FUSION_SOURCE_RNG,  -1, _param_ekf2_rng_ctrl.handle());
+	add(_fc.rng,   9, vehicle_command_s::FUSION_SOURCE_RNG,  -1, _param_ekf2_rng_ctrl.handle());
 #endif
 #if defined(CONFIG_EKF2_DRAG_FUSION)
-	add(_fc.drag, 9, vehicle_command_s::FUSION_SOURCE_DRAG, -1, _param_ekf2_drag_ctrl.handle());
+	add(_fc.drag, 10, vehicle_command_s::FUSION_SOURCE_DRAG, -1, _param_ekf2_drag_ctrl.handle());
 #endif
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-	add(_fc.mag, 10, vehicle_command_s::FUSION_SOURCE_MAG,  -1, _param_ekf2_mag_type.handle(), 5);
+	add(_fc.mag,  11, vehicle_command_s::FUSION_SOURCE_MAG,  -1, _param_ekf2_mag_type.handle(), 5);
 #endif
-	add(_fc.imu, 11, vehicle_command_s::FUSION_SOURCE_IMU,  -1, _param_ekf2_imu_ctrl.handle());
+#if defined(CONFIG_EKF2_AIRSPEED)
+	add(_fc.aspd, 12, vehicle_command_s::FUSION_SOURCE_ASPD, -1, _param_ekf2_arsp_thr.handle());
+#endif
 }
 
 void EKF2::updateFusionIntended()
@@ -1050,12 +1053,14 @@ void EKF2::updateFusionIntended()
 			param_get(e.param, &param_val);
 		}
 
-		e.sensor->intended = e.sensor->enabled ? param_val : e.disabled_val;
+		e.sensor->intended = e.sensor->enabled ? static_cast<uint8_t>(param_val) : e.disabled_val;
 	}
 }
 
 void EKF2::handleSensorFusionCommand(const vehicle_command_s &cmd, vehicle_command_ack_s &ack)
 {
+	ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+
 	const uint8_t sensor = static_cast<uint8_t>(cmd.param1);
 	const uint8_t instance = PX4_ISFINITE(cmd.param2) ? static_cast<uint8_t>(cmd.param2) : 0;
 	const bool enable = (static_cast<int32_t>(cmd.param3) == 1);
@@ -1071,14 +1076,12 @@ void EKF2::handleSensorFusionCommand(const vehicle_command_s &cmd, vehicle_comma
 				param_get(e.param, &param_val);
 			}
 
-			e.sensor->intended = enable ? param_val : e.disabled_val;
+			e.sensor->intended = enable ? static_cast<uint8_t>(param_val) : e.disabled_val;
 			updateSensEnParam(e.sens_en_bit, enable);
 			ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 			return;
 		}
 	}
-
-	ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
 }
 
 void EKF2::updateSensEnParam(uint8_t bit, bool enable)
@@ -2016,7 +2019,7 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 void EKF2::PublishFusionControl(const hrt_abstime &timestamp)
 {
 	estimator_fusion_control_s msg{};
-	msg.gps_intended  = _fc.gps.intended;
+	msg.gps_intended[0] = _fc.gps.intended;
 	msg.of_intended   = _fc.of.intended;
 	msg.ev_intended   = _fc.ev.intended;
 
@@ -2028,10 +2031,20 @@ void EKF2::PublishFusionControl(const hrt_abstime &timestamp)
 	msg.rng_intended  = _fc.rng.intended;
 	msg.drag_intended = _fc.drag.intended;
 	msg.mag_intended  = _fc.mag.intended;
-	msg.imu_intended  = _fc.imu.intended;
+	msg.aspd_intended = _fc.aspd.intended;
+
+	const auto &cs = _ekf.control_status_flags();
+	msg.gps_active  = (cs.gnss_pos || cs.gps_hgt || cs.gnss_vel || cs.gnss_yaw) ? 1u : 0u; // TODO: per-instance active tracking
+	msg.of_active   = cs.opt_flow;
+	msg.ev_active   = cs.ev_pos || cs.ev_hgt || cs.ev_vel || cs.ev_yaw;
+	msg.baro_active = cs.baro_hgt;
+	msg.rng_active  = cs.rng_hgt;
+	msg.drag_active = (_fc.drag.intended > 0) && cs.wind && cs.in_air && !cs.fake_pos;
+	msg.mag_active  = cs.mag;
+	msg.aspd_active = cs.fuse_aspd;
 
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION)
-	msg.agp_active    = _ekf.getAgpFusingBitmask();
+	msg.agp_active  = _ekf.getAgpFusingBitmask();
 #endif
 
 	msg.timestamp     = _replay_mode ? timestamp : hrt_absolute_time();

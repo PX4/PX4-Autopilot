@@ -402,7 +402,7 @@ private:
 		uint8_t sens_en_bit;
 		uint8_t sensor_id;
 		int8_t instance;     // -1 = any instance
-		int32_t disabled_val;
+		uint8_t disabled_val;
 	};
 
 	static constexpr uint8_t MAX_SENSOR_TABLE = 9 + (MAX_AGP_INSTANCES - 1); // 12
@@ -594,7 +594,7 @@ private:
 		_param_ekf2_eas_noise, ///< measurement noise used for airspeed fusion (m/sec)
 
 		// control of airspeed fusion
-		(ParamExtFloat<px4::params::EKF2_ARSP_THR>)
+		(ParamExtInt<px4::params::EKF2_ARSP_THR>)
 		_param_ekf2_arsp_thr, ///< A value of zero will disabled airspeed fusion. Any positive value sets the minimum airspeed which will be used (m/sec)
 #endif // CONFIG_EKF2_AIRSPEED
 
