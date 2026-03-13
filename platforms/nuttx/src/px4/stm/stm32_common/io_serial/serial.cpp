@@ -34,7 +34,9 @@
 /**
  * @file serial.cpp
  *
- * Serial communication for the PX4IO module.
+ * Serial communication for the PX4IO module — STM32F1/F3 implementation.
+ *
+ * Uses the SR/DR register model and positional-argument DMA API.
  */
 
 #include <stdint.h>
@@ -80,7 +82,7 @@ static void		dma_reset(void);
 static struct IOPacket	dma_packet;
 
 /* serial register accessors */
-#define REG(_x)		(*(volatile uint32_t *)(PX4FMU_SERIAL_BASE + _x))
+#define REG(_x)		(*(volatile uint32_t *)(PX4FMU_SERIAL_BASE + (_x)))
 #define rSR		REG(STM32_USART_SR_OFFSET)
 #define rDR		REG(STM32_USART_DR_OFFSET)
 #define rBRR		REG(STM32_USART_BRR_OFFSET)

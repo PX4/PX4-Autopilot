@@ -656,6 +656,13 @@ else
 	fi
 	unset BOARD_BOOTLOADER_UPGRADE
 
+	set BOARD_SECONDARY_UPGRADE ${R}etc/init.d/rc.board_secondary_upgrade
+	if [ -f $BOARD_SECONDARY_UPGRADE ]
+	then
+		sh $BOARD_SECONDARY_UPGRADE
+	fi
+	unset BOARD_SECONDARY_UPGRADE
+
 #
 # End of autostart.
 #
