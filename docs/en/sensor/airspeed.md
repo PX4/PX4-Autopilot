@@ -23,6 +23,7 @@ Recommended digital airspeed sensors include:
     - [Holybro High Precision DroneCAN Airspeed Sensor - DLVR](https://holybro.com/collections/sensors/products/high-precision-dronecan-airspeed-sensor-dlvr)
     - [RaccoonLab Cyphal/CAN and DroneCAN Airspeed Sensor - MS4525DO](https://raccoonlab.co/tproduct/360882105-652259850171-cyphal-and-dronecan-airspeed-v2)
     - [Avionics Anonymous Air Data Computer with OAT probe](https://www.tindie.com/products/avionicsanonymous/uavcan-air-data-computer-airspeed-sensor/)
+    - [UAV-DEV GmbH DroneCAN Airspeed and Barometer Sensor - AUAV](https://wiki.uav-dev.com/en/product/airspeed/auav)
 - Based on [Venturi effect](https://en.wikipedia.org/wiki/Venturi_effect)
   - [TFSLOT](airspeed_tfslot.md) Venturi effect airspeed sensor.
 
