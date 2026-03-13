@@ -84,6 +84,9 @@ public:
 	int print_status() override;
 
 	bool init();
+	void enable_lockstep(bool enable) { _lockstep = enable; }
+	int init_lockstep();
+	void run_once();
 
 private:
 	void Run() override;
@@ -134,6 +137,7 @@ private:
 
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")}; ///< loop duration performance counter
 	hrt_abstime _time_stamp_last_loop{0}; ///< time stamp of last loop iteration
+	bool _lockstep{false};
 
 	vehicle_command_s _current_command{};
 	bool _command_failed{false};

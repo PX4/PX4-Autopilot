@@ -28,6 +28,10 @@ add_executable(px4
 	apps.cpp
 	)
 
+if(PX4_CONFIG STREQUAL "px4_sitl_lockstep" AND TARGET px4_lockstep)
+	add_dependencies(px4 px4_lockstep)
+endif()
+
 if (BUILD_TESTING)
 	# Build mavlink fuzz tests. These run other modules and thus cannot be a functional/unit test
 	add_executable(mavlink_fuzz_tests EXCLUDE_FROM_ALL

@@ -76,6 +76,54 @@ bool FlightModeManager::init()
 	return true;
 }
 
+int FlightModeManager::init_lockstep()
+{
+	_lockstep = true;
+	_time_stamp_last_loop = hrt_absolute_time();
+	return 0;
+}
+
+void FlightModeManager::run_once()
+{
+	if (!_lockstep) {
+		return;
+	}
+
+	perf_begin(_loop_perf);
+
+	if (_parameter_update_sub.updated()) {
+		parameter_update_s param_update{};
+		_parameter_update_sub.copy(&param_update);
+		updateParams();
+	}
+
+	vehicle_local_position_s vehicle_local_position{};
+
+	if (_vehicle_local_position_sub.update(&vehicle_local_position)) {
+		const hrt_abstime time_stamp_now = vehicle_local_position.timestamp_sample;
+		const float dt = math::constrain(((time_stamp_now - _time_stamp_last_loop) / 1e6f), 0.0002f, 0.1f);
+		_time_stamp_last_loop = time_stamp_now;
+
+		_vehicle_control_mode_sub.update();
+		_vehicle_land_detected_sub.update();
+		_vehicle_status_sub.update();
+
+		start_flight_task();
+
+		if (_vehicle_command_sub.updated()) {
+			handleCommand();
+		}
+
+		tryApplyCommandIfAny();
+
+		if (isAnyTaskActive()) {
+			generateTrajectorySetpoint(dt, vehicle_local_position);
+		}
+	}
+
+	perf_end(_loop_perf);
+}
+
 void FlightModeManager::Run()
 {
 	if (should_exit()) {

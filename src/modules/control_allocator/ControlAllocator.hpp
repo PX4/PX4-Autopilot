@@ -110,6 +110,10 @@ public:
 	void Run() override;
 
 	bool init();
+	void enable_lockstep(bool enable) { _lockstep = enable; }
+	bool init_lockstep();
+	void run_once();
+	void lockstep_update_params();
 
 private:
 
@@ -213,6 +217,7 @@ private:
 	ParamHandles _param_handles{};
 	Params _params{};
 	bool _has_slew_rate{false};
+	bool _lockstep{false};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::CA_AIRFRAME>) _param_ca_airframe,

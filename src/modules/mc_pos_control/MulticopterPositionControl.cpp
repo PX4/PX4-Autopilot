@@ -70,6 +70,20 @@ bool MulticopterPositionControl::init()
 	return true;
 }
 
+bool MulticopterPositionControl::init_lockstep()
+{
+	_time_stamp_last_loop = hrt_absolute_time();
+	return true;
+}
+
+void MulticopterPositionControl::run_once()
+{
+	const bool prev = _lockstep;
+	_lockstep = true;
+	Run();
+	_lockstep = prev;
+}
+
 void MulticopterPositionControl::parameters_update(bool force)
 {
 	// check for parameter updates
@@ -384,7 +398,9 @@ void MulticopterPositionControl::Run()
 	}
 
 	// reschedule backup
-	ScheduleDelayed(100_ms);
+	if (!_lockstep) {
+		ScheduleDelayed(100_ms);
+	}
 
 	parameters_update(false);
 

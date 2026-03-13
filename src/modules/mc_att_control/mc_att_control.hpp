@@ -80,6 +80,9 @@ public:
 	static int print_usage(const char *reason = nullptr);
 
 	bool init();
+	void enable_lockstep(bool enable) { _lockstep = enable; }
+	bool init_lockstep();
+	void run_once();
 
 private:
 	void Run() override;
@@ -136,6 +139,7 @@ private:
 
 	hrt_abstime _last_run{0};
 	hrt_abstime _last_attitude_setpoint{0};
+	bool _lockstep{false};
 
 	bool _spooled_up{false}; ///< used to make sure the vehicle cannot take off during the spoolup time
 	bool _landed{true};

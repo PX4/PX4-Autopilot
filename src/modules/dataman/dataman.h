@@ -39,6 +39,9 @@
 #pragma once
 
 #include <string.h>
+#include <stdbool.h>
+
+#include <px4_platform_common/defines.h>
 #include <navigator/navigation.h>
 #include <uORB/topics/mission.h>
 
@@ -125,3 +128,15 @@ static constexpr size_t g_per_item_size[DM_KEY_NUM_KEYS] = {
 		       (sizeof(struct mission_s) << 16) + (sizeof(struct mission_stats_entry_s) << 12) + \
 		       (sizeof(struct mission_fence_point_s) << 8) + (sizeof(struct mission_item_s) << 4) + \
 		       sizeof(struct dataman_compat_s))
+
+__BEGIN_DECLS
+
+__EXPORT int dm_lockstep_init(bool use_ram_backend);
+__EXPORT void dm_lockstep_set_sync(bool enable);
+__EXPORT bool dm_lockstep_is_sync_enabled(void);
+__EXPORT uint8_t dm_lockstep_get_client_id(void);
+__EXPORT bool dm_lockstep_read(dm_item_t item, unsigned index, void *buffer, size_t length);
+__EXPORT bool dm_lockstep_write(dm_item_t item, unsigned index, const void *buffer, size_t length);
+__EXPORT bool dm_lockstep_clear(dm_item_t item);
+
+__END_DECLS

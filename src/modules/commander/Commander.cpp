@@ -525,6 +525,22 @@ int Commander::print_status()
 	return 0;
 }
 
+int Commander::init_lockstep()
+{
+	_lockstep = true;
+	return 0;
+}
+
+void Commander::run_once()
+{
+	static bool warned = false;
+
+	if (!warned) {
+		PX4_WARN("Commander lockstep not implemented");
+		warned = true;
+	}
+}
+
 extern "C" __EXPORT int commander_main(int argc, char *argv[])
 {
 	return Commander::main(argc, argv);

@@ -41,6 +41,17 @@ DatamanClient::DatamanClient()
 {
 	_sync_perf = perf_alloc(PC_ELAPSED, "DatamanClient: sync");
 
+	if (dm_lockstep_is_sync_enabled()) {
+		_client_id = dm_lockstep_get_client_id();
+
+		if (_client_id == CLIENT_ID_NOT_SET) {
+			PX4_ERR("Failed to get client ID!");
+		}
+
+		_dataman_response_sub = -1;
+		return;
+	}
+
 	_dataman_request_pub.advertise();
 	_dataman_response_sub = orb_subscribe(ORB_ID(dataman_response));
 
@@ -86,6 +97,53 @@ DatamanClient::~DatamanClient()
 bool DatamanClient::syncHandler(const dataman_request_s &request, dataman_response_s &response,
 				const hrt_abstime &start_time, hrt_abstime timeout)
 {
+	if (dm_lockstep_is_sync_enabled()) {
+		perf_begin(_sync_perf);
+		response = {};
+		response.client_id = request.client_id;
+		response.request_type = request.request_type;
+		response.item = request.item;
+		response.index = request.index;
+		response.status = dataman_response_s::STATUS_FAILURE_NO_DATA;
+
+		switch (request.request_type) {
+		case DM_GET_ID: {
+			response.client_id = dm_lockstep_get_client_id();
+			memcpy(response.data, &request.timestamp, sizeof(hrt_abstime));
+			response.status = response.client_id > CLIENT_ID_NOT_SET ? dataman_response_s::STATUS_SUCCESS
+					   : dataman_response_s::STATUS_FAILURE_ID_ERR;
+			break;
+		}
+
+		case DM_WRITE:
+			response.status = dm_lockstep_write(static_cast<dm_item_t>(request.item), request.index,
+						    request.data, request.data_length)
+					   ? dataman_response_s::STATUS_SUCCESS
+					   : dataman_response_s::STATUS_FAILURE_WRITE_FAILED;
+			break;
+
+		case DM_READ:
+			response.status = dm_lockstep_read(static_cast<dm_item_t>(request.item), request.index,
+						   response.data, request.data_length)
+					   ? dataman_response_s::STATUS_SUCCESS
+					   : dataman_response_s::STATUS_FAILURE_READ_FAILED;
+			break;
+
+		case DM_CLEAR:
+			response.status = dm_lockstep_clear(static_cast<dm_item_t>(request.item))
+					   ? dataman_response_s::STATUS_SUCCESS
+					   : dataman_response_s::STATUS_FAILURE_CLEAR_FAILED;
+			break;
+
+		default:
+			break;
+		}
+
+		response.timestamp = hrt_absolute_time();
+		perf_end(_sync_perf);
+		return true;
+	}
+
 	bool response_received = false;
 	int32_t ret = 0;
 	hrt_abstime time_elapsed = hrt_elapsed_time(&start_time);

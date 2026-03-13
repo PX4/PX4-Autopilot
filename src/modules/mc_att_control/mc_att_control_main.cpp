@@ -85,6 +85,20 @@ MulticopterAttitudeControl::init()
 	return true;
 }
 
+bool MulticopterAttitudeControl::init_lockstep()
+{
+	_last_run = hrt_absolute_time();
+	return true;
+}
+
+void MulticopterAttitudeControl::run_once()
+{
+	const bool prev = _lockstep;
+	_lockstep = true;
+	Run();
+	_lockstep = prev;
+}
+
 void
 MulticopterAttitudeControl::parameters_updated()
 {

@@ -61,6 +61,9 @@
 static LockstepScheduler lockstep_scheduler {true};
 #endif
 
+static px4::atomic<uint64_t> g_lockstep_time_us{0};
+static px4::atomic<bool> g_lockstep_enabled{false};
+
 // Intervals in usec
 static constexpr unsigned HRT_INTERVAL_MIN = 50;
 static constexpr unsigned HRT_INTERVAL_MAX = 50000000;
@@ -105,6 +108,10 @@ static void hrt_unlock()
  */
 hrt_abstime hrt_absolute_time()
 {
+	if (g_lockstep_enabled.load()) {
+		return g_lockstep_time_us.load();
+	}
+
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	// optimized case (avoid ts_to_abstime) if lockstep scheduler is used
 	return lockstep_scheduler.get_absolute_time();
@@ -137,6 +144,21 @@ hrt_abstime hrt_absolute_time()
 
 	return ts_to_abstime(&ts);
 #endif // defined(ENABLE_LOCKSTEP_SCHEDULER)
+}
+
+void hrt_lockstep_enable(bool enable)
+{
+	g_lockstep_enabled.store(enable);
+}
+
+void hrt_lockstep_set_absolute_time(hrt_abstime now_us)
+{
+	g_lockstep_time_us.store(now_us);
+}
+
+bool hrt_lockstep_is_enabled(void)
+{
+	return g_lockstep_enabled.load();
 }
 
 /*

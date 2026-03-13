@@ -181,6 +181,12 @@ static inline hrt_abstime hrt_elapsed_time(const hrt_abstime *then)
  */
 __EXPORT extern void hrt_store_absolute_time(volatile hrt_abstime *time);
 
+#ifdef __PX4_POSIX
+__EXPORT void hrt_lockstep_enable(bool enable);
+__EXPORT void hrt_lockstep_set_absolute_time(hrt_abstime now_us);
+__EXPORT bool hrt_lockstep_is_enabled(void);
+#endif
+
 #ifdef __PX4_QURT
 /**
  * Set a time offset to hrt_absolute_time on the DSP.

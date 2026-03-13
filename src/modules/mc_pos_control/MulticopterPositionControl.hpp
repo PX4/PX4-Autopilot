@@ -87,6 +87,9 @@ public:
 	static int print_usage(const char *reason = nullptr);
 
 	bool init();
+	void enable_lockstep(bool enable) { _lockstep = enable; }
+	bool init_lockstep();
+	void run_once();
 
 private:
 	void Run() override;
@@ -111,6 +114,7 @@ private:
 
 	hrt_abstime _time_stamp_last_loop{0};		/**< time stamp of last loop iteration */
 	hrt_abstime _time_position_control_enabled{0};
+	bool _lockstep{false};
 
 	trajectory_setpoint_s _setpoint{PositionControl::empty_trajectory_setpoint};
 	trajectory_setpoint_s _last_valid_setpoint{PositionControl::empty_trajectory_setpoint};

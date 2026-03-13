@@ -142,7 +142,17 @@ merged_em_globals['type_includes'] = sorted(set(all_type_includes))
 
 # run interpreter
 ofile = open(output_file, 'w')
-interpreter = em.Interpreter(output=ofile, globals=merged_em_globals, options={em.RAW_OPT: True, em.BUFFERED_OPT: True})
+options = None
+if hasattr(em, "RAW_OPT") and hasattr(em, "BUFFERED_OPT"):
+    options = {em.RAW_OPT: True, em.BUFFERED_OPT: True}
+
+try:
+    if options is not None:
+        interpreter = em.Interpreter(output=ofile, globals=merged_em_globals, options=options)
+    else:
+        interpreter = em.Interpreter(output=ofile, globals=merged_em_globals)
+except Exception:
+    interpreter = em.Interpreter(output=ofile, globals=merged_em_globals)
 
 try:
     interpreter.file(open(template_file))

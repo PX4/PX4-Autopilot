@@ -113,6 +113,10 @@ public:
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
+	void enable_lockstep(bool enable) { _lockstep = enable; }
+	int init_lockstep();
+	void run_once();
+
 	/** @see ModuleBase::run() */
 	void run() override;
 
@@ -279,6 +283,7 @@ private:
 	bool _have_taken_off_since_arming{false};
 	bool _status_changed{true};
 	bool _mission_in_progress{false};
+	bool _lockstep{false};
 
 	vehicle_land_detected_s	_vehicle_land_detected{};
 

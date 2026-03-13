@@ -79,6 +79,9 @@ public:
 	static int print_usage(const char *reason = nullptr);
 
 	bool init();
+	void enable_lockstep(bool enable) { _lockstep = enable; }
+	bool init_lockstep();
+	void run_once();
 
 private:
 	void Run() override;
@@ -117,6 +120,7 @@ private:
 	bool _maybe_landed{true};
 
 	hrt_abstime _last_run{0};
+	bool _lockstep{false};
 
 	perf_counter_t	_loop_perf;			/**< loop duration performance counter */
 

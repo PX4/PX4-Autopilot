@@ -169,12 +169,143 @@ static enum {
 static px4_sem_t g_init_sema;
 
 static bool g_task_should_exit;	/**< if true, dataman task should exit */
+static bool g_lockstep_sync{false};
 
 /* Work queue management functions */
 
 static bool is_running()
 {
 	return dm_operations_data.running;
+}
+
+bool dm_lockstep_is_sync_enabled(void)
+{
+	return g_lockstep_sync;
+}
+
+void dm_lockstep_set_sync(bool enable)
+{
+	g_lockstep_sync = enable;
+}
+
+uint8_t dm_lockstep_get_client_id(void)
+{
+	if (dataman_clients_count < UINT8_MAX) {
+		return dataman_clients_count++;
+	}
+
+	return 0;
+}
+
+static unsigned calculate_max_offset()
+{
+	g_key_offsets[0] = 0;
+
+	for (int i = 0; i < ((int)DM_KEY_NUM_KEYS - 1); i++) {
+		g_key_offsets[i + 1] = g_key_offsets[i] + (g_per_item_max_index[i] * g_per_item_size_with_hdr[i]);
+	}
+
+	return g_key_offsets[DM_KEY_NUM_KEYS - 1] + (g_per_item_max_index[DM_KEY_NUM_KEYS - 1] *
+		       g_per_item_size_with_hdr[DM_KEY_NUM_KEYS - 1]);
+}
+
+int dm_lockstep_init(bool use_ram_backend)
+{
+	if (is_running()) {
+		return 0;
+	}
+
+	backend = use_ram_backend ? BACKEND_RAM : BACKEND_FILE;
+
+	switch (backend) {
+#ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
+	case BACKEND_FILE:
+		g_dm_ops = &dm_file_operations;
+		if (!k_data_manager_device_path) {
+			k_data_manager_device_path = strdup(default_device_path);
+		}
+		break;
+#endif
+
+	case BACKEND_RAM:
+		g_dm_ops = &dm_ram_operations;
+		break;
+
+	default:
+		PX4_WARN("No valid backend set.");
+		return -1;
+	}
+
+	unsigned max_offset = calculate_max_offset();
+
+	for (unsigned i = 0; i < DM_NUMBER_OF_FUNCS; i++) {
+		g_func_counts[i] = 0;
+	}
+
+	g_task_should_exit = false;
+
+	if (_dm_read_perf == nullptr) {
+		_dm_read_perf = perf_alloc(PC_ELAPSED, MODULE_NAME": read");
+	}
+
+	if (_dm_write_perf == nullptr) {
+		_dm_write_perf = perf_alloc(PC_ELAPSED, MODULE_NAME": write");
+	}
+
+	int ret = g_dm_ops->initialize(max_offset);
+
+	if (ret) {
+		return ret;
+	}
+
+	return 0;
+}
+
+bool dm_lockstep_read(dm_item_t item, unsigned index, void *buffer, size_t length)
+{
+	if (!is_running() || g_dm_ops == nullptr) {
+		return false;
+	}
+
+	if (length > g_per_item_size[item]) {
+		return false;
+	}
+
+	g_func_counts[DM_READ]++;
+	perf_begin(_dm_read_perf);
+	ssize_t result = g_dm_ops->read(item, index, buffer, length);
+	perf_end(_dm_read_perf);
+
+	return result >= 0;
+}
+
+bool dm_lockstep_write(dm_item_t item, unsigned index, const void *buffer, size_t length)
+{
+	if (!is_running() || g_dm_ops == nullptr) {
+		return false;
+	}
+
+	if (length > g_per_item_size[item]) {
+		return false;
+	}
+
+	g_func_counts[DM_WRITE]++;
+	perf_begin(_dm_write_perf);
+	ssize_t result = g_dm_ops->write(item, index, buffer, length);
+	perf_end(_dm_write_perf);
+
+	return result >= 0;
+}
+
+bool dm_lockstep_clear(dm_item_t item)
+{
+	if (!is_running() || g_dm_ops == nullptr) {
+		return false;
+	}
+
+	g_func_counts[DM_CLEAR]++;
+	int result = g_dm_ops->clear(item);
+	return result == 0;
 }
 
 /* Calculate the offset in file of specific item */

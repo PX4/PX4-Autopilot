@@ -121,6 +121,9 @@ public:
 	/** @see ModuleBase::run() */
 	void run() override;
 
+	void enable_lockstep(bool enable) { _lockstep = enable; }
+	void run_once();
+
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
 
@@ -355,6 +358,10 @@ private:
 	Geofence	_geofence;			/**< class that handles the geofence */
 	GeofenceBreachAvoidance _gf_breach_avoidance;
 	hrt_abstime _last_geofence_check{0};
+	bool _lockstep{false};
+	bool _lockstep_initialized{false};
+	uint32_t _geofence_id{0};
+	uint32_t _safe_points_id{0};
 
 	bool _navigator_status_updated{false};
 	hrt_abstime _last_navigator_status_publication{0};

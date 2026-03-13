@@ -72,6 +72,20 @@ MulticopterRateControl::init()
 	return true;
 }
 
+bool MulticopterRateControl::init_lockstep()
+{
+	_last_run = hrt_absolute_time();
+	return true;
+}
+
+void MulticopterRateControl::run_once()
+{
+	const bool prev = _lockstep;
+	_lockstep = true;
+	Run();
+	_lockstep = prev;
+}
+
 void
 MulticopterRateControl::parameters_updated()
 {

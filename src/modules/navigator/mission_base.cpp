@@ -280,6 +280,13 @@ MissionBase::on_active()
 		set_mission_items();
 	}
 
+	// If we activated before feasibility was ready, retry once it becomes valid.
+	if ((_mission_type == MissionType::MISSION_TYPE_NONE) && isMissionValid()) {
+		_is_current_planned_mission_item_valid = true;
+		update_mission();
+		set_mission_items();
+	}
+
 	// check if heading alignment is necessary, and add it to the current mission item if necessary
 	if (_align_heading_necessary && is_mission_item_reached_or_completed()) {
 
@@ -423,16 +430,18 @@ MissionBase::isLanding()
 void MissionBase::update_mission()
 {
 	if (_mission.count == 0u || !_is_current_planned_mission_item_valid || !isMissionValid()) {
-		if (_land_detected_sub.get().landed) {
-			/* landed, refusing to take off without a mission */
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "No valid mission available, refusing takeoff\t");
-			events::send(events::ID("mission_not_valid_refuse"), {events::Log::Error, events::LogInternal::Disabled},
-				     "No valid mission available, refusing takeoff");
+		if (_mission_checked) {
+			if (_land_detected_sub.get().landed) {
+				/* landed, refusing to take off without a mission */
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "No valid mission available, refusing takeoff\t");
+				events::send(events::ID("mission_not_valid_refuse"), {events::Log::Error, events::LogInternal::Disabled},
+					     "No valid mission available, refusing takeoff");
 
-		} else {
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "No valid mission available, loitering\t");
-			events::send(events::ID("mission_not_valid_loiter"), {events::Log::Error, events::LogInternal::Disabled},
-				     "No valid mission available, loitering");
+			} else {
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "No valid mission available, loitering\t");
+				events::send(events::ID("mission_not_valid_loiter"), {events::Log::Error, events::LogInternal::Disabled},
+					     "No valid mission available, loitering");
+			}
 		}
 
 		_mission_type = MissionType::MISSION_TYPE_NONE;

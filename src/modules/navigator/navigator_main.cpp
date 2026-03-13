@@ -152,16 +152,22 @@ void Navigator::params_update()
 void Navigator::run()
 {
 
-	/* Try to load the geofence:
-	 * if /fs/microsd/etc/geofence.txt load from this file */
-	struct stat buffer;
+	if (!_lockstep_initialized) {
+		/* Try to load the geofence:
+		 * if /fs/microsd/etc/geofence.txt load from this file */
+		struct stat buffer;
 
-	if (stat(GEOFENCE_FILENAME, &buffer) == 0) {
-		PX4_INFO("Loading geofence from %s", GEOFENCE_FILENAME);
-		_geofence.loadFromFile(GEOFENCE_FILENAME);
+		if (stat(GEOFENCE_FILENAME, &buffer) == 0) {
+			PX4_INFO("Loading geofence from %s", GEOFENCE_FILENAME);
+			_geofence.loadFromFile(GEOFENCE_FILENAME);
+		}
+
+		params_update();
+
+		/* rate-limit position subscription to 20 Hz / 50 ms */
+		orb_set_interval(_local_pos_sub, 50);
+		_lockstep_initialized = true;
 	}
-
-	params_update();
 
 	/* wakeup source(s) */
 	px4_pollfd_struct_t fds[3] {};
@@ -174,16 +180,11 @@ void Navigator::run()
 	fds[2].fd = _mission_sub;
 	fds[2].events = POLLIN;
 
-	uint32_t geofence_id{0};
-	uint32_t safe_points_id{0};
-
-	/* rate-limit position subscription to 20 Hz / 50 ms */
-	orb_set_interval(_local_pos_sub, 50);
-
 	while (!should_exit()) {
 
 		/* wait for up to 1000ms for data */
-		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 1000);
+		const int timeout_ms = _lockstep ? 0 : 1000;
+		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), timeout_ms);
 
 		if (pret == 0) {
 			/* Let the loop run anyway, don't do `continue` here. */
@@ -191,8 +192,11 @@ void Navigator::run()
 		} else if (pret < 0) {
 			/* this is undesirable but not much we can do - might want to flag unhappy status */
 			PX4_ERR("poll error %d, %d", pret, errno);
-			px4_usleep(10000);
-			continue;
+
+			if (!_lockstep) {
+				px4_usleep(10000);
+				continue;
+			}
 		}
 
 		perf_begin(_loop_perf);
@@ -204,14 +208,14 @@ void Navigator::run()
 			mission_s mission;
 			orb_copy(ORB_ID(mission), _mission_sub, &mission);
 
-			if (mission.geofence_id != geofence_id) {
-				geofence_id = mission.geofence_id;
+			if (mission.geofence_id != _geofence_id) {
+				_geofence_id = mission.geofence_id;
 				_geofence.updateFence();
 			}
 
-			if (mission.safe_points_id != safe_points_id) {
-				safe_points_id = mission.safe_points_id;
-				_rtl.updateSafePoints(safe_points_id);
+			if (mission.safe_points_id != _safe_points_id) {
+				_safe_points_id = mission.safe_points_id;
+				_rtl.updateSafePoints(_safe_points_id);
 			}
 		}
 
@@ -933,7 +937,19 @@ void Navigator::run()
 		_geofence.run();
 
 		perf_end(_loop_perf);
+
+		if (_lockstep) {
+			break;
+		}
 	}
+}
+
+void Navigator::run_once()
+{
+	const bool prev = _lockstep;
+	_lockstep = true;
+	run();
+	_lockstep = prev;
 }
 
 void Navigator::geofence_breach_check()
