@@ -406,6 +406,7 @@ static void dshot_start_timer_burst(uint8_t timer_index)
 
 		if (timer->dma_handle == NULL) {
 			PX4_WARN("DMA allocation for timer %u failed", timer_index);
+			_bdshot_cycle_complete[timer_index] = true;
 			return;
 		}
 	}
