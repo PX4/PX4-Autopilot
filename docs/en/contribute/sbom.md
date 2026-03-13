@@ -10,7 +10,9 @@ PX4 generates a [Software Bill of Materials](https://ntia.gov/SBOM) for every fi
 
 ## Format
 
-PX4 uses SPDX 2.3 JSON. SPDX is the Linux Foundation's own standard (ISO/IEC 5962), aligning with PX4's position as a Dronecode/LF project. Zephyr RTOS also uses SPDX.
+PX4 uses SPDX 2.3 JSON.
+SPDX is the Linux Foundation's own standard (ISO/IEC 5962), aligning with PX4's position as a Dronecode/LF project.
+Zephyr RTOS also uses SPDX.
 
 Each SBOM contains:
 
@@ -24,7 +26,8 @@ Typical SBOM size: 70-100 packages, ~500 lines, ~20 KB JSON.
 
 ## Generation
 
-SBOMs are generated automatically as part of every CMake build. The output file is:
+SBOMs are generated automatically as part of every CMake build.
+The output file is:
 
 ```
 build/<target>/<target>.sbom.spdx.json
@@ -35,18 +38,27 @@ For example:
 build/px4_fmu-v6x_default/px4_fmu-v6x_default.sbom.spdx.json
 ```
 
-The generator script is `Tools/ci/generate_sbom.py`. It uses only Python standard library (no pip dependencies).
+The generator script is `Tools/ci/generate_sbom.py`.
+It uses only Python standard library (no pip dependencies).
 
 ### CMake Integration
 
-The `sbom` CMake target is included in the default `ALL` target. The relevant cmake module is `cmake/sbom.cmake`.
+The `sbom` CMake target is included in the default `ALL` target.
+The relevant cmake module is `cmake/sbom.cmake`.
 
 ### Disabling SBOM Generation
 
-Set the environment variable before building:
+Set the environment variable before building.
+This is checked at CMake configure time, so a clean build or reconfigure is required:
 
 ```sh
 PX4_SBOM_DISABLE=1 make px4_fmu-v6x_default
+```
+
+If the build directory already exists, force a reconfigure:
+
+```sh
+PX4_SBOM_DISABLE=1 cmake -B build/px4_fmu-v6x_default .
 ```
 
 ### Manual Generation
@@ -91,7 +103,8 @@ For full schema validation, use the [SPDX online validator](https://tools.spdx.o
 
 ## Updating License Mappings
 
-Submodule licenses are maintained in a hardcoded map in `Tools/ci/generate_sbom.py` (`SUBMODULE_LICENSES`). When adding or changing submodules:
+Submodule licenses are maintained in a hardcoded map in `Tools/ci/generate_sbom.py` (`SUBMODULE_LICENSES`).
+When adding or changing submodules:
 
 1. Identify the license of the new submodule (check its LICENSE file or repository).
 2. Add the mapping to `SUBMODULE_LICENSES` using the [SPDX license identifier](https://spdx.org/licenses/).
