@@ -45,7 +45,6 @@
 
 #include "mavlink_bridge_header.h"
 
-class MavlinkFtpTest;
 class Mavlink;
 
 /// MAVLink remote file server. Support FTP like commands using MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL message.
@@ -198,9 +197,6 @@ private:
 	bool _last_reply_valid = false;
 	uint8_t _last_reply[MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL_LEN - MAVLINK_MSG_FILE_TRANSFER_PROTOCOL_FIELD_PAYLOAD_LEN
 								      + sizeof(PayloadHeader) + sizeof(uint32_t)];
-
-	// Mavlink test needs to be able to call send
-	friend class MavlinkFtpTest;
 
 	int _our_errno {0};
 };

@@ -43,8 +43,6 @@
 #include <cstring>
 
 #include "mavlink_ftp.h"
-#include "mavlink_tests/mavlink_ftp_test.h"
-
 #include "mavlink_main.h"
 
 using namespace time_literals;
