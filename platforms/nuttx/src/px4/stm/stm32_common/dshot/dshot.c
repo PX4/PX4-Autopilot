@@ -566,6 +566,14 @@ void dma_burst_finished_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 	// If DMA handler is invalid, skip capture
 	if (timer->dma_handle == NULL) {
 		PX4_WARN("failed to allocate dma for timer %u channel %u", timer_index, capture_channel);
+
+		// Restore the capture channel back to DshotInverted (was set to CaptureDMA above)
+		if (capture_output_channel < MAX_TIMER_IO_CHANNELS) {
+			io_timer_unallocate_channel(capture_output_channel);
+			io_timer_channel_init(capture_output_channel, IOTimerChanMode_DshotInverted, NULL, NULL);
+		}
+
+		perf_end(burst_perf);
 		_bdshot_cycle_complete[timer_index] = true;
 		return;
 	}
