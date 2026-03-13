@@ -74,12 +74,17 @@ private:
 
 	EscStatus _escs[MAX_ESC_OUTPUTS] = {};
 
+	uint8_t _esc_count = {};
+	uint8_t _instance_esc_count[ORB_MULTI_MAX_INSTANCES] = {};
+
 	void update_data() override
 	{
 		for (int i = 0; i < _esc_status_subs.size(); i++) {
 			esc_status_s esc = {};
 
 			if (_esc_status_subs[i].update(&esc)) {
+				_instance_esc_count[i] = esc.esc_count;
+
 				for (int j = 0; j < esc_status_s::CONNECTED_ESC_MAX; j++) {
 
 					const bool is_motor = math::isInRange(esc.esc[j].actuator_function,
@@ -99,21 +104,28 @@ private:
 				}
 			}
 		}
+
+		_esc_count = 0;
+
+		for (int i = 0; i < _esc_status_subs.size(); i++) {
+			_esc_count += _instance_esc_count[i];
+		}
 	}
 
 	bool send() override
 	{
-		bool updated = false;
+		if (_esc_count == 0) {
+			return false;
+		}
 
-		for (int i = 0; i < MAX_NUM_MSGS; i++) {
+		const int num_msgs = math::min((_esc_count + ESCS_PER_MSG - 1) / ESCS_PER_MSG, (int)MAX_NUM_MSGS);
+		const hrt_abstime now = hrt_absolute_time();
 
-			hrt_abstime now = hrt_absolute_time();
+		for (int i = 0; i < num_msgs; i++) {
 
 			mavlink_esc_status_t msg = {};
 			msg.index = i * ESCS_PER_MSG;
 			msg.time_usec = now;
-
-			bool atleast_one_esc_updated = false;
 
 			for (int j = 0; j < ESCS_PER_MSG; j++) {
 
@@ -123,17 +135,13 @@ private:
 					msg.rpm[j] = esc.rpm;
 					msg.voltage[j] = esc.voltage;
 					msg.current[j] = esc.current;
-					atleast_one_esc_updated = true;
 				}
 			}
 
-			if (atleast_one_esc_updated) {
-				mavlink_msg_esc_status_send_struct(_mavlink->get_channel(), &msg);
-				updated = true;
-			}
+			mavlink_msg_esc_status_send_struct(_mavlink->get_channel(), &msg);
 		}
 
-		return updated;
+		return true;
 	}
 };
 

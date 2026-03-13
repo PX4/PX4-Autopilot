@@ -79,17 +79,17 @@ private:
 	uint8_t _total_esc_count = {};
 	EscInfo _escs[MAX_ESC_OUTPUTS] = {};
 
+	uint16_t _instance_counter[ORB_MULTI_MAX_INSTANCES] = {};
+	uint8_t _instance_esc_count[ORB_MULTI_MAX_INSTANCES] = {};
+
 	void update_data() override
 	{
-		_total_counter = 0;
-		_total_esc_count = 0;
-
 		for (int i = 0; i < _esc_status_subs.size(); i++) {
 			esc_status_s esc = {};
 
-			if (_esc_status_subs[i].copy(&esc)) {
-				_total_counter += esc.counter;
-				_total_esc_count += esc.esc_count;
+			if (_esc_status_subs[i].update(&esc)) {
+				_instance_counter[i] = esc.counter;
+				_instance_esc_count[i] = esc.esc_count;
 
 				uint16_t online_flags = esc.esc_online_flags;
 
@@ -112,15 +112,26 @@ private:
 				}
 			}
 		}
+
+		_total_counter = 0;
+		_total_esc_count = 0;
+
+		for (int i = 0; i < _esc_status_subs.size(); i++) {
+			_total_counter += _instance_counter[i];
+			_total_esc_count += _instance_esc_count[i];
+		}
 	}
 
 	bool send() override
 	{
-		bool updated = false;
+		if (_total_esc_count == 0) {
+			return false;
+		}
 
-		for (int i = 0; i < MAX_NUM_MSGS; i++) {
+		const int num_msgs = math::min((_total_esc_count + ESCS_PER_MSG - 1) / ESCS_PER_MSG, (int)MAX_NUM_MSGS);
+		const hrt_abstime now = hrt_absolute_time();
 
-			hrt_abstime now = hrt_absolute_time();
+		for (int i = 0; i < num_msgs; i++) {
 
 			mavlink_esc_info_t msg = {};
 			msg.index = i * ESCS_PER_MSG;
@@ -130,15 +141,12 @@ private:
 			msg.connection_type = 0;
 			msg.info = 0;
 
-			bool atleast_one_esc_updated = false;
-
 			for (int j = 0; j < ESCS_PER_MSG; j++) {
 
 				EscInfo &esc = _escs[i * ESCS_PER_MSG + j];
 
-				msg.info |= (esc.online << j);
-
 				if ((esc.timestamp != 0) && (esc.timestamp + ESC_TIMEOUT) > now) {
+					msg.info |= (esc.online << j);
 					msg.failure_flags[j] = esc.failure_flags;
 					msg.error_count[j] = esc.error_count;
 					msg.temperature[j] = esc.temperature;
@@ -146,18 +154,13 @@ private:
 					if (msg.connection_type == 0) {
 						msg.connection_type = esc.connectiontype;
 					}
-
-					atleast_one_esc_updated = true;
 				}
 			}
 
-			if (atleast_one_esc_updated) {
-				mavlink_msg_esc_info_send_struct(_mavlink->get_channel(), &msg);
-				updated = true;
-			}
+			mavlink_msg_esc_info_send_struct(_mavlink->get_channel(), &msg);
 		}
 
-		return updated;
+		return true;
 	}
 };
 
