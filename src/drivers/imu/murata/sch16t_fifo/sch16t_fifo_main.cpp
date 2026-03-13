@@ -37,7 +37,7 @@
 
 void SCH16T_FIFO::print_usage()
 {
-	PRINT_MODULE_USAGE_NAME("SCH16T_FIFO", "driver");
+	PRINT_MODULE_USAGE_NAME("sch16t_fifo", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
@@ -45,7 +45,7 @@ void SCH16T_FIFO::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-extern "C" int SCH16T_FIFO_main(int argc, char *argv[])
+extern "C" int sch16t_fifo_main(int argc, char *argv[])
 {
 	int ch;
 	using ThisDriver = SCH16T_FIFO;

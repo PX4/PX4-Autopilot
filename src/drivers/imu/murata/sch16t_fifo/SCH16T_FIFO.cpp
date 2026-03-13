@@ -1,21 +1,47 @@
-/*Add commentMore actions
- * This file is free software: you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+/****************************************************************************
  *
- * This file is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See the GNU General Public License for more details.
+ *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
  *
- * You should have received a copy of the GNU General Public License along
- * with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
 
 #include "SCH16T_FIFO.hpp"
 
 using namespace time_literals;
+
+// Initialize static members
+uint8_t SCH16T_FIFO::direct_mode = CtrlMode_Direct;
+uint8_t SCH16T_FIFO::fifo_enable = 0;
+uint8_t SCH16T_FIFO::fifo_cmd_num = 17;
+uint8_t SCH16T_FIFO::fifo_baudrate = 32;
+
+hrt_abstime SCH16T_FIFO::now = 0;
 
 static constexpr uint32_t SPI_SPEED = 2 * 1000 * 1000;  // 2 MHz SPI serial interface
 static constexpr uint16_t EOI = (1 << 1);               // End of Initialization
@@ -85,8 +111,6 @@ static constexpr uint32_t POWER_ON_TIME = 250_ms;
 
 #define SPI32BITCONVERT2_20BIT(x) (((int32_t)(((x)<<12)& 0xfffff000UL))>>12)
 
-#define CtrlMode_Direct 0
-#define CtrlMode_FpgaRead 1
 
 #define CTRL_Shift_Mode (0)
 #define CTRL_Shift_FifoRst (1)
@@ -158,12 +182,6 @@ bit[0]: After reading one packet, write '1' to notify the FPGA to load the next 
 #define FuncBit_Bit32 (2 << 3)
 
 
-static uint8_t direct_mode = CtrlMode_Direct;
-static uint8_t fifo_enable = 0;
-static uint8_t fifo_cmd_num = 17;
-static uint8_t fifo_baudrate = 32;
-
-static hrt_abstime now = 0;
 
 SCH16T_FIFO::SCH16T_FIFO(const I2CSPIDriverConfig &config) :
 	SPI(config),
@@ -598,14 +616,11 @@ bool SCH16T_FIFO::read_data()
 			accel.y[i] = data.acc_y;
 			accel.z[i] = data.acc_z;
 
-		}
+			if (!acc_scale_20bit) {
+				_px4_accel.set_scale(1.f / 3200.f); // 3200 LSB/(m/s2)
 
-		if (!acc_scale_20bit) {
-			_px4_accel.set_scale(1.f / 3200.f); // 3200 LSB/(m/s2)
-
-		} else {
-			// 20 bit data scaled to 16 bit (2^4)
-			for (int i = 0; i < pkt_num; i++) {
+			} else {
+				// 20 bit data scaled to 16 bit (2^4)
 				// 20 bit hires mode
 				// Sign extension + Accel [19:12] + Accel [11:4] + Accel [3:2] (20 bit extension byte)
 				// Accel data is 18 bit ()
@@ -616,42 +631,24 @@ bool SCH16T_FIFO::read_data()
 				accel.x[i] = accel_x;
 				accel.y[i] = accel_y;
 				accel.z[i] = accel_z;
+
+				_px4_accel.set_scale(1.f / 200.f); // 200 LSB/(m/s2)
 			}
 
-			_px4_accel.set_scale(1.f / 200.f); // 200 LSB/(m/s2)
-		}
 
-		// correct frame for publication
-		for (int i = 0; i < accel.samples; i++) {
-			// sensor's frame is +x forward, +y left, +z up
-			//  flip y & z to publish right handed with z down (x forward, y right, z down)
-			accel.x[i] = accel.x[i];
-			accel.y[i] = (accel.y[i] == INT16_MIN) ? INT16_MIN : accel.y[i];
-			accel.z[i] = (accel.z[i] == INT16_MIN) ? INT16_MIN : accel.z[i];
-		}
+			if (!gyro_scale_20bit) {
+				_px4_gyro.set_scale(math::radians(1.f / 100.f));     // 100 LSB/(°/sec)
 
-		if (!gyro_scale_20bit) {
-			_px4_gyro.set_scale(math::radians(1.f / 100.f));     // 100 LSB/(°/sec)
-
-		} else {
-			// 20 bit data scaled to 16 bit (2^4)
-			for (int i = 0; i < pkt_num; i++) {
+			} else {
+				// 20 bit data scaled to 16 bit (2^4)
 				gyro.x[i] = (((buff[1] & 0xf) << 12) | (buff[2] << 4) | (buff[3] >> 4));
 				gyro.y[i] = -(((buff[4] & 0xf) << 12) | (buff[5] << 4) | (buff[6] >> 4));
 				gyro.z[i] = -(((buff[7] & 0xf) << 12) | (buff[8] << 4) | (buff[9] >> 4));
+
+				_px4_gyro.set_scale(math::radians(16.f / 100.f));
 			}
-
-			_px4_gyro.set_scale(math::radians(16.f / 100.f));
 		}
 
-		// correct frame for publication
-		for (int i = 0; i < gyro.samples; i++) {
-			// sensor's frame is +x forward, +y left, +z up
-			//  flip y & z to publish right handed with z down (x forward, y right, z down)
-			gyro.x[i] = gyro.x[i];
-			gyro.y[i] = (gyro.y[i] == INT16_MIN) ? INT16_MIN : gyro.y[i];
-			gyro.z[i] = (gyro.z[i] == INT16_MIN) ? INT16_MIN : gyro.z[i];
-		}
 
 		const float temperature_avg = temperature_sum / pkt_num;
 
