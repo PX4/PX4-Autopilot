@@ -44,7 +44,7 @@ if(GENERATE_SBOM)
 	# Write board-specific module list for the SBOM generator
 	set(sbom_module_list_file "${PX4_BINARY_DIR}/config_module_list.txt")
 	get_property(module_list GLOBAL PROPERTY PX4_MODULE_PATHS)
-	list(JOIN module_list "\n" module_list_content)
+	string(REPLACE ";" "\n" module_list_content "${module_list}")
 	file(GENERATE OUTPUT ${sbom_module_list_file} CONTENT "${module_list_content}\n")
 
 	set(sbom_output "${PX4_BINARY_DIR}/${PX4_CONFIG}.sbom.spdx.json")

@@ -103,6 +103,8 @@ def ntia_check(doc):
     rels = [r for r in doc["relationships"] if r["relationshipType"] == "DESCRIBES"]
     print(f"DESCRIBES relationships: {len(rels)}")
 
+    return len(missing) == 0
+
 
 def licenses(doc):
     by_license = {}
@@ -144,7 +146,8 @@ def main():
             sys.exit(1)
         search(doc, sys.argv[3])
     elif cmd == "ntia":
-        ntia_check(doc)
+        if not ntia_check(doc):
+            sys.exit(1)
     elif cmd == "licenses":
         licenses(doc)
     elif cmd == "list":

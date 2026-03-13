@@ -9,6 +9,7 @@ Produces one SBOM per board target containing:
 
 Uses only Python standard library (no pip dependencies).
 """
+from __future__ import annotations
 
 import argparse
 import configparser
@@ -188,16 +189,18 @@ def make_purl(pkg_type: str, namespace: str, name: str, version: str = "") -> st
     return purl
 
 
-def extract_github_org_repo(url: str) -> tuple[str, str]:
-    """Extract org and repo from a git URL."""
-    # Handle https://github.com/org/repo.git and git@github.com:org/repo.git
+def extract_git_host_org_repo(url: str) -> tuple[str, str, str]:
+    """Extract host type, org, and repo from a git URL.
+
+    Returns (host, org, repo) where host is 'github', 'gitlab', or ''.
+    """
     match = re.search(r"github\.com[:/]([^/]+)/([^/]+?)(?:\.git)?$", url)
     if match:
-        return match.group(1), match.group(2)
+        return "github", match.group(1), match.group(2)
     match = re.search(r"gitlab\.com[:/](.+?)/([^/]+?)(?:\.git)?$", url)
     if match:
-        return match.group(1), match.group(2)
-    return "", ""
+        return "gitlab", match.group(1), match.group(2)
+    return "", "", ""
 
 
 def generate_sbom(
@@ -292,7 +295,7 @@ def generate_sbom(
         commit = submodule_commits.get(sub_path, "unknown")
         license_id = SUBMODULE_LICENSES.get(sub_path, "NOASSERTION")
 
-        org, repo = extract_github_org_repo(sub["url"])
+        host, org, repo = extract_git_host_org_repo(sub["url"])
         download = sub["url"] if sub["url"] else "NOASSERTION"
 
         # Use repo name from URL for human-readable name, fall back to last path component
@@ -310,12 +313,12 @@ def generate_sbom(
             "copyrightText": "NOASSERTION",
         }
 
-        if org and repo:
+        if host and org and repo:
             pkg["externalRefs"] = [
                 {
                     "referenceCategory": "PACKAGE-MANAGER",
                     "referenceType": "purl",
-                    "referenceLocator": make_purl("github", org, repo, commit),
+                    "referenceLocator": make_purl(host, org, repo, commit),
                 }
             ]
 
