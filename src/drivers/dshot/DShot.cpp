@@ -684,21 +684,24 @@ void DShot::consume_esc_data(const EscData &esc)
 		return;
 	}
 
-	// Use motor-order mask since motor_index is in motor order
+	// Determine if this motor is online based on its telemetry sources
 	bool is_bdshot = _bdshot_motor_mask & (1 << motor_index);
-
-	// Require both sources online when enabled (masks are in motor order)
-	uint16_t online_mask = (1u << esc_status_s::CONNECTED_ESC_MAX) - 1;
+	bool motor_online = true;
 
 	if (is_bdshot) {
-		online_mask &= _bdshot_telem_online_mask;
+		motor_online &= (_bdshot_telem_online_mask & (1 << motor_index)) != 0;
 	}
 
 	if (_serial_telemetry_enabled) {
-		online_mask &= _serial_telem_online_mask;
+		motor_online &= (_serial_telem_online_mask & (1 << motor_index)) != 0;
 	}
 
-	_esc_status.esc_online_flags = online_mask;
+	if (motor_online) {
+		_esc_status.esc_online_flags |= (1 << motor_index);
+
+	} else {
+		_esc_status.esc_online_flags &= ~(1 << motor_index);
+	}
 
 	// esc_status is indexed by motor_index (Motor1=0, Motor2=1, ...)
 	_esc_status.esc[motor_index].esc_errorcount = _serial_telem_errors[motor_index] +
