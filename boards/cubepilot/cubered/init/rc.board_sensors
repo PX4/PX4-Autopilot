@@ -1,0 +1,23 @@
+#!/bin/sh
+#
+# Board specific sensors init
+#------------------------------------------------------------------------------
+board_adc start
+
+# CubeRed sensor set:
+# - SPI1: ICM42688P + MS5611
+# - SPI2: ICM42688P + RM3100
+# - SPI4: ICM20649 + MS5611
+icm42688p -s -b 1 -R 27 start
+icm42688p -s -b 2 -R 2 start
+
+# SPI4 IMU can be either ICM20649 or ICM45686 on CubeRed variants.
+if ! icm20649 -s -b 4 -R 12 -q start
+then
+	icm45686 -s -b 4 -R 4 start
+fi
+
+ms5611 -s -b 1 start
+ms5611 -s -b 4 start
+
+rm3100 -s -b 2 -R 6 start

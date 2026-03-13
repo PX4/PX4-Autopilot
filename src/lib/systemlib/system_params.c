@@ -290,6 +290,35 @@ PARAM_DEFINE_INT32(SYS_FAC_CAL_MODE, 0);
 PARAM_DEFINE_INT32(SYS_BL_UPDATE, 0);
 
 /**
+ * Secondary firmware update
+ *
+ * If enabled, reboot to bootloader on the next boot so the host can upload
+ * secondary firmware packages (for example CubeRed secondary MCU firmware).
+ *
+ * WARNING: do not cut the power during an update process, otherwise you may
+ * have to recover using an alternative method.
+ *
+ * This process involves two reboots:
+ * 1. The first reboot (triggered by reboot_required) runs the init script
+ *    which detects this parameter, clears it, saves parameters, and issues
+ *    a second reboot into the bootloader.
+ * 2. The board then waits in bootloader mode for the host uploader.
+ *
+ * Instructions:
+ * - Enable this parameter
+ * - Reboot the board (first reboot)
+ * - The board will automatically reboot once more into bootloader mode (second reboot)
+ * - Upload firmware from the host while in bootloader mode
+ *   (e.g. "make cubepilot_cubered_upload-secondary" or use --update-mode secondary)
+ *
+ * @boolean
+ * @reboot_required true
+ *
+ * @group System
+ */
+PARAM_DEFINE_INT32(SYS_SEC_UPDATE, 0);
+
+/**
  * Enable failure injection
  *
  * If enabled allows MAVLink INJECT_FAILURE commands.
