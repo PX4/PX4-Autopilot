@@ -14,6 +14,17 @@ It provides physically and visually realistic simulations of Pixhawk/PX4 using e
 
 <!-- datestamp:video:youtube:20170216:AirSim Demo -->
 
+## MAVLink Compatibility Note
+
+When using AirSim with PX4 for HITL simulation, you may encounter a `Message length 37 doesn't match expected length 36` error.
+This is caused by a MAVLink version mismatch: the `HIL_GPS` message was extended with an `id` field (to support multiple GPS inputs) in a newer version of the MAVLink spec.
+When this extension field is non-zero (e.g. when a simulator sends a second GPS instance with `id=1`), the message length becomes 37 bytes instead of 36 bytes.
+Older MAVLink implementations that are unaware of this extension may reject the message.
+
+PX4 now properly handles both the old 36-byte and new 37-byte `HIL_GPS` messages (where 37 bytes occurs when the `id` extension field is non-zero and the `yaw` extension field is zero), and no longer forwards HIL sensor messages between MAVLink instances to avoid triggering this error in connected clients.
+
+If you are still experiencing this error, ensure your AirSim version uses a MAVLink library that supports the `HIL_GPS` `id` extension field.
+
 ## PX4 Setup
 
 [PX4 Setup for AirSim](https://microsoft.github.io/AirSim/px4_setup/) describes how to use PX4 with AirSim using both [SITL](https://microsoft.github.io/AirSim/px4_sitl/) and [HITL](https://microsoft.github.io/AirSim/px4_setup/#setting-up-px4-hardware-in-loop).

@@ -513,6 +513,16 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 		return;
 	}
 
+	// Don't forward HIL sensor messages to avoid MAVLink version compatibility issues.
+	// HIL messages use MAVLink 2 extension fields (e.g. HIL_GPS id field) that older
+	// clients may not handle correctly, causing message length mismatch errors.
+	if (msg->msgid == MAVLINK_MSG_ID_HIL_GPS ||
+	    msg->msgid == MAVLINK_MSG_ID_HIL_SENSOR ||
+	    msg->msgid == MAVLINK_MSG_ID_HIL_STATE_QUATERNION ||
+	    msg->msgid == MAVLINK_MSG_ID_HIL_OPTICAL_FLOW) {
+		return;
+	}
+
 	LockGuard lg{mavlink_module_mutex};
 
 	for (Mavlink *inst : mavlink_module_instances) {

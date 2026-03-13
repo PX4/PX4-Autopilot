@@ -87,7 +87,10 @@ MavlinkReceiver::~MavlinkReceiver()
 	_ping_pub.unadvertise();
 	_radio_status_pub.unadvertise();
 	_sensor_baro_pub.unadvertise();
-	_sensor_gps_pub.unadvertise();
+	for (auto &pub : _sensor_gps_pubs) {
+		delete pub;
+		pub = nullptr;
+	}
 	_sensor_optical_flow_pub.unadvertise();
 }
 
@@ -2439,14 +2442,6 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 
 	sensor_gps_s gps{};
 
-	device::Device::DeviceId device_id;
-	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_MAVLINK;
-	device_id.devid_s.bus = _mavlink.get_instance_id();
-	device_id.devid_s.address = msg->sysid;
-	device_id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
-
-	gps.device_id = device_id.devid;
-
 	gps.latitude_deg = hil_gps.lat * 1e-7;
 	gps.longitude_deg = hil_gps.lon * 1e-7;
 	gps.altitude_msl_m = hil_gps.alt * 1e-3;
@@ -2486,7 +2481,34 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 
 	gps.timestamp = hrt_absolute_time();
 
-	_sensor_gps_pub.publish(gps);
+	// Compute device_id from the source system.
+	device::Device::DeviceId device_id;
+	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_MAVLINK;
+	device_id.devid_s.bus = _mavlink.get_instance_id();
+	device_id.devid_s.address = msg->sysid;
+	device_id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
+	gps.device_id = device_id.devid;
+
+	// New publishers will be created based on the HIL_GPS ID's being different or not.
+	// This supports simulators that send multiple GPS instances using the id extension field.
+	for (int i = 0; i < MAX_HIL_GPS; i++) {
+		if (_sensor_gps_pubs[i] && _hil_gps_ids[i] == hil_gps.id) {
+			_sensor_gps_pubs[i]->publish(gps);
+			break;
+		}
+
+		if (_sensor_gps_pubs[i] == nullptr) {
+			_sensor_gps_pubs[i] = new uORB::PublicationMulti<sensor_gps_s>{ORB_ID(sensor_gps)};
+			_hil_gps_ids[i] = hil_gps.id;
+
+			_sensor_gps_pubs[i]->publish(gps);
+			break;
+		}
+
+		if (i == MAX_HIL_GPS - 1) {
+			PX4_WARN("HIL_GPS: max GPS instances (%d) reached, discarding GPS id %d", MAX_HIL_GPS, hil_gps.id);
+		}
+	}
 }
 
 void
