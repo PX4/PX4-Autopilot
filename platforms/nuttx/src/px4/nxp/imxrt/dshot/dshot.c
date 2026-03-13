@@ -523,6 +523,10 @@ int up_bdshot_num_errors(uint8_t channel)
 
 int up_bdshot_get_erpm(uint8_t channel, int *erpm)
 {
+	if (channel >= DSHOT_TIMERS) {
+		return -1;
+	}
+
 	if (bdshot_parsed_recv_mask & (1 << channel)) {
 		*erpm = (int)dshot_inst[channel].erpm;
 		return 0;
