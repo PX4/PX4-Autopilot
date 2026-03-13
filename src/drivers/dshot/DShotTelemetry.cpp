@@ -165,7 +165,14 @@ void DShotTelemetry::parseCommandResponse()
 
 			auto handler = _settings_handlers[_command_response_motor_index];
 
-			if (handler && _command_response_position == handler->getExpectedResponseSize()) {
+			if (!handler) {
+				_command_response_position = 0;
+				_command_response_start = 0;
+				_command_response_motor_index = -1;
+				break;
+			}
+
+			if (_command_response_position == handler->getExpectedResponseSize()) {
 				// TODO: handle command failures
 				handler->decodeInfoResponse(_command_response_buffer, _command_response_position);
 
