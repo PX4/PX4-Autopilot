@@ -160,8 +160,8 @@ typedef struct {
 	uint64_t last_timestamp;
 } edt_data_t;
 
-// Adaptive base interval per channel (ticks per bit)
-static float _base_interval[MAX_TIMER_IO_CHANNELS] = { [0 ...(MAX_TIMER_IO_CHANNELS - 1)] = 21.0f };
+// Adaptive base interval per channel, scaled by 8 for sub-tick precision (ticks_per_bit * 8)
+static uint32_t _base_interval_x8[MAX_TIMER_IO_CHANNELS] = { [0 ...(MAX_TIMER_IO_CHANNELS - 1)] = 168 }; // 21 * 8
 
 static erpm_data_t _erpms[MAX_TIMER_IO_CHANNELS] = {};
 static edt_data_t _edt_temp[MAX_TIMER_IO_CHANNELS] = {};
@@ -454,23 +454,22 @@ void up_dshot_trigger()
 	}
 
 	// Mark all BDShot timers as cycle incomplete and start all timers
+	uint8_t bdshot_timers_started = 0;
+
 	for (uint8_t i = 0; i < MAX_IO_TIMERS; i++) {
 		if (timer_configs[i].enabled && timer_configs[i].initialized) {
 			if (timer_configs[i].bidirectional) {
+				// Stagger between bidirectional timer bursts to prevent response frame overlap.
+				// Response frames arrive ~30us after burst, and reconfiguring for capture takes >15us.
+				if (bdshot_timers_started > 0) {
+					px4_udelay(10);
+				}
+
 				_bdshot_cycle_complete[i] = false;
+				bdshot_timers_started++;
 			}
 
 			dshot_start_timer_burst(i);
-
-			// NOTE: small delay between timer bursts, workaround for race condition. The issue is that when timers
-			// are burst at the same time, the response frame arrives at the same time. Response frames arrive 30us
-			// after the burst is complete, and reconfiguring the first timer for capture-compare takes longer than
-			// 15us. This means by the time the second timer is configured for capture-compare, we've already missed
-			// some of the response frame bits.
-			// NOTE: 24us stagger between Timer1Burst and Timer2Burst measured on an H7
-			if (i < MAX_IO_TIMERS - 1) {
-				px4_udelay(10);
-			}
 		}
 	}
 }
@@ -548,19 +547,12 @@ void dma_burst_finished_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 	up_clean_dcache((uintptr_t) dshot_capture_buffer[timer_index],
 			(uintptr_t) dshot_capture_buffer[timer_index] + DSHOT_CAPTURE_BUFFER_SIZE(MAX_NUM_CHANNELS_PER_TIMER));
 
-	// Re-initialize all output channels on this timer as CaptureDMA to ensure all lines idle high
-	for (uint8_t channel = 0; channel < MAX_TIMER_IO_CHANNELS; channel++) {
+	// Re-initialize the current capture channel back to CaptureDMA
+	uint8_t capture_output_channel = output_channel_from_timer_channel(timer_index, timer_configs[timer_index].capture_channel);
 
-		bool is_this_timer = timer_index == timer_io_channels[channel].timer_index;
-		uint8_t timer_channel_index = timer_io_channels[channel].timer_channel - 1;
-		bool channel_initialized = timer_configs[timer_index].initialized_channels[timer_channel_index];
-
-		if (is_this_timer && channel_initialized) {
-
-			io_timer_unallocate_channel(channel);
-			// Initialize back to DShotInverted to bring IO back to the expected idle state
-			io_timer_channel_init(channel, IOTimerChanMode_CaptureDMA, NULL, NULL);
-		}
+	if (capture_output_channel < MAX_TIMER_IO_CHANNELS) {
+		io_timer_unallocate_channel(capture_output_channel);
+		io_timer_channel_init(capture_output_channel, IOTimerChanMode_CaptureDMA, NULL, NULL);
 	}
 
 	// Select the next capture channel
@@ -830,22 +822,20 @@ uint32_t convert_edge_intervals_to_bitstream(uint8_t timer_index, uint8_t channe
 		return 0;
 	}
 
-	// Update base interval with low-pass filter (10% weight on new measurement)
-	// This adapts to each ESC's actual timing while filtering transient noise
-	_base_interval[output_channel] = 0.9f * _base_interval[output_channel] + 0.1f * (float)min_interval;
+	// Update base interval with low-pass filter (alpha = 1/8) using x8 fixed-point
+	// base_x8 = base_x8 * 7/8 + min_interval (which is min * 8/8 in x8 representation)
+	_base_interval_x8[output_channel] = _base_interval_x8[output_channel] - (_base_interval_x8[output_channel] >> 3) + min_interval;
 
-	// Second pass: decode bits using adaptive threshold
+	// Second pass: decode bits using adaptive threshold (integer math)
 	uint32_t value = 0;
 	uint32_t high = 1;
 	unsigned shifted = 0;
 
-	float base = _base_interval[output_channel];
+	uint32_t base_x8 = _base_interval_x8[output_channel];
 
 	for (unsigned i = 0; i < interval_count; i++) {
-		// Convert interval to bit count using relative threshold
-		// Round to nearest: 0.5-1.5 → 1, 1.5-2.5 → 2, 2.5-3.5 → 3, etc.
-		float interval_f = (float)intervals[i];
-		uint32_t bits = (uint32_t)((interval_f / base) + 0.5f);
+		// Convert interval to bit count: bits = interval/base + 0.5, using x8 fixed-point rounding
+		uint32_t bits = (intervals[i] * 8 + base_x8 / 2) / base_x8;
 
 		// Clamp to valid range (1-4 bits typical in GCR encoding)
 		if (bits < 1) {
