@@ -140,11 +140,11 @@ static bool _edt_enabled = false; // Extended DShot Telemetry
 
 // Online flags, set if ESC is reponding with valid BDShot frames
 #define BDSHOT_OFFLINE_COUNT 200
-static bool _bdshot_online[MAX_TIMER_IO_CHANNELS] = {};
-static bool _bdshot_processed[MAX_TIMER_IO_CHANNELS] = {};
+static volatile bool _bdshot_online[MAX_TIMER_IO_CHANNELS] = {};
+static volatile bool _bdshot_processed[MAX_TIMER_IO_CHANNELS] = {};
 static bool _bdshot_capture_supported[MAX_TIMER_IO_CHANNELS] = {};
-static int _consecutive_failures[MAX_TIMER_IO_CHANNELS] = {};
-static int _consecutive_successes[MAX_TIMER_IO_CHANNELS] = {};
+static volatile int _consecutive_failures[MAX_TIMER_IO_CHANNELS] = {};
+static volatile int _consecutive_successes[MAX_TIMER_IO_CHANNELS] = {};
 
 typedef struct {
 	int32_t erpm;
@@ -163,10 +163,10 @@ typedef struct {
 // Adaptive base interval per channel, scaled by 8 for sub-tick precision (ticks_per_bit * 8)
 static uint32_t _base_interval_x8[MAX_TIMER_IO_CHANNELS] = { [0 ...(MAX_TIMER_IO_CHANNELS - 1)] = 168 }; // 21 * 8
 
-static erpm_data_t _erpms[MAX_TIMER_IO_CHANNELS] = {};
-static edt_data_t _edt_temp[MAX_TIMER_IO_CHANNELS] = {};
-static edt_data_t _edt_volt[MAX_TIMER_IO_CHANNELS] = {};
-static edt_data_t _edt_curr[MAX_TIMER_IO_CHANNELS] = {};
+static volatile erpm_data_t _erpms[MAX_TIMER_IO_CHANNELS] = {};
+static volatile edt_data_t _edt_temp[MAX_TIMER_IO_CHANNELS] = {};
+static volatile edt_data_t _edt_volt[MAX_TIMER_IO_CHANNELS] = {};
+static volatile edt_data_t _edt_curr[MAX_TIMER_IO_CHANNELS] = {};
 
 static float calculate_rate_hz(uint64_t last_timestamp, float last_rate_hz, uint64_t timestamp);
 
