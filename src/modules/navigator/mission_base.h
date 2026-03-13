@@ -374,11 +374,6 @@ private:
 	void set_mission_item_reached();
 
 	/**
-	 * Updates the heading of the vehicle. Rotary wings only.
-	 */
-	void heading_sp_update();
-
-	/**
 	 * Abort landing
 	 */
 	void do_abort_landing();
