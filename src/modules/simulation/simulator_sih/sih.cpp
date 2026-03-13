@@ -72,7 +72,15 @@ void Sih::run()
 	_px4_accel.set_temperature(T1_C);
 	_px4_gyro.set_temperature(T1_C);
 
-	init_position_reference();
+	// Initialize position, velocity and attitude
+	_lla = LatLonAlt(_sih_lat0.get(), _sih_lon0.get(), _sih_h0.get());
+	_p_E = _p_E_ref = _lla.toEcef();
+	_lpos_ref.initReference(_lla.latitude_deg(), _lla.longitude_deg()); // Initialize MapProjection reference
+	_lpos_ref_alt = _lla.altitude();
+	_R_E2N_ref = computeRotEcefToNed(_lla); // Reference frame rotation (fixed, used for local position computation)
+	_R_N2E = _R_E2N_ref.transpose();
+	_q_E = Quatf(_R_N2E) * _q;
+
 	parameters_updated();
 
 	const hrt_abstime task_start = hrt_absolute_time();
@@ -266,37 +274,6 @@ void Sih::parameters_updated()
 	_v_wind_N = Vector3f(_sih_wind_n.get(), _sih_wind_e.get(), 0.f);
 }
 
-void Sih::init_position_reference()
-{
-	// Reset earth position, velocity and attitude
-	_lla.setLatitudeDeg(static_cast<double>(_sih_lat0.get()));
-	_lla.setLongitudeDeg(static_cast<double>(_sih_lon0.get()));
-	_lla.setAltitude(_sih_h0.get());
-	_p_E = _lla.toEcef();
-
-	// Store ECEF reference position - this is the origin of the local frame
-	_p_E_ref = _p_E;
-
-	// Get canonical LLA from ECEF for reference initialization
-	_lla = LatLonAlt::fromEcef(_p_E);
-
-	// Initialize MapProjection reference (used for reprojection and publishing ref_lat/ref_lon)
-	_lpos_ref.initReference(_lla.latitude_deg(), _lla.longitude_deg());
-	_lpos_ref_alt = _lla.altitude();
-
-	// Store reference frame rotation (fixed, used for local position computation)
-	_R_E2N_ref = computeRotEcefToNed(_lla);
-
-	// Local position is exactly at origin since p_E == p_E_ref
-	_lpos.setZero();
-
-	_R_N2E = _R_E2N_ref.transpose();
-	_v_E = _R_N2E * _v_N;
-
-	_q_E = Quatf(_R_N2E) * _q;
-	_q_E.normalize();
-}
-
 void Sih::read_motors(const float dt)
 {
 	actuator_outputs_s actuators_out;
@@ -403,7 +380,7 @@ void Sih::generate_ts_aerodynamics()
 	// the aerodynamic is resolved in a frame like a standard aircraft (nose-right-belly)
 	Vector3f v_ts = _R_S2B.transpose() * v_B;
 	Vector3f w_ts = _R_S2B.transpose() * _w_B;
-	// NED convention: _lpos(2) is negative when above reference, so altitude = ref - (-height) = ref + height
+	// NED frame: _lpos(2) above reference is negative
 	float altitude = _lpos_ref_alt - _lpos(2);
 
 	Vector3f Fa_ts{};

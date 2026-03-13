@@ -122,7 +122,6 @@ public:
 
 private:
 	void parameters_updated();
-	void init_position_reference();
 
 	// simulated sensors
 	PX4Accelerometer _px4_accel{1310988}; // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
@@ -229,8 +228,8 @@ private:
 
 	LatLonAlt _lla{};
 	matrix::Vector3f _lpos{};  // position in a local tangent-plane frame [m]
-	matrix::Vector3d _p_E_ref{};  // ECEF reference position for local frame origin [m]
-	matrix::Dcmf _R_E2N_ref{};  // Rotation from ECEF to reference NED frame
+	matrix::Vector3d _p_E_ref{}; // ECEF reference position for local frame origin [m]
+	matrix::Dcmf _R_E2N_ref{}; // Rotation from ECEF to reference NED frame
 
 	float _u[NUM_ACTUATORS_MAX] {}; // thruster signals
 
