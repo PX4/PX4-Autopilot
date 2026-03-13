@@ -563,7 +563,7 @@ bool DShot::set_next_telemetry_index()
 	} while (motor != start_motor);
 
 	// Check if all motors have been sampled
-	if (count_set_bits(_telemetry_requested_mask) >= count_set_bits(_output_mask)) {
+	if (count_set_bits(_telemetry_requested_mask) >= count_set_bits(_motor_mask)) {
 		_telemetry_requested_mask = 0;
 		perf_count(_serial_telem_allsampled_perf);
 		return true;
