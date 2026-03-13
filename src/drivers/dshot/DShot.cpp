@@ -536,7 +536,7 @@ bool DShot::process_serial_telemetry()
 
 bool DShot::set_next_telemetry_index()
 {
-	int actuator_index = 0;
+	int actuator_index = (_telemetry_motor_index + 1) % DSHOT_MAXIMUM_CHANNELS;
 	int next_actuator_index = actuator_index;
 
 	do {
