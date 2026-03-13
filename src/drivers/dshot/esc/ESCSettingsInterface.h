@@ -33,6 +33,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 enum class ESCType : uint8_t {
 	Unknown = 0,
 	AM32 = 1,
