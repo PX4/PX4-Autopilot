@@ -287,6 +287,7 @@ bool DShotTelemetry::commandResponseStarted()
 
 void DShotTelemetry::startTelemetryRequest()
 {
+	_frame_position = 0;
 	_telemetry_request_start = hrt_absolute_time();
 }
 
