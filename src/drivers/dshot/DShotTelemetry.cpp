@@ -108,6 +108,9 @@ void DShotTelemetry::initSettingsHandlers(ESCType esc_type, uint16_t output_mask
 			interface = new AM32Settings(i);
 			break;
 
+		case ESCType::Unknown:
+			break;
+
 		default:
 			PX4_WARN("Unsupported ESC type for settings: %d", (int)esc_type);
 			break;
