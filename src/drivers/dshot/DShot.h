@@ -163,6 +163,11 @@ private:
 	hrt_abstime _serial_telem_online_timestamps[DSHOT_MAXIMUM_CHANNELS] = {};
 	hrt_abstime _bdshot_telem_online_timestamps[DSHOT_MAXIMUM_CHANNELS] = {};
 
+	// Serial telemetry adaptive skip: stop polling motors that never respond
+	static constexpr int SERIAL_TELEM_SKIP_THRESHOLD = 10; // consecutive timeouts before skipping
+	uint16_t _serial_telem_skip_mask = 0; // motors to skip in round-robin
+	uint8_t _serial_telem_consecutive_timeouts[DSHOT_MAXIMUM_CHANNELS] = {};
+
 	// Serial Telemetry
 	DShotTelemetry _telemetry;
 	static char _serial_port_path[20];

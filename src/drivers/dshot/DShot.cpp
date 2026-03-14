@@ -483,6 +483,10 @@ bool DShot::process_serial_telemetry()
 
 		case TelemetryStatus::Ready:
 
+			// Reset consecutive timeout counter on any successful response
+			_serial_telem_consecutive_timeouts[motor_index] = 0;
+			_serial_telem_skip_mask &= ~(1 << motor_index);
+
 			// Online mask is in motor order for consistency with BDShot
 			if (_serial_telem_online_mask & (1 << motor_index)) {
 				consume_esc_data(esc);
@@ -511,6 +515,17 @@ bool DShot::process_serial_telemetry()
 			_serial_telem_errors[motor_index]++;
 			_serial_telem_online_mask &= ~(1 << motor_index);
 			_serial_telem_online_timestamps[motor_index] = 0;
+
+			// Track consecutive timeouts for adaptive skip
+			if (_serial_telem_consecutive_timeouts[motor_index] < SERIAL_TELEM_SKIP_THRESHOLD) {
+				_serial_telem_consecutive_timeouts[motor_index]++;
+
+				if (_serial_telem_consecutive_timeouts[motor_index] >= SERIAL_TELEM_SKIP_THRESHOLD) {
+					_serial_telem_skip_mask |= (1 << motor_index);
+					PX4_WARN("ESC%d serial telemetry lost, skipping", motor_index + 1);
+				}
+			}
+
 			// Consume an empty EscData to zero the data
 			consume_esc_data(esc);
 			all_telem_sampled = set_next_telemetry_index();
@@ -539,21 +554,17 @@ bool DShot::set_next_telemetry_index()
 {
 	// Round-robin through motor indices (Motor1=0, Motor2=1, ...).
 	// _telemetry_motor_index and _telemetry_requested_mask are in motor-index domain.
+
+	// Active motors are those that exist and aren't being skipped
+	uint16_t active_motor_mask = _motor_mask & ~_serial_telem_skip_mask;
+
 	int motor = (_telemetry_motor_index + 1) % DSHOT_MAXIMUM_CHANNELS;
 	int start_motor = motor;
 
 	do {
-		bool motor_exists = false;
+		bool motor_active = active_motor_mask & (1 << motor);
 
-		// Check if any actuator channel is assigned to this motor index
-		for (int ch = 0; ch < DSHOT_MAXIMUM_CHANNELS; ch++) {
-			if (_mixing_output.isMotor(ch) && ((int)_mixing_output.outputFunction(ch) - (int)OutputFunction::Motor1) == motor) {
-				motor_exists = true;
-				break;
-			}
-		}
-
-		if (motor_exists && !(_telemetry_requested_mask & (1 << motor))) {
+		if (motor_active && !(_telemetry_requested_mask & (1 << motor))) {
 			_telemetry_motor_index = motor;
 			_telemetry_requested_mask |= (1 << motor);
 			break;
@@ -562,8 +573,8 @@ bool DShot::set_next_telemetry_index()
 		motor = (motor + 1) % DSHOT_MAXIMUM_CHANNELS;
 	} while (motor != start_motor);
 
-	// Check if all motors have been sampled
-	if (count_set_bits(_telemetry_requested_mask) >= count_set_bits(_motor_mask)) {
+	// Check if all active motors have been sampled
+	if (active_motor_mask == 0 || count_set_bits(_telemetry_requested_mask & active_motor_mask) >= count_set_bits(active_motor_mask)) {
 		_telemetry_requested_mask = 0;
 		perf_count(_serial_telem_allsampled_perf);
 		return true;
