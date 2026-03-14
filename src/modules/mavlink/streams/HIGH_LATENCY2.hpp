@@ -55,6 +55,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/failure_detector_status.h>
 #include <uORB/topics/failsafe_flags.h>
 #include <uORB/topics/health_report.h>
 #include <uORB/topics/vehicle_air_data.h>
@@ -135,6 +136,7 @@ private:
 			updated |= write_heading_if_updated(&msg);
 			updated |= write_mission_result_if_updated(&msg);
 			updated |= write_failsafe_flags(&msg);
+			updated |= write_failure_detector_status(&msg);
 
 			// these topics are already updated in update_data() and thus we just copy them here
 			write_airspeed(&msg);
@@ -454,10 +456,6 @@ private:
 				}
 			}
 
-			if (status.failure_detector_status & vehicle_status_s::FAILURE_MOTOR) {
-				msg->failure_flags |= HL_FAILURE_FLAG_ENGINE;
-			}
-
 			// flight mode
 			union px4_custom_mode custom_mode {get_px4_custom_mode(status.nav_state)};
 			msg->custom_mode = custom_mode.custom_mode_hl;
@@ -485,6 +483,21 @@ private:
 				msg->failure_flags |= HL_FAILURE_FLAG_RC_RECEIVER;
 			}
 
+
+			return true;
+		}
+
+		return false;
+	}
+
+	bool write_failure_detector_status(mavlink_high_latency2_t *msg)
+	{
+		failure_detector_status_s fd_status;
+
+		if (_failure_detector_status_sub.update(&fd_status)) {
+			if (fd_status.fd_motor) {
+				msg->failure_flags |= HL_FAILURE_FLAG_ENGINE;
+			}
 
 			return true;
 		}
@@ -665,6 +678,7 @@ private:
 	uORB::Subscription _gps_sub{ORB_ID(vehicle_gps_position)};
 	uORB::Subscription _mission_result_sub{ORB_ID(mission_result)};
 	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _failure_detector_status_sub{ORB_ID(failure_detector_status)};
 	uORB::Subscription _failsafe_flags_sub{ORB_ID(failsafe_flags)};
 	uORB::Subscription _tecs_status_sub{ORB_ID(tecs_status)};
 	uORB::Subscription _wind_sub{ORB_ID(wind)};

@@ -35,7 +35,13 @@
 
 void FailureDetectorChecks::checkAndReport(const Context &context, Report &reporter)
 {
-	if (context.status().failure_detector_status & vehicle_status_s::FAILURE_ROLL) {
+	failure_detector_status_s fd_status;
+
+	if (!_failure_detector_status_sub.copy(&fd_status)) {
+		return;
+	}
+
+	if (fd_status.fd_roll) {
 		/* EVENT
 		 * @description
 		 * The vehicle exceeded the maximum configured roll angle.
@@ -51,7 +57,7 @@ void FailureDetectorChecks::checkAndReport(const Context &context, Report &repor
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Attitude failure (roll)");
 		}
 
-	} else if (context.status().failure_detector_status & vehicle_status_s::FAILURE_PITCH) {
+	} else if (fd_status.fd_pitch) {
 		/* EVENT
 		 * @description
 		 * The vehicle exceeded the maximum configured pitch angle.
@@ -68,7 +74,7 @@ void FailureDetectorChecks::checkAndReport(const Context &context, Report &repor
 		}
 	}
 
-	if (context.status().failure_detector_status & vehicle_status_s::FAILURE_ALT) {
+	if (fd_status.fd_alt) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_failure_detector_alt"),
@@ -79,7 +85,7 @@ void FailureDetectorChecks::checkAndReport(const Context &context, Report &repor
 		}
 	}
 
-	if (context.status().failure_detector_status & vehicle_status_s::FAILURE_EXT) {
+	if (fd_status.fd_ext) {
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
@@ -94,12 +100,10 @@ void FailureDetectorChecks::checkAndReport(const Context &context, Report &repor
 		}
 	}
 
-	reporter.failsafeFlags().fd_critical_failure = context.status().failure_detector_status &
-			(vehicle_status_s::FAILURE_ROLL | vehicle_status_s::FAILURE_PITCH | vehicle_status_s::FAILURE_ALT |
-			 vehicle_status_s::FAILURE_EXT);
+	reporter.failsafeFlags().fd_critical_failure = fd_status.fd_roll || fd_status.fd_pitch || fd_status.fd_alt ||
+			fd_status.fd_ext;
 
-	reporter.failsafeFlags().fd_imbalanced_prop = context.status().failure_detector_status &
-			vehicle_status_s::FAILURE_IMBALANCED_PROP;
+	reporter.failsafeFlags().fd_imbalanced_prop = fd_status.fd_imbalanced_prop;
 
 	if (reporter.failsafeFlags().fd_imbalanced_prop) {
 		/* EVENT
