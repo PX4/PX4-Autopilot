@@ -234,6 +234,13 @@ modalai_voxl2: modalai_voxl2_slpi
 all_config_targets: $(ALL_CONFIG_TARGETS)
 all_default_targets: $(CONFIG_TARGETS_DEFAULT)
 
+# DEB package targets: builds _default config, then runs cpack.
+# Multi-processor boards (e.g. VOXL2) chain companion builds automatically
+# via existing cmake prerequisites.
+%_deb:
+	@$(call cmake-build,$(subst _deb,_default,$@)$(BUILD_DIR_SUFFIX))
+	@cd "$(SRC_DIR)/build/$(subst _deb,_default,$@)" && cpack -G DEB
+
 updateconfig:
 	@./Tools/kconfig/updateconfig.py
 

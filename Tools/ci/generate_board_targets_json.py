@@ -207,6 +207,47 @@ for manufacturer in sorted(os.scandir(os.path.join(source_dir, '../boards')), ke
                         if t not in companions
                     ]
 
+# Append _deb targets for boards that have cmake/package.cmake
+for manufacturer in sorted(os.scandir(os.path.join(source_dir, '../boards')), key=lambda e: e.name):
+    if not manufacturer.is_dir():
+        continue
+    if manufacturer.name in excluded_manufacturers:
+        continue
+    for board in sorted(os.scandir(manufacturer.path), key=lambda e: e.name):
+        if not board.is_dir():
+            continue
+        board_name = manufacturer.name + '_' + board.name
+        if board_name in excluded_boards:
+            continue
+        package_cmake = os.path.join(board.path, 'cmake', 'package.cmake')
+        if os.path.exists(package_cmake):
+            deb_target = board_name + '_deb'
+            if target_filter and not any(deb_target.startswith(f) for f in target_filter):
+                continue
+            # Determine the container and group for this board
+            container = default_container
+            if board_name in board_container_overrides:
+                container = board_container_overrides[board_name]
+            target_entry = {'target': deb_target, 'container': container}
+            if args.group:
+                # Find the group where this board's _default target already lives
+                default_target = board_name + '_default'
+                group = None
+                for g in grouped_targets:
+                    targets_in_group = grouped_targets[g].get('manufacturers', {}).get(manufacturer.name, [])
+                    if default_target in targets_in_group:
+                        group = g
+                        break
+                if group is None:
+                    group = 'base'
+                target_entry['arch'] = group
+                if group not in grouped_targets:
+                    grouped_targets[group] = {'container': container, 'manufacturers': {}}
+                if manufacturer.name not in grouped_targets[group]['manufacturers']:
+                    grouped_targets[group]['manufacturers'][manufacturer.name] = []
+                grouped_targets[group]['manufacturers'][manufacturer.name].append(deb_target)
+            build_configs.append(target_entry)
+
 if(verbose):
     import pprint
     print("============================")
