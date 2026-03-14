@@ -180,8 +180,10 @@ struct RcvTopicsPubs {
 @[    end for]@
 
 	uint32_t num_payload_received{};
+	bool _allow_publishing{false};
 
 	bool init(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId reliable_in_stream_id, uxrStreamId best_effort_in_stream_id, uxrObjectId participant_id, const char *client_namespace);
+	void allow_publishing(bool enabled) { _allow_publishing = enabled; }
 };
 
 static void on_topic_update(uxrSession *session, uxrObjectId object_id, uint16_t request_id, uxrStreamId stream_id,
@@ -196,10 +198,17 @@ static void on_topic_update(uxrSession *session, uxrObjectId object_id, uint16_t
 	case @(idx)+ (65535U / 32U) + 1: {
 			@(sub['simple_base_type'])_s data;
 
+@[        if sub['topic_simple'] in whitelist_topics]@
 			if (ucdr_deserialize_@(sub['simple_base_type'])(*ub, data, time_offset_us)) {
 				//print_message(ORB_ID(@(sub['simple_base_type'])), data);
 				pubs->@(sub['topic_simple'])_pub.publish(data);
 			}
+@[        else]@
+			if (pubs->_allow_publishing && ucdr_deserialize_@(sub['simple_base_type'])(*ub, data, time_offset_us)) {
+				//print_message(ORB_ID(@(sub['simple_base_type'])), data);
+				pubs->@(sub['topic_simple'])_pub.publish(data);
+			}
+@[        end if]@
 		}
 		break;
 
@@ -208,9 +217,10 @@ static void on_topic_update(uxrSession *session, uxrObjectId object_id, uint16_t
 	case @(idx + len(subscriptions))+ (65535U / 32U) + 1: {
 			@(sub['simple_base_type'])_s data;
 
+@[        if sub.get('route_field')]@
+@[            if sub['topic_simple'] in whitelist_topics]@
 			if (ucdr_deserialize_@(sub['simple_base_type'])(*ub, data, time_offset_us)) {
 				//print_message(ORB_ID(@(sub['simple_base_type'])), data);
-@[        if sub.get('route_field')]@
 				int instance = -1;
 
 				for (uint8_t i = 0; i < pubs->@(sub['topic_simple'])_demux.num_assigned; i++) {
@@ -228,10 +238,42 @@ static void on_topic_update(uxrSession *session, uxrObjectId object_id, uint16_t
 				if (instance >= 0) {
 					pubs->@(sub['topic_simple'])_pubs[instance].publish(data);
 				}
-@[        else]@
-				pubs->@(sub['topic_simple'])_pub.publish(data);
-@[        end if]@
 			}
+@[            else]@
+			if (pubs->_allow_publishing && ucdr_deserialize_@(sub['simple_base_type'])(*ub, data, time_offset_us)) {
+				//print_message(ORB_ID(@(sub['simple_base_type'])), data);
+				int instance = -1;
+
+				for (uint8_t i = 0; i < pubs->@(sub['topic_simple'])_demux.num_assigned; i++) {
+					if (pubs->@(sub['topic_simple'])_demux.assigned_ids[i] == data.@(sub['route_field'])) {
+						instance = i;
+						break;
+					}
+				}
+
+				if (instance < 0 && pubs->@(sub['topic_simple'])_demux.num_assigned < @(sub['max_instances'])) {
+					instance = pubs->@(sub['topic_simple'])_demux.num_assigned++;
+					pubs->@(sub['topic_simple'])_demux.assigned_ids[instance] = data.@(sub['route_field']);
+				}
+
+				if (instance >= 0) {
+					pubs->@(sub['topic_simple'])_pubs[instance].publish(data);
+				}
+			}
+@[            end if]@
+@[        else]@
+@[            if sub['topic_simple'] in whitelist_topics]@
+			if (ucdr_deserialize_@(sub['simple_base_type'])(*ub, data, time_offset_us)) {
+				//print_message(ORB_ID(@(sub['simple_base_type'])), data);
+				pubs->@(sub['topic_simple'])_pub.publish(data);
+			}
+@[            else]@
+			if (pubs->_allow_publishing && ucdr_deserialize_@(sub['simple_base_type'])(*ub, data, time_offset_us)) {
+				//print_message(ORB_ID(@(sub['simple_base_type'])), data);
+				pubs->@(sub['topic_simple'])_pub.publish(data);
+			}
+@[            end if]@
+@[        end if]@
 		}
 		break;
 

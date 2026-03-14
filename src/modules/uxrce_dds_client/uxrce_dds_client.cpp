@@ -374,6 +374,8 @@ bool UxrceddsClient::setupSession(uxrSession *session)
 	}
 
 	_connected = true;
+
+	_safe_dds_mode = _param_uxrce_dds_safe.get();
 	return true;
 }
 
@@ -650,6 +652,16 @@ void UxrceddsClient::run()
 			int orb_poll_timeout_ms = 10;
 
 			int bytes_available = 0;
+
+			// Update vehicle status to check for offboard mode
+			vehicle_status_s vehicle_status{};
+			_vehicle_status_sub.copy(&vehicle_status);
+			_offboard_mode_enabled = (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD);
+
+			// Allow publish from DDS to uORB if:
+			// - _param_uxrce_dds_safe is false , regardless of offboard mode
+			// - _param_uxrce_dds_safe is true AND offboard mode is enabled
+			_pubs->allow_publishing(!_safe_dds_mode || (_safe_dds_mode && _offboard_mode_enabled));
 
 			if (ioctl(_fd, FIONREAD, (unsigned long)&bytes_available) == OK) {
 				if (bytes_available > 10) {

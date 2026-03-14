@@ -118,6 +118,7 @@ else()
 		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_dds_topics.py
 			--client-outdir ${CMAKE_CURRENT_BINARY_DIR}
 			--dds-topics-file ${CMAKE_CURRENT_SOURCE_DIR}/dds_topics.yaml
+			--whitelist-file ${CMAKE_CURRENT_SOURCE_DIR}/safety_whitelist.yaml
 			--template_file ${CMAKE_CURRENT_SOURCE_DIR}/dds_topics.h.em
 		DEPENDS
 			${CMAKE_CURRENT_SOURCE_DIR}/generate_dds_topics.py

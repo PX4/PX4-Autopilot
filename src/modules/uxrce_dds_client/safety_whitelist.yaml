@@ -1,0 +1,4 @@
+module_name: uxrce_dds_client
+
+__whitelist:
+  - vehicle_command
