@@ -50,7 +50,7 @@ DShotTelemetry::~DShotTelemetry()
 	_uart.close();
 
 	// Clean up settings handlers
-	for (int i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
+	for (int i = 0; i < DSHOT_MAX_MOTORS; i++) {
 		if (_settings_handlers[i]) {
 			delete _settings_handlers[i];
 			_settings_handlers[i] = nullptr;
@@ -93,7 +93,7 @@ void DShotTelemetry::initSettingsHandlers(ESCType esc_type, uint16_t output_mask
 
 	_esc_type = esc_type;
 
-	for (uint8_t i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
+	for (uint8_t i = 0; i < DSHOT_MAX_MOTORS; i++) {
 
 		bool output_enabled = (1 << i) & output_mask;
 
@@ -159,7 +159,7 @@ void DShotTelemetry::parseCommandResponse()
 
 	switch (_command_response_command) {
 	case DSHOT_CMD_ESC_INFO: {
-			if (_command_response_motor_index < 0 || _command_response_motor_index >= DSHOT_MAXIMUM_CHANNELS) {
+			if (_command_response_motor_index < 0 || _command_response_motor_index >= DSHOT_MAX_MOTORS) {
 				return;
 			}
 

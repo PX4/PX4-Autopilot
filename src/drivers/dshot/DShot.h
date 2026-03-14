@@ -48,10 +48,6 @@ using namespace time_literals;
 
 static_assert(DSHOT_MAXIMUM_CHANNELS <= 16, "DShot driver uses uint16_t bitmasks");
 
-// Motor-indexed arrays and bounds checks use this — the smaller of hardware channels and protocol limit
-static constexpr int DSHOT_MAX_MOTORS = DSHOT_MAXIMUM_CHANNELS < esc_status_s::CONNECTED_ESC_MAX
-				       ? DSHOT_MAXIMUM_CHANNELS : esc_status_s::CONNECTED_ESC_MAX;
-
 static constexpr hrt_abstime ESC_INIT_TELEM_DELAY = 5_s;
 
 /// Dshot PWM frequency (Hz)

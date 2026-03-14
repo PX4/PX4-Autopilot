@@ -35,12 +35,17 @@
 
 #include <drivers/drv_hrt.h>
 #include <board_config.h>
+#include <uORB/topics/esc_status.h>
 
 #if !defined(DIRECT_PWM_OUTPUT_CHANNELS)
 #  error "board_config.h needs to define DIRECT_PWM_OUTPUT_CHANNELS"
 #endif
 
 static constexpr int DSHOT_MAXIMUM_CHANNELS = DIRECT_PWM_OUTPUT_CHANNELS;
+
+// Motor-indexed arrays use this — bounded by both hardware channels and protocol limit
+static constexpr int DSHOT_MAX_MOTORS = DSHOT_MAXIMUM_CHANNELS < esc_status_s::CONNECTED_ESC_MAX
+					? DSHOT_MAXIMUM_CHANNELS : esc_status_s::CONNECTED_ESC_MAX;
 
 enum class TelemetrySource {
 	Serial = 0,

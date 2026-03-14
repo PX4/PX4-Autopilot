@@ -876,6 +876,7 @@ void DShot::handle_esc_request_eeprom(const vehicle_command_s &command)
 	PX4_DEBUG("esc_index: %d", (int)command.param2);
 
 	int esc_index = lroundf(command.param2);
+
 	if (esc_index != 255 && (esc_index < 0 || esc_index >= DSHOT_MAX_MOTORS)) {
 		PX4_ERR("ESC_REQUEST_EEPROM: invalid esc_index %d", esc_index);
 		return;

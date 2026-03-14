@@ -85,7 +85,7 @@ private:
 	int _num_checksum_errors{0};
 
 	// Settings
-	ESCSettingsInterface *_settings_handlers[DSHOT_MAXIMUM_CHANNELS] = {nullptr};
+	ESCSettingsInterface *_settings_handlers[DSHOT_MAX_MOTORS] = {nullptr};
 	ESCType _esc_type{ESCType::Unknown};
 	bool _settings_initialized{false};
 };
