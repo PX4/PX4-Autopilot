@@ -312,11 +312,7 @@ When set to -1 (default), the value depends on the function (see {:}).
                 if standard_params[key]['max'] >= 1<<16:
                     raise Exception('maximum value for {:} expected <= {:} (got {:})'.format(key, 1<<16, standard_params[key]['max']))
 
-                if key == 'failsafe':
-                    standard_params[key]['default'] = -1
-                    standard_params[key]['min'] = -1
-
-                if key == 'center':
+                if key == 'failsafe' or key == 'center':
                     standard_params[key]['default'] = -1
                     standard_params[key]['min'] = -1
 

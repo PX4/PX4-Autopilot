@@ -2,10 +2,12 @@
 
 CONFIG_FILE="/etc/modalai/voxl-px4.conf"
 
+AIRFRAME=MULTICOPTER
 GPS=NONE
 RC=SPEKTRUM
 ESC=VOXL_ESC
 POWER_MANAGER=VOXLPM
+AIRSPEED_SENSOR=NONE
 DISTANCE_SENSOR=NONE
 OSD=DISABLE
 DAEMON_MODE=DISABLE
@@ -27,10 +29,12 @@ if /bin/ls /usr/lib/rfsa/adsp/testsig-*.so &> /dev/null; then
     /bin/echo "Found DSP signature file"
 else
     /bin/echo "[WARNING] Could not find DSP signature file"
-    # Look for the DSP signature generation script
-    if [ -f /share/modalai/qrb5165-slpi-test-sig/generate-test-sig.sh ]; then
-        /bin/echo "[INFO] Attempting to generate the DSP signature file"
-        # Automatically generate the test signature so that px4 can run on SLPI DSP
+    # Look for the DSP signature generation script (platform-specific)
+    if [ -f /share/modalai/qcs6490-slpi-test-sig/generate-test-sig.sh ]; then
+        /bin/echo "[INFO] Attempting to generate the DSP signature file (qcs6490)"
+        /share/modalai/qcs6490-slpi-test-sig/generate-test-sig.sh
+    elif [ -f /share/modalai/qrb5165-slpi-test-sig/generate-test-sig.sh ]; then
+        /bin/echo "[INFO] Attempting to generate the DSP signature file (qrb5165)"
         /share/modalai/qrb5165-slpi-test-sig/generate-test-sig.sh
     else
         /bin/echo "[ERROR] Could not find the DSP signature file generation script"
@@ -39,12 +43,14 @@ else
 fi
 
 print_usage() {
-    echo -e "\nUsage: voxl-px4 [-b (Specify Holybro GPS unit)]"
+    echo -e "\nUsage: voxl-px4 [-a (Specify Airspeed Sensor)]"
+    echo "                [-b (Specify Holybro GPS unit)]"
     echo "                [-c delete configuration file and exit]"
     echo "                [-d start px4 without daemon mode]"
     echo "                [-f (Use fake rc input instead of from a real transmitter)]"
     echo "                [-m (Specify Matek GPS unit)]"
     echo "                [-o (Start OSD module on the apps processor)]"
+    echo "                [-p (Specify Fixed Wing airframe selected)]"
     echo "                [-r (Specify TBS Crossfire RC receiver, MAVLINK)]"
     echo "                [-w (Specify TBS Crossfire RC receiver, raw)]"
     echo "                [-z (Use fake sensor calibration values)]"
@@ -55,10 +61,12 @@ print_usage() {
 
 print_config_settings(){
     echo -e "\n*************************"
+    echo "AIRFRAME=$AIRFRAME"
     echo "GPS=$GPS"
     echo "RC=$RC"
     echo "ESC=$ESC"
     echo "POWER MANAGER=$POWER_MANAGER"
+    echo "AIRSPEED SENSOR=$AIRSPEED_SENSOR"
     echo "DISTANCE SENSOR=$DISTANCE_SENSOR"
     echo "OSD=$OSD"
     echo "DAEMON_MODE=$DAEMON_MODE"
@@ -71,9 +79,13 @@ print_config_settings(){
     echo -e "*************************\n"
 }
 
-while getopts "bcdhfmorwz" flag
+while getopts "abcdhfmoprwz" flag
 do
     case "${flag}" in
+        a)
+            echo "[INFO] MRO AIRSPEED Sensor selected"
+            AIRSPEED_SENSOR=MS4525DO
+            ;;
         b)
             echo "[INFO] Holybro GPS selected"
             GPS=HOLYBRO
@@ -103,6 +115,10 @@ do
         o)
             echo "[INFO] OSD module selected"
             OSD=ENABLE
+            ;;
+        p)
+            echo "[INFO] Airframe Selected as Fixed Wing"
+            AIRFRAME=FIXED_WING
             ;;
         r)
             echo "[INFO] TBS Crossfire RC receiver, MAVLINK selected"
@@ -137,5 +153,6 @@ fi
 
 print_config_settings
 
-GPS=$GPS RC=$RC ESC=$ESC POWER_MANAGER=$POWER_MANAGER DISTANCE_SENSOR=$DISTANCE_SENSOR \
-OSD=$OSD EXTRA_STEPS=$EXTRA_STEPS px4 $DAEMON -s /usr/bin/voxl-px4-start
+AIRFRAME=$AIRFRAME GPS=$GPS RC=$RC ESC=$ESC POWER_MANAGER=$POWER_MANAGER DISTANCE_SENSOR=$DISTANCE_SENSOR \
+AIRSPEED_SENSOR=$AIRSPEED_SENSOR OSD=$OSD EXTRA_STEPS=$EXTRA_STEPS \
+px4 $DAEMON -s /usr/bin/voxl-px4-start

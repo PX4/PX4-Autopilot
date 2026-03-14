@@ -23,14 +23,14 @@ Vehicle Region Of Interest (ROI).
 
 ## Constants
 
-| Name                                      | Type    | Value | Description                                    |
-| ----------------------------------------- | ------- | ----- | ---------------------------------------------- |
-| <a href="#ROI_NONE"></a> ROI_NONE         | `uint8` | 0     | No region of interest                          |
-| <a href="#ROI_WPNEXT"></a> ROI_WPNEXT     | `uint8` | 1     | Point toward next MISSION with optional offset |
-| <a href="#ROI_WPINDEX"></a> ROI_WPINDEX   | `uint8` | 2     | Point toward given MISSION                     |
-| <a href="#ROI_LOCATION"></a> ROI_LOCATION | `uint8` | 3     | Point toward fixed location                    |
-| <a href="#ROI_TARGET"></a> ROI_TARGET     | `uint8` | 4     | Point toward target                            |
-| <a href="#ROI_ENUM_END"></a> ROI_ENUM_END | `uint8` | 5     |
+| Name                                    | Type    | Value | Description                                    |
+| --------------------------------------- | ------- | ----- | ---------------------------------------------- |
+| <a id="#ROI_NONE"></a> ROI_NONE         | `uint8` | 0     | No region of interest                          |
+| <a id="#ROI_WPNEXT"></a> ROI_WPNEXT     | `uint8` | 1     | Point toward next MISSION with optional offset |
+| <a id="#ROI_WPINDEX"></a> ROI_WPINDEX   | `uint8` | 2     | Point toward given MISSION                     |
+| <a id="#ROI_LOCATION"></a> ROI_LOCATION | `uint8` | 3     | Point toward fixed location                    |
+| <a id="#ROI_TARGET"></a> ROI_TARGET     | `uint8` | 4     | Point toward target                            |
+| <a id="#ROI_ENUM_END"></a> ROI_ENUM_END | `uint8` | 5     |
 
 ## Source Message
 

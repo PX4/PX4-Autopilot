@@ -18,15 +18,15 @@ Published by the vehicle's allocation and consumed by the ESC protocol drivers e
 | timestamp        | `uint64`      | us           |            | Time since system start                                                                                                                                                |
 | timestamp_sample | `uint64`      | us           |            | Sampling timestamp of the data this control response is based on                                                                                                       |
 | reversible_flags | `uint16`      |              |            | Bitset indicating which motors are configured to be reversible                                                                                                         |
-| control          | `float32[12]` |              | [-1 : 1]   | Normalized thrust. where 1 means maximum positive thrust, -1 maximum negative (if not supported by the output, <0 maps to NaN). NaN maps to disarmed (stop the motors) |
+| control          | `float32[12]` |              | [-1 : 1]   | Normalized thrust. Where 1 means maximum positive thrust, -1 maximum negative (if not supported by the output, <0 maps to NaN). NaN maps to disarmed (stop the motors) |
 
 ## Constants
 
-| Name                                                              | Type     | Value | Description |
-| ----------------------------------------------------------------- | -------- | ----- | ----------- |
-| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION                   | `uint32` | 0     |
-| <a href="#ACTUATOR_FUNCTION_MOTOR1"></a> ACTUATOR_FUNCTION_MOTOR1 | `uint8`  | 101   |
-| <a href="#NUM_CONTROLS"></a> NUM_CONTROLS                         | `uint8`  | 12    |
+| Name                                                            | Type     | Value | Description                       |
+| --------------------------------------------------------------- | -------- | ----- | --------------------------------- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                   | `uint32` | 0     |
+| <a id="#ACTUATOR_FUNCTION_MOTOR1"></a> ACTUATOR_FUNCTION_MOTOR1 | `uint8`  | 101   | output_functions.yaml Motor.start |
+| <a id="#NUM_CONTROLS"></a> NUM_CONTROLS                         | `uint8`  | 12    | output_functions.yaml Motor.count |
 
 ## Source Message
 
@@ -42,15 +42,15 @@ Published by the vehicle's allocation and consumed by the ESC protocol drivers e
 
 uint32 MESSAGE_VERSION = 0
 
-uint64 timestamp         # [us] Time since system start
-uint64 timestamp_sample  # [us] Sampling timestamp of the data this control response is based on
+uint64 timestamp # [us] Time since system start
+uint64 timestamp_sample # [us] Sampling timestamp of the data this control response is based on
 
-uint16 reversible_flags  # [-] Bitset indicating which motors are configured to be reversible
+uint16 reversible_flags # [-] Bitset indicating which motors are configured to be reversible
 
-uint8 ACTUATOR_FUNCTION_MOTOR1 = 101 #
+uint8 ACTUATOR_FUNCTION_MOTOR1 = 101 # output_functions.yaml Motor.start
 
-uint8 NUM_CONTROLS = 12  #
-float32[12] control      # [@range -1, 1] Normalized thrust. where 1 means maximum positive thrust, -1 maximum negative (if not supported by the output, <0 maps to NaN). NaN maps to disarmed (stop the motors)
+uint8 NUM_CONTROLS = 12 # output_functions.yaml Motor.count
+float32[12] control # [@range -1, 1] Normalized thrust. Where 1 means maximum positive thrust, -1 maximum negative (if not supported by the output, <0 maps to NaN). NaN maps to disarmed (stop the motors)
 ```
 
 :::

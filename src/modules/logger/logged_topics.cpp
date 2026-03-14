@@ -79,7 +79,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("gps_dump");
 	add_optional_topic("gimbal_controls", 200);
 	add_optional_topic("gripper");
-	add_optional_topic("heater_status");
+	add_optional_topic_multi("heater_status");
 	add_topic("home_position");
 	add_topic("hover_thrust_estimate", 100);
 	add_topic("input_rc", 500);
@@ -226,7 +226,7 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("vehicle_imu_status", 1000, 4);
 	add_optional_topic_multi("vehicle_magnetometer", 500, 4);
 	add_topic("vehicle_optical_flow", 500);
-	add_topic("aux_global_position", 500);
+	add_topic_multi("aux_global_position", 500);
 	add_optional_topic("pps_capture");
 
 	// additional control allocation logging
@@ -335,7 +335,7 @@ void LoggedTopics::add_estimator_replay_topics()
 	add_topic("vehicle_magnetometer");
 	add_topic("vehicle_status");
 	add_topic("vehicle_visual_odometry");
-	add_topic("aux_global_position");
+	add_topic_multi("aux_global_position");
 	add_topic_multi("distance_sensor");
 }
 
@@ -390,6 +390,7 @@ void LoggedTopics::add_high_rate_sensors_topics()
 	add_topic_multi("distance_sensor", 0, 4);
 	add_topic_multi("sensor_optical_flow", 0, 2);
 	add_topic_multi("sensor_gps", 0, 4);
+	add_topic_multi("sensor_gnss_relative", 0, 1);
 	add_topic_multi("sensor_mag", 0, 4);
 }
 

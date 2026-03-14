@@ -118,7 +118,7 @@ Additionally you will need a battery and receiver ([compatible radio system](../
    _Figure 7_: ESC power module and signal wiring
 
    모터 상단의 색상은 회전 방향(그림 7-1)을 나타내며, 검은색 끝은 시계 방향, 흰색 끝은 반시계 방향입니다.
-   모터 방향은 px4 quadrotor x 기체 정의서를 따라야 합니다(그림 7-2).
+   Make sure the follow the PX4 quadrotor x airframe reference for motor direction (figure 7-2).
 
    <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/quadx.png" width="240">
 

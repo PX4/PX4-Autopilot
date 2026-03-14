@@ -53,15 +53,10 @@ list(APPEND EKF_SRCS
 	aid_sources/fake_pos_control.cpp
 	aid_sources/ZeroGyroUpdate.cpp
 	aid_sources/ZeroVelocityUpdate.cpp
-	aid_sources/zero_innovation_heading_update.cpp
 )
 
 if(CONFIG_EKF2_AIRSPEED)
 	list(APPEND EKF_SRCS aid_sources/airspeed/airspeed_fusion.cpp)
-endif()
-
-if(CONFIG_EKF2_AUX_GLOBAL_POSITION)
-	list(APPEND EKF_SRCS aid_sources/aux_global_position/aux_global_position.cpp)
 endif()
 
 if(CONFIG_EKF2_AUXVEL)

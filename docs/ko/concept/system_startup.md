@@ -21,7 +21,7 @@ On POSIX, the system shell is used as script interpreter (e.g. /bin/sh, being sy
 - PX4 모듈은 시스템에서 개별적으로 실행할 수 있어야합니다.
   이 동작은 심볼릭 링크로 처리합니다.
   For each module a symbolic link `px4-<module> -> px4` is created in the `bin` directory of the build folder.
-  When executed, the binary path is checked (`argv[0]`), and if it is a module (starts with `px4-`), it sends the command to the main px4 instance (see below).
+  When executed, the binary path is checked (`argv[0]`), and if it is a module (starts with `px4-`), it sends the command to the main PX4 instance (see below).
 
   :::tip
   The `px4-` prefix is used to avoid conflicts with system commands (e.g. `shutdown`), and it also allows for simple tab completion by typing `px4-<TAB>`.
@@ -32,7 +32,7 @@ On POSIX, the system shell is used as script interpreter (e.g. /bin/sh, being sy
   For that the `bin` directory with the symbolic links is added to the `PATH` variable right before executing the startup scripts.
 
 - 쉘은 각 모듈을 새로운(클라이언트) 프로세스로 시작합니다.
-  각 클라이언트 프로세스는 실제 모듈이 스레드로 실행되는 px4(서버)의 기본 인스턴스와 통신합니다.
+  Each client process needs to communicate with the main instance of PX4 (the server), where the actual modules are running as threads.
   This is done through a [UNIX socket](https://man7.org/linux/man-pages/man7/unix.7.html).
   서버는 클라이언트가 연결하고 명령을 보낼 수 있는 소켓으로 수신 대기합니다.
   그런 다음 서버는 출력과 반환 코드를 다시 클라이언트로 전송합니다.
@@ -40,7 +40,7 @@ On POSIX, the system shell is used as script interpreter (e.g. /bin/sh, being sy
 - The startup scripts call the module directly, e.g. `commander start`, rather than using the `px4-` prefix.
   This works via aliases: for each module an alias in the form of `alias <module>=px4-<module>` is created in the file `bin/px4-alias.sh`.
 
-- The `rcS` script is executed from the main px4 instance.
+- The `rcS` script is executed from the main PX4 instance.
   It does not start any modules, but first updates the `PATH` variable and then simply runs a shell with the `rcS` file as argument.
 
 - 그 외에도, 다중 기체 시뮬레이션을 위하여 여러 서버 인스턴스를 시작할 수 있습니다.

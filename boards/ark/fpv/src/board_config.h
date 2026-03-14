@@ -205,8 +205,10 @@
 /* HEATER
  * PWM in future
  */
-#define GPIO_HEATER_OUTPUT   /* PB10  T2CH3 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN10)
-#define HEATER_OUTPUT_EN(on_true)	       px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, (on_true))
+#define GPIO_HEATER_OUTPUT
+#define HEATER_NUM 	1
+#define GPIO_HEATER1_OUTPUT  /* PB10  T2CH3 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN10)
+#define HEATER1_OUTPUT_EN(on_true)	       px4_arch_gpiowrite(GPIO_HEATER1_OUTPUT, (on_true))
 
 /* PE6 is nARMED
  *  The GPIO will be set as input while not armed HW will have external HW Pull UP.
@@ -222,6 +224,16 @@
 /* PWM
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS   9
+
+#define GPIO_FMU_CH1                    /* PI0  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTI|GPIO_PIN0)
+#define GPIO_FMU_CH2                    /* PH12 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTH|GPIO_PIN12)
+#define GPIO_FMU_CH3                    /* PH11 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTH|GPIO_PIN11)
+#define GPIO_FMU_CH4                    /* PH10 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTH|GPIO_PIN10)
+#define GPIO_FMU_CH5                    /* PI5  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTI|GPIO_PIN5)
+#define GPIO_FMU_CH6                    /* PI6  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTI|GPIO_PIN6)
+#define GPIO_FMU_CH7                    /* PI7  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTI|GPIO_PIN7)
+#define GPIO_FMU_CH8                    /* PI2  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTI|GPIO_PIN2)
+#define GPIO_FMU_CH9                    /* PD12 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTD|GPIO_PIN12)
 
 #define GPIO_SPIX_SYNC                  /* PE9  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTE|GPIO_PIN9)
 
@@ -318,7 +330,7 @@
 		GPIO_HW_VER_REV_DRIVE,            \
 		GPIO_CAN1_TX,                     \
 		GPIO_CAN1_RX,                     \
-		GPIO_HEATER_OUTPUT,               \
+		GPIO_HEATER1_OUTPUT,              \
 		GPIO_VDD_5V_PGOOD,                \
 		GPIO_VDD_12V_PGOOD,               \
 		GPIO_VDD_12V_EN,                  \
@@ -326,6 +338,15 @@
 		GPIO_VDD_3V3_SD_CARD_EN,          \
 		GPIO_nARMED_INIT,                 \
 		SPI6_nRESET_EXTERNAL1,            \
+		GPIO_FMU_CH1,     	          \
+		GPIO_FMU_CH2,     	          \
+		GPIO_FMU_CH3,     	          \
+		GPIO_FMU_CH4,     	          \
+		GPIO_FMU_CH5,     	          \
+		GPIO_FMU_CH6,     	          \
+		GPIO_FMU_CH7,     	          \
+		GPIO_FMU_CH8,     	          \
+		GPIO_FMU_CH9,     	          \
 		GPIO_SPIX_SYNC                    \
 	}
 

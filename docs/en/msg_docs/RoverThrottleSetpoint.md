@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Rover Throttle setpoint.
 
-**TOPICS:** rover_throttlesetpoint
+**TOPICS:** rover_throttle_setpoint
 
 ## Fields
 

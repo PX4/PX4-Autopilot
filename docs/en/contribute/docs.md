@@ -18,9 +18,9 @@ Simple changes to _existing content_ can be made by clicking the **Edit on GitHu
 To edit an existing English page:
 
 1. Open the page.
-1. Click the **Edit on GitHub** link below the page content.
-1. Make the desired change.
-1. Below the Github page editor you'll be prompted to create a separate branch and then guided to submit a _pull request_.
+2. Click the **Edit on GitHub** link below the page content.
+3. Make the desired change.
+4. Below the Github page editor you'll be prompted to create a separate branch and then guided to submit a _pull request_.
 
 The documentation team will review the request and either merge it or work with you to update it.
 
@@ -34,9 +34,9 @@ More substantial changes, including adding new pages or adding/modifying images,
 For these kinds of changes we suggest using the same approach as for _code_:
 
 1. Use the _git_ toolchain to get the PX4 source code onto your local computer.
-1. Modify the documentation as needed (add, change, delete).
-1. _Test_ that it builds properly using Vitepress.
-1. Create a branch for your changes and create a pull request (PR) to pull it back into the [PX4-Autopilot](https://github.com/PX4/PX4-Autopilot) repo.
+2. Modify the documentation as needed (add, change, delete).
+3. _Test_ that it builds properly using Vitepress.
+4. Create a branch for your changes and create a pull request (PR) to pull it back into the [PX4-Autopilot](https://github.com/PX4/PX4-Autopilot) repo.
 
 The following explain how to get the source code, build locally (to test), and modify the code.
 
@@ -54,10 +54,10 @@ If you already have a clone of the [PX4-Autopilot](https://github.com/PX4/PX4-Au
 To get the library(s) sources onto your local computer you will need to use the git toolchain.
 The instructions below explain how to get git and use it on your local computer.
 
-1. Download git for your computer from [https://git-scm.com/downloads](https://git-scm.com/downloads)
-1. [Sign up](https://github.com/signup) for Github if you haven't already
-1. Create a copy (Fork) of the [PX4-Autopilot repo](https://github.com/PX4/PX4-Autopilot) on Github ([instructions here](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo)).
-1. Clone (copy) your forked repository to your local computer:
+1. Download git for your computer from [https://git-scm.com/downloads/](https://git-scm.com/downloads/)
+2. [Sign up](https://github.com/signup) for Github if you haven't already
+3. Create a copy (Fork) of the [PX4-Autopilot repo](https://github.com/PX4/PX4-Autopilot) on Github ([instructions here](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo)).
+4. Clone (copy) your forked repository to your local computer:
 
    ```sh
    cd ~/wherever/
@@ -70,19 +70,19 @@ The instructions below explain how to get git and use it on your local computer.
    git clone https://github.com/john_citizen/PX4-Autopilot.git
    ```
 
-1. Navigate to your local repository:
+5. Navigate to your local repository:
 
    ```sh
    cd ~/wherever/PX4-Autopilot
    ```
 
-1. Add a _remote_ called "upstream" to point to the "official" PX4 version of the library:
+6. Add a _remote_ called "upstream" to point to the "official" PX4 version of the library:
 
    ```sh
-   git remote add upstream https://github.com/PX4/PX4-Autopilot.git
+   git remote add upstream https://github.com/PX4/PX4-Autopilot
    ```
 
-   :::tip
+   ::: tip
    A "remote" is a handle to a particular repository.
    The remote named _origin_ is created by default when you clone the repository, and points to _your fork_ of the guide.
    Above you create a new remote _upstream_ that points to the PX4 project version of the documents.
@@ -147,19 +147,21 @@ Build the library locally to test that any changes you have made have rendered p
    - [Nodejs 18+](https://nodejs.org/en)
    - [Yarn classic](https://classic.yarnpkg.com/en/docs/install)
 
-1. Navigate to your local repository and the `/docs` subdirectory:
+2. Navigate to your local repository and the `/docs` subdirectory:
 
    ```sh
    cd ~/wherever/PX4-Autopilot/docs
    ```
 
-1. Install dependencies (including Vitepress):
+3. Install dependencies (including Vitepress):
 
    ```sh
    yarn install
    ```
 
-1. Preview and serve the library:
+4. (Optional) [Build the docs for PX4 metadata](#building-px4-docs-metadata) if your source contains changes to parameter or module docs that you want to check.
+
+5. Preview and serve the library:
 
    ```sh
    yarn start
@@ -169,7 +171,7 @@ Build the library locally to test that any changes you have made have rendered p
      This will be something like: `http://localhost:5173/px4_user_guide/`.
    - Stop serving using **CTRL+C** in the terminal prompt.
 
-1. Open previewed pages in your local editor:
+6. Open previewed pages in your local editor:
 
    First specify a local text editor file using the `EDITOR` environment variable, before calling `yarn start` to preview the library.
    For example, you can enable VSCode as your default editor by entering:
@@ -187,7 +189,7 @@ Build the library locally to test that any changes you have made have rendered p
 
    The **Open in your editor** link at the bottom of each page will then open the current page in the editor (this replaces the _Open in GitHub_ link).
 
-1. You can build the library as it would be done for deployment:
+7. You can build the library as it would be done for deployment:
 
    ```sh
    # Ubuntu
@@ -201,6 +203,32 @@ Build the library locally to test that any changes you have made have rendered p
 Use `yarn start` to preview changes _as you make them_ (documents are updated and served very quickly).
 Before submitting a PR you should also build it using `yarn docs:build`, as this can highlight issues that are not visible when using `yarn start`.
 :::
+
+#### Building PX4 docs metadata
+
+PX4 Metadata is not automatically updated in the local docs tree when you make changes to source.
+This can result in broken links showing up during testing if you link to new parameters, modules, airframes, or other content that is generated from source.
+
+You can generate the metadata and copy it into the tree on _Ubuntu_ (only) using the convenient yarn command:
+
+```sh
+# Ubuntu
+yarn build_docs_metadata_ubuntu
+```
+
+::: info
+The generated metadata docs should not be included in PRs as they will complicate reveiwing (metadata is automatically generated when a PR merges in main).
+It is not a problem if you do add such metadata, as it will be swamped on merge.
+:::
+
+#### Check for broken links
+
+You can use the following command to check for broken links in the whole document:
+
+```sh
+# Ubuntu
+yarn linkcheck
+```
 
 ### Source Code Structure
 

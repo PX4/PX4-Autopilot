@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # GpsInjectData (UORB message)
 
-**TOPICS:** gps_injectdata
+**TOPICS:** gps_inject_data
 
 ## Fields
 
@@ -18,10 +18,10 @@ pageClass: is-wide-page
 
 ## Constants
 
-| 명칭                                                                                          | 형식      | Value | 설명 |
-| ------------------------------------------------------------------------------------------- | ------- | ----- | -- |
-| <a href="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH | `uint8` | 8     |    |
-| <a href="#MAX_INSTANCES"></a> MAX_INSTANCES                            | `uint8` | 2     |    |
+| 명칭                                                                                        | 형식      | Value | 설명 |
+| ----------------------------------------------------------------------------------------- | ------- | ----- | -- |
+| <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH | `uint8` | 8     |    |
+| <a id="#MAX_INSTANCES"></a> MAX_INSTANCES                            | `uint8` | 2     |    |
 
 ## Source Message
 

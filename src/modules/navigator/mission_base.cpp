@@ -1375,7 +1375,7 @@ bool MissionBase::haveCachedCameraModeItems()
 bool MissionBase::cameraWasTriggering()
 {
 	return (_last_camera_trigger_item.nav_cmd == NAV_CMD_DO_TRIGGER_CONTROL
-		&& (int)(_last_camera_trigger_item.params[0] + 0.5f) == 1) ||
+		&& static_cast<int>(lround(_last_camera_trigger_item.params[0])) == 1) ||
 	       (_last_camera_trigger_item.nav_cmd == NAV_CMD_IMAGE_START_CAPTURE) ||
 	       (_last_camera_trigger_item.nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST
 		&& _last_camera_trigger_item.params[0] > FLT_EPSILON);
@@ -1460,25 +1460,26 @@ bool MissionBase::canRunMissionFeasibility()
 void MissionBase::updateMissionAltAfterHomeChanged()
 {
 	if (_navigator->get_home_position()->update_count > _home_update_counter) {
-		float new_alt = get_absolute_altitude_for_item(_mission_item);
-		float altitude_diff = new_alt - _navigator->get_position_setpoint_triplet()->current.alt;
 
-		if (_navigator->get_position_setpoint_triplet()->previous.valid
-		    && PX4_ISFINITE(_navigator->get_position_setpoint_triplet()->previous.alt)) {
-			_navigator->get_position_setpoint_triplet()->previous.alt = _navigator->get_position_setpoint_triplet()->previous.alt +
-					altitude_diff;
+		if (item_contains_position(_mission_item)) {
+			const float new_alt = get_absolute_altitude_for_item(_mission_item);
+			const float altitude_diff = new_alt - _navigator->get_position_setpoint_triplet()->current.alt;
+
+			if (_navigator->get_position_setpoint_triplet()->previous.valid
+			    && PX4_ISFINITE(_navigator->get_position_setpoint_triplet()->previous.alt)) {
+				_navigator->get_position_setpoint_triplet()->previous.alt += altitude_diff;
+			}
+
+			_navigator->get_position_setpoint_triplet()->current.alt += altitude_diff;
+
+			if (_navigator->get_position_setpoint_triplet()->next.valid
+			    && PX4_ISFINITE(_navigator->get_position_setpoint_triplet()->next.alt)) {
+				_navigator->get_position_setpoint_triplet()->next.alt += altitude_diff;
+			}
+
+			_navigator->set_position_setpoint_triplet_updated();
 		}
 
-		_navigator->get_position_setpoint_triplet()->current.alt = _navigator->get_position_setpoint_triplet()->current.alt +
-				altitude_diff;
-
-		if (_navigator->get_position_setpoint_triplet()->next.valid
-		    && PX4_ISFINITE(_navigator->get_position_setpoint_triplet()->next.alt)) {
-			_navigator->get_position_setpoint_triplet()->next.alt = _navigator->get_position_setpoint_triplet()->next.alt +
-					altitude_diff;
-		}
-
-		_navigator->set_position_setpoint_triplet_updated();
 		_home_update_counter = _navigator->get_home_position()->update_count;
 	}
 }

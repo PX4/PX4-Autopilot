@@ -30,9 +30,9 @@ GPS home position in WGS84 coordinates.
 
 ## Constants
 
-| 参数名                                                                  | 类型       | 值 | 描述 |
-| -------------------------------------------------------------------- | -------- | - | -- |
-| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 1 |    |
+| 参数名                                                                | 类型       | 值 | 描述 |
+| ------------------------------------------------------------------ | -------- | - | -- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 1 |    |
 
 ## Source Message
 

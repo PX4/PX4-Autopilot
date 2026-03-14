@@ -1,6 +1,6 @@
 # 补充信息
 
-[Rotoye 电池监测器](https://rotoye.com/batmon/) 是一款套件，用于为现成的锂离子和锂聚合物电池增添智能电池功能。
+[Rotoye Batmon](https://shop.rotoye.com/batmon/) is a kit for adding smart battery functionality to off-the-shelf Lithium-Ion and LiPo batteries.
 It can be purchased as a standalone unit or as part of a factory-assembled smart-battery.
 
 ![Rotoye 电池监控板](../../assets/hardware/smart_batteries/rotoye_batmon/smart-battery-rotoye.jpg)
@@ -9,7 +9,7 @@ It can be purchased as a standalone unit or as part of a factory-assembled smart
 
 ## 购买渠道
 
-[Rotoye 商店](https://rotoye.com/batmon/)：电池套件、自定义智能电池和配件
+[Rotoye Store](https://shop.rotoye.com/batmon/): Batmon kits, custom smart-batteries, and accessories
 
 ## Wiring/Connections
 
@@ -50,7 +50,3 @@ In _QGroundControl_:
    batt_smbus start -X -b 1 -a 11 # External bus 1, address 0x0b
    batt_smbus start -X -b 1 -a 12 # External bus 1, address 0x0c
    ```
-
-## 更多信息
-
-快速入门指南(https://rotoye.com/batmon-tutorial/) (Rotoye)

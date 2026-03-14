@@ -19,7 +19,7 @@ Using RTK allows PX4 to get its position with centimetre-level accuracy, which i
 ## Де купити
 
 - [H-RTK F9P (Holybro Website)](https://holybro.com/products/h-rtk-f9p-gnss-series)
-- [H-RTK Accessories (Holybro Website)](https://holybro.com/collections/h-rtk-gps)
+- [H-RTK Accessories (Holybro Website)](https://holybro.com/collections/gps)
 
 ## Налаштування
 
@@ -50,6 +50,6 @@ The cables/connectors may need to be modified in order to connect to other fligh
 
 ## Аксесуари до GPS
 
-[H-RTK Mount (Holybro Website)](https://holybro.com/products/vertical-mount-for-h-rtk-helical)
+[H-RTK Mount (Holybro Website)](https://holybro.com/collections/gps-accessories/products/vertical-mount-for-h-rtk-helical)
 
 ![h-rtk](../../assets/hardware/gps/rtk_holybro_h-rtk_mount_3.png)

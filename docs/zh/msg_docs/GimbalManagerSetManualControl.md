@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # GimbalManagerSetManualControl (UORB message)
 
-**TOPICS:** gimbal_managerset_manualcontrol
+**TOPICS:** gimbal_manager_set_manual_control
 
 ## Fields
 
@@ -24,13 +24,13 @@ pageClass: is-wide-page
 
 ## Constants
 
-| 参数名                                                                                                                                                                 | 类型       | 值  | 描述 |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -- | -- |
-| <a href="#GIMBAL_MANAGER_FLAGS_RETRACT"></a> GIMBAL_MANAGER_FLAGS_RETRACT                            | `uint32` | 1  |    |
-| <a href="#GIMBAL_MANAGER_FLAGS_NEUTRAL"></a> GIMBAL_MANAGER_FLAGS_NEUTRAL                            | `uint32` | 2  |    |
-| <a href="#GIMBAL_MANAGER_FLAGS_ROLL_LOCK"></a> GIMBAL_MANAGER_FLAGS_ROLL_LOCK   | `uint32` | 4  |    |
-| <a href="#GIMBAL_MANAGER_FLAGS_PITCH_LOCK"></a> GIMBAL_MANAGER_FLAGS_PITCH_LOCK | `uint32` | 8  |    |
-| <a href="#GIMBAL_MANAGER_FLAGS_YAW_LOCK"></a> GIMBAL_MANAGER_FLAGS_YAW_LOCK     | `uint32` | 16 |    |
+| 参数名                                                                                                                                                               | 类型       | 值  | 描述 |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -- | -- |
+| <a id="#GIMBAL_MANAGER_FLAGS_RETRACT"></a> GIMBAL_MANAGER_FLAGS_RETRACT                            | `uint32` | 1  |    |
+| <a id="#GIMBAL_MANAGER_FLAGS_NEUTRAL"></a> GIMBAL_MANAGER_FLAGS_NEUTRAL                            | `uint32` | 2  |    |
+| <a id="#GIMBAL_MANAGER_FLAGS_ROLL_LOCK"></a> GIMBAL_MANAGER_FLAGS_ROLL_LOCK   | `uint32` | 4  |    |
+| <a id="#GIMBAL_MANAGER_FLAGS_PITCH_LOCK"></a> GIMBAL_MANAGER_FLAGS_PITCH_LOCK | `uint32` | 8  |    |
+| <a id="#GIMBAL_MANAGER_FLAGS_YAW_LOCK"></a> GIMBAL_MANAGER_FLAGS_YAW_LOCK     | `uint32` | 16 |    |
 
 ## Source Message
 

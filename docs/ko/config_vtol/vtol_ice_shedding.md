@@ -6,7 +6,7 @@ Ice shedding is a feature that periodically spins unused motors in fixed-wing
 flight, to break off any ice that is starting to build up in the motors while it
 is still feasible to do so.
 
-It is configured by the paramter `CA_ICE_PERIOD`. When it is 0, the feature is
+It is configured by the parameter `CA_ICE_PERIOD`. When it is 0, the feature is
 disabled, when it is above 0, it sets the duration of the ice shedding cycle in
 seconds. In each cycle, the rotors are spun for two seconds at a motor output of
 0.01.

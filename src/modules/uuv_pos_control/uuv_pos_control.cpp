@@ -38,7 +38,7 @@
  *
  * All the acknowledgments and credits for the fw wing app are reported in those files.
  *
- * @author Tim Hansen <t.hansen@jacobs-university.de>
+ * @author Tim Hansen <timhansen93@googlemail.com>
  * @author Daniel Duecker <daniel.duecker@tuhh.de>
  */
 
@@ -76,6 +76,9 @@ bool UUVPOSControl::init()
 		return false;
 	}
 
+	hgtData[0] = 0.0f;
+	hgtData[1] = 0.0f;
+	altitudeStateFlag = false;
 	return true;
 }
 
@@ -268,6 +271,7 @@ void UUVPOSControl::Run()
 		return;
 	}
 
+
 	perf_begin(_loop_perf);
 
 	/* check vehicle control mode for changes to publication state */
@@ -279,6 +283,11 @@ void UUVPOSControl::Run()
 	//vehicle_attitude_s attitude;
 	vehicle_local_position_s vlocal_pos;
 
+	//state observer for hgt controller
+	if (!_vcontrol_mode.flag_control_altitude_enabled && altitudeStateFlag && ! _vcontrol_mode.flag_control_position_enabled) {
+		altitudeStateFlag = false;
+	}
+
 	/* only run controller if local_pos changed */
 	if (_vehicle_local_position_sub.update(&vlocal_pos)) {
 		const float dt = math::constrain(((vlocal_pos.timestamp_sample - _last_run) * 1e-6f), 0.0002f, 0.02f);
@@ -287,6 +296,7 @@ void UUVPOSControl::Run()
 		// Update vehicle attitude
 		_vehicle_attitude_sub.update(&_vehicle_attitude);
 
+
 		/* Run position or altitude mode from manual setpoints*/
 		if (_vcontrol_mode.flag_control_manual_enabled
 		    && (_vcontrol_mode.flag_control_altitude_enabled
@@ -294,19 +304,93 @@ void UUVPOSControl::Run()
 		    && _vcontrol_mode.flag_armed) {
 			/* Update manual setpoints */
 
-			const bool altitude_only_flag = _vcontrol_mode.flag_control_altitude_enabled
-							&& ! _vcontrol_mode.flag_control_position_enabled;
 
 			_manual_control_setpoint_sub.update(&_manual_control_setpoint);
 
 			// Ensure no nan and sufficiently recent setpoint
 			check_setpoint_validity(vlocal_pos);
 
-			// Generate _trajectory_setpoint -> creates _trajectory_setpoint
-			generate_trajectory_setpoint(vlocal_pos, _vehicle_attitude, dt);
+			const bool altitude_only_flag = _vcontrol_mode.flag_control_altitude_enabled && ! _vcontrol_mode.flag_control_position_enabled;
 
-			pose_controller_6dof(Vector3f(_trajectory_setpoint.position), _vehicle_attitude,
-					     vlocal_pos, altitude_only_flag);
+			if (altitude_only_flag) {
+				// reset hgt desired position if altitude mode is turned on
+				if (!altitudeStateFlag) {
+					hgtData[0] = vlocal_pos.z ;
+					altitudeStateFlag = true;
+				}
+
+				// Avoid accumulating absolute yaw error with arming stick gesture
+				// roll and pitch for future implementation
+				// float roll = Eulerf(matrix::Quatf(_attitude_setpoint.q_d)).phi();
+				// float pitch = Eulerf(matrix::Quatf(_attitude_setpoint.q_d)).theta();
+				float yaw = Eulerf(matrix::Quatf(_attitude_setpoint.q_d)).psi();
+
+				float roll_setpoint = 0.0f;
+				float pitch_setpoint = 0.0f;
+				float yaw_setpoint = yaw + _manual_control_setpoint.roll * dt * _param_sgm_yaw.get();
+
+				// Generate target quaternion
+				Eulerf euler_sp(roll_setpoint, pitch_setpoint, yaw_setpoint);
+				Quatf q_sp = euler_sp;
+
+				// Normalize the quaternion to avoid numerical issues
+				q_sp.normalize();
+
+				q_sp.copyTo(_attitude_setpoint.q_d);
+
+
+				float maximumDistanceAllowed = _param_hgt_max_diff.get();
+
+				//change the desired hgt
+				if (_manual_control_setpoint.buttons & (1 << _param_hgt_b_up.get())) { //up
+					if (abs(hgtData[0] - 0.001f * _param_hgt_strength.get() - vlocal_pos.z) < maximumDistanceAllowed) {
+						hgtData[0] = hgtData[0] - 0.001f * _param_hgt_strength.get();
+					}
+				}
+
+				if (_manual_control_setpoint.buttons & (1 << _param_hgt_b_down.get())) { //down
+					if (abs(hgtData[0] + 0.001f * _param_hgt_strength.get() - vlocal_pos.z) < maximumDistanceAllowed) {
+						hgtData[0] = hgtData[0] + 0.001f * _param_hgt_strength.get();
+					}
+
+				}
+
+				float errorInZ = hgtData[0] - vlocal_pos.z;
+
+				//make sure the integrational part is not to high
+				if (std::abs(hgtData[1] + 0.005f * errorInZ * _param_hgt_i_speed.get()) < 1.0f) {
+					hgtData[1] = hgtData[1] + 0.005f * errorInZ * _param_hgt_i_speed.get();
+				}
+
+				matrix::Vector3f thrustxyz;
+				thrustxyz(2) = _param_hgt_p.get() * errorInZ - _param_hgt_d.get() * vlocal_pos.vz + _param_hgt_i.get() *
+					       hgtData[1];//PID values
+
+				const float throttle_manual_attitude_gain = _param_sgm_thrtl.get();
+
+				thrustxyz(0) = _manual_control_setpoint.throttle * throttle_manual_attitude_gain; // surge +x
+				thrustxyz(1) = _manual_control_setpoint.yaw * throttle_manual_attitude_gain; // sway +y
+
+				//Rotate thrust to compensate roll/pitch
+				float roll_att = Eulerf(matrix::Quatf(_vehicle_attitude.q)).phi();
+				float pitch_att = Eulerf(matrix::Quatf(_vehicle_attitude.q)).theta();
+				// attitude without yaw
+				Eulerf euler_att(roll_att, pitch_att, 0);
+				Quatf q_att = matrix::Quatf(euler_att);
+				thrustxyz = q_att.rotateVectorInverse(thrustxyz);
+
+				_attitude_setpoint.thrust_body[0] = thrustxyz(0);
+				_attitude_setpoint.thrust_body[1] = thrustxyz(1);
+				_attitude_setpoint.thrust_body[2] = thrustxyz(2);
+
+			} else {
+
+				// Generate _trajectory_setpoint -> creates _trajectory_setpoint
+				generate_trajectory_setpoint(vlocal_pos, _vehicle_attitude, dt);
+
+				pose_controller_6dof(Vector3f(_trajectory_setpoint.position), _vehicle_attitude,
+						     vlocal_pos, altitude_only_flag);
+			}
 
 		} else if (!_vcontrol_mode.flag_control_manual_enabled
 			   && (_vcontrol_mode.flag_control_altitude_enabled

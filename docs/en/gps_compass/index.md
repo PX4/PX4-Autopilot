@@ -186,9 +186,9 @@ Some of GNSS terms that are useful for interpreting the data include:
 - `DOP`: Dilution of position (dimensionless).
   This is a measure of the geometric quality of satellite positions and their effect on the precision of the GPS receiver's calculations.
 - `EPH`: Standard deviation of horizontal position error (metres).
-  This represents the the uncertainty in the GPS fix latitude and longitude.
+  This represents the uncertainty in the GPS fix latitude and longitude.
 - `EPV`: Standard deviation of vertical position error (metres).
-  This represents the the uncertainty in the GPS fix altitude.
+  This represents the uncertainty in the GPS fix altitude.
 
 ### DOP vs EPH/EPV
 

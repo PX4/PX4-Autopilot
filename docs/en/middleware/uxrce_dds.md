@@ -3,7 +3,7 @@
 <Badge type="tip" text="PX4 v1.14" />
 
 ::: info
-uXRCE-DDS replaces the [Fast-RTPS Bridge](https://docs.px4.io/v1.13/en/middleware/micrortps.html#rtps-dds-interface-px4-fast-rtps-dds-bridge) used in PX4 v1.13.
+uXRCE-DDS replaces the [Fast-RTPS Bridge](https://docs.px4.io/v1.13/en/middleware/micrortps#rtps-dds-interface-px4-fast-rtps-dds-bridge) used in PX4 v1.13.
 If you were using the Fast-RTPS Bridge, please follow the [migration guidelines](#fast-rtps-to-uxrce-dds-migration-guidelines).
 :::
 
@@ -34,7 +34,7 @@ Code that wants to subscribe/publish to PX4 does have a dependency on client-sid
 
 ## Code Generation
 
-The PX4 [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client) is generated at build time and included in PX4 firmare by default.
+The PX4 [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client) is generated at build time and included in PX4 firmware by default.
 The agent has no dependency on client code.
 It can be built standalone or in a ROS 2 workspace, or installed as a snap package on Ubuntu.
 
@@ -324,7 +324,7 @@ The configuration can be done using the [UXRCE-DDS parameters](../advanced_confi
   - [UXRCE_DDS_NS_IDX](../advanced_config/parameter_reference.md#UXRCE_DDS_NS_IDX) <Badge type="tip" text="PX4 v1.17" />: Index-based namespace definition.
     Setting this parameter to any value other than `-1` creates a namespace with the prefix `uav_` and the specified value, e.g. `uav_0`, `uav_1`, etc.
     See [namespace](#customizing-the-namespace) for methods to define richer or arbitrary namespaces.
-  - [`UXRCE_DDS_FLCTRL`](../advanced_config/parameter_reference.md#UXRCE_DDS_FLCTRL) <Badge type="tip" text="main (planned for: PX4 v1.18)" />: Serial port hardware flow control enable.
+  - [`UXRCE_DDS_FLCTRL`](../advanced_config/parameter_reference.md#UXRCE_DDS_FLCTRL) <Badge type="tip" text="PX4 v1.18" />: Serial port hardware flow control enable.
     To use hardware flow control, a custom MicroXRCE Agent needs to be adopted. Please refer to [this PR](https://github.com/eProsima/Micro-XRCE-DDS-Agent/pull/407) for the required changes, cherry-pick them on top of the [agent version](#build-run-within-ros-2-workspace) you need to use and then run the agent with the additional `--flow-control` option.
 
 ::: info
@@ -522,10 +522,10 @@ subscriptions:
 
 subscriptions_multi:
 
-  - topic: /fmu/in/vehicle_optical_flow_vel
-    type: px4_msgs::msg::VehicleOpticalFlowVel
-
-  ...
+  - topic: /fmu/in/aux_global_position
+    type: px4_msgs::msg::AuxGlobalPosition
+    route_field: id       # OPTIONAL: field used to demux into instances
+    max_instances: 4      # Required when route_field is set
 
 ```
 
@@ -542,30 +542,41 @@ Each (`topic`,`type`) pairs defines:
 4. The message type (`VehicleOdometry`, `VehicleStatus`, `OffboardControlMode`, etc.) and the ROS 2 package (`px4_msgs`) that is expected to provide the message definition.
 5. **(Optional)**: An additional `rate_limit` field (only for publication entries), which specifies the maximum rate (Hz) at which messages will be published on this topic by PX4 to ROS 2.
    If left unspecified, the maximum publication rate limit is set to 100 Hz.
-6. <Badge type="tip" text="main (planned for: PX4 v1.18)" /> **(Optional)**: An additional `instance` field (only for publication entries), which lets you select which instance of a [multi-instance topic](./uorb.md#multi-instance) you want to be published to ROS 2.
+6. <Badge type="tip" text="PX4 v1.18" /> **(Optional)**: An additional `instance` field (only for publication entries), which lets you select which instance of a [multi-instance topic](./uorb.md#multi-instance) you want to be published to ROS 2.
    If provided, this option changes the ROS 2 topic name of the advertised uORB topic appending the instance number: `fmu/out/[uorb topic name][instance]` (plus eventual namespace and message version).
    In the example above the final topic name would be `/fmu/out/vehicle_imu1`.
 
-`subscriptions` and `subscriptions_multi` allow us to choose the uORB topic instance that ROS 2 topics are routed to: either a shared instance that may also be getting updates from internal PX4 uORB publishers, or a separate instance that is reserved for ROS2 publications, respectively.
+`subscriptions` and `subscriptions_multi` allow us to choose the uORB topic instance that ROS 2 topics are routed to: either a shared instance that may also be getting updates from internal PX4 uORB publishers, or a separate instance that is reserved for ROS 2 publications, respectively.
 Without this mechanism all ROS 2 messages would be routed to the _same_ uORB topic instance (because ROS 2 does not have the concept of [multiple topic instances](../middleware/uorb.md#multi-instance)), and it would not be possible for PX4 subscribers to differentiate between streams from ROS 2 or PX4 publishers.
 
 Add a topic to the `subscriptions` section to:
 
-- Create a unidirectional route going from the ROS2 topic to the _default_ instance (instance 0) of the associated uORB topic.
-  For example, it creates a ROS2 subscriber of `/fmu/in/vehicle_odometry` and a uORB publisher of `vehicle_odometry`.
-- If other (internal) PX4 modules are already publishing on the same uORB topic instance as the ROS2 publisher, the instance's subscribers will receive all streams of messages.
-  The uORB subscriber will not be able to determine if an incoming message was published by PX4 or by ROS2.
-- This is the desired behavior when the ROS2 publisher is expected to be the sole publisher on the topic instance (for example, replacing an internal publisher to the topic during offboard control), or when the source of multiple publishing streams does not matter.
+- Create a unidirectional route going from the ROS 2 topic to the _default_ instance (instance 0) of the associated uORB topic.
+  For example, it creates a ROS 2 subscriber of `/fmu/in/vehicle_odometry` and a uORB publisher of `vehicle_odometry`.
+- If other (internal) PX4 modules are already publishing on the same uORB topic instance as the ROS 2 publisher, the instance's subscribers will receive all streams of messages.
+  The uORB subscriber will not be able to determine if an incoming message was published by PX4 or by ROS 2.
+- This is the desired behavior when the ROS 2 publisher is expected to be the sole publisher on the topic instance (for example, replacing an internal publisher to the topic during offboard control), or when the source of multiple publishing streams does not matter.
 
 Add a topic to the `subscriptions_multi` section to:
 
-- Create a unidirectional route going from the ROS2 topic to a _new_ instance of the associated uORB topic.
-  For example, if `vehicle_odometry` has already `2` instances, it creates a ROS2 subscriber of `/fmu/in/vehicle_odometry` and a uORB publisher on instance `3` of `vehicle_odometry`.
+- Create a unidirectional route going from the ROS 2 topic to a _new_ instance of the associated uORB topic.
+  For example, if `vehicle_odometry` has already `2` instances, it creates a ROS 2 subscriber of `/fmu/in/vehicle_odometry` and a uORB publisher on instance `3` of `vehicle_odometry`.
 - This ensures that no other internal PX4 module will publish on the same instance used by uXRCE-DDS.
   The subscribers will be able to subscribe to the desired instance and distinguish between publishers.
-- Note, however, that this guarantees separation between PX4 and ROS2 publishers, not among multiple ROS2 publishers.
-  In that scenario, their messages will still be routed to the same instance.
+- Without `route_field`, this guarantees separation between PX4 and ROS 2 publishers, but not among multiple ROS 2 publishers. In that scenario, their messages will still be routed to the same instance.
 - This is the desired behavior, for example, when you want PX4 to log the readings of two equal sensors; they will both publish on the same topic, but one will use instance 0 and the other will use instance 1.
+
+<Badge type="tip" text="PX4 v1.18" /> Optionally, add `route_field` and `max_instances` to demultiplex a single ROS 2 topic into multiple uORB instances based on a message field value:
+
+- Each unique value of `route_field` is dynamically assigned to a separate uORB instance on first arrival, up to `max_instances`.
+  For example, a single `/fmu/in/aux_global_position` ROS 2 topic can be demultiplexed to up to 4 separate uORB instances of `aux_global_position`, with each unique `id` value mapped to its own instance.
+- This allows multiple ROS 2 publishers to share a single DDS topic while PX4 subscribers can distinguish between them by subscribing to different uORB instances.
+- `route_field` must be a field present in the message definition. `max_instances` is required when `route_field` is set and limits how many distinct sources can be demultiplexed simultaneously.
+
+::: warning
+The `subscriptions_multi` feature with `route_field` is currently only implemented in the uXRCE-DDS client.
+The Zenoh bridge module does not yet support demux routing — topics listed under `subscriptions_multi` in `dds_topics.yaml` will be ignored by the Zenoh bridge.
+:::
 
 You can arbitrarily change the configuration.
 For example, you could use different default namespaces or use a custom package to store the message definitions.
@@ -584,7 +595,7 @@ For a list of services, details and examples see the [service documentation](../
 ## Fast-RTPS to uXRCE-DDS Migration Guidelines
 
 These guidelines explain how to migrate from using PX4 v1.13 [Fast-RTPS](../middleware/micrortps.md) middleware to PX4 v1.14 `uXRCE-DDS` middleware.
-These are useful if you have [ROS 2 applications written for PX4 v1.13](https://docs.px4.io/v1.13/en/ros/ros2_comm.html), or you have used Fast-RTPS to interface your applications to PX4 [directly](https://docs.px4.io/v1.13/en/middleware/micrortps.html#agent-in-an-offboard-fast-dds-interface-ros-independent).
+These are useful if you have [ROS 2 applications written for PX4 v1.13](https://docs.px4.io/v1.13/en/ros/ros2_comm), or you have used Fast-RTPS to interface your applications to PX4 [directly](https://docs.px4.io/v1.13/en/middleware/micrortps#agent-in-an-offboard-fast-dds-interface-ros-independent).
 
 ::: info
 This section contains migration-specific information.
@@ -593,7 +604,7 @@ You should also read the rest of this page to properly understand uXRCE-DDS.
 
 #### Dependencies do not need to be removed
 
-uXRCE-DDS does not need the dependencies that were required for Fast-RTPS, such as those installed by following the topic [Fast DDS Installation](https://docs.px4.io/v1.13/en/dev_setup/fast-dds-installation.html).
+uXRCE-DDS does not need the dependencies that were required for Fast-RTPS, such as those installed by following the topic [Fast DDS Installation](https://docs.px4.io/v1.13/en/dev_setup/fast-dds-installation).
 You can keep them if you want, without affecting your uXRCE-DDS applications.
 
 If you do choose to remove the dependencies, take care not to remove anything that is used by applications (for example, Java).
@@ -646,7 +657,7 @@ There are many ways to install it on your PC / companion computer - for more inf
 
 #### Application-Specific Changes
 
-If you where not using ROS 2 alongside the agent ([Fast DDS Interface ROS-Independent](https://docs.px4.io/v1.13/en/middleware/micrortps.html#agent-in-an-offboard-fast-dds-interface-ros-independent)), then you need to migrate to [eProsima Fast DDS](https://fast-dds.docs.eprosima.com/en/latest/index.html).
+If you where not using ROS 2 alongside the agent ([Fast DDS Interface ROS-Independent](https://docs.px4.io/v1.13/en/middleware/micrortps#agent-in-an-offboard-fast-dds-interface-ros-independent)), then you need to migrate to [eProsima Fast DDS](https://fast-dds.docs.eprosima.com/en/latest/index.html).
 
 ROS 2 applications still need to compile alongside the PX4 messages, which you do by adding the [px4_msgs](https://github.com/PX4/px4_msgs) package to your workspace.
 You can remove the [px4_ros_com](https://github.com/PX4/px4_ros_com) package as it is no longer needed, other than for example code.

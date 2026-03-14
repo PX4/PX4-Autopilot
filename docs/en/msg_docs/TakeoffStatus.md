@@ -18,14 +18,14 @@ Status of the takeoff state machine currently just available for multicopters.
 
 ## Constants
 
-| Name                                                                            | Type    | Value | Description |
-| ------------------------------------------------------------------------------- | ------- | ----- | ----------- |
-| <a href="#TAKEOFF_STATE_UNINITIALIZED"></a> TAKEOFF_STATE_UNINITIALIZED         | `uint8` | 0     |
-| <a href="#TAKEOFF_STATE_DISARMED"></a> TAKEOFF_STATE_DISARMED                   | `uint8` | 1     |
-| <a href="#TAKEOFF_STATE_SPOOLUP"></a> TAKEOFF_STATE_SPOOLUP                     | `uint8` | 2     |
-| <a href="#TAKEOFF_STATE_READY_FOR_TAKEOFF"></a> TAKEOFF_STATE_READY_FOR_TAKEOFF | `uint8` | 3     |
-| <a href="#TAKEOFF_STATE_RAMPUP"></a> TAKEOFF_STATE_RAMPUP                       | `uint8` | 4     |
-| <a href="#TAKEOFF_STATE_FLIGHT"></a> TAKEOFF_STATE_FLIGHT                       | `uint8` | 5     |
+| Name                                                                          | Type    | Value | Description |
+| ----------------------------------------------------------------------------- | ------- | ----- | ----------- |
+| <a id="#TAKEOFF_STATE_UNINITIALIZED"></a> TAKEOFF_STATE_UNINITIALIZED         | `uint8` | 0     |
+| <a id="#TAKEOFF_STATE_DISARMED"></a> TAKEOFF_STATE_DISARMED                   | `uint8` | 1     |
+| <a id="#TAKEOFF_STATE_SPOOLUP"></a> TAKEOFF_STATE_SPOOLUP                     | `uint8` | 2     |
+| <a id="#TAKEOFF_STATE_READY_FOR_TAKEOFF"></a> TAKEOFF_STATE_READY_FOR_TAKEOFF | `uint8` | 3     |
+| <a id="#TAKEOFF_STATE_RAMPUP"></a> TAKEOFF_STATE_RAMPUP                       | `uint8` | 4     |
+| <a id="#TAKEOFF_STATE_FLIGHT"></a> TAKEOFF_STATE_FLIGHT                       | `uint8` | 5     |
 
 ## Source Message
 

@@ -48,7 +48,7 @@ Multicopter підтримує [інші типи повернення PX4](../f
 
 ![Режим повернення конуса](../../assets/flying/rtl_cone.jpg)
 
-Конус впливає на мінімальну висоту повернення, якщо режим повернення активується всередині циліндра, що визначений максимальним радіусом конуса та `RTL_RETURN_ALT`: за межами цього циліндра використовується `RTL_RETURN_ALT`.
+The cone affects the minimum return altitude if return mode is triggered within the cylinder defined by the maximum cone radius and `RTL_RETURN_ALT`: outside this cylinder `RTL_RETURN_ALT` is used.
 У межах коду мінімальна висота повернення - це перетин позиції транспортного засобу з конусом, або `RTL_DESCEND_ALT` (яка буде вище).
 Іншими словами, транспортний засіб завжди повинен підніматися принаймні до значення `RTL_DESCEND_ALT`, якщо воно нижче цього значення.
 

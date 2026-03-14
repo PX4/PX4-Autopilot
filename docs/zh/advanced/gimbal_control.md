@@ -20,7 +20,7 @@ By default this is set to `Disabled (-1)` and the driver does not run.
 在选择输入模式后，请重新启动飞行器以启动挂载驱动程序。
 
 You should set `MNT_MODE_IN` to one of: `RC (1)`, `MAVlink gimbal protocol v2 (4)` or `Auto (0)` (the other options are deprecated).
-If you select `Auto (0)`, the gimbal will automatically select either RC or or MAVLink input based on the latest input.
+If you select `Auto (0)`, the gimbal will automatically select either RC or MAVLink input based on the latest input.
 请注意，从 MAVLink 到 RC 的自动切换需要一个大幅度地杆量操作！
 
 The output is set using the [MNT_MODE_OUT](../advanced_config/parameter_reference.md#MNT_MODE_OUT) parameter.

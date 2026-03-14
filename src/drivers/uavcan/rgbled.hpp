@@ -54,19 +54,26 @@ private:
 	// Max update rate to avoid excessive bus traffic
 	static constexpr unsigned MAX_RATE_HZ = 20;
 
-	// Maximum number of configurable lights
-	static constexpr uint8_t MAX_NUM_UAVCAN_LIGHTS = 3;
+	// NOTE: This value must match __max_num_uavcan_lights in module.yaml
+	static constexpr uint8_t MAX_NUM_UAVCAN_LIGHTS = 2;
 
-	// Light function types
+	// Light function types - must match values in module.yaml UAVCAN_LGT_FN
 	enum class LightFunction : uint8_t {
-		Status = 0,        // System status colors from led_control
-		AntiCollision = 1  // White beacon based on arm state
+		Status = 0,
+		White = 1,
+		Red = 2,
+		Green = 3,
+		StatusOrWhite = 4,
+		StatusOrRed = 5,
+		StatusOrGreen = 6,
+		StatusOrOff = 7
 	};
 
 	void periodic_update(const uavcan::TimerEvent &);
 
-	bool is_anticolision_on(); ///< Evaluates current on state of collision lights accordingt to UAVCAN_LGT_ANTCL
+	bool is_light_on();
 
+	uavcan::equipment::indication::RGB565 color_to_rgb565(uint8_t color, uint8_t brightness = 255);
 	uavcan::equipment::indication::RGB565 rgb888_to_rgb565(uint8_t red, uint8_t green, uint8_t blue);
 
 	typedef uavcan::MethodBinder<UavcanRGBController *, void (UavcanRGBController::*)(const uavcan::TimerEvent &)>
@@ -90,7 +97,7 @@ private:
 	param_t _light_fn_params[MAX_NUM_UAVCAN_LIGHTS] {};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::UAVCAN_LGT_NUM>) _param_lgt_num,
-		(ParamInt<px4::params::UAVCAN_LGT_ANTCL>) _param_uavcan_lgt_antcl
+		(ParamInt<px4::params::UAVCAN_LGT_NUM>) _param_uavcan_lgt_num,
+		(ParamInt<px4::params::UAVCAN_LGT_MODE>) _param_uavcan_lgt_mode
 	)
 };

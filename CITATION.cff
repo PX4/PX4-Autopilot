@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+title: "PX4 Autopilot"
+message: "If you use PX4 in your research, please cite it using this metadata."
+type: software
+authors:
+  - family-names: Meier
+    given-names: Lorenz
+  - name: "The PX4 Contributors"
+repository-code: "https://github.com/PX4/PX4-Autopilot"
+url: "https://px4.io"
+abstract: >-
+  PX4 is an open-source autopilot stack for drones and
+  unmanned vehicles. It supports multirotors, fixed-wing,
+  VTOL, rovers, and many more platforms. PX4 runs on both
+  RTOS and POSIX-compatible operating systems.
+keywords:
+  - autopilot
+  - drone
+  - uav
+  - flight-controller
+  - robotics
+  - ros2
+license: BSD-3-Clause
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.595432"
+    description: "Zenodo concept DOI (resolves to latest version)"

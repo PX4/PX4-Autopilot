@@ -330,28 +330,6 @@ actuator_output:
                                         # ui only shows the param if this condition is true
                                         type: string
                                         regex: *condition_regex
-                            max:
-                                type: dict
-                                schema:
-                                    min:
-                                        # Minimum maximum value
-                                        type: integer
-                                        min: 0
-                                        max: 65536
-                                    max:
-                                        # Maximum maximum value
-                                        type: integer
-                                        min: 0
-                                        max: 65536
-                                    default:
-                                        # Default maximum value
-                                        type: integer
-                                        min: 0
-                                        max: 65536
-                                    show_if:
-                                        # ui only shows the param if this condition is true
-                                        type: string
-                                        regex: *condition_regex
                             center:
                                 type: dict
                                 schema:
@@ -367,6 +345,28 @@ actuator_output:
                                         max: 65536
                                     default:
                                         # Default center value
+                                        type: integer
+                                        min: 0
+                                        max: 65536
+                                    show_if:
+                                        # ui only shows the param if this condition is true
+                                        type: string
+                                        regex: *condition_regex
+                            max:
+                                type: dict
+                                schema:
+                                    min:
+                                        # Minimum maximum value
+                                        type: integer
+                                        min: 0
+                                        max: 65536
+                                    max:
+                                        # Maximum maximum value
+                                        type: integer
+                                        min: 0
+                                        max: 65536
+                                    default:
+                                        # Default maximum value
                                         type: integer
                                         min: 0
                                         max: 65536

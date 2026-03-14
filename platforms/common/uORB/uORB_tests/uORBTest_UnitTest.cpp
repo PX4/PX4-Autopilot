@@ -645,7 +645,7 @@ int uORBTest::UnitTest::test_wrap_around()
 	}
 #define CHECK_COPY(i_got, i_correct) \
 	orb_copy(ORB_ID(orb_test_medium_wrap_around), sfd, &u); \
-	if (i_got != i_correct) { \
+	if ((i_got) != (i_correct)) { \
 		return test_fail("got wrong element from the queue (got %i, should be %i)", i_got, i_correct); \
 	}
 
@@ -875,7 +875,7 @@ int uORBTest::UnitTest::test_queue()
 	}
 #define CHECK_COPY(i_got, i_correct) \
 	orb_copy(ORB_ID(orb_test_medium_queue), sfd, &u); \
-	if (i_got != i_correct) { \
+	if ((i_got) != (i_correct)) { \
 		return test_fail("got wrong element from the queue (got %i, should be %i)", i_got, i_correct); \
 	}
 
@@ -941,10 +941,10 @@ int uORBTest::UnitTest::pub_test_queue_entry(int argc, char *argv[])
 int uORBTest::UnitTest::pub_test_queue_main()
 {
 	orb_test_medium_s t{};
-	orb_advert_t ptopic{nullptr};
+	orb_advert_t ptopic = orb_advertise(ORB_ID(orb_test_medium_queue_poll), &t);
 	const int queue_size = orb_get_queue_size(ORB_ID(orb_test_medium_queue_poll));
 
-	if ((ptopic = orb_advertise(ORB_ID(orb_test_medium_queue_poll), &t)) == nullptr) {
+	if (ptopic == nullptr) {
 		_thread_should_exit = true;
 		return test_fail("advertise failed: %d", errno);
 	}
@@ -981,9 +981,9 @@ int uORBTest::UnitTest::test_queue_poll_notify()
 	test_note("Testing orb queuing (poll & notify)");
 
 	orb_test_medium_s t{};
-	int sfd = -1;
+	int sfd = orb_subscribe(ORB_ID(orb_test_medium_queue_poll));
 
-	if ((sfd = orb_subscribe(ORB_ID(orb_test_medium_queue_poll))) < 0) {
+	if (sfd < 0) {
 		return test_fail("subscribe failed: %d", errno);
 	}
 

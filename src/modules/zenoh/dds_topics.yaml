@@ -149,7 +149,7 @@ subscriptions:
     type: px4_msgs::msg::ActuatorServos
 
   - topic: /fmu/in/aux_global_position
-    type: px4_msgs::msg::VehicleGlobalPosition
+    type: px4_msgs::msg::AuxGlobalPosition
 
 # Create uORB::PublicationMulti
 subscriptions_multi:

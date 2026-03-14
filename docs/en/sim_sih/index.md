@@ -114,7 +114,7 @@ CONFIG_MODULES_SIMULATION_SENSOR_MAG_SIM=y
 
 :::
 
-As an alterative to updating configuration files manually, you can use the following command to launch a GUI configuration tool, and interactively enable the required modules at the path: **modules > Simulation > simulator_sih**.
+As an alternative to updating configuration files manually, you can use the following command to launch a GUI configuration tool, and interactively enable the required modules at the path: **modules > Simulation > simulator_sih**.
 For example, to update the fmu-v6x configuration you would use:
 
 ```sh
@@ -123,7 +123,7 @@ make px4_fmu-v6x boardconfig
 
 After uploading, check that the required modules are present.
 
-::: note
+::: info
 To use rover in SIH you must use the [rover build](../config_rover/index.md#flashing-the-rover-build) or add the rover modules to your board configuration.
 :::
 
@@ -148,6 +148,12 @@ The `sih` module is started on reboot, and the vehicle should be displayed on th
 The airplane needs to takeoff in manual mode at full throttle.
 Also, if the airplane crashes the state estimator might lose its fix.
 :::
+
+## Simulation Configuration
+
+### Wind
+
+SIH supports setting a wind velocity with the PX4 parameters [`SIH_WIND_N`](../advanced_config/parameter_reference.md#SIH_WIND_E) and [`SIH_WIND_E`](../advanced_config/parameter_reference.md#SIH_WIND_E) [m/s]. The parameters can also be changed during flight to simulate changing wind.
 
 ## Display/Visualisation (optional)
 
@@ -314,7 +320,7 @@ For SIH as SITL (no FC):
   - `param set-default SENS_EN_MAGSIM 1`
   - `param set-default SENS_EN_ARSPDSIM 1` (if it is a fixed-wing or VTOL airframe with airspeed sensor)
 
-For specific examples see the `_sihsim_` airframes in [ROMFS/px4fmu_common/init.d-posix/airframes](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d-posix/airframes/) (SIH as SITL) and [ROMFS/px4fmu_common/init.d/airframes](https://github.com/PX4/PX4-Autopilot/tree/main/ROMFS/px4fmu_common/init.d/airframes) (SIH on FC).
+For specific examples see the `_sihsim_` airframes in [ROMFS/px4fmu_common/init.d-posix/airframes](https://github.com/PX4/PX4-Autopilot/tree/main/ROMFS/px4fmu_common/init.d-posix/airframes) (SIH as SITL) and [ROMFS/px4fmu_common/init.d/airframes](https://github.com/PX4/PX4-Autopilot/tree/main/ROMFS/px4fmu_common/init.d/airframes) (SIH on FC).
 
 ## Controlling Actuators in SIH
 

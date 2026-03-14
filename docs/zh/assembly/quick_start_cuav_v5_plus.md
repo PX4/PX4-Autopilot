@@ -33,7 +33,7 @@ This quick start guide shows how to power the [CUAV V5+](../flight_controller/cu
 | DSM/SBUS/RSSI                  | 包含DSM、SBUS、RSSI信号输入接口；DSM接口可以连接DSM卫星接收机，SBUS接口可以连接SBUS总线的遥控器接收机，RSSI连接RSSI信号强度回传模块。                              |
 
 :::info
-For more interface information, please read [V5+ Manual](http://manual.cuav.net/V5-Plus.pdf).
+For more interface information, please read [V5+ Manual](https://manual.cuav.net/V5-Plus.pdf).
 :::
 
 ![V5+ AutoPilot](../../assets/flight_controller/cuav_v5_plus/connection/v5+_quickstart_02.png)
@@ -122,12 +122,12 @@ Motors/servos are connected to the MAIN and AUX ports in the order specified for
 
 ## 针脚定义
 
-Download **V5+** pinouts from [here](http://manual.cuav.net/V5-Plus.pdf).
+See [CUAV V5+ Manual](https://manual.cuav.net/V5-Plus.pdf).
 
 ## 更多信息
 
 - [Airframe build-log using CUAV v5+ on a DJI FlameWheel450](../frames_multicopter/dji_f450_cuav_5plus.md)
-- [CUAV V5+ Manual](http://manual.cuav.net/V5-Plus.pdf) (CUAV)
+- [CUAV V5+ Manual](https://manual.cuav.net/V5-Plus.pdf) (CUAV)
 - [CUAV V5+ docs](https://doc.cuav.net/controller/v5-autopilot/en/v5+.html) (CUAV)
 - [FMUv5 reference design pinout](https://docs.google.com/spreadsheets/d/1-n0__BYDedQrc_2NHqBenG1DNepAgnHpSGglke-QQwY/edit#gid=912976165) (CUAV)
 - [CUAV Github](https://github.com/cuav) (CUAV)

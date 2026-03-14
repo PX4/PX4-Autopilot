@@ -96,7 +96,7 @@ The Pixhawk® 6C is perfect for developers at corporate research labs, startups,
 - 其它特性:
   - Operating & storage temperature: -40 ~ 85°c
 
-## 购买渠道
+## Where to Buy {#store}
 
 Order from [Holybro](https://holybro.com/products/pixhawk-6c).
 
@@ -162,13 +162,11 @@ It is pre-built and automatically installed by _QGroundControl_ when appropriate
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v6c_default
 ```
 
-<a id="debug_port"></a>
-
-## 调试接口
+## Debug Port {#debug_port}
 
 The [PX4 System Console](../debug/system_console.md) and [SWD interface](../debug/swd_debug.md) run on the **FMU Debug** port.
 

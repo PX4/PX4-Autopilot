@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # ControlAllocatorStatus (UORB message)
 
-**TOPICS:** control_allocatorstatus
+**TOPICS:** control_allocator_status
 
 ## Fields
 
@@ -21,13 +21,13 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Name                                                                        | Type   | Value | Description                                                                                               |
-| --------------------------------------------------------------------------- | ------ | ----- | --------------------------------------------------------------------------------------------------------- |
-| <a href="#ACTUATOR_SATURATION_OK"></a> ACTUATOR_SATURATION_OK               | `int8` | 0     | The actuator is not saturated                                                                             |
-| <a href="#ACTUATOR_SATURATION_UPPER_DYN"></a> ACTUATOR_SATURATION_UPPER_DYN | `int8` | 1     | The actuator is saturated (with a value <= the desired value) because it cannot increase its value faster |
-| <a href="#ACTUATOR_SATURATION_UPPER"></a> ACTUATOR_SATURATION_UPPER         | `int8` | 2     | The actuator is saturated (with a value <= the desired value) because it has reached its maximum value    |
-| <a href="#ACTUATOR_SATURATION_LOWER_DYN"></a> ACTUATOR_SATURATION_LOWER_DYN | `int8` | -1    | The actuator is saturated (with a value >= the desired value) because it cannot decrease its value faster |
-| <a href="#ACTUATOR_SATURATION_LOWER"></a> ACTUATOR_SATURATION_LOWER         | `int8` | -2    | The actuator is saturated (with a value >= the desired value) because it has reached its minimum value    |
+| Name                                                                      | Type   | Value | Description                                                                                               |
+| ------------------------------------------------------------------------- | ------ | ----- | --------------------------------------------------------------------------------------------------------- |
+| <a id="#ACTUATOR_SATURATION_OK"></a> ACTUATOR_SATURATION_OK               | `int8` | 0     | The actuator is not saturated                                                                             |
+| <a id="#ACTUATOR_SATURATION_UPPER_DYN"></a> ACTUATOR_SATURATION_UPPER_DYN | `int8` | 1     | The actuator is saturated (with a value <= the desired value) because it cannot increase its value faster |
+| <a id="#ACTUATOR_SATURATION_UPPER"></a> ACTUATOR_SATURATION_UPPER         | `int8` | 2     | The actuator is saturated (with a value <= the desired value) because it has reached its maximum value    |
+| <a id="#ACTUATOR_SATURATION_LOWER_DYN"></a> ACTUATOR_SATURATION_LOWER_DYN | `int8` | -1    | The actuator is saturated (with a value >= the desired value) because it cannot decrease its value faster |
+| <a id="#ACTUATOR_SATURATION_LOWER"></a> ACTUATOR_SATURATION_LOWER         | `int8` | -2    | The actuator is saturated (with a value >= the desired value) because it has reached its minimum value    |
 
 ## Source Message
 

@@ -23,15 +23,15 @@ Obstacle distances in front of the sensor.
 
 ## Constants
 
-| Name                                                                          | Type    | Value | Description |
-| ----------------------------------------------------------------------------- | ------- | ----- | ----------- |
-| <a href="#MAV_FRAME_GLOBAL"></a> MAV_FRAME_GLOBAL                             | `uint8` | 0     |
-| <a href="#MAV_FRAME_LOCAL_NED"></a> MAV_FRAME_LOCAL_NED                       | `uint8` | 1     |
-| <a href="#MAV_FRAME_BODY_FRD"></a> MAV_FRAME_BODY_FRD                         | `uint8` | 12    |
-| <a href="#MAV_DISTANCE_SENSOR_LASER"></a> MAV_DISTANCE_SENSOR_LASER           | `uint8` | 0     |
-| <a href="#MAV_DISTANCE_SENSOR_ULTRASOUND"></a> MAV_DISTANCE_SENSOR_ULTRASOUND | `uint8` | 1     |
-| <a href="#MAV_DISTANCE_SENSOR_INFRARED"></a> MAV_DISTANCE_SENSOR_INFRARED     | `uint8` | 2     |
-| <a href="#MAV_DISTANCE_SENSOR_RADAR"></a> MAV_DISTANCE_SENSOR_RADAR           | `uint8` | 3     |
+| Name                                                                        | Type    | Value | Description |
+| --------------------------------------------------------------------------- | ------- | ----- | ----------- |
+| <a id="#MAV_FRAME_GLOBAL"></a> MAV_FRAME_GLOBAL                             | `uint8` | 0     |
+| <a id="#MAV_FRAME_LOCAL_NED"></a> MAV_FRAME_LOCAL_NED                       | `uint8` | 1     |
+| <a id="#MAV_FRAME_BODY_FRD"></a> MAV_FRAME_BODY_FRD                         | `uint8` | 12    |
+| <a id="#MAV_DISTANCE_SENSOR_LASER"></a> MAV_DISTANCE_SENSOR_LASER           | `uint8` | 0     |
+| <a id="#MAV_DISTANCE_SENSOR_ULTRASOUND"></a> MAV_DISTANCE_SENSOR_ULTRASOUND | `uint8` | 1     |
+| <a id="#MAV_DISTANCE_SENSOR_INFRARED"></a> MAV_DISTANCE_SENSOR_INFRARED     | `uint8` | 2     |
+| <a id="#MAV_DISTANCE_SENSOR_RADAR"></a> MAV_DISTANCE_SENSOR_RADAR           | `uint8` | 3     |
 
 ## Source Message
 

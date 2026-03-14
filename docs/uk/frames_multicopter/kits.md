@@ -18,6 +18,7 @@ Kits generally do not include:
 
 Наступні комплекти в даний час доступні:
 
+- [Holybro X650 PX4 Development Kit](https://holybro.com/collections/x650-kits) (Pixhawk 6C/6X) ([Frame assembly guide](https://docs.holybro.com/drone-development-kit/x650-development-kit/download))
 - [Holybro X500 v2 PX4 Development Kit](https://holybro.com/collections/x500-kits) (Pixhawk 6c) ([Build instructions](../frames_multicopter/holybro_x500v2_pixhawk6c.md))
 - [Holybro S500 Kit v2](https://holybro.com/collections/s500/products/s500-v2-development-kit) (Pixhawk 6c)
 - [Holybro QAV250 Kit](https://holybro.com/products/qav250-kit) (Pixhawk 6c)
@@ -27,7 +28,7 @@ Kits generally do not include:
 ## Посібники зі збірки
 
 Нижче наведені інструкції зі складання для декількох комплектів.
-Багато наборів відрізняються лише трохи між ревізіями (наприклад, новий набір може просто оновити використаний контролер польоту, інакше він ідентичний), тому їх ймовірно буде корисно використовувати для збирання наборів у розділі вище.
+Many kits vary only a little between revisions (for example, the new kit might simply upgrade the flight controller used, and is otherwise identical), so these are likely to be useful for building the kits in the section above.
 
 - [Holybro X500 v2 (Pixhawk 6C)](../frames_multicopter/holybro_x500v2_pixhawk6c.md)
 - [Holybro X500 v2 (Pixhawk 5X)](../frames_multicopter/holybro_x500V2_pixhawk5x.md) — Знятий з виробництва (комплект v2 використовує Pixhawk 6c)

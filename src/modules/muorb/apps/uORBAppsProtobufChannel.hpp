@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * Copyright (C) 2022 ModalAI, Inc. All rights reserved.
+ * Copyright (C) 2022-2026 ModalAI, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -158,6 +158,8 @@ public:
 	 */
 	int16_t shutdown();
 
+	void PrintStatus();
+
 	/**
 	 * @brief Interface to test the functions of the protobuf channel.
 	 *
@@ -181,6 +183,15 @@ private:
 	static pthread_mutex_t                      _tx_mutex;
 	static pthread_mutex_t                      _rx_mutex;
 	static bool                                 _Debug;
+
+	/*
+	 * Status
+	 */
+	static uint32_t                             _total_bytes_sent;
+	static uint32_t                             _bytes_sent_since_last_status_check;
+	static uint32_t                             _total_bytes_received;
+	static uint32_t                             _bytes_received_since_last_status_check;
+	static hrt_abstime                          _last_status_check_time;
 	static hrt_abstime                          _last_keepalive;
 
 	bool                                        _Initialized;

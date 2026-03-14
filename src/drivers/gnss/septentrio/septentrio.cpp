@@ -437,7 +437,7 @@ SeptentrioDriver *SeptentrioDriver::instantiate(int argc, char *argv[], Instance
 
 	bool valid_chosen_baud_rate {false};
 
-	for (uint8_t i = 0; i < sizeof(k_supported_baud_rates) / sizeof(k_supported_baud_rates[0]); i++) {
+	for (size_t i = 0; i < sizeof(k_supported_baud_rates) / sizeof(k_supported_baud_rates[0]); i++) {
 		switch (instance) {
 		case Instance::Main:
 			if (arguments.baud_rate_main == static_cast<int>(k_supported_baud_rates[i])) {

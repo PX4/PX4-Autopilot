@@ -197,7 +197,7 @@ public:
 	// set vehicle is fixed wing status
 	void set_is_fixed_wing(bool is_fixed_wing) { _control_status.flags.fixed_wing = is_fixed_wing; }
 
-	void set_in_transition_to_fw(bool in_transition) { _control_status.flags.in_transition_to_fw = in_transition; }
+	void set_in_transition(bool in_transition) { _control_status.flags.in_transition = in_transition; }
 
 	// set flag if static pressure rise due to ground effect is expected
 	// use _params.ekf2_gnd_eff_dz to adjust for expected rise in static pressure
@@ -302,9 +302,6 @@ public:
 
 	const filter_control_status_u &control_status_prev() const { return _control_status_prev; }
 	const decltype(filter_control_status_u::flags) &control_status_prev_flags() const { return _control_status_prev.flags; }
-
-	void enableControlStatusAuxGpos() { _control_status.flags.aux_gpos = true; }
-	void disableControlStatusAuxGpos() { _control_status.flags.aux_gpos = false; }
 
 	// get EKF internal fault status
 	const fault_status_u &fault_status() const { return _fault_status; }

@@ -1,4 +1,5 @@
-__max_num_uavcan_lights: &max_num_uavcan_lights 3 # Needs to be equal to MAX_NUM_UAVCAN_LIGHTS constant
+__max_num_uavcan_lights: &max_num_uavcan_lights 2 # NOTE: This value must match MAX_NUM_UAVCAN_LIGHTS in rgbled.hpp
+
 
 module_name: UAVCAN
 parameters:
@@ -54,18 +55,23 @@ parameters:
       description:
         short: Light ${i} function
         long: |
-          Function assigned to light ${i}.
-          0: Status - displays system status colors
-          1: Anti-collision - white beacon controlled by LGT_ANTCL parameter
+          Function for light ${i}.
+          UAVCAN_LGT_MODE determines when the first option or second option is active Off/On.
       type: enum
       num_instances: *max_num_uavcan_lights
       instance_start: 0
       min: 0
-      max: 1
+      max: 9
       default: 0
       values:
-        0: Status Light
-        1: Anti-collision Light
+        0: Status/Status
+        1: Off/White
+        2: Off/Red
+        3: Off/Green
+        4: Status/White
+        5: Status/Red
+        6: Status/Green
+        7: Status/Off
 actuator_output:
   show_subgroups_if: 'UAVCAN_ENABLE>=3'
   config_parameters:

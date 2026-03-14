@@ -21,7 +21,7 @@ For that to work, a few things are required:
 - PX4 modules need to look like individual executables to the system.
   This is done via symbolic links.
   For each module a symbolic link `px4-<module> -> px4` is created in the `bin` directory of the build folder.
-  When executed, the binary path is checked (`argv[0]`), and if it is a module (starts with `px4-`), it sends the command to the main px4 instance (see below).
+  When executed, the binary path is checked (`argv[0]`), and if it is a module (starts with `px4-`), it sends the command to the main PX4 instance (see below).
 
   :::tip
   The `px4-` prefix is used to avoid conflicts with system commands (e.g. `shutdown`), and it also allows for simple tab completion by typing `px4-<TAB>`.
@@ -30,13 +30,13 @@ For that to work, a few things are required:
 - The shell needs to know where to find the symbolic links.
   For that the `bin` directory with the symbolic links is added to the `PATH` variable right before executing the startup scripts.
 - The shell starts each module as a new (client) process.
-  Each client process needs to communicate with the main instance of px4 (the server), where the actual modules are running as threads.
+  Each client process needs to communicate with the main instance of PX4 (the server), where the actual modules are running as threads.
   This is done through a [UNIX socket](https://man7.org/linux/man-pages/man7/unix.7.html).
   The server listens on a socket, to which clients can connect and send a command.
   The server then sends the output and return code back to the client.
 - The startup scripts call the module directly, e.g. `commander start`, rather than using the `px4-` prefix.
   This works via aliases: for each module an alias in the form of `alias <module>=px4-<module>` is created in the file `bin/px4-alias.sh`.
-- The `rcS` script is executed from the main px4 instance.
+- The `rcS` script is executed from the main PX4 instance.
   It does not start any modules, but first updates the `PATH` variable and then simply runs a shell with the `rcS` file as argument.
 - In addition to that, multiple server instances can be started for multi-vehicle simulations.
   A client selects the instance via `--instance`.

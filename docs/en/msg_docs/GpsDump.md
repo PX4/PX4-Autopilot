@@ -20,11 +20,11 @@ This message is used to dump the raw gps communication to the log.
 
 ## Constants
 
-| Name                                                  | Type    | Value | Description |
-| ----------------------------------------------------- | ------- | ----- | ----------- |
-| <a href="#INSTANCE_MAIN"></a> INSTANCE_MAIN           | `uint8` | 0     |
-| <a href="#INSTANCE_SECONDARY"></a> INSTANCE_SECONDARY | `uint8` | 1     |
-| <a href="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH     | `uint8` | 16    |
+| Name                                                | Type    | Value | Description |
+| --------------------------------------------------- | ------- | ----- | ----------- |
+| <a id="#INSTANCE_MAIN"></a> INSTANCE_MAIN           | `uint8` | 0     |
+| <a id="#INSTANCE_SECONDARY"></a> INSTANCE_SECONDARY | `uint8` | 1     |
+| <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH     | `uint8` | 16    |
 
 ## Source Message
 

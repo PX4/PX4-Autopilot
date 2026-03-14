@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Status of the launch detection state machine (fixed-wing only).
 
-**TOPICS:** launch_detectionstatus
+**TOPICS:** launch_detection_status
 
 ## Fields
 
@@ -18,11 +18,11 @@ Status of the launch detection state machine (fixed-wing only).
 
 ## Constants
 
-| Name                                                                                      | Type    | Value | Description                                                                                       |
-| ----------------------------------------------------------------------------------------- | ------- | ----- | ------------------------------------------------------------------------------------------------- |
-| <a href="#STATE_WAITING_FOR_LAUNCH"></a> STATE_WAITING_FOR_LAUNCH                         | `uint8` | 0     | waiting for launch                                                                                |
-| <a href="#STATE_LAUNCH_DETECTED_DISABLED_MOTOR"></a> STATE_LAUNCH_DETECTED_DISABLED_MOTOR | `uint8` | 1     | launch detected, but keep motor(s) disabled (e.g. because it can't spin freely while on catapult) |
-| <a href="#STATE_FLYING"></a> STATE_FLYING                                                 | `uint8` | 2     | launch detected, use normal takeoff/flying configuration                                          |
+| Name                                                                                    | Type    | Value | Description                                                                                       |
+| --------------------------------------------------------------------------------------- | ------- | ----- | ------------------------------------------------------------------------------------------------- |
+| <a id="#STATE_WAITING_FOR_LAUNCH"></a> STATE_WAITING_FOR_LAUNCH                         | `uint8` | 0     | waiting for launch                                                                                |
+| <a id="#STATE_LAUNCH_DETECTED_DISABLED_MOTOR"></a> STATE_LAUNCH_DETECTED_DISABLED_MOTOR | `uint8` | 1     | launch detected, but keep motor(s) disabled (e.g. because it can't spin freely while on catapult) |
+| <a id="#STATE_FLYING"></a> STATE_FLYING                                                 | `uint8` | 2     | launch detected, use normal takeoff/flying configuration                                          |
 
 ## Source Message
 

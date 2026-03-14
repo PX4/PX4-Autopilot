@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * Copyright (C) 2022 ModalAI, Inc. All rights reserved.
+ * Copyright (C) 2022-2026 ModalAI, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -47,6 +47,11 @@ std::map<std::string, int> uORB::AppsProtobufChannel::_SlpiSubscriberCache;
 pthread_mutex_t uORB::AppsProtobufChannel::_tx_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t uORB::AppsProtobufChannel::_rx_mutex = PTHREAD_MUTEX_INITIALIZER;
 bool uORB::AppsProtobufChannel::_Debug = false;
+uint32_t uORB::AppsProtobufChannel::_total_bytes_sent = 0;
+uint32_t uORB::AppsProtobufChannel::_bytes_sent_since_last_status_check = 0;
+uint32_t uORB::AppsProtobufChannel::_total_bytes_received = 0;
+uint32_t uORB::AppsProtobufChannel::_bytes_received_since_last_status_check = 0;
+hrt_abstime uORB::AppsProtobufChannel::_last_status_check_time = 0;
 hrt_abstime uORB::AppsProtobufChannel::_last_keepalive = 0;
 
 
@@ -54,6 +59,8 @@ void uORB::AppsProtobufChannel::ReceiveCallback(const char *topic,
 		const uint8_t *data,
 		uint32_t length_in_bytes)
 {
+	_total_bytes_received += length_in_bytes;
+	_bytes_received_since_last_status_check += length_in_bytes;
 
 	if (_Debug) { PX4_INFO("Got Receive callback for topic %s", topic); }
 
@@ -123,6 +130,12 @@ void uORB::AppsProtobufChannel::SubscribeCallback(const char *topic)
 		// This will happen when a newer PX4 version is talking to a
 		// SLPI image that doesn't support the CPULOAD request. If the
 		// SLPI image does support it then we wouldn't get this.
+	} else if (strcmp(topic, "RESET") == 0) {
+		PX4_ERR("Got RESET subscription, Rebooting...");
+		fc_sensor_kill_slpi();
+		sleep(2);
+		exit(-1);
+
 	} else if (_RxHandler) {
 		pthread_mutex_lock(&_rx_mutex);
 		_SlpiSubscriberCache[topic]++;
@@ -364,6 +377,9 @@ int16_t uORB::AppsProtobufChannel::send_message(const char *messageName, int len
 				PX4_INFO("Sending data for topic %s", messageName);
 			}
 
+			_total_bytes_sent += length;
+			_bytes_sent_since_last_status_check += length;
+
 			pthread_mutex_lock(&_tx_mutex);
 			int16_t rc = fc_sensor_send_data(messageName, data, length);
 			pthread_mutex_unlock(&_tx_mutex);
@@ -379,4 +395,22 @@ int16_t uORB::AppsProtobufChannel::send_message(const char *messageName, int len
 	}
 
 	return -1;
+}
+
+void uORB::AppsProtobufChannel::PrintStatus()
+{
+	PX4_INFO("total bytes sent: %u, total bytes received: %u", _total_bytes_sent, _total_bytes_received);
+	PX4_INFO("sent since last status: %u, received since last status: %u", _bytes_sent_since_last_status_check,
+		 _bytes_received_since_last_status_check);
+
+	hrt_abstime elapsed = hrt_elapsed_time(&_last_status_check_time);
+	double seconds = (double) elapsed / 1000000.0;
+	double sent_kbps = ((double) _bytes_sent_since_last_status_check / seconds) / 1000.0;
+	double rxed_kbps = ((double) _bytes_received_since_last_status_check / seconds) / 1000.0;
+
+	PX4_INFO("Current tx rate: %.2f KBps, rx rate %.2f KBps", sent_kbps, rxed_kbps);
+
+	_bytes_sent_since_last_status_check = 0;
+	_bytes_received_since_last_status_check = 0;
+	_last_status_check_time = hrt_absolute_time();
 }

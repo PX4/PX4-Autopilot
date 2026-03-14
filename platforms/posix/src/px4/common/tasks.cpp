@@ -46,7 +46,6 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <sched.h>
-#include <unistd.h>
 #include <string.h>
 #include <pthread.h>
 #include <limits.h>

@@ -20,19 +20,19 @@ GPIO configuration.
 
 ## Constants
 
-| Name                                                            | Type     | Value | Description |
-| --------------------------------------------------------------- | -------- | ----- | ----------- |
-| <a href="#INPUT			"></a> INPUT                                     | `uint32` | 0     | 0x0000      |
-| <a href="#OUTPUT			"></a> OUTPUT                                   | `uint32` | 1     | 0x0001      |
-| <a href="#PULLUP			"></a> PULLUP                                   | `uint32` | 16    | 0x0010      |
-| <a href="#PULLDOWN			"></a> PULLDOWN                               | `uint32` | 32    | 0x0020      |
-| <a href="#OPENDRAIN		"></a> OPENDRAIN                             | `uint32` | 256   | 0x0100      |
-| <a href="#INPUT_FLOATING		"></a> INPUT_FLOATING                   | `uint32` | 0     | 0x0000      |
-| <a href="#INPUT_PULLUP		"></a> INPUT_PULLUP                       | `uint32` | 16    | 0x0010      |
-| <a href="#INPUT_PULLDOWN		"></a> INPUT_PULLDOWN                   | `uint32` | 32    | 0x0020      |
-| <a href="#OUTPUT_PUSHPULL		"></a> OUTPUT_PUSHPULL                 | `uint32` | 0     | 0x0000      |
-| <a href="#OUTPUT_OPENDRAIN		"></a> OUTPUT_OPENDRAIN               | `uint32` | 256   | 0x0100      |
-| <a href="#OUTPUT_OPENDRAIN_PULLUP	"></a> OUTPUT_OPENDRAIN_PULLUP | `uint32` | 272   | 0x0110      |
+| Name                                                          | Type     | Value | Description |
+| ------------------------------------------------------------- | -------- | ----- | ----------- |
+| <a id="#INPUT"></a> INPUT                                     | `uint32` | 0     | 0x0000      |
+| <a id="#OUTPUT"></a> OUTPUT                                   | `uint32` | 1     | 0x0001      |
+| <a id="#PULLUP"></a> PULLUP                                   | `uint32` | 16    | 0x0010      |
+| <a id="#PULLDOWN"></a> PULLDOWN                               | `uint32` | 32    | 0x0020      |
+| <a id="#OPENDRAIN"></a> OPENDRAIN                             | `uint32` | 256   | 0x0100      |
+| <a id="#INPUT_FLOATING"></a> INPUT_FLOATING                   | `uint32` | 0     | 0x0000      |
+| <a id="#INPUT_PULLUP"></a> INPUT_PULLUP                       | `uint32` | 16    | 0x0010      |
+| <a id="#INPUT_PULLDOWN"></a> INPUT_PULLDOWN                   | `uint32` | 32    | 0x0020      |
+| <a id="#OUTPUT_PUSHPULL"></a> OUTPUT_PUSHPULL                 | `uint32` | 0     | 0x0000      |
+| <a id="#OUTPUT_OPENDRAIN"></a> OUTPUT_OPENDRAIN               | `uint32` | 256   | 0x0100      |
+| <a id="#OUTPUT_OPENDRAIN_PULLUP"></a> OUTPUT_OPENDRAIN_PULLUP | `uint32` | 272   | 0x0110      |
 
 ## Source Message
 

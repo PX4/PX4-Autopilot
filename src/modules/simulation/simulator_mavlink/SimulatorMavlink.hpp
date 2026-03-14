@@ -140,10 +140,7 @@ public:
 	bool has_initialized() { return _has_initialized.load(); }
 #endif
 
-private:
-	SimulatorMavlink();
-
-	~SimulatorMavlink()
+	virtual ~SimulatorMavlink()
 	{
 		// free perf counters
 		perf_free(_perf_sim_delay);
@@ -162,6 +159,8 @@ private:
 		_instance = nullptr;
 	}
 
+private:
+	SimulatorMavlink();
 
 	void check_failure_injections();
 

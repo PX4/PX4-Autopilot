@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # DebugKeyValue (повідомлення UORB)
 
-**TOPICS:** debug_keyvalue
+**TOPICS:** debug_key_value
 
 ## Fields
 

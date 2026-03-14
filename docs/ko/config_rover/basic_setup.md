@@ -138,7 +138,7 @@ In [Manual mode](../flight_modes_rover/manual.md#manual-mode) we can additionall
 - Differential Rover: $r=$ [RD_YAW_STK_GAIN](#RD_YAW_STK_GAIN), which enables adjusting the slope of the input mapping. This leads to a normalized steering input $\hat{\delta} = \delta \cdot r \in$ [-[RD_YAW_STK_GAIN](#RD_YAW_STK_GAIN), [RD_YAW_STK_GAIN](#RD_YAW_STK_GAIN)].
 - Mecanum Rover: $r=$ [RM_YAW_STK_GAIN](#RM_YAW_STK_GAIN), which enables adjusting the slope of the input mapping. This leads to a normalized steering input $\hat{\delta} = \delta \cdot r \in$ [-[RM_YAW_STK_GAIN](#RM_YAW_STK_GAIN), [RM_YAW_STK_GAIN](#RM_YAW_STK_GAIN)].
 
-This scaling is useful to limit the normalized steering setpoint, if it is too aggresive for your rover in manual mode.
+This scaling is useful to limit the normalized steering setpoint, if it is too aggressive for your rover in manual mode.
 
 You can experiment with the relationships graphically using the [PX4 SuperExpo Rover calculator](https://www.desmos.com/calculator/gwm8lrlanx).
 

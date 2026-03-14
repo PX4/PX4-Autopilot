@@ -35,12 +35,12 @@ subscribed to by any other modules.
 
 ## Constants
 
-| Name                                                    | Type    | Value | Description                                                                        |
-| ------------------------------------------------------- | ------- | ----- | ---------------------------------------------------------------------------------- |
-| <a href="#SOURCE_AS_BETA_ONLY"></a> SOURCE_AS_BETA_ONLY | `uint8` | 0     | Wind estimate only based on synthetic sideslip fusion                              |
-| <a href="#SOURCE_AS_SENSOR_1"></a> SOURCE_AS_SENSOR_1   | `uint8` | 1     | Combined synthetic sideslip and airspeed fusion (data from first airspeed sensor)  |
-| <a href="#SOURCE_AS_SENSOR_2"></a> SOURCE_AS_SENSOR_2   | `uint8` | 2     | Combined synthetic sideslip and airspeed fusion (data from second airspeed sensor) |
-| <a href="#SOURCE_AS_SENSOR_3"></a> SOURCE_AS_SENSOR_3   | `uint8` | 3     | Combined synthetic sideslip and airspeed fusion (data from third airspeed sensor)  |
+| Name                                                  | Type    | Value | Description                                                                        |
+| ----------------------------------------------------- | ------- | ----- | ---------------------------------------------------------------------------------- |
+| <a id="#SOURCE_AS_BETA_ONLY"></a> SOURCE_AS_BETA_ONLY | `uint8` | 0     | Wind estimate only based on synthetic sideslip fusion                              |
+| <a id="#SOURCE_AS_SENSOR_1"></a> SOURCE_AS_SENSOR_1   | `uint8` | 1     | Combined synthetic sideslip and airspeed fusion (data from first airspeed sensor)  |
+| <a id="#SOURCE_AS_SENSOR_2"></a> SOURCE_AS_SENSOR_2   | `uint8` | 2     | Combined synthetic sideslip and airspeed fusion (data from second airspeed sensor) |
+| <a id="#SOURCE_AS_SENSOR_3"></a> SOURCE_AS_SENSOR_3   | `uint8` | 3     | Combined synthetic sideslip and airspeed fusion (data from third airspeed sensor)  |
 
 ## Source Message
 

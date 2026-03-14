@@ -695,7 +695,7 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 	bool v_xy_valid = lpos.v_xy_valid;
 
 	if (!context.isArmed()) {
-		if (pre_flt_fail_innov_heading || pre_flt_fail_innov_pos_horiz) {
+		if (pre_flt_fail_innov_pos_horiz) {
 			xy_valid = false;
 		}
 

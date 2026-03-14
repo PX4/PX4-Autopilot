@@ -53,7 +53,7 @@ PX4 generally only supports boards that are commercially available, which typica
 ### VER and REV ID (Hardware Revision and Version Sensing) {#ver_rev_id}
 
 FMUv5 and onwards have an electrical sensing mechanism.
-This sensing coupled with optional configuration data will be used to define hardware’s configuration with respect to a mandatory device and power supply configuration. Manufacturers must obtain the VER and REV ID from PX4 board maintainers by issuing a PR to ammend the [DS-018 Pixhawk standard](https://github.com/pixhawk/Pixhawk-Standards) for board versions and revisions.
+This sensing coupled with optional configuration data will be used to define hardware’s configuration with respect to a mandatory device and power supply configuration. Manufacturers must obtain the VER and REV ID from PX4 board maintainers by issuing a PR to amend the [DS-018 Pixhawk standard](https://github.com/pixhawk/Pixhawk-Standards) for board versions and revisions.
 
 Because these boards are 100% compliant with the Pixhawk standard, the values assigned for VER and REV ID are the defaults for that FMU Version.
 
@@ -93,7 +93,7 @@ _New_ experimental boards are allocated [VER and REV IDs](#ver_rev_id) based on 
 This category includes all boards that aren't supported by the PX4 project or a manufacturer, and that fall outside the"experimental" support.
 
 - Board is somewhat compatible on paper with something we already support, and it would take minimal effort to raise it to "experimental", but neither the dev-team or the manufacturer are currently pursuing this
-- Manufacturer/Owner of hardware violates our [Code of Conduct](https://discuss.px4.io/t/code-of-conduct/13655)
+- Manufacturer/Owner of hardware violates our [Code of Conduct](https://discuss.px4.io/t/px4-community-code-of-conduct/13655)
 - Closed source, where any of the necessary tools/libs/drivers/etc needed to add support for a board is deemed incompatible due to licensing restrictions
 - Board doesn't meet minimum requirements outlined in the General requirements
 

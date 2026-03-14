@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Rover Velocity Status.
 
-**TOPICS:** rover_speedstatus
+**TOPICS:** rover_speed_status
 
 ## Fields
 
