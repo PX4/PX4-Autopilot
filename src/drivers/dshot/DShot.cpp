@@ -464,7 +464,11 @@ bool DShot::process_serial_telemetry()
 			_telemetry.parseCommandResponse();
 		}
 
-	} else if (_telemetry_motor_index >= 0) {
+	} else if (_telemetry_motor_index < 0) {
+		// Bootstrap: pick the first motor to poll
+		set_next_telemetry_index();
+
+	} else {
 
 		int motor_index = _telemetry_motor_index;
 
