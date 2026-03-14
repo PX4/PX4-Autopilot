@@ -67,6 +67,7 @@ public:
 	 */
 	float testRatioFiltered() const;
 	bool anySourceFusing() const;
+	uint8_t sourceFusingBitmask() const;
 	int32_t getIdParam(int instance);
 	void setIdParam(int instance, int32_t sensor_id);
 	int mapSensorIdToSlot(int32_t sensor_id);

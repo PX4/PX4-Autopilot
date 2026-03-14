@@ -103,7 +103,7 @@ bool AgpSource::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
 
 	if (_buffer.pop_first_older_than(imu_delayed.time_us, &sample)) {
 
-		if (!(_params.ctrl & static_cast<int32_t>(Ctrl::kHPos))) {
+		if (!(ekf._fc.agp[_slot].intended & static_cast<int32_t>(Ctrl::kHPos))) {
 			return true;
 		}
 

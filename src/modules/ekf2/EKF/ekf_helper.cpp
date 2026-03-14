@@ -825,7 +825,7 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 		inertial_dead_reckoning = false;
 
 	} else {
-		if (!_control_status.flags.in_air && (_params.ekf2_of_ctrl == 1)
+		if (!_control_status.flags.in_air && (_fc.of.intended == 1)
 		    && isRecent(_aid_src_optical_flow.timestamp_sample, _params.no_aid_timeout_max)
 		   ) {
 			// currently landed, but optical flow aiding should be possible once in air
@@ -852,7 +852,7 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 
 		if (!_control_status.flags.in_air && _control_status.flags.fixed_wing
 		    && (_params.ekf2_fuse_beta == 1)
-		    && (_params.ekf2_arsp_thr > 0.f) && isRecent(_aid_src_airspeed.timestamp_sample, _params.no_aid_timeout_max)
+		    && (_fc.aspd.intended > 0) && isRecent(_aid_src_airspeed.timestamp_sample, _params.no_aid_timeout_max)
 		   ) {
 			// currently landed, but air data aiding should be possible once in air
 			aiding_expected_in_air = true;

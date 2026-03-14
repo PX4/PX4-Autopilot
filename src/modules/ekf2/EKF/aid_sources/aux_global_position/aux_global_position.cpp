@@ -132,6 +132,19 @@ bool AuxGlobalPosition::anySourceFusing() const
 	return false;
 }
 
+uint8_t AuxGlobalPosition::sourceFusingBitmask() const
+{
+	uint8_t mask = 0;
+
+	for (int i = 0; i < MAX_AGP_IDS; i++) {
+		if (_sources[i] && _sources[i]->isFusing()) {
+			mask |= (1u << i);
+		}
+	}
+
+	return mask;
+}
+
 int32_t AuxGlobalPosition::getAgpParamInt32(const char *param_suffix, int instance) const
 {
 	char param_name[20] {};

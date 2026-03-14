@@ -127,8 +127,8 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 			aid_src.innovation_rejected = false;
 		}
 
-		const bool continuing_conditions_passing = ((_params.ekf2_rng_ctrl == static_cast<int32_t>(RngCtrl::ENABLED))
-				|| (_params.ekf2_rng_ctrl == static_cast<int32_t>(RngCtrl::CONDITIONAL)))
+		const bool continuing_conditions_passing = ((_fc.rng.intended == static_cast<int32_t>(RngCtrl::ENABLED))
+				|| (_fc.rng.intended == static_cast<int32_t>(RngCtrl::CONDITIONAL)))
 				&& _control_status.flags.tilt_align
 				&& measurement_valid;
 
@@ -138,11 +138,11 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 				&& _range_sensor.isDataHealthy();
 
 		const bool do_conditional_range_aid = (_control_status.flags.rng_terrain || _control_status.flags.rng_hgt)
-						      && (_params.ekf2_rng_ctrl == static_cast<int32_t>(RngCtrl::CONDITIONAL))
+						      && (_fc.rng.intended == static_cast<int32_t>(RngCtrl::CONDITIONAL))
 						      && isConditionalRangeAidSuitable();
 
 		const bool do_range_aid = (_control_status.flags.rng_terrain || _control_status.flags.rng_hgt)
-					  && (_params.ekf2_rng_ctrl == static_cast<int32_t>(RngCtrl::ENABLED));
+					  && (_fc.rng.intended == static_cast<int32_t>(RngCtrl::ENABLED));
 
 		if (_control_status.flags.rng_hgt) {
 			if (!(do_conditional_range_aid || do_range_aid)) {

@@ -73,6 +73,7 @@
 #include <uORB/topics/estimator_states.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/estimator_status_flags.h>
+#include <uORB/topics/estimator_fusion_control.h>
 #include <uORB/topics/launch_detection_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_combined.h>
@@ -194,6 +195,7 @@ private:
 	void PublishStates(const hrt_abstime &timestamp);
 	void PublishStatus(const hrt_abstime &timestamp);
 	void PublishStatusFlags(const hrt_abstime &timestamp);
+	void PublishFusionControl(const hrt_abstime &timestamp);
 #if defined(CONFIG_EKF2_WIND)
 	void PublishWindEstimate(const hrt_abstime &timestamp);
 #endif // CONFIG_EKF2_WIND
@@ -394,6 +396,26 @@ private:
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Publication<vehicle_command_ack_s> _vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
+	struct FusionEntry {
+		FusionSensor *sensor;
+		param_t param;
+		uint8_t sens_en_bit;
+		uint8_t sensor_id;
+		int8_t instance;     // -1 = any instance
+		uint8_t disabled_val;
+	};
+
+	static constexpr uint8_t MAX_SENSOR_TABLE = 9 + (MAX_AGP_INSTANCES - 1); // 12
+	FusionEntry _sensor_table[MAX_SENSOR_TABLE] {};
+	uint8_t _num_sensor_table{0};
+
+	param_t _sens_en_param{PARAM_INVALID};
+
+	void initFusionControl();
+	void updateFusionIntended();
+	void handleSensorFusionCommand(const vehicle_command_s &cmd, vehicle_command_ack_s &ack);
+	void updateSensEnParam(uint8_t bit, bool enable);
+
 	uORB::SubscriptionCallbackWorkItem _sensor_combined_sub{this, ORB_ID(sensor_combined)};
 	uORB::SubscriptionCallbackWorkItem _vehicle_imu_sub{this, ORB_ID(vehicle_imu)};
 
@@ -427,6 +449,7 @@ private:
 	uORB::PublicationMulti<estimator_sensor_bias_s>      _estimator_sensor_bias_pub{ORB_ID(estimator_sensor_bias)};
 	uORB::PublicationMulti<estimator_states_s>           _estimator_states_pub{ORB_ID(estimator_states)};
 	uORB::PublicationMulti<estimator_status_flags_s>     _estimator_status_flags_pub{ORB_ID(estimator_status_flags)};
+	uORB::PublicationMulti<estimator_fusion_control_s>   _estimator_fc_pub{ORB_ID(estimator_fusion_control)};
 	uORB::PublicationMulti<estimator_status_s>           _estimator_status_pub{ORB_ID(estimator_status)};
 
 	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_fake_hgt_pub{ORB_ID(estimator_aid_src_fake_hgt)};
@@ -480,6 +503,7 @@ private:
 	Ekf _ekf;
 
 	parameters *_params;	///< pointer to ekf parameter struct (located in _ekf class instance)
+	FusionControl &_fc;
 
 	DEFINE_PARAMETERS(
 		(ParamBool<px4::params::EKF2_LOG_VERBOSE>) _param_ekf2_log_verbose,
@@ -570,7 +594,7 @@ private:
 		_param_ekf2_eas_noise, ///< measurement noise used for airspeed fusion (m/sec)
 
 		// control of airspeed fusion
-		(ParamExtFloat<px4::params::EKF2_ARSP_THR>)
+		(ParamExtInt<px4::params::EKF2_ARSP_THR>)
 		_param_ekf2_arsp_thr, ///< A value of zero will disabled airspeed fusion. Any positive value sets the minimum airspeed which will be used (m/sec)
 #endif // CONFIG_EKF2_AIRSPEED
 
