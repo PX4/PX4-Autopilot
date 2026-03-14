@@ -203,6 +203,7 @@ struct gnssSample {
 	float       yaw_offset{}; ///< Heading/Yaw offset for dual antenna GPS - refer to description for GPS_YAW_OFFSET
 	bool        spoofed{};    ///< true if GNSS data is spoofed
 	bool        jammed{};     ///< true if GNSS data is jammed
+	Vector3f    pos_body{};   ///< position of GPS antenna in body frame (m)
 };
 
 struct magSample {
@@ -331,8 +332,6 @@ struct parameters {
 	int32_t ekf2_gps_ctrl {static_cast<int32_t>(GnssCtrl::HPOS) | static_cast<int32_t>(GnssCtrl::VEL)};
 	int32_t ekf2_gps_mode {static_cast<int32_t>(GnssMode::kAuto)};
 	float ekf2_gps_delay{110.0f};           ///< GPS measurement delay relative to the IMU (mSec)
-
-	Vector3f gps_pos_body{};                ///< xyz position of the GPS antenna in body frame (m)
 
 	// position and velocity fusion
 	float ekf2_gps_v_noise{0.5f};           ///< minimum allowed observation noise for gps velocity fusion (m/sec)

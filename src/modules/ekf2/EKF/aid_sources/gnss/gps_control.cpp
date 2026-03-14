@@ -304,7 +304,7 @@ bool Ekf::isGnssPosResetAllowed() const
 void Ekf::updateGnssVel(const imuSample &imu_sample, const gnssSample &gnss_sample, estimator_aid_source3d_s &aid_src)
 {
 	// correct velocity for offset relative to IMU
-	const Vector3f pos_offset_body = _params.gps_pos_body - _params.imu_pos_body;
+	const Vector3f pos_offset_body = gnss_sample.pos_body - _params.imu_pos_body;
 
 	const Vector3f angular_velocity = imu_sample.delta_ang / imu_sample.delta_ang_dt - _state.gyro_bias;
 	const Vector3f vel_offset_body = angular_velocity % pos_offset_body;
@@ -342,7 +342,7 @@ void Ekf::updateGnssVel(const imuSample &imu_sample, const gnssSample &gnss_samp
 void Ekf::updateGnssPos(const gnssSample &gnss_sample, estimator_aid_source2d_s &aid_src)
 {
 	// correct position and height for offset relative to IMU
-	const Vector3f pos_offset_body = _params.gps_pos_body - _params.imu_pos_body;
+	const Vector3f pos_offset_body = gnss_sample.pos_body - _params.imu_pos_body;
 	const Vector3f pos_offset_earth = Vector3f(_R_to_earth * pos_offset_body);
 	const LatLonAlt measurement(gnss_sample.lat, gnss_sample.lon, gnss_sample.alt);
 	const LatLonAlt measurement_corrected = measurement + (-pos_offset_earth);

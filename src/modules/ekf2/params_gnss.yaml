@@ -86,30 +86,6 @@ parameters:
       max: 5.0
       unit: m/s
       decimal: 2
-    EKF2_GPS_POS_X:
-      description:
-        short: X position of GPS antenna in body frame
-        long: Forward (roll) axis with origin relative to vehicle centre of gravity
-      type: float
-      default: 0.0
-      unit: m
-      decimal: 3
-    EKF2_GPS_POS_Y:
-      description:
-        short: Y position of GPS antenna in body frame
-        long: Right (pitch) axis with origin relative to vehicle centre of gravity
-      type: float
-      default: 0.0
-      unit: m
-      decimal: 3
-    EKF2_GPS_POS_Z:
-      description:
-        short: Z position of GPS antenna in body frame
-        long: Down (yaw) axis with origin relative to vehicle centre of gravity
-      type: float
-      default: 0.0
-      unit: m
-      decimal: 3
     EKF2_GPS_CHECK:
       description:
         short: Integer bitmask controlling GPS checks

@@ -73,6 +73,7 @@ px4_add_module(
 		Integrator.hpp
 	MODULE_CONFIG
 		module.yaml
+		vehicle_gps_position/module.yaml
 	DEPENDS
 		conversion
 		data_validator
