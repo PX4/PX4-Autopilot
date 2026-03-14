@@ -549,7 +549,6 @@ void dma_burst_finished_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 	io_timer_unallocate_timer(timer_index);
 
 	// Flush cache so DMA sees the data
-	memset(dshot_capture_buffer[timer_index], 0, sizeof(dshot_capture_buffer[timer_index]));
 	up_clean_dcache((uintptr_t) dshot_capture_buffer[timer_index],
 			(uintptr_t) dshot_capture_buffer[timer_index] + DSHOT_CAPTURE_BUFFER_SIZE(MAX_NUM_CHANNELS_PER_TIMER));
 
