@@ -41,3 +41,18 @@
  * @reboot_required true
  */
 PARAM_DEFINE_INT32(PPS_CAP_ENABLE, 0);
+
+/**
+ * PPS capture GPS receiver device ID
+ *
+ * Device ID of the GPS receiver that emits the PPS signal captured on the
+ * configured PWM input pin. When set to 0 (default), the first available
+ * GPS instance is used.
+ *
+ * The device ID can be obtained from the sensor_gps publication
+ * (e.g. via listener sensor_gps).
+ *
+ * @group GPS
+ * @min 0
+ */
+PARAM_DEFINE_INT32(PPS_CAP_GPS_ID, 0);
