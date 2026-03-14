@@ -1,0 +1,91 @@
+#!/bin/bash
+################################################################################
+# Post-install script for voxl-px4
+#
+# Creates px4 module symlinks, sets up directories, and handles DSP signatures.
+################################################################################
+
+set -e
+
+################################################################################
+# Create px4 module symlinks from px4-alias.sh
+################################################################################
+cd /usr/bin
+
+if [ -f px4-alias.sh ]; then
+	# Auto-generate symlinks from the alias file produced by the build.
+	# Each alias line looks like: alias <name>='px4-<module> ...'
+	# We extract the px4-<module> part and create a symlink to the px4 binary.
+	grep "^alias " px4-alias.sh | grep -v "^alias set=" | \
+		sed -n "s/^alias [^=]*='\\(px4-[^ ']*\\).*/\\1/p" | \
+		sort -u | while read -r MODULE; do
+			ln -f -s px4 "$MODULE"
+		done
+	echo "Created px4 module symlinks"
+else
+	echo "Warning: px4-alias.sh not found, skipping symlink creation"
+fi
+
+################################################################################
+# Platform detection
+################################################################################
+PLATFORM="M0197"
+if [ -x /usr/bin/voxl-platform ]; then
+	PLATFORM=$(/usr/bin/voxl-platform 2>/dev/null || echo "M0197")
+fi
+
+if [ "$PLATFORM" = "M0052" ]; then
+	echo "Error: M0052 is no longer supported"
+	exit 1
+fi
+
+echo "Platform: $PLATFORM"
+
+################################################################################
+# Create runtime directories
+################################################################################
+mkdir -p /data/px4/param
+mkdir -p /data/px4/slpi
+
+if [ "$PLATFORM" = "M0197" ]; then
+	chown fastrpc:fastrpc /data/px4/slpi
+else
+	chown system:system /data/px4/slpi
+fi
+
+################################################################################
+# DSP test signature
+################################################################################
+SIG_SCRIPT_DIR=/share/modalai/qrb5165-slpi-test-sig
+if [ "$PLATFORM" = "M0197" ]; then
+	SIG_SCRIPT_DIR=/share/modalai/qcs6490-slpi-test-sig
+fi
+
+if /bin/ls /usr/lib/rfsa/adsp/testsig-*.so &>/dev/null; then
+	echo "Found DSP signature file"
+else
+	echo "DSP signature file not found"
+	if [ -f "$SIG_SCRIPT_DIR/generate-test-sig.sh" ]; then
+		echo "Generating DSP signature..."
+		"$SIG_SCRIPT_DIR/generate-test-sig.sh"
+	else
+		echo "Warning: DSP signature generation script not found at $SIG_SCRIPT_DIR"
+	fi
+fi
+
+################################################################################
+# Cleanup and reload
+################################################################################
+
+# Remove legacy config file
+rm -f /etc/modalai/voxl-px4.config
+
+sync
+
+# Reload systemd if available
+set +e
+if [ -f /bin/systemctl ]; then
+	systemctl daemon-reload
+fi
+
+exit 0
