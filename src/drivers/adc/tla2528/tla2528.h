@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2025 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -73,7 +73,7 @@ private:
 	int configure();
 	int init_calibrate();
 	int poll_calibrate();
-	void adc_get();
+	int adc_get();
 	void exit_and_cleanup() override;
 
 	enum class STATE : uint8_t {
@@ -83,4 +83,6 @@ private:
 		WORK
 	};
 	STATE _state{STATE::RESET};
+
+	int consecutive_fails{0};
 };
