@@ -71,18 +71,6 @@ enum class TelemetryStatus {
 	ParseError = 4,
 };
 
-inline uint32_t count_set_bits(uint32_t mask)
-{
-	uint32_t count = 0;
-
-	while (mask) {
-		mask &= mask - 1;
-		count++;
-	}
-
-	return count;
-}
-
 inline uint8_t crc8(const uint8_t *buf, unsigned len)
 {
 	auto update_crc8 = [](uint8_t crc, uint8_t crc_seed) {

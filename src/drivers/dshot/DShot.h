@@ -140,6 +140,7 @@ private:
 	// Motor-order masks (indexed by motor number: Motor1=0, Motor2=1, etc.)
 	uint32_t _motor_mask{0};
 	uint32_t _bdshot_motor_mask{0};
+	uint8_t _motor_count{0};
 
 	// uORB
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};

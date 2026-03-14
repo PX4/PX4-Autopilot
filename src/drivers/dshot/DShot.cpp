@@ -99,7 +99,7 @@ void DShot::Run()
 
 	if (serial_updated || bdshot_updated) {
 		_esc_status.timestamp = hrt_absolute_time();
-		_esc_status.esc_count = count_set_bits(_output_mask);
+		_esc_status.esc_count = _motor_count;
 		_esc_status.counter++;
 		_esc_status_pub.publish(_esc_status);
 	}
@@ -124,7 +124,7 @@ void DShot::Run()
 
 bool DShot::updateOutputs(uint16_t *outputs, unsigned num_outputs, unsigned num_control_groups_updated)
 {
-	if (!_hardware_initialized || !count_set_bits(_output_mask)) {
+	if (!_hardware_initialized || !_motor_count) {
 		return false;
 	}
 
@@ -978,6 +978,7 @@ void DShot::mixerChanged()
 		PX4_DEBUG("Output mask changed: 0x%" PRIx32 " -> 0x%" PRIx32, _output_mask, new_output_mask);
 		_output_mask = new_output_mask;
 		_motor_mask = new_motor_mask;
+		_motor_count = __builtin_popcount(_output_mask);
 
 		uint32_t new_bdshot_output_mask = _bdshot_timer_channels & _output_mask;
 		PX4_DEBUG("BDShot Output mask changed: 0x%" PRIx32 " -> 0x%" PRIx32, _bdshot_output_mask, new_bdshot_output_mask);
@@ -1098,7 +1099,7 @@ int DShot::print_status()
 
 	// Configuration
 	PX4_INFO("Configuration:");
-	PX4_INFO("  Output Mask:        0x%02lx (%lu channels)", (unsigned long)_output_mask, count_set_bits(_output_mask));
+	PX4_INFO("  Output Mask:        0x%02lx (%u channels)", (unsigned long)_output_mask, _motor_count);
 	PX4_INFO("  BDShot Telemetry:   %s", _bdshot_output_mask ? "Enabled" : "Disabled");
 	PX4_INFO("  Serial Telemetry:   %s", _serial_telemetry_enabled ? "Enabled" : "Disabled");
 	PX4_INFO("  Extended DShot:     %s", _bdshot_edt_enabled ? "Enabled" : "Disabled");
