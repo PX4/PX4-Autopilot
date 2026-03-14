@@ -205,7 +205,7 @@ public:
 	/**
 	 * Get a bitmask of motors to be stopped
 	 */
-	virtual ActuatorBitmask getStoppedMotors() const { return _stopped_motors_mask; }
+	ActuatorBitmask getStoppedMotors() const;
 
 	/**
 	 * Fill in the unallocated torque and thrust, customized by effectiveness type.
@@ -214,14 +214,34 @@ public:
 	virtual void getUnallocatedControl(int matrix_index, control_allocator_status_s &status) {}
 
 	/**
-	 * Stops motors which are masked by stoppable_motors_mask and whose demanded thrust is zero
+	 * Record which components of the thrust setpoint are NaN, so that motors in that direction are stopped.
 	 *
-	 * @param stoppable_motors_mask mask of motors that should be stopped if there's no thrust demand
-	 * @param actuator_sp outcome of the allocation to determine if the motor should be stopped
+	 * @param thrust_sp The thrust setpoint as received by the allocator (instance zero - multicopter only)
 	 */
-	virtual void stopMaskedMotorsWithZeroThrust(ActuatorBitmask stoppable_motors_mask, ActuatorVector &actuator_sp);
+	void stopMotorsBasedOnThrustSetpoint(const matrix::Vector3f &thrust_sp)
+	{
+		_longitudinal_motors_stopped_by_thrust = !PX4_ISFINITE(thrust_sp(0));
+		_lateral_motors_stopped_by_thrust = !PX4_ISFINITE(thrust_sp(1));
+		_vertical_motors_stopped_by_thrust = !PX4_ISFINITE(thrust_sp(2));
+	}
 
 protected:
+
+	// The vehicle effectiveness classes should set these to
+	// ActuatorEffectivenessRotors::get{Upwards,Forwards,Sideways}Motors()
+	// They can alternatively be set to zero to completely disable stopping motors based on NaN thrust
+
+	struct MotorDirectionBitmasks {
+		ActuatorBitmask longitudinal{};
+		ActuatorBitmask lateral{};
+		ActuatorBitmask vertical{};
+	} _motor_direction_bitmasks;
+
 	FlightPhase _flight_phase{FlightPhase::HOVER_FLIGHT};
-	ActuatorBitmask _stopped_motors_mask{0};
+	ActuatorBitmask _stopped_motors_mask_due_to_flight_phase{};
+
+	bool _longitudinal_motors_stopped_by_thrust{false};
+	bool _vertical_motors_stopped_by_thrust{false};
+	bool _lateral_motors_stopped_by_thrust{false};
+
 };

@@ -50,8 +50,12 @@
 class ActuatorEffectivenessTilts;
 
 using namespace time_literals;
+using namespace matrix;
 
 using ActuatorBitmask = ActuatorEffectiveness::ActuatorBitmask;
+
+static constexpr float MIN_AXIS_DOMINANT = 0.5f;
+static constexpr float MAX_AXIS_NEGLIGIBLE = 0.1f;
 
 class ActuatorEffectivenessRotors : public ModuleParams, public ActuatorEffectiveness
 {
@@ -129,13 +133,15 @@ public:
 	void enableThreeDimensionalThrust(bool enable) { _geometry.three_dimensional_thrust_disabled = !enable; }
 
 	ActuatorBitmask getMotors() const;
-	ActuatorBitmask getUpwardsMotors() const;
-	ActuatorBitmask getForwardsMotors() const;
+
+	void setMotorDirectionBitmasks(ActuatorEffectiveness::MotorDirectionBitmasks &masks);
 
 private:
 	void updateParams() override;
 	const AxisConfiguration _axis_config;
 	const bool _tilt_support; ///< if true, tilt servo assignment params are loaded
+
+	bool isAlignedWithAxis(const Vector3f &axis_abs, int primary_idx);
 
 	struct ParamHandles {
 		param_t position_x;

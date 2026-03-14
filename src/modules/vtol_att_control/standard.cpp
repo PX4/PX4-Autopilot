@@ -330,7 +330,10 @@ void Standard::fill_actuator_outputs()
 			_torque_setpoint_1->xyz[1] = _vehicle_torque_setpoint_virtual_fw->xyz[1];
 		}
 
-		_thrust_setpoint_0->xyz[0] = _pusher_throttle;
+		// Stop motor by sending NAN (see VehicleThrustSetpoint.msg) if setpoint
+		// below 2%. This value was determined empirically (RC stick inaccuracy)
+		_thrust_setpoint_0->xyz[0] =  _pusher_throttle < 0.02f ? NAN : _pusher_throttle;;
+
 		break;
 
 	case vtol_mode::TRANSITION_TO_FW:

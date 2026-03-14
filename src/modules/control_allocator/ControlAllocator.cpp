@@ -395,6 +395,9 @@ ControlAllocator::Run()
 
 	if (_vehicle_thrust_setpoint_sub.update(&vehicle_thrust_setpoint)) {
 		_thrust_sp = matrix::Vector3f(vehicle_thrust_setpoint.xyz);
+
+		_actuator_effectiveness->stopMotorsBasedOnThrustSetpoint(_thrust_sp);
+		_thrust_sp.nanToZero();
 	}
 
 	if (do_update) {

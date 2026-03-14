@@ -43,8 +43,6 @@
 
 #include "ActuatorEffectivenessTilts.hpp"
 
-using namespace matrix;
-
 ActuatorEffectivenessRotors::ActuatorEffectivenessRotors(ModuleParams *parent, AxisConfiguration axis_config,
 		bool tilt_support)
 	: ModuleParams(parent), _axis_config(axis_config), _tilt_support(tilt_support)
@@ -267,34 +265,38 @@ ActuatorBitmask ActuatorEffectivenessRotors::getMotors() const
 	return motors;
 }
 
-ActuatorBitmask ActuatorEffectivenessRotors::getUpwardsMotors() const
+// Helper to check if a vector is primarily aligned with a specific axis index
+bool ActuatorEffectivenessRotors::isAlignedWithAxis(const Vector3f &axis_abs, int primary_idx)
 {
-	ActuatorBitmask upwards_motors = 0;
+	for (int i = 0; i < 3; ++i) {
+		if (i == primary_idx) {
+			if (axis_abs(i) <= MAX_AXIS_NEGLIGIBLE) { return false; }
 
-	for (int i = 0; i < _geometry.num_rotors; ++i) {
-		const Vector3f &axis = _geometry.rotors[i].axis;
-
-		if (fabsf(axis(0)) < 0.1f && fabsf(axis(1)) < 0.1f && axis(2) < -0.5f) {
-			upwards_motors |= 1u << i;
+		} else {
+			if (axis_abs(i) >= MIN_AXIS_DOMINANT) { return false; }
 		}
 	}
 
-	return upwards_motors;
+	return true;
 }
 
-ActuatorBitmask ActuatorEffectivenessRotors::getForwardsMotors() const
+void ActuatorEffectivenessRotors::setMotorDirectionBitmasks(ActuatorEffectiveness::MotorDirectionBitmasks &masks)
 {
-	ActuatorBitmask forward_motors = 0;
+	masks.longitudinal = masks.lateral = masks.vertical = 0;
 
 	for (int i = 0; i < _geometry.num_rotors; ++i) {
-		const Vector3f &axis = _geometry.rotors[i].axis;
+		const Vector3f &axis_abs = _geometry.rotors[i].axis.abs();
 
-		if (axis(0) > 0.5f && fabsf(axis(1)) < 0.1f && fabsf(axis(2)) < 0.1f) {
-			forward_motors |= 1u << i;
+		if (isAlignedWithAxis(axis_abs, 0)) { // X-axis
+			masks.longitudinal |= 1 << i;
+
+		} else if (isAlignedWithAxis(axis_abs, 1)) { // Y-axis
+			masks.lateral |= 1 << i;
+
+		} else if (isAlignedWithAxis(axis_abs, 2)) { // Z-axis
+			masks.vertical |= 1 << i;
 		}
 	}
-
-	return forward_motors;
 }
 
 bool
