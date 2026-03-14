@@ -41,7 +41,12 @@
 
 #include "KF_orientation.h"
 
+#include <cmath>
+#include <float.h>
+
 #include <px4_platform_common/defines.h>
+#include <vte_orientation_derivation/generated/getTransitionMatrix.h>
+#include <vte_orientation_derivation/generated/predictState.h>
 #include <vte_orientation_derivation/generated/predictCov.h>
 
 namespace vision_target_estimator
@@ -64,12 +69,7 @@ void KF_orientation::predict(float dt)
 
 void KF_orientation::getTransitionMatrix(float dt, matrix::SquareMatrix<float, State::size> &phi) const
 {
-	float data[State::size * State::size] = {
-		1.f, dt,
-		0.f, 1.f
-	};
-
-	phi = matrix::SquareMatrix<float, State::size>(data);
+	sym::Gettransitionmatrix(dt, &phi);
 }
 
 void KF_orientation::predictState(float dt, const EmptyInput &input,
@@ -80,10 +80,7 @@ void KF_orientation::predictState(float dt, const EmptyInput &input,
 {
 	(void)input;
 
-	matrix::SquareMatrix<float, State::size> phi;
-	getTransitionMatrix(dt, phi);
-
-	x_out = phi * x_in;
+	sym::Predictstate(dt, x_in, &x_out);
 	x_out(State::yaw) = matrix::wrap_pi(x_out(State::yaw));
 
 	// Keep invalid values from injecting covariance and use generated covariance propagation.

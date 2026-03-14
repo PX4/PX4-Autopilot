@@ -52,10 +52,23 @@ namespace vision_target_estimator
 
 using namespace time_literals;
 
+static constexpr float kMicrosecondsToSeconds = 1e-6f;
+static constexpr float kMicrosecondsToMilliseconds = 1e-3f;
 static constexpr float kMinObservationNoise = 1e-2f;
 static constexpr float kMinNisThreshold = 0.1f;
+static constexpr float kDefaultNisThreshold = 3.84f;
+static constexpr float kDefaultVisionRangeM = 10.f;
+static constexpr float kGravityMps2 = 9.80665f;
+static constexpr float kMinInnovationVariance = 1e-6f;
 
 constexpr hrt_abstime kWarnThrottleIntervalUs = 20_s;
+constexpr hrt_abstime kEstimatorUpdatePeriodUs = 20_ms;
+constexpr hrt_abstime kOosmMinTimeUs = kEstimatorUpdatePeriodUs;
+constexpr hrt_abstime kOosmMaxTimeUs = 500_ms;
+constexpr int kOosmHistorySize = static_cast<int>(kOosmMaxTimeUs / kEstimatorUpdatePeriodUs);
+constexpr int kExpectedAxisCount = 3;
+constexpr int kExpectedStaticPositionStateCount = 3;
+constexpr int kExpectedMovingPositionStateCount = 5;
 
 enum class FusionStatus : uint8_t {
 	IDLE = 0,

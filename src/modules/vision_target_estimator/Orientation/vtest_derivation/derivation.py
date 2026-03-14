@@ -31,7 +31,7 @@
 
 File: derivation.py
 Description:
-    Orientation covariance prediction derivation.
+    Orientation state and covariance prediction derivation.
 """
 
 import re
@@ -80,6 +80,10 @@ class MState(sf.Matrix):
     SHAPE = (2, 2)
 
 
+class VState(sf.Matrix):
+    SHAPE = (2, 1)
+
+
 State = Values(
     yaw=sf.V1(),
     yaw_rate=sf.V1(),
@@ -95,23 +99,44 @@ def symbolic_state(state_structure):
     return symbolic
 
 
+def matrix_to_state(state_vector: VState) -> Values:
+    state_values = Values()
+    for idx, key in enumerate(State.keys_recursive()):
+        state_values[key] = state_vector[idx]
+    return state_values
+
+
+def state_to_matrix(state_values: Values) -> sf.Matrix:
+    return sf.Matrix([state_values[key] for key in State.keys_recursive()])
+
+
+def predict_state_with_input(dt: sf.Scalar, state_values: Values, yaw_acc: sf.Scalar) -> Values:
+    state_pred = state_values.copy()
+    state_pred["yaw"] = state_values["yaw"] + dt * state_values["yaw_rate"] + sf.S(1) / 2 * dt**2 * yaw_acc
+    state_pred["yaw_rate"] = state_values["yaw_rate"] + dt * yaw_acc
+    return state_pred
+
+
 def get_Phi_and_G(dt: sf.Scalar):
     state = symbolic_state(State)
     yaw_acc = sf.Symbol("yaw_acc")
-
-    state_pred = state.copy()
-    state_pred["yaw"] = state["yaw"] + dt * state["yaw_rate"] + sf.S(1) / 2 * dt**2 * yaw_acc
-    state_pred["yaw_rate"] = state["yaw_rate"] + dt * yaw_acc
-
-    state_pred_matrix = sf.Matrix([
-        state_pred[key] for key in state.keys_recursive()
-    ])
+    state_pred_matrix = state_to_matrix(predict_state_with_input(dt, state, yaw_acc))
 
     # Compute Phi = ∂f/∂x
     Phi = state_pred_matrix.jacobian([state])
     # Compute G = ∂f/∂w
     G = state_pred_matrix.jacobian(yaw_acc)
     return Phi, G
+
+
+def predictState(dt: sf.Scalar, state: VState) -> VState:
+    state_values = matrix_to_state(state)
+    return state_to_matrix(predict_state_with_input(dt, state_values, sf.S(0)))
+
+
+def getTransitionMatrix(dt: sf.Scalar) -> MState:
+    Phi, _ = get_Phi_and_G(dt)
+    return Phi
 
 
 def derive_discrete_process_noise(dt: sf.Scalar, yaw_acc_var: sf.Scalar) -> MState:
@@ -138,4 +163,6 @@ def predictCov(dt: sf.Scalar, yaw_acc_var: sf.Scalar, covariance: MState) -> MSt
 
 
 print("Derive VTEST orientation equations...")
+generate_px4_function(predictState, output_names=["predict_state"])
+generate_px4_function(getTransitionMatrix, output_names=["transition_matrix"])
 generate_px4_function(predictCov, output_names=["cov_updated"])

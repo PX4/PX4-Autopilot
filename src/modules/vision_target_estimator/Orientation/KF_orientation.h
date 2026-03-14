@@ -39,10 +39,9 @@
  *
  */
 
+#include <cstdint>
+
 #include <matrix/math.hpp>
-#include <mathlib/mathlib.h>
-#include <matrix/Matrix.hpp>
-#include <matrix/Vector.hpp>
 
 #pragma once
 
@@ -126,8 +125,8 @@ private:
 	float _yaw_acc_var{0.f};
 
 	// OOSM history buffer:
-	// 0.5s window @ 50Hz predict rate = 25 samples.
-	// Note that the 0.5s window is enforced with kOosmMaxTimeUs = 500_ms.
-	OOSMManager<KF_orientation, State::size, EmptyInput, 25> _oosm;
+	// 0.5 s window @ 50 Hz predict rate = 25 samples.
+	// Note that the 0.5 s window is enforced with kOosmMaxTimeUs = 500_ms.
+	OOSMManager<KF_orientation, State::size, EmptyInput, kOosmHistorySize> _oosm;
 };
 } // namespace vision_target_estimator
