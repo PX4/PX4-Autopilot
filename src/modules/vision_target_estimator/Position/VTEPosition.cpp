@@ -979,7 +979,17 @@ bool VTEPosition::processObsGNSSPosTarget(const target_gnss_s &target_gnss, Targ
 
 	if (dt_sync_s_abs > kGnssSyncInterpolationMinTimeS && _uav_gps_vel.valid
 	    && isTimeDifferenceWithin(_uav_gps_vel.timestamp, _uav_gps_position.timestamp, _meas_updated_timeout_us)) {
-		const matrix::Vector3f uav_vel_ned = _uav_gps_vel.xyz;
+		matrix::Vector3f uav_vel_ned = _uav_gps_vel.xyz;
+
+		if (_gps_pos_is_offset) {
+			if (!_velocity_offset_ned.valid
+			    || !isTimeDifferenceWithin(_velocity_offset_ned.timestamp, _uav_gps_vel.timestamp, _meas_updated_timeout_us)) {
+				return false;
+			}
+
+			uav_vel_ned -= _velocity_offset_ned.xyz;
+		}
+
 		const float delta_n = uav_vel_ned(vtest::Axis::x) * dt_sync_s;
 		const float delta_e = uav_vel_ned(vtest::Axis::y) * dt_sync_s;
 
