@@ -231,31 +231,41 @@ SeptentrioDriver::~SeptentrioDriver()
 
 int SeptentrioDriver::print_status()
 {
+	auto print_status_info = [](SeptentrioDriver * instance) {
+		if (!instance) {return;}
+
+		switch (instance->_instance) {
+		case Instance::Main:
+			PX4_INFO("Main GPS");
+			break;
+
+		case Instance::Secondary:
+			PX4_INFO("");
+			PX4_INFO("Secondary GPS");
+			break;
+		}
+
+		PX4_INFO("health: %s, port: %s, baud rate: %" PRIu32 "",
+			 instance->is_healthy() ? "OK" : "NOT OK",
+			 instance->_port,
+			 instance->_uart.getBaudrate());
+
+		PX4_INFO("controller -> receiver data rate: %" PRIu32 " B/s", instance->output_data_rate());
+		PX4_INFO("receiver -> controller data rate: %" PRIu32 " B/s", instance->input_data_rate());
+		PX4_INFO("sat info: %s", (instance->_message_satellite_info != nullptr) ? "enabled" : "disabled");
+
+		if (instance->first_gps_uorb_message_created() && instance->_state == State::ReceivingData) {
+			PX4_INFO("rate RTCM injection: %6.2f Hz", static_cast<double>(instance->rtcm_injection_frequency()));
+			print_message(ORB_ID(sensor_gps), instance->_sensor_gps);
+		}
+	};
+
+	print_status_info(this);
+
 	SeptentrioDriver *secondary_instance = _secondary_instance.load();
 
-	switch (_instance) {
-	case Instance::Main:
-		PX4_INFO("Main GPS");
-		break;
-
-	case Instance::Secondary:
-		PX4_INFO("");
-		PX4_INFO("Secondary GPS");
-		break;
-	}
-
-	PX4_INFO("health: %s, port: %s, baud rate: %" PRIu32 "", is_healthy() ? "OK" : "NOT OK", _port, _uart.getBaudrate());
-	PX4_INFO("controller -> receiver data rate: %" PRIu32 " B/s", output_data_rate());
-	PX4_INFO("receiver -> controller data rate: %" PRIu32 " B/s", input_data_rate());
-	PX4_INFO("sat info: %s", (_message_satellite_info != nullptr) ? "enabled" : "disabled");
-
-	if (first_gps_uorb_message_created() && _state == State::ReceivingData) {
-		PX4_INFO("rate RTCM injection: %6.2f Hz", static_cast<double>(rtcm_injection_frequency()));
-		print_message(ORB_ID(sensor_gps), _sensor_gps);
-	}
-
 	if (_instance == Instance::Main && secondary_instance) {
-		secondary_instance->print_status();
+		print_status_info(secondary_instance);
 	}
 
 	return 0;
@@ -704,12 +714,13 @@ int SeptentrioDriver::await_second_instance_shutdown()
 
 void SeptentrioDriver::schedule_reset(ReceiverResetType reset_type)
 {
-	SeptentrioDriver *secondary_instance = _secondary_instance.load();
-
 	_scheduled_reset.store((int)reset_type);
 
-	if (_instance == Instance::Main && secondary_instance) {
-		secondary_instance->schedule_reset(reset_type);
+	if (_instance == Instance::Main) {
+		SeptentrioDriver *secondary_instance = _secondary_instance.load();
+		if (secondary_instance) {
+			secondary_instance->_scheduled_reset.store((int)reset_type);
+		}
 	}
 }
 
