@@ -228,6 +228,8 @@ private:
 
 	LatLonAlt _lla{};
 	matrix::Vector3f _lpos{};  // position in a local tangent-plane frame [m]
+	matrix::Vector3d _p_E_ref{}; // ECEF reference position for local frame origin [m]
+	matrix::Dcmf _R_E2N_ref{}; // Rotation from ECEF to reference NED frame
 
 	float _u[NUM_ACTUATORS_MAX] {}; // thruster signals
 
