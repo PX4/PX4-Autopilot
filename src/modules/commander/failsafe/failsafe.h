@@ -41,6 +41,8 @@ class Failsafe : public FailsafeBase
 public:
 	Failsafe(ModuleParams *parent) : FailsafeBase(parent) {}
 
+	void updateArmingState(const hrt_abstime &time_us, bool armed, const failsafe_flags_s &status_flags);
+
 protected:
 
 	void checkStateAndMode(const hrt_abstime &time_us, const State &state,
@@ -50,9 +52,12 @@ protected:
 	uint8_t modifyUserIntendedMode(Action previous_action, Action current_action,
 				       uint8_t user_intended_mode) const override;
 
-private:
-	void updateArmingState(const hrt_abstime &time_us, bool armed, const failsafe_flags_s &status_flags);
+	hrt_abstime _armed_time{0};
+	bool _was_armed{false};
+	bool _manual_control_lost_at_arming{false}; ///< true if manual control was lost at arming time
+	uint8_t _battery_warning_at_arming{0}; ///< low battery state at arming time
 
+private:
 	enum class LinkLossExceptionBits : int32_t {
 		Mission = (1 << 0),
 		AutoModes = (1 << 1),
@@ -186,11 +191,6 @@ private:
 	bool _last_state_fd_esc_arming{false};
 	const int _caller_id_battery_unhealthy_spoolup{genCallerId()};
 	bool _last_state_battery_unhealthy_spoolup{false};
-
-	hrt_abstime _armed_time{0};
-	bool _was_armed{false};
-	bool _manual_control_lost_at_arming{false}; ///< true if manual control was lost at arming time
-	uint8_t _battery_warning_at_arming{0}; ///< low battery state at arming time
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FailsafeBase,
 					(ParamInt<px4::params::NAV_DLL_ACT>) 	_param_nav_dll_act,
