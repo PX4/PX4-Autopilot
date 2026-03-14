@@ -203,7 +203,7 @@ bool VTEOrientation::processObsVision(TargetObs &obs)
 
 	if (_ev_noise_md) {
 		const float range = _range_sensor.valid ? _range_sensor.dist_bottom : kDefaultVisionYawDistance;
-		yaw_unc = fmaxf(sq(sqrtf(_min_ev_angle_var) * range), _min_ev_angle_var);
+		yaw_unc = fmaxf(_min_ev_angle_var * sq(range), _min_ev_angle_var);
 	}
 
 	obs.timestamp = fiducial_marker_yaw.timestamp_sample;
