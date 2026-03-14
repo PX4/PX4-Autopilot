@@ -602,7 +602,7 @@ bool DShot::process_bdshot_telemetry()
 	}
 
 	// We wait until all BDShot channels are ready.
-	if (up_bdshot_num_channels_ready() < count_set_bits(_bdshot_output_mask)) {
+	if ((up_bdshot_get_ready_mask() & _bdshot_output_mask) != _bdshot_output_mask) {
 		return false;
 	}
 

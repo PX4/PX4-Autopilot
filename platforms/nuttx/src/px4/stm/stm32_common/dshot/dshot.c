@@ -142,7 +142,7 @@ static bool _edt_enabled = false; // Extended DShot Telemetry
 // Online flags, set if ESC is reponding with valid BDShot frames
 #define BDSHOT_OFFLINE_COUNT 200
 static volatile bool _bdshot_online[MAX_TIMER_IO_CHANNELS] = {};
-static volatile bool _bdshot_processed[MAX_TIMER_IO_CHANNELS] = {};
+static volatile uint16_t _bdshot_ready_mask = 0;
 static bool _bdshot_capture_supported[MAX_TIMER_IO_CHANNELS] = {};
 static volatile int _consecutive_failures[MAX_TIMER_IO_CHANNELS] = {};
 static volatile int _consecutive_successes[MAX_TIMER_IO_CHANNELS] = {};
@@ -373,8 +373,8 @@ int up_dshot_init(uint32_t channel_mask, uint32_t bdshot_channel_mask, unsigned 
 					_bdshot_capture_supported[output_channel] = true;
 
 				} else {
-					// No DMA for capture on this channel - mark as processed so it doesn't block
-					_bdshot_processed[output_channel] = true;
+					// No DMA for capture on this channel - mark as ready so it doesn't block
+					_bdshot_ready_mask |= (1u << output_channel);
 					PX4_WARN("BDShot capture not supported on output %u (no DMA)", output_channel);
 				}
 			}
@@ -690,7 +690,7 @@ void process_capture_results(uint8_t timer_index, uint8_t channel_index)
 			_bdshot_online[output_channel] = false;
 		}
 
-		_bdshot_processed[output_channel] = true;
+		_bdshot_ready_mask |= (1u << output_channel);
 		return;
 	}
 
@@ -763,7 +763,7 @@ void process_capture_results(uint8_t timer_index, uint8_t channel_index)
 		break;
 	}
 
-	_bdshot_processed[output_channel] = true;
+	_bdshot_ready_mask |= (1u << output_channel);
 }
 
 float calculate_rate_hz(uint64_t last_timestamp, float last_rate_hz, uint64_t timestamp)
@@ -972,17 +972,9 @@ int up_dshot_arm(bool armed)
 	return ret;
 }
 
-uint16_t up_bdshot_num_channels_ready(void)
+uint16_t up_bdshot_get_ready_mask(void)
 {
-	uint16_t num_ready = 0;
-
-	for (uint8_t i = 0; i < MAX_TIMER_IO_CHANNELS; ++i) {
-		if (_bdshot_processed[i]) {
-			++num_ready;
-		}
-	}
-
-	return num_ready;
+	return _bdshot_ready_mask;
 }
 
 int up_bdshot_num_errors(uint8_t channel)
@@ -1013,7 +1005,7 @@ int up_bdshot_get_erpm(uint8_t channel, int *erpm)
 
 	// Mark sample read — only for channels with capture support
 	if (_bdshot_capture_supported[channel]) {
-		_bdshot_processed[channel] = false;
+		_bdshot_ready_mask &= ~(1u << channel);
 	}
 
 	return status;

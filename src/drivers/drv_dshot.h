@@ -139,13 +139,10 @@ __EXPORT extern int up_dshot_arm(bool armed);
 __EXPORT extern void up_bdshot_status(void);
 
 /**
- * Get how many bidirectional erpm channels are ready
- *
- * When we get the erpm round-robin style, we need to get
- * and publish the erpms less often.
- *
+ * Get bitmask of channels that have processed BDShot data ready to read.
+ * Each bit corresponds to an output channel index.
  */
-__EXPORT extern uint16_t up_bdshot_num_channels_ready(void);
+__EXPORT extern uint16_t up_bdshot_get_ready_mask(void);
 
 /**
  * Get the total number of errors for a channel
