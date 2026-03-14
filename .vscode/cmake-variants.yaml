@@ -341,6 +341,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: cuav_x25-super_default
+    cuav_x25-mega_default:
+      short: cuav_x25-mega
+      buildType: MinSizeRel
+      settings:
+        CONFIG: cuav_x25-mega_default
     cubepilot_cubeorange_test:
       short: cubepilot_cubeorange
       buildType: MinSizeRel

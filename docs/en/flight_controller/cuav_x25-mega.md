@@ -1,4 +1,4 @@
-# CUAV X25-SUPER
+# CUAV X25-MEGA
 
 <Badge type="tip" text="PX4 v1.18" />
 
@@ -7,13 +7,13 @@ PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://store.cuav.net/) for hardware support or compliance issues.
 :::
 
-The _X25-SUPER_ is an advanced autopilot manufactured by CUAV<sup>&reg;</sup>.
+The _X25-MEGA_ is an advanced autopilot manufactured by CUAV<sup>&reg;</sup>.
 
 The autopilot is recommended for commercial system integration but is also suitable for academic research and any other applications.
 
-![X25-SUPER AutoPilot - hero image](../../assets/flight_controller/cuav_x25-super/x25-super.png)
+![X25-MEGA AutoPilot - hero image](../../assets/flight_controller/cuav_x25-mega/x25-mega.png)
 
-The X25-SUPER brings you ultimate performance, stability, and reliability in every aspect.
+The X25-MEGA brings you ultimate performance, stability, and reliability in every aspect.
 
 ::: info
 These flight controllers are [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
@@ -21,12 +21,17 @@ These flight controllers are [manufacturer supported](../flight_controller/autop
 
 ### Features
 
-- Arm® Cortex-M7® processor (STM32H743XI) with Floating-Point Unit (FPU), operating at 480MHz, and featuring 2MB Flash memory. Enables developers to enhance productivity and efficiency, allowing for more complex algorithms and models.
-- Automotive-grade RM3100 compass. Designed for better stability and anti-interference capability.
-- Triple-redundant IMUs and dual-redundant barometers located on separate buses. If the PX4 autopilot detects a sensor failure, the system seamlessly switches to another sensor to maintain flight control reliability.
-- Independent LDO power control supplies power to each sensor group. A vibration isolation system filters high-frequency vibrations and reduces noise to ensure accurate readings, enabling better overall flight performance for the vehicle.
+- Arm® Cortex-M7® processor (STM32H743XI) with Floating-Point Unit (FPU), operating at 480MHz, and featuring 2MB Flash memory.
+  Enables developers to enhance productivity and efficiency, allowing for more complex algorithms and models.
+- Automotive-grade RM3100 compass.
+  Designed for better stability and anti-interference capability.
+- Triple-redundant IMUs and dual-redundant barometers located on separate buses.
+  If the PX4 autopilot detects a sensor failure, the system seamlessly switches to another sensor to maintain flight control reliability.
+- Independent LDO power control supplies power to each sensor group.
+  A vibration isolation system filters high-frequency vibrations and reduces noise to ensure accurate readings, enabling better overall flight performance for the vehicle.
 - Integrated Microchip Ethernet PHY for high-speed communication with onboard devices like mission computers via Ethernet.
-- Dual temperature compensation systems, located on the IMU board and FMU board respectively. Temperature is controlled by onboard heating resistors to achieve the optimal operating temperature for the IMUs.
+- Dual temperature compensation systems, located on the IMU board and FMU board respectively.
+  Temperature is controlled by onboard heating resistors to achieve the optimal operating temperature for the IMUs.
 - PWM servo output voltage switchable between 3.3V or 5V.
 - Modular design for DIY carrier boards.
 
@@ -35,7 +40,7 @@ These flight controllers are [manufacturer supported](../flight_controller/autop
 - Main Processor: STM32H743XI
   - 32-bit Arm® Cortex®-M7, 480MHz, 2MB Flash, 1MB RAM
 - Onboard Sensors:
-  - Accel/Gyro: SCH16T
+  - Accel/Gyro: ADIS16607
   - Accel/Gyro: IIM42652
   - Accel/Gyro: IIM42653
   - Magnetometer: RM3100
@@ -50,14 +55,14 @@ These flight controllers are [manufacturer supported](../flight_controller/autop
   - Servo Rail Input: 0~9.9V
 - Rated Current:
   - Total Output Max Current: 10A
-  - TELEM1 and TELEM2 Output Current limiter: 4A
-  - CAN1 and CAN2 Output Current limiter: 2.4A
+  - `TELEM1` and `TELEM2` Output Current limiter: 4A
+  - `CAN1` and `CAN2` Output Current limiter: 2.4A
   - Other Ports Output Current limiter: 1.5A
 
 ### Interfaces
 
 - 16x PWM Servo Outputs
-- 1x Dedicated R/C Input for Spektrum / DSM and S.Bus
+- 1x Dedicated R/C Input (`RC IN`) for Spektrum / DSM and S.Bus
 - 1x Analog/PWM RSSI Input
 - 2x TELEM Ports (with full flow control)
 - 1x UART4 Port
@@ -86,10 +91,9 @@ These flight controllers are [manufacturer supported](../flight_controller/autop
 
 ### Mechanical Data
 
-- Size
-  - Flight controller
+- Dimensions:
 
-    ![CUAV X25-SUPER](../../assets/flight_controller/cuav_x25-super/x25-super_size.png)
+  ![CUAV X25-MEGA](../../assets/flight_controller/cuav_x25-mega/x25-mega_size.png)
 
 ## Purchase Channels {#store}
 
@@ -101,8 +105,8 @@ Order from [CUAV](https://store.cuav.net/).
 
 ## Pinouts
 
-![CUAV X25-SUPER Pinout_01](../../assets/flight_controller/cuav_x25-super/x25-super_pinouts_01.png)
-![CUAV X25-SUPER Pinout_02](../../assets/flight_controller/cuav_x25-super/x25-super_pinouts_02.png)
+![CUAV X25-MEGA Pinout_01](../../assets/flight_controller/cuav_x25-mega/x25-mega_pinouts_01.png)
+![CUAV X25-MEGA Pinout_02](../../assets/flight_controller/cuav_x25-mega/x25-mega_pinouts_02.png)
 
 ## Serial Port Mapping
 
@@ -113,7 +117,7 @@ Order from [CUAV](https://store.cuav.net/).
 | USART3 | /dev/ttyS2 | Debug Console |
 | UART4  | /dev/ttyS3 | UART4         |
 | UART5  | /dev/ttyS4 | TELEM2        |
-| USART6 | /dev/ttyS5 | RC            |
+| USART6 | /dev/ttyS5 | RC IN         |
 | UART7  | /dev/ttyS6 | TELEM1        |
 
 ## RC Input
@@ -122,7 +126,8 @@ The RC input pin is directly connected to the FMU UART6 TX.
 
 ## Voltage Ratings
 
-The _X25-SUPER_ achieves triple redundancy on power supplies if three power sources are provided. The three power rails are POWERC1, POWERC2, and USB.
+The _X25-MEGA_ achieves triple redundancy on power supplies if three power sources are provided.
+The three power rails are `POWER C1`, `POWER C2`, and `USB`.
 
 - **POWER C1** and **POWER C2** are DroneCAN/UAVCAN battery interfaces.
 
@@ -140,14 +145,14 @@ Digital DroneCAN/UAVCAN battery monitoring is enabled by default.
 ## Building Firmware
 
 ::: tip
-Most users will not need to build this firmware from PX4 v1.18.
+Most users will not need to build this firmware (from PX4 v1.18).
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target, execute:
 
-```
-make cuav_x25-super_default
+```sh
+make cuav_x25-mega_default
 ```
 
 ## Debug Port {#debug_port}
