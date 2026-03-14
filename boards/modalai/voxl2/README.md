@@ -35,7 +35,6 @@ firmware. The Makefile chains the SLPI build as a prerequisite of the default
 ```
 px4$ boards/modalai/voxl2/scripts/run-docker.sh
 root@9373fa1401b8:/usr/local/workspace# boards/modalai/voxl2/scripts/clean.sh
-root@9373fa1401b8:/usr/local/workspace# boards/modalai/voxl2/scripts/build-deps.sh
 root@9373fa1401b8:/usr/local/workspace# boards/modalai/voxl2/scripts/build-apps.sh
 root@9373fa1401b8:/usr/local/workspace# exit
 ```
