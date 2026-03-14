@@ -79,6 +79,13 @@ if [[ $INSTALL_SIM == "--sim-tools" ]]; then
 	elif [[ $REINSTALL_FORMULAS == "--reinstall" ]]; then
 		brew reinstall px4-sim
 	fi
+
+	# jMAVSim requires a JDK (Java 17 LTS recommended)
+	if ! brew ls --versions openjdk@17 > /dev/null; then
+		echo "[macos.sh] Installing OpenJDK 17 (required for jMAVSim)"
+		brew install openjdk@17
+		sudo ln -sfn $(brew --prefix openjdk@17)/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk-17.jdk
+	fi
 fi
 
 echo "[macos.sh] All set! The PX4 Autopilot toolchain was installed."
