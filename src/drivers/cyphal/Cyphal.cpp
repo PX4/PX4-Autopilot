@@ -435,8 +435,7 @@ void CyphalNode::sendPortList()
 	_uavcan_node_port_List_last = now;
 }
 
-bool UavcanMixingInterface::updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
-		unsigned num_control_groups_updated)
+bool UavcanMixingInterface::updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	// Note: This gets called from MixingOutput from within its update() function
 	// Hence, the mutex lock in UavcanMixingInterface::Run() is in effect

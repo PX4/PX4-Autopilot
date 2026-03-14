@@ -83,8 +83,7 @@ public:
 	void print_params();
 
 	/** @see OutputModuleInterface */
-	bool updateOutputs(uint16_t outputs[MAX_ACTUATORS],
-			   unsigned num_outputs, unsigned num_control_groups_updated) override;
+	bool updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 	virtual int	init();
 	int device_init(); // function where uart port is opened and ESC queried

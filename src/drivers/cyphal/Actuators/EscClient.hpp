@@ -169,7 +169,7 @@ public:
 	{
 	}
 
-	void update_outputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs)
+	void update_outputs(float outputs[MAX_ACTUATORS], unsigned num_outputs)
 	{
 		if (_port_id == 0 || _port_id == CANARD_PORT_ID_UNSET) {
 			return;
@@ -178,7 +178,7 @@ public:
 		uint8_t max_num_outputs = MAX_ACTUATORS > num_outputs ? num_outputs : MAX_ACTUATORS;
 
 		for (int8_t i = max_num_outputs - 1; i >= _max_number_of_nonzero_outputs; i--) {
-			if (outputs[i] != 0) {
+			if (fabsf(outputs[i]) > FLT_EPSILON) {
 				_max_number_of_nonzero_outputs = i + 1;
 				break;
 			}
@@ -187,7 +187,7 @@ public:
 		uint16_t payload_buffer[reg_udral_service_actuator_common_sp_Vector31_0_1_value_ARRAY_CAPACITY_];
 
 		for (uint8_t i = 0; i < _max_number_of_nonzero_outputs; i++) {
-			payload_buffer[i] = nunavutFloat16Pack(outputs[i] / 8192.0);
+			payload_buffer[i] = nunavutFloat16Pack(outputs[i] / 8192.f); // Output is float16 so this would benefit rescaling to e.g. [-1,1]
 		}
 
 		const CanardTransferMetadata transfer_metadata = {

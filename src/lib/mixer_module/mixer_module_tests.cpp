@@ -87,8 +87,7 @@ public:
 		was_scheduled = true;
 	}
 
-	bool updateOutputs(uint16_t outputs_[MAX_ACTUATORS],
-			   unsigned num_outputs_, unsigned num_control_groups_updated) override
+	bool updateOutputs(float outputs_[MAX_ACTUATORS], unsigned num_outputs_, unsigned num_control_groups_updated) override
 	{
 		memcpy(outputs, outputs_, sizeof(outputs));
 		num_outputs = num_outputs_;
@@ -168,7 +167,7 @@ public:
 		mixer_changed = false;
 	}
 
-	uint16_t outputs[MAX_ACTUATORS] {};
+	float outputs[MAX_ACTUATORS] {};
 	int num_outputs{0};
 	int num_updates{0};
 	bool was_scheduled{false};
@@ -480,7 +479,7 @@ public:
 			 bool support_esc_calibration, bool ramp_up = true)
 		: MixingOutput(param_prefix, max_num_outputs, interface, scheduling_policy, support_esc_calibration, ramp_up)
 	{};
-	uint16_t output_limit_calc_single(int i, float value) const { return MixingOutput::output_limit_calc_single(i, value); }
+	float output_limit_calc_single(int i, float value) const { return MixingOutput::output_limit_calc_single(i, value); }
 };
 
 TEST_F(MixerModuleTest, OutputLimitCalcSingle)

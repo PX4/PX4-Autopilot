@@ -1237,7 +1237,7 @@ void VoxlEsc::mix_turtle_mode(uint16_t outputs[MAX_ACTUATORS])
 }
 
 /* OutputModuleInterface */
-bool VoxlEsc::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
+bool VoxlEsc::updateOutputs(float outputs[MAX_ACTUATORS],
 			    unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	//in Run() we call _mixing_output.update(), which calls MixingOutput::limitAndUpdateOutputs which calls _interface.updateOutputs (this function)
@@ -1247,9 +1247,16 @@ bool VoxlEsc::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 		return false;
 	}
 
+	// Convert float outputs to uint16_t hardware values
+	uint16_t hw_outputs[VOXL_ESC_OUTPUT_CHANNELS] {};
+
+	for (int i = 0; i < VOXL_ESC_OUTPUT_CHANNELS; i++) {
+		hw_outputs[i] = static_cast<uint16_t>(lroundf(outputs[i]));
+	}
+
 	// don't use mixed values... recompute now.
 	if (_turtle_mode_en) {
-		mix_turtle_mode(outputs);
+		mix_turtle_mode(hw_outputs);
 	}
 
 	for (int i = 0; i < VOXL_ESC_OUTPUT_CHANNELS; i++) {
@@ -1259,24 +1266,24 @@ bool VoxlEsc::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 		} else {
 			if ((_turtle_mode_en) || (_parameters.cmd_type == VOXL_ESC_RPM_CMDS)) {
 				if (_extended_rpm) {
-					if (outputs[i] > VOXL_ESC_RPM_MAX_EXT) { outputs[i] = VOXL_ESC_RPM_MAX_EXT; }
+					if (hw_outputs[i] > VOXL_ESC_RPM_MAX_EXT) { hw_outputs[i] = VOXL_ESC_RPM_MAX_EXT; }
 
 				} else {
-					if (outputs[i] > VOXL_ESC_RPM_MAX) { outputs[i] = VOXL_ESC_RPM_MAX; }
+					if (hw_outputs[i] > VOXL_ESC_RPM_MAX) { hw_outputs[i] = VOXL_ESC_RPM_MAX; }
 				}
 
 			} else if (_parameters.cmd_type == VOXL_ESC_PWM_CMDS) {
-				if (outputs[i] > VOXL_ESC_PWM_MAX) { outputs[i] = VOXL_ESC_PWM_MAX; }
+				if (hw_outputs[i] > VOXL_ESC_PWM_MAX) { hw_outputs[i] = VOXL_ESC_PWM_MAX; }
 
-				else if (outputs[i] < _min_active_pwm) { outputs[i] = _min_active_pwm; }
+				else if (hw_outputs[i] < _min_active_pwm) { hw_outputs[i] = _min_active_pwm; }
 			}
 
 			if (!_turtle_mode_en) {
-				_esc_chans[i].rate_req = outputs[i] * _output_map[i].direction;
+				_esc_chans[i].rate_req = hw_outputs[i] * _output_map[i].direction;
 
 			} else {
 				// mapping updated in mixTurtleMode, no remap needed here, but reverse direction
-				_esc_chans[i].rate_req = outputs[i] * _output_map[i].direction * (-1);
+				_esc_chans[i].rate_req = hw_outputs[i] * _output_map[i].direction * (-1);
 			}
 		}
 	}

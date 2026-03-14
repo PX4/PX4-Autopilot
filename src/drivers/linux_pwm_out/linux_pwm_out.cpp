@@ -97,10 +97,15 @@ int LinuxPWMOut::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-bool LinuxPWMOut::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
-				unsigned num_outputs, unsigned num_control_groups_updated)
+bool LinuxPWMOut::updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, unsigned num_control_groups_updated)
 {
-	_pwm_out->send_output_pwm(outputs, num_outputs);
+	uint16_t hw_outputs[MAX_ACTUATORS] {};
+
+	for (unsigned i = 0; i < num_outputs; i++) {
+		hw_outputs[i] = static_cast<uint16_t>(lroundf(outputs[i]));
+	}
+
+	_pwm_out->send_output_pwm(hw_outputs, num_outputs);
 	return true;
 }
 
