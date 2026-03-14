@@ -2988,7 +2988,7 @@ MavlinkReceiver::handle_message_target_relative(mavlink_message_t *msg)
 			q_sensor.setIdentity();
 			attitude_available = true;
 
-		} else if (target_relative.frame == TARGET_OBS_FRAME_BODY_FRD && _vehicle_attitude_sub.update(&vehicle_attitude)) {
+		} else if (target_relative.frame == TARGET_OBS_FRAME_BODY_FRD && _vehicle_attitude_sub.copy(&vehicle_attitude)) {
 			// Set the quaternion to the current attitude
 			const matrix::Quaternionf quat_att(&vehicle_attitude.q[0]);
 			q_sensor = quat_att;
