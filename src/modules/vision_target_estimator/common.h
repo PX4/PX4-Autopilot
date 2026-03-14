@@ -42,10 +42,10 @@
 #pragma once
 
 #include <cstdint>
+
 #include <drivers/drv_hrt.h>
-#include <mathlib/mathlib.h>
 #include <matrix/Matrix.hpp>
-#include <matrix/math.hpp>
+#include <matrix/Vector3.hpp>
 
 namespace vision_target_estimator
 {

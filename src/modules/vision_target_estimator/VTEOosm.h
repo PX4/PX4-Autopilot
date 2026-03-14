@@ -41,11 +41,13 @@
 
 #pragma once
 
-#include <matrix/math.hpp>
 #include <px4_platform_common/defines.h>
 
-#include "common.h"
 #include <lib/ringbuffer/TimestampedRingBuffer.hpp>
+#include <matrix/SquareMatrix.hpp>
+#include <matrix/Vector.hpp>
+
+#include "common.h"
 
 namespace vision_target_estimator
 {
@@ -79,8 +81,8 @@ public:
 	static_assert(HistorySize > 0, "HistorySize must be > 0");
 	static_assert(HistorySize <= 255, "HistorySize must fit in uint8_t");
 	static constexpr uint8_t kHistorySize = static_cast<uint8_t>(HistorySize);
-	static constexpr uint64_t kOosmMinTimeUs = 20_ms;
-	static constexpr uint64_t kOosmMaxTimeUs = 500_ms;
+	static constexpr uint64_t kOosmMinTimeUs = vision_target_estimator::kOosmMinTimeUs;
+	static constexpr uint64_t kOosmMaxTimeUs = vision_target_estimator::kOosmMaxTimeUs;
 
 	OOSMManager() = default;
 
@@ -122,12 +124,15 @@ public:
 	 * @param curr_input    The input currently being used for the *next* prediction (fallback).
 	 */
 	template <typename ScalarMeasT>
-	FusionResult fuse(FilterT &filter, const ScalarMeasT &meas, uint64_t now_us, float nis_threshold,
-			  StateVec &curr_state, StateCov &curr_cov, const InputT &curr_input)
+	FusionResult fuse(FilterT &filter, const ScalarMeasT &meas, uint64_t now_us,
+			  float nis_threshold, StateVec &curr_state,
+			  StateCov &curr_cov, const InputT &curr_input)
 	{
 		FusionResult res{};
 
-		const uint64_t time_diff = (now_us >= meas.time_us) ? (now_us - meas.time_us) : (meas.time_us - now_us);
+		const uint64_t time_diff = (now_us >= meas.time_us)
+					   ? (now_us - meas.time_us)
+					   : (meas.time_us - now_us);
 
 		// No OOSM, current Measurement (or very recent)
 		if (time_diff < kOosmMinTimeUs) {
@@ -207,7 +212,7 @@ public:
 			input_interval = _history[next_idx].input;
 		}
 
-		const float dt_meas = (meas.time_us - t_floor_us) * 1e-6f;
+		const float dt_meas = (meas.time_us - t_floor_us) * kMicrosecondsToSeconds;
 
 		// Temp variables for prediction at t_meas
 		StateVec x_meas = sample_floor.state;
@@ -250,7 +255,7 @@ public:
 				continue;
 			}
 
-			const float dt = (sample.time_us - prev_time_us) * 1e-6f;
+			const float dt = (sample.time_us - prev_time_us) * kMicrosecondsToSeconds;
 
 			// Get transition matrix for the error state dynamics
 			filter.getTransitionMatrix(dt, Phi_step);
@@ -269,7 +274,7 @@ public:
 
 		// Update Live State
 		if (now_us > prev_time_us) {
-			const float dt_now = (now_us - prev_time_us) * 1e-6f;
+			const float dt_now = (now_us - prev_time_us) * kMicrosecondsToSeconds;
 			filter.getTransitionMatrix(dt_now, Phi_step);
 			Phi_cumulative = Phi_step * Phi_cumulative;
 		}
@@ -285,9 +290,10 @@ public:
 
 private:
 	template <typename ScalarMeasT>
-	bool processMeasurement(FilterT &filter, const StateVec &state, const StateCov &cov,
-				const ScalarMeasT &meas, float nis_threshold,
-				FusionResult &out_res, StateVec &out_K)
+	bool processMeasurement(FilterT &filter, const StateVec &state,
+				const StateCov &cov, const ScalarMeasT &meas,
+				float nis_threshold, FusionResult &out_res,
+				StateVec &out_K)
 	{
 		float innov = 0.f;
 		float innov_var = 0.f;
@@ -297,7 +303,7 @@ private:
 		out_res.innov = innov;
 		out_res.innov_var = innov_var;
 
-		if (!PX4_ISFINITE(innov_var) || (innov_var < 1e-6f)) {
+		if (!PX4_ISFINITE(innov_var) || (innov_var < kMinInnovationVariance)) {
 			out_res.status = FusionStatus::REJECT_COV;
 			out_res.test_ratio = -1.f;
 			return false;

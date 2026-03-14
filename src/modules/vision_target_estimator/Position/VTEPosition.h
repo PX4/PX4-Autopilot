@@ -33,7 +33,8 @@
 
 /**
  * @file VTEPosition.h
- * @brief Estimate the state of a target by processing and fusing sensor data in a Kalman Filter.
+ * @brief Estimate the state of a target by processing and fusing sensor data in
+ * a Kalman Filter.
  *
  * @author Jonas Perolini <jonspero@me.com>
  *
@@ -41,41 +42,30 @@
 
 #pragma once
 
-#include <lib/perf/perf_counter.h>
-#include <px4_platform_common/module_params.h>
-#include <px4_platform_common/workqueue.h>
+#include "../common.h"
+#include "KF_position.h"
+#include <containers/Array.hpp>
 #include <drivers/drv_hrt.h>
+#include <lib/perf/perf_counter.h>
+#include <matrix/math.hpp>
 #include <parameters/param.h>
+#include <px4_platform_common/module_params.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
-#include <uORB/topics/vehicle_acceleration.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/fiducial_marker_pos_report.h>
+#include <uORB/topics/landing_target_pose.h>
+#include <uORB/topics/parameter_update.h>
+#include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/target_gnss.h>
 #include <uORB/topics/vision_target_est_position.h>
-#include <uORB/topics/estimator_sensor_bias.h>
-#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vte_aid_source3d.h>
-#include <uORB/topics/vehicle_odometry.h>
-#include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/vehicle_land_detected.h>
-#include <uORB/topics/sensor_gps.h>
-#include <matrix/math.hpp>
-#include <mathlib/mathlib.h>
-#include <matrix/Matrix.hpp>
-#include <lib/geo/geo.h>
-#include <containers/Array.hpp>
-#include "KF_position.h"
 #include <vtest_derivation/generated/state.h>
-#include "../common.h"
 
 namespace vision_target_estimator
 {
 
-class VTEPosition: public ModuleParams
+class VTEPosition : public ModuleParams
 {
 public:
 	VTEPosition();
@@ -90,21 +80,36 @@ public:
 
 	void resetFilter();
 
-	void set_mission_position(const double lat_deg, const double lon_deg, const float alt_m);
-	void set_range_sensor(const float dist, const bool valid, const hrt_abstime timestamp);
-	void set_local_velocity(const matrix::Vector3f &vel_xyz, const bool valid, const hrt_abstime timestamp);
-	void set_local_position(const matrix::Vector3f &xyz, const bool valid, const hrt_abstime timestamp);
-	void set_gps_pos_offset(const matrix::Vector3f &xyz, const bool gps_is_offset);
+	void set_mission_position(double lat_deg, double lon_deg, float alt_m);
+	void set_range_sensor(float dist, bool valid, hrt_abstime timestamp);
+	void set_local_velocity(const matrix::Vector3f &vel_xyz, bool valid, hrt_abstime timestamp);
+	void set_local_position(const matrix::Vector3f &xyz, bool valid, hrt_abstime timestamp);
+	void set_gps_pos_offset(const matrix::Vector3f &xyz, bool gps_is_offset);
 	void set_vel_offset(const matrix::Vector3f &xyz);
-	void set_vte_timeout(const uint32_t tout) {_vte_timeout_us = tout;};
-	void set_target_valid_timeout(const uint32_t tout) {_target_valid_timeout_us = tout;};
-	void set_meas_recent_timeout(const uint32_t tout) {_meas_recent_timeout_us = tout;};
-	void set_meas_updated_timeout(const uint32_t tout) {_meas_updated_timeout_us = tout;};
-	void set_vte_aid_mask(const uint16_t mask_value) {_vte_aid_mask.value = mask_value;};
+	void set_vte_timeout(uint32_t tout) { _vte_timeout_us = tout; }
+	void set_target_valid_timeout(uint32_t tout)
+	{
+		_target_valid_timeout_us = tout;
+	}
+	void set_meas_recent_timeout(uint32_t tout)
+	{
+		_meas_recent_timeout_us = tout;
+	}
+	void set_meas_updated_timeout(uint32_t tout)
+	{
+		_meas_updated_timeout_us = tout;
+	}
+	void set_vte_aid_mask(uint16_t mask_value)
+	{
+		_vte_aid_mask.value = mask_value;
+	}
 
-	bool timedOut() const {return _estimator_initialized && hasTimedOut(_last_update, _vte_timeout_us);};
-	// TODO: Could be more strict and require a relative position meas (vision, GPS)
-	bool fusionEnabled() const {return _vte_aid_mask.value != 0;};
+	bool timedOut() const
+	{
+		return _estimator_initialized && hasTimedOut(_last_update, _vte_timeout_us);
+	}
+	// TODO: Could be more strict and require a relative position meas (vision, GNSS)
+	bool fusionEnabled() const { return _vte_aid_mask.value != 0; }
 
 protected:
 	static constexpr double kLatAbsMaxDeg = 90.0;
@@ -117,8 +122,8 @@ protected:
 	 */
 	void updateParams() override;
 
-	uORB::Publication<landing_target_pose_s> _targetPosePub{ORB_ID(landing_target_pose)};
-	uORB::Publication<vision_target_est_position_s> _targetEstimatorStatePub{ORB_ID(vision_target_est_position)};
+	uORB::Publication<landing_target_pose_s> _target_pose_pub{ORB_ID(landing_target_pose)};
+	uORB::Publication<vision_target_est_position_s> _target_estimator_state_pub{ORB_ID(vision_target_est_position)};
 
 	// publish innovations target_estimator_gps_pos
 	uORB::Publication<vte_aid_source3d_s> _vte_aid_gps_pos_target_pub{ORB_ID(vte_aid_gps_pos_target)};
@@ -151,11 +156,12 @@ private:
 		ObsType type;
 		hrt_abstime timestamp = 0;
 
-		matrix::Vector<bool, vtest::Axis::size> updated{}; // Indicates if observations were updated.
-		matrix::Vector3f meas_xyz{};			// Measurements (meas_x, meas_y, meas_z)
-		matrix::Vector3f meas_unc_xyz{};		// Measurements' uncertainties
+		matrix::Vector<bool, vtest::Axis::size> updated{};                   // Indicates if observations were updated.
+		matrix::Vector3f meas_xyz{};     // Measurements (meas_x, meas_y, meas_z)
+		matrix::Vector3f meas_unc_xyz{}; // Measurements' uncertainties
 		matrix::Matrix<float, vtest::Axis::size, vtest::State::size>
-		meas_h_xyz{}; // Observation matrix where the rows correspond to the x,y,z observations and the columns to the state
+		meas_h_xyz{}; // Observation matrix where the rows correspond to the
+		// x,y,z observations and the columns to the state
 	};
 
 	union ObsValidMaskU {
@@ -173,8 +179,7 @@ private:
 
 	static_assert(sizeof(ObsValidMaskU) == 1, "Unexpected masking size");
 
-	bool initEstimator(const matrix::Matrix <float, vtest::Axis::size, vtest::State::size>
-			   &state_init);
+	bool initEstimator(const matrix::Matrix<float, vtest::Axis::size, vtest::State::size> &state_init);
 	bool performUpdateStep(const matrix::Vector3f &vehicle_acc_ned);
 	void predictionStep(const matrix::Vector3f &acc, float dt);
 
@@ -195,9 +200,9 @@ private:
 
 	inline bool hasNewPositionSensorData(const ObsValidMaskU &fusion_mask) const
 	{
-		return fusion_mask.flags.fuse_mission_pos
-		       || fusion_mask.flags.fuse_target_gps_pos
-		       || fusion_mask.flags.fuse_vision;
+		return fusion_mask.flags.fuse_mission_pos ||
+		       fusion_mask.flags.fuse_target_gps_pos ||
+		       fusion_mask.flags.fuse_vision;
 	}
 
 	inline bool isTimeDifferenceWithin(const hrt_abstime a, const hrt_abstime b, const uint32_t timeout_us) const
@@ -213,8 +218,7 @@ private:
 	// Only estimate the GNSS bias if we have a GNSS estimation and a secondary source of position
 	inline bool shouldSetBias(const ObsValidMaskU &fusion_mask) const
 	{
-		const bool gnss_bias_ready = _pos_rel_gnss.valid
-					     && isMeasRecent(_pos_rel_gnss.timestamp);
+		const bool gnss_bias_ready = _pos_rel_gnss.valid && isMeasRecent(_pos_rel_gnss.timestamp);
 
 		return gnss_bias_ready && hasNewNonGpsPositionSensorData(fusion_mask);
 	};
@@ -276,9 +280,9 @@ private:
 	struct GlobalPose {
 		hrt_abstime timestamp = 0;
 		bool valid = false;
-		double lat_deg = 0.0; 	// Latitude in degrees
-		double lon_deg	= 0.0; 	// Longitude in degrees
-		float alt_m = 0.f;	// Altitude in meters AMSL
+		double lat_deg = 0.0; // Latitude in degrees
+		double lon_deg = 0.0; // Longitude in degrees
+		float alt_m = 0.f;    // Altitude in meters AMSL
 		float eph = 0.f;
 		float epv = 0.f;
 	};
@@ -339,9 +343,9 @@ private:
 	float _uav_acc_unc{1.f};
 	float _min_gps_vel_var{0.09f};
 	float _min_gps_pos_var{0.25f};
-	bool  _ev_noise_md{false};
+	bool _ev_noise_md{false};
 	float _min_ev_pos_var{0.01f};
-	float _nis_threshold{3.84f};
+	float _nis_threshold{kDefaultNisThreshold};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::VTE_ACC_D_UNC>) _param_vte_acc_d_unc,

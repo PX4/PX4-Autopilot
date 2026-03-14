@@ -42,34 +42,32 @@
 #pragma once
 
 #include <px4_platform_common/defines.h>
-#include <px4_platform_common/tasks.h>
-#include <px4_platform_common/posix.h>
-#include <stdio.h>
-#include <errno.h>
+
 #include <drivers/drv_hrt.h>
-#include <systemlib/err.h>
-#include <lib/hysteresis/hysteresis.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/module.h>
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/vision_target_est_input.h>
-#include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/vehicle_acceleration.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vision_target_est_input.h>
 #if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 #include <uORB/topics/prec_land_status.h>
 #endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
+#include <matrix/Quaternion.hpp>
 #include <parameters/param.h>
 #include <px4_platform_common/module_params.h>
 #include <uORB/topics/parameter_update.h>
-#include <matrix/Quaternion.hpp>
 
-#include "Position/VTEPosition.h"
 #include "Orientation/VTEOrientation.h"
+#include "Position/VTEPosition.h"
 #include "common.h"
 
 class VisionTargetEstTest;
@@ -106,12 +104,13 @@ public:
 	friend class ::VisionTargetEstTestable;
 
 protected:
-
 	static constexpr uint32_t kEstRestartTimeUs = 3_s; // Wait at least 3 second before re-starting the filter
-	static constexpr uint64_t kPosUpdatePeriodUs{20_ms}; // 50 Hz
-	static constexpr uint64_t kYawUpdatePeriodUs{20_ms}; // 50 Hz
-	static constexpr uint32_t kMinAccDownsampleTimeoutUs = 40_ms; // 40 ms -> 25 Hz
-	static constexpr uint32_t kAccUpdatedTimeoutUs = 20_ms; // TODO: check if we can lower it
+	static constexpr uint64_t kPosUpdatePeriodUs{kEstimatorUpdatePeriodUs}; // 50 Hz
+	static constexpr uint64_t kYawUpdatePeriodUs{kEstimatorUpdatePeriodUs}; // 50 Hz
+	static constexpr uint32_t kMinAccDownsampleTimeoutUs = static_cast<uint32_t>(2 * kPosUpdatePeriodUs); // 40 ms -> 25 Hz
+	static constexpr uint32_t kAccUpdatedTimeoutUs = static_cast<uint32_t>(kEstimatorUpdatePeriodUs);
+	static constexpr uint8_t kVector3ComponentCount{3};
+	static constexpr uint8_t kQuaternionComponentCount{4};
 
 	struct LocalPose {
 		bool pos_valid = false;
@@ -144,11 +143,11 @@ protected:
 	void updateYawEst(const LocalPose &local_pose, const bool local_pose_updated);
 	void publishVteInput(const matrix::Vector3f &vehicle_acc_ned_sampled, const matrix::Quaternionf &q_att);
 
-	inline bool noActiveTask() const {return _current_task.value == 0;};
+	inline bool noActiveTask() const { return _current_task.value == 0; }
 	inline bool noEstRunning() const
 	{
-		return (!_vte_orientation_enabled || !_orientation_estimator_running) && (!_vte_position_enabled
-				|| !_position_estimator_running);
+		return (!_vte_orientation_enabled || !_orientation_estimator_running) &&
+		       (!_vte_position_enabled || !_position_estimator_running);
 	};
 
 	void updateTaskTopics();
@@ -158,8 +157,10 @@ protected:
 	void stopPosEst();
 	bool startYawEst();
 	void stopYawEst();
-	bool pollEstimatorInput(matrix::Vector3f &acc_ned, matrix::Quaternionf &q_att, matrix::Vector3f &gps_pos_offset,
-				matrix::Vector3f &vel_offset_ned, bool vel_offset_updated, bool &acc_valid);
+	bool pollEstimatorInput(matrix::Vector3f &acc_ned, matrix::Quaternionf &q_att,
+				matrix::Vector3f &gps_pos_offset,
+				matrix::Vector3f &vel_offset_ned,
+				bool vel_offset_updated, bool &acc_valid);
 
 	perf_counter_t _cycle_perf_pos{perf_alloc(PC_ELAPSED, MODULE_NAME": VTE cycle pos")};
 	perf_counter_t _cycle_perf_yaw{perf_alloc(PC_ELAPSED, MODULE_NAME": VTE cycle yaw")};

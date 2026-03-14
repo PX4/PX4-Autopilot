@@ -41,6 +41,9 @@
 
 #include "KF_position.h"
 
+#include <cmath>
+
+#include <px4_platform_common/defines.h>
 #include <vtest_derivation/generated/predictState.h>
 #include <vtest_derivation/generated/predictCov.h>
 #include <vtest_derivation/generated/computeInnovCov.h>

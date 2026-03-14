@@ -39,20 +39,11 @@
  *
  */
 
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
-#include <px4_platform_common/tasks.h>
-#include <px4_platform_common/posix.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <drivers/drv_hrt.h>
-#include <systemlib/err.h>
+
+#include <mathlib/mathlib.h>
 
 #include "VisionTargetEst.h"
-#include "common.h"
 
 namespace vision_target_estimator
 {
@@ -293,8 +284,9 @@ void VisionTargetEst::updateParams()
 
 	if (new_vte_timeout_us != _vte_timeout_us) {
 
-		PX4_DEBUG("VTE timeout: %.1f [s] (previous: %.1f [s])", static_cast<double>(new_vte_timeout_us) / 1e6,
-			  static_cast<double>(_vte_timeout_us) / 1e6);
+		PX4_DEBUG("VTE timeout: %.1f [s] (previous: %.1f [s])",
+			  static_cast<double>(new_vte_timeout_us * kMicrosecondsToSeconds),
+			  static_cast<double>(_vte_timeout_us * kMicrosecondsToSeconds));
 
 		_vte_timeout_us = new_vte_timeout_us;
 
@@ -312,8 +304,8 @@ void VisionTargetEst::updateParams()
 	if (new_target_valid_timeout_us != _target_valid_timeout_us) {
 
 		PX4_DEBUG("VTE target validity timeout: %.2f [s] (previous: %.2f [s])",
-			  static_cast<double>(new_target_valid_timeout_us) / 1e6,
-			  static_cast<double>(_target_valid_timeout_us) / 1e6);
+			  static_cast<double>(new_target_valid_timeout_us * kMicrosecondsToSeconds),
+			  static_cast<double>(_target_valid_timeout_us * kMicrosecondsToSeconds));
 
 		_target_valid_timeout_us = new_target_valid_timeout_us;
 
@@ -331,8 +323,8 @@ void VisionTargetEst::updateParams()
 	if (new_meas_recent_timeout_us != _meas_recent_timeout_us) {
 
 		PX4_DEBUG("VTE measurement recent timeout: %.2f [s] (previous: %.2f [s])",
-			  static_cast<double>(new_meas_recent_timeout_us) / 1e6,
-			  static_cast<double>(_meas_recent_timeout_us) / 1e6);
+			  static_cast<double>(new_meas_recent_timeout_us * kMicrosecondsToSeconds),
+			  static_cast<double>(_meas_recent_timeout_us * kMicrosecondsToSeconds));
 
 		_meas_recent_timeout_us = new_meas_recent_timeout_us;
 
@@ -350,8 +342,8 @@ void VisionTargetEst::updateParams()
 	if (new_meas_updated_timeout_us != _meas_updated_timeout_us) {
 
 		PX4_DEBUG("VTE measurement updated timeout: %.3f [s] (previous: %.3f [s])",
-			  static_cast<double>(new_meas_updated_timeout_us) / 1e6,
-			  static_cast<double>(_meas_updated_timeout_us) / 1e6);
+			  static_cast<double>(new_meas_updated_timeout_us * kMicrosecondsToSeconds),
+			  static_cast<double>(_meas_updated_timeout_us * kMicrosecondsToSeconds));
 
 		_meas_updated_timeout_us = new_meas_updated_timeout_us;
 
@@ -551,14 +543,14 @@ bool VisionTargetEst::isCurrentTaskComplete()
 		}
 	}
 
-	// The structure allows to add additional tasks here E.g. precision delivery, follow me, precision takeoff.
+	// The structure allows adding additional tasks here, e.g. precision delivery, follow me, precision takeoff.
 
 	return false;
 }
 
 void VisionTargetEst::updateTaskTopics()
 {
-	// The structure allows to add additional tasks status here E.g. precision delivery, follow me, precision takeoff.
+	// The structure allows adding additional task status here, e.g. precision delivery, follow me, precision takeoff.
 
 #if !defined(CONSTRAINED_FLASH)
 
@@ -671,7 +663,7 @@ void VisionTargetEst::updateEstimators()
 		} else {
 			if ((_vehicle_acc_body.timestamp != 0) && (hrt_elapsed_time(&_acc_sample_warn_last) > kWarnThrottleIntervalUs)) {
 				PX4_WARN("VTE acc sample stale (%.1f ms)",
-					 static_cast<double>((hrt_absolute_time() - _vehicle_acc_body.timestamp) / 1e3));
+					 static_cast<double>((hrt_absolute_time() - _vehicle_acc_body.timestamp) * kMicrosecondsToMilliseconds));
 				_acc_sample_warn_last = hrt_absolute_time();
 			}
 
@@ -693,10 +685,7 @@ void VisionTargetEst::updatePosEst(const LocalPose &local_pose, const bool local
 				   const bool vel_offset_updated)
 {
 	/* If the acceleration has been averaged for too long, reset the accumulator */
-	const uint32_t acc_downsample_timeout_us = math::max(static_cast<uint32_t>(kPosUpdatePeriodUs * 2),
-			kMinAccDownsampleTimeoutUs);
-
-	if (hasTimedOut(_last_acc_reset, acc_downsample_timeout_us)) {
+	if (hasTimedOut(_last_acc_reset, kMinAccDownsampleTimeoutUs)) {
 		PX4_DEBUG("Forced acc downsample reset");
 		resetAccDownsample();
 	}
@@ -755,11 +744,11 @@ void VisionTargetEst::publishVteInput(const matrix::Vector3f &vehicle_acc_ned_sa
 	vte_input_report.timestamp = hrt_absolute_time();
 	vte_input_report.timestamp_sample = _vehicle_acc_body.timestamp;
 
-	for (int i = 0; i < 3; i++) {
+	for (int i = 0; i < kVector3ComponentCount; ++i) {
 		vte_input_report.acc_xyz[i] = vehicle_acc_ned_sampled(i);
 	}
 
-	for (int i = 0; i < 4; i++) {
+	for (int i = 0; i < kQuaternionComponentCount; ++i) {
 		vte_input_report.q_att[i] = q_att_sampled(i);
 	}
 
@@ -843,8 +832,7 @@ bool VisionTargetEst::pollEstimatorInput(matrix::Vector3f &vehicle_acc_ned, matr
 
 	if (acc_valid) {
 		/* Compensate for gravity. */
-		static constexpr float kGravity = 9.80665f;  // m/s^2
-		const matrix::Vector3f gravity_ned(0, 0, kGravity);
+		const matrix::Vector3f gravity_ned(0.f, 0.f, kGravityMps2);
 		vehicle_acc_ned = quat_att.rotateVector(_vehicle_acc_body.xyz) + gravity_ned;
 
 	} else {

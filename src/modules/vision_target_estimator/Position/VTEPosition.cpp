@@ -39,13 +39,13 @@
  *
  */
 
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
-#include <drivers/drv_hrt.h>
+
+#include <cmath>
+
+#include <lib/geo/geo.h>
 
 #include "VTEPosition.h"
-
-#define USEC2SEC_F 1e-6f
 
 namespace vision_target_estimator
 {
@@ -55,8 +55,8 @@ using namespace matrix;
 VTEPosition::VTEPosition() :
 	ModuleParams(nullptr)
 {
-	_targetPosePub.advertise();
-	_targetEstimatorStatePub.advertise();
+	_target_pose_pub.advertise();
+	_target_estimator_state_pub.advertise();
 	_vte_aid_gps_pos_target_pub.advertise();
 	_vte_aid_gps_pos_mission_pub.advertise();
 	_vte_aid_gps_vel_uav_pub.advertise();
@@ -87,9 +87,9 @@ bool VTEPosition::shouldEmitWarning(hrt_abstime &last_warn)
 bool VTEPosition::init()
 {
 	// Check valid vtest_derivation/generated/state.h
-	if (vtest::Axis::size != 3) {
-		PX4_ERR("VTE: Invalid axis size: %d, expected 3. Generate vtest_derivation/derivation.py",
-			static_cast<int>(vtest::Axis::size));
+	if (vtest::Axis::size != kExpectedAxisCount) {
+		PX4_ERR("VTE: Invalid axis size: %d, expected %d. Generate vtest_derivation/derivation.py",
+			static_cast<int>(vtest::Axis::size), kExpectedAxisCount);
 		return false;
 	}
 
@@ -97,9 +97,9 @@ bool VTEPosition::init()
 	PX4_INFO("VTE for moving target init");
 	PX4_WARN("VTE for moving targets has not been thoroughly tested");
 
-	if (vtest::State::size != 5) {
-		PX4_ERR("VTE: Invalid state size: %d, expected 5. Generate vtest_derivation/derivation.py",
-			static_cast<int>(vtest::State::size));
+	if (vtest::State::size != kExpectedMovingPositionStateCount) {
+		PX4_ERR("VTE: Invalid state size: %d, expected %d. Generate vtest_derivation/derivation.py",
+			static_cast<int>(vtest::State::size), kExpectedMovingPositionStateCount);
 		return false;
 	}
 
@@ -107,9 +107,9 @@ bool VTEPosition::init()
 #else
 	PX4_INFO("VTE for static target init");
 
-	if (vtest::State::size != 3) {
-		PX4_ERR("VTE: Invalid state size: %d, expected 3. Generate vtest_derivation/derivation.py",
-			static_cast<int>(vtest::State::size));
+	if (vtest::State::size != kExpectedStaticPositionStateCount) {
+		PX4_ERR("VTE: Invalid state size: %d, expected %d. Generate vtest_derivation/derivation.py",
+			static_cast<int>(vtest::State::size), kExpectedStaticPositionStateCount);
 		return false;
 	}
 
@@ -148,22 +148,22 @@ void VTEPosition::update(const Vector3f &acc_ned)
 
 		if (now_us < _last_predict) {
 			resetFilter();
-			PX4_WARN("VTEposition invalid _last_predict time");
+			PX4_WARN("VTE position invalid _last_predict time");
 			return;
 		}
 
 		const uint64_t dt_us = now_us - _last_predict;
 
-		// guard against large dt for which the constant acceleration assumption does not hold
-		static constexpr uint64_t kMaxValidDeltaTimeUs = 100_ms; // filter runs at 50Hz, expect dt = 20_ms
+		// Guard against large dt values for which the constant acceleration assumption does not hold.
+		static constexpr uint64_t kMaxPredictionDeltaTimeUs = 100_ms; // Filter runs at 50 Hz, expect dt = 20 ms.
 
-		if (dt_us > kMaxValidDeltaTimeUs) {
+		if (dt_us > kMaxPredictionDeltaTimeUs) {
 			resetFilter();
-			PX4_WARN("VTEposition stale, reseting filter");
+			PX4_WARN("VTE position stale, resetting filter");
 			return;
 		}
 
-		const float dt = dt_us * USEC2SEC_F;
+		const float dt = dt_us * kMicrosecondsToSeconds;
 		perf_begin(_vte_predict_perf);
 		predictionStep(acc_ned, dt);
 		perf_end(_vte_predict_perf);
@@ -332,7 +332,7 @@ void VTEPosition::processObservations(ObsValidMaskU &fusion_mask,
 			updateTargetGpsVelocity(target_gnss);
 
 			if (_vte_aid_mask.flags.use_target_gps_vel && _target_gps_vel.valid) {
-				fusion_mask.flags.fuse_target_gps_vel = ProcessObsGNSSVelTarget(target_gnss,
+				fusion_mask.flags.fuse_target_gps_vel = processObsGNSSVelTarget(target_gnss,
 									observations[obsIndex(ObsType::Target_gps_vel)]);
 			}
 		}
@@ -776,19 +776,18 @@ bool VTEPosition::processObsVision(TargetObs &obs)
 
 	// Use uncertainty from parameters or from vision messages
 	if (_ev_noise_md) {
-		static constexpr float kDefaultVisionUncDistanceM = 10.f;
 		// Uncertainty proportional to the vertical distance
-		const float range = _range_sensor.valid ? _range_sensor.dist_bottom : kDefaultVisionUncDistanceM;
+		const float range = _range_sensor.valid ? _range_sensor.dist_bottom : kDefaultVisionRangeM;
 		const float meas_unc = fmaxf(sq(sqrtf(_min_ev_pos_var) * range), _min_ev_pos_var);
 		cov_rotated = diag(Vector3f(meas_unc, meas_unc, meas_unc));
 
 	} else {
-		const SquareMatrix<float, vtest::Axis::size> covMat = diag(Vector3f(
+		const SquareMatrix<float, vtest::Axis::size> cov_mat = diag(Vector3f(
 					fmaxf(report.cov_rel_pos[0], _min_ev_pos_var),
 					fmaxf(report.cov_rel_pos[1], _min_ev_pos_var),
 					fmaxf(report.cov_rel_pos[2], _min_ev_pos_var)));
-		const matrix::Dcmf R_att = matrix::Dcm<float>(quat_att);
-		cov_rotated = R_att * covMat * R_att.transpose();
+		const matrix::Dcmf r_att = matrix::Dcm<float>(quat_att);
+		cov_rotated = r_att * cov_mat * r_att.transpose();
 	}
 
 	// Relative position
@@ -861,9 +860,9 @@ bool VTEPosition::processObsGNSSVelUav(TargetObs &obs) const
 #if defined(CONFIG_VTEST_MOVING)
 
 /*Target GNSS velocity observation: [r_dotx, r_doty, r_dotz]*/
-bool VTEPosition::ProcessObsGNSSVelTarget(const target_gnss_s &target_gnss, TargetObs &obs) const
+bool VTEPosition::processObsGNSSVelTarget(const target_gnss_s &target_gnss, TargetObs &obs) const
 {
-	// If the target is moving, the relative velocity is expressed as the drone verlocity - the target velocity
+	// If the target is moving, the relative velocity is expressed as the drone velocity minus the target velocity.
 	obs.meas_xyz(vtest::Axis::x) = target_gnss.vel_n_m_s;
 	obs.meas_xyz(vtest::Axis::y) = target_gnss.vel_e_m_s;
 	obs.meas_xyz(vtest::Axis::z) = target_gnss.vel_d_m_s;
@@ -961,8 +960,9 @@ bool VTEPosition::processObsGNSSPosTarget(const target_gnss_s &target_gnss, Targ
 	const float dt_sync_us = fabsf(static_cast<float>(time_diff_us));
 
 	if (dt_sync_us > _meas_recent_timeout_us) {
-		PX4_DEBUG("Time diff between UAV GNSS and target GNNS too high: %.2f [ms] > timeout: %.2f [ms]",
-			  (double)(dt_sync_us / 1000), (double)(_meas_recent_timeout_us / 1000));
+		PX4_DEBUG("Time diff between UAV GNSS and target GNSS too high: %.2f [ms] > timeout: %.2f [ms]",
+			  static_cast<double>(dt_sync_us * kMicrosecondsToMilliseconds),
+			  static_cast<double>(_meas_recent_timeout_us * kMicrosecondsToMilliseconds));
 		return false;
 	}
 
@@ -970,14 +970,14 @@ bool VTEPosition::processObsGNSSPosTarget(const target_gnss_s &target_gnss, Targ
 	double uav_lon_deg = _uav_gps_position.lon_deg;
 	float uav_alt_m = _uav_gps_position.alt_m;
 
-	const float dt_sync_s = static_cast<float>(time_diff_us) * USEC2SEC_F;
+	const float dt_sync_s = static_cast<float>(time_diff_us) * kMicrosecondsToSeconds;
 	const float dt_sync_s_abs = fabsf(dt_sync_s);
 	bool uav_position_interpolated = false;
 
-	static constexpr float kMinTimesSyncNoInterpolationS = 0.1f;
-
 	// Compensate UAV motion during the latency interval
-	if (dt_sync_s_abs > kMinTimesSyncNoInterpolationS && _uav_gps_vel.valid
+	static constexpr float kGnssSyncInterpolationMinTimeS = 0.1f;
+
+	if (dt_sync_s_abs > kGnssSyncInterpolationMinTimeS && _uav_gps_vel.valid
 	    && isTimeDifferenceWithin(_uav_gps_vel.timestamp, _uav_gps_position.timestamp, _meas_updated_timeout_us)) {
 		const matrix::Vector3f uav_vel_ned = _uav_gps_vel.xyz;
 		const float delta_n = uav_vel_ned(vtest::Axis::x) * dt_sync_s;
@@ -1065,7 +1065,8 @@ bool VTEPosition::fuseMeas(const Vector3f &vehicle_acc_ned, const TargetObs &tar
 	target_innov.timestamp_sample = target_obs.timestamp;
 	target_innov.timestamp = hrt_absolute_time();
 	target_innov.time_last_predict = _last_predict;
-	target_innov.time_since_meas_ms = static_cast<float>(signedTimeDiffUs(_last_predict, target_obs.timestamp)) * 1e-3f;
+	target_innov.time_since_meas_ms = static_cast<float>(signedTimeDiffUs(_last_predict, target_obs.timestamp))
+					  * kMicrosecondsToMilliseconds;
 
 	bool any_axis_fused = false;
 	uint8_t history_steps = 0;
@@ -1274,17 +1275,18 @@ void VTEPosition::publishTarget()
 
 #endif // CONFIG_VTEST_MOVING
 
-		_targetPosePub.publish(_target_pose);
+		_target_pose_pub.publish(_target_pose);
 
 	}
 
-	_targetEstimatorStatePub.publish(_vte_state);
+	_target_estimator_state_pub.publish(_vte_state);
 
 	// TODO: decide what to do with Bias lim
 	float bias_lim = _param_vte_bias_lim.get();
 
-	if (((float)fabs(_vte_state.bias[0]) > bias_lim
-	     || (float)fabs(_vte_state.bias[1]) > bias_lim || (float)fabs(_vte_state.bias[2]) > bias_lim)) {
+	if ((fabsf(_vte_state.bias[0]) > bias_lim)
+	    || (fabsf(_vte_state.bias[1]) > bias_lim)
+	    || (fabsf(_vte_state.bias[2]) > bias_lim)) {
 
 		PX4_DEBUG("Bias exceeds limit: %.2f bias x: %.2f bias y: %.2f bias z: %.2f", (double)bias_lim,
 			  (double)_vte_state.bias[0], (double)_vte_state.bias[1], (double)_vte_state.bias[2]);

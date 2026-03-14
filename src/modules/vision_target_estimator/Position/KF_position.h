@@ -41,12 +41,10 @@
 
 #pragma once
 
-#include <matrix/math.hpp>
-#include <mathlib/mathlib.h>
-#include <vtest_derivation/generated/state.h>
-
 #include <cstdint>
-#include <cstring>
+
+#include <matrix/math.hpp>
+#include <vtest_derivation/generated/state.h>
 
 #include "../VTEOosm.h"
 #include "../common.h"
@@ -127,8 +125,8 @@ private:
 	float _last_acc{0.f}; // last UAV acceleration input (also used as OOSM fallback input)
 
 	// OOSM history buffer:
-	// 0.5s window @ 50Hz predict rate = 25 samples.
-	// Note that the 0.5s window is enforced with kOosmMaxTimeUs = 500_ms.
-	OOSMManager<KF_position, vtest::State::size, float, 25> _oosm;
+	// 0.5 s window @ 50 Hz predict rate = 25 samples.
+	// Note that the 0.5 s window is enforced with kOosmMaxTimeUs = 500_ms.
+	OOSMManager<KF_position, vtest::State::size, float, kOosmHistorySize> _oosm;
 };
 } // namespace vision_target_estimator
