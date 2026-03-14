@@ -48,6 +48,10 @@ using namespace time_literals;
 
 static_assert(DSHOT_MAXIMUM_CHANNELS <= 16, "DShot driver uses uint16_t bitmasks");
 
+// Motor-indexed arrays and bounds checks use this — the smaller of hardware channels and protocol limit
+static constexpr int DSHOT_MAX_MOTORS = DSHOT_MAXIMUM_CHANNELS < esc_status_s::CONNECTED_ESC_MAX
+				       ? DSHOT_MAXIMUM_CHANNELS : esc_status_s::CONNECTED_ESC_MAX;
+
 static constexpr hrt_abstime ESC_INIT_TELEM_DELAY = 5_s;
 
 /// Dshot PWM frequency (Hz)
@@ -154,19 +158,19 @@ private:
 	// Status information
 	uint32_t _bdshot_telem_online_mask = 0; // Mask indicating telem receive status for bidirectional dshot telem
 	uint32_t _serial_telem_online_mask = 0; // Mask indicating telem receive status for serial telem
-	uint32_t _serial_telem_errors[DSHOT_MAXIMUM_CHANNELS] = {};
-	uint32_t _bdshot_telem_errors[DSHOT_MAXIMUM_CHANNELS] = {};
+	uint32_t _serial_telem_errors[DSHOT_MAX_MOTORS] = {};
+	uint32_t _bdshot_telem_errors[DSHOT_MAX_MOTORS] = {};
 	uint16_t _bdshot_edt_requested_mask = 0;
 	uint16_t _settings_requested_mask = 0;
 
 	// Array of timestamps indicating when the telemetry came online
-	hrt_abstime _serial_telem_online_timestamps[DSHOT_MAXIMUM_CHANNELS] = {};
-	hrt_abstime _bdshot_telem_online_timestamps[DSHOT_MAXIMUM_CHANNELS] = {};
+	hrt_abstime _serial_telem_online_timestamps[DSHOT_MAX_MOTORS] = {};
+	hrt_abstime _bdshot_telem_online_timestamps[DSHOT_MAX_MOTORS] = {};
 
 	// Serial telemetry adaptive skip: stop polling motors that never respond
 	static constexpr int SERIAL_TELEM_SKIP_THRESHOLD = 10; // consecutive timeouts before skipping
 	uint16_t _serial_telem_skip_mask = 0; // motors to skip in round-robin
-	uint8_t _serial_telem_consecutive_timeouts[DSHOT_MAXIMUM_CHANNELS] = {};
+	uint8_t _serial_telem_consecutive_timeouts[DSHOT_MAX_MOTORS] = {};
 
 	// Serial Telemetry
 	DShotTelemetry _telemetry;
@@ -241,8 +245,8 @@ private:
 	uint16_t _programming_address{};
 	uint16_t _programming_value{};
 
-	param_t _param_pole_count_handles[esc_status_s::CONNECTED_ESC_MAX] {};
-	int32_t _pole_count_params[esc_status_s::CONNECTED_ESC_MAX] {};
+	param_t _param_pole_count_handles[DSHOT_MAX_MOTORS] {};
+	int32_t _pole_count_params[DSHOT_MAX_MOTORS] {};
 	int get_pole_count(int motor_index) const;
 
 	// Parameters

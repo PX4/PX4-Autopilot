@@ -182,7 +182,7 @@ void DShot::select_next_command()
 				PX4_ERR("esc_eeprom_write lost, generation %u -> %u", last_generation, current_generation);
 			}
 
-			if (_esc_eeprom_write.index != 255 && _esc_eeprom_write.index >= esc_status_s::CONNECTED_ESC_MAX) {
+			if (_esc_eeprom_write.index != 255 && _esc_eeprom_write.index >= DSHOT_MAX_MOTORS) {
 				PX4_ERR("esc_eeprom_write: invalid index %u", _esc_eeprom_write.index);
 
 			} else {
@@ -214,7 +214,7 @@ void DShot::select_next_command()
 		// Find first motor that needs EDT request and has been online long enough
 		hrt_abstime now = hrt_absolute_time();
 
-		for (int motor_index = 0; motor_index < DSHOT_MAXIMUM_CHANNELS; motor_index++) {
+		for (int motor_index = 0; motor_index < DSHOT_MAX_MOTORS; motor_index++) {
 			if (edt_motors_to_request & (1 << motor_index)) {
 				// Wait 1 second after ESC comes online before sending EDT (ESC init sequence)
 				if (_bdshot_telem_online_timestamps[motor_index] == 0
@@ -236,7 +236,7 @@ void DShot::select_next_command()
 		uint16_t settings_motors_to_request = _motor_mask & needs_settings_request_mask;
 
 		// Find first motor that needs settings request
-		for (int motor_index = 0; motor_index < DSHOT_MAXIMUM_CHANNELS; motor_index++) {
+		for (int motor_index = 0; motor_index < DSHOT_MAX_MOTORS; motor_index++) {
 			if (settings_motors_to_request & (1 << motor_index)) {
 				auto now = hrt_absolute_time();
 				_current_command.num_repetitions = 6;
@@ -252,7 +252,7 @@ void DShot::select_next_command()
 	} else if (_dshot_programming_active) {
 		// Motor mask for programming: all motors or single motor
 		const uint16_t programming_motor_mask = _esc_eeprom_write.index == 255
-							? (uint16_t)((1u << esc_status_s::CONNECTED_ESC_MAX) - 1)
+							? (uint16_t)((1u << DSHOT_MAX_MOTORS) - 1)
 							: (uint16_t)(1u << _esc_eeprom_write.index);
 
 		// Settings programming state machine
@@ -427,7 +427,7 @@ uint16_t DShot::esc_armed_mask(uint16_t *outputs, uint8_t num_outputs)
 			if (outputs[i] != DSHOT_DISARM_VALUE) {
 				int motor_index = (int)_mixing_output.outputFunction(i) - (int)OutputFunction::Motor1;
 
-				if (motor_index >= 0 && motor_index < esc_status_s::CONNECTED_ESC_MAX) {
+				if (motor_index >= 0 && motor_index < DSHOT_MAX_MOTORS) {
 					mask |= (1 << motor_index);
 				}
 			}
@@ -564,7 +564,7 @@ bool DShot::set_next_telemetry_index()
 		return true;
 	}
 
-	int start = (_telemetry_motor_index < 0) ? 0 : (_telemetry_motor_index + 1) % DSHOT_MAXIMUM_CHANNELS;
+	int start = (_telemetry_motor_index < 0) ? 0 : (_telemetry_motor_index + 1) % DSHOT_MAX_MOTORS;
 	int motor = start;
 
 	do {
@@ -574,7 +574,7 @@ bool DShot::set_next_telemetry_index()
 			return false;
 		}
 
-		motor = (motor + 1) % DSHOT_MAXIMUM_CHANNELS;
+		motor = (motor + 1) % DSHOT_MAX_MOTORS;
 	} while (motor != start);
 
 	// All active motors have been sampled
@@ -616,7 +616,7 @@ bool DShot::process_bdshot_telemetry()
 		// Map actuator channel to motor index
 		int motor_index = (int)_mixing_output.outputFunction(output_channel) - (int)OutputFunction::Motor1;
 
-		if ((motor_index >= 0) && (motor_index < esc_status_s::CONNECTED_ESC_MAX)) {
+		if ((motor_index >= 0) && (motor_index < DSHOT_MAX_MOTORS)) {
 
 			esc.motor_index = motor_index;
 			esc.timestamp = now;
@@ -692,7 +692,7 @@ void DShot::consume_esc_data(const EscData &esc)
 {
 	int motor_index = esc.motor_index;
 
-	if (!math::isInRange(motor_index, 0, esc_status_s::CONNECTED_ESC_MAX - 1)) {
+	if (!math::isInRange(motor_index, 0, DSHOT_MAX_MOTORS - 1)) {
 		return;
 	}
 
@@ -821,7 +821,7 @@ void DShot::handle_configure_actuator(const vehicle_command_s &command)
 	command_ack.target_component = command.source_component;
 	command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
 
-	if ((motor_index >= 0) && (motor_index < DSHOT_MAXIMUM_CHANNELS)) {
+	if ((motor_index >= 0) && (motor_index < DSHOT_MAX_MOTORS)) {
 		int type = lroundf(command.param1);
 		PX4_DEBUG("motor_index: %i type: %i", motor_index, type);
 		_current_command.clear();
@@ -876,7 +876,7 @@ void DShot::handle_esc_request_eeprom(const vehicle_command_s &command)
 	PX4_DEBUG("esc_index: %d", (int)command.param2);
 
 	int esc_index = lroundf(command.param2);
-	if (esc_index != 255 && (esc_index < 0 || esc_index >= esc_status_s::CONNECTED_ESC_MAX)) {
+	if (esc_index != 255 && (esc_index < 0 || esc_index >= DSHOT_MAX_MOTORS)) {
 		PX4_ERR("ESC_REQUEST_EEPROM: invalid esc_index %d", esc_index);
 		return;
 	}
@@ -893,7 +893,7 @@ void DShot::handle_esc_request_eeprom(const vehicle_command_s &command)
 
 int DShot::get_pole_count(int motor_index) const
 {
-	if (motor_index >= 0 && motor_index < esc_status_s::CONNECTED_ESC_MAX) {
+	if (motor_index >= 0 && motor_index < DSHOT_MAX_MOTORS) {
 		return _pole_count_params[motor_index];
 	}
 
@@ -929,7 +929,7 @@ void DShot::update_params()
 	}
 
 	// Update per-motor pole count param handles and cached values
-	for (int i = 0; i < esc_status_s::CONNECTED_ESC_MAX; i++) {
+	for (int i = 0; i < DSHOT_MAX_MOTORS; i++) {
 		char name[20];
 		snprintf(name, sizeof(name), "DSHOT_MOT_POL%d", i + 1);
 		_param_pole_count_handles[i] = param_find(name);
@@ -956,7 +956,7 @@ void DShot::mixerChanged()
 
 			int motor_index = (int)_mixing_output.outputFunction(actuator_channel) - (int)OutputFunction::Motor1;
 
-			if (motor_index >= 0 && motor_index < esc_status_s::CONNECTED_ESC_MAX) {
+			if (motor_index >= 0 && motor_index < DSHOT_MAX_MOTORS) {
 				_esc_status.esc[motor_index].actuator_function = (uint8_t)_mixing_output.outputFunction(actuator_channel);
 				new_motor_mask |= (1 << motor_index);
 			}
@@ -982,7 +982,7 @@ void DShot::mixerChanged()
 			if ((new_bdshot_output_mask & (1 << actuator_channel)) && _mixing_output.isMotor(actuator_channel)) {
 				int motor_index = (int)_mixing_output.outputFunction(actuator_channel) - (int)OutputFunction::Motor1;
 
-				if (motor_index >= 0 && motor_index < esc_status_s::CONNECTED_ESC_MAX) {
+				if (motor_index >= 0 && motor_index < DSHOT_MAX_MOTORS) {
 					new_bdshot_motor_mask |= (1 << motor_index);
 				}
 			}
@@ -1109,7 +1109,7 @@ int DShot::print_status()
 	// Per-motor pole counts
 	PX4_INFO("  Motor Poles:");
 
-	for (int i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
+	for (int i = 0; i < DSHOT_MAX_MOTORS; i++) {
 		if (_motor_mask & (1 << i)) {
 			PX4_INFO("    Motor %d: %d poles", i + 1, get_pole_count(i));
 		}
