@@ -2921,12 +2921,26 @@ MavlinkReceiver::handle_message_target_absolute(mavlink_message_t *msg)
 		target_GNSS_report.vel_ned_updated = false;
 
 	} else {
-		target_GNSS_report.vel_ned_updated = true;
-		target_GNSS_report.vel_n_m_s = target_absolute.vel[0];
-		target_GNSS_report.vel_e_m_s = target_absolute.vel[1];
-		target_GNSS_report.vel_d_m_s = target_absolute.vel[2];
-		target_GNSS_report.s_acc_m_s = target_absolute.vel_std[0];
-		updated = true;
+		const matrix::Quatf q_target(target_absolute.q_target);
+		const bool target_attitude_available = (fabsf(q_target(0)) + fabsf(q_target(1)) + fabsf(q_target(2)) +
+							fabsf(q_target(3))) > FLT_EPSILON;
+
+		if (target_attitude_available) {
+			const matrix::Vector3f vel_target_body(target_absolute.vel[0], target_absolute.vel[1], target_absolute.vel[2]);
+			const matrix::Vector3f vel_target_ned = q_target.rotateVector(vel_target_body);
+
+			target_GNSS_report.vel_ned_updated = true;
+			target_GNSS_report.vel_n_m_s = vel_target_ned(0);
+			target_GNSS_report.vel_e_m_s = vel_target_ned(1);
+			target_GNSS_report.vel_d_m_s = vel_target_ned(2);
+			target_GNSS_report.s_acc_m_s = fmaxf(fabsf(target_absolute.vel_std[0]),
+							     fmaxf(fabsf(target_absolute.vel_std[1]),
+									     fabsf(target_absolute.vel_std[2])));
+			updated = true;
+
+		} else {
+			target_GNSS_report.vel_ned_updated = false;
+		}
 	}
 
 	if (updated) { _target_gnss_pub.publish(target_GNSS_report); }
