@@ -64,8 +64,7 @@ enum class WaypointType : int {
 	velocity = position_setpoint_s::SETPOINT_TYPE_VELOCITY,
 	loiter = position_setpoint_s::SETPOINT_TYPE_LOITER,
 	takeoff = position_setpoint_s::SETPOINT_TYPE_TAKEOFF,
-	land = position_setpoint_s::SETPOINT_TYPE_LAND,
-	idle = position_setpoint_s::SETPOINT_TYPE_IDLE
+	land = position_setpoint_s::SETPOINT_TYPE_LAND
 };
 
 enum class yaw_mode : int32_t {
@@ -117,7 +116,7 @@ protected:
 	bool _prev_was_valid{false};
 	bool _next_was_valid{false};
 	float _mc_cruise_speed{NAN}; /**< Requested cruise speed. If not valid, default cruise speed is used. */
-	WaypointType _type{WaypointType::idle}; /**< Type of current target triplet. */
+	WaypointType _type{WaypointType::position}; /**< Type of current target triplet. */
 
 	uORB::SubscriptionData<position_setpoint_triplet_s> _position_setpoint_triplet_sub{ORB_ID(position_setpoint_triplet)};
 	uORB::SubscriptionData<home_position_s>			_sub_home_position{ORB_ID(home_position)};
@@ -136,7 +135,7 @@ protected:
 	StickYaw _stick_yaw{this};
 	matrix::Vector3f _land_position;
 	float _land_heading;
-	WaypointType _type_previous{WaypointType::idle}; /**< Previous type of current target triplet. */
+	WaypointType _type_previous{WaypointType::position}; /**< Previous type of current target triplet. */
 	bool _is_emergency_braking_active{false};
 	bool _want_takeoff{false};
 
