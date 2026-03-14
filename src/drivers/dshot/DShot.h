@@ -95,11 +95,6 @@ public:
 
 private:
 
-	enum class State {
-		Disarmed,
-		Armed
-	} _state = State::Disarmed;
-
 	// Disallow copy construction and move assignment
 	DShot(const DShot &) = delete;
 	DShot operator=(const DShot &) = delete;

@@ -128,37 +128,26 @@ bool DShot::updateOutputs(uint16_t *outputs, unsigned num_outputs, unsigned num_
 		return false;
 	}
 
-	// Get the armed mask
 	_esc_status.esc_armed_flags = esc_armed_mask(outputs, num_outputs);
+	bool armed = _esc_status.esc_armed_flags != 0;
 
-	// Set the state
-	_state = _esc_status.esc_armed_flags ? State::Armed : State::Disarmed;
+	if (!armed) {
+		// Select next command to send (if any)
+		if (_telemetry.telemetryResponseFinished() &&
+		    _current_command.finished() && _telemetry.commandResponseFinished()) {
+			select_next_command();
+		}
 
-	switch (_state) {
-	case State::Armed: {
+		// Send command if available
+		if (!_current_command.finished()) {
+			update_motor_commands(num_outputs);
+
+		} else {
 			update_motor_outputs(outputs, num_outputs);
-			break;
 		}
 
-	case State::Disarmed: {
-
-			// Select next command to send (if any)
-			if (_telemetry.telemetryResponseFinished() &&
-			    _current_command.finished() && _telemetry.commandResponseFinished()) {
-				select_next_command();
-			}
-
-			// Send command if available
-			if (!_current_command.finished()) {
-				update_motor_commands(num_outputs);
-
-			} else {
-				// Otherwise idle
-				update_motor_outputs(outputs, num_outputs);
-			}
-
-			break;
-		}
+	} else {
+		update_motor_outputs(outputs, num_outputs);
 	}
 
 	up_dshot_trigger();
