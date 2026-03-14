@@ -72,7 +72,10 @@ PARAM_DEFINE_INT32(GPS_UBX_DYNMODEL, 7);
 /**
  * u-blox GPS DGNSS timeout
  *
- * When set to 0 (default), default DGNSS timeout set by u-blox will be used.
+ * Sets the timeout for how long the receiver will use stale DGNSS/RTK
+ * corrections before falling back to standalone mode.
+ *
+ * When set to 0, the default DGNSS timeout set by u-blox will be used (60s).
  *
  * @min 0
  * @max 255
@@ -82,7 +85,7 @@ PARAM_DEFINE_INT32(GPS_UBX_DYNMODEL, 7);
  *
  * @group GPS
  */
-PARAM_DEFINE_INT32(GPS_UBX_DGNSS_TO, 0);
+PARAM_DEFINE_INT32(GPS_UBX_DGNSS_TO, 3);
 
 /**
  * u-blox GPS minimum satellite signal level for navigation
