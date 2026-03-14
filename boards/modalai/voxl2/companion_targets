@@ -1,0 +1,3 @@
+# Companion processor targets - built automatically by the parent (default) target
+# These are excluded from CI target lists to avoid redundant builds
+modalai_voxl2_slpi

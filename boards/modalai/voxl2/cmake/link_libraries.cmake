@@ -1,3 +1,6 @@
+if(NOT "${PX4_PLATFORM}" STREQUAL "posix")
+	return()
+endif()
 
 # Link against the public stub version of the proprietary fc sensor library
 target_link_libraries(px4 PRIVATE

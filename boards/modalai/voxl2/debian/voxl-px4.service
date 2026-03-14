@@ -1,0 +1,14 @@
+[Unit]
+Description=PX4 Autopilot for VOXL2
+After=sscrpcd.service
+Requires=sscrpcd.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/voxl-px4
+ExecStopPost=/usr/bin/voxl-reset-slpi
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -97,4 +97,9 @@ else()
 	set(CPACK_GENERATOR "ZIP")
 endif()
 
+# Board-specific overrides (loaded after defaults are set)
+if(EXISTS "${PX4_BOARD_DIR}/cmake/package.cmake")
+	include(${PX4_BOARD_DIR}/cmake/package.cmake)
+endif()
+
 include(CPack)

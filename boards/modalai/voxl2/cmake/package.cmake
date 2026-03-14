@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2024 ModalAI, Inc. All rights reserved.
+#   Copyright (c) 2024 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,38 +31,33 @@
 #
 ############################################################################
 
-if(NOT "${PX4_PLATFORM}" STREQUAL "posix")
-	return()
-endif()
+# VOXL2 board-specific CPack overrides
+# Loaded after cmake/package.cmake sets up CPack defaults
 
-# Initialize libfc-sensor-api submodule (fetches from GitLab if not present)
-execute_process(
-	COMMAND Tools/check_submodules.sh boards/modalai/voxl2/libfc-sensor-api
-	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
-)
+# Derive Debian-compatible version from git tag (e.g. v1.17.0-alpha1-42-gabcdef -> 1.17.0~alpha1.42.gabcdef)
+string(REGEX REPLACE "^v" "" _deb_ver "${PX4_GIT_TAG}")
+string(REGEX REPLACE "-" "~" _deb_ver "${_deb_ver}" )
+string(REGEX REPLACE "~([0-9]+)~" ".\\1." _deb_ver "${_deb_ver}")
 
-include_directories(${PX4_BOARD_DIR}/libfc-sensor-api/inc)
+# VOXL2 is always aarch64 regardless of build host
+set(CPACK_DEBIAN_ARCHITECTURE "arm64")
+set(CPACK_DEBIAN_PACKAGE_NAME "voxl-px4")
+set(CPACK_DEBIAN_FILE_NAME "voxl-px4_${_deb_ver}_arm64.deb")
+set(CPACK_PACKAGING_INSTALL_PREFIX "/usr")
+set(CPACK_INSTALL_PREFIX "/usr")
+set(CPACK_SET_DESTDIR true)
 
-# Build libfc_sensor.so stub library automatically if not already built
-set(FC_SENSOR_LIB ${PX4_BOARD_DIR}/libfc-sensor-api/build/libfc_sensor.so)
-if(NOT EXISTS ${FC_SENSOR_LIB})
-	execute_process(
-		COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BOARD_DIR}/libfc-sensor-api/build
-	)
-	execute_process(
-		COMMAND ${CMAKE_COMMAND} -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER} ..
-		WORKING_DIRECTORY ${PX4_BOARD_DIR}/libfc-sensor-api/build
-		RESULT_VARIABLE FC_SENSOR_CMAKE_RESULT
-	)
-	if(NOT FC_SENSOR_CMAKE_RESULT EQUAL 0)
-		message(FATAL_ERROR "Failed to configure libfc_sensor stub library")
-	endif()
-	execute_process(
-		COMMAND ${CMAKE_COMMAND} --build .
-		WORKING_DIRECTORY ${PX4_BOARD_DIR}/libfc-sensor-api/build
-		RESULT_VARIABLE FC_SENSOR_BUILD_RESULT
-	)
-	if(NOT FC_SENSOR_BUILD_RESULT EQUAL 0)
-		message(FATAL_ERROR "Failed to build libfc_sensor stub library")
-	endif()
-endif()
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "voxl-platform, librc-symlinks")
+set(CPACK_DEBIAN_PACKAGE_CONFLICTS "px4-rb5-flight")
+set(CPACK_DEBIAN_PACKAGE_REPLACES "px4-rb5-flight")
+set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "PX4 Autopilot for ModalAI VOXL2")
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "ModalAI <support@modalai.com>")
+
+# Disable shlibdeps for cross-compiled boards
+set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS OFF)
+
+set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA
+	"${PX4_BOARD_DIR}/debian/postinst;${PX4_BOARD_DIR}/debian/prerm")
+
+# Install rules are in boards/modalai/voxl2/cmake/install.cmake,
+# included from platforms/posix/CMakeLists.txt where the px4 target exists.

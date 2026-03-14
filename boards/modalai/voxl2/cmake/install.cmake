@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2024 ModalAI, Inc. All rights reserved.
+#   Copyright (c) 2024 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,38 +31,54 @@
 #
 ############################################################################
 
-if(NOT "${PX4_PLATFORM}" STREQUAL "posix")
-	return()
-endif()
+# VOXL2 board-specific install rules for .deb packaging
+# Included from platforms/posix/CMakeLists.txt where the px4 target exists
 
-# Initialize libfc-sensor-api submodule (fetches from GitLab if not present)
-execute_process(
-	COMMAND Tools/check_submodules.sh boards/modalai/voxl2/libfc-sensor-api
-	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+# SLPI companion build output directory
+set(VOXL2_SLPI_BUILD_DIR "${PX4_SOURCE_DIR}/build/modalai_voxl2-slpi_default")
+
+# Apps processor binary
+install(TARGETS px4 RUNTIME DESTINATION bin)
+
+# px4-alias.sh (generated during build into bin/ subdirectory)
+install(PROGRAMS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/px4-alias.sh DESTINATION bin)
+
+# Startup scripts from board target directory
+install(PROGRAMS
+	${PX4_BOARD_DIR}/target/voxl-px4
+	${PX4_BOARD_DIR}/target/voxl-px4-start
+	${PX4_BOARD_DIR}/target/voxl-px4-hitl
+	${PX4_BOARD_DIR}/target/voxl-px4-hitl-start
+	DESTINATION bin
 )
 
-include_directories(${PX4_BOARD_DIR}/libfc-sensor-api/inc)
+# DSP firmware blob from companion SLPI build
+install(FILES ${VOXL2_SLPI_BUILD_DIR}/platforms/qurt/libpx4.so
+	DESTINATION lib/rfsa/adsp
+	OPTIONAL
+)
 
-# Build libfc_sensor.so stub library automatically if not already built
-set(FC_SENSOR_LIB ${PX4_BOARD_DIR}/libfc-sensor-api/build/libfc_sensor.so)
-if(NOT EXISTS ${FC_SENSOR_LIB})
-	execute_process(
-		COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BOARD_DIR}/libfc-sensor-api/build
-	)
-	execute_process(
-		COMMAND ${CMAKE_COMMAND} -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER} ..
-		WORKING_DIRECTORY ${PX4_BOARD_DIR}/libfc-sensor-api/build
-		RESULT_VARIABLE FC_SENSOR_CMAKE_RESULT
-	)
-	if(NOT FC_SENSOR_CMAKE_RESULT EQUAL 0)
-		message(FATAL_ERROR "Failed to configure libfc_sensor stub library")
-	endif()
-	execute_process(
-		COMMAND ${CMAKE_COMMAND} --build .
-		WORKING_DIRECTORY ${PX4_BOARD_DIR}/libfc-sensor-api/build
-		RESULT_VARIABLE FC_SENSOR_BUILD_RESULT
-	)
-	if(NOT FC_SENSOR_BUILD_RESULT EQUAL 0)
-		message(FATAL_ERROR "Failed to build libfc_sensor stub library")
-	endif()
-endif()
+# Configuration files
+install(FILES
+	${PX4_BOARD_DIR}/target/voxl-px4-fake-imu-calibration.config
+	${PX4_BOARD_DIR}/target/voxl-px4-hitl-set-default-parameters.config
+	DESTINATION ../etc/modalai
+)
+
+# Systemd service file
+install(FILES ${PX4_BOARD_DIR}/debian/voxl-px4.service
+	DESTINATION ../etc/systemd/system
+)
+
+# Component metadata JSON files
+install(FILES
+	${PX4_BINARY_DIR}/actuators.json.xz
+	${PX4_BINARY_DIR}/component_general.json.xz
+	${PX4_BINARY_DIR}/parameters.json.xz
+	DESTINATION ../data/px4/etc/extras
+	OPTIONAL
+)
+install(FILES ${PX4_BINARY_DIR}/events/all_events.json.xz
+	DESTINATION ../data/px4/etc/extras
+	OPTIONAL
+)
