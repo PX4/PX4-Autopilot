@@ -107,6 +107,15 @@ private:
 	bool initialize_dshot();
 	void init_telemetry(const char *device, bool swap_rxtx);
 
+	// Map output channel to motor index [0..DSHOT_MAX_MOTORS-1], or -1 if not a motor
+	int motor_index_from_output(int output_channel) const
+	{
+		if (!_mixing_output.isMotor(output_channel)) { return -1; }
+
+		int idx = (int)_mixing_output.outputFunction(output_channel) - (int)OutputFunction::Motor1;
+		return (idx >= 0 && idx < DSHOT_MAX_MOTORS) ? idx : -1;
+	}
+
 	uint16_t esc_armed_mask(uint16_t *outputs, uint8_t num_outputs);
 
 	void update_motor_outputs(uint16_t *outputs, int num_outputs);
