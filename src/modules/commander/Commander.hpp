@@ -343,7 +343,6 @@ private:
 		(ParamBool<px4::params::COM_HOME_EN>)       _param_com_home_en,
 		(ParamBool<px4::params::COM_HOME_IN_AIR>)   _param_com_home_in_air,
 		(ParamBool<px4::params::COM_FORCE_SAFETY>)  _param_com_force_safety,
-		(ParamFloat<px4::params::COM_KILL_DISARM>)  _param_com_kill_disarm,
 		(ParamBool<px4::params::COM_MOT_TEST_EN>)   _param_com_mot_test_en,
 		(ParamFloat<px4::params::COM_OBC_LOSS_T>)   _param_com_obc_loss_t,
 		(ParamInt<px4::params::COM_PREARM_MODE>)    _param_com_prearm_mode,

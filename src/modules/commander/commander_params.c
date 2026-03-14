@@ -711,19 +711,6 @@ PARAM_DEFINE_INT32(COM_FORCE_SAFETY, 0);
 PARAM_DEFINE_INT32(COM_MOT_TEST_EN, 1);
 
 /**
- * Timeout value for disarming when kill switch is engaged
- *
- * Use RC_MAP_KILL_SW to map a kill switch.
- *
- * @group Commander
- * @unit s
- * @min 0.0
- * @max 30.0
- * @increment 0.1
- */
-PARAM_DEFINE_FLOAT(COM_KILL_DISARM, 5.0f);
-
-/**
  * Maximum allowed CPU load to still arm.
  *
  * The check fails if the CPU load is above this threshold for 2s.
