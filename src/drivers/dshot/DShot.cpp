@@ -688,22 +688,18 @@ void DShot::consume_esc_data(const EscData &esc)
 	// Intentionally conservative: when both BDShot and serial telemetry are enabled,
 	// both must report online. A motor reporting offline on either source indicates
 	// a degraded setup that should be surfaced to the operator.
-	bool is_bdshot = _bdshot_motor_mask & (1 << motor_index);
-	bool motor_online = true;
+	uint16_t motor_bit = 1u << motor_index;
+	bool is_bdshot = _bdshot_motor_mask & motor_bit;
 
-	if (is_bdshot) {
-		motor_online &= (_bdshot_telem_online_mask & (1 << motor_index)) != 0;
-	}
-
-	if (_serial_telemetry_enabled) {
-		motor_online &= (_serial_telem_online_mask & (1 << motor_index)) != 0;
-	}
+	// Both sources must report online when enabled (conservative)
+	bool motor_online = (!is_bdshot || (_bdshot_telem_online_mask & motor_bit))
+			    && (!_serial_telemetry_enabled || (_serial_telem_online_mask & motor_bit));
 
 	if (motor_online) {
-		_esc_status.esc_online_flags |= (1 << motor_index);
+		_esc_status.esc_online_flags |= motor_bit;
 
 	} else {
-		_esc_status.esc_online_flags &= ~(1 << motor_index);
+		_esc_status.esc_online_flags &= ~motor_bit;
 	}
 
 	// esc_status is indexed by motor_index (Motor1=0, Motor2=1, ...)
