@@ -45,6 +45,8 @@
 
 #include <pthread.h>
 
+using namespace time_literals;
+
 static List<I2CSPIInstance *> i2c_spi_module_instances; ///< list of currently running instances
 static pthread_mutex_t i2c_spi_module_instances_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -833,7 +835,7 @@ void I2CSPIDriverBase::request_stop_and_wait()
 	unsigned int i = 0;
 
 	do {
-		px4_usleep(20000); // 20 ms
+		px4_usleep(20_ms); // 20 ms
 		// wait at most 2 sec
 	} while (++i < 100 && !_task_exited.load());
 
