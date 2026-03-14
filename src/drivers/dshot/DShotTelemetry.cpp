@@ -124,15 +124,19 @@ void DShotTelemetry::initSettingsHandlers(ESCType esc_type, uint16_t output_mask
 	_settings_initialized = true;
 }
 
+void DShotTelemetry::resetCommandResponse()
+{
+	_command_response_motor_index = -1;
+	_command_response_start = 0;
+	_command_response_position = 0;
+}
+
 void DShotTelemetry::parseCommandResponse()
 {
 	if (hrt_elapsed_time(&_command_response_start) > 1_s) {
 		PX4_WARN("Command response timed out: %d bytes received", _command_response_position);
 		PX4_WARN("At time %.2fs", (double)hrt_absolute_time() / 1000000.);
-
-		_command_response_motor_index = -1;
-		_command_response_start = 0;
-		_command_response_position = 0;
+		resetCommandResponse();
 		return;
 	}
 
@@ -146,16 +150,13 @@ void DShotTelemetry::parseCommandResponse()
 	// Handle potential overflow, fail out
 	if (_command_response_position + bytes > COMMAND_RESPONSE_MAX_SIZE) {
 		PX4_ERR("command response overflow");
-		_command_response_motor_index = -1;
-		_command_response_start = 0;
-		_command_response_position = 0;
+		resetCommandResponse();
 		return;
 	}
 
 	// Add bytes to buffer
-	for (int i = 0; i < bytes; i++) {
-		_command_response_buffer[_command_response_position++] = buf[i];
-	}
+	memcpy(&_command_response_buffer[_command_response_position], buf, bytes);
+	_command_response_position += bytes;
 
 	switch (_command_response_command) {
 	case DSHOT_CMD_ESC_INFO: {
@@ -166,20 +167,14 @@ void DShotTelemetry::parseCommandResponse()
 			auto handler = _settings_handlers[_command_response_motor_index];
 
 			if (!handler) {
-				_command_response_position = 0;
-				_command_response_start = 0;
-				_command_response_motor_index = -1;
+				resetCommandResponse();
 				break;
 			}
 
 			if (_command_response_position == handler->getExpectedResponseSize()) {
 				// TODO: handle command failures
 				handler->decodeInfoResponse(_command_response_buffer, _command_response_position);
-
-				// Reset command state
-				_command_response_position = 0;
-				_command_response_start = 0;
-				_command_response_motor_index = -1;
+				resetCommandResponse();
 			}
 
 			break;
