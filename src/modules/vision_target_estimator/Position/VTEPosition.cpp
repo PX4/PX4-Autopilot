@@ -1191,15 +1191,22 @@ void VTEPosition::publishTarget()
 	_target_pose.cov_vz_rel = state_var_z(vtest::State::vel_uav);
 
 #if defined(CONFIG_VTEST_MOVING)
+	const matrix::SquareMatrix<float, vtest::State::size> &state_cov_x = _target_est_pos[vtest::Axis::x].getStateCovariance();
+	const matrix::SquareMatrix<float, vtest::State::size> &state_cov_y = _target_est_pos[vtest::Axis::y].getStateCovariance();
+	const matrix::SquareMatrix<float, vtest::State::size> &state_cov_z = _target_est_pos[vtest::Axis::z].getStateCovariance();
+
 	// If target is moving, relative velocity = vel_target - vel_uav
 	_target_pose.vx_rel += state_x(vtest::State::vel_target);
 	_target_pose.vy_rel += state_y(vtest::State::vel_target);
 	_target_pose.vz_rel += state_z(vtest::State::vel_target);
 
-	// Var(aX + bY) = a^2 Var(x) + b^2 Var(y) + 2abCov(X,Y)
-	_target_pose.cov_vx_rel += state_var_x(vtest::State::vel_target);
-	_target_pose.cov_vy_rel += state_var_y(vtest::State::vel_target);
-	_target_pose.cov_vz_rel += state_var_z(vtest::State::vel_target);
+	// Var(vel_target - vel_uav) = Var(vel_target) + Var(vel_uav) - 2 Cov(vel_uav, vel_target)
+	_target_pose.cov_vx_rel += state_var_x(vtest::State::vel_target)
+				   - 2.f * state_cov_x(vtest::State::vel_uav, vtest::State::vel_target);
+	_target_pose.cov_vy_rel += state_var_y(vtest::State::vel_target)
+				   - 2.f * state_cov_y(vtest::State::vel_uav, vtest::State::vel_target);
+	_target_pose.cov_vz_rel += state_var_z(vtest::State::vel_target)
+				   - 2.f * state_cov_z(vtest::State::vel_uav, vtest::State::vel_target);
 
 #endif // CONFIG_VTEST_MOVING
 
