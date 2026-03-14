@@ -55,6 +55,13 @@ private:
 #endif
 #endif
 
+	// SDLOG parameters are from logger module, access via param_find
+	param_t _param_sdlog_backend{param_find("SDLOG_BACKEND")};
+	param_t _param_sdlog_mode{param_find("SDLOG_MODE")};
+	param_t _param_sdlog_profile{param_find("SDLOG_PROFILE")};
+	param_t _param_sdlog_mission{param_find("SDLOG_MISSION")};
+	param_t _param_sdlog_dirs_max{param_find("SDLOG_DIRS_MAX")};
+
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 					(ParamInt<px4::params::COM_ARM_SDCARD>) _param_com_arm_sdcard,
 					(ParamBool<px4::params::COM_ARM_HFLT_CHK>) _param_com_arm_hardfault_check
