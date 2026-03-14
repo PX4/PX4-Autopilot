@@ -66,7 +66,7 @@ def load_license_overrides(source_dir):
 
     return overrides, comments
 
-LICENSE_FILENAMES = ["LICENSE", "LICENSE.md", "LICENSE.txt", "COPYING", "COPYING.md"]
+LICENSE_FILENAMES = ["LICENSE", "LICENSE.md", "LICENSE.txt", "LICENCE", "LICENCE.md", "COPYING", "COPYING.md"]
 
 
 def detect_license(submodule_dir):

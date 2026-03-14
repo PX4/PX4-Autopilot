@@ -18,6 +18,12 @@ overrides:
   src/lib/cdrstream/rosidl:
     license: "Apache-2.0"
 
+  src/lib/crypto/monocypher:
+    license: "BSD-2-Clause OR CC0-1.0"
+    comment: >-
+      Dual-licensed. LICENCE.md offers BSD-2-Clause with CC0-1.0 as
+      public domain fallback.
+
   src/lib/crypto/libtomcrypt:
     license: "Unlicense"
     comment: "Public domain dedication. Functionally equivalent to Unlicense."
