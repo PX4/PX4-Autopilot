@@ -405,7 +405,7 @@
 *(.text._ZN3Ekf33updateVerticalDeadReckoningStatusEv)
 *(.text._ZN33FlightTaskManualAltitudeSmoothVelC1Ev)
 *(.text.powf)
-*(.text._ZN4EKF217PublishEventFlagsERKy)
+*(.text._ZN4EKF210SendEventsEv)
 *(.text._ZN17FlightTaskDescend6updateEv)
 *(.text.imxrt_iomux_configure)
 *(.text.hrt_store_absolute_time)
