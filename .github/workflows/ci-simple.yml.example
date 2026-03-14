@@ -1,0 +1,41 @@
+name: Simple CI (Fork-Friendly)
+
+# Forks: This is a lightweight CI workflow for forks that don't need
+# the full orchestrator pipeline. It builds PX4 SITL + one hardware
+# target and runs unit tests + format checks.
+#
+# To use: rename this file from ci-simple.yml.example to ci-simple.yml
+# and enable GitHub Actions in your fork settings.
+# To customize: adjust the 'make' target or container image tag below.
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  quick-check:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/px4/px4-dev:v1.17.0-beta1
+    steps:
+      - name: Configure git
+        run: git config --system --add safe.directory '*'
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Quick Check (SITL + FMUv5 + tests + format)
+        run: make quick_check
+        env:
+          RUNS_IN_DOCKER: true

@@ -1,0 +1,56 @@
+name: Setup ccache
+description: Restore ccache from cache and configure ccache.conf
+
+inputs:
+  cache-key-prefix:
+    description: Cache key prefix (e.g. ccache-sitl)
+    required: true
+  max-size:
+    description: Max ccache size (e.g. 300M)
+    required: false
+    default: '300M'
+  base-dir:
+    description: ccache base_dir value
+    required: false
+    default: '${GITHUB_WORKSPACE}'
+  install-ccache:
+    description: Install ccache via apt before configuring
+    required: false
+    default: 'false'
+
+outputs:
+  cache-primary-key:
+    description: Primary cache key (pass to save-ccache)
+    value: ${{ steps.restore.outputs.cache-primary-key }}
+
+runs:
+  using: composite
+  steps:
+    - name: Cache - Install ccache
+      if: inputs.install-ccache == 'true'
+      shell: bash
+      run: apt-get update && apt-get install -y ccache
+
+    - name: Cache - Restore ccache
+      id: restore
+      uses: actions/cache/restore@v4
+      with:
+        path: ~/.ccache
+        key: ${{ inputs.cache-key-prefix }}-${{ github.ref_name }}-${{ github.sha }}
+        restore-keys: |
+          ${{ inputs.cache-key-prefix }}-${{ github.ref_name }}-
+          ${{ inputs.cache-key-prefix }}-${{ github.base_ref || 'main' }}-
+          ${{ inputs.cache-key-prefix }}-
+
+    - name: Cache - Configure ccache
+      shell: bash
+      run: |
+        mkdir -p ~/.ccache
+        echo "base_dir = ${{ inputs.base-dir }}" > ~/.ccache/ccache.conf
+        echo "compression = true" >> ~/.ccache/ccache.conf
+        echo "compression_level = 6" >> ~/.ccache/ccache.conf
+        echo "max_size = ${{ inputs.max-size }}" >> ~/.ccache/ccache.conf
+        echo "hash_dir = false" >> ~/.ccache/ccache.conf
+        echo "compiler_check = content" >> ~/.ccache/ccache.conf
+        ccache -s
+        ccache -z
