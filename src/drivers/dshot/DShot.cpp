@@ -1049,7 +1049,7 @@ void DShot::init_telemetry(const char *device, bool swap_rxtx)
 
 	// Initialize ESC settings handlers based on ESC type
 	ESCType esc_type = static_cast<ESCType>(_param_dshot_esc_type.get());
-	_telemetry.initSettingsHandlers(esc_type, _output_mask);
+	_telemetry.initSettingsHandlers(esc_type, _motor_mask);
 }
 
 static void print_spacer()
