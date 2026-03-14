@@ -18620,25 +18620,6 @@ the estimated time it takes to reach the RTL destination.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; |          |          | 1         | 0       |      |
 
-### COM_FLT_PROFILE (`INT32`) {#COM_FLT_PROFILE}
-
-User Flight Profile.
-
-Describes the intended use of the vehicle.
-Can be used by ground control software or log post processing.
-This param does not influence the behavior within the firmware. This means for example the control logic is independent of the setting of this param (but depends on other params).
-
-**Values:**
-
-- `0`: Default
-- `100`: Pro User
-- `200`: Flight Tester
-- `300`: Developer
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 0       |      |
-
 ### COM_FLT_TIME_MAX (`INT32`) {#COM_FLT_TIME_MAX}
 
 Maximum allowed flight time.
@@ -18731,16 +18712,6 @@ See also FD_IMB_PROP_THR to set the failure threshold.
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; |          |          | 1         | 0       |      |
-
-### COM_KILL_DISARM (`FLOAT`) {#COM_KILL_DISARM}
-
-Timeout value for disarming when kill switch is engaged.
-
-Use RC_MAP_KILL_SW to map a kill switch.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 30.0     | 0.1       | 5.0     | s    |
 
 ### COM_LKDOWN_TKO (`FLOAT`) {#COM_LKDOWN_TKO}
 
@@ -31983,7 +31954,7 @@ Emergency Kill switch channel.
 
 This channel immediately sets all outputs to their disarmed values, parachutes are NOT deployed.
 Unlike termination this can be undone. Quickly flipping the switch back restores control.
-System auto-disarms after COM_KILL_DISARM seconds, preflight checks and re-arming are then required.
+System auto-disarms after 5 seconds, preflight checks and re-arming are then required.
 
 **Values:**
 
