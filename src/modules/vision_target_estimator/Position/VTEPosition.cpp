@@ -1245,6 +1245,8 @@ void VTEPosition::publishTarget()
 	_target_pose.rel_vel_valid = _target_pose.is_static && _param_vte_ekf_aid.get() && _target_pose.rel_pos_valid &&
 				     (_last_relative_meas_fused_time != 0) && (now >= _last_relative_meas_fused_time) &&
 				     (now - _last_relative_meas_fused_time) < _meas_recent_timeout_us;
+	_vte_state.rel_pos_valid = _target_pose.rel_pos_valid;
+	_vte_state.rel_vel_valid = _target_pose.rel_vel_valid;
 
 	// Prec land does not check _target_pose.abs_pos_valid. Only send the target if abs pose valid.
 	if (_local_position.valid && _target_pose.rel_pos_valid) {
