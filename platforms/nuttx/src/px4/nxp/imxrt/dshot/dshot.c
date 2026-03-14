@@ -499,7 +499,7 @@ void up_bdshot_erpm(void)
 
 uint16_t up_bdshot_get_ready_mask(void)
 {
-	return (uint16_t)bdshot_recv_mask;
+	return (uint16_t)bdshot_parsed_recv_mask;
 }
 
 int up_bdshot_num_errors(uint8_t channel)
