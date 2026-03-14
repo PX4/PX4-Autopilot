@@ -464,7 +464,7 @@ bool DShot::process_serial_telemetry()
 			_telemetry.parseCommandResponse();
 		}
 
-	} else {
+	} else if (_telemetry_motor_index >= 0) {
 
 		int motor_index = _telemetry_motor_index;
 
@@ -558,29 +558,30 @@ bool DShot::set_next_telemetry_index()
 	// Active motors are those that exist and aren't being skipped
 	uint16_t active_motor_mask = _motor_mask & ~_serial_telem_skip_mask;
 
-	int motor = (_telemetry_motor_index + 1) % DSHOT_MAXIMUM_CHANNELS;
-	int start_motor = motor;
-
-	do {
-		bool motor_active = active_motor_mask & (1 << motor);
-
-		if (motor_active && !(_telemetry_requested_mask & (1 << motor))) {
-			_telemetry_motor_index = motor;
-			_telemetry_requested_mask |= (1 << motor);
-			break;
-		}
-
-		motor = (motor + 1) % DSHOT_MAXIMUM_CHANNELS;
-	} while (motor != start_motor);
-
-	// Check if all active motors have been sampled
-	if (active_motor_mask == 0 || count_set_bits(_telemetry_requested_mask & active_motor_mask) >= count_set_bits(active_motor_mask)) {
+	if (active_motor_mask == 0) {
+		_telemetry_motor_index = -1;
 		_telemetry_requested_mask = 0;
-		perf_count(_serial_telem_allsampled_perf);
 		return true;
 	}
 
-	return false;
+	int start = (_telemetry_motor_index < 0) ? 0 : (_telemetry_motor_index + 1) % DSHOT_MAXIMUM_CHANNELS;
+	int motor = start;
+
+	do {
+		if ((active_motor_mask & (1 << motor)) && !(_telemetry_requested_mask & (1 << motor))) {
+			_telemetry_motor_index = motor;
+			_telemetry_requested_mask |= (1 << motor);
+			return false;
+		}
+
+		motor = (motor + 1) % DSHOT_MAXIMUM_CHANNELS;
+	} while (motor != start);
+
+	// All active motors have been sampled
+	_telemetry_motor_index = -1;
+	_telemetry_requested_mask = 0;
+	perf_count(_serial_telem_allsampled_perf);
+	return true;
 }
 
 bool DShot::process_bdshot_telemetry()
