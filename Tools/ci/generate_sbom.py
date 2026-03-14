@@ -133,7 +133,8 @@ def get_submodule_commits(source_dir):
         result = subprocess.run(
             ["git", "ls-tree", "-r", "HEAD"],
             cwd=str(source_dir),
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True,
             check=True,
         )
@@ -156,7 +157,8 @@ def get_git_info(source_dir: Path) -> dict:
         result = subprocess.run(
             ["git", "describe", "--always", "--tags", "--dirty"],
             cwd=str(source_dir),
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True,
             check=True,
         )
@@ -167,7 +169,8 @@ def get_git_info(source_dir: Path) -> dict:
         result = subprocess.run(
             ["git", "rev-parse", "HEAD"],
             cwd=str(source_dir),
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True,
             check=True,
         )

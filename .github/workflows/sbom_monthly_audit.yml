@@ -11,6 +11,10 @@ on:
         required: false
         type: string
 
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   audit:
     runs-on: ubuntu-24.04

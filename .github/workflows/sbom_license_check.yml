@@ -18,6 +18,9 @@ on:
       - 'Tools/ci/license-overrides.yaml'
       - 'Tools/ci/generate_sbom.py'
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
