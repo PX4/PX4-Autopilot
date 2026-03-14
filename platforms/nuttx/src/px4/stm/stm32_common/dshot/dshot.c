@@ -135,6 +135,7 @@ static volatile bool _bdshot_cycle_complete[MAX_IO_TIMERS] = { [0 ...(MAX_IO_TIM
 
 static uint32_t _bdshot_channel_mask = 0;
 static uint32_t _dshot_frequency = 0;
+static hrt_abstime _bdshot_capture_delay = 0;
 static bool _edt_enabled = false; // Extended DShot Telemetry
 
 
@@ -306,6 +307,10 @@ int up_dshot_init(uint32_t channel_mask, uint32_t bdshot_channel_mask, unsigned 
 	_dshot_frequency = dshot_pwm_freq;
 	_bdshot_channel_mask = bdshot_channel_mask;
 	_edt_enabled = edt_enable;
+
+	// Precompute capture delay: 30us switch time + frame time + 20us margin
+	hrt_abstime frame_us = (16 * 1000000) / _dshot_frequency;
+	_bdshot_capture_delay = 30 + frame_us + 20;
 
 	if (bdshot_channel_mask) {
 		// TODO: show which timers/channels it's enabled on
@@ -602,10 +607,7 @@ void dma_burst_finished_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 	perf_end(burst_perf);
 	perf_begin(capture_window_perf);
 
-	// 30us to switch regardless of DShot frequency + eRPM frame time + 20us for good measure
-	hrt_abstime frame_us = (16 * 1000000) / _dshot_frequency; // 16 bits * us_per_s / bits_per_s
-	hrt_abstime delay = 30 + frame_us + 20;
-	hrt_call_after(&_cc_calls[timer_index], delay, capture_complete_callback, arg);
+	hrt_call_after(&_cc_calls[timer_index], _bdshot_capture_delay, capture_complete_callback, arg);
 }
 
 static void capture_complete_callback(void *arg)
