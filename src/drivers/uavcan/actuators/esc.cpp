@@ -153,9 +153,9 @@ void UavcanEscController::esc_status_extended_sub_cb(const uavcan::ReceivedDataS
 	}
 }
 
-uint8_t UavcanEscController::check_escs_status()
+uint16_t UavcanEscController::check_escs_status()
 {
-	int esc_status_flags = 0;
+	uint16_t esc_status_flags = 0;
 	const hrt_abstime now = hrt_absolute_time();
 
 	for (int index = 0; index < esc_status_s::CONNECTED_ESC_MAX; index++) {

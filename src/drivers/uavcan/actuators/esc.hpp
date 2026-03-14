@@ -99,7 +99,7 @@ private:
 	/**
 	 * Checks all the ESCs freshness based on timestamp, if an ESC exceeds the timeout then is flagged offline.
 	 */
-	uint8_t check_escs_status();
+	uint16_t check_escs_status();
 
 	/**
 	 * Gets failure flags for a specific ESC

@@ -33,60 +33,22 @@
 
 #pragma once
 
-#include <px4_platform_common/Serial.hpp>
-#include <uORB/Publication.hpp>
-#include "DShotCommon.h"
-#include "esc/AM32Settings.h"
+#include <cstdint>
 
-class DShotTelemetry
+enum class ESCType : uint8_t {
+	Unknown = 0,
+	AM32 = 1,
+};
+
+class ESCSettingsInterface
 {
 public:
+	virtual ~ESCSettingsInterface() = default;
 
-	~DShotTelemetry();
+	virtual bool decodeInfoResponse(const uint8_t *buf, int size) = 0;
+	virtual int getExpectedResponseSize() = 0;
+	virtual void publish_latest() { /* no-op */};
 
-	int init(const char *uart_device, bool swap_rxtx);
-	void printStatus() const;
-
-	void startTelemetryRequest();
-	bool telemetryResponseFinished();
-
-	TelemetryStatus parseTelemetryPacket(EscData *esc_data);
-
-	// Attempt to parse a command response. Returns the index of the ESC or -1 on failure.
-	void parseCommandResponse();
-	bool commandResponseFinished();
-	bool commandResponseStarted();
-
-	void setExpectCommandResponse(int motor_index, uint16_t command);
-	void resetCommandResponse();
-	void initSettingsHandlers(ESCType esc_type, uint16_t output_mask);
-
-private:
-	static constexpr int COMMAND_RESPONSE_MAX_SIZE = 49;
-	static constexpr int TELEMETRY_FRAME_SIZE = 10;
-	TelemetryStatus decodeTelemetryResponse(uint8_t *buffer, int length, EscData *esc_data);
-
-	device::Serial _uart{};
-
-	// Command response
-	int _command_response_motor_index{-1};
-	uint16_t _command_response_command{0};
-	uint8_t _command_response_buffer[COMMAND_RESPONSE_MAX_SIZE];
-	int _command_response_position{0};
-	hrt_abstime _command_response_start{0};
-
-	// Telemetry packet
-	uint8_t _frame_buffer[TELEMETRY_FRAME_SIZE];
-	int _frame_position{0};
-	hrt_abstime _telemetry_request_start{0};
-
-	// statistics
-	int _num_timeouts{0};
-	int _num_successful_responses{0};
-	int _num_checksum_errors{0};
-
-	// Settings
-	ESCSettingsInterface *_settings_handlers[DSHOT_MAX_MOTORS] = {nullptr};
-	ESCType _esc_type{ESCType::Unknown};
-	bool _settings_initialized{false};
+	// TODO: function to read data
+	// TODO: function to write data
 };

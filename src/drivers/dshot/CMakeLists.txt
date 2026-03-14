@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2019-2021 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019-2026 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -42,9 +42,11 @@ px4_add_module(
 	MAIN dshot
 	COMPILE_FLAGS
 		-DPARAM_PREFIX="${PARAM_PREFIX}"
+		# -DDEBUG_BUILD
 	SRCS
 		DShot.cpp
 		DShotTelemetry.cpp
+		esc/AM32Settings.cpp
 	DEPENDS
 		arch_io_pins
 		arch_dshot

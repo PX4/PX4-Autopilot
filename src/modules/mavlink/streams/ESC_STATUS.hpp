@@ -52,7 +52,7 @@ public:
 	unsigned get_size() override
 	{
 		static constexpr unsigned message_size = MAVLINK_MSG_ID_ESC_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
-		return _esc_status_subs.advertised_count() * message_size;
+		return MAX_NUM_MSGS * message_size;
 	}
 
 private:
@@ -74,14 +74,17 @@ private:
 
 	EscStatus _escs[MAX_ESC_OUTPUTS] = {};
 
+	uint8_t _esc_count = {};
+	uint8_t _instance_esc_count[ORB_MULTI_MAX_INSTANCES] = {};
+
 	void update_data() override
 	{
-		int subscriber_count = math::min(_esc_status_subs.size(), MAX_NUM_MSGS);
-
-		for (int i = 0; i < subscriber_count; i++) {
+		for (int i = 0; i < _esc_status_subs.size(); i++) {
 			esc_status_s esc = {};
 
 			if (_esc_status_subs[i].update(&esc)) {
+				_instance_esc_count[i] = esc.esc_count;
+
 				for (int j = 0; j < esc_status_s::CONNECTED_ESC_MAX; j++) {
 
 					const bool is_motor = math::isInRange(esc.esc[j].actuator_function,
@@ -90,29 +93,39 @@ private:
 					if (is_motor) {
 						// Map OutputFunction number to index
 						int index = (int)esc.esc[j].actuator_function - esc_report_s::ACTUATOR_FUNCTION_MOTOR1;
-						_escs[index].timestamp = esc.esc[j].timestamp;
-						_escs[index].rpm = esc.esc[j].esc_rpm;
-						_escs[index].voltage = esc.esc[j].esc_voltage;
-						_escs[index].current = esc.esc[j].esc_current;
+
+						if (index >= 0 && index < MAX_ESC_OUTPUTS) {
+							_escs[index].timestamp = esc.esc[j].timestamp;
+							_escs[index].rpm = esc.esc[j].esc_rpm;
+							_escs[index].voltage = esc.esc[j].esc_voltage;
+							_escs[index].current = esc.esc[j].esc_current;
+						}
 					}
 				}
 			}
+		}
+
+		_esc_count = 0;
+
+		for (int i = 0; i < _esc_status_subs.size(); i++) {
+			_esc_count += _instance_esc_count[i];
 		}
 	}
 
 	bool send() override
 	{
-		bool updated = false;
+		if (_esc_count == 0) {
+			return false;
+		}
 
-		for (int i = 0; i < MAX_NUM_MSGS; i++) {
+		const int num_msgs = math::min((_esc_count + ESCS_PER_MSG - 1) / ESCS_PER_MSG, (int)MAX_NUM_MSGS);
+		const hrt_abstime now = hrt_absolute_time();
 
-			hrt_abstime now = hrt_absolute_time();
+		for (int i = 0; i < num_msgs; i++) {
 
 			mavlink_esc_status_t msg = {};
 			msg.index = i * ESCS_PER_MSG;
 			msg.time_usec = now;
-
-			bool atleast_one_esc_updated = false;
 
 			for (int j = 0; j < ESCS_PER_MSG; j++) {
 
@@ -122,17 +135,13 @@ private:
 					msg.rpm[j] = esc.rpm;
 					msg.voltage[j] = esc.voltage;
 					msg.current[j] = esc.current;
-					atleast_one_esc_updated = true;
 				}
 			}
 
-			if (atleast_one_esc_updated) {
-				mavlink_msg_esc_status_send_struct(_mavlink->get_channel(), &msg);
-				updated = true;
-			}
+			mavlink_msg_esc_status_send_struct(_mavlink->get_channel(), &msg);
 		}
 
-		return updated;
+		return true;
 	}
 };
 

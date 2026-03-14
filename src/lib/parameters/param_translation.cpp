@@ -34,6 +34,7 @@
 #include "param_translation.h"
 
 
+#include <inttypes.h>
 #include <px4_platform_common/log.h>
 #include <lib/drivers/device/Device.hpp>
 #include <drivers/drv_sensor.h>
@@ -174,6 +175,20 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 				PX4_INFO("migrating %s -> %s, %s", "MNT_RANGE_PITCH", "MNT_MAX_PITCH", "MNT_MIN_PITCH");
 			}
 
+		}
+	}
+
+	// 2026-03-11: translate MOT_POLE_COUNT to per-motor DSHOT_MOT_POL1-12
+	{
+		if ((node->type == bson_type_t::BSON_INT32) && (strcmp("MOT_POLE_COUNT", node->name) == 0)) {
+			for (int i = 1; i <= 12; i++) {
+				char name[20];
+				snprintf(name, sizeof(name), "DSHOT_MOT_POL%d", i);
+				param_set(param_find(name), &node->i32);
+			}
+
+			PX4_INFO("migrating %s -> DSHOT_MOT_POL1-12 (value=%" PRId32 ")", "MOT_POLE_COUNT", node->i32);
+			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
 		}
 	}
 

@@ -7,7 +7,7 @@ Regression test for DSHOT working with PX4
 ## Preflight
 
 - Ensure vehicle is using a DSHOT ESC
-- Parameter [DSHOT_BIDIR_EN](../advanced_config/parameter_reference.md#DSHOT_BIDIR_EN) is enabled
+- Bidirectional DShot is configured (BDShot150/300/600 selected in [Actuator Configuration](../config/actuators.md))
 - Parameter [DSHOT_TEL_CFG](../advanced_config/parameter_reference.md#DSHOT_TEL_CFG) is configured (if ESC supports telemetry)
 - Parameter [SDLOG_PROFILE](../advanced_config/parameter_reference.md#SDLOG_PROFILE) has Debug (`5`) checked
 

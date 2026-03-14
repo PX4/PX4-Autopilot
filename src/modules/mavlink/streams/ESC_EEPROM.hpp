@@ -31,62 +31,59 @@
  *
  ****************************************************************************/
 
-#pragma once
+#ifndef ESC_EEPROM_HPP
+#define ESC_EEPROM_HPP
 
-#include <px4_platform_common/Serial.hpp>
-#include <uORB/Publication.hpp>
-#include "DShotCommon.h"
-#include "esc/AM32Settings.h"
+#include <uORB/topics/esc_eeprom_read.h>
 
-class DShotTelemetry
+class MavlinkStreamEscEeprom : public MavlinkStream
 {
 public:
+	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamEscEeprom(mavlink); }
 
-	~DShotTelemetry();
+	static constexpr const char *get_name_static() { return "ESC_EEPROM"; }
+	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_ESC_EEPROM; }
 
-	int init(const char *uart_device, bool swap_rxtx);
-	void printStatus() const;
+	const char *get_name() const override { return get_name_static(); }
+	uint16_t get_id() override { return get_id_static(); }
 
-	void startTelemetryRequest();
-	bool telemetryResponseFinished();
-
-	TelemetryStatus parseTelemetryPacket(EscData *esc_data);
-
-	// Attempt to parse a command response. Returns the index of the ESC or -1 on failure.
-	void parseCommandResponse();
-	bool commandResponseFinished();
-	bool commandResponseStarted();
-
-	void setExpectCommandResponse(int motor_index, uint16_t command);
-	void resetCommandResponse();
-	void initSettingsHandlers(ESCType esc_type, uint16_t output_mask);
+	unsigned get_size() override
+	{
+		return _esc_eeprom_read_sub.advertised() ? MAVLINK_MSG_ID_ESC_EEPROM_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	}
 
 private:
-	static constexpr int COMMAND_RESPONSE_MAX_SIZE = 49;
-	static constexpr int TELEMETRY_FRAME_SIZE = 10;
-	TelemetryStatus decodeTelemetryResponse(uint8_t *buffer, int length, EscData *esc_data);
+	explicit MavlinkStreamEscEeprom(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	device::Serial _uart{};
+	uORB::Subscription _esc_eeprom_read_sub{ORB_ID(esc_eeprom_read)};
 
-	// Command response
-	int _command_response_motor_index{-1};
-	uint16_t _command_response_command{0};
-	uint8_t _command_response_buffer[COMMAND_RESPONSE_MAX_SIZE];
-	int _command_response_position{0};
-	hrt_abstime _command_response_start{0};
+	bool emit_message(bool force)
+	{
+		esc_eeprom_read_s eeprom = {};
 
-	// Telemetry packet
-	uint8_t _frame_buffer[TELEMETRY_FRAME_SIZE];
-	int _frame_position{0};
-	hrt_abstime _telemetry_request_start{0};
+		if (_esc_eeprom_read_sub.update(&eeprom) || force) {
+			mavlink_esc_eeprom_t msg = {};
+			msg.firmware = eeprom.firmware;
+			msg.esc_index = eeprom.index;
+			msg.msg_index = 0;
+			msg.msg_count = 1;
+			size_t copy_len = eeprom.length < sizeof(eeprom.data) ? eeprom.length : sizeof(eeprom.data);
+			memcpy(msg.data, eeprom.data, copy_len);
+			msg.length = copy_len;
 
-	// statistics
-	int _num_timeouts{0};
-	int _num_successful_responses{0};
-	int _num_checksum_errors{0};
+			mavlink_msg_esc_eeprom_send_struct(_mavlink->get_channel(), &msg);
 
-	// Settings
-	ESCSettingsInterface *_settings_handlers[DSHOT_MAX_MOTORS] = {nullptr};
-	ESCType _esc_type{ESCType::Unknown};
-	bool _settings_initialized{false};
+			return true;
+		}
+
+		return false;
+	}
+
+	bool send() override
+	{
+		return emit_message(false);
+	}
+
 };
+
+#endif // ESC_EEPROM_HPP
