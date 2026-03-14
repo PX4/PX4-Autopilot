@@ -161,6 +161,7 @@ void DShotTelemetry::parseCommandResponse()
 	switch (_command_response_command) {
 	case DSHOT_CMD_ESC_INFO: {
 			if (_command_response_motor_index < 0 || _command_response_motor_index >= DSHOT_MAX_MOTORS) {
+				resetCommandResponse();
 				return;
 			}
 
