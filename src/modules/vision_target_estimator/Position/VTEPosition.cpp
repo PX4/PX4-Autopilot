@@ -70,6 +70,7 @@ VTEPosition::~VTEPosition()
 {
 	perf_free(_vte_predict_perf);
 	perf_free(_vte_update_perf);
+	perf_free(_vte_fusion_perf);
 }
 
 bool VTEPosition::shouldEmitWarning(hrt_abstime &last_warn)
