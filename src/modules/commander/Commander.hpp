@@ -279,8 +279,7 @@ private:
 	bool _last_overload{false};
 	bool _mode_switch_mapped{false};
 
-	bool _is_throttle_above_center{false};
-	bool _is_throttle_low{false};
+	float _last_manual_throttle{-1.f};
 
 	bool _arm_tune_played{false};
 	bool _have_taken_off_since_arming{false};
