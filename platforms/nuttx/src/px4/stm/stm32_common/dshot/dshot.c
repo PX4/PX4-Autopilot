@@ -104,7 +104,7 @@ typedef struct timer_config_t {
 	bool initialized;               // Timer initialized
 	bool initialized_channels[4];   // Timer channels initialized (successfully started)
 	bool bidirectional;             // Timer in bidir (inverted) mode
-	int capture_channel;            // Timer channel currently being catured in bidirectional mode
+	int capture_channel;            // Timer channel currently being captured in bidirectional mode
 	uint8_t timer_index;            // Timer index. Necessary to have memory for passing pointer to hrt callback
 } timer_config_t;
 
