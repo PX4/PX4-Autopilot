@@ -4,17 +4,17 @@
  ****************************************************************************/
 #pragma once
 
-// Translate VehicleStatus v1 <--> v2
-#include <px4_msgs_old/msg/vehicle_status_v1.hpp>
+// Translate VehicleStatus v2 <--> v3
 #include <px4_msgs_old/msg/vehicle_status_v2.hpp>
+#include <px4_msgs/msg/vehicle_status.hpp>
 
-class VehicleStatusV2Translation {
+class VehicleStatusV3Translation {
 public:
-	using MessageOlder = px4_msgs_old::msg::VehicleStatusV1;
-	static_assert(MessageOlder::MESSAGE_VERSION == 1);
+	using MessageOlder = px4_msgs_old::msg::VehicleStatusV2;
+	static_assert(MessageOlder::MESSAGE_VERSION == 2);
 
-	using MessageNewer = px4_msgs_old::msg::VehicleStatusV2;
-	static_assert(MessageNewer::MESSAGE_VERSION == 2);
+	using MessageNewer = px4_msgs::msg::VehicleStatus;
+	static_assert(MessageNewer::MESSAGE_VERSION == 3);
 
 	static constexpr const char* kTopic = "fmu/out/vehicle_status";
 
@@ -30,10 +30,10 @@ public:
 		msg_newer.nav_state_user_intention = msg_older.nav_state_user_intention;
 		msg_newer.nav_state = msg_older.nav_state;
 		msg_newer.executor_in_charge = msg_older.executor_in_charge;
-		msg_newer.nav_state_display = msg_older.nav_state; // use nav_state since active mode executor's navigation state was not known before
+		msg_newer.nav_state_display = msg_older.nav_state_display;
 		msg_newer.valid_nav_states_mask = msg_older.valid_nav_states_mask;
 		msg_newer.can_set_nav_states_mask = msg_older.can_set_nav_states_mask;
-		msg_newer.failure_detector_status = msg_older.failure_detector_status;
+		// failure_detector_status removed (use separate FailureDetectorStatus topic)
 		msg_newer.hil_state = msg_older.hil_state;
 		msg_newer.vehicle_type = msg_older.vehicle_type;
 		msg_newer.failsafe = msg_older.failsafe;
@@ -57,7 +57,7 @@ public:
 		msg_newer.open_drone_id_system_healthy = msg_older.open_drone_id_system_healthy;
 		msg_newer.parachute_system_present = msg_older.parachute_system_present;
 		msg_newer.parachute_system_healthy = msg_older.parachute_system_healthy;
-		msg_newer.traffic_avoidance_system_present = false; // New field, default to false
+		msg_newer.traffic_avoidance_system_present = msg_older.traffic_avoidance_system_present;
 		msg_newer.rc_calibration_in_progress = msg_older.rc_calibration_in_progress;
 		msg_newer.calibration_enabled = msg_older.calibration_enabled;
 		msg_newer.pre_flight_checks_pass = msg_older.pre_flight_checks_pass;
@@ -75,10 +75,10 @@ public:
 		msg_older.nav_state_user_intention = msg_newer.nav_state_user_intention;
 		msg_older.nav_state = msg_newer.nav_state;
 		msg_older.executor_in_charge = msg_newer.executor_in_charge;
-		// nav_state_display dropped (not in V1)
+		msg_older.nav_state_display = msg_newer.nav_state_display;
 		msg_older.valid_nav_states_mask = msg_newer.valid_nav_states_mask;
 		msg_older.can_set_nav_states_mask = msg_newer.can_set_nav_states_mask;
-		msg_older.failure_detector_status = msg_newer.failure_detector_status;
+		msg_older.failure_detector_status = 0; // Removed in v3, use separate FailureDetectorStatus topic
 		msg_older.hil_state = msg_newer.hil_state;
 		msg_older.vehicle_type = msg_newer.vehicle_type;
 		msg_older.failsafe = msg_newer.failsafe;
@@ -102,11 +102,11 @@ public:
 		msg_older.open_drone_id_system_healthy = msg_newer.open_drone_id_system_healthy;
 		msg_older.parachute_system_present = msg_newer.parachute_system_present;
 		msg_older.parachute_system_healthy = msg_newer.parachute_system_healthy;
-		// traffic_avoidance_system_present is dropped (not in V1)
+		msg_older.traffic_avoidance_system_present = msg_newer.traffic_avoidance_system_present;
 		msg_older.rc_calibration_in_progress = msg_newer.rc_calibration_in_progress;
 		msg_older.calibration_enabled = msg_newer.calibration_enabled;
 		msg_older.pre_flight_checks_pass = msg_newer.pre_flight_checks_pass;
 	}
 };
 
-REGISTER_TOPIC_TRANSLATION_DIRECT(VehicleStatusV2Translation);
+REGISTER_TOPIC_TRANSLATION_DIRECT(VehicleStatusV3Translation);
