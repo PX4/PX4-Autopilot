@@ -37,7 +37,7 @@
 
 ModuleBase::Descriptor DShot::desc{task_spawn, custom_command, print_usage};
 
-char DShot::_serial_port_path[] {};
+char DShot::_serial_port_path[20] {};
 bool DShot::_telemetry_swap_rxtx{false};
 px4::atomic_bool DShot::_request_telemetry_init{false};
 
