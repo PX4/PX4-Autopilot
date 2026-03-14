@@ -104,7 +104,7 @@ private:
 	/**
 	 * Gets failure flags for a specific ESC
 	 */
-	uint32_t get_failures(uint8_t esc_index);
+	uint32_t get_failures(uint8_t esc_index, uint8_t node_id);
 
 	typedef uavcan::MethodBinder<UavcanEscController *,
 		void (UavcanEscController::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status>&)> StatusCbBinder;
