@@ -71,6 +71,7 @@ jobs:
       - name: Build PX4
         env:
           PX4_CMAKE_BUILD_TYPE: ${{matrix.config.build_type}}
+          PX4_SBOM_DISABLE: 1
         run: make px4_sitl_default
 
       - name: Cache Post-Run [px4_sitl_default]

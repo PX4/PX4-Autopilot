@@ -1,0 +1,132 @@
+name: SBOM Monthly Audit
+
+on:
+  schedule:
+    # First Monday of each month at 09:00 UTC
+    - cron: '0 9 1-7 * 1'
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to audit (leave empty for current)'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch || github.ref }}
+          fetch-depth: 1
+          submodules: recursive
+
+      - name: Install PyYAML
+        run: pip install pyyaml --break-system-packages
+
+      - name: Run license verification
+        id: verify
+        continue-on-error: true
+        run: |
+          python3 Tools/ci/generate_sbom.py --verify-licenses --source-dir . 2>&1 | tee /tmp/sbom-verify.txt
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+
+      - name: Check for issues
+        id: check
+        run: |
+          if grep -q "NOASSERTION" /tmp/sbom-verify.txt; then
+            echo "has_issues=true" >> "$GITHUB_OUTPUT"
+            # Extract NOASSERTION lines
+            grep "NOASSERTION" /tmp/sbom-verify.txt | grep -v "skipped" > /tmp/sbom-issues.txt || true
+            # Extract copyleft lines
+            sed -n '/Copyleft licenses detected/,/^$/p' /tmp/sbom-verify.txt > /tmp/sbom-copyleft.txt || true
+          else
+            echo "has_issues=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create issue if problems found
+        if: steps.check.outputs.has_issues == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            const fullOutput = fs.readFileSync('/tmp/sbom-verify.txt', 'utf8');
+            let issueLines = '';
+            try {
+              issueLines = fs.readFileSync('/tmp/sbom-issues.txt', 'utf8');
+            } catch (e) {
+              issueLines = 'No specific NOASSERTION lines captured.';
+            }
+            let copyleftLines = '';
+            try {
+              copyleftLines = fs.readFileSync('/tmp/sbom-copyleft.txt', 'utf8');
+            } catch (e) {
+              copyleftLines = '';
+            }
+
+            const date = new Date().toISOString().split('T')[0];
+            const branch = '${{ inputs.branch || github.ref_name }}';
+
+            // Check for existing open issue to avoid duplicates
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: 'sbom-audit',
+              state: 'open',
+            });
+
+            if (existing.data.length > 0) {
+              // Update existing issue with new findings
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.data[0].number,
+                body: `## Monthly audit update (${date})\n\nIssues still present:\n\n\`\`\`\n${issueLines}\n\`\`\`\n${copyleftLines ? `\n### Copyleft warnings\n\`\`\`\n${copyleftLines}\n\`\`\`` : ''}`,
+              });
+              return;
+            }
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `chore(sbom): license audit found NOASSERTION entries on ${branch} (${date})`,
+              labels: ['sbom-audit'],
+              assignees: ['mrpollo'],
+              body: [
+                `## SBOM Monthly Audit -- ${branch} -- ${date}`,
+                '',
+                'The automated SBOM license audit found submodules with unresolved licenses.',
+                '',
+                '### NOASSERTION entries',
+                '',
+                '```',
+                issueLines,
+                '```',
+                '',
+                copyleftLines ? `### Copyleft warnings\n\n\`\`\`\n${copyleftLines}\n\`\`\`\n` : '',
+                '### How to fix',
+                '',
+                '1. Check the submodule repo for a LICENSE file',
+                '2. Add an override to `Tools/ci/license-overrides.yaml`',
+                '3. Run `python3 Tools/ci/generate_sbom.py --verify-licenses --source-dir .` to confirm',
+                '',
+                '### Full output',
+                '',
+                '<details>',
+                '<summary>Click to expand</summary>',
+                '',
+                '```',
+                fullOutput,
+                '```',
+                '',
+                '</details>',
+                '',
+                'cc @mrpollo',
+              ].join('\n'),
+            });

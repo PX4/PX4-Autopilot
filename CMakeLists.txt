@@ -484,6 +484,7 @@ include(bloaty)
 
 include(metadata)
 include(package)
+include(sbom)
 
 # install python requirements using configured python
 add_custom_target(install_python_requirements
