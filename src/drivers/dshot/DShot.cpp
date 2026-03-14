@@ -261,7 +261,7 @@ void DShot::select_next_command()
 			int next_index = -1;
 
 			// Find settings that need to be written but haven't been yet
-			int max_length = math::min((int)_esc_eeprom_write.length, 64);
+			int max_length = math::min((int)_esc_eeprom_write.length, (int)sizeof(_esc_eeprom_write.data));
 
 			for (int i = 0; i < max_length; i++) {
 				int array_index = i / 32;
