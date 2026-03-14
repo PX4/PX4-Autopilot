@@ -57,6 +57,17 @@ param set PWM_MAIN_FUNC10 2064
 param set PPS_CAP_ENABLE 1
 ```
 
+#### Multi-GPS Setups
+
+If you have multiple GPS receivers, set `PPS_CAP_GPS_ID` to the device ID of the GPS receiver that emits the PPS signal.
+When set to `0` (default), the driver uses the first available GPS instance.
+
+You can find the device ID by running:
+
+```sh
+listener sensor_gps
+```
+
 ### Wiring
 
 The wiring configuration depends on your specific flight controller.
@@ -129,5 +140,5 @@ See also:
 The PPS signal provides much higher temporal precision than the transmitted time data, which has latency and jitter from serial communication.
 
 ::: warning
-If the PPS driver does not sending any data for 5 seconds (despite having `PPS_CAP_ENABLE` set to 1), the `SENS_GPS0_DELAY` will be used instead for estimating the latency.
+If the PPS driver does not send any data for 5 seconds (despite having `PPS_CAP_ENABLE` set to 1), the corresponding `SENS_GPS*_DELAY` parameter will be used instead for estimating the latency.
 :::
