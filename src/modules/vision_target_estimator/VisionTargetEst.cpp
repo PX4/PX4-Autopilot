@@ -461,9 +461,7 @@ bool VisionTargetEst::startPosEst()
 
 const position_setpoint_s *VisionTargetEst::findLandSetpoint()
 {
-	if (!_pos_sp_triplet_sub.update(&_pos_sp_triplet_buffer)) {
-		return nullptr;
-	}
+	(void)_pos_sp_triplet_sub.update(&_pos_sp_triplet_buffer);
 
 	if (_pos_sp_triplet_buffer.next.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 		PX4_DEBUG("VTE for precision landing, next sp is land.");
