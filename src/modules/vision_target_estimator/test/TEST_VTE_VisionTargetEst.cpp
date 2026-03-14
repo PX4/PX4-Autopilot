@@ -45,25 +45,25 @@
 
 #include <drivers/drv_hrt.h>
 #include <parameters/param.h>
-#include <uORB/uORBManager.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/fiducial_marker_pos_report.h>
+#include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vision_target_est_input.h>
+#include <uORB/uORBManager.hpp>
 #if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 #include <uORB/topics/prec_land_status.h>
 #endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 #include <matrix/Quaternion.hpp>
 #include <matrix/Vector.hpp>
 
-#include "VisionTargetEst.h"
 #include "VTETestHelper.hpp"
+#include "VisionTargetEst.h"
 
 namespace vte = vision_target_estimator;
 
@@ -80,29 +80,6 @@ static constexpr hrt_abstime kStepUs = 1_ms;
 class VisionTargetEstTestable : public vte::VisionTargetEst
 {
 public:
-	using vte::VisionTargetEst::kAccUpdatedTimeoutUs;
-	using vte::VisionTargetEst::kEstRestartTimeUs;
-	using vte::VisionTargetEst::kMinAccDownsampleTimeoutUs;
-	using vte::VisionTargetEst::kPosUpdatePeriodUs;
-	using vte::VisionTargetEst::kYawUpdatePeriodUs;
-	using vte::VisionTargetEst::LocalPose;
-	using vte::VisionTargetEst::adjustAidMask;
-	using vte::VisionTargetEst::allEstStoppedDueToTimeout;
-	using vte::VisionTargetEst::computeGpsVelocityOffset;
-	using vte::VisionTargetEst::findLandSetpoint;
-	using vte::VisionTargetEst::isCurrentTaskComplete;
-	using vte::VisionTargetEst::isNewTaskAvailable;
-	using vte::VisionTargetEst::pollEstimatorInput;
-	using vte::VisionTargetEst::publishVteInput;
-	using vte::VisionTargetEst::startPosEst;
-	using vte::VisionTargetEst::startYawEst;
-	using vte::VisionTargetEst::stopPosEst;
-	using vte::VisionTargetEst::stopYawEst;
-	using vte::VisionTargetEst::updateEstimators;
-	using vte::VisionTargetEst::updateParams;
-	using vte::VisionTargetEst::updatePosEst;
-	using vte::VisionTargetEst::updateTaskTopics;
-	using vte::VisionTargetEst::updateWhenIntervalElapsed;
 	using vte::VisionTargetEst::_acc_sample_count;
 	using vte::VisionTargetEst::_acc_sample_warn_last;
 	using vte::VisionTargetEst::_current_task;
@@ -113,6 +90,7 @@ public:
 	using vte::VisionTargetEst::_last_update_pos;
 	using vte::VisionTargetEst::_orientation_estimator_running;
 	using vte::VisionTargetEst::_pos_sp_triplet_buffer;
+	using vte::VisionTargetEst::_pos_sp_triplet_sub;
 	using vte::VisionTargetEst::_position_estimator_running;
 	using vte::VisionTargetEst::_vehicle_acc_body;
 	using vte::VisionTargetEst::_vehicle_acc_ned_sum;
@@ -127,7 +105,29 @@ public:
 	using vte::VisionTargetEst::_vte_position_enabled;
 	using vte::VisionTargetEst::_vte_position_stop_time;
 	using vte::VisionTargetEst::_vte_task_mask;
-	using vte::VisionTargetEst::_pos_sp_triplet_sub;
+	using vte::VisionTargetEst::adjustAidMask;
+	using vte::VisionTargetEst::allEstStoppedDueToTimeout;
+	using vte::VisionTargetEst::computeGpsVelocityOffset;
+	using vte::VisionTargetEst::findLandSetpoint;
+	using vte::VisionTargetEst::isCurrentTaskComplete;
+	using vte::VisionTargetEst::isNewTaskAvailable;
+	using vte::VisionTargetEst::kAccUpdatedTimeoutUs;
+	using vte::VisionTargetEst::kEstRestartTimeUs;
+	using vte::VisionTargetEst::kMinAccDownsampleTimeoutUs;
+	using vte::VisionTargetEst::kPosUpdatePeriodUs;
+	using vte::VisionTargetEst::kYawUpdatePeriodUs;
+	using vte::VisionTargetEst::LocalPose;
+	using vte::VisionTargetEst::pollEstimatorInput;
+	using vte::VisionTargetEst::publishVteInput;
+	using vte::VisionTargetEst::startPosEst;
+	using vte::VisionTargetEst::startYawEst;
+	using vte::VisionTargetEst::stopPosEst;
+	using vte::VisionTargetEst::stopYawEst;
+	using vte::VisionTargetEst::updateEstimators;
+	using vte::VisionTargetEst::updateParams;
+	using vte::VisionTargetEst::updatePosEst;
+	using vte::VisionTargetEst::updateTaskTopics;
+	using vte::VisionTargetEst::updateWhenIntervalElapsed;
 #if !defined(CONSTRAINED_FLASH)
 	using vte::VisionTargetEst::_prec_land_status_sub;
 #endif
@@ -136,10 +136,7 @@ public:
 class VisionTargetEstTest : public ::testing::Test
 {
 protected:
-	static void SetUpTestSuite()
-	{
-		uORB::Manager::initialize();
-	}
+	static void SetUpTestSuite() { uORB::Manager::initialize(); }
 
 	void SetUp() override
 	{
@@ -296,10 +293,11 @@ TEST_F(VisionTargetEstTest, AdjustAidMaskResolvesConflicts)
 
 TEST_F(VisionTargetEstTest, UpdateParamsSetsGpsOffsetThreshold)
 {
-	// WHY: All measurements are fused at the center of mass. The GNSS measurement must be offset using the antenna's location
+	// WHY: All measurements are fused at the center of mass. The GNSS measurement
+	// must be offset using the antenna's location
 	// WHAT: Apply a non-zero offset, verify enabled, then reset to zero and verify disabled.
 
-	const matrix::Vector3f gps_offset_gt {0.2, -0.015, 3.1};
+	const matrix::Vector3f gps_offset_gt{0.2, -0.015, 3.1};
 	setParamFloat("EKF2_GPS_POS_X", gps_offset_gt(0));
 	setParamFloat("EKF2_GPS_POS_Y", gps_offset_gt(1));
 	setParamFloat("EKF2_GPS_POS_Z", gps_offset_gt(2));
@@ -359,7 +357,8 @@ TEST_F(VisionTargetEstTest, PollEstimatorInputRequiresAttitude)
 	const bool vel_offset_updated = true;
 	bool acc_valid = true;
 
-	EXPECT_FALSE(_vte->pollEstimatorInput(acc_ned, q_att, gps_offset, vel_offset, vel_offset_updated, acc_valid));
+	EXPECT_FALSE(_vte->pollEstimatorInput(acc_ned, q_att, gps_offset, vel_offset,
+					      vel_offset_updated, acc_valid));
 }
 
 TEST_F(VisionTargetEstTest, PollEstimatorInputTransformsAccelerationAndOffsets)
@@ -384,7 +383,8 @@ TEST_F(VisionTargetEstTest, PollEstimatorInputTransformsAccelerationAndOffsets)
 	const bool vel_offset_updated = true;
 	bool acc_valid = false;
 
-	ASSERT_TRUE(_vte->pollEstimatorInput(acc_ned, q_att, gps_offset, vel_offset, vel_offset_updated, acc_valid));
+	ASSERT_TRUE(_vte->pollEstimatorInput(acc_ned, q_att, gps_offset, vel_offset,
+					     vel_offset_updated, acc_valid));
 	EXPECT_TRUE(acc_valid);
 	EXPECT_NEAR(acc_ned(0), rotated_vec(0), kTolerance);
 	EXPECT_NEAR(acc_ned(1), rotated_vec(1), kTolerance);
@@ -417,7 +417,8 @@ TEST_F(VisionTargetEstTest, PollEstimatorInputNoOffsetZerosVectors)
 	const bool vel_offset_updated = true;
 	bool acc_valid = false;
 
-	ASSERT_TRUE(_vte->pollEstimatorInput(acc_ned, q_att, gps_offset, vel_offset, vel_offset_updated, acc_valid));
+	ASSERT_TRUE(_vte->pollEstimatorInput(acc_ned, q_att, gps_offset, vel_offset,
+					     vel_offset_updated, acc_valid));
 	EXPECT_TRUE(acc_valid);
 	EXPECT_NEAR(gps_offset(0), 0.f, kTolerance);
 	EXPECT_NEAR(gps_offset(1), 0.f, kTolerance);
@@ -460,7 +461,7 @@ TEST_F(VisionTargetEstTest, UpdateWhenIntervalElapsedRespectsInterval)
 	hrt_abstime last_time = vte_test::nowUs();
 	EXPECT_FALSE(_vte->updateWhenIntervalElapsed(last_time, interval));
 
-	vte_test::advanceMicroseconds(interval + 1_ms);
+	last_time = vte_test::nowUs() - interval - 1_ms;
 	EXPECT_TRUE(_vte->updateWhenIntervalElapsed(last_time, interval));
 }
 
@@ -489,6 +490,10 @@ TEST_F(VisionTargetEstTest, FindLandSetpointSelectsCorrectSetpoint)
 	const position_setpoint_s *next_sp = _vte->findLandSetpoint();
 	ASSERT_NE(next_sp, nullptr);
 	EXPECT_EQ(next_sp, &_vte->_pos_sp_triplet_buffer.next);
+
+	const position_setpoint_s *cached_sp = _vte->findLandSetpoint();
+	ASSERT_NE(cached_sp, nullptr);
+	EXPECT_EQ(cached_sp, &_vte->_pos_sp_triplet_buffer.next);
 }
 
 TEST_F(VisionTargetEstTest, PrecisionLandTaskRequestAndCompletion)
@@ -610,8 +615,10 @@ TEST_F(VisionTargetEstTest, StartEstimatorsEnforceRestartTimeout)
 	EXPECT_FALSE(_vte->startPosEst());
 	EXPECT_FALSE(_vte->startYawEst());
 
-	_vte->_vte_position_stop_time = vte_test::nowUs() - (VisionTargetEstTestable::kEstRestartTimeUs - 1_ms);
-	_vte->_vte_orientation_stop_time = vte_test::nowUs() - (VisionTargetEstTestable::kEstRestartTimeUs - 1_ms);
+	_vte->_vte_position_stop_time =
+		vte_test::nowUs() - (VisionTargetEstTestable::kEstRestartTimeUs - 1_ms);
+	_vte->_vte_orientation_stop_time =
+		vte_test::nowUs() - (VisionTargetEstTestable::kEstRestartTimeUs - 1_ms);
 
 	EXPECT_FALSE(_vte->startPosEst());
 	EXPECT_FALSE(_vte->startYawEst());
@@ -619,6 +626,32 @@ TEST_F(VisionTargetEstTest, StartEstimatorsEnforceRestartTimeout)
 	vte_test::advanceMicroseconds(2_ms);
 	EXPECT_TRUE(_vte->startPosEst());
 	EXPECT_TRUE(_vte->startYawEst());
+}
+
+TEST_F(VisionTargetEstTest, UpdateParamsStopsRunningEstimatorsWhenFusionDisabled)
+{
+	// WHY: Disabling the aid mask at runtime should stop any estimator that no longer has inputs.
+	// WHAT: Mark both estimators running, then clear VTE_AID_MASK and verify they are stopped.
+	_vte->_vte_position_enabled = true;
+	_vte->_vte_orientation_enabled = true;
+	_vte->_position_estimator_running = true;
+	_vte->_orientation_estimator_running = true;
+
+	vte::SensorFusionMaskU aid_mask{};
+	aid_mask.flags.use_vision_pos = 1;
+	setParamInt("VTE_AID_MASK", aid_mask.value);
+	_vte->updateParams();
+
+	EXPECT_TRUE(_vte->_position_estimator_running);
+	EXPECT_TRUE(_vte->_orientation_estimator_running);
+
+	setParamInt("VTE_AID_MASK", 0);
+	_vte->updateParams();
+
+	EXPECT_FALSE(_vte->_position_estimator_running);
+	EXPECT_FALSE(_vte->_orientation_estimator_running);
+	EXPECT_GT(_vte->_vte_position_stop_time, 0u);
+	EXPECT_GT(_vte->_vte_orientation_stop_time, 0u);
 }
 
 TEST_F(VisionTargetEstTest, EstimatorUpdatePeriod)
@@ -651,9 +684,9 @@ TEST_F(VisionTargetEstTest, AllEstStoppedDueToTimeoutStopsPositionEstimator)
 	_vte->_vte_position.set_local_velocity(matrix::Vector3f{}, true, timestamp);
 
 	uORB::Publication<fiducial_marker_pos_report_s> vision_pub{ORB_ID(fiducial_marker_pos_report)};
-	ASSERT_TRUE(vte_test::publishVisionPos(vision_pub, matrix::Vector3f(1.f, 0.f, -1.f),
-					       vte_test::identityQuat(),
-					       matrix::Vector3f(0.01f, 0.01f, 0.01f), timestamp));
+	ASSERT_TRUE(vte_test::publishVisionPos(
+			    vision_pub, matrix::Vector3f(1.f, 0.f, -1.f), vte_test::identityQuat(),
+			    matrix::Vector3f(0.01f, 0.01f, 0.01f), timestamp));
 
 	_vte->_vte_position.update(matrix::Vector3f{0.f, 0.f, 0.f});
 	const hrt_abstime time_param_update = vte_test::nowUs();
@@ -699,7 +732,8 @@ TEST_F(VisionTargetEstTest, UpdateEstimatorsWarnsOnStaleAcceleration)
 	const hrt_abstime timestamp = vte_test::nowUs();
 	publishAttitude(vte_test::identityQuat(), timestamp);
 
-	const hrt_abstime stale_timestamp = timestamp - (VisionTargetEstTestable::kAccUpdatedTimeoutUs + 1_ms);
+	const hrt_abstime stale_timestamp =
+		timestamp - (VisionTargetEstTestable::kAccUpdatedTimeoutUs + 1_ms);
 	publishAcceleration(matrix::Vector3f(0.1f, -0.2f, 9.5f), stale_timestamp);
 
 	_vte->updateEstimators();

@@ -42,17 +42,17 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
-#include <memory>
 #include <matrix/math.hpp>
+#include <memory>
 
 #include <drivers/drv_hrt.h>
 #include <parameters/param.h>
-#include <uORB/uORBManager.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/fiducial_marker_yaw_report.h>
-#include <uORB/topics/vte_aid_source1d.h>
 #include <uORB/topics/vision_target_est_orientation.h>
+#include <uORB/topics/vte_aid_source1d.h>
+#include <uORB/uORBManager.hpp>
 
 #include "Orientation/VTEOrientation.h"
 #include "VTETestHelper.hpp"
@@ -82,10 +82,7 @@ public:
 class VTEOrientationTest : public ::testing::Test
 {
 protected:
-	static void SetUpTestSuite()
-	{
-		uORB::Manager::initialize();
-	}
+	static void SetUpTestSuite() { uORB::Manager::initialize(); }
 
 	void SetUp() override
 	{
@@ -178,7 +175,8 @@ TEST_F(VTEOrientationTest, InitFromVisionYawPublishesOrientation)
 TEST_F(VTEOrientationTest, DoesNotFuseWhenVisionDisabled)
 {
 	// WHY: Fusion should be disabled when the aid mask is empty.
-	// WHAT: Publish a valid yaw without enabling vision fusion and expect no output.
+	// WHAT: Publish a valid yaw without enabling vision fusion and expect no
+	// output.
 	publishVisionYaw(0.2f, 0.01f, vte_test::advanceMicroseconds(kStepUs));
 	_vte->update();
 
@@ -201,8 +199,8 @@ TEST_F(VTEOrientationTest, RejectsInvalidYaw)
 
 TEST_F(VTEOrientationTest, RejectsInvalidYawVarianceWhenNoiseModeOff)
 {
-	// WHY: Vision yaw variance must be finite when noise mode uses message variance.
-	// WHAT: Publish NaN variance and ensure no outputs are produced.
+	// WHY: Vision yaw variance must be finite when noise mode uses message
+	// variance. WHAT: Publish NaN variance and ensure no outputs are produced.
 	enableVisionFusion();
 
 	setParamInt("VTE_EV_NOISE_MD", 0);
@@ -300,7 +298,8 @@ TEST_F(VTEOrientationTest, RangeNoiseFallbackUsesDefaultDistance)
 TEST_F(VTEOrientationTest, RejectsOutlierNis)
 {
 	// WHY: NIS gating protects against yaw outliers.
-	// WHAT: Initialize at yaw 0, then fuse a far measurement and expect rejection.
+	// WHAT: Initialize at yaw 0, then fuse a far measurement and expect
+	// rejection.
 	enableVisionFusion();
 
 	setParamFloat("VTE_YAW_NIS_THRE", 0.2f);
@@ -315,7 +314,8 @@ TEST_F(VTEOrientationTest, RejectsOutlierNis)
 
 	ASSERT_TRUE(_aid_sub->update());
 	const auto aid = _aid_sub->get();
-	EXPECT_EQ(aid.fusion_status, static_cast<uint8_t>(vte::FusionStatus::REJECT_NIS));
+	EXPECT_EQ(aid.fusion_status,
+		  static_cast<uint8_t>(vte::FusionStatus::REJECT_NIS));
 
 	ASSERT_TRUE(_state_sub->update());
 	const auto state = _state_sub->get();
@@ -407,6 +407,40 @@ TEST_F(VTEOrientationTest, FusesOosmYawMeasurement)
 	const auto aid = _aid_sub->get();
 	EXPECT_EQ(aid.fusion_status, static_cast<uint8_t>(vte::FusionStatus::FUSED_OOSM));
 	EXPECT_GT(aid.history_steps, 0u);
+}
+
+TEST_F(VTEOrientationTest, ResetsFilterOnStalePredictionGap)
+{
+	// WHY: A long scheduling gap should reset the filter instead of predicting across stale time.
+	// WHAT: Initialize once, wait past the allowed prediction gap, then verify a fresh measurement re-initializes cleanly.
+	enableVisionFusion();
+
+	publishVisionYaw(0.1f, 0.01f, vte_test::advanceMicroseconds(kStepUs));
+	_vte->update();
+
+	ASSERT_TRUE(_state_sub->update());
+	EXPECT_NEAR(_state_sub->get().yaw, 0.1f, kTolerance);
+
+	vte_test::flushSubscription(_aid_sub);
+	vte_test::flushSubscription(_state_sub);
+
+	vte_test::advanceMicroseconds(120_ms);
+	_vte->update();
+
+	EXPECT_FALSE(_aid_sub->update());
+	EXPECT_FALSE(_state_sub->update());
+
+	publishVisionYaw(-0.25f, 0.01f, vte_test::advanceMicroseconds(kStepUs));
+	_vte->update();
+
+	ASSERT_TRUE(_aid_sub->update());
+	EXPECT_EQ(_aid_sub->get().fusion_status,
+		  static_cast<uint8_t>(vte::FusionStatus::FUSED_CURRENT));
+
+	ASSERT_TRUE(_state_sub->update());
+	const auto state = _state_sub->get();
+	EXPECT_NEAR(state.yaw, -0.25f, kTolerance);
+	EXPECT_NEAR(state.yaw_rate, 0.f, kTolerance);
 }
 
 TEST_F(VTEOrientationTest, TargetValidityTimeout)
