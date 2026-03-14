@@ -406,6 +406,15 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 
 			if (_param_dshot_3d_enable.get() || (_reversible_outputs & (1u << i))) {
 				output = convert_output_to_3d_scaling(output);
+
+				// 3D scaling maps deadzone inputs to DSHOT_DISARM_VALUE;
+				// send motor stop instead of passing through up_dshot_motor_data_set
+				// which would add the MIN_throttle offset
+				if (output == DSHOT_DISARM_VALUE) {
+					up_dshot_motor_command(i, DShot_cmd_motor_stop, telemetry_index == requested_telemetry_index);
+					telemetry_index += _mixing_output.isFunctionSet(i);
+					continue;
+				}
 			}
 
 			up_dshot_motor_data_set(i, math::min(output, static_cast<uint16_t>(DSHOT_MAX_THROTTLE)),
