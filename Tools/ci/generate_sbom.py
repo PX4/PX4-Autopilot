@@ -7,7 +7,7 @@ Produces one SBOM per board target containing:
 - Python build requirements as BUILD_DEPENDENCY_OF packages
 - Board-specific modules as CONTAINS packages
 
-Uses only Python standard library (no pip dependencies).
+Requires PyYAML (pyyaml) for loading license overrides.
 """
 import argparse
 import configparser
@@ -18,25 +18,53 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
+import yaml
+
 # Ordered most-specific first: all keywords must appear for a match.
 LICENSE_PATTERNS = [
-    ("Apache-2.0",   ["Apache License", "Version 2.0"]),
-    ("MIT",          ["Permission is hereby granted"]),
-    ("BSD-3-Clause", ["Redistribution and use", "Neither the name"]),
-    ("BSD-2-Clause", ["Redistribution and use", "THIS SOFTWARE IS PROVIDED"]),
-    ("ISC",          ["Permission to use, copy, modify, and/or distribute"]),
-    ("EPL-2.0",      ["Eclipse Public License", "2.0"]),
-    ("LGPL-2.1-only", ["GNU Lesser General Public License", "Version 2.1"]),
-    ("Unlicense",    ["Unlicense"]),
+    # Copyleft licenses first (more specific keywords prevent false matches)
+    ("GPL-3.0-only",    ["GNU GENERAL PUBLIC LICENSE", "Version 3"]),
+    ("GPL-2.0-only",    ["GNU GENERAL PUBLIC LICENSE", "Version 2"]),
+    ("LGPL-3.0-only",   ["GNU LESSER GENERAL PUBLIC LICENSE", "Version 3"]),
+    ("LGPL-2.1-only",   ["GNU Lesser General Public License", "Version 2.1"]),
+    ("AGPL-3.0-only",   ["GNU AFFERO GENERAL PUBLIC LICENSE", "Version 3"]),
+    # Permissive licenses
+    ("Apache-2.0",      ["Apache License", "Version 2.0"]),
+    ("MIT",             ["Permission is hereby granted"]),
+    ("BSD-3-Clause",    ["Redistribution and use", "Neither the name"]),
+    ("BSD-2-Clause",    ["Redistribution and use", "THIS SOFTWARE IS PROVIDED"]),
+    ("ISC",             ["Permission to use, copy, modify, and/or distribute"]),
+    ("EPL-2.0",         ["Eclipse Public License", "2.0"]),
+    ("Unlicense",       ["The Unlicense", "unlicense.org"]),
 ]
 
-# Manual overrides for submodules where auto-detection fails or is wrong.
-# Maps submodule path -> SPDX license identifier.
-SUBMODULE_LICENSE_OVERRIDES = {
-    # libtomcrypt LICENSE states public domain but uses non-standard wording
-    "src/lib/crypto/libtomcrypt": "Unlicense",
-    "src/lib/crypto/libtommath": "Unlicense",
+COPYLEFT_LICENSES = {
+    "GPL-2.0-only", "GPL-3.0-only",
+    "LGPL-2.1-only", "LGPL-3.0-only",
+    "AGPL-3.0-only",
 }
+
+def load_license_overrides(source_dir):
+    """Load license overrides and comments from YAML config file.
+
+    Returns (overrides, comments) dicts mapping submodule path to values.
+    Falls back to empty dicts if the file is missing.
+    """
+    yaml_path = source_dir / "Tools" / "ci" / "license-overrides.yaml"
+    if not yaml_path.exists():
+        return {}, {}
+
+    with open(yaml_path) as f:
+        data = yaml.safe_load(f)
+
+    overrides = {}
+    comments = {}
+    for path, entry in (data.get("overrides") or {}).items():
+        overrides[path] = entry["license"]
+        if "comment" in entry:
+            comments[path] = entry["comment"]
+
+    return overrides, comments
 
 LICENSE_FILENAMES = ["LICENSE", "LICENSE.md", "LICENSE.txt", "COPYING", "COPYING.md"]
 
@@ -67,10 +95,10 @@ def detect_license(submodule_dir):
     return "NOASSERTION"
 
 
-def get_submodule_license(source_dir, sub_path):
+def get_submodule_license(source_dir, sub_path, license_overrides):
     """Return the SPDX license for a submodule: override > auto-detect."""
-    if sub_path in SUBMODULE_LICENSE_OVERRIDES:
-        return SUBMODULE_LICENSE_OVERRIDES[sub_path]
+    if sub_path in license_overrides:
+        return license_overrides[sub_path]
     return detect_license(source_dir / sub_path)
 
 
@@ -218,8 +246,9 @@ def extract_git_host_org_repo(url):
     return "", "", ""
 
 
-def generate_sbom(source_dir, board, modules_file, compiler):
+def generate_sbom(source_dir, board, modules_file, compiler, platform=""):
     """Generate a complete SPDX 2.3 JSON document."""
+    license_overrides, license_comments = load_license_overrides(source_dir)
     git_info = get_git_info(source_dir)
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -281,14 +310,15 @@ def generate_sbom(source_dir, board, modules_file, compiler):
     submodule_commits = get_submodule_commits(source_dir)
     modules = read_module_list(modules_file, source_dir)
 
-    # Submodules providing core platform support are always included
-    always_relevant_prefixes = ("platforms/",)
-
-    def submodule_is_relevant(sub_path: str) -> bool:
+    def submodule_is_relevant(sub_path):
         """A submodule is relevant if any board module path overlaps with it."""
+        # NuttX platform submodules are only relevant for NuttX builds
+        if sub_path.startswith("platforms/nuttx/"):
+            return platform in ("nuttx", "")
         if not modules:
             return True  # no module list means include all
-        if sub_path.startswith(always_relevant_prefixes):
+        # Other platform submodules are always relevant
+        if sub_path.startswith("platforms/"):
             return True
         for mod in modules:
             # Module is under this submodule, or submodule is under a module
@@ -303,7 +333,7 @@ def generate_sbom(source_dir, board, modules_file, compiler):
         sub_path_id = sub_path.replace("/", "-")
         sub_spdx_id = f"SPDXRef-Submodule-{spdx_id(sub_path_id)}"
         commit = submodule_commits.get(sub_path, "unknown")
-        license_id = get_submodule_license(source_dir, sub_path)
+        license_id = get_submodule_license(source_dir, sub_path, license_overrides)
 
         host, org, repo = extract_git_host_org_repo(sub["url"])
         download = sub["url"] if sub["url"] else "NOASSERTION"
@@ -322,6 +352,10 @@ def generate_sbom(source_dir, board, modules_file, compiler):
             "licenseDeclared": license_id,
             "copyrightText": "NOASSERTION",
         }
+
+        comment = license_comments.get(sub_path)
+        if comment:
+            pkg["licenseComments"] = comment
 
         if host and org and repo:
             pkg["externalRefs"] = [
@@ -426,6 +460,7 @@ def generate_sbom(source_dir, board, modules_file, compiler):
 
 def verify_licenses(source_dir):
     """Verify license detection for all submodules. Returns exit code."""
+    license_overrides, _ = load_license_overrides(source_dir)
     submodules = parse_gitmodules(source_dir)
     if not submodules:
         print("No submodules found in .gitmodules")
@@ -442,11 +477,11 @@ def verify_licenses(source_dir):
         checked_out = sub_dir.is_dir() and any(sub_dir.iterdir())
         if not checked_out:
             detected = "(not checked out)"
-            override = SUBMODULE_LICENSE_OVERRIDES.get(sub_path, "")
+            override = license_overrides.get(sub_path, "")
             final = override if override else "NOASSERTION"
         else:
             detected = detect_license(sub_dir)
-            override = SUBMODULE_LICENSE_OVERRIDES.get(sub_path, "")
+            override = license_overrides.get(sub_path, "")
             final = override if override else detected
 
         if final == "NOASSERTION" and checked_out:
@@ -459,10 +494,32 @@ def verify_licenses(source_dir):
 
         print(f"{sub_path:<65} {str(detected):<16} {str(override) if override else '':<16} {final}{marker}")
 
+    # Copyleft warning (informational, not a failure)
+    copyleft_found = []
+    for sub in submodules:
+        sub_path = sub["path"]
+        sub_dir = source_dir / sub_path
+        checked_out = sub_dir.is_dir() and any(sub_dir.iterdir())
+        override = license_overrides.get(sub_path, "")
+        if checked_out:
+            final_lic = override if override else detect_license(sub_dir)
+        else:
+            final_lic = override if override else "NOASSERTION"
+        for cl in COPYLEFT_LICENSES:
+            if cl in final_lic:
+                copyleft_found.append((sub_path, final_lic))
+                break
+
     print()
+    if copyleft_found:
+        print("Copyleft licenses detected (informational):")
+        for path, lic in copyleft_found:
+            print(f"  {path}: {lic}")
+        print()
+
     if has_noassertion:
         print("FAIL: Some submodules resolved to NOASSERTION. "
-              "Add an entry to SUBMODULE_LICENSE_OVERRIDES or check the LICENSE file.")
+              "Add an entry to Tools/ci/license-overrides.yaml or check the LICENSE file.")
         return 1
 
     print("OK: All submodules have a resolved license.")
@@ -501,6 +558,11 @@ def main():
         help="Compiler identifier (e.g. arm-none-eabi-gcc)",
     )
     parser.add_argument(
+        "--platform",
+        default="",
+        help="PX4 platform (nuttx, posix, qurt). Filters platform-specific submodules.",
+    )
+    parser.add_argument(
         "--output",
         type=Path,
         default=None,
@@ -522,6 +584,7 @@ def main():
         board=args.board,
         modules_file=args.modules_file,
         compiler=args.compiler,
+        platform=args.platform,
     )
 
     args.output.parent.mkdir(parents=True, exist_ok=True)

@@ -56,9 +56,11 @@ if(GENERATE_SBOM)
 			--board ${PX4_CONFIG}
 			--modules-file ${sbom_module_list_file}
 			--compiler ${CMAKE_C_COMPILER}
+			--platform ${PX4_PLATFORM}
 			--output ${sbom_output}
 		DEPENDS
 			${PX4_SOURCE_DIR}/Tools/ci/generate_sbom.py
+			${PX4_SOURCE_DIR}/Tools/ci/license-overrides.yaml
 			${PX4_SOURCE_DIR}/.gitmodules
 			${PX4_SOURCE_DIR}/Tools/setup/requirements.txt
 			${sbom_module_list_file}
