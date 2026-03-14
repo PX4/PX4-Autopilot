@@ -44,7 +44,7 @@
 
 using namespace math::Utilities;
 
-TEST(euler312YawTest, fromQuaternion)
+TEST(euler321YawTest, fromQuaternion)
 {
 	matrix::Quatf q1(3.5f, 2.4f, -0.5f, -3.f);
 	q1.normalize();
