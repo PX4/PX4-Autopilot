@@ -696,7 +696,10 @@ void DShot::consume_esc_data(const EscData &esc)
 		return;
 	}
 
-	// Determine if this motor is online based on its telemetry sources
+	// Determine if this motor is online based on its telemetry sources.
+	// Intentionally conservative: when both BDShot and serial telemetry are enabled,
+	// both must report online. A motor reporting offline on either source indicates
+	// a degraded setup that should be surfaced to the operator.
 	bool is_bdshot = _bdshot_motor_mask & (1 << motor_index);
 	bool motor_online = true;
 
