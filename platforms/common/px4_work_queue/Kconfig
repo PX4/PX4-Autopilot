@@ -138,6 +138,20 @@ config WQ_NAV_AND_CONTROLLERS_PRIORITY
 	help
 	  Sets the relative priority for the nav_and_controllers work queue.
 
+config WQ_VTE_STACKSIZE
+	int "Stack size for vte"
+	default 6000
+	range 1000 10000
+	help
+	  Sets the stack size for the vte work queue.
+
+config WQ_VTE_PRIORITY
+	int "Relative priority for vte"
+	default -14
+	range -255 0
+	help
+	  Sets the relative priority for the vte work queue.
+
 menu "INS Work Queues"
 
 config WQ_INS_STACKSIZE

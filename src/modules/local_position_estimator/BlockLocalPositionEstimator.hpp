@@ -300,12 +300,6 @@ private:
 	MapProjection _global_local_proj_ref{};
 	float _global_local_alt0{NAN};
 
-	// target mode paramters from landing_target_estimator module
-	enum TargetMode {
-		Target_Moving = 0,
-		Target_Stationary = 1
-	};
-
 	// flow gyro filter
 	BlockHighPass _flow_gyro_x_high_pass;
 	BlockHighPass _flow_gyro_y_high_pass;
@@ -458,7 +452,6 @@ private:
 		(ParamFloat<px4::params::LPE_T_MAX_GRADE>) _param_lpe_t_max_grade,
 
 		(ParamFloat<px4::params::LPE_LT_COV>) _param_lpe_lt_cov,
-		(ParamInt<px4::params::LTEST_MODE>) _param_ltest_mode,
 
 		// init origin
 		(ParamInt<px4::params::LPE_FAKE_ORIGIN>) _param_lpe_fake_origin,

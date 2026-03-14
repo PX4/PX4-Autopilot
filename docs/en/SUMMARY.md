@@ -20,6 +20,8 @@
       - [Offboard Mode (MC)](flight_modes_mc/offboard.md)
     - [Collision Prevention](computer_vision/collision_prevention.md)
     - [Precision Landing](advanced_features/precland.md)
+    - [Vision Target Estimator](advanced_features/vision_target_estimator.md)
+    - [Vision Target Estimator Deep Dive](advanced_features/vision_target_estimator_advanced.md)
     - [Terrain Following/Holding](flying/terrain_following_holding.md)
     - [Throw Launch](flight_modes_mc/throw_launch.md)
   - [Assembly](assembly/assembly_mc.md)

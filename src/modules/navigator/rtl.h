@@ -63,6 +63,10 @@
 #include <uORB/topics/rtl_time_estimate.h>
 #include <uORB/topics/telemetry_status.h>
 
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+#include <uORB/topics/prec_land_status.h>
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+
 class Navigator;
 
 class RTL : public NavigatorMode, public ModuleParams
@@ -257,4 +261,8 @@ private:
 
 	uORB::Publication<rtl_time_estimate_s> _rtl_time_estimate_pub{ORB_ID(rtl_time_estimate)};
 	uORB::Publication<rtl_status_s> _rtl_status_pub{ORB_ID(rtl_status)};
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	uORB::Publication<prec_land_status_s> _prec_land_status_pub {ORB_ID(prec_land_status)};
+	void _publish_prec_land_status(const bool prec_land_ongoing);
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 };
