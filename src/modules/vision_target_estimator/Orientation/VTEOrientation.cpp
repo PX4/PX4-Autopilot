@@ -33,30 +33,27 @@
 
 /**
  * @file VTEOrientation.cpp
- * @brief Estimate the orientation of a target by processing and fusing sensor data in a Kalman Filter.
+ * @brief Estimate the orientation of a target by processing and fusing sensor
+ * data in a Kalman Filter.
  *
  * @author Jonas Perolini <jonspero@me.com>
  *
  */
 
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
-#include <drivers/drv_hrt.h>
 
 #include "VTEOrientation.h"
 
-#define USEC2SEC_F 1e-6f
 
 namespace vision_target_estimator
 {
 
 using namespace matrix;
 
-VTEOrientation::VTEOrientation() :
-	ModuleParams(nullptr)
+VTEOrientation::VTEOrientation() : ModuleParams(nullptr)
 {
 	_vte_aid_ev_yaw_pub.advertise();
-	_targetOrientationPub.advertise();
+	_target_orientation_pub.advertise();
 
 	updateParams();
 }
@@ -85,8 +82,27 @@ void VTEOrientation::update()
 
 	// Predict the target yaw state using the configured kinematic model.
 	if (_estimator_initialized) {
-		predictionStep();
-		_last_predict = hrt_absolute_time();
+		const hrt_abstime now_us = hrt_absolute_time();
+
+		if (now_us < _last_predict) {
+			resetFilter();
+			PX4_WARN("VTE orientation invalid _last_predict time");
+			return;
+		}
+
+		const uint64_t dt_us = now_us - _last_predict;
+
+		// Guard against long gaps; this estimator is expected to run near 50 Hz.
+		static constexpr uint64_t kMaxValidDeltaTimeUs = 100_ms;
+
+		if (dt_us > kMaxValidDeltaTimeUs) {
+			resetFilter();
+			PX4_WARN("VTE orientation stale, resetting filter");
+			return;
+		}
+
+		predictionStep(dt_us * kMicrosecondsToSeconds);
+		_last_predict = now_us;
 	}
 
 	// Update with the latest observations and publish any resulting innovations.
@@ -119,7 +135,8 @@ bool VTEOrientation::initEstimator(const ObsValidMaskU &fusion_mask,
 	_target_est_yaw.setStateCovarianceDiag(state_var_init);
 	_target_est_yaw.resetHistory();
 
-	PX4_DEBUG("Orientation filter init yaw: %.2f [rad] yaw_rate: %.2f [rad/s]", (double)state_init(State::yaw),
+	PX4_DEBUG("Orientation filter init yaw: %.2f [rad] yaw_rate: %.2f [rad/s]",
+		  (double)state_init(State::yaw),
 		  (double)state_init(State::yaw_rate));
 
 	PX4_DEBUG("VTE Orientation Estimator properly initialized.");
@@ -130,13 +147,7 @@ bool VTEOrientation::initEstimator(const ObsValidMaskU &fusion_mask,
 	return true;
 }
 
-void VTEOrientation::predictionStep()
-{
-	// Time since the last prediction
-	const float dt = (hrt_absolute_time() - _last_predict) * USEC2SEC_F;
-
-	_target_est_yaw.predict(dt);
-}
+void VTEOrientation::predictionStep(float dt) { _target_est_yaw.predict(dt); }
 
 bool VTEOrientation::performUpdateStep()
 {
@@ -166,8 +177,9 @@ void VTEOrientation::resetObservations()
 void VTEOrientation::processObservations(ObsValidMaskU &fusion_mask,
 		TargetObs observations[kObsTypeCount])
 {
-	fusion_mask.flags.fuse_vision = _vte_aid_mask.flags.use_vision_pos
-					&& processObsVision(observations[obsIndex(ObsType::Fiducial_marker)]);
+	fusion_mask.flags.fuse_vision =
+		_vte_aid_mask.flags.use_vision_pos &&
+		processObsVision(observations[obsIndex(ObsType::Fiducial_marker)]);
 }
 
 bool VTEOrientation::isVisionDataValid(const fiducial_marker_yaw_report_s &fiducial_marker_yaw) const
@@ -194,8 +206,8 @@ bool VTEOrientation::processObsVision(TargetObs &obs)
 {
 	fiducial_marker_yaw_report_s fiducial_marker_yaw;
 
-	if (!_fiducial_marker_yaw_report_sub.update(&fiducial_marker_yaw)
-	    || !isVisionDataValid(fiducial_marker_yaw)) {
+	if (!_fiducial_marker_yaw_report_sub.update(&fiducial_marker_yaw) ||
+	    !isVisionDataValid(fiducial_marker_yaw)) {
 		return false;
 	}
 
@@ -210,7 +222,7 @@ bool VTEOrientation::processObsVision(TargetObs &obs)
 	obs.updated = true;
 	obs.meas = wrap_pi(fiducial_marker_yaw.yaw_ned);
 	obs.meas_unc = yaw_unc;
-	obs.meas_h_theta(State::yaw) = 1;
+	obs.meas_h_theta(State::yaw) = 1.f;
 	obs.type = ObsType::Fiducial_marker;
 
 	return true;
@@ -236,7 +248,8 @@ bool VTEOrientation::fuseMeas(const TargetObs &target_obs)
 	target_innov.timestamp_sample = target_obs.timestamp;
 	target_innov.timestamp = hrt_absolute_time();
 	target_innov.time_last_predict = _last_predict;
-	target_innov.time_since_meas_ms = static_cast<float>(signedTimeDiffUs(_last_predict, target_obs.timestamp)) * 1e-3f;
+	target_innov.time_since_meas_ms = static_cast<float>(signedTimeDiffUs(
+			_last_predict, target_obs.timestamp)) * kMicrosecondsToMilliseconds;
 
 	if (!target_obs.updated) {
 		target_innov.fusion_status = static_cast<uint8_t>(FusionStatus::IDLE);
@@ -244,8 +257,9 @@ bool VTEOrientation::fuseMeas(const TargetObs &target_obs)
 		return false;
 	}
 
-	const KF_orientation::ScalarMeas meas_input{target_obs.timestamp, target_obs.meas, target_obs.meas_unc,
-			target_obs.meas_h_theta};
+	const KF_orientation::ScalarMeas meas_input{
+		target_obs.timestamp, target_obs.meas, target_obs.meas_unc,
+		target_obs.meas_h_theta};
 
 	target_innov.observation = meas_input.val;
 	target_innov.observation_variance = meas_input.unc;
@@ -278,9 +292,9 @@ void VTEOrientation::publishTarget()
 	vision_target_orientation.cov_yaw = state_var(State::yaw);
 
 	vision_target_orientation.yaw_rate = state(State::yaw_rate);
-	vision_target_orientation.cov_yaw_rate =  state_var(State::yaw_rate);
+	vision_target_orientation.cov_yaw_rate = state_var(State::yaw_rate);
 
-	_targetOrientationPub.publish(vision_target_orientation);
+	_target_orientation_pub.publish(vision_target_orientation);
 }
 
 void VTEOrientation::checkMeasurementInputs()
@@ -303,8 +317,11 @@ void VTEOrientation::updateParams()
 	_ev_noise_md = _param_vte_ev_noise_md.get();
 	const float new_nis_threshold = _param_vte_yaw_nis_thre.get();
 
+	static constexpr float kYawUncertaintyResetThreshold = 1e-3f;
+
 	if (PX4_ISFINITE(new_yaw_unc) && new_yaw_unc > 0.f) {
-		const bool yaw_unc_changed = PX4_ISFINITE(_yaw_unc) && (fabsf(new_yaw_unc - _yaw_unc) > 1e-3f);
+		const bool yaw_unc_changed = PX4_ISFINITE(_yaw_unc) &&
+					     (fabsf(new_yaw_unc - _yaw_unc) > kYawUncertaintyResetThreshold);
 		_yaw_unc = new_yaw_unc;
 
 		if (_estimator_initialized && yaw_unc_changed) {
@@ -332,7 +349,6 @@ void VTEOrientation::updateParams()
 		PX4_WARN("VTE: VTE_YAW_NIS_THRE %.1f <= %.1f, keeping previous value",
 			 (double)new_nis_threshold, (double)kMinNisThreshold);
 	}
-
 }
 
 void VTEOrientation::set_range_sensor(const float dist, const bool valid, hrt_abstime timestamp)

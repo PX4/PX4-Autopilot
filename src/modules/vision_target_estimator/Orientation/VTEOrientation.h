@@ -33,7 +33,8 @@
 
 /**
  * @file VTEOrientation.h
- * @brief Estimate the orientation of a target by processing and fusing sensor data in a Kalman Filter.
+ * @brief Estimate the orientation of a target by processing and fusing sensor
+ * data in a Kalman Filter.
  *
  * @author Jonas Perolini <jonspero@me.com>
  *
@@ -41,37 +42,29 @@
 
 #pragma once
 
-#include <lib/perf/perf_counter.h>
 #include <px4_platform_common/module_params.h>
-#include <px4_platform_common/workqueue.h>
+
 #include <drivers/drv_hrt.h>
 #include <parameters/param.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
-#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/fiducial_marker_yaw_report.h>
-#include <uORB/topics/vision_target_est_orientation.h>
-#include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/vision_target_est_orientation.h>
 #include <uORB/topics/vte_aid_source1d.h>
-#include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/vehicle_land_detected.h>
+
 #include <matrix/math.hpp>
-#include <mathlib/mathlib.h>
-#include <matrix/Matrix.hpp>
-#include <matrix/Quaternion.hpp>
-#include <lib/conversion/rotation.h>
-#include <lib/geo/geo.h>
-#include "KF_orientation.h"
+
 #include "../common.h"
+#include "KF_orientation.h"
 
 namespace vision_target_estimator
 {
 
 using namespace time_literals;
 
-class VTEOrientation: public ModuleParams
+class VTEOrientation : public ModuleParams
 {
 public:
 	VTEOrientation();
@@ -86,25 +79,43 @@ public:
 
 	void resetFilter();
 
-	void set_range_sensor(const float dist, const bool valid, const hrt_abstime timestamp);
-	void set_vte_timeout(const uint32_t tout) {_vte_timeout_us = tout;};
-	void set_target_valid_timeout(const uint32_t tout) {_target_valid_timeout_us = tout;};
-	void set_meas_recent_timeout(const uint32_t tout) {_meas_recent_timeout_us = tout;};
-	void set_meas_updated_timeout(const uint32_t tout) {_meas_updated_timeout_us = tout;};
-	void set_vte_aid_mask(const uint16_t mask_value) {_vte_aid_mask.value = mask_value;};
+	void set_range_sensor(float dist, bool valid, hrt_abstime timestamp);
+	void set_vte_timeout(uint32_t tout) { _vte_timeout_us = tout; }
+	void set_target_valid_timeout(uint32_t tout)
+	{
+		_target_valid_timeout_us = tout;
+	}
+	void set_meas_recent_timeout(uint32_t tout)
+	{
+		_meas_recent_timeout_us = tout;
+	}
+	void set_meas_updated_timeout(uint32_t tout)
+	{
+		_meas_updated_timeout_us = tout;
+	}
+	void set_vte_aid_mask(uint16_t mask_value)
+	{
+		_vte_aid_mask.value = mask_value;
+	}
 
-	bool timedOut() const {return _estimator_initialized && hasTimedOut(_last_update, _vte_timeout_us);};
-	bool fusionEnabled() const {return _vte_aid_mask.flags.use_vision_pos;}; // for now only vision measurements are handled
+	bool timedOut() const
+	{
+		return _estimator_initialized && hasTimedOut(_last_update, _vte_timeout_us);
+	}
+	bool fusionEnabled() const
+	{
+		return _vte_aid_mask.flags.use_vision_pos;
+	} // only vision yaw measurements are handled
 
 protected:
-	static constexpr float kDefaultVisionYawDistance = 10.f;
+	static constexpr float kDefaultVisionYawDistance = kDefaultVisionRangeM;
 
 	/*
 	 * update parameters.
 	 */
 	void updateParams() override;
 
-	uORB::Publication<vision_target_est_orientation_s> _targetOrientationPub{ORB_ID(vision_target_est_orientation)};
+	uORB::Publication<vision_target_est_orientation_s> _target_orientation_pub{ORB_ID(vision_target_est_orientation)};
 
 	// publish innovations target_estimator_gps_pos
 	uORB::Publication<vte_aid_source1d_s> _vte_aid_ev_yaw_pub{ORB_ID(vte_aid_ev_yaw)};
@@ -112,10 +123,7 @@ protected:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 private:
-	enum class ObsType : uint8_t {
-		Fiducial_marker,
-		Type_count
-	};
+	enum class ObsType : uint8_t { Fiducial_marker, Type_count };
 
 	static constexpr size_t kObsTypeCount = static_cast<size_t>(ObsType::Type_count);
 	static constexpr size_t obsIndex(ObsType type)
@@ -145,7 +153,7 @@ private:
 
 	bool initEstimator(const ObsValidMaskU &fusion_mask, const TargetObs observations[kObsTypeCount]);
 	bool performUpdateStep();
-	void predictionStep();
+	void predictionStep(float dt);
 
 	inline bool isMeasRecent(hrt_abstime ts) const
 	{
@@ -193,8 +201,8 @@ private:
 	float _yaw_unc{1.f};
 	float _yaw_acc_var{0.f};
 	float _min_ev_angle_var{0.025f};
-	bool  _ev_noise_md{false};
-	float _nis_threshold{3.84f};
+	bool _ev_noise_md{false};
+	float _nis_threshold{kDefaultNisThreshold};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::VTE_YAW_UNC_IN>) _param_vte_yaw_unc_in,
