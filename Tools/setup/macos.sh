@@ -68,9 +68,19 @@ fi
 
 # Python dependencies
 echo "[macos.sh] Installing Python3 dependencies"
+
+# Create virtual environment if it doesn't exist
+if [ ! -d ".venv" ]; then
+    echo "[macos.sh] Creating Python virtual environment"
+    python3 -m venv .venv
+fi
+
+# Activate virtual environment
+source .venv/bin/activate
+
 # We need to have future to install pymavlink later.
 python3 -m pip install future
-python3 -m pip install --user -r ${DIR}/requirements.txt
+python3 -m pip install -r ${DIR}/requirements.txt
 
 # Optional, but recommended additional simulation tools:
 if [[ $INSTALL_SIM == "--sim-tools" ]]; then
