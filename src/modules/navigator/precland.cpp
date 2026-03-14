@@ -78,6 +78,12 @@ PrecLand::on_activation()
 	_search_cnt = 0;
 	_last_slewrate_time = 0;
 
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	_target_yaw = 0.f;
+	_target_yaw_valid = false;
+	_last_target_yaw_update = 0;
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+
 	vehicle_local_position_s *vehicle_local_position = _navigator->get_local_position();
 
 	if (!_map_ref.isInitialized()) {
@@ -193,6 +199,12 @@ PrecLand::on_active()
 void
 PrecLand::on_inactivation()
 {
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	_target_yaw = 0.f;
+	_target_yaw_valid = false;
+	_last_target_yaw_update = 0;
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+
 #if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	_publish_prec_land_status(false);
 #endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
