@@ -997,11 +997,17 @@ bool DShot::initialize_dshot()
 
 		switch (tim_config) {
 		case TIM_CONFIG_DSHOT150:  freq = DSHOT150; break;
+
 		case TIM_CONFIG_DSHOT300:  freq = DSHOT300; break;
+
 		case TIM_CONFIG_DSHOT600:  freq = DSHOT600; break;
+
 		case TIM_CONFIG_BDSHOT150: freq = DSHOT150; is_bdshot = true; break;
+
 		case TIM_CONFIG_BDSHOT300: freq = DSHOT300; is_bdshot = true; break;
+
 		case TIM_CONFIG_BDSHOT600: freq = DSHOT600; is_bdshot = true; break;
+
 		default: break;
 		}
 
@@ -1100,6 +1106,7 @@ int DShot::print_status()
 			if (motor_index < 0) {
 				continue;
 			}
+
 			const char *bdshot_status = "-";
 			const char *serial_status = "-";
 
