@@ -145,7 +145,7 @@ void Gyroscope::ParametersUpdate()
 		return;
 	}
 
-	_calibration_index = FindCurrentCalibrationIndex(SensorString(), _device_id);
+	_calibration_index = static_cast<int8_t>(FindCurrentCalibrationIndex(SensorString(), _device_id));
 
 	if (_calibration_index == -1) {
 		// no saved calibration available

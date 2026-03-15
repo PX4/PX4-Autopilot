@@ -359,7 +359,7 @@ void ModeManagement::checkUnregistrations(uint8_t user_intended_nav_state, Updat
 			}
 
 			// If the removed mode is currently active, switch to Hold
-			if (user_intended_nav_state == request.mode_id) {
+			if (user_intended_nav_state == static_cast<uint8_t>(request.mode_id)) {
 				update_request.change_user_intended_nav_state = true;
 				update_request.user_intended_nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
 			}

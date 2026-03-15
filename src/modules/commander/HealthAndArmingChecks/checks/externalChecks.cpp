@@ -323,7 +323,7 @@ void ExternalChecks::checkNonRegisteredModes(const Context &context, Report &rep
 		bool found = false;
 
 		for (int reg_idx = 0; reg_idx < MAX_NUM_REGISTRATIONS; ++reg_idx) {
-			if (registrationValid(reg_idx) && _registrations[reg_idx].nav_mode_id == external_nav_state) {
+			if (registrationValid(reg_idx) && static_cast<uint8_t>(_registrations[reg_idx].nav_mode_id) == external_nav_state) {
 				found = true;
 				break;
 			}

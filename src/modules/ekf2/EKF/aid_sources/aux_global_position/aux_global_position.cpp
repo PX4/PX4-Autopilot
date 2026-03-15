@@ -80,7 +80,7 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 
 			if (slot < 0) {
 				slot = mapSensorIdToSlot(msg.id);
-				_instance_slot_map[instance] = static_cast<int8_t>(slot);
+				_instance_slot_map[instance] = slot;
 			}
 
 			if (slot >= 0 && _sources[slot]) {
