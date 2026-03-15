@@ -957,7 +957,7 @@ int VoxlEsc::update_params()
 	return ret;
 }
 
-void VoxlEsc::update_leds(vehicle_control_mode_s mode, led_control_s control)
+void VoxlEsc::update_leds(const vehicle_control_mode_s &mode, const led_control_s &control)
 {
 	int i = 0;
 	uint8_t led_mask = _led_rsc.led_mask;

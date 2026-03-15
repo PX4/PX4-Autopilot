@@ -272,7 +272,7 @@ private:
 
 	bool			_device_initialized{false};
 
-	void			update_leds(vehicle_control_mode_s mode, led_control_s control);
+	void			update_leds(const vehicle_control_mode_s &mode, const led_control_s &control);
 
 	int				read_response(Command *out_cmd);
 	int				parse_response(uint8_t *buf, uint8_t len, bool print_feedback);
