@@ -362,11 +362,7 @@ Remote control switches can be configured (as part of _QGroundControl_ [Flight M
 
 A kill switch immediately stops all motor outputs — if flying, the vehicle will start to fall!
 
-[By default](#COM_KILL_DISARM) the motors will restart if the switch is reverted within 5 seconds, after which the vehicle will automatically disarm, and you will need to arm it again in order to start the motors.
-
-| Параметр                                                                                                                                           | Опис                                                                                                                            |
-| -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="COM_KILL_DISARM"></a>[COM_KILL_DISARM](../advanced_config/parameter_reference.md#COM_KILL_DISARM) | Timeout value for disarming after kill switch is engaged. Default: `5` seconds. |
+The motors will restart if the switch is reverted within 5 seconds, after which the vehicle will automatically disarm, and you will need to arm it again in order to start the motors.
 
 :::info
 There is also a [Kill Gesture](#kill-gesture), which cannot be reverted.
@@ -408,7 +404,7 @@ A return switch can be used to immediately engage [Return mode](../flight_modes/
 
 A kill gesture immediately stops all motor outputs — if flying, the vehicle will start to fall!
 
-The action cannot be reverted without a reboot (this differs from a [Kill Switch](#kill-switch), where the operation can be reverted within the time period defined by [COM_KILL_DISARM](#COM_KILL_DISARM)).
+The action cannot be reverted without a reboot (this differs from a [Kill Switch](#kill-switch), where the operation can be reverted within 5 seconds).
 
 | Параметр                                                                                                                                                                | Опис                                                                                                                                                                    |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

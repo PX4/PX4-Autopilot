@@ -29,17 +29,7 @@ pageClass: is-wide-page
 | Назва                                                                                                                                      | Тип     | Значення | Опис                                                                                                                                                                                 |
 | ------------------------------------------------------------------------------------------------------------------------------------------ | ------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | <a id="#ACTUATOR_FUNCTION_MOTOR1"></a> ACTUATOR_FUNCTION_MOTOR1                                  | `uint8` | 101      |                                                                                                                                                                                      |
-| <a id="#ACTUATOR_FUNCTION_MOTOR2"></a> ACTUATOR_FUNCTION_MOTOR2                                  | `uint8` | 102      |                                                                                                                                                                                      |
-| <a id="#ACTUATOR_FUNCTION_MOTOR3"></a> ACTUATOR_FUNCTION_MOTOR3                                  | `uint8` | 103      |                                                                                                                                                                                      |
-| <a id="#ACTUATOR_FUNCTION_MOTOR4"></a> ACTUATOR_FUNCTION_MOTOR4                                  | `uint8` | 104      |                                                                                                                                                                                      |
-| <a id="#ACTUATOR_FUNCTION_MOTOR5"></a> ACTUATOR_FUNCTION_MOTOR5                                  | `uint8` | 105      |                                                                                                                                                                                      |
-| <a id="#ACTUATOR_FUNCTION_MOTOR6"></a> ACTUATOR_FUNCTION_MOTOR6                                  | `uint8` | 106      |                                                                                                                                                                                      |
-| <a id="#ACTUATOR_FUNCTION_MOTOR7"></a> ACTUATOR_FUNCTION_MOTOR7                                  | `uint8` | 107      |                                                                                                                                                                                      |
-| <a id="#ACTUATOR_FUNCTION_MOTOR8"></a> ACTUATOR_FUNCTION_MOTOR8                                  | `uint8` | 108      |                                                                                                                                                                                      |
-| <a id="#ACTUATOR_FUNCTION_MOTOR9"></a> ACTUATOR_FUNCTION_MOTOR9                                  | `uint8` | 109      |                                                                                                                                                                                      |
-| <a id="#ACTUATOR_FUNCTION_MOTOR10"></a> ACTUATOR_FUNCTION_MOTOR10                                | `uint8` | 110      |                                                                                                                                                                                      |
-| <a id="#ACTUATOR_FUNCTION_MOTOR11"></a> ACTUATOR_FUNCTION_MOTOR11                                | `uint8` | 111      |                                                                                                                                                                                      |
-| <a id="#ACTUATOR_FUNCTION_MOTOR12"></a> ACTUATOR_FUNCTION_MOTOR12                                | `uint8` | 112      |                                                                                                                                                                                      |
+| <a id="#ACTUATOR_FUNCTION_MOTOR_MAX"></a> ACTUATOR_FUNCTION_MOTOR_MAX       | `uint8` | 112      | output_functions.yaml Motor.start + Motor.count - 1                                                             |
 | <a id="#FAILURE_OVER_CURRENT"></a> FAILURE_OVER_CURRENT                                          | `uint8` | 0        | (1 << 0)                                                                                                        |
 | <a id="#FAILURE_OVER_VOLTAGE"></a> FAILURE_OVER_VOLTAGE                                          | `uint8` | 1        | (1 << 1)                                                                                                        |
 | <a id="#FAILURE_MOTOR_OVER_TEMPERATURE"></a> FAILURE_MOTOR_OVER_TEMPERATURE | `uint8` | 2        | (1 << 2)                                                                                                        |
@@ -73,19 +63,8 @@ uint8 esc_cmdcount					# Counter of number of commands
 uint8 esc_state					# State of ESC - depend on Vendor
 
 uint8 actuator_function				# actuator output function (one of Motor1...MotorN)
-
 uint8 ACTUATOR_FUNCTION_MOTOR1 = 101
-uint8 ACTUATOR_FUNCTION_MOTOR2 = 102
-uint8 ACTUATOR_FUNCTION_MOTOR3 = 103
-uint8 ACTUATOR_FUNCTION_MOTOR4 = 104
-uint8 ACTUATOR_FUNCTION_MOTOR5 = 105
-uint8 ACTUATOR_FUNCTION_MOTOR6 = 106
-uint8 ACTUATOR_FUNCTION_MOTOR7 = 107
-uint8 ACTUATOR_FUNCTION_MOTOR8 = 108
-uint8 ACTUATOR_FUNCTION_MOTOR9 = 109
-uint8 ACTUATOR_FUNCTION_MOTOR10 = 110
-uint8 ACTUATOR_FUNCTION_MOTOR11 = 111
-uint8 ACTUATOR_FUNCTION_MOTOR12 = 112
+uint8 ACTUATOR_FUNCTION_MOTOR_MAX = 112 # output_functions.yaml Motor.start + Motor.count - 1
 
 uint16 failures					# Bitmask to indicate the internal ESC faults
 int8 esc_power					# Applied power 0-100 in % (negative values reserved)
