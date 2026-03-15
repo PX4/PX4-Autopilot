@@ -213,8 +213,7 @@ FixedWingGuidanceControl::update_in_air_states(const hrt_abstime now)
 void
 FixedWingGuidanceControl::control_auto_path(const float control_interval,
 		const Vector2f &ground_speed, const float cruising_speed, const Vector2f curr_wp_local, const float curr_wp_alt,
-		const Vector2f velocity_2d, bool gliding_enabled,
-		const position_setpoint_s &pos_sp_curr)
+		const Vector2f velocity_2d, bool gliding_enabled)
 {
 	const float target_airspeed = cruising_speed > FLT_EPSILON ? cruising_speed : NAN;
 
@@ -427,7 +426,7 @@ FixedWingGuidanceControl::Run()
 		const matrix::Vector2f velocity_2d(_pos_sp_triplet.current.vx, _pos_sp_triplet.current.vy);
 		control_auto_path(control_interval, ground_speed, _pos_sp_triplet.current.cruising_speed, curr_wp_local, _pos_sp_triplet.current.alt,
 				  velocity_2d,
-				  _pos_sp_triplet.current.gliding_enabled, _pos_sp_triplet.current);
+				  _pos_sp_triplet.current.gliding_enabled);
 
 		_ctrl_configuration_handler.update(now);
 
