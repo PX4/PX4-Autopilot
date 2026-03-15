@@ -414,7 +414,6 @@ They recommend sensors, power systems, and other components from the same manufa
 - [Holybro Pixhawk 6X Wiring Quickstart](../assembly/quick_start_pixhawk6x.md)
 - [Holybro Pixhawk 5X Wiring Quickstart](../assembly/quick_start_pixhawk5x.md)
 - [Holybro Pixhawk 4 Wiring Quickstart](../assembly/quick_start_pixhawk4.md)
-- [Holybro Pixhawk 4 Mini (Discontinued) Wiring Quickstart](../assembly/quick_start_pixhawk4_mini.md)
 - [Holybro Durandal Wiring Quickstart](../assembly/quick_start_durandal.md)
 - [Holybro Pix32 v5 Wiring Quickstart](../assembly/quick_start_holybro_pix32_v5.md)
 - [Cube Wiring Quickstart](../assembly/quick_start_cube.md) (All cube variants)
