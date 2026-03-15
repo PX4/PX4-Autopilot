@@ -1440,7 +1440,7 @@ void MissionBase::checkClimbRequired(int32_t mission_item_index)
 	}
 }
 
-bool MissionBase::checkMissionDataChanged(mission_s new_mission)
+bool MissionBase::checkMissionDataChanged(const mission_s &new_mission)
 {
 	/* count and land_index are the same if the mission_id did not change. We do not care about changes in geofence or rally counters.*/
 	return ((new_mission.mission_dataman_id != _mission.mission_dataman_id) ||
