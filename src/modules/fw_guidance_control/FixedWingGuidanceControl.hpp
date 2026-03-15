@@ -335,7 +335,8 @@ private:
 	 * @param pos_sp_prev previous position setpoint
 	 * @param pos_sp_curr current position setpoint
 	 */
-	void control_auto_path(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed,
+	void control_auto_path(const float control_interval, const Vector2f &ground_speed,
+			       const float cruising_speed, const Vector2f curr_wp_local, const float curr_wp_alt, const Vector2f velocity_2d, bool gliding_enabled,
 			       const position_setpoint_s &pos_sp_curr);
 
 	void publishLocalPositionSetpoint(const position_setpoint_s &current_waypoint);

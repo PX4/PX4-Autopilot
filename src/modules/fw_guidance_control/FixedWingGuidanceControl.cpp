@@ -211,16 +211,16 @@ FixedWingGuidanceControl::update_in_air_states(const hrt_abstime now)
 }
 
 void
-FixedWingGuidanceControl::control_auto_path(const float control_interval, const Vector2d &curr_pos,
-		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_curr)
+FixedWingGuidanceControl::control_auto_path(const float control_interval,
+		const Vector2f &ground_speed, const float cruising_speed, const Vector2f curr_wp_local, const float curr_wp_alt,
+		const Vector2f velocity_2d, bool gliding_enabled,
+		const position_setpoint_s &pos_sp_curr)
 {
-	const float target_airspeed = pos_sp_curr.cruising_speed > FLT_EPSILON ? pos_sp_curr.cruising_speed : NAN;
+	const float target_airspeed = cruising_speed > FLT_EPSILON ? cruising_speed : NAN;
 
 	Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
-	Vector2f curr_wp_local = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
 
 	// Navigate directly on position setpoint and path tangent
-	const matrix::Vector2f velocity_2d(pos_sp_curr.vx, pos_sp_curr.vy);
 	const float curvature = PX4_ISFINITE(_pos_sp_triplet.current.loiter_radius) ? 1 /
 				_pos_sp_triplet.current.loiter_radius :
 				0.0f;
@@ -235,7 +235,7 @@ FixedWingGuidanceControl::control_auto_path(const float control_interval, const 
 
 	const fixed_wing_longitudinal_setpoint_s fw_longitudinal_control_sp = {
 		.timestamp = hrt_absolute_time(),
-		.altitude = pos_sp_curr.alt,
+		.altitude = curr_wp_alt,
 		.height_rate = NAN,
 		.equivalent_airspeed = target_airspeed,
 		.pitch_direct = NAN,
@@ -244,7 +244,7 @@ FixedWingGuidanceControl::control_auto_path(const float control_interval, const 
 
 	_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
-	if (pos_sp_curr.gliding_enabled) {
+	if (gliding_enabled) {
 		_ctrl_configuration_handler.setThrottleMin(0.0f);
 		_ctrl_configuration_handler.setThrottleMax(0.0f);
 		_ctrl_configuration_handler.setSpeedWeight(2.0f);
@@ -423,8 +423,11 @@ FixedWingGuidanceControl::Run()
 		// by default set speed weight to the param value, can be overwritten inside the methods below
 		_ctrl_configuration_handler.setSpeedWeight(_param_t_spdweight.get());
 
-
-		control_auto_path(control_interval, curr_pos, ground_speed, _pos_sp_triplet.current);
+		Vector2f curr_wp_local = _global_local_proj_ref.project(_pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon);
+		const matrix::Vector2f velocity_2d(_pos_sp_triplet.current.vx, _pos_sp_triplet.current.vy);
+		control_auto_path(control_interval, ground_speed, _pos_sp_triplet.current.cruising_speed, curr_wp_local, _pos_sp_triplet.current.alt,
+				  velocity_2d,
+				  _pos_sp_triplet.current.gliding_enabled, _pos_sp_triplet.current);
 
 		_ctrl_configuration_handler.update(now);
 

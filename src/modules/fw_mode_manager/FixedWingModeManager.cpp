@@ -374,7 +374,7 @@ FixedWingModeManager::set_control_mode_current(const hrt_abstime &now)
 	const bool doing_backtransition = _vehicle_status.in_transition_mode && !_vehicle_status.in_transition_to_fw;
 
 	if ((_control_mode.flag_control_auto_enabled && _control_mode.flag_control_position_enabled)
-		   && _position_setpoint_current_valid) {
+	    && _position_setpoint_current_valid) {
 
 		// Enter this mode only if the current waypoint has valid 3D position setpoints.
 
