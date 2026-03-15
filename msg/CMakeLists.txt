@@ -108,6 +108,7 @@ set(msg_files
 	GimbalManagerSetAttitude.msg
 	GimbalManagerSetManualControl.msg
 	GimbalManagerStatus.msg
+	GlobalTrajectorySetpoint.msg
 	GpioConfig.msg
 	GpioIn.msg
 	GpioOut.msg
