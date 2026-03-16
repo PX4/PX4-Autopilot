@@ -301,7 +301,7 @@ int Voxl2IO::handle_uart_passthru()
 	return num_writes;
 }
 
-bool Voxl2IO::updateOutputs(float outputs[input_rc_s::RC_INPUT_MAX_CHANNELS], unsigned num_outputs, unsigned num_control_groups_updated)
+bool Voxl2IO::updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	// Stop Mixer while ESCs are being calibrated
 	if (_outputs_disabled) {
@@ -325,7 +325,7 @@ bool Voxl2IO::updateOutputs(float outputs[input_rc_s::RC_INPUT_MAX_CHANNELS], un
 			outputs[i] = 0;
 		}
 
-		if (fabsf(outputs[i]) > FLT_EPSILON) {
+		if (outputs[i] > 0.5f) {
 			_pwm_on = true;
 		}
 

@@ -134,7 +134,7 @@ bool PWMOut::updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, u
 		for (size_t i = 0; i < num_outputs; i++) {
 			if (!_mixing_output.isFunctionSet(i)) {
 				// do not run any signal on disabled channels
-				outputs[i] = 0;
+				outputs[i] = 0.f;
 			}
 
 			if (_pwm_mask & (1 << i)) {

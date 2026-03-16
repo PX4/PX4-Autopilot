@@ -363,8 +363,7 @@ PX4IO::~PX4IO()
 	perf_free(_interface_write_perf);
 }
 
-bool PX4IO::updateOutputs(float outputs[MAX_ACTUATORS],
-			  unsigned num_outputs, unsigned num_control_groups_updated)
+bool PX4IO::updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	uint16_t hw_outputs[MAX_ACTUATORS] {};
 

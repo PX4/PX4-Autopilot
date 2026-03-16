@@ -513,11 +513,11 @@ MixingOutput::limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updat
 		static constexpr float PWM_CALIBRATION_HIGH = 2000.f;
 
 		for (int i = 0; i < _max_num_outputs; i++) {
-			if (fabsf(_current_output_value[i] - (float)_min_value[i]) < FLT_EPSILON) {
+			if (fabsf(_current_output_value[i] - (float)_min_value[i]) < 0.5f) {
 				_current_output_value[i] = PWM_CALIBRATION_LOW;
 			}
 
-			if (fabsf(_current_output_value[i] - (float)_max_value[i]) < FLT_EPSILON) {
+			if (fabsf(_current_output_value[i] - (float)_max_value[i]) < 0.5f) {
 				_current_output_value[i] = PWM_CALIBRATION_HIGH;
 			}
 		}
@@ -557,12 +557,10 @@ float MixingOutput::output_limit_calc_single(int i, float value) const
 
 	// Everything except servos, or if center is not set
 	else {
-		output = math::interpolate(value, -1.f, 1.f,
-					   static_cast<float>(_min_value[i]), static_cast<float>(_max_value[i]));
+		output = math::interpolate(value, -1.f, 1.f, static_cast<float>(_min_value[i]), static_cast<float>(_max_value[i]));
 	}
 
-	return static_cast<float>(math::constrain(lroundf(output), 0L, static_cast<long>(UINT16_MAX)));
-
+	return output;
 }
 
 void

@@ -1237,8 +1237,7 @@ void VoxlEsc::mix_turtle_mode(uint16_t outputs[MAX_ACTUATORS])
 }
 
 /* OutputModuleInterface */
-bool VoxlEsc::updateOutputs(float outputs[MAX_ACTUATORS],
-			    unsigned num_outputs, unsigned num_control_groups_updated)
+bool VoxlEsc::updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	//in Run() we call _mixing_output.update(), which calls MixingOutput::limitAndUpdateOutputs which calls _interface.updateOutputs (this function)
 	//So, if Run() is blocked by a custom command, this function will not be called until Run is running again
