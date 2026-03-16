@@ -132,10 +132,14 @@ public:
 	void disableGyroBiasEstimation();
 
 private:
+	void syncGpsFc();
+	void syncEvFc();
+
 	std::shared_ptr<Ekf> _ekf;
 
-	// Pointer to Ekf internal param struct
+	// Pointers to Ekf internal structs
 	parameters *_ekf_params;
+	FusionControl *_fc;
 
 };
 #endif // !EKF_EKF_WRAPPER_H
