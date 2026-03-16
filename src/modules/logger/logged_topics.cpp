@@ -151,6 +151,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("fixed_wing_lateral_guidance_status", 100);
 	add_optional_topic("fixed_wing_lateral_status", 100);
 	add_optional_topic("fixed_wing_runway_control", 100);
+	add_optional_topic("ranging_beacon", 100);
 
 	if (!_do_not_log_position_data) {
 		add_optional_topic("external_ins_global_position");
