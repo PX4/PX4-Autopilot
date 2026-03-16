@@ -70,7 +70,7 @@ bool PWMSim::updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, u
 		const uint32_t reversible_outputs = _mixing_output.reversibleOutputs();
 
 		for (int i = 0; i < (int)num_outputs; i++) {
-			if (fabsf(outputs[i] - PWM_SIM_DISARMED_MAGIC) < FLT_EPSILON) {
+			if (fabsf(outputs[i] - PWM_SIM_DISARMED_MAGIC) > FLT_EPSILON) {
 
 				OutputFunction function = _mixing_output.outputFunction(i);
 				bool is_reversible = reversible_outputs & (1u << i);
