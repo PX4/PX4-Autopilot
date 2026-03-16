@@ -16,7 +16,13 @@ git checkout -b mydescriptivebranchname
 
 ## Edit and build the code
 
-The [developer guide](https://docs.px4.io/main/en/development/development.html) explains how to set up the development environment on Mac OS, Linux or Windows. Please take note of our [coding style](https://docs.px4.io/main/en/contribute/code.html) when editing files.
+The [developer guide](https://docs.px4.io/main/en/development/development.html) explains how to set up the development environment on Mac OS, Linux or Windows.
+
+### Coding standards
+
+All C/C++ code must follow the [PX4 coding style](https://docs.px4.io/main/en/contribute/code.html). Formatting is enforced by [astyle](http://astyle.sourceforge.net/) in CI (`make check_format`). Code quality checks run via [clang-tidy](https://clang.llvm.org/extra/clang-tidy/). Pull requests that fail either check will not be merged.
+
+Python code is checked with [mypy](https://mypy-lang.org/) and [flake8](https://flake8.pycqa.org/).
 
 ## Commit message convention
 
@@ -140,6 +146,20 @@ git push --force-with-lease
 ```
 
 ## Test your changes
+
+PX4 is safety-critical software. All contributions must include adequate testing where practical:
+
+- **New features** must include unit tests and/or integration tests that exercise the new functionality, where practical. Hardware-dependent changes that cannot be tested in SITL should include bench test or flight test evidence.
+- **Bug fixes** must include a regression test where practical. When automated testing is not feasible (hardware-specific issues, race conditions, etc.), provide a link to a flight log demonstrating the fix and the reproduction steps for the original bug.
+- **Reviewers** will verify that tests or test evidence exist before approving a pull request.
+
+### Types of tests
+
+| Test type | When to use | How to run |
+|-----------|-------------|------------|
+| **Unit tests** (gtest) | Module-level logic, math, parsing | `make tests` |
+| **SITL integration tests** (MAVSDK) | Flight behavior, failsafes, missions | `test/mavsdk_tests/` |
+| **Bench tests / flight logs** | Hardware-dependent changes | Upload logs to [Flight Review](https://logs.px4.io) |
 
 Since we care about safety, we will regularly ask you for test results. Best is to do a test flight (or bench test where it applies) and upload the log file from it (on the microSD card in the logs directory) to Google Drive or Dropbox and share the link.
 

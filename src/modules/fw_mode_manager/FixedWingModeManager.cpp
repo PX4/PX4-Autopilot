@@ -1029,7 +1029,7 @@ FixedWingModeManager::controlAutoFigureEight(const float control_interval, const
 	}
 }
 
-void FixedWingModeManager::publishFigureEightStatus(const position_setpoint_s pos_sp)
+void FixedWingModeManager::publishFigureEightStatus(const position_setpoint_s &pos_sp)
 {
 	figure_eight_status_s figure_eight_status{};
 	figure_eight_status.timestamp = hrt_absolute_time();
@@ -2549,7 +2549,7 @@ void FixedWingModeManager::publishLocalPositionSetpoint(const position_setpoint_
 	_local_pos_sp_pub.publish(local_position_setpoint);
 }
 
-void FixedWingModeManager::publishOrbitStatus(const position_setpoint_s pos_sp)
+void FixedWingModeManager::publishOrbitStatus(const position_setpoint_s &pos_sp)
 {
 	orbit_status_s orbit_status{};
 	orbit_status.timestamp = hrt_absolute_time();

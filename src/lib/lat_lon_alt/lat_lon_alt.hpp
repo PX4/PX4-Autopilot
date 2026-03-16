@@ -87,6 +87,11 @@ public:
 
 	void operator=(const LatLonAlt &lla)
 	{
+		// Protect against self-assignment
+		if (this == &lla) {
+			return;
+		}
+
 		_latitude_rad = lla.latitude_rad();
 		_longitude_rad = lla.longitude_rad();
 		_altitude = lla.altitude();

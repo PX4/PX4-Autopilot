@@ -461,12 +461,6 @@ void Navigator::run()
 					// set the altitude corresponding to command
 					rep->current.alt = PX4_ISFINITE(cmd.param1) ? cmd.param1 : get_global_position()->alt;
 
-					if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
-					    && (get_position_setpoint_triplet()->current.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF)) {
-
-						preproject_stop_point(rep->current.lat, rep->current.lon);
-					}
-
 					if (PX4_ISFINITE(curr->current.loiter_radius) && curr->current.loiter_radius > FLT_EPSILON) {
 						rep->current.loiter_radius = curr->current.loiter_radius;
 

@@ -122,13 +122,19 @@ void DShot::Run()
 	perf_end(_cycle_perf);
 }
 
-bool DShot::updateOutputs(uint16_t *outputs, unsigned num_outputs, unsigned num_control_groups_updated)
+bool DShot::updateOutputs(float *outputs, unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	if (!_hardware_initialized || !_motor_count) {
 		return false;
 	}
 
-	_esc_status.esc_armed_flags = esc_armed_mask(outputs, num_outputs);
+	uint16_t hw_outputs[MAX_ACTUATORS] = {};
+
+	for (unsigned i = 0; i < num_outputs; i++) {
+		hw_outputs[i] = static_cast<uint16_t>(lroundf(outputs[i]));
+	}
+
+	_esc_status.esc_armed_flags = esc_armed_mask(hw_outputs, num_outputs);
 	bool armed = _esc_status.esc_armed_flags != 0;
 
 	if (!armed) {
@@ -143,11 +149,11 @@ bool DShot::updateOutputs(uint16_t *outputs, unsigned num_outputs, unsigned num_
 			update_motor_commands(num_outputs);
 
 		} else {
-			update_motor_outputs(outputs, num_outputs);
+			update_motor_outputs(hw_outputs, num_outputs);
 		}
 
 	} else {
-		update_motor_outputs(outputs, num_outputs);
+		update_motor_outputs(hw_outputs, num_outputs);
 	}
 
 	up_dshot_trigger();

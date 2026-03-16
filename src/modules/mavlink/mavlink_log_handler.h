@@ -32,9 +32,23 @@
  ****************************************************************************/
 
 #pragma once
-
 #include <perf/perf_counter.h>
 #include "mavlink_bridge_header.h"
+
+#ifdef __PX4_NUTTX
+#define PX4LOG_REGULAR_FILE    DTYPE_FILE
+#define PX4LOG_DIRECTORY       DTYPE_DIRECTORY
+#define PX4_MAX_FILEPATH       CONFIG_PATH_MAX
+#define PX4_MAX_FILEPATH_SCANF 255
+#else
+#ifndef PATH_MAX
+#define PATH_MAX 1024 // maximum on macOS
+#endif
+#define PX4LOG_REGULAR_FILE    DT_REG
+#define PX4LOG_DIRECTORY       DT_DIR
+#define PX4_MAX_FILEPATH       PATH_MAX
+#define PX4_MAX_FILEPATH_SCANF 1023
+#endif
 
 class Mavlink;
 
@@ -53,7 +67,7 @@ private:
 		uint32_t time_utc{};
 		uint32_t size_bytes{};
 		FILE *fp{nullptr};
-		char filepath[60];
+		char filepath[PX4_MAX_FILEPATH];
 		uint32_t offset{};
 	};
 

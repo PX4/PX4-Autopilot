@@ -27,5 +27,9 @@
   },
   "devDependencies": {
     "prettier": "^3.2.0"
+  },
+  "resolutions": {
+    "markdown-it": "^14.1.1",
+    "esbuild": "^0.25.0"
   }
 }

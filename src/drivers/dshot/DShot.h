@@ -91,7 +91,7 @@ public:
 
 	void mixerChanged() override;
 
-	bool updateOutputs(uint16_t *outputs, unsigned num_outputs, unsigned num_control_groups_updated) override;
+	bool updateOutputs(float *outputs, unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 private:
 
