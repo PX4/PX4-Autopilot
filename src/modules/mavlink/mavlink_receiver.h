@@ -93,6 +93,8 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/radio_status.h>
 #include <uORB/topics/rc_channels.h>
+#include <uORB/topics/register_ext_component_reply.h>
+#include <uORB/topics/register_ext_component_request.h>
 #include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/sensor_optical_flow.h>
@@ -100,6 +102,7 @@
 #include <uORB/topics/transponder_report.h>
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/tune_control.h>
+#include <uORB/topics/unregister_ext_component.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
@@ -235,6 +238,8 @@ private:
 	bool evaluate_target_ok(int command, int target_system, int target_component);
 
 	void fill_thrust(float *thrust_body_array, uint8_t vehicle_type, float thrust);
+	void updateExternalModeReplacementCache();
+	bool isOffboardSetpointMode(const vehicle_status_s &vehicle_status);
 
 	void schedule_tune(const char *tune);
 
@@ -274,6 +279,13 @@ private:
 	ComponentState _component_states[MAX_REMOTE_COMPONENTS] {};
 	unsigned _component_states_count{0};
 	bool _warned_component_states_full_once{false};
+	static constexpr int MAX_PENDING_EXTERNAL_MODE_REPLACEMENTS{8};
+	static constexpr uint8_t NO_INTERNAL_MODE_REPLACEMENT{vehicle_status_s::NAVIGATION_STATE_MAX};
+	struct PendingExternalModeReplacement {
+		uint64_t request_id{0};
+		uint8_t replaces_nav_state{NO_INTERNAL_MODE_REPLACEMENT};
+		bool valid{false};
+	};
 
 	bool _message_statistics_enabled {false};
 #if !defined(CONSTRAINED_FLASH)
@@ -361,6 +373,9 @@ private:
 	uORB::Subscription	_vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription	_vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
 	uORB::Subscription	_vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription	_register_ext_component_request_sub{ORB_ID(register_ext_component_request)};
+	uORB::Subscription	_register_ext_component_reply_sub{ORB_ID(register_ext_component_reply)};
+	uORB::Subscription	_unregister_ext_component_sub{ORB_ID(unregister_ext_component)};
 	uORB::Subscription	_autotune_attitude_control_status_sub{ORB_ID(autotune_attitude_control_status)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
@@ -404,6 +419,8 @@ private:
 	hrt_abstime _heartbeat_component_pairing_manager{0};
 	hrt_abstime _heartbeat_component_udp_bridge{0};
 	hrt_abstime _heartbeat_component_uart_bridge{0};
+	uint8_t _external_mode_replaced_nav_state[vehicle_status_s::NAVIGATION_STATE_MAX] {};
+	PendingExternalModeReplacement _pending_external_mode_replacements[MAX_PENDING_EXTERNAL_MODE_REPLACEMENTS] {};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::BAT_CRIT_THR>)     _param_bat_crit_thr,

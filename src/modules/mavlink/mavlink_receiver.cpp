@@ -116,6 +116,86 @@ MavlinkReceiver::MavlinkReceiver(Mavlink &parent) :
 	_parameters_manager(parent),
 	_mavlink_timesync(parent)
 {
+	for (uint8_t &replaced_nav_state : _external_mode_replaced_nav_state) {
+		replaced_nav_state = NO_INTERNAL_MODE_REPLACEMENT;
+	}
+}
+
+void MavlinkReceiver::updateExternalModeReplacementCache()
+{
+	register_ext_component_request_s request{};
+
+	while (_register_ext_component_request_sub.update(&request)) {
+		const bool tracks_mode_replacement = request.register_mode
+						     && request.enable_replace_internal_mode
+						     && request.replace_internal_mode < vehicle_status_s::NAVIGATION_STATE_MAX;
+
+		PendingExternalModeReplacement *slot{nullptr};
+
+		for (auto &pending : _pending_external_mode_replacements) {
+			if (pending.valid && pending.request_id == request.request_id) {
+				slot = &pending;
+				break;
+			}
+
+			if (!pending.valid && slot == nullptr) {
+				slot = &pending;
+			}
+		}
+
+		if (slot != nullptr) {
+			if (tracks_mode_replacement) {
+				slot->request_id = request.request_id;
+				slot->replaces_nav_state = request.replace_internal_mode;
+				slot->valid = true;
+
+			} else {
+				slot->valid = false;
+			}
+		}
+	}
+
+	register_ext_component_reply_s reply{};
+
+	while (_register_ext_component_reply_sub.update(&reply)) {
+		for (auto &pending : _pending_external_mode_replacements) {
+			if (pending.valid && pending.request_id == reply.request_id) {
+				if (reply.success
+				    && reply.mode_id >= static_cast<int8_t>(vehicle_status_s::NAVIGATION_STATE_EXTERNAL1)
+				    && reply.mode_id <= static_cast<int8_t>(vehicle_status_s::NAVIGATION_STATE_EXTERNAL8)) {
+					_external_mode_replaced_nav_state[static_cast<uint8_t>(reply.mode_id)] = pending.replaces_nav_state;
+				}
+
+				pending.valid = false;
+				break;
+			}
+		}
+	}
+
+	unregister_ext_component_s unregister_request{};
+
+	while (_unregister_ext_component_sub.update(&unregister_request)) {
+		if (unregister_request.mode_id >= static_cast<int8_t>(vehicle_status_s::NAVIGATION_STATE_EXTERNAL1)
+		    && unregister_request.mode_id <= static_cast<int8_t>(vehicle_status_s::NAVIGATION_STATE_EXTERNAL8)) {
+			_external_mode_replaced_nav_state[static_cast<uint8_t>(unregister_request.mode_id)] = NO_INTERNAL_MODE_REPLACEMENT;
+		}
+	}
+}
+
+bool MavlinkReceiver::isOffboardSetpointMode(const vehicle_status_s &vehicle_status)
+{
+	updateExternalModeReplacementCache();
+
+	if (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
+		return true;
+	}
+
+	if (vehicle_status.nav_state >= vehicle_status_s::NAVIGATION_STATE_EXTERNAL1
+	    && vehicle_status.nav_state <= vehicle_status_s::NAVIGATION_STATE_EXTERNAL8) {
+		return _external_mode_replaced_nav_state[vehicle_status.nav_state] == vehicle_status_s::NAVIGATION_STATE_OFFBOARD;
+	}
+
+	return false;
 }
 
 void
@@ -1144,8 +1224,8 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 			vehicle_status_s vehicle_status{};
 			_vehicle_status_sub.copy(&vehicle_status);
 
-			if (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
-				// only publish setpoint once in OFFBOARD
+			if (isOffboardSetpointMode(vehicle_status)) {
+				// only publish setpoint in OFFBOARD or a mode replacing OFFBOARD
 				setpoint.timestamp = hrt_absolute_time();
 				_trajectory_setpoint_pub.publish(setpoint);
 			}
@@ -1268,8 +1348,8 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 			vehicle_status_s vehicle_status{};
 			_vehicle_status_sub.copy(&vehicle_status);
 
-			if (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
-				// only publish setpoint once in OFFBOARD
+			if (isOffboardSetpointMode(vehicle_status)) {
+				// only publish setpoint in OFFBOARD or a mode replacing OFFBOARD
 				setpoint.timestamp = hrt_absolute_time();
 				_trajectory_setpoint_pub.publish(setpoint);
 			}
@@ -1668,8 +1748,8 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 				attitude_setpoint.thrust_body[2] = attitude_target.thrust_body[2];
 			}
 
-			// Publish attitude setpoint only once in OFFBOARD
-			if (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
+			// Publish attitude setpoint only in OFFBOARD or a mode replacing OFFBOARD
+			if (isOffboardSetpointMode(vehicle_status)) {
 				attitude_setpoint.timestamp = hrt_absolute_time();
 
 				if (vehicle_status.is_vtol && (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)) {
@@ -1698,8 +1778,8 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 				fill_thrust(setpoint.thrust_body, vehicle_status.vehicle_type, attitude_target.thrust);
 			}
 
-			// Publish rate setpoint only once in OFFBOARD
-			if (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
+			// Publish rate setpoint only in OFFBOARD or a mode replacing OFFBOARD
+			if (isOffboardSetpointMode(vehicle_status)) {
 				setpoint.timestamp = hrt_absolute_time();
 				_rates_sp_pub.publish(setpoint);
 			}
