@@ -64,6 +64,7 @@
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 
+using matrix::AxisAnglef;
 using matrix::Eulerf;
 using matrix::Quatf;
 using matrix::Vector3f;

@@ -105,7 +105,10 @@ FixedwingAttitudeControl::vehicle_manual_poll(const float yaw_body)
 				pitch_body = constrain(pitch_body,
 						       -radians(_param_fw_man_p_max.get()), radians(_param_fw_man_p_max.get()));
 
-				const Quatf q(Eulerf(roll_body, pitch_body, yaw_body));
+				const Quatf q_sp_rp = AxisAnglef(roll_body, pitch_body, 0.f);
+				const Quatf q_sp_yaw(cosf(yaw_body / 2.f), 0.f, 0.f, sinf(yaw_body / 2.f));
+				Quatf q = q_sp_yaw * q_sp_rp;
+
 				q.copyTo(_att_sp.q_d);
 
 				_att_sp.thrust_body[0] = (_manual_control_setpoint.throttle + 1.f) * .5f;
