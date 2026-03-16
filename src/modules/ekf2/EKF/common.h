@@ -76,6 +76,8 @@ static constexpr uint64_t GNSS_YAW_MAX_INTERVAL =
 	1500e3; ///< Maximum allowable time interval between GNSS yaw measurements (uSec)
 static constexpr uint64_t MAG_MAX_INTERVAL      =
 	500e3;  ///< Maximum allowable time interval between magnetic field measurements (uSec)
+static constexpr uint64_t RNGBC_MAX_INTERVAL    =
+	5000e3;  ///< Maximum allowable time interval between ranging beacon measurements (uSec)
 
 // bad accelerometer detection and mitigation
 static constexpr uint64_t BADACC_PROBATION =
@@ -261,6 +263,16 @@ struct auxVelSample {
 	Vector2f    velVar{};      ///< estimated error variance of the NE velocity (m/sec)**2
 };
 #endif // CONFIG_EKF2_AUXVEL
+
+struct rangingBeaconSample {
+	uint64_t    time_us{};     ///< timestamp of the measurement (uSec)
+	uint8_t     beacon_id{};   ///< beacon identifier
+	float       range_m{};     ///< measured range to beacon (m)
+	float       range_var{};   ///< range measurement variance (m^2)
+	double      beacon_lat{};  ///< beacon latitude (degrees)
+	double      beacon_lon{};  ///< beacon longitude (degrees)
+	float       beacon_alt{};  ///< beacon altitude AMSL (m)
+};
 
 struct systemFlagUpdate {
 	uint64_t time_us{};
@@ -503,6 +515,14 @@ struct parameters {
 	const float auxvel_gate{5.0f};          ///< velocity fusion innovation consistency gate size (STD)
 #endif // CONFIG_EKF2_AUXVEL
 
+#if defined(CONFIG_EKF2_RANGING_BEACON)
+	// ranging beacon fusion
+	int32_t ekf2_rngbc_ctrl{0};            ///< ranging beacon fusion control (0=disabled, 1=enabled)
+	float ekf2_rngbc_delay{0.f};          ///< ranging beacon measurement delay relative to the IMU (mSec)
+	float ekf2_rngbc_noise{1.f};           ///< ranging beacon measurement noise (m)
+	float ekf2_rngbc_gate{5.f};            ///< ranging beacon fusion innovation consistency gate size (STD)
+#endif // CONFIG_EKF2_RANGING_BEACON
+
 };
 
 union fault_status_u {
@@ -592,6 +612,8 @@ uint64_t gnss_hgt_fault              :
 		1; ///< 47 - true if GNSS measurements (alt) have been declared faulty and are no longer used
 		uint64_t in_transition 	         : 1; ///< 48 - true if the vehicle is in vtol transition
 		uint64_t heading_observable      : 1; ///< 49 - true when heading is observable
+		uint64_t rngbcn_fusion           : 1; ///< 50 - true when ranging beacon position fusion is active
+
 	} flags;
 	uint64_t value;
 };
