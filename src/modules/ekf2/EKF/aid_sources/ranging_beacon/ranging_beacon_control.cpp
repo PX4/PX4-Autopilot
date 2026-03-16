@@ -87,21 +87,19 @@ void Ekf::fuseRangingBeacon(const rangingBeaconSample &sample)
 	const float innovation = static_cast<float>(predicted_range) - sample.range_m;
 	const float R = fmaxf(sample.range_var, sq(_params.ekf2_rngbc_noise));
 
-	// Compute beacon position relative to the vehicle in local NED.
-	// _state.pos(0:1) is always 0 in the global-position EKF, so we must pass
-	// the relative position directly so the symforce function gets the correct
-	// vehicle-to-beacon direction for the H matrix.
-	const Vector2f beacon_pos_ne = _local_origin_lat_lon.project(sample.beacon_lat, sample.beacon_lon);
-	const Vector2f vehicle_pos_ne = getLocalHorizontalPosition();
-	const float beacon_D = _local_origin_alt - sample.beacon_alt;
-	const Vector3f beacon_pos_rel(beacon_pos_ne(0) - vehicle_pos_ne(0),
-				      beacon_pos_ne(1) - vehicle_pos_ne(1),
-				      beacon_D);
-
+	// Compute beacon position for the symforce H matrix.
+	// _state.pos(0:1) is always 0 in the global-position EKF, so N,E are relative.
+	// _state.pos(2) contains altitude, so beacon_pos(2) must be absolute.
+	const matrix::Dcmf R_ecef_to_ned = _gpos.computeRotEcefToNed();
+	const Vector3f delta_ecef_f(static_cast<float>(delta_ecef(0)),
+				    static_cast<float>(delta_ecef(1)),
+				    static_cast<float>(delta_ecef(2)));
+	const Vector3f delta_ned = R_ecef_to_ned * delta_ecef_f;
+	const Vector3f beacon_pos(delta_ned(0), delta_ned(1), _state.pos(2) + delta_ned(2));
 	float innov_var;
 	VectorState H;
 
-	sym::ComputeRangeBeaconInnovVarAndH(_state.vector(), P, beacon_pos_rel, R, FLT_EPSILON, &innov_var, &H);
+	sym::ComputeRangeBeaconInnovVarAndH(_state.vector(), P, beacon_pos, R, FLT_EPSILON, &innov_var, &H);
 
 	updateAidSourceStatus(_aid_src_ranging_beacon,
 			      sample.time_us,
@@ -118,7 +116,6 @@ void Ekf::fuseRangingBeacon(const rangingBeaconSample &sample)
 	}
 
 	VectorState K = P * H / innov_var;
-	clearInhibitedStateKalmanGains(K);
 	K(State::pos.idx + 2) = 0.f; // altitude is handled by height reference
 	measurementUpdate(K, H, R, innovation);
 

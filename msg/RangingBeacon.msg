@@ -1,24 +1,23 @@
 # Ranging beacon measurement data (e.g. LoRa, UWB)
 
-uint64 timestamp		# time since system start (microseconds)
-uint64 timestamp_sample         # the timestamp of the raw data (microseconds)
+uint64 timestamp                # [us] time since system start
+uint64 timestamp_sample         # [us] the timestamp of the raw data
 uint8 beacon_id
-float32 range			# Range measurement (m)
+float32 range                   # [m] Range measurement
 
-float64 lat			# Latitude (degrees)
-float64 lon			# Longitude (degrees)
-float32 alt			# Altitude AMSL (m)
-float32 alt_ellipsoid		# Altitude above ellipsoid (m)
+float64 lat                     # [deg] Latitude
+float64 lon                     # [deg] Longitude
+float32 alt                     # [m] Altitude AMSL
+float32 alt_ellipsoid           # [m] Altitude above ellipsoid
 
-float32 hacc			# Groundbeacon horizontal accuracy (m)
-float32 vacc			# Groundbeacon vertical accuracy (m)
+float32 hacc                    # [m] Groundbeacon horizontal accuracy
+float32 vacc                    # [m] Groundbeacon vertical accuracy
 
-int8 rssi_node			# RSSI at node/vehicle side (dBm)
-int8 rssi_beacon		# RSSI at beacon/station side (dBm)
-uint8 battery_status		# Beacon battery (%, 255=unknown)
+int8 rssi_node                  # [dBm] RSSI at node/vehicle side
+int8 rssi_beacon                # [dBm] RSSI at beacon/station side
 uint8 sequence
-uint16 carrier_freq		# Carrier frequency (MHz)
-float32 range_accuracy		# Range accuracy estimate (m)
+uint16 carrier_freq             # [MHz] Carrier frequency
+float32 range_accuracy          # [m] Range accuracy estimate
 
 
 # TOPICS ranging_beacon

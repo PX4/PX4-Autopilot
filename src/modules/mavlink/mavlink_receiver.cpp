@@ -2602,7 +2602,6 @@ MavlinkReceiver::handle_message_ranging_beacon(mavlink_message_t *msg)
 	ranging_beacon.vacc = (beacon_pos.vacc_est != UINT32_MAX) ? static_cast<float>(beacon_pos.vacc_est) * 1e-3f : NAN;
 	ranging_beacon.rssi_node = beacon_pos.rssi_node;
 	ranging_beacon.rssi_beacon = beacon_pos.rssi_beacon;
-	ranging_beacon.battery_status = beacon_pos.battery_status;
 	ranging_beacon.sequence = beacon_pos.sequence;
 	ranging_beacon.carrier_freq = beacon_pos.carrier_freq;
 	ranging_beacon.range_accuracy = (beacon_pos.range_accuracy != UINT32_MAX)
