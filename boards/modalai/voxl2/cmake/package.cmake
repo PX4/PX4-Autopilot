@@ -40,14 +40,14 @@ string(REGEX REPLACE "-" "~" _deb_ver "${_deb_ver}" )
 string(REGEX REPLACE "~([0-9]+)~" ".\\1." _deb_ver "${_deb_ver}")
 
 # VOXL2 is always aarch64 regardless of build host
-set(CPACK_DEBIAN_ARCHITECTURE "arm64")
+set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "arm64")
 set(CPACK_DEBIAN_PACKAGE_NAME "voxl-px4")
 set(CPACK_DEBIAN_FILE_NAME "voxl-px4_${_deb_ver}_arm64.deb")
 set(CPACK_PACKAGING_INSTALL_PREFIX "/usr")
 set(CPACK_INSTALL_PREFIX "/usr")
 set(CPACK_SET_DESTDIR true)
 
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "voxl-platform, librc-symlinks")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "libfc-sensor (>=1.0.10), voxl-px4-params (>=0.3.10), voxl3-system-image(>=0.0.2) | voxl2-system-image(>=1.5.4) | rb5-system-image(>=1.6.2), modalai-slpi(>=1.1.16) | modalai-adsp(>=1.0.2)")
 set(CPACK_DEBIAN_PACKAGE_CONFLICTS "px4-rb5-flight")
 set(CPACK_DEBIAN_PACKAGE_REPLACES "px4-rb5-flight")
 set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "PX4 Autopilot for ModalAI VOXL2")

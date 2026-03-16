@@ -230,6 +230,7 @@ $(CONFIG_TARGETS_DEFAULT):
 # VOXL2 apps processor (default) depends on SLPI DSP being built first
 modalai_voxl2_default: modalai_voxl2_slpi
 modalai_voxl2: modalai_voxl2_slpi
+modalai_voxl2_deb: modalai_voxl2_slpi
 
 all_config_targets: $(ALL_CONFIG_TARGETS)
 all_default_targets: $(CONFIG_TARGETS_DEFAULT)

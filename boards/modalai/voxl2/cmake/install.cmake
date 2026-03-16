@@ -35,7 +35,7 @@
 # Included from platforms/posix/CMakeLists.txt where the px4 target exists
 
 # SLPI companion build output directory
-set(VOXL2_SLPI_BUILD_DIR "${PX4_SOURCE_DIR}/build/modalai_voxl2-slpi_default")
+set(VOXL2_SLPI_BUILD_DIR "${PX4_SOURCE_DIR}/build/modalai_voxl2_slpi")
 
 # Apps processor binary
 install(TARGETS px4 RUNTIME DESTINATION bin)
@@ -55,7 +55,6 @@ install(PROGRAMS
 # DSP firmware blob from companion SLPI build
 install(FILES ${VOXL2_SLPI_BUILD_DIR}/platforms/qurt/libpx4.so
 	DESTINATION lib/rfsa/adsp
-	OPTIONAL
 )
 
 # Configuration files
