@@ -42,3 +42,11 @@ config NAVIGATOR_GEOFENCE_MAX_NODES
 	---help---
 		Max number of geofence vertices which the RTL planner can use.
 		Replanning time (on geofence / safety margin change) is cubic, RAM usage quadratic in this number.
+
+menuconfig NAVIGATOR_ADSB_FAKE_TRAFFIC
+	bool "Include fake-traffic injection for DAA testing"
+	default n
+	depends on NAVIGATOR_ADSB
+	---help---
+		Adds the `navigator fake_traffic` shell command and the scripted scenarios
+		used to validate the Detect and Avoid pipeline without a real transponder.

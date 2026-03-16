@@ -31,14 +31,22 @@
 #
 ############################################################################
 
-px4_add_library(adsb AdsbConflict.cpp
-		f3442_standard/DaaF3442.cpp
-		crosstrack_based_daa/DaaCrosstrack.cpp)
-set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/parameters.yaml)
+set(detect_and_avoid_srcs
+	detect_and_avoid.cpp
+	detect_and_avoid_notify.cpp
+	detect_and_avoid.h
+)
 
-target_link_libraries(adsb PUBLIC geo)
+if(CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC)
+	list(APPEND detect_and_avoid_srcs detect_and_avoid_fake_traffic.cpp)
+endif()
 
+px4_add_library(detect_and_avoid ${detect_and_avoid_srcs})
 
-px4_add_functional_gtest(SRC AdsbConflictTest.cpp LINKLIBS adsb)
-px4_add_functional_gtest(SRC f3442_standard/DaaF3442Test.cpp LINKLIBS adsb)
-px4_add_functional_gtest(SRC crosstrack_based_daa/DaaCrosstrackTest.cpp LINKLIBS adsb)
+set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/detect_and_avoid_params.yaml)
+
+target_link_libraries(detect_and_avoid PUBLIC adsb modules__navigator modules__dataman)
+
+if(CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC)
+	px4_add_functional_gtest(SRC detect_and_avoid_test.cpp LINKLIBS detect_and_avoid)
+endif()

@@ -63,6 +63,8 @@ set(msg_files
 	DebugKeyValue.msg
 	DebugValue.msg
 	DebugVect.msg
+	DetectAndAvoid.msg
+	DetectAndAvoidMostUrgent.msg
 	DeviceInformation.msg
 	DifferentialPressure.msg
 	DistanceSensor.msg

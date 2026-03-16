@@ -124,15 +124,18 @@ private:
 	bool send() override
 	{
 		// Required update for static message is 0.1 [Hz]
+		const int32_t adsb_icao = _adsb_icao.get();
+		const bool adsb_out_enabled = adsb_icao >= 0;
+
 		mavlink_uavionix_adsb_out_cfg_t cfg_msg = {
-			.ICAO = static_cast<uint32_t>(_adsb_icao.get()),
+			.ICAO = adsb_out_enabled ? static_cast<uint32_t>(adsb_icao) : 0,
 			.stallSpeed = _stall_speed,
 			.callsign = {'\0'},
 			.emitterType = static_cast<uint8_t>(_adsb_emit_type.get()),
 			.aircraftSize = static_cast<uint8_t>(_adsb_len_width.get()),
 			.gpsOffsetLat = static_cast<uint8_t>(_adsb_gps_offset_lat.get()),
 			.gpsOffsetLon = static_cast<uint8_t>(_adsb_gps_offset_lon.get()),
-			.rfSelect = UAVIONIX_ADSB_OUT_RF_SELECT_TX_ENABLED
+			.rfSelect = static_cast<uint8_t>(adsb_out_enabled ? UAVIONIX_ADSB_OUT_RF_SELECT_TX_ENABLED : 0)
 		};
 
 		static_assert(sizeof(cfg_msg.callsign) == sizeof(_callsign), "Size mismatch");

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,71 +31,24 @@
  *
  ****************************************************************************/
 
-
-
 #pragma once
 
 #include <stdbool.h>
 #include <stdint.h>
 
 #include <lib/geo/geo.h>
+#include "f3442_standard/DaaF3442.h"
+#include "crosstrack_based_daa/DaaCrosstrack.h"
+#include "DaaHelper.h"
+#include <matrix/math.hpp>
 
 #include <drivers/drv_hrt.h>
-#include <uORB/Publication.hpp>
-#include <uORB/Subscription.hpp>
 #include <uORB/topics/transponder_report.h>
-#include <uORB/topics/vehicle_command.h>
-
-#include <px4_platform_common/events.h>
-
-#include <px4_platform_common/board_common.h>
-
-#include <containers/Array.hpp>
+#include <uORB/topics/detect_and_avoid.h>
 
 using namespace time_literals;
 
-static constexpr uint8_t NAVIGATOR_MAX_TRAFFIC{10};
-
-static constexpr uint8_t UTM_CALLSIGN_LENGTH{9};
-
-static constexpr uint64_t CONFLICT_WARNING_TIMEOUT{60_s};
-
-static constexpr float TRAFFIC_TO_UAV_DISTANCE_EXTENSION{1000.0f};
-
-static constexpr uint64_t TRAFFIC_WARNING_TIMESTEP{60_s}; //limits the max warning rate when traffic conflict buffer is full
-
-static constexpr uint64_t TRAFFIC_CONFLICT_LIFETIME{120_s}; //limits the time a conflict can be in the buffer without being seen (as a conflict)
-
-struct traffic_data_s {
-	double lat_traffic;
-	double lon_traffic;
-	float alt_traffic;
-	float heading_traffic;
-	float vxy_traffic;
-	float vz_traffic;
-	bool in_conflict;
-};
-
-struct traffic_buffer_s {
-	px4::Array<uint32_t, NAVIGATOR_MAX_TRAFFIC> icao_address {};
-	px4::Array<hrt_abstime, NAVIGATOR_MAX_TRAFFIC> timestamp {};
-};
-
-struct conflict_detection_params_s {
-	float crosstrack_separation;
-	float vertical_separation;
-	int collision_time_threshold;
-	uint8_t traffic_avoidance_mode;
-};
-
-enum class TRAFFIC_STATE {
-	NO_CONFLICT = 0,
-	ADD_CONFLICT = 1,
-	REMIND_CONFLICT = 2,
-	REMOVE_OLD_CONFLICT = 3,
-	BUFFER_FULL = 4
-};
-
+static constexpr uint64_t kConflictWarningTimeout{60_s};
 
 class AdsbConflict
 {
@@ -103,57 +56,46 @@ public:
 	AdsbConflict() = default;
 	~AdsbConflict() = default;
 
-	void detect_traffic_conflict(double lat_now, double lon_now, float alt_now, float vx_now, float vy_now, float vz_now);
+	/** @brief Pick the active DAA standard. Returns false if @p standard is unknown. */
+	bool try_setting_DAA_standard(const uint8_t standard);
 
-	int find_icao_address_in_conflict_list(uint32_t icao_address);
+	/** @brief Fill an aircraft_state_s from a raw transponder report. */
+	void transponder_report_to_aircraft_state(const transponder_report_s &transponder_report,
+			aircraft_state_s &traffic_state);
 
-	void remove_icao_address_from_conflict_list(int traffic_index);
+	/** @brief Fill an aircraft_state_s from the ownship pose and NED velocity. */
+	void uav_state_to_aircraft_state(const matrix::Vector2d &uav_lat_lon, const float uav_alt, const float uav_heading,
+					 const matrix::Vector3f &uav_vel_ned, aircraft_state_s &uav_state);
 
-	void add_icao_address_from_conflict_list(uint32_t icao_address, hrt_abstime now);
+	/** @brief Using the active standard compute the traffic conflict level. */
+	uint8_t calculate_daa_stats(const aircraft_state_s &uav_state, const aircraft_state_s &traffic_state,
+				    daa_stats_s &daa_stats);
 
-	void get_traffic_state(hrt_abstime now);
+	/**
+	 * @brief Validate the ownship + transponder inputs and run them through the active standard.
+	 *
+	 * Returns false on non-finite inputs or when the active standard needs a heading
+	 * that the report does not provide.
+	 */
+	bool handle_traffic(const matrix::Vector2d &uav_lat_lon, const float uav_alt,
+			    const float uav_heading,
+			    const matrix::Vector3f &uav_vel_ned, const transponder_report_s &transponder_report, detect_and_avoid_s &daa_output);
 
-	void set_conflict_detection_params(float crosstrack_separation, float vertical_separation,
-					   int collision_time_threshold, uint8_t traffic_avoidance_mode);
-
-
-	bool send_traffic_warning(int traffic_direction, int traffic_seperation, uint16_t tr_flags,
-				  char tr_callsign[UTM_CALLSIGN_LENGTH], uint32_t icao_address, hrt_abstime now);
-
-	transponder_report_s _transponder_report{};
-
-	bool handle_traffic_conflict();
-
-	void fake_traffic(const char *const callsign, float distance, float direction, float traffic_heading,
-			  float altitude_diff,
-			  float hor_velocity, float ver_velocity, int emitter_type, uint32_t icao_address, double lat_uav, double lon_uav,
-			  float &alt_uav);
-
-	void run_fake_traffic(double &lat_uav, double &lon_uav, float &alt_uav);
-
-	void remove_expired_conflicts();
-
-	bool _conflict_detected{false};
-
-	TRAFFIC_STATE _traffic_state{TRAFFIC_STATE::NO_CONFLICT};
-
-	conflict_detection_params_s _conflict_detection_params{};
-
-
-protected:
-	traffic_buffer_s _traffic_buffer;
+	/** @brief Refresh the active standard's parameter cache. Returns false on any invalid value. */
+	bool try_updating_params();
 
 private:
+	/**
+	 * @brief Convert traffic speed from a transponder report into a NED velocity vector.
+	 *
+	 * If the report heading is not finite, the horizontal speed is returned in the north direction
+	 * so heading-agnostic standards can still use the speed magnitude. Standards that depend on the
+	 * actual traffic track direction must require a finite heading separately.
+	 */
+	static matrix::Vector3f velocity_ned_from_transponder_report(const transponder_report_s &transponder_report);
 
-	crosstrack_error_s _crosstrack_error{};
+	DaaF3442 _daaF3442;
+	DaaCrosstrack _daaCrosstrack;
 
-	transponder_report_s tr{};
-
-	orb_advert_t fake_traffic_report_publisher = orb_advertise(ORB_ID(transponder_report), &tr);
-
-	TRAFFIC_STATE _traffic_state_previous{TRAFFIC_STATE::NO_CONFLICT};
-
-	hrt_abstime _last_traffic_warning_time{0};
-
-	hrt_abstime _last_buffer_full_warning_time{0};
+	uint8_t _daa_standard{detect_and_avoid_s::DAA_STANDARD_F3442};
 };

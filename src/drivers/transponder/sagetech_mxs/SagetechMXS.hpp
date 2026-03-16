@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -272,7 +272,7 @@ private:
 	int handle_fid(const char *fid);
 	int store_inst_resp();
 	void auto_config_operating();
-	void auto_config_installation();
+	bool auto_config_installation();
 	void auto_config_flightid();
 	unsigned convert_to_px4_baud(int baudType);
 	bool check_valid_squawk(int squawk);
