@@ -500,8 +500,10 @@ TEST_F(MixerModuleTest, OutputLimitCalcSingle)
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 1.1f), 2000);
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, -1000.f), 1000); // Way ouf of range
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 1000.f), 2000);
-	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.0005), 1500); // Rounding down
-	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.0015), 1501); // Rounding up
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.0005), 1500.25f);
+	EXPECT_EQ(static_cast<uint16_t>(lroundf(mixing_output.output_limit_calc_single(0, 0.0005))), 1500); // Rounding down
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.0015), 1500.75f);
+	EXPECT_EQ(static_cast<uint16_t>(lroundf(mixing_output.output_limit_calc_single(0, 0.0015))), 1501); // Rounding up
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.002), 1501); // Exact value
 
 	mixing_output.setAllMinValues(0); // lower range [0,20]
@@ -516,8 +518,10 @@ TEST_F(MixerModuleTest, OutputLimitCalcSingle)
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 1.1f), 20);
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, -1000.f), 0); // Way ouf of range
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 1000.f), 20);
-	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.025), 10); // Rounding down
-	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.075), 11); // Rounding up
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.025), 10.25f);
+	EXPECT_EQ(static_cast<uint16_t>(lroundf(mixing_output.output_limit_calc_single(0, 0.025))), 10); // Rounding down
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.075), 10.75f);
+	EXPECT_EQ(static_cast<uint16_t>(lroundf(mixing_output.output_limit_calc_single(0, 0.075))), 11); // Rounding up
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.1), 11); // Exact value
 
 	mixing_output.setAllMinValues(20); // inverted range [20,0]
@@ -532,7 +536,9 @@ TEST_F(MixerModuleTest, OutputLimitCalcSingle)
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 1.1f), 0);
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, -1000.f), 20); // Way ouf of range
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 1000.f), 0);
-	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.025), 10); // Rounding down
-	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.075), 9); // Rounding up
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.025), 9.75f);
+	EXPECT_EQ(static_cast<uint16_t>(lroundf(mixing_output.output_limit_calc_single(0, 0.025))), 10); // Rounding down
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.075), 9.25f);
+	EXPECT_EQ(static_cast<uint16_t>(lroundf(mixing_output.output_limit_calc_single(0, 0.075))), 9); // Rounding up
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.1), 9); // Exact value
 }
