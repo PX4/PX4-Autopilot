@@ -10,6 +10,7 @@ uint8 rng_intended
 uint8 drag_intended
 uint8 mag_intended
 uint8 aspd_intended
+uint8 rngbcn_intended
 
 # whether the estimator is actively fusing data from each source
 uint8 gps_active
@@ -21,3 +22,4 @@ bool rng_active
 bool drag_active
 bool mag_active
 bool aspd_active
+bool rngbcn_active

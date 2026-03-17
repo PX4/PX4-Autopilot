@@ -302,6 +302,7 @@ struct FusionControl {
 	FusionSensor drag;
 	FusionSensor mag{false, 5};  // MagFuseType::NONE
 	FusionSensor aspd;
+	FusionSensor rngbcn;
 };
 
 struct parameters {

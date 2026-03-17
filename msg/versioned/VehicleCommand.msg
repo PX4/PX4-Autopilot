@@ -120,7 +120,8 @@ uint8 FUSION_SOURCE_BARO = 5  # Barometer (EKF2_BARO_CTRL)
 uint8 FUSION_SOURCE_RNG = 6   # Range Finder (EKF2_RNG_CTRL)
 uint8 FUSION_SOURCE_DRAG = 7  # Drag (EKF2_DRAG_CTRL)
 uint8 FUSION_SOURCE_MAG = 8   # Magnetometer (EKF2_MAG_TYPE)
-uint8 FUSION_SOURCE_ASPD = 9  # Airspeed (EKF2_ARSP_THR)
+uint8 FUSION_SOURCE_ASPD = 9    # Airspeed (EKF2_ARSP_THR)
+uint8 FUSION_SOURCE_RNGBCN = 10 # Ranging Beacon (EKF2_RNGBC_CTRL)
 
 # PX4 vehicle commands (beyond 16 bit MAVLink commands).
 uint32 VEHICLE_CMD_PX4_INTERNAL_START = 65537 # Start of PX4 internal only vehicle commands (> UINT16_MAX).

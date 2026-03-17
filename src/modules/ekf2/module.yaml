@@ -215,6 +215,7 @@ parameters:
         10: Drag
         11: Magnetometer
         12: Airspeed
-      default: 8191
+        13: Ranging beacon
+      default: 16383
       min: 0
-      max: 8191
+      max: 16383

@@ -40,7 +40,7 @@
 /**
  * Array index = ESTIMATOR_SENSOR_FUSION_SOURCE - 1:
  *   [0] GPS    [1] OF     [2] EV    [3] AGP
- *   [4] BARO   [5] RNG    [6] DRAG  [7] MAG   [8] ASPD
+ *   [4] BARO   [5] RNG    [6] DRAG  [7] MAG   [8] ASPD  [9] RNGBCN
  *
  * Each element is a per-instance bitmask (bit 0 = instance 0, etc.).
  */
@@ -71,7 +71,8 @@ private:
 	static constexpr uint8_t IDX_RNG  = 5;
 	static constexpr uint8_t IDX_DRAG = 6;
 	static constexpr uint8_t IDX_MAG  = 7;
-	static constexpr uint8_t IDX_ASPD = 8;
+	static constexpr uint8_t IDX_ASPD   = 8;
+	static constexpr uint8_t IDX_RNGBCN = 9;
 
 	explicit MavlinkStreamEstimatorSensorFusionStatus(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
@@ -84,7 +85,7 @@ private:
 		if (_estimator_fusion_control_sub.update(&fc)) {
 			mavlink_estimator_sensor_fusion_status_t msg{};
 
-			for (int i = 0; i < 9; i++) { msg.test_ratio[i] = NAN; }
+			for (int i = 0; i < 10; i++) { msg.test_ratio[i] = NAN; }
 
 			// --- intended: effective CTRL values with runtime overrides ---
 			for (int i = 0; i < 2; i++) {
@@ -103,7 +104,9 @@ private:
 
 			if (fc.mag_intended  != 0) { msg.intended[IDX_MAG]  = 1; }
 
-			if (fc.aspd_intended != 0) { msg.intended[IDX_ASPD] = 1; }
+			if (fc.aspd_intended   != 0) { msg.intended[IDX_ASPD]   = 1; }
+
+			if (fc.rngbcn_intended != 0) { msg.intended[IDX_RNGBCN] = 1; }
 
 			for (int i = 0; i < 4; i++) {
 				if (fc.agp_intended[i] != 0) { msg.intended[IDX_AGP] |= (1u << i); }
@@ -118,7 +121,8 @@ private:
 			msg.active[IDX_RNG]  = fc.rng_active;
 			msg.active[IDX_DRAG] = fc.drag_active;
 			msg.active[IDX_MAG]  = fc.mag_active;
-			msg.active[IDX_ASPD] = fc.aspd_active;
+			msg.active[IDX_ASPD]   = fc.aspd_active;
+			msg.active[IDX_RNGBCN] = fc.rngbcn_active;
 
 			mavlink_msg_estimator_sensor_fusion_status_send_struct(_mavlink->get_channel(), &msg);
 			return true;

@@ -416,7 +416,7 @@ private:
 		uint8_t disabled_val;
 	};
 
-	static constexpr uint8_t MAX_SENSOR_TABLE = 9 + (MAX_AGP_INSTANCES - 1); // 12
+	static constexpr uint8_t MAX_SENSOR_TABLE = 10 + (MAX_AGP_INSTANCES - 1); // 13
 	FusionEntry _sensor_table[MAX_SENSOR_TABLE] {};
 	uint8_t _num_sensor_table{0};
 

@@ -997,7 +997,7 @@ void EKF2::VerifyParams()
 void EKF2::initFusionControl()
 {
 	_sens_en_param = param_find("EKF2_SENS_EN");
-	int32_t sens_en = 4095; // default: all enabled
+	int32_t sens_en = 16383; // default: all enabled
 
 	if (_sens_en_param != PARAM_INVALID) {
 		param_get(_sens_en_param, &sens_en);
@@ -1020,7 +1020,7 @@ void EKF2::initFusionControl()
 		}
 	};
 
-	// bit layout: 0..1=GPS0..1 2=OF 3=EV 4..7=AGP0..3 8=BARO 9=RNG 10=DRAG 11=MAG 12=ASPD
+	// bit layout: 0..1=GPS0..1 2=OF 3=EV 4..7=AGP0..3 8=BARO 9=RNG 10=DRAG 11=MAG 12=ASPD 13=RNGBCN
 #if defined(CONFIG_EKF2_GNSS)
 	add(_fc.gps,   0, vehicle_command_s::FUSION_SOURCE_GPS, -1, _param_ekf2_gps_ctrl.handle());
 	// TODO: gps[1] reserved — no param yet, add second GPS instance here when multi-GPS CTRL is implemented
@@ -1059,6 +1059,9 @@ void EKF2::initFusionControl()
 #endif
 #if defined(CONFIG_EKF2_AIRSPEED)
 	add(_fc.aspd, 12, vehicle_command_s::FUSION_SOURCE_ASPD, -1, _param_ekf2_arsp_thr.handle());
+#endif
+#if defined(CONFIG_EKF2_RANGING_BEACON)
+	add(_fc.rngbcn, 13, vehicle_command_s::FUSION_SOURCE_RNGBCN, -1, _param_ekf2_rngbc_ctrl.handle());
 #endif
 }
 
@@ -2052,11 +2055,12 @@ void EKF2::PublishFusionControl(const hrt_abstime &timestamp)
 		msg.agp_intended[i] = _fc.agp[i].intended;
 	}
 
-	msg.baro_intended = _fc.baro.intended;
-	msg.rng_intended  = _fc.rng.intended;
-	msg.drag_intended = _fc.drag.intended;
-	msg.mag_intended  = _fc.mag.intended;
-	msg.aspd_intended = _fc.aspd.intended;
+	msg.baro_intended   = _fc.baro.intended;
+	msg.rng_intended    = _fc.rng.intended;
+	msg.drag_intended   = _fc.drag.intended;
+	msg.mag_intended    = _fc.mag.intended;
+	msg.aspd_intended   = _fc.aspd.intended;
+	msg.rngbcn_intended = _fc.rngbcn.intended;
 
 	const auto &cs = _ekf.control_status_flags();
 	msg.gps_active  = (cs.gnss_pos || cs.gps_hgt || cs.gnss_vel || cs.gnss_yaw) ? 1u : 0u; // TODO: per-instance active tracking
@@ -2066,7 +2070,8 @@ void EKF2::PublishFusionControl(const hrt_abstime &timestamp)
 	msg.rng_active  = cs.rng_hgt;
 	msg.drag_active = (_fc.drag.intended > 0) && cs.wind && cs.in_air && !cs.fake_pos;
 	msg.mag_active  = cs.mag;
-	msg.aspd_active = cs.fuse_aspd;
+	msg.aspd_active   = cs.fuse_aspd;
+	// msg.rngbcn_active = cs.rngbcn_fusion; // waiting for RangeBeacon PR
 
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION)
 	msg.agp_active  = _ekf.getAgpFusingBitmask();

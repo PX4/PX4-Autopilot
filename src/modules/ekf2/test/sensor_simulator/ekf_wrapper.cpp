@@ -23,6 +23,8 @@ EkfWrapper::EkfWrapper(std::shared_ptr<Ekf> ekf):
 	_fc->mag.intended = static_cast<uint8_t>(_ekf_params->ekf2_mag_type);
 	_fc->aspd.enabled = true;
 	_fc->aspd.intended = static_cast<uint8_t>(_ekf_params->ekf2_arsp_thr);
+	_fc->rngbcn.enabled = true;
+	_fc->rngbcn.intended = 0; // wait for RangeBeacon PR
 
 	for (int i = 0; i < MAX_AGP_INSTANCES; i++) {
 		_fc->agp[i].enabled = true;
