@@ -221,19 +221,14 @@ In order to keep a constant rate, this damping can be compensated using feedforw
 
 The  yaw rate setpoint is generated using the turn coordination constraint in order to minimize lateral acceleration, generated when the aircraft is slipping.
 
-$$\dot{\Psi}_{sp} = \frac{2g}{V_T}\left(q_0 q_1 + q_2 q_3\right)$$
+$$r_{sp} = \frac{2g}{V_T}\left(q_0 q_1 + q_2 q_3\right)$$
 
 This also helps to counteract [adverse yaw effects](https://youtu.be/sNV_SDDxuWk) and to damp the [Dutch roll mode](https://en.wikipedia.org/wiki/Dutch_roll) by providing extra directional damping.
 
 To compensate for the non-zero pitch rate that naturally occurs during coordinated turns, a geometry-based feedforward term is added to the pitch-rate command.
 This feedforward term accounts for the aircraft's current attitude and airspeed so that the controller does not need to generate this motion purely through feedback.
 
-$$\dot{\theta}_{sp}^{ff} = \frac{4g(q_0 q_1 + q_2 q_3)^2}{V(1 - 2q_1^2 - 2q_2^2)}$$
-
-To compensate for the non-zero pitch rate that naturally occurs during coordinated turns, a geometry-based feedforward term is added to the pitch-rate command.
-This feedforward term accounts for the aircraft's current attitude and airspeed so that the controller does not need to generate this motion purely through feedback.
-
-$$\dot{\theta}_{sp}^{ff} = \frac{2g(q_0 q_1 + q_2 q_3)^2}{V(1 - 2q_1^2 - 2q_2^2)}$$
+$$q_{sp}^{ff} = \frac{4g(q_0 q_1 + q_2 q_3)^2}{V(1 - 2q_1^2 - 2q_2^2)}$$
 
 ## VTOL Flight Controller
 

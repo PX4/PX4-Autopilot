@@ -207,7 +207,6 @@ void FixedwingAttitudeControl::Run()
 			dt = math::constrain((att.timestamp_sample - _last_run) * 1e-6f, DT_MIN, DT_MAX);
 			_last_run = att.timestamp_sample;
 
-			// get current rotation matrix from control state quaternions
 			_R = matrix::Quatf(att.q);
 		}
 
