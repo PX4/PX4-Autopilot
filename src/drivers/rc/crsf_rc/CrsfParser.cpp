@@ -424,9 +424,22 @@ bool CrsfParser_TryParseCrsfPacket(CrsfPacket_t *const new_packet, CrsfParserSta
 				}
 
 			} else {
-				// We don't know what this packet is, so we'll let the parser continue
-				// just so that we can dequeue it in one shot
-				working_segment_size = packet_size - PACKET_SIZE_TYPE_SIZE;
+
+				// Skip message if packet size is less then PACKET_SIZE_TYPE_SIZE
+				if (packet_size < PACKET_SIZE_TYPE_SIZE) {
+					parser_statistics->invalid_unknown_packet_sizes++;
+					parser_state = PARSER_STATE_HEADER;
+					working_segment_size = HEADER_SIZE;
+					working_index = 0;
+					buffer_count = QueueBuffer_Count(&rx_queue);
+					continue;
+				} else {
+					// We don't know what this packet is, so we'll let the parser continue
+					// just so that we can dequeue it in one shot
+					// Note: Packet size must be greater then or equal to PACKET_SIZE_TYPE_SIZE
+					// to avoid overflow in working_segment_size variable
+					working_segment_size = packet_size - PACKET_SIZE_TYPE_SIZE;
+				}
 
 				if (working_index + working_segment_size + CRC_SIZE > CRSF_MAX_PACKET_LEN) {
 					parser_statistics->invalid_unknown_packet_sizes++;
