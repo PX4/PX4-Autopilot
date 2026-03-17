@@ -158,7 +158,7 @@ static void print_usage()
 
 int mtd_erase(mtd_instance_s &instance)
 {
-	uint8_t v[64];
+	uint8_t v[32];
 	memset(v, 0xFF, sizeof(v));
 
 	for (uint8_t i = 0; i < instance.n_partitions_current; i++) {
@@ -192,7 +192,7 @@ int mtd_erase(mtd_instance_s &instance)
  */
 int mtd_readtest(const mtd_instance_s &instance)
 {
-	uint8_t v[128];
+	uint8_t v[32];
 
 	for (uint8_t i = 0; i < instance.n_partitions_current; i++) {
 		ssize_t count = 0;
@@ -236,7 +236,7 @@ int mtd_readtest(const mtd_instance_s &instance)
  */
 int mtd_rwtest(const mtd_instance_s &instance)
 {
-	uint8_t v[128], v2[128];
+	uint8_t v[32], v2[32];
 
 	for (uint8_t i = 0; i < instance.n_partitions_current; i++) {
 		ssize_t count = 0;
