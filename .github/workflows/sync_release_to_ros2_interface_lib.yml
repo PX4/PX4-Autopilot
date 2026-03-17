@@ -9,6 +9,8 @@ on:
         required: true
         type: string
 
+permissions: {}
+
 jobs:
   notify-interface-lib:
     if: >-
