@@ -8,11 +8,8 @@ env:
   PX4_DEV_TARGETS: 'px4_fmu-v5x_default:auterion_fmu-v6x_default:auterion_fmu-v6n_default:auterion_fmu-v6s_default:px4_fmu-v5x_performance-test:auterion_fmu-v6x_performance-test:auterion_fmu-v6n_performance-test:auterion_fmu-v6s_performance-test:auterion_fmu-v6x_bootloader:auterion_fmu-v6n_bootloader:auterion_fmu-v6s_bootloader:ark_fmu-v6x_default:ark_fmu-v6x_bootloader:auterion_fmu-v6s_gcs'
   PX4_PROD_TARGETS: 'px4_fmu-v5x_default:auterion_fmu-v6x_default:auterion_fmu-v6n_default:auterion_fmu-v6s_default:ark_fmu-v6x_default:auterion_fmu-v6s_gcs'
   DEV_BUILD_FLAGS: ''
-  PROD_BUILD_FLAGS: 'PX4_RESTRICTED_BUILD=1'
-  PX4_TARGET_NAME_PREFIX: ''
-  AUTERIONOS_REPO: 'Auterion/AuterionOS'
-  AUTERIONOS_BASE_BRANCH: 'master'
-  AUTERIONOS_TEAM_REVIEWER: 'distro-aos-infrastructure'
+  PROD_BUILD_FLAGS: ''
+  PX4_TARGET_NAME_PREFIX: 'dq-'
 
 jobs:
   release:
@@ -221,30 +218,3 @@ jobs:
         && s=0 && break || s=$? && sleep 15; done; (exit $s)
       env:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
-
-    - name: Clone AuterionOS
-      uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.AUTERION_CI_ACCESS_TOKEN }}
-        repository: ${{env.AUTERIONOS_REPO}}
-        ref: ${{env.AUTERIONOS_BASE_BRANCH}}
-        path: AuterionOS
-
-    - name: Update FMU config in AuterionOS
-      run: |
-        find AuterionOS/config/ -type f -name '*.json' -exec sed -i 's/\(\s*\)"px4_version"\s*:\s*"[^"]*"\(,\)\{0,1\}/\1"px4_version": "${{ env.TAG_NAME }}"\2/' {} \;
-
-    - name: Create PR to AuterionOS repo
-      uses: peter-evans/create-pull-request@v5
-      with:
-        token: ${{ secrets.AUTERION_CI_ACCESS_TOKEN }}
-        path: AuterionOS
-        title: "Release ${{ env.TAG_NAME }} FMU binaries update | ${{ env.TIMESTAMP }}"
-        body: "Updates FMU binaries for release ${{ env.TAG_NAME }}, created on ${{ env.TIMESTAMP }}."
-        team-reviewers: ${{env.AUTERIONOS_TEAM_REVIEWER}}
-        commit-message: "chore: update fmu binaries for release ${{ env.TAG_NAME }}"
-        author: auterion-ci <ci@auterion.com>
-        committer: auterion-ci <ci@auterion.com>
-        assignees: auterion-ci
-        base: ${{env.AUTERIONOS_BASE_BRANCH}}
-        branch: pr-update_fmu_binaries_release_${{ env.TAG_NAME }}
