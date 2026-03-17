@@ -700,17 +700,6 @@ PARAM_DEFINE_INT32(COM_PREARM_MODE, 0);
 PARAM_DEFINE_INT32(COM_FORCE_SAFETY, 0);
 
 /**
- * Enable Actuator Testing
- *
- * If set, enables the actuator test interface via MAVLink (ACTUATOR_TEST), that
- * allows spinning the motors and moving the servos for testing purposes.
- *
- * @boolean
- * @group Commander
- */
-PARAM_DEFINE_INT32(COM_MOT_TEST_EN, 1);
-
-/**
  * Maximum allowed CPU load to still arm.
  *
  * The check fails if the CPU load is above this threshold for 2s.

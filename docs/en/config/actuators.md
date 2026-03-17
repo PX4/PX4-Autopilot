@@ -660,7 +660,6 @@ For each of the tilt servos:
 - If a safety button is used, it must be pressed before actuator testing is allowed.
 - The kill-switch can still be used to stop motors immediately.
 - Servos do not actually move until the corresponding slider is changed.
-- The parameter [COM_MOT_TEST_EN](../advanced_config/parameter_reference.md#COM_MOT_TEST_EN) can be used to completely disable actuator testing.
 - On the shell, [actuator_test](../modules/modules_command.md#actuator-test) can be used as well for actuator testing.
 - VTOLs will automatically turn off motors pointing upwards during **fixed-wing flight**:
   - Standard VTOL : Motors defined as multicopter motors will be turned off
