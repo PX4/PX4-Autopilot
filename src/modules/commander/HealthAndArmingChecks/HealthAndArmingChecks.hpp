@@ -69,6 +69,7 @@
 #include "checks/geofenceCheck.hpp"
 #include "checks/flightTimeCheck.hpp"
 #include "checks/missionCheck.hpp"
+#include "checks/rallyPointCheck.hpp"
 #include "checks/rcAndDataLinkCheck.hpp"
 #include "checks/vtolCheck.hpp"
 #include "checks/offboardCheck.hpp"
@@ -160,6 +161,7 @@ private:
 	GeofenceChecks _geofence_checks;
 	FlightTimeChecks _flight_time_checks;
 	MissionChecks _mission_checks;
+	RallyPointChecks _rally_point_checks;
 	RcAndDataLinkChecks _rc_and_data_link_checks;
 	VtolChecks _vtol_checks;
 	OffboardChecks _offboard_checks;
@@ -168,7 +170,7 @@ private:
 	ExternalChecks _external_checks;
 #endif
 
-	HealthAndArmingCheckBase *_checks[40] = {
+	HealthAndArmingCheckBase *_checks[41] = {
 #ifndef CONSTRAINED_FLASH
 		&_external_checks,
 #endif
@@ -191,6 +193,7 @@ private:
 		&_manual_control_checks,
 		&_home_position_checks,
 		&_mission_checks,
+		&_rally_point_checks,
 		&_offboard_checks, // must be after _estimator_checks
 		&_mode_checks, // must be after _estimator_checks, _home_position_checks, _mission_checks, _offboard_checks, _external_checks
 		&_open_drone_id_checks,
