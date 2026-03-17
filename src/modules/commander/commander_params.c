@@ -438,7 +438,7 @@ PARAM_DEFINE_INT32(COM_RC_OVERRIDE, 1);
  * Stick override threshold
  *
  * If COM_RC_OVERRIDE is enabled and the joystick input is moved more than this threshold
- * the autopilot the pilot takes over control.
+ * the pilot takes over control.
  *
  * @group Commander
  * @unit %
