@@ -18849,17 +18849,6 @@ By default disabled for safety reasons
 | ------ | -------- | -------- | --------- | ------------ | ---- |
 | &nbsp; |          |          |           | Disabled (0) |      |
 
-### COM_MOT_TEST_EN (`INT32`) {#COM_MOT_TEST_EN}
-
-Enable Actuator Testing.
-
-If set, enables the actuator test interface via MAVLink (ACTUATOR_TEST), that
-allows spinning the motors and moving the servos for testing purposes.
-
-| Reboot | minValue | maxValue | increment | default     | unit |
-| ------ | -------- | -------- | --------- | ----------- | ---- |
-| &nbsp; |          |          |           | Enabled (1) |      |
-
 ### COM_OBC_LOSS_T (`FLOAT`) {#COM_OBC_LOSS_T}
 
 Time-out to wait when onboard computer connection is lost before warning about loss connection.
@@ -19105,7 +19094,7 @@ Note: Only has an effect on multicopters, and VTOLs in multicopter mode.
 Stick override threshold.
 
 If COM_RC_OVERRIDE is enabled and the joystick input is moved more than this threshold
-the autopilot the pilot takes over control.
+the pilot takes over control.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
