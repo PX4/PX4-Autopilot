@@ -84,8 +84,8 @@ private:
 			if (_esc_status_subs[i].update(&esc)) {
 				for (int j = 0; j < esc_status_s::CONNECTED_ESC_MAX; j++) {
 
-					bool is_motor = ((int)esc.esc[j].actuator_function >= esc_report_s::ACTUATOR_FUNCTION_MOTOR1) &&
-							((int)esc.esc[j].actuator_function <= esc_report_s::ACTUATOR_FUNCTION_MOTOR12);
+					const bool is_motor = math::isInRange(esc.esc[j].actuator_function,
+									      esc_report_s::ACTUATOR_FUNCTION_MOTOR1, esc_report_s::ACTUATOR_FUNCTION_MOTOR_MAX);
 
 					if (is_motor) {
 						// Map OutputFunction number to index

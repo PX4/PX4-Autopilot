@@ -77,7 +77,7 @@ The 1.25mm pitch 6P connector (from left: PIN1 to PIN6) supports UART for GNSS a
 ## Hardware Setup
 
 RTK requires a base RTK module attached to the ground station, and a rover RTK module on the vehicle.
-The data from the base needs to be transmitted to the drone via telemetry radio and inputed into the RTK receiver on the rover.
+The data from the base needs to be transmitted to the drone via telemetry radio and inputted into the RTK receiver on the rover.
 
 ![RTK setup overview](../../assets/hardware/gps/datagnss_gem1305/setup_overview.png)
 
@@ -121,7 +121,7 @@ GPS and RTK configuration on PX4 via _QGroundControl_ is plug and play (see [RTK
 
 ## More information
 
-- [NANO RTK Receiver](https://www.datagnss.com/products/tau951m-1312-tiny-evk)
+- [NANO RTK Receiver](https://www.datagnss.com/products/nano-rtk-receiver)
 - [HELIX Antenna for RTK](https://www.datagnss.com/collections/rtk-antenna/products/smart-helix-antenna)
 - [RTK Antenna AGR6302G](https://www.datagnss.com/collections/rtk-antenna/products/antenna-agr6302g)
 - [AT400 RTK Antenna](https://www.datagnss.com/collections/rtk-antenna/products/at400-multi-band-antenna-for-rtk)

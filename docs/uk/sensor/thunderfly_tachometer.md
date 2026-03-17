@@ -31,7 +31,7 @@ The TFRPM01 sensor is open-source hardware commercially available from [ThunderF
 Датчики Холла (магнітно-оперовані) ідеально підходять для жорстких умов, де бруд, пил і вода можуть контактувати з відчуваним ротором.
 
 Багато різних датчиків ефекту Холла є комерційно доступними.
-For example, a [55100 Miniature Flange Mounting Proximity Sensor](https://m.littelfuse.com/media?resourcetype=datasheets&itemid=6d69d457-770e-46ba-9998-012c5e0aedd7&filename=littelfuse-hall-effect-sensors-55100-datasheet) is a good choice.
+For example, a [55100 Miniature Flange Mounting Proximity Sensor](https://www.littelfuse.com/assetdocs/littelfuse-hall-effect-sensors-55100-datasheet?assetguid=6d69d457-770e-46ba-9998-012c5e0aedd7) is a good choice.
 
 ![Example of Hall effect probe](../../assets/hardware/sensors/tfrpm/hall_probe.jpg)
 
@@ -90,7 +90,7 @@ pcf8583 status
 ```
 
 Якщо драйвер працює, порт I²C буде надруковано разом з іншими основними параметрами запущеного екземпляру.
-Якщо драйвер не працює, його можна запустити за допомогою процедури, описаної вище.
+If the driver is not running it can be started using theprocedure described above.
 
 The [listener](../modules/modules_command.md#listener) command allows you to monitor RPM UORB messages from the running driver.
 

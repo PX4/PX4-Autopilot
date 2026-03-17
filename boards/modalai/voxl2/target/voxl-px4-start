@@ -302,4 +302,28 @@ done
 # marked as optional will only be logged if they have been advertised when
 # this is started. By starting it last it makes sure to see those
 # advertisements as the other modules are starting before it.
-logger start
+#
+# Set logger mode based on SDLOG_MODE parameter:
+#   0: log when armed until disarm (default)
+#   1: log from boot until disarm
+#   2: log from boot until shutdown
+#   3: log based on AUX1 RC channel
+#   4: log from first armed until shutdown
+LOGGER_ARGS=""
+if param compare SDLOG_MODE 1
+then
+	LOGGER_ARGS="-e"
+fi
+if param compare SDLOG_MODE 2
+then
+	LOGGER_ARGS="-f"
+fi
+if param compare SDLOG_MODE 3
+then
+	LOGGER_ARGS="-x"
+fi
+if param compare SDLOG_MODE 4
+then
+	LOGGER_ARGS="-a"
+fi
+logger start $LOGGER_ARGS

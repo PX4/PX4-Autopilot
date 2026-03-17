@@ -202,7 +202,7 @@
 *(.text._ZN21MavlinkStreamAltitude8get_sizeEv)
 *(.text._ZN7Mavlink29check_requested_subscriptionsEv)
 *(.text.imxrt_lpspi_setmode)
-*(.text._ZN3Ekf34controlZeroInnovationHeadingUpdateEv)
+*(.text._ZN3Ekf36uncorrelateAndLimitHeadingCovarianceEv)
 *(.text.perf_begin)
 *(.text.imxrt_lpspi_setfrequency)
 *(.text._ZN17FlightModeManager9_initTaskE15FlightTaskIndex)

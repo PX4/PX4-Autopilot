@@ -26,7 +26,7 @@ For an equivalent GPS module with a compass try: [LOCOSYS Hawk R2](../gps_compas
 - Fast TTFF at low signal level
 - Free hybrid ephemeris prediction to achieve faster cold start
 - Default 5Hz, up to 10 Hz update rate (SBAS support 5Hz only).
-- Build-in super capacitor to reserve system data for rapid satellite acquisition
+- Built-in super capacitor to reserve system data for rapid satellite acquisition
 
 ![LOCOSYS Hawk R1](../../assets/hardware/gps/locosys_hawk_a1/locosys_hawk_a1_gps.png)
 

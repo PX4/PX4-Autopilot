@@ -31,5 +31,4 @@
 #
 ############################################################################
 
-add_subdirectory(core_heater)
 add_subdirectory(pwm_voltage)

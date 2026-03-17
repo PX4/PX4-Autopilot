@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Rover Rate Status.
 
-**TOPICS:** rover_ratestatus
+**TOPICS:** rover_rate_status
 
 ## Fields
 

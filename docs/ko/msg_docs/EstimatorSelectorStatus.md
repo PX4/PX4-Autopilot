@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # EstimatorSelectorStatus (UORB message)
 
-**TOPICS:** estimator_selectorstatus
+**TOPICS:** estimator_selector_status
 
 ## Fields
 

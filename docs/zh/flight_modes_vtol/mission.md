@@ -11,7 +11,7 @@ For more information see the specific docs for each mode:
 - [Mission Mode (MC)](../flight_modes_mc/mission.md)
 - [Mission Mode (FW)](../flight_modes_fw/mission.md)
 
-The following sections outline mission mode behaviour that is VTOL specificL.
+The following sections outline mission mode behaviour that is VTOL specific.
 
 ## Mission Commands
 

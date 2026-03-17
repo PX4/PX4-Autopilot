@@ -1,6 +1,6 @@
 # Bootloader Update Pixhawk V6X-RT via USB
 
-This topic explains explains to flash [Pixhawk FMUv6X-RT](../flight_controller/pixhawk6x-rt.md) bootloader via USB _without needing a debug probe_.
+This topic explains how to flash [Pixhawk FMUv6X-RT](../flight_controller/pixhawk6x-rt.md) bootloader via USB _without needing a debug probe_.
 
 ## 개요
 
@@ -33,7 +33,7 @@ arm-none-eabi-objcopy -O ihex build/px4_fmu-v6xrt_bootloader/px4_fmu-v6xrt_bootl
 
 ## Flashing the bootloader through USB
 
-The Pixhawk V6X-RT comes with a build-in bootloader located on the ROM.
+The Pixhawk V6X-RT comes with a built-in bootloader located on the ROM.
 To flash a new bootloader through USB you've got to download the [NXP MCUXpresso Secure Provisioning tool](https://www.nxp.com/design/design-center/software/development-software/mcuxpresso-software-and-tools-/mcuxpresso-secure-provisioning-tool:MCUXPRESSO-SECURE-PROVISIONING).
 The tool is available for Windows, Linux and macOS.
 
@@ -80,7 +80,7 @@ The tool is available for Windows, Linux and macOS.
 
    ![Flash bootloader through Secure provisioning - Step 7](../../assets/advanced_config/bootloader_6xrt/bootloader_update_v6xrt_step7.png)
 
-4. When the Target Memory configuration is succesful you can press the the **Erase All** button
+4. When the Target Memory configuration is successful you can press the **Erase All** button
 
    ![Flash bootloader through Secure provisioning - Step 8](../../assets/advanced_config/bootloader_6xrt/bootloader_update_v6xrt_step8.png)
 

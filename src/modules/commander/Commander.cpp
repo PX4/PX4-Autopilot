@@ -766,6 +766,7 @@ Commander::Commander() :
 	updateParameters();
 
 	_failsafe.setOnNotifyUserCallback(&Commander::onFailsafeNotifyUserTrampoline, this);
+	_auto_disarm_killed.set_hysteresis_time_from(false, 5_s);
 }
 
 Commander::~Commander()
@@ -1814,8 +1815,6 @@ void Commander::updateParameters()
 		_vehicle_status.system_type = value_int32;
 	}
 
-	_auto_disarm_killed.set_hysteresis_time_from(false, _param_com_kill_disarm.get() * 1_s);
-
 	const bool is_rotary = is_rotary_wing(_vehicle_status) || (is_vtol(_vehicle_status)
 			       && _vtol_vehicle_status.vehicle_vtol_state != vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
 	const bool is_fixed = is_fixed_wing(_vehicle_status) || (is_vtol(_vehicle_status)
@@ -2016,7 +2015,7 @@ void Commander::run()
 			_vehicle_status.timestamp = hrt_absolute_time();
 			_vehicle_status_pub.publish(_vehicle_status);
 
-			_failure_detector.publishStatus();
+			_failure_detector.publishStatus(_health_and_arming_checks.getEscArmStatus(), _health_and_arming_checks.getMotorFailureMask());
 		}
 
 		checkWorkerThread();
@@ -2032,8 +2031,10 @@ void Commander::run()
 
 		perf_end(_loop_perf);
 
-		// sleep if there are no vehicle_commands or action_requests to process
-		if (!_vehicle_command_sub.updated() && !_action_request_sub.updated()) {
+		// Always sleep during calibration to avoid competing with calibration
+		// worker threads for CPU. Otherwise, sleep only when idle.
+		if (_vehicle_status.calibration_enabled
+		    || (!_vehicle_command_sub.updated() && !_action_request_sub.updated())) {
 			px4_usleep(COMMANDER_MONITORING_INTERVAL);
 		}
 	}

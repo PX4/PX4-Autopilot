@@ -60,7 +60,7 @@ To tune the velocity controller configure the following [parameters](../advanced
 
 ## Manual Position Mode Parameters
 
-These steps are only necessary if you are tuning/want to unlock the manual [Position mode](../flight_modes_rover/manual.md#position-mode). Othwerwise, you can continue with [position tuning](position_tuning.md) where these same parameters will also be configured.
+These steps are only necessary if you are tuning/want to unlock the manual [Position mode](../flight_modes_rover/manual.md#position-mode). Otherwise, you can continue with [position tuning](position_tuning.md) where these same parameters will also be configured.
 
 1. [PP_LOOKAHD_GAIN](#PP_LOOKAHD_GAIN): When driving in a straight line (right stick centered) position mode leverages the same path following algorithm used in [auto modes](../flight_modes_rover/auto.md) called [pure pursuit](position_tuning.md#pure-pursuit-guidance-logic-info-only) to achieve the best possible straight line driving behaviour.
    This parameter determines how aggressive the controller will steer towards the path.
@@ -109,7 +109,7 @@ The speed controller uses the following structure:
 
 The feed forward mapping is done by interpolating the speed setpoint from [-[RO_MAX_THR_SPEED](../advanced_config/parameter_reference.md#RO_MAX_THR_SPEED), [RO_MAX_THR_SPEED](../advanced_config/parameter_reference.md#RO_MAX_THR_SPEED)] to [-1, 1].
 
-For ackermann and differential rovers the bearing is aligned with the vehicle yaw. Therefor the bearing is simply sent as a yaw setpoint to the [yaw controller](attitude_tuning.md#attitude-controller-structure-info-only) and the speed setpoint is always defined in body x direction.
+For ackermann and differential rovers the bearing is aligned with the vehicle yaw. Therefore the bearing is simply sent as a yaw setpoint to the [yaw controller](attitude_tuning.md#attitude-controller-structure-info-only) and the speed setpoint is always defined in body x direction.
 
 For mecanum vehicles, the bearing and yaw are decoupled. The direction is controlled by splitting the velocity vector into one speed component in body x direction and one in body y direction.
 Both these setpoint are then sent to their own closed loop speed controllers.

@@ -43,9 +43,11 @@ using namespace time_literals;
 extern "C" __EXPORT int template_module_main(int argc, char *argv[]);
 
 
-class TemplateModule : public ModuleBase<TemplateModule>, public ModuleParams
+class TemplateModule : public ModuleBase, public ModuleParams
 {
 public:
+	static Descriptor desc;
+
 	TemplateModule(int example_param, bool example_flag);
 
 	virtual ~TemplateModule() = default;

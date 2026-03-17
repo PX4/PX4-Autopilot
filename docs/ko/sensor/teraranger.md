@@ -1,12 +1,17 @@
-# TeraRanger 거리계
+# TeraRanger Rangefinders (Discontinued)
+
+:::warning
+TeraRanger Evo sensors were discontinued by Terabee in May 2024.
+Limited stock may still be available from third-party resellers such as [Tribotix](https://tribotix.com/product/teraranger-evo-60m/).
+:::
 
 TeraRanger는 적외선 ToF(Time-of-Flight) 기반의 다양한 경량 거리측정 센서입니다.
 They are typically faster and have greater range than sonar, and smaller and lighter than laser-based systems.
 
 PX4는 아래 장치들을 지원합니다.
 
-- [TeraRanger Evo 60m](https://www.terabee.com/shop/lidar-tof-range-finders/teraranger-evo-60m/) (0.5 – 60 m)
-- [TeraRanger Evo 600Hz](https://www.terabee.com/shop/lidar-tof-range-finders/teraranger-evo-600hz/) (0.75 - 8 m)
+- [TeraRanger Evo 60m](https://tribotix.com/product/teraranger-evo-60m/) (0.5 – 60 m)
+- [TeraRanger Evo 600Hz](https://tribotix.com/product/teraranger-evo-600hz/) (0.75 - 8 m)
 
 :::info
 PX4 also supports _TeraRanger One_ (I2C adapter required).

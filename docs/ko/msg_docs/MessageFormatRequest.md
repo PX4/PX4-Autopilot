@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # MessageFormatRequest (UORB message)
 
-**TOPICS:** message_formatrequest
+**TOPICS:** message_format_request
 
 ## Fields
 
@@ -16,9 +16,9 @@ pageClass: is-wide-page
 
 ## Constants
 
-| 명칭                                                                                                        | 형식       | Value | 설명                                                                                                                                                  |
-| --------------------------------------------------------------------------------------------------------- | -------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a href="#LATEST_PROTOCOL_VERSION"></a> LATEST_PROTOCOL_VERSION | `uint16` | 1     | Current version of this protocol. Increase this whenever the MessageFormatRequest or MessageFormatResponse changes. |
+| 명칭                                                                                                      | 형식       | Value | 설명                                                                                                                                                  |
+| ------------------------------------------------------------------------------------------------------- | -------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="#LATEST_PROTOCOL_VERSION"></a> LATEST_PROTOCOL_VERSION | `uint16` | 1     | Current version of this protocol. Increase this whenever the MessageFormatRequest or MessageFormatResponse changes. |
 
 ## Source Message
 

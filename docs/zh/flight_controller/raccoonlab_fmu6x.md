@@ -130,7 +130,7 @@ The manufacturer [RaccoonLab Docs](https://docs.raccoonlab.co/guide/autopilot/RC
 They should be used by preference as they contain the most complete and up to date information.
 :::
 
-## 购买渠道
+## Where to Buy {#store}
 
 [RaccoonLab Store](https://raccoonlab.co/store)
 

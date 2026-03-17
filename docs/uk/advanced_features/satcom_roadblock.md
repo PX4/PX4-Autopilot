@@ -9,7 +9,7 @@
 
 Для посилання на супутникове зв'язку потрібні наступні компоненти:
 
-- A [RockBlock 9603 Iridium Satellite Modem](https://www.iridium.com/products/ground-control-rockblock-9603/) module connected to a Pixhawk flashed with the PX4 Autopilot.
+- A [RockBlock 9603 Iridium Satellite Modem](https://www.iridium.com/products/rockblock-9603) module connected to a Pixhawk flashed with the PX4 Autopilot.
 - Сервер повторного повідомлення працює Ubuntu Linux.
 - Автономний комп'ютер запущено _QGroundControl_ на Ubuntu Linux
 
@@ -58,13 +58,13 @@ To [switch between the two antennas modes](https://docs.groundcontrol.com/iot/ro
 
 2. Змінити швидкість передачі:
 
-   ```
+   ```sh
    AT+IPR=9
    ```
 
 3. Знову підключіться до моделі з параметрами 115200/8-N-1 і збережіть конфігурацію за допомогою:
 
-   ```
+   ```sh
    AT&W0
    ```
 
@@ -78,7 +78,7 @@ To [switch between the two antennas modes](https://docs.groundcontrol.com/iot/ro
 :::info
 Якщо параметр конфігурації недоступний у _QGroundControl_, можливо, вам знадобиться [додати драйвер до мікропрограми](../peripherals/serial_configuration.md#parameter_not_in_firmware):
 
-```
+```txt
 drivers/telemetry/iridiumsbd
 ```
 

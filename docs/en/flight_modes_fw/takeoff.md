@@ -14,7 +14,7 @@ Vehicles are [hand or catapult launched](#catapult-hand-launch) by default, but 
   - Flying vehicles will failsafe if they lose the altitude estimate.
   - Disarmed vehicles can switch to mode without valid altitude estimate but can't arm.
 - RC control switches can be used to change flight modes.
-- RC stick movement is ignored in catapult takeoff but can can be used to nudge the vehicle in runway takeoff.
+- RC stick movement is ignored in catapult takeoff but can be used to nudge the vehicle in runway takeoff.
 - The [Failure Detector](../config/safety.md#failure-detector) will automatically stop the engines if there is a problem on takeoff.
 
 <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/commander/ModeUtil/mode_requirements.cpp -->
@@ -111,7 +111,7 @@ The _launch detector_ is affected by the following parameters:
 
 ## Runway Takeoff {#runway_launch}
 
-Runway takeoffs can be used by vehicles with landing gear and and steerable wheel (only).
+Runway takeoffs can be used by vehicles with landing gear and steerable wheel (only).
 You will first need to enable the wheel controller using the parameter [FW_W_EN](#FW_W_EN).
 
 Vehicle should be centered and aligned with runway when takeoff is initiated.

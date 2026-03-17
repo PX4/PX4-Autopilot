@@ -16,10 +16,10 @@ pageClass: is-wide-page
 
 ## Constants
 
-| 명칭                                                                                                                                    | 형식      | Value | 설명                  |
-| ------------------------------------------------------------------------------------------------------------------------------------- | ------- | ----- | ------------------- |
-| <a href="#NUM_ACTUATOR_OUTPUTS"></a> NUM_ACTUATOR_OUTPUTS                                   | `uint8` | 16    |                     |
-| <a href="#NUM_ACTUATOR_OUTPUT_GROUPS	"></a> NUM_ACTUATOR_OUTPUT_GROUPS | `uint8` | 4     | for sanity checking |
+| 명칭                                                                                                                                 | 형식      | Value | 설명                  |
+| ---------------------------------------------------------------------------------------------------------------------------------- | ------- | ----- | ------------------- |
+| <a id="#NUM_ACTUATOR_OUTPUTS"></a> NUM_ACTUATOR_OUTPUTS                                  | `uint8` | 16    |                     |
+| <a id="#NUM_ACTUATOR_OUTPUT_GROUPS"></a> NUM_ACTUATOR_OUTPUT_GROUPS | `uint8` | 4     | for sanity checking |
 
 ## Source Message
 

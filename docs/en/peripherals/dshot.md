@@ -56,7 +56,7 @@ See [here](../modules/modules_driver.md#dshot) for a full reference of the suppo
 
 The most important ones are:
 
-- Make a motor connected to to FMU output pin 1 beep (helps with identifying motors)
+- Make a motor connected to FMU output pin 1 beep (helps with identifying motors)
 
   ```sh
   dshot beep1 -m 1
@@ -128,7 +128,7 @@ The provided telemetry includes:
 To enable this feature (on ESCs that support it):
 
 1. Join all the telemetry wires from all the ESCs together, and then connect them to one of the RX pins on an unused flight controller serial port.
-1. Enable telemetry on that serial port using [DSHOT_TEL_CFG](../advanced_config/parameter_reference.md#DSHOT_TEL_CFG).
+2. Enable telemetry on that serial port using [DSHOT_TEL_CFG](../advanced_config/parameter_reference.md#DSHOT_TEL_CFG).
 
 After a reboot you can check if telemetry is working (make sure the battery is connected) using:
 
@@ -136,11 +136,11 @@ After a reboot you can check if telemetry is working (make sure the battery is c
 dshot esc_info -m 1
 ```
 
-:::tip
+::: tip
 You may have to configure [MOT_POLE_COUNT](../advanced_config/parameter_reference.md#MOT_POLE_COUNT) to get the correct RPM values.
 :::
 
-:::tip
+::: tip
 Not all DSHOT-capable ESCs support `[esc_info]`(e.g. APD 80F3x), even when telemetry is supported and enabled.
 The resulting error is:
 
@@ -170,7 +170,7 @@ It's setup and use is independent of bidirectional DShot.
 The ESC must be connected to FMU outputs only.
 These will be labeled `MAIN` on flight controllers that only have one PWM bus, and `AUX` on controllers that have both `MAIN` and `AUX` ports (i.e. FCs that have an IO board).
 
-:::warning **Limited hardware support**
+::: warning **Limited hardware support**
 This feature is only supported on flight controllers with the following processors:
 
 - STM32H7: First four FMU outputs

@@ -338,7 +338,7 @@ Any outputs on either PWM output bus can be connected to any actuators, motor, o
   Note that the PWM outputs are often labeled `AUX` or `MAIN`.
   Use the `AUX` bus if both are present, and `MAIN` otherwise.
 - [DShot ESC](../peripherals/dshot.md) (recommended) can only be used on the FMU PWM outputs.
-- Motor outputs should be grouped together as much as possible rather than spread randomly across both the FMU and IO busses.
+- Motor outputs should be grouped together as much as possible rather than spread randomly across both the FMU and IO buses.
   This is because if you assign some function to an output, such as DShot ESC, you can't then assign adjacent unused pins for anything other than a DShot ESC.
 
 ### Сервоприводи
@@ -364,7 +364,7 @@ If you don't use servos that all accept the same voltage, you'll need to separat
 Other peripherals, such as high-power radios, cameras, and so on have their own power requirements.
 These will usually be supplied off a separate BEC.
 
-The wiring and configuration of optional/less common components is covered within the [Hardware Hardware Selection & Setup](../hardware/drone_parts.md) topics for individual peripherals.
+The wiring and configuration of optional/less common components is covered within the [Hardware Selection & Setup](../hardware/drone_parts.md) topics for individual peripherals.
 
 ## Build Tutorials
 

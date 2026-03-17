@@ -196,6 +196,11 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 	fi
 fi
 
+if [[ "${UBUNTU_RELEASE}" == "25.10" ]]; then
+	echo "[ubuntu.sh] Gazebo binaries are not available for 25.10, skipping installation"
+	INSTALL_SIM="false"
+fi
+
 # Simulation tools
 if [[ $INSTALL_SIM == "true" ]]; then
 

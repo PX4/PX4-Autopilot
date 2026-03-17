@@ -157,7 +157,7 @@ protected:
 	 *
 	 * @param follow_target GPS data last received from target
 	 */
-	void measurement_update(follow_target_s follow_target);
+	void measurement_update(const follow_target_s &follow_target);
 
 	/**
 	 * Perform prediction step based on simple position-velocity-acceleration model of a point mass

@@ -144,9 +144,9 @@ void MixingOutput::printStatus() const
 	PX4_INFO_RAW("Channel Configuration:\n");
 
 	for (unsigned i = 0; i < _max_num_outputs; i++) {
-		PX4_INFO_RAW("Channel %i: func: %3i, value: %i, failsafe: %d, disarmed: %d, min: %d, max: %d, center: %d\n", i,
-			     (int)_function_assignment[i], _current_output_value[i],
-			     actualFailsafeValue(i), _disarmed_value[i], _min_value[i], _max_value[i], _center_value[i]);
+		PX4_INFO_RAW("Channel %2d: func: %3d, value: %.2f, failsafe: %.2f, disarmed: %d, min: %d, max: %d, center: %d\n",
+			     i, (int)_function_assignment[i], (double)_current_output_value[i], (double)actualFailsafeValue(i),
+			     _disarmed_value[i], _min_value[i], _max_value[i], _center_value[i]);
 	}
 }
 
@@ -509,15 +509,15 @@ MixingOutput::limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updat
 	// Doing so makes calibrations consistent among different configurations and hence PWM minimum and maximum have a consistent effect
 	// hence the defaults for these parameters also make most setups work out of the box
 	if (_armed.in_esc_calibration_mode) {
-		static constexpr uint16_t PWM_CALIBRATION_LOW = 1000;
-		static constexpr uint16_t PWM_CALIBRATION_HIGH = 2000;
+		static constexpr float PWM_CALIBRATION_LOW = 1000.f;
+		static constexpr float PWM_CALIBRATION_HIGH = 2000.f;
 
 		for (int i = 0; i < _max_num_outputs; i++) {
-			if (_current_output_value[i] == _min_value[i]) {
+			if (fabsf(_current_output_value[i] - (float)_min_value[i]) < 0.5f) {
 				_current_output_value[i] = PWM_CALIBRATION_LOW;
 			}
 
-			if (_current_output_value[i] == _max_value[i]) {
+			if (fabsf(_current_output_value[i] - (float)_max_value[i]) < 0.5f) {
 				_current_output_value[i] = PWM_CALIBRATION_HIGH;
 			}
 		}
@@ -532,7 +532,7 @@ MixingOutput::limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updat
 	}
 }
 
-uint16_t MixingOutput::output_limit_calc_single(int i, float value) const
+float MixingOutput::output_limit_calc_single(int i, float value) const
 {
 	// check for invalid / disabled channels
 	if (!PX4_ISFINITE(value)) {
@@ -552,27 +552,15 @@ uint16_t MixingOutput::output_limit_calc_single(int i, float value) const
 	    && _param_handles[i].center != PARAM_INVALID
 	    && _center_value[i] >= 800
 	    && _center_value[i] <= 2200) {
-
-		/* bi-linear interpolation */
-		if (value < 0.0f) {
-			output = math::interpolate(value, -1.f, 0.0f,
-						   static_cast<float>(_min_value[i]), static_cast<float>(_center_value[i]));
-
-		} else {
-			output = math::interpolate(value, 0.0f, 1.0f,
-						   static_cast<float>(_center_value[i]), static_cast<float>(_max_value[i]));
-		}
-
+		output = math::interpolateNXY(value, {-1.f, 0.f, 1.f}, {(float)_min_value[i], (float)_center_value[i], (float)_max_value[i]});
 	}
 
 	// Everything except servos, or if center is not set
 	else {
-		output = math::interpolate(value, -1.f, 1.f,
-					   static_cast<float>(_min_value[i]), static_cast<float>(_max_value[i]));
+		output = math::interpolate(value, -1.f, 1.f, static_cast<float>(_min_value[i]), static_cast<float>(_max_value[i]));
 	}
 
-	return math::constrain(lroundf(output), 0L, static_cast<long>(UINT16_MAX));
-
+	return output;
 }
 
 void
@@ -647,7 +635,7 @@ MixingOutput::output_limit_calc(const bool armed, const int num_channels, const 
 
 			for (int i = 0; i < num_channels; i++) {
 				// Ramp from disarmed value to currently desired output that would apply without ramp
-				uint16_t desired_output = output_limit_calc_single(i, output[i]);
+				float desired_output = output_limit_calc_single(i, output[i]);
 				_current_output_value[i] = _disarmed_value[i] + progress * (desired_output - _disarmed_value[i]);
 			}
 		}
@@ -688,10 +676,9 @@ MixingOutput::updateLatencyPerfCounter(const actuator_outputs_s &actuator_output
 	}
 }
 
-uint16_t
-MixingOutput::actualFailsafeValue(int index) const
+float MixingOutput::actualFailsafeValue(int index) const
 {
-	uint16_t value = 0;
+	float value = 0;
 
 	if (_failsafe_value[index] == UINT16_MAX) { // if set to default, use the one provided by the function
 		float default_failsafe = NAN;
@@ -703,7 +690,7 @@ MixingOutput::actualFailsafeValue(int index) const
 		value = output_limit_calc_single(index, default_failsafe);
 
 	} else {
-		value = _failsafe_value[index];
+		value = static_cast<float>(_failsafe_value[index]);
 	}
 
 	return value;

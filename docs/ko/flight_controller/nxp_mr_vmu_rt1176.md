@@ -147,7 +147,7 @@ Similar variants will be available from our licensees.
 - 기타 특성:
   - Operating & storage temperature: -40 ~ 85°c
 
-## 구매처
+## Where to Buy {#store}
 
 Order from [NXP](https://www.nxp.com).
 

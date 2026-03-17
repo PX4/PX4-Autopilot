@@ -85,7 +85,7 @@ These flight controllers are [manufacturer supported](../flight_controller/autop
 
 - Not provided.
 
-## Purchase Channels
+## Purchase Channels {#store}
 
 Order from [CUAV](https://store.cuav.net/).
 
@@ -135,13 +135,11 @@ It is pre-built and installed automatically by _QGroundControl_ when the appropr
 
 To [build PX4](../dev_setup/building_px4.md) for this target, execute:
 
-```
+```sh
 make cuav_x25-evo_default
 ```
 
-<a id="debug_port"></a>
-
-## 调试接口
+## Debug Port {#debug_port}
 
 The [PX4 System Console](../debug/system_console.md) and [SWD Interface](../debug/swd_debug.md) operate on the **FMU Debug** port.
 

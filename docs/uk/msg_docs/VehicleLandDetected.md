@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # VehicleLandDetected (повідомлення UORB)
 
-**TOPICS:** vehicle_landdetected
+**TOPICS:** vehicle_land_detected
 
 ## Fields
 
@@ -26,9 +26,9 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Назва                                                                | Тип      | Значення | Опис |
-| -------------------------------------------------------------------- | -------- | -------- | ---- |
-| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 0        |      |
+| Назва                                                              | Тип      | Значення | Опис |
+| ------------------------------------------------------------------ | -------- | -------- | ---- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 0        |      |
 
 ## Source Message
 

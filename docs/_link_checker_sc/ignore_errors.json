@@ -566,6 +566,11 @@
     "hideReason": "Its fine"
   },
   {
+    "type": "OrphanedImage",
+    "fileRelativeToRoot": "assets\\site\\px4_logo.svg",
+    "hideReason": "Used in the project root README.md, outside the docs folder"
+  },
+  {
     "type": "InternalLinkToHTML",
     "fileRelativeToRoot": "en\\flight_modes\\README.md",
     "link": {
@@ -1147,5 +1152,20 @@
     "link": { "url": "https://www.hovergames.com/", "text": "" },
     "hideReason": "timeout - bot block",
     "expiry": "2026-08-26"
+  },
+  {
+    "link": { "url": "https://senterasensors.com/phx/", "text": "" },
+    "hideReason": "cert error in Node.js — page OK in browser",
+    "expiry": "2027-03-02"
+  },
+  {
+    "link": { "url": "https://app.gazebosim.org/PX4", "text": "" },
+    "hideReason": "reports 404 to automated requests but tested good in browser — likely SPA client-side routing or bot detection",
+    "expiry": "2027-03-02"
+  },
+  {
+    "link": { "url": "https://duo3d.com/product/duo-minilx-lv1", "text": "" },
+    "hideReason": "certificate error",
+    "expiry": "2027-03-03"
   }
 ]

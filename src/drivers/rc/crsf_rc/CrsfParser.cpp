@@ -401,6 +401,15 @@ bool CrsfParser_TryParseCrsfPacket(CrsfPacket_t *const new_packet, CrsfParserSta
 				if (working_descriptor->packet_size == -1) {
 					working_segment_size = packet_size - PACKET_SIZE_TYPE_SIZE;
 
+					if (working_index + working_segment_size + CRC_SIZE > CRSF_MAX_PACKET_LEN) {
+						parser_statistics->invalid_known_packet_sizes++;
+						parser_state = PARSER_STATE_HEADER;
+						working_segment_size = HEADER_SIZE;
+						working_index = 0;
+						buffer_count = QueueBuffer_Count(&rx_queue);
+						continue;
+					}
+
 				} else {
 					if (packet_size != working_descriptor->packet_size + PACKET_SIZE_TYPE_SIZE) {
 						parser_statistics->invalid_known_packet_sizes++;

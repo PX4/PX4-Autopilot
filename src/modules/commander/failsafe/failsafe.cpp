@@ -574,6 +574,9 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 		CHECK_FAILSAFE(status_flags, battery_unhealthy, Action::Warn);
 	}
 
+	// Parachute system health failsafe
+	CHECK_FAILSAFE(status_flags, parachute_unhealthy, Action::RTL);
+
 	// Battery low failsafe
 	// If battery was low and arming was allowed through COM_ARM_BAT_MIN, don't failsafe immediately for the current low battery warning state
 	const bool warning_worse_than_at_arming = (status_flags.battery_warning > _battery_warning_at_arming);

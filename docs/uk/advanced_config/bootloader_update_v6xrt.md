@@ -1,6 +1,6 @@
 # Оновлення завантажувача Pixhawk V6X-RT через USB
 
-У цій темі пояснюється флеш-завантажувач [Pixhawk FMUv6X-RT](../flight_controller/pixhawk6x-rt.md) через USB _без необхідності перевірки налагодження_.
+This topic explains how to flash [Pixhawk FMUv6X-RT](../flight_controller/pixhawk6x-rt.md) bootloader via USB _without needing a debug probe_.
 
 ## Загальний огляд
 
@@ -33,7 +33,7 @@ arm-none-eabi-objcopy -O ihex build/px4_fmu-v6xrt_bootloader/px4_fmu-v6xrt_bootl
 
 ## Прошивання завантажувальної програми через USB.
 
-Pixhawk V6X-RT постачається з вбудованим завантажувачем, розміщеним у ПЗУ.
+The Pixhawk V6X-RT comes with a built-in bootloader located on the ROM.
 Щоб прошити новий завантажувач через USB, потрібно завантажити [NXP MCUXpresso Secure Provisioning](https://www.nxp.com/design/design-center/software/development-software/mcuxpresso-software-and- tools-/mcuxpresso-secure-provisioning-tool:MCUXPRESSO-SECURE-PROVIZIONING).
 Інструмент доступний для Windows, Linux і macOS.
 
@@ -80,7 +80,7 @@ Pixhawk V6X-RT постачається з вбудованим завантаж
 
    ![Flash bootloader through Secure provisioning - Step 7](../../assets/advanced_config/bootloader_6xrt/bootloader_update_v6xrt_step7.png)
 
-4. Коли конфігурація цільової пам'яті успішна, ви можете натиснути кнопку **Стерти все**
+4. When the Target Memory configuration is successful you can press the **Erase All** button
 
    ![Flash bootloader through Secure provisioning - Step 8](../../assets/advanced_config/bootloader_6xrt/bootloader_update_v6xrt_step8.png)
 

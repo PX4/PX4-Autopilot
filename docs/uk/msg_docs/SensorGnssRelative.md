@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Інформація про відносне позиціонування GNSS в рамці NED. NED кадр визначається як локальна топологічна система на задній станції.
 
-**TOPICS:** sensor_gnssrelative
+**TOPICS:** sensor_gnss_relative
 
 ## Fields
 

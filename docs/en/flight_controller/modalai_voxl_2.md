@@ -62,7 +62,7 @@ ModalAI is actively maintaining a [branched PX4 version](https://github.com/moda
 
 As VOXL 2 runs Ubuntu, the production releases of PX4 for VOXL 2 are distributed through [apt package management](https://docs.modalai.com/configure-pkg-manager/) and the [VOXL SDK](https://docs.modalai.com/voxl-sdk/).
 
-More information about the firmware can be found [here](https://docs.modalai.com/voxl-px4-developer-guide/).
+More information about the firmware can be found [here](https://docs.modalai.com/voxl-px4/).
 
 ### main branch
 
@@ -78,7 +78,6 @@ This board is supported in QGroundControl 4.0 and later.
 - [Starling 2 MAX](https://www.modalai.com/products/starling-2-max)
 - [Sentinel Development Drone powered by VOXL 2](https://www.modalai.com/pages/sentinel)
   - [Demo Video](https://www.youtube.com/watch?v=hMhQgWPLGXo)
-- [VOXL 2 Flight Deck, ready to mount, tune and fly](https://www.modalai.com/collections/ready-to-mount/products/voxl-2-flight-deck)
 - [VOXL 2 Development Kits](https://www.modalai.com/products/voxl-2)
   - [Demo Video](https://www.youtube.com/watch?v=aVHBWbwp488)
 
@@ -88,7 +87,7 @@ Quickstarts from the vendor are located [here](https://docs.modalai.com/voxl-2-h
 
 ### VOXL SDK
 
-VOXL SDK (Software Development Kit) consists of the open source [voxl-px4](https://docs.modalai.com/voxl-px4/), [core libraries](https://docs.modalai.com/core-libs/), [services](https://docs.modalai.com/mpa-services/), [tools](https://docs.modalai.com/inspect-tools/), [utilities](https://docs.modalai.com/sdk-utilities/), and [build environments](https://docs.modalai.com/build-environments/) that ModalAI provide to accelerate the use and development of VOXL compute boards and accessories.
+VOXL SDK (Software Development Kit) consists of the open source [voxl-px4](https://docs.modalai.com/voxl-px4/), [core libraries](https://docs.modalai.com/core-libs/), [services](https://docs.modalai.com/mpa-services/), [tools](https://docs.modalai.com/inspect-tools/), and [build environments](https://docs.modalai.com/build-environments/) that ModalAI provide to accelerate the use and development of VOXL compute boards and accessories.
 
 VOXL SDK runs on VOXL, VOXL 2 and RB5 Flight!
 
@@ -123,7 +122,7 @@ The PX4 user guide for VOXL 2 is available [here](https://docs.modalai.com/voxl-
 
 ### Developer Guide
 
-The PX4 developer guide for VOXL 2 is available [here](https://docs.modalai.com/voxl-px4-developer-guide/).
+The PX4 developer guide for VOXL 2 is available [here](https://docs.modalai.com/voxl-px4/).
 
 ### How to Build
 

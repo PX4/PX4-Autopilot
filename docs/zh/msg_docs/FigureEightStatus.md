@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # FigureEightStatus (UORB message)
 
-**TOPICS:** figure_eightstatus
+**TOPICS:** figure_eight_status
 
 ## Fields
 
