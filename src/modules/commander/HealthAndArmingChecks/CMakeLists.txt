@@ -56,6 +56,7 @@ px4_add_library(health_and_arming_checks
 	checks/manualControlCheck.cpp
 	checks/missionCheck.cpp
 	checks/modeCheck.cpp
+	checks/rallyPointCheck.cpp
 	checks/navigatorCheck.cpp
 	checks/offboardCheck.cpp
 	checks/openDroneIDCheck.cpp
