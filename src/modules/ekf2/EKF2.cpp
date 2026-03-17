@@ -2638,8 +2638,7 @@ void EKF2::UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps)
 			flags.in_air = !vehicle_land_detected.landed;
 			flags.gnd_effect = vehicle_land_detected.in_ground_effect;
 
-			// Enable constant position fusion for engine warmup when landed and armed
-			flags.constant_pos = _param_ekf2_engine_wrm.get() && !flags.in_air && armed;
+			flags.constant_pos = _param_ekf2_pos_lock.get() && !flags.in_air && _ekf.isGlobalHorizontalPositionValid();
 		}
 
 		launch_detection_status_s launch_detection_status;
@@ -2647,8 +2646,8 @@ void EKF2::UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps)
 		if (_launch_detection_status_sub.copy(&launch_detection_status)
 		    && (ekf2_timestamps.timestamp < launch_detection_status.timestamp + 3_s)) {
 
-			flags.constant_pos = (launch_detection_status.launch_detection_state ==
-					      launch_detection_status_s::STATE_WAITING_FOR_LAUNCH);
+			flags.constant_pos |= (launch_detection_status.launch_detection_state ==
+					       launch_detection_status_s::STATE_WAITING_FOR_LAUNCH);
 		}
 
 		_ekf.setSystemFlagData(flags);
