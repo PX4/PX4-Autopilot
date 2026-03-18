@@ -1,0 +1,29 @@
+module_name: batt_smbus
+parameters:
+- group: Sensors
+  definitions:
+    SENS_EN_BATT:
+      description:
+        short: SMBUS Smart battery driver BQ40Z50 and BQ40Z80
+      type: boolean
+      default: 0
+      reboot_required: true
+    BAT1_C_MULT:
+      description:
+        short: Capacity/current multiplier for high-current capable SMBUS battery
+      type: float
+      default: 1.0
+      reboot_required: true
+      decimal: 1
+    BAT1_SMBUS_MODEL:
+      description:
+        short: Battery device model
+      type: enum
+      values:
+        0: AutoDetect
+        1: BQ40Z50 based
+        2: BQ40Z80 based
+      default: 0
+      reboot_required: true
+      min: 0
+      max: 2
