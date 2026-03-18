@@ -12,4 +12,4 @@ PX4_SIM_MODEL=${PX4_SIM_MODEL:=x500_flow}
 echo "Disabling Sim GPS"
 param set-default SYS_HAS_GPS 0
 param set-default SIM_GPS_USED 0
-param set-default EKF2_GPS_CTRL 0
+param set-default EKF2_SENS_EN 8188 # disable GPS

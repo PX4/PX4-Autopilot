@@ -20,5 +20,5 @@ param set-default CP_DIST -1.0
 param set-default ATT_EXT_HDG_M 2
 param set-default EKF2_EV_CTRL 15
 param set-default EKF2_EV_DELAY 5
-param set-default EKF2_GPS_CTRL 0
+param set-default EKF2_SENS_EN 8188 # disable GPS
 param set-default EKF2_HGT_REF 3

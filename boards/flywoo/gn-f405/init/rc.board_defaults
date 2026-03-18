@@ -9,7 +9,7 @@ param set-default SYS_AUTOSTART 4001
 # system_power unavailable
 param set-default CBRK_SUPPLY_CHK 894281
 
-param set-default EKF2_MAG_TYPE 5
+param set-default EKF2_SENS_EN 7167 # disable magnetometer
 param set-default SENS_BOARD_ROT 6
 
 param set-default SYS_HAS_MAG 0

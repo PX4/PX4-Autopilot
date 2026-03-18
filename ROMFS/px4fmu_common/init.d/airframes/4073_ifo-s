@@ -44,7 +44,6 @@ param set-default EKF2_GND_EFF_DZ 6
 param set-default EKF2_MIN_RNG 0.3
 
 # Flow
-param set-default EKF2_OF_CTRL 1
 param set-default EKF2_OF_QMIN 70
 
 # Position control
