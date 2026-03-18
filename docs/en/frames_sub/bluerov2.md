@@ -35,12 +35,45 @@ the [Airframe Reference](../airframes/airframe_reference.md#vectored-6-dof-uuv):
 
 ## Manual Modes
 
-| Mode     | Description                                                                                                          |
-| -------- | -------------------------------------------------------------------------------------------------------------------- |
-| Manual   | Direct manual control of yaw and thrust.                                                                             |
-| Acro     | Manual control of yaw/thrust, but keeps roll/pitch zero                                                              |
-| Altitude | Manual control of x/y thrust and yaw. Control of height with PID, manually controlled by user. Keeps roll/pitch zero |
-| Position | Controls x/y/z and yaw. Manually controlled by user. Keeps roll/pitch zero                                           |
+The following manual and assisted modes are currently supported on BlueROV2 Heavy:
+
+| Mode       | Description                                                                                                                 |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Manual     | Direct manual control of thrust and yaw.                                                                                    |
+| Stabilized | Manual control of thurst and yaw with roll/pitch stabilization.                                                             |
+| Acro       | Manual control of yaw-rate and direct thrust commands with roll/pitch stabilization.                                        |
+| Altitude   | Manual control of x/y thrust and yaw. Control of height with PID, manually controlled by user. Keeps roll/pitch stabilized. |
+| Position   | Controls x, y, z and yaw with position hold when sticks are released. Keeps roll/pitch stabilized.                          |
+
+## Joystick Stick Mode
+
+BlueROV2 supports two joystick mappings for manual control, selected using the
+[UUV_STICK_MODE](../advanced_config/parameter_reference.md#uuv_stick_mode) parameter.
+
+By default, `UUV_STICK_MODE` is set to `0`, which enables the UUV stick mapping intended for vectored underwater vehicles.
+
+### UUV_STICK_MODE = 0 (default)
+
+This mode is intended for normal BlueROV2 operation.
+In `Manual`, `Stabilized`, and `Acro` modes, the sticks command:
+
+- **Pitch stick:** surge
+- **Roll stick:** sway
+- **Throttle stick:** heave
+- **Yaw stick:** yaw
+
+In this mode, roll and pitch are kept level rather than commanded directly.
+
+### UUV_STICK_MODE = 1
+
+This mode enables the legacy multicopter-style stick mapping for `Manual`, `Stabilized`, and `Acro` modes:
+
+- **Throttle stick:** surge
+- **Roll stick:** roll
+- **Pitch stick:** pitch
+- **Yaw stick:** yaw
+
+This mode is mainly provided for compatibility with older setups and user preference.
 
 ## Airframe Configuration
 
