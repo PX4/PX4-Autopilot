@@ -58,7 +58,7 @@ parameters:
         short: Takeoff rotation airspeed
         long: |-
           The calibrated airspeed threshold during the takeoff ground roll when the plane should start rotating (pitching up).
-          Must be less than the takeoff airspeed, will otherwise be capped at the takeoff airpeed (see FW_TKO_AIRSPD).
+          Must be less than the takeoff airspeed, will otherwise be capped at the takeoff airspeed (see FW_TKO_AIRSPD).
 
           If set <= 0.0, defaults to 0.9 * takeoff airspeed (see FW_TKO_AIRSPD)
       type: float
