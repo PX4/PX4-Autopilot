@@ -1,0 +1,12 @@
+module_name: pps_capture
+parameters:
+- group: GPS
+  definitions:
+    PPS_CAP_ENABLE:
+      description:
+        short: PPS capture enable
+        long: Enables the PPS capture module to refine the GPS time from pulses detected
+          on a PWM pin configured as "PPS Input".
+      type: boolean
+      default: 0
+      reboot_required: true
