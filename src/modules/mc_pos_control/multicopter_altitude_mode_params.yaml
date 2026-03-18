@@ -1,0 +1,82 @@
+module_name: mc_pos_control
+parameters:
+- group: Multicopter Position Control
+  definitions:
+    MPC_ACC_UP_MAX:
+      description:
+        short: Maximum upwards acceleration in climb rate controlled modes
+      type: float
+      default: 4.0
+      unit: m/s^2
+      min: 2
+      max: 15
+      decimal: 1
+      increment: 1
+    MPC_ACC_DOWN_MAX:
+      description:
+        short: Maximum downwards acceleration in climb rate controlled modes
+      type: float
+      default: 3.0
+      unit: m/s^2
+      min: 2
+      max: 15
+      decimal: 1
+      increment: 1
+    MPC_MAN_Y_TAU:
+      description:
+        short: Manual yaw rate input filter time constant
+        long: |-
+          Not used in Stabilized mode
+          Setting this parameter to 0 disables the filter
+      type: float
+      default: 0.08
+      unit: s
+      min: 0
+      max: 5
+      decimal: 2
+      increment: 0.01
+    MPC_ALT_MODE:
+      description:
+        short: Altitude reference mode
+        long: |-
+          Control height
+          0: relative earth frame origin which may drift due to sensors
+          1: relative to ground (requires distance sensor) which changes with terrain variation.
+          It will revert to relative earth frame if the distance to ground estimate becomes invalid.
+          2: relative to ground (requires distance sensor) when stationary
+          and relative to earth frame when moving horizontally.
+          The speed threshold is MPC_HOLD_MAX_XY
+      type: enum
+      values:
+        0: Altitude following
+        1: Terrain following
+        2: Terrain hold
+      default: 2
+      min: 0
+      max: 2
+    MPC_HOLD_MAX_XY:
+      description:
+        short: Max horizontal velocity for position hold
+        long: |-
+          Maximum horizontal velocity for which position hold is enabled (use 0 to disable check)
+
+          Only used with MPC_POS_MODE Direct velocity or MPC_ALT_MODE 2
+      type: float
+      default: 0.8
+      unit: m/s
+      min: 0
+      max: 3
+      decimal: 2
+    MPC_HOLD_MAX_Z:
+      description:
+        short: Max vertical velocity for position hold
+        long: |-
+          Maximum vertical velocity for which position hold is enabled (use 0 to disable check)
+
+          Only used with MPC_ALT_MODE 1
+      type: float
+      default: 0.6
+      unit: m/s
+      min: 0
+      max: 3
+      decimal: 2
