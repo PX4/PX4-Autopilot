@@ -1,0 +1,43 @@
+module_name: mc_autotune_attitude_control
+parameters:
+- group: Autotune
+  definitions:
+    MC_AT_EN:
+      description:
+        short: Multicopter autotune module enable
+      type: boolean
+      default: 0
+    MC_AT_SYSID_AMP:
+      description:
+        short: Amplitude of the injected signal
+      type: float
+      default: 0.7
+      min: 0.1
+      max: 6.0
+      decimal: 1
+    MC_AT_APPLY:
+      description:
+        short: Controls when to apply the new gains
+        long: |-
+          After the auto-tuning sequence is completed,
+          a new set of gains is available and can be applied
+          immediately or after landing.
+
+          WARNING Applying the gains in air is dangerous as there is no
+          guarantee that those new gains will be able to stabilize
+          the drone properly.
+      type: enum
+      values:
+        0: Do not apply the new gains (logging only)
+        1: Apply the new gains after disarm
+        2: WARNING Apply the new gains in air
+      default: 1
+    MC_AT_RISE_TIME:
+      description:
+        short: Desired angular rate closed-loop rise time
+      type: float
+      default: 0.14
+      min: 0.01
+      max: 0.5
+      decimal: 2
+      unit: s
