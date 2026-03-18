@@ -155,7 +155,8 @@ parameters:
                                 'm/s^3/sqrt(Hz)', 'm/s/sqrt(Hz)', 's/(1000*PWM)', '%m/s', 'min', 'us/C',
                                 'N/(m/s)', 'Nm/(rad/s)', 'Nm', 'N',
                                 'rpm',
-                                'normalized_thrust/s', 'normalized_thrust', 'norm', 'SD', 'dBHz']
+                                'normalized_thrust/s', 'normalized_thrust', 'norm', 'SD', 'dBHz',
+                                '1/s/sqrt(Hz)', 'liters']
                         bit:
                             # description of all bits for type bitmask.
                             # The first bit is 0.
@@ -169,7 +170,7 @@ parameters:
                             # enumeration of possible values for type enum
                             type: dict
                             keyschema:
-                                type: integer
+                                type: number
                             valueschema:
                                 type: string
 

@@ -37,21 +37,9 @@ if (NOT PARAM_DEFAULT_OVERRIDES)
 	set(PARAM_DEFAULT_OVERRIDES "{}")
 endif()
 
-# get full path for each module
-get_property(module_list GLOBAL PROPERTY PX4_MODULE_PATHS)
 get_property(module_config_files GLOBAL PROPERTY PX4_MODULE_CONFIG_FILES)
 
 if(DISABLE_PARAMS_MODULE_SCOPING)
-	# search all directories with .c files (potentially containing parameters)
-	file(GLOB_RECURSE c_files
-		${PX4_SOURCE_DIR}/src/*.c
-		${external_module_paths}
-		)
-	foreach(file_path ${c_files})
-		get_filename_component(dir_path ${file_path} PATH)
-		list(APPEND module_list "${dir_path}")
-	endforeach()
-
 	# search for all module configs as well
 	file(GLOB_RECURSE yaml_files
 		${PX4_SOURCE_DIR}/src/*.yaml
@@ -72,11 +60,7 @@ if(DISABLE_PARAMS_MODULE_SCOPING)
 	endforeach()
 
 	list(REMOVE_DUPLICATES module_config_files)
-else()
-	list(APPEND module_list ${external_module_paths})
 endif()
-
-list(REMOVE_DUPLICATES module_list)
 
 set(generated_params_dir ${PX4_BINARY_DIR}/generated_params)
 set(generated_serial_params_file ${generated_params_dir}/serial_params.c)
@@ -116,10 +100,9 @@ add_custom_command(OUTPUT ${generated_serial_params_file} ${generated_module_par
 
 set(parameters_xml ${PX4_BINARY_DIR}/parameters.xml)
 set(parameters_json ${PX4_BINARY_DIR}/parameters.json)
-file(GLOB_RECURSE param_src_files ${PX4_SOURCE_DIR}/src/*params.c ${PX4_SOURCE_DIR}/src/*parameters.c)
 add_custom_command(OUTPUT ${parameters_xml} ${parameters_json} ${parameters_json}.xz
 	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/px_process_params.py
-		--src-path ${module_list} ${generated_params_dir}
+		--src-path ${generated_params_dir}
 		--xml ${parameters_xml}
 		--json ${parameters_json}
 		--compress
@@ -132,7 +115,6 @@ add_custom_command(OUTPUT ${parameters_xml} ${parameters_json} ${parameters_json
 		--skip-if-no-schema # mavlink submodule might not exist for current target if built in CI
 		#--verbose
 	DEPENDS
-		${param_src_files}
 		${generated_serial_params_file}
 		${generated_module_params_file}
 		px4params/srcparser.py
