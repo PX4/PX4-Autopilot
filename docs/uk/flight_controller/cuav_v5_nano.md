@@ -60,7 +60,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - Інші характеристики:
   - Робоча температура: -20 ~ 85°С (виміряне значення)
 
-## Де купити
+## Where to Buy {#store}
 
 [CUAV Store](https://store.cuav.net/shop/v5-nano/)
 
@@ -91,13 +91,11 @@ It is pre-built and automatically installed by _QGroundControl_ when appropriate
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v5_default
 ```
 
-<a id="debug_port"></a>
-
-## Відладочний порт
+## Debug Port {#debug_port}
 
 The [PX4 System Console](../debug/system_console.md) and [SWD interface](../debug/swd_debug.md) operate on the **FMU Debug** port (`DSU7`).
 Плата не має інтерфейсу відладки вводу/виводу.

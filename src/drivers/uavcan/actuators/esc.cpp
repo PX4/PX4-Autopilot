@@ -85,7 +85,7 @@ int UavcanEscController::init()
 	return res;
 }
 
-void UavcanEscController::update_outputs(uint16_t outputs[MAX_ACTUATORS], uint8_t output_array_size)
+void UavcanEscController::update_outputs(float outputs[MAX_ACTUATORS], uint8_t output_array_size)
 {
 	// TODO: configurable rate limit
 	const auto timestamp = _node.getMonotonicTime();
@@ -99,7 +99,7 @@ void UavcanEscController::update_outputs(uint16_t outputs[MAX_ACTUATORS], uint8_
 	uavcan::equipment::esc::RawCommand msg{};
 
 	for (unsigned i = 0; i < output_array_size; i++) {
-		msg.cmd.push_back(static_cast<int>(outputs[i]));
+		msg.cmd.push_back(static_cast<int>(lroundf(outputs[i])));
 	}
 
 	_uavcan_pub_raw_cmd.broadcast(msg);
@@ -153,9 +153,9 @@ void UavcanEscController::esc_status_extended_sub_cb(const uavcan::ReceivedDataS
 	}
 }
 
-uint8_t UavcanEscController::check_escs_status()
+uint16_t UavcanEscController::check_escs_status()
 {
-	int esc_status_flags = 0;
+	uint16_t esc_status_flags = 0;
 	const hrt_abstime now = hrt_absolute_time();
 
 	for (int index = 0; index < esc_status_s::CONNECTED_ESC_MAX; index++) {

@@ -4,10 +4,10 @@
 
 ::: warning
 PX4 does not manufacture this (or any) autopilot.
-Contact the [manufacturer](https://beagleboard.org/blue) for hardware support or compliance issues.
+Contact the [manufacturer](https://www.beagleboard.org/boards/beaglebone-blue) for hardware support or compliance issues.
 :::
 
-[BeagleBone Blue](https://beagleboard.org/blue) is an all-in-one Linux-based computer.
+[BeagleBone Blue](https://www.beagleboard.org/boards/beaglebone-blue) is an all-in-one Linux-based computer.
 Although it is optimized for robotics, this compact and inexpensive board has all necessary sensors and peripherals needed by a flight controller.
 This topic shows how to set up the board to run PX4 with [librobotcontrol](https://github.com/beagleboard/librobotcontrol) robotics package.
 
@@ -17,7 +17,7 @@ This topic shows how to set up the board to run PX4 with [librobotcontrol](https
 
 _BeagleBone Blue_ images can be found here:
 
-- [Latest stable OS image](https://beagleboard.org/latest-images).
+- [Latest stable OS image](https://www.beagleboard.org/distros).
 - [Test OS images](https://rcn-ee.net/rootfs/bb.org/testing/) (updated frequently).
 
 Information about flashing OS images can be found on [this page](https://github.com/beagleboard/beaglebone-blue/wiki/Flashing-firmware).

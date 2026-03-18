@@ -766,6 +766,7 @@ Commander::Commander() :
 	updateParameters();
 
 	_failsafe.setOnNotifyUserCallback(&Commander::onFailsafeNotifyUserTrampoline, this);
+	_auto_disarm_killed.set_hysteresis_time_from(false, 5_s);
 }
 
 Commander::~Commander()
@@ -1602,6 +1603,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 	case vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_PITCHYAW:
 	case vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_CONFIGURE:
 	case vehicle_command_s::VEHICLE_CMD_CONFIGURE_ACTUATOR:
+	case vehicle_command_s::VEHICLE_CMD_ESC_REQUEST_EEPROM:
 	case vehicle_command_s::VEHICLE_CMD_REQUEST_MESSAGE:
 	case vehicle_command_s::VEHICLE_CMD_DO_WINCH:
 	case vehicle_command_s::VEHICLE_CMD_DO_GRIPPER:
@@ -1667,10 +1669,6 @@ void Commander::handleCommandsFromModeExecutors()
 unsigned Commander::handleCommandActuatorTest(const vehicle_command_s &cmd)
 {
 	if (isArmed() || (_safety.isButtonAvailable() && !_safety.isSafetyOff())) {
-		return vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
-	}
-
-	if (_param_com_mot_test_en.get() != 1) {
 		return vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
 	}
 
@@ -1813,8 +1811,6 @@ void Commander::updateParameters()
 	if ((_param_mav_type != PARAM_INVALID) && (param_get(_param_mav_type, &value_int32) == PX4_OK)) {
 		_vehicle_status.system_type = value_int32;
 	}
-
-	_auto_disarm_killed.set_hysteresis_time_from(false, _param_com_kill_disarm.get() * 1_s);
 
 	const bool is_rotary = is_rotary_wing(_vehicle_status) || (is_vtol(_vehicle_status)
 			       && _vtol_vehicle_status.vehicle_vtol_state != vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
@@ -2016,7 +2012,7 @@ void Commander::run()
 			_vehicle_status.timestamp = hrt_absolute_time();
 			_vehicle_status_pub.publish(_vehicle_status);
 
-			_failure_detector.publishStatus();
+			_failure_detector.publishStatus(_health_and_arming_checks.getEscArmStatus(), _health_and_arming_checks.getMotorFailureMask());
 		}
 
 		checkWorkerThread();
@@ -2032,8 +2028,10 @@ void Commander::run()
 
 		perf_end(_loop_perf);
 
-		// sleep if there are no vehicle_commands or action_requests to process
-		if (!_vehicle_command_sub.updated() && !_action_request_sub.updated()) {
+		// Always sleep during calibration to avoid competing with calibration
+		// worker threads for CPU. Otherwise, sleep only when idle.
+		if (_vehicle_status.calibration_enabled
+		    || (!_vehicle_command_sub.updated() && !_action_request_sub.updated())) {
 			px4_usleep(COMMANDER_MONITORING_INTERVAL);
 		}
 	}

@@ -1,6 +1,6 @@
 # MCU-Link адаптер для налагодження
 
-[MCU-Link Debug Probe](https://www.nxp.com/design/design-center/software/development-software/mcuxpresso-software-and-tools-/mcu-link-debug-probe:MCU-LINK) - це дешевий, швидкий і дуже потужний засіб відлагодження, який може використовуватися як самостійний засіб відлагодження та комунікатор консолі під час роботи з платами Pixhawk.
+The [MCU-Link Debug Probe](https://www.nxp.com/design/design-center/software/development-software/mcuxpresso-software-and-tools-/mcu-link-debug-probe:MCU-LINK) is a cheap, fast and highly capable debug probe that can serve as a stand-alone debug and console communicator when working with Pixhawk boards.
 
 Основні функції:
 

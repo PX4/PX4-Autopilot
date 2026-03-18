@@ -191,8 +191,8 @@ else
 	# To trigger a parameter reset during boot SYS_AUTCONFIG was set to 1 before
 	if param greater SYS_AUTOCONFIG 0
 	then
-		# Reset parameters except airframe, parameter version, RC calibration, sensor calibration, flight modes, total flight time, flight UUID
-		param reset_all SYS_AUTOSTART SYS_PARAM_VER RC* CAL_* COM_FLTMODE* LND_FLIGHT* TC_* COM_FLIGHT*
+		# Reset parameters except airframe, parameter version, RC calibration, sensor calibration, total flight time, flight UUID
+		param reset_all SYS_AUTOSTART SYS_PARAM_VER RC* CAL_* LND_FLIGHT* TC_* COM_FLIGHT*
 	fi
 
 	#

@@ -988,7 +988,7 @@ void MissionBlock::startPrecLand(uint16_t land_precision)
 	}
 }
 
-void MissionBlock::updateAltToAvoidTerrainCollisionAndRepublishTriplet(mission_item_s mission_item)
+void MissionBlock::updateAltToAvoidTerrainCollisionAndRepublishTriplet(const mission_item_s &mission_item)
 {
 	// Avoid flying into terrain using the distance sensor. Enable through the parameter NAV_MIN_GND_DIST.
 	// Only active during commanded descents with vz>0 (to prevent climb-aways), excluding landing and VTOL transitions.

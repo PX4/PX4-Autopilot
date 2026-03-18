@@ -1947,6 +1947,8 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.cs_gnss_fault          = _ekf.control_status_flags().gnss_fault;
 		status_flags.cs_yaw_manual          = _ekf.control_status_flags().yaw_manual;
 		status_flags.cs_gnss_hgt_fault      = _ekf.control_status_flags().gnss_hgt_fault;
+		status_flags.cs_in_transition       = _ekf.control_status_flags().in_transition;
+		status_flags.cs_heading_observable  = _ekf.control_status_flags().heading_observable;
 
 		status_flags.fault_status_changes     = _filter_fault_status_changes;
 		status_flags.fs_bad_mag_x             = _ekf.fault_status_flags().bad_mag_x;
@@ -2608,7 +2610,7 @@ void EKF2::UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps)
 
 			// let the EKF know if the vehicle motion is that of a fixed wing (forward flight only relative to wind)
 			flags.is_fixed_wing = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
-			flags.in_transition_to_fw = vehicle_status.in_transition_to_fw;
+			flags.in_transition = vehicle_status.in_transition_mode;
 
 #if defined(CONFIG_EKF2_SIDESLIP)
 
@@ -2862,12 +2864,12 @@ int EKF2::task_spawn(int argc, char *argv[])
 
 			vehicle_status_sub.update();
 
-			for (uint8_t mag = 0; mag < mag_instances; mag++) {
-				uORB::SubscriptionData<vehicle_magnetometer_s> vehicle_mag_sub{ORB_ID(vehicle_magnetometer), mag};
+			for (size_t mag = 0; mag < static_cast<size_t>(mag_instances); mag++) {
+				uORB::SubscriptionData<vehicle_magnetometer_s> vehicle_mag_sub{ORB_ID(vehicle_magnetometer), static_cast<uint8_t>(mag)};
 
-				for (uint8_t imu = 0; imu < imu_instances; imu++) {
+				for (size_t imu = 0; imu < static_cast<size_t>(imu_instances); imu++) {
 
-					uORB::SubscriptionData<vehicle_imu_s> vehicle_imu_sub{ORB_ID(vehicle_imu), imu};
+					uORB::SubscriptionData<vehicle_imu_s> vehicle_imu_sub{ORB_ID(vehicle_imu), static_cast<uint8_t>(imu)};
 					vehicle_mag_sub.update();
 
 					// Mag & IMU data must be valid, first mag can be ignored initially
@@ -2898,7 +2900,7 @@ int EKF2::task_spawn(int argc, char *argv[])
 								}
 
 							} else {
-								PX4_ERR("alloc and init failed imu: %" PRIu8 " mag:%" PRIu8, imu, mag);
+								PX4_ERR("alloc and init failed imu: %" PRIu8 " mag:%" PRIu8, static_cast<uint8_t>(imu), static_cast<uint8_t>(mag));
 								px4_usleep(100000);
 								break;
 							}

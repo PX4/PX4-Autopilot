@@ -13,7 +13,7 @@ The request is sent regularly, even while armed, so that the FMU always knows th
 The reply will include the published request_id, allowing correlation of all arming check information for a particular request.
 The reply will also include the registration_id for each external component, provided to it during the registration process (RegisterExtComponentReply).
 
-**TOPICS:** arming_checkrequest
+**TOPICS:** arming_check_request
 
 ## Fields
 
@@ -25,9 +25,9 @@ The reply will also include the registration_id for each external component, pro
 
 ## Constants
 
-| 명칭                                                                   | 형식       | Value | 설명 |
-| -------------------------------------------------------------------- | -------- | ----- | -- |
-| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 1     |    |
+| 명칭                                                                 | 형식       | Value | 설명 |
+| ------------------------------------------------------------------ | -------- | ----- | -- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 1     |    |
 
 ## Source Message
 
@@ -48,9 +48,9 @@ Click here to see original file
 
 uint32 MESSAGE_VERSION = 1
 
-uint64 timestamp  # [us] Time since system start
+uint64 timestamp # [us] Time since system start
 
-uint8 request_id  # [-] Id of this request. Allows correlation with associated ArmingCheckReply messages.
+uint8 request_id # [-] Id of this request. Allows correlation with associated ArmingCheckReply messages.
 
 uint32 valid_registrations_mask # [-] Bitmask of valid registration ID's (the bit is also cleared if flagged as unresponsive)
 ```

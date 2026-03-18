@@ -17,10 +17,10 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Назва                                                                | Тип    | Значення | Опис |
-| -------------------------------------------------------------------- | ------ | -------- | ---- |
-| <a href="#COMMAND_GRAB"></a> COMMAND_GRAB       | `int8` | 0        |      |
-| <a href="#COMMAND_RELEASE"></a> COMMAND_RELEASE | `int8` | 1        |      |
+| Назва                                                              | Тип    | Значення | Опис |
+| ------------------------------------------------------------------ | ------ | -------- | ---- |
+| <a id="#COMMAND_GRAB"></a> COMMAND_GRAB       | `int8` | 0        |      |
+| <a id="#COMMAND_RELEASE"></a> COMMAND_RELEASE | `int8` | 1        |      |
 
 ## Source Message
 

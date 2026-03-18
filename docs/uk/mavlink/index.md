@@ -11,6 +11,7 @@ It also links instructions for how you can add PX4 support for:
 - [Streaming MAVLink messages](../mavlink/streaming_messages.md)
 - [Handling incoming MAVLink messages (and writing to a uORB topic)](../mavlink/receiving_messages.md)
 - [Custom MAVLink Messages](../mavlink/custom_messages.md)
+- [Message Signing](../mavlink/message_signing.md)
 - [Protocols/Microservices](../mavlink/protocols.md)
 
 :::info
@@ -77,7 +78,7 @@ You will need to work with the [MAVLink team](https://mavlink.io/en/contributing
 :::
 
 PX4 includes the [mavlink/mavlink](https://github.com/mavlink/mavlink) repo as a submodule under [/src/modules/mavlink](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/mavlink).
-This contains XML definition files in [/mavlink/messages/1.0/](https://github.com/mavlink/mavlink/blob/master/message_definitions/v1.0/).
+This contains XML definition files in [/mavlink/messages/1.0/](https://github.com/mavlink/mavlink/tree/master/message_definitions/v1.0).
 
 Інструментарій збірки генерує заголовні файли MAVLink 2 C під час збірки.
 The XML file for which headers files are generated may be defined in the [PX4 kconfig board configuration](../hardware/porting_guide_config.md#px4-board-configuration-kconfig) on a per-board basis, using the variable `CONFIG_MAVLINK_DIALECT`:

@@ -205,6 +205,24 @@ PARAM_DEFINE_INT32(VOXL_ESC_T_EXPO, 35);
 PARAM_DEFINE_FLOAT(VOXL_ESC_T_COSP, 0.990);
 
 /**
+ * UART ESC Turtle Mode button index for MAVLink manual control
+ *
+ * Specifies which button in the MAVLink MANUAL_CONTROL buttons field
+ * activates turtle mode. Only used when data source is a MAVLink instance.
+ * When data source is RC, turtle mode activation uses the AUX channel
+ * selected by VOXL_ESC_MODE instead.
+ * Set to -1 to disable turtle mode activation via MAVLink buttons.
+ *
+ * @reboot_required true
+ *
+ * @group VOXL ESC
+ * @value -1 Disabled
+ * @min -1
+ * @max 15
+ */
+PARAM_DEFINE_INT32(VOXL_ESC_T_ON, -1);
+
+/**
  * UART ESC verbose logging
  *
  * @reboot_required true

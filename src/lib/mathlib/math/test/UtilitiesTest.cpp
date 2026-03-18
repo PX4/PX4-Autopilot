@@ -44,7 +44,7 @@
 
 using namespace math::Utilities;
 
-TEST(euler312YawTest, fromQuaternion)
+TEST(euler321YawTest, fromQuaternion)
 {
 	matrix::Quatf q1(3.5f, 2.4f, -0.5f, -3.f);
 	q1.normalize();
@@ -55,6 +55,26 @@ TEST(euler312YawTest, fromQuaternion)
 	q2.normalize();
 	const matrix::Eulerf euler2(q2);
 	EXPECT_FLOAT_EQ(euler2(2), getEuler321Yaw(q2));
+}
+
+TEST(euler312YawTest, fromQuaternion)
+{
+	// Use orientations with more pitch than roll so 312 sequence is appropriate
+	matrix::Quatf q1(3.5f, 2.4f, -0.5f, -3.f);
+	q1.normalize();
+	const matrix::Dcmf R1(q1);
+	EXPECT_FLOAT_EQ(getEuler312Yaw(R1), getEuler312Yaw(q1));
+
+	matrix::Quatf q2(0.f, 0, -1.f, 0.f);
+	q2.normalize();
+	const matrix::Dcmf R2(q2);
+	EXPECT_FLOAT_EQ(getEuler312Yaw(R2), getEuler312Yaw(q2));
+
+	// Pure yaw rotation — 312 and 321 yaw should agree
+	matrix::Quatf q3(matrix::Eulerf(0.f, 0.f, 1.2f));
+	const matrix::Dcmf R3(q3);
+	EXPECT_FLOAT_EQ(getEuler312Yaw(R3), getEuler312Yaw(q3));
+	EXPECT_NEAR(getEuler312Yaw(q3), getEuler321Yaw(q3), 1e-5f);
 }
 
 TEST(shouldUse321RotationSequenceTest, pitch90)

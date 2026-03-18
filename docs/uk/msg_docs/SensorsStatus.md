@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # SensorsStatus (повідомлення UORB)
 
-Метрики перевірки датчика. Це значення буде нульовим для датчика, який є первинним або незаповненим.
+Метрики перевірки датчика. This will be zero for a sensor that's primary or unpopulated.
 
 **TOPICS:** sensors_status_baro sensors_status_mag
 

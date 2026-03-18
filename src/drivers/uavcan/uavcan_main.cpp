@@ -1090,8 +1090,7 @@ void UavcanNode::publish_node_statuses()
 }
 
 #if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
-bool UavcanMixingInterfaceESC::updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
-		unsigned num_control_groups_updated)
+bool UavcanMixingInterfaceESC::updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	if (_esc_controller.initialized()) {
 		// num_outputs is the maximum possible number of outputs (8)
@@ -1135,8 +1134,7 @@ void UavcanMixingInterfaceESC::mixerChanged()
 	_esc_controller.set_rotor_count(rotor_count);
 }
 
-bool UavcanMixingInterfaceServo::updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
-		unsigned num_control_groups_updated)
+bool UavcanMixingInterfaceServo::updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	_servo_controller.update_outputs(outputs, num_outputs);
 	return true;

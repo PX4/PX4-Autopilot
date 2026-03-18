@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Домашнє GPS положення в координатах WGS84.
 
-**TOPICS:** home_positionv0
+**TOPICS:** home_position_v0
 
 ## Fields
 
@@ -28,9 +28,9 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Назва                                                                | Тип      | Значення | Опис |
-| -------------------------------------------------------------------- | -------- | -------- | ---- |
-| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 0        |      |
+| Назва                                                              | Тип      | Значення | Опис |
+| ------------------------------------------------------------------ | -------- | -------- | ---- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 0        |      |
 
 ## Source Message
 

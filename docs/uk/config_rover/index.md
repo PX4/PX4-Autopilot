@@ -39,7 +39,7 @@ make px4_fmu-v6x_rover
 
 Note that configuration targets are constructed with the format "VENDOR_MODEL_VARIANT".
 
-The built firmware can be installed as custom firmware, as shown above in in [Flashing the Rover Build](#flashing-the-rover-build).
+The built firmware can be installed as custom firmware, as shown above in [Flashing the Rover Build](#flashing-the-rover-build).
 
 :::info
 You can also enable the modules in default builds by adding these lines to your [board configuration](../hardware/porting_guide_config.md) (e.g. for fmu-v6x you might add them to [`main/boards/px4/fmu-v6x/default.px4board`](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6x/default.px4board)):

@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Servo trims, added as offset to servo outputs.
 
-**TOPICS:** actuator_servostrim
+**TOPICS:** actuator_servos_trim
 
 ## Fields
 
@@ -17,9 +17,9 @@ Servo trims, added as offset to servo outputs.
 
 ## Constants
 
-| 명칭                                                             | 형식      | Value | 설명 |
-| -------------------------------------------------------------- | ------- | ----- | -- |
-| <a href="#NUM_CONTROLS"></a> NUM_CONTROLS | `uint8` | 8     |    |
+| 명칭                                                           | 형식      | Value | 설명 |
+| ------------------------------------------------------------ | ------- | ----- | -- |
+| <a id="#NUM_CONTROLS"></a> NUM_CONTROLS | `uint8` | 8     |    |
 
 ## Source Message
 

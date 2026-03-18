@@ -3,13 +3,15 @@
 A Radio Control (RC) system can be used to _manually_ control your vehicle from a handheld RC controller.
 У цьому розділі наведено огляд того, як працює RC система, як вибрати відповідну радіосистему для вашого засобу, і як під'єднати її до політного контролера.
 
-:::tip
-PX4 can also be manually controlled using a [Joystick](../config/joystick.md) or gamepad-like controller: this is different to an RC system!
-The [COM_RC_IN_MODE](../advanced_config/parameter_reference.md#COM_RC_IN_MODE) parameter [can be set](../advanced_config/parameters.md) to choose whether RC (default), Joystick, both, or neither, are enabled.
+:::info
+PX4 does not require a manual control system for autonomous flight modes.
 :::
 
-:::info
-PX4 does not require a remote control system for autonomous flight modes.
+:::tip
+PX4 can also be [manually controlled](../config/manual_control.md) using a [Joystick](../config/joystick.md) or gamepad-like controller.
+
+By default PX4 will latch the first valid controller it discovers and use it until the vehicle reboots.
+If you have multiple controllers and you want to define their priority see [Manual Control > PX4 Configuration](../config/manual_control.md#px4-configuration).
 :::
 
 ## Як працюють системи радіо керування?

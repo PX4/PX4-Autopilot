@@ -147,7 +147,7 @@ Similar variants will be available from our licensees.
 - 其它特性:
   - Operating & storage temperature: -40 ~ 85°c
 
-## 购买渠道
+## Where to Buy {#store}
 
 Order from [NXP](https://www.nxp.com).
 

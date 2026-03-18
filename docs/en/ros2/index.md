@@ -35,9 +35,9 @@ The main topics in this section are:
 - [ROS 2 User Guide](../ros2/user_guide.md): A PX4-centric overview of ROS 2, covering installation, setup, and how to build ROS 2 applications that communicate with PX4.
 - [ROS 2 Offboard Control Example](../ros2/offboard_control.md): A C++ tutorial examples showing how to do position control in [offboard mode](../flight_modes/offboard.md) from a ROS 2 node.
 - [ROS 2 Multi Vehicle Simulation](../ros2/multi_vehicle.md): Instructions for connecting to multipole PX4 simulations via single ROS 2 agent.
-- [PX4 ROS 2 Interface Library](../ros2/px4_ros2_interface_lib.md): A C++ library that simplies interacting with PX4 from ROS 2.
-  Can be used to create and register flight modes wrtten using ROS2 and send position estimates from ROS2 applications such as a VIO system.
-- [ROS 2 Message Translation Node](../ros2/px4_ros2_msg_translation_node.md): A ROS 2 message translation node that enables communcation between PX4 and ROS 2 applications that were compiled with different sets of messages versions.
+- [PX4 ROS 2 Interface Library](../ros2/px4_ros2_interface_lib.md): A C++ library that simplifies interacting with PX4 from ROS 2.
+  Can be used to create and register flight modes written using ROS2 and send position estimates from ROS2 applications such as a VIO system.
+- [ROS 2 Message Translation Node](../ros2/px4_ros2_msg_translation_node.md): A ROS 2 message translation node that enables communication between PX4 and ROS 2 applications that were compiled with different sets of messages versions.
 
 ## Further Information
 

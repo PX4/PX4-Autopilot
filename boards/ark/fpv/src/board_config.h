@@ -225,6 +225,16 @@
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS   9
 
+#define GPIO_FMU_CH1                    /* PI0  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTI|GPIO_PIN0)
+#define GPIO_FMU_CH2                    /* PH12 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTH|GPIO_PIN12)
+#define GPIO_FMU_CH3                    /* PH11 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTH|GPIO_PIN11)
+#define GPIO_FMU_CH4                    /* PH10 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTH|GPIO_PIN10)
+#define GPIO_FMU_CH5                    /* PI5  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTI|GPIO_PIN5)
+#define GPIO_FMU_CH6                    /* PI6  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTI|GPIO_PIN6)
+#define GPIO_FMU_CH7                    /* PI7  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTI|GPIO_PIN7)
+#define GPIO_FMU_CH8                    /* PI2  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTI|GPIO_PIN2)
+#define GPIO_FMU_CH9                    /* PD12 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTD|GPIO_PIN12)
+
 #define GPIO_SPIX_SYNC                  /* PE9  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTE|GPIO_PIN9)
 
 /* Power supply control and monitoring GPIOs */
@@ -296,9 +306,6 @@
 /* This board provides a DMA pool and APIs */
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
 
-/* This board has 3 DMA channels available for bidirectional dshot */
-#define BOARD_DMA_NUM_DSHOT_CHANNELS 3
-
 /* This board provides the board_on_reset interface */
 
 #define BOARD_HAS_ON_RESET 1
@@ -328,6 +335,15 @@
 		GPIO_VDD_3V3_SD_CARD_EN,          \
 		GPIO_nARMED_INIT,                 \
 		SPI6_nRESET_EXTERNAL1,            \
+		GPIO_FMU_CH1,     	          \
+		GPIO_FMU_CH2,     	          \
+		GPIO_FMU_CH3,     	          \
+		GPIO_FMU_CH4,     	          \
+		GPIO_FMU_CH5,     	          \
+		GPIO_FMU_CH6,     	          \
+		GPIO_FMU_CH7,     	          \
+		GPIO_FMU_CH8,     	          \
+		GPIO_FMU_CH9,     	          \
 		GPIO_SPIX_SYNC                    \
 	}
 

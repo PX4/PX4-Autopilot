@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Показання датчиків та похибки в процесі роботи в одиницях СІ. Sensor readings are compensated for static offsets,. scale errors, in-run bias and thermal drift (if thermal compensation is enabled and available).
 
-**TOPICS:** estimator_sensorbias
+**TOPICS:** estimator_sensor_bias
 
 ## Fields
 

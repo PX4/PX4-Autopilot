@@ -110,7 +110,7 @@ Make sure to tune the attitude controller before attempting to tune TECS.
 스로틀을 높이면 속도가 증가하지만, 양력 증가로 인하여 높이도 증가합니다.
 따라서 제어 문제를 어렵게 만드는 두 개의 출력(대기 속도 및 고도)에 모두 영향을 미치는 두 개의 입력(피치 각도 및 스로틀)이 존재합니다.
 
-TECS는 원래 설정이 아닌 에너지 측면에서 문제를 표현하여 솔루션을 제공합니다.
+TECS offers a solution by representing the problem in terms of energies rather than the original setpoints.
 항공기의 총 에너지는 운동 에너지와 위치 에너지의 합입니다. 추력(스로틀 제어를 통해)은 항공기의 총 에너지를 증가시킵니다. 주어진 총 에너지 상태는 위치 에너지와 운동 에너지의 조합입니다.
 즉, 높은 고도에서 느린 속도로 비행하는 것은 총 에너지 측면에서 낮은 고도에서 더 빠른 속도로 비행하는 것과 동일합니다. 이를 특정 에너지 균형이라고 하며, 현재 고도와 실제 속도 설정값으로 계산합니다.
 특정 에너지 균형은 항공기 피치 각도를 통하여 제어됩니다.

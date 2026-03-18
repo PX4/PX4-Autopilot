@@ -27,11 +27,11 @@ IMU readings in SI-unit form.
 
 ## Constants
 
-| 参数名                                                        | 类型      | 值 | 描述 |
-| ---------------------------------------------------------- | ------- | - | -- |
-| <a href="#CLIPPING_X"></a> CLIPPING_X | `uint8` | 1 |    |
-| <a href="#CLIPPING_Y"></a> CLIPPING_Y | `uint8` | 2 |    |
-| <a href="#CLIPPING_Z"></a> CLIPPING_Z | `uint8` | 4 |    |
+| 参数名                                                      | 类型      | 值 | 描述 |
+| -------------------------------------------------------- | ------- | - | -- |
+| <a id="#CLIPPING_X"></a> CLIPPING_X | `uint8` | 1 |    |
+| <a id="#CLIPPING_Y"></a> CLIPPING_Y | `uint8` | 2 |    |
+| <a id="#CLIPPING_Z"></a> CLIPPING_Z | `uint8` | 4 |    |
 
 ## Source Message
 

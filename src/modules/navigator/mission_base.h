@@ -464,7 +464,7 @@ private:
 	 * @param[in] new_mission new mission received over uorb
 	 * @return true if the relevant mission data has changed, false otherwise
 	 */
-	bool checkMissionDataChanged(mission_s new_mission);
+	bool checkMissionDataChanged(const mission_s &new_mission);
 
 	/**
 	 * @brief update current mission altitude after the home position has changed.

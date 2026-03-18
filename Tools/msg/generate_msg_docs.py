@@ -17,10 +17,10 @@ VALID_FIELDS = { #Note, also have to add the message types as those can be field
     'uint32'
 }
 
-ALLOWED_UNITS = set(["m", "m/s", "m/s^2", "(m/s)^2", "deg", "deg/s", "rad", "rad/s", "rad^2", "rpm" ,"V", "A", "mA", "mAh", "W", "dBm", "h", "s", "ms", "us", "Ohm", "MB", "Kb/s", "degC","Pa","%","-"])
+ALLOWED_UNITS = set(["m", "m/s", "m/s^2", "(m/s)^2", "deg", "deg/s", "rad", "rad/s", "rad^2", "rpm" ,"V", "A", "mA", "mAh", "W", "Wh", "dBm", "h", "minutes", "s", "ms", "us", "Ohm", "MB", "Kb/s", "degC","Pa", "%", "norm", "-"])
 invalid_units = set()
-ALLOWED_FRAMES = set(["NED","Body"])
-ALLOWED_INVALID_VALUES = set(["NaN", "0"])
+ALLOWED_FRAMES = set(["NED", "Body", "FRD", "ENU"])
+ALLOWED_INVALID_VALUES = set(["NaN", "0", "-1"])
 ALLOWED_CONSTANTS_NOT_IN_ENUM = set(["ORB_QUEUE_LENGTH","MESSAGE_VERSION"])
 
 class Error:

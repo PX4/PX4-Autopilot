@@ -116,11 +116,30 @@ void SensorGpsSim::Run()
 		vehicle_global_position_s gpos{};
 		_vehicle_global_position_sub.copy(&gpos);
 
-		double latitude = gpos.lat + math::degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
-		double longitude = gpos.lon + math::degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
-		double altitude = (double)(gpos.alt + (generate_wgn() * 0.5f));
+		// Correlated Markov process position noise (matching GZBridge model)
+		_gps_pos_noise_n = _pos_markov_time * _gps_pos_noise_n +
+				   _pos_random_walk * generate_wgn() * _pos_noise_amplitude;
 
-		Vector3f gps_vel = Vector3f{lpos.vx, lpos.vy, lpos.vz} + noiseGauss3f(0.06f, 0.077f, 0.158f);
+		_gps_pos_noise_e = _pos_markov_time * _gps_pos_noise_e +
+				   _pos_random_walk * generate_wgn() * _pos_noise_amplitude;
+
+		_gps_pos_noise_d = _pos_markov_time * _gps_pos_noise_d +
+				   _pos_random_walk * generate_wgn() * _pos_noise_amplitude * 1.5f;
+
+		const double latitude = gpos.lat + math::degrees((double)_gps_pos_noise_n / CONSTANTS_RADIUS_OF_EARTH);
+		const double longitude = gpos.lon + math::degrees((double)_gps_pos_noise_e / CONSTANTS_RADIUS_OF_EARTH);
+		const double altitude = (double)(gpos.alt + _gps_pos_noise_d);
+
+		_gps_vel_noise_n = _vel_markov_time * _gps_vel_noise_n +
+				   _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
+
+		_gps_vel_noise_e = _vel_markov_time * _gps_vel_noise_e +
+				   _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
+
+		_gps_vel_noise_d = _vel_markov_time * _gps_vel_noise_d +
+				   _vel_noise_density * generate_wgn() * _vel_noise_amplitude * 1.2f;
+
+		const Vector3f gps_vel = Vector3f{lpos.vx + _gps_vel_noise_n, lpos.vy + _gps_vel_noise_e, lpos.vz + _gps_vel_noise_d};
 
 		// device id
 		device::Device::DeviceId device_id;

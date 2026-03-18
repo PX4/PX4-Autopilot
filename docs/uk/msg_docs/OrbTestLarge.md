@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # OrbTestLarge (повідомлення UORB)
 
-**TOPICS:** orb_testlarge
+**TOPICS:** orb_test_large
 
 ## Fields
 

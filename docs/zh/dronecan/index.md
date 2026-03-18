@@ -158,7 +158,7 @@ DroneCAN peripherals connected to PX4 can also be [configured using parameters v
 By convention, parameters named with the prefix [CANNODE\_](../advanced_config/parameter_reference.md#CANNODE_BITRATE) have prefined meaning, and may be documented in the parameter reference.
 `CANNODE_` parameters prefixed with `CANNODE_PUB_` and `CANNODE_SUB_` enable the peripheral to publish or subscribe the associated DroneCAN message.
 These allow DroneCAN peripherals to be configured to only subscribe and publish messages that they actually need (in the same way that PX4 uses the corresponding `UAVCAN_PUB_`/`UAVCAN_SUB_` parameters).
-Note that a peripheral might might not use `CANNODE_` parameters, in which case it may have to publish/subscribe to particular messages whether or not they are needed.
+Note that a peripheral might not use `CANNODE_` parameters, in which case it may have to publish/subscribe to particular messages whether or not they are needed.
 
 The following sections provide additional detail on the PX4 and DroneCAN peripheral parameters used to enable particular features.
 
@@ -286,6 +286,14 @@ PX4 DroneCAN parameters:
 
 Select the specific CAN interface(s) used for ESC data output using the [UAVCAN_ESC_IFACE](../advanced_config/parameter_reference.md#UAVCAN_ESC_IFACE) parameter (all that all interfaces are selected by default).
 Note that DroneCAN ESCs should be on their own dedicated CAN interface(s) because ESC messages can saturate the bus and starve other nodes of bandwidth.
+
+### Lights
+
+PX4 can control external LEDs on a connected DroneCAN peripheral using the standard DroneCAN [LightsCommand](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#lightscommand) message.
+Up to 2 lights acan be controlled.
+Each light can independently show [system status colours](../getting_started/led_meanings.md#ui-led), a fixed colour (commonly used for indicating aircraft orientation), or switch between both depending on arm state.
+
+See [DroneCAN Lights](lights.md) for full configuration details.
 
 ## QGC CANNODE Parameter Configuration
 

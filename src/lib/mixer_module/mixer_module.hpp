@@ -84,8 +84,7 @@ public:
 	 * @param num_control_groups_updated number of actuator_control groups updated
 	 * @return if true, the update got handled, and actuator_outputs can be published
 	 */
-	virtual bool updateOutputs(uint16_t outputs[MAX_ACTUATORS],
-				   unsigned num_outputs, unsigned num_control_groups_updated) = 0;
+	virtual bool updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, unsigned num_control_groups_updated) = 0;
 
 	/** called whenever the mixer gets updated/reset */
 	virtual void mixerChanged() {}
@@ -141,6 +140,8 @@ public:
 
 	OutputFunction outputFunction(int index) const { return _function_assignment[index]; }
 
+	bool isMotor(int index) const { return isFunctionSet(index) && (_function_assignment[index] >= OutputFunction::Motor1) && (_function_assignment[index] <= OutputFunction::Motor12); }
+
 	/**
 	 * Call this regularly from Run(). It will call interface.updateOutputs().
 	 * @return true if outputs were updated
@@ -186,7 +187,7 @@ public:
 	/**
 	 * Returns the actual failsafe value taking into account the assigned function
 	 */
-	uint16_t actualFailsafeValue(int index) const;
+	float actualFailsafeValue(int index) const;
 
 	void setIgnoreLockdown(bool ignore_lockdown) { _ignore_lockdown = ignore_lockdown; }
 
@@ -207,7 +208,7 @@ public:
 
 protected:
 	void updateParams() override;
-	uint16_t output_limit_calc_single(int i, float value) const;
+	float output_limit_calc_single(int i, float value) const;
 
 private:
 
@@ -247,7 +248,7 @@ private:
 	uint16_t _min_value[MAX_ACTUATORS] {};
 	uint16_t _center_value[MAX_ACTUATORS] {};
 	uint16_t _max_value[MAX_ACTUATORS] {};
-	uint16_t _current_output_value[MAX_ACTUATORS] {}; ///< current output values (reordered)
+	float _current_output_value[MAX_ACTUATORS] {}; ///< current output values (reordered)
 	uint16_t _reverse_output_mask{0}; ///< reverses the interval [min, max] -> [max, min], NOT motor direction
 
 	enum class OutputLimitState {
