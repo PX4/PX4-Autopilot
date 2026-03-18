@@ -1,0 +1,86 @@
+module_name: attitude_estimator_q
+parameters:
+- group: Attitude Q estimator
+  definitions:
+    ATT_EN:
+      description:
+        short: standalone attitude estimator enable (unsupported)
+        long: Enable standalone quaternion based attitude estimator.
+      type: boolean
+      default: 0
+    ATT_W_ACC:
+      description:
+        short: Complimentary filter accelerometer weight
+      type: float
+      default: 0.2
+      min: 0
+      max: 1
+      decimal: 2
+    ATT_W_MAG:
+      description:
+        short: Complimentary filter magnetometer weight
+        long: Set to 0 to avoid using the magnetometer.
+      type: float
+      default: 0.1
+      min: 0
+      max: 1
+      decimal: 2
+    ATT_W_EXT_HDG:
+      description:
+        short: Complimentary filter external heading weight
+      type: float
+      default: 0.1
+      min: 0
+      max: 1
+    ATT_W_GYRO_BIAS:
+      description:
+        short: Complimentary filter gyroscope bias weight
+      type: float
+      default: 0.1
+      min: 0
+      max: 1
+      decimal: 2
+    ATT_MAG_DECL:
+      description:
+        short: Magnetic declination, in degrees
+        long: |-
+          This parameter is not used in normal operation,
+          as the declination is looked up based on the
+          GPS coordinates of the vehicle.
+      type: float
+      default: 0.0
+      unit: deg
+      decimal: 2
+    ATT_MAG_DECL_A:
+      description:
+        short: Automatic GPS based declination compensation
+      type: boolean
+      default: 1
+    ATT_EXT_HDG_M:
+      description:
+        short: External heading usage mode (from Motion capture/Vision)
+        long: |-
+          Set to 1 to use heading estimate from vision.
+          Set to 2 to use heading from motion capture.
+      type: enum
+      values:
+        0: None
+        1: Vision
+        2: Motion Capture
+      default: 0
+      min: 0
+      max: 2
+    ATT_ACC_COMP:
+      description:
+        short: Acceleration compensation based on GPS velocity
+      type: boolean
+      default: 0
+    ATT_BIAS_MAX:
+      description:
+        short: Gyro bias limit
+      type: float
+      default: 0.05
+      unit: rad/s
+      min: 0
+      max: 2
+      decimal: 3
