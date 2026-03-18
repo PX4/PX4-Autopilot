@@ -1,0 +1,80 @@
+module_name: runway_takeoff
+parameters:
+- group: Runway Takeoff
+  definitions:
+    RWTO_TKOFF:
+      description:
+        short: Runway takeoff with landing gear
+      type: boolean
+      default: 0
+    RWTO_MAX_THR:
+      description:
+        short: Throttle during runway takeoff
+      type: float
+      default: 1.0
+      unit: norm
+      min: 0.0
+      max: 1.0
+      decimal: 2
+      increment: 0.01
+    RWTO_PSP:
+      description:
+        short: Pitch setpoint during taxi / before rotation
+        long: |-
+          Pitch setpoint during taxi / before takeoff rotation airspeed is reached
+
+          A taildragger with steerable wheel might need to pitch up
+          a little to keep its wheel on the ground before airspeed
+          to takeoff is reached.
+      type: float
+      default: 0.0
+      unit: deg
+      min: -10.0
+      max: 20.0
+      decimal: 1
+      increment: 0.5
+    RWTO_RAMP_TIME:
+      description:
+        short: Throttle ramp up time for runway takeoff
+      type: float
+      default: 2.0
+      unit: s
+      min: 1.0
+      max: 15.0
+      decimal: 2
+      increment: 0.1
+    RWTO_NUDGE:
+      description:
+        short: Enable yaw stick nudging during runway ground roll
+        long: |-
+          Enable use of yaw stick for nudging the wheel during runway ground roll
+
+          This is useful when map, GNSS, or yaw errors on ground are misaligned with what the operator intends for takeoff course.
+          Particularly useful for skinny runways or if the wheel servo is a bit off trim.
+      type: boolean
+      default: 1
+    RWTO_ROT_AIRSPD:
+      description:
+        short: Takeoff rotation airspeed
+        long: |-
+          The calibrated airspeed threshold during the takeoff ground roll when the plane should start rotating (pitching up).
+          Must be less than the takeoff airspeed, will otherwise be capped at the takeoff airpeed (see FW_TKO_AIRSPD).
+
+          If set <= 0.0, defaults to 0.9 * takeoff airspeed (see FW_TKO_AIRSPD)
+      type: float
+      default: -1.0
+      unit: m/s
+      min: -1.0
+      decimal: 1
+      increment: 0.1
+    RWTO_ROT_TIME:
+      description:
+        short: Takeoff rotation time
+        long: This is the time desired to linearly ramp in takeoff pitch constraints
+          during the takeoff rotation
+      type: float
+      default: 1.0
+      unit: s
+      min: 0.1
+      decimal: 1
+      increment: 0.1
