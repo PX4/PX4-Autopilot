@@ -22,6 +22,7 @@ Follow [CONTRIBUTING.md](../../CONTRIBUTING.md) for full project conventions.
 4. Follow the commit message convention from CONTRIBUTING.md: pick the correct **type** and **scope**, write a concise imperative description.
 5. Body (if needed): explain **why**, not what.
 6. Run `make format` or `./Tools/astyle/fix_code_style.sh <file>` on changed C/C++ files before committing.
-7. Stage and commit. No `Co-Authored-By`.
+7. Check if GPG signing is available: `git config --get user.signingkey`. If set, use `git commit -S -s`. Otherwise, use `git commit -s`.
+8. Stage and commit. No `Co-Authored-By`.
 
 If the user provided arguments, use them as context: $ARGUMENTS
