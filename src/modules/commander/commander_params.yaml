@@ -1,0 +1,841 @@
+module_name: commander
+parameters:
+- group: Commander
+  definitions:
+    COM_DL_LOSS_T:
+      description:
+        short: GCS connection loss time threshold
+        long: After this amount of seconds without datalink, the GCS connection lost
+          mode triggers
+      type: int32
+      default: 10
+      unit: s
+      min: 5
+      max: 300
+      decimal: 1
+      increment: 1
+    COM_HLDL_LOSS_T:
+      description:
+        short: High Latency Datalink loss time threshold
+        long: After this amount of seconds without datalink the data link lost mode
+          triggers
+      type: int32
+      default: 120
+      unit: s
+      min: 60
+      max: 3600
+    COM_RC_LOSS_T:
+      description:
+        short: Manual control loss timeout
+        long: |-
+          The time in seconds without a new setpoint from RC or Joystick, after which the connection is considered lost.
+          This must be kept short as the vehicle will use the last supplied setpoint until the timeout triggers.
+          Ensure the value is not set lower than the update interval of the RC or Joystick.
+      type: float
+      default: 0.5
+      unit: s
+      min: 0
+      max: 35
+      decimal: 1
+      increment: 0.1
+    COM_HOME_EN:
+      description:
+        short: Home position enabled
+        long: |-
+          Set home position automatically if possible.
+
+          During missions, the latitude/longitude of the home position is locked and will not reset during intermediate landings.
+          It will only update once the mission is complete or landed outside of a mission.
+          However, the altitude is still being adjusted to correct for GNSS vertical drift in the first 2 minutes after takeoff.
+      type: boolean
+      default: 1
+      reboot_required: true
+    COM_HOME_IN_AIR:
+      description:
+        short: Allows setting the home position after takeoff
+        long: |-
+          If set to true, the autopilot is allowed to set its home position after takeoff
+          The true home position is back-computed if a local position is estimate if available.
+          If no local position is available, home is set to the current position.
+      type: boolean
+      default: 0
+    COM_RC_IN_MODE:
+      description:
+        short: Manual control input source configuration
+        long: |-
+          Selects stick input selection behavior:
+          either a traditional remote control receiver (RC) or a MAVLink joystick (MANUAL_CONTROL message)
+
+          Priority sources are immediately switched to whenever they get valid.
+
+          0 RC only. Requires valid RC calibration.
+          1 MAVLink only. RC and related checks are disabled.
+          2 Switches only if current source becomes invalid.
+          3 Locks to the first valid source until reboot.
+          4 Ignores all sources.
+          5 RC priority, then MAVLink (lower instance before higher)
+          6 MAVLink priority (lower instance before higher), then RC
+          7 RC priority, then MAVLink (higher instance before lower)
+          8 MAVLink priority (higher instance before lower), then RC
+      type: enum
+      values:
+        0: RC only
+        1: MAVLink only
+        2: RC or MAVLink with fallback
+        3: RC or MAVLink keep first
+        4: Disable manual control
+        5: 'Prio: RC > MAVL 1 > MAVL 2'
+        6: 'Prio: MAVL 1 > MAVL 2 > RC'
+        7: 'Prio: RC > MAVL 2 > MAVL 1'
+        8: 'Prio: MAVL 2 > MAVL 1 > RC'
+      default: 3
+      min: 0
+      max: 8
+    COM_DISARM_LAND:
+      description:
+        short: Time-out for auto disarm after landing
+        long: |-
+          A non-zero, positive value specifies the time-out period in seconds after which the vehicle will be
+          automatically disarmed in case a landing situation has been detected during this period.
+
+          A zero or negative value means that automatic disarming triggered by landing detection is disabled.
+      type: float
+      default: 2.0
+      unit: s
+      decimal: 1
+      increment: 0.1
+    COM_DISARM_PRFLT:
+      description:
+        short: Time-out for auto disarm if not taking off
+        long: |-
+          A non-zero, positive value specifies the time in seconds, within which the
+          vehicle is expected to take off after arming. In case the vehicle didn't takeoff
+          within the timeout it disarms again.
+
+          A negative value disables autmoatic disarming triggered by a pre-takeoff timeout.
+      type: float
+      default: 10.0
+      unit: s
+      decimal: 1
+      increment: 0.1
+    COM_ARM_WO_GPS:
+      description:
+        short: Arming without GNSS configuration
+        long: |-
+          Configures whether arming is allowed without GNSS, for modes that require a global position
+          (specifically, in those modes when a check defined by EKF2_GPS_CHECK fails).
+          The settings deny arming and warn, allow arming and warn, or silently allow arming.
+      type: enum
+      values:
+        0: Deny arming
+        1: Allow arming (with warning)
+        2: Allow arming (no warning)
+      default: 1
+    COM_ARM_SWISBTN:
+      description:
+        short: Arm switch is a momentary button
+        long: |-
+          0: Arming/disarming triggers on switch transition.
+          1: Arming/disarming triggers when holding the momentary button down like the stick gesture.
+      type: boolean
+      default: 0
+    COM_DISARM_MAN:
+      description:
+        short: Allow disarming in manual thrust modes
+        long: |-
+          Allow disarming via switch/stick/button on multicopters in manual thrust modes
+
+          0: Disallow disarming when not landed
+          1: Allow disarming in multicopter flight in modes where
+          the thrust is directly controlled by thr throttle stick
+          e.g. Stabilized, Acro
+      type: boolean
+      default: 1
+    COM_LOW_BAT_ACT:
+      description:
+        short: Battery failsafe mode
+        long: |-
+          Action the system takes at critical battery. See also BAT_CRIT_THR and BAT_EMERGEN_THR
+          for definition of battery states.
+      type: enum
+      values:
+        0: Warning
+        2: Land mode
+        3: Return at critical level, land at emergency level
+      default: 0
+    COM_FAIL_ACT_T:
+      description:
+        short: Delay between failsafe condition triggered and failsafe reaction
+        long: |-
+          Before entering failsafe (RTL, Land, Hold), wait COM_FAIL_ACT_T seconds in Hold mode
+          for the user to realize.
+          During that time the user can switch modes, but cannot take over control via the stick override feature (see COM_RC_OVERRIDE).
+          Afterwards the configured failsafe action is triggered and the user may use stick override.
+
+          A zero value disables the delay.
+      type: float
+      default: 5.0
+      unit: s
+      min: 0.0
+      max: 25.0
+      decimal: 1
+    COM_IMB_PROP_ACT:
+      description:
+        short: Imbalanced propeller failsafe mode
+        long: |-
+          Action the system takes when an imbalanced propeller is detected by the failure detector.
+          See also FD_IMB_PROP_THR to set the failure threshold.
+      type: enum
+      values:
+        -1: Disabled
+        0: Warning
+        1: Return
+        2: Land
+      default: 0
+      increment: 1
+    COM_OF_LOSS_T:
+      description:
+        short: Offboard connection loss timeout
+        long: |-
+          Time-out to wait when offboard connection is lost before triggering offboard lost action
+
+          See COM_OBL_RC_ACT to configure action.
+      type: float
+      default: 1.0
+      unit: s
+      min: 0
+      max: 60
+      increment: 0.01
+    COM_QC_ACT:
+      description:
+        short: Set action after a quadchute
+      type: enum
+      values:
+        -1: Warning only
+        0: Return mode
+        1: Land mode
+        2: Hold mode
+      default: 0
+    COM_OBL_RC_ACT:
+      description:
+        short: Set offboard loss failsafe mode
+        long: |-
+          The offboard loss failsafe will only be entered after a timeout,
+          set by COM_OF_LOSS_T in seconds.
+      type: enum
+      values:
+        0: Position mode
+        1: Altitude mode
+        2: Stabilized
+        3: Return mode
+        4: Land mode
+        5: Hold mode
+        6: Terminate
+        7: Disarm
+      default: 0
+    COM_OBC_LOSS_T:
+      description:
+        short: Onboard computer connection loss timeout
+        long: Time-out to wait when onboard computer connection is lost before warning
+          about loss connection
+      type: float
+      default: 5.0
+      unit: s
+      min: 0
+      max: 60
+      increment: 0.01
+    COM_ARM_IMU_ACC:
+      description:
+        short: Max accelerometer inconsistency for arming
+        long: Maximum accelerometer inconsistency between IMU units that will allow
+          arming
+      type: float
+      default: 0.7
+      unit: m/s^2
+      min: 0.1
+      max: 1.0
+      decimal: 2
+      increment: 0.05
+    COM_ARM_IMU_GYR:
+      description:
+        short: Max rate gyro inconsistency for arming
+        long: Maximum rate gyro inconsistency between IMU units that will allow arming
+      type: float
+      default: 0.25
+      unit: rad/s
+      min: 0.02
+      max: 0.3
+      decimal: 3
+      increment: 0.01
+    COM_ARM_MAG_ANG:
+      description:
+        short: Max magnetic field inconsistency for arming
+        long: |-
+          Maximum magnetic field inconsistency between units that will allow arming
+
+          Set -1 to disable the check.
+      type: int32
+      default: 60
+      unit: deg
+      min: 3
+      max: 180
+    COM_ARM_MAG_STR:
+      description:
+        short: Enable mag strength preflight check
+        long: |-
+          Check if the estimator detects a strong magnetic
+          disturbance (check enabled by EKF2_MAG_CHECK)
+      type: enum
+      values:
+        0: Disabled
+        1: Deny arming
+        2: Warning only
+      default: 2
+    COM_RC_OVERRIDE:
+      description:
+        short: Enable manual control stick override
+        long: |-
+          When enabled, moving the sticks more than COM_RC_STICK_OV
+          immediately gives control back to the pilot by switching to Position mode and
+          if position is unavailable Altitude mode.
+          Note: Only has an effect on multicopters, and VTOLs in multicopter mode.
+      type: bitmask
+      bit:
+        0: Enable override during auto modes (except for in critical battery reaction)
+        1: Enable override during offboard mode
+      default: 1
+      min: 0
+      max: 3
+    COM_RC_STICK_OV:
+      description:
+        short: Stick override threshold
+        long: |-
+          If COM_RC_OVERRIDE is enabled and the joystick input is moved more than this threshold
+          the pilot takes over control.
+      type: float
+      default: 30.0
+      unit: '%'
+      min: 5
+      max: 80
+      decimal: 0
+      increment: 0.05
+    COM_ARM_MIS_REQ:
+      description:
+        short: Require valid mission to arm
+        long: The default allows to arm the vehicle without a valid mission.
+      type: boolean
+      default: 0
+    COM_ARM_AUTH_REQ:
+      description:
+        short: Require arm authorization to arm
+        long: By default off. The default allows to arm the vehicle without a arm
+          authorization.
+      type: boolean
+      default: 0
+    COM_ARM_AUTH_ID:
+      description:
+        short: Arm authorizer system id
+        long: Used if arm authorization is requested by COM_ARM_AUTH_REQ.
+      type: int32
+      default: 10
+    COM_ARM_AUTH_MET:
+      description:
+        short: Arm authorization method
+        long: |-
+          Methods:
+          - one arm: request authorization and arm when authorization is received
+          - two step arm: 1st arm command request an authorization and
+          2nd arm command arm the drone if authorized
+
+          Used if arm authorization is requested by COM_ARM_AUTH_REQ.
+      type: enum
+      values:
+        0: one arm
+        1: two step arm
+      default: 0
+    COM_ARM_AUTH_TO:
+      description:
+        short: Arm authorization timeout
+        long: |-
+          Timeout for authorizer answer.
+          Used if arm authorization is requested by COM_ARM_AUTH_REQ.
+      type: float
+      default: 1
+      unit: s
+      decimal: 1
+      increment: 0.1
+    COM_POS_FS_EPH:
+      description:
+        short: Horizontal position error threshold for hovering systems
+        long: |-
+          This is the horizontal position error (EPH) threshold that will trigger a failsafe.
+          If the previous position error was below this threshold, there is an additional
+          factor of 2.5 applied (threshold for invalidation 2.5 times the one for validation).
+          Only used for multicopters and VTOLs in hover mode.
+          Independent from estimator positioning data timeout threshold (see EKF2_NOAID_TOUT).
+
+          Set to -1 to disable.
+      type: float
+      default: 5.0
+      unit: m
+      min: -1
+      max: 400
+      decimal: 1
+    COM_VEL_FS_EVH:
+      description:
+        short: Horizontal velocity error threshold
+        long: |-
+          This is the horizontal velocity error (EVH) threshold that will trigger a failsafe.
+          The default is appropriate for a multicopter. Can be increased for a fixed-wing.
+          If the previous velocity error was below this threshold, there is an additional
+          factor of 2.5 applied (threshold for invalidation 2.5 times the one for validation).
+      type: float
+      default: 1.0
+      unit: m/s
+      min: 0
+      decimal: 1
+    COM_FLIGHT_UUID:
+      description:
+        short: Next flight UUID
+        long: |-
+          This number is incremented automatically after every flight on
+          disarming in order to remember the next flight UUID.
+          The first flight is 0.
+      category: System
+      type: int32
+      default: 0
+      volatile: true
+      min: 0
+    COM_TAKEOFF_ACT:
+      description:
+        short: Action after TAKEOFF has been accepted
+        long: The mode transition after TAKEOFF has completed successfully.
+      type: enum
+      values:
+        0: Hold
+        1: Mission (if valid)
+      default: 0
+    NAV_DLL_ACT:
+      description:
+        short: Set GCS connection loss failsafe mode
+        long: |-
+          The GCS connection loss failsafe will only be entered after a timeout,
+          set by COM_DL_LOSS_T in seconds. Once the timeout occurs the selected
+          action will be executed.
+      type: enum
+      values:
+        0: Disabled
+        1: Hold mode
+        2: Return mode
+        3: Land mode
+        5: Terminate
+        6: Disarm
+      default: 0
+      min: 0
+      max: 6
+    NAV_RCL_ACT:
+      description:
+        short: Set manual control loss failsafe mode
+        long: |-
+          The manual control loss failsafe will only be entered after a timeout,
+          set by COM_RC_LOSS_T in seconds.
+      type: enum
+      values:
+        1: Hold mode
+        2: Return mode
+        3: Land mode
+        5: Terminate
+        6: Disarm
+      default: 2
+      min: 1
+      max: 6
+    COM_RCL_EXCEPT:
+      description:
+        short: Manual control loss exceptions
+        long: |-
+          Specify modes in which stick input is ignored and no failsafe action is triggered.
+          External modes requiring stick input will still failsafe.
+          Auto modes are: Hold, Takeoff, Land, RTL, Descend, Follow Target, Precland, Orbit.
+      type: bitmask
+      bit:
+        0: Mission
+        1: Auto modes
+        2: Offboard
+        3: External Mode
+        4: Altitude Cruise
+      default: 0
+      min: 0
+      max: 31
+    COM_DLL_EXCEPT:
+      description:
+        short: Datalink loss exceptions
+        long: |-
+          Specify modes in which ground control station connection loss is ignored and no failsafe action is triggered.
+          See also COM_RCL_EXCEPT.
+      type: bitmask
+      bit:
+        0: Mission
+        1: Auto modes
+        2: Offboard
+        3: External Mode
+        4: Altitude Cruise
+      default: 0
+      min: 0
+      max: 31
+    COM_ACT_FAIL_ACT:
+      description:
+        short: Set the actuator failure failsafe mode
+        long: |-
+          Note: actuator failure needs to be enabled and configured via FD_ACT_*
+          parameters.
+      type: enum
+      values:
+        0: Warning only
+        1: Hold mode
+        2: Land mode
+        3: Return mode
+        4: Terminate
+      default: 0
+      min: 0
+      max: 3
+    COM_PARACHUTE:
+      description:
+        short: Require MAVLink parachute system to be present and healthy
+      type: boolean
+      default: 0
+    COM_ARM_CHK_ESCS:
+      description:
+        short: Enable checks on ESCs that report telemetry
+        long: |-
+          If this parameter is set, the system will check ESC's online status and failures.
+          This param is specific for ESCs reporting status. It shall be used only if ESCs support telemetry.
+      type: boolean
+      default: 0
+    COM_PREARM_MODE:
+      description:
+        short: Condition to enter prearmed mode
+        long: |-
+          Condition to enter the prearmed state, an intermediate state between disarmed and armed
+          in which non-throttling actuators are active.
+      type: enum
+      values:
+        0: Disabled
+        1: Safety button
+        2: Always
+      default: 0
+    COM_FORCE_SAFETY:
+      description:
+        short: Enable force safety
+        long: Force safety when the vehicle disarms
+      type: boolean
+      default: 0
+    COM_CPU_MAX:
+      description:
+        short: Maximum allowed CPU load to still arm
+        long: |-
+          The check fails if the CPU load is above this threshold for 2s.
+
+          A negative value disables the check.
+      type: float
+      default: 95.0
+      unit: '%'
+      min: -1
+      max: 100
+      increment: 1
+    COM_RAM_MAX:
+      description:
+        short: Maximum allowed RAM usage to pass checks
+        long: |-
+          The check fails if the RAM usage is above this threshold.
+
+          A negative value disables the check.
+      type: float
+      default: 95.0
+      unit: '%'
+      min: -1
+      max: 100
+      increment: 1
+    COM_POWER_COUNT:
+      description:
+        short: Required number of redundant power modules
+        long: |-
+          This configures a check to verify the expected number of 5V rail power supplies are present. By default only one is expected.
+          Note: CBRK_SUPPLY_CHK disables all power checks including this one.
+      type: int32
+      default: 1
+      min: 0
+      max: 4
+    COM_LKDOWN_TKO:
+      description:
+        short: Timeout for detecting a failure after takeoff
+        long: |-
+          A non-zero, positive value specifies the timeframe in seconds within failure detector is allowed to disarm the vehicle
+          if attitude exceeds the limits defined in FD_FAIL_P and FD_FAIL_R.
+          The check is not executed for flight modes that do support acrobatic maneuvers, e.g: Acro (MC/FW) and Manual (FW).
+          A zero or negative value means that the check is disabled.
+      type: float
+      default: 3.0
+      unit: s
+      min: -1.0
+      max: 5.0
+      decimal: 3
+    COM_ARM_SDCARD:
+      description:
+        short: Enable FMU SD card detection check
+        long: |-
+          This check detects if the FMU SD card is missing.
+          Depending on the value of the parameter, the check can be
+          disabled, warn only or deny arming.
+      type: enum
+      values:
+        0: Disabled
+        1: Warning only
+        2: Enforce SD card presence
+      default: 1
+    COM_ARM_HFLT_CHK:
+      description:
+        short: Enable FMU SD card hardfault / watchdog detection check
+        long: |-
+          This check detects if there are hardfault / watchdog files present on the
+          SD card. If so, and the parameter is enabled, arming is prevented.
+      type: boolean
+      default: 1
+    COM_ARM_ODID:
+      description:
+        short: Enable Drone ID system detection and health check
+        long: |-
+          This check detects if the Open Drone ID system is missing.
+          Depending on the value of the parameter, the check can be
+          disabled, warn only or deny arming.
+      type: enum
+      values:
+        0: Disabled
+        1: Warning only
+        2: Enforce Open Drone ID system presence
+      default: 0
+    COM_ARM_TRAFF:
+      description:
+        short: Enable Traffic Avoidance system detection check
+        long: |-
+          This check detects if a traffic avoidance system (ADSB/FLARM transponder)
+          is missing. Depending on the value of the parameter, the check can be
+          disabled, warn only, or deny arming.
+      type: enum
+      values:
+        0: Disabled
+        1: Warning only
+        2: Enforce for all modes
+        3: Enforce for mission modes only
+      default: 0
+    COM_SPOOLUP_TIME:
+      description:
+        short: Enforced delay between arming and further navigation
+        long: |-
+          The minimal time from arming the motors until moving the vehicle is possible is COM_SPOOLUP_TIME seconds.
+          Goal:
+          - Motors and propellers spool up to idle speed before getting commanded to spin faster
+          - Timeout for ESCs and smart batteries to successfulyy do failure checks
+          e.g. for stuck rotors before the vehicle is off the ground
+      type: float
+      default: 1.0
+      min: 0
+      max: 30
+      decimal: 1
+      increment: 0.1
+      unit: s
+    COM_WIND_WARN:
+      description:
+        short: Wind speed warning threshold
+        long: |-
+          A warning is triggered if the currently estimated wind speed is above this value.
+          Warning is sent periodically (every 1 minute).
+
+          Set to -1 to disable.
+      type: float
+      default: -1.0
+      min: -1
+      decimal: 1
+      increment: 0.1
+      unit: m/s
+    COM_FLT_TIME_MAX:
+      description:
+        short: Maximum allowed flight time
+        long: |-
+          The vehicle aborts the current operation and returns to launch when
+          the time since takeoff is above this value. It is not possible to resume the
+          mission or switch to any auto mode other than RTL or Land. Taking over in any manual
+          mode is still possible.
+
+          Starting from 90% of the maximum flight time, a warning message will be sent
+          every 1 minute with the remaining time until automatic RTL.
+
+          Set to -1 to disable.
+      type: int32
+      default: -1
+      unit: s
+      min: -1
+    COM_WIND_MAX:
+      description:
+        short: High wind speed failsafe threshold
+        long: |-
+          Wind speed threshold above which an automatic failsafe action is triggered.
+          Failsafe action can be specified with COM_WIND_MAX_ACT.
+      type: float
+      default: -1.0
+      min: -1
+      decimal: 1
+      increment: 0.1
+      unit: m/s
+    COM_WIND_MAX_ACT:
+      description:
+        short: High wind failsafe mode
+        long: |-
+          Action the system takes when a wind speed above the specified threshold is detected.
+          See COM_WIND_MAX to set the failsafe threshold.
+          If enabled, it is not possible to resume the mission or switch to any auto mode other than
+          RTL or Land if this threshold is exceeded. Taking over in any manual
+          mode is still possible.
+      type: enum
+      values:
+        0: None
+        1: Warning
+        2: Hold
+        3: Return
+        4: Terminate
+        5: Land
+      default: 0
+      increment: 1
+    COM_POS_LOW_EPH:
+      description:
+        short: Low position accuracy failsafe threshold
+        long: |-
+          This triggers the action specified in COM_POS_LOW_ACT if the estimated position accuracy is below this threshold.
+          Local position has to be still declared valid, which requires some kind of velocity aiding or large dead-reckoning time (EKF2_NOAID_TOUT),
+          and a high failsafe threshold (COM_POS_FS_EPH).
+
+          Set to -1 to disable.
+      type: float
+      default: -1.0
+      min: -1
+      max: 1000
+      unit: m
+    COM_POS_LOW_ACT:
+      description:
+        short: Low position accuracy action
+        long: |-
+          Action the system takes when the estimated position has an accuracy below the specified threshold.
+          See COM_POS_LOW_EPH to set the failsafe threshold.
+          The failsafe action is only executed if the vehicle is in auto mission or auto loiter mode,
+          otherwise it is only a warning.
+      type: enum
+      values:
+        0: None
+        1: Warning
+        2: Hold
+        3: Return
+        4: Terminate
+        5: Land
+      default: 3
+      increment: 1
+    COM_ARMABLE:
+      description:
+        short: Flag to allow arming
+        long: Set 0 to prevent accidental use of the vehicle e.g. for safety or maintenance
+          reasons.
+      type: enum
+      values:
+        0: Disallow arming
+        1: Allow arming
+      default: 1
+    COM_ARM_BAT_MIN:
+      description:
+        short: Minimum battery level for arming
+        long: |-
+          Threshold for battery percentage below arming is prohibited.
+
+          A negative value means BAT_CRIT_THR is the threshold.
+      type: float
+      default: -1.0
+      unit: norm
+      min: -1
+      max: 0.9
+      decimal: 2
+      increment: 0.01
+    COM_THROW_EN:
+      description:
+        short: Enable throw-start
+        long: Allows to start the vehicle by throwing it into the air.
+      type: boolean
+      default: 0
+    COM_THROW_SPEED:
+      description:
+        short: Minimum speed for the throw start
+        long: |-
+          When the throw launch is enabled, the drone will only allow motors to spin after this speed
+          is exceeded before detecting the freefall. This is a safety feature to ensure the drone does
+          not turn on after accidental drop or a rapid movement before the throw.
+
+          Set to 0 to disable.
+      type: float
+      default: 5
+      min: 0
+      decimal: 1
+      increment: 0.1
+      unit: m/s
+    COM_FLTT_LOW_ACT:
+      description:
+        short: Remaining flight time low failsafe
+        long: |-
+          Action the system takes when the remaining flight time is below
+          the estimated time it takes to reach the RTL destination.
+      type: enum
+      values:
+        0: None
+        1: Warning
+        3: Return
+      default: 0
+      increment: 1
+    COM_MODE_ARM_CHK:
+      description:
+        short: Allow external mode registration while armed
+        long: By default disabled for safety reasons
+      type: boolean
+      default: 0
+- group: Radio Calibration
+  definitions:
+    TRIM_ROLL:
+      description:
+        short: Roll trim
+        long: |-
+          The trim value is the actuator control value the system needs
+          for straight and level flight.
+      type: float
+      default: 0.0
+      min: -0.5
+      max: 0.5
+      decimal: 2
+      increment: 0.01
+    TRIM_PITCH:
+      description:
+        short: Pitch trim
+        long: |-
+          The trim value is the actuator control value the system needs
+          for straight and level flight.
+      type: float
+      default: 0.0
+      min: -0.5
+      max: 0.5
+      decimal: 2
+      increment: 0.01
+    TRIM_YAW:
+      description:
+        short: Yaw trim
+        long: |-
+          The trim value is the actuator control value the system needs
+          for straight and level flight.
+      type: float
+      default: 0.0
+      min: -0.5
+      max: 0.5
+      decimal: 2
+      increment: 0.01
