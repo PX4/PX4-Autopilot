@@ -339,7 +339,6 @@ private:
 		(ParamBool<px4::params::COM_DISARM_MAN>)    _param_com_disarm_man,
 		(ParamInt<px4::params::COM_DL_LOSS_T>)      _param_com_dl_loss_t,
 		(ParamInt<px4::params::COM_HLDL_LOSS_T>)    _param_com_hldl_loss_t,
-		(ParamInt<px4::params::COM_HLDL_REG_T>)     _param_com_hldl_reg_t,
 		(ParamBool<px4::params::COM_HOME_EN>)       _param_com_home_en,
 		(ParamBool<px4::params::COM_HOME_IN_AIR>)   _param_com_home_in_air,
 		(ParamBool<px4::params::COM_FORCE_SAFETY>)  _param_com_force_safety,

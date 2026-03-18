@@ -110,19 +110,6 @@ PARAM_DEFINE_INT32(COM_DL_LOSS_T, 10);
 PARAM_DEFINE_INT32(COM_HLDL_LOSS_T, 120);
 
 /**
- * High Latency Datalink regain time threshold
- *
- * After a data link loss: after this number of seconds with a healthy datalink the 'datalink loss'
- * flag is set back to false
- *
- * @group Commander
- * @unit s
- * @min 0
- * @max 60
- */
-PARAM_DEFINE_INT32(COM_HLDL_REG_T, 0);
-
-/**
  * Manual control loss timeout
  *
  * The time in seconds without a new setpoint from RC or Joystick, after which the connection is considered lost.

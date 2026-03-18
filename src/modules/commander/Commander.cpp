@@ -2784,10 +2784,7 @@ void Commander::dataLinkCheck()
 			_high_latency_datalink_regained = _high_latency_datalink_timestamp;
 		}
 
-		if (_vehicle_status.high_latency_data_link_lost &&
-		    (_high_latency_datalink_regained != 0) &&
-		    (hrt_elapsed_time(&_high_latency_datalink_regained) > (_param_com_hldl_reg_t.get() * 1_s))
-		   ) {
+		if (_vehicle_status.high_latency_data_link_lost && (_high_latency_datalink_regained != 0)) {
 			_vehicle_status.high_latency_data_link_lost = false;
 			_status_changed = true;
 		}
