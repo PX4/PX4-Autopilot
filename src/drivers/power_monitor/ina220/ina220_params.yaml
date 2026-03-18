@@ -5,7 +5,7 @@ parameters:
     SENS_EN_INA220:
       description:
         short: Enable INA220 Power Monitor
-        long: For systems a INA220 Power Monitor, this should be set to true
+        long: For systems with an INA220 Power Monitor, this should be set to true
       type: boolean
       default: 0
       reboot_required: true
