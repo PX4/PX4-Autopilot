@@ -444,8 +444,10 @@ AirspeedModule::Run()
 
 			// save estimated airspeed scale after disarm if airspeed is valid and scale has changed
 			if (!armed && _armed_prev) {
+				const float scale_change_threshold = _param_airspeed_scale[i] * 0.03f; // 3% relative change threshold
+
 				if (_param_aspd_scale_apply.get() > 0 && _airspeed_validator[i].get_airspeed_valid()
-				    && fabsf(_airspeed_validator[i].get_CAS_scale_validated() - _param_airspeed_scale[i]) > FLT_EPSILON) {
+				    && fabsf(_airspeed_validator[i].get_CAS_scale_validated() - _param_airspeed_scale[i]) > scale_change_threshold) {
 
 					mavlink_log_info(&_mavlink_log_pub, "Airspeed sensor Nr. %d ASPD_SCALE updated: %.4f --> %.4f", i + 1,
 							 (double)_param_airspeed_scale[i],
