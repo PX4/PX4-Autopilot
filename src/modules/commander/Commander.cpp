@@ -2138,15 +2138,8 @@ void Commander::checkForMissionUpdate()
 
 			if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF
 			    || _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF) {
-				// Transition mode to loiter or auto-mission after takeoff is completed.
-				if ((_param_com_takeoff_act.get() == 1) && auto_mission_available) {
-					_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
-
-				} else {
-					// Transition to loiter when the takeoff is completed (force into the Loiter, if mode is not executable then failsafe).
-					_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER, ModeChangeSource::ModeExecutor, false,
-								    true);
-				}
+				// Transition to loiter when the takeoff is completed (force into the Loiter, if mode is not executable then failsafe).
+				_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER, ModeChangeSource::ModeExecutor, false, true);
 
 			} else if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
 				// Transition to loiter when the mission is cleared and/or finished, and we are still in mission mode.

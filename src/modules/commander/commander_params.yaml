@@ -391,15 +391,6 @@ parameters:
       default: 0
       volatile: true
       min: 0
-    COM_TAKEOFF_ACT:
-      description:
-        short: Action after TAKEOFF has been accepted
-        long: The mode transition after TAKEOFF has completed successfully.
-      type: enum
-      values:
-        0: Hold
-        1: Mission (if valid)
-      default: 0
     NAV_DLL_ACT:
       description:
         short: Set GCS connection loss failsafe mode
