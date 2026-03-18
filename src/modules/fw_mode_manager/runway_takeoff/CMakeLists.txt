@@ -34,3 +34,4 @@
 px4_add_library(runway_takeoff
 	RunwayTakeoff.cpp
 )
+set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/runway_takeoff_params.yaml)
