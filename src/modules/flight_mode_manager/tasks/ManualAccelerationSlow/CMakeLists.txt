@@ -34,6 +34,7 @@
 px4_add_library(FlightTaskManualAccelerationSlow
 	FlightTaskManualAccelerationSlow.cpp
 )
+set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/flight_task_acceleration_slow_params.yaml)
 target_include_directories(FlightTaskManualAccelerationSlow PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(FlightTaskManualAccelerationSlow PUBLIC FlightTaskManualAcceleration FlightTaskUtility)
