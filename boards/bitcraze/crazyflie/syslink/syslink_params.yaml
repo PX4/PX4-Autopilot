@@ -1,0 +1,28 @@
+module_name: syslink
+parameters:
+- group: Syslink
+  definitions:
+    SLNK_RADIO_CHAN:
+      description:
+        short: Operating channel of the NRF51
+      type: int32
+      default: 80
+      min: 0
+      max: 125
+    SLNK_RADIO_RATE:
+      description:
+        short: Operating datarate of the NRF51
+      type: int32
+      default: 2
+      min: 0
+      max: 2
+    SLNK_RADIO_ADDR1:
+      description:
+        short: Operating address of the NRF51 (most significant byte)
+      type: int32
+      default: 231
+    SLNK_RADIO_ADDR2:
+      description:
+        short: Operating address of the NRF51 (least significant 4 bytes)
+      type: int32
+      default: 3890735079
