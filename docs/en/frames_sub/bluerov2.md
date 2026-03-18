@@ -33,6 +33,26 @@ the [Airframe Reference](../airframes/airframe_reference.md#vectored-6-dof-uuv):
 - **MAIN7:** motor 7 CCW, stern starboard vertical, propeller CW
 - **MAIN8:** motor 8 CCW, stern port vertical, propeller CCW
 
+## Basic Control Axes
+
+For underwater vehicles, motion is defined in terms of body axes:
+
+- **Surge:** forward/back motion
+- **Sway:** left/right motion
+- **Heave:** up/down motion
+- **Yaw:** rotation about the vertical axis
+
+### Stick Mapping (Mode 2)
+
+The mapping below illustrates the default joystick behavior:
+
+- **Pitch stick (forward/back):** surge
+- **Roll stick (left/right):** sway
+- **Throttle stick (up/down):** heave
+- **Yaw stick (left/right):** yaw
+
+![RC Basic Commands](../../assets/flying/rc_mode2_mc_position_mode.png)
+
 ## Manual Modes
 
 The following manual and assisted modes are currently supported on BlueROV2 Heavy:
