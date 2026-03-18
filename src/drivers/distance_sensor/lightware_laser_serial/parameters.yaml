@@ -1,0 +1,19 @@
+module_name: lightware_laser_serial
+parameters:
+- group: Sensors
+  definitions:
+    SENS_EN_SF0X:
+      description:
+        short: Lightware Laser Rangefinder hardware model (serial)
+      type: enum
+      values:
+        1: SF02
+        2: SF10/a
+        3: SF10/b
+        4: SF10/c
+        5: SF11/c
+        6: SF30/b
+        7: SF30/c
+        8: LW20/c
+      default: 1
+      reboot_required: true
