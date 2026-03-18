@@ -1,0 +1,92 @@
+module_name: fw_autotune_attitude_control
+parameters:
+- group: Autotune
+  definitions:
+    FW_AT_APPLY:
+      description:
+        short: Controls when to apply the new gains
+        long: |-
+          After the auto-tuning sequence is completed,
+          a new set of gains is available and can be applied
+          immediately or after landing.
+      type: enum
+      values:
+        0: Do not apply the new gains (logging only)
+        1: Apply the new gains after disarm
+        2: Apply the new gains in air
+      default: 2
+    FW_AT_AXES:
+      description:
+        short: Tuning axes selection
+        long: |-
+          Defines which axes will be tuned during the auto-tuning sequence
+
+          Set bits in the following positions to enable:
+          0 : Roll
+          1 : Pitch
+          2 : Yaw
+      type: bitmask
+      bit:
+        0: roll
+        1: pitch
+        2: yaw
+      default: 3
+      min: 1
+      max: 7
+    FW_AT_MAN_AUX:
+      description:
+        short: Enable/disable auto tuning using a manual control AUX input
+        long: Defines which RC_MAP_AUXn parameter maps the manual control channel
+          used to enable/disable auto tuning.
+      type: enum
+      values:
+        0: Disable
+        1: Aux1
+        2: Aux2
+        3: Aux3
+        4: Aux4
+        5: Aux5
+        6: Aux6
+      default: 0
+      min: 0
+      max: 6
+    FW_AT_SYSID_F0:
+      description:
+        short: Start frequency of the injected signal
+        long: Can be set lower or higher than the end frequency
+      type: float
+      default: 1.0
+      min: 0.1
+      max: 30.0
+      decimal: 1
+      unit: Hz
+    FW_AT_SYSID_F1:
+      description:
+        short: End frequency of the injected signal
+        long: Can be set lower or higher than the start frequency
+      type: float
+      default: 10.0
+      min: 0.1
+      max: 30.0
+      decimal: 1
+      unit: Hz
+    FW_AT_SYSID_TIME:
+      description:
+        short: Maneuver time for each axis
+        long: Duration of the input signal sent on each axis during system identification
+      type: float
+      default: 10.0
+      min: 5
+      max: 120
+      decimal: 0
+      unit: s
+    FW_AT_SYSID_TYPE:
+      description:
+        short: Input signal type
+        long: Type of signal used during system identification to excite the system.
+      type: enum
+      values:
+        0: Step
+        1: Linear sine sweep
+        2: Logarithmic sine sweep
+      default: 1
