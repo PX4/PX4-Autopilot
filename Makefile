@@ -548,7 +548,8 @@ validate_module_configs:
 	-not -path "$(SRC_DIR)/src/modules/zenoh/zenoh-pico/*" \
 	-not -path "$(SRC_DIR)/src/lib/events/libevents/*" \
 	-not -path "$(SRC_DIR)/src/lib/cdrstream/*" \
-	-not -path "$(SRC_DIR)/src/lib/crypto/libtommath/*" -print0 | \
+	-not -path "$(SRC_DIR)/src/lib/crypto/libtommath/*" \
+	-not -path "$(SRC_DIR)/src/lib/tensorflow_lite_micro/*" -print0 | \
 	xargs -0 "$(SRC_DIR)"/Tools/validate_yaml.py --schema-file "$(SRC_DIR)"/validation/module_schema.yaml
 
 # Cleanup
