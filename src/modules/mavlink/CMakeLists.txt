@@ -120,6 +120,7 @@ px4_add_module(
 		mavlink_stream.cpp
 		mavlink_timesync.cpp
 		mavlink_ulog.cpp
+		mavlink_sign_control.cpp
 		MavlinkStatustextHandler.cpp
 		open_drone_id_translations.cpp
 		tune_publisher.cpp
@@ -143,10 +144,6 @@ px4_add_module(
 		version
 	UNITY_BUILD
 	)
-
-if(PX4_TESTING)
-	add_subdirectory(mavlink_tests)
-endif()
 
 px4_add_unit_gtest(SRC MavlinkStatustextHandlerTest.cpp
 	INCLUDES

@@ -20,7 +20,7 @@ For a Ubuntu companion, a minimal set might be:
 sudo apt install gstreamer1.0-plugins-bad gstreamer1.0-libav gstreamer1.0-gl -y
 ```
 
-For the full set you can mirror the QGC dependencies installed by [/tools/setup/install-dependencies-debian.sh](https://github.com/mavlink/qgroundcontrol/blob/master/tools/setup/install-dependencies-debian.sh).
+For the full set you can mirror the QGC dependencies installed by [/tools/setup/install_dependencies.py](https://github.com/mavlink/qgroundcontrol/blob/master/tools/setup/install_dependencies.py).
 At time of writing this is:
 
 ```sh

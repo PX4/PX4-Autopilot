@@ -85,8 +85,8 @@ PX4_GZ_MODEL_POSE=0,0,2.2 PX4_GZ_WORLD=moving_platform make px4_sitl gz_standard
 
 The plugin can be configured with the following environment variables:
 
- - `PX4_GZ_PLATFORM_VEL`: Platform speed (m/s).
- - `PX4_GZ_PLATFORM_HEADING_DEG`: Platform heading and direction of velocity (degrees). 0 = east, positive direction is counterclockwise.
+- `PX4_GZ_PLATFORM_VEL`: Platform speed (m/s).
+- `PX4_GZ_PLATFORM_HEADING_DEG`: Platform heading and direction of velocity (degrees). 0 = east, positive direction is counterclockwise.
 
 [PX4-gazebo-models/main/worlds/moving_platform.sdf](https://github.com/PX4/PX4-gazebo-models/blob/main/worlds/moving_platform.sdf)
 
@@ -104,4 +104,4 @@ The PX4 toolchain will automatically spawn a world that has the same name as the
 
 The model specific worlds are:
 
-- [Aruco world](#aruco): Default world with an [ArUco marker](https://docs.opencv.org/4.x/d5/dae/tutorial_aruco_detection.html) that can be used with with [x500_mono_cam_down](../sim_gazebo_gz/vehicles.md#x500-quadrotor-with-monocular-camera-down-facing) for testing [precision landing](../advanced_features/precland.md).
+- [Aruco world](#aruco): Default world with an [ArUco marker](https://docs.opencv.org/4.x/d5/dae/tutorial_aruco_detection.html) that can be used with [x500_mono_cam_down](../sim_gazebo_gz/vehicles.md#x500-quadrotor-with-monocular-camera-down-facing) for testing [precision landing](../advanced_features/precland.md).

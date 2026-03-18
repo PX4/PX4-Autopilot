@@ -55,7 +55,7 @@ Reducing the optical flow scale factor can improve the situation.
 It has a PAW3902 optical flow sensor, Broadcom AFBR-S50LV85D 30 meter distance sensor, and Invensense ICM-42688-P 6-Axis IMU.
 
 [ARK Flow MR](../dronecan/ark_flow_mr.md) is a [DroneCAN](../dronecan/index.md) optical flow sensor, [distance sensor](../sensor/rangefinders.md), and IMU, for mid-range applications.
-It has a PixArt PAA3905 optical flow sensor, Broadcom AFBR-S50LX85D  50 meter distance sensor, and Invensense IIM-42653 6-Axis IMU.
+It has a PixArt PAA3905 optical flow sensor, Broadcom AFBR-S50LX85D 50 meter distance sensor, and Invensense IIM-42653 6-Axis IMU.
 
 ### Holybro H-Flow
 
@@ -71,7 +71,7 @@ It is used in a number of products, including some from: Bitcraze, Tindie, Hex, 
 ### Other Cameras/Sensors
 
 It is also possible to use a board/quad that has an integrated camera.
-For this the [Optical Flow repo](https://github.com/PX4/OpticalFlow) can be used (see also [snap_cam](https://github.com/PX4/snap_cam)).
+For this the [Optical Flow repo](https://github.com/PX4/PX4-OpticalFlow) can be used (see also [snap_cam](https://github.com/PX4/snap_cam)).
 
 ## Range Finders
 

@@ -1,6 +1,6 @@
 # Raspberry Pi Companion with Pixhawk
 
-This topic describes how to setup a Raspberry Pi ("RPi") companion companion running [ROS 2](../ros2/user_guide.md) on Linux Ubuntu OS, connecting to a [Pixhawk](../flight_controller/autopilot_pixhawk_standard.md) flight controller using a serial connection between the Pixhawk `TELEM2` port and the RPi's TX/RX pins.
+This topic describes how to setup a Raspberry Pi ("RPi") companion running [ROS 2](../ros2/user_guide.md) on Linux Ubuntu OS, connecting to a [Pixhawk](../flight_controller/autopilot_pixhawk_standard.md) flight controller using a serial connection between the Pixhawk `TELEM2` port and the RPi's TX/RX pins.
 
 These instructions should be readily extensible to other RPi and flight controller configurations.
 
@@ -145,7 +145,6 @@ Enter the following commands (in sequence) a terminal to configure Ubuntu for RP
    ```
 
 3. Go to the **Interface Option** and then click **Serial Port**.
-
    - Select **No** to disable serial login shell.
    - Select **Yes** to enable the serial interface.
    - Click **Finish** and restart the RPi.
@@ -164,7 +163,6 @@ Enter the following commands (in sequence) a terminal to configure Ubuntu for RP
    ```
 
 6. Then save the file and restart the RPi.
-
    - In `nano` you can save the file using the following sequence of keyboard shortcuts: **ctrl+x**, **ctrl+y**, **Enter**.
 
 7. Check that the serial port is available.

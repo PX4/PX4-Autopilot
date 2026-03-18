@@ -13,7 +13,7 @@ The USA-built ARK FPV flight controller is based on the [ARKV6X](https://arkelec
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
 :::
 
-## Where To Buy
+## Where To Buy {#store}
 
 Order from [Ark Electronics](https://arkelectron.com/product/arkv6x/) (US)
 
@@ -76,7 +76,7 @@ See the documentation [Ark Electronics GitBook](https://arkelectron.gitbook.io/a
 
 ## 附加信息
 
-- Weight: 7.5 g g with MicroSD card
+- Weight: 7.5 g with MicroSD card
 - Dimensions: 3.6 x 3.6 x 0.8 cm
 - USA Built - NDAA compliant
 - Heater: 1W for warming sensors in extreme cold

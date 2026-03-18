@@ -68,7 +68,7 @@ void I2CLauncher::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -189,6 +189,11 @@ void I2CLauncher::scan_i2c_bus(int bus, int batt_index)
 	px4_i2cbus_uninitialize(i2c_dev);
 }
 
+int I2CLauncher::task_spawn(int argc, char *argv[])
+{
+	return -1;
+}
+
 int I2CLauncher::custom_command(int argc, char *argv[])
 {
 	return print_usage("unknown command");
@@ -215,6 +220,8 @@ Daemon that starts drivers based on found I2C devices.
 
 	return 0;
 }
+
+ModuleBase::Descriptor I2CLauncher::desc{task_spawn, custom_command, print_usage};
 
 extern "C" __EXPORT int i2c_launcher_main(int argc, char *argv[])
 {

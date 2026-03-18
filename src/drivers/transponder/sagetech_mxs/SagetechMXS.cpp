@@ -33,13 +33,15 @@
 
 #include "SagetechMXS.hpp"
 
+ModuleBase::Descriptor SagetechMXS::desc{task_spawn, custom_command, print_usage};
+
 /***************************************
  * Workqueue Functions
  * *************************************/
 
 extern "C" __EXPORT int sagetech_mxs_main(int argc, char *argv[])
 {
-	return SagetechMXS::main(argc, argv);
+	return ModuleBase::main(SagetechMXS::desc, argc, argv);
 }
 
 SagetechMXS::SagetechMXS(const char *port) :
@@ -90,8 +92,8 @@ int SagetechMXS::task_spawn(int argc, char *argv[])
 	}
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -99,8 +101,8 @@ int SagetechMXS::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 	return PX4_ERROR;
 }
 
@@ -137,7 +139,7 @@ int SagetechMXS::custom_command(int argc, char *argv[])
 {
 	const char *verb = argv[0];
 
-	if (!is_running()) {
+	if (!is_running(desc)) {
 		int ret = SagetechMXS::task_spawn(argc, argv);
 		return ret;
 
@@ -152,12 +154,12 @@ int SagetechMXS::custom_command(int argc, char *argv[])
 			return PX4_ERROR;
 		}
 
-		return get_instance()->handle_fid(fid);
+		return get_instance<SagetechMXS>(desc)->handle_fid(fid);
 	}
 
 	if (!strcmp(verb, "ident")) {
-		get_instance()->_adsb_ident.set(1);
-		return get_instance()->_adsb_ident.commit();
+		get_instance<SagetechMXS>(desc)->_adsb_ident.set(1);
+		return get_instance<SagetechMXS>(desc)->_adsb_ident.commit();
 	}
 
 	if (!strcmp(verb, "opmode")) {
@@ -168,20 +170,20 @@ int SagetechMXS::custom_command(int argc, char *argv[])
 			return PX4_ERROR;
 
 		} else if (!strcmp(opmode, "off") || !strcmp(opmode, "0")) {
-			get_instance()->_mxs_op_mode.set(0);
-			return get_instance()->_mxs_op_mode.commit();
+			get_instance<SagetechMXS>(desc)->_mxs_op_mode.set(0);
+			return get_instance<SagetechMXS>(desc)->_mxs_op_mode.commit();
 
 		} else if (!strcmp(opmode, "on") || !strcmp(opmode, "1")) {
-			get_instance()->_mxs_op_mode.set(1);
-			return get_instance()->_mxs_op_mode.commit();
+			get_instance<SagetechMXS>(desc)->_mxs_op_mode.set(1);
+			return get_instance<SagetechMXS>(desc)->_mxs_op_mode.commit();
 
 		} else if (!strcmp(opmode, "stby") || !strcmp(opmode, "2")) {
-			get_instance()->_mxs_op_mode.set(2);
-			return get_instance()->_mxs_op_mode.commit();
+			get_instance<SagetechMXS>(desc)->_mxs_op_mode.set(2);
+			return get_instance<SagetechMXS>(desc)->_mxs_op_mode.commit();
 
 		} else if (!strcmp(opmode, "alt") || !strcmp(opmode, "3")) {
-			get_instance()->_mxs_op_mode.set(3);
-			return get_instance()->_mxs_op_mode.commit();
+			get_instance<SagetechMXS>(desc)->_mxs_op_mode.set(3);
+			return get_instance<SagetechMXS>(desc)->_mxs_op_mode.commit();
 
 		} else {
 			print_usage("Invalid Op Mode");
@@ -200,13 +202,13 @@ int SagetechMXS::custom_command(int argc, char *argv[])
 
 		sqk = atoi(squawk);
 
-		if (!get_instance()->check_valid_squawk(sqk)) {
+		if (!get_instance<SagetechMXS>(desc)->check_valid_squawk(sqk)) {
 			print_usage("Invalid Squawk");
 			return PX4_ERROR;
 
 		} else {
-			get_instance()->_adsb_squawk.set(sqk);
-			return get_instance()->_adsb_squawk.commit();
+			get_instance<SagetechMXS>(desc)->_adsb_squawk.set(sqk);
+			return get_instance<SagetechMXS>(desc)->_adsb_squawk.commit();
 		}
 	}
 
@@ -274,7 +276,7 @@ void SagetechMXS::Run()
 	// Thread Stop
 	if (should_exit()) {
 		ScheduleClear();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 

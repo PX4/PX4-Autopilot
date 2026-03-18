@@ -205,6 +205,24 @@ PARAM_DEFINE_INT32(VOXL_ESC_T_EXPO, 35);
 PARAM_DEFINE_FLOAT(VOXL_ESC_T_COSP, 0.990);
 
 /**
+ * UART ESC Turtle Mode button index for MAVLink manual control
+ *
+ * Specifies which button in the MAVLink MANUAL_CONTROL buttons field
+ * activates turtle mode. Only used when data source is a MAVLink instance.
+ * When data source is RC, turtle mode activation uses the AUX channel
+ * selected by VOXL_ESC_MODE instead.
+ * Set to -1 to disable turtle mode activation via MAVLink buttons.
+ *
+ * @reboot_required true
+ *
+ * @group VOXL ESC
+ * @value -1 Disabled
+ * @min -1
+ * @max 15
+ */
+PARAM_DEFINE_INT32(VOXL_ESC_T_ON, -1);
+
+/**
  * UART ESC verbose logging
  *
  * @reboot_required true
@@ -276,3 +294,31 @@ PARAM_DEFINE_INT32(VOXL_ESC_T_OVER, 0);
  * @max 6
  */
 PARAM_DEFINE_INT32(VOXL_ESC_GPIO_CH, 0);
+
+/**
+ * UART ESC command type
+ *
+ * Selects between RPM or PWM commands
+ *
+ * @reboot_required true
+ *
+ * @group VOXL ESC
+ * @value 0 - RPM
+ * @value 1 - PWM
+ * @min 0
+ * @max 1
+ */
+PARAM_DEFINE_INT32(VOXL_ESC_CMD, 0);
+
+/**
+ * UART ESC Minimum motor power
+ *
+ * Minimum motor power for ESC when VOXL_ESC_CMD is set for PWM.
+ * Make sure to set this high enough so that the motors are always spinning
+ * while armed.
+ *
+ * @group VOXL ESC
+ * @min 0.0
+ * @max 1.0
+ */
+PARAM_DEFINE_FLOAT(VOXL_ESC_PWR_MIN, 0.05);

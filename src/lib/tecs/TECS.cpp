@@ -590,7 +590,9 @@ void TECSControl::_calcThrottleControlUpdate(float dt, const STERateLimit &limit
 			if (_throttle_setpoint >= param.throttle_max) {
 				throttle_integ_input = math::min(0.f, throttle_integ_input);
 
-			} else if (_throttle_setpoint <= param.throttle_min) {
+			}
+
+			if (_throttle_setpoint <= param.throttle_min) {
 				throttle_integ_input = math::max(0.f, throttle_integ_input);
 			}
 

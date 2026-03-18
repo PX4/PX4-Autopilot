@@ -41,6 +41,8 @@
 
 #include <px4_platform_common/sem.hpp>
 
+ModuleBase::Descriptor PWMSim::desc{task_spawn, custom_command, print_usage};
+
 PWMSim::PWMSim(bool hil_mode_enabled) :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default)
 {
@@ -58,8 +60,7 @@ PWMSim::~PWMSim()
 	perf_free(_interval_perf);
 }
 
-bool PWMSim::updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
-			   unsigned num_control_groups_updated)
+bool PWMSim::updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	// Only publish once we receive actuator_controls (important for lock-step to work correctly)
 	if (num_control_groups_updated > 0) {
@@ -69,7 +70,7 @@ bool PWMSim::updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs
 		const uint32_t reversible_outputs = _mixing_output.reversibleOutputs();
 
 		for (int i = 0; i < (int)num_outputs; i++) {
-			if (outputs[i] != PWM_SIM_DISARMED_MAGIC) {
+			if (fabsf(outputs[i] - PWM_SIM_DISARMED_MAGIC) > FLT_EPSILON) {
 
 				OutputFunction function = _mixing_output.outputFunction(i);
 				bool is_reversible = reversible_outputs & (1u << i);
@@ -103,7 +104,7 @@ void PWMSim::Run()
 		ScheduleClear();
 		_mixing_output.unregister();
 
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -146,8 +147,8 @@ int PWMSim::task_spawn(int argc, char *argv[])
 		return -1;
 	}
 
-	_object.store(instance);
-	_task_id = task_id_is_work_queue;
+	desc.object.store(instance);
+	desc.task_id = task_id_is_work_queue;
 	instance->ScheduleNow();
 	return 0;
 }
@@ -195,5 +196,5 @@ It is used in SITL and HITL.
 
 extern "C" __EXPORT int pwm_out_sim_main(int argc, char *argv[])
 {
-	return PWMSim::main(argc, argv);
+	return ModuleBase::main(PWMSim::desc, argc, argv);
 }

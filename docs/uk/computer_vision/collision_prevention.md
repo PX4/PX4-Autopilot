@@ -143,7 +143,7 @@ If you wish to move freely into directions without sensor coverage, this can be 
 
 ### Acceleration Constraining
 
-For this we split out the acceleration setpoint into two components, one parallel to the closest distance to the obstacle and one normal to it. Then we scale each of these components according the the figure below.
+For this we split out the acceleration setpoint into two components, one parallel to the closest distance to the obstacle and one normal to it. Then we scale each of these components according to the figure below.
 
 ![Scalefactor](../../assets/computer_vision/collision_prevention/scalefactor.png)
 
@@ -214,7 +214,6 @@ The Lua script works by extracting the `obstacle_distance_fused` data at each ti
 
 3. Open PlotJuggler and navigate to the **Tools > Reactive Script Editor** section.
    In the **Script Editor** tab, add following scripts in the appropriate sections:
-
    - **Global code, executed once:**
 
      ```lua

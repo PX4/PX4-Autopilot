@@ -16,7 +16,7 @@ Configure the following [parameters](../advanced_config/parameters.md) in QGroun
    Put the rover into stabilized mode and move the left stick of your controller up to drive forwards.
    Disarm the rover and from the flight log plot the `measured_yaw` and the `adjusted_yaw_setpoint` from the [RoverAttitudeStatus](../msg_docs/RoverAttitudeStatus.md) message over each other.
    Increase/Decrease the parameter until you are satisfied with the setpoint tracking.
-   If you observe a steady state error in the yaw setpoint increase the the integrator of the rate controller: [RO_YAW_RATE_I](../advanced_config/parameter_reference.md#RO_YAW_RATE_I) .
+   If you observe a steady state error in the yaw setpoint increase the integrator of the rate controller: [RO_YAW_RATE_I](../advanced_config/parameter_reference.md#RO_YAW_RATE_I) .
 
 :::
 
@@ -30,7 +30,7 @@ The attitude controller uses the following structure:
 
 ![Rover Attitude Controller](../../assets/config/rover/rover_attitude_controller.png)
 
-The rate and attitude controllers are cascaded, therefor we only require one integrator in the structure to eliminate steady state errors.
+The rate and attitude controllers are cascaded, therefore we only require one integrator in the structure to eliminate steady state errors.
 We placed the integrator in the rate controller since it can run without the attitude controller but not the other way around.
 
 ## Parameter Overview

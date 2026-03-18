@@ -42,6 +42,8 @@
 
 using namespace matrix;
 
+ModuleBase::Descriptor AirshipAttitudeControl::desc{task_spawn, custom_command, print_usage};
+
 AirshipAttitudeControl::AirshipAttitudeControl() :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
@@ -114,7 +116,7 @@ AirshipAttitudeControl::Run()
 {
 	if (should_exit()) {
 		_vehicle_angular_velocity_sub.unregisterCallback();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -146,8 +148,8 @@ int AirshipAttitudeControl::task_spawn(int argc, char *argv[])
 	AirshipAttitudeControl *instance = new AirshipAttitudeControl();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -158,8 +160,8 @@ int AirshipAttitudeControl::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -210,5 +212,5 @@ To reduce control latency, the module directly polls on the gyro topic published
  */
 extern "C" __EXPORT int airship_att_control_main(int argc, char *argv[])
 {
-	return AirshipAttitudeControl::main(argc, argv);
+	return ModuleBase::main(AirshipAttitudeControl::desc, argc, argv);
 }

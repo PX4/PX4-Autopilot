@@ -35,7 +35,7 @@
  * Vertical thrust required to hover
  *
  * Mapped to center throttle stick in Stabilized mode (see MPC_THR_CURVE).
- * Used for initialization of the hover thrust estimator (see MPC_USE_HTE).
+ * Used for initialization of the hover thrust estimator.
  * The estimated hover thrust is used as base for zero vertical acceleration in altitude control.
  * The hover thrust is important for land detection to work correctly.
  *
@@ -47,17 +47,6 @@
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_THR_HOVER, 0.5f);
-
-/**
- * Use hover thrust estimate for altitude control
- *
- * Disable to use the fixed parameter MPC_THR_HOVER instead of the hover thrust estimate in the position controller.
- * This parameter does not influence Stabilized mode throttle curve (see MPC_THR_CURVE).
- *
- * @boolean
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_INT32(MPC_USE_HTE, 1);
 
 /**
  * Horizontal thrust margin

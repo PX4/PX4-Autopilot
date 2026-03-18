@@ -54,9 +54,11 @@
 
 #define GHST_MAX_NUM_CHANNELS			(16)
 
-class GhstRc : public ModuleBase<GhstRc>, public ModuleParams, public px4::ScheduledWorkItem
+class GhstRc : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	GhstRc(const char *device);
 	~GhstRc() override;
 

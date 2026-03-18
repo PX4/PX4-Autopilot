@@ -361,6 +361,10 @@ The mode is set using the [EKF2_GPS_MODE](../advanced_config/parameter_reference
   EKF2 may reset if no other sources of position or velocity are available.
   If GNSS altitude OR horizontal position data drifts, the system disables fusion of both measurements simultaneously (even if one would still pass validation) and avoids performing resets.
 
+::: tip
+See also [Fault Detection](https://youtu.be/CMGQJNPiTJg?si=sFtdf4AQbcOH8-u8) in "Fuse, Reset, or Reject? Handling Various Data-sources in EKF2" _PX4 Developer Summit 2025_, Marco Hauswirth, Auterion AG
+:::
+
 ##### Detection Logic
 
 Horizontal Position:
@@ -590,7 +594,7 @@ When this has been done, the performance metadata files can be processed to prov
 - Attitude output data is found in the [VehicleAttitude](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleAttitude.msg) message.
 - Local position output data is found in the [VehicleLocalPosition](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleLocalPosition.msg) message.
 - Global \(WGS-84\) output data is found in the [VehicleGlobalPosition](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleGlobalPosition.msg) message.
-- Wind velocity output data is found in the [Wind.msg](https://github.com/PX4/PX4-Autopilot/blob/main/msg/Wind.msg) message.
+- Wind velocity output data is found in the [AirspeedWind.msg](https://github.com/PX4/PX4-Autopilot/blob/main/msg/AirspeedWind.msg) message.
 
 ### States
 
@@ -892,3 +896,4 @@ If no terrain estimate is available this parameter will have no effect and the s
 ## Further Information
 
 - [PX4 State Estimation Overview](https://youtu.be/HkYRJJoyBwQ), _PX4 Developer Summit 2019_, Dr. Paul Riseborough): Overview of the estimator, and major changes from 2018/19, and the expected improvements through 2019/20.
+- [Fuse, Reset, or Reject? Handling Various Data-sources in EKF2](https://www.youtube.com/watch?v=CMGQJNPiTJg) - _PX4 Developer Summit 2025_, Marco Hauswirth, Auterion AG

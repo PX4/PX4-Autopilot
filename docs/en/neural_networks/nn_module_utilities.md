@@ -41,7 +41,7 @@ This only works for some flight controllers, so you might have to use an RC cont
    This specifies what you want to create, you can read more about this in the [Control Interface](../ros2/px4_ros2_control_interface.md).
    In this case we register an arming check and a mode.
 2. Wait for a [RegisterExtComponentReply](../msg_docs/RegisterExtComponentReply.md).
-   This will give feedback on wether the mode registration was successful, and what the mode and arming check id is for the new mode.
+   This will give feedback on whether the mode registration was successful, and what the mode and arming check id is for the new mode.
 3. [Optional] With the mode id, publish a [VehicleControlMode](../msg_docs/VehicleControlMode.md) message on the `config_control_setpoints` topic.
    Here you can configure what other modules run in parallel.
    The example controller replaces everything, so it turns off allocation.
@@ -71,7 +71,7 @@ For these messages to be saved in your logs you need to include `debug` in the [
 
 The module has two includes for measuring the inference times.
 The first one is a driver that works on the actual flight controller units, but a second one, `chrono`, is loaded for SITL testing.
-Which timing library is included and used is based on wether PX4 is built with NUTTX or not.
+Which timing library is included and used is based on whether PX4 is built with NUTTX or not.
 
 ## Changing the setpoint
 

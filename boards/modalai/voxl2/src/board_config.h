@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 ModalAI, Inc. All rights reserved.
+ *   Copyright (c) 2022-2026 ModalAI, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,11 +39,23 @@
 
 #pragma once
 
-#define BOARD_HAS_NO_RESET
+#define CONFIG_BOARDCTL_RESET
 #define BOARD_HAS_NO_BOOTLOADER
 
-// Define this as empty since there are no I2C buses
+// Define this as empty since i2c clock init isn't required
 #define BOARD_I2C_BUS_CLOCK_INIT
+
+/*
+ * I2C buses
+ */
+#define CONFIG_I2C 1
+#define PX4_NUMBER_I2C_BUSES    1
+
+/*
+ * SPI buses
+ */
+#define CONFIG_SPI 1
+#define BOARD_SPI_BUS_MAX_BUS_ITEMS 1
 
 #include <system_config.h>
 #include <px4_platform_common/board_common.h>

@@ -33,7 +33,6 @@ Note that if landed, the next mission item after deployment should be another `W
 1. Create a normal mission with a `Takeoff` mission item, and additional waypoints for your required flight path.
 
 2. Додайте маршрутну точку на карті, де ви хочете випустити посилку.
-
    - Щоб скинути посилку під час польоту, установіть відповідну висоту для маршрутної точки (і переконайтеся, що маршрутна точка знаходиться в безпечному місці для скидання посилки).
 
    - If you'd like to land the vehicle to make the delivery you will need to change the `Waypoint` to a `Land` mission item.

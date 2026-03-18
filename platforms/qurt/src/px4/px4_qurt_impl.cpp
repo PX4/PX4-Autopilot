@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * Copyright (C) 2022 ModalAI, Inc. All rights reserved.
+ * Copyright (C) 2022-2026 ModalAI, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,10 +32,18 @@
  ****************************************************************************/
 #include <px4_platform_common/defines.h>
 
+extern "C" void px4muorb_request_reset(void);
+
 __BEGIN_DECLS
 
 long PX4_TICKS_PER_SEC = 1000L;
 void fsync(int fd) { return; }
 uint32_t crc32part(const uint8_t *src, size_t len, uint32_t crc32val) { return 1; }
+
+int boardctl(unsigned int cmd, uintptr_t arg)
+{
+	px4muorb_request_reset();
+	return 0;
+}
 
 __END_DECLS

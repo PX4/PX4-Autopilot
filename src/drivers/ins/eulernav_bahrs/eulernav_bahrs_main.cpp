@@ -43,6 +43,6 @@
 
 extern "C" __EXPORT int eulernav_bahrs_main(int argc, char *argv[])
 {
-	EulerNavDriver::main(argc, argv);
+	ModuleBase::main(EulerNavDriver::desc, argc, argv);
 	return OK;
 }

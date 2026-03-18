@@ -40,6 +40,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_combined.h>
 
+ModuleBase::Descriptor TemplateModule::desc{task_spawn, custom_command, print_usage};
 
 int TemplateModule::print_status()
 {
@@ -52,14 +53,14 @@ int TemplateModule::print_status()
 int TemplateModule::custom_command(int argc, char *argv[])
 {
 	/*
-	if (!is_running()) {
+	if (!is_running(desc)) {
 		print_usage("not running");
 		return 1;
 	}
 
 	// additional custom commands can be handled like this:
 	if (!strcmp(argv[0], "do-something")) {
-		get_instance()->do_something();
+		get_instance<TemplateModule>(desc)->do_something();
 		return 0;
 	}
 	 */
@@ -68,17 +69,24 @@ int TemplateModule::custom_command(int argc, char *argv[])
 }
 
 
+int TemplateModule::run_trampoline(int argc, char *argv[])
+{
+	return ModuleBase::run_trampoline_impl(desc, [](int ac, char *av[]) -> ModuleBase * {
+		return TemplateModule::instantiate(ac, av);
+	}, argc, argv);
+}
+
 int TemplateModule::task_spawn(int argc, char *argv[])
 {
-	_task_id = px4_task_spawn_cmd("module",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_DEFAULT,
-				      1024,
-				      (px4_main_t)&run_trampoline,
-				      (char *const *)argv);
+	desc.task_id = px4_task_spawn_cmd("module",
+					  SCHED_DEFAULT,
+					  SCHED_PRIORITY_DEFAULT,
+					  1024,
+					  (px4_main_t)&run_trampoline,
+					  (char *const *)argv);
 
-	if (_task_id < 0) {
-		_task_id = -1;
+	if (desc.task_id < 0) {
+		desc.task_id = -1;
 		return -errno;
 	}
 
@@ -221,5 +229,5 @@ $ module start -f -p 42
 
 int template_module_main(int argc, char *argv[])
 {
-	return TemplateModule::main(argc, argv);
+	return ModuleBase::main(TemplateModule::desc, argc, argv);
 }

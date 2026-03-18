@@ -47,7 +47,7 @@ It integrates Ublox M9N, IST8310, three-color LED lights and safety switches, an
 
 ## Where to Buy
 
-- [CUAV](https://cuav.en.alibaba.com/product/1600217379204-820872629/CUAV_NEO_3_M9N_GPS_Module_for_Pixhawk_Compass_gps_tracker_navigation_gps.html?spm=a2700.shop_oth.74.1.636e28725EvVHb)
+- [CUAV](https://www.alibaba.com/product-detail/CUAV_NEO_3_M9N_GPS_Module_for_Pixhawk_Compass_gps_tracker_navigation_gps_1600217379204.html)
 
 ## Wiring and Connections
 

@@ -72,6 +72,8 @@
 
 using matrix::Vector2f;
 
+ModuleBase::Descriptor SbgEcom::desc{task_spawn, custom_command, print_usage};
+
 SbgEcom::SbgEcom(const char *device_name, uint32_t baudrate, const char *config_file, const char *config_string):
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(device_name)),
@@ -952,7 +954,7 @@ void SbgEcom::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -1065,8 +1067,8 @@ int SbgEcom::task_spawn(int argc, char **argv)
 			return PX4_ERROR;
 		}
 
-		_task_id = task_id_is_work_queue;
-		_object.store(instance);
+		desc.task_id = task_id_is_work_queue;
+		desc.object.store(instance);
 		instance->ScheduleNow();
 		return PX4_OK;
 
@@ -1121,5 +1123,5 @@ int SbgEcom::print_status()
 
 extern "C" __EXPORT int sbgecom_main(int argc, char **argv)
 {
-	return SbgEcom::main(argc, argv);
+	return ModuleBase::main(SbgEcom::desc, argc, argv);
 }

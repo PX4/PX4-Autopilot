@@ -69,6 +69,8 @@ set(msg_files
 	DistanceSensorModeChangeRequest.msg
 	DronecanNodeStatus.msg
 	Ekf2Timestamps.msg
+	EscEepromRead.msg
+	EscEepromWrite.msg
 	EscReport.msg
 	EscStatus.msg
 	EstimatorAidSource1d.msg
@@ -248,6 +250,7 @@ set(msg_files
 	versioned/AirspeedValidated.msg
 	versioned/ArmingCheckReply.msg
 	versioned/ArmingCheckRequest.msg
+	versioned/AuxGlobalPosition.msg
 	versioned/BatteryStatus.msg
 	versioned/ConfigOverrides.msg
 	versioned/FixedWingLateralSetpoint.msg

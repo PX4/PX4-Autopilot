@@ -63,7 +63,6 @@ public:
 protected:
 
 	bool _get_landed_state() override;
-	void _set_hysteresis_factor(const int factor) override {};
 
 private:
 	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};

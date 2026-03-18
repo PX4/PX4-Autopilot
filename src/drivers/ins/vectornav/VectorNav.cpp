@@ -40,6 +40,8 @@
 
 using matrix::Vector2f;
 
+ModuleBase::Descriptor VectorNav::desc{task_spawn, custom_command, print_usage};
+
 VectorNav::VectorNav(const char *port) :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(port)),
@@ -682,7 +684,7 @@ void VectorNav::Run()
 	if (should_exit()) {
 		VnSensor_unregisterAsyncPacketReceivedHandler(&_vs);
 		VnSensor_disconnect(&_vs);
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 
 	} else if (!_initialized) {
@@ -797,8 +799,8 @@ int VectorNav::task_spawn(int argc, char *argv[])
 			return PX4_ERROR;
 		}
 
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		instance->ScheduleNow();
 
@@ -858,5 +860,5 @@ $ vectornav stop
 
 extern "C" __EXPORT int vectornav_main(int argc, char *argv[])
 {
-	return VectorNav::main(argc, argv);
+	return ModuleBase::main(VectorNav::desc, argc, argv);
 }

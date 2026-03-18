@@ -75,9 +75,7 @@
 #include "streams/ESTIMATOR_STATUS.hpp"
 #include "streams/EXTENDED_SYS_STATE.hpp"
 #include "streams/FLIGHT_INFORMATION.hpp"
-#if defined(MAVLINK_MSG_ID_GLOBAL_POSITION)
-#include "streams/GLOBAL_POSITION.hpp"
-#endif //MAVLINK_MSG_ID_GLOBAL_POSITION
+#include "streams/GLOBAL_POSITION_SENSOR.hpp"
 #include "streams/GLOBAL_POSITION_INT.hpp"
 #if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
 #include "streams/GNSS_INTEGRITY.hpp"
@@ -135,6 +133,10 @@
 #ifdef MAVLINK_MSG_ID_AVAILABLE_MODES // Only defined if development.xml is used
 #include "streams/AVAILABLE_MODES.hpp"
 #include "streams/CURRENT_MODE.hpp"
+#endif
+
+#ifdef MAVLINK_MSG_ID_ESC_EEPROM // Only defined if development.xml is used
+#include "streams/ESC_EEPROM.hpp"
 #endif
 
 #if !defined(CONSTRAINED_FLASH)
@@ -468,6 +470,9 @@ static const StreamListItem streams_list[] = {
 #if defined(ESC_STATUS_HPP)
 	create_stream_list_item<MavlinkStreamESCStatus>(),
 #endif // ESC_STATUS_HPP
+#if defined(ESC_EEPROM_HPP)
+	create_stream_list_item<MavlinkStreamEscEeprom>(),
+#endif // ESC_EEPROM_HPP
 #if defined(AUTOPILOT_VERSION_HPP)
 	create_stream_list_item<MavlinkStreamAutopilotVersion>(),
 #endif // AUTOPILOT_VERSION_HPP
@@ -519,9 +524,9 @@ static const StreamListItem streams_list[] = {
 #if defined(CURRENT_MODE_HPP)
 	create_stream_list_item<MavlinkStreamCurrentMode>(),
 #endif // CURRENT_MODE_HPP
-#if defined(GLOBAL_POSITION_HPP)
-	create_stream_list_item<MavlinkStreamGLobalPosition>(),
-#endif // GLOBAL_POSITION_HPP
+#if defined(GLOBAL_POSITION_SENSOR_HPP)
+	create_stream_list_item<MavlinkStreamGlobalPositionSensor>(),
+#endif // GLOBAL_POSITION_SENSOR_HPP
 };
 
 const char *get_stream_name(const uint16_t msg_id)

@@ -98,13 +98,56 @@ leddar_one <command> [arguments...]
    stop          Stop driver
 ```
 
+## lightware_grf_serial
+
+Source: [drivers/distance_sensor/lightware_grf_serial](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/lightware_grf_serial)
+
+### Description
+
+Serial bus driver for the Lightware GRF Laser rangefinder.
+
+### Configuration
+
+https://docs.px4.io/main/en/sensor/grf_lidar
+
+### Parameters
+
+https://docs.px4.io/main/en/advanced_config/parameter_reference#GRF_SENS_MODEL
+https://docs.px4.io/main/en/advanced_config/parameter_reference#GRF_RATE_CFG
+https://docs.px4.io/main/en/advanced_config/parameter_reference#SENS_EN_GRF_CFG
+
+### Examples
+
+Attempt to start driver on a specified serial device.
+
+```
+lightware_grf_serial start -d /dev/ttyS1
+```
+
+Stop driver
+
+```
+lightware_grf_serial stop
+```
+
+### Usage {#lightware_grf_serial_usage}
+
+```
+lightware_grf_serial <command> [arguments...]
+ Commands:
+   start         Start driver
+     -d <val>    Serial device
+
+   stop          Stop driver
+```
+
 ## lightware_laser_i2c
 
 Source: [drivers/distance_sensor/lightware_laser_i2c](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/lightware_laser_i2c)
 
 ### Description
 
-I2C bus driver for Lightware SFxx series LIDAR rangefinders: SF10/a, SF10/b, SF10/c, SF11/c, SF/LW20, SF30/d.
+I2C bus driver for Lightware LIDAR rangefinders: SF10/a, SF10/b, SF10/c, SF11/c, SF/LW20, SF/LW30/d, GRF250, GRF500.
 
 Setup/usage information: https://docs.px4.io/main/en/sensor/sfxx_lidar.html
 
@@ -122,8 +165,6 @@ lightware_laser_i2c <command> [arguments...]
      [-q]        quiet startup (no message if no device found)
      [-a <val>]  I2C address
                  default: 102
-     [-R <val>]  Sensor rotation - downward facing by default
-                 default: 25
 
    stop
 

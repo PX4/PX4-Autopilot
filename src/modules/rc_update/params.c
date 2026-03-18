@@ -1216,7 +1216,7 @@ PARAM_DEFINE_INT32(RC_MAP_OFFB_SW, 0);
  *
  * This channel immediately sets all outputs to their disarmed values, parachutes are NOT deployed.
  * Unlike termination this can be undone. Quickly flipping the switch back restores control.
- * System auto-disarms after COM_KILL_DISARM seconds, preflight checks and re-arming are then required.
+ * System auto-disarms after 5 seconds, preflight checks and re-arming are then required.
  *
  * @min 0
  * @max 18

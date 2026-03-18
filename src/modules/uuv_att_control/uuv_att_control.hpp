@@ -84,9 +84,11 @@ using uORB::SubscriptionData;
 
 using namespace time_literals;
 
-class UUVAttitudeControl: public ModuleBase<UUVAttitudeControl>, public ModuleParams, public px4::WorkItem
+class UUVAttitudeControl: public ModuleBase, public ModuleParams, public px4::WorkItem
 {
 public:
+	static Descriptor desc;
+
 	UUVAttitudeControl();
 	~UUVAttitudeControl();
 

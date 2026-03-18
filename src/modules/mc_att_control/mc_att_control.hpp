@@ -63,10 +63,12 @@
 
 using namespace time_literals;
 
-class MulticopterAttitudeControl : public ModuleBase<MulticopterAttitudeControl>, public ModuleParams,
+class MulticopterAttitudeControl : public ModuleBase, public ModuleParams,
 	public px4::WorkItem
 {
 public:
+	static Descriptor desc;
+
 	MulticopterAttitudeControl(bool vtol = false);
 	~MulticopterAttitudeControl() override;
 

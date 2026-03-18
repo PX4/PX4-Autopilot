@@ -1,16 +1,38 @@
+---
+pageClass: is-wide-page
+---
+
 # 载具磁力计器 (UORB 消息)
 
-[源文件](https://github.com/PX4/PX4-Autopilot/blob/main/msg/VehicleMagnetometer.msg)
+**TOPICS:** vehicle_magnetometer
+
+## Fields
+
+| 参数名                                    | 类型           | Unit [Frame] | Range/Enum | 描述                                                                                                                 |
+| -------------------------------------- | ------------ | ---------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------ |
+| timestamp                              | `uint64`     |                                                                  |            | time since system start (microseconds)                                                          |
+| timestamp_sample  | `uint64`     |                                                                  |            | the timestamp of the raw data (microseconds)                                                    |
+| device_id         | `uint32`     |                                                                  |            | unique device ID for the selected magnetometer                                                                     |
+| magnetometer_ga   | `float32[3]` |                                                                  |            | Magnetic field in the FRD body frame XYZ-axis in Gauss                                                             |
+| calibration_count | `uint8`      |                                                                  |            | Calibration changed counter. Monotonically increases whenever calibration changes. |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/VehicleMagnetometer.msg)
+
+:::details
+Click here to see original file
 
 ```c
+uint64 timestamp            # time since system start (microseconds)
 
-uint64 timestamp            # 原始数据的时间戳（微秒）
+uint64 timestamp_sample     # the timestamp of the raw data (microseconds)
 
-uint64 timestamp_sample     # 所选磁力计的唯一设备 ID
+uint32 device_id            # unique device ID for the selected magnetometer
 
-uint32 device_id            # 所选磁力计的唯一设备 ID
+float32[3] magnetometer_ga  # Magnetic field in the FRD body frame XYZ-axis in Gauss
 
-float32[3] magnetometer_ga  # 机体框架 FRD 下，XYZ 轴方向的磁场强度（单位：高斯）
-
-uint8 calibration_count     # 校准变化计数器。每当校准发生变化时，该计数器单调递增。
+uint8 calibration_count     # Calibration changed counter. Monotonically increases whenever calibration changes.
 ```
+
+:::

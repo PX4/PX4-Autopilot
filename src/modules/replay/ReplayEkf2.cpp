@@ -31,6 +31,7 @@
  *
  ****************************************************************************/
 
+#include <cstring>
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/posix.h>
@@ -53,6 +54,7 @@
 #include <uORB/topics/vehicle_optical_flow.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_odometry.h>
+#include <uORB/topics/aux_global_position.h>
 
 #include "ReplayEkf2.hpp"
 

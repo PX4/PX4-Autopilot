@@ -278,7 +278,7 @@ def escape(s, format=HTML):
 
           - `NONE`:  nothing is replaced
           - `HTML`:  replace &<>'" by &...;
-          - `LATEX`: replace \#$%&_{}~^
+          - `LATEX`: replace \\#$%&_{}~^
           - `MAIL_HEADER`: escape non-ASCII mail-header-contents
     :Returns:
         the escaped string in unicode

@@ -51,8 +51,8 @@
 # define debug(fmt, args...)		do { } while(0)
 #endif
 
-#define CODER_CHECK(_c)		do { if (_c->dead) { PX4_ERR("coder dead"); return -1; }} while(0)
-#define CODER_KILL(_c, _reason)	do { PX4_ERR("killed: %s", _reason); _c->dead = true; return -1; } while(0)
+#define CODER_CHECK(_c)		do { if ((_c)->dead) { PX4_ERR("coder dead"); return -1; }} while(0)
+#define CODER_KILL(_c, _reason)	do { PX4_ERR("killed: %s", _reason); (_c)->dead = true; return -1; } while(0)
 
 static int
 read_x(bson_decoder_t decoder, void *p, size_t s)

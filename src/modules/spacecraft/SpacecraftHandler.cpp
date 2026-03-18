@@ -44,6 +44,8 @@
 
 using namespace time_literals;
 
+ModuleBase::Descriptor SpacecraftHandler::desc{task_spawn, custom_command, print_usage};
+
 SpacecraftHandler::SpacecraftHandler() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
@@ -87,8 +89,8 @@ int SpacecraftHandler::task_spawn(int argc, char *argv[])
 	SpacecraftHandler *instance = new SpacecraftHandler();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -99,8 +101,8 @@ int SpacecraftHandler::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -147,5 +149,5 @@ extern "C" __EXPORT int spacecraft_main(int argc, char *argv[]);
 
 int spacecraft_main(int argc, char *argv[])
 {
-	return SpacecraftHandler::main(argc, argv);
+	return ModuleBase::main(SpacecraftHandler::desc, argc, argv);
 }

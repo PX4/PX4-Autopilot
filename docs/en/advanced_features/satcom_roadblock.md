@@ -9,7 +9,7 @@ Given good signal quality, users can expect a latency between 10 to 15 seconds.
 
 The following components are needed for the satellite communication link:
 
-- A [RockBlock 9603 Iridium Satellite Modem](https://www.iridium.com/products/ground-control-rockblock-9603/) module connected to a Pixhawk flashed with the PX4 Autopilot.
+- A [RockBlock 9603 Iridium Satellite Modem](https://www.iridium.com/products/rockblock-9603) module connected to a Pixhawk flashed with the PX4 Autopilot.
 - A message relay server running Ubuntu Linux.
 - A ground station computer running _QGroundControl_ on Ubuntu Linux
 
@@ -55,15 +55,15 @@ The default baud rate of the module is 19200. However, the PX4 _iridiumsbd_ driv
 
 1. Connect to the module with using a 19200/8-N-1 setting and check if the communication is working using the command: `AT`.
    The response should be: `OK`.
-1. Change the baud rate:
+2. Change the baud rate:
 
-   ```
+   ```sh
    AT+IPR=9
    ```
 
-1. Reconnect to the model now with a 115200/8-N-1 setting and save the configuration using:
+3. Reconnect to the model now with a 115200/8-N-1 setting and save the configuration using:
 
-   ```
+   ```sh
    AT&W0
    ```
 
@@ -77,7 +77,7 @@ There is no need to set the baud rate for the port, as this is configured by the
 ::: info
 If the configuration parameter is not available in _QGroundControl_ then you may need to [add the driver to the firmware](../peripherals/serial_configuration.md#parameter_not_in_firmware):
 
-```
+```txt
 drivers/telemetry/iridiumsbd
 ```
 
@@ -103,38 +103,38 @@ The relay server should be run on either Ubuntu 16.04 or 14.04 OS.
    - `5672` for the _RabbitMQ_ message broker (can be changed in the _rabbitmq_ settings)
    - `45679` for the HTTP POST interface (can be changed in the **relay.cfg** file)
 
-1. Install the required python modules:
+2. Install the required python modules:
 
    ```sh
    sudo pip install pika tornado future
    ```
 
-1. Install the `rabbitmq` message broker:
+3. Install the `rabbitmq` message broker:
 
    ```sh
    sudo apt install rabbitmq-server
    ```
 
-1. Configure the broker's credentials (change PWD to your preferred password):
+4. Configure the broker's credentials (change PWD to your preferred password):
 
    ```sh
    sudo rabbitmqctl add_user iridiumsbd PWD
    sudo rabbitmqctl set_permissions iridiumsbd ".*" ".*" ".*"
    ```
 
-1. Clone the [SatComInfrastructure](https://github.com/acfloria/SatComInfrastructure) repository:
+5. Clone the [SatComInfrastructure](https://github.com/acfloria/SatComInfrastructure) repository:
 
    ```sh
    git clone https://github.com/acfloria/SatComInfrastructure.git
    ```
 
-1. Go to the location of the _SatComInfrastructure_ repo and configure the broker's queues:
+6. Go to the location of the _SatComInfrastructure_ repo and configure the broker's queues:
 
    ```sh
    ./setup_rabbit.py localhost iridiumsbd PWD
    ```
 
-1. Verify the setup:
+7. Verify the setup:
 
    ```sh
    sudo rabbitmqctl list_queues
@@ -142,8 +142,8 @@ The relay server should be run on either Ubuntu 16.04 or 14.04 OS.
 
    This should give you a list of 4 queues: `MO`, `MO_LOG`, `MT`, `MT_LOG`
 
-1. Edit the `relay.cfg` configuration file to reflect your settings.
-1. Start the relay script in the detached mode:
+8. Edit the `relay.cfg` configuration file to reflect your settings.
+9. Start the relay script in the detached mode:
 
    ```sh
    screen -dm bash -c 'cd SatcomInfrastructure/; ./relay.py
@@ -216,15 +216,15 @@ If in the terminal where the `udp2rabbit.py` script is running within a couple o
 
    ![Connect the High Latency link](../../assets/satcom/linkconnect.png)
 
-1. Open a terminal on the ground station computer and change to the location of the _SatComInfrastructure_ repository.
+2. Open a terminal on the ground station computer and change to the location of the _SatComInfrastructure_ repository.
    Then start the **udp2rabbit.py** script:
 
    ```sh
    ./udp2rabbit.py
    ```
 
-1. Power up the vehicle.
-1. Wait until the first `HIGH_LATENCY2` message is received on QGC.
+3. Power up the vehicle.
+4. Wait until the first `HIGH_LATENCY2` message is received on QGC.
    This can be checked either using the _MAVLink Inspector_ widget or on the toolbar with the _LinkIndicator_.
    If more than one link is connected to the active vehicle the _LinkIndicator_ shows all of them by clicking on the name of the shown link:
 
@@ -232,7 +232,7 @@ If in the terminal where the `udp2rabbit.py` script is running within a couple o
 
    The link indicator always shows the name of the priority link.
 
-1. The satellite communication system is now ready to use.
+5. The satellite communication system is now ready to use.
    The priority link, which is the link over which commands are send, is determined the following ways:
    - If no link is commanded by the user a regular radio telemetry link is preferred over the high latency link.
    - The autopilot and QGC will fall back from the regular radio telemetry to the high latency link if the vehicle is armed and the radio telemetry link is lost (no MAVLink messages received for a certain time).

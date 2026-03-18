@@ -51,9 +51,11 @@
 # include <uORB/topics/esc_status.h>
 #endif // FAKE_IMU_FAKE_ESC_STATUS
 
-class FakeImu : public ModuleBase<FakeImu>, public ModuleParams, public px4::ScheduledWorkItem
+class FakeImu : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	FakeImu();
 	~FakeImu() override = default;
 

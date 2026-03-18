@@ -21,17 +21,17 @@ param set-default SENS_EN_INA226 1
 
 # TODO: Tune the following parameters
 param set-default SENS_EN_THERMAL 1
-param set-default SENS_IMU_TEMP 10.0
-#param set-default SENS_IMU_TEMP_FF 0.0
-#param set-default SENS_IMU_TEMP_I 0.025
-#param set-default SENS_IMU_TEMP_P 1.0
+param set-default HEATER1_TEMP 10.0
+#param set-default HEATER1_TEMP_FF 0.0
+#param set-default HEATER1_TEMP_I 0.025
+#param set-default HEATER1_TEMP_P 1.0
 
 param set-default UAVCAN_ESC_IFACE 1
 
 if ver hwtypecmp ARKPI6X000
 then
 	# TODO: Add the correct sensor ID
-	param set-default SENS_TEMP_ID 2490378
+	param set-default HEATER1_IMU_ID 2490378
 fi
 
 param set-default EKF2_MULTI_IMU 0

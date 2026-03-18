@@ -72,6 +72,7 @@
 #include "checks/vtolCheck.hpp"
 #include "checks/offboardCheck.hpp"
 #include "checks/openDroneIDCheck.hpp"
+#include "checks/trafficAvoidanceCheck.hpp"
 #include "checks/externalChecks.hpp"
 
 class HealthAndArmingChecks : public ModuleParams
@@ -107,6 +108,9 @@ public:
 	bool modePreventsArming(uint8_t nav_state) const { return _reporter.modePreventsArming(nav_state); }
 
 	const failsafe_flags_s &failsafeFlags() const { return _failsafe_flags; }
+
+	uint16_t getMotorFailureMask() const {return _esc_checks.getMotorFailureMask(); }
+	bool getEscArmStatus() const { return _esc_checks.getEscArmStatus(); }
 
 #ifndef CONSTRAINED_FLASH
 	ExternalChecks &externalChecks() { return _external_checks; }
@@ -157,6 +161,7 @@ private:
 	RcAndDataLinkChecks _rc_and_data_link_checks;
 	VtolChecks _vtol_checks;
 	OffboardChecks _offboard_checks;
+	TrafficAvoidanceChecks _traffic_avoidance_checks;
 #ifndef CONSTRAINED_FLASH
 	ExternalChecks _external_checks;
 #endif
@@ -197,5 +202,6 @@ private:
 		&_flight_time_checks,
 		&_rc_and_data_link_checks,
 		&_vtol_checks,
+		&_traffic_avoidance_checks,
 	};
 };

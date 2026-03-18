@@ -41,6 +41,8 @@
 
 using namespace time_literals;
 
+ModuleBase::Descriptor VTX::desc{task_spawn, custom_command, print_usage};
+
 VTX::VTX(const char *device) :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(device)),
@@ -99,7 +101,7 @@ void VTX::Run()
 	static constexpr auto _INTERVAL{50_ms};
 
 	if (should_exit()) {
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -338,7 +340,7 @@ void VTX::handle_uorb()
 int VTX::custom_command(int argc, char *argv[])
 {
 	if (!strcmp(argv[0], "start")) {
-		if (is_running()) {
+		if (is_running(desc)) {
 			return print_usage("already running");
 		}
 
@@ -349,7 +351,7 @@ int VTX::custom_command(int argc, char *argv[])
 		}
 	}
 
-	if (!is_running()) {
+	if (!is_running(desc)) {
 		return print_usage("not running");
 	}
 
@@ -393,8 +395,8 @@ int VTX::task_spawn(int argc, char *argv[])
 			return PX4_ERROR;
 		}
 
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		instance->ScheduleNow();
 
@@ -478,5 +480,5 @@ Supported protocols are:
 
 extern "C" __EXPORT int vtx_main(int argc, char *argv[])
 {
-	return VTX::main(argc, argv);
+	return ModuleBase::main(VTX::desc, argc, argv);
 }

@@ -39,6 +39,8 @@
 #include <px4_platform_common/events.h>
 #include <systemlib/mavlink_log.h>
 
+ModuleBase::Descriptor RPMCapture::desc{task_spawn, custom_command, print_usage};
+
 RPMCapture::RPMCapture() :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
 	ModuleParams(nullptr)
@@ -98,7 +100,7 @@ bool RPMCapture::init()
 void RPMCapture::Run()
 {
 	if (should_exit()) {
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -169,8 +171,8 @@ int RPMCapture::task_spawn(int argc, char *argv[])
 	RPMCapture *instance = new RPMCapture();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -181,8 +183,8 @@ int RPMCapture::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -207,14 +209,14 @@ int RPMCapture::print_usage(const char *reason)
 
 void RPMCapture::stop()
 {
-	exit_and_cleanup();
+	exit_and_cleanup(desc);
 }
 
 extern "C" __EXPORT int rpm_capture_main(int argc, char *argv[])
 {
-	if (argc >= 2 && !strcmp(argv[1], "stop") && RPMCapture::is_running()) {
+	if (argc >= 2 && !strcmp(argv[1], "stop") && RPMCapture::is_running(RPMCapture::desc)) {
 		RPMCapture::stop();
 	}
 
-	return RPMCapture::main(argc, argv);
+	return ModuleBase::main(RPMCapture::desc, argc, argv);
 }

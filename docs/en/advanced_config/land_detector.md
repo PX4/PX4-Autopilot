@@ -38,7 +38,7 @@ In order to detect landing, the multicopter first has to go through three differ
 If a condition cannot be reached because of missing sensors, then the condition is true by default.
 For instance, in [Acro mode](../flight_modes_mc/acro.md) and no sensor is active except for the gyro sensor, then the detection solely relies on thrust output and time.
 
-In order to proceed to the next state, each condition has to be true for a third of the configured total land detector trigger time [LNDMC_TRIG_TIME](../advanced_config/parameter_reference.md#LNDMC_TRIG_TIME).
+In order to proceed to the next state, each condition has to be true for 300ms.
 If the vehicle is equipped with a distance sensor, but the distance to ground is currently not measurable (usually because it is too large), the trigger time is increased by a factor of 3.
 
 If one condition fails, the land detector drops out of the current state immediately.

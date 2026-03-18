@@ -123,7 +123,7 @@ void RtlDirect::on_inactive()
 	_vehicle_status_sub.update();
 }
 
-void RtlDirect::setRtlPosition(PositionYawSetpoint rtl_position, loiter_point_s loiter_pos)
+void RtlDirect::setRtlPosition(const PositionYawSetpoint &rtl_position, const loiter_point_s &loiter_pos)
 {
 	parameters_update();
 
@@ -556,7 +556,7 @@ void RtlDirect::parameters_update()
 	}
 }
 
-loiter_point_s RtlDirect::sanitizeLandApproach(loiter_point_s land_approach) const
+loiter_point_s RtlDirect::sanitizeLandApproach(const loiter_point_s &land_approach) const
 {
 	loiter_point_s sanitized_land_approach{land_approach};
 

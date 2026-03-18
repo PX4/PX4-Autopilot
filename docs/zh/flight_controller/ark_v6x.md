@@ -16,7 +16,7 @@ The Pixhawk Autopilot Bus (PAB) form factor enables the ARKV6X to be used on any
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
 :::
 
-## Where To Buy
+## Where To Buy {#store}
 
 Order From [Ark Electronics](https://arkelectron.com/product/arkv6x/) (US)
 

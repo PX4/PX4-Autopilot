@@ -1,6 +1,6 @@
 # Community Supported & Experimental Autopilots
 
-:::tip
+::: tip
 For more information about PX4 project autopilot board support levels see: [px4.io/autopilots/](https://px4.io/autopilots/).
 :::
 

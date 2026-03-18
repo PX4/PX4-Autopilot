@@ -32,6 +32,8 @@
  ****************************************************************************/
 #include "payload_deliverer.h"
 
+ModuleBase::Descriptor PayloadDeliverer::desc{task_spawn, custom_command, print_usage};
+
 PayloadDeliverer::PayloadDeliverer()
 	: ModuleParams(nullptr),
 	  ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
@@ -93,7 +95,7 @@ void PayloadDeliverer::Run()
 	if (should_exit()) {
 		ScheduleClear();
 		_vehicle_command_sub.unregisterCallback();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -317,15 +319,15 @@ int PayloadDeliverer::custom_command(int argc, char *argv[])
 	if (argc >= 1) {
 		// Tests the basic payload open / close ability
 		if (strcmp(argv[0], "gripper_test") == 0) {
-			get_instance()->gripper_test();
+			get_instance<PayloadDeliverer>(desc)->gripper_test();
 			return 0;
 
 		} else if (strcmp(argv[0], "gripper_open") == 0) {
-			get_instance()->gripper_open();
+			get_instance<PayloadDeliverer>(desc)->gripper_open();
 			return 0;
 
 		} else if (strcmp(argv[0], "gripper_close") == 0) {
-			get_instance()->gripper_close();
+			get_instance<PayloadDeliverer>(desc)->gripper_close();
 			return 0;
 		}
 	}
@@ -362,8 +364,8 @@ int PayloadDeliverer::task_spawn(int argc, char *argv[])
 	PayloadDeliverer *instance = new PayloadDeliverer();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -375,13 +377,13 @@ int PayloadDeliverer::task_spawn(int argc, char *argv[])
 
 	// Cleanup instance in memory and mark this module as invalid to run
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
 
 int payload_deliverer_main(int argc, char *argv[])
 {
-	return PayloadDeliverer::main(argc, argv);
+	return ModuleBase::main(PayloadDeliverer::desc, argc, argv);
 }

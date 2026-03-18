@@ -43,6 +43,37 @@ add_library(drivers_board
 	spi.cpp
     )
 
+# Generate MAVLink common headers for SLPI drivers (dsp_hitl, mavlink_rc_in)
+# Replicates the generation from src/modules/mavlink/CMakeLists.txt so the
+# SLPI build is self-contained and does not depend on voxl2-default.
+set(MAVLINK_GIT_DIR "${PX4_SOURCE_DIR}/src/modules/mavlink/mavlink")
+set(MAVLINK_LIBRARY_DIR "${CMAKE_BINARY_DIR}/mavlink")
+
+px4_add_git_submodule(TARGET git_mavlink_v2 PATH "${MAVLINK_GIT_DIR}")
+
+add_custom_command(
+	OUTPUT ${MAVLINK_LIBRARY_DIR}/common/common.h
+	COMMAND ${PYTHON_EXECUTABLE} ${MAVLINK_GIT_DIR}/pymavlink/tools/mavgen.py
+		--lang C --wire-protocol 2.0
+		--output ${MAVLINK_LIBRARY_DIR}
+		${MAVLINK_GIT_DIR}/message_definitions/v1.0/common.xml
+		> ${CMAKE_BINARY_DIR}/mavgen_common.log
+	DEPENDS
+		git_mavlink_v2
+		${MAVLINK_GIT_DIR}/pymavlink/tools/mavgen.py
+		${MAVLINK_GIT_DIR}/message_definitions/v1.0/common.xml
+	COMMENT "Generating MAVLink common headers for SLPI"
+)
+add_custom_target(mavlink_common_generate DEPENDS ${MAVLINK_LIBRARY_DIR}/common/common.h)
+
+add_library(mavlink_common_headers INTERFACE)
+add_dependencies(mavlink_common_headers mavlink_common_generate)
+target_compile_options(mavlink_common_headers INTERFACE -Wno-address-of-packed-member -Wno-cast-align)
+target_include_directories(mavlink_common_headers INTERFACE
+	${MAVLINK_LIBRARY_DIR}
+	${MAVLINK_LIBRARY_DIR}/common
+)
+
 # Add custom drivers for SLPI
 add_subdirectory(${PX4_BOARD_DIR}/src/drivers/rc_controller)
 add_subdirectory(${PX4_BOARD_DIR}/src/drivers/mavlink_rc_in)

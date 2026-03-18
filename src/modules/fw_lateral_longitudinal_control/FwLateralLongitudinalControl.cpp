@@ -43,6 +43,8 @@ using matrix::Eulerf;
 using matrix::Quatf;
 using matrix::Vector2f;
 
+ModuleBase::Descriptor FwLateralLongitudinalControl::desc{task_spawn, custom_command, print_usage};
+
 // [m/s] maximum reference altitude rate threshhold
 static constexpr float MAX_ALT_REF_RATE_FOR_LEVEL_FLIGHT = 0.1f;
 // [us] time after which the wind estimate is disabled if no longer updating
@@ -116,13 +118,15 @@ FwLateralLongitudinalControl::parameters_update()
 
 	_tecs_alt_time_const_slew_rate.setSlewRate(TECS_ALT_TIME_CONST_SLEW_RATE);
 	_tecs_alt_time_const_slew_rate.setForcedValue(_param_fw_t_h_error_tc.get() * _param_fw_thrtc_sc.get());
+
+	_airspeed_direction_control.setPGainFromPeriodAndDamping(_param_npfg_damping.get(), _param_npfg_period.get());
 }
 
 void FwLateralLongitudinalControl::Run()
 {
 	if (should_exit()) {
 		_local_pos_sub.unregisterCallback();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -296,7 +300,7 @@ void FwLateralLongitudinalControl::Run()
 			// additional is_finite checks that should not be necessary, but are kept for safety
 			float roll_body = PX4_ISFINITE(roll_sp) ? roll_sp : 0.0f;
 			float pitch_body = PX4_ISFINITE(pitch_sp) ? pitch_sp : 0.0f;
-			const float yaw_body = _yaw; // yaw is not controlled in fixed wing, need to set it though for quaternion generation
+			float yaw_body = _yaw;
 			const float thrust_body_x = PX4_ISFINITE(throttle_sp) ? throttle_sp : 0.0f;
 
 			if (_control_mode_sub.get().flag_control_manual_enabled) {
@@ -490,8 +494,8 @@ int FwLateralLongitudinalControl::task_spawn(int argc, char *argv[])
 	FwLateralLongitudinalControl *instance = new FwLateralLongitudinalControl(is_vtol);
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -502,8 +506,8 @@ int FwLateralLongitudinalControl::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -863,5 +867,5 @@ float FwLateralLongitudinalControl::getLoadFactor() const
 
 extern "C" __EXPORT int fw_lat_lon_control_main(int argc, char *argv[])
 {
-	return FwLateralLongitudinalControl::main(argc, argv);
+	return ModuleBase::main(FwLateralLongitudinalControl::desc, argc, argv);
 }

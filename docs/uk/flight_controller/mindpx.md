@@ -19,7 +19,7 @@ These flight controllers are [manufacturer supported](../flight_controller/autop
 The main hardware documentation is [here](http://mindpx.net/assets/accessories/Specification9.18_3_pdf.pdf).
 :::
 
-MindPX - це нова система автопілотів, що створена з Pixhawk<sup>&reg;</sup>, переглянута в схематиці та структурі, і вони були ще більше розширені новими можливостями, щоб безпілотний пристрій був "розумнішим" та простшим у користуванні.
+MindPX is a new generation autopilot system branched from Pixhawk<sup>&reg;</sup>, has been revised in schematic and structure, and has been further enhanced with new features to make unmanned vehicle more smart and more friendly to use.
 
 MindPX збільшує загальну кількість каналів виведення PWM до 16 (8 основних виводів + 8 допоміжних виводів).
 Це означає, що MindPX може підтримувати більш складні конфігурації VTOL і кращий контроль.
@@ -86,7 +86,7 @@ It is pre-built and automatically installed by _QGroundControl_ when appropriate
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make airmind_mindpx-v2_default
 ```
 
@@ -96,7 +96,7 @@ MindPX має USB-TO-UART Bridge IC на платі.
 Кабель micro-USB до USB type A використовується для підключення.
 Підключіть micro-USB кінець до порту 'OBC' MindPX та USB type A кінець до комп'ютера-компаньйона.
 
-Максимальна швидкість BAUD така ж, як у родини px4, яка становить до 921600.
+And the max BAUD rate is the same as for the PX4 family, which is up to 921600.
 
 ## Посібник користувача
 
@@ -104,7 +104,7 @@ MindPX має USB-TO-UART Bridge IC на платі.
 The user guide is [here](http://mindpx.net/assets/accessories/UserGuide9.18_2_pdf.pdf).
 :::
 
-## Де купити
+## Where to Buy {#store}
 
 MindRacer is available at [AirMind Store](https://airmind.mindpx.net/catalog).
 Ви також можете знайти MindRacer на Amazon<sup>&reg;</sup> або на eBay<sup>&reg;</sup>.

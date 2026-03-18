@@ -8,7 +8,7 @@ It should be used only for new test cases that _require_ ROS 1.
 [MAVSDK Integration Testing](../test_and_ci/integration_testing_mavsdk.md) is preferred when writing new tests.
 :::
 
-:::note
+::: info
 All PX4 integration tests are executed automatically by our [Continuous Integration](../test_and_ci/continous_integration.md) system.
 :::
 
