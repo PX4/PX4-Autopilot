@@ -111,7 +111,7 @@ parameters:
       decimal: 4
     LPE_BAR_Z:
       description:
-        short: Barometric presssure altitude z standard deviation
+        short: Barometric pressure altitude z standard deviation
       type: float
       default: 3.0
       unit: m
@@ -120,7 +120,7 @@ parameters:
       decimal: 2
     LPE_GPS_DELAY:
       description:
-        short: GPS delay compensaton
+        short: GPS delay compensation
       type: float
       default: 0.29
       unit: s
@@ -269,7 +269,7 @@ parameters:
         long: |-
           Terrain maximum percent grade, hilly/outdoor (100 = 45 deg), flat/Indoor (0 = 0 deg)
 
-          Used to calculate increased terrain random walk nosie due to movement.
+          Used to calculate increased terrain random walk noise due to movement.
       type: float
       default: 1.0
       unit: '%'
