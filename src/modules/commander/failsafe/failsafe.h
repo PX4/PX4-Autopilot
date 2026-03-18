@@ -202,7 +202,6 @@ private:
 					(ParamInt<px4::params::COM_RC_IN_MODE>) _param_com_rc_in_mode,
 					(ParamInt<px4::params::GF_ACTION>)  	_param_gf_action,
 					(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time,
-					(ParamFloat<px4::params::COM_LKDOWN_TKO>) _param_com_lkdown_tko,
 					(ParamInt<px4::params::CBRK_FLIGHTTERM>) _param_cbrk_flightterm,
 					(ParamInt<px4::params::COM_ACT_FAIL_ACT>) _param_com_actuator_failure_act,
 					(ParamInt<px4::params::COM_LOW_BAT_ACT>) _param_com_low_bat_act,

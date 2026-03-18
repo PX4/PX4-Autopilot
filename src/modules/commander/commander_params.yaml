@@ -550,20 +550,6 @@ parameters:
       default: 1
       min: 0
       max: 4
-    COM_LKDOWN_TKO:
-      description:
-        short: Timeout for detecting a failure after takeoff
-        long: |-
-          A non-zero, positive value specifies the timeframe in seconds within failure detector is allowed to disarm the vehicle
-          if attitude exceeds the limits defined in FD_FAIL_P and FD_FAIL_R.
-          The check is not executed for flight modes that do support acrobatic maneuvers, e.g: Acro (MC/FW) and Manual (FW).
-          A zero or negative value means that the check is disabled.
-      type: float
-      default: 3.0
-      unit: s
-      min: -1.0
-      max: 5.0
-      decimal: 3
     COM_ARM_HFLT_CHK:
       description:
         short: Enable FMU SD card hardfault / watchdog detection check
