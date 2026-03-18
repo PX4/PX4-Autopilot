@@ -111,6 +111,7 @@ px4_add_module(
 		${CMAKE_CURRENT_BINARY_DIR}/default_topics.c
 		MODULE_CONFIG
 			module.yaml
+			zenoh_params.yaml
 		DEPENDS
 			cdr
 			uorb_msgs
