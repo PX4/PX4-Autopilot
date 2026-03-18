@@ -213,7 +213,7 @@ parameters:
       description:
         short: Differential thrust in forwards flight
         long: |-
-          Enable differential thrust seperately for roll, pitch, yaw in forward (fixed-wing) mode.
+          Enable differential thrust separately for roll, pitch, yaw in forward (fixed-wing) mode.
           The effectiveness of differential thrust around the corresponding axis can be
           tuned by setting VT_FW_DIFTHR_S_R / VT_FW_DIFTHR_S_P / VT_FW_DIFTHR_S_Y.
       type: bitmask
