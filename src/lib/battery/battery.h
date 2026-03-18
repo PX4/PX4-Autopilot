@@ -87,7 +87,14 @@ public:
 	float full_cell_voltage() { return _params.v_charged; }
 
 	void setPriority(const uint8_t priority) { _priority = priority; }
-	void setConnected(const bool connected) { _connected = connected; }
+	void setConnected(const bool connected)
+	{
+		_connected = connected;
+
+		if (!connected && _params.source == battery_status_s::SOURCE_POWER_MODULE) {
+			PX4_INFO("Battery disconnected (driver)");
+		}
+	}
 	void setStateOfCharge(const float soc) { _state_of_charge = math::constrain(soc, 0.f, 1.f); _external_state_of_charge = true; }
 	void setCapacityMah(const float capacity) { _capacity_mah = math::max(capacity, 0.f); }
 	void updateVoltage(const float voltage_v);

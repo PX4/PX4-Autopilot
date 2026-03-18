@@ -127,6 +127,10 @@ void Battery::updateBatteryStatus(const hrt_abstime &timestamp)
 	// Require minimum voltage otherwise override connected status
 	if (_voltage_v < LITHIUM_BATTERY_RECOGNITION_VOLTAGE) {
 		_connected = false;
+
+		if (_params.source == battery_status_s::SOURCE_POWER_MODULE) {
+			PX4_INFO("Battery disconnected (low voltage)");
+		}
 	}
 
 	if (!_connected || (_last_unconnected_timestamp == 0)) {
