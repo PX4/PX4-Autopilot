@@ -73,11 +73,13 @@ public:
 private:
 	void Run() override;
 
+	static constexpr int GPS_MAX_RECEIVERS = 2;
+
 	int _channel{-1};
 	uint32_t _pps_capture_gpio{0};
 
 	uORB::Publication<pps_capture_s> _pps_capture_pub{ORB_ID(pps_capture)};
-	uORB::SubscriptionMultiArray<sensor_gps_s, 2> _sensor_gps_subs{ORB_ID::sensor_gps};
+	uORB::SubscriptionMultiArray<sensor_gps_s, GPS_MAX_RECEIVERS> _sensor_gps_subs{ORB_ID::sensor_gps};
 	orb_advert_t _mavlink_log_pub{nullptr};
 
 	hrt_abstime	_hrt_timestamp{0};

@@ -54,5 +54,6 @@ PARAM_DEFINE_INT32(PPS_CAP_ENABLE, 0);
  *
  * @group GPS
  * @min 0
+ * @reboot_required true
  */
 PARAM_DEFINE_INT32(PPS_CAP_GPS_ID, 0);
