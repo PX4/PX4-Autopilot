@@ -74,6 +74,9 @@ px4_add_module(
 	MODULE_CONFIG
 		module.yaml
 		vehicle_gps_position/module.yaml
+		sensor_params.yaml
+		sensor_params_flow.yaml
+		sensor_params_mag.yaml
 	DEPENDS
 		conversion
 		data_validator
