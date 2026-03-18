@@ -212,10 +212,9 @@ parameters:
         7: Aux global position 3
         8: Barometer
         9: Range finder
-        10: Drag
-        11: Magnetometer
-        12: Airspeed
-        13: Ranging beacon
-      default: 16383
+        10: Magnetometer
+        11: Airspeed
+        12: Ranging beacon
+      default: 8191
       min: 0
-      max: 16383
+      max: 8191

@@ -407,6 +407,22 @@ private:
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Publication<vehicle_command_ack_s> _vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
+	enum SensEnBit : uint8_t {
+		SENS_EN_GPS0   = 0,
+		SENS_EN_GPS1   = 1,
+		SENS_EN_OF     = 2,
+		SENS_EN_EV     = 3,
+		SENS_EN_AGP0   = 4,
+		SENS_EN_AGP1   = 5,
+		SENS_EN_AGP2   = 6,
+		SENS_EN_AGP3   = 7,
+		SENS_EN_BARO   = 8,
+		SENS_EN_RNG    = 9,
+		SENS_EN_MAG    = 10,
+		SENS_EN_ASPD   = 11,
+		SENS_EN_RNGBCN = 12,
+	};
+
 	struct FusionEntry {
 		FusionSensor *sensor;
 		param_t param;
@@ -416,7 +432,7 @@ private:
 		uint8_t disabled_val;
 	};
 
-	static constexpr uint8_t MAX_SENSOR_TABLE = 10 + (MAX_AGP_INSTANCES - 1); // 13
+	static constexpr uint8_t MAX_SENSOR_TABLE = 9 + (MAX_AGP_INSTANCES - 1); // 12
 	FusionEntry _sensor_table[MAX_SENSOR_TABLE] {};
 	uint8_t _num_sensor_table{0};
 
@@ -577,7 +593,6 @@ private:
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_BAROMETER)
-		(ParamExtInt<px4::params::EKF2_BARO_CTRL>) _param_ekf2_baro_ctrl,///< barometer control selection
 		(ParamExtFloat<px4::params::EKF2_BARO_DELAY>) _param_ekf2_baro_delay,
 		(ParamExtFloat<px4::params::EKF2_BARO_NOISE>) _param_ekf2_baro_noise,
 		(ParamExtFloat<px4::params::EKF2_BARO_GATE>) _param_ekf2_baro_gate,
@@ -698,8 +713,6 @@ private:
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 		// optical flow fusion
-		(ParamExtInt<px4::params::EKF2_OF_CTRL>)
-		_param_ekf2_of_ctrl, ///< optical flow fusion selection
 		(ParamExtInt<px4::params::EKF2_OF_GYR_SRC>)
 		_param_ekf2_of_gyr_src,
 		(ParamExtFloat<px4::params::EKF2_OF_DELAY>)

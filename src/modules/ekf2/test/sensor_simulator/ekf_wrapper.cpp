@@ -10,15 +10,13 @@ EkfWrapper::EkfWrapper(std::shared_ptr<Ekf> ekf):
 	_fc->gps.enabled = true;
 	_fc->gps.intended = static_cast<uint8_t>(_ekf_params->ekf2_gps_ctrl);
 	_fc->of.enabled = true;
-	_fc->of.intended = static_cast<uint8_t>(_ekf_params->ekf2_of_ctrl);
+	_fc->of.intended = 0;
 	_fc->ev.enabled = true;
 	_fc->ev.intended = static_cast<uint8_t>(_ekf_params->ekf2_ev_ctrl);
 	_fc->baro.enabled = true;
-	_fc->baro.intended = static_cast<uint8_t>(_ekf_params->ekf2_baro_ctrl);
+	_fc->baro.intended = 1;
 	_fc->rng.enabled = true;
 	_fc->rng.intended = static_cast<uint8_t>(_ekf_params->ekf2_rng_ctrl);
-	_fc->drag.enabled = true;
-	_fc->drag.intended = static_cast<uint8_t>(_ekf_params->ekf2_drag_ctrl);
 	_fc->mag.enabled = true;
 	_fc->mag.intended = static_cast<uint8_t>(_ekf_params->ekf2_mag_type);
 	_fc->aspd.enabled = true;
@@ -55,14 +53,12 @@ void EkfWrapper::setBaroHeightRef()
 
 void EkfWrapper::enableBaroHeightFusion()
 {
-	_ekf_params->ekf2_baro_ctrl = 1;
 	_fc->baro.enabled = true;
 	_fc->baro.intended = 1;
 }
 
 void EkfWrapper::disableBaroHeightFusion()
 {
-	_ekf_params->ekf2_baro_ctrl = 0;
 	_fc->baro.intended = 0;
 }
 
@@ -198,14 +194,12 @@ bool EkfWrapper::isIntendingGpsHeadingFusion() const
 
 void EkfWrapper::enableFlowFusion()
 {
-	_ekf_params->ekf2_of_ctrl = 1;
 	_fc->of.enabled = true;
 	_fc->of.intended = 1;
 }
 
 void EkfWrapper::disableFlowFusion()
 {
-	_ekf_params->ekf2_of_ctrl = 0;
 	_fc->of.intended = 0;
 }
 
@@ -353,14 +347,11 @@ int EkfWrapper::getQuaternionResetCounter() const
 void EkfWrapper::enableDragFusion()
 {
 	_ekf_params->ekf2_drag_ctrl = 1;
-	_fc->drag.enabled = true;
-	_fc->drag.intended = 1;
 }
 
 void EkfWrapper::disableDragFusion()
 {
 	_ekf_params->ekf2_drag_ctrl = 0;
-	_fc->drag.intended = 0;
 }
 
 void EkfWrapper::setDragFusionParameters(const float &bcoef_x, const float &bcoef_y, const float &mcoef)

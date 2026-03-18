@@ -7,7 +7,6 @@ uint8 ev_intended
 uint8[4] agp_intended
 uint8 baro_intended
 uint8 rng_intended
-uint8 drag_intended
 uint8 mag_intended
 uint8 aspd_intended
 uint8 rngbcn_intended
@@ -19,7 +18,6 @@ bool ev_active
 uint8 agp_active
 bool baro_active
 bool rng_active
-bool drag_active
 bool mag_active
 bool aspd_active
 bool rngbcn_active

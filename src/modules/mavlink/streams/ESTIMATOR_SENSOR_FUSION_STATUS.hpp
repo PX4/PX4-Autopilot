@@ -40,7 +40,7 @@
 /**
  * Array index = ESTIMATOR_SENSOR_FUSION_SOURCE - 1:
  *   [0] GPS    [1] OF     [2] EV    [3] AGP
- *   [4] BARO   [5] RNG    [6] DRAG  [7] MAG   [8] ASPD  [9] RNGBCN
+ *   [4] BARO   [5] RNG    [6] MAG   [7] ASPD  [8] RNGBCN
  *
  * Each element is a per-instance bitmask (bit 0 = instance 0, etc.).
  */
@@ -63,16 +63,15 @@ public:
 
 private:
 	// Array indices matching ESTIMATOR_SENSOR_FUSION_SOURCE - 1
-	static constexpr uint8_t IDX_GPS  = 0;
-	static constexpr uint8_t IDX_OF   = 1;
-	static constexpr uint8_t IDX_EV   = 2;
-	static constexpr uint8_t IDX_AGP  = 3;
-	static constexpr uint8_t IDX_BARO = 4;
-	static constexpr uint8_t IDX_RNG  = 5;
-	static constexpr uint8_t IDX_DRAG = 6;
-	static constexpr uint8_t IDX_MAG  = 7;
-	static constexpr uint8_t IDX_ASPD   = 8;
-	static constexpr uint8_t IDX_RNGBCN = 9;
+	static constexpr uint8_t IDX_GPS    = 0;
+	static constexpr uint8_t IDX_OF     = 1;
+	static constexpr uint8_t IDX_EV     = 2;
+	static constexpr uint8_t IDX_AGP    = 3;
+	static constexpr uint8_t IDX_BARO   = 4;
+	static constexpr uint8_t IDX_RNG    = 5;
+	static constexpr uint8_t IDX_MAG    = 6;
+	static constexpr uint8_t IDX_ASPD   = 7;
+	static constexpr uint8_t IDX_RNGBCN = 8;
 
 	explicit MavlinkStreamEstimatorSensorFusionStatus(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
@@ -85,7 +84,7 @@ private:
 		if (_estimator_fusion_control_sub.update(&fc)) {
 			mavlink_estimator_sensor_fusion_status_t msg{};
 
-			for (int i = 0; i < 10; i++) { msg.test_ratio[i] = NAN; }
+			for (int i = 0; i < 9; i++) { msg.test_ratio[i] = NAN; }
 
 			// --- intended: effective CTRL values with runtime overrides ---
 			for (int i = 0; i < 2; i++) {
@@ -99,8 +98,6 @@ private:
 			if (fc.baro_intended != 0) { msg.intended[IDX_BARO] = 1; }
 
 			if (fc.rng_intended  != 0) { msg.intended[IDX_RNG]  = 1; }
-
-			if (fc.drag_intended != 0) { msg.intended[IDX_DRAG] = 1; }
 
 			if (fc.mag_intended  != 0) { msg.intended[IDX_MAG]  = 1; }
 
@@ -119,7 +116,6 @@ private:
 			msg.active[IDX_AGP]  = fc.agp_active;
 			msg.active[IDX_BARO] = fc.baro_active;
 			msg.active[IDX_RNG]  = fc.rng_active;
-			msg.active[IDX_DRAG] = fc.drag_active;
 			msg.active[IDX_MAG]  = fc.mag_active;
 			msg.active[IDX_ASPD]   = fc.aspd_active;
 			msg.active[IDX_RNGBCN] = fc.rngbcn_active;

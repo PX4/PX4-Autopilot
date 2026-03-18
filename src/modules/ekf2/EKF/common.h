@@ -299,7 +299,6 @@ struct FusionControl {
 	FusionSensor agp[MAX_AGP_INSTANCES];
 	FusionSensor baro;
 	FusionSensor rng;
-	FusionSensor drag;
 	FusionSensor mag{false, 5};  // MagFuseType::NONE
 	FusionSensor aspd;
 	FusionSensor rngbcn;
@@ -339,8 +338,7 @@ struct parameters {
 	float ekf2_angerr_init{0.1f};           ///< 1-sigma tilt error after initial alignment using gravity vector (rad)
 
 #if defined(CONFIG_EKF2_BAROMETER)
-	int32_t ekf2_baro_ctrl {1};
-	float ekf2_baro_delay{0.0f};            ///< barometer height measurement delay relative to the IMU (mSec)
+	float ekf2_baro_delay {0.0f};           ///< barometer height measurement delay relative to the IMU (mSec)
 	float ekf2_baro_noise{2.0f};            ///< observation noise for barometric height fusion (m)
 	float baro_bias_nsd{0.13f};             ///< process noise for barometric height bias estimation (m/s/sqrt(Hz))
 	float ekf2_baro_gate{5.0f};             ///< barometric and GPS height innovation consistency gate size (STD)
@@ -484,7 +482,6 @@ struct parameters {
 #endif // CONFIG_EKF2_GRAVITY_FUSION
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	int32_t ekf2_of_ctrl {0};
 	int32_t ekf2_of_gyr_src {static_cast<int32_t>(FlowGyroSource::Auto)};
 	float ekf2_of_delay{5.0f};              ///< optical flow measurement delay relative to the IMU (mSec) - this is to the middle of the optical flow integration interval
 

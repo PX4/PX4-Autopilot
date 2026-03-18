@@ -97,7 +97,6 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_gsf_tas(_params->ekf2_gsf_tas),
 #endif // CONFIG_EKF2_GNSS
 #if defined(CONFIG_EKF2_BAROMETER)
-	_param_ekf2_baro_ctrl(_params->ekf2_baro_ctrl),
 	_param_ekf2_baro_delay(_params->ekf2_baro_delay),
 	_param_ekf2_baro_noise(_params->ekf2_baro_noise),
 	_param_ekf2_baro_gate(_params->ekf2_baro_gate),
@@ -185,7 +184,6 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_ev_pos_z(_params->ev_pos_body(2)),
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	_param_ekf2_of_ctrl(_params->ekf2_of_ctrl),
 	_param_ekf2_of_gyr_src(_params->ekf2_of_gyr_src),
 	_param_ekf2_of_delay(_params->ekf2_of_delay),
 	_param_ekf2_of_n_min(_params->ekf2_of_n_min),
@@ -275,7 +273,7 @@ void EKF2::AdvertiseTopics()
 
 #if defined(CONFIG_EKF2_BAROMETER)
 
-		if (_param_ekf2_baro_ctrl.get()) {
+		if (_fc.baro.enabled) {
 			_estimator_aid_src_baro_hgt_pub.advertise();
 			_estimator_baro_bias_pub.advertise();
 		}
@@ -357,7 +355,7 @@ void EKF2::AdvertiseTopics()
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 
-		if (_param_ekf2_of_ctrl.get()) {
+		if (_fc.of.enabled) {
 			_estimator_optical_flow_vel_pub.advertise();
 			_estimator_aid_src_optical_flow_pub.advertise();
 		}
@@ -997,11 +995,14 @@ void EKF2::VerifyParams()
 void EKF2::initFusionControl()
 {
 	_sens_en_param = param_find("EKF2_SENS_EN");
-	int32_t sens_en = 16383; // default: all enabled
 
-	if (_sens_en_param != PARAM_INVALID) {
-		param_get(_sens_en_param, &sens_en);
+	if (_sens_en_param == PARAM_INVALID) {
+		PX4_ERR("EKF2_SENS_EN param not found");
+		return;
 	}
+
+	int32_t sens_en = 0;
+	param_get(_sens_en_param, &sens_en);
 
 	_num_sensor_table = 0;
 
@@ -1009,7 +1010,7 @@ void EKF2::initFusionControl()
 	int8_t instance, param_t param, uint8_t disabled_val = 0) {
 		if (_num_sensor_table < MAX_SENSOR_TABLE) {
 			sensor.enabled = sens_en & (1 << sens_en_bit);
-			int32_t param_val = disabled_val;
+			int32_t param_val = 1; // default for params without a handle (pure on/off)
 
 			if (param != PARAM_INVALID) {
 				param_get(param, &param_val);
@@ -1020,16 +1021,15 @@ void EKF2::initFusionControl()
 		}
 	};
 
-	// bit layout: 0..1=GPS0..1 2=OF 3=EV 4..7=AGP0..3 8=BARO 9=RNG 10=DRAG 11=MAG 12=ASPD 13=RNGBCN
 #if defined(CONFIG_EKF2_GNSS)
-	add(_fc.gps,   0, vehicle_command_s::FUSION_SOURCE_GPS, -1, _param_ekf2_gps_ctrl.handle());
+	add(_fc.gps,    SENS_EN_GPS0,   vehicle_command_s::FUSION_SOURCE_GPS,    -1, _param_ekf2_gps_ctrl.handle());
 	// TODO: gps[1] reserved — no param yet, add second GPS instance here when multi-GPS CTRL is implemented
 #endif
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	add(_fc.of,    2, vehicle_command_s::FUSION_SOURCE_OF,  -1, _param_ekf2_of_ctrl.handle());
+	add(_fc.of,     SENS_EN_OF,     vehicle_command_s::FUSION_SOURCE_OF,     -1, PARAM_INVALID);
 #endif
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
-	add(_fc.ev,    3, vehicle_command_s::FUSION_SOURCE_EV,  -1, _param_ekf2_ev_ctrl.handle());
+	add(_fc.ev,     SENS_EN_EV,     vehicle_command_s::FUSION_SOURCE_EV,     -1, _param_ekf2_ev_ctrl.handle());
 #endif
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION)
 
@@ -1040,28 +1040,25 @@ void EKF2::initFusionControl()
 		const param_t param_agp_ctrl = param_find_no_notification(param_name);
 
 		if (param_used(param_agp_ctrl) > 0) {
-			add(_fc.agp[i], 4 + i, vehicle_command_s::FUSION_SOURCE_AGP, static_cast<int8_t>(i), param_agp_ctrl);
+			add(_fc.agp[i], SENS_EN_AGP0 + i, vehicle_command_s::FUSION_SOURCE_AGP, static_cast<int8_t>(i), param_agp_ctrl);
 		}
 	}
 
 #endif
 #if defined(CONFIG_EKF2_BAROMETER)
-	add(_fc.baro,  8, vehicle_command_s::FUSION_SOURCE_BARO, -1, _param_ekf2_baro_ctrl.handle());
+	add(_fc.baro,   SENS_EN_BARO,   vehicle_command_s::FUSION_SOURCE_BARO,   -1, PARAM_INVALID);
 #endif
 #if defined(CONFIG_EKF2_RANGE_FINDER)
-	add(_fc.rng,   9, vehicle_command_s::FUSION_SOURCE_RNG,  -1, _param_ekf2_rng_ctrl.handle());
-#endif
-#if defined(CONFIG_EKF2_DRAG_FUSION)
-	add(_fc.drag, 10, vehicle_command_s::FUSION_SOURCE_DRAG, -1, _param_ekf2_drag_ctrl.handle());
+	add(_fc.rng,    SENS_EN_RNG,    vehicle_command_s::FUSION_SOURCE_RNG,    -1, _param_ekf2_rng_ctrl.handle());
 #endif
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-	add(_fc.mag,  11, vehicle_command_s::FUSION_SOURCE_MAG,  -1, _param_ekf2_mag_type.handle(), 5);
+	add(_fc.mag,    SENS_EN_MAG,    vehicle_command_s::FUSION_SOURCE_MAG,    -1, _param_ekf2_mag_type.handle(), 5);
 #endif
 #if defined(CONFIG_EKF2_AIRSPEED)
-	add(_fc.aspd, 12, vehicle_command_s::FUSION_SOURCE_ASPD, -1, _param_ekf2_arsp_thr.handle());
+	add(_fc.aspd,   SENS_EN_ASPD,   vehicle_command_s::FUSION_SOURCE_ASPD,   -1, _param_ekf2_arsp_thr.handle());
 #endif
 #if defined(CONFIG_EKF2_RANGING_BEACON)
-	add(_fc.rngbcn, 13, vehicle_command_s::FUSION_SOURCE_RNGBCN, -1, _param_ekf2_rngbc_ctrl.handle());
+	add(_fc.rngbcn, SENS_EN_RNGBCN, vehicle_command_s::FUSION_SOURCE_RNGBCN, -1, _param_ekf2_rngbc_ctrl.handle());
 #endif
 }
 
@@ -1069,7 +1066,7 @@ void EKF2::updateFusionIntended()
 {
 	for (uint8_t i = 0; i < _num_sensor_table; i++) {
 		FusionEntry &e = _sensor_table[i];
-		int32_t param_val = e.disabled_val;
+		int32_t param_val = 1; // default for params without a handle (pure on/off)
 
 		if (e.param != PARAM_INVALID) {
 			param_get(e.param, &param_val);
@@ -2057,7 +2054,6 @@ void EKF2::PublishFusionControl(const hrt_abstime &timestamp)
 
 	msg.baro_intended   = _fc.baro.intended;
 	msg.rng_intended    = _fc.rng.intended;
-	msg.drag_intended   = _fc.drag.intended;
 	msg.mag_intended    = _fc.mag.intended;
 	msg.aspd_intended   = _fc.aspd.intended;
 	msg.rngbcn_intended = _fc.rngbcn.intended;
@@ -2068,7 +2064,6 @@ void EKF2::PublishFusionControl(const hrt_abstime &timestamp)
 	msg.ev_active   = cs.ev_pos || cs.ev_hgt || cs.ev_vel || cs.ev_yaw;
 	msg.baro_active = cs.baro_hgt;
 	msg.rng_active  = cs.rng_hgt;
-	msg.drag_active = (_fc.drag.intended > 0) && cs.wind && cs.in_air && !cs.fake_pos;
 	msg.mag_active  = cs.mag;
 	msg.aspd_active   = cs.fuse_aspd;
 	// msg.rngbcn_active = cs.rngbcn_fusion; // waiting for RangeBeacon PR
