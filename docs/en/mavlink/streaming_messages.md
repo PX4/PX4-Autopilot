@@ -230,7 +230,7 @@ If you search in the file you'll find groups of messages defined in a switch sta
 - `MAVLINK_MODE_IRIDIUM`: Streamed to an iridium satellite phone
 
 Normally you'll be testing on a GCS, so you could just add the message to the `MAVLINK_MODE_NORMAL` case using the `configure_stream_local()` method.
-For example, to stream CA_TRAJECTORY at 5 Hz:
+For example, to stream `BATTERY_STATUS_DEMO` at 5 Hz:
 
 ```cpp
 	case MAVLINK_MODE_CONFIG: // USB
