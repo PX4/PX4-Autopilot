@@ -10,7 +10,7 @@ parameters:
       default: 0
     ATT_W_ACC:
       description:
-        short: Complimentary filter accelerometer weight
+        short: Complementary filter accelerometer weight
       type: float
       default: 0.2
       min: 0
@@ -18,7 +18,7 @@ parameters:
       decimal: 2
     ATT_W_MAG:
       description:
-        short: Complimentary filter magnetometer weight
+        short: Complementary filter magnetometer weight
         long: Set to 0 to avoid using the magnetometer.
       type: float
       default: 0.1
@@ -27,14 +27,14 @@ parameters:
       decimal: 2
     ATT_W_EXT_HDG:
       description:
-        short: Complimentary filter external heading weight
+        short: Complementary filter external heading weight
       type: float
       default: 0.1
       min: 0
       max: 1
     ATT_W_GYRO_BIAS:
       description:
-        short: Complimentary filter gyroscope bias weight
+        short: Complementary filter gyroscope bias weight
       type: float
       default: 0.1
       min: 0
