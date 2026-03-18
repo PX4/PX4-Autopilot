@@ -12,6 +12,8 @@ Create a git commit: `type(scope): description`
 
 **NEVER add Co-Authored-By lines. No Claude attribution in commits.**
 
+Follow [CONTRIBUTING.md](../../CONTRIBUTING.md) for full project conventions.
+
 ## Steps
 
 1. Check branch (`git branch --show-current`). If on `main`, create a feature branch. Use `<username>/<description>` format where `<username>` comes from `gh api user --jq .login`. If unavailable, just use `<description>`.
@@ -21,7 +23,8 @@ Create a git commit: `type(scope): description`
 5. Write concise imperative description, lowercase, no period, under 72 chars.
 6. Breaking changes: `type(scope)!: description`
 7. Body (if needed): explain **why**, not what.
-8. Stage and commit. No `Co-Authored-By`.
+8. Run `make format` or `./Tools/astyle/fix_code_style.sh <file>` on changed C/C++ files before committing.
+9. Stage and commit. No `Co-Authored-By`.
 
 ## Examples
 

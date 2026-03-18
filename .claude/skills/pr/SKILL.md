@@ -10,6 +10,8 @@ allowed-tools: Bash, Read, Glob, Grep
 
 **No Claude attribution anywhere (no Co-Authored-By, no "Generated with Claude").**
 
+Follow [CONTRIBUTING.md](../../CONTRIBUTING.md) for full project conventions.
+
 ## Steps
 
 1. Check branch. If on `main`, create a feature branch. Use `<username>/<description>` format where `<username>` comes from `gh api user --jq .login`. If unavailable, just use `<description>`.
