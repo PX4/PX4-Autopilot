@@ -69,6 +69,7 @@ if (gz-transport_FOUND)
 			${GZ_TRANSPORT_TARGET}
 		MODULE_CONFIG
 			module.yaml
+			parameters.yaml
 	)
 
     target_include_directories(modules__simulation__gz_bridge
