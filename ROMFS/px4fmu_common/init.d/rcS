@@ -633,12 +633,15 @@ else
 	#
 	# Start the VTX services.
 	#
-	set RC_VTXTABLE ${R}etc/init.d/rc.vtxtable
-	if [ -f ${RC_VTXTABLE} ]
+	if ! param compare VTX_SER_CFG 0
 	then
-		. ${RC_VTXTABLE}
+		set RC_VTXTABLE ${R}etc/init.d/rc.vtxtable
+		if [ -f ${RC_VTXTABLE} ]
+		then
+			. ${RC_VTXTABLE}
+		fi
+		unset RC_VTXTABLE
 	fi
-	unset RC_VTXTABLE
 
 	#
 	# Set additional parameters and env variables for selected AUTOSTART.
