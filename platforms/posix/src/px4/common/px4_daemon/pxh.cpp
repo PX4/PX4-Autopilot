@@ -345,7 +345,7 @@ void Pxh::run_pxh()
 			break;
 
 		case '\033': {	// arrow keys
-				c = getchar();	// skip first one, does not have the info
+				(void)getchar(); // skip first one, does not have the info
 				c = getchar();
 
 				if (c == 'A') { // arrow up

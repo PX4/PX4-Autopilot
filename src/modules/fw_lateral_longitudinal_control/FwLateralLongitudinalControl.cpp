@@ -379,13 +379,10 @@ FwLateralLongitudinalControl::tecs_update_pitch_throttle(const float control_int
 		const float desired_max_climbrate,
 		bool disable_underspeed_detection, float hgt_rate_sp, hrt_abstime now)
 {
-	bool tecs_is_running = true;
-
 	// do not run TECS if vehicle is a VTOL and we are in rotary wing mode or in transition
 	if (_vehicle_status_sub.get().is_vtol
 	    && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 		|| _vehicle_status_sub.get().in_transition_mode)) {
-		tecs_is_running = false;
 		return flight_phase_estimation_s::FLIGHT_PHASE_UNKNOWN;
 	}
 
@@ -417,7 +414,7 @@ FwLateralLongitudinalControl::tecs_update_pitch_throttle(const float control_int
 
 	tecs_status_publish(alt_sp, airspeed_sp, airspeed_rate_estimate, throttle_trim_compensated, now);
 
-	if (tecs_is_running && !_vehicle_status_sub.get().in_transition_mode
+	if (!_vehicle_status_sub.get().in_transition_mode
 	    && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)) {
 		const TECS::DebugOutput &tecs_output{_tecs.getStatus()};
 

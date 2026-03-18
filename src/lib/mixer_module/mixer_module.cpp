@@ -543,8 +543,6 @@ float MixingOutput::output_limit_calc_single(int i, float value) const
 		value = -1.f * value;
 	}
 
-	float output = _disarmed_value[i];
-
 	if (((_function_assignment[i] >= OutputFunction::Servo1
 	      && _function_assignment[i] <= OutputFunction::ServoMax) || _function_assignment[i] == OutputFunction::Landing_Gear_Wheel
 	     || (_function_assignment[i] >= OutputFunction::Gimbal_Roll
@@ -552,15 +550,11 @@ float MixingOutput::output_limit_calc_single(int i, float value) const
 	    && _param_handles[i].center != PARAM_INVALID
 	    && _center_value[i] >= 800
 	    && _center_value[i] <= 2200) {
-		output = math::interpolateNXY(value, {-1.f, 0.f, 1.f}, {(float)_min_value[i], (float)_center_value[i], (float)_max_value[i]});
+		return math::interpolateNXY(value, {-1.f, 0.f, 1.f}, {(float)_min_value[i], (float)_center_value[i], (float)_max_value[i]});
 	}
 
 	// Everything except servos, or if center is not set
-	else {
-		output = math::interpolate(value, -1.f, 1.f, static_cast<float>(_min_value[i]), static_cast<float>(_max_value[i]));
-	}
-
-	return output;
+	return math::interpolate(value, -1.f, 1.f, static_cast<float>(_min_value[i]), static_cast<float>(_max_value[i]));
 }
 
 void

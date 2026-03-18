@@ -527,7 +527,7 @@ void TECSControl::_calcThrottleControl(float dt, const SpecificEnergyRates &spec
 	_ste_rate_estimate_filter.setParameters(dt, param.ste_rate_time_const);
 	_ste_rate_estimate_filter.update(STE_rate_estimate_raw);
 	ControlValues ste_rate{_calcThrottleControlSteRate(limit, specific_energy_rates, param)};
-	float throttle_setpoint{param.throttle_min};
+	float throttle_setpoint{0.0f};
 
 	if (1.f - param.fast_descend < FLT_EPSILON) {
 		// During fast descend, we control airspeed over the pitch control loop. Give minimal thrust as soon as we are descending

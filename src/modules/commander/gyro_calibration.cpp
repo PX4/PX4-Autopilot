@@ -210,7 +210,6 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 
 	unsigned try_count = 0;
 	unsigned max_tries = 20;
-	res = PX4_ERROR;
 
 	do {
 		// Calibrate gyro and ensure user didn't move

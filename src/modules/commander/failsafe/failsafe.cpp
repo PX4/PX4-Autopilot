@@ -701,7 +701,6 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 	// Last, check can_run for intended mode
 	if (!modeCanRun(status_flags, user_intended_mode)) {
 		action = Action::RTL;
-		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 	}
 
 	return action;

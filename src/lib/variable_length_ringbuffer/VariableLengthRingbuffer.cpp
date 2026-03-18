@@ -69,14 +69,14 @@ bool VariableLengthRingbuffer::push_back(const uint8_t *packet, size_t packet_le
 	}
 
 	Header header{static_cast<uint32_t>(packet_len)};
-	bool result = _ringbuffer.push_back(reinterpret_cast<const uint8_t * >(&header), sizeof(header));
-	assert(result);
 
-	result = _ringbuffer.push_back(packet, packet_len);
-	assert(result);
+	if (!_ringbuffer.push_back(reinterpret_cast<const uint8_t * >(&header), sizeof(header))) {
+		assert(false);
+	}
 
-	// In case asserts are commented out to prevent unused warnings.
-	(void)result;
+	if (!_ringbuffer.push_back(packet, packet_len)) {
+		assert(false);
+	}
 
 	return true;
 }
