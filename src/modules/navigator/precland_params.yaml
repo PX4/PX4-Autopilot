@@ -1,0 +1,72 @@
+module_name: navigator
+parameters:
+- group: Precision Land
+  definitions:
+    PLD_BTOUT:
+      description:
+        short: Landing Target Timeout
+        long: Time after which the landing target is considered lost without any new
+          measurements.
+      type: float
+      default: 5.0
+      unit: s
+      min: 0.0
+      max: 50
+      decimal: 1
+      increment: 0.5
+    PLD_HACC_RAD:
+      description:
+        short: Horizontal acceptance radius
+        long: Start descending if closer above landing target than this.
+      type: float
+      default: 0.2
+      unit: m
+      min: 0.0
+      max: 10
+      decimal: 2
+      increment: 0.1
+    PLD_FAPPR_ALT:
+      description:
+        short: Final approach altitude
+        long: Allow final approach (without horizontal positioning) if losing landing
+          target closer than this to the ground.
+      type: float
+      default: 0.1
+      unit: m
+      min: 0.0
+      max: 10
+      decimal: 2
+      increment: 0.1
+    PLD_SRCH_ALT:
+      description:
+        short: Search altitude
+        long: Altitude above home to which to climb when searching for the landing
+          target.
+      type: float
+      default: 10.0
+      unit: m
+      min: 0.0
+      max: 100
+      decimal: 1
+      increment: 0.1
+    PLD_SRCH_TOUT:
+      description:
+        short: Search timeout
+        long: Time allowed to search for the landing target before falling back to
+          normal landing.
+      type: float
+      default: 10.0
+      unit: s
+      min: 0.0
+      max: 100
+      decimal: 1
+      increment: 0.1
+    PLD_MAX_SRCH:
+      description:
+        short: Maximum number of search attempts
+        long: Maximum number of times to search for the landing target if it is lost
+          during the precision landing.
+      type: int32
+      default: 3
+      min: 0
+      max: 100

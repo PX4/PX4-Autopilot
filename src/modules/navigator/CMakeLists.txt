@@ -62,6 +62,13 @@ px4_add_module(
 	MODULE modules__navigator
 	MAIN navigator
 	SRCS ${NAVIGATOR_SOURCES}
+	MODULE_CONFIG
+		geofence_params.yaml
+		mission_params.yaml
+		navigator_params.yaml
+		precland_params.yaml
+		rtl_params.yaml
+		vtol_takeoff_params.yaml
 	DEPENDS
 		dataman_client
 		geo

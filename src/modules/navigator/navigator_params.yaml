@@ -1,0 +1,142 @@
+module_name: navigator
+parameters:
+- group: Mission
+  definitions:
+    NAV_LOITER_RAD:
+      description:
+        short: Loiter radius (FW only)
+        long: |-
+          Default value of loiter radius in fixed-wing mode (e.g. for Loiter mode).
+
+          The direction of the loiter can be set via the sign: A positive value for
+          clockwise, negative for counter-clockwise.
+      type: float
+      default: 80.0
+      unit: m
+      min: -10000
+      max: 10000
+      decimal: 1
+      increment: 0.5
+    NAV_ACC_RAD:
+      description:
+        short: Acceptance Radius
+        long: |-
+          Default acceptance radius, overridden by acceptance radius of waypoint if set.
+          For fixed wing the npfg switch distance is used for horizontal acceptance.
+      type: float
+      default: 10.0
+      unit: m
+      min: 0.05
+      max: 200.0
+      decimal: 1
+      increment: 0.5
+    NAV_FW_ALT_RAD:
+      description:
+        short: FW Altitude Acceptance Radius
+        long: Acceptance radius for fixedwing altitude.
+      type: float
+      default: 10.0
+      unit: m
+      min: 0.05
+      max: 200.0
+      decimal: 1
+      increment: 0.5
+    NAV_FW_ALTL_RAD:
+      description:
+        short: FW Altitude Acceptance Radius before a landing
+        long: |-
+          Altitude acceptance used for the last waypoint before a fixed-wing landing. This is usually smaller
+          than the standard vertical acceptance because close to the ground higher accuracy is required.
+      type: float
+      default: 5.0
+      unit: m
+      min: 0.05
+      max: 200.0
+      decimal: 1
+    NAV_MC_ALT_RAD:
+      description:
+        short: MC Altitude Acceptance Radius
+        long: Acceptance radius for multicopter altitude.
+      type: float
+      default: 0.8
+      unit: m
+      min: 0.05
+      max: 200.0
+      decimal: 1
+      increment: 0.5
+    NAV_TRAFF_AVOID:
+      description:
+        short: Set traffic avoidance mode
+        long: |-
+          Enabling this will allow the system to respond
+          to transponder data from e.g. ADSB transponders
+      type: enum
+      values:
+        0: Disabled
+        1: Warn only
+        2: Return mode
+        3: Land mode
+        4: Position Hold mode
+      default: 1
+    NAV_TRAFF_A_HOR:
+      description:
+        short: Set NAV TRAFFIC AVOID horizontal distance
+        long: Defines a crosstrack horizontal distance
+      type: float
+      default: 500
+      unit: m
+      min: 500
+    NAV_TRAFF_A_VER:
+      description:
+        short: Set NAV TRAFFIC AVOID vertical distance
+      type: float
+      default: 500
+      unit: m
+      min: 10
+      max: 500
+    NAV_TRAFF_COLL_T:
+      description:
+        short: Estimated time until collision
+        long: |-
+          Minimum acceptable time until collsion.
+          Assumes constant speed over 3d distance.
+      type: int32
+      default: 60
+      unit: s
+      min: 1
+      max: 900000000
+    NAV_FORCE_VT:
+      description:
+        short: Force VTOL mode takeoff and land
+      type: boolean
+      default: 1
+    NAV_MIN_LTR_ALT:
+      description:
+        short: Minimum Loiter altitude
+        long: |-
+          This is the minimum altitude above Home the system will always obey in Loiter (Hold) mode if switched into this
+          mode without specifying an altitude (e.g. through Loiter switch on RC).
+          Doesn't affect Loiters that are part of Missions or that are entered through a reposition setpoint ("Go to").
+          Set to a negative value to disable.
+      type: float
+      default: -1.0
+      unit: m
+      min: -1
+      decimal: 1
+      increment: 0.5
+    NAV_MIN_GND_DIST:
+      description:
+        short: Minimum height above ground during Mission and RTL
+        long: |-
+          Minimum height above ground the vehicle is allowed to descend to during Mission and RTL,
+          excluding landing commands.
+          Requires a distance sensor to be set up.
+          Note: only prevents the vehicle from descending further, but does not force it to climb.
+
+          Set to a negative value to disable.
+      type: float
+      default: -1.0
+      unit: m
+      min: -1
+      decimal: 1
+      increment: 1
