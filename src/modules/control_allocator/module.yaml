@@ -684,114 +684,133 @@ mixer:
               - { 'disabled': True, 'default': 0.0 } # yaw
               - { 'hidden': True, 'min': -1.0, 'max': 1.0, 'default': 0} # flap
               - { 'hidden': True, 'min': -1.0, 'max': 1.0, 'default': 0} # spoiler
+              - { 'hidden': True, 'default': 0} # launch-lock
             1: # Left Aileron
               - { 'min': -1.0, 'max': 0.0, 'default': -0.5 } # roll
               - { 'hidden': True, 'default': 0.0 } # pitch
               - { 'hidden': True, 'default': 0.0 } # yaw
               - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # flap
               - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # spoiler
+              - { 'hidden': False, 'default': 0} # launch-lock
             2: # Right Aileron
               - { 'min': 0.0, 'max': 1.0, 'default': 0.5 } # roll
               - { 'hidden': True, 'default': 0.0 } # pitch
               - { 'hidden': True, 'default': 0.0 } # yaw
               - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # flap
               - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # spoiler
+              - { 'hidden': False, 'default': 0} # launch-lock
             3: # Elevator
               - { 'hidden': True, 'default': 0.0 } # roll
               - { 'min': 0.0, 'max': 1.0, 'default': 1.0 } # pitch
               - { 'hidden': True, 'default': 0.0 } # yaw
               - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # flap
               - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # spoiler
+              - { 'hidden': False, 'default': 0} # launch-lock
             4: # Rudder
               - { 'hidden': True, 'default': 0.0 } # roll
               - { 'hidden': True, 'default': 0.0 } # pitch
               - { 'min': 0.0, 'max': 1.0, 'default': 1.0 } # yaw
               - { 'hidden': True, 'min': -1.0, 'max': 1.0, 'default': 0} # flap
               - { 'hidden': True, 'min': -1.0, 'max': 1.0, 'default': 0} # spoiler
+              - { 'hidden': False, 'default': 0} # launch-lock
             5: # Left Elevon
               - { 'min': -1.0, 'max': 0.0, 'default': -0.5 } # roll
               - { 'min': 0.0, 'max': 1.0, 'default': 0.5 } # pitch
               - { 'hidden': True, 'default': 0.0 } # yaw
               - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # flap
               - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # spoiler
+              - { 'hidden': False, 'default': 0} # launch-lock
             6: # Right Elevon
               - { 'min': 0.0, 'max': 1.0, 'default': 0.5 } # roll
               - { 'min': 0.0, 'max': 1.0, 'default': 0.5 } # pitch
               - { 'hidden': True, 'default': 0.0 } # yaw
               - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # flap
               - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # spoiler
+              - { 'hidden': False, 'default': 0} # launch-lock
             7: # Left V Tail
               - { 'hidden': True, 'default': 0.0 } # roll
               - { 'min': 0.0, 'max': 1.0, 'default': 0.5 } # pitch
               - { 'min': 0.0, 'max': 1.0, 'default': 0.5 } # yaw
               - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # flap
               - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # spoiler
+              - { 'hidden': False, 'default': 0} # launch-lock
             8: # Right V Tail
               - { 'hidden': True, 'default': 0.0 } # roll
               - { 'min': 0.0, 'max': 1.0, 'default': 0.5 } # pitch
               - { 'min': -1.0, 'max': 0.0, 'default': -0.5 } # yaw
               - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # flap
               - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # spoiler
+              - { 'hidden': False, 'default': 0} # launch-lock
             9: # Left Flap
               - { 'hidden': True, 'default': 0.0 } # roll
               - { 'hidden': True, 'default': 0.0 } # pitch
               - { 'hidden': True, 'default': 0.0 } # yaw
               - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 1} # flap
               - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # spoiler
+              - { 'hidden': False, 'default': 0} # launch-lock
             10: # Right Flap
               - { 'hidden': True, 'default': 0.0 } # roll
               - { 'hidden': True, 'default': 0.0 } # pitch
               - { 'hidden': True, 'default': 0.0 } # yaw
               - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 1} # flap
               - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # spoiler
+              - { 'hidden': False, 'default': 0} # launch-lock
             11: # Airbrake
               - { 'hidden': True, 'default': 0.0 } # roll
               - { 'hidden': True, 'default': 0.0 } # pitch
               - { 'hidden': True, 'default': 0.0 } # yaw
               - { 'hidden': True, 'min': -1.0, 'max': 1.0, 'default': 0} # flap
               - { 'hidden': True, 'min': -1.0, 'max': 1.0, 'default': 0} # spoiler
+              - { 'hidden': False, 'default': 0} # launch-lock
             12: # Custom
               - { 'hidden': False, 'default': 0.0 } # roll
               - { 'hidden': False, 'default': 0.0 } # pitch
               - { 'hidden': False, 'default': 0.0 } # yaw
               - { 'hidden': True, 'min': -1.0, 'max': 1.0, 'default': 0} # flap
               - { 'hidden': True, 'min': -1.0, 'max': 1.0, 'default': 0} # spoiler
+              - { 'hidden': False, 'default': 0} # launch-lock
             13: # Left A Tail
               - { 'hidden': True, 'default': 0.0 } # roll
               - { 'min': 0.0, 'max': 1.0, 'default': 0.5 } # pitch
               - { 'min': -1.0, 'max': 0.0, 'default': -0.5 } # yaw
               - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # flap
               - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # spoiler
+              - { 'hidden': False, 'default': 0} # launch-lock
             14: # Right A Tail
               - { 'hidden': True, 'default': 0.0 } # roll
               - { 'min': 0.0, 'max': 1.0, 'default': 0.5 } # pitch
               - { 'min': 0.0, 'max': 1.0, 'default': 0.5 } # yaw
               - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # flap
               - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # spoiler
+              - { 'hidden': False, 'default': 0} # launch-lock
             15: # Single Channel Aileron
               - { 'min': 0.0, 'max': 1.0, 'default': 1.0 } # roll
               - { 'hidden': True, 'default': 0.0 } # pitch
               - { 'hidden': True, 'default': 0.0 } # yaw
               - { 'hidden': True, 'min': -1.0, 'max': 1.0, 'default': 0} # flap
               - { 'hidden': True, 'min': -1.0, 'max': 1.0, 'default': 0} # spoiler
+              - { 'hidden': False, 'default': 0} # launch-lock
             16: # Steering Wheel
               - { 'hidden': True, 'default': 0.0 } # roll
               - { 'hidden': True, 'default': 0.0 } # pitch
               - { 'hidden': True, 'default': 0.0 } # yaw
               - { 'hidden': True, 'min': -1.0, 'max': 1.0, 'default': 0} # flap
               - { 'hidden': True, 'min': -1.0, 'max': 1.0, 'default': 0} # spoiler
+              - { 'hidden': True, 'default': 0} # launch-lock
             17: # Left Spoiler
               - { 'hidden': True, 'default': 0.0 } # roll
               - { 'hidden': True, 'default': 0.0 } # pitch
               - { 'hidden': True, 'default': 0.0 } # yaw
               - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # flap
               - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 1} # spoiler
+              - { 'hidden': False, 'default': 0} # launch-lock
             18: # Right Spoiler
               - { 'hidden': True, 'default': 0.0 } # roll
               - { 'hidden': True, 'default': 0.0 } # pitch
               - { 'hidden': True, 'default': 0.0 } # yaw
               - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # flap
               - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 1} # spoiler
+              - { 'hidden': False, 'default': 0} # launch-lock
 
 
       - select_identifier: 'servo-type-tailsitter' # restrict torque based on servo type for tailsitters
