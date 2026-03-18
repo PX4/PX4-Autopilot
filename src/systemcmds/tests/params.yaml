@@ -1,0 +1,34 @@
+module_name: tests
+parameters:
+- group: Testing
+  definitions:
+    TEST_1:
+      description:
+        short: TEST_1
+      type: int32
+      default: 2
+    TEST_2:
+      description:
+        short: TEST_2
+      type: int32
+      default: 4
+    TEST_3:
+      description:
+        short: TEST_3
+      type: float
+      default: 5.0
+    TEST_RC_X:
+      description:
+        short: TEST_RC_X
+      type: int32
+      default: 8
+    TEST_RC2_X:
+      description:
+        short: TEST_RC2_X
+      type: int32
+      default: 16
+    TEST_PARAMS:
+      description:
+        short: TEST_PARAMS
+      type: int32
+      default: 12345678
