@@ -273,6 +273,7 @@ void UUVAttitudeControl::generate_attitude_setpoint(float dt)
 		_attitude_setpoint.thrust_body[0] = _manual_control_setpoint.pitch * throttle_manual_attitude_gain; // heave +z down
 		_attitude_setpoint.thrust_body[1] = _manual_control_setpoint.roll * throttle_manual_attitude_gain; // sway +y
 		_attitude_setpoint.thrust_body[2] = -_manual_control_setpoint.throttle * throttle_manual_attitude_gain; // surge +x
+
 	} else {
 		// Throttle only on +x (surge)
 		_attitude_setpoint.thrust_body[0] = _manual_control_setpoint.throttle * throttle_manual_attitude_gain;
@@ -297,6 +298,7 @@ void UUVAttitudeControl::generate_rates_setpoint(float dt)
 		_rates_setpoint.thrust_body[0] = _manual_control_setpoint.pitch * throttle_manual_rate_gain; // heave +z down
 		_rates_setpoint.thrust_body[1] = _manual_control_setpoint.roll * throttle_manual_rate_gain; // sway +y
 		_rates_setpoint.thrust_body[2] = -_manual_control_setpoint.throttle * throttle_manual_rate_gain; // surge +x
+
 	} else {
 		// Roll/pitch/yaw are rate commands; thrust only surge
 		_rates_setpoint.roll = _manual_control_setpoint.roll * dt * _param_rgm_roll.get();
