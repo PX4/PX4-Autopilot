@@ -125,7 +125,7 @@ bool GHSTTelemetry::send_gps2_status()
 		return false;
 	}
 
-	uint16_t ground_speed = (uint16_t)(vehicle_gps_position.vel_d_m_s / 3.6f * 10.f);
+	uint16_t ground_speed = (uint16_t)(vehicle_gps_position.vel_m_s / 3.6f * 10.f);
 	uint16_t ground_course = (uint16_t)(math::degrees(vehicle_gps_position.cog_rad) * 100.f);
 	uint8_t num_sats = vehicle_gps_position.satellites_used;
 
