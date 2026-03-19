@@ -34,7 +34,7 @@ To find the exact messages in each profile, search for ` configure_streams_to_de
 ## Assigning Profiles to Ports
 
 [MAVLink Peripherals](../peripherals/mavlink_peripherals.md) explains how to set up a port for communicating over MAVLink.
-This uses the concept of an abstract [MAVLink instance](../peripherals/mavlink_peripherals.md#mavlink_instances) which is then assigned to a serial port.
+This uses the concept of an abstract [MAVLink instance](../peripherals/mavlink_peripherals.md#mavlink-instances) which is then assigned to a serial port.
 
 The profile associated with a particular MAVLink instance is set using the associated `MAV_X_MODE` parameter:
 
