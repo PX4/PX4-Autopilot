@@ -31,7 +31,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 ### Interfaces
 
 - 14 PWM servo outputs
-- Multiple RC inputs (SBus / CPPM / DSM)
+- Multiple RC inputs (SBUS / CPPM / DSM)
 - Analog/PWM RSSI input
 - 2 GPS ports (GPS and UART4)
 - 4x I2C buses
