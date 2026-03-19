@@ -1,0 +1,12 @@
+menuconfig MODULES_CDUS_BACKSTEPPING
+	bool "cdus_backstepping"
+	default n
+	---help---
+		Enable support for cdus_backstepping
+
+menuconfig USER_CDUS_BACKSTEPPING
+	bool "cdus_backstepping running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && CDUS_BACKSTEPPING
+	---help---
+		Put cdus_backstepping in userspace memory
