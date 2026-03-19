@@ -757,6 +757,7 @@
     - [MAVLink Messaging](mavlink/index.md)
       - [Adding Messages](mavlink/adding_messages.md)
       - [Streaming Messages](mavlink/streaming_messages.md)
+      - [MAVLink Profiles](mavlink/mavlink_profiles.md)
       - [Receiving Messages](mavlink/receiving_messages.md)
       - [Custom MAVLink Messages](mavlink/custom_messages.md)
       - [Message Signing](mavlink/message_signing.md)
