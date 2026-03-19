@@ -37,7 +37,7 @@ Offboard mode is used for controlling vehicle movement and attitude, by setting 
 
 PX4 must receive a stream of MAVLink setpoint messages or the ROS 2 [OffboardControlMode](../msg_docs/OffboardControlMode.md) at 2 Hz as proof that the external controller is healthy.
 The stream must be sent for at least a second before PX4 will arm in offboard mode, or switch to offboard mode when flying.
-If the rate falls below 2Hz while under external control PX4 will switch out of offboard mode after a timeout ([COM_OF_LOSS_T](#COM_OF_LOSS_T)), and attempt to land or perform some other failsafe actions.
+If the rate falls below 2Hz while under external control PX4 will switch out of offboard mode after a timeout ([COM_OF_LOSS_T](#COM_OF_LOSS_T)), and attempt to land or perform some other failsafe action.
 The action depends on whether or not RC control is available, and is defined in the parameter [COM_OBL_RC_ACT](#COM_OBL_RC_ACT).
 
 When using MAVLink the setpoint messages convey both the signal to indicate that the external source is "alive", and the setpoint value itself.
@@ -327,7 +327,7 @@ The following MAVLink messages and their particular fields and field values are 
 
 Rover supports offboard control using the generic MAVLink position/velocity setpoint messages listed below.
 These are converted into a [TrajectorySetpoint](../msg_docs/TrajectorySetpoint.md) internally, and then into rover setpoints by the rover offboard modes.
-For rover-specific control setpoints and better behavior we recommend using the [Rover Setpoints](#rover-setpoints) via ROS 2.
+For rover-specific control setpoints and better behaviour we recommend using the [Rover Setpoints](#rover-setpoints) via ROS 2.
 
 ::: info
 Rover MAVLink setpoints are gated by the MAVLink parameter [MAV_FWDEXTSP](../advanced_config/parameter_reference.md#MAV_FWDEXTSP) (Forward external setpoint messages).
