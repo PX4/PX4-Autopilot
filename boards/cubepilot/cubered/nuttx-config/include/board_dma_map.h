@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,19 +31,14 @@
  *
  ****************************************************************************/
 
-/**
- * @file uart.h
- *
- * UART bootloader definitions.
- */
-
 #pragma once
 
-extern void uart_cinit(void *config);
-extern void uart2_cinit(void *config);
-extern void uart_cfini(void);
-extern void uart2_cfini(void);
-extern int uart_cin(void);
-extern int uart2_cin(void);
-extern void uart_cout(uint8_t *buf, unsigned len);
-extern void uart2_cout(uint8_t *buf, unsigned len);
+// DMAMUX1
+#define DMAMAP_SPI1_RX    DMAMAP_DMA12_SPI1RX_0 /* DMA1:37 */
+#define DMAMAP_SPI1_TX    DMAMAP_DMA12_SPI1TX_0 /* DMA1:38 */
+
+#define DMAMAP_USART6_RX   DMAMAP_DMA12_USART6RX_1 /* DMA1:71 */
+#define DMAMAP_USART6_TX   DMAMAP_DMA12_USART6TX_1 /* DMA1:72 */
+
+#define DMAMAP_SPI4_RX    DMAMAP_DMA12_SPI4RX_0 /* DMA1:83 */
+#define DMAMAP_SPI4_TX    DMAMAP_DMA12_SPI4TX_0 /* DMA1:84 */

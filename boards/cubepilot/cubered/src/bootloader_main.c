@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,18 +32,62 @@
  ****************************************************************************/
 
 /**
- * @file uart.h
+ * @file bootloader_main.c
  *
- * UART bootloader definitions.
- */
+ * FMU-specific early startup code for bootloader
+*/
 
-#pragma once
+#include "board_config.h"
+#include "bl.h"
 
-extern void uart_cinit(void *config);
-extern void uart2_cinit(void *config);
-extern void uart_cfini(void);
-extern void uart2_cfini(void);
-extern int uart_cin(void);
-extern int uart2_cin(void);
-extern void uart_cout(uint8_t *buf, unsigned len);
-extern void uart2_cout(uint8_t *buf, unsigned len);
+#include <nuttx/config.h>
+#include <nuttx/board.h>
+#include <chip.h>
+#include <stm32_uart.h>
+#include <arch/board/board.h>
+#include "arm_internal.h"
+#include <px4_platform_common/init.h>
+
+extern int sercon_main(int c, char **argv);
+extern uint32_t stm32h7_flash_getopt(void);
+extern void stm32h7_flash_optmodify(uint32_t clear, uint32_t set);
+
+#ifndef FLASH_OPTSR_BCM4
+# define FLASH_OPTSR_BCM4 (1u << 22)
+#endif
+
+static void cubered_disable_cm4_boot(void)
+{
+	const uint32_t opts = stm32h7_flash_getopt();
+
+	if (opts & FLASH_OPTSR_BCM4) {
+		stm32h7_flash_optmodify(FLASH_OPTSR_BCM4, 0);
+	}
+}
+
+__EXPORT void board_on_reset(int status) {}
+
+__EXPORT void stm32_boardinitialize(void)
+{
+	/* Keep CubeRed bootloader in CM7-only mode. */
+	cubered_disable_cm4_boot();
+
+	/* configure USB interfaces */
+	stm32_configgpio(GPIO_OTGFS_VBUS);
+}
+
+__EXPORT int board_app_initialize(uintptr_t arg)
+{
+	return 0;
+}
+
+void board_late_initialize(void)
+{
+	sercon_main(0, NULL);
+}
+
+extern void sys_tick_handler(void);
+void board_timerhook(void)
+{
+	sys_tick_handler();
+}

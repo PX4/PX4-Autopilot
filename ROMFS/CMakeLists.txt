@@ -293,6 +293,34 @@ foreach(board_extra_file ${OPTIONAL_BOARD_EXTRAS})
 	endif()
 endforeach()
 
+# secondary firmware update helper script (optional)
+#  - if board supports a secondary firmware package then generate rc.board_secondary_upgrade
+if(PX4_ENABLE_SECONDARY_MCU AND EXISTS "${PX4_BOARD_DIR}/firmware_secondary.prototype")
+	message(STATUS "ROMFS:  Adding platforms/nuttx/init/rc.board_secondary_upgrade -> /etc/init.d/rc.board_secondary_upgrade")
+
+	# Generate the file using configure_file at configure time to a temporary location
+	set(secondary_upgrade_tmp ${CMAKE_CURRENT_BINARY_DIR}/rc.board_secondary_upgrade.tmp)
+	configure_file(${PX4_SOURCE_DIR}/platforms/nuttx/init/rc.board_secondary_upgrade.in ${secondary_upgrade_tmp} @ONLY)
+
+	# Then copy it at build time with proper dependencies
+	add_custom_command(
+		OUTPUT
+			${romfs_gen_root_dir}/init.d/rc.board_secondary_upgrade
+			rc.board_secondary_upgrade.stamp
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different ${secondary_upgrade_tmp} ${romfs_gen_root_dir}/init.d/rc.board_secondary_upgrade
+		COMMAND ${CMAKE_COMMAND} -E touch rc.board_secondary_upgrade.stamp
+		DEPENDS
+			${secondary_upgrade_tmp}
+			${PX4_SOURCE_DIR}/platforms/nuttx/init/rc.board_secondary_upgrade.in
+			romfs_copy.stamp
+		COMMENT "ROMFS: copying rc.board_secondary_upgrade"
+	)
+
+	list(APPEND extras_dependencies
+		rc.board_secondary_upgrade.stamp
+	)
+endif()
+
 foreach(board_extra_file ${OPTIONAL_BOARD_EXTRAS})
 
 	if(EXISTS "${board_extra_file}")

@@ -49,7 +49,8 @@
 enum {
 	NONE,
 	USART,
-	USB
+	USB,
+	USART2_IFACE
 };
 
 /* board info forwarded from board-specific code to booloader */

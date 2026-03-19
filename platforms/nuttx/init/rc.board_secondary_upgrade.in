@@ -1,0 +1,13 @@
+#! /bin/sh
+
+#
+# Secondary firmware update
+#
+if param compare -s SYS_SEC_UPDATE 1
+then
+	param set SYS_SEC_UPDATE 0
+	param save
+	echo "secondary firmware update requested"
+	echo "rebooting to bootloader for host upload..."
+	reboot -b
+fi
