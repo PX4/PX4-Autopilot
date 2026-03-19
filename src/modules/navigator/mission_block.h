@@ -165,6 +165,7 @@ protected:
 
 	void setLoiterItemFromCurrentPosition(struct mission_item_s *item);
 	void setLoiterItemFromCurrentPositionWithBraking(struct mission_item_s *item);
+	void setLoiterFromLastLink(struct mission_item_s *item);
 
 	void setLoiterItemCommonFields(struct mission_item_s *item);
 

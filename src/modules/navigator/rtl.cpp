@@ -536,32 +536,11 @@ void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpo
 		destination_type = DestinationType::DESTINATION_TYPE_SAFE_POINT;
 
 	} else if (_param_rtl_type.get() == 5) {
-		// Safe points only but no valid safe point, fallback to last position with valid data link
-		for (auto &telemetry_status :  _telemetry_status_subs) {
-			telemetry_status_s telemetry;
-
-			if (telemetry_status.update(&telemetry)) {
-
-				if (telemetry.heartbeat_type_gcs) {
-					_last_position_before_link_loss.alt = _global_pos_sub.get().alt;
-					_last_position_before_link_loss.lat = _global_pos_sub.get().lat;
-					_last_position_before_link_loss.lon = _global_pos_sub.get().lon;
-					break;
-				}
-			}
-		}
-
-		if (PX4_ISFINITE(_last_position_before_link_loss.lat) && PX4_ISFINITE(_last_position_before_link_loss.lon)) {
-			destination = _last_position_before_link_loss;
-
-		} else {
-			// If no valid data link position, fallback to current position
-			destination.alt = _global_pos_sub.get().alt;
-			destination.lat = _global_pos_sub.get().lat;
-			destination.lon = _global_pos_sub.get().lon;
-		}
-
-		destination_type = DestinationType::DESTINATION_TYPE_LAST_LINK_POSITION;
+		// for RTL_TYPE=5: if no rally point is found fallback to current position
+		destination.alt = _global_pos_sub.get().alt;
+		destination.lat = _global_pos_sub.get().lat;
+		destination.lon = _global_pos_sub.get().lon;
+		destination_type = DestinationType::DESTINATION_TYPE_SAFE_POINT;
 	}
 }
 
@@ -600,11 +579,6 @@ void RTL::setSafepointAsDestination(PositionYawSetpoint &rtl_position, const mis
 
 float RTL::computeReturnAltitude(const PositionYawSetpoint &rtl_position, DestinationType destination_type, float cone_half_angle_deg) const
 {
-	if (destination_type == DestinationType::DESTINATION_TYPE_LAST_LINK_POSITION) {
-		// when returning to last known link position, do not modify altitude
-		return rtl_position.alt;
-	}
-
 	if (_param_rtl_cone_ang.get() > 0 && _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 		// horizontal distance to destination
 		const float destination_dist =

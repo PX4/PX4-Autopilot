@@ -140,3 +140,13 @@ parameters:
       min: -1
       decimal: 1
       increment: 1
+    NAV_LTR_LAST_DL:
+      description:
+        short: Loiter at last GCS heartbeat position on data link loss
+        long: |-
+          When the data link is lost and this setting is enabled,
+          the vehicle will loiter at the position where the last GCS
+          heartbeat was received rather than at its current position.
+          Only applies to Hold mode during failsafe actions.
+      type: boolean
+      default: 0

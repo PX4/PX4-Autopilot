@@ -53,6 +53,7 @@ public:
 
 	void on_activation() override;
 	void on_active() override;
+	void on_inactive() override;
 
 private:
 	/**
@@ -66,4 +67,9 @@ private:
 	 */
 	void set_loiter_position();
 
+	bool _loiter_at_last_link_position_executed{false};
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::NAV_LTR_LAST_DL>) _param_nav_ltr_last_dl
+	)
 };
