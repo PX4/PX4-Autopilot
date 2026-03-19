@@ -2,6 +2,14 @@ module_name: ekf2
 parameters:
 - group: EKF2
   definitions:
+    EKF2_BARO_CTRL:
+      description:
+        short: Barometric sensor height aiding
+        long: If this parameter is enabled then the estimator will make use of the
+          barometric height measurements to estimate its height in addition to other
+          height sources (if activated).
+      type: boolean
+      default: 1
     EKF2_BARO_DELAY:
       description:
         short: Barometer measurement delay relative to IMU measurements

@@ -2,6 +2,12 @@ module_name: ekf2
 parameters:
 - group: EKF2
   definitions:
+    EKF2_OF_CTRL:
+      description:
+        short: Optical flow aiding
+        long: Enable optical flow fusion.
+      type: boolean
+      default: 1
     EKF2_OF_DELAY:
       description:
         short: Optical flow measurement delay relative to IMU measurements

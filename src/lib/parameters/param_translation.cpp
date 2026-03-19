@@ -234,40 +234,4 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 	}
 
 	return param_modify_on_import_ret::PARAM_NOT_MODIFIED;
-
-	// 2026-03-18: EKF2_OF_CTRL removed, migrated to EKF2_SENS_EN bit 2
-	{
-		if (strcmp("EKF2_OF_CTRL", node->name) == 0) {
-			if (node->i32 == 0) {
-				int32_t sens_en = 0;
-				param_t sens_en_param = param_find("EKF2_SENS_EN");
-
-				if (sens_en_param != PARAM_INVALID && param_get(sens_en_param, &sens_en) == PX4_OK) {
-					sens_en &= ~(1 << 2); // clear OF bit
-					param_set(sens_en_param, &sens_en);
-					PX4_INFO("migrating %s=0 -> EKF2_SENS_EN bit 2 cleared", "EKF2_OF_CTRL");
-				}
-			}
-
-			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
-		}
-	}
-
-	// 2026-03-18: EKF2_BARO_CTRL removed, migrated to EKF2_SENS_EN bit 8
-	{
-		if (strcmp("EKF2_BARO_CTRL", node->name) == 0) {
-			if (node->i32 == 0) {
-				int32_t sens_en = 0;
-				param_t sens_en_param = param_find("EKF2_SENS_EN");
-
-				if (sens_en_param != PARAM_INVALID && param_get(sens_en_param, &sens_en) == PX4_OK) {
-					sens_en &= ~(1 << 8); // clear BARO bit
-					param_set(sens_en_param, &sens_en);
-					PX4_INFO("migrating %s=0 -> EKF2_SENS_EN bit 8 cleared", "EKF2_BARO_CTRL");
-				}
-			}
-
-			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
-		}
-	}
 }

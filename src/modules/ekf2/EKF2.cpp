@@ -97,6 +97,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_gsf_tas(_params->ekf2_gsf_tas),
 #endif // CONFIG_EKF2_GNSS
 #if defined(CONFIG_EKF2_BAROMETER)
+	_param_ekf2_baro_ctrl(_params->ekf2_baro_ctrl),
 	_param_ekf2_baro_delay(_params->ekf2_baro_delay),
 	_param_ekf2_baro_noise(_params->ekf2_baro_noise),
 	_param_ekf2_baro_gate(_params->ekf2_baro_gate),
@@ -184,6 +185,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_ev_pos_z(_params->ev_pos_body(2)),
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
+	_param_ekf2_of_ctrl(_params->ekf2_of_ctrl),
 	_param_ekf2_of_gyr_src(_params->ekf2_of_gyr_src),
 	_param_ekf2_of_delay(_params->ekf2_of_delay),
 	_param_ekf2_of_n_min(_params->ekf2_of_n_min),
@@ -1010,7 +1012,7 @@ void EKF2::initFusionControl()
 	int8_t instance, param_t param, uint8_t disabled_val = 0) {
 		if (_num_sensor_table < MAX_SENSOR_TABLE) {
 			sensor.enabled = sens_en & (1 << sens_en_bit);
-			int32_t param_val = 1; // default for params without a handle (pure on/off)
+			int32_t param_val = disabled_val;
 
 			if (param != PARAM_INVALID) {
 				param_get(param, &param_val);
@@ -1026,7 +1028,7 @@ void EKF2::initFusionControl()
 	// TODO: gps[1] reserved — no param yet, add second GPS instance here when multi-GPS CTRL is implemented
 #endif
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	add(_fc.of,     SENS_EN_OF,     vehicle_command_s::FUSION_SOURCE_OF,     -1, PARAM_INVALID);
+	add(_fc.of,     SENS_EN_OF,     vehicle_command_s::FUSION_SOURCE_OF,     -1, _param_ekf2_of_ctrl.handle());
 #endif
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	add(_fc.ev,     SENS_EN_EV,     vehicle_command_s::FUSION_SOURCE_EV,     -1, _param_ekf2_ev_ctrl.handle());
@@ -1046,7 +1048,7 @@ void EKF2::initFusionControl()
 
 #endif
 #if defined(CONFIG_EKF2_BAROMETER)
-	add(_fc.baro,   SENS_EN_BARO,   vehicle_command_s::FUSION_SOURCE_BARO,   -1, PARAM_INVALID);
+	add(_fc.baro,   SENS_EN_BARO,   vehicle_command_s::FUSION_SOURCE_BARO,   -1, _param_ekf2_baro_ctrl.handle());
 #endif
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	add(_fc.rng,    SENS_EN_RNG,    vehicle_command_s::FUSION_SOURCE_RNG,    -1, _param_ekf2_rng_ctrl.handle());
@@ -1066,7 +1068,7 @@ void EKF2::updateFusionIntended()
 {
 	for (uint8_t i = 0; i < _num_sensor_table; i++) {
 		FusionEntry &e = _sensor_table[i];
-		int32_t param_val = 1; // default for params without a handle (pure on/off)
+		int32_t param_val = e.disabled_val;
 
 		if (e.param != PARAM_INVALID) {
 			param_get(e.param, &param_val);
@@ -1096,8 +1098,15 @@ void EKF2::handleSensorFusionCommand(const vehicle_command_s &cmd, vehicle_comma
 			}
 
 			e.sensor->intended = enable ? static_cast<uint8_t>(param_val) : e.disabled_val;
-			updateSensEnParam(e.sens_en_bit, enable);
-			ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
+			if (!_prev_armed) {
+				updateSensEnParam(e.sens_en_bit, enable);
+			}
+			const bool intended_active = (e.sensor->intended != e.disabled_val);
+			ack.result = (enable == intended_active)
+				     ? vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED
+				     : vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+
 			return;
 		}
 	}
@@ -1120,6 +1129,13 @@ void EKF2::updateSensEnParam(uint8_t bit, bool enable)
 	}
 
 	param_set_no_notification(_sens_en_param, &sens_en);
+}
+
+void EKF2::syncSensEnParam()
+{
+	for (uint8_t i = 0; i < _num_sensor_table; i++) {
+		updateSensEnParam(_sensor_table[i].sens_en_bit, _sensor_table[i].sensor->enabled);
+	}
 }
 
 void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
@@ -2824,13 +2840,18 @@ void EKF2::UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps)
 		// vehicle_status
 		vehicle_status_s vehicle_status;
 
-		bool armed = false;
-
 		if (_status_sub.copy(&vehicle_status)
 		    && (ekf2_timestamps.timestamp < vehicle_status.timestamp + 3_s)) {
 
+			const bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+
+			if (_prev_armed && !armed) {
+				syncSensEnParam();
+			}
+
+			_prev_armed = armed;
+
 			// initially set in_air from arming_state (will be overridden if land detector is available)
-			armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 			flags.in_air = armed;
 
 			// let the EKF know if the vehicle motion is that of a fixed wing (forward flight only relative to wind)

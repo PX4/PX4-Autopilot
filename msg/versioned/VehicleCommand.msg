@@ -113,10 +113,10 @@ uint16 VEHICLE_CMD_EXTERNAL_WIND_ESTIMATE = 43004
 uint16 VEHICLE_CMD_SET_EKF_SENSOR_FUSION = 43006 # Enable/disable EKF sensor fusion. |sensor (FUSION_SOURCE_*)|instance (0-based, for multi-instance types)|action (0=disable, 1=enable)|Unused|Unused|Unused|Unused|
 # Sensor fusion source types for VEHICLE_CMD_SET_EKF_SENSOR_FUSION
 uint8 FUSION_SOURCE_GPS = 1   # GNSS (EKF2_GPS{i}_CTRL, use instance param)
-uint8 FUSION_SOURCE_OF = 2    # Optical Flow
+uint8 FUSION_SOURCE_OF = 2    # Optical Flow (EKF2_OF_CTRL)
 uint8 FUSION_SOURCE_EV = 3    # External Vision (EKF2_EV_CTRL)
 uint8 FUSION_SOURCE_AGP = 4   # Auxiliary Global Position (EKF2_AGP{i}_CTRL, use instance param)
-uint8 FUSION_SOURCE_BARO = 5  # Barometer
+uint8 FUSION_SOURCE_BARO = 5  # Barometer (EKF2_BARO_CTRL)
 uint8 FUSION_SOURCE_RNG = 6   # Range Finder (EKF2_RNG_CTRL)
 uint8 FUSION_SOURCE_MAG = 7   # Magnetometer (EKF2_MAG_TYPE)
 uint8 FUSION_SOURCE_ASPD = 8  # Airspeed (EKF2_ARSP_THR)
