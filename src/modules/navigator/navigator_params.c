@@ -208,3 +208,16 @@ PARAM_DEFINE_FLOAT(NAV_MIN_LTR_ALT, -1.f);
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(NAV_MIN_GND_DIST, -1.f);
+
+/**
+ * Loiter at last GCS heartbeat position on data link loss
+ *
+ * When the data link is lost and this setting is enabled,
+ * the vehicle will loiter at the position where the last GCS
+ * heartbeat was received rather than at its current position.
+ * Only applies to Hold mode during failsafe actions.
+ *
+ * @boolean
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(NAV_LTR_LAST_DL, 0);
