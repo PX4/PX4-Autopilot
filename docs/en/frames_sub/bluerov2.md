@@ -37,10 +37,10 @@ the [Airframe Reference](../airframes/airframe_reference.md#vectored-6-dof-uuv):
 
 For underwater vehicles, motion is defined in terms of body axes:
 
-- **Surge:** forward/back motion
-- **Sway:** left/right motion
-- **Heave:** up/down motion
-- **Yaw:** rotation about the vertical axis
+- **Surge:** forward/back motion - translation along the body X axis.
+- **Sway:** left/right motion - translation along the body Y axis.
+- **Heave:** up/down motion - translation along the body Z axis.
+- **Yaw:** rotation about the (vertical) body Z axis.
 
 ### Stick Mapping (Mode 2)
 
@@ -77,10 +77,10 @@ By default, `UUV_STICK_MODE` is set to `0`, which enables the UUV stick mapping 
 This mode is intended for normal BlueROV2 operation.
 In `Manual`, `Stabilized`, and `Acro` modes, the sticks command:
 
-- **Pitch stick:** surge
-- **Roll stick:** sway
-- **Throttle stick:** heave
-- **Yaw stick:** yaw
+- **Pitch stick:** surge - moving stick up -> moving forward, +X translation in body frame.
+- **Roll stick:** sway - moving stick right -> moving sideways right, +Y translation in body frame.
+- **Throttle stick:** heave - moving stick up -> moving upwards, -Z translation in body frame (note the Z axis points Down of the vehicle in PX4).
+- **Yaw stick:** yaw - moving stick right -> yawing to the right, +Z rotation in body frame.
 
 In this mode, roll and pitch are kept level rather than commanded directly.
 
@@ -88,10 +88,10 @@ In this mode, roll and pitch are kept level rather than commanded directly.
 
 This mode enables the legacy multicopter-style stick mapping for `Manual`, `Stabilized`, and `Acro` modes:
 
-- **Throttle stick:** surge
-- **Roll stick:** roll
-- **Pitch stick:** pitch
-- **Yaw stick:** yaw
+- **Throttle stick:** surge - moving stick up -> moving forward, +X translation in body frame.
+- **Roll stick:** roll - moving stick right -> rolling to the right side, +X rotation in body frame.
+- **Pitch stick:** pitch - moving stick up -> pitching down, -X translation in body frame (note signs are switched to follow PX4 standard).
+- **Yaw stick:** yaw - moving stick right -> yawing to the right, +Z rotation in body frame.
 
 This mode is mainly provided for compatibility with older setups and user preference.
 
