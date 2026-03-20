@@ -37,6 +37,10 @@
 * The cutoff frequency for the 2nd order butterworth filter on the primary accelerometer.
 * This only affects the signal sent to the controllers, not the estimators. 0 disables the filter.
 *
+* When dynamic notch filters are enabled (IMU_ACC_DNF_EN), this can be raised
+* (e.g. to 50-80 Hz) to reduce phase lag while the notch filters handle
+* motor-frequency vibrations.
+*
 * @min 0
 * @max 1000
 * @unit Hz
@@ -138,7 +142,7 @@ PARAM_DEFINE_INT32(IMU_ACC_DNF_EN, 0);
 * @increment 0.1
 * @decimal 1
 * @min 5
-* @max 30
+* @max 100
 */
 PARAM_DEFINE_FLOAT(IMU_ACC_DNF_BW, 15.f);
 
