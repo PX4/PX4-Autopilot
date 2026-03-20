@@ -27,6 +27,10 @@ More complete documentation can be found in the _QGroundControl User Guide_: [Pl
 
 Safety points are not enabled by default (there are a number of different [Return Mode Types](../flight_modes/return.md#return_types)).
 
-To enable safety points:
+To enable safety points, choose the return behaviour that matches your use case:
 
-1. [Use the QGroundControl Parameter Editor](../advanced_config/parameters.md) to set parameter: [RTL_TYPE=3](../advanced_config/parameter_reference.md#RTL_TYPE).
+1. [Use the QGroundControl Parameter Editor](../advanced_config/parameters.md) to set [RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE).
+1. Select the value that matches the desired behaviour:
+   - `3`: Direct return to the closest destination among home, mission landing start, or safe point.
+   - `5`: Direct return to a safe point only.
+   - `6`: [Route Safe Point Return](../flight_modes/route_safe_point_return.md), which rejoins the uploaded mission route, follows it to the best projected safe-point branch-off, and only then leaves the route to land. If no safe point is usable, it falls back to the closer mission endpoint while staying in the route-based return logic.

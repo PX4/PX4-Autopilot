@@ -40,6 +40,7 @@
 #pragma once
 
 #include "mission_base.h"
+#include "rtl_route_planner.h"
 #include <uORB/topics/rtl_time_estimate.h>
 
 class RtlBase : public MissionBase
@@ -54,4 +55,16 @@ public:
 	virtual void setReturnAltMin(bool min) { (void)min;};
 
 	virtual void setRtlAlt(float alt) { (void)alt;};
+
+	virtual void setRoutePlan(const RtlRoutePlanner::Plan &plan) { (void)plan; }
+
+	/**
+	 * @brief Return whether the RTL mode should keep the vehicle on the direct-to-goal branch.
+	 */
+	virtual bool shouldGoStraightToGoal() const { return false; }
+
+	/**
+	 * @brief Return the most recent loop jump segment used as the SRP projection anchor.
+	 */
+	virtual RtlRoutePlanner::Segment lastFlownLoopSegment() const { return {}; }
 };

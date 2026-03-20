@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2026 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,60 +31,9 @@
 #
 ############################################################################
 
-add_subdirectory(GeofenceBreachAvoidance)
-add_subdirectory(MissionFeasibility)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
 
-px4_add_library(navigator_rtl_route_planner
-	rtl_route_planner.cpp
-)
-
-target_link_libraries(navigator_rtl_route_planner PUBLIC geo)
-
-add_subdirectory(test)
-
-set(NAVIGATOR_SOURCES
-	navigator_main.cpp
-	navigator_mode.cpp
-	mission_base.cpp
-	mission_block.cpp
-	mission.cpp
-	loiter.cpp
-	rtl.cpp
-	rtl_direct.cpp
-	rtl_direct_mission_land.cpp
-	rtl_mission_fast.cpp
-	rtl_mission_fast_reverse.cpp
-	rtl_mission_safe_point_follow.cpp
-	takeoff.cpp
-	land.cpp
-	precland.cpp
-	mission_feasibility_checker.cpp
-	geofence.cpp)
-
-if(CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF)
-	set(NAVIGATOR_SOURCES
-		${NAVIGATOR_SOURCES}
-		vtol_takeoff.cpp)
-endif()
-
-px4_add_module(
-	MODULE modules__navigator
-	MAIN navigator
-	SRCS ${NAVIGATOR_SOURCES}
-	MODULE_CONFIG
-		geofence_params.yaml
-		mission_params.yaml
-		navigator_params.yaml
-		precland_params.yaml
-		rtl_params.yaml
-		vtol_takeoff_params.yaml
-	DEPENDS
-		dataman_client
-		geo
-		adsb
-		geofence_breach_avoidance
-		motion_planning
-		mission_feasibility_checker
-		navigator_rtl_route_planner
-		rtl_time_estimator
-	)
+px4_add_functional_gtest(SRC test_RTL_projection.cpp LINKLIBS navigator_rtl_route_planner)
+px4_add_functional_gtest(SRC test_RTL_safe_point.cpp LINKLIBS navigator_rtl_route_planner)
+px4_add_functional_gtest(SRC test_RTL_planner_integration.cpp LINKLIBS navigator_rtl_route_planner)
+px4_add_functional_gtest(SRC test_RTL_transition.cpp LINKLIBS navigator_rtl_route_planner)

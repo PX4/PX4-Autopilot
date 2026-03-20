@@ -76,6 +76,8 @@ parameters:
           path, whichever is closer by counting waypoints. Do not consider rally points.
         5: Return directly to safe landing point (do not consider mission landing
           and Home)
+        6: Return to a safe point by rejoining the uploaded mission route, following it to the best branch-off, then leaving the route to land at the safe point.
+
       default: 0
     RTL_CONE_ANG:
       description:
@@ -117,6 +119,36 @@ parameters:
       min: 25
       decimal: 1
       increment: 0.5
+    RTL_MC_SEG_DIST:
+      description:
+        short: Extra cross-track search distance for multicopter route projections
+        long: Additional cross-track distance used when projecting the vehicle position onto the uploaded mission for route-aware safe-point RTL (RTL_TYPE = 6).
+      type: float
+      default: 30.0
+      unit: m
+      min: 0
+      decimal: 1
+      increment: 1
+    RTL_FW_SEG_DIST:
+      description:
+        short: Extra cross-track search distance for fixed-wing route projections
+        long: Additional cross-track distance used when projecting the vehicle position onto the uploaded mission for route-aware safe-point RTL (RTL_TYPE = 6).
+      type: float
+      default: 150.0
+      unit: m
+      min: 0
+      decimal: 1
+      increment: 1
+    RTL_RP_SEG_DIST:
+      description:
+        short: Extra cross-track search distance for safe-point route projections
+        long: Additional cross-track distance used when projecting safe points onto the uploaded mission for route-aware safe-point RTL (RTL_TYPE = 6).
+      type: float
+      default: 30.0
+      unit: m
+      min: 0
+      decimal: 1
+      increment: 1
 - group: Return To Land
   definitions:
     RTL_TIME_FACTOR:

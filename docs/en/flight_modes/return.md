@@ -44,7 +44,7 @@ The following sections explain how to configure the [return type](#return_types)
 
 ## Return Types (RTL_TYPE)
 
-PX4 provides four alternative approaches for finding an unobstructed path to a safe destination and/or landing, which are set using the [RTL_TYPE](#RTL_TYPE) parameter.
+PX4 provides seven alternative approaches for finding an unobstructed path to a safe destination and/or landing, which are set using the [RTL_TYPE](#RTL_TYPE) parameter.
 
 At high level these are:
 
@@ -56,6 +56,9 @@ At high level these are:
   If no _mission_ defined, return direct to home (rally points are ignored).
 - [Closest safe destination return](#closest-safe-destination-return-type-rtl-type-3) (`RTL_TYPE=3`): Ascend to a safe altitude and return via direct path to closest destination: home, start of mission landing pattern, or rally point.
   If the destination is a mission landing pattern, follow the pattern to land.
+- [Closest mission-path return](#closest-mission-path-return-type-rtl-type-4) (`RTL_TYPE=4`): Choose whichever is closer by waypoint count: mission landing via the mission path or home via the reverse mission path.
+- [Direct safe point return](#direct-safe-point-return-type-rtl-type-5) (`RTL_TYPE=5`): Return directly to a safe point, ignoring home and mission landing destinations.
+- [Route safe point return](#route-safe-point-return-type-rtl-type-6) (`RTL_TYPE=6`): Rejoin the uploaded mission route, follow it to the best safe-point branch-off, and leave the route only at that projected branch-off point. If no safe point can be selected, PX4 falls back to the closer mission endpoint while staying in the route-based type-6 handler.
 
 More detailed explanations for each of the types are provided in the following sections.
 
@@ -147,13 +150,42 @@ In this return type the vehicle:
   By default an MC or VTOL in MC mode will land, and a fixed-wing vehicle circles at the descent altitude.
   A VTOL in FW mode aligns its heading to the destination point, transitions to MC mode, and then lands.
 
+### Closest Mission-Path Return Type (RTL_TYPE=4)
+
+This is a mission-based return variant that compares two mission-derived options and chooses whichever is closer by waypoint count:
+
+- continue toward the mission landing pattern using the mission path, or
+- return home using the reverse mission path.
+
+Rally points are ignored.
+If no valid mission exists PX4 falls back to a direct home return.
+
+### Direct Safe Point Return Type (RTL_TYPE=5)
+
+In this return type the vehicle flies directly to a safe point and does not consider home or mission-landing destinations.
+
+If no valid safe point is available, PX4 falls back to the last known position with valid data-link context, or the current position if no better fallback exists.
+
+### Route Safe Point Return Type (RTL_TYPE=6)
+
+In this return type PX4 uses the uploaded mission geometry to reach a safe point:
+
+- The vehicle is projected onto the uploaded mission route rather than just the nearest waypoint.
+- All safe points are projected in one batched route scan and scored by the along-route path length from the vehicle projection to the safe-point branch-off.
+- PX4 chooses the safe point with the shortest valid route-following return path, with multicopter direct-to-safe-point and cached branch-off reuse shortcuts.
+- If no safe point can be selected, PX4 falls back to the better mission endpoint: mission land in nominal direction or mission takeoff in reverse.
+- The vehicle rejoins the route, follows it in nominal or reverse direction, replaces the active mission target with a virtual branch-off waypoint when needed, and then lands at the safe point.
+
+This mode is intended for operations where the mission path itself is the safest known corridor.
+For more information, including loop handling, branch-off injection, and current limitations, see [Route Safe Point Return](./route_safe_point_return.md).
+
 ## Minimum Return Altitude
 
 For most [return types](#return_types) a vehicle will ascend to a _minimum safe altitude_ before returning (unless already above that altitude), in order to avoid any obstacles between it and the destination.
 
 ::: info
-The exception is when executing a [mission path return](#mission-path-return-type-rtl-type-2) from _within a mission_.
-In this case the vehicle follows mission waypoints, which we assume are planned to avoid any obstacles.
+The main exceptions are mission-geometry return modes such as [mission path return](#mission-path-return-type-rtl-type-2), [closest mission-path return](#closest-mission-path-return-type-rtl-type-4), and [route safe point return](#route-safe-point-return-type-rtl-type-6).
+In these cases the vehicle can follow the uploaded mission geometry instead of first climbing to the generic RTL altitude.
 :::
 
 The return altitude for a fixed-wing vehicle or a VTOL in fixed-wing mode is configured using the parameter [RTL_RETURN_ALT](#RTL_RETURN_ALT) (does not use the code described in the next paragraph).
@@ -207,7 +239,7 @@ The RTL parameters are listed in [Parameter Reference > Return Mode](../advanced
 
 | Parameter                                                                                                   | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="RTL_TYPE"></a>[RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE)                         | Return mechanism (path and destination).<br>`0`: Return to a rally point or home (whichever is closest) via direct path.<br>`1`: Return to a rally point or the mission landing pattern start point (whichever is closest), via direct path. If neither mission landing or rally points are defined return home via a direct path. If the destination is a mission landing pattern, follow the pattern to land.<br>`2`: Use mission path fast-forward to landing if a landing pattern is defined, otherwise fast-reverse to home. Ignore rally points. Fly direct to home if no mission plan is defined.<br>`3`: Return via direct path to closest destination: home, start of mission landing pattern or safe point. If the destination is a mission landing pattern, follow the pattern to land. |
+| <a id="RTL_TYPE"></a>[RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE)                         | Return mechanism (path and destination).<br>`0`: Return to a rally point or home (whichever is closest) via direct path.<br>`1`: Return to a rally point or the mission landing pattern start point (whichever is closest), via direct path. If neither mission landing or rally points are defined return home via a direct path. If the destination is a mission landing pattern, follow the pattern to land.<br>`2`: Use mission path fast-forward to landing if a landing pattern is defined, otherwise fast-reverse to home. Ignore rally points. Fly direct to home if no mission plan is defined.<br>`3`: Return via direct path to closest destination: home, start of mission landing pattern or safe point. If the destination is a mission landing pattern, follow the pattern to land.<br>`4`: Choose whichever is closer by waypoint count: mission landing via the mission path or home via the reverse mission path. Ignore rally points.<br>`5`: Return directly to a safe point and do not consider mission landing or home destinations.<br>`6`: Rejoin the uploaded mission route, follow it to the best safe-point branch-off, then leave the route to land at the safe point. |
 | <a id="RTL_RETURN_ALT"></a>[RTL_RETURN_ALT](../advanced_config/parameter_reference.md#RTL_RETURN_ALT)       | Return altitude in meters (default: 60m) when [RTL_CONE_ANG](../advanced_config/parameter_reference.md#RTL_CONE_ANG) is 0. If already above this value the vehicle will return at its current altitude.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | <a id="RTL_DESCEND_ALT"></a>[RTL_DESCEND_ALT](../advanced_config/parameter_reference.md#RTL_DESCEND_ALT)    | Minimum return altitude and altitude at which the vehicle will slow or stop its initial descent from a higher return altitude (default: 30m)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | <a id="RTL_LAND_DELAY"></a>[RTL_LAND_DELAY](../advanced_config/parameter_reference.md#RTL_LAND_DELAY)       | Time to wait at `RTL_DESCEND_ALT` before landing (default: 0.5s) -by default this period is short so that the vehicle will simply slow and then land immediately. If set to -1 the system will loiter at `RTL_DESCEND_ALT` rather than landing. The delay is provided to allow you to configure time for landing gear to be deployed (triggered automatically).                                                                                                                                                                                                                                                                                                                                                                                                                                    |

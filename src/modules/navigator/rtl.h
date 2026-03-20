@@ -51,6 +51,8 @@
 #include "rtl_direct_mission_land.h"
 #include "rtl_mission_fast.h"
 #include "rtl_mission_fast_reverse.h"
+#include "rtl_mission_safe_point_follow.h"
+#include "rtl_route_planner.h"
 
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
@@ -76,9 +78,11 @@ public:
 		RTL_DIRECT_MISSION_LAND = rtl_status_s::RTL_STATUS_TYPE_DIRECT_MISSION_LAND,
 		RTL_MISSION_FAST = rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION,
 		RTL_MISSION_FAST_REVERSE = rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_REVERSE,
+		RTL_MISSION_SAFE_POINT_FOLLOW = rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_SAFE_POINT,
 	};
 
 	void on_inactive() override;
+	void on_inactivation() override;
 	void on_activation() override;
 	void on_active() override;
 
@@ -112,6 +116,11 @@ private:
 	 * @return true if the reverse is more items away.
 	 */
 	bool reverseIsFurther() const;
+
+	/**
+	 * @brief Drop all cached route-safe-point state that depends on the active mission or safe-point set.
+	 */
+	void resetRouteSafePointCache();
 
 	/**
 	 * @brief function to call regularly to do background work
@@ -231,6 +240,9 @@ private:
 	RtlDirect _rtl_direct;
 
 	bool _enforce_rtl_alt{false};
+	bool _should_go_straight_to_safe_point{false};
+	RtlRoutePlanner::Plan _route_safe_point_plan{};
+	RtlRoutePlanner::Segment _last_route_safe_point_loop_segment{};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::RTL_TYPE>)          _param_rtl_type,
@@ -238,7 +250,11 @@ private:
 		(ParamFloat<px4::params::RTL_RETURN_ALT>)  _param_rtl_return_alt,
 		(ParamFloat<px4::params::RTL_MIN_DIST>)    _param_rtl_min_dist,
 		(ParamFloat<px4::params::NAV_ACC_RAD>)     _param_nav_acc_rad,
-		(ParamInt<px4::params::RTL_APPR_FORCE>)    _param_rtl_appr_force
+		(ParamInt<px4::params::RTL_APPR_FORCE>)    _param_rtl_appr_force,
+		(ParamFloat<px4::params::RTL_MC_SEG_DIST>) _param_rtl_mc_seg_dist,
+		(ParamFloat<px4::params::RTL_FW_SEG_DIST>) _param_rtl_fw_seg_dist,
+		(ParamFloat<px4::params::RTL_RP_SEG_DIST>) _param_rtl_rp_seg_dist,
+		(ParamFloat<px4::params::RTL_FW_UTURN_PEN>) _param_rtl_fw_uturn_pen
 	)
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
