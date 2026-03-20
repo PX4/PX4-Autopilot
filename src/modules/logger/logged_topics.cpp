@@ -207,7 +207,7 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("sensor_optical_flow", 1000, 2);
 
 	add_topic_multi("vehicle_imu", 500, 4);
-	add_topic_multi("vehicle_imu_status", 4);
+	add_topic_multi("vehicle_imu_status", 1000, 4);
 	add_optional_topic_multi("vehicle_magnetometer", 500, 4);
 	add_topic("vehicle_optical_flow", 500);
 	add_topic_multi("aux_global_position", 500);
@@ -352,11 +352,13 @@ void LoggedTopics::add_vision_and_avoidance_topics()
 void LoggedTopics::add_raw_imu_gyro_fifo()
 {
 	add_topic("sensor_gyro_fifo");
+	add_topic_multi("vehicle_imu_status", 4);
 }
 
 void LoggedTopics::add_raw_imu_accel_fifo()
 {
 	add_topic("sensor_accel_fifo");
+	add_topic_multi("vehicle_imu_status", 4);
 }
 
 void LoggedTopics::add_system_identification_topics()
