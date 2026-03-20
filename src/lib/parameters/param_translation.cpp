@@ -229,6 +229,17 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 			int32_t delay_ms = static_cast<int32_t>(node->d);
 			param_set(param_find("EKF2_POS_LOCK"), &delay_ms);
 			PX4_INFO("migrating %s -> %s", "EKF2_ENGINE_WRM", "EKF2_POS_LOCK");
+			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
+		}
+	}
+
+	// 2026-03-19: translate RC*_REV from float to int32
+	{
+		if ((node->type == bson_type_t::BSON_DOUBLE) && (strncmp("RC", node->name, 2) == 0)
+		    && strstr(node->name, "_REV") != nullptr) {
+			node->i32 = (node->d < 0.0) ? -1 : 1;
+			node->type = bson_type_t::BSON_INT32;
+			PX4_INFO("migrating %s from float to int32", node->name);
 			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 	}
