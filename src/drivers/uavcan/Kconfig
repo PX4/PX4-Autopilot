@@ -18,6 +18,11 @@ if DRIVERS_UAVCAN
         bool "Include servo & ESC controller"
         default y
 
+    config UAVCAN_HOBBYWING_ESC
+        bool "Include HobbyWing ESC support (com.hobbywing.esc)"
+        default y
+        depends on UAVCAN_OUTPUTS_CONTROLLER
+
     config UAVCAN_HARDPOINT_CONTROLLER
         bool "Include hardpoint controller"
         default y

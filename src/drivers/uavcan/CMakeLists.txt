@@ -162,6 +162,7 @@ px4_add_module(
 
 		# Actuators
 		actuators/esc.cpp
+		$<$<BOOL:${CONFIG_UAVCAN_HOBBYWING_ESC}>:actuators/esc_hobbywing.cpp>
 		actuators/hardpoint.cpp
 		actuators/servo.cpp
 

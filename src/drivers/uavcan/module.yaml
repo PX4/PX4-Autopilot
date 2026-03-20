@@ -27,6 +27,21 @@ parameters:
       min: 1
       max: 255
       reboot_required: true
+    UAVCAN_ESC_TYPE:
+      description:
+        short: ESC protocol type for UAVCAN output.
+        long: |
+          Selects which DroneCAN ESC protocol to use.
+          0 = Standard UAVCAN ESC (uavcan.equipment.esc.RawCommand).
+          1 = HobbyWing ESC (com.hobbywing.esc.RawCommand). Requires
+          ESCs to have unique node IDs and throttle channels assigned
+          via the SetID service before use. Reboot required.
+      type: enum
+      values:
+        0: Standard UAVCAN ESC
+        1: HobbyWing ESC
+      default: 0
+      reboot_required: true
     UAVCAN_LGT_NUM:
       description:
         short: Number of UAVCAN lights to configure
