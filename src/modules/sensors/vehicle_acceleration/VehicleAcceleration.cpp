@@ -652,7 +652,8 @@ void VehicleAcceleration::UpdateDynamicNotchFFT(const hrt_abstime &time_now_us, 
 		if (_sensor_gyro_fft_sub.copy(&sensor_gyro_fft)
 		    && (sensor_gyro_fft.device_id == _selected_gyro_device_id)
 		    && (_selected_gyro_device_id != 0)
-		    && (time_now_us < sensor_gyro_fft.timestamp + DYNAMIC_NOTCH_FITLER_TIMEOUT)) {
+		    && (time_now_us < sensor_gyro_fft.timestamp + DYNAMIC_NOTCH_FITLER_TIMEOUT)
+		    && (sensor_gyro_fft.sensor_sample_rate_hz > 0)) {
 
 			static constexpr float peak_freq_min = 10.f; // lower bound
 
