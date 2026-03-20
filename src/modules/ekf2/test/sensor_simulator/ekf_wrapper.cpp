@@ -24,15 +24,6 @@ EkfWrapper::~EkfWrapper()
 {
 }
 
-void EkfWrapper::syncGpsFc()
-{
-	_fc->gps.enabled = true;
-}
-
-void EkfWrapper::syncEvFc()
-{
-	_fc->ev.enabled = true;
-}
 
 void EkfWrapper::setBaroHeightRef()
 {
@@ -63,13 +54,11 @@ void EkfWrapper::setGpsHeightRef()
 void EkfWrapper::enableGpsHeightFusion()
 {
 	_ekf_params->ekf2_gps_ctrl |= static_cast<int32_t>(GnssCtrl::VPOS);
-	syncGpsFc();
 }
 
 void EkfWrapper::disableGpsHeightFusion()
 {
 	_ekf_params->ekf2_gps_ctrl &= ~static_cast<int32_t>(GnssCtrl::VPOS);
-	syncGpsFc();
 }
 
 bool EkfWrapper::isIntendingGpsHeightFusion() const
@@ -106,7 +95,6 @@ void EkfWrapper::setExternalVisionHeightRef()
 void EkfWrapper::enableExternalVisionHeightFusion()
 {
 	_ekf_params->ekf2_ev_ctrl |= static_cast<int32_t>(EvCtrl::VPOS);
-	syncEvFc();
 }
 
 bool EkfWrapper::isIntendingExternalVisionHeightFusion() const
@@ -137,13 +125,11 @@ bool EkfWrapper::isIntendingAirspeedFusion() const
 void EkfWrapper::enableGpsFusion()
 {
 	_ekf_params->ekf2_gps_ctrl |= static_cast<int32_t>(GnssCtrl::HPOS) | static_cast<int32_t>(GnssCtrl::VEL);
-	syncGpsFc();
 }
 
 void EkfWrapper::disableGpsFusion()
 {
 	_ekf_params->ekf2_gps_ctrl &= ~(static_cast<int32_t>(GnssCtrl::HPOS) | static_cast<int32_t>(GnssCtrl::VEL));
-	syncGpsFc();
 }
 
 bool EkfWrapper::isIntendingGpsFusion() const
@@ -164,13 +150,11 @@ void EkfWrapper::setGnssDeadReckonMode()
 void EkfWrapper::enableGpsHeadingFusion()
 {
 	_ekf_params->ekf2_gps_ctrl |= static_cast<int32_t>(GnssCtrl::YAW);
-	syncGpsFc();
 }
 
 void EkfWrapper::disableGpsHeadingFusion()
 {
 	_ekf_params->ekf2_gps_ctrl &= ~static_cast<int32_t>(GnssCtrl::YAW);
-	syncGpsFc();
 }
 
 bool EkfWrapper::isIntendingGpsHeadingFusion() const
@@ -202,13 +186,11 @@ void EkfWrapper::setFlowOffset(const Vector3f &offset)
 void EkfWrapper::enableExternalVisionPositionFusion()
 {
 	_ekf_params->ekf2_ev_ctrl |= static_cast<int32_t>(EvCtrl::HPOS);
-	syncEvFc();
 }
 
 void EkfWrapper::disableExternalVisionPositionFusion()
 {
 	_ekf_params->ekf2_ev_ctrl &= ~static_cast<int32_t>(EvCtrl::HPOS);
-	syncEvFc();
 }
 
 bool EkfWrapper::isIntendingExternalVisionPositionFusion() const
@@ -219,13 +201,11 @@ bool EkfWrapper::isIntendingExternalVisionPositionFusion() const
 void EkfWrapper::enableExternalVisionVelocityFusion()
 {
 	_ekf_params->ekf2_ev_ctrl |= static_cast<int32_t>(EvCtrl::VEL);
-	syncEvFc();
 }
 
 void EkfWrapper::disableExternalVisionVelocityFusion()
 {
 	_ekf_params->ekf2_ev_ctrl &= ~static_cast<int32_t>(EvCtrl::VEL);
-	syncEvFc();
 }
 
 bool EkfWrapper::isIntendingExternalVisionVelocityFusion() const
@@ -236,13 +216,11 @@ bool EkfWrapper::isIntendingExternalVisionVelocityFusion() const
 void EkfWrapper::enableExternalVisionHeadingFusion()
 {
 	_ekf_params->ekf2_ev_ctrl |= static_cast<int32_t>(EvCtrl::YAW);
-	syncEvFc();
 }
 
 void EkfWrapper::disableExternalVisionHeadingFusion()
 {
 	_ekf_params->ekf2_ev_ctrl &= ~static_cast<int32_t>(EvCtrl::YAW);
-	syncEvFc();
 }
 
 bool EkfWrapper::isIntendingExternalVisionHeadingFusion() const
