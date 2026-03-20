@@ -491,7 +491,7 @@ Vector3f VehicleAcceleration::GetResetAcceleration() const
 	if (_last_publish != 0) {
 		// acceleration filtering is performed on raw uncalibrated data
 		//  start with last valid body frame acceleration and compute equivalent raw data (for current sensor selection)
-		Vector3f acceleration_uncalibrated{_calibration.rotation().I() *(_acceleration + _bias)};
+		Vector3f acceleration_uncalibrated{_calibration.Uncorrect(_acceleration + _bias)};
 
 		if (acceleration_uncalibrated.isAllFinite()) {
 			return acceleration_uncalibrated;
