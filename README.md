@@ -206,6 +206,7 @@ Board support
 | MavlinkMissionManager: clear_rally_points_with_approaches | |  ||
 | Mission: try to restore previous mission if current mission is invalid and has some mission items. | |  ||
 | GPS denied: created a singular param (COM_DLL_NAV_CTL) to determine how to reset nav fusion on link loss | On link loss depending on the value of our new param, GNSS and AGP fusion can be reset or disabled | Depending on the environment the user may want to fallback to specific navigation mode in event of a link loss, for example in GNSS denied environments they may want to revert to AGP fusion only, to avoid spoofed or invalid GNSS estimates. | ||
+| Mavlink: stream rate increased | Increase stream rate of GIMBAL_DEVICE_ATTITUDE_STATUS to 50 Hz  | Maintain tracking for 1D gimbal| ||
 
 ### Miscellaneous
 | Diff summary | Description | Reason | Comments |
