@@ -218,7 +218,9 @@ private:
 	void handle_message_gimbal_device_information(mavlink_message_t *msg);
 	void handle_message_gimbal_device_attitude_status(mavlink_message_t *msg);
 	void handle_message_global_position_sensor(mavlink_message_t *msg);
+#if defined(MAVLINK_MSG_ID_RANGING_BEACON)
 	void handle_message_ranging_beacon(mavlink_message_t *msg);
+#endif // MAVLINK_MSG_ID_RANGING_BEACON
 
 #if !defined(CONSTRAINED_FLASH)
 	void handle_message_debug(mavlink_message_t *msg);

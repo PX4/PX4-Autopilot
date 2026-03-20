@@ -285,9 +285,12 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_open_drone_id_system(msg);
 		break;
 
+#if defined(MAVLINK_MSG_ID_RANGING_BEACON)
+
 	case MAVLINK_MSG_ID_RANGING_BEACON:
 		handle_message_ranging_beacon(msg);
 		break;
+#endif // MAVLINK_MSG_ID_RANGING_BEACON
 
 #if !defined(CONSTRAINED_FLASH)
 
@@ -2583,6 +2586,7 @@ MavlinkReceiver::handle_message_global_position_sensor(mavlink_message_t *msg)
 	_aux_global_position_pub.publish(aux_global_position);
 }
 
+#if defined(MAVLINK_MSG_ID_RANGING_BEACON)
 void
 MavlinkReceiver::handle_message_ranging_beacon(mavlink_message_t *msg)
 {
@@ -2609,6 +2613,7 @@ MavlinkReceiver::handle_message_ranging_beacon(mavlink_message_t *msg)
 
 	_ranging_beacon_pub.publish(ranging_beacon);
 }
+#endif // MAVLINK_MSG_ID_RANGING_BEACON
 
 void
 MavlinkReceiver::handle_message_follow_target(mavlink_message_t *msg)
