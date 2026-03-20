@@ -212,7 +212,7 @@
 *(.text._ZN26MavlinkStreamCameraTrigger4sendEv)
 *(.text._ZN36MavlinkStreamPositionTargetGlobalInt4sendEv)
 *(.text._ZN4uORB12Subscription4copyEPv)
-*(.text._ZN7sensors19VehicleAcceleration21SensorSelectionUpdateERKmb)
+*(.text._ZN7sensors19VehicleAcceleration21SensorSelectionUpdateERKyb)
 *(.text.crc_accumulate)
 *(.text._ZN3px46logger6Logger13update_paramsEv)
 *(.text._ZN11calibration14DeviceExternalEm)
