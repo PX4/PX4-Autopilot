@@ -91,6 +91,28 @@ The feature is configured using the following timeouts.
 | <a id="COM_DISARM_LAND"></a>[COM_DISARM_LAND](../advanced_config/parameter_reference.md#COM_DISARM_LAND)    | Time-out for auto disarm after landing. Default: 2s (-1 to disable).            |
 | <a id="COM_DISARM_PRFLT"></a>[COM_DISARM_PRFLT](../advanced_config/parameter_reference.md#COM_DISARM_PRFLT) | Time-out for auto disarm if too slow to takeoff. Default: 10s (<=0 to disable). |
 
+## Auto-Arming on Boot
+
+The vehicle can be configured to arm automatically on boot once all preflight checks pass,
+using the `COM_ARM_ON_BOOT` parameter. For safety, PX4 enforces a minimum 5-second delay after boot before attempting to arm.
+
+Once armed this way, the vehicle will not re-arm automatically after a manual disarm.
+
+::: info
+The parameter value is read once at boot.
+Changing it while the system is running has no effect until the next reboot.
+:::
+
+:::warning
+Use with caution.
+A vehicle that arms automatically can spin up motors and actuators without any operator gesture.
+Ensure the vehicle is in a safe state before powering on.
+:::
+
+| Parameter                                                                                                      | Description                                                                                    |
+| -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| <a id="COM_ARM_ON_BOOT"></a>[COM_ARM_ON_BOOT](../advanced_config/parameter_reference.md#COM_ARM_ON_BOOT) | Arm automatically once preflight checks pass after boot. Default: `0` (Disabled). |
+
 ## Pre-Arm Checks
 
 To reduce accidents, vehicles are only allowed to arm certain conditions are met (some of which are configurable).
