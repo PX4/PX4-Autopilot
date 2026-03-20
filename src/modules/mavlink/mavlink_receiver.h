@@ -270,7 +270,7 @@ private:
 
 	orb_advert_t _mavlink_log_pub{nullptr};
 
-	static constexpr unsigned MAX_REMOTE_COMPONENTS{16};
+	static constexpr unsigned MAX_REMOTE_COMPONENTS{32};
 	struct ComponentState {
 		uint32_t received_messages{0};
 		uint32_t missed_messages{0};
@@ -316,6 +316,7 @@ private:
 	uORB::Publication<irlock_report_s>			_irlock_report_pub{ORB_ID(irlock_report)};
 	uORB::Publication<landing_target_pose_s>		_landing_target_pose_pub{ORB_ID(landing_target_pose)};
 	uORB::Publication<log_message_s>			_log_message_pub{ORB_ID(log_message)};
+	uORB::Publication<log_message_s>			_log_message_incoming_pub{ORB_ID(log_message_incoming)};
 	uORB::Publication<mavlink_tunnel_s>			_mavlink_tunnel_pub{ORB_ID(mavlink_tunnel)};
 	uORB::Publication<mavlink_tunnel_s>			_esc_serial_passthru_pub{ORB_ID(esc_serial_passthru)};
 	uORB::Publication<mavlink_tunnel_s>			_io_serial_passthru_pub{ORB_ID(io_serial_passthru)};

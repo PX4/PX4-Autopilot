@@ -50,6 +50,7 @@
 MavlinkParametersManager::MavlinkParametersManager(Mavlink &mavlink) :
 	_mavlink(mavlink)
 {
+	param_find("MAV_PARAM_LOCK"); // Make sure the parameter is touched and adevrtised to the ground station
 }
 
 unsigned
@@ -122,6 +123,25 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 
 					/* No other action taken, return */
 					return;
+				}
+
+				// Lock parameter access by configuration
+				int32_t param_mav_param_lock = 0;
+				param_get(param_find("MAV_PARAM_LOCK"), &param_mav_param_lock);
+				bool enable_parameter_lock = param_mav_param_lock == 1;
+#ifdef PX4_RESTRICTED_BUILD
+				enable_parameter_lock |= param_mav_param_lock == 0;
+#endif /* PX4_RESTRICTED_BUILD */
+
+				if (enable_parameter_lock) {
+					// only allow setting the following params
+					if (strcmp(name, "RTL_RETURN_ALT") != 0 &&
+					    strcmp(name, "GF_ACTION") != 0 &&
+					    strcmp(name, "GF_MAX_HOR_DIST") != 0 &&
+					    strcmp(name, "GF_MAX_VER_DIST") != 0 &&
+					    strcmp(name, "MAV_SYS_ID") != 0) {
+						return;
+					}
 				}
 
 				/* attempt to find parameter, set and send it */
@@ -265,6 +285,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 		}
 
 	case MAVLINK_MSG_ID_PARAM_MAP_RC: {
+#ifndef PX4_RESTRICTED_BUILD
 			/* map a rc channel to a parameter */
 			mavlink_param_map_rc_t map_rc;
 			mavlink_msg_param_map_rc_decode(msg, &map_rc);
@@ -303,6 +324,8 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				_rc_param_map.timestamp = hrt_absolute_time();
 				_rc_param_map_pub.publish(_rc_param_map);
 			}
+
+#endif /* PX4_RESTRICTED_BUILD */
 
 			break;
 		}

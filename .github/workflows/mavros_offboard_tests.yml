@@ -3,7 +3,8 @@ name: MAVROS Offboard Tests
 on:
   push:
     branches:
-    - 'main'
+    - 'develop'
+    - 'release/*'
     paths-ignore:
       - 'docs/**'
   pull_request:
@@ -18,15 +19,17 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-
+    runs-on: [runs-on,runner=8cpu-linux-x64,"run-id=${{ github.run_id }}"]
+    env:
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
     strategy:
       fail-fast: false
 
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.AUTERION_CI_ACCESS_TOKEN }}
 
       - name: Build SITL and Run Tests (inside old ROS container)
         run: |

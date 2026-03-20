@@ -391,6 +391,7 @@ protected:
 
 	// Variables used to publish the WGS-84 location of the EKF local NED origin
 	MapProjection _local_origin_lat_lon{};
+	bool _ignore_delta_lpos_due_to_origin_change{false}; // APX4 custom
 	float _local_origin_alt{NAN};
 
 #if defined(CONFIG_EKF2_GNSS)

@@ -3,7 +3,8 @@ name: Checks
 on:
   push:
     branches:
-    - 'main'
+    - 'develop'
+    - 'release/*'
     paths-ignore:
       - 'docs/**'
   pull_request:
@@ -18,11 +19,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-
-    container:
-      image: px4io/px4-dev:v1.16.0-rc1-258-g0369abd556
-
+    runs-on: [runs-on,runner=64cpu-linux-x64,"run-id=${{ github.run_id }}"]
     strategy:
       fail-fast: false
       matrix:
@@ -31,10 +28,8 @@ jobs:
           "check_newlines",
           "tests",
           "tests_coverage",
-          "px4_fmu-v2_default stack_check",
           "validate_module_configs",
           "shellcheck_all",
-          "NO_NINJA_BUILD=1 px4_fmu-v5_default",
           "NO_NINJA_BUILD=1 px4_sitl_default",
           "px4_sitl_allyes",
           "module_documentation",
@@ -44,17 +39,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.AUTERION_CI_ACCESS_TOKEN }}
 
       - name: Building [${{ matrix.check }}]
-        run: |
-          cd "$GITHUB_WORKSPACE"
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          make ${{ matrix.check }}
-
-      - name: Uploading Coverage to Codecov.io
-        if: contains(matrix.check, 'coverage')
-        uses: codecov/codecov-action@v1
+        uses: addnab/docker-run-action@v3
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          flags: unittests
-          file: coverage/lcov.info
+          image: px4io/px4-dev:v1.16.0-rc1-258-g0369abd556
+          options: -v ${{ github.workspace }}:/workspace
+          run: |
+            cd /workspace
+            git config --global --add safe.directory /workspace
+            make ${{ matrix.check }}

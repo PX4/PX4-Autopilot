@@ -260,6 +260,8 @@ public:
 
 	bool			is_gcs_connected() { return _tstatus.heartbeat_type_gcs; }
 
+	bool 			is_secure_mode_active() { return _secure_mode_active; } // APX4 custom
+
 #if defined(MAVLINK_UDP)
 	static Mavlink 		*get_instance_for_network_port(unsigned long port);
 
@@ -538,6 +540,7 @@ private:
 	bool			_is_usb_uart{false};		/**< Port is USB */
 	bool			_wait_to_transmit{false};  	/**< Wait to transmit until received messages. */
 	bool			_received_messages{false};	/**< Whether we've received valid mavlink messages. */
+	bool 			_secure_mode_active{false};
 
 	px4::atomic_bool	_should_check_events{false};    /**< Events subscription: only one MAVLink instance should check */
 	px4::atomic_bool	_sending_parameters{false};     /**< True if parameters are currently sent out */
@@ -631,6 +634,8 @@ private:
 
 	pthread_mutex_t		_send_mutex {};
 	pthread_mutex_t         _radio_status_mutex {};
+
+	bool _param_secure_mode{false};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,

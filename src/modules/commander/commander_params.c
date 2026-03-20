@@ -229,7 +229,7 @@ PARAM_DEFINE_FLOAT(COM_DISARM_PRFLT, 10.0f);
  * @value 1 Allow arming (with warning)
  * @value 2 Allow arming (no warning)
  */
-PARAM_DEFINE_INT32(COM_ARM_WO_GPS, 1);
+PARAM_DEFINE_INT32(COM_ARM_WO_GPS, 0); // Auterion flavor
 
 /**
  * Arm switch is a momentary button
@@ -744,6 +744,23 @@ PARAM_DEFINE_INT32(COM_POWER_COUNT, 1);
  */
 PARAM_DEFINE_FLOAT(COM_LKDOWN_TKO, 3.0f);
 
+// Auterion flavor
+/**
+ * Enable external components update
+ *
+ * If enabled, the check will verify that the external components (e.g. ESCs, Smartbattery,...) have been successfully updated.
+ * The check looks for the "ext_component_updated" file on the SD card and parses it.
+ * The file can contain a "SUCCESS <return_code>" or "FAIL <error_code>", depending on the parsed result the system will
+ * allow/deny arming.
+ *
+ * @group Commander
+ * @value 0 Disabled
+ * @value 1 Enabled
+ * @value 2 Trigger fake success (update_checker)
+ * @value 3 Trigger fake fail (update_checker)
+ */
+PARAM_DEFINE_INT32(COM_EXT_COMP_EN, 0);
+
 /**
  * Enable FMU SD card detection check
  *
@@ -1001,3 +1018,34 @@ PARAM_DEFINE_INT32(COM_FLTT_LOW_ACT, 0);
  *
  */
 PARAM_DEFINE_INT32(COM_MODE_ARM_CHK, 0);
+
+/**
+ * Reset estimator fusion control settings on link loss
+ *
+ * When losing the data link connection to the vehicle, it may be desirable
+ * to re-enable or disable specific estimator fusions (GNSS, AGP) such that
+ * the vehicle can continue fully autonomously.
+ *
+ * @group Commander
+ * @value 0 Continue as before
+ * @value 1 Use GPS Only
+ * @value 2 Use VIS Only
+ * @value 3 Use GPS & VIS
+ */
+PARAM_DEFINE_INT32(COM_DLL_NAV_CTL, 0);
+
+/**
+ * Enable secure mode
+ *
+ * In secure mode the vehicle will delete information relating to the GCS position after landing. It consists of:
+ *  * Deleting prior home position
+ *  * Deleting the mission
+ *  * Deleting land approaches
+ *  * Resetting local position origin
+ *  * Disabling the serial console
+ *
+ * @boolean
+ * @group Commander
+ * @reboot_required true
+ */
+PARAM_DEFINE_INT32(COM_SEC_MODE_EN, 0); // APX4 custom

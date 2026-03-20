@@ -1,0 +1,68 @@
+name: deploy to customer repo
+
+on:
+  workflow_run:
+    workflows: ["Build and deploy APX4 release"]
+    types:
+      - completed
+
+
+jobs:
+  deploy-release-branches:
+    name: Create release branch in customer repos
+    runs-on: [runs-on,runner=8cpu-linux-x64,"run-id=${{ github.run_id }}"]
+    container: px4io/px4-dev:v1.16.0-ondemand
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.AUTERION_CI_ACCESS_TOKEN }}
+          ref: ${{ github.event.workflow_run.head_branch }}
+          fetch-depth: 0
+          submodules: 'recursive'
+
+      - name: Set initial references
+        id: references
+        run: |
+          TAG_BRANCH=${{ github.event.workflow_run.head_branch }}
+          REF_BRANCH=$(git branch -a --contains tags/$TAG_BRANCH | grep release | sed "s/.*\(release\/.*\).*/\1/p" | head -n 1)
+          VALID_RELEASE="v([0-9]+)\.([0-9]+)\.([0-9]+)-([0-9]+)\.([0-9]+)\.([0-9]+)?$"
+          RELEASE=$(echo $REF_BRANCH | sed -r 's/release\///')
+          echo "valid_tag=${VALID_RELEASE}" >> $GITHUB_OUTPUT
+          echo "tag_branch=${TAG_BRANCH}" >> $GITHUB_OUTPUT
+          echo "release=${RELEASE}" >> $GITHUB_OUTPUT
+
+      - name: Push release branch to customers repos
+        shell: bash
+        env:
+          CUSTOM_LIST: ${{ secrets.CUSTOM_LIST }}
+        run: |
+          git config --global --add safe.directory '*'
+          git config --global url."https://${{ secrets.AUTERION_CI_ACCESS_TOKEN }}:@github.com/".insteadOf "https://github.com/"
+
+          # Only push if it is a final release
+          if [[ "${{ steps.references.outputs.tag_branch }}" =~ ${{ steps.references.outputs.valid_tag }} ]]; then
+            echo "${CUSTOM_LIST%,}" | tr ',' '\n' > list
+            failure=0
+
+            while read url; do
+              set +e
+              if git ls-remote "$url" &> /dev/null; then
+                set -e
+                remote=$(basename "$url" .git)
+                git remote add $remote $url
+                git push -u $remote HEAD:refs/tags/${{ steps.references.outputs.tag_branch }}
+                git push -u $remote HEAD:refs/heads/auterion/v${{ steps.references.outputs.release }}
+                git remote remove $remote
+              else
+                set -e
+                echo "::warning::Repository $url is not accessible, skipping."
+                failure=1
+              fi
+            done < list
+
+            if (( failure )); then
+              exit 1
+            fi
+          fi

@@ -20,7 +20,7 @@ param set-default EKF2_FUSE_BETA 1
 
 param set-default HTE_VXY_THR 2
 
-param set-default MIS_TKO_LAND_REQ 2
+param set-default MIS_TKO_LAND_REQ 5 # APX4 flavor: vtol_defaults: MIS_TKO_LAND_REQ default to 5
 
 param set-default MPC_ACC_HOR_MAX 2
 param set-default MPC_VEL_MANUAL 5
@@ -37,7 +37,10 @@ param set-default MC_YAW_P 2
 param set-default MC_YAWRATE_MAX 120
 param set-default MPC_MAN_Y_MAX 90
 
-param set-default RTL_TYPE 1
+# Auterion specific with Approaches on AMC. Force vehicle to use approaches
+# and prioritize home approaches over mission landing.
+param set-default RTL_TYPE 0
+param set-default RTL_APPR_FORCE 1
 
 param set-default SYS_HAS_NUM_ASPD 1 # by default require an airspeed sensor
 

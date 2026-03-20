@@ -102,6 +102,18 @@ publications:
     type: px4_msgs::msg::HomePosition
     rate_limit: 5.
 
+  - topic: /fmu/out/vehicle_acceleration
+    type: px4_msgs::msg::VehicleAcceleration
+    rate_limit: 50.0
+
+  - topic: /fmu/out/hover_thrust_estimate
+    type: px4_msgs::msg::HoverThrustEstimate
+    rate_limit: 5.0
+
+  - topic: /fmu/out/vehicle_thrust_setpoint
+    type: px4_msgs::msg::VehicleThrustSetpoint
+    rate_limit: 5.0
+
   - topic: /fmu/out/wind
     type: px4_msgs::msg::Wind
     rate_limit: 1.
@@ -109,6 +121,10 @@ publications:
   - topic: /fmu/out/gimbal_device_attitude_status
     type: px4_msgs::msg::GimbalDeviceAttitudeStatus
     rate_limit: 20.
+
+  - topic: /fmu/out/payload_response
+    type: px4_msgs::msg::PayloadResponse
+    rate_limit: 2.
 
 # Create uORB::Publication
 subscriptions:

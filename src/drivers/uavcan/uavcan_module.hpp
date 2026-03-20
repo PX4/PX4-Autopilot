@@ -50,6 +50,7 @@
 // firmware paths
 #define UAVCAN_MAX_PATH_LENGTH (128 + 40)
 #define UAVCAN_SD_ROOT_PATH    CONFIG_BOARD_ROOT_PATH "/"
+#define UAVCAN_SD_ALT_PATH     CONFIG_BOARD_ROOT_PATH "/ext_autostart/uavcan/"
 #define UAVCAN_FIRMWARE_PATH   UAVCAN_SD_ROOT_PATH"ufw"
 #define UAVCAN_ROMFS_FW_PATH   "/etc/uavcan/fw"
 #define UAVCAN_ROMFS_FW_PREFIX "_"

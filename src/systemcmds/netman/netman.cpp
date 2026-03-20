@@ -392,6 +392,48 @@ errout:
 	return rv;
 }
 
+int update_default(const char *netdev)
+{
+	net_params config;
+	int rv = OK;
+
+	// First do we have a binary config stored?
+
+	rv = config.read(netdev);
+
+	if (rv == -ENOENT) {
+		// If no config, it will be written later
+		return 0;
+	}
+
+	// Change default from IPv4PROTO_FALLBACK, 192.168.0.3 to IPv4PROTO_STATIC, DEFAULT_IP
+	if (config.ipaddr.u == HTONL(0XC0A80003) && config.proto.e == IPv4PROTO_FALLBACK) {
+		config.ipaddr.u = HTONL(DEFAULT_IP);
+		config.dnsaddr.u = HTONL(DEFAULT_DNS);
+		config.router.u = HTONL(DEFAULT_ROUTER);
+		config.proto.e = IPv4PROTO_STATIC;
+
+		PX4_INFO("Updating default IP config...");
+
+		rv = config.write();
+
+		if (rv < 0) {
+			PX4_ERR("Network could not be saved!");
+			return -errno;
+		}
+
+		PX4_INFO("Network settings updated, rebooting....\n");
+
+		sleep(1);
+
+		px4_reboot_request(reboot_request_t::REBOOT_REQUEST);
+
+		while (1) { px4_usleep(1); } // this command should not return on success
+	}
+
+	return rv;
+}
+
 static void usage(const char *reason)
 {
 	if (reason != nullptr) {
@@ -434,6 +476,7 @@ static void usage(const char *reason)
 	PRINT_MODULE_USAGE_NAME("netman", "system");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("show", "Display the current persistent network settings to the console.");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("update", "Check SD card for net.cfg and update network persistent network settings.");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("update_default", "Update stored config to new defaults (if set to previous defaults).");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("save", "Save the current network parameters to the SD card.");
 	PRINT_MODULE_USAGE_PARAM_STRING('i', "eth0", nullptr, "Set the interface name", true);
 }
@@ -476,6 +519,9 @@ int netman_main(int argc, char *argv[])
 
 	} else if (strcmp("update", argv[myoptind]) == 0) {
 		rv = update(path, netdev);
+
+	} else if (strcmp("update_default", argv[myoptind]) == 0) {
+		rv = update_default(netdev);
 
 	} else if (strcmp("show", argv[myoptind]) == 0) {
 		rv = save(nullptr, netdev);

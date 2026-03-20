@@ -270,7 +270,14 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	led_on(LED_GREEN); // Indicate Power.
 	led_off(LED_BLUE);
 
+#ifdef PX4_RESTRICTED_BUILD
+
+	// Disable hardfault prompt: the unrouted RX pin can cause spurious reads that block boot.
+	if (board_hardfault_init(2, false) != 0) {
+#else
+
 	if (board_hardfault_init(2, true) != 0) {
+#endif
 		led_on(LED_RED);
 	}
 

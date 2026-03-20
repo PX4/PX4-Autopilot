@@ -3,7 +3,8 @@ name: Python CI Checks
 on:
   push:
     branches:
-    - 'main'
+    - 'develop'
+    - 'release/*'
     paths-ignore:
       - 'docs/**'
   pull_request:
@@ -14,7 +15,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
+    runs-on: [runs-on,runner=8cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false]
     steps:
     - uses: actions/checkout@v4
       with:

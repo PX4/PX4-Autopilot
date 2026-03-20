@@ -5,15 +5,6 @@
 
 param set-default EKF2_MULTI_IMU 0
 
-# Mavlink ethernet (CFG 1000)
-param set-default MAV_2_CONFIG 1000
-param set-default MAV_2_BROADCAST 1
-param set-default MAV_2_MODE 0
-param set-default MAV_2_RADIO_CTL 0
-param set-default MAV_2_RATE 100000
-param set-default MAV_2_REMOTE_PRT 14550
-param set-default MAV_2_UDP_PRT 14550
-
 param set-default SENS_EN_INA226 1
 param set-default SENS_EN_THERMAL 1
 param set-default SENS_IMU_MODE 1
@@ -23,6 +14,9 @@ param set-default HEATER1_TEMP 10.0
 #param set-default HEATER1_TEMP_P 1.0
 
 param set-default UAVCAN_ESC_IFACE 2
+
+param set-default SER_TEL2_BAUD 3000000
+param set-default UXRCE_DDS_CFG 102
 
 if ver hwtypecmp ARKV6X000
 then

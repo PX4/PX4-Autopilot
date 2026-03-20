@@ -1,0 +1,7 @@
+#!/bin/sh
+#
+# board specific defaults for the ground control station GPS
+#------------------------------------------------------------------------------
+
+param set-default GPS_UBX_MODE 6
+param set-default GPS_UBX_BAUD2 460800

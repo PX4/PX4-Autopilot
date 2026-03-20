@@ -88,6 +88,17 @@ bool Ekf::checkAltitudeValidity(const float altitude)
 bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, const float altitude, const float hpos_var,
 			     const float vpos_var)
 {
+
+	// APX4 custom: If infinite latitude and longitude are given, reset the EKF origin
+	if (!PX4_ISFINITE(latitude) || !PX4_ISFINITE(longitude)) {
+		// DQ Custom: in case of an origin reset, we don't want the EKF to remember the current
+		// location position
+		_ignore_delta_lpos_due_to_origin_change = true;
+		_local_origin_lat_lon.reset();
+
+		return true;
+	}
+
 	if (!setLatLonOrigin(latitude, longitude, hpos_var)) {
 		return false;
 	}
@@ -106,7 +117,8 @@ bool Ekf::setLatLonOrigin(const double latitude, const double longitude, const f
 
 	if (!_local_origin_lat_lon.isInitialized() && isLocalHorizontalPositionValid()) {
 		// Already navigating in a local frame, use the origin to initialize global position
-		const Vector2f pos_prev = getLocalHorizontalPosition();
+		const Vector2f pos_prev = _ignore_delta_lpos_due_to_origin_change ? Vector2f(0.f, 0.f) : getLocalHorizontalPosition();
+		_ignore_delta_lpos_due_to_origin_change = false;
 		_local_origin_lat_lon.initReference(latitude, longitude, _time_delayed_us);
 		double new_latitude;
 		double new_longitude;
@@ -174,9 +186,8 @@ bool Ekf::resetLatLonTo(const double latitude, const double longitude, const flo
 	Vector2f pos_prev;
 
 	if (!_local_origin_lat_lon.isInitialized()) {
-		MapProjection zero_ref;
-		zero_ref.initReference(0.0, 0.0);
-		pos_prev = zero_ref.project(_gpos.latitude_deg(), _gpos.longitude_deg());
+
+		pos_prev = _ignore_delta_lpos_due_to_origin_change ? Vector2f(0.f, 0.f) : getLocalHorizontalPosition();
 
 		_local_origin_lat_lon.initReference(latitude, longitude, _time_delayed_us);
 
@@ -187,6 +198,8 @@ bool Ekf::resetLatLonTo(const double latitude, const double longitude, const flo
 			_local_origin_lat_lon.reproject(-pos_prev(0), -pos_prev(1), est_lat, est_lon);
 			_local_origin_lat_lon.initReference(est_lat, est_lon, _time_delayed_us);
 		}
+
+		_ignore_delta_lpos_due_to_origin_change = false;
 
 		ECL_INFO("Origin set to lat=%.6f, lon=%.6f",
 			 _local_origin_lat_lon.getProjectionReferenceLat(), _local_origin_lat_lon.getProjectionReferenceLon());

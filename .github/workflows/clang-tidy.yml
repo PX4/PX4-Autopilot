@@ -3,7 +3,8 @@ name: Static Analysis
 on:
   push:
     branches:
-    - 'main'
+    - 'develop'
+    - 'release/*'
     paths-ignore:
       - 'docs/**'
   pull_request:
@@ -27,6 +28,7 @@ jobs:
       with:
         fetch-depth: 0
         fetch-tags: true
+        token: ${{ secrets.AUTERION_CI_ACCESS_TOKEN }}
 
     - name: Configure Git Safe Directory
       run: git config --system --add safe.directory '*'

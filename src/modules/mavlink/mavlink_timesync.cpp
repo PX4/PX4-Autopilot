@@ -54,6 +54,12 @@ MavlinkTimesync::handle_message(const mavlink_message_t *msg)
 	switch (msg->msgid) {
 	case MAVLINK_MSG_ID_TIMESYNC: {
 
+			// Herelink ground station keeps requesting to timesync by using MAV_COMP_ID_SYSTEM_CONTROL (Deprecated since 2018-11) as ID.
+			// Given that we can't disable timesyncronization on herelink we need to ignore such requests
+			if (msg->compid == MAV_COMP_ID_SYSTEM_CONTROL) {
+				return;
+			}
+
 			mavlink_timesync_t tsync = {};
 			mavlink_msg_timesync_decode(msg, &tsync);
 

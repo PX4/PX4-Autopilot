@@ -1,0 +1,26 @@
+#!/usr/bin/make -f
+# See debhelper(7) (uncomment to enable)
+# output every command that modifies files on the build system.
+#export DH_VERBOSE = 1
+
+%:
+	dh $@
+
+# Override dh_auto_configure to skip cmake
+override_dh_auto_configure:
+    # Do nothing here
+
+override_dh_auto_test:
+    # Do nothing here
+
+# Override dh_auto_build to skip make
+override_dh_auto_build:
+    # Do nothing here
+
+override_dh_auto_install:
+# Install specific files from the production and development folders into separate packages
+# .tar the large elf files in the development target
+	find development -type f -name "*.elf" -exec  tar -czf development/px4-elf.tar.gz -C "$(shell dirname {})" --transform='s|.*/||' {} +
+	rm -rf development/*/*.elf
+
+.PHONY: override_dh_auto_configure override_dh_auto_build override_dh_auto_install

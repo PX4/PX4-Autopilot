@@ -1,0 +1,34 @@
+module_name: Payload board
+serial_config:
+  - command: payload_board start -d ${SERIAL_DEV}
+    port_config_param:
+      name: PB_SER_CFG
+      group: Payload board
+    label: Payload board Serial Port
+
+parameters:
+  - group: Payload board
+    definitions:
+      PB_SER_SWP_TRX:
+        description:
+          short: Swap RX and TX in Serial
+        type: boolean
+        default: false
+        reboot_required: true
+      PB_DRIVER:
+        description:
+          short: Payload board driver
+        type: enum
+        values:
+          0: GreenTech
+          1: SkyFall
+        default: 0
+        reboot_required: true
+      PB_CHRG_TIME:
+        description:
+          short: Payload board charging time
+        unit: s
+        type: int32
+        min: 0
+        max: 60
+        default: 30

@@ -408,6 +408,11 @@ void HomePosition::update(bool set_automatically, bool check_if_changed)
 		}
 
 		_last_gps_timestamp = vehicle_gps_position.timestamp;
+		// APX4 Custom: Check that the GPS position is recent before using it as home
+		_last_gps_position_for_home_timestamp = _gps_position_for_home_valid ? now : _last_gps_position_for_home_timestamp;
+
+	} else {
+		_gps_position_for_home_valid &=  hrt_elapsed_time(&_last_gps_position_for_home_timestamp) < 5 * 1_s;
 	}
 
 	const vehicle_local_position_s &lpos = _local_position_sub.get();

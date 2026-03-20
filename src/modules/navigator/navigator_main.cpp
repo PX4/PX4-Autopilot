@@ -236,6 +236,18 @@ void Navigator::run()
 		}
 
 		_land_detected_sub.update(&_land_detected);
+
+		// APX4 custom: Clear safepoint and mission after landing
+		if (!_was_in_air_for_some_time && !_land_detected.landed && _vstatus.takeoff_time != 0
+		    && hrt_elapsed_time(&_vstatus.takeoff_time) > 60 * 1_s) {
+			_was_in_air_for_some_time = true;
+
+		} else if (_was_in_air_for_some_time && _land_detected.landed && _param_secure_mode.get() > 0) {
+			_rtl.clearSafePoints();
+			_mission.clearMissionAndSafePointsAndPublish();
+			_was_in_air_for_some_time = false;
+		}
+
 		_position_controller_status_sub.update();
 		_home_pos_sub.update(&_home_pos);
 

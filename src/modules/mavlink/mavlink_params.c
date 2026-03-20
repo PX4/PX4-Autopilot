@@ -162,4 +162,18 @@ PARAM_DEFINE_INT32(MAV_HB_FORW_EN, 1);
  * @min 1
  * @max 250
  */
-PARAM_DEFINE_INT32(MAV_RADIO_TOUT, 5);
+PARAM_DEFINE_INT32(MAV_RADIO_TOUT, 25);  //Auterion flavor
+
+/**
+ * Limit parameter access via MAVLink
+ *
+ * Controls if parameters are locked out from being set via MAVLink, except for a hardcoded whitelist.
+ *
+ * @min 0
+ * @max 2
+ * @value 0 Whitelist in restricted, full otherwise
+ * @value 1 Only whitelist
+ * @value 2 Full access
+ * @group MAVLink
+ */
+PARAM_DEFINE_INT32(MAV_PARAM_LOCK, 0); //Auterion flavor

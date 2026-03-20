@@ -67,6 +67,8 @@ public:
 	uint16_t get_land_start_index() const { return _mission.land_start_index; }
 	bool get_land_start_available() const { return hasMissionLandStart(); }
 
+	void clearMissionAndSafePointsAndPublish(); // APX4 custom
+
 
 private:
 

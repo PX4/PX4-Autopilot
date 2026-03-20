@@ -11,7 +11,7 @@ else
 fi
 
 # TELEM1 is mapped to USART1 with flow control
-mavlink start -d /dev/ttyS0 -b 3000000 -r 290000 -m onboard_low_bandwidth -x -z $S_FORWARD
+mavlink start -d /dev/ttyS0 -b 3000000 -r 290000 -m p:MAV_S_MODE -x -z $S_FORWARD
 
 # Ensure nothing else starts on TEL1
 set PRT_TEL1_ 1

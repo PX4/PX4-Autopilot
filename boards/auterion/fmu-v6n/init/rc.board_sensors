@@ -1,0 +1,86 @@
+#!/bin/sh
+#
+# Auterion FMUv6N specific board sensors init
+#------------------------------------------------------------------------------
+set INA_CONFIGURED no
+
+if param compare -s ADC_ADS1115_EN 1
+then
+	ads1115 start -X
+	board_adc start -n
+else
+	board_adc start
+fi
+
+
+if param compare SENS_EN_INA226 1
+then
+	# Start Digital power monitors
+	ina226 -X -b 1 -t 1 -k start
+
+	set INA_CONFIGURED yes
+fi
+
+if param compare SENS_EN_INA228 1
+then
+	# Start Digital power monitors
+	ina228 -X -b 1 -t 1 -k start
+
+	set INA_CONFIGURED yes
+fi
+
+if param compare SENS_EN_INA238 1
+then
+	# Start Digital power monitors
+	ina238 -X -b 1 -t 1 -k start
+
+	set INA_CONFIGURED yes
+fi
+
+# GPIO Expander driver on external I2C3
+mcp23017 start -b 3 -X -a 0x25 -D 0xff00 -O 0xff00 -P 0xffff -U 10
+
+# Voltage rail monitoring ADC on external I2C3
+# tla2528 start -b 3 -X -a 0x10
+
+# PWM current monitoring ADC on external I2C3
+# tla2528 start -b 3 -X -a 0x13
+
+# SSD/LTE temperature monitoring on external I2C3
+tmp102 start -b 3 -X -a 0x48
+
+# Input power supply temperature monitoring on external I2C3
+tmp102 start -b 3 -X -a 0x49
+
+#Start Auterion Power Module selector for Skynode boards
+pm_selector_auterion start
+
+# Auterion's INA238 uses a shunt value of 0.0003 instead of 0.0005.
+param set-default INA238_SHUNT 0.0003
+
+# Internal SPI BMI088
+bmi088 -A -R 6 -s start
+bmi088 -G -R 6 -s start
+
+# Internal SPI bus ICM42688p
+icm42688p -R 12 -s start
+
+# Internal SPI bus ICM20602
+icm20602 -R 6 -s start
+
+# Internal magnetometer on I2C
+bmm150 -I -R 0 start
+
+# External compass on GPS1/I2C1 (the 3rd external bus): standard Holybro Pixhawk 4 or CUAV V5 GPS/compass puck (with lights, safety button, and buzzer)
+ist8310 -X -b 1 -R 10 start
+
+# Possible internal Baro
+if param compare SENS_INT_BARO_EN 1
+then
+	bmp388 -I -a 0x77 start
+fi
+
+#external baro
+bmp388 -X start
+
+unset INA_CONFIGURED

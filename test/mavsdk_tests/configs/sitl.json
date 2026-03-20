@@ -17,8 +17,10 @@
             "timeout_min": 10,
             "env": {
                 "PX4_PARAM_EKF2_EN": 0,
-                "PX4_PARAM_ATT_EN": 1
-            }
+                "PX4_PARAM_ATT_EN": 1,
+                "PX4_PARAM_COM_ARM_WO_GPS": 1
+            },
+            "__comment": "Auterion: This test requires COM_ARM_WO_GPS=1 because COM_ARM_WO_GPS is 0 by default"
         },
         {
             "model": "standard_vtol",

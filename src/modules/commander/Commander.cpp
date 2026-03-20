@@ -2184,6 +2184,21 @@ void Commander::landDetectorUpdate()
 		const bool was_landed = _vehicle_land_detected.landed;
 		_vehicle_land_detected_sub.copy(&_vehicle_land_detected);
 
+		// APX4 Custom start
+		if (!_was_in_air_for_some_time && !_vehicle_land_detected.landed && _vehicle_status.takeoff_time > 0
+		    &&  hrt_elapsed_time(&_vehicle_status.takeoff_time) > 60 * 1_s) {
+			_was_in_air_for_some_time = true;
+
+		} else if (_was_in_air_for_some_time && _vehicle_land_detected.landed && _param_secure_mode.get() > 0) {
+			// Make sure we always reset the home position when landed when secure mode is active
+			// reset the ekf origin
+			send_vehicle_command(vehicle_command_s::VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN,
+					     0.f, 0.f, 0.0, 0.0, (double)NAN, (double)NAN, 0.0);
+			_home_position.setHomePosition(true); // force
+			_was_in_air_for_some_time = false;
+		}
+
+		// APX4 custom end
 		// Only take actions if armed
 		if (isArmed()) {
 			if (!was_landed && _vehicle_land_detected.landed) {
@@ -2733,7 +2748,7 @@ int Commander::task_spawn(int argc, char *argv[])
 {
 	desc.task_id = px4_task_spawn_cmd("commander",
 					  SCHED_DEFAULT,
-					  SCHED_PRIORITY_DEFAULT + 40,
+					  SCHED_PRIORITY_MAX - 24,
 					  PX4_STACK_ADJUSTED(3250),
 					  (px4_main_t)&run_trampoline,
 					  (char *const *)argv);
@@ -2918,6 +2933,45 @@ void Commander::dataLinkCheck()
 				     "Connection to ground control station lost");
 
 			_status_changed = true;
+
+			if (_actuator_armed.armed) {
+				static constexpr int disabled = 0; // disabled state
+
+				// Reset fusion control settings to parameter default if link is lost, dependant on user config
+				switch (_param_com_dll_nav_ctl.get()) {
+				case 0:
+					// continue as before
+					break;
+
+				case 1:
+					// Reset GNSS fusion
+					param_reset(param_find("EKF2_GPS_CTRL"));
+					// Disable AGP fusion
+					param_set(param_find("EKF2_AGP_CTRL"), &disabled);
+					PX4_INFO("Link loss, reset EKF2_GPS_CTRL and disabled EKF2_AGP_CTRL");
+					break;
+
+				case 2:
+					// Reset AGP fusion
+					param_reset(param_find("EKF2_AGP_CTRL"));
+					// Disable GNSS fusion
+					param_set(param_find("EKF2_GPS_CTRL"), &disabled);
+					PX4_INFO("Link loss, reset EKF2_AGP_CTRL and disabled EKF2_GPS_CTRL");
+					break;
+
+				case 3:
+					// Reset GNSS and AGP fusion
+					param_reset(param_find("EKF2_GPS_CTRL"));
+					param_reset(param_find("EKF2_AGP_CTRL"));
+					PX4_INFO("Link loss, reset EKF2_GPS_CTRL and EKF2_AGP_CTRL");
+					break;
+
+				default:
+					// No action
+					PX4_INFO("Link loss, unknown fusion reset specified - no action taken");
+					break;
+				}
+			}
 		}
 	}
 

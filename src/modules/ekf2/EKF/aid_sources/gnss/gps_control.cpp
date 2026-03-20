@@ -46,6 +46,13 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 		return;
 	}
 
+	// APX4 custom: stop GPS fusion if the EKF origin was reset
+	if (_control_status.flags.gnss_pos && !_local_origin_lat_lon.isInitialized()) {
+		ECL_INFO("stopping GPS fusion, NED origin became invalid");
+		stopGnssFusion();
+	}
+
+	// APX4 custom end
 	if (!gyro_bias_inhibited()) {
 		_yawEstimator.setGyroBias(getGyroBias(), _control_status.flags.vehicle_at_rest);
 	}

@@ -128,6 +128,12 @@ Mission::set_current_mission_index(uint16_t index)
 	return false;
 }
 
+// APX4 custom
+void Mission::clearMissionAndSafePointsAndPublish()
+{
+	MissionBase::clearMissionAndSafePointsAndPublish();
+}
+
 bool Mission::setNextMissionItem()
 {
 	return (goToNextItem(true) == PX4_OK);

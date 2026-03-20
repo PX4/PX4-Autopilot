@@ -1,0 +1,5 @@
+menuconfig DRIVERS_PAYLOAD_BOARD
+	bool "payload_board"
+	default n
+	---help---
+		Enable support for payload board MSP feedback

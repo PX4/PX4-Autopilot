@@ -315,6 +315,14 @@ extern "C" __EXPORT int ver_main(int argc, char *argv[])
 				ret = 0;
 			}
 
+#ifdef PX4_RESTRICTED_BUILD
+
+			if (show_all) {
+				printf("Restricted build: on\n");
+			}
+
+#endif /* PX4_RESTRICTED_BUILD */
+
 			if (ret == 1) {
 				PX4_ERR("unknown command");
 				return 1;

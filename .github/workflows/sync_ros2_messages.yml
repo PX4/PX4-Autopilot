@@ -1,0 +1,52 @@
+name: Sync ROS2 messages
+on:
+  push:
+    branches:
+    - 'develop'
+    - 'release/*'
+
+jobs:
+  sync_ros2_messages:
+    runs-on: [runs-on,runner=8cpu-linux-x64,"run-id=${{ github.run_id }}"]
+    steps:
+      - name: Checkout PX4 repo
+        uses: actions/checkout@v4
+
+      - name: Setup git credentials
+        run: |
+          git config --global user.email "auterion-ci@auterion.com"
+          git config --global user.name "Auterion CI Bot"
+
+      - name: Clone PX4_msgs repo
+        run: |
+          git clone https://auterion-ci:${{ secrets.AUTERION_CI_ACCESS_TOKEN }}@github.com/Auterion/px4_msgs.git
+
+      - name: Check out the same branch as the PX4 repo
+        run: |
+          cd px4_msgs
+          if git checkout ${{ github.ref_name }}; then
+            echo "Checked out existing branch"
+          else
+            git checkout -b ${{ github.ref_name }}
+          fi
+
+      - name: Copy ROS2 messages
+        run: |
+          rm px4_msgs/msg/*.msg
+          rm -f px4_msgs/msg/versioned/*.msg
+          rm px4_msgs/srv/*.srv
+          rm -f px4_msgs/srv/versioned/*.srv
+          cp msg/*.msg px4_msgs/msg/
+          cp msg/versioned/*.msg px4_msgs/msg/ || true
+          cp srv/*.srv px4_msgs/srv/
+          cp srv/versioned/*.srv px4_msgs/srv/ || true
+
+      - name: Commit and push changes
+        run: |
+          cd px4_msgs
+          git status
+          git add .
+          git commit -a -m "Update to APX4 ${{ github.sha }}" || true
+          git push origin ${{ github.ref_name }} || true
+          cd ..
+          rm -rf px4_msgs

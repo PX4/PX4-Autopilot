@@ -90,6 +90,7 @@ ENTRY(_stext)
  */
 EXTERN(abort)
 EXTERN(_bootdelay_signature)
+EXTERN(_main_toc)
 EXTERN(board_get_manifest)
 
 SECTIONS
@@ -118,6 +119,7 @@ SECTIONS
 		_bootdelay_signature = ABSOLUTE(.);
 		FILL(0xffecc2925d7d05c5)
 		. += 8;
+		*(.main_toc)
 		*(.text .text.*)
 		*(.fixup)
 		*(.gnu.warning)
@@ -191,4 +193,12 @@ SECTIONS
 	.debug_line 0 : { *(.debug_line) }
 	.debug_pubnames 0 : { *(.debug_pubnames) }
 	.debug_aranges 0 : { *(.debug_aranges) }
+
+    /* Start of the image signature. This
+     *  has to be in the end of the image
+     */
+	.signature : {
+		. = ALIGN(4);
+		_boot_signature = ABSOLUTE(.);
+	} > FLASH_AXIM
 }

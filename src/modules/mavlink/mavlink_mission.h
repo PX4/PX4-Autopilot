@@ -296,4 +296,6 @@ private:
 	 * @return updated crc32 checksum of mission items
 	 */
 	static uint32_t crc32_for_mission_item(const mavlink_mission_item_t &mission_item, uint32_t prev_crc32);
+
+	void clear_rally_points_with_approaches();
 };

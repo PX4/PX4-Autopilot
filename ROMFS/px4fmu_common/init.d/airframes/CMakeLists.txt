@@ -35,7 +35,7 @@ px4_add_romfs_files(
 	# [0-999] Reserved (historical)
 
 	# [18000, 18999] High-altitude balloons
-	18001_TF-B1
+	# 18001_TF-B1
 
 	# [22000, 22999] Reserve for custom models
 )
@@ -61,29 +61,29 @@ if(CONFIG_MODULES_MC_RATE_CONTROL)
 	px4_add_romfs_files(
 		# [4000, 4999] Quadrotor x
 		4001_quad_x
-		4014_s500
+		# 4014_s500
 		4015_holybro_s500
-		4016_holybro_px4vision
-		4017_nxp_hovergames
+		# 4016_holybro_px4vision
+		# 4017_nxp_hovergames
 		4019_x500_v2
-		4020_holybro_px4vision_v1_5
-		4041_beta75x
+		# 4020_holybro_px4vision_v1_5
+		# 4041_beta75x
 		4050_generic_250
-		4052_holybro_qav250
-		4053_holybro_kopis2
-		4061_atl_mantis_edu
-		4071_ifo
-		4073_ifo-s
-		4500_clover4
-		4601_droneblocks_dexi_5
-		4901_crazyflie21
+		# 4052_holybro_qav250
+		# 4053_holybro_kopis2
+		# 4061_atl_mantis_edu
+		# 4071_ifo
+		# 4073_ifo-s
+		# 4500_clover4
+		# 4601_droneblocks_dexi_5
+		# 4901_crazyflie21
 
 		# [5000, 5999] Quadrotor +
 		5001_quad_+
 
 		# [6000, 6999] Hexarotor x
 		6001_hexa_x
-		6002_draco_r
+		# 6002_draco_r
 
 		# [7000, 7999] Hexarotor +
 		7001_hexa_+
@@ -101,11 +101,11 @@ if(CONFIG_MODULES_MC_RATE_CONTROL)
 		12001_octo_cox
 
 		# [14000, 14999] MC with tilt
-		14001_generic_mc_with_tilt
+		# 14001_generic_mc_with_tilt
 
 		16001_helicopter
 
-		24001_dodeca_cox
+		# 24001_dodeca_cox
 	)
 endif()
 
@@ -113,14 +113,14 @@ if(CONFIG_MODULES_FW_RATE_CONTROL)
 	px4_add_romfs_files(
 		# [2000, 2999] Standard planes
 		2100_standard_plane
-		2106_albatross
+		# 2106_albatross
 
 		# [3000, 3999] Flying wing
 		3000_generic_wing
 
 		# [17000, 17999] Autogyro
-		17002_TF-AutoG2
-		17003_TF-G2
+		# 17002_TF-AutoG2
+		# 17003_TF-G2
 	)
 endif()
 
@@ -152,8 +152,8 @@ if(CONFIG_MODULES_ROVER_ACKERMANN)
 	px4_add_romfs_files(
 		# [51000, 51999] Ackermann rovers
 		51000_generic_rover_ackermann
-		51001_axial_scx10_2_trail_honcho
-		51002_nxp_b3rb
+		# 51001_axial_scx10_2_trail_honcho
+		# 51002_nxp_b3rb
 	)
 endif()
 

@@ -1,7 +1,7 @@
-<!--
-
 ### Solved Problem
-Fixes #{Github issue ID}
+
+### JIRA link
+Jira link:
 
 ### Solution
 
@@ -16,6 +16,8 @@ Documentation: Need to clarify page ... / done, read docs.px4.io/...
 ### Alternatives
 
 ### Test coverage
+
+### Critical bug that needs backporting?
 
 ### Context
 Related links, screenshot before/after, video

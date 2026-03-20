@@ -245,7 +245,7 @@ PARAM_DEFINE_INT32(GPS_UBX_JAM_DET, 1);
  * @group GPS
  * @boolean
  */
-PARAM_DEFINE_INT32(GPS_CFG_WIPE, 0);
+PARAM_DEFINE_INT32(GPS_CFG_WIPE, 1);
 
 /**
  * Heading/Yaw offset for dual antenna GPS

@@ -130,21 +130,11 @@ ist8310 -X -b 1 -R 10 start
 # Possible internal Baro
 if param compare SENS_INT_BARO_EN 1
 then
-	if ver hwtypecmp V6X001 V6X006 V6X008
-	then
-		icp201xx -I -a 0x64 start
-	else
-		bmp388 -I -a 0x77 start
-	fi
+	bmp388 -I -a 0x77 start
 fi
 
 #external baro
-if ver hwtypecmp V6X001
-then
-	icp201xx -X start
-else
-	bmp388 -X start
-fi
+bmp388 -X start
 
 unset INA_CONFIGURED
 unset HAVE_PM2

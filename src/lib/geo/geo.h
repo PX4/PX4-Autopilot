@@ -174,6 +174,17 @@ public:
 		initReference(lat_0, lon_0, timestamp);
 	}
 
+	// APX4 custom start
+	void reset()
+	{
+		_ref_timestamp = 0;
+		_ref_lat = 0.0;
+		_ref_lon = 0.0;
+		_ref_sin_lat = 0.0;
+		_ref_cos_lat = 0.0;
+		_ref_init_done = false;
+	}
+	// APX4 custom end
 	/**
 	 * Initialize the map transformation
 	 *

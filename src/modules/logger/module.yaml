@@ -122,3 +122,9 @@ parameters:
         long: If set to 1, add an ID to the log, which uniquely identifies the vehicle
       type: boolean
       default: 1
+    SDLOG_NO_POS_DAT: # Auterion flavor
+      description:
+        short: Disable logging of topics containing absolute position data
+      type: boolean
+      default: 0
+      reboot_required: true

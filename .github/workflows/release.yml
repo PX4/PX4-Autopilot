@@ -1,0 +1,250 @@
+name: Build and deploy APX4 release
+
+on:
+  release:
+    types: [created]
+
+env:
+  PX4_DEV_TARGETS: 'px4_fmu-v5x_default:auterion_fmu-v6x_default:auterion_fmu-v6n_default:auterion_fmu-v6s_default:px4_fmu-v5x_performance-test:auterion_fmu-v6x_performance-test:auterion_fmu-v6s_performance-test:auterion_fmu-v6x_bootloader:auterion_fmu-v6n_bootloader:auterion_fmu-v6s_bootloader:ark_fmu-v6x_default:ark_fmu-v6x_bootloader:auterion_fmu-v6s_gcs'
+  PX4_PROD_TARGETS: 'px4_fmu-v5x_default:auterion_fmu-v6x_default:auterion_fmu-v6n_default:auterion_fmu-v6s_default:ark_fmu-v6x_default:auterion_fmu-v6s_gcs'
+  DEV_BUILD_FLAGS: ''
+  PROD_BUILD_FLAGS: 'PX4_RESTRICTED_BUILD=1'
+  PX4_TARGET_NAME_PREFIX: ''
+  AUTERIONOS_REPO: 'Auterion/AuterionOS'
+  AUTERIONOS_BASE_BRANCH: 'master'
+  AUTERIONOS_TEAM_REVIEWER: 'distro-aos-infrastructure'
+
+jobs:
+  release:
+   name: Build and deploy Nuttx targets for the release
+   runs-on: [runs-on,runner=64cpu-linux-x64,"run-id=${{ github.run_id }}"]
+   container: px4io/px4-dev:v1.16.0-ondemand
+   steps:
+    - name: Set environmental variables
+      run: |
+        echo TAG_NAME=$( echo ${{ github.event.release.tag_name }} | sed -E 's/^(ext\/oem-)?v?//g' ) >> $GITHUB_ENV
+        echo TIMESTAMP=$( date )  >> $GITHUB_ENV
+    - name: check prefix
+      if: ${{ github.repository != 'Auterion/PX4_firmware_private' && env.PX4_TARGET_NAME_PREFIX == '' }}
+      run: |
+        exit 1
+    - uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.AUTERION_CI_ACCESS_TOKEN }}
+        submodules: recursive
+        fetch-depth: 0
+    - name: Mark Git directory as safe
+      run: git config --global --add safe.directory "*"
+    - name: Disable the keychain credential helper
+      run: git config --global credential.helper ""
+    - name: Enable the local store credential helper
+      run: git config --global --add credential.helper store
+    - name: Add credential
+      run: echo "https://x-access-token:${{ secrets.AUTERION_CI_ACCESS_TOKEN }}@github.com" >> ~/.git-credentials
+    - name: Tell git to use https instead of ssh whenever it encounters it
+      run: 'git config --global url."https://github.com/".insteadof git@github.com:'
+    - name: Get submodules
+      run: 'git submodule update --init --recursive'
+
+    - name: Checkout bootloader repo
+      uses: actions/checkout@v4
+      with:
+        repository: Auterion/px4_bootloader_private
+        path: px4_bootloader_private
+        token: ${{ secrets.AUTERION_CI_ACCESS_TOKEN }}
+        ref: master
+        submodules: recursive
+
+    - name: Prepare ccache timestamp
+      id: ccache_cache_timestamp
+      shell: cmake -P {0}
+      run: |
+        string(TIMESTAMP current_date "%Y-%m-%d-%H;%M;%S" UTC)
+        message(echo "timestamp=${current_date}" >> $GITHUB_OUTPUT)
+    - name: ccache cache files
+      uses: actions/cache@v4
+      with:
+        path: ~/.ccache
+        key: release-nuttx-${{steps.ccache_cache_timestamp.outputs.timestamp}}
+        restore-keys: release-nuttx-
+    - name: Set up ccache
+      run: |
+          mkdir -p ~/.ccache
+          echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
+          echo "compression = true" >> ~/.ccache/ccache.conf
+          echo "compression_level = 6" >> ~/.ccache/ccache.conf
+          echo "max_size = 400M" >> ~/.ccache/ccache.conf
+          ccache -s
+          ccache -z
+
+    - name: Create build artifact folders
+      run: |
+        mkdir development
+        mkdir production
+
+    - name: Set up python & debhelper
+      run: |
+        apt update
+        apt install python-is-python3 debhelper -y
+
+    - name: Make Nuttx development targets
+      shell: bash
+      run: |
+        ## Build targets
+        IFS=':'
+        read -ra targets <<< ${{env.PX4_DEV_TARGETS}}
+        for target in "${targets[@]}"; do
+          ${{env.DEV_BUILD_FLAGS}} make $target
+        done
+
+        ## Move target resulting artifacts to the development folder
+        mv build/* development/
+
+    - name: Make Nuttx production targets
+      shell: bash
+      env:
+        NSH_PASSWORD: ${{ secrets.NSH_PASSWORD }}
+      run: |
+        ## Build targets
+        source ./Tools/auterion_private/production_nuttx_options.env
+        IFS=':'
+        read -ra targets <<< ${{env.PX4_PROD_TARGETS}}
+        for target in "${targets[@]}"; do
+          ${{env.PROD_BUILD_FLAGS}} make $target
+        done
+
+        ## Move target resulting artifacts to the production folder
+        mv build/* production/
+
+    - name: Make bootloaders
+      run: |
+        cd px4_bootloader_private
+        make px4fmuv5x_bl
+        make px4io_bl
+        mv build/* ../development/
+        cd ..
+
+    - name: Prepare changelog
+      uses: Auterion/deb-changelog@main
+      with:
+        package: ${{env.PX4_TARGET_NAME_PREFIX}}px4-targets
+        version: ${{ env.TAG_NAME }}
+        changelog: "Auterion PX4 Binaries Release"
+        user: ${{ github.event.release.author.login }}
+        email: ci@auterion.com
+        use-sudo: false
+
+    - name: config deb package
+      run: |
+        pip install empy --break-system-packages
+        python3 debian/config_package.py -t debian/control.em -p "${{env.PX4_TARGET_NAME_PREFIX}}"
+        python3 debian/config_package.py -t debian/px4-targets-development.install.em -o "debian/${{env.PX4_TARGET_NAME_PREFIX}}px4-targets-development.install" -p "${{env.PX4_TARGET_NAME_PREFIX}}"
+        python3 debian/config_package.py -t debian/px4-targets-production.install.em -o "debian/${{env.PX4_TARGET_NAME_PREFIX}}px4-targets-production.install" -p "${{env.PX4_TARGET_NAME_PREFIX}}"
+
+    - name: Make .debs
+      shell: bash
+      run: |
+        dpkg-buildpackage -us -uc -nc -j$(nproc)
+        for file in ../*.deb; do
+          if [ -e "$file" ]; then
+            file_name=$(basename "$file")
+            mv "$file" "./${file_name}"
+          fi
+        done
+
+    - name: Release development .deb to Cloudsmith
+      uses: cloudsmith-io/action@v0.5.4
+      with:
+          api-key: ${{ secrets.AUTERION_CI_CLOUDSMITH_API_KEY }}
+          command: "push"
+          format: "deb"
+          owner: "auterion"
+          repo: apps
+          distro: ubuntu
+          release: jammy
+          republish: "true"
+          no-wait-for-sync: "false"
+          file: "${{env.PX4_TARGET_NAME_PREFIX}}px4-targets-development*.deb"
+
+    - name: Release production .deb Cloudsmith
+      uses: cloudsmith-io/action@v0.5.4
+      with:
+          api-key: ${{ secrets.AUTERION_CI_CLOUDSMITH_API_KEY }}
+          command: "push"
+          format: "deb"
+          owner: "auterion"
+          repo: apps
+          distro: ubuntu
+          release: jammy
+          republish: "true"
+          no-wait-for-sync: "false"
+          file: "${{env.PX4_TARGET_NAME_PREFIX}}px4-targets-production*.deb"
+
+    - name: Create .zip for development targets
+      run: |
+        zip development-nuttx-targets.zip \
+          development/*/*.elf \
+          development/*/*.map \
+          development/*/*.px4 \
+          development/*/*.bin
+
+    - name: Create .zip for production targets
+      run: |
+        zip production-nuttx-targets.zip \
+          production/*/*.elf \
+          production/*/*.map \
+          production/*/*.px4 \
+          production/*/*.bin
+
+    #Based on https://github.com/cli/cli/blob/trunk/docs/install_linux.md
+    - name: Install Github client
+      run: |
+        curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+        apt update
+        apt install -y gh
+
+    - name: Upload development artifacts
+      run: |
+        for i in $(seq 10); do \
+        echo "Attempt $i..."
+        gh release upload --clobber ${{ github.event.release.tag_name }} development-nuttx-targets.zip \
+        && s=0 && break || s=$? && sleep 15; done; (exit $s)
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload production artifacts
+      run: |
+        for i in $(seq 10); do \
+        echo "Attempt $i..."
+        gh release upload --clobber ${{ github.event.release.tag_name }} production-nuttx-targets.zip \
+        && s=0 && break || s=$? && sleep 15; done; (exit $s)
+      env:
+        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
+    - name: Clone AuterionOS
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.AUTERION_CI_ACCESS_TOKEN }}
+        repository: ${{env.AUTERIONOS_REPO}}
+        ref: ${{env.AUTERIONOS_BASE_BRANCH}}
+        path: AuterionOS
+
+    - name: Update FMU config in AuterionOS
+      run: |
+        find AuterionOS/config/ -type f -name '*.json' -exec sed -i 's/\(\s*\)"px4_version"\s*:\s*"[^"]*"\(,\)\{0,1\}/\1"px4_version": "${{ env.TAG_NAME }}"\2/' {} \;
+
+    - name: Create PR to AuterionOS repo
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.AUTERION_CI_ACCESS_TOKEN }}
+        path: AuterionOS
+        title: "Release ${{ env.TAG_NAME }} FMU binaries update | ${{ env.TIMESTAMP }}"
+        body: "Updates FMU binaries for release ${{ env.TAG_NAME }}, created on ${{ env.TIMESTAMP }}."
+        team-reviewers: ${{env.AUTERIONOS_TEAM_REVIEWER}}
+        commit-message: "chore: update fmu binaries for release ${{ env.TAG_NAME }}"
+        author: auterion-ci <ci@auterion.com>
+        committer: auterion-ci <ci@auterion.com>
+        assignees: auterion-ci
+        base: ${{env.AUTERIONOS_BASE_BRANCH}}
+        branch: pr-update_fmu_binaries_release_${{ env.TAG_NAME }}

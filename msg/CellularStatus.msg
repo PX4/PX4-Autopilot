@@ -36,3 +36,17 @@ uint8 quality  # [dBm] Cellular network RSSI/RSRP, absolute value
 uint16 mcc     # [@invalid UINT16_MAX] Mobile country code
 uint16 mnc     # [@invalid UINT16_MAX] Mobile network code
 uint16 lac     # [@invalid 0] Location area code
+
+uint8 band_number	# LTE frequency band number
+float32 band_frequency	# LTE radio frequency in MHz. 0 for invalid
+uint16 channel_number	# Channel Number (CN), Absolute radio-frequency (ARFCN) / E-UTRA (EARFCN) / UTRA (UARFCN) / New radio (NR_CH). 0 for invalid
+float32 rx_level	# Receiver signal level in dBm. On 3G is Received Signal Code Power (RSCP). On LTE Reference Signal Received Power (RSRP). On 5G is New Radio Reference Signal Received Power (NR_RSRQ). 0 for invalid
+float32 tx_level	# Transmitter signal absolte level in dBm. 0 for invalid
+float32 rx_quality	# Received signal quality in dBm. On 3G is Receiver Quality (RxQual). On LTE is Reference Signal . 0 for invalidReceived Quality (RSRQ). On 5G is New radio Reference Signal Received Quality (NR_RSRQ). 0 for invalid
+uint32 link_tx_rate	# Download rate in KiB/s. 0 for invalid
+uint32 link_rx_rate	# Upload rate in KiB/s. 0 for invalid
+uint16 ber		# Bit Error Rate, which is determined by comparing the erroneous bits received with the total number of bits received. 0 for invalid
+uint8 id		# Cellular instance Number. Index 0 is reserved for an FMU onboard modem. Highest index is equal to MAX_INSTANCES. 0 for invalid
+char[9] cell_tower_id	# ID of the currently connected cell tower. Must be NULL terminated if the length is less than 9 human-readable characters, and without NULL termination character if the length is exactly 9 characters. 0 for invalid
+
+uint8 MAX_INSTANCES = 5

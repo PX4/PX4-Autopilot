@@ -208,6 +208,13 @@ if(${PX4_PLATFORM} STREQUAL "posix")
 	endif()
 endif()
 
+
+option(PX4_RESTRICTED_BUILD "Enable restricted build (limit param access)" OFF)
+if(PX4_RESTRICTED_BUILD)
+	add_definitions(-DPX4_RESTRICTED_BUILD)
+	message(STATUS "Enabling restricted build")
+endif()
+
 # external modules
 set(EXTERNAL_MODULES_LOCATION "" CACHE STRING "External modules source location")
 

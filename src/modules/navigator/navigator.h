@@ -402,6 +402,7 @@ private:
 
 	bool _is_capturing_images{false}; // keep track if we need to stop capturing images
 
+	bool _was_in_air_for_some_time{false}; // APX4 custom
 
 	// timer to trigger a delayed set gimbal neutral command
 	hrt_abstime _gimbal_neutral_activation_time{UINT64_MAX};
@@ -448,6 +449,7 @@ private:
 		(ParamFloat<px4::params::MIS_YAW_TMT>)        _param_mis_yaw_tmt,
 		(ParamFloat<px4::params::MIS_YAW_ERR>)        _param_mis_yaw_err,
 		(ParamInt<px4::params::MIS_LND_ABRT_ALT>)     _param_mis_lnd_abrt_alt,
-		(ParamFloat<px4::params::MIS_COMMAND_TOUT>) _param_mis_command_tout
+		(ParamFloat<px4::params::MIS_COMMAND_TOUT>) _param_mis_command_tout,
+		(ParamInt<px4::params::COM_SEC_MODE_EN>)    _param_secure_mode // APX4 custom
 	)
 };

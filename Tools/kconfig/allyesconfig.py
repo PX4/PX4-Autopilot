@@ -76,6 +76,7 @@ exception_list_sitl = [
     'SYSTEMCMDS_USB_CONNECTED', # Not supported in SITL
     'SYSTEMCMDS_MFT_CFG', # Not supported in SITL
     'MODULES_SPACECRAFT', # Clashes with Control Allocation (mom's spaghetti code)
+    'SYSTEMCMDS_MFT_CFG', # Not supported in SITL
 ]
 
 def main():

@@ -286,6 +286,8 @@ private:
 	bool _status_changed{true};
 	bool _mission_in_progress{false};
 
+	bool _was_in_air_for_some_time{false}; // APX4 custom
+
 	vehicle_land_detected_s	_vehicle_land_detected{};
 
 	// commander publications
@@ -347,6 +349,8 @@ private:
 		(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time,
 		(ParamInt<px4::params::COM_FLIGHT_UUID>)    _param_com_flight_uuid,
 		(ParamInt<px4::params::COM_TAKEOFF_ACT>)    _param_com_takeoff_act,
-		(ParamFloat<px4::params::COM_CPU_MAX>)      _param_com_cpu_max
+		(ParamFloat<px4::params::COM_CPU_MAX>)      _param_com_cpu_max,
+		(ParamInt<px4::params::COM_SEC_MODE_EN>)    _param_secure_mode,
+		(ParamInt<px4::params::COM_DLL_NAV_CTL>)    _param_com_dll_nav_ctl
 	)
 };

@@ -708,7 +708,18 @@ bool FeasibilityChecker::checkItemsFitToVehicleType(const mission_item_s &missio
 			     "Mission rejected: Mission contains VTOL items but vehicle is not a VTOL");
 
 		return false;
+// APX4 custom start
+
+	} else if (_vehicle_type == VehicleType::Vtol &&
+		   (mission_item.nav_cmd == NAV_CMD_TAKEOFF || mission_item.nav_cmd == NAV_CMD_LAND)) {
+
+		mavlink_log_critical(_mavlink_log_pub, "Mission rejected: Mission contains non-VTOL items but vehicle is a VTOL\t");
+		events::send(events::ID("navigator_mis_non_vtol_items"), {events::Log::Error, events::LogInternal::Info},
+			     "Mission rejected: Mission contains non-VTOL items but vehicle is a VTOL");
+
+		return false;
 	}
 
+// APX4 custom end
 	return true;
 }

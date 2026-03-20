@@ -1,0 +1,24 @@
+name: Sync PX4 Release Tags & Branches to Public Repo
+
+on:
+  push:
+    branches:
+      - 'ci_sync_test'
+      - 'release/[0-9]+.[0-9]+'
+      - 'release/[0-9]+.[0-9]+.[0-9]+'
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+-[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-[0-9]+.[0-9]+.[0-9]+-alpha[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-[0-9]+.[0-9]+.[0-9]+-beta[0-9]+'
+
+jobs:
+  git-sync:
+    runs-on: [runs-on,runner=8cpu-linux-x64,"run-id=${{ github.run_id }}"]
+    steps:
+      - name: Sync PX4 Release Tags & Branches to PX4_firmware_distribution
+        uses: wei/git-sync@v3
+        with:
+          source_repo: "https://auterion-ci:${{ secrets.AUTERION_CI_ACCESS_TOKEN }}@github.com/Auterion/PX4_firmware_private.git"
+          source_branch: ${{ github.ref_name }}
+          destination_repo: "https://auterion-ci:${{ secrets.AUTERION_CI_ACCESS_TOKEN }}@github.com/Auterion/PX4_firmware_distribution.git"
+          destination_branch: ${{ github.ref_name }}

@@ -85,7 +85,10 @@ MavlinkMissionManager::MavlinkMissionManager(Mavlink &mavlink) :
 		if (success) {
 			init_offboard_mission(mission_state);
 			load_geofence_stats();
-			load_safepoint_stats();
+
+			if (load_safepoint_stats()) {
+				clear_rally_points_with_approaches();
+			}
 
 		} else {
 			PX4_WARN("offboard mission init failed");
@@ -1889,7 +1892,16 @@ void MavlinkMissionManager::check_active_mission()
 
 		if ((_mission_sub.get().safe_points_id != _crc32[MAV_MISSION_TYPE_RALLY])
 		    || (_my_safepoint_dataman_id != (dm_item_t) _mission_sub.get().safepoint_dataman_id)) {
-			load_safepoint_stats();
+			// APX4 custom: directly remove all storage if the ID was set to 0 (safe mode)
+			if (_mission_sub.get().safe_points_id == 0) {
+				_count[MAV_MISSION_TYPE_RALLY] = 0;
+				_crc32[MAV_MISSION_TYPE_RALLY] = 0;
+				_safepoint_dataman_id = (dm_item_t)_mission_sub.get().safepoint_dataman_id;
+				_my_safepoint_dataman_id = _safepoint_dataman_id;
+
+			} else {
+				load_safepoint_stats();
+			}
 		}
 
 		if ((_mission_sub.get().mission_id != _crc32[MAV_MISSION_TYPE_MISSION])
@@ -1962,4 +1974,67 @@ MavlinkMissionManager::update_mission_state()
 	} else if (mission_result.seq_reached < 0 && mission_result.seq_current < 1) {
 		_mission_state = MISSION_STATE_NOT_STARTED;
 	}
+}
+
+void MavlinkMissionManager::clear_rally_points_with_approaches()
+{
+	size_t new_rally_points_count{0U};
+	uint32_t new_rally_points_crc32 = 0;
+	mission_item_s last_rally_point{};
+	bool last_item_was_rally_point{false};
+
+	_transfer_dataman_id = (_safepoint_dataman_id == DM_KEY_SAFE_POINTS_0 ? DM_KEY_SAFE_POINTS_1 :
+				DM_KEY_SAFE_POINTS_0);
+
+	// Go through all rally points and clear all rally points with approaches
+	for (size_t current_seq{0U}; current_seq < _count[MAV_MISSION_TYPE_RALLY]; ++current_seq) {
+		mission_item_s current_mission_item{};
+
+		const bool success_read = _dataman_client.readSync(_safepoint_dataman_id, current_seq,
+					  reinterpret_cast<uint8_t *>(&current_mission_item),
+					  sizeof(mission_item_s));
+
+		if (success_read && current_mission_item.nav_cmd == NAV_CMD_RALLY_POINT) {
+			if (last_item_was_rally_point) {
+				// Last rally point did not have approaches. Save again.
+				const bool success_write = _dataman_client.writeSync(_transfer_dataman_id, new_rally_points_count,
+							   reinterpret_cast<uint8_t *>(&last_rally_point),
+							   sizeof(mission_item_s));
+
+				if (success_write) {
+					new_rally_points_count++;
+					mavlink_mission_item_t mavlink_mission_item;
+					format_mavlink_mission_item(&current_mission_item, &mavlink_mission_item);
+					new_rally_points_crc32 = crc32_for_mission_item(mavlink_mission_item, new_rally_points_crc32);
+
+				} else {
+					PX4_ERR("Lost valid rally point while clearing approaches.");
+				}
+			}
+
+			last_item_was_rally_point = true;
+			last_rally_point = current_mission_item;
+
+		} else {
+			last_item_was_rally_point = false;
+		}
+	}
+
+	if (last_item_was_rally_point) {
+		const bool success_write = _dataman_client.writeSync(_transfer_dataman_id, new_rally_points_count,
+					   reinterpret_cast<uint8_t *>(&last_rally_point),
+					   sizeof(mission_item_s));
+
+		if (success_write) {
+			new_rally_points_count++;
+			mavlink_mission_item_t mavlink_mission_item;
+			format_mavlink_mission_item(&last_rally_point, &mavlink_mission_item);
+			new_rally_points_crc32 = crc32_for_mission_item(mavlink_mission_item, new_rally_points_crc32);
+
+		} else {
+			PX4_ERR("Lost valid rally point while clearing approaches.");
+		}
+	}
+
+	update_safepoint_count(_transfer_dataman_id, new_rally_points_count, new_rally_points_crc32);
 }

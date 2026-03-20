@@ -311,4 +311,5 @@ TEST_F(AdsbConflictTest, trafficReminder)
 	// THEN expect new conflict to be added to buffer
 	printf("adsb_conflict._traffic_state %d \n", (int)adsb_conflict._traffic_state);
 	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::ADD_CONFLICT);
+
 }

@@ -2,6 +2,21 @@
 #
 # board specific defaults
 #------------------------------------------------------------------------------
+#
+# External components flashing
+#
+
+if param compare COM_EXT_COMP_EN 2
+then
+	echo "-> Starting FAKE flasher - SUCCESS case"
+	update_checker fake_success
+fi
+
+if param compare COM_EXT_COMP_EN 3
+then
+	echo "-> Starting FAKE flasher - FAIL case"
+	update_checker fake_fail
+fi
 
 if ver hwbasecmp 008 009 00a 010 011
 then
@@ -12,6 +27,8 @@ then
 
 	# The buzzer draws too much power (0.2A) on the GPS power rail (limit 0.45A).
 	param set-default CBRK_BUZZER 782097
+	# Update default IP config if needed
+	netman update_default -i eth0
 else
 	# Mavlink ethernet (CFG 1000)
 	param set-default MAV_2_CONFIG 1000

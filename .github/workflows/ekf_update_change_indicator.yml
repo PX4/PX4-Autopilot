@@ -7,11 +7,7 @@ on:
 
 jobs:
   unit_tests:
-    runs-on: ubuntu-latest
-
-    container:
-      image: px4io/px4-dev:v1.16.0-rc1-258-g0369abd556
-
+    runs-on: [runs-on,runner=64cpu-linux-x64,"run-id=${{ github.run_id }}"]
     env:
       GIT_COMMITTER_EMAIL: bot@px4.io
       GIT_COMMITTER_NAME: PX4BuildBot
@@ -20,12 +16,17 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.AUTERION_CI_ACCESS_TOKEN }}
 
       - name: main test
-        run: |
-          cd "$GITHUB_WORKSPACE"
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          make tests TESTFILTER=EKF
+        uses: addnab/docker-run-action@v3
+        with:
+          image: px4io/px4-dev:v1.16.0-rc1-258-g0369abd556
+          options: -v ${{ github.workspace }}:/workspace
+          run: |
+            cd /workspace
+            git config --global --add safe.directory /workspace
+            make tests TESTFILTER=EKF
 
       - name: Check if there exists diff and save result in variable
         id: diff-check

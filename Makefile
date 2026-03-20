@@ -129,7 +129,10 @@ else
 	BUILD_DIR_SUFFIX :=
 endif
 
-CMAKE_ARGS ?=
+ifdef PX4_RESTRICTED_BUILD
+	CMAKE_ARGS += -DPX4_RESTRICTED_BUILD=ON
+	BUILD_DIR_SUFFIX := $(BUILD_DIR_SUFFIX)_restricted
+endif
 
 # additional config parameters passed to cmake
 ifdef EXTERNAL_MODULES_LOCATION
@@ -212,6 +215,17 @@ endef
 
 # Get a list of all config targets boards/*/*.px4board
 ALL_CONFIG_TARGETS := $(shell find boards -maxdepth 3 -mindepth 3 -name '*.px4board' -print | sed -e 's|boards\/||' | sed -e 's|\.px4board||' | sed -e 's|\/|_|g' | sort)
+
+# Auterion flavor
+$(filter px4_fmu-v6x_%, $(ALL_CONFIG_TARGETS)) px4_fmu-v6x::
+	@echo "#"
+	@echo "###"
+	@echo "#####  Please use 'make $(subst px4_,auterion_,$@)' to build FMUv6x firmware for Auterion!"
+	@echo "###"
+	@echo "#"
+	@echo
+
+ALL_CONFIG_TARGETS := $(filter-out px4_fmu-v6x_%, $(ALL_CONFIG_TARGETS))
 
 # ADD CONFIGS HERE
 # --------------------------------------------------------------------
@@ -309,7 +323,7 @@ uorb_graphs:
 	@$(MAKE) --no-print-directory px4_fmu-v4_default uorb_graph
 	@$(MAKE) --no-print-directory px4_fmu-v5_default uorb_graph
 	@$(MAKE) --no-print-directory px4_fmu-v5x_default uorb_graph
-	@$(MAKE) --no-print-directory px4_fmu-v6x_default uorb_graph
+	@$(MAKE) --no-print-directory auterion_fmu-v6x_default uorb_graph
 	@$(MAKE) --no-print-directory px4_sitl_default uorb_graph
 
 px4io_update:
@@ -340,6 +354,7 @@ bootloaders_update: \
 	ark_pi6x_bootloader \
 	auterion_fmu-v6s_bootloader \
 	auterion_fmu-v6x_bootloader \
+	auterion_fmu-v6n_bootloader \
 	cuav_nora_bootloader \
 	cuav_x7pro_bootloader \
 	cuav_7-nano_bootloader \

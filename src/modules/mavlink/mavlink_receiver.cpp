@@ -1903,6 +1903,11 @@ MavlinkReceiver::handle_message_serial_control(mavlink_message_t *msg)
 	mavlink_serial_control_t serial_control_mavlink;
 	mavlink_msg_serial_control_decode(msg, &serial_control_mavlink);
 
+	// APX4 custom disable serial control in secure mode
+	if (_mavlink.is_secure_mode_active()) {
+		return;
+	}
+
 	// Check if the message is targeted at us.
 	if ((serial_control_mavlink.target_system != 0 &&
 	     mavlink_system.sysid != serial_control_mavlink.target_system) ||
@@ -2637,6 +2642,10 @@ MavlinkReceiver::handle_message_cellular_status(mavlink_message_t *msg)
 	mavlink_cellular_status_t status;
 	mavlink_msg_cellular_status_decode(msg, &status);
 
+	if (status.id >= cellular_status_s::MAX_INSTANCES) {
+		return;
+	}
+
 	cellular_status_s cellular_status{};
 
 	cellular_status.timestamp = hrt_absolute_time();
@@ -2647,6 +2656,20 @@ MavlinkReceiver::handle_message_cellular_status(mavlink_message_t *msg)
 	cellular_status.mcc = status.mcc;
 	cellular_status.mnc = status.mnc;
 	cellular_status.lac = status.lac;
+
+	// Extension fields
+	cellular_status.band_number = status.band_number;
+	cellular_status.band_frequency = status.band_frequency;
+	cellular_status.channel_number = status.channel_number;
+	cellular_status.rx_level = status.rx_level;
+	cellular_status.tx_level = status.tx_level;
+	cellular_status.rx_quality = status.rx_quality;
+	cellular_status.link_tx_rate = status.link_tx_rate;
+	cellular_status.link_rx_rate = status.link_rx_rate;
+	cellular_status.ber = status.ber;
+	cellular_status.id = status.id;
+
+	memcpy(&cellular_status.cell_tower_id[0], &status.cell_tower_id[0], sizeof(cellular_status.cell_tower_id));
 
 	_cellular_status_pub.publish(cellular_status);
 }
@@ -2985,6 +3008,19 @@ void MavlinkReceiver::handle_message_generator_status(mavlink_message_t *msg)
 
 void MavlinkReceiver::handle_message_statustext(mavlink_message_t *msg)
 {
+	if (msg->sysid == 255) { // GCS, only for pilot login message
+		mavlink_statustext_t statustext;
+		mavlink_msg_statustext_decode(msg, &statustext);
+
+		log_message_s log_msg;
+		log_msg.timestamp = hrt_absolute_time();
+		log_msg.severity = statustext.severity;
+		memcpy(log_msg.text, statustext.text, math::min(sizeof(log_msg.text), sizeof(statustext.text)));
+		log_msg.text[sizeof(log_msg.text) - 1] = '\0';
+
+		_log_message_incoming_pub.publish(log_msg);
+	}
+
 	if (msg->sysid == mavlink_system.sysid) {
 		// log message from the same system
 

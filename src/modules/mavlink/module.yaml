@@ -124,7 +124,7 @@ parameters:
             type: boolean
             reboot_required: true
             num_instances: *max_num_config_instances
-            default: [true, true, true]
+            default: [false, false, false]
 
         MAV_${i}_UDP_PRT:
             description:
@@ -201,6 +201,8 @@ parameters:
             num_instances: *max_num_config_instances
             default: [0.015, 0.015, 0.015]
             reboot_required: true
+
+# Auterion flavor
 
         MAV_S_MODE:
             description:

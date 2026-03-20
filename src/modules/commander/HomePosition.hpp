@@ -105,6 +105,7 @@ private:
 	bool							_valid{false};
 	const failsafe_flags_s					&_failsafe_flags;
 	bool							_gps_position_for_home_valid{false};
+	hrt_abstime 						_last_gps_position_for_home_timestamp{0}; // APX4 custom
 	double							_gps_lat{0};
 	double							_gps_lon{0};
 	double							_gps_alt{0};

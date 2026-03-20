@@ -190,8 +190,11 @@ protected:
 	/**
 	 * @brief Reset Mission
 	 *
+	 * @return true if the mission could be successfully reset
 	 */
-	void resetMission();
+	bool resetMission();
+	void clearMissionAndSafePointsAndPublish(); // APX4 custom
+
 	/**
 	 * @brief Reset Mission Jump Counter of Mission Jump Items
 	 *
@@ -329,6 +332,8 @@ protected:
 	bool _mission_checked{false};				/**< Flag indicating if the mission has been checked by the mission validator*/
 	bool _system_disarmed_while_inactive{false};		/**< Flag indicating if the system has been disarmed while mission is inactive*/
 	mission_s _mission;					/**< Currently active mission*/
+	mission_s _old_mission; 				/**< Last active mission*/
+	bool _old_mission_valid{false}; 			/**< Flag if the old mission is feasible*/
 	float _mission_init_climb_altitude_amsl{NAN}; 		/**< altitude AMSL the vehicle will climb to when mission starts */
 	int _inactivation_index{-1}; // index of mission item at which the mission was paused. Used to resume survey missions at previous waypoint to not lose images.
 	int _mission_activation_index{-1};					/**< Index of the mission item that will bring the vehicle back to a mission waypoint */

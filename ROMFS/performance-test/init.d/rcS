@@ -28,6 +28,8 @@ ver all
 if mft query -q -k MTD -s MTD_PARAMETERS -v /fs/mtd_params
 then
 	set PARAM_FILE /fs/mtd_params
+else
+	set PARAM_FILE /fs/microsd/params
 fi
 
 #

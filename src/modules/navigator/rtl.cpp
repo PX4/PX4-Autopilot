@@ -326,6 +326,27 @@ bool RTL::isLanding()
 	return is_landing;
 }
 
+// APX4 custom Clear safepoint from dataman
+bool RTL::clearSafePoints()
+{
+	_stats.num_items = 0;
+	_stats.opaque_id = 0;
+	_stats.dataman_id = _mission_sub.get().safepoint_dataman_id == DM_KEY_SAFE_POINTS_0 ? DM_KEY_SAFE_POINTS_1 :
+			    DM_KEY_SAFE_POINTS_0;
+
+	/* update stats in dataman */
+	const bool success = _dataman_client_safepoint.writeSync(DM_KEY_SAFE_POINTS_STATE, 0,
+			     reinterpret_cast<uint8_t *>(&_stats),
+			     sizeof(mission_stats_entry_s));
+
+	_dataman_cache_safepoint.invalidate();
+	_dataman_cache_safepoint.resize(0);
+
+	return success;
+
+}
+// APX4 custom end
+
 void RTL::setRtlTypeAndDestination()
 {
 	uint8_t safe_point_index = UINT8_MAX;

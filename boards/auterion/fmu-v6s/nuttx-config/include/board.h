@@ -359,7 +359,11 @@
 #define GPIO_USART3_RX   GPIO_USART3_RX_3                          /* PD9 */
 #define GPIO_USART3_TX  (GPIO_USART3_TX_3 | GPIO_SPEED_2MHz)       /* PD8 */
 
-#define GPIO_UART4_RX    GPIO_UART4_RX_5                           /* PD0 */
+#ifdef PX4_RESTRICTED_BUILD
+# define GPIO_UART4_RX   0                                         /* PD0 */
+#else
+# define GPIO_UART4_RX   GPIO_UART4_RX_5                           /* PD0 */
+#endif /* PX4_RESTRICTED_BUILD */
 #define GPIO_UART4_TX   (GPIO_UART4_TX_5 | GPIO_SPEED_2MHz)        /* PD1 */
 
 #define GPIO_UART5_RX   (GPIO_UART5_RX_3 | GPIO_SPEED_2MHz)        /* PD2 */

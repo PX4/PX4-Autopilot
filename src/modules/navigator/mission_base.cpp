@@ -65,6 +65,8 @@ MissionBase::MissionBase(Navigator *navigator, int32_t dataman_cache_size_signed
 	_mission.geofence_id = 0;
 	_mission.safe_points_id = 0;
 
+	_old_mission = _mission;
+
 	_mission_pub.advertise();
 }
 
@@ -100,6 +102,11 @@ void MissionBase::updateMavlinkMission()
 		if (new_mission.current_seq < 0) {
 			new_mission.current_seq = math::constrain(_mission.current_seq, INT32_C(0),
 						  static_cast<int32_t>(new_mission.count) - 1);
+		}
+
+		if (mission_items_changed) {
+			_old_mission = _mission;
+			_old_mission_valid = _navigator->get_mission_result()->valid;
 		}
 
 		if (new_mission.geofence_id != _mission.geofence_id) {
@@ -782,11 +789,77 @@ MissionBase::check_mission_valid(bool forced)
 
 		set_mission_result();
 
-		// only warn if the check failed on merit
-		if ((!_navigator->get_mission_result()->valid) && _mission.count > 0U) {
-			PX4_WARN("mission check failed");
-		}
+		// Try to restore previous mission if current mission is invalid and has some mission items. Also on a armed fixed wing vehicle
+		// do not accept an empty mission if a prior valid mission is available to avoid having no proper landing anymore.
+		if ((!_navigator->get_mission_result()->valid) && ((_mission.count > 0U)
+				|| ((_vehicle_status_sub.get().arming_state == vehicle_status_s::ARMING_STATE_ARMED)
+				    && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)))) {
+			// Try to restore the previous mission
+			const mission_s new_mission = _mission;
+			bool mission_write_failed = false;
+			bool old_mission_valid = false;
 
+			if (_vehicle_status_sub.get().arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+				// If armed, do not check for mission validity again, but use the previous result
+				old_mission_valid = _old_mission_valid;
+
+			} else {
+				old_mission_valid = missionFeasibilityChecker.checkMissionFeasible(_old_mission);
+
+			}
+
+			if (old_mission_valid) {
+				_mission = _old_mission;
+
+				/* For completed old mission reset sequence to the first item. */
+				if (_mission.current_seq >= _mission.count) {
+					_mission.current_seq = 0;
+				}
+
+				const bool success = _dataman_client.writeSync(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&_mission),
+						     sizeof(mission_s));
+
+				if (!success) {
+					mission_write_failed = true;
+
+				} else {
+					// Notify user
+					mavlink_log_warning(_navigator->get_mavlink_log_pub(), "Invalid Mission: Previous mission has been restored\t");
+					events::send(events::ID("old_mission_restored"), events::Log::Warning,
+						     "Invalid Mission: Previous mission has been restored");
+					// Publish potentially updated mission state
+					_mission.timestamp = hrt_absolute_time();
+					_mission_pub.publish(_mission);
+					_navigator->get_mission_result()->valid = true;
+				}
+
+			} else {
+				// Reset the mission to an empty one
+				mission_write_failed = !resetMission();
+
+				if (!mission_write_failed) {
+					mavlink_log_warning(_navigator->get_mavlink_log_pub(), "Invalid Mission: mission has been cleared\t");
+					events::send(events::ID("new_mission_cleared"), events::Log::Warning,
+						     "Invalid Mission: mission has been cleared");
+				}
+
+				_navigator->get_mission_result()->valid = false;
+			}
+
+			if (mission_write_failed) {
+				// Revert to the failed new mission since we could not change to old one nor reset it
+				_mission = new_mission;
+				PX4_ERR("Could not update invalid mission");
+
+			} else {
+				_navigator->get_mission_result()->mission_id = _mission.mission_id;
+				_navigator->get_mission_result()->seq_total = _mission.count;
+				_navigator->get_mission_result()->seq_reached = -1;
+				_navigator->get_mission_result()->failure = false;
+				set_mission_result();
+
+			}
+		}
 	}
 }
 
@@ -1218,11 +1291,33 @@ int MissionBase::setMissionToClosestItem(double lat, double lon, float alt, floa
 	return PX4_OK;
 }
 
-void MissionBase::resetMission()
+// APX4 custom. Clear mission in dataman and publish empty mission and safepoints
+void MissionBase::clearMissionAndSafePointsAndPublish()
+{
+	_mission.timestamp = hrt_absolute_time();
+	_mission.current_seq = 0;
+	_mission.land_start_index = -1;
+	_mission.land_index = -1;
+	_mission.count = 0u;
+	_mission.mission_id = 0u;
+	_mission.mission_dataman_id = _mission.mission_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ?
+				      DM_KEY_WAYPOINTS_OFFBOARD_1 :
+				      DM_KEY_WAYPOINTS_OFFBOARD_0;
+	_mission.safepoint_dataman_id = _mission.safepoint_dataman_id == DM_KEY_SAFE_POINTS_0 ?
+					DM_KEY_SAFE_POINTS_1 : DM_KEY_SAFE_POINTS_0;
+	_mission.safe_points_id = 0;
+
+	_dataman_client.writeSync(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&_mission),
+				  sizeof(mission_s));
+	_mission_pub.publish(_mission);
+};
+// APX4 custom end
+
+bool MissionBase::resetMission()
 {
 	/* we do not need to reset mission if is already.*/
 	if (_mission.count == 0u) {
-		return;
+		return true;
 	}
 
 	/* Set a new mission*/
@@ -1245,6 +1340,8 @@ void MissionBase::resetMission()
 	} else {
 		PX4_ERR("Mission Initialization failed.");
 	}
+
+	return success;
 }
 
 void MissionBase::resetMissionJumpCounter()
