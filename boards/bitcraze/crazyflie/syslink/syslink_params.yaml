@@ -25,4 +25,4 @@ parameters:
       description:
         short: Operating address of the NRF51 (least significant 4 bytes)
       type: int32
-      default: 3890735079
+      default: -404232217
