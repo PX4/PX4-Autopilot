@@ -67,6 +67,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_delay_max(_params->ekf2_delay_max),
 	_param_ekf2_imu_ctrl(_params->ekf2_imu_ctrl),
 	_param_ekf2_vel_lim(_params->ekf2_vel_lim),
+	_param_ekf2_sens_en(_params->ekf2_sens_en),
 #if defined(CONFIG_EKF2_AUXVEL)
 	_param_ekf2_avel_delay(_params->ekf2_avel_delay),
 #endif // CONFIG_EKF2_AUXVEL
@@ -460,6 +461,7 @@ void EKF2::Run()
 
 		// update parameters from storage
 		updateParams();
+		initFusionControl();
 
 		VerifyParams();
 
@@ -995,58 +997,23 @@ void EKF2::VerifyParams()
 
 void EKF2::initFusionControl()
 {
-	_sens_en_param = param_find("EKF2_SENS_EN");
+	if (!_prev_armed) {
 
-	if (_sens_en_param == PARAM_INVALID) {
-		PX4_ERR("EKF2_SENS_EN param not found");
-		return;
-	}
+		const int32_t sens_en = _param_ekf2_sens_en.get();
 
-	int32_t sens_en = 0;
-	param_get(_sens_en_param, &sens_en);
+		_fc.gps.enabled    = sens_en & (1 << SENS_EN_GPS0);
+		_fc.of.enabled     = sens_en & (1 << SENS_EN_OF);
+		_fc.ev.enabled     = sens_en & (1 << SENS_EN_EV);
 
-#if defined(CONFIG_EKF2_GNSS)
-	_sensor_table[SENS_EN_GPS0] = {&_fc.gps, vehicle_command_s::FUSION_SOURCE_GPS, -1};
-	// TODO: GPS1 reserved, no param yet, add second instance here when multi-GPS CTRL is implemented
-#endif
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	_sensor_table[SENS_EN_OF] = {&_fc.of, vehicle_command_s::FUSION_SOURCE_OF, -1};
-#endif
-#if defined(CONFIG_EKF2_EXTERNAL_VISION)
-	_sensor_table[SENS_EN_EV] = {&_fc.ev, vehicle_command_s::FUSION_SOURCE_EV, -1};
-#endif
-#if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION)
-
-	for (uint8_t i = 0; i < MAX_AGP_INSTANCES; i++) {
-		char param_name[20] {};
-		snprintf(param_name, sizeof(param_name), "EKF2_AGP%d_CTRL", i);
-
-		if (param_used(param_find_no_notification(param_name)) > 0) {
-			_sensor_table[SENS_EN_AGP0 + i] = {&_fc.agp[i], vehicle_command_s::FUSION_SOURCE_AGP, static_cast<int8_t>(i)};
+		for (uint8_t i = 0; i < MAX_AGP_INSTANCES; i++) {
+			_fc.agp[i].enabled = sens_en & (1 << (SENS_EN_AGP0 + i));
 		}
-	}
 
-#endif
-#if defined(CONFIG_EKF2_BAROMETER)
-	_sensor_table[SENS_EN_BARO] = {&_fc.baro, vehicle_command_s::FUSION_SOURCE_BARO, -1};
-#endif
-#if defined(CONFIG_EKF2_RANGE_FINDER)
-	_sensor_table[SENS_EN_RNG] = {&_fc.rng, vehicle_command_s::FUSION_SOURCE_RNG, -1};
-#endif
-#if defined(CONFIG_EKF2_MAGNETOMETER)
-	_sensor_table[SENS_EN_MAG] = {&_fc.mag, vehicle_command_s::FUSION_SOURCE_MAG, -1};
-#endif
-#if defined(CONFIG_EKF2_AIRSPEED)
-	_sensor_table[SENS_EN_ASPD] = {&_fc.aspd, vehicle_command_s::FUSION_SOURCE_ASPD, -1};
-#endif
-#if defined(CONFIG_EKF2_RANGING_BEACON)
-	_sensor_table[SENS_EN_RNGBCN] = {&_fc.rngbcn, vehicle_command_s::FUSION_SOURCE_RNGBCN, -1};
-#endif
-
-	for (uint8_t i = 0; i < SENS_EN_COUNT; i++) {
-		if (_sensor_table[i].sensor) {
-			_sensor_table[i].sensor->enabled = sens_en & (1 << i);
-		}
+		_fc.baro.enabled   = sens_en & (1 << SENS_EN_BARO);
+		_fc.rng.enabled    = sens_en & (1 << SENS_EN_RNG);
+		_fc.mag.enabled    = sens_en & (1 << SENS_EN_MAG);
+		_fc.aspd.enabled   = sens_en & (1 << SENS_EN_ASPD);
+		_fc.rngbcn.enabled = sens_en & (1 << SENS_EN_RNGBCN);
 	}
 }
 
@@ -1054,43 +1021,76 @@ void EKF2::handleSensorFusionCommand(const vehicle_command_s &cmd, vehicle_comma
 {
 	ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
 
-	const uint8_t sensor_type_cmd = static_cast<uint8_t>(cmd.param1);
+	const uint8_t sensor_type = static_cast<uint8_t>(cmd.param1);
 	const uint8_t instance = PX4_ISFINITE(cmd.param2) ? static_cast<uint8_t>(cmd.param2) : 0;
 	const bool enable = (static_cast<int32_t>(cmd.param3) == 1);
 
-	for (uint8_t i = 0; i < SENS_EN_COUNT; i++) {
-		FusionEntry &e = _sensor_table[i];
+	FusionSensor *sensor = nullptr;
 
-		if (e.sensor && e.sensor_type == sensor_type_cmd && (e.instance == -1 || e.instance == instance)) {
-			e.sensor->enabled = enable;
+	switch (sensor_type) {
+	case vehicle_command_s::FUSION_SOURCE_GPS:    sensor = &_fc.gps;    break;
 
-			if (!_prev_armed) {
-				syncSensEnParam();
-			}
+	case vehicle_command_s::FUSION_SOURCE_OF:     sensor = &_fc.of;     break;
 
-			ack.result = (!enable || e.sensor->available)
-				     ? vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED
-				     : vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
-			return;
+	case vehicle_command_s::FUSION_SOURCE_EV:     sensor = &_fc.ev;     break;
+
+	case vehicle_command_s::FUSION_SOURCE_AGP:
+		if (instance < MAX_AGP_INSTANCES) { sensor = &_fc.agp[instance]; }
+
+		break;
+
+	case vehicle_command_s::FUSION_SOURCE_BARO:   sensor = &_fc.baro;   break;
+
+	case vehicle_command_s::FUSION_SOURCE_RNG:    sensor = &_fc.rng;    break;
+
+	case vehicle_command_s::FUSION_SOURCE_MAG:    sensor = &_fc.mag;    break;
+
+	case vehicle_command_s::FUSION_SOURCE_ASPD:   sensor = &_fc.aspd;   break;
+
+	case vehicle_command_s::FUSION_SOURCE_RNGBCN: sensor = &_fc.rngbcn; break;
+
+	default: break;
+	}
+
+	if (sensor) {
+		sensor->enabled = enable;
+
+		if (!_prev_armed) {
+			syncSensEnParam();
 		}
+
+		ack.result = (!enable || sensor->available)
+			     ? vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED
+			     : vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 	}
 }
 
 void EKF2::syncSensEnParam()
 {
-	if (_sens_en_param == PARAM_INVALID) {
-		return;
-	}
-
 	int32_t sens_en = 0;
 
-	for (uint8_t i = 0; i < SENS_EN_COUNT; i++) {
-		if (_sensor_table[i].sensor && _sensor_table[i].sensor->enabled) {
-			sens_en |= (1 << i);
-		}
+	if (_fc.gps.enabled)    { sens_en |= (1 << SENS_EN_GPS0); }
+
+	if (_fc.of.enabled)     { sens_en |= (1 << SENS_EN_OF); }
+
+	if (_fc.ev.enabled)     { sens_en |= (1 << SENS_EN_EV); }
+
+	for (uint8_t i = 0; i < MAX_AGP_INSTANCES; i++) {
+		if (_fc.agp[i].enabled) { sens_en |= (1 << (SENS_EN_AGP0 + i)); }
 	}
 
-	param_set_no_notification(_sens_en_param, &sens_en);
+	if (_fc.baro.enabled)   { sens_en |= (1 << SENS_EN_BARO); }
+
+	if (_fc.rng.enabled)    { sens_en |= (1 << SENS_EN_RNG); }
+
+	if (_fc.mag.enabled)    { sens_en |= (1 << SENS_EN_MAG); }
+
+	if (_fc.aspd.enabled)   { sens_en |= (1 << SENS_EN_ASPD); }
+
+	if (_fc.rngbcn.enabled) { sens_en |= (1 << SENS_EN_RNGBCN); }
+
+	_param_ekf2_sens_en.set(sens_en);
+	_param_ekf2_sens_en.commit_no_notification();
 }
 
 void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)

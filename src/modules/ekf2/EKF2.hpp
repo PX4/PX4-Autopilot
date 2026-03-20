@@ -413,26 +413,13 @@ private:
 		SENS_EN_OF     = 2,
 		SENS_EN_EV     = 3,
 		SENS_EN_AGP0   = 4,
-		SENS_EN_AGP1   = 5,
-		SENS_EN_AGP2   = 6,
-		SENS_EN_AGP3   = 7,
+		// bit: 5-7 reserved for AGP1..3
 		SENS_EN_BARO   = 8,
 		SENS_EN_RNG    = 9,
 		SENS_EN_MAG    = 10,
 		SENS_EN_ASPD   = 11,
 		SENS_EN_RNGBCN = 12,
-		SENS_EN_COUNT  = 13,
 	};
-
-	struct FusionEntry {
-		FusionSensor *sensor{nullptr};
-		uint8_t sensor_type{0};
-		int8_t instance{-1};
-	};
-
-	FusionEntry _sensor_table[SENS_EN_COUNT] {};
-
-	param_t _sens_en_param{PARAM_INVALID};
 	bool _prev_armed{false};
 
 	void initFusionControl();
@@ -540,6 +527,7 @@ private:
 		(ParamExtInt<px4::params::EKF2_IMU_CTRL>) _param_ekf2_imu_ctrl,
 		(ParamExtFloat<px4::params::EKF2_VEL_LIM>) _param_ekf2_vel_lim,
 		(ParamBool<px4::params::EKF2_POS_LOCK>) _param_ekf2_pos_lock,
+		(ParamExtInt<px4::params::EKF2_SENS_EN>) _param_ekf2_sens_en,
 
 #if defined(CONFIG_EKF2_AUXVEL)
 		(ParamExtFloat<px4::params::EKF2_AVEL_DELAY>)

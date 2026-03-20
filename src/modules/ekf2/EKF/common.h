@@ -314,6 +314,7 @@ struct parameters {
 	float ekf2_vel_lim{100.f};              ///< velocity state limit (m/s)
 
 	// measurement source control
+	int32_t ekf2_sens_en{8191};             ///< sensor fusion enable bitmask (EKF2_SENS_EN)
 	int32_t ekf2_hgt_ref{static_cast<int32_t>(HeightSensor::BARO)};
 	int32_t position_sensor_ref{static_cast<int32_t>(PositionSensor::GNSS)};
 
