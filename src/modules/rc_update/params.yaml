@@ -33,13 +33,13 @@ parameters:
       description:
         short: RC channel 1 reverse
         long: Set to -1 to reverse channel.
-      type: float
+      type: int32
       values:
-        -1.0: Reverse
-        1.0: Normal
-      default: 1.0
-      min: -1.0
-      max: 1.0
+        -1: Reverse
+        1: Normal
+      default: 1
+      min: -1
+      max: 1
     RC2_MIN:
       description:
         short: RC channel 2 minimum
@@ -71,13 +71,13 @@ parameters:
       description:
         short: RC channel 2 reverse
         long: Set to -1 to reverse channel.
-      type: float
+      type: int32
       values:
-        -1.0: Reverse
-        1.0: Normal
-      default: 1.0
-      min: -1.0
-      max: 1.0
+        -1: Reverse
+        1: Normal
+      default: 1
+      min: -1
+      max: 1
     RC3_MIN:
       description:
         short: RC channel 3 minimum
@@ -109,13 +109,13 @@ parameters:
       description:
         short: RC channel 3 reverse
         long: Set to -1 to reverse channel.
-      type: float
+      type: int32
       values:
-        -1.0: Reverse
-        1.0: Normal
-      default: 1.0
-      min: -1.0
-      max: 1.0
+        -1: Reverse
+        1: Normal
+      default: 1
+      min: -1
+      max: 1
     RC4_MIN:
       description:
         short: RC channel 4 minimum
@@ -147,13 +147,13 @@ parameters:
       description:
         short: RC channel 4 reverse
         long: Set to -1 to reverse channel.
-      type: float
+      type: int32
       values:
-        -1.0: Reverse
-        1.0: Normal
-      default: 1.0
-      min: -1.0
-      max: 1.0
+        -1: Reverse
+        1: Normal
+      default: 1
+      min: -1
+      max: 1
     RC5_MIN:
       description:
         short: RC channel 5 minimum
@@ -185,13 +185,13 @@ parameters:
       description:
         short: RC channel 5 reverse
         long: Set to -1 to reverse channel.
-      type: float
+      type: int32
       values:
-        -1.0: Reverse
-        1.0: Normal
-      default: 1.0
-      min: -1.0
-      max: 1.0
+        -1: Reverse
+        1: Normal
+      default: 1
+      min: -1
+      max: 1
     RC6_MIN:
       description:
         short: RC channel 6 minimum
@@ -223,13 +223,13 @@ parameters:
       description:
         short: RC channel 6 reverse
         long: Set to -1 to reverse channel.
-      type: float
+      type: int32
       values:
-        -1.0: Reverse
-        1.0: Normal
-      default: 1.0
-      min: -1.0
-      max: 1.0
+        -1: Reverse
+        1: Normal
+      default: 1
+      min: -1
+      max: 1
     RC7_MIN:
       description:
         short: RC channel 7 minimum
@@ -261,13 +261,13 @@ parameters:
       description:
         short: RC channel 7 reverse
         long: Set to -1 to reverse channel.
-      type: float
+      type: int32
       values:
-        -1.0: Reverse
-        1.0: Normal
-      default: 1.0
-      min: -1.0
-      max: 1.0
+        -1: Reverse
+        1: Normal
+      default: 1
+      min: -1
+      max: 1
     RC8_MIN:
       description:
         short: RC channel 8 minimum
@@ -299,13 +299,13 @@ parameters:
       description:
         short: RC channel 8 reverse
         long: Set to -1 to reverse channel.
-      type: float
+      type: int32
       values:
-        -1.0: Reverse
-        1.0: Normal
-      default: 1.0
-      min: -1.0
-      max: 1.0
+        -1: Reverse
+        1: Normal
+      default: 1
+      min: -1
+      max: 1
     RC9_MIN:
       description:
         short: RC channel 9 minimum
@@ -337,13 +337,13 @@ parameters:
       description:
         short: RC channel 9 reverse
         long: Set to -1 to reverse channel.
-      type: float
+      type: int32
       values:
-        -1.0: Reverse
-        1.0: Normal
-      default: 1.0
-      min: -1.0
-      max: 1.0
+        -1: Reverse
+        1: Normal
+      default: 1
+      min: -1
+      max: 1
     RC10_MIN:
       description:
         short: RC channel 10 minimum
@@ -375,13 +375,13 @@ parameters:
       description:
         short: RC channel 10 reverse
         long: Set to -1 to reverse channel.
-      type: float
+      type: int32
       values:
-        -1.0: Reverse
-        1.0: Normal
-      default: 1.0
-      min: -1.0
-      max: 1.0
+        -1: Reverse
+        1: Normal
+      default: 1
+      min: -1
+      max: 1
     RC11_MIN:
       description:
         short: RC channel 11 minimum
@@ -413,13 +413,13 @@ parameters:
       description:
         short: RC channel 11 reverse
         long: Set to -1 to reverse channel.
-      type: float
+      type: int32
       values:
-        -1.0: Reverse
-        1.0: Normal
-      default: 1.0
-      min: -1.0
-      max: 1.0
+        -1: Reverse
+        1: Normal
+      default: 1
+      min: -1
+      max: 1
     RC12_MIN:
       description:
         short: RC channel 12 minimum
@@ -451,13 +451,13 @@ parameters:
       description:
         short: RC channel 12 reverse
         long: Set to -1 to reverse channel.
-      type: float
+      type: int32
       values:
-        -1.0: Reverse
-        1.0: Normal
-      default: 1.0
-      min: -1.0
-      max: 1.0
+        -1: Reverse
+        1: Normal
+      default: 1
+      min: -1
+      max: 1
     RC13_MIN:
       description:
         short: RC channel 13 minimum
@@ -489,13 +489,13 @@ parameters:
       description:
         short: RC channel 13 reverse
         long: Set to -1 to reverse channel.
-      type: float
+      type: int32
       values:
-        -1.0: Reverse
-        1.0: Normal
-      default: 1.0
-      min: -1.0
-      max: 1.0
+        -1: Reverse
+        1: Normal
+      default: 1
+      min: -1
+      max: 1
     RC14_MIN:
       description:
         short: RC channel 14 minimum
@@ -527,13 +527,13 @@ parameters:
       description:
         short: RC channel 14 reverse
         long: Set to -1 to reverse channel.
-      type: float
+      type: int32
       values:
-        -1.0: Reverse
-        1.0: Normal
-      default: 1.0
-      min: -1.0
-      max: 1.0
+        -1: Reverse
+        1: Normal
+      default: 1
+      min: -1
+      max: 1
     RC15_MIN:
       description:
         short: RC channel 15 minimum
@@ -565,13 +565,13 @@ parameters:
       description:
         short: RC channel 15 reverse
         long: Set to -1 to reverse channel.
-      type: float
+      type: int32
       values:
-        -1.0: Reverse
-        1.0: Normal
-      default: 1.0
-      min: -1.0
-      max: 1.0
+        -1: Reverse
+        1: Normal
+      default: 1
+      min: -1
+      max: 1
     RC16_MIN:
       description:
         short: RC channel 16 minimum
@@ -603,13 +603,13 @@ parameters:
       description:
         short: RC channel 16 reverse
         long: Set to -1 to reverse channel.
-      type: float
+      type: int32
       values:
-        -1.0: Reverse
-        1.0: Normal
-      default: 1.0
-      min: -1.0
-      max: 1.0
+        -1: Reverse
+        1: Normal
+      default: 1
+      min: -1
+      max: 1
     RC17_MIN:
       description:
         short: RC channel 17 minimum
@@ -641,13 +641,13 @@ parameters:
       description:
         short: RC channel 17 reverse
         long: Set to -1 to reverse channel.
-      type: float
+      type: int32
       values:
-        -1.0: Reverse
-        1.0: Normal
-      default: 1.0
-      min: -1.0
-      max: 1.0
+        -1: Reverse
+        1: Normal
+      default: 1
+      min: -1
+      max: 1
     RC18_MIN:
       description:
         short: RC channel 18 minimum
@@ -679,13 +679,13 @@ parameters:
       description:
         short: RC channel 18 reverse
         long: Set to -1 to reverse channel.
-      type: float
+      type: int32
       values:
-        -1.0: Reverse
-        1.0: Normal
-      default: 1.0
-      min: -1.0
-      max: 1.0
+        -1: Reverse
+        1: Normal
+      default: 1
+      min: -1
+      max: 1
     RC_CHAN_CNT:
       description:
         short: RC channel count
