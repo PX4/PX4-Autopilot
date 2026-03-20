@@ -2037,7 +2037,7 @@ void EKF2::PublishFusionControl(const hrt_abstime &timestamp)
 	msg.rng_active    = cs.rng_hgt;
 	msg.mag_active    = cs.mag;
 	msg.aspd_active   = cs.fuse_aspd;
-	// msg.rngbcn_active = cs.rngbcn_fusion; // waiting for RangeBeacon PR
+	msg.rngbcn_active = cs.rngbcn_fusion;
 
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION)
 	{
