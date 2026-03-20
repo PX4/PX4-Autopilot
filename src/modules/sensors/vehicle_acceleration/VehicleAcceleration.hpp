@@ -97,7 +97,7 @@ private:
 	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
 	uORB::Subscription _estimator_sensor_bias_sub{ORB_ID(estimator_sensor_bias)};
 #if !defined(CONSTRAINED_FLASH)
-	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
+	uORB::Subscription _esc_status_sub {ORB_ID(esc_status)};
 	uORB::Subscription _sensor_gyro_fft_sub{ORB_ID(sensor_gyro_fft)};
 #endif // !CONSTRAINED_FLASH
 
