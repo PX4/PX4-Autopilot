@@ -42,4 +42,4 @@ target_compile_options(vehicle_imu
 		#-DDEBUG_BUILD
 )
 
-target_link_libraries(vehicle_imu PRIVATE px4_work_queue sensor_calibration)
+target_link_libraries(vehicle_imu PRIVATE px4_work_queue sensor_calibration mathlib)

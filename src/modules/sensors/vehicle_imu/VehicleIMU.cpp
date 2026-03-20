@@ -81,6 +81,16 @@ VehicleIMU::~VehicleIMU()
 	perf_free(_accel_generation_gap_perf);
 	perf_free(_gyro_generation_gap_perf);
 
+#if !defined(CONSTRAINED_FLASH)
+	delete[] _dynamic_notch_filter_esc_rpm;
+	perf_free(_dynamic_notch_filter_esc_rpm_disable_perf);
+	perf_free(_dynamic_notch_filter_esc_rpm_init_perf);
+	perf_free(_dynamic_notch_filter_esc_rpm_update_perf);
+
+	perf_free(_dynamic_notch_filter_fft_disable_perf);
+	perf_free(_dynamic_notch_filter_fft_update_perf);
+#endif // !CONSTRAINED_FLASH
+
 	_vehicle_imu_pub.unadvertise();
 	_vehicle_imu_status_pub.unadvertise();
 }
@@ -161,6 +171,10 @@ bool VehicleIMU::ParametersUpdate(bool force)
 			// force update
 			_update_integrator_config = true;
 		}
+
+#if !defined(CONSTRAINED_FLASH)
+		UpdateAccelDynamicNotchParameters();
+#endif // !CONSTRAINED_FLASH
 	}
 
 	return updated;
@@ -189,6 +203,19 @@ void VehicleIMU::Run()
 			_armed = vehicle_control_mode.flag_armed;
 		}
 	}
+
+#if !defined(CONSTRAINED_FLASH)
+	{
+		const bool force = _accel_filter_reset && PX4_ISFINITE(_accel_filter_sample_rate_hz);
+
+		if (force) {
+			_accel_filter_reset = false;
+		}
+
+		UpdateDynamicNotchEscRpm(now_us, force);
+		UpdateDynamicNotchFFT(now_us, force);
+	}
+#endif // !CONSTRAINED_FLASH
 
 	// reset data gap monitor
 	_data_gap = false;
@@ -353,7 +380,17 @@ bool VehicleIMU::UpdateAccel()
 
 		const Vector3f accel_raw{accel.x, accel.y, accel.z};
 		_raw_accel_mean.update(accel_raw);
+
+#if !defined(CONSTRAINED_FLASH)
+		const Vector3f accel_filtered{
+			FilterAccelAxis(0, accel_raw(0)),
+			FilterAccelAxis(1, accel_raw(1)),
+			FilterAccelAxis(2, accel_raw(2))
+		};
+		_accel_integrator.put(accel_filtered, dt);
+#else
 		_accel_integrator.put(accel_raw, dt);
+#endif
 
 		updated = true;
 
@@ -736,6 +773,18 @@ void VehicleIMU::UpdateIntegratorConfiguration()
 				_accel_interval_us = accel_interval_us;
 				_gyro_interval_us = gyro_interval_us;
 
+#if !defined(CONSTRAINED_FLASH)
+				{
+					const float sample_rate_hz = 1e6f / accel_interval_us;
+					const bool rate_changed = (fabsf(sample_rate_hz - _accel_filter_sample_rate_hz) / sample_rate_hz) > 0.01f;
+
+					if (rate_changed || !PX4_ISFINITE(_accel_filter_sample_rate_hz)) {
+						_accel_filter_sample_rate_hz = sample_rate_hz;
+						_accel_filter_reset = true;
+					}
+				}
+#endif // !CONSTRAINED_FLASH
+
 				break;
 			}
 		}
@@ -782,9 +831,283 @@ void VehicleIMU::PrintStatus()
 	perf_print_counter(_accel_generation_gap_perf);
 	perf_print_counter(_gyro_generation_gap_perf);
 
+#if !defined(CONSTRAINED_FLASH)
+	perf_print_counter(_dynamic_notch_filter_esc_rpm_disable_perf);
+	perf_print_counter(_dynamic_notch_filter_esc_rpm_init_perf);
+	perf_print_counter(_dynamic_notch_filter_esc_rpm_update_perf);
+
+	perf_print_counter(_dynamic_notch_filter_fft_disable_perf);
+	perf_print_counter(_dynamic_notch_filter_fft_update_perf);
+#endif // !CONSTRAINED_FLASH
+
 	_accel_calibration.PrintStatus();
 	_gyro_calibration.PrintStatus();
 }
+
+#if !defined(CONSTRAINED_FLASH)
+
+void VehicleIMU::UpdateAccelDynamicNotchParameters()
+{
+	if (_param_imu_acc_dnf_en.get() & DynamicNotch::EscRpm) {
+
+		const int32_t esc_rpm_harmonics = math::constrain(_param_imu_acc_dnf_hmc.get(), (int32_t)1, (int32_t)7);
+
+		if (_dynamic_notch_filter_esc_rpm && (esc_rpm_harmonics != _esc_rpm_harmonics)) {
+			delete[] _dynamic_notch_filter_esc_rpm;
+			_dynamic_notch_filter_esc_rpm = nullptr;
+			_esc_rpm_harmonics = 0;
+		}
+
+		if (_dynamic_notch_filter_esc_rpm == nullptr) {
+
+			_dynamic_notch_filter_esc_rpm = new NotchFilterHarmonic[esc_rpm_harmonics];
+
+			if (_dynamic_notch_filter_esc_rpm) {
+				_esc_rpm_harmonics = esc_rpm_harmonics;
+
+				if (_dynamic_notch_filter_esc_rpm_disable_perf == nullptr) {
+					_dynamic_notch_filter_esc_rpm_disable_perf = perf_alloc(PC_COUNT,
+							MODULE_NAME": accel dynamic notch filter ESC RPM disable");
+				}
+
+				if (_dynamic_notch_filter_esc_rpm_init_perf == nullptr) {
+					_dynamic_notch_filter_esc_rpm_init_perf = perf_alloc(PC_COUNT,
+							MODULE_NAME": accel dynamic notch filter ESC RPM init");
+				}
+
+				if (_dynamic_notch_filter_esc_rpm_update_perf == nullptr) {
+					_dynamic_notch_filter_esc_rpm_update_perf = perf_alloc(PC_COUNT,
+							MODULE_NAME": accel dynamic notch filter ESC RPM update");
+				}
+
+			} else {
+				_esc_rpm_harmonics = 0;
+
+				perf_free(_dynamic_notch_filter_esc_rpm_disable_perf);
+				perf_free(_dynamic_notch_filter_esc_rpm_init_perf);
+				perf_free(_dynamic_notch_filter_esc_rpm_update_perf);
+
+				_dynamic_notch_filter_esc_rpm_disable_perf = nullptr;
+				_dynamic_notch_filter_esc_rpm_init_perf = nullptr;
+				_dynamic_notch_filter_esc_rpm_update_perf = nullptr;
+			}
+		}
+
+	} else {
+		DisableDynamicNotchEscRpm();
+	}
+
+	if (_param_imu_acc_dnf_en.get() & DynamicNotch::FFT) {
+		if (_dynamic_notch_filter_fft_disable_perf == nullptr) {
+			_dynamic_notch_filter_fft_disable_perf = perf_alloc(PC_COUNT, MODULE_NAME": accel dynamic notch filter FFT disable");
+			_dynamic_notch_filter_fft_update_perf = perf_alloc(PC_COUNT, MODULE_NAME": accel dynamic notch filter FFT update");
+		}
+
+	} else {
+		DisableDynamicNotchFFT();
+	}
+}
+
+void VehicleIMU::DisableDynamicNotchEscRpm()
+{
+	if (_dynamic_notch_filter_esc_rpm) {
+		for (int harmonic = 0; harmonic < _esc_rpm_harmonics; harmonic++) {
+			for (int axis = 0; axis < 3; axis++) {
+				for (int esc = 0; esc < MAX_NUM_ESCS; esc++) {
+					_dynamic_notch_filter_esc_rpm[harmonic][axis][esc].disable();
+					_esc_available.set(esc, false);
+					perf_count(_dynamic_notch_filter_esc_rpm_disable_perf);
+				}
+			}
+		}
+	}
+}
+
+void VehicleIMU::DisableDynamicNotchFFT()
+{
+	if (_dynamic_notch_fft_available) {
+		for (int axis = 0; axis < 3; axis++) {
+			for (int peak = 0; peak < MAX_NUM_FFT_PEAKS; peak++) {
+				_dynamic_notch_filter_fft[axis][peak].disable();
+				perf_count(_dynamic_notch_filter_fft_disable_perf);
+			}
+		}
+
+		_dynamic_notch_fft_available = false;
+	}
+}
+
+void VehicleIMU::UpdateDynamicNotchEscRpm(const hrt_abstime &time_now_us, bool force)
+{
+	const bool enabled = _dynamic_notch_filter_esc_rpm && (_param_imu_acc_dnf_en.get() & DynamicNotch::EscRpm);
+
+	if (enabled && (_esc_status_sub.updated() || force)) {
+
+		bool axis_init[3] {false, false, false};
+
+		esc_status_s esc_status;
+
+		if (_esc_status_sub.copy(&esc_status) && (time_now_us < esc_status.timestamp + DYNAMIC_NOTCH_FITLER_TIMEOUT)) {
+
+			const float bandwidth_hz = _param_imu_acc_dnf_bw.get();
+			const float freq_min = math::max(_param_imu_acc_dnf_min.get(), bandwidth_hz);
+
+			for (size_t esc = 0; esc < math::min(esc_status.esc_count, (uint8_t)MAX_NUM_ESCS); esc++) {
+				const esc_report_s &esc_report = esc_status.esc[esc];
+
+				const bool esc_connected = (esc_status.esc_online_flags & (1 << esc)) || (esc_report.esc_rpm != 0);
+
+				// only update if ESC RPM range seems valid
+				if (esc_connected && (time_now_us < esc_report.timestamp + DYNAMIC_NOTCH_FITLER_TIMEOUT)) {
+
+					const float esc_hz = abs(esc_report.esc_rpm) / 60.f;
+
+					const bool force_update = force || !_esc_available[esc];
+
+					for (int harmonic = 0; harmonic < _esc_rpm_harmonics; harmonic++) {
+						const float frequency_hz = math::max(esc_hz * (harmonic + 1), freq_min + (harmonic * 0.5f * bandwidth_hz));
+
+						for (int axis = 0; axis < 3; axis++) {
+							auto &nf = _dynamic_notch_filter_esc_rpm[harmonic][axis][esc];
+
+							const float notch_freq_delta = fabsf(nf.getNotchFreq() - frequency_hz);
+
+							const bool notch_freq_changed = (notch_freq_delta > 0.1f);
+
+							const bool allow_update = !axis_init[axis] || (nf.initialized() && notch_freq_delta < nf.getBandwidth());
+
+							if ((force_update || notch_freq_changed) && allow_update) {
+								if (nf.setParameters(_accel_filter_sample_rate_hz, frequency_hz, bandwidth_hz)) {
+									perf_count(_dynamic_notch_filter_esc_rpm_update_perf);
+
+									if (!nf.initialized()) {
+										perf_count(_dynamic_notch_filter_esc_rpm_init_perf);
+										axis_init[axis] = true;
+									}
+								}
+							}
+						}
+					}
+
+					_esc_available.set(esc, true);
+					_last_esc_rpm_notch_update[esc] = esc_report.timestamp;
+				}
+			}
+		}
+
+		// check notch filter timeout
+		for (size_t esc = 0; esc < MAX_NUM_ESCS; esc++) {
+			if (_esc_available[esc] && (time_now_us > _last_esc_rpm_notch_update[esc] + DYNAMIC_NOTCH_FITLER_TIMEOUT)) {
+				bool all_disabled = true;
+
+				for (int harmonic = _esc_rpm_harmonics - 1; harmonic >= 0; harmonic--) {
+					for (int axis = 0; axis < 3; axis++) {
+						auto &nf = _dynamic_notch_filter_esc_rpm[harmonic][axis][esc];
+
+						if (nf.getNotchFreq() > 0.f) {
+							if (nf.initialized() && !axis_init[axis]) {
+								nf.disable();
+								perf_count(_dynamic_notch_filter_esc_rpm_disable_perf);
+								axis_init[axis] = true;
+							}
+						}
+
+						if (nf.getNotchFreq() > 0.f) {
+							all_disabled = false;
+						}
+					}
+				}
+
+				if (all_disabled) {
+					_esc_available.set(esc, false);
+				}
+			}
+		}
+	}
+}
+
+void VehicleIMU::UpdateDynamicNotchFFT(const hrt_abstime &time_now_us, bool force)
+{
+	const bool enabled = _param_imu_acc_dnf_en.get() & DynamicNotch::FFT;
+
+	if (enabled && (_sensor_gyro_fft_sub.updated() || force)) {
+
+		if (!_dynamic_notch_fft_available) {
+			force = true;
+		}
+
+		sensor_gyro_fft_s sensor_gyro_fft;
+
+		if (_sensor_gyro_fft_sub.copy(&sensor_gyro_fft)
+		    && (sensor_gyro_fft.device_id == _gyro_calibration.device_id())
+		    && (_gyro_calibration.device_id() != 0)
+		    && (time_now_us < sensor_gyro_fft.timestamp + DYNAMIC_NOTCH_FITLER_TIMEOUT)
+		    && (sensor_gyro_fft.sensor_sample_rate_hz > 0)) {
+
+			static constexpr float peak_freq_min = 10.f;
+
+			const float bandwidth = math::constrain(sensor_gyro_fft.resolution_hz, 8.f, 30.f);
+
+			float *peak_frequencies[] {sensor_gyro_fft.peak_frequencies_x, sensor_gyro_fft.peak_frequencies_y, sensor_gyro_fft.peak_frequencies_z};
+
+			for (int axis = 0; axis < 3; axis++) {
+				for (int peak = 0; peak < MAX_NUM_FFT_PEAKS; peak++) {
+
+					const float peak_freq = peak_frequencies[axis][peak];
+
+					auto &nf = _dynamic_notch_filter_fft[axis][peak];
+
+					if (peak_freq > peak_freq_min) {
+						if (force || !nf.initialized() || (fabsf(nf.getNotchFreq() - peak_freq) > 0.1f)) {
+							nf.setParameters(_accel_filter_sample_rate_hz, peak_freq, bandwidth);
+							perf_count(_dynamic_notch_filter_fft_update_perf);
+						}
+
+						_dynamic_notch_fft_available = true;
+
+					} else {
+						if (nf.getNotchFreq() > 0.f) {
+							nf.disable();
+							perf_count(_dynamic_notch_filter_fft_disable_perf);
+						}
+					}
+				}
+			}
+
+		} else {
+			DisableDynamicNotchFFT();
+		}
+	}
+}
+
+float VehicleIMU::FilterAccelAxis(int axis, float data)
+{
+	// Apply dynamic notch filter from ESC RPM
+	if (_dynamic_notch_filter_esc_rpm) {
+		for (int esc = 0; esc < MAX_NUM_ESCS; esc++) {
+			if (_esc_available[esc]) {
+				for (int harmonic = 0; harmonic < _esc_rpm_harmonics; harmonic++) {
+					if (_dynamic_notch_filter_esc_rpm[harmonic][axis][esc].getNotchFreq() > 0.f) {
+						data = _dynamic_notch_filter_esc_rpm[harmonic][axis][esc].apply(data);
+					}
+				}
+			}
+		}
+	}
+
+	// Apply dynamic notch filter from FFT
+	if (_dynamic_notch_fft_available) {
+		for (int peak = MAX_NUM_FFT_PEAKS - 1; peak >= 0; peak--) {
+			if (_dynamic_notch_filter_fft[axis][peak].getNotchFreq() > 0.f) {
+				data = _dynamic_notch_filter_fft[axis][peak].apply(data);
+			}
+		}
+	}
+
+	return data;
+}
+
+#endif // !CONSTRAINED_FLASH
 
 void VehicleIMU::SensorCalibrationUpdate()
 {

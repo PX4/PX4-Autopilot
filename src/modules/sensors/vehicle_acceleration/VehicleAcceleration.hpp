@@ -33,7 +33,6 @@
 
 #pragma once
 
-#include <containers/Bitset.hpp>
 #include <lib/sensor_calibration/Accelerometer.hpp>
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
@@ -46,13 +45,11 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/esc_status.h>
 #include <uORB/topics/estimator_selector_status.h>
 #include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_accel.h>
 #include <uORB/topics/sensor_accel_fifo.h>
-#include <uORB/topics/sensor_gyro_fft.h>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_acceleration.h>
 
@@ -77,15 +74,11 @@ private:
 
 	inline float FilterAcceleration(int axis, float data[], int N = 1);
 
-	void DisableDynamicNotchEscRpm();
-	void DisableDynamicNotchFFT();
 	void ParametersUpdate(bool force = false);
 
 	void ResetFilters(const hrt_abstime &time_now_us);
 	void SensorBiasUpdate(bool force = false);
 	bool SensorSelectionUpdate(const hrt_abstime &time_now_us, bool force = false);
-	void UpdateDynamicNotchEscRpm(const hrt_abstime &time_now_us, bool force = false);
-	void UpdateDynamicNotchFFT(const hrt_abstime &time_now_us, bool force = false);
 	bool UpdateSampleRate();
 
 	matrix::Vector3f GetResetAcceleration() const;
@@ -96,10 +89,6 @@ private:
 
 	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
 	uORB::Subscription _estimator_sensor_bias_sub{ORB_ID(estimator_sensor_bias)};
-#if !defined(CONSTRAINED_FLASH)
-	uORB::Subscription _esc_status_sub {ORB_ID(esc_status)};
-	uORB::Subscription _sensor_gyro_fft_sub{ORB_ID(sensor_gyro_fft)};
-#endif // !CONSTRAINED_FLASH
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -123,43 +112,7 @@ private:
 	math::NotchFilter<float> _notch_filter0[3] {};
 	math::NotchFilter<float> _notch_filter1[3] {};
 
-#if !defined(CONSTRAINED_FLASH)
-
-	enum DynamicNotch {
-		EscRpm = 1,
-		FFT    = 2,
-	};
-
-	static constexpr hrt_abstime DYNAMIC_NOTCH_FITLER_TIMEOUT = 3_s;
-
-	// ESC RPM
-	static constexpr int MAX_NUM_ESCS = sizeof(esc_status_s::esc) / sizeof(esc_status_s::esc[0]);
-
-	using NotchFilterHarmonic = math::NotchFilter<float>[3][MAX_NUM_ESCS];
-	NotchFilterHarmonic *_dynamic_notch_filter_esc_rpm{nullptr};
-
-	int _esc_rpm_harmonics{0};
-	px4::Bitset<MAX_NUM_ESCS> _esc_available{};
-	hrt_abstime _last_esc_rpm_notch_update[MAX_NUM_ESCS] {};
-
-	perf_counter_t _dynamic_notch_filter_esc_rpm_disable_perf{nullptr};
-	perf_counter_t _dynamic_notch_filter_esc_rpm_init_perf{nullptr};
-	perf_counter_t _dynamic_notch_filter_esc_rpm_update_perf{nullptr};
-
-	// FFT
-	static constexpr int MAX_NUM_FFT_PEAKS = sizeof(sensor_gyro_fft_s::peak_frequencies_x)
-			/ sizeof(sensor_gyro_fft_s::peak_frequencies_x[0]);
-
-	math::NotchFilter<float> _dynamic_notch_filter_fft[3][MAX_NUM_FFT_PEAKS] {};
-
-	perf_counter_t _dynamic_notch_filter_fft_disable_perf{nullptr};
-	perf_counter_t _dynamic_notch_filter_fft_update_perf{nullptr};
-
-	bool _dynamic_notch_fft_available{false};
-#endif // !CONSTRAINED_FLASH
-
 	uint32_t _selected_sensor_device_id{0};
-	uint32_t _selected_gyro_device_id{0};
 
 	bool _reset_filters{true};
 	bool _fifo_available{false};
@@ -170,12 +123,6 @@ private:
 	perf_counter_t _selection_changed_perf{perf_alloc(PC_COUNT, MODULE_NAME": accel selection changed")};
 
 	DEFINE_PARAMETERS(
-#if !defined(CONSTRAINED_FLASH)
-		(ParamInt<px4::params::IMU_ACC_DNF_EN>) _param_imu_acc_dnf_en,
-		(ParamInt<px4::params::IMU_ACC_DNF_HMC>) _param_imu_acc_dnf_hmc,
-		(ParamFloat<px4::params::IMU_ACC_DNF_BW>) _param_imu_acc_dnf_bw,
-		(ParamFloat<px4::params::IMU_ACC_DNF_MIN>) _param_imu_acc_dnf_min,
-#endif // !CONSTRAINED_FLASH
 		(ParamFloat<px4::params::IMU_ACCEL_CUTOFF>) _param_imu_accel_cutoff,
 		(ParamFloat<px4::params::IMU_ACC_NF0_FRQ>) _param_imu_acc_nf0_frq,
 		(ParamFloat<px4::params::IMU_ACC_NF0_BW>) _param_imu_acc_nf0_bw,
