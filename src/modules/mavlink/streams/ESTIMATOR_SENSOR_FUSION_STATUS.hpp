@@ -86,34 +86,35 @@ private:
 
 			for (int i = 0; i < 9; i++) { msg.test_ratio[i] = NAN; }
 
-			// --- intended: effective CTRL values with runtime overrides ---
+			// intended: sensor enabled by user AND CTRL param not disabled
 			for (int i = 0; i < 2; i++) {
-				if (fc.gps_intended[i] != 0) { msg.intended[IDX_GPS] |= (1u << i); }
+				if (fc.gps_intended[i]) { msg.intended[IDX_GPS] |= (1u << i); }
 			}
 
-			if (fc.of_intended   != 0) { msg.intended[IDX_OF]   = 1; }
-
-			if (fc.ev_intended   != 0) { msg.intended[IDX_EV]   = 1; }
-
-			if (fc.baro_intended != 0) { msg.intended[IDX_BARO] = 1; }
-
-			if (fc.rng_intended  != 0) { msg.intended[IDX_RNG]  = 1; }
-
-			if (fc.mag_intended  != 0) { msg.intended[IDX_MAG]  = 1; }
-
-			if (fc.aspd_intended   != 0) { msg.intended[IDX_ASPD]   = 1; }
-
-			if (fc.rngbcn_intended != 0) { msg.intended[IDX_RNGBCN] = 1; }
+			msg.intended[IDX_OF]     = fc.of_intended;
+			msg.intended[IDX_EV]     = fc.ev_intended;
+			msg.intended[IDX_BARO]   = fc.baro_intended;
+			msg.intended[IDX_RNG]    = fc.rng_intended;
+			msg.intended[IDX_MAG]    = fc.mag_intended;
+			msg.intended[IDX_ASPD]   = fc.aspd_intended;
+			msg.intended[IDX_RNGBCN] = fc.rngbcn_intended;
 
 			for (int i = 0; i < 4; i++) {
-				if (fc.agp_intended[i] != 0) { msg.intended[IDX_AGP] |= (1u << i); }
+				if (fc.agp_intended[i]) { msg.intended[IDX_AGP] |= (1u << i); }
 			}
 
-			// --- active: estimator is actually fusing data from this source ---
-			msg.active[IDX_GPS]  = fc.gps_active;
+			// active: estimator is actually fusing data from this source
+			for (int i = 0; i < 2; i++) {
+				if (fc.gps_active[i]) { msg.active[IDX_GPS] |= (1u << i); }
+			}
+
 			msg.active[IDX_OF]   = fc.of_active;
 			msg.active[IDX_EV]   = fc.ev_active;
-			msg.active[IDX_AGP]  = fc.agp_active;
+
+			for (int i = 0; i < 4; i++) {
+				if (fc.agp_active[i]) { msg.active[IDX_AGP] |= (1u << i); }
+			}
+
 			msg.active[IDX_BARO] = fc.baro_active;
 			msg.active[IDX_RNG]  = fc.rng_active;
 			msg.active[IDX_MAG]  = fc.mag_active;

@@ -407,7 +407,7 @@ private:
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Publication<vehicle_command_ack_s> _vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
-	enum SensEnBit : uint8_t {
+	enum SensEnBit : uint16_t {
 		SENS_EN_GPS0   = 0,
 		SENS_EN_GPS1   = 1,
 		SENS_EN_OF     = 2,
@@ -421,28 +421,22 @@ private:
 		SENS_EN_MAG    = 10,
 		SENS_EN_ASPD   = 11,
 		SENS_EN_RNGBCN = 12,
+		SENS_EN_COUNT  = 13,
 	};
 
 	struct FusionEntry {
-		FusionSensor *sensor;
-		param_t param;
-		uint8_t sens_en_bit;
-		uint8_t sensor_id;
-		int8_t instance;     // -1 = any instance
-		uint8_t disabled_val;
+		FusionSensor *sensor{nullptr};
+		uint8_t sensor_type{0};
+		int8_t instance{-1};
 	};
 
-	static constexpr uint8_t MAX_SENSOR_TABLE = 9 + (MAX_AGP_INSTANCES - 1); // 12
-	FusionEntry _sensor_table[MAX_SENSOR_TABLE] {};
-	uint8_t _num_sensor_table{0};
+	FusionEntry _sensor_table[SENS_EN_COUNT] {};
 
 	param_t _sens_en_param{PARAM_INVALID};
 	bool _prev_armed{false};
 
 	void initFusionControl();
-	void updateFusionIntended();
 	void handleSensorFusionCommand(const vehicle_command_s &cmd, vehicle_command_ack_s &ack);
-	void updateSensEnParam(uint8_t bit, bool enable);
 	void syncSensEnParam();
 
 	uORB::SubscriptionCallbackWorkItem _sensor_combined_sub{this, ORB_ID(sensor_combined)};
@@ -622,7 +616,7 @@ private:
 		_param_ekf2_eas_noise, ///< measurement noise used for airspeed fusion (m/sec)
 
 		// control of airspeed fusion
-		(ParamExtInt<px4::params::EKF2_ARSP_THR>)
+		(ParamExtFloat<px4::params::EKF2_ARSP_THR>)
 		_param_ekf2_arsp_thr, ///< A value of zero will disabled airspeed fusion. Any positive value sets the minimum airspeed which will be used (m/sec)
 #endif // CONFIG_EKF2_AIRSPEED
 

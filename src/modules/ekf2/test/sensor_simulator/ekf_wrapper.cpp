@@ -6,27 +6,17 @@ EkfWrapper::EkfWrapper(std::shared_ptr<Ekf> ekf):
 	_ekf_params = _ekf->getParamHandle();
 	_fc = _ekf->getFusionControlHandle();
 
-	// Sync FusionControl from default param values so Ekf core sees them
 	_fc->gps.enabled = true;
-	_fc->gps.intended = static_cast<uint8_t>(_ekf_params->ekf2_gps_ctrl);
 	_fc->of.enabled = true;
-	_fc->of.intended = static_cast<uint8_t>(_ekf_params->ekf2_of_ctrl);
 	_fc->ev.enabled = true;
-	_fc->ev.intended = static_cast<uint8_t>(_ekf_params->ekf2_ev_ctrl);
 	_fc->baro.enabled = true;
-	_fc->baro.intended = static_cast<uint8_t>(_ekf_params->ekf2_baro_ctrl);
 	_fc->rng.enabled = true;
-	_fc->rng.intended = static_cast<uint8_t>(_ekf_params->ekf2_rng_ctrl);
 	_fc->mag.enabled = true;
-	_fc->mag.intended = static_cast<uint8_t>(_ekf_params->ekf2_mag_type);
 	_fc->aspd.enabled = true;
-	_fc->aspd.intended = static_cast<uint8_t>(_ekf_params->ekf2_arsp_thr);
 	_fc->rngbcn.enabled = true;
-	_fc->rngbcn.intended = 0; // wait for RangeBeacon PR
 
 	for (int i = 0; i < MAX_AGP_INSTANCES; i++) {
 		_fc->agp[i].enabled = true;
-		_fc->agp[i].intended = 0;
 	}
 }
 
@@ -37,13 +27,11 @@ EkfWrapper::~EkfWrapper()
 void EkfWrapper::syncGpsFc()
 {
 	_fc->gps.enabled = true;
-	_fc->gps.intended = static_cast<uint8_t>(_ekf_params->ekf2_gps_ctrl);
 }
 
 void EkfWrapper::syncEvFc()
 {
 	_fc->ev.enabled = true;
-	_fc->ev.intended = static_cast<uint8_t>(_ekf_params->ekf2_ev_ctrl);
 }
 
 void EkfWrapper::setBaroHeightRef()
@@ -55,13 +43,11 @@ void EkfWrapper::enableBaroHeightFusion()
 {
 	_ekf_params->ekf2_baro_ctrl = 1;
 	_fc->baro.enabled = true;
-	_fc->baro.intended = 1;
 }
 
 void EkfWrapper::disableBaroHeightFusion()
 {
 	_ekf_params->ekf2_baro_ctrl = 0;
-	_fc->baro.intended = 0;
 }
 
 bool EkfWrapper::isIntendingBaroHeightFusion() const
@@ -100,13 +86,11 @@ void EkfWrapper::enableRangeHeightFusion()
 {
 	_ekf_params->ekf2_rng_ctrl = static_cast<int32_t>(RngCtrl::ENABLED);
 	_fc->rng.enabled = true;
-	_fc->rng.intended = static_cast<uint8_t>(RngCtrl::ENABLED);
 }
 
 void EkfWrapper::disableRangeHeightFusion()
 {
 	_ekf_params->ekf2_rng_ctrl = static_cast<int32_t>(RngCtrl::DISABLED);
-	_fc->rng.intended = static_cast<uint8_t>(RngCtrl::DISABLED);
 }
 
 bool EkfWrapper::isIntendingRangeHeightFusion() const
@@ -198,13 +182,11 @@ void EkfWrapper::enableFlowFusion()
 {
 	_ekf_params->ekf2_of_ctrl = 1;
 	_fc->of.enabled = true;
-	_fc->of.intended = 1;
 }
 
 void EkfWrapper::disableFlowFusion()
 {
 	_ekf_params->ekf2_of_ctrl = 0;
-	_fc->of.intended = 0;
 }
 
 bool EkfWrapper::isIntendingFlowFusion() const
@@ -296,7 +278,6 @@ bool EkfWrapper::isMagFaultDetected() const
 void EkfWrapper::setMagFuseTypeNone()
 {
 	_ekf_params->ekf2_mag_type = MagFuseType::NONE;
-	_fc->mag.intended = static_cast<uint8_t>(MagFuseType::NONE);
 }
 
 void EkfWrapper::enableMagStrengthCheck()

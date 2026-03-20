@@ -288,8 +288,9 @@ struct systemFlagUpdate {
 static constexpr uint8_t MAX_AGP_INSTANCES = 4;
 
 struct FusionSensor {
-	bool enabled{false};
-	uint8_t intended{0};
+	bool enabled{false};   // runtime toggleable via MAVLink
+	bool available{false}; // CTRL-param != disabled-value (functions as factory-setting)
+	bool intended() const { return enabled && available; }
 };
 
 struct FusionControl {
@@ -299,7 +300,7 @@ struct FusionControl {
 	FusionSensor agp[MAX_AGP_INSTANCES];
 	FusionSensor baro;
 	FusionSensor rng;
-	FusionSensor mag{false, 5};  // MagFuseType::NONE
+	FusionSensor mag;
 	FusionSensor aspd;
 	FusionSensor rngbcn;
 };
@@ -421,7 +422,7 @@ struct parameters {
 	float ekf2_asp_delay{100.0f};           ///< airspeed measurement delay relative to the IMU (mSec)
 	float ekf2_tas_gate{5.0f};              ///< True Airspeed innovation consistency gate size (STD)
 	float ekf2_eas_noise{1.4f};             ///< EAS measurement noise standard deviation used for airspeed fusion (m/s)
-	int32_t ekf2_arsp_thr{2};               ///< Airspeed fusion threshold. A value of zero will deactivate airspeed fusion
+	float ekf2_arsp_thr{2.0f};              ///< Airspeed fusion threshold. A value of zero will deactivate airspeed fusion
 #endif // CONFIG_EKF2_AIRSPEED
 
 #if defined(CONFIG_EKF2_SIDESLIP)

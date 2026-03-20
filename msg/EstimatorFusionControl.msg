@@ -1,21 +1,21 @@
 uint64 timestamp                # time since system start (microseconds)
 
-# effective CTRL param values with runtime overrides (0 = disabled)
-uint8[2] gps_intended
-uint8 of_intended
-uint8 ev_intended
-uint8[4] agp_intended
-uint8 baro_intended
-uint8 rng_intended
-uint8 mag_intended
-uint8 aspd_intended
-uint8 rngbcn_intended
+# sensor intended for fusion (enabled via EKF2_SENS_EN AND CTRL param != disabled)
+bool[2] gps_intended
+bool of_intended
+bool ev_intended
+bool[4] agp_intended
+bool baro_intended
+bool rng_intended
+bool mag_intended
+bool aspd_intended
+bool rngbcn_intended
 
 # whether the estimator is actively fusing data from each source
-uint8 gps_active
+bool[2] gps_active
 bool of_active
 bool ev_active
-uint8 agp_active
+bool[4] agp_active
 bool baro_active
 bool rng_active
 bool mag_active

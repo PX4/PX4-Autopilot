@@ -9,10 +9,11 @@ parameters:
           Set to 0 to disable airspeed fusion. For reliable wind estimation both sideslip
           (see EKF2_FUSE_BETA) and airspeed fusion should be enabled. Only applies
           to fixed-wing vehicles (or VTOLs in fixed-wing mode).
-      type: int32
-      default: 0
-      min: 0
+      type: float
+      default: 0.0
+      min: 0.0
       unit: m/s
+      decimal: 1
     EKF2_ASP_DELAY:
       description:
         short: Airspeed measurement delay relative to IMU measurements
