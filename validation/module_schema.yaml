@@ -170,7 +170,7 @@ parameters:
                             # enumeration of possible values for type enum
                             type: dict
                             keyschema:
-                                type: number
+                                type: integer
                             valueschema:
                                 type: string
 
