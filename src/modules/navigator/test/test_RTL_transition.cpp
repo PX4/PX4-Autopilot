@@ -148,9 +148,10 @@ INSTANTIATE_TEST_SUITE_P(
 	Directions,
 	RtlNonVtolTransitionTest,
 	::testing::Values(false, true),
-	[](const ::testing::TestParamInfo<bool> &test_info) {
-		return test_info.param ? "Reverse" : "Forward";
-	}
+	[](const ::testing::TestParamInfo<bool> &test_info)
+{
+	return test_info.param ? "Reverse" : "Forward";
+}
 );
 
 // WHY: Real VTOL missions often have multiple mode transitions. The planner must correctly

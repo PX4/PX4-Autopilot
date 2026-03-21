@@ -63,13 +63,24 @@ static constexpr int RTL_TYPE_ROUTE_SAFE_POINT = 6;
 namespace
 {
 
+/**
+ * Provider using pre-loaded DatamanCache instances.
+ *
+ * All reads use loadWait(timeout=0) for cache lookups that return
+ * instantly on hit and false on miss.  The caller must ensure both caches
+ * are updated (via updateDatamanCache) before invoking the planner.
+ */
 class RtlRoutePlannerProvider : public RtlRoutePlanner::Provider
 {
 public:
-	RtlRoutePlannerProvider(const mission_s &mission, DatamanClient &mission_client, DatamanClient &safe_point_client) :
+	RtlRoutePlannerProvider(const mission_s &mission,
+				DatamanCache &mission_cache,
+				DatamanCache &safe_point_cache,
+				const mission_stats_entry_s &safe_point_stats) :
 		_mission(mission),
-		_mission_client(mission_client),
-		_safe_point_client(safe_point_client)
+		_mission_cache(mission_cache),
+		_safe_point_cache(safe_point_cache),
+		_safe_point_stats(safe_point_stats)
 	{
 	}
 
@@ -82,41 +93,28 @@ public:
 	{
 		return index >= 0
 		       && index < _mission.count
-		       && _mission_client.readSync(static_cast<dm_item_t>(_mission.mission_dataman_id), index,
-						   reinterpret_cast<uint8_t *>(&mission_item), sizeof(mission_item));
+		       && _mission_cache.loadWait(static_cast<dm_item_t>(_mission.mission_dataman_id), index,
+						  reinterpret_cast<uint8_t *>(&mission_item), sizeof(mission_item));
 	}
 
 	int safePointCount() const override
 	{
-		mission_stats_entry_s stats{};
-
-		if (!_safe_point_client.readSync(DM_KEY_SAFE_POINTS_STATE, 0,
-						 reinterpret_cast<uint8_t *>(&stats), sizeof(stats))) {
-			return 0;
-		}
-
-		return stats.num_items;
+		return _safe_point_stats.num_items;
 	}
 
 	bool loadSafePointItem(int index, mission_item_s &safe_point_item) const override
 	{
-		mission_stats_entry_s stats{};
-
-		if (!_safe_point_client.readSync(DM_KEY_SAFE_POINTS_STATE, 0,
-						 reinterpret_cast<uint8_t *>(&stats), sizeof(stats))) {
-			return false;
-		}
-
 		return index >= 0
-		       && index < stats.num_items
-		       && _safe_point_client.readSync(static_cast<dm_item_t>(stats.dataman_id), index,
-						      reinterpret_cast<uint8_t *>(&safe_point_item), sizeof(safe_point_item));
+		       && index < _safe_point_stats.num_items
+		       && _safe_point_cache.loadWait(static_cast<dm_item_t>(_safe_point_stats.dataman_id), index,
+						     reinterpret_cast<uint8_t *>(&safe_point_item), sizeof(safe_point_item));
 	}
 
 private:
 	const mission_s &_mission;
-	DatamanClient &_mission_client;
-	DatamanClient &_safe_point_client;
+	DatamanCache &_mission_cache;
+	DatamanCache &_safe_point_cache;
+	const mission_stats_entry_s &_safe_point_stats;
 };
 
 } // namespace
@@ -190,6 +188,7 @@ void RTL::updateDatamanCache()
 
 			} else {
 				_dataman_state = DatamanState::UpdateRequestWait;
+				_safe_points_updated = true; // Cache already reflects the current safe-point set (unchanged or empty)
 			}
 		}
 
@@ -216,6 +215,7 @@ void RTL::updateDatamanCache()
 
 	}
 
+	// Mission item cache pre-loading
 	if (_mission_id != _mission_sub.get().mission_id) {
 		_mission_id = _mission_sub.get().mission_id;
 		resetRouteSafePointCache();
@@ -225,9 +225,28 @@ void RTL::updateDatamanCache()
 		if (_mission_sub.get().land_index > 0) {
 			_dataman_cache_landItem.load(dm_item, _mission_sub.get().land_index);
 		}
+
+		// Pre-load all mission items for non-blocking route planning (RTL type 6).
+		_dataman_cache_mission.invalidate();
+		const int mission_count = _mission_sub.get().count;
+
+		if (_dataman_cache_mission.size() != mission_count) {
+			_dataman_cache_mission.resize(mission_count);
+		}
+
+		for (int i = 0; i < mission_count; ++i) {
+			_dataman_cache_mission.load(dm_item, i);
+		}
+
+		_mission_items_updated = (mission_count == 0);
 	}
 
 	_dataman_cache_landItem.update();
+	_dataman_cache_mission.update();
+
+	if (!_mission_items_updated && !_dataman_cache_mission.isLoading()) {
+		_mission_items_updated = true;
+	}
 }
 
 void RTL::resetRouteSafePointCache()
@@ -494,9 +513,9 @@ void RTL::setRtlTypeAndDestination()
 		const bool current_route_direction_reversed = cached_route_safe_point_plan.valid()
 				? cached_route_safe_point_plan.selection.path.direction_reversed : false;
 
-		if (_navigator->get_mission_result()->valid) {
-			RtlRoutePlannerProvider planner_provider(_mission_sub.get(), _dataman_cache_landItem.client(),
-					_dataman_client_safepoint);
+		if (_navigator->get_mission_result()->valid && _mission_items_updated && _safe_points_updated) {
+			RtlRoutePlannerProvider planner_provider(_mission_sub.get(), _dataman_cache_mission,
+					_dataman_cache_safepoint, _stats);
 			RtlRoutePlanner planner(planner_provider);
 			const auto &vehicle_status = _vehicle_status_sub.get();
 			const auto *local_position = _navigator->get_local_position();
