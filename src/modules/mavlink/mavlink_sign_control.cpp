@@ -96,8 +96,12 @@ void MavlinkSignControl::start(int _instance_id, mavlink_status_t *_mavlink_stat
 		}
 	}
 
-	//lets reset it to nulls if it was not read properly
-	if (!_is_signing_initialized) {
+	if (_is_signing_initialized) {
+		PX4_INFO("MAVLink signing key loaded successfully");
+
+	} else {
+		PX4_WARN("MAVLink signing key not available (missing or invalid)");
+
 		for (size_t i = 0; i < MAVLINK_SECRET_KEY_LENGTH; ++i) {
 			_mavlink_signing.secret_key[i] = 0;
 		}
@@ -119,16 +123,16 @@ bool MavlinkSignControl::check_for_signing(const mavlink_message_t *msg)
 	mavlink_setup_signing_t setup_signing;
 	mavlink_msg_setup_signing_decode(msg, &setup_signing);
 
-	//setup signing provides new key , lets update it
-	//we update it only in case everything was stored properly
 	memcpy(_mavlink_signing.secret_key, setup_signing.secret_key, MAVLINK_SECRET_KEY_LENGTH);
 	_mavlink_signing.timestamp = setup_signing.initial_timestamp;
 
 	if (setup_signing.initial_timestamp != 0 || !is_array_all_zeros(setup_signing.secret_key, MAVLINK_SECRET_KEY_LENGTH)) {
 		_is_signing_initialized = true;
+		PX4_INFO("MAVLink signing key updated via SETUP_SIGNING");
 
 	} else {
 		_is_signing_initialized = false;
+		PX4_INFO("MAVLink signing disabled via SETUP_SIGNING (zero key)");
 	}
 
 	write_key_and_timestamp();
@@ -150,6 +154,13 @@ void MavlinkSignControl::write_key_and_timestamp()
 
 		if (bytes_write == MAVLINK_SECRET_KEY_LENGTH) {
 			bytes_write = ::write(_fd, &_mavlink_signing.timestamp, MAVLINK_SECRET_KEY_TIMESTAMP_LENGTH);
+
+			if (bytes_write != MAVLINK_SECRET_KEY_TIMESTAMP_LENGTH) {
+				PX4_ERR("failed to write signing key timestamp");
+			}
+
+		} else {
+			PX4_ERR("failed to write signing key (%zd/%d bytes)", bytes_write, MAVLINK_SECRET_KEY_LENGTH);
 		}
 
 		close(_fd);
@@ -158,8 +169,8 @@ void MavlinkSignControl::write_key_and_timestamp()
 
 bool MavlinkSignControl::accept_unsigned(int32_t sign_mode, bool is_usb_uart, uint32_t message_id)
 {
-	// if signing is not initilized properly or has all zeroes we will allow any message
-	if (!_is_signing_initialized) {
+	// If signing is not required always accept
+	if (sign_mode == MavlinkSignControl::PROTO_SIGN_OPTIONAL) {
 		return true;
 	}
 
@@ -170,11 +181,17 @@ bool MavlinkSignControl::accept_unsigned(int32_t sign_mode, bool is_usb_uart, ui
 		}
 	}
 
-	switch (sign_mode) {
-	// If signing is not required always return true
-	case MavlinkSignControl::PROTO_SIGN_OPTIONAL:
-		return true;
+	// If signing is configured but key is not available, only allow USB
+	// so that SETUP_SIGNING can still be received to provision the key
+	if (!_is_signing_initialized) {
+		if (!is_usb_uart) {
+			PX4_WARN("MAVLink signing required but key not set, rejecting unsigned msg %u", message_id);
+		}
 
+		return is_usb_uart;
+	}
+
+	switch (sign_mode) {
 	// Accept USB links if enabled
 	case MavlinkSignControl::PROTO_SIGN_NON_USB:
 		return is_usb_uart;
