@@ -107,7 +107,7 @@ uint8_t Modes::addExternalMode(const Modes::Mode &mode)
 	int matching_idx = -1;
 
 	for (int i = 0; i < MAX_NUM; ++i) {
-		char hash_param_name[20];
+		char hash_param_name[17];
 		snprintf(hash_param_name, sizeof(hash_param_name), "COM_MODE%d_HASH", i);
 		const param_t handle = param_find(hash_param_name);
 		int32_t current_hash{};
@@ -164,7 +164,7 @@ uint8_t Modes::addExternalMode(const Modes::Mode &mode)
 
 	if (new_mode_idx != -1 && !_modes[new_mode_idx].valid) {
 		if (need_to_update_param) {
-			char hash_param_name[20];
+			char hash_param_name[17];
 			snprintf(hash_param_name, sizeof(hash_param_name), "COM_MODE%d_HASH", new_mode_idx);
 			const param_t handle = param_find(hash_param_name);
 
@@ -232,6 +232,7 @@ void ModeManagement::checkNewRegistrations(UpdateRequest &update_request)
 		static_assert(sizeof(request.name) == sizeof(reply.name), "size mismatch");
 		memcpy(reply.name, request.name, sizeof(request.name));
 		reply.request_id = request.request_id;
+		reply.not_user_selectable = request.not_user_selectable;
 		reply.px4_ros2_api_version = register_ext_component_request_s::LATEST_PX4_ROS2_API_VERSION;
 
 		// validate
@@ -518,6 +519,18 @@ int ModeManagement::modeExecutorInCharge() const
 	return _mode_executor_in_charge;
 }
 
+uint8_t ModeManagement::getNavStateDisplay(uint8_t nav_state) const
+{
+	const int executor_in_charge = modeExecutorInCharge();
+
+	if (_mode_executors.valid(executor_in_charge)) {
+		return _mode_executors.executor(executor_in_charge).owned_nav_state;
+
+	} else {
+		return nav_state;
+	}
+}
+
 bool ModeManagement::updateControlMode(uint8_t nav_state, vehicle_control_mode_s &control_mode) const
 {
 	bool ret = false;
@@ -560,6 +573,10 @@ void ModeManagement::updateActiveConfigOverrides(uint8_t nav_state, config_overr
 
 		if (executor_overrides.disable_auto_disarm) {
 			current_overrides.disable_auto_disarm = true;
+		}
+
+		if (executor_overrides.disable_auto_set_home) {
+			current_overrides.disable_auto_set_home = true;
 		}
 
 		if (executor_overrides.defer_failsafes) {

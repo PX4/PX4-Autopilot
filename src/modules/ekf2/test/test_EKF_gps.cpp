@@ -81,6 +81,10 @@ TEST_F(EkfGpsTest, gpsTimeout)
 	// GIVEN:EKF that fuses GPS
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
 
+	// In air the simplified checks are used which do not include satellite count
+	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
+
 	// WHEN: the number of satellites drops below the minimum
 	_sensor_simulator._gps.setNumberOfSatellites(3);
 
@@ -174,7 +178,7 @@ TEST_F(EkfGpsTest, resetToGpsPosition)
 	const Vector3f simulated_position_change(20.0f, -1.0f, 0.f);
 	_sensor_simulator._gps.stepHorizontalPositionByMeters(
 		Vector2f(simulated_position_change));
-	_sensor_simulator.runSeconds(6);
+	_sensor_simulator.runSeconds(11);
 
 	// THEN: a reset to the new GPS position should be done
 	const Vector3f estimated_position = _ekf->getPosition();

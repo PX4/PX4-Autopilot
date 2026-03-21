@@ -1,0 +1,91 @@
+module_name: mc_rate_control
+parameters:
+- group: Multicopter Acro Mode
+  definitions:
+    MC_ACRO_R_MAX:
+      description:
+        short: Acro mode maximum roll rate
+        long: Full stick deflection leads to this rate.
+      type: float
+      default: 100.0
+      unit: deg/s
+      min: 0.0
+      max: 1800.0
+      decimal: 1
+      increment: 5
+    MC_ACRO_P_MAX:
+      description:
+        short: Acro mode maximum pitch rate
+        long: Full stick deflection leads to this rate.
+      type: float
+      default: 100.0
+      unit: deg/s
+      min: 0.0
+      max: 1800.0
+      decimal: 1
+      increment: 5
+    MC_ACRO_Y_MAX:
+      description:
+        short: Acro mode maximum yaw rate
+        long: Full stick deflection leads to this rate.
+      type: float
+      default: 100.0
+      unit: deg/s
+      min: 0.0
+      max: 1800.0
+      decimal: 1
+      increment: 5
+    MC_ACRO_EXPO:
+      description:
+        short: Acro mode roll, pitch expo factor
+        long: |-
+          Exponential factor for tuning the input curve shape.
+
+          0 Purely linear input curve
+          1 Purely cubic input curve
+      type: float
+      default: 0.0
+      min: 0
+      max: 1
+      decimal: 2
+    MC_ACRO_EXPO_Y:
+      description:
+        short: Acro mode yaw expo factor
+        long: |-
+          Exponential factor for tuning the input curve shape.
+
+          0 Purely linear input curve
+          1 Purely cubic input curve
+      type: float
+      default: 0.0
+      min: 0
+      max: 1
+      decimal: 2
+    MC_ACRO_SUPEXPO:
+      description:
+        short: Acro mode roll, pitch super expo factor
+        long: |-
+          "Superexponential" factor for refining the input curve shape tuned using MC_ACRO_EXPO.
+
+          0 Pure Expo function
+          0.7 reasonable shape enhancement for intuitive stick feel
+          0.95 very strong bent input curve only near maxima have effect
+      type: float
+      default: 0.0
+      min: 0
+      max: 0.95
+      decimal: 2
+    MC_ACRO_SUPEXPOY:
+      description:
+        short: Acro mode yaw super expo factor
+        long: |-
+          "Superexponential" factor for refining the input curve shape tuned using MC_ACRO_EXPO_Y.
+
+          0 Pure Expo function
+          0.7 reasonable shape enhancement for intuitive stick feel
+          0.95 very strong bent input curve only near maxima have effect
+      type: float
+      default: 0.0
+      min: 0
+      max: 0.95
+      decimal: 2

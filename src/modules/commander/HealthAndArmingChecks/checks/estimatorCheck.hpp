@@ -103,6 +103,7 @@ private:
 
 	bool _gps_was_fused{false};
 	bool _gnss_spoofed{false};
+	bool _gnss_jammed{false};
 
 	bool _nav_failure_imminent_warned{false};
 

@@ -45,7 +45,10 @@
 #include <px4_platform_common/events.h>
 #include <systemlib/mavlink_log.h>
 
+ModuleBase::Descriptor PPSCapture::desc{task_spawn, custom_command, print_usage};
+
 PPSCapture::PPSCapture() :
+	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
 	_pps_capture_pub.advertise();
@@ -109,15 +112,22 @@ bool PPSCapture::init()
 void PPSCapture::Run()
 {
 	if (should_exit()) {
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
 	sensor_gps_s sensor_gps;
 
-	if (_sensor_gps_sub.update(&sensor_gps)) {
-		_last_gps_utc_timestamp = sensor_gps.time_utc_usec;
-		_last_gps_timestamp = sensor_gps.timestamp;
+	const uint32_t gps_device_id = static_cast<uint32_t>(_param_pps_cap_gps_id.get());
+
+	for (auto &sub : _sensor_gps_subs) {
+		if (sub.update(&sensor_gps)) {
+			if (gps_device_id == 0 || sensor_gps.device_id == gps_device_id) {
+				_last_gps_utc_timestamp = sensor_gps.time_utc_usec;
+				_last_gps_timestamp = sensor_gps.timestamp;
+				break;
+			}
+		}
 	}
 
 	pps_capture_s pps_capture;
@@ -170,8 +180,8 @@ int PPSCapture::task_spawn(int argc, char *argv[])
 	PPSCapture *instance = new PPSCapture();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -182,8 +192,8 @@ int PPSCapture::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -215,14 +225,14 @@ This implements capturing PPS information from the GNSS module and calculates th
 
 void PPSCapture::stop()
 {
-	exit_and_cleanup();
+	exit_and_cleanup(desc);
 }
 
 extern "C" __EXPORT int pps_capture_main(int argc, char *argv[])
 {
-	if (argc >= 2 && !strcmp(argv[1], "stop") && PPSCapture::is_running()) {
+	if (argc >= 2 && !strcmp(argv[1], "stop") && PPSCapture::is_running(PPSCapture::desc)) {
 		PPSCapture::stop();
 	}
 
-	return PPSCapture::main(argc, argv);
+	return ModuleBase::main(PPSCapture::desc, argc, argv);
 }

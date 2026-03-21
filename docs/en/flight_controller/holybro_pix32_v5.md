@@ -1,6 +1,6 @@
 # Holybro Pix32 v5
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://holybro.com/) for hardware support or compliance issues.
 :::
@@ -71,7 +71,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 Additional information can be found in the [Pix32 V5 Technical Data Sheet](https://cdn.shopify.com/s/files/1/0604/5905/7341/files/Holybro_PIX32-V5_technical_data_sheet_v1.1.pdf).
 
-## Where to Buy
+## Where to Buy {#store}
 
 Order from [Holybro website](https://holybro.com/products/pix32-v5).
 
@@ -118,14 +118,14 @@ Under these conditions the system will not draw any power (will not be operation
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make holybro_pix32v5_default
 ```
 

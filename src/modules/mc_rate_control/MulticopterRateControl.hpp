@@ -63,9 +63,11 @@
 
 using namespace time_literals;
 
-class MulticopterRateControl : public ModuleBase<MulticopterRateControl>, public ModuleParams, public px4::WorkItem
+class MulticopterRateControl : public ModuleBase, public ModuleParams, public px4::WorkItem
 {
 public:
+	static Descriptor desc;
+
 	MulticopterRateControl(bool vtol = false);
 	~MulticopterRateControl() override;
 

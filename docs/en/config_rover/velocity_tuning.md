@@ -23,11 +23,10 @@ To tune the velocity controller configure the following [parameters](../advanced
 
    ::: tip
    To further tune this parameter:
-
    1. Set [RO_SPEED_P](#RO_SPEED_P) and [RO_SPEED_I](#RO_SPEED_I) to zero.
       This way the speed is only controlled by the feed-forward term, which makes it easier to tune.
    2. Put the rover in [Position mode](../flight_modes_rover/manual.md#position-mode) and then move the left stick of your controller up and/or down and hold it at a few different levels for a couple of seconds each.
-   3. Disarm the rover and from the flight log plot the `adjusted_speed_body_x_setpoint` and the `measured_speed_body_x` from the [RoverVelocityStatus](../msg_docs/RoverVelocityStatus.md) message over each other.
+   3. Disarm the rover and from the flight log plot the `adjusted_speed_body_x_setpoint` and the `measured_speed_body_x` from the [RoverSpeedStatus](../msg_docs/RoverSpeedStatus.md) message over each other.
    4. If the actual speed of the rover is higher than the speed setpoint, increase [RO_MAX_THR_SPEED](#RO_MAX_THR_SPEED).
       If it is the other way around decrease the parameter and repeat until you are satisfied with the setpoint tracking.
 
@@ -55,7 +54,7 @@ To tune the velocity controller configure the following [parameters](../advanced
 
 ## Manual Position Mode Parameters
 
-These steps are only necessary if you are tuning/want to unlock the manual [Position mode](../flight_modes_rover/manual.md#position-mode). Othwerwise, you can continue with [position tuning](position_tuning.md) where these same parameters will also be configured.
+These steps are only necessary if you are tuning/want to unlock the manual [Position mode](../flight_modes_rover/manual.md#position-mode). Otherwise, you can continue with [position tuning](position_tuning.md) where these same parameters will also be configured.
 
 1. [PP_LOOKAHD_GAIN](#PP_LOOKAHD_GAIN): When driving in a straight line (right stick centered) position mode leverages the same path following algorithm used in [auto modes](../flight_modes_rover/auto.md) called [pure pursuit](position_tuning.md#pure-pursuit-guidance-logic-info-only) to achieve the best possible straight line driving behaviour.
    This parameter determines how aggressive the controller will steer towards the path.
@@ -64,7 +63,6 @@ These steps are only necessary if you are tuning/want to unlock the manual [Posi
    Decreasing the parameter makes it more aggressive but can lead to oscillations.
 
    To tune this:
-
    1. Start with a value of 1 for [PP_LOOKAHD_GAIN](#PP_LOOKAHD_GAIN)
    2. Put the rover in [Position mode](../flight_modes_rover/manual.md#position-mode) and while driving a straight line at approximately half the maximum speed observe its behaviour.
    3. If the rover does not drive in a straight line, reduce the value of the parameter, if it oscillates around the path increase the value.
@@ -101,7 +99,7 @@ The speed controller uses the following structure:
 
 The feed forward mapping is done by interpolating the speed setpoint from [-[RO_MAX_THR_SPEED](../advanced_config/parameter_reference.md#RO_MAX_THR_SPEED), [RO_MAX_THR_SPEED](../advanced_config/parameter_reference.md#RO_MAX_THR_SPEED)] to [-1, 1].
 
-For ackermann and differential rovers the bearing is aligned with the vehicle yaw. Therefor the bearing is simply sent as a yaw setpoint to the [yaw controller](attitude_tuning.md#attitude-controller-structure-info-only) and the speed setpoint is always defined in body x direction.
+For ackermann and differential rovers the bearing is aligned with the vehicle yaw. Therefore the bearing is simply sent as a yaw setpoint to the [yaw controller](attitude_tuning.md#attitude-controller-structure-info-only) and the speed setpoint is always defined in body x direction.
 
 For mecanum vehicles, the bearing and yaw are decoupled. The direction is controlled by splitting the velocity vector into one speed component in body x direction and one in body y direction.
 Both these setpoint are then sent to their own closed loop speed controllers.

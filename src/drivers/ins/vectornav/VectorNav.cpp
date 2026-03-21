@@ -40,6 +40,8 @@
 
 using matrix::Vector2f;
 
+ModuleBase::Descriptor VectorNav::desc{task_spawn, custom_command, print_usage};
+
 VectorNav::VectorNav(const char *port) :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(port)),
@@ -273,11 +275,11 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 
 			const double lat = positionEstimatedLla.c[0];
 			const double lon = positionEstimatedLla.c[1];
-			const float alt = positionEstimatedLla.c[2];
+			const float alt_ellipsoid = positionEstimatedLla.c[2];
 
 			if (!_pos_ref.isInitialized()) {
 				_pos_ref.initReference(lat, lon, time_now_us);
-				_gps_alt_ref = alt;
+				_gps_alt_ref = alt_ellipsoid;
 			}
 
 			const Vector2f pos_ned = _pos_ref.project(lat, lon);
@@ -292,7 +294,7 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 
 			local_position.x = pos_ned(0);
 			local_position.y = pos_ned(1);
-			local_position.z = -(alt - _gps_alt_ref);
+			local_position.z = -(alt_ellipsoid - _gps_alt_ref);
 
 			local_position.vx = velocityEstimatedNed.c[0];
 			local_position.vy = velocityEstimatedNed.c[1];
@@ -342,8 +344,10 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 			global_position.timestamp_sample = time_now_us;
 			global_position.lat = lat;
 			global_position.lon = lon;
-			global_position.alt = alt;
-			global_position.alt = alt;
+			global_position.lat_lon_valid = true;
+			global_position.alt = alt_ellipsoid; // AMSL altitude is not available
+			global_position.alt_ellipsoid = alt_ellipsoid;
+			global_position.alt_valid = true;
 
 			global_position.eph = positionUncertaintyEstimated;
 			global_position.epv = positionUncertaintyEstimated;
@@ -680,7 +684,7 @@ void VectorNav::Run()
 	if (should_exit()) {
 		VnSensor_unregisterAsyncPacketReceivedHandler(&_vs);
 		VnSensor_disconnect(&_vs);
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 
 	} else if (!_initialized) {
@@ -795,8 +799,8 @@ int VectorNav::task_spawn(int argc, char *argv[])
 			return PX4_ERROR;
 		}
 
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		instance->ScheduleNow();
 
@@ -856,5 +860,5 @@ $ vectornav stop
 
 extern "C" __EXPORT int vectornav_main(int argc, char *argv[])
 {
-	return VectorNav::main(argc, argv);
+	return ModuleBase::main(VectorNav::desc, argc, argv);
 }

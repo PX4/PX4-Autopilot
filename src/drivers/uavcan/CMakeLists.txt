@@ -158,6 +158,7 @@ px4_add_module(
 		# Main
 		uavcan_main.cpp
 		uavcan_servers.cpp
+		node_info.cpp
 
 		# Actuators
 		actuators/esc.cpp
@@ -183,6 +184,7 @@ px4_add_module(
 		sensors/safety_button.cpp
 	MODULE_CONFIG
 		module.yaml
+		uavcan_params.yaml
 	DEPENDS
 		px4_uavcan_dsdlc
 

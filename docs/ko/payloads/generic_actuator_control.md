@@ -60,7 +60,7 @@ To use a generic actuator in a mission:
 
    - Select the header on the waypoint mission editor to open the **Select Mission Command** editor.
    - Select the category **Advanced**, and then the **Set actuator** item (if the item is not present, try a more recent version of _QGroundControl_ or a daily build).
-      This will change the mission item type to "Set actuator".
+     This will change the mission item type to "Set actuator".
 
 3. Select the actuators that are connected and set their values (these are normalized between -1 and 1).
 
@@ -68,7 +68,7 @@ To use a generic actuator in a mission:
 
 ## MAVSDK (Example script)
 
-The following [MAVSDK](https://mavsdk.mavlink.io/main/en/index.html) [example code](https://github.com/mavlink/MAVSDK/blob/main/examples/set_actuator/set_actuator.cpp) shows how to trigger payload release using the MAVSDK Action plugin's [`set_actuator()`](https://mavsdk.mavlink.io/main/en/cpp/api_reference/classmavsdk_1_1_action.html#classmavsdk_1_1_action_1ad30beac27f05c62dcf6a3d0928b86e4c) method.
+The following [MAVSDK](https://mavsdk.mavlink.io/main/en/index.html) [example code](https://github.com/mavlink/MAVSDK/blob/main/cpp/examples/set_actuator/set_actuator.cpp) shows how to trigger payload release using the MAVSDK Action plugin's [`set_actuator()`](https://mavsdk.mavlink.io/main/en/cpp/api_reference/classmavsdk_1_1_action.html#classmavsdk_1_1_action_1ad30beac27f05c62dcf6a3d0928b86e4c) method.
 
 The `set_actuator()` index values map to the MAVLink payload outputs defined for your airframe.
 

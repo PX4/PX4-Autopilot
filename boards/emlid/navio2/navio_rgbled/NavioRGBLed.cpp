@@ -33,6 +33,8 @@
 
 #include "NavioRGBLed.hpp"
 
+ModuleBase::Descriptor NavioRGBLed::desc{task_spawn, custom_command, print_usage};
+
 NavioRGBLed::NavioRGBLed() :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
 {
@@ -130,8 +132,8 @@ int NavioRGBLed::task_spawn(int argc, char *argv[])
 	NavioRGBLed *instance = new NavioRGBLed();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init() == PX4_OK) {
 			return PX4_OK;
@@ -142,8 +144,8 @@ int NavioRGBLed::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -170,5 +172,5 @@ Emlid Navio2 RGB LED driver.
 
 extern "C" __EXPORT int navio_rgbled_main(int argc, char *argv[])
 {
-	return NavioRGBLed::main(argc, argv);
+	return ModuleBase::main(NavioRGBLed::desc, argc, argv);
 }

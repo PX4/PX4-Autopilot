@@ -11,7 +11,7 @@ The PAB form factor enables the ARK PAB Carrier to be used with any [PAB-compati
 
 ![ARKPAB Main Photo](../../assets/flight_controller/arkpab/ark_pab_main.jpg)
 
-### Where To Buy
+### Where To Buy {#store}
 
 Order From [Ark Electronics](https://arkelectron.com/product/ark-pixhawk-autopilot-bus-carrier/) (US)
 
@@ -39,7 +39,7 @@ Order From [Ark Electronics](https://arkelectron.com/product/ark-pixhawk-autopil
   - 6 Pin JST-GH
 - Dual CAN Ports
   - 4 Pin JST-GH
-- Triple Telemetry Ports with Flow - Control
+- Triple Telemetry Ports with Flow Control
   - 6 Pin JST-GH
 - Eight PWM Outputs
   - 10 Pin JST-GH
@@ -320,6 +320,6 @@ For information about using this port see:
 
 ![ARKPAB Bottom Photo](../../assets/flight_controller/arkpab/ark_pab_back.jpg)
 
-## See Also
+## 另见
 
 - [ARK Pixhawk Autopilot Bus Carrier](https://arkelectron.gitbook.io/ark-documentation/flight-controllers/ark-pixhawk-autopilot-bus-carrier) (ARK Docs)

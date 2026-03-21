@@ -36,7 +36,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - Dimensions: 35x35mm
 - Weight: 8g
 
-## 구매처
+## Where to Buy {#store}
 
 The board can be bought from one of the following shops (for example):
 
@@ -102,7 +102,7 @@ make holybro_kakuteh7_default
   미리 빌드된 펌웨어나 사용자 지정 펌웨어를 사용할 수 있습니다.
 
 :::info
-If you are loading the pre-built firmware via QGroundcontrol, you must use QGC Daily or QGC version newer than 4.1.7.
+If you are loading the pre-built firmware via QGroundControl, you must use QGC Daily or QGC version newer than 4.1.7.
 :::
 
 ## PX4 설정

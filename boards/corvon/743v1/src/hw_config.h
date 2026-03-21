@@ -96,7 +96,7 @@
 #define INTERFACE_USART                1
 #define INTERFACE_USART_CONFIG         "/dev/ttyS0,115200"
 #define BOOT_DELAY_ADDRESS             0x000001a0
-#define BOARD_TYPE                     1188
+#define BOARD_TYPE                     1189
 #define BOARD_FLASH_SECTORS            (14)
 #define BOARD_FLASH_SIZE               (16 * 128 * 1024)
 #define APP_RESERVATION_SIZE 	       (1 * 128 * 1024)
@@ -104,7 +104,7 @@
 #define OSC_FREQ                       8
 
 #define BOARD_PIN_LED_ACTIVITY         GPIO_nLED_BLUE // BLUE
-#define BOARD_PIN_LED_BOOTLOADER       GPIO_nLED_GREEN // GREEN
+#define BOARD_PIN_LED_BOOTLOADER       GPIO_nLED_RED  // RED
 #define BOARD_LED_ON                   0
 #define BOARD_LED_OFF                  1
 

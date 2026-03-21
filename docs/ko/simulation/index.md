@@ -67,7 +67,7 @@ A SITL build of PX4 uses [SimulatorMavlink.cpp](https://github.com/PX4/PX4-Autop
 
 <!-- above ^^^ links for table -->
 
-PX4 directly uses the [Gazebo API](https://gazebosim.org/docs) to interface with [Gazebo](../sim_gazebo_gz/index.md) and MAVlink is not required.
+PX4 directly uses the [Gazebo API](https://gazebosim.org/docs/) to interface with [Gazebo](../sim_gazebo_gz/index.md) and MAVlink is not required.
 
 ## 기본 PX4 MAVLink UDP 포트
 
@@ -213,24 +213,24 @@ For setup information see the _QGroundControl User Guide_:
 PX4 supports capture of both still images and video from within the [Gazebo Classic](../sim_gazebo_classic/index.md) simulated environment.
 This can be enabled/set up as described in [Gazebo Glassic > Video Streaming](../sim_gazebo_classic/index.md#video-streaming).
 
-The simulated camera is a gazebo classic plugin that implements the [MAVLink Camera Protocol](https://mavlink.io/en/protocol/camera.html) <!-- **PX4-Autopilot/Tools/simulation/gazebo-classic/sitl_gazebo-classic/src/gazebo_geotagged_images_plugin.cpp -->.
+The simulated camera is a gazebo classic plugin that implements the [MAVLink Camera Protocol](https://mavlink.io/en/services/camera.html) <!-- **PX4-Autopilot/Tools/simulation/gazebo-classic/sitl_gazebo-classic/src/gazebo_geotagged_images_plugin.cpp -->.
 PX4 connects/integrates with this camera in _exactly the same way_ as it would with any other MAVLink camera:
 
 1. [TRIG_INTERFACE](../advanced_config/parameter_reference.md#TRIG_INTERFACE) must be set to `3` to configure the camera trigger driver for use with a MAVLink camera
-  :::tip
-  In this mode the driver just sends a [CAMERA_TRIGGER](https://mavlink.io/en/messages/common.html#CAMERA_TRIGGER) message whenever an image capture is requested.
-  For more information see [Cameras Connected to Flight Controller Outputs](../camera/fc_connected_camera.md).
+   :::tip
+   In this mode the driver just sends a [CAMERA_TRIGGER](https://mavlink.io/en/messages/common.html#CAMERA_TRIGGER) message whenever an image capture is requested.
+   For more information see [Cameras Connected to Flight Controller Outputs](../camera/fc_connected_camera.md).
 
 :::
 2. PX4는 GCS와 (시뮬레이터) MAVLink 카메라 사이의 모든 카메라 명령을 전달하여야 합니다.
-  You can do this by starting [MAVLink](../modules/modules_communication.md#mavlink) with the `-f` flag as shown, specifying the UDP ports for the new connection.
+   You can do this by starting [MAVLink](../modules/modules_communication.md#mavlink) with the `-f` flag as shown, specifying the UDP ports for the new connection.
 
-  ```sh
-  mavlink start -u 14558 -o 14530 -r 4000 -f -m camera
-  ```
+   ```sh
+   mavlink start -u 14558 -o 14530 -r 4000 -f -m camera
+   ```
 
-  ::: info
-  More than just the camera MAVLink messages will be forwarded, but the camera will ignore those that it doesn't consider relevant.
+   ::: info
+   More than just the camera MAVLink messages will be forwarded, but the camera will ignore those that it doesn't consider relevant.
 
 :::
 

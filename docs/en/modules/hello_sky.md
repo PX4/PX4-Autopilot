@@ -12,13 +12,15 @@ These are covered in [Application/Module Template](../modules/module_template.md
 
 You will require the following:
 
-- [PX4 SITL Simulator](../simulation/index.md) _or_ a [PX4-compatible flight controller](../flight_controller/index.md).
+- [Gazebo Simulator](../sim_gazebo_gz/index.md) (or another [PX4 SITL Simulator](../simulation/index.md)) _or_ a [PX4-compatible flight controller](../flight_controller/index.md).
 - [PX4 Development Toolchain](../dev_setup/dev_env.md) for the desired target.
 - [Download the PX4 Source Code](../dev_setup/building_px4.md#download-the-px4-source-code) from Github
 
 The source code [PX4-Autopilot/src/examples/px4_simple_app](https://github.com/PX4/PX4-Autopilot/tree/main/src/examples/px4_simple_app) directory contains a completed version of this tutorial that you can review if you get stuck.
 
-- Rename (or delete) the **px4_simple_app** directory.
+::: tip
+Rename (or delete) the **px4_simple_app** directory.
+:::
 
 ## Minimal Application
 
@@ -26,14 +28,14 @@ In this section we create a _minimal application_ that just prints out `Hello Sk
 This consists of a single _C_ file and a _cmake_ definition (which tells the toolchain how to build the application).
 
 1. Create a new directory **PX4-Autopilot/src/examples/px4_simple_app**.
-1. Create a new C file in that directory named **px4_simple_app.c**:
+2. Create a new C file in that directory named **px4_simple_app.c**:
    - Copy in the default header to the top of the page.
      This should be present in all contributed files!
 
      ```c
      /****************************************************************************
       *
-      *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
+      *   Copyright (c) 2012-2026 PX4 Development Team. All rights reserved.
       *
       * Redistribution and use in source and binary forms, with or without
       * modification, are permitted provided that the following conditions
@@ -66,7 +68,7 @@ This consists of a single _C_ file and a _cmake_ definition (which tells the too
      ```
 
    - Copy the following code below the default header.
-     This should be present in all contributed files!
+     Similar code should be present in all contributed files!
 
      ```c
      /**
@@ -88,16 +90,20 @@ This consists of a single _C_ file and a _cmake_ definition (which tells the too
      ```
 
      :::tip
+
      The main function must be named `<module_name>_main` and exported from the module as shown.
+
      :::
 
      :::tip
+
      `PX4_INFO` is the equivalent of `printf` for the PX4 shell (included from **px4_platform_common/log.h**).
      There are different log levels: `PX4_INFO`, `PX4_WARN`, `PX4_ERR`, `PX4_DEBUG`.
      Warnings and errors are additionally added to the [ULog](../dev_log/ulog_file_format.md) and shown on [Flight Review](https://logs.px4.io/).
+
      :::
 
-1. Create and open a new _cmake_ definition file named **CMakeLists.txt**.
+3. Create and open a new _cmake_ definition file named **CMakeLists.txt**.
    Copy in the text below:
 
    ```cmake
@@ -143,6 +149,9 @@ This consists of a single _C_ file and a _cmake_ definition (which tells the too
    	)
    ```
 
+   Note that in your own modules you'd use the current copyright year!
+   We're using `2015` here to match the example.
+
    The `px4_add_module()` method builds a static library from a module description.
    - The `MODULE` block is the Firmware-unique name of the module (by convention the module name is prefixed by parent directories back to `src`).
    - The `MAIN` block lists the entry point of the module, which registers the command with NuttX so that it can be called from the PX4 shell or SITL console.
@@ -157,10 +166,10 @@ This consists of a single _C_ file and a _cmake_ definition (which tells the too
    You can then run your command by loading the file at runtime using the `dyn` command: `dyn ./examples__px4_simple_app.px4mod`
    :::
 
-1. Create and open a new _Kconfig_ definition file named **Kconfig** and define your symbol for naming (see [Kconfig naming convention](../hardware/porting_guide_config.md#px4-kconfig-symbol-naming-convention)).
+4. Create and open a new _Kconfig_ definition file named **Kconfig** and define your symbol for naming (see [Kconfig naming convention](../hardware/porting_guide_config.md#px4-kconfig-symbol-naming-convention)).
    Copy in the text below:
 
-   ```
+   ```txt
    menuconfig EXAMPLES_PX4_SIMPLE_APP
    	bool "px4_simple_app"
    	default n
@@ -175,27 +184,34 @@ In order to run it you first need to make sure that it is built as part of PX4.
 Applications are added to the build/firmware in the appropriate board-level _px4board_ file for your target:
 
 - PX4 SITL (Simulator): [PX4-Autopilot/boards/px4/sitl/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/sitl/default.px4board)
-- Pixhawk v1/2: [PX4-Autopilot/boards/px4/fmu-v2/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v2/default.px4board)
-- Pixracer (px4/fmu-v4): [PX4-Autopilot/boards/px4/fmu-v4/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v4/default.px4board)
+- Pixhawk 6X (px4/fmu-v6x): [PX4-Autopilot/boards/px4/fmu-v6x/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6x/default.px4board)
 - _px4board_ files for other boards can be found in [PX4-Autopilot/boards/](https://github.com/PX4/PX4-Autopilot/tree/main/boards)
 
-To enable the compilation of the application into the firmware add the corresponding Kconfig key `CONFIG_EXAMPLES_PX4_SIMPLE_APP=y` in the _px4board_ file or run [boardconfig](../hardware/porting_guide_config.md#px4-menuconfig-setup) `make px4_fmu-v4_default boardconfig`:
+To enable the compilation of the application into the firmware add the corresponding Kconfig key `CONFIG_EXAMPLES_PX4_SIMPLE_APP=y` in the _px4board_ file or run [boardconfig](../hardware/porting_guide_config.md#px4-menuconfig-setup).
 
+For example, to edit the board config for FMUv6x you would do:
+
+```sh
+make fmu-v6x_default boardconfig
 ```
+
+And then enable the app in the _boardconfig_ UI as shown:
+
+```txt
 examples  --->
     [x] PX4 Simple app  ----
 ```
 
 ::: info
-The line will already be present for most files, because the examples are included in firmware by default.
+Examples are opt-in and not included in firmware by default (although they are in SITL).
+You must explicitly enable them as shown above.
 :::
 
 Build the example using the board-specific command:
 
-- jMAVSim Simulator: `make px4_sitl_default jmavsim`
-- Pixhawk v1/2: `make px4_fmu-v2_default` (or just `make px4_fmu-v2`)
-- Pixhawk v3: `make px4_fmu-v4_default`
-- Other boards: [Building the Code](../dev_setup/building_px4.md#building-for-nuttx)
+- Gazebo Simulator: `make px4_sitl gz_x500`
+- Pixhawk 6X: `make px4_fmu-v6x_default`
+- Other boards: [Building the Code](../dev_setup/building_px4.md)
 
 ## Test App (Hardware)
 
@@ -203,8 +219,7 @@ Build the example using the board-specific command:
 
 Enable the uploader and then reset the board:
 
-- Pixhawk v1/2: `make px4_fmu-v2_default upload`
-- Pixhawk v3: `make px4_fmu-v4_default upload`
+- Pixhawk 6X: `make px4_fmu-v6x_default upload`
 
 It should print before you reset the board a number of compile messages and at the end:
 
@@ -289,14 +304,14 @@ The benefits of the PX4 hardware abstraction comes into play here!
 There is no need to interact in any way with sensor drivers and no need to update your app if the board or sensors are updated.
 :::
 
-Individual message channels between applications are called [topics](../middleware/uorb.md). For this tutorial, we are interested in the [SensorCombined](https://github.com/PX4/PX4-Autopilot/blob/main/msg/SensorCombined.msg) topic, which holds the synchronized sensor data of the complete system.
+Individual message channels between applications are called [topics](../middleware/uorb.md). For this tutorial, we are interested in the [VehicleAcceleration](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleAcceleration.msg) topic, which holds the filtered vehicle acceleration data.
 
 Subscribing to a topic is straightforward:
 
 ```cpp
-#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/vehicle_acceleration.h>
 ..
-int sensor_sub_fd = orb_subscribe(ORB_ID(sensor_combined));
+int sensor_sub_fd = orb_subscribe(ORB_ID(vehicle_acceleration));
 ```
 
 The `sensor_sub_fd` is a topic handle and can be used to very efficiently perform a blocking wait for new data.
@@ -307,9 +322,9 @@ Adding `poll()` to the subscription looks like (_pseudocode, look for the full i
 
 ```cpp
 #include <poll.h>
-#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/vehicle_acceleration.h>
 ..
-int sensor_sub_fd = orb_subscribe(ORB_ID(sensor_combined));
+int sensor_sub_fd = orb_subscribe(ORB_ID(vehicle_acceleration));
 
 /* one could wait for multiple topics with this technique, just using one here */
 px4_pollfd_struct_t fds[] = {
@@ -317,26 +332,26 @@ px4_pollfd_struct_t fds[] = {
 };
 
 while (true) {
-	/* wait for sensor update of 1 file descriptor for 1000 ms (1 second) */
-	int poll_ret = px4_poll(fds, 1, 1000);
-	..
-	if (fds[0].revents & POLLIN) {
-		/* obtained data for the first file descriptor */
-		struct sensor_combined_s raw;
-		/* copy sensors raw data into local buffer */
-		orb_copy(ORB_ID(sensor_combined), sensor_sub_fd, &raw);
-		PX4_INFO("Accelerometer:\t%8.4f\t%8.4f\t%8.4f",
-					(double)raw.accelerometer_m_s2[0],
-					(double)raw.accelerometer_m_s2[1],
-					(double)raw.accelerometer_m_s2[2]);
-	}
+/* wait for sensor update of 1 file descriptor for 1000 ms (1 second) */
+int poll_ret = px4_poll(fds, 1, 1000);
+..
+if (fds[0].revents & POLLIN) {
+	/* obtained data for the first file descriptor */
+	struct vehicle_acceleration_s accel;
+	/* copy sensors raw data into local buffer */
+	orb_copy(ORB_ID(vehicle_acceleration), sensor_sub_fd, &accel);
+	PX4_INFO("Accelerometer:\t%8.4f\t%8.4f\t%8.4f",
+		(double)accel.xyz[0],
+		(double)accel.xyz[1],
+		(double)accel.xyz[2]);
+}
 }
 ```
 
 Compile the app again by entering:
 
 ```sh
-make
+make px4_sitl_default
 ```
 
 ### Testing the uORB Subscription
@@ -395,7 +410,7 @@ The [complete example code](https://github.com/PX4/PX4-Autopilot/blob/main/src/e
 ```c
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -434,6 +449,7 @@ The [complete example code](https://github.com/PX4/PX4-Autopilot/blob/main/src/e
  */
 
 #include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/log.h>
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/posix.h>
 #include <unistd.h>
@@ -443,7 +459,7 @@ The [complete example code](https://github.com/PX4/PX4-Autopilot/blob/main/src/e
 #include <math.h>
 
 #include <uORB/uORB.h>
-#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_attitude.h>
 
 __EXPORT int px4_simple_app_main(int argc, char *argv[]);
@@ -452,8 +468,8 @@ int px4_simple_app_main(int argc, char *argv[])
 {
 	PX4_INFO("Hello Sky!");
 
-	/* subscribe to sensor_combined topic */
-	int sensor_sub_fd = orb_subscribe(ORB_ID(sensor_combined));
+	/* subscribe to vehicle_acceleration topic */
+	int sensor_sub_fd = orb_subscribe(ORB_ID(vehicle_acceleration));
 	/* limit the update rate to 5 Hz */
 	orb_set_interval(sensor_sub_fd, 200);
 
@@ -494,20 +510,20 @@ int px4_simple_app_main(int argc, char *argv[])
 
 			if (fds[0].revents & POLLIN) {
 				/* obtained data for the first file descriptor */
-				struct sensor_combined_s raw;
+				struct vehicle_acceleration_s accel;
 				/* copy sensors raw data into local buffer */
-				orb_copy(ORB_ID(sensor_combined), sensor_sub_fd, &raw);
+				orb_copy(ORB_ID(vehicle_acceleration), sensor_sub_fd, &accel);
 				PX4_INFO("Accelerometer:\t%8.4f\t%8.4f\t%8.4f",
-					 (double)raw.accelerometer_m_s2[0],
-					 (double)raw.accelerometer_m_s2[1],
-					 (double)raw.accelerometer_m_s2[2]);
+					 (double)accel.xyz[0],
+					 (double)accel.xyz[1],
+					 (double)accel.xyz[2]);
 
 				/* set att and publish this information for other apps
 				 the following does not have any meaning, it's just an example
 				*/
-				att.q[0] = raw.accelerometer_m_s2[0];
-				att.q[1] = raw.accelerometer_m_s2[1];
-				att.q[2] = raw.accelerometer_m_s2[2];
+				att.q[0] = accel.xyz[0];
+				att.q[1] = accel.xyz[1];
+				att.q[2] = accel.xyz[2];
 
 				orb_publish(ORB_ID(vehicle_attitude), att_pub, &att);
 			}
@@ -519,7 +535,6 @@ int px4_simple_app_main(int argc, char *argv[])
 	}
 
 	PX4_INFO("exiting");
-
 	return 0;
 }
 ```

@@ -1,0 +1,70 @@
+module_name: navigator
+parameters:
+- group: Geofence
+  definitions:
+    GF_ACTION:
+      description:
+        short: Geofence violation action
+        long: |-
+          Note: Setting this value to 4 enables flight termination,
+          which will kill the vehicle on violation of the fence.
+      type: enum
+      values:
+        0: None
+        1: Warning
+        2: Hold mode
+        3: Return mode
+        4: Terminate
+        5: Land mode
+      default: 2
+      min: 0
+      max: 5
+    GF_SOURCE:
+      description:
+        short: Geofence source
+        long: |-
+          Select which position source should be used. Selecting GPS instead of global position makes sure that there is
+          no dependence on the position estimator
+          0 = global position, 1 = GPS
+      type: enum
+      values:
+        0: GPOS
+        1: GPS
+      default: 0
+      min: 0
+      max: 1
+    GF_MAX_HOR_DIST:
+      description:
+        short: Max horizontal distance from Home
+        long: |-
+          Maximum horizontal distance in meters the vehicle can be from Home before triggering a geofence action.
+          Disabled if 0.
+      type: float
+      default: 0.0
+      unit: m
+      min: 0
+      max: 10000
+      increment: 1
+    GF_MAX_VER_DIST:
+      description:
+        short: Max vertical distance from Home
+        long: |-
+          Maximum vertical distance in meters the vehicle can be from Home before triggering a geofence action.
+          Disabled if 0.
+      type: float
+      default: 0.0
+      unit: m
+      min: 0
+      max: 10000
+      increment: 1
+    GF_PREDICT:
+      description:
+        short: '[EXPERIMENTAL] Use Pre-emptive geofence triggering'
+        long: |-
+          WARNING: This experimental feature may cause flyaways. Use at your own risk.
+
+          Predict the motion of the vehicle and trigger the breach if it is determined that the current trajectory
+          would result in a breach happening before the vehicle can make evasive maneuvers.
+          The vehicle is then re-routed to a safe hold position (stop for multirotor, loiter for fixed wing).
+      type: boolean
+      default: 0

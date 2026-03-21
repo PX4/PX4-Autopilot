@@ -136,15 +136,23 @@ void EstimatorChecks::checkAndReport(const Context &context, Report &reporter)
 void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &reporter,
 		const estimator_status_s &estimator_status, NavModes required_groups)
 {
+	// Heading is required to arm for all modes that need any form of local position, plus FW AUTO_TAKEOFF
+	const NavModes heading_required_groups = (NavModes)(
+				reporter.failsafeFlags().mode_req_local_position |
+				reporter.failsafeFlags().mode_req_local_position_relaxed |
+				(1u << vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF));
+
 	if (!context.isArmed() && estimator_status.pre_flt_fail_innov_heading) {
 		/* EVENT
+		 * @description
+		 * Recalibrate compass or perform manual heading reset.
 		 */
-		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
+		reporter.armingCheckFailure(heading_required_groups, health_component_t::local_position_estimate,
 					    events::ID("check_estimator_heading_not_stable"),
-					    events::Log::Error, "Heading estimate not stable");
+					    events::Log::Error, "Heading estimate invalid");
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: heading estimate not stable");
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: heading estimate invalid");
 		}
 
 	} else if (!context.isArmed() && estimator_status.pre_flt_fail_innov_vel_horiz) {
@@ -270,6 +278,22 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 
 		} else {
 			_gnss_spoofed = false;
+		}
+
+		if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_JAMMED)) {
+			if (!_gnss_jammed) {
+				_gnss_jammed = true;
+
+				if (reporter.mavlink_log_pub()) {
+					mavlink_log_critical(reporter.mavlink_log_pub(), "GNSS signal jammed\t");
+				}
+
+				events::send(events::ID("check_estimator_gnss_warning_jamming"), {events::Log::Alert, events::LogInternal::Info},
+					     "GNSS signal jammed");
+			}
+
+		} else {
+			_gnss_jammed = false;
 		}
 
 		if (!context.isArmed() && ekf_gps_check_fail) {
@@ -434,6 +458,18 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 				reporter.armingCheckFailure(required_modes, health_component_t::gps,
 							    events::ID("check_estimator_gps_spoofed"),
 							    log_level, "GPS signal spoofed");
+
+			} else if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_JAMMED)) {
+				message = "Preflight%s: GPS signal jammed";
+				/* EVENT
+				 * @description
+				 * <profile name="dev">
+				 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
+				 * </profile>
+				 */
+				reporter.armingCheckFailure(required_modes, health_component_t::gps,
+							    events::ID("check_estimator_gps_jammed"),
+							    log_level, "GPS signal jammed");
 
 			} else {
 				if (!ekf_gps_fusion) {
@@ -667,7 +703,7 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 	bool v_xy_valid = lpos.v_xy_valid;
 
 	if (!context.isArmed()) {
-		if (pre_flt_fail_innov_heading || pre_flt_fail_innov_pos_horiz) {
+		if (pre_flt_fail_innov_pos_horiz) {
 			xy_valid = false;
 		}
 

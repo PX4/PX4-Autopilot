@@ -169,7 +169,7 @@ As we have no ground or positive BEC voltage connections we connect our `PWM` ES
 ### GPS / External Magnetometer
 
 I took the GPS cable which fits the connector of the used GPS and came with the Pixracer set.
-Sadly the pin assignment was completely wrong and I rewired the connector again using tweezers according to the [3DR Pixhawk Mini user manual](../flight_controller/pixhawk_mini.md#connector-pin-assignments-pin-outs) GPS port.
+Sadly the pin assignment was completely wrong and I rewired the connector again using tweezers according to the [3DR Pixhawk Mini user manual](https://docs.px4.io/v1.16/en/flight_controller/pixhawk_mini#connector-pin-assignments-pin-outs) GPS port.
 
 #### Pixracer GPS/I2C Port
 
@@ -270,6 +270,6 @@ Ideally you should also do:
 ### 调试
 
 Airframe selection sets _default_ autopilot parameters for the frame.
-These are good enough to fly with, but it is a good idea to tune the parameters for a specific frame build.
+这些足以让它起飞，但是为你的特定框架调整专有参数是一个好主意。
 
 For instructions on how, start from [Autotune](../config/autotune_mc.md).

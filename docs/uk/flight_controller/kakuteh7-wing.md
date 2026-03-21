@@ -13,7 +13,7 @@ The [Holybro Kakute H743 Wing](https://holybro.com/products/kakute-h743-wing) is
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
 :::
 
-## Де купити
+## Where to Buy {#store}
 
 Плату можна придбати в одному з наступних магазинів (наприклад):
 
@@ -43,7 +43,7 @@ Download the [holybro_kakuteh7-wing.hex](https://github.com/PX4/PX4-Autopilot/ra
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make holybro_kakuteh7-wing_default
 ```
 
@@ -58,7 +58,7 @@ KakuteH7-wing is supported in PX4 v1.16 or newer.
 
 - Збудуйте та завантажте джерело:
 
-  ```
+  ```sh
   make holybro_kakuteh7-wing_default upload
   ```
 

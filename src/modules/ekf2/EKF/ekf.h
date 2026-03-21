@@ -435,6 +435,7 @@ public:
 	void updateParameters();
 
 	friend class AuxGlobalPosition;
+	friend class AgpSource;
 
 private:
 
@@ -822,6 +823,8 @@ private:
 	void constrainStateVar(const IdxDof &state, float min, float max);
 	void constrainStateVarLimitRatio(const IdxDof &state, float min, float max, float max_ratio = 1.e6f);
 
+	void uncorrelateAndLimitHeadingCovariance();
+
 	// generic function which will perform a fusion step given a kalman gain K
 	// and a scalar innovation value
 	void fuse(const VectorState &K, float innovation);
@@ -947,8 +950,6 @@ private:
 	void resetFakeHgtFusion();
 	void resetHeightToLastKnown();
 	void stopFakeHgtFusion();
-
-	void controlZeroInnovationHeadingUpdate();
 
 #if defined(CONFIG_EKF2_AUXVEL)
 	// control fusion of auxiliary velocity observations

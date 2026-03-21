@@ -122,6 +122,7 @@ void RtlDirectMissionLand::setActiveMissionItems()
 {
 	WorkItemType new_work_item_type{WorkItemType::WORK_ITEM_TYPE_DEFAULT};
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+	const position_setpoint_s current_setpoint_copy = pos_sp_triplet->current;
 
 	// Climb to altitude
 	if (_needs_climbing && _work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT) {
@@ -203,8 +204,6 @@ void RtlDirectMissionLand::setActiveMissionItems()
 
 			_mission_item.autocontinue = true;
 			_mission_item.time_inside = 0.0f;
-
-			pos_sp_triplet->previous = pos_sp_triplet->current;
 		}
 
 		if (num_found_items > 0) {
@@ -212,6 +211,12 @@ void RtlDirectMissionLand::setActiveMissionItems()
 		}
 
 		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
+
+		// Only set the previous position item if the current one really changed
+		if ((_work_item_type != WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND) &&
+		    !position_setpoint_equal(&pos_sp_triplet->current, &current_setpoint_copy)) {
+			pos_sp_triplet->previous = current_setpoint_copy;
+		}
 
 		// prevent lateral guidance from loitering at a waypoint as part of a mission landing if the altitude
 		// is not achieved.

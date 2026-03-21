@@ -3,12 +3,6 @@
 # board specific defaults
 #------------------------------------------------------------------------------
 
-# By disabling all 3 INA modules, we use the
-# i2c_launcher instead.
-param set-default SENS_EN_INA238 0
-param set-default SENS_EN_INA228 0
-param set-default SENS_EN_INA226 0
-
 if ver hwbasecmp 009 010 011
 then
 	# Skynode: use the "custom participant", IP=10.41.10.1 config for uxrce_dds_client

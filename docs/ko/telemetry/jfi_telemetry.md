@@ -94,7 +94,7 @@ If you want to change the baud rate:
 ### One-to-many (1:N) Setups
 
 For one-to-many (1:N) setups a higher baud rate is _highly recommended_ to ensure stable data reception.
-All J.Fi devices should be set to the same baud rate (although communication may work even when when devices use different baud rates).
+All J.Fi devices should be set to the same baud rate (although communication may work even when devices use different baud rates).
 This should be changed in both PX4 and the J.Fi modules as explained in the previous section.
 
 You will also need to make sure that all vehicles on the MAVLink network are assigned a unique **System ID** ([MAV_SYS_ID](../advanced_config/parameter_reference.md#MAV_SYS_ID)).
@@ -111,9 +111,9 @@ However if you change the baud rate from 57600 you will need to create and use a
 
 1. Disable SiK Radio in QGC (**Application Settings → General → AutoConnect**).
 2. Create a new link configuration:
-  - Go to **Application Settings → Comms Links**.
-  - Click **Add**.
-  - Set **Type** to **Serial**, configure the **Serial Port** and **Baud Rate** to match the J.Fi device.
+   - Go to **Application Settings → Comms Links**.
+   - Click **Add**.
+   - Set **Type** to **Serial**, configure the **Serial Port** and **Baud Rate** to match the J.Fi device.
 3. Select **Connect** to connect with the new configuration.
 
 ## J.Fi Configuration

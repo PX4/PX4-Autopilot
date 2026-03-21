@@ -45,8 +45,10 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/pps_capture.h>
 
 #include "gps_blending.hpp"
+#include "PpsTimeSync.hpp"
 
 using namespace time_literals;
 
@@ -88,14 +90,33 @@ private:
 		{this, ORB_ID(sensor_gps), 1},
 	};
 
+	uORB::Subscription _pps_capture_sub{ORB_ID(pps_capture)};
+
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
 	GpsBlending _gps_blending;
+	PpsTimeSync _pps_time_sync;
+
+	struct GpsParamSlot {
+		uint32_t device_id{0};
+		matrix::Vector3f offset{};
+		hrt_abstime delay_us{110_ms};
+	} _gps_param_slots[GPS_MAX_RECEIVERS] {};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SENS_GPS_MASK>) _param_sens_gps_mask,
 		(ParamFloat<px4::params::SENS_GPS_TAU>) _param_sens_gps_tau,
-		(ParamInt<px4::params::SENS_GPS_PRIME>) _param_sens_gps_prime
+		(ParamInt<px4::params::SENS_GPS_PRIME>) _param_sens_gps_prime,
+		(ParamInt<px4::params::SENS_GPS0_ID>) _param_sens_gps0_id,
+		(ParamFloat<px4::params::SENS_GPS0_OFFX>) _param_sens_gps0_offx,
+		(ParamFloat<px4::params::SENS_GPS0_OFFY>) _param_sens_gps0_offy,
+		(ParamFloat<px4::params::SENS_GPS0_OFFZ>) _param_sens_gps0_offz,
+		(ParamInt<px4::params::SENS_GPS1_ID>) _param_sens_gps1_id,
+		(ParamFloat<px4::params::SENS_GPS1_OFFX>) _param_sens_gps1_offx,
+		(ParamFloat<px4::params::SENS_GPS1_OFFY>) _param_sens_gps1_offy,
+		(ParamFloat<px4::params::SENS_GPS1_OFFZ>) _param_sens_gps1_offz,
+		(ParamInt<px4::params::SENS_GPS0_DELAY>) _param_sens_gps0_delay,
+		(ParamInt<px4::params::SENS_GPS1_DELAY>) _param_sens_gps1_delay
 	)
 };
 }; // namespace sensors

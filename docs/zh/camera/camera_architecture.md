@@ -36,7 +36,7 @@ The `camera_trigger`, `camera_capture` and `camera_feedback` modules are not use
 This work is handled by three PX4 components: [`camera_trigger` driver](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/camera_trigger), [`camera_capture` driver](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/camera_capture), [`camera-feedback` module](../modules/modules_system.md#camera-feedback).
 
 `camera_trigger` subscribes to the [VehicleCommand](../msg_docs/VehicleCommand.md) topic and monitors for updates to its [supported commands](../camera/fc_connected_camera.md#mavlink-command-interface).
-Thes updates occur when either a command is received via MAVLink or when a [camera item is reached in a mission](#camera-commands-in-missions).
+These updates occur when either a command is received via MAVLink or when a [camera item is reached in a mission](#camera-commands-in-missions).
 
 The commands enable and disable triggering, and configure triggering at time and distance intervals.
 The driver tracks these intervals, and when needed triggers the outputs.
@@ -107,7 +107,7 @@ The logged topic will depend on whether or not the camera capture pin is enabled
 
 Note that camera capture events are not logged when using the [MAVLink cameras that support Camera Protocol v2](../camera/mavlink_v2_camera.md), because the corresponding trigger events are not generated within PX4.
 
-## See Also
+## 另见
 
 - Camera trigger driver: [source code](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/camera_trigger) <!-- no module doc -->
 - Camera capture driver: [source code](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/camera_capture) <!-- no module doc -->

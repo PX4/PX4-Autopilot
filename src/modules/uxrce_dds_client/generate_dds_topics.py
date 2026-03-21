@@ -102,12 +102,24 @@ def process_message_type(msg_type):
     # topic_simple: eg vehicle_status
     msg_type['topic_simple'] = msg_type['topic'].split('/')[-1]
 
+def process_message_instance(msg_type):
+    if 'instance' in msg_type:
+        # if instance is given, check if it is a non negative integer
+        if not (type(msg_type['instance']) is int and msg_type['instance'] >= 0) :
+            raise TypeError("`instance` must be a non negative integer")
+        # add trailing instance to topic name
+        msg_type['topic'] = f"{msg_type['topic']}{msg_type['instance']}"
+    else:
+        # if instance is not given,
+        msg_type['instance'] = 0
+
 merged_em_globals['namespace'] = namespace
 
 pubs_not_empty = msg_map['publications'] is not None
 if pubs_not_empty:
     for p in msg_map['publications']:
         process_message_type(p)
+        process_message_instance(p)
 
 merged_em_globals['publications'] = msg_map['publications'] if pubs_not_empty else []
 
@@ -118,12 +130,11 @@ if subs_not_empty:
 
 merged_em_globals['subscriptions'] = msg_map['subscriptions'] if subs_not_empty else []
 
-subs_multi_not_empty = msg_map['subscriptions_multi'] is not None
-if subs_multi_not_empty:
-    for sm in msg_map['subscriptions_multi']:
-        process_message_type(sm)
+subs_multi = msg_map.get('subscriptions_multi') or []
+for sd in subs_multi:
+    process_message_type(sd)
 
-merged_em_globals['subscriptions_multi'] = msg_map['subscriptions_multi'] if subs_multi_not_empty else []
+merged_em_globals['subscriptions_multi'] = subs_multi
 
 merged_em_globals['type_includes'] = sorted(set(all_type_includes))
 

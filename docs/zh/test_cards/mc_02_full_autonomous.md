@@ -54,7 +54,7 @@ Plan a mission on the ground. Ensure the mission has
 - 当油门升高时，起飞应该是平稳的
 - 任务应该在第一次尝试时上传
 - 使用 Auto 时飞机应自动起飞
-- Vehicle shoud adjust height to RTL altitude before returning home
+- Vehicle should adjust height to RTL altitude before returning home
 - 着陆时，直升机不应在地面上反弹
 
 <!--

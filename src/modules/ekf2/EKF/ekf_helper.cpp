@@ -541,7 +541,7 @@ float Ekf::getHorizontalPositionInnovationTestRatio() const
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)
 
 	if (_control_status.flags.aux_gpos) {
-		test_ratio = math::max(test_ratio, fabsf(_aux_global_position.test_ratio_filtered()));
+		test_ratio = math::max(test_ratio, fabsf(_aux_global_position.testRatioFiltered()));
 	}
 
 #endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
@@ -1232,6 +1232,10 @@ void Ekf::updateAidSourceStatus(estimator_aid_source1d_s &status, const uint64_t
 
 void Ekf::clearInhibitedStateKalmanGains(VectorState &K) const
 {
+	if (!_control_status.flags.heading_observable) {
+		K(State::quat_nominal.idx + 2) = 0.f;
+	}
+
 	for (unsigned i = 0; i < State::gyro_bias.dof; i++) {
 		if (_gyro_bias_inhibit[i]) {
 			K(State::gyro_bias.idx + i) = 0.f;
@@ -1263,10 +1267,15 @@ void Ekf::clearInhibitedStateKalmanGains(VectorState &K) const
 
 float Ekf::getHeadingInnov() const
 {
+	float innov = 0.f;
+
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 
 	if (_control_status.flags.mag_hdg || _control_status.flags.mag_3D) {
-		return Vector3f(_aid_src_mag.innovation).max();
+		innov = Vector3f(_aid_src_mag.innovation).max();
+
+	} else {
+		innov = _mag_heading_innov_lpf.getState();
 	}
 
 #endif // CONFIG_EKF2_MAGNETOMETER
@@ -1274,7 +1283,7 @@ float Ekf::getHeadingInnov() const
 #if defined(CONFIG_EKF2_GNSS_YAW)
 
 	if (_control_status.flags.gnss_yaw) {
-		return _aid_src_gnss_yaw.innovation;
+		innov = _aid_src_gnss_yaw.innovation;
 	}
 
 #endif // CONFIG_EKF2_GNSS_YAW
@@ -1282,12 +1291,12 @@ float Ekf::getHeadingInnov() const
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 
 	if (_control_status.flags.ev_yaw) {
-		return _aid_src_ev_yaw.innovation;
+		innov = _aid_src_ev_yaw.innovation;
 	}
 
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
-	return 0.f;
+	return innov;
 }
 
 float Ekf::getHeadingInnovVar() const

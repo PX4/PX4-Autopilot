@@ -2,7 +2,7 @@
 #
 # @name HolyBro QAV250
 #
-# @url https://docs.px4.io/main/en/frames_multicopter/holybro_qav250_pixhawk4_mini.html
+# @url https://docs.px4.io/main/en/frames_multicopter/holybro_qav250_pixhawk4_mini
 #
 # @type Quadrotor x
 # @class Copter
@@ -11,6 +11,8 @@
 #
 # @board px4_fmu-v2 exclude
 # @board bitcraze_crazyflie exclude
+# @board px4_fmu-v6x exclude
+# @board ark_fmu-v6x exclude
 #
 
 . ${R}etc/init.d/rc.mc_defaults

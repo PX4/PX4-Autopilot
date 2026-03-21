@@ -56,9 +56,11 @@
 
 using namespace device;
 
-class CrsfRc : public ModuleBase<CrsfRc>, public ModuleParams, public px4::ScheduledWorkItem
+class CrsfRc : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	CrsfRc(const char *device);
 	~CrsfRc() override;
 
@@ -100,6 +102,7 @@ private:
 	uint32_t _bytes_rx{0};
 
 	hrt_abstime _last_packet_seen{0};
+	hrt_abstime _last_stats_tx_seen{0};
 
 	CrsfParserStatistics_t _packet_parser_statistics{0};
 

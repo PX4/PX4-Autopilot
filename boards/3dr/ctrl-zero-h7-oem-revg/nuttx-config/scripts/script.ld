@@ -132,7 +132,6 @@ ENTRY(_stext)
  */
 EXTERN(abort)
 EXTERN(_bootdelay_signature)
-EXTERN(board_get_manifest)
 
 SECTIONS
 {

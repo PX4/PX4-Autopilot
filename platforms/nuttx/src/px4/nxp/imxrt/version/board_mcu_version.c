@@ -90,7 +90,7 @@ int board_mcu_version(char *rev, const char **revstr, const char **errata)
 #define DIGPROG_MAJOR_UPPER_MASK      (0xff << DIGPROG_MAJOR_UPPER_SHIFT)
 #define DIGPROG_MAJOR_UPPER(info)     (((info) & DIGPROG_MAJOR_UPPER_MASK) >> DIGPROG_MAJOR_UPPER_SHIFT)
 //                            876543210
-#define CHIP_TAG     "i.MX RT10?2 r?.?"
+#define CHIP_TAG     "i.MX RT10?? r?.?"
 #define CHIP_TAG_LEN sizeof(CHIP_TAG)-1
 
 int board_mcu_version(char *rev, const char **revstr, const char **errata)
@@ -100,6 +100,7 @@ int board_mcu_version(char *rev, const char **revstr, const char **errata)
 
 	chip[CHIP_TAG_LEN - 1] = '0' +  DIGPROG_MINOR(info);
 	chip[CHIP_TAG_LEN - 3] = '1' + DIGPROG_MAJOR_LOWER(info);
+	chip[CHIP_TAG_LEN - 6] = getreg32(0x401F867C) == 0x10 ? '4' : '2';
 	chip[CHIP_TAG_LEN - 7] = DIGPROG_MAJOR_UPPER(info)  == 0x6a ? '5' : '6';
 	*revstr = chip;
 	*rev = '0' + DIGPROG_MINOR(info);

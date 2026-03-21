@@ -53,8 +53,6 @@
 // subscriptions
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/actuator_motors.h>
-#include <uORB/topics/esc_status.h>
 #include <uORB/topics/failure_detector_status.h>
 #include <uORB/topics/pwm_input.h>
 #include <uORB/topics/sensor_selection.h>
@@ -70,10 +68,8 @@ union failure_detector_status_u {
 		uint16_t pitch : 1;
 		uint16_t alt : 1;
 		uint16_t ext : 1;
-		uint16_t arm_escs : 1;
 		uint16_t battery : 1;
 		uint16_t imbalanced_prop : 1;
-		uint16_t motor : 1;
 	} flags;
 	uint16_t value {0};
 };
@@ -89,13 +85,11 @@ public:
 	bool update(const vehicle_status_s &vehicle_status, const vehicle_control_mode_s &vehicle_control_mode);
 	const failure_detector_status_u &getStatus() const { return _failure_detector_status; }
 
-	void publishStatus();
+	void publishStatus(bool esc_arm_status, uint16_t motor_failure_mask);
 
 private:
 	void updateAttitudeStatus(const vehicle_status_s &vehicle_status);
 	void updateExternalAtsStatus();
-	void updateEscsStatus(const vehicle_status_s &vehicle_status, const esc_status_s &esc_status);
-	void updateMotorStatus(const vehicle_status_s &vehicle_status, const esc_status_s &esc_status);
 	void updateImbalancedPropStatus();
 
 	failure_detector_status_u _failure_detector_status{};
@@ -103,26 +97,17 @@ private:
 	systemlib::Hysteresis _roll_failure_hysteresis{false};
 	systemlib::Hysteresis _pitch_failure_hysteresis{false};
 	systemlib::Hysteresis _ext_ats_failure_hysteresis{false};
-	systemlib::Hysteresis _esc_failure_hysteresis{false};
 
 	static constexpr float _imbalanced_prop_lpf_time_constant{5.f};
 	AlphaFilter<float> _imbalanced_prop_lpf{};
 	uint32_t _selected_accel_device_id{0};
 	hrt_abstime _imu_status_timestamp_prev{0};
 
-	// Motor failure check
-	uint8_t _motor_failure_esc_valid_current_mask{};  // ESC 1-8, true if ESC telemetry was valid at some point
-	uint8_t _motor_failure_esc_timed_out_mask{};      // ESC telemetry no longer available -> failure
-	uint8_t _motor_failure_esc_under_current_mask{};  // ESC drawing too little current -> failure
-	bool _motor_failure_esc_has_current[actuator_motors_s::NUM_CONTROLS] {false}; // true if some ESC had non-zero current (some don't support it)
-	hrt_abstime _motor_failure_undercurrent_start_time[actuator_motors_s::NUM_CONTROLS] {};
 
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
-	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)}; // TODO: multi-instance
 	uORB::Subscription _pwm_input_sub{ORB_ID(pwm_input)};
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 	uORB::Subscription _vehicle_imu_status_sub{ORB_ID(vehicle_imu_status)};
-	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
 
 	uORB::Publication<failure_detector_status_s> _failure_detector_status_pub{ORB_ID(failure_detector_status)};
 
@@ -135,13 +120,6 @@ private:
 		(ParamFloat<px4::params::FD_FAIL_P_TTRI>) _param_fd_fail_p_ttri,
 		(ParamBool<px4::params::FD_EXT_ATS_EN>) _param_fd_ext_ats_en,
 		(ParamInt<px4::params::FD_EXT_ATS_TRIG>) _param_fd_ext_ats_trig,
-		(ParamInt<px4::params::FD_ESCS_EN>) _param_escs_en,
-		(ParamInt<px4::params::FD_IMB_PROP_THR>) _param_fd_imb_prop_thr,
-
-		// Actuator failure
-		(ParamBool<px4::params::FD_ACT_EN>) _param_fd_act_en,
-		(ParamFloat<px4::params::FD_ACT_MOT_THR>) _param_fd_act_mot_thr,
-		(ParamFloat<px4::params::FD_ACT_MOT_C2T>) _param_fd_act_mot_c2t,
-		(ParamInt<px4::params::FD_ACT_MOT_TOUT>) _param_fd_act_mot_tout
+		(ParamInt<px4::params::FD_IMB_PROP_THR>) _param_fd_imb_prop_thr
 	)
 };

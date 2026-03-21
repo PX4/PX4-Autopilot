@@ -9,7 +9,7 @@ ROS 2-PX4 架构在ROS 2和PX4之间进行了深度整合。 允许 ROS 2 订阅
 
 [migration guide](../middleware/uxrce_dds.md#fast-rtps-to-uxrce-dds-migration-guidelines) 解释您需要做什么来将ROS2 应用程序从 PX4 v1.13 迁移到 PX4 v1.14。
 
-如果您仍然在 PX4 v1.13 上工作，请按照[PX4 v1.13 Docs](https://docs.px4.io/v1.13/en/ros/ros2_comm.html)中的说明操作。
+If you're still working on PX4 v1.13, please follow the instructions in the [PX4 v1.13 Docs](https://docs.px4.io/v1.13/en/ros/ros2_comm).
 
 <!-- remove this when there are PX4 v1.14 docs for some months -->
 
@@ -137,7 +137,7 @@ make px4_sitl
 2. 一些Python 依赖关系也必须安装 (使用 **`pip`** 或 **`apt`**):
 
    ```sh
-   pip install --user -U empy==3.3.4 pyros-genmsg setuptools
+   pip install --user -U empty==3.3.4 pyros-genmsg setuptools
    ```
 
 ### 配置微型 XRCE-DDS 代理与客户端
@@ -552,8 +552,8 @@ ros2 run ros_gz_bridge parameter_bridge /clock@rosgraph_msgs/msg/Clock[gz.msgs.C
 代码首先导入了与 ROS 2 中间件进行交互所需的 C++ 库，以及该节点所订阅的SensorCombined消息对应的头部文件：
 
 ```cpp
-#include <0>
-#include <1>
+#include <rclcpp/rclcpp.hpp>
+#include <px4_msgs/msg/sensor_combined.hpp>
 ```
 
 随后，代码创建了一个 SensorCombinedListener 类，该类继承自通用的 rclcpp::Node 基类。

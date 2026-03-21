@@ -30,7 +30,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
   - [Bosch BMI088](https://www.bosch-sensortec.com/products/motion-sensors/imus/bmi088/) 3-axis accelerometer/gyroscope (internally vibration dampened)
   - [Invensense ICM-20602](https://invensense.tdk.com/products/motion-tracking/6-axis/icm-20602/) 3-axis accelerometer/gyroscope
   - [Invensense ICM-20948](https://invensense.tdk.com/products/motion-tracking/9-axis/icm-20948/) 3-axis accelerometer/gyroscope/magnetometer
-  - [Infineon DPS310 barometer](https://www.infineon.com/assets/row/public/documents/24/49/infineon-dps310-datasheet-en.pdf) - [Discontinued](https://www.infineon.com/part/DPS310) (So smooth and NO more light sensitivity)
+  - Infineon DPS310 barometer - [Discontinued](https://www.infineon.com/products/sensor/pressure-sensors/pressure-sensors-for-iot) (So smooth and NO more light sensitivity)
 
 - 接口：
   - 6x UART (serial ports total), 3x with HW flow control, 1x FRSky Telemetry (D or X types), 1x Console and 1x GPS+I2C
@@ -56,7 +56,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - 电源系统
   - 3x Ultra low noise LDO voltage regulator
 
-## 购买渠道
+## Where to Buy {#store}
 
 - [mRo Control Zero](https://store.mrobotics.io/mRo-Control-Zero-F7-p/mro-ctrl-zero-f7.htm)
 
@@ -69,22 +69,22 @@ It is pre-built and automatically installed by _QGroundControl_ when appropriate
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make mro_ctrl-zero-f7
 ```
 
-## Debug Ports
+## Debug Ports {#debug_port}
 
 ### Console Port
 
 The [PX4 System Console](../debug/system_console.md) runs on `USART7` using the pins listed below.
 This is a standard serial pinout, designed to connect to a [3.3V FTDI](https://www.digikey.com/en/products/detail/TTL-232R-3V3/768-1015-ND/1836393) cable (5V tolerant).
 
-\| mRo control zero f7 |             | FTDI |
-\| ------------------- | ----------- | ---- | ---------------- |
-\| 17                  | USART7 Tx   | 5    | FTDI RX (yellow) |
-\| 19                  | USART7 Rx   | 4    | FTDI TX (orange) |
-\| 6                   | USART21 GND | 1    | FTDI GND (black) |
+| mRo control zero f7 |             | FTDI |                                  |
+| ------------------- | ----------- | ---- | -------------------------------- |
+| 17                  | USART7 Tx   | 5    | FTDI RX （黄色）                     |
+| 19                  | USART7 Rx   | 4    | FTDI TX （橙色）                     |
+| 6                   | USART21 GND | 1    | FTDI GND (黑色) |
 
 ### SWD Port
 
@@ -106,8 +106,8 @@ There is also an [ARM20-CTX 20-Pin to TC2030-IDC adapter](https://www.tag-connec
 
 | UART   | 设备         | Port                                                                                               |
 | ------ | ---------- | -------------------------------------------------------------------------------------------------- |
-| USART2 | /dev/ttyS0 | TELEM1 (flow control)                                                           |
-| USART3 | /dev/ttyS1 | TELEM2 (flow control)                                                           |
+| USART2 | /dev/ttyS0 | TELEM1 (流控)                                                                     |
+| USART3 | /dev/ttyS1 | TELEM2 (流控)                                                                     |
 | UART4  | /dev/ttyS2 | GPS1                                                                                               |
 | USART6 | /dev/ttyS3 | Flex port (can be configured as SPI or UART with Flow Control). |
 | UART7  | /dev/ttyS4 | CONSOLE                                                                                            |

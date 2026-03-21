@@ -53,9 +53,11 @@
 
 using namespace time_literals;
 
-class SbusRc : public ModuleBase<SbusRc>, public ModuleParams, public px4::ScheduledWorkItem
+class SbusRc : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+
+	static Descriptor desc;
 
 	SbusRc(const char *device);
 	virtual ~SbusRc();

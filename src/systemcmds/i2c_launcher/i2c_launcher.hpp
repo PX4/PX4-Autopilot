@@ -48,9 +48,11 @@
 
 using namespace time_literals;
 
-class I2CLauncher : public ModuleBase<I2CLauncher>, public ModuleParams, public px4::ScheduledWorkItem
+class I2CLauncher : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	I2CLauncher(int bus, int batt_index);
 
 	~I2CLauncher() override;

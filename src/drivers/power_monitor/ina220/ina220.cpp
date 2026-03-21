@@ -329,8 +329,6 @@ INA220::RunImpl()
 
 		if (_ch_type == PM_CH_TYPE_VBATT) {
 			_battery.setConnected(false);
-			_battery.updateVoltage(0.f);
-			_battery.updateCurrent(0.f);
 			_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
 		}
 

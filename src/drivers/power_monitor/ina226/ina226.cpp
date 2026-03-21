@@ -83,10 +83,10 @@ INA226::INA226(const I2CSPIDriverConfig &config, int battery_index) :
 	_power_lsb = 25 * _current_lsb;
 
 	// We need to publish immediately, to guarantee that the first instance of the driver publishes to uORB instance 0
-	_battery.setConnected(false);
-	_battery.updateVoltage(0.f);
-	_battery.updateCurrent(0.f);
+	setConnected(false);
 	_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
+
+	I2C::_retries = 5;
 }
 
 INA226::~INA226()
@@ -226,14 +226,11 @@ INA226::collect()
 	success = success && (read(INA226_REG_CURRENT, _current) == PX4_OK);
 	// success = success && (read(INA226_REG_SHUNTVOLTAGE, _shunt) == PX4_OK);
 
-	if (!success) {
-		PX4_DEBUG("error reading from sensor");
-		_bus_voltage = _power = _current = _shunt = 0;
+	if (setConnected(success)) {
+		_battery.updateVoltage(static_cast<float>(_bus_voltage * INA226_VSCALE));
+		_battery.updateCurrent(static_cast<float>(_current * _current_lsb));
 	}
 
-	_battery.setConnected(success);
-	_battery.updateVoltage(static_cast<float>(_bus_voltage * INA226_VSCALE));
-	_battery.updateCurrent(static_cast<float>(_current * _current_lsb));
 	_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
 
 	perf_end(_sample_perf);
@@ -245,6 +242,7 @@ INA226::collect()
 		return PX4_ERROR;
 	}
 }
+
 
 void
 INA226::start()
@@ -297,15 +295,35 @@ INA226::RunImpl()
 		ScheduleDelayed(INA226_CONVERSION_INTERVAL);
 
 	} else {
-		_battery.setConnected(false);
-		_battery.updateVoltage(0.f);
-		_battery.updateCurrent(0.f);
+		setConnected(false);
 		_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
 
 		if (init() != PX4_OK) {
 			ScheduleDelayed(INA226_INIT_RETRY_INTERVAL_US);
 		}
 	}
+}
+
+bool INA226::setConnected(bool state)
+{
+	// Filter out brief I2C failures for 2s
+	if (state) {
+		_connected = INA226_SAMPLE_FREQUENCY_HZ * 2;
+
+	} else if (_connected > 0) {
+		_connected--;
+	}
+
+	if (_connected > 0) {
+		_battery.setConnected(true);
+
+	} else {
+		_battery.setConnected(false);
+		_battery.updateVoltage(0);
+		_battery.updateCurrent(0);
+	}
+
+	return state;
 }
 
 void

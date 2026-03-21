@@ -30,7 +30,7 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
 - OneShot PWM out (configurable)
 - Optional: Safety switch and buzzer
 
-## 购买渠道
+## Where to Buy {#store}
 
 Pixracer Pro is available from the [store.3dr.com](https://store.3dr.com/pixracer-pro/).
 
@@ -188,14 +188,14 @@ For information about using this port see:
 
 ## 串口映射
 
-| UART   | 设备         | Port                                     |
-| ------ | ---------- | ---------------------------------------- |
-| UART1  | /dev/ttyS0 | WiFi (ESP8266)        |
-| USART2 | /dev/ttyS1 | TELEM1 (flow control) |
-| USART3 | /dev/ttyS2 | TELEM2 (flow control) |
-| UART4  |            |                                          |
-| UART7  | CONSOLE    |                                          |
-| UART8  | SERIAL4    |                                          |
+| UART   | 设备         | Port                              |
+| ------ | ---------- | --------------------------------- |
+| UART1  | /dev/ttyS0 | WiFi (ESP8266) |
+| USART2 | /dev/ttyS1 | TELEM1 (流控)    |
+| USART3 | /dev/ttyS2 | TELEM2 (流控)    |
+| UART4  |            |                                   |
+| UART7  | CONSOLE    |                                   |
+| UART8  | SERIAL4    |                                   |
 
 <!-- Note: Got ports using https://github.com/PX4/PX4-user_guide/pull/672#issuecomment-598198434 -->
 
@@ -217,7 +217,7 @@ It is pre-built and automatically installed by _QGroundControl_ when appropriate
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v4_default
 ```
 

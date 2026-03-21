@@ -1,0 +1,34 @@
+module_name: pure_pursuit
+parameters:
+- group: Pure Pursuit
+  definitions:
+    PP_LOOKAHD_GAIN:
+      description:
+        short: Tuning parameter for the pure pursuit controller
+        long: Lower value -> More aggressive controller (beware overshoot/oscillations)
+      type: float
+      default: 1.0
+      min: 0.1
+      max: 100
+      increment: 0.01
+      decimal: 2
+    PP_LOOKAHD_MIN:
+      description:
+        short: Minimum lookahead distance for the pure pursuit controller
+      type: float
+      default: 1.0
+      min: 0.1
+      max: 100
+      unit: m
+      increment: 0.01
+      decimal: 2
+    PP_LOOKAHD_MAX:
+      description:
+        short: Maximum lookahead distance for the pure pursuit controller
+      type: float
+      default: 10.0
+      min: 0.1
+      max: 100
+      unit: m
+      increment: 0.01
+      decimal: 2

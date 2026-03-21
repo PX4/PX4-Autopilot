@@ -41,6 +41,23 @@ Key features:
 
 See [Log Analysis using Flight Review](../log/flight_review.md) for an introduction.
 
+### Foxglove
+
+[Foxglove](https://foxglove.dev/) is a purpose-built robotics observation platform that works natively with ULog.
+It allows you to replay your flights and seek through the timeline to find data of interest.
+
+Key features:
+
+- Native support for ULog files — open files by dragging and dropping or using the file dialog.
+- Multiple visualization panels, including Raw Messages, Plot, 3D, and Map panels.
+- [PX4 Converter extension](https://github.com/foxglove/px4_converter) that translates selected uORB messages and creates Foxglove schemas for enhanced visualizations.
+- Save and share custom layouts with panels and their settings.
+- Cross-platform desktop application (Windows, macOS, Linux).
+
+See [Foxglove PX4 Docs](https://docs.foxglove.dev/docs/getting-started/frameworks/px4) for more detailed information and instructions.
+
+![Foxglove](../../assets/flight_log_analysis/foxglove/foxglove_px4.png)
+
 ### PlotJuggler
 
 [PlotJuggler](https://github.com/facontidavide/PlotJuggler) is a desktop application that allows users to easily visualize and analyze data expressed in the form of time series.
@@ -139,7 +156,7 @@ Key features:
 ### PX4Tools
 
 [PX4Tools](https://github.com/dronecrew/px4tools) is a log analysis toolbox for the PX4 autopilot written in Python.
-The recommended installation procedure is to use [anaconda3](https://conda.io/docs/index.html). See [px4tools github page](https://github.com/dronecrew/px4tools) for details.
+The recommended installation procedure is to use [anaconda3](https://docs.conda.io/docs/index.html). See [px4tools github page](https://github.com/dronecrew/px4tools) for details.
 
 Key features:
 

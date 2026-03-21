@@ -44,6 +44,8 @@
 #include "Roboclaw.hpp"
 #include <termios.h>
 
+ModuleBase::Descriptor Roboclaw::desc{task_spawn, custom_command, print_usage};
+
 Roboclaw::Roboclaw(const char *device_name, const char *bad_rate_parameter) :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default)
 {
@@ -154,15 +156,10 @@ int Roboclaw::initializeUART()
 	}
 }
 
-bool Roboclaw::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
-			     unsigned num_outputs, unsigned num_control_groups_updated)
+bool Roboclaw::updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, unsigned num_control_groups_updated)
 {
-	float right_motor_output = ((float)outputs[0] - 128.0f) / 127.f;
-	float left_motor_output = ((float)outputs[1] - 128.0f) / 127.f;
-
-	setMotorSpeed(Motor::Right, right_motor_output);
-	setMotorSpeed(Motor::Left, left_motor_output);
-
+	setMotorSpeed(Motor::Right, (outputs[0] - 127.0f) / 127.f);
+	setMotorSpeed(Motor::Left, (outputs[1] - 127.0f) / 127.f);
 	return true;
 }
 
@@ -170,7 +167,7 @@ void Roboclaw::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		_mixing_output.unregister();
 		return;
 	}
@@ -244,7 +241,7 @@ void Roboclaw::setMotorSpeed(Motor motor, float value)
 
 	// send command
 	if (motor == Motor::Right) {
-		if (value > 0) {
+		if (value > 0.f) {
 			command = Command::DriveForwardMotor1;
 
 		} else {
@@ -252,7 +249,7 @@ void Roboclaw::setMotorSpeed(Motor motor, float value)
 		}
 
 	} else if (motor == Motor::Left) {
-		if (value > 0) {
+		if (value > 0.f) {
 			command = Command::DriveForwardMotor2;
 
 		} else {
@@ -289,15 +286,9 @@ void Roboclaw::resetEncoders()
 	sendTransaction(Command::ResetEncoders, nullptr, 0);
 }
 
-void Roboclaw::sendUnsigned7Bit(Command command, float data)
+void Roboclaw::sendUnsigned7Bit(Command command, const float data)
 {
-	data = fabs(data);
-
-	if (data >= 1.0f) {
-		data = 0.99f;
-	}
-
-	auto byte = (uint8_t)(data * INT8_MAX);
+	uint8_t byte = static_cast<uint8_t>(lroundf(fabs(data) * INT8_MAX));
 	sendTransaction(command, &byte, 1);
 }
 
@@ -476,8 +467,8 @@ int Roboclaw::task_spawn(int argc, char *argv[])
 	Roboclaw *instance = new Roboclaw(device_name, baud_rate_parameter_value);
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 		instance->ScheduleNow();
 		return OK;
 
@@ -486,8 +477,8 @@ int Roboclaw::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	printf("Ending task_spawn");
 
@@ -535,5 +526,5 @@ int Roboclaw::print_status()
 
 extern "C" __EXPORT int roboclaw_main(int argc, char *argv[])
 {
-	return Roboclaw::main(argc, argv);
+	return ModuleBase::main(Roboclaw::desc, argc, argv);
 }

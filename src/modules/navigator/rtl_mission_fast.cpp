@@ -108,6 +108,7 @@ void RtlMissionFast::setActiveMissionItems()
 {
 	WorkItemType new_work_item_type{WorkItemType::WORK_ITEM_TYPE_DEFAULT};
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+	const position_setpoint_s current_setpoint_copy = pos_sp_triplet->current;
 
 	/* Skip VTOL/FW Takeoff item if in air, fixed-wing and didn't start the takeoff already*/
 	if ((_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF || _mission_item.nav_cmd == NAV_CMD_TAKEOFF) &&
@@ -175,10 +176,7 @@ void RtlMissionFast::setActiveMissionItems()
 			_mission_item.autocontinue = true;
 			_mission_item.time_inside = 0.0f;
 
-			pos_sp_triplet->previous = pos_sp_triplet->current;
 		}
-
-
 
 		if (num_found_items > 0) {
 			mission_item_to_position_setpoint(next_mission_items[0u], &pos_sp_triplet->next);
@@ -186,8 +184,20 @@ void RtlMissionFast::setActiveMissionItems()
 
 		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 
-		if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING && isLanding() &&
-		    _mission_item.nav_cmd == NAV_CMD_WAYPOINT) {
+		// Only set the previous position item if the current one really changed
+		if ((_work_item_type != WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND) &&
+		    !position_setpoint_equal(&pos_sp_triplet->current, &current_setpoint_copy)) {
+			pos_sp_triplet->previous = current_setpoint_copy;
+		}
+
+		const bool fw_on_mission_landing = _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+						   && isLanding() &&
+						   _mission_item.nav_cmd == NAV_CMD_WAYPOINT;
+		const bool mc_landing_after_transition = _vehicle_status_sub.get().vehicle_type ==
+				vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && _vehicle_status_sub.get().is_vtol &&
+				new_work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND;
+
+		if (fw_on_mission_landing || mc_landing_after_transition) {
 			pos_sp_triplet->current.alt_acceptance_radius = FLT_MAX;
 		}
 	}

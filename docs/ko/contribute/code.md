@@ -34,7 +34,7 @@ If you update an existing file you are not required to make the whole file compl
 
 ### Line Length
 
-- Maximum line length is 120 characters.
+- Maximum line length is 140 characters.
 
 ### File Extensions
 
@@ -151,36 +151,35 @@ else {
 
 ## 커밋과 커밋 메시지
 
-Use descriptive, multi-paragraph commit messages for all non-trivial changes.
-쉽게 이해할 수 있는 한 줄 요약과 자세한 세부정보도 기록하십시오.
+PX4 uses [conventional commits](https://www.conventionalcommits.org/) for all commit messages and PR titles.
 
-```plain
-Component: Explain the change in one sentence. Fixes #1234
+### Format
 
-Prepend the software component to the start of the summary
-line, either by the module name or a description of it.
-(e.g. "mc_att_ctrl" or "multicopter attitude controller").
-
-If the issue number is appended as <Fixes #1234>, Github
-will automatically close the issue when the commit is
-merged to the master branch.
-
-The body of the message can contain several paragraphs.
-Describe in detail what you changed. Link issues and flight
-logs either related to this fix or to the testing results
-of this commit.
-
-Describe the change and why you changed it, avoid to
-paraphrase the code change (Good: "Adds an additional
-safety check for vehicles with low quality GPS reception".
-Bad: "Add gps_reception_check() function").
-
-Reported-by: Name <email@px4.io>
+```
+type(scope): short description of the change
 ```
 
-**Use **`git commit -s`** to sign off on all of your commits.** This will add `signed-off-by:` with your name and email as the last line.
+Where **type** is the category of change (`feat`, `fix`, `docs`, `refactor`, `perf`, `test`, `build`, `ci`, `style`, `chore`, `revert`) and **scope** is the module or area affected (e.g. `ekf2`, `mavlink`, `navigator`). See the full [types and scopes tables](https://github.com/PX4/PX4-Autopilot/blob/main/CONTRIBUTING.md#commit-message-convention) in CONTRIBUTING.md.
 
-This commit guide is based on best practices for the Linux Kernel and other [projects maintained](https://github.com/torvalds/subsurface-for-dirk/blob/a48494d2fbed58c751e9b7e8fbff88582f9b2d02/README#L88-L115) by Linus Torvalds.
+Append `!` before the colon to mark a breaking change: `feat(ekf2)!: remove deprecated API`.
+
+### 예
+
+```
+feat(ekf2): add height fusion timeout. Fixes #1234
+
+The previous implementation did not handle the case where
+height fusion data stops arriving mid-flight. This adds a
+configurable timeout that falls back to barometric height.
+
+Tested in SITL with simulated sensor dropout.
+
+Signed-off-by: Your Name <your@email.com>
+```
+
+The body of the message can contain several paragraphs. Describe in detail what you changed and why. Link related issues and flight logs. Describe the change and why you made it, rather than paraphrasing the code change.
+
+**Use `git commit -s` to sign off on all of your commits.** This adds `Signed-off-by:` with your name and email as the last line.
 
 ## Pull Requests
 

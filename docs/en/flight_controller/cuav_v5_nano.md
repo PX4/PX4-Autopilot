@@ -1,6 +1,6 @@
 # CUAV V5 nano Autopilot
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://store.cuav.net/) for hardware support or compliance issues.
 :::
@@ -58,7 +58,7 @@ Main FMU Processor: STM32F765◦32 Bit Arm® Cortex®-M7, 216MHz, 2MB memory, 51
 - Other Characteristics:
   - Operating temperature: -20 ~ 85°C （Measured value）
 
-## Where to Buy
+## Where to Buy {#store}
 
 [CUAV Store](https://store.cuav.net/shop/v5-nano/)
 
@@ -82,20 +82,18 @@ Download **V5 nano** pinouts from [here](http://manual.cuav.net/V5-Plus.pdf).
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v5_default
 ```
 
-<a id="debug_port"></a>
-
-## Debug Port
+## Debug Port {#debug_port}
 
 The [PX4 System Console](../debug/system_console.md) and [SWD interface](../debug/swd_debug.md) operate on the **FMU Debug** port (`DSU7`).
 The board does not have an I/O debug interface.
@@ -119,7 +117,7 @@ The provided debug cable does not connect to the SWD port `Vref` pin (1).
 
 ![CUAV Debug cable](../../assets/flight_controller/cuav_v5_nano/cuav_nano_debug_cable.jpg)
 
-:::warning
+::: warning
 The SWD Vref pin (1) uses 5V as Vref but the CPU is run at 3.3V!
 
 Some JTAG adapters (SEGGER J-Link) will use the Vref voltage to set the voltage on the SWD lines.
@@ -200,7 +198,7 @@ For direct connection to _Segger Jlink_ we recommended you use the 3.3 Volts of 
 
 `PM2` can only measure battery voltage and current, but **not** power the flight controller.
 
-:::warning
+::: warning
 PX4 does not support this interface.
 :::
 
@@ -214,7 +212,7 @@ For example, the serial number Batch V011904((V01 is the number of V5, 1904 is t
 
 #### SBUS / DSM / RSSI interface Pin1 unfused
 
-:::warning
+::: warning
 This is a safety issue.
 :::
 

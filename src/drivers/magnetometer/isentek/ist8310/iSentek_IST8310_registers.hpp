@@ -57,7 +57,8 @@ namespace iSentek_IST8310
 static constexpr uint32_t I2C_SPEED = 400 * 1000; // 400 kHz I2C serial interface
 static constexpr uint8_t I2C_ADDRESS_DEFAULT = 0x0E;
 
-static constexpr uint8_t Device_ID = 0x10;
+static constexpr uint8_t IST8310_Device_ID = 0x10;
+static constexpr uint8_t IST8310J_Device_ID = 0xA3;
 
 enum class Register : uint8_t {
 	WAI        = 0x00, // Who Am I Register

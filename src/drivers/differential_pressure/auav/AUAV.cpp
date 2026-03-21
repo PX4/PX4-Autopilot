@@ -65,6 +65,7 @@ AUAV::AUAV(const I2CSPIDriverConfig &config) :
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms errors"))
 {
+	I2C::_retries = 5;
 }
 
 AUAV::~AUAV()
@@ -76,6 +77,10 @@ AUAV::~AUAV()
 void AUAV::RunImpl()
 {
 	switch (_state) {
+	case STATE::READ_FACTORY_DATA:
+		handle_state_read_factory_data();
+		break;
+
 	case STATE::READ_CALIBDATA:
 		handle_state_read_calibdata();
 		break;
@@ -106,23 +111,6 @@ int AUAV::init()
 		return ret;
 	}
 
-	int32_t hw_model = 0;
-	param_get(param_find("SENS_EN_AUAVX"), &hw_model);
-
-	switch (hw_model) {
-	case 1: /* AUAV L05D (+- 5 inH20) */
-		_cal_range = 10.0f;
-		break;
-
-	case 2: /* AUAV L10D (+- 10 inH20) */
-		_cal_range = 20.0f;
-		break;
-
-	case 3: /* AUAV L30D (+- 30 inH20) */
-		_cal_range = 60.0f;
-		break;
-	}
-
 	ScheduleClear();
 	ScheduleNow();
 	return PX4_OK;
@@ -130,15 +118,35 @@ int AUAV::init()
 
 int AUAV::probe()
 {
-	uint8_t res_data = 0;
-	int status = transfer(nullptr, 0, &res_data, sizeof(res_data));
+	uint8_t res_data;
 
-	/* Check that the sensor is active. Reported in bit 6 of the status byte */
-	if ((res_data & 0x40) == 0) {
-		status = PX4_ERROR;
+	for (unsigned i = 0; i < 10; i++) {
+		res_data = 0;
+		int status = transfer(nullptr, 0, &res_data, 1);
+
+		/* Check that the sensor is active. Reported in bit 6 of the status byte */
+		if (status == PX4_OK && (res_data & 0x40)) {
+			return PX4_OK;
+		}
+
+		px4_usleep(10'000);
 	}
 
-	return status;
+	return PX4_ERROR;
+}
+
+void AUAV::handle_state_read_factory_data()
+{
+	int status = read_factory_data();
+
+	if (status == PX4_OK) {
+		/* Factory data read or sensor does not have any, move to next state */
+		_state = STATE::READ_CALIBDATA;
+		ScheduleNow();
+
+	} else {
+		ScheduleDelayed(100_ms);
+	}
 }
 
 void AUAV::handle_state_read_calibdata()

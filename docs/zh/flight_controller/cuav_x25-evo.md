@@ -85,7 +85,7 @@ These flight controllers are [manufacturer supported](../flight_controller/autop
 
 - Not provided.
 
-## Purchase Channels
+## Purchase Channels {#store}
 
 Order from [CUAV](https://store.cuav.net/).
 
@@ -99,15 +99,15 @@ Order from [CUAV](https://store.cuav.net/).
 
 ## 串口映射
 
-| UART   | 设备         | Port          |
-| ------ | ---------- | ------------- |
-| USART1 | /dev/ttyS0 | GPS1          |
-| USART2 | /dev/ttyS1 | GPS2          |
-| USART3 | /dev/ttyS2 | Debug Console |
-| UART4  | /dev/ttyS3 | UART4         |
-| UART5  | /dev/ttyS4 | TELEM2        |
-| USART6 | /dev/ttyS5 | RC            |
-| UART7  | /dev/ttyS6 | TELEM1        |
+| UART   | 设备         | Port   |
+| ------ | ---------- | ------ |
+| USART1 | /dev/ttyS0 | GPS1   |
+| USART2 | /dev/ttyS1 | GPS2   |
+| USART3 | /dev/ttyS2 | 调试控制台  |
+| UART4  | /dev/ttyS3 | UART4  |
+| UART5  | /dev/ttyS4 | TELEM2 |
+| USART6 | /dev/ttyS5 | RC     |
+| UART7  | /dev/ttyS6 | TELEM1 |
 
 ## 额定电压
 
@@ -135,13 +135,11 @@ It is pre-built and installed automatically by _QGroundControl_ when the appropr
 
 To [build PX4](../dev_setup/building_px4.md) for this target, execute:
 
-```
+```sh
 make cuav_x25-evo_default
 ```
 
-<a id="debug_port"></a>
-
-## 调试接口
+## Debug Port {#debug_port}
 
 The [PX4 System Console](../debug/system_console.md) and [SWD Interface](../debug/swd_debug.md) operate on the **FMU Debug** port.
 

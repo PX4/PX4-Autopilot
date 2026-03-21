@@ -1,0 +1,152 @@
+module_name: navigator
+parameters:
+- group: Return Mode
+  definitions:
+    RTL_RETURN_ALT:
+      description:
+        short: Return mode return altitude
+        long: |-
+          Default minimum altitude above destination (e.g. home, safe point, landing pattern) for return flight.
+          The vehicle will climb to this altitude when Return mode is engaged, unless it currently is flying higher already.
+          This is affected by RTL_MIN_DIST and RTL_CONE_ANG.
+      type: float
+      default: 60.0
+      unit: m
+      min: 0
+      decimal: 1
+      increment: 0.5
+    RTL_DESCEND_ALT:
+      description:
+        short: Return mode loiter altitude
+        long: |-
+          Descend to this altitude (above destination position) after return, and wait for time defined in RTL_LAND_DELAY.
+          Land (i.e. slowly descend) from this altitude if autolanding allowed.
+          VTOLs do transition to hover in this altitude above the landing point.
+      type: float
+      default: 30.0
+      unit: m
+      min: 0
+      decimal: 1
+      increment: 0.5
+    RTL_LAND_DELAY:
+      description:
+        short: Return mode delay
+        long: |-
+          Delay before landing (after initial descent) in Return mode.
+          If set to -1 the system will not land but loiter at RTL_DESCEND_ALT.
+      type: float
+      default: 0.0
+      unit: s
+      min: -1
+      decimal: 1
+      increment: 0.5
+    RTL_MIN_DIST:
+      description:
+        short: Min distance for RTL cone altitude calculation
+        long: |-
+          Horizontal radius from return point within which special rules for return mode apply
+
+          The return altitude will be calculated based on RTL_CONE_ANG parameter.
+          The yaw setpoint will switch to the one defined by corresponding waypoint.
+      type: float
+      default: 10.0
+      unit: m
+      min: 0.5
+      decimal: 1
+      increment: 0.5
+    RTL_TYPE:
+      description:
+        short: Return type
+        long: Return mode destination and flight path (home location, rally point,
+          mission landing pattern, reverse mission)
+      type: enum
+      values:
+        0: Return to closest safe point (home or rally point) via direct path.
+        1: Return to closest safe point other than home (mission landing pattern or
+          rally point), via direct path. If no mission landing or rally points are
+          defined return home via direct path. Always choose closest safe landing
+          point if vehicle is a VTOL in hover mode.
+        2: Return to a planned mission landing, if available, using the mission path,
+          else return to home via the reverse mission path. Do not consider rally
+          points.
+        3: 'Return via direct path to closest destination: home, start of mission
+          landing pattern or safe point. If the destination is a mission landing pattern,
+          follow the pattern to land.'
+        4: Return to the planned mission landing, or to home via the reverse mission
+          path, whichever is closer by counting waypoints. Do not consider rally points.
+        5: Return directly to safe landing point (do not consider mission landing
+          and Home)
+      default: 0
+    RTL_CONE_ANG:
+      description:
+        short: Half-angle of the return mode altitude cone
+        long: |-
+          Defines the half-angle of a cone centered around the destination position that
+          affects the altitude at which the vehicle returns.
+      type: enum
+      values:
+        0: No cone, always climb to RTL_RETURN_ALT above destination.
+        25: 25 degrees half cone angle.
+        45: 45 degrees half cone angle.
+        65: 65 degrees half cone angle.
+        80: 80 degrees half cone angle.
+        90: Only climb to at least RTL_DESCEND_ALT above destination.
+      default: 45
+      unit: deg
+      min: 0
+      max: 90
+    RTL_PLD_MD:
+      description:
+        short: RTL precision land mode
+        long: |-
+          Use precision landing when doing an RTL landing phase.
+          This setting does not apply for RTL destinations planned as part of a mission.
+      type: enum
+      values:
+        0: No precision landing
+        1: Opportunistic precision landing
+        2: Required precision landing
+      default: 0
+    RTL_LOITER_RAD:
+      description:
+        short: Loiter radius for rtl descend
+        long: Set the radius for loitering to a safe altitude for VTOL transition.
+      type: float
+      default: 80.0
+      unit: m
+      min: 25
+      decimal: 1
+      increment: 0.5
+- group: Return To Land
+  definitions:
+    RTL_TIME_FACTOR:
+      description:
+        short: RTL time estimate safety margin factor
+        long: |-
+          Safety factor that is used to scale the actual RTL time estimate.
+          Time with margin = RTL_TIME_FACTOR * time + RTL_TIME_MARGIN
+      type: float
+      default: 1.1
+      min: 1.0
+      max: 2.0
+      decimal: 1
+      increment: 0.1
+    RTL_TIME_MARGIN:
+      description:
+        short: RTL time estimate safety margin offset
+        long: |-
+          Margin that is added to the time estimate, after it has already been scaled
+          Time with margin = RTL_TIME_FACTOR * time + RTL_TIME_MARGIN
+      type: int32
+      default: 100
+      unit: s
+      min: 0
+      max: 3600
+      decimal: 1
+      increment: 1
+    RTL_APPR_FORCE:
+      description:
+        short: RTL force approach landing
+        long: Only consider RTL point, if it has an approach defined.
+      type: boolean
+      default: 0

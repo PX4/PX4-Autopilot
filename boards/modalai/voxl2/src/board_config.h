@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 ModalAI, Inc. All rights reserved.
+ *   Copyright (c) 2022-2026 ModalAI, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,11 +39,46 @@
 
 #pragma once
 
-#define BOARD_HAS_NO_RESET
+#define CONFIG_BOARDCTL_RESET
 #define BOARD_HAS_NO_BOOTLOADER
 
-// Define this as empty since there are no I2C buses
+/*
+ * SPI buses (shared)
+ */
+#define CONFIG_SPI 1
+#define BOARD_SPI_BUS_MAX_BUS_ITEMS 1
+
+#ifdef __PX4_QURT
+/*
+ * QURT (DSP) specific defines
+ */
+
+#define CONFIG_I2C 1
+#define PX4_NUMBER_I2C_BUSES    4
+
+#include <system_config.h>
+#include <px4_platform_common/board_common.h>
+
+#define VOXL_ESC_DEFAULT_PORT 	"2"
+#define GHST_RC_DEFAULT_PORT 	"7"
+#define VOXL2_IO_DEFAULT_PORT 	"2"
+
+/* M0065 PWM */
+#define DIRECT_PWM_OUTPUT_CHANNELS 4
+#define MAX_IO_TIMERS 3
+
+#endif /* __PX4_QURT */
+
+#if defined(__PX4_POSIX) && !defined(__PX4_QURT)
+/*
+ * POSIX (apps processor) specific defines
+ */
+
+/* I2C clock init not required on Linux */
 #define BOARD_I2C_BUS_CLOCK_INIT
+
+#define CONFIG_I2C 1
+#define PX4_NUMBER_I2C_BUSES    1
 
 #include <system_config.h>
 #include <px4_platform_common/board_common.h>
@@ -53,3 +88,5 @@
 
 #define VOXL_ESC_DEFAULT_PORT 	"2"
 #define VOXL2_IO_DEFAULT_PORT 	"2"
+
+#endif /* __PX4_POSIX && !__PX4_QURT */

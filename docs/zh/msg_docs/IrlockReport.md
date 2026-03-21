@@ -1,8 +1,30 @@
+---
+pageClass: is-wide-page
+---
+
 # IrlockReport (UORB message)
 
-IRLOCK_REPORT message data
+IRLOCK_REPORT message data.
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/IrlockReport.msg)
+**TOPICS:** irlock_report
+
+## Fields
+
+| 参数名                         | 类型        | Unit [Frame] | Range/Enum | 描述                                                                                                                              |
+| --------------------------- | --------- | ---------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| timestamp                   | `uint64`  |                                                                  |            | time since system start (microseconds)                                                                       |
+| signature                   | `uint16`  |                                                                  |            |                                                                                                                                 |
+| pos_x  | `float32` |                                                                  |            | tan(theta), where theta is the angle between the target and the camera center of projection in camera x-axis |
+| pos_y  | `float32` |                                                                  |            | tan(theta), where theta is the angle between the target and the camera center of projection in camera y-axis |
+| size_x | `float32` |                                                                  |            | /\*\* size of target along camera x-axis in units of tan(theta) \*\*/                                        |
+| size_y | `float32` |                                                                  |            | /\*\* size of target along camera y-axis in units of tan(theta) \*\*/                                        |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/IrlockReport.msg)
+
+:::details
+Click here to see original file
 
 ```c
 # IRLOCK_REPORT message data
@@ -16,5 +38,6 @@ float32 pos_x # tan(theta), where theta is the angle between the target and the 
 float32 pos_y # tan(theta), where theta is the angle between the target and the camera center of projection in camera y-axis
 float32 size_x #/** size of target along camera x-axis in units of tan(theta) **/
 float32 size_y #/** size of target along camera y-axis in units of tan(theta) **/
-
 ```
+
+:::

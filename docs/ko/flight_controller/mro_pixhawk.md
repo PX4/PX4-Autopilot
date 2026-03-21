@@ -72,17 +72,178 @@ It is pre-built and automatically installed by _QGroundControl_ when appropriate
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v3_default
 ```
 
 ## 디버그 포트
 
-See [3DR Pixhawk 1 > Debug Ports](../flight_controller/pixhawk.md#debug-ports)
+### 콘솔 포트
+
+The [PX4 System Console](../debug/system_console.md) runs on the port labeled [SERIAL4/5](#serial-4-5-port).
+
+:::tip
+A convenient way to connect to the console is to use a [Zubax BugFace BF1](https://github.com/Zubax/bugface_bf1), as it comes with connectors that can be used with several different Pixhawk devices.
+Simply connect the 6-pos DF13 1:1 cable on the [Zubax BugFace BF1](https://github.com/Zubax/bugface_bf1) to the Pixhawk `SERIAL4/5` port.
+
+![Zubax BugFace BF1](../../assets/flight_controller/mro/dronecode_probe.jpg)
+:::
+
+The pinout is standard serial pinout, designed to connect to a [3.3V FTDI](https://www.digikey.com/en/products/detail/TTL-232R-3V3/768-1015-ND/1836393) cable (5V tolerant).
+
+| 3DR Pixhawk 1 |                            | FTDI |                                 |
+| ------------- | -------------------------- | ---- | ------------------------------- |
+| 1             | +5V (적) |      | N/C                             |
+| 2             | S4 Tx                      |      | N/C                             |
+| 3             | S4 Rx                      |      | N/C                             |
+| 4             | S5 Tx                      | 5    | FTDI RX (황)  |
+| 5             | S5 Rx                      | 4    | FTDI TX (적황) |
+| 6             | GND                        | 1    | FTDI GND (흑) |
+
+The wiring for an FTDI cable to a 6-pos DF13 1:1 connector is shown in the figure below.
+
+![Console Connector](../../assets/flight_controller/mro/console_connector.jpg)
+
+The complete wiring is shown below.
+
+![Console Debug](../../assets/flight_controller/mro/console_debug.jpg)
+
+:::info
+For information on how to _use_ the console see: [System Console](../debug/system_console.md).
+:::
+
+### SWD 포트
+
+The [SWD](../debug/swd_debug.md) (JTAG) ports are hidden under the cover (which must be removed for hardware debugging).
+There are separate ports for FMU and IO, as highlighted below.
+
+![Pixhawk SWD](../../assets/flight_controller/mro/pixhawk_swd.jpg)
+
+The ports are ARM 10-pin JTAG connectors, which you will probably have to solder.
+The pinout for the ports is shown below (the square markers in the corners above indicates pin 1).
+
+![ARM 10-Pin connector pinout](../../assets/flight_controller/mro/arm_10pin_jtag_connector_pinout.jpg)
+
+:::info
+All Pixhawk FMUv2 boards have a similar SWD port.
+:::
 
 ## 핀배열
 
-See [3DR Pixhawk 1 > Pinouts](../flight_controller/pixhawk.md#pinouts)
+#### TELEM1, TELEM2 포트
+
+| 핀                         | 신호                          | 전압                    |
+| ------------------------- | --------------------------- | --------------------- |
+| 1(red) | VCC                         | +5V                   |
+| 2 (흑)  | TX (출력)  | +3.3V |
+| 3 (흑)  | RX (입력)  | +3.3V |
+| 4 (흑)  | CTS (입력) | +3.3V |
+| 5 (흑)  | RTS (출력) | +3.3V |
+| 6 (흑)  | GND                         | GND                   |
+
+#### GPS 포트
+
+| 핀                         | 신호                         | 전압                    |
+| ------------------------- | -------------------------- | --------------------- |
+| 1(red) | VCC                        | +5V                   |
+| 2 (흑)  | TX (출력) | +3.3V |
+| 3 (흑)  | RX (입력) | +3.3V |
+| 4 (흑)  | CAN2 TX                    | +3.3V |
+| 5 (흑)  | CAN2 RX                    | +3.3V |
+| 6 (흑)  | GND                        | GND                   |
+
+#### SERIAL 4/5 port
+
+Due to space constraints two ports are on one connector.
+
+| 핀                         | 신호                         | 전압                    |
+| ------------------------- | -------------------------- | --------------------- |
+| 1(red) | VCC                        | +5V                   |
+| 2 (흑)  | TX (#4) | +3.3V |
+| 3 (흑)  | RX (#4) | +3.3V |
+| 4 (흑)  | TX (#5) | +3.3V |
+| 5 (흑)  | RX (#5) | +3.3V |
+| 6 (흑)  | GND                        | GND                   |
+
+#### ADC 6.6V
+
+| 핀                         | 신호     | 전압                       |
+| ------------------------- | ------ | ------------------------ |
+| 1(red) | VCC    | +5V                      |
+| 2 (흑)  | ADC 입력 | 최대 +6.6V |
+| 3 (흑)  | GND    | GND                      |
+
+#### ADC 3.3V
+
+| 핀                         | 신호     | 전압                       |
+| ------------------------- | ------ | ------------------------ |
+| 1(red) | VCC    | +5V                      |
+| 2 (흑)  | ADC 입력 | 최대 +3.3V |
+| 3 (흑)  | GND    | GND                      |
+| 4 (흑)  | ADC 입력 | 최대 +3.3V |
+| 5 (흑)  | GND    | GND                      |
+
+#### I2C
+
+| 핀                         | 신호  | 전압                                           |
+| ------------------------- | --- | -------------------------------------------- |
+| 1(red) | VCC | +5V                                          |
+| 2 (흑)  | SCL | +3.3 (풀업) |
+| 3 (흑)  | SDA | +3.3 (풀업) |
+| 4 (흑)  | GND | GND                                          |
+
+#### CAN
+
+| 핀                         | 신호                         | 전압   |
+| ------------------------- | -------------------------- | ---- |
+| 1(red) | VCC                        | +5V  |
+| 2 (흑)  | CAN_H | +12V |
+| 3 (흑)  | CAN_L | +12V |
+| 4 (흑)  | GND                        | GND  |
+
+#### SPI
+
+| 핀                         | 신호                                                     | 전압                   |
+| ------------------------- | ------------------------------------------------------ | -------------------- |
+| 1(red) | VCC                                                    | +5V                  |
+| 2 (흑)  | SPI_EXT_SCK  | +3.3 |
+| 3 (흑)  | SPI_EXT_MISO | +3.3 |
+| 4 (흑)  | SPI_EXT_MOSI | +3.3 |
+| 5 (흑)  | !SPI_EXT_NSS | +3.3 |
+| 6 (흑)  | !GPIO_EXT                         | +3.3 |
+| 7 (흑)  | GND                                                    | GND                  |
+
+#### 전원
+
+| 핀                         | 신호      | 전압                    |
+| ------------------------- | ------- | --------------------- |
+| 1(red) | VCC     | +5V                   |
+| 2 (흑)  | VCC     | +5V                   |
+| 3 (흑)  | CURRENT | +3.3V |
+| 4 (흑)  | VOLTAGE | +3.3V |
+| 5 (흑)  | GND     | GND                   |
+| 6 (흑)  | GND     | GND                   |
+
+#### 스위치
+
+| 핀                         | 신호                                                       | 전압                    |
+| ------------------------- | -------------------------------------------------------- | --------------------- |
+| 1(red) | VCC                                                      | +3.3V |
+| 2 (흑)  | !IO_LED_SAFETY | GND                   |
+| 3 (흑)  | SAFETY                                                   | GND                   |
+
+## 시리얼 포트 매핑
+
+| UART   | 장치         | 포트                                |
+| ------ | ---------- | --------------------------------- |
+| UART1  | /dev/ttyS0 | IO 디버그                            |
+| USART2 | /dev/ttyS1 | TELEM1 (흐름 제어) |
+| USART3 | /dev/ttyS2 | TELEM2 (흐름 제어) |
+| UART4  |            |                                   |
+| UART7  | 콘솔         |                                   |
+| UART8  | SERIAL4    |                                   |
+
+<!-- Note: Got ports using https://github.com/PX4/PX4-user_guide/pull/672#issuecomment-598198434 -->
 
 ## 시리얼 포트 매핑
 

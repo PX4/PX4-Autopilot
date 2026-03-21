@@ -1,4 +1,4 @@
-# Initial Setup & Configuration
+# 初始配置
 
 我们建议开发者们获取下文描述的基本配置的硬件设备（或者相似的设备）并使用"默认" <a href="../airframes/airframe_reference.md">机架</a> 构型。
 
@@ -23,7 +23,7 @@ A Taranis RC and a mid-range Android tablet make a very inexpensive field kit.
 
   - Lenovo Thinkpad with i5-core running Windows 11
   - MacBook Pro (early 2015 and later) with macOS 10.15 or later
-  - Lenovo Thinkpad i5 with Ubuntu Linux 20.04 or later
+  - Lenovo Thinkpad i5 with Ubuntu Linux 22.04 or later
 
 - **Ground control station** (computer or tablet):
   - iPad (may require Wifi telemetry adapter)

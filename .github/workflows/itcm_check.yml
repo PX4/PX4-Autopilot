@@ -41,6 +41,10 @@ jobs:
             scripts: >
               boards/nxp/tropic-community/nuttx-config/scripts/itcm_functions_includes.ld
               boards/nxp/tropic-community/nuttx-config/scripts/itcm_static_functions.ld
+          - target: nxp_mr-tropic
+            scripts: >
+              boards/nxp/mr-tropic/nuttx-config/scripts/itcm_functions_includes.ld
+              boards/nxp/mr-tropic/nuttx-config/scripts/itcm_static_functions.ld
     steps:
       - uses: actions/checkout@v4
         with:

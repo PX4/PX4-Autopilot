@@ -249,14 +249,14 @@ It is enabled by default in many vehicle SDF files: **solo.sdf**, **iris.sdf**, 
 To enable/disable GPS noise:
 
 1. Build any gazebo target in order to generate SDF files (for all vehicles).
-  예:
+   예:
 
-  ```sh
-  make px4_sitl gazebo-classic_iris
-  ```
+   ```sh
+   make px4_sitl gazebo-classic_iris
+   ```
 
-  :::tip
-  The SDF files are not overwritten on subsequent builds.
+   :::tip
+   The SDF files are not overwritten on subsequent builds.
 
 :::
 
@@ -264,17 +264,17 @@ To enable/disable GPS noise:
 
 3. Search for the `gpsNoise` element:
 
-  ```xml
-  <plugin name='gps_plugin' filename='libgazebo_gps_plugin.so'>
-    <robotNamespace/>
-    <gpsNoise>true</gpsNoise>
-  </plugin>
-  ```
+   ```xml
+   <plugin name='gps_plugin' filename='libgazebo_gps_plugin.so'>
+     <robotNamespace/>
+     <gpsNoise>true</gpsNoise>
+   </plugin>
+   ```
 
-  - If it is present, GPS is enabled.
-    You can disable it by deleting the line: `<gpsNoise>true</gpsNoise>`
-  - If it is not present, GPS is disabled.
-    You can enable it by adding the `gpsNoise` element to the `gps_plugin` section (as shown above).
+   - If it is present, GPS is enabled.
+     You can disable it by deleting the line: `<gpsNoise>true</gpsNoise>`
+   - If it is not present, GPS is disabled.
+     You can enable it by adding the `gpsNoise` element to the `gps_plugin` section (as shown above).
 
 The next time you build/restart Gazebo Classic it will use the new GPS noise setting.
 
@@ -347,7 +347,7 @@ The video below shows that the location of the environment is aligned with the w
 
 For extended development sessions it might be more convenient to start Gazebo Classic and PX4 separately or even from within an IDE.
 
-In addition to the existing cmake targets that run `sitl_run.sh` with parameters for px4 to load the correct model it creates a launcher targets named `px4_<mode>` that is a thin wrapper around original sitl px4 app.
+In addition to the existing cmake targets that run `sitl_run.sh` with parameters for PX4 to load the correct model it creates a launcher targets named `px4_<mode>` that is a thin wrapper around original sitl PX4 app.
 This thin wrapper simply embeds app arguments like current working directories and the path to the model file.
 
 To start Gazebo Classic and PX4 separately:
@@ -368,7 +368,7 @@ To start Gazebo Classic and PX4 separately:
 
 - Start the debug session directly from IDE
 
-This approach significantly reduces the debug cycle time because simulator is always running in background and you only re-run the px4 process which is very light.
+This approach significantly reduces the debug cycle time because simulator is always running in background and you only re-run the PX4 process which is very light.
 
 ## Simulated Survey Camera
 

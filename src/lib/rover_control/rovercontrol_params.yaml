@@ -1,0 +1,249 @@
+module_name: rover_control
+parameters:
+- group: Rover Attitude Control
+  definitions:
+    RO_YAW_P:
+      description:
+        short: Proportional gain for closed loop yaw controller
+      type: float
+      default: 0.0
+      min: 0
+      max: 100
+      increment: 0.01
+      decimal: 3
+- group: Rover Rate Control
+  definitions:
+    RO_YAW_STICK_DZ:
+      description:
+        short: Yaw stick deadzone
+        long: Percentage of stick input range that will be interpreted as zero around
+          the stick centered value.
+      type: float
+      default: 0.1
+      min: 0
+      max: 1
+      increment: 0.01
+      decimal: 2
+    RO_YAW_EXPO:
+      description:
+        short: Yaw rate expo factor
+        long: |-
+          Exponential factor for tuning the input curve shape.
+
+          0 Purely linear input curve
+          1 Purely cubic input curve
+      type: float
+      default: 0.0
+      min: 0
+      max: 1
+      decimal: 2
+    RO_YAW_SUPEXPO:
+      description:
+        short: Yaw rate super expo factor
+        long: |-
+          "Superexponential" factor for refining the input curve shape tuned using RO_YAW_EXPO.
+
+          0 Pure Expo function
+          0.7 reasonable shape enhancement for intuitive stick feel
+          0.95 very strong bent input curve only near maxima have effect
+      type: float
+      default: 0.0
+      min: 0
+      max: 0.95
+      decimal: 2
+    RO_YAW_RATE_TH:
+      description:
+        short: Yaw rate measurement threshold
+        long: The minimum threshold for the yaw rate measurement not to be interpreted
+          as zero.
+      type: float
+      default: 3.0
+      unit: deg/s
+      min: 0
+      max: 100
+      increment: 0.01
+      decimal: 2
+    RO_YAW_RATE_P:
+      description:
+        short: Proportional gain for closed loop yaw rate controller
+      type: float
+      default: 0.0
+      min: 0
+      max: 100
+      increment: 0.01
+      decimal: 3
+    RO_YAW_RATE_I:
+      description:
+        short: Integral gain for closed loop yaw rate controller
+      type: float
+      default: 0.0
+      min: 0
+      max: 100
+      increment: 0.01
+      decimal: 3
+    RO_YAW_RATE_LIM:
+      description:
+        short: Yaw rate limit
+        long: |-
+          Used to cap yaw rate setpoints and map controller inputs to yaw rate setpoints
+          in Acro, Stabilized and Position mode.
+      type: float
+      default: 0.0
+      unit: deg/s
+      min: 0
+      max: 10000
+      increment: 0.01
+      decimal: 2
+    RO_YAW_ACCEL_LIM:
+      description:
+        short: Yaw acceleration limit
+        long: |-
+          Used to cap how quickly the magnitude of yaw rate setpoints can increase.
+          Set to -1 to disable.
+      type: float
+      default: -1.0
+      unit: deg/s^2
+      min: -1
+      max: 10000
+      increment: 0.01
+      decimal: 2
+    RO_YAW_DECEL_LIM:
+      description:
+        short: Yaw deceleration limit
+        long: |-
+          Used to cap how quickly the magnitude of yaw rate setpoints can decrease.
+          Set to -1 to disable.
+      type: float
+      default: -1.0
+      unit: deg/s^2
+      min: -1
+      max: 10000
+      increment: 0.01
+      decimal: 2
+    RO_YAW_RATE_CORR:
+      description:
+        short: Yaw rate correction factor
+        long: |-
+          Multiplicative correction factor for the feedforward mapping of the yaw rate controller.
+          Increase this value (x > 1) if the measured yaw rate is lower than the setpoint, decrease (0 < x < 1) otherwise.
+          Note: Tuning this is particularly useful for skid-steered rovers, or rovers with misaligned wheels/steering axes
+          that cause a lot of friction when turning.
+      type: float
+      default: 1.0
+      min: 0.01
+      max: 10000
+      increment: 0.01
+      decimal: 2
+- group: Rover Velocity Control
+  definitions:
+    RO_MAX_THR_SPEED:
+      description:
+        short: Speed the rover drives at maximum throttle
+        long: Used to linearly map speeds [m/s] to throttle values [-1. 1].
+      type: float
+      default: 0.0
+      min: 0
+      max: 100
+      unit: m/s
+      increment: 0.01
+      decimal: 2
+    RO_SPEED_P:
+      description:
+        short: Proportional gain for ground speed controller
+      type: float
+      default: 0.0
+      min: 0
+      max: 100
+      increment: 0.01
+      decimal: 2
+    RO_SPEED_I:
+      description:
+        short: Integral gain for ground speed controller
+      type: float
+      default: 0.0
+      min: 0
+      max: 100
+      increment: 0.001
+      decimal: 3
+    RO_SPEED_LIM:
+      description:
+        short: Speed limit
+        long: Used to cap speed setpoints and map controller inputs to speed setpoints
+          in Position mode.
+      type: float
+      default: -1.0
+      unit: m/s
+      min: -1
+      max: 100
+      increment: 0.01
+      decimal: 2
+    RO_ACCEL_LIM:
+      description:
+        short: Acceleration limit
+        long: |-
+          Set to -1 to disable.
+          For mecanum rovers this limit is used for longitudinal and lateral acceleration.
+      type: float
+      default: -1.0
+      unit: m/s^2
+      min: -1
+      max: 100
+      increment: 0.01
+      decimal: 2
+    RO_DECEL_LIM:
+      description:
+        short: Deceleration limit
+        long: |-
+          Set to -1 to disable.
+          Note that if it is disabled the rover will not slow down when approaching waypoints in auto modes.
+          For mecanum rovers this limit is used for longitudinal and lateral deceleration.
+      type: float
+      default: -1.0
+      unit: m/s^2
+      min: -1
+      max: 100
+      increment: 0.01
+      decimal: 2
+    RO_JERK_LIM:
+      description:
+        short: Jerk limit
+        long: |-
+          Set to -1 to disable.
+          Note that if it is disabled the rover will not slow down when approaching waypoints in auto modes.
+          For mecanum rovers this limit is used for longitudinal and lateral jerk.
+      type: float
+      default: -1.0
+      unit: m/s^3
+      min: -1
+      max: 100
+      increment: 0.01
+      decimal: 2
+    RO_SPEED_TH:
+      description:
+        short: Speed measurement threshold
+        long: |-
+          Set to -1 to disable.
+          The minimum threshold for the speed measurement not to be interpreted as zero.
+      type: float
+      default: 0.1
+      unit: m/s
+      min: 0
+      max: 100
+      increment: 0.01
+      decimal: 2
+    RO_SPEED_RED:
+      description:
+        short: Tuning parameter for the speed reduction based on the course error
+        long: |-
+          Reduced_speed = RO_MAX_THR_SPEED * (1 - normalized_course_error * RO_SPEED_RED)
+          The normalized course error is the angle between the current course and the bearing setpoint
+          interpolated from [0, 180] -> [0, 1].
+          Higher value -> More speed reduction.
+          Note: This is also used to calculate the speed at which the vehicle arrives at a waypoint in auto modes.
+          Set to -1 to disable bearing error based speed reduction.
+      type: float
+      default: -1.0
+      min: -1
+      max: 100
+      increment: 0.01
+      decimal: 2

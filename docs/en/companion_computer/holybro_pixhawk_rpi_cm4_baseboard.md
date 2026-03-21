@@ -18,7 +18,6 @@ The board follows the [Pixhawk Connector Standard](https://github.com/pixhawk/Pi
 - [Holybro Pixhawk RPi CM4 Baseboard](https://holybro.com/products/pixhawk-rpi-cm4-baseboard) (www.holybro.com)
 
   The baseboard can be purchased with or without an RPi CM4 and/or flight controller:
-
   - The Raspberry Pi CM4 (CM4008032) supplied by Holybro has the following specification:
     - RAM: 8GB
     - eMMC: 32GB
@@ -167,7 +166,6 @@ To enable this MAVLink instance on the FC:
    ![Image of baseboard showing FC USB-C connector](../../assets/companion_computer/holybro_pixhawk_rpi_cm4_baseboard/baseboard_fc_usb_c.jpg)
 
 1. [Set the parameters](../advanced_config/parameters.md):
-
    - `MAV_1_CONFIG` = `102`
    - `MAV_1_MODE = 2`
    - `SER_TEL2_BAUD` = `921600`
@@ -180,7 +178,6 @@ On the RPi side:
 
 1. Connect to the RPi (using WiFi, a router, or a WiFi Dongle).
 1. Enable the RPi serial port by running `RPi-config`
-
    - Go to `3 Interface Options`, then `I6 Serial Port`.
      Then choose:
      - `login shell accessible over serial → No`

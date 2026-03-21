@@ -57,6 +57,9 @@ bool FlightTaskTransition::activate(const trajectory_setpoint_s &last_setpoint)
 		_vel_z_filter.reset(_velocity(2));
 	}
 
+	const Vector2f acceleration_xy{_sub_vehicle_local_position.get().ax, _sub_vehicle_local_position.get().ay};
+	_accel_filter.reset(acceleration_xy);
+
 	if (_sub_vehicle_status.get().in_transition_to_fw) {
 		_gear.landing_gear = landing_gear_s::GEAR_UP;
 
@@ -86,21 +89,27 @@ bool FlightTaskTransition::update()
 
 	// calculate a horizontal acceleration vector which corresponds to an attitude composed of pitch up by _param_fw_psp_off
 	// and zero roll angle
-	float pitch_setpoint = math::radians(_param_fw_psp_off);
+	float tilt_setpoint = math::radians(_param_fw_psp_off);
+	Vector2f horizontal_acceleration_direction;
 
 	if (!_sub_vehicle_status.get().in_transition_to_fw) {
-		pitch_setpoint = computeBackTranstionPitchSetpoint();
+		tilt_setpoint = computeBackTransitionTiltSetpoint();
+		const Vector2f velocity_xy{_velocity};
+		horizontal_acceleration_direction = -velocity_xy.unit_or_zero();
+
+	} else {
+		// Forward transition: use heading direction
+		horizontal_acceleration_direction = Dcm2f(_yaw) * Vector2f(-1.0f, 0.0f);
 	}
 
-	// Calculate horizontal acceleration components to follow a pitch setpoint with the current vehicle heading
-	const Vector2f horizontal_acceleration_direction = Dcm2f(_yaw) * Vector2f(-1.0f, 0.0f);
-	_acceleration_setpoint.xy() = tanf(pitch_setpoint) * CONSTANTS_ONE_G * horizontal_acceleration_direction;
+	_acceleration_setpoint.xy() = tanf(tilt_setpoint) * CONSTANTS_ONE_G * horizontal_acceleration_direction;
 
 	_yaw_setpoint = NAN;
+	_yawspeed_setpoint = 0.f;
 	return ret;
 }
 
-float FlightTaskTransition::computeBackTranstionPitchSetpoint()
+float FlightTaskTransition::computeBackTransitionTiltSetpoint()
 {
 	const Vector2f position_xy{_position};
 	const Vector2f velocity_xy{_velocity};
@@ -109,8 +118,11 @@ float FlightTaskTransition::computeBackTranstionPitchSetpoint()
 
 	float deceleration_setpoint = _param_vt_b_dec_mss;
 
-	if (_sub_position_sp_triplet.get().current.valid && _sub_vehicle_local_position.get().xy_global
-	    && position_xy.isAllFinite() && velocity_xy.isAllFinite()) {
+	const float max_hor_pos_uncertainty_limit = 10.f;
+
+	if (_sub_vehicle_local_position.get().eph < max_hor_pos_uncertainty_limit
+	    && _sub_position_sp_triplet.get().current.valid
+	    && _sub_vehicle_local_position.get().xy_global && position_xy.isAllFinite() && velocity_xy.isAllFinite()) {
 		Vector2f position_setpoint_local;
 		_geo_projection.project(_sub_position_sp_triplet.get().current.lat, _sub_position_sp_triplet.get().current.lon,
 					position_setpoint_local(0), position_setpoint_local(1));
@@ -129,13 +141,13 @@ float FlightTaskTransition::computeBackTranstionPitchSetpoint()
 		deceleration_setpoint = math::min(deceleration_setpoint, 2.f * _param_vt_b_dec_mss);
 	}
 
-	// Pitch up to reach a negative accel_in_flight_direction otherwise we decelerate too slow
-	const Vector2f acceleration_xy{_sub_vehicle_local_position.get().ax, _sub_vehicle_local_position.get().ay};
+	const Vector2f acceleration_xy_raw{_sub_vehicle_local_position.get().ax, _sub_vehicle_local_position.get().ay};
+	const Vector2f acceleration_xy = _accel_filter.update(acceleration_xy_raw, _deltatime);
 	const float deceleration = -acceleration_xy.dot(velocity_xy_direction); // Zero when velocity invalid
 	const float deceleration_error = deceleration_setpoint - deceleration;
 
 	// Update back-transition deceleration error integrator
 	_decel_error_bt_int += (_param_vt_b_dec_i * deceleration_error) * _deltatime;
-	_decel_error_bt_int = math::constrain(_decel_error_bt_int, 0.f, DECELERATION_INTEGRATOR_LIMIT);
+	_decel_error_bt_int = math::constrain(_decel_error_bt_int, 0.f, kDecelerationIntegratorLimit);
 	return _decel_error_bt_int;
 }

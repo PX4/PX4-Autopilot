@@ -93,7 +93,7 @@ Navigate to [Parameters](../advanced_config/parameters.md) in QGroundControl and
    One approach to determine an appropriate value is:
 
    1. From a standstill, give the rover full throttle until it reaches the maximum speed.
-   2. Disarm the rover and plot the `measured_speed_body_x` from [RoverVelocityStatus](../msg_docs/RoverVelocityStatus.md).
+   2. Disarm the rover and plot the `measured_speed_body_x` from [RoverSpeedStatus](../msg_docs/RoverSpeedStatus.md).
    3. Divide the maximum speed by the time it took to reach it and set this as the value for [RO_ACCEL_LIM](#RO_ACCEL_LIM).
 
    Some RC rovers have enough torque to lift up if the maximum acceleration is not limited.
@@ -138,7 +138,7 @@ In [Manual mode](../flight_modes_rover/manual.md#manual-mode) we can additionall
 - Differential Rover: $r=$ [RD_YAW_STK_GAIN](#RD_YAW_STK_GAIN), which enables adjusting the slope of the input mapping. This leads to a normalized steering input $\hat{\delta} = \delta \cdot r \in$ [-[RD_YAW_STK_GAIN](#RD_YAW_STK_GAIN), [RD_YAW_STK_GAIN](#RD_YAW_STK_GAIN)].
 - Mecanum Rover: $r=$ [RM_YAW_STK_GAIN](#RM_YAW_STK_GAIN), which enables adjusting the slope of the input mapping. This leads to a normalized steering input $\hat{\delta} = \delta \cdot r \in$ [-[RM_YAW_STK_GAIN](#RM_YAW_STK_GAIN), [RM_YAW_STK_GAIN](#RM_YAW_STK_GAIN)].
 
-This scaling is useful to limit the normalized steering setpoint, if it is too aggresive for your rover in manual mode.
+This scaling is useful to limit the normalized steering setpoint, if it is too aggressive for your rover in manual mode.
 
 You can experiment with the relationships graphically using the [PX4 SuperExpo Rover calculator](https://www.desmos.com/calculator/gwm8lrlanx).
 

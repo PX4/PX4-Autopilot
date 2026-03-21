@@ -11,6 +11,10 @@ DShot is an alternative ESC protocol that has several advantages over [PWM](../p
 
 이 항목에서는 DShot ESC 연결과 설정 방법을 설명합니다.
 
+## Supported ESC
+
+[ESCs & Motors > Supported ESCs](../peripherals/esc_motors#supported-esc) has a list of supported ESC (check "Protocols" column for DShot ESC).
+
 ## Wiring/Connections {#wiring}
 
 DShot ESC are wired the same way as [PWM ESCs](pwm_escs_and_servo.md).
@@ -52,7 +56,7 @@ See [here](../modules/modules_driver.md#dshot) for a full reference of the suppo
 
 가장 중요한 것은 다음과 같습니다.
 
-- Make a motor connected to to FMU output pin 1 beep (helps with identifying motors)
+- Make a motor connected to FMU output pin 1 beep (helps with identifying motors)
 
   ```sh
   dshot beep1 -m 1

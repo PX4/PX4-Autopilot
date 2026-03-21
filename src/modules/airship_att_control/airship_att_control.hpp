@@ -45,10 +45,12 @@
 
 using namespace time_literals;
 
-class AirshipAttitudeControl : public ModuleBase<AirshipAttitudeControl>, public ModuleParams,
+class AirshipAttitudeControl : public ModuleBase, public ModuleParams,
 	public px4::WorkItem
 {
 public:
+	static Descriptor desc;
+
 	AirshipAttitudeControl();
 
 	virtual ~AirshipAttitudeControl();

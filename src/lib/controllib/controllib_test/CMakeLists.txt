@@ -38,5 +38,7 @@ px4_add_module(
 		-Wno-double-promotion # TODO: fix in Matrix library Vector::pow()
 	SRCS
 		controllib_test_main.cpp
+	MODULE_CONFIG
+		test_params.yaml
 	DEPENDS
 	)

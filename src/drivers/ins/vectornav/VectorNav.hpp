@@ -75,9 +75,11 @@ extern "C" {
 
 using namespace time_literals;
 
-class VectorNav : public ModuleBase<VectorNav>, public ModuleParams, public px4::ScheduledWorkItem
+class VectorNav : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	VectorNav(const char *port);
 	~VectorNav() override;
 

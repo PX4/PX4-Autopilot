@@ -11,6 +11,10 @@ It is based on the **Pixhawk-project FMUv3** open hardware design and runs **PX4
 
 ![ThePeach FCC-K1](../../assets/flight_controller/thepeach_k1/main.png)
 
+:::info
+This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
+:::
+
 ## Характеристики
 
 - Основний процесор: STM32F427VIT6

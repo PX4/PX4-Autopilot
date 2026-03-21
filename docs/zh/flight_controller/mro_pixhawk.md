@@ -72,28 +72,189 @@ It is pre-built and automatically installed by _QGroundControl_ when appropriate
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v3_default
 ```
 
 ## Debug Ports
 
-See [3DR Pixhawk 1 > Debug Ports](../flight_controller/pixhawk.md#debug-ports)
+### Console Port
+
+The [PX4 System Console](../debug/system_console.md) runs on the port labeled [SERIAL4/5](#serial-4-5-port).
+
+:::tip
+A convenient way to connect to the console is to use a [Zubax BugFace BF1](https://github.com/Zubax/bugface_bf1), as it comes with connectors that can be used with several different Pixhawk devices.
+Simply connect the 6-pos DF13 1:1 cable on the [Zubax BugFace BF1](https://github.com/Zubax/bugface_bf1) to the Pixhawk `SERIAL4/5` port.
+
+![Zubax BugFace BF1](../../assets/flight_controller/mro/dronecode_probe.jpg)
+:::
+
+The pinout is standard serial pinout, designed to connect to a [3.3V FTDI](https://www.digikey.com/en/products/detail/TTL-232R-3V3/768-1015-ND/1836393) cable (5V tolerant).
+
+| 3DR Pixhawk 1 |                              | FTDI |                                  |
+| ------------- | ---------------------------- | ---- | -------------------------------- |
+| 1             | + 5v (红色) |      | N/C                              |
+| 2             | S4 Tx                        |      | N/C                              |
+| 3             | S4 Rx                        |      | N/C                              |
+| 4             | S5 Tx                        | 5    | FTDI RX （黄色）                     |
+| 5             | S5 Rx                        | 4    | FTDI TX （橙色）                     |
+| 6             | GND                          | 1    | FTDI GND (黑色) |
+
+The wiring for an FTDI cable to a 6-pos DF13 1:1 connector is shown in the figure below.
+
+![Console Connector](../../assets/flight_controller/mro/console_connector.jpg)
+
+The complete wiring is shown below.
+
+![Console Debug](../../assets/flight_controller/mro/console_debug.jpg)
+
+:::info
+For information on how to _use_ the console see: [System Console](../debug/system_console.md).
+:::
+
+### SWD Port
+
+The [SWD](../debug/swd_debug.md) (JTAG) ports are hidden under the cover (which must be removed for hardware debugging).
+There are separate ports for FMU and IO, as highlighted below.
+
+![Pixhawk SWD](../../assets/flight_controller/mro/pixhawk_swd.jpg)
+
+The ports are ARM 10-pin JTAG connectors, which you will probably have to solder.
+The pinout for the ports is shown below (the square markers in the corners above indicates pin 1).
+
+![ARM 10-Pin connector pinout](../../assets/flight_controller/mro/arm_10pin_jtag_connector_pinout.jpg)
+
+:::info
+All Pixhawk FMUv2 boards have a similar SWD port.
+:::
 
 ## 针脚定义
 
-See [3DR Pixhawk 1 > Pinouts](../flight_controller/pixhawk.md#pinouts)
+#### TELEM1，TELEM2 接口
+
+| 针脚   | 信号                           | 电压                    |
+| ---- | ---------------------------- | --------------------- |
+| 1（红） | VCC                          | +5V                   |
+| 2    | TX (OUT)  | +3.3V |
+| 3    | RX (IN)   | +3.3V |
+| 4（黑） | CTS (IN)  | +3.3V |
+| 6    | RTS (OUT) | +3.3V |
+| 6    | GND                          | GND                   |
+
+#### GPS 接口
+
+| 针脚   | 信号                          | 电压                    |
+| ---- | --------------------------- | --------------------- |
+| 1（红） | VCC                         | +5V                   |
+| 2    | TX (OUT) | +3.3V |
+| 3    | RX (IN)  | +3.3V |
+| 4（黑） | CAN2 TX                     | +3.3V |
+| 6    | CAN2 RX                     | +3.3V |
+| 6    | GND                         | GND                   |
+
+#### SERIAL 4/5 port
+
+Due to space constraints two ports are on one connector.
+
+| 针脚   | 信号                         | 电压                    |
+| ---- | -------------------------- | --------------------- |
+| 1（红） | VCC                        | +5V                   |
+| 2    | TX (#4) | +3.3V |
+| 3    | RX (#4) | +3.3V |
+| 4（黑） | TX (#5) | +3.3V |
+| 6    | RX (#5) | +3.3V |
+| 6    | GND                        | GND                   |
+
+#### ADC 6.6V
+
+| 针脚   | 信号     | 电压                          |
+| ---- | ------ | --------------------------- |
+| 1（红） | VCC    | +5V                         |
+| 2    | ADC IN | up to +6.6V |
+| 3    | GND    | GND                         |
+
+#### ADC 3.3V
+
+| 针脚   | 信号     | 电压                          |
+| ---- | ------ | --------------------------- |
+| 1（红） | VCC    | +5V                         |
+| 2    | ADC IN | up to +3.3V |
+| 3    | GND    | GND                         |
+| 4（黑） | ADC IN | up to +3.3V |
+| 6    | GND    | GND                         |
+
+#### I2C
+
+| 针脚   | 信号  | 电压                                                |
+| ---- | --- | ------------------------------------------------- |
+| 1（红） | VCC | +5V                                               |
+| 2    | SCL | +3.3 (pullups) |
+| 3    | SDA | +3.3 (pullups) |
+| 4（黑） | GND | GND                                               |
+
+#### CAN
+
+| 针脚   | 信号                         | 电压   |
+| ---- | -------------------------- | ---- |
+| 1（红） | VCC                        | +5V  |
+| 2    | CAN_H | +12V |
+| 3    | CAN_L | +12V |
+| 4（黑） | GND                        | GND  |
+
+#### SPI
+
+| 针脚   | 信号                                                     | 电压                   |
+| ---- | ------------------------------------------------------ | -------------------- |
+| 1（红） | VCC                                                    | +5V                  |
+| 2    | SPI_EXT_SCK  | +3.3 |
+| 3    | SPI_EXT_MISO | +3.3 |
+| 4（黑） | SPI_EXT_MOSI | +3.3 |
+| 6    | !SPI_EXT_NSS | +3.3 |
+| 6    | !GPIO_EXT                         | +3.3 |
+| 7    | GND                                                    | GND                  |
+
+#### POWER
+
+| 针脚   | 信号  | 电压                    |
+| ---- | --- | --------------------- |
+| 1（红） | VCC | +5V                   |
+| 2    | VCC | +5V                   |
+| 3    | 电流  | +3.3V |
+| 4（黑） | 电压  | +3.3V |
+| 6    | GND | GND                   |
+| 6    | GND | GND                   |
+
+#### SWITCH
+
+| 针脚   | 信号                                                       | 电压                    |
+| ---- | -------------------------------------------------------- | --------------------- |
+| 1（红） | VCC                                                      | +3.3V |
+| 2    | !IO_LED_SAFETY | GND                   |
+| 3    | SAFETY                                                   | GND                   |
 
 ## 串口映射
 
-| UART   | 设备         | Port                                     |
-| ------ | ---------- | ---------------------------------------- |
-| UART1  | /dev/ttyS0 | IO debug                                 |
-| USART2 | /dev/ttyS1 | TELEM1 (flow control) |
-| USART3 | /dev/ttyS2 | TELEM2 (flow control) |
-| UART4  |            |                                          |
-| UART7  | CONSOLE    |                                          |
-| UART8  | SERIAL4    |                                          |
+| UART   | 设备         | Port                           |
+| ------ | ---------- | ------------------------------ |
+| UART1  | /dev/ttyS0 | IO debug                       |
+| USART2 | /dev/ttyS1 | TELEM1 (流控) |
+| USART3 | /dev/ttyS2 | TELEM2 (流控) |
+| UART4  |            |                                |
+| UART7  | CONSOLE    |                                |
+| UART8  | SERIAL4    |                                |
+
+<!-- Note: Got ports using https://github.com/PX4/PX4-user_guide/pull/672#issuecomment-598198434 -->
+
+## 串口映射
+
+| UART   | 设备         | Port                           |
+| ------ | ---------- | ------------------------------ |
+| UART1  | /dev/ttyS0 | IO debug                       |
+| USART2 | /dev/ttyS1 | TELEM1 (流控) |
+| USART3 | /dev/ttyS2 | TELEM2 (流控) |
+| UART4  |            |                                |
+| UART7  | CONSOLE    |                                |
+| UART8  | SERIAL4    |                                |
 
 <!-- Note: Got ports using https://github.com/PX4/PX4-user_guide/pull/672#issuecomment-598198434 -->
 

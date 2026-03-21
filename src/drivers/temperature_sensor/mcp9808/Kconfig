@@ -1,0 +1,5 @@
+menuconfig DRIVERS_TEMPERATURE_SENSOR_MCP9808
+	bool "MCP9808 temperature sensor"
+	default n
+	---help---
+		Enable support MCP9808 temperature sensor

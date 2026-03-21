@@ -79,7 +79,7 @@ The shutter integration setting (`param2`) is only obeyed with a GPIO backend.
 
 ## Trigger Configuration
 
-Cameras can be connected to the FC for triggering using different intefaces, such as PWM, and GPIO, by specifying the appropriate [trigger interface backend](#trigger-interface-backends).
+Cameras can be connected to the FC for triggering using different interfaces, such as PWM, and GPIO, by specifying the appropriate [trigger interface backend](#trigger-interface-backends).
 You can also indicate the camera [trigger mode](#trigger-modes).
 
 This configuration can most easily be done from the _QGroundControl_ [Vehicle Setup > Camera](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/camera.html#px4-camera-setup) section.
@@ -188,16 +188,16 @@ The following sections are out of date and need retesting.
 
 1. On the PX4 console:
 
-  ```shell
-  camera_trigger test
-  ```
+   ```shell
+   camera_trigger test
+   ```
 
 2. From _QGroundControl_:
 
-  Click on **Trigger Camera** in the main instrument panel.
-  These shots are not logged or counted for geotagging.
+   Click on **Trigger Camera** in the main instrument panel.
+   These shots are not logged or counted for geotagging.
 
-  ![QGC Test Camera](../../assets/camera/qgc_test_camera.png)
+   ![QGC Test Camera](../../assets/camera/qgc_test_camera.png)
 
 ## Sony QX-1 example (Photogrammetry)
 
@@ -308,7 +308,7 @@ Wire up your cameras to your AUX port by connecting the ground and signal pins t
 ### Step 4
 
 You will have to modify your driver to follow the sequence diagram above.
-Public reference implementations for [IDS Imaging UEye](https://github.com/ProjectArtemis/ueye_cam) cameras and for [IEEE1394 compliant](https://github.com/andre-nguyen/camera1394) cameras are available.
+Public reference implementations for [IDS Imaging UEye](https://github.com/anqixu/ueye_cam) cameras and for [IEEE1394 compliant](https://github.com/andre-nguyen/camera1394) cameras are available.
 
 ## See Also
 

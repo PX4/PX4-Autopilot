@@ -213,6 +213,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_follow_target(msg);
 		break;
 
+	case MAVLINK_MSG_ID_GLOBAL_POSITION_SENSOR:
+		handle_message_global_position_sensor(msg);
+		break;
+
 	case MAVLINK_MSG_ID_LANDING_TARGET:
 		handle_message_landing_target(msg);
 		break;
@@ -328,6 +332,14 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_SET_VELOCITY_LIMITS:
 		handle_message_set_velocity_limits(msg);
+		break;
+
+#endif
+
+#if defined(MAVLINK_MSG_ID_ESC_EEPROM) // For now only defined if development.xml is used
+
+	case MAVLINK_MSG_ID_ESC_EEPROM:
+		handle_message_esc_eeprom(msg);
 		break;
 #endif
 
@@ -450,8 +462,8 @@ MavlinkReceiver::evaluate_target_ok(int command, int target_system, int target_c
 		break;
 
 	default:
-		target_ok = (target_system == mavlink_system.sysid) && ((target_component == mavlink_system.compid)
-				|| (target_component == MAV_COMP_ID_ALL));
+		target_ok = ((target_system == 0) || (target_system == mavlink_system.sysid))
+			    && ((target_component == mavlink_system.compid) || (target_component == MAV_COMP_ID_ALL));
 		break;
 	}
 
@@ -594,14 +606,24 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 
 		uint16_t message_id = (uint16_t)roundf(vehicle_command.param1);
 
-		if (message_id == MAVLINK_MSG_ID_MESSAGE_INTERVAL) {
-			get_message_interval((int)(cmd_mavlink.param2 + 0.5f));
+#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
 
-		} else {
-			result = handle_request_message_command(message_id,
-								vehicle_command.param2, vehicle_command.param3, vehicle_command.param4,
-								vehicle_command.param5, vehicle_command.param6, vehicle_command.param7);
-		}
+		// Translate ESC_EEPROM request into the PX4 internal command so the DShot driver handles it
+		if (message_id == MAVLINK_MSG_ID_ESC_EEPROM) {
+			vehicle_command_s eeprom_cmd = vehicle_command;
+			eeprom_cmd.command = vehicle_command_s::VEHICLE_CMD_ESC_REQUEST_EEPROM;
+			_cmd_pub.publish(eeprom_cmd);
+
+		} else
+#endif
+			if (message_id == MAVLINK_MSG_ID_MESSAGE_INTERVAL) {
+				get_message_interval((int)(cmd_mavlink.param2 + 0.5f));
+
+			} else {
+				result = handle_request_message_command(message_id,
+									vehicle_command.param2, vehicle_command.param3, vehicle_command.param4,
+									vehicle_command.param5, vehicle_command.param6, vehicle_command.param7);
+			}
 
 	} else if (cmd_mavlink.command == MAV_CMD_INJECT_FAILURE) {
 		if (_mavlink.failure_injection_enabled()) {
@@ -622,46 +644,37 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		autotune_attitude_control_status_s status{};
 		_autotune_attitude_control_status_sub.copy(&status);
 
-		// if not busy enable via the parameter
-		// do not check the return value of the uORB copy above because the module
-		// starts publishing only when MC_AT_START is set
+		// publish vehicle command once if:
+		// - autotune is not already running
+		// - we are not in transition
+		// - autotune module is enabled
 		if (status.state == autotune_attitude_control_status_s::STATE_IDLE) {
 			vehicle_status_s vehicle_status{};
 			_vehicle_status_sub.copy(&vehicle_status);
 
 			if (!vehicle_status.in_transition_mode) {
-				param_t atune_start;
 
 				switch (vehicle_status.vehicle_type) {
 				case vehicle_status_s::VEHICLE_TYPE_FIXED_WING:
-					atune_start = param_find("FW_AT_START");
-
+					has_module = param_find("FW_AT_APPLY");
 					break;
 
 				case vehicle_status_s::VEHICLE_TYPE_ROTARY_WING:
-					atune_start = param_find("MC_AT_START");
-
+					has_module = param_find("MC_AT_APPLY");
 					break;
 
 				default:
-					atune_start = PARAM_INVALID;
+					has_module = false;
 					break;
 				}
 
-				if (atune_start == PARAM_INVALID) {
-					has_module = false;
-
-				} else {
-					int32_t start = 1;
-					param_set(atune_start, &start);
+				if (has_module) {
+					_cmd_pub.publish(vehicle_command);
 				}
-
-			} else {
-				has_module = false;
 			}
 		}
 
-		if (has_module) {
+		if (has_module && fabsf(vehicle_command.param1 - 1.f) <= FLT_EPSILON && fabsf(vehicle_command.param2) < FLT_EPSILON) {
 
 			// most are in progress
 			result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_IN_PROGRESS;
@@ -714,6 +727,10 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 				result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
 				break;
 			}
+
+		} else if (has_module && (fabsf(vehicle_command.param1 - 1.f) > FLT_EPSILON || fabsf(vehicle_command.param2) > FLT_EPSILON)) {
+
+			result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
 
 		} else {
 			result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
@@ -1120,6 +1137,8 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 		ocm.position = !matrix::Vector3f(setpoint.position).isAllNan();
 		ocm.velocity = !matrix::Vector3f(setpoint.velocity).isAllNan();
 		ocm.acceleration = !matrix::Vector3f(setpoint.acceleration).isAllNan();
+		ocm.attitude = PX4_ISFINITE(setpoint.yaw);
+		ocm.body_rate = PX4_ISFINITE(setpoint.yawspeed);
 
 		if (ocm.acceleration && (type_mask & POSITION_TARGET_TYPEMASK_FORCE_SET)) {
 			mavlink_log_critical(&_mavlink_log_pub, "SET_POSITION_TARGET_LOCAL_NED force not supported\t");
@@ -1242,6 +1261,8 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 		ocm.position = !matrix::Vector3f(setpoint.position).isAllNan();
 		ocm.velocity = !matrix::Vector3f(setpoint.velocity).isAllNan();
 		ocm.acceleration = !matrix::Vector3f(setpoint.acceleration).isAllNan();
+		ocm.attitude = PX4_ISFINITE(setpoint.yaw);
+		ocm.body_rate = PX4_ISFINITE(setpoint.yawspeed);
 
 		if (ocm.acceleration && (type_mask & POSITION_TARGET_TYPEMASK_FORCE_SET)) {
 			mavlink_log_critical(&_mavlink_log_pub, "SET_POSITION_TARGET_GLOBAL_INT force not supported\t");
@@ -1288,8 +1309,6 @@ MavlinkReceiver::handle_message_set_gps_global_origin(mavlink_message_t *msg)
 		vcmd.timestamp = hrt_absolute_time();
 		_cmd_pub.publish(vcmd);
 	}
-
-	handle_request_message_command(MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN);
 }
 
 #if defined(MAVLINK_MSG_ID_SET_VELOCITY_LIMITS) // For now only defined if development.xml is used
@@ -1306,6 +1325,48 @@ void MavlinkReceiver::handle_message_set_velocity_limits(mavlink_message_t *msg)
 	_velocity_limits_pub.publish(velocity_limits);
 }
 #endif // MAVLINK_MSG_ID_SET_VELOCITY_LIMITS
+
+#if defined(MAVLINK_MSG_ID_ESC_EEPROM) // For now only defined if development.xml is used
+void
+MavlinkReceiver::handle_message_esc_eeprom(mavlink_message_t *msg)
+{
+	mavlink_esc_eeprom_t message;
+	mavlink_msg_esc_eeprom_decode(msg, &message);
+
+	esc_eeprom_write_s eeprom{};
+	eeprom.timestamp = hrt_absolute_time();
+	eeprom.firmware = message.firmware;
+	eeprom.index = message.esc_index;
+
+	if (eeprom.index != 255 && eeprom.index >= esc_status_s::CONNECTED_ESC_MAX) {
+		PX4_ERR("ESC EEPROM: invalid esc_index %u", eeprom.index);
+		return;
+	}
+
+	uint8_t min_length = sizeof(eeprom.data);
+	int length = message.length;
+
+	if (length > min_length) {
+		length = min_length;
+	}
+
+	for (int i = 0; i < length && i < min_length; i++) {
+		int mask_index = i / 32;  // Which uint32_t in the write_mask array
+		int bit_index = i % 32;   // Which bit within that uint32_t
+
+		if (message.write_mask[mask_index] & (1U << bit_index)) {
+			eeprom.data[i] = message.data[i];
+		}
+	}
+
+	eeprom.length = length;
+	memcpy(eeprom.write_mask, message.write_mask, sizeof(eeprom.write_mask));
+
+	PX4_DEBUG("ESC EEPROM write request for ESC%d", eeprom.index + 1);
+
+	_esc_eeprom_write_pub.publish(eeprom);
+}
+#endif // MAVLINK_MSG_ID_ESC_EEPROM
 
 void
 MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
@@ -1992,6 +2053,10 @@ MavlinkReceiver::handle_message_tunnel(mavlink_message_t *msg)
 		_esc_serial_passthru_pub.publish(tunnel);
 		break;
 
+	case MAV_TUNNEL_PAYLOAD_TYPE_MODALAI_IO_UART_PASSTHRU:
+		_io_serial_passthru_pub.publish(tunnel);
+		break;
+
 	default:
 		_mavlink_tunnel_pub.publish(tunnel);
 		break;
@@ -2174,6 +2239,10 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 
 			case MAV_TYPE_ADSB:
 				_heartbeat_type_adsb = now;
+				break;
+
+			case MAV_TYPE_FLARM:
+				_heartbeat_type_flarm = now;
 				break;
 
 			case MAV_TYPE_CAMERA:
@@ -2478,6 +2547,31 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 	gps.timestamp = hrt_absolute_time();
 
 	_sensor_gps_pub.publish(gps);
+}
+
+void
+MavlinkReceiver::handle_message_global_position_sensor(mavlink_message_t *msg)
+{
+	mavlink_global_position_sensor_t global_pos;
+	mavlink_msg_global_position_sensor_decode(msg, &global_pos);
+
+	aux_global_position_s aux_global_position{};
+	const hrt_abstime now = hrt_absolute_time();
+	aux_global_position.timestamp = now;
+	aux_global_position.timestamp_sample = now;
+
+	aux_global_position.id = global_pos.id;
+	aux_global_position.source = global_pos.source;
+
+	aux_global_position.lat = global_pos.lat * 1e-7;
+	aux_global_position.lon = global_pos.lon * 1e-7;
+	aux_global_position.alt = global_pos.alt;
+
+	aux_global_position.lat_lon_reset_counter = 0;
+	aux_global_position.eph = global_pos.eph;
+	aux_global_position.epv = global_pos.epv;
+
+	_aux_global_position_pub.publish(aux_global_position);
 }
 
 void
@@ -2924,6 +3018,7 @@ void MavlinkReceiver::CheckHeartbeats(const hrt_abstime &t, bool force)
 		tstatus.heartbeat_type_onboard_controller      = (t <= TIMEOUT + _heartbeat_type_onboard_controller);
 		tstatus.heartbeat_type_gimbal                  = (t <= TIMEOUT + _heartbeat_type_gimbal);
 		tstatus.heartbeat_type_adsb                    = (t <= TIMEOUT + _heartbeat_type_adsb);
+		tstatus.heartbeat_type_flarm                   = (t <= TIMEOUT + _heartbeat_type_flarm);
 		tstatus.heartbeat_type_camera                  = (t <= TIMEOUT + _heartbeat_type_camera);
 		tstatus.heartbeat_type_parachute               = (t <= TIMEOUT + _heartbeat_type_parachute);
 		tstatus.heartbeat_type_open_drone_id           = (t <= TIMEOUT + _heartbeat_type_open_drone_id);
@@ -3165,7 +3260,7 @@ MavlinkReceiver::run()
 	ssize_t nread = 0;
 	hrt_abstime last_send_update = 0;
 
-	while (!_mavlink.should_exit()) {
+	while (!_should_exit.load()) {
 
 		// check for parameter updates
 		if (_parameter_update_sub.updated()) {

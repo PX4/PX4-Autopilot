@@ -448,6 +448,8 @@ public:
 
 	static uint8_t orb_get_instance(const void *node_handle);
 
+	virtual ~Manager();
+
 #if defined(CONFIG_BUILD_FLAT)
 	/* These are optimized by inlining in NuttX Flat build */
 	static unsigned updates_available(const void *node_handle, unsigned last_generation) { return is_advertised(node_handle) ? static_cast<const DeviceNode *>(node_handle)->updates_available(last_generation) : 0; }
@@ -504,7 +506,6 @@ private: // data members
 
 private: //class methods
 	Manager();
-	virtual ~Manager();
 
 #ifdef CONFIG_ORB_COMMUNICATOR
 	/**

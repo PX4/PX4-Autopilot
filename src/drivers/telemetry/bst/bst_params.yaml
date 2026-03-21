@@ -1,0 +1,12 @@
+module_name: bst
+parameters:
+- group: Telemetry
+  definitions:
+    TEL_BST_EN:
+      description:
+        short: Blacksheep telemetry Enable
+        long: If true, the FMU will try to connect to Blacksheep telemetry on start
+          up
+      type: boolean
+      default: 0
+      reboot_required: true

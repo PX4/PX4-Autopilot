@@ -34,10 +34,7 @@
 #pragma once
 
 #include <drivers/drv_hrt.h>
-#include "fw_pitch_controller.h"
-#include "fw_roll_controller.h"
 #include "fw_wheel_controller.h"
-#include "fw_yaw_controller.h"
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
@@ -67,17 +64,37 @@
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 
+using matrix::AxisAnglef;
 using matrix::Eulerf;
 using matrix::Quatf;
+using matrix::Vector3f;
 
 using uORB::SubscriptionData;
 
 using namespace time_literals;
 
-class FixedwingAttitudeControl final : public ModuleBase<FixedwingAttitudeControl>, public ModuleParams,
+/**
+ * Computes the attitude error for fixed-wing attitude control.
+ * The yaw error is removed since fixed-wing aircraft have no direct yaw authority.
+ */
+inline Vector3f computeAttitudeError(const Quatf &q_current, const Quatf &q_sp)
+{
+	// Compute yaw offset to cancel yaw error (fixed-wing has no direct yaw authority)
+	// See formula_derrivation.py on how to get these formulas
+	const float yaw_offset = -2.f * (q_current(0) * q_sp(3) - q_current(1) * q_sp(2) + q_current(2) * q_sp(1) - q_current(3) * q_sp(0)) /
+				 (q_current(0) * q_sp(0) - q_current(1) * q_sp(1) - q_current(2) * q_sp(2) + q_current(3) * q_sp(3));
+
+	const Quatf q_yaw_offset = Quatf(1.f, 0.f, 0.f, yaw_offset / 2.f).normalized();
+	const Quatf q_err = (q_current.inversed() * q_yaw_offset * q_sp).canonical();
+	return 2.f * q_err.imag();
+}
+
+class FixedwingAttitudeControl final : public ModuleBase, public ModuleParams,
 	public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	FixedwingAttitudeControl(bool vtol = false);
 	~FixedwingAttitudeControl() override;
 
@@ -159,12 +176,9 @@ private:
 
 		(ParamFloat<px4::params::FW_Y_RMAX>) _param_fw_y_rmax,
 		(ParamFloat<px4::params::FW_MAN_YR_MAX>) _param_man_yr_max
-
 	)
 
-	RollController _roll_ctrl;
-	PitchController _pitch_ctrl;
-	YawController _yaw_ctrl;
+	matrix::Vector3f _proportional_gain;
 	WheelController _wheel_ctrl;
 
 	void parameters_update();

@@ -7,6 +7,12 @@ Support for rover is [experimental](../airframes/index.md#experimental-vehicles)
 Maintainer volunteers, [contribution](../contribute/index.md) of new features, new frame configurations, or other improvements would all be very welcome!
 :::
 
+:::tip
+Rover is not in the default PX4 firmware downloaded from QGC.
+Unlike for other vehicle types you will need to install it as custom firmware.
+For more information see [Flashing the Rover Build](../config_rover/index.md#flashing-the-rover-build).
+:::
+
 ![Rovers](../../assets/airframes/rover/rovers.png)
 
 PX4 provides support for the three most common types of rovers:
@@ -55,7 +61,7 @@ Each wheel is driven by its own motor, and by controlling the speed and directio
 
 ![Mecanum rover](../../assets/airframes/rover/rover_mecanum.png)
 
-## See Also
+## 另见
 
 - [Drive Modes](../flight_modes_rover/index.md)
 - [Configuration/Tuning](../config_rover/index.md)

@@ -159,7 +159,6 @@ void Ekf::fuseGnssYaw(float antenna_yaw_offset)
 	auto &aid_src = _aid_src_gnss_yaw;
 
 	if (aid_src.innovation_rejected) {
-		_innov_check_fail_status.flags.reject_yaw = true;
 		return;
 	}
 
@@ -189,7 +188,6 @@ void Ekf::fuseGnssYaw(float antenna_yaw_offset)
 	}
 
 	_fault_status.flags.bad_hdg = false;
-	_innov_check_fail_status.flags.reject_yaw = false;
 
 	if ((fabsf(aid_src.test_ratio_filtered) > 0.2f)
 	    && !_control_status.flags.in_air && isTimedOut(aid_src.time_last_fuse, (uint64_t)1e6)

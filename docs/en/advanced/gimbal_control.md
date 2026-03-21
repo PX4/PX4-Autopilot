@@ -20,7 +20,7 @@ By default this is set to `Disabled (-1)` and the driver does not run.
 After selecting the input mode, reboot the vehicle to start the mount driver.
 
 You should set `MNT_MODE_IN` to one of: `RC (1)`, `MAVlink gimbal protocol v2 (4)` or `Auto (0)` (the other options are deprecated).
-If you select `Auto (0)`, the gimbal will automatically select either RC or or MAVLink input based on the latest input.
+If you select `Auto (0)`, the gimbal will automatically select either RC or MAVLink input based on the latest input.
 Note that the auto-switch from MAVLink to RC requires a large stick motion!
 
 The output is set using the [MNT_MODE_OUT](../advanced_config/parameter_reference.md#MNT_MODE_OUT) parameter.
@@ -74,7 +74,7 @@ For example, you might have the following settings to assign the gimbal roll, pi
 
 ![Gimbal Actuator config](../../assets/config/actuators/qgc_actuators_gimbal.png)
 
-The PWM values to use for the disarmed, maximum and minimum values can be determined in the same way as other servo, using the [Actuator Test sliders](../config/actuators.md#actuator-testing) to confirm that each slider moves the appropriate axis, and changing the values so that the gimbal is in the appropriate position at the disarmed, low and high position in the slider.
+The PWM values to use for the disarmed, maximum, center and minimum values can be determined in the same way as other servo, using the [Actuator Test sliders](../config/actuators.md#actuator-testing) to confirm that each slider moves the appropriate axis, and changing the values so that the gimbal is in the appropriate position at the disarmed, low, center and high position in the slider.
 The values may also be provided in gimbal documentation.
 
 ## Gimbal Control in Missions

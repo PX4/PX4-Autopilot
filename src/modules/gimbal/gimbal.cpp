@@ -197,6 +197,8 @@ static int gimbal_thread_main(int argc, char *argv[])
 		thread_should_exit.store(true);
 	}
 
+	const unsigned int poll_timeout_ms = params.mnt_mode_out == MNT_MODE_OUT_AUX ? 10 : 20;
+
 	while (!thread_should_exit.load()) {
 
 		const bool updated = parameter_update_sub.updated();
@@ -219,7 +221,7 @@ static int gimbal_thread_main(int argc, char *argv[])
 				const bool already_active = (thread_data.last_input_active == i);
 				// poll only on active input to reduce latency, or on all if none is active
 				const unsigned int poll_timeout =
-					(already_active || thread_data.last_input_active == -1) ? 20 : 0;
+					(already_active || thread_data.last_input_active == -1) ? poll_timeout_ms : 0;
 
 				update_result = thread_data.input_objs[i]->update(poll_timeout, thread_data.control_data, already_active);
 
@@ -254,14 +256,26 @@ static int gimbal_thread_main(int argc, char *argv[])
 				}
 			}
 
-			if (params.mnt_do_stab == 1) {
-				thread_data.output_obj->set_stabilize(true, true, true);
+			switch (params.mnt_do_stab) {
+			case MntDoStabilize::ALL_AXES: {
+					thread_data.output_obj->set_stabilize(true, true, true);
+					break;
+				}
 
-			} else if (params.mnt_do_stab == 2) {
-				thread_data.output_obj->set_stabilize(false, false, true);
+			case MntDoStabilize::YAW_LOCK: {
+					thread_data.output_obj->set_stabilize(false, false, true);
+					break;
+				}
 
-			} else {
-				thread_data.output_obj->set_stabilize(false, false, false);
+			case MntDoStabilize::PITCH_LOCK: {
+					thread_data.output_obj->set_stabilize(false, true, false);
+					break;
+				}
+
+			default: {
+					thread_data.output_obj->set_stabilize(false, false, false);
+					break;
+				}
 			}
 
 			if (thread_data.output_obj->check_and_handle_setpoint_timeout(thread_data.control_data, hrt_absolute_time())) {
@@ -533,12 +547,10 @@ void update_params(ParameterHandles &param_handles, Parameters &params)
 	param_get(param_handles.mnt_man_roll, &params.mnt_man_roll);
 	param_get(param_handles.mnt_man_yaw, &params.mnt_man_yaw);
 	param_get(param_handles.mnt_do_stab, &params.mnt_do_stab);
-	param_get(param_handles.mnt_range_pitch, &params.mnt_range_pitch);
+	param_get(param_handles.mnt_max_pitch, &params.mnt_max_pitch);
+	param_get(param_handles.mnt_min_pitch, &params.mnt_min_pitch);
 	param_get(param_handles.mnt_range_roll, &params.mnt_range_roll);
 	param_get(param_handles.mnt_range_yaw, &params.mnt_range_yaw);
-	param_get(param_handles.mnt_off_pitch, &params.mnt_off_pitch);
-	param_get(param_handles.mnt_off_roll, &params.mnt_off_roll);
-	param_get(param_handles.mnt_off_yaw, &params.mnt_off_yaw);
 	param_get(param_handles.mav_sysid, &params.mav_sysid);
 	param_get(param_handles.mav_compid, &params.mav_compid);
 	param_get(param_handles.mnt_rate_pitch, &params.mnt_rate_pitch);
@@ -546,6 +558,7 @@ void update_params(ParameterHandles &param_handles, Parameters &params)
 	param_get(param_handles.mnt_rc_in_mode, &params.mnt_rc_in_mode);
 	param_get(param_handles.mnt_lnd_p_min, &params.mnt_lnd_p_min);
 	param_get(param_handles.mnt_lnd_p_max, &params.mnt_lnd_p_max);
+	param_get(param_handles.mnt_tau, &params.mnt_tau);
 }
 
 bool initialize_params(ParameterHandles &param_handles, Parameters &params)
@@ -558,12 +571,10 @@ bool initialize_params(ParameterHandles &param_handles, Parameters &params)
 	param_handles.mnt_man_roll = param_find("MNT_MAN_ROLL");
 	param_handles.mnt_man_yaw = param_find("MNT_MAN_YAW");
 	param_handles.mnt_do_stab = param_find("MNT_DO_STAB");
-	param_handles.mnt_range_pitch = param_find("MNT_RANGE_PITCH");
+	param_handles.mnt_max_pitch = param_find("MNT_MAX_PITCH");
+	param_handles.mnt_min_pitch = param_find("MNT_MIN_PITCH");
 	param_handles.mnt_range_roll = param_find("MNT_RANGE_ROLL");
 	param_handles.mnt_range_yaw = param_find("MNT_RANGE_YAW");
-	param_handles.mnt_off_pitch = param_find("MNT_OFF_PITCH");
-	param_handles.mnt_off_roll = param_find("MNT_OFF_ROLL");
-	param_handles.mnt_off_yaw = param_find("MNT_OFF_YAW");
 	param_handles.mav_sysid = param_find("MAV_SYS_ID");
 	param_handles.mav_compid = param_find("MAV_COMP_ID");
 	param_handles.mnt_rate_pitch = param_find("MNT_RATE_PITCH");
@@ -571,6 +582,7 @@ bool initialize_params(ParameterHandles &param_handles, Parameters &params)
 	param_handles.mnt_rc_in_mode = param_find("MNT_RC_IN_MODE");
 	param_handles.mnt_lnd_p_min = param_find("MNT_LND_P_MIN");
 	param_handles.mnt_lnd_p_max = param_find("MNT_LND_P_MAX");
+	param_handles.mnt_tau = param_find("MNT_TAU");
 
 	if (param_handles.mnt_mode_in == PARAM_INVALID ||
 	    param_handles.mnt_mode_out == PARAM_INVALID ||
@@ -580,19 +592,18 @@ bool initialize_params(ParameterHandles &param_handles, Parameters &params)
 	    param_handles.mnt_man_roll == PARAM_INVALID ||
 	    param_handles.mnt_man_yaw == PARAM_INVALID ||
 	    param_handles.mnt_do_stab == PARAM_INVALID ||
-	    param_handles.mnt_range_pitch == PARAM_INVALID ||
+	    param_handles.mnt_max_pitch == PARAM_INVALID ||
+	    param_handles.mnt_min_pitch == PARAM_INVALID ||
 	    param_handles.mnt_range_roll == PARAM_INVALID ||
 	    param_handles.mnt_range_yaw == PARAM_INVALID ||
-	    param_handles.mnt_off_pitch == PARAM_INVALID ||
-	    param_handles.mnt_off_roll == PARAM_INVALID ||
-	    param_handles.mnt_off_yaw == PARAM_INVALID ||
 	    param_handles.mav_sysid == PARAM_INVALID ||
 	    param_handles.mav_compid == PARAM_INVALID ||
 	    param_handles.mnt_rate_pitch == PARAM_INVALID ||
 	    param_handles.mnt_rate_yaw == PARAM_INVALID ||
 	    param_handles.mnt_rc_in_mode == PARAM_INVALID ||
 	    param_handles.mnt_lnd_p_min == PARAM_INVALID ||
-	    param_handles.mnt_lnd_p_max == PARAM_INVALID
+	    param_handles.mnt_lnd_p_max == PARAM_INVALID ||
+	    param_handles.mnt_tau == PARAM_INVALID
 	   ) {
 		return false;
 	}
@@ -609,7 +620,7 @@ static void usage()
 Mount/gimbal Gimbal control driver. It maps several different input methods (eg. RC or MAVLink) to a configured
 output (eg. AUX channels or MAVLink).
 
-Documentation how to use it is on the [gimbal_control](https://docs.px4.io/main/en/advanced/gimbal_control.html) page.
+Documentation how to use it is on the [gimbal_control](../advanced/gimbal_control.md) page.
 
 ### Examples
 Test the output by setting a angles (all omitted axes are set to 0):

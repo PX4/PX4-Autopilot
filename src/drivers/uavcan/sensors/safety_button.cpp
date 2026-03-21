@@ -41,7 +41,8 @@ const char *const UavcanSafetyButtonBridge::NAME = "safety_button";
 using namespace time_literals;
 
 UavcanSafetyButtonBridge::UavcanSafetyButtonBridge(uavcan::INode &node) :
-	UavcanSensorBridgeBase("uavcan_safety_button", ORB_ID(button_event)), _sub_button(node)
+	UavcanSensorBridgeBase("uavcan_safety_button", ORB_ID(button_event), nullptr),
+	_sub_button(node)
 { }
 
 int UavcanSafetyButtonBridge::init()

@@ -35,5 +35,6 @@ px4_add_library(pure_pursuit
 	PurePursuit.cpp
 	PurePursuit.hpp
 )
+set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/purepursuit_params.yaml)
 
 px4_add_unit_gtest(SRC PurePursuitTest.cpp LINKLIBS pure_pursuit)

@@ -202,6 +202,8 @@ struct gnssSample {
 	float       yaw_acc{};    ///< 1-std yaw error (rad)
 	float       yaw_offset{}; ///< Heading/Yaw offset for dual antenna GPS - refer to description for GPS_YAW_OFFSET
 	bool        spoofed{};    ///< true if GNSS data is spoofed
+	bool        jammed{};     ///< true if GNSS data is jammed
+	Vector3f    pos_body{};   ///< position of GPS antenna in body frame (m)
 };
 
 struct magSample {
@@ -267,6 +269,7 @@ struct systemFlagUpdate {
 	bool is_fixed_wing{false};
 	bool gnd_effect{false};
 	bool constant_pos{false};
+	bool in_transition{false};
 };
 
 struct parameters {
@@ -328,10 +331,6 @@ struct parameters {
 #if defined(CONFIG_EKF2_GNSS)
 	int32_t ekf2_gps_ctrl {static_cast<int32_t>(GnssCtrl::HPOS) | static_cast<int32_t>(GnssCtrl::VEL)};
 	int32_t ekf2_gps_mode {static_cast<int32_t>(GnssMode::kAuto)};
-	float ekf2_gps_delay{110.0f};           ///< GPS measurement delay relative to the IMU (mSec)
-
-	Vector3f gps_pos_body{};                ///< xyz position of the GPS antenna in body frame (m)
-
 	// position and velocity fusion
 	float ekf2_gps_v_noise{0.5f};           ///< minimum allowed observation noise for gps velocity fusion (m/sec)
 	float ekf2_gps_p_noise{0.5f};           ///< minimum allowed observation noise for gps position fusion (m)
@@ -525,26 +524,6 @@ bool bad_sideslip      :
 	uint32_t value;
 };
 
-// define structure used to communicate innovation test failures
-union innovation_fault_status_u {
-	struct {
-		bool reject_hor_vel   : 1; ///< 0 - true if horizontal velocity observations have been rejected
-		bool reject_ver_vel   : 1; ///< 1 - true if vertical velocity observations have been rejected
-		bool reject_hor_pos   : 1; ///< 2 - true if horizontal position observations have been rejected
-		bool reject_ver_pos   : 1; ///< 3 - true if true if vertical position observations have been rejected
-		bool reject_mag_x     : 1; ///< 4 - true if the X magnetometer observation has been rejected
-		bool reject_mag_y     : 1; ///< 5 - true if the Y magnetometer observation has been rejected
-		bool reject_mag_z     : 1; ///< 6 - true if the Z magnetometer observation has been rejected
-		bool reject_yaw       : 1; ///< 7 - true if the yaw observation has been rejected
-		bool reject_airspeed  : 1; ///< 8 - true if the airspeed observation has been rejected
-		bool reject_sideslip  : 1; ///< 9 - true if the synthetic sideslip observation has been rejected
-		bool reject_hagl      : 1; ///< 10 - unused
-		bool reject_optflow_X : 1; ///< 11 - true if the X optical flow observation has been rejected
-		bool reject_optflow_Y : 1; ///< 12 - true if the Y optical flow observation has been rejected
-	} flags;
-	uint16_t value;
-};
-
 // bitmask containing filter control status
 union filter_control_status_u {
 	struct {
@@ -611,6 +590,8 @@ uint64_t gnss_fault              :
 		uint64_t yaw_manual              : 1; ///< 46 - true if yaw has been reset manually
 uint64_t gnss_hgt_fault              :
 		1; ///< 47 - true if GNSS measurements (alt) have been declared faulty and are no longer used
+		uint64_t in_transition 	         : 1; ///< 48 - true if the vehicle is in vtol transition
+		uint64_t heading_observable      : 1; ///< 49 - true when heading is observable
 	} flags;
 	uint64_t value;
 };

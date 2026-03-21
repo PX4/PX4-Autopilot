@@ -232,6 +232,9 @@ class SourceParser(object):
                         # start waiting for the next part - long comment.
                         if state == "wait-short-end":
                             state = "wait-long"
+                        if state == "wait-long-end":
+                            # Long description includes empty lines
+                            long_desc += "\n"
                     else:
                         m = self.re_comment_tag.match(comment_content)
                         if m:
@@ -363,7 +366,7 @@ class SourceParser(object):
                                 'm/s^3/sqrt(Hz)', 'm/s/sqrt(Hz)', 's/(1000*PWM)', '%m/s', 'min', 'us/C',
                                 'N/(m/s)', 'Nm/rad', 'Nm/(rad/s)', 'Nm', 'N',
                                 'rpm',
-                                'normalized_thrust/s', 'normalized_thrust', 'norm', 'SD',''])
+                                'normalized_thrust/s', 'normalized_thrust', 'norm', 'SD', 'dBHz', ''])
         for group in self.GetParamGroups():
             for param in group.GetParams():
                 name  = param.GetName()

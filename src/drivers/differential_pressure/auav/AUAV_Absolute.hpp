@@ -51,6 +51,8 @@ static constexpr uint8_t EEPROM_ABS_ES		= 0x38;
 /* Measurement rate is 50Hz */
 static constexpr unsigned ABS_MEAS_RATE = 50;
 static constexpr int64_t ABS_CONVERSION_INTERVAL = (1000000 / ABS_MEAS_RATE); /* microseconds */
+/* reading too fast can yield all zero data -> incorrect sensor reading */
+static_assert(ABS_CONVERSION_INTERVAL >= 7000, "Conversion interval is too fast");
 
 /* Conversions */
 static constexpr float MBAR_TO_PA = 100.0f;
@@ -66,6 +68,7 @@ private:
 	int64_t get_conversion_interval() const override;
 	calib_eeprom_addr_t get_calib_eeprom_addr() const override;
 	float process_pressure_dig(const float pressure_dig) const override;
+	int read_factory_data() override;
 
 	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
 };

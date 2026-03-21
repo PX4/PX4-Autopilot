@@ -42,7 +42,7 @@ This can be changed to any rigid rotation using the VectorNav Reference Frame Ro
 
 If using a GNSS-enabled product, the GNSS antenna must be mounted rigidly with respect to the inertial sensor and with an unobstructed sky view. If using a dual-GNSS-enabled product (VN-3X0), the secondary antenna must be mounted rigidly with respect to the primary antenna and the inertial sensor with an unobstructed sky view.
 
-For more mounting requirements and recommendations, see the relevant [Quick Start Guide](https://www.vectornav.com/resources/quick-start-guides).
+For more mounting requirements and recommendations, see the relevant [Quick Start Guide](https://www.vectornav.com/resources/technical-documentation/quick-start-guides).
 
 ## 펌웨어 설정
 
@@ -59,20 +59,19 @@ To use the VectorNav driver:
 4. Allow the VectorNav driver to initialize by restarting PX4.
 
 5. Configure driver as either an external INS or to provide raw data:
-
    - If using the VectorNav as an external INS, set [VN_MODE](../advanced_config/parameter_reference.md#VN_MODE) to `INS`.
-      This disables EKF2.
+     This disables EKF2.
    - If using the VectorNav as external inertial sensors:
 
-      1. Set [VN_MODE](../advanced_config/parameter_reference.md#VN_MODE) to `Sensors Only`
-      2. If internal sensors are enabled, prioritize VectorNav sensors using [CAL_GYROn_PRIO](../advanced_config/parameter_reference.md#CAL_GYRO0_PRIO), [CAL_ACCn_PRIO](../advanced_config/parameter_reference.md#CAL_ACC0_PRIO), [CAL_BAROn_PRIO](../advanced_config/parameter_reference.md#CAL_BARO0_PRIO), [CAL_MAGn_PRIO](../advanced_config/parameter_reference.md#CAL_MAG0_PRIO), where _n_ is the instance number of the IMU component (0, 1, etc.).
+     1. Set [VN_MODE](../advanced_config/parameter_reference.md#VN_MODE) to `Sensors Only`
+     2. If internal sensors are enabled, prioritize VectorNav sensors using [CAL_GYROn_PRIO](../advanced_config/parameter_reference.md#CAL_GYRO0_PRIO), [CAL_ACCn_PRIO](../advanced_config/parameter_reference.md#CAL_ACC0_PRIO), [CAL_BAROn_PRIO](../advanced_config/parameter_reference.md#CAL_BARO0_PRIO), [CAL_MAGn_PRIO](../advanced_config/parameter_reference.md#CAL_MAG0_PRIO), where _n_ is the instance number of the IMU component (0, 1, etc.).
 
-      ::: tip
-      In most cases the external IMU (VN) is the highest-numbered.
-      You can get a list of the IMU components available using [`uorb top -1`](../middleware/uorb.md#uorb-top-command), you can differentiate between them using the [`listener`](../modules/modules_command.md#listener) command and looking through the data, or just the rates.
+     ::: tip
+     In most cases the external IMU (VN) is the highest-numbered.
+     You can get a list of the IMU components available using [`uorb top -1`](../middleware/uorb.md#uorb-top-command), you can differentiate between them using the [`listener`](../modules/modules_command.md#listener) command and looking through the data, or just the rates.
 
-      Alternatively, you can check [CAL_GYROn_ID](../advanced_config/parameter_reference.md#CAL_GYRO0_ID) to see the device id.
-      The priority is 0-255, where 0 is entirely disabled and 255 is highest priority.
+     Alternatively, you can check [CAL_GYROn_ID](../advanced_config/parameter_reference.md#CAL_GYRO0_ID) to see the device id.
+     The priority is 0-255, where 0 is entirely disabled and 255 is highest priority.
 
 :::
 
@@ -83,7 +82,7 @@ IMU data should be published at 800Hz (400Hz if using VN-300).
 
 ## VectorNav Configuration
 
-Definitions for all commands and registers referenced in this section can be found in the respective [VectorNav ICD](https://www.vectornav.com/resources/interface-control-documents).
+Definitions for all commands and registers referenced in this section can be found in the respective [VectorNav ICD](https://www.vectornav.com/resources/technical-documentation/interface-control-documents).
 
 Upon initialization, PX4 configures the VectorNav unit as follows:
 
@@ -138,5 +137,5 @@ Published topics can be viewed using the `listener` command.
 
 ## Hardware Specifications
 
-- [Product Briefs](https://www.vectornav.com/resources/product-briefs)
-- [Datasheets](https://www.vectornav.com/resources/datasheets)
+- [Product Briefs](https://www.vectornav.com/resources/product-information/product-briefs)
+- [Datasheets](https://www.vectornav.com/resources/technical-documentation/datasheets)

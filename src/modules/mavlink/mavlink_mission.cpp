@@ -567,9 +567,9 @@ MavlinkMissionManager::send()
 	} else if (_state != MAVLINK_WPM_STATE_IDLE && (_time_last_recv > 0)
 		   && hrt_elapsed_time(&_time_last_recv) > MAVLINK_MISSION_PROTOCOL_TIMEOUT_DEFAULT) {
 
-		_mavlink.send_statustext_critical("Operation timeout\t");
-		events::send(events::ID("mavlink_mission_op_timeout"), events::Log::Error,
-			     "Operation timeout, aborting transfer");
+		_mavlink.send_statustext_critical("Mission sync timeout\t");
+		events::send(events::ID("mavlink_mission_sync_timeout"), events::Log::Error,
+			     "Mission sync timeout, aborting transfer");
 
 		PX4_DEBUG("WPM: Last operation (state=%d) timed out, changing state to MAVLINK_WPM_STATE_IDLE", _state);
 
@@ -1538,6 +1538,12 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			mission_item->params[0] = (uint16_t)mavlink_mission_item->param1;
 			break;
 
+		case MAV_CMD_DO_AUTOTUNE_ENABLE:
+			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
+			mission_item->params[0] = (uint16_t)mavlink_mission_item->param1;
+			mission_item->params[1] = (uint16_t)mavlink_mission_item->param2;
+			break;
+
 		default:
 			mission_item->nav_cmd = NAV_CMD_INVALID;
 			PX4_DEBUG("Unsupported command %d", mavlink_mission_item->command);
@@ -1627,6 +1633,7 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		case MAV_CMD_CONDITION_DELAY:
 		case MAV_CMD_CONDITION_DISTANCE:
 		case MAV_CMD_DO_SET_ACTUATOR:
+		case MAV_CMD_DO_AUTOTUNE_ENABLE:
 		case MAV_CMD_COMPONENT_ARM_DISARM:
 			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
 			break;

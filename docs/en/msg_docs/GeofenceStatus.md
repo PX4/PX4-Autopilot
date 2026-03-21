@@ -1,8 +1,31 @@
+---
+pageClass: is-wide-page
+---
+
 # GeofenceStatus (UORB message)
 
+**TOPICS:** geofence_status
 
+## Fields
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/GeofenceStatus.msg)
+| Name        | Type     | Unit [Frame] | Range/Enum | Description                            |
+| ----------- | -------- | ------------ | ---------- | -------------------------------------- |
+| timestamp   | `uint64` |              |            | time since system start (microseconds) |
+| geofence_id | `uint32` |              |            | loaded geofence id                     |
+| status      | `uint8`  |              |            | Current geofence status                |
+
+## Constants
+
+| Name                                              | Type    | Value | Description |
+| ------------------------------------------------- | ------- | ----- | ----------- |
+| <a id="#GF_STATUS_LOADING"></a> GF_STATUS_LOADING | `uint8` | 0     |
+| <a id="#GF_STATUS_READY"></a> GF_STATUS_READY     | `uint8` | 1     |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/GeofenceStatus.msg)
+
+::: details Click here to see original file
 
 ```c
 uint64 timestamp                        # time since system start (microseconds)
@@ -12,5 +35,6 @@ uint8 status 				# Current geofence status
 
 uint8 GF_STATUS_LOADING = 0
 uint8 GF_STATUS_READY = 1
-
 ```
+
+:::

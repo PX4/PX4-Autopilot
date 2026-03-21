@@ -201,8 +201,9 @@ void Battery::updateDt(const hrt_abstime &timestamp)
 
 float Battery::sumDischarged(float current_a)
 {
-	if (_dt > FLT_EPSILON) {
+	if (_dt > FLT_EPSILON && fabsf(current_a + 1.f) > FLT_EPSILON) {
 		// mAh since last loop: (current[A] * 1000 = [mA]) * (dt[s] / 3600 = [h])
+		// current = -1 means invalid current measurement
 		_discharged_mah_loop = (current_a * 1e3f) * (_dt / 3600.f);
 		_discharged_mah += _discharged_mah_loop;
 	}
@@ -328,6 +329,10 @@ uint16_t Battery::determineFaults()
 	    && (_voltage_v > (_params.n_cells * _params.v_charged * 1.05f))) {
 		// Reported as a "spike" since "over-voltage" does not exist in MAV_BATTERY_FAULT
 		faults |= (1 << battery_status_s::FAULT_SPIKES);
+	}
+
+	if (PX4_ISFINITE(_temperature_c) && _temperature_c > BAT_TEMP_MAX) {
+		faults |= (1 << battery_status_s::FAULT_OVER_TEMPERATURE);
 	}
 
 	return faults;

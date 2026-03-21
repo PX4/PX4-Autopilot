@@ -59,8 +59,10 @@
 
 #include "sensor.h"
 
-class ILabs : public ModuleBase<ILabs>, public ModuleParams, public px4::ScheduledWorkItem {
+class ILabs : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem {
 public:
+	static Descriptor desc;
+
 	ILabs(const char *port);
 	~ILabs() override;
 
@@ -80,6 +82,10 @@ private:
 	void        Run() override;
 	void        processData(InertialLabs::SensorsData *sensordata);
 	static void processDataProxy(void *context, InertialLabs::SensorsData *data) {
+		if (!context || !data) {
+			return;
+		}
+
 		ILabs *self = static_cast<ILabs *>(context);
 		self->processData(data);
 	}

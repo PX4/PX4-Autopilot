@@ -83,6 +83,7 @@ MissionBlock::is_mission_item_reached_or_completed()
 	case NAV_CMD_DO_MOUNT_CONTROL:
 	case NAV_CMD_DO_GIMBAL_MANAGER_CONFIGURE:
 	case NAV_CMD_COMPONENT_ARM_DISARM:
+	case NAV_CMD_DO_AUTOTUNE_ENABLE:
 	case NAV_CMD_DO_SET_ROI:
 	case NAV_CMD_DO_SET_ROI_LOCATION:
 	case NAV_CMD_DO_SET_ROI_WPNEXT_OFFSET:
@@ -760,6 +761,19 @@ MissionBlock::setLoiterItemCommonFields(struct mission_item_s *item)
 }
 
 void
+MissionBlock::setLoiterFromLastLink(struct mission_item_s *item)
+{
+	setLoiterItemCommonFields(item);
+
+	const PositionYawSetpoint &last_heartbeat_pos = _navigator->get_last_pos_with_gcs_heartbeat();
+
+	item->lat = PX4_ISFINITE(last_heartbeat_pos.lat) ? last_heartbeat_pos.lat : _navigator->get_global_position()->lat;
+	item->lon = PX4_ISFINITE(last_heartbeat_pos.lon) ? last_heartbeat_pos.lon : _navigator->get_global_position()->lon;
+	item->altitude = PX4_ISFINITE(last_heartbeat_pos.alt) ? last_heartbeat_pos.alt : _navigator->get_global_position()->alt;
+	item->yaw = PX4_ISFINITE(last_heartbeat_pos.yaw) ? last_heartbeat_pos.yaw : NAN;
+}
+
+void
 MissionBlock::set_takeoff_item(struct mission_item_s *item, float abs_altitude)
 {
 	item->nav_cmd = NAV_CMD_TAKEOFF;
@@ -987,7 +1001,7 @@ void MissionBlock::startPrecLand(uint16_t land_precision)
 	}
 }
 
-void MissionBlock::updateAltToAvoidTerrainCollisionAndRepublishTriplet(mission_item_s mission_item)
+void MissionBlock::updateAltToAvoidTerrainCollisionAndRepublishTriplet(const mission_item_s &mission_item)
 {
 	// Avoid flying into terrain using the distance sensor. Enable through the parameter NAV_MIN_GND_DIST.
 	// Only active during commanded descents with vz>0 (to prevent climb-aways), excluding landing and VTOL transitions.
@@ -1027,10 +1041,18 @@ void MissionBlock::updateFailsafeChecks()
 void MissionBlock::updateMaxHaglFailsafe()
 {
 	const float target_alt = _navigator->get_position_setpoint_triplet()->current.alt;
+	const float max_alt = math::min(_navigator->get_local_position()->hagl_max_z, _navigator->get_local_position()->hagl_max_xy);
+	const float terrain_alt = _navigator->get_global_position()->terrain_alt;
+	const bool terrain_alt_valid = _navigator->get_global_position()->terrain_alt_valid;
 
-	if (_navigator->get_global_position()->terrain_alt_valid
-	    && ((target_alt - _navigator->get_global_position()->terrain_alt)
-		> math::min(_navigator->get_local_position()->hagl_max_z, _navigator->get_local_position()->hagl_max_xy))) {
+	// If the HAGL failsafe is declared during front transition, we enter a
+	// FW hold at the current low altitude while not having finished the
+	// transition. This is dangerous and worse than possibly fusing neither
+	// optical flow nor airspeed for a couple seconds, so we bypass the
+	// failsafe here.
+	const bool in_transition_to_fw = _navigator->get_vstatus()->in_transition_to_fw;
+
+	if (!in_transition_to_fw && terrain_alt_valid && (target_alt - terrain_alt) > max_alt) {
 		// Handle case where the altitude setpoint is above the maximum HAGL (height above ground level)
 		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Target altitude higher than max HAGL\t");
 		events::send(events::ID("navigator_fail_max_hagl"), events::Log::Error, "Target altitude higher than max HAGL");

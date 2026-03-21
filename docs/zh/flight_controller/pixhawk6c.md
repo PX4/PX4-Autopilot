@@ -96,7 +96,7 @@ The Pixhawk® 6C is perfect for developers at corporate research labs, startups,
 - 其它特性:
   - Operating & storage temperature: -40 ~ 85°c
 
-## 购买渠道
+## Where to Buy {#store}
 
 Order from [Holybro](https://holybro.com/products/pixhawk-6c).
 
@@ -110,15 +110,15 @@ The [Pixhawk 6C Wiring Quick Start](../assembly/quick_start_pixhawk6c.md) provid
 
 ## 串口映射
 
-| UART   | 设备         | Port          |
-| ------ | ---------- | ------------- |
-| USART1 | /dev/ttyS0 | GPS1          |
-| USART2 | /dev/ttyS1 | TELEM3        |
-| USART3 | /dev/ttyS2 | Debug Console |
-| UART5  | /dev/ttyS3 | TELEM2        |
-| USART6 | /dev/ttyS4 | PX4IO         |
-| UART7  | /dev/ttyS5 | TELEM1        |
-| UART8  | /dev/ttyS6 | GPS2          |
+| UART   | 设备         | Port   |
+| ------ | ---------- | ------ |
+| USART1 | /dev/ttyS0 | GPS1   |
+| USART2 | /dev/ttyS1 | TELEM3 |
+| USART3 | /dev/ttyS2 | 调试控制台  |
+| UART5  | /dev/ttyS3 | TELEM2 |
+| USART6 | /dev/ttyS4 | PX4IO  |
+| UART7  | /dev/ttyS5 | TELEM1 |
+| UART8  | /dev/ttyS6 | GPS2   |
 
 ## 尺寸
 
@@ -162,13 +162,11 @@ It is pre-built and automatically installed by _QGroundControl_ when appropriate
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v6c_default
 ```
 
-<a id="debug_port"></a>
-
-## 调试接口
+## Debug Port {#debug_port}
 
 The [PX4 System Console](../debug/system_console.md) and [SWD interface](../debug/swd_debug.md) run on the **FMU Debug** port.
 

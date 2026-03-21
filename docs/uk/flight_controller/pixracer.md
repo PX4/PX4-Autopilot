@@ -30,7 +30,7 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
 - OneShot PWM (налаштовується)
 - Опціонально: запобіжний перемикач та базер
 
-## Де купити
+## Where to Buy {#store}
 
 Pixracer Pro is available from the [store.3dr.com](https://store.3dr.com/pixracer-pro/).
 
@@ -217,7 +217,7 @@ It is pre-built and automatically installed by _QGroundControl_ when appropriate
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v4_default
 ```
 

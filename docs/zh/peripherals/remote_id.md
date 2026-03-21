@@ -157,7 +157,7 @@ To only allow arming when a Remote ID is ready, [set](../advanced_config/paramet
 Integrators should test than the remote ID module is broadcasting the correct information, such as UAV location, ID, operator ID and so on.
 This is most easily done using a 3rd party application on your mobile device:
 
-- [Drone Scanner](https://github.com/dronetag/drone-scanner) (Google Play or Apple App store)
+- [Drone Scanner](https://help.dronetag.com/drone-scanner/) (Google Play or Apple App store)
 - [OpenDroneID OSM](https://play.google.com/store/apps/details?id=org.opendroneid.android_osm&hl=en&gl=US) (Google Play)
 
 ## 实现
@@ -166,7 +166,6 @@ PX4 v1.14 streams these messages by default (in streaming modes: normal, onboard
 
 - [OPEN_DRONE_ID_LOCATION](https://mavlink.io/en/messages/common.html#OPEN_DRONE_ID_LOCATION) (1 Hz) - UAV location, altitude, direction, and speed.
 - [OPEN_DRONE_ID_SYSTEM](https://mavlink.io/en/messages/common.html#OPEN_DRONE_ID_SYSTEM) (1 Hz) Operator location/altitude, multiple aircraft information (group/swarm, if applicable), full timestamp and possible category/class information.
-
   - Implementation assumes operator is located at vehicle home position (does not yet support getting operator position from GCS).
     This is believed to be compliant for broadcast-only Remote IDs.
 
@@ -257,6 +256,6 @@ If the Remote ID CAN node is present and the messages are not being received, th
 
 Once configured, check the MAVLink Inspector again and check that the `OPEN_DRONE_ID_BASIC_ID` and `OPEN_DRONE_ID_LOCATION` messages are now present.
 
-## See Also
+## 另见
 
 - [Remote Identification of Drones](https://www.faa.gov/uas/getting_started/remote_id) (FAA)

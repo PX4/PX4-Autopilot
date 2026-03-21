@@ -6,7 +6,7 @@ Pixhawk is the reference hardware platform for PX4, and runs PX4 on the [NuttX](
 
 Manufacturers have created many different boards based on the open designs, with form factors that are optimised for applications from cargo carrying though to first person view (FPV) racers.
 
-:::tip
+::: tip
 For computationally intensive tasks (e.g. computer vision) you will need a separate companion computer (e.g. [Raspberry Pi 2/3 Navio2](../flight_controller/raspberry_pi_navio2.md)) or a platform with an integrated companion solution.
 :::
 
@@ -71,7 +71,7 @@ PX4 _developers_ need to know the FMU version of their board, as this is require
 
 At very high level, the main differences are:
 
-- **FMUv2:** Single board with STM32427VI processor ([Pixhawk 1 (Discontinued)](../flight_controller/pixhawk.md), [pix32](../flight_controller/holybro_pix32.md), [Pixfalcon](../flight_controller/pixfalcon.md), [Drotek DroPix](../flight_controller/dropix.md))
+- **FMUv2:** Single board with STM32427VI processor (Pixhawk 1 (discontinued), Holybro pix32 (discontinued), Pixfalcon (discontinued), Drotek DroPix (discontinued))
 - **FMUv3:** Identical to FMUv2, but usable flash doubled to 2MB ([Hex Cube Black](../flight_controller/pixhawk-2.md),[CUAV Pixhack v3](../flight_controller/pixhack_v3.md),[mRo Pixhawk](../flight_controller/mro_pixhawk.md), [Pixhawk Mini (Discontinued)](../flight_controller/pixhawk_mini.md))
 - **FMUv4:** Increased RAM. Faster CPU. More serial ports. No IO processor ([Pixracer](../flight_controller/pixracer.md))
 - **FMUv4-PRO:** Slightly increased RAM. More serial ports. IO processor ([Pixhawk 3 Pro](../flight_controller/pixhawk3_pro.md))
@@ -100,6 +100,24 @@ At very high level, the main differences are:
 
 <a id="licensing-and-trademarks"></a>
 
+### FMUv6 Comparison
+
+| Feature            | **FMUv6X-RT**   | **FMUv6X**    | **FMUv6C**    |
+| ------------------ | --------------- | ------------- | ------------- |
+| **FMU MCU**        | NXP i.MX RT1176 | STM32H753     | STM32H743V    |
+| **RAM**            | 2 MB            | 1 MB          | 1 MB          |
+| **Flash**          | 64 MB Octal SPI | 2 MB internal | 2 MB internal |
+| **IO MCU**         | STM32F103       | STM32F103     | STM32F103     |
+| **Secure Element** | NXP SE051       | NXP SE051     | Not supported |
+| **PAB Standard**   | Supported       | Supported     | Not supported |
+| **Ethernet**       | Supported       | Supported     | Not supported |
+| **IMUs**           | 3×              | 3×            | 2×            |
+| **Barometers**     | 2×              | 2×            | 1×            |
+| **Magnetometer**   | 1×              | 1×            | 1×            |
+| **FMU PWM**        | 12×             | 8×            | 8×            |
+| **IO PWM**         | 8×              | 8×            | 8×            |
+| **CAN Bus**        | 3×              | 2×            | 2×            |
+
 ### Licensing and Trademarks
 
 Pixhawk project schematics and reference designs are licensed under [CC BY-SA 3](https://creativecommons.org/licenses/by-sa/3.0/legalcode).
@@ -117,7 +135,7 @@ Products that are based on independently created schematics are considered origi
 Product names/brands can also be trademarked.
 Trademarked names may not be used without the permission of the owner.
 
-:::tip
+::: tip
 _Pixhawk_ is a trademark, and cannot be used in product names without permission.
 :::
 

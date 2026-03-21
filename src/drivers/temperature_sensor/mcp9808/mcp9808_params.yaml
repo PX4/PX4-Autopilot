@@ -1,0 +1,10 @@
+module_name: mcp9808
+parameters:
+- group: Sensors
+  definitions:
+    SENS_EN_MCP9808:
+      description:
+        short: Enable MCP9808 temperature sensor (external I2C)
+      type: boolean
+      default: 0
+      reboot_required: true

@@ -26,7 +26,7 @@ They cover the _ROS Melodic and Noetic_ releases.
 
 :::tab ROS Noetic (Ubuntu 20.04)
 
-If you're working with [ROS Noetic](https://wiki.ros.org/noetic) on Ubuntu 20.04:
+If you're working with [ROS "Noetic"](https://wiki.ros.org/noetic) on Ubuntu 20.04:
 
 1. Install PX4 without the simulator toolchain:
    1. [Download PX4 Source Code](../dev_setup/building_px4.md):
@@ -57,7 +57,7 @@ If you're working with [ROS Noetic](https://wiki.ros.org/noetic) on Ubuntu 20.04
 
 :::tab ROS Melodic (Ubuntu 18.04)
 
-If you're working with ROS "Melodic on Ubuntu 18.04:
+If you're working with ROS "Melodic" on Ubuntu 18.04:
 
 1. Download the [ubuntu_sim_ros_melodic.sh](https://raw.githubusercontent.com/PX4/Devguide/master/build_scripts/ubuntu_sim_ros_melodic.sh) script in a bash shell:
 
@@ -201,7 +201,7 @@ The [MAVROS Offboard Example (C++)](../ros/mavros_offboard_cpp.md), will show yo
 If you have an example app using the PX4 Autopilot and MAVROS, we can help you get it on our docs.
 :::
 
-## See Also
+## 另见
 
 - [mavros ROS Package Summary](https://wiki.ros.org/mavros#mavros.2BAC8-Plugins.sys_status)
 - [mavros source](https://github.com/mavlink/mavros/)

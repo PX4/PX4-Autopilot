@@ -344,6 +344,64 @@ Weightings applied by the GSF to the individual 3-state EKF outputs are in the`w
 Зверніть увагу, що `ekf2_gps_drift` не зафіксовано!
 :::
 
+#### GNSS Fault Detection
+
+PX4's GNSS fault detection protects against malicious or erroneous GNSS signals using selective fusion control based on measurement validation.
+
+The fault detection logic depends on the GPS mode, and also operates differently for horizontal position and altitude measurements.
+The mode is set using the [EKF2_GPS_MODE](../advanced_config/parameter_reference.md#EKF2_GPS_MODE) parameter:
+
+- **Automatic (`0`)** (Default): Assumes that GNSS is generally reliable and is likely to be recovered.
+  EKF2 resets on fusion timeouts if no other source of position is available.
+- **Dead-reckoning (`1`)**: Assumes that GNSS might be lost indefinitely, so resets should be avoided while we have other estimates of position data.
+  EKF2 may reset if no other sources of position or velocity are available.
+  If GNSS altitude OR horizontal position data drifts, the system disables fusion of both measurements simultaneously (even if one would still pass validation) and avoids performing resets.
+
+:::tip
+See also [Fault Detection](https://youtu.be/CMGQJNPiTJg?si=sFtdf4AQbcOH8-u8) in "Fuse, Reset, or Reject? Handling Various Data-sources in EKF2" _PX4 Developer Summit 2025_, Marco Hauswirth, Auterion AG
+:::
+
+##### Detection Logic
+
+Horizontal Position:
+
+- **Automatic mode**: Horizontal position resets to GNSS data if no other horizontal position source is currently being fused (e.g., Auxiliary Global Position - AGP).
+- **Dead-reckoning mode**: Horizontal position resets to GNSS data only if no other horizontal position OR velocity source is currently being fused (e.g., AGP, airspeed, optical flow).
+
+Altitude:
+
+- The altitude logic is more complex due to the height reference sensor ([EKF2_HGT_REF](../advanced_config/parameter_reference.md#EKF2_HGT_REF)) parameter, which is typically set to GNSS or baro in GNSS-denied scenarios.
+- If height reference is set to baro, GNSS-based height resets are prevented (except when baro fusion fails completely and height reference automatically switches to GNSS).
+- When height reference is set to GNSS:
+- **Automatic mode**: Resets occur on drifting GNSS altitude measurements.
+- **Dead-reckoning mode**: When validation starts failing, the system prevents GNSS altitude resets and labels the GNSS data as faulty.
+
+##### Faulty GNSS Data During Boot
+
+The system cannot automatically detect faulty GNSS data during vehicle boot as no baseline comparison exists.
+
+If GNSS fusion is enabled ([EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL)), operators will observe incorrect positions on maps and should disable GNSS fusion, then manually set the correct position via ground control station.
+The global position gets corrected, and if [SENS_BAR_AUTOCAL](../advanced_config/parameter_reference.md#SENS_BAR_AUTOCAL) was enabled, baro offsets are automatically adjusted (through bias correction, not parameter changes).
+
+##### Enabling GNSS Fusion Mid-Flight
+
+With Faulty GNSS Data:
+
+- **Automatic mode**: Vehicle will reset to faulty position - potentially dangerous.
+- **Dead-reckoning mode**: Large measurement differences cause GNSS rejection and fault detection activation.
+
+With Valid GNSS Data:
+
+- **Automatic mode**: Vehicle will reset to GNSS measurements.
+- **Dead-reckoning mode**: If estimated position/altitude is close enough to measurements, fusion resumes; if too far apart, data gets labeled as faulty.
+
+##### Примітки
+
+- **Dual Detection**: Horizontal and altitude checks run completely separately but both lead to the same result when triggered - all GNSS fusion gets disabled.
+- **Recovery**: Only the specific check that labeled data as invalid can re-enable fusion.
+- **Alternative Sources**: Dead-reckoning mode provides enhanced protection by requiring absence of alternative navigation sources before allowing resets.
+- **Boot Vulnerability**: Initial faulty GNSS data cannot be detected automatically; requires operator intervention and manual position correction.
+
 ### Далекомір
 
 [Range finder](../sensor/rangefinders.md) distance to ground is used by a single state filter to estimate the vertical position of the terrain relative to the height datum.
@@ -533,7 +591,7 @@ The **.ulog** format data can be parsed in python by using the [PX4 pyulog libra
 - Attitude output data is found in the [VehicleAttitude](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleAttitude.msg) message.
 - Local position output data is found in the [VehicleLocalPosition](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleLocalPosition.msg) message.
 - Global \(WGS-84\) output data is found in the [VehicleGlobalPosition](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleGlobalPosition.msg) message.
-- Вихідні дані про швидкість вітру містяться в повідомленні [Wind.msg](https://github.com/PX4/PX4-Autopilot/blob/main/msg/Wind.msg).
+- Wind velocity output data is found in the [AirspeedWind.msg](https://github.com/PX4/PX4-Autopilot/blob/main/msg/AirspeedWind.msg) message.
 
 ### Стани
 
@@ -835,3 +893,4 @@ The rise in [EstimatorStatus](https://github.com/PX4/PX4-Autopilot/blob/main/msg
 ## Подальша інформація
 
 - [Огляд оцінки стану PX4](https://youtu.be/HkYRJJoyBwQ), _Саміт розробників PX4 2019_, д-р Пол Райзборо: Огляд оцінювача та основні зміни з 2018/19, а також очікувані покращення до 2019/ 20.
+- [Fuse, Reset, or Reject? Handling Various Data-sources in EKF2](https://www.youtube.com/watch?v=CMGQJNPiTJg) - _PX4 Developer Summit 2025_, Marco Hauswirth, Auterion AG

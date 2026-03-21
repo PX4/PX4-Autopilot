@@ -1,0 +1,10 @@
+module_name: ms4515
+parameters:
+- group: Sensors
+  definitions:
+    SENS_EN_MS4515:
+      description:
+        short: TE MS4515 differential pressure sensor (external I2C)
+      type: boolean
+      default: 0
+      reboot_required: true

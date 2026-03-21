@@ -1,0 +1,10 @@
+module_name: adis16507
+parameters:
+- group: Sensors
+  definitions:
+    SENS_EN_ADIS165X:
+      description:
+        short: Analog Devices ADIS16507 IMU (external SPI)
+      type: boolean
+      default: 0
+      reboot_required: true

@@ -35,6 +35,8 @@
 
 #include "MicroStrain.hpp"
 
+ModuleBase::Descriptor MicroStrain::desc{task_spawn, custom_command, print_usage};
+
 device::Serial device_uart{};
 
 MicroStrain::MicroStrain(const char *uart_port) :
@@ -1851,7 +1853,7 @@ void MicroStrain::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -1911,8 +1913,8 @@ int MicroStrain::task_spawn(int argc, char *argv[])
 
 	if (dev == nullptr || strlen(dev) == 0) {
 		print_usage("no device specified");
-		_object.store(nullptr);
-		_task_id = -1;
+		desc.object.store(nullptr);
+		desc.task_id = -1;
 
 		return PX4_ERROR;
 	}
@@ -1921,8 +1923,8 @@ int MicroStrain::task_spawn(int argc, char *argv[])
 	MicroStrain *instance = new MicroStrain(dev);
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -1933,8 +1935,8 @@ int MicroStrain::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -1966,8 +1968,8 @@ Currently supports the following sensors:
 
 -[CV7-AR](https://www.hbkworld.com/en/products/transducers/inertial-sensors/vertical-reference-units--vru-/3dm-cv7-ar)
 -[CV7-AHRS](https://www.hbkworld.com/en/products/transducers/inertial-sensors/attitude-and-heading-reference-systems--ahrs-/3dm-cv7-ahrs)
--[CV7-INS](https://www.hbkworld.com/en/products/transducers/inertial-sensors/inertial-navigation-systems--ins-/3dm-cv7-ins)
--[CV7-GNSS/INS](https://www.hbkworld.com/en/products/transducers/inertial-sensors/inertial-navigation-systems--ins-/3dm-cv7-gnss-ins)
+-[CV7-INS](https://www.hbkworld.com/en/products/transducers/inertial-sensors/navigation/3dm-cv7-ins)
+-[CV7-GNSS/INS](https://www.hbkworld.com/en/products/transducers/inertial-sensors/navigation/3dm-cv7-gnss-ins)
 
 This driver is not included in the firmware by default.
 Include the module in firmware by setting the
@@ -1995,5 +1997,5 @@ $ microstrain stop
 
 extern "C" __EXPORT int microstrain_main(int argc, char *argv[])
 {
-	return MicroStrain::main(argc, argv);
+	return ModuleBase::main(MicroStrain::desc, argc, argv);
 }

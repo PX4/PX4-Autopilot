@@ -13,7 +13,7 @@ Tuning is recommended for all new vehicle setups to get the _very best_ performa
 
 ## Введення
 
-PX4 uses **P**roportional, **I**ntegral, **D**erivative (PID) controllers (these are the most widespread control technique).
+PX4 uses **P**roportional, **I**integral, **D**erivative (PID) controllers (these are the most widespread control technique).
 
 The _QGroundControl_ **PID Tuning** setup provides real-time plots of the vehicle setpoint and response curves.
 The goal of tuning is to set the P/I/D values such that the _Response_ curve matches the _Setpoint_ curve as closely as possible (i.e. a fast response without overshoots).
@@ -140,7 +140,6 @@ Make sure to have assigned a [Kill switch](../config/safety.md#emergency-switche
 13. Повторіть процес налаштування контролера нахилу для всіх осей.
 
 14. Повторіть процес налаштування контролерів швидкості та позицій (на всіх осях).
-
     - Використовуйте режим позиції при налаштуванні цих контролерів
     - Select the **Simple position control** option in the _Position control mode ..._ selector (this allows direct control for the generation of step inputs)
 

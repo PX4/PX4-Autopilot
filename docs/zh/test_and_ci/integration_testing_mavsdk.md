@@ -7,7 +7,7 @@ PX4 can be tested end to end to using integration tests based on [MAVSDK](https:
 
 测试需要将MAVSAK C++库安装到系统目录（如： <code>/usr/lib</code> or <code>/usr/local/lib</code>）
 
-:::note
+:::info
 This is the recommended integration test framework for PX4.
 :::
 

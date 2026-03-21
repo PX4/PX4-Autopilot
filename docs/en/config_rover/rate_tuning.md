@@ -11,17 +11,15 @@ Configure the following [parameters](../advanced_config/parameters.md) in QGroun
 1. [RO_YAW_RATE_LIM](#RO_YAW_RATE_LIM): Maximum yaw rate you want to allow for your rover.
 
    :::tip
-   Limiting the yaw rate is necessary if the rover is prone rolling over, loosing traction at high speeds or if passenger comfort is important.
+   Limiting the yaw rate is necessary if the rover is prone rolling over, losing traction at high speeds or if passenger comfort is important.
    Small rovers especially can be prone to rolling over when steering aggressively at high speeds.
 
    If this is the case:
-
    1. In [Acro mode](../flight_modes_rover/manual.md#acro-mode), set [RO_YAW_RATE_LIM](#RO_YAW_RATE_LIM) to a small value, drive the rover at full throttle and steer all the way to the left or right.
    2. Increase [RO_YAW_RATE_LIM](#RO_YAW_RATE_LIM) until the wheels of the rover start to lift up.
    3. Set [RO_YAW_RATE_LIM](#RO_YAW_RATE_LIM) to the highest value that does not cause the rover to lift up.
 
    If you see no need to limit the yaw rate, set this parameter to the maximum yaw rate the rover can achieve:
-
    1. In [Manual mode](../flight_modes_rover/manual.md#manual-mode) drive the rover at full throttle and with the maximum steering angle.
    2. Plot the `measured_yaw_rate` from [RoverRateStatus](../msg_docs/RoverRateStatus.md) and enter the highest observed value for [RO_YAW_RATE_LIM](#RO_YAW_RATE_LIM).
 
@@ -51,7 +49,6 @@ Configure the following [parameters](../advanced_config/parameters.md) in QGroun
 
    :::tip
    To tune this parameter:
-
    1. Put the rover in [Acro mode](../flight_modes_rover/manual.md#acro-mode) and hold the throttle stick and the right stick at a few different levels for a couple of seconds each.
    1. Disarm the rover and from the flight log plot the `adjusted_yaw_rate_setpoint` and the `measured_yaw_rate` from [RoverRateStatus](../msg_docs/RoverRateStatus.md) over each other.
    1. Increase [RO_YAW_RATE_P](#RO_YAW_RATE_P) if the measured value does not track the setpoint fast enough or decrease it if the measurement overshoots the setpoint by too much.

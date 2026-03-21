@@ -20,7 +20,7 @@ uint16 VEHICLE_CMD_DO_ORBIT = 34 # Start orbiting on the circumference of a circ
 uint16 VEHICLE_CMD_DO_FIGUREEIGHT = 35 # Start flying on the outline of a figure eight defined by the parameters. |[m] Major radius|[m] Minor radius|[m/s] Velocity|Orientation|Latitude/X|Longitude/Y|Altitude/Z|
 uint16 VEHICLE_CMD_NAV_ROI = 80 # Sets the region of interest (ROI) for a sensor set or the vehicle itself. This can then be used by the vehicles control system to control the vehicle attitude and the attitude of various sensors such as cameras. |[@enum VEHICLE_ROI] Region of interest mode.|MISSION index/ target ID.|ROI index (allows a vehicle to manage multiple ROI's)|Unused|x the location of the fixed ROI (see MAV_FRAME)|y|z|
 uint16 VEHICLE_CMD_NAV_PATHPLANNING = 81 # Control autonomous path planning on the MAV. |0: Disable local obstacle avoidance / local path planning (without resetting map), 1: Enable local path planning, 2: Enable and reset local path planning|0: Disable full path planning (without resetting map), 1: Enable, 2: Enable and reset map/occupancy grid, 3: Enable and reset planned route, but not occupancy grid|Unused|[deg] [@range 0, 360] Yaw angle at goal, in compass degrees|Latitude/X of goal|Longitude/Y of goal|Altitude/Z of goal|
-uint16 VEHICLE_CMD_NAV_VTOL_TAKEOFF = 84 # Takeoff from ground / hand and transition to fixed wing. |Minimum pitch (if airspeed sensor present), desired pitch without sensor|Unused|Unused|Yaw angle (if magnetometer present), ignored without magnetometer|Latitude|Longitude|Altitude|
+uint16 VEHICLE_CMD_NAV_VTOL_TAKEOFF = 84 # Takeoff from ground / hand and transition to fixed wing. |Minimum pitch (if airspeed sensor present), desired pitch without sensor|Transition heading, 0: Default, 3: Use specified transition heading|Unused|Yaw angle (if magnetometer present), ignored without magnetometer|Latitude|Longitude|Altitude|
 uint16 VEHICLE_CMD_NAV_VTOL_LAND = 85 # Transition to MC and land at location. |Unused|Unused|Unused|Desired yaw angle.|Latitude|Longitude|Altitude|
 uint16 VEHICLE_CMD_NAV_GUIDED_LIMITS = 90 # Set limits for external control. |[s] Timeout  - maximum time that external controller will be allowed to control vehicle. 0 means no timeout|[m] Absolute altitude min AMSL - if vehicle moves below this alt, the command will be aborted and the mission will continue. 0 means no lower altitude limit|[m] Absolute altitude max - if vehicle moves above this alt, the command will be aborted and the mission will continue. 0 means no upper altitude limit|[m] Horizontal move limit (AMSL) - if vehicle moves more than this distance from it's location at the moment the command was executed, the command will be aborted and the mission will continue. 0 means no horizontal altitude limit|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_NAV_GUIDED_MASTER = 91 # Set id of master controller. |System ID|Component ID|Unused|Unused|Unused|Unused|Unused|
@@ -61,6 +61,7 @@ uint16 VEHICLE_CMD_DO_PARACHUTE=208 # Mission command to trigger a parachute. |a
 uint16 VEHICLE_CMD_DO_MOTOR_TEST=209 # Motor test command. |Instance (@range 1, )|throttle type|throttle|timeout [s]|Motor count|Test order|Unused|
 uint16 VEHICLE_CMD_DO_INVERTED_FLIGHT=210 # Change to/from inverted flight. |inverted (0=normal, 1=inverted)|Unused|Unused|Unused|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_DO_GRIPPER = 211 # Command to operate a gripper.
+uint16 VEHICLE_CMD_DO_AUTOTUNE_ENABLE = 212 # Enable autotune module. |1 to enable|Unused|Unused|Unused|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_DO_SET_CAM_TRIGG_INTERVAL=214 # Mission command to set TRIG_INTERVAL for this flight. |[m] Camera trigger distance|Shutter integration time (ms)|Unused|Unused|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_DO_MOUNT_CONTROL_QUAT=220 # Mission command to control a camera or antenna mount, using a quaternion as reference. |q1 - quaternion param #1, w (1 in null-rotation)|q2 - quaternion param #2, x (0 in null-rotation)|q3 - quaternion param #3, y (0 in null-rotation)|q4 - quaternion param #4, z (0 in null-rotation)|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_DO_GUIDED_MASTER=221 # Set id of master controller. |System ID|Component ID|Unused|Unused|Unused|Unused|Unused|
@@ -79,6 +80,7 @@ uint16 VEHICLE_CMD_GIMBAL_DEVICE_INFORMATION = 283 # Command to ask information 
 uint16 VEHICLE_CMD_MISSION_START = 300 # Start running a mission. |first_item: the first mission item to run|last_item: the last mission item to run (after this item is run, the mission ends)|
 uint16 VEHICLE_CMD_ACTUATOR_TEST = 310 # Actuator testing command. |[@range -1,1] value|[s] timeout|Unused|Unused|output function|
 uint16 VEHICLE_CMD_CONFIGURE_ACTUATOR = 311 # Actuator configuration command. |configuration|Unused|Unused|Unused|output function|
+uint16 VEHICLE_CMD_ESC_REQUEST_EEPROM = 312 # Request EEPROM data from an ESC. |ESC Index|Firmware Type|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_COMPONENT_ARM_DISARM = 400 # Arms / Disarms a component. |1 to arm, 0 to disarm.
 uint16 VEHICLE_CMD_RUN_PREARM_CHECKS = 401 # Instructs a target system to run pre-arm checks.
 uint16 VEHICLE_CMD_INJECT_FAILURE = 420 # Inject artificial failure for testing purposes.
@@ -99,6 +101,7 @@ uint16 VEHICLE_CMD_LOGGING_START = 2510 # Start streaming ULog data.
 uint16 VEHICLE_CMD_LOGGING_STOP = 2511 # Stop streaming ULog data.
 uint16 VEHICLE_CMD_CONTROL_HIGH_LATENCY = 2600 # Control starting/stopping transmitting data over the high latency link.
 uint16 VEHICLE_CMD_DO_VTOL_TRANSITION = 3000 # Command VTOL transition.
+uint16 VEHICLE_CMD_DO_SET_SAFETY_SWITCH_STATE = 5300 # Command safety on/off. |1 to activate safety, 0 to deactivate safety and allow control surface movements|Unused|Unused|Unused|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_ARM_AUTHORIZATION_REQUEST = 3001 # Request arm authorization.
 uint16 VEHICLE_CMD_PAYLOAD_PREPARE_DEPLOY = 30001 # Prepare a payload deployment in the flight plan.
 uint16 VEHICLE_CMD_PAYLOAD_CONTROL_DEPLOY = 30002 # Control a pre-programmed payload deployment.
@@ -126,6 +129,13 @@ uint8 VEHICLE_ROI_WPINDEX = 2 # Point toward given MISSION.
 uint8 VEHICLE_ROI_LOCATION = 3 # Point toward fixed location.
 uint8 VEHICLE_ROI_TARGET = 4 # Point toward target.
 uint8 VEHICLE_ROI_ENUM_END = 5
+
+uint8 ACTUATOR_CONFIGURATION_NONE = 0 # Do nothing.
+uint8 ACTUATOR_CONFIGURATION_BEEP = 1 # Command the actuator to beep now.
+uint8 ACTUATOR_CONFIGURATION_3D_MODE_ON = 2 # Permanently set the actuator (ESC) to 3D mode (reversible thrust).
+uint8 ACTUATOR_CONFIGURATION_3D_MODE_OFF = 3 # Permanently set the actuator (ESC) to non 3D mode (non-reversible thrust).
+uint8 ACTUATOR_CONFIGURATION_SPIN_DIRECTION1 = 4 # Permanently set the actuator (ESC) to spin direction 1 (which can be clockwise or counter-clockwise).
+uint8 ACTUATOR_CONFIGURATION_SPIN_DIRECTION2 = 5 # Permanently set the actuator (ESC) to spin direction 2 (opposite of direction 1).
 
 uint8 PARACHUTE_ACTION_DISABLE = 0
 uint8 PARACHUTE_ACTION_ENABLE = 1
@@ -177,6 +187,10 @@ int8 ARMING_ACTION_ARM = 1
 # param2 in VEHICLE_CMD_DO_GRIPPER.
 uint8 GRIPPER_ACTION_RELEASE = 0
 uint8 GRIPPER_ACTION_GRAB = 1
+
+# Used as param1 in DO_SET_SAFETY_SWITCH_STATE command.
+uint8 SAFETY_OFF = 0
+uint8 SAFETY_ON = 1
 
 uint8 ORB_QUEUE_LENGTH = 8
 

@@ -39,6 +39,8 @@
 
 using namespace matrix;
 
+ModuleBase::Descriptor GyroFFT::desc{task_spawn, custom_command, print_usage};
+
 GyroFFT::GyroFFT() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
@@ -304,7 +306,7 @@ void GyroFFT::Run()
 	if (should_exit()) {
 		_sensor_gyro_sub.unregisterCallback();
 		_sensor_gyro_fifo_sub.unregisterCallback();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -437,14 +439,14 @@ void GyroFFT::FindPeaks(const hrt_abstime &timestamp_sample, int axis, q15_t *ff
 	float bin_mag_sum = 0;
 
 	// FFT output buffer is ordered [real[0], imag[0], real[1], imag[1], real[2], imag[2] ... real[(N/2)-1], imag[(N/2)-1]
-	for (uint16_t fft_index = 2; fft_index < _imu_gyro_fft_len; fft_index += 2) {
+	for (size_t fft_index = 2; fft_index < static_cast<size_t>(_imu_gyro_fft_len); fft_index += 2) {
 
 		const float real = fft_outupt_buffer[fft_index];
 		const float imag = fft_outupt_buffer[fft_index + 1];
 
 		const float fft_magnitude = sqrtf(real * real + imag * imag);
 
-		int bin_index = fft_index / 2;
+		size_t bin_index = fft_index / 2;
 
 		_peak_magnitudes_all[bin_index] = fft_magnitude;
 		bin_mag_sum += fft_magnitude;
@@ -682,8 +684,8 @@ int GyroFFT::task_spawn(int argc, char *argv[])
 	GyroFFT *instance = new GyroFFT();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -694,8 +696,8 @@ int GyroFFT::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -737,5 +739,5 @@ int GyroFFT::print_usage(const char *reason)
 
 extern "C" __EXPORT int gyro_fft_main(int argc, char *argv[])
 {
-	return GyroFFT::main(argc, argv);
+	return ModuleBase::main(GyroFFT::desc, argc, argv);
 }

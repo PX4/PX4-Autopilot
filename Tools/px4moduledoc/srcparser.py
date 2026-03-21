@@ -15,7 +15,7 @@ class ModuleDocumentation(object):
     # TOC in https://github.com/PX4/PX4-Autopilot/blob/main/docs/en/SUMMARY.md
     valid_categories = ['driver', 'estimator', 'controller', 'system',
                         'communication', 'command', 'template', 'simulation', 'autotune']
-    valid_subcategories = ['', 'camera', 'distance_sensor', 'imu', 'ins', 'airspeed_sensor',
+    valid_subcategories = ['', 'adc', 'camera', 'distance_sensor', 'imu', 'ins', 'airspeed_sensor',
                            'magnetometer', 'baro', 'optical_flow', 'radio_control','rpm_sensor', 'transponder']
 
     max_line_length = 80 # wrap lines that are longer than this
