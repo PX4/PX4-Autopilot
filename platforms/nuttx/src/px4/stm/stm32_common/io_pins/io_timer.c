@@ -934,9 +934,9 @@ int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 
 		/* configure the channel */
 
-		uint32_t shifts = timer_io_channels[channel].timer_channel - 1;
+		uint32_t shifts = timer_io_channels[channel].timer_channel;
 
-		/* Map shifts timer channel 1-4 to 0-3 */
+		/* Map shifts timer channel 0-3 */
 
 		uint32_t ccmr_offset = STM32_GTIM_CCMR1_OFFSET + ((shifts >> 1)  * sizeof(uint32_t));
 		uint32_t ccr_offset = STM32_GTIM_CCR1_OFFSET + (shifts * sizeof(uint32_t));
@@ -1047,7 +1047,7 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 	for (int chan_index = 0; masks != 0 && chan_index < MAX_TIMER_IO_CHANNELS; chan_index++) {
 		if (masks & (1 << chan_index)) {
 			masks &= ~(1 << chan_index);
-			uint32_t shifts = timer_io_channels[chan_index].timer_channel - 1;
+			uint32_t shifts = timer_io_channels[chan_index].timer_channel;
 			uint32_t timer = channels_timer(chan_index);
 			action_cache[timer].base  = io_timers[timer].base;
 			action_cache[timer].ccer_clearbits |= CCER_C1_INIT << (shifts * CCER_C1_NUM_BITS);
