@@ -323,6 +323,77 @@ protected:
 	 */
 	void setMissionIndex(int32_t index);
 
+	/**
+	 * @brief Load a single mission item from the dataman cache.
+	 *
+	 * @param[in] index Index of the mission item
+	 * @param[out] mission_item The loaded mission item
+	 * @return true if the item was loaded successfully
+	 */
+	virtual bool loadMissionItemFromCache(int32_t index, mission_item_s &mission_item);
+
+	/**
+	 * @brief Find the next position-bearing mission item, skipping DO_JUMP items.
+	 *
+	 * Walks forward through the mission starting at @p start_index.
+	 * DO_JUMP items are skipped (not followed as control flow).
+	 *
+	 * @param[in] start_index First index to check
+	 * @param[out] next_index Index of the found position item
+	 * @return true if a position item was found
+	 */
+	bool findNextPositionIndexNoJump(int32_t start_index, int32_t &next_index);
+
+	/**
+	 * @brief Find the previous position-bearing mission item, skipping DO_JUMP items.
+	 *
+	 * Walks backward through the mission starting at @p start_index - 1.
+	 * DO_JUMP items are skipped (not followed as control flow).
+	 *
+	 * @param[in] start_index Search starts one before this index
+	 * @param[out] previous_index Index of the found position item
+	 * @return true if a position item was found
+	 */
+	bool findPreviousPositionIndexNoJump(int32_t start_index, int32_t &previous_index);
+
+	/**
+	 * @brief Find the nearest position item at or before the given index.
+	 *
+	 * Walks backward from @p start_index (inclusive) to find the first
+	 * position-bearing mission item.
+	 *
+	 * @param[in] start_index First index to check (walks backward)
+	 * @param[out] attached_index Index of the found position item
+	 * @return true if a position item was found
+	 */
+	bool findAttachedPositionIndex(int32_t start_index, int32_t &attached_index);
+
+	/**
+	 * @brief Get the expected VTOL state at a given mission anchor index.
+	 *
+	 * Walks backward from @p anchor_index to find the most recent
+	 * NAV_CMD_DO_VTOL_TRANSITION item and returns the transition mode.
+	 * Defaults to MC if no transition item is found.
+	 *
+	 * @param[in] anchor_index Mission index to check from
+	 * @return VEHICLE_VTOL_STATE_MC or VEHICLE_VTOL_STATE_FW
+	 */
+	uint8_t getVtolStateAtMissionIndex(int32_t anchor_index);
+
+	enum class VtolTransitionAction : uint8_t {
+		None = 0,
+		FrontTransition = 1,
+		BackTransition = 2
+	};
+
+	/**
+	 * @brief Determine the VTOL transition action required to enter a segment.
+	 *
+	 * Finds the segment-end anchor for @p target_index, determines the
+	 * expected VTOL state at that anchor, and compares it with the current
+	 * vehicle state to return the required transition action.
+	 */
+	VtolTransitionAction vtolTransitionActionForTarget(int32_t target_index, bool direction_reversed);
 
 	bool _is_current_planned_mission_item_valid{false};	/**< Flag indicating if the currently loaded mission item is valid*/
 	bool _mission_has_been_activated{false};		/**< Flag indicating if the mission has been activated*/

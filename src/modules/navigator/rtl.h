@@ -70,7 +70,7 @@ class RTL : public NavigatorMode, public ModuleParams
 public:
 	RTL(Navigator *navigator);
 
-	~RTL() = default;
+	~RTL() override { delete _rtl_mission_type_handle; }
 
 	enum class RtlType {
 		NONE = rtl_status_s::RTL_STATUS_TYPE_NONE,

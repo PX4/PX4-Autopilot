@@ -78,9 +78,9 @@ TEST_F(RtlProjectionTest, PrefersCurrentMissionSegment)
 
 	// THEN: projects onto segment [0-1] with cross-track approximately 10 m
 	ASSERT_TRUE(ok);
-	EXPECT_EQ(ctx.projection.segment.start.idx, 0);
-	EXPECT_EQ(ctx.projection.segment.end.idx, 1);
-	EXPECT_NEAR(ctx.projection.dist.xtrack, 10.f, kDistanceTolerance);
+	EXPECT_EQ(ctx.seg_candidate.segment.start.idx, 0);
+	EXPECT_EQ(ctx.seg_candidate.segment.end.idx, 1);
+	EXPECT_NEAR(ctx.seg_candidate.dist.xtrack, 10.f, kDistanceTolerance);
 }
 
 // WHY: A negative or out-of-range mission index should be clamped rather than causing undefined behavior.
@@ -113,8 +113,8 @@ TEST_P(RtlProjectionClampTest, ClampsOutOfRangeMissionIndex)
 	// THEN: both succeed and produce the same segment indices
 	ASSERT_TRUE(ok_bad);
 	ASSERT_TRUE(ok_zero);
-	EXPECT_EQ(ctx_bad.projection.segment.start.idx, ctx_zero.projection.segment.start.idx);
-	EXPECT_EQ(ctx_bad.projection.segment.end.idx, ctx_zero.projection.segment.end.idx);
+	EXPECT_EQ(ctx_bad.seg_candidate.segment.start.idx, ctx_zero.seg_candidate.segment.start.idx);
+	EXPECT_EQ(ctx_bad.seg_candidate.segment.end.idx, ctx_zero.seg_candidate.segment.end.idx);
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -153,9 +153,9 @@ TEST_F(RtlProjectionTest, PrefersStoredLoopAnchor)
 
 	// THEN: projection segment is the loop segment [2->0]
 	ASSERT_TRUE(ok);
-	EXPECT_TRUE(ctx.projection.segment.is_loop);
-	EXPECT_EQ(ctx.projection.segment.start.idx, 2);
-	EXPECT_EQ(ctx.projection.segment.end.idx, 0);
+	EXPECT_TRUE(ctx.seg_candidate.segment.is_loop);
+	EXPECT_EQ(ctx.seg_candidate.segment.start.idx, 2);
+	EXPECT_EQ(ctx.seg_candidate.segment.end.idx, 0);
 }
 
 // ============================================================================
@@ -177,8 +177,8 @@ TEST_F(RtlProjectionTest, DefaultMission_OnCurrentSegment)
 
 	// THEN: projects onto segment [1-2]
 	ASSERT_TRUE(ok);
-	EXPECT_EQ(ctx.projection.segment.start.idx, 1);
-	EXPECT_EQ(ctx.projection.segment.end.idx, 2);
+	EXPECT_EQ(ctx.seg_candidate.segment.start.idx, 1);
+	EXPECT_EQ(ctx.seg_candidate.segment.end.idx, 2);
 }
 
 // WHY: When the vehicle is clearly on the segment matching its mission index, projection should match.
@@ -196,8 +196,8 @@ TEST_F(RtlProjectionTest, DefaultMission_OnSameSegment)
 
 	// THEN: projects onto segment [0-1]
 	ASSERT_TRUE(ok);
-	EXPECT_EQ(ctx.projection.segment.start.idx, 0);
-	EXPECT_EQ(ctx.projection.segment.end.idx, 1);
+	EXPECT_EQ(ctx.seg_candidate.segment.start.idx, 0);
+	EXPECT_EQ(ctx.seg_candidate.segment.end.idx, 1);
 }
 
 // WHY: Vehicle near a segment different from its mission index should still project correctly.
@@ -215,8 +215,8 @@ TEST_F(RtlProjectionTest, DefaultMission_FrontBackDifferentSegment)
 
 	// THEN: projects onto segment [4-5]
 	ASSERT_TRUE(ok);
-	EXPECT_EQ(ctx.projection.segment.start.idx, 4);
-	EXPECT_EQ(ctx.projection.segment.end.idx, 5);
+	EXPECT_EQ(ctx.seg_candidate.segment.start.idx, 4);
+	EXPECT_EQ(ctx.seg_candidate.segment.end.idx, 5);
 }
 
 // WHY: When the route doubles back (segments [7-8] and [11-12] run roughly parallel), the planner must use mission_index to disambiguate.
@@ -234,8 +234,8 @@ TEST_F(RtlProjectionTest, DefaultMission_CoincidingSegments)
 
 	// THEN: projects onto segment [7-8] (not [11-12])
 	ASSERT_TRUE(ok);
-	EXPECT_EQ(ctx.projection.segment.start.idx, 7);
-	EXPECT_EQ(ctx.projection.segment.end.idx, 8);
+	EXPECT_EQ(ctx.seg_candidate.segment.start.idx, 7);
+	EXPECT_EQ(ctx.seg_candidate.segment.end.idx, 8);
 }
 
 // WHY: Projection near the last mission segment must work correctly at the route boundary.
@@ -253,8 +253,8 @@ TEST_F(RtlProjectionTest, DefaultMission_AtRouteEnd)
 
 	// THEN: projects onto segment [14-15]
 	ASSERT_TRUE(ok);
-	EXPECT_EQ(ctx.projection.segment.start.idx, 14);
-	EXPECT_EQ(ctx.projection.segment.end.idx, 15);
+	EXPECT_EQ(ctx.seg_candidate.segment.start.idx, 14);
+	EXPECT_EQ(ctx.seg_candidate.segment.end.idx, 15);
 }
 
 // ============================================================================
@@ -276,8 +276,8 @@ TEST_F(RtlProjectionTest, CornerMission_OnSeg1To2)
 
 	// THEN: projects onto segment [1-2]
 	ASSERT_TRUE(ok);
-	EXPECT_EQ(ctx.projection.segment.start.idx, 1);
-	EXPECT_EQ(ctx.projection.segment.end.idx, 2);
+	EXPECT_EQ(ctx.seg_candidate.segment.start.idx, 1);
+	EXPECT_EQ(ctx.seg_candidate.segment.end.idx, 2);
 }
 
 // WHY: Validates projection after a VTOL transition command on a different segment.
@@ -295,8 +295,8 @@ TEST_F(RtlProjectionTest, CornerMission_OnSeg4To5)
 
 	// THEN: projects onto segment [4-5]
 	ASSERT_TRUE(ok);
-	EXPECT_EQ(ctx.projection.segment.start.idx, 4);
-	EXPECT_EQ(ctx.projection.segment.end.idx, 5);
+	EXPECT_EQ(ctx.seg_candidate.segment.start.idx, 4);
+	EXPECT_EQ(ctx.seg_candidate.segment.end.idx, 5);
 }
 
 // WHY: Segment [12-13] is only ~14m long; projection must still work on very short segments.
@@ -314,8 +314,8 @@ TEST_F(RtlProjectionTest, CornerMission_OnSmallSegment)
 
 	// THEN: projects onto segment [12-13]
 	ASSERT_TRUE(ok);
-	EXPECT_EQ(ctx.projection.segment.start.idx, 12);
-	EXPECT_EQ(ctx.projection.segment.end.idx, 13);
+	EXPECT_EQ(ctx.seg_candidate.segment.start.idx, 12);
+	EXPECT_EQ(ctx.seg_candidate.segment.end.idx, 13);
 }
 
 // ============================================================================

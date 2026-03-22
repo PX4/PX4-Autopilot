@@ -44,12 +44,15 @@
 #pragma once
 
 #include "rtl_base.h"
+#include <lib/rtl/rtl_time_estimator.h>
+
+class DatamanCache;
 
 class RtlMissionSafePointFollow : public RtlBase
 {
 public:
 	/** @brief Execute the staged Route Safe Point Return plan built by RTL type 6. */
-	RtlMissionSafePointFollow(Navigator *navigator, mission_s mission);
+	RtlMissionSafePointFollow(Navigator *navigator, mission_s mission, DatamanCache &full_mission_cache);
 	~RtlMissionSafePointFollow() = default;
 
 	void on_inactivation() override;
@@ -63,12 +66,13 @@ public:
 
 private:
 	enum class Stage {
-		Idle = 0,             /**< No active SRP plan. */
-		JoinRoute,            /**< Fly the virtual join waypoint at the vehicle projection. */
-		TransitionAfterJoin,  /**< Apply a required VTOL back-transition before following the route. */
-		FollowRoute,          /**< Follow the mission geometry in nominal or reverse direction. */
-		BranchOff,            /**< Fly the virtual branch-off waypoint before leaving the route. */
-		LandAtGoal            /**< Execute the final landing at the safe point or fallback endpoint. */
+		Idle = 0,                /**< No active SRP plan. */
+		JoinRoute,               /**< Fly the virtual join waypoint at the vehicle projection. */
+		TransitionAfterJoin,     /**< Apply a required VTOL back-transition before following the route. */
+		FollowRoute,             /**< Follow the mission geometry in nominal or reverse direction. */
+		TransitionDuringRoute,   /**< Apply a VTOL transition during route following (prevents re-issuing). */
+		BranchOff,               /**< Fly the virtual branch-off waypoint before leaving the route. */
+		LandAtGoal               /**< Execute the final landing at the safe point or fallback endpoint. */
 	};
 
 	/** @brief Advance the SRP stage machine without replaying the full mission control flow. */
@@ -85,14 +89,6 @@ private:
 	void normalizeRouteMissionItem(mission_item_s &mission_item) const;
 	/** @brief Load the adjacent route position item in the currently selected traversal direction. */
 	bool loadAdjacentRouteItem(mission_item_s &mission_item, int32_t *adjacent_index = nullptr);
-	/** @brief Load the previous position item while ignoring DO_JUMP control flow. */
-	bool loadPreviousRoutePositionItemNoJump(int32_t start_index, int32_t &previous_index);
-	/** @brief Read one mission item from the active mission dataman stream. */
-	bool loadMissionItemAtIndex(int32_t index, mission_item_s &mission_item);
-	/** @brief Find the nearest position item attached to or preceding the supplied mission index. */
-	bool findAttachedRoutePositionIndex(int32_t start_index, int32_t &attached_index);
-	/** @brief Find the next position-bearing mission item at or after the supplied mission index. */
-	bool findNextRoutePositionIndex(int32_t start_index, int32_t &next_index);
 	/** @brief Return whether the current route target coincides with the selected branch-off anchor. */
 	bool currentTargetIsBranchOff() const;
 	/** @brief Return whether the join projection is already close enough to skip route following. */
@@ -101,11 +97,6 @@ private:
 	void updateLastFlownLoopSegmentFromPlan();
 	/** @brief Track the most recently flown loop edge so replans stay anchored on the active jump segment. */
 	void updateLastFlownLoopSegmentForNominalAdvance();
-	/** @brief Detect whether entering the segment at the given target requires a VTOL back-transition. */
-	bool requiresBacktransitionForTarget(int32_t target_index, bool reversed);
-	/** @brief Query the shared planner's segment-anchor logic for route-follow transition replay. */
-	RtlRoutePlanner::TransitionAction transitionActionForTargetIndex(int32_t target_index,
-			bool direction_reversed);
 	/** @brief Publish a non-landing SRP setpoint pair and reset the work item back to route following. */
 	void publishRouteItems(position_setpoint_triplet_s *pos_sp_triplet,
 			       const position_setpoint_s &current_setpoint_copy,
@@ -115,10 +106,18 @@ private:
 	void publishLandingItems(position_setpoint_triplet_s *pos_sp_triplet,
 				 const position_setpoint_s &current_setpoint_copy,
 				 const mission_item_s &landing_mission_item);
+	/** @brief Advance to the next route target, returning true on success or landing at goal on failure. */
+	bool advanceRouteTarget();
+
+	bool loadMissionItemFromCache(int32_t index, mission_item_s &mission_item) override;
 
 	RtlRoutePlanner::Plan _plan{};
 	Stage _stage{Stage::Idle};
 	int32_t _branch_off_index{-1};
 	bool _should_go_straight_to_goal{false};
+	bool _join_requires_back_transition{false}; /**< Whether the join requires a VTOL back-transition (computed by executor). */
 	RtlRoutePlanner::Segment _last_flown_loop_segment{};
+	int32_t _transition_target_index{-1}; /**< Mission index that triggered the current in-flight transition. */
+	RtlTimeEstimator _rtl_time_estimator; /**< Time estimator consistent with other RTL modes. */
+	DatamanCache &_full_mission_cache; /**< Pre-loaded mission cache from RTL, avoids SD card I/O. */
 };

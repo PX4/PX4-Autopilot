@@ -628,7 +628,7 @@ TEST_F(RtlSafePointTest, ScansMissionOnceForBatch_Simple)
 		makeSafePointFromOffset(kBaseLat, kBaseLon, 10.f, 110.f, kAlt),
 	};
 
-	CountingProvider provider{mission, safe_points};
+	VectorProvider provider{mission, safe_points};
 	RtlRoutePlanner planner{provider};
 	const RtlRoutePlanner::Position vehicle_position =
 		makePositionFromOffset(kBaseLat, kBaseLon, 20.f, 5.f, kAlt);
@@ -654,7 +654,7 @@ TEST_F(RtlSafePointTest, ScansMissionOnceForBatch_Simple)
 TEST_F(RtlSafePointTest, ScansMissionOnceForBatch_DefaultDataset)
 {
 	// GIVEN: Default 16-item mission with 7 rally points, using CountingProvider.
-	CountingProvider provider{default_dataset::mission(), default_dataset::safePoints()};
+	VectorProvider provider{default_dataset::mission(), default_dataset::safePoints()};
 	RtlRoutePlanner planner{provider};
 	const RtlRoutePlanner::Position vehicle_position =
 		makePositionAbsolute(46.10508903154495, 2.302372024012729, 463.0f);
@@ -709,20 +709,20 @@ TEST_F(RtlSafePointTest, HandlesLoopProjectionAndReverseJumpChoice)
 
 	ctx.vehicle_pos = vehicle_position;
 	ctx.mission_index = 2;
-	ctx.projection.segment.start.idx = 2;
-	ctx.projection.segment.start.nav_cmd = NAV_CMD_WAYPOINT;
-	ctx.projection.segment.end.idx = 0;
-	ctx.projection.segment.end.nav_cmd = NAV_CMD_WAYPOINT;
-	ctx.projection.segment.is_loop = true;
-	ctx.projection.segment_positions.start = loop_start;
-	ctx.projection.segment_positions.end = loop_end;
-	ctx.projection.projection = vehicle_position;
-	ctx.projection.dist.xtrack = 0.f;
-	ctx.projection.dist.along = 200.f + loop_segment_length / 2.f;
-	ctx.projection.dist.segment_length = loop_segment_length;
-	ctx.projection.dist.on_segment = loop_segment_length / 2.f;
-	ctx.loop_ctx.segment = ctx.projection.segment;
-	ctx.loop_ctx.segment_positions = ctx.projection.segment_positions;
+	ctx.seg_candidate.segment.start.idx = 2;
+	ctx.seg_candidate.segment.start.nav_cmd = NAV_CMD_WAYPOINT;
+	ctx.seg_candidate.segment.end.idx = 0;
+	ctx.seg_candidate.segment.end.nav_cmd = NAV_CMD_WAYPOINT;
+	ctx.seg_candidate.segment.is_loop = true;
+	ctx.seg_candidate.segment_positions.start = loop_start;
+	ctx.seg_candidate.segment_positions.end = loop_end;
+	ctx.seg_candidate.projection = vehicle_position;
+	ctx.seg_candidate.dist.xtrack = 0.f;
+	ctx.seg_candidate.dist.along = 200.f + loop_segment_length / 2.f;
+	ctx.seg_candidate.dist.segment_length = loop_segment_length;
+	ctx.seg_candidate.dist.on_segment = loop_segment_length / 2.f;
+	ctx.loop_ctx.segment = ctx.seg_candidate.segment;
+	ctx.loop_ctx.segment_positions = ctx.seg_candidate.segment_positions;
 	ctx.loop_ctx.along.start = 200.f;
 	ctx.loop_ctx.along.end = 0.f;
 
@@ -849,4 +849,185 @@ TEST_F(RtlSafePointTest, FWWithOrthogonalVelocityNoUturn)
 	// THEN: Orthogonal velocity should not trigger u-turn; no u-turn required on selected path.
 	ASSERT_TRUE(selection.found);
 	EXPECT_FALSE(selection.path.u_turn_required);
+}
+
+// =============================================================================
+// GROUP 7: DO_JUMP loop planning via planRouteToGoal
+// =============================================================================
+
+// WHY: When the vehicle is inside a DO_JUMP loop, the planner must correctly model
+//      the loop edges and select a goal reachable via the loop geometry. The executor
+//      relies on this to advance through the mission without following DO_JUMP control flow.
+// WHAT: Vehicle on the corner_dataset loop area gets a valid plan with a safe point.
+TEST_F(RtlSafePointTest, VehicleInsideDoJumpLoopGetsValidPlan)
+{
+	auto items = corner_dataset::mission();
+	auto safe_points = corner_dataset::safePoints();
+	VectorProvider provider(items, safe_points);
+	RtlRoutePlanner planner(provider);
+
+	auto vehicle_pos = makePositionAbsolute(46.10214, 2.31760, kAlt + 150.f);
+	config = defaultConfig();
+	config.vehicle_velocity_north = corner_dataset::kVelDiag;
+	config.vehicle_velocity_east = -corner_dataset::kVelDiag;
+	config.vehicle_velocity_valid = true;
+
+	config.last_flown_loop_segment.start.idx = 7;
+	config.last_flown_loop_segment.start.nav_cmd = NAV_CMD_WAYPOINT;
+	config.last_flown_loop_segment.end.idx = 2;
+	config.last_flown_loop_segment.end.nav_cmd = NAV_CMD_WAYPOINT;
+	config.last_flown_loop_segment.is_loop = true;
+	config.last_flown_loop_segment.loops_remaining = 5;
+
+	RtlRoutePlanner::Plan plan{};
+	bool ok = planner.planRouteToGoal(vehicle_pos, 7, config, plan, &reason);
+
+	ASSERT_TRUE(ok) << "Failure reason: " << RtlRoutePlanner::failureReasonString(reason);
+	EXPECT_TRUE(plan.valid());
+	EXPECT_TRUE(plan.selection.found);
+}
+
+// WHY: The planner must handle the DO_JUMP loop edge correctly when computing along-route
+//      distances. A safe point near the loop must be reachable via the loop geometry.
+// WHAT: Safe point on jump segment 7→2 is selected when the vehicle is in the loop.
+TEST_F(RtlSafePointTest, SafePointOnDoJumpLoopSegmentIsReachable)
+{
+	auto items = corner_dataset::mission();
+	auto safe_points = corner_dataset::safePoints();
+	VectorProvider provider(items, safe_points);
+	RtlRoutePlanner planner(provider);
+
+	auto vehicle_pos = makePositionAbsolute(46.10225, 2.31670, kAlt + 150.f);
+	config = defaultConfig();
+	config.vehicle_velocity_north = corner_dataset::kVelDiag;
+	config.vehicle_velocity_east = corner_dataset::kVelDiag;
+	config.vehicle_velocity_valid = true;
+
+	config.last_flown_loop_segment.start.idx = 7;
+	config.last_flown_loop_segment.start.nav_cmd = NAV_CMD_WAYPOINT;
+	config.last_flown_loop_segment.end.idx = 2;
+	config.last_flown_loop_segment.end.nav_cmd = NAV_CMD_WAYPOINT;
+	config.last_flown_loop_segment.is_loop = true;
+	config.last_flown_loop_segment.loops_remaining = 3;
+
+	RtlRoutePlanner::Plan plan{};
+	bool ok = planner.planRouteToGoal(vehicle_pos, 7, config, plan, &reason);
+
+	ASSERT_TRUE(ok) << "Failure reason: " << RtlRoutePlanner::failureReasonString(reason);
+	EXPECT_TRUE(plan.selection.found);
+
+	if (plan.selection.safe_point_found) {
+		EXPECT_GE(plan.selection.safe_point_index, 0);
+		EXPECT_TRUE(plan.selection.safe_point_position.valid());
+		EXPECT_TRUE(plan.selection.branch_off_projection.valid());
+	}
+}
+
+// WHY: A mission with an exhausted DO_JUMP (current_count == repeat_count) should be
+//      treated as a straight-through mission with no loop edges.
+// WHAT: Planning succeeds and does not create loop context when DO_JUMP is exhausted.
+TEST_F(RtlSafePointTest, ExhaustedDoJumpTreatedAsStraightThrough)
+{
+	std::vector<mission_item_s> mission = {
+		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt + 20.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kAlt + 30.f),
+		makeDoJump(1, 3, 3),  // exhausted: current == repeat
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 600.f, 0.f, kAlt + 40.f),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 800.f, 0.f, kAlt - 10.f),
+	};
+
+	std::vector<mission_item_s> safe_points = {
+		makeSafePointFromOffset(kBaseLat, kBaseLon, 300.f, 50.f, kAlt),
+	};
+
+	VectorProvider provider(mission, safe_points);
+	RtlRoutePlanner planner(provider);
+
+	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt + 15.f);
+	config = defaultConfig();
+	config.vehicle_velocity_north = 10.f;
+	config.vehicle_velocity_east = 0.f;
+	config.vehicle_velocity_valid = true;
+
+	RtlRoutePlanner::Plan plan{};
+	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, &reason);
+
+	ASSERT_TRUE(ok) << "Failure reason: " << RtlRoutePlanner::failureReasonString(reason);
+	EXPECT_TRUE(plan.valid());
+	EXPECT_FALSE(plan.projection_context.loop_ctx.valid());
+}
+
+// =============================================================================
+// GROUP 8: Direct-to-safe-point shortcut (MC vs FW)
+// =============================================================================
+
+// WHY: When a multicopter is very close to a safe point, the planner should select
+//      direct_to_safe_point=true so the executor flies straight there without following the route.
+// WHAT: MC vehicle within direct_acceptance_radius of a rally point gets direct-to-safe-point.
+TEST_F(RtlSafePointTest, McDirectToNearbySafePoint)
+{
+	std::vector<mission_item_s> mission = {
+		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 500.f, 0.f, kAlt + 50.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 1000.f, 0.f, kAlt + 80.f),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 1500.f, 0.f, kAlt - 10.f),
+	};
+
+	std::vector<mission_item_s> safe_points = {
+		makeSafePointFromOffset(kBaseLat, kBaseLon, 255.f, 0.f, kAlt + 50.f),
+	};
+
+	VectorProvider provider(mission, safe_points);
+	RtlRoutePlanner planner(provider);
+
+	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 250.f, 0.f, kAlt + 50.f);
+	config = defaultConfig();
+	config.is_multicopter = true;
+	config.direct_acceptance_radius = 20.f;
+	config.vehicle_velocity_north = 5.f;
+	config.vehicle_velocity_east = 0.f;
+	config.vehicle_velocity_valid = true;
+
+	RtlRoutePlanner::Plan plan{};
+	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, &reason);
+
+	ASSERT_TRUE(ok) << "Failure reason: " << RtlRoutePlanner::failureReasonString(reason);
+	EXPECT_TRUE(plan.selection.found);
+	EXPECT_TRUE(plan.selection.safe_point_found);
+	EXPECT_TRUE(plan.selection.direct_to_safe_point);
+}
+
+// WHY: Fixed-wing vehicles cannot hover, so the planner should NOT select direct-to-safe-point
+//      even when the safe point is very close. The vehicle must follow the route to the branch-off.
+// WHAT: FW vehicle near a safe point does NOT get direct_to_safe_point=true.
+TEST_F(RtlSafePointTest, FwDoesNotGetDirectToSafePoint)
+{
+	std::vector<mission_item_s> mission = {
+		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 500.f, 0.f, kAlt + 50.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 1000.f, 0.f, kAlt + 80.f),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 1500.f, 0.f, kAlt - 10.f),
+	};
+
+	std::vector<mission_item_s> safe_points = {
+		makeSafePointFromOffset(kBaseLat, kBaseLon, 255.f, 0.f, kAlt + 50.f),
+	};
+
+	VectorProvider provider(mission, safe_points);
+	RtlRoutePlanner planner(provider);
+
+	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 250.f, 0.f, kAlt + 50.f);
+	config = fwConfig();
+	config.direct_acceptance_radius = 20.f;
+	config.vehicle_velocity_north = 15.f;
+	config.vehicle_velocity_east = 0.f;
+	config.vehicle_velocity_valid = true;
+
+	RtlRoutePlanner::Plan plan{};
+	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, &reason);
+
+	ASSERT_TRUE(ok) << "Failure reason: " << RtlRoutePlanner::failureReasonString(reason);
+	EXPECT_TRUE(plan.selection.found);
+	EXPECT_FALSE(plan.selection.direct_to_safe_point);
 }

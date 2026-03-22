@@ -77,7 +77,17 @@ public:
 	 *
 	 * @return false if the mission item does not contain a valid position
 	 */
-	static bool item_contains_position(const mission_item_s &item);
+	static inline bool item_contains_position(const mission_item_s &item)
+	{
+		return item.nav_cmd == NAV_CMD_WAYPOINT ||
+		       item.nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
+		       item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
+		       item.nav_cmd == NAV_CMD_LAND ||
+		       item.nav_cmd == NAV_CMD_TAKEOFF ||
+		       item.nav_cmd == NAV_CMD_LOITER_TO_ALT ||
+		       item.nav_cmd == NAV_CMD_VTOL_TAKEOFF ||
+		       item.nav_cmd == NAV_CMD_VTOL_LAND;
+	}
 
 	/**
 	 * Returns true if the mission item is not an instant action, but has a delay / timeout

@@ -58,52 +58,29 @@
 // Provider implementations for testing
 // ============================================================================
 
-/** @brief In-memory planner provider backed by mission and safe-point vectors. */
+/**
+ * @brief In-memory planner provider for all RtlRoutePlanner tests.
+ *
+ * Supports two optional capabilities on top of basic vector-backed access:
+ * - Fault injection: indices listed in faulty_mission_indices / faulty_safe_point_indices
+ *   will fail to load, simulating SD card read errors.
+ * - Load counting: missionLoadCount() / safePointLoadCount() track how many reads
+ *   the planner performed, useful for verifying batching behavior.
+ *
+ * When constructed with just mission + safe-point vectors (the common case),
+ * fault lists are empty and counters can be ignored.
+ */
 class VectorProvider : public RtlRoutePlanner::Provider
 {
 public:
-	VectorProvider(std::vector<mission_item_s> mission_items, std::vector<mission_item_s> safe_point_items) :
+	VectorProvider(std::vector<mission_item_s> mission_items,
+		       std::vector<mission_item_s> safe_point_items,
+		       std::vector<int> faulty_mission_indices = {},
+		       std::vector<int> faulty_safe_point_indices = {}) :
 		_mission_items(std::move(mission_items)),
-		_safe_point_items(std::move(safe_point_items))
-	{
-	}
-
-	int missionCount() const override { return static_cast<int>(_mission_items.size()); }
-
-	bool loadMissionItem(int index, mission_item_s &mission_item) const override
-	{
-		if (index < 0 || index >= missionCount()) {
-			return false;
-		}
-
-		mission_item = _mission_items[index];
-		return true;
-	}
-
-	int safePointCount() const override { return static_cast<int>(_safe_point_items.size()); }
-
-	bool loadSafePointItem(int index, mission_item_s &safe_point_item) const override
-	{
-		if (index < 0 || index >= safePointCount()) {
-			return false;
-		}
-
-		safe_point_item = _safe_point_items[index];
-		return true;
-	}
-
-private:
-	std::vector<mission_item_s> _mission_items;
-	std::vector<mission_item_s> _safe_point_items;
-};
-
-/** @brief Provider that counts dataman-style reads so batching behavior can be observed externally. */
-class CountingProvider : public RtlRoutePlanner::Provider
-{
-public:
-	CountingProvider(std::vector<mission_item_s> mission_items, std::vector<mission_item_s> safe_point_items) :
-		_mission_items(std::move(mission_items)),
-		_safe_point_items(std::move(safe_point_items))
+		_safe_point_items(std::move(safe_point_items)),
+		_faulty_mission_indices(std::move(faulty_mission_indices)),
+		_faulty_safe_point_indices(std::move(faulty_safe_point_indices))
 	{
 	}
 
@@ -112,6 +89,12 @@ public:
 	bool loadMissionItem(int index, mission_item_s &mission_item) const override
 	{
 		++_mission_load_count;
+
+		for (int fi : _faulty_mission_indices) {
+			if (fi == index) {
+				return false;
+			}
+		}
 
 		if (index < 0 || index >= missionCount()) {
 			return false;
@@ -126,6 +109,12 @@ public:
 	bool loadSafePointItem(int index, mission_item_s &safe_point_item) const override
 	{
 		++_safe_point_load_count;
+
+		for (int fi : _faulty_safe_point_indices) {
+			if (fi == index) {
+				return false;
+			}
+		}
 
 		if (index < 0 || index >= safePointCount()) {
 			return false;
@@ -147,6 +136,8 @@ public:
 private:
 	std::vector<mission_item_s> _mission_items;
 	std::vector<mission_item_s> _safe_point_items;
+	std::vector<int> _faulty_mission_indices;
+	std::vector<int> _faulty_safe_point_indices;
 	mutable int _mission_load_count{0};
 	mutable int _safe_point_load_count{0};
 };
@@ -289,7 +280,6 @@ static inline RtlRoutePlanner::Config fwConfig()
 {
 	RtlRoutePlanner::Config config = defaultConfig();
 	config.is_multicopter = false;
-	config.vehicle_is_vtol = true;
 	config.vehicle_is_fixed_wing = true;
 	config.u_turn_penalty_m = 4000.f;
 	return config;

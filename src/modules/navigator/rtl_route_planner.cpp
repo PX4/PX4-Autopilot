@@ -47,14 +47,13 @@
 #include <mathlib/mathlib.h>
 
 #include <px4_platform_common/log.h>
-#include <uORB/topics/vtol_vehicle_status.h>
 
 using namespace math;
 
 /**
  * Shared static SafePointBatch to keep the ~25 KB struct off the stack on
- * constrained targets.  All three call-sites (findProjectionCandidates,
- * collectVehicleProjection, selectSafePoint) reinitialize the batch before
+ * constrained targets.  Both call-sites (collectVehicleProjection,
+ * selectSafePoint) reinitialize the batch before
  * use and are never called concurrently
  */
 static RtlRoutePlanner::SafePointBatch s_safe_point_batch{};
@@ -110,116 +109,6 @@ const char *RtlRoutePlanner::goalTypeString(GoalType goal_type)
 	}
 }
 
-/** @brief Validate a global route-planning position. */
-bool RtlRoutePlanner::Position::valid() const
-{
-	return PX4_ISFINITE(lat) && PX4_ISFINITE(lon) && PX4_ISFINITE(alt)
-	       && !((fabs(lat) < kNullIslandThresholdDeg) && (fabs(lon) < kNullIslandThresholdDeg))
-	       && (fabs(lat) < 90.0) && (fabs(lon) < 180.0);
-}
-
-/** @brief Validate the along-track and cross-track distances of a projection. */
-bool RtlRoutePlanner::PointDistance::valid() const
-{
-	return PX4_ISFINITE(xtrack) && xtrack >= 0.f
-	       && PX4_ISFINITE(along) && along >= 0.f
-	       && PX4_ISFINITE(segment_length) && segment_length >= 0.f
-	       && PX4_ISFINITE(on_segment) && on_segment >= 0.f
-	       && on_segment < (segment_length + kRoundingToleranceM);
-}
-
-/** @brief Validate a mission segment endpoint descriptor. */
-bool RtlRoutePlanner::SegmentEndpoint::valid() const
-{
-	return idx >= 0 && nav_cmd != NAV_CMD_INVALID;
-}
-
-/** @brief Validate a mission segment descriptor. */
-bool RtlRoutePlanner::Segment::valid() const
-{
-	return start.valid() && end.valid() && start.idx != end.idx
-	       && (is_loop || start.idx < end.idx);
-}
-
-/** @brief Validate the along-track interval of a segment. */
-bool RtlRoutePlanner::SegmentDistanceAlong::valid() const
-{
-	return PX4_ISFINITE(start) && start > -FLT_EPSILON
-	       && PX4_ISFINITE(end) && end > -FLT_EPSILON;
-}
-
-/** @brief Validate the start and end positions of a segment. */
-bool RtlRoutePlanner::SegmentPositions::valid() const
-{
-	return start.valid() && end.valid();
-}
-
-/** @brief Validate a concrete segment projection candidate. */
-bool RtlRoutePlanner::SegmentCandidate::valid() const
-{
-	return segment.valid() && segment_positions.valid() && projection.valid() && dist.valid();
-}
-
-/** @brief Validate loop-specific context captured from a jump segment projection. */
-bool RtlRoutePlanner::LoopContext::valid() const
-{
-	return segment.is_loop && along.valid() && segment_positions.valid();
-}
-
-/** @brief Validate the vehicle projection context used for route planning. */
-bool RtlRoutePlanner::ProjectionContext::valid() const
-{
-	return vehicle_pos.valid() && projection.valid();
-}
-
-/** @brief Validate a mission path decision. */
-bool RtlRoutePlanner::Path::valid() const
-{
-	return first_item_index >= 0 && first_item_cmd != NAV_CMD_INVALID && PX4_ISFINITE(dist);
-}
-
-/** @brief Validate the selected SRP goal and its cached branch-off geometry. */
-bool RtlRoutePlanner::Selection::valid() const
-{
-	if (!found || !path.valid() || goal_type == GoalType::None || !goal_position.valid()) {
-		return false;
-	}
-
-	if (!safe_point_found) {
-		return goal_type == GoalType::MissionLand || goal_type == GoalType::MissionTakeoff;
-	}
-
-	return goal_type == GoalType::SafePoint
-	       && safe_point_index >= 0
-	       && branch_off_segment.valid()
-	       && branch_off_projection.valid()
-	       && safe_point_position.valid();
-}
-
-/** @brief Return the mission index where SRP branches away from the mission path. */
-int32_t RtlRoutePlanner::Selection::branchOffIndex() const
-{
-	if (branch_off_segment.valid()) {
-		return path.direction_reversed ? branch_off_segment.start.idx : branch_off_segment.end.idx;
-	}
-
-	return path.first_item_index;
-}
-
-/** @brief Return whether a mission item contributes a position to path planning. */
-bool RtlRoutePlanner::itemContainsPosition(const mission_item_s &mission_item)
-{
-	return mission_item.nav_cmd == NAV_CMD_WAYPOINT
-	       || mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED
-	       || mission_item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT
-	       || mission_item.nav_cmd == NAV_CMD_LAND
-	       || mission_item.nav_cmd == NAV_CMD_TAKEOFF
-	       || mission_item.nav_cmd == NAV_CMD_LOITER_TO_ALT
-	       || mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF
-	       || mission_item.nav_cmd == NAV_CMD_VTOL_LAND;
-}
-
-/** @brief Convert a mission item's altitude to AMSL when required. */
 float RtlRoutePlanner::getAbsoluteAltitudeForMissionItem(const mission_item_s &mission_item, float home_altitude_amsl)
 {
 	if (mission_item.altitude_is_relative && PX4_ISFINITE(home_altitude_amsl)) {
@@ -229,11 +118,10 @@ float RtlRoutePlanner::getAbsoluteAltitudeForMissionItem(const mission_item_s &m
 	return mission_item.altitude;
 }
 
-/** @brief Extract a valid global position from a mission item. */
 bool RtlRoutePlanner::extractMissionPosition(const mission_item_s &mission_item, float home_altitude_amsl,
 		Position &position)
 {
-	if (!itemContainsPosition(mission_item)) {
+	if (!MissionBlock::item_contains_position(mission_item)) {
 		return false;
 	}
 
@@ -243,7 +131,6 @@ bool RtlRoutePlanner::extractMissionPosition(const mission_item_s &mission_item,
 	return position.valid();
 }
 
-/** @brief Extract a valid global position from a safe-point item. */
 bool RtlRoutePlanner::extractSafePointPosition(const mission_item_s &safe_point_item, float home_altitude_amsl,
 		Position &position)
 {
@@ -275,7 +162,6 @@ bool RtlRoutePlanner::extractSafePointPosition(const mission_item_s &safe_point_
 	return position.valid();
 }
 
-/** @brief Read a mission item and return its attached valid position if it has one. */
 bool RtlRoutePlanner::readValidMissionPosition(int index, float home_altitude_amsl, Position &position,
 		uint16_t *nav_cmd) const
 {
@@ -296,7 +182,6 @@ bool RtlRoutePlanner::readValidMissionPosition(int index, float home_altitude_am
 	return true;
 }
 
-/** @brief Find the next mission index carrying a valid position item. */
 bool RtlRoutePlanner::findNextValidPositionIndex(uint16_t start_index, float home_altitude_amsl,
 		uint16_t &next_position_index) const
 {
@@ -312,7 +197,6 @@ bool RtlRoutePlanner::findNextValidPositionIndex(uint16_t start_index, float hom
 	return false;
 }
 
-/** @brief Find the position item attached to or preceding the given mission index. */
 bool RtlRoutePlanner::findAttachedValidPositionIndex(uint16_t start_index, float home_altitude_amsl,
 		uint16_t &attached_position_index) const
 {
@@ -323,7 +207,7 @@ bool RtlRoutePlanner::findAttachedValidPositionIndex(uint16_t start_index, float
 			return false;
 		}
 
-		if (itemContainsPosition(mission_item)) {
+		if (MissionBlock::item_contains_position(mission_item)) {
 			Position position{};
 
 			if (extractMissionPosition(mission_item, home_altitude_amsl, position)) {
@@ -338,7 +222,6 @@ bool RtlRoutePlanner::findAttachedValidPositionIndex(uint16_t start_index, float
 	return false;
 }
 
-/** @brief Load all valid safe points once so the route can be scanned in a single batch. */
 bool RtlRoutePlanner::loadSafePointBatch(float home_altitude_amsl, SafePointBatch &batch) const
 {
 	batch = {};
@@ -379,7 +262,6 @@ bool RtlRoutePlanner::loadSafePointBatch(float home_altitude_amsl, SafePointBatc
 	return batch.count > 0;
 }
 
-/** @brief Clear all per-safe-point candidate buffers before running a new batch scan. */
 void RtlRoutePlanner::resetSafePointBatchResults(SafePointBatch &batch) const
 {
 	for (uint8_t i = 0; i < batch.count; ++i) {
@@ -387,7 +269,6 @@ void RtlRoutePlanner::resetSafePointBatchResults(SafePointBatch &batch) const
 	}
 }
 
-/** @brief Advance mission scanning state to the next position-bearing segment end. */
 bool RtlRoutePlanner::prepareNextSegment(uint16_t index, Segment &segment, SegmentPositions &segment_positions,
 		float home_altitude_amsl, FailureReason &failure_reason) const
 {
@@ -425,7 +306,7 @@ bool RtlRoutePlanner::prepareNextSegment(uint16_t index, Segment &segment, Segme
 		segment.end.nav_cmd = mission_item.nav_cmd;
 	}
 
-	if (!itemContainsPosition(mission_item)) {
+	if (!MissionBlock::item_contains_position(mission_item)) {
 		return false;
 	}
 
@@ -437,7 +318,6 @@ bool RtlRoutePlanner::prepareNextSegment(uint16_t index, Segment &segment, Segme
 	return true;
 }
 
-/** @brief Apply the same local-minimum pruning rule used by legacy SRP projections. */
 bool RtlRoutePlanner::localMinimumOnSegment(bool proj_on_start, bool proj_on_end, bool prev_proj_on_end,
 		bool jumping, bool last_segment) const
 {
@@ -454,7 +334,6 @@ bool RtlRoutePlanner::localMinimumOnSegment(bool proj_on_start, bool proj_on_end
 	return !proj_on_corner || (proj_on_start && prev_proj_on_end);
 }
 
-/** @brief Sanity-check a projection candidate before inserting it into the buffer. */
 bool RtlRoutePlanner::validateCandidate(const SegmentCandidate &candidate) const
 {
 	if (!candidate.valid()) {
@@ -473,7 +352,6 @@ bool RtlRoutePlanner::validateCandidate(const SegmentCandidate &candidate) const
 	return true;
 }
 
-/** @brief Insert a segment candidate into the xtrack-sorted candidate buffer. */
 void RtlRoutePlanner::insertCandidateSorted(CandidateBuffer &candidate_buffer, const SegmentCandidate &candidate) const
 {
 	uint8_t insert_index = 0;
@@ -498,7 +376,6 @@ void RtlRoutePlanner::insertCandidateSorted(CandidateBuffer &candidate_buffer, c
 	candidate_buffer.count = min(static_cast<uint8_t>(buffer_size + 1), MAX_SEGMENT_CANDIDATES);
 }
 
-/** @brief Trim the projection candidate buffer once a tighter xtrack window is known. */
 void RtlRoutePlanner::pruneProjectionCandidates(CandidateBuffer &candidate_buffer, float xtrack_limit) const
 {
 	if (candidate_buffer.count < 2) {
@@ -520,7 +397,6 @@ void RtlRoutePlanner::pruneProjectionCandidates(CandidateBuffer &candidate_buffe
 	candidate_buffer.count = 0;
 }
 
-/** @brief Fill the along-track bounds of the last flown segment once they are reached during scanning. */
 bool RtlRoutePlanner::fillDistAlongToLastFlownIfNecessary(int32_t mission_index, const Segment &segment_to_consider,
 		bool is_flying_reverse, float total_dist, float segment_length,
 		const Segment &last_flown_loop_segment,
@@ -560,7 +436,6 @@ bool RtlRoutePlanner::fillDistAlongToLastFlownIfNecessary(int32_t mission_index,
 	return false;
 }
 
-/** @brief Check whether a mission index lies inside a projected segment for the current travel direction. */
 bool RtlRoutePlanner::isIndexInProjectionSegment(const Segment &projection_segment, int32_t mission_index,
 		bool is_flying_reverse) const
 {
@@ -575,31 +450,6 @@ bool RtlRoutePlanner::isIndexInProjectionSegment(const Segment &projection_segme
 	return mission_index > projection_segment.start.idx && mission_index <= projection_segment.end.idx;
 }
 
-/**
- * @brief Evaluate one mission segment for one reference point and keep only locally minimal projections.
- *
- * Algorithm outline:
- *   1. If the segment is zero-length, the projection is the endpoint itself (xtrack = direct distance).
- *   2. Otherwise, compute the orthogonal projection of the reference point onto the segment:
- *      - Vector A→B: segment start to segment end (local NED frame).
- *      - Vector A→P: segment start to reference point.
- *      - Projection parameter: t = (A→P · A→B) / |A→B|².
- *      - Clamp t to [0, 1] to stay on the segment.
- *   3. Corner detection (5 cm tolerance):
- *      - proj_on_start: t * segment_length < 5 cm.
- *      - proj_on_end: (1 − t) * segment_length < 5 cm.
- *   4. Local minimum filter (localMinimumOnSegment):
- *      - Jump/loop segments: only non-corner projections are local minima.
- *      - Last segment: proj_on_end is always accepted.
- *      - Normal segments: accept non-corner projections, or accept a corner when consecutive
- *        segments share the same vertex (proj_on_start AND previous segment's proj_on_end).
- *   5. Reject if xtrack is non-finite or exceeds the current shrinking search window.
- *   6. Reconstruct the projection in global coordinates (lat/lon via local NED vector addition,
- *      altitude via linear interpolation).
- *   7. Validate the candidate (finite distances, valid indices).
- *   8. If xtrack < current min_xtrack, tighten the search window and prune stale candidates.
- *   9. Insert the candidate into the buffer sorted by xtrack (up to MAX_SEGMENT_CANDIDATES = 3).
- */
 void RtlRoutePlanner::processCandidateForSegment(const Position &reference_position, const Segment &segment,
 		const SegmentPositions &segment_positions, float segment_length,
 		const matrix::Vector2f &segment_vector, float total_dist,
@@ -711,7 +561,6 @@ void RtlRoutePlanner::processCandidateForSegment(const Position &reference_posit
 	insertCandidateSorted(candidate_buffer, candidate);
 }
 
-/** @brief Find locally optimal mission projections for a batch of safe points in one route scan. */
 bool RtlRoutePlanner::findProjectionCandidatesBatch(int32_t mission_index, float home_altitude_amsl,
 		bool is_flying_reverse, float extra_xtrack_dist,
 		const Segment &last_flown_loop_segment,
@@ -921,39 +770,6 @@ bool RtlRoutePlanner::findProjectionCandidatesBatch(int32_t mission_index, float
 	return false;
 }
 
-/** @brief Find all locally optimal mission projections for a single reference position. */
-bool RtlRoutePlanner::findProjectionCandidates(const Position &reference_position, int32_t mission_index,
-		float home_altitude_amsl,
-		bool is_flying_reverse, float extra_xtrack_dist, CandidateBuffer &candidate_buffer,
-		SegmentDistanceAlong *dist_along_to_last_flown_segment, float *dist_along_to_route_end,
-		uint8_t *loops_remaining, FailureReason *failure_reason) const
-{
-	if (failure_reason != nullptr) {
-		*failure_reason = FailureReason::Unknown;
-	}
-
-	if (!reference_position.valid()) {
-		if (failure_reason != nullptr) {
-			*failure_reason = FailureReason::NoValidGlobalPos;
-		}
-
-		return false;
-	}
-
-	s_safe_point_batch = {};
-	s_safe_point_batch.count = 1;
-	s_safe_point_batch.items[0].position = reference_position;
-
-	const bool any_candidate_found = findProjectionCandidatesBatch(mission_index, home_altitude_amsl, is_flying_reverse,
-					 extra_xtrack_dist, Segment{}, s_safe_point_batch,
-					 dist_along_to_last_flown_segment, dist_along_to_route_end,
-					 loops_remaining, failure_reason);
-
-	candidate_buffer = s_safe_point_batch.items[0].candidate_buffer;
-	return any_candidate_found && candidate_buffer.count > 0;
-}
-
-/** @brief Clamp a mission index into the valid mission range before projection. */
 bool RtlRoutePlanner::clampMissionIndex(int32_t &mission_index) const
 {
 	if (_provider.missionCount() <= 0) {
@@ -964,7 +780,6 @@ bool RtlRoutePlanner::clampMissionIndex(int32_t &mission_index) const
 	return true;
 }
 
-/** @brief Project the vehicle onto the mission while preferring the currently active segment. */
 bool RtlRoutePlanner::collectVehicleProjection(const Position &vehicle_position, int32_t mission_index,
 		const Config &config, ProjectionContext &projection_context, FailureReason *failure_reason) const
 {
@@ -1079,7 +894,7 @@ bool RtlRoutePlanner::collectVehicleProjection(const Position &vehicle_position,
 	projection_context = {};
 	projection_context.vehicle_pos = vehicle_position;
 	projection_context.mission_index = mission_index;
-	projection_context.projection = candidate_buffer.candidates[best_candidate_index];
+	projection_context.seg_candidate = candidate_buffer.candidates[best_candidate_index];
 	projection_context.is_flying_reverse = config.is_flying_reverse;
 	projection_context.vehicle_velocity_north = config.vehicle_velocity_north;
 	projection_context.vehicle_velocity_east = config.vehicle_velocity_east;
@@ -1090,12 +905,12 @@ bool RtlRoutePlanner::collectVehicleProjection(const Position &vehicle_position,
 	PX4_DEBUG("RTL SRP UAV proj selected cand %d (of %u) on seg [%u->%u], path_dist=%.1f",
 		  best_candidate_index,
 		  candidate_buffer.count,
-		  static_cast<unsigned>(projection_context.projection.segment.start.idx),
-		  static_cast<unsigned>(projection_context.projection.segment.end.idx),
+		  static_cast<unsigned>(projection_context.seg_candidate.segment.start.idx),
+		  static_cast<unsigned>(projection_context.seg_candidate.segment.end.idx),
 		  static_cast<double>(min_path_distance));
 
-	if (projection_context.projection.segment.is_loop) {
-		projection_context.loop_ctx = buildLoopContext(projection_context.projection, config.home_altitude_amsl);
+	if (projection_context.seg_candidate.segment.is_loop) {
+		projection_context.loop_ctx = buildLoopContext(projection_context.seg_candidate, config.home_altitude_amsl);
 	}
 
 	if (failure_reason != nullptr) {
@@ -1105,7 +920,6 @@ bool RtlRoutePlanner::collectVehicleProjection(const Position &vehicle_position,
 	return projection_context.valid();
 }
 
-/** @brief Accumulate the 2D mission distance between two position-bearing mission indices. */
 float RtlRoutePlanner::accumulateRouteDistance(uint16_t from_index, uint16_t to_index, float home_altitude_amsl) const
 {
 	if (from_index > to_index || to_index >= _provider.missionCount()) {
@@ -1152,7 +966,6 @@ float RtlRoutePlanner::accumulateRouteDistance(uint16_t from_index, uint16_t to_
 	return accumulated;
 }
 
-/** @brief Build the loop-jump context used when the vehicle is projected onto a DO_JUMP segment. */
 RtlRoutePlanner::LoopContext RtlRoutePlanner::buildLoopContext(const SegmentCandidate &vehicle_projection,
 		float home_altitude_amsl) const
 {
@@ -1177,7 +990,6 @@ RtlRoutePlanner::LoopContext RtlRoutePlanner::buildLoopContext(const SegmentCand
 	return loop_context;
 }
 
-/** @brief Force or infer the direction used to reach a goal from the projected vehicle location. */
 bool RtlRoutePlanner::mustFlyReverse(float goal_dist_along, float projection_dist_along,
 				     PathDirectionMode direction_mode) const
 {
@@ -1194,7 +1006,6 @@ bool RtlRoutePlanner::mustFlyReverse(float goal_dist_along, float projection_dis
 	}
 }
 
-/** @brief Compute the desired course used for fixed-wing U-turn detection. */
 void RtlRoutePlanner::computeDesiredCourseVector(const ProjectionContext &projection_context, bool will_fly_reverse,
 		float &desired_course_north, float &desired_course_east) const
 {
@@ -1202,17 +1013,17 @@ void RtlRoutePlanner::computeDesiredCourseVector(const ProjectionContext &projec
 	static constexpr float kFarFromRouteM = 10.f;
 	matrix::Vector2f desired_course_vec{};
 
-	if (projection_context.projection.dist.segment_length < kSmallLengthM
-	    || projection_context.projection.dist.xtrack > kFarFromRouteM) {
+	if (projection_context.seg_candidate.dist.segment_length < kSmallLengthM
+	    || projection_context.seg_candidate.dist.xtrack > kFarFromRouteM) {
 		get_vector_to_next_waypoint(projection_context.vehicle_pos.lat, projection_context.vehicle_pos.lon,
-					    projection_context.projection.projection.lat, projection_context.projection.projection.lon,
+					    projection_context.seg_candidate.projection.lat, projection_context.seg_candidate.projection.lon,
 					    &desired_course_vec(0), &desired_course_vec(1));
 
 	} else {
-		const Position &segment_start = will_fly_reverse ? projection_context.projection.segment_positions.end
-						: projection_context.projection.segment_positions.start;
-		const Position &segment_end = will_fly_reverse ? projection_context.projection.segment_positions.start
-					      : projection_context.projection.segment_positions.end;
+		const Position &segment_start = will_fly_reverse ? projection_context.seg_candidate.segment_positions.end
+						: projection_context.seg_candidate.segment_positions.start;
+		const Position &segment_end = will_fly_reverse ? projection_context.seg_candidate.segment_positions.start
+					      : projection_context.seg_candidate.segment_positions.end;
 
 		get_vector_to_next_waypoint(segment_start.lat, segment_start.lon,
 					    segment_end.lat, segment_end.lon,
@@ -1223,7 +1034,6 @@ void RtlRoutePlanner::computeDesiredCourseVector(const ProjectionContext &projec
 	desired_course_east = desired_course_vec(1);
 }
 
-/** @brief Check whether a fixed-wing route change implies an immediate U-turn. */
 bool RtlRoutePlanner::uTurnRequired(const ProjectionContext &projection_context, const Config &config,
 				    bool will_fly_reverse) const
 {
@@ -1255,30 +1065,12 @@ bool RtlRoutePlanner::uTurnRequired(const ProjectionContext &projection_context,
 	return local_velocity.dot(desired_course) < 0.f;
 }
 
-/**
- * @brief Compute the shortest along-route path from the vehicle projection to a goal projection.
- *
- * Case 1 — Normal path (vehicle NOT on a DO_JUMP loop, or goal on the same loop):
- *   - Direction decision: reverse if goal_dist_along < vehicle projection dist_along.
- *   - Distance = |goal_dist_along − vehicle_dist_along|.
- *   - FW/VTOL-FW U-turn penalty: +4000 m when reversing would require an immediate turn-around.
- *   - First item selection: when direction is unchanged and the mission index lies within the
- *     projected segment, choose the segment start (unless already at end) so the join target
- *     stays on the current leg.  When direction changes, choose start if reverse, end otherwise.
- *
- * Case 2 — Vehicle on a DO_JUMP loop, goal outside the loop:
- *   - Path A (complete loop): remaining loop distance + distance from loop end to goal.
- *   - Path B (reverse loop):  already-travelled loop distance + distance from loop start to goal.
- *   - If loops_remaining > 0: force Path A (must complete the loop iteration).
- *   - Otherwise: choose the cheaper path.
- *   - Each path independently evaluates its FW U-turn penalty.
- */
 RtlRoutePlanner::Path RtlRoutePlanner::findShortestPath(uint16_t goal_segment_end_idx, float goal_dist_along,
 		const ProjectionContext &projection_context, const Config &config,
 		PathDirectionMode direction_mode) const
 {
 	Path path{};
-	Position first_item_location = projection_context.projection.segment_positions.end;
+	Position first_item_location = projection_context.seg_candidate.segment_positions.end;
 	const bool goal_is_on_jump_segment = (goal_segment_end_idx == projection_context.loop_ctx.segment.end.idx);
 	const bool on_jump_segment_and_goal_elsewhere = projection_context.loop_ctx.valid() && !goal_is_on_jump_segment;
 
@@ -1289,9 +1081,9 @@ RtlRoutePlanner::Path RtlRoutePlanner::findShortestPath(uint16_t goal_segment_en
 
 	// --- Case 1: Normal path (no active loop, or goal on the same loop) ---
 	if (!on_jump_segment_and_goal_elsewhere) {
-		const bool will_fly_reverse = mustFlyReverse(goal_dist_along, projection_context.projection.dist.along,
+		const bool will_fly_reverse = mustFlyReverse(goal_dist_along, projection_context.seg_candidate.dist.along,
 					      direction_mode);
-		const float abs_distance_projection_to_goal = fabsf(goal_dist_along - projection_context.projection.dist.along);
+		const float abs_distance_projection_to_goal = fabsf(goal_dist_along - projection_context.seg_candidate.dist.along);
 
 		path.direction_reversed = will_fly_reverse;
 		path.u_turn_required = uTurnRequired(projection_context, config, will_fly_reverse);
@@ -1302,12 +1094,12 @@ RtlRoutePlanner::Path RtlRoutePlanner::findShortestPath(uint16_t goal_segment_en
 		const bool direction_change = (projection_context.is_flying_reverse != will_fly_reverse);
 
 		if (!direction_change
-		    && isIndexInProjectionSegment(projection_context.projection.segment,
+		    && isIndexInProjectionSegment(projection_context.seg_candidate.segment,
 						  projection_context.mission_index,
 						  projection_context.is_flying_reverse)) {
 			// No direction change, still on the same segment: prefer segment start unless
 			// already past it, so the mission stays anchored on the current leg.
-			choose_item_start = projection_context.mission_index < projection_context.projection.segment.end.idx;
+			choose_item_start = projection_context.mission_index < projection_context.seg_candidate.segment.end.idx;
 
 		} else {
 			// Direction change or off-segment: choose start when reversing, end when nominal.
@@ -1315,22 +1107,22 @@ RtlRoutePlanner::Path RtlRoutePlanner::findShortestPath(uint16_t goal_segment_en
 		}
 
 		if (choose_item_start) {
-			path.first_item_index = projection_context.projection.segment.start.idx;
-			path.first_item_cmd = projection_context.projection.segment.start.nav_cmd;
-			first_item_location = projection_context.projection.segment_positions.start;
+			path.first_item_index = projection_context.seg_candidate.segment.start.idx;
+			path.first_item_cmd = projection_context.seg_candidate.segment.start.nav_cmd;
+			first_item_location = projection_context.seg_candidate.segment_positions.start;
 
 		} else {
-			path.first_item_index = projection_context.projection.segment.end.idx;
-			path.first_item_cmd = projection_context.projection.segment.end.nav_cmd;
-			first_item_location = projection_context.projection.segment_positions.end;
+			path.first_item_index = projection_context.seg_candidate.segment.end.idx;
+			path.first_item_cmd = projection_context.seg_candidate.segment.end.nav_cmd;
+			first_item_location = projection_context.seg_candidate.segment_positions.end;
 		}
 
 	} else {
 		// --- Case 2: Vehicle on a DO_JUMP loop, goal outside the loop ---
 
 		// Path A: complete the remaining loop distance then continue to the goal.
-		const float dist_jump_remaining = fabsf(projection_context.projection.dist.segment_length
-							- projection_context.projection.dist.on_segment);
+		const float dist_jump_remaining = fabsf(projection_context.seg_candidate.dist.segment_length
+							- projection_context.seg_candidate.dist.on_segment);
 		const float path_a_raw_cost = dist_jump_remaining
 					      + fabsf(goal_dist_along - projection_context.loop_ctx.along.end);
 		const bool is_rev_from_loop_end = mustFlyReverse(goal_dist_along, projection_context.loop_ctx.along.end,
@@ -1345,11 +1137,11 @@ RtlRoutePlanner::Path RtlRoutePlanner::findShortestPath(uint16_t goal_segment_en
 			path.direction_reversed = is_rev_from_loop_end;
 			path.u_turn_required = path_a_u_turn_required;
 			path.dist = path_a_cost;
-			first_item_location = projection_context.projection.segment_positions.end;
+			first_item_location = projection_context.seg_candidate.segment_positions.end;
 
 		} else {
 			// Path B: backtrack the already-travelled loop distance then continue to the goal.
-			const float dist_jump_travelled = projection_context.projection.dist.on_segment;
+			const float dist_jump_travelled = projection_context.seg_candidate.dist.on_segment;
 			const float path_b_raw_cost = dist_jump_travelled
 						      + fabsf(goal_dist_along - projection_context.loop_ctx.along.start);
 			const bool is_rev_from_loop_start = mustFlyReverse(goal_dist_along, projection_context.loop_ctx.along.start,
@@ -1364,7 +1156,7 @@ RtlRoutePlanner::Path RtlRoutePlanner::findShortestPath(uint16_t goal_segment_en
 				path.direction_reversed = is_rev_from_loop_end;
 				path.u_turn_required = path_a_u_turn_required;
 				path.dist = path_a_cost;
-				first_item_location = projection_context.projection.segment_positions.end;
+				first_item_location = projection_context.seg_candidate.segment_positions.end;
 
 			} else {
 				path.first_item_index = projection_context.loop_ctx.segment.start.idx;
@@ -1372,7 +1164,7 @@ RtlRoutePlanner::Path RtlRoutePlanner::findShortestPath(uint16_t goal_segment_en
 				path.direction_reversed = is_rev_from_loop_start;
 				path.u_turn_required = path_b_u_turn_required;
 				path.dist = path_b_cost;
-				first_item_location = projection_context.projection.segment_positions.start;
+				first_item_location = projection_context.seg_candidate.segment_positions.start;
 			}
 		}
 	}
@@ -1397,13 +1189,12 @@ RtlRoutePlanner::Path RtlRoutePlanner::findShortestPath(uint16_t goal_segment_en
 		  static_cast<unsigned>(path.in_first_item_acc_rad));
 	PX4_DEBUG("RTL SRP path: dist_to_first_item %.1f, uav_along %.1f, goal_along %.1f",
 		  static_cast<double>(dist_to_first_item),
-		  static_cast<double>(projection_context.projection.dist.along),
+		  static_cast<double>(projection_context.seg_candidate.dist.along),
 		  static_cast<double>(goal_dist_along));
 
 	return path;
 }
 
-/** @brief Allow multicopters already close to a safe point to skip the route join and fly straight to it. */
 bool RtlRoutePlanner::directToSafePoint(const Position &safe_point_position, const Position &vehicle_position,
 					const Config &config) const
 {
@@ -1417,22 +1208,6 @@ bool RtlRoutePlanner::directToSafePoint(const Position &safe_point_position, con
 	return PX4_ISFINITE(dist) && dist < config.direct_acceptance_radius;
 }
 
-/**
- * @brief Scan every safe point, project it onto the mission, and pick the best route-follow goal.
- *
- * Algorithm:
- *   1. Load all safe points from dataman into a batch (up to MAX_SAFE_POINT_BATCH = 64).
- *   2. Project every safe point onto the mission geometry in a single batched scan, producing up
- *      to 3 local-minimum candidates per safe point.
- *   3. For each safe point, evaluate every valid candidate:
- *      - Loop candidates are only considered when the vehicle itself is on a loop edge.
- *      - findShortestPath() computes the along-route cost from vehicle projection to candidate.
- *      - Track the candidate with the lowest path cost.
- *   4. First priority: if the vehicle is a multicopter already within direct acceptance radius of
- *      any safe point, select it immediately and stop (direct-to-safe-point shortcut).
- *   5. Second priority: select the safe point with the shortest valid path cost.
- *   6. Record the winning safe point's position, branch-off segment, and projection.
- */
 RtlRoutePlanner::Selection RtlRoutePlanner::selectSafePoint(const ProjectionContext &projection_context,
 		const Config &config) const
 {
@@ -1543,7 +1318,6 @@ RtlRoutePlanner::Selection RtlRoutePlanner::selectSafePoint(const ProjectionCont
 	return selection;
 }
 
-/** @brief Fall back to the closer mission endpoint when no safe point can be used. */
 RtlRoutePlanner::Selection RtlRoutePlanner::selectMissionEndpointFallback(const ProjectionContext &projection_context,
 		const Config &config) const
 {
@@ -1553,16 +1327,18 @@ RtlRoutePlanner::Selection RtlRoutePlanner::selectMissionEndpointFallback(const 
 		return selection;
 	}
 
-	uint16_t takeoff_index{0};
-	bool have_takeoff = findNextValidPositionIndex(0, config.home_altitude_amsl, takeoff_index);
-	uint16_t land_index{0};
-	bool have_land = findAttachedValidPositionIndex(static_cast<uint16_t>(_provider.missionCount() - 1),
-			 config.home_altitude_amsl, land_index);
+	int32_t takeoff_index{-1};
+	mission_item_s takeoff_item{};
+	bool have_takeoff = _provider.getMissionTakeoffItem(takeoff_index, takeoff_item);
+
+	int32_t land_index{-1};
+	mission_item_s land_item{};
+	bool have_land = _provider.getMissionLandItem(land_index, land_item);
 
 	Path path_to_takeoff{};
 	Position takeoff_position{};
 	const bool path_to_takeoff_valid = have_takeoff
-					   && readValidMissionPosition(takeoff_index, config.home_altitude_amsl, takeoff_position)
+					   && extractMissionPosition(takeoff_item, config.home_altitude_amsl, takeoff_position)
 					   && (path_to_takeoff = findShortestPath(takeoff_index, 0.f,
 							   projection_context, config,
 							   PathDirectionMode::ForceReverse)).valid();
@@ -1570,7 +1346,7 @@ RtlRoutePlanner::Selection RtlRoutePlanner::selectMissionEndpointFallback(const 
 	Path path_to_land{};
 	Position land_position{};
 	const bool path_to_land_valid = have_land
-					&& readValidMissionPosition(land_index, config.home_altitude_amsl, land_position)
+					&& extractMissionPosition(land_item, config.home_altitude_amsl, land_position)
 					&& (path_to_land = findShortestPath(land_index,
 							projection_context.dist_along_to_route_end,
 							projection_context, config,
@@ -1608,7 +1384,6 @@ RtlRoutePlanner::Selection RtlRoutePlanner::selectMissionEndpointFallback(const 
 	return selection;
 }
 
-/** @brief Choose the best SRP goal, preferring a safe point and falling back to mission endpoints. */
 RtlRoutePlanner::Selection RtlRoutePlanner::selectBestGoal(const ProjectionContext &projection_context,
 		const Config &config) const
 {
@@ -1621,116 +1396,6 @@ RtlRoutePlanner::Selection RtlRoutePlanner::selectBestGoal(const ProjectionConte
 	return selectMissionEndpointFallback(projection_context, config);
 }
 
-/** @brief Return the VTOL state that applies to the segment ending at the given position anchor. */
-uint8_t RtlRoutePlanner::getVtolStateAtAnchor(uint16_t anchor_index) const
-{
-	for (int32_t index = static_cast<int32_t>(anchor_index); index >= 0; --index) {
-		mission_item_s mission_item{};
-
-		if (!_provider.loadMissionItem(index, mission_item)) {
-			return vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-		}
-
-		if (mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION) {
-			const int transition_mode = static_cast<int>(roundf(mission_item.params[0]));
-
-			if (transition_mode == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC) {
-				return vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-
-			} else if (transition_mode == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW) {
-				return vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
-			}
-		}
-	}
-
-	return vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-}
-
-/** @brief Map a target index to the segment-end anchor that defines its VTOL state. */
-bool RtlRoutePlanner::findSegmentAnchorForTargetIndex(int32_t target_index, bool direction_reversed,
-		uint16_t &anchor_index) const
-{
-	if (target_index < 0 || target_index >= _provider.missionCount()) {
-		return false;
-	}
-
-	int32_t anchor_search_start_index = target_index;
-
-	if (direction_reversed) {
-		if (target_index >= (_provider.missionCount() - 1)) {
-			return false;
-		}
-
-		anchor_search_start_index = target_index + 1;
-	}
-
-	for (int32_t index = anchor_search_start_index; index < _provider.missionCount(); ++index) {
-		mission_item_s mission_item{};
-
-		if (!_provider.loadMissionItem(index, mission_item)) {
-			return false;
-		}
-
-		if (itemContainsPosition(mission_item)) {
-			anchor_index = static_cast<uint16_t>(index);
-			return true;
-		}
-	}
-
-	return false;
-}
-
-/** @brief Detect whether joining or targeting a segment requires an immediate back transition. */
-bool RtlRoutePlanner::joinRequiresBackTransition(int32_t target_index, bool direction_reversed,
-		const Config &config) const
-{
-	if (!config.vehicle_is_vtol || target_index < 0 || _provider.missionCount() == 0) {
-		return false;
-	}
-
-	if (!(config.vehicle_is_fixed_wing || config.vehicle_in_transition_to_fw)) {
-		return false;
-	}
-
-	uint16_t segment_anchor_index{};
-
-	if (!findSegmentAnchorForTargetIndex(target_index, direction_reversed, segment_anchor_index)) {
-		return false;
-	}
-
-	const uint8_t target_segment_state = getVtolStateAtAnchor(segment_anchor_index);
-	return target_segment_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-}
-
-/** @brief Return the transition action required to enter the segment containing the target index. */
-RtlRoutePlanner::TransitionAction RtlRoutePlanner::transitionActionForTargetIndex(int32_t target_index,
-		bool direction_reversed, const Config &config) const
-{
-	if (!config.vehicle_is_vtol) {
-		return TransitionAction::None;
-	}
-
-	uint16_t segment_anchor_index{};
-
-	if (!findSegmentAnchorForTargetIndex(target_index, direction_reversed, segment_anchor_index)) {
-		return TransitionAction::None;
-	}
-
-	const uint8_t target_segment_state = getVtolStateAtAnchor(segment_anchor_index);
-	const bool currently_fw = config.vehicle_is_fixed_wing || config.vehicle_in_transition_to_fw;
-
-	if (target_segment_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC && currently_fw) {
-		return TransitionAction::BackTransition;
-	}
-
-	if (target_segment_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW && !currently_fw) {
-		return TransitionAction::FrontTransition;
-	}
-
-	return TransitionAction::None;
-}
-
-/** @brief Check if the vehicle is still close enough to the branch-off leg to skip rejoining the mission. */
 bool RtlRoutePlanner::closeToBranchOffSegment(const Position &position, const Selection &selection,
 		float acceptance_radius) const
 {
@@ -1758,7 +1423,6 @@ bool RtlRoutePlanner::closeToBranchOffSegment(const Position &position, const Se
 	return PX4_ISFINITE(xtrack) && xtrack < acceptance_radius;
 }
 
-/** @brief Build the full route-to-goal plan used by upstream SRP RTL execution. */
 bool RtlRoutePlanner::planRouteToGoal(const Position &vehicle_position, int32_t mission_index,
 				      const Config &config, Plan &plan, FailureReason *failure_reason) const
 {
@@ -1792,9 +1456,7 @@ bool RtlRoutePlanner::planRouteToGoal(const Position &vehicle_position, int32_t 
 		return false;
 	}
 
-	plan.join_context.projection = plan.projection_context.projection.projection;
-	plan.join_context.vtol_back_transition_required = joinRequiresBackTransition(plan.selection.path.first_item_index,
-			plan.selection.path.direction_reversed, config);
+	plan.join_context.projection = plan.projection_context.seg_candidate.projection;
 
 	// Landing fallback keeps the current altitude if the landing item is already within XY acceptance radius.
 	if (plan.selection.goal_type == GoalType::MissionLand && plan.selection.path.in_first_item_acc_rad) {
@@ -1806,14 +1468,13 @@ bool RtlRoutePlanner::planRouteToGoal(const Position &vehicle_position, int32_t 
 		*failure_reason = FailureReason::None;
 	}
 
-	PX4_DEBUG("RTL SRP plan goal=%s target=%d rev=%u direct=%u branch_off[%d;%d] bt=%u",
+	PX4_DEBUG("RTL SRP plan goal=%s target=%d rev=%u direct=%u branch_off[%d;%d]",
 		  goalTypeString(plan.selection.goal_type),
 		  static_cast<int>(plan.selection.path.first_item_index),
 		  static_cast<unsigned>(plan.selection.path.direction_reversed),
 		  static_cast<unsigned>(plan.selection.direct_to_safe_point),
 		  static_cast<int>(plan.selection.branch_off_segment.start.idx),
-		  static_cast<int>(plan.selection.branch_off_segment.end.idx),
-		  static_cast<unsigned>(plan.join_context.vtol_back_transition_required));
+		  static_cast<int>(plan.selection.branch_off_segment.end.idx));
 
 	return plan.valid();
 }

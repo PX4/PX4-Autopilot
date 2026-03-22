@@ -77,11 +77,13 @@ public:
 	RtlRoutePlannerProvider(const mission_s &mission,
 				DatamanCache &mission_cache,
 				DatamanCache &safe_point_cache,
-				const mission_stats_entry_s &safe_point_stats) :
+				const mission_stats_entry_s &safe_point_stats,
+				DatamanCache &land_item_cache) :
 		_mission(mission),
 		_mission_cache(mission_cache),
 		_safe_point_cache(safe_point_cache),
-		_safe_point_stats(safe_point_stats)
+		_safe_point_stats(safe_point_stats),
+		_land_item_cache(land_item_cache)
 	{
 	}
 
@@ -112,11 +114,24 @@ public:
 						     reinterpret_cast<uint8_t *>(&safe_point_item), sizeof(safe_point_item));
 	}
 
+	bool getMissionLandItem(int32_t &index, mission_item_s &land_item) const override
+	{
+		if (_mission.land_index < 0) {
+			return false;
+		}
+
+		index = _mission.land_index;
+		return _land_item_cache.loadWait(static_cast<dm_item_t>(_mission.mission_dataman_id), index,
+						 reinterpret_cast<uint8_t *>(&land_item), sizeof(land_item),
+						 MAX_DATAMAN_LOAD_WAIT);
+	}
+
 private:
 	const mission_s &_mission;
 	DatamanCache &_mission_cache;
 	DatamanCache &_safe_point_cache;
 	const mission_stats_entry_s &_safe_point_stats;
+	DatamanCache &_land_item_cache;
 };
 
 } // namespace
@@ -551,7 +566,7 @@ void RTL::setRtlTypeAndDestination()
 		if (_navigator->get_mission_result()->valid && _mission_items_updated && _safe_points_updated
 		    && static_cast<int32_t>(_mission_sub.get().count) <= MAX_RTL_MISSION_CACHE_SIZE) {
 			RtlRoutePlannerProvider planner_provider(_mission_sub.get(), _dataman_cache_mission,
-					_dataman_cache_safepoint, _stats);
+					_dataman_cache_safepoint, _stats, _dataman_cache_landItem);
 			RtlRoutePlanner planner(planner_provider);
 			const auto &vehicle_status = _vehicle_status_sub.get();
 			const auto *local_position = _navigator->get_local_position();
@@ -570,7 +585,6 @@ void RTL::setRtlTypeAndDestination()
 			config.vehicle_velocity_valid = PX4_ISFINITE(local_position->vx) && PX4_ISFINITE(local_position->vy);
 			config.vehicle_velocity_north = local_position->vx;
 			config.vehicle_velocity_east = local_position->vy;
-			config.vehicle_is_vtol = vehicle_status.is_vtol;
 			config.vehicle_is_fixed_wing = vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 			config.vehicle_in_transition_to_fw = vehicle_status.in_transition_to_fw;
 			config.u_turn_penalty_m = _param_rtl_fw_uturn_pen.get();
@@ -600,7 +614,7 @@ void RTL::setRtlTypeAndDestination()
 						break;
 					}
 
-					if (RtlRoutePlanner::itemContainsPosition(mission_item)) {
+					if (MissionBlock::item_contains_position(mission_item)) {
 						_route_safe_point_plan.selection.path.first_item_index = idx;
 						_route_safe_point_plan.selection.path.first_item_cmd = mission_item.nav_cmd;
 						break;
@@ -622,12 +636,11 @@ void RTL::setRtlTypeAndDestination()
 					_should_go_straight_to_safe_point = cached_should_go_straight_to_safe_point
 									    || _route_safe_point_plan.selection.direct_to_safe_point;
 
-					PX4_DEBUG("RTL type 6 planned goal=%s target=%d rev=%u direct=%u bt=%u",
+					PX4_DEBUG("RTL type 6 planned goal=%s target=%d rev=%u direct=%u",
 						  RtlRoutePlanner::goalTypeString(_route_safe_point_plan.selection.goal_type),
 						  static_cast<int>(_route_safe_point_plan.selection.path.first_item_index),
 						  static_cast<unsigned>(_route_safe_point_plan.selection.path.direction_reversed),
-						  static_cast<unsigned>(_should_go_straight_to_safe_point),
-						  static_cast<unsigned>(_route_safe_point_plan.join_context.vtol_back_transition_required));
+						  static_cast<unsigned>(_should_go_straight_to_safe_point));
 
 				} else {
 					PX4_WARN("RTL type 6 planning failed: %s", RtlRoutePlanner::failureReasonString(failure_reason));
@@ -649,7 +662,7 @@ void RTL::setRtlTypeAndDestination()
 			}
 
 			new_rtl_type = RtlType::RTL_MISSION_SAFE_POINT_FOLLOW;
-			_last_route_safe_point_loop_segment = _route_safe_point_plan.projection_context.projection.segment;
+			_last_route_safe_point_loop_segment = _route_safe_point_plan.projection_context.seg_candidate.segment;
 			destination_type = _route_safe_point_plan.selection.safe_point_found
 					   ? DestinationType::DESTINATION_TYPE_SAFE_POINT
 					   : DestinationType::DESTINATION_TYPE_MISSION_LAND;
@@ -990,7 +1003,7 @@ void RTL::initRtlMissionType(RtlType new_rtl_type, float rtl_alt)
 		break;
 
 	case RtlType::RTL_MISSION_SAFE_POINT_FOLLOW:
-		_rtl_mission_type_handle = new RtlMissionSafePointFollow(_navigator, new_mission);
+		_rtl_mission_type_handle = new RtlMissionSafePointFollow(_navigator, new_mission, _dataman_cache_mission);
 
 		if (_rtl_mission_type_handle) {
 			_rtl_mission_type_handle->setRoutePlan(_route_safe_point_plan);
