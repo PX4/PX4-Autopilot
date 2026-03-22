@@ -4,8 +4,6 @@ uint64 timestamp				# time since system start (microseconds)
 
 uint8 ACTION_RELEASE_CONTROL = 0	# exit test mode for the given function
 uint8 ACTION_DO_CONTROL = 1			# enable actuator test mode
-uint8 ACTION_DO_SAVE = 2			# save current servo positions to parameters
-uint8 ACTION_DO_LOAD = 3			# load saved servo positions from parameters
 
 uint8 FUNCTION_MOTOR1 = 101
 uint8 MAX_NUM_MOTORS  = 12

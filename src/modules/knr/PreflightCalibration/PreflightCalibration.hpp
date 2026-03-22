@@ -49,11 +49,6 @@ static constexpr hrt_abstime CAL_TIMEOUT = 2000_ms;
 // TODO - why when set to 4 controls only 1 servo and set to 8 then controls both?
 static constexpr int NUM_ACTUATORS = 16;
 
-static constexpr uint8_t ACTION_DO_CONTROL = 1;
-static constexpr uint8_t ACTION_DO_SAVE = 2;
-static constexpr uint8_t ACTION_DO_LOAD = 3;
-static constexpr uint8_t FUNCTION_SERVO1 = 201;
-
 class PreflightCalibration : public ModuleBase<PreflightCalibration>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
