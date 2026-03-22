@@ -1,9 +1,32 @@
+---
+pageClass: is-wide-page
+---
+
 # UlogStreamAck (UORB message)
 
-Ack a previously sent ulog_stream message that had
-the NEED_ACK flag set
+Ack a previously sent ulog_stream message that had. the NEED_ACK flag set.
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/UlogStreamAck.msg)
+**TOPICS:** ulog_stream_ack
+
+## Fields
+
+| Name         | Type     | Unit [Frame] | Range/Enum | Description                            |
+| ------------ | -------- | ------------ | ---------- | -------------------------------------- |
+| timestamp    | `uint64` |              |            | time since system start (microseconds) |
+| msg_sequence | `uint16` |              |            |
+
+## Constants
+
+| Name                                      | Type    | Value | Description                                                                      |
+| ----------------------------------------- | ------- | ----- | -------------------------------------------------------------------------------- |
+| <a id="#ACK_TIMEOUT"></a> ACK_TIMEOUT     | `int32` | 50    | timeout waiting for an ack until we retry to send the message [ms]               |
+| <a id="#ACK_MAX_TRIES"></a> ACK_MAX_TRIES | `int32` | 50    | maximum amount of tries to (re-)send a message, each time waiting ACK_TIMEOUT ms |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/UlogStreamAck.msg)
+
+::: details Click here to see original file
 
 ```c
 # Ack a previously sent ulog_stream message that had
@@ -14,5 +37,6 @@ int32 ACK_TIMEOUT = 50		# timeout waiting for an ack until we retry to send the 
 int32 ACK_MAX_TRIES = 50	# maximum amount of tries to (re-)send a message, each time waiting ACK_TIMEOUT ms
 
 uint16 msg_sequence
-
 ```
+
+:::

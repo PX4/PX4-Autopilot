@@ -25,9 +25,9 @@ Depending on the final takeoff weight the hover time might be limited (there is 
 
 ## Where to Buy
 
-- [OMP-Hobby](https://www.omphobby.com/OMPHOBBY-ZMO-VTOL-FPV-Aircraft-With-DJI-Goggles-And-Remote-Controller-p3069854.html)
 - [GetFPV](https://www.getfpv.com/omphobby-zmo-z3-vtol-fpv-1200mm-arf-plane-kit-no-fpv-system.html)
 - [FoxtechFPV](https://www.foxtechfpv.com/zmo-pro-fpv-vtol.html)
+- [RMRC](https://www.readymaderc.com/products/details/omp-hobby-zmo-vtol-fpv-airplane-rtf-goggles-radio)
 
 ## Flight Controller
 
@@ -43,7 +43,7 @@ The approximate maximum size of the FC is: 50x110x22mm
 
 - [GPS F9P (included in Skynode eval. kit)](../gps_compass/rtk_gps_holybro_h-rtk-f9p.md)
 - [GPS M9N (cheaper alternative to F9P)](../gps_compass/rtk_gps_holybro_h-rtk-m8p.md)
-- [Airspeed sensor (included in Skynode eval. kit)](https://www.dualrc.com/parts/airspeed-sensor-sdp33) — recommended for improved safety and performance
+- [Airspeed sensor (included in Skynode eval. kit)](https://www.dualrc.com/parts/p/airspeed-sensor-sdp33) — recommended for improved safety and performance
 - [Airspeed sensor (cheaper alternative)](https://holybro.com/products/digital-air-speed-sensor-ms4525do)
 - [Lidar Lightware lw20-c (included in Skynode eval. kit)](../sensor/sfxx_lidar.md) (Optional)
 - [Lidar Seeed Studio PSK-CM8JL65-CC5 (cheaper alternative)](https://www.seeedstudio.com/PSK-CM8JL65-CC5-Infrared-Distance-Measuring-Sensor-p-4028.html) (Optional)
@@ -79,7 +79,7 @@ The following tools were used for this build.
 ### Preparations
 
 Remove the original flight controller, ESC and wing connector cables.
-Also remove the the propellers.
+Also remove the propellers.
 This will help you with the handling of the vehicle and will reduce the risk of an injury due to an unintentional motor startup.
 
 ZMO FPV in it's original state.
@@ -97,7 +97,7 @@ Flight controller and wing connectors removed from the vehicle.
 1. Unsolder the 3 female banana plug connectors of the rear motor (might not be necessary for the Pixhawk 6 integration).
 1. Screw the ESC back in place with 4 M2.5 x 12 screws.
 1. Shorten the rear motor wires and solder them as shown in the picture into place.
-1. Solder signal and GND wires to the PWM input ot the ESC.
+1. Solder signal and GND wires to the PWM input to the ESC.
 
    ![ESC 01](../../assets/airframes/vtol/omp_hobby_zmo_fpv/esc-01.jpg)
 
@@ -288,7 +288,7 @@ To load the file:
 
 The airspeed sensor can be enabled in the [Parameters](../advanced_config/parameters.md#finding-updating-parameters) tab.
 
-- If the [recommended airspeed sensor (SDP33)](https://www.dualrc.com/parts/airspeed-sensor-sdp33) is used, `SENS_EN_SDP3X` needs to be enabled.
+- If the [recommended airspeed sensor (SDP33)](https://www.dualrc.com/parts/p/airspeed-sensor-sdp33) is used, `SENS_EN_SDP3X` needs to be enabled.
 - If the [Lidar Lightware lw20-c (included in Skynode eval. kit)](../sensor/sfxx_lidar.md) is used, `SENS_EN_SF1XX` needs to be set to 6 (SF/LW/20c).
 
 ### Sensor Calibration

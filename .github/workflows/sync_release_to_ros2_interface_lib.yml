@@ -1,0 +1,43 @@
+name: Sync release branch to px4-ros2-interface-lib
+
+on:
+  create:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Release branch name (e.g. release/1.18)'
+        required: true
+        type: string
+
+permissions: {}
+
+jobs:
+  notify-interface-lib:
+    if: >-
+      github.repository == 'PX4/PX4-Autopilot' &&
+      (
+        (github.event_name == 'create' && github.ref_type == 'branch' && startsWith(github.ref_name, 'release/')) ||
+        github.event_name == 'workflow_dispatch'
+      )
+    runs-on: ubuntu-latest
+    steps:
+      - name: Determine branch name
+        id: params
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            BRANCH="${{ inputs.branch }}"
+          else
+            BRANCH="${{ github.ref_name }}"
+          fi
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "Dispatching for branch: $BRANCH"
+
+      - name: Dispatch release branch creation
+        run: |
+          BRANCH="${{ steps.params.outputs.branch }}"
+          curl -s -f -X POST \
+            -H "Authorization: token ${{ secrets.PX4BUILTBOT_PERSONAL_ACCESS_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/Auterion/px4-ros2-interface-lib/dispatches \
+            -d "{\"event_type\":\"px4_release_branch\",\"client_payload\":{\"branch\":\"$BRANCH\"}}"
+          echo "Dispatched px4_release_branch event for $BRANCH"

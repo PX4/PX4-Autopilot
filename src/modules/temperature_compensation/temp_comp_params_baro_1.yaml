@@ -1,0 +1,64 @@
+module_name: temperature_compensation
+parameters:
+- group: Thermal Compensation
+  definitions:
+    TC_B1_ID:
+      description:
+        short: ID of Barometer that the calibration is for
+      category: System
+      type: int32
+      default: 0
+    TC_B1_X5:
+      description:
+        short: Barometer offset temperature ^5 polynomial coefficient
+      category: System
+      type: float
+      default: 0.0
+    TC_B1_X4:
+      description:
+        short: Barometer offset temperature ^4 polynomial coefficient
+      category: System
+      type: float
+      default: 0.0
+    TC_B1_X3:
+      description:
+        short: Barometer offset temperature ^3 polynomial coefficient
+      category: System
+      type: float
+      default: 0.0
+    TC_B1_X2:
+      description:
+        short: Barometer offset temperature ^2 polynomial coefficient
+      category: System
+      type: float
+      default: 0.0
+    TC_B1_X1:
+      description:
+        short: Barometer offset temperature ^1 polynomial coefficients
+      category: System
+      type: float
+      default: 0.0
+    TC_B1_X0:
+      description:
+        short: Barometer offset temperature ^0 polynomial coefficient
+      category: System
+      type: float
+      default: 0.0
+    TC_B1_TREF:
+      description:
+        short: Barometer calibration reference temperature
+      category: System
+      type: float
+      default: 40.0
+    TC_B1_TMIN:
+      description:
+        short: Barometer calibration minimum temperature
+      category: System
+      type: float
+      default: 5.0
+    TC_B1_TMAX:
+      description:
+        short: Barometer calibration maximum temperature
+      category: System
+      type: float
+      default: 75.0

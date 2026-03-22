@@ -58,9 +58,11 @@
 
 using namespace time_literals;
 
-class GyroFFT : public ModuleBase<GyroFFT>, public ModuleParams, public px4::ScheduledWorkItem
+class GyroFFT : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	GyroFFT();
 	~GyroFFT() override;
 

@@ -95,14 +95,19 @@ using arm_disarm_reason_t = events::px4::enums::arm_disarm_reason_t;
 
 using namespace time_literals;
 
-class Commander : public ModuleBase<Commander>, public ModuleParams
+class Commander : public ModuleBase, public ModuleParams
 {
 public:
+	static Descriptor desc;
+
 	Commander();
 	~Commander();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int run_trampoline(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static Commander *instantiate(int argc, char *argv[]);
@@ -243,6 +248,7 @@ private:
 	hrt_abstime _datalink_last_heartbeat_gcs{0};
 	hrt_abstime _datalink_last_heartbeat_onboard_controller{0};
 	hrt_abstime _datalink_last_heartbeat_parachute_system{0};
+	hrt_abstime _datalink_last_heartbeat_traffic_avoidance_system{0};
 
 	hrt_abstime _last_print_mode_reject_time{0};	///< To remember when last notification was sent
 
@@ -268,12 +274,12 @@ private:
 	bool _open_drone_id_system_lost{true};
 	bool _onboard_controller_lost{false};
 	bool _parachute_system_lost{true};
+	bool _traffic_avoidance_system_lost{true};
 
 	bool _last_overload{false};
 	bool _mode_switch_mapped{false};
 
-	bool _is_throttle_above_center{false};
-	bool _is_throttle_low{false};
+	float _last_manual_throttle{-1.f};
 
 	bool _arm_tune_played{false};
 	bool _have_taken_off_since_arming{false};
@@ -332,13 +338,9 @@ private:
 		(ParamBool<px4::params::COM_DISARM_MAN>)    _param_com_disarm_man,
 		(ParamInt<px4::params::COM_DL_LOSS_T>)      _param_com_dl_loss_t,
 		(ParamInt<px4::params::COM_HLDL_LOSS_T>)    _param_com_hldl_loss_t,
-		(ParamInt<px4::params::COM_HLDL_REG_T>)     _param_com_hldl_reg_t,
 		(ParamBool<px4::params::COM_HOME_EN>)       _param_com_home_en,
 		(ParamBool<px4::params::COM_HOME_IN_AIR>)   _param_com_home_in_air,
-		(ParamInt<px4::params::COM_FLT_PROFILE>)    _param_com_flt_profile,
 		(ParamBool<px4::params::COM_FORCE_SAFETY>)  _param_com_force_safety,
-		(ParamFloat<px4::params::COM_KILL_DISARM>)  _param_com_kill_disarm,
-		(ParamBool<px4::params::COM_MOT_TEST_EN>)   _param_com_mot_test_en,
 		(ParamFloat<px4::params::COM_OBC_LOSS_T>)   _param_com_obc_loss_t,
 		(ParamInt<px4::params::COM_PREARM_MODE>)    _param_com_prearm_mode,
 		(ParamInt<px4::params::COM_RC_OVERRIDE>)    _param_com_rc_override,

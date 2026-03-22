@@ -271,3 +271,41 @@ TEST_F(EkfMagTest, velocityRotationOnYawReset)
 	const float yaw_change = fabsf(wrap_pi(yaw_after - yaw_before));
 	EXPECT_GT(yaw_change, 0.3f) << "Yaw change: " << degrees(yaw_change) << " deg";
 }
+
+TEST_F(EkfMagTest, magFaultCleared)
+{
+	// GIVEN: biased mag data
+	_sensor_simulator._mag.setBias(Vector3f(-0.3f, 0.2f, 0.f));
+	_ekf_wrapper.enableGpsFusion();
+	_sensor_simulator.startGps();
+	_sensor_simulator.runSeconds(11);
+
+	// THEN: the initial heading is incorrect
+	EXPECT_NEAR(degrees(_ekf_wrapper.getYawAngle()), -110.f, 5.f);
+	EXPECT_TRUE(_ekf_wrapper.isIntendingMagHeadingFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingMag3DFusion());
+
+	// WHEN: motion allows the yaw estimator to converge
+	_sensor_simulator.setTrajectoryTargetVelocity(Vector3f(2.f, -2.f, -1.f));
+	_ekf->set_in_air_status(true);
+
+	_sensor_simulator.runTrajectorySeconds(3.f);
+
+	// THEN: the heading error is detected, solved and mag is declared faulty
+	EXPECT_FALSE(_ekf_wrapper.isIntendingMagHeadingFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingMag3DFusion());
+	EXPECT_TRUE(_ekf_wrapper.isMagFaultDetected());
+
+	// BUT when: the mag disturbance is gone
+	_sensor_simulator._mag.setBias(Vector3f());
+	_sensor_simulator.setTrajectoryTargetVelocity(Vector3f(0.f, 0.f, 0.f));
+
+	_sensor_simulator.runTrajectorySeconds(7.f);
+
+	// THEN: the fault is cleared and mag fusion restarts
+	EXPECT_FALSE(_ekf_wrapper.isMagFaultDetected());
+	EXPECT_TRUE(_ekf_wrapper.isMagHeadingConsistent());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingMagFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingMagHeadingFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingMag3DFusion()); // because in-flight alignment is required
+}

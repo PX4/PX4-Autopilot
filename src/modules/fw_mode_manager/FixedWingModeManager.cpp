@@ -33,12 +33,10 @@
 
 #include "FixedWingModeManager.hpp"
 
+#include <cmath>
 #include <px4_platform_common/events.h>
 #include <uORB/topics/longitudinal_control_configuration.h>
 
-using math::constrain;
-using math::max;
-using math::min;
 using math::radians;
 
 using matrix::Dcmf;
@@ -48,6 +46,8 @@ using matrix::Vector2f;
 using matrix::Vector2d;
 using matrix::Vector3f;
 using matrix::wrap_pi;
+
+ModuleBase::Descriptor FixedWingModeManager::desc{task_spawn, custom_command, print_usage};
 
 const fixed_wing_lateral_setpoint_s empty_lateral_control_setpoint = {.timestamp = 0, .course = NAN, .airspeed_direction = NAN, .lateral_acceleration = NAN};
 const fixed_wing_longitudinal_setpoint_s empty_longitudinal_control_setpoint = {.timestamp = 0, .altitude = NAN, .height_rate = NAN, .equivalent_airspeed = NAN, .pitch_direct = NAN, .throttle_direct = NAN};
@@ -140,7 +140,7 @@ FixedWingModeManager::vehicle_command_poll()
 
 		} else if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_CHANGE_SPEED) {
 
-			if ((static_cast<uint8_t>(vehicle_command.param1 + .5f) == vehicle_command_s::SPEED_TYPE_AIRSPEED)) {
+			if ((static_cast<uint8_t>(lroundf(vehicle_command.param1)) == vehicle_command_s::SPEED_TYPE_AIRSPEED)) {
 				if (vehicle_command.param2 > FLT_EPSILON) {	// param2 is an equivalent airspeed setpoint
 					if (_control_mode_current == FW_POSCTRL_MODE_AUTO) {
 						_pos_sp_triplet.current.cruising_speed = vehicle_command.param2;
@@ -170,6 +170,8 @@ FixedWingModeManager::airspeed_poll()
 
 			_airspeed_eas = airspeed_validated.calibrated_airspeed_m_s;
 		}
+
+		_time_airspeed_last_valid = airspeed_validated.timestamp;
 	}
 
 	// no airspeed updates for one second --> declare invalid
@@ -248,12 +250,22 @@ FixedWingModeManager::vehicle_attitude_poll()
 
 		const Eulerf euler_angles(R);
 		_yaw = euler_angles(2);
+		_pitch = euler_angles(1);
 
 		const Vector3f body_acceleration = R.transpose() * Vector3f{_local_pos.ax, _local_pos.ay, _local_pos.az};
 		_body_acceleration_x = body_acceleration(0);
 
 		const Vector3f body_velocity = R.transpose() * Vector3f{_local_pos.vx, _local_pos.vy, _local_pos.vz};
 		_body_velocity_x = body_velocity(0);
+	}
+}
+
+void FixedWingModeManager::vehicle_attitude_setpoint_poll()
+{
+	vehicle_attitude_setpoint_s vehicle_attitude_setpoint;
+
+	if (_vehicle_attitude_setpoint_sub.update(&vehicle_attitude_setpoint)) {
+		_throttle = vehicle_attitude_setpoint.thrust_body[0];
 	}
 }
 
@@ -1017,7 +1029,7 @@ FixedWingModeManager::controlAutoFigureEight(const float control_interval, const
 	}
 }
 
-void FixedWingModeManager::publishFigureEightStatus(const position_setpoint_s pos_sp)
+void FixedWingModeManager::publishFigureEightStatus(const position_setpoint_s &pos_sp)
 {
 	figure_eight_status_s figure_eight_status{};
 	figure_eight_status.timestamp = hrt_absolute_time();
@@ -1170,6 +1182,7 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 
 		fixed_wing_runway_control_s fw_runway_control{};
 		fw_runway_control.timestamp = now;
+		fw_runway_control.runway_takeoff_state = _runway_takeoff.getState();
 		fw_runway_control.wheel_steering_enabled = true;
 		fw_runway_control.wheel_steering_nudging_rate = _param_rwto_nudge.get() ? _sticks.getYaw() : 0.f;
 
@@ -1197,6 +1210,7 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 			_takeoff_init_position = global_position;
 			_takeoff_ground_alt = _current_altitude;
 			_launch_current_yaw = _yaw;
+			_time_launch_detected = now;
 		}
 
 		const Vector2f launch_local_position = _global_local_proj_ref.project(_takeoff_init_position(0),
@@ -1272,6 +1286,9 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 		launch_detection_status_s launch_detection_status;
 		launch_detection_status.timestamp = now;
 		launch_detection_status.launch_detection_state = _launchDetector.getLaunchDetected();
+		launch_detection_status.selected_control_surface_disarmed =
+			hrt_elapsed_time(&_time_launch_detected) < _param_fw_laun_cs_lk_dy.get() * 1_s
+			|| _time_launch_detected == 0;
 		_launch_detection_status_pub.publish(launch_detection_status);
 	}
 
@@ -1343,6 +1360,7 @@ FixedWingModeManager::control_auto_takeoff_no_nav(const hrt_abstime &now, const 
 
 		fixed_wing_runway_control_s fw_runway_control{};
 		fw_runway_control.timestamp = now;
+		fw_runway_control.runway_takeoff_state = _runway_takeoff.getState();
 		fw_runway_control.wheel_steering_enabled = true;
 		fw_runway_control.wheel_steering_nudging_rate = _param_rwto_nudge.get() ? _sticks.getYaw() : 0.f;
 
@@ -1366,6 +1384,7 @@ FixedWingModeManager::control_auto_takeoff_no_nav(const hrt_abstime &now, const 
 		if (!_launch_detected && _launchDetector.getLaunchDetected() > launch_detection_status_s::STATE_WAITING_FOR_LAUNCH) {
 			_launch_detected = true;
 			_takeoff_ground_alt = _current_altitude;
+			_time_launch_detected = now;
 		}
 
 		/* Launch has been detected, hence we have to control the plane. */
@@ -1397,6 +1416,9 @@ FixedWingModeManager::control_auto_takeoff_no_nav(const hrt_abstime &now, const 
 		launch_detection_status_s launch_detection_status;
 		launch_detection_status.timestamp = now;
 		launch_detection_status.launch_detection_state = _launchDetector.getLaunchDetected();
+		launch_detection_status.selected_control_surface_disarmed =
+			hrt_elapsed_time(&_time_launch_detected) < _param_fw_laun_cs_lk_dy.get() * 1_s
+			|| _time_launch_detected == 0;
 		_launch_detection_status_pub.publish(launch_detection_status);
 	}
 
@@ -1468,6 +1490,8 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 			_flare_states.flaring = true;
 			_flare_states.start_time = now;
 			_flare_states.initial_height_rate_setpoint = -_local_pos.vz;
+			_flare_states.initial_pitch = _pitch;
+			_flare_states.initial_throttle = math::min(_throttle, _param_fw_thr_max.get());
 			events::send(events::ID("fixedwing_position_control_landing_flaring"), events::Log::Info,
 				     "Landing, flaring");
 		}
@@ -1496,19 +1520,13 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 
 		const float flare_ramp_interpolator_sqrt = sqrtf(flare_ramp_interpolator);
 
-		// Use separate ramp for the altitude setpoint that's starting only when the other is finished
-		// to allow motor to be ramped down before height rate setpoint is adapted for flaring.
-		const float flare_hieght_rate_interpolator = math::constrain((seconds_since_flare_start -
-				_param_fw_lnd_fl_time.get()) / (_param_fw_lnd_fl_time.get()), 0.f, 1.f);
-		const float flare_hieght_rate_interpolator_sqrt = sqrt(flare_hieght_rate_interpolator);
-
-		const float height_rate_setpoint = flare_hieght_rate_interpolator_sqrt * (-_param_fw_lnd_fl_sink.get()) +
-						   (1.0f - flare_hieght_rate_interpolator_sqrt) * _flare_states.initial_height_rate_setpoint;
+		const float height_rate_setpoint = flare_ramp_interpolator_sqrt * (-_param_fw_lnd_fl_sink.get()) +
+						   (1.0f - flare_ramp_interpolator_sqrt) * _flare_states.initial_height_rate_setpoint;
 
 		float pitch_min_rad = flare_ramp_interpolator_sqrt * radians(_param_fw_lnd_fl_pmin.get()) +
-				      (1.0f - flare_ramp_interpolator_sqrt) * radians(_param_fw_p_lim_min.get());
+				      (1.0f - flare_ramp_interpolator_sqrt) * _flare_states.initial_pitch;
 		float pitch_max_rad = flare_ramp_interpolator_sqrt * radians(_param_fw_lnd_fl_pmax.get()) +
-				      (1.0f - flare_ramp_interpolator_sqrt) * radians(_param_fw_p_lim_max.get());
+				      (1.0f - flare_ramp_interpolator_sqrt) * _flare_states.initial_pitch;
 
 		if (_param_fw_lnd_td_time.get() > FLT_EPSILON) {
 			const float touchdown_time = math::max(_param_fw_lnd_td_time.get(), _param_fw_lnd_fl_time.get());
@@ -1525,9 +1543,9 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 
 		// idle throttle may be >0 for internal combustion engines
 		// normally set to zero for electric motors
+		// Ramp throttle from current value to idle over flare duration
 		const float throttle_max = flare_ramp_interpolator_sqrt * _param_fw_thr_idle.get() +
-					   (1.0f - flare_ramp_interpolator_sqrt) *
-					   _param_fw_thr_max.get();
+					   (1.0f - flare_ramp_interpolator_sqrt) * _flare_states.initial_throttle;
 
 		const fixed_wing_longitudinal_setpoint_s fw_longitudinal_control_sp = {
 			.timestamp = now,
@@ -1591,6 +1609,7 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 
 	fixed_wing_runway_control_s fw_runway_control{};
 	fw_runway_control.timestamp = now;
+	fw_runway_control.runway_takeoff_state = fixed_wing_runway_control_s::STATE_FLYING; // not in takeoff, use FLYING as default
 	fw_runway_control.wheel_steering_enabled = true;
 	fw_runway_control.wheel_steering_nudging_rate = _param_fw_lnd_nudge.get() > LandingNudgingOption::kNudgingDisabled ?
 			_sticks.getYaw() : 0.f;
@@ -1657,6 +1676,8 @@ FixedWingModeManager::control_auto_landing_circular(const hrt_abstime &now, cons
 			_flare_states.flaring = true;
 			_flare_states.start_time = now;
 			_flare_states.initial_height_rate_setpoint = -_local_pos.vz;
+			_flare_states.initial_pitch = _pitch;
+			_flare_states.initial_throttle = math::min(_throttle, _param_fw_thr_max.get());
 			events::send(events::ID("fixedwing_position_control_landing_circle_flaring"), events::Log::Info,
 				     "Landing, flaring");
 		}
@@ -1684,9 +1705,9 @@ FixedWingModeManager::control_auto_landing_circular(const hrt_abstime &now, cons
 						   (1.0f - flare_ramp_interpolator_sqrt) * _flare_states.initial_height_rate_setpoint;
 
 		float pitch_min_rad = flare_ramp_interpolator_sqrt * radians(_param_fw_lnd_fl_pmin.get()) +
-				      (1.0f - flare_ramp_interpolator_sqrt) * radians(_param_fw_p_lim_min.get());
+				      (1.0f - flare_ramp_interpolator_sqrt) * _flare_states.initial_pitch;
 		float pitch_max_rad = flare_ramp_interpolator_sqrt * radians(_param_fw_lnd_fl_pmax.get()) +
-				      (1.0f - flare_ramp_interpolator_sqrt) * radians(_param_fw_p_lim_max.get());
+				      (1.0f - flare_ramp_interpolator_sqrt) * _flare_states.initial_pitch;
 
 		if (_param_fw_lnd_td_time.get() > FLT_EPSILON) {
 			const float touchdown_time = math::max(_param_fw_lnd_td_time.get(), _param_fw_lnd_fl_time.get());
@@ -1702,9 +1723,9 @@ FixedWingModeManager::control_auto_landing_circular(const hrt_abstime &now, cons
 
 		// idle throttle may be >0 for internal combustion engines
 		// normally set to zero for electric motors
+		// Ramp throttle from current value to idle over flare duration
 		const float throttle_max = flare_ramp_interpolator_sqrt * _param_fw_thr_idle.get() +
-					   (1.0f - flare_ramp_interpolator_sqrt) *
-					   _param_fw_thr_max.get();
+					   (1.0f - flare_ramp_interpolator_sqrt) * _flare_states.initial_throttle;
 		const fixed_wing_longitudinal_setpoint_s fw_longitudinal_control_sp = {
 			.timestamp = now,
 			.altitude = NAN,
@@ -1761,6 +1782,7 @@ FixedWingModeManager::control_auto_landing_circular(const hrt_abstime &now, cons
 
 	fixed_wing_runway_control_s fw_runway_control{};
 	fw_runway_control.timestamp = now;
+	fw_runway_control.runway_takeoff_state = fixed_wing_runway_control_s::STATE_FLYING; // not in takeoff, use FLYING as default
 	fw_runway_control.wheel_steering_enabled = true;
 	fw_runway_control.wheel_steering_nudging_rate = _param_fw_lnd_nudge.get() > LandingNudgingOption::kNudgingDisabled ?
 			_sticks.getYaw() : 0.f;
@@ -1972,7 +1994,7 @@ FixedWingModeManager::Run()
 {
 	if (should_exit()) {
 		_local_pos_sub.unregisterCallback();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -2131,6 +2153,7 @@ FixedWingModeManager::Run()
 		airspeed_poll();
 		manual_control_setpoint_poll();
 		vehicle_attitude_poll();
+		vehicle_attitude_setpoint_poll();
 		vehicle_command_poll();
 		vehicle_control_mode_poll();
 		wind_poll(now);
@@ -2299,6 +2322,8 @@ FixedWingModeManager::reset_takeoff_state()
 	_launchDetector.reset();
 
 	_launch_detected = false;
+
+	_time_launch_detected = 0;
 
 	_takeoff_ground_alt = _current_altitude;
 }
@@ -2524,7 +2549,7 @@ void FixedWingModeManager::publishLocalPositionSetpoint(const position_setpoint_
 	_local_pos_sp_pub.publish(local_position_setpoint);
 }
 
-void FixedWingModeManager::publishOrbitStatus(const position_setpoint_s pos_sp)
+void FixedWingModeManager::publishOrbitStatus(const position_setpoint_s &pos_sp)
 {
 	orbit_status_s orbit_status{};
 	orbit_status.timestamp = hrt_absolute_time();
@@ -2724,8 +2749,8 @@ int FixedWingModeManager::task_spawn(int argc, char *argv[])
 	FixedWingModeManager *instance = new FixedWingModeManager();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -2736,8 +2761,8 @@ int FixedWingModeManager::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -2771,5 +2796,5 @@ lateral-longitudinal controller and and controllers below that (attitude, rate).
 
 extern "C" __EXPORT int fw_mode_manager_main(int argc, char *argv[])
 {
-	return FixedWingModeManager::main(argc, argv);
+	return ModuleBase::main(FixedWingModeManager::desc, argc, argv);
 }

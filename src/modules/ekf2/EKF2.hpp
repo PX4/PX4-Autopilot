@@ -414,11 +414,9 @@ private:
 
 	uint64_t _filter_control_status{0};
 	uint32_t _filter_fault_status{0};
-	uint32_t _innov_check_fail_status{0};
 
 	uint32_t _filter_control_status_changes{0};
 	uint32_t _filter_fault_status_changes{0};
-	uint32_t _innov_check_fail_status_changes{0};
 	uint32_t _filter_information_event_changes{0};
 
 	uORB::PublicationMulti<ekf2_timestamps_s>            _ekf2_timestamps_pub{ORB_ID(ekf2_timestamps)};
@@ -489,7 +487,7 @@ private:
 		(ParamExtFloat<px4::params::EKF2_DELAY_MAX>) _param_ekf2_delay_max,
 		(ParamExtInt<px4::params::EKF2_IMU_CTRL>) _param_ekf2_imu_ctrl,
 		(ParamExtFloat<px4::params::EKF2_VEL_LIM>) _param_ekf2_vel_lim,
-		(ParamBool<px4::params::EKF2_ENGINE_WRM>) _param_ekf2_engine_wrm,
+		(ParamBool<px4::params::EKF2_POS_LOCK>) _param_ekf2_pos_lock,
 
 #if defined(CONFIG_EKF2_AUXVEL)
 		(ParamExtFloat<px4::params::EKF2_AVEL_DELAY>)
@@ -516,12 +514,6 @@ private:
 #if defined(CONFIG_EKF2_GNSS)
 		(ParamExtInt<px4::params::EKF2_GPS_CTRL>) _param_ekf2_gps_ctrl,
 		(ParamExtInt<px4::params::EKF2_GPS_MODE>) _param_ekf2_gps_mode,
-		(ParamExtFloat<px4::params::EKF2_GPS_DELAY>) _param_ekf2_gps_delay,
-
-		(ParamExtFloat<px4::params::EKF2_GPS_POS_X>) _param_ekf2_gps_pos_x,
-		(ParamExtFloat<px4::params::EKF2_GPS_POS_Y>) _param_ekf2_gps_pos_y,
-		(ParamExtFloat<px4::params::EKF2_GPS_POS_Z>) _param_ekf2_gps_pos_z,
-
 		(ParamExtFloat<px4::params::EKF2_GPS_V_NOISE>) _param_ekf2_gps_v_noise,
 		(ParamExtFloat<px4::params::EKF2_GPS_P_NOISE>) _param_ekf2_gps_p_noise,
 

@@ -1,6 +1,6 @@
 # Супутник Raspberry Pi з Pixhawk
 
-This topic describes how to setup a Raspberry Pi ("RPi") companion companion running [ROS 2](../ros2/user_guide.md) on Linux Ubuntu OS, connecting to a [Pixhawk](../flight_controller/autopilot_pixhawk_standard.md) flight controller using a serial connection between the Pixhawk `TELEM2` port and the RPi's TX/RX pins.
+This topic describes how to setup a Raspberry Pi ("RPi") companion running [ROS 2](../ros2/user_guide.md) on Linux Ubuntu OS, connecting to a [Pixhawk](../flight_controller/autopilot_pixhawk_standard.md) flight controller using a serial connection between the Pixhawk `TELEM2` port and the RPi's TX/RX pins.
 
 Ці інструкції мають бути легко розширювані для інших конфігурацій контролерів RPi та польотів.
 
@@ -145,7 +145,6 @@ make px4_fmu-v6c_default upload
    ```
 
 3. Перейдіть до **Варіанти інтерфейсу**, а потім клацніть **Серійний порт**.
-
    - Виберіть **No**, щоб вимкнути послідовний вхід у оболонку.
    - Виберіть **Так**, щоб увімкнути послідовний інтерфейс.
    - Клацніть **Завершити** та перезапустіть RPi.
@@ -164,7 +163,6 @@ make px4_fmu-v6c_default upload
    ```
 
 6. Далі збережіть файл і перезапустіть RPi.
-
    - У `nano` ви можете зберегти файл за допомогою такої послідовності комбінацій клавіш: **ctrl+x**, **ctrl+y**, **Enter**.
 
 7. Перевірте, чи доступний послідовний порт.

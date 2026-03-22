@@ -8,7 +8,7 @@ Qt Creator has been replaced by [VSCode](../dev_setup/vscode.md) as the official
 Дивіться [Встановлення інструментарію](../dev_setup/dev_env.md) для інформації про середовища та інструменти, що підтримуються основною командою розробників.
 :::
 
-[Qt Creator](https://www.qt.io/download-open-source) is a popular cross-platform open-source IDE that can be used to compile and debug PX4.
+[Qt Creator](https://www.qt.io/development/download-open-source) is a popular cross-platform open-source IDE that can be used to compile and debug PX4.
 
 ## Функціональні можливості Qt Creator
 

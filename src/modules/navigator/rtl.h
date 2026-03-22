@@ -71,11 +71,11 @@ public:
 	~RTL() = default;
 
 	enum class RtlType {
-		NONE,
-		RTL_DIRECT,
-		RTL_DIRECT_MISSION_LAND,
-		RTL_MISSION_FAST,
-		RTL_MISSION_FAST_REVERSE,
+		NONE = rtl_status_s::RTL_STATUS_TYPE_NONE,
+		RTL_DIRECT = rtl_status_s::RTL_STATUS_TYPE_DIRECT_SAFE_POINT,
+		RTL_DIRECT_MISSION_LAND = rtl_status_s::RTL_STATUS_TYPE_DIRECT_MISSION_LAND,
+		RTL_MISSION_FAST = rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION,
+		RTL_MISSION_FAST_REVERSE = rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_REVERSE,
 	};
 
 	void on_inactive() override;
@@ -94,7 +94,7 @@ private:
 	enum class DestinationType {
 		DESTINATION_TYPE_HOME,
 		DESTINATION_TYPE_MISSION_LAND,
-		DESTINATION_TYPE_SAFE_POINT,
+		DESTINATION_TYPE_SAFE_POINT
 	};
 
 private:
@@ -130,8 +130,13 @@ private:
 	 * @brief Find RTL destination.
 	 *
 	 */
-	void findRtlDestination(DestinationType &destination_type, PositionYawSetpoint &rtl_position, float &rtl_alt,
-				uint8_t &safe_point_index);
+	void findRtlDestination(DestinationType &destination_type, PositionYawSetpoint &destination, uint8_t &safe_point_index);
+
+	/**
+	 * @brief Find RTL destination if only safe points are considered
+	 *
+	 */
+	PositionYawSetpoint findClosestSafePoint(float min_dist, uint8_t &safe_point_index);
 
 	/**
 	 * @brief Set the position of the land start marker in the planned mission as destination.
@@ -147,20 +152,20 @@ private:
 	void setSafepointAsDestination(PositionYawSetpoint &rtl_position, const mission_item_s &mission_safe_point) const;
 
 	/**
-	 * @brief calculate return altitude from cone half angle
+	 * @brief calculate return altitude from return altitude parameter, current altitude and cone angle
 	 *
 	 * @param[in] rtl_position landing position of the rtl
+	 * @param[in] destination_type type of the rtl destination
 	 * @param[in] cone_half_angle_deg half angle of the cone [deg]
 	 * @return return altitude
 	 */
-	float calculate_return_alt_from_cone_half_angle(const PositionYawSetpoint &rtl_position,
-			float cone_half_angle_deg) const;
+	float computeReturnAltitude(const PositionYawSetpoint &rtl_position, DestinationType destination_type, float cone_half_angle_deg) const;
 
 	/**
 	 * @brief initialize RTL mission type
 	 *
 	 */
-	void init_rtl_mission_type();
+	void initRtlMissionType(RtlType new_rtl_type, float rtl_alt);
 
 	/**
 	 * @brief Update parameters
@@ -206,8 +211,6 @@ private:
 	hrt_abstime _destination_check_time{0};
 
 	RtlBase *_rtl_mission_type_handle{nullptr};
-	RtlType _set_rtl_mission_type{RtlType::NONE};
-
 	RtlType _rtl_type{RtlType::RTL_DIRECT};
 
 	bool _home_has_land_approach;			///< Flag if the home position has a land approach defined
@@ -232,11 +235,11 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::RTL_TYPE>)          _param_rtl_type,
-		(ParamInt<px4::params::RTL_CONE_ANG>)      _param_rtl_cone_half_angle_deg,
+		(ParamInt<px4::params::RTL_CONE_ANG>)      _param_rtl_cone_ang,
 		(ParamFloat<px4::params::RTL_RETURN_ALT>)  _param_rtl_return_alt,
 		(ParamFloat<px4::params::RTL_MIN_DIST>)    _param_rtl_min_dist,
 		(ParamFloat<px4::params::NAV_ACC_RAD>)     _param_nav_acc_rad,
-		(ParamInt<px4::params::RTL_APPR_FORCE>)    _param_rtl_approach_force
+		(ParamInt<px4::params::RTL_APPR_FORCE>)    _param_rtl_appr_force
 	)
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
@@ -248,5 +251,5 @@ private:
 	uORB::SubscriptionData<wind_s>		_wind_sub{ORB_ID(wind)};
 
 	uORB::Publication<rtl_time_estimate_s> _rtl_time_estimate_pub{ORB_ID(rtl_time_estimate)};
-	uORB::PublicationData<rtl_status_s> _rtl_status_pub{ORB_ID(rtl_status)};
+	uORB::Publication<rtl_status_s> _rtl_status_pub{ORB_ID(rtl_status)};
 };

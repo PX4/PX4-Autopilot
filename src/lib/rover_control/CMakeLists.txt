@@ -35,6 +35,7 @@ px4_add_library(rover_control
 	RoverControl.cpp
 	RoverControl.hpp
 )
+set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/rovercontrol_params.yaml)
 
 target_link_libraries(rover_control PUBLIC PID)
 target_link_libraries(rover_control PUBLIC geo)

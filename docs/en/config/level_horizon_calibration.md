@@ -18,7 +18,6 @@ To level the horizon:
    You should already have set the [Autopilot Orientation](../config/flight_controller_orientation.md). If not, you can also set it here.
    :::
 1. Place the vehicle in its level flight orientation on a level surface:
-
    - For planes this is the position during level flight (planes tend to have their wings slightly pitched up!)
    - For copters this is the hover position.
 

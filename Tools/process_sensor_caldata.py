@@ -1138,6 +1138,8 @@ if num_mags >= 1:
 
     if not math.isnan(sensor_mag_0['temperature'][0]):
 
+        mag_0_params['TC_M0_ID'] = int(np.median(sensor_mag_0['device_id']))
+
         # find the min, max and reference temperature
         mag_0_params['TC_M0_TMIN'] = np.amin(sensor_mag_0['temperature'])
         mag_0_params['TC_M0_TMAX'] = np.amax(sensor_mag_0['temperature'])

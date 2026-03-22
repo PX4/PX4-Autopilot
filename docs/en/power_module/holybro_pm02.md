@@ -9,7 +9,6 @@ The module can be used with other flight controllers that require an analog powe
 
 ![Holybro PM02](../../assets/hardware/power_module/holybro_pm02/pm02.jpg)
 
-
 ## Specifications
 
 - **Rated current**: 60A

@@ -13,7 +13,7 @@ For example, different ESCs or motors change the optimal tuning gains.
 
 ## 소개
 
-PX4 uses **P**roportional, **I**ntegral, **D**erivative (PID) controllers (these are the most widespread control technique).
+PX4 uses **P**roportional, **I**integral, **D**erivative (PID) controllers (these are the most widespread control technique).
 
 The _QGroundControl_ **PID Tuning** setup provides real-time plots of the vehicle setpoint and response curves.
 The goal of tuning is to set the P/I/D values such that the _Response_ curve matches the _Setpoint_ curve as closely as possible (i.e. a fast response without overshoots).
@@ -140,7 +140,6 @@ Make sure to have assigned a [Kill switch](../config/safety.md#emergency-switche
 13. 모든 축에서 자세 콘트롤러에 대하여 튜닝 프로세스를 반복하십시오.
 
 14. Repeat the tuning process for the velocity and positions controllers (on all the axes).
-
     - Use Position mode when tuning these controllers
     - Select the **Simple position control** option in the _Position control mode ..._ selector (this allows direct control for the generation of step inputs)
 

@@ -33,7 +33,6 @@ The instructions below might be used to create a task named _MyTask_:
    - FlightTaskMyTask.cpp
 
 3. Update **CMakeLists.txt** for the new task
-
    - Copy the contents of the **CMakeLists.txt** for another task - e.g. [Orbit/CMakeLists.txt](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/flight_mode_manager/tasks/Orbit/CMakeLists.txt)
 
    - Update the copyright to the current year
@@ -117,7 +116,7 @@ The instructions below might be used to create a task named _MyTask_:
    ::: tip
 
    The task added above will be built on all boards, including those with constrained flash such as Pixhawk FMUv2.
-   If your task is not indended for use on boards with constrained flash it should instead be added to the conditional block shown below (as shown).
+   If your task is not intended for use on boards with constrained flash it should instead be added to the conditional block shown below (as shown).
 
    ```cmake
    ...

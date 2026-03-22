@@ -18,6 +18,9 @@ if (Protobuf_FOUND)
         ${PROTO_HDRS}
     )
 
+    # Disable double-promotion warning for protobuf-generated code
+    target_compile_options(px4_gz_msgs PRIVATE -Wno-double-promotion)
+
     target_include_directories(px4_gz_msgs
         PUBLIC
             ${CMAKE_CURRENT_BINARY_DIR}

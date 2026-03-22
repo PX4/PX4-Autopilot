@@ -84,10 +84,12 @@
 static constexpr fixed_wing_lateral_setpoint_s empty_lateral_control_setpoint = {.timestamp = 0, .course = NAN, .airspeed_direction = NAN, .lateral_acceleration = NAN};
 static constexpr fixed_wing_longitudinal_setpoint_s empty_longitudinal_control_setpoint = {.timestamp = 0, .altitude = NAN, .height_rate = NAN, .equivalent_airspeed = NAN, .pitch_direct = NAN, .throttle_direct = NAN};
 
-class FwLateralLongitudinalControl final : public ModuleBase<FwLateralLongitudinalControl>, public ModuleParams,
+class FwLateralLongitudinalControl final : public ModuleBase, public ModuleParams,
 	public px4::WorkItem
 {
 public:
+	static Descriptor desc;
+
 	FwLateralLongitudinalControl(bool is_vtol);
 
 	~FwLateralLongitudinalControl() override;
@@ -169,7 +171,9 @@ private:
 		(ParamFloat<px4::params::FW_LND_THRTC_SC>) _param_fw_thrtc_sc,
 		(ParamFloat<px4::params::FW_T_THR_LOW_HGT>) _param_fw_t_thr_low_hgt,
 		(ParamFloat<px4::params::FW_WIND_ARSP_SC>) _param_fw_wind_arsp_sc,
-		(ParamFloat<px4::params::FW_GND_SPD_MIN>) _param_fw_gnd_spd_min
+		(ParamFloat<px4::params::FW_GND_SPD_MIN>) _param_fw_gnd_spd_min,
+		(ParamFloat<px4::params::NPFG_DAMPING>) _param_npfg_damping,
+		(ParamFloat<px4::params::NPFG_PERIOD>) _param_npfg_period
 	)
 
 	hrt_abstime _last_time_loop_ran{};
@@ -213,11 +217,12 @@ private:
 
 	void parameters_update();
 	void update_control_state(hrt_abstime now);
-	void tecs_update_pitch_throttle(const float control_interval, float alt_sp, float airspeed_sp,
-					float pitch_min_rad, float pitch_max_rad, float throttle_min,
-					float throttle_max, const float desired_max_sinkrate,
-					const float desired_max_climbrate,
-					bool disable_underspeed_detection, float hgt_rate_sp, hrt_abstime now);
+
+	uint8_t tecs_update_pitch_throttle(const float control_interval, float alt_sp, float airspeed_sp,
+					   float pitch_min_rad, float pitch_max_rad, float throttle_min,
+					   float throttle_max, const float desired_max_sinkrate,
+					   const float desired_max_climbrate,
+					   bool disable_underspeed_detection, float hgt_rate_sp, hrt_abstime now);
 
 	void tecs_status_publish(float alt_sp, float equivalent_airspeed_sp, float true_airspeed_derivative_raw,
 				 float throttle_trim, hrt_abstime now);

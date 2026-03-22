@@ -49,7 +49,6 @@ If returning as a fixed-wing, the vehicle:
   A mission landing pattern for a VTOL vehicle consists of a [MAV_CMD_DO_LAND_START](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_LAND_START), one or more position waypoints, and a [MAV_CMD_NAV_VTOL_LAND](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_VTOL_LAND).
 
 - If the destination is a rally point or home it will:
-
   - Loiter/spiral down to [RTL_DESCEND_ALT](#RTL_DESCEND_ALT).
   - Circle for a short time, as defined by [RTL_LAND_DELAY](#RTL_LAND_DELAY).
   - Yaw towards the destination (centre of loiter).

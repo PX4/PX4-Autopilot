@@ -46,6 +46,8 @@ public:
 
 	bool Scheduled() { return !hrt_called(&_call); }
 
+	virtual ~ScheduledWorkItem();
+
 	/**
 	 * Schedule next run with a delay in microseconds.
 	 *
@@ -76,7 +78,6 @@ public:
 protected:
 
 	ScheduledWorkItem(const char *name, const wq_config_t &config) : WorkItem(name, config) {}
-	virtual ~ScheduledWorkItem() override;
 
 	virtual void print_run_status() override;
 

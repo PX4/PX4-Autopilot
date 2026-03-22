@@ -59,8 +59,10 @@
 
 #include "sensor.h"
 
-class ILabs : public ModuleBase<ILabs>, public ModuleParams, public px4::ScheduledWorkItem {
+class ILabs : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem {
 public:
+	static Descriptor desc;
+
 	ILabs(const char *port);
 	~ILabs() override;
 

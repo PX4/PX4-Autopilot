@@ -30,7 +30,7 @@ The diagrams use the standard [PX4 notation](../contribute/notation.md) (and eac
 
   ::: info
   The IMU pipeline is:
-  gyro data > apply calibration parameters > remove estimated bias > notch filter (`IMU_GYRO_NF0_BW` and `IMU_GYRO_NF0_FRQ`) > low-pass filter (`IMU_GYRO_CUTOFF`) > vehicle_angular_velocity (_filtered angular rate used by the P and I controllers_) > derivative -> low-pass filter (`IMU_DGYRO_CUTOFF`) > vehicle_angular_acceleration (_filtered angular acceleration used by the D controller_)
+  gyro data > apply calibration parameters > remove estimated bias > notch filter (`IMU_GYRO_NF0_BW` and `IMU_GYRO_NF0_FRQ`) > low-pass filter (`IMU_GYRO_CUTOFF`) > vehicle_angular_velocity (\_filtered angular rate used by the P and I controllers_) > derivative -> low-pass filter (`IMU_DGYRO_CUTOFF`) > vehicle_angular_acceleration (\_filtered angular acceleration used by the D controller_)
 
   ![IMU pipeline](../../assets/diagrams/px4_imu_pipeline.png)
 
@@ -110,7 +110,7 @@ Make sure to tune the attitude controller before attempting to tune TECS.
 스로틀을 높이면 속도가 증가하지만, 양력 증가로 인하여 높이도 증가합니다.
 따라서 제어 문제를 어렵게 만드는 두 개의 출력(대기 속도 및 고도)에 모두 영향을 미치는 두 개의 입력(피치 각도 및 스로틀)이 존재합니다.
 
-TECS는 원래 설정이 아닌 에너지 측면에서 문제를 표현하여 솔루션을 제공합니다.
+TECS offers a solution by representing the problem in terms of energies rather than the original setpoints.
 항공기의 총 에너지는 운동 에너지와 위치 에너지의 합입니다. 추력(스로틀 제어를 통해)은 항공기의 총 에너지를 증가시킵니다. 주어진 총 에너지 상태는 위치 에너지와 운동 에너지의 조합입니다.
 즉, 높은 고도에서 느린 속도로 비행하는 것은 총 에너지 측면에서 낮은 고도에서 더 빠른 속도로 비행하는 것과 동일합니다. 이를 특정 에너지 균형이라고 하며, 현재 고도와 실제 속도 설정값으로 계산합니다.
 특정 에너지 균형은 항공기 피치 각도를 통하여 제어됩니다.
@@ -177,7 +177,7 @@ The angular position of the control effectors (ailerons, elevators, rudders, ...
 또한 제어 표면은 고속에서 더 효과적이고 저속에서는 덜 효과적이기 때문에, 순항 속도에 맞게 조정된 컨트롤러는 속도 측정을 사용하여 조정됩니다(이러한 센서가 사용되는 경우).
 
 :::info
-If no airspeed sensor is used then gain scheduling for the FW attitude controller is  disabled (it's open loop); no correction is/can be made in TECS using airspeed feedback.
+If no airspeed sensor is used then gain scheduling for the FW attitude controller is disabled (it's open loop); no correction is/can be made in TECS using airspeed feedback.
 :::
 
 피드포워드 이득은 공기역학적 감쇠를 보상합니다.
@@ -187,7 +187,7 @@ If no airspeed sensor is used then gain scheduling for the FW attitude controlle
 ### Turn coordination
 
 롤 및 피치 컨트롤러는 동일한 구조를 가지며, 종방향 역학과 횡방향 역학은 독립적으로 작동하기에 충분히 분리되어 있다고 가정합니다.
-그러나, 요 콘트롤러는 항공기가 미끄러질 때 생성되는 측면 가속도를 최소화하기 위해 선회 조정 제약 조건을 사용하여 요 각속도 설정점을 계산합니다.  The turn coordination algorithm is based solely on coordinated turn geometry calculation.
+그러나, 요 콘트롤러는 항공기가 미끄러질 때 생성되는 측면 가속도를 최소화하기 위해 선회 조정 제약 조건을 사용하여 요 각속도 설정점을 계산합니다. The turn coordination algorithm is based solely on coordinated turn geometry calculation.
 
 $$\dot{\Psi}_{sp} = \frac{g}{V_T} \tan{\phi_{sp}} \cos{\theta_{sp}}$$
 

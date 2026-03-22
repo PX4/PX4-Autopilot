@@ -104,7 +104,7 @@
 Для надсилання вимірювання позиції ви заповнюєте структуру позиції з виміряними значеннями.
 Потім викликаєте функцію оновлення інтерфейсу з цією структурою як аргументом.
 
-Для базового прикладу, як користуватися цим інтерфейсом, ознайомтеся з [examples](https://github.com/Auterion/px4-ros2-interface-lib/tree/main/examples/cpp/navigation) в `Auterion/px4-rosface-lib` репозиторію, наприклад [examples/cpp/navigation/local_navigation](https://github.com/Auterion/px4-ros2-interface-lib/b/main/examples/cpp/navigation/local_navigation/inclation/inclde/local_localation.hppation.hpp) або examples/cpps/cppation/globation](https://github.com/Auter/intertere-face-face-face-facb/mainb/mppation/mppation/example/example/navigation/navigation/navigation/navig/navigation/navigation/navig/navig/navig/navighblob/navig
+For a basic example of how to use this interface, check out the [examples](https://github.com/Auterion/px4-ros2-interface-lib/tree/main/examples/cpp/navigation) in the `Auterion/px4-ros2-interface-lib` repository, such as [examples/cpp/navigation/local_navigation](https://github.com/Auterion/px4-ros2-interface-lib/blob/main/examples/cpp/navigation/local_navigation/include/local_navigation.hpp) or [examples/cpp/navigation/global_navigation](https://github.com/Auterion/px4-ros2-interface-lib/blob/main/examples/cpp/navigation/global_navigation/include/global_navigation.hpp).
 
 ### Оновлення локальної позиції
 
@@ -223,7 +223,7 @@ private:
 
 ###
 
-Спочатку переконайтеся, що параметр PX4 [`EKF2_EV_CTRL`](../advanced_config/parameter_reference.md#EKF2_EV_CTRL) налаштований належним чином для ефективного використання зовнішніх локальних вимірів, встановивши відповідні біти в `true`:
+First ensure that the PX4 [`EKF2_AGP_CTRLn`](../advanced_config/parameter_reference.md#EKF2_AGP0_CTRL) parameters are properly configured to fuse external global measurements, by setting the appropriate bits to `true`:
 
 - 0: Дані горизонтальної позиції
 - 1: Дані вертикальної позиції

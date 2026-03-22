@@ -61,7 +61,6 @@ You must already have installed the command line [PX4 developer environment](../
 빌드를 진행하려면:
 
 1. Select your build target ("cmake build config"):
-
    - The current _cmake build target_ is shown on the blue _config_ bar at the bottom (if this is already your desired target, skip to next step).
      ![Select Cmake build target](../../assets/toolchain/vscode/cmake_build_config.jpg)
 
@@ -134,10 +133,10 @@ In order for the code completion to work (and other IntelliSense magic) you need
 
 이 섹션에는 설정 및 빌드 오류에 대한 지침이 포함되어 있습니다.
 
-### Ubuntu 18.04: "Visual Studio Code는 이 큰 작업 영역에서 파일 변경 사항을 감시할 수 없습니다."
+### "Visual Studio Code is unable to watch for file changes in this large workspace"
 
 이 오류는 시작시에 나타납니다.
-On some systems, there is an upper-limit of 8192 file handles imposed on applications, which means that VSCode might not be able to detect file modifications in `/PX4-Autopilot`.
+On some systems, there is an upper-limit on file handles imposed on applications, which means that VSCode might not be able to detect file modifications in `/PX4-Autopilot`.
 
 메모리 소비를 희생시키면서 오류를 방지하기 위해 이 제한을 늘릴 수 있습니다.
 Follow the [instructions here](https://code.visualstudio.com/docs/setup/linux#_visual-studio-code-is-unable-to-watch-for-file-changes-in-this-large-workspace-error-enospc).

@@ -227,9 +227,11 @@ enum class ReceiverOutputTracker {
 	PositioningMessages      = DOP + PVTGeodetic + VelCovGeodetic + AttEuler + AttCovEuler,
 };
 
-class SeptentrioDriver : public ModuleBase<SeptentrioDriver>, public device::Device
+class SeptentrioDriver : public ModuleBase, public device::Device
 {
 public:
+	static Descriptor desc;
+
 	SeptentrioDriver(const char *device_path, Instance instance, uint32_t baud_rate);
 	~SeptentrioDriver() override;
 
@@ -243,6 +245,9 @@ public:
 	static int task_spawn(int argc, char *argv[]);
 
 	static int task_spawn(int argc, char *argv[], Instance instance);
+
+	/** @see ModuleBase */
+	static int run_trampoline(int argc, char *argv[]);
 
 	/**
 	 * @brief Secondary run trampoline to support two driver instances.

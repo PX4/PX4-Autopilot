@@ -225,6 +225,19 @@ void Navigator::run()
 			_global_pos_sub.copy(&_global_pos);
 		}
 
+		/* update last known position with GCS heartbeat */
+		for (auto &telemetry_sub : _telemetry_status_subs) {
+			telemetry_status_s telemetry;
+
+			if (telemetry_sub.update(&telemetry) && telemetry.heartbeat_type_gcs) {
+				_last_pos_with_gcs_heartbeat.lat = _global_pos.lat;
+				_last_pos_with_gcs_heartbeat.lon = _global_pos.lon;
+				_last_pos_with_gcs_heartbeat.alt = _global_pos.alt;
+				_last_pos_with_gcs_heartbeat.yaw = _local_pos.heading;
+				break;
+			}
+		}
+
 		/* check for parameter updates */
 		if (_parameter_update_sub.updated()) {
 			// clear update
@@ -460,12 +473,6 @@ void Navigator::run()
 
 					// set the altitude corresponding to command
 					rep->current.alt = PX4_ISFINITE(cmd.param1) ? cmd.param1 : get_global_position()->alt;
-
-					if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
-					    && (get_position_setpoint_triplet()->current.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF)) {
-
-						preproject_stop_point(rep->current.lat, rep->current.lon);
-					}
 
 					if (PX4_ISFINITE(curr->current.loiter_radius) && curr->current.loiter_radius > FLT_EPSILON) {
 						rep->current.loiter_radius = curr->current.loiter_radius;
@@ -1097,17 +1104,24 @@ void Navigator::geofence_breach_check()
 	}
 }
 
+int Navigator::run_trampoline(int argc, char *argv[])
+{
+	return ModuleBase::run_trampoline_impl(desc, [](int ac, char *av[]) -> ModuleBase * {
+		return Navigator::instantiate(ac, av);
+	}, argc, argv);
+}
+
 int Navigator::task_spawn(int argc, char *argv[])
 {
-	_task_id = px4_task_spawn_cmd("navigator",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_NAVIGATION,
-				      PX4_STACK_ADJUSTED(2230),
-				      (px4_main_t)&run_trampoline,
-				      (char *const *)argv);
+	desc.task_id = px4_task_spawn_cmd("navigator",
+					  SCHED_DEFAULT,
+					  SCHED_PRIORITY_NAVIGATION,
+					  PX4_STACK_ADJUSTED(2230),
+					  (px4_main_t)&run_trampoline,
+					  (char *const *)argv);
 
-	if (_task_id < 0) {
-		_task_id = -1;
+	if (desc.task_id < 0) {
+		desc.task_id = -1;
 		return -errno;
 	}
 
@@ -1336,20 +1350,20 @@ bool Navigator::force_vtol()
 
 int Navigator::custom_command(int argc, char *argv[])
 {
-	if (!is_running()) {
+	if (!is_running(desc)) {
 		print_usage("not running");
 		return 1;
 	}
 
 	if (!strcmp(argv[0], "fencefile")) {
-		get_instance()->load_fence_from_file(GEOFENCE_FILENAME);
+		get_instance<Navigator>(desc)->load_fence_from_file(GEOFENCE_FILENAME);
 		return 0;
 
 #if CONFIG_NAVIGATOR_ADSB
 
 	} else if (!strcmp(argv[0], "fake_traffic")) {
 
-		get_instance()->run_fake_traffic();
+		get_instance<Navigator>(desc)->run_fake_traffic();
 
 		return 0;
 #endif // CONFIG_NAVIGATOR_ADSB
@@ -1717,5 +1731,5 @@ controller.
  */
 extern "C" __EXPORT int navigator_main(int argc, char *argv[])
 {
-	return Navigator::main(argc, argv);
+	return ModuleBase::main(Navigator::desc, argc, argv);
 }

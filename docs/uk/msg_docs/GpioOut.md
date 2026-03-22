@@ -1,8 +1,28 @@
+---
+pageClass: is-wide-page
+---
+
 # GpioOut (повідомлення UORB)
 
-Маска та стан GPIO
+GPIO mask and state.
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/GpioOut.msg)
+**TOPICS:** gpio_out
+
+## Fields
+
+| Назва                          | Тип      | Unit [Frame] | Range/Enum | Опис                                                      |
+| ------------------------------ | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| timestamp                      | `uint64` |                                                                  |            | time since system start (microseconds) |
+| device_id | `uint32` |                                                                  |            | Device id                                                 |
+| mask                           | `uint32` |                                                                  |            | pin mask                                                  |
+| state                          | `uint32` |                                                                  |            | pin state mask                                            |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/GpioOut.msg)
+
+:::details
+Click here to see original file
 
 ```c
 # GPIO mask and state
@@ -12,5 +32,6 @@ uint32 device_id			# Device id
 
 uint32 mask				# pin mask
 uint32 state				# pin state mask
-
 ```
+
+:::

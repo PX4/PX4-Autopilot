@@ -73,6 +73,7 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/posix.h>
+#include <uORB/uORB.h>
 
 #include "apps.h"
 #include "px4_daemon/client.h"
@@ -505,6 +506,7 @@ void sig_int_handler(int sig_num)
 	fflush(stdout);
 	printf("\nPX4 Exiting...\n");
 	fflush(stdout);
+	uorb_shutdown();
 	px4_daemon::Pxh::stop();
 	_exit_requested = true;
 }

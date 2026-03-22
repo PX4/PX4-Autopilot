@@ -357,6 +357,10 @@ The mode is set using the [EKF2_GPS_MODE](../advanced_config/parameter_reference
   EKF2 may reset if no other sources of position or velocity are available.
   If GNSS altitude OR horizontal position data drifts, the system disables fusion of both measurements simultaneously (even if one would still pass validation) and avoids performing resets.
 
+:::tip
+See also [Fault Detection](https://youtu.be/CMGQJNPiTJg?si=sFtdf4AQbcOH8-u8) in "Fuse, Reset, or Reject? Handling Various Data-sources in EKF2" _PX4 Developer Summit 2025_, Marco Hauswirth, Auterion AG
+:::
+
 ##### Detection Logic
 
 Horizontal Position:
@@ -587,7 +591,7 @@ The **.ulog** format data can be parsed in python by using the [PX4 pyulog libra
 - Attitude output data is found in the [VehicleAttitude](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleAttitude.msg) message.
 - Local position output data is found in the [VehicleLocalPosition](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleLocalPosition.msg) message.
 - Global \(WGS-84\) output data is found in the [VehicleGlobalPosition](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleGlobalPosition.msg) message.
-- Вихідні дані про швидкість вітру містяться в повідомленні [Wind.msg](https://github.com/PX4/PX4-Autopilot/blob/main/msg/Wind.msg).
+- Wind velocity output data is found in the [AirspeedWind.msg](https://github.com/PX4/PX4-Autopilot/blob/main/msg/AirspeedWind.msg) message.
 
 ### Стани
 
@@ -889,3 +893,4 @@ The rise in [EstimatorStatus](https://github.com/PX4/PX4-Autopilot/blob/main/msg
 ## Подальша інформація
 
 - [Огляд оцінки стану PX4](https://youtu.be/HkYRJJoyBwQ), _Саміт розробників PX4 2019_, д-р Пол Райзборо: Огляд оцінювача та основні зміни з 2018/19, а також очікувані покращення до 2019/ 20.
+- [Fuse, Reset, or Reject? Handling Various Data-sources in EKF2](https://www.youtube.com/watch?v=CMGQJNPiTJg) - _PX4 Developer Summit 2025_, Marco Hauswirth, Auterion AG

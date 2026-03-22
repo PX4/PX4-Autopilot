@@ -1,0 +1,109 @@
+/****************************************************************************
+ *
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+#ifndef GLOBAL_POSITION_SENSOR_HPP
+#define GLOBAL_POSITION_SENSOR_HPP
+
+#include <stdint.h>
+
+#include <uORB/topics/aux_global_position.h>
+
+class MavlinkStreamGlobalPositionSensor : public MavlinkStream
+{
+public:
+	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamGlobalPositionSensor(mavlink); }
+
+	static constexpr const char *get_name_static() { return "GLOBAL_POSITION_SENSOR"; }
+	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_GLOBAL_POSITION_SENSOR; }
+
+	const char *get_name() const override { return get_name_static(); }
+	uint16_t get_id() override { return get_id_static(); }
+
+	unsigned get_size() override
+	{
+		return _aux_global_position_sub.advertised() ? (MAVLINK_MSG_ID_GLOBAL_POSITION_SENSOR_LEN +
+				MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+	}
+
+private:
+	explicit MavlinkStreamGlobalPositionSensor(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+
+	uORB::SubscriptionMultiArray<aux_global_position_s, 4> _aux_global_position_sub{ORB_ID::aux_global_position};
+
+	bool send() override
+	{
+		aux_global_position_s pos{};
+		bool sent = false;
+
+		for (int i = 0; i < _aux_global_position_sub.size(); i++) {
+			if (_aux_global_position_sub[i].update(&pos)) {
+				mavlink_global_position_sensor_t msg{};
+
+				msg.target_system = 0;
+				msg.target_component = 0;
+				msg.id = pos.id;
+				msg.time_usec = pos.timestamp;
+				msg.source = pos.source;
+
+				if (PX4_ISFINITE(pos.lat)) {
+					msg.lat = static_cast<int32_t>(pos.lat * 1e7);
+
+				} else {
+					msg.lat = INT32_MAX;
+				}
+
+				if (PX4_ISFINITE(pos.lon)) {
+					msg.lon = static_cast<int32_t>(pos.lon * 1e7);
+
+				} else {
+					msg.lon = INT32_MAX;
+				}
+
+				msg.alt = pos.alt;
+				msg.alt_ellipsoid = pos.alt;
+
+				msg.eph = pos.eph;
+				msg.epv = pos.epv;
+
+
+				mavlink_msg_global_position_sensor_send_struct(_mavlink->get_channel(), &msg);
+
+				sent = true;
+			}
+		}
+
+		return sent;
+	}
+};
+
+#endif // GLOBAL_POSITION_SENSOR_HPP

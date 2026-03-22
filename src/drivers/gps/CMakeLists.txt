@@ -53,6 +53,7 @@ px4_add_module(
 		devices/src/crc.cpp
 	MODULE_CONFIG
 		module.yaml
+		params.yaml
 	DEPENDS
 		git_gps_devices
 		gnss

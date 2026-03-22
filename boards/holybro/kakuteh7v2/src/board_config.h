@@ -59,6 +59,11 @@
 #  define BOARD_HAS_NBAT_V              1
 #  define BOARD_HAS_NBAT_I              1
 
+/* Enable small flash logging support (for W25N NAND flash) */
+#ifdef CONFIG_MTD_W25N
+#  define BOARD_SMALL_FLASH_LOGGING 1
+#endif
+
 /* Holybro KakuteH7 GPIOs ************************************************************************/
 
 /* LEDs are driven with push open drain to support Anode to 5V or 3.3V */

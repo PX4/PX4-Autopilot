@@ -1,18 +1,18 @@
 # Accton Godwit G-A1
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://cubepilot.org/#/home) for hardware support or compliance issues.
 :::
 
-The G-A1 is a state-of-the-art flight controller developed derived from the [Pixhawk Autopilot v6X Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-012%20Pixhawk%20Autopilot%20v6X%20Standard.pdf).
+The G-A1 is a state-of-the-art flight controller derived from the [Pixhawk Autopilot v6X Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-012%20Pixhawk%20Autopilot%20v6X%20Standard.pdf).
 
 It includes an STM32H753 double-precision floating-point FMU processor and an STM32F103 IO coprocessor, multiple IMUs with 6-axis inertial sensors, two pressure/temperature sensors, and a geomagnetic sensor.
 It also has independent buses and power supplies, and is designed for safety and rich expansion capabilities.
 
 With an integrated 10/100M Ethernet Physical Layer (PHY), the G-A1 can also communicate with a mission computer (airborne computer), high-end surveying and mapping cameras, and other UxV-mounted equipment for high-speed communications, meeting the needs of advanced UxV systems.
 
-:::tip
+::: tip
 Visit [Accton-IoT Godwit](https://www.accton-iot.com/godwit/) for more information.
 :::
 
@@ -65,7 +65,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - 92.2 (L) x 51.2 (W) x 28.3 (H) mm
 - 77.6g (carrier board with IMU)
 
-## Where to Buy
+## Where to Buy {#store}
 
 - [Accton-IoT Godwit](https://www.accton-iot.com/godwit/)
 - [sales@accton-iot.com](sales@accton-iot.com)
@@ -115,7 +115,7 @@ PPM receivers should be connected to the PPM interface. And other RC systems can
 
 ## GPS/Compass
 
-The Godwit G-A1 has a built-in compass
+The Godwit G-A1 has a built-in compass.
 Due to potential interference, the autopilot is usually used with an external I2C compass as part of a GPS/Compass combination.
 
 ![G-A1 GPS](../../assets/flight_controller/accton-godwit/ga1/gps.png "G-A1 GPS")

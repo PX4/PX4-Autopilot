@@ -49,12 +49,12 @@ Key build features
 - [Holybro M9N GPS module](https://holybro.com/products/m9n-gps)
 - Holybro PWM breakout board
 - MS4525DO differential pressure module and pitot tube
-- [Caddx Vista FPV air unit](https://caddxfpv.com/collections/vista-kit)
+- [Caddx Vista FPV air unit](https://www.caddxfpv.com/collections/vista-kit)
 - [Emax ES08MA ii](https://emaxmodel.com/products/emax-es08ma-ii-12g-mini-metal-gear-analog-servo-for-rc-model-robot-pwm-servo)
 - [DJI FPV Goggles](https://www.dji.com/fpv)
 - [ExpressLRS Matek Diversity RX](https://www.mateksys.com/?portfolio=elrs-r24)
 - [5V BEC](https://www.readymaderc.com/products/details/rmrc-3a-power-regulator-5-to-6-volt-ubec)
-- [6s2p 18650 LiIon flight battery](https://www.upgradeenergytech.com/product-page/6s-22-2v-5600mah-30c-dark-lithium-liion-drone-battery) (select XT60 connector)
+- [6s2p 18650 LiIon flight battery](https://www.upgradeenergytech.com/products/red-6s1p-5000mah-molicel-p50b) (select XT60 connector)
 - [Custom designed 3D printed parts](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/airframes/fw/reptile_dragon_2/rd2_3d_printed_parts.zip)
   - ARK6X carrier mount
   - Holybro Pixhawk 5x carrier mount
@@ -81,7 +81,7 @@ The airplane needs some assembly out of the box.
 Servos, wings, and the tail will need to be installed.
 
 ::: info
-For this portion of assembly, the instructions included with the kit should be sufficent, but some helpful tips are listed below.
+For this portion of assembly, the instructions included with the kit should be sufficient, but some helpful tips are listed below.
 :::
 
 ### Gluing Foam
@@ -209,7 +209,7 @@ An alternative carrier board is the Holybro Pixhawk 5X carrier.
 
 The carrier comes installed in a plastic case.
 While the case does look nice, it is extra weight, so the carrier was removed from the case.
-Once removed from the case, the ARK6X was installed, and a protective cover fitted ontop.
+Once removed from the case, the ARK6X was installed, and a protective cover fitted on top.
 
 ![Flight computer carrier board](../../assets/airframes/fw/reptile_dragon_2/holybro_5x.jpg)
 
@@ -337,7 +337,7 @@ For more information see [TBS Crossfire (CRSF) Telemetry](../telemetry/crsf_tele
 
 ### `msp_osd` Module
 
-The `msp_osd` module steams MSP telemetry to a selected serial port.
+The `msp_osd` module streams MSP telemetry to a selected serial port.
 The Caddx Vista Air Unit supports listening to MSP telemetry and will show the received telemetry values in its OSD (on screen display).
 
 1. In the PX4 board config tool, navigate to the `drivers` submenu, then scroll down to highlight `OSD`.

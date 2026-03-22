@@ -57,18 +57,31 @@ bool FixedwingLandDetector::_get_landed_state()
 		return true;
 	}
 
+	// Force the landed state to stay landed if we're currently in an early state of the takeoff state machines.
+	// This prevents premature transitions to in-air during the early takeoff phase.
+	if (_landed_hysteresis.get_state()) {
+		launch_detection_status_s launch_detection_status{};
+		_launch_detection_status_sub.copy(&launch_detection_status);
+
+		fixed_wing_runway_control_s fixed_wing_runway_control{};
+		_fixed_wing_runway_control_sub.copy(&fixed_wing_runway_control);
+
+		// Check if we're in catapult/hand-launch waiting state
+		const bool waiting_for_catapult_launch = hrt_elapsed_time(&launch_detection_status.timestamp) < 500_ms
+				&& launch_detection_status.launch_detection_state == launch_detection_status_s::STATE_WAITING_FOR_LAUNCH;
+
+		// Check if we're in runway takeoff early phase (throttle ramp or clamped to runway)
+		const bool waiting_for_auto_runway_climbout = hrt_elapsed_time(&fixed_wing_runway_control.timestamp) < 500_ms
+				&& fixed_wing_runway_control.runway_takeoff_state < fixed_wing_runway_control_s::STATE_CLIMBOUT;
+
+		if (waiting_for_catapult_launch || waiting_for_auto_runway_climbout) {
+			return true;
+		}
+	}
+
 	bool landDetected = false;
 
-	launch_detection_status_s launch_detection_status{};
-	_launch_detection_status_sub.copy(&launch_detection_status);
-
-	// force the landed state to stay landed if we're currently in the catapult/hand-launch launch process. Detect that we are in this state
-	// by checking if the last publication of launch_detection_status is less than 0.5s old, and we're still in the wait for launch state.
-	if (_landed_hysteresis.get_state() &&  hrt_elapsed_time(&launch_detection_status.timestamp) < 500_ms
-	    && launch_detection_status.launch_detection_state == launch_detection_status_s::STATE_WAITING_FOR_LAUNCH) {
-		landDetected = true;
-
-	} else if (hrt_elapsed_time(&_vehicle_local_position.timestamp) < 1_s) {
+	if (hrt_elapsed_time(&_vehicle_local_position.timestamp) < 1_s) {
 
 		float val = 0.0f;
 

@@ -1,6 +1,6 @@
 # Gain compression
 
-<Badge type="tip" text="main (planned for: PX4 v1.17)" />
+<Badge type="tip" text="PX4 v1.17" />
 
 Automatic gain compression reduces the gains of the angular-rate PID whenever oscillations are detected.
 It monitors the angular-rate controller output through a band-pass filter to identify these oscillations.

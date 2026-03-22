@@ -40,6 +40,8 @@ px4_add_module(
 		SCH16T.hpp
 		sch16t_main.cpp
 		Murata_SCH16T_registers.hpp
+	MODULE_CONFIG
+		parameters.yaml
 	DEPENDS
 		drivers_accelerometer
 		drivers_gyroscope

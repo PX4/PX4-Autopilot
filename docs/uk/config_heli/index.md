@@ -77,7 +77,6 @@ This section contains topics related to [helicopter](../frames_helicopter/index.
 3. Видаліть лопаті ротора та пропелери
 
 4. Assign motors and servos to outputs and test (also in [Actuator configuration](../config/actuators.md)):
-
    1. Assign the [motors and servos to the outputs](../config/actuators.md#actuator-outputs).
    2. Power the vehicle with a battery and use the [actuator testing sliders](../config/actuators.md#actuator-testing) to validate correct servo and motor assignment and direction.
 

@@ -47,4 +47,5 @@ if(${PX4_PLATFORM} STREQUAL "nuttx")
 endif()
 
 px4_add_library(systemlib ${SRCS})
+set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/system_params.yaml)
 target_compile_options(systemlib PRIVATE ${MAX_CUSTOM_OPT_LEVEL})

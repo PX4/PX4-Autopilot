@@ -1,0 +1,10 @@
+module_name: gyro_calibration
+parameters:
+- group: Sensors
+  definitions:
+    IMU_GYRO_CAL_EN:
+      description:
+        short: IMU gyro auto calibration enable
+      type: boolean
+      default: 1
+      reboot_required: true

@@ -106,51 +106,45 @@ There are several other "battery related" failsafe mechanisms that may be config
 
 | 설정                                                                   | 매개변수                                                                                                                                          | 설명                                                                                                                                                                                                                                 |
 | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="COM_FLTT_LOW_ACT"></a> Low flight time for safe return action | [COM_FLTT_LOW_ACT](../advanced_config/parameter_reference.md#COM_FLTT_LOW_ACT) | Action when return mode can only just reach safety with remaining battery. `0`: None, `1`: Warning, `3`: Return mode (default). |
+| <a id="COM_FLTT_LOW_ACT"></a> Low flight time for safe return action | [COM_FLTT_LOW_ACT](../advanced_config/parameter_reference.md#COM_FLTT_LOW_ACT) | Action when return mode can only just reach safety with remaining battery. `0`: None (default), `1`: Warning, `3`: Return mode. |
 | <a id="COM_FLT_TIME_MAX"></a> Maximum flight time failsafe level     | [COM_FLT_TIME_MAX](../advanced_config/parameter_reference.md#COM_FLT_TIME_MAX) | Maximum allowed flight time before Return mode will be engaged, in seconds. `-1`: Disabled (default).                                                           |
 
 ## Manual Control Loss Failsafe
 
-The manual control loss failsafe may be triggered if the connection to the [RC transmitter](../getting_started/rc_transmitter_receiver.md) or [joystick](../config/joystick.md) is lost, and there is no fallback.
-If using an [RC transmitter](../getting_started/rc_transmitter_receiver.md) this is triggered if the RC [transmitter link is lost](../getting_started/rc_transmitter_receiver.md#set-signal-loss-behaviour).
-If using [joysticks](../config/joystick.md) connected over a MAVLink data link, this is triggered if the joysticks are disconnected or the data link is lost.
+A [Manual Control Loss Failsafe](../config/safety.md#manual-control-loss-failsafe) is triggered after a [manual control loss timeout](#COM_RC_LOSS_T) in which none of the configured [Manual Controllers](../config/manual_control.md) are available.
+
+![Safety - RC Loss (QGC)](../../assets/qgc/setup/safety/safety_rc_loss.png)
+
+The QGCroundControl Safety UI allows you to set the [failsafe action](#failsafe-actions) and [manual control loss timeout](#COM_RC_LOSS_T).
+Users that want to disable this failsafe in specific modes can do so using the parameter [COM_RCL_EXCEPT](#COM_RCL_EXCEPT).
 
 :::info
 PX4 and the receiver may also need to be configured in order to _detect RC loss_: [Radio Setup > RC Loss Detection](../config/radio.md#rc-loss-detection).
 :::
 
-![Safety - RC Loss (QGC)](../../assets/qgc/setup/safety/safety_rc_loss.png)
-
-The QGCroundControl Safety UI allows you to set the [failsafe action](#failsafe-actions) and [RC Loss timeout](#COM_RC_LOSS_T).
-Users that want to disable the RC loss failsafe in specific automatic modes (mission, hold, offboard) can do so using the parameter [COM_RCL_EXCEPT](#COM_RCL_EXCEPT).
-
 Additional (and underlying) parameter settings are shown below.
 
 | 매개변수                                                                                                                                                                 | 설정                          | 설명                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="COM_RC_LOSS_T"></a>[COM_RC_LOSS_T](../advanced_config/parameter_reference.md#COM_RC_LOSS_T)    | Manual Control Loss Timeout | Time after last setpoint received from the selected manual control source after which manual control is considered lost. This must be kept short because the vehicle will continue to fly using the old manual control setpoint until the timeout triggers.                                                                                                                                                                                                                    |
+| <a id="COM_RC_LOSS_T"></a>[COM_RC_LOSS_T](../advanced_config/parameter_reference.md#COM_RC_LOSS_T)    | Manual Control Loss Timeout | Time after last setpoint received from the selected manual control source after which manual control is considered lost. This must be kept short because the vehicle will continue to fly using the last known stick position until the timeout triggers.                                                                                                                                                                                                                      |
 | <a id="COM_FAIL_ACT_T"></a>[COM_FAIL_ACT_T](../advanced_config/parameter_reference.md#COM_FAIL_ACT_T) | Failsafe Reaction Delay     | Delay in seconds between failsafe condition being triggered (`COM_RC_LOSS_T`) and failsafe action (RTL, Land, Hold). In this state the vehicle waits in hold mode for the manual control source to reconnect. This might be set longer for long-range flights so that intermittent connection loss doesn't immediately invoke the failsafe. It can be to zero so that the failsafe triggers immediately. |
 | <a id="NAV_RCL_ACT"></a>[NAV_RCL_ACT](../advanced_config/parameter_reference.md#NAV_RCL_ACT)                               | 안전장치 동작                     | Disabled, Loiter, Return, Land, Disarm, Terminate.                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| <a id="COM_RCL_EXCEPT"></a>[COM_RCL_EXCEPT](../advanced_config/parameter_reference.md#COM_RCL_EXCEPT)                      | RC 손실 예외                    | Set the modes in which manual control loss is ignored: Mission, Hold, Offboard.                                                                                                                                                                                                                                                                                                                                                                                                |
+| <a id="COM_RCL_EXCEPT"></a>[COM_RCL_EXCEPT](../advanced_config/parameter_reference.md#COM_RCL_EXCEPT)                      | RC 손실 예외                    | Set modes in which manual control loss is ignored.                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 
 ## 데이터 연결불량 안전장치
 
-The Data Link Loss failsafe is triggered if a telemetry link (connection to ground station) is lost.
+The Data Link Loss failsafe is triggered if the connection to the last MAVLink ground station like QGroundControl is lost.
+Users that want to disable this failsafe in specific modes can do so using the parameter [COM_DLL_EXCEPT](#COM_DLL_EXCEPT).
 
 ![Safety - Data Link Loss (QGC)](../../assets/qgc/setup/safety/safety_data_link_loss.png)
 
 설정에 관련된 기본 매개변수는 다음과 같습니다.
 
-| 설정             | 매개변수                                                                                                                                    | 설명                                                                              |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| 데이터 연결불량 시간 초과 | [COM_DL_LOSS_T](../advanced_config/parameter_reference.md#COM_DL_LOSS_T) | 데이터 연결이 끊어진 후 안전 장치가 동작하기 전까지의 시간입니다.                           |
-| 안전장치 동작        | [NAV_DLL_ACT](../advanced_config/parameter_reference.md#NAV_DLL_ACT)                          | Disabled, Hold mode, Return mode, Land mode, Disarm, Terminate. |
-
-다음 설정도 가능하지만 QGC UI에 표시되지 않습니다.
-
-| 설정                                                          | 매개변수                                                                                                                 | 설명                                                                   |
-| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| <a id="COM_DLL_EXCEPT"></a>Mode exceptions for DLL failsafe | [COM_DLL_EXCEPT](../advanced_config/parameter_reference.md#COM_DLL_EXCEPT) | Set modes where DL loss will not trigger a failsafe. |
+| 설정                                                          | 매개변수                                                                                                                                    | 설명                                                                              |
+| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| 데이터 연결불량 시간 초과                                              | [COM_DL_LOSS_T](../advanced_config/parameter_reference.md#COM_DL_LOSS_T) | 데이터 연결이 끊어진 후 안전 장치가 동작하기 전까지의 시간입니다.                           |
+| 안전장치 동작                                                     | [NAV_DLL_ACT](../advanced_config/parameter_reference.md#NAV_DLL_ACT)                          | Disabled, Hold mode, Return mode, Land mode, Disarm, Terminate. |
+| <a id="COM_DLL_EXCEPT"></a>Mode exceptions for DLL failsafe | [COM_DLL_EXCEPT](../advanced_config/parameter_reference.md#COM_DLL_EXCEPT)                    | Set modes in which data link loss is ignored.                   |
 
 ## Geofence 안전장치
 
@@ -185,17 +179,22 @@ Due to the inherent danger of this, this function is disabled using [CBRK_FLIGHT
 | <a id="GF_PREDICT"></a>Preemptive geofence triggering              | [GF_PREDICT](../advanced_config/parameter_reference.md#GF_PREDICT)           | (Experimental) Trigger geofence if current motion of the vehicle is predicted to trigger the breach (rather than late triggering after the breach). |
 | <a id="CBRK_FLIGHTTERM"></a>Circuit breaker for flight termination | [CBRK_FLIGHTTERM](../advanced_config/parameter_reference.md#CBRK_FLIGHTTERM) | 비행 종료 작업을 활성화/비활성화합니다 (기본적으로 비활성화 됨).                                                                                                                                  |
 
-## Position (GNSS) Loss Failsafe
+## Position Estimation Failsafes
+
+This section describes failsafes related to the quality of the vehicle's position estimate.
+
+### Position Loss Failsafe
 
 The _Position Loss Failsafe_ is triggered if the quality of the PX4 position estimate falls below acceptable levels (this might be caused by GPS loss) while in a mode that requires an acceptable position estimate.
-The sections below cover first the trigger and then the failsafe action taken by the controller.
 
 ### Position Loss Failsafe Trigger
 
-There are basically two mechanisms in PX4 to trigger position failsafes:
+The position loss failsafe triggers if the position estimate becomes _invalid_. There are two mechanisms in PX4 to invalidate the position estimate:
 
-- A timeout since the last sensor data was fused that provides direct speed or horizontal position measurements. Sensors that fall into that category are: GNSS, optical flow, airspeed, VIO, auxiliary global position.
-- The estimated horizontal position accuracy exceeds a certain threshold. This check is only done on hovering systems (rotary wing vehicles or VTOLs in hover phase).
+- A timeout since the last sensor data was fused that provides direct speed or horizontal position measurements.
+  - Sensors that fall into that category are: GNSS, optical flow, airspeed, VIO, auxiliary global position.
+- The estimated horizontal position inaccuracy exceeds the threshold [COM_POS_LOW_EPH](../advanced_config/parameter_reference.md#COM_POS_LOW_EPH)
+  - This check is only done on hovering systems (rotary-wing vehicles or VTOLs in hover phase). For fixed-wing vehicles, refer to the [Position Accuracy Low](#position-accuracy-low-failsafe) section.
 
 The relevant parameters shown below.
 
@@ -211,14 +210,24 @@ Multicopters will switch to [Altitude mode](../flight_modes_mc/altitude.md) if a
 Fixed-wing planes, and VTOLs not configured to land in hover ([NAV_FORCE_VT](../advanced_config/parameter_reference.md#NAV_FORCE_VT)), have a parameter ([FW_GPSF_LT](../advanced_config/parameter_reference.md#FW_GPSF_LT)) that defines how long they will loiter (circle with a constant roll angle ([FW_GPSF_R](../advanced_config/parameter_reference.md#FW_GPSF_R)) at the current altitude) after losing position before attempting to land.
 If VTOLs have are configured to switch to hover for landing ([NAV_FORCE_VT](../advanced_config/parameter_reference.md#NAV_FORCE_VT)) then they will first transition and then descend.
 
-The relevant parameters for all vehicles shown below.
+The relevant parameters are:
 
-Parameters that only affect Fixed-wing vehicles:
+| 매개변수                                                                                                                                      | 설명                                                                                                                                                                                                              |
+| ----------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="FW_GPSF_LT"></a>[FW_GPSF_LT](../advanced_config/parameter_reference.md#FW_GPSF_LT)       | Fixed-wing only: Loiter time (waiting at current altitude for position estimation recovery before starting to descend). 비활성화 하려면 0으로 설정하십시오. |
+| <a id="FW_GPSF_R"></a>[FW_GPSF_R](../advanced_config/parameter_reference.md#FW_GPSF_R)          | 선회 비행시 고정 롤/뱅크 각도.                                                                                                                                                                              |
+| <a id="NAV_FORCE_VT"></a>[NAV_FORCE_VT](../advanced_config/parameter_reference.md#NAV_FORCE_VT) | If true, force VTOL takeoff and landing, even in `Descend` failsafe.                                                                                                                            |
 
-| 매개변수                                                                                                                                | 설명                                                                                                                                                             |
-| ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="FW_GPSF_LT"></a>[FW_GPSF_LT](../advanced_config/parameter_reference.md#FW_GPSF_LT) | Loiter time (waiting for GPS recovery before it goes into land or flight termination). 비활성화 하려면 0으로 설정하십시오. |
-| <a id="FW_GPSF_R"></a>[FW_GPSF_R](../advanced_config/parameter_reference.md#FW_GPSF_R)    | 선회 비행시 고정 롤/뱅크 각도.                                                                                                                             |
+### Position Accuracy Low Failsafe
+
+In Fixed-wing, the position estimate is never strictly invalidated as long as we have a horizontal aiding source, such as an airspeed sensor. In that case, a separate failsafe can be configured that triggers if the position estimate inacuraccy exceeds the threshold [COM_POS_LOW_EPH](../advanced_config/parameter_reference.md#COM_POS_LOW_EPH). The failsafe action is taken if the vehicle is in mission or hold mode, otherwise it is only a warning. The relevant parameters are:
+
+| 매개변수                                                                                                                                                                    | 설명                                                                                                                                                 |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="COM_POS_LOW_EPH"></a>[COM_POS_LOW_EPH](../advanced_config/parameter_reference.md#COM_POS_LOW_EPH) | Position inaccuracy threshold above which COM_POS_LOW_ACT is taken. |
+| <a id="COM_POS_LOW_ACT"></a>[COM_POS_LOW_ACT](../advanced_config/parameter_reference.md#COM_POS_LOW_ACT) | Failsafe action taken when position inaccuracy is above configured threshold.                                                      |
+
+Note that if there is no horizontal aiding source anymore, the position estimate is invalidated after `EKF2_NOAID_TOUT`, and the standard position loss failsafe applies.
 
 ## 오프 보드 안전 장치
 
@@ -265,7 +274,7 @@ The parameters that control when the quad-chute will trigger are listed in the t
 
 ## High Wind Failsafe
 
-The high wind failsafe can trigger a warning and/or other mode change when the wind speed exceeds the warning and maximum wind-speed threshhold values.
+The high wind failsafe can trigger a warning and/or other mode change when the wind speed exceeds the warning and maximum wind-speed threshold values.
 The relevant parameters are listed in the table below.
 
 | 매개변수                                                                                                                                                                       | 설명                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
@@ -287,7 +296,7 @@ Acting on a detected failure during flight is deactivated by default (enable by 
 During **takeoff** the failure detector [attitude trigger](#attitude-trigger) invokes the [disarm action](#act_disarm) if the vehicle flips (disarm kills the motors but, unlike flight termination, will not launch a parachute or perform other failure actions).
 Note that this check is _always enabled on takeoff_, irrespective of the `CBRK_FLIGHTTERM` parameter.
 
-The failure detector is active in all vehicle types and modes, except for those where the vehicle is _expected_ to do flips (i.e. [Acro mode (MC)](../flight_modes_mc/altitude.md), [Acro mode (FW)](../flight_modes_fw/altitude.md), and [Manual (FW)](../flight_modes_fw/manual.md)).
+The failure detector is active in all vehicle types and modes, except for those where the vehicle is _expected_ to do flips (i.e. [Acro mode (MC)](../flight_modes_mc/acro.md), [Acro mode (FW)](../flight_modes_fw/acro.md), and [Manual (FW)](../flight_modes_fw/manual.md)).
 
 ### 자세 감지기
 
@@ -319,8 +328,8 @@ The failure detector can be configured to detect a motor failure while armed (an
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="FD_ACT_EN"></a>[FD_ACT_EN](../advanced_config/parameter_reference.md#FD_ACT_EN)                                        | Enable/disable the motor failure trigger completely.                                                                                                                                                                                      |
 | <a id="FD_ACT_MOT_THR"></a>[FD_ACT_MOT_THR](../advanced_config/parameter_reference.md#FD_ACT_MOT_THR)    | Minimum normalized [0,1] motor command below which motor under current is ignored.                                                                                                    |
-| <a id="FD_ACT_MOT_C2T"></a>[FD_ACT_MOT_C2T](../advanced_config/parameter_reference.md#FD_ACT_MOT_C2T)    | Scale between normalized [0,1] motor command and expected minimally reported currrent when the rotor is healthy.                                                                      |
-| <a id="FD_ACT_MOT_TOUT"></a>[FD_ACT_MOT_TOUT](../advanced_config/parameter_reference.md#FD_ACT_MOT_TOUT) | Time in miliseconds for which the under current detection condition needs to stay true.                                                                                                                                                   |
+| <a id="FD_ACT_MOT_C2T"></a>[FD_ACT_MOT_C2T](../advanced_config/parameter_reference.md#FD_ACT_MOT_C2T)    | Scale between normalized [0,1] motor command and expected minimally reported current when the rotor is healthy.                                                                       |
+| <a id="FD_ACT_MOT_TOUT"></a>[FD_ACT_MOT_TOUT](../advanced_config/parameter_reference.md#FD_ACT_MOT_TOUT) | Time in milliseconds for which the under current detection condition needs to stay true.                                                                                                                                                  |
 | <a id="CA_FAILURE_MODE"></a>[CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE)                      | Configure to not only warn about a motor failure but remove the first motor that detects a failure from the allocation effectiveness which turns off the motor and tries to operate the vehicle without it until disarming the next time. |
 
 ### 외부 자동 작동 시스템 (ATS)
@@ -355,11 +364,7 @@ Remote control switches can be configured (as part of _QGroundControl_ [Flight M
 
 A kill switch immediately stops all motor outputs — if flying, the vehicle will start to fall!
 
-[By default](#COM_KILL_DISARM) the motors will restart if the switch is reverted within 5 seconds, after which the vehicle will automatically disarm, and you will need to arm it again in order to start the motors.
-
-| 매개변수                                                                                                                                               | 설명                                                                                                                              |
-| -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="COM_KILL_DISARM"></a>[COM_KILL_DISARM](../advanced_config/parameter_reference.md#COM_KILL_DISARM) | Timeout value for disarming after kill switch is engaged. Default: `5` seconds. |
+The motors will restart if the switch is reverted within 5 seconds, after which the vehicle will automatically disarm, and you will need to arm it again in order to start the motors.
 
 :::info
 There is also a [Kill Gesture](#kill-gesture), which cannot be reverted.
@@ -401,7 +406,7 @@ A return switch can be used to immediately engage [Return mode](../flight_modes/
 
 A kill gesture immediately stops all motor outputs — if flying, the vehicle will start to fall!
 
-The action cannot be reverted without a reboot (this differs from a [Kill Switch](#kill-switch), where the operation can be reverted within the time period defined by [COM_KILL_DISARM](#COM_KILL_DISARM)).
+The action cannot be reverted without a reboot (this differs from a [Kill Switch](#kill-switch), where the operation can be reverted within 5 seconds).
 
 | 매개변수                                                                                                                                                                    | 설명                                                                                                                                                                      |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

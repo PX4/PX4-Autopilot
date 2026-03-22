@@ -307,7 +307,7 @@ sudo gedit /etc/java-8-openjdk/accessibility.properties
 and comment out the line indicated below:
 
 ```sh
-#assistive_technologies=org.GNOME.Acessibility.AtkWrapper
+#assistive_technologies=org.GNOME.Accessibility.AtkWrapper
 ```
 
 For more info, check [this GitHub issue](https://github.com/PX4/PX4-Autopilot/issues/9557).

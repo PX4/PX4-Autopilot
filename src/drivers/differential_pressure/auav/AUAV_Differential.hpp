@@ -37,6 +37,7 @@
 #include <uORB/topics/differential_pressure.h>
 
 /* AUAV EEPROM addresses for differential channel */
+static constexpr uint8_t EEPROM_ABS_CAL_RNG	= 0x25;
 static constexpr uint8_t EEPROM_DIFF_AHW 	= 0x2B;
 static constexpr uint8_t EEPROM_DIFF_ALW 	= 0x2C;
 static constexpr uint8_t EEPROM_DIFF_BHW 	= 0x2D;
@@ -57,17 +58,26 @@ static_assert(DIFF_CONVERSION_INTERVAL >= 7000, "Conversion interval is too fast
 /* Conversions */
 static constexpr float INH_TO_PA = 249.08f;
 
+/* Valid AUAV types */
+static constexpr int32_t AUAV_LD_05 = 5;
+static constexpr int32_t AUAV_LD_10 = 10;
+static constexpr int32_t AUAV_LD_30 = 30;
+
 class AUAV_Differential : public AUAV
 {
 public:
 	explicit AUAV_Differential(const I2CSPIDriverConfig &config);
 	~AUAV_Differential() = default;
 
+	void print_status() override;
+
 private:
 	void publish_pressure(const float pressure_p, const float temperature_c, const hrt_abstime timestamp_sample) override;
 	int64_t get_conversion_interval() const override;
 	calib_eeprom_addr_t get_calib_eeprom_addr() const override;
 	float process_pressure_dig(const float pressure_dig) const override;
+	int read_factory_data() override;
 
 	uORB::PublicationMulti<differential_pressure_s> _differential_pressure_pub{ORB_ID(differential_pressure)};
+	int32_t _cal_range{10};
 };

@@ -10,6 +10,10 @@ CAN it is designed to be democratic and uses differential signaling.
 For this reason it is very robust even over longer cable lengths (on large vehicles), and avoids a single point of failure.
 CAN 还允许来自外设的状态反馈，并通过总线方便的进行固件升级。
 
+PX4 has the ability to track and log detailed information from CAN devices, including firmware versions, hardware versions, and serial numbers.
+This enables unique identification and lifecycle tracking of hardware connected to the flight controller.
+See [Asset Tracking](../debug/asset_tracking.md) for more information.
+
 PX4 支持与 CAN 设备通信的两个软件协议：
 
 - [DroneCAN](../dronecan/index.md): PX4 推荐大多数常见的设置。

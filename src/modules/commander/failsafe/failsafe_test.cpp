@@ -62,6 +62,9 @@ protected:
 		CHECK_FAILSAFE(status_flags, battery_low_remaining_time, ActionOptions(Action::RTL).causedBy(Cause::RemainingFlightTimeLow));
 		CHECK_FAILSAFE(status_flags, offboard_control_signal_lost, ActionOptions(Action::Hold));
 
+		CHECK_FAILSAFE(status_flags, navigator_failure, ActionOptions(Action::Warn));
+		CHECK_FAILSAFE(status_flags, fd_imbalanced_prop, ActionOptions(Action::None));
+
 		_last_state_test = checkFailsafe(_caller_id_test, _last_state_test, status_flags.fd_motor_failure
 						 && status_flags.fd_critical_failure, ActionOptions(Action::Terminate).cannotBeDeferred());
 	}
@@ -303,6 +306,36 @@ TEST_F(FailsafeTest, can_takeover_degraded_failsafe)
 	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Warn);
 	ASSERT_TRUE(failsafe.userTakeoverActive());
+}
+
+TEST_F(FailsafeTest, no_delay_for_warn)
+{
+	// Ensure there is no Hold/delay when the current action is Warn
+	FailsafeTester failsafe(nullptr);
+
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_MANUAL;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	hrt_abstime time = 3847124342;
+	failsafe_flags_s failsafe_flags{};
+	bool user_intended_mode_updated = false;
+
+	uint8_t updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
+
+	// Navigator failure -> Warn
+	time += 10_ms;
+	failsafe_flags.navigator_failure = true;
+	updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
+	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Warn);
+
+	// Imbalanced props -> Warn (no delay)
+	time += 5_s;
+	failsafe_flags.fd_imbalanced_prop = true;
+	updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
+	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Warn);
 }
 
 TEST_F(FailsafeTest, no_immediate_takeover_when_failsafe_on_mode_switch)

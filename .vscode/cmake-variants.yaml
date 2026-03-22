@@ -6,6 +6,16 @@ CONFIG:
       buildType: RelWithDebInfo
       settings:
         CONFIG: px4_sitl_default
+    px4_sitl_raptor:
+      short: px4_sitl_raptor
+      buildType: RelWithDebInfo
+      settings:
+        CONFIG: px4_sitl_raptor
+    px4_sitl_raptor_debug:
+      short: px4_sitl_raptor_debug
+      buildType: Debug
+      settings:
+        CONFIG: px4_sitl_raptor
     px4_sitl_spacecraft:
       short: px4_sitl_spacecraft
       buildType: RelWithDebInfo
@@ -326,6 +336,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: cuav_x25-evo_default
+    cuav_x25-super_default:
+      short: cuav_x25-super
+      buildType: MinSizeRel
+      settings:
+        CONFIG: cuav_x25-super_default
     cubepilot_cubeorange_test:
       short: cubepilot_cubeorange
       buildType: MinSizeRel

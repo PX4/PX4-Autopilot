@@ -7,7 +7,7 @@ const { site } = useData();
 
 <div v-if="site.title !== 'PX4 Guide (main)'">
   <div class="custom-block danger">
-    <p class="custom-block-title">Ця сторінка може бути застарілою. <a href="https://docs.px4.io/main/en/contribute/">Переглянути останню версію</a>.</p>
+    <p class="custom-block-title">This page may be out of date. <a href="https://docs.px4.io/main/en/contribute/">Переглянути останню версію</a>.</p>
   </div>
 </div>
 

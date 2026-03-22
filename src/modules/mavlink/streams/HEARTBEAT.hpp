@@ -100,8 +100,8 @@ private:
 			}
 
 
-			// uint32_t custom_mode - A bitfield for use for autopilot-specific flags
-			union px4_custom_mode custom_mode {get_px4_custom_mode(vehicle_status.nav_state)};
+			// uint32_t custom_mode - Bitfield for autopilot-specific flags
+			union px4_custom_mode custom_mode = get_px4_custom_mode(vehicle_status.nav_state_display);
 
 
 			// uint8_t system_status (MAV_STATE) - System status flag.

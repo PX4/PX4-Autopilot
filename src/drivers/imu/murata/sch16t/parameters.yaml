@@ -1,0 +1,57 @@
+module_name: sch16t
+parameters:
+- group: Sensors
+  definitions:
+    SENS_EN_SCH16T:
+      description:
+        short: Murata SCH16T IMU (external SPI)
+      type: enum
+      values:
+        0: Disabled
+        1: Enabled
+      default: 0
+      reboot_required: true
+      min: 0
+      max: 1
+- group: Miscellaneous
+  definitions:
+    SCH16T_GYRO_FILT:
+      description:
+        short: Gyro filter settings
+      type: enum
+      values:
+        0: 13 Hz
+        1: 30 Hz
+        2: 68 Hz
+        3: 235 Hz
+        4: 280 Hz
+        5: 370 Hz
+        6: No filter
+      default: 2
+      reboot_required: true
+    SCH16T_ACC_FILT:
+      description:
+        short: Accel filter settings
+      type: enum
+      values:
+        0: 13 Hz
+        1: 30 Hz
+        2: 68 Hz
+        3: 235 Hz
+        4: 280 Hz
+        5: 370 Hz
+        6: No filter
+      default: 6
+      reboot_required: true
+    SCH16T_DECIM:
+      description:
+        short: Gyro and Accel decimation settings
+      type: enum
+      values:
+        0: None
+        1: 5900 Hz
+        2: 2950 Hz
+        3: 1475 Hz
+        4: 738 Hz
+      default: 4
+      reboot_required: true

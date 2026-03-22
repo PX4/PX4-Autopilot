@@ -488,6 +488,7 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 
 	// Check if we should enter delayed Hold
 	const bool action_can_be_delayed = selected_action != Action::None &&
+					   selected_action != Action::Warn &&
 					   selected_action != Action::Disarm &&
 					   selected_action != Action::Terminate &&
 					   selected_action != Action::Hold;

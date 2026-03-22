@@ -15,21 +15,21 @@ concurrency:
 jobs:
   unit_tests:
     runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
 
-    - name: main test
-      uses: addnab/docker-run-action@v3
-      with:
-        image: px4io/px4-dev:v1.16.0-rc1-258-g0369abd556
-        options: -v ${{ github.workspace }}:/workspace
+    container:
+      image: px4io/px4-dev:v1.16.0-rc1-258-g0369abd556
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: main test
         run: |
-          cd /workspace
-          git config --global --add safe.directory /workspace
+          cd "$GITHUB_WORKSPACE"
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           make tests TESTFILTER=EKF
 
-    - name: Check if there is a functional change
-      run: git diff --exit-code
-      working-directory: src/modules/ekf2/test/change_indication
+      - name: Check if there is a functional change
+        run: git diff --exit-code
+        working-directory: src/modules/ekf2/test/change_indication

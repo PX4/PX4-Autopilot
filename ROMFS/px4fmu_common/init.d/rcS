@@ -188,11 +188,11 @@ else
 		netman update -i eth0
 	fi
 
-	# To trigger a parameter reset during boot SYS_AUTCONFIG was set to 1 before
+	# To trigger a parameter reset during boot SYS_AUTOCONFIG was set to 1 before
 	if param greater SYS_AUTOCONFIG 0
 	then
-		# Reset parameters except airframe, parameter version, RC calibration, sensor calibration, flight modes, total flight time, flight UUID
-		param reset_all SYS_AUTOSTART SYS_PARAM_VER RC* CAL_* COM_FLTMODE* LND_FLIGHT* TC_* COM_FLIGHT*
+		# Reset parameters except airframe, parameter version, sensor calibration, total flight time, flight UUID
+		param reset_all SYS_AUTOSTART SYS_PARAM_VER CAL_* LND_FLIGHT* TC_* COM_FLIGHT*
 	fi
 
 	#
@@ -480,6 +480,19 @@ else
 	fi
 
 	#
+	# Optional UAVCAN/DroneCAN or Cyphal
+	#
+	if param greater -s UAVCAN_ENABLE 0
+	then
+		uavcan start
+	else
+		if param greater -s CYPHAL_ENABLE 0
+		then
+			cyphal start
+		fi
+	fi
+
+	#
 	# Configure vehicle type specific parameters.
 	# Note: rc.vehicle_setup is the entry point for all vehicle type specific setup.
 	. ${R}etc/init.d/rc.vehicle_setup
@@ -506,6 +519,11 @@ else
 	# Note: rc.serial is auto-generated from Tools/serial/generate_config.py
 	#
 	. ${R}etc/init.d/rc.serial
+
+	if param greater -s ZENOH_ENABLE 0
+	then
+		zenoh start
+	fi
 
 	# Must be started after the serial config is read
 	rc_input start $RC_INPUT_ARGS
@@ -613,6 +631,19 @@ else
 	unset RC_LOGGING
 
 	#
+	# Start the VTX services.
+	#
+	if ! param compare VTX_SER_CFG 0
+	then
+		set RC_VTXTABLE ${R}etc/init.d/rc.vtxtable
+		if [ -f ${RC_VTXTABLE} ]
+		then
+			. ${RC_VTXTABLE}
+		fi
+		unset RC_VTXTABLE
+	fi
+
+	#
 	# Set additional parameters and env variables for selected AUTOSTART.
 	#
 	if ! param compare SYS_AUTOSTART 0
@@ -627,27 +658,6 @@ else
 		sh $BOARD_BOOTLOADER_UPGRADE
 	fi
 	unset BOARD_BOOTLOADER_UPGRADE
-
-	#
-	# Check if UAVCAN is enabled, default to it for ESCs.
-	#
-	if param greater -s UAVCAN_ENABLE 0
-	then
-		# Start core UAVCAN module.
-		if ! uavcan start
-		then
-			tune_control play error
-		fi
-	else
-		if param greater -s CYPHAL_ENABLE 0
-		then
-			cyphal start
-		fi
-	fi
-	if param greater -s ZENOH_ENABLE 0
-	then
-		zenoh start
-	fi
 
 #
 # End of autostart.

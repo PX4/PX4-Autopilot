@@ -1,6 +1,6 @@
 # Приймачі ADS-B/FLARM/UTM: Уникнення повітряного трафіку
 
-PX4 supports simple air traffic avoidance in [missions](../flying/missions.md) using [ADS-B](https://en.wikipedia.org/wiki/Automatic_dependent_surveillance_%E2%80%93_broadcast), [FLARM](https://en.wikipedia.org/wiki/FLARM), or [UTM](https://www.faa.gov/uas/research_development/traffic_management) transponders that use the standard MAVLink interfaces.
+PX4 supports simple air traffic avoidance in [missions](../flying/missions.md) using [ADS-B](https://en.wikipedia.org/wiki/Automatic_dependent_surveillance_%E2%80%93_broadcast), [FLARM](https://en.wikipedia.org/wiki/FLARM), or [UTM](https://www.faa.gov/uas/advanced_operations/traffic_management) transponders that use the standard MAVLink interfaces.
 
 If a potential collision is detected, PX4 can _warn_, immediately [land](../flight_modes_mc/land.md), or [return](../flight_modes_mc/return.md) (depending on the value of [NAV_TRAFF_AVOID](#NAV_TRAFF_AVOID)).
 
@@ -11,7 +11,7 @@ PX4 traffic avoidance works with ADS-B or FLARM products that supply transponder
 Було протестовано з наступними пристроями:
 
 - [PingRX ADS-B Receiver](https://uavionix.com/product/pingrx-pro/) (uAvionix)
-- [FLARM](https://flarm.com/products/uav/atom-uav-flarm-for-drones/) <!-- I think originally https://flarm.com/products/powerflarm/uav/ -->
+- [FLARM](https://www.flarm.com/en/drones/)
 
 ## Налаштування програмного забезпечення
 
@@ -53,7 +53,7 @@ The TX and RX on the flight controller must be connected to the RX and TX on the
 
 ### Конфігурація порту
 
-The recievers are configured in the same way as any other [MAVLink Peripheral](../peripherals/mavlink_peripherals.md).
+The receivers are configured in the same way as any other [MAVLink Peripheral](../peripherals/mavlink_peripherals.md).
 The only _specific_ setup is that the port baud rate must be set to 57600 and the a low-bandwidth profile (`MAV_X_MODE`).
 
 Assuming you have connected the device to the TELEM2 port, [set the parameters](../advanced_config/parameters.md) as shown:
@@ -74,9 +74,26 @@ You will now find a new parameter called [SER_TEL2_BAUD](../advanced_config/para
 | Параметр                                                                                                                                                                   | Опис                                                                                                                                                                                                                                         |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="NAV_TRAFF_AVOID"></a>[NAV_TRAFF_AVOID](../advanced_config/parameter_reference.md#NAV_TRAFF_AVOID)                         | Увімкніть режим уникнення трафіку, вказавши відповідь уникнення. 0: Вимкнути, 1: Лише попередження, 2: Режим повернення, 3: Режим посадки.   |
-| <a id="NAV_TRAFF_A_HOR"></a>[NAV_TRAFF_A_HOR](../advanced_config/parameter_reference.md#NAV_TRAFF_A_HOR)    | Горизонтальний радіус циліндра навколо транспортного засобу, який визначає його повітряний простір (тобто повітряний простір на земельній площині).                                                       |
+| <a id="NAV_TRAFF_A_HOR"></a>[NAV_TRAFF_A_HOR](../advanced_config/parameter_reference.md#NAV_TRAFF_A_HOR)    | Horizontal radius of cylinder around the vehicle that defines its airspace (i.e. the airspace in the ground plane).                                                       |
 | <a id="NAV_TRAFF_A_VER"></a>[NAV_TRAFF_A_VER](../advanced_config/parameter_reference.md#NAV_TRAFF_A_VER)    | Vertical height above and below vehicle of the cylinder that defines its airspace (also see [NAV_TRAFF_A_HOR](#NAV_TRAFF_A_HOR)).          |
 | <a id="NAV_TRAFF_COLL_T"></a>[NAV_TRAFF_COLL_T](../advanced_config/parameter_reference.md#NAV_TRAFF_COLL_T) | Поріг часу зіткнення. Уникнення буде викликати якщо передбачуваний час, поки зіткнення не знизиться нижче цієї вартості (орієнтовний час ґрунтується на відносній швидкості руху та UAV). |
+
+### Arming Check
+
+PX4 can be configured to check for the presence of a traffic avoidance system (ADSB or FLARM transponder) before arming.
+This ensures that a traffic avoidance system is connected and functioning before flight.
+
+The check is configured using the [COM_ARM_TRAFF](../advanced_config/parameter_reference.md#COM_ARM_TRAFF) parameter:
+
+| Значення | Опис                                                                                                                                                       |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0        | Disabled (default). No check is performed.                                                              |
+| 1        | Warning only. A warning is issued if no traffic avoidance system is detected, but arming is allowed.                       |
+| 2        | Enforce for all modes. Arming is denied if no traffic avoidance system is detected, regardless of flight mode.             |
+| 3        | Enforce for mission modes only. Arming is denied if no traffic avoidance system is detected and a mission mode is planned. |
+
+When a traffic avoidance system is detected, the system tracks its presence with a 3-second timeout.
+If the system is lost or regained, corresponding events are logged ("Traffic avoidance system lost" / "Traffic avoidance system regained").
 
 ## Імплементація
 
@@ -131,7 +148,7 @@ By default `run_fake_traffic()` publishes a number of traffic messages (it calls
 :::details
 Information about the test methods
 
-The relevent methods are defined in [AdsbConflict.cpp](https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/adsb/AdsbConflict.cpp#L342C1-L342C1).
+The relevant methods are defined in [AdsbConflict.cpp](https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/adsb/AdsbConflict.cpp#L342C1-L342C1).
 
 #### `run_fake_traffic()` method
 

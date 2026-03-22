@@ -115,7 +115,7 @@ Mechanical data
 
 :::
 
-## 购买渠道
+## Where to Buy {#store}
 
 Order from [Holybro](https://holybro.com/products/pixhawk-6x-pro).
 
@@ -199,7 +199,7 @@ It is pre-built and automatically installed by _QGroundControl_ when appropriate
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v6x_default
 ```
 

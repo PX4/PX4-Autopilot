@@ -1,0 +1,339 @@
+module_name: fw_rate_control
+parameters:
+- group: FW Rate Control
+  definitions:
+    FW_USE_AIRSPD:
+      description:
+        short: Use airspeed for control
+        long: |-
+          If set to 1, the airspeed measurement data, if valid, is used in the following controllers:
+          - Rate controller: output scaling
+          - Attitude controller: coordinated turn controller
+          - Position controller: airspeed setpoint tracking, takeoff logic
+          - VTOL: transition logic
+      type: boolean
+      default: 1
+    FW_PR_P:
+      description:
+        short: Pitch rate proportional gain
+      type: float
+      default: 0.08
+      unit: '%/rad/s'
+      min: 0.0
+      max: 10
+      decimal: 3
+      increment: 0.005
+    FW_PR_D:
+      description:
+        short: Pitch rate derivative gain
+        long: Pitch rate differential gain.
+      type: float
+      default: 0.0
+      unit: '%/rad/s'
+      min: 0.0
+      max: 10
+      decimal: 3
+      increment: 0.005
+    FW_PR_I:
+      description:
+        short: Pitch rate integrator gain
+      type: float
+      default: 0.1
+      unit: '%/rad'
+      min: 0.0
+      max: 10
+      decimal: 3
+      increment: 0.005
+    FW_PR_IMAX:
+      description:
+        short: Pitch rate integrator limit
+      type: float
+      default: 0.4
+      min: 0.0
+      max: 1.0
+      decimal: 2
+      increment: 0.05
+    FW_RR_P:
+      description:
+        short: Roll rate proportional gain
+      type: float
+      default: 0.05
+      unit: '%/rad/s'
+      min: 0.0
+      max: 10
+      decimal: 3
+      increment: 0.005
+    FW_RR_D:
+      description:
+        short: Roll rate derivative gain
+      type: float
+      default: 0.0
+      unit: '%/rad/s'
+      min: 0.0
+      max: 10
+      decimal: 3
+      increment: 0.005
+    FW_RR_I:
+      description:
+        short: Roll rate integrator gain
+      type: float
+      default: 0.1
+      unit: '%/rad'
+      min: 0.0
+      max: 10
+      decimal: 2
+      increment: 0.01
+    FW_RR_IMAX:
+      description:
+        short: Roll integrator limit
+      type: float
+      default: 0.2
+      min: 0.0
+      max: 1.0
+      decimal: 2
+      increment: 0.05
+    FW_YR_P:
+      description:
+        short: Yaw rate proportional gain
+      type: float
+      default: 0.05
+      unit: '%/rad/s'
+      min: 0.0
+      max: 10
+      decimal: 3
+      increment: 0.005
+    FW_YR_D:
+      description:
+        short: Yaw rate derivative gain
+      type: float
+      default: 0.0
+      unit: '%/rad/s'
+      min: 0.0
+      max: 10
+      decimal: 3
+      increment: 0.005
+    FW_YR_I:
+      description:
+        short: Yaw rate integrator gain
+      type: float
+      default: 0.1
+      unit: '%/rad'
+      min: 0.0
+      max: 10
+      decimal: 1
+      increment: 0.5
+    FW_YR_IMAX:
+      description:
+        short: Yaw rate integrator limit
+      type: float
+      default: 0.2
+      min: 0.0
+      max: 1.0
+      decimal: 2
+      increment: 0.05
+    FW_RR_FF:
+      description:
+        short: Roll rate feed forward
+        long: Direct feed forward from rate setpoint to control surface output.
+      type: float
+      default: 0.5
+      unit: '%/rad/s'
+      min: 0.0
+      max: 10.0
+      decimal: 2
+      increment: 0.05
+    FW_PR_FF:
+      description:
+        short: Pitch rate feed forward
+        long: Direct feed forward from rate setpoint to control surface output
+      type: float
+      default: 0.5
+      unit: '%/rad/s'
+      min: 0.0
+      max: 10.0
+      decimal: 2
+      increment: 0.05
+    FW_YR_FF:
+      description:
+        short: Yaw rate feed forward
+        long: Direct feed forward from rate setpoint to control surface output
+      type: float
+      default: 0.3
+      unit: '%/rad/s'
+      min: 0.0
+      max: 10.0
+      decimal: 2
+      increment: 0.05
+    FW_ACRO_X_MAX:
+      description:
+        short: Acro body roll max rate setpoint
+      type: float
+      default: 90
+      min: 10
+      max: 720
+      unit: deg
+    FW_ACRO_Y_MAX:
+      description:
+        short: Acro body pitch max rate setpoint
+      type: float
+      default: 90
+      min: 10
+      max: 720
+      unit: deg
+    FW_ACRO_Z_MAX:
+      description:
+        short: Acro body yaw max rate setpoint
+      type: float
+      default: 45
+      min: 10
+      max: 720
+      unit: deg
+    FW_BAT_SCALE_EN:
+      description:
+        short: Enable throttle scale by battery level
+        long: |-
+          This compensates for voltage drop of the battery over time by attempting to
+          normalize performance across the operating range of the battery.
+      type: boolean
+      default: 0
+    FW_ARSP_SCALE_EN:
+      description:
+        short: Enable airspeed scaling
+        long: |-
+          This enables a logic that automatically adjusts the output of the rate controller to take
+          into account the real torque produced by an aerodynamic control surface given
+          the current deviation from the trim airspeed (FW_AIRSPD_TRIM).
+
+          Enable when using aerodynamic control surfaces (e.g.: plane)
+          Disable when using rotor wings (e.g.: autogyro)
+      type: boolean
+      default: 1
+    FW_DTRIM_R_VMIN:
+      description:
+        short: Roll trim increment at minimum airspeed
+        long: This increment is added to TRIM_ROLL when airspeed is FW_AIRSPD_MIN.
+      type: float
+      default: 0.0
+      min: -0.5
+      max: 0.5
+      decimal: 2
+      increment: 0.01
+    FW_DTRIM_P_VMIN:
+      description:
+        short: Pitch trim increment at minimum airspeed
+        long: This increment is added to TRIM_PITCH when airspeed is FW_AIRSPD_MIN.
+      type: float
+      default: 0.0
+      min: -0.5
+      max: 0.5
+      decimal: 2
+      increment: 0.01
+    FW_DTRIM_Y_VMIN:
+      description:
+        short: Yaw trim increment at minimum airspeed
+        long: This increment is added to TRIM_YAW when airspeed is FW_AIRSPD_MIN.
+      type: float
+      default: 0.0
+      min: -0.5
+      max: 0.5
+      decimal: 2
+      increment: 0.01
+    FW_DTRIM_R_VMAX:
+      description:
+        short: Roll trim increment at maximum airspeed
+        long: This increment is added to TRIM_ROLL when airspeed is FW_AIRSPD_MAX.
+      type: float
+      default: 0.0
+      min: -0.5
+      max: 0.5
+      decimal: 2
+      increment: 0.01
+    FW_DTRIM_P_VMAX:
+      description:
+        short: Pitch trim increment at maximum airspeed
+        long: This increment is added to TRIM_PITCH when airspeed is FW_AIRSPD_MAX.
+      type: float
+      default: 0.0
+      min: -0.5
+      max: 0.5
+      decimal: 2
+      increment: 0.01
+    FW_DTRIM_Y_VMAX:
+      description:
+        short: Yaw trim increment at maximum airspeed
+        long: This increment is added to TRIM_YAW when airspeed is FW_AIRSPD_MAX.
+      type: float
+      default: 0.0
+      min: -0.5
+      max: 0.5
+      decimal: 2
+      increment: 0.01
+    FW_MAN_R_SC:
+      description:
+        short: Manual roll scale
+        long: |-
+          Scale factor applied to the desired roll actuator command in full manual mode. This parameter allows
+          to adjust the throws of the control surfaces.
+      type: float
+      default: 1.0
+      unit: norm
+      min: 0.0
+      max: 1.0
+      decimal: 2
+      increment: 0.01
+    FW_MAN_P_SC:
+      description:
+        short: Manual pitch scale
+        long: |-
+          Scale factor applied to the desired pitch actuator command in full manual mode. This parameter allows
+          to adjust the throws of the control surfaces.
+      type: float
+      default: 1.0
+      unit: norm
+      min: 0.0
+      decimal: 2
+      increment: 0.01
+    FW_MAN_Y_SC:
+      description:
+        short: Manual yaw scale
+        long: |-
+          Scale factor applied to the desired yaw actuator command in full manual mode. This parameter allows
+          to adjust the throws of the control surfaces.
+      type: float
+      default: 1.0
+      unit: norm
+      min: 0.0
+      decimal: 2
+      increment: 0.01
+    FW_RLL_TO_YAW_FF:
+      description:
+        short: Roll control to yaw control feedforward gain
+        long: |-
+          This gain can be used to counteract the "adverse yaw" effect for fixed wings.
+          When the plane enters a roll it will tend to yaw the nose out of the turn.
+          This gain enables the use of a yaw actuator to counteract this effect.
+      type: float
+      default: 0.0
+      min: 0.0
+      decimal: 1
+      increment: 0.01
+    FW_SPOILERS_MAN:
+      description:
+        short: Spoiler input in manual flight
+        long: Chose source for manual setting of spoilers in manual flight modes.
+      type: enum
+      values:
+        0: Disabled
+        1: Flaps channel
+        2: Aux1
+      default: 0
+    FW_ACRO_YAW_EN:
+      description:
+        short: Enable yaw rate controller in Acro
+        long: |-
+          If this parameter is set to 1, the yaw rate controller is enabled in Fixed-wing Acro mode.
+          Otherwise the pilot commands directly the yaw actuator.
+          It is disabled by default because an active yaw rate controller will fight against the
+          natural turn coordination of the plane.
+      type: boolean
+      default: 0

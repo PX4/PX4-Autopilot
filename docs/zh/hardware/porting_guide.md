@@ -49,7 +49,7 @@ PX4 由两个主要层组成： 基于主机操作系统（NuttX、Linux 或任�
 
 ## RC UART 接线建议
 
-It is generally recommended to connect RC via separate RX and TX pins to the microcontroller. If however RX and TX are connected together, the UART has to be put into singlewire mode to prevent any contention. This is done via board config and manifest files. One example is <a href="https://github.com/PX4/Firmware/blob/master/src/drivers/boards/px4fmu-v5/manifest.c">px4fmu-v5</a>.
+通常建议通过独立的RX和TX引脚将RC连接至微控制器。但若RX和TX引脚连接在一起，则必须将UART置于单线模式以避免竞争冲突。此操作需通过板级配置文件和清单文件实现。示例可参考<a href="https://github.com/PX4/Firmware/blob/master/src/drivers/boards/px4fmu-v5/manifest.c">px4fmu-v5</a>。
 如果 RX 和 TX 连在了一起，那么 UART 需要设置为单线模式以防止出现争用。
 这可以用过对飞控板的配置文件和 manifest 文件进行更改来实现。
 一个例子是 [px4fmu-v5](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v5/src/manifest.c)。 <!-- NEED px4_version -->
@@ -68,7 +68,7 @@ PX4项目支持并维护[FMU标准参考硬件](../hardware/reference_design.md)
 - [飞行测试](../test_and_ci/test_flights.md)
 
 我们鼓励电路板制造商致力于实现与[FMU规范](https://pixhawk.org/)的完全兼容。
-We encourage board manufacturers to aim for full compatibility with the <a href="https://pixhawk.org/">FMU spec</a>. With full compatibility you benefit from the ongoing day-to-day development of PX4, but have none of the maintenance costs that come from supporting deviations from the specification.
+我们鼓励电路板制造商致力于实现与<a href="https://pixhawk.org/">FMU规范</a>的完全兼容。通过完全兼容，您既能受益于PX4持续的日常开发成果，又无需承担因支持偏离规范而产生的维护成本。
 
 :::tip
 制造商在偏离规格时应仔细考虑维护成本（制造商的成本与偏离程度成正比）。
@@ -76,7 +76,7 @@ We encourage board manufacturers to aim for full compatibility with the <a href=
 
 我们欢迎任何个人或公司提交其移植版本，将其纳入我们支持的硬件范围。前提是他们愿意遵守我们的[行为准则](https://github.com/PX4/PX4-Autopilot/blob/main/CODE_OF_CONDUCT.md)，并与开发团队协作，为用户提供安全且令人满意的PX4体验。
 
-如果你想让你的飞控板被 PX4 项目正式支持：
+值得注意的是，PX4开发团队有责任发布安全的软件。因此，我们要求所有主板制造商投入必要资源，确保其移植版本保持最新且处于可运行状态。
 
 如果你想让你的飞控板被 PX4 项目正式支持：
 

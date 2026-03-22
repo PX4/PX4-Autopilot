@@ -72,7 +72,6 @@ The Ark Flow will not boot if there is no SD card in the flight controller when 
 
 ### Enable DroneCAN
 
-
 The steps are:
 
 - In _QGroundControl_ set the parameter [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE) to `2` for dynamic node allocation (or `3` if using [DroneCAN ESCs](../dronecan/escs.md)) and reboot (see [Finding/Updating Parameters](../advanced_config/parameters.md)).
@@ -111,10 +110,10 @@ When optical flow is the only source of horizontal position/velocity, then lower
 
 On the ARK Flow, you may need to configure the following parameters:
 
-| Parameter                                                                                             | Description                                                                                                                                        |
-| ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="CANNODE_NODE_ID"></a>[CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID) | CAN node ID (0 for dynamic allocation). If set to 0 (default), dynamic node allocation is used. Set to 1-127 to use a static node ID.            |
-| <a id="CANNODE_TERM"></a>[CANNODE_TERM](../advanced_config/parameter_reference.md#CANNODE_TERM)       | CAN built-in bus termination.                                                                                                                      |
+| Parameter                                                                                                | Description                                                                                                                           |
+| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="CANNODE_NODE_ID"></a>[CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID) | CAN node ID (0 for dynamic allocation). If set to 0 (default), dynamic node allocation is used. Set to 1-127 to use a static node ID. |
+| <a id="CANNODE_TERM"></a>[CANNODE_TERM](../advanced_config/parameter_reference.md#CANNODE_TERM)          | CAN built-in bus termination.                                                                                                         |
 
 ## LED Meanings
 

@@ -73,7 +73,8 @@ void StickYaw::generateYawSetpoint(float &yawspeed_setpoint, float &yaw_setpoint
 bool StickYaw::updateYawCorrection(const float yaw, const float unaided_yaw, const float deltatime)
 {
 	if (!PX4_ISFINITE(unaided_yaw)) {
-		_yaw_correction = 0.f;
+		// If unaided yaw is not available we leave yaw_correction_ unchanged
+		// Meaning yaw_setpoint - yaw_correction_prev + _yaw_correction = yaw_setpoint
 		return false;
 	}
 

@@ -35,3 +35,4 @@ px4_add_library(failure_detector
 	FailureDetector.cpp
 	FailureInjector.cpp
 )
+set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/failure_detector_params.yaml)

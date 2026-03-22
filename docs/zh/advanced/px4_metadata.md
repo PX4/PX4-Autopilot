@@ -45,7 +45,7 @@ PX4 元数据是在 PX4 源代码及其相关数据中定义的。
 
 内存受限的飞控二进制文件不会在二进制文件中存储参数元数据，而是引用存储在`px4-travis.s3.amazonaws.com`上的相同数据。
 例如，这适用于[Umnibus F4 SD](../flight_controller/omnibus_f4_sd.md)。
-元数据是通过 [github CI](https://github.com/PX4/PX4-Autopilot/blob/main/.github/workflows/metadata.yml) 上传的，用于所有构建目标（因此只有在参数被合并到主体后才能使用）。
+The metadata is uploaded via the [build_all_targets](https://github.com/PX4/PX4-Autopilot/blob/main/.github/workflows/build_all_targets.yml) GitHub CI workflow for all build targets (and hence will only be available once parameters have been merged into main).
 
 :::info
 你可以识别出内存受限的开发板，因为它们在[px4board定义文件](https://github.com/PX4/PX4-Autopilot/blob/main/boards/omnibus/f4sd/default.px4board) 中指定了`CONFIG_BOARD_CONSTRAINED_FLASH=y` 。
@@ -60,6 +60,7 @@ PX4 元数据是在 PX4 源代码及其相关数据中定义的。
 这与Crowdin集成，用于获取翻译，这些翻译存储在 [translated](https://github.com/PX4/PX4-Metadata-Translations/tree/main/translated) 文件夹中，每种语言都有 xz 压缩的翻译文件。
 这些是由载具的组件元数据引用的，并在需要时下载。
 有关更多信息，请参阅 [PX4-Metadata-Translations](https://github.com/PX4/PX4-Metadata-Translations/) 和 [Component Metadata Protocol > Translation](https://mavlink.io/en/services/component_information.html#translation)。
+This is orchestrated by the [docs-orchestrator](https://github.com/PX4/PX4-Autopilot/blob/main/.github/workflows/docs-orchestrator.yml) GitHub CI workflow, which also regenerates auto-generated documentation such as parameter reference, airframe reference, and uORB message docs.
 
 :::info
 主分支的参数 XML 文件通过 CI 复制到 QGC 源代码树中，并在没有通过组件元数据协议获取到元数据的情况下用作后备方案 (该方法早于组件元数据协议)。

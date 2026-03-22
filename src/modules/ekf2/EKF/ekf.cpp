@@ -91,7 +91,6 @@ void Ekf::reset()
 	_control_status_prev.flags.in_air = true;
 
 	_fault_status.value = 0;
-	_innov_check_fail_status.value = 0;
 
 #if defined(CONFIG_EKF2_GNSS)
 	_gnss_checks.resetHard();
@@ -420,12 +419,13 @@ void Ekf::updateParameters()
 #endif // CONFIG_EKF2_WIND
 
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)
-	_aux_global_position.updateParameters();
+
+	_aux_global_position.paramsUpdated();
 #endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
 }
 
 template<typename T>
-static void printRingBuffer(const char *name, RingBuffer<T> *rb)
+static void printRingBuffer(const char *name, TimestampedRingBuffer<T> *rb)
 {
 	if (rb) {
 		printf("%s: %d/%d entries (%d/%d Bytes) (%zu Bytes per entry)\n",

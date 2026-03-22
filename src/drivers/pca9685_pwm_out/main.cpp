@@ -57,9 +57,11 @@
 using namespace drv_pca9685_pwm;
 using namespace time_literals;
 
-class PCA9685Wrapper : public ModuleBase<PCA9685Wrapper>, public OutputModuleInterface
+class PCA9685Wrapper : public ModuleBase, public OutputModuleInterface
 {
 public:
+	static Descriptor desc;
+
 	PCA9685Wrapper();
 	~PCA9685Wrapper() override;
 	PCA9685Wrapper(const PCA9685Wrapper &) = delete;
@@ -71,8 +73,7 @@ public:
 	static int custom_command(int argc, char *argv[]);
 	static int print_usage(const char *reason = nullptr);
 
-	bool updateOutputs(uint16_t *outputs, unsigned num_outputs,
-			   unsigned num_control_groups_updated) override;
+	bool updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 	int print_status() override;
 
@@ -113,6 +114,8 @@ private:
 	int registers_check();
 };
 
+ModuleBase::Descriptor PCA9685Wrapper::desc{task_spawn, custom_command, print_usage};
+
 PCA9685Wrapper::PCA9685Wrapper() :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
@@ -151,8 +154,7 @@ int PCA9685Wrapper::init()
 	return PX4_OK;
 }
 
-bool PCA9685Wrapper::updateOutputs(uint16_t *outputs, unsigned num_outputs,
-				   unsigned num_control_groups_updated)
+bool PCA9685Wrapper::updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	if (_state != STATE::RUNNING) { return false; }
 
@@ -160,11 +162,13 @@ bool PCA9685Wrapper::updateOutputs(uint16_t *outputs, unsigned num_outputs,
 	num_outputs = num_outputs > PCA9685_PWM_CHANNEL_COUNT ? PCA9685_PWM_CHANNEL_COUNT : num_outputs;
 
 	for (uint8_t i = 0; i < num_outputs; ++i) {
+		uint16_t output = static_cast<uint16_t>(lroundf(outputs[i]));
+
 		if (param_duty_mode & (1 << i)) {
-			low_level_outputs[i] = outputs[i];
+			low_level_outputs[i] = output;
 
 		} else {
-			low_level_outputs[i] = pca9685->calcRawFromPulse(outputs[i]);
+			low_level_outputs[i] = pca9685->calcRawFromPulse(output);
 		}
 	}
 
@@ -187,7 +191,7 @@ void PCA9685Wrapper::Run()
 		delete pca9685;
 		pca9685 = nullptr;
 
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -328,7 +332,7 @@ that can be accepted by most ESCs and servos.
 
 ### Examples
 It is typically started with:
-$ pca9685_pwm_out start -a 0x40 -b 1
+$ pca9685_pwm_out start -X -a 0x40 -b 1
 
 )DESCR_STR");
 
@@ -342,13 +346,18 @@ $ pca9685_pwm_out start -a 0x40 -b 1
 }
 
 int PCA9685Wrapper::print_status() {
-    int ret =  ModuleBase::print_status();
-    PX4_INFO("PCA9685 @I2C Bus %d, address 0x%.2x, real frequency %.2f",
-            pca9685->get_device_bus(),
-            pca9685->get_device_address(),
-             (double)(pca9685->getFreq()));
+	int ret =  ModuleBase::print_status();
+	PX4_INFO("PCA9685 @I2C Bus %d, address 0x%.2x, real frequency %.2f",
+		pca9685->get_device_bus(),
+		pca9685->get_device_address(),
+		(double)(pca9685->getFreq()));
 
-    return ret;
+	perf_print_counter(_cycle_perf);
+	perf_print_counter(_comms_errors);
+	perf_print_counter(_registers_invalid_reset);
+	perf_print_counter(_registers_transfer_reset);
+
+    	return ret;
 }
 
 int PCA9685Wrapper::custom_command(int argc, char **argv) {
@@ -356,92 +365,43 @@ int PCA9685Wrapper::custom_command(int argc, char **argv) {
 }
 
 int PCA9685Wrapper::task_spawn(int argc, char **argv) {
-	int ch;
-	int address = PCA9685_DEFAULT_ADDRESS;
-	int iicbus = PCA9685_DEFAULT_IICBUS;
+	BusCLIArguments cli{true, false};
+	cli.default_i2c_frequency = 400000;
+	cli.i2c_address = PCA9685_DEFAULT_ADDRESS;
+	cli.requested_bus = PCA9685_DEFAULT_IICBUS;
+	cli.parseDefaultArguments(argc, argv);
 
-	int32_t en_bus = 0;
-	param_t param_handle = param_find("PCA9685_EN_BUS");
-
-	if (param_handle != PARAM_INVALID) {
-		param_get(param_handle, &en_bus);
-
-		if (en_bus > 0) {
-			iicbus = en_bus;
-		}
-	}
-
-	int32_t i2c_addr = 0;
-	param_handle = param_find("PCA9685_I2C_ADDR");
-
-	if (param_handle != PARAM_INVALID) {
-		param_get(param_handle, &i2c_addr);
-
-		if (i2c_addr > 0) {
-			address = i2c_addr;
-		}
-	}
-
-	int myoptind = 1;
-	const char *myoptarg = nullptr;
-	while ((ch = px4_getopt(argc, argv, "a:b:", &myoptind, &myoptarg)) != EOF) {
-		switch (ch) {
-			case 'a':
-                errno = 0;
-				address = strtol(myoptarg, nullptr, 16);
-                if (errno != 0) {
-                    PX4_WARN("Invalid address");
-                    return PX4_ERROR;
-                }
-				break;
-
-			case 'b':
-				iicbus = strtol(myoptarg, nullptr, 10);
-                if (errno != 0) {
-                    PX4_WARN("Invalid bus");
-                    return PX4_ERROR;
-                }
-				break;
-
-			case '?':
-				PX4_WARN("Unsupported args");
-				return PX4_ERROR;
-
-			default:
-				break;
-		}
-	}
-
-    auto *instance = new PCA9685Wrapper();
+	auto *instance = new PCA9685Wrapper();
 
     if (instance) {
-        _object.store(instance);
-        _task_id = task_id_is_work_queue;
+        desc.object.store(instance);
+        desc.task_id = task_id_is_work_queue;
 
-        instance->pca9685 = new PCA9685(iicbus, address);
-        if(instance->pca9685==nullptr){
-            PX4_ERR("alloc failed");
-            goto driverInstanceAllocFailed;
-        }
+		instance->pca9685 = new PCA9685(cli.requested_bus, cli.i2c_address);
 
-        if (instance->init() == PX4_OK) {
-            return PX4_OK;
-        } else {
-            PX4_ERR("driver init failed");
-            delete instance->pca9685;
-            instance->pca9685=nullptr;
-        }
-    } else {
-        PX4_ERR("alloc failed");
-	    return PX4_ERROR;
-    }
+		if(instance->pca9685==nullptr){
+			PX4_ERR("alloc failed");
+			goto driverInstanceAllocFailed;
+		}
+
+		if (instance->init() == PX4_OK) {
+			return PX4_OK;
+		} else {
+			PX4_ERR("driver init failed");
+			delete instance->pca9685;
+			instance->pca9685=nullptr;
+		}
+	} else {
+		PX4_ERR("alloc failed");
+			return PX4_ERROR;
+	}
 
     driverInstanceAllocFailed:
     delete instance;
-    _object.store(nullptr);
-    _task_id = -1;
+    desc.object.store(nullptr);
+    desc.task_id = -1;
 
-    return PX4_ERROR;
+	return PX4_ERROR;
 }
 
 void PCA9685Wrapper::updateParams() {
@@ -470,5 +430,5 @@ void PCA9685Wrapper::updateParams() {
 }
 
 extern "C" __EXPORT int pca9685_pwm_out_main(int argc, char *argv[]){
-	return PCA9685Wrapper::main(argc, argv);
+	return ModuleBase::main(PCA9685Wrapper::desc, argc, argv);
 }

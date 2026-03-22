@@ -1,6 +1,6 @@
-# AP-H743-R1
+# AP-H743-R1 Flight Controller
 
-<Badge type="tip" text="main (planned for: PX4 v1.17)" />
+<Badge type="tip" text="PX4 v1.17" />
 
 :::warning
 PX4 does not manufacture this (or any) autopilot.
@@ -25,7 +25,7 @@ These flight controllers are [manufacturer supported](../flight_controller/autop
   - 32 Bit Arm® Cortex®-M3, 72MHz, 20KB SRAM
 - On-board sensors
   - Accel/Gyro: ICM-42688-P\*2(Version1), BMI270\*2(Version2)
-  - Mag: IST8310
+  - Mag: QMC5883P
   - Barometer: DPS310(Version1),SPL06(Version2)
 
 ### 接口
@@ -45,7 +45,7 @@ These flight controllers are [manufacturer supported](../flight_controller/autop
   - FMU Debug
   - IO Debug
 
-## Purchase Channels
+## Purchase Channels {#store}
 
 Order from [X-MAV](https://www.x-mav.cn/).
 
@@ -91,7 +91,7 @@ The 7 FMU PWM outputs are in 3 groups:
 
 - A1 - A4 are in one group.
 - A5, A6 are in a 2nd group.
-- A7 is in a 3nd group.
+- A7 is in a 3rd group.
 
 Channels within the same group need to use the same output rate.
 If any channel in a group uses DShot then all channels in the group need to use DShot.
@@ -131,7 +131,7 @@ make x-mav_ap-h743r1_default
 Any multirotor/airplane/rover or boat that can be controlled using normal RC servos or Futaba S-Bus servos.
 The complete set of supported configurations can be found in the [Airframe Reference](../airframes/airframe_reference.md).
 
-## 调试接口
+## Debug Port {#debug_port}
 
 ### SWD
 

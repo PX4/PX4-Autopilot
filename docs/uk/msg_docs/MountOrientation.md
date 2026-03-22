@@ -1,9 +1,28 @@
+---
+pageClass: is-wide-page
+---
+
 # MountOrientation (повідомлення UORB)
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/MountOrientation.msg)
+**TOPICS:** mount_orientation
+
+## Fields
+
+| Назва                                                          | Тип          | Unit [Frame] | Range/Enum | Опис                                                      |
+| -------------------------------------------------------------- | ------------ | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| timestamp                                                      | `uint64`     |                                                                  |            | time since system start (microseconds) |
+| attitude_euler_angle | `float32[3]` |                                                                  |            | Attitude/direction of the mount as euler angles in rad    |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/MountOrientation.msg)
+
+:::details
+Click here to see original file
 
 ```c
 uint64 timestamp				# time since system start (microseconds)
 float32[3] attitude_euler_angle		# Attitude/direction of the mount as euler angles in rad
-
 ```
+
+:::

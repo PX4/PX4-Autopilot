@@ -128,6 +128,9 @@ class SourceParser:
                         # start waiting for the next part - long comment.
                         if state == "wait-short-end":
                             state = "wait-long"
+                        elif state == "wait-long-end":
+                            # Preserve paragraph breaks in long description
+                            long_desc += "\n"
                     else:
                         m = self.re_comment_tag.match(comment_content)
                         if m:
@@ -208,8 +211,7 @@ class SourceParser:
                                 raise Exception('short description too long (150 max, is {:}, parameter: {:})'.format(len(short_desc), name))
                             param.fields["short_desc"] = self.re_remove_dots.sub('', short_desc)
                         if long_desc is not None:
-                            long_desc = self.re_remove_carriage_return.sub(' ', long_desc)
-                            param.fields["long_desc"] = long_desc
+                            param.fields["long_desc"] = long_desc.rstrip('\n')
                         for tag in tags:
                             if tag == "group":
                                 group = tags[tag]
@@ -407,7 +409,15 @@ def generate_yaml(filename: str, groups: list[ParameterGroup]) -> str:
             g["definitions"][parameter.name] = p
         data["parameters"].append(g)
 
-    return yaml.dump(data, sort_keys=False)
+    # Use block scalar style for multi-line strings
+    class BlockStyleDumper(yaml.SafeDumper):
+        pass
+    def str_representer(dumper, data):
+        if '\n' in data:
+            return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
+        return dumper.represent_scalar('tag:yaml.org,2002:str', data)
+    BlockStyleDumper.add_representer(str, str_representer)
+    return yaml.dump(data, Dumper=BlockStyleDumper, sort_keys=False)
 
 
 def main():

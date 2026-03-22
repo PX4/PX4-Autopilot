@@ -57,7 +57,7 @@ enum RunwayTakeoffState {
 	THROTTLE_RAMP = 0, // ramping up throttle
 	CLAMPED_TO_RUNWAY, // clamped to runway, controlling yaw directly (wheel or rudder)
 	CLIMBOUT, // climbout to safe height before navigation
-	FLY // navigate freely
+	FLYING // navigate freely
 };
 
 class __EXPORT RunwayTakeoff : public ModuleParams
@@ -135,7 +135,7 @@ public:
 	float getMaxPitch(const float max_pitch) const;
 
 	// NOTE: this is only to be used for mistaken mode transitions to takeoff while already in air
-	void forceSetFlyState() { takeoff_state_ = RunwayTakeoffState::FLY; }
+	void forceSetFlyState() { takeoff_state_ = RunwayTakeoffState::FLYING; }
 
 	/**
 	 * @brief Reset the state machine.

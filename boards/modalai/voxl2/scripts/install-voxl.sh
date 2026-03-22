@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Push slpi image to voxl2
-adb push build/modalai_voxl2-slpi_default/platforms/qurt/libpx4.so /usr/lib/rfsa/adsp
+adb push build/modalai_voxl2_slpi/platforms/qurt/libpx4.so /usr/lib/rfsa/adsp
 
 # Push apps processor image to voxl2
 adb push build/modalai_voxl2_default/bin/px4 /usr/bin
@@ -65,7 +65,6 @@ adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-logger"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-manual_control"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-mavlink"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-mavlink_bridge"
-adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-mavlink_tests"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-mb12xx"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-mc_att_control"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-mc_pos_control"
@@ -128,6 +127,11 @@ adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-flight_mode_manager"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-imu_server"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-apps_sbus"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-voxl_save_cal_params"
+adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-vehicle_air_data_bridge"
+adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-sensor_baro_bridge"
+adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-dps310"
+adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-icp101xx"
+adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-vehicle_local_position_bridge"
 
 # Make sure any required directories exist
 adb shell "/bin/mkdir -p /data/px4/param"
