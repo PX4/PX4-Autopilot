@@ -70,7 +70,7 @@ static void configure_udp_socket_nonblocking(int fd)
 	}
 }
 #endif
-ModuleBase::Descriptor UxrceddsClient::desc{task_spawn, custom_command, print_usage};
+ModuleBase::Descriptor UxrceddsClient::desc {task_spawn, custom_command, print_usage};
 
 static void on_time(uxrSession *session, int64_t current_time, int64_t client_transmit_timestamp,
 		    int64_t agent_receive_timestamp, int64_t originate_timestamp, void *args)
