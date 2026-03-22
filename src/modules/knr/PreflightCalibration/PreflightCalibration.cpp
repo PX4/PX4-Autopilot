@@ -41,6 +41,19 @@ void PreflightCalibration::Run()
 			PX4_INFO("Preflight calibration triggered via uORB message.");
 			_calibration_active = true;
 			_last_calibration_update = 0;
+		} else if(control_msg.action == ACTION_DO_SAVE) {
+			// Handle save servo positions action
+			actuator_outputs_s outputs{};
+			if (_actuator_outputs.update(&outputs)) {
+				_save_servo_positions(outputs);
+			} else {
+				PX4_ERR("Failed to get current servo positions");
+			}
+			return;
+		} else if(control_msg.action == ACTION_DO_LOAD) {
+			// Handle load servo positions action
+			_load_servo_positions();
+			return;
 		}
 	}
 
@@ -191,6 +204,68 @@ int PreflightCalibration::print_usage(const char *reason)
 void PreflightCalibration::_parameters_updated()
 {
 	ModuleParams::updateParams();
+}
+
+void PreflightCalibration::_save_servo_positions(const actuator_outputs_s &outputs)
+{
+	_sv_pos_saved_1.set(outputs.output[0]);
+	_sv_pos_saved_2.set(outputs.output[1]);
+	_sv_pos_saved_3.set(outputs.output[2]);
+	_sv_pos_saved_4.set(outputs.output[3]);
+	_sv_pos_saved_5.set(outputs.output[4]);
+	_sv_pos_saved_6.set(outputs.output[5]);
+	_sv_pos_saved_7.set(outputs.output[6]);
+	_sv_pos_saved_8.set(outputs.output[7]);
+	_sv_pos_saved_9.set(outputs.output[8]);
+	_sv_pos_saved_10.set(outputs.output[9]);
+	_sv_pos_saved_11.set(outputs.output[10]);
+	_sv_pos_saved_12.set(outputs.output[11]);
+	_sv_pos_saved_13.set(outputs.output[12]);
+	_sv_pos_saved_14.set(outputs.output[13]);
+	_sv_pos_saved_15.set(outputs.output[14]);
+	_sv_pos_saved_16.set(outputs.output[15]);
+
+	PX4_INFO("Servo positions saved successfully");
+}
+
+void PreflightCalibration::_load_servo_positions()
+{
+	actuator_test_s actuator_test{};
+	const hrt_abstime now = hrt_absolute_time();
+
+	ParamFloat<px4::params::SV_POS_SAVED_1> *saved_positions[] = {
+		&_sv_pos_saved_1,
+		&_sv_pos_saved_2,
+		&_sv_pos_saved_3,
+		&_sv_pos_saved_4,
+		&_sv_pos_saved_5,
+		&_sv_pos_saved_6,
+		&_sv_pos_saved_7,
+		&_sv_pos_saved_8,
+		&_sv_pos_saved_9,
+		&_sv_pos_saved_10,
+		&_sv_pos_saved_11,
+		&_sv_pos_saved_12,
+		&_sv_pos_saved_13,
+		&_sv_pos_saved_14,
+		&_sv_pos_saved_15,
+		&_sv_pos_saved_16
+	};
+
+	for (int i = 0; i < NUM_ACTUATORS; i++) {
+		actuator_test.timestamp = now;
+		actuator_test.timeout_ms = 100;
+		actuator_test.action = ACTION_DO_CONTROL;
+		actuator_test.function = FUNCTION_SERVO1 + i;
+		actuator_test.value = saved_positions[i]->get();
+
+		_actuator_test_pub.publish(actuator_test);
+
+		PX4_INFO("Loading actuator %d to saved position %.3f", i + 1, 
+			(double)saved_positions[i]->get());
+	}
+
+	PX4_INFO("All saved servo positions loaded");
 }
 
 bool PreflightCalibration::_is_calibration_successful()
