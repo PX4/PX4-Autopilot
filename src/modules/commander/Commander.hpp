@@ -279,8 +279,7 @@ private:
 	bool _last_overload{false};
 	bool _mode_switch_mapped{false};
 
-	bool _is_throttle_above_center{false};
-	bool _is_throttle_low{false};
+	float _last_manual_throttle{-1.f};
 
 	bool _arm_tune_played{false};
 	bool _have_taken_off_since_arming{false};
@@ -339,7 +338,6 @@ private:
 		(ParamBool<px4::params::COM_DISARM_MAN>)    _param_com_disarm_man,
 		(ParamInt<px4::params::COM_DL_LOSS_T>)      _param_com_dl_loss_t,
 		(ParamInt<px4::params::COM_HLDL_LOSS_T>)    _param_com_hldl_loss_t,
-		(ParamInt<px4::params::COM_HLDL_REG_T>)     _param_com_hldl_reg_t,
 		(ParamBool<px4::params::COM_HOME_EN>)       _param_com_home_en,
 		(ParamBool<px4::params::COM_HOME_IN_AIR>)   _param_com_home_in_air,
 		(ParamBool<px4::params::COM_FORCE_SAFETY>)  _param_com_force_safety,

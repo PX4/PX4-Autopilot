@@ -1,0 +1,10 @@
+module_name: sht3x
+parameters:
+- group: Sensors
+  definitions:
+    SENS_EN_SHT3X:
+      description:
+        short: SHT3x temperature and hygrometer
+      type: boolean
+      default: 0
+      reboot_required: true

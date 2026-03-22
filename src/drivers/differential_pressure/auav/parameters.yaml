@@ -1,0 +1,15 @@
+module_name: auav
+parameters:
+- group: Sensors
+  definitions:
+    SENS_EN_AUAVX:
+      description:
+        short: Amphenol AUAV differential / absolute pressure sensor (external I2C)
+      type: enum
+      values:
+        0: Sensor disabled, when explicitly started treated as AUAV L05D
+        1: AUAV L05D
+        2: AUAV L10D
+        3: AUAV L30D
+      default: 0
+      reboot_required: true

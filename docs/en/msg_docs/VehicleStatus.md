@@ -25,7 +25,6 @@ Encodes the system state of the vehicle published by commander.
 | nav_state_display                | `uint8`  |              |            | User-visible nav state sent via MAVLink (executor state if active, otherwise nav_state)         |
 | valid_nav_states_mask            | `uint32` |              |            | Bitmask for all valid nav_state values                                                          |
 | can_set_nav_states_mask          | `uint32` |              |            | Bitmask for all modes that a user can select                                                    |
-| failure_detector_status          | `uint16` |              |            |
 | hil_state                        | `uint8`  |              |            |
 | vehicle_type                     | `uint8`  |              |            |
 | failsafe                         | `bool`   |              |            | true if system is in failsafe state (e.g.:RTL, Hover, Terminate, ...)                           |
@@ -58,7 +57,7 @@ Encodes the system state of the vehicle published by commander.
 
 | Name                                                                                    | Type     | Value | Description                                      |
 | --------------------------------------------------------------------------------------- | -------- | ----- | ------------------------------------------------ |
-| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                           | `uint32` | 2     |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                           | `uint32` | 3     |
 | <a id="#ARMING_STATE_DISARMED"></a> ARMING_STATE_DISARMED                               | `uint8`  | 1     |
 | <a id="#ARMING_STATE_ARMED"></a> ARMING_STATE_ARMED                                     | `uint8`  | 2     |
 | <a id="#ARM_DISARM_REASON_STICK_GESTURE"></a> ARM_DISARM_REASON_STICK_GESTURE           | `uint8`  | 1     |
@@ -103,15 +102,6 @@ Encodes the system state of the vehicle published by commander.
 | <a id="#NAVIGATION_STATE_EXTERNAL7"></a> NAVIGATION_STATE_EXTERNAL7                     | `uint8`  | 29    |
 | <a id="#NAVIGATION_STATE_EXTERNAL8"></a> NAVIGATION_STATE_EXTERNAL8                     | `uint8`  | 30    |
 | <a id="#NAVIGATION_STATE_MAX"></a> NAVIGATION_STATE_MAX                                 | `uint8`  | 31    |
-| <a id="#FAILURE_NONE"></a> FAILURE_NONE                                                 | `uint16` | 0     |
-| <a id="#FAILURE_ROLL"></a> FAILURE_ROLL                                                 | `uint16` | 1     | (1 << 0)                                         |
-| <a id="#FAILURE_PITCH"></a> FAILURE_PITCH                                               | `uint16` | 2     | (1 << 1)                                         |
-| <a id="#FAILURE_ALT"></a> FAILURE_ALT                                                   | `uint16` | 4     | (1 << 2)                                         |
-| <a id="#FAILURE_EXT"></a> FAILURE_EXT                                                   | `uint16` | 8     | (1 << 3)                                         |
-| <a id="#FAILURE_ARM_ESC"></a> FAILURE_ARM_ESC                                           | `uint16` | 16    | (1 << 4)                                         |
-| <a id="#FAILURE_BATTERY"></a> FAILURE_BATTERY                                           | `uint16` | 32    | (1 << 5)                                         |
-| <a id="#FAILURE_IMBALANCED_PROP"></a> FAILURE_IMBALANCED_PROP                           | `uint16` | 64    | (1 << 6)                                         |
-| <a id="#FAILURE_MOTOR"></a> FAILURE_MOTOR                                               | `uint16` | 128   | (1 << 7)                                         |
 | <a id="#HIL_STATE_OFF"></a> HIL_STATE_OFF                                               | `uint8`  | 0     |
 | <a id="#HIL_STATE_ON"></a> HIL_STATE_ON                                                 | `uint8`  | 1     |
 | <a id="#VEHICLE_TYPE_UNSPECIFIED"></a> VEHICLE_TYPE_UNSPECIFIED                         | `uint8`  | 0     |
@@ -131,7 +121,7 @@ Encodes the system state of the vehicle published by commander.
 ```c
 # Encodes the system state of the vehicle published by commander
 
-uint32 MESSAGE_VERSION = 2
+uint32 MESSAGE_VERSION = 3
 
 uint64 timestamp # time since system start (microseconds)
 
@@ -198,18 +188,6 @@ uint8 nav_state_display                         # User-visible nav state sent vi
 
 uint32 valid_nav_states_mask                    # Bitmask for all valid nav_state values
 uint32 can_set_nav_states_mask                  # Bitmask for all modes that a user can select
-
-# Bitmask of detected failures
-uint16 failure_detector_status
-uint16 FAILURE_NONE = 0
-uint16 FAILURE_ROLL = 1              # (1 << 0)
-uint16 FAILURE_PITCH = 2             # (1 << 1)
-uint16 FAILURE_ALT = 4               # (1 << 2)
-uint16 FAILURE_EXT = 8               # (1 << 3)
-uint16 FAILURE_ARM_ESC = 16          # (1 << 4)
-uint16 FAILURE_BATTERY = 32          # (1 << 5)
-uint16 FAILURE_IMBALANCED_PROP = 64  # (1 << 6)
-uint16 FAILURE_MOTOR = 128           # (1 << 7)
 
 uint8 hil_state
 uint8 HIL_STATE_OFF = 0

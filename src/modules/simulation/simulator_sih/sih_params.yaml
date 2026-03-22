@@ -1,0 +1,273 @@
+module_name: simulator_sih
+parameters:
+- group: Simulation In Hardware
+  definitions:
+    SIH_MASS:
+      description:
+        short: Vehicle mass
+        long: This value can be measured by weighting the quad on a scale.
+      type: float
+      default: 1.0
+      unit: kg
+      min: 0.0
+      decimal: 2
+      increment: 0.1
+    SIH_IXX:
+      description:
+        short: Vehicle inertia about X axis
+        long: |-
+          The inertia is a 3 by 3 symmetric matrix.
+          It represents the difficulty of the vehicle to modify its angular rate.
+      type: float
+      default: 0.025
+      unit: kg m^2
+      min: 0.0
+      decimal: 3
+      increment: 0.005
+    SIH_IYY:
+      description:
+        short: Vehicle inertia about Y axis
+        long: |-
+          The inertia is a 3 by 3 symmetric matrix.
+          It represents the difficulty of the vehicle to modify its angular rate.
+      type: float
+      default: 0.025
+      unit: kg m^2
+      min: 0.0
+      decimal: 3
+      increment: 0.005
+    SIH_IZZ:
+      description:
+        short: Vehicle inertia about Z axis
+        long: |-
+          The inertia is a 3 by 3 symmetric matrix.
+          It represents the difficulty of the vehicle to modify its angular rate.
+      type: float
+      default: 0.03
+      unit: kg m^2
+      min: 0.0
+      decimal: 3
+      increment: 0.005
+    SIH_IXY:
+      description:
+        short: Vehicle cross term inertia xy
+        long: |-
+          The inertia is a 3 by 3 symmetric matrix.
+          This value can be set to 0 for a quad symmetric about its center of mass.
+      type: float
+      default: 0.0
+      unit: kg m^2
+      decimal: 3
+      increment: 0.005
+    SIH_IXZ:
+      description:
+        short: Vehicle cross term inertia xz
+        long: |-
+          The inertia is a 3 by 3 symmetric matrix.
+          This value can be set to 0 for a quad symmetric about its center of mass.
+      type: float
+      default: 0.0
+      unit: kg m^2
+      decimal: 3
+      increment: 0.005
+    SIH_IYZ:
+      description:
+        short: Vehicle cross term inertia yz
+        long: |-
+          The inertia is a 3 by 3 symmetric matrix.
+          This value can be set to 0 for a quad symmetric about its center of mass.
+      type: float
+      default: 0.0
+      unit: kg m^2
+      decimal: 3
+      increment: 0.005
+    SIH_T_MAX:
+      description:
+        short: Max propeller thrust force
+        long: |-
+          This is the maximum force delivered by one propeller
+          when the motor is running at full speed.
+
+          This value is usually about 5 times the mass of the quadrotor.
+      type: float
+      default: 5.0
+      unit: N
+      min: 0.0
+      decimal: 2
+      increment: 0.5
+    SIH_Q_MAX:
+      description:
+        short: Max propeller torque
+        long: |-
+          This is the maximum torque delivered by one propeller
+          when the motor is running at full speed.
+
+          This value is usually about few percent of the maximum thrust force.
+      type: float
+      default: 0.1
+      unit: Nm
+      min: 0.0
+      decimal: 3
+      increment: 0.05
+    SIH_L_ROLL:
+      description:
+        short: Roll arm length
+        long: |-
+          This is the arm length generating the rolling moment
+
+          This value can be measured with a ruler.
+          This corresponds to half the distance between the left and right motors.
+      type: float
+      default: 0.2
+      unit: m
+      min: 0.0
+      decimal: 2
+      increment: 0.05
+    SIH_L_PITCH:
+      description:
+        short: Pitch arm length
+        long: |-
+          This is the arm length generating the pitching moment
+
+          This value can be measured with a ruler.
+          This corresponds to half the distance between the front and rear motors.
+      type: float
+      default: 0.2
+      unit: m
+      min: 0.0
+      decimal: 2
+      increment: 0.05
+    SIH_KDV:
+      description:
+        short: First order drag coefficient
+        long: |-
+          Physical coefficient representing the friction with air particules.
+          The greater this value, the slower the quad will move.
+
+          Drag force function of velocity: D=-KDV*V.
+          The maximum freefall velocity can be computed as V=10*MASS/KDV [m/s]
+      type: float
+      default: 1.0
+      unit: N/(m/s)
+      min: 0.0
+      decimal: 2
+      increment: 0.05
+    SIH_KDW:
+      description:
+        short: First order angular damper coefficient
+        long: |-
+          Physical coefficient representing the friction with air particules during rotations.
+          The greater this value, the slower the quad will rotate.
+
+          Aerodynamic moment function of body rate: Ma=-KDW*W_B.
+          This value can be set to 0 if unknown.
+      type: float
+      default: 0.025
+      unit: Nm/(rad/s)
+      min: 0.0
+      decimal: 3
+      increment: 0.005
+    SIH_LOC_LAT0:
+      description:
+        short: Initial geodetic latitude
+        long: |-
+          This value represents the North-South location on Earth where the simulation begins.
+
+          LAT0, LON0, H0, MU_X, MU_Y, and MU_Z should ideally be consistent among each others
+          to represent a physical ground location on Earth.
+      type: float
+      default: 47.397742
+      unit: deg
+      min: -90
+      max: 90
+    SIH_LOC_LON0:
+      description:
+        short: Initial geodetic longitude
+        long: |-
+          This value represents the East-West location on Earth where the simulation begins.
+
+          LAT0, LON0, H0, MU_X, MU_Y, and MU_Z should ideally be consistent among each others
+          to represent a physical ground location on Earth.
+      type: float
+      default: 8.545594
+      unit: deg
+      min: -180
+      max: 180
+    SIH_LOC_H0:
+      description:
+        short: Initial AMSL ground altitude
+        long: |-
+          This value represents the Above Mean Sea Level (AMSL) altitude where the simulation begins.
+
+          If using FlightGear as a visual animation,
+          this value can be tweaked such that the vehicle lies on the ground at takeoff.
+
+          LAT0, LON0, H0, MU_X, MU_Y, and MU_Z should ideally be consistent among each others
+          to represent a physical ground location on Earth.
+      type: float
+      default: 489.4
+      unit: m
+      min: -420.0
+      max: 8848.0
+      decimal: 2
+      increment: 0.01
+    SIH_DISTSNSR_MIN:
+      description:
+        short: distance sensor minimum range
+      type: float
+      default: 0.0
+      unit: m
+      min: 0.0
+      max: 10.0
+      decimal: 4
+      increment: 0.01
+    SIH_DISTSNSR_MAX:
+      description:
+        short: distance sensor maximum range
+      type: float
+      default: 100.0
+      unit: m
+      min: 0.0
+      max: 1000.0
+      decimal: 4
+      increment: 0.01
+    SIH_DISTSNSR_OVR:
+      description:
+        short: if >= 0 the distance sensor measures will be overridden by this value
+        long: Absolute value superior to 10000 will disable distance sensor
+      type: float
+      default: -1.0
+      unit: m
+    SIH_T_TAU:
+      description:
+        short: thruster time constant tau
+        long: the time taken for the thruster to step from 0 to 100% should be about
+          4 times tau
+      type: float
+      default: 0.05
+      unit: s
+    SIH_VEHICLE_TYPE:
+      description:
+        short: Vehicle type
+      type: enum
+      values:
+        0: Quadcopter
+        1: Fixed-Wing
+        2: Tailsitter
+        3: Standard VTOL
+        4: Hexacopter
+        5: Rover Ackermann
+      default: 0
+      reboot_required: true
+    SIH_WIND_N:
+      description:
+        short: Wind velocity from north direction
+      type: float
+      default: 0.0
+      unit: m/s
+    SIH_WIND_E:
+      description:
+        short: Wind velocity from east direction
+      type: float
+      default: 0.0
+      unit: m/s

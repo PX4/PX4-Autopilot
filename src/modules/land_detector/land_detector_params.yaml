@@ -1,0 +1,26 @@
+module_name: land_detector
+parameters:
+- group: Land Detector
+  definitions:
+    LND_FLIGHT_T_HI:
+      description:
+        short: Total flight time in microseconds
+        long: |-
+          Total flight time of this autopilot. Higher 32 bits of the value.
+          Flight time in microseconds = (LND_FLIGHT_T_HI << 32) | LND_FLIGHT_T_LO.
+      category: System
+      type: int32
+      default: 0
+      volatile: true
+      min: 0
+    LND_FLIGHT_T_LO:
+      description:
+        short: Total flight time in microseconds
+        long: |-
+          Total flight time of this autopilot. Lower 32 bits of the value.
+          Flight time in microseconds = (LND_FLIGHT_T_HI << 32) | LND_FLIGHT_T_LO.
+      category: System
+      type: int32
+      default: 0
+      volatile: true
+      min: 0

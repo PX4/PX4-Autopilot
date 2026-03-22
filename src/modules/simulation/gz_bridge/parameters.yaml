@@ -1,0 +1,66 @@
+module_name: gz_bridge
+parameters:
+- group: Simulation
+  definitions:
+    SIM_GZ_EN_LIDAR:
+      description:
+        short: Enable laser/lidar sensors in Gazebo bridge
+      type: enum
+      values:
+        0: Disabled
+        1: Enabled
+      default: 1
+      reboot_required: true
+    SIM_GZ_EN_FLOW:
+      description:
+        short: Enable optical flow sensor in Gazebo bridge
+      type: enum
+      values:
+        0: Disabled
+        1: Enabled
+      default: 1
+      reboot_required: true
+    SIM_GZ_EN_ASPD:
+      description:
+        short: Enable airspeed sensor in Gazebo bridge
+      type: enum
+      values:
+        0: Disabled
+        1: Enabled
+      default: 1
+      reboot_required: true
+    SIM_GZ_EN_BARO:
+      description:
+        short: Enable barometer/air pressure sensor in Gazebo bridge
+      type: enum
+      values:
+        0: Disabled
+        1: Enabled
+      default: 1
+      reboot_required: true
+    SIM_GZ_EN_ODOM:
+      description:
+        short: Enable odometry in Gazebo bridge
+      type: enum
+      values:
+        0: Disabled
+        1: Enabled
+      default: 1
+      reboot_required: true
+    SIM_GZ_EN_GPS:
+      description:
+        short: Enable GPS/NavSat sensor in Gazebo bridge
+      type: enum
+      values:
+        0: Disabled
+        1: Enabled
+      default: 1
+      reboot_required: true
+- group: UAVCAN
+  definitions:
+    SIM_GZ_EN:
+      description:
+        short: Simulator Gazebo bridge enable
+      type: boolean
+      default: 0
+      reboot_required: true

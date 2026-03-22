@@ -57,6 +57,9 @@
 
 #include "GeofenceBreachAvoidance/geofence_breach_avoidance.h"
 
+#include <uORB/SubscriptionMultiArray.hpp>
+#include <uORB/topics/telemetry_status.h>
+
 #if CONFIG_NAVIGATOR_ADSB
 #include <lib/adsb/AdsbConflict.h>
 #endif // CONFIG_NAVIGATOR_ADSB
@@ -173,6 +176,8 @@ public:
 	vehicle_status_s            *get_vstatus() { return &_vstatus; }
 
 	PrecLand *get_precland() { return &_precland; } /**< allow others, e.g. Mission, to use the precision land block */
+
+	const PositionYawSetpoint &get_last_pos_with_gcs_heartbeat() const { return _last_pos_with_gcs_heartbeat; }
 
 	const vehicle_roi_s &get_vroi() { return _vroi; }
 
@@ -401,6 +406,9 @@ private:
 	float _mission_throttle{NAN};
 
 	bool _is_capturing_images{false}; // keep track if we need to stop capturing images
+
+	uORB::SubscriptionMultiArray<telemetry_status_s> _telemetry_status_subs{ORB_ID::telemetry_status};
+	PositionYawSetpoint _last_pos_with_gcs_heartbeat{(double)NAN, (double)NAN, NAN, NAN};
 
 
 	// timer to trigger a delayed set gimbal neutral command

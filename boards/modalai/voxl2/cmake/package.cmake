@@ -47,7 +47,7 @@ set(CPACK_PACKAGING_INSTALL_PREFIX "/usr")
 set(CPACK_INSTALL_PREFIX "/usr")
 set(CPACK_SET_DESTDIR true)
 
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "libfc-sensor (>=1.0.10), voxl-px4-params (>=0.3.10), voxl3-system-image(>=0.0.2) | voxl2-system-image(>=1.5.4) | rb5-system-image(>=1.6.2), modalai-slpi(>=1.1.16) | modalai-adsp(>=1.0.2)")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "libfc-sensor (>=1.0.10), voxl-px4-params (>=0.3.10), voxl3-system-image(>=0.0.2) | voxl2-system-image(>=1.5.4) | rb5-system-image(>=1.6.2), modalai-slpi(>=1.2.2) | modalai-adsp(>=1.0.5)")
 set(CPACK_DEBIAN_PACKAGE_CONFLICTS "px4-rb5-flight")
 set(CPACK_DEBIAN_PACKAGE_REPLACES "px4-rb5-flight")
 set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "PX4 Autopilot for ModalAI VOXL2")

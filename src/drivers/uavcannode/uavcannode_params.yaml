@@ -1,0 +1,69 @@
+module_name: uavcannode
+parameters:
+- group: UAVCAN
+  definitions:
+    CANNODE_NODE_ID:
+      description:
+        short: UAVCAN CAN node ID (0 for dynamic allocation)
+      type: int32
+      default: 0
+      min: 0
+      max: 127
+    CANNODE_BITRATE:
+      description:
+        short: UAVCAN CAN bus bitrate
+      type: int32
+      default: 1000000
+      min: 20000
+      max: 1000000
+    CANNODE_TERM:
+      description:
+        short: CAN built-in bus termination
+      type: boolean
+      default: 0
+      max: 1
+    CANNODE_SUB_MBD:
+      description:
+        short: Enable MovingBaselineData subscription
+      type: boolean
+      default: 0
+      max: 1
+      reboot_required: true
+    CANNODE_SUB_RTCM:
+      description:
+        short: Enable RTCM subscription
+      type: boolean
+      default: 0
+      reboot_required: true
+    CANNODE_PUB_MBD:
+      description:
+        short: Enable MovingBaselineData publication
+      type: boolean
+      default: 0
+      reboot_required: true
+    CANNODE_PUB_IMU:
+      description:
+        short: Enable RawIMU pub
+      type: boolean
+      default: 0
+      max: 1
+    CANNODE_PUB_BAR:
+      description:
+        short: Enable barometer publication
+        long: |-
+          Enables publication of static pressure and static temperature
+          from the barometer sensor over UAVCAN.
+      type: boolean
+      default: 1
+      max: 1
+      reboot_required: true
+    CANNODE_PUB_MAG:
+      description:
+        short: Enable magnetometer publication
+        long: |-
+          Enables publication of magnetic field strength
+          from the magnetometer sensor over UAVCAN.
+      type: boolean
+      default: 1
+      max: 1
+      reboot_required: true

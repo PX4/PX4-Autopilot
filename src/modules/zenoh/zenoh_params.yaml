@@ -1,0 +1,11 @@
+module_name: zenoh
+parameters:
+- group: Miscellaneous
+  definitions:
+    ZENOH_DOMAIN_ID:
+      description:
+        short: ROS2 RMW_ZENOH_CPP Domain id
+      type: int32
+      default: 0
+      min: 0
+      max: 232
