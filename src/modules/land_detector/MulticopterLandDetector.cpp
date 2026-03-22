@@ -90,7 +90,10 @@ void MulticopterLandDetector::_update_topics()
 
 	if (_vehicle_thrust_setpoint_sub.update(&vehicle_thrust_setpoint)) {
 		_vehicle_thrust_setpoint_throttle = -vehicle_thrust_setpoint.xyz[2];
+		_vehicle_thrust_setpoint_last_update = hrt_absolute_time();
 	}
+
+	_vehicle_thrust_setpoint_valid = (hrt_elapsed_time(&_vehicle_thrust_setpoint_last_update) < 1_s);
 
 	vehicle_control_mode_s vehicle_control_mode;
 
@@ -221,7 +224,10 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	const float thr_pct_hover = _hover_thrust_estimate_valid ? 0.6f : 0.3f;
 	const float hover_thrust = PX4_ISFINITE(_hover_thrust_estimate) ? _hover_thrust_estimate : _params.mpc_thr_hover;
 	const float sys_low_throttle = _params.minThrottle + (hover_thrust - _params.minThrottle) * thr_pct_hover;
-	_has_low_throttle = (_vehicle_thrust_setpoint_throttle <= sys_low_throttle);
+	// Only use thrust setpoint for landing detection if it's being actively published.
+	// In OFFBOARD direct_actuator mode, PX4 controllers don't publish thrust setpoints,
+	// so stale data would cause false landed-state detection.
+	_has_low_throttle = _vehicle_thrust_setpoint_valid && (_vehicle_thrust_setpoint_throttle <= sys_low_throttle);
 	bool ground_contact = _has_low_throttle;
 
 	// if we have a valid velocity setpoint and the vehicle is demanded to go down but no vertical movement present,
@@ -271,7 +277,8 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 		minimum_thrust_threshold = (_params.minManThrottle + 0.01f);
 	}
 
-	const bool minimum_thrust_now = _vehicle_thrust_setpoint_throttle <= minimum_thrust_threshold;
+	const bool minimum_thrust_now = _vehicle_thrust_setpoint_valid
+					&& (_vehicle_thrust_setpoint_throttle <= minimum_thrust_threshold);
 	_minimum_thrust_8s_hysteresis.set_state_and_update(minimum_thrust_now, now);
 
 	// Next look if vehicle is not rotating (do not consider yaw)
