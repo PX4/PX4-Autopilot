@@ -39,6 +39,7 @@ To build for [other targets](../dev_setup/dev_env.md#supported-targets) you will
 4. **Ensure Python 3 is available.** Some PX4 build scripts require `python3` and `pip3` to be in your `PATH`. The Xcode Command Line Tools include Python 3 by default.
 
    :::tip
+   The setup script creates a Python virtual environment (`.venv`) automatically, so you don't need to set one up manually.
    If you need to install or manage a different Python version, we recommend [pyenv](https://github.com/pyenv/pyenv), which lets you set global and per-directory Python versions.
    :::
 
