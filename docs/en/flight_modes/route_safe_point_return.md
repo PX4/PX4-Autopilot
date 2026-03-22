@@ -112,7 +112,6 @@ If no safe point can be selected, Route Safe Point Return falls back to the clos
 - The mission landing endpoint, flown in the nominal direction.
 - The mission takeoff endpoint, flown in reverse.
 
-Only if the mission itself cannot be projected does PX4 fall back to the generic RTL destination logic outside type 6.
 
 ## Execution Stages
 
@@ -168,8 +167,27 @@ During the FollowRoute stage, the estimate subtracts the distance already covere
 
 This approximation ignores altitude changes, wind, and VTOL transitions, but gives the operator a useful indication of remaining flight time.
 
+## Mission Size Limit
+
+The route planner caches the entire mission in RAM for non-blocking access during flight. The maximum supported mission size is defined by the board-level Kconfig option `CONFIG_RTL_MISSION_CACHE_SIZE` (default: 300 items). Each cached item uses approximately 76 bytes of heap.
+
+**Missions within the cache limit** are fully cached on upload. The planner evaluates every segment and optimal safe-point selection is guaranteed.
+
+**Missions exceeding the cache limit** cannot use Route Safe Point Return. PX4 logs a warning and automatically falls back to the closest safe destination using direct-path RTL logic (`RTL_TYPE=3` behavior).
+
+To increase the limit for a specific board, set the following in the board's `.px4board` file:
+
+```
+CONFIG_RTL_MISSION_CACHE_SIZE=500
+```
+
+::: tip
+For most real-world operations, 300 waypoints is sufficient. If your mission requires more waypoints, either increase `CONFIG_RTL_MISSION_CACHE_SIZE` for your board or consider splitting the mission into shorter segments.
+:::
+
 ## Current Limitations
 
+- Missions exceeding `CONFIG_RTL_MISSION_CACHE_SIZE` items (default 300) are not supported; PX4 falls back to direct-path RTL.
 - Geofence-aware pruning for vehicle and safe-point projections is not yet implemented.
 - No dedicated reverse-turn execution module: U-turns are penalized in path scoring but not executed as a specific maneuver.
 

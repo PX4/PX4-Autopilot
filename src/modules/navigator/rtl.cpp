@@ -54,6 +54,8 @@ using matrix::wrap_pi;
 static constexpr float MAX_DIST_FROM_HOME_FOR_LAND_APPROACHES{10.0f}; // [m] We don't consider safe points valid if the distance from the current home to the safe point is smaller than this distance
 static constexpr float MIN_DIST_THRESHOLD = 2.f;
 
+static constexpr hrt_abstime MAX_DATAMAN_LOAD_WAIT{500_ms}; ///< Sync-read timeout matching MissionBase convention.
+
 // Named constants for RTL_TYPE parameter values (must match @value tags in rtl_params.c).
 static constexpr int RTL_TYPE_MISSION_FAST = 2;
 static constexpr int RTL_TYPE_MISSION_FAST_OR_REVERSE = 4;
@@ -66,9 +68,8 @@ namespace
 /**
  * Provider using pre-loaded DatamanCache instances.
  *
- * All reads use loadWait(timeout=0) for cache lookups that return
- * instantly on hit and false on miss.  The caller must ensure both caches
- * are updated (via updateDatamanCache) before invoking the planner.
+ * The entire mission must fit within the cache.  Missions that exceed
+ * MAX_RTL_MISSION_CACHE_SIZE are rejected before the provider is constructed.
  */
 class RtlRoutePlannerProvider : public RtlRoutePlanner::Provider
 {
@@ -86,15 +87,16 @@ public:
 
 	int missionCount() const override
 	{
-		return _mission.count;
+		return static_cast<int>(_mission.count);
 	}
 
 	bool loadMissionItem(int index, mission_item_s &mission_item) const override
 	{
 		return index >= 0
-		       && index < _mission.count
+		       && index < static_cast<int>(_mission.count)
 		       && _mission_cache.loadWait(static_cast<dm_item_t>(_mission.mission_dataman_id), index,
-						  reinterpret_cast<uint8_t *>(&mission_item), sizeof(mission_item));
+						  reinterpret_cast<uint8_t *>(&mission_item), sizeof(mission_item),
+						  MAX_DATAMAN_LOAD_WAIT);
 	}
 
 	int safePointCount() const override
@@ -215,36 +217,69 @@ void RTL::updateDatamanCache()
 
 	}
 
-	// Mission item cache pre-loading
-	if (_mission_id != _mission_sub.get().mission_id) {
-		_mission_id = _mission_sub.get().mission_id;
+	// Land-item cache (used by multiple RTL types).
+	const mission_s &mission = _mission_sub.get();
+	const bool mission_changed = (_mission_id != mission.mission_id);
+
+	if (mission_changed) {
+		_mission_id = mission.mission_id;
 		resetRouteSafePointCache();
-		const dm_item_t dm_item = static_cast<dm_item_t>(_mission_sub.get().mission_dataman_id);
+
+		const dm_item_t dm_item = static_cast<dm_item_t>(mission.mission_dataman_id);
 		_dataman_cache_landItem.invalidate();
 
-		if (_mission_sub.get().land_index > 0) {
-			_dataman_cache_landItem.load(dm_item, _mission_sub.get().land_index);
+		if (mission.land_index > 0) {
+			_dataman_cache_landItem.load(dm_item, mission.land_index);
 		}
-
-		// Pre-load all mission items for non-blocking route planning (RTL type 6).
-		_dataman_cache_mission.invalidate();
-		const int mission_count = _mission_sub.get().count;
-
-		if (_dataman_cache_mission.size() != mission_count) {
-			_dataman_cache_mission.resize(mission_count);
-		}
-
-		for (int i = 0; i < mission_count; ++i) {
-			_dataman_cache_mission.load(dm_item, i);
-		}
-
-		_mission_items_updated = (mission_count == 0);
 	}
 
 	_dataman_cache_landItem.update();
-	_dataman_cache_mission.update();
 
-	if (!_mission_items_updated && !_dataman_cache_mission.isLoading()) {
+	// Mission-item cache: only needed for RTL type RTL_MISSION_SAFE_POINT_FOLLOW.
+	// The entire mission must fit in the fixed-size cache.  If it doesn't,
+	// _mission_items_updated is set true immediately and setRtlTypeAndDestination()
+	// will fall back to a direct RTL type.
+	if (_param_rtl_type.get() == RTL_TYPE_ROUTE_SAFE_POINT) {
+		const dm_item_t dm_item = static_cast<dm_item_t>(mission.mission_dataman_id);
+		const int32_t mission_count = mission.count;
+		const bool cache_empty = (_dataman_cache_mission.size() == 0);
+
+		if (mission_count > MAX_RTL_MISSION_CACHE_SIZE) {
+			// Mission too large for the fixed-size cache — warn once per mission upload.
+			static uint32_t last_warned_mission_id = 0;
+
+			if (mission.mission_id != last_warned_mission_id) {
+				mavlink_log_warning(_navigator->get_mavlink_log_pub(),
+						    "Mission exceeds %d items. Route RTL unavailable, falling back to direct RTL.\t",
+						    static_cast<int>(MAX_RTL_MISSION_CACHE_SIZE));
+				events::send(events::ID("rtl_route_mission_too_large"), events::Log::Warning,
+					     "Mission exceeds route RTL cache limit, falling back to direct RTL");
+				last_warned_mission_id = mission.mission_id;
+			}
+
+			_mission_items_updated = true;
+
+		} else if ((mission_changed || cache_empty) && mission_count > 0) {
+			_dataman_cache_mission.invalidate();
+			_mission_items_updated = false;
+
+			if (static_cast<int32_t>(_dataman_cache_mission.size()) != mission_count) {
+				_dataman_cache_mission.resize(mission_count);
+			}
+
+			for (int32_t i = 0; i < mission_count; ++i) {
+				_dataman_cache_mission.load(dm_item, i);
+			}
+		}
+
+		_dataman_cache_mission.update();
+
+		if (!_mission_items_updated && !_dataman_cache_mission.isLoading()) {
+			_mission_items_updated = true;
+		}
+
+	} else {
+		// Not RTL type RTL_MISSION_SAFE_POINT_FOLLOW: mark as ready so the flag doesn't block other logic.
 		_mission_items_updated = true;
 	}
 }
@@ -513,7 +548,8 @@ void RTL::setRtlTypeAndDestination()
 		const bool current_route_direction_reversed = cached_route_safe_point_plan.valid()
 				? cached_route_safe_point_plan.selection.path.direction_reversed : false;
 
-		if (_navigator->get_mission_result()->valid && _mission_items_updated && _safe_points_updated) {
+		if (_navigator->get_mission_result()->valid && _mission_items_updated && _safe_points_updated
+		    && static_cast<int32_t>(_mission_sub.get().count) <= MAX_RTL_MISSION_CACHE_SIZE) {
 			RtlRoutePlannerProvider planner_provider(_mission_sub.get(), _dataman_cache_mission,
 					_dataman_cache_safepoint, _stats);
 			RtlRoutePlanner planner(planner_provider);
@@ -556,18 +592,19 @@ void RTL::setRtlTypeAndDestination()
 				_route_safe_point_plan = cached_route_safe_point_plan;
 				_should_go_straight_to_safe_point = true;
 
-				int32_t current_position_index = _mission_sub.get().current_seq;
+				const int32_t start_seq = _mission_sub.get().current_seq;
 				mission_item_s mission_item{};
 
-				while (current_position_index >= 0
-				       && planner_provider.loadMissionItem(current_position_index, mission_item)) {
-					if (RtlRoutePlanner::itemContainsPosition(mission_item)) {
-						_route_safe_point_plan.selection.path.first_item_index = current_position_index;
-						_route_safe_point_plan.selection.path.first_item_cmd = mission_item.nav_cmd;
+				for (int32_t idx = start_seq; idx >= 0; --idx) {
+					if (!planner_provider.loadMissionItem(idx, mission_item)) {
 						break;
 					}
 
-					--current_position_index;
+					if (RtlRoutePlanner::itemContainsPosition(mission_item)) {
+						_route_safe_point_plan.selection.path.first_item_index = idx;
+						_route_safe_point_plan.selection.path.first_item_cmd = mission_item.nav_cmd;
+						break;
+					}
 				}
 
 				PX4_DEBUG("RTL type 6 reusing cached branch-off and flying straight to goal");

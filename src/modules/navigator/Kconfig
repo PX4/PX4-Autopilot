@@ -27,3 +27,12 @@ menuconfig NAVIGATOR_ADSB
 	---help---
 		Add support for acting on ADSB transponder_report or ADSB_VEHICLE MAVLink messages.
 		Actions are warnings, Loiter, Land and RTL without climb.
+
+menuconfig RTL_MISSION_CACHE_SIZE
+	int "Maximum number of mission items cached for route-based RTL (RTL_TYPE=6)"
+	default 300
+	depends on MODULES_NAVIGATOR
+	---help---
+		Maximum number of mission items that can be cached for the Route Safe Point Return
+		mode (RTL_TYPE=6). Missions exceeding this size will fall back to direct RTL.
+		Each cached item uses approximately 76 bytes of heap.

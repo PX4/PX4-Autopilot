@@ -232,6 +232,14 @@ private:
 	DatamanClient	&_dataman_client_safepoint = _dataman_cache_safepoint.client();
 	bool _initiate_safe_points_updated{true}; ///< flag indicating if safe points update is needed
 	mutable DatamanCache _dataman_cache_landItem{"rtl_dm_cache_miss_land", 2};
+
+	/**
+	 * Maximum number of mission items that can be cached for route-based RTL.
+	 * Board-configurable via CONFIG_RTL_MISSION_CACHE_SIZE (Kconfig), default 300.
+	 * Missions exceeding this size fall back to a direct RTL type.
+	 */
+	static constexpr int32_t MAX_RTL_MISSION_CACHE_SIZE = CONFIG_RTL_MISSION_CACHE_SIZE;
+
 	mutable DatamanCache _dataman_cache_mission{"rtl_dm_cache_miss_mission", 0}; ///< pre-loaded mission items for non-blocking route planning
 	bool _mission_items_updated{false}; ///< flag indicating if all mission items are loaded into cache
 	uint32_t _mission_id = 0u;
