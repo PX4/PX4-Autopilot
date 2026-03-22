@@ -185,7 +185,7 @@ bool MavlinkSignControl::accept_unsigned(int32_t sign_mode, bool is_usb_uart, ui
 	// so that SETUP_SIGNING can still be received to provision the key
 	if (!_is_signing_initialized) {
 		if (!is_usb_uart) {
-			PX4_WARN("MAVLink signing required but key not set, rejecting unsigned msg %u", message_id);
+			PX4_WARN("MAVLink signing required but key not set, rejecting unsigned msg %" PRIu32, message_id);
 		}
 
 		return is_usb_uart;
