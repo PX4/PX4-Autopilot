@@ -161,12 +161,14 @@ __EXPORT bool ghst_send_telemetry_gps1_status(int uart_fd, uint32_t latitude, ui
 /**
  * Send secondary GPS information
  * @param uart_fd UART file descriptor
- * @param ground_speed Ground Speed [1 km/h]
- * @param ground_course Ground Course [1e-7 degrees]
- * @param num_sats GPS Satellite count
- * @param home_dist Distance to Home [10 m]
- * @param home_dir Direction to Home [1e-7 degrees]
- * @param flags GPS Flags
+ * @param ground_speed Ground speed [1 cm/s]
+ * @param ground_course Ground course / heading [0.1 degree, 0–3600 deci-degrees]
+ * @param num_sats Number of GPS satellites [0..n]
+ * @param home_dist Distance to home [10 m, 0–655350 m]
+ * @param home_dir Direction to home [0.1 degree, 0–3600 deci-degrees]
+ * @param flags GPS flags:
+ *   GPS_FLAGS_FIX      0x01 - GPS fix available
+ *   GPS_FLAGS_FIX_HOME 0x02 - Home position fix available
  * @return true on success
  */
 __EXPORT bool ghst_send_telemetry_gps2_status(int uart_fd, uint16_t ground_speed, uint16_t ground_course,

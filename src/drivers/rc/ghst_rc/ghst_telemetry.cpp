@@ -125,14 +125,15 @@ bool GHSTTelemetry::send_gps2_status()
 		return false;
 	}
 
-	uint16_t ground_speed = (uint16_t)(vehicle_gps_position.vel_m_s / 3.6f * 10.f);
-	uint16_t ground_course = (uint16_t)(math::degrees(vehicle_gps_position.cog_rad) * 100.f);
+	uint16_t ground_speed = static_cast<uint16_t>(vehicle_gps_position.vel_m_s * 100.0f);
+	float course_deg = math::degrees(matrix::wrap_2pi(vehicle_gps_position.cog_rad));
+	uint16_t ground_course = static_cast<uint16_t>(course_deg * 10.0f);
 	uint8_t num_sats = vehicle_gps_position.satellites_used;
 
 	// TBD: Can these be computed in a RC telemetry driver?
 	uint16_t home_dist = 0;
 	uint16_t home_dir = 0;
-	uint8_t flags = 0;
+	uint8_t flags = (vehicle_gps_position.fix_type > 2) ? 0x01 : 0x00; // GPS_FLAGS_FIX
 
 	return ghst_send_telemetry_gps2_status(_uart_fd, ground_speed, ground_course, num_sats, home_dist, home_dir, flags);
 }
