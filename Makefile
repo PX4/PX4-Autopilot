@@ -162,6 +162,12 @@ else
 
 endif
 
+# Prefer the interpreter from an active Python virtual environment.
+# Otherwise leave PYTHON_EXECUTABLE unset and let CMake resolve Python.
+ifneq ($(strip $(VIRTUAL_ENV)),)
+	PYTHON_EXECUTABLE ?= $(VIRTUAL_ENV)/bin/python
+endif
+
 # Pick up specific Python path if set
 ifdef PYTHON_EXECUTABLE
 	override CMAKE_ARGS += -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}
