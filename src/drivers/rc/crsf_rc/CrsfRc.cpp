@@ -494,7 +494,7 @@ bool CrsfRc::SendTelemetryBattery(const uint16_t voltage, const uint16_t current
 	write_uint24_t(buf, offset, fuel);
 	write_uint8_t(buf, offset, remaining);
 	WriteFrameCrc(buf, offset, sizeof(buf));
-	return _uart->write((void *) buf, (size_t) offset);
+	return _uart->write((void *)buf, (size_t)offset) == offset;
 }
 bool CrsfRc::SendTelemetryGps(const int32_t latitude, const int32_t longitude, const uint16_t groundspeed,
 			      const uint16_t gps_heading, const uint16_t altitude, const uint8_t num_satellites)
@@ -509,7 +509,7 @@ bool CrsfRc::SendTelemetryGps(const int32_t latitude, const int32_t longitude, c
 	write_uint16_t(buf, offset, altitude);
 	write_uint8_t(buf, offset, num_satellites);
 	WriteFrameCrc(buf, offset, sizeof(buf));
-	return _uart->write((void *) buf, (size_t) offset);
+	return _uart->write((void *)buf, (size_t)offset) == offset;
 }
 bool CrsfRc::SendTelemetryAttitude(const int16_t pitch, const int16_t roll, const int16_t yaw)
 {
@@ -520,7 +520,7 @@ bool CrsfRc::SendTelemetryAttitude(const int16_t pitch, const int16_t roll, cons
 	write_uint16_t(buf, offset, roll);
 	write_uint16_t(buf, offset, yaw);
 	WriteFrameCrc(buf, offset, sizeof(buf));
-	return _uart->write((void *) buf, (size_t) offset);
+	return _uart->write((void *)buf, (size_t)offset) == offset;
 }
 bool CrsfRc::SendTelemetryFlightMode(const char *flight_mode)
 {
@@ -538,7 +538,7 @@ bool CrsfRc::SendTelemetryFlightMode(const char *flight_mode)
 	offset += length;
 	buf[offset - 1] = 0; // ensure null-terminated string
 	WriteFrameCrc(buf, offset, length + 4);
-	return _uart->write((void *) buf, (size_t) offset);
+	return _uart->write((void *)buf, (size_t)offset) == offset;
 }
 
 bool CrsfRc::SendTelemetryAirspeed(const uint16_t airspeed)
@@ -548,7 +548,7 @@ bool CrsfRc::SendTelemetryAirspeed(const uint16_t airspeed)
 	WriteFrameHeader(buf, offset, crsf_frame_type_t::airspeed, (uint8_t)crsf_payload_size_t::airspeed);
 	write_uint16_t(buf, offset, airspeed);
 	WriteFrameCrc(buf, offset, sizeof(buf));
-	return _uart->write((void *) buf, (size_t) offset);
+	return _uart->write((void *)buf, (size_t)offset) == offset;
 }
 
 int CrsfRc::print_status()
