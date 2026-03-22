@@ -358,9 +358,9 @@ bool
 CollisionPrevention::_checkSetpointDirectionFeasability()
 {
 	if (_setpoint_index < 0 || _setpoint_index >= BIN_COUNT) {
-    		return false; // treat out-of-bounds as unsafe
+		return false; // treat out-of-bounds as unsafe
 	}
-	
+
 	const bool no_data = (_obstacle_map_body_frame.distances[_setpoint_index] == UINT16_MAX);
 	const bool allow_movement_towards_no_data = _param_cp_go_no_data.get();
 	const bool fov_at_setpoint = _data_fov[_setpoint_index];
