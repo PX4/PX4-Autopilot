@@ -34,7 +34,7 @@
 /**
  * @file test_RTL_helpers.h
  *
- * Shared helpers for RtlRoutePlanner unit tests.
+ * Shared helpers for MissionRoutePlanner unit tests.
  * Provides in-memory Provider implementations, mission item factory
  * functions, default configs, tolerance constants, and verification
  * helpers.
@@ -46,7 +46,7 @@
 
 #include <gtest/gtest.h>
 
-#include "rtl_route_planner.h"
+#include "mission_route_planner.h"
 
 #include <lib/geo/geo.h>
 #include <uORB/topics/vtol_vehicle_status.h>
@@ -59,7 +59,7 @@
 // ============================================================================
 
 /**
- * @brief In-memory planner provider for all RtlRoutePlanner tests.
+ * @brief In-memory planner provider for all MissionRoutePlanner tests.
  *
  * Supports two optional capabilities on top of basic vector-backed access:
  * - Fault injection: indices listed in faulty_mission_indices / faulty_safe_point_indices
@@ -70,7 +70,7 @@
  * When constructed with just mission + safe-point vectors (the common case),
  * fault lists are empty and counters can be ignored.
  */
-class VectorProvider : public RtlRoutePlanner::Provider
+class VectorProvider : public MissionRoutePlanner::Provider
 {
 public:
 	VectorProvider(std::vector<mission_item_s> mission_items,
@@ -146,6 +146,10 @@ private:
 // Mission item factory helpers
 // ============================================================================
 
+// These helpers stay header-only because only a small set of navigator test TUs include
+// them today. If reuse widens or the bodies become materially larger, move them into a
+// shared test-support .cpp to avoid duplicated code generation.
+
 /** @brief Build an absolute mission item at the given coordinates. */
 static inline mission_item_s makePositionItem(double lat, double lon, float alt,
 		uint16_t nav_cmd = NAV_CMD_WAYPOINT)
@@ -206,7 +210,7 @@ static inline mission_item_s makeLandItem(double lat, double lon, float alt)
 
 /** @brief Build a DO_JUMP item for loop handling tests. */
 static inline mission_item_s makeDoJump(int16_t jump_target_index, uint16_t repeat_count,
-					uint16_t current_count)
+					uint16_t current_count = 0)
 {
 	mission_item_s item{};
 	item.nav_cmd = NAV_CMD_DO_JUMP;
@@ -227,35 +231,35 @@ static inline mission_item_s makeVtolTransitionItem(uint8_t target_state)
 
 /** @brief Build a rally point from a local offset relative to the reference point. */
 static inline mission_item_s makeSafePointFromOffset(double base_lat, double base_lon,
-		float north_m, float east_m, float alt)
+		float north_m, float east_m, float alt, uint8_t frame = NAV_FRAME_GLOBAL)
 {
 	mission_item_s item = makePositionItemFromOffset(base_lat, base_lon, north_m, east_m, alt, NAV_CMD_RALLY_POINT);
-	item.frame = NAV_FRAME_GLOBAL;
+	item.frame = frame;
 	return item;
 }
 
 /** @brief Build a rally point at absolute GPS coordinates. */
-static inline mission_item_s makeSafePointAbsolute(double lat, double lon, float alt)
+static inline mission_item_s makeSafePointAbsolute(double lat, double lon, float alt, uint8_t frame = NAV_FRAME_GLOBAL)
 {
 	mission_item_s item = makePositionItem(lat, lon, alt, NAV_CMD_RALLY_POINT);
-	item.frame = NAV_FRAME_GLOBAL;
+	item.frame = frame;
 	return item;
 }
 
 /** @brief Build a route-planner position from a local offset relative to the reference point. */
-static inline RtlRoutePlanner::Position makePositionFromOffset(double base_lat, double base_lon,
+static inline MissionRoutePlanner::Position makePositionFromOffset(double base_lat, double base_lon,
 		float north_m, float east_m, float alt)
 {
-	RtlRoutePlanner::Position position{};
+	MissionRoutePlanner::Position position{};
 	add_vector_to_global_position(base_lat, base_lon, north_m, east_m, &position.lat, &position.lon);
 	position.alt = alt;
 	return position;
 }
 
 /** @brief Build a route-planner position at absolute GPS coordinates. */
-static inline RtlRoutePlanner::Position makePositionAbsolute(double lat, double lon, float alt)
+static inline MissionRoutePlanner::Position makePositionAbsolute(double lat, double lon, float alt)
 {
-	return RtlRoutePlanner::Position{lat, lon, alt};
+	return MissionRoutePlanner::Position{lat, lon, alt};
 }
 
 // ============================================================================
@@ -263,9 +267,9 @@ static inline RtlRoutePlanner::Position makePositionAbsolute(double lat, double 
 // ============================================================================
 
 /** @brief Default route-planner config for route-following tests (multicopter). */
-static inline RtlRoutePlanner::Config defaultConfig()
+static inline MissionRoutePlanner::Config defaultConfig()
 {
-	RtlRoutePlanner::Config config{};
+	MissionRoutePlanner::Config config{};
 	config.vehicle_projection_search_dist = 60.f;
 	config.safe_point_projection_search_dist = 60.f;
 	config.acceptance_radius = 10.f;
@@ -276,9 +280,9 @@ static inline RtlRoutePlanner::Config defaultConfig()
 }
 
 /** @brief Config for fixed-wing vehicle tests. */
-static inline RtlRoutePlanner::Config fwConfig()
+static inline MissionRoutePlanner::Config fwConfig()
 {
-	RtlRoutePlanner::Config config = defaultConfig();
+	MissionRoutePlanner::Config config = defaultConfig();
 	config.is_multicopter = false;
 	config.vehicle_is_fixed_wing = true;
 	config.u_turn_penalty_m = 4000.f;
@@ -286,8 +290,15 @@ static inline RtlRoutePlanner::Config fwConfig()
 }
 
 // ============================================================================
-// Tolerance constants
+// Shared reference geometry and tolerance constants
 // ============================================================================
+
+namespace rtl_test_reference
+{
+static constexpr double kBaseLat = 47.397742;
+static constexpr double kBaseLon = 8.545594;
+static constexpr float kAlt = 500.f;
+}
 
 static constexpr double kLatLonToleranceDeg = 1e-7;     // ~1 cm at equator
 static constexpr float kAltitudeTolerance = 2.0f;       // meters
@@ -298,52 +309,17 @@ static constexpr float kDistanceTolerance = 5.0f;       // meters
 // ============================================================================
 
 /**
- * @brief Base fixture for RtlRoutePlanner tests.
+ * @brief Base fixture for MissionRoutePlanner tests.
  *
  * Provides default config, projection context, and failure reason as
  * class members so individual tests do not need to repeat the same
  * 3-line declaration block.  Tests that need a different config
  * (e.g. fwConfig()) simply reassign the member.
  */
-class RtlRoutePlannerTestBase : public ::testing::Test
+class MissionRoutePlannerTestBase : public ::testing::Test
 {
 protected:
-	RtlRoutePlanner::Config config = defaultConfig();
-	RtlRoutePlanner::ProjectionContext ctx{};
-	RtlRoutePlanner::FailureReason reason{};
+	MissionRoutePlanner::Config config = defaultConfig();
+	MissionRoutePlanner::ProjectionContext ctx{};
+	MissionRoutePlanner::FailureReason reason{};
 };
-
-// ============================================================================
-// Candidate / projection verification helpers
-// ============================================================================
-
-/** @brief Check if a candidate's projection is close to a waypoint corner (segment start or end). */
-static inline bool isCornerProjection(const RtlRoutePlanner::SegmentCandidate &candidate)
-{
-	auto close = [](double a, double b) {
-		return std::fabs(a - b) < RtlRoutePlanner::kCornerLatLonTolDeg;
-	};
-
-	bool at_start = close(candidate.projection.lat, candidate.segment_positions.start.lat)
-			&& close(candidate.projection.lon, candidate.segment_positions.start.lon);
-	bool at_end = close(candidate.projection.lat, candidate.segment_positions.end.lat)
-		      && close(candidate.projection.lon, candidate.segment_positions.end.lon);
-
-	return at_start || at_end;
-}
-
-/** @brief Check if a candidate buffer contains a specific segment. */
-static inline bool bufferContainsSegment(const RtlRoutePlanner::CandidateBuffer &buffer,
-		uint16_t start_idx, uint16_t end_idx)
-{
-	for (uint8_t i = 0; i < buffer.count; ++i) {
-		if (buffer.candidates[i].segment.start.idx == static_cast<int32_t>(start_idx) &&
-		    buffer.candidates[i].segment.end.idx == static_cast<int32_t>(end_idx)) {
-			return true;
-		}
-	}
-
-	return false;
-}
-
-// end of pragma once guarded header

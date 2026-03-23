@@ -33,6 +33,7 @@ menuconfig RTL_MISSION_CACHE_SIZE
 	default 300
 	depends on MODULES_NAVIGATOR
 	---help---
-		Maximum number of mission items that can be cached for the Route Safe Point Return
-		mode (RTL_TYPE=6). Missions exceeding this size will fall back to direct RTL.
+		Maximum number of mission items that can be cached for the smart mission join when switching back to mission
+		and for the Route Safe Point Return mode (RTL_TYPE=6). Missions exceeding this size will fall back to joining
+		the mission to the last flown segment and to the default mission direct RTL.
 		Each cached item uses approximately 76 bytes of heap.

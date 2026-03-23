@@ -68,6 +68,28 @@ Mission::Mission(Navigator *navigator) :
 {
 }
 
+void Mission::updateMissionRouteCache()
+{
+	_navigator->get_mission_route_cache()->update(_mission);
+}
+
+void Mission::syncMissionRouteState()
+{
+	const bool mission_changed = (_route_state_mission_id != _mission.mission_id)
+				     || (_route_state_mission_count != _mission.count)
+				     || (_route_state_mission_dataman_id != _mission.mission_dataman_id);
+
+	if (mission_changed) {
+		resetJoinRouteState();
+		_last_flown_loop_segment = {};
+		_route_state_mission_id = _mission.mission_id;
+		_route_state_mission_count = _mission.count;
+		_route_state_mission_dataman_id = _mission.mission_dataman_id;
+	}
+
+	updateMissionRouteCache();
+}
+
 void
 Mission::on_inactive()
 {
@@ -78,18 +100,129 @@ Mission::on_inactive()
 	}
 
 	MissionBase::on_inactive();
+	syncMissionRouteState();
 }
 
 void
 Mission::on_activation()
 {
 	_need_mission_save = true;
+	const bool resume_mission_on_previous = (_inactivation_index > 0) && cameraWasTriggering();
 
 	check_mission_valid(true);
+	_global_pos_sub.update();
+	_vehicle_status_sub.update();
+	_land_detected_sub.update();
+	syncMissionRouteState();
+	checkMissionRestart();
 
+	if (_mission.current_seq == 0) {
+		_last_flown_loop_segment = {};
+	}
+
+	trySetRouteJoinOnActivation(resume_mission_on_previous);
 	MissionBase::on_activation();
 }
 
+void Mission::on_active()
+{
+	MissionBase::on_active();
+	syncMissionRouteState();
+}
+
+bool Mission::trySetRouteJoinOnActivation(bool resume_mission_on_previous)
+{
+	resetJoinRouteState();
+
+	if (resume_mission_on_previous
+	    || (_param_mis_route_join.get() == 0)
+	    || _work_item_type != WorkItemType::WORK_ITEM_TYPE_DEFAULT
+	    || _land_detected_sub.get().landed
+	    || _mission.count < 2
+	    || _mission.current_seq < 0
+	    || _mission.current_seq >= _mission.count) {
+		return false;
+	}
+
+	MissionRouteCache *mission_route_cache = _navigator->get_mission_route_cache();
+
+	if ((mission_route_cache == nullptr) || (mission_route_cache->isReady(_mission) == false)) {
+		return false;
+	}
+
+	const auto *global_position = _navigator->get_global_position();
+
+	if ((global_position == nullptr)
+	    || (PX4_ISFINITE(global_position->lat) == false)
+	    || (PX4_ISFINITE(global_position->lon) == false)
+	    || (PX4_ISFINITE(global_position->alt) == false)) {
+		return false;
+	}
+
+	MissionRoutePlanner planner(*mission_route_cache);
+	const auto &vehicle_status = _vehicle_status_sub.get();
+	const auto *local_position = _navigator->get_local_position();
+
+	MissionRoutePlanner::Config config{};
+	config.vehicle_projection_search_dist = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
+						? _param_mis_mc_seg_dist.get() : _param_mis_fw_seg_dist.get();
+	config.acceptance_radius = _navigator->get_acceptance_radius();
+	config.home_altitude_amsl = _navigator->home_global_position_valid()
+				    ? _navigator->get_home_position()->alt : global_position->alt;
+	config.is_multicopter = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
+				&& (vehicle_status.in_transition_mode == false);
+	config.vehicle_velocity_valid = (local_position != nullptr)
+					&& PX4_ISFINITE(local_position->vx)
+					&& PX4_ISFINITE(local_position->vy);
+	config.vehicle_velocity_north = (local_position != nullptr) ? local_position->vx : NAN;
+	config.vehicle_velocity_east = (local_position != nullptr) ? local_position->vy : NAN;
+	config.vehicle_is_fixed_wing = vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+	config.vehicle_in_transition_to_fw = vehicle_status.in_transition_to_fw;
+	config.last_flown_loop_segment = _last_flown_loop_segment;
+
+	MissionRoutePlanner::ProjectionContext projection_context{};
+	MissionRoutePlanner::FailureReason failure_reason{MissionRoutePlanner::FailureReason::Unknown};
+	MissionRoutePlanner::Position vehicle_position{global_position->lat, global_position->lon, global_position->alt};
+
+	if (planner.collectVehicleProjection(vehicle_position, _mission.current_seq, config, projection_context,
+					     &failure_reason) == false) {
+		PX4_ERR("Mission route rejoin unavailable: %s", MissionRoutePlanner::failureReasonString(failure_reason));
+		return false;
+	}
+
+	int32_t route_end_index = -1;
+
+	if (!findAttachedPositionIndex(_mission.count - 1, route_end_index)) {
+		return false;
+	}
+
+	const MissionRoutePlanner::Path path = planner.findNominalPathToGoal(route_end_index,
+					       projection_context.dist_along_to_route_end, projection_context, config);
+
+	if (!path.valid() || path.first_item_index < 0 || path.first_item_index >= _mission.count) {
+		PX4_ERR("Mission route rejoin failed to find a valid nominal path");
+		return false;
+	}
+
+	_last_flown_loop_segment = projection_context.seg_candidate.segment;
+	setMissionIndex(path.first_item_index);
+	_is_current_planned_mission_item_valid = isMissionValid();
+
+	MissionRoutePlanner::JoinContext join_context = planner.buildJoinContext(projection_context, path);
+
+	if ((path.in_first_item_acc_rad)
+	    && (path.first_item_cmd == NAV_CMD_LAND || path.first_item_cmd == NAV_CMD_VTOL_LAND)) {
+		join_context.projection.alt = vehicle_position.alt;
+		join_context.skip_altitude_requirement = true;
+	}
+
+	const VtolTransitionAction join_transition_action = vtolTransitionActionForTarget(path.first_item_index,
+			path.direction_reversed);
+	setupJoinRoute(join_context, join_transition_action);
+
+	mavlink_log_info(_navigator->get_mavlink_log_pub(), "Rejoining mission route\t");
+	return true;
+}
 
 bool
 Mission::set_current_mission_index(uint16_t index)
@@ -121,6 +254,8 @@ Mission::set_current_mission_index(uint16_t index)
 
 		// User has actively set new index, reset.
 		_inactivation_index = -1;
+		resetJoinRouteState();
+		_last_flown_loop_segment = {};
 
 		return true;
 	}
@@ -130,6 +265,7 @@ Mission::set_current_mission_index(uint16_t index)
 
 bool Mission::setNextMissionItem()
 {
+	updateLastFlownLoopSegmentForNominalAdvance(_last_flown_loop_segment);
 	return (goToNextItem(true) == PX4_OK);
 }
 
@@ -150,6 +286,13 @@ Mission::do_need_move_to_takeoff()
 
 void Mission::setActiveMissionItems()
 {
+	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+	const position_setpoint_s current_setpoint_copy = pos_sp_triplet->current;
+
+	if (handleJoinRouteState(pos_sp_triplet, current_setpoint_copy)) {
+		return;
+	}
+
 	/* Get mission item that comes after current if available */
 	static constexpr size_t max_num_next_items{2u};
 	int32_t next_mission_items_index[max_num_next_items];
@@ -158,12 +301,10 @@ void Mission::setActiveMissionItems()
 	getNextPositionItems(_mission.current_seq + 1, next_mission_items_index, num_found_items, max_num_next_items);
 
 	mission_item_s next_mission_items[max_num_next_items];
-	const dm_item_t mission_dataman_id = static_cast<dm_item_t>(_mission.mission_dataman_id);
 
 	for (size_t i = 0U; i < num_found_items; i++) {
 		mission_item_s next_mission_item;
-		bool success = _dataman_cache.loadWait(mission_dataman_id, next_mission_items_index[i],
-						       reinterpret_cast<uint8_t *>(&next_mission_item), sizeof(next_mission_item), MAX_DATAMAN_LOAD_WAIT);
+		bool success = loadMissionItemFromCache(next_mission_items_index[i], next_mission_item);
 
 		if (success) {
 			next_mission_items[i] = next_mission_item;
@@ -176,9 +317,6 @@ void Mission::setActiveMissionItems()
 
 	/*********************************** handle mission item *********************************************/
 	WorkItemType new_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
-
-	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-	const position_setpoint_s current_setpoint_copy = pos_sp_triplet->current;
 
 	/* Skip VTOL/FW Takeoff item if in air, fixed-wing and didn't start the takeoff already*/
 	if ((_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF || _mission_item.nav_cmd == NAV_CMD_TAKEOFF) &&

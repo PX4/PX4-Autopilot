@@ -610,6 +610,35 @@ bool DatamanCache::writeWait(dm_item_t item, uint32_t index, uint8_t *buffer, ui
 	return success;
 }
 
+bool DatamanCache::updateCachedItem(dm_item_t item, uint32_t index, const uint8_t *buffer, uint32_t length)
+{
+	// Ensure we do not overflow the statically allocated response buffer
+	if (length > sizeof(_items[0].response.data)) {
+		PX4_ERR("Update length %" PRIu32 " exceeds cache buffer size", length);
+		return false;
+	}
+
+	if (!_items || buffer == nullptr) {
+		return false;
+	}
+
+	for (uint32_t i = 0; i < _num_items; ++i) {
+		if ((_items[i].response.item == item) && (_items[i].response.index == index)) {
+
+			// Only patch data that is fully received and stable. If it is RequestPrepared,
+			// an async read is flying and will fetch the new SD card data shortly anyway.
+			if (_items[i].cache_state == State::ResponseReceived) {
+				memcpy(_items[i].response.data, buffer, length);
+				return true;
+			}
+
+			return false; // Item exists but is not in a safe state to patch
+		}
+	}
+
+	return false;
+}
+
 void DatamanCache::update()
 {
 	if (_item_counter > 0) {

@@ -33,4 +33,4 @@ To enable safety points, choose the return behaviour that matches your use case:
 1. Select the value that matches the desired behaviour:
    - `3`: Direct return to the closest destination among home, mission landing start, or safe point.
    - `5`: Direct return to a safe point only.
-   - `6`: [Route Safe Point Return](../flight_modes/route_safe_point_return.md), which rejoins the uploaded mission route, follows it to the best projected safe-point branch-off, and only then leaves the route to land. If no safe point is usable, it falls back to the closer mission endpoint while staying in the route-based return logic.
+   - `6`: [Route Safe Point Return](../flight_modes/route_safe_point_return.md), which rejoins the uploaded mission route, follows it to the best projected safe-point branch-off, and only then leaves the route to land. If route planning succeeds but no safe point is usable, it falls back to the closer mission endpoint. If route planning cannot run, it falls back to the same direct RTL destination selection used by `RTL_TYPE=3`. See [Route Safe Point Return](../flight_modes/route_safe_point_return.md) for planner limits and loop-handling details.

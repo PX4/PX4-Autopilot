@@ -56,10 +56,16 @@ At high level all vehicle types behave in the same way when MISSION mode is enga
    :::
 
 Missions can be paused by switching out of mission mode to any other mode (such as [Hold mode](../flight_modes_mc/hold.md) or [Position mode](../flight_modes_mc/position.md)), and resumed by switching back to mission mode.
-If the vehicle was not capturing images when it was paused, on resuming it will head from its _current position_ towards the same waypoint as it as was heading towards originally.
+If the vehicle was not capturing images when it was paused, PX4 inserts a temporary branch-in waypoint at the orthogonal projection onto the current mission route before resuming the real mission item.
+This preserves the uploaded path geometry, including missions that use `DO_JUMP` loops to route around terrain or obstacles.
+If the vehicle is already within the waypoint acceptance radius of that virtual branch-in waypoint, the normal acceptance-radius logic immediately completes it and resume continues to the real mission item without a visible detour.
 If the vehicle was capturing images (has camera trigger items) it will instead head from its current position towards the last waypoint it traveled through (before pausing), and then retrace its path at the same speed and with the same camera triggering behaviour.
 This ensures that in survey/camera missions the planned path is captured.
 A mission can be uploaded while the vehicle is paused, in which case the current active mission item is set to 1.
+
+::: info
+The route-rejoin behavior uses the same full-mission cache and projection logic as [Route Safe Point Return](../flight_modes/route_safe_point_return.md). Set [MIS_ROUTE_JOIN](../advanced_config/parameter_reference.md#MIS_ROUTE_JOIN) to `0` to disable the smart branch-in and always resume with the legacy direct-to-current-item behavior. Missions larger than `CONFIG_RTL_MISSION_CACHE_SIZE` also fall back to the legacy resume behavior. Smart route rejoin does not yet insert a front-transition before resuming a fixed-wing segment; only the post-join back-transition path is implemented.
+:::
 
 ::: info
 When a mission is paused while the camera on the vehicle was triggering, PX4 sets the current active mission item to the previous waypoint, so that when the mission is restarted the vehicle will retrace its last mission leg.
@@ -102,6 +108,14 @@ For more information see:
 
 Mission behaviour is affected by a number of parameters, most of which are documented in [Parameter Reference > Mission](../advanced_config/parameter_reference.md#mission).
 A very small subset are listed below.
+
+Mission resume / route rejoin parameters:
+
+| Parameter | Description |
+| --- | --- |
+| <a id="MIS_ROUTE_JOIN"></a>[MIS_ROUTE_JOIN](../advanced_config/parameter_reference.md#MIS_ROUTE_JOIN) | Enables or disables the smart branch-in behavior when Mission mode is resumed off-route. Disabled restores the legacy direct-to-current-item resume. |
+| <a id="MIS_MC_SEG_DIST"></a>[MIS_MC_SEG_DIST](../advanced_config/parameter_reference.md#MIS_MC_SEG_DIST) | Extra cross-track search margin used by multicopter mission-route projection during Mission resume and Route Safe Point Return. |
+| <a id="MIS_FW_SEG_DIST"></a>[MIS_FW_SEG_DIST](../advanced_config/parameter_reference.md#MIS_FW_SEG_DIST) | Extra cross-track search margin used by fixed-wing mission-route projection during Mission resume and Route Safe Point Return. |
 
 General parameters:
 

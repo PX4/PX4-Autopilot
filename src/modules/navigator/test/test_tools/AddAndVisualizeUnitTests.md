@@ -2,15 +2,15 @@
 
 This tool allows developers to visualize PX4 unit test mission data (Missions, Geofences, Rally Points, Bank Turn Scenarios, etc.) by pasting C++ code directly. It also includes a creator tab to generate C++ waypoint arrays by clicking on a map.
 
-It supports the RtlRoutePlanner helper functions defined in `RtlRoutePlannerTestHelpers.h`.
+It supports the MissionRoutePlanner helper functions defined in `test_RTL_helpers.h`.
 
 ## Setup & Running
 
 ### Prerequisites
 You need Python installed. Then install the required libraries:
 
-Version:
-- Streamlit, version 1.40.1
+Validated with:
+- Streamlit 1.40.1
 - Python 3.8.10
 
 ```bash
@@ -168,14 +168,14 @@ static const VehicleLocation kLocations[] = {
 * The struct definition is optional (the parser only needs the array).
 * Velocity values can reference `constexpr float` variables (e.g., `kVel`).
 
-### 7. Positions (RtlRoutePlanner)
+### 7. Positions (MissionRoutePlanner)
 
 These are visualized as standalone map markers.
 
-#### 7a. `RtlRoutePlanner::Position{lat, lon, alt}`
+#### 7a. `MissionRoutePlanner::Position{lat, lon, alt}`
 
 ```cpp
-RtlRoutePlanner::Position vehicle_pos{47.0000, 8.0015, 500.f};
+MissionRoutePlanner::Position vehicle_pos{47.0000, 8.0015, 500.f};
 ```
 
 #### 7b. `makePositionAbsolute(lat, lon, alt)`
@@ -227,7 +227,7 @@ When using the **Creator** tab to click on the map and generate C++ code, the to
 
 - **Mission items**: `makeTakeoffItem(lat, lon, alt)` for the first waypoint, `makeLandItem(lat, lon, alt)` for the last, and `makePositionItem(lat, lon, alt)` for all others, wrapped in a `std::vector<mission_item_s>`.
 - **Rally/Safe points**: `makeSafePointAbsolute(lat, lon, alt)` in a `std::vector<mission_item_s>`.
-- **Vehicle positions**: `makePositionAbsolute(lat, lon, alt)` for `RtlRoutePlanner::Position`.
+- **Vehicle positions**: `makePositionAbsolute(lat, lon, alt)` for `MissionRoutePlanner::Position`.
 - **Fences, Bank Turns, Paths**: Same format as before (unchanged).
 
 ---

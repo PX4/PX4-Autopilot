@@ -3,7 +3,7 @@ uint64 timestamp                      # time since system start (microseconds)
 uint32 safe_points_id 		      # unique ID of active set of safe_point_items
 bool is_evaluation_pending 	      # flag if the RTL point needs reevaluation (e.g. new safe points available, but need loading).
 
-bool has_vtol_approach 		      # flag if approaches are defined for current RTL_TYPE parameter setting
+bool has_vtol_approach 		      # flag if home or at least one uploaded safe point has a valid VTOL landing approach
 
 uint8 rtl_type	      		      # Type of RTL chosen
 uint8 safe_point_index 		      # index of the chosen safe point, if any. UINT8_MAX when the active RTL logic does not use a safe-point destination or when type 6 falls back to a mission endpoint

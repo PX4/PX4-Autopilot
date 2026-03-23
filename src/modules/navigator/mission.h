@@ -61,6 +61,7 @@ public:
 
 	virtual void on_inactive() override;
 	virtual void on_activation() override;
+	virtual void on_active() override;
 
 	bool set_current_mission_index(uint16_t index);
 
@@ -82,6 +83,9 @@ private:
 	 */
 	float calculate_takeoff_altitude(struct mission_item_s *mission_item);
 
+	void updateMissionRouteCache();
+	void syncMissionRouteState();
+
 	/**
 	 * Save current mission state to dataman
 	 */
@@ -94,5 +98,19 @@ private:
 	void handleVtolTransition(WorkItemType &new_work_item_type, mission_item_s next_mission_items[],
 				  size_t &num_found_items);
 
+protected:
+	bool trySetRouteJoinOnActivation(bool resume_mission_on_previous);
+
+private:
 	bool _need_mission_save{false};
+	MissionRoutePlanner::Segment _last_flown_loop_segment{};
+	uint32_t _route_state_mission_id{0};
+	int32_t _route_state_mission_count{0};
+	uint8_t _route_state_mission_dataman_id{0};
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::MIS_ROUTE_JOIN>)     _param_mis_route_join,
+		(ParamFloat<px4::params::MIS_MC_SEG_DIST>) _param_mis_mc_seg_dist,
+		(ParamFloat<px4::params::MIS_FW_SEG_DIST>) _param_mis_fw_seg_dist
+	)
 };

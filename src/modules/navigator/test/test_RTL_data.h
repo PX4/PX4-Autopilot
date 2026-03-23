@@ -34,7 +34,7 @@
 /**
  * @file test_RTL_data.h
  *
- * Reusable mission and safe-point datasets for RtlRoutePlanner tests.
+ * Reusable mission and safe-point datasets for MissionRoutePlanner tests.
  *
  * default_dataset: 16-item mission with VTOL transitions and 7 rally points.
  *   The route doubles back on itself (segments 7-9 and 11-12 run roughly
@@ -54,6 +54,10 @@
 
 #include <uORB/topics/vtol_vehicle_status.h>
 #include <vector>
+
+// These reusable datasets stay header-only because only a few navigator test TUs include
+// them today. If they grow substantially or become widely shared, move the larger builders
+// into a shared test-support .cpp to reduce duplicate code generation.
 
 // ============================================================================
 // Default mission dataset
@@ -166,3 +170,89 @@ static constexpr float kVelFast = 30.f;
 static constexpr float kVelDiag = 15.f;
 
 } // namespace corner_dataset
+
+// ============================================================================
+// Straight-line datasets reused across safe-point selection tests
+// ============================================================================
+
+namespace uturn_penalty_dataset
+{
+
+static constexpr int kMissionIndex = 1;
+
+static inline std::vector<mission_item_s> mission()
+{
+	using rtl_test_reference::kAlt;
+	using rtl_test_reference::kBaseLat;
+	using rtl_test_reference::kBaseLon;
+
+	return {
+		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 500.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 1000.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 1500.f, 0.f, kAlt),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 2000.f, 0.f, kAlt),
+	};
+}
+
+static inline std::vector<mission_item_s> safePoints()
+{
+	using rtl_test_reference::kAlt;
+	using rtl_test_reference::kBaseLat;
+	using rtl_test_reference::kBaseLon;
+
+	return {
+		makeSafePointFromOffset(kBaseLat, kBaseLon, 300.f, 20.f, kAlt),
+		makeSafePointFromOffset(kBaseLat, kBaseLon, 1100.f, 20.f, kAlt),
+	};
+}
+
+static inline MissionRoutePlanner::Position vehiclePosition()
+{
+	using rtl_test_reference::kAlt;
+	using rtl_test_reference::kBaseLat;
+	using rtl_test_reference::kBaseLon;
+	return makePositionFromOffset(kBaseLat, kBaseLon, 500.f, 0.f, kAlt);
+}
+
+} // namespace uturn_penalty_dataset
+
+namespace direct_to_safe_point_dataset
+{
+
+static constexpr int kMissionIndex = 0;
+
+static inline std::vector<mission_item_s> mission()
+{
+	using rtl_test_reference::kAlt;
+	using rtl_test_reference::kBaseLat;
+	using rtl_test_reference::kBaseLon;
+
+	return {
+		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 500.f, 0.f, kAlt + 50.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 1000.f, 0.f, kAlt + 80.f),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 1500.f, 0.f, kAlt - 10.f),
+	};
+}
+
+static inline std::vector<mission_item_s> safePoints()
+{
+	using rtl_test_reference::kAlt;
+	using rtl_test_reference::kBaseLat;
+	using rtl_test_reference::kBaseLon;
+
+	return {
+		makeSafePointFromOffset(kBaseLat, kBaseLon, 255.f, 0.f, kAlt + 50.f),
+	};
+}
+
+static inline MissionRoutePlanner::Position vehiclePosition()
+{
+	using rtl_test_reference::kAlt;
+	using rtl_test_reference::kBaseLat;
+	using rtl_test_reference::kBaseLon;
+	return makePositionFromOffset(kBaseLat, kBaseLon, 250.f, 0.f, kAlt + 50.f);
+}
+
+} // namespace direct_to_safe_point_dataset

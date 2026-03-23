@@ -34,7 +34,7 @@
 /**
  * @file test_RTL_planner_integration.cpp
  *
- * End-to-end tests for RtlRoutePlanner::planRouteToGoal.
+ * End-to-end tests for MissionRoutePlanner::planRouteToGoal.
  * Covers fallback to mission endpoints, join altitude handling,
  * branch-off caching, safe-point selection, error handling,
  * faulty provider degradation, VTOL mission planning, and
@@ -48,18 +48,25 @@
 
 #include <cmath>
 
-static constexpr double kBaseLat = 47.397742;
-static constexpr double kBaseLon = 8.545594;
-static constexpr float kAlt = 500.f;
+using rtl_test_reference::kAlt;
+using rtl_test_reference::kBaseLat;
+using rtl_test_reference::kBaseLon;
+
+static constexpr float kYawToleranceRad = 0.15f;
+
+static float wrappedAngleError(float a, float b)
+{
+	return fabsf(atan2f(sinf(a - b), cosf(a - b)));
+}
 
 // ============================================================================
 // Test fixture
 // ============================================================================
 
-class RtlPlannerIntegrationTest : public RtlRoutePlannerTestBase
+class RtlPlannerIntegrationTest : public MissionRoutePlannerTestBase
 {
 protected:
-	RtlRoutePlanner::Plan plan{};
+	MissionRoutePlanner::Plan plan{};
 };
 
 // =============================================================================
@@ -79,7 +86,7 @@ TEST_F(RtlPlannerIntegrationTest, FallsBackToMissionLandWhenNoSafePoints)
 	};
 	std::vector<mission_item_s> no_safe_points{};
 	VectorProvider provider(items, no_safe_points);
-	RtlRoutePlanner planner(provider);
+	MissionRoutePlanner planner(provider);
 
 	// Vehicle is at N+260, close to the landing waypoint.
 	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 260.f, 0.f, kAlt + 25.f);
@@ -90,7 +97,7 @@ TEST_F(RtlPlannerIntegrationTest, FallsBackToMissionLandWhenNoSafePoints)
 
 	// THEN: Planning succeeds and selects MissionLand.
 	ASSERT_TRUE(ok);
-	EXPECT_EQ(plan.selection.goal_type, RtlRoutePlanner::GoalType::MissionLand);
+	EXPECT_EQ(plan.selection.goal_type, MissionRoutePlanner::GoalType::MissionLand);
 	EXPECT_NEAR(plan.selection.goal_position.lat, items[3].lat, kLatLonToleranceDeg);
 	EXPECT_NEAR(plan.selection.goal_position.lon, items[3].lon, kLatLonToleranceDeg);
 	EXPECT_FALSE(plan.selection.path.direction_reversed);
@@ -109,7 +116,7 @@ TEST_F(RtlPlannerIntegrationTest, FallsBackToMissionTakeoffWhenPathIsShorter)
 	};
 	std::vector<mission_item_s> no_safe_points{};
 	VectorProvider provider(items, no_safe_points);
-	RtlRoutePlanner planner(provider);
+	MissionRoutePlanner planner(provider);
 
 	// Vehicle is at N+40, close to takeoff.
 	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 40.f, 0.f, kAlt + 10.f);
@@ -123,12 +130,188 @@ TEST_F(RtlPlannerIntegrationTest, FallsBackToMissionTakeoffWhenPathIsShorter)
 
 	// THEN: Planning succeeds and selects MissionTakeoff with reversed direction.
 	ASSERT_TRUE(ok);
-	EXPECT_EQ(plan.selection.goal_type, RtlRoutePlanner::GoalType::MissionTakeoff);
+	EXPECT_EQ(plan.selection.goal_type, MissionRoutePlanner::GoalType::MissionTakeoff);
 	EXPECT_NEAR(plan.selection.goal_position.lat, items[0].lat, kLatLonToleranceDeg);
 	EXPECT_NEAR(plan.selection.goal_position.lon, items[0].lon, kLatLonToleranceDeg);
 	EXPECT_TRUE(plan.selection.path.direction_reversed);
 	EXPECT_TRUE(plan.selection.path.u_turn_required);
 	EXPECT_NEAR(plan.selection.path.dist, 4040.f, kDistanceTolerance);
+}
+
+// WHY: Reverse fallback to the takeoff endpoint must land at the configured home AMSL reference,
+//      not at the takeoff climb altitude stored in the mission item.
+// WHAT: A MissionTakeoff fallback keeps the takeoff XY position but rewrites the goal altitude to home AMSL.
+TEST_F(RtlPlannerIntegrationTest, MissionTakeoffFallbackUsesHomeAltitudeReference)
+{
+	auto items = std::vector<mission_item_s> {
+		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, 650.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, 670.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 5100.f, 0.f, 680.f),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 5200.f, 0.f, 640.f),
+	};
+	VectorProvider provider(items, {});
+	MissionRoutePlanner planner(provider);
+
+	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 40.f, 0.f, 655.f);
+	config = fwConfig();
+	config.home_altitude_amsl = 600.f;
+	config.vehicle_velocity_north = 15.f;
+	config.vehicle_velocity_east = 0.f;
+	config.vehicle_velocity_valid = true;
+
+	ASSERT_TRUE(planner.planRouteToGoal(vehicle_pos, 0, config, plan, &reason));
+	EXPECT_EQ(plan.selection.goal_type, MissionRoutePlanner::GoalType::MissionTakeoff);
+	EXPECT_NEAR(plan.selection.goal_position.lat, items[0].lat, kLatLonToleranceDeg);
+	EXPECT_NEAR(plan.selection.goal_position.lon, items[0].lon, kLatLonToleranceDeg);
+	EXPECT_NEAR(plan.selection.goal_position.alt, 600.f, kAltitudeTolerance);
+}
+
+// WHY: Front-transition alignment after a far-off-route rejoin should point along the branch-in leg,
+//      not along the distant mission segment.
+// WHAT: A vehicle far east of the route receives a join yaw pointing west toward the projection.
+TEST_F(RtlPlannerIntegrationTest, JoinContextAlignsWithBranchInLegWhenFarFromRoute)
+{
+	auto items = std::vector<mission_item_s> {
+		makeTakeoffItemFromOffset(kBaseLat, kBaseLon,   0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt - 10.f),
+	};
+	VectorProvider provider(items, {});
+	MissionRoutePlanner planner(provider);
+
+	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 100.f, kAlt);
+	config = fwConfig();
+
+	ASSERT_TRUE(planner.planRouteToGoal(vehicle_pos, 1, config, plan, &reason));
+	ASSERT_TRUE(PX4_ISFINITE(plan.join_context.desired_yaw));
+	EXPECT_LT(wrappedAngleError(plan.join_context.desired_yaw, -0.5f * M_PI_F), kYawToleranceRad);
+}
+
+// WHY: Front-transition alignment after a near-route rejoin should follow the resumed mission segment
+//      so the aircraft settles onto the route without an unnecessary heading kink.
+// WHAT: A vehicle already close to a northbound segment receives a northbound join yaw.
+TEST_F(RtlPlannerIntegrationTest, JoinContextAlignsWithMissionSegmentWhenNearRoute)
+{
+	auto items = std::vector<mission_item_s> {
+		makeTakeoffItemFromOffset(kBaseLat, kBaseLon,   0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt - 10.f),
+	};
+	VectorProvider provider(items, {});
+	MissionRoutePlanner planner(provider);
+
+	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 220.f, 5.f, kAlt);
+	config = fwConfig();
+
+	ASSERT_TRUE(planner.planRouteToGoal(vehicle_pos, 2, config, plan, &reason));
+	ASSERT_TRUE(PX4_ISFINITE(plan.join_context.desired_yaw));
+	EXPECT_FALSE(plan.selection.path.direction_reversed);
+	EXPECT_LT(wrappedAngleError(plan.join_context.desired_yaw, 0.f), kYawToleranceRad);
+}
+
+// WHY: Mission smart rejoin and normal-mode planner users must be able to rewind an exhausted DO_JUMP loop
+//      when that path is shorter than continuing to the other loop exit.
+// WHAT: On loop segment [2->0] near idx 2 with no repeats left -> first target becomes idx 2.
+TEST_F(RtlPlannerIntegrationTest, FindNominalPathToGoalChoosesShortestExhaustedLoopExit)
+{
+	auto items = std::vector<mission_item_s> {
+		makePositionItemFromOffset(kBaseLat, kBaseLon,   0.f,   0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f,   0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kAlt),
+		makeDoJump(0, 2, 2),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 200.f,   0.f, kAlt - 10.f),
+	};
+	VectorProvider provider(items, {});
+	MissionRoutePlanner planner(provider);
+	config = defaultConfig();
+	config.last_flown_loop_segment.start.idx = 2;
+	config.last_flown_loop_segment.start.nav_cmd = NAV_CMD_WAYPOINT;
+	config.last_flown_loop_segment.end.idx = 0;
+	config.last_flown_loop_segment.end.nav_cmd = NAV_CMD_WAYPOINT;
+	config.last_flown_loop_segment.is_loop = true;
+	config.last_flown_loop_segment.loops_remaining = 0;
+
+	MissionRoutePlanner::ProjectionContext projection_context{};
+	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 95.f, kAlt);
+	ASSERT_TRUE(planner.collectVehicleProjection(vehicle_pos, 0, config, projection_context, &reason));
+	ASSERT_TRUE(projection_context.loop_ctx.valid());
+	EXPECT_EQ(projection_context.mission_loops_remaining, 0);
+
+	const MissionRoutePlanner::Path path = planner.findNominalPathToGoal(4,
+					       projection_context.dist_along_to_route_end,
+					       projection_context, config);
+	ASSERT_TRUE(path.valid());
+	EXPECT_EQ(path.first_item_index, projection_context.loop_ctx.segment.start.idx);
+	EXPECT_FALSE(path.direction_reversed);
+}
+
+// WHY: When a DO_JUMP still has repeats remaining, normal mission rejoin must continue the active loop
+//      instead of rewinding it, even if the opposite exit would be shorter.
+// WHAT: On loop segment [2->0] with one repeat left -> first target stays at the loop end.
+TEST_F(RtlPlannerIntegrationTest, FindNominalPathToGoalKeepsLoopEndWhileRepeatsRemain)
+{
+	auto items = std::vector<mission_item_s> {
+		makePositionItemFromOffset(kBaseLat, kBaseLon,   0.f,   0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f,   0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kAlt),
+		makeDoJump(0, 2, 1),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 200.f,   0.f, kAlt - 10.f),
+	};
+	VectorProvider provider(items, {});
+	MissionRoutePlanner planner(provider);
+	config = defaultConfig();
+	config.last_flown_loop_segment.start.idx = 2;
+	config.last_flown_loop_segment.start.nav_cmd = NAV_CMD_WAYPOINT;
+	config.last_flown_loop_segment.end.idx = 0;
+	config.last_flown_loop_segment.end.nav_cmd = NAV_CMD_WAYPOINT;
+	config.last_flown_loop_segment.is_loop = true;
+	config.last_flown_loop_segment.loops_remaining = 1;
+
+	MissionRoutePlanner::ProjectionContext projection_context{};
+	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 95.f, kAlt);
+	ASSERT_TRUE(planner.collectVehicleProjection(vehicle_pos, 0, config, projection_context, &reason));
+	ASSERT_TRUE(projection_context.loop_ctx.valid());
+	EXPECT_GT(projection_context.mission_loops_remaining, 0);
+
+	const MissionRoutePlanner::Path path = planner.findNominalPathToGoal(4,
+					       projection_context.dist_along_to_route_end,
+					       projection_context, config);
+	ASSERT_TRUE(path.valid());
+	EXPECT_EQ(path.first_item_index, projection_context.loop_ctx.segment.end.idx);
+	EXPECT_FALSE(path.direction_reversed);
+}
+
+// WHY: RTL type 6 treats DO_JUMP items as geometry only and must ignore remaining loop counts
+//      when choosing the shortest return path.
+// WHAT: planRouteToGoal clears the effective loop counter and rewinds the loop when that exit is shorter.
+TEST_F(RtlPlannerIntegrationTest, PlanRouteToGoalIgnoresPendingLoopsForRtl)
+{
+	auto items = std::vector<mission_item_s> {
+		makePositionItemFromOffset(kBaseLat, kBaseLon,   0.f,   0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f,   0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kAlt),
+		makeDoJump(0, 2, 1),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 200.f,   0.f, kAlt - 10.f),
+	};
+	VectorProvider provider(items, {});
+	MissionRoutePlanner planner(provider);
+	config = defaultConfig();
+	config.last_flown_loop_segment.start.idx = 2;
+	config.last_flown_loop_segment.start.nav_cmd = NAV_CMD_WAYPOINT;
+	config.last_flown_loop_segment.end.idx = 0;
+	config.last_flown_loop_segment.end.nav_cmd = NAV_CMD_WAYPOINT;
+	config.last_flown_loop_segment.is_loop = true;
+	config.last_flown_loop_segment.loops_remaining = 1;
+
+	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 95.f, kAlt);
+	ASSERT_TRUE(planner.planRouteToGoal(vehicle_pos, 0, config, plan, &reason));
+	ASSERT_TRUE(plan.projection_context.loop_ctx.valid());
+	EXPECT_GT(plan.projection_context.loop_ctx.segment.loops_remaining, 0);
+	EXPECT_EQ(plan.projection_context.mission_loops_remaining, 0);
+	EXPECT_EQ(plan.selection.path.first_item_index, plan.projection_context.loop_ctx.segment.start.idx);
+	EXPECT_EQ(plan.selection.goal_type, MissionRoutePlanner::GoalType::MissionLand);
 }
 
 // WHY: A safe point with an invalid frame should be rejected, causing fallback to a mission endpoint.
@@ -149,7 +332,7 @@ TEST_F(RtlPlannerIntegrationTest, FallsBackWhenAllSafePointsInvalid)
 		bad_safe_points.push_back(sp);
 	}
 	VectorProvider provider(items, bad_safe_points);
-	RtlRoutePlanner planner(provider);
+	MissionRoutePlanner planner(provider);
 
 	// Vehicle at N+50 from first waypoint.
 	auto vehicle_pos = makePositionFromOffset(items[0].lat, items[0].lon, 50.f, 0.f, 560.f);
@@ -160,8 +343,8 @@ TEST_F(RtlPlannerIntegrationTest, FallsBackWhenAllSafePointsInvalid)
 	// THEN: Planning succeeds but no safe point was found; goal is a mission endpoint.
 	ASSERT_TRUE(ok);
 	EXPECT_FALSE(plan.selection.safe_point_found);
-	EXPECT_TRUE(plan.selection.goal_type == RtlRoutePlanner::GoalType::MissionLand ||
-		    plan.selection.goal_type == RtlRoutePlanner::GoalType::MissionTakeoff);
+	EXPECT_TRUE(plan.selection.goal_type == MissionRoutePlanner::GoalType::MissionLand ||
+		    plan.selection.goal_type == MissionRoutePlanner::GoalType::MissionTakeoff);
 }
 
 // =============================================================================
@@ -180,7 +363,7 @@ TEST_F(RtlPlannerIntegrationTest, SkipsAltitudeRequirementNearLand)
 	};
 	std::vector<mission_item_s> no_safe_points{};
 	VectorProvider provider(items, no_safe_points);
-	RtlRoutePlanner planner(provider);
+	MissionRoutePlanner planner(provider);
 
 	// Vehicle at (N+200, E+0, alt=523), near landing.
 	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, 523.f);
@@ -192,7 +375,7 @@ TEST_F(RtlPlannerIntegrationTest, SkipsAltitudeRequirementNearLand)
 
 	// THEN: MissionLand is selected, skip_altitude_requirement is true, join alt matches vehicle alt.
 	ASSERT_TRUE(ok);
-	EXPECT_EQ(plan.selection.goal_type, RtlRoutePlanner::GoalType::MissionLand);
+	EXPECT_EQ(plan.selection.goal_type, MissionRoutePlanner::GoalType::MissionLand);
 	EXPECT_TRUE(plan.join_context.skip_altitude_requirement);
 	EXPECT_NEAR(plan.join_context.projection.alt, 523.f, kAltitudeTolerance);
 }
@@ -205,7 +388,7 @@ TEST_F(RtlPlannerIntegrationTest, CornerMission_SkipAltitudeNearLand)
 	auto items = corner_dataset::mission();
 	std::vector<mission_item_s> no_safe_points{};
 	VectorProvider provider(items, no_safe_points);
-	RtlRoutePlanner planner(provider);
+	MissionRoutePlanner planner(provider);
 
 	// Vehicle very near the land waypoint.
 	auto vehicle_pos = makePositionAbsolute(46.10451291425605, 2.3176006267546034, 462.2f);
@@ -217,63 +400,52 @@ TEST_F(RtlPlannerIntegrationTest, CornerMission_SkipAltitudeNearLand)
 	// WHEN: planRouteToGoal is called.
 	bool ok = planner.planRouteToGoal(vehicle_pos, 12, config, plan, &reason);
 
-	// THEN: MissionLand is selected and skip_altitude_requirement is true with join alt at vehicle alt.
+	// THEN: MissionLand is selected and skip_altitude_requirement keeps the current altitude.
 	ASSERT_TRUE(ok);
-	EXPECT_EQ(plan.selection.goal_type, RtlRoutePlanner::GoalType::MissionLand);
-
-	if (plan.join_context.skip_altitude_requirement) {
-		EXPECT_NEAR(plan.join_context.projection.alt, 462.2f, kAltitudeTolerance);
-	}
+	EXPECT_EQ(plan.selection.goal_type, MissionRoutePlanner::GoalType::MissionLand);
+	EXPECT_TRUE(plan.join_context.skip_altitude_requirement);
+	EXPECT_NEAR(plan.join_context.projection.alt, 462.2f, kAltitudeTolerance);
 }
 
-// =============================================================================
-// GROUP 3: Branch-off caching
-// =============================================================================
-
-// WHY: The cached branch-off segment should be reusable when the vehicle stays close.
-// WHAT: closeToBranchOffSegment returns true for a vehicle near the cached leg, false when far away.
-TEST_F(RtlPlannerIntegrationTest, CloseToBranchOffSegmentUsesStoredLeg)
+// WHY: Relative-altitude mission items must be converted with home_altitude_amsl before endpoint fallback.
+// WHAT: A relative-altitude landing item produces an absolute MissionLand goal altitude.
+TEST_F(RtlPlannerIntegrationTest, RelativeAltitudeMissionLandUsesHomeAltitude)
 {
-	// GIVEN: A 3-waypoint L-shaped mission.
+	// GIVEN: A simple mission stored with relative altitudes and no safe points.
 	auto items = std::vector<mission_item_s> {
-		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt + 20.f),
-		makeLandItemFromOffset(kBaseLat, kBaseLon, 100.f, 120.f, kAlt),
+		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, 40.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, 60.f),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, 20.f),
 	};
-	std::vector<mission_item_s> no_safe_points{};
-	VectorProvider provider(items, no_safe_points);
-	RtlRoutePlanner planner(provider);
 
-	// Manually build a Selection with branch_off on segment [1->2] at (N+100, E+60)
-	RtlRoutePlanner::Selection selection{};
-	selection.found = true;
-	selection.safe_point_found = true;
-	selection.branch_off_segment.start.idx = 1;
-	selection.branch_off_segment.start.nav_cmd = NAV_CMD_WAYPOINT;
-	selection.branch_off_segment.end.idx = 2;
-	selection.branch_off_segment.end.nav_cmd = NAV_CMD_LAND;
-	selection.branch_off_projection = makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 60.f, kAlt + 10.f);
-	selection.safe_point_position = makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 120.f, kAlt);
-	selection.goal_position = selection.safe_point_position;
-	selection.goal_type = RtlRoutePlanner::GoalType::SafePoint;
+	for (mission_item_s &item : items) {
+		item.altitude_is_relative = true;
+		item.frame = NAV_FRAME_GLOBAL_RELATIVE_ALT;
+	}
 
-	// WHEN: Vehicle is at (N+100, E+90), within 20m of the branch-off segment [1->2].
-	auto near_pos = makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 90.f, kAlt + 10.f);
-	bool near_result = planner.closeToBranchOffSegment(near_pos, selection, 20.f);
+	VectorProvider provider(items, {});
+	MissionRoutePlanner planner(provider);
 
-	// THEN: closeToBranchOffSegment returns true for the near position.
-	EXPECT_TRUE(near_result);
+	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 320.f, 0.f, 645.f);
+	config = defaultConfig();
+	config.home_altitude_amsl = 600.f;
+	config.vehicle_velocity_north = 10.f;
+	config.vehicle_velocity_east = 0.f;
+	config.vehicle_velocity_valid = true;
 
-	// WHEN: Vehicle is at (N+40, E+0), far from the branch-off segment.
-	auto far_pos = makePositionFromOffset(kBaseLat, kBaseLon, 40.f, 0.f, kAlt + 10.f);
-	bool far_result = planner.closeToBranchOffSegment(far_pos, selection, 20.f);
+	// WHEN: planRouteToGoal falls back to the mission landing endpoint.
+	bool ok = planner.planRouteToGoal(vehicle_pos, 1, config, plan, &reason);
 
-	// THEN: closeToBranchOffSegment returns false for the far position.
-	EXPECT_FALSE(far_result);
+	// THEN: The goal altitude is converted from relative altitude to AMSL.
+	ASSERT_TRUE(ok) << "Failure reason: " << MissionRoutePlanner::failureReasonString(reason);
+	EXPECT_EQ(plan.selection.goal_type, MissionRoutePlanner::GoalType::MissionLand);
+	EXPECT_NEAR(plan.selection.goal_position.alt, 620.f, kAltitudeTolerance);
+	EXPECT_NEAR(plan.selection.goal_position.lat, items.back().lat, kLatLonToleranceDeg);
+	EXPECT_NEAR(plan.selection.goal_position.lon, items.back().lon, kLatLonToleranceDeg);
 }
 
 // =============================================================================
-// GROUP 4: Full plan with safe points (no fallback)
+// GROUP 3: Full plan with safe points (no fallback)
 // =============================================================================
 
 // WHY: With no rally points, the planner should fall back to MissionLand when the vehicle is past the midpoint.
@@ -284,7 +456,7 @@ TEST_F(RtlPlannerIntegrationTest, SrpFallbackToLandWhenNoRallyPoints)
 	auto items = corner_dataset::mission();
 	std::vector<mission_item_s> no_safe_points{};
 	VectorProvider provider(items, no_safe_points);
-	RtlRoutePlanner planner(provider);
+	MissionRoutePlanner planner(provider);
 
 	auto vehicle_pos = makePositionAbsolute(46.10451291425605, 2.3176006267546034, 560.f);
 	config = fwConfig();
@@ -299,7 +471,7 @@ TEST_F(RtlPlannerIntegrationTest, SrpFallbackToLandWhenNoRallyPoints)
 
 	// THEN: Planning succeeds, selects MissionLand, direction_reversed=false.
 	ASSERT_TRUE(ok);
-	EXPECT_EQ(plan.selection.goal_type, RtlRoutePlanner::GoalType::MissionLand);
+	EXPECT_EQ(plan.selection.goal_type, MissionRoutePlanner::GoalType::MissionLand);
 	EXPECT_FALSE(plan.selection.path.direction_reversed);
 }
 
@@ -311,7 +483,7 @@ TEST_F(RtlPlannerIntegrationTest, SrpFallbackToTakeoffWhenNoRallyPoints)
 	auto items = corner_dataset::mission();
 	std::vector<mission_item_s> no_safe_points{};
 	VectorProvider provider(items, no_safe_points);
-	RtlRoutePlanner planner(provider);
+	MissionRoutePlanner planner(provider);
 
 	auto vehicle_pos = makePositionAbsolute(46.101868043118436, 2.3261360396086284, 540.f);
 	config.vehicle_velocity_north = corner_dataset::kVelDiag;
@@ -323,7 +495,7 @@ TEST_F(RtlPlannerIntegrationTest, SrpFallbackToTakeoffWhenNoRallyPoints)
 
 	// THEN: Planning succeeds, selects MissionTakeoff with reversed direction.
 	ASSERT_TRUE(ok);
-	EXPECT_EQ(plan.selection.goal_type, RtlRoutePlanner::GoalType::MissionTakeoff);
+	EXPECT_EQ(plan.selection.goal_type, MissionRoutePlanner::GoalType::MissionTakeoff);
 	EXPECT_TRUE(plan.selection.path.direction_reversed);
 }
 
@@ -335,7 +507,7 @@ TEST_F(RtlPlannerIntegrationTest, SafePointFoundDoesNotUseFallback)
 	auto items = corner_dataset::mission();
 	auto safe_points = corner_dataset::safePoints();
 	VectorProvider provider(items, safe_points);
-	RtlRoutePlanner planner(provider);
+	MissionRoutePlanner planner(provider);
 
 	// Place vehicle 5m along the bearing from takeoff to wp1.
 	float bearing = get_bearing_to_next_waypoint(items[0].lat, items[0].lon, items[1].lat, items[1].lon);
@@ -349,7 +521,7 @@ TEST_F(RtlPlannerIntegrationTest, SafePointFoundDoesNotUseFallback)
 	// THEN: Planning succeeds, a safe point is found, and goal type is SafePoint.
 	ASSERT_TRUE(ok);
 	EXPECT_TRUE(plan.selection.safe_point_found);
-	EXPECT_EQ(plan.selection.goal_type, RtlRoutePlanner::GoalType::SafePoint);
+	EXPECT_EQ(plan.selection.goal_type, MissionRoutePlanner::GoalType::SafePoint);
 }
 
 // =============================================================================
@@ -364,7 +536,7 @@ TEST_F(RtlPlannerIntegrationTest, FailsWithEmptyMission)
 	std::vector<mission_item_s> empty_mission{};
 	std::vector<mission_item_s> no_safe_points{};
 	VectorProvider provider(empty_mission, no_safe_points);
-	RtlRoutePlanner planner(provider);
+	MissionRoutePlanner planner(provider);
 
 	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
 
@@ -373,7 +545,7 @@ TEST_F(RtlPlannerIntegrationTest, FailsWithEmptyMission)
 
 	// THEN: Planning fails with NoValidWaypoints.
 	EXPECT_FALSE(ok);
-	EXPECT_EQ(reason, RtlRoutePlanner::FailureReason::NoValidWaypoints);
+	EXPECT_EQ(reason, MissionRoutePlanner::FailureReason::NoValidWaypoints);
 }
 
 // WHY: A single waypoint cannot form a segment; planning must fail.
@@ -386,7 +558,7 @@ TEST_F(RtlPlannerIntegrationTest, FailsWithSingleWaypoint)
 	};
 	std::vector<mission_item_s> no_safe_points{};
 	VectorProvider provider(items, no_safe_points);
-	RtlRoutePlanner planner(provider);
+	MissionRoutePlanner planner(provider);
 
 	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 10.f, 0.f, kAlt);
 
@@ -395,30 +567,55 @@ TEST_F(RtlPlannerIntegrationTest, FailsWithSingleWaypoint)
 
 	// THEN: Planning fails with NoValidWaypoints.
 	EXPECT_FALSE(ok);
-	EXPECT_EQ(reason, RtlRoutePlanner::FailureReason::NoValidWaypoints);
+	EXPECT_EQ(reason, MissionRoutePlanner::FailureReason::NoValidWaypoints);
 }
 
-// WHY: An invalid vehicle position (NAN lat) must be caught early.
-// WHAT: planRouteToGoal returns false when the vehicle latitude is NAN.
-TEST_F(RtlPlannerIntegrationTest, FailsOnInvalidVehiclePosition)
+class RtlPlannerInvalidVehiclePositionTest : public MissionRoutePlannerTestBase,
+	public ::testing::WithParamInterface<std::pair<double, double>>
 {
-	// GIVEN: The default dataset mission with safe points, but vehicle lat is NAN.
+protected:
+	MissionRoutePlanner::Plan plan{};
+};
+
+// WHY: Full route planning should reject invalid vehicle positions before any mission search starts.
+// WHAT: planRouteToGoal returns false with FailureReason::NoValidGlobalPos for each invalid position.
+TEST_P(RtlPlannerInvalidVehiclePositionTest, RejectsInvalidVehiclePosition)
+{
+	// GIVEN: The default dataset mission and an invalid vehicle position.
 	auto items = default_dataset::mission();
 	auto safe_points = default_dataset::safePoints();
 	VectorProvider provider(items, safe_points);
-	RtlRoutePlanner planner(provider);
+	MissionRoutePlanner planner(provider);
+	const auto [lat, lon] = GetParam();
 
-	RtlRoutePlanner::Position vehicle_pos{};
-	vehicle_pos.lat = NAN;
-	vehicle_pos.lon = 2.300;
+	MissionRoutePlanner::Position vehicle_pos{};
+	vehicle_pos.lat = lat;
+	vehicle_pos.lon = lon;
 	vehicle_pos.alt = 550.f;
 
-	// WHEN: planRouteToGoal is called with an invalid vehicle position.
+	// WHEN: planRouteToGoal is called with the invalid position.
 	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, &reason);
 
-	// THEN: Planning fails.
+	// THEN: Planning fails with the explicit invalid-global-position reason.
 	EXPECT_FALSE(ok);
+	EXPECT_EQ(reason, MissionRoutePlanner::FailureReason::NoValidGlobalPos);
 }
+
+INSTANTIATE_TEST_SUITE_P(
+	InvalidVehiclePositions,
+	RtlPlannerInvalidVehiclePositionTest,
+	::testing::Values(
+		std::make_pair(NAN, kBaseLon),
+		std::make_pair(kBaseLat, NAN),
+		std::make_pair(INFINITY, kBaseLon),
+		std::make_pair(kBaseLat, INFINITY),
+		std::make_pair(0.0, 0.0),
+		std::make_pair(90.0, kBaseLon),
+		std::make_pair(kBaseLat, 180.0),
+		std::make_pair(91.0, kBaseLon),
+		std::make_pair(kBaseLat, 181.0)
+	)
+);
 
 // =============================================================================
 // NEW TESTS: Safe-point priority and near-takeoff guarding
@@ -439,7 +636,7 @@ TEST_F(RtlPlannerIntegrationTest, PlanRouteSelectsSafePointOverEndpoint)
 		makeSafePointFromOffset(kBaseLat, kBaseLon, 300.f, 50.f, kAlt + 10.f),
 	};
 	VectorProvider provider(items, safe_points);
-	RtlRoutePlanner planner(provider);
+	MissionRoutePlanner planner(provider);
 
 	// Vehicle near the start of the mission.
 	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 0.f, kAlt + 10.f);
@@ -449,10 +646,10 @@ TEST_F(RtlPlannerIntegrationTest, PlanRouteSelectsSafePointOverEndpoint)
 
 	// THEN: Planning succeeds and selects the safe point, not a mission endpoint.
 	ASSERT_TRUE(ok);
-	EXPECT_EQ(plan.selection.goal_type, RtlRoutePlanner::GoalType::SafePoint);
+	EXPECT_EQ(plan.selection.goal_type, MissionRoutePlanner::GoalType::SafePoint);
 	EXPECT_TRUE(plan.selection.safe_point_found);
-	EXPECT_NE(plan.selection.goal_type, RtlRoutePlanner::GoalType::MissionLand);
-	EXPECT_NE(plan.selection.goal_type, RtlRoutePlanner::GoalType::MissionTakeoff);
+	EXPECT_NE(plan.selection.goal_type, MissionRoutePlanner::GoalType::MissionLand);
+	EXPECT_NE(plan.selection.goal_type, MissionRoutePlanner::GoalType::MissionTakeoff);
 }
 
 // WHY: When the vehicle is near takeoff but a valid safe point exists, the planner must NOT
@@ -464,7 +661,7 @@ TEST_F(RtlPlannerIntegrationTest, PlanRouteNearTakeoffWithSafePointDoesNotFallba
 	auto items = corner_dataset::mission();
 	auto safe_points = corner_dataset::safePoints();
 	VectorProvider provider(items, safe_points);
-	RtlRoutePlanner planner(provider);
+	MissionRoutePlanner planner(provider);
 
 	// Place vehicle 5m from takeoff along takeoff->wp1 bearing.
 	float bearing = get_bearing_to_next_waypoint(items[0].lat, items[0].lon, items[1].lat, items[1].lon);
@@ -478,8 +675,8 @@ TEST_F(RtlPlannerIntegrationTest, PlanRouteNearTakeoffWithSafePointDoesNotFallba
 	// THEN: Planning succeeds, a safe point is found, and goal type is SafePoint (NOT MissionTakeoff).
 	ASSERT_TRUE(ok);
 	EXPECT_TRUE(plan.selection.safe_point_found);
-	EXPECT_EQ(plan.selection.goal_type, RtlRoutePlanner::GoalType::SafePoint);
-	EXPECT_NE(plan.selection.goal_type, RtlRoutePlanner::GoalType::MissionTakeoff);
+	EXPECT_EQ(plan.selection.goal_type, MissionRoutePlanner::GoalType::SafePoint);
+	EXPECT_NE(plan.selection.goal_type, MissionRoutePlanner::GoalType::MissionTakeoff);
 }
 
 // =============================================================================
@@ -502,7 +699,7 @@ TEST_F(RtlPlannerIntegrationTest, FaultyMissionItemMidScanCausesGracefulFailure)
 	};
 
 	VectorProvider provider(mission, {}, {2}, {});
-	RtlRoutePlanner planner(provider);
+	MissionRoutePlanner planner(provider);
 
 	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt + 15.f);
 	config = defaultConfig();
@@ -510,11 +707,11 @@ TEST_F(RtlPlannerIntegrationTest, FaultyMissionItemMidScanCausesGracefulFailure)
 	config.vehicle_velocity_east = 0.f;
 	config.vehicle_velocity_valid = true;
 
-	RtlRoutePlanner::FailureReason fail_reason{};
+	MissionRoutePlanner::FailureReason fail_reason{};
 	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, &fail_reason);
 
 	EXPECT_FALSE(ok);
-	EXPECT_NE(fail_reason, RtlRoutePlanner::FailureReason::None);
+	EXPECT_EQ(fail_reason, MissionRoutePlanner::FailureReason::InternalError);
 }
 
 // WHY: If the first AND second mission items fail to load, the planner cannot build any
@@ -529,16 +726,16 @@ TEST_F(RtlPlannerIntegrationTest, AllInitialPositionItemsFaultyFailsGracefully)
 	};
 
 	VectorProvider provider(mission, {}, {0, 1}, {});
-	RtlRoutePlanner planner(provider);
+	MissionRoutePlanner planner(provider);
 
 	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 0.f, kAlt + 10.f);
 	config = defaultConfig();
 
-	RtlRoutePlanner::FailureReason fail_reason{};
+	MissionRoutePlanner::FailureReason fail_reason{};
 	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, &fail_reason);
 
 	EXPECT_FALSE(ok);
-	EXPECT_NE(fail_reason, RtlRoutePlanner::FailureReason::None);
+	EXPECT_EQ(fail_reason, MissionRoutePlanner::FailureReason::NoSegmentsFound);
 }
 
 // WHY: If all safe points fail to load but the mission is intact, the planner should
@@ -558,7 +755,7 @@ TEST_F(RtlPlannerIntegrationTest, AllFaultySafePointsFallBackToEndpoint)
 	};
 
 	VectorProvider provider(mission, safe_points, {}, {0, 1});
-	RtlRoutePlanner planner(provider);
+	MissionRoutePlanner planner(provider);
 
 	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 250.f, 0.f, kAlt + 25.f);
 	config = defaultConfig();
@@ -568,11 +765,11 @@ TEST_F(RtlPlannerIntegrationTest, AllFaultySafePointsFallBackToEndpoint)
 
 	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, &reason);
 
-	ASSERT_TRUE(ok) << "Failure reason: " << RtlRoutePlanner::failureReasonString(reason);
+	ASSERT_TRUE(ok) << "Failure reason: " << MissionRoutePlanner::failureReasonString(reason);
 	EXPECT_TRUE(plan.selection.found);
 	EXPECT_FALSE(plan.selection.safe_point_found);
-	EXPECT_TRUE(plan.selection.goal_type == RtlRoutePlanner::GoalType::MissionLand
-		    || plan.selection.goal_type == RtlRoutePlanner::GoalType::MissionTakeoff);
+	EXPECT_TRUE(plan.selection.goal_type == MissionRoutePlanner::GoalType::MissionLand
+		    || plan.selection.goal_type == MissionRoutePlanner::GoalType::MissionTakeoff);
 }
 
 // WHY: If only one safe point out of several fails to load, the planner should still
@@ -594,7 +791,7 @@ TEST_F(RtlPlannerIntegrationTest, OneFaultySafePointDoesNotBlockOthers)
 	};
 
 	VectorProvider provider(mission, safe_points, {}, {1});
-	RtlRoutePlanner planner(provider);
+	MissionRoutePlanner planner(provider);
 
 	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 250.f, 0.f, kAlt + 25.f);
 	config = defaultConfig();
@@ -604,26 +801,25 @@ TEST_F(RtlPlannerIntegrationTest, OneFaultySafePointDoesNotBlockOthers)
 
 	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, &reason);
 
-	ASSERT_TRUE(ok) << "Failure reason: " << RtlRoutePlanner::failureReasonString(reason);
+	ASSERT_TRUE(ok) << "Failure reason: " << MissionRoutePlanner::failureReasonString(reason);
 	EXPECT_TRUE(plan.selection.found);
 	EXPECT_TRUE(plan.selection.safe_point_found);
 	EXPECT_NE(plan.selection.safe_point_index, 1);
 }
 
-// WHY: If the land item at the end fails to load, the planner should still work by
-//      selecting takeoff as the fallback endpoint (or a safe point if available).
-// WHAT: Faulty land item does not cause a crash; the planner adapts.
-TEST_F(RtlPlannerIntegrationTest, FaultyLandItemDoesNotCrash)
+// WHY: A failed land-item read must not crash the planner or produce a half-valid fallback plan.
+// WHAT: A faulty land item fails cleanly with NoValidWaypoints.
+TEST_F(RtlPlannerIntegrationTest, FaultyLandItemFailsCleanly)
 {
+	// GIVEN: A mission whose land item cannot be loaded.
 	std::vector<mission_item_s> mission = {
 		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 500.f, 0.f, kAlt + 50.f),
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 1000.f, 0.f, kAlt + 80.f),
 		makeLandItemFromOffset(kBaseLat, kBaseLon, 1500.f, 0.f, kAlt - 10.f),
 	};
-
 	VectorProvider provider(mission, {}, {3}, {});
-	RtlRoutePlanner planner(provider);
+	MissionRoutePlanner planner(provider);
 
 	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 250.f, 0.f, kAlt + 20.f);
 	config = defaultConfig();
@@ -631,53 +827,12 @@ TEST_F(RtlPlannerIntegrationTest, FaultyLandItemDoesNotCrash)
 	config.vehicle_velocity_east = 0.f;
 	config.vehicle_velocity_valid = true;
 
-	RtlRoutePlanner::FailureReason fail_reason{};
-	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, &fail_reason);
+	// WHEN: planRouteToGoal is called.
+	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, &reason);
 
-	if (ok) {
-		EXPECT_TRUE(plan.selection.found);
-
-	} else {
-		EXPECT_NE(fail_reason, RtlRoutePlanner::FailureReason::None);
-	}
-}
-
-// WHY: An empty mission (count=0) must be rejected immediately without reading any items.
-// WHAT: Provider with zero mission items causes planRouteToGoal to fail with NoValidWaypoints.
-TEST_F(RtlPlannerIntegrationTest, FaultyEmptyMissionRejectedImmediately)
-{
-	VectorProvider provider({}, {}, {}, {});
-	RtlRoutePlanner planner(provider);
-
-	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
-	config = defaultConfig();
-
-	RtlRoutePlanner::FailureReason fail_reason{};
-	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, &fail_reason);
-
+	// THEN: Planning fails explicitly instead of returning a partially-populated fallback.
 	EXPECT_FALSE(ok);
-	EXPECT_EQ(fail_reason, RtlRoutePlanner::FailureReason::NoValidWaypoints);
-}
-
-// WHY: A mission with only one waypoint (takeoff) and nothing else has no segments to follow.
-// WHAT: Single-item mission fails with NoSegmentsFound or similar.
-TEST_F(RtlPlannerIntegrationTest, FaultySingleItemMissionCannotBuildSegments)
-{
-	std::vector<mission_item_s> mission = {
-		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
-	};
-
-	VectorProvider provider(mission, {}, {}, {});
-	RtlRoutePlanner planner(provider);
-
-	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 10.f, 0.f, kAlt);
-	config = defaultConfig();
-
-	RtlRoutePlanner::FailureReason fail_reason{};
-	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, &fail_reason);
-
-	EXPECT_FALSE(ok);
-	EXPECT_NE(fail_reason, RtlRoutePlanner::FailureReason::None);
+	EXPECT_EQ(reason, MissionRoutePlanner::FailureReason::NoValidWaypoints);
 }
 
 // =============================================================================
@@ -702,7 +857,7 @@ TEST_F(RtlPlannerIntegrationTest, FwVehicleReversesToTakeoffWhenNearStart)
 	};
 
 	VectorProvider provider(mission, {});
-	RtlRoutePlanner planner(provider);
+	MissionRoutePlanner planner(provider);
 
 	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt + 15.f);
 	config = fwConfig();
@@ -713,7 +868,7 @@ TEST_F(RtlPlannerIntegrationTest, FwVehicleReversesToTakeoffWhenNearStart)
 	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, &reason);
 
 	ASSERT_TRUE(ok);
-	EXPECT_EQ(plan.selection.goal_type, RtlRoutePlanner::GoalType::MissionTakeoff);
+	EXPECT_EQ(plan.selection.goal_type, MissionRoutePlanner::GoalType::MissionTakeoff);
 	EXPECT_TRUE(plan.selection.path.direction_reversed);
 	EXPECT_NEAR(plan.selection.goal_position.lat, mission[0].lat, kLatLonToleranceDeg);
 	EXPECT_NEAR(plan.selection.goal_position.lon, mission[0].lon, kLatLonToleranceDeg);
@@ -728,7 +883,7 @@ TEST_F(RtlPlannerIntegrationTest, DefaultDatasetVtolPlanBuildsSucessfully)
 	auto items = default_dataset::mission();
 	auto safe_points = default_dataset::safePoints();
 	VectorProvider provider(items, safe_points);
-	RtlRoutePlanner planner(provider);
+	MissionRoutePlanner planner(provider);
 
 	auto vehicle_pos = makePositionAbsolute(46.10830, 2.2995, 575.f);
 	config = fwConfig();
@@ -749,12 +904,10 @@ TEST_F(RtlPlannerIntegrationTest, DefaultDatasetVtolPlanBuildsSucessfully)
 // GROUP 8: Stage-machine contract verification
 // =============================================================================
 //
-// The executor (RtlMissionSafePointFollow) cannot be instantiated without the
-// full Navigator module.  These tests verify the planner-produced Plan fields
-// that the executor's setNextMissionItem() state machine switches on.
-//
-// TODO: When a MockNavigator is available, convert these to true executor tests
-// that call on_activation() + setNextMissionItem() and verify _stage transitions.
+// These planner-level contract tests stay focused on the Plan fields consumed by
+// the executor. Lightweight executor stage tests now live in test_mission_base_vtol.cpp,
+// where they can exercise RtlMissionSafePointFollow::setNextMissionItem() without
+// constructing a full Navigator stack.
 
 // WHY: The executor transitions FollowRoute → BranchOff when current_seq == branch_off_index.
 //      This requires the plan to produce a valid branch_off_segment whose end index (nominal)
@@ -762,36 +915,40 @@ TEST_F(RtlPlannerIntegrationTest, DefaultDatasetVtolPlanBuildsSucessfully)
 // WHAT: When a safe point is selected, the plan's branchOffIndex() returns a valid mission index.
 TEST_F(RtlPlannerIntegrationTest, PlanProvidesValidBranchOffIndexForSafePoint)
 {
-	auto items = default_dataset::mission();
-	auto safe_points = default_dataset::safePoints();
+	// GIVEN: A simple mission whose safe point must be reached by branching off the route.
+	auto items = std::vector<mission_item_s> {
+		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt + 20.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kAlt + 30.f),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 600.f, 0.f, kAlt - 10.f),
+	};
+	std::vector<mission_item_s> safe_points{
+		makeSafePointFromOffset(kBaseLat, kBaseLon, 300.f, 50.f, kAlt + 10.f),
+	};
 	VectorProvider provider(items, safe_points);
-	RtlRoutePlanner planner(provider);
+	MissionRoutePlanner planner(provider);
 
-	auto vehicle_pos = makePositionAbsolute(46.10830, 2.2995, 575.f);
+	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 0.f, kAlt + 10.f);
 	config = defaultConfig();
-	config.vehicle_velocity_north = default_dataset::kVel;
+	config.vehicle_velocity_north = 10.f;
 	config.vehicle_velocity_east = 0.f;
 	config.vehicle_velocity_valid = true;
 
-	bool ok = planner.planRouteToGoal(vehicle_pos, 4, config, plan, &reason);
-	ASSERT_TRUE(ok) << "Failure reason: " << RtlRoutePlanner::failureReasonString(reason);
+	// WHEN: planRouteToGoal is called.
+	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, &reason);
 
-	if (plan.selection.safe_point_found) {
-		const int32_t branch_idx = plan.selection.branchOffIndex();
-		EXPECT_GE(branch_idx, 0);
-		EXPECT_LT(branch_idx, static_cast<int32_t>(items.size()));
-		EXPECT_TRUE(plan.selection.branch_off_segment.valid());
-		EXPECT_TRUE(plan.selection.branch_off_projection.valid());
-		EXPECT_GE(plan.selection.path.first_item_index, 0);
-		EXPECT_LT(plan.selection.path.first_item_index, static_cast<int32_t>(items.size()));
-
-		if (!plan.selection.path.direction_reversed) {
-			EXPECT_LE(plan.selection.path.first_item_index, branch_idx);
-
-		} else {
-			EXPECT_GE(plan.selection.path.first_item_index, branch_idx);
-		}
-	}
+	// THEN: A valid safe-point branch-off index is produced.
+	ASSERT_TRUE(ok) << "Failure reason: " << MissionRoutePlanner::failureReasonString(reason);
+	ASSERT_TRUE(plan.selection.safe_point_found);
+	const int32_t branch_idx = plan.selection.branchOffIndex();
+	EXPECT_EQ(plan.selection.goal_type, MissionRoutePlanner::GoalType::SafePoint);
+	EXPECT_GE(branch_idx, 0);
+	EXPECT_LT(branch_idx, static_cast<int32_t>(items.size()));
+	EXPECT_TRUE(plan.selection.branch_off_segment.valid());
+	EXPECT_TRUE(plan.selection.branch_off_projection.valid());
+	EXPECT_GE(plan.selection.path.first_item_index, 0);
+	EXPECT_LT(plan.selection.path.first_item_index, static_cast<int32_t>(items.size()));
+	EXPECT_LE(plan.selection.path.first_item_index, branch_idx);
 }
 
 // WHY: The executor goes straight to LandAtGoal when direct_to_safe_point is set,
@@ -812,7 +969,7 @@ TEST_F(RtlPlannerIntegrationTest, DirectToSafePointPlanHasCompleteLandingFields)
 	};
 
 	VectorProvider provider(mission, safe_points);
-	RtlRoutePlanner planner(provider);
+	MissionRoutePlanner planner(provider);
 
 	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 250.f, 0.f, kAlt + 50.f);
 	config = defaultConfig();
@@ -823,15 +980,13 @@ TEST_F(RtlPlannerIntegrationTest, DirectToSafePointPlanHasCompleteLandingFields)
 	config.vehicle_velocity_valid = true;
 
 	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, &reason);
-	ASSERT_TRUE(ok) << "Failure reason: " << RtlRoutePlanner::failureReasonString(reason);
-
-	if (plan.selection.direct_to_safe_point) {
-		EXPECT_TRUE(plan.selection.goal_position.valid());
-		EXPECT_TRUE(PX4_ISFINITE(plan.selection.goal_position.lat));
-		EXPECT_TRUE(PX4_ISFINITE(plan.selection.goal_position.lon));
-		EXPECT_TRUE(PX4_ISFINITE(plan.selection.goal_position.alt));
-		EXPECT_EQ(plan.selection.goal_type, RtlRoutePlanner::GoalType::SafePoint);
-	}
+	ASSERT_TRUE(ok) << "Failure reason: " << MissionRoutePlanner::failureReasonString(reason);
+	ASSERT_TRUE(plan.selection.direct_to_safe_point);
+	EXPECT_TRUE(plan.selection.goal_position.valid());
+	EXPECT_TRUE(PX4_ISFINITE(plan.selection.goal_position.lat));
+	EXPECT_TRUE(PX4_ISFINITE(plan.selection.goal_position.lon));
+	EXPECT_TRUE(PX4_ISFINITE(plan.selection.goal_position.alt));
+	EXPECT_EQ(plan.selection.goal_type, MissionRoutePlanner::GoalType::SafePoint);
 }
 
 // WHY: When the executor reaches the mission endpoint in a non-safe-point plan,
@@ -848,7 +1003,7 @@ TEST_F(RtlPlannerIntegrationTest, EndpointFallbackPlanHasValidGoalPosition)
 	};
 
 	VectorProvider provider(mission, {});
-	RtlRoutePlanner planner(provider);
+	MissionRoutePlanner planner(provider);
 
 	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 750.f, 0.f, kAlt + 60.f);
 	config = defaultConfig();
@@ -857,17 +1012,17 @@ TEST_F(RtlPlannerIntegrationTest, EndpointFallbackPlanHasValidGoalPosition)
 	config.vehicle_velocity_valid = true;
 
 	bool ok = planner.planRouteToGoal(vehicle_pos, 1, config, plan, &reason);
-	ASSERT_TRUE(ok) << "Failure reason: " << RtlRoutePlanner::failureReasonString(reason);
+	ASSERT_TRUE(ok) << "Failure reason: " << MissionRoutePlanner::failureReasonString(reason);
 
 	EXPECT_TRUE(plan.selection.found);
 	EXPECT_FALSE(plan.selection.safe_point_found);
 	EXPECT_TRUE(plan.selection.goal_position.valid());
 
-	if (plan.selection.goal_type == RtlRoutePlanner::GoalType::MissionLand) {
+	if (plan.selection.goal_type == MissionRoutePlanner::GoalType::MissionLand) {
 		EXPECT_NEAR(plan.selection.goal_position.lat, mission.back().lat, kLatLonToleranceDeg);
 		EXPECT_NEAR(plan.selection.goal_position.lon, mission.back().lon, kLatLonToleranceDeg);
 
-	} else if (plan.selection.goal_type == RtlRoutePlanner::GoalType::MissionTakeoff) {
+	} else if (plan.selection.goal_type == MissionRoutePlanner::GoalType::MissionTakeoff) {
 		EXPECT_NEAR(plan.selection.goal_position.lat, mission.front().lat, kLatLonToleranceDeg);
 		EXPECT_NEAR(plan.selection.goal_position.lon, mission.front().lon, kLatLonToleranceDeg);
 	}
@@ -890,7 +1045,7 @@ TEST_F(RtlPlannerIntegrationTest, WaypointOnlyMissionRejectsEndpointFallback)
 	};
 	std::vector<mission_item_s> no_safe_points{};
 	VectorProvider provider(items, no_safe_points);
-	RtlRoutePlanner planner(provider);
+	MissionRoutePlanner planner(provider);
 
 	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 250.f, 0.f, kAlt + 25.f);
 	config = defaultConfig();
@@ -898,36 +1053,7 @@ TEST_F(RtlPlannerIntegrationTest, WaypointOnlyMissionRejectsEndpointFallback)
 	// WHEN: planRouteToGoal is called.
 	bool ok = planner.planRouteToGoal(vehicle_pos, 1, config, plan, &reason);
 
-	// THEN: Planning must not produce a MissionTakeoff or MissionLand from plain waypoints.
-	if (ok) {
-		EXPECT_NE(plan.selection.goal_type, RtlRoutePlanner::GoalType::MissionTakeoff);
-		EXPECT_NE(plan.selection.goal_type, RtlRoutePlanner::GoalType::MissionLand);
-	}
-}
-
-// WHY: The executor's closeToBranchOffSegment() is used to decide whether to go straight
-//      to the goal on re-activation. The planner must provide a valid branch_off_segment
-//      for this check to work.
-// WHAT: closeToBranchOffSegment returns true for a position on the branch-off leg.
-TEST_F(RtlPlannerIntegrationTest, CloseToBranchOffSegmentWorksForOnLegPosition)
-{
-	auto items = default_dataset::mission();
-	auto safe_points = default_dataset::safePoints();
-	VectorProvider provider(items, safe_points);
-	RtlRoutePlanner planner(provider);
-
-	auto vehicle_pos = makePositionAbsolute(46.10830, 2.2995, 575.f);
-	config = defaultConfig();
-	config.vehicle_velocity_north = default_dataset::kVel;
-	config.vehicle_velocity_east = 0.f;
-	config.vehicle_velocity_valid = true;
-
-	bool ok = planner.planRouteToGoal(vehicle_pos, 4, config, plan, &reason);
-	ASSERT_TRUE(ok) << "Failure reason: " << RtlRoutePlanner::failureReasonString(reason);
-
-	if (plan.selection.safe_point_found && plan.selection.branch_off_projection.valid()) {
-		bool close = planner.closeToBranchOffSegment(
-				     plan.selection.branch_off_projection, plan.selection, config.acceptance_radius);
-		EXPECT_TRUE(close);
-	}
+	// THEN: Planning fails because no safe point or valid endpoint candidate exists.
+	EXPECT_FALSE(ok);
+	EXPECT_EQ(reason, MissionRoutePlanner::FailureReason::NoValidCandidateFound);
 }

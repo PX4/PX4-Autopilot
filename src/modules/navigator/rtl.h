@@ -52,7 +52,7 @@
 #include "rtl_mission_fast.h"
 #include "rtl_mission_fast_reverse.h"
 #include "rtl_mission_safe_point_follow.h"
-#include "rtl_route_planner.h"
+#include "mission_route_planner.h"
 
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
@@ -89,8 +89,6 @@ public:
 	void initialize() override {};
 
 	void set_return_alt_min(bool min) { _enforce_rtl_alt = min; }
-
-	void updateSafePoints(uint32_t new_safe_point_id) { _initiate_safe_points_updated = true; _safe_points_id = new_safe_point_id; }
 
 	bool isLanding();
 
@@ -140,6 +138,8 @@ private:
 	 *
 	 */
 	void findRtlDestination(DestinationType &destination_type, PositionYawSetpoint &destination, uint8_t &safe_point_index);
+	void findRtlDestinationForType(int rtl_type, DestinationType &destination_type,
+				       PositionYawSetpoint &destination, uint8_t &safe_point_index);
 
 	/**
 	 * @brief Find RTL destination if only safe points are considered
@@ -208,13 +208,6 @@ private:
 	 */
 	loiter_point_s chooseBestLandingApproach(const land_approaches_s &vtol_land_approaches);
 
-	enum class DatamanState {
-		UpdateRequestWait,
-		Read,
-		ReadWait,
-		Load,
-		Error
-	};
 
 	hrt_abstime _destination_check_time{0};
 
@@ -245,14 +238,12 @@ private:
 	uint32_t _mission_id = 0u;
 	uint32_t _safe_points_id = 0u;
 
-	mission_stats_entry_s _stats;
-
 	RtlDirect _rtl_direct;
 
 	bool _enforce_rtl_alt{false};
 	bool _should_go_straight_to_safe_point{false};
-	RtlRoutePlanner::Plan _route_safe_point_plan{};
-	RtlRoutePlanner::Segment _last_route_safe_point_loop_segment{};
+	MissionRoutePlanner::Plan _route_safe_point_plan{};
+	MissionRoutePlanner::Segment _last_route_safe_point_loop_segment{};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::RTL_TYPE>)          _param_rtl_type,
@@ -261,8 +252,8 @@ private:
 		(ParamFloat<px4::params::RTL_MIN_DIST>)    _param_rtl_min_dist,
 		(ParamFloat<px4::params::NAV_ACC_RAD>)     _param_nav_acc_rad,
 		(ParamInt<px4::params::RTL_APPR_FORCE>)    _param_rtl_appr_force,
-		(ParamFloat<px4::params::RTL_MC_SEG_DIST>) _param_rtl_mc_seg_dist,
-		(ParamFloat<px4::params::RTL_FW_SEG_DIST>) _param_rtl_fw_seg_dist,
+		(ParamFloat<px4::params::MIS_MC_SEG_DIST>) _param_mis_mc_seg_dist,
+		(ParamFloat<px4::params::MIS_FW_SEG_DIST>) _param_mis_fw_seg_dist,
 		(ParamFloat<px4::params::RTL_RP_SEG_DIST>) _param_rtl_rp_seg_dist,
 		(ParamFloat<px4::params::RTL_FW_UTURN_PEN>) _param_rtl_fw_uturn_pen
 	)

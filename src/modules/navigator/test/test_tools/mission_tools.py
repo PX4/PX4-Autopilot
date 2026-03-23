@@ -1024,7 +1024,7 @@ def _parse_latlon_points(
     src: str,
     vars_map: Dict[str, Tuple[float, float, float]],
 ) -> List[LatLonAltPoint]:
-    """Parse makePositionAbsolute, makePositionFromOffset, and RtlRoutePlanner::Position literals."""
+    """Parse makePositionAbsolute, makePositionFromOffset, and MissionRoutePlanner::Position literals."""
     points: List[LatLonAltPoint] = []
 
     # makePositionAbsolute(lat, lon, alt)
@@ -1045,9 +1045,9 @@ def _parse_latlon_points(
             _safe_float(match.group(3)), _safe_float(match.group(4)))
         points.append(LatLonAltPoint(f"PositionFromOffset_{i}", lat_r, lon_r, _safe_float(match.group(5))))
 
-    # RtlRoutePlanner::Position{lat, lon, alt}
+    # MissionRoutePlanner::Position{lat, lon, alt}
     for i, match in enumerate(re.finditer(
-        rf"RtlRoutePlanner::Position\s*\{{\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*\}}", src,
+        rf"MissionRoutePlanner::Position\s*\{{\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*\}}", src,
     )):
         points.append(LatLonAltPoint(
             f"RtlPosition_{i}",
@@ -1229,7 +1229,7 @@ def parse_cpp_code(text: str) -> ParseResult:
     # 7. Vehicle locations
     vehicles = _parse_vehicles(src, float_vars_map)
 
-    # 8. Additional LatLonAlt points (positions, offsets, RtlRoutePlanner structs)
+    # 8. Additional LatLonAlt points (positions, offsets, MissionRoutePlanner structs)
     latlon_points.extend(_parse_latlon_points(src, vars_map))
 
     # 9. Path checks

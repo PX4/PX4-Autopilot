@@ -175,7 +175,6 @@ void Navigator::run()
 	fds[2].events = POLLIN;
 
 	uint32_t geofence_id{0};
-	uint32_t safe_points_id{0};
 
 	/* rate-limit position subscription to 20 Hz / 50 ms */
 	orb_set_interval(_local_pos_sub, 50);
@@ -209,10 +208,6 @@ void Navigator::run()
 				_geofence.updateFence();
 			}
 
-			if (mission.safe_points_id != safe_points_id) {
-				safe_points_id = mission.safe_points_id;
-				_rtl.updateSafePoints(safe_points_id);
-			}
 		}
 
 		/* gps updated */

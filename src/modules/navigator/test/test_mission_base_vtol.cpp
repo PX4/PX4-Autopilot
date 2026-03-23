@@ -41,11 +41,11 @@
  *   - findPreviousPositionIndexNoJump()
  *
  * These tests verify the centralized transition logic that was previously
- * duplicated in RtlRoutePlanner. The executor (RtlMissionSafePointFollow)
+ * duplicated in MissionRoutePlanner. The executor (RtlMissionSafePointFollow)
  * now calls these MissionBase methods directly instead of going through
  * the planner.
  *
- * Uses a TestMissionBase subclass that overrides loadMissionItemFromCache
+ * Uses a MissionBaseTestPeer subclass that overrides loadMissionItemFromCache
  * with a vector-backed implementation (same pattern as VectorProvider in
  * the planner tests), and publishes vehicle_status via uORB to control
  * the VTOL state seen by vtolTransitionActionForTarget.
@@ -57,11 +57,13 @@
 
 #include "mission_base.h"
 #include "navigation.h"
+#include "test_RTL_helpers.h"
 
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/Publication.hpp>
 
+#include <algorithm>
 #include <vector>
 
 // ============================================================================
@@ -83,15 +85,15 @@
  *   - Tests must NOT call on_activation(), on_inactivation(), or on_active() which
  *     dereference _navigator (e.g. _navigator->disable_camera_trigger())
  */
-class TestMissionBase : public MissionBase
+class MissionBaseTestPeer : public MissionBase
 {
 public:
-	TestMissionBase()
+	MissionBaseTestPeer()
 		: MissionBase(nullptr, 64, 0)
 	{
 	}
 
-	~TestMissionBase() override = default;
+	~MissionBaseTestPeer() override = default;
 
 	// Stub out pure virtual methods — not exercised by the transition tests.
 	void setActiveMissionItems() override {}
@@ -104,6 +106,11 @@ public:
 	 */
 	bool loadMissionItemFromCache(int32_t index, mission_item_s &mission_item) override
 	{
+		if (std::find(_load_failure_indices.begin(), _load_failure_indices.end(), index)
+		    != _load_failure_indices.end()) {
+			return false;
+		}
+
 		if (index < 0 || index >= static_cast<int32_t>(_items.size())) {
 			return false;
 		}
@@ -120,6 +127,7 @@ public:
 		_items = items;
 		_mission.count = static_cast<int32_t>(items.size());
 		_mission.current_seq = 0;
+		clearLoadFailures();
 	}
 
 	/**
@@ -141,68 +149,41 @@ public:
 		_vehicle_status_sub.update();
 	}
 
+	void setLoadFailureIndices(std::initializer_list<int32_t> indices)
+	{
+		_load_failure_indices.assign(indices.begin(), indices.end());
+	}
+
+	void clearLoadFailures()
+	{
+		_load_failure_indices.clear();
+	}
+
+	void setMissionUploadVtolState(uint8_t vtol_state)
+	{
+		_vtol_state_on_mission_upload = vtol_state;
+	}
+
 	// Expose protected methods for testing.
 	using MissionBase::vtolTransitionActionForTarget;
 	using MissionBase::getVtolStateAtMissionIndex;
 	using MissionBase::VtolTransitionAction;
 	using MissionBase::findNextPositionIndexNoJump;
 	using MissionBase::findPreviousPositionIndexNoJump;
+	using MissionBase::getNextPositionItems;
+	using MissionBase::getPreviousPositionItems;
+	using MissionBase::updateLastFlownLoopSegmentForNominalAdvance;
+
+	void setCurrentSequence(int32_t index)
+	{
+		_mission.current_seq = index;
+	}
 
 private:
 	std::vector<mission_item_s> _items;
+	std::vector<int32_t> _load_failure_indices;
 	uORB::Publication<vehicle_status_s> _vehicle_status_pub{ORB_ID(vehicle_status)};
 };
-
-// ============================================================================
-// Mission item factory helpers (mirrors test_RTL_helpers.h)
-// ============================================================================
-
-static mission_item_s makePositionItem(double lat, double lon, float alt,
-				       uint16_t nav_cmd = NAV_CMD_WAYPOINT)
-{
-	mission_item_s item{};
-	item.lat = lat;
-	item.lon = lon;
-	item.altitude = alt;
-	item.nav_cmd = nav_cmd;
-	item.frame = NAV_FRAME_GLOBAL;
-	item.altitude_is_relative = false;
-	item.autocontinue = true;
-	return item;
-}
-
-static mission_item_s makeVtolTransitionItem(uint8_t target_state)
-{
-	mission_item_s item{};
-	item.nav_cmd = NAV_CMD_DO_VTOL_TRANSITION;
-	item.params[0] = static_cast<float>(target_state);
-	return item;
-}
-
-static mission_item_s makeTakeoffItem(double lat, double lon, float alt)
-{
-	mission_item_s item = makePositionItem(lat, lon, alt, NAV_CMD_TAKEOFF);
-	item.autocontinue = false;
-	return item;
-}
-
-static mission_item_s makeLandItem(double lat, double lon, float alt)
-{
-	mission_item_s item = makePositionItem(lat, lon, alt, NAV_CMD_LAND);
-	item.autocontinue = false;
-	return item;
-}
-
-static mission_item_s makeDoJump(int16_t jump_target_index, uint16_t repeat_count,
-				 uint16_t current_count = 0)
-{
-	mission_item_s item{};
-	item.nav_cmd = NAV_CMD_DO_JUMP;
-	item.do_jump_mission_index = jump_target_index;
-	item.do_jump_repeat_count = repeat_count;
-	item.do_jump_current_count = current_count;
-	return item;
-}
 
 // ============================================================================
 // Test fixture
@@ -211,24 +192,20 @@ static mission_item_s makeDoJump(int16_t jump_target_index, uint16_t repeat_coun
 class MissionBaseVtolTest : public ::testing::Test
 {
 protected:
-	static TestMissionBase *mission_base;
-
-	static void SetUpTestSuite()   { mission_base = new TestMissionBase(); }
-	static void TearDownTestSuite() { delete mission_base; mission_base = nullptr; }
+	MissionBaseTestPeer mission_base{};
 
 	void SetUp() override
 	{
 		// Reset state between tests to prevent leakage from previous runs.
-		mission_base->loadTestMission({});
-		mission_base->setVehicleStatus(false, false, false);
+		mission_base.loadTestMission({});
+		mission_base.setVehicleStatus(false, false, false);
+		mission_base.setMissionUploadVtolState(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
 	}
 
 	static constexpr double kLat = 47.397742;
 	static constexpr double kLon = 8.545594;
 	static constexpr float kAlt = 500.f;
 };
-
-TestMissionBase *MissionBaseVtolTest::mission_base = nullptr;
 
 // ============================================================================
 // getVtolStateAtMissionIndex tests
@@ -245,12 +222,31 @@ TEST_F(MissionBaseVtolTest, DefaultStateIsMC)
 		makePositionItem(kLat + 0.001, kLon, kAlt),
 	};
 
-	mission_base->loadTestMission(items);
+	mission_base.loadTestMission(items);
 
-	EXPECT_EQ(mission_base->getVtolStateAtMissionIndex(0),
+	EXPECT_EQ(mission_base.getVtolStateAtMissionIndex(0),
 		  vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
-	EXPECT_EQ(mission_base->getVtolStateAtMissionIndex(1),
+	EXPECT_EQ(mission_base.getVtolStateAtMissionIndex(1),
 		  vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
+}
+
+// WHY: Missions uploaded while the VTOL is already in FW mode must preserve that state when
+//      no explicit DO_VTOL_TRANSITION exists before the queried anchor.
+// WHAT: Two plain waypoints with upload state forced to FW -> both report VEHICLE_VTOL_STATE_FW.
+TEST_F(MissionBaseVtolTest, DefaultStateCanStartInFw)
+{
+	std::vector<mission_item_s> items = {
+		makePositionItem(kLat, kLon, kAlt),
+		makePositionItem(kLat + 0.001, kLon, kAlt),
+	};
+
+	mission_base.loadTestMission(items);
+	mission_base.setMissionUploadVtolState(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+
+	EXPECT_EQ(mission_base.getVtolStateAtMissionIndex(0),
+		  vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+	EXPECT_EQ(mission_base.getVtolStateAtMissionIndex(1),
+		  vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
 }
 
 // WHY: getVtolStateAtMissionIndex must detect a DO_VTOL_TRANSITION to FW and report
@@ -265,14 +261,14 @@ TEST_F(MissionBaseVtolTest, FwTransitionDetectedAtAnchor)
 		makePositionItem(kLat + 0.001, kLon, kAlt),
 	};
 
-	mission_base->loadTestMission(items);
+	mission_base.loadTestMission(items);
 
 	// WHEN/THEN: Before the transition → MC; at/after → FW.
-	EXPECT_EQ(mission_base->getVtolStateAtMissionIndex(0),
+	EXPECT_EQ(mission_base.getVtolStateAtMissionIndex(0),
 		  vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
-	EXPECT_EQ(mission_base->getVtolStateAtMissionIndex(1),
+	EXPECT_EQ(mission_base.getVtolStateAtMissionIndex(1),
 		  vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
-	EXPECT_EQ(mission_base->getVtolStateAtMissionIndex(2),
+	EXPECT_EQ(mission_base.getVtolStateAtMissionIndex(2),
 		  vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
 }
 
@@ -291,53 +287,69 @@ TEST_F(MissionBaseVtolTest, MultipleTransitionsReturnsLatest)
 		makePositionItem(kLat + 0.002, kLon, kAlt),
 	};
 
-	mission_base->loadTestMission(items);
+	mission_base.loadTestMission(items);
 
-	EXPECT_EQ(mission_base->getVtolStateAtMissionIndex(0),
+	EXPECT_EQ(mission_base.getVtolStateAtMissionIndex(0),
 		  vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
-	EXPECT_EQ(mission_base->getVtolStateAtMissionIndex(2),
+	EXPECT_EQ(mission_base.getVtolStateAtMissionIndex(2),
 		  vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
-	EXPECT_EQ(mission_base->getVtolStateAtMissionIndex(4),
+	EXPECT_EQ(mission_base.getVtolStateAtMissionIndex(4),
 		  vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
+}
+
+// WHY: Invalid DO_VTOL_TRANSITION values must be ignored instead of inventing a bogus vehicle state.
+// WHAT: An unsupported transition value leaves the queried state in MC.
+TEST_F(MissionBaseVtolTest, InvalidTransitionValueIsIgnored)
+{
+	// GIVEN: A mission containing a DO_VTOL_TRANSITION with an unsupported state value.
+	std::vector<mission_item_s> items = {
+		makePositionItem(kLat, kLon, kAlt),
+		makeVtolTransitionItem(42),
+		makePositionItem(kLat + 0.001, kLon, kAlt),
+	};
+
+	mission_base.loadTestMission(items);
+
+	// WHEN: getVtolStateAtMissionIndex scans past the invalid transition item.
+	const uint8_t state_at_transition = mission_base.getVtolStateAtMissionIndex(1);
+	const uint8_t state_after_transition = mission_base.getVtolStateAtMissionIndex(2);
+
+	// THEN: The invalid transition is ignored and the state remains MC.
+	EXPECT_EQ(state_at_transition, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
+	EXPECT_EQ(state_after_transition, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
+}
+
+// WHY: Cache read failures during backward VTOL-state scans must degrade to a safe default.
+// WHAT: A failed read before the transition causes getVtolStateAtMissionIndex to return MC.
+TEST_F(MissionBaseVtolTest, CacheReadFailureDuringStateScanFallsBackToMc)
+{
+	// GIVEN: A mission whose VTOL transition item cannot be loaded from the cache.
+	std::vector<mission_item_s> items = {
+		makePositionItem(kLat, kLon, kAlt),
+		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW),
+		makePositionItem(kLat + 0.001, kLon, kAlt),
+	};
+
+	mission_base.loadTestMission(items);
+	mission_base.setLoadFailureIndices({1});
+
+	// WHEN: getVtolStateAtMissionIndex scans backward across the unreadable transition item.
+	const uint8_t state = mission_base.getVtolStateAtMissionIndex(2);
+
+	// THEN: The method falls back to MC instead of exposing stale or undefined state.
+	EXPECT_EQ(state, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
 }
 
 // ============================================================================
 // vtolTransitionActionForTarget tests
 // ============================================================================
 
-// ---------------------------------------------------------------------------
-// Parameterized fixture for direction-independent tests (forward / reverse)
-// ---------------------------------------------------------------------------
-
-class MissionBaseVtolDirectionTest : public ::testing::TestWithParam<bool>
-{
-protected:
-	static TestMissionBase *mission_base;
-
-	static void SetUpTestSuite()   { mission_base = new TestMissionBase(); }
-	static void TearDownTestSuite() { delete mission_base; mission_base = nullptr; }
-
-	void SetUp() override
-	{
-		mission_base->loadTestMission({});
-		mission_base->setVehicleStatus(false, false, false);
-	}
-
-	bool reversed() const { return GetParam(); }
-
-	static constexpr double kLat = 47.397742;
-	static constexpr double kLon = 8.545594;
-	static constexpr float kAlt = 500.f;
-};
-
-TestMissionBase *MissionBaseVtolDirectionTest::mission_base = nullptr;
-
 // WHY: vtolTransitionActionForTarget must return None for non-VTOL vehicles regardless
 //      of mission content or direction, because transition commands are meaningless for
-//      multicopters or fixed-wing-only aircraft. Each direction is evaluated independently
-//      so a regression in one direction is caught even if the other passes.
-// WHAT: Non-VTOL vehicle with VTOL_FW in mission → None for the parameterized direction.
-TEST_P(MissionBaseVtolDirectionTest, NonVtolAlwaysReturnsNone)
+//      multicopters or fixed-wing-only aircraft. This covers both traversal directions in one test
+//      so a regression in either path is caught without keeping a separate parameterized fixture.
+// WHAT: Non-VTOL vehicle with VTOL_FW in mission → None for both forward and reverse traversal.
+TEST_F(MissionBaseVtolTest, NonVtolReturnsNoneInBothDirections)
 {
 	std::vector<mission_item_s> items = {
 		makePositionItem(kLat, kLon, kAlt),
@@ -345,19 +357,14 @@ TEST_P(MissionBaseVtolDirectionTest, NonVtolAlwaysReturnsNone)
 		makePositionItem(kLat + 0.001, kLon, kAlt),
 	};
 
-	mission_base->loadTestMission(items);
-	mission_base->setVehicleStatus(false, false, false); // non-VTOL MC
+	mission_base.loadTestMission(items);
+	mission_base.setVehicleStatus(false, false, false); // non-VTOL MC
 
-	EXPECT_EQ(mission_base->vtolTransitionActionForTarget(2, reversed()),
-		  TestMissionBase::VtolTransitionAction::None);
+	EXPECT_EQ(mission_base.vtolTransitionActionForTarget(2, false),
+		  MissionBaseTestPeer::VtolTransitionAction::None);
+	EXPECT_EQ(mission_base.vtolTransitionActionForTarget(2, true),
+		  MissionBaseTestPeer::VtolTransitionAction::None);
 }
-
-INSTANTIATE_TEST_SUITE_P(Direction, MissionBaseVtolDirectionTest,
-			 ::testing::Values(false, true),
-			 [](const ::testing::TestParamInfo<bool> &param_info)
-{
-	return param_info.param ? "Reverse" : "Forward";
-});
 
 // WHY: When the executor flies in reverse, the "anchor" for the target segment is the
 //      next position item *after* the target. If that anchor is in an MC zone and the
@@ -374,13 +381,13 @@ TEST_F(MissionBaseVtolTest, BackTransitionDetectedInReverse)
 		makePositionItem(kLat + 0.002, kLon, kAlt),
 	};
 
-	mission_base->loadTestMission(items);
-	mission_base->setVehicleStatus(true, true, false); // VTOL in FW mode
+	mission_base.loadTestMission(items);
+	mission_base.setVehicleStatus(true, true, false); // VTOL in FW mode
 
 	// Target index 2 reversed: anchor is idx 3+ → VTOL_MC → MC zone.
 	// FW vehicle needs BackTransition.
-	EXPECT_EQ(mission_base->vtolTransitionActionForTarget(2, true),
-		  TestMissionBase::VtolTransitionAction::BackTransition);
+	EXPECT_EQ(mission_base.vtolTransitionActionForTarget(2, true),
+		  MissionBaseTestPeer::VtolTransitionAction::BackTransition);
 }
 
 // WHY: When the executor flies in reverse and the anchor lands in an FW zone while the
@@ -396,14 +403,14 @@ TEST_F(MissionBaseVtolTest, FrontTransitionDetectedInReverse)
 		makePositionItem(kLat + 0.002, kLon, kAlt),
 	};
 
-	mission_base->loadTestMission(items);
-	mission_base->setVehicleStatus(true, false, false); // VTOL in MC mode
+	mission_base.loadTestMission(items);
+	mission_base.setVehicleStatus(true, false, false); // VTOL in MC mode
 
 	// Target index 1 reversed: anchor is idx 2+ → finds WP at idx 3,
 	// walk back from 3 finds VTOL_FW at idx 2 → FW zone.
 	// MC vehicle needs FrontTransition.
-	EXPECT_EQ(mission_base->vtolTransitionActionForTarget(1, true),
-		  TestMissionBase::VtolTransitionAction::FrontTransition);
+	EXPECT_EQ(mission_base.vtolTransitionActionForTarget(1, true),
+		  MissionBaseTestPeer::VtolTransitionAction::FrontTransition);
 }
 
 // WHY: The executor walks the route forward and must know, for each target waypoint,
@@ -426,25 +433,25 @@ TEST_F(MissionBaseVtolTest, MidRouteTransitionsDetectedNominal)
 		makeLandItem(kLat + 0.012, kLon, kAlt - 10.f),
 	};
 
-	mission_base->loadTestMission(items);
+	mission_base.loadTestMission(items);
 
 	// MC vehicle: FW zones require FrontTransition, MC zones are None.
-	mission_base->setVehicleStatus(true, false, false); // VTOL MC
-	EXPECT_EQ(mission_base->vtolTransitionActionForTarget(3, false),
-		  TestMissionBase::VtolTransitionAction::FrontTransition);
-	EXPECT_EQ(mission_base->vtolTransitionActionForTarget(4, false),
-		  TestMissionBase::VtolTransitionAction::FrontTransition);
-	EXPECT_EQ(mission_base->vtolTransitionActionForTarget(6, false),
-		  TestMissionBase::VtolTransitionAction::None);
+	mission_base.setVehicleStatus(true, false, false); // VTOL MC
+	EXPECT_EQ(mission_base.vtolTransitionActionForTarget(3, false),
+		  MissionBaseTestPeer::VtolTransitionAction::FrontTransition);
+	EXPECT_EQ(mission_base.vtolTransitionActionForTarget(4, false),
+		  MissionBaseTestPeer::VtolTransitionAction::FrontTransition);
+	EXPECT_EQ(mission_base.vtolTransitionActionForTarget(6, false),
+		  MissionBaseTestPeer::VtolTransitionAction::None);
 
 	// FW vehicle: MC zones require BackTransition, FW zones are None.
-	mission_base->setVehicleStatus(true, true, false); // VTOL FW
-	EXPECT_EQ(mission_base->vtolTransitionActionForTarget(3, false),
-		  TestMissionBase::VtolTransitionAction::None);
-	EXPECT_EQ(mission_base->vtolTransitionActionForTarget(4, false),
-		  TestMissionBase::VtolTransitionAction::None);
-	EXPECT_EQ(mission_base->vtolTransitionActionForTarget(6, false),
-		  TestMissionBase::VtolTransitionAction::BackTransition);
+	mission_base.setVehicleStatus(true, true, false); // VTOL FW
+	EXPECT_EQ(mission_base.vtolTransitionActionForTarget(3, false),
+		  MissionBaseTestPeer::VtolTransitionAction::None);
+	EXPECT_EQ(mission_base.vtolTransitionActionForTarget(4, false),
+		  MissionBaseTestPeer::VtolTransitionAction::None);
+	EXPECT_EQ(mission_base.vtolTransitionActionForTarget(6, false),
+		  MissionBaseTestPeer::VtolTransitionAction::BackTransition);
 }
 
 // WHY: The RTL executor may walk the route in reverse (direction_reversed=true). In that
@@ -466,24 +473,24 @@ TEST_F(MissionBaseVtolTest, MidRouteTransitionsDetectedReverse)
 		makeLandItem(kLat + 0.012, kLon, kAlt - 10.f),
 	};
 
-	mission_base->loadTestMission(items);
+	mission_base.loadTestMission(items);
 
 	// FW vehicle flying in reverse:
 	// Target 4 reversed: anchor idx 5+ → VTOL_MC → MC zone → BackTransition.
-	mission_base->setVehicleStatus(true, true, false); // VTOL FW
-	EXPECT_EQ(mission_base->vtolTransitionActionForTarget(4, true),
-		  TestMissionBase::VtolTransitionAction::BackTransition);
+	mission_base.setVehicleStatus(true, true, false); // VTOL FW
+	EXPECT_EQ(mission_base.vtolTransitionActionForTarget(4, true),
+		  MissionBaseTestPeer::VtolTransitionAction::BackTransition);
 
 	// MC vehicle flying in reverse:
 	// Target 1 reversed: anchor idx 2+ → finds VTOL_FW → FW zone → FrontTransition.
-	mission_base->setVehicleStatus(true, false, false); // VTOL MC
-	EXPECT_EQ(mission_base->vtolTransitionActionForTarget(1, true),
-		  TestMissionBase::VtolTransitionAction::FrontTransition);
+	mission_base.setVehicleStatus(true, false, false); // VTOL MC
+	EXPECT_EQ(mission_base.vtolTransitionActionForTarget(1, true),
+		  MissionBaseTestPeer::VtolTransitionAction::FrontTransition);
 
 	// MC vehicle, target 6 reversed: anchor idx 7 → land item → getVtolState walks
 	// back and finds VTOL_MC at idx 5 → MC zone → None.
-	EXPECT_EQ(mission_base->vtolTransitionActionForTarget(6, true),
-		  TestMissionBase::VtolTransitionAction::None);
+	EXPECT_EQ(mission_base.vtolTransitionActionForTarget(6, true),
+		  MissionBaseTestPeer::VtolTransitionAction::None);
 }
 
 // WHY: A mission with alternating FW/MC zones exercises the boundary conditions of the
@@ -508,28 +515,28 @@ TEST_F(MissionBaseVtolTest, MultiTransitionMissionDetectsCorrectAction)
 		makePositionItem(kLat + 0.005, kLon, kAlt),                           // idx 9
 	};
 
-	mission_base->loadTestMission(items);
+	mission_base.loadTestMission(items);
 
 	// FW vehicle: target 2 (FW zone) reversed → None.
-	mission_base->setVehicleStatus(true, true, false);
-	EXPECT_EQ(mission_base->vtolTransitionActionForTarget(2, true),
-		  TestMissionBase::VtolTransitionAction::None);
+	mission_base.setVehicleStatus(true, true, false);
+	EXPECT_EQ(mission_base.vtolTransitionActionForTarget(2, true),
+		  MissionBaseTestPeer::VtolTransitionAction::None);
 
 	// MC vehicle: target 2 (FW zone) reversed → FrontTransition.
-	mission_base->setVehicleStatus(true, false, false);
-	EXPECT_EQ(mission_base->vtolTransitionActionForTarget(2, true),
-		  TestMissionBase::VtolTransitionAction::FrontTransition);
+	mission_base.setVehicleStatus(true, false, false);
+	EXPECT_EQ(mission_base.vtolTransitionActionForTarget(2, true),
+		  MissionBaseTestPeer::VtolTransitionAction::FrontTransition);
 
 	// FW vehicle: target 7 (FW zone after VTOL_FW@6) reversed →
 	//   anchor is idx 8+ → VTOL_MC → MC zone → BackTransition.
-	mission_base->setVehicleStatus(true, true, false);
-	EXPECT_EQ(mission_base->vtolTransitionActionForTarget(7, true),
-		  TestMissionBase::VtolTransitionAction::BackTransition);
+	mission_base.setVehicleStatus(true, true, false);
+	EXPECT_EQ(mission_base.vtolTransitionActionForTarget(7, true),
+		  MissionBaseTestPeer::VtolTransitionAction::BackTransition);
 
 	// MC vehicle: target 7 reversed → MC zone → None.
-	mission_base->setVehicleStatus(true, false, false);
-	EXPECT_EQ(mission_base->vtolTransitionActionForTarget(7, true),
-		  TestMissionBase::VtolTransitionAction::None);
+	mission_base.setVehicleStatus(true, false, false);
+	EXPECT_EQ(mission_base.vtolTransitionActionForTarget(7, true),
+		  MissionBaseTestPeer::VtolTransitionAction::None);
 }
 
 // ============================================================================
@@ -549,10 +556,10 @@ TEST_F(MissionBaseVtolTest, FindNextSkipsNonPositionItems)
 		makePositionItem(kLat + 0.001, kLon, kAlt),                           // idx 2
 	};
 
-	mission_base->loadTestMission(items);
+	mission_base.loadTestMission(items);
 
 	int32_t next = -1;
-	EXPECT_TRUE(mission_base->findNextPositionIndexNoJump(1, next));
+	EXPECT_TRUE(mission_base.findNextPositionIndexNoJump(1, next));
 	EXPECT_EQ(next, 2);
 }
 
@@ -569,10 +576,10 @@ TEST_F(MissionBaseVtolTest, FindNextSkipsDoJumpItems)
 		makePositionItem(kLat + 0.002, kLon, kAlt),     // idx 3
 	};
 
-	mission_base->loadTestMission(items);
+	mission_base.loadTestMission(items);
 
 	int32_t next = -1;
-	EXPECT_TRUE(mission_base->findNextPositionIndexNoJump(1, next));
+	EXPECT_TRUE(mission_base.findNextPositionIndexNoJump(1, next));
 	EXPECT_EQ(next, 2);
 }
 
@@ -589,10 +596,10 @@ TEST_F(MissionBaseVtolTest, FindNextSkipsConsecutiveNonPositionItems)
 		makePositionItem(kLat + 0.001, kLon, kAlt),                           // idx 3
 	};
 
-	mission_base->loadTestMission(items);
+	mission_base.loadTestMission(items);
 
 	int32_t next = -1;
-	EXPECT_TRUE(mission_base->findNextPositionIndexNoJump(1, next));
+	EXPECT_TRUE(mission_base.findNextPositionIndexNoJump(1, next));
 	EXPECT_EQ(next, 3);
 }
 
@@ -606,10 +613,34 @@ TEST_F(MissionBaseVtolTest, FindNextReturnsFalseAtEnd)
 		makeDoJump(0, 3),                    // idx 1
 	};
 
-	mission_base->loadTestMission(items);
+	mission_base.loadTestMission(items);
 
 	int32_t next = -1;
-	EXPECT_FALSE(mission_base->findNextPositionIndexNoJump(1, next));
+	EXPECT_FALSE(mission_base.findNextPositionIndexNoJump(1, next));
+}
+
+// WHY: Route traversal must stop cleanly when the next cache read fails.
+// WHAT: A cache failure on the next position item makes findNextPositionIndexNoJump return false.
+TEST_F(MissionBaseVtolTest, FindNextReturnsFalseOnCacheReadFailure)
+{
+	// GIVEN: A mission whose next position item cannot be loaded.
+	std::vector<mission_item_s> items = {
+		makePositionItem(kLat, kLon, kAlt),
+		makeDoJump(0, 3),
+		makePositionItem(kLat + 0.001, kLon, kAlt),
+	};
+
+	mission_base.loadTestMission(items);
+	mission_base.setLoadFailureIndices({2});
+
+	int32_t next = -1;
+
+	// WHEN: findNextPositionIndexNoJump advances past the DO_JUMP item.
+	const bool found = mission_base.findNextPositionIndexNoJump(1, next);
+
+	// THEN: The unreadable next position item causes a clean failure.
+	EXPECT_FALSE(found);
+	EXPECT_EQ(next, -1);
 }
 
 // WHY: findPreviousPositionIndexNoJump walks backward and must explicitly skip DO_JUMP
@@ -625,10 +656,10 @@ TEST_F(MissionBaseVtolTest, FindPreviousSkipsDoJumpItems)
 		makePositionItem(kLat + 0.002, kLon, kAlt),     // idx 3
 	};
 
-	mission_base->loadTestMission(items);
+	mission_base.loadTestMission(items);
 
 	int32_t prev = -1;
-	EXPECT_TRUE(mission_base->findPreviousPositionIndexNoJump(3, prev));
+	EXPECT_TRUE(mission_base.findPreviousPositionIndexNoJump(3, prev));
 	EXPECT_EQ(prev, 1);
 }
 
@@ -644,10 +675,10 @@ TEST_F(MissionBaseVtolTest, FindPreviousSkipsConsecutiveDoJumps)
 		makePositionItem(kLat + 0.001, kLon, kAlt),     // idx 3
 	};
 
-	mission_base->loadTestMission(items);
+	mission_base.loadTestMission(items);
 
 	int32_t prev = -1;
-	EXPECT_TRUE(mission_base->findPreviousPositionIndexNoJump(3, prev));
+	EXPECT_TRUE(mission_base.findPreviousPositionIndexNoJump(3, prev));
 	EXPECT_EQ(prev, 0);
 }
 
@@ -661,8 +692,144 @@ TEST_F(MissionBaseVtolTest, FindPreviousReturnsFalseWhenOnlyJumpsBefore)
 		makePositionItem(kLat, kLon, kAlt),          // idx 1
 	};
 
-	mission_base->loadTestMission(items);
+	mission_base.loadTestMission(items);
 
 	int32_t prev = -1;
-	EXPECT_FALSE(mission_base->findPreviousPositionIndexNoJump(1, prev));
+	EXPECT_FALSE(mission_base.findPreviousPositionIndexNoJump(1, prev));
+}
+
+// WHY: getNextPositionItems is used by legacy Mission and mission-based RTL flows, so it must
+//      follow active DO_JUMP control flow rather than treating jumps as geometry-only.
+// WHAT: [WP0, WP1, DO_JUMP->0, WP3] starting from idx 2 returns WP0 then WP1.
+TEST_F(MissionBaseVtolTest, GetNextPositionItemsFollowsActiveDoJump)
+{
+	std::vector<mission_item_s> items = {
+		makePositionItem(kLat, kLon, kAlt),
+		makePositionItem(kLat + 0.001, kLon, kAlt),
+		makeDoJump(0, 2, 0),
+		makePositionItem(kLat + 0.002, kLon, kAlt),
+	};
+
+	mission_base.loadTestMission(items);
+
+	int32_t next_items[2] = {-1, -1};
+	size_t num_found_items = 0;
+	mission_base.getNextPositionItems(2, next_items, num_found_items, 2u);
+
+	ASSERT_EQ(num_found_items, 2u);
+	EXPECT_EQ(next_items[0], 0);
+	EXPECT_EQ(next_items[1], 1);
+}
+
+// WHY: getPreviousPositionItems is also shared legacy logic and must honor an active
+//      DO_JUMP when traversing backward through the mission flow.
+// WHAT: [WP0, WP1, DO_JUMP->0, WP3] starting from idx 3 returns WP0 as the previous item.
+TEST_F(MissionBaseVtolTest, GetPreviousPositionItemsFollowsActiveDoJump)
+{
+	std::vector<mission_item_s> items = {
+		makePositionItem(kLat, kLon, kAlt),
+		makePositionItem(kLat + 0.001, kLon, kAlt),
+		makeDoJump(0, 2, 0),
+		makePositionItem(kLat + 0.002, kLon, kAlt),
+	};
+
+	mission_base.loadTestMission(items);
+
+	int32_t previous_items[1] = {-1};
+	size_t num_found_items = 0;
+	mission_base.getPreviousPositionItems(3, previous_items, num_found_items, 1u);
+
+	ASSERT_EQ(num_found_items, 1u);
+	EXPECT_EQ(previous_items[0], 0);
+}
+
+// WHY: Projection-based replans must remember which active DO_JUMP edge the vehicle was flying
+//      before advancing, otherwise rejoin logic near loops can snap to the wrong segment.
+// WHAT: [WP0, WP1, WP2, DO_JUMP->0 repeat=3 current=1, WP3] at current_seq=2 tracks loop edge 2->0.
+TEST_F(MissionBaseVtolTest, TracksActiveLoopSegmentBeforeNominalAdvance)
+{
+	std::vector<mission_item_s> items = {
+		makePositionItem(kLat, kLon, kAlt),
+		makePositionItem(kLat + 0.001, kLon, kAlt),
+		makePositionItem(kLat + 0.002, kLon, kAlt),
+		makeDoJump(0, 3, 1),
+		makePositionItem(kLat + 0.003, kLon, kAlt),
+	};
+
+	mission_base.loadTestMission(items);
+	mission_base.setCurrentSequence(2);
+
+	MissionRoutePlanner::Segment segment{};
+	mission_base.updateLastFlownLoopSegmentForNominalAdvance(segment);
+
+	EXPECT_TRUE(segment.valid());
+	EXPECT_TRUE(segment.is_loop);
+	EXPECT_EQ(segment.start.idx, 2);
+	EXPECT_EQ(segment.start.nav_cmd, NAV_CMD_WAYPOINT);
+	EXPECT_EQ(segment.end.idx, 0);
+	EXPECT_EQ(segment.end.nav_cmd, NAV_CMD_WAYPOINT);
+	EXPECT_EQ(segment.loops_remaining, 2);
+}
+
+// WHY: When there is no active loop ahead, the cached loop edge must be cleared so later replans
+//      do not keep biasing candidate selection toward a stale jump segment.
+// WHAT: Plain waypoint mission leaves the returned segment invalid.
+TEST_F(MissionBaseVtolTest, ClearsLoopSegmentWhenNoActiveJumpAhead)
+{
+	std::vector<mission_item_s> items = {
+		makePositionItem(kLat, kLon, kAlt),
+		makePositionItem(kLat + 0.001, kLon, kAlt),
+		makePositionItem(kLat + 0.002, kLon, kAlt),
+	};
+
+	mission_base.loadTestMission(items);
+	mission_base.setCurrentSequence(1);
+
+	MissionRoutePlanner::Segment segment{};
+	segment.start.idx = 7;
+	segment.start.nav_cmd = NAV_CMD_WAYPOINT;
+	segment.end.idx = 2;
+	segment.end.nav_cmd = NAV_CMD_WAYPOINT;
+	segment.is_loop = true;
+	segment.loops_remaining = 5;
+
+	mission_base.updateLastFlownLoopSegmentForNominalAdvance(segment);
+
+	EXPECT_FALSE(segment.valid());
+	EXPECT_FALSE(segment.is_loop);
+	EXPECT_EQ(segment.start.idx, -1);
+	EXPECT_EQ(segment.end.idx, -1);
+	EXPECT_EQ(segment.loops_remaining, 0);
+}
+
+// WHY: Malformed DO_JUMP targets must clear any cached loop edge instead of leaving stale state behind.
+// WHAT: An invalid jump target makes updateLastFlownLoopSegmentForNominalAdvance return an invalid segment.
+TEST_F(MissionBaseVtolTest, InvalidDoJumpTargetClearsLoopSegment)
+{
+	// GIVEN: A mission with a DO_JUMP whose target index does not resolve to a valid position item.
+	std::vector<mission_item_s> items = {
+		makePositionItem(kLat, kLon, kAlt),
+		makePositionItem(kLat + 0.001, kLon, kAlt),
+		makeDoJump(10, 3, 1),
+		makePositionItem(kLat + 0.002, kLon, kAlt),
+	};
+
+	mission_base.loadTestMission(items);
+	mission_base.setCurrentSequence(1);
+
+	MissionRoutePlanner::Segment segment{};
+	segment.start.idx = 7;
+	segment.end.idx = 2;
+	segment.is_loop = true;
+	segment.loops_remaining = 4;
+
+	// WHEN: The helper tries to derive the active loop segment from the malformed jump.
+	mission_base.updateLastFlownLoopSegmentForNominalAdvance(segment);
+
+	// THEN: The cached loop segment is cleared instead of keeping stale routing state.
+	EXPECT_FALSE(segment.valid());
+	EXPECT_FALSE(segment.is_loop);
+	EXPECT_EQ(segment.start.idx, -1);
+	EXPECT_EQ(segment.end.idx, -1);
+	EXPECT_EQ(segment.loops_remaining, 0);
 }

@@ -113,3 +113,42 @@ parameters:
       unit: s
       min: 0
       decimal: 1
+    MIS_ROUTE_JOIN:
+      description:
+        short: Enable smart mission-route rejoin on Mission activation
+        long: |-
+          If enabled and the vehicle is off the uploaded route when Mission mode is
+          activated, Navigator projects the vehicle back onto the planned mission
+          geometry and inserts a temporary branch-in waypoint before resuming the
+          mission. If disabled, Mission mode falls back to the legacy behavior and
+          flies directly to the current mission item.
+      type: boolean
+      default: 0
+    MIS_MC_SEG_DIST:
+      description:
+        short: Extra cross-track search distance for multicopter route projections
+        long: |-
+          When projecting the vehicle position onto the uploaded mission route for Mission resume or RTL_TYPE = 6.
+          A projection point is only considered a valid candidate if the crosstrack distance
+          from the vehicle to the segment does not not exceed the crosstrack distance
+          from the vehicle to the closest available segment plus the allowed margin: MIS_MC_SEG_DIST.
+      type: float
+      default: 30.0
+      unit: m
+      min: 0
+      decimal: 1
+      increment: 1
+    MIS_FW_SEG_DIST:
+      description:
+        short: Extra cross-track search distance for fixed-wing mission-route projections
+        long: |-
+          When projecting the vehicle position onto the uploaded mission route for Mission resume or RTL_TYPE = 6.
+          A projection point is only considered a valid candidate if the crosstrack distance
+          from the vehicle to the segment does not not exceed the crosstrack distance
+          from the vehicle to the closest available segment plus the allowed margin: MIS_FW_SEG_DIST.
+      type: float
+      default: 150.0
+      unit: m
+      min: 0
+      decimal: 1
+      increment: 1

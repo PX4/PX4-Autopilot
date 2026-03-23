@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file rtl_route_planner.h
+ * @file mission_route_planner.h
  *
  * Route planner for safe-point RTL (RTL_TYPE = 6).  Projects the vehicle
  * and every safe point onto the uploaded mission geometry, then selects
@@ -53,7 +53,7 @@
 #include <matrix/math.hpp>
 #include <px4_platform_common/defines.h>
 
-class RtlRoutePlanner
+class MissionRoutePlanner
 {
 public:
 	static constexpr float kRoundingToleranceM{0.1f};
@@ -61,9 +61,9 @@ public:
 	static constexpr double kCornerLatLonTolDeg{1e-5};
 	static constexpr uint8_t MAX_SEGMENT_CANDIDATES{3};
 	/**
-	 * Maximum safe points evaluated per planning cycle.
-	 * NOTE: RtlStatus.msg uses uint8_t for safe_point_index, so this must stay <= 255.
-	 * If raised above 255, the constrain() in rtl.cpp::setRtlTypeAndDestination will silently truncate.
+	 * Maximum safe points evaluated per planning pass.
+	 * NOTE: Config::usable_safe_point_bitmask uses one bit per safe point, so this must stay <= 64.
+	 * RtlStatus.msg also uses uint8_t for safe_point_index, so this must stay <= 255.
 	 */
 	static constexpr uint8_t MAX_SAFE_POINT_BATCH{64};
 
@@ -260,6 +260,7 @@ public:
 
 	struct JoinContext {
 		Position projection{};
+		float desired_yaw{NAN};
 		bool skip_altitude_requirement{false};
 
 		bool valid() const { return projection.valid(); }
@@ -288,6 +289,7 @@ public:
 		bool vehicle_in_transition_to_fw{false};
 		float u_turn_penalty_m{4000.f};
 		Segment last_flown_loop_segment{};
+		uint64_t usable_safe_point_bitmask{~0ULL};
 	};
 
 	enum class FailureReason : uint8_t {
@@ -305,9 +307,10 @@ public:
 	/**
 	 * @brief Abstraction for mission and safe-point data access.
 	 *
-	 * Production code uses the RtlRoutePlannerProvider in rtl.cpp (reads from dataman).
-	 * Unit tests supply a VectorProvider backed by std::vector, which keeps the planner
-	 * testable without any dataman or uORB dependencies.
+	 * Production code uses MissionRouteCache as the provider and dataman abstraction
+	 * for mission geometry, safe points, and mission-land items. Unit tests supply a
+	 * VectorProvider backed by std::vector, which keeps the planner testable without
+	 * any dataman or uORB dependencies.
 	 */
 	class Provider
 	{
@@ -353,12 +356,22 @@ public:
 		}
 	};
 
-	explicit RtlRoutePlanner(const Provider &provider) : _provider(provider) {}
+	explicit MissionRoutePlanner(const Provider &provider) : _provider(provider) {}
 
 	/** @brief Project the vehicle onto the mission route and choose the continuity-preserving branch-in candidate. */
 	bool collectVehicleProjection(const Position &vehicle_position, int32_t mission_index,
 				      const Config &config, ProjectionContext &projection_context,
 				      FailureReason *failure_reason) const;
+	/** @brief Build a nominal-direction path from the current projection to a mission goal. */
+	Path findNominalPathToGoal(uint16_t goal_segment_end_idx, float goal_dist_along,
+				   const ProjectionContext &projection_context,
+				   const Config &config) const;
+	/** @brief Build a reverse-direction path from the current projection to a mission goal. */
+	Path findReversePathToGoal(uint16_t goal_segment_end_idx, float goal_dist_along,
+				   const ProjectionContext &projection_context,
+				   const Config &config) const;
+	/** @brief Build the shared join-route context, including the preferred front-transition heading. */
+	JoinContext buildJoinContext(const ProjectionContext &projection_context, const Path &path) const;
 
 	/** @brief Evaluate all valid safe points and choose the best route-follow return target. */
 	Selection selectSafePoint(const ProjectionContext &projection_context, const Config &config) const;
@@ -420,8 +433,8 @@ private:
 	/** @brief Find the position item attached to or preceding the given mission index. */
 	bool findAttachedValidPositionIndex(uint16_t start_index, float home_altitude_amsl,
 					    uint16_t &attached_position_index) const;
-	/** @brief Load all valid safe points once so the route can be scanned in a single batch. */
-	bool loadSafePointBatch(float home_altitude_amsl, SafePointBatch &batch) const;
+	/** @brief Load the valid safe points that fit in the single planner pass. */
+	void loadSafePointBatch(float home_altitude_amsl, const Config &config, SafePointBatch &batch) const;
 	/** @brief Clear all per-safe-point candidate buffers before running a new batch scan. */
 	void resetSafePointBatchResults(SafePointBatch &batch) const;
 	/** @brief Advance mission scanning state to the next position-bearing segment end. */
@@ -483,6 +496,8 @@ private:
 	/** @brief Compute the desired course used for fixed-wing U-turn detection. */
 	void computeDesiredCourseVector(const ProjectionContext &projection_context, bool will_fly_reverse,
 					float &desired_course_north, float &desired_course_east) const;
+	/** @brief Convert the desired course into a yaw angle for front-transition alignment after joining the route. */
+	float computeDesiredCourseYaw(const ProjectionContext &projection_context, bool will_fly_reverse) const;
 	/** @brief Check whether a fixed-wing route change implies an immediate U-turn. */
 	bool uTurnRequired(const ProjectionContext &projection_context, const Config &config,
 			   bool will_fly_reverse) const;
