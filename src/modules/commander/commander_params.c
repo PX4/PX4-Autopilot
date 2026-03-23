@@ -1039,13 +1039,14 @@ PARAM_DEFINE_INT32(COM_MODE_ARM_CHK, 0);
  *
  * When losing the data link connection to the vehicle, it may be desirable
  * to re-enable or disable specific estimator fusions (GNSS, AGP) such that
- * the vehicle can continue fully autonomously.
+ * the vehicle can continue fully autonomously. 0: no action
  *
  * @group Commander
- * @value 0 Continue as before
- * @value 1 Use GPS Only
- * @value 2 Use VIS Only
- * @value 3 Use GPS & VIS
+ * @min 0
+ * @max 7
+ * @bit 0 GPS
+ * @bit 1 AGP0
+ * @bit 2 AGP1
  */
 PARAM_DEFINE_INT32(COM_DLL_NAV_CTL, 0);
 

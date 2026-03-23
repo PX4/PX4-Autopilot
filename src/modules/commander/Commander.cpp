@@ -2951,41 +2951,23 @@ void Commander::dataLinkCheck()
 			_status_changed = true;
 
 			if (_actuator_armed.armed) {
-				static constexpr int disabled = 0; // disabled state
+				const int32_t nav_ctl = _param_com_dll_nav_ctl.get();
 
-				// Reset fusion control settings to parameter default if link is lost, dependant on user config
-				switch (_param_com_dll_nav_ctl.get()) {
-				case 0:
-					// continue as before
-					break;
+				if (nav_ctl != 0) {
+					const bool gps_en  = nav_ctl & (1 << 0);
+					const bool agp0_en = nav_ctl & (1 << 1);
+					const bool agp1_en = nav_ctl & (1 << 2);
 
-				case 1:
-					// Reset GNSS fusion
-					param_reset(param_find("EKF2_GPS_CTRL"));
-					// Disable AGP fusion
-					param_set(param_find("EKF2_AGP_CTRL"), &disabled);
-					PX4_INFO("Link loss, reset EKF2_GPS_CTRL and disabled EKF2_AGP_CTRL");
-					break;
+					send_vehicle_command(vehicle_command_s::VEHICLE_CMD_SET_EKF_SENSOR_FUSION,
+							     vehicle_command_s::FUSION_SOURCE_GPS, 0.f, gps_en ? 1.f : 0.f);
 
-				case 2:
-					// Reset AGP fusion
-					param_reset(param_find("EKF2_AGP_CTRL"));
-					// Disable GNSS fusion
-					param_set(param_find("EKF2_GPS_CTRL"), &disabled);
-					PX4_INFO("Link loss, reset EKF2_AGP_CTRL and disabled EKF2_GPS_CTRL");
-					break;
+					send_vehicle_command(vehicle_command_s::VEHICLE_CMD_SET_EKF_SENSOR_FUSION,
+							     vehicle_command_s::FUSION_SOURCE_AGP, 0.f, agp0_en ? 1.f : 0.f);
 
-				case 3:
-					// Reset GNSS and AGP fusion
-					param_reset(param_find("EKF2_GPS_CTRL"));
-					param_reset(param_find("EKF2_AGP_CTRL"));
-					PX4_INFO("Link loss, reset EKF2_GPS_CTRL and EKF2_AGP_CTRL");
-					break;
+					send_vehicle_command(vehicle_command_s::VEHICLE_CMD_SET_EKF_SENSOR_FUSION,
+							     vehicle_command_s::FUSION_SOURCE_AGP, 1.f, agp1_en ? 1.f : 0.f);
 
-				default:
-					// No action
-					PX4_INFO("Link loss, unknown fusion reset specified - no action taken");
-					break;
+					PX4_INFO("Link loss, nav source override: GPS=%d AGP0=%d AGP1=%d", gps_en, agp0_en, agp1_en);
 				}
 			}
 		}
