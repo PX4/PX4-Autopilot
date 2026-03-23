@@ -75,6 +75,7 @@
 #include "checks/openDroneIDCheck.hpp"
 #include "checks/trafficAvoidanceCheck.hpp"
 #include "checks/externalChecks.hpp"
+#include "checks/gpsRedundancyCheck.hpp"
 
 class HealthAndArmingChecks : public ModuleParams
 {
@@ -164,6 +165,7 @@ private:
 	VtolChecks _vtol_checks;
 	OffboardChecks _offboard_checks;
 	TrafficAvoidanceChecks _traffic_avoidance_checks;
+	GpsRedundancyChecks _gps_redundancy_checks;
 #ifndef CONSTRAINED_FLASH
 	ExternalChecks _external_checks;
 #endif
@@ -206,5 +208,6 @@ private:
 		&_rc_and_data_link_checks,
 		&_vtol_checks,
 		&_traffic_avoidance_checks,
+		&_gps_redundancy_checks,
 	};
 };

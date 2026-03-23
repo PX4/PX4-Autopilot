@@ -385,6 +385,36 @@ FailsafeBase::ActionOptions Failsafe::fromPosLowActParam(int param_value)
 	return options;
 }
 
+FailsafeBase::ActionOptions Failsafe::fromGpsRedundancyActParam(int param_value)
+{
+	ActionOptions options{};
+
+	switch (gps_redundancy_failsafe_mode(param_value)) {
+	case gps_redundancy_failsafe_mode::Warning:
+	default:
+		options.action = Action::Warn;
+		break;
+
+	case gps_redundancy_failsafe_mode::Return_mode:
+		options.action = Action::RTL;
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
+		break;
+
+	case gps_redundancy_failsafe_mode::Land_mode:
+		options.action = Action::Land;
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
+		break;
+
+	case gps_redundancy_failsafe_mode::Terminate:
+		options.allow_user_takeover = UserTakeoverAllowed::Never;
+		options.action = Action::Terminate;
+		options.clear_condition = ClearCondition::Never;
+		break;
+	}
+
+	return options;
+}
+
 FailsafeBase::ActionOptions Failsafe::fromRemainingFlightTimeLowActParam(int param_value)
 {
 	ActionOptions options{};
@@ -642,6 +672,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 
 	CHECK_FAILSAFE(status_flags, fd_imbalanced_prop, Action::Warn);
 	CHECK_FAILSAFE(status_flags, fd_motor_failure, fromActuatorFailureActParam(_param_com_actuator_failure_act.get()));
+	CHECK_FAILSAFE(status_flags, gps_redundancy_lost, fromGpsRedundancyActParam(_param_com_gps_loss_act.get()));
 
 
 

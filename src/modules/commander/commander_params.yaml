@@ -131,6 +131,19 @@ parameters:
         1: Allow arming (with warning)
         2: Allow arming (no warning)
       default: 1
+    COM_GPS_LOSS_ACT:
+      description:
+        short: GPS redundancy loss failsafe mode
+        long: |-
+          Action the system takes when the number of active GPS receivers drops
+          below SYS_HAS_NUM_GPS during flight.
+      type: enum
+      values:
+        0: Warning
+        1: Return
+        2: Land
+        3: Terminate
+      default: 0
     COM_ARM_SWISBTN:
       description:
         short: Arm switch is a momentary button

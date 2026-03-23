@@ -61,3 +61,4 @@ bool position_accuracy_low            # Position estimate has dropped below thre
 bool navigator_failure        	      # Navigator failed to execute a mode
 bool parachute_unhealthy              # Parachute system missing or unhealthy
 bool remote_id_unhealthy              # Remote ID (Open Drone ID) system missing or unhealthy
+bool gps_redundancy_lost              # Number of active GPS receivers dropped below COM_GPS_MIN

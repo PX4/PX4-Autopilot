@@ -48,6 +48,7 @@ px4_add_library(health_and_arming_checks
 	checks/failureDetectorCheck.cpp
 	checks/flightTimeCheck.cpp
 	checks/geofenceCheck.cpp
+	checks/gpsRedundancyCheck.cpp
 	checks/gyroCheck.cpp
 	checks/homePositionCheck.cpp
 	checks/imuConsistencyCheck.cpp
@@ -77,4 +78,8 @@ add_dependencies(health_and_arming_checks mode_util)
 
 px4_add_functional_gtest(SRC HealthAndArmingChecksTest.cpp
 	LINKLIBS health_and_arming_checks mode_util
+	)
+
+px4_add_functional_gtest(SRC GpsRedundancyCheckTest.cpp
+	LINKLIBS health_and_arming_checks mode_util geo
 	)
