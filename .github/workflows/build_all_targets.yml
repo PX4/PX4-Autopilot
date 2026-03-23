@@ -81,7 +81,8 @@ env:
     auterion_fmu-v6n_default,\
     auterion_fmu-v6n_bootloader,\
     auterion_fmu-v6n_flash-analysis,\
-    auterion_fmu-v6n_performance-test"
+    auterion_fmu-v6n_performance-test,\
+    px4_sitl_default" # include sitl for param meta-data used in "Arrange Build Artifacts" step
 
 jobs:
   group_targets:
