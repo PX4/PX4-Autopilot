@@ -63,6 +63,9 @@ def check_title(title: str) -> bool:
         print("PR title is empty.", file=sys.stderr)
         return False
 
+    # APX4: Strip branch label prefixes added by automation (e.g. "[RELEASE/3.4]")
+    title = re.sub(r'^\[[^\]]+\]\s*', '', title)
+
     for prefix in EXEMPT_PREFIXES:
         if title.startswith(prefix):
             return True
