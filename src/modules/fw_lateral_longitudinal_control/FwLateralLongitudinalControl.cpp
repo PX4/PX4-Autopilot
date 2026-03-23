@@ -303,6 +303,17 @@ void FwLateralLongitudinalControl::Run()
 			float yaw_body = _yaw;
 			const float thrust_body_x = PX4_ISFINITE(throttle_sp) ? throttle_sp : 0.0f;
 
+			// Reduce max bank angle during underspeed to lower load factor
+			const float underspeed_ratio = _tecs.get_underspeed_ratio();
+
+			if (underspeed_ratio > FLT_EPSILON) {
+				constexpr float MAX_BANK_UNDERSPEED = 5.0f; // [deg] near wings-level at full underspeed
+				const float max_bank_normal = radians(_param_fw_r_lim.get());
+				const float max_bank_underspeed = radians(MAX_BANK_UNDERSPEED);
+				const float bank_limit = (1.0f - underspeed_ratio) * max_bank_normal + underspeed_ratio * max_bank_underspeed;
+				roll_body = constrain(roll_body, -bank_limit, bank_limit);
+			}
+
 			if (_control_mode_sub.get().flag_control_manual_enabled) {
 				roll_body = constrain(roll_body, -radians(_param_fw_r_lim.get()),
 						      radians(_param_fw_r_lim.get()));

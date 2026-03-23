@@ -216,8 +216,6 @@ public:
 		float altitude_setpoint_gain_ff;	///< Gain from altitude demand derivative to demanded climb rate.
 
 		// Airspeed control param
-		/// [0,1] percentage of true airspeed trim corresponding to expected (safe) true airspeed tracking errors
-		float tas_error_percentage;
 		float airspeed_error_gain;				///< Airspeed error inverse time constant [1/s].
 
 		// Energy control param
@@ -739,7 +737,6 @@ private:
 		.throttle_min = 0.1f,
 		.altitude_error_gain = 0.2f,
 		.altitude_setpoint_gain_ff = 0.0f,
-		.tas_error_percentage = 0.15f,
 		.airspeed_error_gain = 0.1f,
 		.ste_rate_time_const = 0.1f,
 		.seb_rate_ff = 1.0f,
