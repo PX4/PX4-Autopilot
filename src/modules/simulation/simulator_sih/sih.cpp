@@ -709,7 +709,7 @@ void Sih::send_ranging_beacon(const hrt_abstime &time_now_us)
 		msg.range_accuracy = noise_std;
 		msg.rssi_node = -50;
 		msg.rssi_beacon = -50;
-		msg.sequence = 0;
+		msg.sequence_nr = 0;
 		msg.carrier_freq = 0;
 
 		_ranging_beacon_pub.publish(msg);

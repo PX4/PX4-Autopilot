@@ -15,7 +15,7 @@ float32 vacc                    # [m] Groundbeacon vertical accuracy
 
 int8 rssi_node                  # [dBm] RSSI at node/vehicle side
 int8 rssi_beacon                # [dBm] RSSI at beacon/station side
-uint8 sequence
+uint8 sequence_nr
 uint16 carrier_freq             # [MHz] Carrier frequency
 float32 range_accuracy          # [m] Range accuracy estimate
 
