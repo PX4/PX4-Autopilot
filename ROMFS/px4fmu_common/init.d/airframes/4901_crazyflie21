@@ -21,7 +21,9 @@
 . ${R}etc/init.d/rc.mc_defaults
 
 param set-default SYS_HAS_MAG 0
-param set-default EKF2_SENS_EN 7164 # disable GPS, magnetometer
+param set-default EKF2_OF_CTRL 1
+param set-default EKF2_GPS_CTRL 0
+param set-default EKF2_MAG_TYPE 5
 
 param set-default BAT1_N_CELLS 1
 param set-default BAT1_SOURCE 1
