@@ -36,5 +36,5 @@ jobs:
             --base develop \
             --head ${{ env.pr_branch_name }} \
             --reviewer sfuhrer,bkueng \
-            --title "Upstream merge $(date '+%Y-%m-%d')" \
+            --title "chore(upstream): merge $(date '+%Y-%m-%d')" \
             --body-file pr_body.md
