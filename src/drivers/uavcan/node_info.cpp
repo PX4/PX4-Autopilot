@@ -55,6 +55,15 @@ NodeInfoPublisher::~NodeInfoPublisher()
 void NodeInfoPublisher::handleNodeInfoRetrieved(uavcan::NodeID node_id, const uavcan::protocol::GetNodeInfo_::Response &node_info)
 {
 	const NodeInfo info(node_id, node_info);
+
+	NodeVendor vendor = NodeVendor::UNKNOWN;
+
+	if (strstr(info.name, "iq_motion") != nullptr) {
+		vendor = NodeVendor::VERTIQ;
+	}
+
+	_node_vendors[node_id.get()] = vendor;
+
 	registerDevice(info.node_id.get(), &info, UINT32_MAX, DeviceCapability::NONE);
 
 	startTimerIfNotRunning();

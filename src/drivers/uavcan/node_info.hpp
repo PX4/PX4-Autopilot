@@ -46,6 +46,11 @@ constexpr hrt_abstime 	DEVICE_INFO_PUBLISH_RATE_LIMIT_US 	= 100_ms;
 class NodeInfoPublisher : private uavcan::INodeInfoListener, private uavcan::TimerBase
 {
 public:
+	enum class NodeVendor : uint8_t {
+		UNKNOWN = 0,
+		VERTIQ, // formerly IQ Motion Control hence "iq_motion" vendor name
+	};
+
 	enum class DeviceCapability : uint8_t {
 		NONE = UINT8_MAX,  // Invalid/unset capability value (255)
 		GENERIC = device_information_s::DEVICE_TYPE_GENERIC,
@@ -71,6 +76,13 @@ public:
 
 	// Called by sensor bridges to register device capabilities
 	void registerDeviceCapability(uint8_t node_id, uint32_t device_id, DeviceCapability capability);
+
+	NodeVendor getNodeVendor(uint8_t node_id) const
+	{
+		if (node_id < 1 || node_id > uavcan::NodeID::Max) { return NodeVendor::UNKNOWN; }
+
+		return static_cast<NodeVendor>(_node_vendors[node_id]);
+	}
 
 private:
 	struct NodeInfo {
@@ -129,6 +141,8 @@ private:
 	bool extendDeviceInformationsArray();
 
 	uavcan::NodeInfoRetriever &_node_info_retriever;
+
+	NodeVendor _node_vendors[uavcan::NodeID::Max + 1] {}; // indexed by node_id
 
 	// Device capability tracking
 	DeviceInformation *_device_informations{nullptr};
