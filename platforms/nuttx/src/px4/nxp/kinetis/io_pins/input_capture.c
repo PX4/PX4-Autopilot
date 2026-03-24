@@ -213,22 +213,22 @@ int up_input_capture_get_filter(unsigned channel, capture_filter_t *filter)
 
 				switch (timer_io_channels[channel].timer_channel) {
 
-				case 1:
+				case 0:
 					rvalue = rFILTER(timer) & FTM_FILTER_CH0FVAL_MASK;
 					*filter = (rvalue >> FTM_FILTER_CH0FVAL_SHIFT);
 					break;
 
-				case 2:
+				case 1:
 					rvalue = rFILTER(timer) & FTM_FILTER_CH1FVAL_MASK;
 					*filter = (rvalue >> FTM_FILTER_CH1FVAL_SHIFT);
 					break;
 
-				case 3:
+				case 2:
 					rvalue = rFILTER(timer) & FTM_FILTER_CH2FVAL_MASK;
 					*filter = (rvalue >> FTM_FILTER_CH2FVAL_SHIFT);
 					break;
 
-				case 4:
+				case 3:
 					rvalue = rFILTER(timer) & FTM_FILTER_CH3FVAL_MASK;
 					*filter = (rvalue >> FTM_FILTER_CH3FVAL_SHIFT);
 					break;
@@ -266,25 +266,25 @@ int up_input_capture_set_filter(unsigned channel,  capture_filter_t filter)
 
 			switch (timer_io_channels[channel].timer_channel) {
 
-			case 1:
+			case 0:
 				rvalue = rFILTER(timer) & ~FTM_FILTER_CH0FVAL_MASK;
 				rvalue |= (filter << FTM_FILTER_CH0FVAL_SHIFT);
 				rFILTER(timer) = rvalue;
 				break;
 
-			case 2:
+			case 1:
 				rvalue = rFILTER(timer) & ~FTM_FILTER_CH1FVAL_MASK;
 				rvalue |= (filter << FTM_FILTER_CH1FVAL_SHIFT);
 				rFILTER(timer) = rvalue;
 				break;
 
-			case 3:
+			case 2:
 				rvalue = rFILTER(timer) & ~FTM_FILTER_CH2FVAL_MASK;
 				rvalue |= (filter << FTM_FILTER_CH2FVAL_SHIFT);
 				rFILTER(timer) = rvalue;
 				break;
 
-			case 4:
+			case 3:
 				rvalue = rFILTER(timer) & ~FTM_FILTER_CH2FVAL_MASK;
 				rvalue |= (filter << FTM_FILTER_CH2FVAL_SHIFT);
 				rFILTER(timer) = rvalue;

@@ -339,7 +339,7 @@ int io_timer_validate_channel_index(unsigned channel)
 {
 	int rv = -EINVAL;
 
-	if (channel < MAX_TIMER_IO_CHANNELS && timer_io_channels[channel].timer_channel != 0) {
+	if (channel < MAX_TIMER_IO_CHANNELS) {
 
 		unsigned timer = timer_io_channels[channel].timer_index;
 

@@ -238,7 +238,7 @@ led_pwm_channel_init(unsigned channel)
 {
 	/* Only initialize used channels */
 
-	if (led_pwm_channels[channel].timer_channel) {
+	if (led_pwm_channels[channel].gpio_out) {
 		unsigned timer = led_pwm_channels[channel].timer_index;
 
 		irqstate_t flags = px4_enter_critical_section();
@@ -300,7 +300,7 @@ unsigned led_pwm_servo_get(unsigned channel)
 
 	/* test timer for validity */
 	if ((led_pwm_timers[timer].base == 0) ||
-	    (led_pwm_channels[channel].timer_channel == 0)) {
+	    (led_pwm_channels[channel].gpio_out == 0)) {
 		return value;
 	}
 
