@@ -157,9 +157,8 @@ void AdsbConflict::remove_expired_conflicts()
 {
 	for (uint8_t traffic_index = 0; traffic_index < _traffic_buffer.timestamp.size();) {
 		if (hrt_elapsed_time(&_traffic_buffer.timestamp[traffic_index]) > TRAFFIC_CONFLICT_LIFETIME) {
-			events::send<uint32_t>(events::ID("navigator_traffic_expired"), events::Log::Notice,
-					       "Traffic Conflict {1} Expired and removed from buffer",
-					       _traffic_buffer.icao_address[traffic_index]);
+			events::send(events::ID("navigator_traffic_expired"), events::Log::Notice,
+				     "Traffic cleared");
 			remove_icao_address_from_conflict_list(traffic_index);
 
 		} else {
@@ -182,17 +181,14 @@ bool AdsbConflict::handle_traffic_conflict(bool vehicle_armed)
 	case TRAFFIC_STATE::ADD_CONFLICT:
 	case TRAFFIC_STATE::REMIND_CONFLICT: {
 			take_action = send_traffic_warning((int)math::degrees(_transponder_report.heading),
-							   (int)fabsf(_crosstrack_error.distance), _transponder_report.flags,
-							   _transponder_report.callsign,
-							   _transponder_report.icao_address,
+							   (int)fabsf(_crosstrack_error.distance),
 							   now);
 		}
 		break;
 
 	case TRAFFIC_STATE::REMOVE_OLD_CONFLICT: {
-			events::send<uint32_t>(events::ID("navigator_traffic_resolved"), events::Log::Notice,
-					       "Traffic Conflict Resolved {1}!",
-					       _transponder_report.icao_address);
+			events::send(events::ID("navigator_traffic_resolved"), events::Log::Notice,
+				     "Traffic cleared");
 			_last_traffic_warning_time = now;
 		}
 		break;
@@ -201,7 +197,7 @@ bool AdsbConflict::handle_traffic_conflict(bool vehicle_armed)
 
 			if ((_traffic_state_previous != TRAFFIC_STATE::BUFFER_FULL)
 			    && (hrt_elapsed_time(&_last_buffer_full_warning_time) > TRAFFIC_WARNING_TIMESTEP)) {
-				events::send(events::ID("buffer_full"), events::Log::Notice, "Too much traffic! Showing all messages from now on");
+				events::send(events::ID("buffer_full"), events::Log::Warning, "Traffic buffer full");
 				_last_buffer_full_warning_time = now;
 			}
 
@@ -234,8 +230,7 @@ void AdsbConflict::set_conflict_detection_params(float crosstrack_separation, fl
 }
 
 
-bool AdsbConflict::send_traffic_warning(int traffic_direction, int traffic_seperation, uint16_t tr_flags,
-					char tr_callsign[UTM_CALLSIGN_LENGTH], uint32_t icao_address, hrt_abstime now)
+bool AdsbConflict::send_traffic_warning(int traffic_direction, int traffic_seperation, hrt_abstime now)
 {
 
 	uint8_t effective_mode = _conflict_detection_params.traffic_avoidance_mode;
@@ -248,96 +243,55 @@ bool AdsbConflict::send_traffic_warning(int traffic_direction, int traffic_seper
 	switch (effective_mode) {
 
 	case 0: {
-
-			if (tr_flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN) {
-
-				PX4_WARN("Traffic alert - UTM callsign %s! Separation Distance %d, Heading %d, ICAO Address %d",
-					 tr_callsign,
-					 traffic_seperation,
-					 traffic_direction, (int)icao_address);
-
-			}
-
-
+			PX4_WARN("Traffic! %dm, %d degrees", traffic_seperation, traffic_direction);
 			_last_traffic_warning_time = now;
-
 			break;
 		}
 
 	case 1: {
-
-
-			if (tr_flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN) {
-
-				PX4_WARN("Traffic alert - UTM callsign %s! Separation Distance %d, Heading %d, ICAO Address %d",
-					 tr_callsign,
-					 traffic_seperation,
-					 traffic_direction, (int)icao_address);
-
-			}
-
 			/* EVENT
 			 * @description
-			 * - ICAO Address: {1}
-			 * - Traffic Separation Distance: {2m}
-			 * - Heading: {3} degrees
+			 * - Distance: {1m}
+			 * - Heading: {2} degrees
 			 */
-			events::send<uint32_t, int32_t, int16_t>(events::ID("navigator_traffic"), events::Log::Notice,
-					"Traffic alert - ICAO Address {1}! Separation Distance {2}, Heading {3}",
-					icao_address, traffic_seperation, traffic_direction);
-
+			events::send<int32_t, int16_t>(events::ID("navigator_traffic"), events::Log::Warning,
+						       "Traffic! {1m}, {2} degrees", traffic_seperation, traffic_direction);
 			_last_traffic_warning_time = now;
-
 			break;
 		}
 
 	case 2: {
 			/* EVENT
 			 * @description
-			 * - ICAO Address: {1}
-			 * - Traffic Separation Distance: {2m}
-			 * - Heading: {3} degrees
+			 * - Distance: {1m}
+			 * - Heading: {2} degrees
 			 */
-			events::send<uint32_t, int32_t, int16_t>(events::ID("navigator_traffic_rtl"), events::Log::Notice,
-					"Traffic alert - ICAO Address {1}! Separation Distance {2}, Heading {3}, returning home",
-					icao_address, traffic_seperation, traffic_direction);
-
+			events::send<int32_t, int16_t>(events::ID("navigator_traffic_rtl"), events::Log::Warning,
+						       "Traffic! {1m}, {2} degrees, returning home", traffic_seperation, traffic_direction);
 			_last_traffic_warning_time = now;
-
 			return true;
-
-			break;
 		}
 
 	case 3: {
 			/* EVENT
 			 * @description
-			 * - ICAO Address: {1}
-			 * - Traffic Separation Distance: {2m}
-			 * - Heading: {3} degrees
+			 * - Distance: {1m}
+			 * - Heading: {2} degrees
 			 */
-			events::send<uint32_t, int32_t, int16_t>(events::ID("navigator_traffic_land"), events::Log::Notice,
-					"Traffic alert - ICAO Address {1}! Separation Distance {2}, Heading {3}, landing",
-					icao_address, traffic_seperation, traffic_direction);
-
+			events::send<int32_t, int16_t>(events::ID("navigator_traffic_land"), events::Log::Warning,
+						       "Traffic! {1m}, {2} degrees, landing", traffic_seperation, traffic_direction);
 			_last_traffic_warning_time = now;
-
 			return true;
-
-			break;
-
 		}
 
 	case 4: {
 			/* EVENT
 			 * @description
-			 * - ICAO Address: {1}
-			 * - Traffic Separation Distance: {2m}
-			 * - Heading: {3} degrees
+			 * - Distance: {1m}
+			 * - Heading: {2} degrees
 			 */
-			events::send<uint32_t, int32_t, int16_t>(events::ID("navigator_traffic_hold"), events::Log::Notice,
-					"Traffic alert - ICAO Address {1}! Separation Distance {2}, Heading {3}, holding position",
-					icao_address, traffic_seperation, traffic_direction);
+			events::send<int32_t, int16_t>(events::ID("navigator_traffic_hold"), events::Log::Warning,
+						       "Traffic! {1m}, {2} degrees, holding position", traffic_seperation, traffic_direction);
 
 			_last_traffic_warning_time = now;
 
