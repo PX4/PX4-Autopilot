@@ -1152,7 +1152,7 @@ void UavcanNode::publish_node_statuses()
 				return;
 			}
 
-			// See if we have NodeID <--> uORB_index mapped
+			// See if we have NodeID <-> uORB_index mapped
 			int uorb_index = -1;
 
 			for (uint8_t i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {

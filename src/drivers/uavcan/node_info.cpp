@@ -52,8 +52,7 @@ NodeInfoPublisher::~NodeInfoPublisher()
 	delete[] _device_informations;
 }
 
-void NodeInfoPublisher::handleNodeInfoRetrieved(uavcan::NodeID node_id,
-		const uavcan::protocol::GetNodeInfo_::Response &node_info)
+void NodeInfoPublisher::handleNodeInfoRetrieved(uavcan::NodeID node_id, const uavcan::protocol::GetNodeInfo_::Response &node_info)
 {
 	const NodeInfo info(node_id, node_info);
 	registerDevice(info.node_id.get(), &info, UINT32_MAX, DeviceCapability::NONE);
@@ -78,8 +77,7 @@ void NodeInfoPublisher::startTimerIfNotRunning()
 	}
 }
 
-void NodeInfoPublisher::registerDevice(uint8_t node_id, const NodeInfo *info, uint32_t device_id,
-				       DeviceCapability capability)
+void NodeInfoPublisher::registerDevice(uint8_t node_id, const NodeInfo *info, uint32_t device_id, DeviceCapability capability)
 {
 	const bool is_registering_info = (info != nullptr);
 
