@@ -775,6 +775,8 @@ msp_rendor_formic_vision_quality_t construct_rendor_FORMIC_VISION_QUALITY(const 
 		snprintf(&vision_quality.str[0], sizeof(vision_quality.str), "VQ:N/A");
 	}
 
+	PX4_INFO("Vision quality: %d", vehicle_vision_odometry.quality);
+
 	return vision_quality;
 }
 
