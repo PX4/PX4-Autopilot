@@ -9,7 +9,7 @@ This mode is intended for operations where the mission itself is the safest know
 ::: info
 - If route planning succeeds but no [safety points (rally points)](../flying/plan_safety_points.md) are usable, PX4 falls back to the closer mission endpoint (landing or takeoff) while staying in the route-based return logic.
 - During execution, route following skips `DO_JUMP` items as mission commands. During planning, jump segments are still evaluated as route geometry, but RTL ignores remaining loop counts and chooses the shorter continue-vs-rewind path through the loop exit.
-- If the mission cannot be projected, the route cache is not ready, or the mission exceeds `CONFIG_RTL_MISSION_CACHE_SIZE`, PX4 falls back to the same direct RTL destination selection used by `RTL_TYPE=3`.
+- If the mission cannot be projected, the route cache is not ready, or the mission exceeds `CONFIG_RTL_MISSION_CACHE_SIZE`, PX4 falls back to the same direct RTL destination selection used by `RTL_TYPE=3`: home, the closest eligible safe point, or the mission landing point.
 :::
 
 ## Setup and Configuration
@@ -25,11 +25,12 @@ Tuning parameters:
 | --- | --- |
 | [MIS_MC_SEG_DIST](../advanced_config/parameter_reference.md#MIS_MC_SEG_DIST) | Extra cross-track search window for multicopter or VTOL-in-MC vehicle projection. |
 | [MIS_FW_SEG_DIST](../advanced_config/parameter_reference.md#MIS_FW_SEG_DIST) | Extra cross-track search window for fixed-wing or VTOL-in-FW vehicle projection. |
+| [MIS_ROUTE_JOIN](../advanced_config/parameter_reference.md#MIS_ROUTE_JOIN) | Shared mission smart-rejoin switch. `RTL_TYPE=6` always uses the route planner, but Mission mode uses the same planner for off-route mission resume only when this parameter is enabled. |
 | [RTL_RP_SEG_DIST](../advanced_config/parameter_reference.md#RTL_RP_SEG_DIST) | Extra cross-track search window for safe-point projection. Increase if safe points are placed far from the mission route. |
 | [RTL_FW_UTURN_PEN](../advanced_config/parameter_reference.md#RTL_FW_UTURN_PEN) | U-turn distance penalty for fixed-wing and VTOL-in-FW safe-point scoring. Penalizes paths that require reversing direction. Set to 0 to disable. |
 | [RTL_APPR_FORCE](../advanced_config/parameter_reference.md#RTL_APPR_FORCE) | For VTOL in FW mode, only safe points with a valid VTOL approach are considered. |
 | [RTL_PLD_MD](../advanced_config/parameter_reference.md#RTL_PLD_MD) | Precision landing mode used for the synthetic safe-point landing item and the reverse-takeoff landing fallback. |
-| [NAV_ACC_RAD](../advanced_config/parameter_reference.md#NAV_ACC_RAD) | Affects join acceptance, branch-off acceptance, and the direct-to-safe-point shortcut. |
+| [NAV_ACC_RAD](../advanced_config/parameter_reference.md#NAV_ACC_RAD) | Sets the default shortcut radius for direct-to-safe-point. Join and branch-off acceptance use the Navigator dynamic acceptance radius, which starts from `NAV_ACC_RAD` and may be enlarged by the fixed-wing controller switch distance. |
 
 ::: tip
 Larger search windows expose more candidate segments but also admit more distant branch-off options. Smaller windows keep the behavior closer to the nominal route.
@@ -45,7 +46,7 @@ When `RTL_TYPE=6` is evaluated, PX4 performs these steps:
 2. Project all safe points onto the mission route.
 3. Score the reachable safe-point projections by along-route cost.
 4. If route planning succeeds but no safe point is usable, fall back to the closer mission endpoint (takeoff or land).
-5. If route planning itself cannot run, fall back to the same direct RTL destination selection used by `RTL_TYPE=3`.
+5. If route planning itself cannot run, fall back to the same direct RTL destination selection used by `RTL_TYPE=3` (home, closest eligible safe point, or mission landing).
 6. Build a route-join, route-follow, and branch-off plan from the selected result.
 
 ### Vehicle Projection
@@ -151,9 +152,9 @@ During route following, PX4 treats the mission as geometry rather than as a full
 - Nominal direction walks forward through position items, skipping `DO_JUMP` entries instead of following them as control flow.
 - Reverse direction walks backward through position items, also skipping `DO_JUMP` entries.
 - Loiter items are converted to plain waypoints with `autocontinue = true` and zero hold time so the vehicle keeps moving.
-- `NAV_CMD_DELAY` items are clamped to zero hold time.
+- `NAV_CMD_DELAY` and other non-position mission commands are skipped during route traversal.
 - Other non-position mission commands are skipped.
-- When route traversal is completed (no more waypoints in either direction or failure to read the next item), if the vehicle has not landed, the vehicle holds position rather than flying a straight line to the goal.
+- When route traversal can no longer advance, the executor transitions to the already-selected goal and continues with the landing stage instead of completing RTL in loiter.
 
 VTOL transition handling is preserved during route following: PX4 detects the expected VTOL state for each target segment using the same anchor rules as the planner. When a transition is needed, the executor enters a dedicated `TransitionDuringRoute` stage that issues the transition command once and waits for completion before resuming route following. This prevents the transition command from being re-issued on every control cycle.
 
@@ -226,8 +227,8 @@ RTL::setRtlTypeAndDestination()
   │
   ├─ MissionRoutePlanner::planRouteToGoal(config)
   │    ├─ collectVehicleProjection()    → ProjectionContext
-  │    ├─ selectSafePoint()             → Selection
-  │    └─ choosePath()                  → Path + JoinContext
+  │    ├─ selectBestGoal()              → Selection
+  │    └─ buildJoinContext()            → JoinContext
   │
   ├─ Plan {projection_context, selection, join_context}
   │
@@ -246,7 +247,7 @@ Executor stages:       Idle → FollowRoute ⇄ TransitionDuringRoute → Branch
 
 - `JoinRoute`: a shared `MissionBase` work item that flies the virtual branch-in waypoint.
 - `TransitionAfterJoin`: a shared `MissionBase` work item that performs the required VTOL front-transition or back-transition after the join when needed.
-- `FollowRoute`: walk mission items as geometry (skipping `DO_JUMP`), advancing via `advanceRouteTarget()`. When route traversal is exhausted (no more waypoints in either direction), the vehicle holds position if not already landed.
+- `FollowRoute`: walk mission items as geometry (skipping `DO_JUMP`), advancing via `advanceRouteTarget()`. If traversal can no longer advance, the executor goes straight to the already-selected landing goal instead of terminating RTL in loiter.
 - `TransitionDuringRoute`: a VTOL transition was detected mid-route. The transition command is issued once, and the stage waits for completion before returning to `FollowRoute`. This prevents transition command spamming.
 - `BranchOff`: replace the mission target with the virtual branch-off waypoint.
 - `LandAtGoal`: hand off to `handleLanding()` for the final descent.
