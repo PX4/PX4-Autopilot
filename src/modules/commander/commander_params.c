@@ -952,6 +952,21 @@ PARAM_DEFINE_INT32(COM_POS_LOW_ACT, 3);
 PARAM_DEFINE_INT32(COM_ARMABLE, 1);
 
 /**
+ * Arm automatically on boot
+ *
+ * When enabled, the vehicle arms automatically once all preflight checks pass
+ * after boot. The vehicle will not re-arm after a manual disarm.
+ * Has no effect if COM_ARMABLE is 0.
+ *
+ * @boolean
+ * @value 0 Disabled
+ * @value 1 Arm when preflight checks pass
+ * @reboot_required true
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_ARM_ON_BOOT, 0);
+
+/**
  * Minimum battery level for arming
  *
  * Threshold for battery percentage below arming is prohibited.
