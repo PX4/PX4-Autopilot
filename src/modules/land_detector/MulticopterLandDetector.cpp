@@ -226,7 +226,9 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	const float sys_low_throttle = _params.minThrottle + (hover_thrust - _params.minThrottle) * thr_pct_hover;
 	// Only use thrust setpoint for landing detection if it's being actively published.
 	// In OFFBOARD direct_actuator mode, PX4 controllers don't publish thrust setpoints,
-	// so stale data would cause false landed-state detection.
+	// so stale data would cause false landed-state detection. This intentionally disables
+	// thrust-based landing detection for that mode — the companion should handle its own
+	// landing logic.
 	_has_low_throttle = _vehicle_thrust_setpoint_valid && (_vehicle_thrust_setpoint_throttle <= sys_low_throttle);
 	bool ground_contact = _has_low_throttle;
 

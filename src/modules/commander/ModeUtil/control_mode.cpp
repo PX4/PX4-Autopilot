@@ -159,10 +159,9 @@ void getVehicleControlMode(uint8_t nav_state, uint8_t vehicle_type,
 
 		} else if (offboard_control_mode.thrust_and_torque) {
 			vehicle_control_mode.flag_control_allocation_enabled = true;
-
-		} else if (offboard_control_mode.direct_actuator) {
-			vehicle_control_mode.flag_control_allocation_enabled = true;
 		}
+
+		// direct_actuator: no flags set — companion bypasses PX4 controllers and allocator entirely
 
 		break;
 
