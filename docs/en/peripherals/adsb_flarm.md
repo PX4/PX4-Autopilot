@@ -18,7 +18,7 @@ It has been tested with the following devices:
 Any of the devices can be connected to any free/unused serial port on the flight controller.
 Most commonly they are connected to `TELEM2` (if this is not being use for some other purpose).
 
-### PingRX
+### PingRX Pro
 
 The PingRX MAVLink port uses a JST ZHR-4 mating connector with pinout as shown below.
 
@@ -31,6 +31,13 @@ The PingRX MAVLink port uses a JST ZHR-4 mating connector with pinout as shown b
 
 The PingRX comes with connector cable that can be attached directly to the TELEM2 port (DF13-6P) on an [mRo Pixhawk](../flight_controller/mro_pixhawk.md).
 For other ports or boards, you will need to obtain your own cable.
+| Parameter | Recommended Value |
+| --- | --- |
+| [MAV_1_CONFIG](../advanced_config/parameter_reference.md#MAV_1_CONFIG) | `TELEM 2` |
+| [MAV_1_MODE](../advanced_config/parameter_reference.md#MAV_1_MODE) | uAvionix |
+| [MAV_1_FORWARD](../advanced_config/parameter_reference.md#MAV_1_FORWARD) | Enabled |
+| [MAV_1_RADIO_CTL](../advanced_config/parameter_reference.md#MAV_1_RADIO_CTL) | Disabled |
+| [MAV_1_FLOW_CTRL](../advanced_config/parameter_reference.md#MAV_2_FLOW_CTRL) | Force off |
 
 ## FLARM
 
@@ -58,10 +65,12 @@ The only _specific_ setup is that the port baud rate must be set to 57600 and th
 
 Assuming you have connected the device to the TELEM2 port, [set the parameters](../advanced_config/parameters.md) as shown:
 
-- [MAV_1_CONFIG](../advanced_config/parameter_reference.md#MAV_1_CONFIG) = TELEM 2
-- [MAV_1_MODE](../advanced_config/parameter_reference.md#MAV_1_MODE) = Normal
-- [MAV_1_RATE](../advanced_config/parameter_reference.md#MAV_1_RATE) = 0 (default sending rate for port).
-- [MAV_1_FORWARD](../advanced_config/parameter_reference.md#MAV_1_FORWARD) = Enabled
+| Parameter | Recommended Value |
+| --- | --- |
+| [MAV_1_CONFIG](../advanced_config/parameter_reference.md#MAV_1_CONFIG) | `TELEM 2` |
+| [MAV_1_MODE](../advanced_config/parameter_reference.md#MAV_1_MODE) | Normal |
+| [MAV_1_RATE](../advanced_config/parameter_reference.md#MAV_1_RATE) | 0 (default sending rate for port) |
+| [MAV_1_FORWARD](../advanced_config/parameter_reference.md#MAV_1_FORWARD) | Enabled |
 
 Then reboot the vehicle.
 
