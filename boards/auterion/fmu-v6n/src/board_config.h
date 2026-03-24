@@ -227,6 +227,10 @@
 
 /* Power supply control and monitoring GPIOs */
 
+#define BOARD_NUMBER_BRICKS             1 /* Intended to be used with a CAN power module */
+#define BOARD_NUMBER_DIGITAL_BRICKS     1
+#define BOARD_ADC_BRICK_VALID           1
+
 #define GPIO_VDD_5V_PERIPH_nEN          /* PG4  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN4)
 #define GPIO_VDD_5V_PERIPH_nOC          /* PE15 */ (GPIO_INPUT |GPIO_FLOAT|GPIO_PORTE|GPIO_PIN15)
 #define GPIO_VDD_3V3_SENSORS4_EN        /* PG8  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTG|GPIO_PIN8)
