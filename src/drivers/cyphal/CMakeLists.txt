@@ -133,6 +133,7 @@ px4_add_module(
 		${LIBCANARD_DIR}/libcanard/canard.h
 	MODULE_CONFIG
 		module.yaml
+		parameters.yaml
 	DEPENDS
 		git_libcanard
 		git_public_regulated_data_types

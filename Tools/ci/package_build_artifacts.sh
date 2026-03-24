@@ -3,6 +3,7 @@
 mkdir artifacts
 cp **/**/*.px4 artifacts/ 2>/dev/null || true
 cp **/**/*.elf artifacts/ 2>/dev/null || true
+cp **/**/*.deb artifacts/ 2>/dev/null || true
 for build_dir_path in build/*/ ; do
   build_dir_path=${build_dir_path::${#build_dir_path}-1}
   build_dir=${build_dir_path#*/}

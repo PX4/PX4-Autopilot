@@ -215,6 +215,12 @@ fi
 if [ "$POWER_MANAGER" == "VOXLPM" ]; then
     # APM power monitor
     qshell voxlpm start -X -b 2
+elif [ "$POWER_MANAGER" == "INA226" ]; then
+    /bin/echo "Starting INA226 power monitor"
+    qshell ina226 start -X -b 2
+elif [ "$POWER_MANAGER" == "INA228" ]; then
+    /bin/echo "Starting INA228 power monitor"
+    qshell ina228 start -X -b 2
 fi
 
 if [ "$AIRSPEED_SENSOR" == "MS4525DO" ]; then

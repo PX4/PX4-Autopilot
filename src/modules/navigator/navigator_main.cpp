@@ -225,6 +225,19 @@ void Navigator::run()
 			_global_pos_sub.copy(&_global_pos);
 		}
 
+		/* update last known position with GCS heartbeat */
+		for (auto &telemetry_sub : _telemetry_status_subs) {
+			telemetry_status_s telemetry;
+
+			if (telemetry_sub.update(&telemetry) && telemetry.heartbeat_type_gcs) {
+				_last_pos_with_gcs_heartbeat.lat = _global_pos.lat;
+				_last_pos_with_gcs_heartbeat.lon = _global_pos.lon;
+				_last_pos_with_gcs_heartbeat.alt = _global_pos.alt;
+				_last_pos_with_gcs_heartbeat.yaw = _local_pos.heading;
+				break;
+			}
+		}
+
 		/* check for parameter updates */
 		if (_parameter_update_sub.updated()) {
 			// clear update

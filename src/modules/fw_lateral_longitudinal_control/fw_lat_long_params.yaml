@@ -1,0 +1,239 @@
+module_name: fw_lateral_longitudinal_control
+parameters:
+- group: FW Lateral Control
+  definitions:
+    FW_PN_R_SLEW_MAX:
+      description:
+        short: Path navigation roll slew rate limit
+        long: |-
+          Maximum change in roll angle setpoint per second.
+          Applied in all Auto modes, plus manual Position & Altitude modes.
+      type: float
+      default: 90.0
+      unit: deg/s
+      min: 0
+      decimal: 0
+      increment: 1
+- group: FW Longitudinal Control
+  definitions:
+    FW_GND_SPD_MIN:
+      description:
+        short: Minimum groundspeed
+        long: |-
+          The controller will increase the commanded airspeed to maintain
+          this minimum groundspeed to the next waypoint.
+      type: float
+      default: 5.0
+      unit: m/s
+      min: 0.0
+      max: 40
+      decimal: 1
+      increment: 0.5
+    FW_THR_SLEW_MAX:
+      description:
+        short: Throttle max slew rate
+        long: Maximum slew rate for the commanded throttle
+      type: float
+      default: 0.0
+      min: 0.0
+      max: 1.0
+      decimal: 2
+      increment: 0.01
+    FW_T_THR_LOW_HGT:
+      description:
+        short: Low-height threshold for tighter altitude tracking
+        long: |-
+          Height above ground threshold below which tighter altitude
+          tracking gets enabled (see FW_LND_THRTC_SC). Below this height, TECS smoothly
+          (1 sec / sec) transitions the altitude tracking time constant from FW_T_ALT_TC
+          to FW_LND_THRTC_SC*FW_T_ALT_TC.
+
+          -1 to disable.
+      type: float
+      default: -1.0
+      unit: m
+      min: -1
+      decimal: 0
+      increment: 1
+    FW_T_THR_DAMPING:
+      description:
+        short: Throttle damping factor
+        long: This is the damping gain for the throttle demand loop.
+      type: float
+      default: 0.05
+      min: 0.0
+      max: 1.0
+      decimal: 3
+      increment: 0.01
+    FW_T_THR_INTEG:
+      description:
+        short: Integrator gain throttle
+        long: |-
+          Increase it to trim out speed and height offsets faster,
+          with the downside of possible overshoots and oscillations.
+      type: float
+      default: 0.02
+      min: 0.0
+      max: 1.0
+      decimal: 3
+      increment: 0.005
+    FW_T_I_GAIN_PIT:
+      description:
+        short: Integrator gain pitch
+        long: |-
+          Increase it to trim out speed and height offsets faster,
+          with the downside of possible overshoots and oscillations.
+      type: float
+      default: 0.1
+      min: 0.0
+      max: 2.0
+      decimal: 2
+      increment: 0.05
+    FW_T_VERT_ACC:
+      description:
+        short: Maximum vertical acceleration
+        long: |-
+          This is the maximum vertical acceleration
+          either up or down that the controller will use to correct speed
+          or height errors.
+      type: float
+      default: 7.0
+      unit: m/s^2
+      min: 1.0
+      max: 10.0
+      decimal: 1
+      increment: 0.5
+    FW_T_SPD_STD:
+      description:
+        short: Airspeed measurement standard deviation
+        long: For the airspeed filter in TECS.
+      type: float
+      default: 0.07
+      unit: m/s
+      min: 0.01
+      max: 10.0
+      decimal: 2
+      increment: 0.1
+    FW_T_SPD_DEV_STD:
+      description:
+        short: Airspeed rate measurement standard deviation
+        long: For the airspeed filter in TECS.
+      type: float
+      default: 0.2
+      unit: m/s^2
+      min: 0.01
+      max: 10.0
+      decimal: 2
+      increment: 0.1
+    FW_T_SPD_PRC_STD:
+      description:
+        short: Process noise standard deviation for the airspeed rate
+        long: |-
+          This is defining the noise in the airspeed rate for the constant airspeed rate model
+          of the TECS airspeed filter.
+      type: float
+      default: 0.2
+      unit: m/s^2
+      min: 0.01
+      max: 10.0
+      decimal: 2
+      increment: 0.1
+    FW_T_RLL2THR:
+      description:
+        short: Roll -> Throttle feedforward
+        long: |-
+          Is used to compensate for the additional drag created by turning.
+          Increase this gain if the aircraft initially loses energy in turns
+          and reduce if the aircraft initially gains energy in turns.
+      type: float
+      default: 15.0
+      min: 0.0
+      max: 20.0
+      decimal: 1
+      increment: 0.5
+    FW_T_PTCH_DAMP:
+      description:
+        short: Pitch damping gain
+      type: float
+      default: 0.1
+      min: 0.0
+      max: 2.0
+      decimal: 2
+      increment: 0.1
+    FW_T_ALT_TC:
+      description:
+        short: Altitude error time constant
+      type: float
+      default: 5.0
+      min: 2.0
+      decimal: 2
+      increment: 0.5
+    FW_T_F_ALT_ERR:
+      description:
+        short: 'Fast descend: minimum altitude error'
+        long: |-
+          Minimum altitude error needed to descend with max airspeed and minimal throttle.
+          A negative value disables fast descend.
+      type: float
+      default: -1.0
+      min: -1.0
+      decimal: 0
+    FW_T_HRATE_FF:
+      description:
+        short: Height rate feed forward
+      type: float
+      default: 0.3
+      min: 0.0
+      max: 1.0
+      decimal: 2
+      increment: 0.05
+    FW_T_TAS_TC:
+      description:
+        short: True airspeed error time constant
+      type: float
+      default: 5.0
+      min: 2.0
+      decimal: 2
+      increment: 0.5
+    FW_T_STE_R_TC:
+      description:
+        short: Specific total energy rate first order filter time constant
+        long: This filter is applied to the specific total energy rate used for throttle
+          damping.
+      type: float
+      default: 0.4
+      min: 0.0
+      max: 2
+      decimal: 2
+      increment: 0.01
+    FW_T_SEB_R_FF:
+      description:
+        short: Specific total energy balance rate feedforward gain
+      type: float
+      default: 1.0
+      min: 0.5
+      max: 3
+      decimal: 2
+      increment: 0.01
+    FW_WIND_ARSP_SC:
+      description:
+        short: Wind-based airspeed scaling factor
+        long: |-
+          Multiplying this factor with the current absolute wind estimate gives the airspeed offset
+          added to the minimum airspeed setpoint limit. This helps to make the
+          system more robust against disturbances (turbulence) in high wind.
+      type: float
+      default: 0.0
+      min: 0
+      decimal: 2
+      increment: 0.01
+    FW_T_SINK_MAX:
+      description:
+        short: Maximum descent rate
+      type: float
+      default: 5.0
+      unit: m/s
+      min: 1.0
+      max: 15.0
+      decimal: 1
+      increment: 0.5

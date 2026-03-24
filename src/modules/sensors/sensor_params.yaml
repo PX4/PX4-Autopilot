@@ -1,0 +1,199 @@
+module_name: sensors
+parameters:
+- group: Sensor Calibration
+  definitions:
+    SENS_DPRES_OFF:
+      description:
+        short: Differential pressure sensor offset
+        long: The offset (zero-reading) in Pascal
+      category: System
+      type: float
+      default: 0.0
+      volatile: true
+    SENS_DPRES_REV:
+      description:
+        short: Reverse differential pressure sensor readings
+        long: |-
+          Reverse the raw measurements of all differential pressure sensors.
+          This can be enabled if the sensors have static and dynamic ports swapped.
+      category: System
+      type: boolean
+      default: 0
+    SENS_DPRES_ANSC:
+      description:
+        short: Differential pressure sensor analog scaling
+        long: |-
+          Pick the appropriate scaling from the datasheet.
+          this number defines the (linear) conversion from voltage
+          to Pascal (pa). For the MPXV7002DP this is 1000.
+
+          NOTE: If the sensor always registers zero, try switching
+          the static and dynamic tubes.
+      type: float
+      default: 0
+- group: Sensors
+  definitions:
+    CAL_AIR_CMODEL:
+      description:
+        short: Airspeed sensor compensation model for the SDP3x
+        long: |-
+          Model with Pitot
+          CAL_AIR_TUBED_MM: Not used, 1.5 mm tubes assumed.
+          CAL_AIR_TUBELEN: Length of the tubes connecting the pitot to the sensor.
+          Model without Pitot (1.5 mm tubes)
+          CAL_AIR_TUBED_MM: Not used, 1.5 mm tubes assumed.
+          CAL_AIR_TUBELEN: Length of the tubes connecting the pitot to the sensor.
+          Tube Pressure Drop
+          CAL_AIR_TUBED_MM: Diameter in mm of the pitot and tubes, must have the same diameter.
+          CAL_AIR_TUBELEN: Length of the tubes connecting the pitot to the sensor and the static + dynamic port length of the pitot.
+      type: enum
+      values:
+        0: Model with Pitot
+        1: Model without Pitot (1.5 mm tubes)
+        2: Tube Pressure Drop
+      default: 0
+    CAL_AIR_TUBELEN:
+      description:
+        short: Airspeed sensor tube length
+        long: See the CAL_AIR_CMODEL explanation on how this parameter should be set.
+      type: float
+      default: 0.2
+      min: 0.01
+      max: 2.0
+      unit: m
+    CAL_AIR_TUBED_MM:
+      description:
+        short: Airspeed sensor tube diameter
+        long: Airspeed sensor tube diameter. Only used for the Tube Pressure Drop
+          Compensation
+      type: float
+      default: 1.5
+      min: 1.5
+      max: 100
+      unit: mm
+    SENS_BOARD_ROT:
+      description:
+        short: Board rotation
+        long: This parameter defines the rotation of the FMU board relative to the
+          platform.
+      type: enum
+      values:
+        0: No rotation
+        1: "Yaw 45\xB0"
+        2: "Yaw 90\xB0"
+        3: "Yaw 135\xB0"
+        4: "Yaw 180\xB0"
+        5: "Yaw 225\xB0"
+        6: "Yaw 270\xB0"
+        7: "Yaw 315\xB0"
+        8: "Roll 180\xB0"
+        9: "Roll 180\xB0, Yaw 45\xB0"
+        10: "Roll 180\xB0, Yaw 90\xB0"
+        11: "Roll 180\xB0, Yaw 135\xB0"
+        12: "Pitch 180\xB0"
+        13: "Roll 180\xB0, Yaw 225\xB0"
+        14: "Roll 180\xB0, Yaw 270\xB0"
+        15: "Roll 180\xB0, Yaw 315\xB0"
+        16: "Roll 90\xB0"
+        17: "Roll 90\xB0, Yaw 45\xB0"
+        18: "Roll 90\xB0, Yaw 90\xB0"
+        19: "Roll 90\xB0, Yaw 135\xB0"
+        20: "Roll 270\xB0"
+        21: "Roll 270\xB0, Yaw 45\xB0"
+        22: "Roll 270\xB0, Yaw 90\xB0"
+        23: "Roll 270\xB0, Yaw 135\xB0"
+        24: "Pitch 90\xB0"
+        25: "Pitch 270\xB0"
+        26: "Pitch 180\xB0, Yaw 90\xB0"
+        27: "Pitch 180\xB0, Yaw 270\xB0"
+        28: "Roll 90\xB0, Pitch 90\xB0"
+        29: "Roll 180\xB0, Pitch 90\xB0"
+        30: "Roll 270\xB0, Pitch 90\xB0"
+        31: "Roll 90\xB0, Pitch 180\xB0"
+        32: "Roll 270\xB0, Pitch 180\xB0"
+        33: "Roll 90\xB0, Pitch 270\xB0"
+        34: "Roll 180\xB0, Pitch 270\xB0"
+        35: "Roll 270\xB0, Pitch 270\xB0"
+        36: "Roll 90\xB0, Pitch 180\xB0, Yaw 90\xB0"
+        37: "Roll 90\xB0, Yaw 270\xB0"
+        38: "Roll 90\xB0, Pitch 68\xB0, Yaw 293\xB0"
+        39: "Pitch 315\xB0"
+        40: "Roll 90\xB0, Pitch 315\xB0"
+      default: 0
+      min: -1
+      max: 40
+      reboot_required: true
+    SENS_BOARD_Y_OFF:
+      description:
+        short: Board rotation Y (pitch) offset
+        long: |-
+          Rotation from flight controller board to vehicle body frame.
+          This parameter gets set during the "level horizon" calibration or can be
+          set manually.
+      type: float
+      default: 0.0
+      min: -45.0
+      max: 45.0
+      decimal: 1
+      unit: deg
+    SENS_BOARD_X_OFF:
+      description:
+        short: Board rotation X (roll) offset
+        long: |-
+          Rotation from flight controller board to vehicle body frame.
+          This parameter gets set during the "level horizon" calibration or can be
+          set manually.
+      type: float
+      default: 0.0
+      unit: deg
+      min: -45.0
+      max: 45.0
+      decimal: 1
+    SENS_BOARD_Z_OFF:
+      description:
+        short: Board rotation Z (yaw) offset
+        long: |-
+          Rotation from flight controller board to vehicle body frame.
+          Has to be set manually (not set by any calibration).
+      type: float
+      default: 0.0
+      min: -45.0
+      max: 45.0
+      decimal: 1
+      unit: deg
+    SENS_EN_THERMAL:
+      description:
+        short: Thermal control of sensor temperature
+      category: System
+      type: enum
+      values:
+        -1: Thermal control unavailable
+        0: Thermal control off
+        1: Thermal control enabled
+      default: -1
+    SENS_EXT_I2C_PRB:
+      description:
+        short: External I2C probe
+        long: Probe for optional external I2C devices.
+      category: System
+      type: boolean
+      default: 1
+    SENS_IMU_MODE:
+      description:
+        short: Sensors hub IMU mode
+      category: System
+      type: enum
+      values:
+        0: Disabled
+        1: Publish primary IMU selection
+      default: 1
+      reboot_required: true
+    SENS_INT_BARO_EN:
+      description:
+        short: Enable internal barometers
+        long: For systems with an external barometer, this should be set to false
+          to make sure that the external is used.
+      category: System
+      type: boolean
+      default: 1
+      reboot_required: true

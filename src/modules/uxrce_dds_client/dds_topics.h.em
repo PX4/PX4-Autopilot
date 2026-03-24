@@ -184,12 +184,13 @@ struct RcvTopicsPubs {
 	bool init(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId reliable_in_stream_id, uxrStreamId best_effort_in_stream_id, uxrObjectId participant_id, const char *client_namespace);
 };
 
+@[if subscriptions or subscriptions_multi]@
 static void on_topic_update(uxrSession *session, uxrObjectId object_id, uint16_t request_id, uxrStreamId stream_id,
 		     struct ucdrBuffer *ub, uint16_t length, void *args)
 {
 	RcvTopicsPubs *pubs = (RcvTopicsPubs *)args;
-	const int64_t time_offset_us = session->time_offset / 1000; // ns -> us
 	pubs->num_payload_received += length;
+	const int64_t time_offset_us = session->time_offset / 1000; // ns -> us
 
 	switch (object_id.id) {
 @[    for idx, sub in enumerate(subscriptions)]@
@@ -242,6 +243,7 @@ static void on_topic_update(uxrSession *session, uxrObjectId object_id, uint16_t
 		break;
 	}
 }
+@[end if]@
 
 bool RcvTopicsPubs::init(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId reliable_in_stream_id, uxrStreamId best_effort_in_stream_id, uxrObjectId participant_id, const char *client_namespace)
 {
@@ -260,7 +262,9 @@ bool RcvTopicsPubs::init(uxrSession *session, uxrStreamId reliable_out_stream_id
 	}
 @[    end for]@
 
+@[    if subscriptions or subscriptions_multi]@
 	uxr_set_topic_callback(session, on_topic_update, this);
+@[    end if]@
 
 	return true;
 }

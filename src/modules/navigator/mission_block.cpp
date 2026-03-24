@@ -761,6 +761,19 @@ MissionBlock::setLoiterItemCommonFields(struct mission_item_s *item)
 }
 
 void
+MissionBlock::setLoiterFromLastLink(struct mission_item_s *item)
+{
+	setLoiterItemCommonFields(item);
+
+	const PositionYawSetpoint &last_heartbeat_pos = _navigator->get_last_pos_with_gcs_heartbeat();
+
+	item->lat = PX4_ISFINITE(last_heartbeat_pos.lat) ? last_heartbeat_pos.lat : _navigator->get_global_position()->lat;
+	item->lon = PX4_ISFINITE(last_heartbeat_pos.lon) ? last_heartbeat_pos.lon : _navigator->get_global_position()->lon;
+	item->altitude = PX4_ISFINITE(last_heartbeat_pos.alt) ? last_heartbeat_pos.alt : _navigator->get_global_position()->alt;
+	item->yaw = PX4_ISFINITE(last_heartbeat_pos.yaw) ? last_heartbeat_pos.yaw : NAN;
+}
+
+void
 MissionBlock::set_takeoff_item(struct mission_item_s *item, float abs_altitude)
 {
 	item->nav_cmd = NAV_CMD_TAKEOFF;

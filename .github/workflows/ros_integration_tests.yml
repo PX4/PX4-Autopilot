@@ -89,7 +89,15 @@ jobs:
         . /opt/ros/galactic/setup.bash
         mkdir -p /opt/px4_ws/src
         cd /opt/px4_ws/src
-        git clone --recursive https://github.com/Auterion/px4-ros2-interface-lib.git
+        BRANCH="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+        REPO_URL="https://github.com/Auterion/px4-ros2-interface-lib.git"
+        if git ls-remote --heads "$REPO_URL" "$BRANCH" | grep -q "$BRANCH"; then
+          echo "Cloning px4-ros2-interface-lib with matching branch: $BRANCH"
+          git clone --recursive --branch "$BRANCH" "$REPO_URL"
+        else
+          echo "Branch '$BRANCH' not found in px4-ros2-interface-lib, using default (main)"
+          git clone --recursive "$REPO_URL"
+        fi
         # Ignore python packages due to compilation issue (can be enabled when updating ROS)
         touch px4-ros2-interface-lib/px4_ros2_py/COLCON_IGNORE || true
         touch px4-ros2-interface-lib/examples/python/COLCON_IGNORE || true

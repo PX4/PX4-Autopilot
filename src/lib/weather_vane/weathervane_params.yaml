@@ -1,0 +1,39 @@
+module_name: weather_vane
+parameters:
+- group: Multicopter Position Control
+  definitions:
+    WV_EN:
+      description:
+        short: Enable weathervane
+      type: boolean
+      default: 0
+    WV_ROLL_MIN:
+      description:
+        short: Minimum roll angle for weathervane yaw-rate demand
+        long: Minimum roll angle setpoint for weathervane controller to demand a yaw-rate
+      type: float
+      default: 1.0
+      min: 0
+      max: 5
+      unit: deg
+    WV_YRATE_MAX:
+      description:
+        short: Maximum yawrate the weathervane controller is allowed to demand
+      type: float
+      default: 90.0
+      min: 0
+      max: 120
+      unit: deg/s
+- group: VTOL Attitude Control
+  definitions:
+    WV_GAIN:
+      description:
+        short: Weather-vane roll angle to yawrate
+        long: The desired gain to convert roll sp into yaw rate sp.
+      type: float
+      default: 1.0
+      min: 0.0
+      max: 3.0
+      unit: Hz
+      increment: 0.01
+      decimal: 3

@@ -9994,6 +9994,48 @@ When set to -1 (default), the value depends on the function (see UAVCAN_EC_FUNC1
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | -1       | 8191     |           | -1      |      |
 
+### UAVCAN_EC_FAIL10 (`INT32`) {#UAVCAN_EC_FAIL10}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN ESC 10 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see UAVCAN_EC_FUNC10).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 8191     |           | -1      |      |
+
+### UAVCAN_EC_FAIL11 (`INT32`) {#UAVCAN_EC_FAIL11}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN ESC 11 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see UAVCAN_EC_FUNC11).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 8191     |           | -1      |      |
+
+### UAVCAN_EC_FAIL12 (`INT32`) {#UAVCAN_EC_FAIL12}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN ESC 12 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see UAVCAN_EC_FUNC12).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 8191     |           | -1      |      |
+
 ### UAVCAN_EC_FAIL2 (`INT32`) {#UAVCAN_EC_FAIL2}
 
 <Badge type="warning" text="This parameter is only present on some boards." />
@@ -10092,6 +10134,20 @@ When set to -1 (default), the value depends on the function (see UAVCAN_EC_FUNC8
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | -1       | 8191     |           | -1      |      |
 
+### UAVCAN_EC_FAIL9 (`INT32`) {#UAVCAN_EC_FAIL9}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN ESC 9 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see UAVCAN_EC_FUNC9).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 8191     |           | -1      |      |
+
 ### UAVCAN_EC_FUNC1 (`INT32`) {#UAVCAN_EC_FUNC1}
 
 <Badge type="warning" text="This parameter is only present on some boards." />
@@ -10099,6 +10155,228 @@ When set to -1 (default), the value depends on the function (see UAVCAN_EC_FUNC8
 UAVCAN ESC 1 Output Function.
 
 Select what should be output on UAVCAN ESC 1.
+
+The default failsafe value is set according to the selected function:
+
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |      |
+
+### UAVCAN_EC_FUNC10 (`INT32`) {#UAVCAN_EC_FUNC10}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN ESC 10 Output Function.
+
+Select what should be output on UAVCAN ESC 10.
+
+The default failsafe value is set according to the selected function:
+
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |      |
+
+### UAVCAN_EC_FUNC11 (`INT32`) {#UAVCAN_EC_FUNC11}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN ESC 11 Output Function.
+
+Select what should be output on UAVCAN ESC 11.
+
+The default failsafe value is set according to the selected function:
+
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |      |
+
+### UAVCAN_EC_FUNC12 (`INT32`) {#UAVCAN_EC_FUNC12}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN ESC 12 Output Function.
+
+Select what should be output on UAVCAN ESC 12.
 
 The default failsafe value is set according to the selected function:
 
@@ -10684,11 +10962,121 @@ The default failsafe value is set according to the selected function:
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; |          |          |           | 0       |      |
 
+### UAVCAN_EC_FUNC9 (`INT32`) {#UAVCAN_EC_FUNC9}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN ESC 9 Output Function.
+
+Select what should be output on UAVCAN ESC 9.
+
+The default failsafe value is set according to the selected function:
+
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |      |
+
 ### UAVCAN_EC_MAX1 (`INT32`) {#UAVCAN_EC_MAX1}
 
 <Badge type="warning" text="This parameter is only present on some boards." />
 
 UAVCAN ESC 1 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 8191     |           | 8191    |      |
+
+### UAVCAN_EC_MAX10 (`INT32`) {#UAVCAN_EC_MAX10}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN ESC 10 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 8191     |           | 8191    |      |
+
+### UAVCAN_EC_MAX11 (`INT32`) {#UAVCAN_EC_MAX11}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN ESC 11 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 8191     |           | 8191    |      |
+
+### UAVCAN_EC_MAX12 (`INT32`) {#UAVCAN_EC_MAX12}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN ESC 12 Maximum Value.
 
 Maxmimum output value (when not disarmed).
 
@@ -10780,11 +11168,59 @@ Maxmimum output value (when not disarmed).
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 0        | 8191     |           | 8191    |      |
 
+### UAVCAN_EC_MAX9 (`INT32`) {#UAVCAN_EC_MAX9}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN ESC 9 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 8191     |           | 8191    |      |
+
 ### UAVCAN_EC_MIN1 (`INT32`) {#UAVCAN_EC_MIN1}
 
 <Badge type="warning" text="This parameter is only present on some boards." />
 
 UAVCAN ESC 1 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 8191     |           | 1       |      |
+
+### UAVCAN_EC_MIN10 (`INT32`) {#UAVCAN_EC_MIN10}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN ESC 10 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 8191     |           | 1       |      |
+
+### UAVCAN_EC_MIN11 (`INT32`) {#UAVCAN_EC_MIN11}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN ESC 11 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 8191     |           | 1       |      |
+
+### UAVCAN_EC_MIN12 (`INT32`) {#UAVCAN_EC_MIN12}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN ESC 12 Minimum Value.
 
 Minimum output value (when not disarmed).
 
@@ -10876,6 +11312,18 @@ Minimum output value (when not disarmed).
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 0        | 8191     |           | 1       |      |
 
+### UAVCAN_EC_MIN9 (`INT32`) {#UAVCAN_EC_MIN9}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN ESC 9 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 8191     |           | 1       |      |
+
 ### UAVCAN_EC_REV (`INT32`) {#UAVCAN_EC_REV}
 
 <Badge type="warning" text="This parameter is only present on some boards." />
@@ -10895,10 +11343,14 @@ Note: this is only useful for servos.
 - `5`: UAVCAN ESC 6
 - `6`: UAVCAN ESC 7
 - `7`: UAVCAN ESC 8
+- `8`: UAVCAN ESC 9
+- `9`: UAVCAN ESC 10
+- `10`: UAVCAN ESC 11
+- `11`: UAVCAN ESC 12
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 255      |           | 0       |      |
+| &nbsp; | 0        | 4095     |           | 0       |      |
 
 ### UAVCAN_SV_DIS1 (`INT32`) {#UAVCAN_SV_DIS1}
 
@@ -16817,7 +17269,7 @@ The time required to detect a fault when the threshold is exceeded depends on th
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.5      | 10.0     |           | 5.      | m/s  |
+| &nbsp; | 0.5      | 10.0     |           | 5.0     | m/s  |
 
 ### ASPD_FS_INTEG (`FLOAT`) {#ASPD_FS_INTEG}
 
@@ -16828,7 +17280,7 @@ Larger values make the check less sensitive, smaller positive values make it mor
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 50.0     |           | 10.     | m    |
+| &nbsp; | 0.0      | 50.0     |           | 10.0    | m    |
 
 ### ASPD_FS_T_START (`FLOAT`) {#ASPD_FS_T_START}
 
@@ -16839,7 +17291,7 @@ Set to a negative value to disable the re-enabling in flight.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -1.0     |          |           | -1.     | s    |
+| &nbsp; | -1.0     |          |           | -1.0    | s    |
 
 ### ASPD_FS_T_STOP (`FLOAT`) {#ASPD_FS_T_STOP}
 
@@ -16849,7 +17301,7 @@ Delay before stopping use of airspeed sensor if checks indicate sensor is bad.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      |          |           | 1.      | s    |
+| &nbsp; | 0.0      |          |           | 1.0     | s    |
 
 ### ASPD_PRIMARY (`INT32`) {#ASPD_PRIMARY}
 
@@ -16920,7 +17372,7 @@ When unaided, the scale uncertainty (1-sigma, unitless) increases by this amount
 
 | Reboot | minValue | maxValue | increment | default | unit         |
 | ------ | -------- | -------- | --------- | ------- | ------------ |
-| &nbsp; | 0        | 0.1      |           | 1.e-4   | 1/s/sqrt(Hz) |
+| &nbsp; | 0        | 0.1      |           | 0.0001  | 1/s/sqrt(Hz) |
 
 ### ASPD_TAS_GATE (`INT32`) {#ASPD_TAS_GATE}
 
@@ -16951,7 +17403,7 @@ as soon and as long the horizontal wind uncertainty is below this value.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.01     | 5        |           | 2.      | m/s  |
+| &nbsp; | 0.01     | 5        |           | 2.0     | m/s  |
 
 ### ASPD_WIND_NSD (`FLOAT`) {#ASPD_WIND_NSD}
 
@@ -16962,7 +17414,7 @@ When unaided, the wind estimate uncertainty (1-sigma, in m/s) increases by this 
 
 | Reboot | minValue | maxValue | increment | default | unit           |
 | ------ | -------- | -------- | --------- | ------- | -------------- |
-| &nbsp; | 0        | 1        |           | 1.e-1   | m/s^2/sqrt(Hz) |
+| &nbsp; | 0        | 1        |           | 0.1     | m/s^2/sqrt(Hz) |
 
 ## Attitude Q estimator
 
@@ -17031,7 +17483,7 @@ Automatic GPS based declination compensation.
 
 ### ATT_W_ACC (`FLOAT`) {#ATT_W_ACC}
 
-Complimentary filter accelerometer weight.
+Complementary filter accelerometer weight.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -17039,7 +17491,7 @@ Complimentary filter accelerometer weight.
 
 ### ATT_W_EXT_HDG (`FLOAT`) {#ATT_W_EXT_HDG}
 
-Complimentary filter external heading weight.
+Complementary filter external heading weight.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -17047,7 +17499,7 @@ Complimentary filter external heading weight.
 
 ### ATT_W_GYRO_BIAS (`FLOAT`) {#ATT_W_GYRO_BIAS}
 
-Complimentary filter gyroscope bias weight.
+Complementary filter gyroscope bias weight.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -17055,7 +17507,7 @@ Complimentary filter gyroscope bias weight.
 
 ### ATT_W_MAG (`FLOAT`) {#ATT_W_MAG}
 
-Complimentary filter magnetometer weight.
+Complementary filter magnetometer weight.
 
 Set to 0 to avoid using the magnetometer.
 
@@ -17132,7 +17584,7 @@ Can be set lower or higher than the end frequency
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.1      | 30.0     |           | 1.      | Hz   |
+| &nbsp; | 0.1      | 30.0     |           | 1.0     | Hz   |
 
 ### FW_AT_SYSID_F1 (`FLOAT`) {#FW_AT_SYSID_F1}
 
@@ -17142,7 +17594,7 @@ Can be set lower or higher than the start frequency
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.1      | 30.0     |           | 10.     | Hz   |
+| &nbsp; | 0.1      | 30.0     |           | 10.0    | Hz   |
 
 ### FW_AT_SYSID_TIME (`FLOAT`) {#FW_AT_SYSID_TIME}
 
@@ -17152,7 +17604,7 @@ Duration of the input signal sent on each axis during system identification
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 5        | 120      |           | 10.     | s    |
+| &nbsp; | 5        | 120      |           | 10.0    | s    |
 
 ### FW_AT_SYSID_TYPE (`INT32`) {#FW_AT_SYSID_TYPE}
 
@@ -18043,9 +18495,9 @@ Set 0 to prevent accidental use of the vehicle e.g. for safety or maintenance re
 - `0`: Disallow arming
 - `1`: Allow arming
 
-| Reboot | minValue | maxValue | increment | default     | unit |
-| ------ | -------- | -------- | --------- | ----------- | ---- |
-| &nbsp; |          |          |           | Enabled (1) |      |
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 1       |      |
 
 ### COM_ARM_AUTH_ID (`INT32`) {#COM_ARM_AUTH_ID}
 
@@ -18109,7 +18561,7 @@ A negative value means BAT_CRIT_THR is the threshold.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -1       | 0.9      | 0.01      | -1.     | norm |
+| &nbsp; | -1       | 0.9      | 0.01      | -1.0    | norm |
 
 ### COM_ARM_CHK_ESCS (`INT32`) {#COM_ARM_CHK_ESCS}
 
@@ -18135,7 +18587,9 @@ SD card. If so, and the parameter is enabled, arming is prevented.
 
 ### COM_ARM_IMU_ACC (`FLOAT`) {#COM_ARM_IMU_ACC}
 
-Maximum accelerometer inconsistency between IMU units that will allow arming.
+Max accelerometer inconsistency for arming.
+
+Maximum accelerometer inconsistency between IMU units that will allow arming
 
 | Reboot | minValue | maxValue | increment | default | unit  |
 | ------ | -------- | -------- | --------- | ------- | ----- |
@@ -18143,7 +18597,9 @@ Maximum accelerometer inconsistency between IMU units that will allow arming.
 
 ### COM_ARM_IMU_GYR (`FLOAT`) {#COM_ARM_IMU_GYR}
 
-Maximum rate gyro inconsistency between IMU units that will allow arming.
+Max rate gyro inconsistency for arming.
+
+Maximum rate gyro inconsistency between IMU units that will allow arming
 
 | Reboot | minValue | maxValue | increment | default | unit  |
 | ------ | -------- | -------- | --------- | ------- | ----- |
@@ -18151,7 +18607,9 @@ Maximum rate gyro inconsistency between IMU units that will allow arming.
 
 ### COM_ARM_MAG_ANG (`INT32`) {#COM_ARM_MAG_ANG}
 
-Maximum magnetic field inconsistency between units that will allow arming.
+Max magnetic field inconsistency for arming.
+
+Maximum magnetic field inconsistency between units that will allow arming
 
 Set -1 to disable the check.
 
@@ -18297,7 +18755,9 @@ A zero or negative value means that automatic disarming triggered by landing det
 
 ### COM_DISARM_MAN (`INT32`) {#COM_DISARM_MAN}
 
-Allow disarming via switch/stick/button on multicopters in manual thrust modes.
+Allow disarming in manual thrust modes.
+
+Allow disarming via switch/stick/button on multicopters in manual thrust modes
 
 0: Disallow disarming when not landed
 1: Allow disarming in multicopter flight in modes where
@@ -18364,7 +18824,7 @@ A zero value disables the delay.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 25.0     |           | 5.      | s    |
+| &nbsp; | 0.0      | 25.0     |           | 5.0     | s    |
 
 ### COM_FLIGHT_UUID (`INT32`) {#COM_FLIGHT_UUID}
 
@@ -18661,17 +19121,6 @@ After this amount of seconds without datalink the data link lost mode triggers
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 60       | 3600     |           | 120     | s    |
 
-### COM_HLDL_REG_T (`INT32`) {#COM_HLDL_REG_T}
-
-High Latency Datalink regain time threshold.
-
-After a data link loss: after this number of seconds with a healthy datalink the 'datalink loss'
-flag is set back to false
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 60       |           | 0       | s    |
-
 ### COM_HOME_EN (`INT32`) {#COM_HOME_EN}
 
 Home position enabled.
@@ -18854,7 +19303,9 @@ By default disabled for safety reasons
 
 ### COM_OBC_LOSS_T (`FLOAT`) {#COM_OBC_LOSS_T}
 
-Time-out to wait when onboard computer connection is lost before warning about loss connection.
+Onboard computer connection loss timeout.
+
+Time-out to wait when onboard computer connection is lost before warning about loss connection
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -18884,7 +19335,9 @@ set by COM_OF_LOSS_T in seconds.
 
 ### COM_OF_LOSS_T (`FLOAT`) {#COM_OF_LOSS_T}
 
-Time-out to wait when offboard connection is lost before triggering offboard lost action.
+Offboard connection loss timeout.
+
+Time-out to wait when offboard connection is lost before triggering offboard lost action
 
 See COM_OBL_RC_ACT to configure action.
 
@@ -18914,7 +19367,7 @@ Set to -1 to disable.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -1       | 400      |           | 5.      | m    |
+| &nbsp; | -1       | 400      |           | 5.0     | m    |
 
 ### COM_POS_LOW_ACT (`INT32`) {#COM_POS_LOW_ACT}
 
@@ -19168,7 +19621,7 @@ factor of 2.5 applied (threshold for invalidation 2.5 times the one for validati
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        |          |           | 1.      | m/s  |
+| &nbsp; | 0        |          |           | 1.0     | m/s  |
 
 ### COM_WIND_MAX (`FLOAT`) {#COM_WIND_MAX}
 
@@ -19179,7 +19632,7 @@ Failsafe action can be specified with COM_WIND_MAX_ACT.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -1       |          | 0.1       | -1.     | m/s  |
+| &nbsp; | -1       |          | 0.1       | -1.0    | m/s  |
 
 ### COM_WIND_MAX_ACT (`INT32`) {#COM_WIND_MAX_ACT}
 
@@ -19215,7 +19668,7 @@ Set to -1 to disable.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -1       |          | 0.1       | -1.     | m/s  |
+| &nbsp; | -1       |          | 0.1       | -1.0    | m/s  |
 
 ### NAV_DLL_ACT (`INT32`) {#NAV_DLL_ACT}
 
@@ -20249,16 +20702,6 @@ EKF2 enable.
 | ------ | -------- | -------- | --------- | ----------- | ---- |
 | &nbsp; |          |          |           | Enabled (1) |      |
 
-### EKF2_ENGINE_WRM (`INT32`) {#EKF2_ENGINE_WRM}
-
-Enable constant position fusion during engine warmup.
-
-When enabled, constant position fusion is enabled when the vehicle is landed and armed. This is intended for IC engine warmup (e.g., fuel engines on catapult) to allow mode transitions to auto/takeoff despite vibrations from running engines.
-
-| Reboot | minValue | maxValue | increment | default      | unit |
-| ------ | -------- | -------- | --------- | ------------ | ---- |
-| &nbsp; |          |          |           | Disabled (0) |      |
-
 ### EKF2_EVA_NOISE (`FLOAT`) {#EKF2_EVA_NOISE}
 
 Measurement noise for vision angle measurements.
@@ -20996,6 +21439,16 @@ This is the ratio of static pressure error to dynamic pressure generated by a wi
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | -0.5     | 0.5      |           | 0.0     |      |
 
+### EKF2_POS_LOCK (`INT32`) {#EKF2_POS_LOCK}
+
+Enable constant position fusion while on ground.
+
+When enabled, constant position fusion is enabled when the vehicle is landeded if position has been initialized but has currently no vel/pos aiding.
+
+| Reboot | minValue | maxValue | increment | default      | unit |
+| ------ | -------- | -------- | --------- | ------------ | ---- |
+| &nbsp; |          |          |           | Disabled (0) |      |
+
 ### EKF2_PREDICT_US (`INT32`) {#EKF2_PREDICT_US}
 
 EKF prediction period.
@@ -21405,8 +21858,6 @@ LEDs. When enabled and if the vehicle supports it, LEDs will flash
 indicating various vehicle status changes. Currently PX4 has not implemented
 any specific status events.
 
--
-
 | Reboot  | minValue | maxValue | increment | default      | unit |
 | ------- | -------- | -------- | --------- | ------------ | ---- |
 | &check; |          |          |           | Disabled (0) |      |
@@ -21442,7 +21893,7 @@ It is added to the yaw rate setpoint generated by the controller for turn coordi
 
 | Reboot | minValue | maxValue | increment | default | unit  |
 | ------ | -------- | -------- | --------- | ------- | ----- |
-| &nbsp; | 0        |          | 0.5       | 30.     | deg/s |
+| &nbsp; | 0        |          | 0.5       | 30.0    | deg/s |
 
 ### FW_PSP_OFF (`FLOAT`) {#FW_PSP_OFF}
 
@@ -21616,7 +22067,7 @@ If set <= 0, landing airspeed = FW_AIRSPD_MIN by default.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -1.0     |          | 0.1       | -1.     | m/s  |
+| &nbsp; | -1.0     |          | 0.1       | -1.0    | m/s  |
 
 ### FW_LND_ANG (`FLOAT`) {#FW_LND_ANG}
 
@@ -21776,7 +22227,7 @@ Spoiler landing setting.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 1.0      | 0.01      | 0.      | norm |
+| &nbsp; | 0.0      | 1.0      | 0.01      | 0.0     | norm |
 
 ## FW Auto Takeoff
 
@@ -21821,7 +22272,7 @@ Set to 0 to disable any surface locking after arming.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      |          | 0.1       | 0.      | s    |
+| &nbsp; | 0.0      |          | 0.1       | 0.0     | s    |
 
 ### FW_LAUN_DETCN_ON (`INT32`) {#FW_LAUN_DETCN_ON}
 
@@ -22215,7 +22666,7 @@ to FW_LND_THRTC_SC\*FW_T_ALT_TC.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -1       |          | 1         | -1.     | m    |
+| &nbsp; | -1       |          | 1         | -1.0    | m    |
 
 ### FW_T_VERT_ACC (`FLOAT`) {#FW_T_VERT_ACC}
 
@@ -22239,7 +22690,7 @@ system more robust against disturbances (turbulence) in high wind.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        |          | 0.01      | 0.      |      |
+| &nbsp; | 0        |          | 0.01      | 0.0     |      |
 
 ## FW NPFG Control
 
@@ -22251,7 +22702,7 @@ Damping ratio of NPFG control law.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.10     | 1.00     | 0.01      | 0.7     |      |
+| &nbsp; | 0.1      | 1.0      | 0.01      | 0.7     |      |
 
 ### NPFG_LB_PERIOD (`INT32`) {#NPFG_LB_PERIOD}
 
@@ -22294,7 +22745,7 @@ Used to determine lower period bound. Setting zero disables automatic period bou
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.00     | 2.00     | 0.05      | 0.5     | s    |
+| &nbsp; | 0.0      | 2.0      | 0.05      | 0.5     | s    |
 
 ### NPFG_SW_DST_MLT (`FLOAT`) {#NPFG_SW_DST_MLT}
 
@@ -22327,7 +22778,7 @@ Factor applied to the minimum and stall airspeed when flaps are fully deployed.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.5      | 1        | 0.01      | 1.      |      |
+| &nbsp; | 0.5      | 1        | 0.01      | 1.0     |      |
 
 ### FW_AIRSPD_MAX (`FLOAT`) {#FW_AIRSPD_MAX}
 
@@ -22401,7 +22852,7 @@ Set to 0 to disable mapping of airspeed to trim throttle.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 1        | 0.01      | 0.      |      |
+| &nbsp; | 0        | 1        | 0.01      | 0.0     |      |
 
 ### FW_THR_ASPD_MIN (`FLOAT`) {#FW_THR_ASPD_MIN}
 
@@ -22413,7 +22864,7 @@ Set to 0 to disable mapping of airspeed to trim throttle below FW_AIRSPD_TRIM.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 1        | 0.01      | 0.      |      |
+| &nbsp; | 0        | 1        | 0.01      | 0.0     |      |
 
 ### FW_THR_TRIM (`FLOAT`) {#FW_THR_TRIM}
 
@@ -22657,7 +23108,7 @@ Pitch rate differential gain.
 
 | Reboot | minValue | maxValue | increment | default | unit    |
 | ------ | -------- | -------- | --------- | ------- | ------- |
-| &nbsp; | 0.0      | 10       | 0.005     | 0.      | %/rad/s |
+| &nbsp; | 0.0      | 10       | 0.005     | 0.0     | %/rad/s |
 
 ### FW_PR_FF (`FLOAT`) {#FW_PR_FF}
 
@@ -22824,7 +23275,9 @@ Yaw rate proportional gain.
 
 ### FD_EXT_ATS_EN (`INT32`) {#FD_EXT_ATS_EN}
 
-Enable PWM input on for engaging failsafe from an external automatic trigger system (ATS).
+Enable PWM input from external ATS for failsafe.
+
+Enable PWM input on for engaging failsafe from an external automatic trigger system (ATS)
 
 Enabled on either AUX5 or MAIN5 depending on board.
 External ATS is required by ASTM F3322-18.
@@ -22835,7 +23288,9 @@ External ATS is required by ASTM F3322-18.
 
 ### FD_EXT_ATS_TRIG (`INT32`) {#FD_EXT_ATS_TRIG}
 
-The PWM threshold from external automatic trigger system for engaging failsafe.
+External ATS PWM threshold for failsafe.
+
+The PWM threshold from external automatic trigger system for engaging failsafe
 
 External ATS is required by ASTM F3322-18.
 
@@ -22992,7 +23447,9 @@ Following height above the target
 
 ### FLW_TGT_MAX_VEL (`FLOAT`) {#FLW_TGT_MAX_VEL}
 
-Maximum tangential velocity setting for generating the follow orbit trajectory.
+Max tangential velocity for follow orbit trajectory.
+
+Maximum tangential velocity setting for generating the follow orbit trajectory
 
 This is the maximum tangential velocity the drone will circle around the target whenever
 an orbit angle setpoint changes. Higher value means more aggressive follow behavior.
@@ -23300,7 +23757,9 @@ When set to 0 (default), default minimum satellite signal level set by u-blox wl
 
 ### GPS_UBX_MIN_ELEV (`INT32`) {#GPS_UBX_MIN_ELEV}
 
-u-blox GPS minimum elevation for a GNSS satellite to be used in navigation.
+u-blox GPS minimum satellite elevation angle.
+
+u-blox GPS minimum elevation for a GNSS satellite to be used in navigation
 
 When set to 0 (default), default minimum elevation set by u-blox will be used.
 
@@ -23382,7 +23841,7 @@ from the top).
 
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; | 0        | 360      |           | 0.      | deg  |
+| &check; | 0        | 360      |           | 0.0     | deg  |
 
 ### PPS_CAP_ENABLE (`INT32`) {#PPS_CAP_ENABLE}
 
@@ -23393,6 +23852,21 @@ Enables the PPS capture module to refine the GPS time from pulses detected on a 
 | Reboot  | minValue | maxValue | increment | default      | unit |
 | ------- | -------- | -------- | --------- | ------------ | ---- |
 | &check; |          |          |           | Disabled (0) |      |
+
+### PPS_CAP_GPS_ID (`INT32`) {#PPS_CAP_GPS_ID}
+
+PPS capture GPS receiver device ID.
+
+Device ID of the GPS receiver that emits the PPS signal captured on the
+configured PWM input pin. When set to 0 (default), the first available
+GPS instance is used.
+
+The device ID can be obtained from the sensor_gps publication
+(e.g. via listener sensor_gps).
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 0        |          |           | 0       |      |
 
 ## Geofence
 
@@ -26668,7 +27142,9 @@ Configure on which serial port to run Iridium (with MAVLink).
 
 ### ISBD_READ_INT (`INT32`) {#ISBD_READ_INT}
 
-Satellite radio read interval. Only required to be nonzero if data is not sent using a ring call.
+Iridium SBD read interval.
+
+Satellite radio read interval. Only required to be nonzero if data is not sent using a ring call
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -26684,7 +27160,9 @@ Iridium SBD session timeout.
 
 ### ISBD_STACK_TIME (`INT32`) {#ISBD_STACK_TIME}
 
-Time the Iridium driver will wait for additional mavlink messages to combine them into one SBD message.
+Iridium SBD message stacking wait time.
+
+Time the Iridium driver will wait for additional mavlink messages to combine them into one SBD message
 
 Value 0 turns the functionality off
 
@@ -26702,7 +27180,7 @@ Maximum airspeed allowed in the landed state
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 2        | 30       |           | 6.00    | m/s  |
+| &nbsp; | 2        | 30       |           | 6.0     | m/s  |
 
 ### LNDFW_ROT_MAX (`FLOAT`) {#LNDFW_ROT_MAX}
 
@@ -26723,7 +27201,7 @@ Time the land conditions (speeds and acceleration) have to be satisfied to detec
 
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; | 0.1      |          |           | 2.      | s    |
+| &check; | 0.1      |          |           | 2.0     | s    |
 
 ### LNDFW_VEL_XY_MAX (`FLOAT`) {#LNDFW_VEL_XY_MAX}
 
@@ -26766,7 +27244,7 @@ A negative value indicates no ground effect.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -1       |          |           | 2.      | m    |
+| &nbsp; | -1       |          |           | 2.0     | m    |
 
 ### LNDMC_ROT_MAX (`FLOAT`) {#LNDMC_ROT_MAX}
 
@@ -26962,7 +27440,7 @@ Larger than data sheet to account for tilt error.
 
 | Reboot | minValue | maxValue | increment | default | unit           |
 | ------ | -------- | -------- | --------- | ------- | -------------- |
-| &nbsp; | 0.00001  | 2        |           | 0.012   | m/s^2/sqrt(Hz) |
+| &nbsp; | 1e-05    | 2        |           | 0.012   | m/s^2/sqrt(Hz) |
 
 ### LPE_ACC_Z (`FLOAT`) {#LPE_ACC_Z}
 
@@ -26972,11 +27450,11 @@ Data sheet noise density = 150ug/sqrt(Hz) = 0.0015 m/s^2/sqrt(Hz)
 
 | Reboot | minValue | maxValue | increment | default | unit           |
 | ------ | -------- | -------- | --------- | ------- | -------------- |
-| &nbsp; | 0.00001  | 2        |           | 0.02    | m/s^2/sqrt(Hz) |
+| &nbsp; | 1e-05    | 2        |           | 0.02    | m/s^2/sqrt(Hz) |
 
 ### LPE_BAR_Z (`FLOAT`) {#LPE_BAR_Z}
 
-Barometric presssure altitude z standard deviation.
+Barometric pressure altitude z standard deviation.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -27008,7 +27486,9 @@ Max EPV allowed for GPS initialization.
 
 ### LPE_FAKE_ORIGIN (`INT32`) {#LPE_FAKE_ORIGIN}
 
-Enable publishing of a fake global position (e.g for AUTO missions using Optical Flow).
+Enable fake global position for optical flow.
+
+Enable publishing of a fake global position (e.g for AUTO missions using Optical Flow)
 
 By initializing the estimator to the LPE_LAT/LON parameters when global information is unavailable
 
@@ -27097,7 +27577,7 @@ default (145 - GPS, baro, land detector)
 
 ### LPE_GPS_DELAY (`FLOAT`) {#LPE_GPS_DELAY}
 
-GPS delay compensaton.
+GPS delay compensation.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -27167,7 +27647,7 @@ Lidar z offset from center of vehicle +down.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -1       | 1        |           | 0.00    | m    |
+| &nbsp; | -1       | 1        |           | 0.0     | m    |
 
 ### LPE_LDR_Z (`FLOAT`) {#LPE_LDR_Z}
 
@@ -27187,7 +27667,9 @@ Local origin longitude for nav w/o GPS.
 
 ### LPE_LT_COV (`FLOAT`) {#LPE_LT_COV}
 
-Minimum landing target standard covariance, uses reported covariance if greater.
+Minimum landing target standard covariance.
+
+Minimum landing target standard covariance, uses reported covariance if greater
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -27199,7 +27681,7 @@ Accel bias propagation noise density.
 
 | Reboot | minValue | maxValue | increment | default | unit           |
 | ------ | -------- | -------- | --------- | ------- | -------------- |
-| &nbsp; | 0        | 1        |           | 1e-3    | m/s^3/sqrt(Hz) |
+| &nbsp; | 0        | 1        |           | 0.001   | m/s^3/sqrt(Hz) |
 
 ### LPE_PN_P (`FLOAT`) {#LPE_PN_P}
 
@@ -27214,7 +27696,9 @@ Decrease to trust model more.
 
 ### LPE_PN_T (`FLOAT`) {#LPE_PN_T}
 
-Terrain random walk noise density, hilly/outdoor (0.1), flat/Indoor (0.001).
+Terrain random walk noise density.
+
+Terrain random walk noise density, hilly/outdoor (0.1), flat/Indoor (0.001)
 
 | Reboot | minValue | maxValue | increment | default | unit         |
 | ------ | -------- | -------- | --------- | ------- | ------------ |
@@ -27237,7 +27721,7 @@ Sonar z offset from center of vehicle +down.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -1       | 1        |           | 0.00    | m    |
+| &nbsp; | -1       | 1        |           | 0.0     | m    |
 
 ### LPE_SNR_Z (`FLOAT`) {#LPE_SNR_Z}
 
@@ -27249,9 +27733,11 @@ Sonar z standard deviation.
 
 ### LPE_T_MAX_GRADE (`FLOAT`) {#LPE_T_MAX_GRADE}
 
-Terrain maximum percent grade, hilly/outdoor (100 = 45 deg), flat/Indoor (0 = 0 deg).
+Terrain maximum percent grade.
 
-Used to calculate increased terrain random walk nosie due to movement.
+Terrain maximum percent grade, hilly/outdoor (100 = 45 deg), flat/Indoor (0 = 0 deg)
+
+Used to calculate increased terrain random walk noise due to movement.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -28049,7 +28535,7 @@ Decrease to make the estimator more robust to noise
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.1      | 100      | 0.1       | 18.     |      |
+| &nbsp; | 0.1      | 100      | 0.1       | 18.0    |      |
 
 ## Manual Control
 
@@ -28090,7 +28576,7 @@ A negative value disables the feature.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -1       | 15       |           | -1.     | s    |
+| &nbsp; | -1       | 15       |           | -1.0    | s    |
 
 ## Mission
 
@@ -28108,7 +28594,7 @@ has reached the commanded orientation before beginning to take pictures.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        |          |           | 0.      | s    |
+| &nbsp; | 0        |          |           | 0.0     | s    |
 
 ### MIS_DIST_1WP (`FLOAT`) {#MIS_DIST_1WP}
 
@@ -28136,7 +28622,9 @@ Only applies to fixed-wing vehicles.
 
 ### MIS_MNT_YAW_CTL (`INT32`) {#MIS_MNT_YAW_CTL}
 
-Enable yaw control of the mount. (Only affects multicopters and ROI mission items).
+Enable gimbal yaw control in missions.
+
+Enable yaw control of the mount. (Only affects multicopters and ROI mission items)
 
 If enabled, yaw commands will be sent to the mount and the vehicle will follow its heading towards the flight direction.
 If disabled, the vehicle will yaw towards the ROI.
@@ -28191,7 +28679,9 @@ Max yaw error in degrees needed for waypoint heading acceptance.
 
 ### MIS_YAW_TMT (`FLOAT`) {#MIS_YAW_TMT}
 
-Time in seconds we wait on reaching target heading at a waypoint if it is forced.
+Waypoint heading timeout.
+
+Time in seconds we wait on reaching target heading at a waypoint if it is forced
 
 If set > 0 it will ignore the target heading for normal waypoint acceptance. If the
 waypoint forces the heading the timeout will matter. For example on VTOL forwards transition.
@@ -28272,6 +28762,19 @@ clockwise, negative for counter-clockwise.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | -10000   | 10000    | 0.5       | 80.0    | m    |
 
+### NAV_LTR_LAST_DL (`INT32`) {#NAV_LTR_LAST_DL}
+
+Loiter at last GCS heartbeat position on data link loss.
+
+When the data link is lost and this setting is enabled,
+the vehicle will loiter at the position where the last GCS
+heartbeat was received rather than at its current position.
+Only applies to Hold mode during failsafe actions.
+
+| Reboot | minValue | maxValue | increment | default      | unit |
+| ------ | -------- | -------- | --------- | ------------ | ---- |
+| &nbsp; |          |          |           | Disabled (0) |      |
+
 ### NAV_MC_ALT_RAD (`FLOAT`) {#NAV_MC_ALT_RAD}
 
 MC Altitude Acceptance Radius.
@@ -28295,7 +28798,7 @@ Set to a negative value to disable.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -1       |          | 1         | -1.     | m    |
+| &nbsp; | -1       |          | 1         | -1.0    | m    |
 
 ### NAV_MIN_LTR_ALT (`FLOAT`) {#NAV_MIN_LTR_ALT}
 
@@ -28308,7 +28811,7 @@ Set to a negative value to disable.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -1       |          | 0.5       | -1.     | m    |
+| &nbsp; | -1       |          | 0.5       | -1.0    | m    |
 
 ### NAV_TRAFF_AVOID (`INT32`) {#NAV_TRAFF_AVOID}
 
@@ -28420,7 +28923,7 @@ FD_ACT_LOW_OFF and FD_ACT_HIGH_OFF offset the threshold from that slope.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 50.0     | 1         | 35.     | A/%  |
+| &nbsp; | 0.0      | 50.0     | 1         | 35.0    | A/%  |
 
 ### MOTFAIL_HIGH_OFF (`FLOAT`) {#MOTFAIL_HIGH_OFF}
 
@@ -28430,7 +28933,7 @@ threshold = FD_ACT_MOT_C2T \* thrust + FD_ACT_HIGH_OFF
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 30       | 1         | 10.     | A    |
+| &nbsp; | 0        | 30       | 1         | 10.0    | A    |
 
 ### MOTFAIL_LOW_OFF (`FLOAT`) {#MOTFAIL_LOW_OFF}
 
@@ -28440,7 +28943,7 @@ threshold = FD_ACT_MOT_C2T \* thrust - FD_ACT_LOW_OFF
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 30       | 1         | 10.     | A    |
+| &nbsp; | 0        | 30       | 1         | 10.0    | A    |
 
 ### MOTFAIL_TIME (`FLOAT`) {#MOTFAIL_TIME}
 
@@ -28450,7 +28953,7 @@ Motor failure only triggers after current thresholds are exceeded for this time.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.01     | 10       | 1         | 1.      | s    |
+| &nbsp; | 0.01     | 10       | 1         | 1.0     | s    |
 
 ## Mount
 
@@ -28678,7 +29181,9 @@ Input mode for RC gimbal input.
 
 ### MNT_TAU (`FLOAT`) {#MNT_TAU}
 
-Alpha filter time constant defining the convergence rate (in seconds) for open-loop AUX mount control.
+Time constant for open-loop AUX gimbal control.
+
+Alpha filter time constant defining the convergence rate (in seconds) for open-loop AUX mount control
 
 Use when no angular position feedback is available.
 With MNT_MODE_OUT set to AUX, the mount operates in open-loop and directly commands the servo output.
@@ -28701,7 +29206,7 @@ Exponential factor for tuning the input curve shape.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 1        |           | 0.      |      |
+| &nbsp; | 0        | 1        |           | 0.0     |      |
 
 ### MC_ACRO_EXPO_Y (`FLOAT`) {#MC_ACRO_EXPO_Y}
 
@@ -28714,7 +29219,7 @@ Exponential factor for tuning the input curve shape.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 1        |           | 0.      |      |
+| &nbsp; | 0        | 1        |           | 0.0     |      |
 
 ### MC_ACRO_P_MAX (`FLOAT`) {#MC_ACRO_P_MAX}
 
@@ -28724,7 +29229,7 @@ Full stick deflection leads to this rate.
 
 | Reboot | minValue | maxValue | increment | default | unit  |
 | ------ | -------- | -------- | --------- | ------- | ----- |
-| &nbsp; | 0.0      | 1800.0   | 5         | 100.    | deg/s |
+| &nbsp; | 0.0      | 1800.0   | 5         | 100.0   | deg/s |
 
 ### MC_ACRO_R_MAX (`FLOAT`) {#MC_ACRO_R_MAX}
 
@@ -28734,7 +29239,7 @@ Full stick deflection leads to this rate.
 
 | Reboot | minValue | maxValue | increment | default | unit  |
 | ------ | -------- | -------- | --------- | ------- | ----- |
-| &nbsp; | 0.0      | 1800.0   | 5         | 100.    | deg/s |
+| &nbsp; | 0.0      | 1800.0   | 5         | 100.0   | deg/s |
 
 ### MC_ACRO_SUPEXPO (`FLOAT`) {#MC_ACRO_SUPEXPO}
 
@@ -28748,7 +29253,7 @@ Acro mode roll, pitch super expo factor.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 0.95     |           | 0.      |      |
+| &nbsp; | 0        | 0.95     |           | 0.0     |      |
 
 ### MC_ACRO_SUPEXPOY (`FLOAT`) {#MC_ACRO_SUPEXPOY}
 
@@ -28762,7 +29267,7 @@ Acro mode yaw super expo factor.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 0.95     |           | 0.      |      |
+| &nbsp; | 0        | 0.95     |           | 0.0     |      |
 
 ### MC_ACRO_Y_MAX (`FLOAT`) {#MC_ACRO_Y_MAX}
 
@@ -28772,7 +29277,7 @@ Full stick deflection leads to this rate.
 
 | Reboot | minValue | maxValue | increment | default | unit  |
 | ------ | -------- | -------- | --------- | ------- | ----- |
-| &nbsp; | 0.0      | 1800.0   | 5         | 100.    | deg/s |
+| &nbsp; | 0.0      | 1800.0   | 5         | 100.0   | deg/s |
 
 ## Multicopter Attitude Control
 
@@ -28868,7 +29373,7 @@ control output and mixer saturation.
 
 | Reboot | minValue | maxValue | increment | default | unit    |
 | ------ | -------- | -------- | --------- | ------- | ------- |
-| &nbsp; | 5        | 360      | 5         | 20.     | deg/s^2 |
+| &nbsp; | 5        | 360      | 5         | 20.0    | deg/s^2 |
 
 ### MPC_YAWRAUTO_MAX (`FLOAT`) {#MPC_YAWRAUTO_MAX}
 
@@ -28879,13 +29384,15 @@ control output and mixer saturation.
 
 | Reboot | minValue | maxValue | increment | default | unit  |
 | ------ | -------- | -------- | --------- | ------- | ----- |
-| &nbsp; | 5        | 360      | 5         | 60.     | deg/s |
+| &nbsp; | 5        | 360      | 5         | 60.0    | deg/s |
 
 ## Multicopter Position Control
 
 ### CP_DELAY (`FLOAT`) {#CP_DELAY}
 
-Average delay of the range sensor message plus the tracking delay of the position controller in seconds.
+Range sensor and position controller average delay.
+
+Average delay of the range sensor message plus the tracking delay of the position controller in seconds
 
 Only used in Position mode.
 
@@ -28905,7 +29412,9 @@ Only used in Position mode. Collision avoidance is disabled by setting this para
 
 ### CP_GO_NO_DATA (`INT32`) {#CP_GO_NO_DATA}
 
-Boolean to allow moving into directions where there is no sensor data (outside FOV).
+Allow moving into directions without sensor data.
+
+Boolean to allow moving into directions where there is no sensor data (outside FOV)
 
 Only used in Position mode.
 
@@ -28915,13 +29424,15 @@ Only used in Position mode.
 
 ### CP_GUIDE_ANG (`FLOAT`) {#CP_GUIDE_ANG}
 
-Angle left/right from the commanded setpoint by which the collision prevention algorithm can choose to change the setpoint direction.
+Collision prevention guidance angle.
+
+Angle left/right from the commanded setpoint by which the collision prevention algorithm can choose to change the setpoint direction
 
 Only used in Position mode.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 90       |           | 30.     | deg  |
+| &nbsp; | 0        | 90       |           | 30.0    | deg  |
 
 ### MC_MAN_TILT_TAU (`FLOAT`) {#MC_MAN_TILT_TAU}
 
@@ -28951,7 +29462,7 @@ Maximum downwards acceleration in climb rate controlled modes.
 
 | Reboot | minValue | maxValue | increment | default | unit  |
 | ------ | -------- | -------- | --------- | ------- | ----- |
-| &nbsp; | 2        | 15       | 1         | 3.      | m/s^2 |
+| &nbsp; | 2        | 15       | 1         | 3.0     | m/s^2 |
 
 ### MPC_ACC_HOR (`FLOAT`) {#MPC_ACC_HOR}
 
@@ -28961,7 +29472,7 @@ When piloting manually, this parameter is only used in MPC_POS_MODE Acceleration
 
 | Reboot | minValue | maxValue | increment | default | unit  |
 | ------ | -------- | -------- | --------- | ------- | ----- |
-| &nbsp; | 2        | 15       | 1         | 3.      | m/s^2 |
+| &nbsp; | 2        | 15       | 1         | 3.0     | m/s^2 |
 
 ### MPC_ACC_HOR_MAX (`FLOAT`) {#MPC_ACC_HOR_MAX}
 
@@ -28973,7 +29484,7 @@ MPC_POS_MODE
 
 | Reboot | minValue | maxValue | increment | default | unit  |
 | ------ | -------- | -------- | --------- | ------- | ----- |
-| &nbsp; | 2        | 15       | 1         | 5.      | m/s^2 |
+| &nbsp; | 2        | 15       | 1         | 5.0     | m/s^2 |
 
 ### MPC_ACC_UP_MAX (`FLOAT`) {#MPC_ACC_UP_MAX}
 
@@ -28981,7 +29492,7 @@ Maximum upwards acceleration in climb rate controlled modes.
 
 | Reboot | minValue | maxValue | increment | default | unit  |
 | ------ | -------- | -------- | --------- | ------- | ----- |
-| &nbsp; | 2        | 15       | 1         | 4.      | m/s^2 |
+| &nbsp; | 2        | 15       | 1         | 4.0     | m/s^2 |
 
 ### MPC_ALT_MODE (`INT32`) {#MPC_ALT_MODE}
 
@@ -29007,7 +29518,9 @@ The speed threshold is MPC_HOLD_MAX_XY
 
 ### MPC_HOLD_MAX_XY (`FLOAT`) {#MPC_HOLD_MAX_XY}
 
-Maximum horizontal velocity for which position hold is enabled (use 0 to disable check).
+Max horizontal velocity for position hold.
+
+Maximum horizontal velocity for which position hold is enabled (use 0 to disable check)
 
 Only used with MPC_POS_MODE Direct velocity or MPC_ALT_MODE 2
 
@@ -29017,7 +29530,9 @@ Only used with MPC_POS_MODE Direct velocity or MPC_ALT_MODE 2
 
 ### MPC_HOLD_MAX_Z (`FLOAT`) {#MPC_HOLD_MAX_Z}
 
-Maximum vertical velocity for which position hold is enabled (use 0 to disable check).
+Max vertical velocity for position hold.
+
+Maximum vertical velocity for which position hold is enabled (use 0 to disable check)
 
 Only used with MPC_ALT_MODE 1
 
@@ -29034,7 +29549,7 @@ A lower value leads to smoother vehicle motions but also limited agility.
 
 | Reboot | minValue | maxValue | increment | default | unit  |
 | ------ | -------- | -------- | --------- | ------- | ----- |
-| &nbsp; | 1        | 80       | 1         | 4.      | m/s^3 |
+| &nbsp; | 1        | 80       | 1         | 4.0     | m/s^3 |
 
 ### MPC_JERK_MAX (`FLOAT`) {#MPC_JERK_MAX}
 
@@ -29049,7 +29564,7 @@ Only used with MPC_POS_MODE Acceleration based.
 
 | Reboot | minValue | maxValue | increment | default | unit  |
 | ------ | -------- | -------- | --------- | ------- | ----- |
-| &nbsp; | 0.5      | 500      | 1         | 8.      | m/s^3 |
+| &nbsp; | 0.5      | 500      | 1         | 8.0     | m/s^3 |
 
 ### MPC_LAND_ALT1 (`FLOAT`) {#MPC_LAND_ALT1}
 
@@ -29061,7 +29576,7 @@ Value needs to be higher than "MPC_LAND_ALT2"
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 122      |           | 10.     | m    |
+| &nbsp; | 0        | 122      |           | 10.0    | m    |
 
 ### MPC_LAND_ALT2 (`FLOAT`) {#MPC_LAND_ALT2}
 
@@ -29073,7 +29588,7 @@ Value needs to be lower than "MPC_LAND_ALT1"
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 122      |           | 5.      | m    |
+| &nbsp; | 0        | 122      |           | 5.0     | m    |
 
 ### MPC_LAND_ALT3 (`FLOAT`) {#MPC_LAND_ALT3}
 
@@ -29084,7 +29599,7 @@ limit descending velocity to "MPC_LAND_CRWL" below this altitude.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 122      |           | 1.      | m    |
+| &nbsp; | 0        | 122      |           | 1.0     | m    |
 
 ### MPC_LAND_CRWL (`FLOAT`) {#MPC_LAND_CRWL}
 
@@ -29160,7 +29675,7 @@ Maximal tilt angle in Stabilized, Altitude and Altitude Cruise mode.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 1        | 70       | 1         | 35.     | deg  |
+| &nbsp; | 1        | 70       | 1         | 35.0    | deg  |
 
 ### MPC_MAN_Y_MAX (`FLOAT`) {#MPC_MAN_Y_MAX}
 
@@ -29168,7 +29683,7 @@ Max manual yaw rate for Stabilized, Altitude, Position mode.
 
 | Reboot | minValue | maxValue | increment | default | unit  |
 | ------ | -------- | -------- | --------- | ------- | ----- |
-| &nbsp; | 0        | 400      | 10        | 150.    | deg/s |
+| &nbsp; | 0        | 400      | 10        | 150.0   | deg/s |
 
 ### MPC_MAN_Y_TAU (`FLOAT`) {#MPC_MAN_Y_TAU}
 
@@ -29250,7 +29765,7 @@ Limit allowed thrust e.g. for indoor test of overpowered vehicle.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 1        | 0.05      | 1.      | norm |
+| &nbsp; | 0        | 1        | 0.05      | 1.0     | norm |
 
 ### MPC_THR_MIN (`FLOAT`) {#MPC_THR_MIN}
 
@@ -29284,7 +29799,7 @@ Any higher value is truncated.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 20       | 89       | 1         | 45.     | deg  |
+| &nbsp; | 20       | 89       | 1         | 45.0    | deg  |
 
 ### MPC_TILTMAX_LND (`FLOAT`) {#MPC_TILTMAX_LND}
 
@@ -29294,7 +29809,7 @@ Tighter tilt limit during takeoff to avoid tip over.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 5        | 89       | 1         | 12.     | deg  |
+| &nbsp; | 5        | 89       | 1         | 12.0    | deg  |
 
 ### MPC_TKO_RAMP_T (`FLOAT`) {#MPC_TKO_RAMP_T}
 
@@ -29306,7 +29821,7 @@ A time constant of 0 disables the ramp
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 5        |           | 3.      | s    |
+| &nbsp; | 0        | 5        |           | 3.0     | s    |
 
 ### MPC_TKO_SPEED (`FLOAT`) {#MPC_TKO_SPEED}
 
@@ -29347,7 +29862,7 @@ using MPC_VEL_MAN_SIDE and MPC_VEL_MAN_BACK, respectively.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 3        | 20       | 1         | 10.     | m/s  |
+| &nbsp; | 3        | 20       | 1         | 10.0    | m/s  |
 
 ### MPC_VEL_MAN_BACK (`FLOAT`) {#MPC_VEL_MAN_BACK}
 
@@ -29358,7 +29873,7 @@ MPC_VEL_MANUAL then MPC_VEL_MANUAL is used.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -1       | 20       | 1         | -1.     | m/s  |
+| &nbsp; | -1       | 20       | 1         | -1.0    | m/s  |
 
 ### MPC_VEL_MAN_SIDE (`FLOAT`) {#MPC_VEL_MAN_SIDE}
 
@@ -29369,7 +29884,7 @@ MPC_VEL_MANUAL then MPC_VEL_MANUAL is used.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -1       | 20       | 1         | -1.     | m/s  |
+| &nbsp; | -1       | 20       | 1         | -1.0    | m/s  |
 
 ### MPC_VEL_NF_BW (`FLOAT`) {#MPC_VEL_NF_BW}
 
@@ -29400,7 +29915,7 @@ e.g. in Missions, RTL, Goto if the waypoint does not specify differently
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 3        | 20       | 1         | 5.      | m/s  |
+| &nbsp; | 3        | 20       | 1         | 5.0     | m/s  |
 
 ### MPC_XY_ERR_MAX (`FLOAT`) {#MPC_XY_ERR_MAX}
 
@@ -29416,7 +29931,7 @@ capabilities of the vehicle.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.1      | 10       | 1         | 2.      |      |
+| &nbsp; | 0.1      | 10       | 1         | 2.0     |      |
 
 ### MPC_XY_P (`FLOAT`) {#MPC_XY_P}
 
@@ -29446,7 +29961,7 @@ If set to a negative value, the existing individual parameters are used.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -20      | 20       | 1         | -10.    |      |
+| &nbsp; | -20      | 20       | 1         | -10.0   |      |
 
 ### MPC_XY_VEL_D_ACC (`FLOAT`) {#MPC_XY_VEL_D_ACC}
 
@@ -29478,7 +29993,7 @@ Any higher value is truncated.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 20       | 1         | 12.     | m/s  |
+| &nbsp; | 0        | 20       | 1         | 12.0    | m/s  |
 
 ### MPC_XY_VEL_P_ACC (`FLOAT`) {#MPC_XY_VEL_P_ACC}
 
@@ -29498,7 +30013,7 @@ Defined as corrective velocity in m/s per m position error
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.1      | 1.5      | 0.1       | 1.      |      |
+| &nbsp; | 0.1      | 1.5      | 0.1       | 1.0     |      |
 
 ### MPC_Z_VEL_ALL (`FLOAT`) {#MPC_Z_VEL_ALL}
 
@@ -29510,7 +30025,7 @@ If set to a negative value, the existing individual parameters are used.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -3       | 8        | 0.5       | -3.     |      |
+| &nbsp; | -3       | 8        | 0.5       | -3.0    |      |
 
 ### MPC_Z_VEL_D_ACC (`FLOAT`) {#MPC_Z_VEL_D_ACC}
 
@@ -29520,7 +30035,7 @@ Defined as corrective acceleration in m/s^2 per m/s^2 velocity derivative
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 2        | 0.02      | 0.      |      |
+| &nbsp; | 0        | 2        | 0.02      | 0.0     |      |
 
 ### MPC_Z_VEL_I_ACC (`FLOAT`) {#MPC_Z_VEL_I_ACC}
 
@@ -29530,7 +30045,7 @@ Defined as corrective acceleration in m/s^2 per m velocity integral
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.2      | 3        | 0.1       | 2.      |      |
+| &nbsp; | 0.2      | 3        | 0.1       | 2.0     |      |
 
 ### MPC_Z_VEL_MAX_DN (`FLOAT`) {#MPC_Z_VEL_MAX_DN}
 
@@ -29556,7 +30071,7 @@ For default autonomous velocity see MPC_Z_V_AUTO_UP
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.5      | 8        | 0.1       | 3.      | m/s  |
+| &nbsp; | 0.5      | 8        | 0.1       | 3.0     | m/s  |
 
 ### MPC_Z_VEL_P_ACC (`FLOAT`) {#MPC_Z_VEL_P_ACC}
 
@@ -29566,7 +30081,7 @@ Defined as corrective acceleration in m/s^2 per m/s velocity error
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 2        | 15       | 0.1       | 4.      |      |
+| &nbsp; | 2        | 15       | 0.1       | 4.0     |      |
 
 ### MPC_Z_V_AUTO_DN (`FLOAT`) {#MPC_Z_V_AUTO_DN}
 
@@ -29586,15 +30101,7 @@ For manually controlled modes and offboard see MPC_Z_VEL_MAX_UP
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.5      | 8        | 0.5       | 3.      | m/s  |
-
-### SC_MAN_TILT_MAX (`FLOAT`) {#SC_MAN_TILT_MAX}
-
-Maximal tilt angle in Stabilized or Manual mode.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 90       | 1         | 90.     | deg  |
+| &nbsp; | 0.5      | 8        | 0.5       | 3.0     | m/s  |
 
 ### SYS_VEHICLE_RESP (`FLOAT`) {#SYS_VEHICLE_RESP}
 
@@ -29621,7 +30128,9 @@ Enable weathervane.
 
 ### WV_ROLL_MIN (`FLOAT`) {#WV_ROLL_MIN}
 
-Minimum roll angle setpoint for weathervane controller to demand a yaw-rate.
+Minimum roll angle for weathervane yaw-rate demand.
+
+Minimum roll angle setpoint for weathervane controller to demand a yaw-rate
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -29647,7 +30156,7 @@ no limit is commanded through MAVLink.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.1      |          | 0.1       | 3.      | m/s  |
+| &nbsp; | 0.1      |          | 0.1       | 3.0     | m/s  |
 
 ### MC_SLOW_DEF_VVEL (`FLOAT`) {#MC_SLOW_DEF_VVEL}
 
@@ -29659,7 +30168,7 @@ no limit is commanded through MAVLink.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.1      |          | 0.1       | 1.      | m/s  |
+| &nbsp; | 0.1      |          | 0.1       | 1.0     | m/s  |
 
 ### MC_SLOW_DEF_YAWR (`FLOAT`) {#MC_SLOW_DEF_YAWR}
 
@@ -29671,7 +30180,7 @@ no limit is commanded through MAVLink.
 
 | Reboot | minValue | maxValue | increment | default | unit  |
 | ------ | -------- | -------- | --------- | ------- | ----- |
-| &nbsp; | 1        |          | 0.1       | 45.     | deg/s |
+| &nbsp; | 1        |          | 0.1       | 45.0    | deg/s |
 
 ### MC_SLOW_MAP_HVEL (`INT32`) {#MC_SLOW_MAP_HVEL}
 
@@ -29693,7 +30202,9 @@ Manual input mapped to scale horizontal velocity in position slow mode.
 
 ### MC_SLOW_MAP_PTCH (`INT32`) {#MC_SLOW_MAP_PTCH}
 
-RC_MAP_AUX{N} to allow for gimbal pitch rate control in position slow mode.
+Gimbal pitch rate control input in position slow mode.
+
+RC_MAP_AUX{N} to allow for gimbal pitch rate control in position slow mode
 
 **Values:**
 
@@ -29753,7 +30264,7 @@ The lowest input maps and is clamped to this velocity.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.1      |          | 0.1       | .3      | m/s  |
+| &nbsp; | 0.1      |          | 0.1       | 0.3     | m/s  |
 
 ### MC_SLOW_MIN_VVEL (`FLOAT`) {#MC_SLOW_MIN_VVEL}
 
@@ -29763,7 +30274,7 @@ The lowest input maps and is clamped to this velocity.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.1      |          | 0.1       | .3      | m/s  |
+| &nbsp; | 0.1      |          | 0.1       | 0.3     | m/s  |
 
 ### MC_SLOW_MIN_YAWR (`FLOAT`) {#MC_SLOW_MIN_YAWR}
 
@@ -29773,7 +30284,7 @@ The lowest input maps and is clamped to this rate.
 
 | Reboot | minValue | maxValue | increment | default | unit  |
 | ------ | -------- | -------- | --------- | ------- | ----- |
-| &nbsp; | 1        |          | 0.1       | 3.      | deg/s |
+| &nbsp; | 1        |          | 0.1       | 3.0     | deg/s |
 
 ## Multicopter Raptor
 
@@ -29906,7 +30417,7 @@ Can be set to increase the amount of integrator available to counteract disturba
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      |          | 0.01      | 0.30    |      |
+| &nbsp; | 0.0      |          | 0.01      | 0.3     |      |
 
 ### MC_ROLLRATE_D (`FLOAT`) {#MC_ROLLRATE_D}
 
@@ -29974,7 +30485,7 @@ Can be set to increase the amount of integrator available to counteract disturba
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      |          | 0.01      | 0.30    |      |
+| &nbsp; | 0.0      |          | 0.01      | 0.3     |      |
 
 ### MC_YAWRATE_D (`FLOAT`) {#MC_YAWRATE_D}
 
@@ -30043,7 +30554,7 @@ Reduces vibrations by lowering high frequency torque caused by rotor acceleratio
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 10       |           | 2.      | Hz   |
+| &nbsp; | 0        | 10       |           | 2.0     | Hz   |
 
 ### MC_YR_INT_LIM (`FLOAT`) {#MC_YR_INT_LIM}
 
@@ -30053,7 +30564,7 @@ Can be set to increase the amount of integrator available to counteract disturba
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      |          | 0.01      | 0.30    |      |
+| &nbsp; | 0.0      |          | 0.01      | 0.3     |      |
 
 ## Neural Control
 
@@ -30075,7 +30586,9 @@ Enable or disable setting the trajectory setpoint with manual control.
 
 ### MC_NN_MAX_RPM (`INT32`) {#MC_NN_MAX_RPM}
 
-The maximum RPM of the motors. Used to normalize the output of the neural network.
+Max motor RPM for neural network normalization.
+
+The maximum RPM of the motors. Used to normalize the output of the neural network
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -30083,7 +30596,9 @@ The maximum RPM of the motors. Used to normalize the output of the neural networ
 
 ### MC_NN_MIN_RPM (`INT32`) {#MC_NN_MIN_RPM}
 
-The minimum RPM of the motors. Used to normalize the output of the neural network.
+Min motor RPM for neural network normalization.
+
+The minimum RPM of the motors. Used to normalize the output of the neural network
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -30091,7 +30606,9 @@ The minimum RPM of the motors. Used to normalize the output of the neural networ
 
 ### MC_NN_THRST_COEF (`FLOAT`) {#MC_NN_THRST_COEF}
 
-Thrust coefficient of the motors. Used to normalize the output of the neural network. Divided by 100 000.
+Motor thrust coefficient for NN normalization.
+
+Thrust coefficient of the motors. Used to normalize the output of the neural network. Divided by 100 000
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -30442,20 +30959,15 @@ Minimum value for this channel.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 800.0    | 1500.0   |           | 1000    | us   |
 
-### RC10_REV (`FLOAT`) {#RC10_REV}
+### RC10_REV (`INT32`) {#RC10_REV}
 
 RC channel 10 reverse.
 
 Set to -1 to reverse channel.
 
-**Values:**
-
-- `-1.0`: Reverse
-- `1.0`: Normal
-
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -1.0     | 1.0      |           | 1.0     |      |
+| &nbsp; | -1       | 1        |           | 1       |      |
 
 ### RC10_TRIM (`FLOAT`) {#RC10_TRIM}
 
@@ -30487,20 +30999,15 @@ Minimum value for this channel.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 800.0    | 1500.0   |           | 1000    | us   |
 
-### RC11_REV (`FLOAT`) {#RC11_REV}
+### RC11_REV (`INT32`) {#RC11_REV}
 
 RC channel 11 reverse.
 
 Set to -1 to reverse channel.
 
-**Values:**
-
-- `-1.0`: Reverse
-- `1.0`: Normal
-
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -1.0     | 1.0      |           | 1.0     |      |
+| &nbsp; | -1       | 1        |           | 1       |      |
 
 ### RC11_TRIM (`FLOAT`) {#RC11_TRIM}
 
@@ -30532,20 +31039,15 @@ Minimum value for this channel.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 800.0    | 1500.0   |           | 1000    | us   |
 
-### RC12_REV (`FLOAT`) {#RC12_REV}
+### RC12_REV (`INT32`) {#RC12_REV}
 
 RC channel 12 reverse.
 
 Set to -1 to reverse channel.
 
-**Values:**
-
-- `-1.0`: Reverse
-- `1.0`: Normal
-
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -1.0     | 1.0      |           | 1.0     |      |
+| &nbsp; | -1       | 1        |           | 1       |      |
 
 ### RC12_TRIM (`FLOAT`) {#RC12_TRIM}
 
@@ -30577,20 +31079,15 @@ Minimum value for this channel.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 800.0    | 1500.0   |           | 1000    | us   |
 
-### RC13_REV (`FLOAT`) {#RC13_REV}
+### RC13_REV (`INT32`) {#RC13_REV}
 
 RC channel 13 reverse.
 
 Set to -1 to reverse channel.
 
-**Values:**
-
-- `-1.0`: Reverse
-- `1.0`: Normal
-
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -1.0     | 1.0      |           | 1.0     |      |
+| &nbsp; | -1       | 1        |           | 1       |      |
 
 ### RC13_TRIM (`FLOAT`) {#RC13_TRIM}
 
@@ -30622,20 +31119,15 @@ Minimum value for this channel.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 800.0    | 1500.0   |           | 1000    | us   |
 
-### RC14_REV (`FLOAT`) {#RC14_REV}
+### RC14_REV (`INT32`) {#RC14_REV}
 
 RC channel 14 reverse.
 
 Set to -1 to reverse channel.
 
-**Values:**
-
-- `-1.0`: Reverse
-- `1.0`: Normal
-
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -1.0     | 1.0      |           | 1.0     |      |
+| &nbsp; | -1       | 1        |           | 1       |      |
 
 ### RC14_TRIM (`FLOAT`) {#RC14_TRIM}
 
@@ -30667,20 +31159,15 @@ Minimum value for this channel.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 800.0    | 1500.0   |           | 1000    | us   |
 
-### RC15_REV (`FLOAT`) {#RC15_REV}
+### RC15_REV (`INT32`) {#RC15_REV}
 
 RC channel 15 reverse.
 
 Set to -1 to reverse channel.
 
-**Values:**
-
-- `-1.0`: Reverse
-- `1.0`: Normal
-
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -1.0     | 1.0      |           | 1.0     |      |
+| &nbsp; | -1       | 1        |           | 1       |      |
 
 ### RC15_TRIM (`FLOAT`) {#RC15_TRIM}
 
@@ -30712,20 +31199,15 @@ Minimum value for this channel.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 800.0    | 1500.0   |           | 1000    | us   |
 
-### RC16_REV (`FLOAT`) {#RC16_REV}
+### RC16_REV (`INT32`) {#RC16_REV}
 
 RC channel 16 reverse.
 
 Set to -1 to reverse channel.
 
-**Values:**
-
-- `-1.0`: Reverse
-- `1.0`: Normal
-
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -1.0     | 1.0      |           | 1.0     |      |
+| &nbsp; | -1       | 1        |           | 1       |      |
 
 ### RC16_TRIM (`FLOAT`) {#RC16_TRIM}
 
@@ -30757,20 +31239,15 @@ Minimum value for this channel.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 800.0    | 1500.0   |           | 1000    | us   |
 
-### RC17_REV (`FLOAT`) {#RC17_REV}
+### RC17_REV (`INT32`) {#RC17_REV}
 
 RC channel 17 reverse.
 
 Set to -1 to reverse channel.
 
-**Values:**
-
-- `-1.0`: Reverse
-- `1.0`: Normal
-
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -1.0     | 1.0      |           | 1.0     |      |
+| &nbsp; | -1       | 1        |           | 1       |      |
 
 ### RC17_TRIM (`FLOAT`) {#RC17_TRIM}
 
@@ -30802,20 +31279,15 @@ Minimum value for this channel.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 800.0    | 1500.0   |           | 1000    | us   |
 
-### RC18_REV (`FLOAT`) {#RC18_REV}
+### RC18_REV (`INT32`) {#RC18_REV}
 
 RC channel 18 reverse.
 
 Set to -1 to reverse channel.
 
-**Values:**
-
-- `-1.0`: Reverse
-- `1.0`: Normal
-
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -1.0     | 1.0      |           | 1.0     |      |
+| &nbsp; | -1       | 1        |           | 1       |      |
 
 ### RC18_TRIM (`FLOAT`) {#RC18_TRIM}
 
@@ -30847,20 +31319,15 @@ Minimum value for RC channel 1
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 800.0    | 1500.0   |           | 1000.0  | us   |
 
-### RC1_REV (`FLOAT`) {#RC1_REV}
+### RC1_REV (`INT32`) {#RC1_REV}
 
 RC channel 1 reverse.
 
 Set to -1 to reverse channel.
 
-**Values:**
-
-- `-1.0`: Reverse
-- `1.0`: Normal
-
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -1.0     | 1.0      |           | 1.0     |      |
+| &nbsp; | -1       | 1        |           | 1       |      |
 
 ### RC1_TRIM (`FLOAT`) {#RC1_TRIM}
 
@@ -30892,20 +31359,15 @@ Minimum value for this channel.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 800.0    | 1500.0   |           | 1000.0  | us   |
 
-### RC2_REV (`FLOAT`) {#RC2_REV}
+### RC2_REV (`INT32`) {#RC2_REV}
 
 RC channel 2 reverse.
 
 Set to -1 to reverse channel.
 
-**Values:**
-
-- `-1.0`: Reverse
-- `1.0`: Normal
-
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -1.0     | 1.0      |           | 1.0     |      |
+| &nbsp; | -1       | 1        |           | 1       |      |
 
 ### RC2_TRIM (`FLOAT`) {#RC2_TRIM}
 
@@ -30937,20 +31399,15 @@ Minimum value for this channel.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 800.0    | 1500.0   |           | 1000    | us   |
 
-### RC3_REV (`FLOAT`) {#RC3_REV}
+### RC3_REV (`INT32`) {#RC3_REV}
 
 RC channel 3 reverse.
 
 Set to -1 to reverse channel.
 
-**Values:**
-
-- `-1.0`: Reverse
-- `1.0`: Normal
-
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -1.0     | 1.0      |           | 1.0     |      |
+| &nbsp; | -1       | 1        |           | 1       |      |
 
 ### RC3_TRIM (`FLOAT`) {#RC3_TRIM}
 
@@ -30982,20 +31439,15 @@ Minimum value for this channel.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 800.0    | 1500.0   |           | 1000    | us   |
 
-### RC4_REV (`FLOAT`) {#RC4_REV}
+### RC4_REV (`INT32`) {#RC4_REV}
 
 RC channel 4 reverse.
 
 Set to -1 to reverse channel.
 
-**Values:**
-
-- `-1.0`: Reverse
-- `1.0`: Normal
-
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -1.0     | 1.0      |           | 1.0     |      |
+| &nbsp; | -1       | 1        |           | 1       |      |
 
 ### RC4_TRIM (`FLOAT`) {#RC4_TRIM}
 
@@ -31027,20 +31479,15 @@ Minimum value for this channel.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 800.0    | 1500.0   |           | 1000    | us   |
 
-### RC5_REV (`FLOAT`) {#RC5_REV}
+### RC5_REV (`INT32`) {#RC5_REV}
 
 RC channel 5 reverse.
 
 Set to -1 to reverse channel.
 
-**Values:**
-
-- `-1.0`: Reverse
-- `1.0`: Normal
-
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -1.0     | 1.0      |           | 1.0     |      |
+| &nbsp; | -1       | 1        |           | 1       |      |
 
 ### RC5_TRIM (`FLOAT`) {#RC5_TRIM}
 
@@ -31072,20 +31519,15 @@ Minimum value for this channel.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 800.0    | 1500.0   |           | 1000    | us   |
 
-### RC6_REV (`FLOAT`) {#RC6_REV}
+### RC6_REV (`INT32`) {#RC6_REV}
 
 RC channel 6 reverse.
 
 Set to -1 to reverse channel.
 
-**Values:**
-
-- `-1.0`: Reverse
-- `1.0`: Normal
-
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -1.0     | 1.0      |           | 1.0     |      |
+| &nbsp; | -1       | 1        |           | 1       |      |
 
 ### RC6_TRIM (`FLOAT`) {#RC6_TRIM}
 
@@ -31117,20 +31559,15 @@ Minimum value for this channel.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 800.0    | 1500.0   |           | 1000    | us   |
 
-### RC7_REV (`FLOAT`) {#RC7_REV}
+### RC7_REV (`INT32`) {#RC7_REV}
 
 RC channel 7 reverse.
 
 Set to -1 to reverse channel.
 
-**Values:**
-
-- `-1.0`: Reverse
-- `1.0`: Normal
-
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -1.0     | 1.0      |           | 1.0     |      |
+| &nbsp; | -1       | 1        |           | 1       |      |
 
 ### RC7_TRIM (`FLOAT`) {#RC7_TRIM}
 
@@ -31162,20 +31599,15 @@ Minimum value for this channel.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 800.0    | 1500.0   |           | 1000    | us   |
 
-### RC8_REV (`FLOAT`) {#RC8_REV}
+### RC8_REV (`INT32`) {#RC8_REV}
 
 RC channel 8 reverse.
 
 Set to -1 to reverse channel.
 
-**Values:**
-
-- `-1.0`: Reverse
-- `1.0`: Normal
-
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -1.0     | 1.0      |           | 1.0     |      |
+| &nbsp; | -1       | 1        |           | 1       |      |
 
 ### RC8_TRIM (`FLOAT`) {#RC8_TRIM}
 
@@ -31207,20 +31639,15 @@ Minimum value for this channel.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 800.0    | 1500.0   |           | 1000    | us   |
 
-### RC9_REV (`FLOAT`) {#RC9_REV}
+### RC9_REV (`INT32`) {#RC9_REV}
 
 RC channel 9 reverse.
 
 Set to -1 to reverse channel.
 
-**Values:**
-
-- `-1.0`: Reverse
-- `1.0`: Normal
-
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -1.0     | 1.0      |           | 1.0     |      |
+| &nbsp; | -1       | 1        |           | 1       |      |
 
 ### RC9_TRIM (`FLOAT`) {#RC9_TRIM}
 
@@ -32427,11 +32854,11 @@ Return mode loiter altitude.
 
 Descend to this altitude (above destination position) after return, and wait for time defined in RTL_LAND_DELAY.
 Land (i.e. slowly descend) from this altitude if autolanding allowed.
-VTOLs do transition to hover in this altitdue above the landing point.
+VTOLs do transition to hover in this altitude above the landing point.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        |          | 0.5       | 30.     | m    |
+| &nbsp; | 0        |          | 0.5       | 30.0    | m    |
 
 ### RTL_LAND_DELAY (`FLOAT`) {#RTL_LAND_DELAY}
 
@@ -32456,7 +32883,9 @@ Set the radius for loitering to a safe altitude for VTOL transition.
 
 ### RTL_MIN_DIST (`FLOAT`) {#RTL_MIN_DIST}
 
-Horizontal radius from return point within which special rules for return mode apply.
+Min distance for RTL cone altitude calculation.
+
+Horizontal radius from return point within which special rules for return mode apply
 
 The return altitude will be calculated based on RTL_CONE_ANG parameter.
 The yaw setpoint will switch to the one defined by corresponding waypoint.
@@ -32487,12 +32916,12 @@ This setting does not apply for RTL destinations planned as part of a mission.
 Return mode return altitude.
 
 Default minimum altitude above destination (e.g. home, safe point, landing pattern) for return flight.
-The vehicle will climb to this altitude when Return mode is enganged, unless it currently is flying higher already.
+The vehicle will climb to this altitude when Return mode is engaged, unless it currently is flying higher already.
 This is affected by RTL_MIN_DIST and RTL_CONE_ANG.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        |          | 0.5       | 60.     | m    |
+| &nbsp; | 0        |          | 0.5       | 60.0    | m    |
 
 ### RTL_TYPE (`INT32`) {#RTL_TYPE}
 
@@ -32670,7 +33099,7 @@ Proportional gain for closed loop yaw controller.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 100      | 0.01      | 0.      |      |
+| &nbsp; | 0        | 100      | 0.01      | 0.0     |      |
 
 ## Rover Differential
 
@@ -32764,7 +33193,7 @@ Set to -1 to disable.
 
 | Reboot | minValue | maxValue | increment | default | unit    |
 | ------ | -------- | -------- | --------- | ------- | ------- |
-| &nbsp; | -1       | 10000    | 0.01      | -1.     | deg/s^2 |
+| &nbsp; | -1       | 10000    | 0.01      | -1.0    | deg/s^2 |
 
 ### RO_YAW_DECEL_LIM (`FLOAT`) {#RO_YAW_DECEL_LIM}
 
@@ -32775,7 +33204,7 @@ Set to -1 to disable.
 
 | Reboot | minValue | maxValue | increment | default | unit    |
 | ------ | -------- | -------- | --------- | ------- | ------- |
-| &nbsp; | -1       | 10000    | 0.01      | -1.     | deg/s^2 |
+| &nbsp; | -1       | 10000    | 0.01      | -1.0    | deg/s^2 |
 
 ### RO_YAW_EXPO (`FLOAT`) {#RO_YAW_EXPO}
 
@@ -32788,7 +33217,7 @@ Exponential factor for tuning the input curve shape.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 1        |           | 0.      |      |
+| &nbsp; | 0        | 1        |           | 0.0     |      |
 
 ### RO_YAW_RATE_CORR (`FLOAT`) {#RO_YAW_RATE_CORR}
 
@@ -32801,7 +33230,7 @@ that cause a lot of friction when turning.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.01     | 10000    | 0.01      | 1.      |      |
+| &nbsp; | 0.01     | 10000    | 0.01      | 1.0     |      |
 
 ### RO_YAW_RATE_I (`FLOAT`) {#RO_YAW_RATE_I}
 
@@ -32809,7 +33238,7 @@ Integral gain for closed loop yaw rate controller.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 100      | 0.01      | 0.      |      |
+| &nbsp; | 0        | 100      | 0.01      | 0.0     |      |
 
 ### RO_YAW_RATE_LIM (`FLOAT`) {#RO_YAW_RATE_LIM}
 
@@ -32820,7 +33249,7 @@ in Acro, Stabilized and Position mode.
 
 | Reboot | minValue | maxValue | increment | default | unit  |
 | ------ | -------- | -------- | --------- | ------- | ----- |
-| &nbsp; | 0        | 10000    | 0.01      | 0.      | deg/s |
+| &nbsp; | 0        | 10000    | 0.01      | 0.0     | deg/s |
 
 ### RO_YAW_RATE_P (`FLOAT`) {#RO_YAW_RATE_P}
 
@@ -32828,7 +33257,7 @@ Proportional gain for closed loop yaw rate controller.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 100      | 0.01      | 0.      |      |
+| &nbsp; | 0        | 100      | 0.01      | 0.0     |      |
 
 ### RO_YAW_RATE_TH (`FLOAT`) {#RO_YAW_RATE_TH}
 
@@ -32838,7 +33267,7 @@ The minimum threshold for the yaw rate measurement not to be interpreted as zero
 
 | Reboot | minValue | maxValue | increment | default | unit  |
 | ------ | -------- | -------- | --------- | ------- | ----- |
-| &nbsp; | 0        | 100      | 0.01      | 3.      | deg/s |
+| &nbsp; | 0        | 100      | 0.01      | 3.0     | deg/s |
 
 ### RO_YAW_STICK_DZ (`FLOAT`) {#RO_YAW_STICK_DZ}
 
@@ -32862,7 +33291,7 @@ Yaw rate super expo factor.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 0.95     |           | 0.      |      |
+| &nbsp; | 0        | 0.95     |           | 0.0     |      |
 
 ## Rover Velocity Control
 
@@ -32875,7 +33304,7 @@ For mecanum rovers this limit is used for longitudinal and lateral acceleration.
 
 | Reboot | minValue | maxValue | increment | default | unit  |
 | ------ | -------- | -------- | --------- | ------- | ----- |
-| &nbsp; | -1       | 100      | 0.01      | -1.     | m/s^2 |
+| &nbsp; | -1       | 100      | 0.01      | -1.0    | m/s^2 |
 
 ### RO_DECEL_LIM (`FLOAT`) {#RO_DECEL_LIM}
 
@@ -32887,7 +33316,7 @@ For mecanum rovers this limit is used for longitudinal and lateral deceleration.
 
 | Reboot | minValue | maxValue | increment | default | unit  |
 | ------ | -------- | -------- | --------- | ------- | ----- |
-| &nbsp; | -1       | 100      | 0.01      | -1.     | m/s^2 |
+| &nbsp; | -1       | 100      | 0.01      | -1.0    | m/s^2 |
 
 ### RO_JERK_LIM (`FLOAT`) {#RO_JERK_LIM}
 
@@ -32899,7 +33328,7 @@ For mecanum rovers this limit is used for longitudinal and lateral jerk.
 
 | Reboot | minValue | maxValue | increment | default | unit  |
 | ------ | -------- | -------- | --------- | ------- | ----- |
-| &nbsp; | -1       | 100      | 0.01      | -1.     | m/s^3 |
+| &nbsp; | -1       | 100      | 0.01      | -1.0    | m/s^3 |
 
 ### RO_MAX_THR_SPEED (`FLOAT`) {#RO_MAX_THR_SPEED}
 
@@ -32909,7 +33338,7 @@ Used to linearly map speeds [m/s] to throttle values [-1. 1].
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 100      | 0.01      | 0.      | m/s  |
+| &nbsp; | 0        | 100      | 0.01      | 0.0     | m/s  |
 
 ### RO_SPEED_I (`FLOAT`) {#RO_SPEED_I}
 
@@ -32917,7 +33346,7 @@ Integral gain for ground speed controller.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 100      | 0.001     | 0.      |      |
+| &nbsp; | 0        | 100      | 0.001     | 0.0     |      |
 
 ### RO_SPEED_LIM (`FLOAT`) {#RO_SPEED_LIM}
 
@@ -32927,7 +33356,7 @@ Used to cap speed setpoints and map controller inputs to speed setpoints in Posi
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -1       | 100      | 0.01      | -1.     | m/s  |
+| &nbsp; | -1       | 100      | 0.01      | -1.0    | m/s  |
 
 ### RO_SPEED_P (`FLOAT`) {#RO_SPEED_P}
 
@@ -32935,7 +33364,7 @@ Proportional gain for ground speed controller.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 100      | 0.01      | 0.      |      |
+| &nbsp; | 0        | 100      | 0.01      | 0.0     |      |
 
 ### RO_SPEED_RED (`FLOAT`) {#RO_SPEED_RED}
 
@@ -32950,7 +33379,7 @@ Set to -1 to disable bearing error based speed reduction.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -1       | 100      | 0.01      | -1.     |      |
+| &nbsp; | -1       | 100      | 0.01      | -1.0    |      |
 
 ### RO_SPEED_TH (`FLOAT`) {#RO_SPEED_TH}
 
@@ -32975,7 +33404,9 @@ Throttle during runway takeoff.
 
 ### RWTO_NUDGE (`INT32`) {#RWTO_NUDGE}
 
-Enable use of yaw stick for nudging the wheel during runway ground roll.
+Enable yaw stick nudging during runway ground roll.
+
+Enable use of yaw stick for nudging the wheel during runway ground roll
 
 This is useful when map, GNSS, or yaw errors on ground are misaligned with what the operator intends for takeoff course.
 Particularly useful for skinny runways or if the wheel servo is a bit off trim.
@@ -32986,7 +33417,9 @@ Particularly useful for skinny runways or if the wheel servo is a bit off trim.
 
 ### RWTO_PSP (`FLOAT`) {#RWTO_PSP}
 
-Pitch setpoint during taxi / before takeoff rotation airspeed is reached.
+Pitch setpoint during taxi / before rotation.
+
+Pitch setpoint during taxi / before takeoff rotation airspeed is reached
 
 A taildragger with steerable wheel might need to pitch up
 a little to keep its wheel on the ground before airspeed
@@ -33009,7 +33442,7 @@ Throttle ramp up time for runway takeoff.
 Takeoff rotation airspeed.
 
 The calibrated airspeed threshold during the takeoff ground roll when the plane should start rotating (pitching up).
-Must be less than the takeoff airspeed, will otherwise be capped at the takeoff airpeed (see FW_TKO_AIRSPD).
+Must be less than the takeoff airspeed, will otherwise be capped at the takeoff airspeed (see FW_TKO_AIRSPD).
 
 If set <= 0.0, defaults to 0.9 \* takeoff airspeed (see FW_TKO_AIRSPD)
 
@@ -35295,11 +35728,13 @@ The sensor may be usable above this height, but accuracy will progressively degr
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 1.0      | 100.0    | 0.1       | 100.    | m    |
+| &nbsp; | 1.0      | 100.0    | 0.1       | 100.0   | m    |
 
 ### SENS_FLOW_MAXR (`FLOAT`) {#SENS_FLOW_MAXR}
 
-Magnitude of maximum angular flow rate reliably measurable by the optical flow sensor.
+Max angular flow rate measurable by sensor.
+
+Magnitude of maximum angular flow rate reliably measurable by the optical flow sensor
 
 Optical flow data will not fused by the estimators if the magnitude of the flow rate exceeds this value and
 control loops will be instructed to limit ground speed such that the flow rate produced by movement over ground
@@ -35307,7 +35742,7 @@ is less than 50% of this value.
 
 | Reboot | minValue | maxValue | increment | default | unit  |
 | ------ | -------- | -------- | --------- | ------- | ----- |
-| &nbsp; | 1.0      |          |           | 8.      | rad/s |
+| &nbsp; | 1.0      |          |           | 8.0     | rad/s |
 
 ### SENS_FLOW_MINHGT (`FLOAT`) {#SENS_FLOW_MINHGT}
 
@@ -35402,7 +35837,9 @@ CAL_AIR_TUBELEN: Length of the tubes connecting the pitot to the sensor and the 
 
 ### CAL_AIR_TUBED_MM (`FLOAT`) {#CAL_AIR_TUBED_MM}
 
-Airspeed sensor tube diameter. Only used for the Tube Pressure Drop Compensation.
+Airspeed sensor tube diameter.
+
+Only used for the Tube Pressure Drop Compensation
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -35416,7 +35853,7 @@ See the CAL_AIR_CMODEL explanation on how this parameter should be set.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.01     | 2.00     |           | 0.2     | m    |
+| &nbsp; | 0.01     | 2.0      |           | 0.2     | m    |
 
 ### CAL_MAG_SIDES (`INT32`) {#CAL_MAG_SIDES}
 
@@ -35711,7 +36148,7 @@ Bandwidth per notch filter when using dynamic notch filtering with ESC RPM.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 5        | 30       | 0.1       | 15.     | Hz   |
+| &nbsp; | 5        | 30       | 0.1       | 15.0    | Hz   |
 
 ### IMU_GYRO_DNF_EN (`INT32`) {#IMU_GYRO_DNF_EN}
 
@@ -35747,7 +36184,7 @@ Minimum notch filter frequency in Hz.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          | 0.1       | 25.     | Hz   |
+| &nbsp; |          |          | 0.1       | 25.0    | Hz   |
 
 ### IMU_GYRO_FFT_EN (`INT32`) {#IMU_GYRO_FFT_EN}
 
@@ -35778,7 +36215,7 @@ IMU gyro FFT maximum frequency.
 
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; | 1        | 1000     |           | 150.    | Hz   |
+| &check; | 1        | 1000     |           | 150.0   | Hz   |
 
 ### IMU_GYRO_FFT_MIN (`FLOAT`) {#IMU_GYRO_FFT_MIN}
 
@@ -35786,7 +36223,7 @@ IMU gyro FFT minimum frequency.
 
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; | 1        | 1000     |           | 30.     | Hz   |
+| &check; | 1        | 1000     |           | 30.0    | Hz   |
 
 ### IMU_GYRO_FFT_SNR (`FLOAT`) {#IMU_GYRO_FFT_SNR}
 
@@ -35794,7 +36231,7 @@ IMU gyro FFT SNR.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 1        | 30       |           | 10.     |      |
+| &nbsp; | 1        | 30       |           | 10.0    |      |
 
 ### IMU_GYRO_NF0_BW (`FLOAT`) {#IMU_GYRO_NF0_BW}
 
@@ -35920,17 +36357,17 @@ INA220 Power Monitor Regulator Max Current.
 
 INA220 Power Monitor Battery Shunt.
 
-| Reboot | minValue    | maxValue | increment  | default | unit |
-| ------ | ----------- | -------- | ---------- | ------- | ---- |
-| &nbsp; | 0.000000001 | 0.1      | .000000001 | 0.0005  |      |
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 1e-09    | 0.1      | 1e-09     | 0.0005  |      |
 
 ### INA220_SHUNT_REG (`FLOAT`) {#INA220_SHUNT_REG}
 
 INA220 Power Monitor Regulator Shunt.
 
-| Reboot | minValue    | maxValue | increment  | default | unit |
-| ------ | ----------- | -------- | ---------- | ------- | ---- |
-| &nbsp; | 0.000000001 | 0.1      | .000000001 | 0.0005  |      |
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 1e-09    | 0.1      | 1e-09     | 0.0005  |      |
 
 ### INA226_CONFIG (`INT32`) {#INA226_CONFIG}
 
@@ -35952,9 +36389,9 @@ INA226 Power Monitor Max Current.
 
 INA226 Power Monitor Shunt.
 
-| Reboot  | minValue    | maxValue | increment  | default | unit |
-| ------- | ----------- | -------- | ---------- | ------- | ---- |
-| &check; | 0.000000001 | 0.1      | .000000001 | 0.0005  |      |
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 1e-09    | 0.1      | 1e-09     | 0.0005  |      |
 
 ### INA228_CONFIG (`INT32`) {#INA228_CONFIG}
 
@@ -35976,9 +36413,9 @@ INA228 Power Monitor Max Current.
 
 INA228 Power Monitor Shunt.
 
-| Reboot  | minValue    | maxValue | increment  | default | unit |
-| ------- | ----------- | -------- | ---------- | ------- | ---- |
-| &check; | 0.000000001 | 0.1      | .000000001 | 0.0005  |      |
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 1e-09    | 0.1      | 1e-09     | 0.0005  |      |
 
 ### INA238_CURRENT (`FLOAT`) {#INA238_CURRENT}
 
@@ -35992,9 +36429,9 @@ INA238 Power Monitor Max Current.
 
 INA238 Power Monitor Shunt.
 
-| Reboot  | minValue    | maxValue | increment  | default | unit |
-| ------- | ----------- | -------- | ---------- | ------- | ---- |
-| &check; | 0.000000001 | 0.1      | .000000001 | 0.0005  |      |
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 1e-09    | 0.1      | 1e-09     | 0.0005  |      |
 
 ### MS_ACCEL_RANGE (`INT32`) {#MS_ACCEL_RANGE}
 
@@ -36420,7 +36857,7 @@ The transform is described by MS_SENSOR_ROLL, MS_SENSOR_PITCH, MS_SENSOR_YAW.
 
 PCF8583 rotorfreq (i2c) pulse count.
 
-Nmumber of signals per rotation of actuator
+Number of signals per rotation of actuator
 
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
@@ -36428,7 +36865,7 @@ Nmumber of signals per rotation of actuator
 
 ### PCF8583_POOL (`INT32`) {#PCF8583_POOL}
 
-PCF8583 rotorfreq (i2c) pool interval.
+PCF8583 rotorfreq (i2c) poll interval.
 
 Determines how often the sensor is read out.
 
@@ -36880,7 +37317,7 @@ Configure on which serial port to run Lightware GRF Rangefinder (serial).
 
 Enable INA220 Power Monitor.
 
-For systems a INA220 Power Monitor, this should be set to true
+For systems with an INA220 Power Monitor, this should be set to true
 
 | Reboot  | minValue | maxValue | increment | default      | unit |
 | ------- | -------- | -------- | --------- | ------------ | ---- |
@@ -36890,7 +37327,7 @@ For systems a INA220 Power Monitor, this should be set to true
 
 Enable INA226 Power Monitor.
 
-For systems a INA226 Power Monitor, this should be set to true
+For systems with an INA226 Power Monitor, this should be set to true
 
 | Reboot  | minValue | maxValue | increment | default      | unit |
 | ------- | -------- | -------- | --------- | ------------ | ---- |
@@ -36900,7 +37337,7 @@ For systems a INA226 Power Monitor, this should be set to true
 
 Enable INA228 Power Monitor.
 
-For systems a INA228 Power Monitor, this should be set to true
+For systems with an INA228 Power Monitor, this should be set to true
 
 | Reboot  | minValue | maxValue | increment | default      | unit |
 | ------- | -------- | -------- | --------- | ------------ | ---- |
@@ -36910,7 +37347,7 @@ For systems a INA228 Power Monitor, this should be set to true
 
 Enable INA238 Power Monitor.
 
-For systems a INA238 Power Monitor, this should be set to true
+For systems with an INA238 Power Monitor, this should be set to true
 
 | Reboot  | minValue | maxValue | increment | default      | unit |
 | ------- | -------- | -------- | --------- | ------------ | ---- |
@@ -37022,14 +37459,14 @@ PAW3902/PAW3903 Optical Flow.
 
 ### SENS_EN_PCF8583 (`INT32`) {#SENS_EN_PCF8583}
 
-PCF8583 eneable driver.
+PCF8583 enable driver.
 
 Run PCF8583 driver automatically
 
 **Values:**
 
 - `0`: Disabled
-- `1`: Eneabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
@@ -37291,7 +37728,7 @@ Optical flow scale factor.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.5      | 1.5      |           | 1.      |      |
+| &nbsp; | 0.5      | 1.5      |           | 1.0     |      |
 
 ### SENS_FTX_CFG (`INT32`) {#SENS_FTX_CFG}
 
@@ -38461,17 +38898,17 @@ INS or sensors
 
 VOXL Power Monitor Shunt, Battery.
 
-| Reboot  | minValue    | maxValue | increment  | default | unit |
-| ------- | ----------- | -------- | ---------- | ------- | ---- |
-| &check; | 0.000000001 | 0.1      | .000000001 | 0.00063 |      |
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 1e-09    | 0.1      | 1e-09     | 0.00063 |      |
 
 ### VOXLPM_SHUNT_REG (`FLOAT`) {#VOXLPM_SHUNT_REG}
 
 VOXL Power Monitor Shunt, Regulator.
 
-| Reboot  | minValue    | maxValue | increment  | default | unit |
-| ------- | ----------- | -------- | ---------- | ------- | ---- |
-| &check; | 0.000000001 | 0.1      | .000000001 | 0.0056  |      |
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 1e-09    | 0.1      | 1e-09     | 0.0056  |      |
 
 ## Septentrio
 
@@ -39349,9 +39786,9 @@ Enable airspeed sensor in Gazebo bridge.
 - `0`: Disabled
 - `1`: Enabled
 
-| Reboot  | minValue | maxValue | increment | default     | unit |
-| ------- | -------- | -------- | --------- | ----------- | ---- |
-| &check; |          |          |           | Enabled (1) |      |
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 1       |      |
 
 ### SIM_GZ_EN_BARO (`INT32`) {#SIM_GZ_EN_BARO}
 
@@ -39362,9 +39799,9 @@ Enable barometer/air pressure sensor in Gazebo bridge.
 - `0`: Disabled
 - `1`: Enabled
 
-| Reboot  | minValue | maxValue | increment | default     | unit |
-| ------- | -------- | -------- | --------- | ----------- | ---- |
-| &check; |          |          |           | Enabled (1) |      |
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 1       |      |
 
 ### SIM_GZ_EN_FLOW (`INT32`) {#SIM_GZ_EN_FLOW}
 
@@ -39375,9 +39812,9 @@ Enable optical flow sensor in Gazebo bridge.
 - `0`: Disabled
 - `1`: Enabled
 
-| Reboot  | minValue | maxValue | increment | default     | unit |
-| ------- | -------- | -------- | --------- | ----------- | ---- |
-| &check; |          |          |           | Enabled (1) |      |
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 1       |      |
 
 ### SIM_GZ_EN_GPS (`INT32`) {#SIM_GZ_EN_GPS}
 
@@ -39388,9 +39825,9 @@ Enable GPS/NavSat sensor in Gazebo bridge.
 - `0`: Disabled
 - `1`: Enabled
 
-| Reboot  | minValue | maxValue | increment | default     | unit |
-| ------- | -------- | -------- | --------- | ----------- | ---- |
-| &check; |          |          |           | Enabled (1) |      |
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 1       |      |
 
 ### SIM_GZ_EN_LIDAR (`INT32`) {#SIM_GZ_EN_LIDAR}
 
@@ -39401,9 +39838,9 @@ Enable laser/lidar sensors in Gazebo bridge.
 - `0`: Disabled
 - `1`: Enabled
 
-| Reboot  | minValue | maxValue | increment | default     | unit |
-| ------- | -------- | -------- | --------- | ----------- | ---- |
-| &check; |          |          |           | Enabled (1) |      |
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 1       |      |
 
 ### SIM_GZ_EN_ODOM (`INT32`) {#SIM_GZ_EN_ODOM}
 
@@ -39414,9 +39851,9 @@ Enable odometry in Gazebo bridge.
 - `0`: Disabled
 - `1`: Enabled
 
-| Reboot  | minValue | maxValue | increment | default     | unit |
-| ------- | -------- | -------- | --------- | ----------- | ---- |
-| &check; |          |          |           | Enabled (1) |      |
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 1       |      |
 
 ## Simulation In Hardware
 
@@ -39510,7 +39947,7 @@ It represents the difficulty of the vehicle to modify its angular rate.
 
 | Reboot | minValue | maxValue | increment | default | unit   |
 | ------ | -------- | -------- | --------- | ------- | ------ |
-| &nbsp; | 0.0      |          | 0.005     | 0.030   | kg m^2 |
+| &nbsp; | 0.0      |          | 0.005     | 0.03    | kg m^2 |
 
 ### SIH_KDV (`FLOAT`) {#SIH_KDV}
 
@@ -39753,626 +40190,6 @@ simulated magnetometer Z offset.
 | ------ | -------- | -------- | --------- | ------- | ----- |
 | &nbsp; |          |          |           | 0.0     | gauss |
 
-## Spacecraft Attitude Control
-
-### SC_PITCHRATE_MAX (`FLOAT`) {#SC_PITCHRATE_MAX}
-
-Max pitch rate.
-
-Limit for pitch rate in manual and auto modes (except acro).
-Has effect for large rotations in autonomous mode, to avoid large control
-output and mixer saturation.
-
-This is not only limited by the vehicle's properties, but also by the maximum
-measurement rate of the gyro.
-
-| Reboot | minValue | maxValue | increment | default | unit  |
-| ------ | -------- | -------- | --------- | ------- | ----- |
-| &nbsp; | 0.0      | 1800.0   | 5         | 220.0   | deg/s |
-
-### SC_PITCH_P (`FLOAT`) {#SC_PITCH_P}
-
-Pitch P gain.
-
-Pitch proportional gain, i.e. desired angular speed in rad/s for error 1 rad.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 12       | 0.1       | 6.5     |      |
-
-### SC_ROLLRATE_MAX (`FLOAT`) {#SC_ROLLRATE_MAX}
-
-Max roll rate.
-
-Limit for roll rate in manual and auto modes (except acro).
-Has effect for large rotations in autonomous mode, to avoid large control
-output and mixer saturation.
-
-This is not only limited by the vehicle's properties, but also by the maximum
-measurement rate of the gyro.
-
-| Reboot | minValue | maxValue | increment | default | unit  |
-| ------ | -------- | -------- | --------- | ------- | ----- |
-| &nbsp; | 0.0      | 1800.0   | 5         | 220.0   | deg/s |
-
-### SC_ROLL_P (`FLOAT`) {#SC_ROLL_P}
-
-Roll P gain.
-
-Roll proportional gain, i.e. desired angular speed in rad/s for error 1 rad.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 12       | 0.1       | 6.5     |      |
-
-### SC_YAWRATE_MAX (`FLOAT`) {#SC_YAWRATE_MAX}
-
-Max yaw rate.
-
-| Reboot | minValue | maxValue | increment | default | unit  |
-| ------ | -------- | -------- | --------- | ------- | ----- |
-| &nbsp; | 0.0      | 1800.0   | 5         | 200.0   | deg/s |
-
-### SC_YAW_P (`FLOAT`) {#SC_YAW_P}
-
-Yaw P gain.
-
-Yaw proportional gain, i.e. desired angular speed in rad/s for error 1 rad.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 5        | 0.1       | 2.8     |      |
-
-### SC_YAW_WEIGHT (`FLOAT`) {#SC_YAW_WEIGHT}
-
-Yaw weight.
-
-A fraction [0,1] deprioritizing yaw compared to roll and pitch in non-linear attitude control.
-Deprioritizing yaw is necessary because multicopters have much less control authority
-in yaw compared to the other axes and it makes sense because yaw is not critical for
-stable hovering or 3D navigation.
-
-For yaw control tuning use SC_YAW_P. This ratio has no impact on the yaw gain.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 1.0      | 0.1       | 0.4     |      |
-
-## Spacecraft Position Control
-
-### SC_MAN_TILT_TAU (`FLOAT`) {#SC_MAN_TILT_TAU}
-
-Manual tilt input filter time constant.
-
-Setting this parameter to 0 disables the filter
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 2.0      |           | 0.0     | s    |
-
-### SC_MAN_Y_SCALE (`FLOAT`) {#SC_MAN_Y_SCALE}
-
-Max manual yaw rate for Stabilized, Altitude, Position mode.
-
-| Reboot | minValue | maxValue | increment | default | unit  |
-| ------ | -------- | -------- | --------- | ------- | ----- |
-| &nbsp; | 0        | 400      | 10        | 150.    | deg/s |
-
-### SPC_ACC (`FLOAT`) {#SPC_ACC}
-
-Acceleration for autonomous and for manual modes.
-
-When piloting manually, this parameter is only used in MPC_POS_MODE 4.
-
-| Reboot | minValue | maxValue | increment | default | unit  |
-| ------ | -------- | -------- | --------- | ------- | ----- |
-| &nbsp; | 2        | 15       | 1         | 3.      | m/s^2 |
-
-### SPC_ACC_MAX (`FLOAT`) {#SPC_ACC_MAX}
-
-Maximum accelaration in autonomous modes.
-
-| Reboot | minValue | maxValue | increment | default | unit  |
-| ------ | -------- | -------- | --------- | ------- | ----- |
-| &nbsp; | 2        | 15       | 1         | 5.      | m/s^2 |
-
-### SPC_JERK_AUTO (`FLOAT`) {#SPC_JERK_AUTO}
-
-Jerk limit in autonomous modes.
-
-Limit the maximum jerk of the vehicle (how fast the acceleration can change).
-A lower value leads to smoother vehicle motions but also limited agility.
-
-| Reboot | minValue | maxValue | increment | default | unit  |
-| ------ | -------- | -------- | --------- | ------- | ----- |
-| &nbsp; | 1        | 80       | 1         | 4.      | m/s^3 |
-
-### SPC_JERK_MAX (`FLOAT`) {#SPC_JERK_MAX}
-
-Maximum jerk in Position/Altitude mode.
-
-Limit the maximum jerk of the vehicle (how fast the acceleration can change).
-A lower value leads to smoother motions but limits agility
-(how fast it can change directions or break).
-
-Setting this to the maximum value essentially disables the limit.
-
-Only used with smooth MPC_POS_MODE 3 and 4.
-
-| Reboot | minValue | maxValue | increment | default | unit  |
-| ------ | -------- | -------- | --------- | ------- | ----- |
-| &nbsp; | 0.5      | 500      | 1         | 8.      | m/s^3 |
-
-### SPC_MAN_Y_MAX (`FLOAT`) {#SPC_MAN_Y_MAX}
-
-Max manual yaw rate for Stabilized, Altitude, Position mode.
-
-| Reboot | minValue | maxValue | increment | default | unit  |
-| ------ | -------- | -------- | --------- | ------- | ----- |
-| &nbsp; | 0        | 400      | 10        | 150.    | deg/s |
-
-### SPC_MAN_Y_TAU (`FLOAT`) {#SPC_MAN_Y_TAU}
-
-Manual yaw rate input filter time constant.
-
-Not used in Stabilized mode
-Setting this parameter to 0 disables the filter
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 5        | 0.01      | 0.08    | s    |
-
-### SPC_POS_I (`FLOAT`) {#SPC_POS_I}
-
-Integral gain for position error.
-
-Defined as corrective velocity in m/s per m velocity error
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 15       | 0.1       | 0.      |      |
-
-### SPC_POS_I_LIM (`FLOAT`) {#SPC_POS_I_LIM}
-
-Integral limit for position error.
-
-Defined as corrective velocity in m/s per m velocity error
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 5        | 0.01      | 1.      |      |
-
-### SPC_POS_P (`FLOAT`) {#SPC_POS_P}
-
-Proportional gain for position error.
-
-Defined as corrective velocity in m/s per m position error
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 2        | 0.1       | 0.2     |      |
-
-### SPC_THR_MAX (`FLOAT`) {#SPC_THR_MAX}
-
-Maximum collective thrust.
-
-Limit allowed thrust
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 1        | 0.05      | 1.      | norm |
-
-### SPC_VELD_LP (`FLOAT`) {#SPC_VELD_LP}
-
-Numerical velocity derivative low pass cutoff frequency.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 10       | 0.5       | 5.0     | Hz   |
-
-### SPC_VEL_ALL (`FLOAT`) {#SPC_VEL_ALL}
-
-Overall Velocity Limit.
-
-If set to a value greater than zero, other parameters are automatically set (such as
-MPC_VEL_MAX or MPC_VEL_MANUAL).
-If set to a negative value, the existing individual parameters are used.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -20      | 20       | 1         | -10.    |      |
-
-### SPC_VEL_CRUISE (`FLOAT`) {#SPC_VEL_CRUISE}
-
-Cruising elocity setpoint in autonomous modes.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 3        | 20       | 1         | 10.     | m/s  |
-
-### SPC_VEL_D (`FLOAT`) {#SPC_VEL_D}
-
-Derivative gain for velocity error.
-
-Defined as corrective acceleration in m/s^2 per m/s velocity error
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 15       | 0.1       | 0.0     |      |
-
-### SPC_VEL_I (`FLOAT`) {#SPC_VEL_I}
-
-Integral gain for velocity error.
-
-Defined as corrective acceleration in m/s^2 per m/s velocity error
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 15       | 0.1       | 0.      |      |
-
-### SPC_VEL_I_LIM (`FLOAT`) {#SPC_VEL_I_LIM}
-
-Integral limit for velocity error.
-
-Defined as corrective acceleration in m/s^2 per m/s velocity error
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 5        | 0.1       | 1.      |      |
-
-### SPC_VEL_MANUAL (`FLOAT`) {#SPC_VEL_MANUAL}
-
-Maximum velocity setpoint in Position mode.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 3        | 20       | 1         | 10.     | m/s  |
-
-### SPC_VEL_MAX (`FLOAT`) {#SPC_VEL_MAX}
-
-Maximum velocity.
-
-Absolute maximum for all velocity controlled modes.
-Any higher value is truncated.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 20       | 1         | 12.     | m/s  |
-
-### SPC_VEL_P (`FLOAT`) {#SPC_VEL_P}
-
-Proportional gain for velocity error.
-
-Defined as corrective acceleration in m/s^2 per m/s velocity error
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 15       | 0.1       | 6.55    |      |
-
-## Spacecraft Rate Control
-
-### SC_ACRO_EXPO (`FLOAT`) {#SC_ACRO_EXPO}
-
-Acro mode Expo factor for Roll and Pitch.
-
-Exponential factor for tuning the input curve shape.
-
-0 Purely linear input curve
-1 Purely cubic input curve
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 1        |           | 0.69    |      |
-
-### SC_ACRO_EXPO_Y (`FLOAT`) {#SC_ACRO_EXPO_Y}
-
-Acro mode Expo factor for Yaw.
-
-Exponential factor for tuning the input curve shape.
-
-0 Purely linear input curve
-1 Purely cubic input curve
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 1        |           | 0.69    |      |
-
-### SC_ACRO_P_MAX (`FLOAT`) {#SC_ACRO_P_MAX}
-
-Max acro pitch rate.
-
-default: 2 turns per second
-
-| Reboot | minValue | maxValue | increment | default | unit  |
-| ------ | -------- | -------- | --------- | ------- | ----- |
-| &nbsp; | 0.0      | 1800.0   | 5         | 720.0   | deg/s |
-
-### SC_ACRO_R_MAX (`FLOAT`) {#SC_ACRO_R_MAX}
-
-Max acro roll rate.
-
-default: 2 turns per second
-
-| Reboot | minValue | maxValue | increment | default | unit  |
-| ------ | -------- | -------- | --------- | ------- | ----- |
-| &nbsp; | 0.0      | 1800.0   | 5         | 720.0   | deg/s |
-
-### SC_ACRO_SUPEXPO (`FLOAT`) {#SC_ACRO_SUPEXPO}
-
-Acro mode SuperExpo factor for Roll and Pitch.
-
-SuperExpo factor for refining the input curve shape tuned using SC_ACRO_EXPO.
-
-0 Pure Expo function
-0.7 reasonable shape enhancement for intuitive stick feel
-0.95 very strong bent input curve only near maxima have effect
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 0.95     |           | 0.7     |      |
-
-### SC_ACRO_SUPEXPOY (`FLOAT`) {#SC_ACRO_SUPEXPOY}
-
-Acro mode SuperExpo factor for Yaw.
-
-SuperExpo factor for refining the input curve shape tuned using SC_ACRO_EXPO_Y.
-
-0 Pure Expo function
-0.7 reasonable shape enhancement for intuitive stick feel
-0.95 very strong bent input curve only near maxima have effect
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 0.95     |           | 0.7     |      |
-
-### SC_ACRO_Y_MAX (`FLOAT`) {#SC_ACRO_Y_MAX}
-
-Max acro yaw rate.
-
-default 1.5 turns per second
-
-| Reboot | minValue | maxValue | increment | default | unit  |
-| ------ | -------- | -------- | --------- | ------- | ----- |
-| &nbsp; | 0.0      | 1800.0   | 5         | 540.0   | deg/s |
-
-### SC_BAT_SCALE_EN (`INT32`) {#SC_BAT_SCALE_EN}
-
-Battery power level scaler.
-
-This compensates for voltage drop of the battery over time by attempting to
-normalize performance across the operating range of the battery. The copter
-should constantly behave as if it was fully charged with reduced max acceleration
-at lower battery percentages. i.e. if hover is at 0.5 throttle at 100% battery,
-it will still be 0.5 at 60% battery.
-
-| Reboot | minValue | maxValue | increment | default      | unit |
-| ------ | -------- | -------- | --------- | ------------ | ---- |
-| &nbsp; |          |          |           | Disabled (0) |      |
-
-### SC_MAN_F_MAX (`FLOAT`) {#SC_MAN_F_MAX}
-
-Manual mode maximum force.
-
--
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 1.0      |           | 1.0     |      |
-
-### SC_MAN_T_MAX (`FLOAT`) {#SC_MAN_T_MAX}
-
-Manual mode maximum torque.
-
--
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 1.0      |           | 1.0     |      |
-
-### SC_PITCHRATE_D (`FLOAT`) {#SC_PITCHRATE_D}
-
-Pitch rate D gain.
-
-Pitch rate differential gain. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      |          | 0.0005    | 0.003   |      |
-
-### SC_PITCHRATE_FF (`FLOAT`) {#SC_PITCHRATE_FF}
-
-Pitch rate feedforward.
-
-Improves tracking performance.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      |          |           | 0.0     |      |
-
-### SC_PITCHRATE_I (`FLOAT`) {#SC_PITCHRATE_I}
-
-Pitch rate I gain.
-
-Pitch rate integral gain. Can be set to compensate static thrust difference or gravity center offset.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      |          | 0.01      | 0.2     |      |
-
-### SC_PITCHRATE_K (`FLOAT`) {#SC_PITCHRATE_K}
-
-Pitch rate controller gain.
-
-Global gain of the controller.
-
-This gain scales the P, I and D terms of the controller:
-output = SC_PITCHRATE_K _ (SC_PITCHRATE_P _ error
-
-- SC_PITCHRATE_I \* error_integral
-- SC_PITCHRATE_D \* error_derivative)
-  Set SC_PITCHRATE_P=1 to implement a PID in the ideal form.
-  Set SC_PITCHRATE_K=1 to implement a PID in the parallel form.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.01     | 5.0      | 0.0005    | 1.0     |      |
-
-### SC_PITCHRATE_P (`FLOAT`) {#SC_PITCHRATE_P}
-
-Pitch rate P gain.
-
-Pitch rate proportional gain, i.e. control output for angular speed error 1 rad/s.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.01     | 0.6      | 0.01      | 0.15    |      |
-
-### SC_PR_INT_LIM (`FLOAT`) {#SC_PR_INT_LIM}
-
-Pitch rate integrator limit.
-
-Can be set to increase the amount of integrator available to counteract disturbances or reduced to improve settling time after large pitch moment trim changes.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      |          | 0.01      | 0.30    |      |
-
-### SC_ROLLRATE_D (`FLOAT`) {#SC_ROLLRATE_D}
-
-Roll rate D gain.
-
-Roll rate differential gain. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 0.01     | 0.0005    | 0.003   |      |
-
-### SC_ROLLRATE_FF (`FLOAT`) {#SC_ROLLRATE_FF}
-
-Roll rate feedforward.
-
-Improves tracking performance.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      |          |           | 0.0     |      |
-
-### SC_ROLLRATE_I (`FLOAT`) {#SC_ROLLRATE_I}
-
-Roll rate I gain.
-
-Roll rate integral gain. Can be set to compensate static thrust difference or gravity center offset.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      |          | 0.01      | 0.2     |      |
-
-### SC_ROLLRATE_K (`FLOAT`) {#SC_ROLLRATE_K}
-
-Roll rate controller gain.
-
-Global gain of the controller.
-
-This gain scales the P, I and D terms of the controller:
-output = SC_ROLLRATE_K _ (SC_ROLLRATE_P _ error
-
-- SC_ROLLRATE_I \* error_integral
-- SC_ROLLRATE_D \* error_derivative)
-  Set SC_ROLLRATE_P=1 to implement a PID in the ideal form.
-  Set SC_ROLLRATE_K=1 to implement a PID in the parallel form.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.01     | 5.0      | 0.0005    | 1.0     |      |
-
-### SC_ROLLRATE_P (`FLOAT`) {#SC_ROLLRATE_P}
-
-Roll rate P gain.
-
-Roll rate proportional gain, i.e. control output for angular speed error 1 rad/s.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.01     | 0.5      | 0.01      | 0.15    |      |
-
-### SC_RR_INT_LIM (`FLOAT`) {#SC_RR_INT_LIM}
-
-Roll rate integrator limit.
-
-Can be set to increase the amount of integrator available to counteract disturbances or reduced to improve settling time after large roll moment trim changes.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      |          | 0.01      | 0.30    |      |
-
-### SC_YAWRATE_D (`FLOAT`) {#SC_YAWRATE_D}
-
-Yaw rate D gain.
-
-Yaw rate differential gain. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      |          | 0.01      | 0.0     |      |
-
-### SC_YAWRATE_FF (`FLOAT`) {#SC_YAWRATE_FF}
-
-Yaw rate feedforward.
-
-Improves tracking performance.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      |          | 0.01      | 0.0     |      |
-
-### SC_YAWRATE_I (`FLOAT`) {#SC_YAWRATE_I}
-
-Yaw rate I gain.
-
-Yaw rate integral gain. Can be set to compensate static thrust difference or gravity center offset.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      |          | 0.01      | 0.865   |      |
-
-### SC_YAWRATE_K (`FLOAT`) {#SC_YAWRATE_K}
-
-Yaw rate controller gain.
-
-Global gain of the controller.
-
-This gain scales the P, I and D terms of the controller:
-output = SC_YAWRATE_K _ (SC_YAWRATE_P _ error
-
-- SC_YAWRATE_I \* error_integral
-- SC_YAWRATE_D \* error_derivative)
-  Set SC_YAWRATE_P=1 to implement a PID in the ideal form.
-  Set SC_YAWRATE_K=1 to implement a PID in the parallel form.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 5.0      | 0.0005    | 1.0     |      |
-
-### SC_YAWRATE_P (`FLOAT`) {#SC_YAWRATE_P}
-
-Yaw rate P gain.
-
-Yaw rate proportional gain, i.e. control output for angular speed error 1 rad/s.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 10.0     | 0.01      | 10.0    |      |
-
-### SC_YR_INT_LIM (`FLOAT`) {#SC_YR_INT_LIM}
-
-Yaw rate integrator limit.
-
-Can be set to increase the amount of integrator available to counteract disturbances or reduced to improve settling time after large yaw moment trim changes.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      |          | 0.01      | 0.2     |      |
-
 ## System
 
 ### RPM_CAP_ENABLE (`INT32`) {#RPM_CAP_ENABLE}
@@ -40445,7 +40262,9 @@ Instructions:
 
 ### SYS_CAL_ACCEL (`INT32`) {#SYS_CAL_ACCEL}
 
-Enable auto start of accelerometer thermal calibration at the next power up.
+Auto start accel thermal calibration on next boot.
+
+Enable auto start of accelerometer thermal calibration at the next power up
 
 0 : Set to 0 to do nothing
 1 : Set to 1 to start a calibration at next boot
@@ -40459,7 +40278,9 @@ default (0, no calibration)
 
 ### SYS_CAL_BARO (`INT32`) {#SYS_CAL_BARO}
 
-Enable auto start of barometer thermal calibration at the next power up.
+Auto start baro thermal calibration on next boot.
+
+Enable auto start of barometer thermal calibration at the next power up
 
 0 : Set to 0 to do nothing
 1 : Set to 1 to start a calibration at next boot
@@ -40473,7 +40294,9 @@ default (0, no calibration)
 
 ### SYS_CAL_GYRO (`INT32`) {#SYS_CAL_GYRO}
 
-Enable auto start of rate gyro thermal calibration at the next power up.
+Auto start gyro thermal calibration on next boot.
+
+Enable auto start of rate gyro thermal calibration at the next power up
 
 0 : Set to 0 to do nothing
 1 : Set to 1 to start a calibration at next boot
@@ -40531,9 +40354,9 @@ non-persistent storage in RAM.
 - `0`: Default storage
 - `1`: RAM storage
 
-| Reboot  | minValue | maxValue | increment | default      | unit |
-| ------- | -------- | -------- | --------- | ------------ | ---- |
-| &check; |          |          |           | Disabled (0) |      |
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0       |      |
 
 ### SYS_FAC_CAL_MODE (`INT32`) {#SYS_FAC_CAL_MODE}
 
@@ -40692,7 +40515,7 @@ Set to 0 to disable, 1 for maximum brightness
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 1.      | %    |
+| &nbsp; |          |          |           | 1.0     | %    |
 
 ### SYS_STCK_EN (`INT32`) {#SYS_STCK_EN}
 
@@ -40765,30 +40588,6 @@ Configure on which serial port to run HoTT Telemetry.
 | &check; |          |          |           | 0       |      |
 
 ## Testing
-
-### TEST_1 (`INT32`) {#TEST_1}
-
-TEST_1.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 2       |      |
-
-### TEST_2 (`INT32`) {#TEST_2}
-
-TEST_2.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 4       |      |
-
-### TEST_3 (`FLOAT`) {#TEST_3}
-
-TEST_3.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 5.0     |      |
 
 ### TEST_D (`FLOAT`) {#TEST_D}
 
@@ -40877,30 +40676,6 @@ TEST_P.
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; |          |          |           | 0.2     |      |
-
-### TEST_PARAMS (`INT32`) {#TEST_PARAMS}
-
-TEST_PARAMS.
-
-| Reboot | minValue | maxValue | increment | default  | unit |
-| ------ | -------- | -------- | --------- | -------- | ---- |
-| &nbsp; |          |          |           | 12345678 |      |
-
-### TEST_RC2_X (`INT32`) {#TEST_RC2_X}
-
-TEST_RC2_X.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 16      |      |
-
-### TEST_RC_X (`INT32`) {#TEST_RC_X}
-
-TEST_RC_X.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 8       |      |
 
 ### TEST_TRIM (`FLOAT`) {#TEST_TRIM}
 
@@ -43433,7 +43208,9 @@ sum speed of error for integrational gain.
 
 ### UUV_HGT_MAX_DIFF (`FLOAT`) {#UUV_HGT_MAX_DIFF}
 
-maximum Height distance controlled by manual input. Diff between actual and desired Height cant be higher than that.
+Max height error from manual input.
+
+maximum Height distance controlled by manual input. Diff between actual and desired Height cannot be higher than that
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -43593,7 +43370,9 @@ Maximum time (in seconds) before resetting setpoint.
 
 ### UUV_STICK_MODE (`INT32`) {#UUV_STICK_MODE}
 
-Stick mode selector (0=Heave/sway control, roll/pitch leveled; 1=Pitch/roll control).
+UUV stick input mode.
+
+Stick mode selector (0=Heave/sway control, roll/pitch leveled; 1=Pitch/roll control)
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -44169,7 +43948,7 @@ UART ESC Turtle Mode Cosphi.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.000    | 1.000    | 0.001     | 0.990   |      |
+| &nbsp; | 0.0      | 1.0      | 0.001     | 0.99    |      |
 
 ### VOXL_ESC_T_DEAD (`INT32`) {#VOXL_ESC_T_DEAD}
 
@@ -44334,7 +44113,7 @@ Airspeed at which we can start blending both fw and mc controls. Set to 0 to dis
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.00     | 30.00    | 1         | 8.0     | m/s  |
+| &nbsp; | 0.0      | 30.0     | 1         | 8.0     | m/s  |
 
 ### VT_ARSP_TRANS (`FLOAT`) {#VT_ARSP_TRANS}
 
@@ -44344,7 +44123,7 @@ Airspeed at which we can switch to fw mode
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.00     | 30.00    | 1         | 10.0    | m/s  |
+| &nbsp; | 0.0      | 30.0     | 1         | 10.0    | m/s  |
 
 ### VT_BT_TILT_DUR (`FLOAT`) {#VT_BT_TILT_DUR}
 
@@ -44354,7 +44133,7 @@ Time in seconds it takes to tilt form VT_TILT_FW to VT_TILT_MC.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.1      | 10       | 0.1       | 1.      | s    |
+| &nbsp; | 0.1      | 10       | 0.1       | 1.0     | s    |
 
 ### VT_B_DEC_I (`FLOAT`) {#VT_B_DEC_I}
 
@@ -44383,7 +44162,7 @@ Transition is also declared over if the groundspeed drops below MPC_XY_CRUISE.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.1      | 20.00    | 1         | 10.0    | s    |
+| &nbsp; | 0.1      | 20.0     | 1         | 10.0    | s    |
 
 ### VT_B_TRANS_RAMP (`FLOAT`) {#VT_B_TRANS_RAMP}
 
@@ -44446,7 +44225,7 @@ Enabled via VT_FWD_THRUST_EN.
 
 Differential thrust in forwards flight.
 
-Enable differential thrust seperately for roll, pitch, yaw in forward (fixed-wing) mode.
+Enable differential thrust separately for roll, pitch, yaw in forward (fixed-wing) mode.
 The effectiveness of differential thrust around the corresponding axis can be
 tuned by setting VT_FW_DIFTHR_S_R / VT_FW_DIFTHR_S_P / VT_FW_DIFTHR_S_Y.
 
@@ -44468,7 +44247,7 @@ Differential thrust in forward flight is enabled via VT_FW_DIFTHR_EN.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 2.0      | 0.1       | 1.      |      |
+| &nbsp; | 0.0      | 2.0      | 0.1       | 1.0     |      |
 
 ### VT_FW_DIFTHR_S_R (`FLOAT`) {#VT_FW_DIFTHR_S_R}
 
@@ -44478,7 +44257,7 @@ Differential thrust in forward flight is enabled via VT_FW_DIFTHR_EN.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 2.0      | 0.1       | 1.      |      |
+| &nbsp; | 0.0      | 2.0      | 0.1       | 1.0     |      |
 
 ### VT_FW_DIFTHR_S_Y (`FLOAT`) {#VT_FW_DIFTHR_S_Y}
 
@@ -44546,7 +44325,7 @@ Time in seconds used for a transition
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.1      | 20.00    | 1         | 5.0     | s    |
+| &nbsp; | 0.1      | 20.0     | 1         | 5.0     | s    |
 
 ### VT_F_TRANS_THR (`FLOAT`) {#VT_F_TRANS_THR}
 
@@ -44639,7 +44418,7 @@ Spoiler setting while landing (hover).
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -1       | 1        | 0.1       | 0.      | norm |
+| &nbsp; | -1       | 1        | 0.1       | 0.0     | norm |
 
 ### VT_TILT_FW (`FLOAT`) {#VT_TILT_FW}
 
@@ -44693,7 +44472,7 @@ Time in seconds after which transition will be cancelled.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.1      | 30.00    | 1         | 15.0    | s    |
+| &nbsp; | 0.1      | 30.0     | 1         | 15.0    | s    |
 
 ### VT_TYPE (`INT32`) {#VT_TYPE}
 
@@ -45355,14 +45134,6 @@ Lightware laser rangefinder Operation Mode.
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 0        | 2        |           | 1       |      |
-
-### SPC_VEHICLE_RESP (`FLOAT`) {#SPC_VEHICLE_RESP}
-
-SPC_VEHICLE_RESP.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 0.5     |      |
 
 ### ZENOH_DOMAIN_ID (`INT32`) {#ZENOH_DOMAIN_ID}
 

@@ -4,7 +4,7 @@ This tutorial demonstrates how to stream a uORB message as a MAVLink message, an
 
 ## Overview
 
-[MAVLink messages](../middleware/mavlink.md) are streamed using a streaming class, derived from `MavlinkStream`, that has been added to the PX4 stream list.
+[MAVLink messages](../middleware/mavlink.md) are streamed using a streaming class, derived from `MavlinkStream`, that has been added to the [PX4 stream list](#add-the-new-class-to-the-streaming-list).
 The class has framework methods that you implement so PX4 can get information it needs from the generated MAVLink message definition.
 It also has a `send()` method that is called each time the message needs to be sent — you override this to copy information from a uORB subscription to the MAVLink message object that is to be sent.
 
@@ -187,15 +187,17 @@ Most streaming classes are very similar (see examples in [/src/modules/mavlink/s
 
   :::
 
-Next we include our new class in [mavlink_messages.cpp](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/mavlink/mavlink_messages.cpp#L2193).
-Add the line below to the part of the file where all the other streams are included:
+### Add the new class to the streaming list
+
+Next we add our new class to the streaming list.
+
+First open [mavlink_messages.cpp](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/mavlink/mavlink_messages.cpp#L2193) and add the line below to the part of the file where all the other streams are included:
 
 ```cpp
 #include "streams/BATTERY_STATUS_DEMO.hpp"
 ```
 
-Finally append the stream class to the `streams_list` at the bottom of
-[mavlink_messages.cpp](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/mavlink/mavlink_messages.cpp)
+Then append the stream class to the `streams_list` at the bottom of [mavlink_messages.cpp](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/mavlink/mavlink_messages.cpp)
 
 ```C
 StreamListItem *streams_list[] = {
@@ -212,24 +214,11 @@ We cover that in the next sections.
 
 ## Streaming by Default
 
-The easiest way to stream your messages by default (as part of a build) is to add them to [mavlink_main.cpp](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/mavlink/mavlink_main.cpp) in the appropriate message group.
+The easiest way to stream your messages by default (as part of a build) is to add them to appropriate [MAVLink Profile](../mavlink/mavlink_profiles.md), such as `MAVLINK_MODE_NORMAL` if you're streaming to a GCS over WiFI, or `MAVLINK_MODE_OSD` for an OSD device.
 
-If you search in the file you'll find groups of messages defined in a switch statement:
+This is covered in [Adding Messages to a Profile](..//mavlink/mavlink_profiles.md#adding-messages-to-a-profile), but in summary you first open [mavlink_main.cpp](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/mavlink/mavlink_main.cpp), search for the method `Mavlink::configure_streams_to_default`, and then find the profile that you wish to update.
 
-- `MAVLINK_MODE_NORMAL`: Streamed to a GCS.
-- `MAVLINK_MODE_ONBOARD`: Streamed to a companion computer on a fast link, such as Ethernet
-- `MAVLINK_MODE_ONBOARD_LOW_BANDWIDTH`: Streamed to a companion computer for re-routing to a reduced-traffic link, such as a GCS.
-- `MAVLINK_MODE_GIMBAL`: Streamed to a gimbal
-- `MAVLINK_MODE_EXTVISION`: Streamed to an external vision system
-- `MAVLINK_MODE_EXTVISIONMIN`: Streamed to an external vision system on a slower link
-- `MAVLINK_MODE_OSD`: Streamed to an OSD, such as an FPV headset.
-- `MAVLINK_MODE_CUSTOM`: Stream nothing by default. Used when configuring streaming using MAVLink.
-- `MAVLINK_MODE_MAGIC`: Same as `MAVLINK_MODE_CUSTOM`
-- `MAVLINK_MODE_CONFIG`: Streaming over USB with higher rates than `MAVLINK_MODE_NORMAL`.
-- `MAVLINK_MODE_MINIMAL`: Stream a minimal set of messages. Normally used for poor telemetry links.
-- `MAVLINK_MODE_IRIDIUM`: Streamed to an iridium satellite phone
-
-Normally you'll be testing on a GCS, so you could just add the message to the `MAVLINK_MODE_NORMAL` case using the `configure_stream_local()` method.
+If you're just testing on a GCS, you could add the message to the `MAVLINK_MODE_NORMAL` case using the `configure_stream_local()` method.
 For example, to stream `BATTERY_STATUS_DEMO` at 5 Hz:
 
 ```cpp

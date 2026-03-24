@@ -780,6 +780,7 @@
       - [Receiving Messages](mavlink/receiving_messages.md)
       - [Custom MAVLink Messages](mavlink/custom_messages.md)
       - [Message Signing](mavlink/message_signing.md)
+      - [Security Hardening](mavlink/security_hardening.md)
       - [Protocols/Microservices](mavlink/protocols.md)
         - [Standard Modes Protocol](mavlink/standard_modes.md)
     - [uXRCE-DDS (PX4-ROS 2/DDS Bridge)](middleware/uxrce_dds.md)

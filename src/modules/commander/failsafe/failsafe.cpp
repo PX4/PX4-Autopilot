@@ -510,7 +510,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 					   || state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND;
 
 	const bool dll_loss_ignored = isFailsafeIgnored(state.user_intended_mode, _param_com_dll_except.get())
-				      || ignore_any_link_loss_vtol_takeoff_fixedwing || dll_loss_ignored_land;
+				      || ignore_any_link_loss_vtol_takeoff_fixedwing || dll_loss_ignored_land || !state.armed;
 
 	if (_param_nav_dll_act.get() != int32_t(gcs_connection_loss_failsafe_mode::Disabled) && !dll_loss_ignored) {
 		CHECK_FAILSAFE(status_flags, gcs_connection_lost, fromNavDllOrRclActParam(_param_nav_dll_act.get()).causedBy(Cause::GCSConnectionLoss));

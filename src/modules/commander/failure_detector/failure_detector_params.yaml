@@ -1,0 +1,93 @@
+module_name: failure_detector
+parameters:
+- group: Failure Detector
+  definitions:
+    FD_FAIL_R:
+      description:
+        short: FailureDetector Max Roll
+        long: |-
+          Maximum roll angle before FailureDetector triggers the attitude_failure flag.
+          The flag triggers flight termination (if @CBRK_FLIGHTTERM = 0),
+          which sets outputs to their failsafe values.
+          On takeoff the flag triggers lockdown (irrespective of @CBRK_FLIGHTTERM),
+          which disarms motors but does not set outputs to failsafe values.
+
+          Setting this parameter to 0 disables the check
+      type: int32
+      default: 60
+      min: 0
+      max: 180
+      unit: deg
+    FD_FAIL_P:
+      description:
+        short: FailureDetector Max Pitch
+        long: |-
+          Maximum pitch angle before FailureDetector triggers the attitude_failure flag.
+          The flag triggers flight termination (if @CBRK_FLIGHTTERM = 0),
+          which sets outputs to their failsafe values.
+          On takeoff the flag triggers lockdown (irrespective of @CBRK_FLIGHTTERM),
+          which disarms motors but does not set outputs to failsafe values.
+
+          Setting this parameter to 0 disables the check
+      type: int32
+      default: 60
+      min: 0
+      max: 180
+      unit: deg
+    FD_FAIL_R_TTRI:
+      description:
+        short: Roll failure trigger time
+        long: Seconds (decimal) that roll has to exceed FD_FAIL_R before being considered
+          as a failure.
+      type: float
+      default: 0.3
+      unit: s
+      min: 0.02
+      max: 5
+      decimal: 2
+    FD_FAIL_P_TTRI:
+      description:
+        short: Pitch failure trigger time
+        long: Seconds (decimal) that pitch has to exceed FD_FAIL_P before being considered
+          as a failure.
+      type: float
+      default: 0.3
+      unit: s
+      min: 0.02
+      max: 5
+      decimal: 2
+    FD_EXT_ATS_EN:
+      description:
+        short: Enable PWM input from external ATS for failsafe
+        long: |-
+          Enable PWM input on for engaging failsafe from an external automatic trigger system (ATS)
+
+          Enabled on either AUX5 or MAIN5 depending on board.
+          External ATS is required by ASTM F3322-18.
+      type: boolean
+      default: 0
+      reboot_required: true
+    FD_EXT_ATS_TRIG:
+      description:
+        short: External ATS PWM threshold for failsafe
+        long: |-
+          The PWM threshold from external automatic trigger system for engaging failsafe
+
+          External ATS is required by ASTM F3322-18.
+      type: int32
+      default: 1900
+      unit: us
+      decimal: 2
+    FD_IMB_PROP_THR:
+      description:
+        short: Imbalanced propeller check threshold
+        long: |-
+          Value at which the imbalanced propeller metric (based on horizontal and
+          vertical acceleration variance) triggers a failure
+
+          Setting this value to 0 disables the feature.
+      type: int32
+      default: 30
+      min: 0
+      max: 1000
+      increment: 1

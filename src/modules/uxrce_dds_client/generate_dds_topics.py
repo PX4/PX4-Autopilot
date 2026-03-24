@@ -115,20 +115,18 @@ def process_message_instance(msg_type):
 
 merged_em_globals['namespace'] = namespace
 
-pubs_not_empty = msg_map['publications'] is not None
-if pubs_not_empty:
-    for p in msg_map['publications']:
-        process_message_type(p)
-        process_message_instance(p)
+pubs = msg_map.get('publications') or []
+for p in pubs:
+    process_message_type(p)
+    process_message_instance(p)
 
-merged_em_globals['publications'] = msg_map['publications'] if pubs_not_empty else []
+merged_em_globals['publications'] = pubs
 
-subs_not_empty = msg_map['subscriptions'] is not None
-if subs_not_empty:
-    for s in msg_map['subscriptions']:
-        process_message_type(s)
+subs = msg_map.get('subscriptions') or []
+for s in subs:
+    process_message_type(s)
 
-merged_em_globals['subscriptions'] = msg_map['subscriptions'] if subs_not_empty else []
+merged_em_globals['subscriptions'] = subs
 
 subs_multi = msg_map.get('subscriptions_multi') or []
 for sd in subs_multi:

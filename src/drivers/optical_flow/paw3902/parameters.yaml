@@ -1,0 +1,10 @@
+module_name: paw3902
+parameters:
+- group: Sensors
+  definitions:
+    SENS_EN_PAW3902:
+      description:
+        short: PAW3902/PAW3903 Optical Flow
+      type: boolean
+      default: 0
+      reboot_required: true

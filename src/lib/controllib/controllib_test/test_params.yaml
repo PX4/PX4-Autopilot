@@ -1,0 +1,64 @@
+module_name: controllib_test
+parameters:
+- group: Testing
+  definitions:
+    TEST_MIN:
+      description:
+        short: TEST_MIN
+      type: float
+      default: -1.0
+    TEST_MAX:
+      description:
+        short: TEST_MAX
+      type: float
+      default: 1.0
+    TEST_TRIM:
+      description:
+        short: TEST_TRIM
+      type: float
+      default: 0.5
+    TEST_HP:
+      description:
+        short: TEST_HP
+      type: float
+      default: 10.0
+    TEST_LP:
+      description:
+        short: TEST_LP
+      type: float
+      default: 10.0
+    TEST_P:
+      description:
+        short: TEST_P
+      type: float
+      default: 0.2
+    TEST_I:
+      description:
+        short: TEST_I
+      type: float
+      default: 0.1
+    TEST_I_MAX:
+      description:
+        short: TEST_I_MAX
+      type: float
+      default: 1.0
+    TEST_D:
+      description:
+        short: TEST_D
+      type: float
+      default: 0.01
+    TEST_D_LP:
+      description:
+        short: TEST_D_LP
+      type: float
+      default: 10.0
+    TEST_MEAN:
+      description:
+        short: TEST_MEAN
+      type: float
+      default: 1.0
+    TEST_DEV:
+      description:
+        short: TEST_DEV
+      type: float
+      default: 2.0

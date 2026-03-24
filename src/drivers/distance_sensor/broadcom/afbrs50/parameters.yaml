@@ -1,0 +1,58 @@
+module_name: afbrs50
+parameters:
+- group: Sensors
+  definitions:
+    SENS_AFBR_MODE:
+      description:
+        short: AFBR Rangefinder Mode
+        long: This parameter defines the mode of the AFBR Rangefinder.
+      type: enum
+      values:
+        0: Short Range Mode
+        1: Long Range Mode
+        2: High Speed Short Range Mode
+        3: High Speed Long Range Mode
+      default: 0
+      reboot_required: true
+      min: 0
+      max: 3
+    SENS_AFBR_S_RATE:
+      description:
+        short: AFBR Rangefinder Short Range Rate
+        long: This parameter defines measurement rate of the AFBR Rangefinder in short
+          range mode.
+      type: int32
+      default: 50
+      min: 1
+      max: 100
+    SENS_AFBR_L_RATE:
+      description:
+        short: AFBR Rangefinder Long Range Rate
+        long: This parameter defines measurement rate of the AFBR Rangefinder in long
+          range mode.
+      type: int32
+      default: 25
+      min: 1
+      max: 100
+    SENS_AFBR_THRESH:
+      description:
+        short: AFBR Rangefinder Short/Long Range Threshold
+        long: |-
+          This parameter defines the threshold for switching between short and long range mode.
+          The mode will switch from short to long range when the distance is greater than the threshold plus the hysteresis.
+          The mode will switch from long to short range when the distance is less than the threshold minus the hysteresis.
+      type: int32
+      default: 4
+      unit: m
+      min: 1
+      max: 50
+    SENS_AFBR_HYSTER:
+      description:
+        short: AFBR Rangefinder Short/Long Range Threshold Hysteresis
+        long: This parameter defines the hysteresis for switching between short and
+          long range mode.
+      type: int32
+      default: 1
+      unit: m
+      min: 1
+      max: 10

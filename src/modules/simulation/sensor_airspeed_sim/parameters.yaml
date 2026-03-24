@@ -1,0 +1,26 @@
+module_name: sensor_airspeed_sim
+parameters:
+- group: Sensors
+  definitions:
+    SENS_EN_ARSPDSIM:
+      description:
+        short: Enable simulated airspeed sensor instance
+      type: enum
+      values:
+        0: Disabled
+        1: Enabled
+      default: 0
+      reboot_required: true
+      min: 0
+      max: 1
+    SIM_ARSPD_FAIL:
+      description:
+        short: Dynamically simulate failure of airspeed sensor instance
+      type: enum
+      values:
+        0: Disabled
+        1: Enabled
+      default: 0
+      reboot_required: true
+      min: 0
+      max: 1
