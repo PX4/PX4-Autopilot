@@ -338,6 +338,20 @@ void RTL::setRtlTypeAndDestination()
 	landing_loiter.lon = destination.lon;
 	landing_loiter.height_m = NAN;
 
+	const auto configure_direct_landing_loiter = [&](const PositionYawSetpoint & direct_destination) {
+		land_approaches_s rtl_land_approaches{readVtolLandApproaches(direct_destination)};
+
+		landing_loiter.lat = direct_destination.lat;
+		landing_loiter.lon = direct_destination.lon;
+		landing_loiter.height_m = NAN;
+
+		if (_vehicle_status_sub.get().is_vtol
+		    && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)
+		    && rtl_land_approaches.isAnyApproachValid()) {
+			landing_loiter = chooseBestLandingApproach(rtl_land_approaches);
+		}
+	};
+
 	if (_param_rtl_type.get() == RTL_TYPE_MISSION_FAST) {
 		if (hasMissionLandStart()) {
 			new_rtl_type = RtlType::RTL_MISSION_FAST;
@@ -510,8 +524,10 @@ void RTL::setRtlTypeAndDestination()
 					   : UINT8_MAX;
 
 		} else {
+			const bool srp_scan_found_land_approach = _one_rally_point_has_land_approach;
 			_should_go_straight_to_safe_point = false;
 			findRtlDestinationForType(RTL_TYPE_DIRECT_WITH_MISSION_LAND, destination_type, destination, safe_point_index);
+			_one_rally_point_has_land_approach |= srp_scan_found_land_approach;
 
 			if (destination_type == DestinationType::DESTINATION_TYPE_MISSION_LAND) {
 				new_rtl_type = RtlType::RTL_DIRECT_MISSION_LAND;
@@ -532,33 +548,11 @@ void RTL::setRtlTypeAndDestination()
 
 			new_rtl_type = RtlType::RTL_DIRECT;
 
-			land_approaches_s rtl_land_approaches{readVtolLandApproaches(destination)};
-
-			// set loiter position to destination initially, overwrite for VTOL if land approaches exist
-			landing_loiter.lat = destination.lat;
-			landing_loiter.lon = destination.lon;
-			landing_loiter.height_m = NAN;
-
-			if (_vehicle_status_sub.get().is_vtol
-			    && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)
-			    && rtl_land_approaches.isAnyApproachValid()) {
-				landing_loiter = chooseBestLandingApproach(rtl_land_approaches);
-			}
 		}
 	}
 
 	if (new_rtl_type == RtlType::RTL_DIRECT) {
-		land_approaches_s rtl_land_approaches{readVtolLandApproaches(destination)};
-
-		landing_loiter.lat = destination.lat;
-		landing_loiter.lon = destination.lon;
-		landing_loiter.height_m = NAN;
-
-		if (_vehicle_status_sub.get().is_vtol
-		    && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)
-		    && rtl_land_approaches.isAnyApproachValid()) {
-			landing_loiter = chooseBestLandingApproach(rtl_land_approaches);
-		}
+		configure_direct_landing_loiter(destination);
 	}
 
 	const float rtl_alt = computeReturnAltitude(destination);
@@ -569,15 +563,20 @@ void RTL::setRtlTypeAndDestination()
 					       || (new_rtl_type == RtlType::RTL_MISSION_FAST_REVERSE)
 					       || (new_rtl_type == RtlType::RTL_DIRECT_MISSION_LAND)
 					       || (new_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
+	const bool should_init_mission_type = new_type_is_mission_based
+					      && ((_rtl_type == new_rtl_type) ? (_rtl_mission_type_handle == nullptr) : true);
+	const bool mission_type_initialized = should_init_mission_type ? initRtlMissionType(new_rtl_type, rtl_alt) : true;
 
-	if (new_type_is_mission_based && (_rtl_type != new_rtl_type)) {
-		initRtlMissionType(new_rtl_type, rtl_alt);
+	if (mission_type_initialized == false) {
+		PX4_ERR("RTL mission executor init failed for type %u, falling back to direct RTL",
+			static_cast<unsigned>(new_rtl_type));
+		new_rtl_type = RtlType::RTL_DIRECT;
+		configure_direct_landing_loiter(destination);
+		_rtl_direct.setRtlPosition(destination, landing_loiter);
 	}
 
-	// setRoutePlan is called unconditionally (even when the type hasn't changed) so that
-	// a replanned route is pushed to the executor.  The executor's state machine in
-	// RtlMissionSafePointFollow::setRoutePlan handles mid-flight plan updates correctly
-	// because it only caches the plan and branch-off index without resetting the stage.
+	// setRoutePlan is called unconditionally (even when the type has not changed) so that
+	// a replanned route is pushed to the executor without recreating the mission executor instance.
 	if (new_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW && _rtl_mission_type_handle) {
 		_rtl_mission_type_handle->setRoutePlan(_route_safe_point_plan);
 		_rtl_mission_type_handle->setShouldGoStraightToGoal(_should_go_straight_to_safe_point);
@@ -805,7 +804,7 @@ float RTL::computeReturnAltitude(const PositionYawSetpoint &rtl_position) const
 	}
 }
 
-void RTL::initRtlMissionType(RtlType new_rtl_type, float rtl_alt)
+bool RTL::initRtlMissionType(RtlType new_rtl_type, float rtl_alt)
 {
 	if (_rtl_mission_type_handle) {
 		delete _rtl_mission_type_handle;
@@ -813,6 +812,7 @@ void RTL::initRtlMissionType(RtlType new_rtl_type, float rtl_alt)
 	}
 
 	mission_s new_mission = _mission_sub.get();
+	bool initialized = false;
 
 	switch (new_rtl_type) {
 	case RtlType::RTL_DIRECT_MISSION_LAND:
@@ -821,6 +821,7 @@ void RTL::initRtlMissionType(RtlType new_rtl_type, float rtl_alt)
 		if (_rtl_mission_type_handle) {
 			_rtl_mission_type_handle->setRtlAlt(rtl_alt);
 			_rtl_mission_type_handle->initialize();
+			initialized = true;
 		}
 
 		// RTL type is either direct or mission land have to set it later.
@@ -831,6 +832,7 @@ void RTL::initRtlMissionType(RtlType new_rtl_type, float rtl_alt)
 
 		if (_rtl_mission_type_handle) {
 			_rtl_mission_type_handle->initialize();
+			initialized = true;
 		}
 
 		break;
@@ -840,6 +842,7 @@ void RTL::initRtlMissionType(RtlType new_rtl_type, float rtl_alt)
 
 		if (_rtl_mission_type_handle) {
 			_rtl_mission_type_handle->initialize();
+			initialized = true;
 		}
 
 		break;
@@ -851,6 +854,7 @@ void RTL::initRtlMissionType(RtlType new_rtl_type, float rtl_alt)
 			_rtl_mission_type_handle->setRoutePlan(_route_safe_point_plan);
 			_rtl_mission_type_handle->setShouldGoStraightToGoal(_should_go_straight_to_safe_point);
 			_rtl_mission_type_handle->initialize();
+			initialized = true;
 		}
 
 		break;
@@ -858,6 +862,8 @@ void RTL::initRtlMissionType(RtlType new_rtl_type, float rtl_alt)
 	default:
 		break;
 	}
+
+	return initialized;
 }
 
 void RTL::parameters_update()
