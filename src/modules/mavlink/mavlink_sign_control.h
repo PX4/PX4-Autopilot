@@ -93,6 +93,7 @@ private:
 	 * Checks whether the key has been initialized
 	 */
 	bool _is_signing_initialized;
+	bool _no_key_warned{false};
 };
 
 

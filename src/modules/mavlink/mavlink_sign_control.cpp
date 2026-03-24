@@ -128,11 +128,12 @@ bool MavlinkSignControl::check_for_signing(const mavlink_message_t *msg)
 
 	if (setup_signing.initial_timestamp != 0 || !is_array_all_zeros(setup_signing.secret_key, MAVLINK_SECRET_KEY_LENGTH)) {
 		_is_signing_initialized = true;
+		_no_key_warned = false;
 		PX4_INFO("MAVLink signing key updated via SETUP_SIGNING");
 
 	} else {
 		_is_signing_initialized = false;
-		PX4_INFO("MAVLink signing disabled via SETUP_SIGNING (zero key)");
+		PX4_INFO("MAVLink signing key cleared via SETUP_SIGNING");
 	}
 
 	write_key_and_timestamp();
@@ -182,10 +183,14 @@ bool MavlinkSignControl::accept_unsigned(int32_t sign_mode, bool is_usb_uart, ui
 	}
 
 	// If signing is configured but key is not available, only allow USB
-	// so that SETUP_SIGNING can still be received to provision the key
+	// so that SETUP_SIGNING can still be received to provision the key.
+	// Note: under PROTO_SIGN_ALWAYS with a valid key, even USB is rejected (switch default).
+	// But without a key we intentionally allow USB — otherwise there is no way to provision
+	// the key via SETUP_SIGNING and the device is bricked.
 	if (!_is_signing_initialized) {
-		if (!is_usb_uart) {
-			PX4_WARN("MAVLink signing required but key not set, rejecting unsigned msg %" PRIu32, message_id);
+		if (!is_usb_uart && !_no_key_warned) {
+			PX4_WARN("MAVLink signing required but key not set — rejecting unsigned messages on non-USB links");
+			_no_key_warned = true;
 		}
 
 		return is_usb_uart;
