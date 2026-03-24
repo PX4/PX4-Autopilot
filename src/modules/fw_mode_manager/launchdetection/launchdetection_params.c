@@ -42,7 +42,7 @@
 /**
  * Trigger acceleration threshold
  *
- * Launch is detected when acceleration in body forward direction is above FW_LAUN_AC_THLD for FW_LAUN_AC_T seconds.
+ * Launch is detected when the norm of the acceleration in body frame is above FW_LAUN_AC_THLD for FW_LAUN_AC_T seconds.
  *
  * @unit m/s^2
  * @min 0
@@ -55,7 +55,7 @@ PARAM_DEFINE_FLOAT(FW_LAUN_AC_THLD, 30.0f);
 /**
  * Trigger time
  *
- * Launch is detected when acceleration in body forward direction is above FW_LAUN_AC_THLD for FW_LAUN_AC_T seconds.
+ * Launch is detected when the norm of the acceleration in body frame is above FW_LAUN_AC_THLD for FW_LAUN_AC_T seconds.
  *
  * @unit s
  * @min 0.0
