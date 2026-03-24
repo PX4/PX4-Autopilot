@@ -159,6 +159,13 @@ void RtlMissionSafePointFollow::on_activation()
 bool RtlMissionSafePointFollow::advanceRouteTarget()
 {
 	bool advanced = false;
+	const auto continueStraightToGoal = [this](const char *reason) {
+		_stage = Stage::LandAtGoal;
+		_should_go_straight_to_goal = true;
+		_transition_target_index = -1;
+		PX4_WARN("%s, continuing straight to goal", reason);
+		return true;
+	};
 
 	if (_plan.selection.path.direction_reversed) {
 		int32_t previous_index = _mission.current_seq;
@@ -168,8 +175,7 @@ bool RtlMissionSafePointFollow::advanceRouteTarget()
 			advanced = true;
 
 		} else {
-			PX4_WARN("RTL SRP reverse traversal exhausted, holding position");
-			return false;
+			return continueStraightToGoal("RTL SRP reverse traversal exhausted");
 		}
 
 	} else {
@@ -187,8 +193,7 @@ bool RtlMissionSafePointFollow::advanceRouteTarget()
 			advanced = true;
 
 		} else {
-			PX4_WARN("RTL SRP nominal traversal exhausted, holding position");
-			return false;
+			return continueStraightToGoal("RTL SRP nominal traversal exhausted");
 		}
 	}
 
