@@ -140,7 +140,7 @@ void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<
 		// esc_report.motor_temperature is filled in the extended status callback
 		esc_report.esc_rpm = msg.rpm;
 		esc_report.esc_errorcount = msg.error_count;
-		esc_report.failures = get_failures(esc_index, msg.getSrcNodeID().get());
+		esc_report.failures = get_failures(msg.getSrcNodeID().get());
 
 		// A repeated ESC index marks the start of a new round; publish once per round.
 		const uint16_t index_bit = 1u << msg.esc_index;
@@ -206,55 +206,42 @@ uint16_t UavcanEscController::check_escs_status()
 	return esc_status_flags;
 }
 
-uint32_t UavcanEscController::get_failures(uint8_t esc_index, uint8_t node_id)
+uint32_t UavcanEscController::get_failures(const uint8_t node_id)
 {
-	// Check DroneCAN node health of the ESC
-	dronecan_node_status_s node_status{};
-	uint8_t esc_node_id = node_id;
-	uint8_t node_health = dronecan_node_status_s::HEALTH_OK;
-	uint16_t vendor_specific_status_code = 0;
-
-	for (auto &dronecan_node_status_sub : _dronecan_node_status_subs) {
-		if (dronecan_node_status_sub.copy(&node_status)) {
-			if (node_status.node_id == esc_node_id) {
-				node_health = node_status.health;
-				vendor_specific_status_code = node_status.vendor_specific_status_code;
-				break;
-			}
-		}
+	if (_node_status_monitor == nullptr) {
+		return 0;
 	}
+
+	const auto node_status = _node_status_monitor->getNodeStatus(uavcan::NodeID(node_id));
 
 	uint32_t failures = 0;
 
-	if ((node_health == dronecan_node_status_s::HEALTH_ERROR)
-	    || (node_health == dronecan_node_status_s::HEALTH_CRITICAL)) {
+	if ((node_status.health == uavcan::protocol::NodeStatus::HEALTH_ERROR)
+	    || (node_status.health == uavcan::protocol::NodeStatus::HEALTH_CRITICAL)) {
 		// Parse VertiQ = iq_motion ESC error flags
-		device_information_s device_information{};
-
-		if (_device_information_sub.copy(&device_information)
-		    && device_information.device_type == device_information_s::DEVICE_TYPE_ESC
-		    && device_information.device_id == esc_index
-		    && strstr(device_information.name, "iq_motion") != nullptr) {
+		if (_node_info_publisher != nullptr
+		    && _node_info_publisher->getNodeVendor(node_id) == NodeInfoPublisher::NodeVendor::VERTIQ) {
+			// https://iqmotion.readthedocs.io/en/latest/communication_protocols/dronecan_protocol.html?highlight=dronecan#vertiq-s-vendor-specific-nodestatus-code-breakdown
 			static const struct {
 				uint8_t bit;
 				uint8_t failure_type;
 			} bit_to_failure_map[] = {
-				{0,  esc_report_s::FAILURE_OVER_VOLTAGE},
-				{1,  esc_report_s::FAILURE_OVER_VOLTAGE},
-				{2,  esc_report_s::FAILURE_OVER_VOLTAGE},
-				{3,  esc_report_s::FAILURE_OVER_CURRENT},
-				{4,  esc_report_s::FAILURE_OVER_CURRENT},
-				{5,  esc_report_s::FAILURE_OVER_ESC_TEMPERATURE},
-				{6,  esc_report_s::FAILURE_MOTOR_OVER_TEMPERATURE},
-				{7,  esc_report_s::FAILURE_GENERIC},
-				{8,  esc_report_s::FAILURE_OVER_RPM},
-				{9,  esc_report_s::FAILURE_WARN_ESC_TEMPERATURE},
-				{10, esc_report_s::FAILURE_MOTOR_WARN_TEMPERATURE},
-				{11, esc_report_s::FAILURE_OVER_VOLTAGE},
+				{0, esc_report_s::FAILURE_OVER_VOLTAGE}, // MCU voltage below limits
+				{1, esc_report_s::FAILURE_OVER_VOLTAGE}, // input voltage above threshold
+				{2, esc_report_s::FAILURE_OVER_VOLTAGE}, // reference voltage above threshold
+				{3, esc_report_s::FAILURE_OVER_CURRENT}, // supply current above threshold
+				{4, esc_report_s::FAILURE_OVER_CURRENT}, // motor current above threshold
+				{5, esc_report_s::FAILURE_OVER_ESC_TEMPERATURE}, // MCU temperature above threshold
+				{6, esc_report_s::FAILURE_MOTOR_OVER_TEMPERATURE}, // Coil temperature above threshold
+				{7, esc_report_s::FAILURE_GENERIC}, // Not clear from documentation
+				{8, esc_report_s::FAILURE_OVER_RPM}, // derating: motor overspeed
+				{9, esc_report_s::FAILURE_WARN_ESC_TEMPERATURE}, // derating: MCU temperature
+				{10, esc_report_s::FAILURE_MOTOR_WARN_TEMPERATURE}, // derating: Coil temperature
+				{11, esc_report_s::FAILURE_OVER_VOLTAGE}, // derating: High voltage from regeneration
 			};
 
 			for (const auto &mapping : bit_to_failure_map) {
-				if (vendor_specific_status_code & (1 << mapping.bit)) {
+				if (node_status.vendor_specific_status_code & (1 << mapping.bit)) {
 					failures |= (1 << mapping.failure_type);
 				}
 			}

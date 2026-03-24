@@ -636,6 +636,7 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 
 #if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
 	_esc_controller.set_node_info_publisher(&_node_info_publisher);
+	_esc_controller.set_node_status_monitor(&_node_status_monitor);
 #endif
 
 	/* Set up shared service clients */
