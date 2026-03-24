@@ -2950,7 +2950,7 @@ void Commander::dataLinkCheck()
 	// Parachute system
 	if ((hrt_elapsed_time(&_datalink_last_heartbeat_parachute_system) > 3_s)
 	    && !_parachute_system_lost) {
-		mavlink_log_critical(&_mavlink_log_pub, "Parachute system lost");
+		mavlink_log_critical(&_mavlink_log_pub, "Parachute system lost\t");
 		_vehicle_status.parachute_system_present = false;
 		_vehicle_status.parachute_system_healthy = false;
 		_parachute_system_lost = true;
@@ -2960,7 +2960,7 @@ void Commander::dataLinkCheck()
 	// Remote ID system
 	if ((hrt_elapsed_time(&_datalink_last_heartbeat_open_drone_id_system) > 3_s)
 	    && !_open_drone_id_system_lost) {
-		mavlink_log_critical(&_mavlink_log_pub, "Remote ID system lost");
+		mavlink_log_critical(&_mavlink_log_pub, "Remote ID system lost\t");
 		events::send(events::ID("commander_remote_id_lost"), events::Log::Critical, "Remote ID system lost");
 		_vehicle_status.open_drone_id_system_present = false;
 		_vehicle_status.open_drone_id_system_healthy = false;
@@ -2971,7 +2971,7 @@ void Commander::dataLinkCheck()
 	// Traffic avoidance system (ADSB/FLARM)
 	if ((hrt_elapsed_time(&_datalink_last_heartbeat_traffic_avoidance_system) > 3_s)
 	    && !_traffic_avoidance_system_lost) {
-		mavlink_log_critical(&_mavlink_log_pub, "Traffic avoidance system lost");
+		mavlink_log_critical(&_mavlink_log_pub, "Traffic avoidance system lost\t");
 		events::send(events::ID("commander_traffic_avoidance_lost"), events::Log::Critical, "Traffic avoidance system lost");
 		_vehicle_status.traffic_avoidance_system_present = false;
 		_traffic_avoidance_system_lost = true;
