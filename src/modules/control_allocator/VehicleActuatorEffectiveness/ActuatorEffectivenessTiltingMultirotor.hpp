@@ -60,13 +60,11 @@ public:
 	void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override
 	{
 		allocation_method_out[0] = AllocationMethod::PSEUDO_INVERSE;
-		allocation_method_out[0] = AllocationMethod::PSEUDO_INVERSE;
 	}
 
 	void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const override
 	{
 		normalize[0] = true;
-		normalize[1] = false;
 	}
 
 	void allocateAuxilaryControls(const float dt, int matrix_index, ActuatorVector &actuator_sp) override;
