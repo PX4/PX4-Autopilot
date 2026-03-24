@@ -115,6 +115,9 @@ public:
 		CP0 = cp0;
 		CP1 = cp1;
 		CP2 = cp2;
+		// Initialize T_MAX and Q_MAX before they may be used inside the compute_* helpers
+		T_MAX = 0.0f;
+		Q_MAX = 0.0f;
 		T_MAX = compute_thrust_from_throttle(1.0f);
 		Q_MAX = compute_torque_from_throttle(1.0f);
 	}
