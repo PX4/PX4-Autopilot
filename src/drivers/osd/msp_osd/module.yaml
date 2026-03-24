@@ -1,20 +1,20 @@
 module_name: MSP OSD
 serial_config:
-    - command: msp_osd start -d ${SERIAL_DEV}
-      port_config_param:
+  - command: msp_osd start -d ${SERIAL_DEV}
+    port_config_param:
         name: MSP_OSD_CONFIG
         group: OSD
 
 parameters:
-    - group: OSD
-      definitions:
+  - group: OSD
+    definitions:
 
         # OSD Parameters
         OSD_SYMBOLS:
             description:
                 short: OSD Symbol Selection
                 long: |
-                  Configure / toggle support display options.
+                    Configure / toggle support display options.
             type: bitmask
             bit:
                 0: CRAFT_NAME
@@ -47,6 +47,8 @@ parameters:
                 26: FORMIC_CROSSHAIRS
                 27: TOTAL_ACTIVATED_TIME
                 28: BARO_ALTITUDE
+                29: FORMIC_VISION_QUALITY
+
             default: 16383
 
         # OSD Crosshairs Vertical Position
@@ -54,21 +56,20 @@ parameters:
             description:
                 short: OSD Crosshairs Height
                 long: |
-                  Controls the vertical position of the crosshair display.
-                  Resolution is limited by OSD to 15 discrete values. Negative
-                  values will display the crosshairs below the horizon
+                    Controls the vertical position of the crosshair display.
+                    Resolution is limited by OSD to 15 discrete values. Negative
+                    values will display the crosshairs below the horizon
             type: int32
             default: 0
             min: -8
             max: 8
-
 
         # OSD Log Level
         OSD_LOG_LEVEL:
             description:
                 short: OSD Warning Level
                 long: |
-                  Minimum security of log level to display on the OSD.
+                    Minimum security of log level to display on the OSD.
             type: int32
             bit:
                 0: EMERGENCY
@@ -115,7 +116,7 @@ parameters:
             min: 0
             max: 1
             default: 1
-        
+
         # OSD FORMAT
         OSD_FORMAT:
             description:

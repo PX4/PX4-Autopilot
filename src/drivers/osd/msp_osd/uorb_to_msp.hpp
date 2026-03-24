@@ -55,6 +55,7 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/log_message.h>
@@ -150,5 +151,7 @@ msp_rendor_total_arm_time_t construct_rendor_TOTAL_ACTIVATED_TIME(const vehicle_
 msp_rendor_formic_ring_t construct_rendor_FORMIC_RING(const dds_flag_s &dds_flag);
 
 msp_rendor_formic_crosshairs_t construct_rendor_FORMIC_CROSSHAIRS(int osd_format);
+
+msp_rendor_formic_vision_quality_t construct_rendor_FORMIC_VISION_QUALITY(const vehicle_odometry_s &vehicle_vision_odometry);
 
 } // namespace msp_osd

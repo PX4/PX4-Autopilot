@@ -548,6 +548,19 @@ struct msp_rendor_formic_crosshairs_t {
 } __attribute__((packed));
 
 
+
+struct msp_rendor_formic_vision_quality_t {
+	uint8_t subCommand = 0x06; 
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t systemElement = 0x00; // Crosshairs system element ID (0x00 = CROSSHAIR)
+	uint8_t iconIndex = 0x7E; // no icon
+	char str[8];
+} __attribute__((packed));
+
+
+
+
 // values for msp_nav_status_t.mode
 #define MSP_NAV_STATUS_MODE_NONE   0
 #define MSP_NAV_STATUS_MODE_HOLD   1

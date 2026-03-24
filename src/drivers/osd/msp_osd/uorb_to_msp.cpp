@@ -49,7 +49,7 @@
 using namespace time_literals;
 
 #include "uorb_to_msp.hpp"
-
+#include <drivers/drv_hrt.h>
 namespace msp_osd
 {
 typedef enum {
@@ -652,7 +652,6 @@ msp_baro_altitude_t construct_rendor_BARO_ALT(const estimator_aid_source1d_s &__
 	baro_altitude.iconIndex = 0x7F; // Use altitude icon
 
 	float alt = __orb_estimator_aid_src_baro_hgt.observation;
-	PX4_INFO("Baro Altitude: %.2f", (double)alt);
 	if (PX4_ISFINITE(alt) && __orb_estimator_aid_src_baro_hgt.fused) {
 		memset(&baro_altitude.str[0], 0, sizeof(baro_altitude.str));
 		snprintf(&baro_altitude.str[0], sizeof(baro_altitude.str), "%.2f", static_cast<double>(alt));
@@ -751,7 +750,32 @@ msp_rendor_total_arm_time_t construct_rendor_TOTAL_ARM_TIME(const total_arm_time
 }
 
 
+msp_rendor_formic_vision_quality_t construct_rendor_FORMIC_VISION_QUALITY(const vehicle_odometry_s &vehicle_vision_odometry)
+{
+	msp_rendor_formic_vision_quality_t vision_quality = {};
+	vision_quality.subCommand = MSP_DP_WRITE_STRING; 
+	vision_quality.screenYPosition = 0x0A;
+	vision_quality.screenXPosition = 0x02;
 
+	const uint64_t VISION_TIMEOUT_US = 1000000; // 1 second
+	const uint64_t data_age = hrt_absolute_time() - vehicle_vision_odometry.timestamp;
 
+	// 1. Group all validity conditions into one clean, readable boolean
+	bool is_valid = (vehicle_vision_odometry.timestamp != 0) &&  // Has it ever received data?
+			(data_age <= VISION_TIMEOUT_US) &&           // Is the data fresh?
+			(vehicle_vision_odometry.quality != -1);     // Is the quality value valid?
+
+	// 2. Clear the string buffer exactly like in the TOTAL_ARM_TIME function
+	memset(&vision_quality.str[0], 0, sizeof(vision_quality.str));
+
+	// 3. Format the string using the same &...str[0] syntax
+	if (is_valid) {
+		snprintf(&vision_quality.str[0], sizeof(vision_quality.str), "VQ:%d", vehicle_vision_odometry.quality);
+	} else {
+		snprintf(&vision_quality.str[0], sizeof(vision_quality.str), "VQ:N/A");
+	}
+
+	return vision_quality;
+}
 
 } // namespace msp_osd

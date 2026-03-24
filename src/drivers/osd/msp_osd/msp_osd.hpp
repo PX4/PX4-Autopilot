@@ -57,6 +57,7 @@
 #include <uORB/topics/estimator_aid_source1d.h>
 #include <uORB/topics/total_arm_time.h>
 #include <uORB/topics/dds_flag.h>
+#include <uORB/topics/vehicle_odometry.h> // TODO: switch to vehicle_visual_odometry when available
 
 #include "MspV1.hpp"
 #include "MessageDisplay/MessageDisplay.hpp"
@@ -108,6 +109,7 @@ enum SymbolIndex : uint8_t {
 	FORMIC_CROSSHAIRS	= 26,
 	TOTAL_ACTIVATED_TIME	= 27,
 	BARO_ALTITUDE		= 28,
+	FORMIC_VISION_QUALITY	= 29,
 };
 
 class MspOsd : public ModuleBase<MspOsd>, public ModuleParams, public px4::ScheduledWorkItem
@@ -177,6 +179,7 @@ private:
 	uORB::Subscription _total_arm_time_sub{ORB_ID(total_arm_time)};
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _dds_flag_sub{ORB_ID(dds_flag)};
+	uORB::Subscription _vehicle_vision_odometry_sub{ORB_ID(vehicle_visual_odometry)}; // TODO: switch to vehicle_visual_odometry when available
 
 	// local heartbeat
 	bool _heartbeat{false};

@@ -511,6 +511,20 @@ void MspOsd::Run()
 		}
 	}
 
+	// MSP_FORMIC_VISION_QUALITY
+	{
+		vehicle_odometry_s vehicle_odometry{};
+		_vehicle_vision_odometry_sub.copy(&vehicle_odometry);
+		if (enabled(SymbolIndex::FORMIC_VISION_QUALITY)) {
+			const auto msg = msp_osd::construct_rendor_FORMIC_VISION_QUALITY(vehicle_odometry);
+
+			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_formic_vision_quality_t));
+		}
+
+
+
+	}
+
 	// MSP_FORMIC_CROSSHAIRS
 	{
 		if (enabled(SymbolIndex::FORMIC_CROSSHAIRS)) {
