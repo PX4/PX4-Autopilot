@@ -46,18 +46,9 @@
 
 #include <dataman_client/DatamanClient.hpp>
 #include <drivers/drv_hrt.h>
+#include <mathlib/mathlib.h>
 
 static constexpr int32_t DEFAULT_MISSION_SAFE_POINT_FOLLOW_CACHE_SIZE = 5;
-
-namespace
-{
-
-bool isLandingCommand(const mission_item_s &mission_item)
-{
-	return mission_item.nav_cmd == NAV_CMD_LAND || mission_item.nav_cmd == NAV_CMD_VTOL_LAND;
-}
-
-} // namespace
 
 RtlMissionSafePointFollow::RtlMissionSafePointFollow(Navigator *navigator, mission_s mission) :
 	RtlBase(navigator, DEFAULT_MISSION_SAFE_POINT_FOLLOW_CACHE_SIZE)
@@ -88,11 +79,32 @@ void RtlMissionSafePointFollow::setShouldGoStraightToGoal(bool should_go_straigh
 	_should_go_straight_to_goal = should_go_straight;
 }
 
+void RtlMissionSafePointFollow::setGoalLandApproach(const loiter_point_s &land_approach)
+{
+	_goal_land_approach = land_approach;
+}
+
+bool RtlMissionSafePointFollow::isLandingCommand(const mission_item_s &mission_item)
+{
+	return mission_item.nav_cmd == NAV_CMD_LAND || mission_item.nav_cmd == NAV_CMD_VTOL_LAND;
+}
+
+bool RtlMissionSafePointFollow::useGoalLandApproach() const
+{
+	return _plan.selection.safe_point_found && _goal_land_approach.isValid();
+}
+
+RtlMissionSafePointFollow::Stage RtlMissionSafePointFollow::finalGoalStage() const
+{
+	return useGoalLandApproach() ? Stage::ApproachAtGoal : Stage::LandAtGoal;
+}
+
 void RtlMissionSafePointFollow::on_inactivation()
 {
 	_should_go_straight_to_goal = _should_go_straight_to_goal
 				      || _plan.selection.direct_to_safe_point
 				      || _stage == Stage::BranchOff
+				      || _stage == Stage::ApproachAtGoal
 				      || _stage == Stage::LandAtGoal;
 	_transition_target_index = -1;
 
@@ -125,7 +137,7 @@ void RtlMissionSafePointFollow::on_activation()
 					 ? vtolTransitionActionForTarget(_plan.selection.path.first_item_index,
 							 _plan.selection.path.direction_reversed)
 					 : VtolTransitionAction::None;
-		_stage = use_join_route ? Stage::FollowRoute : Stage::LandAtGoal;
+		_stage = use_join_route ? Stage::FollowRoute : finalGoalStage();
 
 		PX4_DEBUG("RTL to %s target=%d rev=%u straight=%u stage=%u branch_off=%d",
 			  MissionRoutePlanner::goalTypeString(_plan.selection.goal_type),
@@ -162,7 +174,7 @@ bool RtlMissionSafePointFollow::advanceRouteTarget()
 {
 	bool advanced = false;
 	const auto continueStraightToGoal = [this](const char *reason) {
-		_stage = Stage::LandAtGoal;
+		_stage = finalGoalStage();
 		_should_go_straight_to_goal = true;
 		_transition_target_index = -1;
 		PX4_INFO("%s, straight to goal", reason);
@@ -219,9 +231,14 @@ bool RtlMissionSafePointFollow::setNextMissionItem()
 		return true;
 
 	case Stage::BranchOff:
-		_stage = Stage::LandAtGoal;
+		_stage = finalGoalStage();
 		_should_go_straight_to_goal = true;
 		PX4_INFO("RTL branch-off reached, straight to goal");
+		return true;
+
+	case Stage::ApproachAtGoal:
+		_stage = Stage::LandAtGoal;
+		PX4_INFO("RTL goal approach reached, landing");
 		return true;
 
 	case Stage::LandAtGoal:
@@ -270,6 +287,25 @@ void RtlMissionSafePointFollow::setLandMissionItem(mission_item_s &mission_item)
 	mission_item.land_precision = _param_rtl_pld_md.get();
 	mission_item.autocontinue = false;
 	mission_item.origin = ORIGIN_ONBOARD;
+}
+
+void RtlMissionSafePointFollow::setGoalApproachMissionItem(mission_item_s &mission_item) const
+{
+	const float loiter_altitude = PX4_ISFINITE(_rtl_alt) ? math::min(_goal_land_approach.height_m, _rtl_alt)
+				      : _goal_land_approach.height_m;
+	const float loiter_radius = (PX4_ISFINITE(_goal_land_approach.loiter_radius_m)
+				     && fabsf(_goal_land_approach.loiter_radius_m) > FLT_EPSILON)
+				    ? _goal_land_approach.loiter_radius_m
+				    : _navigator->get_default_loiter_rad();
+
+	const PositionYawSetpoint goal_approach{
+		.lat = _goal_land_approach.lat,
+		.lon = _goal_land_approach.lon,
+		.alt = loiter_altitude,
+		.yaw = NAN
+	};
+
+	setLoiterToAltMissionItem(mission_item, goal_approach, loiter_radius);
 }
 
 void RtlMissionSafePointFollow::normalizeRouteMissionItem(mission_item_s &mission_item) const
@@ -454,7 +490,7 @@ void RtlMissionSafePointFollow::setActiveMissionItems()
 	if (_stage == Stage::FollowRoute) {
 		if (joinProjectionNearBranchOff()) {
 			_should_go_straight_to_goal = true;
-			_stage = Stage::LandAtGoal;
+			_stage = finalGoalStage();
 			PX4_INFO("RTL join is near branch-off, straight to goal");
 
 		} else if (currentTargetIsBranchOff()) {
@@ -579,10 +615,26 @@ void RtlMissionSafePointFollow::setActiveMissionItems()
 
 	case Stage::BranchOff: {
 			mission_item_s branch_off_item{};
-			mission_item_s land_item{};
+			mission_item_s next_goal_item{};
 			setWaypointMissionItem(branch_off_item, _plan.selection.branch_off_projection, true);
+
+			if (useGoalLandApproach()) {
+				setGoalApproachMissionItem(next_goal_item);
+
+			} else {
+				setLandMissionItem(next_goal_item);
+			}
+
+			publishRouteItems(pos_sp_triplet, current_setpoint_copy, branch_off_item, &next_goal_item);
+			break;
+		}
+
+	case Stage::ApproachAtGoal: {
+			mission_item_s approach_item{};
+			mission_item_s land_item{};
+			setGoalApproachMissionItem(approach_item);
 			setLandMissionItem(land_item);
-			publishRouteItems(pos_sp_triplet, current_setpoint_copy, branch_off_item, &land_item);
+			publishRouteItems(pos_sp_triplet, current_setpoint_copy, approach_item, &land_item);
 			break;
 		}
 
@@ -639,6 +691,27 @@ rtl_time_estimate_s RtlMissionSafePointFollow::calc_rtl_time_estimate()
 		hor_pos(0) = target_lat;
 		hor_pos(1) = target_lon;
 		altitude = target_alt;
+	};
+
+	const auto add_goal_legs = [this, &add_leg]() {
+		if (!_plan.selection.goal_position.valid()) {
+			return;
+		}
+
+		if (useGoalLandApproach()) {
+			const float approach_altitude = PX4_ISFINITE(_rtl_alt) ? math::min(_goal_land_approach.height_m, _rtl_alt)
+							: _goal_land_approach.height_m;
+			add_leg(_goal_land_approach.lat, _goal_land_approach.lon, approach_altitude);
+		}
+
+		// VTOL final descent is always in MC mode.
+		if (_vehicle_status_sub.get().is_vtol) {
+			_rtl_time_estimator.setVehicleType(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+		}
+
+		add_leg(_plan.selection.goal_position.lat,
+			_plan.selection.goal_position.lon,
+			_plan.selection.goal_position.alt);
 	};
 
 	if ((_work_item_type == WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE
@@ -704,34 +777,21 @@ rtl_time_estimate_s RtlMissionSafePointFollow::calc_rtl_time_estimate()
 				}
 			}
 
-			// Add the branch-off → goal leg if applicable.
-			if (_plan.selection.safe_point_found && _plan.selection.goal_position.valid()) {
-				// VTOL final descent is always in MC mode.
-				if (_vehicle_status_sub.get().is_vtol) {
-					_rtl_time_estimator.setVehicleType(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
-				}
-
-				add_leg(_plan.selection.goal_position.lat,
-					_plan.selection.goal_position.lon,
-					_plan.selection.goal_position.alt);
+			// Add the branch-off → goal leg(s) if applicable.
+			if (_plan.selection.safe_point_found) {
+				add_goal_legs();
 			}
 
 			break;
 		}
 
 	case Stage::BranchOff:
+		// Already at the branch-off; add only the goal leg(s).
+		add_goal_legs();
+		break;
 
-		// Already at the branch-off; add only the goal leg.
-		if (_plan.selection.goal_position.valid()) {
-			// VTOL final descent is always in MC mode.
-			if (_vehicle_status_sub.get().is_vtol) {
-				_rtl_time_estimator.setVehicleType(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
-			}
-
-			add_leg(_plan.selection.goal_position.lat,
-				_plan.selection.goal_position.lon,
-				_plan.selection.goal_position.alt);
-		}
+	case Stage::ApproachAtGoal:
+		add_goal_legs();
 
 		break;
 

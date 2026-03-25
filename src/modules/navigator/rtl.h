@@ -129,12 +129,8 @@ private:
 	/** @brief Return true when route-safe-point RTL has all mission and cache prerequisites satisfied. */
 	bool canUseRouteSafePointRtl(const MissionRouteCache *mission_route_cache) const;
 
-	/** @brief Filter safe points that are currently usable for route-safe-point planning. */
-	uint64_t calculateUsableSafePointBitmask(const MissionRouteCache &mission_route_cache, float home_altitude_amsl);
-
 	/** @brief Build the route-safe-point planner input for the current vehicle and mission state. */
-	MissionRoutePlanner::Config buildRouteSafePointConfig(bool is_flying_reverse,
-			uint64_t usable_safe_points) const;
+	MissionRoutePlanner::Config buildRouteSafePointConfig(bool is_flying_reverse) const;
 
 	/** @brief Reuse an active straight-to-safe-point branch-off if the vehicle is still close enough to it. */
 	bool reuseCachedRouteSafePointPlan(const MissionRoutePlanner &planner,
@@ -226,31 +222,16 @@ private:
 	void parameters_update();
 
 	/**
-	 * @brief read VTOL land approaches
-	 *
-	 * @param[in] rtl_position landing position of the rtl
-	 *
-	 */
-	land_approaches_s readVtolLandApproaches(PositionYawSetpoint rtl_position) const;
-
-	/**
-	 * @brief Has VTOL land approach
-	 *
-	 * @param[in] rtl_position landing position of the rtl
-	 *
-	 * @return true if home land approaches are defined for home position
-	 * @return false otherwise
-	 */
-	bool hasVtolLandApproach(const PositionYawSetpoint &rtl_position) const;
-
-	/**
 	 * @brief Choose best landing approach
 	 *
 	 * Choose best landing approach for home considering wind
 	 *
 	 * @return loiter_point_s best landing approach
 	 */
-	loiter_point_s chooseBestLandingApproach(const land_approaches_s &vtol_land_approaches);
+	loiter_point_s chooseBestLandingApproach(const land_approaches_s &vtol_land_approaches) const;
+
+	/** @brief Return the wind-selected VTOL landing approach for a destination, or an invalid loiter if none exists. */
+	loiter_point_s selectLandingApproach(const PositionYawSetpoint &destination) const;
 
 
 	hrt_abstime _destination_check_time{0};

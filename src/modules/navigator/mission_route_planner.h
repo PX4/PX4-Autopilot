@@ -45,6 +45,7 @@
 
 #include "navigation.h"
 #include "mission_block.h"
+#include "safe_point_land.hpp"
 
 #include <float.h>
 #include <math.h>
@@ -53,16 +54,19 @@
 #include <matrix/math.hpp>
 #include <px4_platform_common/defines.h>
 
+class MissionRoutePlannerCandidateBufferTestPeer;
+
 class MissionRoutePlanner
 {
 public:
 	static constexpr float kRoundingToleranceM{0.1f};
 	static constexpr double kNullIslandThresholdDeg{1e-7};
 	static constexpr double kCornerLatLonTolDeg{1e-5};
+	static constexpr float kLandApproachAssociationDistanceM{10.f};
 	static constexpr uint8_t MAX_SEGMENT_CANDIDATES{3};
 	/**
-	 * Maximum safe points evaluated per planning pass.
-	 * NOTE: ExecutionContext::usable_safe_point_bitmask uses one bit per safe point, so this must stay <= 64.
+	 * Maximum eligible rally points evaluated per planning pass.
+	 * The planner uses a fixed-size batch buffer, so extra eligible safe points are skipped after this limit.
 	 * RtlStatus.msg also uses uint8_t for safe_point_index, so this must stay <= 255.
 	 */
 	static constexpr uint8_t MAX_SAFE_POINT_BATCH{64};
@@ -294,11 +298,11 @@ public:
 		bool velocity_valid{false};
 		bool is_fixed_wing{false};
 		bool in_transition_to_fw{false};
+		bool require_vtol_approach{false};
 	};
 
 	struct ExecutionContext {
 		Segment last_flown_loop_segment{}; /**< Optional cached DO_JUMP edge anchor; invalid when no active loop is being preserved. */
-		uint64_t usable_safe_point_bitmask{~0ULL};
 	};
 
 	struct Config {
@@ -336,6 +340,12 @@ public:
 		virtual bool loadMissionItem(int index, mission_item_s &mission_item) const = 0;
 		virtual int safePointCount() const = 0;
 		virtual bool loadSafePointItem(int index, mission_item_s &safe_point_item) const = 0;
+		virtual land_approaches_s readVtolLandApproaches(const PositionYawSetpoint &rtl_position,
+				float home_altitude_amsl) const;
+		virtual bool hasVtolLandApproach(const PositionYawSetpoint &rtl_position,
+						 float home_altitude_amsl) const;
+		virtual bool hasVtolLandApproach(int safe_point_index, float home_altitude_amsl) const;
+		virtual bool anySafePointHasVtolLandApproach(float home_altitude_amsl) const;
 
 		/** @brief Find the mission land item. Default scans backward for NAV_CMD_LAND / NAV_CMD_VTOL_LAND. */
 		virtual bool getMissionLandItem(int32_t &index, mission_item_s &land_item) const
@@ -421,6 +431,8 @@ public:
 	};
 
 private:
+	friend class MissionRoutePlannerCandidateBufferTestPeer;
+
 	struct ProjectionBatchOutputs {
 		SegmentDistanceAlong dist_along_to_last_flown_segment{};
 		float dist_along_to_route_end{0.f};
@@ -446,6 +458,17 @@ private:
 		ForceNominal,
 		ForceReverse
 	};
+
+	/** @brief Convert one LOITER_TO_ALT safe-point item into a concrete landing-approach point. */
+	static loiter_point_s makeVtolLandApproachPoint(const mission_item_s &mission_item, float home_altitude_amsl);
+	/**
+	 * @brief Scan the approach block attached to one rally point.
+	 *
+	 * A rally point owns all following NAV_CMD_LOITER_TO_ALT items until the next rally point.
+	 * When @p vtol_land_approaches is null, the function returns as soon as one valid approach is found.
+	 */
+	static bool scanApproachesFollowingRallyPoint(const Provider &provider, int rally_point_index,
+			float home_altitude_amsl, land_approaches_s *vtol_land_approaches = nullptr);
 
 	/** @brief Read a mission item and return its attached valid position if it has one. */
 	bool readValidMissionPosition(int index, float home_altitude_amsl, Position &position,

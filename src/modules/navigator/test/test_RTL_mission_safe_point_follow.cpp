@@ -124,6 +124,11 @@ public:
 		_transition_target_index = index;
 	}
 
+	void setGoalLandApproachForTest(const loiter_point_s &land_approach)
+	{
+		setGoalLandApproach(land_approach);
+	}
+
 	int32_t transitionTargetIndexForTest() const
 	{
 		return _transition_target_index;
@@ -220,6 +225,55 @@ TEST_F(RtlMissionSafePointFollowStageTest, BranchOffTransitionsToLandAtGoal)
 	EXPECT_TRUE(executor.shouldGoStraightToGoalForTest());
 }
 
+// WHY: Route-safe-point RTL should use the same wind-selected VTOL approach behavior as direct RTL
+//      once the safe point has already been chosen, instead of going straight from branch-off to land.
+// WHAT: With a valid goal approach configured, setNextMissionItem moves BranchOff to ApproachAtGoal.
+TEST_F(RtlMissionSafePointFollowStageTest, BranchOffTransitionsToApproachAtGoalWhenGoalApproachValid)
+{
+	// GIVEN: An executor that has reached the branch-off waypoint for a safe point with a chosen approach.
+	executor.loadTestMission({
+		makePositionItem(kLat, kLon, kAlt),
+		makePositionItem(kLat + 0.001, kLon, kAlt),
+	});
+
+	loiter_point_s goal_land_approach{};
+	goal_land_approach.lat = kLat + 0.0005;
+	goal_land_approach.lon = kLon + 0.0002;
+	goal_land_approach.height_m = kAlt + 20.f;
+	goal_land_approach.loiter_radius_m = 60.f;
+	executor.setGoalLandApproachForTest(goal_land_approach);
+	executor.setSafePointSelectionForTest(false, 1);
+	executor.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::BranchOff);
+
+	// WHEN: setNextMissionItem advances the stage machine.
+	const bool advanced = executor.advanceStageForTest();
+
+	// THEN: The executor commits to the goal-approach stage before landing.
+	EXPECT_TRUE(advanced);
+	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::ApproachAtGoal);
+	EXPECT_TRUE(executor.shouldGoStraightToGoalForTest());
+}
+
+// WHY: Once the goal approach loiter has been completed, the executor must hand over to the
+//      shared MissionBase landing pipeline instead of staying in the loiter stage.
+// WHAT: setNextMissionItem moves ApproachAtGoal to LandAtGoal.
+TEST_F(RtlMissionSafePointFollowStageTest, ApproachAtGoalTransitionsToLandAtGoal)
+{
+	// GIVEN: An executor already flying the selected safe-point landing approach.
+	executor.loadTestMission({
+		makePositionItem(kLat, kLon, kAlt),
+		makePositionItem(kLat + 0.001, kLon, kAlt),
+	});
+	executor.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::ApproachAtGoal);
+
+	// WHEN: setNextMissionItem advances the stage machine.
+	const bool advanced = executor.advanceStageForTest();
+
+	// THEN: The executor leaves the approach stage and enters the landing stage.
+	EXPECT_TRUE(advanced);
+	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::LandAtGoal);
+}
+
 // WHY: Nominal route following must switch to BranchOff exactly when the next route target is the branch-off anchor.
 // WHAT: Advancing forward onto the branch-off index moves FollowRoute to BranchOff.
 TEST_F(RtlMissionSafePointFollowStageTest, ForwardRouteAdvanceTransitionsToBranchOff)
@@ -282,6 +336,36 @@ TEST_F(RtlMissionSafePointFollowStageTest, ForwardRouteExhaustionTransitionsToLa
 	// THEN: The executor keeps RTL alive by handing over to the landing stage.
 	EXPECT_TRUE(advanced);
 	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::LandAtGoal);
+	EXPECT_TRUE(executor.shouldGoStraightToGoalForTest());
+}
+
+// WHY: When route traversal exhausts before reaching a chosen safe point, the executor should
+//      still fly the selected VTOL approach before landing instead of dropping straight into land.
+// WHAT: With a valid goal approach configured, forward route exhaustion moves FollowRoute to ApproachAtGoal.
+TEST_F(RtlMissionSafePointFollowStageTest, ForwardRouteExhaustionTransitionsToApproachAtGoalWhenGoalApproachValid)
+{
+	// GIVEN: A forward route whose current sequence is already the last position item, plus a chosen goal approach.
+	executor.loadTestMission({
+		makePositionItem(kLat, kLon, kAlt),
+		makePositionItem(kLat + 0.001, kLon, kAlt),
+	});
+
+	loiter_point_s goal_land_approach{};
+	goal_land_approach.lat = kLat + 0.0005;
+	goal_land_approach.lon = kLon + 0.0002;
+	goal_land_approach.height_m = kAlt + 20.f;
+	goal_land_approach.loiter_radius_m = 60.f;
+	executor.setGoalLandApproachForTest(goal_land_approach);
+	executor.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::FollowRoute);
+	executor.setCurrentSequenceForTest(1);
+	executor.setSafePointSelectionForTest(false, -1);
+
+	// WHEN: setNextMissionItem tries to advance beyond the route end.
+	const bool advanced = executor.advanceStageForTest();
+
+	// THEN: The executor continues with the approach stage instead of going straight to land.
+	EXPECT_TRUE(advanced);
+	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::ApproachAtGoal);
 	EXPECT_TRUE(executor.shouldGoStraightToGoalForTest());
 }
 

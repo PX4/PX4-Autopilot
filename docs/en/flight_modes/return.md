@@ -171,12 +171,13 @@ If no valid safe point is available, PX4 falls back to the last known position w
 In this return type PX4 uses the uploaded mission geometry to reach a safe point:
 
 - The vehicle is projected onto the uploaded mission route rather than just the nearest waypoint.
-- Safe points are pre-filtered once in RTL and the remaining eligible points are scored by the along-route path length from the vehicle projection to the safe-point branch-off. The scorer uses a bounded safe-point batch; see [Route Safe Point Return](./route_safe_point_return.md) for the current limit.
+- Safe points are filtered and scored inside the route planner, including optional VTOL-approach eligibility checks for VTOL vehicles flying in FW mode. The scorer uses a bounded safe-point batch; see [Route Safe Point Return](./route_safe_point_return.md) for the current limit.
 - PX4 chooses the safe point with the shortest valid route-following return path, with multicopter direct-to-safe-point and cached branch-off reuse shortcuts.
 - `DO_JUMP` items are treated as route geometry only. RTL ignores remaining loop counts and chooses the shorter continue-vs-rewind path through the loop exit.
 - If route planning succeeds but no safe point can be selected, PX4 falls back to the better mission endpoint: mission land in nominal direction or mission takeoff in reverse.
 - If route planning cannot run, PX4 falls back to the same direct RTL destination selection used by `RTL_TYPE=3` instead of staying in the route-following type-6 handler.
 - The vehicle rejoins the route, follows it in nominal or reverse direction, replaces the active mission target with a virtual branch-off waypoint when needed, and then lands at the safe point.
+- For VTOL vehicles flying in FW mode, if the selected safe point has valid approach items, PX4 uses the same wind-based approach selection as direct RTL and flies that approach before handing over to the final landing sequence.
 
 This mode is intended for operations where the mission path itself is the safest known corridor.
 For more information, including loop handling, branch-off injection, and current limitations, see [Route Safe Point Return](./route_safe_point_return.md).

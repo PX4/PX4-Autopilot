@@ -1,6 +1,6 @@
 # Route Safe Point Return
 
-_Route Safe Point Return_ is a mission-aware [Return Mode](./return.md) that uses the uploaded mission geometry as the return corridor. PX4 projects the vehicle and every uploaded safe point onto the mission route, chooses the safe point with the lowest total return cost, follows the route in nominal or reverse direction, reaches the branch-off point defined as the projection of the selected safe point on the route and only then branches off horizontally from the flight plan and proceeds to land at the safe point location.
+_Route Safe Point Return_ is a mission-aware [Return Mode](./return.md) that uses the uploaded mission geometry as the return corridor. PX4 projects the vehicle and every uploaded safe point onto the mission route, chooses the safe point with the lowest total return cost, follows the route in nominal or reverse direction, reaches the branch-off point defined as the projection of the selected safe point on the route and only then branches off horizontally from the flight plan. For VTOL vehicles flying in FW mode, if the selected safe point has valid `NAV_CMD_LOITER_TO_ALT` approach items, PX4 then flies the same wind-selected landing approach used by direct RTL before entering the final landing sequence.
 
 Set [RTL_TYPE=6](../advanced_config/parameter_reference.md#RTL_TYPE) to enable it.
 
@@ -92,11 +92,13 @@ From the valid candidates, the system evaluates the travel path from each projec
  - Branch-Off Leg: The straight-line distance from the safe-point projection to the safe point itself. This is the final off-route leg flown after the vehicle leaves the mission geometry.
  - U-turn Penalty: For Fixed-wing and VTOL-in-FW, a distance penalty ([RTL_FW_UTURN_PEN](../advanced_config/parameter_reference.md#RTL_FW_UTURN_PEN), default 4,000 m) is added to the cost if the path requires the vehicle to perform a U-turn. This prioritizes forward-flowing paths. Reduce the value for smaller airframes with tighter turn radii, or set to 0 to disable the penalty.
 
-Safe points are pre-filtered once before route scoring:
+Safe points are filtered while the planner builds its safe-point batch:
 
 - Valid safe points are read from the dataman store.
 - Invalid coordinates, unsupported frames, or filtered safe points are skipped.
+- For VTOL approach checks, a rally point owns the contiguous block of following `NAV_CMD_LOITER_TO_ALT` items up to the next rally point.
 - For VTOL in FW mode with [RTL_APPR_FORCE](../advanced_config/parameter_reference.md#RTL_APPR_FORCE)=1, only safe points with a valid VTOL landing approach remain eligible.
+- If a safe point is later selected for a VTOL-in-FW return, RTL reads the full approach block for that rally point and chooses the best approach using the same wind-based logic as direct RTL.
 - Every remaining valid safe point gets up to three local-minimum route projections.
 
 The route-based scorer evaluates a fixed-size batch of uploaded safe points; see [Safe-Point Evaluation Limit](#safe-point-evaluation-limit).
@@ -133,8 +135,9 @@ The active executor runs through these stages:
 4. **Transition during route**: if the next route segment requires a different VTOL state, apply the transition and resume route following.
 5. If a safe point is available:
    - **[Branch off](#branch-off-and-landing)**: replace the mission target with the virtual branch-off waypoint defined as the orthogonal projection of the safe point on the route.
-   - **Navigate to the safe point**: once the branch-off is reached, navigate straight to the safe point.
-6. **Land at goal**: land at the safe point or the selected mission endpoint fallback.
+   - **Navigate to the safe point**: once the branch-off is reached, navigate straight to the safe point or, for VTOL-in-FW with a valid approach, to the selected approach loiter.
+6. **Approach at goal**: for VTOL-in-FW safe-point returns with a valid approach, fly the chosen `NAV_CMD_LOITER_TO_ALT` approach.
+7. **Land at goal**: land at the safe point or the selected mission endpoint fallback.
 
 ### Join Route
 
@@ -167,7 +170,9 @@ The branch-off point is not an actual mission item — PX4 injects it as a virtu
 As soon as the route target becomes the selected branch-off index, the executor replaces the current target with the branch-off waypoint.
 The vehicle branches off at the projected point on the segment, not after flying all the way to the real mission waypoint.
 
-All final landings run through the same `handleLanding()` pipeline used by other mission-based RTL modes, preserving VTOL landing sequences, move-to-land waypoints, and precision landing settings.
+For VTOL vehicles flying in FW mode, if the selected safe point has valid approach items, RTL reads that rally point's `NAV_CMD_LOITER_TO_ALT` block, picks the best approach from wind, and injects the chosen loiter as an explicit pre-landing stage. This matches direct RTL behavior after the destination has already been chosen.
+
+All final landings still run through the same `handleLanding()` pipeline used by other mission-based RTL modes, preserving VTOL landing sequences, move-to-land waypoints, and precision landing settings.
 
 ::: warning
 When falling back to the mission takeoff endpoint in reverse, PX4 lands at ground-level altitude (not the takeoff waypoint altitude).
@@ -199,12 +204,13 @@ For most real-world operations, 300 waypoints is sufficient. If your mission req
 
 ## Safe-Point Evaluation Limit
 
-The route-based scorer used by `RTL_TYPE=6` evaluates at most 64 uploaded safe points per planning cycle. This limit is independent of the mission cache size and comes from the 64-bit safe-point eligibility mask used inside `MissionRoutePlanner`. Additional uploaded safe points remain stored in dataman, but they are not considered by the type-6 route scorer. Direct safe-point RTL modes still use their own direct-distance selection path.
+The route-based scorer used by `RTL_TYPE=6` evaluates at most 64 eligible rally points per planning cycle. This limit is independent of the mission cache size and comes from the fixed-size safe-point batch inside `MissionRoutePlanner`. Additional uploaded rally points remain stored in dataman, but they are not considered by the type-6 route scorer. `NAV_CMD_LOITER_TO_ALT` approach items do not consume those 64 rally-point slots because the planner keeps them attached to the preceding rally point and filters rally-point eligibility before filling the batch. Direct safe-point RTL modes still use their own direct-distance selection path, but they use the same rally-to-approach association rule.
 
 ## Current Limitations
 
 - Missions exceeding `CONFIG_RTL_MISSION_CACHE_SIZE` items (default 300) are not supported; PX4 falls back to direct-path RTL.
 - If several safe points are already within the direct-to-safe-point shortcut radius, the first qualifying safe point in upload order is used.
+- VTOL safe-point approaches are associated purely by upload order: a rally point owns the following `NAV_CMD_LOITER_TO_ALT` items up to the next rally point, and only the first 8 approaches in that block are retained.
 - Geofence-aware pruning for vehicle and safe-point projections is not yet implemented.
 - No dedicated reverse-turn execution module: U-turns are penalized in path scoring but not executed as a specific maneuver.
 
@@ -218,9 +224,9 @@ Route Safe Point Return separates concerns into three roles:
 
 | Role | Class | Responsibility |
 | --- | --- | --- |
-| **Orchestrator** | `RTL` (in `rtl.cpp`) | Owns the planner and executor instances, triggers planning on RTL entry or mission change, passes the plan to the executor, and selects the active RTL type. |
+| **Orchestrator** | `RTL` (in `rtl.cpp`) | Owns the planner and executor instances, triggers planning on RTL entry or mission change, passes the plan to the executor, selects the active RTL type, and chooses the final VTOL landing approach once a safe point has been selected. |
 | **Brain** | `MissionRoutePlanner` (in `mission_route_planner.h/cpp`) | Planning logic: projects the vehicle and safe points onto the mission route, scores candidates, and builds the `Plan` struct. Stateless between calls and fully testable via the `Provider` interface. |
-| **Pilot** | `RtlMissionSafePointFollow` (in `rtl_mission_safe_point_follow.h/cpp`) | Executes the plan built by the Brain. Manages the route-follow / branch-off / landing stages and reuses `MissionBase` for join-route work items. Inherits from `RtlBase → MissionBase → MissionBlock`. |
+| **Pilot** | `RtlMissionSafePointFollow` (in `rtl_mission_safe_point_follow.h/cpp`) | Executes the plan built by the Brain. Manages the route-follow / branch-off / goal-approach / landing stages and reuses `MissionBase` for join-route work items. Inherits from `RtlBase → MissionBase → MissionBlock`. |
 
 ### Data Flow
 
@@ -244,7 +250,7 @@ Join-route handling is now shared in `MissionBase`, while the RTL executor keeps
 
 ```
 MissionBase work items: Default → JoinRoute → TransitionAfterJoin → Default
-Executor stages:       Idle → FollowRoute ⇄ TransitionDuringRoute → BranchOff → LandAtGoal
+Executor stages:       Idle → FollowRoute ⇄ TransitionDuringRoute → BranchOff → ApproachAtGoal? → LandAtGoal
 ```
 
 - `JoinRoute`: a shared `MissionBase` work item that flies the virtual branch-in waypoint.
@@ -252,6 +258,7 @@ Executor stages:       Idle → FollowRoute ⇄ TransitionDuringRoute → Branch
 - `FollowRoute`: walk mission items as geometry (skipping `DO_JUMP`), advancing via `advanceRouteTarget()`. If traversal can no longer advance, the executor goes straight to the already-selected landing goal instead of terminating RTL in loiter.
 - `TransitionDuringRoute`: a VTOL transition was detected mid-route. The transition command is issued once, and the stage waits for completion before returning to `FollowRoute`. This prevents transition command spamming.
 - `BranchOff`: replace the mission target with the virtual branch-off waypoint.
+- `ApproachAtGoal`: if the selected safe point has a valid VTOL approach and the vehicle is currently flying in FW mode, inject the chosen `NAV_CMD_LOITER_TO_ALT` approach before landing.
 - `LandAtGoal`: hand off to `handleLanding()` for the final descent.
 
 ### Virtual Waypoints

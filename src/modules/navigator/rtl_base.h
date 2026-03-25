@@ -60,6 +60,8 @@ public:
 
 	virtual void setShouldGoStraightToGoal(bool should_go_straight) { (void)should_go_straight; }
 
+	virtual void setGoalLandApproach(const loiter_point_s &land_approach) { (void)land_approach; }
+
 	/**
 	 * @brief Return whether the RTL mode should keep the vehicle on the direct-to-goal branch.
 	 */

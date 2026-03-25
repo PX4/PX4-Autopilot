@@ -58,6 +58,56 @@ using namespace math;
  */
 static MissionRoutePlanner::SafePointBatch s_safe_point_batch{};
 
+loiter_point_s MissionRoutePlanner::makeVtolLandApproachPoint(const mission_item_s &mission_item, float home_altitude_amsl)
+{
+	loiter_point_s approach{};
+	approach.lat = mission_item.lat;
+	approach.lon = mission_item.lon;
+	approach.height_m = MissionRoutePlanner::getAbsoluteAltitudeForMissionItem(mission_item, home_altitude_amsl);
+	approach.loiter_radius_m = mission_item.loiter_radius;
+	return approach;
+}
+
+bool MissionRoutePlanner::scanApproachesFollowingRallyPoint(const Provider &provider, int rally_point_index,
+		float home_altitude_amsl, land_approaches_s *vtol_land_approaches)
+{
+	uint8_t approach_counter = 0;
+	bool found_valid_approach = false;
+	const int safe_point_count = provider.safePointCount();
+
+	for (int current_seq = rally_point_index + 1; current_seq < safe_point_count; ++current_seq) {
+		mission_item_s mission_item{};
+
+		if (!provider.loadSafePointItem(current_seq, mission_item)) {
+			break;
+		}
+
+		if (mission_item.nav_cmd == NAV_CMD_RALLY_POINT) {
+			break;
+		}
+
+		if (mission_item.nav_cmd != NAV_CMD_LOITER_TO_ALT
+		    || approach_counter >= land_approaches_s::num_approaches_max) {
+			continue;
+		}
+
+		const loiter_point_s approach = makeVtolLandApproachPoint(mission_item, home_altitude_amsl);
+
+		if (vtol_land_approaches != nullptr) {
+			vtol_land_approaches->approaches[approach_counter] = approach;
+		}
+
+		approach_counter++;
+		found_valid_approach |= approach.isValid();
+
+		if (found_valid_approach && vtol_land_approaches == nullptr) {
+			return true;
+		}
+	}
+
+	return found_valid_approach;
+}
+
 const char *MissionRoutePlanner::failureReasonString(FailureReason failure_reason)
 {
 	switch (failure_reason) {
@@ -162,6 +212,68 @@ bool MissionRoutePlanner::extractSafePointPosition(const mission_item_s &safe_po
 	return position.valid();
 }
 
+land_approaches_s MissionRoutePlanner::Provider::readVtolLandApproaches(const PositionYawSetpoint &rtl_position,
+		float home_altitude_amsl) const
+{
+	land_approaches_s vtol_land_approaches{};
+
+	for (int current_seq = 0; current_seq < safePointCount(); ++current_seq) {
+		mission_item_s mission_item{};
+
+		if (!loadSafePointItem(current_seq, mission_item)) {
+			break;
+		}
+
+		if (mission_item.nav_cmd == NAV_CMD_RALLY_POINT) {
+			const float dist_to_safepoint = get_distance_to_next_waypoint(mission_item.lat, mission_item.lon,
+							rtl_position.lat, rtl_position.lon);
+
+			if (dist_to_safepoint < MissionRoutePlanner::kLandApproachAssociationDistanceM) {
+				vtol_land_approaches.land_location_lat_lon = matrix::Vector2d(mission_item.lat, mission_item.lon);
+				MissionRoutePlanner::scanApproachesFollowingRallyPoint(*this, current_seq, home_altitude_amsl,
+						&vtol_land_approaches);
+				break;
+			}
+		}
+	}
+
+	return vtol_land_approaches;
+}
+
+bool MissionRoutePlanner::Provider::hasVtolLandApproach(const PositionYawSetpoint &rtl_position,
+		float home_altitude_amsl) const
+{
+	return readVtolLandApproaches(rtl_position, home_altitude_amsl).isAnyApproachValid();
+}
+
+bool MissionRoutePlanner::Provider::hasVtolLandApproach(int safe_point_index, float home_altitude_amsl) const
+{
+	mission_item_s safe_point_item{};
+
+	if (!loadSafePointItem(safe_point_index, safe_point_item)) {
+		return false;
+	}
+
+	MissionRoutePlanner::Position safe_point_position{};
+
+	if (!MissionRoutePlanner::extractSafePointPosition(safe_point_item, home_altitude_amsl, safe_point_position)) {
+		return false;
+	}
+
+	return MissionRoutePlanner::scanApproachesFollowingRallyPoint(*this, safe_point_index, home_altitude_amsl);
+}
+
+bool MissionRoutePlanner::Provider::anySafePointHasVtolLandApproach(float home_altitude_amsl) const
+{
+	for (int safe_point_index = 0; safe_point_index < safePointCount(); ++safe_point_index) {
+		if (hasVtolLandApproach(safe_point_index, home_altitude_amsl)) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 bool MissionRoutePlanner::readValidMissionPosition(int index, float home_altitude_amsl, Position &position,
 		uint16_t *nav_cmd) const
 {
@@ -226,18 +338,11 @@ void MissionRoutePlanner::loadSafePointBatch(const Config &config, SafePointBatc
 {
 	batch = {};
 
-	const int safe_point_count = min(_provider.safePointCount(), static_cast<int>(MAX_SAFE_POINT_BATCH));
-	constexpr int usable_safe_point_bits = sizeof(config.execution.usable_safe_point_bitmask) * 8;
+	const int safe_point_item_count = _provider.safePointCount();
 
-	for (int safe_point_index = 0; safe_point_index < safe_point_count; ++safe_point_index) {
-		const uint64_t safe_point_bit = 1ULL << safe_point_index;
-
-		if (safe_point_index >= usable_safe_point_bits
-		    || !(config.execution.usable_safe_point_bitmask & safe_point_bit)) {
-			PX4_DEBUG("RTL safe point %d skipped by runtime filter", safe_point_index);
-			continue;
-		}
-
+	for (int safe_point_index = 0;
+	     safe_point_index < safe_point_item_count && batch.count < MAX_SAFE_POINT_BATCH;
+	     ++safe_point_index) {
 		mission_item_s safe_point_item{};
 
 		if (!_provider.loadSafePointItem(safe_point_index, safe_point_item)) {
@@ -250,6 +355,13 @@ void MissionRoutePlanner::loadSafePointBatch(const Config &config, SafePointBatc
 		if (!extractSafePointPosition(safe_point_item, config.parameters.home_altitude_amsl,
 					      safe_point_position)) {
 			PX4_DEBUG("RTL safe point %d skipped, invalid position or frame", safe_point_index);
+			continue;
+		}
+
+		if (config.state.require_vtol_approach
+		    && !MissionRoutePlanner::scanApproachesFollowingRallyPoint(_provider, safe_point_index,
+				    config.parameters.home_altitude_amsl)) {
+			PX4_DEBUG("RTL safe point %d skipped, no VTOL approach", safe_point_index);
 			continue;
 		}
 
@@ -396,19 +508,20 @@ void MissionRoutePlanner::insertCandidateSorted(CandidateBuffer &candidate_buffe
 
 void MissionRoutePlanner::pruneProjectionCandidates(CandidateBuffer &candidate_buffer, float xtrack_limit) const
 {
-	if (candidate_buffer.count < 2) {
+	const uint8_t buffer_size = min(candidate_buffer.count, MAX_SEGMENT_CANDIDATES);
+
+	if (buffer_size == 0) {
 		return;
 	}
 
-	const uint8_t buffer_size = min(candidate_buffer.count, MAX_SEGMENT_CANDIDATES);
-	uint8_t index = buffer_size;
-
-	while (index > 0) {
-		--index;
-
+	for (uint8_t index = buffer_size - 1U; index < buffer_size; --index) {
 		if (candidate_buffer.candidates[index].dist.xtrack <= xtrack_limit) {
 			candidate_buffer.count = index + 1U;
 			return;
+		}
+
+		if (index < 1U) {
+			break;
 		}
 	}
 

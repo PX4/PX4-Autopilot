@@ -68,6 +68,14 @@ using rtl_test_reference::kBaseLon;
 
 class RtlSafePointTest : public MissionRoutePlannerTestBase {};
 
+static mission_item_s makeLoiterToAltApproachFromOffset(double base_lat, double base_lon,
+		float north_m, float east_m, float alt)
+{
+	mission_item_s item = makePositionItemFromOffset(base_lat, base_lon, north_m, east_m, alt, NAV_CMD_LOITER_TO_ALT);
+	item.loiter_radius = 30.f;
+	return item;
+}
+
 // ============================================================================
 // GROUP 1: Basic safe point selection
 // ============================================================================
@@ -779,12 +787,14 @@ TEST_F(RtlSafePointTest, ScansMissionOnceForBatch_DefaultDataset)
 	EXPECT_EQ(provider.safePointLoadCount(), 7);
 }
 
-// WHY: The planner now uses a simple usability bitmask, so a masked-out safe point must be
-//      skipped without any callback indirection or planner-side policy knowledge.
-// WHAT: The closest safe point is masked out and the next allowed one is selected.
-TEST_F(RtlSafePointTest, UsableSafePointBitmaskSkipsRejectedCandidate)
+// WHY: Route-safe-point planning should express VTOL-approach policy semantically, letting the
+//      planner ask its provider whether each safe point has a valid approach instead of relying
+//      on caller-side prefiltering.
+// WHAT: With require_vtol_approach=true, the closer safe point without an approach is skipped
+//       and the farther safe point with an approach is selected.
+TEST_F(RtlSafePointTest, RequireVtolApproachSkipsSafePointsWithoutApproach)
 {
-	// GIVEN: Two valid rally points where the closer one is masked out by the caller.
+	// GIVEN: Two rally points where only the farther one has an associated LOITER_TO_ALT approach.
 	std::vector<mission_item_s> mission{
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
@@ -794,31 +804,32 @@ TEST_F(RtlSafePointTest, UsableSafePointBitmaskSkipsRejectedCandidate)
 	std::vector<mission_item_s> safe_points{
 		makeSafePointFromOffset(kBaseLat, kBaseLon, 30.f, 15.f, kAlt),
 		makeSafePointFromOffset(kBaseLat, kBaseLon, 80.f, 20.f, kAlt),
+		makeLoiterToAltApproachFromOffset(kBaseLat, kBaseLon, 95.f, 20.f, kAlt + 20.f),
 	};
 
 	VectorProvider provider{mission, safe_points};
 	MissionRoutePlanner planner{provider};
 	const MissionRoutePlanner::Position vehicle_position =
 		makePositionFromOffset(kBaseLat, kBaseLon, 10.f, 0.f, kAlt);
-	config.execution.usable_safe_point_bitmask = 1ULL << 1;
+	config.state.require_vtol_approach = true;
 
-	// WHEN: Safe-point selection runs with only safe point 1 marked as usable.
+	// WHEN: Safe-point selection runs with VTOL approaches required.
 	ASSERT_TRUE(planner.collectVehicleProjection(vehicle_position, 1, config, ctx, reason));
 
 	const MissionRoutePlanner::Selection selection = planner.selectSafePoint(ctx, config);
 
-	// THEN: The masked-out closer candidate is skipped and safe point 1 is returned.
+	// THEN: The safe point without an approach is skipped and safe point 1 is returned.
 	ASSERT_TRUE(selection.found);
 	EXPECT_TRUE(selection.safe_point_found);
 	EXPECT_EQ(selection.safe_point_index, 1);
 }
 
-// WHY: When the usability bitmask rejects every safe point, selectSafePoint must report that
-//      no safe-point destination is available so the caller can fall back appropriately.
-// WHAT: Valid safe points with a zero mask return found=false.
-TEST_F(RtlSafePointTest, UsableSafePointBitmaskCanRejectAllSafePoints)
+// WHY: When approach force is enabled and no rally point has a valid VTOL approach, the planner
+//      must report that no safe-point destination is available so the caller can fall back cleanly.
+// WHAT: Valid safe points without approaches and require_vtol_approach=true return found=false.
+TEST_F(RtlSafePointTest, RequireVtolApproachCanRejectAllSafePoints)
 {
-	// GIVEN: Two valid rally points with a usability bitmask that rejects every one of them.
+	// GIVEN: Two valid rally points with no associated LOITER_TO_ALT approaches.
 	std::vector<mission_item_s> mission{
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
@@ -834,15 +845,102 @@ TEST_F(RtlSafePointTest, UsableSafePointBitmaskCanRejectAllSafePoints)
 	MissionRoutePlanner planner{provider};
 	const MissionRoutePlanner::Position vehicle_position =
 		makePositionFromOffset(kBaseLat, kBaseLon, 10.f, 0.f, kAlt);
-	config.execution.usable_safe_point_bitmask = 0;
+	config.state.require_vtol_approach = true;
 
-	// WHEN: Safe-point selection runs with no usable safe-point bits enabled.
+	// WHEN: Safe-point selection runs with VTOL approaches required.
 	ASSERT_TRUE(planner.collectVehicleProjection(vehicle_position, 1, config, ctx, reason));
 
 	const MissionRoutePlanner::Selection selection = planner.selectSafePoint(ctx, config);
 
 	// THEN: The planner reports that no safe-point destination is available.
 	EXPECT_FALSE(selection.found);
+}
+
+// WHY: The index-based VTOL-approach filter must preserve the existing rally-block semantics:
+//      keep scanning approach items after the rally point until the next rally point, without
+//      restarting the search from index 0 for every candidate.
+// WHAT: A rally point stays eligible when its first approach is invalid but a later approach in
+//       the same block is valid, and safe-point loads stay bounded linearly.
+TEST_F(RtlSafePointTest, RequireVtolApproachScansForwardWithinSingleRallyBlock)
+{
+	// GIVEN: Two rally points where the first rally owns two LOITER_TO_ALT items before the next
+	//        rally. The first approach is invalid because relative altitude cannot be resolved,
+	//        but the second approach is valid and should keep the rally point eligible.
+	std::vector<mission_item_s> mission{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+	};
+
+	mission_item_s invalid_relative_approach = makeLoiterToAltApproachFromOffset(kBaseLat, kBaseLon, 45.f, 15.f, 20.f);
+	invalid_relative_approach.frame = NAV_FRAME_GLOBAL_RELATIVE_ALT;
+	invalid_relative_approach.altitude_is_relative = true;
+
+	std::vector<mission_item_s> safe_points{
+		makeSafePointFromOffset(kBaseLat, kBaseLon, 30.f, 15.f, kAlt),
+		invalid_relative_approach,
+		makeLoiterToAltApproachFromOffset(kBaseLat, kBaseLon, 55.f, 20.f, kAlt + 20.f),
+		makeSafePointFromOffset(kBaseLat, kBaseLon, 120.f, 10.f, kAlt),
+	};
+
+	VectorProvider provider{mission, safe_points};
+	MissionRoutePlanner planner{provider};
+	const MissionRoutePlanner::Position vehicle_position =
+		makePositionFromOffset(kBaseLat, kBaseLon, 10.f, 0.f, kAlt);
+	config.state.require_vtol_approach = true;
+	config.parameters.home_altitude_amsl = NAN;
+
+	ASSERT_TRUE(planner.collectVehicleProjection(vehicle_position, 1, config, ctx, reason));
+
+	// WHEN: Safe-point selection runs with VTOL approaches required and provider load counters reset.
+	provider.resetCounters();
+	const MissionRoutePlanner::Selection selection = planner.selectSafePoint(ctx, config);
+
+	// THEN: The valid later approach keeps rally 0 eligible, and the approach filter stays linear
+	//       in safe-point loads instead of rescanning from index 0 for each rally point.
+	ASSERT_TRUE(selection.found);
+	EXPECT_TRUE(selection.safe_point_found);
+	EXPECT_EQ(selection.safe_point_index, 0);
+	EXPECT_LE(provider.safePointLoadCount(), 2 * provider.safePointCount())
+			<< "Approach filtering should scan forward within each rally block, not restart from index 0";
+}
+
+// WHY: The planner batch limit should apply to eligible rally points, not to raw safe-point-store
+//      items, otherwise LOITER_TO_ALT approach records could crowd out later rally points.
+// WHAT: Sixty-four leading LOITER_TO_ALT entries followed by one rally point still allow the rally point to be selected.
+TEST_F(RtlSafePointTest, ApproachItemsDoNotConsumeEligibleSafePointBatchCapacity)
+{
+	// GIVEN: A simple route and a safe-point store where the first 64 entries are approach-only items
+	//        and the first actual rally point appears after them.
+	std::vector<mission_item_s> mission{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+	};
+
+	std::vector<mission_item_s> safe_points;
+	safe_points.reserve(65);
+
+	for (int i = 0; i < 64; ++i) {
+		safe_points.push_back(makeLoiterToAltApproachFromOffset(kBaseLat, kBaseLon, 20.f + i, 30.f, kAlt + 20.f));
+	}
+
+	safe_points.push_back(makeSafePointFromOffset(kBaseLat, kBaseLon, 80.f, 20.f, kAlt));
+
+	VectorProvider provider{mission, safe_points};
+	MissionRoutePlanner planner{provider};
+	const MissionRoutePlanner::Position vehicle_position =
+		makePositionFromOffset(kBaseLat, kBaseLon, 10.f, 0.f, kAlt);
+
+	// WHEN: Safe-point selection scans the raw safe-point store.
+	ASSERT_TRUE(planner.collectVehicleProjection(vehicle_position, 1, config, ctx, reason));
+
+	const MissionRoutePlanner::Selection selection = planner.selectSafePoint(ctx, config);
+
+	// THEN: The late rally point is still evaluated and selected.
+	ASSERT_TRUE(selection.found);
+	EXPECT_TRUE(selection.safe_point_found);
+	EXPECT_EQ(selection.safe_point_index, 64);
 }
 
 // ============================================================================

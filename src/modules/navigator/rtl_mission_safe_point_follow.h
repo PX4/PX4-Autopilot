@@ -56,12 +56,14 @@ public:
 	void on_inactivation() override;
 	void on_activation() override;
 
-	bool isLanding() override { return _stage == Stage::LandAtGoal; }
+	bool isLanding() override { return _stage == Stage::ApproachAtGoal || _stage == Stage::LandAtGoal; }
 	bool shouldGoStraightToGoal() const override { return _should_go_straight_to_goal; }
 	MissionRoutePlanner::Segment lastFlownLoopSegment() const override { return _last_flown_loop_segment; }
 	rtl_time_estimate_s calc_rtl_time_estimate() override;
+	void setRtlAlt(float alt) override { _rtl_alt = alt; }
 	void setRoutePlan(const MissionRoutePlanner::Plan &plan) override;
 	void setShouldGoStraightToGoal(bool should_go_straight) override;
+	void setGoalLandApproach(const loiter_point_s &land_approach) override;
 
 private:
 	friend class RtlMissionSafePointFollowTestPeer;
@@ -71,6 +73,7 @@ private:
 		FollowRoute,             /**< Follow the mission geometry in nominal or reverse direction. */
 		TransitionDuringRoute,   /**< Apply a VTOL transition during route following (prevents re-issuing). */
 		BranchOff,               /**< Fly the virtual branch-off waypoint before leaving the route. */
+		ApproachAtGoal,          /**< Fly the selected landing approach loiter before handing over to landing. */
 		LandAtGoal               /**< Execute the final landing at the safe point or fallback endpoint. */
 	};
 
@@ -84,6 +87,8 @@ private:
 				    bool autocontinue, bool vtol_back_transition_required = false) const;
 	/** @brief Build the synthetic RTL landing item for safe-point landings and reverse takeoff fallback. */
 	void setLandMissionItem(mission_item_s &mission_item) const;
+	/** @brief Build the synthetic goal-approach loiter item for VTOL safe-point landings. */
+	void setGoalApproachMissionItem(mission_item_s &mission_item) const;
 
 	/** @brief Convert a position-bearing mission item into a pure geometric route waypoint.
 	 *
@@ -101,6 +106,12 @@ private:
 	bool currentTargetIsBranchOff() const;
 	/** @brief Return whether the join projection is already close enough to skip route following. */
 	bool joinProjectionNearBranchOff() const;
+	/** @brief Return true when the selected safe-point goal has a concrete VTOL landing approach to fly. */
+	bool useGoalLandApproach() const;
+	/** @brief Return the stage that should execute after leaving the route or skipping directly to goal. */
+	Stage finalGoalStage() const;
+	/** @brief Return whether a mission item is a landing command. */
+	static bool isLandingCommand(const mission_item_s &mission_item);
 	/** @brief Seed the cached loop anchor from the active plan, clearing it when the projection is not on a DO_JUMP edge. */
 	void updateLastFlownLoopSegmentFromPlan();
 	/**
@@ -133,6 +144,8 @@ private:
 	bool _should_go_straight_to_goal{false};
 	MissionRoutePlanner::Segment _last_flown_loop_segment{};
 	int32_t _transition_target_index{-1}; /**< Mission index that triggered the current in-flight transition. */
+	loiter_point_s _goal_land_approach{};
+	float _rtl_alt{NAN};
 	RtlTimeEstimator _rtl_time_estimator; /**< Time estimator consistent with other RTL modes. */
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
