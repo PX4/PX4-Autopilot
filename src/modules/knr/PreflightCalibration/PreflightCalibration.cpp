@@ -1,4 +1,5 @@
 #include "PreflightCalibration.hpp"
+#include <cstring>
 
 using namespace time_literals;
 using matrix::Vector3f;
@@ -37,6 +38,8 @@ void PreflightCalibration::Run()
 	preflight_calibration_control_s control_msg{};
 
 	if(_preflight_calibration_control_sub.update(&control_msg)) {
+		_last_action = control_msg.action;
+
 		switch (control_msg.action) {
 		case preflight_calibration_control_s::ACTION_START:
 			if (!_calibration_active) {
@@ -52,6 +55,7 @@ void PreflightCalibration::Run()
 					_sv_states[i].status = static_cast<uint8_t>(ServoStatus::NOT_INITIALIZED);
 				}
 			}
+			_publish_status_snapshot();
 			break;
 
 		case preflight_calibration_control_s::ACTION_STOP:
@@ -59,24 +63,46 @@ void PreflightCalibration::Run()
 				PX4_INFO("Preflight calibration stopped via uORB message.");
 				_calibration_active = false;
 			}
+			_publish_status_snapshot();
 			return;
 
+		case preflight_calibration_control_s::ACTION_CAPTURE_FRONT:
 		case preflight_calibration_control_s::ACTION_SAVE: {
 			actuator_outputs_s outputs{};
 			if (_actuator_outputs.update(&outputs)) {
-				_save_servo_positions(outputs);
+				_capture_front_pose(outputs);
 			} else {
 				PX4_ERR("Failed to get current servo positions");
 			}
+			_publish_status_snapshot();
 			return;
 		}
 
-		case preflight_calibration_control_s::ACTION_LOAD:
-			_load_servo_positions();
+		case preflight_calibration_control_s::ACTION_CAPTURE_UP:
+		case preflight_calibration_control_s::ACTION_LOAD: {
+			actuator_outputs_s outputs{};
+			if (_actuator_outputs.update(&outputs)) {
+				_capture_up_pose(outputs);
+			} else {
+				PX4_ERR("Failed to get current servo positions");
+			}
+			_publish_status_snapshot();
+			return;
+		}
+
+		case preflight_calibration_control_s::ACTION_READ_FRONT:
+			Read_Front();
+			_publish_status_snapshot();
+			return;
+
+		case preflight_calibration_control_s::ACTION_READ_UP:
+			Read_Up();
+			_publish_status_snapshot();
 			return;
 
 		default:
 			PX4_WARN("Unknown preflight_calibration_control action: %u", control_msg.action);
+			_publish_status_snapshot();
 			return;
 		}
 	}
@@ -107,6 +133,9 @@ void PreflightCalibration::Run()
 	status_msg.timestamp = now;
 	status_msg.in_progress = !_do_calibration_ended();
 	status_msg.calibration_successful = false;
+	status_msg.front_pose_saved = _front_pose_saved;
+	status_msg.up_pose_saved = _up_pose_saved;
+	status_msg.last_action = _last_action;
 
 	for(int i=0; i<NUM_ACTUATORS; i++) {
 		auto &s = _sv_states[i];
@@ -197,7 +226,17 @@ int PreflightCalibration::task_spawn(int argc, char *argv[])
 
 int PreflightCalibration::print_status()
 {
-	// TODO - print status
+	PX4_INFO("Saved FRONT: [%.3f, %.3f, %.3f, %.3f]",
+		(double)_sv_pos_front_1.get(),
+		(double)_sv_pos_front_2.get(),
+		(double)_sv_pos_front_3.get(),
+		(double)_sv_pos_front_4.get());
+
+	PX4_INFO("Saved UP:    [%.3f, %.3f, %.3f, %.3f]",
+		(double)_sv_pos_up_1.get(),
+		(double)_sv_pos_up_2.get(),
+		(double)_sv_pos_up_3.get(),
+		(double)_sv_pos_up_4.get());
 
 	perf_print_counter(_loop_interval_perf);
 	perf_print_counter(_calibration_updated_perf);
@@ -206,6 +245,18 @@ int PreflightCalibration::print_status()
 
 int PreflightCalibration::custom_command(int argc, char *argv[])
 {
+	if (argc > 0) {
+		if (!strcmp(argv[0], "read_front")) {
+			Read_Front();
+			return PX4_OK;
+		}
+
+		if (!strcmp(argv[0], "read_up")) {
+			Read_Up();
+			return PX4_OK;
+		}
+	}
+
 	return print_usage("unknown command");
 }
 
@@ -224,6 +275,8 @@ int PreflightCalibration::print_usage(const char *reason)
 
 	PRINT_MODULE_USAGE_NAME("preflight_calibration", "system");
 	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("read_front", "Move servos 1-4 to saved FRONT position");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("read_up", "Move servos 1-4 to saved UP position");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
@@ -234,66 +287,84 @@ void PreflightCalibration::_parameters_updated()
 	ModuleParams::updateParams();
 }
 
-void PreflightCalibration::_save_servo_positions(const actuator_outputs_s &outputs)
+void PreflightCalibration::_capture_front_pose(const actuator_outputs_s &outputs)
 {
-	_sv_pos_saved_1.set(outputs.output[0]);
-	_sv_pos_saved_2.set(outputs.output[1]);
-	_sv_pos_saved_3.set(outputs.output[2]);
-	_sv_pos_saved_4.set(outputs.output[3]);
-	_sv_pos_saved_5.set(outputs.output[4]);
-	_sv_pos_saved_6.set(outputs.output[5]);
-	_sv_pos_saved_7.set(outputs.output[6]);
-	_sv_pos_saved_8.set(outputs.output[7]);
-	_sv_pos_saved_9.set(outputs.output[8]);
-	_sv_pos_saved_10.set(outputs.output[9]);
-	_sv_pos_saved_11.set(outputs.output[10]);
-	_sv_pos_saved_12.set(outputs.output[11]);
-	_sv_pos_saved_13.set(outputs.output[12]);
-	_sv_pos_saved_14.set(outputs.output[13]);
-	_sv_pos_saved_15.set(outputs.output[14]);
-	_sv_pos_saved_16.set(outputs.output[15]);
+	_sv_pos_front_1.set(outputs.output[0]);
+	_sv_pos_front_2.set(outputs.output[1]);
+	_sv_pos_front_3.set(outputs.output[2]);
+	_sv_pos_front_4.set(outputs.output[3]);
+	_front_pose_saved = true;
 
-	PX4_INFO("Servo positions saved successfully");
+	PX4_INFO("Captured FRONT pose for servos 1-4");
 }
 
-void PreflightCalibration::_load_servo_positions()
+void PreflightCalibration::_capture_up_pose(const actuator_outputs_s &outputs)
+{
+	_sv_pos_up_1.set(outputs.output[0]);
+	_sv_pos_up_2.set(outputs.output[1]);
+	_sv_pos_up_3.set(outputs.output[2]);
+	_sv_pos_up_4.set(outputs.output[3]);
+	_up_pose_saved = true;
+
+	PX4_INFO("Captured UP pose for servos 1-4");
+}
+
+void PreflightCalibration::_publish_status_snapshot()
+{
+	preflight_calibration_status_s status_msg{};
+	status_msg.timestamp = hrt_absolute_time();
+	status_msg.in_progress = _calibration_active;
+	status_msg.calibration_successful = _is_calibration_successful();
+	status_msg.front_pose_saved = _front_pose_saved;
+	status_msg.up_pose_saved = _up_pose_saved;
+	status_msg.last_action = _last_action;
+
+	for (int i = 0; i < NUM_ACTUATORS; i++) {
+		status_msg.servo_status[i] = _sv_states[i].status;
+	}
+
+	_preflight_calibration_status_pub.publish(status_msg);
+}
+
+void PreflightCalibration::Read_Front()
+{
+	const float pose[4] = {
+		_sv_pos_front_1.get(),
+		_sv_pos_front_2.get(),
+		_sv_pos_front_3.get(),
+		_sv_pos_front_4.get()
+	};
+
+	_apply_pose(pose, "FRONT");
+}
+
+void PreflightCalibration::Read_Up()
+{
+	const float pose[4] = {
+		_sv_pos_up_1.get(),
+		_sv_pos_up_2.get(),
+		_sv_pos_up_3.get(),
+		_sv_pos_up_4.get()
+	};
+
+	_apply_pose(pose, "UP");
+}
+
+void PreflightCalibration::_apply_pose(const float pose[4], const char *pose_name)
 {
 	actuator_test_s actuator_test{};
 	const hrt_abstime now = hrt_absolute_time();
 
-	const float saved_positions[] = {
-		_sv_pos_saved_1.get(),
-		_sv_pos_saved_2.get(),
-		_sv_pos_saved_3.get(),
-		_sv_pos_saved_4.get(),
-		_sv_pos_saved_5.get(),
-		_sv_pos_saved_6.get(),
-		_sv_pos_saved_7.get(),
-		_sv_pos_saved_8.get(),
-		_sv_pos_saved_9.get(),
-		_sv_pos_saved_10.get(),
-		_sv_pos_saved_11.get(),
-		_sv_pos_saved_12.get(),
-		_sv_pos_saved_13.get(),
-		_sv_pos_saved_14.get(),
-		_sv_pos_saved_15.get(),
-		_sv_pos_saved_16.get()
-	};
-
-	for (int i = 0; i < NUM_ACTUATORS; i++) {
+	for (int i = 0; i < 4; i++) {
 		actuator_test.timestamp = now;
-		actuator_test.timeout_ms = 100;
+		actuator_test.timeout_ms = 500;
 		actuator_test.action = actuator_test_s::ACTION_DO_CONTROL;
 		actuator_test.function = actuator_test_s::FUNCTION_SERVO1 + i;
-		actuator_test.value = saved_positions[i];
-
+		actuator_test.value = pose[i];
 		_actuator_test_pub.publish(actuator_test);
 
-		PX4_INFO("Loading actuator %d to saved position %.3f", i + 1, 
-			(double)saved_positions[i]);
+		PX4_INFO("Applying %s pose: servo %d -> %.3f", pose_name, i + 1, (double)pose[i]);
 	}
-
-	PX4_INFO("All saved servo positions loaded");
 }
 
 bool PreflightCalibration::_is_calibration_successful()

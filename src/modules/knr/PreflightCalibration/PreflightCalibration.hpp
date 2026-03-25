@@ -72,6 +72,9 @@ private:
 	bool _armed{false};
 	bool _request_stop{false};
 	bool _calibration_active{false};
+	bool _front_pose_saved{false};
+	bool _up_pose_saved{false};
+	uint8_t _last_action{preflight_calibration_control_s::ACTION_STOP};
 
 	struct ServoCalibrationState {
 		bool reached_min{false};
@@ -95,8 +98,12 @@ private:
 	void _parameters_updated();
 	bool _is_calibration_successful();
 	bool _do_calibration_ended();
-	void _save_servo_positions(const actuator_outputs_s &outputs);
-	void _load_servo_positions();
+	void _capture_front_pose(const actuator_outputs_s &outputs);
+	void _capture_up_pose(const actuator_outputs_s &outputs);
+	void _apply_pose(const float pose[4], const char *pose_name);
+	void _publish_status_snapshot();
+	void Read_Front();
+	void Read_Up();
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_status_sub{ORB_ID::vehicle_status};
@@ -118,21 +125,13 @@ private:
 		(ParamFloat<px4::params::SV_CAL_MAX_VAL>) _sv_cal_max,
 		(ParamFloat<px4::params::SV_CAL_MIN_VAL>) _sv_cal_min,
 		(ParamFloat<px4::params::SV_CAL_STEP_VAL>) _sv_cal_step,
-		(ParamFloat<px4::params::SV_POS_SAVED_1>) _sv_pos_saved_1,
-		(ParamFloat<px4::params::SV_POS_SAVED_2>) _sv_pos_saved_2,
-		(ParamFloat<px4::params::SV_POS_SAVED_3>) _sv_pos_saved_3,
-		(ParamFloat<px4::params::SV_POS_SAVED_4>) _sv_pos_saved_4,
-		(ParamFloat<px4::params::SV_POS_SAVED_5>) _sv_pos_saved_5,
-		(ParamFloat<px4::params::SV_POS_SAVED_6>) _sv_pos_saved_6,
-		(ParamFloat<px4::params::SV_POS_SAVED_7>) _sv_pos_saved_7,
-		(ParamFloat<px4::params::SV_POS_SAVED_8>) _sv_pos_saved_8,
-		(ParamFloat<px4::params::SV_POS_SAVED_9>) _sv_pos_saved_9,
-		(ParamFloat<px4::params::SV_POS_SAVED_10>) _sv_pos_saved_10,
-		(ParamFloat<px4::params::SV_POS_SAVED_11>) _sv_pos_saved_11,
-		(ParamFloat<px4::params::SV_POS_SAVED_12>) _sv_pos_saved_12,
-		(ParamFloat<px4::params::SV_POS_SAVED_13>) _sv_pos_saved_13,
-		(ParamFloat<px4::params::SV_POS_SAVED_14>) _sv_pos_saved_14,
-		(ParamFloat<px4::params::SV_POS_SAVED_15>) _sv_pos_saved_15,
-		(ParamFloat<px4::params::SV_POS_SAVED_16>) _sv_pos_saved_16
+		(ParamFloat<px4::params::SV_POS_FRONT_1>) _sv_pos_front_1,
+		(ParamFloat<px4::params::SV_POS_FRONT_2>) _sv_pos_front_2,
+		(ParamFloat<px4::params::SV_POS_FRONT_3>) _sv_pos_front_3,
+		(ParamFloat<px4::params::SV_POS_FRONT_4>) _sv_pos_front_4,
+		(ParamFloat<px4::params::SV_POS_UP_1>) _sv_pos_up_1,
+		(ParamFloat<px4::params::SV_POS_UP_2>) _sv_pos_up_2,
+		(ParamFloat<px4::params::SV_POS_UP_3>) _sv_pos_up_3,
+		(ParamFloat<px4::params::SV_POS_UP_4>) _sv_pos_up_4
 	);
 };

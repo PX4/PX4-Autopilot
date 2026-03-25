@@ -56,161 +56,81 @@ PARAM_DEFINE_FLOAT(SV_CAL_MIN_VAL, -1.0f);
 PARAM_DEFINE_FLOAT(SV_CAL_STEP_VAL, 0.1f);
 
 /**
-* Saved position for servo 1.
+* Saved FRONT position for servo 1.
 *
 * @min -1.0
 * @max 1.0
 * @decimal 3
 * @group Servo Positions
 */
-PARAM_DEFINE_FLOAT(SV_POS_SAVED_1, 0.0f);
+PARAM_DEFINE_FLOAT(SV_POS_FRONT_1, 0.0f);
 
 /**
-* Saved position for servo 2.
+* Saved FRONT position for servo 2.
 *
 * @min -1.0
 * @max 1.0
 * @decimal 3
 * @group Servo Positions
 */
-PARAM_DEFINE_FLOAT(SV_POS_SAVED_2, 0.0f);
+PARAM_DEFINE_FLOAT(SV_POS_FRONT_2, 0.0f);
 
 /**
-* Saved position for servo 3.
+* Saved FRONT position for servo 3.
 *
 * @min -1.0
 * @max 1.0
 * @decimal 3
 * @group Servo Positions
 */
-PARAM_DEFINE_FLOAT(SV_POS_SAVED_3, 0.0f);
+PARAM_DEFINE_FLOAT(SV_POS_FRONT_3, 0.0f);
 
 /**
-* Saved position for servo 4.
+* Saved FRONT position for servo 4.
 *
 * @min -1.0
 * @max 1.0
 * @decimal 3
 * @group Servo Positions
 */
-PARAM_DEFINE_FLOAT(SV_POS_SAVED_4, 0.0f);
+PARAM_DEFINE_FLOAT(SV_POS_FRONT_4, 0.0f);
 
 /**
-* Saved position for servo 5.
+* Saved UP position for servo 1.
 *
 * @min -1.0
 * @max 1.0
 * @decimal 3
 * @group Servo Positions
 */
-PARAM_DEFINE_FLOAT(SV_POS_SAVED_5, 0.0f);
+PARAM_DEFINE_FLOAT(SV_POS_UP_1, 0.0f);
 
 /**
-* Saved position for servo 6.
+* Saved UP position for servo 2.
 *
 * @min -1.0
 * @max 1.0
 * @decimal 3
 * @group Servo Positions
 */
-PARAM_DEFINE_FLOAT(SV_POS_SAVED_6, 0.0f);
+PARAM_DEFINE_FLOAT(SV_POS_UP_2, 0.0f);
 
 /**
-* Saved position for servo 7.
+* Saved UP position for servo 3.
 *
 * @min -1.0
 * @max 1.0
 * @decimal 3
 * @group Servo Positions
 */
-PARAM_DEFINE_FLOAT(SV_POS_SAVED_7, 0.0f);
+PARAM_DEFINE_FLOAT(SV_POS_UP_3, 0.0f);
 
 /**
-* Saved position for servo 8.
+* Saved UP position for servo 4.
 *
 * @min -1.0
 * @max 1.0
 * @decimal 3
 * @group Servo Positions
 */
-PARAM_DEFINE_FLOAT(SV_POS_SAVED_8, 0.0f);
-
-/**
-* Saved position for servo 9.
-*
-* @min -1.0
-* @max 1.0
-* @decimal 3
-* @group Servo Positions
-*/
-PARAM_DEFINE_FLOAT(SV_POS_SAVED_9, 0.0f);
-
-/**
-* Saved position for servo 10.
-*
-* @min -1.0
-* @max 1.0
-* @decimal 3
-* @group Servo Positions
-*/
-PARAM_DEFINE_FLOAT(SV_POS_SAVED_10, 0.0f);
-
-/**
-* Saved position for servo 11.
-*
-* @min -1.0
-* @max 1.0
-* @decimal 3
-* @group Servo Positions
-*/
-PARAM_DEFINE_FLOAT(SV_POS_SAVED_11, 0.0f);
-
-/**
-* Saved position for servo 12.
-*
-* @min -1.0
-* @max 1.0
-* @decimal 3
-* @group Servo Positions
-*/
-PARAM_DEFINE_FLOAT(SV_POS_SAVED_12, 0.0f);
-
-/**
-* Saved position for servo 13.
-*
-* @min -1.0
-* @max 1.0
-* @decimal 3
-* @group Servo Positions
-*/
-PARAM_DEFINE_FLOAT(SV_POS_SAVED_13, 0.0f);
-
-/**
-* Saved position for servo 14.
-*
-* @min -1.0
-* @max 1.0
-* @decimal 3
-* @group Servo Positions
-*/
-PARAM_DEFINE_FLOAT(SV_POS_SAVED_14, 0.0f);
-
-/**
-* Saved position for servo 15.
-*
-* @min -1.0
-* @max 1.0
-* @decimal 3
-* @group Servo Positions
-*/
-PARAM_DEFINE_FLOAT(SV_POS_SAVED_15, 0.0f);
-
-/**
-* Saved position for servo 16.
-*
-* @min -1.0
-* @max 1.0
-* @decimal 3
-* @group Servo Positions
-*/
-PARAM_DEFINE_FLOAT(SV_POS_SAVED_16, 0.0f);
+PARAM_DEFINE_FLOAT(SV_POS_UP_4, 0.0f);
