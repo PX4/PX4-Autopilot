@@ -66,8 +66,7 @@ void PreflightCalibration::Run()
 			_publish_status_snapshot();
 			return;
 
-		case preflight_calibration_control_s::ACTION_CAPTURE_FRONT:
-		case preflight_calibration_control_s::ACTION_SAVE: {
+		case preflight_calibration_control_s::ACTION_CAPTURE_FRONT: {
 			actuator_outputs_s outputs{};
 			if (_actuator_outputs.update(&outputs)) {
 				_capture_front_pose(outputs);
@@ -78,8 +77,7 @@ void PreflightCalibration::Run()
 			return;
 		}
 
-		case preflight_calibration_control_s::ACTION_CAPTURE_UP:
-		case preflight_calibration_control_s::ACTION_LOAD: {
+		case preflight_calibration_control_s::ACTION_CAPTURE_UP: {
 			actuator_outputs_s outputs{};
 			if (_actuator_outputs.update(&outputs)) {
 				_capture_up_pose(outputs);
@@ -245,14 +243,20 @@ int PreflightCalibration::print_status()
 
 int PreflightCalibration::custom_command(int argc, char *argv[])
 {
+	PreflightCalibration *instance = get_instance();
+
+	if (instance == nullptr) {
+		return print_usage("module not running");
+	}
+
 	if (argc > 0) {
 		if (!strcmp(argv[0], "read_front")) {
-			Read_Front();
+			instance->Read_Front();
 			return PX4_OK;
 		}
 
 		if (!strcmp(argv[0], "read_up")) {
-			Read_Up();
+			instance->Read_Up();
 			return PX4_OK;
 		}
 	}
