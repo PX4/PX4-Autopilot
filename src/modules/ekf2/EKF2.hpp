@@ -104,6 +104,7 @@
 
 #if defined(CONFIG_EKF2_GNSS)
 # include <uORB/topics/estimator_gps_status.h>
+# include <uORB/topics/gps_altitude_drift_correction.h>
 # include <uORB/topics/sensor_gps.h>
 #endif // CONFIG_EKF2_GNSS
 
@@ -508,6 +509,33 @@ private:
 	hrt_abstime _status_gnss_yaw_pub_last {0};
 	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_gnss_yaw_pub {ORB_ID(estimator_aid_src_gnss_yaw)};
 # endif // CONFIG_EKF2_GNSS_YAW
+
+	struct GpsAltDriftDetector {
+		static constexpr int kWindowSize = 20; // roughly 20 seconds (at 1 Hz sample rate)
+		static constexpr int kStabilityWindow = 5; // samples to check for re-enable
+		static constexpr float kBaroLpfTimeConst = 3.f;
+		static constexpr float kDriftThreshold = 1.f; // [m]
+
+		AlphaFilter<float> baro_lpf;
+		uint64_t last_baro_ts{0};
+		uint64_t last_gps_ts{0};
+		float vel_integral{0.f};
+
+		float d1[kWindowSize] {}; // gps_alt - baro_alt
+		float d2[kWindowSize] {}; // gps_alt - vel_integral
+		int widx{0};
+		int wcount{0};
+		uint64_t last_sample_ts{0};
+		bool hit_pending{false};
+		bool altitude_good_for_local_control{true};
+
+		void updateBaroLpf(float baro_alt, uint64_t timestamp);
+		void update(const sensor_gps_s &gps, uORB::PublicationMulti<gps_altitude_drift_correction_s> &pub);
+		void reset();
+	};
+
+	GpsAltDriftDetector _gps_alt_drift{};
+	uORB::PublicationMulti<gps_altitude_drift_correction_s> _gps_alt_drift_pub{ORB_ID(gps_altitude_drift_correction)};
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_GRAVITY_FUSION)
