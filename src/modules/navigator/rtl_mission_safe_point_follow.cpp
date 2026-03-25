@@ -150,6 +150,8 @@ void RtlMissionSafePointFollow::on_activation()
 	_navigator->get_position_setpoint_triplet()->next.valid = false;
 
 	if (_is_current_planned_mission_item_valid && use_join_route) {
+		// Route Safe Point Return reuses MissionBase's shared JOIN_ROUTE ->
+		// TRANSITION_AFTER_JOIN executor path through RtlBase.
 		setupJoinRoute(_plan.join_context, join_transition_action);
 	}
 
@@ -543,11 +545,8 @@ void RtlMissionSafePointFollow::setActiveMissionItems()
 
 				if (transition_action == VtolTransitionAction::FrontTransition) {
 					PX4_DEBUG("RTL SRP route applying FT");
-					const auto *local_position = _navigator->get_local_position();
-
-					if ((local_position != nullptr) && PX4_ISFINITE(local_position->heading)) {
-						transition_item.yaw = local_position->heading;
-					}
+					transition_item.yaw = computeFrontTransitionAlignmentYaw(_mission.current_seq,
+							      _plan.selection.path.direction_reversed);
 
 				} else {
 					PX4_DEBUG("RTL SRP route applying BT");

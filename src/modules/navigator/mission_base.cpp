@@ -860,15 +860,8 @@ bool MissionBase::handleJoinRouteState(position_setpoint_triplet_s *pos_sp_tripl
 			_mission_item.yaw = NAN;
 
 			if (_join_transition_action == VtolTransitionAction::FrontTransition) {
-				_mission_item.yaw = _route_join_context.desired_yaw;
-
-				if (!PX4_ISFINITE(_mission_item.yaw)) {
-					const auto *local_position = _navigator->get_local_position();
-
-					if ((local_position != nullptr) && PX4_ISFINITE(local_position->heading)) {
-						_mission_item.yaw = local_position->heading;
-					}
-				}
+				_mission_item.yaw = computeFrontTransitionAlignmentYaw(_mission.current_seq,
+						    _route_join_context.direction_reversed);
 			}
 
 			pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
@@ -890,6 +883,58 @@ bool MissionBase::handleJoinRouteState(position_setpoint_triplet_s *pos_sp_tripl
 	}
 
 	return false;
+}
+
+float MissionBase::computeFrontTransitionAlignmentYaw(int32_t current_target_index, bool direction_reversed)
+{
+	if (_navigator == nullptr) {
+		return NAN;
+	}
+
+	const auto *global_position = _navigator->get_global_position();
+
+	if ((global_position == nullptr) || !PX4_ISFINITE(global_position->lat) || !PX4_ISFINITE(global_position->lon)) {
+		return NAN;
+	}
+
+	mission_item_s alignment_target{};
+
+	if (!loadMissionItemFromCache(current_target_index, alignment_target) || !item_contains_position(alignment_target)) {
+		return NAN;
+	}
+
+	position_setpoint_s current_target_sp{};
+
+	// The branch-in planner and the route-follow traversal only target position mission
+	// items, so this conversion is expected to succeed whenever the cache load above succeeded.
+	// Keep the check for corrupt mission data.
+	if (!mission_item_to_position_setpoint(alignment_target, &current_target_sp)) {
+		return NAN;
+	}
+
+	const float distance_to_current_target = get_distance_to_next_waypoint(global_position->lat, global_position->lon,
+			alignment_target.lat, alignment_target.lon);
+	const bool current_target_reached = PX4_ISFINITE(distance_to_current_target)
+					    && PX4_ISFINITE(current_target_sp.acceptance_radius)
+					    && (distance_to_current_target <= current_target_sp.acceptance_radius);
+
+	if (current_target_reached) {
+		int32_t adjacent_index = -1;
+		const bool found_adjacent = direction_reversed
+					    ? findPreviousPositionIndexNoJump(current_target_index, adjacent_index)
+					    : findNextPositionIndexNoJump(current_target_index + 1, adjacent_index);
+
+		if (found_adjacent) {
+			mission_item_s adjacent_target{};
+
+			if (loadMissionItemFromCache(adjacent_index, adjacent_target) && item_contains_position(adjacent_target)) {
+				alignment_target = adjacent_target;
+			}
+		}
+	}
+
+	return get_bearing_to_next_waypoint(global_position->lat, global_position->lon,
+					    alignment_target.lat, alignment_target.lon);
 }
 
 bool MissionBase::advanceJoinRouteState()

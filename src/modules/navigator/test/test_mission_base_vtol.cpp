@@ -56,6 +56,7 @@
 #include <gtest/gtest.h>
 
 #include "mission_base.h"
+#include "navigator.h"
 #include "navigation.h"
 #include "test_RTL_helpers.h"
 
@@ -88,8 +89,8 @@
 class MissionBaseTestPeer : public MissionBase
 {
 public:
-	MissionBaseTestPeer()
-		: MissionBase(nullptr, 64, 0)
+	explicit MissionBaseTestPeer(Navigator *navigator = nullptr)
+		: MissionBase(navigator, 64, 0)
 	{
 	}
 
@@ -173,6 +174,7 @@ public:
 	using MissionBase::getNextPositionItems;
 	using MissionBase::getPreviousPositionItems;
 	using MissionBase::updateLastFlownLoopSegmentForNominalAdvance;
+	using MissionBase::computeFrontTransitionAlignmentYaw;
 
 	void setCurrentSequence(int32_t index)
 	{
@@ -206,6 +208,11 @@ protected:
 	static constexpr double kLon = 8.545594;
 	static constexpr float kAlt = 500.f;
 };
+
+static float wrappedAngleError(float a, float b)
+{
+	return atan2f(sinf(a - b), cosf(a - b));
+}
 
 // ============================================================================
 // getVtolStateAtMissionIndex tests
@@ -247,6 +254,125 @@ TEST_F(MissionBaseVtolTest, DefaultStateCanStartInFw)
 		  vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
 	EXPECT_EQ(mission_base.getVtolStateAtMissionIndex(1),
 		  vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+}
+
+// WHY: After completing JOIN_ROUTE, a front-transition should normally align with the
+//      currently targeted waypoint so route following starts on the correct leg.
+// WHAT: A target outside acceptance radius keeps the alignment on the current target.
+TEST_F(MissionBaseVtolTest, FrontTransitionAlignmentUsesCurrentTargetByDefault)
+{
+	Navigator navigator;
+	MissionBaseTestPeer mission_base_with_nav(&navigator);
+
+	std::vector<mission_item_s> items = {
+		makePositionItem(kLat, kLon, kAlt),
+		makePositionItem(kLat + 0.001, kLon, kAlt),
+		makePositionItem(kLat + 0.002, kLon, kAlt),
+	};
+	items[1].acceptance_radius = 20.f;
+	items[2].acceptance_radius = 20.f;
+
+	mission_base_with_nav.loadTestMission(items);
+	mission_base_with_nav.setCurrentSequence(1);
+
+	vehicle_global_position_s global_position{};
+	global_position.lat = kLat + 0.0003;
+	global_position.lon = kLon;
+	global_position.alt = kAlt;
+	*navigator.get_global_position() = global_position;
+
+	const float yaw = mission_base_with_nav.computeFrontTransitionAlignmentYaw(1, false);
+	const float expected_yaw = get_bearing_to_next_waypoint(global_position.lat, global_position.lon,
+				   items[1].lat, items[1].lon);
+
+	ASSERT_TRUE(PX4_ISFINITE(yaw));
+	EXPECT_NEAR(wrappedAngleError(yaw, expected_yaw), 0.f, 0.05f);
+}
+
+// WHY: Once the current target is already reached at the end of JOIN_ROUTE, a front-transition
+//      should point at the next route position instead of re-aiming at the already-accepted waypoint.
+// WHAT: Being within the current target acceptance radius aligns to the next position item.
+TEST_F(MissionBaseVtolTest, FrontTransitionAlignmentUsesNextTargetInsideAcceptanceRadius)
+{
+	Navigator navigator;
+	MissionBaseTestPeer mission_base_with_nav(&navigator);
+
+	std::vector<mission_item_s> items = {
+		makePositionItem(kLat, kLon, kAlt),
+		makePositionItem(kLat + 0.001, kLon, kAlt),
+		makePositionItem(kLat + 0.001, kLon + 0.001, kAlt),
+	};
+	items[1].acceptance_radius = 40.f;
+	items[2].acceptance_radius = 40.f;
+
+	mission_base_with_nav.loadTestMission(items);
+	mission_base_with_nav.setCurrentSequence(1);
+
+	vehicle_global_position_s global_position{};
+	global_position.lat = items[1].lat;
+	global_position.lon = items[1].lon;
+	global_position.alt = kAlt;
+	*navigator.get_global_position() = global_position;
+
+	const float yaw = mission_base_with_nav.computeFrontTransitionAlignmentYaw(1, false);
+	const float expected_yaw = get_bearing_to_next_waypoint(global_position.lat, global_position.lon,
+				   items[2].lat, items[2].lon);
+
+	ASSERT_TRUE(PX4_ISFINITE(yaw));
+	EXPECT_NEAR(wrappedAngleError(yaw, expected_yaw), 0.f, 0.05f);
+}
+
+// WHY: On reverse traversal, "next" means the previous position-bearing mission item.
+// WHAT: When the current reverse target is already reached, alignment points behind it.
+TEST_F(MissionBaseVtolTest, FrontTransitionAlignmentUsesPreviousTargetWhenDirectionReversed)
+{
+	Navigator navigator;
+	MissionBaseTestPeer mission_base_with_nav(&navigator);
+
+	std::vector<mission_item_s> items = {
+		makePositionItem(kLat, kLon, kAlt),
+		makePositionItem(kLat + 0.001, kLon + 0.001, kAlt),
+		makePositionItem(kLat + 0.002, kLon + 0.001, kAlt),
+	};
+	items[1].acceptance_radius = 40.f;
+	items[2].acceptance_radius = 40.f;
+
+	mission_base_with_nav.loadTestMission(items);
+	mission_base_with_nav.setCurrentSequence(2);
+
+	vehicle_global_position_s global_position{};
+	global_position.lat = items[2].lat;
+	global_position.lon = items[2].lon;
+	global_position.alt = kAlt;
+	*navigator.get_global_position() = global_position;
+
+	const float yaw = mission_base_with_nav.computeFrontTransitionAlignmentYaw(2, true);
+	const float expected_yaw = get_bearing_to_next_waypoint(global_position.lat, global_position.lon,
+				   items[1].lat, items[1].lon);
+
+	ASSERT_TRUE(PX4_ISFINITE(yaw));
+	EXPECT_NEAR(wrappedAngleError(yaw, expected_yaw), 0.f, 0.05f);
+}
+
+// WHY: If no valid alignment geometry is available, PX4 should still perform the front-transition
+//      without forcing an arbitrary fallback heading.
+// WHAT: Missing vehicle position data makes the helper return NAN.
+TEST_F(MissionBaseVtolTest, FrontTransitionAlignmentFallsBackToNanWithoutGeometry)
+{
+	Navigator navigator;
+	MissionBaseTestPeer mission_base_with_nav(&navigator);
+
+	std::vector<mission_item_s> items = {
+		makePositionItem(kLat, kLon, kAlt),
+		makePositionItem(kLat + 0.001, kLon, kAlt),
+	};
+
+	mission_base_with_nav.loadTestMission(items);
+	mission_base_with_nav.setCurrentSequence(1);
+
+	*navigator.get_global_position() = vehicle_global_position_s{};
+
+	EXPECT_FALSE(PX4_ISFINITE(mission_base_with_nav.computeFrontTransitionAlignmentYaw(1, false)));
 }
 
 // WHY: getVtolStateAtMissionIndex must detect a DO_VTOL_TRANSITION to FW and report

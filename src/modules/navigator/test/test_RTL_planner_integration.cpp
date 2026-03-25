@@ -52,13 +52,6 @@ using rtl_test_reference::kAlt;
 using rtl_test_reference::kBaseLat;
 using rtl_test_reference::kBaseLon;
 
-static constexpr float kYawToleranceRad = 0.15f;
-
-static float wrappedAngleError(float a, float b)
-{
-	return fabsf(atan2f(sinf(a - b), cosf(a - b)));
-}
-
 // ============================================================================
 // Test fixture
 // ============================================================================
@@ -164,51 +157,6 @@ TEST_F(RtlPlannerIntegrationTest, MissionTakeoffFallbackUsesHomeAltitudeReferenc
 	EXPECT_NEAR(plan.selection.goal_position.lat, items[0].lat, kLatLonToleranceDeg);
 	EXPECT_NEAR(plan.selection.goal_position.lon, items[0].lon, kLatLonToleranceDeg);
 	EXPECT_NEAR(plan.selection.goal_position.alt, 600.f, kAltitudeTolerance);
-}
-
-// WHY: Front-transition alignment after a far-off-route rejoin should point along the branch-in leg,
-//      not along the distant mission segment.
-// WHAT: A vehicle far east of the route receives a join yaw pointing west toward the projection.
-TEST_F(RtlPlannerIntegrationTest, JoinContextAlignsWithBranchInLegWhenFarFromRoute)
-{
-	auto items = std::vector<mission_item_s> {
-		makeTakeoffItemFromOffset(kBaseLat, kBaseLon,   0.f, 0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
-		makeLandItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt - 10.f),
-	};
-	VectorProvider provider(items, {});
-	MissionRoutePlanner planner(provider);
-
-	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 100.f, kAlt);
-	config = fwConfig();
-
-	ASSERT_TRUE(planner.planRouteToGoal(vehicle_pos, 1, config, plan, &reason));
-	ASSERT_TRUE(PX4_ISFINITE(plan.join_context.desired_yaw));
-	EXPECT_LT(wrappedAngleError(plan.join_context.desired_yaw, -0.5f * M_PI_F), kYawToleranceRad);
-}
-
-// WHY: Front-transition alignment after a near-route rejoin should follow the resumed mission segment
-//      so the aircraft settles onto the route without an unnecessary heading kink.
-// WHAT: A vehicle already close to a northbound segment receives a northbound join yaw.
-TEST_F(RtlPlannerIntegrationTest, JoinContextAlignsWithMissionSegmentWhenNearRoute)
-{
-	auto items = std::vector<mission_item_s> {
-		makeTakeoffItemFromOffset(kBaseLat, kBaseLon,   0.f, 0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
-		makeLandItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt - 10.f),
-	};
-	VectorProvider provider(items, {});
-	MissionRoutePlanner planner(provider);
-
-	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 220.f, 5.f, kAlt);
-	config = fwConfig();
-
-	ASSERT_TRUE(planner.planRouteToGoal(vehicle_pos, 2, config, plan, &reason));
-	ASSERT_TRUE(PX4_ISFINITE(plan.join_context.desired_yaw));
-	EXPECT_FALSE(plan.selection.path.direction_reversed);
-	EXPECT_LT(wrappedAngleError(plan.join_context.desired_yaw, 0.f), kYawToleranceRad);
 }
 
 // WHY: Mission smart rejoin and normal-mode planner users must be able to rewind an exhausted DO_JUMP loop

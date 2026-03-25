@@ -1038,25 +1038,6 @@ void MissionRoutePlanner::computeDesiredCourseVector(const ProjectionContext &pr
 	desired_course_east = desired_course_vec(1);
 }
 
-float MissionRoutePlanner::computeDesiredCourseYaw(const ProjectionContext &projection_context, bool will_fly_reverse) const
-{
-	float desired_course_north = NAN;
-	float desired_course_east = NAN;
-	computeDesiredCourseVector(projection_context, will_fly_reverse, desired_course_north, desired_course_east);
-
-	if (!PX4_ISFINITE(desired_course_north) || !PX4_ISFINITE(desired_course_east)) {
-		return NAN;
-	}
-
-	const matrix::Vector2f desired_course{desired_course_north, desired_course_east};
-
-	if (desired_course.norm_squared() <= FLT_EPSILON) {
-		return NAN;
-	}
-
-	return atan2f(desired_course_east, desired_course_north);
-}
-
 bool MissionRoutePlanner::uTurnRequired(const ProjectionContext &projection_context, const Config &config,
 					bool will_fly_reverse) const
 {
@@ -1242,7 +1223,7 @@ MissionRoutePlanner::JoinContext MissionRoutePlanner::buildJoinContext(const Pro
 	}
 
 	join_context.projection = projection_context.seg_candidate.projection;
-	join_context.desired_yaw = computeDesiredCourseYaw(projection_context, path.direction_reversed);
+	join_context.direction_reversed = path.direction_reversed;
 	return join_context;
 }
 

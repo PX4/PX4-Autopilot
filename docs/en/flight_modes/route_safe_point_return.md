@@ -140,8 +140,10 @@ The active executor runs through these stages:
 The join point is a virtual `NAV_CMD_WAYPOINT` placed at the vehicle projection.
 
 - If the target route segment requires a different VTOL state than the current vehicle state, the join context requests the required front-transition or back-transition after the join waypoint is reached.
+- The branch-in planner only resumes the route on position mission items, so the post-join transition logic always aligns against a real waypoint target.
 - For fixed-wing and VTOL-in-FW joins that stay in FW, PX4 doubles the join waypoint acceptance radius so the vehicle can curve onto the route instead of flying backward to hit the exact branch-in point.
-- For post-join front-transitions, the requested yaw follows the planned rejoin geometry: if the vehicle is still far from the route or the resumed segment is too short, it aligns with the current-position to branch-in leg; otherwise it aligns with the resumed mission segment direction.
+- For post-join front-transitions, the requested yaw aligns with the active route target. If the vehicle is already within that waypoint's acceptance radius, PX4 instead aligns with the next position-bearing waypoint in the active traversal direction (which is the previous mission item when the route is being followed in reverse).
+- If PX4 cannot derive a valid alignment target, it leaves yaw unset and performs the front-transition without an explicit heading command.
 - If the selected goal is already within the acceptance radius of a landing endpoint, the join altitude requirement is skipped so landing can start immediately.
 - If the join projection is already within acceptance radius of the branch-off projection, PX4 goes straight to landing instead of following a zero-length route segment.
 

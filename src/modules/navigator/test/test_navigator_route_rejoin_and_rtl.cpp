@@ -82,6 +82,7 @@ public:
 	using Mission::trySetRouteJoinOnActivation;
 	using MissionBase::VtolTransitionAction;
 	using MissionBase::WorkItemType;
+	using MissionBase::advance_mission;
 
 	WorkItemType workItemTypeForTest() const { return _work_item_type; }
 	int32_t currentSequenceForTest() const { return _mission.current_seq; }
@@ -382,6 +383,56 @@ TEST_F(NavigatorRouteRejoinAndRtlTest, MissionSmartRejoinNearLandingSkipsAltitud
 	EXPECT_TRUE(mission.joinContextForTest().valid());
 	EXPECT_TRUE(mission.joinContextForTest().skip_altitude_requirement);
 	EXPECT_NEAR(mission.joinContextForTest().projection.alt, vehicle_position.alt, 0.01f);
+}
+
+// WHY: Mission smart rejoin must use the dedicated TRANSITION_AFTER_JOIN work item when the
+//      resumed route segment changes VTOL state, otherwise mission and RTL would keep separate
+//      transition handling paths.
+// WHAT: Rejoining a VTOL mission into a fixed-wing segment advances JOIN_ROUTE into TRANSITION_AFTER_JOIN.
+TEST_F(NavigatorRouteRejoinAndRtlTest, MissionSmartRejoinUsesTransitionAfterJoinWorkItemForFrontTransition)
+{
+	setIntParam("MIS_ROUTE_JOIN", 1);
+	Navigator navigator;
+	MissionPeer mission(&navigator);
+
+	std::vector<mission_item_s> mission_items = {
+		makeTakeoffItemFromOffset(kBaseLat, kBaseLon,   0.f, 0.f, kBaseAlt),
+		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 150.f, 0.f, kBaseAlt + 20.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kBaseAlt + 20.f),
+	};
+
+	writeMissionItems(mission_items);
+	writeSafePointState(0, 31);
+
+	mission_s mission_state{};
+	mission_state.timestamp = hrt_absolute_time();
+	mission_state.current_seq = 2;
+	mission_state.mission_id = 31;
+	mission_state.safe_points_id = 31;
+	mission_state.count = static_cast<uint16_t>(mission_items.size());
+	mission_state.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+	mission_state.fence_dataman_id = DM_KEY_FENCE_POINTS_0;
+	mission_state.safepoint_dataman_id = DM_KEY_SAFE_POINTS_0;
+	publishMission(mission_state);
+
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishLandDetected(false);
+	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 60.f, 15.f, kBaseAlt + 5.f));
+	publishLocalPosition(0.f, 5.f, 0.f);
+	publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -50.f, 0.f, kBaseAlt));
+	primeNavigatorState(navigator);
+
+	updateRouteCacheUntilReady(navigator, mission_state);
+	mission.on_inactive();
+
+	ASSERT_TRUE(mission.trySetRouteJoinOnActivation(false));
+	EXPECT_EQ(mission.joinTransitionActionForTest(), MissionPeer::VtolTransitionAction::FrontTransition);
+	EXPECT_EQ(mission.workItemTypeForTest(), MissionPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
+
+	mission.advance_mission();
+
+	EXPECT_EQ(mission.workItemTypeForTest(), MissionPeer::WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN);
 }
 
 // WHY: RTL type 6 should prefer following the mission route to a safe point over a direct

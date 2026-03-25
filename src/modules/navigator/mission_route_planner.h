@@ -260,7 +260,7 @@ public:
 
 	struct JoinContext {
 		Position projection{};
-		float desired_yaw{NAN};
+		bool direction_reversed{false};
 		bool skip_altitude_requirement{false};
 
 		bool valid() const { return projection.valid(); }
@@ -496,8 +496,6 @@ private:
 	/** @brief Compute the desired course used for fixed-wing U-turn detection. */
 	void computeDesiredCourseVector(const ProjectionContext &projection_context, bool will_fly_reverse,
 					float &desired_course_north, float &desired_course_east) const;
-	/** @brief Convert the desired course into a yaw angle for front-transition alignment after joining the route. */
-	float computeDesiredCourseYaw(const ProjectionContext &projection_context, bool will_fly_reverse) const;
 	/** @brief Check whether a fixed-wing route change implies an immediate U-turn. */
 	bool uTurnRequired(const ProjectionContext &projection_context, const Config &config,
 			   bool will_fly_reverse) const;
