@@ -180,10 +180,24 @@ public:
 	using MissionBase::getPreviousPositionItems;
 	using MissionBase::updateLastFlownLoopSegmentForNominalAdvance;
 	using MissionBase::computeFrontTransitionAlignmentYaw;
+	using MissionBase::checkMissionRestart;
 
 	void setCurrentSequence(int32_t index)
 	{
 		_mission.current_seq = index;
+	}
+
+	int32_t currentSequenceForTest() const
+	{
+		return _mission.current_seq;
+	}
+
+	void setMissionRestartState(bool mission_has_been_activated, bool system_disarmed_while_inactive,
+				    int inactivation_index = -1)
+	{
+		_mission_has_been_activated = mission_has_been_activated;
+		_system_disarmed_while_inactive = system_disarmed_while_inactive;
+		_inactivation_index = inactivation_index;
 	}
 
 private:
@@ -993,4 +1007,36 @@ TEST_F(MissionBaseVtolTest, InvalidDoJumpTargetClearsLoopSegment)
 	EXPECT_EQ(segment.start.idx, -1);
 	EXPECT_EQ(segment.end.idx, -1);
 	EXPECT_EQ(segment.loops_remaining, 0);
+}
+
+// WHY: RTL Type 6 can finish through a synthetic route-follow/landing pipeline without advancing
+//      current_seq to the final uploaded mission item, so restart-on-activation must also honor
+//      mission_result.finished instead of only checking the raw sequence index.
+// WHAT: A disarmed reactivation with finished=true while current_seq still points mid-mission
+//       resets the mission back to seq 0 and clears the finished flag.
+TEST_F(MissionBaseVtolTest, CheckMissionRestartResetsFinishedMissionWithoutLastSequence)
+{
+	// GIVEN: A valid 3-item mission, current_seq still at the middle waypoint, and a mode that
+	//        already declared the mission finished before deactivation.
+	Navigator navigator;
+	MissionBaseTestPeer mission_base_peer(&navigator);
+
+	std::vector<mission_item_s> items = {
+		makePositionItem(kLat, kLon, kAlt),
+		makePositionItem(kLat + 0.001, kLon, kAlt),
+		makePositionItem(kLat + 0.002, kLon, kAlt),
+	};
+
+	mission_base_peer.loadTestMission(items);
+	mission_base_peer.setCurrentSequence(1);
+	mission_base_peer.setMissionRestartState(true, true, 1);
+	navigator.get_mission_result()->valid = true;
+	navigator.get_mission_result()->finished = true;
+
+	// WHEN: checkMissionRestart runs on activation.
+	mission_base_peer.checkMissionRestart();
+
+	// THEN: Mission execution restarts from the beginning and the finished latch is cleared.
+	EXPECT_EQ(mission_base_peer.currentSequenceForTest(), 0);
+	EXPECT_FALSE(navigator.get_mission_result()->finished);
 }

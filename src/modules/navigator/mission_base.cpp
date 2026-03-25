@@ -987,8 +987,11 @@ MissionBase::report_do_jump_mission_changed(int index, int do_jumps_remaining)
 void
 MissionBase::checkMissionRestart()
 {
+	const bool reached_mission_end = ((_mission.current_seq + 1) == _mission.count);
+	const bool mission_finished = _navigator->get_mission_result()->finished;
+
 	if (_system_disarmed_while_inactive && _mission_has_been_activated && (_mission.count > 0U)
-	    && ((_mission.current_seq + 1) == _mission.count)) {
+	    && (reached_mission_end || mission_finished)) {
 		setMissionIndex(0);
 		_inactivation_index = -1; // reset
 		_is_current_planned_mission_item_valid = isMissionValid();
