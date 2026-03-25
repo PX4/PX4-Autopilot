@@ -1318,7 +1318,6 @@ mixer:
                             label: "Thrust\nCoefficient"
 
             16: #Tilting Multirotor
-                type: 'tilting_multirotor'
                 title: 'Tilting Multirotor'
                 actuators:
                   - actuator_type: 'motor'
