@@ -254,11 +254,15 @@ void VehicleAirData::Run()
 		}
 	}
 
-	if (!_relative_calibration_done) {
-		_relative_calibration_done = UpdateRelativeCalibrations(time_now_us);
+	estimator_status_flags_s latest_estimator_status_flags;
 
-	} else if (!_baro_gnss_calibration_done && _param_sens_baro_autocal.get()) {
-		_baro_gnss_calibration_done = BaroGNSSAltitudeOffset();
+	if (_estimator_status_flags_sub.copy(&latest_estimator_status_flags) && !latest_estimator_status_flags.cs_in_air) {
+		if (!_relative_calibration_done) {
+			_relative_calibration_done = UpdateRelativeCalibrations(time_now_us);
+
+		} else if (!_baro_gnss_calibration_done && _param_sens_baro_autocal.get() && latest_estimator_status_flags.cs_gps_hgt) {
+			_baro_gnss_calibration_done = BaroGNSSAltitudeOffset();
+		}
 	}
 
 	// Publish
