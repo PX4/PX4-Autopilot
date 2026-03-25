@@ -270,12 +270,12 @@ static inline MissionRoutePlanner::Position makePositionAbsolute(double lat, dou
 static inline MissionRoutePlanner::Config defaultConfig()
 {
 	MissionRoutePlanner::Config config{};
-	config.vehicle_projection_search_dist = 60.f;
-	config.safe_point_projection_search_dist = 60.f;
-	config.acceptance_radius = 10.f;
-	config.direct_acceptance_radius = 10.f;
-	config.home_altitude_amsl = 500.f;
-	config.is_multicopter = true;
+	config.parameters.vehicle_projection_search_dist = 60.f;
+	config.parameters.safe_point_projection_search_dist = 60.f;
+	config.parameters.acceptance_radius = 10.f;
+	config.parameters.direct_acceptance_radius = 10.f;
+	config.parameters.home_altitude_amsl = 500.f;
+	config.state.is_multicopter = true;
 	return config;
 }
 
@@ -283,9 +283,9 @@ static inline MissionRoutePlanner::Config defaultConfig()
 static inline MissionRoutePlanner::Config fwConfig()
 {
 	MissionRoutePlanner::Config config = defaultConfig();
-	config.is_multicopter = false;
-	config.vehicle_is_fixed_wing = true;
-	config.u_turn_penalty_m = 4000.f;
+	config.state.is_multicopter = false;
+	config.state.is_fixed_wing = true;
+	config.parameters.u_turn_penalty_m = 4000.f;
 	return config;
 }
 

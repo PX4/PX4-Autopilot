@@ -72,11 +72,7 @@ public:
 
 	void initialize() override;
 
-	/**
-	 * Check if the mission item contains a navigation position
-	 *
-	 * @return false if the mission item does not contain a valid position
-	 */
+	/** @brief Return whether a mission item carries a navigable position. */
 	static inline bool item_contains_position(const mission_item_s &item)
 	{
 		return item.nav_cmd == NAV_CMD_WAYPOINT ||

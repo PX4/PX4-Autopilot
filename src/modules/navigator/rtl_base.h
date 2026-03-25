@@ -66,7 +66,9 @@ public:
 	virtual bool shouldGoStraightToGoal() const { return false; }
 
 	/**
-	 * @brief Return the most recent loop jump segment used as the SRP projection anchor.
+	 * @brief Return the most recent loop jump segment used as the projection anchor.
+	 *
+	 * Returns an invalid segment when no active DO_JUMP loop anchor is being preserved.
 	 */
 	virtual MissionRoutePlanner::Segment lastFlownLoopSegment() const { return {}; }
 };

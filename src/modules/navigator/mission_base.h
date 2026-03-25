@@ -91,8 +91,8 @@ protected:
 		WORK_ITEM_TYPE_CLIMB,		/**< takeoff before moving to waypoint */
 		WORK_ITEM_TYPE_JOIN_ROUTE,	/**< fly a virtual branch-in waypoint before resuming the mission */
 		WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN,	/**< perform the required VTOL transition after rejoining the route */
-		WORK_ITEM_TYPE_MOVE_TO_LAND,	/**< move to land waypoint before descent */
 		WORK_ITEM_TYPE_ALIGN_HEADING,	/**< align for next waypoint */
+		WORK_ITEM_TYPE_MOVE_TO_LAND,	/**< move to land waypoint before descent */
 		WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF,
 		WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION,
 		WORK_ITEM_TYPE_PRECISION_LAND
@@ -343,21 +343,13 @@ protected:
 	void resetJoinRouteState();
 
 	/**
-	 * @brief Publish the active virtual join-route work item if one is pending.
+	 * @brief Publish the active join-route pipeline work item if one is pending.
 	 *
 	 * Shared by Mission resume and Route Safe Point Return through MissionBase/RtlBase.
 	 *
-	 * @return true if a join-route work item was published and the caller should return.
+	 * @return true if a join-route-related work item was published and the caller should return.
 	 */
-	bool handleJoinRouteState(position_setpoint_triplet_s *pos_sp_triplet,
-				  const position_setpoint_s &current_setpoint_copy);
-
-	/**
-	 * @brief Advance the virtual join-route work item state machine.
-	 *
-	 * @return true if a join-route work item was advanced.
-	 */
-	bool advanceJoinRouteState();
+	bool handleJoinRouteWorkItems(position_setpoint_triplet_s *pos_sp_triplet, const position_setpoint_s &current_setpoint_copy);
 
 	/**
 	 * @brief Compute the front-transition yaw used when entering route-following geometry.
@@ -390,7 +382,7 @@ protected:
 	void syncMissionRouteCacheItem(int32_t index, const mission_item_s &mission_item);
 
 	/**
-	 * @brief Find the next position-bearing mission item, skipping DO_JUMP items.
+	 * @brief Find the next position mission item, skipping DO_JUMP items.
 	 *
 	 * Walks forward through the mission starting at @p start_index.
 	 * DO_JUMP items are skipped (not followed as control flow).
@@ -402,7 +394,7 @@ protected:
 	bool findNextPositionIndexNoJump(int32_t start_index, int32_t &next_index);
 
 	/**
-	 * @brief Find the previous position-bearing mission item, skipping DO_JUMP items.
+	 * @brief Find the previous position mission item, skipping DO_JUMP items.
 	 *
 	 * Walks backward through the mission starting at @p start_index - 1.
 	 * DO_JUMP items are skipped (not followed as control flow).
@@ -436,6 +428,8 @@ protected:
 	 * @return VEHICLE_VTOL_STATE_MC or VEHICLE_VTOL_STATE_FW
 	 */
 	uint8_t getVtolStateAtMissionIndex(int32_t anchor_index);
+
+	/** @brief Return whether the vehicle is already in fixed-wing mode or transitioning into it. */
 	static bool vehicleInFwLikeState(const vehicle_status_s &vehicle_status);
 
 	/**
@@ -448,12 +442,20 @@ protected:
 	VtolTransitionAction vtolTransitionActionForTarget(int32_t target_index, bool direction_reversed);
 
 	/**
-	 * @brief Track the active DO_JUMP loop edge before a nominal mission advance.
+	 * @brief Cache the DO_JUMP loop segment that the next forward nominal advance would traverse.
 	 *
-	 * Scans forward from the current mission index until the next position-bearing
-	 * item. If an active DO_JUMP is encountered first, the returned segment anchors
-	 * the currently flown loop edge so projection-based replans can preserve route
-	 * continuity.
+	 * The scan starts at current_seq + 1 and stops at the first position item because a nominal
+	 * MissionBase advance only consumes non-position control-flow items up to the next waypoint
+	 * target. If an active DO_JUMP appears inside that immediate window, the helper records the
+	 * synthetic loop segment from the jump's attached position item to the resolved jump-target
+	 * position item.
+	 *
+	 * Example:
+	 * [WP0, WP1, WP2, DO_JUMP->0, WP3]
+	 * - At current_seq == 2, the next nominal advance executes the DO_JUMP, so the cached segment
+	 *   becomes [2 -> 0].
+	 * - At current_seq == 1, the scan stops at WP2 and caches nothing, because the upcoming advance
+	 *   ends at WP2 before the later DO_JUMP is reached.
 	 */
 	void updateLastFlownLoopSegmentForNominalAdvance(MissionRoutePlanner::Segment &last_flown_loop_segment);
 
@@ -487,9 +489,7 @@ protected:
 	uORB::Publication<navigator_mission_item_s> _navigator_mission_item_pub{ORB_ID::navigator_mission_item}; /**< Navigator mission item publication*/
 	uORB::Publication<mission_s> _mission_pub{ORB_ID(mission)}; /**< Mission publication*/
 
-	/**
-	 * Reset mission
-	 */
+	/** @brief Restart a completed mission from the beginning after an inactive disarm. */
 	void checkMissionRestart();
 
 private:
@@ -516,7 +516,17 @@ private:
 	 */
 	void set_mission_item_reached();
 
+	/** @brief Suppress mission-item reached reports for synthetic helper work items. */
 	bool shouldReportMissionItemReached() const;
+
+	/** @brief Publish the virtual branch-in waypoint when JOIN_ROUTE is active. */
+	bool handleJoinRouteWaypoint(position_setpoint_triplet_s *pos_sp_triplet, const position_setpoint_s &current_setpoint_copy);
+
+	/** @brief Publish the post-join VTOL transition command when it is still required. */
+	bool handleTransitionAfterJoin(position_setpoint_triplet_s *pos_sp_triplet);
+
+	/** @brief Return whether the post-join VTOL transition still needs to be flown. */
+	bool joinRouteTransitionStillRequired() const;
 
 	/**
 	 * Updates the heading of the vehicle. Rotary wings only.

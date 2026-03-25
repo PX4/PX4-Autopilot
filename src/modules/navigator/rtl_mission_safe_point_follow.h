@@ -67,30 +67,30 @@ private:
 	friend class RtlMissionSafePointFollowTestPeer;
 
 	enum class Stage {
-		Idle = 0,                /**< No active SRP plan. */
+		Idle = 0,                /**< No active plan. */
 		FollowRoute,             /**< Follow the mission geometry in nominal or reverse direction. */
 		TransitionDuringRoute,   /**< Apply a VTOL transition during route following (prevents re-issuing). */
 		BranchOff,               /**< Fly the virtual branch-off waypoint before leaving the route. */
 		LandAtGoal               /**< Execute the final landing at the safe point or fallback endpoint. */
 	};
 
-	/** @brief Advance the SRP stage machine without replaying the full mission control flow. */
+	/** @brief Advance the RTL stage machine without replaying the full mission control flow. */
 	bool setNextMissionItem() override;
-	/** @brief Publish the current join, follow, branch-off, or landing setpoints for the active SRP stage. */
+	/** @brief Publish the current join, follow, branch-off, or landing setpoints for the active RTL stage. */
 	void setActiveMissionItems() override;
 
 	/** @brief Build a virtual waypoint used for joins, branch-offs, and synthetic move-to-point legs. */
 	void setWaypointMissionItem(mission_item_s &mission_item, const MissionRoutePlanner::Position &position,
 				    bool autocontinue, bool vtol_back_transition_required = false) const;
-	/** @brief Build the synthetic SRP landing item for safe-point landings and reverse takeoff fallback. */
+	/** @brief Build the synthetic RTL landing item for safe-point landings and reverse takeoff fallback. */
 	void setLandMissionItem(mission_item_s &mission_item) const;
 
 	/** @brief Convert a position-bearing mission item into a pure geometric route waypoint.
 	 *
-	 * During route following, the mission is treated as geometry only.  Position-bearing items such as
+	 * During route following, the mission is treated as geometry only. Position items such as
 	 * NAV_CMD_LOITER_UNLIMITED, NAV_CMD_LOITER_TIME_LIMIT, and NAV_CMD_LOITER_TO_ALT are converted
 	 * to plain waypoints with autocontinue enabled and zero hold time so the vehicle keeps moving.
-	 * NAV_CMD_DELAY items are non-position and are naturally skipped by findNextPositionIndexNoJump(),
+	 * NAV_CMD_DELAY items are non-position and are skipped by findNextPositionIndexNoJump(),
 	 * but if one were encountered it would also be clamped here.
 	 *
 	*/
@@ -101,23 +101,30 @@ private:
 	bool currentTargetIsBranchOff() const;
 	/** @brief Return whether the join projection is already close enough to skip route following. */
 	bool joinProjectionNearBranchOff() const;
-	/** @brief Seed the loop-anchor memory from the active plan's vehicle projection. */
+	/** @brief Seed the cached loop anchor from the active plan, clearing it when the projection is not on a DO_JUMP edge. */
 	void updateLastFlownLoopSegmentFromPlan();
-	/** @brief Track the most recently flown loop edge so replans stay anchored on the active jump segment. */
+	/**
+	 * @brief Refresh the cached loop anchor before a forward route advance.
+	 *
+	 * Skips DO_JUMP commands as executable control flow, but forward replans still need to
+	 * remember whether the next nominal advance was about to traverse an active jump edge. The
+	 * shared MissionBase helper inspects exactly that immediate pre-next-position window.
+	 */
 	void updateLastFlownLoopSegmentForNominalAdvance();
-	/** @brief Publish a non-landing SRP setpoint pair and reset the work item back to route following. */
+	/** @brief Publish a non-landing setpoint pair and clear any transient MissionBase work item. */
 	void publishRouteItems(position_setpoint_triplet_s *pos_sp_triplet,
 			       const position_setpoint_s &current_setpoint_copy,
 			       const mission_item_s &current_mission_item,
 			       const mission_item_s *next_mission_item,
 			       bool sync_active_mission_item = true);
-	/** @brief Publish SRP landing setpoints through MissionBase::handleLanding() to preserve legacy landing semantics. */
+	/** @brief Publish landing setpoints through MissionBase::handleLanding() to preserve legacy landing semantics. */
 	void publishLandingItems(position_setpoint_triplet_s *pos_sp_triplet,
 				 const position_setpoint_s &current_setpoint_copy,
 				 const mission_item_s &landing_mission_item);
 	/** @brief Advance to the next route target, returning true on success or landing at goal on failure. */
 	bool advanceRouteTarget();
 
+	/** @brief Load a mission item through MissionRouteCache instead of MissionBase's local cache. */
 	bool loadMissionItemFromCache(int32_t index, mission_item_s &mission_item) override;
 
 	MissionRoutePlanner::Plan _plan{};

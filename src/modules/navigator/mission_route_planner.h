@@ -62,7 +62,7 @@ public:
 	static constexpr uint8_t MAX_SEGMENT_CANDIDATES{3};
 	/**
 	 * Maximum safe points evaluated per planning pass.
-	 * NOTE: Config::usable_safe_point_bitmask uses one bit per safe point, so this must stay <= 64.
+	 * NOTE: ExecutionContext::usable_safe_point_bitmask uses one bit per safe point, so this must stay <= 64.
 	 * RtlStatus.msg also uses uint8_t for safe_point_index, so this must stay <= 255.
 	 */
 	static constexpr uint8_t MAX_SAFE_POINT_BATCH{64};
@@ -119,14 +119,20 @@ public:
 	struct Segment {
 		SegmentEndpoint start{};
 		SegmentEndpoint end{};
-		bool is_loop{false};
-		uint8_t loops_remaining{0};
+		bool is_loop{false}; /**< True when this is the synthetic DO_JUMP edge from the attached position to the jump target. */
+		uint8_t loops_remaining{0}; /**< Remaining repeats on the DO_JUMP that created this segment; zero for nominal segments. */
 
 		/** @brief Validate a mission segment descriptor. */
 		bool valid() const
 		{
 			return start.valid() && end.valid() && start.idx != end.idx
 			       && (is_loop || start.idx < end.idx);
+		}
+
+		/** @brief Validate that this descriptor contains a populated DO_JUMP loop segment. */
+		bool validLoop() const
+		{
+			return is_loop && valid();
 		}
 	};
 
@@ -179,7 +185,7 @@ public:
 		/** @brief Validate loop-specific context captured from a jump segment projection. */
 		bool valid() const
 		{
-			return segment.is_loop && along.valid() && segment_positions.valid();
+			return segment.validLoop() && along.valid() && segment_positions.valid();
 		}
 	};
 
@@ -188,9 +194,8 @@ public:
 		int32_t mission_index{-1};
 		SegmentCandidate seg_candidate{};
 		bool is_flying_reverse{false};
-		float vehicle_velocity_north{NAN};
-		float vehicle_velocity_east{NAN};
-		bool vehicle_velocity_valid{false};
+		matrix::Vector2f vehicle_vel_ne{NAN, NAN};
+		bool velocity_valid{false};
 		float dist_along_to_route_end{0.f};
 		uint8_t mission_loops_remaining{0};
 		LoopContext loop_ctx{};
@@ -229,7 +234,6 @@ public:
 		Position safe_point_position{};
 		Position goal_position{};
 
-		/** @brief Validate the selected SRP goal and its cached branch-off geometry. */
 		bool valid() const
 		{
 			if (!found || !path.valid() || goal_type == GoalType::None || !goal_position.valid()) {
@@ -247,7 +251,7 @@ public:
 			       && safe_point_position.valid();
 		}
 
-		/** @brief Return the mission index where SRP branches away from the mission path. */
+		/** @brief Return the mission index where the vehicle branches away from the mission path. */
 		int32_t branchOffIndex() const
 		{
 			if (branch_off_segment.valid()) {
@@ -274,22 +278,33 @@ public:
 		bool valid() const { return projection_context.valid() && join_context.valid() && selection.valid(); }
 	};
 
-	struct Config {
+	struct PlannerParameters {
 		float vehicle_projection_search_dist{0.f};
 		float safe_point_projection_search_dist{0.f};
 		float acceptance_radius{0.f};
 		float direct_acceptance_radius{0.f};
 		float home_altitude_amsl{NAN};
+		float u_turn_penalty_m{4000.f};
+	};
+
+	struct VehicleStateContext {
 		bool is_multicopter{false};
 		bool is_flying_reverse{false};
-		float vehicle_velocity_north{NAN};
-		float vehicle_velocity_east{NAN};
-		bool vehicle_velocity_valid{false};
-		bool vehicle_is_fixed_wing{false};
-		bool vehicle_in_transition_to_fw{false};
-		float u_turn_penalty_m{4000.f};
-		Segment last_flown_loop_segment{};
+		matrix::Vector2f velocity_ne{NAN, NAN};
+		bool velocity_valid{false};
+		bool is_fixed_wing{false};
+		bool in_transition_to_fw{false};
+	};
+
+	struct ExecutionContext {
+		Segment last_flown_loop_segment{}; /**< Optional cached DO_JUMP edge anchor; invalid when no active loop is being preserved. */
 		uint64_t usable_safe_point_bitmask{~0ULL};
+	};
+
+	struct Config {
+		PlannerParameters parameters{};
+		VehicleStateContext state{};
+		ExecutionContext execution{};
 	};
 
 	enum class FailureReason : uint8_t {
@@ -361,7 +376,7 @@ public:
 	/** @brief Project the vehicle onto the mission route and choose the continuity-preserving branch-in candidate. */
 	bool collectVehicleProjection(const Position &vehicle_position, int32_t mission_index,
 				      const Config &config, ProjectionContext &projection_context,
-				      FailureReason *failure_reason) const;
+				      FailureReason &failure_reason) const;
 	/** @brief Build a nominal-direction path from the current projection to a mission goal. */
 	Path findNominalPathToGoal(uint16_t goal_segment_end_idx, float goal_dist_along,
 				   const ProjectionContext &projection_context,
@@ -370,16 +385,16 @@ public:
 	Path findReversePathToGoal(uint16_t goal_segment_end_idx, float goal_dist_along,
 				   const ProjectionContext &projection_context,
 				   const Config &config) const;
-	/** @brief Build the shared join-route context, including the preferred front-transition heading. */
+	/** @brief Build the join-route projection and travel direction used by the executor. */
 	JoinContext buildJoinContext(const ProjectionContext &projection_context, const Path &path) const;
 
 	/** @brief Evaluate all valid safe points and choose the best route-follow return target. */
 	Selection selectSafePoint(const ProjectionContext &projection_context, const Config &config) const;
-	/** @brief Choose the SRP goal, preferring a safe point and falling back to a mission endpoint when needed. */
+	/** @brief Choose the RTL goal, preferring a safe point and falling back to a mission endpoint when needed. */
 	Selection selectBestGoal(const ProjectionContext &projection_context, const Config &config) const;
-	/** @brief Build the full SRP plan: vehicle projection, join context, and selected goal. */
+	/** @brief Build the full RTL plan: vehicle projection, join context, and selected goal. */
 	bool planRouteToGoal(const Position &vehicle_position, int32_t mission_index,
-			     const Config &config, Plan &plan, FailureReason *failure_reason) const;
+			     const Config &config, Plan &plan, FailureReason &failure_reason) const;
 	/** @brief Check whether the vehicle is still close enough to the cached branch-off leg to keep flying straight to the goal. */
 	bool closeToBranchOffSegment(const Position &position, const Selection &selection,
 				     float acceptance_radius) const;
@@ -389,7 +404,9 @@ public:
 					   Position &position);
 	static bool extractSafePointPosition(const mission_item_s &safe_point_item, float home_altitude_amsl,
 					     Position &position);
+	/** @brief Return a readable string for a planning failure reason. */
 	static const char *failureReasonString(FailureReason failure_reason);
+	/** @brief Return a readable string for a selected goal type. */
 	static const char *goalTypeString(GoalType goal_type);
 
 	struct SafePointBatchItem {
@@ -404,6 +421,12 @@ public:
 	};
 
 private:
+	struct ProjectionBatchOutputs {
+		SegmentDistanceAlong dist_along_to_last_flown_segment{};
+		float dist_along_to_route_end{0.f};
+		uint8_t loops_remaining{0};
+	};
+
 	struct CandidateSearchState {
 		bool prev_proj_on_end{true};
 		bool proj_on_end_for_segment{false};
@@ -434,7 +457,7 @@ private:
 	bool findAttachedValidPositionIndex(uint16_t start_index, float home_altitude_amsl,
 					    uint16_t &attached_position_index) const;
 	/** @brief Load the valid safe points that fit in the single planner pass. */
-	void loadSafePointBatch(float home_altitude_amsl, const Config &config, SafePointBatch &batch) const;
+	void loadSafePointBatch(const Config &config, SafePointBatch &batch) const;
 	/** @brief Clear all per-safe-point candidate buffers before running a new batch scan. */
 	void resetSafePointBatchResults(SafePointBatch &batch) const;
 	/** @brief Advance mission scanning state to the next position-bearing segment end. */
@@ -454,15 +477,19 @@ private:
 					bool segment_has_no_length, CandidateSearchState &state,
 					uint32_t &local_min_found, uint32_t &valid_candidate_found,
 					CandidateBuffer &candidate_buffer) const;
-	/** @brief */
+	/**
+	 * @brief Scan the mission once and evaluate a batch of reference points against every position segment.
+	 *
+	 * The batch contains either a single vehicle position or up to MAX_SAFE_POINT_BATCH safe points. During the
+	 * scan the function builds each geometric segment, applies the local-minimum projection filter for every batch
+	 * item, keeps the closest projection candidates inside the caller's cross-track window, and reports route-level
+	 * metadata such as total route length and the along-track bounds of the caller's current segment in outputs.
+	 */
 	bool findProjectionCandidatesBatch(int32_t mission_index, float home_altitude_amsl,
 					   bool is_flying_reverse, float extra_xtrack_dist,
 					   const Segment &last_flown_loop_segment,
-					   SafePointBatch &batch,
-					   SegmentDistanceAlong *dist_along_to_last_flown_segment,
-					   float *dist_along_to_route_end,
-					   uint8_t *loops_remaining,
-					   FailureReason *failure_reason) const;
+					   SafePointBatch &batch, ProjectionBatchOutputs &outputs,
+					   FailureReason &failure_reason) const;
 	/** @brief Insert a segment candidate into the xtrack-sorted candidate buffer. */
 	void insertCandidateSorted(CandidateBuffer &candidate_buffer, const SegmentCandidate &candidate) const;
 	/** @brief Trim the projection candidate buffer once a tighter xtrack window is known. */
@@ -472,7 +499,25 @@ private:
 			bool is_flying_reverse, float total_dist, float segment_length,
 			const Segment &last_flown_loop_segment,
 			SegmentDistanceAlong &dist_along_to_last_flown_segment) const;
-	/** @brief Apply the same local-minimum pruning rule. */
+	/**
+	 * @brief Return true when the segment projection is a local minimum.
+	 *
+	 * Three cases:
+	 *
+	 * 1. Interior projection (not on a corner) are always a local minimum.
+	 *
+	 * 2. Corner projection is a local minimum when both the previous and the current segment
+	 *    project onto the same shared corner. This happens when two consecutive segments form
+	 *    a V-shape and the reference point is closest to the apex.
+	 *
+	 *    The terminal route endpoint (last segment, proj_on_end) is also accepted because
+	 *    there is no following segment to compare against.
+	 *
+	 * 3. DO_JUMP loop-edge corner projections are rejected because those corners
+	 *    already belong to their nominal route segments, so only
+	 *    interior projections on the loop jump segment are kept:
+	 *
+	 */
 	bool localMinimumOnSegment(bool proj_on_start, bool proj_on_end, bool prev_proj_on_end,
 				   bool jumping, bool last_segment) const;
 	/** @brief Sanity-check a projection candidate before inserting it into the buffer. */
@@ -484,18 +529,19 @@ private:
 	float accumulateRouteDistance(uint16_t from_index, uint16_t to_index, float home_altitude_amsl) const;
 	/** @brief Build the loop-jump context used when the vehicle is projected onto a DO_JUMP segment. */
 	LoopContext buildLoopContext(const SegmentCandidate &vehicle_projection, float home_altitude_amsl) const;
-	Path findShortestPath(uint16_t goal_segment_end_idx, float goal_dist_along,
-			      const ProjectionContext &projection_context, const Config &config,
-			      PathDirectionMode direction_mode = PathDirectionMode::Auto) const;
+	/** @brief Compute the shorted path along the mission route, excluding any off-route branch-off leg. */
+	Path findShortestPathAlongRoute(uint16_t goal_segment_end_idx, float goal_dist_along,
+					const ProjectionContext &projection_context, const Config &config,
+					PathDirectionMode direction_mode = PathDirectionMode::Auto) const;
 	/** @brief Allow multicopters already close to a safe point to skip the route join and fly straight to it. */
 	bool directToSafePoint(const Position &safe_point_position, const Position &vehicle_position,
 			       const Config &config) const;
 	/** @brief Force or infer the direction used to reach a goal from the projected vehicle location. */
 	bool mustFlyReverse(float goal_dist_along, float projection_dist_along,
 			    PathDirectionMode direction_mode) const;
-	/** @brief Compute the desired course used for fixed-wing U-turn detection. */
-	void computeDesiredCourseVector(const ProjectionContext &projection_context, bool will_fly_reverse,
-					float &desired_course_north, float &desired_course_east) const;
+	/** @brief Compute the desired course vector used for fixed-wing U-turn detection. */
+	matrix::Vector2f computeDesiredCourseVector(const ProjectionContext &projection_context,
+			bool will_fly_reverse) const;
 	/** @brief Check whether a fixed-wing route change implies an immediate U-turn. */
 	bool uTurnRequired(const ProjectionContext &projection_context, const Config &config,
 			   bool will_fly_reverse) const;

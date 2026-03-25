@@ -273,6 +273,23 @@ Mission mode and `RtlMissionSafePointFollow` now determine the final target inde
 
 The result is a single clean publication on activation and correct replay of mission history when resuming after a route rejoin.
 
+### Shared Join-Route Execution Flow
+
+Mission smart rejoin and `RTL_TYPE=6` share the same join-route execution path in `MissionBase`. The caller decides the route target and join geometry, then `MissionBase` runs the temporary work items that get the vehicle back onto the route before normal mission or RTL execution resumes.
+
+The flow is:
+
+1. Mission mode (`trySetRouteJoinOnActivation()`) or RTL (`RtlMissionSafePointFollow::on_activation()`) computes the route target and calls `setupJoinRoute()` before `MissionBase::on_activation()`.
+2. `MissionBase::update_mission()` runs during activation. It normally clears transient `_work_item_type` state for a newly accepted mission, but it preserves `WORK_ITEM_TYPE_JOIN_ROUTE` and `WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN` so the join pipeline is not dropped before first publication.
+3. In the active loop, both Mission mode and RTL call `handleJoinRouteWorkItems()` from their `setActiveMissionItems()` implementation:
+   - `WORK_ITEM_TYPE_JOIN_ROUTE` publishes the virtual branch-in waypoint until the cached helper-item reached flags show that the join is complete.
+   - `WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN` publishes the required VTOL front-transition or back-transition if it is still needed, otherwise it clears the join state immediately.
+4. When one of those helper items is reached or completed, `advance_mission()` does not advance the real mission sequence because `_work_item_type != DEFAULT`. The next `set_mission_items()` pass then lets `handleJoinRouteWorkItems()` advance the temporary join pipeline during setpoint generation, matching `handleLanding()`:
+   - After `JOIN_ROUTE`, it either promotes the pipeline to `TRANSITION_AFTER_JOIN` or clears the join state when the vehicle is already in the correct VTOL mode.
+   - After `TRANSITION_AFTER_JOIN`, it clears the temporary join state and returns to normal mission or RTL progression.
+5. `shouldReportMissionItemReached()` suppresses `seq_reached` updates for `JOIN_ROUTE` and `TRANSITION_AFTER_JOIN`, because those helper items are synthetic and do not mean the uploaded mission item at `current_seq` was reached.
+6. If the uploaded mission items are replaced from outside, `onMissionUpdate()` clears the join pipeline because the cached join context may no longer match the mission that will be flown.
+
 ### Shared Smart Rejoin Path Selection
 
 Mission smart rejoin uses the same route-selection helper as `RTL_TYPE=6` when it needs to resume the mission after a deviation, but unlike RTL it preserves the active mission loop count:

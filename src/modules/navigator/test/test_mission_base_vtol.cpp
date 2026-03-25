@@ -860,7 +860,7 @@ TEST_F(MissionBaseVtolTest, FindPreviousReturnsFalseWhenOnlyJumpsBefore)
 	EXPECT_FALSE(mission_base.findPreviousPositionIndexNoJump(1, prev));
 }
 
-// WHY: getNextPositionItems is used by legacy Mission and mission-based RTL flows, so it must
+// WHY: getNextPositionItems is used by Mission and mission-based RTL flows, so it must
 //      follow active DO_JUMP control flow rather than treating jumps as geometry-only.
 // WHAT: [WP0, WP1, DO_JUMP->0, WP3] starting from idx 2 returns WP0 then WP1.
 TEST_F(MissionBaseVtolTest, GetNextPositionItemsFollowsActiveDoJump)
@@ -883,8 +883,7 @@ TEST_F(MissionBaseVtolTest, GetNextPositionItemsFollowsActiveDoJump)
 	EXPECT_EQ(next_items[1], 1);
 }
 
-// WHY: getPreviousPositionItems is also shared legacy logic and must honor an active
-//      DO_JUMP when traversing backward through the mission flow.
+// WHY: getPreviousPositionItems is used in both mission base and rtl mission fast reverse.
 // WHAT: [WP0, WP1, DO_JUMP->0, WP3] starting from idx 3 returns WP0 as the previous item.
 TEST_F(MissionBaseVtolTest, GetPreviousPositionItemsFollowsActiveDoJump)
 {

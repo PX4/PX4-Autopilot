@@ -127,8 +127,8 @@ void RtlMissionSafePointFollow::on_activation()
 					 : VtolTransitionAction::None;
 		_stage = use_join_route ? Stage::FollowRoute : Stage::LandAtGoal;
 
-		PX4_DEBUG("RTL SRP activate: goal=%u target=%d rev=%u direct=%u stage=%u branch_off=%d",
-			  static_cast<unsigned>(_plan.selection.goal_type),
+		PX4_DEBUG("RTL to %s target=%d rev=%u straight=%u stage=%u branch_off=%d",
+			  MissionRoutePlanner::goalTypeString(_plan.selection.goal_type),
 			  static_cast<int>(_plan.selection.path.first_item_index),
 			  static_cast<unsigned>(_plan.selection.path.direction_reversed),
 			  static_cast<unsigned>(_should_go_straight_to_goal || _plan.selection.direct_to_safe_point),
@@ -144,7 +144,7 @@ void RtlMissionSafePointFollow::on_activation()
 		use_join_route = false;
 	}
 
-	// Reset the triplet when SRP retargets the mission so the controller does not keep following a stale line.
+	// Reset the triplet when retargeting the mission so the controller does not keep following a stale line.
 	_navigator->get_position_setpoint_triplet()->previous.valid = false;
 	_navigator->get_position_setpoint_triplet()->current.valid = false;
 	_navigator->get_position_setpoint_triplet()->next.valid = false;
@@ -165,7 +165,7 @@ bool RtlMissionSafePointFollow::advanceRouteTarget()
 		_stage = Stage::LandAtGoal;
 		_should_go_straight_to_goal = true;
 		_transition_target_index = -1;
-		PX4_WARN("%s, continuing straight to goal", reason);
+		PX4_INFO("%s, straight to goal", reason);
 		return true;
 	};
 
@@ -177,17 +177,15 @@ bool RtlMissionSafePointFollow::advanceRouteTarget()
 			advanced = true;
 
 		} else {
-			return continueStraightToGoal("RTL SRP reverse traversal exhausted");
+			return continueStraightToGoal("RTL reverse route complete");
 		}
 
 	} else {
 		updateLastFlownLoopSegmentForNominalAdvance();
 
-		// SRP treats the route as geometry only: DO_JUMP items must not be executed as
-		// mission control flow (the planner already modelled them as loop edges).  Walk
-		// forward through the mission items and skip any DO_JUMP entries instead of
-		// following them, mirroring what findPreviousPositionIndexNoJump does for
-		// the reverse direction.
+		// Treats the route as geometry only: DO_JUMP items must not be executed as
+		// mission control flow (the planner already modelled them as loop segments).
+		// Walk forward through the mission items and skip any DO_JUMP entries.
 		int32_t next_index = _mission.current_seq + 1;
 
 		if (findNextPositionIndexNoJump(next_index, next_index)) {
@@ -195,13 +193,13 @@ bool RtlMissionSafePointFollow::advanceRouteTarget()
 			advanced = true;
 
 		} else {
-			return continueStraightToGoal("RTL SRP nominal traversal exhausted");
+			return continueStraightToGoal("RTL route complete");
 		}
 	}
 
 	if (advanced && currentTargetIsBranchOff()) {
 		_stage = Stage::BranchOff;
-		PX4_DEBUG("RTL SRP next target is branch-off, leaving route for goal");
+		PX4_DEBUG("RTL branch-off is next");
 	}
 
 	return advanced;
@@ -217,13 +215,13 @@ bool RtlMissionSafePointFollow::setNextMissionItem()
 		// The in-flight transition completed; resume route following from the same target.
 		_stage = Stage::FollowRoute;
 		_transition_target_index = -1;
-		PX4_DEBUG("RTL SRP route transition complete, resuming route following");
+		PX4_INFO("RTL route transition complete");
 		return true;
 
 	case Stage::BranchOff:
 		_stage = Stage::LandAtGoal;
 		_should_go_straight_to_goal = true;
-		PX4_DEBUG("RTL SRP branch-off waypoint reached, landing at goal");
+		PX4_INFO("RTL branch-off reached, straight to goal");
 		return true;
 
 	case Stage::LandAtGoal:
@@ -314,7 +312,10 @@ bool RtlMissionSafePointFollow::joinProjectionNearBranchOff() const
 
 void RtlMissionSafePointFollow::updateLastFlownLoopSegmentFromPlan()
 {
-	_last_flown_loop_segment = _plan.projection_context.seg_candidate.segment;
+	// Keep only an actual DO_JUMP anchor. Non-loop segments are reconstructed from current_seq.
+	_last_flown_loop_segment = _plan.projection_context.seg_candidate.segment.validLoop()
+				   ? _plan.projection_context.seg_candidate.segment
+				   : MissionRoutePlanner::Segment{};
 }
 
 void RtlMissionSafePointFollow::updateLastFlownLoopSegmentForNominalAdvance()
@@ -446,7 +447,7 @@ void RtlMissionSafePointFollow::setActiveMissionItems()
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	const position_setpoint_s current_setpoint_copy = pos_sp_triplet->current;
 
-	if (handleJoinRouteState(pos_sp_triplet, current_setpoint_copy)) {
+	if (handleJoinRouteWorkItems(pos_sp_triplet, current_setpoint_copy)) {
 		return;
 	}
 
@@ -454,11 +455,11 @@ void RtlMissionSafePointFollow::setActiveMissionItems()
 		if (joinProjectionNearBranchOff()) {
 			_should_go_straight_to_goal = true;
 			_stage = Stage::LandAtGoal;
-			PX4_DEBUG("RTL SRP join projection is already near branch-off, flying straight to goal");
+			PX4_INFO("RTL join is near branch-off, straight to goal");
 
 		} else if (currentTargetIsBranchOff()) {
 			_stage = Stage::BranchOff;
-			PX4_DEBUG("RTL SRP current target is branch-off, leaving route for goal");
+			PX4_INFO("RTL leaving route at branch-off");
 		}
 	}
 
@@ -473,7 +474,7 @@ void RtlMissionSafePointFollow::setActiveMissionItems()
 
 			if (current_item_is_mission_landing || current_item_is_mission_takeoff) {
 				_stage = Stage::LandAtGoal;
-				PX4_DEBUG("RTL SRP endpoint target active, handing over to landing stage");
+				PX4_DEBUG("RTL endpoint target active, handing over to landing stage");
 
 				mission_item_s landing_item{};
 
@@ -544,12 +545,14 @@ void RtlMissionSafePointFollow::setActiveMissionItems()
 							 : vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
 
 				if (transition_action == VtolTransitionAction::FrontTransition) {
-					PX4_DEBUG("RTL SRP route applying FT");
+					// TODO: debug print
+					PX4_INFO("RTL route front transition");
 					transition_item.yaw = computeFrontTransitionAlignmentYaw(_mission.current_seq,
 							      _plan.selection.path.direction_reversed);
 
 				} else {
-					PX4_DEBUG("RTL SRP route applying BT");
+					// TODO: debug print
+					PX4_INFO("RTL route back transition");
 				}
 
 				_mission_item = transition_item;

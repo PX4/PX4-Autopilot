@@ -86,7 +86,7 @@ TEST_F(RtlPlannerIntegrationTest, FallsBackToMissionLandWhenNoSafePoints)
 	config = fwConfig();
 
 	// WHEN: planRouteToGoal is called.
-	bool ok = planner.planRouteToGoal(vehicle_pos, 2, config, plan, &reason);
+	bool ok = planner.planRouteToGoal(vehicle_pos, 2, config, plan, reason);
 
 	// THEN: Planning succeeds and selects MissionLand.
 	ASSERT_TRUE(ok);
@@ -114,12 +114,12 @@ TEST_F(RtlPlannerIntegrationTest, FallsBackToMissionTakeoffWhenPathIsShorter)
 	// Vehicle is at N+40, close to takeoff.
 	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 40.f, 0.f, kAlt + 10.f);
 	config = fwConfig();
-	config.vehicle_velocity_north = 15.f;
-	config.vehicle_velocity_east = 0.f;
-	config.vehicle_velocity_valid = true;
+	config.state.velocity_ne(0) = 15.f;
+	config.state.velocity_ne(1) = 0.f;
+	config.state.velocity_valid = true;
 
 	// WHEN: planRouteToGoal is called.
-	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, &reason);
+	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, reason);
 
 	// THEN: Planning succeeds and selects MissionTakeoff with reversed direction.
 	ASSERT_TRUE(ok);
@@ -147,12 +147,12 @@ TEST_F(RtlPlannerIntegrationTest, MissionTakeoffFallbackUsesHomeAltitudeReferenc
 
 	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 40.f, 0.f, 655.f);
 	config = fwConfig();
-	config.home_altitude_amsl = 600.f;
-	config.vehicle_velocity_north = 15.f;
-	config.vehicle_velocity_east = 0.f;
-	config.vehicle_velocity_valid = true;
+	config.parameters.home_altitude_amsl = 600.f;
+	config.state.velocity_ne(0) = 15.f;
+	config.state.velocity_ne(1) = 0.f;
+	config.state.velocity_valid = true;
 
-	ASSERT_TRUE(planner.planRouteToGoal(vehicle_pos, 0, config, plan, &reason));
+	ASSERT_TRUE(planner.planRouteToGoal(vehicle_pos, 0, config, plan, reason));
 	EXPECT_EQ(plan.selection.goal_type, MissionRoutePlanner::GoalType::MissionTakeoff);
 	EXPECT_NEAR(plan.selection.goal_position.lat, items[0].lat, kLatLonToleranceDeg);
 	EXPECT_NEAR(plan.selection.goal_position.lon, items[0].lon, kLatLonToleranceDeg);
@@ -174,16 +174,16 @@ TEST_F(RtlPlannerIntegrationTest, FindNominalPathToGoalChoosesShortestExhaustedL
 	VectorProvider provider(items, {});
 	MissionRoutePlanner planner(provider);
 	config = defaultConfig();
-	config.last_flown_loop_segment.start.idx = 2;
-	config.last_flown_loop_segment.start.nav_cmd = NAV_CMD_WAYPOINT;
-	config.last_flown_loop_segment.end.idx = 0;
-	config.last_flown_loop_segment.end.nav_cmd = NAV_CMD_WAYPOINT;
-	config.last_flown_loop_segment.is_loop = true;
-	config.last_flown_loop_segment.loops_remaining = 0;
+	config.execution.last_flown_loop_segment.start.idx = 2;
+	config.execution.last_flown_loop_segment.start.nav_cmd = NAV_CMD_WAYPOINT;
+	config.execution.last_flown_loop_segment.end.idx = 0;
+	config.execution.last_flown_loop_segment.end.nav_cmd = NAV_CMD_WAYPOINT;
+	config.execution.last_flown_loop_segment.is_loop = true;
+	config.execution.last_flown_loop_segment.loops_remaining = 0;
 
 	MissionRoutePlanner::ProjectionContext projection_context{};
 	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 95.f, kAlt);
-	ASSERT_TRUE(planner.collectVehicleProjection(vehicle_pos, 0, config, projection_context, &reason));
+	ASSERT_TRUE(planner.collectVehicleProjection(vehicle_pos, 0, config, projection_context, reason));
 	ASSERT_TRUE(projection_context.loop_ctx.valid());
 	EXPECT_EQ(projection_context.mission_loops_remaining, 0);
 
@@ -210,16 +210,16 @@ TEST_F(RtlPlannerIntegrationTest, FindNominalPathToGoalKeepsLoopEndWhileRepeatsR
 	VectorProvider provider(items, {});
 	MissionRoutePlanner planner(provider);
 	config = defaultConfig();
-	config.last_flown_loop_segment.start.idx = 2;
-	config.last_flown_loop_segment.start.nav_cmd = NAV_CMD_WAYPOINT;
-	config.last_flown_loop_segment.end.idx = 0;
-	config.last_flown_loop_segment.end.nav_cmd = NAV_CMD_WAYPOINT;
-	config.last_flown_loop_segment.is_loop = true;
-	config.last_flown_loop_segment.loops_remaining = 1;
+	config.execution.last_flown_loop_segment.start.idx = 2;
+	config.execution.last_flown_loop_segment.start.nav_cmd = NAV_CMD_WAYPOINT;
+	config.execution.last_flown_loop_segment.end.idx = 0;
+	config.execution.last_flown_loop_segment.end.nav_cmd = NAV_CMD_WAYPOINT;
+	config.execution.last_flown_loop_segment.is_loop = true;
+	config.execution.last_flown_loop_segment.loops_remaining = 1;
 
 	MissionRoutePlanner::ProjectionContext projection_context{};
 	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 95.f, kAlt);
-	ASSERT_TRUE(planner.collectVehicleProjection(vehicle_pos, 0, config, projection_context, &reason));
+	ASSERT_TRUE(planner.collectVehicleProjection(vehicle_pos, 0, config, projection_context, reason));
 	ASSERT_TRUE(projection_context.loop_ctx.valid());
 	EXPECT_GT(projection_context.mission_loops_remaining, 0);
 
@@ -246,15 +246,15 @@ TEST_F(RtlPlannerIntegrationTest, PlanRouteToGoalIgnoresPendingLoopsForRtl)
 	VectorProvider provider(items, {});
 	MissionRoutePlanner planner(provider);
 	config = defaultConfig();
-	config.last_flown_loop_segment.start.idx = 2;
-	config.last_flown_loop_segment.start.nav_cmd = NAV_CMD_WAYPOINT;
-	config.last_flown_loop_segment.end.idx = 0;
-	config.last_flown_loop_segment.end.nav_cmd = NAV_CMD_WAYPOINT;
-	config.last_flown_loop_segment.is_loop = true;
-	config.last_flown_loop_segment.loops_remaining = 1;
+	config.execution.last_flown_loop_segment.start.idx = 2;
+	config.execution.last_flown_loop_segment.start.nav_cmd = NAV_CMD_WAYPOINT;
+	config.execution.last_flown_loop_segment.end.idx = 0;
+	config.execution.last_flown_loop_segment.end.nav_cmd = NAV_CMD_WAYPOINT;
+	config.execution.last_flown_loop_segment.is_loop = true;
+	config.execution.last_flown_loop_segment.loops_remaining = 1;
 
 	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 95.f, kAlt);
-	ASSERT_TRUE(planner.planRouteToGoal(vehicle_pos, 0, config, plan, &reason));
+	ASSERT_TRUE(planner.planRouteToGoal(vehicle_pos, 0, config, plan, reason));
 	ASSERT_TRUE(plan.projection_context.loop_ctx.valid());
 	EXPECT_GT(plan.projection_context.loop_ctx.segment.loops_remaining, 0);
 	EXPECT_EQ(plan.projection_context.mission_loops_remaining, 0);
@@ -286,7 +286,7 @@ TEST_F(RtlPlannerIntegrationTest, FallsBackWhenAllSafePointsInvalid)
 	auto vehicle_pos = makePositionFromOffset(items[0].lat, items[0].lon, 50.f, 0.f, 560.f);
 
 	// WHEN: planRouteToGoal is called.
-	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, &reason);
+	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, reason);
 
 	// THEN: Planning succeeds but no safe point was found; goal is a mission endpoint.
 	ASSERT_TRUE(ok);
@@ -316,10 +316,10 @@ TEST_F(RtlPlannerIntegrationTest, SkipsAltitudeRequirementNearLand)
 	// Vehicle at (N+200, E+0, alt=523), near landing.
 	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, 523.f);
 	config = fwConfig();
-	config.acceptance_radius = 20.f;
+	config.parameters.acceptance_radius = 20.f;
 
 	// WHEN: planRouteToGoal is called.
-	bool ok = planner.planRouteToGoal(vehicle_pos, 1, config, plan, &reason);
+	bool ok = planner.planRouteToGoal(vehicle_pos, 1, config, plan, reason);
 
 	// THEN: MissionLand is selected, skip_altitude_requirement is true, join alt matches vehicle alt.
 	ASSERT_TRUE(ok);
@@ -341,12 +341,12 @@ TEST_F(RtlPlannerIntegrationTest, CornerMission_SkipAltitudeNearLand)
 	// Vehicle very near the land waypoint.
 	auto vehicle_pos = makePositionAbsolute(46.10451291425605, 2.3176006267546034, 462.2f);
 	config = fwConfig();
-	config.acceptance_radius = 100.f;
-	config.vehicle_projection_search_dist = 10.f;
-	config.safe_point_projection_search_dist = 10.f;
+	config.parameters.acceptance_radius = 100.f;
+	config.parameters.vehicle_projection_search_dist = 10.f;
+	config.parameters.safe_point_projection_search_dist = 10.f;
 
 	// WHEN: planRouteToGoal is called.
-	bool ok = planner.planRouteToGoal(vehicle_pos, 12, config, plan, &reason);
+	bool ok = planner.planRouteToGoal(vehicle_pos, 12, config, plan, reason);
 
 	// THEN: MissionLand is selected and skip_altitude_requirement keeps the current altitude.
 	ASSERT_TRUE(ok);
@@ -376,13 +376,13 @@ TEST_F(RtlPlannerIntegrationTest, RelativeAltitudeMissionLandUsesHomeAltitude)
 
 	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 320.f, 0.f, 645.f);
 	config = defaultConfig();
-	config.home_altitude_amsl = 600.f;
-	config.vehicle_velocity_north = 10.f;
-	config.vehicle_velocity_east = 0.f;
-	config.vehicle_velocity_valid = true;
+	config.parameters.home_altitude_amsl = 600.f;
+	config.state.velocity_ne(0) = 10.f;
+	config.state.velocity_ne(1) = 0.f;
+	config.state.velocity_valid = true;
 
 	// WHEN: planRouteToGoal falls back to the mission landing endpoint.
-	bool ok = planner.planRouteToGoal(vehicle_pos, 1, config, plan, &reason);
+	bool ok = planner.planRouteToGoal(vehicle_pos, 1, config, plan, reason);
 
 	// THEN: The goal altitude is converted from relative altitude to AMSL.
 	ASSERT_TRUE(ok) << "Failure reason: " << MissionRoutePlanner::failureReasonString(reason);
@@ -398,7 +398,7 @@ TEST_F(RtlPlannerIntegrationTest, RelativeAltitudeMissionLandUsesHomeAltitude)
 
 // WHY: With no rally points, the planner should fall back to MissionLand when the vehicle is past the midpoint.
 // WHAT: Vehicle in the latter part of the corner mission selects MissionLand with forward direction.
-TEST_F(RtlPlannerIntegrationTest, SrpFallbackToLandWhenNoRallyPoints)
+TEST_F(RtlPlannerIntegrationTest, FallbackToLandWhenNoRallyPoints)
 {
 	// GIVEN: Corner dataset mission with empty safe points.
 	auto items = corner_dataset::mission();
@@ -408,14 +408,14 @@ TEST_F(RtlPlannerIntegrationTest, SrpFallbackToLandWhenNoRallyPoints)
 
 	auto vehicle_pos = makePositionAbsolute(46.10451291425605, 2.3176006267546034, 560.f);
 	config = fwConfig();
-	config.vehicle_projection_search_dist = 10.f;
-	config.safe_point_projection_search_dist = 10.f;
-	config.vehicle_velocity_north = corner_dataset::kVelDiag;
-	config.vehicle_velocity_east = -corner_dataset::kVelDiag;
-	config.vehicle_velocity_valid = true;
+	config.parameters.vehicle_projection_search_dist = 10.f;
+	config.parameters.safe_point_projection_search_dist = 10.f;
+	config.state.velocity_ne(0) = corner_dataset::kVelDiag;
+	config.state.velocity_ne(1) = -corner_dataset::kVelDiag;
+	config.state.velocity_valid = true;
 
 	// WHEN: planRouteToGoal is called with mission_index=4.
-	bool ok = planner.planRouteToGoal(vehicle_pos, 4, config, plan, &reason);
+	bool ok = planner.planRouteToGoal(vehicle_pos, 4, config, plan, reason);
 
 	// THEN: Planning succeeds, selects MissionLand, direction_reversed=false.
 	ASSERT_TRUE(ok);
@@ -425,7 +425,7 @@ TEST_F(RtlPlannerIntegrationTest, SrpFallbackToLandWhenNoRallyPoints)
 
 // WHY: With no rally points and vehicle near takeoff, the planner should fall back to MissionTakeoff.
 // WHAT: Vehicle near the start of the corner mission selects MissionTakeoff with reversed direction.
-TEST_F(RtlPlannerIntegrationTest, SrpFallbackToTakeoffWhenNoRallyPoints)
+TEST_F(RtlPlannerIntegrationTest, FallbackToTakeoffWhenNoRallyPoints)
 {
 	// GIVEN: Corner dataset mission with empty safe points.
 	auto items = corner_dataset::mission();
@@ -434,12 +434,12 @@ TEST_F(RtlPlannerIntegrationTest, SrpFallbackToTakeoffWhenNoRallyPoints)
 	MissionRoutePlanner planner(provider);
 
 	auto vehicle_pos = makePositionAbsolute(46.101868043118436, 2.3261360396086284, 540.f);
-	config.vehicle_velocity_north = corner_dataset::kVelDiag;
-	config.vehicle_velocity_east = -corner_dataset::kVelDiag;
-	config.vehicle_velocity_valid = true;
+	config.state.velocity_ne(0) = corner_dataset::kVelDiag;
+	config.state.velocity_ne(1) = -corner_dataset::kVelDiag;
+	config.state.velocity_valid = true;
 
 	// WHEN: planRouteToGoal is called with mission_index=0.
-	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, &reason);
+	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, reason);
 
 	// THEN: Planning succeeds, selects MissionTakeoff with reversed direction.
 	ASSERT_TRUE(ok);
@@ -464,7 +464,7 @@ TEST_F(RtlPlannerIntegrationTest, SafePointFoundDoesNotUseFallback)
 	auto vehicle_pos = makePositionAbsolute(vehicle_lat, vehicle_lon, items[0].altitude + 10.f);
 
 	// WHEN: planRouteToGoal is called.
-	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, &reason);
+	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, reason);
 
 	// THEN: Planning succeeds, a safe point is found, and goal type is SafePoint.
 	ASSERT_TRUE(ok);
@@ -489,7 +489,7 @@ TEST_F(RtlPlannerIntegrationTest, FailsWithEmptyMission)
 	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
 
 	// WHEN: planRouteToGoal is called.
-	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, &reason);
+	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, reason);
 
 	// THEN: Planning fails with NoValidWaypoints.
 	EXPECT_FALSE(ok);
@@ -511,7 +511,7 @@ TEST_F(RtlPlannerIntegrationTest, FailsWithSingleWaypoint)
 	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 10.f, 0.f, kAlt);
 
 	// WHEN: planRouteToGoal is called.
-	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, &reason);
+	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, reason);
 
 	// THEN: Planning fails with NoValidWaypoints.
 	EXPECT_FALSE(ok);
@@ -542,7 +542,7 @@ TEST_P(RtlPlannerInvalidVehiclePositionTest, RejectsInvalidVehiclePosition)
 	vehicle_pos.alt = 550.f;
 
 	// WHEN: planRouteToGoal is called with the invalid position.
-	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, &reason);
+	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, reason);
 
 	// THEN: Planning fails with the explicit invalid-global-position reason.
 	EXPECT_FALSE(ok);
@@ -590,7 +590,7 @@ TEST_F(RtlPlannerIntegrationTest, PlanRouteSelectsSafePointOverEndpoint)
 	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 0.f, kAlt + 10.f);
 
 	// WHEN: planRouteToGoal is called.
-	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, &reason);
+	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, reason);
 
 	// THEN: Planning succeeds and selects the safe point, not a mission endpoint.
 	ASSERT_TRUE(ok);
@@ -618,7 +618,7 @@ TEST_F(RtlPlannerIntegrationTest, PlanRouteNearTakeoffWithSafePointDoesNotFallba
 	auto vehicle_pos = makePositionAbsolute(vehicle_lat, vehicle_lon, items[0].altitude + 5.f);
 
 	// WHEN: planRouteToGoal is called.
-	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, &reason);
+	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, reason);
 
 	// THEN: Planning succeeds, a safe point is found, and goal type is SafePoint (NOT MissionTakeoff).
 	ASSERT_TRUE(ok);
@@ -651,12 +651,12 @@ TEST_F(RtlPlannerIntegrationTest, FaultyMissionItemMidScanCausesGracefulFailure)
 
 	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt + 15.f);
 	config = defaultConfig();
-	config.vehicle_velocity_north = 10.f;
-	config.vehicle_velocity_east = 0.f;
-	config.vehicle_velocity_valid = true;
+	config.state.velocity_ne(0) = 10.f;
+	config.state.velocity_ne(1) = 0.f;
+	config.state.velocity_valid = true;
 
 	MissionRoutePlanner::FailureReason fail_reason{};
-	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, &fail_reason);
+	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, fail_reason);
 
 	EXPECT_FALSE(ok);
 	EXPECT_EQ(fail_reason, MissionRoutePlanner::FailureReason::InternalError);
@@ -680,7 +680,7 @@ TEST_F(RtlPlannerIntegrationTest, AllInitialPositionItemsFaultyFailsGracefully)
 	config = defaultConfig();
 
 	MissionRoutePlanner::FailureReason fail_reason{};
-	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, &fail_reason);
+	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, fail_reason);
 
 	EXPECT_FALSE(ok);
 	EXPECT_EQ(fail_reason, MissionRoutePlanner::FailureReason::NoSegmentsFound);
@@ -707,11 +707,11 @@ TEST_F(RtlPlannerIntegrationTest, AllFaultySafePointsFallBackToEndpoint)
 
 	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 250.f, 0.f, kAlt + 25.f);
 	config = defaultConfig();
-	config.vehicle_velocity_north = 10.f;
-	config.vehicle_velocity_east = 0.f;
-	config.vehicle_velocity_valid = true;
+	config.state.velocity_ne(0) = 10.f;
+	config.state.velocity_ne(1) = 0.f;
+	config.state.velocity_valid = true;
 
-	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, &reason);
+	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, reason);
 
 	ASSERT_TRUE(ok) << "Failure reason: " << MissionRoutePlanner::failureReasonString(reason);
 	EXPECT_TRUE(plan.selection.found);
@@ -743,11 +743,11 @@ TEST_F(RtlPlannerIntegrationTest, OneFaultySafePointDoesNotBlockOthers)
 
 	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 250.f, 0.f, kAlt + 25.f);
 	config = defaultConfig();
-	config.vehicle_velocity_north = 10.f;
-	config.vehicle_velocity_east = 0.f;
-	config.vehicle_velocity_valid = true;
+	config.state.velocity_ne(0) = 10.f;
+	config.state.velocity_ne(1) = 0.f;
+	config.state.velocity_valid = true;
 
-	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, &reason);
+	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, reason);
 
 	ASSERT_TRUE(ok) << "Failure reason: " << MissionRoutePlanner::failureReasonString(reason);
 	EXPECT_TRUE(plan.selection.found);
@@ -771,12 +771,12 @@ TEST_F(RtlPlannerIntegrationTest, FaultyLandItemFailsCleanly)
 
 	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 250.f, 0.f, kAlt + 20.f);
 	config = defaultConfig();
-	config.vehicle_velocity_north = 10.f;
-	config.vehicle_velocity_east = 0.f;
-	config.vehicle_velocity_valid = true;
+	config.state.velocity_ne(0) = 10.f;
+	config.state.velocity_ne(1) = 0.f;
+	config.state.velocity_valid = true;
 
 	// WHEN: planRouteToGoal is called.
-	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, &reason);
+	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, reason);
 
 	// THEN: Planning fails explicitly instead of returning a partially-populated fallback.
 	EXPECT_FALSE(ok);
@@ -809,11 +809,11 @@ TEST_F(RtlPlannerIntegrationTest, FwVehicleReversesToTakeoffWhenNearStart)
 
 	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt + 15.f);
 	config = fwConfig();
-	config.vehicle_velocity_north = 15.f;
-	config.vehicle_velocity_east = 0.f;
-	config.vehicle_velocity_valid = true;
+	config.state.velocity_ne(0) = 15.f;
+	config.state.velocity_ne(1) = 0.f;
+	config.state.velocity_valid = true;
 
-	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, &reason);
+	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, reason);
 
 	ASSERT_TRUE(ok);
 	EXPECT_EQ(plan.selection.goal_type, MissionRoutePlanner::GoalType::MissionTakeoff);
@@ -835,11 +835,11 @@ TEST_F(RtlPlannerIntegrationTest, DefaultDatasetVtolPlanBuildsSucessfully)
 
 	auto vehicle_pos = makePositionAbsolute(46.10830, 2.2995, 575.f);
 	config = fwConfig();
-	config.vehicle_velocity_north = default_dataset::kVel;
-	config.vehicle_velocity_east = 0.f;
-	config.vehicle_velocity_valid = true;
+	config.state.velocity_ne(0) = default_dataset::kVel;
+	config.state.velocity_ne(1) = 0.f;
+	config.state.velocity_valid = true;
 
-	bool ok = planner.planRouteToGoal(vehicle_pos, 4, config, plan, &reason);
+	bool ok = planner.planRouteToGoal(vehicle_pos, 4, config, plan, reason);
 
 	ASSERT_TRUE(ok);
 	EXPECT_TRUE(plan.valid());
@@ -878,12 +878,12 @@ TEST_F(RtlPlannerIntegrationTest, PlanProvidesValidBranchOffIndexForSafePoint)
 
 	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 0.f, kAlt + 10.f);
 	config = defaultConfig();
-	config.vehicle_velocity_north = 10.f;
-	config.vehicle_velocity_east = 0.f;
-	config.vehicle_velocity_valid = true;
+	config.state.velocity_ne(0) = 10.f;
+	config.state.velocity_ne(1) = 0.f;
+	config.state.velocity_valid = true;
 
 	// WHEN: planRouteToGoal is called.
-	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, &reason);
+	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, reason);
 
 	// THEN: A valid safe-point branch-off index is produced.
 	ASSERT_TRUE(ok) << "Failure reason: " << MissionRoutePlanner::failureReasonString(reason);
@@ -921,13 +921,13 @@ TEST_F(RtlPlannerIntegrationTest, DirectToSafePointPlanHasCompleteLandingFields)
 
 	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 250.f, 0.f, kAlt + 50.f);
 	config = defaultConfig();
-	config.is_multicopter = true;
-	config.direct_acceptance_radius = 20.f;
-	config.vehicle_velocity_north = 5.f;
-	config.vehicle_velocity_east = 0.f;
-	config.vehicle_velocity_valid = true;
+	config.state.is_multicopter = true;
+	config.parameters.direct_acceptance_radius = 20.f;
+	config.state.velocity_ne(0) = 5.f;
+	config.state.velocity_ne(1) = 0.f;
+	config.state.velocity_valid = true;
 
-	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, &reason);
+	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, reason);
 	ASSERT_TRUE(ok) << "Failure reason: " << MissionRoutePlanner::failureReasonString(reason);
 	ASSERT_TRUE(plan.selection.direct_to_safe_point);
 	EXPECT_TRUE(plan.selection.goal_position.valid());
@@ -955,11 +955,11 @@ TEST_F(RtlPlannerIntegrationTest, EndpointFallbackPlanHasValidGoalPosition)
 
 	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 750.f, 0.f, kAlt + 60.f);
 	config = defaultConfig();
-	config.vehicle_velocity_north = 10.f;
-	config.vehicle_velocity_east = 0.f;
-	config.vehicle_velocity_valid = true;
+	config.state.velocity_ne(0) = 10.f;
+	config.state.velocity_ne(1) = 0.f;
+	config.state.velocity_valid = true;
 
-	bool ok = planner.planRouteToGoal(vehicle_pos, 1, config, plan, &reason);
+	bool ok = planner.planRouteToGoal(vehicle_pos, 1, config, plan, reason);
 	ASSERT_TRUE(ok) << "Failure reason: " << MissionRoutePlanner::failureReasonString(reason);
 
 	EXPECT_TRUE(plan.selection.found);
@@ -999,7 +999,7 @@ TEST_F(RtlPlannerIntegrationTest, WaypointOnlyMissionRejectsEndpointFallback)
 	config = defaultConfig();
 
 	// WHEN: planRouteToGoal is called.
-	bool ok = planner.planRouteToGoal(vehicle_pos, 1, config, plan, &reason);
+	bool ok = planner.planRouteToGoal(vehicle_pos, 1, config, plan, reason);
 
 	// THEN: Planning fails because no safe point or valid endpoint candidate exists.
 	EXPECT_FALSE(ok);

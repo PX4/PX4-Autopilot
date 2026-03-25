@@ -164,28 +164,29 @@ bool Mission::trySetRouteJoinOnActivation(bool resume_mission_on_previous)
 	const auto *local_position = _navigator->get_local_position();
 
 	MissionRoutePlanner::Config config{};
-	config.vehicle_projection_search_dist = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
-						? _param_mis_mc_seg_dist.get() : _param_mis_fw_seg_dist.get();
-	config.acceptance_radius = _navigator->get_acceptance_radius();
-	config.home_altitude_amsl = _navigator->home_global_position_valid()
-				    ? _navigator->get_home_position()->alt : global_position->alt;
-	config.is_multicopter = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
-				&& (vehicle_status.in_transition_mode == false);
-	config.vehicle_velocity_valid = (local_position != nullptr)
-					&& PX4_ISFINITE(local_position->vx)
-					&& PX4_ISFINITE(local_position->vy);
-	config.vehicle_velocity_north = (local_position != nullptr) ? local_position->vx : NAN;
-	config.vehicle_velocity_east = (local_position != nullptr) ? local_position->vy : NAN;
-	config.vehicle_is_fixed_wing = vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
-	config.vehicle_in_transition_to_fw = vehicle_status.in_transition_to_fw;
-	config.last_flown_loop_segment = _last_flown_loop_segment;
+	config.parameters.vehicle_projection_search_dist = (vehicle_status.vehicle_type
+			== vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
+			? _param_mis_mc_seg_dist.get() : _param_mis_fw_seg_dist.get();
+	config.parameters.acceptance_radius = _navigator->get_acceptance_radius();
+	config.parameters.home_altitude_amsl = _navigator->home_global_position_valid()
+					       ? _navigator->get_home_position()->alt : global_position->alt;
+	config.state.is_multicopter = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
+				      && (vehicle_status.in_transition_mode == false);
+	config.state.velocity_valid = (local_position != nullptr)
+				      && PX4_ISFINITE(local_position->vx)
+				      && PX4_ISFINITE(local_position->vy);
+	config.state.velocity_ne(0) = (local_position != nullptr) ? local_position->vx : NAN;
+	config.state.velocity_ne(1) = (local_position != nullptr) ? local_position->vy : NAN;
+	config.state.is_fixed_wing = vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+	config.state.in_transition_to_fw = vehicle_status.in_transition_to_fw;
+	config.execution.last_flown_loop_segment = _last_flown_loop_segment;
 
 	MissionRoutePlanner::ProjectionContext projection_context{};
 	MissionRoutePlanner::FailureReason failure_reason{MissionRoutePlanner::FailureReason::Unknown};
 	MissionRoutePlanner::Position vehicle_position{global_position->lat, global_position->lon, global_position->alt};
 
-	if (planner.collectVehicleProjection(vehicle_position, _mission.current_seq, config, projection_context,
-					     &failure_reason) == false) {
+	if (planner.collectVehicleProjection(vehicle_position, _mission.current_seq,
+					     config, projection_context, failure_reason) == false) {
 		PX4_ERR("Mission route rejoin unavailable: %s", MissionRoutePlanner::failureReasonString(failure_reason));
 		return false;
 	}
@@ -197,14 +198,19 @@ bool Mission::trySetRouteJoinOnActivation(bool resume_mission_on_previous)
 	}
 
 	const MissionRoutePlanner::Path path = planner.findNominalPathToGoal(route_end_index,
-					       projection_context.dist_along_to_route_end, projection_context, config);
+					       projection_context.dist_along_to_route_end,
+					       projection_context, config);
 
 	if (!path.valid() || path.first_item_index < 0 || path.first_item_index >= _mission.count) {
 		PX4_ERR("Mission route rejoin failed to find a valid nominal path");
 		return false;
 	}
 
-	_last_flown_loop_segment = projection_context.seg_candidate.segment;
+	// Keep this cache loop-only. Nominal segments are already implied by current_seq,
+	// but an active DO_JUMP edge must survive the jump so later replans can stay anchored on it.
+	_last_flown_loop_segment = projection_context.seg_candidate.segment.validLoop()
+				   ? projection_context.seg_candidate.segment
+				   : MissionRoutePlanner::Segment{};
 	setMissionIndex(path.first_item_index);
 	_is_current_planned_mission_item_valid = isMissionValid();
 
@@ -219,6 +225,12 @@ bool Mission::trySetRouteJoinOnActivation(bool resume_mission_on_previous)
 	const VtolTransitionAction join_transition_action = vtolTransitionActionForTarget(path.first_item_index,
 			path.direction_reversed);
 	setupJoinRoute(join_context, join_transition_action);
+
+	PX4_INFO("Mission route join: target=%d rev=%u vtol=%u skip_alt=%u",
+		 static_cast<int>(path.first_item_index),
+		 static_cast<unsigned>(path.direction_reversed),
+		 static_cast<unsigned>(join_transition_action),
+		 static_cast<unsigned>(join_context.skip_altitude_requirement));
 
 	mavlink_log_info(_navigator->get_mavlink_log_pub(), "Rejoining mission route\t");
 	return true;
@@ -289,7 +301,15 @@ void Mission::setActiveMissionItems()
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	const position_setpoint_s current_setpoint_copy = pos_sp_triplet->current;
 
-	if (handleJoinRouteState(pos_sp_triplet, current_setpoint_copy)) {
+
+	// The join-route pipeline uses synthetic virtual waypoints (branch-in projection and
+	// post-join transitions) that do not exist in the dataman cache.
+	// If handleJoinRouteWorkItems returns true, it has fully generated, issued, and
+	// published the virtual setpoint for this control cycle.
+	if (handleJoinRouteWorkItems(pos_sp_triplet, current_setpoint_copy)) {
+		// Early return to avoid evaluate look-aheads (e.g., getNextPositionItems)
+		// against _mission.current_seq, which is invalid while navigating
+		// to a virtual projection, and would overwrite the virtual mission item.
 		return;
 	}
 

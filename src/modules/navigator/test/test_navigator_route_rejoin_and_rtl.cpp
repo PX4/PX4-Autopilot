@@ -82,7 +82,6 @@ public:
 	using Mission::trySetRouteJoinOnActivation;
 	using MissionBase::VtolTransitionAction;
 	using MissionBase::WorkItemType;
-	using MissionBase::advance_mission;
 
 	WorkItemType workItemTypeForTest() const { return _work_item_type; }
 	int32_t currentSequenceForTest() const { return _mission.current_seq; }
@@ -386,9 +385,11 @@ TEST_F(NavigatorRouteRejoinAndRtlTest, MissionSmartRejoinNearLandingSkipsAltitud
 }
 
 // WHY: Mission smart rejoin must use the dedicated TRANSITION_AFTER_JOIN work item when the
-//      resumed route segment changes VTOL state, otherwise mission and RTL would keep separate
-//      transition handling paths.
-// WHAT: Rejoining a VTOL mission into a fixed-wing segment advances JOIN_ROUTE into TRANSITION_AFTER_JOIN.
+//      resumed route segment changes VTOL state, and the promotion must happen during the
+//      next setpoint-generation pass after the join waypoint is reached, just like landing
+//      helper work items.
+// WHAT: Rejoining a VTOL mission into a fixed-wing segment publishes JOIN_ROUTE on activation,
+//       then promotes it to TRANSITION_AFTER_JOIN once the branch-in waypoint is reached.
 TEST_F(NavigatorRouteRejoinAndRtlTest, MissionSmartRejoinUsesTransitionAfterJoinWorkItemForFrontTransition)
 {
 	setIntParam("MIS_ROUTE_JOIN", 1);
@@ -420,17 +421,23 @@ TEST_F(NavigatorRouteRejoinAndRtlTest, MissionSmartRejoinUsesTransitionAfterJoin
 	publishLandDetected(false);
 	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 60.f, 15.f, kBaseAlt + 5.f));
 	publishLocalPosition(0.f, 5.f, 0.f);
-	publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -50.f, 0.f, kBaseAlt));
+	publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -50.f, 0.f, kBaseAlt - 20.f));
 	primeNavigatorState(navigator);
 
 	updateRouteCacheUntilReady(navigator, mission_state);
 	mission.on_inactive();
+	markMissionResultValid(navigator);
 
-	ASSERT_TRUE(mission.trySetRouteJoinOnActivation(false));
+	mission.on_activation();
 	EXPECT_EQ(mission.joinTransitionActionForTest(), MissionPeer::VtolTransitionAction::FrontTransition);
 	EXPECT_EQ(mission.workItemTypeForTest(), MissionPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
 
-	mission.advance_mission();
+	const MissionRoutePlanner::Position join_projection = mission.joinContextForTest().projection;
+	publishGlobalPosition(join_projection);
+	publishLocalPosition(0.f, 0.f, 0.f);
+	primeNavigatorState(navigator);
+
+	mission.on_active();
 
 	EXPECT_EQ(mission.workItemTypeForTest(), MissionPeer::WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN);
 }
