@@ -43,10 +43,15 @@
 
 #include <gtest/gtest.h>
 
+#include <parameters/param.h>
+#include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
+
 #include "rtl_mission_safe_point_follow.h"
 #include "test_RTL_helpers.h"
 
 #include <vector>
+
+extern "C" __EXPORT int dataman_main(int argc, char *argv[]);
 
 /**
  * Lightweight peer for the RTL stage machine.
@@ -141,6 +146,27 @@ private:
 class RtlMissionSafePointFollowStageTest : public ::testing::Test
 {
 protected:
+	static void SetUpTestSuite()
+	{
+		param_control_autosave(false);
+		px4::WorkQueueManagerStart();
+		char start[] = "start";
+		char ram[] = "-r";
+		char name[] = "dataman";
+		char *argv[] = {name, start, ram};
+		dataman_main(3, argv);
+	}
+
+	static void TearDownTestSuite()
+	{
+		param_control_autosave(true);
+		char stop[] = "stop";
+		char name[] = "dataman";
+		char *argv[] = {name, stop};
+		dataman_main(2, argv);
+		px4::WorkQueueManagerStop();
+	}
+
 	RtlMissionSafePointFollowTestPeer executor{};
 
 	void SetUp() override

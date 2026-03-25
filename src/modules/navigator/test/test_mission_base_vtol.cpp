@@ -55,6 +55,9 @@
 
 #include <gtest/gtest.h>
 
+#include <parameters/param.h>
+#include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
+
 #include "mission_base.h"
 #include "navigator.h"
 #include "navigation.h"
@@ -66,6 +69,8 @@
 
 #include <algorithm>
 #include <vector>
+
+extern "C" __EXPORT int dataman_main(int argc, char *argv[]);
 
 // ============================================================================
 // Test subclass of MissionBase
@@ -194,6 +199,27 @@ private:
 class MissionBaseVtolTest : public ::testing::Test
 {
 protected:
+	static void SetUpTestSuite()
+	{
+		param_control_autosave(false);
+		px4::WorkQueueManagerStart();
+		char start[] = "start";
+		char ram[] = "-r";
+		char name[] = "dataman";
+		char *argv[] = {name, start, ram};
+		dataman_main(3, argv);
+	}
+
+	static void TearDownTestSuite()
+	{
+		param_control_autosave(true);
+		char stop[] = "stop";
+		char name[] = "dataman";
+		char *argv[] = {name, stop};
+		dataman_main(2, argv);
+		px4::WorkQueueManagerStop();
+	}
+
 	MissionBaseTestPeer mission_base{};
 
 	void SetUp() override
@@ -262,7 +288,7 @@ TEST_F(MissionBaseVtolTest, DefaultStateCanStartInFw)
 TEST_F(MissionBaseVtolTest, FrontTransitionAlignmentUsesCurrentTargetByDefault)
 {
 	Navigator navigator;
-	MissionBaseTestPeer mission_base_with_nav(&navigator);
+	MissionBaseTestPeer mission_base_peer(&navigator);
 
 	std::vector<mission_item_s> items = {
 		makePositionItem(kLat, kLon, kAlt),
@@ -272,8 +298,8 @@ TEST_F(MissionBaseVtolTest, FrontTransitionAlignmentUsesCurrentTargetByDefault)
 	items[1].acceptance_radius = 20.f;
 	items[2].acceptance_radius = 20.f;
 
-	mission_base_with_nav.loadTestMission(items);
-	mission_base_with_nav.setCurrentSequence(1);
+	mission_base_peer.loadTestMission(items);
+	mission_base_peer.setCurrentSequence(1);
 
 	vehicle_global_position_s global_position{};
 	global_position.lat = kLat + 0.0003;
@@ -281,7 +307,7 @@ TEST_F(MissionBaseVtolTest, FrontTransitionAlignmentUsesCurrentTargetByDefault)
 	global_position.alt = kAlt;
 	*navigator.get_global_position() = global_position;
 
-	const float yaw = mission_base_with_nav.computeFrontTransitionAlignmentYaw(1, false);
+	const float yaw = mission_base_peer.computeFrontTransitionAlignmentYaw(1, false);
 	const float expected_yaw = get_bearing_to_next_waypoint(global_position.lat, global_position.lon,
 				   items[1].lat, items[1].lon);
 
@@ -295,7 +321,7 @@ TEST_F(MissionBaseVtolTest, FrontTransitionAlignmentUsesCurrentTargetByDefault)
 TEST_F(MissionBaseVtolTest, FrontTransitionAlignmentUsesNextTargetInsideAcceptanceRadius)
 {
 	Navigator navigator;
-	MissionBaseTestPeer mission_base_with_nav(&navigator);
+	MissionBaseTestPeer mission_base_peer(&navigator);
 
 	std::vector<mission_item_s> items = {
 		makePositionItem(kLat, kLon, kAlt),
@@ -305,8 +331,8 @@ TEST_F(MissionBaseVtolTest, FrontTransitionAlignmentUsesNextTargetInsideAcceptan
 	items[1].acceptance_radius = 40.f;
 	items[2].acceptance_radius = 40.f;
 
-	mission_base_with_nav.loadTestMission(items);
-	mission_base_with_nav.setCurrentSequence(1);
+	mission_base_peer.loadTestMission(items);
+	mission_base_peer.setCurrentSequence(1);
 
 	vehicle_global_position_s global_position{};
 	global_position.lat = items[1].lat;
@@ -314,7 +340,7 @@ TEST_F(MissionBaseVtolTest, FrontTransitionAlignmentUsesNextTargetInsideAcceptan
 	global_position.alt = kAlt;
 	*navigator.get_global_position() = global_position;
 
-	const float yaw = mission_base_with_nav.computeFrontTransitionAlignmentYaw(1, false);
+	const float yaw = mission_base_peer.computeFrontTransitionAlignmentYaw(1, false);
 	const float expected_yaw = get_bearing_to_next_waypoint(global_position.lat, global_position.lon,
 				   items[2].lat, items[2].lon);
 
@@ -327,7 +353,7 @@ TEST_F(MissionBaseVtolTest, FrontTransitionAlignmentUsesNextTargetInsideAcceptan
 TEST_F(MissionBaseVtolTest, FrontTransitionAlignmentUsesPreviousTargetWhenDirectionReversed)
 {
 	Navigator navigator;
-	MissionBaseTestPeer mission_base_with_nav(&navigator);
+	MissionBaseTestPeer mission_base_peer(&navigator);
 
 	std::vector<mission_item_s> items = {
 		makePositionItem(kLat, kLon, kAlt),
@@ -337,8 +363,8 @@ TEST_F(MissionBaseVtolTest, FrontTransitionAlignmentUsesPreviousTargetWhenDirect
 	items[1].acceptance_radius = 40.f;
 	items[2].acceptance_radius = 40.f;
 
-	mission_base_with_nav.loadTestMission(items);
-	mission_base_with_nav.setCurrentSequence(2);
+	mission_base_peer.loadTestMission(items);
+	mission_base_peer.setCurrentSequence(2);
 
 	vehicle_global_position_s global_position{};
 	global_position.lat = items[2].lat;
@@ -346,7 +372,7 @@ TEST_F(MissionBaseVtolTest, FrontTransitionAlignmentUsesPreviousTargetWhenDirect
 	global_position.alt = kAlt;
 	*navigator.get_global_position() = global_position;
 
-	const float yaw = mission_base_with_nav.computeFrontTransitionAlignmentYaw(2, true);
+	const float yaw = mission_base_peer.computeFrontTransitionAlignmentYaw(2, true);
 	const float expected_yaw = get_bearing_to_next_waypoint(global_position.lat, global_position.lon,
 				   items[1].lat, items[1].lon);
 
@@ -354,25 +380,35 @@ TEST_F(MissionBaseVtolTest, FrontTransitionAlignmentUsesPreviousTargetWhenDirect
 	EXPECT_NEAR(wrappedAngleError(yaw, expected_yaw), 0.f, 0.05f);
 }
 
-// WHY: If no valid alignment geometry is available, PX4 should still perform the front-transition
-//      without forcing an arbitrary fallback heading.
-// WHAT: Missing vehicle position data makes the helper return NAN.
-TEST_F(MissionBaseVtolTest, FrontTransitionAlignmentFallsBackToNanWithoutGeometry)
+// WHY: If the current target is already reached but there is no next position-bearing mission item,
+//      PX4 should keep the front-transition aligned with the current target instead of clearing it.
+// WHAT: Being inside the current target acceptance radius at the route end still aligns to the current target.
+TEST_F(MissionBaseVtolTest, FrontTransitionAlignmentFallsBackToCurrentTargetWhenNoNextItem)
 {
 	Navigator navigator;
-	MissionBaseTestPeer mission_base_with_nav(&navigator);
+	MissionBaseTestPeer mission_base_peer(&navigator);
 
 	std::vector<mission_item_s> items = {
 		makePositionItem(kLat, kLon, kAlt),
 		makePositionItem(kLat + 0.001, kLon, kAlt),
 	};
+	items[1].acceptance_radius = 40.f;
 
-	mission_base_with_nav.loadTestMission(items);
-	mission_base_with_nav.setCurrentSequence(1);
+	mission_base_peer.loadTestMission(items);
+	mission_base_peer.setCurrentSequence(1);
 
-	*navigator.get_global_position() = vehicle_global_position_s{};
+	vehicle_global_position_s global_position{};
+	global_position.lat = kLat + 0.00095;
+	global_position.lon = kLon;
+	global_position.alt = kAlt;
+	*navigator.get_global_position() = global_position;
 
-	EXPECT_FALSE(PX4_ISFINITE(mission_base_with_nav.computeFrontTransitionAlignmentYaw(1, false)));
+	const float yaw = mission_base_peer.computeFrontTransitionAlignmentYaw(1, false);
+	const float expected_yaw = get_bearing_to_next_waypoint(global_position.lat, global_position.lon,
+				   items[1].lat, items[1].lon);
+
+	ASSERT_TRUE(PX4_ISFINITE(yaw));
+	EXPECT_NEAR(wrappedAngleError(yaw, expected_yaw), 0.f, 0.05f);
 }
 
 // WHY: getVtolStateAtMissionIndex must detect a DO_VTOL_TRANSITION to FW and report
