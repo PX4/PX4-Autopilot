@@ -214,42 +214,45 @@ uint32_t UavcanEscController::get_failures(const uint8_t node_id)
 
 	const auto node_status = _node_status_monitor->getNodeStatus(uavcan::NodeID(node_id));
 
+	// Don't report warnings as failures
+	if ((node_status.health != uavcan::protocol::NodeStatus::HEALTH_ERROR)
+	    && (node_status.health != uavcan::protocol::NodeStatus::HEALTH_CRITICAL)) {
+		return 0;
+	}
+
 	uint32_t failures = 0;
 
-	if ((node_status.health == uavcan::protocol::NodeStatus::HEALTH_ERROR)
-	    || (node_status.health == uavcan::protocol::NodeStatus::HEALTH_CRITICAL)) {
-		// Parse VertiQ = iq_motion ESC error flags
-		if (_node_info_publisher != nullptr
-		    && _node_info_publisher->getNodeVendor(node_id) == NodeInfoPublisher::NodeVendor::VERTIQ) {
-			// https://iqmotion.readthedocs.io/en/latest/communication_protocols/dronecan_protocol.html?highlight=dronecan#vertiq-s-vendor-specific-nodestatus-code-breakdown
-			static const struct {
-				uint8_t bit;
-				uint8_t failure_type;
-			} bit_to_failure_map[] = {
-				{0, esc_report_s::FAILURE_OVER_VOLTAGE}, // MCU voltage below limits
-				{1, esc_report_s::FAILURE_OVER_VOLTAGE}, // input voltage above threshold
-				{2, esc_report_s::FAILURE_OVER_VOLTAGE}, // reference voltage above threshold
-				{3, esc_report_s::FAILURE_OVER_CURRENT}, // supply current above threshold
-				{4, esc_report_s::FAILURE_OVER_CURRENT}, // motor current above threshold
-				{5, esc_report_s::FAILURE_OVER_ESC_TEMPERATURE}, // MCU temperature above threshold
-				{6, esc_report_s::FAILURE_MOTOR_OVER_TEMPERATURE}, // Coil temperature above threshold
-				{7, esc_report_s::FAILURE_GENERIC}, // Not clear from documentation
-				{8, esc_report_s::FAILURE_OVER_RPM}, // derating: motor overspeed
-				{9, esc_report_s::FAILURE_WARN_ESC_TEMPERATURE}, // derating: MCU temperature
-				{10, esc_report_s::FAILURE_MOTOR_WARN_TEMPERATURE}, // derating: Coil temperature
-				{11, esc_report_s::FAILURE_OVER_VOLTAGE}, // derating: High voltage from regeneration
-			};
+	// Parse VertiQ = iq_motion ESC error flags
+	if (_node_info_publisher != nullptr
+	    && _node_info_publisher->getNodeVendor(node_id) == NodeInfoPublisher::NodeVendor::VERTIQ) {
+		// https://iqmotion.readthedocs.io/en/latest/communication_protocols/dronecan_protocol.html?highlight=dronecan#vertiq-s-vendor-specific-nodestatus-code-breakdown
+		static const struct {
+			uint8_t bit;
+			uint8_t failure_type;
+		} bit_to_failure_map[] = {
+			{0, esc_report_s::FAILURE_OVER_VOLTAGE}, // MCU voltage below limits
+			{1, esc_report_s::FAILURE_OVER_VOLTAGE}, // input voltage above threshold
+			{2, esc_report_s::FAILURE_OVER_VOLTAGE}, // reference voltage above threshold
+			{3, esc_report_s::FAILURE_OVER_CURRENT}, // supply current above threshold
+			{4, esc_report_s::FAILURE_OVER_CURRENT}, // motor current above threshold
+			{5, esc_report_s::FAILURE_OVER_ESC_TEMPERATURE}, // MCU temperature above threshold
+			{6, esc_report_s::FAILURE_MOTOR_OVER_TEMPERATURE}, // Coil temperature above threshold
+			{7, esc_report_s::FAILURE_GENERIC}, // Not clear from documentation
+			{8, esc_report_s::FAILURE_OVER_RPM}, // derating: motor overspeed
+			{9, esc_report_s::FAILURE_WARN_ESC_TEMPERATURE}, // derating: MCU temperature
+			{10, esc_report_s::FAILURE_MOTOR_WARN_TEMPERATURE}, // derating: Coil temperature
+			{11, esc_report_s::FAILURE_OVER_VOLTAGE}, // derating: High voltage from regeneration
+		};
 
-			for (const auto &mapping : bit_to_failure_map) {
-				if (node_status.vendor_specific_status_code & (1 << mapping.bit)) {
-					failures |= (1 << mapping.failure_type);
-				}
+		for (const auto &mapping : bit_to_failure_map) {
+			if (node_status.vendor_specific_status_code & (1 << mapping.bit)) {
+				failures |= (1 << mapping.failure_type);
 			}
 		}
+	}
 
-		if (failures == 0) { // no specific error parsed
-			failures = (1 << esc_report_s::FAILURE_GENERIC);
-		}
+	if (failures == 0) { // no specific error parsed
+		failures = (1 << esc_report_s::FAILURE_GENERIC);
 	}
 
 	return failures;
