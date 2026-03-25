@@ -8,8 +8,8 @@ uint8 ACTION_CAPTURE_UP = 3
 uint8 ACTION_READ_FRONT = 4
 uint8 ACTION_READ_UP = 5
 
-# Legacy aliases
-uint8 ACTION_SAVE = ACTION_CAPTURE_FRONT
-uint8 ACTION_LOAD = ACTION_CAPTURE_UP
+# Stare Aliasy, nie chce mi sie poprawiac kodu bo juz napisalem, naprawie jak bede mial wiecej czasu po pracy
+uint8 ACTION_SAVE = 2
+uint8 ACTION_LOAD = 3
 
 uint8 action # one of ACTION_*
