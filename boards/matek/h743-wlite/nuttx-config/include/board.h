@@ -302,8 +302,8 @@
 #define STM32_SDMMC_CLKCR_EDGE      STM32_SDMMC_CLKCR_NEGEDGE
 
 /* LED definitions ******************************************************************/
-/* The board has two, LED_GREEN a Green LED and LED_BLUE a Blue LED,
- * that can be controlled by software.
+/* The board has two software-controlled FC status LEDs: LED_BLUE and
+ * LED_GREEN.
  *
  * If CONFIG_ARCH_LEDS is not defined, then the user can control the LEDs in any way.
  * The following definitions are used to access individual LEDs.
@@ -323,30 +323,19 @@
 #define BOARD_LED1_BIT    (1 << BOARD_LED1)
 #define BOARD_LED2_BIT    (1 << BOARD_LED2)
 
-/* If CONFIG_ARCH_LEDS is defined, the usage by the board port is defined in
- * include/board.h and src/stm32_leds.c. The LEDs are used to encode OS-related
- * events as follows:
- *
- *
- *   SYMBOL                     Meaning                      LED state
- *                                                        Red   Green Blue
- *   ----------------------  --------------------------  ------ ------ ----*/
-
-#define LED_STARTED        0 /* NuttX has been started   OFF    OFF   OFF  */
-#define LED_HEAPALLOCATE   1 /* Heap has been allocated  OFF    OFF   ON   */
-#define LED_IRQSENABLED    2 /* Interrupts enabled       OFF    ON    OFF  */
-#define LED_STACKCREATED   3 /* Idle stack created       OFF    ON    ON   */
-#define LED_INIRQ          4 /* In an interrupt          N/C    N/C   GLOW */
-#define LED_SIGNAL         5 /* In a signal handler      N/C    GLOW  N/C  */
-#define LED_ASSERTION      6 /* An assertion failed      GLOW   N/C   GLOW */
-#define LED_PANIC          7 /* The system has crashed   Blink  OFF   N/C  */
-#define LED_IDLE           8 /* MCU is is sleep mode     ON     OFF   OFF  */
-
-/* Thus if the Green LED is statically on, NuttX has successfully booted and
- * is, apparently, running normally.  If the Red LED is flashing at
- * approximately 2Hz, then a fatal error has been detected and the system
- * has halted.
+/* If CONFIG_ARCH_LEDS is defined, the board port uses these symbolic values
+ * to encode OS-related events.
  */
+
+#define LED_STARTED        0 /* NuttX has been started */
+#define LED_HEAPALLOCATE   1 /* Heap has been allocated */
+#define LED_IRQSENABLED    2 /* Interrupts enabled */
+#define LED_STACKCREATED   3 /* Idle stack created */
+#define LED_INIRQ          4 /* In an interrupt */
+#define LED_SIGNAL         5 /* In a signal handler */
+#define LED_ASSERTION      6 /* An assertion failed */
+#define LED_PANIC          7 /* The system has crashed */
+#define LED_IDLE           8 /* MCU is in sleep mode */
 
 /* Alternate function pin selections ************************************************/
 

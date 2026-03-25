@@ -56,7 +56,9 @@
 // #define FLASH_BASED_PARAMS
 
 
-/* LEDs are driven with push open drain to support Anode to 5V or 3.3V */
+/* MCU-controlled status LEDs. The board also has a red 3.3V/USB indicator
+ * LED that is not software-controlled via a GPIO.
+ */
 
 #define GPIO_nLED_BLUE          /* PE3 */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN3)
 #define GPIO_nLED_GREEN         /* PE4 */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN4)
