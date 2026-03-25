@@ -34,9 +34,9 @@
 /**
  * @file mission_route_planner.h
  *
- * Route planner for safe-point RTL (RTL_TYPE = 6).  Projects the vehicle
+ * Route planner for safe-point RTL (RTL_TYPE = 6). Projects the vehicle
  * and every safe point onto the uploaded mission geometry, then selects
- * the goal with the shortest along-route cost.
+ * the goal with the lowest total return cost.
  *
  * @author Jonas Perolini <jonspero@me.com>
  */
@@ -454,7 +454,7 @@ private:
 					bool segment_has_no_length, CandidateSearchState &state,
 					uint32_t &local_min_found, uint32_t &valid_candidate_found,
 					CandidateBuffer &candidate_buffer) const;
-	/** @brief Project a full batch of safe points in one mission scan while preserving loop and along-route bookkeeping. */
+	/** @brief */
 	bool findProjectionCandidatesBatch(int32_t mission_index, float home_altitude_amsl,
 					   bool is_flying_reverse, float extra_xtrack_dist,
 					   const Segment &last_flown_loop_segment,
@@ -472,7 +472,7 @@ private:
 			bool is_flying_reverse, float total_dist, float segment_length,
 			const Segment &last_flown_loop_segment,
 			SegmentDistanceAlong &dist_along_to_last_flown_segment) const;
-	/** @brief Apply the same local-minimum pruning rule used by legacy SRP projections. */
+	/** @brief Apply the same local-minimum pruning rule. */
 	bool localMinimumOnSegment(bool proj_on_start, bool proj_on_end, bool prev_proj_on_end,
 				   bool jumping, bool last_segment) const;
 	/** @brief Sanity-check a projection candidate before inserting it into the buffer. */

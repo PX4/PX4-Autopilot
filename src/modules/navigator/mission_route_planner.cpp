@@ -34,9 +34,9 @@
 /**
  * @file mission_route_planner.cpp
  *
- * Route planner for safe-point RTL (RTL_TYPE = 6).  Projects the vehicle
+ * Route planner for safe-point RTL (RTL_TYPE = 6). Projects the vehicle
  * and every safe point onto the uploaded mission geometry, then selects
- * the goal with the shortest along-route cost.
+ * the goal with the lowest total return cost.
  *
  * @author Jonas Perolini <jonspero@me.com>
  */
@@ -381,6 +381,7 @@ void MissionRoutePlanner::pruneProjectionCandidates(CandidateBuffer &candidate_b
 	const uint8_t buffer_size = min(candidate_buffer.count, MAX_SEGMENT_CANDIDATES);
 	uint8_t index = buffer_size;
 
+	// TODO: can we use other syntax than do, while?
 	do {
 		--index;
 
@@ -461,7 +462,7 @@ void MissionRoutePlanner::processCandidateForSegment(const Position &reference_p
 	bool proj_on_start = false;
 	bool proj_on_end = false;
 
-	// --- Step 1: Degenerate (zero-length) segment handling ---
+	// Zero-length segment handling
 	if (segment_has_no_length) {
 		// If the segment is a point, the projection is the point itself.
 		xtrack = get_distance_to_next_waypoint(reference_position.lat, reference_position.lon,
@@ -470,7 +471,7 @@ void MissionRoutePlanner::processCandidateForSegment(const Position &reference_p
 		proj_on_end = true;
 
 	} else {
-		// --- Step 2: Orthogonal projection onto the segment ---
+		// Orthogonal projection onto the segment
 		// segment_vector (A→B) is pre-computed by the caller once per segment.
 		matrix::Vector2f reference_vector; // Vector A→P (segment start to reference point)
 
@@ -482,7 +483,7 @@ void MissionRoutePlanner::processCandidateForSegment(const Position &reference_p
 		const float path_len_sq = segment_vector.norm_squared();
 		const float t = (path_len_sq > FLT_EPSILON) ? (reference_vector.dot(segment_vector) / path_len_sq) : 0.f;
 
-		// --- Step 3: Corner detection ---
+		// Corner detection
 		// If t is negative, (t * len) is negative which is < tol, so this check handles both cases.
 		static constexpr float kCornerToleranceM = 0.05f;
 		proj_on_start = (t * segment_length) < kCornerToleranceM;
@@ -497,8 +498,8 @@ void MissionRoutePlanner::processCandidateForSegment(const Position &reference_p
 
 	state.proj_on_end_for_segment = proj_on_end;
 
-	// --- Step 4: Local minimum filter ---
-	// Only keep locally minimal projections.  This avoids emitting both sides of the same shared
+	// Local minimum filter
+	// Only keep locally minimal projections. This avoids emitting both sides of the same shared
 	// corner unless the legacy corner rule explicitly allows it, which keeps the candidate set
 	// stable around turns and loops.
 	if (!localMinimumOnSegment(proj_on_start, proj_on_end, state.prev_proj_on_end, segment.is_loop, last_segment)) {
@@ -507,13 +508,13 @@ void MissionRoutePlanner::processCandidateForSegment(const Position &reference_p
 
 	local_min_found++;
 
-	// --- Step 5: Reject non-finite or out-of-window projections ---
+	// Reject non-finite or out-of-window projections
 	// We abort here before doing LatLon reconstruction (which is more expensive).
 	if (!PX4_ISFINITE(xtrack) || xtrack < 0.f || xtrack >= state.xtrack_limit) {
 		return;
 	}
 
-	// --- Step 6: Construct the candidate with global coordinates ---
+	// Construct the candidate with global coordinates
 	SegmentCandidate candidate{};
 	candidate.segment = segment;
 	candidate.segment_positions = segment_positions;
@@ -539,14 +540,13 @@ void MissionRoutePlanner::processCandidateForSegment(const Position &reference_p
 					   + t_clamped * (segment_positions.end.alt - segment_positions.start.alt);
 	}
 
-	// --- Step 7: Validate the candidate ---
 	if (!validateCandidate(candidate)) {
 		return;
 	}
 
 	valid_candidate_found++;
 
-	// --- Steps 8–9: Tighten search window and insert sorted ---
+	// Tighten search window and insert sorted
 	if (xtrack < state.min_xtrack) {
 		// A new closest projection tightens the search window, so prune stale candidates first.
 		state.min_xtrack = xtrack;
@@ -557,6 +557,7 @@ void MissionRoutePlanner::processCandidateForSegment(const Position &reference_p
 	insertCandidateSorted(candidate_buffer, candidate);
 }
 
+// TODO: this function needs simplifications (see comments inside) and more comments explaining the code. The @brief in the hpp must be updated as well
 bool MissionRoutePlanner::findProjectionCandidatesBatch(int32_t mission_index, float home_altitude_amsl,
 		bool is_flying_reverse, float extra_xtrack_dist,
 		const Segment &last_flown_loop_segment,
@@ -566,6 +567,7 @@ bool MissionRoutePlanner::findProjectionCandidatesBatch(int32_t mission_index, f
 		uint8_t *loops_remaining,
 		FailureReason *failure_reason) const
 {
+	// TODO: is this nullptr check really necessary?
 	if (failure_reason != nullptr) {
 		*failure_reason = FailureReason::Unknown;
 	}
@@ -584,6 +586,7 @@ bool MissionRoutePlanner::findProjectionCandidatesBatch(int32_t mission_index, f
 
 	resetSafePointBatchResults(batch);
 
+	// TODO: why use a pointer for loops remaining here. Seems to only make the code more complex.
 	if (loops_remaining != nullptr) {
 		*loops_remaining = 0;
 	}
@@ -1045,12 +1048,14 @@ bool MissionRoutePlanner::uTurnRequired(const ProjectionContext &projection_cont
 		return false;
 	}
 
+	// TODO: define the local_velocity vector2f here so we can use isAllFinite
 	if (!projection_context.vehicle_velocity_valid
 	    || !PX4_ISFINITE(projection_context.vehicle_velocity_north)
 	    || !PX4_ISFINITE(projection_context.vehicle_velocity_east)) {
 		return false;
 	}
 
+	// TODO: simplify this, we can pass a vector2f to computeDesiredCourseVector and then check isAllFinite
 	float desired_course_north = NAN;
 	float desired_course_east = NAN;
 	computeDesiredCourseVector(projection_context, will_fly_reverse, desired_course_north, desired_course_east);
@@ -1297,7 +1302,6 @@ MissionRoutePlanner::Selection MissionRoutePlanner::selectSafePoint(const Projec
 				continue;
 			}
 
-			// TODO: include the cross-track in the computation of the shortest path to ensure that we minimize the overall distance.
 			const Path path = findShortestPath(projection_candidate.segment.end.idx,
 							   projection_candidate.dist.along,
 							   projection_context, config);
@@ -1306,8 +1310,19 @@ MissionRoutePlanner::Selection MissionRoutePlanner::selectSafePoint(const Projec
 				continue;
 			}
 
-			if (path.dist < best_path.dist) {
-				best_path = path;
+			// Safe-point ranking must include both the route-following distance and the final
+			// straight branch-off leg from the route projection to the safe point.
+			const float total_path_cost = path.dist + projection_candidate.dist.xtrack;
+
+			if (!PX4_ISFINITE(total_path_cost)) {
+				continue;
+			}
+
+			Path ranked_path = path;
+			ranked_path.dist = total_path_cost;
+
+			if (ranked_path.dist < best_path.dist) {
+				best_path = ranked_path;
 				best_projection_index = candidate_index;
 			}
 		}

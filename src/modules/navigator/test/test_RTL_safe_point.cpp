@@ -37,7 +37,7 @@
  * Unit tests for MissionRoutePlanner safe-point (rally point) evaluation and
  * selection during route-following RTL. Covers:
  *
- * - Basic safe-point selection: shortest along-route path, direct-to, invalid points
+ * - Basic safe-point selection: lowest overall path cost, direct-to, invalid points
  * - Default dataset MC/FW selection: forward/reverse direction, acceptance radius,
  *   invalid rally skipping, all-behind fallback
  * - Fixed-wing u-turn penalty: verifies that the 4 km penalty shifts FW
@@ -72,9 +72,9 @@ class RtlSafePointTest : public MissionRoutePlannerTestBase {};
 // GROUP 1: Basic safe point selection
 // ============================================================================
 
-// WHY: The planner must prefer the safe point reachable via the shortest along-route distance.
+// WHY: The planner must prefer the safe point reachable via the lowest overall path cost.
 // WHAT: selectSafePoint returns the closer rally point (index 1) on segment [0-1].
-TEST_F(RtlSafePointTest, PrefersShortestAlongRoutePath)
+TEST_F(RtlSafePointTest, PrefersLowestOverallPathCost)
 {
 	// GIVEN: 4-wp square mission with two safe points at different along-route distances.
 	std::vector<mission_item_s> mission{
@@ -100,6 +100,39 @@ TEST_F(RtlSafePointTest, PrefersShortestAlongRoutePath)
 	const MissionRoutePlanner::Selection selection = planner.selectSafePoint(ctx, config);
 
 	// THEN: The closer safe point (index 1) is selected, branching off segment [0-1].
+	ASSERT_TRUE(selection.found);
+	EXPECT_TRUE(selection.safe_point_found);
+	EXPECT_EQ(selection.goal_type, MissionRoutePlanner::GoalType::SafePoint);
+	EXPECT_EQ(selection.safe_point_index, 1);
+	EXPECT_EQ(selection.branch_off_segment.start.idx, 0);
+	EXPECT_EQ(selection.branch_off_segment.end.idx, 1);
+}
+
+// WHY: The scorer must add the final branch-off leg to avoid preferring a short along-route detour
+//      that still produces a longer total return path.
+// WHAT: The farther-along but near-route safe point beats the near-along but far-off-route safe point.
+TEST_F(RtlSafePointTest, IncludesBranchOffLegInSafePointRanking)
+{
+	std::vector<mission_item_s> mission{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kAlt),
+	};
+
+	std::vector<mission_item_s> safe_points{
+		makeSafePointFromOffset(kBaseLat, kBaseLon, 15.f, 80.f, kAlt),
+		makeSafePointFromOffset(kBaseLat, kBaseLon, 60.f, 5.f, kAlt),
+	};
+
+	VectorProvider provider{mission, safe_points};
+	MissionRoutePlanner planner{provider};
+	const MissionRoutePlanner::Position vehicle_position =
+		makePositionFromOffset(kBaseLat, kBaseLon, 10.f, 0.f, kAlt);
+
+	ASSERT_TRUE(planner.collectVehicleProjection(vehicle_position, 1, config, ctx, nullptr));
+
+	const MissionRoutePlanner::Selection selection = planner.selectSafePoint(ctx, config);
+
 	ASSERT_TRUE(selection.found);
 	EXPECT_TRUE(selection.safe_point_found);
 	EXPECT_EQ(selection.goal_type, MissionRoutePlanner::GoalType::SafePoint);
@@ -508,7 +541,7 @@ TEST_F(RtlSafePointTest, CornerMission_RallyOnCorner_MC)
 }
 
 // WHY: FW corner handling must stay deterministic because the branch-off segment feeds the executor.
-// WHAT: FW selects rally 2 and branches off on segment [2-4] across the FW corner transition.
+// WHAT: With total-cost scoring, FW selects the route-nearer rally 0 and branches off on segment [4-5].
 TEST_F(RtlSafePointTest, CornerMission_CornerProjectionHandled_FW)
 {
 	// GIVEN: Corner mission, FW config. Same vehicle position as CornerMission_RallyOnCorner_MC.
@@ -527,19 +560,20 @@ TEST_F(RtlSafePointTest, CornerMission_CornerProjectionHandled_FW)
 
 	const MissionRoutePlanner::Selection selection = planner.selectSafePoint(ctx, config);
 
-	// THEN: Rally 2 is selected with the expected forward branch-off geometry.
+	// THEN: Rally 0 is selected with the expected forward branch-off geometry.
 	ASSERT_TRUE(selection.found);
 	EXPECT_TRUE(selection.safe_point_found);
 	EXPECT_EQ(selection.goal_type, MissionRoutePlanner::GoalType::SafePoint);
-	EXPECT_EQ(selection.safe_point_index, 2);
-	EXPECT_EQ(selection.branch_off_segment.start.idx, 2);
-	EXPECT_EQ(selection.branch_off_segment.end.idx, 4);
+	EXPECT_EQ(selection.safe_point_index, 0);
+	EXPECT_EQ(selection.branch_off_segment.start.idx, 4);
+	EXPECT_EQ(selection.branch_off_segment.end.idx, 5);
 	EXPECT_TRUE(selection.branch_off_projection.valid());
 	EXPECT_FALSE(selection.path.direction_reversed);
 }
 
-// WHY: Rally points whose loop-segment candidate would create an invalid path must be excluded.
-// WHAT: MC picks rally 4 instead of rally 3 whose loop-segment candidate is excluded.
+// WHY: Rally points whose loop-segment candidate would create an invalid path must still be allowed
+//      to win through a valid nominal-segment projection when that yields the lowest total return cost.
+// WHAT: MC picks rally 3 once the final branch-off leg is included in the scorer.
 TEST_F(RtlSafePointTest, CornerMission_BackNoTransition_MC)
 {
 	// GIVEN: Corner mission, MC config. Vehicle at index 7 near a transition boundary.
@@ -557,9 +591,9 @@ TEST_F(RtlSafePointTest, CornerMission_BackNoTransition_MC)
 
 	const MissionRoutePlanner::Selection selection = planner.selectSafePoint(ctx, config);
 
-	// THEN: Rally 4 is selected (rally 3's loop-segment candidate is excluded).
+	// THEN: Rally 3 is selected through its valid non-loop projection.
 	ASSERT_TRUE(selection.found);
-	EXPECT_EQ(selection.safe_point_index, 4);
+	EXPECT_EQ(selection.safe_point_index, 3);
 }
 
 // WHY: Small segments near the end of the mission must be handled without skipping valid rally points.
@@ -616,8 +650,8 @@ TEST_F(RtlSafePointTest, CornerMission_ReverseCornerScenarioSelectsRally2OnSegme
 }
 
 // WHY: The stacked landing corner is easy to regress because segment [14-15] has zero XY length.
-// WHAT: The land-corner scenario selects rally 5 and still branches off on segment [14-15].
-TEST_F(RtlSafePointTest, CornerMission_LandCornerScenarioSelectsRally5OnSegment14To15)
+// WHAT: The land-corner scenario selects the land-corner rally 6 and still branches off on segment [14-15].
+TEST_F(RtlSafePointTest, CornerMission_LandCornerScenarioSelectsRally6OnSegment14To15)
 {
 	// GIVEN: Corner mission, FW config. Vehicle near stacked landing at mission_index=13.
 	VectorProvider provider{corner_dataset::mission(), corner_dataset::safePoints()};
@@ -635,11 +669,11 @@ TEST_F(RtlSafePointTest, CornerMission_LandCornerScenarioSelectsRally5OnSegment1
 
 	const MissionRoutePlanner::Selection selection = planner.selectSafePoint(ctx, config);
 
-	// THEN: Rally 5 is selected on the stacked landing segment rather than a neighboring corner.
+	// THEN: Rally 6 is selected on the stacked landing segment rather than a neighboring corner.
 	ASSERT_TRUE(selection.found);
 	EXPECT_TRUE(selection.safe_point_found);
 	EXPECT_EQ(selection.goal_type, MissionRoutePlanner::GoalType::SafePoint);
-	EXPECT_EQ(selection.safe_point_index, 5);
+	EXPECT_EQ(selection.safe_point_index, 6);
 	EXPECT_EQ(selection.branch_off_segment.start.idx, 14);
 	EXPECT_EQ(selection.branch_off_segment.end.idx, 15);
 	EXPECT_TRUE(selection.branch_off_projection.valid());

@@ -1,6 +1,6 @@
 # Route Safe Point Return
 
-_Route Safe Point Return_ is a mission-aware [Return Mode](./return.md) that uses the uploaded mission geometry as the return corridor. PX4 projects the vehicle and every uploaded safe point onto the mission route, chooses the closest safe point along the route, follows the route in nominal or reverse direction, reaches the branch-off point defined as the projection of the selected safe-point on the route and only then branches off horizontally from the flight plan and proceeds to land at the safe point location.
+_Route Safe Point Return_ is a mission-aware [Return Mode](./return.md) that uses the uploaded mission geometry as the return corridor. PX4 projects the vehicle and every uploaded safe point onto the mission route, chooses the safe point with the lowest total return cost, follows the route in nominal or reverse direction, reaches the branch-off point defined as the projection of the selected safe point on the route and only then branches off horizontally from the flight plan and proceeds to land at the safe point location.
 
 Set [RTL_TYPE=6](../advanced_config/parameter_reference.md#RTL_TYPE) to enable it.
 
@@ -44,7 +44,7 @@ When `RTL_TYPE=6` is evaluated, PX4 performs these steps:
 
 1. Project the vehicle onto the mission route.
 2. Project all safe points onto the mission route.
-3. Score the reachable safe-point projections by along-route cost.
+3. Score the reachable safe-point projections by total return cost.
 4. If route planning succeeds but no safe point is usable, fall back to the closer mission endpoint (takeoff or land).
 5. If route planning itself cannot run, fall back to the same direct RTL destination selection used by `RTL_TYPE=3` (home, closest eligible safe point, or mission landing).
 6. Build a route-join, route-follow, and branch-off plan from the selected result.
@@ -77,7 +77,7 @@ Once the lateral branch-in point is established, the system calculates the targe
 
 ### Safe-Point Scoring
 
-When the RTL mode is active, the vehicle follows the mission route until it reaches a branch-off point and flies straight to the safe point. The safe point selection is based on the along-route distance from the vehicle projection to the safe-point projection. In order to evaluate this along-route distance, the first step is to find candidate "branch-off" points on the planned route — the point at which the vehicle will leave the flight plan to go straight to the safe point.
+When the RTL mode is active, the vehicle follows the mission route until it reaches a branch-off point and flies straight to the safe point. The safe point selection is based on the total return cost from the vehicle projection to the safe-point destination. The first step is therefore to find candidate branch-off points on the planned route: the points where the vehicle could leave the flight plan and fly straight to the safe point.
 
 The algorithm for selecting a safe point projection (potential branch-off) is executed in two main phases:
 
@@ -89,6 +89,7 @@ The process for identifying valid projection candidates is identical to Phase 1 
 
 From the valid candidates, the system evaluates the travel path from each projection point to the safe point destination and selects the one with the lowest total path cost. The cost is calculated based on the following factors:
  - Along-Route Distance: The distance along the mission route from the vehicle projection to the safe-point projection (branch-off point). This is measured along the route geometry with straight lines between waypoints.
+ - Branch-Off Leg: The straight-line distance from the safe-point projection to the safe point itself. This is the final off-route leg flown after the vehicle leaves the mission geometry.
  - U-turn Penalty: For Fixed-wing and VTOL-in-FW, a distance penalty ([RTL_FW_UTURN_PEN](../advanced_config/parameter_reference.md#RTL_FW_UTURN_PEN), default 4,000 m) is added to the cost if the path requires the vehicle to perform a U-turn. This prioritizes forward-flowing paths. Reduce the value for smaller airframes with tighter turn radii, or set to 0 to disable the penalty.
 
 Safe points are pre-filtered once before route scoring:
@@ -203,7 +204,6 @@ The route-based scorer used by `RTL_TYPE=6` evaluates at most 64 uploaded safe p
 ## Current Limitations
 
 - Missions exceeding `CONFIG_RTL_MISSION_CACHE_SIZE` items (default 300) are not supported; PX4 falls back to direct-path RTL.
-- Safe-point scoring currently minimizes along-route distance only; it does not yet add the final branch-off leg from the mission route to the safe point into the cost.
 - If several safe points are already within the direct-to-safe-point shortcut radius, the first qualifying safe point in upload order is used.
 - Geofence-aware pruning for vehicle and safe-point projections is not yet implemented.
 - No dedicated reverse-turn execution module: U-turns are penalized in path scoring but not executed as a specific maneuver.
