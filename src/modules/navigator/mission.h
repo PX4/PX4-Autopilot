@@ -78,11 +78,6 @@ private:
 	 */
 	bool do_need_move_to_takeoff();
 
-	/**
-	 * Calculate takeoff height for mission item considering ground clearance
-	 */
-	float calculate_takeoff_altitude(struct mission_item_s *mission_item);
-
 	void updateMissionRouteCache();
 	void syncMissionRouteState();
 

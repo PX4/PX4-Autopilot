@@ -57,6 +57,7 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/wind.h>
 
 
 #include "mission.h"
@@ -86,7 +87,27 @@ public:
 	WorkItemType workItemTypeForTest() const { return _work_item_type; }
 	int32_t currentSequenceForTest() const { return _mission.current_seq; }
 	const MissionRoutePlanner::JoinContext &joinContextForTest() const { return _route_join_context; }
-	VtolTransitionAction joinTransitionActionForTest() const { return _join_transition_action; }
+	VtolTransitionAction joinTransitionActionForTest() const { return _route_join_context.transition_action; }
+};
+
+class RTLTestPeer : public RTL
+{
+public:
+	explicit RTLTestPeer(Navigator *navigator) : RTL(navigator) {}
+
+	loiter_point_s chooseBestLandingApproachForTest(const land_approaches_s &vtol_land_approaches)
+	{
+		_home_pos_sub.update();
+		_wind_sub.update();
+		return chooseBestLandingApproach(vtol_land_approaches);
+	}
+
+	static constexpr uint8_t kDestinationTypeMissionLand =
+		static_cast<uint8_t>(DestinationType::DESTINATION_TYPE_MISSION_LAND);
+	static constexpr uint8_t kDestinationTypeMissionTakeoff =
+		static_cast<uint8_t>(DestinationType::DESTINATION_TYPE_MISSION_TAKEOFF);
+	static constexpr uint8_t kDestinationTypeSafePoint =
+		static_cast<uint8_t>(DestinationType::DESTINATION_TYPE_SAFE_POINT);
 };
 
 class NavigatorRouteRejoinAndRtlTest : public ::testing::Test
@@ -212,6 +233,15 @@ protected:
 		_home_position = home_position;
 	}
 
+	void publishWind(float windspeed_north, float windspeed_east)
+	{
+		wind_s wind{};
+		wind.timestamp = hrt_absolute_time();
+		wind.windspeed_north = windspeed_north;
+		wind.windspeed_east = windspeed_east;
+		_wind_pub.publish(wind);
+	}
+
 	void primeNavigatorState(Navigator &navigator)
 	{
 		*navigator.get_vstatus() = _vehicle_status;
@@ -256,6 +286,7 @@ protected:
 	uORB::Publication<vehicle_global_position_s> _vehicle_global_position_pub{ORB_ID(vehicle_global_position)};
 	uORB::Publication<vehicle_local_position_s> _vehicle_local_position_pub{ORB_ID(vehicle_local_position)};
 	uORB::Publication<home_position_s> _home_position_pub{ORB_ID(home_position)};
+	uORB::Publication<wind_s> _wind_pub{ORB_ID(wind)};
 
 	vehicle_status_s _vehicle_status{};
 	vehicle_land_detected_s _land_detected{};
@@ -557,4 +588,43 @@ TEST_F(NavigatorRouteRejoinAndRtlTest, RtlType6PlanningFailureFallsBackToDirectM
 	const rtl_status_s &rtl_status = rtl_status_sub.get();
 	EXPECT_EQ(rtl_status.rtl_type, rtl_status_s::RTL_STATUS_TYPE_DIRECT_MISSION_LAND);
 	EXPECT_EQ(rtl_status.safe_point_index, UINT8_MAX);
+}
+
+// WHY: Wind-based safe-point approach selection must evaluate the loiter-circle bearing from the
+//      safe-point land location. Otherwise a remote safe point can choose the wrong approach.
+// WHAT: With home at the origin, a safe point at N+100/E+100, and wind at 60 deg, the correct
+//       land-relative selection is the north approach.
+TEST_F(NavigatorRouteRejoinAndRtlTest, ChooseBestLandingApproachUsesLandLocationAsBearingOrigin)
+{
+	Navigator navigator;
+	RTLTestPeer rtl(&navigator);
+
+	publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kBaseAlt));
+	publishWind(1.f, 1.7320508f);
+
+	const MissionRoutePlanner::Position land_position =
+		makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kBaseAlt);
+	const MissionRoutePlanner::Position north_approach_position =
+		makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 100.f, kBaseAlt + 20.f);
+	const MissionRoutePlanner::Position south_approach_position =
+		makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 100.f, kBaseAlt + 20.f);
+
+	land_approaches_s vtol_land_approaches{};
+	vtol_land_approaches.land_location_lat_lon(0) = land_position.lat;
+	vtol_land_approaches.land_location_lat_lon(1) = land_position.lon;
+	vtol_land_approaches.approaches[0].lat = north_approach_position.lat;
+	vtol_land_approaches.approaches[0].lon = north_approach_position.lon;
+	vtol_land_approaches.approaches[0].height_m = north_approach_position.alt;
+	vtol_land_approaches.approaches[0].loiter_radius_m = 50.f;
+	vtol_land_approaches.approaches[1].lat = south_approach_position.lat;
+	vtol_land_approaches.approaches[1].lon = south_approach_position.lon;
+	vtol_land_approaches.approaches[1].height_m = south_approach_position.alt;
+	vtol_land_approaches.approaches[1].loiter_radius_m = 50.f;
+
+	const loiter_point_s selected_approach = rtl.chooseBestLandingApproachForTest(vtol_land_approaches);
+
+	ASSERT_TRUE(selected_approach.isValid());
+	EXPECT_NEAR(selected_approach.lat, north_approach_position.lat, 1e-9);
+	EXPECT_NEAR(selected_approach.lon, north_approach_position.lon, 1e-9);
+	EXPECT_NEAR(selected_approach.height_m, north_approach_position.alt, 0.01f);
 }

@@ -65,6 +65,7 @@
 
 class Navigator;
 class MissionRouteCache;
+class RTLTestPeer;
 
 class RTL : public NavigatorMode, public ModuleParams
 {
@@ -93,11 +94,14 @@ public:
 
 	bool isLanding();
 
+	friend class RTLTestPeer;
+
 private:
 	enum class DestinationType {
 		DESTINATION_TYPE_HOME,
 		DESTINATION_TYPE_MISSION_LAND,
 		DESTINATION_TYPE_SAFE_POINT
+		DESTINATION_TYPE_MISSION_TAKEOFF,
 	};
 
 private:
@@ -126,9 +130,6 @@ private:
 	 */
 	void updateDatamanCache();
 
-	/** @brief Return true when route-safe-point RTL has all mission and cache prerequisites satisfied. */
-	bool canUseRouteSafePointRtl(const MissionRouteCache *mission_route_cache) const;
-
 	/** @brief Build the route-safe-point planner input for the current vehicle and mission state. */
 	MissionRoutePlanner::Config buildRouteSafePointConfig(bool is_flying_reverse) const;
 
@@ -155,6 +156,8 @@ private:
 				     DestinationType &destination_type,
 				     PositionYawSetpoint &destination,
 				     uint8_t &safe_point_index);
+	/** @brief Convert a route-safe-point planner goal into the outer RTL destination category. */
+	static DestinationType routePlanDestinationType(MissionRoutePlanner::GoalType goal_type);
 
 	/** @brief Fall back from route-safe-point RTL to the existing direct or mission-land logic. */
 	void applyRouteSafePointFallback(RtlType &new_rtl_type,

@@ -296,12 +296,14 @@ TEST_F(RtlPlannerIntegrationTest, FallsBackWhenAllSafePointsInvalid)
 }
 
 // =============================================================================
-// GROUP 2: Altitude handling near landing
+// GROUP 2: Geometric join context
 // =============================================================================
 
-// WHY: When a fixed-wing vehicle is close to the land waypoint, it should skip the altitude requirement.
-// WHAT: Vehicle near land at alt=523 gets skip_altitude_requirement=true and join alt=vehicle alt.
-TEST_F(RtlPlannerIntegrationTest, SkipsAltitudeRequirementNearLand)
+// WHY: The planner now owns only the geometric join context. Execution-side join corrections
+//      such as skip-altitude handling are finalized later in MissionBase::setupJoinRoute().
+// WHAT: Vehicle near land still selects MissionLand, but the planner leaves skip_altitude_requirement unset
+//       and preserves the raw geometric projection altitude.
+TEST_F(RtlPlannerIntegrationTest, KeepsJoinContextGeometricNearLand)
 {
 	// GIVEN: A 3-waypoint mission (takeoff -> wp -> land).
 	auto items = std::vector<mission_item_s> {
@@ -321,16 +323,54 @@ TEST_F(RtlPlannerIntegrationTest, SkipsAltitudeRequirementNearLand)
 	// WHEN: planRouteToGoal is called.
 	bool ok = planner.planRouteToGoal(vehicle_pos, 1, config, plan, reason);
 
-	// THEN: MissionLand is selected, skip_altitude_requirement is true, join alt matches vehicle alt.
+	// THEN: MissionLand is selected and the join context remains purely geometric.
 	ASSERT_TRUE(ok);
 	EXPECT_EQ(plan.selection.goal_type, MissionRoutePlanner::GoalType::MissionLand);
-	EXPECT_TRUE(plan.join_context.skip_altitude_requirement);
-	EXPECT_NEAR(plan.join_context.projection.alt, 523.f, kAltitudeTolerance);
+	EXPECT_FALSE(plan.join_context.skip_altitude_requirement);
+	EXPECT_NEAR(plan.join_context.projection.alt, plan.projection_context.seg_candidate.projection.alt,
+		    kAltitudeTolerance);
 }
 
-// WHY: Corner dataset missions with the vehicle near land should also skip altitude requirements.
-// WHAT: Vehicle near the corner dataset land waypoint gets skip_altitude_requirement=true.
-TEST_F(RtlPlannerIntegrationTest, CornerMission_SkipAltitudeNearLand)
+// WHY: Mission smart rejoin should use a dedicated planner entry point instead of reconstructing
+//      projection, nominal-path, and join-context logic in Mission::trySetRouteJoinOnActivation.
+//      The planner-side join context should stay geometric here as well.
+// WHAT: planMissionResumeJoin near land returns a valid nominal join plan with the same
+//       geometric join context behavior as planRouteToGoal.
+TEST_F(RtlPlannerIntegrationTest, MissionResumeJoinKeepsJoinContextGeometricNearLand)
+{
+	// GIVEN: A 3-waypoint mission (takeoff -> wp -> land).
+	auto items = std::vector<mission_item_s> {
+		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt + 20.f),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt - 10.f),
+	};
+	std::vector<mission_item_s> no_safe_points{};
+	VectorProvider provider(items, no_safe_points);
+	MissionRoutePlanner planner(provider);
+	MissionRoutePlanner::JoinPlan join_plan{};
+
+	// Vehicle at (N+200, E+0, alt=523), near landing.
+	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, 523.f);
+	config = fwConfig();
+	config.parameters.acceptance_radius = 20.f;
+
+	// WHEN: planMissionResumeJoin is called.
+	bool ok = planner.planMissionResumeJoin(vehicle_pos, 1, config, join_plan, reason);
+
+	// THEN: The nominal join targets the land item and leaves skip-altitude unset for MissionBase.
+	ASSERT_TRUE(ok);
+	EXPECT_EQ(join_plan.path.first_item_index, 2);
+	EXPECT_EQ(join_plan.path.first_item_cmd, NAV_CMD_LAND);
+	EXPECT_FALSE(join_plan.join_context.skip_altitude_requirement);
+	EXPECT_NEAR(join_plan.join_context.projection.alt,
+		    join_plan.projection_context.seg_candidate.projection.alt,
+		    kAltitudeTolerance);
+}
+
+// WHY: The geometric-only join-context rule should also hold for the corner dataset near land.
+// WHAT: Vehicle near the corner dataset land waypoint still produces a MissionLand plan, but
+//       the planner keeps skip_altitude_requirement unset and preserves the raw projection altitude.
+TEST_F(RtlPlannerIntegrationTest, CornerMissionKeepsJoinContextGeometricNearLand)
 {
 	// GIVEN: Corner dataset mission with no safe points.
 	auto items = corner_dataset::mission();
@@ -348,11 +388,12 @@ TEST_F(RtlPlannerIntegrationTest, CornerMission_SkipAltitudeNearLand)
 	// WHEN: planRouteToGoal is called.
 	bool ok = planner.planRouteToGoal(vehicle_pos, 12, config, plan, reason);
 
-	// THEN: MissionLand is selected and skip_altitude_requirement keeps the current altitude.
+	// THEN: MissionLand is selected and the join context stays geometric.
 	ASSERT_TRUE(ok);
 	EXPECT_EQ(plan.selection.goal_type, MissionRoutePlanner::GoalType::MissionLand);
-	EXPECT_TRUE(plan.join_context.skip_altitude_requirement);
-	EXPECT_NEAR(plan.join_context.projection.alt, 462.2f, kAltitudeTolerance);
+	EXPECT_FALSE(plan.join_context.skip_altitude_requirement);
+	EXPECT_NEAR(plan.join_context.projection.alt, plan.projection_context.seg_candidate.projection.alt,
+		    kAltitudeTolerance);
 }
 
 // WHY: Relative-altitude mission items must be converted with home_altitude_amsl before endpoint fallback.

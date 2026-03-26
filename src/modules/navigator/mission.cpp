@@ -181,56 +181,38 @@ bool Mission::trySetRouteJoinOnActivation(bool resume_mission_on_previous)
 	config.state.in_transition_to_fw = vehicle_status.in_transition_to_fw;
 	config.execution.last_flown_loop_segment = _last_flown_loop_segment;
 
-	MissionRoutePlanner::ProjectionContext projection_context{};
+	MissionRoutePlanner::JoinPlan join_plan{};
 	MissionRoutePlanner::FailureReason failure_reason{MissionRoutePlanner::FailureReason::Unknown};
 	MissionRoutePlanner::Position vehicle_position{global_position->lat, global_position->lon, global_position->alt};
 
-	if (planner.collectVehicleProjection(vehicle_position, _mission.current_seq,
-					     config, projection_context, failure_reason) == false) {
+	if (!planner.planMissionResumeJoin(vehicle_position, _mission.current_seq,
+					   config, join_plan, failure_reason)) {
 		PX4_ERR("Mission route rejoin unavailable: %s", MissionRoutePlanner::failureReasonString(failure_reason));
 		return false;
 	}
 
-	int32_t route_end_index = -1;
-
-	if (!findAttachedPositionIndex(_mission.count - 1, route_end_index)) {
-		return false;
-	}
-
-	const MissionRoutePlanner::Path path = planner.findNominalPathToGoal(route_end_index,
-					       projection_context.dist_along_to_route_end,
-					       projection_context, config);
-
-	if (!path.valid() || path.first_item_index < 0 || path.first_item_index >= _mission.count) {
-		PX4_ERR("Mission route rejoin failed to find a valid nominal path");
+	if (!join_plan.valid()
+	    || join_plan.path.first_item_index < 0
+	    || join_plan.path.first_item_index >= _mission.count) {
+		PX4_ERR("Mission route rejoin failed to build a valid join plan");
 		return false;
 	}
 
 	// Keep this cache loop-only. Nominal segments are already implied by current_seq,
 	// but an active DO_JUMP edge must survive the jump so later replans can stay anchored on it.
-	_last_flown_loop_segment = projection_context.seg_candidate.segment.validLoop()
-				   ? projection_context.seg_candidate.segment
+	_last_flown_loop_segment = join_plan.projection_context.seg_candidate.segment.validLoop()
+				   ? join_plan.projection_context.seg_candidate.segment
 				   : MissionRoutePlanner::Segment{};
-	setMissionIndex(path.first_item_index);
+	setMissionIndex(join_plan.path.first_item_index);
 	_is_current_planned_mission_item_valid = isMissionValid();
 
-	MissionRoutePlanner::JoinContext join_context = planner.buildJoinContext(projection_context, path);
-
-	if ((path.in_first_item_acc_rad)
-	    && (path.first_item_cmd == NAV_CMD_LAND || path.first_item_cmd == NAV_CMD_VTOL_LAND)) {
-		join_context.projection.alt = vehicle_position.alt;
-		join_context.skip_altitude_requirement = true;
-	}
-
-	const VtolTransitionAction join_transition_action = vtolTransitionActionForTarget(path.first_item_index,
-			path.direction_reversed);
-	setupJoinRoute(join_context, join_transition_action);
+	setupJoinRoute(join_plan.join_context, join_plan.path, vehicle_position.alt);
 
 	PX4_INFO("Mission route join: target=%d rev=%u vtol=%u skip_alt=%u",
-		 static_cast<int>(path.first_item_index),
-		 static_cast<unsigned>(path.direction_reversed),
-		 static_cast<unsigned>(join_transition_action),
-		 static_cast<unsigned>(join_context.skip_altitude_requirement));
+		 static_cast<int>(join_plan.path.first_item_index),
+		 static_cast<unsigned>(join_plan.path.direction_reversed),
+		 static_cast<unsigned>(join_plan.join_context.transition_action),
+		 static_cast<unsigned>(join_plan.join_context.skip_altitude_requirement));
 
 	mavlink_log_info(_navigator->get_mavlink_log_pub(), "Rejoining mission route\t");
 	return true;

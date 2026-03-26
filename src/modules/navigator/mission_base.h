@@ -103,14 +103,9 @@ protected:
 		MISSION_TYPE_MISSION
 	} _mission_type{MissionType::MISSION_TYPE_NONE};
 
-	enum class VtolTransitionAction : uint8_t {
-		None = 0,
-		FrontTransition = 1,
-		BackTransition = 2
-	};
+	using VtolTransitionAction = MissionRoutePlanner::VtolTransitionAction;
 
 	MissionRoutePlanner::JoinContext _route_join_context{};
-	VtolTransitionAction _join_transition_action{VtolTransitionAction::None};
 	static constexpr float kJoinRouteFlyByAcceptanceRadiusScale{2.f};
 
 	/**
@@ -331,11 +326,18 @@ protected:
 	bool position_setpoint_equal(const position_setpoint_s *p1, const position_setpoint_s *p2) const;
 
 	/**
-	 * @brief Arm a virtual branch-in waypoint and optional post-join VTOL transition.
+	 * @brief Arm a virtual branch-in waypoint using planner path semantics for transition selection.
 	 *
-	 * Shared by Mission resume and Route Safe Point Return through MissionBase/RtlBase.
+	 * Shared by Mission resume and Route Safe Point Return so both callers apply the
+	 * execution-side join corrections in one place before arming JOIN_ROUTE.
+	 *
+	 * This finalizes the join context with:
+	 * - the required post-join VTOL transition
+	 * - the skip-altitude override used when the join target is already inside landing acc rad
+	 * - any caller-provided skip-altitude hint (for example the mission-takeoff RTL fallback)
 	 */
-	void setupJoinRoute(const MissionRoutePlanner::JoinContext &join_context, VtolTransitionAction transition_action);
+	void setupJoinRoute(MissionRoutePlanner::JoinContext &join_context,
+			    const MissionRoutePlanner::Path &path, const float vehicle_alt);
 
 	/**
 	 * @brief Clear any pending virtual join-route state.

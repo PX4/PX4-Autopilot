@@ -122,7 +122,6 @@ void RtlMissionSafePointFollow::on_activation()
 	updateLastFlownLoopSegmentFromPlan();
 	resetJoinRouteState();
 	bool use_join_route = false;
-	VtolTransitionAction join_transition_action = VtolTransitionAction::None;
 
 	if (_plan.valid()) {
 		setMissionIndex(_plan.selection.path.first_item_index);
@@ -133,10 +132,6 @@ void RtlMissionSafePointFollow::on_activation()
 						       && _plan.selection.path.in_first_item_acc_rad;
 
 		use_join_route = !(_should_go_straight_to_goal || _plan.selection.direct_to_safe_point || reverse_land_from_takeoff);
-		join_transition_action = use_join_route
-					 ? vtolTransitionActionForTarget(_plan.selection.path.first_item_index,
-							 _plan.selection.path.direction_reversed)
-					 : VtolTransitionAction::None;
 		_stage = use_join_route ? Stage::FollowRoute : finalGoalStage();
 
 		PX4_DEBUG("RTL to %s target=%d rev=%u straight=%u stage=%u branch_off=%d",
@@ -164,7 +159,7 @@ void RtlMissionSafePointFollow::on_activation()
 	if (_is_current_planned_mission_item_valid && use_join_route) {
 		// Route Safe Point Return reuses MissionBase's shared JOIN_ROUTE ->
 		// TRANSITION_AFTER_JOIN executor path through RtlBase.
-		setupJoinRoute(_plan.join_context, join_transition_action);
+		setupJoinRoute(_plan.join_context, _plan.selection.path, _navigator->get_global_position()->alt);
 	}
 
 	MissionBase::on_activation();

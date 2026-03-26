@@ -78,6 +78,12 @@ public:
 		MissionTakeoff
 	};
 
+	enum class VtolTransitionAction : uint8_t {
+		None = 0,
+		FrontTransition = 1,
+		BackTransition = 2
+	};
+
 	struct Position {
 		double lat{NAN};
 		double lon{NAN};
@@ -269,9 +275,18 @@ public:
 	struct JoinContext {
 		Position projection{};
 		bool direction_reversed{false};
-		bool skip_altitude_requirement{false};
+		bool skip_altitude_requirement{false}; /**< Execution-side override filled by MissionBase when JOIN_ROUTE is armed. */
+		VtolTransitionAction transition_action{VtolTransitionAction::None}; /**< Execution-side VTOL transition filled by MissionBase when JOIN_ROUTE is armed. */
 
 		bool valid() const { return projection.valid(); }
+	};
+
+	struct JoinPlan {
+		ProjectionContext projection_context{};
+		Path path{};
+		JoinContext join_context{};
+
+		bool valid() const { return projection_context.valid() && path.valid() && join_context.valid(); }
 	};
 
 	struct Plan {
@@ -315,6 +330,7 @@ public:
 		None = 0,
 		NoValidGlobalPos,
 		NoValidWaypoints,
+		NoValidPath,
 		NoSegmentsFound,
 		InternalError,
 		NoLocalMinFound,
@@ -395,13 +411,14 @@ public:
 	Path findReversePathToGoal(uint16_t goal_segment_end_idx, float goal_dist_along,
 				   const ProjectionContext &projection_context,
 				   const Config &config) const;
-	/** @brief Build the join-route projection and travel direction used by the executor. */
-	JoinContext buildJoinContext(const ProjectionContext &projection_context, const Path &path) const;
 
 	/** @brief Evaluate all valid safe points and choose the best route-follow return target. */
 	Selection selectSafePoint(const ProjectionContext &projection_context, const Config &config) const;
 	/** @brief Choose the RTL goal, preferring a safe point and falling back to a mission endpoint when needed. */
 	Selection selectBestGoal(const ProjectionContext &projection_context, const Config &config) const;
+	/** @brief Build the Mission-mode smart-rejoin plan back to the mission end using the nominal route direction. */
+	bool planMissionResumeJoin(const Position &vehicle_position, int32_t mission_index,
+				   const Config &config, JoinPlan &plan, FailureReason &failure_reason) const;
 	/** @brief Build the full RTL plan: vehicle projection, join context, and selected goal. */
 	bool planRouteToGoal(const Position &vehicle_position, int32_t mission_index,
 			     const Config &config, Plan &plan, FailureReason &failure_reason) const;

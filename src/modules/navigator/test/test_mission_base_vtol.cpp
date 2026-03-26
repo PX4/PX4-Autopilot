@@ -174,6 +174,8 @@ public:
 	using MissionBase::vtolTransitionActionForTarget;
 	using MissionBase::getVtolStateAtMissionIndex;
 	using MissionBase::VtolTransitionAction;
+	using MissionBase::WorkItemType;
+	using MissionBase::setupJoinRoute;
 	using MissionBase::findNextPositionIndexNoJump;
 	using MissionBase::findPreviousPositionIndexNoJump;
 	using MissionBase::getNextPositionItems;
@@ -190,6 +192,21 @@ public:
 	int32_t currentSequenceForTest() const
 	{
 		return _mission.current_seq;
+	}
+
+	MissionRoutePlanner::JoinContext routeJoinContextForTest() const
+	{
+		return _route_join_context;
+	}
+
+	VtolTransitionAction joinTransitionActionForTest() const
+	{
+		return _route_join_context.transition_action;
+	}
+
+	WorkItemType workItemTypeForTest() const
+	{
+		return _work_item_type;
 	}
 
 	void setMissionRestartState(bool mission_has_been_activated, bool system_disarmed_while_inactive,
@@ -587,6 +604,132 @@ TEST_F(MissionBaseVtolTest, FrontTransitionDetectedInReverse)
 	// MC vehicle needs FrontTransition.
 	EXPECT_EQ(mission_base.vtolTransitionActionForTarget(1, true),
 		  MissionBaseTestPeer::VtolTransitionAction::FrontTransition);
+}
+
+// WHY: Mission and RTL both arm JOIN_ROUTE from planner output, so the helper that takes
+//      JoinContext + Path must be the single owner of transition selection and stored join state.
+// WHAT: Forward path into an FW segment from MC mode -> setupJoinRoute stores FrontTransition
+//       in both the caller context and the armed join state, leaves skip-altitude unset,
+//       preserves the join projection,
+//       and arms WORK_ITEM_TYPE_JOIN_ROUTE.
+TEST_F(MissionBaseVtolTest, SetupJoinRouteFromPathUsesSharedTransitionLogic)
+{
+	// GIVEN: A VTOL mission whose target waypoint lies in an FW segment while the vehicle is in MC mode.
+	std::vector<mission_item_s> items = {
+		makePositionItem(kLat, kLon, kAlt),
+		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW),
+		makePositionItem(kLat + 0.001, kLon, kAlt),
+	};
+
+	mission_base.loadTestMission(items);
+	mission_base.setVehicleStatus(true, false, false);
+
+	MissionRoutePlanner::JoinContext join_context{};
+	join_context.projection = {kLat + 0.0005, kLon, kAlt + 10.f};
+	join_context.direction_reversed = false;
+
+	MissionRoutePlanner::Path path{};
+	path.direction_reversed = false;
+	path.first_item_index = 2;
+	path.first_item_cmd = NAV_CMD_WAYPOINT;
+	path.dist = 50.f;
+
+	Navigator navigator;
+	vehicle_global_position_s global_position{};
+	global_position.lat = kLat + 0.0002;
+	global_position.lon = kLon;
+	global_position.alt = kAlt + 3.f;
+	*navigator.get_global_position() = global_position;
+
+	// WHEN: The shared helper arms the virtual branch-in from planner output.
+	mission_base.setupJoinRoute(join_context, path, global_position.alt);
+
+	// THEN: The helper stores the same transition action in the caller context and armed state.
+	EXPECT_EQ(join_context.transition_action, MissionBaseTestPeer::VtolTransitionAction::FrontTransition);
+	EXPECT_FALSE(join_context.skip_altitude_requirement);
+	EXPECT_EQ(mission_base.joinTransitionActionForTest(), MissionBaseTestPeer::VtolTransitionAction::FrontTransition);
+	EXPECT_EQ(mission_base.workItemTypeForTest(), MissionBaseTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
+	EXPECT_DOUBLE_EQ(mission_base.routeJoinContextForTest().projection.lat, join_context.projection.lat);
+	EXPECT_DOUBLE_EQ(mission_base.routeJoinContextForTest().projection.lon, join_context.projection.lon);
+	EXPECT_FLOAT_EQ(mission_base.routeJoinContextForTest().projection.alt, join_context.projection.alt);
+	EXPECT_EQ(mission_base.routeJoinContextForTest().direction_reversed, join_context.direction_reversed);
+	EXPECT_EQ(mission_base.routeJoinContextForTest().skip_altitude_requirement,
+		  join_context.skip_altitude_requirement);
+}
+
+// WHY: Landing joins that are already inside the target acceptance radius should skip the
+//      planned join altitude in MissionBase, because that is an execution-side correction
+//      rather than planner geometry.
+// WHAT: Near a landing target, setupJoinRoute marks skip_altitude_requirement and updates
+//       the join altitude to the vehicle's current altitude.
+TEST_F(MissionBaseVtolTest, SetupJoinRouteAppliesSkipAltitudeRequirementNearLand)
+{
+	Navigator navigator;
+	MissionBaseTestPeer mission_base_peer(&navigator);
+	mission_base_peer.setVehicleStatus(false, false, false);
+
+	vehicle_global_position_s global_position{};
+	global_position.lat = kLat + 0.0005;
+	global_position.lon = kLon;
+	global_position.alt = kAlt - 6.f;
+	*navigator.get_global_position() = global_position;
+
+	MissionRoutePlanner::JoinContext join_context{};
+	join_context.projection = {kLat + 0.0005, kLon, kAlt - 10.f};
+	join_context.direction_reversed = false;
+
+	MissionRoutePlanner::Path path{};
+	path.direction_reversed = false;
+	path.in_first_item_acc_rad = true;
+	path.first_item_index = 2;
+	path.first_item_cmd = NAV_CMD_LAND;
+	path.dist = 8.f;
+
+	mission_base_peer.setupJoinRoute(join_context, path, global_position.alt);
+
+	EXPECT_TRUE(join_context.skip_altitude_requirement);
+	EXPECT_FLOAT_EQ(join_context.projection.alt, global_position.alt);
+	EXPECT_EQ(join_context.transition_action, MissionBaseTestPeer::VtolTransitionAction::None);
+	EXPECT_TRUE(mission_base_peer.routeJoinContextForTest().skip_altitude_requirement);
+	EXPECT_FLOAT_EQ(mission_base_peer.routeJoinContextForTest().projection.alt, global_position.alt);
+}
+
+// WHY: RTL can pre-seed skip_altitude_requirement for takeoff-endpoint fallbacks before
+//      MissionBase arms JOIN_ROUTE, so setupJoinRoute must preserve that hint and apply
+//      the same altitude correction even when the path itself is not a landing command.
+// WHAT: A caller-provided skip-altitude hint updates the join altitude to the vehicle altitude
+//       and survives setupJoinRoute with no VTOL transition required.
+TEST_F(MissionBaseVtolTest, SetupJoinRouteHonorsCallerSkipAltitudeHint)
+{
+	Navigator navigator;
+	MissionBaseTestPeer mission_base_peer(&navigator);
+	mission_base_peer.setVehicleStatus(false, false, false);
+
+	vehicle_global_position_s global_position{};
+	global_position.lat = kLat + 0.0002;
+	global_position.lon = kLon;
+	global_position.alt = kAlt + 3.f;
+	*navigator.get_global_position() = global_position;
+
+	MissionRoutePlanner::JoinContext join_context{};
+	join_context.projection = {kLat + 0.0002, kLon, kAlt + 30.f};
+	join_context.direction_reversed = true;
+	join_context.skip_altitude_requirement = true;
+
+	MissionRoutePlanner::Path path{};
+	path.direction_reversed = true;
+	path.in_first_item_acc_rad = false;
+	path.first_item_index = 0;
+	path.first_item_cmd = NAV_CMD_TAKEOFF;
+	path.dist = 4.f;
+
+	mission_base_peer.setupJoinRoute(join_context, path, global_position.alt);
+
+	EXPECT_TRUE(join_context.skip_altitude_requirement);
+	EXPECT_FLOAT_EQ(join_context.projection.alt, global_position.alt);
+	EXPECT_EQ(join_context.transition_action, MissionBaseTestPeer::VtolTransitionAction::None);
+	EXPECT_TRUE(mission_base_peer.routeJoinContextForTest().skip_altitude_requirement);
+	EXPECT_FLOAT_EQ(mission_base_peer.routeJoinContextForTest().projection.alt, global_position.alt);
 }
 
 // WHY: The executor walks the route forward and must know, for each target waypoint,

@@ -774,10 +774,24 @@ bool MissionBase::position_setpoint_equal(const position_setpoint_s *p1, const p
 }
 
 void
-MissionBase::setupJoinRoute(const MissionRoutePlanner::JoinContext &join_context, VtolTransitionAction transition_action)
+MissionBase::setupJoinRoute(MissionRoutePlanner::JoinContext &join_context,
+			    const MissionRoutePlanner::Path &path, const float vehicle_alt)
 {
+	// Special case necessary for landing + Hold + mission resume.
+	// If we are within x,y acc rad, this allows to land right away (without reaching the join mission altitude first)
+	// Note that we use WORK_ITEM_TYPE_JOIN_ROUTE even if close to the target index to ensure that back transitions are triggered
+	if (path.in_first_item_acc_rad &&
+	    (path.first_item_cmd == NAV_CMD_LAND || path.first_item_cmd == NAV_CMD_VTOL_LAND)) {
+		join_context.skip_altitude_requirement = true;
+	}
+
+	// skip_altitude_requirement can also come from the caller as an execution-side hint.
+	if (join_context.skip_altitude_requirement) {
+		join_context.projection.alt = vehicle_alt;
+	}
+
+	join_context.transition_action = vtolTransitionActionForTarget(path.first_item_index, path.direction_reversed);
 	_route_join_context = join_context;
-	_join_transition_action = transition_action;
 	_work_item_type = WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE;
 }
 
@@ -785,7 +799,6 @@ void
 MissionBase::resetJoinRouteState()
 {
 	_route_join_context = {};
-	_join_transition_action = VtolTransitionAction::None;
 }
 
 bool
@@ -843,13 +856,16 @@ MissionBase::handleJoinRouteWaypoint(position_setpoint_triplet_s *pos_sp_triplet
 	join_item.origin = ORIGIN_ONBOARD;
 
 	if (_route_join_context.skip_altitude_requirement && _navigator->get_global_position() != nullptr) {
+		// Keep the synthetic branch-in altitude tied to the latest vehicle altitude while
+		// skip-altitude mode is active so JOIN_ROUTE never commands a climb-back to the
+		// projected mission altitude between activation and setpoint publication.
 		join_item.altitude = _navigator->get_global_position()->alt;
 	}
 
-	if (_join_transition_action == VtolTransitionAction::BackTransition) {
+	if (_route_join_context.transition_action == VtolTransitionAction::BackTransition) {
 		join_item.vtol_back_transition = true;
 
-	} else if ((_join_transition_action == VtolTransitionAction::None)
+	} else if ((_route_join_context.transition_action == VtolTransitionAction::None)
 		   && vehicleInFwLikeState(_vehicle_status_sub.get())) {
 		// Allow fixed-wing style joins to arc onto the route instead of overshooting the exact
 		// projection and then flying backward to recover it.
@@ -886,12 +902,12 @@ MissionBase::handleTransitionAfterJoin(position_setpoint_triplet_s *pos_sp_tripl
 		return false;
 	}
 
-	const uint8_t target_state = (_join_transition_action == VtolTransitionAction::FrontTransition)
+	const uint8_t target_state = (_route_join_context.transition_action == VtolTransitionAction::FrontTransition)
 				     ? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW : vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 	set_vtol_transition_item(&_mission_item, target_state);
 	_mission_item.yaw = NAN;
 
-	if (_join_transition_action == VtolTransitionAction::FrontTransition) {
+	if (_route_join_context.transition_action == VtolTransitionAction::FrontTransition) {
 		_mission_item.yaw = computeFrontTransitionAlignmentYaw(_mission.current_seq,
 				    _route_join_context.direction_reversed);
 	}
@@ -916,8 +932,8 @@ MissionBase::joinRouteTransitionStillRequired() const
 	const bool landed = _land_detected_sub.get().landed;
 	const bool currently_fw = vehicleInFwLikeState(_vehicle_status_sub.get());
 
-	return !landed && ((_join_transition_action == VtolTransitionAction::BackTransition && currently_fw)
-			   || (_join_transition_action == VtolTransitionAction::FrontTransition && !currently_fw));
+	return !landed && ((_route_join_context.transition_action == VtolTransitionAction::BackTransition && currently_fw)
+			   || (_route_join_context.transition_action == VtolTransitionAction::FrontTransition && !currently_fw));
 }
 
 float

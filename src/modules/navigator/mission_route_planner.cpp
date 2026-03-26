@@ -120,6 +120,9 @@ const char *MissionRoutePlanner::failureReasonString(FailureReason failure_reaso
 	case FailureReason::NoValidWaypoints:
 		return "NoValidWaypoints";
 
+	case FailureReason::NoValidPath:
+		return "NoValidPath";
+
 	case FailureReason::NoSegmentsFound:
 		return "NoSegmentsFound";
 
@@ -1320,20 +1323,6 @@ MissionRoutePlanner::Path MissionRoutePlanner::findReversePathToGoal(uint16_t go
 					  PathDirectionMode::ForceReverse);
 }
 
-MissionRoutePlanner::JoinContext MissionRoutePlanner::buildJoinContext(const ProjectionContext &projection_context,
-		const Path &path) const
-{
-	JoinContext join_context{};
-
-	if (!projection_context.valid() || !path.valid()) {
-		return join_context;
-	}
-
-	join_context.projection = projection_context.seg_candidate.projection;
-	join_context.direction_reversed = path.direction_reversed;
-	return join_context;
-}
-
 bool MissionRoutePlanner::directToSafePoint(const Position &safe_point_position, const Position &vehicle_position,
 		const Config &config) const
 {
@@ -1585,6 +1574,50 @@ bool MissionRoutePlanner::closeToBranchOffSegment(const Position &position, cons
 	return PX4_ISFINITE(xtrack) && xtrack < acceptance_radius;
 }
 
+bool MissionRoutePlanner::planMissionResumeJoin(const Position &vehicle_position, int32_t mission_index,
+		const Config &config, JoinPlan &plan, FailureReason &failure_reason) const
+{
+	plan = {};
+	failure_reason = FailureReason::Unknown;
+
+	if (!vehicle_position.valid()) {
+		failure_reason = FailureReason::NoValidGlobalPos;
+		return false;
+	}
+
+	if (!collectVehicleProjection(vehicle_position, mission_index, config,
+				      plan.projection_context, failure_reason)) {
+		return false;
+	}
+
+	if (_provider.missionCount() <= 0) {
+		failure_reason = FailureReason::NoValidWaypoints;
+		return false;
+	}
+
+	uint16_t route_end_index = 0;
+
+	if (!findAttachedValidPositionIndex(static_cast<uint16_t>(_provider.missionCount() - 1),
+					    config.parameters.home_altitude_amsl, route_end_index)) {
+		failure_reason = FailureReason::NoValidWaypoints;
+		return false;
+	}
+
+	plan.path = findNominalPathToGoal(route_end_index, plan.projection_context.dist_along_to_route_end,
+					  plan.projection_context, config);
+
+	plan.join_context.projection = plan.projection_context.seg_candidate.projection;
+	plan.join_context.direction_reversed = plan.path.direction_reversed;
+
+	if (!plan.valid()) {
+		failure_reason = FailureReason::NoValidPath;
+		return false;
+	}
+
+	failure_reason = FailureReason::None;
+	return true;
+}
+
 bool MissionRoutePlanner::planRouteToGoal(const Position &vehicle_position, int32_t mission_index,
 		const Config &config, Plan &plan, FailureReason &failure_reason) const
 {
@@ -1597,10 +1630,9 @@ bool MissionRoutePlanner::planRouteToGoal(const Position &vehicle_position, int3
 
 	// RTL treats DO_JUMP segments as route geometry only. Remaining loop counts from normal mission
 	// execution must not force the return path to finish the current loop iteration.
-	if (plan.projection_context.loop_ctx.valid()) {
-		plan.projection_context.mission_loops_remaining = 0;
-	}
+	plan.projection_context.mission_loops_remaining = 0;
 
+	// Find closest safe point, falling back to mission end points if none found
 	plan.selection = selectBestGoal(plan.projection_context, config);
 
 	if (!plan.selection.found) {
@@ -1614,12 +1646,12 @@ bool MissionRoutePlanner::planRouteToGoal(const Position &vehicle_position, int3
 		return false;
 	}
 
-	plan.join_context = buildJoinContext(plan.projection_context, plan.selection.path);
+	plan.join_context.projection = plan.projection_context.seg_candidate.projection;
+	plan.join_context.direction_reversed = plan.selection.path.direction_reversed;
 
-	// Landing fallback keeps the current altitude if the landing item is already within XY acceptance radius.
-	if (plan.selection.goal_type == GoalType::MissionLand && plan.selection.path.in_first_item_acc_rad) {
-		plan.join_context.projection.alt = vehicle_position.alt;
-		plan.join_context.skip_altitude_requirement = true;
+	if (!plan.valid()) {
+		failure_reason = FailureReason::NoValidPath;
+		return false;
 	}
 
 	failure_reason = FailureReason::None;

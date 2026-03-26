@@ -1,6 +1,6 @@
 # Route Safe Point Return
 
-_Route Safe Point Return_ is a mission-aware [Return Mode](./return.md) that uses the uploaded mission geometry as the return corridor. PX4 projects the vehicle and every uploaded safe point onto the mission route, chooses the safe point with the lowest total return cost, follows the route in nominal or reverse direction, reaches the branch-off point defined as the projection of the selected safe point on the route and only then branches off horizontally from the flight plan. For VTOL vehicles flying in FW mode, if the selected safe point has valid `NAV_CMD_LOITER_TO_ALT` approach items, PX4 then flies the same wind-selected landing approach used by direct RTL before entering the final landing sequence.
+_Route Safe Point Return_ is a mission-aware [Return Mode](./return.md) that uses the uploaded mission geometry as the return corridor. PX4 projects the vehicle and every uploaded safe point onto the mission route, chooses the safe point with the lowest total return cost, follows the route in nominal or reverse direction, reaches the branch-off point defined as the projection of the selected safe point on the route and only then branches off horizontally from the flight plan. For VTOL vehicles flying in FW mode, if the selected safe point has valid `NAV_CMD_LOITER_TO_ALT` approach items, PX4 then flies the same wind-selected landing approach used by direct RTL before entering the final landing sequence. The wind ranking is computed from the selected land location to each approach loiter, not from home.
 
 Set [RTL_TYPE=6](../advanced_config/parameter_reference.md#RTL_TYPE) to enable it.
 
@@ -236,7 +236,7 @@ RTL::setRtlTypeAndDestination()
   ├─ MissionRoutePlanner::planRouteToGoal(config)
   │    ├─ collectVehicleProjection()    → ProjectionContext
   │    ├─ selectBestGoal()              → Selection
-  │    └─ buildJoinContext()            → JoinContext
+  │    └─ fill geometric context        → JoinContext
   │
   ├─ Plan {projection_context, selection, join_context}
   │
@@ -287,6 +287,8 @@ Mission smart rejoin and `RTL_TYPE=6` share the same join-route execution path i
 The flow is:
 
 1. Mission mode (`trySetRouteJoinOnActivation()`) or RTL (`RtlMissionSafePointFollow::on_activation()`) computes the route target and calls `setupJoinRoute()` before `MissionBase::on_activation()`.
+   - The planner contributes only the geometric join state: projection point plus route direction.
+   - `MissionBase::setupJoinRoute()` then applies the execution-side corrections: the required VTOL transition and any skip-altitude override.
 2. `MissionBase::update_mission()` runs during activation. It normally clears transient `_work_item_type` state for a newly accepted mission, but it preserves `WORK_ITEM_TYPE_JOIN_ROUTE` and `WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN` so the join pipeline is not dropped before first publication.
 3. In the active loop, both Mission mode and RTL call `handleJoinRouteWorkItems()` from their `setActiveMissionItems()` implementation:
    - `WORK_ITEM_TYPE_JOIN_ROUTE` publishes the virtual branch-in waypoint until the cached helper-item reached flags show that the join is complete.
@@ -299,12 +301,12 @@ The flow is:
 
 ### Shared Smart Rejoin Path Selection
 
-Mission smart rejoin uses the same route-selection helper as `RTL_TYPE=6` when it needs to resume the mission after a deviation, but unlike RTL it preserves the active mission loop count:
+Mission smart rejoin now uses the planner's dedicated `planMissionResumeJoin()` entry point, which shares the same vehicle-projection, path, and geometric join-context logic as `RTL_TYPE=6` while still preserving the active mission loop count:
 
 - The resumed target index comes from the shortest valid nominal path to the mission landing goal instead of hard-coding the projected segment end.
 - If the projection lies on a `DO_JUMP` loop segment with repeats remaining, the resumed path continues to the loop segment end.
 - If the loop is exhausted, the planner compares continuing versus rewinding through the loop exit and chooses the shorter path.
-- The shared join-route work item applies the required front-transition or back-transition after the join waypoint, using the same branch-in-leg versus mission-segment alignment rule described above.
+- The shared join-route work item finalizes the execution corrections when it is armed: it applies the required front-transition or back-transition and, when appropriate, skips the join altitude to avoid an unnecessary climb near landing or other caller-provided special cases.
 
 ### Provider Interface
 
