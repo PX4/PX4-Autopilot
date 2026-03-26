@@ -777,13 +777,23 @@ void Mavlink::send_start(int length)
 	_last_write_try_time = hrt_absolute_time();
 
 	// check if there is space in the buffer
-	if (length > (int)get_free_tx_buf()) {
-		// not enough space in buffer to send
+	unsigned free_buf = get_free_tx_buf();
+
+	if (length > (int)free_buf) {
+		for (int retry = 0; retry < 3; retry++) {
+			px4_usleep(1000); // 1ms
+			free_buf = get_free_tx_buf();
+
+			if (length <= (int)free_buf) {
+				_tx_buffer_low = false;
+				return;
+			}
+		}
 		count_txerrbytes(length);
 
 		_tstatus.tx_buffer_overruns++;
 
-		// prevent writes
+				// prevent writes
 		_tx_buffer_low = true;
 
 	} else {
@@ -846,15 +856,24 @@ void Mavlink::send_finish()
 #endif // MAVLINK_UDP
 
 	if (ret == (int)_buf_fill) {
+		// Full write success
 		_tstatus.tx_message_count++;
 		count_txbytes(_buf_fill);
 		_last_write_success_time = _last_write_try_time;
+		_buf_fill = 0;
+
+	} else if (ret > 0) {
+		// Partial write - keep unsent bytes for next attempt
+		count_txbytes(ret);
+		unsigned remaining = _buf_fill - ret;
+		memmove(_buf, &_buf[ret], remaining);
+		_buf_fill = remaining;
 
 	} else {
+		// Write failed completely
 		count_txerrbytes(_buf_fill);
+		_buf_fill = 0;
 	}
-
-	_buf_fill = 0;
 
 	pthread_mutex_unlock(&_send_mutex);
 }
@@ -862,7 +881,7 @@ void Mavlink::send_finish()
 void Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 {
 	if (!_tx_buffer_low) {
-		if (_buf_fill + packet_len < sizeof(_buf)) {
+		if (_buf_fill + packet_len <= sizeof(_buf)) {
 			memcpy(&_buf[_buf_fill], buf, packet_len);
 			_buf_fill += packet_len;
 
