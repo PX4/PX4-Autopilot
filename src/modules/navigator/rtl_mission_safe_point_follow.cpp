@@ -56,6 +56,11 @@ RtlMissionSafePointFollow::RtlMissionSafePointFollow(Navigator *navigator, missi
 	_mission = mission;
 }
 
+RtlMissionSafePointFollow::~RtlMissionSafePointFollow()
+{
+	perf_free(_calc_rtl_time_estimate_perf);
+}
+
 bool RtlMissionSafePointFollow::loadMissionItemFromCache(int32_t index, mission_item_s &mission_item)
 {
 	MissionRouteCache *mission_route_cache = _navigator->get_mission_route_cache();
@@ -656,17 +661,21 @@ void RtlMissionSafePointFollow::setActiveMissionItems()
 
 rtl_time_estimate_s RtlMissionSafePointFollow::calc_rtl_time_estimate()
 {
+	perf_begin(_calc_rtl_time_estimate_perf);
+
 	_rtl_time_estimator.update();
 	_rtl_time_estimator.setVehicleType(_vehicle_status_sub.get().vehicle_type);
 	_rtl_time_estimator.reset();
 
 	if (!_plan.valid() || !_plan.selection.found || _stage == Stage::Idle || _stage == Stage::LandAtGoal) {
+		perf_end(_calc_rtl_time_estimate_perf);
 		return _rtl_time_estimator.getEstimate();
 	}
 
 	const auto *global_pos = _navigator->get_global_position();
 
 	if (global_pos == nullptr || !PX4_ISFINITE(global_pos->lat) || !PX4_ISFINITE(global_pos->lon)) {
+		perf_end(_calc_rtl_time_estimate_perf);
 		return _rtl_time_estimator.getEstimate();
 	}
 
@@ -794,5 +803,7 @@ rtl_time_estimate_s RtlMissionSafePointFollow::calc_rtl_time_estimate()
 		break;
 	}
 
-	return _rtl_time_estimator.getEstimate();
+	const rtl_time_estimate_s estimate = _rtl_time_estimator.getEstimate();
+	perf_end(_calc_rtl_time_estimate_perf);
+	return estimate;
 }

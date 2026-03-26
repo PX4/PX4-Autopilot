@@ -44,6 +44,7 @@
 #pragma once
 
 #include "rtl_base.h"
+#include <lib/perf/perf_counter.h>
 #include <lib/rtl/rtl_time_estimator.h>
 
 class RtlMissionSafePointFollow : public RtlBase
@@ -51,7 +52,7 @@ class RtlMissionSafePointFollow : public RtlBase
 public:
 	/** @brief Execute the staged Route Safe Point Return plan built by RTL type 6. */
 	RtlMissionSafePointFollow(Navigator *navigator, mission_s mission);
-	~RtlMissionSafePointFollow() = default;
+	~RtlMissionSafePointFollow() override;
 
 	void on_inactivation() override;
 	void on_activation() override;
@@ -92,16 +93,18 @@ private:
 
 	/** @brief Convert a position-bearing mission item into a pure geometric route waypoint.
 	 *
-	 * During route following, the mission is treated as geometry only. Position items such as
-	 * NAV_CMD_LOITER_UNLIMITED, NAV_CMD_LOITER_TIME_LIMIT, and NAV_CMD_LOITER_TO_ALT are converted
-	 * to plain waypoints with autocontinue enabled and zero hold time so the vehicle keeps moving.
+	 * During route following, the mission is treated as geometry only. Waypoints and loiter-style
+	 * position items such as NAV_CMD_LOITER_UNLIMITED, NAV_CMD_LOITER_TIME_LIMIT, and
+	 * NAV_CMD_LOITER_TO_ALT are converted to plain waypoints with autocontinue enabled and zero
+	 * hold time so the vehicle keeps moving. Commands with distinct execution semantics, such as
+	 * takeoff or landing, are left untouched.
 	 * NAV_CMD_DELAY items are non-position and are skipped by findNextPositionIndexNoJump(),
 	 * but if one were encountered it would also be clamped here.
 	 *
 	*/
 	void normalizeRouteMissionItem(mission_item_s &mission_item) const;
 	/** @brief Load the adjacent route position item in the currently selected traversal direction. */
-	bool loadAdjacentRouteItem(mission_item_s &mission_item, int32_t *adjacent_index = nullptr);
+	bool loadAdjacentRouteItem(mission_item_s &mission_item, int32_t &adjacent_index);
 	/** @brief Return whether the current route target coincides with the selected branch-off anchor. */
 	bool currentTargetIsBranchOff() const;
 	/** @brief Return whether the join projection is already close enough to skip route following. */
@@ -147,6 +150,7 @@ private:
 	loiter_point_s _goal_land_approach{};
 	float _rtl_alt{NAN};
 	RtlTimeEstimator _rtl_time_estimator; /**< Time estimator consistent with other RTL modes. */
+	perf_counter_t _calc_rtl_time_estimate_perf{perf_alloc(PC_ELAPSED, "rtl_route_calc_time_est")};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		RtlBase,

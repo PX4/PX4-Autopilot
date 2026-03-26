@@ -44,6 +44,7 @@
 #include "mission_route_planner.h"
 
 #include <lib/geo/geo.h>
+#include <lib/perf/perf_counter.h>
 #include <mathlib/mathlib.h>
 
 #include <px4_platform_common/log.h>
@@ -57,6 +58,8 @@ using namespace math;
  * use and are never called concurrently
  */
 static MissionRoutePlanner::SafePointBatch s_safe_point_batch{};
+static perf_counter_t g_collect_vehicle_projection_perf{perf_alloc(PC_ELAPSED, "rtl_route_collect_vehicle_proj")};
+static perf_counter_t g_select_best_goal_perf{perf_alloc(PC_ELAPSED, "rtl_route_select_best_goal")};
 
 loiter_point_s MissionRoutePlanner::makeVtolLandApproachPoint(const mission_item_s &mission_item, float home_altitude_amsl)
 {
@@ -902,10 +905,13 @@ bool MissionRoutePlanner::collectVehicleProjection(const Position &vehicle_posit
 		const Config &config, ProjectionContext &projection_context,
 		FailureReason &failure_reason) const
 {
+	perf_begin(g_collect_vehicle_projection_perf);
+
 	failure_reason = FailureReason::Unknown;
 
 	if (!vehicle_position.valid()) {
 		failure_reason = FailureReason::NoValidGlobalPos;
+		perf_end(g_collect_vehicle_projection_perf);
 		return false;
 	}
 
@@ -913,6 +919,7 @@ bool MissionRoutePlanner::collectVehicleProjection(const Position &vehicle_posit
 
 	if (!clampMissionIndex(mission_index)) {
 		failure_reason = FailureReason::NoValidWaypoints;
+		perf_end(g_collect_vehicle_projection_perf);
 		return false;
 	}
 
@@ -932,6 +939,7 @@ bool MissionRoutePlanner::collectVehicleProjection(const Position &vehicle_posit
 					   config.execution.last_flown_loop_segment, s_safe_point_batch,
 					   batch_outputs, batch_failure_reason)) {
 		failure_reason = batch_failure_reason;
+		perf_end(g_collect_vehicle_projection_perf);
 		return false;
 	}
 
@@ -1033,8 +1041,9 @@ bool MissionRoutePlanner::collectVehicleProjection(const Position &vehicle_posit
 	}
 
 	failure_reason = FailureReason::None;
-
-	return projection_context.valid();
+	const bool success = projection_context.valid();
+	perf_end(g_collect_vehicle_projection_perf);
+	return success;
 }
 
 float MissionRoutePlanner::accumulateRouteDistance(uint16_t from_index, uint16_t to_index, float home_altitude_amsl) const
@@ -1538,13 +1547,17 @@ MissionRoutePlanner::Selection MissionRoutePlanner::selectMissionEndpointFallbac
 MissionRoutePlanner::Selection MissionRoutePlanner::selectBestGoal(const ProjectionContext &projection_context,
 		const Config &config) const
 {
+	perf_begin(g_select_best_goal_perf);
 	Selection selection = selectSafePoint(projection_context, config);
 
 	if (selection.found) {
+		perf_end(g_select_best_goal_perf);
 		return selection;
 	}
 
-	return selectMissionEndpointFallback(projection_context, config);
+	selection = selectMissionEndpointFallback(projection_context, config);
+	perf_end(g_select_best_goal_perf);
+	return selection;
 }
 
 bool MissionRoutePlanner::closeToBranchOffSegment(const Position &position, const Selection &selection,
