@@ -21477,7 +21477,7 @@ Required EPH to use GPS.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 2        | 100      |           | 3.0     | m    |
+| &nbsp; | 0.1      | 100      |           | 3.0     | m    |
 
 ### EKF2_REQ_EPV (`FLOAT`) {#EKF2_REQ_EPV}
 
@@ -21485,7 +21485,7 @@ Required EPV to use GPS.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 2        | 100      |           | 5.0     | m    |
+| &nbsp; | 0.1      | 100      |           | 5.0     | m    |
 
 ### EKF2_REQ_FIX (`INT32`) {#EKF2_REQ_FIX}
 

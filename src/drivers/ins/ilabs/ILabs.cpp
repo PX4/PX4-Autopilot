@@ -485,7 +485,7 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 
 		sensor_gps.jamming_state = data->gps.jamStatus;
 		sensor_gps.jamming_indicator = (sensor_gps.jamming_state != InertialLabs::JammingStatus::UNKOWN_OR_DISABLED) &&
-					       (sensor_gps.jamming_state != InertialLabs::JammingStatus::OK);
+					       (sensor_gps.jamming_state != InertialLabs::JammingStatus::NO_SIGNIFICANT);
 		sensor_gps.spoofing_state = data->gps.spoofingStatus;
 
 		sensor_gps.vel_m_s =

@@ -69,7 +69,11 @@ protected:
 	}
 
 	// Helper to build a frame with raw payload bytes (no message type encoding)
-	std::vector<uint8_t> buildRawFrame(const std::vector<uint8_t> &payload)
+	//
+	// Keep this helper out-of-line to avoid a GCC false positive on the
+	// inlined std::vector::push_back.
+	// See https://github.com/PX4/PX4-Autopilot/issues/26875 for details.
+	__attribute__((noinline)) std::vector<uint8_t> buildRawFrame(const std::vector<uint8_t> &payload)
 	{
 		std::vector<uint8_t> frame;
 		size_t payload_len = payload.size();
