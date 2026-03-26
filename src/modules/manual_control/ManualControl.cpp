@@ -99,6 +99,14 @@ void ManualControl::processInput(hrt_abstime now)
 		}
 	}
 
+	if (_vehicle_land_detected_sub.updated()) {
+		vehicle_land_detected_s vehicle_land_detected;
+
+		if (_vehicle_land_detected_sub.copy(&vehicle_land_detected)) {
+			_landed = vehicle_land_detected.landed;
+		}
+	}
+
 	// Check if parameters have changed
 	if (_parameter_update_sub.updated()) {
 		// clear update
@@ -165,6 +173,7 @@ void ManualControl::processInput(hrt_abstime now)
 		_throttle_diff.reset();
 		_stick_arm_hysteresis.set_state_and_update(false, now);
 		_stick_disarm_hysteresis.set_state_and_update(false, now);
+		_stick_disarm_in_air_hysteresis.set_state_and_update(false, now);
 		_stick_kill_hysteresis.set_state_and_update(false, now);
 		_button_arm_hysteresis.set_state_and_update(false, now);
 	}
@@ -332,9 +341,10 @@ void ManualControl::updateParams()
 {
 	ModuleParams::updateParams();
 
-	_stick_arm_hysteresis.set_hysteresis_time_from(false, 1_s);
-	_stick_disarm_hysteresis.set_hysteresis_time_from(false, 1_s);
-	_button_arm_hysteresis.set_hysteresis_time_from(false, 1_s);
+	_stick_arm_hysteresis.set_hysteresis_time_from(false, 1500_ms);
+	_stick_disarm_hysteresis.set_hysteresis_time_from(false, 1500_ms);
+	_stick_disarm_in_air_hysteresis.set_hysteresis_time_from(false, 10_s);
+	_button_arm_hysteresis.set_hysteresis_time_from(false, 1500_ms);
 	_stick_kill_hysteresis.set_hysteresis_time_from(false, _param_man_kill_gest_t.get() * 1_s);
 
 	_selector.setRcInMode(_param_com_rc_in_mode.get());
@@ -404,10 +414,13 @@ void ManualControl::processStickArming(const manual_control_setpoint_s &input)
 	// Disarm gesture
 	const bool left_stick_lower_left = (input.throttle < -0.8f) && (input.yaw < -0.9f);
 
-	const bool previous_stick_disarm_hysteresis = _stick_disarm_hysteresis.get_state();
-	_stick_disarm_hysteresis.set_state_and_update(left_stick_lower_left && right_stick_centered, input.timestamp);
+	systemlib::Hysteresis &disarm_hysteresis = _landed ? _stick_disarm_hysteresis : _stick_disarm_in_air_hysteresis;
 
-	if (_param_man_arm_gesture.get() && !previous_stick_disarm_hysteresis && _stick_disarm_hysteresis.get_state()) {
+	const bool previous_stick_disarm_hysteresis = disarm_hysteresis.get_state();
+	_stick_disarm_hysteresis.set_state_and_update(left_stick_lower_left && right_stick_centered, input.timestamp);
+	_stick_disarm_in_air_hysteresis.set_state_and_update(left_stick_lower_left && right_stick_centered, input.timestamp);
+
+	if (_param_man_arm_gesture.get() && !previous_stick_disarm_hysteresis && disarm_hysteresis.get_state()) {
 		sendActionRequest(action_request_s::ACTION_DISARM, action_request_s::SOURCE_STICK_GESTURE);
 	}
 
