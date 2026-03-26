@@ -54,19 +54,31 @@
 #include "test_RTL_helpers.h"
 #include "test_RTL_data.h"
 
-// ============================================================================
-// Common constants for offset-based tests
-// ============================================================================
 
 using rtl_test_reference::kAlt;
 using rtl_test_reference::kBaseLat;
 using rtl_test_reference::kBaseLon;
 
-// ============================================================================
-// Test fixture
-// ============================================================================
-
-class RtlSafePointTest : public MissionRoutePlannerTestBase {};
+/** @brief Shared fixture for route-safe-point planner tests. */
+class RtlSafePointTestBase : public MissionRoutePlannerTestBase {};
+/** @brief Covers small synthetic safe-point selection scenarios. */
+class RtlSafePointBasicTest : public RtlSafePointTestBase {};
+/** @brief Covers default-dataset multicopter safe-point selection. */
+class RtlSafePointDefaultMCTest : public RtlSafePointTestBase {};
+/** @brief Covers default-dataset fixed-wing and u-turn-penalty behavior. */
+class RtlSafePointDefaultFWTest : public RtlSafePointTestBase {};
+/** @brief Covers corner-mission safe-point selection across sharp geometry changes. */
+class RtlSafePointCornerMissionTest : public RtlSafePointTestBase {};
+/** @brief Covers batching behavior while scanning mission geometry for safe points. */
+class RtlSafePointBatchScanTest : public RtlSafePointTestBase {};
+/** @brief Covers VTOL-approach eligibility filtering for safe points. */
+class RtlSafePointApproachPolicyTest : public RtlSafePointTestBase {};
+/** @brief Covers safe-point selection while the vehicle is projected on a mission loop. */
+class RtlSafePointLoopSelectionTest : public RtlSafePointTestBase {};
+/** @brief Covers full route-safe-point plans built from DO_JUMP loop scenarios. */
+class RtlSafePointLoopPlanTest : public RtlSafePointTestBase {};
+/** @brief Covers branch-off leg geometry used by the executor after planning. */
+class RtlSafePointBranchGeometryTest : public RtlSafePointTestBase {};
 
 static mission_item_s makeLoiterToAltApproachFromOffset(double base_lat, double base_lon,
 		float north_m, float east_m, float alt)
@@ -76,13 +88,9 @@ static mission_item_s makeLoiterToAltApproachFromOffset(double base_lat, double 
 	return item;
 }
 
-// ============================================================================
-// GROUP 1: Basic safe point selection
-// ============================================================================
-
 // WHY: The planner must prefer the safe point reachable via the lowest overall path cost.
 // WHAT: selectSafePoint returns the closer rally point (index 1) on segment [0-1].
-TEST_F(RtlSafePointTest, PrefersLowestOverallPathCost)
+TEST_F(RtlSafePointBasicTest, PrefersLowestOverallPathCost)
 {
 	// GIVEN: 4-wp square mission with two safe points at different along-route distances.
 	std::vector<mission_item_s> mission{
@@ -119,7 +127,7 @@ TEST_F(RtlSafePointTest, PrefersLowestOverallPathCost)
 // WHY: The scorer must add the final branch-off leg to avoid preferring a short along-route detour
 //      that still produces a longer total return path.
 // WHAT: The farther-along but near-route safe point beats the near-along but far-off-route safe point.
-TEST_F(RtlSafePointTest, IncludesBranchOffLegInSafePointRanking)
+TEST_F(RtlSafePointBasicTest, IncludesBranchOffLegInSafePointRanking)
 {
 	std::vector<mission_item_s> mission{
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
@@ -150,8 +158,8 @@ TEST_F(RtlSafePointTest, IncludesBranchOffLegInSafePointRanking)
 }
 
 // WHY: When a safe point is within the direct acceptance radius, the planner should skip route following.
-// WHAT: selectSafePoint returns direct_to_safe_point=true for a nearby rally point.
-TEST_F(RtlSafePointTest, SupportsDirectToSafePoint)
+// WHAT: selectSafePoint returns skip_route_to_safe_point=true for a nearby rally point.
+TEST_F(RtlSafePointBasicTest, SupportsDirectToSafePoint)
 {
 	// GIVEN: 3-wp straight mission with one safe point very close to the vehicle.
 	std::vector<mission_item_s> mission{
@@ -174,15 +182,15 @@ TEST_F(RtlSafePointTest, SupportsDirectToSafePoint)
 
 	const MissionRoutePlanner::Selection selection = planner.selectSafePoint(ctx, config);
 
-	// THEN: Direct-to flag is set, safe point index is 0.
+	// THEN: The route-skip flag is set, safe point index is 0.
 	ASSERT_TRUE(selection.found);
-	EXPECT_TRUE(selection.direct_to_safe_point);
+	EXPECT_TRUE(selection.skip_route_to_safe_point);
 	EXPECT_EQ(selection.safe_point_index, 0);
 }
 
 // WHY: When all safe points have an invalid frame, none should be selected.
 // WHAT: selectSafePoint returns found=false when every rally point is invalid.
-TEST_F(RtlSafePointTest, ReturnsEmptyWhenAllSafePointsInvalid)
+TEST_F(RtlSafePointBasicTest, ReturnsEmptyWhenAllSafePointsInvalid)
 {
 	// GIVEN: 3-wp mission with 3 safe points using unsupported frame=15.
 	std::vector<mission_item_s> mission{
@@ -219,7 +227,7 @@ TEST_F(RtlSafePointTest, ReturnsEmptyWhenAllSafePointsInvalid)
 
 // WHY: Relative-altitude rally points must be converted to AMSL using home altitude before planning.
 // WHAT: A GLOBAL_RELATIVE_ALT safe point uses home_altitude_amsl for the selected goal altitude.
-TEST_F(RtlSafePointTest, RelativeAltitudeSafePointUsesHomeAltitude)
+TEST_F(RtlSafePointBasicTest, RelativeAltitudeSafePointUsesHomeAltitude)
 {
 	// GIVEN: A straight mission and one rally point stored in relative-altitude frame.
 	std::vector<mission_item_s> mission{
@@ -253,7 +261,7 @@ TEST_F(RtlSafePointTest, RelativeAltitudeSafePointUsesHomeAltitude)
 
 // WHY: Relative-altitude rally points are invalid without a finite home altitude reference.
 // WHAT: A GLOBAL_RELATIVE_ALT safe point is rejected when home_altitude_amsl is not finite.
-TEST_F(RtlSafePointTest, RelativeAltitudeSafePointRequiresFiniteHomeAltitude)
+TEST_F(RtlSafePointBasicTest, RelativeAltitudeSafePointRequiresFiniteHomeAltitude)
 {
 	// GIVEN: The same mission geometry but without a valid home altitude reference.
 	std::vector<mission_item_s> mission{
@@ -282,13 +290,9 @@ TEST_F(RtlSafePointTest, RelativeAltitudeSafePointRequiresFiniteHomeAltitude)
 	EXPECT_FALSE(selection.safe_point_found);
 }
 
-// ============================================================================
-// GROUP 2: Default dataset - MC selection
-// ============================================================================
-
 // WHY: MC should pick the closest rally point even when it is behind the vehicle (reverse direction).
 // WHAT: Rally 1 (on seg 0-1) is selected with direction_reversed=true.
-TEST_F(RtlSafePointTest, DefaultMission_ClosestBehindReverse_MC)
+TEST_F(RtlSafePointDefaultMCTest, DefaultMission_ClosestBehindReverse_MC)
 {
 	// GIVEN: Default 16-item mission with 7 rally points, MC config.
 	VectorProvider provider{default_dataset::mission(), default_dataset::safePoints()};
@@ -313,7 +317,7 @@ TEST_F(RtlSafePointTest, DefaultMission_ClosestBehindReverse_MC)
 
 // WHY: MC should pick a forward rally point when it is the closest along-route option.
 // WHAT: Rally 0 (on seg 5-7, ahead) is selected for the vehicle at mission_index=5.
-TEST_F(RtlSafePointTest, DefaultMission_ClosestForwardAhead_MC)
+TEST_F(RtlSafePointDefaultMCTest, DefaultMission_ClosestForwardAhead_MC)
 {
 	// GIVEN: Default mission, MC config, vehicle flying with velocity (15,-15).
 	VectorProvider provider{default_dataset::mission(), default_dataset::safePoints()};
@@ -335,9 +339,9 @@ TEST_F(RtlSafePointTest, DefaultMission_ClosestForwardAhead_MC)
 	EXPECT_EQ(selection.safe_point_index, 0);
 }
 
-// WHY: When the vehicle is within the acceptance radius of a rally point, direct-to should be selected.
-// WHAT: Rally 4 near takeoff is selected with direct_to_safe_point=true.
-TEST_F(RtlSafePointTest, DefaultMission_WithinAcceptanceRadius)
+// WHY: When the vehicle is within the acceptance radius of a rally point, route following should be skipped.
+// WHAT: Rally 4 near takeoff is selected with skip_route_to_safe_point=true.
+TEST_F(RtlSafePointDefaultMCTest, DefaultMission_WithinAcceptanceRadius)
 {
 	// GIVEN: Default mission, MC config. Vehicle near rally 4.
 	VectorProvider provider{default_dataset::mission(), default_dataset::safePoints()};
@@ -354,15 +358,15 @@ TEST_F(RtlSafePointTest, DefaultMission_WithinAcceptanceRadius)
 
 	const MissionRoutePlanner::Selection selection = planner.selectSafePoint(ctx, config);
 
-	// THEN: Rally 4 is selected as direct-to safe point.
+	// THEN: Rally 4 is selected and route following is skipped.
 	ASSERT_TRUE(selection.found);
 	EXPECT_EQ(selection.safe_point_index, 4);
-	EXPECT_TRUE(selection.direct_to_safe_point);
+	EXPECT_TRUE(selection.skip_route_to_safe_point);
 }
 
 // WHY: When all rally points are behind the vehicle, MC should still pick the closest reverse one.
 // WHAT: Rally 0 is selected with direction_reversed=true when vehicle is near the end of the route.
-TEST_F(RtlSafePointTest, DefaultMission_AllBehind_MC)
+TEST_F(RtlSafePointDefaultMCTest, DefaultMission_AllBehind_MC)
 {
 	// GIVEN: Default mission, MC config. Vehicle near mission_index=15 (end of route).
 	VectorProvider provider{default_dataset::mission(), default_dataset::safePoints()};
@@ -387,7 +391,7 @@ TEST_F(RtlSafePointTest, DefaultMission_AllBehind_MC)
 
 // WHY: Corrupted rally point data (NAN lat) must be gracefully skipped.
 // WHAT: Selection still succeeds and branch_off_projection has finite coordinates.
-TEST_F(RtlSafePointTest, DefaultMission_InvalidRallyPointSkipped)
+TEST_F(RtlSafePointDefaultMCTest, DefaultMission_InvalidRallyPointSkipped)
 {
 	// GIVEN: Default mission with rally[0].lat set to NAN (corrupted).
 	auto safe_points = default_dataset::safePoints();
@@ -413,13 +417,9 @@ TEST_F(RtlSafePointTest, DefaultMission_InvalidRallyPointSkipped)
 	EXPECT_TRUE(std::isfinite(selection.branch_off_projection.lon));
 }
 
-// ============================================================================
-// GROUP 3: Default dataset - FW selection (u-turn penalty)
-// ============================================================================
-
 // WHY: For this geometry the reverse path is still shorter even with the FW u-turn penalty.
 // WHAT: FW picks rally 1 in reverse, same as MC.
-TEST_F(RtlSafePointTest, DefaultMission_ClosestBehindReverse_FW)
+TEST_F(RtlSafePointDefaultFWTest, DefaultMission_ClosestBehindReverse_FW)
 {
 	// GIVEN: Default mission, FW config. Same position as DefaultMission_ClosestBehindReverse_MC.
 	VectorProvider provider{default_dataset::mission(), default_dataset::safePoints()};
@@ -445,7 +445,7 @@ TEST_F(RtlSafePointTest, DefaultMission_ClosestBehindReverse_FW)
 
 // WHY: The 4km u-turn penalty should make FW prefer a more distant forward rally over a closer reverse one.
 // WHAT: FW picks rally B (index 1, forward) instead of closer rally A (index 0, reverse).
-TEST_F(RtlSafePointTest, FWUturnPenaltySelectsForwardOverCloserReverse)
+TEST_F(RtlSafePointDefaultFWTest, FWUturnPenaltySelectsForwardOverCloserReverse)
 {
 	VectorProvider provider{uturn_penalty_dataset::mission(), uturn_penalty_dataset::safePoints()};
 	MissionRoutePlanner planner{provider};
@@ -469,7 +469,7 @@ TEST_F(RtlSafePointTest, FWUturnPenaltySelectsForwardOverCloserReverse)
 
 // WHY: A VTOL already transitioning to fixed-wing must use the same u-turn penalty logic as FW.
 // WHAT: in_transition_to_fw selects the forward rally just like a fixed-wing vehicle.
-TEST_F(RtlSafePointTest, TransitionToFwUsesFixedWingUturnPenalty)
+TEST_F(RtlSafePointDefaultFWTest, TransitionToFwUsesFixedWingUturnPenalty)
 {
 	VectorProvider provider{uturn_penalty_dataset::mission(), uturn_penalty_dataset::safePoints()};
 	MissionRoutePlanner planner{provider};
@@ -498,7 +498,7 @@ TEST_F(RtlSafePointTest, TransitionToFwUsesFixedWingUturnPenalty)
 
 // WHY: MC has no u-turn penalty, so it should always pick the closest rally regardless of direction.
 // WHAT: MC picks rally A (index 0, reverse, closer) for the same geometry as FWUturnPenalty test.
-TEST_F(RtlSafePointTest, MCNoUturnPenaltySelectsClosestReverse)
+TEST_F(RtlSafePointDefaultFWTest, MCNoUturnPenaltySelectsClosestReverse)
 {
 	VectorProvider provider{uturn_penalty_dataset::mission(), uturn_penalty_dataset::safePoints()};
 	MissionRoutePlanner planner{provider};
@@ -519,13 +519,9 @@ TEST_F(RtlSafePointTest, MCNoUturnPenaltySelectsClosestReverse)
 	EXPECT_TRUE(selection.path.direction_reversed);
 }
 
-// ============================================================================
-// GROUP 4: Corner dataset selection
-// ============================================================================
-
 // WHY: Corner missions with sharp turns must still correctly identify the closest rally in reverse.
 // WHAT: MC picks rally 1 in reverse direction for the corner mission.
-TEST_F(RtlSafePointTest, CornerMission_RallyOnCorner_MC)
+TEST_F(RtlSafePointCornerMissionTest, CornerMission_RallyOnCorner_MC)
 {
 	// GIVEN: Corner 16-item mission with 8 rally points, MC config.
 	VectorProvider provider{corner_dataset::mission(), corner_dataset::safePoints()};
@@ -550,7 +546,7 @@ TEST_F(RtlSafePointTest, CornerMission_RallyOnCorner_MC)
 
 // WHY: FW corner handling must stay deterministic because the branch-off segment feeds the executor.
 // WHAT: With total-cost scoring, FW selects the route-nearer rally 0 and branches off on segment [4-5].
-TEST_F(RtlSafePointTest, CornerMission_CornerProjectionHandled_FW)
+TEST_F(RtlSafePointCornerMissionTest, CornerMission_CornerProjectionHandled_FW)
 {
 	// GIVEN: Corner mission, FW config. Same vehicle position as CornerMission_RallyOnCorner_MC.
 	VectorProvider provider{corner_dataset::mission(), corner_dataset::safePoints()};
@@ -582,7 +578,7 @@ TEST_F(RtlSafePointTest, CornerMission_CornerProjectionHandled_FW)
 // WHY: Rally points whose loop-segment candidate would create an invalid path must still be allowed
 //      to win through a valid nominal-segment projection when that yields the lowest total return cost.
 // WHAT: MC picks rally 3 once the final branch-off leg is included in the scorer.
-TEST_F(RtlSafePointTest, CornerMission_BackNoTransition_MC)
+TEST_F(RtlSafePointCornerMissionTest, CornerMission_BackNoTransition_MC)
 {
 	// GIVEN: Corner mission, MC config. Vehicle at index 7 near a transition boundary.
 	VectorProvider provider{corner_dataset::mission(), corner_dataset::safePoints()};
@@ -606,7 +602,7 @@ TEST_F(RtlSafePointTest, CornerMission_BackNoTransition_MC)
 
 // WHY: Small segments near the end of the mission must be handled without skipping valid rally points.
 // WHAT: MC picks rally 5 for a vehicle near the small segments at the end of the corner mission.
-TEST_F(RtlSafePointTest, CornerMission_SmallSegmentFront_MC)
+TEST_F(RtlSafePointCornerMissionTest, CornerMission_SmallSegmentFront_MC)
 {
 	// GIVEN: Corner mission, MC config. Vehicle near small segments at mission_index=13.
 	VectorProvider provider{corner_dataset::mission(), corner_dataset::safePoints()};
@@ -630,7 +626,7 @@ TEST_F(RtlSafePointTest, CornerMission_SmallSegmentFront_MC)
 
 // WHY: Reverse-flight corner selection must stay deterministic across the 5->7 leg near the MC transition.
 // WHAT: The reverse corner scenario selects rally 2 and branches off on segment [5-7].
-TEST_F(RtlSafePointTest, CornerMission_ReverseCornerScenarioSelectsRally2OnSegment5To7)
+TEST_F(RtlSafePointCornerMissionTest, CornerMission_ReverseCornerScenarioSelectsRally2OnSegment5To7)
 {
 	// GIVEN: Corner mission, MC config. Vehicle at mission_index=5 flying reverse.
 	VectorProvider provider{corner_dataset::mission(), corner_dataset::safePoints()};
@@ -659,7 +655,7 @@ TEST_F(RtlSafePointTest, CornerMission_ReverseCornerScenarioSelectsRally2OnSegme
 
 // WHY: The stacked landing corner is easy to regress because segment [14-15] has zero XY length.
 // WHAT: The land-corner scenario selects the land-corner rally 6 and still branches off on segment [14-15].
-TEST_F(RtlSafePointTest, CornerMission_LandCornerScenarioSelectsRally6OnSegment14To15)
+TEST_F(RtlSafePointCornerMissionTest, CornerMission_LandCornerScenarioSelectsRally6OnSegment14To15)
 {
 	// GIVEN: Corner mission, FW config. Vehicle near stacked landing at mission_index=13.
 	VectorProvider provider{corner_dataset::mission(), corner_dataset::safePoints()};
@@ -689,7 +685,7 @@ TEST_F(RtlSafePointTest, CornerMission_LandCornerScenarioSelectsRally6OnSegment1
 
 // WHY: The DO_JUMP loop segment must be traversed correctly during safe-point selection.
 // WHAT: Selection succeeds and produces a valid branch_off when the vehicle is on a loop segment.
-TEST_F(RtlSafePointTest, CornerMission_LoopSegmentIsHandled)
+TEST_F(RtlSafePointCornerMissionTest, CornerMission_LoopSegmentIsHandled)
 {
 	// GIVEN: Corner mission with DO_JUMP at index 8, MC config. Vehicle on loop area.
 	VectorProvider provider{corner_dataset::mission(), corner_dataset::safePoints()};
@@ -716,13 +712,9 @@ TEST_F(RtlSafePointTest, CornerMission_LoopSegmentIsHandled)
 	EXPECT_GE(selection.branch_off_segment.end.idx, 0);
 }
 
-// ============================================================================
-// GROUP 5: Batched scanning efficiency
-// ============================================================================
-
 // WHY: Safe-point projection should scan the mission once for all safe points, not once per safe point.
 // WHAT: 4-wp mission with 6 safe points: missionLoadCount bounded by 2*M (not M*S), safePointLoadCount == 6.
-TEST_F(RtlSafePointTest, ScansMissionOnceForBatch_Simple)
+TEST_F(RtlSafePointBatchScanTest, ScansMissionOnceForBatch_Simple)
 {
 	// GIVEN: 4-wp square mission with 6 safe points, using VectorProvider.
 	std::vector<mission_item_s> mission{
@@ -764,7 +756,7 @@ TEST_F(RtlSafePointTest, ScansMissionOnceForBatch_Simple)
 
 // WHY: Batched scanning must also work for larger real-world-like missions.
 // WHAT: Default dataset mission with 7 safe points: missionLoadCount bounded by 2*M, safePointLoadCount == 7.
-TEST_F(RtlSafePointTest, ScansMissionOnceForBatch_DefaultDataset)
+TEST_F(RtlSafePointBatchScanTest, ScansMissionOnceForBatch_DefaultDataset)
 {
 	// GIVEN: Default 16-item mission with 7 rally points, using VectorProvider.
 	VectorProvider provider{default_dataset::mission(), default_dataset::safePoints()};
@@ -792,7 +784,7 @@ TEST_F(RtlSafePointTest, ScansMissionOnceForBatch_DefaultDataset)
 //      on caller-side prefiltering.
 // WHAT: With require_vtol_approach=true, the closer safe point without an approach is skipped
 //       and the farther safe point with an approach is selected.
-TEST_F(RtlSafePointTest, RequireVtolApproachSkipsSafePointsWithoutApproach)
+TEST_F(RtlSafePointApproachPolicyTest, RequireVtolApproachSkipsSafePointsWithoutApproach)
 {
 	// GIVEN: Two rally points where only the farther one has an associated LOITER_TO_ALT approach.
 	std::vector<mission_item_s> mission{
@@ -827,7 +819,7 @@ TEST_F(RtlSafePointTest, RequireVtolApproachSkipsSafePointsWithoutApproach)
 // WHY: When approach force is enabled and no rally point has a valid VTOL approach, the planner
 //      must report that no safe-point destination is available so the caller can fall back cleanly.
 // WHAT: Valid safe points without approaches and require_vtol_approach=true return found=false.
-TEST_F(RtlSafePointTest, RequireVtolApproachCanRejectAllSafePoints)
+TEST_F(RtlSafePointApproachPolicyTest, RequireVtolApproachCanRejectAllSafePoints)
 {
 	// GIVEN: Two valid rally points with no associated LOITER_TO_ALT approaches.
 	std::vector<mission_item_s> mission{
@@ -861,7 +853,7 @@ TEST_F(RtlSafePointTest, RequireVtolApproachCanRejectAllSafePoints)
 //      restarting the search from index 0 for every candidate.
 // WHAT: A rally point stays eligible when its first approach is invalid but a later approach in
 //       the same block is valid, and safe-point loads stay bounded linearly.
-TEST_F(RtlSafePointTest, RequireVtolApproachScansForwardWithinSingleRallyBlock)
+TEST_F(RtlSafePointApproachPolicyTest, RequireVtolApproachScansForwardWithinSingleRallyBlock)
 {
 	// GIVEN: Two rally points where the first rally owns two LOITER_TO_ALT items before the next
 	//        rally. The first approach is invalid because relative altitude cannot be resolved,
@@ -908,7 +900,7 @@ TEST_F(RtlSafePointTest, RequireVtolApproachScansForwardWithinSingleRallyBlock)
 // WHY: The planner batch limit should apply to eligible rally points, not to raw safe-point-store
 //      items, otherwise LOITER_TO_ALT approach records could crowd out later rally points.
 // WHAT: Sixty-four leading LOITER_TO_ALT entries followed by one rally point still allow the rally point to be selected.
-TEST_F(RtlSafePointTest, ApproachItemsDoNotConsumeEligibleSafePointBatchCapacity)
+TEST_F(RtlSafePointApproachPolicyTest, ApproachItemsDoNotConsumeEligibleSafePointBatchCapacity)
 {
 	// GIVEN: A simple route and a safe-point store where the first 64 entries are approach-only items
 	//        and the first actual rally point appears after them.
@@ -943,13 +935,9 @@ TEST_F(RtlSafePointTest, ApproachItemsDoNotConsumeEligibleSafePointBatchCapacity
 	EXPECT_EQ(selection.safe_point_index, 64);
 }
 
-// ============================================================================
-// GROUP 6: Loop handling in safe point selection
-// ============================================================================
-
 // WHY: When the vehicle is on a loop segment, the planner must correctly evaluate reverse-jump paths.
 // WHAT: Safe point on a loop segment triggers direction_reversed=true, first_item_index=2, branch_off on [1-2].
-TEST_F(RtlSafePointTest, HandlesLoopProjectionAndReverseJumpChoice)
+TEST_F(RtlSafePointLoopSelectionTest, HandlesLoopProjectionAndReverseJumpChoice)
 {
 	// GIVEN: 4-item mission with DO_JUMP(0, repeat 1, current 1). Vehicle on loop segment midpoint.
 	std::vector<mission_item_s> mission{
@@ -1011,7 +999,7 @@ TEST_F(RtlSafePointTest, HandlesLoopProjectionAndReverseJumpChoice)
 
 // WHY: The planner must succeed even when DO_JUMP has remaining iterations.
 // WHAT: planRouteToGoal succeeds with a valid plan despite pending loop iterations.
-TEST_F(RtlSafePointTest, HandlesLoopWithRemainingIterations)
+TEST_F(RtlSafePointLoopPlanTest, HandlesLoopWithRemainingIterations)
 {
 	// GIVEN: 5-item mission with DO_JUMP(0, repeat 3, current 1). Safe point nearby.
 	std::vector<mission_item_s> mission{
@@ -1048,7 +1036,7 @@ TEST_F(RtlSafePointTest, HandlesLoopWithRemainingIterations)
 
 // WHY: Without velocity info, FW cannot determine heading and should not apply a u-turn penalty.
 // WHAT: FW with velocity_valid=false picks the closest safe point regardless of direction.
-TEST_F(RtlSafePointTest, FWWithZeroVelocityPicksShortestPath)
+TEST_F(RtlSafePointDefaultFWTest, FWWithZeroVelocityPicksShortestPath)
 {
 	VectorProvider provider{uturn_penalty_dataset::mission(), uturn_penalty_dataset::safePoints()};
 	MissionRoutePlanner planner{provider};
@@ -1069,7 +1057,7 @@ TEST_F(RtlSafePointTest, FWWithZeroVelocityPicksShortestPath)
 
 // WHY: Orthogonal velocity (perpendicular to route) should not trigger a u-turn penalty.
 // WHAT: FW with velocity=(0,15) (east, perpendicular to north-south route) should not require u-turn.
-TEST_F(RtlSafePointTest, FWWithOrthogonalVelocityNoUturn)
+TEST_F(RtlSafePointDefaultFWTest, FWWithOrthogonalVelocityNoUturn)
 {
 	VectorProvider provider{uturn_penalty_dataset::mission(), uturn_penalty_dataset::safePoints()};
 	MissionRoutePlanner planner{provider};
@@ -1090,15 +1078,11 @@ TEST_F(RtlSafePointTest, FWWithOrthogonalVelocityNoUturn)
 	EXPECT_FALSE(selection.path.u_turn_required);
 }
 
-// =============================================================================
-// GROUP 7: DO_JUMP loop planning via planRouteToGoal
-// =============================================================================
-
 // WHY: When the vehicle is inside a DO_JUMP loop, the planner must correctly model
 //      the loop edges and select a goal reachable via the loop geometry. The executor
 //      relies on this to advance through the mission without following DO_JUMP control flow.
 // WHAT: Vehicle on the corner_dataset loop area gets a valid plan with a safe point.
-TEST_F(RtlSafePointTest, VehicleInsideDoJumpLoopGetsValidPlan)
+TEST_F(RtlSafePointLoopPlanTest, VehicleInsideDoJumpLoopGetsValidPlan)
 {
 	// GIVEN: The vehicle is inside the active DO_JUMP loop and the planner knows the last flown loop edge.
 	auto items = corner_dataset::mission();
@@ -1137,7 +1121,7 @@ TEST_F(RtlSafePointTest, VehicleInsideDoJumpLoopGetsValidPlan)
 
 // WHY: Loop planning must remain deterministic even when the cheapest safe point is reached via a nominal segment.
 // WHAT: The loop scenario selects rally 3 and branches off on nominal segment [7-9].
-TEST_F(RtlSafePointTest, LoopScenarioSelectsRally3OnSegment7To9)
+TEST_F(RtlSafePointLoopPlanTest, LoopScenarioSelectsRally3OnSegment7To9)
 {
 	// GIVEN: A safe point lies on the active jump segment 7->2 while the vehicle is inside that loop.
 	auto items = corner_dataset::mission();
@@ -1181,7 +1165,7 @@ TEST_F(RtlSafePointTest, LoopScenarioSelectsRally3OnSegment7To9)
 // WHY: A mission with an exhausted DO_JUMP (current_count == repeat_count) should be
 //      treated as a straight-through mission with no loop edges.
 // WHAT: Planning succeeds and does not create loop context when DO_JUMP is exhausted.
-TEST_F(RtlSafePointTest, ExhaustedDoJumpTreatedAsStraightThrough)
+TEST_F(RtlSafePointLoopPlanTest, ExhaustedDoJumpTreatedAsStraightThrough)
 {
 	// GIVEN: A mission with a DO_JUMP whose current count already exhausted its repeats.
 	std::vector<mission_item_s> mission = {
@@ -1222,13 +1206,9 @@ TEST_F(RtlSafePointTest, ExhaustedDoJumpTreatedAsStraightThrough)
 	EXPECT_TRUE(plan.selection.branch_off_segment.valid());
 }
 
-// =============================================================================
-// GROUP 8: Branch-Off Geometry
-// =============================================================================
-
 // WHY: closeToBranchOffSegment is pure branch geometry logic and should stay covered in a unit-style test.
 // WHAT: A point exactly on the returned branch-off leg is considered close to that leg.
-TEST_F(RtlSafePointTest, CloseToBranchOffSegmentUsesBranchGeometry)
+TEST_F(RtlSafePointBranchGeometryTest, CloseToBranchOffSegmentUsesBranchGeometry)
 {
 	// GIVEN: A deterministic safe-point plan with a valid branch-off segment.
 	auto mission = std::vector<mission_item_s> {
@@ -1262,10 +1242,6 @@ TEST_F(RtlSafePointTest, CloseToBranchOffSegmentUsesBranchGeometry)
 			plan.selection, config.parameters.acceptance_radius));
 }
 
-// =============================================================================
-// GROUP 9: Direct-to-safe-point shortcut (MC vs FW)
-// =============================================================================
-
 struct DirectToSafePointCase {
 	const char *name;
 	bool is_multicopter;
@@ -1273,7 +1249,8 @@ struct DirectToSafePointCase {
 	bool expect_direct;
 };
 
-class RtlSafePointDirectShortcutTest : public RtlSafePointTest,
+/** @brief Parameterized fixture for direct-to-safe-point shortcut policy checks. */
+class RtlSafePointDirectShortcutTest : public RtlSafePointTestBase,
 	public ::testing::WithParamInterface<DirectToSafePointCase> {};
 
 TEST_P(RtlSafePointDirectShortcutTest, PlansDirectShortcutOnlyForMulticopter)
@@ -1298,7 +1275,7 @@ TEST_P(RtlSafePointDirectShortcutTest, PlansDirectShortcutOnlyForMulticopter)
 	EXPECT_TRUE(plan.selection.safe_point_found);
 	EXPECT_EQ(plan.selection.goal_type, MissionRoutePlanner::GoalType::SafePoint);
 	EXPECT_EQ(plan.selection.safe_point_index, 0);
-	EXPECT_EQ(plan.selection.direct_to_safe_point, scenario.expect_direct);
+	EXPECT_EQ(plan.selection.skip_route_to_safe_point, scenario.expect_direct);
 }
 
 INSTANTIATE_TEST_SUITE_P(

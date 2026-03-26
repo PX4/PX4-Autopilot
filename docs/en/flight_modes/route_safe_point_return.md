@@ -8,7 +8,7 @@ This mode is intended for operations where the mission itself is the safest know
 
 ::: info
 - If route planning succeeds but no [safety points (rally points)](../flying/plan_safety_points.md) are usable, PX4 falls back to the closer mission endpoint (landing or takeoff) while staying in the route-based return logic.
-- During execution, route following skips `DO_JUMP` items as mission commands. During planning, jump segments are still evaluated as route geometry, but RTL ignores remaining loop counts and chooses the shorter continue-vs-rewind path through the loop exit.
+- During execution, route following skips `DO_JUMP` items as mission commands. During planning, jump segments can still be evaluated as route geometry. Mission smart rejoin preserves the repeat count of the selected loop edge, while `RTL_TYPE=6` clears that effective repeat count after projection and chooses the shorter continue-vs-rewind path through the loop exit.
 - If the mission cannot be projected, the route cache is not ready, or the mission exceeds `CONFIG_RTL_MISSION_CACHE_SIZE`, PX4 falls back to the same direct RTL destination selection used by `RTL_TYPE=3`: home, the closest eligible safe point, or the mission landing point.
 :::
 
@@ -218,30 +218,72 @@ The route-based scorer used by `RTL_TYPE=6` evaluates at most 64 eligible rally 
 
 This section covers the internal architecture for developers working on the Route Safe Point Return code.
 
-### Three-Role Architecture
+### Architecture Overview
+
+`RTL_TYPE=6` is split across planner, cache, outer RTL orchestration, inner execution, and shared mission helpers. The main files are:
+
+| File | Role in the type-6 pipeline |
+| --- | --- |
+| `rtl.cpp` / `rtl.h` | Outer RTL orchestrator. Owns the cached plan, builds planner config, applies fallback policy, chooses the goal landing approach, and hands the full route-safe-point bundle to the nested executor. |
+| `rtl_base.h` | Shared base interface for mission-backed RTL executors, including the route-safe-point handoff contract. |
+| `rtl_mission_safe_point_follow.cpp` / `rtl_mission_safe_point_follow.h` | RTL_TYPE 6 executor. Runs the route-follow / branch-off / approach / land stages and reuses `MissionBase` for join-route helper work items. |
+| `mission_route_planner.cpp` / `mission_route_planner.h` | Geometry and scoring engine. Projects the vehicle and safe points, evaluates route paths, and builds `Plan`, `JoinPlan`, and `Selection`. |
+| `mission_route_cache.cpp` / `mission_route_cache.h` | Shared provider/cache for full mission geometry, mission-land item, and safe points. |
+| `mission_base.cpp` / `mission_base.h` | Shared execution helpers: join-route pipeline, traversal helpers, VTOL transition logic, and loop-anchor tracking. |
+| `mission.cpp` / `mission.h` | Mission-mode caller that reuses the same planner and join-route path for smart mission resume. |
+| `mission_block.cpp` / `mission_block.h` | Low-level mission-item utilities used by MissionBase and the RTL executors. |
+| `navigator.h` / `navigator_main.cpp` | Own the shared `MissionRouteCache` instance and wire the planner/caches into Navigator runtime. |
+| `rtl_params.c` / `mission_params.c` | Parameters that tune Route Safe Point Return and Mission smart rejoin. |
+| `msg/RtlStatus.msg` | Status exported to the rest of the system. |
+| `src/modules/navigator/test/*` | Unit and integration coverage for planner, executor, MissionBase helpers, and Navigator-level orchestration. |
+
+```text
+Navigator
+├─ MissionRouteCache
+├─ Mission
+│  └─ MissionBase
+│     └─ MissionBlock
+└─ RTL
+   ├─ MissionRoutePlanner(provider = MissionRouteCache)
+   ├─ cached Plan / _should_go_straight_to_goal / _last_route_safe_point_loop_segment
+   └─ RtlMissionSafePointFollow
+      └─ RtlBase
+         └─ MissionBase
+            └─ MissionBlock
+```
+
+### Three Roles
 
 Route Safe Point Return separates concerns into three roles:
 
 | Role | Class | Responsibility |
 | --- | --- | --- |
-| **Orchestrator** | `RTL` (in `rtl.cpp`) | Owns the planner and executor instances, triggers planning on RTL entry or mission change, passes the plan to the executor, selects the active RTL type, and chooses the final VTOL landing approach once a safe point has been selected. |
-| **Brain** | `MissionRoutePlanner` (in `mission_route_planner.h/cpp`) | Planning logic: projects the vehicle and safe points onto the mission route, scores candidates, and builds the `Plan` struct. Stateless between calls and fully testable via the `Provider` interface. |
+| **Orchestrator** | `RTL` (in `rtl.cpp`) | Owns the planner and executor instances, triggers planning on RTL entry or mission change, passes the full route-safe-point data to the executor, selects the active RTL type, and chooses the final VTOL landing approach once a safe point has been selected. |
+| **Brain** | `MissionRoutePlanner` (in `mission_route_planner.h/cpp`) | Planning logic: projects the vehicle and safe points onto the mission route, scores candidates, and builds the `Plan` struct. |
 | **Pilot** | `RtlMissionSafePointFollow` (in `rtl_mission_safe_point_follow.h/cpp`) | Executes the plan built by the Brain. Manages the route-follow / branch-off / goal-approach / landing stages and reuses `MissionBase` for join-route work items. Inherits from `RtlBase → MissionBase → MissionBlock`. |
 
-### Data Flow
+### Runtime Data Flow
 
 ```
 RTL::setRtlTypeAndDestination()
+  │
+  ├─ MissionRouteCache::update(mission)
   │
   ├─ MissionRoutePlanner::planRouteToGoal(config)
   │    ├─ collectVehicleProjection()    → ProjectionContext
   │    ├─ selectBestGoal()              → Selection
   │    └─ fill geometric context        → JoinContext
   │
-  ├─ Plan {projection_context, selection, join_context}
+  ├─ RouteSafePointConfig {
+  │      plan,
+  │      should_go_straight_to_goal,
+  │      goal_land_approach,
+  │      rtl_alt
+  │  }
   │
-  └─ RtlMissionSafePointFollow::setRoutePlan(plan)
-       └─ Executor stage machine drives setpoints
+  └─ RtlMissionSafePointFollow::configureRouteSafePoint(...)
+       ├─ MissionBase join-route work items
+       └─ Type-6 executor stage machine publishes setpoints
 ```
 
 ### State Machine
@@ -305,8 +347,59 @@ Mission smart rejoin now uses the planner's dedicated `planMissionResumeJoin()` 
 
 - The resumed target index comes from the shortest valid nominal path to the mission landing goal instead of hard-coding the projected segment end.
 - If the projection lies on a `DO_JUMP` loop segment with repeats remaining, the resumed path continues to the loop segment end.
-- If the loop is exhausted, the planner compares continuing versus rewinding through the loop exit and chooses the shorter path.
+- If the selected projection lies on an exhausted loop edge, the planner compares continuing versus rewinding through the loop exit and chooses the shorter path.
 - The shared join-route work item finalizes the execution corrections when it is armed: it applies the required front-transition or back-transition and, when appropriate, skips the join altitude to avoid an unnecessary climb near landing or other caller-provided special cases.
+
+### Loop Geometry and Cached Anchors
+
+`MissionRoutePlanner::Segment` can describe either a nominal forward route segment or an active synthetic loop edge created by a `DO_JUMP`.
+
+- For a nominal segment, `start.idx < end.idx`.
+- For an active `DO_JUMP` loop segment, `start` is the position item attached to the jump command and `end` is the first position item reached at `do_jump_mission_index`, so the segment can run backward in mission-index order.
+- `segment.is_loop` marks that synthetic jump edge.
+- `segment.is_loop` only means "this projection candidate came from a synthetic jump edge"; it does not imply that Mission mode will necessarily replay loop control flow from that point onward.
+
+The cached loop state is intentionally temporary. It means "the active loop edge the vehicle was most recently committed to", not "the last `DO_JUMP` seen anywhere in the mission".
+
+Example mission:
+
+`[WP0, WP1, WP2, DO_JUMP->0 repeat=3 current=1, WP3]`
+
+- If `current_seq == 2`, the next nominal forward advance will execute the `DO_JUMP`, so the cached active loop edge is `[2 -> 0]` with `loops_remaining = 2`.
+- If `current_seq == 1`, the scan stops at `WP2` and caches nothing, because the upcoming nominal advance ends at `WP2` before the later `DO_JUMP` is reached.
+
+`MissionBase::updateLastFlownLoopSegmentForNominalAdvance()` intentionally scans only from `current_seq + 1` until the first position item:
+
+- Non-position items in that window still belong to the same nominal advance and may redirect control flow.
+- Reaching the next position item ends that advance, so later `DO_JUMP` items belong to future legs and must not bias the current projection/rejoin decision.
+
+The same concept exists at different lifetimes:
+
+- `Mission` stores `_last_flown_loop_segment` between Mission activations so smart rejoin can stay anchored on the active loop.
+- `RtlMissionSafePointFollow` stores its active `_last_flown_loop_segment` while the executor is running.
+- `RTL` stores `_last_route_safe_point_loop_segment` across nested executor recreation and feeds it back into the next planning pass.
+
+The loop-repeat count belongs to the selected projected loop segment itself. That matters for missions with multiple `DO_JUMP` items: the active loop must keep its own repeat count even if a later unrelated loop also exists in the same mission.
+
+After projection, the two mode families diverge:
+
+- Mission smart rejoin honors `mission_loops_remaining`. If repeats are still pending, the resumed path must continue to the loop end.
+- `RTL_TYPE=6` clears the effective remaining-loop count after projection. The loop edge is still useful as geometry, but return execution must not replay mission loop control flow.
+
+### Why `_should_go_straight_to_goal` Exists Twice
+
+There are two members with the same name because they solve different lifetimes:
+
+- `RTL::_should_go_straight_to_goal` is the outer persistence latch. It survives nested executor destruction/recreation, is part of cached-plan reuse, and is copied into `RtlBase::RouteSafePointConfig` before the nested executor is (re)activated.
+- `RtlMissionSafePointFollow::_should_go_straight_to_goal` is the executor's local runtime latch. It drives the active stage machine after the executor has already been configured, for example after a branch-off has been reached or when a join projection is already near the branch-off.
+
+The handoff is therefore:
+
+1. `RTL` computes or reuses the plan and passes the current latch value into `configureRouteSafePoint()`.
+2. `RtlMissionSafePointFollow` uses its local copy while active.
+3. On inactivation, `RTL::on_inactivation()` reads the executor copy back through `shouldGoStraightToGoal()` so the state survives the next replanning cycle.
+
+Without the outer copy, a temporary deactivation or executor rebuild would forget that the vehicle had already branched off. Without the inner copy, the executor would need to mutate outer RTL state directly while running.
 
 ### Provider Interface
 
@@ -325,6 +418,9 @@ The executor reuses several traversal methods from `MissionBase` to avoid code d
 - `findNextPositionIndexNoJump()` / `findPreviousPositionIndexNoJump()`: walk forward/backward skipping non-position and `DO_JUMP` items. `findPreviousPositionIndexNoJump()` returns `false` on dataman load failure instead of silently skipping, ensuring SD card read errors are surfaced to the caller.
 - `findAttachedPositionIndex()`: find the nearest position item at or before a given index.
 - `vtolTransitionActionForTarget()`: determine if a VTOL transition is needed for a given target index.
+- `setupJoinRoute()` / `handleJoinRouteWorkItems()`: arm and execute the shared branch-in pipeline used by both Mission smart rejoin and `RTL_TYPE=6`.
+- `computeFrontTransitionAlignmentYaw()`: provide the route-aligned yaw used for front transitions after join and during route following.
+- `updateLastFlownLoopSegmentForNominalAdvance()`: cache the exact active `DO_JUMP` edge that the next nominal forward advance would traverse.
 
 ### Dataman Cache Architecture
 
@@ -345,7 +441,7 @@ To solve this, Navigator maintains a shared `MissionRouteCache` in RAM. It owns 
 ```
 Mission / RTL
    │
-   ├─ uses MissionRoutePlanner (stateless geometry scan)
+   ├─ uses MissionRoutePlanner (geometry scan)
    │
    └─ uses MissionRouteCache
         ├─ full mission route cache      [0 ... CONFIG_RTL_MISSION_CACHE_SIZE-1]
@@ -366,6 +462,19 @@ This design allows each subclass to supply its own storage backend through a sin
 - **RtlMissionSafePointFollow** overrides `loadMissionItemFromCache()` to pull instantly from the same shared full-mission route cache, while safe-point and mission-land access also come from `MissionRouteCache`.
 
 This means the same traversal code in `MissionBase` works correctly for both modes without any code duplication or mode-specific branching.
+
+### Unit Test Coverage
+
+The feature has automated coverage:
+
+- `test_RTL_projection.cpp`: vehicle projection, segment ownership, stored loop-anchor preference, corner handling, and invalid inputs.
+- `test_RTL_safe_point.cpp`: safe-point filtering/scoring, direct-to-safe-point shortcut, VTOL approach policy, loop-aware safe-point selection, branch-off geometry, and batch-scan behavior.
+- `test_RTL_planner_integration.cpp`: full `planRouteToGoal()` / `planMissionResumeJoin()` behavior, including loop continuation vs rewind, endpoint fallback, and regression coverage for missions with multiple `DO_JUMP` loops.
+- `test_RTL_mission_safe_point_follow.cpp`: lightweight executor stage-machine transitions.
+- `test_mission_base_vtol.cpp`: shared MissionBase helpers such as join-route work items, VTOL transition decisions, and loop-anchor caching before nominal advance.
+- `test_navigator_route_rejoin_and_rtl.cpp`: Navigator-level integration with real Mission / RTL classes and dataman-backed mission and safe-point state.
+
+That test split mirrors the architecture split: geometry is tested close to `MissionRoutePlanner`, execution helpers are tested close to `MissionBase` and `RtlMissionSafePointFollow`, and end-to-end orchestration is covered at Navigator level.
 
 ## Related Topics
 

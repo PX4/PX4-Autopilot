@@ -1,3 +1,12 @@
+/**
+ * @file mission_route_cache.h
+ *
+ * Shared full-mission and safe-point cache used by Mission smart rejoin and
+ * Route Safe Point Return planning.
+ *
+ * @author Jonas Perolini <jonspero@me.com>
+ */
+
 #pragma once
 
 #include <drivers/drv_hrt.h>

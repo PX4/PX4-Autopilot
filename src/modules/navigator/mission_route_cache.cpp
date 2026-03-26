@@ -33,6 +33,9 @@
 /**
  * @file mission_route_cache.cpp
  *
+ * Shared dataman-backed cache for mission geometry, mission-land items, and
+ * safe points consumed by MissionRoutePlanner.
+ *
  * @author Jonas Perolini <jonspero@me.com>
  */
 

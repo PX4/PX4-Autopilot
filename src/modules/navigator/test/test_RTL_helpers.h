@@ -49,14 +49,13 @@
 #include "mission_route_planner.h"
 
 #include <lib/geo/geo.h>
+#include <parameters/param.h>
+#include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
 #include <uORB/topics/vtol_vehicle_status.h>
 
 #include <cmath>
 #include <vector>
 
-// ============================================================================
-// Provider implementations for testing
-// ============================================================================
 
 /**
  * @brief In-memory planner provider for all MissionRoutePlanner tests.
@@ -142,9 +141,6 @@ private:
 	mutable int _safe_point_load_count{0};
 };
 
-// ============================================================================
-// Mission item factory helpers
-// ============================================================================
 
 // These helpers stay header-only because only a small set of navigator test TUs include
 // them today. If reuse widens or the bodies become materially larger, move them into a
@@ -262,10 +258,6 @@ static inline MissionRoutePlanner::Position makePositionAbsolute(double lat, dou
 	return MissionRoutePlanner::Position{lat, lon, alt};
 }
 
-// ============================================================================
-// Default config helpers
-// ============================================================================
-
 /** @brief Default route-planner config for route-following tests (multicopter). */
 static inline MissionRoutePlanner::Config defaultConfig()
 {
@@ -289,10 +281,6 @@ static inline MissionRoutePlanner::Config fwConfig()
 	return config;
 }
 
-// ============================================================================
-// Shared reference geometry and tolerance constants
-// ============================================================================
-
 namespace rtl_test_reference
 {
 static constexpr double kBaseLat = 47.397742;
@@ -304,9 +292,38 @@ static constexpr double kLatLonToleranceDeg = 1e-7;     // ~1 cm at equator
 static constexpr float kAltitudeTolerance = 2.0f;       // meters
 static constexpr float kDistanceTolerance = 5.0f;       // meters
 
-// ============================================================================
-// Test fixture base class
-// ============================================================================
+extern "C" int dataman_main(int argc, char *argv[]);
+
+/**
+ * @brief Shared dataman/work-queue lifecycle for navigator tests that need PX4 runtime services.
+ */
+class NavigatorDatamanTestBase : public ::testing::Test
+{
+protected:
+	static void SetUpTestSuite()
+	{
+		param_control_autosave(false);
+		px4::WorkQueueManagerStart();
+
+		char name[] = "dataman";
+		char start[] = "start";
+		char ram[] = "-r";
+		char *argv[] = {name, start, ram};
+		dataman_main(3, argv);
+	}
+
+	static void TearDownTestSuite()
+	{
+		param_control_autosave(true);
+
+		char name[] = "dataman";
+		char stop[] = "stop";
+		char *argv[] = {name, stop};
+		dataman_main(2, argv);
+
+		px4::WorkQueueManagerStop();
+	}
+};
 
 /**
  * @brief Base fixture for MissionRoutePlanner tests.

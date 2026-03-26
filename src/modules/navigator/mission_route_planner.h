@@ -236,7 +236,7 @@ public:
 		Path path{};
 		bool found{false};
 		bool safe_point_found{false};
-		bool direct_to_safe_point{false};
+		bool skip_route_to_safe_point{false}; /**< Selected safe point is close enough to bypass route join/follow. */
 		int32_t safe_point_index{-1};
 		GoalType goal_type{GoalType::None};
 		Segment branch_off_segment{};
@@ -453,7 +453,6 @@ private:
 	struct ProjectionBatchOutputs {
 		SegmentDistanceAlong dist_along_to_last_flown_segment{};
 		float dist_along_to_route_end{0.f};
-		uint8_t loops_remaining{0};
 	};
 
 	struct CandidateSearchState {
@@ -574,8 +573,8 @@ private:
 					const ProjectionContext &projection_context, const Config &config,
 					PathDirectionMode direction_mode = PathDirectionMode::Auto) const;
 	/** @brief Allow multicopters already close to a safe point to skip the route join and fly straight to it. */
-	bool directToSafePoint(const Position &safe_point_position, const Position &vehicle_position,
-			       const Config &config) const;
+	bool shouldSkipRouteToSafePoint(const Position &safe_point_position, const Position &vehicle_position,
+					const Config &config) const;
 	/** @brief Force or infer the direction used to reach a goal from the projected vehicle location. */
 	bool mustFlyReverse(float goal_dist_along, float projection_dist_along,
 			    PathDirectionMode direction_mode) const;

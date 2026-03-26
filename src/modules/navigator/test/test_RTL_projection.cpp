@@ -50,19 +50,18 @@ using rtl_test_reference::kAlt;
 using rtl_test_reference::kBaseLat;
 using rtl_test_reference::kBaseLon;
 
-// ============================================================================
-// Test fixture
-// ============================================================================
-
-class RtlProjectionTest : public MissionRoutePlannerTestBase {};
-
-// ============================================================================
-// GROUP 1: Vehicle projection onto current/nearby segment
-// ============================================================================
+/** @brief Shared fixture for route-projection planner tests. */
+class RtlProjectionTestBase : public MissionRoutePlannerTestBase {};
+/** @brief Covers vehicle projection onto the current or nearby mission segment. */
+class RtlProjectionLocalSegmentTest : public RtlProjectionTestBase {};
+/** @brief Covers candidate-buffer and local-minimum behavior during projection. */
+class RtlProjectionCandidateSelectionTest : public RtlProjectionTestBase {};
+/** @brief Covers projection edge cases and rejection of invalid inputs. */
+class RtlProjectionEdgeCaseTest : public RtlProjectionTestBase {};
 
 // WHY: The planner should prefer the segment containing the current mission index to maintain continuity.
 // WHAT: Vehicle near seg [0-1] with mission_index=1; verify it projects onto [0-1] with ~10m xtrack.
-TEST_F(RtlProjectionTest, PrefersCurrentMissionSegment)
+TEST_F(RtlProjectionLocalSegmentTest, PrefersCurrentMissionSegment)
 {
 	// GIVEN: 3-wp mission (straight then right turn), vehicle offset 90N 10E
 	std::vector<mission_item_s> mission = {
@@ -88,7 +87,8 @@ TEST_F(RtlProjectionTest, PrefersCurrentMissionSegment)
 // WHY: A negative or out-of-range mission index should be clamped rather than causing undefined behavior.
 // WHAT: Negative indices clamp to the route start and overly large indices clamp to the route end.
 // NOTE: Uses TEST_P to independently test each invalid index value.
-class RtlProjectionClampTest : public MissionRoutePlannerTestBase, public ::testing::WithParamInterface<int> {};
+/** @brief Parameterized fixture for mission-index clamping during projection. */
+class RtlProjectionClampTest : public RtlProjectionTestBase, public ::testing::WithParamInterface<int> {};
 
 TEST_P(RtlProjectionClampTest, ClampsOutOfRangeMissionIndex)
 {
@@ -128,7 +128,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 // WHY: Relative-altitude mission items require a valid home altitude in order to produce a safe AMSL target.
 // WHAT: A relative-altitude item with NaN home altitude yields NaN absolute altitude and is rejected as a mission position.
-TEST_F(RtlProjectionTest, RelativeAltitudeRequiresFiniteHomeAltitude)
+TEST_F(RtlProjectionLocalSegmentTest, RelativeAltitudeRequiresFiniteHomeAltitude)
 {
 	mission_item_s mission_item = makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, 50.f);
 	mission_item.altitude_is_relative = true;
@@ -140,11 +140,9 @@ TEST_F(RtlProjectionTest, RelativeAltitudeRequiresFiniteHomeAltitude)
 	EXPECT_FALSE(MissionRoutePlanner::extractMissionPosition(mission_item, NAN, position));
 }
 
-
-
 // WHY: Reverse route following changes which segment owns a boundary mission index.
 // WHAT: Vehicle on the waypoint-1 corner with mission_index=1 should map to [1-2] when flying in reverse.
-TEST_F(RtlProjectionTest, ReverseFlightPrefersReverseCurrentSegment)
+TEST_F(RtlProjectionLocalSegmentTest, ReverseFlightPrefersReverseCurrentSegment)
 {
 	// GIVEN: 3-wp L-shaped mission and reverse-flight configuration.
 	std::vector<mission_item_s> mission = {
@@ -169,7 +167,7 @@ TEST_F(RtlProjectionTest, ReverseFlightPrefersReverseCurrentSegment)
 
 // WHY: When the vehicle was last flying a DO_JUMP loop segment, the planner should prefer that segment even if another non-loop segment is closer.
 // WHAT: Vehicle at (75N, 10E) with stored loop context [2->0], verify loop segment is selected.
-TEST_F(RtlProjectionTest, PrefersStoredLoopAnchor)
+TEST_F(RtlProjectionLocalSegmentTest, PrefersStoredLoopAnchor)
 {
 	// GIVEN: 5-item mission with DO_JUMP at idx 3 (jumps to 0, repeat 2)
 	std::vector<mission_item_s> mission = {
@@ -202,10 +200,6 @@ TEST_F(RtlProjectionTest, PrefersStoredLoopAnchor)
 	EXPECT_EQ(ctx.seg_candidate.segment.end.idx, 0);
 }
 
-// ============================================================================
-// GROUP 2: Default dataset - vehicle projection at various positions
-// ============================================================================
-
 struct ProjectionDatasetCase {
 	const char *name;
 	bool use_corner_dataset;
@@ -228,7 +222,8 @@ static constexpr std::array<ProjectionDatasetCase, 8> kProjectionDatasetCases{{
 		{"CornerOnSmallSegment", true, 46.10361319095525, 2.3183349874167636, 462.6f, 13, 12, 13},
 	}};
 
-class RtlProjectionDatasetTest : public MissionRoutePlannerTestBase,
+/** @brief Parameterized fixture for dataset-driven projection segment checks. */
+class RtlProjectionDatasetTest : public RtlProjectionTestBase,
 	public ::testing::WithParamInterface<ProjectionDatasetCase> {};
 
 // WHY: Dataset-driven projection checks all exercise the same contract and are easier to maintain
@@ -263,13 +258,9 @@ INSTANTIATE_TEST_SUITE_P(
 }
 );
 
-// ============================================================================
-// GROUP 3: Candidate buffer and local-minimum detection
-// ============================================================================
-
 // WHY: A rally point behind the takeoff should project onto the first segment [0-1], detecting takeoff as a local minimum.
 // WHAT: Rally behind takeoff, vehicle at takeoff. Verify branch-off on [0-1] near takeoff position.
-TEST_F(RtlProjectionTest, TakeoffIsLocalMinimum)
+TEST_F(RtlProjectionCandidateSelectionTest, TakeoffIsLocalMinimum)
 {
 	// GIVEN: 4-item mission (takeoff, wp, vtol_trans, wp), rally behind takeoff
 	std::vector<mission_item_s> mission = {
@@ -302,7 +293,7 @@ TEST_F(RtlProjectionTest, TakeoffIsLocalMinimum)
 
 // WHY: A zero-length segment (wp stacked on takeoff) must not break projection.
 // WHAT: Same as above but wp1 is at same position as takeoff. Rally behind should still find projection.
-TEST_F(RtlProjectionTest, StackedWaypointAboveTakeoff)
+TEST_F(RtlProjectionCandidateSelectionTest, StackedWaypointAboveTakeoff)
 {
 	// GIVEN: wp1 stacked on takeoff position
 	std::vector<mission_item_s> mission = {
@@ -333,7 +324,7 @@ TEST_F(RtlProjectionTest, StackedWaypointAboveTakeoff)
 
 // WHY: A zero-length segment at the land point must not break projection.
 // WHAT: wp2 stacked on LAND position. Safe point beyond land should project onto land segment.
-TEST_F(RtlProjectionTest, StackedWaypointAboveLand)
+TEST_F(RtlProjectionCandidateSelectionTest, StackedWaypointAboveLand)
 {
 	// GIVEN: wp2 stacked on land position
 	std::vector<mission_item_s> mission = {
@@ -364,7 +355,7 @@ TEST_F(RtlProjectionTest, StackedWaypointAboveLand)
 
 // WHY: On a straight-line route, intermediate waypoint "corners" are not true local minima and should be pruned.
 // WHAT: 10-wp straight line, rally offset east of mid-point -> projects onto [4-5] only.
-TEST_F(RtlProjectionTest, StraightLineIgnoresNonMinCorners)
+TEST_F(RtlProjectionCandidateSelectionTest, StraightLineIgnoresNonMinCorners)
 {
 	// GIVEN: 10-waypoint straight line going north, rally offset east near mid-point
 	std::vector<mission_item_s> mission;
@@ -396,7 +387,7 @@ TEST_F(RtlProjectionTest, StraightLineIgnoresNonMinCorners)
 
 // WHY: A rectangle mission has 4 local minima (one per side). With MAX_SEGMENT_CANDIDATES=3, the farthest must be dropped.
 // WHAT: Rectangle route, rally biased toward left side. Farthest segment [1-2] (right side) should NOT be selected.
-TEST_F(RtlProjectionTest, RectangleKeepsThreeClosestSegments)
+TEST_F(RtlProjectionCandidateSelectionTest, RectangleKeepsThreeClosestSegments)
 {
 	// GIVEN: rectangle mission ABCDA, rally biased left
 	//   0 -- 1
@@ -434,7 +425,7 @@ TEST_F(RtlProjectionTest, RectangleKeepsThreeClosestSegments)
 
 // WHY: Multiple identical waypoints at a corner must not create false local minima that fill the candidate buffer and evict real projections.
 // WHAT: L-shape with 8 duplicated corner waypoints. Duplicates must not fill buffer and evict the real non-corner projection.
-TEST_F(RtlProjectionTest, DuplicateCornerWaypointsDoNotEvictValidCandidates)
+TEST_F(RtlProjectionCandidateSelectionTest, DuplicateCornerWaypointsDoNotEvictValidCandidates)
 {
 	// GIVEN: route with duplicated corner waypoints
 	std::vector<mission_item_s> mission = {
@@ -475,13 +466,12 @@ TEST_F(RtlProjectionTest, DuplicateCornerWaypointsDoNotEvictValidCandidates)
 	EXPECT_EQ(selection.branch_off_segment.end.idx, 10);
 }
 
-// ============================================================================
-// GROUP 4: Edge cases and error handling
-// ============================================================================
-
 // WHY: Projection should reject both non-finite and finite-but-invalid global positions early.
 // WHAT: Invalid coordinates return false with FailureReason::NoValidGlobalPos.
-class RtlProjectionInvalidVehiclePositionTest : public MissionRoutePlannerTestBase,
+/**
+ * @brief Parameterized fixture for invalid vehicle-position rejection checks.
+ */
+class RtlProjectionInvalidVehiclePositionTest : public RtlProjectionEdgeCaseTest,
 	public ::testing::WithParamInterface<std::pair<double, double>> {};
 
 TEST_P(RtlProjectionInvalidVehiclePositionTest, RejectsInvalidVehiclePosition)
@@ -531,7 +521,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 // WHY: A mission with only one waypoint has no segments and cannot support projection.
 // WHAT: Single-item mission, collectVehicleProjection should return false.
-TEST_F(RtlProjectionTest, SingleWaypointMissionFails)
+TEST_F(RtlProjectionEdgeCaseTest, SingleWaypointMissionFails)
 {
 	// GIVEN: single-waypoint mission
 	std::vector<mission_item_s> mission = {
@@ -551,7 +541,7 @@ TEST_F(RtlProjectionTest, SingleWaypointMissionFails)
 
 // WHY: A mission that zigzags creates many local minima; the candidate buffer (MAX_SEGMENT_CANDIDATES=3) must keep only the closest three and not overflow.
 // WHAT: 8-waypoint zigzag pattern with a safe point near one segment. Verify selection.found is true.
-TEST_F(RtlProjectionTest, ZigzagMissionStressesCandidateBuffer)
+TEST_F(RtlProjectionEdgeCaseTest, ZigzagMissionStressesCandidateBuffer)
 {
 	// GIVEN: 8-waypoint zigzag pattern going east, alternating N/S offsets
 	std::vector<mission_item_s> mission;

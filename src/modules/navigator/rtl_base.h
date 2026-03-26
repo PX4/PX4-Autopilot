@@ -52,15 +52,19 @@ public:
 
 	virtual rtl_time_estimate_s calc_rtl_time_estimate() = 0;
 
+	struct RouteSafePointConfig {
+		MissionRoutePlanner::Plan plan{};
+		bool should_go_straight_to_goal{false};
+		loiter_point_s goal_land_approach{};
+		float rtl_alt{NAN};
+	};
+
 	virtual void setReturnAltMin(bool min) { (void)min;};
 
 	virtual void setRtlAlt(float alt) { (void)alt;};
 
-	virtual void setRoutePlan(const MissionRoutePlanner::Plan &plan) { (void)plan; }
-
-	virtual void setShouldGoStraightToGoal(bool should_go_straight) { (void)should_go_straight; }
-
-	virtual void setGoalLandApproach(const loiter_point_s &land_approach) { (void)land_approach; }
+	/** @brief Atomically hand route-safe-point RTL state from RTL to the executor. */
+	virtual void configureRouteSafePoint(const RouteSafePointConfig &config) { (void)config; }
 
 	/**
 	 * @brief Return whether the RTL mode should keep the vehicle on the direct-to-goal branch.

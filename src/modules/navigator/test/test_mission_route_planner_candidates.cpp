@@ -135,6 +135,25 @@ protected:
 		}
 	}
 
+	void fillBufferToCapacity(MissionRoutePlanner::CandidateBuffer &buffer)
+	{
+		for (int32_t i = 0; i < MissionRoutePlanner::MAX_SEGMENT_CANDIDATES; ++i) {
+			planner.insertCandidateSortedForTest(buffer, makeCandidate(i + 1, static_cast<float>(i + 1)));
+		}
+	}
+
+	static std::vector<int32_t> expectedSequentialIds(int32_t first_id, int32_t count)
+	{
+		std::vector<int32_t> ids;
+		ids.reserve(static_cast<size_t>(count));
+
+		for (int32_t i = 0; i < count; ++i) {
+			ids.push_back(first_id + i);
+		}
+
+		return ids;
+	}
+
 	VectorProvider provider{makeMissionItems(), {}};
 	MissionRoutePlannerCandidateBufferTestPeer planner{provider};
 };
@@ -206,73 +225,79 @@ TEST_F(MissionRoutePlannerCandidateBufferTest, InsertCandidateSortedEqualXtrackI
 // WHAT: Full buffer [1,2,3] plus worse candidate 4 -> insertCandidateSorted keeps [1,2,3].
 TEST_F(MissionRoutePlannerCandidateBufferTest, InsertCandidateSortedFullBufferRejectsWorseCandidate)
 {
-	// GIVEN: A full buffer already containing the three best xtrack candidates.
+	// GIVEN: A full buffer already containing the best xtrack candidates up to capacity.
 	MissionRoutePlanner::CandidateBuffer buffer{};
-	planner.insertCandidateSortedForTest(buffer, makeCandidate(1, 1.0f));
-	planner.insertCandidateSortedForTest(buffer, makeCandidate(2, 2.0f));
-	planner.insertCandidateSortedForTest(buffer, makeCandidate(3, 3.0f));
+	fillBufferToCapacity(buffer);
 
 	// WHEN: A candidate worse than every buffered entry is inserted.
-	planner.insertCandidateSortedForTest(buffer, makeCandidate(4, 100.0f));
+	planner.insertCandidateSortedForTest(buffer,
+					     makeCandidate(99, static_cast<float>(MissionRoutePlanner::MAX_SEGMENT_CANDIDATES) + 100.f));
 
 	// THEN: The buffer remains unchanged.
 	ASSERT_EQ(buffer.count, MissionRoutePlanner::MAX_SEGMENT_CANDIDATES);
-	expectCandidateIds(buffer, {1, 2, 3});
+	expectCandidateIds(buffer, expectedSequentialIds(1, MissionRoutePlanner::MAX_SEGMENT_CANDIDATES));
 }
 
 // WHY: The fixed-size candidate buffer must keep the closest projections and drop the farthest.
 // WHAT: Full buffer [1,2,3] plus closer candidate 0 -> insertCandidateSorted keeps [0,1,2].
 TEST_F(MissionRoutePlannerCandidateBufferTest, InsertCandidateSortedFullBufferDropsWorstCandidate)
 {
-	// GIVEN: A full 3-entry buffer sorted by increasing xtrack.
+	// GIVEN: A full sorted buffer at the current capacity limit.
 	MissionRoutePlanner::CandidateBuffer buffer{};
-	planner.insertCandidateSortedForTest(buffer, makeCandidate(1, 1.0f));
-	planner.insertCandidateSortedForTest(buffer, makeCandidate(2, 2.0f));
-	planner.insertCandidateSortedForTest(buffer, makeCandidate(3, 3.0f));
+	fillBufferToCapacity(buffer);
 
 	// WHEN: A new best candidate is inserted.
 	planner.insertCandidateSortedForTest(buffer, makeCandidate(0, 0.5f));
 
 	// THEN: The farthest candidate is dropped and the remaining three stay sorted.
 	ASSERT_EQ(buffer.count, MissionRoutePlanner::MAX_SEGMENT_CANDIDATES);
-	expectCandidateIds(buffer, {0, 1, 2});
+	std::vector<int32_t> expected_ids{0};
+	const std::vector<int32_t> retained_ids = expectedSequentialIds(1, MissionRoutePlanner::MAX_SEGMENT_CANDIDATES - 1);
+	expected_ids.insert(expected_ids.end(), retained_ids.begin(), retained_ids.end());
+	expectCandidateIds(buffer, expected_ids);
 }
 
 // WHY: Mid-buffer insertion is a separate branch from front insertion and must still evict only the worst entry.
 // WHAT: Full buffer [1,2,3] plus candidate 25@2.5m -> insertCandidateSorted keeps [1,2,25].
 TEST_F(MissionRoutePlannerCandidateBufferTest, InsertCandidateSortedFullBufferInsertInMiddleDropsWorstCandidate)
 {
-	// GIVEN: A full sorted buffer where the new candidate belongs between existing entries.
+	// GIVEN: A full sorted buffer where the new candidate belongs before the current worst entry.
 	MissionRoutePlanner::CandidateBuffer buffer{};
-	planner.insertCandidateSortedForTest(buffer, makeCandidate(1, 1.0f));
-	planner.insertCandidateSortedForTest(buffer, makeCandidate(2, 2.0f));
-	planner.insertCandidateSortedForTest(buffer, makeCandidate(3, 3.0f));
+	fillBufferToCapacity(buffer);
 
 	// WHEN: A mid-ranked candidate is inserted.
-	planner.insertCandidateSortedForTest(buffer, makeCandidate(25, 2.5f));
+	planner.insertCandidateSortedForTest(buffer,
+					     makeCandidate(25, static_cast<float>(MissionRoutePlanner::MAX_SEGMENT_CANDIDATES) - 0.5f));
 
 	// THEN: The insertion lands in the middle and the previous worst candidate is dropped.
 	ASSERT_EQ(buffer.count, MissionRoutePlanner::MAX_SEGMENT_CANDIDATES);
-	expectCandidateIds(buffer, {1, 2, 25});
+	std::vector<int32_t> expected_ids =
+		expectedSequentialIds(1, MissionRoutePlanner::MAX_SEGMENT_CANDIDATES - 1);
+	expected_ids.push_back(25);
+	expectCandidateIds(buffer, expected_ids);
 }
 
 // WHY: Defensive clamping matters because count is mutable state and the helper must not trust corrupted callers.
 // WHAT: count=20 with first three sorted candidates and candidate 0@0.5m -> insertCandidateSorted clamps and keeps [0,1,2].
 TEST_F(MissionRoutePlannerCandidateBufferTest, InsertCandidateSortedOverfullCountIsClamped)
 {
-	// GIVEN: An overfull count value with three valid sorted candidates already stored.
+	// GIVEN: An overfull count value with valid sorted candidates already stored up to capacity.
 	MissionRoutePlanner::CandidateBuffer buffer{};
 	buffer.count = 20;
-	buffer.candidates[0] = makeCandidate(1, 1.0f);
-	buffer.candidates[1] = makeCandidate(2, 2.0f);
-	buffer.candidates[2] = makeCandidate(3, 3.0f);
+
+	for (int32_t i = 0; i < MissionRoutePlanner::MAX_SEGMENT_CANDIDATES; ++i) {
+		buffer.candidates[i] = makeCandidate(i + 1, static_cast<float>(i + 1));
+	}
 
 	// WHEN: A new best candidate is inserted.
 	planner.insertCandidateSortedForTest(buffer, makeCandidate(0, 0.5f));
 
-	// THEN: The helper clamps to the real capacity and keeps the best three candidates.
+	// THEN: The helper clamps to the real capacity and keeps the best candidates.
 	ASSERT_EQ(buffer.count, MissionRoutePlanner::MAX_SEGMENT_CANDIDATES);
-	expectCandidateIds(buffer, {0, 1, 2});
+	std::vector<int32_t> expected_ids{0};
+	const std::vector<int32_t> retained_ids = expectedSequentialIds(1, MissionRoutePlanner::MAX_SEGMENT_CANDIDATES - 1);
+	expected_ids.insert(expected_ids.end(), retained_ids.begin(), retained_ids.end());
+	expectCandidateIds(buffer, expected_ids);
 }
 
 // WHY: Tightening the xtrack window must trim every stale tail candidate that now lies outside the limit.
@@ -333,12 +358,13 @@ TEST_F(MissionRoutePlannerCandidateBufferTest, PruneProjectionCandidatesSingleOu
 // WHAT: count=20 with valid first three candidates and limit 2.5m -> pruneProjectionCandidates clamps to capacity and keeps [1,2].
 TEST_F(MissionRoutePlannerCandidateBufferTest, PruneProjectionCandidatesOverfullCountIsClamped)
 {
-	// GIVEN: An overfull count value with three valid sorted candidates in the fixed buffer storage.
+	// GIVEN: An overfull count value with valid sorted candidates in the fixed buffer storage.
 	MissionRoutePlanner::CandidateBuffer buffer{};
 	buffer.count = 20;
-	buffer.candidates[0] = makeCandidate(1, 1.0f);
-	buffer.candidates[1] = makeCandidate(2, 2.0f);
-	buffer.candidates[2] = makeCandidate(3, 3.0f);
+
+	for (int32_t i = 0; i < MissionRoutePlanner::MAX_SEGMENT_CANDIDATES; ++i) {
+		buffer.candidates[i] = makeCandidate(i + 1, static_cast<float>(i + 1));
+	}
 
 	// WHEN: The tighter xtrack limit is applied.
 	planner.pruneProjectionCandidatesForTest(buffer, 2.5f);
@@ -380,6 +406,7 @@ TEST_F(MissionRoutePlannerCandidateBufferTest, ValidateCandidateRejectsInvalidCa
 
 	auto expect_invalid = [&](const char *label, auto &&mutator) {
 		MissionRoutePlanner::SegmentCandidate candidate = base;
+		ASSERT_TRUE(planner.validateCandidateForTest(candidate)) << "Baseline corrupted!";
 		mutator(candidate);
 		EXPECT_FALSE(planner.validateCandidateForTest(candidate)) << label;
 	};

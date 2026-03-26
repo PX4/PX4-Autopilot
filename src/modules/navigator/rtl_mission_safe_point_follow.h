@@ -62,9 +62,7 @@ public:
 	MissionRoutePlanner::Segment lastFlownLoopSegment() const override { return _last_flown_loop_segment; }
 	rtl_time_estimate_s calc_rtl_time_estimate() override;
 	void setRtlAlt(float alt) override { _rtl_alt = alt; }
-	void setRoutePlan(const MissionRoutePlanner::Plan &plan) override;
-	void setShouldGoStraightToGoal(bool should_go_straight) override;
-	void setGoalLandApproach(const loiter_point_s &land_approach) override;
+	void configureRouteSafePoint(const RouteSafePointConfig &config) override;
 
 private:
 	friend class RtlMissionSafePointFollowTestPeer;

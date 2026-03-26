@@ -46,7 +46,6 @@
 #include <dataman_client/DatamanClient.hpp>
 #include <drivers/drv_hrt.h>
 #include <parameters/param.h>
-#include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
 #include <px4_platform_common/time.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
@@ -65,16 +64,18 @@
 #include "rtl.h"
 #include "test_RTL_helpers.h"
 
-extern "C" __EXPORT int dataman_main(int argc, char *argv[]);
+#include <cmath>
 
-using namespace time_literals;
 using rtl_test_reference::kAlt;
 using rtl_test_reference::kBaseLat;
 using rtl_test_reference::kBaseLon;
 
-static constexpr hrt_abstime kRouteCacheReadyTimeout = 2_s;
-static constexpr useconds_t kRouteCachePollIntervalUs = 1_ms;
+static constexpr int kRouteCacheReadyMaxPolls = 2048;
+static constexpr useconds_t kRouteCachePollSleepUs = 1000;
 
+/**
+ * @brief Mission peer that exposes smart-rejoin state for navigator-level tests.
+ */
 class MissionPeer : public Mission
 {
 public:
@@ -90,6 +91,9 @@ public:
 	VtolTransitionAction joinTransitionActionForTest() const { return _route_join_context.transition_action; }
 };
 
+/**
+ * @brief RTL peer that exposes landing-approach selection helpers for tests.
+ */
 class RTLTestPeer : public RTL
 {
 public:
@@ -110,28 +114,57 @@ public:
 		static_cast<uint8_t>(DestinationType::DESTINATION_TYPE_SAFE_POINT);
 };
 
-class NavigatorRouteRejoinAndRtlTest : public ::testing::Test
+/**
+ * @brief End-to-end navigator fixture covering mission rejoin and RTL type 6 behavior.
+ */
+class NavigatorRouteRejoinAndRtlTest : public NavigatorDatamanTestBase
 {
 protected:
-	static void SetUpTestSuite()
+	void SetUp() override
 	{
-		param_control_autosave(false);
-		px4::WorkQueueManagerStart();
-		char start[] = "start";
-		char ram[] = "-r";
-		char name[] = "dataman";
-		char *argv[] = {name, start, ram};
-		dataman_main(3, argv);
-	}
+		const hrt_abstime now = hrt_absolute_time();
 
-	static void TearDownTestSuite()
-	{
-		param_control_autosave(true);
-		char stop[] = "stop";
-		char name[] = "dataman";
-		char *argv[] = {name, stop};
-		dataman_main(2, argv);
-		px4::WorkQueueManagerStop();
+		mission_s mission{};
+		mission.timestamp = now;
+		_mission_pub.publish(mission);
+
+		vehicle_status_s vehicle_status{};
+		vehicle_status.timestamp = now;
+		vehicle_status.arming_state = vehicle_status_s::ARMING_STATE_DISARMED;
+		vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_UNSPECIFIED;
+		_vehicle_status_pub.publish(vehicle_status);
+		_vehicle_status = vehicle_status;
+
+		vehicle_land_detected_s land_detected{};
+		land_detected.timestamp = now;
+		land_detected.landed = true;
+		_land_detected_pub.publish(land_detected);
+		_land_detected = land_detected;
+
+		vehicle_global_position_s global_position{};
+		global_position.timestamp = now;
+		global_position.lat = NAN;
+		global_position.lon = NAN;
+		global_position.alt = NAN;
+		_vehicle_global_position_pub.publish(global_position);
+		_global_position = global_position;
+
+		vehicle_local_position_s local_position{};
+		local_position.timestamp = now;
+		local_position.heading = NAN;
+		local_position.vx = NAN;
+		local_position.vy = NAN;
+		_vehicle_local_position_pub.publish(local_position);
+		_local_position = local_position;
+
+		home_position_s home_position{};
+		home_position.timestamp = now;
+		_home_position_pub.publish(home_position);
+		_home_position = home_position;
+
+		wind_s wind{};
+		wind.timestamp = now;
+		_wind_pub.publish(wind);
 	}
 
 	static constexpr float kBaseAlt = kAlt;
@@ -262,21 +295,19 @@ protected:
 		MissionRouteCache *route_cache = navigator.get_mission_route_cache();
 		ASSERT_NE(route_cache, nullptr);
 
-		// MissionRouteCache::update() advances async dataman and cache state machines over
-		// multiple polls, so use a wall-clock deadline instead of a fragile fixed iteration cap.
-		hrt_abstime start_time = hrt_absolute_time();
-
-		while (hrt_elapsed_time(&start_time) <= kRouteCacheReadyTimeout) {
+		for (int poll_count = 0; poll_count < kRouteCacheReadyMaxPolls; ++poll_count) {
 			route_cache->update(mission);
 
 			if (route_cache->isReady(mission) && route_cache->safePointsReady()) {
 				return;
 			}
 
-			px4_usleep(kRouteCachePollIntervalUs);
+			// Dataman replies are produced by a separate worker thread, so yield between
+			// bounded polls instead of spinning in a tight loop that can starve the worker.
+			px4_usleep(kRouteCachePollSleepUs);
 		}
 
-		FAIL() << "MissionRouteCache did not become ready within " << (kRouteCacheReadyTimeout / 1000) << " ms";
+		FAIL() << "MissionRouteCache did not become ready within " << kRouteCacheReadyMaxPolls << " polls";
 	}
 
 	DatamanClient _dataman_client{};

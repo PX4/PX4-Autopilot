@@ -72,21 +72,14 @@ bool RtlMissionSafePointFollow::loadMissionItemFromCache(int32_t index, mission_
 	       && mission_route_cache->loadMissionItem(index, mission_item);
 }
 
-void RtlMissionSafePointFollow::setRoutePlan(const MissionRoutePlanner::Plan &plan)
+void RtlMissionSafePointFollow::configureRouteSafePoint(const RouteSafePointConfig &config)
 {
-	_plan = plan;
+	_plan = config.plan;
 	_branch_off_index = _plan.selection.branchOffIndex();
+	_should_go_straight_to_goal = config.should_go_straight_to_goal;
+	_goal_land_approach = config.goal_land_approach;
+	_rtl_alt = config.rtl_alt;
 	updateLastFlownLoopSegmentFromPlan();
-}
-
-void RtlMissionSafePointFollow::setShouldGoStraightToGoal(bool should_go_straight)
-{
-	_should_go_straight_to_goal = should_go_straight;
-}
-
-void RtlMissionSafePointFollow::setGoalLandApproach(const loiter_point_s &land_approach)
-{
-	_goal_land_approach = land_approach;
 }
 
 bool RtlMissionSafePointFollow::isLandingCommand(const mission_item_s &mission_item)
@@ -107,7 +100,7 @@ RtlMissionSafePointFollow::Stage RtlMissionSafePointFollow::finalGoalStage() con
 void RtlMissionSafePointFollow::on_inactivation()
 {
 	_should_go_straight_to_goal = _should_go_straight_to_goal
-				      || _plan.selection.direct_to_safe_point
+				      || _plan.selection.skip_route_to_safe_point
 				      || _stage == Stage::BranchOff
 				      || _stage == Stage::ApproachAtGoal
 				      || _stage == Stage::LandAtGoal;
@@ -136,14 +129,15 @@ void RtlMissionSafePointFollow::on_activation()
 						       && _plan.selection.path.direction_reversed
 						       && _plan.selection.path.in_first_item_acc_rad;
 
-		use_join_route = !(_should_go_straight_to_goal || _plan.selection.direct_to_safe_point || reverse_land_from_takeoff);
+		use_join_route = !(_should_go_straight_to_goal || _plan.selection.skip_route_to_safe_point
+				   || reverse_land_from_takeoff);
 		_stage = use_join_route ? Stage::FollowRoute : finalGoalStage();
 
 		PX4_DEBUG("RTL to %s target=%d rev=%u straight=%u stage=%u branch_off=%d",
 			  MissionRoutePlanner::goalTypeString(_plan.selection.goal_type),
 			  static_cast<int>(_plan.selection.path.first_item_index),
 			  static_cast<unsigned>(_plan.selection.path.direction_reversed),
-			  static_cast<unsigned>(_should_go_straight_to_goal || _plan.selection.direct_to_safe_point),
+			  static_cast<unsigned>(_should_go_straight_to_goal || _plan.selection.skip_route_to_safe_point),
 			  static_cast<unsigned>(_stage),
 			  static_cast<int>(_branch_off_index));
 
@@ -320,9 +314,19 @@ void RtlMissionSafePointFollow::normalizeRouteMissionItem(mission_item_s &missio
 		return;
 	}
 
-	mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-	mission_item.autocontinue = true;
-	mission_item.time_inside = 0.f;
+	switch (mission_item.nav_cmd) {
+	case NAV_CMD_WAYPOINT:
+	case NAV_CMD_LOITER_UNLIMITED:
+	case NAV_CMD_LOITER_TIME_LIMIT:
+	case NAV_CMD_LOITER_TO_ALT:
+		mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+		mission_item.autocontinue = true;
+		mission_item.time_inside = 0.f;
+		break;
+
+	default:
+		break;
+	}
 }
 
 bool RtlMissionSafePointFollow::currentTargetIsBranchOff() const
@@ -359,22 +363,24 @@ void RtlMissionSafePointFollow::updateLastFlownLoopSegmentForNominalAdvance()
 	MissionBase::updateLastFlownLoopSegmentForNominalAdvance(_last_flown_loop_segment);
 }
 
-bool RtlMissionSafePointFollow::loadAdjacentRouteItem(mission_item_s &mission_item, int32_t *adjacent_index)
+bool RtlMissionSafePointFollow::loadAdjacentRouteItem(mission_item_s &mission_item, int32_t &adjacent_index)
 {
 	if (_plan.selection.path.direction_reversed) {
+		// findPreviousPositionIndexNoJump() scans from start_index - 1, so reverse traversal
+		// passes current_seq to get the immediately preceding route target.
 		int32_t adjacent_route_index = _mission.current_seq;
 
 		if (!findPreviousPositionIndexNoJump(adjacent_route_index, adjacent_route_index)) {
 			return false;
 		}
 
-		if (adjacent_index != nullptr) {
-			*adjacent_index = adjacent_route_index;
-		}
+		adjacent_index = adjacent_route_index;
 
 		return loadMissionItemFromCache(adjacent_route_index, mission_item);
 
 	} else {
+		// findNextPositionIndexNoJump() includes start_index itself, so nominal traversal starts at
+		// current_seq + 1 to avoid returning the current route target again.
 		// Walk forward without following DO_JUMP control flow, matching the planner's
 		// geometry-only treatment of loop edges.
 		int32_t adjacent_route_index = _mission.current_seq + 1;
@@ -383,9 +389,7 @@ bool RtlMissionSafePointFollow::loadAdjacentRouteItem(mission_item_s &mission_it
 			return false;
 		}
 
-		if (adjacent_index != nullptr) {
-			*adjacent_index = adjacent_route_index;
-		}
+		adjacent_index = adjacent_route_index;
 
 		return loadMissionItemFromCache(adjacent_route_index, mission_item);
 	}
@@ -547,7 +551,7 @@ void RtlMissionSafePointFollow::setActiveMissionItems()
 			mission_item_s *next_route_item_ptr = nullptr;
 			int32_t adjacent_index = -1;
 
-			if (loadAdjacentRouteItem(next_route_item, &adjacent_index)) {
+			if (loadAdjacentRouteItem(next_route_item, adjacent_index)) {
 				const bool next_item_is_branch_off = _plan.selection.safe_point_found
 								     && adjacent_index == _branch_off_index;
 

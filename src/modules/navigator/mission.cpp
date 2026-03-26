@@ -114,6 +114,9 @@ Mission::on_activation()
 	_vehicle_status_sub.update();
 	_land_detected_sub.update();
 	syncMissionRouteState();
+
+	// Mission rejoin planning below needs the restarted current_seq immediately. MissionBase::on_activation()
+	// performs the same guard again, but after this reset the base-class call is inert.
 	checkMissionRestart();
 
 	if (_mission.current_seq == 0) {

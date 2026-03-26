@@ -43,15 +43,14 @@
 
 #include <gtest/gtest.h>
 
-#include <parameters/param.h>
-#include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
-
 #include "rtl_mission_safe_point_follow.h"
 #include "test_RTL_helpers.h"
 
 #include <vector>
 
-extern "C" __EXPORT int dataman_main(int argc, char *argv[]);
+using rtl_test_reference::kAlt;
+using rtl_test_reference::kBaseLat;
+using rtl_test_reference::kBaseLon;
 
 /**
  * Lightweight peer for the RTL stage machine.
@@ -126,7 +125,7 @@ public:
 
 	void setGoalLandApproachForTest(const loiter_point_s &land_approach)
 	{
-		setGoalLandApproach(land_approach);
+		_goal_land_approach = land_approach;
 	}
 
 	int32_t transitionTargetIndexForTest() const
@@ -144,44 +143,27 @@ public:
 		return setNextMissionItem();
 	}
 
+	void normalizeRouteMissionItemForTest(mission_item_s &mission_item) const
+	{
+		normalizeRouteMissionItem(mission_item);
+	}
+
 private:
 	std::vector<mission_item_s> _items;
 };
 
-class RtlMissionSafePointFollowStageTest : public ::testing::Test
+/**
+ * @brief Fixture for lightweight RTL mission-safe-point-follow stage transitions.
+ */
+class RtlMissionSafePointFollowStageTest : public NavigatorDatamanTestBase
 {
 protected:
-	static void SetUpTestSuite()
-	{
-		param_control_autosave(false);
-		px4::WorkQueueManagerStart();
-		char start[] = "start";
-		char ram[] = "-r";
-		char name[] = "dataman";
-		char *argv[] = {name, start, ram};
-		dataman_main(3, argv);
-	}
-
-	static void TearDownTestSuite()
-	{
-		param_control_autosave(true);
-		char stop[] = "stop";
-		char name[] = "dataman";
-		char *argv[] = {name, stop};
-		dataman_main(2, argv);
-		px4::WorkQueueManagerStop();
-	}
-
 	RtlMissionSafePointFollowTestPeer executor{};
 
 	void SetUp() override
 	{
 		executor.loadTestMission({});
 	}
-
-	static constexpr double kLat = 47.397742;
-	static constexpr double kLon = 8.545594;
-	static constexpr float kAlt = 500.f;
 };
 
 // WHY: TransitionDuringRoute is a one-shot state used only to issue a VTOL transition.
@@ -190,8 +172,8 @@ TEST_F(RtlMissionSafePointFollowStageTest, TransitionDuringRouteResumesFollowRou
 {
 	// GIVEN: An executor paused in the transition stage with a remembered target index.
 	executor.loadTestMission({
-		makePositionItem(kLat, kLon, kAlt),
-		makePositionItem(kLat + 0.001, kLon, kAlt),
+		makePositionItem(kBaseLat, kBaseLon, kAlt),
+		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
 	});
 	executor.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::TransitionDuringRoute);
 	executor.setTransitionTargetIndexForTest(1);
@@ -211,8 +193,8 @@ TEST_F(RtlMissionSafePointFollowStageTest, BranchOffTransitionsToLandAtGoal)
 {
 	// GIVEN: An executor that has already reached the branch-off waypoint.
 	executor.loadTestMission({
-		makePositionItem(kLat, kLon, kAlt),
-		makePositionItem(kLat + 0.001, kLon, kAlt),
+		makePositionItem(kBaseLat, kBaseLon, kAlt),
+		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
 	});
 	executor.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::BranchOff);
 
@@ -232,13 +214,13 @@ TEST_F(RtlMissionSafePointFollowStageTest, BranchOffTransitionsToApproachAtGoalW
 {
 	// GIVEN: An executor that has reached the branch-off waypoint for a safe point with a chosen approach.
 	executor.loadTestMission({
-		makePositionItem(kLat, kLon, kAlt),
-		makePositionItem(kLat + 0.001, kLon, kAlt),
+		makePositionItem(kBaseLat, kBaseLon, kAlt),
+		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
 	});
 
 	loiter_point_s goal_land_approach{};
-	goal_land_approach.lat = kLat + 0.0005;
-	goal_land_approach.lon = kLon + 0.0002;
+	goal_land_approach.lat = kBaseLat + 0.0005;
+	goal_land_approach.lon = kBaseLon + 0.0002;
 	goal_land_approach.height_m = kAlt + 20.f;
 	goal_land_approach.loiter_radius_m = 60.f;
 	executor.setGoalLandApproachForTest(goal_land_approach);
@@ -261,8 +243,8 @@ TEST_F(RtlMissionSafePointFollowStageTest, ApproachAtGoalTransitionsToLandAtGoal
 {
 	// GIVEN: An executor already flying the selected safe-point landing approach.
 	executor.loadTestMission({
-		makePositionItem(kLat, kLon, kAlt),
-		makePositionItem(kLat + 0.001, kLon, kAlt),
+		makePositionItem(kBaseLat, kBaseLon, kAlt),
+		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
 	});
 	executor.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::ApproachAtGoal);
 
@@ -280,9 +262,9 @@ TEST_F(RtlMissionSafePointFollowStageTest, ForwardRouteAdvanceTransitionsToBranc
 {
 	// GIVEN: A forward route with the next position item equal to the cached branch-off index.
 	executor.loadTestMission({
-		makePositionItem(kLat, kLon, kAlt),
-		makePositionItem(kLat + 0.001, kLon, kAlt),
-		makePositionItem(kLat + 0.002, kLon, kAlt),
+		makePositionItem(kBaseLat, kBaseLon, kAlt),
+		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
+		makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt),
 	});
 	executor.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::FollowRoute);
 	executor.setCurrentSequenceForTest(1);
@@ -302,9 +284,9 @@ TEST_F(RtlMissionSafePointFollowStageTest, ReverseRouteAdvanceTransitionsToBranc
 {
 	// GIVEN: A reverse route whose previous position item is the cached branch-off index.
 	executor.loadTestMission({
-		makePositionItem(kLat, kLon, kAlt),
-		makePositionItem(kLat + 0.001, kLon, kAlt),
-		makePositionItem(kLat + 0.002, kLon, kAlt),
+		makePositionItem(kBaseLat, kBaseLon, kAlt),
+		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
+		makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt),
 	});
 	executor.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::FollowRoute);
 	executor.setCurrentSequenceForTest(2);
@@ -324,8 +306,8 @@ TEST_F(RtlMissionSafePointFollowStageTest, ForwardRouteExhaustionTransitionsToLa
 {
 	// GIVEN: A forward route whose current sequence is already the final position item.
 	executor.loadTestMission({
-		makePositionItem(kLat, kLon, kAlt),
-		makePositionItem(kLat + 0.001, kLon, kAlt),
+		makePositionItem(kBaseLat, kBaseLon, kAlt),
+		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
 	});
 	executor.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::FollowRoute);
 	executor.setCurrentSequenceForTest(1);
@@ -346,13 +328,13 @@ TEST_F(RtlMissionSafePointFollowStageTest, ForwardRouteExhaustionTransitionsToAp
 {
 	// GIVEN: A forward route whose current sequence is already the last position item, plus a chosen goal approach.
 	executor.loadTestMission({
-		makePositionItem(kLat, kLon, kAlt),
-		makePositionItem(kLat + 0.001, kLon, kAlt),
+		makePositionItem(kBaseLat, kBaseLon, kAlt),
+		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
 	});
 
 	loiter_point_s goal_land_approach{};
-	goal_land_approach.lat = kLat + 0.0005;
-	goal_land_approach.lon = kLon + 0.0002;
+	goal_land_approach.lat = kBaseLat + 0.0005;
+	goal_land_approach.lon = kBaseLon + 0.0002;
 	goal_land_approach.height_m = kAlt + 20.f;
 	goal_land_approach.loiter_radius_m = 60.f;
 	executor.setGoalLandApproachForTest(goal_land_approach);
@@ -375,8 +357,8 @@ TEST_F(RtlMissionSafePointFollowStageTest, ReverseRouteExhaustionTransitionsToLa
 {
 	// GIVEN: A reverse route whose current sequence is already the first position item.
 	executor.loadTestMission({
-		makePositionItem(kLat, kLon, kAlt),
-		makePositionItem(kLat + 0.001, kLon, kAlt),
+		makePositionItem(kBaseLat, kBaseLon, kAlt),
+		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
 	});
 	executor.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::FollowRoute);
 	executor.setCurrentSequenceForTest(0);
@@ -389,4 +371,35 @@ TEST_F(RtlMissionSafePointFollowStageTest, ReverseRouteExhaustionTransitionsToLa
 	EXPECT_TRUE(advanced);
 	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::LandAtGoal);
 	EXPECT_TRUE(executor.shouldGoStraightToGoalForTest());
+}
+
+// WHY: Route-safe-point RTL follows mission geometry, but takeoff commands carry altitude semantics
+//      that differ from a plain waypoint and must not be silently rewritten.
+// WHAT: normalizeRouteMissionItem leaves NAV_CMD_TAKEOFF unchanged.
+TEST_F(RtlMissionSafePointFollowStageTest, NormalizeRouteMissionItemPreservesTakeoffCommand)
+{
+	mission_item_s takeoff_item = makeTakeoffItem(kBaseLat, kBaseLon, kAlt + 30.f);
+	takeoff_item.time_inside = 12.f;
+
+	executor.normalizeRouteMissionItemForTest(takeoff_item);
+
+	EXPECT_EQ(takeoff_item.nav_cmd, NAV_CMD_TAKEOFF);
+	EXPECT_FLOAT_EQ(takeoff_item.time_inside, 12.f);
+	EXPECT_FALSE(takeoff_item.autocontinue);
+}
+
+// WHY: Loiter-style position items should still be flattened into geometry-only route waypoints
+//      so RTL does not stop and wait at intermediate loiter commands while following the route.
+// WHAT: normalizeRouteMissionItem converts NAV_CMD_LOITER_TO_ALT into NAV_CMD_WAYPOINT.
+TEST_F(RtlMissionSafePointFollowStageTest, NormalizeRouteMissionItemFlattensLoiterCommand)
+{
+	mission_item_s loiter_item = makePositionItem(kBaseLat, kBaseLon, kAlt + 20.f, NAV_CMD_LOITER_TO_ALT);
+	loiter_item.autocontinue = false;
+	loiter_item.time_inside = 8.f;
+
+	executor.normalizeRouteMissionItemForTest(loiter_item);
+
+	EXPECT_EQ(loiter_item.nav_cmd, NAV_CMD_WAYPOINT);
+	EXPECT_TRUE(loiter_item.autocontinue);
+	EXPECT_FLOAT_EQ(loiter_item.time_inside, 0.f);
 }

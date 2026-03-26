@@ -197,7 +197,7 @@ bool MissionRoutePlanner::extractSafePointPosition(const mission_item_s &safe_po
 	switch (safe_point_item.frame) {
 	case NAV_FRAME_GLOBAL:
 	case NAV_FRAME_GLOBAL_INT:
-		position.alt = safe_point_item.altitude;
+		position.alt = safe_point_item.altitude; // alt of safe point is relative to MSL
 		break;
 
 	case NAV_FRAME_GLOBAL_RELATIVE_ALT:
@@ -763,10 +763,6 @@ bool MissionRoutePlanner::findProjectionCandidatesBatch(int32_t mission_index, f
 			continue;
 		}
 
-		if (segment.is_loop) {
-			outputs.loops_remaining = segment.loops_remaining;
-		}
-
 		if (!have_previous) {
 			// The first valid position-bearing item seeds the scan; a segment only exists once a second
 			// endpoint (or loop edge) has been discovered.
@@ -1026,7 +1022,11 @@ bool MissionRoutePlanner::collectVehicleProjection(const Position &vehicle_posit
 	projection_context.vehicle_vel_ne = config.state.velocity_ne;
 	projection_context.velocity_valid = config.state.velocity_valid;
 	projection_context.dist_along_to_route_end = batch_outputs.dist_along_to_route_end;
-	projection_context.mission_loops_remaining = batch_outputs.loops_remaining;
+	// Use the repeat count from the selected projection loop itself. A later DO_JUMP elsewhere
+	// in the mission must not overwrite the active loop state carried by this projection.
+	projection_context.mission_loops_remaining = projection_context.seg_candidate.segment.validLoop()
+			? projection_context.seg_candidate.segment.loops_remaining
+			: 0;
 
 	PX4_DEBUG("RTL UAV proj selected cand %d (of %u) on seg [%u->%u], path_dist=%.1f",
 		  best_candidate_index,
@@ -1332,8 +1332,8 @@ MissionRoutePlanner::Path MissionRoutePlanner::findReversePathToGoal(uint16_t go
 					  PathDirectionMode::ForceReverse);
 }
 
-bool MissionRoutePlanner::directToSafePoint(const Position &safe_point_position, const Position &vehicle_position,
-		const Config &config) const
+bool MissionRoutePlanner::shouldSkipRouteToSafePoint(const Position &safe_point_position,
+		const Position &vehicle_position, const Config &config) const
 {
 	if (!config.state.is_multicopter) {
 		return false;
@@ -1435,10 +1435,10 @@ MissionRoutePlanner::Selection MissionRoutePlanner::selectSafePoint(const Projec
 			continue;
 		}
 
-		const bool direct_to_safe_point = directToSafePoint(safe_point_position, projection_context.vehicle_pos,
-						  config);
+		const bool skip_route_to_safe_point = shouldSkipRouteToSafePoint(safe_point_position,
+						      projection_context.vehicle_pos, config);
 
-		if (!selection.found || direct_to_safe_point || best_path.dist < selection.path.dist) {
+		if (!selection.found || skip_route_to_safe_point || best_path.dist < selection.path.dist) {
 			selection.found = true;
 			selection.safe_point_found = true;
 			selection.goal_type = GoalType::SafePoint;
@@ -1448,10 +1448,10 @@ MissionRoutePlanner::Selection MissionRoutePlanner::selectSafePoint(const Projec
 			selection.goal_position = safe_point_position;
 			selection.branch_off_segment = candidate_buffer.candidates[best_projection_index].segment;
 			selection.branch_off_projection = candidate_buffer.candidates[best_projection_index].projection;
-			selection.direct_to_safe_point = direct_to_safe_point;
+			selection.skip_route_to_safe_point = skip_route_to_safe_point;
 		}
 
-		if (selection.direct_to_safe_point) {
+		if (selection.skip_route_to_safe_point) {
 			break;
 		}
 	}
@@ -1468,7 +1468,7 @@ MissionRoutePlanner::Selection MissionRoutePlanner::selectSafePoint(const Projec
 			  static_cast<unsigned>(selection.path.direction_reversed),
 			  static_cast<unsigned>(selection.branch_off_segment.start.idx),
 			  static_cast<unsigned>(selection.branch_off_segment.end.idx),
-			  static_cast<unsigned>(selection.direct_to_safe_point));
+			  static_cast<unsigned>(selection.skip_route_to_safe_point));
 	}
 
 	return selection;
@@ -1518,7 +1518,7 @@ MissionRoutePlanner::Selection MissionRoutePlanner::selectMissionEndpointFallbac
 
 	selection.found = true;
 	selection.safe_point_found = false;
-	selection.direct_to_safe_point = false;
+	selection.skip_route_to_safe_point = false;
 
 	if (!path_to_land_valid || (path_to_takeoff_valid && path_to_takeoff.dist < path_to_land.dist)) {
 		selection.goal_type = GoalType::MissionTakeoff;
@@ -1673,7 +1673,7 @@ bool MissionRoutePlanner::planRouteToGoal(const Position &vehicle_position, int3
 		  goalTypeString(plan.selection.goal_type),
 		  static_cast<int>(plan.selection.path.first_item_index),
 		  static_cast<unsigned>(plan.selection.path.direction_reversed),
-		  static_cast<unsigned>(plan.selection.direct_to_safe_point),
+		  static_cast<unsigned>(plan.selection.skip_route_to_safe_point),
 		  static_cast<int>(plan.selection.branch_off_segment.start.idx),
 		  static_cast<int>(plan.selection.branch_off_segment.end.idx));
 
