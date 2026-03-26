@@ -48,10 +48,10 @@
 #include <drivers/drv_hrt.h>
 #include <mathlib/mathlib.h>
 
-static constexpr int32_t DEFAULT_MISSION_SAFE_POINT_FOLLOW_CACHE_SIZE = 5;
-
 RtlMissionSafePointFollow::RtlMissionSafePointFollow(Navigator *navigator, mission_s mission) :
-	RtlBase(navigator, DEFAULT_MISSION_SAFE_POINT_FOLLOW_CACHE_SIZE)
+	// Route-safe-point RTL already reads mission geometry from MissionRouteCache, so
+	// MissionBase's sliding-window DatamanCache would only duplicate mission RAM.
+	RtlBase(navigator, 0)
 {
 	_mission = mission;
 }

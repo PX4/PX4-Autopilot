@@ -464,6 +464,10 @@ void DatamanClient::abortCurrentOperation()
 DatamanCache::DatamanCache(const char *cache_miss_perf_counter_name, uint32_t num_items)
 	: _cache_miss_perf(perf_alloc(PC_COUNT, cache_miss_perf_counter_name))
 {
+	if (num_items == 0) {
+		return;
+	}
+
 	_items = new Item[num_items] {};
 
 	if (_items != nullptr) {
@@ -482,6 +486,18 @@ DatamanCache::~DatamanCache()
 
 void DatamanCache::resize(uint32_t num_items)
 {
+	if (num_items == 0) {
+		// Allow callers to explicitly disable caching while leaving the DatamanClient usable.
+		delete[] _items;
+		_items = nullptr;
+		_load_index = 0;
+		_update_index = 0;
+		_item_counter = 0;
+		_num_items = 0;
+		_client.abortCurrentOperation();
+		return;
+	}
+
 	Item *new_items = new Item[num_items] {};
 
 	if (new_items != nullptr) {
@@ -494,6 +510,11 @@ void DatamanCache::resize(uint32_t num_items)
 		delete[] _items;
 		_items = new_items;
 		_num_items = num_items;
+
+		// ensure new bounds are respected after resize
+		_load_index = (_load_index < _num_items) ? _load_index : 0;
+		_update_index = (_update_index < _num_items) ? _update_index : 0;
+		_item_counter = (_item_counter < _num_items) ? _item_counter : _num_items;
 
 	} else {
 		PX4_ERR("alloc failed");
@@ -612,13 +633,13 @@ bool DatamanCache::writeWait(dm_item_t item, uint32_t index, uint8_t *buffer, ui
 
 bool DatamanCache::updateCachedItem(dm_item_t item, uint32_t index, const uint8_t *buffer, uint32_t length)
 {
-	// Ensure we do not overflow the statically allocated response buffer
-	if (length > sizeof(_items[0].response.data)) {
-		PX4_ERR("Update length %" PRIu32 " exceeds cache buffer size", length);
+	if (!_items || buffer == nullptr || _num_items == 0) {
 		return false;
 	}
 
-	if (!_items || buffer == nullptr) {
+	// Ensure we do not overflow the statically allocated response buffer
+	if (length > sizeof(_items[0].response.data)) {
+		PX4_ERR("Update length %" PRIu32 " exceeds cache buffer size", length);
 		return false;
 	}
 
@@ -719,6 +740,12 @@ void DatamanCache::invalidate()
 
 inline void DatamanCache::changeUpdateIndex()
 {
+	if (_num_items == 0) {
+		_update_index = 0;
+		_item_counter = 0;
+		return;
+	}
+
 	_update_index = (_update_index + 1) % _num_items;
 
 	if (_item_counter > 0) {
