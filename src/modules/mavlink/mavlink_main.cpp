@@ -789,11 +789,12 @@ void Mavlink::send_start(int length)
 				return;
 			}
 		}
+
 		count_txerrbytes(length);
 
 		_tstatus.tx_buffer_overruns++;
 
-				// prevent writes
+		// prevent writes
 		_tx_buffer_low = true;
 
 	} else {
