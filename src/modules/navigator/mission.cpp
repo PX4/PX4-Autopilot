@@ -173,15 +173,14 @@ bool Mission::trySetRouteJoinOnActivation(bool resume_mission_on_previous)
 	config.parameters.acceptance_radius = _navigator->get_acceptance_radius();
 	config.parameters.home_altitude_amsl = _navigator->home_global_position_valid()
 					       ? _navigator->get_home_position()->alt : global_position->alt;
-	config.state.is_multicopter = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
-				      && (vehicle_status.in_transition_mode == false);
-	config.state.velocity_valid = (local_position != nullptr)
-				      && PX4_ISFINITE(local_position->vx)
-				      && PX4_ISFINITE(local_position->vy);
+
+	config.state.velocity_valid = (local_position != nullptr) && PX4_ISFINITE(local_position->vx) && PX4_ISFINITE(local_position->vy);
 	config.state.velocity_ne(0) = (local_position != nullptr) ? local_position->vx : NAN;
 	config.state.velocity_ne(1) = (local_position != nullptr) ? local_position->vy : NAN;
 	config.state.is_fixed_wing = vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 	config.state.in_transition_to_fw = vehicle_status.in_transition_to_fw;
+	config.state.is_flying_reverse = false;
+
 	config.execution.last_flown_loop_segment = _last_flown_loop_segment;
 
 	MissionRoutePlanner::JoinPlan join_plan{};

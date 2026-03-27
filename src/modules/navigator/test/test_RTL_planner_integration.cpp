@@ -1036,7 +1036,6 @@ TEST_F(RtlPlannerContractTest, DirectToSafePointPlanHasCompleteLandingFields)
 
 	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 250.f, 0.f, kAlt + 50.f);
 	config = defaultConfig();
-	config.state.is_multicopter = true;
 	config.parameters.direct_acceptance_radius = 20.f;
 	config.state.velocity_ne(0) = 5.f;
 	config.state.velocity_ne(1) = 0.f;

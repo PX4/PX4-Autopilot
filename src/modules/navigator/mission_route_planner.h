@@ -307,7 +307,6 @@ public:
 	};
 
 	struct VehicleStateContext {
-		bool is_multicopter{false};
 		bool is_flying_reverse{false};
 		matrix::Vector2f velocity_ne{NAN, NAN};
 		bool velocity_valid{false};
@@ -422,7 +421,7 @@ public:
 	/** @brief Build the full RTL plan: vehicle projection, join context, and selected goal. */
 	bool planRouteToGoal(const Position &vehicle_position, int32_t mission_index,
 			     const Config &config, Plan &plan, FailureReason &failure_reason) const;
-	/** @brief Check whether the vehicle is still close enough to the cached branch-off leg to keep flying straight to the goal. */
+	/** @brief Check whether the vehicle is still close enough to the selected branch-off leg to skip route following. */
 	bool closeToBranchOffSegment(const Position &position, const Selection &selection,
 				     float acceptance_radius) const;
 
@@ -572,8 +571,11 @@ private:
 	Path findShortestPathAlongRoute(uint16_t goal_segment_end_idx, float goal_dist_along,
 					const ProjectionContext &projection_context, const Config &config,
 					PathDirectionMode direction_mode = PathDirectionMode::Auto) const;
-	/** @brief Allow multicopters already close to a safe point to skip the route join and fly straight to it. */
-	bool shouldSkipRouteToSafePoint(const Position &safe_point_position, const Position &vehicle_position,
+	/** @brief Return true when the vehicle is already close enough to the selected safe point to skip route following. */
+	bool closeToSafePointDirect(const Position &vehicle_position, const Position &safe_point_position,
+				    const Config &config) const;
+	/** @brief Apply the route-skip shortcuts to the already-selected safe point goal. */
+	bool shouldSkipRouteToSafePoint(const Position &vehicle_position, const Selection &selection,
 					const Config &config) const;
 	/** @brief Force or infer the direction used to reach a goal from the projected vehicle location. */
 	bool mustFlyReverse(float goal_dist_along, float projection_dist_along,

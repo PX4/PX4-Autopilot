@@ -121,9 +121,9 @@ private:
 	bool reverseIsFurther() const;
 
 	/**
-	 * @brief Drop all cached route-safe-point state that depends on the active mission or safe-point set.
+	 * @brief Drop the route-safe-point continuity hints that depend on the active mission or safe-point set.
 	 */
-	void resetRouteSafePointCache();
+	void resetRouteSafePointState();
 
 	/**
 	 * @brief Refresh the mission and safe-point caches used by route-safe-point RTL.
@@ -131,23 +131,11 @@ private:
 	void updateDatamanCache();
 
 	/** @brief Build the route-safe-point planner input for the current vehicle and mission state. */
-	MissionRoutePlanner::Config buildRouteSafePointConfig(bool is_flying_reverse) const;
+	MissionRoutePlanner::Config buildRouteSafePointConfig(bool last_route_direction_reversed) const;
 
-	/** @brief Reuse an active straight-to-safe-point branch-off if the vehicle is still close enough to it. */
-	bool reuseCachedRouteSafePointPlan(const MissionRoutePlanner &planner,
-					   const MissionRouteCache &mission_route_cache,
-					   const MissionRoutePlanner::Position &vehicle_position,
-					   float acceptance_radius,
-					   const MissionRoutePlanner::Plan &cached_plan,
-					   bool cached_should_go_straight_to_goal,
-					   MissionRoutePlanner::Plan &new_plan) const;
-
-	/** @brief Evaluate a fresh or reusable route-safe-point plan. */
+	/** @brief Evaluate a fresh route-safe-point plan. */
 	bool evaluateRouteSafePointPlan(const MissionRouteCache &mission_route_cache,
-					const MissionRoutePlanner::Plan &cached_plan,
-					bool cached_should_go_straight_to_goal,
-					MissionRoutePlanner::Plan &new_plan,
-					bool &should_go_straight_to_goal);
+					MissionRoutePlanner::Plan &new_plan);
 
 	/** @brief Apply a valid route-safe-point plan to the RTL destination/output state. */
 	void applyRouteSafePointPlan(const MissionRoutePlanner::Plan &plan,
@@ -165,7 +153,7 @@ private:
 					 PositionYawSetpoint &destination,
 					 uint8_t &safe_point_index);
 
-	/** @brief Select the active RTL executor, destination, and cached plan. */
+	/** @brief Select the active RTL executor, destination, and route-safe-point plan if applicable. */
 	void setRtlTypeAndDestination();
 
 	/**
@@ -269,8 +257,10 @@ private:
 	RtlDirect _rtl_direct;
 
 	bool _enforce_rtl_alt{false};
-	bool _should_go_straight_to_goal{false};
-	MissionRoutePlanner::Plan _route_safe_point_plan{};
+	// The planner cannot infer direction from mission_index alone when the vehicle is near a shared waypoint:
+	// the same target index can mean "arriving from ahead" or "arriving from behind".
+	// Keep the last chosen route direction as a continuity hint for the next type-6 planning pass.
+	bool _route_safe_point_direction_reversed{false};
 	MissionRoutePlanner::Segment _last_route_safe_point_loop_segment{};
 
 	DEFINE_PARAMETERS(

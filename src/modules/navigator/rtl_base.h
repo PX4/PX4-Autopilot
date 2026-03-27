@@ -54,7 +54,6 @@ public:
 
 	struct RouteSafePointConfig {
 		MissionRoutePlanner::Plan plan{};
-		bool should_go_straight_to_goal{false};
 		loiter_point_s goal_land_approach{};
 		float rtl_alt{NAN};
 	};
@@ -65,11 +64,6 @@ public:
 
 	/** @brief Atomically hand route-safe-point RTL state from RTL to the executor. */
 	virtual void configureRouteSafePoint(const RouteSafePointConfig &config) { (void)config; }
-
-	/**
-	 * @brief Return whether the RTL mode should keep the vehicle on the direct-to-goal branch.
-	 */
-	virtual bool shouldGoStraightToGoal() const { return false; }
 
 	/**
 	 * @brief Return the most recent loop jump segment used as the projection anchor.

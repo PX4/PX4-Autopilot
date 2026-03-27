@@ -58,7 +58,6 @@ public:
 	void on_activation() override;
 
 	bool isLanding() override { return _stage == Stage::ApproachAtGoal || _stage == Stage::LandAtGoal; }
-	bool shouldGoStraightToGoal() const override { return _should_go_straight_to_goal; }
 	MissionRoutePlanner::Segment lastFlownLoopSegment() const override { return _last_flown_loop_segment; }
 	rtl_time_estimate_s calc_rtl_time_estimate() override;
 	void setRtlAlt(float alt) override { _rtl_alt = alt; }
@@ -142,7 +141,6 @@ private:
 	MissionRoutePlanner::Plan _plan{};
 	Stage _stage{Stage::Idle};
 	int32_t _branch_off_index{-1};
-	bool _should_go_straight_to_goal{false};
 	MissionRoutePlanner::Segment _last_flown_loop_segment{};
 	int32_t _transition_target_index{-1}; /**< Mission index that triggered the current in-flight transition. */
 	loiter_point_s _goal_land_approach{};

@@ -103,17 +103,16 @@ Safe points are filtered while the planner builds its safe-point batch:
 
 The route-based scorer evaluates a fixed-size batch of uploaded safe points; see [Safe-Point Evaluation Limit](#safe-point-evaluation-limit).
 
-### Direct-to-Safe-Point Shortcut
+### Route-Skip Shortcuts
 
-Multicopters (and VTOLs currently in MC mode) that are already within `NAV_ACC_RAD` of a safe point may skip route following and navigate straight to the safe point to land there.
+After the planner has already selected the best safe point by total route cost, PX4 applies two execution shortcuts to that selected goal:
 
-If the RTL was aborted and is re-triggered while the vehicle is still near the stored branch-off leg (the path between the branch-off point and the safe point), PX4 keeps the previous safe-point choice and continues navigating straight to that safe point instead of forcing a route rejoin. This prevents repeated mode toggles from pulling the vehicle back to the route after it has already branched off.
+- **Direct-to-safe-point**: if the vehicle is already within the direct acceptance radius of the selected safe point, RTL skips route join/follow and goes straight to the safe point.
+- **Close-to-branch-leg**: if the vehicle is already within the route acceptance radius of the selected branch-off leg (the segment from the branch-off projection to the safe point), RTL also skips route join/follow and continues straight toward the selected goal.
 
-Example: RTL is triggered, the vehicle follows the route, branches off towards the safe point, and the operator resumes the mission. The vehicle starts flying back towards the branch-off point. If the operator re-triggers RTL at this point, there is no need to continue flying to the branch-off point and then branch off again. Instead, the vehicle immediately goes straight to the safe point.
+Both shortcuts are evaluated only after safe-point selection has finished. They therefore never change which safe point wins the cost-based ranking.
 
-::: info
-The cached plan is invalidated whenever the mission or safe-point data changes (new upload or safe-point set update), so the planner never reuses stale geometry.
-:::
+If RTL is aborted and later re-triggered, PX4 computes a fresh type-6 plan again. If the newly selected safe point still yields one of the two shortcuts above, the vehicle skips route rejoin based on that new plan instead of reusing the old safe-point choice.
 
 ### Mission-Endpoint Fallback
 
@@ -209,7 +208,6 @@ The route-based scorer used by `RTL_TYPE=6` evaluates at most 64 eligible rally 
 ## Current Limitations
 
 - Missions exceeding `CONFIG_RTL_MISSION_CACHE_SIZE` items (default 300) are not supported; PX4 falls back to direct-path RTL.
-- If several safe points are already within the direct-to-safe-point shortcut radius, the first qualifying safe point in upload order is used.
 - VTOL safe-point approaches are associated purely by upload order: a rally point owns the following `NAV_CMD_LOITER_TO_ALT` items up to the next rally point, and only the first 8 approaches in that block are retained.
 - Geofence-aware pruning for vehicle and safe-point projections is not yet implemented.
 - No dedicated reverse-turn execution module: U-turns are penalized in path scoring but not executed as a specific maneuver.
@@ -224,7 +222,7 @@ This section covers the internal architecture for developers working on the Rout
 
 | File | Role in the type-6 pipeline |
 | --- | --- |
-| `rtl.cpp` / `rtl.h` | Outer RTL orchestrator. Owns the cached plan, builds planner config, applies fallback policy, chooses the goal landing approach, and hands the full route-safe-point bundle to the nested executor. |
+| `rtl.cpp` / `rtl.h` | Outer RTL orchestrator. Owns only the continuity hints needed by the next planning pass, builds planner config, applies fallback policy, chooses the goal landing approach, and hands the fresh type-6 plan to the nested executor. |
 | `rtl_base.h` | Shared base interface for mission-backed RTL executors, including the route-safe-point handoff contract. |
 | `rtl_mission_safe_point_follow.cpp` / `rtl_mission_safe_point_follow.h` | RTL_TYPE 6 executor. Runs the route-follow / branch-off / approach / land stages and reuses `MissionBase` for join-route helper work items. |
 | `mission_route_planner.cpp` / `mission_route_planner.h` | Geometry and scoring engine. Projects the vehicle and safe points, evaluates route paths, and builds `Plan`, `JoinPlan`, and `Selection`. |
@@ -245,8 +243,9 @@ Navigator
 │     └─ MissionBlock
 └─ RTL
    ├─ MissionRoutePlanner(provider = MissionRouteCache)
-   ├─ cached Plan / _should_go_straight_to_goal / _last_route_safe_point_loop_segment
+   ├─ continuity hints: route direction / last loop segment
    └─ RtlMissionSafePointFollow
+      ├─ active Plan / stage machine
       └─ RtlBase
          └─ MissionBase
             └─ MissionBlock
@@ -258,7 +257,7 @@ Route Safe Point Return separates concerns into three roles:
 
 | Role | Class | Responsibility |
 | --- | --- | --- |
-| **Orchestrator** | `RTL` (in `rtl.cpp`) | Owns the planner and executor instances, triggers planning on RTL entry or mission change, passes the full route-safe-point data to the executor, selects the active RTL type, and chooses the final VTOL landing approach once a safe point has been selected. |
+| **Orchestrator** | `RTL` (in `rtl.cpp`) | Owns the planner and executor instances, triggers planning on RTL entry or mission change, preserves only the continuity hints needed for the next planning pass, passes the fresh route-safe-point plan to the executor, selects the active RTL type, and chooses the final VTOL landing approach once a safe point has been selected. |
 | **Brain** | `MissionRoutePlanner` (in `mission_route_planner.h/cpp`) | Planning logic: projects the vehicle and safe points onto the mission route, scores candidates, and builds the `Plan` struct. |
 | **Pilot** | `RtlMissionSafePointFollow` (in `rtl_mission_safe_point_follow.h/cpp`) | Executes the plan built by the Brain. Manages the route-follow / branch-off / goal-approach / landing stages and reuses `MissionBase` for join-route work items. Inherits from `RtlBase → MissionBase → MissionBlock`. |
 
@@ -269,6 +268,10 @@ RTL::setRtlTypeAndDestination()
   │
   ├─ MissionRouteCache::update(mission)
   │
+  ├─ buildRouteSafePointConfig()
+  │    └─ continuity hints:
+  │         route direction / last loop segment
+  │
   ├─ MissionRoutePlanner::planRouteToGoal(config)
   │    ├─ collectVehicleProjection()    → ProjectionContext
   │    ├─ selectBestGoal()              → Selection
@@ -276,7 +279,6 @@ RTL::setRtlTypeAndDestination()
   │
   ├─ RouteSafePointConfig {
   │      plan,
-  │      should_go_straight_to_goal,
   │      goal_land_approach,
   │      rtl_alt
   │  }
@@ -386,20 +388,24 @@ After projection, the two mode families diverge:
 - Mission smart rejoin honors `mission_loops_remaining`. If repeats are still pending, the resumed path must continue to the loop end.
 - `RTL_TYPE=6` clears the effective remaining-loop count after projection. The loop edge is still useful as geometry, but return execution must not replay mission loop control flow.
 
-### Why `_should_go_straight_to_goal` Exists Twice
+### Type-6 State Ownership
 
-There are two members with the same name because they solve different lifetimes:
+The type-6 state split is intentionally small and explicit:
 
-- `RTL::_should_go_straight_to_goal` is the outer persistence latch. It survives nested executor destruction/recreation, is part of cached-plan reuse, and is copied into `RtlBase::RouteSafePointConfig` before the nested executor is (re)activated.
-- `RtlMissionSafePointFollow::_should_go_straight_to_goal` is the executor's local runtime latch. It drives the active stage machine after the executor has already been configured, for example after a branch-off has been reached or when a join projection is already near the branch-off.
+- `MissionRoutePlanner` remains stateless. Any continuity hint it needs must be passed in through `MissionRoutePlanner::Config`.
+- `RTL` keeps only the continuity hints that the next planning pass may need: `_route_safe_point_direction_reversed` and `_last_route_safe_point_loop_segment`.
+- `RtlMissionSafePointFollow` owns the active `Plan`, the executor stage machine, and its runtime copy of the loop anchor while the nested executor is alive.
 
-The handoff is therefore:
+The stored route direction is needed because `mission_index` alone is ambiguous at shared waypoints. When the current target lies on a waypoint between two segments, the same mission index can mean "arriving from the nominal side" or "arriving from the reverse side". Preserving the last chosen direction lets the next planning pass prioritize the correct adjacent segment instead of flipping sides at that waypoint.
 
-1. `RTL` computes or reuses the plan and passes the current latch value into `configureRouteSafePoint()`.
-2. `RtlMissionSafePointFollow` uses its local copy while active.
-3. On inactivation, `RTL::on_inactivation()` reads the executor copy back through `shouldGoStraightToGoal()` so the state survives the next replanning cycle.
+The handoff is now:
 
-Without the outer copy, a temporary deactivation or executor rebuild would forget that the vehicle had already branched off. Without the inner copy, the executor would need to mutate outer RTL state directly while running.
+1. `RTL` builds `MissionRoutePlanner::Config` from the current vehicle state plus the two continuity hints it preserves between passes.
+2. `MissionRoutePlanner` returns a fresh `Plan`.
+3. `RTL` copies the selected route direction and projected loop segment out of that plan so the next planning pass can stay continuous.
+4. `RtlMissionSafePointFollow` receives the fresh plan through `configureRouteSafePoint()` and drives execution purely from the plan plus `_stage`.
+
+There is no longer any outer cached type-6 plan or persisted "straight-to-goal" latch. If RTL is re-entered, PX4 replans and then applies the route-skip shortcut policy to the newly selected safe point only.
 
 ### Provider Interface
 

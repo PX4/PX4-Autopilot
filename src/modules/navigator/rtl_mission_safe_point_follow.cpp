@@ -76,7 +76,6 @@ void RtlMissionSafePointFollow::configureRouteSafePoint(const RouteSafePointConf
 {
 	_plan = config.plan;
 	_branch_off_index = _plan.selection.branchOffIndex();
-	_should_go_straight_to_goal = config.should_go_straight_to_goal;
 	_goal_land_approach = config.goal_land_approach;
 	_rtl_alt = config.rtl_alt;
 	updateLastFlownLoopSegmentFromPlan();
@@ -99,11 +98,6 @@ RtlMissionSafePointFollow::Stage RtlMissionSafePointFollow::finalGoalStage() con
 
 void RtlMissionSafePointFollow::on_inactivation()
 {
-	_should_go_straight_to_goal = _should_go_straight_to_goal
-				      || _plan.selection.skip_route_to_safe_point
-				      || _stage == Stage::BranchOff
-				      || _stage == Stage::ApproachAtGoal
-				      || _stage == Stage::LandAtGoal;
 	_transition_target_index = -1;
 
 	MissionBase::on_inactivation();
@@ -119,7 +113,6 @@ void RtlMissionSafePointFollow::on_activation()
 	_transition_target_index = -1;
 	updateLastFlownLoopSegmentFromPlan();
 	resetJoinRouteState();
-	bool use_join_route = false;
 
 	if (_plan.valid()) {
 		setMissionIndex(_plan.selection.path.first_item_index);
@@ -129,15 +122,14 @@ void RtlMissionSafePointFollow::on_activation()
 						       && _plan.selection.path.direction_reversed
 						       && _plan.selection.path.in_first_item_acc_rad;
 
-		use_join_route = !(_should_go_straight_to_goal || _plan.selection.skip_route_to_safe_point
-				   || reverse_land_from_takeoff);
-		_stage = use_join_route ? Stage::FollowRoute : finalGoalStage();
+		const bool skip_follow_route = _plan.selection.skip_route_to_safe_point || reverse_land_from_takeoff;
+		_stage = skip_follow_route ? finalGoalStage() : Stage::FollowRoute;
 
-		PX4_DEBUG("RTL to %s target=%d rev=%u straight=%u stage=%u branch_off=%d",
+		PX4_DEBUG("RTL to %s target=%d rev=%u skip=%u stage=%u branch_off=%d",
 			  MissionRoutePlanner::goalTypeString(_plan.selection.goal_type),
 			  static_cast<int>(_plan.selection.path.first_item_index),
 			  static_cast<unsigned>(_plan.selection.path.direction_reversed),
-			  static_cast<unsigned>(_should_go_straight_to_goal || _plan.selection.skip_route_to_safe_point),
+			  static_cast<unsigned>(_plan.selection.skip_route_to_safe_point),
 			  static_cast<unsigned>(_stage),
 			  static_cast<int>(_branch_off_index));
 
@@ -147,7 +139,6 @@ void RtlMissionSafePointFollow::on_activation()
 
 	if (_land_detected_sub.get().landed) {
 		_is_current_planned_mission_item_valid = false;
-		use_join_route = false;
 	}
 
 	// Reset the triplet when retargeting the mission so the controller does not keep following a stale line.
@@ -155,7 +146,7 @@ void RtlMissionSafePointFollow::on_activation()
 	_navigator->get_position_setpoint_triplet()->current.valid = false;
 	_navigator->get_position_setpoint_triplet()->next.valid = false;
 
-	if (_is_current_planned_mission_item_valid && use_join_route) {
+	if (_is_current_planned_mission_item_valid && _stage == Stage::FollowRoute) {
 		// Route Safe Point Return reuses MissionBase's shared JOIN_ROUTE ->
 		// TRANSITION_AFTER_JOIN executor path through RtlBase.
 		setupJoinRoute(_plan.join_context, _plan.selection.path, _navigator->get_global_position()->alt);
@@ -167,9 +158,8 @@ void RtlMissionSafePointFollow::on_activation()
 bool RtlMissionSafePointFollow::advanceRouteTarget()
 {
 	bool advanced = false;
-	const auto continueStraightToGoal = [this](const char *reason) {
+	const auto continueToGoal = [this](const char *reason) {
 		_stage = finalGoalStage();
-		_should_go_straight_to_goal = true;
 		_transition_target_index = -1;
 		PX4_INFO("%s, straight to goal", reason);
 		return true;
@@ -183,7 +173,7 @@ bool RtlMissionSafePointFollow::advanceRouteTarget()
 			advanced = true;
 
 		} else {
-			return continueStraightToGoal("RTL reverse route complete");
+			return continueToGoal("RTL reverse route complete");
 		}
 
 	} else {
@@ -199,13 +189,13 @@ bool RtlMissionSafePointFollow::advanceRouteTarget()
 			advanced = true;
 
 		} else {
-			return continueStraightToGoal("RTL route complete");
+			return continueToGoal("RTL route complete");
 		}
 	}
 
 	if (advanced && currentTargetIsBranchOff()) {
 		_stage = Stage::BranchOff;
-		PX4_DEBUG("RTL branch-off is next");
+		PX4_INFO("RTL branch-off is next");
 	}
 
 	return advanced;
@@ -226,7 +216,6 @@ bool RtlMissionSafePointFollow::setNextMissionItem()
 
 	case Stage::BranchOff:
 		_stage = finalGoalStage();
-		_should_go_straight_to_goal = true;
 		PX4_INFO("RTL branch-off reached, straight to goal");
 		return true;
 
@@ -493,7 +482,6 @@ void RtlMissionSafePointFollow::setActiveMissionItems()
 
 	if (_stage == Stage::FollowRoute) {
 		if (joinProjectionNearBranchOff()) {
-			_should_go_straight_to_goal = true;
 			_stage = finalGoalStage();
 			PX4_INFO("RTL join is near branch-off, straight to goal");
 

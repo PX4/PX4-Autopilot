@@ -88,7 +88,6 @@ public:
 		_mission.current_seq = 0;
 		_stage = Stage::Idle;
 		_branch_off_index = -1;
-		_should_go_straight_to_goal = false;
 		_transition_target_index = -1;
 		_plan = {};
 	}
@@ -131,11 +130,6 @@ public:
 	int32_t transitionTargetIndexForTest() const
 	{
 		return _transition_target_index;
-	}
-
-	bool shouldGoStraightToGoalForTest() const
-	{
-		return _should_go_straight_to_goal;
 	}
 
 	bool advanceStageForTest()
@@ -188,7 +182,7 @@ TEST_F(RtlMissionSafePointFollowStageTest, TransitionDuringRouteResumesFollowRou
 }
 
 // WHY: After the virtual branch-off waypoint is reached, the executor must commit to the final landing stage.
-// WHAT: setNextMissionItem moves BranchOff to LandAtGoal and latches straight-to-goal mode.
+// WHAT: setNextMissionItem moves BranchOff to LandAtGoal.
 TEST_F(RtlMissionSafePointFollowStageTest, BranchOffTransitionsToLandAtGoal)
 {
 	// GIVEN: An executor that has already reached the branch-off waypoint.
@@ -201,10 +195,9 @@ TEST_F(RtlMissionSafePointFollowStageTest, BranchOffTransitionsToLandAtGoal)
 	// WHEN: setNextMissionItem advances the stage machine.
 	const bool advanced = executor.advanceStageForTest();
 
-	// THEN: The executor commits to the landing stage and stays on the direct branch.
+	// THEN: The executor commits to the landing stage.
 	EXPECT_TRUE(advanced);
 	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::LandAtGoal);
-	EXPECT_TRUE(executor.shouldGoStraightToGoalForTest());
 }
 
 // WHY: Route-safe-point RTL should use the same wind-selected VTOL approach behavior as direct RTL
@@ -233,7 +226,6 @@ TEST_F(RtlMissionSafePointFollowStageTest, BranchOffTransitionsToApproachAtGoalW
 	// THEN: The executor commits to the goal-approach stage before landing.
 	EXPECT_TRUE(advanced);
 	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::ApproachAtGoal);
-	EXPECT_TRUE(executor.shouldGoStraightToGoalForTest());
 }
 
 // WHY: Once the goal approach loiter has been completed, the executor must hand over to the
@@ -318,7 +310,6 @@ TEST_F(RtlMissionSafePointFollowStageTest, ForwardRouteExhaustionTransitionsToLa
 	// THEN: The executor keeps RTL alive by handing over to the landing stage.
 	EXPECT_TRUE(advanced);
 	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::LandAtGoal);
-	EXPECT_TRUE(executor.shouldGoStraightToGoalForTest());
 }
 
 // WHY: When route traversal exhausts before reaching a chosen safe point, the executor should
@@ -348,7 +339,6 @@ TEST_F(RtlMissionSafePointFollowStageTest, ForwardRouteExhaustionTransitionsToAp
 	// THEN: The executor continues with the approach stage instead of going straight to land.
 	EXPECT_TRUE(advanced);
 	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::ApproachAtGoal);
-	EXPECT_TRUE(executor.shouldGoStraightToGoalForTest());
 }
 
 // WHY: Reverse route exhaustion should also continue RTL toward the selected goal.
@@ -370,7 +360,6 @@ TEST_F(RtlMissionSafePointFollowStageTest, ReverseRouteExhaustionTransitionsToLa
 	// THEN: The executor keeps RTL alive by handing over to the landing stage.
 	EXPECT_TRUE(advanced);
 	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::LandAtGoal);
-	EXPECT_TRUE(executor.shouldGoStraightToGoalForTest());
 }
 
 // WHY: Route-safe-point RTL follows mission geometry, but takeoff commands carry altitude semantics

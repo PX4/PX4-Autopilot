@@ -1332,17 +1332,24 @@ MissionRoutePlanner::Path MissionRoutePlanner::findReversePathToGoal(uint16_t go
 					  PathDirectionMode::ForceReverse);
 }
 
-bool MissionRoutePlanner::shouldSkipRouteToSafePoint(const Position &safe_point_position,
-		const Position &vehicle_position, const Config &config) const
+bool MissionRoutePlanner::closeToSafePointDirect(const Position &vehicle_position,
+		const Position &safe_point_position, const Config &config) const
 {
-	if (!config.state.is_multicopter) {
-		return false;
-	}
-
 	const float dist = get_distance_to_next_waypoint(vehicle_position.lat, vehicle_position.lon,
 			   safe_point_position.lat, safe_point_position.lon);
 
 	return PX4_ISFINITE(dist) && dist < config.parameters.direct_acceptance_radius;
+}
+
+bool MissionRoutePlanner::shouldSkipRouteToSafePoint(const Position &vehicle_position,
+		const Selection &selection, const Config &config) const
+{
+	if (!selection.safe_point_found) {
+		return false;
+	}
+
+	return closeToSafePointDirect(vehicle_position, selection.safe_point_position, config)
+	       || closeToBranchOffSegment(vehicle_position, selection, config.parameters.acceptance_radius);
 }
 
 MissionRoutePlanner::Selection MissionRoutePlanner::selectSafePoint(const ProjectionContext &projection_context,
@@ -1435,10 +1442,7 @@ MissionRoutePlanner::Selection MissionRoutePlanner::selectSafePoint(const Projec
 			continue;
 		}
 
-		const bool skip_route_to_safe_point = shouldSkipRouteToSafePoint(safe_point_position,
-						      projection_context.vehicle_pos, config);
-
-		if (!selection.found || skip_route_to_safe_point || best_path.dist < selection.path.dist) {
+		if (!selection.found || best_path.dist < selection.path.dist) {
 			selection.found = true;
 			selection.safe_point_found = true;
 			selection.goal_type = GoalType::SafePoint;
@@ -1448,11 +1452,6 @@ MissionRoutePlanner::Selection MissionRoutePlanner::selectSafePoint(const Projec
 			selection.goal_position = safe_point_position;
 			selection.branch_off_segment = candidate_buffer.candidates[best_projection_index].segment;
 			selection.branch_off_projection = candidate_buffer.candidates[best_projection_index].projection;
-			selection.skip_route_to_safe_point = skip_route_to_safe_point;
-		}
-
-		if (selection.skip_route_to_safe_point) {
-			break;
 		}
 	}
 
@@ -1462,7 +1461,10 @@ MissionRoutePlanner::Selection MissionRoutePlanner::selectSafePoint(const Projec
 			return {};
 		}
 
-		PX4_DEBUG("RTL safe point %d selected: trgt=%d rev=%u branch_off=%u->%u direct=%u",
+		selection.skip_route_to_safe_point = shouldSkipRouteToSafePoint(projection_context.vehicle_pos,
+						     selection, config);
+
+		PX4_DEBUG("RTL safe point %d selected: trgt=%d rev=%u branch_off=%u->%u skip=%u",
 			  static_cast<int>(selection.safe_point_index),
 			  static_cast<int>(selection.path.first_item_index),
 			  static_cast<unsigned>(selection.path.direction_reversed),

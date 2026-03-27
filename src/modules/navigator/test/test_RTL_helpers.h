@@ -258,7 +258,7 @@ static inline MissionRoutePlanner::Position makePositionAbsolute(double lat, dou
 	return MissionRoutePlanner::Position{lat, lon, alt};
 }
 
-/** @brief Default route-planner config for route-following tests (multicopter). */
+/** @brief Default route-planner config for route-following tests. */
 static inline MissionRoutePlanner::Config defaultConfig()
 {
 	MissionRoutePlanner::Config config{};
@@ -267,7 +267,6 @@ static inline MissionRoutePlanner::Config defaultConfig()
 	config.parameters.acceptance_radius = 10.f;
 	config.parameters.direct_acceptance_radius = 10.f;
 	config.parameters.home_altitude_amsl = 500.f;
-	config.state.is_multicopter = true;
 	return config;
 }
 
@@ -275,7 +274,6 @@ static inline MissionRoutePlanner::Config defaultConfig()
 static inline MissionRoutePlanner::Config fwConfig()
 {
 	MissionRoutePlanner::Config config = defaultConfig();
-	config.state.is_multicopter = false;
 	config.state.is_fixed_wing = true;
 	config.parameters.u_turn_penalty_m = 4000.f;
 	return config;
@@ -294,13 +292,10 @@ static constexpr float kDistanceTolerance = 5.0f;       // meters
 
 extern "C" int dataman_main(int argc, char *argv[]);
 
-/**
- * @brief Shared dataman/work-queue lifecycle for navigator tests that need PX4 runtime services.
- */
-class NavigatorDatamanTestBase : public ::testing::Test
+class NavigatorDatamanRuntime
 {
-protected:
-	static void SetUpTestSuite()
+public:
+	NavigatorDatamanRuntime()
 	{
 		param_control_autosave(false);
 		px4::WorkQueueManagerStart();
@@ -312,7 +307,7 @@ protected:
 		dataman_main(3, argv);
 	}
 
-	static void TearDownTestSuite()
+	~NavigatorDatamanRuntime()
 	{
 		param_control_autosave(true);
 
@@ -323,6 +318,26 @@ protected:
 
 		px4::WorkQueueManagerStop();
 	}
+};
+
+static inline NavigatorDatamanRuntime &navigatorDatamanRuntime()
+{
+	static NavigatorDatamanRuntime runtime{};
+	return runtime;
+}
+
+/**
+ * @brief Shared dataman/work-queue lifecycle for navigator tests that need PX4 runtime services.
+ */
+class NavigatorDatamanTestBase : public ::testing::Test
+{
+protected:
+	static void SetUpTestSuite()
+	{
+		(void)navigatorDatamanRuntime();
+	}
+
+	static void TearDownTestSuite() {}
 };
 
 /**

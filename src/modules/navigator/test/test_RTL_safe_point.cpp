@@ -188,6 +188,36 @@ TEST_F(RtlSafePointBasicTest, SupportsDirectToSafePoint)
 	EXPECT_EQ(selection.safe_point_index, 0);
 }
 
+// WHY: Route-skip shortcuts are applied only after the planner has already selected
+//      the cheapest safe point, so upload order must not override cost-based ranking.
+// WHAT: When multiple direct-safe-point shortcuts exist, the lowest-cost safe point still wins.
+TEST_F(RtlSafePointBasicTest, DirectShortcutUsesSelectedSafePointRatherThanUploadOrder)
+{
+	std::vector<mission_item_s> mission{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+	};
+
+	std::vector<mission_item_s> safe_points{
+		makeSafePointFromOffset(kBaseLat, kBaseLon, 10.f, 19.f, kAlt),
+		makeSafePointFromOffset(kBaseLat, kBaseLon, 12.f, 1.f, kAlt),
+	};
+
+	VectorProvider provider{mission, safe_points};
+	MissionRoutePlanner planner{provider};
+	const MissionRoutePlanner::Position vehicle_position =
+		makePositionFromOffset(kBaseLat, kBaseLon, 10.f, 0.f, kAlt);
+
+	ASSERT_TRUE(planner.collectVehicleProjection(vehicle_position, 1, config, ctx, reason));
+
+	const MissionRoutePlanner::Selection selection = planner.selectSafePoint(ctx, config);
+
+	ASSERT_TRUE(selection.found);
+	EXPECT_TRUE(selection.skip_route_to_safe_point);
+	EXPECT_EQ(selection.safe_point_index, 1);
+}
+
 // WHY: When all safe points have an invalid frame, none should be selected.
 // WHAT: selectSafePoint returns found=false when every rally point is invalid.
 TEST_F(RtlSafePointBasicTest, ReturnsEmptyWhenAllSafePointsInvalid)
@@ -474,7 +504,6 @@ TEST_F(RtlSafePointDefaultFWTest, TransitionToFwUsesFixedWingUturnPenalty)
 	VectorProvider provider{uturn_penalty_dataset::mission(), uturn_penalty_dataset::safePoints()};
 	MissionRoutePlanner planner{provider};
 	config = defaultConfig();
-	config.state.is_multicopter = false;
 	config.state.in_transition_to_fw = true;
 	config.parameters.u_turn_penalty_m = 4000.f;
 	config.state.velocity_valid = true;
@@ -1242,9 +1271,76 @@ TEST_F(RtlSafePointBranchGeometryTest, CloseToBranchOffSegmentUsesBranchGeometry
 			plan.selection, config.parameters.acceptance_radius));
 }
 
+// WHY: The branch-leg shortcut is an execution policy applied after selection.
+// WHAT: A vehicle near the selected branch-off leg can skip route following even when the safe point itself is farther away.
+TEST_F(RtlSafePointBranchGeometryTest, SelectedBranchLegShortcutSkipsRouteForSelectedGoal)
+{
+	std::vector<mission_item_s> mission{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 600.f, 0.f, kAlt),
+	};
+
+	std::vector<mission_item_s> safe_points{
+		makeSafePointFromOffset(kBaseLat, kBaseLon, 300.f, 50.f, kAlt),
+	};
+
+	VectorProvider provider{mission, safe_points};
+	MissionRoutePlanner planner{provider};
+
+	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 300.f, 10.f, kAlt);
+	config = defaultConfig();
+	config.parameters.direct_acceptance_radius = 20.f;
+	config.parameters.acceptance_radius = 20.f;
+	config.state.velocity_ne(0) = 5.f;
+	config.state.velocity_ne(1) = 0.f;
+	config.state.velocity_valid = true;
+
+	MissionRoutePlanner::Plan plan{};
+	const bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, reason);
+
+	ASSERT_TRUE(ok) << "Failure reason: " << MissionRoutePlanner::failureReasonString(reason);
+	ASSERT_TRUE(plan.selection.safe_point_found);
+	EXPECT_FALSE(get_distance_to_next_waypoint(vehicle_pos.lat, vehicle_pos.lon,
+			plan.selection.goal_position.lat, plan.selection.goal_position.lon)
+		     < config.parameters.direct_acceptance_radius);
+	EXPECT_TRUE(plan.selection.skip_route_to_safe_point);
+}
+
+// WHY: The branch-leg shortcut is now vehicle-agnostic, matching the direct shortcut policy.
+// WHAT: Fixed-wing plans also skip route following when the vehicle is close to the selected branch-off leg.
+TEST_F(RtlSafePointBranchGeometryTest, SelectedBranchLegShortcutAlsoSkipsRouteForFixedWing)
+{
+	std::vector<mission_item_s> mission{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 600.f, 0.f, kAlt),
+	};
+
+	std::vector<mission_item_s> safe_points{
+		makeSafePointFromOffset(kBaseLat, kBaseLon, 300.f, 50.f, kAlt),
+	};
+
+	VectorProvider provider{mission, safe_points};
+	MissionRoutePlanner planner{provider};
+
+	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 300.f, 10.f, kAlt);
+	config = fwConfig();
+	config.parameters.direct_acceptance_radius = 20.f;
+	config.parameters.acceptance_radius = 20.f;
+	config.state.velocity_ne(0) = 15.f;
+	config.state.velocity_ne(1) = 0.f;
+	config.state.velocity_valid = true;
+
+	MissionRoutePlanner::Plan plan{};
+	const bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, reason);
+
+	ASSERT_TRUE(ok) << "Failure reason: " << MissionRoutePlanner::failureReasonString(reason);
+	ASSERT_TRUE(plan.selection.safe_point_found);
+	EXPECT_TRUE(plan.selection.skip_route_to_safe_point);
+}
+
 struct DirectToSafePointCase {
 	const char *name;
-	bool is_multicopter;
+	bool use_fw_config;
 	float velocity_north;
 	bool expect_direct;
 };
@@ -1253,15 +1349,14 @@ struct DirectToSafePointCase {
 class RtlSafePointDirectShortcutTest : public RtlSafePointTestBase,
 	public ::testing::WithParamInterface<DirectToSafePointCase> {};
 
-TEST_P(RtlSafePointDirectShortcutTest, PlansDirectShortcutOnlyForMulticopter)
+TEST_P(RtlSafePointDirectShortcutTest, PlansDirectShortcutForSelectedSafePoint)
 {
 	const DirectToSafePointCase &scenario = GetParam();
 	VectorProvider provider(direct_to_safe_point_dataset::mission(), direct_to_safe_point_dataset::safePoints());
 	MissionRoutePlanner planner(provider);
 
 	auto vehicle_pos = direct_to_safe_point_dataset::vehiclePosition();
-	config = scenario.is_multicopter ? defaultConfig() : fwConfig();
-	config.state.is_multicopter = scenario.is_multicopter;
+	config = scenario.use_fw_config ? fwConfig() : defaultConfig();
 	config.parameters.direct_acceptance_radius = 20.f;
 	config.state.velocity_ne(0) = scenario.velocity_north;
 	config.state.velocity_ne(1) = 0.f;
@@ -1282,8 +1377,8 @@ INSTANTIATE_TEST_SUITE_P(
 	VehicleType,
 	RtlSafePointDirectShortcutTest,
 	::testing::Values(
-		DirectToSafePointCase{"Multicopter", true, 5.f, true},
-		DirectToSafePointCase{"FixedWing", false, 15.f, false}
+		DirectToSafePointCase{"Multicopter", false, 5.f, true},
+		DirectToSafePointCase{"FixedWing", true, 15.f, true}
 	),
 	[](const ::testing::TestParamInfo<DirectToSafePointCase> &param_info)
 {

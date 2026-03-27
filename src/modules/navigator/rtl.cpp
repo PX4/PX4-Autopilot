@@ -77,7 +77,7 @@ void RTL::updateDatamanCache()
 	if (mission.mission_id != _route_plan_mission_id || mission.safe_points_id != _route_plan_safe_points_id) {
 		_route_plan_mission_id = mission.mission_id;
 		_route_plan_safe_points_id = mission.safe_points_id;
-		resetRouteSafePointCache();
+		resetRouteSafePointState();
 	}
 
 	if (mission_route_cache == nullptr) {
@@ -103,11 +103,10 @@ void RTL::updateDatamanCache()
 	}
 }
 
-void RTL::resetRouteSafePointCache()
+void RTL::resetRouteSafePointState()
 {
-	_route_safe_point_plan = {};
 	_last_route_safe_point_loop_segment = {};
-	_should_go_straight_to_goal = false;
+	_route_safe_point_direction_reversed = false;
 }
 
 void RTL::on_inactive()
@@ -139,18 +138,13 @@ void RTL::on_inactive()
 
 }
 
-/**
- * @brief Preserve the currently branched-off state before the nested mode is deactivated.
- */
 void RTL::on_inactivation()
 {
 	if (_rtl_mission_type_handle) {
 		_rtl_mission_type_handle->run(false);
-		_should_go_straight_to_goal = _rtl_mission_type_handle->shouldGoStraightToGoal();
 		_last_route_safe_point_loop_segment = _rtl_mission_type_handle->lastFlownLoopSegment();
 
 	} else {
-		_should_go_straight_to_goal = false;
 		_last_route_safe_point_loop_segment = {};
 	}
 
@@ -204,32 +198,6 @@ void RTL::on_activation()
 	case RtlType::RTL_MISSION_FAST: // Fall through
 	case RtlType::RTL_MISSION_FAST_REVERSE: // Fall through
 	case RtlType::RTL_MISSION_SAFE_POINT_FOLLOW:
-		if (_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW && _route_safe_point_plan.valid()) {
-			if (_route_safe_point_plan.selection.safe_point_found) {
-				if (_route_safe_point_plan.selection.skip_route_to_safe_point) {
-					PX4_INFO("RTL type 6 start: safe point %d skips route",
-						 static_cast<int>(_route_safe_point_plan.selection.safe_point_index));
-
-				} else if (_should_go_straight_to_goal) {
-					PX4_INFO("RTL type 6 start: branched-off, straight to safe point %d",
-						 static_cast<int>(_route_safe_point_plan.selection.safe_point_index));
-
-				} else {
-					PX4_INFO("RTL type 6 start: safe_point=%d target=%d branch_off=%d rev=%u",
-						 static_cast<int>(_route_safe_point_plan.selection.safe_point_index),
-						 static_cast<int>(_route_safe_point_plan.selection.path.first_item_index),
-						 static_cast<int>(_route_safe_point_plan.selection.branchOffIndex()),
-						 static_cast<unsigned>(_route_safe_point_plan.selection.path.direction_reversed));
-				}
-
-			} else {
-				PX4_INFO("RTL type 6 fallback to %s target=%d rev=%u",
-					 MissionRoutePlanner::goalTypeString(_route_safe_point_plan.selection.goal_type),
-					 static_cast<int>(_route_safe_point_plan.selection.path.first_item_index),
-					 static_cast<unsigned>(_route_safe_point_plan.selection.path.direction_reversed));
-			}
-		}
-
 		if (_rtl_mission_type_handle) {
 			_rtl_mission_type_handle->setReturnAltMin(_enforce_rtl_alt);
 			_rtl_mission_type_handle->run(true);
@@ -327,16 +295,13 @@ bool RTL::isLanding()
 }
 
 /**
- * @brief Recompute the active RTL variant and destination from the current mission, safe points, and cached plan.
+ * @brief Recompute the active RTL variant and destination from the current mission and route continuity hints.
  */
 void RTL::setRtlTypeAndDestination()
 {
 	uint8_t safe_point_index = UINT8_MAX;
 	RtlType new_rtl_type{RtlType::RTL_DIRECT};
-	const MissionRoutePlanner::Plan cached_route_safe_point_plan = _route_safe_point_plan;
-	_route_safe_point_plan = {};
-	const bool cached_should_go_straight_to_goal = _should_go_straight_to_goal;
-	_should_go_straight_to_goal = false;
+	MissionRoutePlanner::Plan route_safe_point_plan{};
 
 	// init destination with Home (used also with Type 2 and 4 as backup)
 	DestinationType destination_type = DestinationType::DESTINATION_TYPE_HOME;
@@ -377,8 +342,7 @@ void RTL::setRtlTypeAndDestination()
 		}
 
 	} else if (_param_rtl_type.get() == RTL_TYPE_ROUTE_SAFE_POINT) {
-		const bool current_route_direction_reversed = cached_route_safe_point_plan.valid()
-				? cached_route_safe_point_plan.selection.path.direction_reversed : false;
+		const bool current_route_direction_reversed = _route_safe_point_direction_reversed;
 		MissionRouteCache *mission_route_cache = _navigator->get_mission_route_cache();
 
 		const bool mission_route_cache_ready =  mission_route_cache != nullptr
@@ -386,10 +350,8 @@ void RTL::setRtlTypeAndDestination()
 							&& mission_route_cache->isReady(_mission_sub.get());
 
 		if (_navigator->get_mission_result()->valid && mission_route_cache_ready
-		    && evaluateRouteSafePointPlan(*mission_route_cache, cached_route_safe_point_plan,
-						  cached_should_go_straight_to_goal,
-						  _route_safe_point_plan, _should_go_straight_to_goal)) {
-			applyRouteSafePointPlan(_route_safe_point_plan, current_route_direction_reversed,
+		    && evaluateRouteSafePointPlan(*mission_route_cache, route_safe_point_plan)) {
+			applyRouteSafePointPlan(route_safe_point_plan, current_route_direction_reversed,
 						new_rtl_type, destination_type, destination, safe_point_index);
 
 		} else {
@@ -397,6 +359,7 @@ void RTL::setRtlTypeAndDestination()
 		}
 
 	} else {
+		resetRouteSafePointState();
 		// RTL_TYPE 0, 1, 3, 5: use closest safe point / home / mission landing via direct path.
 		findRtlDestination(destination_type, destination, safe_point_index);
 
@@ -419,14 +382,13 @@ void RTL::setRtlTypeAndDestination()
 		}
 	}
 
-	if (new_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW && _route_safe_point_plan.selection.safe_point_found) {
+	if (new_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW && route_safe_point_plan.selection.safe_point_found) {
 		goal_landing_approach = selectLandingApproach(destination);
 	}
 
 	const float rtl_alt = computeReturnAltitude(destination);
 	RtlBase::RouteSafePointConfig route_safe_point_config{};
-	route_safe_point_config.plan = _route_safe_point_plan;
-	route_safe_point_config.should_go_straight_to_goal = _should_go_straight_to_goal;
+	route_safe_point_config.plan = route_safe_point_plan;
 	route_safe_point_config.goal_land_approach = goal_landing_approach;
 	route_safe_point_config.rtl_alt = rtl_alt;
 	_rtl_direct.setRtlAlt(rtl_alt);
@@ -455,8 +417,8 @@ void RTL::setRtlTypeAndDestination()
 		_rtl_direct.setRtlPosition(destination, landing_loiter);
 	}
 
-	// Route-safe-point executor state is a coordinated bundle: the plan, straight-to-goal latch,
-	// landing approach, and return altitude must stay synchronized across executor lifetimes.
+	// Route-safe-point executor state is a coordinated bundle: the plan,
+	// landing approach, and return altitude must stay synchronized.
 	if (new_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW && _rtl_mission_type_handle) {
 		_rtl_mission_type_handle->configureRouteSafePoint(route_safe_point_config);
 	}
@@ -475,7 +437,7 @@ void RTL::setRtlTypeAndDestination()
 	_rtl_status_pub.publish(rtl_status);
 }
 
-MissionRoutePlanner::Config RTL::buildRouteSafePointConfig(bool is_flying_reverse) const
+MissionRoutePlanner::Config RTL::buildRouteSafePointConfig(bool last_route_direction_reversed) const
 {
 	MissionRoutePlanner::Config config{};
 	const auto &vehicle_status = _vehicle_status_sub.get();
@@ -490,9 +452,7 @@ MissionRoutePlanner::Config RTL::buildRouteSafePointConfig(bool is_flying_revers
 	config.parameters.home_altitude_amsl = _home_pos_sub.get().alt;
 	config.parameters.u_turn_penalty_m = _param_rtl_fw_uturn_pen.get();
 
-	config.state.is_multicopter = vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
-				      && !vehicle_status.in_transition_mode;
-	config.state.is_flying_reverse = is_flying_reverse;
+	config.state.is_flying_reverse = last_route_direction_reversed;
 	config.state.velocity_valid = (local_position != nullptr)
 				      && PX4_ISFINITE(local_position->vx)
 				      && PX4_ISFINITE(local_position->vy);
@@ -508,54 +468,15 @@ MissionRoutePlanner::Config RTL::buildRouteSafePointConfig(bool is_flying_revers
 	return config;
 }
 
-bool RTL::reuseCachedRouteSafePointPlan(const MissionRoutePlanner &planner,
-					const MissionRouteCache &mission_route_cache,
-					const MissionRoutePlanner::Position &vehicle_position,
-					float acceptance_radius,
-					const MissionRoutePlanner::Plan &cached_plan,
-					bool cached_should_go_straight_to_goal,
-					MissionRoutePlanner::Plan &new_plan) const
-{
-	const bool reuse_cached_plan = cached_should_go_straight_to_goal
-				       && cached_plan.valid()
-				       && cached_plan.selection.safe_point_found
-				       && planner.closeToBranchOffSegment(vehicle_position, cached_plan.selection,
-						       acceptance_radius);
-
-	if (!reuse_cached_plan) {
-		return false;
-	}
-
-	new_plan = cached_plan;
-
-	PX4_DEBUG("RTL type 6 reusing cached plan");
-	return true;
-}
-
 bool RTL::evaluateRouteSafePointPlan(const MissionRouteCache &mission_route_cache,
-				     const MissionRoutePlanner::Plan &cached_plan,
-				     bool cached_should_go_straight_to_goal,
-				     MissionRoutePlanner::Plan &new_plan,
-				     bool &should_go_straight_to_goal)
+				     MissionRoutePlanner::Plan &new_plan)
 {
 	new_plan = {};
-	should_go_straight_to_goal = false;
-
-	const bool is_flying_reverse = cached_plan.valid()
-				       ? cached_plan.selection.path.direction_reversed : false;
 	const float home_altitude_amsl = _home_pos_sub.get().alt;
-	const MissionRoutePlanner::Config config = buildRouteSafePointConfig(is_flying_reverse);
+	const MissionRoutePlanner::Config config = buildRouteSafePointConfig(_route_safe_point_direction_reversed);
 	_any_safe_point_has_land_approach = mission_route_cache.anySafePointHasVtolLandApproach(home_altitude_amsl);
 	const MissionRoutePlanner::Position vehicle_position{_global_pos_sub.get().lat, _global_pos_sub.get().lon, _global_pos_sub.get().alt};
 	MissionRoutePlanner planner(mission_route_cache);
-
-	if (reuseCachedRouteSafePointPlan(planner, mission_route_cache, vehicle_position,
-					  config.parameters.acceptance_radius,
-					  cached_plan, cached_should_go_straight_to_goal,
-					  new_plan)) {
-		should_go_straight_to_goal = true;
-		return true;
-	}
 
 	MissionRoutePlanner::FailureReason failure_reason{MissionRoutePlanner::FailureReason::Unknown};
 
@@ -565,9 +486,9 @@ bool RTL::evaluateRouteSafePointPlan(const MissionRouteCache &mission_route_cach
 		return false;
 	}
 
-	// This is necessary for takeoff + Return && no safe point found --> we are landing at the takeoff
-	// if a rally point was found, let _should_go_straight_to_goal handle it to ensure that a rally point far from the
-	// takeoff point but projected onto a takeoff point does not result in an immediate land.
+	// This is necessary for takeoff + Return && no safe point found --> we are landing at the takeoff.
+	// A safe-point goal keeps the normal join/skip policy so a rally point far from the
+	// takeoff point but projected onto the takeoff location does not result in an immediate land.
 	// MissionBase::setupJoinRoute() consumes this hint and applies the final skip-altitude correction.
 	if (new_plan.selection.path.in_first_item_acc_rad
 	    && new_plan.selection.path.first_item_cmd == NAV_CMD_TAKEOFF
@@ -575,13 +496,11 @@ bool RTL::evaluateRouteSafePointPlan(const MissionRouteCache &mission_route_cach
 		new_plan.join_context.skip_altitude_requirement = true;
 	}
 
-	should_go_straight_to_goal = new_plan.selection.skip_route_to_safe_point;
-
-	PX4_DEBUG("RTL type 6 plan: goal=%s target=%d rev=%u straight=%u",
+	PX4_DEBUG("RTL type 6 plan: goal=%s target=%d rev=%u skip=%u",
 		  MissionRoutePlanner::goalTypeString(new_plan.selection.goal_type),
 		  static_cast<int>(new_plan.selection.path.first_item_index),
 		  static_cast<unsigned>(new_plan.selection.path.direction_reversed),
-		  static_cast<unsigned>(should_go_straight_to_goal));
+		  static_cast<unsigned>(new_plan.selection.skip_route_to_safe_point));
 
 	return true;
 }
@@ -625,6 +544,7 @@ void RTL::applyRouteSafePointPlan(const MissionRoutePlanner::Plan &plan,
 	}
 
 	new_rtl_type = RtlType::RTL_MISSION_SAFE_POINT_FOLLOW;
+	_route_safe_point_direction_reversed = plan.selection.path.direction_reversed;
 	_last_route_safe_point_loop_segment = plan.projection_context.seg_candidate.segment.validLoop()
 					      ? plan.projection_context.seg_candidate.segment
 					      : MissionRoutePlanner::Segment{};
@@ -643,7 +563,7 @@ void RTL::applyRouteSafePointFallback(RtlType &new_rtl_type,
 				      PositionYawSetpoint &destination,
 				      uint8_t &safe_point_index)
 {
-	_should_go_straight_to_goal = false;
+	resetRouteSafePointState();
 	findRtlDestinationForType(RTL_TYPE_DIRECT_WITH_MISSION_LAND, destination_type, destination, safe_point_index);
 
 	if (destination_type == DestinationType::DESTINATION_TYPE_MISSION_LAND) {

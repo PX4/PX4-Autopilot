@@ -785,7 +785,7 @@ MissionBase::setupJoinRoute(MissionRoutePlanner::JoinContext &join_context,
 		join_context.skip_altitude_requirement = true;
 	}
 
-	// skip_altitude_requirement can also come from the caller as an execution-side hint.
+	// skip_altitude_requirement can also come from the caller.
 	if (join_context.skip_altitude_requirement) {
 		join_context.projection.alt = vehicle_alt;
 	}
