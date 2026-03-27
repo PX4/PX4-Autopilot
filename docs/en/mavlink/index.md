@@ -12,7 +12,6 @@ It also links instructions for how you can add PX4 support for:
 - [Configuring/Using MAVLink Profiles](../mavlink/mavlink_profiles.md)
 - [Handling incoming MAVLink messages (and writing to a uORB topic)](../mavlink/receiving_messages.md)
 - [Custom MAVLink Messages](../mavlink/custom_messages.md)
-- [Message Signing](../mavlink/message_signing.md)
 - [Protocols/Microservices](../mavlink/protocols.md)
 
 ::: warning
