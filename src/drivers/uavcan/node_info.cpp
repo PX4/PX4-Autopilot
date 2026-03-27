@@ -64,7 +64,7 @@ void NodeInfoPublisher::handleNodeInfoRetrieved(uavcan::NodeID node_id, const ua
 
 	_node_vendors[node_id.get()] = vendor;
 
-	registerDevice(info.node_id.get(), &info, UINT32_MAX, DeviceCapability::NONE);
+	registerNodeInfo(info.node_id.get(), info);
 
 	startTimerIfNotRunning();
 }
@@ -86,87 +86,84 @@ void NodeInfoPublisher::startTimerIfNotRunning()
 	}
 }
 
-void NodeInfoPublisher::registerDevice(uint8_t node_id, const NodeInfo *info, uint32_t device_id, DeviceCapability capability)
+void NodeInfoPublisher::registerNodeInfo(uint8_t node_id, const NodeInfo &info)
 {
-	const bool is_registering_info = (info != nullptr);
-
-	int multi_capability_index = -1;
+	bool found = false;
 
 	for (size_t i = 0; i < _device_informations_size; ++i) {
-		if (is_registering_info) {
-			// Case 1: Check if this entry already has node info - skip this specific entry
-			if (_device_informations[i].node_id == node_id &&
-			    _device_informations[i].has_node_info) {
+		if (_device_informations[i].node_id != node_id) { continue; }
 
-				continue;  // Continue to check other entries with same node_id
-			}
+		found = true;
 
-			// Case 2: Check if node_id already exists with capability but no info - update that entry
-			if (_device_informations[i].node_id == node_id &&
-			    _device_informations[i].capability != DeviceCapability::NONE &&
-			    !_device_informations[i].has_node_info) {
-				populateDeviceInfoFields(_device_informations[i], *info);
+		if (!_device_informations[i].has_node_info) {
+			populateDeviceInfoFields(_device_informations[i], info);
+
+			if (_device_informations[i].capability != DeviceCapability::NONE) {
 				publishSingleDeviceInformation(_device_informations[i]);
-				continue;
-			}
-
-		} else { // registering capabilities
-			// Case 1: Check if this exact capability already exists - skip
-			if (_device_informations[i].node_id == node_id &&
-			    _device_informations[i].device_id == device_id &&
-			    _device_informations[i].capability == capability) {
-				return;
-			}
-
-			// Case 1b: if this node has multiple capabilities, continue
-			if (_device_informations[i].node_id == node_id &&
-			    _device_informations[i].capability != DeviceCapability::NONE  &&
-			    _device_informations[i].capability != capability) {
-				multi_capability_index = i;
-				continue;
-			}
-
-			// Case 2: Check if node_id already exists with node info but no capability - update that entry
-			if (_device_informations[i].node_id == node_id &&
-			    _device_informations[i].has_node_info &&
-			    _device_informations[i].capability == DeviceCapability::NONE) {
-				_device_informations[i].device_id = device_id;
-				_device_informations[i].capability = capability;
-				publishSingleDeviceInformation(_device_informations[i]);
-				return;
 			}
 		}
 	}
 
-
-
-	// Case 3: extend array and add entry at the end
-	if (extendDeviceInformationsArray()) {
+	if (!found && extendDeviceInformationsArray()) {
 		_device_informations[_device_informations_size - 1] = DeviceInformation();
 		_device_informations[_device_informations_size - 1].node_id = node_id;
+		populateDeviceInfoFields(_device_informations[_device_informations_size - 1], info);
+	}
+}
 
+void NodeInfoPublisher::registerCapability(uint8_t node_id, uint32_t device_id, DeviceCapability capability)
+{
+	int multi_capability_index = -1;
+
+	for (size_t i = 0; i < _device_informations_size; ++i) {
+		if (_device_informations[i].node_id != node_id) { continue; }
+
+		// Exact match — nothing to do
+		if (_device_informations[i].capability == capability &&
+		    _device_informations[i].device_id == device_id) {
+			return;
+		}
+
+		// Different capability on same node — remember for multi-capability copy
+		if (_device_informations[i].capability != DeviceCapability::NONE &&
+		    _device_informations[i].capability != capability) {
+			multi_capability_index = i;
+			continue;
+		}
+
+		// No capability yet but has node info — fill it in and publish
+		if (_device_informations[i].capability == DeviceCapability::NONE &&
+		    _device_informations[i].has_node_info) {
+			_device_informations[i].device_id = device_id;
+			_device_informations[i].capability = capability;
+			publishSingleDeviceInformation(_device_informations[i]);
+			return;
+		}
+	}
+
+	// No existing entry to update — create a new one
+	if (extendDeviceInformationsArray()) {
 		if (multi_capability_index >= 0) {
 			_device_informations[_device_informations_size - 1] = _device_informations[multi_capability_index];
-			_device_informations[_device_informations_size - 1].node_id = node_id;
-		}
-
-		if (is_registering_info) {
-			populateDeviceInfoFields(_device_informations[_device_informations_size - 1], *info);
 
 		} else {
-			_device_informations[_device_informations_size - 1].device_id = device_id;
-			_device_informations[_device_informations_size - 1].capability = capability;
+			_device_informations[_device_informations_size - 1] = DeviceInformation();
 		}
 
+		_device_informations[_device_informations_size - 1].node_id = node_id;
+		_device_informations[_device_informations_size - 1].device_id = device_id;
+		_device_informations[_device_informations_size - 1].capability = capability;
+
 	} else {
-		PX4_DEBUG("Failed to extend device informations array for %s",
-			  is_registering_info ? "node info" : "capability");
+		PX4_DEBUG("Failed to extend device informations array for capability");
 	}
 }
 
 void NodeInfoPublisher::registerDeviceCapability(uint8_t node_id, uint32_t device_id, DeviceCapability capability)
 {
-	registerDevice(node_id, nullptr, device_id, capability);
+	if (node_id < 1 || node_id > uavcan::NodeID::Max) { return; }
+
+	registerCapability(node_id, device_id, capability);
 }
 
 void NodeInfoPublisher::publishDeviceInformationPeriodic()
@@ -207,23 +204,22 @@ void NodeInfoPublisher::publishSingleDeviceInformation(const DeviceInformation &
 	msg.device_type = static_cast<uint8_t>(device_info.capability);
 	msg.device_id = device_info.device_id;
 
-	// Copy pre-populated fields directly from the struct
+	// Copy name and serial directly
 	static_assert(sizeof(msg.name) == sizeof(device_info.name), "Array size mismatch");
-	static_assert(sizeof(msg.firmware_version) == sizeof(device_info.firmware_version), "Array size mismatch");
-	static_assert(sizeof(msg.hardware_version) == sizeof(device_info.hardware_version), "Array size mismatch");
 	static_assert(sizeof(msg.serial_number) == sizeof(device_info.serial_number), "Array size mismatch");
 
 	memcpy(msg.name, device_info.name, sizeof(msg.name));
 	msg.name[sizeof(msg.name) - 1] = '\0';
 
-	memcpy(msg.firmware_version, device_info.firmware_version, sizeof(msg.firmware_version));
-	msg.firmware_version[sizeof(msg.firmware_version) - 1] = '\0';
-
-	memcpy(msg.hardware_version, device_info.hardware_version, sizeof(msg.hardware_version));
-	msg.hardware_version[sizeof(msg.hardware_version) - 1] = '\0';
-
 	memcpy(msg.serial_number, device_info.serial_number, sizeof(msg.serial_number));
 	msg.serial_number[sizeof(msg.serial_number) - 1] = '\0';
+
+	// Format version integers to strings at publish time
+	snprintf(msg.firmware_version, sizeof(msg.firmware_version),
+		 "%d.%d.%lu", device_info.fw_major, device_info.fw_minor,
+		 static_cast<unsigned long>(device_info.fw_patch));
+	snprintf(msg.hardware_version, sizeof(msg.hardware_version),
+		 "%d.%d", device_info.hw_major, device_info.hw_minor);
 
 	_device_info_pub.publish(msg);
 
@@ -237,10 +233,13 @@ void NodeInfoPublisher::populateDeviceInfoFields(DeviceInformation &device_info,
 	device_info.has_node_info = true;
 
 	snprintf(device_info.name, sizeof(device_info.name), "%s", info.name);
-	snprintf(device_info.firmware_version, sizeof(device_info.firmware_version),
-		 "%d.%d.%lu", info.sw_major, info.sw_minor, static_cast<unsigned long>(info.vcs_commit));
-	snprintf(device_info.hardware_version, sizeof(device_info.hardware_version),
-		 "%d.%d", info.hw_major, info.hw_minor);
+
+	device_info.fw_major = info.sw_major;
+	device_info.fw_minor = info.sw_minor;
+	device_info.fw_patch = info.vcs_commit;
+	device_info.hw_major = info.hw_major;
+	device_info.hw_minor = info.hw_minor;
+
 	snprintf(device_info.serial_number, sizeof(device_info.serial_number),
 		 "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
 		 info.unique_id[0], info.unique_id[1], info.unique_id[2], info.unique_id[3],

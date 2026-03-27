@@ -115,8 +115,14 @@ private:
 		bool has_node_info{false};
 
 		char name[80] = "";
-		char firmware_version[24] = "";
-		char hardware_version[24] = "";
+
+		// Version stored as integers to save RAM; formatted to string at publish time
+		uint8_t fw_major{0};
+		uint8_t fw_minor{0};
+		uint32_t fw_patch{0};	// VCS commit hash for DroneCAN
+		uint8_t hw_major{0};
+		uint8_t hw_minor{0};
+
 		char serial_number[33] = "";
 	};
 
@@ -128,8 +134,8 @@ private:
 
 	void startTimerIfNotRunning();
 
-	// Register device info or capability, set nodeinfo to nullptr if only registering capability
-	void registerDevice(uint8_t node_id, const NodeInfo *info, uint32_t device_id, DeviceCapability capability);
+	void registerNodeInfo(uint8_t node_id, const NodeInfo &info);
+	void registerCapability(uint8_t node_id, uint32_t device_id, DeviceCapability capability);
 
 	// Publishing methods
 	void publishDeviceInformationPeriodic();
@@ -137,7 +143,6 @@ private:
 
 	// Helper functions
 	void populateDeviceInfoFields(DeviceInformation &device_info, const NodeInfo &info);
-	void parseNodeName(const char *name, DeviceInformation &device_info);
 	bool extendDeviceInformationsArray();
 
 	uavcan::NodeInfoRetriever &_node_info_retriever;
