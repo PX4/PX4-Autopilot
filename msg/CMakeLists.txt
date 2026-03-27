@@ -93,6 +93,7 @@ set(msg_files
 	FollowTargetEstimator.msg
 	FollowTargetStatus.msg
 	FuelTankStatus.msg
+	fivehole_probe.msg
 	FixedWingLateralGuidanceStatus.msg
 	FixedWingLateralStatus.msg
 	FixedWingRunwayControl.msg
@@ -176,6 +177,7 @@ set(msg_files
 	QshellRetval.msg
 	RadioStatus.msg
 	RateCtrlStatus.msg
+	RawAirData.msg
 	RcChannels.msg
 	RcParameterMap.msg
 	RoverAttitudeSetpoint.msg

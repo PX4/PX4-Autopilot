@@ -171,6 +171,8 @@ px4_add_module(
 		sensors/baro.cpp
 		sensors/battery.cpp
 		sensors/airspeed.cpp
+		sensors/fivehole_probe.cpp
+		sensors/raw_air_data.cpp
 		sensors/flow.cpp
 		sensors/fuel_tank_status.cpp
 		sensors/gnss_relative.cpp

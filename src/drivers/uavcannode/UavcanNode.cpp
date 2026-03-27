@@ -39,6 +39,7 @@
 #include <drivers/drv_watchdog.h>
 #include <lib/geo/geo.h>
 #include <lib/version/version.h>
+#include "Subscribers/Airspeed.hpp"
 
 #if defined(CONFIG_UAVCANNODE_BATTERY_INFO)
 #include "Publishers/BatteryInfo.hpp"
@@ -492,6 +493,8 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 #if defined(CONFIG_UAVCANNODE_HARDPOINT_COMMAND)
 	_subscriber_list.add(new HardpointCommand(_node));
 #endif // CONFIG_UAVCANNODE_HARDPOINT_COMMAND
+
+	_subscriber_list.add(new Airspeed(_node));
 
 	for (auto &subscriber : _subscriber_list) {
 		subscriber->init();

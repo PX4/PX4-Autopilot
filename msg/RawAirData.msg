@@ -1,0 +1,4 @@
+uint64 timestamp
+float32 dp_pitot_pa
+float32 static_pressure_pa
+float32 temperature_k

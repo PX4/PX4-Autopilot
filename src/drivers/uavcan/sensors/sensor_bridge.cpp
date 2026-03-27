@@ -37,6 +37,7 @@
 
 #include "sensor_bridge.hpp"
 #include <cassert>
+#include "fivehole_probe.hpp"
 
 #if defined(CONFIG_UAVCAN_SENSOR_ACCEL)
 #include "accel.hpp"
@@ -44,6 +45,8 @@
 #endif
 #if defined(CONFIG_UAVCAN_SENSOR_AIRSPEED)
 #include "airspeed.hpp"
+#include "raw_air_data.hpp"
+#include "fivehole_probe.hpp"
 #endif
 #if defined(CONFIG_UAVCAN_SENSOR_BARO)
 #include "baro.hpp"
@@ -95,6 +98,9 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 
 	if (uavcan_sub_aspd != 0) {
 		list.add(new UavcanAirspeedBridge(node, node_info_publisher));
+		list.add(new UavcanFiveholeProbeBridge(node, node_info_publisher));
+		list.add(new UavcanRawAirDataBridge(node, node_info_publisher));
+
 	}
 
 #endif

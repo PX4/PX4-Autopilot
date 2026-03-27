@@ -48,7 +48,10 @@ void LoggedTopics::add_default_topics()
 	add_topic("action_request");
 	add_topic("actuator_armed");
 	add_optional_topic("actuator_controls_status_0", 300);
-	add_topic("airspeed", 1000);
+	add_topic("airspeed", 50);
+	// Custom DroneCAN bridges (five-hole node): up to ~20 Hz in log
+	add_optional_topic("raw_air_data", 50);
+	add_optional_topic("fivehole_probe", 50);
 	add_optional_topic("airspeed_validated", 200);
 	add_optional_topic("autotune_attitude_control_status", 100);
 	add_topic_multi("battery_info", 5000, 3);
