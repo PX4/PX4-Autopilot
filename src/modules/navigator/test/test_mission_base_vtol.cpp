@@ -34,11 +34,11 @@
 /**
  * @file test_mission_base_vtol.cpp
  *
- * Unit tests for MissionBase VTOL transition detection and traversal methods:
+ * Unit tests for MissionBase VTOL transition detection and position traversal:
  *   - getVtolStateAtMissionIndex()
  *   - vtolTransitionActionForTarget()
- *   - findNextPositionIndexNoJump()
- *   - findPreviousPositionIndexNoJump()
+ *   - findNextPositionIndex()
+ *   - findPreviousPositionIndex()
  *
  * These tests verify the centralized transition logic that was previously
  * duplicated in MissionRoutePlanner. The executor (RtlMissionSafePointFollow)
@@ -73,7 +73,7 @@ using rtl_test_reference::kBaseLon;
 
 /**
  * Minimal MissionBase subclass for testing vtolTransitionActionForTarget,
- * findNextPositionIndexNoJump, and findPreviousPositionIndexNoJump.
+ * findNextPositionIndex, and findPreviousPositionIndex.
  *
  * Overrides loadMissionItemFromCache with a vector-backed implementation
  * so no dataman server is required. Pure virtual methods are stubbed out.
@@ -170,11 +170,13 @@ public:
 	using MissionBase::getVtolStateAtMissionIndex;
 	using MissionBase::VtolTransitionAction;
 	using MissionBase::WorkItemType;
+	using MissionBase::PositionTraversalType;
 	using MissionBase::setupJoinRoute;
-	using MissionBase::findNextPositionIndexNoJump;
-	using MissionBase::findPreviousPositionIndexNoJump;
+	using MissionBase::findNextPositionIndex;
+	using MissionBase::findPreviousPositionIndex;
 	using MissionBase::getNextPositionItems;
 	using MissionBase::getPreviousPositionItems;
+	using MissionBase::goToNextPositionItem;
 	using MissionBase::updateLastFlownLoopSegmentForNominalAdvance;
 	using MissionBase::computeFrontTransitionAlignmentYaw;
 	using MissionBase::checkMissionRestart;
@@ -836,7 +838,7 @@ TEST_F(MissionBaseTransitionActionTest, MultiTransitionMissionDetectsCorrectActi
 		  MissionBaseTestPeer::VtolTransitionAction::None);
 }
 
-// WHY: findNextPositionIndexNoJump walks forward through the mission to find the next
+// WHY: Geometry-only position traversal walks forward through the mission to find the next
 //      position-bearing item. Non-position items (like DO_VTOL_TRANSITION) must be
 //      skipped. This is the simplest case with no DO_JUMP items.
 // WHAT: Starting from a VTOL transition item, the function skips it and returns the
@@ -852,11 +854,11 @@ TEST_F(MissionBaseTraversalTest, FindNextSkipsNonPositionItems)
 	mission_base.loadTestMission(items);
 
 	int32_t next = -1;
-	EXPECT_TRUE(mission_base.findNextPositionIndexNoJump(1, next));
+	EXPECT_TRUE(mission_base.findNextPositionIndex(1, next, MissionBaseTestPeer::PositionTraversalType::IgnoreDoJump));
 	EXPECT_EQ(next, 2);
 }
 
-// WHY: findNextPositionIndexNoJump must NOT skip DO_JUMP items — it treats them as
+// WHY: Geometry-only position traversal must NOT follow DO_JUMP control flow. It treats jumps as
 //      non-position items and continues past them. This is critical for the RTL executor
 //      which needs to find the next physical waypoint without following jump control flow.
 // WHAT: [WP, DO_JUMP, WP, WP] — starting from idx 1 (DO_JUMP), returns idx 2 (next WP).
@@ -872,12 +874,12 @@ TEST_F(MissionBaseTraversalTest, FindNextSkipsDoJumpItems)
 	mission_base.loadTestMission(items);
 
 	int32_t next = -1;
-	EXPECT_TRUE(mission_base.findNextPositionIndexNoJump(1, next));
+	EXPECT_TRUE(mission_base.findNextPositionIndex(1, next, MissionBaseTestPeer::PositionTraversalType::IgnoreDoJump));
 	EXPECT_EQ(next, 2);
 }
 
 // WHY: When multiple non-position items (DO_JUMP + VTOL transition) are stacked
-//      consecutively, findNextPositionIndexNoJump must skip all of them and return the
+//      consecutively, geometry-only position traversal must skip all of them and return the
 //      first position item that follows.
 // WHAT: [WP, DO_JUMP, VTOL_FW, WP] — starting from idx 1, skips both and returns idx 3.
 TEST_F(MissionBaseTraversalTest, FindNextSkipsConsecutiveNonPositionItems)
@@ -892,11 +894,11 @@ TEST_F(MissionBaseTraversalTest, FindNextSkipsConsecutiveNonPositionItems)
 	mission_base.loadTestMission(items);
 
 	int32_t next = -1;
-	EXPECT_TRUE(mission_base.findNextPositionIndexNoJump(1, next));
+	EXPECT_TRUE(mission_base.findNextPositionIndex(1, next, MissionBaseTestPeer::PositionTraversalType::IgnoreDoJump));
 	EXPECT_EQ(next, 3);
 }
 
-// WHY: When no position item exists after the start index, findNextPositionIndexNoJump
+// WHY: When no position item exists after the start index, geometry-only position traversal
 //      must return false so callers know there is no valid forward target.
 // WHAT: [WP, DO_JUMP] — starting from idx 1, no position item follows → returns false.
 TEST_F(MissionBaseTraversalTest, FindNextReturnsFalseAtEnd)
@@ -909,11 +911,11 @@ TEST_F(MissionBaseTraversalTest, FindNextReturnsFalseAtEnd)
 	mission_base.loadTestMission(items);
 
 	int32_t next = -1;
-	EXPECT_FALSE(mission_base.findNextPositionIndexNoJump(1, next));
+	EXPECT_FALSE(mission_base.findNextPositionIndex(1, next, MissionBaseTestPeer::PositionTraversalType::IgnoreDoJump));
 }
 
 // WHY: Route traversal must stop cleanly when the next cache read fails.
-// WHAT: A cache failure on the next position item makes findNextPositionIndexNoJump return false.
+// WHAT: A cache failure on the next position item makes findNextPositionIndex return false.
 TEST_F(MissionBaseTraversalTest, FindNextReturnsFalseOnCacheReadFailure)
 {
 	// GIVEN: A mission whose next position item cannot be loaded.
@@ -928,17 +930,17 @@ TEST_F(MissionBaseTraversalTest, FindNextReturnsFalseOnCacheReadFailure)
 
 	int32_t next = -1;
 
-	// WHEN: findNextPositionIndexNoJump advances past the DO_JUMP item.
-	const bool found = mission_base.findNextPositionIndexNoJump(1, next);
+	// WHEN: geometry-only traversal advances past the DO_JUMP item.
+	const bool found = mission_base.findNextPositionIndex(1, next, MissionBaseTestPeer::PositionTraversalType::IgnoreDoJump);
 
 	// THEN: The unreadable next position item causes a clean failure.
 	EXPECT_FALSE(found);
 	EXPECT_EQ(next, -1);
 }
 
-// WHY: findPreviousPositionIndexNoJump walks backward and must explicitly skip DO_JUMP
-//      items (it checks nav_cmd == NAV_CMD_DO_JUMP and continues). Without this, the
-//      function would stop at a DO_JUMP item which has no position data.
+// WHY: Geometry-only position traversal walks backward and must explicitly skip DO_JUMP
+//      items. Without this, the function would stop at a DO_JUMP item which has no
+//      position data.
 // WHAT: [WP, WP, DO_JUMP, WP] — starting from idx 3, skips DO_JUMP at idx 2, returns idx 1.
 TEST_F(MissionBaseTraversalTest, FindPreviousSkipsDoJumpItems)
 {
@@ -952,12 +954,12 @@ TEST_F(MissionBaseTraversalTest, FindPreviousSkipsDoJumpItems)
 	mission_base.loadTestMission(items);
 
 	int32_t prev = -1;
-	EXPECT_TRUE(mission_base.findPreviousPositionIndexNoJump(3, prev));
+	EXPECT_TRUE(mission_base.findPreviousPositionIndex(3, prev, MissionBaseTestPeer::PositionTraversalType::IgnoreDoJump));
 	EXPECT_EQ(prev, 1);
 }
 
 // WHY: When multiple DO_JUMP items are stacked before the start index,
-//      findPreviousPositionIndexNoJump must skip all of them.
+//      geometry-only position traversal must skip all of them.
 // WHAT: [WP, DO_JUMP, DO_JUMP, WP] — starting from idx 3, skips both jumps, returns idx 0.
 TEST_F(MissionBaseTraversalTest, FindPreviousSkipsConsecutiveDoJumps)
 {
@@ -971,12 +973,12 @@ TEST_F(MissionBaseTraversalTest, FindPreviousSkipsConsecutiveDoJumps)
 	mission_base.loadTestMission(items);
 
 	int32_t prev = -1;
-	EXPECT_TRUE(mission_base.findPreviousPositionIndexNoJump(3, prev));
+	EXPECT_TRUE(mission_base.findPreviousPositionIndex(3, prev, MissionBaseTestPeer::PositionTraversalType::IgnoreDoJump));
 	EXPECT_EQ(prev, 0);
 }
 
 // WHY: When there is no position item before the start index (only DO_JUMPs or nothing),
-//      findPreviousPositionIndexNoJump must return false.
+//      geometry-only position traversal must return false.
 // WHAT: [DO_JUMP, WP] — starting from idx 1, idx 0 is DO_JUMP → returns false.
 TEST_F(MissionBaseTraversalTest, FindPreviousReturnsFalseWhenOnlyJumpsBefore)
 {
@@ -988,7 +990,48 @@ TEST_F(MissionBaseTraversalTest, FindPreviousReturnsFalseWhenOnlyJumpsBefore)
 	mission_base.loadTestMission(items);
 
 	int32_t prev = -1;
-	EXPECT_FALSE(mission_base.findPreviousPositionIndexNoJump(1, prev));
+	EXPECT_FALSE(mission_base.findPreviousPositionIndex(1, prev, MissionBaseTestPeer::PositionTraversalType::IgnoreDoJump));
+}
+
+// WHY: The shared API must expose both semantics on a single-item lookup.
+// WHAT: [DO_JUMP->2, WP1, WP2] starting from idx 0 resolves to WP2 in mission-control mode
+//       and WP1 in geometry-only mode.
+TEST_F(MissionBaseTraversalTest, FindNextSupportsBothTraversalSemantics)
+{
+	std::vector<mission_item_s> items = {
+		makeDoJump(2, 1, 0),
+		makePositionItem(kBaseLat, kBaseLon, kAlt),
+		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
+	};
+
+	mission_base.loadTestMission(items);
+
+	int32_t next_follow = -1;
+	int32_t next_geometry = -1;
+
+	EXPECT_TRUE(mission_base.findNextPositionIndex(0, next_follow,
+			MissionBaseTestPeer::PositionTraversalType::FollowMissionControlFlow));
+	EXPECT_TRUE(mission_base.findNextPositionIndex(0, next_geometry,
+			MissionBaseTestPeer::PositionTraversalType::IgnoreDoJump));
+	EXPECT_EQ(next_follow, 2);
+	EXPECT_EQ(next_geometry, 1);
+}
+
+// WHY: goToNextPositionItem() previously accepted a jump flag but did not honor it.
+// WHAT: The shared traversal API now allows callers to request geometry-only advancement.
+TEST_F(MissionBaseTraversalTest, GoToNextPositionItemHonorsGeometryOnlyTraversal)
+{
+	std::vector<mission_item_s> items = {
+		makeDoJump(2, 1, 0),
+		makePositionItem(kBaseLat, kBaseLon, kAlt),
+		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
+	};
+
+	mission_base.loadTestMission(items);
+	mission_base.setCurrentSequence(-1);
+
+	EXPECT_EQ(mission_base.goToNextPositionItem(MissionBaseTestPeer::PositionTraversalType::IgnoreDoJump), PX4_OK);
+	EXPECT_EQ(mission_base.currentSequenceForTest(), 1);
 }
 
 // WHY: getNextPositionItems is used by Mission and mission-based RTL flows, so it must

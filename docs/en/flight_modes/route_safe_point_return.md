@@ -421,7 +421,8 @@ This separation allows the planner to be fully unit-tested without SD card acces
 The executor reuses several traversal methods from `MissionBase` to avoid code duplication:
 
 - `loadMissionItemFromCache()`: load a single mission item by index.
-- `findNextPositionIndexNoJump()` / `findPreviousPositionIndexNoJump()`: walk forward/backward skipping non-position and `DO_JUMP` items. `findPreviousPositionIndexNoJump()` returns `false` on dataman load failure instead of silently skipping, ensuring SD card read errors are surfaced to the caller.
+- `findNextPositionIndex()` / `findPreviousPositionIndex()`: single-step position traversal with explicit `DO_JUMP` semantics. `FollowMissionControlFlow` honors active jumps, while `IgnoreDoJump` treats jumps as geometry only.
+- `getNextPositionItems()` / `getPreviousPositionItems()`: list-based look-ahead wrappers over the same traversal API. Mission mode uses them when it needs one or more future position anchors, while `RTL_TYPE=6` only needs the adjacent position item.
 - `findAttachedPositionIndex()`: find the nearest position item at or before a given index.
 - `vtolTransitionActionForTarget()`: determine if a VTOL transition is needed for a given target index.
 - `setupJoinRoute()` / `handleJoinRouteWorkItems()`: arm and execute the shared branch-in pipeline used by both Mission smart rejoin and `RTL_TYPE=6`.

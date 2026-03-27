@@ -973,8 +973,10 @@ MissionBase::computeFrontTransitionAlignmentYaw(int32_t current_target_index, bo
 	if (current_target_reached) {
 		int32_t adjacent_index = -1;
 		const bool found_adjacent = direction_reversed
-					    ? findPreviousPositionIndexNoJump(current_target_index, adjacent_index)
-					    : findNextPositionIndexNoJump(current_target_index + 1, adjacent_index);
+					    ? findPreviousPositionIndex(current_target_index, adjacent_index,
+							    PositionTraversalType::IgnoreDoJump)
+					    : findNextPositionIndex(current_target_index + 1, adjacent_index,
+							    PositionTraversalType::IgnoreDoJump);
 
 		if (found_adjacent) {
 			mission_item_s adjacent_target{};
@@ -1343,44 +1345,58 @@ void MissionBase::syncMissionRouteCacheItem(int32_t index, const mission_item_s 
 	}
 }
 
-bool MissionBase::findNextPositionIndexNoJump(int32_t start_index, int32_t &next_index)
+bool MissionBase::findNextPositionIndex(int32_t start_index, int32_t &next_index,
+					PositionTraversalType traversal_type)
 {
-	for (int32_t index = start_index; index < _mission.count; ++index) {
+	for (int32_t mission_index = start_index; mission_index < _mission.count;) {
+		int32_t traversed_index = mission_index;
 		mission_item_s mission_item{};
 
-		if (!loadMissionItemFromCache(index, mission_item)) {
+		if (!loadTraversalItem(traversed_index, mission_item, traversal_type, false)) {
 			return false;
 		}
 
 		if (item_contains_position(mission_item)) {
-			next_index = index;
+			next_index = traversed_index;
 			return true;
 		}
+
+		mission_index = traversed_index + 1;
 	}
 
 	return false;
 }
 
-bool MissionBase::findPreviousPositionIndexNoJump(int32_t start_index, int32_t &previous_index)
+bool MissionBase::findPreviousPositionIndex(int32_t start_index, int32_t &previous_index,
+		PositionTraversalType traversal_type)
 {
-	for (int32_t index = start_index - 1; index >= 0; --index) {
+	for (int32_t mission_index = start_index - 1; mission_index >= 0;) {
+		int32_t traversed_index = mission_index;
 		mission_item_s mission_item{};
 
-		if (!loadMissionItemFromCache(index, mission_item)) {
+		if (!loadTraversalItem(traversed_index, mission_item, traversal_type, true)) {
 			return false;
 		}
 
-		if (mission_item.nav_cmd == NAV_CMD_DO_JUMP) {
-			continue;
-		}
-
 		if (item_contains_position(mission_item)) {
-			previous_index = index;
+			previous_index = traversed_index;
 			return true;
 		}
+
+		mission_index = traversed_index - 1;
 	}
 
 	return false;
+}
+
+bool MissionBase::loadTraversalItem(int32_t &mission_index, mission_item_s &mission_item,
+				    PositionTraversalType traversal_type, bool direction_backward)
+{
+	if (traversal_type == PositionTraversalType::FollowMissionControlFlow) {
+		return getNonJumpItem(mission_index, mission_item, true, false, direction_backward) == PX4_OK;
+	}
+
+	return loadMissionItemFromCache(mission_index, mission_item);
 }
 
 bool MissionBase::findAttachedPositionIndex(int32_t start_index, int32_t &attached_index)
@@ -1446,10 +1462,10 @@ MissionBase::VtolTransitionAction MissionBase::vtolTransitionActionForTarget(int
 	// a position item as target, but in reverse that target is the segment start. For
 	// [wp1 - FT - wp3], reverse direction targets wp1; scanning backward from wp1 would
 	// miss the FT that defines seg[1-3] as FW. Starting from target_index + 1 and then
-	// using findNextPositionIndexNoJump() moves the anchor to the next position item, so
-	// intervening non-position items stay inside the backward scan. That also handles
+	// using geometry-only position traversal moves the anchor to the next position item,
+	// so intervening non-position items stay inside the backward scan. That also handles
 	// layouts like [wp1 - action - FT - wp4], where target_index + 1 is still not a
-	// position item and findNextPositionIndexNoJump moves the anchor to wp4.
+	// position item and the search moves the anchor to wp4.
 	int32_t anchor_search_start = direction_reversed ? target_index + 1 : target_index;
 
 	if (anchor_search_start >= _mission.count) {
@@ -1458,7 +1474,7 @@ MissionBase::VtolTransitionAction MissionBase::vtolTransitionActionForTarget(int
 
 	int32_t segment_anchor_index = -1;
 
-	if (!findNextPositionIndexNoJump(anchor_search_start, segment_anchor_index)) {
+	if (!findNextPositionIndex(anchor_search_start, segment_anchor_index, PositionTraversalType::IgnoreDoJump)) {
 		return VtolTransitionAction::None;
 	}
 
@@ -1504,7 +1520,8 @@ void MissionBase::updateLastFlownLoopSegmentForNominalAdvance(MissionRoutePlanne
 			// command to the first position item reached at the jump target. Example:
 			// [WP0, WP1, WP2, DO_JUMP->0, WP3] while current_seq == 2 caches loop seg[2 -> 0].
 			if (!findAttachedPositionIndex(index, loop_start_index)
-			    || !findNextPositionIndexNoJump(mission_item.do_jump_mission_index, loop_end_index)) {
+			    || !findNextPositionIndex(mission_item.do_jump_mission_index, loop_end_index,
+						      PositionTraversalType::IgnoreDoJump)) {
 				return;
 			}
 
@@ -1537,28 +1554,23 @@ void MissionBase::updateLastFlownLoopSegmentForNominalAdvance(MissionRoutePlanne
 }
 
 void MissionBase::getPreviousPositionItems(int32_t start_index, int32_t items_index[],
-		size_t &num_found_items, uint8_t max_num_items)
+		size_t &num_found_items, uint8_t max_num_items, PositionTraversalType traversal_type)
 {
 	num_found_items = 0u;
 
-	int32_t next_mission_index{start_index};
+	int32_t search_index{start_index};
 
 	for (size_t item_idx = 0u; item_idx < max_num_items; item_idx++) {
-		if (next_mission_index < 0) {
+		if (search_index < 0) {
 			break;
 		}
 
-		mission_item_s next_mission_item;
-		bool found_next_item{false};
+		int32_t previous_position_index{-1};
 
-		do {
-			next_mission_index--;
-			found_next_item = getNonJumpItem(next_mission_index, next_mission_item, true, false, true) == PX4_OK;
-		} while (!MissionBlock::item_contains_position(next_mission_item) && found_next_item);
-
-		if (found_next_item) {
-			items_index[item_idx] = next_mission_index;
+		if (findPreviousPositionIndex(search_index, previous_position_index, traversal_type)) {
+			items_index[item_idx] = previous_position_index;
 			num_found_items = item_idx + 1;
+			search_index = previous_position_index;
 
 		} else {
 			break;
@@ -1567,30 +1579,25 @@ void MissionBase::getPreviousPositionItems(int32_t start_index, int32_t items_in
 }
 
 void MissionBase::getNextPositionItems(int32_t start_index, int32_t items_index[],
-				       size_t &num_found_items, uint8_t max_num_items)
+				       size_t &num_found_items, uint8_t max_num_items,
+				       PositionTraversalType traversal_type)
 {
 	// Make sure vector does not contain any preexisting elements.
 	num_found_items = 0u;
 
-	int32_t next_mission_index{start_index};
+	int32_t search_index{start_index};
 
 	for (size_t item_idx = 0u; item_idx < max_num_items; item_idx++) {
-		if (next_mission_index >= _mission.count) {
+		if (search_index >= _mission.count) {
 			break;
 		}
 
-		mission_item_s next_mission_item;
-		bool found_next_item{false};
+		int32_t next_position_index{-1};
 
-		do {
-			found_next_item = getNonJumpItem(next_mission_index, next_mission_item, true, false, false) == PX4_OK;
-			next_mission_index++;
-		} while (!MissionBlock::item_contains_position(next_mission_item) && found_next_item);
-
-		if (found_next_item) {
-			items_index[item_idx] = math::max(next_mission_index - 1,
-							  static_cast<int32_t>(0)); // subtract 1 to get the index of the first position item
+		if (findNextPositionIndex(search_index, next_position_index, traversal_type)) {
+			items_index[item_idx] = next_position_index;
 			num_found_items = item_idx + 1;
+			search_index = next_position_index + 1;
 
 		} else {
 			break;
@@ -1616,13 +1623,11 @@ int MissionBase::goToPreviousItem(bool execute_jump)
 	return goToItem(_mission.current_seq - 1, execute_jump, true);
 }
 
-int MissionBase::goToPreviousPositionItem(bool execute_jump)
+int MissionBase::goToPreviousPositionItem(PositionTraversalType traversal_type)
 {
-	size_t num_found_items{0U};
-	int32_t previous_position_item_index;
-	getPreviousPositionItems(_mission.current_seq, &previous_position_item_index, num_found_items, 1);
+	int32_t previous_position_item_index{-1};
 
-	if (num_found_items == 1U) {
+	if (findPreviousPositionIndex(_mission.current_seq, previous_position_item_index, traversal_type)) {
 		setMissionIndex(previous_position_item_index);
 		return PX4_OK;
 
@@ -1631,13 +1636,11 @@ int MissionBase::goToPreviousPositionItem(bool execute_jump)
 	}
 }
 
-int MissionBase::goToNextPositionItem(bool execute_jump)
+int MissionBase::goToNextPositionItem(PositionTraversalType traversal_type)
 {
-	size_t num_found_items{0U};
-	int32_t next_position_item_index;
-	getNextPositionItems(_mission.current_seq + 1, &next_position_item_index, num_found_items, 1);
+	int32_t next_position_item_index{-1};
 
-	if (num_found_items == 1U) {
+	if (findNextPositionIndex(_mission.current_seq + 1, next_position_item_index, traversal_type)) {
 		setMissionIndex(next_position_item_index);
 		return PX4_OK;
 

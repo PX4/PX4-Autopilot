@@ -105,29 +105,38 @@ protected:
 
 	using VtolTransitionAction = MissionRoutePlanner::VtolTransitionAction;
 
+	enum class PositionTraversalType : uint8_t {
+		FollowMissionControlFlow = 0,
+		IgnoreDoJump,
+	};
+
 	MissionRoutePlanner::JoinContext _route_join_context{};
 	static constexpr float kJoinRouteFlyByAcceptanceRadiusScale{2.f};
 
 	/**
-	 * @brief Get the Previous Mission Position Items
+	 * @brief Get the previous position-bearing mission items.
 	 *
-	 * @param[in] start_index is the index from where to start searching the previous mission position items
-	 * @param[out] items_index is an array of indexes indicating the previous mission position items found
-	 * @param[out] num_found_items are the amount of previous position items found
-	 * @param[in] max_num_items are the maximum amount of previous position items to be searched
+	 * @param[in] start_index Index from which to start searching backward
+	 * @param[out] items_index Array receiving the previous position item indices
+	 * @param[out] num_found_items Number of position items found
+	 * @param[in] max_num_items Maximum number of position items to collect
+	 * @param[in] traversal_type Whether to follow DO_JUMP mission control flow or treat jumps as geometry only
 	 */
 	void getPreviousPositionItems(int32_t start_index, int32_t items_index[], size_t &num_found_items,
-				      uint8_t max_num_items);
+				      uint8_t max_num_items,
+				      PositionTraversalType traversal_type = PositionTraversalType::FollowMissionControlFlow);
 	/**
-	 * @brief Get the next mission item containing a position setpoint
+	 * @brief Get the next position-bearing mission items.
 	 *
-	 * @param[in] start_index is the index from where to start searching (first possible return index)
-	 * @param[out] items_index is an array of indexes indicating the next mission position items found
-	 * @param[out] num_found_items are the amount of next position items found
-	 * @param[in] max_num_items are the maximum amount of next position items to be searched
+	 * @param[in] start_index Index from which to start searching forward
+	 * @param[out] items_index Array receiving the next position item indices
+	 * @param[out] num_found_items Number of position items found
+	 * @param[in] max_num_items Maximum number of position items to collect
+	 * @param[in] traversal_type Whether to follow DO_JUMP mission control flow or treat jumps as geometry only
 	 */
 	void getNextPositionItems(int32_t start_index, int32_t items_index[], size_t &num_found_items,
-				  uint8_t max_num_items);
+				  uint8_t max_num_items,
+				  PositionTraversalType traversal_type = PositionTraversalType::FollowMissionControlFlow);
 	/**
 	 * @brief Mission has a land start, a land, and is valid
 	 *
@@ -162,17 +171,17 @@ protected:
 	/**
 	 * @brief Go To Previous Mission Position Item
 	 *
-	 * @param[in] execute_jump Flag indicating if a jump should be executed or ignored
+	 * @param[in] traversal_type Whether to follow DO_JUMP mission control flow or treat jumps as geometry only
 	 * @return PX4_OK if previous mission item exists, PX4_ERR otherwise
 	 */
-	int goToPreviousPositionItem(bool execute_jump);
+	int goToPreviousPositionItem(PositionTraversalType traversal_type = PositionTraversalType::FollowMissionControlFlow);
 	/**
 	 * @brief Go To Next Mission Position Item
 	 *
-	 * @param[in] execute_jump Flag indicating if a jump should be executed or ignored
+	 * @param[in] traversal_type Whether to follow DO_JUMP mission control flow or treat jumps as geometry only
 	 * @return PX4_OK if next mission item exists, PX4_ERR otherwise
 	 */
-	int goToNextPositionItem(bool execute_jump);
+	int goToNextPositionItem(PositionTraversalType traversal_type = PositionTraversalType::FollowMissionControlFlow);
 	/**
 	 * @brief Go to Mission Land Start Item
 	 *
@@ -384,28 +393,30 @@ protected:
 	void syncMissionRouteCacheItem(int32_t index, const mission_item_s &mission_item);
 
 	/**
-	 * @brief Find the next position mission item, skipping DO_JUMP items.
+	 * @brief Find the next position mission item.
 	 *
 	 * Walks forward through the mission starting at @p start_index.
-	 * DO_JUMP items are skipped (not followed as control flow).
 	 *
 	 * @param[in] start_index First index to check
 	 * @param[out] next_index Index of the found position item
+	 * @param[in] traversal_type Whether to follow DO_JUMP mission control flow or treat jumps as geometry only
 	 * @return true if a position item was found
 	 */
-	bool findNextPositionIndexNoJump(int32_t start_index, int32_t &next_index);
+	bool findNextPositionIndex(int32_t start_index, int32_t &next_index,
+				   PositionTraversalType traversal_type = PositionTraversalType::FollowMissionControlFlow);
 
 	/**
-	 * @brief Find the previous position mission item, skipping DO_JUMP items.
+	 * @brief Find the previous position mission item.
 	 *
 	 * Walks backward through the mission starting at @p start_index - 1.
-	 * DO_JUMP items are skipped (not followed as control flow).
 	 *
 	 * @param[in] start_index Search starts one before this index
 	 * @param[out] previous_index Index of the found position item
+	 * @param[in] traversal_type Whether to follow DO_JUMP mission control flow or treat jumps as geometry only
 	 * @return true if a position item was found
 	 */
-	bool findPreviousPositionIndexNoJump(int32_t start_index, int32_t &previous_index);
+	bool findPreviousPositionIndex(int32_t start_index, int32_t &previous_index,
+				       PositionTraversalType traversal_type = PositionTraversalType::FollowMissionControlFlow);
 
 	/**
 	 * @brief Find the nearest position item at or before the given index.
@@ -526,6 +537,10 @@ private:
 
 	/** @brief Publish the post-join VTOL transition command when it is still required. */
 	bool handleTransitionAfterJoin(position_setpoint_triplet_s *pos_sp_triplet);
+
+	/** @brief Load the next traversed mission item according to the selected position-traversal semantics. */
+	bool loadTraversalItem(int32_t &mission_index, mission_item_s &mission_item,
+			       PositionTraversalType traversal_type, bool direction_backward);
 
 	/** @brief Return whether the post-join VTOL transition still needs to be flown. */
 	bool joinRouteTransitionStillRequired() const;

@@ -95,7 +95,7 @@ private:
 	 * NAV_CMD_LOITER_TO_ALT are converted to plain waypoints with autocontinue enabled and zero
 	 * hold time so the vehicle keeps moving. Commands with distinct execution semantics, such as
 	 * takeoff or landing, are left untouched.
-	 * NAV_CMD_DELAY items are non-position and are skipped by findNextPositionIndexNoJump(),
+	 * NAV_CMD_DELAY items are non-position and are skipped by geometry-only position traversal,
 	 * but if one were encountered it would also be clamped here.
 	 *
 	*/

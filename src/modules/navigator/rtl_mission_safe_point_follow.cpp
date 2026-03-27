@@ -168,7 +168,7 @@ bool RtlMissionSafePointFollow::advanceRouteTarget()
 	if (_plan.selection.path.direction_reversed) {
 		int32_t previous_index = _mission.current_seq;
 
-		if (findPreviousPositionIndexNoJump(previous_index, previous_index)) {
+		if (findPreviousPositionIndex(previous_index, previous_index, PositionTraversalType::IgnoreDoJump)) {
 			setMissionIndex(previous_index);
 			advanced = true;
 
@@ -184,7 +184,7 @@ bool RtlMissionSafePointFollow::advanceRouteTarget()
 		// Walk forward through the mission items and skip any DO_JUMP entries.
 		int32_t next_index = _mission.current_seq + 1;
 
-		if (findNextPositionIndexNoJump(next_index, next_index)) {
+		if (findNextPositionIndex(next_index, next_index, PositionTraversalType::IgnoreDoJump)) {
 			setMissionIndex(next_index);
 			advanced = true;
 
@@ -355,11 +355,12 @@ void RtlMissionSafePointFollow::updateLastFlownLoopSegmentForNominalAdvance()
 bool RtlMissionSafePointFollow::loadAdjacentRouteItem(mission_item_s &mission_item, int32_t &adjacent_index)
 {
 	if (_plan.selection.path.direction_reversed) {
-		// findPreviousPositionIndexNoJump() scans from start_index - 1, so reverse traversal
-		// passes current_seq to get the immediately preceding route target.
+		// findPreviousPositionIndex() scans from start_index - 1, so reverse traversal passes
+		// current_seq to get the immediately preceding route target.
 		int32_t adjacent_route_index = _mission.current_seq;
 
-		if (!findPreviousPositionIndexNoJump(adjacent_route_index, adjacent_route_index)) {
+		if (!findPreviousPositionIndex(adjacent_route_index, adjacent_route_index,
+					       PositionTraversalType::IgnoreDoJump)) {
 			return false;
 		}
 
@@ -368,13 +369,14 @@ bool RtlMissionSafePointFollow::loadAdjacentRouteItem(mission_item_s &mission_it
 		return loadMissionItemFromCache(adjacent_route_index, mission_item);
 
 	} else {
-		// findNextPositionIndexNoJump() includes start_index itself, so nominal traversal starts at
+		// findNextPositionIndex() includes start_index itself, so nominal traversal starts at
 		// current_seq + 1 to avoid returning the current route target again.
 		// Walk forward without following DO_JUMP control flow, matching the planner's
 		// geometry-only treatment of loop edges.
 		int32_t adjacent_route_index = _mission.current_seq + 1;
 
-		if (!findNextPositionIndexNoJump(adjacent_route_index, adjacent_route_index)) {
+		if (!findNextPositionIndex(adjacent_route_index, adjacent_route_index,
+					   PositionTraversalType::IgnoreDoJump)) {
 			return false;
 		}
 
@@ -756,7 +758,7 @@ rtl_time_estimate_s RtlMissionSafePointFollow::calc_rtl_time_estimate()
 				if (_plan.selection.path.direction_reversed) {
 					int32_t prev = walk_index;
 
-					if (!findPreviousPositionIndexNoJump(walk_index, prev)) {
+					if (!findPreviousPositionIndex(walk_index, prev, PositionTraversalType::IgnoreDoJump)) {
 						break;
 					}
 
@@ -765,7 +767,7 @@ rtl_time_estimate_s RtlMissionSafePointFollow::calc_rtl_time_estimate()
 				} else {
 					int32_t next = walk_index + 1;
 
-					if (!findNextPositionIndexNoJump(next, next)) {
+					if (!findNextPositionIndex(next, next, PositionTraversalType::IgnoreDoJump)) {
 						break;
 					}
 

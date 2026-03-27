@@ -1367,7 +1367,7 @@ MissionRoutePlanner::Selection MissionRoutePlanner::selectSafePoint(const Projec
 	const int safe_point_count = _provider.safePointCount();
 
 	if (safe_point_count <= 0) {
-		PX4_INFO("RTL search: no safe points available");
+		PX4_DEBUG("RTL search: no safe points available");
 		return selection;
 	}
 
@@ -1538,10 +1538,10 @@ MissionRoutePlanner::Selection MissionRoutePlanner::selectMissionEndpointFallbac
 		return {};
 	}
 
-	PX4_INFO("RTL fallback %s target=%d rev=%u",
-		 goalTypeString(selection.goal_type),
-		 static_cast<int>(selection.path.first_item_index),
-		 static_cast<unsigned>(selection.path.direction_reversed));
+	PX4_DEBUG("RTL fallback %s target=%d rev=%u",
+		  goalTypeString(selection.goal_type),
+		  static_cast<int>(selection.path.first_item_index),
+		  static_cast<unsigned>(selection.path.direction_reversed));
 
 	return selection;
 }
