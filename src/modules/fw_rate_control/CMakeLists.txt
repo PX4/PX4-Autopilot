@@ -31,16 +31,16 @@
 #
 ############################################################################
 
-px4_add_module(
-	MODULE modules__fw_rate_control
-	MAIN fw_rate_control
-	SRCS
-		FixedwingRateControl.cpp
-		FixedwingRateControl.hpp
-	MODULE_CONFIG
-		fw_rate_control_params.yaml
-	DEPENDS
-		px4_work_queue
-		RateControl
-		SlewRate
-	)
+# px4_add_module(
+# 	MODULE modules__fw_rate_control
+# 	MAIN fw_rate_control
+# 	SRCS
+# 		FixedwingRateControl.cpp
+# 		FixedwingRateControl.hpp
+# 	MODULE_CONFIG
+# 		fw_rate_control_params.yaml
+# 	DEPENDS
+# 		px4_work_queue
+# 		RateControl
+# 		SlewRate
+# 	)

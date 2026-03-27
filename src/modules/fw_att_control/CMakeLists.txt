@@ -31,18 +31,18 @@
 #
 ############################################################################
 
-px4_add_module(
-	MODULE modules__fw_att_control
-	MAIN fw_att_control
-	SRCS
-		FixedwingAttitudeControl.cpp
-		FixedwingAttitudeControl.hpp
+# px4_add_module(
+# 	MODULE modules__fw_att_control
+# 	MAIN fw_att_control
+# 	SRCS
+# 		FixedwingAttitudeControl.cpp
+# 		FixedwingAttitudeControl.hpp
 
-		fw_wheel_controller.cpp
-	MODULE_CONFIG
-		fw_att_control_params.yaml
-	DEPENDS
-		px4_work_queue
-	)
+# 		fw_wheel_controller.cpp
+# 	MODULE_CONFIG
+# 		fw_att_control_params.yaml
+# 	DEPENDS
+# 		px4_work_queue
+# 	)
 
-px4_add_unit_gtest(SRC FixedwingAttitudeControlTest.cpp LINKLIBS modules__fw_att_control)
+# px4_add_unit_gtest(SRC FixedwingAttitudeControlTest.cpp LINKLIBS modules__fw_att_control)

@@ -1,6 +1,5 @@
 #include "RSLQR.hpp"
 #include <px4_platform_common/defines.h>
-#include <iostream>
 
 RSLQR::RSLQR(float proportional_gain, float integral_gain, float saturation_positive, float saturation_negative, float integral_limit){
         _proportional_gain = proportional_gain;
@@ -22,7 +21,6 @@ float RSLQR::update(float state, float state_setpoint, const float dt, const boo
     if (!landed) {
         update_integral(rate_error, dt);
     }
-    std::cout << "using rslqr" << std::endl;
     return torque; // replace with actual torque calculation
 }
 

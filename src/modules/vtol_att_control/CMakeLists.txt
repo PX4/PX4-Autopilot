@@ -30,17 +30,17 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE modules__vtol_att_control
-	MAIN vtol_att_control
-	SRCS
-		vtol_att_control_main.cpp
-		tiltrotor.cpp
-		vtol_type.cpp
-		tailsitter.cpp
-		standard.cpp
-	MODULE_CONFIG
-		standard_params.yaml
-		tiltrotor_params.yaml
-		vtol_att_control_params.yaml
-	)
+# px4_add_module(
+# 	MODULE modules__vtol_att_control
+# 	MAIN vtol_att_control
+# 	SRCS
+# 		vtol_att_control_main.cpp
+# 		tiltrotor.cpp
+# 		vtol_type.cpp
+# 		tailsitter.cpp
+# 		standard.cpp
+# 	MODULE_CONFIG
+# 		standard_params.yaml
+# 		tiltrotor_params.yaml
+# 		vtol_att_control_params.yaml
+# 	)

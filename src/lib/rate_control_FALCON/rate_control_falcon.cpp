@@ -37,8 +37,6 @@
 
 #include "rate_control_falcon.hpp"
 #include <px4_platform_common/defines.h>
-#include <string>
-#include <iostream>
 
 using namespace matrix;
 
@@ -63,7 +61,6 @@ void RateControlFalcon::setPidGains(const Vector3f &P, const Vector3f &I, const 
 	//_pitch_controller = new RSLQR("pitch");
 	//_yaw_controller = new RSLQR("yaw");
 
-	std::cout << "TEST TEST TEST" << std::endl;
 	_roll_controller = RSLQR(0.15500f, 0.75f, 1.0f, -1.0f, _lim_int(0));
 	_pitch_controller = RSLQR(0.15500f, 0.75f, 1.0f, -1.0f, _lim_int(1));
 	_yaw_controller = RSLQR(0.10f, 0.75f, 1.0f, -1.0f, _lim_int(2));
@@ -110,9 +107,6 @@ Vector3f RateControlFalcon::update(const Vector3f &rate, const Vector3f &rate_sp
 	float pitch_torque 	= _pitch_controller.update(q, q_sp, dt, landed);
 	float yaw_torque 	= _yaw_controller.update(r, r_sp, dt, landed);
 
-	std::cout << "p: " << p << ", p_sp: " << p_sp << ", roll_torque: " << roll_torque << "\n" << std::endl;
-	std::cout << "q: " << q << ", q_sp: " << q_sp << ", pitch_torque: " << pitch_torque << "\n" << std::endl;
-	std::cout << "r: " << r << ", r_sp: " << r_sp << ", yaw_torque: " << yaw_torque << "\n" << std::endl;
 	Vector3f torque = {roll_torque, pitch_torque, yaw_torque};
 
 	/* // angular rates error
