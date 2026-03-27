@@ -55,13 +55,11 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
-#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/rtl_status.h>
 #include <uORB/topics/rtl_time_estimate.h>
-#include <uORB/topics/telemetry_status.h>
 
 class Navigator;
 
@@ -96,8 +94,7 @@ private:
 	enum class DestinationType {
 		DESTINATION_TYPE_HOME,
 		DESTINATION_TYPE_MISSION_LAND,
-		DESTINATION_TYPE_SAFE_POINT,
-		DESTINATION_TYPE_LAST_LINK_POSITION
+		DESTINATION_TYPE_SAFE_POINT
 	};
 
 private:
@@ -229,7 +226,6 @@ private:
 	mutable DatamanCache _dataman_cache_landItem{"rtl_dm_cache_miss_land", 2};
 	uint32_t _mission_id = 0u;
 	uint32_t _safe_points_id = 0u;
-	PositionYawSetpoint _last_position_before_link_loss{(double)NAN, (double)NAN, NAN, NAN};
 
 	mission_stats_entry_s _stats;
 
@@ -253,7 +249,6 @@ private:
 	uORB::SubscriptionData<mission_s> _mission_sub{ORB_ID(mission)};
 	uORB::SubscriptionData<home_position_s> _home_pos_sub{ORB_ID(home_position)};
 	uORB::SubscriptionData<wind_s>		_wind_sub{ORB_ID(wind)};
-	uORB::SubscriptionMultiArray<telemetry_status_s> _telemetry_status_subs{ORB_ID::telemetry_status};
 
 	uORB::Publication<rtl_time_estimate_s> _rtl_time_estimate_pub{ORB_ID(rtl_time_estimate)};
 	uORB::Publication<rtl_status_s> _rtl_status_pub{ORB_ID(rtl_status)};

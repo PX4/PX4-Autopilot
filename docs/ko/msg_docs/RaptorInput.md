@@ -23,10 +23,10 @@ Raptor Input.
 
 ## Constants
 
-| 명칭                                                                   | 형식       | Value | 설명                                                               |
-| -------------------------------------------------------------------- | -------- | ----- | ---------------------------------------------------------------- |
-| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 0     |                                                                  |
-| <a href="#ACTION_DIM"></a> ACTION_DIM           | `uint8`  | 4     | Policy output dimensionality (for quadrotors) |
+| 명칭                                                                 | 형식       | Value | 설명                                                               |
+| ------------------------------------------------------------------ | -------- | ----- | ---------------------------------------------------------------- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 0     |                                                                  |
+| <a id="#ACTION_DIM"></a> ACTION_DIM           | `uint8`  | 4     | Policy output dimensionality (for quadrotors) |
 
 ## Source Message
 

@@ -1,0 +1,45 @@
+module_name: land_detector
+parameters:
+- group: Land Detector
+  definitions:
+    LNDMC_Z_VEL_MAX:
+      description:
+        short: Multicopter vertical velocity threshold
+        long: |-
+          Vertical velocity threshold to detect landing.
+          Has to be set lower than the expected minimal speed for landing,
+          which is either MPC_LAND_SPEED or MPC_LAND_CRWL.
+          This is enforced by an automatic check.
+      type: float
+      default: 0.25
+      unit: m/s
+      min: 0
+      decimal: 2
+    LNDMC_XY_VEL_MAX:
+      description:
+        short: Multicopter max horizontal velocity
+        long: Maximum horizontal velocity allowed in the landed state
+      type: float
+      default: 1.5
+      unit: m/s
+      decimal: 1
+    LNDMC_ROT_MAX:
+      description:
+        short: Multicopter max rotational speed
+        long: Maximum allowed norm of the angular velocity (roll, pitch) in the landed
+          state.
+      type: float
+      default: 20.0
+      unit: deg/s
+      decimal: 1
+    LNDMC_ALT_GND:
+      description:
+        short: Ground effect altitude for multicopters
+        long: |-
+          The height above ground below which ground effect creates barometric altitude errors.
+          A negative value indicates no ground effect.
+      type: float
+      default: 2.0
+      unit: m
+      min: -1
+      decimal: 2

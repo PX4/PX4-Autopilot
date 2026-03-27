@@ -165,6 +165,7 @@ protected:
 
 	void setLoiterItemFromCurrentPosition(struct mission_item_s *item);
 	void setLoiterItemFromCurrentPositionWithBraking(struct mission_item_s *item);
+	void setLoiterFromLastLink(struct mission_item_s *item);
 
 	void setLoiterItemCommonFields(struct mission_item_s *item);
 
@@ -198,7 +199,7 @@ protected:
 	void setLandMissionItem(mission_item_s &item, const PositionYawSetpoint &pos_yaw_sp) const;
 
 	void startPrecLand(uint16_t land_precision);
-	void updateAltToAvoidTerrainCollisionAndRepublishTriplet(mission_item_s mission_item);
+	void updateAltToAvoidTerrainCollisionAndRepublishTriplet(const mission_item_s &mission_item);
 
 	/**
 	 * @brief Issue a command for mission items with a nav_cmd that specifies an action

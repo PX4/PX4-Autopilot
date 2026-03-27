@@ -1,0 +1,80 @@
+module_name: mc_pos_control
+parameters:
+- group: Multicopter Position Control
+  definitions:
+    MPC_TKO_RAMP_T:
+      description:
+        short: Smooth takeoff ramp time constant
+        long: |-
+          Increasing this value will make climb rate controlled takeoff slower.
+          If it's too slow the drone might scratch the ground and tip over.
+          A time constant of 0 disables the ramp
+      type: float
+      default: 3.0
+      unit: s
+      min: 0
+      max: 5
+    MPC_TKO_SPEED:
+      description:
+        short: Takeoff climb rate
+      type: float
+      default: 1.5
+      unit: m/s
+      min: 1
+      max: 5
+      decimal: 2
+    MPC_LAND_ALT1:
+      description:
+        short: Altitude for 1. step of slow landing (descend)
+        long: |-
+          Below this altitude descending velocity gets limited to a value
+          between "MPC_Z_VEL_MAX_DN" (or "MPC_Z_V_AUTO_DN") and "MPC_LAND_SPEED"
+          Value needs to be higher than "MPC_LAND_ALT2"
+      type: float
+      default: 10.0
+      unit: m
+      min: 0
+      max: 122
+      decimal: 1
+    MPC_LAND_ALT2:
+      description:
+        short: Altitude for 2. step of slow landing (landing)
+        long: |-
+          Below this altitude descending velocity gets
+          limited to "MPC_LAND_SPEED"
+          Value needs to be lower than "MPC_LAND_ALT1"
+      type: float
+      default: 5.0
+      unit: m
+      min: 0
+      max: 122
+      decimal: 1
+    MPC_LAND_ALT3:
+      description:
+        short: Altitude for 3. step of slow landing
+        long: |-
+          If a valid distance sensor measurement to the ground is available,
+          limit descending velocity to "MPC_LAND_CRWL" below this altitude.
+      type: float
+      default: 1.0
+      unit: m
+      min: 0
+      max: 122
+      decimal: 1
+    MPC_LAND_SPEED:
+      description:
+        short: Landing descend rate
+      type: float
+      default: 0.7
+      unit: m/s
+      min: 0.6
+      decimal: 1
+    MPC_LAND_CRWL:
+      description:
+        short: Land crawl descend rate
+        long: Used below MPC_LAND_ALT3 if distance sensor data is availabe.
+      type: float
+      default: 0.3
+      unit: m/s
+      min: 0.1
+      decimal: 1

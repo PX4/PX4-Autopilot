@@ -28,9 +28,9 @@ Published by the navigation filter (EKF2) for use by other flight modules and li
 
 ## Constants
 
-| Назва                                                                | Тип      | Значення | Опис |
-| -------------------------------------------------------------------- | -------- | -------- | ---- |
-| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 0        |      |
+| Назва                                                              | Тип      | Значення | Опис |
+| ------------------------------------------------------------------ | -------- | -------- | ---- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 0        |      |
 
 ## Source Message
 

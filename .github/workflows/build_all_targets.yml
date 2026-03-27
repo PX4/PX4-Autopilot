@@ -265,5 +265,7 @@ jobs:
         with:
           draft: true
           prerelease: ${{ steps.upload-location.outputs.is_prerelease == 'true' }}
-          files: artifacts/*.px4
+          files: |
+            artifacts/*.px4
+            artifacts/*.deb
           name: ${{ steps.upload-location.outputs.uploadlocation }}

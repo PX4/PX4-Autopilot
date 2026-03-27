@@ -1,0 +1,185 @@
+module_name: cyphal
+parameters:
+- group: Cyphal
+  definitions:
+    CYPHAL_ENABLE:
+      description:
+        short: Cyphal
+        long: |-
+          0 - Cyphal disabled.
+          1 - Enables Cyphal
+      type: boolean
+      default: 1
+      reboot_required: true
+    CYPHAL_ID:
+      description:
+        short: Cyphal Node ID
+        long: Read the specs at https://opencyphal.org/ to learn more about Node ID.
+      type: int32
+      default: 1
+      min: -1
+      max: 125
+      reboot_required: true
+    CYPHAL_BAUD:
+      description:
+        short: UAVCAN/CAN v1 bus bitrate
+      type: int32
+      default: 1000000
+      unit: bit/s
+      min: 20000
+      max: 1000000
+      reboot_required: true
+    UCAN1_ESC0_SUB:
+      description:
+        short: ESC 0 subscription port ID
+      type: int32
+      default: -1
+      min: -1
+      max: 6143
+    UCAN1_GPS0_SUB:
+      description:
+        short: GPS 0 subscription port ID
+      type: int32
+      default: -1
+      min: -1
+      max: 6143
+    UCAN1_GPS1_SUB:
+      description:
+        short: GPS 1 subscription port ID
+      type: int32
+      default: -1
+      min: -1
+      max: 6143
+    UCAN1_BMS_ES_SUB:
+      description:
+        short: UDRAL battery energy source subscription port ID
+      type: int32
+      default: -1
+      min: -1
+      max: 6143
+    UCAN1_BMS_BS_SUB:
+      description:
+        short: UDRAL battery status subscription port ID
+      type: int32
+      default: -1
+      min: -1
+      max: 6143
+    UCAN1_BMS_BP_SUB:
+      description:
+        short: UDRAL battery parameters subscription  port ID
+      type: int32
+      default: -1
+      min: -1
+      max: 6143
+    UCAN1_LG_BMS_SUB:
+      description:
+        short: Cyphal legacy battery port ID
+      type: int32
+      default: -1
+      min: -1
+      max: 6143
+    UCAN1_UORB_GPS:
+      description:
+        short: sensor_gps uORB over Cyphal subscription port ID
+      type: int32
+      default: -1
+      min: -1
+      max: 6143
+    UCAN1_UORB_GPS_P:
+      description:
+        short: sensor_gps uORB over Cyphal publication port ID
+      type: int32
+      default: -1
+      min: -1
+      max: 6143
+    UCAN1_ESC_PUB:
+      description:
+        short: Cyphal ESC publication port ID
+      type: int32
+      default: -1
+      min: -1
+      max: 6143
+    UCAN1_READ_PUB:
+      description:
+        short: Cyphal ESC readiness port ID
+      type: int32
+      default: -1
+      min: -1
+      max: 6143
+    UCAN1_FB0_SUB:
+      description:
+        short: Cyphal ESC 0 zubax feedback port ID
+      type: int32
+      default: -1
+      min: -1
+      max: 6143
+    UCAN1_FB1_SUB:
+      description:
+        short: Cyphal ESC 1 zubax feedback port ID
+      type: int32
+      default: -1
+      min: -1
+      max: 6143
+    UCAN1_FB2_SUB:
+      description:
+        short: Cyphal ESC 2 zubax feedback port ID
+      type: int32
+      default: -1
+      min: -1
+      max: 6143
+    UCAN1_FB3_SUB:
+      description:
+        short: Cyphal ESC 3 zubax feedback port ID
+      type: int32
+      default: -1
+      min: -1
+      max: 6143
+    UCAN1_FB4_SUB:
+      description:
+        short: Cyphal ESC 4 zubax feedback port ID
+      type: int32
+      default: -1
+      min: -1
+      max: 6143
+    UCAN1_FB5_SUB:
+      description:
+        short: Cyphal ESC 5 zubax feedback port ID
+      type: int32
+      default: -1
+      min: -1
+      max: 6143
+    UCAN1_FB6_SUB:
+      description:
+        short: Cyphal ESC 6 zubax feedback port ID
+      type: int32
+      default: -1
+      min: -1
+      max: 6143
+    UCAN1_FB7_SUB:
+      description:
+        short: Cyphal ESC 7 zubax feedback port ID
+      type: int32
+      default: -1
+      min: -1
+      max: 6143
+    UCAN1_GPS_PUB:
+      description:
+        short: Cyphal GPS publication port ID
+      type: int32
+      default: -1
+      min: -1
+      max: 6143
+    UCAN1_SERVO_PUB:
+      description:
+        short: Cyphal Servo publication port ID
+      type: int32
+      default: -1
+      min: -1
+      max: 6143
+    UCAN1_ACTR_PUB:
+      description:
+        short: actuator_outputs uORB over Cyphal publication port ID
+      type: int32
+      default: -1
+      min: -1
+      max: 6143

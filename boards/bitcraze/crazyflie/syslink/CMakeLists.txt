@@ -42,6 +42,8 @@ px4_add_module(
 		syslink_bridge.cpp
 		syslink_memory.cpp
 		syslink.c
+	MODULE_CONFIG
+		syslink_params.yaml
 	DEPENDS
 		battery
 	)

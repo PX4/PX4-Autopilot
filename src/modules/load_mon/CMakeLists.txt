@@ -37,6 +37,8 @@ px4_add_module(
 	SRCS
 		LoadMon.cpp
 		LoadMon.hpp
+	MODULE_CONFIG
+		params.yaml
 	DEPENDS
 		px4_work_queue
 )

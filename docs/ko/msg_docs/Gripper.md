@@ -17,10 +17,10 @@ pageClass: is-wide-page
 
 ## Constants
 
-| 명칭                                                                   | 형식     | Value | 설명 |
-| -------------------------------------------------------------------- | ------ | ----- | -- |
-| <a href="#COMMAND_GRAB"></a> COMMAND_GRAB       | `int8` | 0     |    |
-| <a href="#COMMAND_RELEASE"></a> COMMAND_RELEASE | `int8` | 1     |    |
+| 명칭                                                                 | 형식     | Value | 설명 |
+| ------------------------------------------------------------------ | ------ | ----- | -- |
+| <a id="#COMMAND_GRAB"></a> COMMAND_GRAB       | `int8` | 0     |    |
+| <a id="#COMMAND_RELEASE"></a> COMMAND_RELEASE | `int8` | 1     |    |
 
 ## Source Message
 

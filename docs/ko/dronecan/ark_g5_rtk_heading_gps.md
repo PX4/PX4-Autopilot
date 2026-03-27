@@ -103,7 +103,7 @@ You need to set necessary [DroneCAN](index.md) parameters and define offsets if 
 
 ### Parameter references
 
-This GPS is using ARK's private driver, the prameters below only exist on the firmware we ship the GPS with. You can set these params either in QGC or using the DroneCAN GUI Tool.
+This GPS is using ARK's private driver, the parameters below only exist on the firmware we ship the GPS with. You can set these params either in QGC or using the DroneCAN GUI Tool.
 
 #### SEP_OFFS_YAW (float)
 

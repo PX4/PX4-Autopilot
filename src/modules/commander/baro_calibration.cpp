@@ -81,7 +81,6 @@ int do_baro_calibration(orb_advert_t *mavlink_log_pub)
 
 	uint64_t timestamp_sample_sum[MAX_SENSOR_COUNT] {0};
 	float data_sum[MAX_SENSOR_COUNT] {};
-	float temperature_sum[MAX_SENSOR_COUNT] {};
 	int data_sum_count[MAX_SENSOR_COUNT] {};
 
 	const hrt_abstime time_start_us = hrt_absolute_time();
@@ -99,7 +98,6 @@ int do_baro_calibration(orb_advert_t *mavlink_log_pub)
 
 				timestamp_sample_sum[instance] += sensor_baro.timestamp_sample;
 				data_sum[instance] += pressure_corrected;
-				temperature_sum[instance] += sensor_baro.temperature;
 				data_sum_count[instance]++;
 			}
 		}
@@ -145,9 +143,8 @@ int do_baro_calibration(orb_advert_t *mavlink_log_pub)
 		if ((calibration[instance].device_id() != 0) && (data_sum_count[instance] > 0)) {
 
 			const float pressure_pa = data_sum[instance] / data_sum_count[instance];
-			const float temperature = temperature_sum[instance] / data_sum_count[instance];
 
-			float pressure_altitude = getAltitudeFromPressure(pressure_pa, temperature);
+			float pressure_altitude = getAltitudeFromPressure(pressure_pa, kPressRefSeaLevelPa);
 
 			// Use GPS altitude as a reference to compute the baro bias measurement
 			const float baro_bias = pressure_altitude - gps_altitude;
@@ -155,25 +152,25 @@ int do_baro_calibration(orb_advert_t *mavlink_log_pub)
 			float altitude = pressure_altitude - baro_bias;
 
 			// find pressure offset that aligns baro altitude with GPS via binary search
-			float front = -10000.f;
-			float middle = NAN;
-			float last = 10000.f;
+			float low = -10000.f;
+			float high = 10000.f;
+			static constexpr float kTolerance = 0.1f;
+			static constexpr int kMaxIterations = 100;
 
 			float bias = NAN;
 
-			// perform a binary search
-			while (front <= last) {
-				middle = front + (last - front) / 2;
-				float altitude_calibrated = getAltitudeFromPressure(pressure_pa - middle, temperature);
+			for (int i = 0; i < kMaxIterations; ++i) {
+				float mid = low + (high - low) / 2.f;
+				float altitude_calibrated = getAltitudeFromPressure(pressure_pa - mid, kPressRefSeaLevelPa);
 
-				if (altitude_calibrated > altitude + 0.1f) {
-					last = middle;
+				if (altitude_calibrated > altitude + kTolerance) {
+					high = mid;
 
-				} else if (altitude_calibrated < altitude - 0.1f) {
-					front = middle;
+				} else if (altitude_calibrated < altitude - kTolerance) {
+					low = mid;
 
 				} else {
-					bias = middle;
+					bias = mid;
 					break;
 				}
 			}

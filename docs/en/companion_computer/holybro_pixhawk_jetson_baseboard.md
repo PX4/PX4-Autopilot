@@ -783,7 +783,7 @@ sudo apt install build-essential cmake git genromfs kconfig-frontends libncurses
 ## Building/Flashing the Pixhawk
 
 The recommended way to update PX4 is on the Pixhawk part of the board is to use your development computer.
-You can either install install prebuilt binaries with QGroundControl, or first build and then upload custom firmware.
+You can either install prebuilt binaries with QGroundControl, or first build and then upload custom firmware.
 
 Alternatively, you can build and deploy PX4 firmware to the Pixhawk part from the Jetson.
 

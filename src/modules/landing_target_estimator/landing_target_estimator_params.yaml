@@ -1,0 +1,120 @@
+module_name: landing_target_estimator
+parameters:
+- group: Landing Target Estimator
+  definitions:
+    LTEST_MODE:
+      description:
+        short: Landing target mode
+        long: |-
+          Configure the mode of the landing target. Depending on the mode, the landing target observations are used differently to aid position estimation.
+
+          Mode Moving:     The landing target may be moving around while in the field of view of the vehicle. Landing target measurements are not used to aid positioning.
+          Mode Stationary: The landing target is stationary. Measured velocity w.r.t. the landing target is used to aid velocity estimation.
+      type: enum
+      values:
+        0: Moving
+        1: Stationary
+      default: 0
+      min: 0
+      max: 1
+    LTEST_ACC_UNC:
+      description:
+        short: Acceleration uncertainty
+        long: |-
+          Variance of acceleration measurement used for landing target position prediction.
+          Higher values results in tighter following of the measurements and more lenient outlier rejection
+      type: float
+      default: 10.0
+      unit: (m/s^2)^2
+      min: 0.01
+      decimal: 2
+    LTEST_MEAS_UNC:
+      description:
+        short: Landing target measurement uncertainty
+        long: |-
+          Variance of the landing target measurement from the driver.
+          Higher values result in less aggressive following of the measurement and a smoother output as well as fewer rejected measurements.
+      type: float
+      default: 0.005
+      unit: tan(rad)^2
+      decimal: 4
+    LTEST_POS_UNC_IN:
+      description:
+        short: Initial landing target position uncertainty
+        long: Initial variance of the relative landing target position in x and y
+          direction
+      type: float
+      default: 0.1
+      unit: m^2
+      min: 0.001
+      decimal: 3
+    LTEST_VEL_UNC_IN:
+      description:
+        short: Initial landing target velocity uncertainty
+        long: Initial variance of the relative landing target velocity in x and y
+          directions
+      type: float
+      default: 0.1
+      unit: (m/s)^2
+      min: 0.001
+      decimal: 3
+    LTEST_SCALE_X:
+      description:
+        short: Scale factor for sensor measurements in sensor x axis
+        long: Landing target x measurements are scaled by this factor before being
+          used
+      type: float
+      default: 1.0
+      min: 0.01
+      decimal: 3
+    LTEST_SCALE_Y:
+      description:
+        short: Scale factor for sensor measurements in sensor y axis
+        long: Landing target y measurements are scaled by this factor before being
+          used
+      type: float
+      default: 1.0
+      min: 0.01
+      decimal: 3
+    LTEST_SENS_ROT:
+      description:
+        short: Rotation of IRLOCK sensor relative to airframe
+        long: "Default orientation of Yaw 90\xB0"
+      type: enum
+      values:
+        0: No rotation
+        1: "Yaw 45\xB0"
+        2: "Yaw 90\xB0"
+        3: "Yaw 135\xB0"
+        4: "Yaw 180\xB0"
+        5: "Yaw 225\xB0"
+        6: "Yaw 270\xB0"
+        7: "Yaw 315\xB0"
+      default: 2
+      min: -1
+      max: 40
+      reboot_required: true
+    LTEST_SENS_POS_X:
+      description:
+        short: X Position of IRLOCK in body frame (forward)
+      type: float
+      default: 0.0
+      reboot_required: true
+      unit: m
+      decimal: 3
+    LTEST_SENS_POS_Y:
+      description:
+        short: Y Position of IRLOCK in body frame (right)
+      type: float
+      default: 0.0
+      reboot_required: true
+      unit: m
+      decimal: 3
+    LTEST_SENS_POS_Z:
+      description:
+        short: Z Position of IRLOCK in body frame (downward)
+      type: float
+      default: 0.0
+      reboot_required: true
+      unit: m
+      decimal: 3

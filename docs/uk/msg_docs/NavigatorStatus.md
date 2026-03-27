@@ -18,10 +18,10 @@ Current status of a Navigator mode. Можливі значення nav_state в
 
 ## Constants
 
-| Назва                                                          | Тип     | Значення | Опис                                                |
-| -------------------------------------------------------------- | ------- | -------- | --------------------------------------------------- |
-| <a href="#FAILURE_NONE"></a> FAILURE_NONE | `uint8` | 0        |                                                     |
-| <a href="#FAILURE_HAGL"></a> FAILURE_HAGL | `uint8` | 1        | Target altitude exceeds maximum height above ground |
+| Назва                                                        | Тип     | Значення | Опис                                                |
+| ------------------------------------------------------------ | ------- | -------- | --------------------------------------------------- |
+| <a id="#FAILURE_NONE"></a> FAILURE_NONE | `uint8` | 0        |                                                     |
+| <a id="#FAILURE_HAGL"></a> FAILURE_HAGL | `uint8` | 1        | Target altitude exceeds maximum height above ground |
 
 ## Source Message
 

@@ -10,45 +10,48 @@ GPS position in WGS84 coordinates. the field 'timestamp' is for the position & v
 
 ## Fields
 
-| Name                    | Type      | Unit [Frame] | Range/Enum | Description                                                                                                                                                     |
-| ----------------------- | --------- | ------------ | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| timestamp               | `uint64`  |              |            | time since system start (microseconds)                                                                                                                          |
-| timestamp_sample        | `uint64`  |              |            |
-| device_id               | `uint32`  |              |            | unique device ID for the sensor that does not change between power cycles                                                                                       |
-| latitude_deg            | `float64` |              |            | Latitude in degrees, allows centimeter level RTK precision                                                                                                      |
-| longitude_deg           | `float64` |              |            | Longitude in degrees, allows centimeter level RTK precision                                                                                                     |
-| altitude_msl_m          | `float64` |              |            | Altitude above MSL, meters                                                                                                                                      |
-| altitude_ellipsoid_m    | `float64` |              |            | Altitude above Ellipsoid, meters                                                                                                                                |
-| s_variance_m_s          | `float32` |              |            | GPS speed accuracy estimate, (metres/sec)                                                                                                                       |
-| c_variance_rad          | `float32` |              |            | GPS course accuracy estimate, (radians)                                                                                                                         |
-| fix_type                | `uint8`   |              |            | Some applications will not use the value of this field unless it is at least two, so always correctly fill in the fix.                                          |
-| eph                     | `float32` |              |            | GPS horizontal position accuracy (metres)                                                                                                                       |
-| epv                     | `float32` |              |            | GPS vertical position accuracy (metres)                                                                                                                         |
-| hdop                    | `float32` |              |            | Horizontal dilution of precision                                                                                                                                |
-| vdop                    | `float32` |              |            | Vertical dilution of precision                                                                                                                                  |
-| noise_per_ms            | `int32`   |              |            | GPS noise per millisecond                                                                                                                                       |
-| automatic_gain_control  | `uint16`  |              |            | Automatic gain control monitor                                                                                                                                  |
-| jamming_state           | `uint8`   |              |            | indicates whether jamming has been detected or suspected by the receivers. O: Unknown, 1: OK, 2: Mitigated, 3: Detected                                         |
-| jamming_indicator       | `int32`   |              |            | indicates jamming is occurring                                                                                                                                  |
-| spoofing_state          | `uint8`   |              |            | indicates whether spoofing has been detected or suspected by the receivers. O: Unknown, 1: OK, 2: Mitigated, 3: Detected                                        |
-| authentication_state    | `uint8`   |              |            | GPS signal authentication state                                                                                                                                 |
-| vel_m_s                 | `float32` |              |            | GPS ground speed, (metres/sec)                                                                                                                                  |
-| vel_n_m_s               | `float32` |              |            | GPS North velocity, (metres/sec)                                                                                                                                |
-| vel_e_m_s               | `float32` |              |            | GPS East velocity, (metres/sec)                                                                                                                                 |
-| vel_d_m_s               | `float32` |              |            | GPS Down velocity, (metres/sec)                                                                                                                                 |
-| cog_rad                 | `float32` |              |            | Course over ground (NOT heading, but direction of movement), -PI..PI, (radians)                                                                                 |
-| vel_ned_valid           | `bool`    |              |            | True if NED velocity is valid                                                                                                                                   |
-| timestamp_time_relative | `int32`   |              |            | timestamp + timestamp_time_relative = Time of the UTC timestamp since system start, (microseconds)                                                              |
-| time_utc_usec           | `uint64`  |              |            | Timestamp (microseconds, UTC), this is the timestamp which comes from the gps module. It might be unavailable right after cold start, indicated by a value of 0 |
-| satellites_used         | `uint8`   |              |            | Number of satellites used                                                                                                                                       |
-| system_error            | `uint32`  |              |            | General errors with the connected GPS receiver                                                                                                                  |
-| heading                 | `float32` |              |            | heading angle of XYZ body frame rel to NED. Set to NaN if not available and updated (used for dual antenna GPS), (rad, [-PI, PI])                               |
-| heading_offset          | `float32` |              |            | heading offset of dual antenna array in body frame. Set to NaN if not applicable. (rad, [-PI, PI])                                                              |
-| heading_accuracy        | `float32` |              |            | heading accuracy (rad, [0, 2PI])                                                                                                                                |
-| rtcm_injection_rate     | `float32` |              |            | RTCM message injection rate Hz                                                                                                                                  |
-| selected_rtcm_instance  | `uint8`   |              |            | uorb instance that is being used for RTCM corrections                                                                                                           |
-| rtcm_crc_failed         | `bool`    |              |            | RTCM message CRC failure detected                                                                                                                               |
-| rtcm_msg_used           | `uint8`   |              |            | Indicates if the RTCM message was used successfully by the receiver                                                                                             |
+| Name                    | Type      | Unit [Frame]       | Range/Enum | Description                                                                                                                                                     |
+| ----------------------- | --------- | ------------------ | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| timestamp               | `uint64`  |                    |            | time since system start (microseconds)                                                                                                                          |
+| timestamp_sample        | `uint64`  |                    |            |
+| device_id               | `uint32`  |                    |            | unique device ID for the sensor that does not change between power cycles                                                                                       |
+| latitude_deg            | `float64` |                    |            | Latitude in degrees, allows centimeter level RTK precision                                                                                                      |
+| longitude_deg           | `float64` |                    |            | Longitude in degrees, allows centimeter level RTK precision                                                                                                     |
+| altitude_msl_m          | `float64` |                    |            | Altitude above MSL, meters                                                                                                                                      |
+| altitude_ellipsoid_m    | `float64` |                    |            | Altitude above Ellipsoid, meters                                                                                                                                |
+| s_variance_m_s          | `float32` |                    |            | GPS speed accuracy estimate, (metres/sec)                                                                                                                       |
+| c_variance_rad          | `float32` |                    |            | GPS course accuracy estimate, (radians)                                                                                                                         |
+| fix_type                | `uint8`   |                    |            | Some applications will not use the value of this field unless it is at least two, so always correctly fill in the fix.                                          |
+| eph                     | `float32` |                    |            | GPS horizontal position accuracy (metres)                                                                                                                       |
+| epv                     | `float32` |                    |            | GPS vertical position accuracy (metres)                                                                                                                         |
+| hdop                    | `float32` |                    |            | Horizontal dilution of precision                                                                                                                                |
+| vdop                    | `float32` |                    |            | Vertical dilution of precision                                                                                                                                  |
+| noise_per_ms            | `int32`   |                    |            | GPS noise per millisecond                                                                                                                                       |
+| automatic_gain_control  | `uint16`  |                    |            | Automatic gain control monitor                                                                                                                                  |
+| jamming_state           | `uint8`   |                    |            | indicates whether jamming has been detected or suspected by the receivers. O: Unknown, 1: OK, 2: Mitigated, 3: Detected                                         |
+| jamming_indicator       | `int32`   |                    |            | indicates jamming is occurring                                                                                                                                  |
+| spoofing_state          | `uint8`   |                    |            | indicates whether spoofing has been detected or suspected by the receivers. O: Unknown, 1: OK, 2: Mitigated, 3: Detected                                        |
+| authentication_state    | `uint8`   |                    |            | GPS signal authentication state                                                                                                                                 |
+| vel_m_s                 | `float32` |                    |            | GPS ground speed, (metres/sec)                                                                                                                                  |
+| vel_n_m_s               | `float32` |                    |            | GPS North velocity, (metres/sec)                                                                                                                                |
+| vel_e_m_s               | `float32` |                    |            | GPS East velocity, (metres/sec)                                                                                                                                 |
+| vel_d_m_s               | `float32` |                    |            | GPS Down velocity, (metres/sec)                                                                                                                                 |
+| cog_rad                 | `float32` |                    |            | Course over ground (NOT heading, but direction of movement), -PI..PI, (radians)                                                                                 |
+| vel_ned_valid           | `bool`    |                    |            | True if NED velocity is valid                                                                                                                                   |
+| timestamp_time_relative | `int32`   |                    |            | timestamp + timestamp_time_relative = Time of the UTC timestamp since system start, (microseconds)                                                              |
+| time_utc_usec           | `uint64`  |                    |            | Timestamp (microseconds, UTC), this is the timestamp which comes from the gps module. It might be unavailable right after cold start, indicated by a value of 0 |
+| satellites_used         | `uint8`   |                    |            | Number of satellites used                                                                                                                                       |
+| system_error            | `uint32`  |                    |            | General errors with the connected GPS receiver                                                                                                                  |
+| heading                 | `float32` |                    |            | heading angle of XYZ body frame rel to NED. Set to NaN if not available and updated (used for dual antenna GPS), (rad, [-PI, PI])                               |
+| heading_offset          | `float32` |                    |            | heading offset of dual antenna array in body frame. Set to NaN if not applicable. (rad, [-PI, PI])                                                              |
+| heading_accuracy        | `float32` |                    |            | heading accuracy (rad, [0, 2PI])                                                                                                                                |
+| rtcm_injection_rate     | `float32` |                    |            | RTCM message injection rate Hz                                                                                                                                  |
+| selected_rtcm_instance  | `uint8`   |                    |            | uorb instance that is being used for RTCM corrections                                                                                                           |
+| rtcm_crc_failed         | `bool`    |                    |            | RTCM message CRC failure detected                                                                                                                               |
+| rtcm_msg_used           | `uint8`   |                    |            | Indicates if the RTCM message was used successfully by the receiver                                                                                             |
+| antenna_offset_x        | `float32` | m [body frame FRD] |            | X Position of GNSS antenna                                                                                                                                      |
+| antenna_offset_y        | `float32` | m [body frame FRD] |            | Y Position of GNSS antenna                                                                                                                                      |
+| antenna_offset_z        | `float32` | m [body frame FRD] |            | Z Position of GNSS antenna                                                                                                                                      |
 
 ## Constants
 
@@ -181,6 +184,10 @@ uint8 RTCM_MSG_USED_UNKNOWN = 0
 uint8 RTCM_MSG_USED_NOT_USED = 1
 uint8 RTCM_MSG_USED_USED = 2
 uint8 rtcm_msg_used		# Indicates if the RTCM message was used successfully by the receiver
+
+float32 antenna_offset_x	# [m] [@frame body frame FRD] X Position of GNSS antenna
+float32 antenna_offset_y	# [m] [@frame body frame FRD] Y Position of GNSS antenna
+float32 antenna_offset_z	# [m] [@frame body frame FRD] Z Position of GNSS antenna
 
 # TOPICS sensor_gps vehicle_gps_position
 ```

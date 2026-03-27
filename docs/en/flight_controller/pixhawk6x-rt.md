@@ -122,7 +122,7 @@ The Pixhawk®​ 6X-RT is perfect for developers at corporate research labs, sta
 
 ## Where to Buy {#store}
 
-Order from [Holybro](https://holybro.com/products/fmuv6x-rt-developer-edition).
+Order from [Holybro](https://holybro.com/products/pixhawk-6x-rt).
 
 ## Assembly/Setup
 

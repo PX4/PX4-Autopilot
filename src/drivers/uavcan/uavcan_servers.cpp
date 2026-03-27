@@ -157,14 +157,8 @@ void UavcanServers::migrateFWFromRoot(const char *sd_path, const char *sd_root_p
 	const size_t sd_root_path_len = strlen(sd_root_path);
 	struct stat sb;
 	int rv;
-	char dstpath[maxlen + 1];
 	char srcpath[maxlen + 1];
-
-	DIR *const sd_root_dir = opendir(sd_root_path);
-
-	if (!sd_root_dir) {
-		return;
-	}
+	char dstpath[maxlen + 1];
 
 	if (stat(sd_path, &sb) != 0 || !S_ISDIR(sb.st_mode)) {
 		rv = mkdir(sd_path, S_IRWXU | S_IRWXG | S_IRWXO);
@@ -175,19 +169,21 @@ void UavcanServers::migrateFWFromRoot(const char *sd_path, const char *sd_root_p
 		}
 	}
 
-	// Iterate over all bin files in root directory
+	// Phase 1: collect .bin filenames with directory open, then close
+	static constexpr int MaxBinFiles = 10;
+	char bin_names[MaxBinFiles][NAME_MAX + 1];
+	int bin_count = 0;
+
+	DIR *const sd_root_dir = opendir(sd_root_path);
+
+	if (!sd_root_dir) {
+		return;
+	}
+
 	struct dirent *dev_dirent = NULL;
 
-	while ((dev_dirent = readdir(sd_root_dir)) != nullptr) {
-
-		uavcan_posix::FirmwareVersionChecker::AppDescriptor descriptor{0};
-
-		// Looking for all uavcan.bin files.
-
+	while ((dev_dirent = readdir(sd_root_dir)) != nullptr && bin_count < MaxBinFiles) {
 		if (DIRENT_ISFILE(dev_dirent->d_type) && strstr(dev_dirent->d_name, ".bin") != nullptr) {
-
-			// Make sure the path fits
-
 			size_t filename_len = strlen(dev_dirent->d_name);
 			size_t srcpath_len = sd_root_path_len + 1 + filename_len;
 
@@ -196,26 +192,33 @@ void UavcanServers::migrateFWFromRoot(const char *sd_path, const char *sd_root_p
 				continue;
 			}
 
-			snprintf(srcpath, sizeof(srcpath), "%s%s", sd_root_path, dev_dirent->d_name);
-
-			if (uavcan_posix::FirmwareVersionChecker::getFileInfo(srcpath, descriptor, 1024) != 0) {
-				continue;
-			}
-
-			if (descriptor.image_crc == 0) {
-				continue;
-			}
-
-			snprintf(dstpath, sizeof(dstpath), "%s/%d.bin", sd_path, descriptor.board_id);
-
-			if (copyFw(dstpath, srcpath) >= 0) {
-				unlink(srcpath);
-			}
+			strncpy(bin_names[bin_count], dev_dirent->d_name, NAME_MAX);
+			bin_names[bin_count][NAME_MAX] = '\0';
+			bin_count++;
 		}
 	}
 
-	if (sd_root_dir != nullptr) {
-		(void)closedir(sd_root_dir);
+	(void)closedir(sd_root_dir);
+
+	// Phase 2: process collected files with directory closed
+	for (int i = 0; i < bin_count; i++) {
+		uavcan_posix::FirmwareVersionChecker::AppDescriptor descriptor{0};
+
+		snprintf(srcpath, sizeof(srcpath), "%s%s", sd_root_path, bin_names[i]);
+
+		if (uavcan_posix::FirmwareVersionChecker::getFileInfo(srcpath, descriptor, 1024) != 0) {
+			continue;
+		}
+
+		if (descriptor.image_crc == 0) {
+			continue;
+		}
+
+		snprintf(dstpath, sizeof(dstpath), "%s/%d.bin", sd_path, descriptor.board_id);
+
+		if (copyFw(dstpath, srcpath) >= 0) {
+			unlink(srcpath);
+		}
 	}
 }
 

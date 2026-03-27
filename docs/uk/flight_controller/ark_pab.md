@@ -11,7 +11,7 @@ The PAB form factor enables the ARK PAB Carrier to be used with any [PAB-compati
 
 ![ARKPAB Main Photo](../../assets/flight_controller/arkpab/ark_pab_main.jpg)
 
-### Де купити
+### Where To Buy {#store}
 
 Order From [Ark Electronics](https://arkelectron.com/product/ark-pixhawk-autopilot-bus-carrier/) (US)
 
@@ -39,7 +39,7 @@ Order From [Ark Electronics](https://arkelectron.com/product/ark-pixhawk-autopil
   - 6-контактний JST-GH
 - Подвійні CAN порти
   - 4-контактний JST-GH
-- Потрійні телеметричні порти з контролем потоку
+- Triple Telemetry Ports with Flow Control
   - 6-контактний JST-GH
 - Вісім ШІМ-виходів
   - 10-контактний JST-GH

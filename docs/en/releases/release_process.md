@@ -45,7 +45,12 @@ Release notes are built incrementally in [`main.md`](../releases/main.md), which
 3. Reset `main.md` to a clean template for the next release cycle
 4. Verify that documentation for all included contributions is complete
 5. Search for instances of `main (planned for:` and replace with the release version now that it is known.
-   So, for example `<Badge type="tip" text="main (planned for: PX4 v1.18)" />` is replaced with `<Badge type="tip" text="PX4 v1.18" />`
+   So, for example `<Badge type="tip" text="main (planned for PX4 v1.xx" />` is replaced with `<Badge type="tip" text="PX4 v1.xx" />`.
+
+   Note that once the name of the next version is confirmed, badges may use the second form (e.g. `<Badge type="tip" text="PX4 v1.18" />`.
+
+6. Search for instances of `<Badge type="warning" text="Experimental" />`.
+   Remove this for features that are considered core and/or stable.
 
 ::: tip
 Community members are encouraged to document changes as they are merged into `main`. This distributes the documentation workload and ensures changes are captured while they're fresh.
@@ -195,7 +200,7 @@ The release vote takes place during the [Weekly Community Q&A Call](../contribut
 - Present the release status and test results
 - **Vote 1:** Core maintainers vote on whether to publish the release
 - **Vote 2:** Decide the name/number of the next release version
-- The call happens Wednesdays at 17:00 CET on [Discord](https://discord.gg/BDYmr6FA6Q)
+- The call happens Wednesdays at 17:00 CET on [Discord](https://discord.com/invite/BDYmr6FA6Q)
 
 ### 8. Create and Push Release Tag
 
@@ -254,7 +259,7 @@ Review and finalize the release notes that have been developed throughout the re
 Announce the release through official channels:
 
 - [PX4 Discuss Forum](https://discuss.px4.io/)
-- [PX4 Discord](https://discord.gg/dronecode)
+- [PX4 Discord](https://discord.com/invite/dronecode)
 - Social media (Twitter/X, LinkedIn)
 - Dronecode newsletter
 

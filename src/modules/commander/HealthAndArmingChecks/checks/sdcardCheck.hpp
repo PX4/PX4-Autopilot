@@ -50,6 +50,8 @@ private:
 #ifdef __PX4_NUTTX
 	bool _hardfault_checked_once {false};
 	bool _hardfault_file_present {false};
+	bool _watchdog_checked_once {false};
+	bool _watchdog_file_present {false};
 #endif
 #endif
 

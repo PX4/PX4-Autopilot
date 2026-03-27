@@ -274,7 +274,7 @@ The parameters that control when the quad-chute will trigger are listed in the t
 
 ## High Wind Failsafe
 
-The high wind failsafe can trigger a warning and/or other mode change when the wind speed exceeds the warning and maximum wind-speed threshhold values.
+The high wind failsafe can trigger a warning and/or other mode change when the wind speed exceeds the warning and maximum wind-speed threshold values.
 The relevant parameters are listed in the table below.
 
 | Parameter                                                                                                   | Description                                                                                                                                                                                                                                          |
@@ -328,8 +328,8 @@ The failure detector can be configured to detect a motor failure while armed (an
 | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="FD_ACT_EN"></a>[FD_ACT_EN](../advanced_config/parameter_reference.md#FD_ACT_EN)                   | Enable/disable the motor failure trigger completely.                                                                                                                                                                                      |
 | <a id="FD_ACT_MOT_THR"></a>[FD_ACT_MOT_THR](../advanced_config/parameter_reference.md#FD_ACT_MOT_THR)    | Minimum normalized [0,1] motor command below which motor under current is ignored.                                                                                                                                                        |
-| <a id="FD_ACT_MOT_C2T"></a>[FD_ACT_MOT_C2T](../advanced_config/parameter_reference.md#FD_ACT_MOT_C2T)    | Scale between normalized [0,1] motor command and expected minimally reported currrent when the rotor is healthy.                                                                                                                          |
-| <a id="FD_ACT_MOT_TOUT"></a>[FD_ACT_MOT_TOUT](../advanced_config/parameter_reference.md#FD_ACT_MOT_TOUT) | Time in miliseconds for which the under current detection condition needs to stay true.                                                                                                                                                   |
+| <a id="FD_ACT_MOT_C2T"></a>[FD_ACT_MOT_C2T](../advanced_config/parameter_reference.md#FD_ACT_MOT_C2T)    | Scale between normalized [0,1] motor command and expected minimally reported current when the rotor is healthy.                                                                                                                           |
+| <a id="FD_ACT_MOT_TOUT"></a>[FD_ACT_MOT_TOUT](../advanced_config/parameter_reference.md#FD_ACT_MOT_TOUT) | Time in milliseconds for which the under current detection condition needs to stay true.                                                                                                                                                  |
 | <a id="CA_FAILURE_MODE"></a>[CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) | Configure to not only warn about a motor failure but remove the first motor that detects a failure from the allocation effectiveness which turns off the motor and tries to operate the vehicle without it until disarming the next time. |
 
 ### External Automatic Trigger System (ATS)
@@ -364,11 +364,7 @@ This section lists the available emergency switches.
 
 A kill switch immediately stops all motor outputs — if flying, the vehicle will start to fall!
 
-[By default](#COM_KILL_DISARM) the motors will restart if the switch is reverted within 5 seconds, after which the vehicle will automatically disarm, and you will need to arm it again in order to start the motors.
-
-| Parameter                                                                                                | Description                                                                     |
-| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| <a id="COM_KILL_DISARM"></a>[COM_KILL_DISARM](../advanced_config/parameter_reference.md#COM_KILL_DISARM) | Timeout value for disarming after kill switch is engaged. Default: `5` seconds. |
+The motors will restart if the switch is reverted within 5 seconds, after which the vehicle will automatically disarm, and you will need to arm it again in order to start the motors.
 
 ::: info
 There is also a [Kill Gesture](#kill-gesture), which cannot be reverted.
@@ -410,7 +406,7 @@ A return switch can be used to immediately engage [Return mode](../flight_modes/
 
 A kill gesture immediately stops all motor outputs — if flying, the vehicle will start to fall!
 
-The action cannot be reverted without a reboot (this differs from a [Kill Switch](#kill-switch), where the operation can be reverted within the time period defined by [COM_KILL_DISARM](#COM_KILL_DISARM)).
+The action cannot be reverted without a reboot (this differs from a [Kill Switch](#kill-switch), where the operation can be reverted within 5 seconds).
 
 | Parameter                                                                                                | Description                                                                                          |
 | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |

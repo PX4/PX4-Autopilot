@@ -42,7 +42,7 @@ This can be changed to any rigid rotation using the VectorNav Reference Frame Ro
 
 If using a GNSS-enabled product, the GNSS antenna must be mounted rigidly with respect to the inertial sensor and with an unobstructed sky view. If using a dual-GNSS-enabled product (VN-3X0), the secondary antenna must be mounted rigidly with respect to the primary antenna and the inertial sensor with an unobstructed sky view.
 
-For more mounting requirements and recommendations, see the relevant [Quick Start Guide](https://www.vectornav.com/resources/quick-start-guides).
+For more mounting requirements and recommendations, see the relevant [Quick Start Guide](https://www.vectornav.com/resources/technical-documentation/quick-start-guides).
 
 ## Firmware Configuration
 
@@ -76,7 +76,7 @@ IMU data should be published at 800Hz (400Hz if using VN-300).
 
 ## VectorNav Configuration
 
-Definitions for all commands and registers referenced in this section can be found in the respective [VectorNav ICD](https://www.vectornav.com/resources/interface-control-documents).
+Definitions for all commands and registers referenced in this section can be found in the respective [VectorNav ICD](https://www.vectornav.com/resources/technical-documentation/interface-control-documents).
 
 Upon initialization, PX4 configures the VectorNav unit as follows:
 
@@ -131,5 +131,5 @@ Published topics can be viewed using the `listener` command.
 
 ## Hardware Specifications
 
-- [Product Briefs](https://www.vectornav.com/resources/product-briefs)
-- [Datasheets](https://www.vectornav.com/resources/datasheets)
+- [Product Briefs](https://www.vectornav.com/resources/product-information/product-briefs)
+- [Datasheets](https://www.vectornav.com/resources/technical-documentation/datasheets)

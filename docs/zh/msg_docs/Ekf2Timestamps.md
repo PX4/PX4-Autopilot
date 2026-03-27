@@ -23,9 +23,9 @@ this message contains the (relative) timestamps of the sensor inputs used by EKF
 
 ## Constants
 
-| 参数名                                                                                                             | 类型      | 值     | 描述                                                            |
-| --------------------------------------------------------------------------------------------------------------- | ------- | ----- | ------------------------------------------------------------- |
-| <a href="#RELATIVE_TIMESTAMP_INVALID"></a> RELATIVE_TIMESTAMP_INVALID | `int16` | 32767 | (0x7fff) If one of the relative timestamps |
+| 参数名                                                                                                           | 类型      | 值     | 描述                                                            |
+| ------------------------------------------------------------------------------------------------------------- | ------- | ----- | ------------------------------------------------------------- |
+| <a id="#RELATIVE_TIMESTAMP_INVALID"></a> RELATIVE_TIMESTAMP_INVALID | `int16` | 32767 | (0x7fff) If one of the relative timestamps |
 
 ## Source Message
 

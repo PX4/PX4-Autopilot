@@ -29,14 +29,14 @@ Allocate as many CPU cores and memory resources to the VM as possible.
 
 Ефективність VMWare прийнятна для основного застосування (збірки прошивки) але не для запуску ROS чи Gazebo Classic.
 
-1. Download [VMWare Player Freeware](https://www.vmware.com/products/workstation-player/workstation-player-evaluation.html)
+1. Download [VMWare Workstation Pro](https://www.vmware.com/products/desktop-hypervisor/workstation-and-fusion) (the free player has been discontinued)
 
 2. Установіть його на вашу Windows систему
 
 3. Download the desired version of [Ubuntu Desktop ISO Image](https://ubuntu.com/download/desktop).
    (see [Linux Instructions Page](../dev_setup/dev_env_linux.md) for recommended Ubuntu version).
 
-4. Open _VMWare Player_.
+4. Open _Workstation Pro_.
 
 5. Enable 3D acceleration in the VM's settings: **VM > Settings > Hardware > Display > Accelerate 3D graphics**
 

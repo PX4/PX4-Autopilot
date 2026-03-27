@@ -1,0 +1,187 @@
+module_name: adsb
+parameters:
+- group: ADSB
+  definitions:
+    ADSB_SQUAWK:
+      description:
+        short: ADSB-Out squawk code configuration
+        long: This parameter defines the squawk code. Value should be between 0000
+          and 7777.
+      type: int32
+      default: 1200
+      reboot_required: false
+      min: 0
+      max: 7777
+    ADSB_IDENT:
+      description:
+        short: ADSB-Out Ident Configuration
+        long: Enable Identification of Position feature
+      type: boolean
+      default: 0
+      reboot_required: false
+    ADSB_LIST_MAX:
+      description:
+        short: ADSB-In Vehicle List Size
+        long: Change number of targets to track
+      type: int32
+      default: 25
+      min: 0
+      max: 50
+      reboot_required: true
+    ADSB_ICAO_ID:
+      description:
+        short: ADSB-Out ICAO configuration
+        long: Defines the ICAO ID of the vehicle
+      type: int32
+      default: 1194684
+      reboot_required: true
+      min: -1
+      max: 16777215
+    ADSB_LEN_WIDTH:
+      description:
+        short: ADSB-Out Vehicle Size Configuration
+        long: Report the length and width of the vehicle in meters. In most cases,
+          use '1' for the smallest vehicle size.
+      type: enum
+      values:
+        0: SizeUnknown
+        1: Len15_Wid23
+        2: Len25_Wid28
+        3: Len25_Wid34
+        4: Len35_Wid33
+        5: Len35_Wid38
+        6: Len45_Wid39
+        7: Len45_Wid45
+        8: Len55_Wid45
+        9: Len55_Wid52
+        10: Len65_Wid59
+        11: Len65_Wid67
+        12: Len75_Wid72
+        13: Len75_Wid80
+        14: Len85_Wid80
+        15: Len85_Wid90
+      default: 1
+      reboot_required: true
+      min: 0
+      max: 15
+    ADSB_EMIT_TYPE:
+      description:
+        short: ADSB-Out Vehicle Emitter Type
+        long: Configure the emitter type of the vehicle.
+      type: enum
+      values:
+        0: Unknown
+        1: Light
+        2: Small
+        3: Large
+        4: HighVortex
+        5: Heavy
+        6: Performance
+        7: Rotorcraft
+        8: RESERVED
+        9: Glider
+        10: LightAir
+        11: Parachute
+        12: UltraLight
+        13: RESERVED
+        14: UAV
+        15: Space
+        16: RESERVED
+        17: EmergencySurf
+        18: ServiceSurf
+        19: PointObstacle
+      default: 14
+      reboot_required: true
+      min: 0
+      max: 15
+    ADSB_MAX_SPEED:
+      description:
+        short: ADSB-Out Vehicle Max Speed
+        long: Informs ADSB vehicles of this vehicle's max speed capability
+      type: enum
+      values:
+        0: UnknownMaxSpeed
+        1: 75Kts
+        2: 150Kts
+        3: 300Kts
+        4: 600Kts
+        5: 1200Kts
+        6: Over1200Kts
+      default: 0
+      reboot_required: true
+      min: 0
+      max: 6
+    ADSB_ICAO_SPECL:
+      description:
+        short: ADSB-In Special ICAO configuration
+        long: This vehicle is always tracked. Use 0 to disable.
+      type: int32
+      default: 0
+      reboot_required: false
+      min: 0
+      max: 16777215
+    ADSB_EMERGC:
+      description:
+        short: ADSB-Out Emergency State
+        long: Sets the vehicle emergency state
+      type: enum
+      values:
+        0: NoEmergency
+        1: General
+        2: Medical
+        3: LowFuel
+        4: NoCommunications
+        5: Interference
+        6: Downed
+      default: 0
+      reboot_required: false
+      min: 0
+      max: 6
+    ADSB_GPS_OFF_LAT:
+      description:
+        short: ADSB-Out GPS Offset lat
+        long: Sets GPS lataral offset encoding
+      type: enum
+      values:
+        0: NoData
+        1: LatLeft2M
+        2: LatLeft4M
+        3: LatLeft6M
+        4: LatRight0M
+        5: LatRight2M
+        6: LatRight4M
+        7: LatRight6M
+      default: 0
+      reboot_required: false
+      min: 0
+      max: 7
+    ADSB_GPS_OFF_LON:
+      description:
+        short: ADSB-Out GPS Offset lon
+        long: Sets GPS longitudinal offset encoding
+      type: enum
+      values:
+        0: NoData
+        1: AppliedBySensor
+      default: 0
+      reboot_required: false
+      min: 0
+      max: 1
+    ADSB_CALLSIGN_1:
+      description:
+        short: First 4 characters of CALLSIGN
+        long: |-
+          Sets first 4 characters of a total of 8. Valid characters are A-Z, 0-9, " ". Example "PX4 " -> 1347957792
+          For CALLSIGN shorter than 8 characters use the null terminator at the end '\0'.
+      type: int32
+      default: 0
+      reboot_required: true
+    ADSB_CALLSIGN_2:
+      description:
+        short: Second 4 characters of CALLSIGN
+        long: |-
+          Sets second 4 characters of a total of 8. Valid characters are A-Z, 0-9, " " only. Example "TEST" -> 1413829460
+          For CALLSIGN shorter than 8 characters use the null terminator at the end '\0'.
+      type: int32
+      default: 0
+      reboot_required: true

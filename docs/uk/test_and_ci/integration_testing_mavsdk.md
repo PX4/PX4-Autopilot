@@ -7,7 +7,7 @@ PX4 can be tested end to end to using integration tests based on [MAVSDK](https:
 
 Інструкції нижче пояснюють, як налаштувати та запустити тести локально.
 
-:::note
+:::info
 This is the recommended integration test framework for PX4.
 :::
 

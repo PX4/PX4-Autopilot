@@ -2,9 +2,10 @@
 
 :::warning
 This GNSS has been discontinued, and is no longer commercially available.
+Replaced by [Holybro H-RTK F9P GNSS](../gps_compass/rtk_gps_holybro_h-rtk-f9p.md).
 :::
 
-The [Holybro H-RTK M8P GNSS](https://holybro.com/collections/standard-h-rtk-series/products/h-rtk-m8p-gnss-series) is an [RTK GNSS module](../gps_compass/rtk_gps.md) series for the mass market.
+The _Holybro H-RTK M8P GNSS_ is an [RTK GNSS module](../gps_compass/rtk_gps.md) series for the mass market.
 This family is similar to the [H-RTK M9P](../gps_compass/rtk_gps_holybro_h-rtk-f9p.md) series but uses the smaller, lighter, and less expensive M8P u-blox RTK GNSS module (which still provides far superior position resolution than previous generations\_.
 
 There are three models of Holybro H-RTK M8P to choose from, each with different antenna design to meet different needs.
@@ -16,7 +17,7 @@ Using RTK allows PX4 to get its position with centimeter-level accuracy, which i
 
 ## Where to Buy
 
-- [H-RTK M8P (GPS RTK Mounts)](https://holybro.com/products/vertical-mount-for-h-rtk-helical)
+- Discontinued.
 
 ## Configuration
 
@@ -30,9 +31,7 @@ All H-RTK GNSS models come with a GH 10-pin connector/cable that is compatible w
 The cables/connectors may need to be modified in order to connect to other flight controller boards (see [pin map](#pin_map)below).
 :::
 
-<a id="pin_map"></a>
-
-## Pin Map
+## Pin Map {#pin_map}
 
 ![h-rtk_rover_pinmap](../../assets/hardware/gps/rtk_holybro_h-rtk-m8p_pinmap.jpg)
 

@@ -20,10 +20,10 @@ Events interface.
 
 ## Constants
 
-| 명칭                                                                                          | 형식       | Value | 설명 |
-| ------------------------------------------------------------------------------------------- | -------- | ----- | -- |
-| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION                        | `uint32` | 1     |    |
-| <a href="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH | `uint8`  | 16    |    |
+| 명칭                                                                                        | 형식       | Value | 설명 |
+| ----------------------------------------------------------------------------------------- | -------- | ----- | -- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                        | `uint32` | 1     |    |
+| <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH | `uint8`  | 16    |    |
 
 ## Source Message
 

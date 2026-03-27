@@ -35,7 +35,8 @@
 
 VertiqTelemetryManager::VertiqTelemetryManager(VertiqClientManager *client_manager) :
 	_client_manager(client_manager),
-	_telem_state(UNPAUSED)
+	_telem_state(UNPAUSED),
+	_telem_interface(0)
 {
 }
 
@@ -45,8 +46,8 @@ void VertiqTelemetryManager::Init(uint64_t telem_bitmask, uint8_t module_id)
 	_telem_bitmask = telem_bitmask;
 	FindTelemetryModuleIds();
 
-	_telem_interface = new IQUartFlightControllerInterfaceClient(module_id);
-	_client_manager->AddNewClient(_telem_interface);
+	_telem_interface.UpdateEntryIds(module_id);
+	_client_manager->AddNewClient(&_telem_interface);
 }
 
 void VertiqTelemetryManager::FindTelemetryModuleIds()
@@ -79,10 +80,8 @@ void VertiqTelemetryManager::StartPublishing(uORB::Publication<esc_status_s> *es
 
 	for (unsigned i = 0; i < _number_of_module_ids_for_telem; i++) {
 		_esc_status.esc[i].timestamp       = 0;
-		_esc_status.esc[i].esc_address     = 0;
 		_esc_status.esc[i].esc_rpm         = 0;
 		_esc_status.esc[i].esc_state       = 0;
-		_esc_status.esc[i].esc_cmdcount    = 0;
 		_esc_status.esc[i].esc_voltage     = 0;
 		_esc_status.esc[i].esc_current     = 0;
 		_esc_status.esc[i].esc_temperature = 0;
@@ -106,12 +105,11 @@ uint16_t VertiqTelemetryManager::UpdateTelemetry()
 	bool timed_out = (time_now - _time_of_last_telem_request) > _telem_timeout;
 
 	//We got a telemetry response
-	if (_telem_interface->telemetry_.IsFresh()) {
+	if (_telem_interface.telemetry_.IsFresh()) {
 		//grab the data
-		IFCITelemetryData telem_response = _telem_interface->telemetry_.get_reply();
+		IFCITelemetryData telem_response = _telem_interface.telemetry_.get_reply();
 
 		// also update our internal report for logging
-		_esc_status.esc[_current_module_id_target_index].esc_address  = _module_ids_in_use[_number_of_module_ids_for_telem];
 		_esc_status.esc[_current_module_id_target_index].timestamp    = time_now;
 		_esc_status.esc[_current_module_id_target_index].esc_rpm      = telem_response.speed * 60.0f * M_1_PI_F *
 				0.5f; //We get back rad/s, convert to rpm
@@ -123,7 +121,6 @@ uint16_t VertiqTelemetryManager::UpdateTelemetry()
 		_esc_status.esc[_current_module_id_target_index].esc_temperature = telem_response.mcu_temp *
 				0.01; //"If you ask other escs for their temp, they're giving you the micro temp, so go with that"
 		_esc_status.esc[_current_module_id_target_index].esc_state    = 0; //not implemented
-		_esc_status.esc[_current_module_id_target_index].esc_cmdcount = 0; //not implemented
 		_esc_status.esc[_current_module_id_target_index].failures     = 0; //not implemented
 
 		//Update the overall _esc_status timestamp and our counter
@@ -148,9 +145,8 @@ uint16_t VertiqTelemetryManager::UpdateTelemetry()
 		uint16_t next_telem = FindNextMotorForTelemetry();
 
 		if (next_telem != _impossible_module_id) {
-			//We need to update the module ID we're going to listen to. So, kill the old one, and make it anew.
-			delete _telem_interface;
-			_telem_interface = new IQUartFlightControllerInterfaceClient(next_telem);
+			//We need to update the module ID we're going to listen to
+			_telem_interface.UpdateEntryIds(next_telem);
 		}
 
 		//update the telem target

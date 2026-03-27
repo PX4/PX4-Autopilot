@@ -35,6 +35,7 @@ px4_add_library(vehicle_imu
 	VehicleIMU.cpp
 	VehicleIMU.hpp
 )
+set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/imu_parameters.yaml)
 
 target_compile_options(vehicle_imu
 	PRIVATE

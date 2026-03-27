@@ -74,7 +74,7 @@ Download the [gearup_airbrainh743_bootloader.bin](https://github.com/PX4/PX4-Aut
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make gearup_airbrainh743_default
 ```
 
@@ -84,7 +84,7 @@ Firmware can be installed in any of the normal ways:
 
 - Build and upload the source:
 
-  ```
+  ```sh
   make gearup_airbrainh743_default upload
   ```
 

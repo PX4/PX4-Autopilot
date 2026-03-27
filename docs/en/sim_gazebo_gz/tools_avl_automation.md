@@ -118,7 +118,7 @@ From the stability derivatives log file, the following advanced lift drag plugin
 | CYa         | CYa                               | dCy/da (sideforce slope wrt alpha)                      |
 | Cla         | Cell                              | dCl/da (roll moment slope wrt alpha)                    |
 | Cma         | Cema                              | dCm/da (pitching moment slope wrt aLpha - before stall) |
-| Cna         | Cena                              | dCn/da (yaw moment slope wrt alpha)                     |
+| Can         | Cena                              | dCn/da (yaw moment slope wrt alpha)                     |
 | CLb         | CLb                               | dCL/dbeta (lift coefficient slope wrt beta)             |
 | CYb         | CYb                               | dCY/dbeta (side force slope wrt beta)                   |
 | Clb         | Cell                              | dCl/dbeta (roll moment slope wrt beta)                  |

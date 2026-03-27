@@ -112,3 +112,6 @@ keys/
 
 # metadata
 _emscripten_sdk/
+
+# virtual Python environment
+.venv

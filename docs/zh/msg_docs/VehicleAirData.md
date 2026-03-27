@@ -9,7 +9,7 @@ Vehicle air data.
 Data from the currently selected barometer (plus ambient temperature from the source specified in temperature_source).
 Includes calculated data such as barometric altitude and air density.
 
-**TOPICS:** vehicle_airdata
+**TOPICS:** vehicle_air_data
 
 ## Fields
 

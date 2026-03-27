@@ -110,7 +110,7 @@ Make sure to tune the attitude controller before attempting to tune TECS.
 推力（通过油门控制）增加整个飞机的总能量。
 因此，俯仰角和油门两个输入量都会对空速和高度产生影响，从而使控制问题变得难了。
 
-TECS 提供了一种解决方案，即根据能量而不是初始设定值来反映问题。
+TECS offers a solution by representing the problem in terms of energies rather than the original setpoints.
 一架飞行器的总能量是飞行器动能和势能之和。 推力（通过油门控制）可以增加飞机的总能量。 一个给定的总能量状态可以通过势能和动能的任意组合来实现。
 换句话说，飞行器在高海拔以低空速飞行和在低海拔以高空速飞行时的总能量是等价的。 我们称这种情况叫做比能量平衡，它是根据当前高度和真实空速设定值计算的。
 可以通过控制俯仰角来控制飞行器的比能量平衡。

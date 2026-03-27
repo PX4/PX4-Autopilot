@@ -1,0 +1,289 @@
+module_name: uavcan
+parameters:
+- group: UAVCAN
+  definitions:
+    UAVCAN_ENABLE:
+      description:
+        short: UAVCAN mode
+        long: |-
+          0 - UAVCAN disabled.
+          1 - Enables support for UAVCAN sensors without dynamic node ID allocation and firmware update.
+          2 - Enables support for UAVCAN sensors with dynamic node ID allocation and firmware update.
+          3 - Enables support for UAVCAN sensors and actuators with dynamic node ID allocation and firmware update. Also sets the motor control outputs to UAVCAN.
+      type: enum
+      values:
+        0: Disabled
+        1: Sensors Manual Config
+        2: Sensors Automatic Config
+        3: Sensors and Actuators (ESCs) Automatic Config
+      default: 0
+      min: 0
+      max: 3
+      reboot_required: true
+    UAVCAN_NODE_ID:
+      description:
+        short: UAVCAN Node ID
+        long: Read the specs at https://dronecan.github.io/ to learn more about Node
+          ID.
+      type: int32
+      default: 1
+      min: 1
+      max: 125
+      reboot_required: true
+    UAVCAN_BITRATE:
+      description:
+        short: UAVCAN CAN bus bitrate
+      type: int32
+      default: 1000000
+      unit: bit/s
+      min: 20000
+      max: 1000000
+      reboot_required: true
+    UAVCAN_RNG_MIN:
+      description:
+        short: UAVCAN rangefinder minimum range
+        long: This parameter defines the minimum valid range for a rangefinder connected
+          via UAVCAN.
+      type: float
+      default: 0.0
+      unit: m
+    UAVCAN_RNG_MAX:
+      description:
+        short: UAVCAN rangefinder maximum range
+        long: This parameter defines the maximum valid range for a rangefinder connected
+          via UAVCAN.
+      type: float
+      default: 999.0
+      unit: m
+    UAVCAN_ECU_MAXF:
+      description:
+        short: UAVCAN fuel tank maximum capacity
+        long: This parameter defines the maximum fuel capacity of the vehicle's fuel
+          tank.
+      type: float
+      default: 15.0
+      min: 0.0
+      max: 100000.0
+      unit: liters
+      decimal: 1
+      increment: 0.1
+      reboot_required: true
+    UAVCAN_ECU_FUELT:
+      description:
+        short: UAVCAN fuel tank fuel type
+        long: |-
+          This parameter defines the type of fuel used in the vehicle's fuel tank.
+
+          0: Unknown
+          1: Liquid (e.g., gasoline, diesel)
+          2: Gas (e.g., hydrogen, methane, propane)
+      type: enum
+      values:
+        0: Unknown
+        1: Liquid
+        2: Gas
+      default: 1
+      min: 0
+      max: 2
+      reboot_required: true
+    UAVCAN_LGT_MODE:
+      description:
+        short: UAVCAN Navigation light operating mode
+        long: |-
+          This parameter defines the minimum condition under which the system will command
+          Navigation lights to turn on. Affects lights with functions: Anti-collision, Colored Navigation Lights or Hybrid lights.
+
+          For hybrid functions (StatusOrAntiCollision, etc.), the light
+          displays status colors when this mode is inactive, and switches to the
+          navigation light function when this mode becomes active.
+
+          0 - Always off
+          1 - When autopilot is armed
+          2 - When autopilot is prearmed
+          3 - Always on
+      type: enum
+      values:
+        0: Always off
+        1: When autopilot is armed
+        2: When autopilot is prearmed
+        3: Always on
+      default: 1
+      min: 0
+      max: 3
+      reboot_required: true
+    UAVCAN_PUB_ARM:
+      description:
+        short: publish Arming Status stream
+        long: |-
+          Enable UAVCAN Arming Status stream publication
+          uavcan::equipment::safety::ArmingStatus
+      type: boolean
+      default: 0
+      reboot_required: true
+    UAVCAN_PUB_RTCM:
+      description:
+        short: publish RTCM stream
+        long: |-
+          Enable UAVCAN RTCM stream publication
+          uavcan::equipment::gnss::RTCMStream
+      type: boolean
+      default: 0
+      reboot_required: true
+    UAVCAN_PUB_MBD:
+      description:
+        short: publish moving baseline data RTCM stream
+        long: |-
+          Enable UAVCAN RTCM stream publication
+          ardupilot::gnss::MovingBaselineData
+      type: boolean
+      default: 0
+      reboot_required: true
+    UAVCAN_SUB_ASPD:
+      description:
+        short: subscription airspeed
+        long: |-
+          Enable UAVCAN airspeed subscriptions.
+          uavcan::equipment::air_data::IndicatedAirspeed
+          uavcan::equipment::air_data::TrueAirspeed
+          uavcan::equipment::air_data::StaticTemperature
+      type: boolean
+      default: 0
+      reboot_required: true
+    UAVCAN_SUB_BARO:
+      description:
+        short: subscription barometer
+        long: |-
+          Enable UAVCAN barometer subscription.
+          uavcan::equipment::air_data::StaticPressure
+          uavcan::equipment::air_data::StaticTemperature
+      type: boolean
+      default: 0
+      reboot_required: true
+    UAVCAN_SUB_BAT:
+      description:
+        short: subscription battery
+        long: |-
+          Enable UAVCAN battery subscription.
+          uavcan::equipment::power::BatteryInfo
+          ardupilot::equipment::power::BatteryInfoAux
+          cuav::equipment::power::CBAT
+
+          0 - Disable
+          1 - Use raw data. Recommended for Smart battery
+          2 - Filter the data with internal battery library (unsupported with CBAT)
+      type: enum
+      values:
+        0: Disable
+        1: Raw data
+        2: Filter data
+      default: 0
+      min: 0
+      max: 2
+      reboot_required: true
+    UAVCAN_SUB_DPRES:
+      description:
+        short: subscription differential pressure
+        long: |-
+          Enable UAVCAN differential pressure subscription.
+          uavcan::equipment::air_data::RawAirData
+      type: boolean
+      default: 0
+      reboot_required: true
+    UAVCAN_SUB_FLOW:
+      description:
+        short: subscription flow
+        long: Enable UAVCAN optical flow subscription.
+      type: boolean
+      default: 0
+      reboot_required: true
+    UAVCAN_SUB_FUEL:
+      description:
+        short: subscription fuel tank
+        long: Enable UAVCAN fuel tank status subscription.
+      type: boolean
+      default: 0
+      reboot_required: true
+    UAVCAN_SUB_GPS:
+      description:
+        short: subscription GPS
+        long: |-
+          Enable UAVCAN GPS subscriptions.
+          uavcan::equipment::gnss::Fix
+          uavcan::equipment::gnss::Fix2
+          uavcan::equipment::gnss::Auxiliary
+      type: boolean
+      default: 1
+      reboot_required: true
+    UAVCAN_SUB_GPS_R:
+      description:
+        short: subscription GPS Relative
+        long: |-
+          Enable UAVCAN GPS Relative subscription.
+          ardupilot::gnss::RelPosHeading
+      type: boolean
+      default: 1
+      reboot_required: true
+    UAVCAN_SUB_HYGRO:
+      description:
+        short: subscription hygrometer
+        long: |-
+          Enable UAVCAN hygrometer subscriptions.
+          dronecan::sensors::hygrometer::Hygrometer
+      type: boolean
+      default: 0
+      reboot_required: true
+    UAVCAN_SUB_ICE:
+      description:
+        short: subscription ICE
+        long: |-
+          Enable UAVCAN internal combustion engine (ICE) subscription.
+          uavcan::equipment::ice::reciprocating::Status
+      type: boolean
+      default: 0
+      reboot_required: true
+    UAVCAN_SUB_IMU:
+      description:
+        short: subscription IMU
+        long: |-
+          Enable UAVCAN IMU subscription.
+          uavcan::equipment::ahrs::RawIMU
+      type: boolean
+      default: 0
+      reboot_required: true
+    UAVCAN_SUB_MAG:
+      description:
+        short: subscription magnetometer
+        long: |-
+          Enable UAVCAN mag subscription.
+          uavcan::equipment::ahrs::MagneticFieldStrength
+          uavcan::equipment::ahrs::MagneticFieldStrength2
+      type: boolean
+      default: 1
+      reboot_required: true
+    UAVCAN_SUB_RNG:
+      description:
+        short: subscription range finder
+        long: |-
+          Enable UAVCAN range finder subscription.
+          uavcan::equipment::range_sensor::Measurement
+      type: boolean
+      default: 0
+      reboot_required: true
+    UAVCAN_SUB_BTN:
+      description:
+        short: subscription button
+        long: |-
+          Enable UAVCAN button subscription.
+          ardupilot::indication::Button
+      type: boolean
+      default: 0
+      reboot_required: true
+    UAVCAN_SUB_MBD:
+      description:
+        short: subscription MovingBaselineData
+        long: |-
+          Enable UAVCAN MovingBaselineData subscription.
+          ardupilot::gnss::MovingBaselineData
+      type: boolean
+      default: 0
+      reboot_required: true

@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # DistanceSensorModeChangeRequest (UORB message)
 
-**TOPICS:** distance_sensormode_changerequest
+**TOPICS:** distance_sensor_mode_change_request
 
 ## Fields
 
@@ -15,10 +15,10 @@ pageClass: is-wide-page
 
 ## Constants
 
-| 명칭                                                           | 형식      | Value | 설명 |
-| ------------------------------------------------------------ | ------- | ----- | -- |
-| <a href="#REQUEST_OFF"></a> REQUEST_OFF | `uint8` | 0     |    |
-| <a href="#REQUEST_ON"></a> REQUEST_ON   | `uint8` | 1     |    |
+| 명칭                                                         | 형식      | Value | 설명 |
+| ---------------------------------------------------------- | ------- | ----- | -- |
+| <a id="#REQUEST_OFF"></a> REQUEST_OFF | `uint8` | 0     |    |
+| <a id="#REQUEST_ON"></a> REQUEST_ON   | `uint8` | 1     |    |
 
 ## Source Message
 

@@ -19,7 +19,7 @@ AirMind<sup>&reg;</sup> [MindPX](http://mindpx.net) 시리즈는 Pixhawk<sup>&re
 주요 하드웨어 문서는 [여기](http://mindpx.net/assets/accessories/Specification9.18_3_pdf.pdf)를 참고하십시오.
 :::
 
-MindPX는 Pixhawk<sup>&reg;</sup>에서 분기된 차세대 자동조종장치로, 회로도와 구조가 수정되었으며, 무인기체를 보다 스마트하고 사용하기 용이하도록 새로운 기능으로 더욱 강화되었습니다.
+MindPX is a new generation autopilot system branched from Pixhawk<sup>&reg;</sup>, has been revised in schematic and structure, and has been further enhanced with new features to make unmanned vehicle more smart and more friendly to use.
 
 MindPX는 총 PWM 출력 채널을 16 (8개의 주출력 + 8 aux 출력)으로 증가시킵니다.
 MindPX는보다 복잡한 VTOL 구성과보다 정밀한 제어를 지원할 수 있습니다.
@@ -86,7 +86,7 @@ It is pre-built and automatically installed by _QGroundControl_ when appropriate
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make airmind_mindpx-v2_default
 ```
 
@@ -96,7 +96,7 @@ MindPX에는 보드에는 USB-TO-UART 브리지 IC가 있습니다.
 마이크로 USB-USB  A형 케이블로 연결합니다.
 마이크로 USB 끝을 MindPX의 'OBC'포트에 연결하고, USB 유형 A 끝을 보조 컴퓨터에 연결합니다.
 
-그리고, 최대 BAUD 속도는 px4 제품군과 동일하며 최대 921600입니다.
+And the max BAUD rate is the same as for the PX4 family, which is up to 921600.
 
 ## 사용자 가이드
 
@@ -104,7 +104,7 @@ MindPX에는 보드에는 USB-TO-UART 브리지 IC가 있습니다.
 사용자 가이드는 [여기](http://mindpx.net/assets/accessories/UserGuide9.18_2_pdf.pdf)를 참고하십시오.
 :::
 
-## 구매처
+## Where to Buy {#store}
 
 MindRacer is available at [AirMind Store](https://airmind.mindpx.net/catalog).
 Amazon<sup>&reg;</sup> 또는 eBay<sup>&reg;</sup>에서도 MindRacer를 구매할 수 있습니다.

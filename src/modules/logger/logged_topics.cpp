@@ -64,7 +64,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("external_ins_attitude");
 	add_optional_topic("external_ins_global_position");
 	add_optional_topic("external_ins_local_position");
-	add_topic("esc_status");
+	add_topic("esc_status", 100);
 	add_topic("failure_detector_status", 100);
 	add_topic("failsafe_flags");
 	add_optional_topic("follow_target", 500);
@@ -79,7 +79,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("gps_dump");
 	add_optional_topic("gimbal_controls", 200);
 	add_optional_topic("gripper");
-	add_optional_topic("heater_status");
+	add_optional_topic_multi("heater_status");
 	add_topic("home_position");
 	add_topic("hover_thrust_estimate", 100);
 	add_topic("input_rc", 500);
@@ -372,8 +372,10 @@ void LoggedTopics::add_system_identification_topics()
 void LoggedTopics::add_high_rate_sensors_topics()
 {
 	add_topic_multi("distance_sensor", 0, 4);
+	add_topic_multi("sensor_baro", 0, 4);
 	add_topic_multi("sensor_optical_flow", 0, 2);
 	add_topic_multi("sensor_gps", 0, 4);
+	add_topic_multi("sensor_gnss_relative", 0, 1);
 	add_topic_multi("sensor_mag", 0, 4);
 }
 

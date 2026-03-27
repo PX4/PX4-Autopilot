@@ -25,9 +25,9 @@ This build guide shows add a flight controller system (using [Auterion Skynode e
 
 ## Де купити
 
-- [OMP-Hobby](https://www.omphobby.com/OMPHOBBY-ZMO-VTOL-FPV-Aircraft-With-DJI-Goggles-And-Remote-Controller-p3069854.html)
 - [GetFPV](https://www.getfpv.com/omphobby-zmo-z3-vtol-fpv-1200mm-arf-plane-kit-no-fpv-system.html)
 - [FoxtechFPV](https://www.foxtechfpv.com/zmo-pro-fpv-vtol.html)
+- [RMRC](https://www.readymaderc.com/products/details/omp-hobby-zmo-vtol-fpv-airplane-rtf-goggles-radio)
 
 ## Політний контролер
 
@@ -43,7 +43,7 @@ This build guide shows add a flight controller system (using [Auterion Skynode e
 
 - [GPS F9P (включено в Skynode оціночний. комплект)](../gps_compass/rtk_gps_holybro_h-rtk-f9p.md)
 - [GPS M9N (дешевша альтернатива F9P)](../gps_compass/rtk_gps_holybro_h-rtk-m8p.md)
-- [Датчик швидкості (включено в Skynode eval. kit)](https://www.dualrc.com/parts/airspeed-sensor-sdp33) — рекомендований для покращення безпеки та продуктивності
+- [Датчик швидкості (включено в Skynode eval. kit)](https://www.dualrc.com/parts/p/airspeed-sensor-sdp33) — recommended for improved safety and performance
 - [Airspeed sensor (cheaper alternative)](https://holybro.com/products/digital-air-speed-sensor-ms4525do)
 - [Lidar Lightware lw20-c (включено в Skynode eval. kit)](../sensor/sfxx_lidar.md) (Необов'язково)
 - [Інфрачервоний сенсор вимірювання відстані Seeed Studio PSK-CM8JL65-CC5 (дешевший аналог)](https://www.seeedstudio.com/PSK-CM8JL65-CC5-Infrared-Distance-Measuring-Sensor-p-4028.html) (Опціонально)
@@ -79,7 +79,7 @@ This build guide shows add a flight controller system (using [Auterion Skynode e
 ### Підготовка
 
 Вийміть оригінальний контролер польоту, ESC регулятор швидкості та кабелі з'єднання крила.
-Також зніміть пропелери.
+Also remove the propellers.
 Це допоможе вам з управлінням транспортного засобу і зменшить ризик отримання травми внаслідок ненавмисного запуску двигуна.
 
 ZMO FPV в його початковому стані.
@@ -101,7 +101,7 @@ ZMO FPV в його початковому стані.
 
 4. Укоротіть дроти заднього двигуна та припаяйте їх на місце, як показано на малюнку.
 
-5. Припаяйте сигнальні та GND-дроти до входу PWM ESC регулятора швидкості.
+5. Solder signal and GND wires to the PWM input to the ESC.
 
    ![ESC 01](../../assets/airframes/vtol/omp_hobby_zmo_fpv/esc-01.jpg)
 
@@ -293,7 +293,7 @@ Next we load a [parameter file](https://github.com/PX4/PX4-Autopilot/raw/main/do
 
 The airspeed sensor can be enabled in the [Parameters](../advanced_config/parameters.md#finding-updating-parameters) tab.
 
-- If the [recommended airspeed sensor (SDP33)](https://www.dualrc.com/parts/airspeed-sensor-sdp33) is used, `SENS_EN_SDP3X` needs to be enabled.
+- If the [recommended airspeed sensor (SDP33)](https://www.dualrc.com/parts/p/airspeed-sensor-sdp33) is used, `SENS_EN_SDP3X` needs to be enabled.
 - Якщо [Lidar Lightware lw20-c (включено в Skynode eval. kit)](../sensor/sfxx_lidar.md) is used, `SENS_EN_SF1XX` needs to be set to 6 (SF/LW/20c).
 
 ### Калібрування сенсорів

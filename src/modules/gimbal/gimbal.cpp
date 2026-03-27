@@ -197,6 +197,8 @@ static int gimbal_thread_main(int argc, char *argv[])
 		thread_should_exit.store(true);
 	}
 
+	const unsigned int poll_timeout_ms = params.mnt_mode_out == MNT_MODE_OUT_AUX ? 10 : 20;
+
 	while (!thread_should_exit.load()) {
 
 		const bool updated = parameter_update_sub.updated();
@@ -219,7 +221,7 @@ static int gimbal_thread_main(int argc, char *argv[])
 				const bool already_active = (thread_data.last_input_active == i);
 				// poll only on active input to reduce latency, or on all if none is active
 				const unsigned int poll_timeout =
-					(already_active || thread_data.last_input_active == -1) ? 20 : 0;
+					(already_active || thread_data.last_input_active == -1) ? poll_timeout_ms : 0;
 
 				update_result = thread_data.input_objs[i]->update(poll_timeout, thread_data.control_data, already_active);
 
@@ -618,7 +620,7 @@ static void usage()
 Mount/gimbal Gimbal control driver. It maps several different input methods (eg. RC or MAVLink) to a configured
 output (eg. AUX channels or MAVLink).
 
-Documentation how to use it is on the [gimbal_control](https://docs.px4.io/main/en/advanced/gimbal_control.html) page.
+Documentation how to use it is on the [gimbal_control](../advanced/gimbal_control.md) page.
 
 ### Examples
 Test the output by setting a angles (all omitted axes are set to 0):

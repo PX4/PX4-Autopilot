@@ -108,7 +108,7 @@ def parse_yaml_parameters_config(yaml_config, ethernet_supported):
                 tags = '@group {:}'.format(param_group)
                 if param['type'] == 'enum':
                     param_type = 'INT32'
-                    for key in param['values']:
+                    for key in sorted(param['values'], key=float):
                         tags += '\n * @value {:} {:}'.format(key, param['values'][key])
                 elif param['type'] == 'bitmask':
                     param_type = 'INT32'
@@ -124,6 +124,9 @@ def parse_yaml_parameters_config(yaml_config, ethernet_supported):
                     param_type = 'INT32'
                 elif param['type'] == 'float':
                     param_type = 'FLOAT'
+                    if 'values' in param:
+                        for key in sorted(param['values'], key=float):
+                            tags += '\n * @value {:} {:}'.format(key, param['values'][key])
                 else:
                     raise Exception("unknown param type {:}".format(param['type']))
 
@@ -312,11 +315,7 @@ When set to -1 (default), the value depends on the function (see {:}).
                 if standard_params[key]['max'] >= 1<<16:
                     raise Exception('maximum value for {:} expected <= {:} (got {:})'.format(key, 1<<16, standard_params[key]['max']))
 
-                if key == 'failsafe':
-                    standard_params[key]['default'] = -1
-                    standard_params[key]['min'] = -1
-
-                if key == 'center':
+                if key == 'failsafe' or key == 'center':
                     standard_params[key]['default'] = -1
                     standard_params[key]['min'] = -1
 

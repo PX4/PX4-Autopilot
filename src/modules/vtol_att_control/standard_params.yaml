@@ -1,0 +1,62 @@
+module_name: vtol_att_control
+parameters:
+- group: VTOL Attitude Control
+  definitions:
+    VT_FWD_THRUST_EN:
+      description:
+        short: Use fixed-wing actuation in hover to accelerate forward
+        long: |-
+          Prevents downforce from pitching the body down when facing wind.
+          Uses puller/pusher (standard VTOL), or forward-tilt (tiltrotor VTOL) to accelerate forward instead.
+          Only active if demanded pitch  is below VT_PITCH_MIN.
+          Use VT_FWD_THRUST_SC to tune it.
+          Descend mode is treated as Landing too.
+
+          Only active (if enabled) in height-rate controlled modes.
+      type: enum
+      values:
+        0: Disabled
+        1: Enabled (except LANDING)
+        2: Enabled if above MPC_LAND_ALT1
+        3: Enabled if above MPC_LAND_ALT2
+        4: Enabled constantly
+        5: Enabled if above MPC_LAND_ALT1 (except LANDING)
+        6: Enabled if above MPC_LAND_ALT2 (except LANDING)
+      default: 0
+    VT_FWD_THRUST_SC:
+      description:
+        short: Fixed-wing actuation thrust scale in hover
+        long: |-
+          Scale applied to the demanded pitch (below VT_PITCH_MIN) to get the fixed-wing forward actuation in hover mode.
+          Enabled via VT_FWD_THRUST_EN.
+      type: float
+      default: 0.7
+      min: 0.0
+      max: 5.0
+      increment: 0.01
+      decimal: 2
+    VT_B_TRANS_RAMP:
+      description:
+        short: Back transition MC motor ramp up time
+        long: This sets the duration during which the MC motors ramp up to the commanded
+          thrust during the back transition stage.
+      type: float
+      default: 3.0
+      unit: s
+      min: 0.0
+      max: 20.0
+      increment: 0.1
+      decimal: 1
+    VT_PSHER_SLEW:
+      description:
+        short: Pusher throttle ramp up slew rate
+        long: |-
+          Defines the slew rate of the puller/pusher throttle during transitions.
+          Zero will deactivate the slew rate limiting and thus produce an instant throttle
+          rise to the transition throttle VT_F_TRANS_THR.
+      type: float
+      default: 0.33
+      unit: 1/s
+      min: 0
+      increment: 0.01
+      decimal: 2

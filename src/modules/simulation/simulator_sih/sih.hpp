@@ -150,8 +150,6 @@ private:
 	static constexpr float RP = 0.1f; 	// radius of the propeller [m]
 	static constexpr float FLAP_MAX = M_PI_F / 12.0f; // 15 deg, maximum control surface deflection
 
-	void init_variables();
-
 	// read the motor signals outputted from the mixer
 	void read_motors(const float dt);
 
@@ -202,27 +200,34 @@ private:
 	hrt_abstime _airspeed_time{0};
 	hrt_abstime _dist_snsr_time{0};
 
-	bool        _grounded{true};// whether the vehicle is on the ground
+	bool _grounded{true}; // whether the vehicle is on the ground
 
-	matrix::Vector3f    _T_B{};           // thrust force in body frame [N]
-	matrix::Vector3f    _Mt_B{};          // thruster moments in the body frame [Nm]
-	matrix::Vector3f    _Ma_B{};          // aerodynamic moments in the body frame [Nm]
-	matrix::Vector3f    _lpos{};          // position in a local tangent-plane frame [m]
-	matrix::Vector3f    _v_N{};           // velocity in local navigation frame (NED, body-fixed) [m/s]
-	matrix::Vector3f    _v_N_dot{};       // time derivative of velocity in local navigation frame [m/s2]
-	matrix::Quatf       _q{};             // quaternion attitude in local navigation frame
-	matrix::Vector3f    _w_B{};           // body rates in body frame [rad/s]
+	// Quantities in body frame (FRD)
+	matrix::Vector3f _T_B{};  // thrust force [N]
+	matrix::Vector3f _Mt_B{}; // thruster moments [Nm]
+	matrix::Vector3f _Ma_B{}; // aerodynamic moments [Nm]
+	matrix::Vector3f _w_B{};  // body rates in body frame [rad/s]
 
-	LatLonAlt _lla{};
+	// Quantities in local navigation frame (NED, body-fixed)
+	matrix::Vector3f _v_N{};          // velocity [m/s]
+	matrix::Vector3f _v_N_dot{};      // time derivative of velocity [m/s^2]
+	matrix::Vector3f _v_wind_N{};     // wind velocity [m/s]
+	matrix::Vector3f _v_apparent_N{}; // vehicle velocity relative to the air [m/s]
 
 	// Quantities in Earth-centered-Earth-fixed coordinates
-	matrix::Vector3f    _Fa_E{};          // aerodynamic force in ECEF frame [N]
-	matrix::Vector3f    _specific_force_E{};
-	matrix::Quatf       _q_E{};
-	matrix::Vector3d    _p_E{};
-	matrix::Vector3f    _v_E{};
-	matrix::Vector3f    _v_E_dot{};
-	matrix::Dcmf        _R_N2E;           // local navigation to ECEF frame rotation matrix
+	matrix::Vector3f _Fa_E{};             // aerodynamic force [N]
+	matrix::Vector3d _p_E{};              // position [m]
+	matrix::Vector3f _v_E{};              // velocity [m/s]
+	matrix::Vector3f _v_E_dot{};          // time derivative of velocity [m/s^2]
+	matrix::Vector3f _specific_force_E{}; // acceleration except gravity (for IMU) [m/s^2]
+
+	// Frame conversion
+	matrix::Quatf _q_E{}; // Attitude quaternion (rotation from body to ECEF frame)
+	matrix::Quatf _q{};   // Attitude quaternion (rotation from body to local navigation frame)
+	matrix::Dcmf _R_N2E;  // Rotation matrix from local navigation to ECEF frame
+
+	LatLonAlt _lla{};
+	matrix::Vector3f _lpos{};  // position in a local tangent-plane frame [m]
 
 	float _u[NUM_ACTUATORS_MAX] {}; // thruster signals
 
@@ -261,18 +266,6 @@ private:
 		AeroSeg(0.0225f, 0.110f, 0.0f, matrix::Vector3f(0.083f - TS_CM,  0.239f, 0.0f), 0.0f, TS_AR)
 	};
 
-	// AeroSeg _ts[NB_TS_SEG] = {
-	// 	AeroSeg(0.0225f, 0.110f, -90.0f, matrix::Vector3f(0.0f, -0.239f, TS_CM-0.083f), 0.0f, TS_AR),
-	// 	AeroSeg(0.0383f, 0.125f, -90.0f, matrix::Vector3f(0.0f, -0.208f, TS_CM-0.094f), 0.0f, TS_AR, 0.063f),
-	// 	AeroSeg(0.0884f, 0.148f, -90.0f, matrix::Vector3f(0.0f, -0.143f, TS_CM-0.111f), 0.0f, TS_AR, 0.063f, TS_RP),
-	// 	AeroSeg(0.0633f, 0.176f, -90.0f, matrix::Vector3f(0.0f, -0.068f, TS_CM-0.132f), 0.0f, TS_AR, 0.063f),
-	// 	AeroSeg(0.0750f, 0.231f, -90.0f, matrix::Vector3f(0.0f,  0.000f, TS_CM-0.173f), 0.0f, TS_AR),
-	// 	AeroSeg(0.0633f, 0.176f, -90.0f, matrix::Vector3f(0.0f,  0.068f, TS_CM-0.132f), 0.0f, TS_AR, 0.063f),
-	// 	AeroSeg(0.0884f, 0.148f, -90.0f, matrix::Vector3f(0.0f,  0.143f, TS_CM-0.111f), 0.0f, TS_AR, 0.063f, TS_RP),
-	// 	AeroSeg(0.0383f, 0.125f, -90.0f, matrix::Vector3f(0.0f,  0.208f, TS_CM-0.094f), 0.0f, TS_AR, 0.063f),
-	// 	AeroSeg(0.0225f, 0.110f, -90.0f, matrix::Vector3f(0.0f,  0.239f, TS_CM-0.083f), 0.0f, TS_AR)
-	// 	};
-
 	// parameters
 	MapProjection _lpos_ref{};
 	float _lpos_ref_alt;
@@ -306,6 +299,8 @@ private:
 		(ParamFloat<px4::params::SIH_DISTSNSR_MAX>) _sih_distance_snsr_max,
 		(ParamFloat<px4::params::SIH_DISTSNSR_OVR>) _sih_distance_snsr_override,
 		(ParamFloat<px4::params::SIH_T_TAU>) _sih_thrust_tau,
-		(ParamInt<px4::params::SIH_VEHICLE_TYPE>) _sih_vtype
+		(ParamInt<px4::params::SIH_VEHICLE_TYPE>) _sih_vtype,
+		(ParamFloat<px4::params::SIH_WIND_N>) _sih_wind_n,
+		(ParamFloat<px4::params::SIH_WIND_E>) _sih_wind_e
 	)
 };
