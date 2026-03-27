@@ -8,6 +8,7 @@ This radio is plug-and-play, ready for all Pixhawk Standard and other similar fl
 
 The radios are available in 915 MHz or 433 MHz versions. Please purchase the model that is appropriate for your country/region.
 
+<img src="../../assets/hardware/telemetry/holybro_sik_longrange.jpg" width="600px" title="Sik Telemetry Radio - Long Range" />
 
 ## Where to Buy
 
@@ -49,17 +50,18 @@ The radios have four status LEDs, two LED lights indicate the reception and tran
 - ACT LED(Red) flashing - transmitting data
 - ACT LED solid - in firmware update mode
 
+<img src="../../assets/hardware/telemetry/holybro_sik_longrange_label.png" width="500px" title="Holybro SiK LongRange LED Indicators" />
 
 ## Connecting to Flight Controller
 
-Supply the power (7~28V) to the radio via XT30 connector. Use the 6 pin JST-GH connector that come with the radio to connect the radio to your flight controller's `TELEM1` port (`TELEM2` can also be used but the default recommendation is `TELEM1`).
+Supply the power (7~28V) to the radio via the XT30 connector. Use the 6-pin JST-GH connector that comes with the radio to connect the radio to your flight controller's `TELEM1` port (`TELEM2` can also be used, but the default recommendation is `TELEM1`).
 
 ## Connecting to a PC or Ground Station
 
 First, power the module with a 7~28V DC source. Then, connect the radio to your Windows PC or Ground Station using a Type-C USB cable.
 
-The necessary drivers should be installed automatically and the radio will appear as a new “USB Serial Port” in the Windows Device Manager under Ports (COM & LPT).
-The Mission Planner's COM Port selection drop-down should also contain the same new COM port.
+The necessary drivers should be installed automatically, and the radio will appear as a new “USB Serial Port” in the Windows Device Manager under Ports (COM & LPT).
+The Mission Planner's COM Port selection drop-down should also include the newly added COM port.
 
 ## Package Includes
 
@@ -80,3 +82,5 @@ The Mission Planner's COM Port selection drop-down should also contain the same 
 	- JST-GH-6P to JST-GH-6P cable *1 (for Pixhawk Standard FC)
 	- Rubber damping grommet *3
 
+<img src="../../assets/hardware/telemetry/holybro_sik_longrange_include1.jpg" width="600px" title="Sik Telemetry Radio - LongRange Package1" />
+<img src="../../assets/hardware/telemetry/holybro_sik_longrange_include2.jpg" width="600px" title="Sik Telemetry Radio - LongRange Package1" />
