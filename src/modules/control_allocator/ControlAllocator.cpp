@@ -75,6 +75,14 @@ ControlAllocator::ControlAllocator() :
 		_param_handles.slew_rate_servos[i] = param_find(buffer);
 	}
 
+	for (int i = 0; i < NUM_PERIPHERAL_SERVOS; ++i) {
+		char buffer[20];
+		snprintf(buffer, sizeof(buffer), "CA_TKO_PS%u_CH", i + 1);
+		_param_handles.peripheral_servo_ch[i] = param_find(buffer);
+		snprintf(buffer, sizeof(buffer), "CA_TKO_PS%u_DY", i + 1);
+		_param_handles.peripheral_servo_dy[i] = param_find(buffer);
+	}
+
 	parameters_updated();
 }
 
@@ -117,6 +125,11 @@ ControlAllocator::parameters_updated()
 	for (int i = 0; i < MAX_NUM_SERVOS; ++i) {
 		param_get(_param_handles.slew_rate_servos[i], &_params.slew_rate_servos[i]);
 		_has_slew_rate |= _params.slew_rate_servos[i] > FLT_EPSILON;
+	}
+
+	for (int i = 0; i < NUM_PERIPHERAL_SERVOS; ++i) {
+		param_get(_param_handles.peripheral_servo_ch[i], &_params.peripheral_servo_ch[i]);
+		param_get(_param_handles.peripheral_servo_dy[i], &_params.peripheral_servo_dy[i]);
 	}
 
 	// Allocation method & effectiveness source
@@ -342,6 +355,7 @@ ControlAllocator::Run()
 
 			_armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
 			_is_vtol = vehicle_status.is_vtol;
+			_takeoff_time = vehicle_status.takeoff_time;
 
 			ActuatorEffectiveness::FlightPhase flight_phase{ActuatorEffectiveness::FlightPhase::HOVER_FLIGHT};
 
@@ -757,6 +771,21 @@ ControlAllocator::publish_actuator_controls()
 
 		for (int i = servos_idx; i < actuator_servos_s::NUM_CONTROLS; i++) {
 			actuator_servos.control[i] = NAN;
+		}
+
+		// Apply peripheral servo overrides after takeoff.
+		// Each servo releases independently at its configured delay.
+		if (_takeoff_time > 0) {
+			const hrt_abstime elapsed = hrt_elapsed_time(&_takeoff_time);
+
+			for (int i = 0; i < NUM_PERIPHERAL_SERVOS; ++i) {
+				const int idx = _params.peripheral_servo_ch[i] - 1; // enum: 0=(not set), 1..8=servo
+
+				if (idx >= 0 && idx < actuator_servos_s::NUM_CONTROLS
+				    && elapsed >= _params.peripheral_servo_dy[i] * 1_s) {
+					actuator_servos.control[idx] = 1.f;
+				}
+			}
 		}
 
 		_actuator_servos_pub.publish(actuator_servos);

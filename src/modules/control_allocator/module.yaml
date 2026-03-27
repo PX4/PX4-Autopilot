@@ -372,6 +372,43 @@ parameters:
                 7: Control Surface 8
             default: 0
 
+        CA_TKO_PS${i}_CH:
+            description:
+                short: Peripheral servo ${i} channel
+                long: |
+                  Servo channel (1-based) to use for peripheral servo 1 (e.g. parachute/payload release).
+                  The servo is held at its disarm value, then driven to its maximum value CA_TKO_PS${i}_LK_DY seconds after takeoff.
+            type: enum
+            values:
+                0: (Not set)
+                1: Servo 1
+                2: Servo 2
+                3: Servo 3
+                4: Servo 4
+                5: Servo 5
+                6: Servo 6
+                7: Servo 7
+                8: Servo 8
+            num_instances: 3
+            instance_start: 1
+            default: 0
+
+        CA_TKO_PS${i}_DY:
+            description:
+                short: Peripheral servo ${i} unlock delay after takeoff
+                long: |
+                  Time after takeoff before peripheral servo ${i} is driven to
+                  its maximum value. Set to 0 to unlock immediately on takeoff.
+            type: float
+            unit: s
+            min: 0.0
+            max: 60.0
+            decimal: 1
+            increment: 0.1
+            default: 0.0
+            num_instances: 3
+            instance_start: 1
+
         # Tilts
         CA_SV_TL_COUNT:
             description:

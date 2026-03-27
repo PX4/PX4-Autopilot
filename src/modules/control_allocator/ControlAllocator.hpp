@@ -120,14 +120,20 @@ public:
 
 private:
 
+	static constexpr int NUM_PERIPHERAL_SERVOS = 3;
+
 	struct ParamHandles {
 		param_t slew_rate_motors[MAX_NUM_MOTORS];
 		param_t slew_rate_servos[MAX_NUM_SERVOS];
+		param_t peripheral_servo_ch[NUM_PERIPHERAL_SERVOS];
+		param_t peripheral_servo_dy[NUM_PERIPHERAL_SERVOS];
 	};
 
 	struct Params {
 		float slew_rate_motors[MAX_NUM_MOTORS];
 		float slew_rate_servos[MAX_NUM_SERVOS];
+		int32_t peripheral_servo_ch[NUM_PERIPHERAL_SERVOS];
+		float peripheral_servo_dy[NUM_PERIPHERAL_SERVOS];
 	};
 
 	/**
@@ -218,6 +224,7 @@ private:
 
 	bool _armed{false};
 	bool _is_vtol{false};
+	hrt_abstime _takeoff_time{0};
 	hrt_abstime _last_run{0};
 	hrt_abstime _timestamp_sample{0};
 	hrt_abstime _last_status_pub{0};
@@ -234,5 +241,4 @@ private:
 		(ParamInt<px4::params::CA_R_REV>) _param_r_rev,
 		(ParamFloat<px4::params::CA_ICE_PERIOD>) _param_ice_shedding_period
 	)
-
 };
