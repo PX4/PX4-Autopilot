@@ -59,6 +59,9 @@
 #include <nuttx/compiler.h>
 #include <nuttx/progmem.h>
 #include <board_config.h>
+#ifdef CONFIG_WATCHDOG
+#include <drivers/drv_watchdog.h>
+#endif
 
 #if defined(CONFIG_ARCH_HAVE_PROGMEM)
 
@@ -1064,6 +1067,9 @@ int parameter_flashfs_erase(void)
 		rv = 0;
 
 		for (int s = 0; sector_map[s].address; s++) {
+#ifdef CONFIG_WATCHDOG
+			watchdog_pet();
+#endif
 			int sz = erase_sector(&sector_map[s], (flash_entry_header_t *)sector_map[s].address);
 
 			if (sz != 0) {
