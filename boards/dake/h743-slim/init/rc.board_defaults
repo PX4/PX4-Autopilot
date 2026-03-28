@@ -1,0 +1,43 @@
+#!/bin/sh
+#
+# board specific defaults
+#------------------------------------------------------------------------------
+
+# transision from params file to flash-based params (2022-08)
+if [ -f $PARAM_FILE ]
+then
+	param load $PARAM_FILE
+	param save
+	# create a backup
+	mv $PARAM_FILE ${PARAM_FILE}.bak
+	reboot
+fi
+
+param set-default BAT1_A_PER_V 40
+param set-default BAT1_N_CELLS 4
+param set-default BAT1_V_DIV 16
+param set-default BAT1_V_CHARGED 4.2
+param set-default BAT1_V_EMPTY 3.7
+param set-default OSD_ATXXXX_CFG 2
+param set-default SER_TEL1_BAUD 115200
+
+# system_power unavailable
+param set-default CBRK_SUPPLY_CHK 894281
+
+# Select the Generic 250 Racer by default
+param set-default SYS_AUTOSTART 4050
+
+param set-default SYS_HAS_MAG 1
+
+# enable gravity fusion
+param set-default EKF2_IMU_CTRL 7
+
+# the startup tune is not great on a binary output buzzer, so disable it
+param set-default CBRK_BUZZER 782090
+
+set LOGGER_BUF 30
+
+# PINIO default HGHT
+gpio write E2 1
+gpio write E3 1
+gpio write E4 1
