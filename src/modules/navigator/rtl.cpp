@@ -560,10 +560,22 @@ void RTL::setSafepointAsDestination(PositionYawSetpoint &rtl_position, const mis
 	case 0: // MAV_FRAME_GLOBAL
 		rtl_position.lat = mission_safe_point.lat;
 		rtl_position.lon = mission_safe_point.lon;
-		rtl_position.alt = mission_safe_point.altitude;
+		rtl_position.alt = mission_safe_point.altitude;	// alt of safe point is rel to home
 		break;
 
 	case 3: // MAV_FRAME_GLOBAL_RELATIVE_ALT
+		rtl_position.lat = mission_safe_point.lat;
+		rtl_position.lon = mission_safe_point.lon;
+		rtl_position.alt = mission_safe_point.altitude + _home_pos_sub.get().alt; // alt of safe point is rel to home
+		break;
+
+	case 5: // MAV_FRAME_GLOBAL_INT
+		rtl_position.lat = mission_safe_point.lat;
+		rtl_position.lon = mission_safe_point.lon;
+		rtl_position.alt = mission_safe_point.altitude;	// alt of safe point is rel to home
+		break;
+
+	case 6: // MAV_FRAME_GLOBAL_RELATIVE_ALT_INT
 		rtl_position.lat = mission_safe_point.lat;
 		rtl_position.lon = mission_safe_point.lon;
 		rtl_position.alt = mission_safe_point.altitude + _home_pos_sub.get().alt; // alt of safe point is rel to home
