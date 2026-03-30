@@ -55,6 +55,7 @@ I2CSPIDriverBase *DLVR::instantiate(const I2CSPIDriverConfig &config, const int 
 DLVR::DLVR(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config),
+	ModuleParams(nullptr),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms errors"))
 {
@@ -167,7 +168,13 @@ int DLVR::init()
 		_cal_range = 60.0f;
 		_offset_out = 1638.f;
 		break;
+
+	default: /* DLVR L10D (+- 10 inH20) */
+		_cal_range = 20.0f;
+		_offset_out = 8192.f;
+		break;
 	}
+
 
 	ScheduleClear();
 	ScheduleNow();
@@ -179,9 +186,6 @@ int DLVR::probe()
 {
 	for (unsigned i = 0; i < 10; i++) {
 		// Start All (pressure and temperature)
-		// if (transfer(nullptr, 0, &dummy, 0) == PX4_OK) {
-
-		// uint8_t dummy;
 		uint8_t res_data[2];
 		int status = transfer(nullptr, 0, res_data, sizeof(res_data));
 
@@ -194,11 +198,6 @@ int DLVR::probe()
 	}
 
 	return PX4_ERROR;
-}
-
-int64_t DLVR::get_conversion_interval() const
-{
-	return DIFF_CONVERSION_INTERVAL;
 }
 
 void DLVR::gather_measurement()
@@ -249,11 +248,9 @@ void DLVR::publish_pressure(const float pressure_p, const float temperature_c,
 	differential_pressure.timestamp_sample = timestamp_sample;
 	differential_pressure.device_id = get_device_id();
 	differential_pressure.differential_pressure_pa = pressure_p;
-	int32_t differential_press_rev = 0;
-	param_get(param_find("SENS_DPRES_REV"), &differential_press_rev);
 
 	//If differential pressure reverse param set, swap positive and negative
-	if (differential_press_rev == 1) {
+	if (_param_dpres_rev.get() == 1) {
 		differential_pressure.differential_pressure_pa = -1.0f * pressure_p;
 	}
 

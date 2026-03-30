@@ -39,6 +39,8 @@
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <px4_platform_common/defines.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/differential_pressure.h>
 
@@ -53,7 +55,7 @@ static_assert(DIFF_CONVERSION_INTERVAL >= 7000, "Conversion interval is too fast
 static constexpr uint8_t I2C_ADDRESS_DEFAULT = 0x28;
 static constexpr uint32_t I2C_SPEED = 100 * 1000; // 100 kHz I2C serial interface
 
-class DLVR : public device::I2C, public I2CSPIDriver<DLVR>
+class DLVR : public device::I2C, public I2CSPIDriver<DLVR>, public ModuleParams
 {
 public:
 	explicit DLVR(const I2CSPIDriverConfig &config);
@@ -69,12 +71,15 @@ public:
 private:
 	void publish_pressure(const float pressure_p, const float temperature_c,
 			      const hrt_abstime timestamp_sample);
-	int64_t get_conversion_interval() const;
-	void initiate_a_sample();
+	constexpr int64_t get_conversion_interval() const { return DIFF_CONVERSION_INTERVAL; };
 	void gather_measurement();
 
 	float process_pressure_raw(const float pressure_dig) const;
 	float process_temperature_raw(const float temperature_raw) const;
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::SENS_DPRES_REV>) _param_dpres_rev   /**< parameter */
+	)
 
 	// DLVR L10D-values as default
 	float _cal_range{20.0f};
