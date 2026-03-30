@@ -100,6 +100,10 @@ bool FlightTaskManualAcceleration::update()
 		}
 	}
 
+	// Apply external acceleration after stick computation so it takes priority.
+	// Falls back silently to stick control when no valid command is available.
+	_applyExternalAcceleration();
+
 	return ret;
 }
 

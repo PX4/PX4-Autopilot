@@ -44,6 +44,7 @@
 #include "FlightTask.hpp"
 #include "StickTiltXY.hpp"
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/acc_sp_external.h>
 
 class FlightTaskManualAltitude : public FlightTask
 {
@@ -65,6 +66,16 @@ protected:
 	virtual void _scaleSticks(); /**< scales sticks to velocity in z */
 	bool _checkTakeoff() override;
 	void _updateConstraintsFromEstimator();
+
+	/**
+	 * Apply external XY acceleration command if a valid acc_sp_external message
+	 * has been received recently (within timeout_ms). Requires altitude estimate
+	 * to be valid (z_valid). Overrides stick-based XY setpoint.
+	 * Called at the end of update() so it takes priority over stick input.
+	 */
+	void _applyExternalAcceleration();
+
+	uORB::Subscription _acc_sp_external_sub{ORB_ID(acc_sp_external)};
 
 	/**
 	 *  Check and sets for position lock.
@@ -93,7 +104,8 @@ protected:
 					(ParamFloat<px4::params::MPC_LAND_SPEED>)
 					_param_mpc_land_speed, /**< desired downwards speed when approaching the ground */
 					(ParamFloat<px4::params::MPC_TKO_SPEED>)
-					_param_mpc_tko_speed /**< desired upwards speed when still close to the ground */
+					_param_mpc_tko_speed, /**< desired upwards speed when still close to the ground */
+					(ParamFloat<px4::params::MPC_ACC_HOR>) _param_mpc_acc_hor_ext /**< max horizontal acceleration limit for external acc cmd */
 				       )
 private:
 	/**

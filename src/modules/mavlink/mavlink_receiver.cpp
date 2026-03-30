@@ -1125,6 +1125,24 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 			return;
 		}
 
+		// Bit 12 (0x1000): "apply in current mode" flag.
+		// Publishes acceleration command to acc_sp_external without requiring OFFBOARD mode.
+		// Supports NED frame + acceleration fields only via this path.
+		static constexpr uint16_t ACC_SP_EXTERNAL_FLAG = (1u << 12);
+
+		if ((type_mask & ACC_SP_EXTERNAL_FLAG) && ocm.acceleration
+		    && target_local_ned.coordinate_frame == MAV_FRAME_LOCAL_NED) {
+			acc_sp_external_s ext{};
+			ext.timestamp       = hrt_absolute_time();
+			ext.acceleration[0] = setpoint.acceleration[0];
+			ext.acceleration[1] = setpoint.acceleration[1];
+			ext.acceleration[2] = setpoint.acceleration[2];
+			ext.yaw             = setpoint.yaw;
+			ext.timeout_ms      = 500u;
+			_acc_sp_external_pub.publish(ext);
+			return;
+		}
+
 		if (ocm.position || ocm.velocity || ocm.acceleration) {
 			// publish offboard_control_mode
 			ocm.timestamp = hrt_absolute_time();

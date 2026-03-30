@@ -293,6 +293,50 @@ void FlightTaskManualAltitude::_updateXYSetpoint()
 					      _sticks.getPitchRoll(), _deltatime, _yaw, _yaw_setpoint);
 }
 
+void FlightTaskManualAltitude::_applyExternalAcceleration()
+{
+	acc_sp_external_s cmd;
+
+	if (!_acc_sp_external_sub.update(&cmd)) {
+		return;
+	}
+
+	// Watchdog: reject stale commands
+	const uint16_t timeout_ms = (cmd.timeout_ms > 0u) ? cmd.timeout_ms : 500u;
+
+	if (hrt_elapsed_time(&cmd.timestamp) > (hrt_abstime)timeout_ms * 1000ULL) {
+		return;
+	}
+
+	// Require valid altitude estimate (barometer-based, GPS-independent)
+	if (!_sub_vehicle_local_position.get().z_valid) {
+		return;
+	}
+
+	// Validate acceleration fields
+	if (!PX4_ISFINITE(cmd.acceleration[0]) || !PX4_ISFINITE(cmd.acceleration[1])) {
+		return;
+	}
+
+	// Clamp to configured horizontal acceleration limit
+	const float acc_limit = _param_mpc_acc_hor_ext.get();
+	const float ax = math::constrain(cmd.acceleration[0], -acc_limit, acc_limit);
+	const float ay = math::constrain(cmd.acceleration[1], -acc_limit, acc_limit);
+
+	// Override stick-based XY setpoint
+	_acceleration_setpoint(0) = ax;
+	_acceleration_setpoint(1) = ay;
+	_position_setpoint(0)     = NAN;
+	_position_setpoint(1)     = NAN;
+	_velocity_setpoint(0)     = NAN;
+	_velocity_setpoint(1)     = NAN;
+
+	// Override yaw if explicitly commanded
+	if (PX4_ISFINITE(cmd.yaw)) {
+		_yaw_setpoint = cmd.yaw;
+	}
+}
+
 bool FlightTaskManualAltitude::_checkTakeoff()
 {
 	// stick is deflected above 65% throttle (throttle stick is in the range [-1,1])
@@ -307,6 +351,10 @@ bool FlightTaskManualAltitude::update()
 	_updateSetpoints();
 	_constraints.want_takeoff = _checkTakeoff();
 	_max_distance_to_ground = INFINITY;
+
+	// Apply external acceleration last so it overrides stick-based XY setpoints.
+	// Falls back silently to stick control when no valid command is available.
+	_applyExternalAcceleration();
 
 	return ret;
 }

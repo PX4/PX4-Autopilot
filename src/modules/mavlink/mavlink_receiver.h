@@ -98,6 +98,7 @@
 #include <uORB/topics/sensor_optical_flow.h>
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/transponder_report.h>
+#include <uORB/topics/acc_sp_external.h>
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/tune_control.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -325,6 +326,7 @@ private:
 	uORB::Publication<vehicle_attitude_setpoint_s>		_fw_virtual_att_sp_pub{ORB_ID(fw_virtual_attitude_setpoint)};
 	uORB::Publication<vehicle_global_position_s>		_global_pos_pub{ORB_ID(vehicle_global_position)};
 	uORB::Publication<vehicle_local_position_s>		_local_pos_pub{ORB_ID(vehicle_local_position)};
+	uORB::Publication<acc_sp_external_s>			_acc_sp_external_pub{ORB_ID(acc_sp_external)};
 	uORB::Publication<trajectory_setpoint_s>		_trajectory_setpoint_pub{ORB_ID(trajectory_setpoint)};
 	uORB::Publication<vehicle_odometry_s>			_mocap_odometry_pub{ORB_ID(vehicle_mocap_odometry)};
 	uORB::Publication<vehicle_odometry_s>			_visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
