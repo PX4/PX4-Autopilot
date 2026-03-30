@@ -114,6 +114,10 @@ This model has a [gimbal](../advanced/gimbal_control.md) attached to the front w
 
 The gimbal joints uses position control with a kinematic chain ZXY.
 
+According to the file [Gimbal model.sdf file](../../../Tools/simulation/gz/models/gimbal/model.sdf):
+- the default horizontal field of view is 2.0 rad ~= 115°
+- the default vertical field of view is 1.45 rad ~= 83°
+
 ![Quadrotor(x500) with gimbal (Front-facing) in Gazebo](../../assets/simulation/gazebo/vehicles/x500_gimbal.png).
 
 ```sh
