@@ -1,6 +1,6 @@
 /****************************************************************************
 *
- *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -54,18 +54,15 @@ NodeInfoPublisher::~NodeInfoPublisher()
 
 void NodeInfoPublisher::handleNodeInfoRetrieved(uavcan::NodeID node_id, const uavcan::protocol::GetNodeInfo_::Response &node_info)
 {
-	const NodeInfo info(node_id, node_info);
-
 	NodeVendor vendor = NodeVendor::UNKNOWN;
 
-	if (strstr(info.name, "iq_motion") != nullptr) {
+	if (strstr(node_info.name.c_str(), "iq_motion") != nullptr) {
 		vendor = NodeVendor::VERTIQ;
 	}
 
 	_node_vendors[node_id.get()] = vendor;
 
-	registerNodeInfo(info.node_id.get(), info);
-
+	registerNodeInfo(node_id.get(), node_info);
 	startTimerIfNotRunning();
 }
 
@@ -86,7 +83,7 @@ void NodeInfoPublisher::startTimerIfNotRunning()
 	}
 }
 
-void NodeInfoPublisher::registerNodeInfo(uint8_t node_id, const NodeInfo &info)
+void NodeInfoPublisher::registerNodeInfo(uint8_t node_id, const uavcan::protocol::GetNodeInfo_::Response &node_info)
 {
 	bool found = false;
 
@@ -96,7 +93,7 @@ void NodeInfoPublisher::registerNodeInfo(uint8_t node_id, const NodeInfo &info)
 		found = true;
 
 		if (!_device_informations[i].has_node_info) {
-			populateDeviceInfoFields(_device_informations[i], info);
+			populateDeviceInfoFields(_device_informations[i], node_info);
 
 			if (_device_informations[i].capability != DeviceCapability::NONE) {
 				publishSingleDeviceInformation(_device_informations[i]);
@@ -107,7 +104,7 @@ void NodeInfoPublisher::registerNodeInfo(uint8_t node_id, const NodeInfo &info)
 	if (!found && extendDeviceInformationsArray()) {
 		_device_informations[_device_informations_size - 1] = DeviceInformation();
 		_device_informations[_device_informations_size - 1].node_id = node_id;
-		populateDeviceInfoFields(_device_informations[_device_informations_size - 1], info);
+		populateDeviceInfoFields(_device_informations[_device_informations_size - 1], node_info);
 	}
 }
 
@@ -216,8 +213,8 @@ void NodeInfoPublisher::publishSingleDeviceInformation(const DeviceInformation &
 
 	// Format version integers to strings at publish time
 	snprintf(msg.firmware_version, sizeof(msg.firmware_version),
-		 "%d.%d.%lu", device_info.fw_major, device_info.fw_minor,
-		 static_cast<unsigned long>(device_info.fw_patch));
+		 "%d.%d.%lu", device_info.sw_major, device_info.sw_minor,
+		 static_cast<unsigned long>(device_info.sw_vcs_commit));
 	snprintf(msg.hardware_version, sizeof(msg.hardware_version),
 		 "%d.%d", device_info.hw_major, device_info.hw_minor);
 
@@ -228,24 +225,23 @@ void NodeInfoPublisher::publishSingleDeviceInformation(const DeviceInformation &
 		  static_cast<int>(device_info.capability));
 }
 
-void NodeInfoPublisher::populateDeviceInfoFields(DeviceInformation &device_info, const NodeInfo &info)
+void NodeInfoPublisher::populateDeviceInfoFields(DeviceInformation &device_info, const uavcan::protocol::GetNodeInfo_::Response &node_info)
 {
 	device_info.has_node_info = true;
 
-	snprintf(device_info.name, sizeof(device_info.name), "%s", info.name);
+	snprintf(device_info.name, sizeof(device_info.name), "%s", node_info.name.c_str());
 
-	device_info.fw_major = info.sw_major;
-	device_info.fw_minor = info.sw_minor;
-	device_info.fw_patch = info.vcs_commit;
-	device_info.hw_major = info.hw_major;
-	device_info.hw_minor = info.hw_minor;
+	device_info.sw_major = node_info.software_version.major;
+	device_info.sw_minor = node_info.software_version.minor;
+	device_info.sw_vcs_commit = node_info.software_version.vcs_commit;
+	device_info.hw_major = node_info.hardware_version.major;
+	device_info.hw_minor = node_info.hardware_version.minor;
 
+	const auto &uid = node_info.hardware_version.unique_id;
 	snprintf(device_info.serial_number, sizeof(device_info.serial_number),
 		 "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
-		 info.unique_id[0], info.unique_id[1], info.unique_id[2], info.unique_id[3],
-		 info.unique_id[4], info.unique_id[5], info.unique_id[6], info.unique_id[7],
-		 info.unique_id[8], info.unique_id[9], info.unique_id[10], info.unique_id[11],
-		 info.unique_id[12], info.unique_id[13], info.unique_id[14], info.unique_id[15]);
+		 uid[0], uid[1], uid[2], uid[3], uid[4], uid[5], uid[6], uid[7],
+		 uid[8], uid[9], uid[10], uid[11], uid[12], uid[13], uid[14], uid[15]);
 }
 
 bool NodeInfoPublisher::extendDeviceInformationsArray()
