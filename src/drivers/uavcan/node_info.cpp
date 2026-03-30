@@ -201,17 +201,16 @@ void NodeInfoPublisher::publishSingleDeviceInformation(const DeviceInformation &
 	msg.device_type = device_info.device_type;
 	msg.device_id = device_info.device_id;
 
-	// Copy name and serial directly
 	static_assert(sizeof(msg.name) == sizeof(device_info.name), "Array size mismatch");
-	static_assert(sizeof(msg.serial_number) == sizeof(device_info.serial_number), "Array size mismatch");
-
 	memcpy(msg.name, device_info.name, sizeof(msg.name));
 	msg.name[sizeof(msg.name) - 1] = '\0';
 
-	memcpy(msg.serial_number, device_info.serial_number, sizeof(msg.serial_number));
-	msg.serial_number[sizeof(msg.serial_number) - 1] = '\0';
-
-	// Format version integers to strings at publish time
+	// Format strings at publish time
+	const auto &uid = device_info.unique_id;
+	snprintf(msg.serial_number, sizeof(msg.serial_number),
+		 "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
+		 uid[0], uid[1], uid[2], uid[3], uid[4], uid[5], uid[6], uid[7],
+		 uid[8], uid[9], uid[10], uid[11], uid[12], uid[13], uid[14], uid[15]);
 	snprintf(msg.firmware_version, sizeof(msg.firmware_version),
 		 "%d.%d.%lu", device_info.sw_major, device_info.sw_minor,
 		 static_cast<unsigned long>(device_info.sw_vcs_commit));
@@ -237,11 +236,7 @@ void NodeInfoPublisher::populateDeviceInfoFields(DeviceInformation &device_info,
 	device_info.hw_major = node_info.hardware_version.major;
 	device_info.hw_minor = node_info.hardware_version.minor;
 
-	const auto &uid = node_info.hardware_version.unique_id;
-	snprintf(device_info.serial_number, sizeof(device_info.serial_number),
-		 "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
-		 uid[0], uid[1], uid[2], uid[3], uid[4], uid[5], uid[6], uid[7],
-		 uid[8], uid[9], uid[10], uid[11], uid[12], uid[13], uid[14], uid[15]);
+	memcpy(device_info.unique_id, &node_info.hardware_version.unique_id.front(), sizeof(device_info.unique_id));
 }
 
 bool NodeInfoPublisher::extendDeviceInformationsArray()

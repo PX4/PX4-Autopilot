@@ -68,18 +68,18 @@ private:
 	static constexpr uint8_t DEVICE_TYPE_NONE = UINT8_MAX;
 
 	struct DeviceInformation {
-		uint8_t node_id{UINT8_MAX};
-		uint32_t device_id{UINT32_MAX};
-		uint8_t device_type{DEVICE_TYPE_NONE};
-		bool has_node_info{false};
+		uint8_t node_id = UINT8_MAX;
+		uint32_t device_id = UINT32_MAX;
+		uint8_t device_type = DEVICE_TYPE_NONE;
+		bool has_node_info = false;
 
 		char name[80] = "";
-		uint8_t sw_major{0};
-		uint8_t sw_minor{0};
-		uint32_t sw_vcs_commit{0};
-		uint8_t hw_major{0};
-		uint8_t hw_minor{0};
-		char serial_number[33] = "";
+		uint8_t sw_major = 0;
+		uint8_t sw_minor = 0;
+		uint32_t sw_vcs_commit = 0;
+		uint8_t hw_major = 0;
+		uint8_t hw_minor = 0;
+		uint8_t unique_id[16] {};
 	};
 
 	void handleNodeInfoRetrieved(uavcan::NodeID node_id,
