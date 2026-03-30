@@ -785,6 +785,11 @@ void DShot::handle_configure_actuator(const vehicle_command_s &command)
 	if (function > 1000) {
 		// NOTE: backwards compatibility for QGC - 1101=Motor1, 1102=Motor2, etc
 		function -= 1000;
+
+	} else if (function >= 1 && function <= 16) {
+		// MAVLink standard: ACTUATOR_OUTPUT_FUNCTION_MOTOR1=1 .. MOTOR16=16
+		// PX4 internal:     OutputFunction::Motor1=101 .. Motor12=112
+		function += 100;
 	}
 
 	int motor_index = -1;
