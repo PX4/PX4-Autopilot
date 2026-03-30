@@ -257,7 +257,7 @@ void VehicleAirData::Run()
 	if (!_relative_calibration_done) {
 		_relative_calibration_done = UpdateRelativeCalibrations(time_now_us);
 
-	} else if (!_baro_gnss_calibration_done && _param_sens_baro_autocal.get()) {
+	} else if (!_baro_gnss_calibration_done && (_param_sens_baro_autocal.get() & 1)) {
 		_baro_gnss_calibration_done = BaroGNSSAltitudeOffset();
 	}
 
@@ -288,7 +288,40 @@ void VehicleAirData::Run()
 						const float ambient_temperature = AirTemperatureUpdate(temperature_baro, temperature_source, time_now_us);
 
 						const float pressure_sealevel_pa = _param_sens_baro_qnh.get() * 100.f;
-						const float altitude = getAltitudeFromPressure(pressure_pa, pressure_sealevel_pa);
+						float altitude = getAltitudeFromPressure(pressure_pa, pressure_sealevel_pa);
+
+						// Thrust-induced static pressure compensation.
+						// Corrects for pressure changes at the baro sensor caused by
+						// propwash, proportional to thrust magnitude.
+						if (fabsf(_param_sens_baro_pcoef.get()) > FLT_EPSILON) {
+							float thrust = 0.f;
+							vehicle_thrust_setpoint_s thrust_sp;
+
+							if (_vehicle_thrust_setpoint_sub.copy(&thrust_sp)
+							    && (hrt_elapsed_time(&thrust_sp.timestamp) < 500_ms)) {
+								thrust = math::constrain(-thrust_sp.xyz[2], 0.f, 1.f);
+							}
+
+							const float tau = _param_sens_baro_ptau.get();
+
+							if (tau > FLT_EPSILON) {
+								if (_thrust_lpf_last_us == 0) {
+									_thrust_lpf.reset(thrust);
+
+								} else {
+									const float dt = math::constrain(
+												 static_cast<float>(timestamp_sample - _thrust_lpf_last_us) * 1e-6f,
+												 0.001f, 0.5f);
+									_thrust_lpf.setParameters(dt, tau);
+									_thrust_lpf.update(thrust);
+								}
+
+								_thrust_lpf_last_us = timestamp_sample;
+								thrust = _thrust_lpf.getState();
+							}
+
+							altitude += _param_sens_baro_pcoef.get() * thrust;
+						}
 
 						// calculate air density
 						const float air_density = getDensityFromPressureAndTemp(pressure_pa, ambient_temperature);

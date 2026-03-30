@@ -57,6 +57,7 @@
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/estimator_status_flags.h>
 #include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
 
 using namespace time_literals;
 
@@ -110,6 +111,7 @@ private:
 	};
 
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _vehicle_thrust_setpoint_sub{ORB_ID(vehicle_thrust_setpoint)};
 
 	calibration::Barometer _calibration[MAX_SENSOR_COUNT];
 
@@ -145,10 +147,16 @@ private:
 	float _baro_gnss_offset_t1{NAN};
 	uint64_t _t_first_gnss_sample{0};
 
+	// Thrust-based baro propwash compensation
+	AlphaFilter<float> _thrust_lpf{};
+	hrt_abstime _thrust_lpf_last_us{0};
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SENS_BARO_QNH>) _param_sens_baro_qnh,
 		(ParamFloat<px4::params::SENS_BARO_RATE>) _param_sens_baro_rate,
-		(ParamBool<px4::params::SENS_BAR_AUTOCAL>) _param_sens_baro_autocal
+		(ParamInt<px4::params::SENS_BAR_AUTOCAL>) _param_sens_baro_autocal,
+		(ParamFloat<px4::params::SENS_BARO_PCOEF>) _param_sens_baro_pcoef,
+		(ParamFloat<px4::params::SENS_BARO_PTAU>) _param_sens_baro_ptau
 	)
 };
 }; // namespace sensors

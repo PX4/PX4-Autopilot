@@ -20,6 +20,11 @@ flight_mode_manager start
 mc_pos_control start vtol
 mc_hover_thrust_estimator start
 
+if param greater -s SENS_BAR_AUTOCAL 1
+then
+	baro_thrust_estimator start
+fi
+
 if param greater -s MC_AT_EN 0
 then
 	mc_autotune_attitude_control start

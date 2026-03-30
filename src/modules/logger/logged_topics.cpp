@@ -82,6 +82,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic_multi("heater_status");
 	add_topic("home_position");
 	add_topic("hover_thrust_estimate", 100);
+	add_topic("baro_thrust_estimate", 100);
 	add_topic("input_rc", 500);
 	add_optional_topic("internal_combustion_engine_control", 10);
 	add_optional_topic("internal_combustion_engine_status", 10);
@@ -377,6 +378,7 @@ void LoggedTopics::add_high_rate_sensors_topics()
 	add_topic_multi("sensor_gps", 0, 4);
 	add_topic_multi("sensor_gnss_relative", 0, 1);
 	add_topic_multi("sensor_mag", 0, 4);
+	add_topic("vehicle_air_data");
 }
 
 void LoggedTopics::add_mavlink_tunnel()

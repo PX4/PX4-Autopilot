@@ -24,7 +24,41 @@ parameters:
     SENS_BAR_AUTOCAL:
       description:
         short: Barometer auto calibration
-        long: Automatically calibrate barometer based on the GNSS height
+        long: |
+          Bitmask controlling automatic barometer calibrations.
+          Bit 0: GNSS-based altitude offset calibration.
+          Bit 1: Online thrust compensation estimation (identifies
+          SENS_BARO_PCOEF and SENS_BARO_PTAU during flight and saves
+          on disarm).
       category: System
-      type: boolean
+      type: bitmask
+      bit:
+        0: GNSS altitude offset
+        1: Thrust compensation
       default: 1
+      min: 0
+      max: 3
+    SENS_BARO_PCOEF:
+      description:
+        short: Baro altitude correction per unit normalized thrust
+        long: Corrects propwash-induced baro error.
+          Sign depends on sensor placement relative to propellers.
+          Set to 0 to disable.
+      type: float
+      default: 0.0
+      min: -30.0
+      max: 30.0
+      unit: m
+      decimal: 1
+    SENS_BARO_PTAU:
+      description:
+        short: Baro thrust compensation time constant
+        long: First-order low-pass filter time constant on thrust before
+          baro compensation. Models delay from thrust change to pressure
+          response. Set to 0 for instantaneous compensation.
+      type: float
+      default: 0.0
+      min: 0.0
+      max: 2.0
+      unit: s
+      decimal: 2
