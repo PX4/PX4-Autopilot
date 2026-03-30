@@ -31,6 +31,7 @@ Outputs
 """
 
 import argparse
+import asyncio
 import csv
 import math
 import os
@@ -46,6 +47,12 @@ try:
     from pymavlink import mavutil
 except ImportError:
     sys.exit("ERROR: pip install pymavlink")
+
+try:
+    from mavsdk import System
+    from mavsdk.action import ActionError
+except ImportError:
+    sys.exit("ERROR: pip install mavsdk")
 
 # Add Tools/ to path so acceleration_control is importable
 sys.path.insert(0, str(Path(__file__).parent))
@@ -316,13 +323,77 @@ class SITLAccTest:
     CLAMP_TILT_MAX_DEG = 30.0  # atan(5/9.81)=27° + 3° margin
     CLAMP_MIN_RESPONSE_TILT_DEG = 2.0  # must tilt at least 2° to prove response
 
-    def __init__(self, connection: str, mode: str, log_dir: Path):
-        self._conn_str = connection
-        self._mode = mode          # 'position' or 'altitude'
+    TAKEOFF_ALT_M = 10.0
+
+    def __init__(self, acc_connection: str, mavsdk_address: str,
+                 mode: str, log_dir: Path):
+        self._acc_conn = acc_connection   # pymavlink — acc commands only
+        self._mavsdk_addr = mavsdk_address  # mavsdk — arm/takeoff/land/mode
+        self._mode = mode
         self._log_dir = log_dir
         self._logger: Optional[Logger] = None
+        self._drone: Optional[System] = None
         self._ac: Optional[AccelerationControl] = None
         self._telem: Optional[TelemetryReceiver] = None
+        # Persistent event loop — reused for setup and teardown
+        self._loop = asyncio.new_event_loop()
+
+    # ------------------------------------------------------------------
+    # mavsdk helpers (async)
+    # ------------------------------------------------------------------
+
+    async def _mavsdk_setup(self):
+        """Arm, takeoff to TAKEOFF_ALT_M, set mode — via mavsdk."""
+        self._drone = System()
+        print(f"[Setup] mavsdk connecting to {self._mavsdk_addr}...")
+        await self._drone.connect(system_address=self._mavsdk_addr)
+
+        async for state in self._drone.core.connection_state():
+            if state.is_connected:
+                print("[Setup] mavsdk connected")
+                break
+
+        print("[Setup] Waiting for health checks...")
+        async for health in self._drone.telemetry.health():
+            if health.is_global_position_ok and health.is_home_position_ok:
+                print("[Setup] Health OK (GPS + EKF ready)")
+                break
+
+        print("[Setup] Arming...")
+        await self._drone.action.arm()
+        print("[Setup] Armed")
+
+        print(f"[Setup] Taking off to {self.TAKEOFF_ALT_M}m...")
+        await self._drone.action.set_takeoff_altitude(self.TAKEOFF_ALT_M)
+        await self._drone.action.takeoff()
+
+        async for pos in self._drone.telemetry.position():
+            if pos.relative_altitude_m >= self.TAKEOFF_ALT_M * 0.9:
+                print(f"[Setup] Reached {pos.relative_altitude_m:.1f}m")
+                break
+
+        print(f"[Setup] Switching to {self._mode.upper()} mode...")
+        # mavsdk requires at least one manual control input before start_*_control()
+        await self._drone.manual_control.set_manual_control_input(0.0, 0.0, 0.5, 0.0)
+        await asyncio.sleep(0.5)
+        if self._mode == 'altitude':
+            await self._drone.manual_control.start_altitude_control()
+        else:
+            await self._drone.manual_control.start_position_control()
+
+        await asyncio.sleep(3.0)
+        print(f"[Setup] {self._mode.upper()} mode active, stabilising...")
+
+    async def _mavsdk_teardown(self):
+        """Land and wait until on ground — via mavsdk."""
+        if self._drone is None:
+            return
+        print("[Teardown] Landing...")
+        await self._drone.action.land()
+        async for in_air in self._drone.telemetry.in_air():
+            if not in_air:
+                print("[Teardown] Landed")
+                break
 
     # ------------------------------------------------------------------
     # Infrastructure
@@ -332,35 +403,23 @@ class SITLAccTest:
         self._logger = Logger(self._log_dir)
         print(f"\n[Setup] Log directory: {self._log_dir}")
 
-        self._ac = AccelerationControl(self._conn_str)
-        self._ac.connect(timeout_s=15.0)
+        # mavsdk handles arm + takeoff + mode switch
+        self._loop.run_until_complete(self._mavsdk_setup())
 
-        # Share the mavlink connection for telemetry
+        # pymavlink for acc commands + telemetry during tests
+        self._ac = AccelerationControl(self._acc_conn)
+        self._ac.connect(timeout_s=10.0)
         self._telem = TelemetryReceiver(self._ac._mav)
         self._telem.start()
 
-        print("[Setup] Arming...")
-        self._ac.arm(wait_s=3.0)
-
-        print("[Setup] Taking off to 10m...")
-        self._ac.takeoff(altitude_m=10.0)
-        self._wait_for_altitude(target_m=10.0, timeout_s=30.0)
-
-        if self._mode == 'altitude':
-            self._ac.set_altitude_mode(wait_s=2.0)
-        else:
-            self._ac.set_position_mode(wait_s=2.0)
-
-        print(f"[Setup] Mode: {self._mode.upper()} — waiting for stabilisation...")
-        self._wait(3.0)
+        print(f"[Setup] pymavlink connected, final stabilisation...")
+        self._wait(2.0)
 
     def teardown(self):
-        print("\n[Teardown] Landing...")
-        if self._ac and self._ac._mav is not None:
-            self._ac.land()
-        self._wait(3.0)
         if self._telem:
             self._telem.stop()
+        self._loop.run_until_complete(self._mavsdk_teardown())
+        self._loop.close()
         if self._logger:
             self._logger.write_summary()
             self._logger.close()
@@ -384,21 +443,6 @@ class SITLAccTest:
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
-
-    def _wait_for_altitude(self, target_m: float, timeout_s: float = 30.0):
-        """Poll telemetry until drone reaches target altitude (positive up)."""
-        print(f"  [wait] climbing to {target_m:.0f}m...", end='', flush=True)
-        t0 = time.time()
-        while time.time() - t0 < timeout_s:
-            s = self._telem.get_latest()
-            self._logger.log_telemetry(s)
-            alt = -s.pos_z  # NED: z negative = up
-            if not math.isnan(alt) and alt >= target_m * 0.9:
-                print(f" reached {alt:.1f}m")
-                return
-            time.sleep(0.2)
-        print(f" TIMEOUT")
-        raise RuntimeError(f"Takeoff timeout: did not reach {target_m}m in {timeout_s}s")
 
     def _wait(self, seconds: float, desc: str = ''):
         """Wait while continuously logging telemetry."""
@@ -725,8 +769,10 @@ class SITLAccTest:
 def main():
     parser = argparse.ArgumentParser(
         description='SITL integration tests for NED acceleration control')
-    parser.add_argument('--connection', default='udp:127.0.0.1:14540',
-                        help='pymavlink connection string (default: udp:127.0.0.1:14540)')
+    parser.add_argument('--mavsdk', default='udp://:14540',
+                        help='mavsdk address for arm/takeoff/land (default: udp://:14540)')
+    parser.add_argument('--connection', default='udpin:0.0.0.0:14550',
+                        help='pymavlink connection for acc commands (default: udpin:0.0.0.0:14550)')
     parser.add_argument('--mode', choices=['position', 'altitude'], default='position',
                         help='Flight mode to test (default: position)')
     parser.add_argument('--log-dir', default=None,
@@ -738,7 +784,8 @@ def main():
               Path(__file__).parent / 'logs' / f'sitl_acc_test_{ts}'
 
     runner = SITLAccTest(
-        connection=args.connection,
+        acc_connection=args.connection,
+        mavsdk_address=args.mavsdk,
         mode=args.mode,
         log_dir=log_dir,
     )
@@ -747,7 +794,8 @@ def main():
 ╔══════════════════════════════════════════════════╗
 ║  SITL Acceleration Control Test Suite            ║
 ║  Mode      : {args.mode.upper():<34} ║
-║  Connection: {args.connection:<34} ║
+║  mavsdk    : {args.mavsdk:<34} ║
+║  acc conn  : {args.connection:<34} ║
 ║  Log dir   : {str(log_dir):<34} ║
 ╚══════════════════════════════════════════════════╝
 """)

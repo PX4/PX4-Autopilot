@@ -69,6 +69,7 @@ _TYPE_MASK_ACC_WITH_YAW = (
 _MAV_FRAME_LOCAL_NED = 1  # MAV_FRAME_LOCAL_NED per MAVLink spec
 
 # PX4 custom mode values
+_PX4_MAIN_MODE_AUTO     = 4
 _PX4_MAIN_MODE_POSCTL   = 3
 _PX4_MAIN_MODE_ALTCTL   = 2
 _PX4_CUSTOM_SUB_MODE_POSCTL = 0
@@ -132,6 +133,18 @@ class AccelerationControl:
     # Vehicle commands
     # ------------------------------------------------------------------
 
+    def set_param_float(self, name: str, value: float) -> None:
+        """Set a PX4 float/int parameter via MAVLink PARAM_SET."""
+        if self._mav is None:
+            raise RuntimeError("Not connected.")
+        self._mav.mav.param_set_send(
+            self._mav.target_system,
+            self._mav.target_component,
+            name.encode(),
+            float(value),
+            mavutil.mavlink.MAV_PARAM_TYPE_REAL32
+        )
+
     def arm(self, wait_s: float = 3.0) -> None:
         """Arm the vehicle."""
         self._send_command_long(
@@ -150,7 +163,12 @@ class AccelerationControl:
         print("[AccCtrl] Disarmed")
 
     def takeoff(self, altitude_m: float = 10.0) -> None:
-        """Command takeoff to target altitude (m AGL). Does not wait for completion."""
+        """Switch to AUTO mode and command takeoff to target altitude (m AGL).
+        Does not wait for completion — caller must poll altitude.
+        """
+        # PX4 requires AUTO mode for MAV_CMD_NAV_TAKEOFF to be accepted
+        self._set_flight_mode(_PX4_MAIN_MODE_AUTO, 0)
+        time.sleep(1.0)
         self._send_command_long(
             mavutil.mavlink.MAV_CMD_NAV_TAKEOFF,
             param7=float(altitude_m)
@@ -250,13 +268,12 @@ class AccelerationControl:
         )
 
     def _set_flight_mode(self, main_mode: int, sub_mode: int) -> None:
-        """Set PX4 flight mode via MAV_CMD_DO_SET_MODE."""
-        # PX4 encodes modes as: param1=MAV_MODE_FLAG_CUSTOM_MODE_ENABLED,
-        # param2=main_mode<<16 | sub_mode<<24 (as float bits) — use standard encoding
-        custom_mode = (main_mode << 16) | (sub_mode << 24)
-        self._send_command_long(
-            mavutil.mavlink.MAV_CMD_DO_SET_MODE,
-            param1=mavutil.mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED,
-            param2=float(main_mode),
-            param3=float(sub_mode)
+        """Set PX4 flight mode via SET_MODE message (#11).
+        custom_mode encoding: bits 16-23 = main_mode, bits 24-31 = sub_mode.
+        """
+        custom_mode = (sub_mode << 24) | (main_mode << 16)
+        self._mav.mav.set_mode_send(
+            self._mav.target_system,
+            mavutil.mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED,
+            custom_mode
         )
