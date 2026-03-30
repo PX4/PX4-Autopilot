@@ -1,0 +1,29 @@
+{
+  "source": "udpin:0.0.0.0:14550",
+  "timestamp": "2026-03-05 09:02:19",
+  "params": {
+    "vel_max": 10.0,
+    "vel_max_up": 3.0,
+    "vel_max_dn": 1.5,
+    "yaw_max": 150.0,
+    "tilt_max": 35.0,
+    "deadzone": 0.10000000149011612,
+    "rc_in_mode": 1.401298464324817e-45,
+    "airframe": 1.4034004120213043e-41,
+    "battery_cells": 4.0
+  },
+  "px4_names": {
+    "vel_max": "MPC_VEL_MANUAL",
+    "vel_max_up": "MPC_Z_VEL_MAX_UP",
+    "vel_max_dn": "MPC_Z_VEL_MAX_DN",
+    "yaw_max": "MPC_MAN_Y_MAX",
+    "tilt_max": "MPC_MAN_TILT_MAX",
+    "deadzone": "MAN_DEADZONE",
+    "rc_in_mode": "COM_RC_IN_MODE",
+    "airframe": "SYS_AUTOSTART",
+    "battery_cells": "BAT_N_CELLS"
+  },
+  "warnings": [
+    "BAT_N_CELLS không đọc được, dùng default=4.0"
+  ]
+}
