@@ -40,8 +40,8 @@
 
 using namespace time_literals;
 
-constexpr int 		DEVICE_INFO_PUBLISH_INTERVAL_MS 	= 1000;
-constexpr hrt_abstime 	DEVICE_INFO_PUBLISH_RATE_LIMIT_US 	= 100_ms;
+constexpr int DEVICE_INFO_PUBLISH_INTERVAL_MS = 1000;
+constexpr hrt_abstime DEVICE_INFO_PUBLISH_RATE_LIMIT_US = 100_ms;
 
 class NodeInfoPublisher : private uavcan::INodeInfoListener, private uavcan::TimerBase
 {
@@ -51,31 +51,11 @@ public:
 		VERTIQ, // formerly IQ Motion Control hence "iq_motion" vendor name
 	};
 
-	enum class DeviceCapability : uint8_t {
-		NONE = UINT8_MAX,  // Invalid/unset capability value (255)
-		GENERIC = device_information_s::DEVICE_TYPE_GENERIC,
-		AIRSPEED = device_information_s::DEVICE_TYPE_AIRSPEED,
-		ESC = device_information_s::DEVICE_TYPE_ESC,
-		SERVO = device_information_s::DEVICE_TYPE_SERVO,
-		GPS = device_information_s::DEVICE_TYPE_GPS,
-		MAGNETOMETER = device_information_s::DEVICE_TYPE_MAGNETOMETER,
-		PARACHUTE = device_information_s::DEVICE_TYPE_PARACHUTE,
-		RANGEFINDER = device_information_s::DEVICE_TYPE_RANGEFINDER,
-		WINCH = device_information_s::DEVICE_TYPE_WINCH,
-		BAROMETER = device_information_s::DEVICE_TYPE_BAROMETER,
-		OPTICAL_FLOW = device_information_s::DEVICE_TYPE_OPTICAL_FLOW,
-		ACCELEROMETER = device_information_s::DEVICE_TYPE_ACCELEROMETER,
-		GYROSCOPE = device_information_s::DEVICE_TYPE_GYROSCOPE,
-		DIFFERENTIAL_PRESSURE = device_information_s::DEVICE_TYPE_DIFFERENTIAL_PRESSURE,
-		BATTERY = device_information_s::DEVICE_TYPE_BATTERY,
-		HYGROMETER = device_information_s::DEVICE_TYPE_HYGROMETER,
-	};
-
 	NodeInfoPublisher(uavcan::INode &node, uavcan::NodeInfoRetriever &node_info_retriever);
 	~NodeInfoPublisher();
 
 	// Called by sensor bridges to register device capabilities
-	void registerDeviceCapability(uint8_t node_id, uint32_t device_id, DeviceCapability capability);
+	void registerDeviceCapability(uint8_t node_id, uint32_t device_id, uint8_t device_type);
 
 	NodeVendor getNodeVendor(uint8_t node_id) const
 	{
@@ -85,10 +65,12 @@ public:
 	}
 
 private:
+	static constexpr uint8_t DEVICE_TYPE_NONE = UINT8_MAX;
+
 	struct DeviceInformation {
 		uint8_t node_id{UINT8_MAX};
 		uint32_t device_id{UINT32_MAX};
-		DeviceCapability capability{DeviceCapability::NONE};
+		uint8_t device_type{DEVICE_TYPE_NONE};
 		bool has_node_info{false};
 
 		char name[80] = "";
@@ -109,7 +91,7 @@ private:
 	void startTimerIfNotRunning();
 
 	void registerNodeInfo(uint8_t node_id, const uavcan::protocol::GetNodeInfo_::Response &node_info);
-	void registerCapability(uint8_t node_id, uint32_t device_id, DeviceCapability capability);
+	void registerCapability(uint8_t node_id, uint32_t device_id, uint8_t device_type);
 
 	// Publishing methods
 	void publishDeviceInformationPeriodic();

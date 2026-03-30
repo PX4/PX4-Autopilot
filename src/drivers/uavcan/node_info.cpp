@@ -95,7 +95,7 @@ void NodeInfoPublisher::registerNodeInfo(uint8_t node_id, const uavcan::protocol
 		if (!_device_informations[i].has_node_info) {
 			populateDeviceInfoFields(_device_informations[i], node_info);
 
-			if (_device_informations[i].capability != DeviceCapability::NONE) {
+			if (_device_informations[i].device_type != DEVICE_TYPE_NONE) {
 				publishSingleDeviceInformation(_device_informations[i]);
 			}
 		}
@@ -108,7 +108,7 @@ void NodeInfoPublisher::registerNodeInfo(uint8_t node_id, const uavcan::protocol
 	}
 }
 
-void NodeInfoPublisher::registerCapability(uint8_t node_id, uint32_t device_id, DeviceCapability capability)
+void NodeInfoPublisher::registerCapability(uint8_t node_id, uint32_t device_id, uint8_t device_type)
 {
 	int multi_capability_index = -1;
 
@@ -116,23 +116,23 @@ void NodeInfoPublisher::registerCapability(uint8_t node_id, uint32_t device_id, 
 		if (_device_informations[i].node_id != node_id) { continue; }
 
 		// Exact match — nothing to do
-		if (_device_informations[i].capability == capability &&
+		if (_device_informations[i].device_type == device_type &&
 		    _device_informations[i].device_id == device_id) {
 			return;
 		}
 
-		// Different capability on same node — remember for multi-capability copy
-		if (_device_informations[i].capability != DeviceCapability::NONE &&
-		    _device_informations[i].capability != capability) {
+		// Different device_type on same node — remember for multi-capability copy
+		if (_device_informations[i].device_type != DEVICE_TYPE_NONE &&
+		    _device_informations[i].device_type != device_type) {
 			multi_capability_index = i;
 			continue;
 		}
 
-		// No capability yet but has node info — fill it in and publish
-		if (_device_informations[i].capability == DeviceCapability::NONE &&
+		// No device_type yet but has node info — fill it in and publish
+		if (_device_informations[i].device_type == DEVICE_TYPE_NONE &&
 		    _device_informations[i].has_node_info) {
 			_device_informations[i].device_id = device_id;
-			_device_informations[i].capability = capability;
+			_device_informations[i].device_type = device_type;
 			publishSingleDeviceInformation(_device_informations[i]);
 			return;
 		}
@@ -149,18 +149,18 @@ void NodeInfoPublisher::registerCapability(uint8_t node_id, uint32_t device_id, 
 
 		_device_informations[_device_informations_size - 1].node_id = node_id;
 		_device_informations[_device_informations_size - 1].device_id = device_id;
-		_device_informations[_device_informations_size - 1].capability = capability;
+		_device_informations[_device_informations_size - 1].device_type = device_type;
 
 	} else {
 		PX4_DEBUG("Failed to extend device informations array for capability");
 	}
 }
 
-void NodeInfoPublisher::registerDeviceCapability(uint8_t node_id, uint32_t device_id, DeviceCapability capability)
+void NodeInfoPublisher::registerDeviceCapability(uint8_t node_id, uint32_t device_id, uint8_t device_type)
 {
 	if (node_id < 1 || node_id > uavcan::NodeID::Max) { return; }
 
-	registerCapability(node_id, device_id, capability);
+	registerCapability(node_id, device_id, device_type);
 }
 
 void NodeInfoPublisher::publishDeviceInformationPeriodic()
@@ -179,7 +179,7 @@ void NodeInfoPublisher::publishDeviceInformationPeriodic()
 
 		const auto &device_info = _device_informations[_next_device_to_publish];
 
-		if (device_info.has_node_info && device_info.capability != DeviceCapability::NONE) {
+		if (device_info.has_node_info && device_info.device_type != DEVICE_TYPE_NONE) {
 			publishSingleDeviceInformation(device_info);
 			_next_device_to_publish++;
 			return;
@@ -198,7 +198,7 @@ void NodeInfoPublisher::publishSingleDeviceInformation(const DeviceInformation &
 
 	device_information_s msg{};
 	msg.timestamp = now;
-	msg.device_type = static_cast<uint8_t>(device_info.capability);
+	msg.device_type = device_info.device_type;
 	msg.device_id = device_info.device_id;
 
 	// Copy name and serial directly
@@ -222,7 +222,7 @@ void NodeInfoPublisher::publishSingleDeviceInformation(const DeviceInformation &
 
 	PX4_DEBUG("Published device info for node %d, device_id %lu, type %d",
 		  device_info.node_id, static_cast<unsigned long>(device_info.device_id),
-		  static_cast<int>(device_info.capability));
+		  static_cast<int>(device_info.device_type));
 }
 
 void NodeInfoPublisher::populateDeviceInfoFields(DeviceInformation &device_info, const uavcan::protocol::GetNodeInfo_::Response &node_info)

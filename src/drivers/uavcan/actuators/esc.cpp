@@ -165,7 +165,7 @@ void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<
 	if (_node_info_publisher != nullptr) {
 		uint8_t node_id = msg.getSrcNodeID().get();
 		uint32_t device_id = esc_index;
-		_node_info_publisher->registerDeviceCapability(node_id, device_id, NodeInfoPublisher::DeviceCapability::ESC);
+		_node_info_publisher->registerDeviceCapability(node_id, device_id, device_information_s::DEVICE_TYPE_ESC);
 	}
 }
 
