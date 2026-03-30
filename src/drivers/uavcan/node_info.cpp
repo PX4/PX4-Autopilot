@@ -93,7 +93,14 @@ void NodeInfoPublisher::registerNodeInfo(uint8_t node_id, const uavcan::protocol
 		found = true;
 
 		if (!_device_informations[i].has_node_info) {
-			populateDeviceInfoFields(_device_informations[i], node_info);
+			_device_informations[i].has_node_info = true;
+			snprintf(_device_informations[i].name, sizeof(_device_informations[i].name), "%s", node_info.name.c_str());
+			_device_informations[i].sw_major = node_info.software_version.major;
+			_device_informations[i].sw_minor = node_info.software_version.minor;
+			_device_informations[i].sw_vcs_commit = node_info.software_version.vcs_commit;
+			_device_informations[i].hw_major = node_info.hardware_version.major;
+			_device_informations[i].hw_minor = node_info.hardware_version.minor;
+			memcpy(_device_informations[i].unique_id, &node_info.hardware_version.unique_id.front(), sizeof(_device_informations[i].unique_id));
 
 			if (_device_informations[i].device_type != DEVICE_TYPE_NONE) {
 				publishSingleDeviceInformation(_device_informations[i]);
@@ -102,9 +109,7 @@ void NodeInfoPublisher::registerNodeInfo(uint8_t node_id, const uavcan::protocol
 	}
 
 	if (!found && extendDeviceInformationsArray()) {
-		_device_informations[_device_informations_size - 1] = DeviceInformation();
 		_device_informations[_device_informations_size - 1].node_id = node_id;
-		populateDeviceInfoFields(_device_informations[_device_informations_size - 1], node_info);
 	}
 }
 
@@ -224,20 +229,6 @@ void NodeInfoPublisher::publishSingleDeviceInformation(const DeviceInformation &
 		  static_cast<int>(device_info.device_type));
 }
 
-void NodeInfoPublisher::populateDeviceInfoFields(DeviceInformation &device_info, const uavcan::protocol::GetNodeInfo_::Response &node_info)
-{
-	device_info.has_node_info = true;
-
-	snprintf(device_info.name, sizeof(device_info.name), "%s", node_info.name.c_str());
-
-	device_info.sw_major = node_info.software_version.major;
-	device_info.sw_minor = node_info.software_version.minor;
-	device_info.sw_vcs_commit = node_info.software_version.vcs_commit;
-	device_info.hw_major = node_info.hardware_version.major;
-	device_info.hw_minor = node_info.hardware_version.minor;
-
-	memcpy(device_info.unique_id, &node_info.hardware_version.unique_id.front(), sizeof(device_info.unique_id));
-}
 
 bool NodeInfoPublisher::extendDeviceInformationsArray()
 {
