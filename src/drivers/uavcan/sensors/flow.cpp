@@ -94,6 +94,6 @@ void UavcanFlowBridge::flow_sub_cb(const uavcan::ReceivedDataStructure<com::hex:
 	// Register device capability if not already done
 	if (_node_info_publisher != nullptr) {
 		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
-				flow.device_id, NodeInfoPublisher::DeviceCapability::OPTICAL_FLOW);
+				flow.device_id, device_information_s::DEVICE_TYPE_OPTICAL_FLOW);
 	}
 }
