@@ -19,7 +19,7 @@ Usage
   make px4_sitl gazebo-classic_iris
 
   # Terminal 2 — run tests
-  python3 Tools/sitl_acc_test.py [--connection udp://:14550] [--mode position|altitude]
+  python3 Tools/sitl_acc_test.py [--connection udp:127.0.0.1:14540] [--mode position|altitude]
 
 Outputs
 -------
@@ -190,7 +190,7 @@ class TelemetryReceiver:
                 base = msg.base_mode
                 armed = bool(base & mavutil.mavlink.MAV_MODE_FLAG_SAFETY_ARMED)
                 self._armed = armed
-                self._nav_state = msg.custom_mode & 0xFF  # main mode low byte
+                self._nav_state = (msg.custom_mode >> 16) & 0xFF  # PX4: main_mode in bits 16-23
 
     def _commit_sample(self):
         """Build a TelemetrySample from current partial state and append."""
@@ -312,8 +312,9 @@ class SITLAccTest:
     WATCHDOG_MAX_SPEED = 0.5
     # Square — max distance from origin at end (m)
     SQUARE_RETURN_TOL = 3.0
-    # Tilt clamp angle threshold (degrees)
+    # Tilt clamp: drone must respond (> MIN) but stay under clamp limit (< MAX)
     CLAMP_TILT_MAX_DEG = 30.0  # atan(5/9.81)=27° + 3° margin
+    CLAMP_MIN_RESPONSE_TILT_DEG = 2.0  # must tilt at least 2° to prove response
 
     def __init__(self, connection: str, mode: str, log_dir: Path):
         self._conn_str = connection
@@ -341,6 +342,10 @@ class SITLAccTest:
         print("[Setup] Arming...")
         self._ac.arm(wait_s=3.0)
 
+        print("[Setup] Taking off to 10m...")
+        self._ac.takeoff(altitude_m=10.0)
+        self._wait_for_altitude(target_m=10.0, timeout_s=30.0)
+
         if self._mode == 'altitude':
             self._ac.set_altitude_mode(wait_s=2.0)
         else:
@@ -351,7 +356,7 @@ class SITLAccTest:
 
     def teardown(self):
         print("\n[Teardown] Landing...")
-        if self._ac:
+        if self._ac and self._ac._mav is not None:
             self._ac.land()
         self._wait(3.0)
         if self._telem:
@@ -379,6 +384,21 @@ class SITLAccTest:
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+
+    def _wait_for_altitude(self, target_m: float, timeout_s: float = 30.0):
+        """Poll telemetry until drone reaches target altitude (positive up)."""
+        print(f"  [wait] climbing to {target_m:.0f}m...", end='', flush=True)
+        t0 = time.time()
+        while time.time() - t0 < timeout_s:
+            s = self._telem.get_latest()
+            self._logger.log_telemetry(s)
+            alt = -s.pos_z  # NED: z negative = up
+            if not math.isnan(alt) and alt >= target_m * 0.9:
+                print(f" reached {alt:.1f}m")
+                return
+            time.sleep(0.2)
+        print(f" TIMEOUT")
+        raise RuntimeError(f"Takeoff timeout: did not reach {target_m}m in {timeout_s}s")
 
     def _wait(self, seconds: float, desc: str = ''):
         """Wait while continuously logging telemetry."""
@@ -484,18 +504,25 @@ class SITLAccTest:
 
         tilts = [s.tilt_deg for s in samples if not math.isnan(s.tilt_deg)]
         max_tilt = max(tilts) if tilts else 0.0
-        # MPC_ACC_HOR default=5 m/s² → tilt_max ≈ atan(5/9.81)=27° + 3° margin
-        passed = max_tilt < self.CLAMP_TILT_MAX_DEG
+        # Drone must respond (tilt > MIN) AND stay within clamp limit (tilt < MAX)
+        responded = max_tilt > self.CLAMP_MIN_RESPONSE_TILT_DEG
+        clamped   = max_tilt < self.CLAMP_TILT_MAX_DEG
+        passed = responded and clamped
+        if passed:
+            reason = f'max_tilt {max_tilt:.1f}° in ({self.CLAMP_MIN_RESPONSE_TILT_DEG}°, {self.CLAMP_TILT_MAX_DEG}°) → drone responded and clamp active'
+        elif not responded:
+            reason = f'max_tilt {max_tilt:.1f}° ≤ {self.CLAMP_MIN_RESPONSE_TILT_DEG}° → no response to acc command'
+        else:
+            reason = f'max_tilt {max_tilt:.1f}° ≥ {self.CLAMP_TILT_MAX_DEG}° → clamp may not work'
         self._logger.log_result(TestResult(
             tc_id=TC, name='Acceleration clamping',
             passed=passed,
-            reason=f'max_tilt {max_tilt:.1f}° < {self.CLAMP_TILT_MAX_DEG}° → clamp active'
-                   if passed else
-                   f'max_tilt {max_tilt:.1f}° ≥ {self.CLAMP_TILT_MAX_DEG}° → clamp may not work',
+            reason=reason,
             metrics={
                 'commanded_acc_m_s2': 20.0,
                 'expected_clamped_acc_m_s2': 5.0,
                 'max_tilt_deg': round(max_tilt, 2),
+                'min_response_tilt_deg': self.CLAMP_MIN_RESPONSE_TILT_DEG,
                 'clamp_threshold_deg': self.CLAMP_TILT_MAX_DEG,
             }
         ))
@@ -512,9 +539,10 @@ class SITLAccTest:
 
         self._telem.clear_history()
 
-        # Snapshot position at start
+        # Snapshot position at start — guard NaN if telemetry not yet arrived
         s0 = self._telem.get_latest()
-        x0, y0 = s0.pos_x, s0.pos_y
+        x0 = s0.pos_x if not math.isnan(s0.pos_x) else None
+        y0 = s0.pos_y if not math.isnan(s0.pos_y) else None
 
         samples = self._send_loop(ACC, 0.0, 0.0, duration_s=T, tc_id=TC)
         self._hover_brake(2.0, TC)
@@ -529,7 +557,10 @@ class SITLAccTest:
         # Measured at end of command phase
         end = samples[-1] if samples else TelemetrySample()
         v_actual = end.vel_x if not math.isnan(end.vel_x) else 0.0
-        x_actual = (end.pos_x - x0)     if not math.isnan(end.pos_x) else 0.0
+        if x0 is not None and not math.isnan(end.pos_x):
+            x_actual = end.pos_x - x0
+        else:
+            x_actual = 0.0
 
         tol = self.KINEMATIC_TOL
         v_ok = abs(v_actual - v_theory) < tol * v_theory
@@ -694,8 +725,8 @@ class SITLAccTest:
 def main():
     parser = argparse.ArgumentParser(
         description='SITL integration tests for NED acceleration control')
-    parser.add_argument('--connection', default='udp://:14550',
-                        help='pymavlink connection string (default: udp://:14550)')
+    parser.add_argument('--connection', default='udp:127.0.0.1:14540',
+                        help='pymavlink connection string (default: udp:127.0.0.1:14540)')
     parser.add_argument('--mode', choices=['position', 'altitude'], default='position',
                         help='Flight mode to test (default: position)')
     parser.add_argument('--log-dir', default=None,

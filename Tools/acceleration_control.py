@@ -149,6 +149,14 @@ class AccelerationControl:
         )
         print("[AccCtrl] Disarmed")
 
+    def takeoff(self, altitude_m: float = 10.0) -> None:
+        """Command takeoff to target altitude (m AGL). Does not wait for completion."""
+        self._send_command_long(
+            mavutil.mavlink.MAV_CMD_NAV_TAKEOFF,
+            param7=float(altitude_m)
+        )
+        print(f"[AccCtrl] Takeoff commanded to {altitude_m:.0f}m")
+
     def land(self) -> None:
         """Command landing."""
         self._send_command_long(mavutil.mavlink.MAV_CMD_NAV_LAND)
