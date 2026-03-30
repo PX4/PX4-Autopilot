@@ -97,8 +97,6 @@ private:
 	void publishDeviceInformationPeriodic();
 	void publishSingleDeviceInformation(const DeviceInformation &device_info);
 
-	// Helper functions
-	void populateDeviceInfoFields(DeviceInformation &device_info, const uavcan::protocol::GetNodeInfo_::Response &node_info);
 	bool extendDeviceInformationsArray();
 
 	uavcan::NodeInfoRetriever &_node_info_retriever;
