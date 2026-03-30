@@ -1,6 +1,6 @@
 /****************************************************************************
 *
- *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -85,29 +85,6 @@ public:
 	}
 
 private:
-	struct NodeInfo {
-		NodeInfo(uavcan::NodeID id, const uavcan::protocol::GetNodeInfo_::Response &node_info)
-			: node_id(id), sw_major(node_info.software_version.major), sw_minor(node_info.software_version.minor),
-			  vcs_commit(node_info.software_version.vcs_commit), hw_major(node_info.hardware_version.major),
-			  hw_minor(node_info.hardware_version.minor)
-		{
-			memcpy(name, node_info.name.c_str(), node_info.name.capacity());
-			name[node_info.name.capacity() - 1] = '\0';
-			memcpy(unique_id, &node_info.hardware_version.unique_id.front(), node_info.hardware_version.unique_id.size());
-		}
-		NodeInfo() = default;
-
-		uavcan::NodeID node_id{};
-
-		char name[uavcan::protocol::GetNodeInfo_::Response::FieldTypes::name::MaxSize];
-		uint8_t unique_id[uavcan::protocol::GetNodeInfo_::Response::FieldTypes::hardware_version::FieldTypes::unique_id::MaxSize];
-		uint8_t sw_major;
-		uint8_t sw_minor;
-		uint32_t vcs_commit;
-		uint8_t hw_major;
-		uint8_t hw_minor;
-	};
-
 	struct DeviceInformation {
 		uint8_t node_id{UINT8_MAX};
 		uint32_t device_id{UINT32_MAX};
@@ -115,14 +92,11 @@ private:
 		bool has_node_info{false};
 
 		char name[80] = "";
-
-		// Version stored as integers to save RAM; formatted to string at publish time
-		uint8_t fw_major{0};
-		uint8_t fw_minor{0};
-		uint32_t fw_patch{0};	// VCS commit hash for DroneCAN
+		uint8_t sw_major{0};
+		uint8_t sw_minor{0};
+		uint32_t sw_vcs_commit{0};
 		uint8_t hw_major{0};
 		uint8_t hw_minor{0};
-
 		char serial_number[33] = "";
 	};
 
@@ -134,7 +108,7 @@ private:
 
 	void startTimerIfNotRunning();
 
-	void registerNodeInfo(uint8_t node_id, const NodeInfo &info);
+	void registerNodeInfo(uint8_t node_id, const uavcan::protocol::GetNodeInfo_::Response &node_info);
 	void registerCapability(uint8_t node_id, uint32_t device_id, DeviceCapability capability);
 
 	// Publishing methods
@@ -142,7 +116,7 @@ private:
 	void publishSingleDeviceInformation(const DeviceInformation &device_info);
 
 	// Helper functions
-	void populateDeviceInfoFields(DeviceInformation &device_info, const NodeInfo &info);
+	void populateDeviceInfoFields(DeviceInformation &device_info, const uavcan::protocol::GetNodeInfo_::Response &node_info);
 	bool extendDeviceInformationsArray();
 
 	uavcan::NodeInfoRetriever &_node_info_retriever;
