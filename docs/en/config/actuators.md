@@ -175,6 +175,8 @@ The fields are:
 
 #### Flap Scale and Spoiler Scale Configuration
 
+The channel setup of flaps and spoilers is described in [Flaps and Spoiler Control with Manual Control](../payloads/generic_actuator_control.md#flaps-and-spoiler-control-with-manual-control).
+
 "Flap-control" and "Spoiler-control" are aerodynamic configurations that can either be commanded manually by the pilot (using RC, say), or are set automatically by the controller.
 For example, a pilot or the landing system might engage "Spoiler-control" in order to reduce the airspeed before landing.
 
