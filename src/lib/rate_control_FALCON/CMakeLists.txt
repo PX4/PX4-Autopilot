@@ -32,8 +32,8 @@
 ############################################################################
 
 px4_add_library(RateControlFalcon
-	RSLQR.cpp
-	RSLQR.hpp
+	FALCON/RSLQR/RSLQR.cpp
+	FALCON/RSLQR/RSLQR.hpp
 	rate_control_falcon.cpp
 	rate_control_falcon.hpp
 	gain_compression.cpp

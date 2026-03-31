@@ -37,6 +37,9 @@
 
 #include "rate_control_falcon.hpp"
 #include <px4_platform_common/defines.h>
+#include <fstream>
+#include <iostream>
+
 
 using namespace matrix;
 
@@ -64,6 +67,8 @@ void RateControlFalcon::setPidGains(const Vector3f &P, const Vector3f &I, const 
 	_roll_controller = RSLQR(0.15500f, 0.75f, 1.0f, -1.0f, _lim_int(0));
 	_pitch_controller = RSLQR(0.15500f, 0.75f, 1.0f, -1.0f, _lim_int(1));
 	_yaw_controller = RSLQR(0.10f, 0.75f, 1.0f, -1.0f, _lim_int(2));
+
+
 
 
 }
@@ -109,12 +114,17 @@ Vector3f RateControlFalcon::update(const Vector3f &rate, const Vector3f &rate_sp
 
 	Vector3f torque = {roll_torque, pitch_torque, yaw_torque};
 
-	/* // angular rates error
-	Vector3f rate_error = rate_sp - rate;
-	std::cout << "using custom rate control" << std::endl;
-	// PID control with feed forward
-	Vector3f torque = _gain_p.emult(rate_error) + _rate_int - _gain_d.emult(angular_accel) + _gain_ff.emult(rate_sp);
- */
+	// Export controller state to CSV for analysis
+	if (_logControllerState) {
+		std::vector<float> data = {
+			{rate(0), rate(1), rate(2), 
+			rate_sp(0), rate_sp(1), rate_sp(2), 
+			angular_accel(0), angular_accel(1), angular_accel(2),
+			torque(0), torque(1), torque(2)}
+		};
+		exportToCSV("controller_state.csv", data);
+	}
+	
 	return torque;
 }
 
@@ -124,4 +134,26 @@ void RateControlFalcon::getRateControlStatus(rate_ctrl_status_s &rate_ctrl_statu
 	rate_ctrl_status.rollspeed_integ = _rate_int(0);
 	rate_ctrl_status.pitchspeed_integ = _rate_int(1);
 	rate_ctrl_status.yawspeed_integ = _rate_int(2);
+}
+
+void RateControlFalcon::exportToCSV(const std::string& filename, const std::vector<float>& data) {
+	std::ifstream infile(filename);
+   
+    bool exists = infile.good();
+
+    std::ofstream file(filename, std::ios::app);
+
+    if (!file.is_open()) {
+        throw std::runtime_error("Could not open file");
+    }
+
+    // Write header only if file didn't exist
+    if (!exists) {
+        file << "p,q,r,p_sp,q_sp,r_sp,angular_accel_x,angular_accel_y,angular_accel_z,torque_x,torque_y,torque_z\n";
+    }
+
+    for (const auto& value : data) {
+        file << value << ",";
+    }
+    file << "\n";
 }
