@@ -232,8 +232,13 @@ void NodeInfoPublisher::publishSingleDeviceInformation(const DeviceInformation &
 
 bool NodeInfoPublisher::extendDeviceInformationsArray()
 {
-	const size_t new_size = _device_informations_size + 1;
-	DeviceInformation *new_array = new DeviceInformation[new_size];
+	if (_device_informations_size < _device_informations_capacity) {
+		_device_informations_size++;
+		return true;
+	}
+
+	const size_t new_capacity = _device_informations_capacity + 4;
+	DeviceInformation *new_array = new DeviceInformation[new_capacity];
 
 	if (!new_array) {
 		return false;
@@ -245,6 +250,7 @@ bool NodeInfoPublisher::extendDeviceInformationsArray()
 	}
 
 	_device_informations = new_array;
-	_device_informations_size = new_size;
+	_device_informations_capacity = new_capacity;
+	_device_informations_size++;
 	return true;
 }

@@ -106,6 +106,7 @@ private:
 	// Device capability tracking
 	DeviceInformation *_device_informations{nullptr};
 	size_t _device_informations_size{0};
+	size_t _device_informations_capacity{0};
 	uORB::Publication<device_information_s> _device_info_pub{ORB_ID(device_information)};
 	hrt_abstime _last_device_info_publish{0};
 
