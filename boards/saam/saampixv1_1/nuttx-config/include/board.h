@@ -54,7 +54,7 @@
  ************************************************************************************/
 
 /* Clocking *************************************************************************/
-/* The MINDPX uses a 8MHz crystal connected to the HSE.
+/* The SaamPixV1_1 uses a 8MHz crystal connected to the HSE.
  *
  * This is the "standard" configuration as set up by arch/arm/src/stm32f40xx_rcc.c:
  *   System Clock source           : PLL (HSE)

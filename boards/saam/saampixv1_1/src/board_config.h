@@ -34,7 +34,7 @@
 /**
  * @file board_config.h
  *
- * MINDPXv2 internal definitions
+ * SaamPixV1_1 internal definitions
  */
 
 #pragma once
@@ -53,7 +53,7 @@
 /* Configuration ************************************************************************************/
 
 
-/* PX4FMU GPIOs ***********************************************************************************/
+/* SaamPixV1_1 GPIOs ***********************************************************************************/
 /* LEDs */
 #define GPIO_LED1		(GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN8)
 #define BOARD_OVERLOAD_LED     LED_RED
@@ -123,7 +123,7 @@
 #define SPEKTRUM_POWER(_on_true)      do { } while (0)
 
 /*
- * MindPXv2 has one RC_IN
+ * SaamPixV1_1 has one RC_IN
  *
  * GPIO PPM_IN on PC6 T8CH1
  * SPEKTRUM_RX (it's TX or RX in Bind) on PC6 UART1
@@ -174,7 +174,7 @@ __BEGIN_DECLS
  * Name: stm32_spiinitialize
  *
  * Description:
- *   Called to configure SPI chip select GPIO pins for the PX4FMU board.
+ *   Called to configure SPI chip select GPIO pins for the SaamPixV1_1 board.
  *
  ****************************************************************************************************/
 

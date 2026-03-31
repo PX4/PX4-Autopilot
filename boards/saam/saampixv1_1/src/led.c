@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015, 2016 Airmind Development Team. All rights reserved.
+ *   Copyright (c) 2015, 2016 Saam Drones Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name Airmind nor the names of its contributors may be
+ * 3. Neither the name Saam Drones nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -34,7 +34,7 @@
 /**
  * @file led.c
  *
- * PX4FMU LED backend.
+ * SaamPixV1_1 LED backend.
  */
 
 #include <px4_platform_common/px4_config.h>
