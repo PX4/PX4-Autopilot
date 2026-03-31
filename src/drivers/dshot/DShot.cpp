@@ -1032,7 +1032,7 @@ bool DShot::initialize_dshot()
 	}
 
 	if (dshot_timer_channels == 0) {
-		PX4_WARN("No channels configured");
+		PX4_INFO("No channels configured");
 		return false;
 	}
 
@@ -1238,6 +1238,7 @@ int DShot::custom_command(int argc, char *argv[])
 
 int DShot::task_spawn(int argc, char *argv[])
 {
+	int ret = PX4_ERROR;
 	DShot *instance = new DShot();
 
 	if (instance) {
@@ -1249,6 +1250,7 @@ int DShot::task_spawn(int argc, char *argv[])
 		}
 
 		PX4_INFO("Exiting");
+		ret = PX4_OK;
 
 	} else {
 		PX4_ERR("alloc failed");
@@ -1258,7 +1260,7 @@ int DShot::task_spawn(int argc, char *argv[])
 	desc.object.store(nullptr);
 	desc.task_id = -1;
 
-	return PX4_ERROR;
+	return ret;
 }
 
 int DShot::print_usage(const char *reason)
