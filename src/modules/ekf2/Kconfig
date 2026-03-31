@@ -120,6 +120,13 @@ depends on MODULES_EKF2
 	---help---
 		EKF2 range finder fusion support.
 
+menuconfig EKF2_RANGING_BEACON
+depends on MODULES_EKF2
+	bool "ranging beacon fusion support"
+	default y
+	---help---
+		EKF2 ranging beacon fusion support.
+
 menuconfig EKF2_SIDESLIP
 depends on MODULES_EKF2
         bool "sideslip fusion support"
