@@ -173,6 +173,8 @@ private:
 	/* Synchronous response/request handler */
 	bool syncHandler(const dataman_request_s &request, dataman_response_s &response,
 			 const hrt_abstime &start_time, hrt_abstime timeout);
+	/* Consume any response that was published before the next async request starts. */
+	void clearPendingResponse();
 
 	State _state{State::Idle};
 	Request _active_request{};

@@ -255,6 +255,21 @@ bool DatamanClient::clearSync(dm_item_t item, hrt_abstime timeout)
 	return success;
 }
 
+void DatamanClient::clearPendingResponse()
+{
+	if (_dataman_response_sub < 0) {
+		return;
+	}
+
+	bool updated = false;
+	orb_check(_dataman_response_sub, &updated);
+
+	if (updated) {
+		dataman_response_s response{};
+		orb_copy(ORB_ID(dataman_response), _dataman_response_sub, &response);
+	}
+}
+
 bool DatamanClient::readAsync(dm_item_t item, uint32_t index, uint8_t *buffer, uint32_t length)
 {
 	if (_client_id == CLIENT_ID_NOT_SET) {
@@ -269,6 +284,7 @@ bool DatamanClient::readAsync(dm_item_t item, uint32_t index, uint8_t *buffer, u
 	bool success = false;
 
 	if (_state == State::Idle) {
+		clearPendingResponse();
 
 		hrt_abstime timestamp = hrt_absolute_time();
 
@@ -311,6 +327,7 @@ bool DatamanClient::writeAsync(dm_item_t item, uint32_t index, uint8_t *buffer, 
 	bool success = false;
 
 	if (_state == State::Idle) {
+		clearPendingResponse();
 
 		hrt_abstime timestamp = hrt_absolute_time();
 
@@ -350,6 +367,7 @@ bool DatamanClient::clearAsync(dm_item_t item)
 	bool success = false;
 
 	if (_state == State::Idle) {
+		clearPendingResponse();
 
 		hrt_abstime timestamp = hrt_absolute_time();
 
