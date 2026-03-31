@@ -365,11 +365,9 @@ protected:
 	/**
 	 * @brief Compute the front-transition yaw used when entering route-following geometry.
 	 *
-	 * By default the alignment points at the current route target. If the vehicle is
-	 * already inside that target's acceptance radius, the alignment advances to the next
-	 * position-bearing item in the active traversal direction.
+	 * The alignment always points at the current route target.
 	 */
-	float computeFrontTransitionAlignmentYaw(int32_t current_target_index, bool direction_reversed);
+	float computeFrontTransitionAlignmentYaw(int32_t current_target_index);
 
 	/**
 	 * @brief Set the Mission Index

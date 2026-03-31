@@ -908,8 +908,7 @@ MissionBase::handleTransitionAfterJoin(position_setpoint_triplet_s *pos_sp_tripl
 	_mission_item.yaw = NAN;
 
 	if (_route_join_context.transition_action == VtolTransitionAction::FrontTransition) {
-		_mission_item.yaw = computeFrontTransitionAlignmentYaw(_mission.current_seq,
-				    _route_join_context.direction_reversed);
+		_mission_item.yaw = computeFrontTransitionAlignmentYaw(_mission.current_seq);
 	}
 
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
@@ -937,7 +936,7 @@ MissionBase::joinRouteTransitionStillRequired() const
 }
 
 float
-MissionBase::computeFrontTransitionAlignmentYaw(int32_t current_target_index, bool direction_reversed)
+MissionBase::computeFrontTransitionAlignmentYaw(int32_t current_target_index)
 {
 	if (_navigator == nullptr) {
 		return NAN;
@@ -953,38 +952,6 @@ MissionBase::computeFrontTransitionAlignmentYaw(int32_t current_target_index, bo
 
 	if (!loadMissionItemFromCache(current_target_index, alignment_target) || !item_contains_position(alignment_target)) {
 		return NAN;
-	}
-
-	position_setpoint_s current_target_sp{};
-
-	// The branch-in planner and the route-follow traversal only target position mission
-	// items, so this conversion is expected to succeed whenever the cache load above succeeded.
-	// Keep the check for corrupt mission data.
-	if (!mission_item_to_position_setpoint(alignment_target, &current_target_sp)) {
-		return NAN;
-	}
-
-	const float distance_to_current_target = get_distance_to_next_waypoint(global_position->lat, global_position->lon,
-			alignment_target.lat, alignment_target.lon);
-	const bool current_target_reached = PX4_ISFINITE(distance_to_current_target)
-					    && PX4_ISFINITE(current_target_sp.acceptance_radius)
-					    && (distance_to_current_target <= current_target_sp.acceptance_radius);
-
-	if (current_target_reached) {
-		int32_t adjacent_index = -1;
-		const bool found_adjacent = direction_reversed
-					    ? findPreviousPositionIndex(current_target_index, adjacent_index,
-							    PositionTraversalType::IgnoreDoJump)
-					    : findNextPositionIndex(current_target_index + 1, adjacent_index,
-							    PositionTraversalType::IgnoreDoJump);
-
-		if (found_adjacent) {
-			mission_item_s adjacent_target{};
-
-			if (loadMissionItemFromCache(adjacent_index, adjacent_target) && item_contains_position(adjacent_target)) {
-				alignment_target = adjacent_target;
-			}
-		}
 	}
 
 	return get_bearing_to_next_waypoint(global_position->lat, global_position->lon,

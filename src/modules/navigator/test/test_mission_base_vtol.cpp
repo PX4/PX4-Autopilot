@@ -239,7 +239,7 @@ protected:
 
 /** @brief Covers VTOL-state reconstruction from mission transition commands. */
 class MissionBaseVtolStateScanTest : public MissionBaseVtolTest {};
-/** @brief Covers front-transition alignment yaw selection near join-route targets. */
+/** @brief Covers front-transition alignment yaw selection for join-route targets. */
 class MissionBaseFrontTransitionAlignmentTest : public MissionBaseVtolTest {};
 /** @brief Covers transition-action selection before entering VTOL route segments. */
 class MissionBaseTransitionActionTest : public MissionBaseVtolTest {};
@@ -297,8 +297,8 @@ TEST_F(MissionBaseVtolStateScanTest, DefaultStateCanStartInFw)
 		  vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
 }
 
-// WHY: After completing JOIN_ROUTE, a front-transition should normally align with the
-//      currently targeted waypoint so route following starts on the correct leg.
+// WHY: After completing JOIN_ROUTE, a front-transition should align with the
+//      currently targeted waypoint so route following starts on the intended leg.
 // WHAT: A target outside acceptance radius keeps the alignment on the current target.
 TEST_F(MissionBaseFrontTransitionAlignmentTest, FrontTransitionAlignmentUsesCurrentTargetByDefault)
 {
@@ -322,7 +322,7 @@ TEST_F(MissionBaseFrontTransitionAlignmentTest, FrontTransitionAlignmentUsesCurr
 	global_position.alt = kAlt;
 	*navigator.get_global_position() = global_position;
 
-	const float yaw = mission_base_peer.computeFrontTransitionAlignmentYaw(1, false);
+	const float yaw = mission_base_peer.computeFrontTransitionAlignmentYaw(1);
 	const float expected_yaw = get_bearing_to_next_waypoint(global_position.lat, global_position.lon,
 				   items[1].lat, items[1].lon);
 
@@ -330,10 +330,10 @@ TEST_F(MissionBaseFrontTransitionAlignmentTest, FrontTransitionAlignmentUsesCurr
 	EXPECT_NEAR(wrappedAngleError(yaw, expected_yaw), 0.f, kYawAlignmentTolerance);
 }
 
-// WHY: Once the current target is already reached at the end of JOIN_ROUTE, a front-transition
-//      should point at the next route position instead of re-aiming at the already-accepted waypoint.
-// WHAT: Being within the current target acceptance radius aligns to the next position item.
-TEST_F(MissionBaseFrontTransitionAlignmentTest, FrontTransitionAlignmentUsesNextTargetInsideAcceptanceRadius)
+// WHY: Front-transition alignment should stay anchored to the current target even after that
+//      target is already inside acceptance radius.
+// WHAT: Being exactly on the current target still aligns to the current position item.
+TEST_F(MissionBaseFrontTransitionAlignmentTest, FrontTransitionAlignmentStaysOnCurrentTargetInsideAcceptanceRadius)
 {
 	Navigator navigator;
 	MissionBaseTestPeer mission_base_peer(&navigator);
@@ -355,17 +355,17 @@ TEST_F(MissionBaseFrontTransitionAlignmentTest, FrontTransitionAlignmentUsesNext
 	global_position.alt = kAlt;
 	*navigator.get_global_position() = global_position;
 
-	const float yaw = mission_base_peer.computeFrontTransitionAlignmentYaw(1, false);
+	const float yaw = mission_base_peer.computeFrontTransitionAlignmentYaw(1);
 	const float expected_yaw = get_bearing_to_next_waypoint(global_position.lat, global_position.lon,
-				   items[2].lat, items[2].lon);
+				   items[1].lat, items[1].lon);
 
 	ASSERT_TRUE(PX4_ISFINITE(yaw));
 	EXPECT_NEAR(wrappedAngleError(yaw, expected_yaw), 0.f, kYawAlignmentTolerance);
 }
 
-// WHY: On reverse traversal, "next" means the previous position-bearing mission item.
-// WHAT: When the current reverse target is already reached, alignment points behind it.
-TEST_F(MissionBaseFrontTransitionAlignmentTest, FrontTransitionAlignmentUsesPreviousTargetWhenDirectionReversed)
+// WHY: Later route targets should use the same current-target alignment rule as early ones.
+// WHAT: A vehicle near target 2 aligns to target 2.
+TEST_F(MissionBaseFrontTransitionAlignmentTest, FrontTransitionAlignmentUsesCurrentTargetOnLaterRouteTarget)
 {
 	Navigator navigator;
 	MissionBaseTestPeer mission_base_peer(&navigator);
@@ -382,23 +382,22 @@ TEST_F(MissionBaseFrontTransitionAlignmentTest, FrontTransitionAlignmentUsesPrev
 	mission_base_peer.setCurrentSequence(2);
 
 	vehicle_global_position_s global_position{};
-	global_position.lat = items[2].lat;
-	global_position.lon = items[2].lon;
+	global_position.lat = kBaseLat + 0.00195;
+	global_position.lon = kBaseLon + 0.001;
 	global_position.alt = kAlt;
 	*navigator.get_global_position() = global_position;
 
-	const float yaw = mission_base_peer.computeFrontTransitionAlignmentYaw(2, true);
+	const float yaw = mission_base_peer.computeFrontTransitionAlignmentYaw(2);
 	const float expected_yaw = get_bearing_to_next_waypoint(global_position.lat, global_position.lon,
-				   items[1].lat, items[1].lon);
+				   items[2].lat, items[2].lon);
 
 	ASSERT_TRUE(PX4_ISFINITE(yaw));
 	EXPECT_NEAR(wrappedAngleError(yaw, expected_yaw), 0.f, kYawAlignmentTolerance);
 }
 
-// WHY: If the current target is already reached but there is no next position-bearing mission item,
-//      PX4 should keep the front-transition aligned with the current target instead of clearing it.
-// WHAT: Being inside the current target acceptance radius at the route end still aligns to the current target.
-TEST_F(MissionBaseFrontTransitionAlignmentTest, FrontTransitionAlignmentFallsBackToCurrentTargetWhenNoNextItem)
+// WHY: Route-end targets should use the same current-target alignment rule.
+// WHAT: Being inside the final target acceptance radius still aligns to that final target.
+TEST_F(MissionBaseFrontTransitionAlignmentTest, FrontTransitionAlignmentUsesCurrentTargetAtRouteEnd)
 {
 	Navigator navigator;
 	MissionBaseTestPeer mission_base_peer(&navigator);
@@ -418,7 +417,7 @@ TEST_F(MissionBaseFrontTransitionAlignmentTest, FrontTransitionAlignmentFallsBac
 	global_position.alt = kAlt;
 	*navigator.get_global_position() = global_position;
 
-	const float yaw = mission_base_peer.computeFrontTransitionAlignmentYaw(1, false);
+	const float yaw = mission_base_peer.computeFrontTransitionAlignmentYaw(1);
 	const float expected_yaw = get_bearing_to_next_waypoint(global_position.lat, global_position.lon,
 				   items[1].lat, items[1].lon);
 

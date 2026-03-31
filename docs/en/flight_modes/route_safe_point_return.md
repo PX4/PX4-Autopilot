@@ -426,7 +426,7 @@ The executor reuses several traversal methods from `MissionBase` to avoid code d
 - `findAttachedPositionIndex()`: find the nearest position item at or before a given index.
 - `vtolTransitionActionForTarget()`: determine if a VTOL transition is needed for a given target index.
 - `setupJoinRoute()` / `handleJoinRouteWorkItems()`: arm and execute the shared branch-in pipeline used by both Mission smart rejoin and `RTL_TYPE=6`.
-- `computeFrontTransitionAlignmentYaw()`: provide the route-aligned yaw used for front transitions after join and during route following.
+- `computeFrontTransitionAlignmentYaw()`: provide the route-aligned yaw used for front transitions after join and during route following, always pointing at the current route target.
 - `updateLastFlownLoopSegmentForNominalAdvance()`: cache the exact active `DO_JUMP` edge that the next nominal forward advance would traverse.
 
 ### Dataman Cache Architecture
