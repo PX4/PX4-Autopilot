@@ -226,6 +226,7 @@ protected:
 
 	bool _waypoint_position_reached{false};
 	bool _waypoint_yaw_reached{false};
+	bool _next_sp_awaits_yaw{false}; ///< next setpoint data is populated, validity driven by yaw alignment
 
 	hrt_abstime _time_wp_reached{0};
 

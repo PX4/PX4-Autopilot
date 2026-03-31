@@ -386,32 +386,41 @@ MissionBlock::is_mission_item_reached_or_completed()
 		}
 	}
 
-	// Update the 'waypoint position reached' status (only for rotary wing flight)
-	if (_waypoint_position_reached && !_waypoint_yaw_reached) {
+	// Evaluate yaw alignment independently of position, and continuously until
+	// both position and yaw are reached (after which it latches).
+	if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+	    && _navigator->get_yaw_to_be_accepted(_mission_item.yaw)
+	    && _navigator->get_local_position()->heading_good_for_control) {
 
-		if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
-		    && _navigator->get_yaw_to_be_accepted(_mission_item.yaw)
-		    && _navigator->get_local_position()->heading_good_for_control) {
+		const float yaw_err = wrap_pi(_mission_item.yaw - _navigator->get_local_position()->heading);
 
-			const float yaw_err = wrap_pi(_mission_item.yaw - _navigator->get_local_position()->heading);
+		// accept yaw if reached or if timeout is set in which case we ignore not forced headings
+		// reevaluate until both position and yaw are reached
+		if (!_waypoint_yaw_reached || !_waypoint_position_reached) {
+			_waypoint_yaw_reached = fabsf(yaw_err) < _navigator->get_yaw_threshold()
+						|| (_navigator->get_yaw_timeout() >= FLT_EPSILON && !_mission_item.force_heading);
 
-			/* accept yaw if reached or if timeout is set in which case we ignore not forced headings */
-			if (fabsf(yaw_err) < _navigator->get_yaw_threshold()
-			    || (_navigator->get_yaw_timeout() >= FLT_EPSILON && !_mission_item.force_heading)) {
+		}
 
-				_waypoint_yaw_reached = true;
-			}
+		/* if heading needs to be reached, the timeout is enabled and we don't make it, abort mission */
+		if (_waypoint_position_reached && !_waypoint_yaw_reached && _mission_item.force_heading &&
+		    (_navigator->get_yaw_timeout() >= FLT_EPSILON) &&
+		    (now - _time_wp_reached >= (hrt_abstime)_navigator->get_yaw_timeout() * 1e6f)) {
 
-			/* if heading needs to be reached, the timeout is enabled and we don't make it, abort mission */
-			if (!_waypoint_yaw_reached && _mission_item.force_heading &&
-			    (_navigator->get_yaw_timeout() >= FLT_EPSILON) &&
-			    (now - _time_wp_reached >= (hrt_abstime)_navigator->get_yaw_timeout() * 1e6f)) {
+			_navigator->set_mission_failure_heading_timeout();
+		}
 
-				_navigator->set_mission_failure_heading_timeout();
-			}
+	} else {
+		_waypoint_yaw_reached = true;
+	}
 
-		} else {
-			_waypoint_yaw_reached = true;
+	// When yaw is the sole stop reason, drive next.valid from _waypoint_yaw_reached.
+	if (_next_sp_awaits_yaw) {
+		position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+
+		if (_waypoint_yaw_reached != pos_sp_triplet->next.valid) {
+			pos_sp_triplet->next.valid = _waypoint_yaw_reached;
+			_navigator->set_position_setpoint_triplet_updated();
 		}
 	}
 

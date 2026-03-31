@@ -221,7 +221,7 @@ void Mission::setActiveMissionItems()
 			pos_sp_triplet->current.alt_acceptance_radius = FLT_MAX;
 		}
 
-		// Allow a rotary wing vehicle to decelerate before reaching a wp with a hold time or a timeout
+		// Allow a rotary wing vehicle to decelerate before reaching a wp with a hold time or a timeout or a yaw requirement
 		// This is done by setting the position triplet's next position's valid flag to false,
 		// which makes the FlightTask disregard the next position
 		// TODO: Setting the next waypoint's validity flag to handle braking / correct waypoint behavior
@@ -229,11 +229,20 @@ void Mission::setActiveMissionItems()
 		const bool brake_for_hold = _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 					    && (get_time_inside(_mission_item) > FLT_EPSILON || item_has_timeout(_mission_item));
 
+		_next_sp_awaits_yaw = false;
+
 		if (_mission_item.autocontinue && !brake_for_hold) {
 			/* try to process next mission item */
 			if (num_found_items >= 1u) {
 				/* got next mission item, update setpoint triplet */
 				mission_item_to_position_setpoint(next_mission_items[0u], &pos_sp_triplet->next);
+
+				if (_navigator->get_yaw_to_be_accepted(_mission_item.yaw)) {
+					// If the next item requires a yaw alignment, wait until it's aligned
+					// before activating the next setpoint to prevent overshooting.
+					pos_sp_triplet->next.valid = false;
+					_next_sp_awaits_yaw = true;
+				}
 
 			} else {
 				/* next mission item is not available */
