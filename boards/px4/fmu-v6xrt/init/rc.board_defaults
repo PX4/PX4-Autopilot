@@ -12,10 +12,6 @@ param set-default MAV_2_RATE 100000
 param set-default MAV_2_REMOTE_PRT 14550
 param set-default MAV_2_UDP_PRT 14550
 
-# Make use of all 3 on-board IMUs on FMU-V6XRT
-param set-default SENS_IMU_MODE 0
-param set-default EKF2_MULTI_IMU 3
-
 safety_button start
 
 if param greater -s UAVCAN_ENABLE 0
