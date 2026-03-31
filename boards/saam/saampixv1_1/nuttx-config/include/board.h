@@ -1,5 +1,5 @@
 /************************************************************************************
- * configs/px4fmu/include/board.h
+ * boards/saam/saampixv1_1/nuttx-config/include/board.h
  * include/arch/board/board.h
  *
  *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
