@@ -297,8 +297,13 @@ void FlightTaskManualAltitude::_applyExternalAcceleration()
 {
 	acc_sp_external_s cmd;
 
-	if (!_acc_sp_external_sub.update(&cmd)) {
-		return;
+	// Use copy() instead of update() so the command is applied every cycle,
+	// not just on the cycle when new data arrives. This prevents the position
+	// hold controller (running at 5× the command rate) from counteracting the
+	// external acceleration on the 4 cycles between publishes.
+	// The watchdog timestamp check below handles command expiry correctly.
+	if (!_acc_sp_external_sub.copy(&cmd)) {
+		return;  // topic never published
 	}
 
 	// Watchdog: reject stale commands
