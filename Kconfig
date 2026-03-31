@@ -67,6 +67,16 @@ menu "Toolchain"
         help
             Enables Cmake Release for -O3 optimization
 
+    config BOARD_SUPPORT_FORTIFIED_TOOLCHAIN
+        bool "Fortified toolchain support"
+        default n
+        help
+            Enable compatibility with toolchains that define
+            _FORTIFY_SOURCE.
+
+            This switches PX4_DEBUG_OPT_LEVEL from -O0 to -Og. Keep this
+            disabled unless the fortified toolchain requires optimization.
+
     config BOARD_ROMFSROOT
         string "ROMFSROOT"
         default "px4fmu_common"
