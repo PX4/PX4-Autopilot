@@ -181,7 +181,7 @@ bool Mission::trySetRouteJoinOnActivation(bool resume_mission_on_previous)
 	config.state.in_transition_to_fw = vehicle_status.in_transition_to_fw;
 	config.state.is_flying_reverse = false;
 
-	config.execution.last_flown_loop_segment = _last_flown_loop_segment;
+	config.last_flown_loop_segment = _last_flown_loop_segment;
 
 	MissionRoutePlanner::JoinPlan join_plan{};
 	MissionRoutePlanner::FailureReason failure_reason{MissionRoutePlanner::FailureReason::Unknown};
