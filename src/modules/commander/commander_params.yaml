@@ -480,9 +480,20 @@ parameters:
       max: 4
     COM_PARACHUTE:
       description:
-        short: Require MAVLink parachute system to be present and healthy
-      type: boolean
+        short: Parachute system monitoring and failsafe action
+        long: |-
+          Configures whether a MAVLink parachute system is monitored and what action is
+          taken when it reports missing or unhealthy status.
+          From Error onwards the check also blocks arming.
+      type: enum
+      values:
+        0: Disabled
+        1: Warning only
+        2: Error (blocks arming)
+        3: Return
+        4: Land
       default: 0
+      increment: 1
     COM_ARM_CHK_ESCS:
       description:
         short: Enable checks on ESCs that report telemetry

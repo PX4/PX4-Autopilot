@@ -403,6 +403,36 @@ FailsafeBase::ActionOptions Failsafe::fromGnssLossActParam(int param_value)
 	return options;
 }
 
+FailsafeBase::ActionOptions Failsafe::fromParachuteActParam(int param_value)
+{
+	ActionOptions options{};
+
+	switch (parachute_unhealthy_failsafe_mode(param_value)) {
+	case parachute_unhealthy_failsafe_mode::Disabled:
+	default:
+		options.action = Action::None;
+		break;
+
+	case parachute_unhealthy_failsafe_mode::Warning:
+	case parachute_unhealthy_failsafe_mode::Error:
+		options.action = Action::Warn;
+		options.clear_condition = ClearCondition::WhenConditionClears;
+		break;
+
+	case parachute_unhealthy_failsafe_mode::Return:
+		options.action = Action::RTL;
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
+		break;
+
+	case parachute_unhealthy_failsafe_mode::Land:
+		options.action = Action::Land;
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
+		break;
+	}
+
+	return options;
+}
+
 FailsafeBase::ActionOptions Failsafe::fromRemainingFlightTimeLowActParam(int param_value)
 {
 	ActionOptions options{};
@@ -598,7 +628,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	}
 
 	// Parachute system health failsafe
-	CHECK_FAILSAFE(status_flags, parachute_unhealthy, Action::RTL);
+	CHECK_FAILSAFE(status_flags, parachute_unhealthy, ActionOptions(fromParachuteActParam(_param_com_parachute_act.get())));
 
 	// Remote ID (Open Drone ID) loss failsafe
 	if (state.armed && _param_com_arm_odid.get() >= int32_t(open_drone_id_failsafe_mode::Return_mode)) {
