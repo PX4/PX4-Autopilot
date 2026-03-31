@@ -242,6 +242,7 @@ endif()
 
 if(CONFIG_BOARD_SUPPORT_FORTIFIED_TOOLCHAIN)
 	set(PX4_DEBUG_OPT_LEVEL -Og)
+	message(STATUS "fortified toolchain support enabled: PX4_DEBUG_OPT_LEVEL=${PX4_DEBUG_OPT_LEVEL}")
 else()
 	set(PX4_DEBUG_OPT_LEVEL -O0)
 endif()
