@@ -303,23 +303,28 @@ void FlightTaskManualAltitude::_applyExternalAcceleration()
 	// external acceleration on the 4 cycles between publishes.
 	// The watchdog timestamp check below handles command expiry correctly.
 	if (!_acc_sp_external_sub.copy(&cmd)) {
+		PX4_DEBUG("acc_sp_ext: no topic");
 		return;  // topic never published
 	}
 
 	// Watchdog: reject stale commands
 	const uint16_t timeout_ms = (cmd.timeout_ms > 0u) ? cmd.timeout_ms : 500u;
+	const hrt_abstime elapsed = hrt_elapsed_time(&cmd.timestamp);
 
-	if (hrt_elapsed_time(&cmd.timestamp) > (hrt_abstime)timeout_ms * 1000ULL) {
+	if (elapsed > (hrt_abstime)timeout_ms * 1000ULL) {
+		PX4_DEBUG("acc_sp_ext: stale (elapsed=%llu us > %u ms)", (unsigned long long)elapsed, timeout_ms);
 		return;
 	}
 
 	// Require valid altitude estimate (barometer-based, GPS-independent)
 	if (!_sub_vehicle_local_position.get().z_valid) {
+		PX4_WARN("acc_sp_ext: z_valid=false, ignoring");
 		return;
 	}
 
 	// Validate acceleration fields
 	if (!PX4_ISFINITE(cmd.acceleration[0]) || !PX4_ISFINITE(cmd.acceleration[1])) {
+		PX4_WARN("acc_sp_ext: NaN acceleration, ignoring");
 		return;
 	}
 
@@ -327,6 +332,9 @@ void FlightTaskManualAltitude::_applyExternalAcceleration()
 	const float acc_limit = _param_mpc_acc_hor_ext.get();
 	const float ax = math::constrain(cmd.acceleration[0], -acc_limit, acc_limit);
 	const float ay = math::constrain(cmd.acceleration[1], -acc_limit, acc_limit);
+
+	PX4_INFO_RAW("[ext_acc] ax=%.2f ay=%.2f limit=%.2f elapsed=%lluus\n",
+		     (double)ax, (double)ay, (double)acc_limit, (unsigned long long)elapsed);
 
 	// Override stick-based XY setpoint
 	_acceleration_setpoint(0) = ax;
