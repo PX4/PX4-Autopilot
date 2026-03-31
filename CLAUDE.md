@@ -33,10 +33,8 @@ Hai hướng tiếp cận song song:
 - **`px4_inverse_rc.py`** — inverse RC math: physical values → RC stick → `MANUAL_CONTROL`
 - **`params_real.json`** — PX4 params thực tế từ hardware
 
-### Các file test chưa commit (untracked)
-- `test_altitude.py`, `test_basic_mavlink.py`, `test_posctl_sitl.py`
-- `test_sitl_inverse_rc.py`, `test_tabletop.py`
-- `test.py` (root)
+### Trạng thái commit hiện tại
+Tất cả file đã được commit. Không còn untracked files liên quan đến feature này.
 
 ### Docs (Vietnamese)
 - `docs/dieu_khien_uav_quadrotor_gia_toc.md` — kiến trúc cascaded control, acc→thrust math
@@ -80,9 +78,11 @@ python3 Tools/sitl_acc_test.py --mode altitude --connection udp://:14550
 
 - Commit prefix: `feat(...)`, `fix(...)`, `test(...)`, `docs(...)`
 - Python: dùng `pymavlink` trực tiếp, không dùng MAVSDK
+- SITL test infrastructure: **hybrid mavsdk + pymavlink** — mavsdk (`udp://:14540`) cho arm/takeoff/land/mode-switch; pymavlink (`udpin:0.0.0.0:14550`) cho acc commands + telemetry
 - Unit test Python: `unittest` standard library
 - MAVLink frame: `MAV_FRAME_LOCAL_NED` (NED convention: Z dương = xuống)
 - Bit 12 trong `type_mask` là custom PX4 extension cho acc_sp_external
+- **QUAN TRỌNG — type_mask cho acc_sp_external**: Bit 9 = `FORCE_SET` (KHÔNG được set). Bit 10 = YAW_IGNORE. Bit 11 = YAW_RATE_IGNORE. Đã fix bug trong `acceleration_control.py` ngày 2026-03-30.
 
 ---
 
@@ -93,3 +93,13 @@ python3 Tools/sitl_acc_test.py --mode altitude --connection udp://:14550
 3. Chạy test Python: `python3 Tools/sitl_acc_test.py --mode position`
 4. Unit test Python: `python3 -m pytest Tools/test_acceleration_control.py`
 5. Unit test C++: `make tests`
+
+---
+
+## Bug đã tìm ra — chưa verify (cần test ngày mai)
+
+### Root cause: type_mask bit 9 = FORCE_SET
+- **Triệu chứng**: `listener acc_sp_external` → "never published"; PX4 log: `SET_POSITION_TARGET_LOCAL_NED force not supported`
+- **Nguyên nhân**: `acceleration_control.py` set bit 9 (`1 << 9`) gán nhầm nhãn "ignore yaw" nhưng thực ra là `POSITION_TARGET_TYPEMASK_FORCE_SET`. Firmware `mavlink_receiver.cpp:1121` reject ngay khi thấy acceleration + FORCE_SET, không bao giờ đến check bit 12 ở line 1133.
+- **Fix đã apply**: Xóa `(1 << 9)`, thêm `(1 << 11)` (YAW_RATE_IGNORE) vào `_TYPE_MASK_ACC_ONLY` và `_TYPE_MASK_ACC_WITH_YAW` trong `Tools/acceleration_control.py`
+- **Bước tiếp theo**: Chạy SITL → verify `listener acc_sp_external` có output → chạy full TC-01..TC-05

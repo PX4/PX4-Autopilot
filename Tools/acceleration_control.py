@@ -53,15 +53,18 @@ _ACC_SP_EXTERNAL_FLAG = 1 << 12
 _TYPE_MASK_ACC_ONLY = (
     (1 << 0) | (1 << 1) | (1 << 2)   # ignore x, y, z position
     | (1 << 3) | (1 << 4) | (1 << 5)  # ignore vx, vy, vz
-    | (1 << 9)                         # ignore yaw (hold current)
-    | (1 << 10)                        # ignore yaw rate
+    # bits 6-8 clear = use acceleration fields
+    # bit 9 (FORCE_SET) must be clear — setting it triggers rejection
+    | (1 << 10)                        # YAW_IGNORE (hold current heading)
+    | (1 << 11)                        # YAW_RATE_IGNORE
     | _ACC_SP_EXTERNAL_FLAG            # apply outside OFFBOARD
 )
 
 _TYPE_MASK_ACC_WITH_YAW = (
     (1 << 0) | (1 << 1) | (1 << 2)
     | (1 << 3) | (1 << 4) | (1 << 5)
-    | (1 << 10)
+    # bit 10 (YAW_IGNORE) clear = use provided yaw value
+    | (1 << 11)                        # YAW_RATE_IGNORE
     | _ACC_SP_EXTERNAL_FLAG
 )
 
