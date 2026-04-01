@@ -191,28 +191,13 @@ Source: [drivers/dshot](https://github.com/PX4/PX4-Autopilot/tree/main/src/drive
 
 ### Опис
 
-This is the DShot output driver. It is similar to the fmu driver, and can be used as drop-in replacement
+This is the DShot output driver. It can be used as drop-in replacement
 to use DShot as ESC communication protocol instead of PWM.
-
-On startup, the module tries to occupy all available pins for DShot output.
-It skips all pins already in use (e.g. by a camera trigger module).
 
 It supports:
 
 - DShot150, DShot300, DShot600
 - telemetry via separate UART and publishing as esc_status message
-- sending DShot commands via CLI
-
-### Приклади
-
-Permanently reverse motor 1:
-
-```
-dshot reverse -m 1
-dshot save -m 1
-```
-
-After saving, the reversed direction will be regarded as the normal one. So to reverse again repeat the same commands.
 
 ### Usage {#dshot_usage}
 
@@ -225,36 +210,6 @@ dshot <command> [arguments...]
      -d <val>    UART device
                  values: <device>
      [-x]        Swap RX/TX pins
-
-   reverse       Reverse motor direction
-     [-m <val>]  Motor index (1-based, default=all)
-
-   normal        Normal motor direction
-     [-m <val>]  Motor index (1-based, default=all)
-
-   save          Save current settings
-     [-m <val>]  Motor index (1-based, default=all)
-
-   3d_on         Enable 3D mode
-     [-m <val>]  Motor index (1-based, default=all)
-
-   3d_off        Disable 3D mode
-     [-m <val>]  Motor index (1-based, default=all)
-
-   beep1         Send Beep pattern 1
-     [-m <val>]  Motor index (1-based, default=all)
-
-   beep2         Send Beep pattern 2
-     [-m <val>]  Motor index (1-based, default=all)
-
-   beep3         Send Beep pattern 3
-     [-m <val>]  Motor index (1-based, default=all)
-
-   beep4         Send Beep pattern 4
-     [-m <val>]  Motor index (1-based, default=all)
-
-   beep5         Send Beep pattern 5
-     [-m <val>]  Motor index (1-based, default=all)
 
    stop
 
@@ -1109,7 +1064,7 @@ px4io <command> [arguments...]
 
 ## rgbled
 
-Source: [drivers/lights/rgbled_ncp5623c](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/rgbled_ncp5623c)
+Source: [drivers/lights/rgbled](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/rgbled)
 
 ### Usage {#rgbled_usage}
 
@@ -1124,9 +1079,7 @@ rgbled <command> [arguments...]
      [-f <val>]  bus frequency in kHz
      [-q]        quiet startup (no message if no device found)
      [-a <val>]  I2C address
-                 default: 57
-     [-o <val>]  RGB PWM Assignment
-                 default: 123
+                 default: 85
 
    stop
 

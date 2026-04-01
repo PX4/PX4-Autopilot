@@ -85,6 +85,8 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [DistanceSensorModeChangeRequest](DistanceSensorModeChangeRequest.md)
 - [DronecanNodeStatus](DronecanNodeStatus.md)
 - [Ekf2Timestamps](Ekf2Timestamps.md) — this message contains the (relative) timestamps of the sensor inputs used by EKF2. Це може бути використано для відтворення.
+- [EscEepromRead](EscEepromRead.md)
+- [EscEepromWrite](EscEepromWrite.md)
 - [EscReport](EscReport.md)
 - [EscStatus](EscStatus.md)
 - [EstimatorAidSource1d](EstimatorAidSource1d.md)
@@ -273,3 +275,4 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [VehicleLocalPositionV0](VehicleLocalPositionV0.md) — Fused local position in NED. The coordinate system origin is the vehicle position at the time when the EKF2-module was started.
 - [VehicleStatusV0](VehicleStatusV0.md) — Encodes the system state of the vehicle published by commander.
 - [VehicleStatusV1](VehicleStatusV1.md) — Encodes the system state of the vehicle published by commander.
+- [VehicleStatusV2](VehicleStatusV2.md) — Encodes the system state of the vehicle published by commander.

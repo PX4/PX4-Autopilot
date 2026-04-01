@@ -29,6 +29,8 @@ for build_dir_path in build/*/ ; do
   # Events
   mkdir -p artifacts/$build_dir/events/
   cp $build_dir_path/events/all_events.json.xz artifacts/$build_dir/events/ 2>/dev/null || true
+  # SBOM
+  cp $build_dir_path/*.sbom.spdx.json artifacts/$build_dir/ 2>/dev/null || true
   ls -la artifacts/$build_dir
   echo "----------"
 done

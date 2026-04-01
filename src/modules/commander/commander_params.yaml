@@ -353,6 +353,16 @@ parameters:
         0: one arm
         1: two step arm
       default: 0
+    COM_ARM_ON_BOOT:
+      description:
+        short: Arm automatically on boot
+        long: |-
+          When enabled, the vehicle arms automatically once all preflight checks pass after boot.
+          The vehicle will not re-arm after a manual disarm.
+          Has no effect if COM_ARMABLE is 0.
+      type: boolean
+      default: 0
+      reboot_required: true
     COM_ARM_AUTH_TO:
       description:
         short: Arm authorization timeout

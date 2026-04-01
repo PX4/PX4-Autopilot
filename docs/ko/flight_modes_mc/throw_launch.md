@@ -22,7 +22,7 @@ The vehicle will not automatically disarm after arming, and must be manually dis
 The vehicle detects that it has been thrown based on reaching a certain speed (5m/s), and then starts the motors at the apex of the throw (once it determines that it has started to fall).
 You need to throw the vehicle high enough so that it can stabilize its height well before falling anywhere near people or obstacles.
 
-참고:
+Notes:
 
 - The mode is disabled by default, and must be enabled using a [parameter](#parameters) before arming.
 - When enabled you cannot take off from the ground using the normal modes.

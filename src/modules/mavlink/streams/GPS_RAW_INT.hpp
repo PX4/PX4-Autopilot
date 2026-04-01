@@ -68,7 +68,7 @@ private:
 		hrt_abstime now{};
 
 		if (_sensor_gps_sub.update(&gps)) {
-			if (gps.time_utc_usec > 0) {
+			if (gps.time_utc_usec <= 0) {
 				msg.time_usec = gps.timestamp;
 
 			} else {

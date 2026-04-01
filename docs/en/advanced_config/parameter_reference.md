@@ -18662,6 +18662,18 @@ disabled, warn only or deny arming.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; |          |          |           | 0       |      |
 
+### COM_ARM_ON_BOOT (`INT32`) {#COM_ARM_ON_BOOT}
+
+Arm automatically on boot.
+
+When enabled, the vehicle arms automatically once all preflight checks pass after boot.
+The vehicle will not re-arm after a manual disarm.
+Has no effect if COM_ARMABLE is 0.
+
+| Reboot  | minValue | maxValue | increment | default      | unit |
+| ------- | -------- | -------- | --------- | ------------ | ---- |
+| &check; |          |          |           | Disabled (0) |      |
+
 ### COM_ARM_SDCARD (`INT32`) {#COM_ARM_SDCARD}
 
 Enable FMU SD card detection check.
@@ -21465,7 +21477,7 @@ Required EPH to use GPS.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 2        | 100      |           | 3.0     | m    |
+| &nbsp; | 0.1      | 100      |           | 3.0     | m    |
 
 ### EKF2_REQ_EPV (`FLOAT`) {#EKF2_REQ_EPV}
 
@@ -21473,7 +21485,7 @@ Required EPV to use GPS.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 2        | 100      |           | 5.0     | m    |
+| &nbsp; | 0.1      | 100      |           | 5.0     | m    |
 
 ### EKF2_REQ_FIX (`INT32`) {#EKF2_REQ_FIX}
 
@@ -22246,7 +22258,7 @@ Also applies to flaperons if enabled in the mixer/allocation.
 
 Trigger time.
 
-Launch is detected when acceleration in body forward direction is above FW_LAUN_AC_THLD for FW_LAUN_AC_T seconds.
+Launch is detected when the norm of body acceleration is above FW_LAUN_AC_THLD for FW_LAUN_AC_T seconds.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -22256,7 +22268,7 @@ Launch is detected when acceleration in body forward direction is above FW_LAUN_
 
 Trigger acceleration threshold.
 
-Launch is detected when acceleration in body forward direction is above FW_LAUN_AC_THLD for FW_LAUN_AC_T seconds.
+Launch is detected when the norm of body acceleration is above FW_LAUN_AC_THLD for FW_LAUN_AC_T seconds.
 
 | Reboot | minValue | maxValue | increment | default | unit  |
 | ------ | -------- | -------- | --------- | ------- | ----- |
