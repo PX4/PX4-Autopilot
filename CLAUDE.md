@@ -150,23 +150,39 @@ Test script tự động set các params này trong `_mavsdk_setup()`:
 - `PX4_WARN_ONCE` **KHÔNG tồn tại** — dùng `PX4_WARN`
 - `PX4_INFO_RAW` — print không có prefix (tốt cho debug telemetry như `[ext_acc]`)
 
-### Kết quả SITL test cuối cùng (2026-03-31, RUN_ID: 20260331_162752)
-- **4/5 passed**: TC-01 ✓, TC-02 ✓, TC-03 ✗ (displacement âm do drift từ TC trước), TC-04 ✓, TC-05 ✓
-- **Bước tiếp theo**: thêm `_wait_for_stop()` trước TC-03 (đã implement, chưa verify)
+### Kết quả SITL test cuối cùng (2026-04-01)
+
+| Mode | TC-01 | TC-02 | TC-03 | TC-04 | TC-05 |
+|------|-------|-------|-------|-------|-------|
+| Altitude | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Position | ✓ | ✓ | ✓ | ✓ | ✓ |
+
+Unit test C++: **27/27 passed** (F2/F3/F6/F8 failsafes)
+
+**Bước tiếp theo (chiều 2026-04-01)**: Hardware deployment checklist (Pixhawk 6X + Jetson Orin Nano 8GB via UART)
 
 ---
 
-## Fixes đã thực hiện hôm nay (2026-03-31)
+## Failsafes đã implement (nhánh feature/acc-failsafe, đã merge)
 
-1. Tạo `Tools/run_sitl_test.sh` — orchestration script với RUN_ID, log capture, cleanup
-2. Fix battery failsafe (`COM_LOW_BAT_ACT=0`) + RC loss failsafe (`NAV_RCL_ACT=0`)
-3. Thêm RC keep-alive background thread trong `sitl_acc_test.py`
-4. Fix `[ext_acc]` path: RC keep-alive giải quyết `mc_pos_control invalid setpoints`
-5. Relax TC-03 pass conditions (bỏ theoretical comparison)
-6. Fix TC-05: `_wait_for_stop()` thay `_hover_brake()` giữa legs
-7. Thêm `_wait_for_stop()` trước TC-03 để drone ổn định
+| Failsafe | Mô tả | Điều kiện kích hoạt |
+|----------|--------|---------------------|
+| F1 | Watchdog 500ms | Không nhận acc command > 500ms |
+| F2 | Active brake | Watchdog fired + vel > 1.0 m/s |
+| F3 | Velocity limit | vel > 4.0 m/s → scale acc; vel > 5.0 m/s → brake |
+| F6 | EKF health check | v_xy_valid = false → reject command |
+| F8 | Force land | Stale > 30s → descent 0.7 m/s |
 
-## Fixes đã commit trước đó
+## Hardware Deployment Checklist (TODO chiều nay)
 
-1. `fix(tools): fix type_mask FORCE_SET bit causing acc_sp_external rejection`
-2. `fix(flight_task): use copy() instead of update() for acc_sp_external`
+1. Verify UART baudrate Jetson ↔ Pixhawk 6X (`SER_TEL1_BAUD`)
+2. Test `acceleration_control.py` kết nối thật
+3. Calibrate `MPC_ACC_HOR` theo response thực tế
+
+## Notes về TC-05 Position Mode
+
+Position Mode position hold fights acc commands → dùng:
+- `_wait_for_stop(10s)` trước khi record origin (settle sau TC-04)
+- Per-leg timeout 10s (thay 6s)
+- `SQUARE_RETURN_TOL = 15m` (thay 8m)
+- `ACC = 1.0 m/s²` (thay 1.5)
