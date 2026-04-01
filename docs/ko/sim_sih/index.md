@@ -1,281 +1,208 @@
-# Simulation-In-Hardware (SIH)
+# SIH Simulation
 
-<Badge type="tip" text="PX4 v1.9 (MC)" /><Badge type="tip" text="PX4 v1.13 (MC, VTOL, FW)" />
+<Badge type="tip" text="PX4 v1.9 (MC)" /><Badge type="tip" text="PX4 v1.13 (MC, VTOL, FW)" /> <Badge type="tip" text="PX4 v1.16 (Rover)" />
 
-:::warning
-This simulator is [community supported and maintained](../simulation/community_supported_simulators.md).
-It may or may not work with current versions of PX4 (known to work in PX4 v1.14).
-
-See [Toolchain Installation](../dev_setup/dev_env.md) for information about the environments and tools supported by the core development team.
-:::
-
-Simulation-In-Hardware (SIH) is an alternative to [Hardware In The Loop simulation (HITL)](../simulation/hitl.md) for quadrotors, fixed-wing vehicles (airplane), and VTOL tailsitters.
-
-SIH can be used by new PX4 users to get familiar with PX4 and the different modes and features, and of course to learn to fly a vehicle using an RC controller in simulation, which is not possible using SITL.
+SIH (Simulation-In-Hardware) is a lightweight, headless simulator with zero external dependencies that runs physics directly inside PX4 via uORB messages.
+No GUI, no external processes, no rendering overhead — just PX4 running a C++ physics model.
+This makes it the fastest way to iterate on flight code.
 
 ## 개요
 
-With SIH the whole simulation is running on embedded hardware: the controller, the state estimator, and the simulator.
-The Desktop computer is only used to display the virtual vehicle.
+SIH runs as a PX4 module that replaces real sensor and actuator hardware with a simulated physics model.
+It provides simulated IMU, GPS, barometer, magnetometer, and airspeed sensor data via uORB, and reads actuator outputs to update the vehicle state at each timestep.
 
-![Simulator MAVLink API](../../assets/diagrams/SIH_diagram.png)
+The simulation runs in lockstep with PX4, ensuring deterministic and reproducible results.
+It also integrates seamlessly with ROS 2 via with no additional configuration (see [ROS 2 Integration](#ros-2-integration) below).
 
-### 호환성
+Two modes are supported:
 
-- SIH is compatible with all PX4 supported boards except those based on FMUv2.
-- SIH for MC quadrotor is supported from PX4 v1.9.
-- SIH for FW (airplane) and VTOL tailsitter are supported from PX4 v1.13.
-- SIH as SITL (without hardware) from PX4 v1.14.
-- SIH for Standard VTOL from PX4 v1.16.
-- SIH for MC Hexacopter X from PX4 v1.17.
-- SIH for Ackermann Rover from PX4 v1.17.
+- **[SITL](#sih-as-sitl-no-fc):** Runs on your computer with no hardware needed, and headless (without a UI) by default.
+  _This is the fastest and easiest way to start a simulation on PX4._
 
-### Benefits
+- **[SIH on flight controller hardware](#sih-on-flight-controller-hardware):** Runs the entire simulation on the autopilot (`SYS_HITL=2`).
 
-SIH provides several benefits over HITL:
+### Supported Vehicle Types
 
-- It ensures synchronous timing by avoiding the bidirectional connection to the computer.
-  As a result the user does not need such a powerful desktop computer.
-- The whole simulation remains inside the PX4 environment.
-  Developers who are familiar with PX4 can more easily incorporate their own mathematical model into the simulator.
-  They can, for instance, modify the aerodynamic model, or noise level of the sensors, or even add a sensor to be simulated.
-- The physical parameters representing the vehicle (such as mass, inertia, and maximum thrust force) can easily be modified from the [SIH parameters](../advanced_config/parameter_reference.md#simulation-in-hardware).
+The following vehicle types are supported:
 
-## Requirements
-
-To run the SIH, you will need a:
-
-- [Flight controller](../flight_controller/index.md), such as a Pixhawk-series board.
-
-  ::: info
-  From PX4 v1.14 you can run [SIH "as SITL"](#sih-as-sitl-no-fc), in which case a flight controller is not required.
-
-:::
-
-- [Manual controller](../getting_started/px4_basic_concepts.md#manual-control): either a [radio control system](../getting_started/rc_transmitter_receiver.md) or a [joystick](../config/joystick.md).
-
-- QGroundControl for flying the vehicle via GCS.
-
-- Development computer for visualizing the virtual vehicle (optional).
-
-## Check if SIH is in Firmware
-
-The modules required for SIH are built into most PX4 firmware by default.
-These include: [`pwm_out_sim`](../modules/modules_driver.md#pwm-out-sim), [`sensor_baro_sim`](../modules/modules_system.md#sensor-baro-sim), [`sensor_gps_sim`](../modules/modules_system.md#sensor-gps-sim) and [`sensor_mag_sim`](../modules/modules_system.md#sensor-mag-sim).
-
-To check that these are present on your flight controller:
-
-1. Start QGroundControl.
-
-2. Open **Analyze Tools > Mavlink Console**.
-
-3. Enter the following commands in the console:
-
-   ```sh
-   pwm_out_sim status
-   ```
-
-   ```sh
-   sensor_baro_sim status
-   ```
-
-   ```sh
-   sensor_gps_sim status
-   ```
-
-   ```sh
-   sensor_mag_sim status
-   ```
-
-   ::: tip
-   Note that when using SIH on real hardware you do not need to additionally enable the modules using their corresponding parameters ([SENS_EN_GPSSIM](../advanced_config/parameter_reference.md#SENS_EN_GPSSIM), [SENS_EN_BAROSIM](../advanced_config/parameter_reference.md#SENS_EN_BAROSIM), [SENS_EN_MAGSIM](../advanced_config/parameter_reference.md#SENS_EN_MAGSIM)).
-
-:::
-
-4. If a valid status is returned you can start using SIH.
-
-If any of the returned values above are `nsh: MODULENAME: command not found`, then you don't have the module installed.
-In this case you will have to add them to your board configuration and then rebuild and install the firmware.
-
-### Adding SIH to the Firmware
-
-Add the following key to the configuration file for your flight controller to include all the required modules (for an example see [boards/px4/fmu-v6x/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6x/default.px4board)).
-Then re-build the firmware and flash it to the board.
-
-```text
-CONFIG_MODULES_SIMULATION_SIMULATOR_SIH=y
-```
-
-:::details
-What does this do?
-
-This installs the dependencies in [simulator_sih/Kconfig](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/simulation/simulator_sih/Kconfig).
-It is equivalent to:
-
-```text
-CONFIG_MODULES_SIMULATION_PWM_OUT_SIM=y
-CONFIG_MODULES_SIMULATION_SENSOR_BARO_SIM=y
-CONFIG_MODULES_SIMULATION_SENSOR_GPS_SIM=y
-CONFIG_MODULES_SIMULATION_SENSOR_MAG_SIM=y
-```
-
-:::
-
-As an alternative to updating configuration files manually, you can use the following command to launch a GUI configuration tool, and interactively enable the required modules at the path: **modules > Simulation > simulator_sih**.
-For example, to update the fmu-v6x configuration you would use:
-
-```sh
-make px4_fmu-v6x boardconfig
-```
-
-After uploading, check that the required modules are present.
-
-:::info
-To use rover in SIH you must use the [rover build](../config_rover/index.md#flashing-the-rover-build) or add the rover modules to your board configuration.
-:::
-
-## Starting SIH
-
-To set up/start SIH:
-
-1. Connect the flight controller to the desktop computer with a USB cable.
-2. Open QGroundControl and wait for the flight controller too boot and connect.
-3. Open [Vehicle Setup > Airframe](../config/airframe.md) then select the desired frame:
-   - [SIH Quadcopter X](../airframes/airframe_reference.md#copter_simulation_sih_quadcopter_x)
-   - **SIH Hexacopter X** (currently only has an airframe for SITL to safe flash so on flight control hardware it has to be manually configured equivalently).
-   - [SIH plane AERT](../airframes/airframe_reference.md#plane_simulation_sih_plane_aert)
-   - [SIH Tailsitter Duo](../airframes/airframe_reference.md#vtol_simulation_sih_tailsitter_duo)
-   - [SIH Standard VTOL QuadPlane](../airframes/airframe_reference.md#vtol_simulation_sih_standard_vtol_quadplane)
-   - [SIH Ackermann Rover](../airframes/airframe_reference.md#rover_rover_sih_rover_ackermann)
-
-The autopilot will then reboot.
-The `sih` module is started on reboot, and the vehicle should be displayed on the ground control station map.
+| Vehicle                                                                            | Make Target                              | Status |
+| ---------------------------------------------------------------------------------- | ---------------------------------------- | ------ |
+| Quadrotor X <Badge type="tip" text="PX4 v1.9" />                                   | `make px4_sitl_sih sihsim_quadx`         | Stable |
+| Hexarotor X <Badge type="tip" text="PX4 v1.16" />                                  | `make px4_sitl_sih sihsim_hexa`          | 실험     |
+| Fixed-wing (airplane) <Badge type="tip" text="PX4 v1.13" />     | `make px4_sitl_sih sihsim_airplane`      | 실험     |
+| Tailsitter VTOL <Badge type="tip" text="PX4 v1.13" />                              | `make px4_sitl_sih sihsim_xvert`         | 실험     |
+| Standard VTOL (QuadPlane) <Badge type="tip" text="PX4 v1.16" /> | `make px4_sitl_sih sihsim_standard_vtol` | 실험     |
+| Ackermann Rover <Badge type="tip" text="PX4 v1.16" />                              | `make px4_sitl_sih sihsim_rover`         | 실험     |
 
 :::warning
-The airplane needs to takeoff in manual mode at full throttle.
-Also, if the airplane crashes the state estimator might lose its fix.
+Only the quadrotor vehicle type is stable and recommended for development. All other vehicle types (hexarotor, fixed-wing, VTOL, rover) are experimental and may have aerodynamic model or controller interaction issues that produce unrealistic flight behavior.
 :::
 
-## Simulation Configuration
+### How SIH Works
 
-### Wind
+![SIH Overview](../../assets/simulation/sih_overview.svg)
 
-SIH supports setting a wind velocity with the PX4 parameters [`SIH_WIND_N`](../advanced_config/parameter_reference.md#SIH_WIND_E) and [`SIH_WIND_E`](../advanced_config/parameter_reference.md#SIH_WIND_E) [m/s]. The parameters can also be changed during flight to simulate changing wind.
+SIH differs from external simulators:
 
-## Display/Visualisation (optional)
+- **No MAVLink simulator API:** SIH communicates entirely via uORB (PX4's internal message bus).
+- **No external process:** The physics model runs in the same PX4 process.
+- **Lockstep by default:** Simulation time is synchronized with PX4 scheduling.
 
-The SIH-simulated vehicle can be displayed using [jMAVSim](../sim_jmavsim/index.md) as a visualiser.
+## SIH as SITL {#sih-as-sitl-no-fc}
 
-:::tip
-SIH does not _need_ a visualiser — you can connect with QGroundControl and fly the vehicle without one.
-:::
+SIH as SITL is the easiest and fastest way to set up a simulator with PX4.
+It requires no hardware, and very few extra dependencies.
 
-To display the simulated vehicle:
+### 빠른 시작
 
-1. Close _QGroundControl_ (if open).
-
-2. Unplug and replug the flight controller (allow a few seconds for it to boot).
-
-3. Start jMAVSim by calling the script **jmavsim_run.sh** from a terminal:
-
-   ```sh
-   ./Tools/simulation/jmavsim/jmavsim_run.sh -q -d /dev/ttyACM0 -b 2000000 -o
-   ```
-
-   where the flags are:
-
-   - `-q` to allow the communication to _QGroundControl_ (optional).
-   - `-d` to start the serial device `/dev/ttyACM0` on Linux.
-     On macOS this would be `/dev/tty.usbmodem1`.
-   - `-b` to set the serial baud rate to `2000000`.
-   - `-o` to start jMAVSim in _display Only_ mode (i.e. the physical engine is turned off and jMAVSim only displays the trajectory given by the SIH in real-time).
-   - add a flag `-a` to display an aircraft or `-t` to display a tailsitter.
-     If this flag is not present a quadrotor will be displayed by default.
-
-4. After few seconds, _QGroundControl_ can be opened again.
-
-At this point, the system can be armed and flown.
-The vehicle can be observed moving in jMAVSim, and on the QGC _Fly_ view.
-
-## SIH as SITL (no FC)
-
-SIH can be run as SITL (Software-In-The-Loop) from v1.14.
-What this means is that the simulation code is executed on the laptop/computer instead of a flight controller, similar to Gazebo or jMAVSim.
-In this case you don't need the flight controller hardware.
-
-To run SIH as SITL:
-
-1. Install the [PX4 Development toolchain](../dev_setup/dev_env.md).
-2. Run the appropriate make command for each vehicle type (at the root of the PX4-Autopilot repository):
-   - Quadcopter
-
-     ```sh
-     make px4_sitl sihsim_quadx
-     ```
-
-   - Hexacopter
-
-     ```sh
-     make px4_sitl sihsim_hex
-     ```
-
-   - Fixed-wing (plane)
-
-     ```sh
-     make px4_sitl sihsim_airplane
-     ```
-
-   - XVert VTOL tailsitter
-
-     ```sh
-     make px4_sitl sihsim_xvert
-     ```
-
-   - 표준 VTOL
-
-     ```sh
-     make px4_sitl sihsim_standard_vtol
-     ```
-
-   - Ackermann Rover
-
-     ```sh
-     make px4_sitl sihsim_rover_ackermann
-     ```
-
-### Change Simulation Speed
-
-SITL allows the simulation to be run faster than real time.
-To run the airplane simulation 10 times faster than real time, run the command:
+To build PX4 and run SIH for a quadrotor:
 
 ```sh
-PX4_SIM_SPEED_FACTOR=10 make px4_sitl sihsim_airplane
+make px4_sitl_sih sihsim_quadx
 ```
 
-To display the vehicle in jMAVSim during SITL mode, enter the following command in another terminal:
+QGroundControl auto-connects on UDP port 14550 — just open it and you'll see the vehicle.
+Note that the simulation is "headless" by default (has no GUI), but you can use an external viewer.
+
+See [Supported vehicle types](#supported-vehicle-types) for other vehicles.
+
+:::tip
+Use the `px4_sitl_sih` build target!
+The `px4_sitl` target will work, but will also build Gazebo libraries.
+:::
+
+### Visualization (Optional) {#sitl-visualization}
+
+SIH is intentionally headless by default.
+If you need a visual aid to see what the vehicle is doing you can use QGroundControl to track path over ground, and/or jMAVSim as a 3D viewer.
+
+#### QGroundControl
+
+QGC auto-connects on UDP port 14550. Open QGC while SIH is running and the vehicle appears on the map view with attitude, position, and telemetry.
+
+#### jMAVSim (3D Display-Only)
+
+jMAVSim can render a 3D view of the vehicle using MAVLink position data. No physics are simulated in jMAVSim — it is display-only.
 
 ```sh
 ./Tools/simulation/jmavsim/jmavsim_run.sh -p 19410 -u -q -o
 ```
 
-- add a flag `-a` to display an aircraft or `-t` to display a tailsitter.
-  If this flag is not present a quadrotor will be displayed by default.
+Flags:
 
-### Set Custom Takeoff Location
+- `-a` for airplane model
+- `-t` for tailsitter model
+- `-o` enable display-only mode.
 
-The takeoff location in SIH on SITL can be set using environment variables.
-This will override the default takeoff location.
+See [jMAVSim Display-Only Mode](../sim_jmavsim/index.md#display-only-mode) for details.
 
-The variables to set are: `PX4_HOME_LAT`, `PX4_HOME_LON`, and `PX4_HOME_ALT`.
+### Environment Configuration
 
-예:
+#### Change Simulation Speed
+
+SIH supports faster-than-realtime simulation via the `PX4_SIM_SPEED_FACTOR` environment variable:
+
+```sh
+# Run at 10x speed
+PX4_SIM_SPEED_FACTOR=10 make px4_sitl_sih sihsim_quadx
+```
+
+#### Wind Simulation
+
+SIH supports setting a wind velocity with the PX4 parameters [`SIH_WIND_N`](../advanced_config/parameter_reference.md#SIH_WIND_E) and [`SIH_WIND_E`](../advanced_config/parameter_reference.md#SIH_WIND_E) [m/s]. The parameters can also be changed during flight to simulate changing wind.
+
+#### Set Custom Takeoff Location
+
+The default takeoff location can be set using environment variables:
 
 ```sh
 export PX4_HOME_LAT=28.452386
 export PX4_HOME_LON=-13.867138
 export PX4_HOME_ALT=28.5
-make px4_sitl sihsim_quadx
+make px4_sitl_sih sihsim_quadx
 ```
+
+### ROS 2 Integration
+
+SIH works with ROS 2 via the [uXRCE-DDS](../middleware/uxrce_dds.md) client, which auto-starts in SITL mode.
+This is the same mechanism used by Gazebo — both simulators expose the same set of uORB topics to ROS 2.
+The DDS agent connects on UDP port **8888** by default (configurable via `UXRCE_DDS_PRT` parameter or `PX4_UXRCE_DDS_PORT` environment variable).
+
+To use SIH with ROS 2:
+
+1. Start SIH:
+
+   ```sh
+   make px4_sitl_sih sihsim_quadx
+   ```
+
+2. In a separate terminal, start the Micro XRCE-DDS Agent:
+
+   ```sh
+   MicroXRCEAgent udp4 -p 8888
+   ```
+
+See [uXRCE-DDS (PX4-ROS 2/DDS Bridge)](../middleware/uxrce_dds.md) for full setup instructions, including agent installation and ROS 2 workspace configuration.
+
+### Port Reference
+
+PX4 SITL opens the following UDP ports (all instance-aware, offset by instance number N).
+
+| PX4 sends to (remote) | PX4 listens on (local) | Use for                                            | Instance offset                                              |
+| ---------------------------------------- | ----------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------ |
+| **14550**                                | 18570 (+N)             | QGroundControl, GCS tools                          | Yes                                                          |
+| **14540** (+N)        | 14580 (+N)             | MAVSDK, MAVROS, offboard APIs                      | Yes (capped at 14549 for 10+ instances)   |
+| **14030** (+N)        | 14280 (+N)             | Onboard camera/payload                             | Yes                                                          |
+| **13280** (+N)        | 13030 (+N)             | Gimbal control                                     | Yes                                                          |
+| **19410** (+N)        | 19450 (+N)             | jMAVSim display-only (SIH only) | Yes                                                          |
+| **8888**                                 | -                                         | uXRCE-DDS / ROS 2                                  | No (use DDS namespace for multi-instance) |
+
+QGC auto-connects on port **14550** by default. MAVSDK connects on **14540**. No manual port configuration needed for single-instance use.
+
+### 다중 차량 시뮬레이션
+
+SIH supports multi-vehicle simulation using PX4's instance system.
+Each instance gets unique MAVLink ports, a unique system ID, and a separate DDS namespace.
+
+To launch multiple SIH vehicles, first build:
+
+```sh
+make px4_sitl_sih sihsim_quadx
+```
+
+Then use the multi-instance launch script:
+
+```sh
+./Tools/simulation/sitl_multiple_run.sh 3 sihsim_quadx px4_sitl_sih
+```
+
+Or launch instances manually:
+
+```sh
+# Terminal 1 (instance 0)
+make px4_sitl_sih sihsim_quadx
+
+# Terminal 2 (instance 1)
+./build/px4_sitl_sih/bin/px4 -i 1 -d ./build/px4_sitl_sih/etc
+
+# Terminal 3 (instance 2)
+./build/px4_sitl_sih/bin/px4 -i 2 -d ./build/px4_sitl_sih/etc
+```
+
+Each instance allocates ports automatically (all offset by instance number):
+
+| Instance | MAVLink (18570+N) | MAVLink (14540+N) | DDS (8888) Namespace |
+| -------- | ------------------------------------ | ------------------------------------ | --------------------------------------- |
+| 0        | 18570                                | 14540                                | (default)            |
+| 1        | 18571                                | 14541                                | px4_1              |
+| 2        | 18572                                | 14542                                | px4_2              |
+
+See [Port Reference](#port-reference) for the complete list of ports.
+
+## SIH on Flight Controller Hardware {#sih-on-flight-controller-hardware}
+
+SIH can also run on flight controller hardware with `SYS_HITL=2`, replacing real sensors with simulated data while running on the actual autopilot.
+See [SIH on Flight Controller Hardware](hardware.md) for setup instructions.
 
 ## Adding New Airframes
 
@@ -283,12 +210,12 @@ make px4_sitl sihsim_quadx
 You still need to configure your vehicle type and [geometry](../config/actuators.md) (`CA_` parameters) and start any other defaults for that specific vehicle.
 
 :::warning
-Not every vehicle can be simulated with SIH — there are currently [four supported vehicle types](../advanced_config/parameter_reference.md#SIH_VEHICLE_TYPE), each of which has a relatively rigid implementation in [`sih.cpp`](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/simulation/simulator_sih/sih.cpp).
+Not every vehicle can be simulated with SIH — there are currently [six supported vehicle types](../advanced_config/parameter_reference.md#SIH_VEHICLE_TYPE) (quadcopter, fixed-wing, tailsitter, standard VTOL, hexacopter, rover), each of which has a relatively rigid implementation in [`sih.cpp`](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/simulation/simulator_sih/sih.cpp).
 :::
 
 The specific differences for SIH simulation airframes are listed in the sections below.
 
-For all variants of SIH:
+### All Variants
 
 - Set all the [Simulation In Hardware](../advanced_config/parameter_reference.md#simulation-in-hardware) parameters (prefixed with `SIH_`) in order to configure the physical model of the vehicle.
 
@@ -310,15 +237,11 @@ For all variants of SIH:
 
 - `param set-default SENS_GPS0_DELAY 0` to improve state estimator performance (the assumption of instant GPS measurements would normally be unrealistic, but is accurate for SIH).
 
-For SIH on FC:
+### SIH on Flight Controller
 
-- Airframe file goes in `ROMFS/px4fmu_common/init.d/airframes` and follows the naming template `${ID}_${model_name}.hil`, where `ID` is the `SYS_AUTOSTART_ID` used to select the airframe, and `model_name` is the airframe model name.
-- Add the model name in `ROMFS/px4fmu_common/init.d/airframes/CMakeLists.txt` to generate a corresponding make target.
-- Actuators are configured with `HIL_ACT_FUNC*` parameters (not the usual `PWM_MAIN_FUNC*` parameters).
-  This is to avoid using the real actuator outputs in SIH.
-  Similarly, the bitfield for inverting individual actuator output ranges is `HIL_ACT_REV`, rather than `PWM_MAIN_REV`.
+For FC-specific airframe setup (file locations, `HIL_ACT_FUNC*` parameters), see [Adding New Airframes (FC)](hardware.md#adding-new-airframes-fc).
 
-For SIH as SITL (no FC):
+### SIH as SITL
 
 - Airframe file goes in `ROMFS/px4fmu_common/init.d-posix/airframes` and follows the naming template `${ID}_sihsim_${model_name}`, where `ID` is the `SYS_AUTOSTART_ID` used to select the airframe, and `model_name` is the airframe model name.
 - Add the model name in `src/modules/simulation/simulator_sih/CMakeLists.txt` to generate a corresponding make target.
@@ -334,57 +257,28 @@ For SIH as SITL (no FC):
 
 For specific examples see the `_sihsim_` airframes in [ROMFS/px4fmu_common/init.d-posix/airframes](https://github.com/PX4/PX4-Autopilot/tree/main/ROMFS/px4fmu_common/init.d-posix/airframes) (SIH as SITL) and [ROMFS/px4fmu_common/init.d/airframes](https://github.com/PX4/PX4-Autopilot/tree/main/ROMFS/px4fmu_common/init.d/airframes) (SIH on FC).
 
-## Controlling Actuators in SIH
-
-:::warning
-If you want to control throttling actuators in SIH, make sure to remove propellers for safety.
-:::
-
-In some scenarios, it may be useful to control an actuator while running SIH. For example, you might want to verify that winches or grippers are functioning correctly by checking the servo responses.
-
-To enable actuator control in SIH:
-
-1. Configure PWM parameters in the airframe file:
-
-Ensure your airframe file includes the necessary parameters to map PWM outputs to the correct channels.
-
-For example, if a servo is connected to MAIN 3 and you want to map it to AUX1 on your RC, use the following command:
-
-`param set-default PWM_MAIN_FUNC3 407`
-
-You can find a full list of available values for `PWM_MAIN_FUNCn` [here](../advanced_config/parameter_reference.md#PWM_MAIN_FUNC1). In this case, `407` maps the MAIN 3 output to AUX1 on the RC.
-
-Alternatively, you can use the [`PWM_AUX_FUNCn`](../advanced_config/parameter_reference.md#PWM_AUX_FUNC1) parameters.
-
-You may also configure the output as desired:
-
-- Disarmed PWM: ([`PWM_MAIN_DISn`](../advanced_config/parameter_reference.md#PWM_MAIN_DIS1) / [`PWM_AUX_DIS1`](../advanced_config/parameter_reference.md#PWM_AUX_DIS1))
-- Minimum PWM ([`PWM_MAIN_MINn`](../advanced_config/parameter_reference.md#PWM_MAIN_MIN1) / [`PWM_AUX_MINn`](../advanced_config/parameter_reference.md#PWM_AUX_MIN1))
-- Maximum PWM ([`PWM_MAIN_MAXn`](../advanced_config/parameter_reference.md#PWM_MAIN_MAX1) / [`PWM_AUX_MAXn`](../advanced_config/parameter_reference.md#PWM_AUX_MAX1))
-
-2. Manually start the PWM output driver
-
-For safety, the PWM driver is not started automatically in SIH. To enable it, run the following command in the MAVLink shell:
-
-`pwm_out start`
-
-And to disable it again:
-
-`pwm_out stop`
-
 ## Dynamic Models
 
 The dynamic models for the various vehicles are:
 
-- Quadcopter: [pdf report](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/simulation/SIH_dynamic_model.pdf).
-- Hexacopter: Equivalent to the Quadcopter but with a symmetric hexacopter x actuation setup.
-- Fixed-wing: Inspired by the PhD thesis: "Dynamics modeling of agile fixed-wing unmanned aerial vehicles." Khan, Waqas, supervised by Nahon, Meyer, McGill University, PhD thesis, 2016.
-- Tailsitter: Inspired by the master's thesis: "Modeling and control of a flying wing tailsitter unmanned aerial vehicle." Chiappinelli, Romain, supervised by Nahon, Meyer, McGill University, Masters thesis, 2018.
-- Ackermann Rover: Based on lateral vehicle dynamics of the bicycle model adapted from [Sri Anumakonda, Everything you need to know about Self-Driving Cars in <30 minutes](https://srianumakonda.medium.com/everything-you-need-to-know-about-self-driving-in-30-minutes-b38d68bd3427)
+- Quadrotor: [pdf](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/simulation/SIH_dynamic_model.pdf)
+- Fixed-wing: based on Khan (2016), see references below
+- Tailsitter: based on Chiappinelli (2018), see references below
+- Rover: bicycle model with linear tire model
+
+Since PX4 v1.17, the propeller model for fixed-wing, tailsitter, and VTOL pusher vehicles is based on [UIUC propeller data](https://m-selig.ae.illinois.edu/props/propDB.html).
+The maximum thrust force is realistically reduced as aircraft speed increases.
+
+**References:**
+
+1. PX4 Development Team, "SIH Dynamic Model," PX4-Autopilot, 2019. [PDF](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/simulation/SIH_dynamic_model.pdf)
+2. W. Khan, "Dynamics modeling of agile fixed-wing unmanned aerial vehicles," Ph.D. thesis, Dept. of Mechanical Engineering, McGill University, Montreal, 2016.
+3. R. Chiappinelli, "Modeling and control of a flying wing tailsitter unmanned aerial vehicle," M.Sc. thesis, Dept. of Mechanical Engineering, McGill University, Montreal, 2018.
+4. S. Anumakonda, "Everything you need to know about Self-Driving Cars," 2021. [Link](https://srianumakonda.medium.com/everything-you-need-to-know-about-self-driving-in-30-minutes-b38d68bd3427)
 
 ## 비디오
 
-<lite-youtube videoid="PzIpSCRD8Jo" title="SIH FW demo"/>
+@[youtube](https://youtu.be/PzIpSCRD8Jo)
 
 ## Credits
 
