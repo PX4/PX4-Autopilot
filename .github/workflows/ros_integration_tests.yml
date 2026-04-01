@@ -110,6 +110,8 @@ jobs:
       run: ccache -s
 
     - name: Build PX4
+      env:
+        PX4_SBOM_DISABLE: 1
       run: make px4_sitl_default
     - name: ccache post-run px4/firmware
       run: ccache -s
