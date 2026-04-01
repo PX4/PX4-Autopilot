@@ -1,10 +1,57 @@
-# Navigator Mode Change Telemetry
+# PX4-Autopilot — Navigator Mode Change Telemetry
 
-## Overview
+> **This is a contribution fork of [PX4/PX4-Autopilot](https://github.com/PX4/PX4-Autopilot)** (11k+ stars, the industry-standard open-source drone autopilot stack).
+> The contribution is documented below. For general PX4 documentation, see the upstream repo.
 
-This feature adds structured, machine-readable telemetry for navigator mode transitions in PX4-Autopilot. Every time the vehicle switches navigation modes (e.g., Takeoff → Loiter, Mission → RTL, Position Hold → Failsafe), a new `NavigatorModeChange` uORB message is published and automatically recorded to ULog.
+---
 
-Previously, mode transitions were either silent or only visible through scattered MAVLink text messages, making post-flight analysis of unexpected mode changes difficult. This feature gives engineers a precise, timestamped record of every transition with full flight context captured at the moment it occurs.
+## Contribution: Structured Telemetry for Autonomous Mode Transitions
+
+**Status:** `Open PR upstream` → [PX4/PX4-Autopilot #26947](https://github.com/PX4/PX4-Autopilot/pull/26947)
+
+**What I built:** A new `NavigatorModeChange` uORB message that publishes a structured, machine-readable record every time the vehicle switches autonomous navigation modes — automatically captured in every ULog flight recording.
+
+**Problem it solves:** Post-flight analysis of why a vehicle transitioned out of a mission or into failsafe required manually correlating timestamps across multiple log topics. This feature collapses that into a single purpose-built record with all relevant context captured at the exact moment of transition — velocity, distance-to-target, failsafe state, user intention, and whether waypoints were reset.
+
+### Files I Changed
+
+| File | Change |
+|---|---|
+| [`msg/NavigatorModeChange.msg`](msg/NavigatorModeChange.msg) | New uORB message definition |
+| [`msg/CMakeLists.txt`](msg/CMakeLists.txt) | Register new message in build system |
+| [`src/modules/navigator/navigator_main.cpp`](src/modules/navigator/navigator_main.cpp) | Detect transitions, capture context, publish |
+| [`src/modules/navigator/navigator.h`](src/modules/navigator/navigator.h) | Publisher declaration and method signature |
+| [`src/modules/logger/logged_topics.cpp`](src/modules/logger/logged_topics.cpp) | Register topic for automatic ULog recording |
+
+### Why This Approach
+
+**Why a uORB message instead of debug logs?**
+`PX4_DEBUG` strings are stripped in release builds and cannot be queried after a flight. A uORB message is recorded at full fidelity in every ULog, parseable by Flight Review and pyulog scripts, with negligible overhead — one small struct publish per mode change.
+
+**Why capture velocity and distance-to-target?**
+Transitions at high speed or far from the intended waypoint are the ones most likely to cause anomalous behavior. Having these values at the exact moment — not reconstructed from nearby samples — makes debugging significantly more reliable.
+
+**Why `nav_state_user_intention`?**
+Failsafe transitions overwrite `nav_state`, but the user's intended state is preserved separately in `vehicle_status`. Recording both makes it immediately clear whether a transition was commanded or automatic.
+
+---
+
+## Message Schema
+
+```
+msg/NavigatorModeChange.msg
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `timestamp` | `uint64` | Time since system start (microseconds) |
+| `nav_state_prev` | `uint8` | Navigation state before transition |
+| `nav_state_new` | `uint8` | Navigation state after transition |
+| `nav_state_user_intention` | `uint8` | User-intended state at time of transition |
+| `in_failsafe` | `bool` | Whether vehicle was in failsafe |
+| `triplet_reset_applied` | `bool` | Whether `reset_triplets()` was called on entry |
+| `entry_velocity_xy` | `float32` | Horizontal ground speed at transition [m/s] |
+| `entry_dist_to_target` | `float32` | Distance to active waypoint [m], NaN if none |
 
 ---
 
@@ -28,7 +75,7 @@ flowchart TD
 
 ---
 
-## Mode Transition Flow
+## Mode Transition Sequence
 
 ```mermaid
 sequenceDiagram
@@ -51,37 +98,7 @@ sequenceDiagram
 
 ---
 
-## Data Flow: What Gets Recorded
-
-```mermaid
-flowchart LR
-    subgraph Sources
-        VS[vehicle_status\nnav_state_user_intention\nfailsafe]
-        LP[vehicle_local_position\nvx, vy]
-        GP[vehicle_global_position\nlat, lon]
-        SP[position_setpoint_triplet\ncurrent.lat, current.lon]
-    end
-
-    subgraph NavigatorModeChange msg
-        TS[timestamp]
-        NS[nav_state_prev\nnav_state_new]
-        UI[nav_state_user_intention]
-        FS[in_failsafe]
-        TR[triplet_reset_applied]
-        VXY[entry_velocity_xy]
-        DT[entry_dist_to_target]
-    end
-
-    VS --> UI
-    VS --> FS
-    LP --> VXY
-    GP --> DT
-    SP --> DT
-```
-
----
-
-## Navigation State Machine (simplified)
+## Navigation State Machine
 
 ```mermaid
 stateDiagram-v2
@@ -104,62 +121,9 @@ stateDiagram-v2
 
 ---
 
-## What Changed
-
-### New uORB Message: `NavigatorModeChange`
-
-```
-msg/NavigatorModeChange.msg
-```
-
-| Field | Type | Description |
-|---|---|---|
-| `timestamp` | `uint64` | Time since system start (microseconds) |
-| `nav_state_prev` | `uint8` | Navigation state before transition |
-| `nav_state_new` | `uint8` | Navigation state after transition |
-| `nav_state_user_intention` | `uint8` | What the user intended at the time |
-| `in_failsafe` | `bool` | Whether the vehicle was in failsafe |
-| `triplet_reset_applied` | `bool` | Whether `reset_triplets()` was called on entry |
-| `entry_velocity_xy` | `float32` | Horizontal ground speed at transition [m/s] |
-| `entry_dist_to_target` | `float32` | Distance to current waypoint at transition [m], NaN if no valid target |
-
-The message uses `NAV_STATE_NONE = 255` as a sentinel when no navigator mode is active (e.g., on the very first activation).
-
-### Files Modified
-
-| File | Change |
-|---|---|
-| `msg/NavigatorModeChange.msg` | New message definition |
-| `msg/CMakeLists.txt` | Registers the new message in the build |
-| `src/modules/navigator/navigator.h` | Adds publisher and `publish_mode_change()` declaration |
-| `src/modules/navigator/navigator_main.cpp` | Detects transitions, captures context, calls publisher |
-| `src/modules/logger/logged_topics.cpp` | Registers topic for automatic ULog recording |
-
----
-
-## Design Decisions
-
-**Why a uORB message instead of just debug logs?**  
-Debug logs (`PX4_DEBUG`) are string-based, stripped in release builds, and cannot be queried programmatically after a flight. A uORB message is recorded at full fidelity in every ULog, can be parsed by Flight Review and custom scripts, and adds negligible overhead (one small struct publish per mode change, which is a rare event).
-
-**Why capture velocity and distance-to-target?**  
-Mode transitions that happen at high speed or far from the intended waypoint are the ones most likely to cause anomalous behavior. Having these values at the exact moment of transition — not reconstructed from nearby samples — makes debugging significantly more reliable.
-
-**Why `nav_state_user_intention`?**  
-Failsafe transitions overwrite `nav_state` but the user's intended state is preserved separately in `vehicle_status`. Recording both makes it immediately clear whether a transition was commanded or automatic.
-
-**Why `triplet_reset_applied`?**  
-Whether `reset_triplets()` was called on mode entry has a direct effect on vehicle path behavior. Logging it eliminates a common ambiguity during post-flight investigation.
-
----
-
 ## Usage
 
-### Viewing in Flight Review
-
-After uploading a ULog, search for the `navigator_mode_change` topic. Each row is one transition event.
-
-### Parsing with Python (pyulog)
+### Query transitions from a flight log (pyulog)
 
 ```python
 from pyulog import ULog
@@ -174,35 +138,14 @@ for i, ts in enumerate(mode_changes.data['timestamp']):
           f"v_xy={mode_changes.data['entry_velocity_xy'][i]:.1f} m/s")
 ```
 
-### Example Output
-
+**Example output:**
 ```
 12.541s   0 -> 3   failsafe=False  v_xy=0.0 m/s
 47.382s   3 -> 4   failsafe=False  v_xy=4.2 m/s
 91.017s   4 -> 5   failsafe=True   v_xy=6.8 m/s
 ```
 
----
-
-## Building
-
-No special build flags required. The message and topic are included in all standard build targets.
-
-```bash
-make px4_sitl_default
-```
-
----
-
-## Testing
-
-Run the existing navigator unit tests to verify no regressions:
-
-```bash
-make tests TESTFILTER=navigator
-```
-
-To manually verify telemetry output in SITL:
+### Live monitoring in SITL
 
 ```bash
 make px4_sitl_default gazebo-classic_iris
@@ -210,8 +153,12 @@ make px4_sitl_default gazebo-classic_iris
 listener navigator_mode_change
 ```
 
+### Run tests
+
+```bash
+make tests TESTFILTER=navigator
+```
+
 ---
 
-## Motivation
-
-During post-flight analysis of autonomous missions, determining *why* a vehicle transitioned out of a mission or into failsafe often required correlating multiple log topics by hand. This feature collapses that into a single, purpose-built record: one row per transition, with all relevant context already joined.
+*For full PX4 build instructions and documentation, see the [upstream repository](https://github.com/PX4/PX4-Autopilot).*
