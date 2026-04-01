@@ -107,6 +107,29 @@ def _entry_imxrt():
     }
 
 
+def _entry_stm32h7_capture_channels():
+    """16 outputs: 8 with DShot (Timer5/Timer4) + 8 capture-only (Timer1/Timer8/Timer12)."""
+    return {
+        "has_io_board": False, "total_outputs": 16, "io_outputs": 0,
+        "serial_ports": [],
+        "has_rc_input": False, "has_common_rc": False, "rc_serial_device": None,
+        "has_ppm_pin": False, "ppm_shared_with_rc_serial": False,
+        "has_pps_capture": False, "has_safety_switch": False, "has_safety_led": False,
+        "has_buzzer": False,
+        "num_power_inputs": 1, "has_redundant_power": False,
+        "has_dual_battery_monitoring": False, "has_dronecan_power_input": False,
+        "power_monitor_type": "analog", "has_sd_card": True,
+        "rc_ports_wizard": None, "gps_ports_wizard": None, "power_ports_wizard": None,
+        "groups": [
+            _group(1, "Timer5", [1, 2, 3, 4], bdshot_outputs=[1, 2, 3, 4]),
+            _group(2, "Timer4", [5, 6, 7, 8], bdshot_outputs=[5, 6, 7], bdshot_output_only=[8]),
+            _group(3, "Timer1", [9, 10, 11], dshot=False),
+            _group(4, "Timer8", [12, 13, 14], dshot=False),
+            _group(5, "Timer12", [15, 16], dshot=False),
+        ],
+    }
+
+
 def _entry_stm32f4_no_dshot():
     return {
         "has_io_board": False, "total_outputs": 6, "io_outputs": 0,
@@ -150,6 +173,10 @@ class TestGeneratePwmSection:
     def test_imxrt_all_dshot(self, snapshot):
         result = fcdg.generate_pwm_section(BOARD_KEY, _entry_imxrt())
         snapshot("pwm_imxrt_all_dshot.md", result)
+
+    def test_stm32h7_capture_channels(self, snapshot):
+        result = fcdg.generate_pwm_section(BOARD_KEY, _entry_stm32h7_capture_channels())
+        snapshot("pwm_stm32h7_capture_channels.md", result)
 
     def test_stm32f4_no_dshot(self, snapshot):
         result = fcdg.generate_pwm_section(BOARD_KEY, _entry_stm32f4_no_dshot())

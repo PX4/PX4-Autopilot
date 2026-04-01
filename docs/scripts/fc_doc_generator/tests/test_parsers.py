@@ -112,6 +112,24 @@ class TestParseTimerConfig:
         result = fcdg.parse_timer_config(board_imxrt)
         assert len(result["channels"]) == 8
 
+    def test_capture_channel_count(self, board_stm32h7_capture_channels):
+        # 8 regular + 8 initIOTimerChannelCapture = 16 total
+        result = fcdg.parse_timer_config(board_stm32h7_capture_channels)
+        assert len(result["channels"]) == 16
+
+    def test_capture_channels_include_capture_timers(self, board_stm32h7_capture_channels):
+        result = fcdg.parse_timer_config(board_stm32h7_capture_channels)
+        timer_names = {ch["timer"] for ch in result["channels"]}
+        assert "Timer1" in timer_names
+        assert "Timer8" in timer_names
+        assert "Timer12" in timer_names
+
+    def test_capture_channels_output_indices(self, board_stm32h7_capture_channels):
+        # All 16 outputs are numbered 1..16 in order
+        result = fcdg.parse_timer_config(board_stm32h7_capture_channels)
+        indices = [ch["output_index"] for ch in result["channels"]]
+        assert indices == list(range(1, 17))
+
     def test_stm32f4_no_dshot(self, board_stm32f4):
         result = fcdg.parse_timer_config(board_stm32f4)
         assert all(not t["dshot"] for t in result["timers"])

@@ -28,10 +28,11 @@ fc_doc_generator/
 │   └── <vendor>_<board>_wizard.json  # User-supplied wizard overrides
 └── tests/
     ├── conftest.py          # snapshot fixture + board_* path fixtures
-    ├── fixtures/            # Minimal fake board trees (5 boards)
+    ├── fixtures/            # Minimal fake board trees
     │   ├── stm32h7_all_dshot/
     │   ├── stm32h7_mixed_io/
     │   ├── stm32h7_ppm_shared/
+    │   ├── stm32h7_capture_channels/   # 8 regular + 8 initIOTimerChannelCapture outputs
     │   ├── stm32f4_no_dshot/
     │   └── imxrt_all_dshot/
     ├── snapshots/           # Expected markdown output (.md files)
@@ -55,6 +56,12 @@ python docs/scripts/fc_doc_generator/fc_doc_generator.py --apply
 
 # Apply a single section only:
 python docs/scripts/fc_doc_generator/fc_doc_generator.py --apply --section pwm_outputs
+
+# Apply all sections to a single doc only (stem or filename, implies --apply):
+python docs/scripts/fc_doc_generator/fc_doc_generator.py --doc cuav_x25-evo.md
+
+# Apply a single section to a single doc:
+python docs/scripts/fc_doc_generator/fc_doc_generator.py --doc cuav_x25-evo.md --section pwm_outputs
 
 # Create a new stub FC doc (interactive wizard):
 python docs/scripts/fc_doc_generator/fc_doc_generator.py --new-doc

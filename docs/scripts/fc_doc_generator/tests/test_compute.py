@@ -148,3 +148,45 @@ class TestComputeBdshot:
         groups = fcdg.compute_groups(timers, channels)
         groups = fcdg.compute_bdshot(groups, channels, "unknown")
         assert all(g["bdshot_outputs"] == [] for g in groups)
+
+    def test_capture_channel_no_bdshot_on_no_dma_timers(self, board_stm32h7_capture_channels):
+        # Timer1/Timer8/Timer12 have no DMA → dshot=False → bdshot=False
+        timers, channels = _parse(board_stm32h7_capture_channels)
+        groups = fcdg.compute_groups(timers, channels)
+        groups = fcdg.compute_bdshot(groups, channels, "stm32h7")
+        for g in groups:
+            if g["timer"] in ("Timer1", "Timer8", "Timer12"):
+                assert g["dshot"] is False
+                assert g["bdshot"] is False
+                assert g["bdshot_outputs"] == []
+
+
+class TestComputeGroupsCapture:
+    def test_capture_group_count(self, board_stm32h7_capture_channels):
+        timers, channels = _parse(board_stm32h7_capture_channels)
+        groups = fcdg.compute_groups(timers, channels)
+        assert len(groups) == 5
+
+    def test_capture_total_outputs(self, board_stm32h7_capture_channels):
+        timers, channels = _parse(board_stm32h7_capture_channels)
+        groups = fcdg.compute_groups(timers, channels)
+        all_outputs = sorted(o for g in groups for o in g["outputs"])
+        assert all_outputs == list(range(1, 17))
+
+    def test_capture_dshot_only_on_dma_timers(self, board_stm32h7_capture_channels):
+        timers, channels = _parse(board_stm32h7_capture_channels)
+        groups = fcdg.compute_groups(timers, channels)
+        dshot_groups = {g["timer"] for g in groups if g["dshot"]}
+        assert dshot_groups == {"Timer5", "Timer4"}
+        non_dshot_groups = {g["timer"] for g in groups if not g["dshot"]}
+        assert non_dshot_groups == {"Timer1", "Timer8", "Timer12"}
+
+    def test_capture_timer_group_memberships(self, board_stm32h7_capture_channels):
+        timers, channels = _parse(board_stm32h7_capture_channels)
+        groups = fcdg.compute_groups(timers, channels)
+        by_timer = {g["timer"]: g["outputs"] for g in groups}
+        assert by_timer["Timer5"] == [1, 2, 3, 4]
+        assert by_timer["Timer4"] == [5, 6, 7, 8]
+        assert by_timer["Timer1"] == [9, 10, 11]
+        assert by_timer["Timer8"] == [12, 13, 14]
+        assert by_timer["Timer12"] == [15, 16]

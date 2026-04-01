@@ -65,6 +65,20 @@
       ],
       "bdshot_outputs": [],
       "bdshot_output_only": []
+    },
+    {
+      "group": 4,
+      "timer": "Timer5",
+      "outputs": [
+        9
+      ],
+      "dshot": false,
+      "dshot_outputs": [],
+      "non_dshot_outputs": [
+        9
+      ],
+      "bdshot_outputs": [],
+      "bdshot_output_only": []
     }
   ],
   "serial_ports": [

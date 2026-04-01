@@ -46,6 +46,40 @@
         5
       ],
       "bdshot_output_only": []
+    },
+    {
+      "group": 3,
+      "timer": "Timer2",
+      "outputs": [
+        6,
+        7,
+        8
+      ],
+      "dshot": false,
+      "dshot_outputs": [],
+      "non_dshot_outputs": [
+        6,
+        7,
+        8
+      ],
+      "bdshot_outputs": [],
+      "bdshot_output_only": []
+    },
+    {
+      "group": 4,
+      "timer": "Timer12",
+      "outputs": [
+        9,
+        10
+      ],
+      "dshot": false,
+      "dshot_outputs": [],
+      "non_dshot_outputs": [
+        9,
+        10
+      ],
+      "bdshot_outputs": [],
+      "bdshot_output_only": []
     }
   ],
   "serial_ports": [

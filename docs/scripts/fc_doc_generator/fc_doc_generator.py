@@ -279,6 +279,7 @@ def parse_timer_config(board_path: Path) -> dict:
       initIOTimerChannel(io_timers, {Timer::Timer5, Timer::Channel1}, …)
       initIOTimerChannelOutputClear(…)   — same semantics, clears on disable
       initIOTimerChannelDshot(…)         — iMXRT only: marks channel as DShot
+      initIOTimerChannelCapture(…)       — dual-purpose capture/output channel
 
     The channel index (Channel1 = index 0, Channel2 = index 1, …) is extracted
     and stored for use by compute_bdshot() when determining per-channel BDShot
@@ -331,6 +332,7 @@ def parse_timer_config(board_path: Path) -> dict:
     # Parse timer_io_channels[] array entries
     # Handle: initIOTimerChannel(io_timers, {Timer::Timer5, Timer::Channel1}, ...)
     # Handle: initIOTimerChannelOutputClear(...), initIOTimerChannelDshot(...)
+    # Handle: initIOTimerChannelCapture(...) -- dual-purpose capture/output channels
     channels = []
     io_channels_match = re.search(
         r'constexpr\s+timer_io_channels_t\s+timer_io_channels\[.*?\]\s*=\s*\{(.*?)\};',
@@ -341,7 +343,7 @@ def parse_timer_config(board_path: Path) -> dict:
         block = re.sub(r'//[^\n]*', '', io_channels_match.group(1))
         output_idx = 1
         for entry in re.finditer(
-            r'(initIOTimerChannel(?:OutputClear|Dshot)?)\s*\(\s*io_timers\s*,\s*\{(?:Timer|PWM)::(\w+)\s*,\s*(?:Timer::|PWM::)?(\w+)\}',
+            r'(initIOTimerChannel(?:OutputClear|Dshot|Capture)?)\s*\(\s*io_timers\s*,\s*\{(?:Timer|PWM)::(\w+)\s*,\s*(?:Timer::|PWM::)?(\w+)\}',
             block
         ):
             func_name = entry.group(1)
@@ -2485,8 +2487,8 @@ def generate_specifications_section(board_key: str, entry: dict) -> str:
     lines.append('### Interfaces')
     lines.append('')
     # Use group-derived count — DIRECT_PWM_OUTPUT_CHANNELS in board_config.h
-    # counts all FMU timer channels including capture inputs; groups only count
-    # initIOTimerChannel entries (actual servo outputs, not capture channels).
+    # counts all FMU timer channels, which matches groups since
+    # initIOTimerChannelCapture entries are also counted as outputs.
     groups = entry.get('groups') or []
     fmu_out = sum(len(g.get('outputs', [])) for g in groups)
     io_out = entry.get('io_outputs', 0) or 0
@@ -2839,15 +2841,27 @@ def _has_no_rc_data(entry: dict) -> bool:
     )
 
 
-def apply_sections_to_docs(data: dict, sections: list = None) -> tuple:
-    """Apply generated sections to FC doc files. Returns (updated, skipped) lists."""
+def apply_sections_to_docs(data: dict, sections: list = None, doc_filter: str = None) -> tuple:
+    """Apply generated sections to FC doc files. Returns (updated, skipped) lists.
+
+    doc_filter: if given, only process the board whose doc_file matches this
+    filename (e.g. 'cuav_x25-evo.md').  Stem-only ('cuav_x25-evo') also accepted.
+    """
     sections_to_apply = sections or APPLY_SECTIONS
     updated, skipped = [], []
+
+    # Normalise filter to bare filename with extension
+    if doc_filter:
+        p = Path(doc_filter)
+        doc_filter_name = p.name if p.suffix else p.name + ".md"
 
     for key, entry in data.items():
         doc_filename = entry.get('doc_file')
         if not doc_filename:
             skipped.append((key, 'no doc mapping'))
+            continue
+        if doc_filter and doc_filename != doc_filter_name:
+            skipped.append((key, f'filtered (not {doc_filter_name})'))
             continue
         doc_path = FC_DOCS / doc_filename
         if not doc_path.exists():
@@ -4356,6 +4370,12 @@ if __name__ == "__main__":
         help="Apply only this section key (implies --apply).",
     )
     parser.add_argument(
+        "--doc", default=None,
+        metavar="FILENAME",
+        help="Apply only to this doc file, e.g. cuav_x25-evo.md (implies --apply). "
+             "Stem without extension is also accepted.",
+    )
+    parser.add_argument(
         "--output-dir", type=Path, default=None,
         metavar="DIR",
         help="Base output directory: fc_sections.md and per-board JSON go here (default: tests/snapshots/ for fc_sections.md, metadata/ for JSON).",
@@ -4454,8 +4474,8 @@ if __name__ == "__main__":
         print(f"Boards with existing PWM section: {documented}")
         print(f"Boards with any DShot: {dshot_boards}")
 
-        if args.apply or args.section:
+        if args.apply or args.section or args.doc:
             sections = [args.section] if args.section else None
             print()
-            updated, skipped = apply_sections_to_docs(data, sections)
+            updated, skipped = apply_sections_to_docs(data, sections, doc_filter=args.doc)
             print(f"\nApply done. Updated: {len(updated)}, Skipped: {len(skipped)}")

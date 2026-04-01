@@ -337,7 +337,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 
 ### Interfaces
 
-- **PWM outputs**: 16 (8 FMU + 8 IO)
+- **PWM outputs**: 17 (9 FMU + 8 IO)
 - **Serial ports**: 8
 - **I2C ports**: 4
   - ICP-20100 (barometer, internal)
@@ -350,7 +350,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   - ICM-42688P (IMU)
 - **CAN buses**: 2
 - **USB**: Yes
-- **RC input**: PPM
+- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
 - **Analog battery inputs**: 2
 - **Additional analog inputs**: TODO: number of additional analog inputs
 - **Ethernet**: Yes
@@ -375,7 +375,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   "chip_model": "STM32H753",
   "has_io_board": true,
   "total_outputs": 9,
-  "fmu_servo_outputs": 8,
+  "fmu_servo_outputs": 9,
   "io_outputs": 8,
   "has_sd_card": true,
   "has_ethernet": true,
@@ -465,14 +465,15 @@ This flight controller supports up to 9 FMU PWM outputs (AUX) and 8 IO PWM outpu
 FMU Outputs:
 
 - Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-8 do not support DShot.
+- Outputs 7-9 do not support DShot.
 - Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 
-The 9 outputs are in 3 groups:
+The 9 outputs are in 4 groups:
 
 - Outputs 1-4 in group1 (Timer5)
 - Outputs 5-6 in group2 (Timer4)
 - Outputs 7-8 in group3 (Timer12)
+- Output 9 in group4 (Timer1)
 
 All outputs within the same group must use the same output protocol and rate.
 ```
@@ -663,14 +664,15 @@ This flight controller supports up to 9 FMU PWM outputs (AUX) and 8 IO PWM outpu
 FMU Outputs:
 
 - Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-8 do not support DShot.
+- Outputs 7-9 do not support DShot.
 - Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 
-The 9 outputs are in 3 groups:
+The 9 outputs are in 4 groups:
 
 - Outputs 1-4 in group1 (Timer5)
 - Outputs 5-6 in group2 (Timer4)
 - Outputs 7-8 in group3 (Timer12)
+- Output 9 in group4 (Timer1)
 
 All outputs within the same group must use the same output protocol and rate.
 -->
@@ -1291,7 +1293,7 @@ Serial port mapping could not be determined from source.
 
 ### Interfaces
 
-- **PWM outputs**: 16 (8 FMU + 8 IO)
+- **PWM outputs**: 17 (9 FMU + 8 IO)
 - **Serial ports**: 8
 - **I2C ports**: 4
   - BMP388 (barometer, internal)
@@ -1299,7 +1301,7 @@ Serial port mapping could not be determined from source.
 - **SPI buses**: 5
 - **CAN buses**: 2
 - **USB**: Yes
-- **RC input**: DSM/SRXL2, S.Bus/CPPM
+- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
 - **Analog battery inputs**: 2
 - **Additional analog inputs**: TODO: number of additional analog inputs
 - **Ethernet**: Yes
@@ -1324,7 +1326,7 @@ Serial port mapping could not be determined from source.
   "chip_model": "STM32H753",
   "has_io_board": true,
   "total_outputs": 9,
-  "fmu_servo_outputs": 8,
+  "fmu_servo_outputs": 9,
   "io_outputs": 8,
   "has_sd_card": true,
   "has_ethernet": true,
@@ -1413,14 +1415,15 @@ This flight controller supports up to 9 FMU PWM outputs (AUX) and 8 IO PWM outpu
 FMU Outputs:
 
 - Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-8 do not support DShot.
+- Outputs 7-9 do not support DShot.
 - Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 
-The 9 outputs are in 3 groups:
+The 9 outputs are in 4 groups:
 
 - Outputs 1-4 in group1 (Timer5)
 - Outputs 5-6 in group2 (Timer4)
 - Outputs 7-8 in group3 (Timer12)
+- Output 9 in group4 (Timer1)
 
 All outputs within the same group must use the same output protocol and rate.
 ```
@@ -1617,14 +1620,15 @@ This flight controller supports up to 9 FMU PWM outputs (AUX) and 8 IO PWM outpu
 FMU Outputs:
 
 - Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-8 do not support DShot.
+- Outputs 7-9 do not support DShot.
 - Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 
-The 9 outputs are in 3 groups:
+The 9 outputs are in 4 groups:
 
 - Outputs 1-4 in group1 (Timer5)
 - Outputs 5-6 in group2 (Timer4)
 - Outputs 7-8 in group3 (Timer12)
+- Output 9 in group4 (Timer1)
 
 All outputs within the same group must use the same output protocol and rate.
 -->
@@ -2616,7 +2620,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 
 ### Interfaces
 
-- **PWM outputs**: 9 (FMU)
+- **PWM outputs**: 10 (FMU)
 - **Serial ports**: 7
 - **I2C ports**: 2
   - BMP388 (barometer, internal, bus 4)
@@ -2649,7 +2653,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   "chip_model": "STM32H743",
   "has_io_board": false,
   "total_outputs": 10,
-  "fmu_servo_outputs": 9,
+  "fmu_servo_outputs": 10,
   "io_outputs": 0,
   "has_sd_card": true,
   "has_ethernet": true,
@@ -2732,14 +2736,15 @@ This flight controller supports up to 10 FMU PWM outputs (MAIN).
 Outputs:
 
 - Outputs 1-8 support [DShot](../peripherals/dshot.md).
-- Output 9 does not support DShot.
+- Outputs 9-10 do not support DShot.
 - Outputs 1-8 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 
-The 10 outputs are in 3 groups:
+The 10 outputs are in 4 groups:
 
 - Outputs 1-4 in group1 (Timer1)
 - Outputs 5-8 in group2 (Timer3)
 - Output 9 in group3 (Timer5)
+- Output 10 in group4 (Timer8)
 
 All outputs within the same group must use the same output protocol and rate.
 ```
@@ -2933,7 +2938,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 
 ### Interfaces
 
-- **PWM outputs**: 16 (8 FMU + 8 IO)
+- **PWM outputs**: 17 (9 FMU + 8 IO)
 - **Serial ports**: 8
 - **I2C ports**: 4
   - BMP388 (barometer, internal)
@@ -2946,7 +2951,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   - ICM-20602 (IMU)
 - **CAN buses**: 2
 - **USB**: Yes
-- **RC input**: DSM/SRXL2, S.Bus/CPPM
+- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
 - **Analog battery inputs**: 2
 - **Additional analog inputs**: TODO: number of additional analog inputs
 - **Ethernet**: Yes
@@ -2970,7 +2975,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   "chip_model": "STM32H753",
   "has_io_board": true,
   "total_outputs": 9,
-  "fmu_servo_outputs": 8,
+  "fmu_servo_outputs": 9,
   "io_outputs": 8,
   "has_sd_card": true,
   "has_ethernet": true,
@@ -3056,14 +3061,15 @@ This flight controller supports up to 9 FMU PWM outputs (AUX) and 8 IO PWM outpu
 FMU Outputs:
 
 - Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-8 do not support DShot.
+- Outputs 7-9 do not support DShot.
 - Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 
-The 9 outputs are in 3 groups:
+The 9 outputs are in 4 groups:
 
 - Outputs 1-4 in group1 (Timer5)
 - Outputs 5-6 in group2 (Timer4)
 - Outputs 7-8 in group3 (Timer12)
+- Output 9 in group4 (Timer1)
 
 All outputs within the same group must use the same output protocol and rate.
 ```
@@ -4478,7 +4484,7 @@ All outputs within the same group must use the same output protocol and rate.
 
 ### Interfaces
 
-- **PWM outputs**: 8 (FMU)
+- **PWM outputs**: 14 (FMU)
 - **Serial ports**: 7
 - **I2C ports**: 4
   - ICP-20100 (barometer, internal)
@@ -4514,7 +4520,7 @@ All outputs within the same group must use the same output protocol and rate.
   "chip_model": "STM32H753",
   "has_io_board": false,
   "total_outputs": 14,
-  "fmu_servo_outputs": 8,
+  "fmu_servo_outputs": 14,
   "io_outputs": 0,
   "has_sd_card": true,
   "has_ethernet": true,
@@ -4599,14 +4605,17 @@ This flight controller supports up to 14 FMU PWM outputs (MAIN).
 Outputs:
 
 - Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-8 do not support DShot.
+- Outputs 7-14 do not support DShot.
 - Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 
-The 14 outputs are in 3 groups:
+The 14 outputs are in 6 groups:
 
 - Outputs 1-4 in group1 (Timer5)
 - Outputs 5-6 in group2 (Timer4)
 - Outputs 7-8 in group3 (Timer1)
+- Outputs 9-11 in group4 (Timer8)
+- Output 12 in group5 (Timer15)
+- Outputs 13-14 in group6 (Timer12)
 
 All outputs within the same group must use the same output protocol and rate.
 ```
@@ -4808,7 +4817,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 
 ### Interfaces
 
-- **PWM outputs**: 16 (8 FMU + 8 IO)
+- **PWM outputs**: 17 (9 FMU + 8 IO)
 - **Serial ports**: 8
 - **I2C ports**: 4
   - BMP581 (barometer, external, bus 2)
@@ -4821,7 +4830,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   - ICM-45686 (IMU)
 - **CAN buses**: 2
 - **USB**: Yes
-- **RC input**: PPM
+- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
 - **Analog battery inputs**: 2
 - **Additional analog inputs**: TODO: number of additional analog inputs
 - **Ethernet**: Yes
@@ -4846,7 +4855,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   "chip_model": "STM32H753",
   "has_io_board": true,
   "total_outputs": 9,
-  "fmu_servo_outputs": 8,
+  "fmu_servo_outputs": 9,
   "io_outputs": 8,
   "has_sd_card": true,
   "has_ethernet": true,
@@ -4934,14 +4943,15 @@ This flight controller supports up to 9 FMU PWM outputs (AUX) and 8 IO PWM outpu
 FMU Outputs:
 
 - Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-8 do not support DShot.
+- Outputs 7-9 do not support DShot.
 - Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 
-The 9 outputs are in 3 groups:
+The 9 outputs are in 4 groups:
 
 - Outputs 1-4 in group1 (Timer5)
 - Outputs 5-6 in group2 (Timer4)
 - Outputs 7-8 in group3 (Timer12)
+- Output 9 in group4 (Timer1)
 
 All outputs within the same group must use the same output protocol and rate.
 ```
@@ -5132,14 +5142,15 @@ This flight controller supports up to 9 FMU PWM outputs (AUX) and 8 IO PWM outpu
 FMU Outputs:
 
 - Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-8 do not support DShot.
+- Outputs 7-9 do not support DShot.
 - Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 
-The 9 outputs are in 3 groups:
+The 9 outputs are in 4 groups:
 
 - Outputs 1-4 in group1 (Timer5)
 - Outputs 5-6 in group2 (Timer4)
 - Outputs 7-8 in group3 (Timer12)
+- Output 9 in group4 (Timer1)
 
 All outputs within the same group must use the same output protocol and rate.
 -->
@@ -5526,7 +5537,7 @@ All outputs within the same group must use the same output protocol and rate.
 
 ### Interfaces
 
-- **PWM outputs**: 8 (FMU)
+- **PWM outputs**: 16 (FMU)
 - **Serial ports**: 8
 - **I2C ports**: 4
   - ICP-20100 (barometer, internal, bus 4)
@@ -5562,7 +5573,7 @@ All outputs within the same group must use the same output protocol and rate.
   "chip_model": "STM32H743",
   "has_io_board": false,
   "total_outputs": 16,
-  "fmu_servo_outputs": 8,
+  "fmu_servo_outputs": 16,
   "io_outputs": 0,
   "has_sd_card": true,
   "has_ethernet": true,
@@ -5648,13 +5659,17 @@ This flight controller supports up to 16 FMU PWM outputs (MAIN).
 Outputs:
 
 - Outputs 1-8 support [DShot](../peripherals/dshot.md).
+- Outputs 9-16 do not support DShot.
 - Outputs 1-7 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 - Output 8 supports Bidirectional DShot output only (no eRPM capture).
 
-The 16 outputs are in 2 groups:
+The 16 outputs are in 5 groups:
 
 - Outputs 1-4 in group1 (Timer5)
 - Outputs 5-8 in group2 (Timer4)
+- Outputs 9-11 in group3 (Timer1)
+- Outputs 12-14 in group4 (Timer8)
+- Outputs 15-16 in group5 (Timer12)
 
 All outputs within the same group must use the same output protocol and rate.
 ```
@@ -5841,13 +5856,17 @@ This flight controller supports up to 16 FMU PWM outputs (MAIN).
 Outputs:
 
 - Outputs 1-8 support [DShot](../peripherals/dshot.md).
+- Outputs 9-16 do not support DShot.
 - Outputs 1-7 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 - Output 8 supports Bidirectional DShot output only (no eRPM capture).
 
-The 16 outputs are in 2 groups:
+The 16 outputs are in 5 groups:
 
 - Outputs 1-4 in group1 (Timer5)
 - Outputs 5-8 in group2 (Timer4)
+- Outputs 9-11 in group3 (Timer1)
+- Outputs 12-14 in group4 (Timer8)
+- Outputs 15-16 in group5 (Timer12)
 
 All outputs within the same group must use the same output protocol and rate.
 -->
@@ -5876,7 +5895,7 @@ All outputs within the same group must use the same output protocol and rate.
 
 ### Interfaces
 
-- **PWM outputs**: 8 (FMU)
+- **PWM outputs**: 16 (FMU)
 - **Serial ports**: 8
 - **I2C ports**: 4
   - ICP-20100 (barometer, internal, bus 4)
@@ -5912,7 +5931,7 @@ All outputs within the same group must use the same output protocol and rate.
   "chip_model": "STM32H743",
   "has_io_board": false,
   "total_outputs": 16,
-  "fmu_servo_outputs": 8,
+  "fmu_servo_outputs": 16,
   "io_outputs": 0,
   "has_sd_card": true,
   "has_ethernet": true,
@@ -5997,13 +6016,17 @@ This flight controller supports up to 16 FMU PWM outputs (MAIN).
 Outputs:
 
 - Outputs 1-8 support [DShot](../peripherals/dshot.md).
+- Outputs 9-16 do not support DShot.
 - Outputs 1-7 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 - Output 8 supports Bidirectional DShot output only (no eRPM capture).
 
-The 16 outputs are in 2 groups:
+The 16 outputs are in 5 groups:
 
 - Outputs 1-4 in group1 (Timer5)
 - Outputs 5-8 in group2 (Timer4)
+- Outputs 9-11 in group3 (Timer1)
+- Outputs 12-14 in group4 (Timer8)
+- Outputs 15-16 in group5 (Timer12)
 
 All outputs within the same group must use the same output protocol and rate.
 ```
@@ -6190,13 +6213,17 @@ This flight controller supports up to 16 FMU PWM outputs (MAIN).
 Outputs:
 
 - Outputs 1-8 support [DShot](../peripherals/dshot.md).
+- Outputs 9-16 do not support DShot.
 - Outputs 1-7 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 - Output 8 supports Bidirectional DShot output only (no eRPM capture).
 
-The 16 outputs are in 2 groups:
+The 16 outputs are in 5 groups:
 
 - Outputs 1-4 in group1 (Timer5)
 - Outputs 5-8 in group2 (Timer4)
+- Outputs 9-11 in group3 (Timer1)
+- Outputs 12-14 in group4 (Timer8)
+- Outputs 15-16 in group5 (Timer12)
 
 All outputs within the same group must use the same output protocol and rate.
 -->
@@ -6596,6 +6623,7 @@ All outputs within the same group must use the same output protocol and rate.
   - MS5611 (barometer)
 - **CAN buses**: 2
 - **USB**: Yes
+- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
 - **Analog battery inputs**: 2
 - **Additional analog inputs**: TODO: number of additional analog inputs
 
@@ -6932,6 +6960,7 @@ All outputs within the same group must use the same output protocol and rate.
   - MS5611 (barometer)
 - **CAN buses**: 2
 - **USB**: Yes
+- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
 - **Analog battery inputs**: 2
 - **Additional analog inputs**: TODO: number of additional analog inputs
 
@@ -7270,6 +7299,7 @@ All outputs within the same group must use the same output protocol and rate.
   - MS5611 (barometer)
 - **CAN buses**: 2
 - **USB**: Yes
+- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
 - **Analog battery inputs**: 2
 - **Additional analog inputs**: TODO: number of additional analog inputs
 
@@ -9642,7 +9672,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 
 ### Interfaces
 
-- **PWM outputs**: 13 (5 FMU + 8 IO)
+- **PWM outputs**: 18 (10 FMU + 8 IO)
 - **Serial ports**: 7
 - **I2C ports**: 4
   - IST8310 (magnetometer, internal)
@@ -9652,6 +9682,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   - MS5611 (barometer)
 - **CAN buses**: 2
 - **USB**: Yes
+- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
 - **Analog battery inputs**: 2
 - **Additional analog inputs**: TODO: number of additional analog inputs
 
@@ -9675,7 +9706,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   "chip_model": "STM32H743",
   "has_io_board": true,
   "total_outputs": 10,
-  "fmu_servo_outputs": 5,
+  "fmu_servo_outputs": 10,
   "io_outputs": 8,
   "has_sd_card": true,
   "has_ethernet": false,
@@ -9758,12 +9789,18 @@ For battery and power module configuration see [Battery and Power Module Setup](
 
 This flight controller supports up to 10 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
 
-All FMU outputs support [DShot](../peripherals/dshot.md) and [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
+FMU Outputs:
 
-The 10 outputs are in 2 groups:
+- Outputs 1-5 support [DShot](../peripherals/dshot.md).
+- Outputs 6-10 do not support DShot.
+- Outputs 1-5 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
+
+The 10 outputs are in 4 groups:
 
 - Outputs 1-4 in group1 (Timer1)
 - Output 5 in group2 (Timer4)
+- Outputs 6-8 in group3 (Timer2)
+- Outputs 9-10 in group4 (Timer12)
 
 All outputs within the same group must use the same output protocol and rate.
 ```
@@ -9945,12 +9982,18 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 
 This flight controller supports up to 10 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
 
-All FMU outputs support [DShot](../peripherals/dshot.md) and [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
+FMU Outputs:
 
-The 10 outputs are in 2 groups:
+- Outputs 1-5 support [DShot](../peripherals/dshot.md).
+- Outputs 6-10 do not support DShot.
+- Outputs 1-5 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
+
+The 10 outputs are in 4 groups:
 
 - Outputs 1-4 in group1 (Timer1)
 - Output 5 in group2 (Timer4)
+- Outputs 6-8 in group3 (Timer2)
+- Outputs 9-10 in group4 (Timer12)
 
 All outputs within the same group must use the same output protocol and rate.
 -->
@@ -11970,7 +12013,7 @@ All outputs within the same group must use the same output protocol and rate.
 
 ### Interfaces
 
-- **PWM outputs**: 16 (8 FMU + 8 IO)
+- **PWM outputs**: 19 (11 FMU + 8 IO)
 - **Serial ports**: 7
 - **I2C ports**: 4
   - IST8310 (magnetometer, internal)
@@ -11982,7 +12025,7 @@ All outputs within the same group must use the same output protocol and rate.
   - MS5611 (barometer)
 - **CAN buses**: 3
 - **USB**: Yes
-- **RC input**: PPM
+- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
 - **Analog battery inputs**: 2
 - **Additional analog inputs**: TODO: number of additional analog inputs
 
@@ -12005,7 +12048,7 @@ All outputs within the same group must use the same output protocol and rate.
   "chip_model": "STM32F765",
   "has_io_board": true,
   "total_outputs": 11,
-  "fmu_servo_outputs": 8,
+  "fmu_servo_outputs": 11,
   "io_outputs": 8,
   "has_sd_card": true,
   "has_ethernet": false,
@@ -12091,14 +12134,15 @@ This flight controller supports up to 11 FMU PWM outputs (AUX) and 8 IO PWM outp
 FMU Outputs:
 
 - Outputs 1-4 support [DShot](../peripherals/dshot.md).
-- Outputs 5-8 do not support DShot.
+- Outputs 5-11 do not support DShot.
 - Outputs 1-4 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 
-The 11 outputs are in 3 groups:
+The 11 outputs are in 4 groups:
 
 - Outputs 1-4 in group1 (Timer1)
 - Outputs 5-6 in group2 (Timer4)
 - Outputs 7-8 in group3 (Timer12)
+- Outputs 9-11 in group4 (Timer2)
 
 All outputs within the same group must use the same output protocol and rate.
 ```
@@ -12283,14 +12327,15 @@ This flight controller supports up to 11 FMU PWM outputs (AUX) and 8 IO PWM outp
 FMU Outputs:
 
 - Outputs 1-4 support [DShot](../peripherals/dshot.md).
-- Outputs 5-8 do not support DShot.
+- Outputs 5-11 do not support DShot.
 - Outputs 1-4 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 
-The 11 outputs are in 3 groups:
+The 11 outputs are in 4 groups:
 
 - Outputs 1-4 in group1 (Timer1)
 - Outputs 5-6 in group2 (Timer4)
 - Outputs 7-8 in group3 (Timer12)
+- Outputs 9-11 in group4 (Timer2)
 
 All outputs within the same group must use the same output protocol and rate.
 -->
@@ -15173,7 +15218,7 @@ All outputs within the same group must use the same output protocol and rate.
   - ICM-42688P (IMU)
 - **CAN buses**: 1
 - **USB**: Yes
-- **RC input**: PPM
+- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
 - **Analog battery inputs**: 1
 - **Additional analog inputs**: TODO: number of additional analog inputs
 
@@ -17683,6 +17728,7 @@ All outputs within the same group must use the same output protocol and rate.
   - MPU-9250 (IMU)
   - MS5611 (barometer)
 - **USB**: Yes
+- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
 - **Analog battery inputs**: 1
 - **Additional analog inputs**: TODO: number of additional analog inputs
 
@@ -17990,6 +18036,7 @@ All outputs within the same group must use the same output protocol and rate.
   - MPU-9250 (IMU)
   - MS5611 (barometer)
 - **USB**: Yes
+- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
 - **Analog battery inputs**: 1
 - **Additional analog inputs**: TODO: number of additional analog inputs
 
@@ -20816,6 +20863,7 @@ All outputs within the same group must use the same output protocol and rate.
   - MS5611 (barometer)
   - HMC5883L (magnetometer)
 - **USB**: Yes
+- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
 - **Analog battery inputs**: 1
 - **Additional analog inputs**: TODO: number of additional analog inputs
 
@@ -21122,6 +21170,7 @@ All outputs within the same group must use the same output protocol and rate.
   - MS5611 (barometer)
   - HMC5883L (magnetometer)
 - **USB**: Yes
+- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
 - **Analog battery inputs**: 1
 - **Additional analog inputs**: TODO: number of additional analog inputs
 
@@ -21728,7 +21777,7 @@ All outputs within the same group must use the same output protocol and rate.
   - MS5611 (barometer)
   - LIS3MDL (magnetometer)
 - **USB**: Yes
-- **RC input**: PPM
+- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
 - **Analog battery inputs**: 2
 - **Additional analog inputs**: TODO: number of additional analog inputs
 
@@ -22032,7 +22081,7 @@ All outputs within the same group must use the same output protocol and rate.
 
 ### Interfaces
 
-- **PWM outputs**: 16 (8 FMU + 8 IO)
+- **PWM outputs**: 19 (11 FMU + 8 IO)
 - **Serial ports**: 7
 - **I2C ports**: 4
   - IST8310 (magnetometer, internal)
@@ -22043,7 +22092,7 @@ All outputs within the same group must use the same output protocol and rate.
   - MS5611 (barometer)
 - **CAN buses**: 3
 - **USB**: Yes
-- **RC input**: DSM/SRXL2, S.Bus/CPPM
+- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
 - **Analog battery inputs**: 2
 - **Additional analog inputs**: TODO: number of additional analog inputs
 
@@ -22067,7 +22116,7 @@ All outputs within the same group must use the same output protocol and rate.
   "chip_model": "STM32F765",
   "has_io_board": true,
   "total_outputs": 11,
-  "fmu_servo_outputs": 8,
+  "fmu_servo_outputs": 11,
   "io_outputs": 8,
   "has_sd_card": true,
   "has_ethernet": false,
@@ -22154,14 +22203,15 @@ This flight controller supports up to 11 FMU PWM outputs (AUX) and 8 IO PWM outp
 FMU Outputs:
 
 - Outputs 1-4 support [DShot](../peripherals/dshot.md).
-- Outputs 5-8 do not support DShot.
+- Outputs 5-11 do not support DShot.
 - Outputs 1-4 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 
-The 11 outputs are in 3 groups:
+The 11 outputs are in 4 groups:
 
 - Outputs 1-4 in group1 (Timer1)
 - Outputs 5-6 in group2 (Timer4)
 - Outputs 7-8 in group3 (Timer12)
+- Outputs 9-11 in group4 (Timer2)
 
 All outputs within the same group must use the same output protocol and rate.
 ```
@@ -22345,14 +22395,15 @@ This flight controller supports up to 11 FMU PWM outputs (AUX) and 8 IO PWM outp
 FMU Outputs:
 
 - Outputs 1-4 support [DShot](../peripherals/dshot.md).
-- Outputs 5-8 do not support DShot.
+- Outputs 5-11 do not support DShot.
 - Outputs 1-4 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 
-The 11 outputs are in 3 groups:
+The 11 outputs are in 4 groups:
 
 - Outputs 1-4 in group1 (Timer1)
 - Outputs 5-6 in group2 (Timer4)
 - Outputs 7-8 in group3 (Timer12)
+- Outputs 9-11 in group4 (Timer2)
 
 All outputs within the same group must use the same output protocol and rate.
 -->
@@ -22382,7 +22433,7 @@ All outputs within the same group must use the same output protocol and rate.
 
 ### Interfaces
 
-- **PWM outputs**: 16 (8 FMU + 8 IO)
+- **PWM outputs**: 17 (9 FMU + 8 IO)
 - **Serial ports**: 8
 - **I2C ports**: 4
   - BMM150 (magnetometer, internal)
@@ -22392,7 +22443,7 @@ All outputs within the same group must use the same output protocol and rate.
   - ICM-20602 (IMU)
 - **CAN buses**: 2
 - **USB**: Yes
-- **RC input**: DSM/SRXL2, S.Bus/CPPM
+- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
 - **Analog battery inputs**: 2
 - **Additional analog inputs**: TODO: number of additional analog inputs
 - **Ethernet**: Yes
@@ -22417,7 +22468,7 @@ All outputs within the same group must use the same output protocol and rate.
   "chip_model": "STM32F765",
   "has_io_board": true,
   "total_outputs": 9,
-  "fmu_servo_outputs": 8,
+  "fmu_servo_outputs": 9,
   "io_outputs": 8,
   "has_sd_card": true,
   "has_ethernet": true,
@@ -22508,14 +22559,15 @@ This flight controller supports up to 9 FMU PWM outputs (AUX) and 8 IO PWM outpu
 FMU Outputs:
 
 - Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-8 do not support DShot.
+- Outputs 7-9 do not support DShot.
 - Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 
-The 9 outputs are in 3 groups:
+The 9 outputs are in 4 groups:
 
 - Outputs 1-4 in group1 (Timer1)
 - Outputs 5-6 in group2 (Timer4)
 - Outputs 7-8 in group3 (Timer12)
+- Output 9 in group4 (Timer5)
 
 All outputs within the same group must use the same output protocol and rate.
 ```
@@ -22711,14 +22763,15 @@ This flight controller supports up to 9 FMU PWM outputs (AUX) and 8 IO PWM outpu
 FMU Outputs:
 
 - Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-8 do not support DShot.
+- Outputs 7-9 do not support DShot.
 - Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 
-The 9 outputs are in 3 groups:
+The 9 outputs are in 4 groups:
 
 - Outputs 1-4 in group1 (Timer1)
 - Outputs 5-6 in group2 (Timer4)
 - Outputs 7-8 in group3 (Timer12)
+- Output 9 in group4 (Timer5)
 
 All outputs within the same group must use the same output protocol and rate.
 -->
@@ -22758,6 +22811,7 @@ All outputs within the same group must use the same output protocol and rate.
   - ICM-42688P (IMU)
 - **CAN buses**: 2
 - **USB**: Yes
+- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
 - **Analog battery inputs**: 2
 - **Additional analog inputs**: TODO: number of additional analog inputs
 
@@ -23097,7 +23151,7 @@ All outputs within the same group must use the same output protocol and rate.
 
 ### Interfaces
 
-- **PWM outputs**: 8 (FMU)
+- **PWM outputs**: 9 (FMU)
 - **Serial ports**: 8
 - **I2C ports**: 4
   - BMP388 (barometer, internal)
@@ -23132,7 +23186,7 @@ All outputs within the same group must use the same output protocol and rate.
   "chip_model": "STM32H753",
   "has_io_board": false,
   "total_outputs": 9,
-  "fmu_servo_outputs": 8,
+  "fmu_servo_outputs": 9,
   "io_outputs": 0,
   "has_sd_card": true,
   "has_ethernet": false,
@@ -23218,14 +23272,15 @@ This flight controller supports up to 9 FMU PWM outputs (MAIN).
 Outputs:
 
 - Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-8 do not support DShot.
+- Outputs 7-9 do not support DShot.
 - Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 
-The 9 outputs are in 3 groups:
+The 9 outputs are in 4 groups:
 
 - Outputs 1-4 in group1 (Timer5)
 - Outputs 5-6 in group2 (Timer4)
 - Outputs 7-8 in group3 (Timer12)
+- Output 9 in group4 (Timer1)
 
 All outputs within the same group must use the same output protocol and rate.
 ```
@@ -23413,14 +23468,15 @@ This flight controller supports up to 9 FMU PWM outputs (MAIN).
 Outputs:
 
 - Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-8 do not support DShot.
+- Outputs 7-9 do not support DShot.
 - Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 
-The 9 outputs are in 3 groups:
+The 9 outputs are in 4 groups:
 
 - Outputs 1-4 in group1 (Timer5)
 - Outputs 5-6 in group2 (Timer4)
 - Outputs 7-8 in group3 (Timer12)
+- Output 9 in group4 (Timer1)
 
 All outputs within the same group must use the same output protocol and rate.
 -->
@@ -23450,14 +23506,14 @@ All outputs within the same group must use the same output protocol and rate.
 
 ### Interfaces
 
-- **PWM outputs**: 16 (8 FMU + 8 IO)
+- **PWM outputs**: 17 (9 FMU + 8 IO)
 - **Serial ports**: 8
 - **I2C ports**: 4
   - IST8310 (magnetometer, external, bus 1)
 - **SPI buses**: 5
 - **CAN buses**: 2
 - **USB**: Yes
-- **RC input**: DSM/SRXL2, S.Bus/CPPM
+- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
 - **Analog battery inputs**: 2
 - **Additional analog inputs**: TODO: number of additional analog inputs
 - **Ethernet**: Yes
@@ -23482,7 +23538,7 @@ All outputs within the same group must use the same output protocol and rate.
   "chip_model": "STM32H753",
   "has_io_board": true,
   "total_outputs": 9,
-  "fmu_servo_outputs": 8,
+  "fmu_servo_outputs": 9,
   "io_outputs": 8,
   "has_sd_card": true,
   "has_ethernet": true,
@@ -23574,14 +23630,15 @@ This flight controller supports up to 9 FMU PWM outputs (AUX) and 8 IO PWM outpu
 FMU Outputs:
 
 - Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-8 do not support DShot.
+- Outputs 7-9 do not support DShot.
 - Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 
-The 9 outputs are in 3 groups:
+The 9 outputs are in 4 groups:
 
 - Outputs 1-4 in group1 (Timer5)
 - Outputs 5-6 in group2 (Timer4)
 - Outputs 7-8 in group3 (Timer12)
+- Output 9 in group4 (Timer1)
 
 All outputs within the same group must use the same output protocol and rate.
 ```
@@ -23777,14 +23834,15 @@ This flight controller supports up to 9 FMU PWM outputs (AUX) and 8 IO PWM outpu
 FMU Outputs:
 
 - Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-8 do not support DShot.
+- Outputs 7-9 do not support DShot.
 - Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 
-The 9 outputs are in 3 groups:
+The 9 outputs are in 4 groups:
 
 - Outputs 1-4 in group1 (Timer5)
 - Outputs 5-6 in group2 (Timer4)
 - Outputs 7-8 in group3 (Timer12)
+- Output 9 in group4 (Timer1)
 
 All outputs within the same group must use the same output protocol and rate.
 -->
@@ -23822,7 +23880,7 @@ All outputs within the same group must use the same output protocol and rate.
   - IST8310 (magnetometer, external, bus 1)
 - **SPI buses**: 4
 - **USB**: TODO: confirm USB connector type
-- **RC input**: DSM/SRXL2, S.Bus/CPPM
+- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
 - **Analog battery inputs**: 2
 - **Additional analog inputs**: TODO: number of additional analog inputs
 - **Ethernet**: Yes
@@ -24460,7 +24518,7 @@ Serial port mapping could not be determined from source.
   - BMI088 (IMU)
 - **CAN buses**: 2
 - **USB**: Yes
-- **RC input**: DSM/SRXL2, S.Bus
+- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
 - **Analog battery inputs**: 1
 - **Additional analog inputs**: TODO: number of additional analog inputs
 
@@ -25072,6 +25130,7 @@ Serial port mapping could not be determined from source.
   - MS5611 (barometer)
 - **CAN buses**: 1
 - **USB**: Yes
+- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
 - **Analog battery inputs**: 1
 - **Additional analog inputs**: TODO: number of additional analog inputs
 
@@ -25385,7 +25444,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   - MPU-9250 (IMU)
 - **CAN buses**: 2
 - **USB**: Yes
-- **RC input**: PPM
+- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
 - **Analog battery inputs**: 1
 - **Additional analog inputs**: TODO: number of additional analog inputs
 - **Ethernet**: Yes
@@ -26044,7 +26103,7 @@ All outputs within the same group must use the same output protocol and rate.
 
 ### Interfaces
 
-- **PWM outputs**: 16 (8 FMU + 8 IO)
+- **PWM outputs**: 17 (9 FMU + 8 IO)
 - **Serial ports**: 8
 - **I2C ports**: 4
   - ICP-20100 (barometer, external)
@@ -26057,7 +26116,7 @@ All outputs within the same group must use the same output protocol and rate.
   - ICM-20649 (IMU)
 - **CAN buses**: 2
 - **USB**: Yes
-- **RC input**: DSM/SRXL2, S.Bus/CPPM
+- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
 - **Analog battery inputs**: 2
 - **Additional analog inputs**: TODO: number of additional analog inputs
 - **Ethernet**: Yes
@@ -26082,7 +26141,7 @@ All outputs within the same group must use the same output protocol and rate.
   "chip_model": "STM32H753",
   "has_io_board": true,
   "total_outputs": 9,
-  "fmu_servo_outputs": 8,
+  "fmu_servo_outputs": 9,
   "io_outputs": 8,
   "has_sd_card": true,
   "has_ethernet": true,
@@ -26172,14 +26231,15 @@ This flight controller supports up to 9 FMU PWM outputs (AUX) and 8 IO PWM outpu
 FMU Outputs:
 
 - Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-8 do not support DShot.
+- Outputs 7-9 do not support DShot.
 - Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 
-The 9 outputs are in 3 groups:
+The 9 outputs are in 4 groups:
 
 - Outputs 1-4 in group1 (Timer5)
 - Outputs 5-6 in group2 (Timer4)
 - Outputs 7-8 in group3 (Timer12)
+- Output 9 in group4 (Timer1)
 
 All outputs within the same group must use the same output protocol and rate.
 ```
@@ -26370,14 +26430,15 @@ This flight controller supports up to 9 FMU PWM outputs (AUX) and 8 IO PWM outpu
 FMU Outputs:
 
 - Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-8 do not support DShot.
+- Outputs 7-9 do not support DShot.
 - Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 
-The 9 outputs are in 3 groups:
+The 9 outputs are in 4 groups:
 
 - Outputs 1-4 in group1 (Timer5)
 - Outputs 5-6 in group2 (Timer4)
 - Outputs 7-8 in group3 (Timer12)
+- Output 9 in group4 (Timer1)
 
 All outputs within the same group must use the same output protocol and rate.
 -->
@@ -26414,6 +26475,7 @@ All outputs within the same group must use the same output protocol and rate.
   - MPU-9250 (IMU)
   - MS5611 (barometer)
 - **USB**: Yes
+- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
 - **Analog battery inputs**: 1
 - **Additional analog inputs**: TODO: number of additional analog inputs
 
@@ -26715,6 +26777,7 @@ All outputs within the same group must use the same output protocol and rate.
   - MPU-9250 (IMU)
   - MS5611 (barometer)
 - **USB**: Yes
+- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
 - **Analog battery inputs**: 1
 - **Additional analog inputs**: TODO: number of additional analog inputs
 
@@ -27301,7 +27364,7 @@ Serial port mapping could not be determined from source.
   - BMI270 (IMU)
 - **CAN buses**: 2
 - **USB**: Yes
-- **RC input**: DSM/SRXL2, S.Bus
+- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
 - **Analog battery inputs**: 1
 - **Additional analog inputs**: TODO: number of additional analog inputs
 
@@ -28580,7 +28643,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 
 ### Interfaces
 
-- **PWM outputs**: 16 (8 FMU + 8 IO)
+- **PWM outputs**: 17 (9 FMU + 8 IO)
 - **Serial ports**: 8
 - **I2C ports**: 4
   - ICP-20100 (barometer, internal)
@@ -28591,7 +28654,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 - **SPI buses**: 5
 - **CAN buses**: 2
 - **USB**: Yes
-- **RC input**: PPM
+- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
 - **Analog battery inputs**: 2
 - **Additional analog inputs**: TODO: number of additional analog inputs
 - **Ethernet**: Yes
@@ -28616,7 +28679,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   "chip_model": "STM32H753",
   "has_io_board": true,
   "total_outputs": 9,
-  "fmu_servo_outputs": 8,
+  "fmu_servo_outputs": 9,
   "io_outputs": 8,
   "has_sd_card": true,
   "has_ethernet": true,
@@ -28701,14 +28764,15 @@ This flight controller supports up to 9 FMU PWM outputs (AUX) and 8 IO PWM outpu
 FMU Outputs:
 
 - Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-8 do not support DShot.
+- Outputs 7-9 do not support DShot.
 - Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 
-The 9 outputs are in 3 groups:
+The 9 outputs are in 4 groups:
 
 - Outputs 1-4 in group1 (Timer5)
 - Outputs 5-6 in group2 (Timer4)
 - Outputs 7-8 in group3 (Timer12)
+- Output 9 in group4 (Timer1)
 
 All outputs within the same group must use the same output protocol and rate.
 ```
