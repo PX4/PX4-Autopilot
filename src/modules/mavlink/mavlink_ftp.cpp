@@ -141,7 +141,9 @@ MavlinkFTP::_process_request(
 		mavlink_file_transfer_protocol_t *last_reply = reinterpret_cast<mavlink_file_transfer_protocol_t *>(_last_reply);
 		PayloadHeader *last_payload = reinterpret_cast<PayloadHeader *>(&last_reply->payload[0]);
 
-		if (payload->seq_number + 1 == last_payload->seq_number) {
+		if (payload->seq_number + 1 == last_payload->seq_number
+		    && last_reply->target_system == target_system_id
+		    && last_reply->target_component == target_comp_id) {
 			// this is the same request as the one we replied to last. It means the (n)ack got lost, and the GCS
 			// resent the request
 			mavlink_msg_file_transfer_protocol_send_struct(_mavlink.get_channel(), last_reply);
