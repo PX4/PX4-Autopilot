@@ -179,20 +179,21 @@ static constexpr uint16_t ACC_SP_EXTERNAL_FLAG = (1u << 12); // 0x1000
 
 TEST(AccSpExternalMavlinkTest, Bit12SetTriggerExternalPath)
 {
-	uint16_t type_mask = 0b110111000111u | ACC_SP_EXTERNAL_FLAG;
+	uint16_t type_mask = 0b110000111111u | ACC_SP_EXTERNAL_FLAG;
 	EXPECT_TRUE(type_mask & ACC_SP_EXTERNAL_FLAG);
 }
 
 TEST(AccSpExternalMavlinkTest, Bit12ClearNoExternalPath)
 {
-	uint16_t type_mask = 0b110111000111u; // standard acc-only mask, no bit 12
+	uint16_t type_mask = 0b110000111111u; // standard acc-only mask: ignore pos+vel+yaw+yaw_rate, use acc, no bit 12
 	EXPECT_FALSE(type_mask & ACC_SP_EXTERNAL_FLAG);
 }
 
 TEST(AccSpExternalMavlinkTest, Bit12DoesNotAffectOtherBits)
 {
 	// Verify bit 12 is isolated and does not corrupt acceleration ignore bits
-	uint16_t type_mask = 0b110111000111u | ACC_SP_EXTERNAL_FLAG;
+	// Correct mask: bits 0-5 (ignore pos+vel) + bits 10-11 (ignore yaw+yaw_rate), bits 6-8 CLEAR (use acc)
+	uint16_t type_mask = 0b110000111111u | ACC_SP_EXTERNAL_FLAG;
 	EXPECT_FALSE(type_mask & (1u << 6));  // AX not ignored
 	EXPECT_FALSE(type_mask & (1u << 7));  // AY not ignored
 	EXPECT_FALSE(type_mask & (1u << 8));  // AZ not ignored
