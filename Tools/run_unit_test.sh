@@ -49,8 +49,15 @@ echo "════════════════════════�
 echo " SUMMARY  [RUN_ID: ${RUN_ID}]"
 echo "════════════════════════════════════════"
 
-PASSED=$(grep -c "\[  PASSED  \]" "${TEST_LOG}" 2>/dev/null || echo "0")
-FAILED=$(grep -c "\[  FAILED  \]" "${TEST_LOG}" 2>/dev/null || echo "0")
+# Strip ANSI color codes trước khi grep (gtest dùng \e[0;32m etc.)
+CLEAN_LOG=$(sed 's/\x1b\[[0-9;]*m//g' "${TEST_LOG}" 2>/dev/null)
+
+# Đếm individual gtest cases từ summary line: "[  PASSED  ] 27 tests."
+PASSED=$(echo "${CLEAN_LOG}" | grep -oP '(?<=\[  PASSED  \] )\d+' | tail -1 || echo "0")
+FAILED=$(echo "${CLEAN_LOG}" | grep -oP '(?<=\[  FAILED  \] )\d+ test' | grep -oP '^\d+' | tail -1 || echo "0")
+PASSED=${PASSED:-0}
+FAILED=${FAILED:-0}
+
 echo " Passed : ${PASSED}"
 echo " Failed : ${FAILED}"
 echo " Exit   : ${TEST_EXIT}"
@@ -58,7 +65,7 @@ echo ""
 
 if [ "${FAILED}" -gt "0" ]; then
     echo "── Failed tests ──"
-    grep "\[  FAILED  \]" "${TEST_LOG}" 2>/dev/null || true
+    echo "${CLEAN_LOG}" | grep "\[  FAILED  \]" || true
 fi
 
 echo "════════════════════════════════════════"
