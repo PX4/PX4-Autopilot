@@ -68,7 +68,7 @@ The following manual and assisted modes are currently supported on BlueROV2 Heav
 ## Joystick Stick Mode
 
 BlueROV2 supports two joystick mappings for manual control, selected using the
-[UUV_STICK_MODE](../advanced_config/parameter_reference.md#uuv_stick_mode) parameter.
+[UUV_STICK_MODE](../advanced_config/parameter_reference.md#UUV_STICK_MODE) parameter.
 
 By default, `UUV_STICK_MODE` is set to `0`, which enables the UUV stick mapping intended for vectored underwater vehicles.
 
