@@ -77,6 +77,17 @@ protected:
 
 	uORB::Subscription _acc_sp_external_sub{ORB_ID(acc_sp_external)};
 
+	// Timestamp of last valid (non-stale) acc_sp_external command.
+	// Used by F8 (force land) to measure how long the stream has been absent.
+	hrt_abstime _last_valid_ext_acc_time{0};
+
+	// Failsafe thresholds — kept as static constexpr so unit tests can mirror them.
+	static constexpr float     EXT_ACC_BRAKE_VEL_THRESHOLD = 1.0f;          // F2: brake if vel > 1 m/s after watchdog fires
+	static constexpr float     EXT_ACC_VEL_LIMIT           = 5.0f;          // F3: hard horizontal velocity limit (m/s)
+	static constexpr float     EXT_ACC_VEL_WARN_RATIO      = 0.8f;          // F3: start scaling at 80 % of limit
+	static constexpr float     EXT_ACC_LAND_SPEED          = 0.7f;          // F8: descent rate when force-landing (m/s)
+	static constexpr hrt_abstime EXT_ACC_FORCE_LAND_US     = 30ULL * 1000000ULL; // F8: 30 s before force land
+
 	/**
 	 *  Check and sets for position lock.
 	 *  If sticks are at center position, the vehicle

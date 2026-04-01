@@ -297,46 +297,102 @@ void FlightTaskManualAltitude::_applyExternalAcceleration()
 {
 	acc_sp_external_s cmd;
 
-	// Use copy() instead of update() so the command is applied every cycle,
-	// not just on the cycle when new data arrives. This prevents the position
-	// hold controller (running at 5× the command rate) from counteracting the
-	// external acceleration on the 4 cycles between publishes.
-	// The watchdog timestamp check below handles command expiry correctly.
+	// Use copy() so the command is re-applied every cycle (not only on new data).
 	if (!_acc_sp_external_sub.copy(&cmd)) {
 		PX4_DEBUG("acc_sp_ext: no topic");
-		return;  // topic never published
-	}
-
-	// Watchdog: reject stale commands
-	const uint16_t timeout_ms = (cmd.timeout_ms > 0u) ? cmd.timeout_ms : 500u;
-	const hrt_abstime elapsed = hrt_elapsed_time(&cmd.timestamp);
-
-	if (elapsed > (hrt_abstime)timeout_ms * 1000ULL) {
-		PX4_DEBUG("acc_sp_ext: stale (elapsed=%llu us > %u ms)", (unsigned long long)elapsed, timeout_ms);
 		return;
 	}
 
-	// Require valid altitude estimate (barometer-based, GPS-independent)
+	// F6: Require valid horizontal velocity estimate from EKF (GPS-independent IMU/drag).
+	// Rejecting early prevents injecting acc when the velocity feedback used by
+	// F3 (velocity limiting) is unreliable.
+	if (!_sub_vehicle_local_position.get().v_xy_valid) {
+		PX4_WARN("acc_sp_ext: F6 v_xy_valid=false, ignoring");
+		return;
+	}
+
+	// Watchdog: check if the command is fresh.
+	const uint16_t timeout_ms = (cmd.timeout_ms > 0u) ? cmd.timeout_ms : 500u;
+	const hrt_abstime elapsed  = hrt_elapsed_time(&cmd.timestamp);
+	const bool cmd_fresh       = (elapsed <= (hrt_abstime)timeout_ms * 1000ULL);
+
+	if (!cmd_fresh) {
+		PX4_DEBUG("acc_sp_ext: stale (elapsed=%llu us > %u ms)", (unsigned long long)elapsed, timeout_ms);
+
+		// F2: Active brake — if drone is still moving after stream loss, decelerate
+		// using the same acc limit used for normal commands.
+		const Vector2f vel_xy(_velocity(0), _velocity(1));
+		const float vel_mag = vel_xy.norm();
+
+		if (vel_mag > EXT_ACC_BRAKE_VEL_THRESHOLD) {
+			const float brake_acc = _param_mpc_acc_hor_ext.get();
+			_acceleration_setpoint(0) = -vel_xy(0) / vel_mag * brake_acc;
+			_acceleration_setpoint(1) = -vel_xy(1) / vel_mag * brake_acc;
+			_position_setpoint(0)     = NAN;
+			_position_setpoint(1)     = NAN;
+			_velocity_setpoint(0)     = NAN;
+			_velocity_setpoint(1)     = NAN;
+			PX4_INFO_RAW("[ext_acc] F2 brake vel=%.2f m/s ax=%.2f ay=%.2f\n",
+				     (double)vel_mag,
+				     (double)_acceleration_setpoint(0),
+				     (double)_acceleration_setpoint(1));
+		}
+
+		// F8: Force land — if stream has been absent for EXT_ACC_FORCE_LAND_US and
+		// the pilot has not taken over, command a gentle descent.
+		if (_last_valid_ext_acc_time > 0 &&
+		    hrt_elapsed_time(&_last_valid_ext_acc_time) > EXT_ACC_FORCE_LAND_US) {
+			_velocity_setpoint(2) = EXT_ACC_LAND_SPEED; // NED positive = down
+			PX4_WARN("acc_sp_ext: F8 force land (no cmd for >30 s)");
+		}
+
+		return;
+	}
+
+	// Mark stream as alive for F8 timer.
+	_last_valid_ext_acc_time = hrt_absolute_time();
+
+	// Require valid altitude estimate (barometer-based, GPS-independent).
 	if (!_sub_vehicle_local_position.get().z_valid) {
 		PX4_WARN("acc_sp_ext: z_valid=false, ignoring");
 		return;
 	}
 
-	// Validate acceleration fields
+	// Validate acceleration fields.
 	if (!PX4_ISFINITE(cmd.acceleration[0]) || !PX4_ISFINITE(cmd.acceleration[1])) {
 		PX4_WARN("acc_sp_ext: NaN acceleration, ignoring");
 		return;
 	}
 
-	// Clamp to configured horizontal acceleration limit
+	// Clamp to configured horizontal acceleration limit.
 	const float acc_limit = _param_mpc_acc_hor_ext.get();
-	const float ax = math::constrain(cmd.acceleration[0], -acc_limit, acc_limit);
-	const float ay = math::constrain(cmd.acceleration[1], -acc_limit, acc_limit);
+	float ax = math::constrain(cmd.acceleration[0], -acc_limit, acc_limit);
+	float ay = math::constrain(cmd.acceleration[1], -acc_limit, acc_limit);
 
-	PX4_INFO_RAW("[ext_acc] ax=%.2f ay=%.2f limit=%.2f elapsed=%lluus\n",
-		     (double)ax, (double)ay, (double)acc_limit, (unsigned long long)elapsed);
+	// F3: Velocity limiting — prevent motor overload from acc accumulation.
+	// Uses EKF dead-reckoning velocity (GPS-independent, sufficient for safety limiting).
+	const Vector2f vel_xy(_velocity(0), _velocity(1));
+	const float vel_mag = vel_xy.norm();
 
-	// Override stick-based XY setpoint
+	if (vel_mag > EXT_ACC_VEL_LIMIT) {
+		// Hard limit exceeded: override with braking acc regardless of command.
+		const float brake_acc = _param_mpc_acc_hor_ext.get();
+		ax = -vel_xy(0) / vel_mag * brake_acc;
+		ay = -vel_xy(1) / vel_mag * brake_acc;
+		PX4_WARN("acc_sp_ext: F3 vel limit %.2f m/s, braking", (double)vel_mag);
+
+	} else if (vel_mag > EXT_ACC_VEL_LIMIT * EXT_ACC_VEL_WARN_RATIO) {
+		// Warn zone: scale down acc linearly toward zero as vel approaches limit.
+		const float scale = 1.0f - (vel_mag - EXT_ACC_VEL_LIMIT * EXT_ACC_VEL_WARN_RATIO)
+				    / (EXT_ACC_VEL_LIMIT * (1.0f - EXT_ACC_VEL_WARN_RATIO));
+		ax *= scale;
+		ay *= scale;
+	}
+
+	PX4_INFO_RAW("[ext_acc] ax=%.2f ay=%.2f vel=%.2f elapsed=%lluus\n",
+		     (double)ax, (double)ay, (double)vel_mag, (unsigned long long)elapsed);
+
+	// Apply setpoints — override stick-based XY.
 	_acceleration_setpoint(0) = ax;
 	_acceleration_setpoint(1) = ay;
 	_position_setpoint(0)     = NAN;
@@ -344,7 +400,7 @@ void FlightTaskManualAltitude::_applyExternalAcceleration()
 	_velocity_setpoint(0)     = NAN;
 	_velocity_setpoint(1)     = NAN;
 
-	// Override yaw if explicitly commanded
+	// Override yaw if explicitly commanded.
 	if (PX4_ISFINITE(cmd.yaw)) {
 		_yaw_setpoint = cmd.yaw;
 	}

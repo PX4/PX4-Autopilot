@@ -38,4 +38,4 @@ px4_add_library(FlightTaskManualAltitude
 target_link_libraries(FlightTaskManualAltitude PUBLIC FlightTask FlightTaskUtility Sticks StickYaw)
 target_include_directories(FlightTaskManualAltitude PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-px4_add_functional_gtest(SRC AccSpExternalTest.cpp LINKLIBS mathlib)
+px4_add_unit_gtest(SRC AccSpExternalTest.cpp LINKLIBS mathlib)
