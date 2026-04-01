@@ -39,8 +39,31 @@ echo "[run_unit_test] Building và chạy tests..."
 cd "${REPO_ROOT}"
 
 set +e
-make tests TESTFILTER="${FILTER}" 2>&1 | tee "${TEST_LOG}"
-TEST_EXIT="${PIPESTATUS[0]}"
+# Bước 1: Build (make tests build binary nhưng output CTest-level, không có gtest detail)
+make tests TESTFILTER="${FILTER}" > /tmp/unit_build_${RUN_ID}.log 2>&1
+BUILD_EXIT=$?
+
+if [ "${BUILD_EXIT}" -ne "0" ]; then
+    cat /tmp/unit_build_${RUN_ID}.log | tee "${TEST_LOG}"
+    TEST_EXIT="${BUILD_EXIT}"
+else
+    # Bước 2: Chạy binary trực tiếp để lấy gtest output đầy đủ
+    TEST_BIN=$(find build/px4_sitl_test -name "${FILTER}*" -o -name "*${FILTER}" 2>/dev/null \
+               | grep -v "\.dir\|\.a\|\.o\|CMake" | head -1)
+    if [ -z "${TEST_BIN}" ]; then
+        TEST_BIN=$(find build/px4_sitl_test -name "unit-${FILTER}" -o -name "functional-${FILTER}" 2>/dev/null | head -1)
+    fi
+
+    if [ -n "${TEST_BIN}" ]; then
+        echo "[run_unit_test] Running: ${TEST_BIN}"
+        "${TEST_BIN}" 2>&1 | tee "${TEST_LOG}"
+        TEST_EXIT="${PIPESTATUS[0]}"
+    else
+        echo "[run_unit_test] WARN: binary not found, showing build log"
+        cat /tmp/unit_build_${RUN_ID}.log | tee "${TEST_LOG}"
+        TEST_EXIT="${BUILD_EXIT}"
+    fi
+fi
 set -e
 
 # ─── Summary ──────────────────────────────────────────────────────────────────
