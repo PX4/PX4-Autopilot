@@ -2,11 +2,11 @@
 pageClass: is-wide-page
 ---
 
-# VehicleStatus (UORB message)
+# VehicleStatusV2 (UORB message)
 
 Encodes the system state of the vehicle published by commander.
 
-**TOPICS:** vehicle_status
+**TOPICS:** vehicle_status_v2
 
 ## Fields
 
@@ -25,6 +25,7 @@ Encodes the system state of the vehicle published by commander.
 | nav_state_display                                                      | `uint8`  |                                                                  |            | User-visible nav state sent via MAVLink (executor state if active, otherwise nav_state)                                                          |
 | valid_nav_states_mask                             | `uint32` |                                                                  |            | Bitmask for all valid nav_state values                                                                                                                              |
 | can_set_nav_states_mask      | `uint32` |                                                                  |            | Bitmask for all modes that a user can select                                                                                                                                             |
+| failure_detector_status                                                | `uint16` |                                                                  |            |                                                                                                                                                                                          |
 | hil_state                                                                                   | `uint8`  |                                                                  |            |                                                                                                                                                                                          |
 | vehicle_type                                                                                | `uint8`  |                                                                  |            |                                                                                                                                                                                          |
 | failsafe                                                                                                         | `bool`   |                                                                  |            | true if system is in failsafe state (e.g.:RTL, Hover, Terminate, ...) |
@@ -55,66 +56,75 @@ Encodes the system state of the vehicle published by commander.
 
 ## Constants
 
-| 명칭                                                                                                                                                                          | 형식       | Value | 설명                                                    |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ----- | ----------------------------------------------------- |
-| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                                                                                          | `uint32` | 3     |                                                       |
-| <a id="#ARMING_STATE_DISARMED"></a> ARMING_STATE_DISARMED                                                                         | `uint8`  | 1     |                                                       |
-| <a id="#ARMING_STATE_ARMED"></a> ARMING_STATE_ARMED                                                                               | `uint8`  | 2     |                                                       |
-| <a id="#ARM_DISARM_REASON_STICK_GESTURE"></a> ARM_DISARM_REASON_STICK_GESTURE           | `uint8`  | 1     |                                                       |
-| <a id="#ARM_DISARM_REASON_RC_SWITCH"></a> ARM_DISARM_REASON_RC_SWITCH                   | `uint8`  | 2     |                                                       |
-| <a id="#ARM_DISARM_REASON_COMMAND_INTERNAL"></a> ARM_DISARM_REASON_COMMAND_INTERNAL     | `uint8`  | 3     |                                                       |
-| <a id="#ARM_DISARM_REASON_COMMAND_EXTERNAL"></a> ARM_DISARM_REASON_COMMAND_EXTERNAL     | `uint8`  | 4     |                                                       |
-| <a id="#ARM_DISARM_REASON_MISSION_START"></a> ARM_DISARM_REASON_MISSION_START           | `uint8`  | 5     |                                                       |
-| <a id="#ARM_DISARM_REASON_LANDING"></a> ARM_DISARM_REASON_LANDING                                            | `uint8`  | 6     |                                                       |
-| <a id="#ARM_DISARM_REASON_PREFLIGHT_INACTION"></a> ARM_DISARM_REASON_PREFLIGHT_INACTION | `uint8`  | 7     |                                                       |
-| <a id="#ARM_DISARM_REASON_KILL_SWITCH"></a> ARM_DISARM_REASON_KILL_SWITCH               | `uint8`  | 8     |                                                       |
-| <a id="#ARM_DISARM_REASON_RC_BUTTON"></a> ARM_DISARM_REASON_RC_BUTTON                   | `uint8`  | 13    |                                                       |
-| <a id="#ARM_DISARM_REASON_FAILSAFE"></a> ARM_DISARM_REASON_FAILSAFE                                          | `uint8`  | 14    |                                                       |
-| <a id="#NAVIGATION_STATE_MANUAL"></a> NAVIGATION_STATE_MANUAL                                                                     | `uint8`  | 0     | Manual mode                                           |
-| <a id="#NAVIGATION_STATE_ALTCTL"></a> NAVIGATION_STATE_ALTCTL                                                                     | `uint8`  | 1     | Altitude control mode                                 |
-| <a id="#NAVIGATION_STATE_POSCTL"></a> NAVIGATION_STATE_POSCTL                                                                     | `uint8`  | 2     | Position control mode                                 |
-| <a id="#NAVIGATION_STATE_AUTO_MISSION"></a> NAVIGATION_STATE_AUTO_MISSION                                    | `uint8`  | 3     | Auto mission mode                                     |
-| <a id="#NAVIGATION_STATE_AUTO_LOITER"></a> NAVIGATION_STATE_AUTO_LOITER                                      | `uint8`  | 4     | Auto loiter mode                                      |
-| <a id="#NAVIGATION_STATE_AUTO_RTL"></a> NAVIGATION_STATE_AUTO_RTL                                            | `uint8`  | 5     | Auto return to launch mode                            |
-| <a id="#NAVIGATION_STATE_POSITION_SLOW"></a> NAVIGATION_STATE_POSITION_SLOW                                  | `uint8`  | 6     |                                                       |
-| <a id="#NAVIGATION_STATE_FREE5"></a> NAVIGATION_STATE_FREE5                                                                       | `uint8`  | 7     |                                                       |
-| <a id="#NAVIGATION_STATE_ALTITUDE_CRUISE"></a> NAVIGATION_STATE_ALTITUDE_CRUISE                              | `uint8`  | 8     | Altitude with Cruise mode                             |
-| <a id="#NAVIGATION_STATE_FREE3"></a> NAVIGATION_STATE_FREE3                                                                       | `uint8`  | 9     |                                                       |
-| <a id="#NAVIGATION_STATE_ACRO"></a> NAVIGATION_STATE_ACRO                                                                         | `uint8`  | 10    | Acro mode                                             |
-| <a id="#NAVIGATION_STATE_FREE2"></a> NAVIGATION_STATE_FREE2                                                                       | `uint8`  | 11    |                                                       |
-| <a id="#NAVIGATION_STATE_DESCEND"></a> NAVIGATION_STATE_DESCEND                                                                   | `uint8`  | 12    | Descend mode (no position control) |
-| <a id="#NAVIGATION_STATE_TERMINATION"></a> NAVIGATION_STATE_TERMINATION                                                           | `uint8`  | 13    | Termination mode                                      |
-| <a id="#NAVIGATION_STATE_OFFBOARD"></a> NAVIGATION_STATE_OFFBOARD                                                                 | `uint8`  | 14    |                                                       |
-| <a id="#NAVIGATION_STATE_STAB"></a> NAVIGATION_STATE_STAB                                                                         | `uint8`  | 15    | Stabilized mode                                       |
-| <a id="#NAVIGATION_STATE_FREE1"></a> NAVIGATION_STATE_FREE1                                                                       | `uint8`  | 16    |                                                       |
-| <a id="#NAVIGATION_STATE_AUTO_TAKEOFF"></a> NAVIGATION_STATE_AUTO_TAKEOFF                                    | `uint8`  | 17    | Takeoff                                               |
-| <a id="#NAVIGATION_STATE_AUTO_LAND"></a> NAVIGATION_STATE_AUTO_LAND                                          | `uint8`  | 18    | Land                                                  |
-| <a id="#NAVIGATION_STATE_AUTO_FOLLOW_TARGET"></a> NAVIGATION_STATE_AUTO_FOLLOW_TARGET   | `uint8`  | 19    | Auto Follow                                           |
-| <a id="#NAVIGATION_STATE_AUTO_PRECLAND"></a> NAVIGATION_STATE_AUTO_PRECLAND                                  | `uint8`  | 20    | Precision land with landing target                    |
-| <a id="#NAVIGATION_STATE_ORBIT"></a> NAVIGATION_STATE_ORBIT                                                                       | `uint8`  | 21    | Orbit in a circle                                     |
-| <a id="#NAVIGATION_STATE_AUTO_VTOL_TAKEOFF"></a> NAVIGATION_STATE_AUTO_VTOL_TAKEOFF     | `uint8`  | 22    | Takeoff, transition, establish loiter                 |
-| <a id="#NAVIGATION_STATE_EXTERNAL1"></a> NAVIGATION_STATE_EXTERNAL1                                                               | `uint8`  | 23    |                                                       |
-| <a id="#NAVIGATION_STATE_EXTERNAL2"></a> NAVIGATION_STATE_EXTERNAL2                                                               | `uint8`  | 24    |                                                       |
-| <a id="#NAVIGATION_STATE_EXTERNAL3"></a> NAVIGATION_STATE_EXTERNAL3                                                               | `uint8`  | 25    |                                                       |
-| <a id="#NAVIGATION_STATE_EXTERNAL4"></a> NAVIGATION_STATE_EXTERNAL4                                                               | `uint8`  | 26    |                                                       |
-| <a id="#NAVIGATION_STATE_EXTERNAL5"></a> NAVIGATION_STATE_EXTERNAL5                                                               | `uint8`  | 27    |                                                       |
-| <a id="#NAVIGATION_STATE_EXTERNAL6"></a> NAVIGATION_STATE_EXTERNAL6                                                               | `uint8`  | 28    |                                                       |
-| <a id="#NAVIGATION_STATE_EXTERNAL7"></a> NAVIGATION_STATE_EXTERNAL7                                                               | `uint8`  | 29    |                                                       |
-| <a id="#NAVIGATION_STATE_EXTERNAL8"></a> NAVIGATION_STATE_EXTERNAL8                                                               | `uint8`  | 30    |                                                       |
-| <a id="#NAVIGATION_STATE_MAX"></a> NAVIGATION_STATE_MAX                                                                           | `uint8`  | 31    |                                                       |
-| <a id="#HIL_STATE_OFF"></a> HIL_STATE_OFF                                                                                         | `uint8`  | 0     |                                                       |
-| <a id="#HIL_STATE_ON"></a> HIL_STATE_ON                                                                                           | `uint8`  | 1     |                                                       |
-| <a id="#VEHICLE_TYPE_UNSPECIFIED"></a> VEHICLE_TYPE_UNSPECIFIED                                                                   | `uint8`  | 0     |                                                       |
-| <a id="#VEHICLE_TYPE_ROTARY_WING"></a> VEHICLE_TYPE_ROTARY_WING                                              | `uint8`  | 1     |                                                       |
-| <a id="#VEHICLE_TYPE_FIXED_WING"></a> VEHICLE_TYPE_FIXED_WING                                                | `uint8`  | 2     |                                                       |
-| <a id="#VEHICLE_TYPE_ROVER"></a> VEHICLE_TYPE_ROVER                                                                               | `uint8`  | 3     |                                                       |
-| <a id="#FAILSAFE_DEFER_STATE_DISABLED"></a> FAILSAFE_DEFER_STATE_DISABLED                                    | `uint8`  | 0     |                                                       |
-| <a id="#FAILSAFE_DEFER_STATE_ENABLED"></a> FAILSAFE_DEFER_STATE_ENABLED                                      | `uint8`  | 1     |                                                       |
-| <a id="#FAILSAFE_DEFER_STATE_WOULD_FAILSAFE"></a> FAILSAFE_DEFER_STATE_WOULD_FAILSAFE   | `uint8`  | 2     | Failsafes deferred, but would trigger a failsafe      |
+| 명칭                                                                                                                                                                          | 형식       | Value | 설명                                                                            |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ----- | ----------------------------------------------------------------------------- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                                                                                          | `uint32` | 2     |                                                                               |
+| <a id="#ARMING_STATE_DISARMED"></a> ARMING_STATE_DISARMED                                                                         | `uint8`  | 1     |                                                                               |
+| <a id="#ARMING_STATE_ARMED"></a> ARMING_STATE_ARMED                                                                               | `uint8`  | 2     |                                                                               |
+| <a id="#ARM_DISARM_REASON_STICK_GESTURE"></a> ARM_DISARM_REASON_STICK_GESTURE           | `uint8`  | 1     |                                                                               |
+| <a id="#ARM_DISARM_REASON_RC_SWITCH"></a> ARM_DISARM_REASON_RC_SWITCH                   | `uint8`  | 2     |                                                                               |
+| <a id="#ARM_DISARM_REASON_COMMAND_INTERNAL"></a> ARM_DISARM_REASON_COMMAND_INTERNAL     | `uint8`  | 3     |                                                                               |
+| <a id="#ARM_DISARM_REASON_COMMAND_EXTERNAL"></a> ARM_DISARM_REASON_COMMAND_EXTERNAL     | `uint8`  | 4     |                                                                               |
+| <a id="#ARM_DISARM_REASON_MISSION_START"></a> ARM_DISARM_REASON_MISSION_START           | `uint8`  | 5     |                                                                               |
+| <a id="#ARM_DISARM_REASON_LANDING"></a> ARM_DISARM_REASON_LANDING                                            | `uint8`  | 6     |                                                                               |
+| <a id="#ARM_DISARM_REASON_PREFLIGHT_INACTION"></a> ARM_DISARM_REASON_PREFLIGHT_INACTION | `uint8`  | 7     |                                                                               |
+| <a id="#ARM_DISARM_REASON_KILL_SWITCH"></a> ARM_DISARM_REASON_KILL_SWITCH               | `uint8`  | 8     |                                                                               |
+| <a id="#ARM_DISARM_REASON_RC_BUTTON"></a> ARM_DISARM_REASON_RC_BUTTON                   | `uint8`  | 13    |                                                                               |
+| <a id="#ARM_DISARM_REASON_FAILSAFE"></a> ARM_DISARM_REASON_FAILSAFE                                          | `uint8`  | 14    |                                                                               |
+| <a id="#NAVIGATION_STATE_MANUAL"></a> NAVIGATION_STATE_MANUAL                                                                     | `uint8`  | 0     | Manual mode                                                                   |
+| <a id="#NAVIGATION_STATE_ALTCTL"></a> NAVIGATION_STATE_ALTCTL                                                                     | `uint8`  | 1     | Altitude control mode                                                         |
+| <a id="#NAVIGATION_STATE_POSCTL"></a> NAVIGATION_STATE_POSCTL                                                                     | `uint8`  | 2     | Position control mode                                                         |
+| <a id="#NAVIGATION_STATE_AUTO_MISSION"></a> NAVIGATION_STATE_AUTO_MISSION                                    | `uint8`  | 3     | Auto mission mode                                                             |
+| <a id="#NAVIGATION_STATE_AUTO_LOITER"></a> NAVIGATION_STATE_AUTO_LOITER                                      | `uint8`  | 4     | Auto loiter mode                                                              |
+| <a id="#NAVIGATION_STATE_AUTO_RTL"></a> NAVIGATION_STATE_AUTO_RTL                                            | `uint8`  | 5     | Auto return to launch mode                                                    |
+| <a id="#NAVIGATION_STATE_POSITION_SLOW"></a> NAVIGATION_STATE_POSITION_SLOW                                  | `uint8`  | 6     |                                                                               |
+| <a id="#NAVIGATION_STATE_FREE5"></a> NAVIGATION_STATE_FREE5                                                                       | `uint8`  | 7     |                                                                               |
+| <a id="#NAVIGATION_STATE_ALTITUDE_CRUISE"></a> NAVIGATION_STATE_ALTITUDE_CRUISE                              | `uint8`  | 8     | Altitude with Cruise mode                                                     |
+| <a id="#NAVIGATION_STATE_FREE3"></a> NAVIGATION_STATE_FREE3                                                                       | `uint8`  | 9     |                                                                               |
+| <a id="#NAVIGATION_STATE_ACRO"></a> NAVIGATION_STATE_ACRO                                                                         | `uint8`  | 10    | Acro mode                                                                     |
+| <a id="#NAVIGATION_STATE_FREE2"></a> NAVIGATION_STATE_FREE2                                                                       | `uint8`  | 11    |                                                                               |
+| <a id="#NAVIGATION_STATE_DESCEND"></a> NAVIGATION_STATE_DESCEND                                                                   | `uint8`  | 12    | Descend mode (no position control)                         |
+| <a id="#NAVIGATION_STATE_TERMINATION"></a> NAVIGATION_STATE_TERMINATION                                                           | `uint8`  | 13    | Termination mode                                                              |
+| <a id="#NAVIGATION_STATE_OFFBOARD"></a> NAVIGATION_STATE_OFFBOARD                                                                 | `uint8`  | 14    |                                                                               |
+| <a id="#NAVIGATION_STATE_STAB"></a> NAVIGATION_STATE_STAB                                                                         | `uint8`  | 15    | Stabilized mode                                                               |
+| <a id="#NAVIGATION_STATE_FREE1"></a> NAVIGATION_STATE_FREE1                                                                       | `uint8`  | 16    |                                                                               |
+| <a id="#NAVIGATION_STATE_AUTO_TAKEOFF"></a> NAVIGATION_STATE_AUTO_TAKEOFF                                    | `uint8`  | 17    | Takeoff                                                                       |
+| <a id="#NAVIGATION_STATE_AUTO_LAND"></a> NAVIGATION_STATE_AUTO_LAND                                          | `uint8`  | 18    | Land                                                                          |
+| <a id="#NAVIGATION_STATE_AUTO_FOLLOW_TARGET"></a> NAVIGATION_STATE_AUTO_FOLLOW_TARGET   | `uint8`  | 19    | Auto Follow                                                                   |
+| <a id="#NAVIGATION_STATE_AUTO_PRECLAND"></a> NAVIGATION_STATE_AUTO_PRECLAND                                  | `uint8`  | 20    | Precision land with landing target                                            |
+| <a id="#NAVIGATION_STATE_ORBIT"></a> NAVIGATION_STATE_ORBIT                                                                       | `uint8`  | 21    | Orbit in a circle                                                             |
+| <a id="#NAVIGATION_STATE_AUTO_VTOL_TAKEOFF"></a> NAVIGATION_STATE_AUTO_VTOL_TAKEOFF     | `uint8`  | 22    | Takeoff, transition, establish loiter                                         |
+| <a id="#NAVIGATION_STATE_EXTERNAL1"></a> NAVIGATION_STATE_EXTERNAL1                                                               | `uint8`  | 23    |                                                                               |
+| <a id="#NAVIGATION_STATE_EXTERNAL2"></a> NAVIGATION_STATE_EXTERNAL2                                                               | `uint8`  | 24    |                                                                               |
+| <a id="#NAVIGATION_STATE_EXTERNAL3"></a> NAVIGATION_STATE_EXTERNAL3                                                               | `uint8`  | 25    |                                                                               |
+| <a id="#NAVIGATION_STATE_EXTERNAL4"></a> NAVIGATION_STATE_EXTERNAL4                                                               | `uint8`  | 26    |                                                                               |
+| <a id="#NAVIGATION_STATE_EXTERNAL5"></a> NAVIGATION_STATE_EXTERNAL5                                                               | `uint8`  | 27    |                                                                               |
+| <a id="#NAVIGATION_STATE_EXTERNAL6"></a> NAVIGATION_STATE_EXTERNAL6                                                               | `uint8`  | 28    |                                                                               |
+| <a id="#NAVIGATION_STATE_EXTERNAL7"></a> NAVIGATION_STATE_EXTERNAL7                                                               | `uint8`  | 29    |                                                                               |
+| <a id="#NAVIGATION_STATE_EXTERNAL8"></a> NAVIGATION_STATE_EXTERNAL8                                                               | `uint8`  | 30    |                                                                               |
+| <a id="#NAVIGATION_STATE_MAX"></a> NAVIGATION_STATE_MAX                                                                           | `uint8`  | 31    |                                                                               |
+| <a id="#FAILURE_NONE"></a> FAILURE_NONE                                                                                                                | `uint16` | 0     |                                                                               |
+| <a id="#FAILURE_ROLL"></a> FAILURE_ROLL                                                                                                                | `uint16` | 1     | (1 << 0) |
+| <a id="#FAILURE_PITCH"></a> FAILURE_PITCH                                                                                                              | `uint16` | 2     | (1 << 1) |
+| <a id="#FAILURE_ALT"></a> FAILURE_ALT                                                                                                                  | `uint16` | 4     | (1 << 2) |
+| <a id="#FAILURE_EXT"></a> FAILURE_EXT                                                                                                                  | `uint16` | 8     | (1 << 3) |
+| <a id="#FAILURE_ARM_ESC"></a> FAILURE_ARM_ESC                                                                                     | `uint16` | 16    | (1 << 4) |
+| <a id="#FAILURE_BATTERY"></a> FAILURE_BATTERY                                                                                                          | `uint16` | 32    | (1 << 5) |
+| <a id="#FAILURE_IMBALANCED_PROP"></a> FAILURE_IMBALANCED_PROP                                                                     | `uint16` | 64    | (1 << 6) |
+| <a id="#FAILURE_MOTOR"></a> FAILURE_MOTOR                                                                                                              | `uint16` | 128   | (1 << 7) |
+| <a id="#HIL_STATE_OFF"></a> HIL_STATE_OFF                                                                                         | `uint8`  | 0     |                                                                               |
+| <a id="#HIL_STATE_ON"></a> HIL_STATE_ON                                                                                           | `uint8`  | 1     |                                                                               |
+| <a id="#VEHICLE_TYPE_UNSPECIFIED"></a> VEHICLE_TYPE_UNSPECIFIED                                                                   | `uint8`  | 0     |                                                                               |
+| <a id="#VEHICLE_TYPE_ROTARY_WING"></a> VEHICLE_TYPE_ROTARY_WING                                              | `uint8`  | 1     |                                                                               |
+| <a id="#VEHICLE_TYPE_FIXED_WING"></a> VEHICLE_TYPE_FIXED_WING                                                | `uint8`  | 2     |                                                                               |
+| <a id="#VEHICLE_TYPE_ROVER"></a> VEHICLE_TYPE_ROVER                                                                               | `uint8`  | 3     |                                                                               |
+| <a id="#FAILSAFE_DEFER_STATE_DISABLED"></a> FAILSAFE_DEFER_STATE_DISABLED                                    | `uint8`  | 0     |                                                                               |
+| <a id="#FAILSAFE_DEFER_STATE_ENABLED"></a> FAILSAFE_DEFER_STATE_ENABLED                                      | `uint8`  | 1     |                                                                               |
+| <a id="#FAILSAFE_DEFER_STATE_WOULD_FAILSAFE"></a> FAILSAFE_DEFER_STATE_WOULD_FAILSAFE   | `uint8`  | 2     | Failsafes deferred, but would trigger a failsafe                              |
 
 ## Source Message
 
-[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleStatus.msg)
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/px4_msgs_old/msg/VehicleStatusV2.msg)
 
 :::details
 Click here to see original file
@@ -122,7 +132,7 @@ Click here to see original file
 ```c
 # Encodes the system state of the vehicle published by commander
 
-uint32 MESSAGE_VERSION = 3
+uint32 MESSAGE_VERSION = 2
 
 uint64 timestamp # time since system start (microseconds)
 
@@ -189,6 +199,18 @@ uint8 nav_state_display                         # User-visible nav state sent vi
 
 uint32 valid_nav_states_mask                    # Bitmask for all valid nav_state values
 uint32 can_set_nav_states_mask                  # Bitmask for all modes that a user can select
+
+# Bitmask of detected failures
+uint16 failure_detector_status
+uint16 FAILURE_NONE = 0
+uint16 FAILURE_ROLL = 1              # (1 << 0)
+uint16 FAILURE_PITCH = 2             # (1 << 1)
+uint16 FAILURE_ALT = 4               # (1 << 2)
+uint16 FAILURE_EXT = 8               # (1 << 3)
+uint16 FAILURE_ARM_ESC = 16          # (1 << 4)
+uint16 FAILURE_BATTERY = 32          # (1 << 5)
+uint16 FAILURE_IMBALANCED_PROP = 64  # (1 << 6)
+uint16 FAILURE_MOTOR = 128           # (1 << 7)
 
 uint8 hil_state
 uint8 HIL_STATE_OFF = 0
