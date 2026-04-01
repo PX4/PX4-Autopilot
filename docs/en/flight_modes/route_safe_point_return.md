@@ -331,9 +331,12 @@ Mission smart rejoin and `RTL_TYPE=6` share the same join-route execution path i
 
 The flow is:
 
-1. Mission mode (`trySetRouteJoinOnActivation()`) or RTL (`RtlMissionSafePointFollow::on_activation()`) computes the route target and calls `setupJoinRoute()` before `MissionBase::on_activation()`.
-   - The planner contributes only the geometric join state: projection point plus route direction.
-   - `MissionBase::setupJoinRoute()` then applies the execution-side corrections: the required VTOL transition and any skip-altitude override.
+1. Mission mode (`trySetRouteJoinOnActivation()`) or RTL (`RtlMissionSafePointFollow::on_activation()`) computes the route target before `MissionBase::on_activation()`.
+   - `MissionRoutePlanner` decide if the route or altitudes must be skipped:
+     - `selection.skip_route_to_safe_point` decides whether RTL bypasses join/follow and goes straight to the final goal.
+     - `join_context.skip_altitude_requirement` decides whether `JOIN_ROUTE` should stay at the live vehicle altitude instead of the projected route altitude.
+   - If the selected path still needs route-following, the caller arms `setupJoinRoute()`.
+   - `MissionBase::setupJoinRoute()` only stores the planner-provided join context and fills the required VTOL transition action. While `JOIN_ROUTE` is active, `handleJoinRouteWaypoint()` keeps the synthetic branch-in altitude tied to the live vehicle altitude when skip-altitude mode is set.
 2. `MissionBase::update_mission()` runs during activation. It normally clears transient `_work_item_type` state for a newly accepted mission, but it preserves `WORK_ITEM_TYPE_JOIN_ROUTE` and `WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN` so the join pipeline is not dropped before first publication.
 3. In the active loop, both Mission mode and RTL call `handleJoinRouteWorkItems()` from their `setActiveMissionItems()` implementation:
    - `WORK_ITEM_TYPE_JOIN_ROUTE` publishes the virtual branch-in waypoint until the cached helper-item reached flags show that the join is complete.
@@ -346,12 +349,12 @@ The flow is:
 
 ### Shared Smart Rejoin Path Selection
 
-Mission smart rejoin now uses the planner's dedicated `planMissionResumeJoin()` entry point, which shares the same vehicle-projection, path, and geometric join-context logic as `RTL_TYPE=6` while still preserving the active mission loop count:
+Mission smart rejoin uses the planner's dedicated `planMissionResumeJoin()` entry point, which shares the same vehicle-projection, path, and geometric join-context logic as `RTL_TYPE=6` while still preserving the active mission loop count:
 
 - The resumed target index comes from the shortest valid nominal path to the mission landing goal instead of hard-coding the projected segment end.
 - If the projection lies on a `DO_JUMP` loop segment with repeats remaining, the resumed path continues to the loop segment end.
 - If the selected projection lies on an exhausted loop edge, the planner compares continuing versus rewinding through the loop exit and chooses the shorter path.
-- The shared join-route work item finalizes the execution corrections when it is armed: it applies the required front-transition or back-transition and, when appropriate, skips the join altitude to avoid an unnecessary climb near landing or other caller-provided special cases.
+- The planner precomputes `join_context.skip_altitude_requirement` for near-endpoint cases, so the shared join-route work item only mirrors that decision onto the live vehicle altitude and applies the required front-transition or back-transition.
 
 ### Loop Geometry and Cached Anchors
 
@@ -402,9 +405,9 @@ The stored route direction is needed because `mission_index` alone is ambiguous 
 The handoff is now:
 
 1. `RTL` builds `MissionRoutePlanner::Config` from the current vehicle state plus the two continuity hints it preserves between passes.
-2. `MissionRoutePlanner` returns a fresh `Plan`.
+2. `MissionRoutePlanner` returns a fresh `Plan`, including the planner-owned shortcut policy (`skip_route_to_safe_point` and `join_context.skip_altitude_requirement`).
 3. `RTL` copies the selected route direction and projected loop segment out of that plan so the next planning pass can stay continuous.
-4. `RtlMissionSafePointFollow` receives the fresh plan through `configureRouteSafePoint()` and drives execution purely from the plan plus `_stage`.
+4. `RtlMissionSafePointFollow` receives the fresh plan through `configureRouteSafePoint()` and drives execution directly from that plan plus `_stage`; it no longer re-checks branch-off proximity at runtime.
 
 There is no longer any outer cached type-6 plan or persisted "straight-to-goal" latch. If RTL is re-entered, PX4 replans and then applies the route-skip shortcut policy to the newly selected safe point only.
 
@@ -427,7 +430,7 @@ The executor reuses several traversal methods from `MissionBase` to avoid code d
 - `findAttachedPositionIndex()`: find the nearest position item at or before a given index.
 - `vtolTransitionActionForTarget()`: determine if a VTOL transition is needed before entering a target segment.
 - `vtolTransitionActionAfterReachingReverseTarget()`: determine if reverse route following must apply a waypoint-attached VTOL transition after a reached target.
-- `setupJoinRoute()` / `handleJoinRouteWorkItems()`: arm and execute the shared branch-in pipeline used by both Mission smart rejoin and `RTL_TYPE=6`.
+- `setupJoinRoute()` / `handleJoinRouteWorkItems()`: arm and execute the shared branch-in pipeline used by both Mission smart rejoin and `RTL_TYPE=6`, honoring the planner-provided join context instead of recomputing skip decisions locally.
 - `computeFrontTransitionAlignmentYaw()`: provide the route-aligned yaw used for front transitions after join and during route following, pointing at the chosen route alignment target.
 - `updateLastFlownLoopSegmentForNominalAdvance()`: cache the exact active `DO_JUMP` edge that the next nominal forward advance would traverse.
 

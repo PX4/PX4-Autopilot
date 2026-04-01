@@ -775,21 +775,8 @@ bool MissionBase::position_setpoint_equal(const position_setpoint_s *p1, const p
 
 void
 MissionBase::setupJoinRoute(MissionRoutePlanner::JoinContext &join_context,
-			    const MissionRoutePlanner::Path &path, const float vehicle_alt)
+			    const MissionRoutePlanner::Path &path)
 {
-	// Special case necessary for landing + Hold + mission resume.
-	// If we are within x,y acc rad, this allows to land right away (without reaching the join mission altitude first)
-	// Note that we use WORK_ITEM_TYPE_JOIN_ROUTE even if close to the target index to ensure that back transitions are triggered
-	if (path.in_first_item_acc_rad &&
-	    (path.first_item_cmd == NAV_CMD_LAND || path.first_item_cmd == NAV_CMD_VTOL_LAND)) {
-		join_context.skip_altitude_requirement = true;
-	}
-
-	// skip_altitude_requirement can also come from the caller.
-	if (join_context.skip_altitude_requirement) {
-		join_context.projection.alt = vehicle_alt;
-	}
-
 	join_context.transition_action = vtolTransitionActionForTarget(path.first_item_index, path.direction_reversed);
 	_route_join_context = join_context;
 	_work_item_type = WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE;

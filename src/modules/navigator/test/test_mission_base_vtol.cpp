@@ -244,7 +244,7 @@ class MissionBaseVtolStateScanTest : public MissionBaseVtolTest {};
 class MissionBaseFrontTransitionAlignmentTest : public MissionBaseVtolTest {};
 /** @brief Covers transition-action selection before entering VTOL route segments. */
 class MissionBaseTransitionActionTest : public MissionBaseVtolTest {};
-/** @brief Covers join-route setup and execution-side join-context corrections. */
+/** @brief Covers join-route setup while preserving planner-owned join-context decisions. */
 class MissionBaseJoinRouteTest : public MissionBaseVtolTest {};
 /** @brief Covers mission traversal helpers that skip non-position control items. */
 class MissionBaseTraversalTest : public MissionBaseVtolTest {};
@@ -622,7 +622,7 @@ TEST_F(MissionBaseJoinRouteTest, SetupJoinRouteFromPathUsesSharedTransitionLogic
 	*navigator.get_global_position() = global_position;
 
 	// WHEN: The shared helper arms the virtual branch-in from planner output.
-	mission_base.setupJoinRoute(join_context, path, global_position.alt);
+	mission_base.setupJoinRoute(join_context, path);
 
 	// THEN: The helper stores the same transition action in the caller context and armed state.
 	EXPECT_EQ(join_context.transition_action, MissionBaseTestPeer::VtolTransitionAction::FrontTransition);
@@ -637,12 +637,10 @@ TEST_F(MissionBaseJoinRouteTest, SetupJoinRouteFromPathUsesSharedTransitionLogic
 		  join_context.skip_altitude_requirement);
 }
 
-// WHY: Landing joins that are already inside the target acceptance radius should skip the
-//      planned join altitude in MissionBase, because that is an execution-side correction
-//      rather than planner geometry.
-// WHAT: Near a landing target, setupJoinRoute marks skip_altitude_requirement and updates
-//       the join altitude to the vehicle's current altitude.
-TEST_F(MissionBaseJoinRouteTest, SetupJoinRouteAppliesSkipAltitudeRequirementNearLand)
+// WHY: The planner now owns skip-altitude decisions, so setupJoinRoute must not infer them
+//      from path proximity or endpoint command type.
+// WHAT: A near-landing path with skip_altitude_requirement unset stays unchanged when JOIN_ROUTE is armed.
+TEST_F(MissionBaseJoinRouteTest, SetupJoinRouteDoesNotInferSkipAltitudeRequirementNearLand)
 {
 	Navigator navigator;
 	MissionBaseTestPeer mission_base_peer(&navigator);
@@ -665,52 +663,15 @@ TEST_F(MissionBaseJoinRouteTest, SetupJoinRouteAppliesSkipAltitudeRequirementNea
 	path.first_item_cmd = NAV_CMD_LAND;
 	path.dist = 8.f;
 
-	mission_base_peer.setupJoinRoute(join_context, path, global_position.alt);
+	mission_base_peer.setupJoinRoute(join_context, path);
 
-	EXPECT_TRUE(join_context.skip_altitude_requirement);
-	EXPECT_FLOAT_EQ(join_context.projection.alt, global_position.alt);
+	EXPECT_FALSE(join_context.skip_altitude_requirement);
+	EXPECT_FLOAT_EQ(join_context.projection.alt, kAlt - 10.f);
 	EXPECT_EQ(join_context.transition_action, MissionBaseTestPeer::VtolTransitionAction::None);
-	EXPECT_TRUE(mission_base_peer.routeJoinContextForTest().skip_altitude_requirement);
-	EXPECT_FLOAT_EQ(mission_base_peer.routeJoinContextForTest().projection.alt, global_position.alt);
+	EXPECT_FALSE(mission_base_peer.routeJoinContextForTest().skip_altitude_requirement);
+	EXPECT_FLOAT_EQ(mission_base_peer.routeJoinContextForTest().projection.alt, kAlt - 10.f);
 }
 
-// WHY: RTL can pre-seed skip_altitude_requirement for takeoff-endpoint fallbacks before
-//      MissionBase arms JOIN_ROUTE, so setupJoinRoute must preserve that hint and apply
-//      the same altitude correction even when the path itself is not a landing command.
-// WHAT: A caller-provided skip-altitude hint updates the join altitude to the vehicle altitude
-//       and survives setupJoinRoute with no VTOL transition required.
-TEST_F(MissionBaseJoinRouteTest, SetupJoinRouteHonorsCallerSkipAltitudeHint)
-{
-	Navigator navigator;
-	MissionBaseTestPeer mission_base_peer(&navigator);
-	mission_base_peer.setVehicleStatus(false, false, false);
-
-	vehicle_global_position_s global_position{};
-	global_position.lat = kBaseLat + 0.0002;
-	global_position.lon = kBaseLon;
-	global_position.alt = kAlt + 3.f;
-	*navigator.get_global_position() = global_position;
-
-	MissionRoutePlanner::JoinContext join_context{};
-	join_context.projection = {kBaseLat + 0.0002, kBaseLon, kAlt + 30.f};
-	join_context.direction_reversed = true;
-	join_context.skip_altitude_requirement = true;
-
-	MissionRoutePlanner::Path path{};
-	path.direction_reversed = true;
-	path.in_first_item_acc_rad = false;
-	path.first_item_index = 0;
-	path.first_item_cmd = NAV_CMD_TAKEOFF;
-	path.dist = 4.f;
-
-	mission_base_peer.setupJoinRoute(join_context, path, global_position.alt);
-
-	EXPECT_TRUE(join_context.skip_altitude_requirement);
-	EXPECT_FLOAT_EQ(join_context.projection.alt, global_position.alt);
-	EXPECT_EQ(join_context.transition_action, MissionBaseTestPeer::VtolTransitionAction::None);
-	EXPECT_TRUE(mission_base_peer.routeJoinContextForTest().skip_altitude_requirement);
-	EXPECT_FLOAT_EQ(mission_base_peer.routeJoinContextForTest().projection.alt, global_position.alt);
-}
 
 // WHY: The executor walks the route forward and must know, for each target waypoint,
 //      whether a transition is needed *before* commanding that segment. This test

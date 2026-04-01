@@ -124,7 +124,11 @@ public:
 		_plan.selection.safe_point_found = true;
 		_plan.selection.goal_type = MissionRoutePlanner::GoalType::SafePoint;
 		_plan.selection.path.direction_reversed = direction_reversed;
-		_state.branch_off_index = branch_off_index;
+		_plan.selection.path.first_item_index = branch_off_index;
+		_plan.selection.branch_off_segment.start.idx = direction_reversed ? branch_off_index : branch_off_index - 1;
+		_plan.selection.branch_off_segment.start.nav_cmd = NAV_CMD_WAYPOINT;
+		_plan.selection.branch_off_segment.end.idx = direction_reversed ? branch_off_index + 1 : branch_off_index;
+		_plan.selection.branch_off_segment.end.nav_cmd = NAV_CMD_WAYPOINT;
 	}
 
 	void setTransitionTargetIndexForTest(int32_t index)

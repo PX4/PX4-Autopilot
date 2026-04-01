@@ -75,20 +75,9 @@ bool RtlMissionSafePointFollow::loadMissionItemFromCache(int32_t index, mission_
 void RtlMissionSafePointFollow::configureRouteSafePoint(const RouteSafePointConfig &config)
 {
 	_plan = config.plan;
-	_state.branch_off_index = _plan.selection.branchOffIndex();
 	_goal_land_approach = config.goal_land_approach;
 	_rtl_alt = config.rtl_alt;
 	updateLastFlownLoopSegmentFromPlan();
-}
-
-bool RtlMissionSafePointFollow::isLandingCmd(const uint16_t nav_cmd)
-{
-	return nav_cmd == NAV_CMD_LAND || nav_cmd == NAV_CMD_VTOL_LAND;
-}
-
-bool RtlMissionSafePointFollow::isTakeoffCmd(const uint16_t nav_cmd)
-{
-	return nav_cmd == NAV_CMD_TAKEOFF || nav_cmd == NAV_CMD_VTOL_TAKEOFF;
 }
 
 bool RtlMissionSafePointFollow::missionIndexInBounds(int32_t index) const
@@ -158,14 +147,7 @@ void RtlMissionSafePointFollow::on_activation()
 		if (missionIndexInBounds(first_item_index)) {
 			setMissionIndex(first_item_index);
 			_is_current_planned_mission_item_valid = isMissionValid();
-
-			const bool reverse_land_from_takeoff = goalIsMissionTakeoff()
-							       && isTakeoffCmd(_plan.selection.path.first_item_cmd)
-							       && _plan.selection.path.direction_reversed
-							       && _plan.selection.path.in_first_item_acc_rad;
-
-			const bool skip_follow_route = _plan.selection.skip_route_to_safe_point || reverse_land_from_takeoff;
-			_state.stage = skip_follow_route ? finalGoalStage() : Stage::FollowRoute;
+			_state.stage = _plan.selection.skip_route_to_safe_point ? finalGoalStage() : Stage::FollowRoute;
 
 		} else {
 			PX4_ERR("RTL plan start index out of bounds: %ld (count=%ld)",
@@ -174,13 +156,13 @@ void RtlMissionSafePointFollow::on_activation()
 			_state.stage = Stage::Idle;
 		}
 
-		PX4_DEBUG("RTL to %s target=%d rev=%u skip=%u stage=%u branch_off=%d",
-			  MissionRoutePlanner::goalTypeString(_plan.selection.goal_type),
-			  static_cast<int>(_plan.selection.path.first_item_index),
-			  static_cast<unsigned>(_plan.selection.path.direction_reversed),
-			  static_cast<unsigned>(_plan.selection.skip_route_to_safe_point),
-			  static_cast<unsigned>(_state.stage),
-			  static_cast<int>(_state.branch_off_index));
+		PX4_INFO("RTL to %s target=%d rev=%u skip_route=%u vtol=%u stage=%u",
+			 MissionRoutePlanner::goalTypeString(_plan.selection.goal_type),
+			 static_cast<int>(_plan.selection.path.first_item_index),
+			 static_cast<unsigned>(_plan.selection.path.direction_reversed),
+			 static_cast<unsigned>(_plan.selection.skip_route_to_safe_point),
+			 static_cast<unsigned>(_plan.join_context.transition_action),
+			 static_cast<unsigned>(_state.stage));
 
 	} else {
 		_is_current_planned_mission_item_valid = false;
@@ -196,10 +178,14 @@ void RtlMissionSafePointFollow::on_activation()
 	_navigator->get_position_setpoint_triplet()->current.valid = false;
 	_navigator->get_position_setpoint_triplet()->next.valid = false;
 
-	if (_is_current_planned_mission_item_valid && _state.stage == Stage::FollowRoute) {
+	if (_is_current_planned_mission_item_valid && !_plan.selection.skip_route_to_safe_point) {
 		// Route Safe Point Return reuses MissionBase's shared JOIN_ROUTE ->
 		// TRANSITION_AFTER_JOIN executor path through RtlBase.
-		setupJoinRoute(_plan.join_context, _plan.selection.path, _navigator->get_global_position()->alt);
+		setupJoinRoute(_plan.join_context, _plan.selection.path);
+
+		PX4_INFO("RTL safe point %d selected: branch off after idx %u",
+			 static_cast<int>(_plan.selection.safe_point_index),
+			 static_cast<unsigned>(_plan.selection.branchOffIndex()));
 	}
 
 	MissionBase::on_activation();
@@ -399,22 +385,7 @@ void RtlMissionSafePointFollow::normalizeRouteMissionItem(mission_item_s &missio
 bool RtlMissionSafePointFollow::currentTargetIsBranchOff() const
 {
 	return _plan.selection.safe_point_found
-	       && _state.branch_off_index >= 0
-	       && _mission.current_seq == _state.branch_off_index;
-}
-
-bool RtlMissionSafePointFollow::joinProjectionNearBranchOff() const
-{
-	if (!_plan.selection.safe_point_found || !_plan.join_context.valid() || !_plan.selection.branch_off_projection.valid()) {
-		return false;
-	}
-
-	const float distance = get_distance_to_next_waypoint(_plan.selection.branch_off_projection.lat,
-			       _plan.selection.branch_off_projection.lon,
-			       _plan.join_context.projection.lat,
-			       _plan.join_context.projection.lon);
-
-	return PX4_ISFINITE(distance) && distance < _navigator->get_acceptance_radius();
+	       && _mission.current_seq == _plan.selection.branchOffIndex();
 }
 
 void RtlMissionSafePointFollow::updateLastFlownLoopSegmentFromPlan()
@@ -516,7 +487,7 @@ void RtlMissionSafePointFollow::handleRouteTransitionStage(position_setpoint_tri
 
 		if (loadAdjacentRouteItem(next_route_item, adjacent_index)) {
 			const bool next_item_is_branch_off = _plan.selection.safe_point_found
-							     && adjacent_index == _state.branch_off_index;
+							     && adjacent_index == _plan.selection.branchOffIndex();
 			const bool next_item_is_endpoint_command = missionItemMatchesSelectedEndpoint(next_route_item);
 
 			if (next_item_is_branch_off) {
@@ -683,12 +654,6 @@ void RtlMissionSafePointFollow::publishLandingItems(position_setpoint_triplet_s 
 void RtlMissionSafePointFollow::handleFollowRouteStage(position_setpoint_triplet_s *pos_sp_triplet,
 		const position_setpoint_s &current_setpoint_copy)
 {
-	if (joinProjectionNearBranchOff()) {
-		_state.stage = finalGoalStage();
-		PX4_INFO("RTL join is near branch-off, straight to goal");
-		return;
-	}
-
 	const bool current_item_is_endpoint = missionItemMatchesSelectedEndpoint(_mission_item);
 
 	if (current_item_is_endpoint) {
@@ -738,7 +703,7 @@ void RtlMissionSafePointFollow::handleFollowRouteStage(position_setpoint_triplet
 
 	if (loadAdjacentRouteItem(next_route_item, adjacent_index)) {
 		const bool next_item_is_branch_off = _plan.selection.safe_point_found
-						     && adjacent_index == _state.branch_off_index;
+						     && adjacent_index == _plan.selection.branchOffIndex();
 		const bool next_item_is_endpoint_command = missionItemMatchesSelectedEndpoint(next_route_item);
 
 		if (next_item_is_branch_off) {
@@ -906,7 +871,7 @@ rtl_time_estimate_s RtlMissionSafePointFollow::calc_rtl_time_estimate()
 					add_leg(mi.lat, mi.lon, item_alt);
 
 					// Stop if we've reached the branch-off index or the endpoint.
-					if (_plan.selection.safe_point_found && walk_index == _state.branch_off_index) {
+					if (_plan.selection.safe_point_found && walk_index == _plan.selection.branchOffIndex()) {
 						break;
 					}
 

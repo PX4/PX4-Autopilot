@@ -521,24 +521,12 @@ bool RTL::evaluateRouteSafePointPlan(const MissionRouteCache &mission_route_cach
 		return false;
 	}
 
-	// This is necessary for reverse endpoint fallback with no safe point found: the vehicle is
-	// landing at the mission takeoff location, so do not force a climb back to the takeoff altitude.
-	// A safe-point goal keeps the normal join/skip policy so a rally point far from the
-	// takeoff point but projected onto the takeoff location does not result in an immediate land.
-	// MissionBase::setupJoinRoute() consumes this hint and applies the final skip-altitude correction.
-	if (new_plan.selection.path.in_first_item_acc_rad
-	    && !new_plan.selection.safe_point_found
-	    && new_plan.selection.path.direction_reversed
-	    && (new_plan.selection.path.first_item_cmd == NAV_CMD_TAKEOFF
-		|| new_plan.selection.path.first_item_cmd == NAV_CMD_VTOL_TAKEOFF)) {
-		new_plan.join_context.skip_altitude_requirement = true;
-	}
-
-	PX4_DEBUG("RTL type 6 plan: goal=%s target=%d rev=%u skip=%u",
+	PX4_DEBUG("RTL type 6 plan: goal=%s target=%d rev=%u skip=%u skip_alt=%u",
 		  MissionRoutePlanner::goalTypeString(new_plan.selection.goal_type),
 		  static_cast<int>(new_plan.selection.path.first_item_index),
 		  static_cast<unsigned>(new_plan.selection.path.direction_reversed),
-		  static_cast<unsigned>(new_plan.selection.skip_route_to_safe_point));
+		  static_cast<unsigned>(new_plan.selection.skip_route_to_safe_point),
+		  static_cast<unsigned>(new_plan.join_context.skip_altitude_requirement));
 
 	return true;
 }

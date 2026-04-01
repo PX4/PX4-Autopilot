@@ -68,6 +68,16 @@ loiter_point_s MissionRoutePlanner::makeVtolLandApproachPoint(const mission_item
 	return approach;
 }
 
+bool MissionRoutePlanner::isLandingCmd(uint16_t nav_cmd)
+{
+	return nav_cmd == NAV_CMD_LAND || nav_cmd == NAV_CMD_VTOL_LAND;
+}
+
+bool MissionRoutePlanner::isTakeoffCmd(uint16_t nav_cmd)
+{
+	return nav_cmd == NAV_CMD_TAKEOFF || nav_cmd == NAV_CMD_VTOL_TAKEOFF;
+}
+
 void MissionRoutePlanner::Provider::collectVtolLandApproachBlock(int safe_point_index, float home_altitude_amsl,
 		land_approaches_s &vtol_land_approaches) const
 {
@@ -1405,15 +1415,32 @@ bool MissionRoutePlanner::closeToSafePointDirect(const Position &vehicle_positio
 	return PX4_ISFINITE(dist) && dist < config.parameters.direct_acceptance_radius;
 }
 
-bool MissionRoutePlanner::shouldSkipRouteToSafePoint(const Position &vehicle_position,
+bool MissionRoutePlanner::shouldSkipRouteToGoal(const Position &vehicle_position,
 		const Selection &selection, const Config &config) const
 {
-	if (!selection.safe_point_found) {
+	if (!selection.valid()) {
 		return false;
 	}
 
+	// No safe point found, use same condition as smart mission join to skip branch-in alt
+	if (!selection.safe_point_found) {
+		return shouldSkipJoinAltitudeRequirement(selection.path);
+	}
+
+	// If a safe point was found, do not skip based on nav command so a rally point far from the
+	// takeoff (or land) but projected onto the takeoff (or land) does not result in an immediate land.
 	return closeToSafePointDirect(vehicle_position, selection.safe_point_position, config)
 	       || closeToBranchOffSegment(vehicle_position, selection, config.parameters.acceptance_radius);
+}
+
+bool MissionRoutePlanner::shouldSkipJoinAltitudeRequirement(const Path &path) const
+{
+	// The vehicle targets the landing at the mission land (or takeoff when reverse),
+	// do not force a climb back to the branch-in alt.
+	return path.valid()
+	       && path.in_first_item_acc_rad
+	       && (isLandingCmd(path.first_item_cmd)
+		   || (path.direction_reversed && isTakeoffCmd(path.first_item_cmd)));
 }
 
 MissionRoutePlanner::Selection MissionRoutePlanner::selectSafePoint(const ProjectionContext &projection_context,
@@ -1528,16 +1555,12 @@ MissionRoutePlanner::Selection MissionRoutePlanner::selectSafePoint(const Projec
 			return {};
 		}
 
-		selection.skip_route_to_safe_point = shouldSkipRouteToSafePoint(projection_context.vehicle_pos,
-						     selection, config);
-
-		PX4_DEBUG("RTL safe point %d selected: trgt=%d rev=%u branch_off=%u->%u skip=%u",
+		PX4_DEBUG("RTL safe point %d selected: trgt=%d rev=%u branch_off=%u->%u",
 			  static_cast<int>(selection.safe_point_index),
 			  static_cast<int>(selection.path.first_item_index),
 			  static_cast<unsigned>(selection.path.direction_reversed),
 			  static_cast<unsigned>(selection.branch_off_segment.start.idx),
-			  static_cast<unsigned>(selection.branch_off_segment.end.idx),
-			  static_cast<unsigned>(selection.skip_route_to_safe_point));
+			  static_cast<unsigned>(selection.branch_off_segment.end.idx));
 	}
 
 	return selection;
@@ -1588,8 +1611,6 @@ MissionRoutePlanner::Selection MissionRoutePlanner::selectMissionEndpointFallbac
 
 	selection.found = true;
 	selection.safe_point_found = false;
-	// TODO: check takeoff + RTL with no safepoint, confirm that the vehicle does not go all the way up before descending
-	selection.skip_route_to_safe_point = false;
 
 	if (!path_to_land_valid || (path_to_takeoff_valid && path_to_takeoff.dist < path_to_land.dist)) {
 		selection.goal_type = GoalType::MissionTakeoff;
@@ -1680,6 +1701,11 @@ bool MissionRoutePlanner::planMissionResumeJoin(const Position &vehicle_position
 
 	plan.join_context.projection = plan.projection_context.seg_candidate.projection;
 	plan.join_context.direction_reversed = plan.path.direction_reversed;
+	plan.join_context.skip_altitude_requirement = shouldSkipJoinAltitudeRequirement(plan.path);
+
+	if (plan.join_context.skip_altitude_requirement) {
+		plan.join_context.projection.alt = vehicle_position.alt;
+	}
 
 	if (!plan.valid()) {
 		failure_reason = FailureReason::NoValidPath;
@@ -1706,6 +1732,7 @@ bool MissionRoutePlanner::planRouteToGoal(const Position &vehicle_position, int3
 
 	// Find closest safe point, falling back to mission end points if none found
 	plan.selection = selectBestGoal(plan.projection_context, config);
+	plan.selection.skip_route_to_safe_point = shouldSkipRouteToGoal(vehicle_position, plan.selection, config);
 
 	if (!plan.selection.found) {
 		failure_reason = FailureReason::NoValidCandidateFound;
@@ -1720,6 +1747,11 @@ bool MissionRoutePlanner::planRouteToGoal(const Position &vehicle_position, int3
 
 	plan.join_context.projection = plan.projection_context.seg_candidate.projection;
 	plan.join_context.direction_reversed = plan.selection.path.direction_reversed;
+	plan.join_context.skip_altitude_requirement = shouldSkipJoinAltitudeRequirement(plan.selection.path);
+
+	if (plan.join_context.skip_altitude_requirement) {
+		plan.join_context.projection.alt = vehicle_position.alt;
+	}
 
 	if (!plan.valid()) {
 		failure_reason = FailureReason::NoValidPath;
@@ -1728,11 +1760,12 @@ bool MissionRoutePlanner::planRouteToGoal(const Position &vehicle_position, int3
 
 	failure_reason = FailureReason::None;
 
-	PX4_DEBUG("RTL plan to %s target=%d rev=%u direct=%u branch_off=%d->%d",
+	PX4_DEBUG("RTL plan to %s target=%d rev=%u direct=%u skip_alt=%u branch_off=%d->%d",
 		  goalTypeString(plan.selection.goal_type),
 		  static_cast<int>(plan.selection.path.first_item_index),
 		  static_cast<unsigned>(plan.selection.path.direction_reversed),
 		  static_cast<unsigned>(plan.selection.skip_route_to_safe_point),
+		  static_cast<unsigned>(plan.join_context.skip_altitude_requirement),
 		  static_cast<int>(plan.selection.branch_off_segment.start.idx),
 		  static_cast<int>(plan.selection.branch_off_segment.end.idx));
 

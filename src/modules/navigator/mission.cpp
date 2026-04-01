@@ -208,7 +208,7 @@ bool Mission::trySetRouteJoinOnActivation(bool resume_mission_on_previous)
 	setMissionIndex(join_plan.path.first_item_index);
 	_is_current_planned_mission_item_valid = isMissionValid();
 
-	setupJoinRoute(join_plan.join_context, join_plan.path, vehicle_position.alt);
+	setupJoinRoute(join_plan.join_context, join_plan.path);
 
 	PX4_INFO("Mission route join: target=%d rev=%u vtol=%u skip_alt=%u",
 		 static_cast<int>(join_plan.path.first_item_index),

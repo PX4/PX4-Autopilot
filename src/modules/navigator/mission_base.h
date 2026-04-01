@@ -335,18 +335,15 @@ protected:
 	bool position_setpoint_equal(const position_setpoint_s *p1, const position_setpoint_s *p2) const;
 
 	/**
-	 * @brief Arm a virtual branch-in waypoint using planner path semantics for transition selection.
+	 * @brief Arm a virtual branch-in waypoint for smart mission joining.
 	 *
-	 * Shared by Mission resume and Route Safe Point Return so both callers apply the
-	 * execution-side join corrections in one place before arming JOIN_ROUTE.
-	 *
-	 * This finalizes the join context with:
-	 * - the required post-join VTOL transition
-	 * - the skip-altitude override used when the join target is already inside landing acc rad
-	 * - any caller-provided skip-altitude hint (for example the mission-takeoff RTL fallback)
+	 * Shared by Mission resume and Route Safe Point Return so both callers reuse the
+	 * planner-provided join context while arming JOIN_ROUTE.
+	 * MissionBase only fills the post-join VTOL transition; handleJoinRouteWaypoint()
+	 * applies the live-altitude override while skip-altitude mode is active.
 	 */
 	void setupJoinRoute(MissionRoutePlanner::JoinContext &join_context,
-			    const MissionRoutePlanner::Path &path, const float vehicle_alt);
+			    const MissionRoutePlanner::Path &path);
 
 	/**
 	 * @brief Clear any pending virtual join-route state.

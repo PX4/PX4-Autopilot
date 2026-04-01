@@ -77,7 +77,6 @@ private:
 
 	struct PlanState {
 		Stage stage{Stage::Idle};
-		int32_t branch_off_index{-1};
 		int32_t transition_target_index{-1};
 		VtolTransitionAction transition_action{VtolTransitionAction::None};
 		bool transition_command_sent{false};
@@ -137,8 +136,6 @@ private:
 				    const position_setpoint_s &current_setpoint_copy);
 	/** @brief Return whether the current route target coincides with the selected branch-off anchor. */
 	bool currentTargetIsBranchOff() const;
-	/** @brief Return whether the join projection is already close enough to skip route following. */
-	bool joinProjectionNearBranchOff() const;
 	/** @brief Return true when the selected safe-point goal has a concrete VTOL landing approach to fly. */
 	bool useGoalLandApproach() const;
 	/** @brief Return the stage that should execute after leaving the route or skipping directly to goal. */
@@ -149,14 +146,10 @@ private:
 	bool goalIsMissionTakeoff() const;
 	/** @brief Return whether a mission item matches the currently selected endpoint fallback. */
 	bool missionItemMatchesSelectedEndpoint(const mission_item_s &mission_item) const;
-	/** @brief Return whether a mission nav_cmd is a landing command. */
-	static bool isLandingCmd(const uint16_t nav_cmd);
-	/** @brief Return whether a mission nav_cmd is a takeoff command. */
-	static bool isTakeoffCmd(const uint16_t nav_cmd);
 	/** @brief Return whether a mission item is a landing command. */
-	static bool isLandingCommand(const mission_item_s &mission_item) { return isLandingCmd(mission_item.nav_cmd); }
+	static bool isLandingCommand(const mission_item_s &mission_item) { return MissionRoutePlanner::isLandingCmd(mission_item.nav_cmd); }
 	/** @brief Return whether a mission item is a takeoff command. */
-	static bool isTakeoffCommand(const mission_item_s &mission_item) { return isTakeoffCmd(mission_item.nav_cmd); }
+	static bool isTakeoffCommand(const mission_item_s &mission_item) { return MissionRoutePlanner::isTakeoffCmd(mission_item.nav_cmd); }
 	/** @brief Return whether a mission index lies within the active mission bounds. */
 	bool missionIndexInBounds(int32_t index) const;
 	/** @brief Reset transient executor progress so inactive-state queries do not observe stale stages. */

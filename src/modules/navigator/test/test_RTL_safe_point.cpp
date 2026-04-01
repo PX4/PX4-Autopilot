@@ -157,8 +157,8 @@ TEST_F(RtlSafePointBasicTest, IncludesBranchOffLegInSafePointRanking)
 	EXPECT_EQ(selection.branch_off_segment.end.idx, 1);
 }
 
-// WHY: When a safe point is within the direct acceptance radius, the planner should skip route following.
-// WHAT: selectSafePoint returns skip_route_to_safe_point=true for a nearby rally point.
+// WHY: When a safe point is within the direct acceptance radius, the final planner contract should skip route following.
+// WHAT: planRouteToGoal returns skip_route_to_safe_point=true for a nearby rally point.
 TEST_F(RtlSafePointBasicTest, SupportsDirectToSafePoint)
 {
 	// GIVEN: 3-wp straight mission with one safe point very close to the vehicle.
@@ -176,16 +176,16 @@ TEST_F(RtlSafePointBasicTest, SupportsDirectToSafePoint)
 	MissionRoutePlanner planner{provider};
 	const MissionRoutePlanner::Position vehicle_position =
 		makePositionFromOffset(kBaseLat, kBaseLon, 10.f, 0.f, kAlt);
+	MissionRoutePlanner::Plan plan{};
 
 	// WHEN: Vehicle is near the safe point within direct acceptance radius.
-	ASSERT_TRUE(planner.collectVehicleProjection(vehicle_position, 1, config, ctx, reason));
-
-	const MissionRoutePlanner::Selection selection = planner.selectSafePoint(ctx, config);
+	ASSERT_TRUE(planner.planRouteToGoal(vehicle_position, 1, config, plan, reason));
 
 	// THEN: The route-skip flag is set, safe point index is 0.
-	ASSERT_TRUE(selection.found);
-	EXPECT_TRUE(selection.skip_route_to_safe_point);
-	EXPECT_EQ(selection.safe_point_index, 0);
+	ASSERT_TRUE(plan.selection.found);
+	EXPECT_TRUE(plan.selection.safe_point_found);
+	EXPECT_TRUE(plan.selection.skip_route_to_safe_point);
+	EXPECT_EQ(plan.selection.safe_point_index, 0);
 }
 
 // WHY: Route-skip shortcuts are applied only after the planner has already selected
@@ -209,13 +209,13 @@ TEST_F(RtlSafePointBasicTest, DirectShortcutUsesSelectedSafePointRatherThanUploa
 	const MissionRoutePlanner::Position vehicle_position =
 		makePositionFromOffset(kBaseLat, kBaseLon, 10.f, 0.f, kAlt);
 
-	ASSERT_TRUE(planner.collectVehicleProjection(vehicle_position, 1, config, ctx, reason));
+	MissionRoutePlanner::Plan plan{};
+	ASSERT_TRUE(planner.planRouteToGoal(vehicle_position, 1, config, plan, reason));
 
-	const MissionRoutePlanner::Selection selection = planner.selectSafePoint(ctx, config);
-
-	ASSERT_TRUE(selection.found);
-	EXPECT_TRUE(selection.skip_route_to_safe_point);
-	EXPECT_EQ(selection.safe_point_index, 1);
+	ASSERT_TRUE(plan.selection.found);
+	EXPECT_TRUE(plan.selection.safe_point_found);
+	EXPECT_TRUE(plan.selection.skip_route_to_safe_point);
+	EXPECT_EQ(plan.selection.safe_point_index, 1);
 }
 
 // WHY: When all safe points have an invalid frame, none should be selected.
@@ -369,7 +369,7 @@ TEST_F(RtlSafePointDefaultMCTest, DefaultMission_ClosestForwardAhead_MC)
 	EXPECT_EQ(selection.safe_point_index, 0);
 }
 
-// WHY: When the vehicle is within the acceptance radius of a rally point, route following should be skipped.
+// WHY: When the vehicle is within the acceptance radius of a rally point, the final plan should skip route following.
 // WHAT: Rally 4 near takeoff is selected with skip_route_to_safe_point=true.
 TEST_F(RtlSafePointDefaultMCTest, DefaultMission_WithinAcceptanceRadius)
 {
@@ -382,16 +382,16 @@ TEST_F(RtlSafePointDefaultMCTest, DefaultMission_WithinAcceptanceRadius)
 
 	const MissionRoutePlanner::Position vehicle_position =
 		makePositionAbsolute(46.09681253236241, 2.2993209050608376, 838.48f);
+	MissionRoutePlanner::Plan plan{};
 
 	// WHEN: Vehicle at mission_index=1 is within acceptance radius of rally 4.
-	ASSERT_TRUE(planner.collectVehicleProjection(vehicle_position, 1, config, ctx, reason));
-
-	const MissionRoutePlanner::Selection selection = planner.selectSafePoint(ctx, config);
+	ASSERT_TRUE(planner.planRouteToGoal(vehicle_position, 1, config, plan, reason));
 
 	// THEN: Rally 4 is selected and route following is skipped.
-	ASSERT_TRUE(selection.found);
-	EXPECT_EQ(selection.safe_point_index, 4);
-	EXPECT_TRUE(selection.skip_route_to_safe_point);
+	ASSERT_TRUE(plan.selection.found);
+	EXPECT_TRUE(plan.selection.safe_point_found);
+	EXPECT_EQ(plan.selection.safe_point_index, 4);
+	EXPECT_TRUE(plan.selection.skip_route_to_safe_point);
 }
 
 // WHY: When all rally points are behind the vehicle, MC should still pick the closest reverse one.

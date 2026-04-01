@@ -55,13 +55,7 @@
 #include <uORB/topics/vtol_vehicle_status.h>
 #include <vector>
 
-// These reusable datasets stay header-only because only a few navigator test TUs include
-// them today. If they grow substantially or become widely shared, move the larger builders
-// into a shared test-support .cpp to reduce duplicate code generation.
-
-// ============================================================================
-// Default mission dataset
-// ============================================================================
+// These reusable datasets stay header-only because only a few navigator test include them.
 
 namespace default_dataset
 {
@@ -115,9 +109,6 @@ static constexpr float kVel = 15.f;
 
 } // namespace default_dataset
 
-// ============================================================================
-// Corner mission dataset
-// ============================================================================
 
 namespace corner_dataset
 {
@@ -171,9 +162,6 @@ static constexpr float kVelDiag = 15.f;
 
 } // namespace corner_dataset
 
-// ============================================================================
-// Straight-line datasets reused across safe-point selection tests
-// ============================================================================
 
 namespace uturn_penalty_dataset
 {

@@ -63,7 +63,7 @@ protected:
 
 /** @brief Covers route-goal selection, endpoint fallback, and loop-exit choice. */
 class RtlPlannerGoalSelectionTest : public RtlPlannerIntegrationTestBase {};
-/** @brief Covers geometric join-context behavior exposed by the planner. */
+/** @brief Covers planner-owned skip policy and join-context behavior. */
 class RtlPlannerJoinContextTest : public RtlPlannerIntegrationTestBase {};
 /** @brief Covers safe-point selection when the planner returns a full executable plan. */
 class RtlPlannerSafePointPlanTest : public RtlPlannerIntegrationTestBase {};
@@ -416,11 +416,11 @@ TEST_F(RtlPlannerGoalSelectionTest, FallsBackWhenAllSafePointsInvalid)
 		    plan.selection.goal_type == MissionRoutePlanner::GoalType::MissionTakeoff);
 }
 
-// WHY: The planner now owns only the geometric join context. Execution-side join corrections
-//      such as skip-altitude handling are finalized later in MissionBase::setupJoinRoute().
-// WHAT: Vehicle near land still selects MissionLand, but the planner leaves skip_altitude_requirement unset
-//       and preserves the raw geometric projection altitude.
-TEST_F(RtlPlannerJoinContextTest, KeepsJoinContextGeometricNearLand)
+// WHY: Near a mission landing endpoint, the planner should own both shortcuts:
+//      skip the route entirely and keep JOIN_ROUTE at the live altitude when it is armed.
+// WHAT: Vehicle near land selects MissionLand with both skip_route_to_safe_point and
+//       skip_altitude_requirement set from the planner output.
+TEST_F(RtlPlannerJoinContextTest, NearLandEndpointFallbackSkipsRouteAndAltitudeRequirement)
 {
 	// GIVEN: A 3-waypoint mission (takeoff -> wp -> land).
 	auto items = std::vector<mission_item_s> {
@@ -440,20 +440,20 @@ TEST_F(RtlPlannerJoinContextTest, KeepsJoinContextGeometricNearLand)
 	// WHEN: planRouteToGoal is called.
 	bool ok = planner.planRouteToGoal(vehicle_pos, 1, config, plan, reason);
 
-	// THEN: MissionLand is selected and the join context remains purely geometric.
+	// THEN: MissionLand is selected and the planner owns both skip decisions.
 	ASSERT_TRUE(ok);
 	EXPECT_EQ(plan.selection.goal_type, MissionRoutePlanner::GoalType::MissionLand);
-	EXPECT_FALSE(plan.join_context.skip_altitude_requirement);
-	EXPECT_NEAR(plan.join_context.projection.alt, plan.projection_context.seg_candidate.projection.alt,
+	EXPECT_TRUE(plan.selection.skip_route_to_safe_point);
+	EXPECT_TRUE(plan.join_context.skip_altitude_requirement);
+	EXPECT_NEAR(plan.join_context.projection.alt, vehicle_pos.alt,
 		    kAltitudeTolerance);
 }
 
-// WHY: Mission smart rejoin should use a dedicated planner entry point instead of reconstructing
-//      projection, nominal-path, and join-context logic in Mission::trySetRouteJoinOnActivation.
-//      The planner-side join context should stay geometric here as well.
-// WHAT: planMissionResumeJoin near land returns a valid nominal join plan with the same
-//       geometric join context behavior as planRouteToGoal.
-TEST_F(RtlPlannerJoinContextTest, MissionResumeJoinKeepsJoinContextGeometricNearLand)
+// WHY: Mission smart rejoin should reuse the planner's skip-altitude decision instead of
+//      reconstructing near-landing checks when JOIN_ROUTE is armed.
+// WHAT: planMissionResumeJoin near land returns a valid nominal join plan with
+//       skip_altitude_requirement already set by the planner.
+TEST_F(RtlPlannerJoinContextTest, MissionResumeJoinNearLandSkipsAltitudeRequirement)
 {
 	// GIVEN: A 3-waypoint mission (takeoff -> wp -> land).
 	auto items = std::vector<mission_item_s> {
@@ -474,20 +474,19 @@ TEST_F(RtlPlannerJoinContextTest, MissionResumeJoinKeepsJoinContextGeometricNear
 	// WHEN: planMissionResumeJoin is called.
 	bool ok = planner.planMissionResumeJoin(vehicle_pos, 1, config, join_plan, reason);
 
-	// THEN: The nominal join targets the land item and leaves skip-altitude unset for MissionBase.
+	// THEN: The nominal join targets the land item and already carries the skip-altitude decision.
 	ASSERT_TRUE(ok);
 	EXPECT_EQ(join_plan.path.first_item_index, 2);
 	EXPECT_EQ(join_plan.path.first_item_cmd, NAV_CMD_LAND);
-	EXPECT_FALSE(join_plan.join_context.skip_altitude_requirement);
-	EXPECT_NEAR(join_plan.join_context.projection.alt,
-		    join_plan.projection_context.seg_candidate.projection.alt,
+	EXPECT_TRUE(join_plan.join_context.skip_altitude_requirement);
+	EXPECT_NEAR(join_plan.join_context.projection.alt, vehicle_pos.alt,
 		    kAltitudeTolerance);
 }
 
-// WHY: The geometric-only join-context rule should also hold for the corner dataset near land.
-// WHAT: Vehicle near the corner dataset land waypoint still produces a MissionLand plan, but
-//       the planner keeps skip_altitude_requirement unset and preserves the raw projection altitude.
-TEST_F(RtlPlannerJoinContextTest, CornerMissionKeepsJoinContextGeometricNearLand)
+// WHY: The same planner-owned shortcut should hold on the corner dataset near the landing endpoint.
+// WHAT: Vehicle near the corner dataset land waypoint gets a MissionLand plan with both
+//       route-skip and skip-altitude decisions already applied.
+TEST_F(RtlPlannerJoinContextTest, CornerMissionNearLandSkipsRouteAndAltitudeRequirement)
 {
 	// GIVEN: Corner dataset mission with no safe points.
 	auto items = corner_dataset::mission();
@@ -505,11 +504,12 @@ TEST_F(RtlPlannerJoinContextTest, CornerMissionKeepsJoinContextGeometricNearLand
 	// WHEN: planRouteToGoal is called.
 	bool ok = planner.planRouteToGoal(vehicle_pos, 12, config, plan, reason);
 
-	// THEN: MissionLand is selected and the join context stays geometric.
+	// THEN: MissionLand is selected and the planner applies the endpoint shortcut.
 	ASSERT_TRUE(ok);
 	EXPECT_EQ(plan.selection.goal_type, MissionRoutePlanner::GoalType::MissionLand);
-	EXPECT_FALSE(plan.join_context.skip_altitude_requirement);
-	EXPECT_NEAR(plan.join_context.projection.alt, plan.projection_context.seg_candidate.projection.alt,
+	EXPECT_TRUE(plan.selection.skip_route_to_safe_point);
+	EXPECT_TRUE(plan.join_context.skip_altitude_requirement);
+	EXPECT_NEAR(plan.join_context.projection.alt, vehicle_pos.alt,
 		    kAltitudeTolerance);
 }
 
@@ -996,7 +996,7 @@ TEST_F(RtlPlannerVtolMissionTest, DefaultDatasetVtolPlanBuildsSucessfully)
 // constructing a full Navigator stack.
 
 // WHY: The executor switches to the virtual branch-off waypoint when current_seq reaches
-//      branch_off_index during FollowRoute setpoint generation.
+//      plan.selection.branchOffIndex() during FollowRoute setpoint generation.
 //      This requires the plan to produce a valid branch_off_segment whose end index (nominal)
 //      or start index (reversed) serves as the trigger.
 // WHAT: When a safe point is selected, the plan's branchOffIndex() returns a valid mission index.
@@ -1073,6 +1073,37 @@ TEST_F(RtlPlannerContractTest, DirectToSafePointPlanHasCompleteLandingFields)
 	EXPECT_TRUE(PX4_ISFINITE(plan.selection.goal_position.lon));
 	EXPECT_TRUE(PX4_ISFINITE(plan.selection.goal_position.alt));
 	EXPECT_EQ(plan.selection.goal_type, MissionRoutePlanner::GoalType::SafePoint);
+}
+
+// WHY: Reverse takeoff fallback is handled by the planner.
+// WHAT: A reversed MissionTakeoff fallback inside acceptance radius skips both route-following
+//       and join altitude from the planner output alone.
+TEST_F(RtlPlannerContractTest, ReverseTakeoffFallbackSkipsRouteAndAltitudeRequirement)
+{
+	std::vector<mission_item_s> mission = {
+		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt + 30.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 900.f, 0.f, kAlt + 40.f),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 1500.f, 0.f, kAlt - 10.f),
+	};
+
+	VectorProvider provider(mission, {});
+	MissionRoutePlanner planner(provider);
+
+	auto vehicle_pos = makePositionFromOffset(kBaseLat, kBaseLon, 5.f, 0.f, kAlt + 12.f);
+	config = defaultConfig();
+	config.parameters.acceptance_radius = 20.f;
+	config.state.velocity_ne(0) = 6.f;
+	config.state.velocity_ne(1) = 0.f;
+	config.state.velocity_valid = true;
+
+	bool ok = planner.planRouteToGoal(vehicle_pos, 0, config, plan, reason);
+	ASSERT_TRUE(ok) << "Failure reason: " << MissionRoutePlanner::failureReasonString(reason);
+	EXPECT_EQ(plan.selection.goal_type, MissionRoutePlanner::GoalType::MissionTakeoff);
+	EXPECT_TRUE(plan.selection.path.direction_reversed);
+	EXPECT_TRUE(plan.selection.skip_route_to_safe_point);
+	EXPECT_TRUE(plan.join_context.skip_altitude_requirement);
+	EXPECT_NEAR(plan.join_context.projection.alt, vehicle_pos.alt, kAltitudeTolerance);
 }
 
 // WHY: When the executor reaches the mission endpoint in a non-safe-point plan,

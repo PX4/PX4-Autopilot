@@ -85,6 +85,11 @@ public:
 		BackTransition = 2
 	};
 
+	/** @brief Return whether a mission nav_cmd is a landing command. */
+	static bool isLandingCmd(uint16_t nav_cmd);
+	/** @brief Return whether a mission nav_cmd is a takeoff command. */
+	static bool isTakeoffCmd(uint16_t nav_cmd);
+
 	// Geometric structs
 	// Lowest-level math and coordinate containers used throughout the planner.
 
@@ -233,7 +238,7 @@ public:
 	struct JoinContext {
 		Position projection{};
 		bool direction_reversed{false};
-		bool skip_altitude_requirement{false}; /**< Execution-side override filled by MissionBase when JOIN_ROUTE is armed. */
+		bool skip_altitude_requirement{false}; /**< Planner-owned shortcut that keeps the join waypoint at the live vehicle altitude. */
 		VtolTransitionAction transition_action{VtolTransitionAction::None}; /**< Execution-side VTOL transition filled by MissionBase when JOIN_ROUTE is armed. */
 
 		bool valid() const { return projection.valid(); }
@@ -262,7 +267,7 @@ public:
 		Path path{};
 		bool found{false};
 		bool safe_point_found{false};
-		bool skip_route_to_safe_point{false}; /**< Selected safe point is close enough to bypass route join/follow. */
+		bool skip_route_to_safe_point{false}; /**< Planner-owned shortcut that bypasses route join/follow and goes straight to the selected goal. */
 		int32_t safe_point_index{-1};
 		GoalType goal_type{GoalType::None};
 		Segment branch_off_segment{};
@@ -622,9 +627,27 @@ private:
 	/** @brief Return true when the vehicle is already close enough to the selected safe point to skip route following. */
 	bool closeToSafePointDirect(const Position &vehicle_position, const Position &safe_point_position,
 				    const Config &config) const;
-	/** @brief Apply the route-skip shortcuts to the already-selected safe point goal. */
-	bool shouldSkipRouteToSafePoint(const Position &vehicle_position, const Selection &selection,
-					const Config &config) const;
+	/** @brief Apply the route-skip shortcuts to the selected goal.
+	 *
+	 * If no safe point was found: use the same criteria as shouldSkipJoinAltitudeRequirement:
+	 *     skip the route if the vehicle targets the mission endpoints: landing in nominal direction
+	 *     or takeoff when in reverse direction.
+	 *
+	 * If a safe point was found:
+	 *    do not skip based on nav command so a rally point far from the
+	 *    takeoff (or land) but projected onto the takeoff (or land) does not result in an immediate land.
+	 *    Instead, skip if we are within the acc rad of the safe point or if we are close to the
+	 *    branch-off - safe point leg.
+	 *
+	*/
+	bool shouldSkipRouteToGoal(const Position &vehicle_position, const Selection &selection,
+				   const Config &config) const;
+	/** @brief Return true when JOIN_ROUTE should ignore the planned route altitude for this target.
+	 *
+	 * skip the branch-in alt if the vehicle targets the mission endpoints: landing in nominal direction
+	 * or takeoff when in reverse direction.
+	*/
+	bool shouldSkipJoinAltitudeRequirement(const Path &path) const;
 	/** @brief Force or infer the direction used to reach a goal from the projected vehicle location. */
 	bool mustFlyReverse(float goal_dist_along, float projection_dist_along,
 			    PathDirectionMode direction_mode) const;
