@@ -826,7 +826,7 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 		inertial_dead_reckoning = false;
 
 	} else {
-		if (!_control_status.flags.in_air && (_fc.of.intended == 1)
+		if (!_control_status.flags.in_air && _fc.of.intended()
 		    && isRecent(_aid_src_optical_flow.timestamp_sample, _params.no_aid_timeout_max)
 		   ) {
 			// currently landed, but optical flow aiding should be possible once in air
@@ -853,7 +853,7 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 
 		if (!_control_status.flags.in_air && _control_status.flags.fixed_wing
 		    && (_params.ekf2_fuse_beta == 1)
-		    && (_params.ekf2_arsp_thr > 0.f) && isRecent(_aid_src_airspeed.timestamp_sample, _params.no_aid_timeout_max)
+		    && _fc.aspd.intended() && isRecent(_aid_src_airspeed.timestamp_sample, _params.no_aid_timeout_max)
 		   ) {
 			// currently landed, but air data aiding should be possible once in air
 			aiding_expected_in_air = true;
@@ -997,7 +997,7 @@ void Ekf::updateIMUBiasInhibit(const imuSample &imu_delayed)
 
 
 	// gyro bias inhibit
-	const bool do_inhibit_all_gyro_axes = !(_fc.imu.intended & static_cast<int32_t>(ImuCtrl::GyroBias));
+	const bool do_inhibit_all_gyro_axes = !(_params.ekf2_imu_ctrl & static_cast<int32_t>(ImuCtrl::GyroBias));
 
 	for (unsigned index = 0; index < State::gyro_bias.dof; index++) {
 		bool is_bias_observable = true; // TODO: gyro bias conditions
@@ -1005,7 +1005,7 @@ void Ekf::updateIMUBiasInhibit(const imuSample &imu_delayed)
 	}
 
 	// accel bias inhibit
-	const bool do_inhibit_all_accel_axes = !(_fc.imu.intended & static_cast<int32_t>(ImuCtrl::AccelBias))
+	const bool do_inhibit_all_accel_axes = !(_params.ekf2_imu_ctrl & static_cast<int32_t>(ImuCtrl::AccelBias))
 					       || is_manoeuvre_level_high
 					       || _fault_status.flags.bad_acc_vertical;
 

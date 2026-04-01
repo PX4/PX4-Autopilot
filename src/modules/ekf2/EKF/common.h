@@ -287,10 +287,10 @@ struct systemFlagUpdate {
 // Runtime fusion control. Populated by EKF2 module, read by EKF core.
 static constexpr uint8_t MAX_AGP_INSTANCES = 4;
 
-
 struct FusionSensor {
-	bool exists{false};
-	int32_t intended{0};
+	bool enabled{false};   // runtime toggleable via MAVLink
+	bool available{false}; // CTRL-param != disabled-value (functions as factory-setting)
+	bool intended() const { return enabled && available; }
 };
 
 struct FusionControl {
@@ -300,9 +300,9 @@ struct FusionControl {
 	FusionSensor agp[MAX_AGP_INSTANCES];
 	FusionSensor baro;
 	FusionSensor rng;
-	FusionSensor drag;
-	FusionSensor mag{false, 5};  // MagFuseType::NONE
-	FusionSensor imu;
+	FusionSensor mag;
+	FusionSensor aspd;
+	FusionSensor rngbcn;
 };
 
 struct parameters {
@@ -314,6 +314,7 @@ struct parameters {
 	float ekf2_vel_lim{100.f};              ///< velocity state limit (m/s)
 
 	// measurement source control
+	int32_t ekf2_sens_en{8191};             ///< sensor fusion enable bitmask (EKF2_SENS_EN)
 	int32_t ekf2_hgt_ref{static_cast<int32_t>(HeightSensor::BARO)};
 	int32_t position_sensor_ref{static_cast<int32_t>(PositionSensor::GNSS)};
 
@@ -340,7 +341,7 @@ struct parameters {
 
 #if defined(CONFIG_EKF2_BAROMETER)
 	int32_t ekf2_baro_ctrl {1};
-	float ekf2_baro_delay{0.0f};            ///< barometer height measurement delay relative to the IMU (mSec)
+	float ekf2_baro_delay {0.0f};           ///< barometer height measurement delay relative to the IMU (mSec)
 	float ekf2_baro_noise{2.0f};            ///< observation noise for barometric height fusion (m)
 	float baro_bias_nsd{0.13f};             ///< process noise for barometric height bias estimation (m/s/sqrt(Hz))
 	float ekf2_baro_gate{5.0f};             ///< barometric and GPS height innovation consistency gate size (STD)

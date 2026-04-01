@@ -58,7 +58,7 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 	const bool airspeed_timed_out = isTimedOut(_aid_src_airspeed.time_last_fuse, (uint64_t)10e6);
 	const bool sideslip_timed_out = isTimedOut(_aid_src_sideslip.time_last_fuse, (uint64_t)10e6);
 
-	if (_control_status.flags.fake_pos || (airspeed_timed_out && sideslip_timed_out && (_fc.drag.intended == 0))) {
+	if (_control_status.flags.fake_pos || (airspeed_timed_out && sideslip_timed_out && (_params.ekf2_drag_ctrl == 0))) {
 		_control_status.flags.wind = false;
 	}
 
@@ -82,7 +82,9 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 
 #endif // CONFIG_EKF2_GNSS
 
-	if (_params.ekf2_arsp_thr <= 0.f) {
+	_fc.aspd.available = (_params.ekf2_arsp_thr > 0.f);
+
+	if (!_fc.aspd.intended()) {
 		stopAirspeedFusion();
 		return;
 	}

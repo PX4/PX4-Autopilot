@@ -102,7 +102,7 @@ void Ekf::controlEvHeightFusion(const imuSample &imu_sample, const extVisionSamp
 		bias_est.fuseBias(measurement + _gpos.altitude(), measurement_var + P(State::pos.idx + 2, State::pos.idx + 2));
 	}
 
-	const bool continuing_conditions_passing = (_fc.ev.intended & static_cast<int32_t>(EvCtrl::VPOS))
+	const bool continuing_conditions_passing = _fc.ev.enabled && (_params.ekf2_ev_ctrl & static_cast<int32_t>(EvCtrl::VPOS))
 			&& measurement_valid;
 
 	const bool starting_conditions_passing = common_starting_conditions_passing

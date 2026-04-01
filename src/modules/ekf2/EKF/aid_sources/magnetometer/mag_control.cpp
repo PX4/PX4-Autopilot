@@ -54,7 +54,9 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 		_control_status.flags.mag_aligned_in_flight = false;
 	}
 
-	if (_fc.mag.intended == MagFuseType::NONE) {
+	_fc.mag.available = _params.ekf2_mag_type != static_cast<int32_t>(MagFuseType::NONE);
+
+	if (!_fc.mag.intended()) {
 		stopMagFusion();
 		return;
 	}
@@ -150,9 +152,9 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 				      math::max(_params.ekf2_mag_gate, 1.f)); // innovation gate
 
 		// determine if we should use mag fusion
-		bool continuing_conditions_passing = ((_fc.mag.intended == MagFuseType::INIT)
-						      || (_fc.mag.intended == MagFuseType::AUTO)
-						      || (_fc.mag.intended == MagFuseType::HEADING))
+		bool continuing_conditions_passing = ((_params.ekf2_mag_type == static_cast<int32_t>(MagFuseType::INIT))
+						      || (_params.ekf2_mag_type == static_cast<int32_t>(MagFuseType::AUTO))
+						      || (_params.ekf2_mag_type == static_cast<int32_t>(MagFuseType::HEADING)))
 						     && _control_status.flags.tilt_align
 						     && (_control_status.flags.yaw_align || (!_control_status.flags.ev_yaw && !_control_status.flags.yaw_align))
 						     && mag_sample.mag.longerThan(0.f)
@@ -187,12 +189,12 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 							       && (!_control_status.flags.yaw_manual || _control_status.flags.mag_aligned_in_flight);
 
 			_control_status.flags.mag_3D = common_conditions_passing
-						       && (_fc.mag.intended == MagFuseType::AUTO)
+						       && (_params.ekf2_mag_type == static_cast<int32_t>(MagFuseType::AUTO))
 						       && _control_status.flags.mag_aligned_in_flight;
 
 			_control_status.flags.mag_hdg = common_conditions_passing
-							&& ((_fc.mag.intended == MagFuseType::HEADING)
-							    || (_fc.mag.intended == MagFuseType::AUTO && !_control_status.flags.mag_3D));
+							&& ((_params.ekf2_mag_type == static_cast<int32_t>(MagFuseType::HEADING))
+							    || (_params.ekf2_mag_type == static_cast<int32_t>(MagFuseType::AUTO) && !_control_status.flags.mag_3D));
 		}
 
 		if (_control_status.flags.mag_3D && !_control_status_prev.flags.mag_3D) {
