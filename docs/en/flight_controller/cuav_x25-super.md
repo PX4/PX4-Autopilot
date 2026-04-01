@@ -1,6 +1,6 @@
 # CUAV X25-SUPER
 
-<Badge type="tip" text="PX4 v1.18)" />
+<Badge type="tip" text="PX4 v1.18" />
 
 ::: warning
 PX4 does not manufacture this (or any) autopilot.
@@ -85,7 +85,7 @@ These flight controllers are [manufacturer supported](../flight_controller/autop
   - DroneCAN/UAVCAN Power Input
 - 2x AD Ports
   - Analog Input (3.3V)
-  - Analog Input (6.6V - not supported)
+  - Analog Input (6.6V - not supported by PX4)
 - 1x Dedicated Debug Port
   - FMU Debug
 
@@ -93,7 +93,7 @@ These flight controllers are [manufacturer supported](../flight_controller/autop
 
 - Dimensions:
 
-    ![CUAV X25-SUPER](../../assets/flight_controller/cuav_x25-super/x25-super_size.png)
+  ![CUAV X25-SUPER](../../assets/flight_controller/cuav_x25-super/x25-super_size.png)
 
 ## Purchase Channels {#store}
 

@@ -9,7 +9,7 @@ The _X25-EVO_ is an advanced autopilot manufactured by CUAV<sup>&reg;</sup>.
 
 The autopilot is recommended for commercial system integration but is also suitable for academic research and any other applications.
 
-![X25-EVO AutoPilot - hero image](../../assets/flight_controller/cuav_x25-evo/X25-EVO.jpg)
+![X25-EVO AutoPilot - hero image](../../assets/flight_controller/cuav_x25-evo/x25_evo.jpg)
 
 The X25-EVO brings you ultimate performance, stability, and reliability in every aspect.
 
@@ -38,7 +38,7 @@ These flight controllers are [manufacturer supported](../flight_controller/autop
 - Main Processor: STM32H743XI
   - 32-bit Arm® Cortex®-M7, 480MHz, 2MB Flash, 1MB RAM
 - Onboard Sensors:
-  - Accel/Gyro: IIM42652\*2
+  - Accel/Gyro: IIM42652 (x2)
   - Accel/Gyro: IIM42653
   - Magnetometer: RM3100
   - Barometer: BMP581
@@ -90,10 +90,10 @@ These flight controllers are [manufacturer supported](../flight_controller/autop
 
 - Weight
   - Flight Controller Module: 110g
-- Operating & storage temperature: -20 ~ 85°c
+- Operating & storage temperature: -20 ~ 85°C
 - Dimensions:
 
-    ![CUAV X25 EVO](../../assets/flight_controller/cuav_x25-evo/x25_evo_size.png)
+  ![CUAV X25 EVO](../../assets/flight_controller/cuav_x25-evo/x25_evo_size.png)
 
 ## Purchase Channels {#store}
 
@@ -103,7 +103,7 @@ Order from [CUAV](https://store.cuav.net/).
 
 The [X25 EVO Wiring Quick Start](../assembly/quick_start_cuav_x25_evo.md) provides instructions on how to assemble required/important peripherals including GPS, Power Module etc.
 
-## Pin Definitions
+## Pinouts
 
 ![CUAV X25 EVO Pinout](../../assets/flight_controller/cuav_x25-evo/x25_evo_pinouts.jpg)
 
@@ -165,7 +165,8 @@ The [PX4 System Console](../debug/system_console.md) and [SWD Interface](../debu
 
 ## Supported Platforms / Airframes
 
-Any multirotor/airplane/rover or boat that can be controlled using normal RC servos or Futaba S-Bus servos. The complete set of supported configurations can be found in the [Airframe Reference](../airframes/airframe_reference.md).
+Any multicopter / airplane / rover or boat that can be controlled with normal RC servos or Futaba S-Bus servos.
+The complete set of supported configurations can be seen in the [Airframes Reference](../airframes/airframe_reference.md).
 
 ## Further info
 
