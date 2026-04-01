@@ -310,9 +310,6 @@ void FixedwingAttitudeControl::Run()
 					const float yawrate_ff = CONSTANTS_ONE_G * q1 / V;
 					const float pitchrate_ff = q1 * yawrate_ff / (1.f - 2.f * q_current(1) * q_current(1) - 2.f * q_current(2) * q_current(2));
 
-					body_rates_setpoint(1) += pitchrate_ff;
-					body_rates_setpoint(2) += yawrate_ff;
-
 					// Limit turn coordination to normal flight envelope
 					const float cos_tilt = 1.f - 2.f * (q_current(1) * q_current(1) + q_current(2) * q_current(2));
 					const float tilt = acosf(math::constrain((cos_tilt), -1.f, 1.f));
