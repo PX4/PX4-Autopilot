@@ -45,7 +45,16 @@
 #include <gtest/gtest.h>
 #include <mathlib/mathlib.h>
 #include <px4_defines.h>
-#include <uORB/topics/acc_sp_external.h>
+#include <cmath>
+#include <stdint.h>
+
+// Inline struct — mirrors msg/AccSpExternal.msg, avoids linking full uORB runtime.
+struct acc_sp_external_s {
+	uint64_t timestamp;
+	float    acceleration[3];
+	float    yaw;
+	uint16_t timeout_ms;
+};
 
 using namespace math;
 
