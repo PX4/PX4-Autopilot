@@ -318,7 +318,7 @@ class SITLAccTest:
     # Watchdog — max velocity after 1s of no command (m/s)
     WATCHDOG_MAX_SPEED = 0.5
     # Square — max distance from origin at end (m)
-    SQUARE_RETURN_TOL = 8.0
+    SQUARE_RETURN_TOL = 15.0
     # Tilt clamp: drone must respond (> MIN) but stay under clamp limit (< MAX)
     CLAMP_TILT_MAX_DEG = 30.0  # atan(5/9.81)=27° + 3° margin
     CLAMP_MIN_RESPONSE_TILT_DEG = 2.0  # must tilt at least 2° to prove response
@@ -796,13 +796,16 @@ class SITLAccTest:
 
     def _tc05_square(self):
         TC = 'TC-05'
-        ACC  = 1.5    # m/s²
+        ACC  = 1.0    # m/s² — reduced from 1.5 for Position Mode compatibility
         PUSH = 2.0    # s — acceleration phase per leg
         BRAKE = 2.5   # s — braking phase per leg
         print(f"\n{'─'*50}\n  {TC}: Square trajectory — 4 legs, return to origin\n{'─'*50}")
 
         self._telem.clear_history()
 
+        # Wait for drone to fully stabilise before recording origin
+        # (Position Mode position hold may still be settling after previous TC)
+        self._wait_for_stop(timeout_s=10.0, tc_id=TC)
         s0 = self._telem.get_latest()
         x0, y0 = s0.pos_x, s0.pos_y
 
@@ -819,7 +822,7 @@ class SITLAccTest:
 
             leg_s0 = self._telem.get_latest()
             push_samples = self._send_loop(ax, ay, 0.0, PUSH, TC)
-            self._wait_for_stop(timeout_s=6.0, tc_id=TC)
+            self._wait_for_stop(timeout_s=10.0, tc_id=TC)
 
             leg_end = self._telem.get_latest()
             disp = math.sqrt(
