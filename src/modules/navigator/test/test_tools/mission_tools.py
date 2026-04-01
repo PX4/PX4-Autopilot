@@ -10,10 +10,12 @@ Features
 
 from __future__ import annotations
 
+import ast
 from collections import defaultdict
 from dataclasses import dataclass
 import inspect
 import math
+from pathlib import Path
 import re
 from typing import Dict, List, Optional, Sequence, Tuple, Union
 
@@ -36,35 +38,9 @@ except Exception as e:
 # 1. CONSTANTS & CONFIGURATION
 # ==========================================
 
-DEFAULT_CENTER: Tuple[float, float] = (45.9766, 7.6585) # Matterhorn
+DEFAULT_CENTER: Tuple[float, float] = (45.9766, 7.6585)  # Matterhorn
 DEFAULT_ZOOM: int = 12
 EARTH_RADIUS_M: float = 6371000.0
-BANK_TURN_MODE: str = "Bank Turn Zone"
-BANK_TURN_FEASIBILITY_SAMPLES: int = 8
-BANK_TURN_MAX_WIND_FALLBACK_M_S: float = 15.0
-BANK_TURN_FIELD_NAMES: Tuple[str, ...] = (
-    "current_lat",
-    "current_lon",
-    "current_alt",
-    "turn_lat",
-    "turn_lon",
-    "turn_alt",
-    "base_radius_m",
-    "wind_north_m_s",
-    "wind_east_m_s",
-    "max_wind_m_s",
-    "expected_safe",
-)
-BANK_TURN_LEGACY_FIELD_NAMES: Tuple[str, ...] = (
-    "lat",
-    "lon",
-    "alt",
-    "base_radius_m",
-    "wind_north_m_s",
-    "wind_east_m_s",
-    "max_wind_m_s",
-    "expected_safe",
-)
 VELOCITY_ARROW_SCALE_M_PER_S: float = 2.0
 VELOCITY_ARROW_MIN_M: float = 10.0
 VELOCITY_ARROW_MAX_M: float = 200.0
@@ -80,7 +56,6 @@ CREATOR_MODES: Tuple[str, ...] = (
     "Fence: Polygon (Exclusion)",
     "Fence: Circle (Inclusion)",
     "Fence: Circle (Exclusion)",
-    BANK_TURN_MODE,
     "Vehicle Location",
     "Path Check",
     "Rally Points",
@@ -116,6 +91,185 @@ def sanitize_cpp_identifier(raw: str, fallback: str = "kItem") -> str:
     if name[0].isdigit():
         name = f"_{name}"
     return name
+
+
+def _strip_cpp_comments(src: str) -> str:
+    src = re.sub(r"/\*.*?\*/", "", src or "", flags=re.DOTALL)
+    return re.sub(r"//.*?$", "", src, flags=re.MULTILINE)
+
+
+def _remove_cpp_float_suffixes(expr: str) -> str:
+    return re.sub(
+        r"((?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?)[fF]\b",
+        r"\1",
+        expr,
+    )
+
+
+def _find_matching_token(src: str, start_idx: int, open_char: str, close_char: str) -> int:
+    depth = 0
+    idx = start_idx
+    in_string: Optional[str] = None
+    while idx < len(src):
+        ch = src[idx]
+
+        if in_string is not None:
+            if ch == "\\":
+                idx += 2
+                continue
+            if ch == in_string:
+                in_string = None
+            idx += 1
+            continue
+
+        if src.startswith("//", idx):
+            next_nl = src.find("\n", idx)
+            if next_nl == -1:
+                return -1
+            idx = next_nl + 1
+            continue
+
+        if src.startswith("/*", idx):
+            end_comment = src.find("*/", idx + 2)
+            if end_comment == -1:
+                return -1
+            idx = end_comment + 2
+            continue
+
+        if ch in ('"', "'"):
+            in_string = ch
+            idx += 1
+            continue
+
+        if ch == open_char:
+            depth += 1
+        elif ch == close_char:
+            depth -= 1
+            if depth == 0:
+                return idx
+
+        idx += 1
+
+    return -1
+
+
+def _split_top_level(src: str, delimiter: str = ",") -> List[str]:
+    parts: List[str] = []
+    current: List[str] = []
+    stack: List[str] = []
+    in_string: Optional[str] = None
+    idx = 0
+
+    while idx < len(src):
+        ch = src[idx]
+
+        if in_string is not None:
+            current.append(ch)
+            if ch == "\\" and idx + 1 < len(src):
+                idx += 1
+                current.append(src[idx])
+            elif ch == in_string:
+                in_string = None
+            idx += 1
+            continue
+
+        if ch in ('"', "'"):
+            in_string = ch
+            current.append(ch)
+            idx += 1
+            continue
+
+        if ch in "([{":
+            stack.append(ch)
+            current.append(ch)
+            idx += 1
+            continue
+
+        if ch in ")]}":
+            if stack:
+                stack.pop()
+            current.append(ch)
+            idx += 1
+            continue
+
+        if ch == delimiter and not stack:
+            item = "".join(current).strip()
+            if item:
+                parts.append(item)
+            current = []
+            idx += 1
+            continue
+
+        current.append(ch)
+        idx += 1
+
+    item = "".join(current).strip()
+    if item:
+        parts.append(item)
+    return parts
+
+
+def _resolve_numeric_expr(expr: str, numeric_vars: Dict[str, float]) -> Optional[float]:
+    expr = (expr or "").strip()
+    if not expr:
+        return None
+
+    expr = _remove_cpp_float_suffixes(expr)
+
+    try:
+        node = ast.parse(expr, mode="eval")
+    except SyntaxError:
+        return None
+
+    def _eval(ast_node: ast.AST) -> Optional[float]:
+        if isinstance(ast_node, ast.Expression):
+            return _eval(ast_node.body)
+
+        if isinstance(ast_node, ast.Constant) and isinstance(ast_node.value, (int, float)):
+            return float(ast_node.value)
+
+        if isinstance(ast_node, ast.Name):
+            return numeric_vars.get(ast_node.id)
+
+        if isinstance(ast_node, ast.UnaryOp) and isinstance(ast_node.op, (ast.UAdd, ast.USub)):
+            value = _eval(ast_node.operand)
+            if value is None:
+                return None
+            return value if isinstance(ast_node.op, ast.UAdd) else -value
+
+        if isinstance(ast_node, ast.BinOp) and isinstance(ast_node.op, (ast.Add, ast.Sub, ast.Mult, ast.Div)):
+            left = _eval(ast_node.left)
+            right = _eval(ast_node.right)
+            if left is None or right is None:
+                return None
+            if isinstance(ast_node.op, ast.Add):
+                return left + right
+            if isinstance(ast_node.op, ast.Sub):
+                return left - right
+            if isinstance(ast_node.op, ast.Mult):
+                return left * right
+            if right == 0.0:
+                return None
+            return left / right
+
+        return None
+
+    return _eval(node)
+
+
+def _parse_call_expression(call_expr: str) -> Optional[Tuple[str, List[str]]]:
+    match = re.match(r"([A-Za-z_]\w*)\s*\(", call_expr.strip())
+    if not match:
+        return None
+
+    open_idx = call_expr.find("(", match.end() - 1)
+    close_idx = _find_matching_token(call_expr, open_idx, "(", ")")
+    if open_idx == -1 or close_idx == -1:
+        return None
+
+    fn_name = match.group(1)
+    args_str = call_expr[open_idx + 1:close_idx]
+    return fn_name, _split_top_level(args_str)
 
 
 def st_folium_compat(
@@ -192,36 +346,6 @@ class CircleFence:
 
 
 @dataclass(frozen=True)
-class BankTurnCreatorPoint:
-    current_lat: float
-    current_lon: float
-    current_alt: float
-    turn_lat: float
-    turn_lon: float
-    turn_alt: float
-    base_radius_m: float
-    wind_north_m_s: float
-    wind_east_m_s: float
-    max_wind_m_s: float
-    expected_safe: bool
-
-
-@dataclass(frozen=True)
-class BankTurnZone:
-    name: str
-    turn_point: Tuple[float, float, float]
-    current_location: Tuple[float, float, float]
-    center: Tuple[float, float, float]
-    polygon: List[Tuple[float, float, float]]
-    radius_m: float
-    base_radius_m: float
-    wind_north_m_s: float
-    wind_east_m_s: float
-    max_wind_m_s: float
-    expected_safe: Optional[bool]
-
-
-@dataclass(frozen=True)
 class VehicleLocation:
     label: str
     lat: float
@@ -274,7 +398,6 @@ ParseResult = Tuple[
     List[LatLonAltPoint],
     List[PathCheck],
     List[RallyPoint],
-    List[BankTurnZone],
     List[Projection],
 ]
 
@@ -286,144 +409,8 @@ ParseResult = Tuple[
 # Lat, Lon, Alt, Radius
 CreatorPoint = Tuple[float, float, float, float]
 VehicleCreatorPoint = Tuple[float, float, float, float, float]
-CreatorItem = Union[CreatorPoint, VehicleCreatorPoint, BankTurnCreatorPoint]
+CreatorItem = Union[CreatorPoint, VehicleCreatorPoint]
 CreatorPointsMap = Dict[str, List[CreatorItem]]
-
-def _build_bank_turn_creator_point(
-    current_lat: object,
-    current_lon: object,
-    current_alt: object,
-    turn_lat: object,
-    turn_lon: object,
-    turn_alt: object,
-    base_radius_m: object,
-    wind_north_m_s: object,
-    wind_east_m_s: object,
-    max_wind_m_s: object,
-    expected_safe: object,
-) -> Optional[BankTurnCreatorPoint]:
-    try:
-        return BankTurnCreatorPoint(
-            current_lat=float(current_lat),
-            current_lon=float(current_lon),
-            current_alt=float(current_alt),
-            turn_lat=float(turn_lat),
-            turn_lon=float(turn_lon),
-            turn_alt=float(turn_alt),
-            base_radius_m=float(base_radius_m),
-            wind_north_m_s=float(wind_north_m_s),
-            wind_east_m_s=float(wind_east_m_s),
-            max_wind_m_s=float(max_wind_m_s),
-            expected_safe=bool(expected_safe),
-        )
-    except Exception:
-        return None
-
-
-def _build_bank_turn_creator_point_from_turn(
-    lat: object,
-    lon: object,
-    alt: object,
-    base_radius_m: object,
-    wind_north_m_s: object,
-    wind_east_m_s: object,
-    max_wind_m_s: object,
-    expected_safe: object,
-) -> Optional[BankTurnCreatorPoint]:
-    return _build_bank_turn_creator_point(
-        lat,
-        lon,
-        alt,
-        lat,
-        lon,
-        alt,
-        base_radius_m,
-        wind_north_m_s,
-        wind_east_m_s,
-        max_wind_m_s,
-        expected_safe,
-    )
-
-
-def _coerce_bank_turn_point(item: object) -> Optional[BankTurnCreatorPoint]:
-    if isinstance(item, BankTurnCreatorPoint):
-        return item
-
-    if isinstance(item, dict):
-        if all(k in item for k in BANK_TURN_FIELD_NAMES):
-            return _build_bank_turn_creator_point(
-                item["current_lat"],
-                item["current_lon"],
-                item["current_alt"],
-                item["turn_lat"],
-                item["turn_lon"],
-                item["turn_alt"],
-                item["base_radius_m"],
-                item["wind_north_m_s"],
-                item["wind_east_m_s"],
-                item["max_wind_m_s"],
-                item["expected_safe"],
-            )
-        if all(k in item for k in BANK_TURN_LEGACY_FIELD_NAMES):
-            return _build_bank_turn_creator_point_from_turn(
-                item["lat"],
-                item["lon"],
-                item["alt"],
-                item["base_radius_m"],
-                item["wind_north_m_s"],
-                item["wind_east_m_s"],
-                item["max_wind_m_s"],
-                item["expected_safe"],
-            )
-        return None
-
-    if all(hasattr(item, k) for k in BANK_TURN_FIELD_NAMES):
-        return _build_bank_turn_creator_point(
-            getattr(item, "current_lat"),
-            getattr(item, "current_lon"),
-            getattr(item, "current_alt"),
-            getattr(item, "turn_lat"),
-            getattr(item, "turn_lon"),
-            getattr(item, "turn_alt"),
-            getattr(item, "base_radius_m"),
-            getattr(item, "wind_north_m_s"),
-            getattr(item, "wind_east_m_s"),
-            getattr(item, "max_wind_m_s"),
-            getattr(item, "expected_safe"),
-        )
-    if all(hasattr(item, k) for k in BANK_TURN_LEGACY_FIELD_NAMES):
-        return _build_bank_turn_creator_point_from_turn(
-            getattr(item, "lat"),
-            getattr(item, "lon"),
-            getattr(item, "alt"),
-            getattr(item, "base_radius_m"),
-            getattr(item, "wind_north_m_s"),
-            getattr(item, "wind_east_m_s"),
-            getattr(item, "max_wind_m_s"),
-            getattr(item, "expected_safe"),
-        )
-
-    if isinstance(item, (list, tuple)) and len(item) == len(BANK_TURN_FIELD_NAMES):
-        return _build_bank_turn_creator_point(*item)
-    if isinstance(item, (list, tuple)) and len(item) == len(BANK_TURN_LEGACY_FIELD_NAMES):
-        return _build_bank_turn_creator_point_from_turn(*item)
-
-    return None
-
-
-def _normalize_bank_turn_points(
-    points: Sequence[CreatorItem],
-) -> Tuple[List[BankTurnCreatorPoint], int]:
-    # Streamlit reruns re-create class objects; coerce by shape/attrs instead.
-    normalized: List[BankTurnCreatorPoint] = []
-    dropped = 0
-    for item in points:
-        pt = _coerce_bank_turn_point(item)
-        if pt is None:
-            dropped += 1
-            continue
-        normalized.append(pt)
-    return normalized, dropped
 
 
 def _normalize_vehicle_creator_points(
@@ -540,98 +527,6 @@ def _compute_velocity_arrow(
     }
 
 
-def _compute_bank_turn_zone(
-    turn_lat: float,
-    turn_lon: float,
-    turn_alt: float,
-    base_radius_m: float,
-    wind_north_m_s: float,
-    wind_east_m_s: float,
-    max_wind_m_s: float,
-) -> Tuple[Tuple[float, float, float], float]:
-    wind_speed = math.hypot(wind_north_m_s, wind_east_m_s)
-    wind_valid = (
-        math.isfinite(wind_north_m_s)
-        and math.isfinite(wind_east_m_s)
-        and math.isfinite(wind_speed)
-    )
-
-    max_wind = max_wind_m_s if (math.isfinite(max_wind_m_s) and max_wind_m_s > 0.0) else BANK_TURN_MAX_WIND_FALLBACK_M_S
-    wind_ratio = min(max(wind_speed / max_wind, 0.0), 1.0) if wind_valid else 1.0
-
-    delta = base_radius_m * wind_ratio
-    radius_m = base_radius_m + delta
-    center_lat, center_lon = turn_lat, turn_lon
-
-    if wind_valid and wind_speed > 1e-6 and delta > 1e-6:
-        shift_n = delta * wind_north_m_s / wind_speed
-        shift_e = delta * wind_east_m_s / wind_speed
-        center_lat, center_lon = _add_vector_to_global_position(turn_lat, turn_lon, shift_n, shift_e)
-
-    return (center_lat, center_lon, turn_alt), radius_m
-
-
-def _build_bank_turn_polygon(
-    center_lat: float,
-    center_lon: float,
-    alt: float,
-    radius_m: float,
-    samples: int,
-) -> List[Tuple[float, float, float]]:
-    if samples < 3:
-        return []
-
-    step = (2.0 * math.pi) / float(samples)
-    points = []
-    for i in range(samples):
-        angle = step * float(i)
-        north_rel = radius_m * math.cos(angle)
-        east_rel = radius_m * math.sin(angle)
-        lat, lon = _add_vector_to_global_position(center_lat, center_lon, north_rel, east_rel)
-        points.append((lat, lon, alt))
-    return points
-
-
-def _compute_bank_turn_geometry(
-    turn_lat: float,
-    turn_lon: float,
-    turn_alt: float,
-    base_radius_m: float,
-    wind_north_m_s: float,
-    wind_east_m_s: float,
-    max_wind_m_s: float,
-    samples: int,
-) -> Tuple[Tuple[float, float, float], float, List[Tuple[float, float, float]]]:
-    center, radius_m = _compute_bank_turn_zone(
-        turn_lat,
-        turn_lon,
-        turn_alt,
-        base_radius_m,
-        wind_north_m_s,
-        wind_east_m_s,
-        max_wind_m_s,
-    )
-    polygon = _build_bank_turn_polygon(center[0], center[1], center[2], radius_m, samples)
-    return center, radius_m, polygon
-
-
-def _compute_bank_turn_geometry_for_zone(
-    zone: BankTurnZone,
-    samples: int,
-) -> Tuple[Tuple[float, float, float], float, List[Tuple[float, float, float]]]:
-    """Recompute bank turn geometry from zone inputs to respect current sampling."""
-    return _compute_bank_turn_geometry(
-        zone.turn_point[0],
-        zone.turn_point[1],
-        zone.turn_point[2],
-        zone.base_radius_m,
-        zone.wind_north_m_s,
-        zone.wind_east_m_s,
-        zone.max_wind_m_s,
-        samples,
-    )
-
-
 def _insert_point_on_polygon(points: Sequence[CreatorPoint], new_pt: CreatorPoint) -> List[CreatorPoint]:
     """
     Inserts a new point into a list of polygon vertices at the position
@@ -673,58 +568,22 @@ def _insert_point_on_polygon(points: Sequence[CreatorPoint], new_pt: CreatorPoin
 # 4. PARSING LOGIC (C++ -> Python)
 # ==========================================
 
-LATLON_TOKEN_RE: str = r"(?:Mission::LatLonAlt\s*)?\{[^}]*\}|\w+(?:::\w+)*"
-
-# Shared regex for coordinate triples {lat, lon, alt}
 _COORD_ITEM_RE = re.compile(
-    rf"\{{\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*\}}",
+    r"(?:Mission::LatLonAlt\s*)?\{([^{}]+)\}",
     re.MULTILINE,
 )
-
-# Allowed nav commands for waypoint parsing
-_NAV_CMDS = {"NAV_CMD_WAYPOINT", "NAV_CMD_TAKEOFF", "NAV_CMD_LAND"}
-
-
-def _parse_latlon_token(
-    token: str,
-    vars_map: Dict[str, Tuple[float, float, float]],
-) -> Optional[Tuple[float, float, float]]:
-    cleaned = token.strip()
-    if not cleaned:
-        return None
-    if cleaned.startswith("Mission::LatLonAlt"):
-        cleaned = cleaned[len("Mission::LatLonAlt"):].strip()
-    if cleaned.startswith("{") and cleaned.endswith("}"):
-        inner = cleaned[1:-1]
-        parts = [p.strip() for p in inner.split(",") if p.strip()]
-        if len(parts) < 2:
-            return None
-        lat = _safe_float(parts[0])
-        lon = _safe_float(parts[1])
-        alt = _safe_float(parts[2]) if len(parts) >= 3 else 0.0
-        return lat, lon, alt
-    var_name = cleaned.split("::")[-1]
-    return vars_map.get(var_name)
-
-
-def _resolve_float_token(token: str, float_vars_map: Dict[str, float]) -> Optional[float]:
-    cleaned = token.strip()
-    if cleaned.startswith("(") and cleaned.endswith(")"):
-        cleaned = cleaned[1:-1].strip()
-    if re.fullmatch(FLOAT_RE, cleaned):
-        return _safe_float(cleaned)
-
-    sign = 1.0
-    if cleaned.startswith(("+", "-")):
-        sign = -1.0 if cleaned[0] == "-" else 1.0
-        cleaned = cleaned[1:].strip()
-    if re.fullmatch(r"[A-Za-z_]\w*", cleaned):
-        val = float_vars_map.get(cleaned)
-        if val is None:
-            return None
-        return sign * val
-
-    return None
+_MISSION_HELPER_NAMES = (
+    "makePositionItem",
+    "makePositionItemFromOffset",
+    "makeTakeoffItem",
+    "makeTakeoffItemFromOffset",
+    "makeLandItem",
+    "makeLandItemFromOffset",
+    "makeVtolTransitionItem",
+    "makeDoJump",
+)
+_EMPTY_MISSION_HELPERS = {"makeVtolTransitionItem", "makeDoJump"}
+_DEFAULT_NUMERIC_VARS: Optional[Dict[str, float]] = None
 
 
 def _resolve_bool_token(token: Optional[str]) -> bool:
@@ -736,156 +595,448 @@ def _resolve_bool_token(token: Optional[str]) -> bool:
     return True
 
 
-# ── Sub-parsers for parse_cpp_code ──────────────────────────────────────────
+def _resolve_point_field_reference(
+    token: str,
+    point_vars: Dict[str, Tuple[float, float, float]],
+) -> Optional[float]:
+    cleaned = token.strip()
+    if "." not in cleaned:
+        return None
+
+    parts = cleaned.split(".")
+    base_name = parts[0].split("::")[-1]
+    field = parts[-1]
+    point = point_vars.get(base_name)
+    if point is None:
+        return None
+
+    lat, lon, alt = point
+    if "lat" in field:
+        return lat
+    if "lon" in field:
+        return lon
+    if "alt" in field:
+        return alt
+    return None
+
+
+def _resolve_numeric_value(
+    token: str,
+    numeric_vars: Dict[str, float],
+    point_vars: Optional[Dict[str, Tuple[float, float, float]]] = None,
+) -> Optional[float]:
+    point_value = _resolve_point_field_reference(token, point_vars or {})
+    if point_value is not None:
+        return point_value
+    return _resolve_numeric_expr(token, numeric_vars)
+
+
+def _parse_latlon_token(
+    token: str,
+    point_vars: Dict[str, Tuple[float, float, float]],
+    numeric_vars: Dict[str, float],
+) -> Optional[Tuple[float, float, float]]:
+    cleaned = token.strip()
+    if not cleaned:
+        return None
+
+    if cleaned.startswith("Mission::LatLonAlt"):
+        cleaned = cleaned[len("Mission::LatLonAlt"):].strip()
+
+    if cleaned.startswith("{") and cleaned.endswith("}"):
+        parts = _split_top_level(cleaned[1:-1])
+        if len(parts) < 2:
+            return None
+        lat = _resolve_numeric_value(parts[0], numeric_vars, point_vars)
+        lon = _resolve_numeric_value(parts[1], numeric_vars, point_vars)
+        alt = _resolve_numeric_value(parts[2], numeric_vars, point_vars) if len(parts) >= 3 else 0.0
+        if lat is None or lon is None or alt is None:
+            return None
+        return lat, lon, alt
+
+    return point_vars.get(cleaned.split("::")[-1])
+
+
+def _iter_function_calls(src: str, function_names: Sequence[str]) -> List[Tuple[str, List[str], int]]:
+    pattern = re.compile(rf"\b({'|'.join(re.escape(name) for name in function_names)})\s*\(")
+    calls: List[Tuple[str, List[str], int]] = []
+    for match in pattern.finditer(src):
+        open_idx = src.find("(", match.start())
+        close_idx = _find_matching_token(src, open_idx, "(", ")")
+        if open_idx == -1 or close_idx == -1:
+            continue
+        args = _split_top_level(src[open_idx + 1:close_idx])
+        calls.append((match.group(1), args, match.start()))
+    return calls
+
+
+def _load_default_numeric_vars() -> Dict[str, float]:
+    global _DEFAULT_NUMERIC_VARS
+    if _DEFAULT_NUMERIC_VARS is not None:
+        return dict(_DEFAULT_NUMERIC_VARS)
+
+    helper_path = Path(__file__).resolve().parent.parent / "test_RTL_helpers.h"
+    numeric_vars: Dict[str, float] = {}
+    try:
+        helper_src = _strip_cpp_comments(helper_path.read_text())
+    except OSError:
+        _DEFAULT_NUMERIC_VARS = {}
+        return {}
+
+    numeric_defs = [
+        (match.group(1), match.group(2).strip())
+        for match in re.finditer(
+            r"(?:^|\s)(?:static\s+)?(?:inline\s+)?(?:constexpr\s+)?(?:const\s+)?"
+            r"(?:float|double|int|int8_t|int16_t|int32_t|uint8_t|uint16_t|uint32_t|size_t)\s+"
+            r"(\w+)\s*=\s*([^;]+)\s*;",
+            helper_src,
+            re.MULTILINE,
+        )
+    ]
+
+    changed = True
+    while changed:
+        changed = False
+        for name, expr in numeric_defs:
+            if name in numeric_vars:
+                continue
+            value = _resolve_numeric_expr(expr, numeric_vars)
+            if value is not None:
+                numeric_vars[name] = value
+                changed = True
+
+    _DEFAULT_NUMERIC_VARS = dict(numeric_vars)
+    return dict(numeric_vars)
 
 
 def _extract_variable_definitions(
     src: str,
 ) -> Tuple[Dict[str, Tuple[float, float, float]], Dict[str, float], List[LatLonAltPoint]]:
-    """Extract Mission::LatLonAlt and float variable definitions from C++ source."""
+    """Extract numeric constants and Mission::LatLonAlt variables from C++ source."""
+    numeric_vars: Dict[str, float] = _load_default_numeric_vars()
+    numeric_defs = [
+        (match.group(1), match.group(2).strip())
+        for match in re.finditer(
+            r"(?:^|\s)(?:static\s+)?(?:inline\s+)?(?:constexpr\s+)?(?:const\s+)?"
+            r"(?:float|double|int|int8_t|int16_t|int32_t|uint8_t|uint16_t|uint32_t|size_t)\s+"
+            r"(\w+)\s*=\s*([^;]+)\s*;",
+            src,
+            re.MULTILINE,
+        )
+    ]
+
+    changed = True
+    while changed:
+        changed = False
+        for name, expr in numeric_defs:
+            if name in numeric_vars:
+                continue
+            value = _resolve_numeric_expr(expr, numeric_vars)
+            if value is not None:
+                numeric_vars[name] = value
+                changed = True
+
+    point_vars: Dict[str, Tuple[float, float, float]] = {}
+    latlon_points: List[LatLonAltPoint] = []
     latlon_var_pattern = re.compile(
-        rf"Mission::LatLonAlt\s+(\w+)\s*(?:=\s*)?\{{\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*(?:,\s*({FLOAT_RE}))?\s*\}}",
+        r"(?:static\s+)?(?:constexpr\s+)?(?:const\s+)?Mission::LatLonAlt\s+(\w+)\s*(?:=\s*)?\{([^{}]+)\}\s*;",
         re.MULTILINE,
     )
-    vars_map: Dict[str, Tuple[float, float, float]] = {}
-    latlon_points: List[LatLonAltPoint] = []
-
     for match in latlon_var_pattern.finditer(src):
-        vars_map[match.group(1)] = (
-            _safe_float(match.group(2)),
-            _safe_float(match.group(3)),
-            _safe_float(match.group(4) or "0"),
-        )
+        parts = _split_top_level(match.group(2))
+        if len(parts) < 2:
+            continue
+        lat = _resolve_numeric_expr(parts[0], numeric_vars)
+        lon = _resolve_numeric_expr(parts[1], numeric_vars)
+        alt = _resolve_numeric_expr(parts[2], numeric_vars) if len(parts) >= 3 else 0.0
+        if lat is None or lon is None or alt is None:
+            continue
+        point_vars[match.group(1)] = (lat, lon, alt)
 
-    for name, (lat, lon, alt) in vars_map.items():
+    for name, (lat, lon, alt) in point_vars.items():
         latlon_points.append(LatLonAltPoint(name, lat, lon, alt))
 
-    float_vars_map: Dict[str, float] = {}
-    float_var_pattern = re.compile(
-        rf"(?:static\s+)?(?:constexpr\s+)?(?:const\s+)?float\s+(\w+)\s*=\s*({FLOAT_RE})\s*;",
+    return point_vars, numeric_vars, latlon_points
+
+
+def _make_waypoint(
+    lat_expr: str,
+    lon_expr: str,
+    alt_expr: str,
+    cmd: str,
+    numeric_vars: Dict[str, float],
+) -> Optional[Waypoint]:
+    lat = _resolve_numeric_expr(lat_expr, numeric_vars)
+    lon = _resolve_numeric_expr(lon_expr, numeric_vars)
+    alt = _resolve_numeric_expr(alt_expr, numeric_vars)
+    if lat is None or lon is None or alt is None:
+        return None
+    return Waypoint(lat=lat, lon=lon, alt=alt, cmd=cmd)
+
+
+def _make_waypoint_from_offset(
+    base_lat_expr: str,
+    base_lon_expr: str,
+    north_expr: str,
+    east_expr: str,
+    alt_expr: str,
+    cmd: str,
+    numeric_vars: Dict[str, float],
+) -> Optional[Waypoint]:
+    base_lat = _resolve_numeric_expr(base_lat_expr, numeric_vars)
+    base_lon = _resolve_numeric_expr(base_lon_expr, numeric_vars)
+    north = _resolve_numeric_expr(north_expr, numeric_vars)
+    east = _resolve_numeric_expr(east_expr, numeric_vars)
+    alt = _resolve_numeric_expr(alt_expr, numeric_vars)
+    if None in (base_lat, base_lon, north, east, alt):
+        return None
+    lat, lon = _add_vector_to_global_position(base_lat, base_lon, north, east)
+    return Waypoint(lat=lat, lon=lon, alt=alt, cmd=cmd)
+
+
+def _parse_mission_call(
+    call_expr: str,
+    numeric_vars: Dict[str, float],
+) -> Optional[Waypoint]:
+    parsed = _parse_call_expression(call_expr)
+    if parsed is None:
+        return None
+
+    fn_name, args = parsed
+    if fn_name in _EMPTY_MISSION_HELPERS:
+        return None
+
+    if fn_name == "makePositionItem" and len(args) >= 3:
+        cmd = args[3].strip() if len(args) >= 4 else "NAV_CMD_WAYPOINT"
+        return _make_waypoint(args[0], args[1], args[2], cmd, numeric_vars)
+
+    if fn_name == "makePositionItemFromOffset" and len(args) >= 5:
+        cmd = args[5].strip() if len(args) >= 6 else "NAV_CMD_WAYPOINT"
+        return _make_waypoint_from_offset(args[0], args[1], args[2], args[3], args[4], cmd, numeric_vars)
+
+    if fn_name == "makeTakeoffItem" and len(args) >= 3:
+        return _make_waypoint(args[0], args[1], args[2], "NAV_CMD_TAKEOFF", numeric_vars)
+
+    if fn_name == "makeTakeoffItemFromOffset" and len(args) >= 5:
+        return _make_waypoint_from_offset(args[0], args[1], args[2], args[3], args[4], "NAV_CMD_TAKEOFF", numeric_vars)
+
+    if fn_name == "makeLandItem" and len(args) >= 3:
+        return _make_waypoint(args[0], args[1], args[2], "NAV_CMD_LAND", numeric_vars)
+
+    if fn_name == "makeLandItemFromOffset" and len(args) >= 5:
+        return _make_waypoint_from_offset(args[0], args[1], args[2], args[3], args[4], "NAV_CMD_LAND", numeric_vars)
+
+    return None
+
+
+def _parse_mission_item_list(items_src: str, numeric_vars: Dict[str, float]) -> List[Waypoint]:
+    waypoints: List[Waypoint] = []
+    for item in _split_top_level(items_src):
+        waypoint = _parse_mission_call(item, numeric_vars)
+        if waypoint is not None:
+            waypoints.append(waypoint)
+    return waypoints
+
+
+def _unique_mission_name(base_name: str, existing: Dict[str, List[Waypoint]]) -> str:
+    if base_name not in existing:
+        return base_name
+
+    suffix = 2
+    while f"{base_name}_{suffix}" in existing:
+        suffix += 1
+    return f"{base_name}_{suffix}"
+
+
+def _parse_named_mission_initializers(
+    src: str,
+    numeric_vars: Dict[str, float],
+) -> Tuple[Dict[str, List[Waypoint]], List[Tuple[str, str, int]]]:
+    missions: Dict[str, List[Waypoint]] = {}
+    declared_names: List[Tuple[str, str, int]] = []
+
+    vector_init_pattern = re.compile(
+        r"(?:static\s+)?(?:constexpr\s+)?(?:const\s+)?std::vector<\s*mission_item_s\s*>\s+(\w+)\s*(?:=\s*)?\{",
         re.MULTILINE,
     )
-    for match in float_var_pattern.finditer(src):
-        float_vars_map[match.group(1)] = _safe_float(match.group(2))
+    for match in vector_init_pattern.finditer(src):
+        raw_name = match.group(1)
+        name = _unique_mission_name(raw_name, missions)
+        declared_names.append((raw_name, name, match.start()))
+        open_idx = src.find("{", match.start())
+        close_idx = _find_matching_token(src, open_idx, "{", "}")
+        if open_idx == -1 or close_idx == -1:
+            continue
+        missions[name] = _parse_mission_item_list(src[open_idx + 1:close_idx], numeric_vars)
 
-    return vars_map, float_vars_map, latlon_points
-
-
-def _parse_missions(src: str) -> Dict[str, List[Waypoint]]:
-    """Parse all mission item sources: arrays, legacy arrays, and inline helper calls."""
-    missions: Dict[str, List[Waypoint]] = {}
-
-    # MissionItemInput arrays
-    mission_array_pattern = re.compile(
-        rf"(?:static\s+)?(?:constexpr\s+)?(?:const\s+)?std::array<\s*MissionItemInput\s*,\s*\d+\s*>\s+(\w+)\s*\{{\s*\{{(.*?)\}}\s*\}}\s*;",
-        re.DOTALL | re.MULTILINE,
+    auto_vector_init_pattern = re.compile(
+        r"(?:const\s+)?auto\s+(\w+)\s*=\s*std::vector<\s*mission_item_s\s*>\s*\{",
+        re.MULTILINE,
     )
+    for match in auto_vector_init_pattern.finditer(src):
+        raw_name = match.group(1)
+        name = _unique_mission_name(raw_name, missions)
+        declared_names.append((raw_name, name, match.start()))
+        open_idx = src.find("{", match.start())
+        close_idx = _find_matching_token(src, open_idx, "{", "}")
+        if open_idx == -1 or close_idx == -1:
+            continue
+        missions[name] = _parse_mission_item_list(src[open_idx + 1:close_idx], numeric_vars)
+
+    array_init_pattern = re.compile(
+        r"(?:static\s+)?(?:constexpr\s+)?(?:const\s+)?std::array<\s*mission_item_s\s*,\s*\d+\s*>\s+(\w+)\s*(?:=\s*)?\{",
+        re.MULTILINE,
+    )
+    for match in array_init_pattern.finditer(src):
+        raw_name = match.group(1)
+        name = _unique_mission_name(raw_name, missions)
+        declared_names.append((raw_name, name, match.start()))
+        open_idx = src.find("{", match.start())
+        close_idx = _find_matching_token(src, open_idx, "{", "}")
+        if open_idx == -1 or close_idx == -1:
+            continue
+        content = src[open_idx + 1:close_idx].strip()
+        if content.startswith("{") and content.endswith("}"):
+            content = content[1:-1]
+        missions[name] = _parse_mission_item_list(content, numeric_vars)
+
+    empty_decl_pattern = re.compile(
+        r"(?:static\s+)?(?:constexpr\s+)?(?:const\s+)?std::vector<\s*mission_item_s\s*>\s+(\w+)\s*;",
+        re.MULTILINE,
+    )
+    for match in empty_decl_pattern.finditer(src):
+        raw_name = match.group(1)
+        name = _unique_mission_name(raw_name, missions)
+        declared_names.append((raw_name, name, match.start()))
+        missions.setdefault(name, [])
+
+    function_pattern = re.compile(
+        r"(?:static\s+)?(?:inline\s+)?(?:constexpr\s+)?(?:const\s+)?std::vector<\s*mission_item_s\s*>\s+(\w+)\s*\([^)]*\)\s*\{",
+        re.MULTILINE,
+    )
+    for match in function_pattern.finditer(src):
+        raw_name = match.group(1)
+        name = _unique_mission_name(raw_name, missions)
+        declared_names.append((raw_name, name, match.start()))
+        body_open_idx = src.find("{", match.start())
+        body_close_idx = _find_matching_token(src, body_open_idx, "{", "}")
+        if body_open_idx == -1 or body_close_idx == -1:
+            continue
+        body = src[body_open_idx + 1:body_close_idx]
+        return_match = re.search(r"return\s*\{", body)
+        if not return_match:
+            continue
+        list_open_idx = body_open_idx + 1 + body.find("{", return_match.start())
+        list_close_idx = _find_matching_token(src, list_open_idx, "{", "}")
+        if list_close_idx == -1:
+            continue
+        missions[name] = _parse_mission_item_list(src[list_open_idx + 1:list_close_idx], numeric_vars)
+
+    return missions, declared_names
+
+
+def _parse_mission_push_backs(
+    src: str,
+    numeric_vars: Dict[str, float],
+    declared_names: List[Tuple[str, str, int]],
+    missions: Dict[str, List[Waypoint]],
+) -> None:
+    push_pattern = re.compile(r"(\w+)\.push_back\s*\(")
+    for match in push_pattern.finditer(src):
+        raw_name = match.group(1)
+        candidates = [
+            (unique_name, decl_pos) for candidate_raw_name, unique_name, decl_pos in declared_names
+            if candidate_raw_name == raw_name and decl_pos <= match.start()
+        ]
+        if not candidates:
+            continue
+        name = max(candidates, key=lambda item: item[1])[0]
+        open_idx = src.find("(", match.start())
+        close_idx = _find_matching_token(src, open_idx, "(", ")")
+        if open_idx == -1 or close_idx == -1:
+            continue
+        item_expr = src[open_idx + 1:close_idx].strip()
+        waypoint = _parse_mission_call(item_expr, numeric_vars)
+        if waypoint is not None:
+            missions.setdefault(name, []).append(waypoint)
+
+
+def _parse_legacy_mission_arrays(src: str) -> Dict[str, List[Waypoint]]:
+    missions: Dict[str, List[Waypoint]] = {}
     mission_item_pattern = re.compile(
         rf"\{{\s*(NAV_CMD_\w+)\s*,\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})",
         re.MULTILINE,
     )
-    for match in mission_array_pattern.finditer(src):
-        name = match.group(1)
-        wps = [
-            Waypoint(cmd=m.group(1), lat=_safe_float(m.group(2)),
-                     lon=_safe_float(m.group(3)), alt=_safe_float(m.group(4)))
-            for m in mission_item_pattern.finditer(match.group(2))
-            if m.group(1) in _NAV_CMDS
-        ]
-        if wps:
-            missions[name] = wps
 
-    # LegacyMissionItem arrays
+    mission_array_pattern = re.compile(
+        rf"(?:static\s+)?(?:constexpr\s+)?(?:const\s+)?std::array<\s*MissionItemInput\s*,\s*\d+\s*>\s+(\w+)\s*\{{\s*\{{(.*?)\}}\s*\}}\s*;",
+        re.DOTALL | re.MULTILINE,
+    )
+    for match in mission_array_pattern.finditer(src):
+        missions[match.group(1)] = [
+            Waypoint(cmd=item.group(1), lat=_safe_float(item.group(2)),
+                     lon=_safe_float(item.group(3)), alt=_safe_float(item.group(4)))
+            for item in mission_item_pattern.finditer(match.group(2))
+        ]
+
     legacy_array_pattern = re.compile(
         r"(?:static\s+)?(?:constexpr\s+)?(?:const\s+)?LegacyMissionItem\s+(\w+)\s*\[\s*\]\s*=\s*\{(.*?)\}\s*;",
         re.DOTALL | re.MULTILINE,
     )
     for match in legacy_array_pattern.finditer(src):
-        name = match.group(1)
-        wps = [
-            Waypoint(cmd=m.group(1), lat=_safe_float(m.group(2)),
-                     lon=_safe_float(m.group(3)), alt=_safe_float(m.group(4)))
-            for m in mission_item_pattern.finditer(match.group(2))
-            if m.group(1) in _NAV_CMDS
+        missions[match.group(1)] = [
+            Waypoint(cmd=item.group(1), lat=_safe_float(item.group(2)),
+                     lon=_safe_float(item.group(3)), alt=_safe_float(item.group(4)))
+            for item in mission_item_pattern.finditer(match.group(2))
         ]
-        if wps:
-            missions[name] = wps
 
-    # Inline helper calls
-    _parse_inline_mission_helpers(src, missions)
-
-    return missions
+    return {name: waypoints for name, waypoints in missions.items() if waypoints}
 
 
-def _parse_inline_mission_helpers(src: str, missions: Dict[str, List[Waypoint]]) -> None:
-    """Parse makePositionItem, makePositionItemFromOffset, makeTakeoffItem*, makeLandItem* calls."""
-    # makePositionItem(lat, lon, alt, NAV_CMD_*)
-    for match in re.finditer(
-        rf"makePositionItem\s*\(\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*,\s*(NAV_CMD_\w+)\s*\)",
-        src,
-    ):
-        if match.group(4) in _NAV_CMDS:
-            missions.setdefault("_inline_makePositionItem", []).append(
-                Waypoint(cmd=match.group(4), lat=_safe_float(match.group(1)),
-                         lon=_safe_float(match.group(2)), alt=_safe_float(match.group(3))))
+def _parse_missions(src: str, numeric_vars: Dict[str, float]) -> Dict[str, List[Waypoint]]:
+    missions = _parse_legacy_mission_arrays(src)
+    named_missions, declared_names = _parse_named_mission_initializers(src, numeric_vars)
+    missions.update(named_missions)
+    _parse_mission_push_backs(src, numeric_vars, declared_names, missions)
 
-    # makePositionItemFromOffset(base_lat, base_lon, north_m, east_m, alt, NAV_CMD_*)
-    for match in re.finditer(
-        rf"makePositionItemFromOffset\s*\(\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*,"
-        rf"\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*,\s*(NAV_CMD_\w+)",
-        src,
-    ):
-        if match.group(6) in _NAV_CMDS:
-            lat_r, lon_r = _add_vector_to_global_position(
-                _safe_float(match.group(1)), _safe_float(match.group(2)),
-                _safe_float(match.group(3)), _safe_float(match.group(4)))
-            missions.setdefault("_inline_makePositionItemFromOffset", []).append(
-                Waypoint(cmd=match.group(6), lat=lat_r, lon=lon_r, alt=_safe_float(match.group(5))))
+    if missions:
+        return {name: waypoints for name, waypoints in missions.items() if waypoints}
 
-    # Offset helpers for takeoff / land
-    _offset_helpers = [
-        ("makeTakeoffItemFromOffset", "NAV_CMD_TAKEOFF", "_inline_makeTakeoffItemFromOffset"),
-        ("makeLandItemFromOffset",    "NAV_CMD_LAND",    "_inline_makeLandItemFromOffset"),
-    ]
-    for func_name, cmd, key in _offset_helpers:
-        for match in re.finditer(
-            rf"{func_name}\s*\(\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*,"
-            rf"\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*\)",
-            src,
-        ):
-            lat_r, lon_r = _add_vector_to_global_position(
-                _safe_float(match.group(1)), _safe_float(match.group(2)),
-                _safe_float(match.group(3)), _safe_float(match.group(4)))
-            missions.setdefault(key, []).append(
-                Waypoint(cmd=cmd, lat=lat_r, lon=lon_r, alt=_safe_float(match.group(5))))
+    inline_waypoints = []
+    for fn_name, args, _ in _iter_function_calls(src, _MISSION_HELPER_NAMES):
+        call_expr = f"{fn_name}({', '.join(args)})"
+        waypoint = _parse_mission_call(call_expr, numeric_vars)
+        if waypoint is not None:
+            inline_waypoints.append(waypoint)
 
-    # Absolute helpers for takeoff / land
-    _abs_helpers = [
-        ("makeTakeoffItem", "NAV_CMD_TAKEOFF", "_inline_makeTakeoffItem"),
-        ("makeLandItem",    "NAV_CMD_LAND",    "_inline_makeLandItem"),
-    ]
-    for func_name, cmd, key in _abs_helpers:
-        for match in re.finditer(
-            rf"{func_name}\s*\(\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*\)",
-            src,
-        ):
-            missions.setdefault(key, []).append(
-                Waypoint(cmd=cmd, lat=_safe_float(match.group(1)),
-                         lon=_safe_float(match.group(2)), alt=_safe_float(match.group(3))))
+    if inline_waypoints:
+        return {"mission": inline_waypoints}
+
+    return {}
 
 
-def _parse_coord_arrays(src: str) -> Dict[str, List[Tuple[float, float, float]]]:
+def _parse_coord_arrays(
+    src: str,
+    numeric_vars: Dict[str, float],
+) -> Dict[str, List[Tuple[float, float, float]]]:
     """Parse std::array<Mission::LatLonAlt, N> coordinate arrays."""
     coord_arrays: Dict[str, List[Tuple[float, float, float]]] = {}
     coord_array_pattern = re.compile(
-        rf"(?:static\s+)?(?:constexpr\s+)?(?:const\s+)?std::array<\s*Mission::LatLonAlt\s*,\s*\d+\s*>\s+(\w+)\s*\{{\s*\{{(.*?)\}}\s*\}}\s*;",
+        r"(?:static\s+)?(?:constexpr\s+)?(?:const\s+)?std::array<\s*Mission::LatLonAlt\s*,\s*\d+\s*>\s+(\w+)\s*\{\s*\{(.*?)\}\s*\}\s*;",
         re.DOTALL | re.MULTILINE,
     )
     for match in coord_array_pattern.finditer(src):
-        items = [
-            (_safe_float(m.group(1)), _safe_float(m.group(2)), _safe_float(m.group(3)))
-            for m in _COORD_ITEM_RE.finditer(match.group(2))
-        ]
+        items: List[Tuple[float, float, float]] = []
+        for coord_match in _COORD_ITEM_RE.finditer(match.group(2)):
+            parts = _split_top_level(coord_match.group(1))
+            if len(parts) < 2:
+                continue
+            lat = _resolve_numeric_expr(parts[0], numeric_vars)
+            lon = _resolve_numeric_expr(parts[1], numeric_vars)
+            alt = _resolve_numeric_expr(parts[2], numeric_vars) if len(parts) >= 3 else 0.0
+            if lat is None or lon is None or alt is None:
+                continue
+            items.append((lat, lon, alt))
         if items:
             coord_arrays[match.group(1)] = items
     return coord_arrays
@@ -894,17 +1045,16 @@ def _parse_coord_arrays(src: str) -> Dict[str, List[Tuple[float, float, float]]]
 def _parse_rally_points(
     src: str,
     coord_arrays: Dict[str, List[Tuple[float, float, float]]],
+    numeric_vars: Dict[str, float],
 ) -> List[RallyPoint]:
     """Parse rally points from coordinate arrays, legacy arrays, and helper calls."""
     rally_points: List[RallyPoint] = []
 
-    # From coordinate arrays named *rally*
     for name, items in coord_arrays.items():
         if "rally" in name.lower():
             for i, (lat, lon, alt) in enumerate(items):
                 rally_points.append(RallyPoint(lat, lon, alt, i))
 
-    # LegacyRallyPoint arrays
     legacy_rally_pattern = re.compile(
         r"(?:static\s+)?(?:constexpr\s+)?(?:const\s+)?LegacyRallyPoint\s+(\w+)\s*\[\s*\]\s*=\s*\{(.*?)\}\s*;",
         re.DOTALL | re.MULTILINE,
@@ -912,27 +1062,36 @@ def _parse_rally_points(
     for match in legacy_rally_pattern.finditer(src):
         idx_base = len(rally_points)
         for i, item in enumerate(_COORD_ITEM_RE.finditer(match.group(2))):
-            rally_points.append(RallyPoint(
-                _safe_float(item.group(1)), _safe_float(item.group(2)),
-                _safe_float(item.group(3)), idx_base + i))
+            parts = _split_top_level(item.group(1))
+            if len(parts) < 2:
+                continue
+            lat = _resolve_numeric_expr(parts[0], numeric_vars)
+            lon = _resolve_numeric_expr(parts[1], numeric_vars)
+            alt = _resolve_numeric_expr(parts[2], numeric_vars) if len(parts) >= 3 else 0.0
+            if lat is None or lon is None or alt is None:
+                continue
+            rally_points.append(RallyPoint(lat, lon, alt, idx_base + i))
 
-    # makeSafePointAbsolute(lat, lon, alt)
-    for match in re.finditer(
-        rf"makeSafePointAbsolute\s*\(\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*\)", src,
-    ):
-        rally_points.append(RallyPoint(
-            _safe_float(match.group(1)), _safe_float(match.group(2)),
-            _safe_float(match.group(3)), len(rally_points)))
+    for fn_name, args, _ in _iter_function_calls(src, ("makeSafePointAbsolute", "makeSafePointFromOffset")):
+        if fn_name == "makeSafePointAbsolute" and len(args) >= 3:
+            lat = _resolve_numeric_expr(args[0], numeric_vars)
+            lon = _resolve_numeric_expr(args[1], numeric_vars)
+            alt = _resolve_numeric_expr(args[2], numeric_vars)
+            if lat is None or lon is None or alt is None:
+                continue
+            rally_points.append(RallyPoint(lat, lon, alt, len(rally_points)))
+            continue
 
-    # makeSafePointFromOffset(base_lat, base_lon, north_m, east_m, alt)
-    for match in re.finditer(
-        rf"makeSafePointFromOffset\s*\(\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*,"
-        rf"\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*\)", src,
-    ):
-        lat_r, lon_r = _add_vector_to_global_position(
-            _safe_float(match.group(1)), _safe_float(match.group(2)),
-            _safe_float(match.group(3)), _safe_float(match.group(4)))
-        rally_points.append(RallyPoint(lat_r, lon_r, _safe_float(match.group(5)), len(rally_points)))
+        if fn_name == "makeSafePointFromOffset" and len(args) >= 5:
+            base_lat = _resolve_numeric_expr(args[0], numeric_vars)
+            base_lon = _resolve_numeric_expr(args[1], numeric_vars)
+            north = _resolve_numeric_expr(args[2], numeric_vars)
+            east = _resolve_numeric_expr(args[3], numeric_vars)
+            alt = _resolve_numeric_expr(args[4], numeric_vars)
+            if None in (base_lat, base_lon, north, east, alt):
+                continue
+            lat, lon = _add_vector_to_global_position(base_lat, base_lon, north, east)
+            rally_points.append(RallyPoint(lat, lon, alt, len(rally_points)))
 
     return rally_points
 
@@ -946,156 +1105,150 @@ def _parse_polygons(
     for match in re.finditer(r"writePolygonFence\(\s*(\w+)\s*,\s*(NAV_CMD_\w+)\s*\)", src):
         var_name, cmd_type = match.group(1), match.group(2)
         if var_name in coord_arrays:
-            f_type = "Exclusion" if "EXCLUSION" in cmd_type else "Inclusion"
-            polygons.append(PolygonFence(var_name, coord_arrays[var_name], f_type))
+            polygons.append(
+                PolygonFence(var_name, coord_arrays[var_name], "Exclusion" if "EXCLUSION" in cmd_type else "Inclusion")
+            )
     return polygons
 
 
 def _parse_circles(
     src: str,
-    vars_map: Dict[str, Tuple[float, float, float]],
-    float_vars_map: Dict[str, float],
+    point_vars: Dict[str, Tuple[float, float, float]],
+    numeric_vars: Dict[str, float],
 ) -> List[CircleFence]:
     """Parse writeCircleFence() calls."""
     circles: List[CircleFence] = []
-    for match in re.finditer(
-        rf"writeCircleFence\(\s*(\w+)\s*,\s*({FLOAT_RE}|[A-Za-z_]\w*)\s*,\s*(NAV_CMD_\w+)\s*\)", src,
-    ):
-        var_name = match.group(1)
-        radius_token = match.group(2).strip()
-        radius = (_safe_float(radius_token)
-                  if re.fullmatch(FLOAT_RE, radius_token) else float_vars_map.get(radius_token))
-        center = vars_map.get(var_name)
-        if center and radius is not None:
-            f_type = "Exclusion" if "EXCLUSION" in match.group(3) else "Inclusion"
-            circles.append(CircleFence(center, radius, f_type))
+    for match in re.finditer(r"writeCircleFence\(\s*(\w+)\s*,\s*([^,]+)\s*,\s*(NAV_CMD_\w+)\s*\)", src):
+        center = point_vars.get(match.group(1))
+        radius = _resolve_numeric_expr(match.group(2), numeric_vars)
+        if center is None or radius is None:
+            continue
+        circles.append(
+            CircleFence(center, radius, "Exclusion" if "EXCLUSION" in match.group(3) else "Inclusion")
+        )
     return circles
 
 
-def _parse_vehicles(src: str, float_vars_map: Dict[str, float]) -> List[VehicleLocation]:
+def _parse_vehicles(src: str, numeric_vars: Dict[str, float]) -> List[VehicleLocation]:
     """Parse MakeLocation() calls and VehicleLocation struct arrays."""
     vehicles: List[VehicleLocation] = []
 
-    # MakeLocation("label", ..., lat, lon, alt, vel_n, vel_e [, v_xy_valid])
     make_loc_pattern = re.compile(
         r'MakeLocation\s*\(\s*"([^"]+)"\s*,\s*[^,]+\s*,\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^,\)]+)(?:\s*,\s*([^\)]+))?\s*\)',
         re.DOTALL | re.MULTILINE,
     )
     for match in make_loc_pattern.finditer(src):
-        lat = _resolve_float_token(match.group(2), float_vars_map)
-        lon = _resolve_float_token(match.group(3), float_vars_map)
-        alt = _resolve_float_token(match.group(4), float_vars_map)
+        lat = _resolve_numeric_expr(match.group(2), numeric_vars)
+        lon = _resolve_numeric_expr(match.group(3), numeric_vars)
+        alt = _resolve_numeric_expr(match.group(4), numeric_vars)
         if lat is None or lon is None or alt is None:
             continue
-        vel_n = _resolve_float_token(match.group(5), float_vars_map)
-        vel_e = _resolve_float_token(match.group(6), float_vars_map)
-        vel_valid = (vel_n is not None) and (vel_e is not None)
-        v_xy_valid = _resolve_bool_token(match.group(7)) and vel_valid
+        vel_n = _resolve_numeric_expr(match.group(5), numeric_vars)
+        vel_e = _resolve_numeric_expr(match.group(6), numeric_vars)
+        vel_valid = vel_n is not None and vel_e is not None
         vehicles.append(VehicleLocation(
-            match.group(1), lat, lon, alt,
+            match.group(1),
+            lat,
+            lon,
+            alt,
             vel_n if vel_n is not None else 0.0,
             vel_e if vel_e is not None else 0.0,
-            v_xy_valid))
+            _resolve_bool_token(match.group(7)) and vel_valid,
+        ))
 
-    # VehicleLocation struct arrays
     vehicle_loc_array_pattern = re.compile(
         r"(?:static\s+)?(?:constexpr\s+)?(?:const\s+)?VehicleLocation\s+(\w+)\s*\[\s*\]\s*=\s*\{(.*?)\}\s*;",
         re.DOTALL | re.MULTILINE,
     )
-    vehicle_loc_item_pattern = re.compile(
-        rf'\{{\s*"([^"]+)"\s*,\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*,\s*({FLOAT_RE}|[A-Za-z_]\w*)\s*,\s*({FLOAT_RE}|[A-Za-z_]\w*)\s*\}}',
-        re.MULTILINE,
-    )
     for match in vehicle_loc_array_pattern.finditer(src):
-        for item in vehicle_loc_item_pattern.finditer(match.group(2)):
-            vel_n = _resolve_float_token(item.group(5).strip(), float_vars_map)
-            vel_e = _resolve_float_token(item.group(6).strip(), float_vars_map)
+        for item in re.finditer(r'\{\s*"([^"]+)"\s*,\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^}]+)\}', match.group(2)):
+            lat = _resolve_numeric_expr(item.group(2), numeric_vars)
+            lon = _resolve_numeric_expr(item.group(3), numeric_vars)
+            alt = _resolve_numeric_expr(item.group(4), numeric_vars)
+            vel_n = _resolve_numeric_expr(item.group(5), numeric_vars)
+            vel_e = _resolve_numeric_expr(item.group(6), numeric_vars)
+            if None in (lat, lon, alt):
+                continue
             vehicles.append(VehicleLocation(
-                item.group(1), _safe_float(item.group(2)),
-                _safe_float(item.group(3)), _safe_float(item.group(4)),
+                item.group(1),
+                lat,
+                lon,
+                alt,
                 vel_n if vel_n is not None else 0.0,
                 vel_e if vel_e is not None else 0.0,
-                True))
+                True,
+            ))
 
     return vehicles
 
 
 def _parse_latlon_points(
     src: str,
-    vars_map: Dict[str, Tuple[float, float, float]],
+    point_vars: Dict[str, Tuple[float, float, float]],
+    numeric_vars: Dict[str, float],
 ) -> List[LatLonAltPoint]:
     """Parse makePositionAbsolute, makePositionFromOffset, and MissionRoutePlanner::Position literals."""
     points: List[LatLonAltPoint] = []
 
-    # makePositionAbsolute(lat, lon, alt)
-    for i, match in enumerate(re.finditer(
-        rf"makePositionAbsolute\s*\(\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*\)", src,
-    )):
-        points.append(LatLonAltPoint(
-            f"PositionAbsolute_{i}",
-            _safe_float(match.group(1)), _safe_float(match.group(2)), _safe_float(match.group(3))))
+    for fn_name, args, _ in _iter_function_calls(src, ("makePositionAbsolute", "makePositionFromOffset")):
+        idx = len(points)
+        if fn_name == "makePositionAbsolute" and len(args) >= 3:
+            lat = _resolve_numeric_value(args[0], numeric_vars, point_vars)
+            lon = _resolve_numeric_value(args[1], numeric_vars, point_vars)
+            alt = _resolve_numeric_value(args[2], numeric_vars, point_vars)
+            if None in (lat, lon, alt):
+                continue
+            points.append(LatLonAltPoint(f"PositionAbsolute_{idx}", lat, lon, alt))
+            continue
 
-    # makePositionFromOffset(base_lat, base_lon, north_m, east_m, alt)
-    for i, match in enumerate(re.finditer(
-        rf"makePositionFromOffset\s*\(\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*,"
-        rf"\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*\)", src,
-    )):
-        lat_r, lon_r = _add_vector_to_global_position(
-            _safe_float(match.group(1)), _safe_float(match.group(2)),
-            _safe_float(match.group(3)), _safe_float(match.group(4)))
-        points.append(LatLonAltPoint(f"PositionFromOffset_{i}", lat_r, lon_r, _safe_float(match.group(5))))
+        if fn_name == "makePositionFromOffset" and len(args) >= 5:
+            base_lat = _resolve_numeric_value(args[0], numeric_vars, point_vars)
+            base_lon = _resolve_numeric_value(args[1], numeric_vars, point_vars)
+            north = _resolve_numeric_expr(args[2], numeric_vars)
+            east = _resolve_numeric_expr(args[3], numeric_vars)
+            alt = _resolve_numeric_value(args[4], numeric_vars, point_vars)
+            if None in (base_lat, base_lon, north, east, alt):
+                continue
+            lat, lon = _add_vector_to_global_position(base_lat, base_lon, north, east)
+            points.append(LatLonAltPoint(f"PositionFromOffset_{idx}", lat, lon, alt))
 
-    # MissionRoutePlanner::Position{lat, lon, alt}
-    for i, match in enumerate(re.finditer(
-        rf"MissionRoutePlanner::Position\s*\{{\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*\}}", src,
-    )):
-        points.append(LatLonAltPoint(
-            f"RtlPosition_{i}",
-            _safe_float(match.group(1)), _safe_float(match.group(2)), _safe_float(match.group(3))))
+    position_literal_pattern = re.compile(r"MissionRoutePlanner::Position\s*\{([^{}]+)\}")
+    for match in position_literal_pattern.finditer(src):
+        parts = _split_top_level(match.group(1))
+        if len(parts) < 3:
+            continue
+        lat = _resolve_numeric_value(parts[0], numeric_vars, point_vars)
+        lon = _resolve_numeric_value(parts[1], numeric_vars, point_vars)
+        alt = _resolve_numeric_value(parts[2], numeric_vars, point_vars)
+        if None in (lat, lon, alt):
+            continue
+        points.append(LatLonAltPoint(f"RtlPosition_{len(points)}", lat, lon, alt))
 
     return points
 
 
 def _parse_paths(
     src: str,
-    float_vars_map: Dict[str, float],
-    vars_map: Dict[str, Tuple[float, float, float]],
+    numeric_vars: Dict[str, float],
+    point_vars: Dict[str, Tuple[float, float, float]],
 ) -> List[PathCheck]:
     """Parse path check assignments (lat_from, lon_from, lat_to, lon_to)."""
-    # Build location vars map for resolving variable references
     location_vars_map: Dict[str, Tuple[float, float, float]] = {}
     make_loc_var_pattern = re.compile(
-        rf'(?:^|\s)(?:const\s+)?(?:static\s+)?(?:constexpr\s+)?(?:auto|VehicleProjectionLocation)\s+'
-        rf'(\w+)\s*=\s*MakeLocation\s*\(\s*"[^"]+"\s*,\s*[^,]+\s*,\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})',
+        r'(?:^|\s)(?:const\s+)?(?:static\s+)?(?:constexpr\s+)?(?:auto|VehicleProjectionLocation)\s+'
+        r'(\w+)\s*=\s*MakeLocation\s*\(\s*"[^"]+"\s*,\s*[^,]+\s*,\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^,]+)',
         re.MULTILINE,
     )
     for match in make_loc_var_pattern.finditer(src):
-        location_vars_map[match.group(1)] = (
-            _safe_float(match.group(2)), _safe_float(match.group(3)), _safe_float(match.group(4)))
+        lat = _resolve_numeric_expr(match.group(2), numeric_vars)
+        lon = _resolve_numeric_expr(match.group(3), numeric_vars)
+        alt = _resolve_numeric_expr(match.group(4), numeric_vars)
+        if None in (lat, lon, alt):
+            continue
+        location_vars_map[match.group(1)] = (lat, lon, alt)
 
     def resolve_value(val_str: str) -> Optional[float]:
-        cleaned = val_str.strip()
-        if cleaned.startswith("(") and cleaned.endswith(")"):
-            cleaned = cleaned[1:-1].strip()
-        if re.fullmatch(FLOAT_RE, cleaned):
-            return _safe_float(cleaned)
-        expr_match = re.fullmatch(rf"(.+?)\s*([+-])\s*({FLOAT_RE})", cleaned)
-        if expr_match:
-            base = resolve_value(expr_match.group(1))
-            if base is not None:
-                delta = _safe_float(expr_match.group(3))
-                return base + delta if expr_match.group(2) == "+" else base - delta
-        if "." in cleaned:
-            parts = cleaned.split(".")
-            base_var = parts[0].split("::")[-1]
-            field = parts[-1]
-            source = location_vars_map.get(base_var) or vars_map.get(base_var)
-            if source:
-                lat, lon, alt = source
-                if "lat" in field: return lat
-                if "lon" in field: return lon
-                if "alt" in field: return alt
-        return None
+        return _resolve_numeric_value(val_str, numeric_vars, {**point_vars, **location_vars_map})
 
     path_assignments: Dict[str, Dict[str, float]] = defaultdict(dict)
     assign_pattern = re.compile(
@@ -1103,145 +1256,55 @@ def _parse_paths(
         re.MULTILINE,
     )
     for match in assign_pattern.finditer(src):
-        val = resolve_value(match.group(3))
-        if val is not None:
-            path_assignments[match.group(1)][match.group(2)] = val
+        value = resolve_value(match.group(3))
+        if value is not None:
+            path_assignments[match.group(1)][match.group(2)] = value
 
     paths: List[PathCheck] = []
     for name, data in path_assignments.items():
-        if all(k in data for k in ("lat_from", "lon_from", "lat_to", "lon_to")):
+        if all(key in data for key in ("lat_from", "lon_from", "lat_to", "lon_to")):
             paths.append(PathCheck(
-                name=name, lat_from=data["lat_from"], lon_from=data["lon_from"],
-                alt_from=data.get("alt_from", 0.0), lat_to=data["lat_to"], lon_to=data["lon_to"]))
+                name=name,
+                lat_from=data["lat_from"],
+                lon_from=data["lon_from"],
+                alt_from=data.get("alt_from", 0.0),
+                lat_to=data["lat_to"],
+                lon_to=data["lon_to"],
+            ))
     return paths
 
 
-def _parse_projections(src: str) -> List[Projection]:
+def _parse_projections(src: str, numeric_vars: Dict[str, float]) -> List[Projection]:
     """Parse MakeProjection() calls."""
     projections: List[Projection] = []
-    proj_pattern = re.compile(
-        rf"MakeProjection\s*\(\s*[^,]+,\s*[^,]+,\s*[^,]+,\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})",
-        re.DOTALL | re.MULTILINE,
-    )
-    for i, match in enumerate(proj_pattern.finditer(src)):
-        projections.append(Projection(
-            _safe_float(match.group(1)), _safe_float(match.group(2)),
-            _safe_float(match.group(3)), f"Proj_{i}"))
+    for _, args, _ in _iter_function_calls(src, ("MakeProjection",)):
+        if len(args) < 6:
+            continue
+        lat = _resolve_numeric_expr(args[3], numeric_vars)
+        lon = _resolve_numeric_expr(args[4], numeric_vars)
+        alt = _resolve_numeric_expr(args[5], numeric_vars)
+        if None in (lat, lon, alt):
+            continue
+        projections.append(Projection(lat, lon, alt, f"Proj_{len(projections)}"))
     return projections
 
 
-def _parse_bank_turn_scenarios(
-    src: str,
-    vars_map: Dict[str, Tuple[float, float, float]],
-) -> List[BankTurnZone]:
-    """Parse BankTurnGeofenceScenario arrays (current and legacy formats)."""
-    bank_turn_zones: List[BankTurnZone] = []
-
-    scenario_array_pattern = re.compile(
-        r"BankTurnGeofenceScenario\s+\w+\s*\[\s*\]\s*=\s*\{(.*?)\};",
-        re.DOTALL | re.MULTILINE,
-    )
-    scenario_item_pattern = re.compile(
-        rf"\{{\s*\"([^\"]+)\"\s*,\s*({LATLON_TOKEN_RE})\s*,\s*({LATLON_TOKEN_RE})\s*,"
-        rf"\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*,\s*(true|false)\s*,?\s*\}}",
-        re.MULTILINE,
-    )
-    scenario_item_legacy_pattern = re.compile(
-        rf"\{{\s*\"([^\"]+)\"\s*,\s*({LATLON_TOKEN_RE})\s*,"
-        rf"\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*,\s*({FLOAT_RE})\s*,\s*(true|false)\s*,?\s*\}}",
-        re.MULTILINE,
-    )
-
-    def _make_zone(
-        name: str,
-        turn_point: Tuple[float, float, float],
-        current_location: Tuple[float, float, float],
-        base_radius: float,
-        wind_n: float,
-        wind_e: float,
-        max_wind: float,
-        expected_safe: bool,
-    ) -> BankTurnZone:
-        center, radius_m, polygon = _compute_bank_turn_geometry(
-            turn_point[0], turn_point[1], turn_point[2],
-            base_radius, wind_n, wind_e, max_wind, BANK_TURN_FEASIBILITY_SAMPLES)
-        return BankTurnZone(
-            name=name, turn_point=turn_point, current_location=current_location,
-            center=center, polygon=polygon, radius_m=radius_m,
-            base_radius_m=base_radius, wind_north_m_s=wind_n,
-            wind_east_m_s=wind_e, max_wind_m_s=max_wind, expected_safe=expected_safe)
-
-    for block in scenario_array_pattern.finditer(src):
-        content = block.group(1)
-
-        # Current format: name, turn_point, current_location, radius, wind_n, wind_e, max_wind, safe
-        for match in scenario_item_pattern.finditer(content):
-            turn_point = _parse_latlon_token(match.group(2), vars_map)
-            current_location = _parse_latlon_token(match.group(3), vars_map)
-            if not turn_point or not current_location:
-                continue
-            bank_turn_zones.append(_make_zone(
-                match.group(1), turn_point, current_location,
-                _safe_float(match.group(4)), _safe_float(match.group(5)),
-                _safe_float(match.group(6)), _safe_float(match.group(7)),
-                match.group(8) == "true"))
-
-        # Legacy format: name, turn_point, radius, wind_n, wind_e, max_wind, safe
-        for match in scenario_item_legacy_pattern.finditer(content):
-            turn_point = _parse_latlon_token(match.group(2), vars_map)
-            if not turn_point:
-                continue
-            bank_turn_zones.append(_make_zone(
-                match.group(1), turn_point, turn_point,
-                _safe_float(match.group(3)), _safe_float(match.group(4)),
-                _safe_float(match.group(5)), _safe_float(match.group(6)),
-                match.group(7) == "true"))
-
-    return bank_turn_zones
-
-
 def parse_cpp_code(text: str) -> ParseResult:
-    """Parse C++ unit-test source into structured visualization data.
+    """Parse C++ unit-test source into structured visualization data."""
+    src = _strip_cpp_comments(text or "")
 
-    Delegates to focused sub-parsers for each data type, then returns
-    the combined result tuple.
-    """
-    src = text or ""
-
-    # 1. Variable definitions (needed by several downstream parsers)
-    vars_map, float_vars_map, latlon_points = _extract_variable_definitions(src)
-
-    # 2. Missions
-    missions = _parse_missions(src)
-
-    # 3. Coordinate arrays (shared by polygons & rally points)
-    coord_arrays = _parse_coord_arrays(src)
-
-    # 4. Rally points
-    rally_points = _parse_rally_points(src, coord_arrays)
-
-    # 5. Polygons
+    point_vars, numeric_vars, latlon_points = _extract_variable_definitions(src)
+    missions = _parse_missions(src, numeric_vars)
+    coord_arrays = _parse_coord_arrays(src, numeric_vars)
+    rally_points = _parse_rally_points(src, coord_arrays, numeric_vars)
     polygons = _parse_polygons(src, coord_arrays)
+    circles = _parse_circles(src, point_vars, numeric_vars)
+    vehicles = _parse_vehicles(src, numeric_vars)
+    latlon_points.extend(_parse_latlon_points(src, point_vars, numeric_vars))
+    paths = _parse_paths(src, numeric_vars, point_vars)
+    projections = _parse_projections(src, numeric_vars)
 
-    # 6. Circle fences
-    circles = _parse_circles(src, vars_map, float_vars_map)
-
-    # 7. Vehicle locations
-    vehicles = _parse_vehicles(src, float_vars_map)
-
-    # 8. Additional LatLonAlt points (positions, offsets, MissionRoutePlanner structs)
-    latlon_points.extend(_parse_latlon_points(src, vars_map))
-
-    # 9. Path checks
-    paths = _parse_paths(src, float_vars_map, vars_map)
-
-    # 10. Projections
-    projections = _parse_projections(src)
-
-    # 11. Bank turn scenarios
-    bank_turn_zones = _parse_bank_turn_scenarios(src, vars_map)
-
-    return missions, polygons, circles, vehicles, latlon_points, paths, rally_points, bank_turn_zones, projections
+    return missions, polygons, circles, vehicles, latlon_points, paths, rally_points, projections
 
 
 # ==========================================
@@ -1252,24 +1315,28 @@ def get_viewer_center(parsed: Optional[ParseResult]) -> Tuple[float, float]:
     if not parsed:
         return DEFAULT_CENTER
 
-    missions, polygons, circles, vehicles, latlon_points, paths, rally, bank_turn_zones, proj = parsed
-    # Priority order for centering the map
-    if vehicles: return vehicles[0].lat, vehicles[0].lon
-    if bank_turn_zones: return bank_turn_zones[0].center[0], bank_turn_zones[0].center[1]
-    if latlon_points: return latlon_points[0].lat, latlon_points[0].lon
-    if paths: return paths[0].lat_from, paths[0].lon_from
+    missions, polygons, circles, vehicles, latlon_points, paths, rally, proj = parsed
+    if vehicles:
+        return vehicles[0].lat, vehicles[0].lon
+    if latlon_points:
+        return latlon_points[0].lat, latlon_points[0].lon
+    if paths:
+        return paths[0].lat_from, paths[0].lon_from
     if missions:
         m = next(iter(missions.values()))
-        if m: return m[0].lat, m[0].lon
+        if m:
+            return m[0].lat, m[0].lon
     if polygons and polygons[0].vertices:
         return polygons[0].vertices[0][0], polygons[0].vertices[0][1]
-    if circles: return circles[0].center[0], circles[0].center[1]
-    if rally: return rally[0].lat, rally[0].lon
+    if circles:
+        return circles[0].center[0], circles[0].center[1]
+    if rally:
+        return rally[0].lat, rally[0].lon
     return DEFAULT_CENTER
 
 
 def create_3d_map(parsed: ParseResult) -> pdk.Deck:
-    missions, polygons, circles, vehicles, latlon_points, paths, rally, bank_turn_zones, proj = parsed
+    missions, polygons, circles, vehicles, latlon_points, paths, rally, proj = parsed
     center_lat, center_lon = get_viewer_center(parsed)
     layers = []
 
@@ -1327,72 +1394,6 @@ def create_3d_map(parsed: ParseResult) -> pdk.Deck:
             width_min_pixels=2
         ))
 
-    # Bank turn zones
-    zone_poly_data = []
-    zone_marker_data = []
-    zone_line_data = []
-    for zone in bank_turn_zones:
-        center, _, polygon = _compute_bank_turn_geometry_for_zone(zone, BANK_TURN_FEASIBILITY_SAMPLES)
-        base_color = [0, 120, 255] if zone.expected_safe else [255, 140, 0]
-        fill_color = [base_color[0], base_color[1], base_color[2], 80]
-        contour = [[pt[1], pt[0], pt[2]] for pt in polygon]
-        info = (
-            f"{zone.name} (base {zone.base_radius_m:.1f}m, "
-            f"wind {zone.wind_north_m_s:.1f}/{zone.wind_east_m_s:.1f} m/s, "
-            f"max {zone.max_wind_m_s:.1f} m/s)"
-        )
-        if contour:
-            zone_poly_data.append({
-                "contour": contour,
-                "color": fill_color,
-                "info": info,
-                "name": zone.name,
-            })
-        zone_marker_data.append({
-            "pos": [zone.turn_point[1], zone.turn_point[0], zone.turn_point[2]],
-            "c": base_color,
-            "info": f"{zone.name} turn point",
-            "name": zone.name,
-        })
-        if (zone.current_location[0], zone.current_location[1]) != (zone.turn_point[0], zone.turn_point[1]):
-            zone_marker_data.append({
-                "pos": [zone.current_location[1], zone.current_location[0], zone.current_location[2]],
-                "c": base_color,
-                "info": f"{zone.name} current location",
-                "name": zone.name,
-            })
-        zone_marker_data.append({
-            "pos": [center[1], center[0], center[2]],
-            "c": base_color,
-            "info": f"{zone.name} shifted center",
-            "name": zone.name,
-        })
-        if (center[0], center[1]) != (zone.turn_point[0], zone.turn_point[1]):
-            zone_line_data.append({
-                "source": [zone.turn_point[1], zone.turn_point[0], zone.turn_point[2]],
-                "target": [center[1], center[0], center[2]],
-                "c": base_color,
-                "info": f"{zone.name} shift",
-                "name": zone.name,
-            })
-    if zone_poly_data:
-        layers.append(pdk.Layer(
-            "PolygonLayer", zone_poly_data, get_polygon="contour",
-            get_fill_color="color", get_line_color="color",
-            pickable=True, extruded=False, line_width_min_pixels=1
-        ))
-    if zone_line_data:
-        layers.append(pdk.Layer(
-            "LineLayer", zone_line_data, get_source_position="source",
-            get_target_position="target", get_color="c", pickable=True,
-            width_min_pixels=2
-        ))
-    if zone_marker_data:
-        layers.append(pdk.Layer(
-            "ScatterplotLayer", zone_marker_data, get_position="pos", get_fill_color="c",
-            get_radius=8, pickable=True
-        ))
-
     return pdk.Deck(
         layers=layers,
         initial_view_state=pdk.ViewState(latitude=center_lat, longitude=center_lon, zoom=13, pitch=45),
@@ -1411,64 +1412,6 @@ def get_creator_color(mode: str) -> str:
     if "Fence" in mode: return "green"
     if "Rally" in mode: return "purple"
     return "blue"
-
-
-def _add_bank_turn_zone_to_map(
-    m: folium.Map,
-    turn_point: Tuple[float, float, float],
-    current_location: Optional[Tuple[float, float, float]],
-    center: Tuple[float, float, float],
-    polygon: Sequence[Tuple[float, float, float]],
-    color: str,
-    label: str,
-    details: str,
-    *,
-    weight: int = 2,
-    fill_opacity: float = 0.15,
-) -> None:
-    if polygon:
-        folium.Polygon(
-            locations=[(p[0], p[1]) for p in polygon],
-            color=color,
-            fill=True,
-            fill_opacity=fill_opacity,
-            weight=weight,
-            smooth_factor=0.0,
-            popup=f"{label}\n{details}",
-        ).add_to(m)
-
-    if (turn_point[0], turn_point[1]) != (center[0], center[1]):
-        folium.PolyLine(
-            locations=[(turn_point[0], turn_point[1]), (center[0], center[1])],
-            color=color,
-            weight=weight,
-            dash_array="4, 6",
-            tooltip=f"{label}\nShift vector",
-        ).add_to(m)
-
-    folium.Marker(
-        location=(turn_point[0], turn_point[1]),
-        icon=folium.Icon(color=color, icon="times", prefix="fa"),
-        tooltip=f"{label}\nTurn point\nAlt: {turn_point[2]:.1f}m",
-    ).add_to(m)
-
-    folium.CircleMarker(
-        location=(center[0], center[1]),
-        radius=3,
-        color=color,
-        fill=True,
-        fill_opacity=1.0,
-        tooltip=f"{label}\nShifted center\nAlt: {center[2]:.1f}m",
-    ).add_to(m)
-    if current_location and (current_location[0], current_location[1]) != (turn_point[0], turn_point[1]):
-        folium.CircleMarker(
-            location=(current_location[0], current_location[1]),
-            radius=5,
-            color=color,
-            fill=True,
-            fill_opacity=1.0,
-            tooltip=f"{label}\nCurrent location\nAlt: {current_location[2]:.1f}m",
-        ).add_to(m)
 
 
 def _add_velocity_arrow_to_map(
@@ -1512,7 +1455,7 @@ def _add_velocity_arrow_to_map(
 
 def _add_parsed_layers_to_map(m: folium.Map, parsed: ParseResult):
     """Render the parsed C++ objects onto the folium map."""
-    missions, polygons, circles, vehicles, latlon_points, paths, rally, bank_turn_zones, projections = parsed
+    missions, polygons, circles, vehicles, latlon_points, paths, rally, projections = parsed
 
     # Polygons
     for poly in polygons:
@@ -1533,33 +1476,13 @@ def _add_parsed_layers_to_map(m: folium.Map, parsed: ParseResult):
             popup=f"PARSED: Circle\n{circ.type}"
         ).add_to(m)
 
-    # Bank turn zones
-    for zone in bank_turn_zones:
-        center, _, polygon = _compute_bank_turn_geometry_for_zone(zone, BANK_TURN_FEASIBILITY_SAMPLES)
-        c = "blue" if zone.expected_safe else "orange"
-        label = f"PARSED: BankTurn {zone.name}"
-        details = (
-            f"Base {zone.base_radius_m:.1f}m | "
-            f"Wind {zone.wind_north_m_s:.1f}/{zone.wind_east_m_s:.1f} m/s | "
-            f"Max {zone.max_wind_m_s:.1f} m/s"
-        )
-        _add_bank_turn_zone_to_map(
-            m,
-            zone.turn_point,
-            zone.current_location,
-            center,
-            polygon,
-            c,
-            label,
-            details,
-        )
-
     # Missions
     colors = ["blue", "orange", "purple", "black"]
     for i, (name, waypoints) in enumerate(missions.items()):
         pts = [(wp.lat, wp.lon) for wp in waypoints]
         c = colors[i % len(colors)]
-        folium.PolyLine(pts, color=c, weight=4, opacity=0.8, tooltip=f"PARSED: {name}").add_to(m)
+        if len(pts) >= 2:
+            folium.PolyLine(pts, color=c, weight=4, opacity=0.8, tooltip=f"PARSED: {name}").add_to(m)
         for idx, wp in enumerate(waypoints):
             folium.CircleMarker(
                 location=(wp.lat, wp.lon), radius=3, color=c, fill=True,
@@ -1630,7 +1553,6 @@ def _build_combined_map(
     parsed_data: Optional[ParseResult],
     creator_points: CreatorPointsMap,
     active_mode: str,
-    pending_bank_turn_current: Optional[Tuple[float, float, float]],
     center: Tuple[float, float],
     zoom: float
 ) -> folium.Map:
@@ -1651,50 +1573,6 @@ def _build_combined_map(
         is_active = (mode == active_mode)
         opacity = 0.9 if is_active else 0.5
         weight = 3 if is_active else 2
-
-        if mode == BANK_TURN_MODE:
-            bank_turn_points, _ = _normalize_bank_turn_points(points)
-            for i, pt in enumerate(bank_turn_points):
-                center, _, polygon = _compute_bank_turn_geometry(
-                    pt.turn_lat,
-                    pt.turn_lon,
-                    pt.turn_alt,
-                    pt.base_radius_m,
-                    pt.wind_north_m_s,
-                    pt.wind_east_m_s,
-                    pt.max_wind_m_s,
-                    BANK_TURN_FEASIBILITY_SAMPLES,
-                )
-                c = "blue" if pt.expected_safe else "orange"
-                label = f"NEW: BankTurn Pt{i}"
-                details = (
-                    f"Base {pt.base_radius_m:.1f}m | "
-                    f"Wind {pt.wind_north_m_s:.1f}/{pt.wind_east_m_s:.1f} m/s | "
-                    f"Max {pt.max_wind_m_s:.1f} m/s"
-                )
-                _add_bank_turn_zone_to_map(
-                    m,
-                    (pt.turn_lat, pt.turn_lon, pt.turn_alt),
-                    (pt.current_lat, pt.current_lon, pt.current_alt),
-                    center,
-                    polygon,
-                    c,
-                    label,
-                    details,
-                    weight=weight,
-                    fill_opacity=0.2 if is_active else 0.1,
-                )
-            if is_active and pending_bank_turn_current:
-                lat, lon, alt = pending_bank_turn_current
-                folium.CircleMarker(
-                    location=(lat, lon),
-                    radius=6,
-                    color=color,
-                    fill=True,
-                    fill_opacity=1.0,
-                    tooltip=f"NEW: BankTurn Current\nAlt: {alt:.1f}m",
-                ).add_to(m)
-            continue
 
         if mode == "Vehicle Location":
             vehicle_points, _, _ = _normalize_vehicle_creator_points(points)
@@ -1791,8 +1669,15 @@ def generate_full_cpp_snippet(
         lines = [f"// --- Mission ({len(m_pts)} items) ---"]
         lines.append("std::vector<mission_item_s> mission{")
         for i, (lat, lon, alt, _) in enumerate(m_pts):
-            cmd = "NAV_CMD_TAKEOFF" if i == 0 else ("NAV_CMD_LAND" if i == len(m_pts) - 1 else "NAV_CMD_WAYPOINT")
-            lines.append(f"    makePositionItem({lat:.7f}, {lon:.7f}, {alt:.1f}f, {cmd}),  // {i}")
+            if len(m_pts) == 1:
+                line = f"    makePositionItem({lat:.7f}, {lon:.7f}, {alt:.1f}f),  // {i}"
+            elif i == 0:
+                line = f"    makeTakeoffItem({lat:.7f}, {lon:.7f}, {alt:.1f}f),  // {i}"
+            elif i == len(m_pts) - 1:
+                line = f"    makeLandItem({lat:.7f}, {lon:.7f}, {alt:.1f}f),  // {i}"
+            else:
+                line = f"    makePositionItem({lat:.7f}, {lon:.7f}, {alt:.1f}f),  // {i}"
+            lines.append(line)
         lines.append("};")
         sections.append("\n".join(lines))
 
@@ -1829,28 +1714,6 @@ def generate_full_cpp_snippet(
                 # Radius is taken from the point data
                 lines.append(f"writeCircleFence({var}, {rad:.1f}f, {c_type});")
             sections.append("\n".join(lines))
-
-    # 3.5 Bank Turn Scenarios
-    b_pts_raw = points_by_mode.get(BANK_TURN_MODE, [])
-    b_pts, _ = _normalize_bank_turn_points(b_pts_raw)
-    if b_pts:
-        lines = [f"// --- Bank Turn Scenarios ({len(b_pts)} items) ---"]
-        var = sanitize_cpp_identifier(base_name + "_bank_turn")
-        lines.append(f"static constexpr BankTurnGeofenceScenario {var}[] = {{")
-        for i, pt in enumerate(b_pts):
-            name = base_name if len(b_pts) == 1 else f"{base_name}_{i}"
-            lines.append("    {")
-            lines.append(f'        "{name}",')
-            lines.append(f"        {{{pt.turn_lat:.7f}, {pt.turn_lon:.7f}, {pt.turn_alt:.1f}f}},")
-            lines.append(f"        {{{pt.current_lat:.7f}, {pt.current_lon:.7f}, {pt.current_alt:.1f}f}},")
-            lines.append(f"        {pt.base_radius_m:.1f}f,")
-            lines.append(f"        {pt.wind_north_m_s:.1f}f,")
-            lines.append(f"        {pt.wind_east_m_s:.1f}f,")
-            lines.append(f"        {pt.max_wind_m_s:.1f}f,")
-            lines.append(f"        {'true' if pt.expected_safe else 'false'},")
-            lines.append("    },")
-        lines.append("};")
-        sections.append("\n".join(lines))
 
     # 4. Vehicle Locations (new VehicleLocation struct syntax)
     v_pts = points_by_mode.get("Vehicle Location", [])
@@ -1928,20 +1791,13 @@ def init_session():
     # Creator State
     if "creator_points" not in st.session_state:
         st.session_state["creator_points"] = {m: [] for m in CREATOR_MODES}
-    if "bank_turn_pending_current" not in st.session_state:
-        st.session_state["bank_turn_pending_current"] = None
 
     # Normalize stored points to the current format.
     for m in CREATOR_MODES:
         pts = st.session_state["creator_points"][m]
         if not pts:
             continue
-        if m == BANK_TURN_MODE:
-            normalized, dropped = _normalize_bank_turn_points(pts)
-            st.session_state["creator_points"][m] = normalized
-            if dropped:
-                st.warning(f"Dropped {dropped} {m} point(s) due to incompatible format.")
-        elif m == "Vehicle Location":
+        if m == "Vehicle Location":
             normalized, dropped, legacy = _normalize_vehicle_creator_points(pts)
             st.session_state["creator_points"][m] = normalized
             if legacy:
@@ -1961,14 +1817,6 @@ def init_session():
     # Defaults for inputs
     if "last_radius" not in st.session_state:
         st.session_state["last_radius"] = 100.0
-    if "last_wind_north_m_s" not in st.session_state:
-        st.session_state["last_wind_north_m_s"] = 0.0
-    if "last_wind_east_m_s" not in st.session_state:
-        st.session_state["last_wind_east_m_s"] = 0.0
-    if "last_max_wind_m_s" not in st.session_state:
-        st.session_state["last_max_wind_m_s"] = BANK_TURN_MAX_WIND_FALLBACK_M_S
-    if "last_expected_safe" not in st.session_state:
-        st.session_state["last_expected_safe"] = True
     if "last_vehicle_vel_north_m_s" not in st.session_state:
         st.session_state["last_vehicle_vel_north_m_s"] = 0.0
     if "last_vehicle_vel_east_m_s" not in st.session_state:
@@ -2018,7 +1866,6 @@ def main():
             base_name = st.text_input("Base Name", value="kItem")
 
             # Per-point parameters
-            is_bank_turn = (mode == BANK_TURN_MODE)
             is_vehicle = (mode == "Vehicle Location")
             current_vel_north = 0.0
             current_vel_east = 0.0
@@ -2026,10 +1873,13 @@ def main():
             with c1:
                 current_alt = st.number_input("Altitude (m)", value=500.0, help="Applies to next click")
             with c2:
-                # Radius relevant for circles and bank turns.
-                disable_rad = ("Circle" not in mode) and (mode != BANK_TURN_MODE)
-                rad_label = "Base Radius (m)" if is_bank_turn else "Radius (m)"
-                current_rad = st.number_input(rad_label, value=st.session_state["last_radius"], disabled=disable_rad, help="Applies to next click")
+                disable_rad = "Circle" not in mode
+                current_rad = st.number_input(
+                    "Radius (m)",
+                    value=st.session_state["last_radius"],
+                    disabled=disable_rad,
+                    help="Applies to next click",
+                )
                 # Update session state to remember radius across re-runs
                 if not disable_rad:
                     st.session_state["last_radius"] = current_rad
@@ -2051,37 +1901,6 @@ def main():
                     )
                     st.session_state["last_vehicle_vel_east_m_s"] = current_vel_east
 
-            if is_bank_turn:
-                w1, w2 = st.columns(2)
-                with w1:
-                    wind_north = st.number_input(
-                        "Wind North (m/s)",
-                        value=st.session_state["last_wind_north_m_s"],
-                        help="Applies to next click",
-                    )
-                    st.session_state["last_wind_north_m_s"] = wind_north
-                with w2:
-                    wind_east = st.number_input(
-                        "Wind East (m/s)",
-                        value=st.session_state["last_wind_east_m_s"],
-                        help="Applies to next click",
-                    )
-                    st.session_state["last_wind_east_m_s"] = wind_east
-
-                max_wind = st.number_input(
-                    "Max Wind (m/s)",
-                    value=st.session_state["last_max_wind_m_s"],
-                    help="Applies to next click",
-                )
-                st.session_state["last_max_wind_m_s"] = max_wind
-
-                expected_safe = st.checkbox(
-                    "Expected Safe",
-                    value=st.session_state["last_expected_safe"],
-                    help="Applies to next click",
-                )
-                st.session_state["last_expected_safe"] = expected_safe
-
             st.markdown("---")
 
             # Action Buttons
@@ -2090,14 +1909,11 @@ def main():
 
             if st.button(f"Clear New {mode} ({curr_len})", use_container_width=True):
                 pts_map[mode] = []
-                if mode == BANK_TURN_MODE:
-                    st.session_state["bank_turn_pending_current"] = None
                 st.rerun()
 
             if st.button("Clear ALL New Items", type="secondary", use_container_width=True):
                 for m in CREATOR_MODES:
                     pts_map[m] = []
-                st.session_state["bank_turn_pending_current"] = None
                 st.rerun()
 
         with col_map:
@@ -2111,7 +1927,6 @@ def main():
                 parsed_data,
                 st.session_state["creator_points"],
                 mode,
-                st.session_state.get("bank_turn_pending_current"),
                 tuple(center),
                 zoom
             )
@@ -2129,66 +1944,34 @@ def main():
             click = ret.get("last_clicked") or ret.get("last_object_clicked")
             if click:
                 lc = click
-                if mode == BANK_TURN_MODE:
-                    pending = st.session_state.get("bank_turn_pending_current")
-                    if pending is None:
-                        st.session_state["bank_turn_pending_current"] = (
-                            round(lc["lat"], 7),
-                            round(lc["lng"], 7),
-                            current_alt,
-                        )
-                        st.rerun()
-                    else:
-                        pt = BankTurnCreatorPoint(
-                            current_lat=pending[0],
-                            current_lon=pending[1],
-                            current_alt=pending[2],
-                            turn_lat=round(lc["lat"], 7),
-                            turn_lon=round(lc["lng"], 7),
-                            turn_alt=current_alt,
-                            base_radius_m=current_rad,
-                            wind_north_m_s=st.session_state["last_wind_north_m_s"],
-                            wind_east_m_s=st.session_state["last_wind_east_m_s"],
-                            max_wind_m_s=st.session_state["last_max_wind_m_s"],
-                            expected_safe=st.session_state["last_expected_safe"],
-                        )
-                        st.session_state["creator_points"][mode].append(pt)
-                        st.session_state["bank_turn_pending_current"] = None
+                current_list = st.session_state["creator_points"][mode]
+
+                if mode == "Vehicle Location":
+                    pt_vehicle = (
+                        round(lc["lat"], 7),
+                        round(lc["lng"], 7),
+                        current_alt,
+                        current_vel_north,
+                        current_vel_east,
+                    )
+                    already_exists = any(
+                        (p[0] == pt_vehicle[0] and p[1] == pt_vehicle[1]) for p in current_list
+                    )
+                    if not already_exists:
+                        st.session_state["creator_points"][mode].append(pt_vehicle)
                         st.rerun()
                 else:
-                    current_list = st.session_state["creator_points"][mode]
+                    pt_4d = (round(lc["lat"], 7), round(lc["lng"], 7), current_alt, current_rad)
+                    already_exists = any(
+                        (p[0] == pt_4d[0] and p[1] == pt_4d[1]) for p in current_list
+                    )
 
-                    if mode == "Vehicle Location":
-                        pt_vehicle = (
-                            round(lc["lat"], 7),
-                            round(lc["lng"], 7),
-                            current_alt,
-                            current_vel_north,
-                            current_vel_east,
-                        )
-                        already_exists = any(
-                            (p[0] == pt_vehicle[0] and p[1] == pt_vehicle[1]) for p in current_list
-                        )
-                        if not already_exists:
-                            st.session_state["creator_points"][mode].append(pt_vehicle)
-                            st.rerun()
-                    else:
-                        # Construct 4D point: Lat, Lon, Alt, Radius
-                        pt_4d = (round(lc["lat"], 7), round(lc["lng"], 7), current_alt, current_rad)
-
-                        # Check existence by matching lat/lon only
-                        already_exists = any(
-                            (p[0] == pt_4d[0] and p[1] == pt_4d[1]) for p in current_list
-                        )
-
-                        if not already_exists:
-                            if "Polygon" in mode:
-                                # Use smart insertion for polygons
-                                st.session_state["creator_points"][mode] = _insert_point_on_polygon(current_list, pt_4d)
-                            else:
-                                # Append for missions, paths, etc.
-                                st.session_state["creator_points"][mode].append(pt_4d)
-                            st.rerun()
+                    if not already_exists:
+                        if "Polygon" in mode:
+                            st.session_state["creator_points"][mode] = _insert_point_on_polygon(current_list, pt_4d)
+                        else:
+                            st.session_state["creator_points"][mode].append(pt_4d)
+                        st.rerun()
 
     st.write("") # Add a small spacer
     if st.button("Generate C++ for NEW Items", type="primary", use_container_width=True):
