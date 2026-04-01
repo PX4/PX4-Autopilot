@@ -314,7 +314,7 @@ The relevant parameters are shown below:
 
 ### Motor Failure Trigger
 
-The failure detector can be configured to detect a motor failure while armed (and trigger an associated action) if the ESC current falls outside expected bounds for more than [`MOTFAIL_TIME`](#MOTFAIL_TIME) seconds.
+The failure detector can be configured to detect a motor failure while armed (and trigger an associated action) if the ESC current falls outside expected bounds for more than [MOTFAIL_TIME](#MOTFAIL_TIME) seconds.
 Motor failures are non-latching: if the failure condition clears, the failure is cleared.
 
 The undercurrent and overcurrent conditions are defined by:
