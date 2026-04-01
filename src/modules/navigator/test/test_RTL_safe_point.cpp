@@ -1125,12 +1125,12 @@ TEST_F(RtlSafePointLoopPlanTest, VehicleInsideDoJumpLoopGetsValidPlan)
 	config.state.velocity_ne(1) = -corner_dataset::kVelDiag;
 	config.state.velocity_valid = true;
 
-	config.execution.last_flown_loop_segment.start.idx = 7;
-	config.execution.last_flown_loop_segment.start.nav_cmd = NAV_CMD_WAYPOINT;
-	config.execution.last_flown_loop_segment.end.idx = 2;
-	config.execution.last_flown_loop_segment.end.nav_cmd = NAV_CMD_WAYPOINT;
-	config.execution.last_flown_loop_segment.is_loop = true;
-	config.execution.last_flown_loop_segment.loops_remaining = 5;
+	config.last_flown_loop_segment.start.idx = 7;
+	config.last_flown_loop_segment.start.nav_cmd = NAV_CMD_WAYPOINT;
+	config.last_flown_loop_segment.end.idx = 2;
+	config.last_flown_loop_segment.end.nav_cmd = NAV_CMD_WAYPOINT;
+	config.last_flown_loop_segment.is_loop = true;
+	config.last_flown_loop_segment.loops_remaining = 5;
 
 	MissionRoutePlanner::Plan plan{};
 
@@ -1164,12 +1164,12 @@ TEST_F(RtlSafePointLoopPlanTest, LoopScenarioSelectsRally3OnSegment7To9)
 	config.state.velocity_ne(1) = corner_dataset::kVelDiag;
 	config.state.velocity_valid = true;
 
-	config.execution.last_flown_loop_segment.start.idx = 7;
-	config.execution.last_flown_loop_segment.start.nav_cmd = NAV_CMD_WAYPOINT;
-	config.execution.last_flown_loop_segment.end.idx = 2;
-	config.execution.last_flown_loop_segment.end.nav_cmd = NAV_CMD_WAYPOINT;
-	config.execution.last_flown_loop_segment.is_loop = true;
-	config.execution.last_flown_loop_segment.loops_remaining = 3;
+	config.last_flown_loop_segment.start.idx = 7;
+	config.last_flown_loop_segment.start.nav_cmd = NAV_CMD_WAYPOINT;
+	config.last_flown_loop_segment.end.idx = 2;
+	config.last_flown_loop_segment.end.nav_cmd = NAV_CMD_WAYPOINT;
+	config.last_flown_loop_segment.is_loop = true;
+	config.last_flown_loop_segment.loops_remaining = 3;
 
 	MissionRoutePlanner::Plan plan{};
 

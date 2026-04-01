@@ -82,6 +82,12 @@ public:
 	{
 		return localMinimumOnSegment(proj_on_start, proj_on_end, prev_proj_on_end, jumping, last_segment);
 	}
+
+	bool findAttachedValidPositionIndexForTest(int32_t start_index, float home_altitude_amsl,
+			int32_t &attached_position_index) const
+	{
+		return findAttachedValidPositionIndex(start_index, home_altitude_amsl, attached_position_index);
+	}
 };
 
 class MissionRoutePlannerCandidateBufferTest : public ::testing::Test
@@ -255,6 +261,27 @@ TEST_F(MissionRoutePlannerCandidateBufferTest, InsertCandidateSortedFullBufferDr
 	const std::vector<int32_t> retained_ids = expectedSequentialIds(1, MissionRoutePlanner::MAX_SEGMENT_CANDIDATES - 1);
 	expected_ids.insert(expected_ids.end(), retained_ids.begin(), retained_ids.end());
 	expectCandidateIds(buffer, expected_ids);
+}
+
+// WHY: Valid global coordinates include the exact pole and antimeridian boundaries, so planner validation
+//      must not reject those edge values.
+// WHAT: Position::valid accepts lat=90 and lon=180 when altitude is finite.
+TEST(MissionRoutePlannerPositionTest, PositionValidAcceptsBoundaryCoordinates)
+{
+	const MissionRoutePlanner::Position position{90.0, 180.0, 100.f};
+
+	EXPECT_TRUE(position.valid());
+}
+
+// WHY: Reverse scans should clamp oversize caller indices to the mission tail instead of attempting invalid reads.
+// WHAT: findAttachedValidPositionIndex(INT32_MAX) returns the last valid position-bearing mission item.
+TEST_F(MissionRoutePlannerCandidateBufferTest, FindAttachedValidPositionIndexClampsPastMissionEnd)
+{
+	int32_t attached_position_index = -1;
+
+	ASSERT_TRUE(planner.findAttachedValidPositionIndexForTest(std::numeric_limits<int32_t>::max(), kAlt,
+			attached_position_index));
+	EXPECT_EQ(attached_position_index, provider.missionCount() - 1);
 }
 
 // WHY: Mid-buffer insertion is a separate branch from front insertion and must still evict only the worst entry.

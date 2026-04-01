@@ -181,12 +181,12 @@ TEST_F(RtlProjectionLocalSegmentTest, PrefersStoredLoopAnchor)
 	MissionRoutePlanner planner(provider);
 
 	// Set the stored loop anchor to segment [2->0]
-	config.execution.last_flown_loop_segment.start.idx = 2;
-	config.execution.last_flown_loop_segment.start.nav_cmd = NAV_CMD_WAYPOINT;
-	config.execution.last_flown_loop_segment.end.idx = 0;
-	config.execution.last_flown_loop_segment.end.nav_cmd = NAV_CMD_WAYPOINT;
-	config.execution.last_flown_loop_segment.is_loop = true;
-	config.execution.last_flown_loop_segment.loops_remaining = 1;
+	config.last_flown_loop_segment.start.idx = 2;
+	config.last_flown_loop_segment.start.nav_cmd = NAV_CMD_WAYPOINT;
+	config.last_flown_loop_segment.end.idx = 0;
+	config.last_flown_loop_segment.end.nav_cmd = NAV_CMD_WAYPOINT;
+	config.last_flown_loop_segment.is_loop = true;
+	config.last_flown_loop_segment.loops_remaining = 1;
 
 	MissionRoutePlanner::Position vehicle = makePositionFromOffset(kBaseLat, kBaseLon, 75.f, 10.f, kAlt);
 
@@ -510,10 +510,6 @@ INSTANTIATE_TEST_SUITE_P(
 		std::make_pair(-INFINITY, kBaseLon),
 		std::make_pair(kBaseLat, -INFINITY),
 		std::make_pair(0.0, 0.0),
-		std::make_pair(90.0, kBaseLon),
-		std::make_pair(-90.0, kBaseLon),
-		std::make_pair(kBaseLat, 180.0),
-		std::make_pair(kBaseLat, -180.0),
 		std::make_pair(91.0, kBaseLon),
 		std::make_pair(kBaseLat, 181.0)
 	)

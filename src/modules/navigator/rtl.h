@@ -104,8 +104,6 @@ private:
 		DESTINATION_TYPE_MISSION_TAKEOFF,
 	};
 
-private:
-
 	/**
 	 * @brief Check mission landing validity
 	 * @return true if mission has a land start, a land and is valid

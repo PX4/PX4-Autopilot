@@ -86,20 +86,18 @@ public:
 		_mission = {};
 		_mission.count = static_cast<int32_t>(items.size());
 		_mission.current_seq = 0;
-		_stage = Stage::Idle;
-		_branch_off_index = -1;
-		_transition_target_index = -1;
+		_state = {};
 		_plan = {};
 	}
 
 	void setStageForTest(Stage stage)
 	{
-		_stage = stage;
+		_state.stage = stage;
 	}
 
 	Stage stageForTest() const
 	{
-		return _stage;
+		return _state.stage;
 	}
 
 	void setCurrentSequenceForTest(int32_t index)
@@ -114,12 +112,12 @@ public:
 		_plan.selection.safe_point_found = true;
 		_plan.selection.goal_type = MissionRoutePlanner::GoalType::SafePoint;
 		_plan.selection.path.direction_reversed = direction_reversed;
-		_branch_off_index = branch_off_index;
+		_state.branch_off_index = branch_off_index;
 	}
 
 	void setTransitionTargetIndexForTest(int32_t index)
 	{
-		_transition_target_index = index;
+		_state.transition_target_index = index;
 	}
 
 	void setGoalLandApproachForTest(const loiter_point_s &land_approach)
@@ -129,7 +127,7 @@ public:
 
 	int32_t transitionTargetIndexForTest() const
 	{
-		return _transition_target_index;
+		return _state.transition_target_index;
 	}
 
 	bool advanceStageForTest()
@@ -140,6 +138,11 @@ public:
 	void normalizeRouteMissionItemForTest(mission_item_s &mission_item) const
 	{
 		normalizeRouteMissionItem(mission_item);
+	}
+
+	void resetExecutorProgressForTest()
+	{
+		resetExecutorProgress();
 	}
 
 private:
@@ -362,6 +365,23 @@ TEST_F(RtlMissionSafePointFollowStageTest, ReverseRouteExhaustionTransitionsToLa
 	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::LandAtGoal);
 }
 
+// WHY: Inactive executors should not keep reporting a landing stage from a previous run.
+// WHAT: Resetting transient executor progress clears the stage and remembered transition target.
+TEST_F(RtlMissionSafePointFollowStageTest, ResetExecutorProgressClearsStageAndTransitionTarget)
+{
+	executor.loadTestMission({
+		makePositionItem(kBaseLat, kBaseLon, kAlt),
+		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
+	});
+	executor.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::ApproachAtGoal);
+	executor.setTransitionTargetIndexForTest(1);
+
+	executor.resetExecutorProgressForTest();
+
+	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::Idle);
+	EXPECT_EQ(executor.transitionTargetIndexForTest(), -1);
+}
+
 // WHY: Route-safe-point RTL follows mission geometry, but takeoff commands carry altitude semantics
 //      that differ from a plain waypoint and must not be silently rewritten.
 // WHAT: normalizeRouteMissionItem leaves NAV_CMD_TAKEOFF unchanged.
@@ -375,6 +395,21 @@ TEST_F(RtlMissionSafePointFollowStageTest, NormalizeRouteMissionItemPreservesTak
 	EXPECT_EQ(takeoff_item.nav_cmd, NAV_CMD_TAKEOFF);
 	EXPECT_FLOAT_EQ(takeoff_item.time_inside, 12.f);
 	EXPECT_FALSE(takeoff_item.autocontinue);
+}
+
+// WHY: Mission-endpoint fallback keys off the actual endpoint command encountered on the route,
+//      so landing commands must remain intact instead of being flattened into route waypoints.
+// WHAT: normalizeRouteMissionItem leaves NAV_CMD_LAND unchanged.
+TEST_F(RtlMissionSafePointFollowStageTest, NormalizeRouteMissionItemPreservesLandingCommand)
+{
+	mission_item_s landing_item = makeLandItem(kBaseLat, kBaseLon, kAlt - 5.f);
+	landing_item.time_inside = 9.f;
+
+	executor.normalizeRouteMissionItemForTest(landing_item);
+
+	EXPECT_EQ(landing_item.nav_cmd, NAV_CMD_LAND);
+	EXPECT_FLOAT_EQ(landing_item.time_inside, 9.f);
+	EXPECT_FALSE(landing_item.autocontinue);
 }
 
 // WHY: Loiter-style position items should still be flattened into geometry-only route waypoints

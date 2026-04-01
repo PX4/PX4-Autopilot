@@ -57,7 +57,7 @@ public:
 	void on_inactivation() override;
 	void on_activation() override;
 
-	bool isLanding() override { return _stage == Stage::ApproachAtGoal || _stage == Stage::LandAtGoal; }
+	bool isLanding() override { return _state.stage == Stage::ApproachAtGoal || _state.stage == Stage::LandAtGoal; }
 	MissionRoutePlanner::Segment lastFlownLoopSegment() const override { return _last_flown_loop_segment; }
 	rtl_time_estimate_s calc_rtl_time_estimate() override;
 	void setRtlAlt(float alt) override { _rtl_alt = alt; }
@@ -73,6 +73,18 @@ private:
 		BranchOff,               /**< Fly the virtual branch-off waypoint before leaving the route. */
 		ApproachAtGoal,          /**< Fly the selected landing approach loiter before handing over to landing. */
 		LandAtGoal               /**< Execute the final landing at the safe point or fallback endpoint. */
+	};
+
+	struct PlanState {
+		Stage stage{Stage::Idle};
+		int32_t branch_off_index{-1};
+		int32_t transition_target_index{-1};
+
+		void resetProgress()
+		{
+			stage = Stage::Idle;
+			transition_target_index = -1;
+		}
 	};
 
 	/** @brief Advance the RTL stage machine without replaying the full mission control flow. */
@@ -102,6 +114,9 @@ private:
 	void normalizeRouteMissionItem(mission_item_s &mission_item) const;
 	/** @brief Load the adjacent route position item in the currently selected traversal direction. */
 	bool loadAdjacentRouteItem(mission_item_s &mission_item, int32_t &adjacent_index);
+	/** @brief Publish the active route-following setpoints, endpoint handoff, and any pending transition. */
+	void handleFollowRouteStage(position_setpoint_triplet_s *pos_sp_triplet,
+				    const position_setpoint_s &current_setpoint_copy);
 	/** @brief Return whether the current route target coincides with the selected branch-off anchor. */
 	bool currentTargetIsBranchOff() const;
 	/** @brief Return whether the join projection is already close enough to skip route following. */
@@ -110,8 +125,24 @@ private:
 	bool useGoalLandApproach() const;
 	/** @brief Return the stage that should execute after leaving the route or skipping directly to goal. */
 	Stage finalGoalStage() const;
+	/** @brief Return whether endpoint fallback targets the mission landing item. */
+	bool goalIsMissionLanding() const;
+	/** @brief Return whether endpoint fallback targets the mission takeoff item. */
+	bool goalIsMissionTakeoff() const;
+	/** @brief Return whether a mission item matches the currently selected endpoint fallback. */
+	bool missionItemMatchesSelectedEndpoint(const mission_item_s &mission_item) const;
+	/** @brief Return whether a mission nav_cmd is a landing command. */
+	static bool isLandingCmd(const uint16_t nav_cmd);
+	/** @brief Return whether a mission nav_cmd is a takeoff command. */
+	static bool isTakeoffCmd(const uint16_t nav_cmd);
 	/** @brief Return whether a mission item is a landing command. */
-	static bool isLandingCommand(const mission_item_s &mission_item);
+	static bool isLandingCommand(const mission_item_s &mission_item) { return isLandingCmd(mission_item.nav_cmd); }
+	/** @brief Return whether a mission item is a takeoff command. */
+	static bool isTakeoffCommand(const mission_item_s &mission_item) { return isTakeoffCmd(mission_item.nav_cmd); }
+	/** @brief Return whether a mission index lies within the active mission bounds. */
+	bool missionIndexInBounds(int32_t index) const;
+	/** @brief Reset transient executor progress so inactive-state queries do not observe stale stages. */
+	void resetExecutorProgress();
 	/** @brief Seed the cached loop anchor from the active plan, clearing it when the projection is not on a DO_JUMP edge. */
 	void updateLastFlownLoopSegmentFromPlan();
 	/**
@@ -139,10 +170,8 @@ private:
 	bool loadMissionItemFromCache(int32_t index, mission_item_s &mission_item) override;
 
 	MissionRoutePlanner::Plan _plan{};
-	Stage _stage{Stage::Idle};
-	int32_t _branch_off_index{-1};
+	PlanState _state{};
 	MissionRoutePlanner::Segment _last_flown_loop_segment{};
-	int32_t _transition_target_index{-1}; /**< Mission index that triggered the current in-flight transition. */
 	loiter_point_s _goal_land_approach{};
 	float _rtl_alt{NAN};
 	RtlTimeEstimator _rtl_time_estimator; /**< Time estimator consistent with other RTL modes. */

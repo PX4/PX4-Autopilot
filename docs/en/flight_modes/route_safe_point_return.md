@@ -157,6 +157,7 @@ During route following, PX4 treats the mission as geometry rather than as a full
 - Nominal direction walks forward through position items, skipping `DO_JUMP` entries instead of following them as control flow.
 - Reverse direction walks backward through position items, also skipping `DO_JUMP` entries.
 - Loiter items are converted to plain waypoints with `autocontinue = true` and zero hold time so the vehicle keeps moving.
+- When no safe point was selected, the executor keeps endpoint commands intact and hands over to final landing when the directed route reaches the fallback `NAV_CMD_LAND` or `NAV_CMD_TAKEOFF` item.
 - `NAV_CMD_DELAY` and other non-position mission commands are skipped during route traversal.
 - Other non-position mission commands are skipped.
 - When route traversal can no longer advance, the executor transitions to the already-selected goal and continues with the landing stage instead of completing RTL in loiter.
@@ -171,7 +172,7 @@ The vehicle branches off at the projected point on the segment, not after flying
 
 For VTOL vehicles flying in FW mode, if the selected safe point has valid approach items, RTL reads that rally point's `NAV_CMD_LOITER_TO_ALT` block, picks the best approach from wind, and injects the chosen loiter as an explicit pre-landing stage. This matches direct RTL behavior after the destination has already been chosen.
 
-All final landings still run through the same `handleLanding()` pipeline used by other mission-based RTL modes, preserving VTOL landing sequences, move-to-land waypoints, and precision landing settings.
+All final landings still run through the same `handleLanding()` pipeline used by other mission-based RTL modes, preserving VTOL landing sequences, move-to-land waypoints, and precision landing settings. For mission-endpoint fallback, a real landing item is reused as-is, while takeoff fallback synthesizes a landing item at the selected goal position.
 
 ::: warning
 When falling back to the mission takeoff endpoint in reverse, PX4 lands at ground-level altitude (not the takeoff waypoint altitude).
