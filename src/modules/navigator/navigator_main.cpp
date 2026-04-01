@@ -859,7 +859,15 @@ void Navigator::run()
 		}
 
 		/* we have a new navigation mode: reset triplet */
-		if (_navigation_mode != navigation_mode_new) {
+		const bool navigation_mode_changed = (_navigation_mode != navigation_mode_new);
+		uint8_t prev_mode_state_id = navigator_mode_change_s::NAV_STATE_NONE;
+		bool triplet_was_reset = false;
+
+		if (navigation_mode_changed) {
+			if (_navigation_mode != nullptr) {
+				prev_mode_state_id = _navigation_mode->getNavigatorStateId();
+			}
+
 			// We don't reset the triplet in the following two cases:
 			// 1)  if we just did an auto-takeoff and are now
 			// going to loiter. Otherwise, we lose the takeoff altitude and end up lower
@@ -881,6 +889,7 @@ void Navigator::run()
 
 			if (did_not_switch_takeoff_to_loiter && did_not_switch_to_loiter_with_valid_loiter_setpoint) {
 				reset_triplets();
+				triplet_was_reset = true;
 			}
 		}
 
@@ -908,6 +917,13 @@ void Navigator::run()
 			if (_navigation_mode_array[i]) {
 				_navigation_mode_array[i]->run(_navigation_mode == _navigation_mode_array[i]);
 			}
+		}
+
+		if (navigation_mode_changed) {
+			const uint8_t new_mode_state_id = (_navigation_mode != nullptr) ?
+							  _navigation_mode->getNavigatorStateId() :
+							  navigator_mode_change_s::NAV_STATE_NONE;
+			publish_mode_change(prev_mode_state_id, new_mode_state_id, triplet_was_reset);
 		}
 
 		/* if nothing is running, set position setpoint triplet invalid once */
@@ -1423,6 +1439,32 @@ void Navigator::publish_navigator_status()
 		_navigator_status_updated = false;
 		_last_navigator_status_publication = hrt_absolute_time();
 	}
+}
+
+void Navigator::publish_mode_change(uint8_t prev_nav_state, uint8_t new_nav_state, bool triplet_was_reset)
+{
+	navigator_mode_change_s mode_change{};
+	mode_change.timestamp = hrt_absolute_time();
+	mode_change.nav_state_prev = prev_nav_state;
+	mode_change.nav_state_new = new_nav_state;
+	mode_change.nav_state_user_intention = _vstatus.nav_state_user_intention;
+	mode_change.in_failsafe = _vstatus.failsafe;
+	mode_change.triplet_reset_applied = triplet_was_reset;
+
+	mode_change.entry_velocity_xy = sqrtf(_local_pos.vx * _local_pos.vx + _local_pos.vy * _local_pos.vy);
+
+	if (_pos_sp_triplet.current.valid
+	    && PX4_ISFINITE(_pos_sp_triplet.current.lat)
+	    && PX4_ISFINITE(_pos_sp_triplet.current.lon)) {
+		mode_change.entry_dist_to_target = get_distance_to_next_waypoint(
+				_global_pos.lat, _global_pos.lon,
+				_pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon);
+
+	} else {
+		mode_change.entry_dist_to_target = NAN;
+	}
+
+	_mode_change_pub.publish(mode_change);
 }
 
 void Navigator::publish_vehicle_command(vehicle_command_s &vehicle_command)

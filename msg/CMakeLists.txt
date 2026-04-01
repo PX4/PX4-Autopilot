@@ -142,6 +142,7 @@ set(msg_files
 	MissionResult.msg
 	MountOrientation.msg
 	NavigatorMissionItem.msg
+	NavigatorModeChange.msg
 	NavigatorStatus.msg
 	NeuralControl.msg
 	NormalizedUnsignedSetpoint.msg

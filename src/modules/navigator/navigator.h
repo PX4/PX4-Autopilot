@@ -73,6 +73,7 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
+#include <uORB/topics/navigator_mode_change.h>
 #include <uORB/topics/navigator_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_controller_landing_status.h>
@@ -327,6 +328,7 @@ private:
 
 	uORB::Publication<geofence_result_s>		_geofence_result_pub{ORB_ID(geofence_result)};
 	uORB::Publication<mission_result_s>		_mission_result_pub{ORB_ID(mission_result)};
+	uORB::Publication<navigator_mode_change_s>	_mode_change_pub{ORB_ID(navigator_mode_change)};
 	uORB::Publication<navigator_status_s>		_navigator_status_pub{ORB_ID(navigator_status)};
 	uORB::Publication<position_setpoint_triplet_s>	_pos_sp_triplet_pub{ORB_ID(position_setpoint_triplet)};
 	uORB::Publication<vehicle_command_ack_s>	_vehicle_cmd_ack_pub{ORB_ID(vehicle_command_ack)};
@@ -420,6 +422,8 @@ private:
 	void publish_mission_result();
 
 	void publish_navigator_status();
+
+	void publish_mode_change(uint8_t prev_nav_state, uint8_t new_nav_state, bool triplet_was_reset);
 
 	void publish_vehicle_command_ack(const vehicle_command_s &cmd, uint8_t result);
 
