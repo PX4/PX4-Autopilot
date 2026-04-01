@@ -1,0 +1,215 @@
+{
+  "board": "modalai/fc-v1",
+  "chip_family": "stm32f7",
+  "chip_model": "STM32F765",
+  "total_outputs": 8,
+  "has_io_board": false,
+  "io_outputs": 0,
+  "groups": [
+    {
+      "group": 1,
+      "timer": "Timer1",
+      "outputs": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "dshot": true,
+      "dshot_outputs": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "non_dshot_outputs": [],
+      "bdshot_outputs": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "bdshot_output_only": []
+    },
+    {
+      "group": 2,
+      "timer": "Timer4",
+      "outputs": [
+        5,
+        6,
+        7,
+        8
+      ],
+      "dshot": true,
+      "dshot_outputs": [
+        5,
+        6,
+        7,
+        8
+      ],
+      "non_dshot_outputs": [],
+      "bdshot_outputs": [
+        5,
+        6,
+        7
+      ],
+      "bdshot_output_only": [
+        8
+      ]
+    }
+  ],
+  "serial_ports": [
+    {
+      "uart": "USART1",
+      "device": "/dev/ttyS0",
+      "label": "GPS1",
+      "flow_control": false
+    },
+    {
+      "uart": "USART2",
+      "device": "/dev/ttyS1",
+      "label": "TELEM3",
+      "flow_control": true
+    },
+    {
+      "uart": "USART3",
+      "device": "/dev/ttyS2",
+      "label": "Debug Console",
+      "flow_control": false
+    },
+    {
+      "uart": "UART4",
+      "device": "/dev/ttyS3",
+      "label": "TELEM4",
+      "flow_control": false
+    },
+    {
+      "uart": "UART5",
+      "device": "/dev/ttyS4",
+      "label": "TELEM2",
+      "flow_control": true
+    },
+    {
+      "uart": "USART6",
+      "device": "/dev/ttyS5",
+      "label": "",
+      "flow_control": false
+    },
+    {
+      "uart": "UART7",
+      "device": "/dev/ttyS6",
+      "label": "TELEM1",
+      "flow_control": true
+    },
+    {
+      "uart": "UART8",
+      "device": "/dev/ttyS7",
+      "label": "",
+      "flow_control": false
+    }
+  ],
+  "has_rc_input": true,
+  "has_common_rc": false,
+  "rc_serial_device": null,
+  "has_ppm_pin": true,
+  "ppm_shared_with_rc_serial": false,
+  "has_pps_capture": false,
+  "has_safety_switch": true,
+  "has_safety_led": false,
+  "has_buzzer": false,
+  "num_power_inputs": 1,
+  "has_redundant_power": false,
+  "has_dual_battery_monitoring": false,
+  "has_dronecan_power_input": false,
+  "power_monitor_type": "ina226",
+  "has_sd_card": true,
+  "has_ethernet": false,
+  "has_heater": false,
+  "sensor_imu_drivers": [
+    "BMI088",
+    "ICM-20602",
+    "ICM-20948",
+    "ICM-42688P"
+  ],
+  "sensor_baro_drivers": [
+    "BMP388"
+  ],
+  "sensor_mag_drivers": [],
+  "sensor_osd_drivers": [],
+  "sensor_bus_info": {
+    "imu": [
+      {
+        "name": "ICM-20602",
+        "bus_type": "SPI",
+        "bus_num": null,
+        "external": false
+      },
+      {
+        "name": "ICM-42688P",
+        "bus_type": "SPI",
+        "bus_num": null,
+        "external": false
+      },
+      {
+        "name": "BMI088",
+        "bus_type": "SPI",
+        "bus_num": null,
+        "external": false
+      }
+    ],
+    "baro": [
+      {
+        "name": "BMP388",
+        "bus_type": "I2C",
+        "bus_num": null,
+        "external": false
+      }
+    ],
+    "mag": [],
+    "osd": []
+  },
+  "sensor_variant_info": {
+    "has_variants": false,
+    "unconditional": {
+      "imu": [
+        {
+          "name": "ICM-20602",
+          "bus_type": "SPI",
+          "bus_num": null,
+          "external": false
+        },
+        {
+          "name": "ICM-42688P",
+          "bus_type": "SPI",
+          "bus_num": null,
+          "external": false
+        },
+        {
+          "name": "BMI088",
+          "bus_type": "SPI",
+          "bus_num": null,
+          "external": false
+        }
+      ],
+      "baro": [
+        {
+          "name": "BMP388",
+          "bus_type": "I2C",
+          "bus_num": null,
+          "external": false
+        }
+      ],
+      "mag": [],
+      "osd": []
+    },
+    "variants": {}
+  },
+  "num_i2c_buses": 4,
+  "num_spi_buses": 4,
+  "num_can_buses": 1,
+  "has_usb": true,
+  "doc_url": "https://docs.px4.io/main/en/flight_controller/modalai_fc_v1",
+  "doc_file": "modalai_fc_v1.md",
+  "doc_exists": true,
+  "documented": true
+}

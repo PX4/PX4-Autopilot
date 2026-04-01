@@ -1,0 +1,36 @@
+{
+  "manufacturer": "Holybro",
+  "product": "KakuteH7",
+  "board": null,
+  "fmu_version": "v1.18",
+  "since_version": "RC",
+  "manufacturer_url": "https://holybro.com/",
+  "rc_ports_wizard": [
+    {
+      "label": "n",
+      "side": "FMU"
+    }
+  ],
+  "gps_ports_wizard": null,
+  "power_ports_wizard": [
+    {
+      "label": "GPS1",
+      "connector_type": "n"
+    }
+  ],
+  "overview_wizard": {
+    "imu": null,
+    "baro": null,
+    "mag": null,
+    "osd": null,
+    "width_mm": null,
+    "length_mm": null,
+    "height_mm": null,
+    "weight_g": null,
+    "min_voltage": null,
+    "max_voltage": null,
+    "usb_connectors": null,
+    "num_additional_adc_inputs": null,
+    "sensor_variant_labels": null
+  }
+}

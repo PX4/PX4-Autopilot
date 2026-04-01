@@ -1,0 +1,70 @@
+{
+  "manufacturer": "Arkin Labs",
+  "product": "A2M6X",
+  "fmu_version": null,
+  "since_version": "v1.18",
+  "manufacturer_url": "TODO",
+  "rc_ports_wizard": [
+    {
+      "label": "TODO: RC port label",
+      "side": "IO"
+    },
+    {
+      "label": "PPM",
+      "side": "IO",
+      "ppm_only": true
+    }
+  ],
+  "gps_ports_wizard": [
+    {
+      "port_key": "GPS1",
+      "label": "GPS1",
+      "pixhawk_standard": true,
+      "full_port": true
+    },
+    {
+      "port_key": "GPS2",
+      "label": "GPS2",
+      "pixhawk_standard": true,
+      "full_port": false
+    }
+  ],
+  "power_ports_wizard": [
+    {
+      "label": "POWER",
+      "connector_type": "TODO: connector type",
+      "monitor_type": "analog"
+    },
+    {
+      "label": "POWER 2",
+      "connector_type": "TODO: connector type",
+      "monitor_type": "dronecan"
+    }
+  ],
+  "overview_wizard": {
+    "imu": [
+      "ADIS16470",
+      "BMI088",
+      "ICM-20602",
+      "ICM-20649",
+      "ICM-20948",
+      "ICM-42670P",
+      "ICM-42688P",
+      "ICM-45686",
+      "IIM-42652"
+    ],
+    "baro": [
+      "BMP388",
+      "ICP-20100",
+      "MS5611"
+    ],
+    "mag": null,
+    "osd": null,
+    "dimensions_mm": null,
+    "weight_g": null,
+    "voltage_range": null,
+    "usb_connector": null,
+    "num_additional_adc_inputs": null,
+    "sensor_variant_labels": null
+  }
+}

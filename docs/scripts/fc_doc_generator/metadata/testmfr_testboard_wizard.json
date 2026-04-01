@@ -1,0 +1,14 @@
+{
+  "manufacturer": "TestMfr",
+  "product": "TestBoard",
+  "fmu_version": null,
+  "since_version": "RC",
+  "manufacturer_url": "TODO",
+  "rc_ports_wizard": [
+    {
+      "label": "n",
+      "side": "FMU"
+    }
+  ],
+  "gps_ports_wizard": null
+}

@@ -1,0 +1,51 @@
+{
+  "manufacturer": "corvon",
+  "product": "arse",
+  "fmu_version": "fmu-v5",
+  "since_version": "v1.18",
+  "manufacturer_url": "TODO",
+  "rc_ports_wizard": [
+    {
+      "label": "TODO: RC port label",
+      "side": "IO"
+    },
+    {
+      "label": "PPM",
+      "side": "IO",
+      "ppm_only": true
+    }
+  ],
+  "gps_ports_wizard": [
+    {
+      "port_key": "GPS1",
+      "label": "GPS1",
+      "pixhawk_standard": true,
+      "full_port": true
+    }
+  ],
+  "power_ports_wizard": [
+    {
+      "label": "POWER 1",
+      "connector_type": "TODO: connector type"
+    },
+    {
+      "label": "POWER 2",
+      "connector_type": "TODO: connector type"
+    }
+  ],
+  "overview_wizard": {
+    "imu": [
+      "BMI055",
+      "ICM-20602",
+      "ICM-20689",
+      "ICM-20948",
+      "ICM-42688P"
+    ],
+    "baro": null,
+    "mag": null,
+    "osd": null,
+    "dimensions_mm": null,
+    "weight_g": null,
+    "voltage_range": null
+  }
+}

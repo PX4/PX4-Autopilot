@@ -1,0 +1,272 @@
+{
+  "board": "px4/fmu-v5",
+  "chip_family": "stm32f7",
+  "chip_model": "STM32F765",
+  "total_outputs": 11,
+  "has_io_board": true,
+  "io_outputs": 8,
+  "groups": [
+    {
+      "group": 1,
+      "timer": "Timer1",
+      "outputs": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "dshot": true,
+      "dshot_outputs": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "non_dshot_outputs": [],
+      "bdshot_outputs": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "bdshot_output_only": []
+    },
+    {
+      "group": 2,
+      "timer": "Timer4",
+      "outputs": [
+        5,
+        6
+      ],
+      "dshot": false,
+      "dshot_outputs": [],
+      "non_dshot_outputs": [
+        5,
+        6
+      ],
+      "bdshot_outputs": [],
+      "bdshot_output_only": []
+    },
+    {
+      "group": 3,
+      "timer": "Timer12",
+      "outputs": [
+        7,
+        8
+      ],
+      "dshot": false,
+      "dshot_outputs": [],
+      "non_dshot_outputs": [
+        7,
+        8
+      ],
+      "bdshot_outputs": [],
+      "bdshot_output_only": []
+    }
+  ],
+  "serial_ports": [
+    {
+      "uart": "USART1",
+      "device": "/dev/ttyS0",
+      "label": "GPS1",
+      "flow_control": false
+    },
+    {
+      "uart": "USART2",
+      "device": "/dev/ttyS1",
+      "label": "TELEM1",
+      "flow_control": true
+    },
+    {
+      "uart": "USART3",
+      "device": "/dev/ttyS2",
+      "label": "TELEM2",
+      "flow_control": true
+    },
+    {
+      "uart": "UART4",
+      "device": "/dev/ttyS3",
+      "label": "TELEM4",
+      "flow_control": false
+    },
+    {
+      "uart": "USART6",
+      "device": "/dev/ttyS4",
+      "label": "",
+      "flow_control": true
+    },
+    {
+      "uart": "UART7",
+      "device": "/dev/ttyS5",
+      "label": "Debug Console",
+      "flow_control": false
+    },
+    {
+      "uart": "UART8",
+      "device": "/dev/ttyS6",
+      "label": "PX4IO",
+      "flow_control": false
+    }
+  ],
+  "has_rc_input": true,
+  "has_common_rc": true,
+  "rc_serial_device": null,
+  "has_ppm_pin": true,
+  "ppm_shared_with_rc_serial": false,
+  "has_pps_capture": false,
+  "has_safety_switch": true,
+  "has_safety_led": true,
+  "has_buzzer": true,
+  "num_power_inputs": 2,
+  "has_redundant_power": true,
+  "has_dual_battery_monitoring": false,
+  "has_dronecan_power_input": false,
+  "power_monitor_type": "ina226",
+  "has_sd_card": true,
+  "has_ethernet": false,
+  "has_heater": true,
+  "sensor_imu_drivers": [
+    "BMI055",
+    "ICM-20602",
+    "ICM-20689",
+    "ICM-20948",
+    "ICM-42688P"
+  ],
+  "sensor_baro_drivers": [
+    "MS5611"
+  ],
+  "sensor_mag_drivers": [
+    "IST8310"
+  ],
+  "sensor_osd_drivers": [],
+  "sensor_bus_info": {
+    "imu": [
+      {
+        "name": "ICM-20689",
+        "bus_type": "SPI",
+        "bus_num": null,
+        "external": false
+      },
+      {
+        "name": "BMI055",
+        "bus_type": "SPI",
+        "bus_num": null,
+        "external": false
+      }
+    ],
+    "baro": [
+      {
+        "name": "MS5611",
+        "bus_type": "SPI",
+        "bus_num": null,
+        "external": false
+      }
+    ],
+    "mag": [
+      {
+        "name": "IST8310",
+        "bus_type": "I2C",
+        "bus_num": null,
+        "external": false
+      },
+      {
+        "name": "IST8310",
+        "bus_type": "I2C",
+        "bus_num": 1,
+        "external": true
+      }
+    ],
+    "osd": []
+  },
+  "sensor_variant_info": {
+    "has_variants": true,
+    "unconditional": {
+      "imu": [
+        {
+          "name": "ICM-20689",
+          "bus_type": "SPI",
+          "bus_num": null,
+          "external": false
+        },
+        {
+          "name": "BMI055",
+          "bus_type": "SPI",
+          "bus_num": null,
+          "external": false
+        }
+      ],
+      "baro": [
+        {
+          "name": "MS5611",
+          "bus_type": "SPI",
+          "bus_num": null,
+          "external": false
+        }
+      ],
+      "mag": [
+        {
+          "name": "IST8310",
+          "bus_type": "I2C",
+          "bus_num": null,
+          "external": false
+        },
+        {
+          "name": "IST8310",
+          "bus_type": "I2C",
+          "bus_num": 1,
+          "external": true
+        }
+      ],
+      "osd": []
+    },
+    "variants": {
+      "V5005002": {
+        "imu": [
+          {
+            "name": "ICM-42688P",
+            "bus_type": "SPI",
+            "bus_num": null,
+            "external": false
+          }
+        ],
+        "baro": [],
+        "mag": [],
+        "osd": []
+      },
+      "V5006002": {
+        "imu": [
+          {
+            "name": "ICM-42688P",
+            "bus_type": "SPI",
+            "bus_num": null,
+            "external": false
+          }
+        ],
+        "baro": [],
+        "mag": [],
+        "osd": []
+      },
+      "__other__": {
+        "imu": [
+          {
+            "name": "ICM-20602",
+            "bus_type": "SPI",
+            "bus_num": null,
+            "external": false
+          }
+        ],
+        "baro": [],
+        "mag": [],
+        "osd": []
+      }
+    }
+  },
+  "num_i2c_buses": 4,
+  "num_spi_buses": 5,
+  "num_can_buses": 3,
+  "has_usb": true,
+  "doc_url": "https://docs.px4.io/main/en/flight_controller/pixhawk4",
+  "doc_file": "pixhawk4.md",
+  "doc_exists": true,
+  "documented": true
+}

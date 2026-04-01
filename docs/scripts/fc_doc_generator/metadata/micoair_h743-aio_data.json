@@ -1,0 +1,210 @@
+{
+  "board": "micoair/h743-aio",
+  "chip_family": "stm32h7",
+  "chip_model": "STM32H743",
+  "total_outputs": 9,
+  "has_io_board": false,
+  "io_outputs": 0,
+  "groups": [
+    {
+      "group": 1,
+      "timer": "Timer1",
+      "outputs": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "dshot": true,
+      "dshot_outputs": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "non_dshot_outputs": [],
+      "bdshot_outputs": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "bdshot_output_only": []
+    },
+    {
+      "group": 2,
+      "timer": "Timer3",
+      "outputs": [
+        5,
+        6
+      ],
+      "dshot": true,
+      "dshot_outputs": [
+        5,
+        6
+      ],
+      "non_dshot_outputs": [],
+      "bdshot_outputs": [
+        5,
+        6
+      ],
+      "bdshot_output_only": []
+    },
+    {
+      "group": 3,
+      "timer": "Timer4",
+      "outputs": [
+        7,
+        8,
+        9
+      ],
+      "dshot": true,
+      "dshot_outputs": [
+        7,
+        8,
+        9
+      ],
+      "non_dshot_outputs": [],
+      "bdshot_outputs": [
+        7,
+        8,
+        9
+      ],
+      "bdshot_output_only": []
+    }
+  ],
+  "serial_ports": [
+    {
+      "uart": "USART1",
+      "device": "/dev/ttyS0",
+      "label": "TELEM1",
+      "flow_control": false
+    },
+    {
+      "uart": "USART2",
+      "device": "/dev/ttyS1",
+      "label": "TELEM2",
+      "flow_control": false
+    },
+    {
+      "uart": "USART3",
+      "device": "/dev/ttyS2",
+      "label": "GPS1",
+      "flow_control": false
+    },
+    {
+      "uart": "UART4",
+      "device": "/dev/ttyS3",
+      "label": "TELEM3",
+      "flow_control": false
+    },
+    {
+      "uart": "USART6",
+      "device": "/dev/ttyS4",
+      "label": "RC",
+      "flow_control": false
+    },
+    {
+      "uart": "UART7",
+      "device": "/dev/ttyS5",
+      "label": "URT6",
+      "flow_control": false
+    },
+    {
+      "uart": "UART8",
+      "device": "/dev/ttyS6",
+      "label": "TELEM4",
+      "flow_control": false
+    }
+  ],
+  "has_rc_input": false,
+  "has_common_rc": true,
+  "rc_serial_device": "/dev/ttyS4",
+  "has_ppm_pin": false,
+  "ppm_shared_with_rc_serial": false,
+  "has_pps_capture": true,
+  "has_safety_switch": false,
+  "has_safety_led": false,
+  "has_buzzer": false,
+  "num_power_inputs": 1,
+  "has_redundant_power": false,
+  "has_dual_battery_monitoring": false,
+  "has_dronecan_power_input": false,
+  "power_monitor_type": "ina238",
+  "has_sd_card": true,
+  "has_ethernet": false,
+  "has_heater": false,
+  "sensor_imu_drivers": [
+    "BMI088",
+    "BMI270"
+  ],
+  "sensor_baro_drivers": [
+    "DPS310"
+  ],
+  "sensor_mag_drivers": [],
+  "sensor_osd_drivers": [],
+  "sensor_bus_info": {
+    "imu": [
+      {
+        "name": "BMI088",
+        "bus_type": "SPI",
+        "bus_num": 2,
+        "external": false
+      },
+      {
+        "name": "BMI270",
+        "bus_type": "SPI",
+        "bus_num": 2,
+        "external": false
+      }
+    ],
+    "baro": [
+      {
+        "name": "DPS310",
+        "bus_type": "I2C",
+        "bus_num": null,
+        "external": false
+      }
+    ],
+    "mag": [],
+    "osd": []
+  },
+  "sensor_variant_info": {
+    "has_variants": false,
+    "unconditional": {
+      "imu": [
+        {
+          "name": "BMI088",
+          "bus_type": "SPI",
+          "bus_num": 2,
+          "external": false
+        },
+        {
+          "name": "BMI270",
+          "bus_type": "SPI",
+          "bus_num": 2,
+          "external": false
+        }
+      ],
+      "baro": [
+        {
+          "name": "DPS310",
+          "bus_type": "I2C",
+          "bus_num": null,
+          "external": false
+        }
+      ],
+      "mag": [],
+      "osd": []
+    },
+    "variants": {}
+  },
+  "num_i2c_buses": 2,
+  "num_spi_buses": 1,
+  "num_can_buses": 0,
+  "has_usb": true,
+  "doc_url": null,
+  "doc_file": null,
+  "doc_exists": false,
+  "documented": false
+}

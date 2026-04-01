@@ -1,0 +1,213 @@
+{
+  "board": "av/x-v1",
+  "chip_family": "stm32f7",
+  "chip_model": "STM32F777",
+  "total_outputs": 9,
+  "has_io_board": false,
+  "io_outputs": 0,
+  "groups": [
+    {
+      "group": 1,
+      "timer": "Timer1",
+      "outputs": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "dshot": false,
+      "dshot_outputs": [],
+      "non_dshot_outputs": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "bdshot_outputs": [],
+      "bdshot_output_only": []
+    },
+    {
+      "group": 2,
+      "timer": "Timer2",
+      "outputs": [
+        5
+      ],
+      "dshot": false,
+      "dshot_outputs": [],
+      "non_dshot_outputs": [
+        5
+      ],
+      "bdshot_outputs": [],
+      "bdshot_output_only": []
+    },
+    {
+      "group": 3,
+      "timer": "Timer8",
+      "outputs": [
+        6
+      ],
+      "dshot": false,
+      "dshot_outputs": [],
+      "non_dshot_outputs": [
+        6
+      ],
+      "bdshot_outputs": [],
+      "bdshot_output_only": []
+    },
+    {
+      "group": 4,
+      "timer": "Timer11",
+      "outputs": [
+        7
+      ],
+      "dshot": false,
+      "dshot_outputs": [],
+      "non_dshot_outputs": [
+        7
+      ],
+      "bdshot_outputs": [],
+      "bdshot_output_only": []
+    },
+    {
+      "group": 5,
+      "timer": "Timer10",
+      "outputs": [
+        8
+      ],
+      "dshot": false,
+      "dshot_outputs": [],
+      "non_dshot_outputs": [
+        8
+      ],
+      "bdshot_outputs": [],
+      "bdshot_output_only": []
+    },
+    {
+      "group": 6,
+      "timer": "Timer4",
+      "outputs": [
+        9
+      ],
+      "dshot": false,
+      "dshot_outputs": [],
+      "non_dshot_outputs": [
+        9
+      ],
+      "bdshot_outputs": [],
+      "bdshot_output_only": []
+    }
+  ],
+  "serial_ports": [
+    {
+      "uart": "USART1",
+      "device": "/dev/ttyS0",
+      "label": "TELEM1",
+      "flow_control": false
+    },
+    {
+      "uart": "USART2",
+      "device": "/dev/ttyS1",
+      "label": "TELEM2",
+      "flow_control": false
+    },
+    {
+      "uart": "USART3",
+      "device": "/dev/ttyS2",
+      "label": "TELEM3",
+      "flow_control": false
+    },
+    {
+      "uart": "UART4",
+      "device": "/dev/ttyS3",
+      "label": "TELEM4",
+      "flow_control": false
+    },
+    {
+      "uart": "UART5",
+      "device": "/dev/ttyS4",
+      "label": "",
+      "flow_control": false
+    },
+    {
+      "uart": "USART6",
+      "device": "/dev/ttyS5",
+      "label": "",
+      "flow_control": false
+    },
+    {
+      "uart": "UART7",
+      "device": "/dev/ttyS6",
+      "label": "GPS1",
+      "flow_control": false
+    },
+    {
+      "uart": "UART8",
+      "device": "/dev/ttyS7",
+      "label": "Debug Console",
+      "flow_control": false
+    }
+  ],
+  "has_rc_input": true,
+  "has_common_rc": false,
+  "rc_serial_device": null,
+  "has_ppm_pin": false,
+  "ppm_shared_with_rc_serial": false,
+  "has_pps_capture": false,
+  "has_safety_switch": false,
+  "has_safety_led": false,
+  "has_buzzer": false,
+  "num_power_inputs": 1,
+  "has_redundant_power": false,
+  "has_dual_battery_monitoring": false,
+  "has_dronecan_power_input": false,
+  "power_monitor_type": "ina226",
+  "has_sd_card": true,
+  "has_ethernet": true,
+  "has_heater": false,
+  "sensor_imu_drivers": [
+    "ICM-20948"
+  ],
+  "sensor_baro_drivers": [],
+  "sensor_mag_drivers": [
+    "LSM303AGR"
+  ],
+  "sensor_osd_drivers": [],
+  "sensor_bus_info": {
+    "imu": [],
+    "baro": [],
+    "mag": [
+      {
+        "name": "LSM303AGR",
+        "bus_type": "SPI",
+        "bus_num": null,
+        "external": false
+      }
+    ],
+    "osd": []
+  },
+  "sensor_variant_info": {
+    "has_variants": false,
+    "unconditional": {
+      "imu": [],
+      "baro": [],
+      "mag": [
+        {
+          "name": "LSM303AGR",
+          "bus_type": "SPI",
+          "bus_num": null,
+          "external": false
+        }
+      ],
+      "osd": []
+    },
+    "variants": {}
+  },
+  "num_i2c_buses": 3,
+  "num_spi_buses": 4,
+  "num_can_buses": 1,
+  "has_usb": false,
+  "doc_url": null,
+  "doc_file": null,
+  "doc_exists": false,
+  "documented": false
+}

@@ -1,0 +1,76 @@
+{
+  "board": "espressif/esp32",
+  "chip_family": "unknown",
+  "chip_model": null,
+  "total_outputs": 4,
+  "has_io_board": false,
+  "io_outputs": 0,
+  "groups": [
+    {
+      "group": 1,
+      "timer": "Timer0",
+      "outputs": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "dshot": false,
+      "dshot_outputs": [],
+      "non_dshot_outputs": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "bdshot_outputs": [],
+      "bdshot_output_only": []
+    }
+  ],
+  "serial_ports": [],
+  "has_rc_input": false,
+  "has_common_rc": false,
+  "rc_serial_device": null,
+  "has_ppm_pin": false,
+  "ppm_shared_with_rc_serial": false,
+  "has_pps_capture": false,
+  "has_safety_switch": false,
+  "has_safety_led": false,
+  "has_buzzer": false,
+  "num_power_inputs": 1,
+  "has_redundant_power": false,
+  "has_dual_battery_monitoring": false,
+  "has_dronecan_power_input": false,
+  "power_monitor_type": null,
+  "has_sd_card": true,
+  "has_ethernet": true,
+  "has_heater": false,
+  "sensor_imu_drivers": [],
+  "sensor_baro_drivers": [],
+  "sensor_mag_drivers": [],
+  "sensor_osd_drivers": [],
+  "sensor_bus_info": {
+    "imu": [],
+    "baro": [],
+    "mag": [],
+    "osd": []
+  },
+  "sensor_variant_info": {
+    "has_variants": false,
+    "unconditional": {
+      "imu": [],
+      "baro": [],
+      "mag": [],
+      "osd": []
+    },
+    "variants": {}
+  },
+  "num_i2c_buses": 0,
+  "num_spi_buses": 0,
+  "num_can_buses": 0,
+  "has_usb": false,
+  "doc_url": null,
+  "doc_file": null,
+  "doc_exists": false,
+  "documented": false
+}

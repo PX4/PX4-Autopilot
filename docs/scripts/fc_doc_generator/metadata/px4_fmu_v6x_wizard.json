@@ -1,0 +1,42 @@
+{
+  "manufacturer": "PX4",
+  "product": "FMU-v6X",
+  "board": "px4/fmu-v6x",
+  "fmu_version": "fmu-v6x",
+  "since_version": "",
+  "manufacturer_url": "TODO",
+  "rc_ports_wizard": [
+    {
+      "label": "v1.18",
+      "side": "FMU"
+    }
+  ],
+  "gps_ports_wizard": null,
+  "power_ports_wizard": [
+    {
+      "label": "RC",
+      "connector_type": "n"
+    }
+  ],
+  "overview_wizard": {
+    "imu": [
+      "GPS1",
+      "n"
+    ],
+    "baro": [
+      "BMP388",
+      "ICP-20100"
+    ],
+    "mag": null,
+    "osd": null,
+    "width_mm": null,
+    "length_mm": null,
+    "height_mm": null,
+    "weight_g": null,
+    "min_voltage": null,
+    "max_voltage": null,
+    "usb_connectors": null,
+    "num_additional_adc_inputs": null,
+    "sensor_variant_labels": null
+  }
+}

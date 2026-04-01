@@ -1,0 +1,227 @@
+{
+  "board": "nxp/mr-tropic",
+  "chip_family": "imxrt",
+  "chip_model": "MIMXRT1064",
+  "total_outputs": 8,
+  "has_io_board": false,
+  "io_outputs": 0,
+  "groups": [
+    {
+      "group": 1,
+      "timer": "PWM2",
+      "outputs": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "dshot": true,
+      "dshot_outputs": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "non_dshot_outputs": [],
+      "bdshot_outputs": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "bdshot_output_only": []
+    },
+    {
+      "group": 2,
+      "timer": "PWM4",
+      "outputs": [
+        5,
+        6,
+        7,
+        8
+      ],
+      "dshot": true,
+      "dshot_outputs": [
+        5,
+        6,
+        7,
+        8
+      ],
+      "non_dshot_outputs": [],
+      "bdshot_outputs": [
+        5,
+        6,
+        7,
+        8
+      ],
+      "bdshot_output_only": []
+    }
+  ],
+  "serial_ports": [
+    {
+      "uart": "LPUART2",
+      "device": "/dev/ttyS0",
+      "label": "",
+      "flow_control": false
+    },
+    {
+      "uart": "LPUART3",
+      "device": "/dev/ttyS1",
+      "label": "GPS1",
+      "flow_control": true
+    },
+    {
+      "uart": "LPUART4",
+      "device": "/dev/ttyS2",
+      "label": "TELEM1",
+      "flow_control": true
+    },
+    {
+      "uart": "LPUART5",
+      "device": "/dev/ttyS3",
+      "label": "TELEM3",
+      "flow_control": true
+    },
+    {
+      "uart": "LPUART6",
+      "device": "/dev/ttyS4",
+      "label": "TELEM2",
+      "flow_control": false
+    },
+    {
+      "uart": "LPUART7",
+      "device": "/dev/ttyS5",
+      "label": "",
+      "flow_control": false
+    },
+    {
+      "uart": "LPUART8",
+      "device": "/dev/ttyS6",
+      "label": "RC",
+      "flow_control": false
+    }
+  ],
+  "has_rc_input": false,
+  "has_common_rc": true,
+  "rc_serial_device": "/dev/ttyS6",
+  "has_ppm_pin": false,
+  "ppm_shared_with_rc_serial": false,
+  "has_pps_capture": false,
+  "has_safety_switch": true,
+  "has_safety_led": true,
+  "has_buzzer": true,
+  "num_power_inputs": 1,
+  "has_redundant_power": false,
+  "has_dual_battery_monitoring": false,
+  "has_dronecan_power_input": true,
+  "power_monitor_type": "ina238",
+  "has_sd_card": true,
+  "has_ethernet": true,
+  "has_heater": false,
+  "sensor_imu_drivers": [
+    "BMI088",
+    "ICM-20948",
+    "ICM-42688P",
+    "ICM-45686"
+  ],
+  "sensor_baro_drivers": [
+    "BMP388",
+    "ICP-20100",
+    "MS5611"
+  ],
+  "sensor_mag_drivers": [
+    "BMM350",
+    "IST8310"
+  ],
+  "sensor_osd_drivers": [],
+  "sensor_bus_info": {
+    "imu": [
+      {
+        "name": "ICM-45686",
+        "bus_type": "SPI",
+        "bus_num": 3,
+        "external": false
+      },
+      {
+        "name": "BMI088",
+        "bus_type": "SPI",
+        "bus_num": 4,
+        "external": false
+      }
+    ],
+    "baro": [
+      {
+        "name": "BMP388",
+        "bus_type": "I2C",
+        "bus_num": 4,
+        "external": false
+      }
+    ],
+    "mag": [
+      {
+        "name": "BMM350",
+        "bus_type": "I2C",
+        "bus_num": 4,
+        "external": false
+      },
+      {
+        "name": "IST8310",
+        "bus_type": "I2C",
+        "bus_num": 1,
+        "external": true
+      }
+    ],
+    "osd": []
+  },
+  "sensor_variant_info": {
+    "has_variants": false,
+    "unconditional": {
+      "imu": [
+        {
+          "name": "ICM-45686",
+          "bus_type": "SPI",
+          "bus_num": 3,
+          "external": false
+        },
+        {
+          "name": "BMI088",
+          "bus_type": "SPI",
+          "bus_num": 4,
+          "external": false
+        }
+      ],
+      "baro": [
+        {
+          "name": "BMP388",
+          "bus_type": "I2C",
+          "bus_num": 4,
+          "external": false
+        }
+      ],
+      "mag": [
+        {
+          "name": "BMM350",
+          "bus_type": "I2C",
+          "bus_num": 4,
+          "external": false
+        },
+        {
+          "name": "IST8310",
+          "bus_type": "I2C",
+          "bus_num": 1,
+          "external": true
+        }
+      ],
+      "osd": []
+    },
+    "variants": {}
+  },
+  "num_i2c_buses": 3,
+  "num_spi_buses": 2,
+  "num_can_buses": 0,
+  "has_usb": false,
+  "doc_url": "https://docs.px4.io/main/en/flight_controller/nxp_mr_vmu_rt1176",
+  "doc_file": "nxp_mr_vmu_rt1176.md",
+  "doc_exists": true,
+  "documented": true
+}

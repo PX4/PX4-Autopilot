@@ -1,0 +1,298 @@
+{
+  "board": "cuav/nora",
+  "chip_family": "stm32h7",
+  "chip_model": "STM32H743",
+  "total_outputs": 14,
+  "has_io_board": false,
+  "io_outputs": 0,
+  "groups": [
+    {
+      "group": 1,
+      "timer": "Timer5",
+      "outputs": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "dshot": true,
+      "dshot_outputs": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "non_dshot_outputs": [],
+      "bdshot_outputs": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "bdshot_output_only": []
+    },
+    {
+      "group": 2,
+      "timer": "Timer4",
+      "outputs": [
+        5,
+        6,
+        7,
+        8
+      ],
+      "dshot": true,
+      "dshot_outputs": [
+        5,
+        6,
+        7,
+        8
+      ],
+      "non_dshot_outputs": [],
+      "bdshot_outputs": [
+        5,
+        6,
+        7
+      ],
+      "bdshot_output_only": [
+        8
+      ]
+    },
+    {
+      "group": 3,
+      "timer": "Timer1",
+      "outputs": [
+        9,
+        10,
+        11,
+        12
+      ],
+      "dshot": true,
+      "dshot_outputs": [
+        9,
+        10,
+        11,
+        12
+      ],
+      "non_dshot_outputs": [],
+      "bdshot_outputs": [
+        9,
+        10,
+        11,
+        12
+      ],
+      "bdshot_output_only": []
+    },
+    {
+      "group": 4,
+      "timer": "Timer12",
+      "outputs": [
+        13,
+        14
+      ],
+      "dshot": false,
+      "dshot_outputs": [],
+      "non_dshot_outputs": [
+        13,
+        14
+      ],
+      "bdshot_outputs": [],
+      "bdshot_output_only": []
+    }
+  ],
+  "serial_ports": [
+    {
+      "uart": "USART1",
+      "device": "/dev/ttyS0",
+      "label": "GPS1",
+      "flow_control": false
+    },
+    {
+      "uart": "USART2",
+      "device": "/dev/ttyS1",
+      "label": "TELEM1",
+      "flow_control": true
+    },
+    {
+      "uart": "UART4",
+      "device": "/dev/ttyS2",
+      "label": "GPS2",
+      "flow_control": false
+    },
+    {
+      "uart": "USART6",
+      "device": "/dev/ttyS3",
+      "label": "TELEM2",
+      "flow_control": true
+    },
+    {
+      "uart": "UART7",
+      "device": "/dev/ttyS4",
+      "label": "Debug Console",
+      "flow_control": false
+    },
+    {
+      "uart": "UART8",
+      "device": "/dev/ttyS5",
+      "label": "",
+      "flow_control": false
+    }
+  ],
+  "has_rc_input": true,
+  "has_common_rc": false,
+  "rc_serial_device": null,
+  "has_ppm_pin": true,
+  "ppm_shared_with_rc_serial": false,
+  "has_pps_capture": false,
+  "has_safety_switch": true,
+  "has_safety_led": true,
+  "has_buzzer": false,
+  "num_power_inputs": 2,
+  "has_redundant_power": true,
+  "has_dual_battery_monitoring": false,
+  "has_dronecan_power_input": true,
+  "power_monitor_type": "ina226",
+  "has_sd_card": true,
+  "has_ethernet": false,
+  "has_heater": true,
+  "sensor_imu_drivers": [
+    "BMI088",
+    "ICM-20649",
+    "ICM-20689",
+    "ICM-20948",
+    "ICM-42688P"
+  ],
+  "sensor_baro_drivers": [
+    "MS5611"
+  ],
+  "sensor_mag_drivers": [
+    "RM3100",
+    "IST8310"
+  ],
+  "sensor_osd_drivers": [],
+  "sensor_bus_info": {
+    "imu": [
+      {
+        "name": "ICM-20689",
+        "bus_type": "SPI",
+        "bus_num": 1,
+        "external": false
+      },
+      {
+        "name": "BMI088",
+        "bus_type": "SPI",
+        "bus_num": 4,
+        "external": false
+      },
+      {
+        "name": "ICM-42688P",
+        "bus_type": "SPI",
+        "bus_num": null,
+        "external": false
+      },
+      {
+        "name": "ICM-20689",
+        "bus_type": "SPI",
+        "bus_num": 6,
+        "external": false
+      }
+    ],
+    "baro": [
+      {
+        "name": "MS5611",
+        "bus_type": "SPI",
+        "bus_num": 4,
+        "external": false
+      },
+      {
+        "name": "MS5611",
+        "bus_type": "SPI",
+        "bus_num": 6,
+        "external": false
+      }
+    ],
+    "mag": [
+      {
+        "name": "RM3100",
+        "bus_type": "SPI",
+        "bus_num": 2,
+        "external": false
+      },
+      {
+        "name": "IST8310",
+        "bus_type": "I2C",
+        "bus_num": 1,
+        "external": true
+      }
+    ],
+    "osd": []
+  },
+  "sensor_variant_info": {
+    "has_variants": false,
+    "unconditional": {
+      "imu": [
+        {
+          "name": "ICM-20689",
+          "bus_type": "SPI",
+          "bus_num": 1,
+          "external": false
+        },
+        {
+          "name": "BMI088",
+          "bus_type": "SPI",
+          "bus_num": 4,
+          "external": false
+        },
+        {
+          "name": "ICM-42688P",
+          "bus_type": "SPI",
+          "bus_num": null,
+          "external": false
+        },
+        {
+          "name": "ICM-20689",
+          "bus_type": "SPI",
+          "bus_num": 6,
+          "external": false
+        }
+      ],
+      "baro": [
+        {
+          "name": "MS5611",
+          "bus_type": "SPI",
+          "bus_num": 4,
+          "external": false
+        },
+        {
+          "name": "MS5611",
+          "bus_type": "SPI",
+          "bus_num": 6,
+          "external": false
+        }
+      ],
+      "mag": [
+        {
+          "name": "RM3100",
+          "bus_type": "SPI",
+          "bus_num": 2,
+          "external": false
+        },
+        {
+          "name": "IST8310",
+          "bus_type": "I2C",
+          "bus_num": 1,
+          "external": true
+        }
+      ],
+      "osd": []
+    },
+    "variants": {}
+  },
+  "num_i2c_buses": 4,
+  "num_spi_buses": 5,
+  "num_can_buses": 2,
+  "has_usb": true,
+  "doc_url": "https://docs.px4.io/main/en/flight_controller/cuav_nora",
+  "doc_file": "cuav_nora.md",
+  "doc_exists": true,
+  "documented": true
+}

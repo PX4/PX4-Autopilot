@@ -1,0 +1,12 @@
+#!/bin/sh
+# Fixture for parse_rc_board_sensors tests.
+# icm42688p  → IMU (ICM-42688P)
+# ms5611     → Barometer (MS5611)
+# ist8310    → Magnetometer (IST8310), started twice (internal + external) — must deduplicate
+# board_adc  → not a sensor chip — must be silently ignored
+
+board_adc start
+icm42688p -s start
+ms5611 -s start
+ist8310 -I start
+ist8310 -X -b 1 start

@@ -1,0 +1,49 @@
+{
+  "manufacturer": "holybro",
+  "product": "durandal",
+  "fmu_version": null,
+  "since_version": "v1.18",
+  "manufacturer_url": "https://holybro.com/",
+  "rc_ports_wizard": [
+    {
+      "label": "RC INX",
+      "side": "IO"
+    }
+  ],
+  "gps_ports_wizard": [
+    {
+      "port_key": "GPS1",
+      "label": "GPS1",
+      "pixhawk_standard": true,
+      "full_port": true
+    }
+  ],
+  "power_ports_wizard": [
+    {
+      "label": "PowerXX1",
+      "connector_type": "TODO: connector type"
+    },
+    {
+      "label": "POWER 2",
+      "connector_type": "TODO: connector type"
+    }
+  ],
+  "overview_wizard": {
+    "imu": [
+      "BMI088",
+      "ICM-20689"
+    ],
+    "baro": null,
+    "mag": null,
+    "osd": null,
+    "dimensions_mm": null,
+    "weight_g": null,
+    "voltage_range": null,
+    "usb_connector": null,
+    "num_additional_adc_inputs": null,
+    "sensor_variant_labels": {
+      "VD000000": "Var1.1",
+      "VD000001": "var1.102"
+    }
+  }
+}

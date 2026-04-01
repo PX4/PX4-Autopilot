@@ -1,0 +1,105 @@
+{
+  "board": "px4/fmu-v4",
+  "chip_family": "stm32f4",
+  "chip_model": "STM32F42",
+  "total_outputs": 6,
+  "has_io_board": false,
+  "io_outputs": 0,
+  "groups": [],
+  "serial_ports": [],
+  "has_rc_input": true,
+  "has_common_rc": false,
+  "rc_serial_device": null,
+  "has_ppm_pin": true,
+  "ppm_shared_with_rc_serial": false,
+  "has_pps_capture": false,
+  "has_safety_switch": true,
+  "has_safety_led": true,
+  "has_buzzer": false,
+  "num_power_inputs": 1,
+  "has_redundant_power": false,
+  "has_dual_battery_monitoring": false,
+  "has_dronecan_power_input": false,
+  "power_monitor_type": "ina226",
+  "has_sd_card": true,
+  "has_ethernet": false,
+  "has_heater": true,
+  "sensor_imu_drivers": [
+    "ICM-20602",
+    "ICM-20948",
+    "MPU-9250"
+  ],
+  "sensor_baro_drivers": [
+    "MS5611"
+  ],
+  "sensor_mag_drivers": [
+    "LIS3MDL"
+  ],
+  "sensor_osd_drivers": [],
+  "sensor_bus_info": {
+    "imu": [
+      {
+        "name": "MPU-9250",
+        "bus_type": "SPI",
+        "bus_num": null,
+        "external": false
+      }
+    ],
+    "baro": [
+      {
+        "name": "MS5611",
+        "bus_type": "SPI",
+        "bus_num": null,
+        "external": false
+      }
+    ],
+    "mag": [
+      {
+        "name": "LIS3MDL",
+        "bus_type": "SPI",
+        "bus_num": null,
+        "external": false
+      }
+    ],
+    "osd": []
+  },
+  "sensor_variant_info": {
+    "has_variants": false,
+    "unconditional": {
+      "imu": [
+        {
+          "name": "MPU-9250",
+          "bus_type": "SPI",
+          "bus_num": null,
+          "external": false
+        }
+      ],
+      "baro": [
+        {
+          "name": "MS5611",
+          "bus_type": "SPI",
+          "bus_num": null,
+          "external": false
+        }
+      ],
+      "mag": [
+        {
+          "name": "LIS3MDL",
+          "bus_type": "SPI",
+          "bus_num": null,
+          "external": false
+        }
+      ],
+      "osd": []
+    },
+    "variants": {}
+  },
+  "num_i2c_buses": 1,
+  "num_spi_buses": 3,
+  "num_can_buses": 0,
+  "has_usb": true,
+  "doc_url": "https://docs.px4.io/main/en/flight_controller/pixracer",
+  "doc_file": "pixracer.md",
+  "doc_exists": true,
+  "documented": true
+}

@@ -13,8 +13,14 @@
     "docs:gen_alt_sidebar_ubuntu": "python3 ./scripts/gen_alt_sidebar.py",
     "docs:get_alt_sidebar_windows": "python ./scripts/gen_alt_sidebar.py",
     "start": "yarn docs:dev",
-    "linkcheck": "markdown_link_checker_sc -r .. -d docs -e en -i assets -u docs.px4.io",
-    "build_docs_metadata_ubuntu": "(cd .. && Tools/ci/metadata_sync.sh --generate && Tools/ci/metadata_sync.sh --sync) && echo 'NOTE: These metadata changes are for local testing only and do not need to be merged.'"
+    "linkcheck": "markdown_link_checker_sc -r .. -d docs -e en -i assets",
+    "build_docs_metadata_ubuntu": "(cd .. && Tools/ci/metadata_sync.sh --generate && Tools/ci/metadata_sync.sh --sync) && echo 'NOTE: These metadata changes are for local testing only and do not need to be merged.'",
+    "gen_fc_sections": "python3 ./scripts/fc_doc_generator/fc_doc_generator.py --apply",
+    "new_fc_doc": "python3 ./scripts/fc_doc_generator/fc_doc_generator.py --new-doc --since-version v1.18",
+    "check_fc_doc": "python3 ./scripts/fc_doc_generator/fc_doc_generator.py --check-doc",
+    "check_fc_docs": "python3 ./scripts/fc_doc_generator/fc_doc_generator.py --check-all",
+    "test_fc_doc": "python3 -m pytest scripts/fc_doc_generator/ -v",
+    "update_fc_snapshots": "python3 -m pytest scripts/fc_doc_generator/ -v --update-snapshots"
   },
   "dependencies": {
     "@red-asuka/vitepress-plugin-tabs": "0.0.4",

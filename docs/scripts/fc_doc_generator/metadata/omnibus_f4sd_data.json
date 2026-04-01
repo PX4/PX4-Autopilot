@@ -1,0 +1,109 @@
+{
+  "board": "omnibus/f4sd",
+  "chip_family": "stm32f4",
+  "chip_model": "STM32F405",
+  "total_outputs": 4,
+  "has_io_board": false,
+  "io_outputs": 0,
+  "groups": [
+    {
+      "group": 1,
+      "timer": "Timer3",
+      "outputs": [
+        1,
+        2
+      ],
+      "dshot": true,
+      "dshot_outputs": [
+        1,
+        2
+      ],
+      "non_dshot_outputs": [],
+      "bdshot_outputs": [],
+      "bdshot_output_only": []
+    },
+    {
+      "group": 2,
+      "timer": "Timer2",
+      "outputs": [
+        3,
+        4
+      ],
+      "dshot": true,
+      "dshot_outputs": [
+        3,
+        4
+      ],
+      "non_dshot_outputs": [],
+      "bdshot_outputs": [],
+      "bdshot_output_only": []
+    }
+  ],
+  "serial_ports": [],
+  "has_rc_input": true,
+  "has_common_rc": false,
+  "rc_serial_device": null,
+  "has_ppm_pin": true,
+  "ppm_shared_with_rc_serial": false,
+  "has_pps_capture": false,
+  "has_safety_switch": false,
+  "has_safety_led": false,
+  "has_buzzer": false,
+  "num_power_inputs": 1,
+  "has_redundant_power": false,
+  "has_dual_battery_monitoring": false,
+  "has_dronecan_power_input": false,
+  "power_monitor_type": null,
+  "has_sd_card": false,
+  "has_ethernet": false,
+  "has_heater": false,
+  "sensor_imu_drivers": [
+    "ICM-20602",
+    "MPU-6000"
+  ],
+  "sensor_baro_drivers": [
+    "BMP280"
+  ],
+  "sensor_mag_drivers": [
+    "HMC5883L"
+  ],
+  "sensor_osd_drivers": [],
+  "sensor_bus_info": {
+    "imu": [],
+    "baro": [
+      {
+        "name": "BMP280",
+        "bus_type": "SPI",
+        "bus_num": null,
+        "external": false
+      }
+    ],
+    "mag": [],
+    "osd": []
+  },
+  "sensor_variant_info": {
+    "has_variants": false,
+    "unconditional": {
+      "imu": [],
+      "baro": [
+        {
+          "name": "BMP280",
+          "bus_type": "SPI",
+          "bus_num": null,
+          "external": false
+        }
+      ],
+      "mag": [],
+      "osd": []
+    },
+    "variants": {}
+  },
+  "num_i2c_buses": 1,
+  "num_spi_buses": 3,
+  "num_can_buses": 0,
+  "has_usb": true,
+  "doc_url": "https://docs.px4.io/main/en/flight_controller/omnibus_f4_sd",
+  "doc_file": "omnibus_f4_sd.md",
+  "doc_exists": true,
+  "documented": true
+}

@@ -1,0 +1,270 @@
+{
+  "board": "nxp/mr-canhubk3",
+  "chip_family": "unknown",
+  "chip_model": null,
+  "total_outputs": 8,
+  "has_io_board": false,
+  "io_outputs": 0,
+  "groups": [
+    {
+      "group": 1,
+      "timer": "EMIOS0_Channel0",
+      "outputs": [
+        1
+      ],
+      "dshot": false,
+      "dshot_outputs": [],
+      "non_dshot_outputs": [
+        1
+      ],
+      "bdshot_outputs": [],
+      "bdshot_output_only": []
+    },
+    {
+      "group": 2,
+      "timer": "EMIOS0_Channel1",
+      "outputs": [
+        2
+      ],
+      "dshot": false,
+      "dshot_outputs": [],
+      "non_dshot_outputs": [
+        2
+      ],
+      "bdshot_outputs": [],
+      "bdshot_output_only": []
+    },
+    {
+      "group": 3,
+      "timer": "EMIOS0_Channel2",
+      "outputs": [
+        3
+      ],
+      "dshot": false,
+      "dshot_outputs": [],
+      "non_dshot_outputs": [
+        3
+      ],
+      "bdshot_outputs": [],
+      "bdshot_output_only": []
+    },
+    {
+      "group": 4,
+      "timer": "EMIOS0_Channel3",
+      "outputs": [
+        4
+      ],
+      "dshot": false,
+      "dshot_outputs": [],
+      "non_dshot_outputs": [
+        4
+      ],
+      "bdshot_outputs": [],
+      "bdshot_output_only": []
+    },
+    {
+      "group": 5,
+      "timer": "EMIOS0_Channel4",
+      "outputs": [
+        5
+      ],
+      "dshot": false,
+      "dshot_outputs": [],
+      "non_dshot_outputs": [
+        5
+      ],
+      "bdshot_outputs": [],
+      "bdshot_output_only": []
+    },
+    {
+      "group": 6,
+      "timer": "EMIOS0_Channel5",
+      "outputs": [
+        6
+      ],
+      "dshot": false,
+      "dshot_outputs": [],
+      "non_dshot_outputs": [
+        6
+      ],
+      "bdshot_outputs": [],
+      "bdshot_output_only": []
+    },
+    {
+      "group": 7,
+      "timer": "EMIOS0_Channel6",
+      "outputs": [
+        7
+      ],
+      "dshot": false,
+      "dshot_outputs": [],
+      "non_dshot_outputs": [
+        7
+      ],
+      "bdshot_outputs": [],
+      "bdshot_output_only": []
+    },
+    {
+      "group": 8,
+      "timer": "EMIOS0_Channel7",
+      "outputs": [
+        8
+      ],
+      "dshot": false,
+      "dshot_outputs": [],
+      "non_dshot_outputs": [
+        8
+      ],
+      "bdshot_outputs": [],
+      "bdshot_output_only": []
+    }
+  ],
+  "serial_ports": [],
+  "has_rc_input": false,
+  "has_common_rc": false,
+  "rc_serial_device": null,
+  "has_ppm_pin": false,
+  "ppm_shared_with_rc_serial": false,
+  "has_pps_capture": false,
+  "has_safety_switch": true,
+  "has_safety_led": true,
+  "has_buzzer": false,
+  "num_power_inputs": 1,
+  "has_redundant_power": false,
+  "has_dual_battery_monitoring": false,
+  "has_dronecan_power_input": false,
+  "power_monitor_type": null,
+  "has_sd_card": true,
+  "has_ethernet": true,
+  "has_heater": false,
+  "sensor_imu_drivers": [
+    "ICM-20649",
+    "ICM-42688P"
+  ],
+  "sensor_baro_drivers": [
+    "BMP388"
+  ],
+  "sensor_mag_drivers": [
+    "BMM150",
+    "IST8310",
+    "LIS3MDL"
+  ],
+  "sensor_osd_drivers": [],
+  "sensor_bus_info": {
+    "imu": [],
+    "baro": [
+      {
+        "name": "BMP388",
+        "bus_type": "I2C",
+        "bus_num": null,
+        "external": true
+      }
+    ],
+    "mag": [
+      {
+        "name": "LIS3MDL",
+        "bus_type": "I2C",
+        "bus_num": 2,
+        "external": true
+      }
+    ],
+    "osd": []
+  },
+  "sensor_variant_info": {
+    "has_variants": true,
+    "unconditional": {
+      "imu": [],
+      "baro": [
+        {
+          "name": "BMP388",
+          "bus_type": "I2C",
+          "bus_num": null,
+          "external": true
+        }
+      ],
+      "mag": [
+        {
+          "name": "LIS3MDL",
+          "bus_type": "I2C",
+          "bus_num": 2,
+          "external": true
+        }
+      ],
+      "osd": []
+    },
+    "variants": {
+      "MR-CANHUBK3-ADAP": {
+        "imu": [
+          {
+            "name": "ICM-42688P",
+            "bus_type": null,
+            "bus_num": 3,
+            "external": false
+          },
+          {
+            "name": "ICM-20649",
+            "bus_type": null,
+            "bus_num": 4,
+            "external": false
+          }
+        ],
+        "baro": [],
+        "mag": [
+          {
+            "name": "BMM150",
+            "bus_type": "I2C",
+            "bus_num": null,
+            "external": true
+          },
+          {
+            "name": "IST8310",
+            "bus_type": "I2C",
+            "bus_num": 1,
+            "external": true
+          }
+        ],
+        "osd": []
+      },
+      "__other__": {
+        "imu": [
+          {
+            "name": "ICM-20649",
+            "bus_type": null,
+            "bus_num": 4,
+            "external": false
+          },
+          {
+            "name": "ICM-42688P",
+            "bus_type": null,
+            "bus_num": 3,
+            "external": false
+          }
+        ],
+        "baro": [],
+        "mag": [
+          {
+            "name": "BMM150",
+            "bus_type": "I2C",
+            "bus_num": null,
+            "external": true
+          },
+          {
+            "name": "IST8310",
+            "bus_type": "I2C",
+            "bus_num": 2,
+            "external": true
+          }
+        ],
+        "osd": []
+      }
+    }
+  },
+  "num_i2c_buses": 0,
+  "num_spi_buses": 0,
+  "num_can_buses": 0,
+  "has_usb": false,
+  "doc_url": null,
+  "doc_file": null,
+  "doc_exists": false,
+  "documented": false
+}

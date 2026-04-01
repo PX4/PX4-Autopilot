@@ -1,0 +1,249 @@
+{
+  "board": "ark/cannode",
+  "chip_family": "stm32f4",
+  "chip_model": "STM32F412",
+  "total_outputs": 8,
+  "has_io_board": false,
+  "io_outputs": 0,
+  "groups": [
+    {
+      "group": 1,
+      "timer": "Timer2",
+      "outputs": [
+        1,
+        2,
+        3
+      ],
+      "dshot": true,
+      "dshot_outputs": [
+        1,
+        2,
+        3
+      ],
+      "non_dshot_outputs": [],
+      "bdshot_outputs": [],
+      "bdshot_output_only": []
+    },
+    {
+      "group": 2,
+      "timer": "Timer3",
+      "outputs": [
+        4,
+        5,
+        6,
+        7
+      ],
+      "dshot": true,
+      "dshot_outputs": [
+        4,
+        5,
+        6,
+        7
+      ],
+      "non_dshot_outputs": [],
+      "bdshot_outputs": [],
+      "bdshot_output_only": []
+    },
+    {
+      "group": 3,
+      "timer": "Timer4",
+      "outputs": [
+        8
+      ],
+      "dshot": true,
+      "dshot_outputs": [
+        8
+      ],
+      "non_dshot_outputs": [],
+      "bdshot_outputs": [],
+      "bdshot_output_only": []
+    }
+  ],
+  "serial_ports": [],
+  "has_rc_input": false,
+  "has_common_rc": false,
+  "rc_serial_device": null,
+  "has_ppm_pin": false,
+  "ppm_shared_with_rc_serial": false,
+  "has_pps_capture": false,
+  "has_safety_switch": false,
+  "has_safety_led": false,
+  "has_buzzer": false,
+  "num_power_inputs": 1,
+  "has_redundant_power": false,
+  "has_dual_battery_monitoring": false,
+  "has_dronecan_power_input": false,
+  "power_monitor_type": null,
+  "has_sd_card": false,
+  "has_ethernet": false,
+  "has_heater": false,
+  "sensor_imu_drivers": [
+    "ADIS16507",
+    "ICM-20948",
+    "ICM-42688P"
+  ],
+  "sensor_baro_drivers": [
+    "SPL06"
+  ],
+  "sensor_mag_drivers": [
+    "HMC5883L",
+    "IST8308",
+    "IST8310",
+    "IIS2MDC",
+    "LIS3MDL",
+    "QMC5883L",
+    "RM3100",
+    "AK09916"
+  ],
+  "sensor_osd_drivers": [],
+  "sensor_bus_info": {
+    "imu": [
+      {
+        "name": "ICM-42688P",
+        "bus_type": "SPI",
+        "bus_num": null,
+        "external": false
+      }
+    ],
+    "baro": [
+      {
+        "name": "SPL06",
+        "bus_type": "I2C",
+        "bus_num": null,
+        "external": true
+      }
+    ],
+    "mag": [
+      {
+        "name": "HMC5883L",
+        "bus_type": "I2C",
+        "bus_num": null,
+        "external": true
+      },
+      {
+        "name": "IST8308",
+        "bus_type": "I2C",
+        "bus_num": null,
+        "external": true
+      },
+      {
+        "name": "IST8310",
+        "bus_type": "I2C",
+        "bus_num": null,
+        "external": true
+      },
+      {
+        "name": "IIS2MDC",
+        "bus_type": "I2C",
+        "bus_num": null,
+        "external": true
+      },
+      {
+        "name": "LIS3MDL",
+        "bus_type": "I2C",
+        "bus_num": null,
+        "external": true
+      },
+      {
+        "name": "QMC5883L",
+        "bus_type": "I2C",
+        "bus_num": null,
+        "external": true
+      },
+      {
+        "name": "RM3100",
+        "bus_type": "I2C",
+        "bus_num": null,
+        "external": true
+      },
+      {
+        "name": "AK09916",
+        "bus_type": "I2C",
+        "bus_num": null,
+        "external": true
+      }
+    ],
+    "osd": []
+  },
+  "sensor_variant_info": {
+    "has_variants": false,
+    "unconditional": {
+      "imu": [
+        {
+          "name": "ICM-42688P",
+          "bus_type": "SPI",
+          "bus_num": null,
+          "external": false
+        }
+      ],
+      "baro": [
+        {
+          "name": "SPL06",
+          "bus_type": "I2C",
+          "bus_num": null,
+          "external": true
+        }
+      ],
+      "mag": [
+        {
+          "name": "HMC5883L",
+          "bus_type": "I2C",
+          "bus_num": null,
+          "external": true
+        },
+        {
+          "name": "IST8308",
+          "bus_type": "I2C",
+          "bus_num": null,
+          "external": true
+        },
+        {
+          "name": "IST8310",
+          "bus_type": "I2C",
+          "bus_num": null,
+          "external": true
+        },
+        {
+          "name": "IIS2MDC",
+          "bus_type": "I2C",
+          "bus_num": null,
+          "external": true
+        },
+        {
+          "name": "LIS3MDL",
+          "bus_type": "I2C",
+          "bus_num": null,
+          "external": true
+        },
+        {
+          "name": "QMC5883L",
+          "bus_type": "I2C",
+          "bus_num": null,
+          "external": true
+        },
+        {
+          "name": "RM3100",
+          "bus_type": "I2C",
+          "bus_num": null,
+          "external": true
+        },
+        {
+          "name": "AK09916",
+          "bus_type": "I2C",
+          "bus_num": null,
+          "external": true
+        }
+      ],
+      "osd": []
+    },
+    "variants": {}
+  },
+  "num_i2c_buses": 1,
+  "num_spi_buses": 2,
+  "num_can_buses": 1,
+  "has_usb": false,
+  "doc_url": null,
+  "doc_file": null,
+  "doc_exists": false,
+  "documented": false
+}
