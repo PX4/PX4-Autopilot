@@ -391,7 +391,7 @@ void GZBridge::magnetometerCallback(const gz::msgs::Magnetometer &msg)
 	id.devid_s.devtype = DRV_MAG_DEVTYPE_MAGSIM;
 	id.devid_s.bus = 1;
 	id.devid_s.address = 3; // Parameters CAL_MAGx_ID set to 0x3030C and 0x3040C in init.d-posix so only address 3 and 4 are valid for sim magnetometers
-	// See: https://github.com/PX4//PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d-posix/rcS#L146-L149
+	// See: https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d-posix/rcS#L146-L149
 
 	sensor_mag_s report{};
 	report.timestamp = timestamp;
