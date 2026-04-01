@@ -193,27 +193,29 @@ parameters:
       type: boolean
       default: 0
 
-    EKF2_EN_BOOT:
+    EKF2_SENS_EN:
       description:
-        short: Sensor fusion enable at boot
-        long: 'Bitmask to control which sensor fusion sources are active at boot.
-          Sources whose bit is cleared will be disabled at startup.
-          They can be toggled at runtime via MAVLink command
-          (VEHICLE_CMD_SET_EKF_SENSOR_FUSION), which also updates this param.'
+        short: Sensor fusion enable bitmask
+        long: 'Bitmask to control which sensor fusion sources are enabled.
+          Sources whose bit is cleared will be disabled.
+          Only applied while disarmed. For in-flight changes use the
+          MAVLink command VEHICLE_CMD_ESTIMATOR_SENSOR_ENABLE or the
+          individual CTRL params (e.g. EKF2_GPS_CTRL, EKF2_BARO_CTRL).'
       type: bitmask
       bit:
-        0: GNSS
-        1: Optical flow
-        2: External vision
-        3: Aux global position 0
-        4: Aux global position 1
-        5: Aux global position 2
-        6: Aux global position 3
-        7: Barometer
-        8: Range finder
-        9: Drag
+        0: GNSS 0
+        1: GNSS 1
+        2: Optical flow
+        3: External vision
+        4: Aux global position 0
+        5: Aux global position 1
+        6: Aux global position 2
+        7: Aux global position 3
+        8: Barometer
+        9: Range finder
         10: Magnetometer
-        11: IMU
-      default: 4095
+        11: Airspeed
+        12: Ranging beacon
+      default: 8191
       min: 0
-      max: 4095
+      max: 8191

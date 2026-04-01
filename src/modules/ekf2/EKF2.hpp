@@ -407,16 +407,24 @@ private:
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Publication<vehicle_command_ack_s> _vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
-#if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION)
-	param_t _param_ekf2_agp_ctrl[MAX_AGP_INSTANCES] {PARAM_INVALID, PARAM_INVALID, PARAM_INVALID, PARAM_INVALID};
-#endif
-
-	param_t _boot_param{PARAM_INVALID};
+	enum SensEnBit : uint16_t {
+		SENS_EN_GPS0   = 0,
+		SENS_EN_GPS1   = 1,
+		SENS_EN_OF     = 2,
+		SENS_EN_EV     = 3,
+		SENS_EN_AGP0   = 4,
+		// bit: 5-7 reserved for AGP1..3
+		SENS_EN_BARO   = 8,
+		SENS_EN_RNG    = 9,
+		SENS_EN_MAG    = 10,
+		SENS_EN_ASPD   = 11,
+		SENS_EN_RNGBCN = 12,
+	};
+	bool _prev_armed{false};
 
 	void initFusionControl();
-	void updateFusionIntended();
 	void handleSensorFusionCommand(const vehicle_command_s &cmd, vehicle_command_ack_s &ack);
-	void updateBootParam(uint8_t bit, bool enable);
+	void syncSensEnParam();
 
 	uORB::SubscriptionCallbackWorkItem _sensor_combined_sub{this, ORB_ID(sensor_combined)};
 	uORB::SubscriptionCallbackWorkItem _vehicle_imu_sub{this, ORB_ID(vehicle_imu)};
@@ -519,6 +527,7 @@ private:
 		(ParamExtInt<px4::params::EKF2_IMU_CTRL>) _param_ekf2_imu_ctrl,
 		(ParamExtFloat<px4::params::EKF2_VEL_LIM>) _param_ekf2_vel_lim,
 		(ParamBool<px4::params::EKF2_POS_LOCK>) _param_ekf2_pos_lock,
+		(ParamExtInt<px4::params::EKF2_SENS_EN>) _param_ekf2_sens_en,
 
 #if defined(CONFIG_EKF2_AUXVEL)
 		(ParamExtFloat<px4::params::EKF2_AVEL_DELAY>)
@@ -568,7 +577,7 @@ private:
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_BAROMETER)
-		(ParamExtInt<px4::params::EKF2_BARO_CTRL>) _param_ekf2_baro_ctrl,///< barometer control selection
+		(ParamExtInt<px4::params::EKF2_BARO_CTRL>) _param_ekf2_baro_ctrl,
 		(ParamExtFloat<px4::params::EKF2_BARO_DELAY>) _param_ekf2_baro_delay,
 		(ParamExtFloat<px4::params::EKF2_BARO_NOISE>) _param_ekf2_baro_noise,
 		(ParamExtFloat<px4::params::EKF2_BARO_GATE>) _param_ekf2_baro_gate,
@@ -690,7 +699,7 @@ private:
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 		// optical flow fusion
 		(ParamExtInt<px4::params::EKF2_OF_CTRL>)
-		_param_ekf2_of_ctrl, ///< optical flow fusion selection
+		_param_ekf2_of_ctrl,
 		(ParamExtInt<px4::params::EKF2_OF_GYR_SRC>)
 		_param_ekf2_of_gyr_src,
 		(ParamExtFloat<px4::params::EKF2_OF_DELAY>)
