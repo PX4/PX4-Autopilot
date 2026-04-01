@@ -307,19 +307,19 @@ void FixedwingAttitudeControl::Run()
 					// Turn coordination
 					const float V = math::max(get_airspeed_constrained(), 0.1f);
 					const float q1 = 2.f * (q_current(0) * q_current(1) + q_current(2) * q_current(3)); // equivalent to 2.f * sin(roll) * cos(pitch)
-					const float r_tc_ff = CONSTANTS_ONE_G * q1 / V;
-					const float p_tc_ff = q1 * r_tc_ff / (1.f - 2.f * q_current(1) * q_current(1) - 2.f * q_current(2) * q_current(2));
+					const float yawrate_ff = CONSTANTS_ONE_G * q1 / V;
+					const float pitchrate_ff = q1 * yawrate_ff / (1.f - 2.f * q_current(1) * q_current(1) - 2.f * q_current(2) * q_current(2));
 
-					body_rates_setpoint(1) += p_tc_ff;
-					body_rates_setpoint(2) += r_tc_ff;
+					body_rates_setpoint(1) += pitchrate_ff;
+					body_rates_setpoint(2) += yawrate_ff;
 
 					// Limit turn coordination to normal flight envelope
 					const float cos_tilt = 1.f - 2.f * (q_current(1) * q_current(1) + q_current(2) * q_current(2));
 					const float tilt = acosf(math::constrain((cos_tilt), -1.f, 1.f));
 					const float ff_scale = math::interpolate(tilt, radians(70.f), radians(75.f), 1.f, 0.f);
 
-					body_rates_setpoint(1) += ff_scale * p_tc_ff;
-					body_rates_setpoint(2) += ff_scale * r_tc_ff;
+					body_rates_setpoint(1) += ff_scale * pitchrate_ff;
+					body_rates_setpoint(2) += ff_scale * yawrate_ff;
 
 					body_rates_setpoint(0) = math::constrain(body_rates_setpoint(0), -radians(_param_fw_r_rmax.get()), radians(_param_fw_r_rmax.get()));
 					body_rates_setpoint(1) = math::constrain(body_rates_setpoint(1), -radians(_param_fw_p_rmax_neg.get()), radians(_param_fw_p_rmax_pos.get()));
