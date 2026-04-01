@@ -92,6 +92,7 @@ rules.ninja
 /generated_params/
 /googletest-*/
 /logs
+Tools/logs/
 /mavsdk_tests
 /unit-*
 /uORB/
