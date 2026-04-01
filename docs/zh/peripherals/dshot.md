@@ -13,7 +13,7 @@ DShot is an alternative ESC protocol that has several advantages over [PWM](../p
 
 ## Supported ESC
 
-[ESCs & Motors > Supported ESCs](../peripherals/esc_motors#supported-esc) has a list of supported ESC (check "Protocols" column for DShot ESC).
+[ESCs & Motors > Supported ESCs](../peripherals/esc_motors.md#supported-esc) has a list of supported ESC (check "Protocols" column for DShot ESC).
 
 ## Wiring/Connections {#wiring}
 
