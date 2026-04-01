@@ -2,7 +2,7 @@
 #
 # Fits ROS REP 147 for aerial vehicles
 
-uint32 MESSAGE_VERSION = 1
+uint32 MESSAGE_VERSION = 0
 
 uint64 timestamp         # [us] Time since system start
 uint64 timestamp_sample  # [us] Timestamp sample
@@ -22,7 +22,6 @@ uint8 VELOCITY_FRAME_FRD      = 2  # FRD navigation frame at current position. C
 uint8 VELOCITY_FRAME_BODY_FRD = 3  # FRD body-fixed frame
 
 float32[3] velocity          # [m/s] [@frame @velocity_frame] [@invalid NaN If invalid/unknown] Velocity.
-float32[3] acceleration      # [m/s^2] [@frame local frame] [@invalid NaN If invalid/unknown] Acceleration of body origin in local NED frame.
 float32[3] angular_velocity  # [rad/s] [@frame @VELOCITY_FRAME_BODY_FRD] [@invalid NaN If invalid/unknown] Angular velocity in body-fixed frame
 
 float32[3] position_variance     # [m^2] Variance of position error

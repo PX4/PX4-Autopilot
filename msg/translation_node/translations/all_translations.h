@@ -19,6 +19,7 @@
 #include "translation_vehicle_attitude_setpoint_v1.h"
 #include "translation_vehicle_command_ack_v1.h"
 #include "translation_vehicle_local_position_v1.h"
+#include "translation_vehicle_odometry_v1.h"
 #include "translation_vehicle_status_v1.h"
 #include "translation_vehicle_status_v2.h"
 #include "translation_vehicle_status_v3.h"
