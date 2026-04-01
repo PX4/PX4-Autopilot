@@ -79,11 +79,22 @@ private:
 		Stage stage{Stage::Idle};
 		int32_t branch_off_index{-1};
 		int32_t transition_target_index{-1};
+		VtolTransitionAction transition_action{VtolTransitionAction::None};
+		bool transition_command_sent{false};
+		bool advance_route_after_transition{false};
+
+		void clearRouteTransition()
+		{
+			transition_target_index = -1;
+			transition_action = VtolTransitionAction::None;
+			transition_command_sent = false;
+			advance_route_after_transition = false;
+		}
 
 		void resetProgress()
 		{
 			stage = Stage::Idle;
-			transition_target_index = -1;
+			clearRouteTransition();
 		}
 	};
 
@@ -114,6 +125,13 @@ private:
 	void normalizeRouteMissionItem(mission_item_s &mission_item) const;
 	/** @brief Load the adjacent route position item in the currently selected traversal direction. */
 	bool loadAdjacentRouteItem(mission_item_s &mission_item, int32_t &adjacent_index);
+	/** @brief Arm the synthetic route transition that should be issued on the next publication pass. */
+	void armRouteTransition(VtolTransitionAction action, bool advance_route_after_transition);
+	/** @brief Clear any staged route-transition bookkeeping. */
+	void clearRouteTransitionState();
+	/** @brief Publish and issue the staged route transition, then wait for completion. */
+	void handleRouteTransitionStage(position_setpoint_triplet_s *pos_sp_triplet,
+					const position_setpoint_s &current_setpoint_copy);
 	/** @brief Publish the active route-following setpoints, endpoint handoff, and any pending transition. */
 	void handleFollowRouteStage(position_setpoint_triplet_s *pos_sp_triplet,
 				    const position_setpoint_s &current_setpoint_copy);

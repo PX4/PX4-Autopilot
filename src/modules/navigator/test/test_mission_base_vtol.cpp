@@ -167,6 +167,7 @@ public:
 
 	// Expose protected methods for testing.
 	using MissionBase::vtolTransitionActionForTarget;
+	using MissionBase::vtolTransitionActionAfterReachingReverseTarget;
 	using MissionBase::getVtolStateAtMissionIndex;
 	using MissionBase::VtolTransitionAction;
 	using MissionBase::WorkItemType;
@@ -752,13 +753,13 @@ TEST_F(MissionBaseTransitionActionTest, MidRouteTransitionsDetectedNominal)
 		  MissionBaseTestPeer::VtolTransitionAction::BackTransition);
 }
 
-// WHY: The RTL executor may walk the route in reverse (direction_reversed=true). In that
-//      case the anchor for each target is found by looking *forward* in mission index
-//      space (i.e. the segment end in reverse). This test ensures the anchor lookup and
-//      VTOL state detection work correctly for multiple reverse targets on the same mission.
-// WHAT: Same full VTOL mission walked in reverse: FW vehicle sees BackTransition when
-//       anchor is in MC zone, MC vehicle sees FrontTransition when anchor is in FW zone.
-TEST_F(MissionBaseTransitionActionTest, MidRouteTransitionsDetectedReverse)
+// WHY: MissionBase still needs a reverse segment-entry helper for join-route execution and
+//      the branch-off exception path, even though normal reverse route following now uses
+//      reached-waypoint semantics. The helper therefore keeps the forward-scanned reverse anchor.
+// WHAT: Same full VTOL mission queried through the reverse segment-entry helper:
+//       FW vehicle sees BackTransition when the segment anchor is in an MC zone, and
+//       MC vehicle sees FrontTransition when the segment anchor is in an FW zone.
+TEST_F(MissionBaseTransitionActionTest, ReverseSegmentEntryTransitionsDetected)
 {
 	std::vector<mission_item_s> items = {
 		makeTakeoffItem(kBaseLat, kBaseLon, kAlt),
@@ -788,6 +789,44 @@ TEST_F(MissionBaseTransitionActionTest, MidRouteTransitionsDetectedReverse)
 	// MC vehicle, target 6 reversed: anchor idx 7 → land item → getVtolState walks
 	// back and finds VTOL_MC at idx 5 → MC zone → None.
 	EXPECT_EQ(mission_base.vtolTransitionActionForTarget(6, true),
+		  MissionBaseTestPeer::VtolTransitionAction::None);
+}
+
+// WHY: Normal reverse route following:
+//      the transition attached to waypoint i is evaluated only after waypoint i is reached,
+//      and the next reverse segment state is reconstructed from the items before that waypoint.
+// WHAT: A reverse route with FW and MC transitions attached to intermediate waypoints
+//       requests FrontTransition / BackTransition only after the owning waypoint is reached.
+TEST_F(MissionBaseTransitionActionTest, ReverseReachedTargetTransitionsHonorAttachedWaypointSemantics)
+{
+	mission_item_s speed_change_item{};
+	speed_change_item.nav_cmd = NAV_CMD_DO_CHANGE_SPEED;
+
+	std::vector<mission_item_s> items = {
+		makePositionItem(kBaseLat, kBaseLon, kAlt),                                    // idx 0: WP1
+		speed_change_item,                                                             // idx 1: action after WP1
+		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW),  // idx 2: attached to WP1
+		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt + 20.f),                    // idx 3: WP2
+		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC),  // idx 4: attached to WP2
+		makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt + 10.f),                    // idx 5: WP3
+	};
+
+	mission_base.loadTestMission(items);
+
+	// FW vehicle after reaching WP1: the attached FW transition has fired too late for reverse,
+	// so the next reverse segment must fall back to the upload MC state.
+	mission_base.setVehicleStatus(true, true, false);
+	EXPECT_EQ(mission_base.vtolTransitionActionAfterReachingReverseTarget(0),
+		  MissionBaseTestPeer::VtolTransitionAction::BackTransition);
+
+	// MC vehicle after reaching WP2: the attached MC transition fires now, and the next
+	// reverse segment [WP2 -> WP1] still requires the FW state defined before WP2.
+	mission_base.setVehicleStatus(true, false, false);
+	EXPECT_EQ(mission_base.vtolTransitionActionAfterReachingReverseTarget(3),
+		  MissionBaseTestPeer::VtolTransitionAction::FrontTransition);
+
+	// Reaching WP3 does not arm anything because no transition is attached to WP3.
+	EXPECT_EQ(mission_base.vtolTransitionActionAfterReachingReverseTarget(5),
 		  MissionBaseTestPeer::VtolTransitionAction::None);
 }
 

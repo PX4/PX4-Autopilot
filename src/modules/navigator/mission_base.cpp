@@ -1459,6 +1459,69 @@ MissionBase::VtolTransitionAction MissionBase::vtolTransitionActionForTarget(int
 	return VtolTransitionAction::None;
 }
 
+MissionBase::VtolTransitionAction MissionBase::vtolTransitionActionAfterReachingReverseTarget(int32_t reached_target_index)
+{
+	const auto &vehicle_status = _vehicle_status_sub.get();
+
+	if (!vehicle_status.is_vtol || reached_target_index < 0 || reached_target_index >= _mission.count) {
+		return VtolTransitionAction::None;
+	}
+
+	bool attached_transition_found = false;
+
+	// Inside advanceRouteTarget, if direction reversed we only target position items
+	for (int32_t index = reached_target_index + 1; index < _mission.count; ++index) {
+		mission_item_s mission_item{};
+
+		if (!loadMissionItemFromCache(index, mission_item)) {
+			PX4_ERR("Failed to read mission item %d for reverse VTOL transition check", static_cast<int>(index));
+			break;
+		}
+
+		if (item_contains_position(mission_item)) {
+			break;
+		}
+
+		if (mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION) {
+			const int transition_mode = static_cast<int>(roundf(mission_item.params[0]));
+
+			if (transition_mode == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC
+			    || transition_mode == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW) {
+				attached_transition_found = true;
+
+			} else {
+				PX4_ERR("Mission item %d has invalid VTOL transition mode %d", static_cast<int>(index), transition_mode);
+			}
+
+			break;
+		}
+	}
+
+	if (!attached_transition_found) {
+		return VtolTransitionAction::None;
+	}
+
+	// After reaching idx in reverse mode, we finished [idx + 1 -> idx].
+	// The next segment is [idx -> idx - 1], whose state is defined by
+	// commands up to (idx - 1). For idx == 0, use upload state.
+	const uint8_t next_reverse_segment_state = (reached_target_index <= 0)
+			? _vtol_state_on_mission_upload
+			: getVtolStateAtMissionIndex(reached_target_index - 1);
+
+	// Consider FT as already FW and BT as already MC:: no need to re-send the command
+	const bool currently_fw = vehicleInFwLikeState(vehicle_status);
+
+	if (next_reverse_segment_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC && currently_fw) {
+		return VtolTransitionAction::BackTransition;
+	}
+
+	if (next_reverse_segment_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW && !currently_fw) {
+		return VtolTransitionAction::FrontTransition;
+	}
+
+	return VtolTransitionAction::None;
+}
+
 void MissionBase::updateLastFlownLoopSegmentForNominalAdvance(MissionRoutePlanner::Segment &last_flown_loop_segment)
 {
 	// This cache is loop-only. Clear it first so stale DO_JUMP anchors do not survive when the

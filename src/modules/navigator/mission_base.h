@@ -365,7 +365,7 @@ protected:
 	/**
 	 * @brief Compute the front-transition yaw used when entering route-following geometry.
 	 *
-	 * The alignment always points at the current route target.
+	 * The alignment points at the provided route alignment target.
 	 */
 	float computeFrontTransitionAlignmentYaw(int32_t current_target_index);
 
@@ -451,6 +451,15 @@ protected:
 	 * vehicle state to return the required transition action.
 	 */
 	VtolTransitionAction vtolTransitionActionForTarget(int32_t target_index, bool direction_reversed);
+
+	/**
+	 * @brief Determine the VTOL transition action required after reaching a reverse route target.
+	 *
+	 * A transition is considered only after the attached position item has been
+	 * reached, then the next reverse segment VTOL state is reconstructed from the
+	 * mission items that precede that reached target.
+	 */
+	VtolTransitionAction vtolTransitionActionAfterReachingReverseTarget(int32_t reached_target_index);
 
 	/**
 	 * @brief Cache the DO_JUMP loop segment that the next forward nominal advance would traverse.

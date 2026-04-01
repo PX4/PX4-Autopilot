@@ -210,7 +210,7 @@ bool RtlMissionSafePointFollow::advanceRouteTarget()
 	bool advanced = false;
 	const auto continueToGoal = [this](const char *reason) {
 		_state.stage = finalGoalStage();
-		_state.transition_target_index = -1;
+		clearRouteTransitionState();
 		PX4_INFO("%s, straight to goal", reason);
 		return true;
 	};
@@ -245,26 +245,43 @@ bool RtlMissionSafePointFollow::advanceRouteTarget()
 		}
 	}
 
-	if (advanced && currentTargetIsBranchOff()) {
-		_state.stage = Stage::BranchOff;
-		PX4_INFO("RTL branch-off is next");
-	}
-
 	return advanced;
 }
 
 bool RtlMissionSafePointFollow::setNextMissionItem()
 {
 	switch (_state.stage) {
-	case Stage::FollowRoute:
-		return advanceRouteTarget();
+	case Stage::FollowRoute: {
+			const VtolTransitionAction reverse_transition_action = _plan.selection.path.direction_reversed
+					? vtolTransitionActionAfterReachingReverseTarget(_mission.current_seq)
+					: VtolTransitionAction::None;
+			const bool wait_for_reverse_transition = reverse_transition_action != VtolTransitionAction::None
+					&& _vehicle_status_sub.get().is_vtol && !_land_detected_sub.get().landed;
 
-	case Stage::TransitionDuringRoute:
-		// The in-flight transition completed; resume route following from the same target.
-		_state.stage = Stage::FollowRoute;
-		_state.transition_target_index = -1;
-		PX4_INFO("RTL route transition complete");
-		return true;
+			if (wait_for_reverse_transition) {
+				armRouteTransition(reverse_transition_action, true);
+				return true;
+			}
+
+			return advanceRouteTarget();
+		}
+
+	case Stage::TransitionDuringRoute: {
+			const bool advance_after_transition = _state.advance_route_after_transition;
+			const bool branch_off_after_transition = currentTargetIsBranchOff();
+			clearRouteTransitionState();
+
+			if (advance_after_transition) {
+				_state.stage = Stage::FollowRoute;
+				PX4_INFO("RTL route transition complete, advancing reverse route");
+				return advanceRouteTarget();
+			}
+
+			_state.stage = branch_off_after_transition ? Stage::BranchOff : Stage::FollowRoute;
+			PX4_INFO(branch_off_after_transition ? "RTL route transition complete, branching off"
+				 : "RTL route transition complete");
+			return true;
+		}
 
 	case Stage::BranchOff:
 		_state.stage = finalGoalStage();
@@ -447,6 +464,133 @@ bool RtlMissionSafePointFollow::loadAdjacentRouteItem(mission_item_s &mission_it
 	return loadMissionItemFromCache(adjacent_route_index, mission_item);
 }
 
+void RtlMissionSafePointFollow::armRouteTransition(VtolTransitionAction action, bool advance_route_after_transition)
+{
+	_state.stage = Stage::TransitionDuringRoute;
+	_state.transition_target_index = _mission.current_seq;
+	_state.transition_action = action;
+	_state.transition_command_sent = false;
+	_state.advance_route_after_transition = advance_route_after_transition;
+}
+
+void RtlMissionSafePointFollow::clearRouteTransitionState()
+{
+	_state.clearRouteTransition();
+}
+
+void RtlMissionSafePointFollow::handleRouteTransitionStage(position_setpoint_triplet_s *pos_sp_triplet,
+		const position_setpoint_s &current_setpoint_copy)
+{
+	if (_state.transition_command_sent) {
+		return;
+	}
+
+	if (_state.transition_action == VtolTransitionAction::None || !missionIndexInBounds(_state.transition_target_index)) {
+		PX4_ERR("RTL route transition stage is missing a valid target/action");
+		clearRouteTransitionState();
+		_state.stage = currentTargetIsBranchOff() ? Stage::BranchOff : Stage::FollowRoute;
+		return;
+	}
+
+	const bool branch_off_target_active = currentTargetIsBranchOff() && !_state.advance_route_after_transition;
+	mission_item_s current_route_item{};
+	mission_item_s next_route_item{};
+	mission_item_s *next_route_item_ptr = nullptr;
+	int32_t adjacent_index = -1;
+
+	if (branch_off_target_active) {
+		setWaypointMissionItem(current_route_item, _plan.selection.branch_off_projection, true);
+
+		if (useGoalLandApproach()) {
+			setGoalApproachMissionItem(next_route_item);
+
+		} else {
+			setLandMissionItem(next_route_item);
+		}
+
+		next_route_item_ptr = &next_route_item;
+
+	} else {
+		current_route_item = _mission_item;
+		normalizeRouteMissionItem(current_route_item);
+
+		if (loadAdjacentRouteItem(next_route_item, adjacent_index)) {
+			const bool next_item_is_branch_off = _plan.selection.safe_point_found
+							     && adjacent_index == _state.branch_off_index;
+			const bool next_item_is_endpoint_command = missionItemMatchesSelectedEndpoint(next_route_item);
+
+			if (next_item_is_branch_off) {
+				setWaypointMissionItem(next_route_item, _plan.selection.branch_off_projection, true);
+
+			} else if (!next_item_is_endpoint_command) {
+				normalizeRouteMissionItem(next_route_item);
+			}
+
+			next_route_item_ptr = &next_route_item;
+		}
+	}
+
+	if (_state.advance_route_after_transition
+	    && _plan.selection.path.direction_reversed
+	    && next_route_item_ptr != nullptr) {
+		// Reverse waypoint-attached semantics trigger the transition only after the current
+		// waypoint is reached. During that transition the vehicle must already track the next
+		// reverse target, not fly back toward the waypoint it just completed.
+		current_route_item = *next_route_item_ptr;
+		next_route_item_ptr = nullptr;
+	}
+
+	publishRouteItems(pos_sp_triplet, current_setpoint_copy, current_route_item, next_route_item_ptr, false);
+
+	mission_item_s transition_item{};
+	const bool front_transition = _state.transition_action == VtolTransitionAction::FrontTransition;
+	set_vtol_transition_item(&transition_item,
+				 front_transition ? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW
+				 : vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
+
+	if (front_transition) {
+		const auto *global_position = _navigator->get_global_position();
+
+		if (branch_off_target_active
+		    && global_position != nullptr
+		    && PX4_ISFINITE(global_position->lat)
+		    && PX4_ISFINITE(global_position->lon)) {
+			transition_item.yaw = get_bearing_to_next_waypoint(global_position->lat, global_position->lon,
+					      _plan.selection.branch_off_projection.lat,
+					      _plan.selection.branch_off_projection.lon);
+
+		} else {
+			int32_t alignment_index = _mission.current_seq;
+
+			if (_state.advance_route_after_transition
+			    && _plan.selection.path.direction_reversed
+			    && missionIndexInBounds(adjacent_index)) {
+				alignment_index = adjacent_index;
+			}
+
+			transition_item.yaw = computeFrontTransitionAlignmentYaw(alignment_index);
+		}
+
+		PX4_INFO("RTL route front transition");
+
+	} else {
+		PX4_INFO("RTL route back transition");
+	}
+
+	_mission_item = transition_item;
+	issue_command(_mission_item);
+	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+
+	if (_state.transition_action == VtolTransitionAction::BackTransition) {
+		pos_sp_triplet->previous.valid = false;
+	}
+
+	reset_mission_item_reached();
+	publish_navigator_mission_item();
+	_navigator->set_position_setpoint_triplet_updated();
+	_state.transition_command_sent = true;
+}
+
 void RtlMissionSafePointFollow::publishRouteItems(position_setpoint_triplet_s *pos_sp_triplet,
 		const position_setpoint_s &current_setpoint_copy, const mission_item_s &current_mission_item,
 		const mission_item_s *next_mission_item, bool sync_active_mission_item)
@@ -539,15 +683,9 @@ void RtlMissionSafePointFollow::publishLandingItems(position_setpoint_triplet_s 
 void RtlMissionSafePointFollow::handleFollowRouteStage(position_setpoint_triplet_s *pos_sp_triplet,
 		const position_setpoint_s &current_setpoint_copy)
 {
-	// Early returns if we need to branch off from the route
 	if (joinProjectionNearBranchOff()) {
 		_state.stage = finalGoalStage();
 		PX4_INFO("RTL join is near branch-off, straight to goal");
-		return;
-
-	} else if (currentTargetIsBranchOff()) {
-		_state.stage = Stage::BranchOff;
-		PX4_INFO("RTL leaving route at branch-off");
 		return;
 	}
 
@@ -570,14 +708,26 @@ void RtlMissionSafePointFollow::handleFollowRouteStage(position_setpoint_triplet
 		return;
 	}
 
-	// Check for a VTOL transition only once per target to prevent re-issuing the same command.
-	const VtolTransitionAction transition_action = (_state.transition_target_index != _mission.current_seq)
+	const bool branch_off_target_active = currentTargetIsBranchOff();
+	const bool segment_entry_transition_context = branch_off_target_active || !_plan.selection.path.direction_reversed;
+	const VtolTransitionAction transition_action = segment_entry_transition_context
 			? vtolTransitionActionForTarget(_mission.current_seq, _plan.selection.path.direction_reversed)
-			: VtolTransitionAction::None; // Already issued for this target.
-
+			: VtolTransitionAction::None;
 	const bool wait_for_route_transition = transition_action != VtolTransitionAction::None
 					       && _vehicle_status_sub.get().is_vtol
 					       && !_land_detected_sub.get().landed;
+
+	if (wait_for_route_transition) {
+		armRouteTransition(transition_action, false);
+		handleRouteTransitionStage(pos_sp_triplet, current_setpoint_copy);
+		return;
+	}
+
+	if (branch_off_target_active) {
+		_state.stage = Stage::BranchOff;
+		PX4_INFO("RTL leaving route at branch-off");
+		return;
+	}
 
 	mission_item_s current_route_item = _mission_item;
 	normalizeRouteMissionItem(current_route_item);
@@ -603,39 +753,7 @@ void RtlMissionSafePointFollow::handleFollowRouteStage(position_setpoint_triplet
 		next_route_item_ptr = &next_route_item;
 	}
 
-	publishRouteItems(pos_sp_triplet, current_setpoint_copy, current_route_item, next_route_item_ptr,
-			  !wait_for_route_transition);
-
-	if (wait_for_route_transition) {
-		_state.transition_target_index = _mission.current_seq;
-		_state.stage = Stage::TransitionDuringRoute;
-
-		mission_item_s transition_item{};
-		set_vtol_transition_item(&transition_item,
-					 transition_action == VtolTransitionAction::BackTransition
-					 ? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC
-					 : vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
-
-		if (transition_action == VtolTransitionAction::FrontTransition) {
-			PX4_INFO("RTL route front transition");
-			transition_item.yaw = computeFrontTransitionAlignmentYaw(_mission.current_seq);
-
-		} else {
-			PX4_INFO("RTL route back transition");
-		}
-
-		_mission_item = transition_item;
-		issue_command(_mission_item);
-		pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
-
-		if (transition_action == VtolTransitionAction::BackTransition) {
-			pos_sp_triplet->previous.valid = false;
-		}
-
-		reset_mission_item_reached();
-		publish_navigator_mission_item();
-		_navigator->set_position_setpoint_triplet_updated();
-	}
+	publishRouteItems(pos_sp_triplet, current_setpoint_copy, current_route_item, next_route_item_ptr);
 }
 
 void RtlMissionSafePointFollow::setActiveMissionItems()
@@ -652,11 +770,9 @@ void RtlMissionSafePointFollow::setActiveMissionItems()
 		handleFollowRouteStage(pos_sp_triplet, current_setpoint_copy);
 		break;
 
-	case Stage::TransitionDuringRoute: {
-			// Transition is in progress — keep the current position setpoint and wait for
-			// the transition to complete (detected by setNextMissionItem via is_mission_item_reached).
-			break;
-		}
+	case Stage::TransitionDuringRoute:
+		handleRouteTransitionStage(pos_sp_triplet, current_setpoint_copy);
+		break;
 
 	case Stage::BranchOff: {
 			mission_item_s branch_off_item{};

@@ -162,7 +162,7 @@ During route following, PX4 treats the mission as geometry rather than as a full
 - Other non-position mission commands are skipped.
 - When route traversal can no longer advance, the executor transitions to the already-selected goal and continues with the landing stage instead of completing RTL in loiter.
 
-VTOL transition handling is preserved during route following: PX4 detects the expected VTOL state for each target segment using the same anchor rules as the planner. When a transition is needed, the executor enters a dedicated `TransitionDuringRoute` stage that issues the transition command once and waits for completion before resuming route following. This prevents the transition command from being re-issued on every control cycle.
+VTOL transition handling is preserved during route following. Note that in reverse route following, PX4 waits until the waypoint that owns the attached transition has been reached, then stages the transition before advancing to the next reverse target.
 
 ### Branch-Off and Landing
 
@@ -300,8 +300,8 @@ Executor stages:       Idle → FollowRoute ⇄ TransitionDuringRoute → Branch
 
 - `JoinRoute`: a shared `MissionBase` work item that flies the virtual branch-in waypoint.
 - `TransitionAfterJoin`: a shared `MissionBase` work item that performs the required VTOL front-transition or back-transition after the join when needed.
-- `FollowRoute`: walk mission items as geometry (skipping `DO_JUMP`), advancing via `advanceRouteTarget()`. If traversal can no longer advance, the executor goes straight to the already-selected landing goal instead of terminating RTL in loiter.
-- `TransitionDuringRoute`: a VTOL transition was detected mid-route. The transition command is issued once, and the stage waits for completion before returning to `FollowRoute`. This prevents transition command spamming.
+- `FollowRoute`: walk mission items as geometry (skipping `DO_JUMP`), advancing via `advanceRouteTarget()`. If traversal can no longer advance, the executor goes straight to the already-selected landing goal instead of terminating RTL in loiter. When the new target is the branch-off anchor, the stage stays in `FollowRoute` until setpoint generation can decide whether the final route segment needs a VTOL transition before handing over to `BranchOff`.
+- `TransitionDuringRoute`: a VTOL transition was detected during route execution. The transition command is issued once, and the stage waits for completion before returning to `FollowRoute`, advancing the reverse route, or handing over to `BranchOff` when the protected segment was the final branch-off leg. This prevents transition command spamming.
 - `BranchOff`: replace the mission target with the virtual branch-off waypoint.
 - `ApproachAtGoal`: if the selected safe point has a valid VTOL approach and the vehicle is currently flying in FW mode, inject the chosen `NAV_CMD_LOITER_TO_ALT` approach before landing.
 - `LandAtGoal`: hand off to `handleLanding()` for the final descent.
@@ -425,9 +425,10 @@ The executor reuses several traversal methods from `MissionBase` to avoid code d
 - `findNextPositionIndex()` / `findPreviousPositionIndex()`: single-step position traversal with explicit `DO_JUMP` semantics. `FollowMissionControlFlow` honors active jumps, while `IgnoreDoJump` treats jumps as geometry only.
 - `getNextPositionItems()` / `getPreviousPositionItems()`: list-based look-ahead wrappers over the same traversal API. Mission mode uses them when it needs one or more future position anchors, while `RTL_TYPE=6` only needs the adjacent position item.
 - `findAttachedPositionIndex()`: find the nearest position item at or before a given index.
-- `vtolTransitionActionForTarget()`: determine if a VTOL transition is needed for a given target index.
+- `vtolTransitionActionForTarget()`: determine if a VTOL transition is needed before entering a target segment.
+- `vtolTransitionActionAfterReachingReverseTarget()`: determine if reverse route following must apply a waypoint-attached VTOL transition after a reached target.
 - `setupJoinRoute()` / `handleJoinRouteWorkItems()`: arm and execute the shared branch-in pipeline used by both Mission smart rejoin and `RTL_TYPE=6`.
-- `computeFrontTransitionAlignmentYaw()`: provide the route-aligned yaw used for front transitions after join and during route following, always pointing at the current route target.
+- `computeFrontTransitionAlignmentYaw()`: provide the route-aligned yaw used for front transitions after join and during route following, pointing at the chosen route alignment target.
 - `updateLastFlownLoopSegmentForNominalAdvance()`: cache the exact active `DO_JUMP` edge that the next nominal forward advance would traverse.
 
 ### Dataman Cache Architecture

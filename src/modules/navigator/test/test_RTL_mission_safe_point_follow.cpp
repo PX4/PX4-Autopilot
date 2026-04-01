@@ -43,8 +43,14 @@
 
 #include <gtest/gtest.h>
 
+#include "navigator.h"
 #include "rtl_mission_safe_point_follow.h"
 #include "test_RTL_helpers.h"
+
+#include <drivers/drv_hrt.h>
+#include <uORB/Publication.hpp>
+#include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_status.h>
 
 #include <vector>
 
@@ -62,9 +68,10 @@ class RtlMissionSafePointFollowTestPeer : public RtlMissionSafePointFollow
 {
 public:
 	using Stage = RtlMissionSafePointFollow::Stage;
+	using VtolTransitionAction = MissionBase::VtolTransitionAction;
 
-	RtlMissionSafePointFollowTestPeer()
-		: RtlMissionSafePointFollow(nullptr, mission_s{})
+	explicit RtlMissionSafePointFollowTestPeer(Navigator *navigator = nullptr)
+		: RtlMissionSafePointFollow(navigator, mission_s{})
 	{
 	}
 
@@ -105,6 +112,11 @@ public:
 		_mission.current_seq = index;
 	}
 
+	int32_t currentSequenceForTest() const
+	{
+		return _mission.current_seq;
+	}
+
 	void setSafePointSelectionForTest(bool direction_reversed, int32_t branch_off_index)
 	{
 		_plan = {};
@@ -120,6 +132,36 @@ public:
 		_state.transition_target_index = index;
 	}
 
+	void setTransitionStateForTest(VtolTransitionAction action, bool command_sent, bool advance_route_after_transition)
+	{
+		_state.transition_action = action;
+		_state.transition_command_sent = command_sent;
+		_state.advance_route_after_transition = advance_route_after_transition;
+	}
+
+	void setVehicleStatusForTest(bool is_vtol, bool is_fixed_wing, bool in_transition_to_fw)
+	{
+		vehicle_status_s status{};
+		status.is_vtol = is_vtol;
+		status.vehicle_type = is_fixed_wing
+				      ? vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+				      : vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+		status.in_transition_to_fw = in_transition_to_fw;
+		status.in_transition_mode = in_transition_to_fw;
+		status.timestamp = hrt_absolute_time();
+		_vehicle_status_pub.publish(status);
+		_vehicle_status_sub.update();
+	}
+
+	void setLandedForTest(bool landed)
+	{
+		vehicle_land_detected_s land_detected{};
+		land_detected.landed = landed;
+		land_detected.timestamp = hrt_absolute_time();
+		_land_detected_pub.publish(land_detected);
+		_land_detected_sub.update();
+	}
+
 	void setGoalLandApproachForTest(const loiter_point_s &land_approach)
 	{
 		_goal_land_approach = land_approach;
@@ -128,6 +170,21 @@ public:
 	int32_t transitionTargetIndexForTest() const
 	{
 		return _state.transition_target_index;
+	}
+
+	VtolTransitionAction transitionActionForTest() const
+	{
+		return _state.transition_action;
+	}
+
+	bool transitionCommandSentForTest() const
+	{
+		return _state.transition_command_sent;
+	}
+
+	bool advanceRouteAfterTransitionForTest() const
+	{
+		return _state.advance_route_after_transition;
 	}
 
 	bool advanceStageForTest()
@@ -140,13 +197,25 @@ public:
 		normalizeRouteMissionItem(mission_item);
 	}
 
+	void publishActiveMissionItemsForTest()
+	{
+		setActiveMissionItems();
+	}
+
 	void resetExecutorProgressForTest()
 	{
 		resetExecutorProgress();
 	}
 
+	void setCurrentMissionItemForTest(const mission_item_s &mission_item)
+	{
+		_mission_item = mission_item;
+	}
+
 private:
 	std::vector<mission_item_s> _items;
+	uORB::Publication<vehicle_status_s> _vehicle_status_pub{ORB_ID(vehicle_status)};
+	uORB::Publication<vehicle_land_detected_s> _land_detected_pub{ORB_ID(vehicle_land_detected)};
 };
 
 /**
@@ -160,6 +229,8 @@ protected:
 	void SetUp() override
 	{
 		executor.loadTestMission({});
+		executor.setVehicleStatusForTest(false, false, false);
+		executor.setLandedForTest(false);
 	}
 };
 
@@ -174,6 +245,8 @@ TEST_F(RtlMissionSafePointFollowStageTest, TransitionDuringRouteResumesFollowRou
 	});
 	executor.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::TransitionDuringRoute);
 	executor.setTransitionTargetIndexForTest(1);
+	executor.setTransitionStateForTest(RtlMissionSafePointFollowTestPeer::VtolTransitionAction::FrontTransition, true,
+					   false);
 
 	// WHEN: setNextMissionItem advances the stage machine.
 	const bool advanced = executor.advanceStageForTest();
@@ -181,6 +254,126 @@ TEST_F(RtlMissionSafePointFollowStageTest, TransitionDuringRouteResumesFollowRou
 	// THEN: The transition stage completes and route following resumes.
 	EXPECT_TRUE(advanced);
 	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::FollowRoute);
+	EXPECT_EQ(executor.transitionTargetIndexForTest(), -1);
+}
+
+// WHY: A transition may now protect the final route segment before branch-off.
+// WHAT: Completing that transition hands control to BranchOff instead of back to FollowRoute.
+TEST_F(RtlMissionSafePointFollowStageTest, TransitionDuringRouteResumesBranchOffWhenTargetIsBranchOff)
+{
+	executor.loadTestMission({
+		makePositionItem(kBaseLat, kBaseLon, kAlt),
+		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
+		makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt),
+	});
+	executor.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::TransitionDuringRoute);
+	executor.setCurrentSequenceForTest(2);
+	executor.setSafePointSelectionForTest(false, 2);
+	executor.setTransitionTargetIndexForTest(2);
+	executor.setTransitionStateForTest(RtlMissionSafePointFollowTestPeer::VtolTransitionAction::FrontTransition, true,
+					   false);
+
+	const bool advanced = executor.advanceStageForTest();
+
+	EXPECT_TRUE(advanced);
+	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::BranchOff);
+	EXPECT_EQ(executor.transitionTargetIndexForTest(), -1);
+}
+
+// WHY: In reverse route following, reaching a waypoint with an attached transition must hold
+//      the current route target and enter TransitionDuringRoute instead of advancing immediately.
+// WHAT: setNextMissionItem arms the transition on the reached reverse target and leaves current_seq unchanged.
+TEST_F(RtlMissionSafePointFollowStageTest, ReverseReachedWaypointArmsTransitionBeforeAdvancing)
+{
+	executor.loadTestMission({
+		makePositionItem(kBaseLat, kBaseLon, kAlt),                                                   // idx 0: WP1
+		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW),                 // idx 1: attached to WP1
+		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt + 20.f),                                   // idx 2: WP2
+		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC),                 // idx 3: attached to WP2
+		makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt + 10.f),                                   // idx 4: WP3
+	});
+	executor.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::FollowRoute);
+	executor.setCurrentSequenceForTest(2);
+	executor.setSafePointSelectionForTest(true, -1);
+	executor.setVehicleStatusForTest(true, false, false);
+	executor.setLandedForTest(false);
+
+	const bool advanced = executor.advanceStageForTest();
+
+	EXPECT_TRUE(advanced);
+	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::TransitionDuringRoute);
+	EXPECT_EQ(executor.currentSequenceForTest(), 2);
+	EXPECT_EQ(executor.transitionTargetIndexForTest(), 2);
+	EXPECT_EQ(executor.transitionActionForTest(), RtlMissionSafePointFollowTestPeer::VtolTransitionAction::FrontTransition);
+	EXPECT_FALSE(executor.transitionCommandSentForTest());
+	EXPECT_TRUE(executor.advanceRouteAfterTransitionForTest());
+}
+
+// WHY: Once the reverse transition is armed, the controller must track the next reverse target
+//      during the transition instead of flying back toward the waypoint that was already reached.
+// WHAT: TransitionDuringRoute publishes the previous route target as current setpoint for reverse post-reach transitions.
+TEST_F(RtlMissionSafePointFollowStageTest, ReverseRouteTransitionPublishesPreviousTargetDuringTransition)
+{
+	Navigator navigator;
+	RtlMissionSafePointFollowTestPeer executor_with_nav(&navigator);
+
+	std::vector<mission_item_s> items = {
+		makePositionItem(kBaseLat, kBaseLon, kAlt),                                                   // idx 0: WP1
+		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW),                 // idx 1: attached to WP1
+		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt + 20.f),                                   // idx 2: WP2
+		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC),                 // idx 3: attached to WP2
+		makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt + 10.f),                                   // idx 4: WP3
+	};
+
+	executor_with_nav.loadTestMission(items);
+	executor_with_nav.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::TransitionDuringRoute);
+	executor_with_nav.setCurrentSequenceForTest(2);
+	executor_with_nav.setCurrentMissionItemForTest(items[2]);
+	executor_with_nav.setSafePointSelectionForTest(true, -1);
+	executor_with_nav.setTransitionTargetIndexForTest(2);
+	executor_with_nav.setTransitionStateForTest(RtlMissionSafePointFollowTestPeer::VtolTransitionAction::FrontTransition,
+			false, true);
+	executor_with_nav.setVehicleStatusForTest(true, false, false);
+	executor_with_nav.setLandedForTest(false);
+
+	vehicle_global_position_s global_position{};
+	global_position.lat = items[2].lat;
+	global_position.lon = items[2].lon;
+	global_position.alt = items[2].altitude;
+	*navigator.get_global_position() = global_position;
+
+	executor_with_nav.publishActiveMissionItemsForTest();
+
+	const position_setpoint_triplet_s *triplet = navigator.get_position_setpoint_triplet();
+	ASSERT_TRUE(triplet->current.valid);
+	EXPECT_NEAR(triplet->current.lat, items[0].lat, 1e-9);
+	EXPECT_NEAR(triplet->current.lon, items[0].lon, 1e-9);
+	EXPECT_NEAR(triplet->current.alt, items[0].altitude, 1e-3f);
+	EXPECT_EQ(triplet->current.type, position_setpoint_s::SETPOINT_TYPE_POSITION);
+}
+
+// WHY: Once a reverse reached-waypoint transition completes, the executor should advance the route
+//      immediately instead of waiting to "re-reach" the same waypoint on the next cycle.
+// WHAT: Completing a reverse route transition advances current_seq to the previous route target.
+TEST_F(RtlMissionSafePointFollowStageTest, ReverseRouteTransitionCompletionAdvancesToPreviousTarget)
+{
+	executor.loadTestMission({
+		makePositionItem(kBaseLat, kBaseLon, kAlt),
+		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
+		makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt),
+	});
+	executor.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::TransitionDuringRoute);
+	executor.setCurrentSequenceForTest(2);
+	executor.setSafePointSelectionForTest(true, -1);
+	executor.setTransitionTargetIndexForTest(2);
+	executor.setTransitionStateForTest(RtlMissionSafePointFollowTestPeer::VtolTransitionAction::FrontTransition, true,
+					   true);
+
+	const bool advanced = executor.advanceStageForTest();
+
+	EXPECT_TRUE(advanced);
+	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::FollowRoute);
+	EXPECT_EQ(executor.currentSequenceForTest(), 1);
 	EXPECT_EQ(executor.transitionTargetIndexForTest(), -1);
 }
 
@@ -251,9 +444,10 @@ TEST_F(RtlMissionSafePointFollowStageTest, ApproachAtGoalTransitionsToLandAtGoal
 	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::LandAtGoal);
 }
 
-// WHY: Nominal route following must switch to BranchOff exactly when the next route target is the branch-off anchor.
-// WHAT: Advancing forward onto the branch-off index moves FollowRoute to BranchOff.
-TEST_F(RtlMissionSafePointFollowStageTest, ForwardRouteAdvanceTransitionsToBranchOff)
+// WHY: The final branch-off segment now stays in FollowRoute so handleFollowRouteStage can still
+//      evaluate a pending VTOL transition before the virtual branch-off waypoint is published.
+// WHAT: Advancing forward onto the branch-off index updates current_seq but leaves the stage in FollowRoute.
+TEST_F(RtlMissionSafePointFollowStageTest, ForwardRouteAdvanceKeepsFollowRouteUntilBranchOffPublication)
 {
 	// GIVEN: A forward route with the next position item equal to the cached branch-off index.
 	executor.loadTestMission({
@@ -268,14 +462,16 @@ TEST_F(RtlMissionSafePointFollowStageTest, ForwardRouteAdvanceTransitionsToBranc
 	// WHEN: setNextMissionItem advances along the nominal route.
 	const bool advanced = executor.advanceStageForTest();
 
-	// THEN: The executor advances to the branch-off anchor and switches stage.
+	// THEN: The executor advances to the branch-off anchor but defers the BranchOff stage.
 	EXPECT_TRUE(advanced);
-	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::BranchOff);
+	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::FollowRoute);
+	EXPECT_EQ(executor.currentSequenceForTest(), 2);
 }
 
-// WHY: Reverse route following must use the previous position item as the next route target.
-// WHAT: Advancing backward onto the branch-off index moves FollowRoute to BranchOff.
-TEST_F(RtlMissionSafePointFollowStageTest, ReverseRouteAdvanceTransitionsToBranchOff)
+// WHY: Reverse route following also keeps FollowRoute active on the branch-off anchor so the
+//      final segment can still stage a VTOL transition before BranchOff takes over.
+// WHAT: Advancing backward onto the branch-off index updates current_seq but leaves the stage unchanged.
+TEST_F(RtlMissionSafePointFollowStageTest, ReverseRouteAdvanceKeepsFollowRouteUntilBranchOffPublication)
 {
 	// GIVEN: A reverse route whose previous position item is the cached branch-off index.
 	executor.loadTestMission({
@@ -290,9 +486,10 @@ TEST_F(RtlMissionSafePointFollowStageTest, ReverseRouteAdvanceTransitionsToBranc
 	// WHEN: setNextMissionItem advances along the reverse route.
 	const bool advanced = executor.advanceStageForTest();
 
-	// THEN: The executor reaches the branch-off anchor and switches stage.
+	// THEN: The executor reaches the branch-off anchor but defers the BranchOff stage.
 	EXPECT_TRUE(advanced);
-	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::BranchOff);
+	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::FollowRoute);
+	EXPECT_EQ(executor.currentSequenceForTest(), 1);
 }
 
 // WHY: Route-follow exhaustion should continue RTL toward the selected goal.

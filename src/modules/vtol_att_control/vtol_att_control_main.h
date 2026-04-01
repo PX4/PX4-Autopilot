@@ -111,6 +111,23 @@ public:
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
+	static bool frontTransitionAllowedInNavState(uint8_t nav_state)
+	{
+		switch (nav_state) {
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
+		case vehicle_status_s::NAVIGATION_STATE_ORBIT:
+			return false;
+
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
+			// Route-following RTL can request MC -> FW while returning.
+			return true;
+
+		default:
+			return true;
+		}
+	}
+
 	bool init();
 
 	bool is_fixed_wing_requested() { return _transition_command == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW; };

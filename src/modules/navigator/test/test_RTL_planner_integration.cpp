@@ -991,11 +991,12 @@ TEST_F(RtlPlannerVtolMissionTest, DefaultDatasetVtolPlanBuildsSucessfully)
 }
 
 // These planner-level contract tests stay focused on the Plan fields consumed by
-// the executor. Lightweight executor stage tests now live in test_mission_base_vtol.cpp,
+// the executor. Lightweight executor stage tests now live in test_RTL_mission_safe_point_follow.cpp,
 // where they can exercise RtlMissionSafePointFollow::setNextMissionItem() without
 // constructing a full Navigator stack.
 
-// WHY: The executor transitions FollowRoute → BranchOff when current_seq == branch_off_index.
+// WHY: The executor switches to the virtual branch-off waypoint when current_seq reaches
+//      branch_off_index during FollowRoute setpoint generation.
 //      This requires the plan to produce a valid branch_off_segment whose end index (nominal)
 //      or start index (reversed) serves as the trigger.
 // WHAT: When a safe point is selected, the plan's branchOffIndex() returns a valid mission index.
