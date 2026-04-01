@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Run multiple instances of the 'px4' binary, without starting an external simulator.
 # It assumes px4 is already built with the specified build target.
 #
