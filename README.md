@@ -65,7 +65,17 @@ PX4 is an open-source autopilot stack for drones and unmanned vehicles. It suppo
 
 <sub>…and many more: helicopters, autogyros, airships, submarines, boats, and other experimental platforms. These frames have basic support but are not part of the regular flight-test program. See the <a href="https://docs.px4.io/main/en/airframes/airframe_reference.html">full airframe reference</a>.</sub>
 
-## Quick Start
+## Try PX4
+
+Run PX4 in simulation with a single command. No build tools, no dependencies beyond Docker:
+
+```bash
+docker run --rm -it -p 14550:14550/udp px4io/px4-sitl-sih:latest
+```
+
+Open [QGroundControl](https://qgroundcontrol.com) and fly. See [Try PX4 Simulation](https://docs.px4.io/main/en/dev_setup/try_px4) for more options.
+
+## Build from Source
 
 ```bash
 git clone https://github.com/PX4/PX4-Autopilot.git --recursive
