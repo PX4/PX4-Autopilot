@@ -2049,7 +2049,7 @@ void EKF2::PublishFusionControl(const hrt_abstime &timestamp)
 	}
 #endif
 
-	msg.timestamp     = _replay_mode ? timestamp : hrt_absolute_time();
+	msg.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 	_estimator_fc_pub.publish(msg);
 }
 

@@ -196,11 +196,11 @@ parameters:
     EKF2_SENS_EN:
       description:
         short: Sensor fusion enable bitmask
-        long: 'Bitmask to control which sensor fusion sources are enabled.
+        long: Bitmask to control which sensor fusion sources are enabled.
           Sources whose bit is cleared will be disabled.
           Only applied while disarmed. For in-flight changes use the
           MAVLink command VEHICLE_CMD_ESTIMATOR_SENSOR_ENABLE or the
-          individual CTRL params (e.g. EKF2_GPS_CTRL, EKF2_BARO_CTRL).'
+          individual CTRL params (e.g. EKF2_GPS_CTRL, EKF2_BARO_CTRL).
       type: bitmask
       bit:
         0: GNSS 0
