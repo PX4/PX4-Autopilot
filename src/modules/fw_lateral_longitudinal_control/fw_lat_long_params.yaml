@@ -103,41 +103,6 @@ parameters:
       max: 10.0
       decimal: 1
       increment: 0.5
-    FW_T_SPD_STD:
-      description:
-        short: Airspeed measurement standard deviation
-        long: For the airspeed filter in TECS.
-      type: float
-      default: 0.07
-      unit: m/s
-      min: 0.01
-      max: 10.0
-      decimal: 2
-      increment: 0.1
-    FW_T_SPD_DEV_STD:
-      description:
-        short: Airspeed rate measurement standard deviation
-        long: For the airspeed filter in TECS.
-      type: float
-      default: 0.2
-      unit: m/s^2
-      min: 0.01
-      max: 10.0
-      decimal: 2
-      increment: 0.1
-    FW_T_SPD_PRC_STD:
-      description:
-        short: Process noise standard deviation for the airspeed rate
-        long: |-
-          This is defining the noise in the airspeed rate for the constant airspeed rate model
-          of the TECS airspeed filter.
-      type: float
-      default: 0.2
-      unit: m/s^2
-      min: 0.01
-      max: 10.0
-      decimal: 2
-      increment: 0.1
     FW_T_RLL2THR:
       description:
         short: Roll -> Throttle feedforward
