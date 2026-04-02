@@ -93,7 +93,25 @@ docker run --rm -it -p 14550:14550/udp \
   px4io/px4-sitl-sih:latest
 ```
 
-To expose additional ports (MAVSDK, uXRCE-DDS), add more `-p` flags or use `--network host` on Linux:
+The quick-start command above only exposes the QGroundControl port. To use MAVSDK, uXRCE-DDS (ROS 2), or MAVSim Viewer, expose the additional ports:
+
+```bash
+docker run --rm -it \
+  -p 14550:14550/udp \
+  -p 14540:14540/udp \
+  -p 8888:8888/udp \
+  -p 19410:19410/udp \
+  px4io/px4-sitl-sih:latest
+```
+
+| Port | Protocol | Used by |
+|------|----------|---------|
+| 14550 | UDP | QGroundControl |
+| 14540 | UDP | MAVSDK / offboard API |
+| 8888 | UDP | uXRCE-DDS agent (ROS 2) |
+| 19410 | UDP | SIH display (MAVSim Viewer) |
+
+On Linux you can skip individual port flags and use `--network host` instead:
 
 ```bash
 docker run --rm -it --network host px4io/px4-sitl-sih:latest
