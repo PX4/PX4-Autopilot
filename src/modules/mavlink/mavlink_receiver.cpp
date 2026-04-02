@@ -2600,13 +2600,12 @@ MavlinkReceiver::handle_message_ranging_beacon(mavlink_message_t *msg)
 	ranging_beacon.range = (beacon_pos.range != UINT32_MAX) ? static_cast<float>(beacon_pos.range) * 1e-3f : NAN;
 	ranging_beacon.lat = static_cast<double>(beacon_pos.lat) * 1e-7;
 	ranging_beacon.lon = static_cast<double>(beacon_pos.lon) * 1e-7;
-	ranging_beacon.alt = beacon_pos.alt_msl;
-	ranging_beacon.alt_ellipsoid = beacon_pos.alt_ellipsoid;
+	ranging_beacon.alt = beacon_pos.alt;
+	ranging_beacon.alt_type = beacon_pos.alt_type;
 	ranging_beacon.hacc = (beacon_pos.hacc_est != UINT32_MAX) ? static_cast<float>(beacon_pos.hacc_est) * 1e-3f : NAN;
 	ranging_beacon.vacc = (beacon_pos.vacc_est != UINT32_MAX) ? static_cast<float>(beacon_pos.vacc_est) * 1e-3f : NAN;
-	ranging_beacon.rssi_node = beacon_pos.rssi_node;
-	ranging_beacon.rssi_beacon = beacon_pos.rssi_beacon;
 	ranging_beacon.sequence_nr = beacon_pos.sequence;
+	ranging_beacon.status = beacon_pos.status;
 	ranging_beacon.carrier_freq = beacon_pos.carrier_freq;
 	ranging_beacon.range_accuracy = (beacon_pos.range_accuracy != UINT32_MAX)
 					? static_cast<float>(beacon_pos.range_accuracy) * 1e-3f : NAN;

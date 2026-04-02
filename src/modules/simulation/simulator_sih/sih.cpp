@@ -703,13 +703,12 @@ void Sih::send_ranging_beacon(const hrt_abstime &time_now_us)
 		msg.lat = beacon.lat_deg;
 		msg.lon = beacon.lon_deg;
 		msg.alt = beacon.alt_m;
-		msg.alt_ellipsoid = beacon.alt_m;
+		msg.alt_type = 0; // WGS84
 		msg.hacc = 1.0f;
 		msg.vacc = 1.0f;
 		msg.range_accuracy = noise_std;
-		msg.rssi_node = -50;
-		msg.rssi_beacon = -50;
 		msg.sequence_nr = 0;
+		msg.status = 0;
 		msg.carrier_freq = 0;
 
 		_ranging_beacon_pub.publish(msg);

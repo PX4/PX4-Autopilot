@@ -612,7 +612,7 @@ void EKF2::Run()
 				_vehicle_command_ack_pub.publish(command_ack);
 			}
 
-			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_SET_EKF_SENSOR_FUSION) {
+			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_ESTIMATOR_SENSOR_ENABLE) {
 				handleSensorFusionCommand(vehicle_command, command_ack);
 				command_ack.timestamp = hrt_absolute_time();
 				_vehicle_command_ack_pub.publish(command_ack);
@@ -2049,7 +2049,7 @@ void EKF2::PublishFusionControl(const hrt_abstime &timestamp)
 	}
 #endif
 
-	msg.timestamp     = _replay_mode ? timestamp : hrt_absolute_time();
+	msg.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 	_estimator_fc_pub.publish(msg);
 }
 

@@ -7,15 +7,16 @@ float32 range                   # [m] Range measurement
 
 float64 lat                     # [deg] Latitude
 float64 lon                     # [deg] Longitude
-float32 alt                     # [m] Altitude AMSL
-float32 alt_ellipsoid           # [m] Altitude above ellipsoid
+float32 alt                     # [m] Beacon altitude (frame defined in alt_type)
+uint8 alt_type                  # [@enum ALT_TYPE] Altitude frame for alt field
+uint8 ALT_TYPE_WGS84 = 0        # Altitude above WGS84 ellipsoid
+uint8 ALT_TYPE_MSL   = 1        # Altitude above Mean Sea Level (AMSL)
 
 float32 hacc                    # [m] Groundbeacon horizontal accuracy
 float32 vacc                    # [m] Groundbeacon vertical accuracy
 
-int8 rssi_node                  # [dBm] RSSI at node/vehicle side
-int8 rssi_beacon                # [dBm] RSSI at beacon/station side
 uint8 sequence_nr
+uint8 status
 uint16 carrier_freq             # [MHz] Carrier frequency
 float32 range_accuracy          # [m] Range accuracy estimate
 

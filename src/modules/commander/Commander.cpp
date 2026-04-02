@@ -1613,7 +1613,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 	case vehicle_command_s::VEHICLE_CMD_REQUEST_CAMERA_INFORMATION:
 	case vehicle_command_s::VEHICLE_CMD_EXTERNAL_ATTITUDE_ESTIMATE:
 	case vehicle_command_s::VEHICLE_CMD_DO_AUTOTUNE_ENABLE:
-	case vehicle_command_s::VEHICLE_CMD_SET_EKF_SENSOR_FUSION:
+	case vehicle_command_s::VEHICLE_CMD_ESTIMATOR_SENSOR_ENABLE:
 		/* ignore commands that are handled by other parts of the system */
 		break;
 
@@ -2958,13 +2958,13 @@ void Commander::dataLinkCheck()
 					const bool agp0_en = nav_ctl & (1 << 1);
 					const bool agp1_en = nav_ctl & (1 << 2);
 
-					send_vehicle_command(vehicle_command_s::VEHICLE_CMD_SET_EKF_SENSOR_FUSION,
+					send_vehicle_command(vehicle_command_s::VEHICLE_CMD_ESTIMATOR_SENSOR_ENABLE,
 							     vehicle_command_s::FUSION_SOURCE_GPS, 0.f, gps_en ? 1.f : 0.f);
 
-					send_vehicle_command(vehicle_command_s::VEHICLE_CMD_SET_EKF_SENSOR_FUSION,
+					send_vehicle_command(vehicle_command_s::VEHICLE_CMD_ESTIMATOR_SENSOR_ENABLE,
 							     vehicle_command_s::FUSION_SOURCE_AGP, 0.f, agp0_en ? 1.f : 0.f);
 
-					send_vehicle_command(vehicle_command_s::VEHICLE_CMD_SET_EKF_SENSOR_FUSION,
+					send_vehicle_command(vehicle_command_s::VEHICLE_CMD_ESTIMATOR_SENSOR_ENABLE,
 							     vehicle_command_s::FUSION_SOURCE_AGP, 1.f, agp1_en ? 1.f : 0.f);
 
 					PX4_INFO("Link loss, nav source override: GPS=%d AGP0=%d AGP1=%d", gps_en, agp0_en, agp1_en);
