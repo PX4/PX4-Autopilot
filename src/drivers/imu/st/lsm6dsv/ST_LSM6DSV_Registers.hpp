@@ -40,6 +40,7 @@
 
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 
 static constexpr uint8_t Bit0 = (1 << 0);

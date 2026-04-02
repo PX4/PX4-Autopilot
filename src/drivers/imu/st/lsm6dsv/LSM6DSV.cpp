@@ -213,26 +213,30 @@ void LSM6DSV::RunImpl()
 				uint8_t STATUS1{0};
 				uint8_t STATUS2{0};
 			} fifo_status{};
-			transfer((uint8_t *)&fifo_status, (uint8_t *)&fifo_status, sizeof(fifo_status));
-			const uint8_t fifo_status1 = fifo_status.STATUS1;
-			const uint8_t fifo_status2 = fifo_status.STATUS2;
 
-			if (fifo_status2 & static_cast<uint8_t>(FIFO_STATUS2_BIT::FIFO_OVR_LATCHED)) {
+			if (transfer((uint8_t *)&fifo_status, (uint8_t *)&fifo_status, sizeof(fifo_status)) != PX4_OK) {
+				perf_count(_bad_transfer_perf);
+
+			} else if (fifo_status.STATUS2 & static_cast<uint8_t>(FIFO_STATUS2_BIT::FIFO_OVR_LATCHED)) {
 				FIFOReset();
 				perf_count(_fifo_overflow_perf);
 
 			} else {
 				// FIFO unread word count: 9-bit field (FIFO_STATUS2 bit0 is bit8)
-				uint16_t samples = fifo_status1;
+				// Each sample period produces 2 words (1 gyro word + 1 accel word)
+				uint16_t fifo_words = fifo_status.STATUS1;
 
-				if (fifo_status2 & static_cast<uint8_t>(FIFO_STATUS2_BIT::DIFF_FIFO_8)) {
-					samples |= (1u << 8);
+				if (fifo_status.STATUS2 & static_cast<uint8_t>(FIFO_STATUS2_BIT::DIFF_FIFO_8)) {
+					fifo_words |= (1u << 8);
 				}
 
-				if (samples == 0) {
+				// Convert word count to sample periods for comparisons against _fifo_gyro_samples / FIFO_MAX_SAMPLES
+				const uint16_t sample_periods = fifo_words / 2;
+
+				if (sample_periods == 0) {
 					perf_count(_fifo_empty_perf);
 
-				} else if (samples > FIFO_MAX_SAMPLES) {
+				} else if (sample_periods > static_cast<uint16_t>(FIFO_MAX_SAMPLES)) {
 					// not technically an overflow, but more samples than we expected or can publish
 					FIFOReset();
 					perf_count(_fifo_overflow_perf);
@@ -240,12 +244,12 @@ void LSM6DSV::RunImpl()
 				} else {
 
 					// tolerate minor jitter, leave sample to next iteration if behind by only 1
-					if (samples == static_cast<uint16_t>(_fifo_gyro_samples) + 1) {
+					if (sample_periods == static_cast<uint16_t>(_fifo_gyro_samples) + 1) {
 						timestamp_sample -= static_cast<int>(FIFO_SAMPLE_DT);
-						samples--;
+						fifo_words -= 2;
 					}
 
-					if (FIFORead(timestamp_sample, samples)) {
+					if (FIFORead(timestamp_sample, fifo_words)) {
 						success = true;
 
 						if (_failure_count > 0) {
