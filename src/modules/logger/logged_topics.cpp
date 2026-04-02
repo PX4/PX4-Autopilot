@@ -160,6 +160,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("fixed_wing_lateral_guidance_status", 100);
 	add_optional_topic("fixed_wing_lateral_status", 100);
 	add_optional_topic("fixed_wing_runway_control", 100);
+	add_optional_topic("ranging_beacon", 100);
 
 	// multi topics
 	add_optional_topic_multi("actuator_outputs", 100, 3);
@@ -319,6 +320,7 @@ void LoggedTopics::add_estimator_replay_topics()
 	add_topic("vehicle_magnetometer");
 	add_topic("vehicle_status");
 	add_topic("vehicle_visual_odometry");
+	add_topic("ranging_beacon");
 	add_topic_multi("aux_global_position");
 	add_topic_multi("distance_sensor");
 }

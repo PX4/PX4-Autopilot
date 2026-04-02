@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 mkdir artifacts
 cp **/**/*.px4 artifacts/ 2>/dev/null || true

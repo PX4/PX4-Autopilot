@@ -21557,6 +21557,49 @@ Maximum vertical drift speed to use GPS.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 0.1      | 1.5      |           | 0.2     | m/s  |
 
+### EKF2_RNGBC_CTRL (`INT32`) {#EKF2_RNGBC_CTRL}
+
+Ranging beacon fusion control.
+
+Enable/disable ranging beacon fusion.
+
+**Values:**
+
+- `0`: Disable ranging beacon fusion
+- `1`: Enable ranging beacon fusion
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |      |
+
+### EKF2_RNGBC_DELAY (`FLOAT`) {#EKF2_RNGBC_DELAY}
+
+Ranging beacon measurement delay relative to IMU measurements.
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 0        | 1000     |           | 0       | ms   |
+
+### EKF2_RNGBC_GATE (`FLOAT`) {#EKF2_RNGBC_GATE}
+
+Gate size for ranging beacon fusion.
+
+Sets the number of standard deviations used by the innovation consistency test.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 1.0      |          |           | 5.0     | SD   |
+
+### EKF2_RNGBC_NOISE (`FLOAT`) {#EKF2_RNGBC_NOISE}
+
+Measurement noise for ranging beacon fusion.
+
+Used to lower bound or replace the uncertainty included in the message
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.1      | 500.0    |           | 30.0    | m    |
+
 ### EKF2_RNG_A_HMAX (`FLOAT`) {#EKF2_RNG_A_HMAX}
 
 Maximum height above ground allowed for conditional range aid mode.
@@ -40079,6 +40122,16 @@ This value is usually about few percent of the maximum thrust force.
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 0.0      |          | 0.05      | 0.1     | Nm   |
+
+### SIH_RNGBC_NOISE (`FLOAT`) {#SIH_RNGBC_NOISE}
+
+Ranging beacon measurement noise standard deviation.
+
+Gaussian noise added to simulated ranging beacon measurements. Set to 0 to disable noise.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.0      | 100.0    |           | 30.0    | m    |
 
 ### SIH_T_MAX (`FLOAT`) {#SIH_T_MAX}
 
