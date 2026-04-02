@@ -83,15 +83,15 @@ void OffboardChecks::checkAndReport(const Context &context, Report &reporter)
 				reporter.clearCanRunBits(affected_modes);
 			}
 
-		} else if (offboard_control_mode.acceleration && reporter.failsafeFlags().attitude_invalid) {
-			// OFFBOARD acceleration handled by position controller
+		} else if ((offboard_control_mode.acceleration || offboard_control_mode.attitude)
+			   && reporter.failsafeFlags().attitude_invalid) {
 			offboard_available = false;
 			has_specific_reason = true;
 
 			if (has_affected_modes) {
 				/* EVENT
 				 * @description
-				 * Offboard acceleration control requires a valid attitude estimate.
+				 * Offboard acceleration and attitude control require a valid attitude estimate.
 				 */
 				reporter.armingCheckFailure(affected_modes, health_component_t::system,
 							    events::ID("check_modes_offboard_no_attitude"),
