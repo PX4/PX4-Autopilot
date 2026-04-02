@@ -110,8 +110,6 @@ then
 	mag_bias_estimator start
 fi
 
-param set-default SENS_MAG_RATE 100
-
 sensors start
 
 uavcannode start

@@ -76,5 +76,6 @@ Notes:
 
 ## See Also
 
+- [Barometer Thrust Compensation](../advanced_config/barometer_thrust_compensation.md) — compensating for propwash-induced barometer error
 - [Baro driver source code](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/barometer)
 - [Modules Reference: Baro (Driver)](../modules/modules_driver_baro.md) documentation.

@@ -57,6 +57,7 @@
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/estimator_status_flags.h>
 #include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
 
 using namespace time_literals;
 
@@ -90,6 +91,24 @@ private:
 	bool UpdateRelativeCalibrations(hrt_abstime time_now_us);
 	bool BaroGNSSAltitudeOffset();
 
+	// Note: applies a single PCOEF to whichever baro the voter selects as primary.
+	// If baros are at different locations (e.g., internal vs external CAN), they may
+	// experience different propwash magnitudes — a per-instance PCOEF would be needed
+	// to handle that correctly. For now this assumes co-located sensors.
+	float thrustCompensation(hrt_abstime timestamp_sample);
+	void updateThrustBuffer();
+
+	static constexpr int THRUST_BUFFER_SIZE = 8;
+
+	struct ThrustSample {
+		hrt_abstime timestamp{0};
+		float thrust_z{0.f};
+	};
+
+	ThrustSample _thrust_buffer[THRUST_BUFFER_SIZE] {};
+	int _thrust_buffer_head{0};
+	int _thrust_buffer_count{0};
+
 	static constexpr int MAX_SENSOR_COUNT = 4;
 
 	uORB::Publication<sensors_status_s> _sensors_status_baro_pub{ORB_ID(sensors_status_baro)};
@@ -110,6 +129,8 @@ private:
 	};
 
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+
+	uORB::Subscription _vehicle_thrust_setpoint_sub{ORB_ID(vehicle_thrust_setpoint)};
 
 	calibration::Barometer _calibration[MAX_SENSOR_COUNT];
 
@@ -147,8 +168,8 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SENS_BARO_QNH>) _param_sens_baro_qnh,
-		(ParamFloat<px4::params::SENS_BARO_RATE>) _param_sens_baro_rate,
-		(ParamBool<px4::params::SENS_BAR_AUTOCAL>) _param_sens_baro_autocal
+		(ParamInt<px4::params::SENS_BAR_AUTOCAL>) _param_sens_baro_autocal,
+		(ParamFloat<px4::params::SENS_BARO_PCOEF>) _param_sens_baro_pcoef
 	)
 };
 }; // namespace sensors

@@ -1,0 +1,19 @@
+module_name: baro_thrust_estimator
+parameters:
+- group: Sensors
+  definitions:
+    SENS_BAR_CF_BW:
+      description:
+        short: Baro thrust estimator CF crossover frequency
+        long: |-
+          Complementary filter bandwidth for the baro-accel altitude
+          estimator used to isolate thrust-induced baro errors.
+          Lower values trust baro more at low frequencies (conservative),
+          higher values let more baro error through to the RLS estimator
+          (more accurate K identification but noisier with bad IMU).
+      type: float
+      default: 0.05
+      min: 0.01
+      max: 1.0
+      unit: Hz
+      decimal: 2

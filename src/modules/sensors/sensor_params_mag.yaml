@@ -52,18 +52,6 @@ parameters:
           external magnetometers.
       type: boolean
       default: 1
-    SENS_MAG_RATE:
-      description:
-        short: Magnetometer max rate
-        long: |-
-          Magnetometer data maximum publication rate. This is an upper bound,
-          actual magnetometer data rate is still dependent on the sensor.
-      type: float
-      default: 15.0
-      min: 1
-      max: 200
-      unit: Hz
-      reboot_required: true
     SENS_MAG_MODE:
       description:
         short: Sensors hub mag mode

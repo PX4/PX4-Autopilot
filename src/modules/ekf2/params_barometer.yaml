@@ -10,6 +10,19 @@ parameters:
           height sources (if activated).
       type: boolean
       default: 1
+    EKF2_BARO_RATE:
+      description:
+        short: Maximum barometer fusion rate
+        long: |-
+          Maximum rate at which barometer data is fused by the estimator.
+          Limiting this reduces EKF CPU load at the cost of slightly
+          delayed baro height tracking.
+      type: float
+      default: 20.0
+      min: 1
+      max: 200
+      unit: Hz
+      decimal: 0
     EKF2_BARO_DELAY:
       description:
         short: Barometer measurement delay relative to IMU measurements

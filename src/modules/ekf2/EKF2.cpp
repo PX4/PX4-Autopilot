@@ -2226,7 +2226,27 @@ void EKF2::UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps)
 
 		_ekf.set_air_density(airdata.rho);
 
-		_ekf.setBaroData(baroSample{airdata.timestamp_sample, airdata.baro_alt_meter, reset});
+		// Accumulate baro samples and average before pushing to EKF at the
+		// configured fusion rate.  This preserves the noise reduction of the
+		// old publish-side averaging while fixing the rate-aliasing bug.
+		_baro_prefilter_sum += airdata.baro_alt_meter;
+		_baro_prefilter_count++;
+
+		const float baro_rate_hz = _param_ekf2_baro_rate.get();
+		const hrt_abstime baro_interval_us = (baro_rate_hz > 0.f)
+						     ? static_cast<hrt_abstime>(1e6f / baro_rate_hz)
+						     : 0;
+
+		if (reset || (baro_interval_us == 0)
+		    || (airdata.timestamp_sample >= _last_baro_ekf_timestamp + baro_interval_us)) {
+
+			const float baro_avg = _baro_prefilter_sum / _baro_prefilter_count;
+			_ekf.setBaroData(baroSample{airdata.timestamp_sample, baro_avg, reset});
+			_last_baro_ekf_timestamp = airdata.timestamp_sample;
+
+			_baro_prefilter_sum = 0.f;
+			_baro_prefilter_count = 0;
+		}
 
 		ekf2_timestamps.vehicle_air_data_timestamp_rel = (int16_t)((int64_t)airdata.timestamp / 100 -
 				(int64_t)ekf2_timestamps.timestamp / 100);
@@ -2572,7 +2592,26 @@ void EKF2::UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps)
 			_mag_cal = {};
 		}
 
-		_ekf.setMagData(magSample{magnetometer.timestamp_sample, Vector3f{magnetometer.magnetometer_ga}, reset});
+		// Accumulate mag samples and average before pushing to EKF at the
+		// configured fusion rate.
+		_mag_prefilter_sum += Vector3f{magnetometer.magnetometer_ga};
+		_mag_prefilter_count++;
+
+		const float mag_rate_hz = _param_ekf2_mag_rate.get();
+		const hrt_abstime mag_interval_us = (mag_rate_hz > 0.f)
+						    ? static_cast<hrt_abstime>(1e6f / mag_rate_hz)
+						    : 0;
+
+		if (reset || (mag_interval_us == 0)
+		    || (magnetometer.timestamp_sample >= _last_mag_ekf_timestamp + mag_interval_us)) {
+
+			const Vector3f mag_avg = _mag_prefilter_sum / _mag_prefilter_count;
+			_ekf.setMagData(magSample{magnetometer.timestamp_sample, mag_avg, reset});
+			_last_mag_ekf_timestamp = magnetometer.timestamp_sample;
+
+			_mag_prefilter_sum.zero();
+			_mag_prefilter_count = 0;
+		}
 
 		ekf2_timestamps.vehicle_magnetometer_timestamp_rel = (int16_t)((int64_t)magnetometer.timestamp / 100 -
 				(int64_t)ekf2_timestamps.timestamp / 100);

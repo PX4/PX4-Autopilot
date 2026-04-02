@@ -229,6 +229,7 @@
       - [Airspeed Validation](advanced_config/airspeed_validation.md)
       - [TFSlot Airspeed Sensor](sensor/airspeed_tfslot.md)
     - [Barometers](sensor/barometer.md)
+      - [Thrust Compensation](advanced_config/barometer_thrust_compensation.md)
     - [Distance Sensors \(Rangefinders\)](sensor/rangefinders.md)
       - [Ainstein US-D1 Standard Radar Altimeter](sensor/ulanding_radar.md)
       - [ARK DIST SR (CAN/UART)](dronecan/ark_dist.md)

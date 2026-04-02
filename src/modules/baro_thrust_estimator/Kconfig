@@ -1,0 +1,13 @@
+menuconfig MODULES_BARO_THRUST_ESTIMATOR
+	bool "baro_thrust_estimator"
+	default y
+	depends on SENSORS_VEHICLE_AIR_DATA
+	---help---
+		Enable support for baro_thrust_estimator
+
+menuconfig USER_BARO_THRUST_ESTIMATOR
+	bool "baro_thrust_estimator running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_BARO_THRUST_ESTIMATOR
+	---help---
+		Put baro_thrust_estimator in userspace memory

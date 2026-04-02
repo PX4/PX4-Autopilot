@@ -22,6 +22,7 @@ This topic lists configuration topics that are not particularly vehicle specific
 - [Compass Power Compensation](../advanced_config/compass_power_compensation.md)
 - [Advanced Controller Orientation](../advanced_config/advanced_flight_controller_orientation_leveling.md)
 - [Static Pressure Buildup](../advanced_config/static_pressure_buildup.md)
+- [Barometer Thrust Compensation](../advanced_config/barometer_thrust_compensation.md)
 
 ## Serial port/Ethernet configuration
 

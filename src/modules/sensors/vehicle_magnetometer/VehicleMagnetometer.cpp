@@ -555,9 +555,10 @@ void VehicleMagnetometer::Run()
 		}
 	}
 
-	// Publish
-	if (_param_sens_mag_rate.get() > 0) {
-		int interval_us = 1e6f / _param_sens_mag_rate.get();
+	// Publish at full sensor rate — Run() is triggered per sensor_mag publication via
+	// SubscriptionCallbackWorkItem, so _data_sum_count is normally 1. Rate limiting
+	// is handled downstream by EKF2 (EKF2_MAG_RATE).
+	{
 		const bool multi_mode = (_param_sens_mag_mode.get() == 0);
 
 		for (int instance = 0; instance < MAX_SENSOR_COUNT; instance++) {
@@ -565,53 +566,48 @@ void VehicleMagnetometer::Run()
 
 				const hrt_abstime timestamp_sample = _timestamp_sample_sum[instance] / _data_sum_count[instance];
 
-				if (timestamp_sample >= _last_publication_timestamp[instance] + interval_us) {
+				bool publish = (time_now_us <= timestamp_sample + 1_s);
 
-					bool publish = (time_now_us <= timestamp_sample + 1_s);
+				if (!multi_mode && publish) {
+					publish = (_selected_sensor_sub_index >= 0)
+						  && (instance == _selected_sensor_sub_index)
+						  && (_voter.get_sensor_state(_selected_sensor_sub_index) == DataValidator::ERROR_FLAG_NO_ERROR);
+				}
 
-					if (!multi_mode && publish) {
-						publish = (_selected_sensor_sub_index >= 0)
-							  && (instance == _selected_sensor_sub_index)
-							  && (_voter.get_sensor_state(_selected_sensor_sub_index) == DataValidator::ERROR_FLAG_NO_ERROR);
-					}
+				if (publish) {
+					const Vector3f magnetometer_data = _data_sum[instance] / _data_sum_count[instance];
 
-					if (publish) {
-						const Vector3f magnetometer_data = _data_sum[instance] / _data_sum_count[instance];
+					// populate vehicle_magnetometer and publish
+					vehicle_magnetometer_s out{};
+					out.timestamp_sample = timestamp_sample;
+					out.device_id = _calibration[instance].device_id();
+					magnetometer_data.copyTo(out.magnetometer_ga);
+					out.calibration_count = _calibration[instance].calibration_count();
+					out.timestamp = hrt_absolute_time();
 
-						// populate vehicle_magnetometer and publish
-						vehicle_magnetometer_s out{};
-						out.timestamp_sample = timestamp_sample;
-						out.device_id = _calibration[instance].device_id();
-						magnetometer_data.copyTo(out.magnetometer_ga);
-						out.calibration_count = _calibration[instance].calibration_count();
-						out.timestamp = hrt_absolute_time();
+					if (multi_mode) {
 
-						if (multi_mode) {
-
-							if (!_vehicle_magnetometer_pub[instance].advertised()) {
-								// prefer to maintain vehicle_magneometer instance numbering in sensor order
-								for (int mag_instance = 0; mag_instance < instance; mag_instance++) {
-									if (_calibration[instance].enabled()) {
-										_vehicle_magnetometer_pub[mag_instance].advertise();
-									}
+						if (!_vehicle_magnetometer_pub[instance].advertised()) {
+							// prefer to maintain vehicle_magneometer instance numbering in sensor order
+							for (int mag_instance = 0; mag_instance < instance; mag_instance++) {
+								if (_calibration[instance].enabled()) {
+									_vehicle_magnetometer_pub[mag_instance].advertise();
 								}
 							}
-
-							_vehicle_magnetometer_pub[instance].publish(out);
-
-						} else {
-							// otherwise only ever publish the first instance
-							_vehicle_magnetometer_pub[0].publish(out);
 						}
+
+						_vehicle_magnetometer_pub[instance].publish(out);
+
+					} else {
+						// otherwise only ever publish the first instance
+						_vehicle_magnetometer_pub[0].publish(out);
 					}
-
-					_last_publication_timestamp[instance] = timestamp_sample;
-
-					// reset
-					_timestamp_sample_sum[instance] = 0;
-					_data_sum[instance].zero();
-					_data_sum_count[instance] = 0;
 				}
+
+				// reset
+				_timestamp_sample_sum[instance] = 0;
+				_data_sum[instance].zero();
+				_data_sum_count[instance] = 0;
 			}
 		}
 	}

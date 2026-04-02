@@ -29,6 +29,13 @@ fi
 # Start Multicopter Position Controller.
 #
 mc_hover_thrust_estimator start
+
+# Bit 1 of SENS_BAR_AUTOCAL enables online thrust compensation (value > 1)
+if param greater -s SENS_BAR_AUTOCAL 1
+then
+	baro_thrust_estimator start
+fi
+
 flight_mode_manager start
 mc_pos_control start
 

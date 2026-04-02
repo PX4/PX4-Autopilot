@@ -2,6 +2,19 @@ module_name: ekf2
 parameters:
 - group: EKF2
   definitions:
+    EKF2_MAG_RATE:
+      description:
+        short: Maximum magnetometer fusion rate
+        long: |-
+          Maximum rate at which magnetometer data is fused by the estimator.
+          Limiting this reduces EKF CPU load (3-axis mag fusion is expensive)
+          at the cost of slightly delayed heading tracking.
+      type: float
+      default: 15.0
+      min: 1
+      max: 200
+      unit: Hz
+      decimal: 0
     EKF2_MAG_TYPE:
       description:
         short: Type of magnetometer fusion
