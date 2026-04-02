@@ -564,12 +564,21 @@ MavlinkMissionManager::send()
 		// try to request item again after timeout
 		send_mission_request(_transfer_partner_sysid, _transfer_partner_compid, _transfer_seq);
 
+	} else if (_state == MAVLINK_WPM_STATE_SENDLIST && (_time_last_sent > 0)
+		   && hrt_elapsed_time(&_time_last_sent) > MAVLINK_MISSION_RETRY_TIMEOUT_DEFAULT
+		   && _transfer_seq == 0) {
+
+		// MISSION_COUNT may have been dropped
+		PX4_DEBUG("WPM: SENDLIST resending MISSION_COUNT (no MISSION_ACK received yet)");
+		send_mission_count(_transfer_partner_sysid, _transfer_partner_compid, _transfer_count, _mission_type,
+				   get_current_mission_type_crc());
+
 	} else if (_state != MAVLINK_WPM_STATE_IDLE && (_time_last_recv > 0)
 		   && hrt_elapsed_time(&_time_last_recv) > MAVLINK_MISSION_PROTOCOL_TIMEOUT_DEFAULT) {
 
-		_mavlink.send_statustext_critical("Operation timeout\t");
-		events::send(events::ID("mavlink_mission_op_timeout"), events::Log::Error,
-			     "Operation timeout, aborting transfer");
+		_mavlink.send_statustext_critical("Mission sync timeout\t");
+		events::send(events::ID("mavlink_mission_sync_timeout"), events::Log::Error,
+			     "Mission sync timeout, aborting transfer");
 
 		PX4_DEBUG("WPM: Last operation (state=%d) timed out, changing state to MAVLINK_WPM_STATE_IDLE", _state);
 

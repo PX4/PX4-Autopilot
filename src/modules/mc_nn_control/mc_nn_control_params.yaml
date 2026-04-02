@@ -1,0 +1,42 @@
+module_name: mc_nn_control
+parameters:
+- group: Neural Control
+  definitions:
+    MC_NN_EN:
+      description:
+        short: If true the neural network control is automatically started on boot
+      type: boolean
+      default: 1
+    MC_NN_MAX_RPM:
+      description:
+        short: Max motor RPM for neural network normalization
+        long: The maximum RPM of the motors. Used to normalize the output of the neural
+          network
+      type: int32
+      default: 22000
+      min: 0
+      max: 80000
+    MC_NN_MIN_RPM:
+      description:
+        short: Min motor RPM for neural network normalization
+        long: The minimum RPM of the motors. Used to normalize the output of the neural
+          network
+      type: int32
+      default: 1000
+      min: 0
+      max: 80000
+    MC_NN_THRST_COEF:
+      description:
+        short: Motor thrust coefficient for NN normalization
+        long: Thrust coefficient of the motors. Used to normalize the output of the
+          neural network. Divided by 100 000
+      type: float
+      default: 1.2
+      min: 0.0
+      max: 5.0
+    MC_NN_MANL_CTRL:
+      description:
+        short: Enable or disable setting the trajectory setpoint with manual control
+      type: boolean
+      default: 1
+      reboot_required: true

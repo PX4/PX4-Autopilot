@@ -64,7 +64,7 @@ They may also be created by a MAVLink API such as [MAVSDK](../robotics/mavsdk.md
 Якщо транспортний засіб не захоплював зображення, коли він був призупинений, під час відновлення він рухатиметься зі своєї _поточної позиції_ до тієї ж точки шляху, до якої він спочатку рухався.
 Якщо транспортний засіб захоплював зображення (має елементи спуску камери), він замість цього рухатиметься зі своєї поточної позиції до останньої точки шляху, якою він проїхав (перед зупинкою), а потім пройде свій шлях з тією самою швидкістю та з такою самою поведінкою спуску камери.
 Це забезпечує, що планований шлях зафіксований під час місій з опитування/камери.
-Місію можна завантажити, коли транспортний засіб зупинений, у такому випадку поточний активний елемент місії встановлюється на 1.
+A mission can be uploaded while the vehicle is paused, in which case the current active mission item is set to 1.
 
 :::info
 Коли місію призупинено під час спрацювання камери на транспортному засобі, PX4 встановлює поточний активний пункт місії на попередню точку маршруту, так що при відновленні місії транспортний засіб буде повторювати свій останній етап місії.
@@ -100,8 +100,8 @@ _QGroundControl_ надає додаткову підтримку обробки
 
 Для додаткової інформації дивіться:
 
-- [Видалити місію після посадки транспортного засобу](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/releases/stable_v3.2_long.html#remove-mission-after-vehicle-lands)
-- [Відновити місію після режиму Повернення](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/releases/stable_v3.2_long.html#resume-mission)
+- [Remove mission after vehicle lands](https://docs.qgroundcontrol.com/Stable_V4.3/en/qgc-user-guide/releases/stable_v3.2_long.html#remove-mission-after-vehicle-lands)
+- [Resume mission after Return mode](https://docs.qgroundcontrol.com/Stable_V4.3/en/qgc-user-guide/releases/stable_v3.2_long.html#resume-mission)
 
 ## Параметри місії
 

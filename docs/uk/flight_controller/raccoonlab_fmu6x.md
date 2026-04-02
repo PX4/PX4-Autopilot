@@ -130,7 +130,7 @@ The manufacturer [RaccoonLab Docs](https://docs.raccoonlab.co/guide/autopilot/RC
 Вони повинні використовуватися за перевагою, оскільки вони містять найбільш повну та актуальну інформацію.
 :::
 
-## Де купити
+## Where to Buy {#store}
 
 [RaccoonLab Store](https://raccoonlab.co/store)
 

@@ -675,7 +675,6 @@ For each of the tilt servos:
 - 안전 버튼을 쿨러야 액츄에이트를 테스트 할 수 있습니다.
 - 중지 스위치를 사용하면 모터를 즉시 중지할 수 있습니다.
 - 해당 슬라이더가 변경될 때까지 서보는 실제로 이동하지 않습니다.
-- The parameter [COM_MOT_TEST_EN](../advanced_config/parameter_reference.md#COM_MOT_TEST_EN) can be used to completely disable actuator testing.
 - On the shell, [actuator_test](../modules/modules_command.md#actuator-test) can be used as well for actuator testing.
 - VTOLs will automatically turn off motors pointing upwards during **fixed-wing flight**:
   - 표준 VTOL: 멀티콥터 모터로 정의된 모터가 꺼집니다.

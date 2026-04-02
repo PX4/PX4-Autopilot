@@ -64,7 +64,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("external_ins_attitude");
 	add_optional_topic("external_ins_global_position");
 	add_optional_topic("external_ins_local_position");
-	add_topic("esc_status");
+	add_topic("esc_status", 100);
 	add_topic("failure_detector_status", 100);
 	add_topic("failsafe_flags");
 	add_optional_topic("follow_target", 500);
@@ -79,7 +79,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("gps_dump");
 	add_optional_topic("gimbal_controls", 200);
 	add_optional_topic("gripper");
-	add_optional_topic("heater_status");
+	add_optional_topic_multi("heater_status");
 	add_topic("home_position");
 	add_topic("hover_thrust_estimate", 100);
 	add_topic("input_rc", 500);
@@ -160,6 +160,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("fixed_wing_lateral_guidance_status", 100);
 	add_optional_topic("fixed_wing_lateral_status", 100);
 	add_optional_topic("fixed_wing_runway_control", 100);
+	add_optional_topic("ranging_beacon", 100);
 
 	// multi topics
 	add_optional_topic_multi("actuator_outputs", 100, 3);
@@ -319,6 +320,7 @@ void LoggedTopics::add_estimator_replay_topics()
 	add_topic("vehicle_magnetometer");
 	add_topic("vehicle_status");
 	add_topic("vehicle_visual_odometry");
+	add_topic("ranging_beacon");
 	add_topic_multi("aux_global_position");
 	add_topic_multi("distance_sensor");
 }
@@ -371,10 +373,16 @@ void LoggedTopics::add_system_identification_topics()
 
 void LoggedTopics::add_high_rate_sensors_topics()
 {
-	add_topic_multi("distance_sensor", 0, 4);
-	add_topic_multi("sensor_optical_flow", 0, 2);
-	add_topic_multi("sensor_gps", 0, 4);
-	add_topic_multi("sensor_mag", 0, 4);
+	add_topic_multi("distance_sensor", 10, 4);
+	add_topic_multi("sensor_baro", 10, 4);
+	add_topic_multi("sensor_optical_flow", 10, 2);
+	add_topic_multi("sensor_gps", 10, 4);
+	add_topic_multi("sensor_gnss_relative", 10, 1);
+	add_topic_multi("sensor_mag", 10, 4);
+	add_topic("estimator_aid_src_baro_hgt", 10);
+	add_topic("vehicle_air_data", 10);
+	add_topic("vehicle_magnetometer", 10);
+	add_topic("vehicle_thrust_setpoint", 10);
 }
 
 void LoggedTopics::add_mavlink_tunnel()

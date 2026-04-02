@@ -110,7 +110,7 @@ Make sure to tune the attitude controller before attempting to tune TECS.
 推力（通过油门控制）增加整个飞机的总能量。
 因此，俯仰角和油门两个输入量都会对空速和高度产生影响，从而使控制问题变得难了。
 
-TECS 提供了一种解决方案，即根据能量而不是初始设定值来反映问题。
+TECS offers a solution by representing the problem in terms of energies rather than the original setpoints.
 一架飞行器的总能量是飞行器动能和势能之和。 推力（通过油门控制）可以增加飞机的总能量。 一个给定的总能量状态可以通过势能和动能的任意组合来实现。
 换句话说，飞行器在高海拔以低空速飞行和在低海拔以高空速飞行时的总能量是等价的。 我们称这种情况叫做比能量平衡，它是根据当前高度和真实空速设定值计算的。
 可以通过控制俯仰角来控制飞行器的比能量平衡。
@@ -164,6 +164,42 @@ $$\dot{B} = \gamma - \frac{\dot{V_T}}{g}$$
 
 ## 固定翼姿态控制器
 
+### Setpoint modificaiton
+
+Most fixed-wing aircraft cannot generate a sustained yaw rate using the rudder alone. As a result, the yaw component of the quaternion attitude error should be removed before computing the control action.
+
+This is achieved by premultiplying the setpoint quaternion with a rotation about the global down axis. The additional rotation cancels the yaw component of the attitude error while preserving the roll and pitch components.
+
+The yaw offset is
+
+$$
+\psi =-2\frac{\hat{q}_0 q_3 - \hat{q}_1 q_2 + \hat{q}_2 q_1 -\hat{q}_3 q_0}
+{\hat{q}_0 q_0 - \hat{q}_1 q_1 - \hat{q}_2 q_2 + \hat{q}_3 q_3}
+$$
+
+The quaternion representing the yaw offset is
+
+$$
+ℚ_{\text{yaw}} =
+\operatorname{normalize}
+\left(
+\begin{bmatrix}
+1 \
+0 \
+0 \
+\frac{\psi}{2}
+\end{bmatrix}
+\right)
+$$
+
+The corrected setpoint quaternion is then obtained by applying the rotation
+
+$$
+ℚ_{\text{sp, corrected}} = ℚ_{\text{yaw}} \otimes ℚ_{sp}
+$$
+
+### Quaternion based attitude controller
+
 ![FW Attitude Controller Diagram](../../assets/diagrams/px4_fw_attitude_controller_diagram.png)
 
 <!-- The drawing is on draw.io: https://drive.google.com/file/d/1ibxekmtc6Ljq60DvNMplgnnU-JOvKYLQ/view?usp=sharing
@@ -186,12 +222,16 @@ If no airspeed sensor is used then gain scheduling for the FW attitude controlle
 
 ### Turn coordination
 
-滚转和俯仰控制器具有相同的结构，并且假设纵向和横向动力学足够解耦，可以独立工作。
-但是，为了将飞机侧滑产生的侧向加速度最小化，偏航控制器利用转向协调约束产生偏航速率设定值。 The turn coordination algorithm is based solely on coordinated turn geometry calculation.
+The yaw rate setpoint is generated using the turn coordination constraint in order to minimize lateral acceleration, generated when the aircraft is slipping.
 
-$$\dot{\Psi}_{sp} = \frac{g}{V_T} \tan{\phi_{sp}} \cos{\theta_{sp}}$$
+$$r_{sp} = \frac{2g}{V_T}\left(q_0 q_1 + q_2 q_3\right)$$
 
-The yaw rate controller also helps to counteract [adverse yaw effects](https://youtu.be/sNV_SDDxuWk) and to damp the [Dutch roll mode](https://en.wikipedia.org/wiki/Dutch_roll) by providing extra directional damping.
+This also helps to counteract [adverse yaw effects](https://youtu.be/sNV_SDDxuWk) and to damp the [Dutch roll mode](https://en.wikipedia.org/wiki/Dutch_roll) by providing extra directional damping.
+
+To compensate for the non-zero pitch rate that naturally occurs during coordinated turns, a geometry-based feedforward term is added to the pitch-rate command.
+This feedforward term accounts for the aircraft's current attitude and airspeed so that the controller does not need to generate this motion purely through feedback.
+
+$$q_{sp}^{ff} = \frac{4g(q_0 q_1 + q_2 q_3)^2}{V(1 - 2q_1^2 - 2q_2^2)}$$
 
 ## VTOL 飞行控制器
 

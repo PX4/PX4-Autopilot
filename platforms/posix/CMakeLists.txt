@@ -80,7 +80,8 @@ target_link_libraries(px4 PRIVATE uORB)
 # install
 #
 
-# TODO: extend to snapdragon
+# Generic install rules (skipped when board provides its own install.cmake)
+if(NOT EXISTS "${PX4_BOARD_DIR}/cmake/install.cmake")
 
 # px4 dirs
 install(
@@ -93,6 +94,8 @@ install(
 		${PROJECT_NAME}
 	USE_SOURCE_PERMISSIONS
 )
+
+endif() # NOT board install.cmake
 
 # Module Symlinks
 px4_posix_generate_symlinks(
@@ -110,6 +113,11 @@ endif()
 # board defined upload helper
 if(EXISTS "${PX4_BOARD_DIR}/cmake/upload.cmake")
 	include(${PX4_BOARD_DIR}/cmake/upload.cmake)
+endif()
+
+# board defined install rules for .deb packaging
+if(EXISTS "${PX4_BOARD_DIR}/cmake/install.cmake")
+	include(${PX4_BOARD_DIR}/cmake/install.cmake)
 endif()
 
 # board defined link libraries

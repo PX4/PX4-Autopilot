@@ -43,6 +43,8 @@ px4_add_module(
 		AUAV_Absolute.hpp
 		AUAV_Differential.cpp
 		AUAV_Differential.hpp
+	MODULE_CONFIG
+		parameters.yaml
 	DEPENDS
 		px4_work_queue
 	)

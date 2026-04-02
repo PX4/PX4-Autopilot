@@ -188,11 +188,11 @@ else
 		netman update -i eth0
 	fi
 
-	# To trigger a parameter reset during boot SYS_AUTCONFIG was set to 1 before
+	# To trigger a parameter reset during boot SYS_AUTOCONFIG was set to 1 before
 	if param greater SYS_AUTOCONFIG 0
 	then
-		# Reset parameters except airframe, parameter version, RC calibration, sensor calibration, flight modes, total flight time, flight UUID
-		param reset_all SYS_AUTOSTART SYS_PARAM_VER RC* CAL_* COM_FLTMODE* LND_FLIGHT* TC_* COM_FLIGHT*
+		# Reset parameters except airframe, parameter version, sensor calibration, total flight time, flight UUID
+		param reset_all SYS_AUTOSTART SYS_PARAM_VER CAL_* LND_FLIGHT* TC_* COM_FLIGHT*
 	fi
 
 	#
@@ -633,12 +633,15 @@ else
 	#
 	# Start the VTX services.
 	#
-	set RC_VTXTABLE ${R}etc/init.d/rc.vtxtable
-	if [ -f ${RC_VTXTABLE} ]
+	if ! param compare -s VTX_SER_CFG 0
 	then
-		. ${RC_VTXTABLE}
+		set RC_VTXTABLE ${R}etc/init.d/rc.vtxtable
+		if [ -f ${RC_VTXTABLE} ]
+		then
+			. ${RC_VTXTABLE}
+		fi
+		unset RC_VTXTABLE
 	fi
-	unset RC_VTXTABLE
 
 	#
 	# Set additional parameters and env variables for selected AUTOSTART.

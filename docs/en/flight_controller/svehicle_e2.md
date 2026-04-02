@@ -1,6 +1,6 @@
 # S-Vehicle E2
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 :::
 
@@ -58,7 +58,7 @@ These flight controllers are [manufacturer supported](../flight_controller/autop
 - 1x Dedicated Debug Port
   - FMU Debug
 
-## Purchase Channels
+## Purchase Channels {#store}
 
 Order from [S-Vehicle](https://svehicle.cn/).
 

@@ -100,7 +100,7 @@ like "sitting in the plane").
 | AUX 2  | Right aileron          |
 | AUX 3  | Elevator               |
 | AUX 4  | Rudder                 |
-| AUX 5  | 油门                     |
+| AUX 5  | Throttle               |
 
 :::info
 The servo direction can be reversed using the PWM_REV parameters in the PWM_OUTPUT group of QGroundControl (cogwheel tab, last item in the left menu)

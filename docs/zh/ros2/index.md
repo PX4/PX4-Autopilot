@@ -36,9 +36,9 @@ ROS 2 也可以使用 [MAVROS](https://github.com/mavlink/mavros/tree/ros2/mavro
 - [ROS 2 用户指南](../ros2/user_guide.md): PX4 视角下的 ROS 2，包括安装、设置和如何构建与 PX4 通信的 ROS 2 应用。
 - [ROS 2 离板控制实例](../ros2/offboard_control.md)：一个 C++ 教程示例显示如何在 [离板模式] (../flight_modes/offboard.md) 中使用 ROS 2 节点进行位置控制。
 - [ROS 2 多载具模拟](../ros2/multi_vehicle.md)：通过单独的ROS2 代理商连接到多极PX4 模拟的说明。
-- [PX4 ROS2 接口库](../ros2/px4_ros2_interface_lib.md)：一个C++ 库，它与ROS2的 PX4 交互。
-  可以使用 ROS 2 创建和注册飞行模式，并从 ROS2 应用程序如VIO 系统发送位置估计数。
-- [ROS 2 消息翻译节点](../ros2/px4_ros2_msg_translation_node.md)：一个 ROS 2 消息翻译节点，它允许在 PX4 和 ROS 2 应用程序之间共享，这些应用程序被编译成不同的消息版本。
+- [PX4 ROS 2 Interface Library](../ros2/px4_ros2_interface_lib.md): A C++ library that simplifies interacting with PX4 from ROS 2.
+  Can be used to create and register flight modes written using ROS2 and send position estimates from ROS2 applications such as a VIO system.
+- [ROS 2 Message Translation Node](../ros2/px4_ros2_msg_translation_node.md): A ROS 2 message translation node that enables communication between PX4 and ROS 2 applications that were compiled with different sets of messages versions.
 
 ## 更多信息
 

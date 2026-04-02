@@ -675,7 +675,6 @@ First set the _frame rate_ for the servos used in each group of outputs.
 - Якщо використовується кнопка безпеки, її потрібно натиснути перед тим, як буде дозволено проводити випробування приводу.
 - Вимикач вимкнення все ще може бути використаний для негайного зупинення двигунів.
 - Сервоприводи фактично не рухаються, поки не буде змінено відповідний слайдер.
-- The parameter [COM_MOT_TEST_EN](../advanced_config/parameter_reference.md#COM_MOT_TEST_EN) can be used to completely disable actuator testing.
 - On the shell, [actuator_test](../modules/modules_command.md#actuator-test) can be used as well for actuator testing.
 - VTOLs will automatically turn off motors pointing upwards during **fixed-wing flight**:
   - Стандартний VTOL: Двигуни, визначені як багатокоптерні двигуни, будуть вимкнені

@@ -9,7 +9,7 @@ const { site } = useData();
 
 <div v-if="site.title !== 'PX4 Guide (main)'">
   <div class="custom-block danger">
-    <p class="custom-block-title">This page is on a release branch, and hence probably out of date. <a href="https://docs.px4.io/main/en/releases/main.html">See the latest version</a>.</p>
+    <p class="custom-block-title">This page is on a release branch, and hence probably out of date. <a href="https://docs.px4.io/main/en/releases/main">See the latest version</a>.</p>
   </div>
 </div>
 
@@ -50,7 +50,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### Estimation
 
-- TBD
+- Added [EKF2_POS_LOCK](../advanced_config/parameter_reference.md#EKF2_POS_LOCK) to force constant position fusion while landed, useful for vehicles relying on dead-reckoning sensors (airspeed, optical flow) that provide no aiding on the ground.
 
 ### Sensors
 
@@ -59,7 +59,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### Simulation
 
-- TBD
+- SIH: Add option to set wind velocity ([PX4-Autopilot#26467](https://github.com/PX4-Autopilot/pull/26467))
 
 <!-- MOVED THIS TO v1.17
 

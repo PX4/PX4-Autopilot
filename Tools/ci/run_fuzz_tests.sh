@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # This script runs the fuzz tests from a given binary for a certain amount of time
 set -e
 

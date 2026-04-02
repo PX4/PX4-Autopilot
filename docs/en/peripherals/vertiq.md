@@ -6,7 +6,7 @@ With closed loop velocity control for the fastest response times available, clas
 
 ![Vertiq Module Lineup](../../assets/peripherals/esc_vertiq/vertiq_esc_lineup.jpg)
 
-All Vertiq modules support traditional [PWM input, DShot, OneShot, and Multishot communication protocols](https://iqmotion.readthedocs.io/en/latest/communication_protocols/hobby_protocol.html). Vertiq's larger modules also support [DroneCAN control](https://iqmotion.readthedocs.io/en/latest/communication_protocols/dronecan_protocol.html).
+All Vertiq modules support traditional [PWM input, DShot, OneShot, and Multishot communication protocols](https://iqmotion.readthedocs.io/en/latest/communication_protocols/timer_based_protocol.html). Vertiq's larger modules also support [DroneCAN control](https://iqmotion.readthedocs.io/en/latest/communication_protocols/dronecan_protocol.html).
 
 ## Where to Buy
 
@@ -46,7 +46,7 @@ Standard Vertiq ESC modules do not include LEDs.
 :::
 
 Vertiq LED Add-on modules have two LEDs per ESC (RGB for status, White for anti-collision).
-See [DroneCAN Lights](../dronecan/index.md#lights) for configuration instructions.
+See [DroneCAN Lights](../dronecan/lights.md) for configuration instructions.
 
 The `light_id` for each LED is calculated as: `esc_index × 3 + BASE_ID`, where `BASE_ID` is 1 for RGB and 2 for White.
 

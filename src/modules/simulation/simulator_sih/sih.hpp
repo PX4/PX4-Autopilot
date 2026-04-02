@@ -79,6 +79,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/ranging_beacon.h>
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 #include <sys/time.h>
@@ -128,6 +129,7 @@ private:
 	PX4Gyroscope     _px4_gyro{1310988};  // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 	uORB::Publication<distance_sensor_s>  _distance_snsr_pub{ORB_ID(distance_sensor)};
 	uORB::Publication<airspeed_s>         _airspeed_pub{ORB_ID(airspeed)};
+	uORB::Publication<ranging_beacon_s>   _ranging_beacon_pub{ORB_ID(ranging_beacon)};
 
 	// groundtruth
 	uORB::Publication<vehicle_angular_velocity_s> _angular_velocity_ground_truth_pub{ORB_ID(vehicle_angular_velocity_groundtruth)};
@@ -140,6 +142,29 @@ private:
 
 	// hard constants
 	static constexpr uint16_t NUM_ACTUATORS_MAX = 9;
+
+	// Ranging beacon simulation constants
+	static constexpr uint8_t NUM_RANGING_BEACONS = 4;
+	bool _beacons_configured{false};
+	struct RangingBeaconConfig {
+		double lat_deg;
+		double lon_deg;
+		float alt_m;
+	};
+	struct RangingBeaconOffset {
+		float north_m;
+		float east_m;
+		float alt_offset_m;
+	};
+	// NED offsets from SIH_LOC_LAT0/LON0/H0, resolved once in init_variables()
+	static constexpr RangingBeaconOffset RANGING_BEACON_OFFSETS[NUM_RANGING_BEACONS] = {
+		{  5000.f,     0.f,  30.f},  // ~5 km North
+		{     0.f, 10000.f,   0.f},  // ~10 km East
+		{-20000.f, -15000.f, 110.f}, // ~20 km South-West
+		{ 35000.f,  45000.f, 310.f}  // ~50 km North-East
+	};
+	RangingBeaconConfig _ranging_beacons[NUM_RANGING_BEACONS] {};
+
 	static constexpr float T1_C = 15.0f;                        // ground temperature in Celsius
 	static constexpr float T1_K = T1_C - atmosphere::kAbsoluteNullCelsius;   // ground temperature in Kelvin
 	static constexpr float TEMP_GRADIENT = -6.5f / 1000.0f;    // temperature gradient in degrees per metre
@@ -149,8 +174,6 @@ private:
 	static constexpr float MAC = 0.21f; 	// wing mean aerodynamic chord [m]
 	static constexpr float RP = 0.1f; 	// radius of the propeller [m]
 	static constexpr float FLAP_MAX = M_PI_F / 12.0f; // 15 deg, maximum control surface deflection
-
-	void init_variables();
 
 	// read the motor signals outputted from the mixer
 	void read_motors(const float dt);
@@ -165,6 +188,7 @@ private:
 	void reconstruct_sensors_signals(const hrt_abstime &time_now_us);
 	void send_airspeed(const hrt_abstime &time_now_us);
 	void send_dist_snsr(const hrt_abstime &time_now_us);
+	void send_ranging_beacon(const hrt_abstime &time_now_us);
 	void publish_ground_truth(const hrt_abstime &time_now_us);
 	void generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, const float yaw_cmd, const float thrust);
 	void generate_ts_aerodynamics();
@@ -173,7 +197,6 @@ private:
 	static float computeGravity(double lat);
 
 	void ecefToNed();
-	static matrix::Dcmf computeRotEcefToNed(const LatLonAlt &lla);
 
 	struct Wgs84 {
 		static constexpr double equatorial_radius = 6378137.0;
@@ -201,28 +224,37 @@ private:
 	hrt_abstime _last_actuator_output_time{0};
 	hrt_abstime _airspeed_time{0};
 	hrt_abstime _dist_snsr_time{0};
+	hrt_abstime _ranging_beacon_time{0};
+	uint8_t _ranging_beacon_idx{0};
 
-	bool        _grounded{true};// whether the vehicle is on the ground
+	bool _grounded{true}; // whether the vehicle is on the ground
 
-	matrix::Vector3f    _T_B{};           // thrust force in body frame [N]
-	matrix::Vector3f    _Mt_B{};          // thruster moments in the body frame [Nm]
-	matrix::Vector3f    _Ma_B{};          // aerodynamic moments in the body frame [Nm]
-	matrix::Vector3f    _lpos{};          // position in a local tangent-plane frame [m]
-	matrix::Vector3f    _v_N{};           // velocity in local navigation frame (NED, body-fixed) [m/s]
-	matrix::Vector3f    _v_N_dot{};       // time derivative of velocity in local navigation frame [m/s2]
-	matrix::Quatf       _q{};             // quaternion attitude in local navigation frame
-	matrix::Vector3f    _w_B{};           // body rates in body frame [rad/s]
+	// Quantities in body frame (FRD)
+	matrix::Vector3f _T_B{};  // thrust force [N]
+	matrix::Vector3f _Mt_B{}; // thruster moments [Nm]
+	matrix::Vector3f _Ma_B{}; // aerodynamic moments [Nm]
+	matrix::Vector3f _w_B{};  // body rates in body frame [rad/s]
 
-	LatLonAlt _lla{};
+	// Quantities in local navigation frame (NED, body-fixed)
+	matrix::Vector3f _v_N{};          // velocity [m/s]
+	matrix::Vector3f _v_N_dot{};      // time derivative of velocity [m/s^2]
+	matrix::Vector3f _v_wind_N{};     // wind velocity [m/s]
+	matrix::Vector3f _v_apparent_N{}; // vehicle velocity relative to the air [m/s]
 
 	// Quantities in Earth-centered-Earth-fixed coordinates
-	matrix::Vector3f    _Fa_E{};          // aerodynamic force in ECEF frame [N]
-	matrix::Vector3f    _specific_force_E{};
-	matrix::Quatf       _q_E{};
-	matrix::Vector3d    _p_E{};
-	matrix::Vector3f    _v_E{};
-	matrix::Vector3f    _v_E_dot{};
-	matrix::Dcmf        _R_N2E;           // local navigation to ECEF frame rotation matrix
+	matrix::Vector3f _Fa_E{};             // aerodynamic force [N]
+	matrix::Vector3d _p_E{};              // position [m]
+	matrix::Vector3f _v_E{};              // velocity [m/s]
+	matrix::Vector3f _v_E_dot{};          // time derivative of velocity [m/s^2]
+	matrix::Vector3f _specific_force_E{}; // acceleration except gravity (for IMU) [m/s^2]
+
+	// Frame conversion
+	matrix::Quatf _q_E{}; // Attitude quaternion (rotation from body to ECEF frame)
+	matrix::Quatf _q{};   // Attitude quaternion (rotation from body to local navigation frame)
+	matrix::Dcmf _R_N2E;  // Rotation matrix from local navigation to ECEF frame
+
+	LatLonAlt _lla{};
+	matrix::Vector3f _lpos{};  // position in a local tangent-plane frame [m]
 
 	float _u[NUM_ACTUATORS_MAX] {}; // thruster signals
 
@@ -261,18 +293,6 @@ private:
 		AeroSeg(0.0225f, 0.110f, 0.0f, matrix::Vector3f(0.083f - TS_CM,  0.239f, 0.0f), 0.0f, TS_AR)
 	};
 
-	// AeroSeg _ts[NB_TS_SEG] = {
-	// 	AeroSeg(0.0225f, 0.110f, -90.0f, matrix::Vector3f(0.0f, -0.239f, TS_CM-0.083f), 0.0f, TS_AR),
-	// 	AeroSeg(0.0383f, 0.125f, -90.0f, matrix::Vector3f(0.0f, -0.208f, TS_CM-0.094f), 0.0f, TS_AR, 0.063f),
-	// 	AeroSeg(0.0884f, 0.148f, -90.0f, matrix::Vector3f(0.0f, -0.143f, TS_CM-0.111f), 0.0f, TS_AR, 0.063f, TS_RP),
-	// 	AeroSeg(0.0633f, 0.176f, -90.0f, matrix::Vector3f(0.0f, -0.068f, TS_CM-0.132f), 0.0f, TS_AR, 0.063f),
-	// 	AeroSeg(0.0750f, 0.231f, -90.0f, matrix::Vector3f(0.0f,  0.000f, TS_CM-0.173f), 0.0f, TS_AR),
-	// 	AeroSeg(0.0633f, 0.176f, -90.0f, matrix::Vector3f(0.0f,  0.068f, TS_CM-0.132f), 0.0f, TS_AR, 0.063f),
-	// 	AeroSeg(0.0884f, 0.148f, -90.0f, matrix::Vector3f(0.0f,  0.143f, TS_CM-0.111f), 0.0f, TS_AR, 0.063f, TS_RP),
-	// 	AeroSeg(0.0383f, 0.125f, -90.0f, matrix::Vector3f(0.0f,  0.208f, TS_CM-0.094f), 0.0f, TS_AR, 0.063f),
-	// 	AeroSeg(0.0225f, 0.110f, -90.0f, matrix::Vector3f(0.0f,  0.239f, TS_CM-0.083f), 0.0f, TS_AR)
-	// 	};
-
 	// parameters
 	MapProjection _lpos_ref{};
 	float _lpos_ref_alt;
@@ -306,6 +326,9 @@ private:
 		(ParamFloat<px4::params::SIH_DISTSNSR_MAX>) _sih_distance_snsr_max,
 		(ParamFloat<px4::params::SIH_DISTSNSR_OVR>) _sih_distance_snsr_override,
 		(ParamFloat<px4::params::SIH_T_TAU>) _sih_thrust_tau,
-		(ParamInt<px4::params::SIH_VEHICLE_TYPE>) _sih_vtype
+		(ParamInt<px4::params::SIH_VEHICLE_TYPE>) _sih_vtype,
+		(ParamFloat<px4::params::SIH_WIND_N>) _sih_wind_n,
+		(ParamFloat<px4::params::SIH_WIND_E>) _sih_wind_e,
+		(ParamFloat<px4::params::SIH_RNGBC_NOISE>) _sih_ranging_beacon_noise
 	)
 };

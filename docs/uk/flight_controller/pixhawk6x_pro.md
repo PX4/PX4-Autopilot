@@ -115,7 +115,7 @@ Processors & Sensors
 
 :::
 
-## Де купити
+## Where to Buy {#store}
 
 Order from [Holybro](https://holybro.com/products/pixhawk-6x-pro).
 
@@ -140,7 +140,7 @@ The [Pixhawk 6X Wiring Quick Start](../assembly/quick_start_pixhawk6x.md) provid
 - [Holybro Pixhawk Jetson Baseboard](https://docs.holybro.com/autopilot/pixhawk-baseboards/pixhawk-jetson-baseboard)
 - [Holybro Pixhawk RPi CM4 Baseboard](https://docs.holybro.com/autopilot/pixhawk-baseboards/pixhawk-rpi-cm4-baseboard)
 
-Примітки:
+Notes:
 
 - The [camera capture pin](../camera/fc_connected_camera.md#camera-capture-configuration) (`PI0`) is pin 2 on the AD&IO port, marked above as `FMU_CAP1`.
 
@@ -199,7 +199,7 @@ It is pre-built and automatically installed by _QGroundControl_ when appropriate
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v6x_default
 ```
 

@@ -57,7 +57,9 @@ ModuleBase::Descriptor Sih::desc{task_spawn, custom_command, print_usage};
 
 Sih::Sih() :
 	ModuleParams(nullptr)
-{}
+{
+	srand(1234); // initialize the random seed once before calling generate_wgn()
+}
 
 Sih::~Sih()
 {
@@ -70,13 +72,13 @@ void Sih::run()
 	_px4_accel.set_temperature(T1_C);
 	_px4_gyro.set_temperature(T1_C);
 
-	init_variables();
 	parameters_updated();
 
 	const hrt_abstime task_start = hrt_absolute_time();
 	_last_run = task_start;
 	_airspeed_time = task_start;
 	_dist_snsr_time = task_start;
+	_ranging_beacon_time = task_start;
 	_vehicle = static_cast<VehicleType>(constrain(_sih_vtype.get(),
 					    static_cast<int32_t>(VehicleType::First),
 					    static_cast<int32_t>(VehicleType::Last)));
@@ -100,7 +102,6 @@ static uint64_t micros()
 
 void Sih::lockstep_loop()
 {
-
 	int rate = math::min(_imu_gyro_ratemax.get(), _imu_integration_rate.get());
 
 	// default to 400Hz (2500 us interval)
@@ -232,6 +233,12 @@ void Sih::sensor_step()
 		send_dist_snsr(now);
 	}
 
+	// ranging beacon published at 2 Hz (each beacon at 0.5 Hz)
+	if (now - _ranging_beacon_time >= 500_ms) {
+		_ranging_beacon_time = now;
+		send_ranging_beacon(now);
+	}
+
 	publish_ground_truth(now);
 
 	perf_end(_loop_perf);
@@ -259,7 +266,7 @@ void Sih::parameters_updated()
 		_lla.setAltitude(_lpos_ref_alt);
 		_p_E = _lla.toEcef();
 
-		const Dcmf R_E2N = computeRotEcefToNed(_lla);
+		const Dcmf R_E2N = _lla.computeRotEcefToNed();
 		_R_N2E = R_E2N.transpose();
 		_v_E = _R_N2E * _v_N;
 
@@ -282,22 +289,8 @@ void Sih::parameters_updated()
 	_distance_snsr_override = _sih_distance_snsr_override.get();
 
 	_T_TAU = _sih_thrust_tau.get();
-}
 
-void Sih::init_variables()
-{
-	srand(1234);    // initialize the random seed once before calling generate_wgn()
-
-	_lpos = Vector3f(0.0f, 0.0f, 0.0f);
-	_v_N = Vector3f(0.0f, 0.0f, 0.0f);
-	_v_N_dot = Vector3f(0.0f, 0.0f, 0.0f);
-	_p_E = Vector3d(Wgs84::equatorial_radius, 0.0, 0.0);
-	_v_E = Vector3f(0.0f, 0.0f, 0.0f);
-	_q = Quatf(1.0f, 0.0f, 0.0f, 0.0f);
-	_q_E = Quatf(Eulerf(0.f, -M_PI_2_F, 0.f));
-	_w_B = Vector3f(0.0f, 0.0f, 0.0f);
-
-	_u[0] = _u[1] = _u[2] = _u[3] = 0.0f;
+	_v_wind_N = Vector3f(_sih_wind_n.get(), _sih_wind_e.get(), 0.f);
 }
 
 void Sih::read_motors(const float dt)
@@ -326,8 +319,9 @@ void Sih::generate_force_and_torques(const float dt)
 		_Mt_B = Vector3f(_L_ROLL * _T_MAX * (-_u[0] + _u[1] + _u[2] - _u[3]),
 				 _L_PITCH * _T_MAX * (+_u[0] - _u[1] + _u[2] - _u[3]),
 				 _Q_MAX * (+_u[0] + _u[1] - _u[2] - _u[3]));
-		_Fa_E = -_KDV * _v_E;   // first order drag to slow down the aircraft
-		_Ma_B = -_KDW * _w_B;   // first order angular damper
+
+		_Fa_E = -_KDV * _R_N2E * _v_apparent_N; // first order drag to slow down the aircraft
+		_Ma_B = -_KDW * _w_B; // first order angular damper
 
 	} else if (_vehicle == VehicleType::Hexacopter) {
 		/*     m5    m0      ┬
@@ -341,7 +335,8 @@ void Sih::generate_force_and_torques(const float dt)
 		_Mt_B = Vector3f(_L_ROLL * _T_MAX * (-.5f * _u[0] - _u[1] - .5f * _u[2] + .5f * _u[3] + _u[4] + .5f * _u[5]),
 				 _L_PITCH * _T_MAX * (M_SQRT3_F / 2.f) * (+_u[0] - _u[2] - _u[3] + _u[5]),
 				 _Q_MAX * (+_u[0] - _u[1] + _u[2] - _u[3] + _u[4] - _u[5]));
-		_Fa_E = -_KDV * _v_E; // first order drag to slow down the aircraft
+
+		_Fa_E = -_KDV * _R_N2E * _v_apparent_N; // first order drag to slow down the aircraft
 		_Ma_B = -_KDW * _w_B; // first order angular damper
 
 	} else if (_vehicle == VehicleType::FixedWing) {
@@ -355,8 +350,8 @@ void Sih::generate_force_and_torques(const float dt)
 		_Mt_B = Vector3f(_L_ROLL * _T_MAX * (_u[1] - _u[0]), 0.0f, _Q_MAX * (_u[1] - _u[0]));
 		generate_ts_aerodynamics();
 
-		// _Fa_E = -_KDV * _v_E;   // first order drag to slow down the aircraft
-		// _Ma_B = -_KDW * _w_B;   // first order angular damper
+		// _Fa_E = -_KDV * _R_N2E * _v_apparent_N; // first order drag to slow down the aircraft
+		// _Ma_B = -_KDW * _w_B; // first order angular damper
 
 	} else if (_vehicle == VehicleType::StandardVTOL) {
 
@@ -377,7 +372,7 @@ void Sih::generate_force_and_torques(const float dt)
 void Sih::generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, const float yaw_cmd,
 				   const float throttle_cmd)
 {
-	const Vector3f v_B = _q_E.rotateVectorInverse(_v_E);
+	const Vector3f v_B = _q.rotateVectorInverse(_v_apparent_N);
 	const float &alt = _lla.altitude();
 
 	_wing_l.update_aero(v_B, _w_B, alt, roll_cmd * FLAP_MAX);
@@ -399,7 +394,7 @@ void Sih::generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, 
 void Sih::generate_ts_aerodynamics()
 {
 	// velocity in body frame [m/s]
-	const Vector3f v_B = _q_E.rotateVectorInverse(_v_E);
+	const Vector3f v_B = _q.rotateVectorInverse(_v_apparent_N);
 
 	// the aerodynamic is resolved in a frame like a standard aircraft (nose-right-belly)
 	Vector3f v_ts = _R_S2B.transpose() * v_B;
@@ -583,29 +578,15 @@ void Sih::ecefToNed()
 {
 	_lla = LatLonAlt::fromEcef(_p_E);
 
-	const Dcmf C_SE = computeRotEcefToNed(_lla);
+	const Dcmf C_SE = _lla.computeRotEcefToNed();
 	_R_N2E = C_SE.transpose();
 
 	// Transform velocity to NED frame
 	_v_N = C_SE * _v_E;
+	_v_apparent_N = _v_N + _v_wind_N;
+
 	_q = Quatf(C_SE) * _q_E;
 	_q.normalize();
-}
-
-Dcmf Sih::computeRotEcefToNed(const LatLonAlt &lla)
-{
-	// Calculate the ECEF to NED coordinate transformation matrix
-	const double cos_lat = cos(lla.latitude_rad());
-	const double sin_lat = sin(lla.latitude_rad());
-	const double cos_lon = cos(lla.longitude_rad());
-	const double sin_lon = sin(lla.longitude_rad());
-
-	const float val[] = {(float)(-sin_lat * cos_lon), (float)(-sin_lat * sin_lon), (float)cos_lat,
-			     (float) - sin_lon, (float)cos_lon, 0.f,
-			     (float)(-cos_lat * cos_lon), (float)(-cos_lat * sin_lon), (float) - sin_lat
-			    };
-
-	return Dcmf(val);
 }
 
 void Sih::reconstruct_sensors_signals(const hrt_abstime &time_now_us)
@@ -646,8 +627,8 @@ void Sih::send_airspeed(const hrt_abstime &time_now_us)
 	airspeed_s airspeed{};
 	airspeed.timestamp_sample = time_now_us;
 
-	// regardless of vehicle type, body frame, etc this holds as long as wind=0
-	airspeed.true_airspeed_m_s = fmaxf(0.1f, _v_E.norm() + generate_wgn() * 0.2f);
+	// Assume the pitot tube always points against the wind to not have tailsitter edge cases
+	airspeed.true_airspeed_m_s = fmaxf(0.1f, _v_apparent_N.norm() + generate_wgn() * 0.2f);
 	airspeed.indicated_airspeed_m_s = airspeed.true_airspeed_m_s * sqrtf(_wing_l.get_rho() / RHO);
 	airspeed.confidence = 0.7f;
 	airspeed.timestamp = hrt_absolute_time();
@@ -686,6 +667,55 @@ void Sih::send_dist_snsr(const hrt_abstime &time_now_us)
 
 	distance_sensor.timestamp = hrt_absolute_time();
 	_distance_snsr_pub.publish(distance_sensor);
+}
+
+void Sih::send_ranging_beacon(const hrt_abstime &time_now_us)
+{
+	if (_lpos_ref.isInitialized()) {
+
+		if (!_beacons_configured) {
+			_beacons_configured = true;
+
+			for (uint8_t i = 0; i < NUM_RANGING_BEACONS; i++) {
+				_lpos_ref.reproject(RANGING_BEACON_OFFSETS[i].north_m, RANGING_BEACON_OFFSETS[i].east_m,
+						    _ranging_beacons[i].lat_deg, _ranging_beacons[i].lon_deg);
+				_ranging_beacons[i].alt_m = _sih_h0.get() + RANGING_BEACON_OFFSETS[i].alt_offset_m;
+			}
+		}
+
+		const RangingBeaconConfig &beacon = _ranging_beacons[_ranging_beacon_idx];
+		const LatLonAlt beacon_lla(beacon.lat_deg, beacon.lon_deg, beacon.alt_m);
+		const matrix::Vector3d beacon_ecef = beacon_lla.toEcef();
+
+		// Compute true range in ECEF
+		const matrix::Vector3d delta_ecef = beacon_ecef - _p_E;
+		const double true_range_m = delta_ecef.norm();
+
+		const float noise_std = _sih_ranging_beacon_noise.get();
+		const float noise_m = (noise_std > 0.f) ? generate_wgn() * noise_std : 0.f;
+		const double measured_range_m = math::max(0.0, true_range_m + static_cast<double>(noise_m));
+
+		ranging_beacon_s msg{};
+		msg.timestamp = hrt_absolute_time();
+		msg.timestamp_sample = time_now_us;
+		msg.beacon_id = _ranging_beacon_idx;
+		msg.range = static_cast<float>(measured_range_m);
+		msg.lat = beacon.lat_deg;
+		msg.lon = beacon.lon_deg;
+		msg.alt = beacon.alt_m;
+		msg.alt_type = 0; // WGS84
+		msg.hacc = 1.0f;
+		msg.vacc = 1.0f;
+		msg.range_accuracy = noise_std;
+		msg.sequence_nr = 0;
+		msg.status = 0;
+		msg.carrier_freq = 0;
+
+		_ranging_beacon_pub.publish(msg);
+
+		// cycle through the beacons
+		_ranging_beacon_idx = (_ranging_beacon_idx + 1) % NUM_RANGING_BEACONS;
+	}
 }
 
 void Sih::publish_ground_truth(const hrt_abstime &time_now_us)

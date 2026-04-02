@@ -269,9 +269,9 @@ void
 	cmd.pop_back();
 
 	// We register thread specific data. This is used for PX4_INFO (etc.) log calls.
-	CmdThreadSpecificData *thread_data_ptr;
+	CmdThreadSpecificData *thread_data_ptr = static_cast<CmdThreadSpecificData *>(pthread_getspecific(_instance->_key));
 
-	if ((thread_data_ptr = (CmdThreadSpecificData *)pthread_getspecific(_instance->_key)) == nullptr) {
+	if (thread_data_ptr == nullptr) {
 		thread_data_ptr = new CmdThreadSpecificData;
 		thread_data_ptr->thread_stdout = out;
 		thread_data_ptr->is_atty = isatty;

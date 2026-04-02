@@ -1,0 +1,10 @@
+module_name: px4flow
+parameters:
+- group: Sensors
+  definitions:
+    SENS_EN_PX4FLOW:
+      description:
+        short: PX4 Flow Optical Flow
+      type: boolean
+      default: 0
+      reboot_required: true

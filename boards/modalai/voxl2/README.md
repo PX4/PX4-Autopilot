@@ -13,6 +13,10 @@ critical applications such as Mavlink, and logging are running on the
 ARM CPU cluster (aka apps proc). The DSP and ARM CPU cluster communicate via a
 Qualcomm proprietary shared memory interface.
 
+Both processors are built from this single board directory:
+- `default.px4board` - POSIX apps processor (ARM64)
+- `slpi.px4board` - QURT DSP (Hexagon)
+
 ## Build environment
 
 In order to build for this platform both the Qualcomm Hexagon (DSP) toolchain and the Linaro ARM64 toolchain need to be installed. The (nearly) complete setup including the ARM64 toolchain is provided in the base Docker image provided by ModalAI, but since ModalAI is not allowed to redistribute the Qualcomm Hexagon DSP SDK this must be added by the end user.
@@ -22,16 +26,20 @@ The full instructions are available here:
 
 ## Build overview
 
+A single `make modalai_voxl2` command builds both the DSP and apps processor
+firmware. The Makefile chains the SLPI build as a prerequisite of the default
+(apps) build.
+
 - Clone the repo (Don't forget to update and initialize all submodules)
 - In the top level directory
 ```
 px4$ boards/modalai/voxl2/scripts/run-docker.sh
 root@9373fa1401b8:/usr/local/workspace# boards/modalai/voxl2/scripts/clean.sh
-root@9373fa1401b8:/usr/local/workspace# boards/modalai/voxl2/scripts/build-deps.sh
 root@9373fa1401b8:/usr/local/workspace# boards/modalai/voxl2/scripts/build-apps.sh
-root@9373fa1401b8:/usr/local/workspace# boards/modalai/voxl2/scripts/build-slpi.sh
 root@9373fa1401b8:/usr/local/workspace# exit
 ```
+
+For DSP-only rebuilds: `make modalai_voxl2_slpi`
 
 ## Install and run on VOXL 2
 

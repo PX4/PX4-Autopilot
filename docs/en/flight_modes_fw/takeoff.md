@@ -14,7 +14,7 @@ Vehicles are [hand or catapult launched](#catapult-hand-launch) by default, but 
   - Flying vehicles will failsafe if they lose the altitude estimate.
   - Disarmed vehicles can switch to mode without valid altitude estimate but can't arm.
 - RC control switches can be used to change flight modes.
-- RC stick movement is ignored in catapult takeoff but can can be used to nudge the vehicle in runway takeoff.
+- RC stick movement is ignored in catapult takeoff but can be used to nudge the vehicle in runway takeoff.
 - The [Failure Detector](../config/safety.md#failure-detector) will automatically stop the engines if there is a problem on takeoff.
 
 <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/commander/ModeUtil/mode_requirements.cpp -->
@@ -100,18 +100,18 @@ To launch in this mode:
 
 The _launch detector_ is affected by the following parameters:
 
-| Parameter                                                                                                   | Description                                                                              |
-| ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| <a id="FW_LAUN_DETCN_ON"></a>[FW_LAUN_DETCN_ON](../advanced_config/parameter_reference.md#FW_LAUN_DETCN_ON) | Enable automatic launch detection. If disabled motors spin up on arming already          |
-| <a id="FW_LAUN_AC_THLD"></a>[FW_LAUN_AC_THLD](../advanced_config/parameter_reference.md#FW_LAUN_AC_THLD)    | Acceleration threshold (acceleration in body-forward direction must be above this value) |
-| <a id="FW_LAUN_AC_T"></a>[FW_LAUN_AC_T](../advanced_config/parameter_reference.md#FW_LAUN_AC_T)             | Trigger time (acceleration must be above threshold for this amount of seconds)           |
-| <a id="FW_LAUN_MOT_DEL"></a>[FW_LAUN_MOT_DEL](../advanced_config/parameter_reference.md#FW_LAUN_MOT_DEL)    | Delay from launch detection to motor spin up                                             |
-| <a id="FW_LAUN_CS_LK_DY"></a>[FW_LAUN_CS_LK_DY](../advanced_config/parameter_reference.md#FW_LAUN_CS_LK_DY) | Delay from launch detection to unlocking the control surfaces                            |
-| <a id="CA_CS_LAUN_LK"></a>[CA_CS_LAUN_LK](../advanced_config/parameter_reference.md#CA_CS_LAUN_LK)          | Bitmask to select which control surfaces are to be locked during launch                  |
+| Parameter                                                                                                   | Description                                                                     |
+| ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| <a id="FW_LAUN_DETCN_ON"></a>[FW_LAUN_DETCN_ON](../advanced_config/parameter_reference.md#FW_LAUN_DETCN_ON) | Enable automatic launch detection. If disabled motors spin up on arming already |
+| <a id="FW_LAUN_AC_THLD"></a>[FW_LAUN_AC_THLD](../advanced_config/parameter_reference.md#FW_LAUN_AC_THLD)    | Acceleration threshold (norm of acceleration must be above this value)          |
+| <a id="FW_LAUN_AC_T"></a>[FW_LAUN_AC_T](../advanced_config/parameter_reference.md#FW_LAUN_AC_T)             | Trigger time (acceleration must be above threshold for this amount of seconds)  |
+| <a id="FW_LAUN_MOT_DEL"></a>[FW_LAUN_MOT_DEL](../advanced_config/parameter_reference.md#FW_LAUN_MOT_DEL)    | Delay from launch detection to motor spin up                                    |
+| <a id="FW_LAUN_CS_LK_DY"></a>[FW_LAUN_CS_LK_DY](../advanced_config/parameter_reference.md#FW_LAUN_CS_LK_DY) | Delay from launch detection to unlocking the control surfaces                   |
+| <a id="CA_CS_LAUN_LK"></a>[CA_CS_LAUN_LK](../advanced_config/parameter_reference.md#CA_CS_LAUN_LK)          | Bitmask to select which control surfaces are to be locked during launch         |
 
 ## Runway Takeoff {#runway_launch}
 
-Runway takeoffs can be used by vehicles with landing gear and and steerable wheel (only).
+Runway takeoffs can be used by vehicles with landing gear and steerable wheel (only).
 You will first need to enable the wheel controller using the parameter [FW_W_EN](#FW_W_EN).
 
 Vehicle should be centered and aligned with runway when takeoff is initiated.

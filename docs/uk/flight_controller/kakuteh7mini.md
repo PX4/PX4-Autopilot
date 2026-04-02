@@ -40,7 +40,7 @@ PX4 runs on the H7 mini v1.3 and later.
 - Розміри: 30x31x6мм
 - Вага: 5.5г
 
-## Де купити
+## Where to Buy {#store}
 
 Плату можна придбати в одному з наступних магазинів (наприклад):
 
@@ -86,14 +86,14 @@ Download the [holybro_kakuteh7mini_bootloader.hex](https://github.com/PX4/PX4-Au
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make holybro_kakuteh7mini_default
 ```
 
 ## Встановлення прошивки PX4
 
 :::info
-Якщо ви завантажуєте готове програмне забезпечення через QGroundcontrol, вам необхідно використовувати щоденну версію QGC або версію QGC новішу за 4.1.7.
+If you are loading the pre-built firmware via QGroundControl, you must use QGC Daily or QGC version newer than 4.1.7.
 До випуску вам потрібно буде вручну зібрати та встановити прошивку.
 :::
 
@@ -101,7 +101,7 @@ make holybro_kakuteh7mini_default
 
 - Збудуйте та завантажте джерело:
 
-  ```
+  ```sh
   make holybro_kakuteh7mini_default upload
   ```
 

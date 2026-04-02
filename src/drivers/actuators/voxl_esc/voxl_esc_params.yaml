@@ -1,0 +1,223 @@
+module_name: voxl_esc
+parameters:
+- group: VOXL ESC
+  definitions:
+    VOXL_ESC_CONFIG:
+      description:
+        short: UART ESC configuration
+        long: Selects what type of UART ESC, if any, is being used.
+      type: enum
+      values:
+        0: '- Disabled'
+        1: '- VOXL ESC'
+      default: 0
+      reboot_required: true
+      min: 0
+      max: 1
+    VOXL_ESC_BAUD:
+      description:
+        short: UART ESC baud rate
+        long: Default rate is 250Kbps, which is used in off-the-shelf MoadalAI ESC
+          products.
+      type: int32
+      default: 250000
+      unit: bit/s
+    VOXL_ESC_RPM_MIN:
+      description:
+        short: UART ESC RPM Min
+        long: Minimum RPM for ESC
+      type: int32
+      default: 5500
+      unit: rpm
+    VOXL_ESC_RPM_MAX:
+      description:
+        short: UART ESC RPM Max
+        long: Maximum RPM for ESC
+      type: int32
+      default: 15000
+      unit: rpm
+    VOXL_ESC_MODE:
+      description:
+        short: UART ESC Mode
+        long: Selects what type of mode is enabled, if any
+      type: enum
+      values:
+        0: '- None'
+        1: '- Turtle Mode enabled via AUX1'
+        2: '- Turtle Mode enabled via AUX2'
+        3: '- UART Passthrough Mode'
+      default: 0
+      reboot_required: true
+      min: 0
+      max: 2
+    VOXL_ESC_SDIR1:
+      description:
+        short: UART ESC ID 1 Spin Direction Flag
+      type: enum
+      values:
+        0: '- Default'
+        1: '- Reverse'
+      default: 0
+    VOXL_ESC_SDIR2:
+      description:
+        short: UART ESC ID 2 Spin Direction Flag
+      type: enum
+      values:
+        0: '- Default'
+        1: '- Reverse'
+      default: 0
+    VOXL_ESC_SDIR3:
+      description:
+        short: UART ESC ID 3 Spin Direction Flag
+      type: enum
+      values:
+        0: '- Default'
+        1: '- Reverse'
+      default: 0
+    VOXL_ESC_SDIR4:
+      description:
+        short: UART ESC ID 4 Spin Direction Flag
+      type: enum
+      values:
+        0: '- Default'
+        1: '- Reverse'
+      default: 0
+    VOXL_ESC_T_PERC:
+      description:
+        short: UART ESC Turtle Mode Crash Flip Motor Percent
+      type: int32
+      default: 90
+      min: 1
+      max: 100
+      decimal: 10
+      increment: 1
+    VOXL_ESC_T_DEAD:
+      description:
+        short: UART ESC Turtle Mode Crash Flip Motor Deadband
+      type: int32
+      default: 20
+      min: 0
+      max: 100
+      decimal: 10
+      increment: 1
+    VOXL_ESC_T_MINF:
+      description:
+        short: UART ESC Turtle Mode Crash Flip Motor STICK_MINF
+      type: float
+      default: 0.15
+      min: 0.0
+      max: 100.0
+      decimal: 10
+      increment: 1.0
+    VOXL_ESC_T_EXPO:
+      description:
+        short: UART ESC Turtle Mode Crash Flip Motor expo
+      type: int32
+      default: 35
+      min: 0
+      max: 100
+      decimal: 10
+      increment: 1
+    VOXL_ESC_T_COSP:
+      description:
+        short: UART ESC Turtle Mode Cosphi
+      type: float
+      default: 0.99
+      min: 0.0
+      max: 1.0
+      decimal: 10
+      increment: 0.001
+    VOXL_ESC_T_ON:
+      description:
+        short: UART ESC Turtle Mode button index for MAVLink manual control
+        long: |-
+          Specifies which button in the MAVLink MANUAL_CONTROL buttons field
+          activates turtle mode. Only used when data source is a MAVLink instance.
+          When data source is RC, turtle mode activation uses the AUX channel
+          selected by VOXL_ESC_MODE instead.
+          Set to -1 to disable turtle mode activation via MAVLink buttons.
+      type: enum
+      values:
+        -1: Disabled
+      default: -1
+      reboot_required: true
+      min: -1
+      max: 15
+    VOXL_ESC_VLOG:
+      description:
+        short: UART ESC verbose logging
+      type: enum
+      values:
+        0: '- Disabled'
+        1: '- Enabled'
+      default: 0
+      reboot_required: true
+      min: 0
+      max: 1
+    VOXL_ESC_PUB_BST:
+      description:
+        short: UART ESC Enable publishing of battery status
+        long: Only applicable to ESCs that report total battery voltage and current
+      type: enum
+      values:
+        0: '- Disabled'
+        1: '- Enabled'
+      default: 1
+      reboot_required: true
+      min: 0
+      max: 1
+    VOXL_ESC_T_WARN:
+      description:
+        short: UART ESC Temperature Warning Threshold (Degrees C)
+        long: Only applicable to ESCs that report temperature
+      type: enum
+      values:
+        0: '- Disabled'
+      default: 0
+      reboot_required: true
+      min: 0
+      max: 200
+    VOXL_ESC_T_OVER:
+      description:
+        short: UART ESC Over-Temperature Threshold (Degrees C)
+        long: Only applicable to ESCs that report temperature
+      type: enum
+      values:
+        0: '- Disabled'
+      default: 0
+      reboot_required: true
+      min: 0
+      max: 200
+    VOXL_ESC_GPIO_CH:
+      description:
+        short: GPIO Control Channel
+      type: enum
+      values:
+        0: '- Disabled'
+      default: 0
+      reboot_required: true
+      min: 0
+      max: 6
+    VOXL_ESC_CMD:
+      description:
+        short: UART ESC command type
+        long: Selects between RPM or PWM commands
+      type: enum
+      values:
+        0: '- RPM'
+        1: '- PWM'
+      default: 0
+      reboot_required: true
+      min: 0
+      max: 1
+    VOXL_ESC_PWR_MIN:
+      description:
+        short: UART ESC Minimum motor power
+        long: |-
+          Minimum motor power for ESC when VOXL_ESC_CMD is set for PWM.
+          Make sure to set this high enough so that the motors are always spinning
+          while armed.
+      type: float
+      default: 0.05
+      min: 0.0
+      max: 1.0

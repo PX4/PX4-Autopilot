@@ -1,7 +1,7 @@
 # ArchLinux 上的开发环境
 
 :::warning
-This development environment is [community supported and maintained](../advanced/community_supported_dev_env).
+This development environment is [community supported and maintained](../advanced/community_supported_dev_env.md).
 It may or may not work with current versions of PX4.
 
 See [Toolchain Installation](../dev_setup/dev_env.md) for information about the environments and tools supported by the core development team.

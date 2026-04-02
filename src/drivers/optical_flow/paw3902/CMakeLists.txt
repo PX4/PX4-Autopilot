@@ -41,6 +41,8 @@ px4_add_module(
 		PAW3902.cpp
 		PAW3902.hpp
 		PixArt_PAW3902_Registers.hpp
+	MODULE_CONFIG
+		parameters.yaml
 	DEPENDS
 		conversion
 		drivers__device

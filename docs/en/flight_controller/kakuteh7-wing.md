@@ -2,7 +2,7 @@
 
 <Badge type="tip" text="PX4 v1.16" />
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://holybro.com/) for hardware support or compliance issues.
 :::
@@ -13,7 +13,7 @@ The [Holybro Kakute H743 Wing](https://holybro.com/products/kakute-h743-wing) is
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
 :::
 
-## Where to Buy
+## Where to Buy {#store}
 
 The board can be bought from one of the following shops (for example):
 
@@ -43,7 +43,7 @@ Download the [holybro_kakuteh7-wing.hex](https://github.com/PX4/PX4-Autopilot/ra
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make holybro_kakuteh7-wing_default
 ```
 
@@ -58,7 +58,7 @@ Firmware can be manually installed in any of the normal ways:
 
 - Build and upload the source:
 
-  ```
+  ```sh
   make holybro_kakuteh7-wing_default upload
   ```
 

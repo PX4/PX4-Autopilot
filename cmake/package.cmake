@@ -86,7 +86,7 @@ if("${CMAKE_SYSTEM}" MATCHES "Linux")
 		set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "PX4 autopilot")
 		set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
 		set(CPACK_DEBIAN_PACKAGE_SECTION "misc")
-		set(CPACK_DEBIAN_ARCHITECTURE ${CMAKE_SYSTEM_PROCESSOR})
+		set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE ${CMAKE_SYSTEM_PROCESSOR})
 
 		# autogenerate dependency information
 		set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
@@ -95,6 +95,11 @@ if("${CMAKE_SYSTEM}" MATCHES "Linux")
 	endif()
 else()
 	set(CPACK_GENERATOR "ZIP")
+endif()
+
+# Board-specific overrides (loaded after defaults are set)
+if(EXISTS "${PX4_BOARD_DIR}/cmake/package.cmake")
+	include(${PX4_BOARD_DIR}/cmake/package.cmake)
 endif()
 
 include(CPack)

@@ -157,7 +157,7 @@ To only allow arming when a Remote ID is ready, [set](../advanced_config/paramet
 Integrators should test than the remote ID module is broadcasting the correct information, such as UAV location, ID, operator ID and so on.
 This is most easily done using a 3rd party application on your mobile device:
 
-- [Drone Scanner](https://github.com/dronetag/drone-scanner) (Google Play or Apple App store)
+- [Drone Scanner](https://help.dronetag.com/drone-scanner/) (Google Play or Apple App store)
 - [OpenDroneID OSM](https://play.google.com/store/apps/details?id=org.opendroneid.android_osm&hl=en&gl=US) (Google Play)
 
 ## 实现

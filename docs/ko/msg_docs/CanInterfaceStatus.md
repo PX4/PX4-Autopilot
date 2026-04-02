@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # CanInterfaceStatus (UORB message)
 
-**TOPICS:** can_interfacestatus
+**TOPICS:** can_interface_status
 
 ## Fields
 

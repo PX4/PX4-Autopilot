@@ -70,6 +70,8 @@ set(msg_files
 	DistanceSensorModeChangeRequest.msg
 	DronecanNodeStatus.msg
 	Ekf2Timestamps.msg
+	EscEepromRead.msg
+	EscEepromWrite.msg
 	EscReport.msg
 	EscStatus.msg
 	EstimatorAidSource1d.msg
@@ -176,6 +178,7 @@ set(msg_files
 	QshellReq.msg
 	QshellRetval.msg
 	RadioStatus.msg
+	RangingBeacon.msg
 	RateCtrlStatus.msg
 	RcChannels.msg
 	RcParameterMap.msg

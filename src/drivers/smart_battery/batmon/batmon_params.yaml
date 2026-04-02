@@ -1,0 +1,23 @@
+module_name: batmon
+parameters:
+- group: Sensors
+  definitions:
+    BATMON_DRIVER_EN:
+      description:
+        short: Parameter to enable BatMon module
+      type: enum
+      values:
+        0: Disabled
+        1: Start on default I2C addr(BATMON_ADDR_DFLT)
+        2: Autodetect I2C address (TODO)
+      default: 0
+      reboot_required: true
+      min: 0
+      max: 2
+    BATMON_ADDR_DFLT:
+      description:
+        short: I2C address for BatMon battery 1
+      type: int32
+      default: 11
+      reboot_required: true
+      decimal: 1

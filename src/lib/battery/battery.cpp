@@ -201,8 +201,9 @@ void Battery::updateDt(const hrt_abstime &timestamp)
 
 float Battery::sumDischarged(float current_a)
 {
-	if (_dt > FLT_EPSILON) {
+	if (_dt > FLT_EPSILON && fabsf(current_a + 1.f) > FLT_EPSILON) {
 		// mAh since last loop: (current[A] * 1000 = [mA]) * (dt[s] / 3600 = [h])
+		// current = -1 means invalid current measurement
 		_discharged_mah_loop = (current_a * 1e3f) * (_dt / 3600.f);
 		_discharged_mah += _discharged_mah_loop;
 	}

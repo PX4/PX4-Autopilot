@@ -810,7 +810,8 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 	}
 
 	// position aiding active
-	if ((_control_status.flags.gnss_pos || _control_status.flags.ev_pos || _control_status.flags.aux_gpos)
+	if ((_control_status.flags.gnss_pos || _control_status.flags.ev_pos
+	     || _control_status.flags.aux_gpos || _control_status.flags.rngbcn_fusion)
 	    && isRecent(_time_last_hor_pos_fuse, _params.no_aid_timeout_max)
 	   ) {
 		inertial_dead_reckoning = false;
@@ -1232,6 +1233,10 @@ void Ekf::updateAidSourceStatus(estimator_aid_source1d_s &status, const uint64_t
 
 void Ekf::clearInhibitedStateKalmanGains(VectorState &K) const
 {
+	if (!_control_status.flags.heading_observable) {
+		K(State::quat_nominal.idx + 2) = 0.f;
+	}
+
 	for (unsigned i = 0; i < State::gyro_bias.dof; i++) {
 		if (_gyro_bias_inhibit[i]) {
 			K(State::gyro_bias.idx + i) = 0.f;

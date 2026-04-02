@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # InternalCombustionEngineControl (UORB message)
 
-**TOPICS:** internal_combustionengine_control
+**TOPICS:** internal_combustion_engine_control
 
 ## Fields
 

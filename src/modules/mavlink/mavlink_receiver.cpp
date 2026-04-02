@@ -213,6 +213,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_follow_target(msg);
 		break;
 
+	case MAVLINK_MSG_ID_GLOBAL_POSITION_SENSOR:
+		handle_message_global_position_sensor(msg);
+		break;
+
 	case MAVLINK_MSG_ID_LANDING_TARGET:
 		handle_message_landing_target(msg);
 		break;
@@ -281,6 +285,13 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_open_drone_id_system(msg);
 		break;
 
+#if defined(MAVLINK_MSG_ID_RANGING_BEACON)
+
+	case MAVLINK_MSG_ID_RANGING_BEACON:
+		handle_message_ranging_beacon(msg);
+		break;
+#endif // MAVLINK_MSG_ID_RANGING_BEACON
+
 #if !defined(CONSTRAINED_FLASH)
 
 	case MAVLINK_MSG_ID_NAMED_VALUE_FLOAT:
@@ -328,6 +339,14 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_SET_VELOCITY_LIMITS:
 		handle_message_set_velocity_limits(msg);
+		break;
+
+#endif
+
+#if defined(MAVLINK_MSG_ID_ESC_EEPROM) // For now only defined if development.xml is used
+
+	case MAVLINK_MSG_ID_ESC_EEPROM:
+		handle_message_esc_eeprom(msg);
 		break;
 #endif
 
@@ -594,14 +613,24 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 
 		uint16_t message_id = (uint16_t)roundf(vehicle_command.param1);
 
-		if (message_id == MAVLINK_MSG_ID_MESSAGE_INTERVAL) {
-			get_message_interval((int)(cmd_mavlink.param2 + 0.5f));
+#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
 
-		} else {
-			result = handle_request_message_command(message_id,
-								vehicle_command.param2, vehicle_command.param3, vehicle_command.param4,
-								vehicle_command.param5, vehicle_command.param6, vehicle_command.param7);
-		}
+		// Translate ESC_EEPROM request into the PX4 internal command so the DShot driver handles it
+		if (message_id == MAVLINK_MSG_ID_ESC_EEPROM) {
+			vehicle_command_s eeprom_cmd = vehicle_command;
+			eeprom_cmd.command = vehicle_command_s::VEHICLE_CMD_ESC_REQUEST_EEPROM;
+			_cmd_pub.publish(eeprom_cmd);
+
+		} else
+#endif
+			if (message_id == MAVLINK_MSG_ID_MESSAGE_INTERVAL) {
+				get_message_interval((int)(cmd_mavlink.param2 + 0.5f));
+
+			} else {
+				result = handle_request_message_command(message_id,
+									vehicle_command.param2, vehicle_command.param3, vehicle_command.param4,
+									vehicle_command.param5, vehicle_command.param6, vehicle_command.param7);
+			}
 
 	} else if (cmd_mavlink.command == MAV_CMD_INJECT_FAILURE) {
 		if (_mavlink.failure_injection_enabled()) {
@@ -1321,6 +1350,48 @@ void MavlinkReceiver::handle_message_set_velocity_limits(mavlink_message_t *msg)
 	_velocity_limits_pub.publish(velocity_limits);
 }
 #endif // MAVLINK_MSG_ID_SET_VELOCITY_LIMITS
+
+#if defined(MAVLINK_MSG_ID_ESC_EEPROM) // For now only defined if development.xml is used
+void
+MavlinkReceiver::handle_message_esc_eeprom(mavlink_message_t *msg)
+{
+	mavlink_esc_eeprom_t message;
+	mavlink_msg_esc_eeprom_decode(msg, &message);
+
+	esc_eeprom_write_s eeprom{};
+	eeprom.timestamp = hrt_absolute_time();
+	eeprom.firmware = message.firmware;
+	eeprom.index = message.esc_index;
+
+	if (eeprom.index != 255 && eeprom.index >= esc_status_s::CONNECTED_ESC_MAX) {
+		PX4_ERR("ESC EEPROM: invalid esc_index %u", eeprom.index);
+		return;
+	}
+
+	uint8_t min_length = sizeof(eeprom.data);
+	int length = message.length;
+
+	if (length > min_length) {
+		length = min_length;
+	}
+
+	for (int i = 0; i < length && i < min_length; i++) {
+		int mask_index = i / 32;  // Which uint32_t in the write_mask array
+		int bit_index = i % 32;   // Which bit within that uint32_t
+
+		if (message.write_mask[mask_index] & (1U << bit_index)) {
+			eeprom.data[i] = message.data[i];
+		}
+	}
+
+	eeprom.length = length;
+	memcpy(eeprom.write_mask, message.write_mask, sizeof(eeprom.write_mask));
+
+	PX4_DEBUG("ESC EEPROM write request for ESC%d", eeprom.index + 1);
+
+	_esc_eeprom_write_pub.publish(eeprom);
+}
+#endif // MAVLINK_MSG_ID_ESC_EEPROM
 
 void
 MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
@@ -2502,6 +2573,59 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 
 	_sensor_gps_pub.publish(gps);
 }
+
+void
+MavlinkReceiver::handle_message_global_position_sensor(mavlink_message_t *msg)
+{
+	mavlink_global_position_sensor_t global_pos;
+	mavlink_msg_global_position_sensor_decode(msg, &global_pos);
+
+	aux_global_position_s aux_global_position{};
+	const hrt_abstime now = hrt_absolute_time();
+	aux_global_position.timestamp = now;
+	aux_global_position.timestamp_sample = now;
+
+	aux_global_position.id = global_pos.id;
+	aux_global_position.source = global_pos.source;
+
+	aux_global_position.lat = global_pos.lat * 1e-7;
+	aux_global_position.lon = global_pos.lon * 1e-7;
+	aux_global_position.alt = global_pos.alt;
+
+	aux_global_position.lat_lon_reset_counter = 0;
+	aux_global_position.eph = global_pos.eph;
+	aux_global_position.epv = global_pos.epv;
+
+	_aux_global_position_pub.publish(aux_global_position);
+}
+
+#if defined(MAVLINK_MSG_ID_RANGING_BEACON)
+void
+MavlinkReceiver::handle_message_ranging_beacon(mavlink_message_t *msg)
+{
+	mavlink_ranging_beacon_t beacon_pos;
+	mavlink_msg_ranging_beacon_decode(msg, &beacon_pos);
+
+	ranging_beacon_s ranging_beacon{};
+	ranging_beacon.timestamp = hrt_absolute_time();
+	ranging_beacon.timestamp_sample = beacon_pos.time_usec;
+	ranging_beacon.beacon_id = beacon_pos.beacon_id;
+	ranging_beacon.range = (beacon_pos.range != UINT32_MAX) ? static_cast<float>(beacon_pos.range) * 1e-3f : NAN;
+	ranging_beacon.lat = static_cast<double>(beacon_pos.lat) * 1e-7;
+	ranging_beacon.lon = static_cast<double>(beacon_pos.lon) * 1e-7;
+	ranging_beacon.alt = beacon_pos.alt;
+	ranging_beacon.alt_type = beacon_pos.alt_type;
+	ranging_beacon.hacc = (beacon_pos.hacc_est != UINT32_MAX) ? static_cast<float>(beacon_pos.hacc_est) * 1e-3f : NAN;
+	ranging_beacon.vacc = (beacon_pos.vacc_est != UINT32_MAX) ? static_cast<float>(beacon_pos.vacc_est) * 1e-3f : NAN;
+	ranging_beacon.sequence_nr = beacon_pos.sequence;
+	ranging_beacon.status = beacon_pos.status;
+	ranging_beacon.carrier_freq = beacon_pos.carrier_freq;
+	ranging_beacon.range_accuracy = (beacon_pos.range_accuracy != UINT32_MAX)
+					? static_cast<float>(beacon_pos.range_accuracy) * 1e-3f : NAN;
+
+	_ranging_beacon_pub.publish(ranging_beacon);
+}
+#endif // MAVLINK_MSG_ID_RANGING_BEACON
 
 void
 MavlinkReceiver::handle_message_follow_target(mavlink_message_t *msg)

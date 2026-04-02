@@ -1,0 +1,25 @@
+module_name: tap_esc
+parameters:
+- group: ESC
+  definitions:
+    ESC_FW_VER:
+      description:
+        short: Required esc firmware version
+      type: int32
+      default: 0
+      min: 0
+      max: 65535
+    ESC_BL_VER:
+      description:
+        short: Required esc bootloader version
+      type: int32
+      default: 0
+      min: 0
+      max: 65535
+    ESC_HW_VER:
+      description:
+        short: Required esc hardware version
+      type: int32
+      default: 0
+      min: 0
+      max: 65535

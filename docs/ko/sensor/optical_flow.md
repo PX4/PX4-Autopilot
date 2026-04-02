@@ -34,6 +34,12 @@ The information is written to the corresponding uORB topics: [DistanceSensor](..
 | 우측    | - X   |
 | 좌측    | + X   |
 
+:::info
+The integrated flow values are **angular measurements** (radians) representing rotation of the image about the sensor's body axes using the right-hand convention.
+They are _not_ translational displacements along those axes, which is why forward vehicle movement (along X) appears in the Y flow axis, and rightward movement (along Y) appears in the X flow axis.
+Specifically, forward movement causes the ground image to rotate about the Y axis (+ Y), while rightward movement causes a negative rotation about the X axis (- X).
+:::
+
 광류 데이터는 다른 속도 데이터 소스와 융합됩니다.
 The approach used for fusing sensor data and any offsets from the center of the vehicle must be configured in the [estimator](#estimators).
 
@@ -71,7 +77,7 @@ Bitcraze, Tindie, Hex, Thone 및 Alientek의 일부 제품을 포함하여 여�
 ### 기타 카메라 / 센서
 
 카메라 통합 보드를 사용할 수 있습니다.
-For this the [Optical Flow repo](https://github.com/PX4/OpticalFlow) can be used (see also [snap_cam](https://github.com/PX4/snap_cam)).
+For this the [Optical Flow repo](https://github.com/PX4/PX4-OpticalFlow) can be used (see also [snap_cam](https://github.com/PX4/snap_cam)).
 
 ## 거리 측정기
 

@@ -37,6 +37,8 @@ px4_add_module(
 
 	SRCS
 		pwm_voltage.cpp
+	MODULE_CONFIG
+		parameters.yaml
 	DEPENDS
 		px4_work_queue
 	)

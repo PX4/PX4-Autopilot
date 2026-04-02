@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -e
+
+# Create px4-* symlinks from px4-alias.sh
+# The alias format is: alias <module>='px4-<module> --instance $px4_instance'
+# We extract the px4-<module> command name and symlink it to the px4 binary
+if [ -f /usr/bin/px4-alias.sh ]; then
+    grep "^alias " /usr/bin/px4-alias.sh | \
+        sed -n "s/.*'\(px4-[a-zA-Z0-9_]*\).*/\1/p" | while read cmd; do
+        ln -sf px4 "/usr/bin/${cmd}"
+    done
+fi
+
+# Detect platform and generate DSP test signature if needed
+if ! /bin/ls /usr/lib/rfsa/adsp/testsig-*.so &> /dev/null; then
+    echo "[INFO] Generating DSP test signature..."
+    if [ -f /share/modalai/qcs6490-slpi-test-sig/generate-test-sig.sh ]; then
+        /share/modalai/qcs6490-slpi-test-sig/generate-test-sig.sh || true
+    elif [ -f /share/modalai/qrb5165-slpi-test-sig/generate-test-sig.sh ]; then
+        /share/modalai/qrb5165-slpi-test-sig/generate-test-sig.sh || true
+    else
+        echo "[WARNING] Could not find DSP signature generation script"
+    fi
+fi
+
+# Create required data directories
+mkdir -p /data/px4/param
+mkdir -p /data/px4/etc/extras
+chown -R root:root /data/px4
+
+# Reload systemd if available
+if command -v systemctl > /dev/null 2>&1; then
+    systemctl daemon-reload
+fi
+
+echo "voxl-px4 installed successfully"

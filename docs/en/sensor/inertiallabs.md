@@ -21,8 +21,8 @@ The mode is configurable using a parameter.
 [Get technical support or send requests to sales team](https://inertiallabs.com/inertial-labs-inc/contact-inertial-labs-team/).
 Recommended sensors:
 
-- [INS-U GNSS/INS](https://inertiallabs.com/ins-u-datasheet): Recommended for fixed-wing systems without hovering, where static heading is not necessary.
-- [INS-DU DUAL GNSS/INS](https://inertiallabs.com/ins-du-datasheet): Recommended for multicopter systems where hovering and low dynamics requires the use of static heading.
+- [INS-U GNSS/INS](https://inertiallabs.com/wp-content/uploads/2026/01/INS-U_INS-U-OEM_Datasheet_REV2.18_JAN2026.pdf): Recommended for fixed-wing systems without hovering, where static heading is not necessary.
+- [INS-DU DUAL GNSS/INS](https://inertiallabs.com/wp-content/uploads/2025/12/INS-DU_INS-DU-OEM_Datasheet_REV1.00_DEC2025.pdf): Recommended for multicopter systems where hovering and low dynamics requires the use of static heading.
 
 ## Hardware Setup
 

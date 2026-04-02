@@ -136,15 +136,23 @@ void EstimatorChecks::checkAndReport(const Context &context, Report &reporter)
 void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &reporter,
 		const estimator_status_s &estimator_status, NavModes required_groups)
 {
+	// Heading is required to arm for all modes that need any form of local position, plus FW AUTO_TAKEOFF
+	const NavModes heading_required_groups = (NavModes)(
+				reporter.failsafeFlags().mode_req_local_position |
+				reporter.failsafeFlags().mode_req_local_position_relaxed |
+				(1u << vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF));
+
 	if (!context.isArmed() && estimator_status.pre_flt_fail_innov_heading) {
 		/* EVENT
+		 * @description
+		 * Recalibrate compass or perform manual heading reset.
 		 */
-		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
+		reporter.armingCheckFailure(heading_required_groups, health_component_t::local_position_estimate,
 					    events::ID("check_estimator_heading_not_stable"),
-					    events::Log::Error, "Heading estimate not stable");
+					    events::Log::Error, "Heading estimate invalid");
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: heading estimate not stable");
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: heading estimate invalid");
 		}
 
 	} else if (!context.isArmed() && estimator_status.pre_flt_fail_innov_vel_horiz) {
@@ -627,10 +635,10 @@ void EstimatorChecks::checkGps(const Context &context, Report &reporter, const s
 		 */
 		reporter.armingCheckFailure(NavModes::None, health_component_t::gps,
 					    events::ID("check_estimator_gps_jamming_critical"),
-					    events::Log::Critical, "GPS jamming detected");
+					    events::Log::Warning, "GPS jamming detected");
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "GPS jamming detected\t");
+			mavlink_log_warning(reporter.mavlink_log_pub(), "GPS jamming detected\t");
 		}
 	}
 }
@@ -695,7 +703,7 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 	bool v_xy_valid = lpos.v_xy_valid;
 
 	if (!context.isArmed()) {
-		if (pre_flt_fail_innov_heading || pre_flt_fail_innov_pos_horiz) {
+		if (pre_flt_fail_innov_pos_horiz) {
 			xy_valid = false;
 		}
 

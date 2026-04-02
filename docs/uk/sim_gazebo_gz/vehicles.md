@@ -8,7 +8,7 @@ Supported vehicle types include: mutirotor, VTOL, Plane, Rover.
 
 :::warning
 See [Gazebo Classic Vehicles](../sim_gazebo_classic/vehicles.md) for vehicles that work with the older [Gazebo "Classic" simulation](../sim_gazebo_classic/index.md).
-Note that vehicle models are not interchangable between the two versions of the simulator: the vehicles on this page only work with (new) [Gazebo](../sim_gazebo_gz/index.md).
+Note that vehicle models are not interchangeable between the two versions of the simulator: the vehicles on this page only work with (new) [Gazebo](../sim_gazebo_gz/index.md).
 :::
 
 ## Мультикоптер

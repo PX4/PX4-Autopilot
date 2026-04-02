@@ -121,10 +121,10 @@ The following list shows the build commands for the [Pixhawk standard](../flight
 - [Pixhawk Mini](../flight_controller/pixhawk_mini.md): `make px4_fmu-v3_default`
 - [Pixhawk 2 (Cube Black) (FMUv3)](../flight_controller/pixhawk-2.md): `make px4_fmu-v3_default`
 - [mRo Pixhawk (FMUv3)](../flight_controller/mro_pixhawk.md): `make px4_fmu-v3_default` (supports 2MB Flash)
-- [Holybro pix32 (FMUv2)](../flight_controller/holybro_pix32.md): `make px4_fmu-v2_default`
-- [Pixfalcon (FMUv2)](../flight_controller/pixfalcon.md): `make px4_fmu-v2_default`
-- [Dropix (FMUv2)](../flight_controller/dropix.md): `make px4_fmu-v2_default`
-- [Pixhawk 1 (FMUv2)](../flight_controller/pixhawk.md): `make px4_fmu-v2_default`
+- [Holybro pix32 (FMUv2)](../flight_controller/autopilot_discontinued.md): `make px4_fmu-v2_default` - Discontinued
+- [Pixfalcon (FMUv2)](../flight_controller/autopilot_discontinued.md): `make px4_fmu-v2_default` - Discontinued
+- [Dropix (FMUv2)](../flight_controller/autopilot_discontinued.md): `make px4_fmu-v2_default` - Discontinued
+- [Pixhawk 1 (FMUv2)](../flight_controller/autopilot_discontinued.md): `make px4_fmu-v2_default` - Discontinued
 
   :::warning
   You **must** use a supported version of GCC to build this board (e.g. the `gcc-arm-none-eabi` package from the current Ubuntu LTS, which is the same toolchain used by CI) or remove modules from the build.
@@ -263,7 +263,7 @@ make [VENDOR_][MODEL][_VARIANT] [VIEWER_MODEL_DEBUGGER_WORLD]
 - **VENDOR:** The manufacturer of the board: `px4`, `aerotenna`, `airmind`, `atlflight`, `auav`, `beaglebone`, `intel`, `nxp`, etc.
   The vendor name for Pixhawk series boards is `px4`.
 - **MODEL:** The _board model_ "model": `sitl`, `fmu-v2`, `fmu-v3`, `fmu-v4`, `fmu-v5`, `navio2`, etc.
-- **VARIANT:** Indicates particular configurations: e.g. `bootloader`, `cyphal`, which contain components that are not present in the `default` configuration.
+- **VARIANT:** Indicates particular configurations: e.g. `bootloader`, `cyphal`, `sih`, which add or remove components to/from the `default` configuration.
   Most commonly this is `default`, and may be omitted.
 
 :::tip

@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # OrbTestLarge (UORB message)
 
-**TOPICS:** orb_testlarge
+**TOPICS:** orb_test_large
 
 ## Fields
 

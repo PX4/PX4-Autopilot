@@ -20,7 +20,7 @@ By default this is set to `Disabled (-1)` and the driver does not run.
 After selecting the input mode, reboot the vehicle to start the mount driver.
 
 You should set `MNT_MODE_IN` to one of: `RC (1)`, `MAVlink gimbal protocol v2 (4)` or `Auto (0)` (the other options are deprecated).
-If you select `Auto (0)`, the gimbal will automatically select either RC or or MAVLink input based on the latest input.
+If you select `Auto (0)`, the gimbal will automatically select either RC or MAVLink input based on the latest input.
 Note that the auto-switch from MAVLink to RC requires a large stick motion!
 
 The output is set using the [MNT_MODE_OUT](../advanced_config/parameter_reference.md#MNT_MODE_OUT) parameter.

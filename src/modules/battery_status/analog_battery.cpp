@@ -67,9 +67,6 @@ AnalogBattery::AnalogBattery(int index, ModuleParams *parent, const int sample_i
 	snprintf(param_name, sizeof(param_name), "BAT%d_V_CHANNEL", index);
 	_analog_param_handles.v_channel = param_find(param_name);
 
-	snprintf(param_name, sizeof(param_name), "BAT%d_I_CHANNEL", index);
-	_analog_param_handles.i_channel = param_find(param_name);
-
 	snprintf(param_name, sizeof(param_name), "BAT%d_I_OVERWRITE", index);
 	_analog_param_handles.i_overwrite = param_find(param_name);
 
@@ -147,12 +144,7 @@ int AnalogBattery::get_voltage_channel()
 
 int AnalogBattery::get_current_channel()
 {
-	if (_analog_params.i_channel >= 0) {
-		return _analog_params.i_channel;
-
-	} else {
-		return DEFAULT_I_CHANNEL[_index - 1];
-	}
+	return DEFAULT_I_CHANNEL[_index - 1];
 }
 
 void
@@ -161,7 +153,6 @@ AnalogBattery::updateParams()
 	param_get(_analog_param_handles.v_div, &_analog_params.v_div);
 	param_get(_analog_param_handles.a_per_v, &_analog_params.a_per_v);
 	param_get(_analog_param_handles.v_channel, &_analog_params.v_channel);
-	param_get(_analog_param_handles.i_channel, &_analog_params.i_channel);
 	param_get(_analog_param_handles.i_overwrite, &_analog_params.i_overwrite);
 	param_get(_analog_param_handles.v_offs_cur, &_analog_params.v_offs_cur);
 	param_get(_analog_param_handles.v_filt, &_analog_params.v_filt);
