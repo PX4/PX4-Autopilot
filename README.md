@@ -7,7 +7,7 @@
 
 ## Contribution: Failsafe Priority Framework Hardening
 
-**Status:** `Open PR upstream` → [PX4/PX4-Autopilot #PENDING](#)
+**Status:** `Open PR upstream` → [PX4/PX4-Autopilot #26948](https://github.com/PX4/PX4-Autopilot/pull/26948)
 
 **What I built:** Comprehensive documentation, unit tests, and an operator-facing notification system for PX4's failsafe priority resolution framework — the safety-critical subsystem that decides what a drone does when multiple failure conditions occur simultaneously (e.g., low battery *and* geofence breach *and* GPS loss).
 
