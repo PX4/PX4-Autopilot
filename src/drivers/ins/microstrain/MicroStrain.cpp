@@ -196,6 +196,7 @@ mip_cmd_result MicroStrain::forceIdle()
 
 	while (set_to_idle_tries++ < 3) {
 		res = mip_base_set_idle(&_device);
+
 		if (mip_cmd_result_is_ack(res)) {
 			break;
 
@@ -831,6 +832,7 @@ mip_cmd_result MicroStrain::configureGnssAiding()
 		// Sets up the GNSS aiding source
 		if (supportsDescriptor(MIP_FILTER_CMD_DESC_SET, MIP_CMD_DESC_FILTER_GNSS_SOURCE_CONTROL)) {
 			res = mip_filter_write_gnss_source(&_device, (uint8_t)_param_ms_gnss_aid_src_ctrl.get());
+
 			if (!mip_cmd_result_is_ack(res)) {
 				PX4_ERR("Could not write the gnss aiding source");
 				return res;
@@ -845,6 +847,7 @@ mip_cmd_result MicroStrain::configureGnssAiding()
 					res = mip_aiding_write_frame_config(&_device, 1,
 									    MIP_AIDING_FRAME_CONFIG_COMMAND_FORMAT_EULER, false,
 									    gnss_antenna_offset1, &rotation_gnss);
+
 					if (!mip_cmd_result_is_ack(res)) {
 						PX4_ERR("Could not write aiding frame config");
 						return res;
@@ -879,6 +882,7 @@ mip_cmd_result MicroStrain::configureGnssAiding()
 					 _param_ms_int_heading_en.get(),
 					 0, 0, nullptr, mip_aiding_frame_config_command_rotation{},
 					 0, _int_aiding, "dual antenna heading");
+
 		if (!mip_cmd_result_is_ack(res)) {
 			return res;
 		}
@@ -889,6 +893,7 @@ mip_cmd_result MicroStrain::configureGnssAiding()
 		res = mip_aiding_write_frame_config(&_device, 1,
 						    MIP_AIDING_FRAME_CONFIG_COMMAND_FORMAT_EULER, false,
 						    gnss_antenna_offset1, &rotation_gnss);
+
 		if (!mip_cmd_result_is_ack(res)) {
 			PX4_ERR("Could not write aiding frame config");
 			return res;
@@ -912,6 +917,7 @@ mip_cmd_result MicroStrain::configureAidingSources()
 				 _param_ms_int_mag_en.get(),
 				 0, 0, nullptr, mip_aiding_frame_config_command_rotation{},
 				 0, _int_aiding, "internal magnetometer");
+
 	if (!mip_cmd_result_is_ack(res)) {
 		return res;
 	}
@@ -924,6 +930,7 @@ mip_cmd_result MicroStrain::configureAidingSources()
 				 MIP_CMD_DESC_AIDING_MAGNETIC_FIELD,
 				 _ext_mag_aiding,
 				 "external magnetometer");
+
 	if (!mip_cmd_result_is_ack(res)) {
 		return res;
 	}
@@ -936,6 +943,7 @@ mip_cmd_result MicroStrain::configureAidingSources()
 				 MIP_CMD_DESC_AIDING_VEL_ODOM,
 				 _ext_optical_flow_aiding,
 				 "optical flow");
+
 	if (!mip_cmd_result_is_ack(res)) {
 		return res;
 	}
@@ -948,6 +956,7 @@ mip_cmd_result MicroStrain::configureAidingSources()
 				 MIP_CMD_DESC_AIDING_HEADING_TRUE,
 				 _ext_heading_aiding,
 				 "external heading");
+
 	if (!mip_cmd_result_is_ack(res)) {
 		return res;
 	}
@@ -1016,6 +1025,7 @@ bool MicroStrain::initializeIns()
 	PX4_INFO("Setting the baud to desired baud rate");
 
 	res = writeBaudRate(DESIRED_BAUDRATE, 1);
+
 	if (!mip_cmd_result_is_ack(res)) {
 		PX4_ERR("Could not set the baudrate!");
 		return false;
@@ -1031,6 +1041,7 @@ bool MicroStrain::initializeIns()
 
 	// Configure IMU ranges
 	res = configureImuRange();
+
 	if (!mip_cmd_result_is_ack(res)) {
 		MS_PX4_ERROR(res, "Could not configure IMU range");
 		return false;
@@ -1038,6 +1049,7 @@ bool MicroStrain::initializeIns()
 
 	// Configure the IMU message formt based on what descriptors are supported
 	res = configureImuMessageFormat();
+
 	if (!mip_cmd_result_is_ack(res)) {
 		MS_PX4_ERROR(res, "Could not write IMU message format");
 		return false;
@@ -1050,6 +1062,7 @@ bool MicroStrain::initializeIns()
 
 	// Configure the Filter message format based on what descriptors are supported
 	res = configureFilterMessageFormat();
+
 	if (!mip_cmd_result_is_ack(res)) {
 		MS_PX4_ERROR(res, "Could not write filter message format");
 		return false;
@@ -1062,6 +1075,7 @@ bool MicroStrain::initializeIns()
 
 	// Configure the GNSS1 message format based on what descriptors are supported
 	res = configureGnssMessageFormat(MIP_GNSS1_DATA_DESC_SET);
+
 	if (!mip_cmd_result_is_ack(res)) {
 		MS_PX4_ERROR(res, "Could not write GNSS1 message format");
 	}
@@ -1073,6 +1087,7 @@ bool MicroStrain::initializeIns()
 
 	// Configure the GNSS2 message format based on what descriptors are supported
 	res = configureGnssMessageFormat(MIP_GNSS2_DATA_DESC_SET);
+
 	if (!mip_cmd_result_is_ack(res)) {
 		MS_PX4_ERROR(res, "Could not write GNSS2 message format");
 	}
@@ -1084,6 +1099,7 @@ bool MicroStrain::initializeIns()
 
 	// Configure the aiding sources based on what the sensor supports
 	res = configureAidingSources();
+
 	if (!mip_cmd_result_is_ack(res)) {
 		MS_PX4_ERROR(res, "Could not configure aiding frames!");
 		return false;
@@ -1091,6 +1107,7 @@ bool MicroStrain::initializeIns()
 
 	// Initialize the filter
 	res = writeFilterInitConfig();
+
 	if (!mip_cmd_result_is_ack(res)) {
 		MS_PX4_ERROR(res, "Could not configure filter initialization!");
 		return false;
@@ -1101,9 +1118,10 @@ bool MicroStrain::initializeIns()
 		PX4_DEBUG("Writing SVT");
 
 		res = mip_3dm_write_sensor_2_vehicle_transform_euler(&_device,
-								     math::radians<float>(rotation_sens.euler[0]),
-								     math::radians<float>(rotation_sens.euler[1]),
-								     math::radians<float>(rotation_sens.euler[2]));
+				math::radians<float>(rotation_sens.euler[0]),
+				math::radians<float>(rotation_sens.euler[1]),
+				math::radians<float>(rotation_sens.euler[2]));
+
 		if (!mip_cmd_result_is_ack(res)) {
 			MS_PX4_ERROR(res, "Could not set sensor-to-vehicle transformation!");
 			return false;
@@ -1115,6 +1133,7 @@ bool MicroStrain::initializeIns()
 		PX4_DEBUG("Reseting filter");
 
 		res = mip_filter_reset(&_device);
+
 		if (!mip_cmd_result_is_ack(res)) {
 			MS_PX4_ERROR(res, "Could not reset the filter!");
 			return false;
@@ -1126,6 +1145,7 @@ bool MicroStrain::initializeIns()
 
 		res = mip_3dm_write_datastream_control(&_device,
 						       MIP_3DM_DATASTREAM_CONTROL_COMMAND_ALL_STREAMS, true);
+
 		if (!mip_cmd_result_is_ack(res)) {
 			MS_PX4_ERROR(res, "Could not enable the data stream");
 			return false;
@@ -1137,6 +1157,7 @@ bool MicroStrain::initializeIns()
 		PX4_DEBUG("Resuming device");
 
 		res = mip_base_resume(&_device);
+
 		if (!mip_cmd_result_is_ack(res)) {
 			MS_PX4_ERROR(res, "Could not resume the device!");
 			return false;
