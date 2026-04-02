@@ -122,9 +122,19 @@ parameters:
         long: If set to 1, add an ID to the log, which uniquely identifies the vehicle
       type: boolean
       default: 1
-    SDLOG_NO_POS_DAT: # Auterion flavor
+    SDLOG_NO_POS_DAT: # APX4 Custom
       description:
-        short: Disable logging of topics containing absolute position data
-      type: boolean
+        short: Disable logging of topics containing position data
+        long: |
+          'For uORB topics which contain global or local position
+          information, replace the information with 0 before logging the
+          message.'
+      type: enum
+      values:
+        0: Log all position data
+        1: Do not log global position data, do log local position data
+        2: Do not log global or local position data
       default: 0
-      reboot_required: true
+      min: 0
+      max: 2
+      reboot_required: false

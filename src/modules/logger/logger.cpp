@@ -767,6 +767,13 @@ void Logger::run()
 				const bool try_to_subscribe = (sub_idx == next_subscribe_topic_index);
 
 				if (copy_if_updated(sub_idx, _msg_buffer + sizeof(ulog_message_data_s), try_to_subscribe)) {
+
+					_sanitizer.redact_position(
+						_subscriptions[sub_idx].get_topic(),
+						_msg_buffer + sizeof(ulog_message_data_s),
+						_param_sdlog_no_pos_dat.get()
+					);
+
 					// each message consists of a header followed by an orb data object
 					const size_t msg_size = sizeof(ulog_message_data_s) + sub.get_topic()->o_size_no_padding;
 					const uint16_t write_msg_size = static_cast<uint16_t>(msg_size - ULOG_MSG_HEADER_LEN);

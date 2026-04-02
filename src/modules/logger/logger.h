@@ -36,6 +36,7 @@
 #include "log_writer.h"
 #include "logged_topics.h"
 #include "messages.h"
+#include "log_data_sanitizer.h"
 #include "watchdog.h"
 #include <containers/Array.hpp>
 #include "util.h"
@@ -391,6 +392,8 @@ private:
 
 	timer_callback_data_s				_timer_callback_data{};
 
+	LogDataSanitizer				_sanitizer{};
+
 	uORB::Subscription				_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription				_vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription				_vehicle_status_sub{ORB_ID(vehicle_status)};
@@ -403,7 +406,8 @@ private:
 		(ParamInt<px4::params::SDLOG_PROFILE>) _param_sdlog_profile,
 		(ParamInt<px4::params::SDLOG_MISSION>) _param_sdlog_mission,
 		(ParamBool<px4::params::SDLOG_BOOT_BAT>) _param_sdlog_boot_bat,
-		(ParamBool<px4::params::SDLOG_UUID>) _param_sdlog_uuid
+		(ParamBool<px4::params::SDLOG_UUID>) _param_sdlog_uuid,
+		(ParamInt<px4::params::SDLOG_NO_POS_DAT>) _param_sdlog_no_pos_dat
 #if defined(PX4_CRYPTO)
 		, (ParamInt<px4::params::SDLOG_ALGORITHM>) _param_sdlog_crypto_algorithm,
 		(ParamInt<px4::params::SDLOG_KEY>) _param_sdlog_crypto_key,
