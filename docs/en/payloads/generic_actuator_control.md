@@ -42,11 +42,12 @@ The preferred method to manually actuate spoilers and flaps is to map a manual c
 The source for the manual control can be RC or MAVLink.
 
 ::: warning
-Alternatively, you can define a flaps channel directly on the RC using [RC_MAP_FLAPS](../advanced_config/parameter_reference.md#RC_MAP_FLAPS).
+The following method is not recommended, and will be removed in a future release.
+If using it you should migrate to using the AUX-based method.
+
+It is also possible to define a flaps channel directly on the RC using [RC_MAP_FLAPS](../advanced_config/parameter_reference.md#RC_MAP_FLAPS).
 This channel can also be used to control the spoilers by setting [FW_SPOILERS_MAN](../advanced_config/parameter_reference.md#FW_SPOILERS_MAN) to `Flaps channel`.
 This method is not possible when the source for the manual control is MAVLink.
-This method is not recommended for new setups, and will be removed in a future release.
-Use the AUX-based method instead.
 :::
 
 ## Generic Actuator Control in Missions
