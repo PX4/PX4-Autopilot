@@ -1,164 +1,110 @@
-# PX4-Autopilot — Navigator Mode Change Telemetry
+<p align="center">
+  <a href="https://px4.io">
+    <img src="docs/assets/site/px4_logo.svg" alt="PX4 Autopilot" width="240">
+  </a>
+</p>
 
-> **This is a contribution fork of [PX4/PX4-Autopilot](https://github.com/PX4/PX4-Autopilot)** (11k+ stars, the industry-standard open-source drone autopilot stack).
-> The contribution is documented below. For general PX4 documentation, see the upstream repo.
+<p align="center">
+  <em>The autopilot stack the industry builds on.</em>
+</p>
 
----
-
-## Contribution: Structured Telemetry for Autonomous Mode Transitions
-
-**Status:** `Open PR upstream` → [PX4/PX4-Autopilot #26947](https://github.com/PX4/PX4-Autopilot/pull/26947)
-
-**What I built:** A new `NavigatorModeChange` uORB message that publishes a structured, machine-readable record every time the vehicle switches autonomous navigation modes — automatically captured in every ULog flight recording.
-
-**Problem it solves:** Post-flight analysis of why a vehicle transitioned out of a mission or into failsafe required manually correlating timestamps across multiple log topics. This feature collapses that into a single purpose-built record with all relevant context captured at the exact moment of transition — velocity, distance-to-target, failsafe state, user intention, and whether waypoints were reset.
-
-### Files I Changed
-
-| File | Change |
-|---|---|
-| [`msg/NavigatorModeChange.msg`](msg/NavigatorModeChange.msg) | New uORB message definition |
-| [`msg/CMakeLists.txt`](msg/CMakeLists.txt) | Register new message in build system |
-| [`src/modules/navigator/navigator_main.cpp`](src/modules/navigator/navigator_main.cpp) | Detect transitions, capture context, publish |
-| [`src/modules/navigator/navigator.h`](src/modules/navigator/navigator.h) | Publisher declaration and method signature |
-| [`src/modules/logger/logged_topics.cpp`](src/modules/logger/logged_topics.cpp) | Register topic for automatic ULog recording |
-
-### Why This Approach
-
-**Why a uORB message instead of debug logs?**
-`PX4_DEBUG` strings are stripped in release builds and cannot be queried after a flight. A uORB message is recorded at full fidelity in every ULog, parseable by Flight Review and pyulog scripts, with negligible overhead — one small struct publish per mode change.
-
-**Why capture velocity and distance-to-target?**
-Transitions at high speed or far from the intended waypoint are the ones most likely to cause anomalous behavior. Having these values at the exact moment — not reconstructed from nearby samples — makes debugging significantly more reliable.
-
-**Why `nav_state_user_intention`?**
-Failsafe transitions overwrite `nav_state`, but the user's intended state is preserved separately in `vehicle_status`. Recording both makes it immediately clear whether a transition was commanded or automatic.
+<p align="center">
+  <a href="https://github.com/PX4/PX4-Autopilot/releases"><img src="https://img.shields.io/github/release/PX4/PX4-Autopilot.svg" alt="Releases"></a>
+  <a href="https://www.bestpractices.dev/projects/6520"><img src="https://www.bestpractices.dev/projects/6520/badge" alt="OpenSSF Best Practices"></a>
+  <a href="https://zenodo.org/badge/latestdoi/22634/PX4/PX4-Autopilot"><img src="https://zenodo.org/badge/22634/PX4/PX4-Autopilot.svg" alt="DOI"></a>
+  <a href="https://github.com/PX4/PX4-Autopilot/actions/workflows/build_all_targets.yml"><img src="https://github.com/PX4/PX4-Autopilot/actions/workflows/build_all_targets.yml/badge.svg?branch=main" alt="Build Targets"></a>
+  <a href="https://discord.gg/dronecode"><img src="https://discordapp.com/api/guilds/1022170275984457759/widget.png?style=shield" alt="Discord"></a>
+</p>
 
 ---
 
-## Message Schema
+## About
 
-```
-msg/NavigatorModeChange.msg
-```
+PX4 is an open-source autopilot stack for drones and unmanned vehicles. It supports multirotors, fixed-wing, VTOL, rovers, and many more experimental platforms from racing quads to industrial survey aircraft. It runs on [NuttX](https://nuttx.apache.org/), Linux, and macOS. Licensed under [BSD 3-Clause](LICENSE).
 
-| Field | Type | Description |
-|---|---|---|
-| `timestamp` | `uint64` | Time since system start (microseconds) |
-| `nav_state_prev` | `uint8` | Navigation state before transition |
-| `nav_state_new` | `uint8` | Navigation state after transition |
-| `nav_state_user_intention` | `uint8` | User-intended state at time of transition |
-| `in_failsafe` | `bool` | Whether vehicle was in failsafe |
-| `triplet_reset_applied` | `bool` | Whether `reset_triplets()` was called on entry |
-| `entry_velocity_xy` | `float32` | Horizontal ground speed at transition [m/s] |
-| `entry_dist_to_target` | `float32` | Distance to active waypoint [m], NaN if none |
+## Why PX4
 
----
+**Modular architecture.** PX4 is built around [uORB](https://docs.px4.io/main/en/middleware/uorb.html), a [DDS](https://docs.px4.io/main/en/middleware/uxrce_dds.html)-compatible publish/subscribe middleware. Modules are fully parallelized and thread safe. You can build custom configurations and trim what you don't need.
 
-## Architecture
+**Wide hardware support.** PX4 runs on a wide range of [autopilot boards](https://docs.px4.io/main/en/flight_controller/) and supports an extensive set of sensors, telemetry radios, and actuators through the [Pixhawk](https://pixhawk.org/) ecosystem.
 
-```mermaid
-flowchart TD
-    A[Navigator::run loop] -->|detects mode pointer change| B{navigation_mode_changed?}
-    B -- No --> A
-    B -- Yes --> C[Capture context\nprev state, velocity, dist-to-target, failsafe]
-    C --> D{triplets_will_reset?}
-    D -- Yes --> E[reset_triplets\ntriplet_reset_applied = true]
-    D -- No --> F[skip reset]
-    E --> G[Activate new navigation mode]
-    F --> G
-    G --> H[publish_mode_change]
-    H --> I[navigator_mode_change\nuORB topic]
-    I --> J[ULog / Flight Review]
-    I --> K[listener / MAVLink tools]
-```
+**Developer friendly.** First-class support for [MAVLink](https://mavlink.io/) and [DDS / ROS 2](https://docs.px4.io/main/en/ros2/) integration. Comprehensive [SITL simulation](https://docs.px4.io/main/en/simulation/), hardware-in-the-loop testing, and [log analysis](https://docs.px4.io/main/en/log/flight_log_analysis.html) tools. An active developer community on [Discord](https://discord.gg/dronecode) and the [weekly dev call](https://docs.px4.io/main/en/contribute/).
 
----
+**Vendor neutral governance.** PX4 is hosted under the [Dronecode Foundation](https://www.dronecode.org/), part of the Linux Foundation. Business-friendly BSD-3 license. No single vendor controls the roadmap.
 
-## Mode Transition Sequence
+## Supported Vehicles
 
-```mermaid
-sequenceDiagram
-    participant V as vehicle_status
-    participant N as Navigator
-    participant U as uORB Bus
-    participant L as Logger / ULog
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://docs.px4.io/main/en/frames_multicopter/">
+        <img src="docs/assets/airframes/types/QuadRotorX.svg" width="50" alt="Multicopter"><br>
+        <sub>Multicopter</sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://docs.px4.io/main/en/frames_plane/">
+        <img src="docs/assets/airframes/types/Plane.svg" width="50" alt="Fixed Wing"><br>
+        <sub>Fixed Wing</sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://docs.px4.io/main/en/frames_vtol/">
+        <img src="docs/assets/airframes/types/VTOLPlane.svg" width="50" alt="VTOL"><br>
+        <sub>VTOL</sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://docs.px4.io/main/en/frames_rover/">
+        <img src="docs/assets/airframes/types/Rover.svg" width="50" alt="Rover"><br>
+        <sub>Rover</sub>
+      </a>
+    </td>
+  </tr>
+</table>
 
-    V->>N: nav_state update
-    N->>N: compare _navigation_mode vs navigation_mode_new
-    Note over N: capture prev state ID,<br/>velocity, dist-to-target,<br/>failsafe flag
-    alt triplet reset needed
-        N->>N: reset_triplets()
-        Note over N: triplet_reset_applied = true
-    end
-    N->>N: activate new navigation mode
-    N->>U: publish navigator_mode_change
-    U->>L: auto-logged (logged_topics.cpp)
-```
+<sub>…and many more: helicopters, autogyros, airships, submarines, boats, and other experimental platforms. These frames have basic support but are not part of the regular flight-test program. See the <a href="https://docs.px4.io/main/en/airframes/airframe_reference.html">full airframe reference</a>.</sub>
 
----
-
-## Navigation State Machine
-
-```mermaid
-stateDiagram-v2
-    [*] --> MANUAL
-    MANUAL --> POSCTL : Position hold request
-    MANUAL --> ALTCTL : Altitude hold request
-    POSCTL --> AUTO_TAKEOFF : Arm + takeoff
-    AUTO_TAKEOFF --> AUTO_LOITER : Takeoff complete
-    AUTO_LOITER --> AUTO_MISSION : Mission start
-    AUTO_MISSION --> AUTO_RTL : RTL request / geofence
-    AUTO_MISSION --> AUTO_LOITER : Mission complete
-    AUTO_RTL --> AUTO_LAND : Home reached
-    AUTO_LAND --> [*] : Landed + disarm
-
-    AUTO_MISSION --> AUTO_RTL : Failsafe trigger
-    POSCTL --> AUTO_RTL : Failsafe trigger
-
-    note right of AUTO_RTL : NavigatorModeChange\npublished on every\narrow transition
-```
-
----
-
-## Usage
-
-### Query transitions from a flight log (pyulog)
-
-```python
-from pyulog import ULog
-
-log = ULog('flight.ulg')
-mode_changes = log.get_dataset('navigator_mode_change')
-
-for i, ts in enumerate(mode_changes.data['timestamp']):
-    print(f"{ts/1e6:.3f}s  {mode_changes.data['nav_state_prev'][i]} -> "
-          f"{mode_changes.data['nav_state_new'][i]}  "
-          f"failsafe={bool(mode_changes.data['in_failsafe'][i])}  "
-          f"v_xy={mode_changes.data['entry_velocity_xy'][i]:.1f} m/s")
-```
-
-**Example output:**
-```
-12.541s   0 -> 3   failsafe=False  v_xy=0.0 m/s
-47.382s   3 -> 4   failsafe=False  v_xy=4.2 m/s
-91.017s   4 -> 5   failsafe=True   v_xy=6.8 m/s
-```
-
-### Live monitoring in SITL
+## Quick Start
 
 ```bash
-make px4_sitl_default gazebo-classic_iris
-# In the PX4 shell:
-listener navigator_mode_change
+git clone https://github.com/PX4/PX4-Autopilot.git --recursive
+cd PX4-Autopilot
+make px4_sitl
 ```
 
-### Run tests
+> [!NOTE]
+> See the [Development Guide](https://docs.px4.io/main/en/development/development.html) for toolchain setup and build options.
 
-```bash
-make tests TESTFILTER=navigator
-```
+## Documentation & Resources
 
----
+| Resource | Description |
+| --- | --- |
+| [User Guide](https://docs.px4.io/main/en/) | Build, configure, and fly with PX4 |
+| [Developer Guide](https://docs.px4.io/main/en/development/development.html) | Modify the flight stack, add peripherals, port to new hardware |
+| [Airframe Reference](https://docs.px4.io/main/en/airframes/airframe_reference.html) | Full list of supported frames |
+| [Autopilot Hardware](https://docs.px4.io/main/en/flight_controller/) | Compatible flight controllers |
+| [Release Notes](https://docs.px4.io/main/en/releases/) | What's new in each release |
+| [Contribution Guide](https://docs.px4.io/main/en/contribute/) | How to contribute to PX4 |
 
-*For full PX4 build instructions and documentation, see the [upstream repository](https://github.com/PX4/PX4-Autopilot).*
+## Community
+
+- **Weekly Dev Call** — open to all developers ([Dronecode calendar](https://www.dronecode.org/calendar/))
+- **Discord** — [Join the Dronecode server](https://discord.gg/dronecode)
+- **Discussion Forum** — [PX4 Discuss](https://discuss.px4.io/)
+- **Maintainers** — see [`MAINTAINERS.md`](MAINTAINERS.md)
+- **Contributor Stats** — [LFX Insights](https://insights.lfx.linuxfoundation.org/foundation/dronecode)
+
+## Contributing
+
+We welcome contributions of all kinds — bug reports, documentation, new features, and code reviews. Please read the [Contribution Guide](https://docs.px4.io/main/en/contribute/) to get started.
+
+## Governance
+
+The PX4 Autopilot project is hosted by the [Dronecode Foundation](https://www.dronecode.org/), a [Linux Foundation](https://www.linuxfoundation.org/) Collaborative Project. Dronecode holds all PX4 trademarks and serves as the project's legal guardian, ensuring vendor-neutral stewardship — no single company owns the name or controls the roadmap. The source code is licensed under the [BSD 3-Clause](LICENSE) license, so you are free to use, modify, and distribute it in your own projects.
+
+<p align="center">
+  <a href="https://www.dronecode.org/">
+    <img src="docs/assets/site/dronecode_logo.svg" alt="Dronecode Logo" width="180">
+  </a>
+</p>
