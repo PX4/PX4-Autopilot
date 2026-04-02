@@ -49,6 +49,32 @@ class FailsafeBase: public ModuleParams
 public:
 	static constexpr hrt_abstime DEFAULT_DEFER_TIMEOUT = 30_s;
 
+	/**
+	 * Failsafe Priority Policy (axioms)
+	 *
+	 * A1. Severity is strictly ordered: every action further down in this enum is more
+	 *     severe than all actions above it.  When multiple failsafe conditions are
+	 *     simultaneously active the highest-severity action is always selected.
+	 *
+	 * A2. The dominant action always comes from the condition with the highest severity.
+	 *     No subsystem may silently suppress or downgrade that action except through the
+	 *     explicit UX-improvement skip logic in getSelectedAction() (e.g. "already in
+	 *     RTL → only Warn"), which is documented in-place.
+	 *
+	 * A3. When the desired action cannot execute (e.g. RTL requires a valid home position
+	 *     that is currently unavailable), the framework falls through the severity list
+	 *     until it finds an action that can run (RTL → Land → Descend → Terminate).
+	 *     This fallback is automatic and logged at debug level.
+	 *
+	 * A4. The decision is stable: a condition that is already being serviced at severity N
+	 *     does not restart the Hold/delay timer when a second condition also resolves to
+	 *     severity N, preventing oscillation between Hold and the desired action.
+	 *
+	 * A5. Concurrent battery and geofence failsafes are handled by A1: each subsystem
+	 *     independently adds its action to the pool and the worst wins.  Example: a
+	 *     battery-EMERGENCY (→Land, severity 7) dominates a simultaneous geofence-Return
+	 *     (→RTL, severity 6).
+	 */
 	enum class Action : uint8_t {
 		// Actions further down take precedence
 		None,
@@ -212,6 +238,12 @@ protected:
 		uint8_t updated_user_intended_mode{};
 		bool user_takeover{false};
 		bool failsafe_deferred{false};
+		/**
+		 * Set when the A3 fallback chain selects a more-severe action than what the
+		 * pool originally requested (e.g. RTL was desired but home is invalid so Land
+		 * was selected instead).  Action::None means no fallback occurred this cycle.
+		 */
+		Action a3_desired_action{Action::None};
 	};
 
 	virtual void checkStateAndMode(const hrt_abstime &time_us, const State &state,
@@ -241,6 +273,21 @@ protected:
 	 */
 	virtual uint8_t modifyUserIntendedMode(Action previous_action, Action current_action,
 					       uint8_t user_intended_mode) const { return user_intended_mode; }
+
+	/**
+	 * Called once per cycle when the A3 fallback chain had to select a more-severe
+	 * action because the originally desired action could not run.
+	 * Covers: RTL → Land (home/global-position unavailable) and
+	 *         Land → Descend (relaxed local-position unavailable).
+	 *
+	 * The default implementation emits a single operator-facing event via events::send()
+	 * so that ground-station operators can see why the degraded action was chosen.
+	 * Override in test subclasses to capture calls without sending real events.
+	 *
+	 * @param desired  The action originally requested by the active failsafe condition(s).
+	 * @param actual   The less-capable action that was ultimately selected.
+	 */
+	virtual void notifyA3Fallback(Action desired, Action actual);
 
 	void updateParams() override;
 

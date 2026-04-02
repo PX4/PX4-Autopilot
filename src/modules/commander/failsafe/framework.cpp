@@ -94,6 +94,13 @@ uint8_t FailsafeBase::update(const hrt_abstime &time_us, const State &state, boo
 		notifyUser(state.user_intended_mode, action_state.action, action_state.delayed_action, action_state.cause);
 	}
 
+	// Emit the operator-facing A3-fallback event exactly once per degradation step:
+	// fire when a fallback occurred this cycle AND the resulting action is newly worse
+	// than what was selected last cycle (prevents re-firing every subsequent update).
+	if (action_state.a3_desired_action != Action::None && action_state.action > _selected_action) {
+		notifyA3Fallback(action_state.a3_desired_action, action_state.action);
+	}
+
 	_notification_required = false;
 
 	_last_user_intended_mode = modifyUserIntendedMode(_selected_action, action_state.action,
@@ -298,6 +305,41 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 #endif /* EMSCRIPTEN_BUILD */
 }
 
+void FailsafeBase::notifyA3Fallback(Action desired, Action actual)
+{
+	PX4_DEBUG("Failsafe A3: %s unavailable, fell back to %s", actionStr(desired), actionStr(actual));
+
+#ifndef EMSCRIPTEN_BUILD
+	// Priority-policy note (A3 fallback chain):
+	//   RTL   → requires global position + home.  When either is invalid the
+	//            framework falls through to Land.
+	//   Land  → requires relaxed local position.  When that is also invalid
+	//            the framework falls through to Descend (attitude only).
+	//   Descend → always available; final stop of the chain.
+	//
+	// This function is called from update() only when the newly-selected action
+	// is strictly worse than the previous cycle's selected action
+	// (guard: action_state.action > _selected_action).  Once the vehicle is
+	// already executing Land the guard evaluates Land > Land == false, so the
+	// event fires at most once per worsening step and never spams on repeated
+	// updates in the same degraded state.
+	//
+	// Single operator-facing event that covers both RTL→Land and Land→Descend
+	// transitions.  The {1}/{2} placeholders expand to the human-readable enum
+	// label so operators see e.g. "Failsafe: RTL not available, falling back to
+	// Land" in their GCS.
+	events::send<failsafe_action_t, failsafe_action_t>(
+		events::ID("commander_failsafe_a3_fallback"),
+	{events::Log::Critical, events::LogInternal::Warning},
+	"Failsafe: {1} not available, falling back to {2}",
+	(failsafe_action_t)desired,
+	(failsafe_action_t)actual);
+
+	mavlink_log_critical(&_mavlink_log_pub, "Failsafe: %s unavailable, using %s\t",
+			     actionStr(desired), actionStr(actual));
+#endif /* EMSCRIPTEN_BUILD */
+}
+
 bool FailsafeBase::checkFailsafe(int caller_id, bool last_state_failure, bool cur_state_failure,
 				 const ActionOptions &options)
 {
@@ -480,6 +522,28 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 		}
 	}
 
+	// Diagnostic (A1/A5): when more than one condition is competing at action-level
+	// severity, log which action dominated so the decision can be traced post-flight.
+	// This message is emitted before any UX-improvement skip logic alters the action.
+#ifndef EMSCRIPTEN_BUILD
+
+	if (selected_action > Action::Warn) {
+		int active_competing = 0;
+
+		for (int i = 0; i < max_num_actions; ++i) {
+			if (_actions[i].valid() && _actions[i].action > Action::Warn) {
+				++active_competing;
+			}
+		}
+
+		if (active_competing > 1) {
+			PX4_DEBUG("Failsafe: %d conditions competing, dominant action=%s (cause=%d)",
+				  active_competing, actionStr(selected_action), (int)returned_state.cause);
+		}
+	}
+
+#endif // EMSCRIPTEN_BUILD
+
 	if (_defer_failsafes && allow_failsafe_to_be_deferred && selected_action != Action::None) {
 		returned_state.failsafe_deferred = selected_action > Action::Warn;
 		returned_state.action = Action::None;
@@ -535,7 +599,15 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 		}
 	}
 
-	// Check if the selected action is possible, and fall back if needed
+	// Check if the selected action is possible, and fall back if needed (priority axiom A3).
+	// Each case falls through to the next less-severe action when the preferred mode
+	// cannot run (e.g. RTL → Land when home_position_invalid; Land → Descend when
+	// local_position_invalid_relaxed).  The final fallback is always Terminate which
+	// needs no sensor data.
+	//
+	// Save the desired action before any fallthrough so we can emit a single operator-
+	// facing event if a degradation occurs (see notifyA3Fallback() call in update()).
+	const Action a3_initial = selected_action;
 	switch (selected_action) {
 
 	case Action::FallbackPosCtrl:
@@ -580,21 +652,40 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 			break;
 		}
 
+		// RTL cannot run (e.g. home_position_invalid or global_position_invalid).
+		// Axiom A3: fall through to the next less-severe action (Land).
+		PX4_DEBUG("Failsafe A3: RTL cannot run, falling through to Land");
 		returned_state.cause = Cause::Generic;
 
 	// fallthrough
 	case Action::Land:
 		if (modeCanRun(status_flags, vehicle_status_s::NAVIGATION_STATE_AUTO_LAND)) {
 			selected_action = Action::Land;
+
+			// A3 fallback: something at RTL-level or above was desired but
+			// could not run; record so update() can emit the operator event.
+			if (a3_initial >= Action::RTL && a3_initial < Action::Land) {
+				returned_state.a3_desired_action = a3_initial;
+			}
+
 			break;
 		}
 
+		// Land cannot run (e.g. local_position_invalid_relaxed or local_altitude_invalid).
+		// Axiom A3: fall through to Descend (needs only attitude + angular velocity).
+		PX4_DEBUG("Failsafe A3: Land cannot run, falling through to Descend");
 		returned_state.cause = Cause::Generic;
 
 	// fallthrough
 	case Action::Descend:
 		if (modeCanRun(status_flags, vehicle_status_s::NAVIGATION_STATE_DESCEND)) {
 			selected_action = Action::Descend;
+
+			// A3 fallback: RTL or Land was desired but neither could run.
+			if (a3_initial >= Action::RTL && a3_initial < Action::Descend) {
+				returned_state.a3_desired_action = a3_initial;
+			}
+
 			break;
 		}
 
@@ -625,7 +716,18 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 		}
 	}
 
-	// If already in RTL, do not go into RTL again (would cause a Hold delay first, then re-start RTL)
+	// If already in RTL, do not go into RTL again (would cause a Hold delay first, then re-start RTL).
+	// Stability axiom A4: a second RTL-level condition (e.g. a geofence breach with
+	// GF_ACTION=Return occurring while the vehicle is already executing an RTL triggered
+	// by a battery failsafe) must not restart the delay or oscillate back through Hold.
+	// Downgrading to Warn lets the ongoing RTL continue uninterrupted.
+	//
+	// NOTE: this skip applies ONLY when selected_action == RTL (severity 6).
+	// A simultaneously active condition with higher severity – e.g. geofence-Land or
+	// battery-EMERGENCY (both severity 7) – is never downgraded here; axiom A1 lets
+	// it override the ongoing RTL immediately.  clearDelayIfNeeded() (called every
+	// cycle before getSelectedAction()) prevents a spurious Hold interlude in that
+	// case because _selected_action = RTL > Hold zeroes any new delay registration.
 	if (returned_state.updated_user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {
 		if ((selected_action == Action::RTL || returned_state.delayed_action == Action::RTL)
 		    && modeCanRun(status_flags, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL)) {

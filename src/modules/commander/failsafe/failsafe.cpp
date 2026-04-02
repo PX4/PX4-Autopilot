@@ -549,6 +549,19 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 		CHECK_FAILSAFE(status_flags, position_accuracy_low, fromPosLowActParam(_param_com_pos_low_act.get()));
 	}
 
+	// Navigator failure: when the vehicle is already executing RTL (or Takeoff) and the
+	// navigator reports an internal failure, switching to Land keeps the vehicle
+	// descending in place rather than attempting an infeasible RTL.  In all other modes
+	// Hold is used so the operator can take over.
+	//
+	// NOTE – two distinct failure paths lead to a Land/Descend during RTL:
+	//   1. navigator_failure (handled here): navigator.cpp signals an internal error
+	//      while executing a guided mode; this flag triggers an explicit Land action.
+	//   2. Sensor-based degradation (global_position_invalid, local_position_invalid_relaxed,
+	//      etc.) during active RTL: handled automatically by the framework's modeCanRun()
+	//      check and the A3 fallthrough chain in getSelectedAction() – no additional
+	//      logic is required here.  clearDelayIfNeeded() prevents a spurious Hold
+	//      interlude in both paths because _selected_action = RTL > Hold.
 	if (state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF ||
 	    state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {
 		CHECK_FAILSAFE(status_flags, navigator_failure,
@@ -559,6 +572,16 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 			       ActionOptions(Action::Hold).clearOn(ClearCondition::OnModeChangeOrDisarm));
 	}
 
+	// Geofence breach: treated as a hard constraint that cannot be deferred (cannotBeDeferred()).
+	// Interaction with battery failsafe (priority axioms A1/A5): both subsystems independently
+	// add their action to the pool and the framework picks the highest severity.
+	//   Example 1 – battery-EMERGENCY (→Land, sev 7) + geofence-Return (→RTL, sev 6):
+	//               Land wins; the vehicle lands in place.
+	//   Example 2 – battery-CRITICAL (→RTL, sev 6) + geofence-Return (→RTL, sev 6):
+	//               Both are RTL; if the vehicle is already executing RTL the framework
+	//               downgrades the duplicate to Warn (axiom A4 / skip logic).
+	//   Example 3 – geofence-Return (→RTL) but home_position_invalid:
+	//               RTL cannot run; the framework falls through to Land (axiom A3).
 	CHECK_FAILSAFE(status_flags, geofence_breached, fromGfActParam(_param_gf_action.get()).cannotBeDeferred());
 
 	// Battery flight time remaining failsafe
@@ -574,7 +597,16 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 		CHECK_FAILSAFE(status_flags, battery_unhealthy, Action::Warn);
 	}
 
-	// Battery low failsafe
+	// Battery low failsafe.
+	// The three severity levels map to increasing action severity:
+	//   WARNING_LOW      → Warn (advisory only)
+	//   WARNING_CRITICAL → RTL or Land depending on COM_LOW_BAT_ACT
+	//   WARNING_EMERGENCY→ Land (COM_LOW_BAT_ACT=ReturnOrLand) or RTL (=Return)
+	// When a battery warning escalates (e.g. CRITICAL → EMERGENCY) the new, higher-
+	// severity action is added and the framework selects it automatically (axiom A1).
+	// If RTL is selected but home_position_invalid is set, the framework falls through
+	// to Land (axiom A3); no special handling is needed here.
+	//
 	// If battery was low and arming was allowed through COM_ARM_BAT_MIN, don't failsafe immediately for the current low battery warning state
 	const bool warning_worse_than_at_arming = (status_flags.battery_warning > _battery_warning_at_arming);
 	const int32_t low_battery_action = warning_worse_than_at_arming ?
