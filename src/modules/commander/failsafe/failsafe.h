@@ -67,7 +67,9 @@ private:
 		Return = 1, // Return mode (deprecated)
 		Land = 2, // Land mode
 		ReturnOrLand = 3, // Return mode at critically low level, Land mode at current position if reaching dangerously low levels
-		ReturnOrTerminate = 4 // Return mode at critically low level, Terminate if reaching dangerously low levels
+		ReturnOrTerminate = 4, // Return mode at critically low level, Terminate if reaching dangerously low levels
+		ReturnOrLandNoBingo = 5, // Same as ReturnOrLand but without bingo fuel
+		WarningNoBingo = 6 // Warning only, bingo fuel silent
 	};
 
 	enum class offboard_loss_failsafe_mode : int32_t {
@@ -186,7 +188,6 @@ private:
 	static Action fromOffboardLossActParam(int param_value, uint8_t &user_intended_mode);
 	static ActionOptions fromHighWindLimitActParam(int param_value);
 	static ActionOptions fromPosLowActParam(int param_value);
-	static ActionOptions fromRemainingFlightTimeLowActParam(int param_value);
 	static ActionOptions fromOdidFailActParam(int param_value);
 	static ActionOptions fromParachuteActParam(int param_value);
 	static ActionOptions fromTrafficAvoidanceActParam(int param_value);
@@ -238,7 +239,6 @@ private:
 					(ParamInt<px4::params::COM_OBL_RC_ACT>) _param_com_obl_rc_act,
 					(ParamInt<px4::params::COM_QC_ACT>) _param_com_qc_act,
 					(ParamInt<px4::params::COM_WIND_MAX_ACT>) _param_com_wind_max_act,
-					(ParamInt<px4::params::COM_FLTT_LOW_ACT>) _param_com_fltt_low_act,
 					(ParamInt<px4::params::COM_POS_LOW_ACT>) _param_com_pos_low_act,
 					(ParamInt<px4::params::COM_ARM_ODID>) _param_com_arm_odid,
 					(ParamInt<px4::params::COM_PARACHUTE>) _param_com_parachute,
