@@ -78,7 +78,9 @@ parameters:
           Skip DO_JUMP and other non-position mission items while following either
           mission path. Do not consider rally points.
         5: Return directly to safe landing point (do not consider mission landing
-          and Home)
+          and Home).
+        6: Return to home if time estimate to home is less than battery remaining estimate,
+          else return to the closest rally point.
       default: 0
     RTL_CONE_ANG:
       description:

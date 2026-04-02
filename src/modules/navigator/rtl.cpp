@@ -165,6 +165,7 @@ void RTL::on_inactive()
 	_mission_sub.update();
 	_home_pos_sub.update();
 	_wind_sub.update();
+	_battery_status_sub.update();
 
 	updateDatamanCache();
 
@@ -225,7 +226,7 @@ void RTL::on_activation()
 	_mission_sub.update();
 	_home_pos_sub.update();
 	_wind_sub.update();
-
+	_battery_status_sub.update();
 	setRtlTypeAndDestination();
 
 	switch (_rtl_type) {
@@ -265,7 +266,6 @@ void RTL::on_active()
 	_mission_sub.update();
 	_home_pos_sub.update();
 	_wind_sub.update();
-
 	updateDatamanCache();
 
 	switch (_rtl_type) {
@@ -368,6 +368,48 @@ void RTL::setRtlTypeAndDestination()
 			new_rtl_type = RtlType::RTL_DIRECT;
 		}
 
+	} else if (_param_rtl_type.get() == 6) {
+		// estimate time to fly home using the same infrastructure as the battery failsafe
+<<<<<<< HEAD
+		const float rtl_alt_home = computeReturnAltitude(destination, DestinationType::DESTINATION_TYPE_HOME,
+						(float)_param_rtl_cone_ang.get());
+=======
+		const float rtl_alt_home = computeReturnAltitude(destination);
+>>>>>>> a1dbebc558 (fixup! Add new RTL_TYPE for prioritizing home over rally points with a reachability condition)
+		_rtl_direct.setRtlAlt(rtl_alt_home);
+		_rtl_direct.setRtlPosition(destination, landing_loiter);
+
+		const rtl_time_estimate_s time_to_home = _rtl_direct.calc_rtl_time_estimate();
+		const float battery_remaining_s = _battery_status_sub.get().time_remaining_s;
+
+		const bool home_within_reach = time_to_home.valid
+						&& PX4_ISFINITE(battery_remaining_s)
+						&& (time_to_home.safe_time_estimate < battery_remaining_s);
+
+		if (!home_within_reach) {
+			// home is out of battery range, pick closest rally point
+			PositionYawSetpoint safe_point = findClosestSafePoint(FLT_MAX, safe_point_index);
+
+			if (safe_point_index != UINT8_MAX) {
+				destination = safe_point;
+				destination_type = DestinationType::DESTINATION_TYPE_SAFE_POINT;
+			}
+			// If no rally points are defined, fall back to home (already set as the destination)
+		}
+
+		new_rtl_type = RtlType::RTL_DIRECT;
+
+		land_approaches_s rtl_land_approaches{readVtolLandApproaches(destination)};
+		landing_loiter.lat = destination.lat;
+		landing_loiter.lon = destination.lon;
+		landing_loiter.height_m = NAN;
+
+		if (_vehicle_status_sub.get().is_vtol
+			&& (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)
+			&& rtl_land_approaches.isAnyApproachValid()) {
+				landing_loiter = chooseBestLandingApproach(rtl_land_approaches);
+		}
+
 	} else {
 		// check the closest allowed destination.
 		findRtlDestination(destination_type, destination, safe_point_index);
@@ -450,7 +492,7 @@ PositionYawSetpoint RTL::findClosestSafePoint(float min_dist, uint8_t &safe_poin
 			const bool far_from_home = get_distance_to_next_waypoint(_home_pos_sub.get().lat, _home_pos_sub.get().lon,
 						   mission_safe_point.lat, mission_safe_point.lon) > MAX_DIST_FROM_HOME_FOR_LAND_APPROACHES;
 
-			if (far_from_home || (_param_rtl_type.get() == 5)) {
+			if (far_from_home || (_param_rtl_type.get() == 5) || (_param_rtl_type.get() == 6)) {
 				const float dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, mission_safe_point.lat, mission_safe_point.lon)};
 
 				PositionYawSetpoint safepoint_position;
