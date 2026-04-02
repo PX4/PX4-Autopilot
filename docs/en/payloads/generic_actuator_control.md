@@ -36,20 +36,6 @@ For example, to control an actuator attached to AUX pin 3 (say) you would assign
 You could then use set the RC channel to control the `AUX3` output using `RC_MAP_AUX5`.
 
 
-### Flaps and Spoiler Control with Manual Control
-
-The preferred method to manually actuate spoilers and flaps is to map a manual control switch to an `AUX` output (see [Generic Actuator Control with RC](#generic-actuator-control-with-rc)), and then map that AUX output to the flap or spoiler function using [FW_FLAPS_MAN](../advanced_config/parameter_reference.md#FW_FLAPS_MAN) or [FW_SPOILERS_MAN](../advanced_config/parameter_reference.md#FW_SPOILERS_MAN).
-The source for the manual control can be RC or MAVLink.
-
-::: warning
-The following method is not recommended, and will be removed in a future release.
-If using it you should migrate to using the AUX-based method.
-
-It is also possible to define a flaps channel directly on the RC using [RC_MAP_FLAPS](../advanced_config/parameter_reference.md#RC_MAP_FLAPS).
-This channel can also be used to control the spoilers by setting [FW_SPOILERS_MAN](../advanced_config/parameter_reference.md#FW_SPOILERS_MAN) to `Flaps channel`.
-This method is not possible when the source for the manual control is MAVLink.
-:::
-
 ## Generic Actuator Control in Missions
 
 To use generic actuator control in a mission you must first [configure the outputs that you want to control using MAVLink](#generic-actuator-control-with-mavlink).
