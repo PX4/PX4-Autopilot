@@ -91,7 +91,7 @@ inline void clampToXYNorm(Vector3f &target, float max_xy_norm, float accuracy = 
  * Constrain the 3D vector given a maximum Z norm
  * If the Z component of the 3D vector is larger than the maximum norm, the whole vector
  * is scaled down to respect the constraint.
- * If the maximum norm is small (defined by the "accuracy parameter),
+ * If the maximum norm is small (defined by the "accuracy" parameter),
  * only the Z component is scaled down to avoid affecting
  * XY in case of numerical issues
  */
@@ -228,8 +228,6 @@ inline void computeTarget3DSpeedFromWaypoints(const Vector3f &start_position, co
 
 	xy_speed_at_target = Vector2f(vel_sp_constrained).norm();
 	z_speed_at_target = fabsf(vel_sp_constrained(2));
-
-	return;
 }
 
 template <int N>
@@ -251,8 +249,6 @@ void compute3DSpeedFromWaypoints(const Vector3f waypoints[N], const VehicleDynam
 		xy_speed_at_next = xy_speed;
 		z_speed_at_next = z_speed;
 	}
-
-	return;
 }
 
 }

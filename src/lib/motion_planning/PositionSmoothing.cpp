@@ -163,8 +163,6 @@ void PositionSmoothing::_getMax3DSpeed(const Vector3f(&waypoints)[3], float &xy_
 	Vector3f pos_to_waypoints[3] = {pos_traj, waypoints[1], waypoints[2]};
 
 	math::trajectory::compute3DSpeedFromWaypoints<3>(pos_to_waypoints, config, xy_speed, z_speed);
-
-	return;
 }
 
 const Vector3f PositionSmoothing::_getCrossingPoint(const Vector3f &position, const Vector3f(&waypoints)[3]) const
