@@ -9,7 +9,7 @@ The _X25-EVO_ is an advanced autopilot manufactured by CUAV<sup>&reg;</sup>.
 
 The autopilot is recommended for commercial system integration but is also suitable for academic research and any other applications.
 
-![X25-EVO AutoPilot - hero image](../../assets/flight_controller/cuav_x25-evo/X25-EVO.jpg)
+![X25-EVO AutoPilot - hero image](../../assets/flight_controller/cuav_x25-evo/x25_evo.jpg)
 
 The X25-EVO brings you ultimate performance, stability, and reliability in every aspect.
 
