@@ -1,16 +1,18 @@
 #!/bin/sh
 #
-# Hybrid SaamPix sensor init on stable MindPXv2 platform
+# Airmind Mindpx-v2 specific board sensors init
 #------------------------------------------------------------------------------
 
 board_adc start
 
-# external I2C compasses, if present
-hmc5883 -X start
-qmc5883l -X start
+# Internal I2C bus
+hmc5883 -T -I -R 12 start
+qmc5883l -I -R 6 start
 
-# internal SPI sensors
+mpu6000 -s -R 2 start
+mpu6500 -s -R 2 start
+lsm303d -s -R 10 start
+l3gd20 -s -R 14 start
+
+# Internal SPI
 ms5611 -s start
-icm20602 -s start
-mpu9250 -s start
-lis3mdl -s start
