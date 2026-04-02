@@ -35,6 +35,7 @@ To map a particular RC channel to an output function `RC AUX n` (and hence it's 
 For example, to control an actuator attached to AUX pin 3 (say) you would assign the output function `RC AUX 5` to the output `AUX3`.
 You could then use set the RC channel to control the `AUX3` output using `RC_MAP_AUX5`.
 
+
 ## Generic Actuator Control in Missions
 
 To use generic actuator control in a mission you must first [configure the outputs that you want to control using MAVLink](#generic-actuator-control-with-mavlink).
