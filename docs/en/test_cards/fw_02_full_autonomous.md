@@ -51,7 +51,7 @@ Plan a mission on the ground. Ensure the mission has:
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Fly out ~200m from start point
 
-&nbsp;&nbsp;&nbsp;&nbsp;❏ Engage RTL Mode
+&nbsp;&nbsp;&nbsp;&nbsp;❏ Engage Return mode
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Vehicle should climb to RTL altitude if below it
 
