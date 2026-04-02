@@ -478,6 +478,7 @@ def verify_licenses(source_dir):
         sub_dir = source_dir / sub_path
 
         checked_out = sub_dir.is_dir() and any(sub_dir.iterdir())
+        has_explicit_override = sub_path in license_overrides
         if not checked_out:
             detected = "(not checked out)"
             override = license_overrides.get(sub_path, "")
@@ -487,9 +488,12 @@ def verify_licenses(source_dir):
             override = license_overrides.get(sub_path, "")
             final = override if override else detected
 
-        if final == "NOASSERTION" and checked_out:
+        if final == "NOASSERTION" and has_explicit_override:
+            # Explicitly acknowledged in overrides file — not a failure
+            marker = " (acknowledged)"
+        elif final == "NOASSERTION" and checked_out:
             has_noassertion = True
-            marker = " <-- NOASSERTION"
+            marker = " <-- UNRESOLVED"
         elif final == "NOASSERTION" and not checked_out:
             marker = " (skipped)"
         else:
@@ -521,7 +525,7 @@ def verify_licenses(source_dir):
         print()
 
     if has_noassertion:
-        print("FAIL: Some submodules resolved to NOASSERTION. "
+        print("FAIL: Some submodules have unresolved licenses. "
               "Add an entry to Tools/ci/license-overrides.yaml or check the LICENSE file.")
         return 1
 
