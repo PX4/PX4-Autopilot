@@ -27,9 +27,6 @@ permissions:
   contents: read
   packages: write
 
-env:
-  RUNS_IN_DOCKER: true
-
 jobs:
 
   # ---------------------------------------------------------------------------
@@ -39,8 +36,8 @@ jobs:
     name: Setup
     runs-on: [runs-on,"runner=1cpu-linux-x64","image=ubuntu24-full-x64","run-id=${{ github.run_id }}",extras=s3-cache,spot=false]
     outputs:
-      px4_version: ${{ steps.px4_version.outputs.px4_version }}
-      should_push: ${{ steps.push_check.outputs.should_push }}
+      px4_version: ${{ steps.version.outputs.px4_version }}
+      should_push: ${{ steps.push.outputs.should_push }}
     steps:
       - uses: runs-on/action@v2
       - uses: actions/checkout@v4
@@ -50,11 +47,11 @@ jobs:
           fetch-depth: 0
 
       - name: Set PX4 version
-        id: px4_version
+        id: version
         run: echo "px4_version=$(git describe --tags --match 'v[0-9]*')" >> $GITHUB_OUTPUT
 
       - name: Check if we should push containers
-        id: push_check
+        id: push
         run: |
           if [[ "${{ startsWith(github.ref, 'refs/tags/') }}" == "true" ]] || \
              [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.deploy_containers }}" == "true" ]]; then
@@ -78,16 +75,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Gazebo builds
           - { codename: noble,  arch: amd64, runner: x64,   container: "ubuntu:24.04", target: default, setup_flags: "" }
           - { codename: noble,  arch: arm64, runner: arm64, container: "ubuntu:24.04", target: default, setup_flags: "" }
           - { codename: jammy,  arch: amd64, runner: x64,   container: "ubuntu:22.04", target: default, setup_flags: "" }
           - { codename: jammy,  arch: arm64, runner: arm64, container: "ubuntu:22.04", target: default, setup_flags: "" }
-          # SIH builds
           - { codename: noble,  arch: amd64, runner: x64,   container: "ubuntu:24.04", target: sih, setup_flags: "--no-sim-tools" }
           - { codename: noble,  arch: arm64, runner: arm64, container: "ubuntu:24.04", target: sih, setup_flags: "--no-sim-tools" }
           - { codename: jammy,  arch: amd64, runner: x64,   container: "ubuntu:22.04", target: sih, setup_flags: "--no-sim-tools" }
           - { codename: jammy,  arch: arm64, runner: arm64, container: "ubuntu:22.04", target: sih, setup_flags: "--no-sim-tools" }
+    env:
+      RUNS_IN_DOCKER: true
     steps:
       - uses: runs-on/action@v2
 
@@ -147,24 +144,13 @@ jobs:
           path: docker-context
 
       - name: Prepare build context
+        run: cp Tools/packaging/px4-entrypoint.sh docker-context/
+
+      - name: Login to registries
+        if: needs.setup.outputs.should_push == 'true'
         run: |
-          cp Tools/packaging/px4-entrypoint.sh docker-context/
-          ls -lh docker-context/
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        if: needs.setup.outputs.should_push == 'true'
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        if: needs.setup.outputs.should_push == 'true'
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -179,7 +165,9 @@ jobs:
           file: Tools/packaging/${{ matrix.dockerfile }}
           tags: |
             px4io/px4-sitl-${{ matrix.image }}:${{ needs.setup.outputs.px4_version }}-${{ matrix.arch }}
+            px4io/px4-sitl-${{ matrix.image }}:latest-${{ matrix.arch }}
             ghcr.io/px4/px4-sitl-${{ matrix.image }}:${{ needs.setup.outputs.px4_version }}-${{ matrix.arch }}
+            ghcr.io/px4/px4-sitl-${{ matrix.image }}:latest-${{ matrix.arch }}
           platforms: ${{ matrix.platform }}
           load: false
           push: ${{ needs.setup.outputs.should_push == 'true' }}
@@ -201,52 +189,26 @@ jobs:
     steps:
       - uses: runs-on/action@v2
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Verify per-arch images exist
+      - name: Login to registries
         run: |
-          for registry in px4io ghcr.io/px4; do
-            for arch in amd64 arm64; do
-              docker manifest inspect ${registry}/px4-sitl-${{ matrix.image }}:${{ needs.setup.outputs.px4_version }}-${arch} \
-                || echo "Warning: ${registry}/px4-sitl-${{ matrix.image }}:${{ needs.setup.outputs.px4_version }}-${arch} not found"
+          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Create and push multi-arch manifests
+        run: |
+          VERSION="${{ needs.setup.outputs.px4_version }}"
+
+          for REGISTRY in px4io ghcr.io/px4; do
+            IMAGE="${REGISTRY}/px4-sitl-${{ matrix.image }}"
+
+            for TAG in ${VERSION} latest; do
+              docker manifest create ${IMAGE}:${TAG} \
+                --amend ${IMAGE}:${TAG}-arm64 \
+                --amend ${IMAGE}:${TAG}-amd64
+
+              docker manifest annotate ${IMAGE}:${TAG} ${IMAGE}:${TAG}-arm64 --arch arm64
+              docker manifest annotate ${IMAGE}:${TAG} ${IMAGE}:${TAG}-amd64 --arch amd64
+
+              docker manifest push ${IMAGE}:${TAG}
             done
           done
-
-      - name: Create and push multi-arch manifest (Docker Hub)
-        run: |
-          VERSION="${{ needs.setup.outputs.px4_version }}"
-          IMAGE="px4io/px4-sitl-${{ matrix.image }}"
-
-          docker manifest create ${IMAGE}:${VERSION} \
-            --amend ${IMAGE}:${VERSION}-arm64 \
-            --amend ${IMAGE}:${VERSION}-amd64
-
-          docker manifest annotate ${IMAGE}:${VERSION} ${IMAGE}:${VERSION}-arm64 --arch arm64
-          docker manifest annotate ${IMAGE}:${VERSION} ${IMAGE}:${VERSION}-amd64 --arch amd64
-
-          docker manifest push ${IMAGE}:${VERSION}
-
-      - name: Create and push multi-arch manifest (GHCR)
-        run: |
-          VERSION="${{ needs.setup.outputs.px4_version }}"
-          IMAGE="ghcr.io/px4/px4-sitl-${{ matrix.image }}"
-
-          docker manifest create ${IMAGE}:${VERSION} \
-            --amend ${IMAGE}:${VERSION}-arm64 \
-            --amend ${IMAGE}:${VERSION}-amd64
-
-          docker manifest annotate ${IMAGE}:${VERSION} ${IMAGE}:${VERSION}-arm64 --arch arm64
-          docker manifest annotate ${IMAGE}:${VERSION} ${IMAGE}:${VERSION}-amd64 --arch amd64
-
-          docker manifest push ${IMAGE}:${VERSION}
