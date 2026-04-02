@@ -24,7 +24,7 @@ Ensure that the vehicle can go into Stabilized, Altitude, and Position mode whil
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Altitude should hold current value with stick centered
 
-&nbsp;&nbsp;&nbsp;&nbsp;❏ Pitch response set to climb/descend rate
+&nbsp;&nbsp;&nbsp;&nbsp;❏ Pitch input controls climb/descend rate
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Throttle automatically managed to maintain airspeed
 
