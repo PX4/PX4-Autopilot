@@ -10,6 +10,7 @@ This quick start guide shows how to power the [X25 EVO](../flight_controller/cua
 ::: info
 The following flight controller models are applicable to this quick start guide.
 [CUAV X25 SUPER](../flight_controller/cuav_x25-super.md)
+[CUAV X25 MEGA](../flight_controller/cuav_x25-mega.md)
 :::
 
 ## Wiring Chart Overview
@@ -151,3 +152,4 @@ QuadPlane-specific configuration is covered here: [QuadPlane VTOL Configuration]
 - [CUAV Docs](https://doc.cuav.net/) (CUAV)
 - [X25 EVO](../flight_controller/cuav_x25-evo.md) (PX4 Doc Overview page)
 - [X25 SUPER](../flight_controller/cuav_x25-super.md) (PX4 Doc Overview page)
+- [[X25 MEGA](../flight_controller/cuav_x25-mega.md)] (PX4 Doc Overview page)
