@@ -386,9 +386,6 @@ void RTL::setRtlTypeAndDestination()
 						&& PX4_ISFINITE(battery_remaining_s)
 						&& (time_to_home.safe_time_estimate < battery_remaining_s);
 
-		PX4_INFO("RTL: time to home: %.1fs, battery remaining: %.1fs, home within reach: %s",
-			 static_cast<double>(time_to_home.safe_time_estimate), static_cast<double>(battery_remaining_s), home_within_reach ? "true" : "false");
-
 		if (!home_within_reach) {
 			// If battery data is valid, home is out of range: pick the closest rally point unconditionally
 			// If battery data is unavailable (NaN), we cannot assess reachability: pick the closest home or rally point
