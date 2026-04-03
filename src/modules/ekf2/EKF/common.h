@@ -348,18 +348,6 @@ struct parameters {
 
 	float ekf2_gnd_eff_dz{5.0f};            ///< Size of deadzone applied to negative baro innovations when ground effect compensation is active (m)
 	float ekf2_gnd_max_hgt{0.5f};           ///< Height above ground at which baro ground effect becomes insignificant (m)
-
-# if defined(CONFIG_EKF2_BARO_COMPENSATION)
-	// static barometer pressure position error coefficient along body axes
-	float ekf2_pcoef_xp{0.0f};    // (-)
-	float ekf2_pcoef_xn{0.0f};    // (-)
-	float ekf2_pcoef_yp{0.0f};    // (-)
-	float ekf2_pcoef_yn{0.0f};    // (-)
-	float ekf2_pcoef_z{0.0f};     // (-)
-
-	// upper limit on airspeed used for correction  (m/s**2)
-	float ekf2_aspd_max{20.0f};
-# endif // CONFIG_EKF2_BARO_COMPENSATION
 #endif // CONFIG_EKF2_BAROMETER
 
 #if defined(CONFIG_EKF2_GNSS)
