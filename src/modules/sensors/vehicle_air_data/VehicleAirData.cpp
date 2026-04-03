@@ -37,6 +37,7 @@
 #include <px4_platform_common/events.h>
 #include <lib/geo/geo.h>
 #include <lib/atmosphere/atmosphere.h>
+#include <lib/parameters/param.h>
 
 namespace sensors
 {
@@ -292,10 +293,13 @@ void VehicleAirData::Run()
 						const float ambient_temperature = AirTemperatureUpdate(temperature_baro, temperature_source, time_now_us);
 
 						const float pressure_sealevel_pa = _param_sens_baro_qnh.get() * 100.f;
-						const float altitude = getAltitudeFromPressure(pressure_pa, pressure_sealevel_pa);
+						float altitude = getAltitudeFromPressure(pressure_pa, pressure_sealevel_pa);
 
 						// calculate air density
 						const float air_density = getDensityFromPressureAndTemp(pressure_pa, ambient_temperature);
+
+						// apply dynamic pressure compensation
+						altitude += dynamicPressureCompensation(air_density);
 
 						// populate vehicle_air_data with and publish
 						vehicle_air_data_s out{};
@@ -479,6 +483,85 @@ void VehicleAirData::PrintStatus()
 			_calibration[i].PrintStatus();
 		}
 	}
+}
+
+float VehicleAirData::dynamicPressureCompensation(const float air_density)
+{
+	wind_s wind;
+	vehicle_local_position_s local_pos;
+
+	if (!_wind_sub.copy(&wind) || !_vehicle_local_position_sub.copy(&local_pos)) {
+		return 0.f;
+	}
+
+	// Only compensate when wind estimate and horizontal position are valid
+	if ((hrt_elapsed_time(&wind.timestamp) > 1_s) || !local_pos.v_xy_valid || !local_pos.xy_valid) {
+		return 0.f;
+	}
+
+	// Calculate velocity in earth frame
+	const Vector3f velocity_earth(local_pos.vx, local_pos.vy, local_pos.vz);
+
+	// Lever arm correction: compute velocity at IMU due to rotation
+	Vector3f vel_imu_rel_body_ned{};
+	vehicle_angular_velocity_s angular_vel;
+
+	if (_vehicle_angular_velocity_sub.copy(&angular_vel) && (hrt_elapsed_time(&angular_vel.timestamp) < 1_s)) {
+		// Get IMU position offset from EKF2 params
+		param_t param_imu_x = param_find("EKF2_IMU_POS_X");
+		param_t param_imu_y = param_find("EKF2_IMU_POS_Y");
+		param_t param_imu_z = param_find("EKF2_IMU_POS_Z");
+
+		if (param_imu_x != PARAM_INVALID && param_imu_y != PARAM_INVALID && param_imu_z != PARAM_INVALID) {
+			float imu_pos_x{0.f}, imu_pos_y{0.f}, imu_pos_z{0.f};
+			param_get(param_imu_x, &imu_pos_x);
+			param_get(param_imu_y, &imu_pos_y);
+			param_get(param_imu_z, &imu_pos_z);
+
+			const Vector3f imu_pos_body(imu_pos_x, imu_pos_y, imu_pos_z);
+			const Vector3f ang_vel_body(angular_vel.xyz);
+
+			// Get rotation matrix from body to earth
+			vehicle_attitude_s attitude;
+
+			if (_vehicle_attitude_sub.copy(&attitude)) {
+				const Quatf q(attitude.q);
+				vel_imu_rel_body_ned = Dcmf(q) * (ang_vel_body % imu_pos_body);
+			}
+		}
+	}
+
+	const Vector3f velocity_corrected = velocity_earth - vel_imu_rel_body_ned;
+
+	// Subtract wind to get airspeed in earth frame
+	const Vector3f wind_velocity_earth(wind.windspeed_north, wind.windspeed_east, 0.f);
+	const Vector3f airspeed_earth = velocity_corrected - wind_velocity_earth;
+
+	// Rotate airspeed to body frame
+	vehicle_attitude_s attitude;
+
+	if (!_vehicle_attitude_sub.copy(&attitude)) {
+		return 0.f;
+	}
+
+	const Quatf q(attitude.q);
+	const Vector3f airspeed_body = q.rotateVectorInverse(airspeed_earth);
+
+	// Select direction-dependent coefficients
+	const Vector3f K_pstatic_coef(
+		airspeed_body(0) >= 0.f ? _param_sens_baro_k_xp.get() : _param_sens_baro_k_xn.get(),
+		airspeed_body(1) >= 0.f ? _param_sens_baro_k_yp.get() : _param_sens_baro_k_yn.get(),
+		_param_sens_baro_k_z.get());
+
+	// Clamp airspeed components to max
+	const float aspd_max_sq = _param_sens_baro_vmax.get() * _param_sens_baro_vmax.get();
+	const Vector3f airspeed_squared = matrix::min(airspeed_body.emult(airspeed_body), aspd_max_sq);
+
+	// Static pressure error: Ps_error = 0.5 * rho * V^2 * K
+	const float pstatic_err = 0.5f * air_density * (airspeed_squared.dot(K_pstatic_coef));
+
+	// Convert pressure error to altitude correction: delta_alt = Ps_error / (rho * g)
+	return pstatic_err / (air_density * CONSTANTS_ONE_G);
 }
 
 bool VehicleAirData::BaroGNSSAltitudeOffset()
