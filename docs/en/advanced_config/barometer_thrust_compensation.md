@@ -35,7 +35,7 @@ The estimator refines the parameter over subsequent flights — each flight corr
 
 ### Setup
 
-1. Set [BARO_COMP_EST_EN](../advanced_config/parameter_reference.md#BARO_COMP_EST_EN) to **3** (enables both GNSS altitude calibration and thrust compensation).
+1. Set [BARO_COMP_EST_EN](../advanced_config/parameter_reference.md#BARO_COMP_EST_EN) to **1** (enables the online thrust compensation estimator; requires reboot).
 2. Fly normally for at least 60 seconds with some altitude variation.
 3. On disarm, the estimated `SENS_BARO_K_T` is saved automatically if the estimator converged.
 4. Check convergence after flight:
@@ -63,8 +63,8 @@ Constant-thrust hover with no altitude variation will not converge.
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | [SENS_BARO_K_T](../advanced_config/parameter_reference.md#SENS_BARO_K_T) | 0.0 | Baro altitude correction per unit vertical thrust \[m\]. Identified by the estimator or set manually. |
-| [BARO_COMP_EST_EN](../advanced_config/parameter_reference.md#BARO_COMP_EST_EN) | 1 | Bitmask: bit 0 = GNSS altitude offset, bit 1 = online thrust compensation. Set to 3 for both. |
-| [SENS_BAR_CF_BW](../advanced_config/parameter_reference.md#SENS_BAR_CF_BW) | 0.1 | CF crossover frequency \[Hz\]. Lower = more conservative, higher = faster identification but noisier. |
+| [BARO_COMP_EST_EN](../advanced_config/parameter_reference.md#BARO_COMP_EST_EN) | 0 | Enable online thrust compensation estimator (reboot required). |
+| [SENS_BAR_CF_BW](../advanced_config/parameter_reference.md#SENS_BAR_CF_BW) | 0.05 | CF crossover frequency \[Hz\]. Lower = more conservative, higher = faster identification but noisier. |
 
 ### Soft Guards
 
@@ -107,6 +107,14 @@ The script automatically selects an analysis mode based on available data:
 
 - **Low R^2**: Thrust is not the dominant baro error source. Check for thermal drift, ground effect, or sensor placement issues.
 - **Online/offline K disagreement > 2 m**: The estimator may need more excitation. Fly longer or with more altitude variation.
+
+## Calibration Order
+
+If using both thrust compensation (`SENS_BARO_K_T`) and dynamic pressure compensation (`SENS_BARO_K_XP/XN/YP/YN/Z`), calibrate thrust first.
+Thrust and airspeed are correlated during forward flight (more thrust to overcome drag, pitch changes affect the thrust vector), so uncorrected propwash error will leak into the airspeed coefficients if dynamic pressure calibration is done first.
+
+1. **Thrust compensation** — use the online estimator or the offline calibration tool
+2. **Dynamic pressure compensation** — use `Tools/baro_compensation/baro_static_pressure_compensation_tuning.py`
 
 ## See Also
 

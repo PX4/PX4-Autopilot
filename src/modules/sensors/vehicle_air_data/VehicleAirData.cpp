@@ -37,7 +37,6 @@
 #include <px4_platform_common/events.h>
 #include <lib/geo/geo.h>
 #include <lib/atmosphere/atmosphere.h>
-#include <lib/parameters/param.h>
 
 namespace sensors
 {
@@ -547,6 +546,15 @@ void VehicleAirData::PrintStatus()
 
 float VehicleAirData::dynamicPressureCompensation(const float air_density)
 {
+	// Early return if all coefficients are zero (the default)
+	if (fabsf(_param_sens_baro_k_xp.get()) < FLT_EPSILON
+	    && fabsf(_param_sens_baro_k_xn.get()) < FLT_EPSILON
+	    && fabsf(_param_sens_baro_k_yp.get()) < FLT_EPSILON
+	    && fabsf(_param_sens_baro_k_yn.get()) < FLT_EPSILON
+	    && fabsf(_param_sens_baro_k_z.get()) < FLT_EPSILON) {
+		return 0.f;
+	}
+
 	wind_s wind;
 	vehicle_local_position_s local_pos;
 
@@ -559,43 +567,13 @@ float VehicleAirData::dynamicPressureCompensation(const float air_density)
 		return 0.f;
 	}
 
-	// Calculate velocity in earth frame
+	// vehicle_local_position velocity is already corrected for IMU lever arm
+	// by the EKF2 OutputPredictor, so no additional correction is needed.
 	const Vector3f velocity_earth(local_pos.vx, local_pos.vy, local_pos.vz);
-
-	// Lever arm correction: compute velocity at IMU due to rotation
-	Vector3f vel_imu_rel_body_ned{};
-	vehicle_angular_velocity_s angular_vel;
-
-	if (_vehicle_angular_velocity_sub.copy(&angular_vel) && (hrt_elapsed_time(&angular_vel.timestamp) < 1_s)) {
-		// Get IMU position offset from EKF2 params
-		param_t param_imu_x = param_find("EKF2_IMU_POS_X");
-		param_t param_imu_y = param_find("EKF2_IMU_POS_Y");
-		param_t param_imu_z = param_find("EKF2_IMU_POS_Z");
-
-		if (param_imu_x != PARAM_INVALID && param_imu_y != PARAM_INVALID && param_imu_z != PARAM_INVALID) {
-			float imu_pos_x{0.f}, imu_pos_y{0.f}, imu_pos_z{0.f};
-			param_get(param_imu_x, &imu_pos_x);
-			param_get(param_imu_y, &imu_pos_y);
-			param_get(param_imu_z, &imu_pos_z);
-
-			const Vector3f imu_pos_body(imu_pos_x, imu_pos_y, imu_pos_z);
-			const Vector3f ang_vel_body(angular_vel.xyz);
-
-			// Get rotation matrix from body to earth
-			vehicle_attitude_s attitude;
-
-			if (_vehicle_attitude_sub.copy(&attitude)) {
-				const Quatf q(attitude.q);
-				vel_imu_rel_body_ned = Dcmf(q) * (ang_vel_body % imu_pos_body);
-			}
-		}
-	}
-
-	const Vector3f velocity_corrected = velocity_earth - vel_imu_rel_body_ned;
 
 	// Subtract wind to get airspeed in earth frame
 	const Vector3f wind_velocity_earth(wind.windspeed_north, wind.windspeed_east, 0.f);
-	const Vector3f airspeed_earth = velocity_corrected - wind_velocity_earth;
+	const Vector3f airspeed_earth = velocity_earth - wind_velocity_earth;
 
 	// Rotate airspeed to body frame
 	vehicle_attitude_s attitude;

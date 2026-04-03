@@ -28,15 +28,15 @@ VTOL aircraft.
 ### Online (Preferred)
 
 The online estimator is disabled by default. Enable it by setting
-`SENS_BAR_AUTOCAL` bit 1 (e.g. set to 3 for both GNSS cal and thrust comp).
+`BARO_COMP_EST_EN` to 1 (requires reboot).
 The `baro_thrust_estimator` module identifies `SENS_BARO_K_T` automatically
 during flight using an accel-baro complementary filter and RLS estimation.
 Parameters are saved to flash on disarm once converged, and the estimator
-continues to refine PCOEF over subsequent flights. No range sensor required.
+continues to refine K_T over subsequent flights. No range sensor required.
 
 ### Offline (This Tool)
 
-This tool identifies PCOEF from a flight log using a range sensor as ground
+This tool identifies K_T from a flight log using a range sensor as ground
 truth. Useful for:
 - Validating online estimator results against ground truth
 - Analyzing compensation effectiveness
@@ -71,9 +71,9 @@ Cross-validates the online estimator against range-sensor ground truth:
 
 ### 3. Standalone Calibration (range sensor, no estimator)
 
-Identifies PCOEF from baro vs range error:
+Identifies K_T from baro vs range error:
 - Cross-correlation delay analysis
-- Recommended PCOEF value
+- Recommended K_T value
 
 ## Usage
 
@@ -114,6 +114,18 @@ corrected, and offline-corrected data.
 to show how the CF crossover frequency affects K identification and
 compensation quality. See [CF Bandwidth Tuning](#cf-bandwidth-tuning) for
 how to interpret this page.
+
+## Calibration Order
+
+If using both thrust compensation (`SENS_BARO_K_T`) and dynamic pressure
+compensation (`SENS_BARO_K_XP/XN/YP/YN/Z`), calibrate thrust first.
+Thrust and airspeed are correlated during forward flight (more thrust to
+overcome drag, pitch changes affect thrust vector), so uncorrected
+propwash error will leak into the airspeed coefficients if dynamic
+pressure calibration is done first.
+
+1. **Thrust compensation** — use the online estimator or this tool
+2. **Dynamic pressure compensation** — use `baro_static_pressure_compensation_tuning.py`
 
 ## Manual Calibration Procedure
 
@@ -172,8 +184,8 @@ crossover frequency. The green dashed line is the range-sensor ground truth K.
 error standard deviation after applying the K identified at each bandwidth.
 Lower is better.
 
-- The green line is the theoretical minimum (range-sensor optimal PCOEF).
-- The orange line is the current PCOEF performance.
+- The green line is the theoretical minimum (range-sensor optimal K_T).
+- The orange line is the current K_T performance.
 - If the default bandwidth is already near the minimum: leave it alone.
 - If a different bandwidth gives significantly lower error std: consider
   changing `SENS_BAR_CF_BW` to that value.
@@ -188,5 +200,5 @@ to IMU vibration but slower to converge.
 | Parameter | Description | Range | Default |
 |-----------|-------------|-------|---------|
 | `SENS_BARO_K_T` | Baro altitude correction per unit vertical thrust [m] | -30 to 30 | 0.0 |
-| `SENS_BAR_AUTOCAL` | Bitmask: bit 0 = GNSS offset, bit 1 = online thrust cal | 0 to 3 | 1 |
+| `BARO_COMP_EST_EN` | Enable online thrust compensation estimator (reboot required) | 0 or 1 | 0 |
 | `SENS_BAR_CF_BW` | CF crossover frequency for the online estimator [Hz] | 0.01 to 1.0 | 0.05 |
