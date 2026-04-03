@@ -11,7 +11,7 @@ Plan a mission on the ground. Ensure the mission has:
 - Takeoff as first waypoint
 - Changes in altitude throughout the mission
 - Last waypoint is an RTL
-- Duration of 5 to 6 minutes
+- Duration of 1 to 2 minutes
 
 ## Flight Tests
 
@@ -27,11 +27,9 @@ Plan a mission on the ground. Ensure the mission has:
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Auto takeoff (hand launch or runway)
 
-&nbsp;&nbsp;&nbsp;&nbsp;❏ Changes in altitude throughout the mission
+&nbsp;&nbsp;&nbsp;&nbsp;❏ Verify changes in altitude throughout the mission
 
-&nbsp;&nbsp;&nbsp;&nbsp;❏ First waypoint set to Takeoff
-
-&nbsp;&nbsp;&nbsp;&nbsp;❏ Enable Mission End RTL
+&nbsp;&nbsp;&nbsp;&nbsp;❏ Verify Mission Ends in RTL
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Duration of 1 to 2 minutes
 
