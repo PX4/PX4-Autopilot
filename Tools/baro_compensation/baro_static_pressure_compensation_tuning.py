@@ -180,11 +180,11 @@ def run(logfile, w_hpf):
     pcoef_yp = res.x[3] * g
     pcoef_z = res.x[4] * g
 
-    print(f"param set EKF2_PCOEF_XN {pcoef_xn:.3f}")
-    print(f"param set EKF2_PCOEF_XP {pcoef_xp:.3f}")
-    print(f"param set EKF2_PCOEF_YN {pcoef_yn:.3f}")
-    print(f"param set EKF2_PCOEF_YP {pcoef_yp:.3f}")
-    print(f"param set EKF2_PCOEF_Z {pcoef_z:.3f}")
+    print(f"param set SENS_BARO_K_XN {pcoef_xn:.3f}")
+    print(f"param set SENS_BARO_K_XP {pcoef_xp:.3f}")
+    print(f"param set SENS_BARO_K_YN {pcoef_yn:.3f}")
+    print(f"param set SENS_BARO_K_YP {pcoef_yp:.3f}")
+    print(f"param set SENS_BARO_K_Z {pcoef_z:.3f}")
 
     # Plot data
     plt.figure(1)
