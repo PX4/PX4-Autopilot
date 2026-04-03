@@ -1,0 +1,29 @@
+module_name: baro_thrust_estimator
+parameters:
+- group: Sensors
+  definitions:
+    BARO_COMP_EST_EN:
+      description:
+        short: Enable baro thrust online estimator
+        long: |-
+          When enabled, the baro thrust estimator runs during flight to
+          identify the thrust-to-baro gain K. On convergence, saves
+          SENS_BARO_K_T on disarm. Requires multicopter.
+      type: boolean
+      default: 0
+      reboot_required: true
+    SENS_BAR_CF_BW:
+      description:
+        short: Baro thrust estimator CF crossover frequency
+        long: |-
+          Complementary filter bandwidth for the baro-accel altitude
+          estimator used to isolate thrust-induced baro errors.
+          Lower values trust baro more at low frequencies (conservative),
+          higher values let more baro error through to the RLS estimator
+          (more accurate K identification but noisier with bad IMU).
+      type: float
+      default: 0.05
+      min: 0.01
+      max: 1.0
+      unit: Hz
+      decimal: 2
