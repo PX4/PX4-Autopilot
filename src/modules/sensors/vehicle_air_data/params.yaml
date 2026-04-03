@@ -99,3 +99,16 @@ parameters:
       max: 50.0
       unit: m/s
       decimal: 1
+    SENS_BARO_K_T:
+      description:
+        short: Barometer thrust compensation coefficient
+        long: |-
+          Altitude correction per unit of thrust (NED, so negative-Z is up).
+          Compensates for propwash-induced static pressure changes at the
+          barometer. baro_alt += K_T * |thrust_z|. Typically negative
+          (propwash causes overpressure, reducing measured altitude).
+      type: float
+      default: 0.0
+      min: -30.0
+      max: 30.0
+      decimal: 2
