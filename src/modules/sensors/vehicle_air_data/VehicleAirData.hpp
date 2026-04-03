@@ -55,7 +55,6 @@
 #include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensors_status.h>
 #include <uORB/topics/vehicle_air_data.h>
-#include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/wind.h>
@@ -128,7 +127,6 @@ private:
 		{this, ORB_ID(sensor_baro), 3},
 	};
 
-	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};

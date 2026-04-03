@@ -103,10 +103,13 @@ parameters:
       description:
         short: Barometer thrust compensation coefficient
         long: |-
-          Altitude correction per unit of thrust (NED, so negative-Z is up).
+          Altitude correction per unit of vertical thrust magnitude.
           Compensates for propwash-induced static pressure changes at the
-          barometer. baro_alt += K_T * |thrust_z|. Typically negative
-          (propwash causes overpressure, reducing measured altitude).
+          barometer: corrected_alt = raw_alt + K_T * |thrust_z|.
+          Sign depends on sensor placement: positive if propwash causes
+          overpressure (baro reads too low), negative if it creates
+          suction (baro reads too high). Use the online estimator
+          (BARO_COMP_EST_EN) or offline calibration tool to identify.
       type: float
       default: 0.0
       min: -30.0
