@@ -100,6 +100,63 @@ float VehicleAirData::AirTemperatureUpdate(const float temperature_baro, Tempera
 	return math::constrain(temperature, TEMPERATURE_MIN_CELSIUS, TEMPERATURE_MAX_CELSIUS);
 }
 
+void VehicleAirData::updateThrustBuffer()
+{
+	vehicle_thrust_setpoint_s thrust_sp;
+
+	while (_vehicle_thrust_setpoint_sub.update(&thrust_sp)) {
+		ThrustSample &sample = _thrust_buffer[_thrust_buffer_head];
+		sample.timestamp = thrust_sp.timestamp;
+		sample.thrust_z = PX4_ISFINITE(thrust_sp.xyz[2]) ? fabsf(thrust_sp.xyz[2]) : 0.f;
+
+		_thrust_buffer_head = (_thrust_buffer_head + 1) % THRUST_BUFFER_SIZE;
+
+		if (_thrust_buffer_count < THRUST_BUFFER_SIZE) {
+			_thrust_buffer_count++;
+		}
+	}
+}
+
+float VehicleAirData::thrustCompensation(hrt_abstime timestamp_sample)
+{
+	const float k_t = _param_sens_baro_k_t.get();
+
+	if (fabsf(k_t) < FLT_EPSILON || _thrust_buffer_count == 0) {
+		return 0.f;
+	}
+
+	// Find the thrust sample closest to the baro measurement time.
+	// Buffer is chronologically ordered (newest at head-1), so once
+	// the time delta starts increasing we've passed the closest match.
+	int best_idx = -1;
+	hrt_abstime best_dt = UINT64_MAX;
+
+	for (int i = 0; i < _thrust_buffer_count; i++) {
+		int idx = (_thrust_buffer_head - 1 - i + THRUST_BUFFER_SIZE) % THRUST_BUFFER_SIZE;
+		const hrt_abstime ts = _thrust_buffer[idx].timestamp;
+
+		if (ts == 0) {
+			continue;
+		}
+
+		const hrt_abstime dt = (ts >= timestamp_sample) ? (ts - timestamp_sample) : (timestamp_sample - ts);
+
+		if (dt < best_dt) {
+			best_dt = dt;
+			best_idx = idx;
+
+		} else {
+			break;
+		}
+	}
+
+	if (best_idx < 0 || best_dt > 500_ms) {
+		return 0.f;
+	}
+
+	return k_t * _thrust_buffer[best_idx].thrust_z;
+}
+
 bool VehicleAirData::ParametersUpdate(bool force)
 {
 	// Check if parameters have changed
@@ -144,6 +201,8 @@ void VehicleAirData::Run()
 	const hrt_abstime time_now_us = hrt_absolute_time();
 
 	const bool parameter_update = ParametersUpdate();
+
+	updateThrustBuffer();
 
 	estimator_status_flags_s estimator_status_flags;
 	const bool estimator_status_flags_updated = _estimator_status_flags_sub.update(&estimator_status_flags);
@@ -298,8 +357,9 @@ void VehicleAirData::Run()
 						// calculate air density
 						const float air_density = getDensityFromPressureAndTemp(pressure_pa, ambient_temperature);
 
-						// apply dynamic pressure compensation
+						// apply compensations
 						altitude += dynamicPressureCompensation(air_density);
+						altitude += thrustCompensation(timestamp_sample);
 
 						// populate vehicle_air_data with and publish
 						vehicle_air_data_s out{};
