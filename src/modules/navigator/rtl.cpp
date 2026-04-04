@@ -602,7 +602,7 @@ float RTL::computeReturnAltitude(const PositionYawSetpoint &rtl_position) const
 			if (destination_dist <= _param_rtl_min_dist.get()) {
 
 				// constrain cone half angle to meaningful values. All other cases are already handled above.
-				const float cone_half_angle_rad = radians(constrain(_param_rtl_cone_ang.get(), 1.0f, 89.0f));
+				const float cone_half_angle_rad = radians(constrain((float)_param_rtl_cone_ang.get(), 1.0f, 89.0f));
 
 				// minimum altitude we need in order to be within the user defined cone
 				const float cone_intersection_altitude_amsl = destination_dist / tanf(cone_half_angle_rad) + rtl_position.alt;
