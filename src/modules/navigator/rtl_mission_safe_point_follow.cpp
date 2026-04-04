@@ -651,6 +651,23 @@ void RtlMissionSafePointFollow::publishLandingItems(position_setpoint_triplet_s 
 	_navigator->set_position_setpoint_triplet_updated();
 }
 
+void RtlMissionSafePointFollow::publishBranchOffItems(position_setpoint_triplet_s *pos_sp_triplet,
+		const position_setpoint_s &current_setpoint_copy)
+{
+	mission_item_s branch_off_item{};
+	mission_item_s next_goal_item{};
+	setWaypointMissionItem(branch_off_item, _plan.selection.branch_off_projection, true);
+
+	if (useGoalLandApproach()) {
+		setGoalApproachMissionItem(next_goal_item);
+
+	} else {
+		setLandMissionItem(next_goal_item);
+	}
+
+	publishRouteItems(pos_sp_triplet, current_setpoint_copy, branch_off_item, &next_goal_item);
+}
+
 void RtlMissionSafePointFollow::handleFollowRouteStage(position_setpoint_triplet_s *pos_sp_triplet,
 		const position_setpoint_s &current_setpoint_copy)
 {
@@ -691,6 +708,9 @@ void RtlMissionSafePointFollow::handleFollowRouteStage(position_setpoint_triplet
 	if (branch_off_target_active) {
 		_state.stage = Stage::BranchOff;
 		PX4_INFO("RTL leaving route at branch-off");
+		// Publish the virtual branch-off immediately so the next reached check applies to the
+		// projected leave-route point instead of the raw route waypoint at branchOffIndex().
+		publishBranchOffItems(pos_sp_triplet, current_setpoint_copy);
 		return;
 	}
 
@@ -740,18 +760,7 @@ void RtlMissionSafePointFollow::setActiveMissionItems()
 		break;
 
 	case Stage::BranchOff: {
-			mission_item_s branch_off_item{};
-			mission_item_s next_goal_item{};
-			setWaypointMissionItem(branch_off_item, _plan.selection.branch_off_projection, true);
-
-			if (useGoalLandApproach()) {
-				setGoalApproachMissionItem(next_goal_item);
-
-			} else {
-				setLandMissionItem(next_goal_item);
-			}
-
-			publishRouteItems(pos_sp_triplet, current_setpoint_copy, branch_off_item, &next_goal_item);
+			publishBranchOffItems(pos_sp_triplet, current_setpoint_copy);
 			break;
 		}
 

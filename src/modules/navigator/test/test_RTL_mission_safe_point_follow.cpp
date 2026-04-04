@@ -131,6 +131,14 @@ public:
 		_plan.selection.branch_off_segment.end.nav_cmd = NAV_CMD_WAYPOINT;
 	}
 
+	void setSafePointGeometryForTest(const MissionRoutePlanner::Position &branch_off_projection,
+					 const MissionRoutePlanner::Position &goal_position)
+	{
+		_plan.selection.branch_off_projection = branch_off_projection;
+		_plan.selection.safe_point_position = goal_position;
+		_plan.selection.goal_position = goal_position;
+	}
+
 	void setTransitionTargetIndexForTest(int32_t index)
 	{
 		_state.transition_target_index = index;
@@ -214,6 +222,11 @@ public:
 	void setCurrentMissionItemForTest(const mission_item_s &mission_item)
 	{
 		_mission_item = mission_item;
+	}
+
+	bool missionItemReachedForTest()
+	{
+		return is_mission_item_reached_or_completed();
 	}
 
 private:
@@ -494,6 +507,96 @@ TEST_F(RtlMissionSafePointFollowStageTest, ReverseRouteAdvanceKeepsFollowRouteUn
 	EXPECT_TRUE(advanced);
 	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::FollowRoute);
 	EXPECT_EQ(executor.currentSequenceForTest(), 1);
+}
+
+// WHY: Once the branch-off anchor becomes the active route target, the virtual branch-off waypoint
+//      must be published immediately so MissionBase no longer tracks the raw mission waypoint.
+// WHAT: Nominal route following publishes the branch-off projection as the current setpoint in the same pass.
+TEST_F(RtlMissionSafePointFollowStageTest, ForwardBranchOffAnchorPublishesVirtualBranchOffImmediately)
+{
+	Navigator navigator;
+	RtlMissionSafePointFollowTestPeer executor_with_nav(&navigator);
+
+	std::vector<mission_item_s> items = {
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+	};
+
+	const auto branch_off_projection = makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 0.f, kAlt);
+	const auto safe_point_goal = makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 60.f, kAlt);
+
+	executor_with_nav.loadTestMission(items);
+	executor_with_nav.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::FollowRoute);
+	executor_with_nav.setCurrentSequenceForTest(2);
+	executor_with_nav.setCurrentMissionItemForTest(items[2]);
+	executor_with_nav.setSafePointSelectionForTest(false, 2);
+	executor_with_nav.setSafePointGeometryForTest(branch_off_projection, safe_point_goal);
+
+	vehicle_global_position_s global_position{};
+	global_position.lat = items[1].lat;
+	global_position.lon = items[1].lon;
+	global_position.alt = items[1].altitude;
+	*navigator.get_global_position() = global_position;
+
+	executor_with_nav.publishActiveMissionItemsForTest();
+
+	const position_setpoint_triplet_s *triplet = navigator.get_position_setpoint_triplet();
+	ASSERT_TRUE(triplet->current.valid);
+	ASSERT_TRUE(triplet->next.valid);
+	EXPECT_EQ(executor_with_nav.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::BranchOff);
+	EXPECT_NEAR(triplet->current.lat, branch_off_projection.lat, 1e-9);
+	EXPECT_NEAR(triplet->current.lon, branch_off_projection.lon, 1e-9);
+	EXPECT_NEAR(triplet->current.alt, branch_off_projection.alt, 1e-3f);
+	EXPECT_NEAR(triplet->next.lat, safe_point_goal.lat, 1e-9);
+	EXPECT_NEAR(triplet->next.lon, safe_point_goal.lon, 1e-9);
+	EXPECT_NEAR(triplet->next.alt, safe_point_goal.alt, 1e-3f);
+	EXPECT_FALSE(executor_with_nav.missionItemReachedForTest());
+}
+
+// WHY: Reverse route following uses the same branch-off handoff and must also publish the virtual
+//      branch-off waypoint immediately instead of leaving the raw mission waypoint active.
+// WHAT: Reverse route following publishes the branch-off projection as the current setpoint in the same pass.
+TEST_F(RtlMissionSafePointFollowStageTest, ReverseBranchOffAnchorPublishesVirtualBranchOffImmediately)
+{
+	Navigator navigator;
+	RtlMissionSafePointFollowTestPeer executor_with_nav(&navigator);
+
+	std::vector<mission_item_s> items = {
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+	};
+
+	const auto branch_off_projection = makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 0.f, kAlt);
+	const auto safe_point_goal = makePositionFromOffset(kBaseLat, kBaseLon, 150.f, -60.f, kAlt);
+
+	executor_with_nav.loadTestMission(items);
+	executor_with_nav.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::FollowRoute);
+	executor_with_nav.setCurrentSequenceForTest(1);
+	executor_with_nav.setCurrentMissionItemForTest(items[1]);
+	executor_with_nav.setSafePointSelectionForTest(true, 1);
+	executor_with_nav.setSafePointGeometryForTest(branch_off_projection, safe_point_goal);
+
+	vehicle_global_position_s global_position{};
+	global_position.lat = items[2].lat;
+	global_position.lon = items[2].lon;
+	global_position.alt = items[2].altitude;
+	*navigator.get_global_position() = global_position;
+
+	executor_with_nav.publishActiveMissionItemsForTest();
+
+	const position_setpoint_triplet_s *triplet = navigator.get_position_setpoint_triplet();
+	ASSERT_TRUE(triplet->current.valid);
+	ASSERT_TRUE(triplet->next.valid);
+	EXPECT_EQ(executor_with_nav.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::BranchOff);
+	EXPECT_NEAR(triplet->current.lat, branch_off_projection.lat, 1e-9);
+	EXPECT_NEAR(triplet->current.lon, branch_off_projection.lon, 1e-9);
+	EXPECT_NEAR(triplet->current.alt, branch_off_projection.alt, 1e-3f);
+	EXPECT_NEAR(triplet->next.lat, safe_point_goal.lat, 1e-9);
+	EXPECT_NEAR(triplet->next.lon, safe_point_goal.lon, 1e-9);
+	EXPECT_NEAR(triplet->next.alt, safe_point_goal.alt, 1e-3f);
+	EXPECT_FALSE(executor_with_nav.missionItemReachedForTest());
 }
 
 // WHY: Route-follow exhaustion should continue RTL toward the selected goal.

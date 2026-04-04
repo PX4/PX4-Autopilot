@@ -174,6 +174,9 @@ private:
 	void publishLandingItems(position_setpoint_triplet_s *pos_sp_triplet,
 				 const position_setpoint_s &current_setpoint_copy,
 				 const mission_item_s &landing_mission_item);
+	/** @brief Publish the virtual branch-off waypoint and the subsequent goal item. */
+	void publishBranchOffItems(position_setpoint_triplet_s *pos_sp_triplet,
+				   const position_setpoint_s &current_setpoint_copy);
 	/** @brief Advance to the next route target, returning true on success or landing at goal on failure. */
 	bool advanceRouteTarget();
 
