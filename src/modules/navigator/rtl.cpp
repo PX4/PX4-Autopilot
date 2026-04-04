@@ -394,7 +394,7 @@ void RTL::setRtlTypeAndDestination()
 		}
 	}
 
-	const float rtl_alt = computeReturnAltitude(destination, destination_type, (float)_param_rtl_cone_ang.get());
+	const float rtl_alt = computeReturnAltitude(destination);
 	_rtl_direct.setRtlAlt(rtl_alt);
 	_rtl_direct.setRtlPosition(destination, landing_loiter);
 
