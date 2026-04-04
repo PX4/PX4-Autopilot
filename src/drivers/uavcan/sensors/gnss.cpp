@@ -53,13 +53,14 @@ using namespace time_literals;
 
 const char *const UavcanGnssBridge::NAME = "gnss";
 
-UavcanGnssBridge::UavcanGnssBridge(uavcan::INode &node) :
-	UavcanSensorBridgeBase("uavcan_gnss", ORB_ID(sensor_gps)),
+UavcanGnssBridge::UavcanGnssBridge(uavcan::INode &node, NodeInfoPublisher *node_info_publisher) :
+	UavcanSensorBridgeBase("uavcan_gnss", ORB_ID(sensor_gps), node_info_publisher),
 	_node(node),
 	_sub_auxiliary(node),
 	_sub_fix(node),
 	_sub_fix2(node),
 	_sub_gnss_heading(node),
+	_sub_moving_baseline_data(node),
 	_pub_moving_baseline_data(node),
 	_pub_rtcm_stream(node),
 	_channel_using_fix2(new bool[_max_channels])
@@ -76,6 +77,7 @@ UavcanGnssBridge::~UavcanGnssBridge()
 	delete [] _channel_using_fix2;
 	perf_free(_rtcm_stream_pub_perf);
 	perf_free(_moving_baseline_data_pub_perf);
+	perf_free(_moving_baseline_data_sub_perf);
 }
 
 int
@@ -127,6 +129,15 @@ UavcanGnssBridge::init()
 		_publish_moving_baseline_data = true;
 		_pub_moving_baseline_data.setPriority(uavcan::TransferPriority::NumericallyMax);
 		_moving_baseline_data_pub_perf = perf_alloc(PC_INTERVAL, "uavcan: gnss: moving baseline data rtcm stream pub");
+	}
+
+	// UAVCAN_SUB_MBD
+	int32_t uavcan_sub_mbd = 0;
+	param_get(param_find("UAVCAN_SUB_MBD"), &uavcan_sub_mbd);
+
+	if (uavcan_sub_mbd == 1) {
+		res = _sub_moving_baseline_data.start(MovingBaselineDataCbBinder(this, &UavcanGnssBridge::moving_baseline_data_sub_cb));
+		_moving_baseline_data_sub_perf = perf_alloc(PC_INTERVAL, "uavcan: gnss: moving baseline data rtcm stream sub");
 	}
 
 	return res;
@@ -338,6 +349,7 @@ UavcanGnssBridge::gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 	process_fixx(msg, fix_type, pos_cov, vel_cov, valid_covariances, valid_covariances, heading, heading_offset,
 		     heading_accuracy, noise_per_ms, jamming_indicator, jamming_state, spoofing_state);
 }
+
 void UavcanGnssBridge::gnss_relative_sub_cb(const
 		uavcan::ReceivedDataStructure<ardupilot::gnss::RelPosHeading> &msg)
 {
@@ -346,6 +358,41 @@ void UavcanGnssBridge::gnss_relative_sub_cb(const
 	_rel_heading_accuracy = math::radians(msg.reported_heading_acc_deg);
 
 }
+
+void UavcanGnssBridge::moving_baseline_data_sub_cb(const
+		uavcan::ReceivedDataStructure<ardupilot::gnss::MovingBaselineData> &msg)
+{
+	perf_count(_moving_baseline_data_sub_perf);
+
+	size_t total_bytes = msg.data.size();
+	size_t written = 0;
+
+	while (written < total_bytes) {
+		gps_dump_s dump = {};
+		dump.timestamp = hrt_absolute_time();
+
+		DeviceId device_id = {};
+		device_id.devid_s.bus_type = DeviceBusType::DeviceBusType_UAVCAN;
+		device_id.devid_s.bus = 0;
+		device_id.devid_s.address = msg.getSrcNodeID().get() & 0xFF;
+		device_id.devid_s.devtype = DRV_GPS_DEVTYPE_UAVCAN;
+
+		dump.instance = 0; // TODO: How can we determine the instance? Startup order of CANnodes is non-deterministic.
+		dump.device_id = device_id.devid;
+
+		size_t remaining = total_bytes - written;
+		size_t write_len = remaining < sizeof(dump.data) ? remaining : sizeof(dump.data);
+
+		memcpy(dump.data, msg.data.begin() + written, write_len);
+		dump.len = write_len;
+		dump.len &= 0x7F; // MSB of len is direction - 0 is from the device
+
+		written += write_len;
+
+		_gps_dump_pub.publish(dump);
+	}
+}
+
 template <typename FixType>
 void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType> &msg,
 				    uint8_t fix_type,
@@ -357,7 +404,15 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 				    const uint8_t spoofing_state)
 {
 	sensor_gps_s sensor_gps{};
-	sensor_gps.device_id = get_device_id();
+
+	sensor_gps.device_id = make_uavcan_device_id(msg);
+
+	// Register GPS capability with NodeInfoPublisher after first successful message
+	if (_node_info_publisher != nullptr) {
+		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
+				sensor_gps.device_id,
+				NodeInfoPublisher::DeviceCapability::GPS);
+	}
 
 	/*
 	 * FIXME HACK
@@ -580,7 +635,17 @@ void UavcanGnssBridge::handleInjectDataTopic()
 			_last_rtcm_injection_time = hrt_absolute_time();
 		}
 
-		updated = _orb_inject_data_sub[_selected_rtcm_instance].update(&msg);
+		auto &gps_inject_data_sub = _orb_inject_data_sub[_selected_rtcm_instance];
+
+		const unsigned last_generation = gps_inject_data_sub.get_last_generation();
+
+		updated = gps_inject_data_sub.update(&msg);
+
+		if (updated) {
+			if (gps_inject_data_sub.get_last_generation() != last_generation + 1) {
+				PX4_WARN("gps_inject_data lost, generation %u -> %u", last_generation, gps_inject_data_sub.get_last_generation());
+			}
+		}
 
 	} while (updated && num_injections < max_num_injections);
 }
@@ -648,4 +713,5 @@ void UavcanGnssBridge::print_status() const
 	UavcanSensorBridgeBase::print_status();
 	perf_print_counter(_rtcm_stream_pub_perf);
 	perf_print_counter(_moving_baseline_data_pub_perf);
+	perf_print_counter(_moving_baseline_data_sub_perf);
 }

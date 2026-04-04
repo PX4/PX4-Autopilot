@@ -149,7 +149,8 @@ private:
 		(ParamFloat<px4::params::UUV_MGM_THRTL>) _param_mgm_thrtl,
 		(ParamFloat<px4::params::UUV_TORQUE_SAT>) _param_torque_sat,
 		(ParamFloat<px4::params::UUV_THRUST_SAT>) _param_thrust_sat,
-		(ParamFloat<px4::params::UUV_SP_MAX_AGE>) _param_setpoint_max_age
+		(ParamFloat<px4::params::UUV_SP_MAX_AGE>) _param_setpoint_max_age,
+		(ParamInt<px4::params::UUV_STICK_MODE>) _param_stick_mode
 
 	)
 
@@ -171,4 +172,6 @@ private:
 	void generate_rates_setpoint(float dt);
 	void reset_attitude_setpoint(vehicle_attitude_s &v_att);
 	void check_setpoint_validity(vehicle_attitude_s &v_att);
+
+	inline bool joystick_heave_sway_mode() const { return _param_stick_mode.get() == 0; }
 };

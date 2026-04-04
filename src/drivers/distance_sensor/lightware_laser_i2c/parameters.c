@@ -36,7 +36,7 @@
  *
  * @reboot_required true
  * @min 0
- * @max 7
+ * @max 9
  * @group Sensors
  * @value 0 Disabled
  * @value 1 SF10/a
@@ -46,6 +46,8 @@
  * @value 5 SF/LW20/b
  * @value 6 SF/LW20/c
  * @value 7 SF/LW30/d
+ * @value 8 GRF250
+ * @value 9 GRF500
  */
 PARAM_DEFINE_INT32(SENS_EN_SF1XX, 0);
 

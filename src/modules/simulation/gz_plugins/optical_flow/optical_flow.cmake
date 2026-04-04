@@ -35,11 +35,7 @@ include(ExternalProject)
 find_package(OpenCV REQUIRED)
 
 if(NOT TARGET OpticalFlow)
-    if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-        set(OPTICAL_FLOW_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/OpticalFlow/install")
-    else()
-        set(OPTICAL_FLOW_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
-    endif()
+    set(OPTICAL_FLOW_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/OpticalFlow/install")
 
     ExternalProject_Add(OpticalFlow
         GIT_REPOSITORY https://github.com/PX4/PX4-OpticalFlow.git

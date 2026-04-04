@@ -89,6 +89,11 @@ public:
 	static constexpr int MAX_NUM_MOTORS = actuator_motors_s::NUM_CONTROLS;
 	static constexpr int MAX_NUM_SERVOS = actuator_servos_s::NUM_CONTROLS;
 
+	static constexpr float ICE_SHEDDING_MAX_SLEWRATE = 0.1f;
+	static constexpr float ICE_SHEDDING_ON_SEC = 2.0f;
+	static constexpr float ICE_SHEDDING_OUTPUT = 0.01f;
+
+
 	using ActuatorVector = ActuatorEffectiveness::ActuatorVector;
 
 	ControlAllocator();
@@ -138,6 +143,8 @@ private:
 	void publish_control_allocator_status(int matrix_index);
 
 	void publish_actuator_controls();
+
+	float get_ice_shedding_output(hrt_abstime now, bool any_stopped_motor_failed);
 
 	AllocationMethod _allocation_method_id{AllocationMethod::NONE};
 	ControlAllocation *_control_allocation[ActuatorEffectiveness::MAX_NUM_MATRICES] {}; 	///< class for control allocation calculations
@@ -206,6 +213,7 @@ private:
 	perf_counter_t	_loop_perf;			/**< loop duration performance counter */
 
 	bool _armed{false};
+	bool _is_vtol{false};
 	hrt_abstime _last_run{0};
 	hrt_abstime _timestamp_sample{0};
 	hrt_abstime _last_status_pub{0};
@@ -214,11 +222,16 @@ private:
 	Params _params{};
 	bool _has_slew_rate{false};
 
+
+	SlewRate<float> _slew_limited_ice_shedding_output;
+	hrt_abstime _last_ice_shedding_update{};
+
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::CA_AIRFRAME>) _param_ca_airframe,
 		(ParamInt<px4::params::CA_METHOD>) _param_ca_method,
 		(ParamInt<px4::params::CA_FAILURE_MODE>) _param_ca_failure_mode,
-		(ParamInt<px4::params::CA_R_REV>) _param_r_rev
+		(ParamInt<px4::params::CA_R_REV>) _param_r_rev,
+		(ParamFloat<px4::params::CA_ICE_PERIOD>) _param_ice_shedding_period
 	)
 
 };

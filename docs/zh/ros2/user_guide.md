@@ -552,8 +552,8 @@ ros2 run ros_gz_bridge parameter_bridge /clock@rosgraph_msgs/msg/Clock[gz.msgs.C
 代码首先导入了与 ROS 2 中间件进行交互所需的 C++ 库，以及该节点所订阅的SensorCombined消息对应的头部文件：
 
 ```cpp
-#include <0>
-#include <1>
+#include <rclcpp/rclcpp.hpp>
+#include <px4_msgs/msg/sensor_combined.hpp>
 ```
 
 随后，代码创建了一个 SensorCombinedListener 类，该类继承自通用的 rclcpp::Node 基类。

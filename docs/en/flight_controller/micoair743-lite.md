@@ -1,6 +1,6 @@
 # MicoAir743-Lite
 
-<Badge type="tip" text="main (planned for: PX4 v1.17)" />
+<Badge type="tip" text="PX4 v1.17" />
 
 :::warning
 PX4 does not manufacture this (or any) autopilot.

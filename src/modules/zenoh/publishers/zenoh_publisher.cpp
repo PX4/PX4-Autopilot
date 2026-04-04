@@ -78,8 +78,10 @@ int Zenoh_Publisher::declare_publisher(z_owned_session_t s, const char *keyexpr,
 	return 0;
 }
 
-int8_t Zenoh_Publisher::publish(const uint8_t *buf, int size)
+z_result_t Zenoh_Publisher::publish(const uint8_t *buf, int size)
 {
+	z_result_t ret;
+
 	z_publisher_put_options_t options;
 	z_publisher_put_options_default(&options);
 
@@ -87,12 +89,21 @@ int8_t Zenoh_Publisher::publish(const uint8_t *buf, int size)
 	_attachment.time = hrt_absolute_time();
 
 	z_owned_bytes_t z_attachment;
-	z_bytes_from_static_buf(&z_attachment, (const uint8_t *)&_attachment, RMW_ATTACHEMENT_SIZE);
+	ret = z_bytes_from_static_buf(&z_attachment, (const uint8_t *)&_attachment, RMW_ATTACHEMENT_SIZE);
+
+	if (ret != Z_OK) {
+		return ret;
+	}
 
 	options.attachment = z_move(z_attachment);
 
 	z_owned_bytes_t payload;
-	z_bytes_copy_from_buf(&payload, buf, size);
+	ret = z_bytes_copy_from_buf(&payload, buf, size);
+
+	if (ret != Z_OK) {
+		return ret;
+	}
+
 	return z_publisher_put(z_loan(_pub), z_move(payload), &options);
 }
 

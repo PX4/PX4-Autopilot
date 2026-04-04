@@ -106,7 +106,7 @@ There are several other "battery related" failsafe mechanisms that may be config
 
 | 설정                                                                   | 매개변수                                                                                                                                          | 설명                                                                                                                                                                                                                                 |
 | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="COM_FLTT_LOW_ACT"></a> Low flight time for safe return action | [COM_FLTT_LOW_ACT](../advanced_config/parameter_reference.md#COM_FLTT_LOW_ACT) | Action when return mode can only just reach safety with remaining battery. `0`: None, `1`: Warning, `3`: Return mode (default). |
+| <a id="COM_FLTT_LOW_ACT"></a> Low flight time for safe return action | [COM_FLTT_LOW_ACT](../advanced_config/parameter_reference.md#COM_FLTT_LOW_ACT) | Action when return mode can only just reach safety with remaining battery. `0`: None (default), `1`: Warning, `3`: Return mode. |
 | <a id="COM_FLT_TIME_MAX"></a> Maximum flight time failsafe level     | [COM_FLT_TIME_MAX](../advanced_config/parameter_reference.md#COM_FLT_TIME_MAX) | Maximum allowed flight time before Return mode will be engaged, in seconds. `-1`: Disabled (default).                                                           |
 
 ## Manual Control Loss Failsafe
@@ -121,36 +121,32 @@ PX4 and the receiver may also need to be configured in order to _detect RC loss_
 
 ![Safety - RC Loss (QGC)](../../assets/qgc/setup/safety/safety_rc_loss.png)
 
-The QGCroundControl Safety UI allows you to set the [failsafe action](#failsafe-actions) and [RC Loss timeout](#COM_RC_LOSS_T).
-Users that want to disable the RC loss failsafe in specific automatic modes (mission, hold, offboard) can do so using the parameter [COM_RCL_EXCEPT](#COM_RCL_EXCEPT).
+The QGCroundControl Safety UI allows you to set the [failsafe action](#failsafe-actions) and [manual control loss timeout](#COM_RC_LOSS_T).
+Users that want to disable this failsafe in specific modes can do so using the parameter [COM_RCL_EXCEPT](#COM_RCL_EXCEPT).
 
 Additional (and underlying) parameter settings are shown below.
 
 | 매개변수                                                                                                                                                                 | 설정                          | 설명                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="COM_RC_LOSS_T"></a>[COM_RC_LOSS_T](../advanced_config/parameter_reference.md#COM_RC_LOSS_T)    | Manual Control Loss Timeout | Time after last setpoint received from the selected manual control source after which manual control is considered lost. This must be kept short because the vehicle will continue to fly using the old manual control setpoint until the timeout triggers.                                                                                                                                                                                                                    |
+| <a id="COM_RC_LOSS_T"></a>[COM_RC_LOSS_T](../advanced_config/parameter_reference.md#COM_RC_LOSS_T)    | Manual Control Loss Timeout | Time after last setpoint received from the selected manual control source after which manual control is considered lost. This must be kept short because the vehicle will continue to fly using the last known stick position until the timeout triggers.                                                                                                                                                                                                                      |
 | <a id="COM_FAIL_ACT_T"></a>[COM_FAIL_ACT_T](../advanced_config/parameter_reference.md#COM_FAIL_ACT_T) | Failsafe Reaction Delay     | Delay in seconds between failsafe condition being triggered (`COM_RC_LOSS_T`) and failsafe action (RTL, Land, Hold). In this state the vehicle waits in hold mode for the manual control source to reconnect. This might be set longer for long-range flights so that intermittent connection loss doesn't immediately invoke the failsafe. It can be to zero so that the failsafe triggers immediately. |
 | <a id="NAV_RCL_ACT"></a>[NAV_RCL_ACT](../advanced_config/parameter_reference.md#NAV_RCL_ACT)                               | 안전장치 동작                     | Disabled, Loiter, Return, Land, Disarm, Terminate.                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| <a id="COM_RCL_EXCEPT"></a>[COM_RCL_EXCEPT](../advanced_config/parameter_reference.md#COM_RCL_EXCEPT)                      | RC 손실 예외                    | Set the modes in which manual control loss is ignored: Mission, Hold, Offboard.                                                                                                                                                                                                                                                                                                                                                                                                |
+| <a id="COM_RCL_EXCEPT"></a>[COM_RCL_EXCEPT](../advanced_config/parameter_reference.md#COM_RCL_EXCEPT)                      | RC 손실 예외                    | Set modes in which manual control loss is ignored.                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 
 ## 데이터 연결불량 안전장치
 
-The Data Link Loss failsafe is triggered if a telemetry link (connection to ground station) is lost.
+The Data Link Loss failsafe is triggered if the connection to the last MAVLink ground station like QGroundControl is lost.
+Users that want to disable this failsafe in specific modes can do so using the parameter [COM_DLL_EXCEPT](#COM_DLL_EXCEPT).
 
 ![Safety - Data Link Loss (QGC)](../../assets/qgc/setup/safety/safety_data_link_loss.png)
 
 설정에 관련된 기본 매개변수는 다음과 같습니다.
 
-| 설정             | 매개변수                                                                                                                                    | 설명                                                                              |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| 데이터 연결불량 시간 초과 | [COM_DL_LOSS_T](../advanced_config/parameter_reference.md#COM_DL_LOSS_T) | 데이터 연결이 끊어진 후 안전 장치가 동작하기 전까지의 시간입니다.                           |
-| 안전장치 동작        | [NAV_DLL_ACT](../advanced_config/parameter_reference.md#NAV_DLL_ACT)                          | Disabled, Hold mode, Return mode, Land mode, Disarm, Terminate. |
-
-다음 설정도 가능하지만 QGC UI에 표시되지 않습니다.
-
-| 설정                                                          | 매개변수                                                                                                                 | 설명                                                                   |
-| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| <a id="COM_DLL_EXCEPT"></a>Mode exceptions for DLL failsafe | [COM_DLL_EXCEPT](../advanced_config/parameter_reference.md#COM_DLL_EXCEPT) | Set modes where DL loss will not trigger a failsafe. |
+| 설정                                                          | 매개변수                                                                                                                                    | 설명                                                                              |
+| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| 데이터 연결불량 시간 초과                                              | [COM_DL_LOSS_T](../advanced_config/parameter_reference.md#COM_DL_LOSS_T) | 데이터 연결이 끊어진 후 안전 장치가 동작하기 전까지의 시간입니다.                           |
+| 안전장치 동작                                                     | [NAV_DLL_ACT](../advanced_config/parameter_reference.md#NAV_DLL_ACT)                          | Disabled, Hold mode, Return mode, Land mode, Disarm, Terminate. |
+| <a id="COM_DLL_EXCEPT"></a>Mode exceptions for DLL failsafe | [COM_DLL_EXCEPT](../advanced_config/parameter_reference.md#COM_DLL_EXCEPT)                    | Set modes in which data link loss is ignored.                   |
 
 ## Geofence 안전장치
 

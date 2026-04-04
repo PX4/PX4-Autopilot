@@ -74,6 +74,7 @@ public:
 
 private:
 	bool hasMovedFromCurrentHomeLocation();
+	bool isGpsHorizontalFusionEnabled();
 	void setHomePosValid();
 	void updateHomePositionYaw(float yaw);
 
@@ -113,4 +114,5 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamBool<px4::params::COM_HOME_EN>) _param_com_home_en
 	)
+	param_t _param_ekf2_gps_ctrl_handle{PARAM_INVALID};
 };

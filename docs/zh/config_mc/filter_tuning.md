@@ -70,7 +70,7 @@ Airframes with more than two frequency noise spikes typically clean the first tw
 Dynamic notch filters use ESC RPM feedback and/or the onboard FFT analysis.
 The ESC RPM feedback is used to track the rotor blade pass frequency and its harmonics, while the FFT analysis can be used to track a frequency of another vibration source, such as a fuel engine.
 
-ESC RPM feedback requires ESCs capable of providing RPM feedback such as [DShot](../peripherals/esc_motors.md#dshot) with telemetry connected, a bidirectional DShot set up ([work in progress](https://github.com/PX4/PX4-Autopilot/pull/23863)), or [UAVCAN/DroneCAN ESCs](../dronecan/escs.md).
+ESC RPM feedback requires ESCs capable of providing RPM feedback such as [DShot](../peripherals/dshot.md) with telemetry connected, a bidirectional DShot set up ([work in progress](https://github.com/PX4/PX4-Autopilot/pull/23863)), or [UAVCAN/DroneCAN ESCs](../dronecan/escs.md).
 Before enabling, make sure that the ESC RPM is correct.
 You might have to adjust the [pole count of the motors](../advanced_config/parameter_reference.md#MOT_POLE_COUNT).
 

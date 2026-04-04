@@ -217,6 +217,6 @@ void OffboardControl::publish_vehicle_command(uint16_t command, float param1, fl
 参数字段和 指令字段对应于 [MAVLink commands](https://mavlink.io/en/messages/common.html#mav_commands)以及他们的参数值
 :::
 
-## See Also
+## 另见
 
 - [Python ROS2 offboard examples with PX4](https://github.com/Jaeyoung-Lim/px4-offboard) (Jaeyoung-Lim/px4-offboard).

@@ -27,8 +27,8 @@ The Desktop computer is only used to display the virtual vehicle.
 - SIH for FW (airplane) and VTOL tailsitter are supported from PX4 v1.13.
 - SIH as SITL (without hardware) from PX4 v1.14.
 - SIH for Standard VTOL from PX4 v1.16.
-- SIH for MC Hexacopter X from `main` (expected to be PX4 v1.17).
-- SIH for Ackermann Rover from `main`.
+- SIH for MC Hexacopter X from PX4 v1.17.
+- SIH for Ackermann Rover from PX4 v1.17.
 
 ### Benefits
 

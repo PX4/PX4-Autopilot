@@ -49,8 +49,8 @@ If the local position is invalid or becomes invalid while executing the takeoff,
 
 ::: info
 
-- Takeoff towards a target position was added in <Badge type="tip" text="main (planned for: PX4 v1.17)" />.
-- Holding wings level and ascending to clearance attitude when local position is invalid during takeoff was added in <Badge type="tip" text="main (planned for: PX4 v1.17)" />.
+- Takeoff towards a target position was added in <Badge type="tip" text="PX4 v1.17" />.
+- Holding wings level and ascending to clearance attitude when local position is invalid during takeoff was added in <Badge type="tip" text="PX4 v1.17" />.
 - QGroundControl does not support `MAV_CMD_NAV_TAKEOFF` (at time of writing).
 
 :::

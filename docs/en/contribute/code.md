@@ -34,7 +34,7 @@ If you update an existing file you are not required to make the whole file compl
 
 ### Line Length
 
-- Maximum line length is 120 characters.
+- Maximum line length is 140 characters.
 
 ### File Extensions
 

@@ -310,7 +310,7 @@ Wire up your cameras to your AUX port by connecting the ground and signal pins t
 You will have to modify your driver to follow the sequence diagram above.
 Public reference implementations for [IDS Imaging UEye](https://github.com/ProjectArtemis/ueye_cam) cameras and for [IEEE1394 compliant](https://github.com/andre-nguyen/camera1394) cameras are available.
 
-## See Also
+## 另见
 
 - Camera trigger driver: [source code](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/camera_trigger) <!-- no module doc -->
 - Camera capture driver: [source code](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/camera_capture) <!-- no module doc -->

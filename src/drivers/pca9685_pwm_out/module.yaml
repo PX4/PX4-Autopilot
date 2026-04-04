@@ -29,6 +29,16 @@ parameters:
         min: 0
         max: 10
         default: 0
+      PCA9685_I2C_ADDR:
+        description:
+          short: I2C address of PCA9685
+          long: |
+            I2C address of PCA9685.
+            The default address is 0x40 (64).
+        type: int32
+        min: 1
+        max: 127
+        default: 64
       PCA9685_SCHD_HZ:
         description:
           short: PWM update rate

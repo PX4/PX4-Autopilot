@@ -2,7 +2,7 @@
 
 :::info
 Holybro initially supplied this kit with a [Holybro Pixhawk 4](../flight_controller/pixhawk4.md)), but at time of writing this has been upgraded to a [Holybro Pixhawk 6C](../flight_controller/pixhawk6c.md).
-This build log is still relevant as the kit assembly is virtually the same, and likely to remain so as the flight controller is upgraded.
+这个构建记录仍然具有相关性，因为套装组件几乎是一样的，而且随着飞行控制器升级，很可能仍然如此。
 :::
 
 This topic provides full instructions for building the kit and configuring PX4 using _QGroundControl_.
@@ -10,7 +10,7 @@ This topic provides full instructions for building the kit and configuring PX4 u
 ## Key information
 
 - **Full Kit:** [Holybro X500 Kit](https://holybro.com/products/px4-development-kit-x500-v2)
-- **Flight controller:** [Pixhawk 4](../flight_controller/pixhawk4.md)
+- **飞行控制器：** [Pixhawk 4](../flight_controller/pixhawk4.md)
 - **Assembly time (approx.):** 3.75 hours (180 minutes for frame, 45 minutes for autopilot installation/configuration)
 
 ![Full X500 Kit](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_hero.png)
@@ -26,10 +26,10 @@ The Holybro [X500 Kit](https://holybro.com/products/px4-development-kit-x500-v2)
 - Holybro BLHeli S ESC 20A x4 (superseded - check [spare parts list](https://holybro.com/products/spare-parts-x500-v2-kit) for current version).
 - Propellers - 1045 x4 (superseded - check [spare parts list](https://holybro.com/products/spare-parts-x500-v2-kit) for current version).
 - Battery Strap
-- Power and Radio Cables
+- 电源线和信号线
 - Wheelbase - 500 mm
 - Dimensions - 410x410x300 mm
-- 433 MHz / 915 MHz [Holybro Telemetry Radio](../telemetry/holybro_sik_radio.md)
+- 433 MHz / 915 MHz [Holybro数传电台](../telemetry/holybro_sik_radio.md)
 
 Additionally you will need a battery and receiver ([compatible radio system](../getting_started/rc_transmitter_receiver.md)) if you want to control the drone manually.
 
@@ -55,14 +55,14 @@ This section lists all hardware for the frame and the autopilot installation.
 
 ### Electronics
 
-| Item Description                                                               | Quantity |
-| ------------------------------------------------------------------------------ | -------- |
-| Pixhawk4 & Assorted Cables                                 | 1        |
-| Pixhawk4 GPS Module                                                            | 1        |
-| Power Management PM07 (with pre-soldered ESC power cables)  | 1        |
-| Motors 2216 KV880（V2 Update)                                                   | 4        |
-| Holybro BLHeli S ESC 20A x4                                                    | 1        |
-| 433 MHz / 915 MHz [Holybro Telemetry Radio](../telemetry/holybro_sik_radio.md) | 1        |
+| 物品描述                                                                          | Quantity |
+| ----------------------------------------------------------------------------- | -------- |
+| Pixhawk4 & Assorted Cables                                | 1        |
+| Pixhawk4 GPS Module                                                           | 1        |
+| Power Management PM07 (with pre-soldered ESC power cables) | 1        |
+| Motors 2216 KV880（V2 Update)                                                  | 4        |
+| Holybro BLHeli S ESC 20A x4                                                   | 1        |
+| 433 MHz / 915 MHz [Holybro数传电台](../telemetry/holybro_sik_radio.md)            | 1        |
 
 ### Tools needed
 
@@ -223,7 +223,7 @@ First update the firmware, airframe, and actuator mappings:
 
 - [Airframe](../config/airframe.md)
 
-  You will need to select the _Holybro S500_ airframe (**Quadrotor x > Holybro S500**).
+  您需要选择 _Holybro S500_ 机架(**Quadrotor x > Holybro S500**)。
 
   ![QGroundControl - Select HolyBro X500 airframe](../../assets/airframes/multicopter/s500_holybro_pixhawk4/qgc_airframe_holybro_s500.png)
 
@@ -250,7 +250,7 @@ Ideally you should also do:
 ## 调试
 
 Airframe selection sets _default_ autopilot parameters for the frame.
-These are good enough to fly with, but it is a good idea to tune the parameters for a specific frame build.
+这些足以让它起飞，但是为你的特定框架调整专有参数是一个好主意。
 
 For instructions on how, start from [Autotune](../config/autotune_mc.md).
 

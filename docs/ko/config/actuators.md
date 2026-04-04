@@ -161,6 +161,7 @@ The fields are:
   [Generally you should use the default actuator value](#actuator-roll-pitch-and-yaw-scaling).
 - `Trim`: An offset added to the actuator so that it is centered without input.
   이것은 시행착오를 거쳐 결정될 수 있습니다.
+  Prefer using the improved `PWM_CENT` instead: [PWM control surfaces](actuators.md#pwm-control-surfaces-that-move-both-directions-about-a-neutral-point).
 - <a id="slew_rate"></a>(Advanced) `Slew Rate`: Limits the minimum time in which the motor/servo signal is allowed to pass through its full output range, in seconds.
   - The setting limits the rate of change of an actuator (if not specified then no rate limit is applied).
     It is intended for actuators that may be damaged or cause flight disturbance if they move too fast — such as the tilting actuators on a tiltrotor VTOL vehicle, or fast moving flaps, respectively.
@@ -448,9 +449,9 @@ Instructions:
 
 4. One motor will start spinning (click **Spin Motor Again** if it stops spinning too quickly to note.)
 
-  지오메트리 섹션에서 해당 모터를 선택합니다.
+   지오메트리 섹션에서 해당 모터를 선택합니다.
 
-  ![Screenshot showing how to identify/assign motors](../../assets/config/actuators/identify_motors_in_progress.png)
+   ![Screenshot showing how to identify/assign motors](../../assets/config/actuators/identify_motors_in_progress.png)
 
 5. 모든 모터를 할당한 후 도구는 출력에 대한 올바른 모터 매핑을 설정한 다음 종료됩니다.
 
@@ -467,15 +468,15 @@ To assign an actuator:
 1. First assign functions to the outputs that you think are _likely_ to be correct in the _Actuator Outputs_ section.
 2. Toggle the **Enable sliders** switch in _Actuator Testing_ section.
 3. 테스트하려는 액추에이터의 슬라이더를 이동합니다.
-  - 모터는 최소 추력 위치로 이동하여야 합니다.
-  - 서보는 중간 위치 근처로 이동하여야 합니다.
+   - 모터는 최소 추력 위치로 이동하여야 합니다.
+   - 서보는 중간 위치 근처로 이동하여야 합니다.
 4. 어떤 액츄에이터가 차량에서 움직이는 지 확인하십시오.
-  This should match the actuator positions for your geometry (the [airframe reference](../airframes/airframe_reference.md) shows motor positions for a number of standard airframes).
-  - 올바른 액츄에이터가 움직이면 다음 단계로 진행합니다.
-  - 잘못된 액츄에이터가 움직이면 출력 할당을 변경합니다.
-  - 아무 것도 움직이지 않으면, 슬라이더를 범위 중간에 늘리고 필요한 경우 더 높입니다.
-    그 후 아무 것도 움직이지 않으면, 출력이 연결되지 않거나 모터에 전원이 공급되지 않거나 출력 설정에 오류가 있을 수 있습니다.
-    문제를 해결하여야 합니다("무엇이든"이 움직이는지 확인하기 위하여 다른 액추에이터 출력을 시도할 수 있음).
+   This should match the actuator positions for your geometry (the [airframe reference](../airframes/airframe_reference.md) shows motor positions for a number of standard airframes).
+   - 올바른 액츄에이터가 움직이면 다음 단계로 진행합니다.
+   - 잘못된 액츄에이터가 움직이면 출력 할당을 변경합니다.
+   - 아무 것도 움직이지 않으면, 슬라이더를 범위 중간에 늘리고 필요한 경우 더 높입니다.
+     그 후 아무 것도 움직이지 않으면, 출력이 연결되지 않거나 모터에 전원이 공급되지 않거나 출력 설정에 오류가 있을 수 있습니다.
+     문제를 해결하여야 합니다("무엇이든"이 움직이는지 확인하기 위하여 다른 액추에이터 출력을 시도할 수 있음).
 5. 슬라이더를 "무장 해제" 위치로 되돌립니다(모터의 경우 슬라이더 하단, 서보의 경우 슬라이더 중앙).
 6. 모든 액추에이터에 대하여 반복합니다.
 
@@ -501,32 +502,32 @@ Remove propellers!
 For each motor:
 
 1. 모터 슬라이더를 아래로 당겨서 아래쪽에 찰칵 소리가 나도록 합니다.
-  In this position the motor is set to the outputs `disarmed` value.
-  - 모터가 이 위치에서 회전하지 않는 지 확인하십시오.
-  - If the motor spins, reduce the corresponding PWM `disarmed` value in the [Actuator Outputs](#actuator-outputs) section to below the level at which it still spins.
+   In this position the motor is set to the outputs `disarmed` value.
+   - 모터가 이 위치에서 회전하지 않는 지 확인하십시오.
+   - If the motor spins, reduce the corresponding PWM `disarmed` value in the [Actuator Outputs](#actuator-outputs) section to below the level at which it still spins.
 
 2. Slowly move the slider up until it snaps to the _minimum_ position.
-  In this position the motor is set to the outputs `minimum` value.
-  - 이 위치에서 모터가 매우 느리게 회전하는 지 확인합니다.
-  - If the motor is not spinning, or spinning too fast you will need to adjust the corresponding PWM `minimum` value in the [Actuator Outputs](#actuator-outputs) such that the motors barely spin.
+   In this position the motor is set to the outputs `minimum` value.
+   - 이 위치에서 모터가 매우 느리게 회전하는 지 확인합니다.
+   - If the motor is not spinning, or spinning too fast you will need to adjust the corresponding PWM `minimum` value in the [Actuator Outputs](#actuator-outputs) such that the motors barely spin.
 
-    ![PWM Minimum Output](../../assets/config/actuators/pwm_minimum_output.png)
-    ::: info
-    For DShot output, this is not required.
+     ![PWM Minimum Output](../../assets/config/actuators/pwm_minimum_output.png)
+     ::: info
+     For DShot output, this is not required.
 
 :::
 
 3. Increase the slider value to a level where you can verify that the motor is spinning in the correct direction and that it would give a positive thrust in the expected direction.
-  - The expected thrust direction can vary by vehicle type.
-    For example in multicopters the thrust should always point upwards, while in a fixed-wing vehicle the thrust will push the vehicle forwards.
-  - For VTOL, thrust should point upwards when the Tilt Servo is at 0 degrees as defined the [Tilt Servo Convention](#tilt-servo-coordinate-system).
-    Testing of the [Tilt Servo](#tilt-servo-setup) is covered below as well.
-  - If thrust is in the wrong direction, you may need to [reverse the motors](#reversing-motors).
+   - The expected thrust direction can vary by vehicle type.
+     For example in multicopters the thrust should always point upwards, while in a fixed-wing vehicle the thrust will push the vehicle forwards.
+   - For VTOL, thrust should point upwards when the Tilt Servo is at 0 degrees as defined the [Tilt Servo Convention](#tilt-servo-coordinate-system).
+     Testing of the [Tilt Servo](#tilt-servo-setup) is covered below as well.
+   - If thrust is in the wrong direction, you may need to [reverse the motors](#reversing-motors).
 
 4. Increase the slider value to the maximum value, so the motor is spinning quickly.
-  Reduce the value of the PWM output's `maximum` value just below the default.
-  Listen to the tone of the motors as you increase the value in small (25us) increments.
-  The "optimal" maximum value is the value at which you last hear a change in the tone.
+   Reduce the value of the PWM output's `maximum` value just below the default.
+   Listen to the tone of the motors as you increase the value in small (25us) increments.
+   The "optimal" maximum value is the value at which you last hear a change in the tone.
 
 ### 조종면 설정
 
@@ -542,40 +543,76 @@ If you're using PWM servos, PWM50 is far more common.
 If a high rate servo is _really_ needed, DShot offers better value.
 :::
 
-#### Control surfaces that move both directions about a neutral point
+##### PWM: Control surfaces that move both directions about a neutral point
+
+To facilitate setting the neutral point of the servos, a bilinear curve function can be defined using the following parameters `PWM_MAIN_CENTx` / `PWM_AUX_CENTx` for each servo. This allows for unequal deflections in the positive and negative direction:
+
+![Asymmetric Servo Deflections](../../assets/config/actuators/servo_pwm_center.png)
+
+To set this up:
+
+1. Set all surface `Trim` to `0.00` for all surfaces:
+
+   ![PWM Trimming](../../assets/config/actuators/control_surface_trim.png)
+
+2. Set the `PWM_MAIN_CENTx` / `PWM_AUX_CENTx` value so that the surface will stay at the neutral (aligned with airfoil) position.
+   This is usually around `1500` for PWM servos (near the center of the servo range).
+
+   ![Control Surface Trimming](../../assets/config/actuators/pwm_center_output.png)
+
+3. Gradually increase the `Maximum` for each servo until the desired deflection is reached. Check the deflection with a remote manual mode while [`COM_PREARM_MODE`](../advanced_config/parameter_reference.md#COM_PREARM_MODE) is set to `Always` or use the sliders.
+
+4. Gradually decrease the `Minimum` for each servo, until the desired deflection is reached.
+
+5. Set `Disarmed` value to the desired value. It is usually desirable to have it the same as the `Center` value.
+
+:::info
+If you want to retain the linear behaviour of the servo after setting the `Center`, make sure to adjust the `Minimum` or `Maximum`, such that both intervals (`min` to `cent` & `cent` to `max`) are equally large.
+
+![Linear PWM Adjustment](../../assets/config/actuators/servo_pwm_linear.png)
+:::
+
+#### Non-PWM: Control surfaces that move both directions about a neutral point
 
 Control surfaces that move either direction around a neutral point include: ailerons, elevons, V-tails, A-tails, and rudders.
 
 To set these up:
 
-1. Set the `Disarmed` value so that the surfaces will stay at neutral position when disarmed.
-  This is usually around `1500` for PWM servos (near the centre of the servo range).
+0. Set all `PWM_MAIN_CENTx` and `PWM_AUX_CENTx` to default (-1), or trimming will not be possible.
 
-  ![Control Surface Disarmed 1500 Setting](../../assets/config/actuators/control_surface_aileron_setup.png)
+1. Set the `Disarmed` value so that the surfaces will stay at neutral position when disarmed.
+   This is usually around `1500` for PWM servos (near the centre of the servo range).
+
+   ![Control Surface Disarmed 1500 Setting](../../assets/config/actuators/control_surface_aileron_setup.png)
 
 2. Move the slider for the surface upwards (positive command) and verify that it moves in the direction defined in the [Control Surface Convention](#control-surface-deflection-convention).
 
-  - Ailerons, elevons, V-Tails, A-Tails, and other horizontal surfaces should move up.
-  - Rudders and other "purely vertical" surfaces should move right.
+   - Ailerons, elevons, V-Tails, A-Tails, and other horizontal surfaces should move up.
+   - Rudders and other "purely vertical" surfaces should move right.
 
-  ::: tip
-  It is important that the slider movement matches the control surface convention, in order to normalize control for different servo mountings (moving the slider up may actually decrease the output value sent to the servo).
+   ::: tip
+   It is important that the slider movement matches the control surface convention, in order to normalize control for different servo mountings (moving the slider up may actually decrease the output value sent to the servo).
 
 :::
 
-  If the control surface moves in the opposite direction, click on the `Rev Range` checkbox to reverse the range.
+   If the control surface moves in the opposite direction, click on the `Rev Range` checkbox to reverse the range.
 
 3. Move the slider again to the middle and check if the Control Surfaces are aligned in the neutral position of the wing.
-  - If it is not aligned, you can set the **Trim** value for the control surface.
 
-    ::: info
-    This is done in the `Trim` setting of the Geometry panel, usually by "trial and error".
-    ![Control Surface Trimming](../../assets/config/actuators/control_surface_trim.png)
+   - If it is not aligned, you can set the **Trim** value for the control surface.
+
+   ::: info
+   This is done in the `Trim` setting of the Geometry panel, usually by "trial and error".
+   ![Control Surface Trimming](../../assets/config/actuators/control_surface_trim.png)
 
 :::
 
-  - After setting the trim for a control surface, move its slider away from the centre, release, and then back into disarmed (middle) position.
-    Confirm that surface is in the neutral position.
+   - After setting the trim for a control surface, move its slider away from the centre, release, and then back into disarmed (middle) position.
+     Confirm that surface is in the neutral position.
+
+:::tip
+If any servo has a `PWM_MAIN_CENTx` or `PWM_AUX_CENTx` not set to default (-1), the system will automatically remove `Trim` from all surfaces. This is done to prevent mixing of old and new trimming tools.
+:::
 
 :::info
 Another way to test without using the sliders would be to set the [`COM_PREARM_MODE`](../advanced_config/parameter_reference.md#COM_PREARM_MODE) parameter to `Always`:
@@ -595,15 +632,17 @@ For a flap, that is when the flap is fully retracted and flush with the wing.
 
 One approach for setting these up is:
 
+0. Set all `PWM_MAIN_CENTx` and `PWM_AUX_CENTx` to default (-1), or trimming will not be possible.
 1. Set values `Disarmed` to `1500`, `Min` to `1200`, `Max` to `1700` so that the values are around the centre of the servo range.
 2. Move the corresponding slider up and check the control moves and that it is extending (moving away from the disarmed position).
-  If not, click on the `Rev Range` checkbox to reverse the range.
+   If not, click on the `Rev Range` checkbox to reverse the range.
 3. Enable slider in the disarmed position, them change the value of the `Disarmed` signal until the control is retracted/flush with wing.
-  This may require that the `Disarmed` value is increased or decreased:
-  - If the value was decreased towards `Min`, then set `Min` to match `Disarmed`.
-  - If the value was increased towards `Max`, then set `Max` to match `Disarmed`.
+   This may require that the `Disarmed` value is increased or decreased:
+   - If the value was decreased towards `Min`, then set `Min` to match `Disarmed`.
+   - If the value was increased towards `Max`, then set `Max` to match `Disarmed`.
 4. The value that you did _not_ set to match `Disarmed` controls the maximum amount that the control surface can extend.
-  Set the slider to the top of the control, then change the value (`Max` or `Min`) so that the control surface is fully extended when the slider is at top.
+   Set the slider to the top of the control, then change the value (`Max` or `Min`) so that the control surface is fully extended when the slider is at top.
+5. (Only PWM servos) Set the `Center` value to the middle between `Min` and `Max`.
 
 :::info Special note for flaps
 In some vehicle builds, flaps may be configured such that both flaps are controlled from a single output.
@@ -627,7 +666,7 @@ For each of the tilt servos:
 
 2. Position the slider for the servo in the lowest position, and verify that a positive value increase will point towards the `Angle at Min Tilt` (defined in the Geometry section).
 
-  ![Tilt Servo Geometry Setup](../../assets/config/actuators/tilt_servo_geometry_config.png)
+   ![Tilt Servo Geometry Setup](../../assets/config/actuators/tilt_servo_geometry_config.png)
 
 3. Position the slider for the servo in the highest position, and verify that positive motor thrust will point towards the `Angle at Max Tilt` (as defined in the Geometry section).
 
@@ -642,6 +681,11 @@ For each of the tilt servos:
   - 표준 VTOL: 멀티콥터 모터로 정의된 모터가 꺼집니다.
   - 틸트로터: 연결된 틸트 서보가 없는 모터는 꺼집니다.
   - 테이시터는 고정익 비행시에도 모터를 끄지 않습니다.
+- The following formula can be used to migrate from surface trim to PWM trim:
+
+  ```plain
+  PWM_MAIN_CENTx = ((PWM_MAX - PWM_MIN) / 2) * CA_SV_CSx_TRIM + PWM_MIN + ((PWM_MAX - PWM_MIN) / 2)
+  ```
 
 ### 모터 역전
 

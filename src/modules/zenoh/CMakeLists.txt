@@ -52,7 +52,9 @@ if(NOT DEFINED CONFIG_PTHREAD_MUTEX_TYPES AND CONFIG_PLATFORM_NUTTX)
     message( SEND_ERROR "Pthread mutex is diabled, Zenoh will not function." )
 endif()
 
-set(Z_TRANSPORT_LEASE 60000 CACHE STRING "Link lease duration in milliseconds to announce to other zenoh nodes") # Match ROS2 RMW_ZENOH
+# Match ROS2 rmw_zenoh settings
+set(Z_TRANSPORT_LEASE 60000 CACHE STRING "Link lease duration in milliseconds to announce to other zenoh nodes")
+set(Z_TRANSPORT_LEASE_EXPIRE_FACTOR 2 CACHE STRING "Link lease duration in milliseconds to announce to other zenoh nodes")
 
 set(FRAG_MAX_SIZE 512 CACHE STRING "Use this to override the maximum size for fragmented messages")
 set(BATCH_UNICAST_SIZE 256 CACHE STRING "Use this to override the maximum unicast batch size")
@@ -72,7 +74,8 @@ target_compile_options(zenohpico_static PUBLIC -Wno-cast-align
 			-Wno-type-limits
 			-Wno-unused-variable
 			-Wno-maybe-uninitialized
-			-Wno-conversion)
+			-Wno-conversion
+			-Wno-float-equal)
 
 target_compile_options(zenohpico_static PRIVATE -Wno-missing-prototypes)
 if(CONFIG_PLATFORM_NUTTX)

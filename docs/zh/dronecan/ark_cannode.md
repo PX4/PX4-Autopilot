@@ -99,6 +99,6 @@ If you see a solid red LED there is an error and you should check the following:
 - Make sure the ARK CANnode has `ark_cannode_canbootloader` installed prior to flashing `ark_cannode_default`.
 - Remove binaries from the root and ufw directories of the SD card and try to build and flash again.
 
-## See Also
+## 另见
 
 - [ARK CANnode Documentation](https://arkelectron.gitbook.io/ark-documentation/sensors/ark-cannode) (ARK Docs)

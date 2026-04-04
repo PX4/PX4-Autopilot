@@ -104,12 +104,17 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 
 		bool do_vel_pos_reset = false;
 
-		if (!_control_status.flags.gnss_fault && (_control_status.flags.gnss_vel || _control_status.flags.gnss_pos)) {
+		if (!_control_status.flags.gnss_fault && _control_status.flags.in_air && isYawFailure()) {
+			const bool velocity_fusion_failure =  _aid_src_gnss_vel.innovation_rejected
+							      && isTimedOut(_time_last_hor_vel_fuse, _params.EKFGSF_reset_delay)
+							      && (_time_last_hor_vel_fuse > _time_last_on_ground_us);
 
-			if (_control_status.flags.in_air
-			    && isYawFailure()
-			    && isTimedOut(_time_last_hor_vel_fuse, _params.EKFGSF_reset_delay)
-			    && (_time_last_hor_vel_fuse > _time_last_on_ground_us)) {
+			const bool position_fusion_failure =  _aid_src_gnss_pos.innovation_rejected
+							      && isTimedOut(_time_last_hor_pos_fuse, _params.EKFGSF_reset_delay)
+							      && (_time_last_hor_pos_fuse > _time_last_on_ground_us);
+
+			if ((_control_status.flags.gnss_vel && velocity_fusion_failure)
+			    || (_control_status.flags.gnss_pos && position_fusion_failure)) {
 				do_vel_pos_reset = tryYawEmergencyReset();
 			}
 		}

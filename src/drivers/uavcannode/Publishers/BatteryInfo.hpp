@@ -86,7 +86,7 @@ public:
 
 			battery_info_aux.timestamp.usec = battery.timestamp;
 
-			for (uint8_t i = 0; i < battery.cell_count && i < battery.voltage_cell_v.size(); i++) {
+			for (uint8_t i = 0; i < battery.cell_count && i < arraySize(battery_status_s::voltage_cell_v); i++) {
 				battery_info_aux.voltage_cell.push_back(battery.voltage_cell_v[i]);
 			}
 

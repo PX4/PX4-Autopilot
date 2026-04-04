@@ -20,6 +20,7 @@ Order this module from:
     - Multi-band RTK with fast convergence times and reliable performance
     - High update rate for highly dynamic applications
     - Centimetre accuracy in a small and energy efficient module
+    - Moving Base for Heading
   - Bosch BMM150 Magnetometer
   - Bosch BMP388 Barometer
   - Invensense ICM-42688-P 6-Axis IMU

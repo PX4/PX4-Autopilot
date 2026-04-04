@@ -67,6 +67,7 @@ struct SendSubscription {
 	uint32_t topic_size;
 	UcdrSerializeMethod ucdr_serialize_method;
 	uint64_t publish_interval_ms;
+	uint8_t orb_instance;
 };
 
 // Subscribers for messages to send
@@ -81,6 +82,7 @@ struct SendTopicsSubs {
 			  ucdr_topic_size_@(pub['simple_base_type'])(),
 			  &ucdr_serialize_@(pub['simple_base_type']),
 			  static_cast<uint64_t>((@(pub.get('rate_limit', 0)) > 0) ? (1e3 / @(pub.get('rate_limit', 1e3))) : UXRCE_DEFAULT_POLL_INTERVAL_MS),
+			  @(pub['instance'])
 			},
 @[    end for]@
 	};
@@ -98,13 +100,13 @@ bool SendTopicsSubs::init(uxrSession *session, uxrStreamId reliable_out_stream_i
 	bool ret = true;
 	for (unsigned idx = 0; idx < sizeof(send_subscriptions)/sizeof(send_subscriptions[0]); ++idx) {
 		if (fds[idx].events == 0) {
-			fds[idx].fd = orb_subscribe(send_subscriptions[idx].orb_meta);
+			fds[idx].fd = orb_subscribe_multi(send_subscriptions[idx].orb_meta, send_subscriptions[idx].orb_instance);
 			fds[idx].events = POLLIN;
 			orb_set_interval(fds[idx].fd, send_subscriptions[idx].publish_interval_ms);
 		}
 
 		if (!create_data_writer(session, reliable_out_stream_id, participant_id, static_cast<ORB_ID>(send_subscriptions[idx].orb_meta->o_id), client_namespace, send_subscriptions[idx].topic,
-								   send_subscriptions[idx].message_version,
+								   send_subscriptions[idx].message_version, send_subscriptions[idx].orb_instance,
 								   send_subscriptions[idx].dds_type_name, send_subscriptions[idx].data_writer)) {
 			ret = false;
 		}

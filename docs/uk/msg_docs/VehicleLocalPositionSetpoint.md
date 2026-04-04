@@ -2,7 +2,7 @@
 
 Місцева позиція задана в рамці NED
 Телеметрія контролера позиції PID для відстеження.
-NaN означає, що стан не був контрольований
+NaN means the state was not controlled
 
 [source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/VehicleLocalPositionSetpoint.msg)
 

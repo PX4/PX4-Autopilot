@@ -2,7 +2,8 @@
 
 这是一份 PX4 发行说明列表，其中包含每次发布所做更改的清单，详细说明了新增功能、漏洞修复、弃用内容以及更新情况。
 
-- [main](../releases/main.md) (changes since v1.16)
+- [main](../releases/main.md) (changes planned for v1.18 or later)
+- [v1.17](../releases/1.17.md) (changes planned for v1.17, since v1.16)
 - [v1.16](../releases/1.16.md)
 - [v1.15](../releases/1.15.md)
 - [v1.14](../releases/1.14.md)

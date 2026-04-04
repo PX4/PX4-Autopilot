@@ -38,6 +38,7 @@
 #include <uORB/topics/register_ext_component_reply.h>
 #include <lib/modes/standard_modes.hpp>
 #include <lib/modes/ui.hpp>
+#include <limits.h>
 
 class MavlinkStreamAvailableModes : public MavlinkStream
 {
@@ -71,6 +72,8 @@ private:
 		char name[sizeof(register_ext_component_reply_s::name)] {};
 	};
 	ExternalModeName *_external_mode_names{nullptr};
+	uint8_t _not_user_selectable_mask{0};
+	static_assert(MAX_NUM_EXTERNAL_MODES <= (sizeof(_not_user_selectable_mask) * CHAR_BIT), "Mask too small");
 
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _register_ext_component_reply_sub{ORB_ID(register_ext_component_reply)};
@@ -116,6 +119,10 @@ private:
 				} else if (_external_mode_names) {
 					strncpy(available_modes.mode_name, _external_mode_names[external_mode_index].name, sizeof(available_modes.mode_name));
 					available_modes.mode_name[sizeof(available_modes.mode_name) - 1] = '\0';
+
+					if ((_not_user_selectable_mask & (1 << external_mode_index)) > 0) {
+						available_modes.properties |= MAV_MODE_PROPERTY_NOT_USER_SELECTABLE;
+					}
 				}
 
 			} else { // Internal
@@ -205,6 +212,13 @@ private:
 
 				if (_external_mode_names && mode_index < MAX_NUM_EXTERNAL_MODES) {
 					memcpy(_external_mode_names[mode_index].name, reply.name, sizeof(ExternalModeName::name));
+
+					if (reply.not_user_selectable) {
+						_not_user_selectable_mask |= (1 << mode_index);
+
+					} else {
+						_not_user_selectable_mask &= ~(1 << mode_index);
+					}
 				}
 
 				dynamic_update = true;

@@ -1,0 +1,43 @@
+module_name: mc_raptor
+parameters:
+    - group: Multicopter Raptor
+      definitions:
+        MC_RAPTOR_ENABLE:
+            description:
+                short: Enable Raptor flight mode
+                long: |
+                    When enabled, the Raptor flight mode will be available. Please set MC_RAPTOR_OFFB according to your use case.
+            type: boolean
+            default: false
+            category: System
+        MC_RAPTOR_VERBOS:
+            description:
+                short: Enable verbose output
+                long: |
+                    When enabled, the Raptor flight mode will print verbose output to the console.
+            type: boolean
+            default: false
+            category: System
+
+        MC_RAPTOR_OFFB:
+            description:
+                short: Enable Offboard mode replacement
+                long: |
+                    When enabled, the Raptor mode will replace the Offboard mode.
+                    If disabled, the Raptor mode will be available as a separate external mode. In the latter case, Raptor will just hold the position, without requiring external setpoints. When Raptor replaces the Offboard mode, it requires external setpoints to be activated.
+            type: boolean
+            default: false
+            category: System
+
+        MC_RAPTOR_INTREF:
+            description:
+                short: Use internal reference instead of trajectory_setpoint
+                long: |
+                    When enabled, instead of using the trajectory_setpoint, the position and yaw of the vehicle at the point when the Raptor mode is activated will be used as reference.
+                    Use 'mc_raptor intref lissajous <A> <B> <C> <fa> <fb> <fc> <duration> <ramp>' to configure the trajectory.
+            type: enum
+            values:
+                0: None
+                1: Lissajous
+            default: 0
+            category: System

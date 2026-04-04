@@ -46,7 +46,6 @@ McAutotuneAttitudeControl::McAutotuneAttitudeControl() :
 	WorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
 	_autotune_attitude_control_status_pub.advertise();
-	reset();
 }
 
 McAutotuneAttitudeControl::~McAutotuneAttitudeControl()
@@ -56,7 +55,8 @@ McAutotuneAttitudeControl::~McAutotuneAttitudeControl()
 
 bool McAutotuneAttitudeControl::init()
 {
-	if (!_parameter_update_sub.registerCallback()) {
+
+	if (!_vehicle_torque_setpoint_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
 	}
@@ -64,11 +64,6 @@ bool McAutotuneAttitudeControl::init()
 	_signal_filter.setParameters(_publishing_dt_s, .2f); // runs in the slow publishing loop
 
 	return true;
-}
-
-void McAutotuneAttitudeControl::reset()
-{
-	_param_mc_at_start.reset();
 }
 
 void McAutotuneAttitudeControl::Run()
@@ -91,17 +86,12 @@ void McAutotuneAttitudeControl::Run()
 		updateStateMachine(hrt_absolute_time());
 	}
 
-	// new control data needed every iteration
-	if (_state == state::idle
-	    || !_vehicle_torque_setpoint_sub.updated()) {
-		return;
-	}
-
 	if (_vehicle_status_sub.updated()) {
 		vehicle_status_s vehicle_status;
 
 		if (_vehicle_status_sub.copy(&vehicle_status)) {
 			_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+			_nav_state = vehicle_status.nav_state;
 		}
 	}
 
@@ -111,6 +101,24 @@ void McAutotuneAttitudeControl::Run()
 		if (_actuator_controls_status_sub.copy(&controls_status)) {
 			_control_power = Vector3f(controls_status.control_power);
 		}
+	}
+
+	if (_vehicle_command_sub.updated()) {
+		vehicle_command_s vehicle_command;
+
+		if (_vehicle_command_sub.copy(&vehicle_command)) {
+			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_AUTOTUNE_ENABLE) {
+				if (fabsf(vehicle_command.param1 - 1.0f) < FLT_EPSILON && fabsf(vehicle_command.param2) < FLT_EPSILON) {
+					_vehicle_cmd_start_autotune = true;
+				}
+			}
+		}
+	}
+
+	// new control data needed every iteration
+	if ((_state == state::idle && !_vehicle_cmd_start_autotune)
+	    || !_vehicle_torque_setpoint_sub.updated()) {
+		return;
 	}
 
 	vehicle_torque_setpoint_s vehicle_torque_setpoint;
@@ -271,7 +279,7 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 
 	switch (_state) {
 	case state::idle:
-		if (_param_mc_at_start.get()) {
+		if (_vehicle_cmd_start_autotune) {
 			if (registerActuatorControlsCallback()) {
 				_state = state::init;
 
@@ -280,6 +288,7 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 			}
 
 			_state_start_time = now;
+			_start_flight_mode = _nav_state;
 		}
 
 		break;
@@ -438,17 +447,23 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 		break;
 	}
 
-	// In case of convergence timeout or pilot intervention,
+	// In case of convergence timeout, pilot intervention or mode change,
 	// the identification sequence is aborted immediately
 	manual_control_setpoint_s manual_control_setpoint{};
 	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
 
+	const bool timeout = (now - _state_start_time) > 20_s;
+	const bool mode_changed = (_start_flight_mode != _nav_state);
+	const bool pilot_intervention = ((fabsf(manual_control_setpoint.roll) > 0.05f)
+					 || (fabsf(manual_control_setpoint.pitch) > 0.05f));
+
+	const bool should_abort = timeout || mode_changed || pilot_intervention;
+
 	if (_state != state::wait_for_disarm
-	    && _state != state::idle
-	    && (((now - _state_start_time) > 20_s)
-		|| (fabsf(manual_control_setpoint.roll) > 0.05f)
-		|| (fabsf(manual_control_setpoint.pitch) > 0.05f))) {
+	    && _state != state::idle && should_abort) {
+
 		_state = state::fail;
+		_start_flight_mode = _nav_state;
 		_state_start_time = now;
 	}
 }
@@ -580,8 +595,7 @@ void McAutotuneAttitudeControl::saveGainsToParams()
 
 void McAutotuneAttitudeControl::stopAutotune()
 {
-	_param_mc_at_start.set(false);
-	_param_mc_at_start.commit();
+	_vehicle_cmd_start_autotune = false;
 	_vehicle_torque_setpoint_sub.unregisterCallback();
 }
 

@@ -74,7 +74,7 @@ For example, you might have the following settings to assign the gimbal roll, pi
 
 ![Gimbal Actuator config](../../assets/config/actuators/qgc_actuators_gimbal.png)
 
-The PWM values to use for the disarmed, maximum and minimum values can be determined in the same way as other servo, using the [Actuator Test sliders](../config/actuators.md#actuator-testing) to confirm that each slider moves the appropriate axis, and changing the values so that the gimbal is in the appropriate position at the disarmed, low and high position in the slider.
+The PWM values to use for the disarmed, maximum, center and minimum values can be determined in the same way as other servo, using the [Actuator Test sliders](../config/actuators.md#actuator-testing) to confirm that each slider moves the appropriate axis, and changing the values so that the gimbal is in the appropriate position at the disarmed, low, center and high position in the slider.
 The values may also be provided in gimbal documentation.
 
 ## Gimbal Control in Missions
@@ -131,7 +131,7 @@ The on-screen gimbal control can be used to move/test a connected MAVLink camera
 
 2. Open QGroundControl and enable the on-screen camera control (Application settings).
 
-  ![Quadrotor(x500) with gimbal (Front-facing) in Gazebo](../../assets/qgc/fly/gimbal_control_x500gz.png)
+   ![Quadrotor(x500) with gimbal (Front-facing) in Gazebo](../../assets/qgc/fly/gimbal_control_x500gz.png)
 
 3. Make sure the vehicle is armed and flying, e.g. by entering with `commander takeoff`.
 

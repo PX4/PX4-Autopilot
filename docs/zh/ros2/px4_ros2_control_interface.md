@@ -14,7 +14,7 @@ Experimental
 
 :::
 
-这[PX4 ROS 2接口库](../ros2/px4_ros2_interface_lib.md)是一个 C++ 库，可简化从 ROS 2 控制 PX4 的操作。
+The [PX4 ROS 2 Interface Library](../ros2/px4_ros2_interface_lib.md) is a C++ library (with Python bindings) that simplifies controlling PX4 from ROS 2.
 
 开发者可使用该库创建并动态注册以 ROS 2 编写的模式。
 这些模式会动态注册到 PX4 中，并且对于地面站或其他外部系统而言，它们看起来就像是 PX4 的一部分。
@@ -25,6 +25,12 @@ Experimental
 
 PX4 ROS 2 模式相较于 PX4 内部模式，更易于实现和维护，并且在处理能力与既有代码库资源方面，能为开发者提供更丰富的支持。
 除非该模式属于安全关键型、对时序有严格要求或需要极高的更新速率，或者你的飞行器没有搭载伴随计算机，否则你应优先[考虑使用 PX4 ROS 2 模式，而非 PX4 内部模式](../concept/flight_modes.md#internal-vs-external-modes)。
+
+:::tip
+If you want to use Python, check out the [examples in the repository](https://github.com/Auterion/px4-ros2-interface-lib/tree/main/examples/python).
+Not all classes have Python bindings yet — the [supported bindings are here](https://github.com/Auterion/px4-ros2-interface-lib/tree/main/px4_ros2_py/src/px4_ros2).
+You are welcome to add and contribute missing classes.
+:::
 
 ## 综述
 
@@ -345,9 +351,9 @@ private:
 以下章节提供了支持的设置点类型列表：
 
 - [MulticopterGotoSetpointType](#go-to-setpoint-multicoptergotosetpointtype): <Badge type="warning" text="MC only" /> 平滑的位置控制以及（可选的）航向控制
-- [FwLateralLongitudinalSetpointType](#fixed-wing-lateral-and-longitudinal-setpoint-fwlaterallongitudinalsetpointtype): <Badge type="warning" text="FW only" /> <Badge type="tip" text="main (planned for: PX4 v1.17)" /> 对横向和纵向固定翼动态的直接控制
+- [FwLateralLongitudinalSetpointType](#fixed-wing-lateral-and-longitudinal-setpoint-fwlaterallongitudinalsetpointtype): <Badge type="warning" text="FW only" /> <Badge type="tip" text="PX4 v1.17" /> Direct control of lateral and longitudinal fixed wing dynamics
 - [DirectActuatorsSetpointType](#direct-actuator-control-setpoint-directactuatorssetpointtype)：直接控制发动机和飞行地面servo setpoints
-- [Rover Setpoints](#rover-setpoints): <Badge type="tip" text="main (planned for: PX4 v1.17)" />直接访问火星车控制设定值（位置、速度、姿态、速率、油门和转向）。
+- [Rover Setpoints](#rover-setpoints): <Badge type="tip" text="PX4 v1.17" /> Direct access to rover control setpoints (Position, Speed, Attitude, Rate, Throttle and Steering).
 
 :::tip
 其他设置点类型目前是实验性的，可在以下网址找到：[px4_ros2/control/setpoint_types/experimental](https://github.com/Auterion/px4-ros2-interface-lib/tree/main/px4_ros2_cpp/include/px4_ros2/control/setpoint_types/experimental)。
@@ -414,7 +420,7 @@ _goto_setpoint->update(
 
 #### 固定翼横向与纵向设定值（FwLateralLongitudinalSetpointType，固定翼横向纵向设定值类型）
 
-<Badge type="warning" text="Fixed wing only" /> <Badge type="tip" text="main (planned for: PX4 v1.17)" />
+<Badge type="warning" text="Fixed wing only" /> <Badge type="tip" text="PX4 v1.17" />
 
 :::info
 此设定值类型支持固定翼飞行器，以及处于固定翼模式下的垂直起降飞行器（VTOL）。
@@ -556,7 +562,7 @@ _fw_lateral_longitudinal_setpoint->update(setpoint_s, config_s);
 
 #### Rover 设置点
 
-<Badge type="tip" text="main (planned for: PX4 v1.17)" /> <Badge type="warning" text="Experimental" />
+<Badge type="tip" text="PX4 v1.17" /> <Badge type="warning" text="Experimental" />
 
 滚动模块使用层次结构来传播设置点：
 
@@ -590,7 +596,7 @@ _fw_lateral_longitudinal_setpoint->update(setpoint_s, config_s);
 
 ### 控制VTOL
 
-<Badge type="tip" text="main (planned for: PX4 v1.17)" /> <Badge type="warning" text="Experimental" />
+<Badge type="tip" text="PX4 v1.17" /> <Badge type="warning" text="Experimental" />
 
 要在外部飞行模式下控制VTOL，需确保根据当前飞行配置返回正确的设定值类型：
 

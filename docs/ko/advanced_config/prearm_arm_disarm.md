@@ -55,19 +55,17 @@ RC controllers will use different sticks for throttle and yaw [based on their mo
   - _Arm:_ Left-stick to right, right-stick to bottom.
   - _Disarm:_ Left-stick to left, right-stick to the bottom.
 
-The required hold time can be configured using [COM_RC_ARM_HYST](#COM_RC_ARM_HYST).
 Note that by default ([COM_DISARM_MAN](#COM_DISARM_MAN)) you can also disarm in flight using gestures/buttons: you may choose to disable this to avoid accidental disarming.
 
-| 매개변수                                                                                                                                                                    | 설명                                                                                                                                                                                                      |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="MAN_ARM_GESTURE"></a>[MAN_ARM_GESTURE](../advanced_config/parameter_reference.md#MAN_ARM_GESTURE)                      | Enable arm/disarm stick guesture. `0`: Disabled, `1`: Enabled (default).                                             |
-| <a id="COM_DISARM_MAN"></a>[COM_DISARM_MAN](../advanced_config/parameter_reference.md#COM_DISARM_MAN)                         | Enable disarming in flight via switch/stick/button in MC manual thrust modes. `0`: Disabled, `1`: Enabled (default). |
-| <a id="COM_RC_ARM_HYST"></a>[COM_RC_ARM_HYST](../advanced_config/parameter_reference.md#COM_RC_ARM_HYST) | Time that RC stick must be held in arm/disarm position before arming/disarming occurs (default: `1` second).                                         |
+| 매개변수                                                                                                                                               | 설명                                                                                                                                                                                                      |
+| -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="MAN_ARM_GESTURE"></a>[MAN_ARM_GESTURE](../advanced_config/parameter_reference.md#MAN_ARM_GESTURE) | Enable arm/disarm stick guesture. `0`: Disabled, `1`: Enabled (default).                                             |
+| <a id="COM_DISARM_MAN"></a>[COM_DISARM_MAN](../advanced_config/parameter_reference.md#COM_DISARM_MAN)    | Enable disarming in flight via switch/stick/button in MC manual thrust modes. `0`: Disabled, `1`: Enabled (default). |
 
 ## Arming Button/Switch {#arm_disarm_switch}
 
 An _arming button_ or "momentary switch" can be configured to trigger arm/disarm _instead_ of [gesture-based arming](#arm_disarm_gestures) (setting an arming switch disables arming gestures).
-The button should be held down for ([nominally](#COM_RC_ARM_HYST)) one second to arm (when disarmed) or disarm (when armed).
+The button should be held down for one second to arm (when disarmed) or disarm (when armed).
 
 A two-position switch can also be used for arming/disarming, where the respective arm/disarm commands are sent on switch _transitions_.
 
@@ -77,10 +75,10 @@ Two-position arming switches are primarily used in/recommended for racing drones
 
 The switch or button is assigned (and enabled) using [RC_MAP_ARM_SW](#RC_MAP_ARM_SW), and the switch "type" is configured using [COM_ARM_SWISBTN](#COM_ARM_SWISBTN).
 
-| 매개변수                                                                                                                                                              | 설명                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="RC_MAP_ARM_SW"></a>[RC_MAP_ARM_SW](../advanced_config/parameter_reference.md#RC_MAP_ARM_SW) | RC arm 스위치 채널 (기본값 : 0 - 할당되지 않음). 정의된 경우 지정된 RC 채널(버튼/스위치)이 스틱 제스처 대신 시동용으로 사용됩니다. <br>**Note:**<br>- This setting _disables the stick gesture_!<br>- This setting applies to RC controllers. It does not apply to Joystick controllers that are connected via _QGroundControl_.                                                   |
-| <a id="COM_ARM_SWISBTN"></a>[COM_ARM_SWISBTN](../advanced_config/parameter_reference.md#COM_ARM_SWISBTN)                | 시동 스위치는 순간적으로 동작하는 버튼입니다. <br>- `0`: Arm switch is a 2-position switch where arm/disarm commands are sent on switch transitions.<br>-`1`: Arm switch is a button or momentary button where the arm/disarm command ae sent after holding down button for set time ([COM_RC_ARM_HYST](#COM_RC_ARM_HYST)). |
+| 매개변수                                                                                                                                                              | 설명                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="RC_MAP_ARM_SW"></a>[RC_MAP_ARM_SW](../advanced_config/parameter_reference.md#RC_MAP_ARM_SW) | RC arm 스위치 채널 (기본값 : 0 - 할당되지 않음). 정의된 경우 지정된 RC 채널(버튼/스위치)이 스틱 제스처 대신 시동용으로 사용됩니다. <br>**Note:**<br>- This setting _disables the stick gesture_!<br>- This setting applies to RC controllers. It does not apply to Joystick controllers that are connected via _QGroundControl_. |
+| <a id="COM_ARM_SWISBTN"></a>[COM_ARM_SWISBTN](../advanced_config/parameter_reference.md#COM_ARM_SWISBTN)                | 시동 스위치는 순간적으로 동작하는 버튼입니다. <br>- `0`: Arm switch is a 2-position switch where arm/disarm commands are sent on switch transitions.<br>-`1`: Arm switch is a momentary button where the arm/disarm command is sent after holding down the button for one second.                                                                           |
 
 :::info
 The switch can also be set as part of _QGroundControl_ [Flight Mode](../config/flight_mode.md) configuration.
@@ -153,14 +151,14 @@ It corresponds to: [COM_PREARM_MODE=1](#COM_PREARM_MODE) (safety switch) and [CB
 시작 절차는 다음과 같습니다:
 
 1. 전원 인가
-  - 모든 액츄에이터를 시동 해제 상태로 잠금
-  - 시동 걸기 불가능
+   - 모든 액츄에이터를 시동 해제 상태로 잠금
+   - 시동 걸기 불가능
 2. 안전 스위치 누름
-  - 시스템이 시동전 상태로 전환: 추진 모터를 제외한 모든 액츄에이터 동작 가능(예: 보조익)
-  - 시스템 안전 장치 꺼짐: 시동 가능
+   - 시스템이 시동전 상태로 전환: 추진 모터를 제외한 모든 액츄에이터 동작 가능(예: 보조익)
+   - 시스템 안전 장치 꺼짐: 시동 가능
 3. 시동 명령 인가
-  - 시스템에 시동이 걸림
-  - 모든 모터와 액츄에이터를 움직일 수 있음
+   - 시스템에 시동이 걸림
+   - 모든 모터와 액츄에이터를 움직일 수 있음
 
 ### COM_PREARM_MODE = Disabled and Safety Switch
 
@@ -170,14 +168,14 @@ This corresponds to [COM_PREARM_MODE=0](#COM_PREARM_MODE) (Disabled) and [CBRK_I
 시작 절차는 다음과 같습니다:
 
 1. 전원 인가
-  - 모든 액츄에이터를 시동 해제 상태로 잠금
-  - 시동 걸기 불가능
+   - 모든 액츄에이터를 시동 해제 상태로 잠금
+   - 시동 걸기 불가능
 2. 안전 스위치 누름
-  - _All actuators stay locked into disarmed position (same as disarmed)._
-  - 시스템 안전 장치 꺼짐: 시동 가능
+   - _All actuators stay locked into disarmed position (same as disarmed)._
+   - 시스템 안전 장치 꺼짐: 시동 가능
 3. 시동 명령 인가
-  - 시스템에 시동이 걸림
-  - 모든 모터와 액츄에이터를 움직일 수 있음
+   - 시스템에 시동이 걸림
+   - 모든 모터와 액츄에이터를 움직일 수 있음
 
 ### COM_PREARM_MODE = Always and Safety Switch
 
@@ -188,13 +186,13 @@ This corresponds to [COM_PREARM_MODE=2](#COM_PREARM_MODE) (Always) and [CBRK_IO_
 시작 절차는 다음과 같습니다:
 
 1. 전원 인가
-  - 시스템이 시동전 상태로 전환: 추진 모터를 제외한 모든 액츄에이터 동작 가능(예: 보조익)
-  - 시동 걸기 불가능
+   - 시스템이 시동전 상태로 전환: 추진 모터를 제외한 모든 액츄에이터 동작 가능(예: 보조익)
+   - 시동 걸기 불가능
 2. 안전 스위치 누름
-  - 시스템 안전 장치 꺼짐: 시동 가능
+   - 시스템 안전 장치 꺼짐: 시동 가능
 3. 시동 명령 인가
-  - 시스템에 시동이 걸림
-  - 모든 모터와 액츄에이터를 움직일 수 있음
+   - 시스템에 시동이 걸림
+   - 모든 모터와 액츄에이터를 움직일 수 있음
 
 ### COM_PREARM_MODE = Safety or Disabled and No Safety Switch
 
@@ -204,11 +202,11 @@ This corresponds to [COM_PREARM_MODE=0 or 1](#COM_PREARM_MODE) (Disabled/Safety 
 시작 절차는 다음과 같습니다:
 
 1. 전원 인가
-  - 모든 액츄에이터를 시동 해제 상태로 잠금
-  - 시스템 안전 장치 꺼짐: 시동 가능
+   - 모든 액츄에이터를 시동 해제 상태로 잠금
+   - 시스템 안전 장치 꺼짐: 시동 가능
 2. 시동 명령 인가
-  - 시스템에 시동이 걸림
-  - 모든 모터와 액츄에이터를 움직일 수 있음
+   - 시스템에 시동이 걸림
+   - 모든 모터와 액츄에이터를 움직일 수 있음
 
 ### COM_PREARM_MODE = Always and No Safety Switch
 
@@ -218,11 +216,11 @@ This corresponds to [COM_PREARM_MODE=2](#COM_PREARM_MODE) (Always) and [CBRK_IO_
 시작 절차는 다음과 같습니다:
 
 1. 전원 인가
-  - 시스템이 시동전 상태로 전환: 추진 모터를 제외한 모든 액츄에이터 동작 가능(예: 보조익)
-  - 시스템 안전 장치 꺼짐: 시동 가능
+   - 시스템이 시동전 상태로 전환: 추진 모터를 제외한 모든 액츄에이터 동작 가능(예: 보조익)
+   - 시스템 안전 장치 꺼짐: 시동 가능
 2. 시동 명령 인가
-  - 시스템에 시동이 걸림
-  - 모든 모터와 액츄에이터를 움직일 수 있음
+   - 시스템에 시동이 걸림
+   - 모든 모터와 액츄에이터를 움직일 수 있음
 
 ### 매개변수
 

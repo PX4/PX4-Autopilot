@@ -16,6 +16,7 @@ uint8 GPS_CHECK_FAIL_MAX_VERT_DRIFT = 7		# 7 : maximum allowed vertical position
 uint8 GPS_CHECK_FAIL_MAX_HORZ_SPD_ERR = 8	# 8 : maximum allowed horizontal speed fail - requires stationary vehicle
 uint8 GPS_CHECK_FAIL_MAX_VERT_SPD_ERR = 9	# 9 : maximum allowed vertical velocity discrepancy fail
 uint8 GPS_CHECK_FAIL_SPOOFED = 10		# 10 : GPS signal is spoofed
+uint8 GPS_CHECK_FAIL_JAMMED = 11		# 11 : GPS signal is jammed
 
 uint64 control_mode_flags	# Bitmask to indicate EKF logic state
 uint8 CS_TILT_ALIGN = 0		# 0 - true if the filter tilt alignment is complete

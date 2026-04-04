@@ -384,7 +384,13 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 #endif // CONFIG_UAVCANNODE_GNSS_FIX
 
 #if defined(CONFIG_UAVCANNODE_MAGNETIC_FIELD_STRENGTH)
-	_publisher_list.add(new MagneticFieldStrength2(this, _node));
+	int32_t cannode_pub_mag = 1;
+	param_get(param_find("CANNODE_PUB_MAG"), &cannode_pub_mag);
+
+	if (cannode_pub_mag == 1) {
+		_publisher_list.add(new MagneticFieldStrength2(this, _node));
+	}
+
 #endif // CONFIG_UAVCANNODE_MAGNETIC_FIELD_STRENGTH
 
 #if defined(CONFIG_UAVCANNODE_RANGE_SENSOR_MEASUREMENT)
@@ -421,12 +427,25 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 	_publisher_list.add(new SafetyButton(this, _node));
 #endif // CONFIG_UAVCANNODE_SAFETY_BUTTON
 
+#if defined(CONFIG_UAVCANNODE_STATIC_PRESSURE) || defined(CONFIG_UAVCANNODE_STATIC_TEMPERATURE)
+	int32_t cannode_pub_bar = 1;
+	param_get(param_find("CANNODE_PUB_BAR"), &cannode_pub_bar);
+#endif
+
 #if defined(CONFIG_UAVCANNODE_STATIC_PRESSURE)
-	_publisher_list.add(new StaticPressure(this, _node));
+
+	if (cannode_pub_bar == 1) {
+		_publisher_list.add(new StaticPressure(this, _node));
+	}
+
 #endif // CONFIG_UAVCANNODE_STATIC_PRESSURE
 
 #if defined(CONFIG_UAVCANNODE_STATIC_TEMPERATURE)
-	_publisher_list.add(new StaticTemperature(this, _node));
+
+	if (cannode_pub_bar == 1) {
+		_publisher_list.add(new StaticTemperature(this, _node));
+	}
+
 #endif // CONFIG_UAVCANNODE_STATIC_TEMPERATURE
 
 #if defined(CONFIG_UAVCANNODE_ARMING_STATUS)

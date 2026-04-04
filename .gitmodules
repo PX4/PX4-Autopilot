@@ -74,7 +74,7 @@
 	branch = px4
 [submodule "Tools/simulation/gz"]
 	path = Tools/simulation/gz
-	url = https://github.com/PX4/PX4-gazebo-models.git
+	url = https://github.com/KNR-PW/KNR-PX4-gazebo-models.git
 	branch = main
 [submodule "boards/modalai/voxl2/libfc-sensor-api"]
 	path = boards/modalai/voxl2/libfc-sensor-api
@@ -103,3 +103,9 @@
 [submodule "src/drivers/ins/sbgecom/sbgECom"]
 	path = src/drivers/ins/sbgecom/sbgECom
 	url = https://github.com/PX4/sbgECom.git
+[submodule "src/modules/mc_raptor/blob"]
+	path = src/modules/mc_raptor/blob
+	url = https://github.com/rl-tools/px4-blob
+[submodule "src/lib/rl_tools/rl_tools"]
+	path = src/lib/rl_tools/rl_tools
+	url = https://github.com/rl-tools/rl-tools.git

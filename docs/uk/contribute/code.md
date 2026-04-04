@@ -34,7 +34,7 @@ Not all PX4 source code matches the style guide, but any _new code_ that you wri
 
 ### Довжина рядка
 
-- Максимальна довжина рядка становить 120 символів.
+- Maximum line length is 140 characters.
 
 ### Розширення файлів
 

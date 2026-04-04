@@ -48,7 +48,7 @@ Land mode behaviour can be configured using the parameters below.
 | <a id="FW_LND_AIRSPD"></a>[FW_LND_AIRSPD](../advanced_config/parameter_reference.md#FW_LND_AIRSPD)                               | The airspeed setpoint.                                                                                                                                                                                                       |
 | <a id="FW_AIRSPD_FLP_SC"></a>[FW_AIRSPD_FLP_SC](../advanced_config/parameter_reference.md#FW_AIRSPD_FLP_SC) | Factor applied to the minimum airspeed when flaps are fully deployed. Necessary if FW_LND_AIRSPD is below FW_AIRSPD_MIN. |
 
-## See Also
+## 另见
 
 - [Land Mode (MC)](../flight_modes_mc/land.md)
 - [Land Mode (VTOL)](../flight_modes_vtol/land.md)
