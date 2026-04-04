@@ -474,7 +474,7 @@ bool MissionRoutePlanner::prepareNextSegment(int32_t index, Segment &segment, Se
 	if (segment.is_loop) {
 		const int32_t remaining_loops = static_cast<int32_t>(mission_item.do_jump_repeat_count)
 						- static_cast<int32_t>(mission_item.do_jump_current_count);
-		segment.loops_remaining = static_cast<uint8_t>(constrain(remaining_loops, 0,
+		segment.loops_remaining = static_cast<uint8_t>(constrain(remaining_loops, static_cast<int32_t>(0),
 					  static_cast<int32_t>(UINT8_MAX)));
 
 		if (mission_item.do_jump_mission_index < 0) {
@@ -971,7 +971,8 @@ bool MissionRoutePlanner::clampMissionIndex(int32_t &mission_index) const
 		return false;
 	}
 
-	mission_index = constrain(mission_index, 0, _provider.missionCount() - 1);
+	mission_index = constrain(mission_index, static_cast<int32_t>(0),
+				  static_cast<int32_t>(_provider.missionCount() - 1));
 	return true;
 }
 

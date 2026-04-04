@@ -77,8 +77,8 @@ bool MissionRouteCache::queueMissionCacheLoads(const mission_s &mission)
 	}
 
 	if (static_cast<int32_t>(_dataman_cache_mission.size()) != mission.count) {
-		PX4_ERR("Mission cache resize failed! requested: %" PRIi32 ", actual: %d",
-			mission.count, _dataman_cache_mission.size());
+		PX4_ERR("Mission cache resize failed! requested: %d, actual: %d",
+			static_cast<int>(mission.count), static_cast<int>(_dataman_cache_mission.size()));
 		return false;
 	}
 

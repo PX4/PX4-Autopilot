@@ -47,9 +47,9 @@
 #include "mission_block.h"
 #include "safe_point_land.hpp"
 
-#include <cfloat>
-#include <cmath>
-#include <cstdint>
+#include <float.h>
+#include <math.h>
+#include <stdint.h>
 
 #include <lib/perf/perf_counter.h>
 #include <matrix/math.hpp>
