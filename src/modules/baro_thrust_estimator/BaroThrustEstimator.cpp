@@ -304,7 +304,7 @@ void BaroThrustEstimator::publishStatus(hrt_abstime now, float residual, bool es
 	status.error_var = _estimator.errorVar();
 	status.thrust_std = _estimator.thrustStd();
 	status.converged = _estimator.converged();
-	status.estimation_active = estimation_active && !_estimator.converged();
+	status.estimation_active = estimation_active && !_estimator.convergedLocked();
 	status.timestamp = hrt_absolute_time();
 
 	_baro_thrust_estimate_pub.publish(status);
