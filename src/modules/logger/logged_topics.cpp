@@ -97,6 +97,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("manual_control_switches");
 	add_topic("mission_result");
 	add_topic("navigator_mission_item");
+	add_topic("navigator_mode_change");
 	add_topic("navigator_status");
 	add_topic("offboard_control_mode", 100);
 	add_topic("onboard_computer_status", 10);
