@@ -100,8 +100,8 @@ private:
 	enum class DestinationType {
 		DESTINATION_TYPE_HOME,
 		DESTINATION_TYPE_MISSION_LAND,
-		DESTINATION_TYPE_SAFE_POINT
-		DESTINATION_TYPE_MISSION_TAKEOFF,
+		DESTINATION_TYPE_SAFE_POINT,
+		DESTINATION_TYPE_MISSION_TAKEOFF
 	};
 
 	/**
@@ -109,7 +109,6 @@ private:
 	 * @return true if mission has a land start, a land and is valid
 	 */
 	bool hasMissionLandStart() const;
-
 
 	/**
 	 * @brief Check whether there are more waypoints between current waypoint
@@ -142,6 +141,7 @@ private:
 				     DestinationType &destination_type,
 				     PositionYawSetpoint &destination,
 				     uint8_t &safe_point_index);
+
 	/** @brief Convert a route-safe-point planner goal into the outer RTL destination category. */
 	static DestinationType routePlanDestinationType(MissionRoutePlanner::GoalType goal_type);
 
@@ -166,6 +166,7 @@ private:
 	 */
 	void findRtlDestination(DestinationType &destination_type, PositionYawSetpoint &destination, uint8_t &safe_point_index);
 	/** @brief Resolve the RTL destination for a specific RTL_TYPE policy. */
+
 	void findRtlDestinationForType(int rtl_type, DestinationType &destination_type,
 				       PositionYawSetpoint &destination, uint8_t &safe_point_index);
 
@@ -231,26 +232,9 @@ private:
 	bool _home_has_land_approach{false};           ///< Flag if the home position has a land approach defined
 	bool _any_safe_point_has_land_approach{false}; ///< Flag if a rally point has a land approach defined
 
-	DatamanState _dataman_state{DatamanState::UpdateRequestWait};
-	DatamanState _error_state{DatamanState::UpdateRequestWait};
-	uint32_t _opaque_id{0}; ///< dataman safepoint id: if it does not match, safe points data was updated
-	bool _safe_points_updated{false}; ///< flag indicating if safe points are updated to dataman cache
-	mutable DatamanCache _dataman_cache_safepoint{"rtl_dm_cache_miss_geo", 4};
-	DatamanClient	&_dataman_client_safepoint = _dataman_cache_safepoint.client();
-	bool _initiate_safe_points_updated{true}; ///< flag indicating if safe points update is needed
-	mutable DatamanCache _dataman_cache_landItem{"rtl_dm_cache_miss_land", 2};
-
-	/**
-	 * Maximum number of mission items that can be cached for route-based RTL.
-	 * Board-configurable via CONFIG_RTL_MISSION_CACHE_SIZE (Kconfig), default 300.
-	 * Missions exceeding this size fall back to a direct RTL type.
-	 */
-	static constexpr int32_t MAX_RTL_MISSION_CACHE_SIZE = CONFIG_RTL_MISSION_CACHE_SIZE;
-
-	mutable DatamanCache _dataman_cache_mission{"rtl_dm_cache_miss_mission", 0}; ///< pre-loaded mission items for non-blocking route planning
-	bool _mission_items_updated{false}; ///< flag indicating if all mission items are loaded into cache
-	uint32_t _mission_id = 0u;
-	uint32_t _safe_points_id = 0u;
+	uint32_t _last_route_safe_point_warning_mission_id{0};
+	uint32_t _route_plan_mission_id{0};
+	uint32_t _route_plan_safe_points_id{0};
 
 	RtlDirect _rtl_direct;
 

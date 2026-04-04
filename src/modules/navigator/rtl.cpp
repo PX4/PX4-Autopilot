@@ -621,17 +621,17 @@ PositionYawSetpoint RTL::findClosestSafePoint(float min_dist, uint8_t &safe_poin
 			continue;
 		}
 
-			// Only look at rally points
-			if (mission_safe_point.nav_cmd != NAV_CMD_RALLY_POINT) {
-				continue;
-			}
+		// Only look at rally points
+		if (mission_safe_point.nav_cmd != NAV_CMD_RALLY_POINT) {
+			continue;
+		}
 
-			// Ignore safepoints which are too close to the homepoint (only if home is an option to return to)
-			const bool far_from_home = get_distance_to_next_waypoint(_home_pos_sub.get().lat, _home_pos_sub.get().lon,
-						   mission_safe_point.lat, mission_safe_point.lon) > MAX_DIST_FROM_HOME_FOR_LAND_APPROACHES;
+		// Ignore safepoints which are too close to the homepoint (only if home is an option to return to)
+		const bool far_from_home = get_distance_to_next_waypoint(_home_pos_sub.get().lat, _home_pos_sub.get().lon,
+					   mission_safe_point.lat, mission_safe_point.lon) > MissionRoutePlanner::kLandApproachAssociationDistanceM;
 
-			if (far_from_home || (_param_rtl_type.get() == RTL_TYPE_SAFE_POINT_DIRECT)) {
-				const float dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, mission_safe_point.lat, mission_safe_point.lon)};
+		if (far_from_home || (_param_rtl_type.get() == RTL_TYPE_SAFE_POINT_DIRECT)) {
+			const float dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, mission_safe_point.lat, mission_safe_point.lon)};
 
 			PositionYawSetpoint safepoint_position;
 			setSafepointAsDestination(safepoint_position, mission_safe_point);
@@ -670,8 +670,10 @@ void RTL::findRtlDestinationForType(int rtl_type, DestinationType &destination_t
 
 	float min_dist = FLT_MAX;
 
-	if (_param_rtl_type.get() != RTL_TYPE_SAFE_POINT_DIRECT) {
-		_home_has_land_approach = hasVtolLandApproach(destination);
+	if (rtl_type != RTL_TYPE_SAFE_POINT_DIRECT) {
+		MissionRouteCache *mission_route_cache = _navigator->get_mission_route_cache();
+		_home_has_land_approach = mission_route_cache != nullptr
+					  && mission_route_cache->hasVtolLandApproach(destination, _home_pos_sub.get().alt);
 
 		const bool prioritize_safe_points_over_home = ((rtl_type == 1) && !vtol_in_rw_mode);
 		const bool required_approach_missing_for_home = (vtol_in_fw_mode && (_param_rtl_appr_force.get() == 1) && !_home_has_land_approach);

@@ -76,7 +76,7 @@ parameters:
           path, whichever is closer by counting waypoints. Do not consider rally points.
         5: Return directly to safe landing point (do not consider mission landing
           and Home)
-        6: 6 Return to the closest safe point by rejoining the uploaded mission route,
+        6: Return to the closest safe point by rejoining the uploaded mission route,
           following it to the optimal branch-off point, then leaving the route to land
           at the safe point. Within successful route planning, if no safe point is usable
           PX4 falls back to the closer mission endpoint (landing or takeoff).
