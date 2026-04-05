@@ -28,7 +28,7 @@ Ensure that the vehicle can go into Stabilized, Altitude, and Position mode whil
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Throttle automatically managed to maintain airspeed
 
-&nbsp;&nbsp;&nbsp;&nbsp;❏ Roll/Yaw response correctly to stick movement
+&nbsp;&nbsp;&nbsp;&nbsp;❏ Roll/Yaw respond correctly to stick movement
 
 ❏ Position
 
