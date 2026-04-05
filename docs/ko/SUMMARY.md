@@ -172,6 +172,7 @@
       - [CUAV V5 nano (FMUv5)](flight_controller/cuav_v5_nano.md)
         - [CUAV V5 nano 배선 퀵 스타트](assembly/quick_start_cuav_v5_nano.md)
       - [CUAV X25 EVO](flight_controller/cuav_x25-evo.md)
+        - [CUAV X25 EVO Wiring Quick Start](assembly/quick_start_cuav_x25_evo.md)
       - [CUAV X25 SUPER](flight_controller/cuav_x25-super.md)
       - [CubePilot Cube Orange+ (CubePilot)](flight_controller/cubepilot_cube_orangeplus.md)
       - [CubePilot Cube Orange (CubePilot)](flight_controller/cubepilot_cube_orange.md)
