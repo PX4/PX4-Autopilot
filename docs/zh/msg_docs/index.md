@@ -95,6 +95,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [EstimatorBias](EstimatorBias.md)
 - [EstimatorBias3d](EstimatorBias3d.md)
 - [EstimatorEventFlags](EstimatorEventFlags.md)
+- [EstimatorFusionControl](EstimatorFusionControl.md)
 - [EstimatorGpsStatus](EstimatorGpsStatus.md)
 - [EstimatorInnovations](EstimatorInnovations.md)
 - [EstimatorSelectorStatus](EstimatorSelectorStatus.md)
@@ -192,6 +193,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [QshellReq](QshellReq.md)
 - [QshellRetval](QshellRetval.md)
 - [RadioStatus](RadioStatus.md)
+- [RangingBeacon](RangingBeacon.md) — Ranging beacon measurement data (e.g. LoRa, UWB).
 - [RateCtrlStatus](RateCtrlStatus.md)
 - [RcChannels](RcChannels.md)
 - [RcParameterMap](RcParameterMap.md)

@@ -19,12 +19,17 @@ These flight controllers are [manufacturer supported](../flight_controller/autop
 
 ### 特性
 
-- Arm® Cortex-M7® processor (STM32H743XI) with Floating-Point Unit (FPU), operating at 480MHz, and featuring 2MB Flash memory. Enables developers to enhance productivity and efficiency, allowing for more complex algorithms and models.
-- Automotive-grade RM3100 compass. Designed for better stability and anti-interference capability.
-- Triple-redundant IMUs and dual-redundant barometers located on separate buses. If the PX4 autopilot detects a sensor failure, the system seamlessly switches to another sensor to maintain flight control reliability.
-- Independent LDO power control supplies power to each sensor group. A vibration isolation system filters high-frequency vibrations and reduces noise to ensure accurate readings, enabling better overall flight performance for the vehicle.
+- Arm® Cortex-M7® processor (STM32H743XI) with Floating-Point Unit (FPU), operating at 480MHz, and featuring 2MB Flash memory.
+  Enables developers to enhance productivity and efficiency, allowing for more complex algorithms and models.
+- Automotive-grade RM3100 compass.
+  Designed for better stability and anti-interference capability.
+- Triple-redundant IMUs and dual-redundant barometers located on separate buses.
+  If the PX4 autopilot detects a sensor failure, the system seamlessly switches to another sensor to maintain flight control reliability.
+- Independent LDO power control supplies power to each sensor group.
+  A vibration isolation system filters high-frequency vibrations and reduces noise to ensure accurate readings, enabling better overall flight performance for the vehicle.
 - Integrated Microchip Ethernet PHY for high-speed communication with onboard devices like mission computers via Ethernet.
-- Dual temperature compensation systems, located on the IMU board and FMU board respectively. Temperature is controlled by onboard heating resistors to achieve the optimal operating temperature for the IMUs.
+- Dual temperature compensation systems, located on the IMU board and FMU board respectively.
+  Temperature is controlled by onboard heating resistors to achieve the optimal operating temperature for the IMUs.
 - PWM servo output voltage switchable between 3.3V or 5V.
 - Modular design for DIY carrier boards.
 
@@ -33,7 +38,7 @@ These flight controllers are [manufacturer supported](../flight_controller/autop
 - Main Processor: STM32H743XI
   - 32-bit Arm® Cortex®-M7, 480MHz, 2MB Flash, 1MB RAM
 - Onboard Sensors:
-  - Accel/Gyro: IIM42652\*2
+  - Accel/Gyro: IIM42652 (x2)
   - Accel/Gyro: IIM42653
   - Magnetometer: RM3100
   - Barometer: BMP581
@@ -47,14 +52,14 @@ These flight controllers are [manufacturer supported](../flight_controller/autop
   - Servo Rail Input: 0~9.9V
 - Rated Current:
   - Total Output Max Current: 10A
-  - TELEM1 and TELEM2 Output Current limiter: 4A
-  - CAN1 and CAN2 Output Current limiter: 2.4A
+  - `TELEM1` and `TELEM2` Output Current limiter: 4A
+  - `CAN1` and `CAN2` Output Current limiter: 2.4A
   - Other Ports Output Current limiter: 1.5A
 
 ### 接口
 
 - 16x PWM Servo Outputs
-- 1x Dedicated R/C Input for Spektrum / DSM and S.Bus
+- 1x Dedicated R/C Input(`RC IN`) for Spektrum / DSM and S.Bus
 - 1x Analog/PWM RSSI Input
 - 2x TELEM Ports (with full flow control)
 - 1x UART4 Port
@@ -83,7 +88,12 @@ These flight controllers are [manufacturer supported](../flight_controller/autop
 
 ### Mechanical Data
 
-- Not provided.
+- 重量
+  - Flight Controller Module: 110g
+- Operating & storage temperature: -20 ~ 85°C
+- Dimensions:
+
+  ![CUAV X25 EVO](../../assets/flight_controller/cuav_x25-evo/x25_evo_size.png)
 
 ## Purchase Channels {#store}
 
@@ -91,11 +101,11 @@ Order from [CUAV](https://store.cuav.net/).
 
 ## 组装 / 设置
 
-- Not provided.
+The [X25 EVO Wiring Quick Start](../assembly/quick_start_cuav_x25_evo.md) provides instructions on how to assemble required/important peripherals including GPS, Power Module etc.
 
-## Pin Definitions
+## 针脚定义
 
-- Not provided.
+![CUAV X25 EVO Pinout](../../assets/flight_controller/cuav_x25-evo/x25_evo_pinouts.jpg)
 
 ## 串口映射
 
@@ -106,12 +116,34 @@ Order from [CUAV](https://store.cuav.net/).
 | USART3 | /dev/ttyS2 | 调试控制台  |
 | UART4  | /dev/ttyS3 | UART4  |
 | UART5  | /dev/ttyS4 | TELEM2 |
-| USART6 | /dev/ttyS5 | RC     |
+| USART6 | /dev/ttyS5 | RC IN  |
 | UART7  | /dev/ttyS6 | TELEM1 |
+
+## PWM Outputs {#pwm_outputs}
+
+This flight controller supports up to 16 FMU PWM outputs (MAIN).
+
+Outputs:
+
+- Outputs 1-8 support [DShot](../peripherals/dshot.md).
+- Outputs 9-16 do not support DShot.
+- Outputs 1-7 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
+- Output 8 supports Bidirectional DShot output only (no eRPM capture).
+
+The 16 outputs are in 5 groups:
+
+- Outputs 1-4 in group1 (Timer5)
+- Outputs 5-8 in group2 (Timer4)
+- Outputs 9-11 in group3 (Timer1)
+- Outputs 12-14 in group4 (Timer8)
+- Outputs 15-16 in group5 (Timer12)
+
+All outputs within the same group must use the same output protocol and rate.
 
 ## 额定电压
 
-The _X25-EVO_ achieves triple redundancy on power supplies if three power sources are provided. The three power rails are POWERC1, POWERC2, and USB.
+The _X25-EVO_ achieves triple redundancy on power supplies if three power sources are provided.
+The three power rails are `POWERC1`, `POWERC2`, and `USB`.
 
 - **POWER C1** and **POWER C2** are DroneCAN/UAVCAN battery interfaces.
 
@@ -154,7 +186,8 @@ The [PX4 System Console](../debug/system_console.md) and [SWD Interface](../debu
 
 ## 支持的平台/机身
 
-Any multirotor/airplane/rover or boat that can be controlled using normal RC servos or Futaba S-Bus servos. The complete set of supported configurations can be found in the [Airframe Reference](../airframes/airframe_reference.md).
+Any multicopter / airplane / rover or boat that can be controlled with normal RC servos or Futaba S-Bus servos.
+The complete set of supported configurations can be seen in the [Airframes Reference](../airframes/airframe_reference.md).
 
 ## 更多信息
 
