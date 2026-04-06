@@ -392,7 +392,7 @@ int uORBTest::UnitTest::test_multi()
 	return test_note("PASS multi-topic test");
 }
 
-int uORBTest::UnitTest::pub_test_multi2_entry(int argc, char *argv[])
+int uORBTest::UnitTest::pub_test_multi2_entry(int /*argc*/, char ** /*argv[]*/)
 {
 	uORBTest::UnitTest &t = uORBTest::UnitTest::instance();
 	return t.pub_test_multi2_main();
@@ -932,7 +932,7 @@ int uORBTest::UnitTest::test_queue()
 }
 
 
-int uORBTest::UnitTest::pub_test_queue_entry(int argc, char *argv[])
+int uORBTest::UnitTest::pub_test_queue_entry(int /*argc*/, char ** /*argv[]*/)
 {
 	uORBTest::UnitTest &t = uORBTest::UnitTest::instance();
 	return t.pub_test_queue_main();
@@ -1119,7 +1119,7 @@ int uORBTest::UnitTest::test_note(const char *fmt, ...)
 	return OK;
 }
 
-int uORBTest::UnitTest::pubsubtest_threadEntry(int argc, char *argv[])
+int uORBTest::UnitTest::pubsubtest_threadEntry(int /*argc*/, char ** /*argv[]*/)
 {
 	uORBTest::UnitTest &t = uORBTest::UnitTest::instance();
 	return t.pubsublatency_main();

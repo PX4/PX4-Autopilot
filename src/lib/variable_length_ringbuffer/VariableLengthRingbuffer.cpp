@@ -81,7 +81,7 @@ bool VariableLengthRingbuffer::push_back(const uint8_t *packet, size_t packet_le
 	return true;
 }
 
-size_t VariableLengthRingbuffer::pop_front(uint8_t *buf, size_t buf_max_len)
+size_t VariableLengthRingbuffer::pop_front(uint8_t *buf, [[maybe_unused]] size_t buf_max_len)
 {
 	if (buf == nullptr) {
 		// User needs to supply a valid pointer.

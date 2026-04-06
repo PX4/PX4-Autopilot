@@ -333,8 +333,8 @@ void FlightModeManager::handleCommand()
 	}
 }
 
-void FlightModeManager::generateTrajectorySetpoint(const float dt,
-		const vehicle_local_position_s &vehicle_local_position)
+void FlightModeManager::generateTrajectorySetpoint(const float /*dt*/,
+		const vehicle_local_position_s & /*vehicle_local_position*/)
 {
 	// If the task fails sned out empty NAN setpoints and the controller will emergency failsafe
 	trajectory_setpoint_s setpoint = FlightTask::empty_trajectory_setpoint;
@@ -441,7 +441,7 @@ const char *FlightModeManager::errorToString(const FlightTaskError error)
 	return "This error is not mapped to a string or is unknown.";
 }
 
-int FlightModeManager::task_spawn(int argc, char *argv[])
+int FlightModeManager::task_spawn(int /*argc*/, char ** /*argv*/)
 {
 	FlightModeManager *instance = new FlightModeManager();
 
@@ -464,7 +464,7 @@ int FlightModeManager::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int FlightModeManager::custom_command(int argc, char *argv[])
+int FlightModeManager::custom_command(int /*argc*/, char ** /*argv*/)
 {
 	return print_usage("unknown command");
 }

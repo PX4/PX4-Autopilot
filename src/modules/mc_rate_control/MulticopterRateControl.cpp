@@ -326,7 +326,7 @@ int MulticopterRateControl::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int MulticopterRateControl::custom_command(int argc, char *argv[])
+int MulticopterRateControl::custom_command(int /*argc*/, char ** /*argv*/)
 {
 	return print_usage("unknown command");
 }

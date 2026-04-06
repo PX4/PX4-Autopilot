@@ -115,7 +115,7 @@ int ghst_config(int uart_fd)
 static uint16_t convert_channel_value(unsigned chan_value);
 
 
-bool ghst_parse(const uint64_t now, const uint8_t *frame, unsigned len, uint16_t *values,
+bool ghst_parse(const uint64_t /*now*/, const uint8_t *frame, unsigned len, uint16_t *values,
 		ghstLinkStatistics_t *link_stats, uint16_t *num_values, uint16_t max_channels)
 {
 	bool success = false;

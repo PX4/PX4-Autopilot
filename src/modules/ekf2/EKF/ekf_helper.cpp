@@ -125,7 +125,7 @@ bool Ekf::setLatLonOrigin(const double latitude, const double longitude, const f
 	return true;
 }
 
-bool Ekf::setAltOrigin(const float altitude, const float vpos_var)
+bool Ekf::setAltOrigin(const float altitude, const float /*vpos_var*/)
 {
 	if (!checkAltitudeValidity(altitude)) {
 		return false;

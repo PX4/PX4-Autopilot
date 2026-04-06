@@ -41,7 +41,7 @@ LoggerChecks::LoggerChecks()
 	param_get(_param_sdlog_mode_handle, &_sdlog_mode);
 }
 
-void LoggerChecks::checkAndReport(const Context &context, Report &reporter)
+void LoggerChecks::checkAndReport(const Context & /*context*/, Report &reporter)
 {
 	bool active = false;
 

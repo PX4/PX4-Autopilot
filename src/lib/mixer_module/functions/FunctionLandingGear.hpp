@@ -44,7 +44,7 @@ class FunctionLandingGear : public FunctionProviderBase
 {
 public:
 	FunctionLandingGear() = default;
-	static FunctionProviderBase *allocate(const Context &context) { return new FunctionLandingGear(); }
+	static FunctionProviderBase *allocate(const Context & /*context*/) { return new FunctionLandingGear(); }
 
 	void update() override
 	{
@@ -60,7 +60,7 @@ public:
 		}
 	}
 
-	float value(OutputFunction func) override { return _data; }
+	float value(OutputFunction /*func*/) override { return _data; }
 
 private:
 	uORB::Subscription _topic{ORB_ID(landing_gear)};

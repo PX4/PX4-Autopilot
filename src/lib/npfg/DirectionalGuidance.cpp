@@ -103,8 +103,8 @@ DirectionalGuidance::guideToPath(const Vector2f &curr_pos_local, const Vector2f 
 }
 
 float DirectionalGuidance::adaptPeriod(const float ground_speed, const float airspeed, const float wind_speed,
-				       const float track_error, const float path_curvature, const Vector2f &wind_vel,
-				       const Vector2f &unit_path_tangent, const float feas_on_track) const
+				       const float track_error, const float path_curvature, const Vector2f & /*wind_vel*/,
+				       const Vector2f & /*unit_path_tangent*/, const float feas_on_track) const
 {
 	float period = period_;
 	const float air_turn_rate = fabsf(path_curvature * airspeed);
@@ -270,7 +270,7 @@ DirectionalGuidance::bearingFeasibility(float wind_cross_bearing, const float wi
 
 float DirectionalGuidance::lateralAccelFF(const Vector2f &unit_path_tangent, const Vector2f &ground_vel,
 		const float wind_dot_upt, const float wind_cross_upt, const float airspeed,
-		const float wind_speed, const float signed_track_error,
+		const float /*wind_speed*/, const float signed_track_error,
 		const float path_curvature) const
 {
 	// NOTE: all calculations within this function take place at the closet point

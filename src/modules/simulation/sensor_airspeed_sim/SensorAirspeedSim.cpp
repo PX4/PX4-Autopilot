@@ -156,7 +156,7 @@ void SensorAirspeedSim::Run()
 	perf_end(_loop_perf);
 }
 
-int SensorAirspeedSim::task_spawn(int argc, char *argv[])
+int SensorAirspeedSim::task_spawn(int /*argc*/, char ** /*argv*/)
 {
 	SensorAirspeedSim *instance = new SensorAirspeedSim();
 
@@ -179,7 +179,7 @@ int SensorAirspeedSim::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int SensorAirspeedSim::custom_command(int argc, char *argv[])
+int SensorAirspeedSim::custom_command(int /*argc*/, char ** /*argv*/)
 {
 	return print_usage("unknown command");
 }

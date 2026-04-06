@@ -33,7 +33,7 @@
 
 #include "geofenceCheck.hpp"
 
-void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
+void GeofenceChecks::checkAndReport(const Context & /*context*/, Report &reporter)
 {
 	geofence_result_s geofence_result;
 

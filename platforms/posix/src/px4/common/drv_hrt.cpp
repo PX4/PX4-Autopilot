@@ -239,7 +239,7 @@ hrt_call_enter(struct hrt_call *entry)
  * This routine simulates a timer interrupt handler
  */
 static void
-hrt_tim_isr(void *p)
+hrt_tim_isr(void * /*p*/)
 {
 	/* grab the timer for latency tracking purposes */
 	latency_actual = hrt_absolute_time();

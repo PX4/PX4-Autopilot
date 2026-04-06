@@ -33,7 +33,7 @@
 
 #include "opticalFlowCheck.hpp"
 
-void OpticalFlowCheck::checkAndReport(const Context &context, Report &reporter)
+void OpticalFlowCheck::checkAndReport(const Context & /*context*/, Report &reporter)
 {
 	if (!_param_sys_has_num_of.get()) {
 		return;

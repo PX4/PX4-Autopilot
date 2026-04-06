@@ -47,7 +47,7 @@
 
 #include <mathlib/mathlib.h>
 
-void Ekf::controlBetaFusion(const imuSample &imu_delayed)
+void Ekf::controlBetaFusion(const imuSample & /*imu_delayed*/)
 {
 	_control_status.flags.fuse_beta = _params.ekf2_fuse_beta
 					  && (_control_status.flags.fixed_wing || _control_status.flags.fuse_aspd)

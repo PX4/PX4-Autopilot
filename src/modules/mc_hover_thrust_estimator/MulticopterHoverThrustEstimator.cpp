@@ -262,7 +262,7 @@ void MulticopterHoverThrustEstimator::publishInvalidStatus()
 	_hover_thrust_ekf_pub.publish(status_msg);
 }
 
-int MulticopterHoverThrustEstimator::task_spawn(int argc, char *argv[])
+int MulticopterHoverThrustEstimator::task_spawn(int /*argc*/, char ** /*argv*/)
 {
 	MulticopterHoverThrustEstimator *instance = new MulticopterHoverThrustEstimator();
 
@@ -285,7 +285,7 @@ int MulticopterHoverThrustEstimator::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int MulticopterHoverThrustEstimator::custom_command(int argc, char *argv[])
+int MulticopterHoverThrustEstimator::custom_command(int /*argc*/, char ** /*argv*/)
 {
 	return print_usage("unknown command");
 }

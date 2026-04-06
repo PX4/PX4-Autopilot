@@ -756,7 +756,7 @@ bool dsm_decode(hrt_abstime frame_time, bool *dsm_11_bit, unsigned channel_count
  * @return true=decoded raw channel values updated, false=no update
  */
 bool dsm_input(int fd, uint16_t *values, uint16_t *num_values, bool *dsm_11_bit, uint8_t *n_bytes, uint8_t **bytes,
-	       int8_t *rssi, unsigned *frame_drops, unsigned max_values)
+	       int8_t *rssi, unsigned * /*frame_drops*/, unsigned max_values)
 {
 	/*
 	 * The DSMX/2 protocol doesn't provide reliable framing,

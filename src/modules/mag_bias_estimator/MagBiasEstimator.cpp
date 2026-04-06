@@ -53,7 +53,7 @@ MagBiasEstimator::~MagBiasEstimator()
 	perf_free(_cycle_perf);
 }
 
-int MagBiasEstimator::task_spawn(int argc, char *argv[])
+int MagBiasEstimator::task_spawn(int /*argc*/, char ** /*argv*/)
 {
 	MagBiasEstimator *obj = new MagBiasEstimator();
 

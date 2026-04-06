@@ -63,7 +63,7 @@ LoadMon::~LoadMon()
 	perf_free(_cycle_perf);
 }
 
-int LoadMon::task_spawn(int argc, char *argv[])
+int LoadMon::task_spawn(int /*argc*/, char ** /*argv*/)
 {
 	LoadMon *obj = new LoadMon();
 

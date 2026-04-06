@@ -191,7 +191,7 @@ void RoverAckermann::reset()
 	_manual_mode.reset();
 }
 
-int RoverAckermann::task_spawn(int argc, char *argv[])
+int RoverAckermann::task_spawn(int /*argc*/, char ** /*argv*/)
 {
 	RoverAckermann *instance = new RoverAckermann();
 
@@ -214,7 +214,7 @@ int RoverAckermann::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int RoverAckermann::custom_command(int argc, char *argv[])
+int RoverAckermann::custom_command(int /*argc*/, char ** /*argv*/)
 {
 	return print_usage("unknown command");
 }

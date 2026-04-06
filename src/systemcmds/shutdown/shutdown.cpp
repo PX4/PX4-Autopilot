@@ -38,7 +38,7 @@
 #include <px4_platform_common/shutdown.h>
 #include <px4_platform_common/tasks.h>
 
-extern "C" __EXPORT int shutdown_main(int argc, char *argv[])
+extern "C" __EXPORT int shutdown_main(int /*argc*/, char ** /*argv*/)
 {
 	return px4_shutdown_request();
 }

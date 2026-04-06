@@ -75,8 +75,8 @@ static bool generate_reply_type_name(char *reply, const char *name)
 	return (ret > 0 && ret < REPLY_TYPE_SIZE);
 }
 
-SrvBase::SrvBase(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId input_stream_id,
-		 uxrObjectId participant_id) :
+SrvBase::SrvBase(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId /*input_stream_id*/,
+		 uxrObjectId /*participant_id*/) :
 	session_(session),
 	reliable_out_stream_id_(reliable_out_stream_id)
 
@@ -86,7 +86,7 @@ SrvBase::SrvBase(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStr
 
 bool SrvBase::create_replier(uxrStreamId input_stream_id,
 			     uxrObjectId participant_id, uint16_t index, const char *client_namespace, const char *service_name_simple,
-			     const char *service_type_name_simple, uint16_t queue_depth)
+			     const char *service_type_name_simple, uint16_t /*queue_depth*/)
 {
 // request and reply names
 	char request_name[TOPIC_NAME_SIZE];

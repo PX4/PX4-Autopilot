@@ -527,7 +527,7 @@ void register_sig_handler()
 	sigaction(SIGPIPE, &sig_pipe, nullptr);
 }
 
-void sig_int_handler(int sig_num)
+void sig_int_handler(int /*sig_num*/)
 {
 	fflush(stdout);
 	printf("\nPX4 Exiting...\n");

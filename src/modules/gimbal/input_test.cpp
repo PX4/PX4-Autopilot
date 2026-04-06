@@ -46,7 +46,7 @@ InputTest::InputTest(Parameters &parameters) :
 	InputBase(parameters)
 {}
 
-InputTest::UpdateResult InputTest::update(unsigned int timeout_ms, ControlData &control_data, bool already_active)
+InputTest::UpdateResult InputTest::update(unsigned int /*timeout_ms*/, ControlData &control_data, bool /*already_active*/)
 {
 	if (!_has_been_set.load()) {
 		return UpdateResult::NoUpdate;

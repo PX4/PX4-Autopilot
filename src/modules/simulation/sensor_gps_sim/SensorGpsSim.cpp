@@ -203,7 +203,7 @@ void SensorGpsSim::Run()
 	perf_end(_loop_perf);
 }
 
-int SensorGpsSim::task_spawn(int argc, char *argv[])
+int SensorGpsSim::task_spawn(int /*argc*/, char ** /*argv*/)
 {
 	SensorGpsSim *instance = new SensorGpsSim();
 
@@ -226,7 +226,7 @@ int SensorGpsSim::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int SensorGpsSim::custom_command(int argc, char *argv[])
+int SensorGpsSim::custom_command(int /*argc*/, char ** /*argv*/)
 {
 	return print_usage("unknown command");
 }

@@ -143,7 +143,7 @@ AirshipAttitudeControl::Run()
 	perf_end(_loop_perf);
 }
 
-int AirshipAttitudeControl::task_spawn(int argc, char *argv[])
+int AirshipAttitudeControl::task_spawn(int /*argc*/, char ** /*argv[]*/)
 {
 	AirshipAttitudeControl *instance = new AirshipAttitudeControl();
 
@@ -175,7 +175,7 @@ int AirshipAttitudeControl::print_status()
 	return 0;
 }
 
-int AirshipAttitudeControl::custom_command(int argc, char *argv[])
+int AirshipAttitudeControl::custom_command(int /*argc*/, char ** /*argv[]*/)
 {
 	return print_usage("unknown command");
 }

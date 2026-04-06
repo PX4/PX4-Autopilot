@@ -685,7 +685,7 @@ Replay::readAndApplyParameter(std::ifstream &file, uint16_t msg_size)
 }
 
 bool
-Replay::readDropout(std::ifstream &file, uint16_t msg_size)
+Replay::readDropout(std::ifstream &file, uint16_t /*msg_size*/)
 {
 	uint16_t duration;
 	file.read((char *)&duration, sizeof(duration));
@@ -1051,7 +1051,7 @@ Replay::readTopicDataToBuffer(const Subscription &sub, std::ifstream &replay_fil
 }
 
 bool
-Replay::handleTopicUpdate(Subscription &sub, void *data, std::ifstream &replay_file)
+Replay::handleTopicUpdate(Subscription &sub, void *data, std::ifstream & /*replay_file*/)
 {
 	return publishTopic(sub, data);
 }
@@ -1218,7 +1218,7 @@ Replay::applyParams(bool quiet)
 }
 
 Replay *
-Replay::instantiate(int argc, char *argv[])
+Replay::instantiate(int /*argc*/, char ** /*argv*/)
 {
 	// check the replay mode
 	const char *replay_mode = getenv(replay::ENV_MODE);

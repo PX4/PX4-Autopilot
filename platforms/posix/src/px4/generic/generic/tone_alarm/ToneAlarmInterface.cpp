@@ -46,7 +46,7 @@ void init()
 	// Nothing to be done in simulation.
 }
 
-hrt_abstime start_note(unsigned frequency)
+hrt_abstime start_note(unsigned /*frequency*/)
 {
 	// Nothing to be done in simulation.
 	return 0;

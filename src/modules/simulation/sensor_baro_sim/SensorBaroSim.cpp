@@ -180,7 +180,7 @@ void SensorBaroSim::Run()
 	perf_end(_loop_perf);
 }
 
-int SensorBaroSim::task_spawn(int argc, char *argv[])
+int SensorBaroSim::task_spawn(int /*argc*/, char ** /*argv*/)
 {
 	SensorBaroSim *instance = new SensorBaroSim();
 
@@ -203,7 +203,7 @@ int SensorBaroSim::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int SensorBaroSim::custom_command(int argc, char *argv[])
+int SensorBaroSim::custom_command(int /*argc*/, char ** /*argv*/)
 {
 	return print_usage("unknown command");
 }

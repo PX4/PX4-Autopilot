@@ -145,7 +145,7 @@ ModuleBase::Descriptor Logger::desc{task_spawn, custom_command, print_usage};
 
 constexpr const char *Logger::LOG_ROOT[(int)LogType::Count];
 
-int Logger::custom_command(int argc, char *argv[])
+int Logger::custom_command(int /*argc*/, char *argv[])
 {
 	if (!is_running(desc)) {
 		print_usage("logger not running");
@@ -181,7 +181,7 @@ int Logger::run_trampoline(int argc, char *argv[])
 	}, argc, argv);
 }
 
-int Logger::task_spawn(int argc, char *argv[])
+int Logger::task_spawn(int /*argc*/, char *argv[])
 {
 	desc.task_id = px4_task_spawn_cmd("logger",
 					  SCHED_DEFAULT,
@@ -982,7 +982,7 @@ void Logger::debug_print_buffer(uint32_t &total_bytes, hrt_abstime &timer_start)
 #endif /* DBGPRINT */
 }
 
-bool Logger::handle_event_updates(uint32_t &total_bytes)
+bool Logger::handle_event_updates([[maybe_unused]] uint32_t &total_bytes)
 {
 	bool data_written = false;
 

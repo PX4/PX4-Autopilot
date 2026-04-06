@@ -259,6 +259,9 @@ static void hrt_work_process(void)
 
 static int work_hrtthread(int argc, char *argv[])
 {
+	(void)argc;
+	(void)argv;
+
 	/* Loop forever */
 
 	for (;;) {

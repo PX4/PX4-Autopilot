@@ -642,7 +642,7 @@ const Vector3f McAutotuneAttitudeControl::getIdentificationSignal()
 	return rate_sp;
 }
 
-int McAutotuneAttitudeControl::task_spawn(int argc, char *argv[])
+int McAutotuneAttitudeControl::task_spawn(int /*argc*/, char ** /*argv*/)
 {
 	McAutotuneAttitudeControl *instance = new McAutotuneAttitudeControl();
 
@@ -665,7 +665,7 @@ int McAutotuneAttitudeControl::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int McAutotuneAttitudeControl::custom_command(int argc, char *argv[])
+int McAutotuneAttitudeControl::custom_command(int /*argc*/, char ** /*argv*/)
 {
 	return print_usage("unknown command");
 }

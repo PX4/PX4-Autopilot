@@ -78,7 +78,7 @@ void SystemPowerSimulator::Run()
 	perf_end(_loop_perf);
 }
 
-int SystemPowerSimulator::task_spawn(int argc, char *argv[])
+int SystemPowerSimulator::task_spawn(int /*argc*/, char ** /*argv*/)
 {
 	SystemPowerSimulator *instance = new SystemPowerSimulator();
 
@@ -101,7 +101,7 @@ int SystemPowerSimulator::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int SystemPowerSimulator::custom_command(int argc, char *argv[])
+int SystemPowerSimulator::custom_command(int /*argc*/, char ** /*argv*/)
 {
 	return print_usage("unknown command");
 }

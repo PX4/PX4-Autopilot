@@ -137,7 +137,7 @@ uORB::DeviceNode::read(cdev::file_t *filp, char *buffer, size_t buflen)
 }
 
 ssize_t
-uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
+uORB::DeviceNode::write(cdev::file_t * /*filp*/, const char *buffer, size_t buflen)
 {
 	/*
 	 * Writes are legal from interrupt context as long as the

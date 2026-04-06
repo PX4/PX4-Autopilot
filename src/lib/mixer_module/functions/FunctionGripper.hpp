@@ -44,7 +44,7 @@ class FunctionGripper : public FunctionProviderBase
 {
 public:
 	FunctionGripper() = default;
-	static FunctionProviderBase *allocate(const Context &context) { return new FunctionGripper(); }
+	static FunctionProviderBase *allocate(const Context & /*context*/) { return new FunctionGripper(); }
 
 	void update() override
 	{
@@ -61,7 +61,7 @@ public:
 		}
 	}
 
-	float value(OutputFunction func) override { return _data; }
+	float value(OutputFunction /*func*/) override { return _data; }
 
 private:
 	uORB::Subscription _gripper_sub{ORB_ID(gripper)};

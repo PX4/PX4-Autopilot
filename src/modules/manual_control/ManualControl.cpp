@@ -538,7 +538,7 @@ void ManualControl::send_video_command()
 	_video_recording = !_video_recording;
 }
 
-int ManualControl::task_spawn(int argc, char *argv[])
+int ManualControl::task_spawn(int /*argc*/, char ** /*argv*/)
 {
 	ManualControl *instance = new ManualControl();
 
@@ -568,7 +568,7 @@ int ManualControl::print_status()
 	return 0;
 }
 
-int ManualControl::custom_command(int argc, char *argv[])
+int ManualControl::custom_command(int /*argc*/, char ** /*argv*/)
 {
 	return print_usage("unknown command");
 }

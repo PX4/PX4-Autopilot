@@ -373,7 +373,7 @@ void FwLateralLongitudinalControl::updateControllerConfiguration(hrt_abstime tim
 }
 
 uint8_t
-FwLateralLongitudinalControl::tecs_update_pitch_throttle(const float control_interval, float alt_sp, float airspeed_sp,
+FwLateralLongitudinalControl::tecs_update_pitch_throttle(const float /*control_interval*/, float alt_sp, float airspeed_sp,
 		float pitch_min_rad, float pitch_max_rad, float throttle_min,
 		float throttle_max, const float desired_max_sinkrate,
 		const float desired_max_climbrate,
@@ -523,7 +523,7 @@ FwLateralLongitudinalControl::init()
 	return true;
 }
 
-int FwLateralLongitudinalControl::custom_command(int argc, char *argv[])
+int FwLateralLongitudinalControl::custom_command(int /*argc*/, char ** /*argv*/)
 {
 	return print_usage("unknown command");
 }

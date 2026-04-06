@@ -7,7 +7,7 @@ const trajectory_setpoint_s FlightTask::empty_trajectory_setpoint = {0, {NAN, NA
 const vehicle_constraints_s FlightTask::empty_constraints = {0, NAN, NAN, false, {}};
 const landing_gear_s FlightTask::empty_landing_gear_default_keep = {0, landing_gear_s::GEAR_KEEP, {}};
 
-bool FlightTask::activate(const trajectory_setpoint_s &last_setpoint)
+bool FlightTask::activate(const trajectory_setpoint_s & /*last_setpoint*/)
 {
 	_resetSetpoints();
 	_setDefaultConstraints();

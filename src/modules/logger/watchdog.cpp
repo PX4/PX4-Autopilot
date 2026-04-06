@@ -47,7 +47,7 @@ namespace px4
 namespace logger
 {
 
-bool watchdog_update(watchdog_data_t &watchdog_data, bool semaphore_value_saturated)
+bool watchdog_update([[maybe_unused]] watchdog_data_t &watchdog_data, [[maybe_unused]] bool semaphore_value_saturated)
 {
 
 #if defined(__PX4_NUTTX) && defined(CONFIG_BUILD_FLAT)

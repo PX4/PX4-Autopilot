@@ -150,7 +150,7 @@ void SensorAgpSim::Run()
 	perf_end(_loop_perf);
 }
 
-int SensorAgpSim::task_spawn(int argc, char *argv[])
+int SensorAgpSim::task_spawn(int /*argc*/, char ** /*argv*/)
 {
 	SensorAgpSim *instance = new SensorAgpSim();
 
@@ -173,7 +173,7 @@ int SensorAgpSim::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int SensorAgpSim::custom_command(int argc, char *argv[])
+int SensorAgpSim::custom_command(int /*argc*/, char ** /*argv*/)
 {
 	return print_usage("unknown command");
 }

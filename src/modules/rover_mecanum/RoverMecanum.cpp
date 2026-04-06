@@ -192,7 +192,7 @@ void RoverMecanum::reset()
 	_manual_mode.reset();
 }
 
-int RoverMecanum::task_spawn(int argc, char *argv[])
+int RoverMecanum::task_spawn(int /*argc*/, char ** /*argv*/)
 {
 	RoverMecanum *instance = new RoverMecanum();
 
@@ -215,7 +215,7 @@ int RoverMecanum::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int RoverMecanum::custom_command(int argc, char *argv[])
+int RoverMecanum::custom_command(int /*argc*/, char ** /*argv*/)
 {
 	return print_usage("unknown command");
 }

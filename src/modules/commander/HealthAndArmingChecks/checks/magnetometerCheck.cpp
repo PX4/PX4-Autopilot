@@ -188,7 +188,7 @@ bool MagnetometerChecks::isMagRequired(int instance, bool &mag_fault)
 }
 
 
-void MagnetometerChecks::consistencyCheck(const Context &context, Report &reporter)
+void MagnetometerChecks::consistencyCheck(const Context & /*context*/, Report &reporter)
 {
 	if (_param_com_arm_mag_ang.get() < 0) { // Check disabled
 		return;

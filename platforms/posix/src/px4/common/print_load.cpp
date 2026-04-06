@@ -80,7 +80,7 @@ void init_print_load(struct print_load_s *s)
 	s->interval_time_us = 0.f;
 }
 
-void print_load(int fd, struct print_load_s *print_state)
+void print_load(int fd, struct print_load_s * /*print_state*/)
 {
 	char clear_line[] = CL;
 

@@ -521,7 +521,7 @@ FixedWingModeManager::set_control_mode_current(const hrt_abstime &now)
 }
 
 void
-FixedWingModeManager::update_in_air_states(const hrt_abstime now)
+FixedWingModeManager::update_in_air_states(const hrt_abstime /*now*/)
 {
 	/* reset flag when airplane landed */
 	if (_landed) {
@@ -765,7 +765,7 @@ FixedWingModeManager::handle_setpoint_type(const position_setpoint_s &pos_sp_cur
 }
 
 void
-FixedWingModeManager::control_auto_position(const float control_interval, const Vector2d &curr_pos,
+FixedWingModeManager::control_auto_position(const float /*control_interval*/, const Vector2d & /*curr_pos*/,
 		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
 {
 	const float acc_rad = _directional_guidance.switchDistance(500.0f);
@@ -851,7 +851,7 @@ FixedWingModeManager::control_auto_position(const float control_interval, const 
 }
 
 void
-FixedWingModeManager::control_auto_velocity(const float control_interval, const Vector2d &curr_pos,
+FixedWingModeManager::control_auto_velocity(const float /*control_interval*/, const Vector2d & /*curr_pos*/,
 		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_curr)
 {
 	//Offboard velocity control
@@ -888,7 +888,7 @@ FixedWingModeManager::control_auto_velocity(const float control_interval, const 
 }
 
 void
-FixedWingModeManager::control_auto_loiter(const float control_interval, const Vector2d &curr_pos,
+FixedWingModeManager::control_auto_loiter(const float /*control_interval*/, const Vector2d & /*curr_pos*/,
 		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_curr,
 		const position_setpoint_s &pos_sp_next)
 {
@@ -985,7 +985,7 @@ FixedWingModeManager::control_auto_loiter(const float control_interval, const Ve
 
 #ifdef CONFIG_FIGURE_OF_EIGHT
 void
-FixedWingModeManager::controlAutoFigureEight(const float control_interval, const Vector2d &curr_pos,
+FixedWingModeManager::controlAutoFigureEight(const float /*control_interval*/, const Vector2d & /*curr_pos*/,
 		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_curr)
 {
 	// airspeed settings
@@ -1046,7 +1046,7 @@ void FixedWingModeManager::publishFigureEightStatus(const position_setpoint_s &p
 #endif // CONFIG_FIGURE_OF_EIGHT
 
 void
-FixedWingModeManager::control_auto_path(const float control_interval, const Vector2d &curr_pos,
+FixedWingModeManager::control_auto_path(const float /*control_interval*/, const Vector2d & /*curr_pos*/,
 					const Vector2f &ground_speed, const position_setpoint_s &pos_sp_curr)
 {
 	const float target_airspeed = pos_sp_curr.cruising_speed > FLT_EPSILON ? pos_sp_curr.cruising_speed : NAN;
@@ -1301,7 +1301,7 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 
 void
 FixedWingModeManager::control_auto_takeoff_no_nav(const hrt_abstime &now, const float control_interval,
-		const float current_setpoint_altitude_amsl)
+		const float /*current_setpoint_altitude_amsl*/)
 {
 	if (!_control_mode.flag_armed) {
 		reset_takeoff_state();
@@ -1630,7 +1630,7 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 }
 
 void
-FixedWingModeManager::control_auto_landing_circular(const hrt_abstime &now, const float control_interval,
+FixedWingModeManager::control_auto_landing_circular(const hrt_abstime &now, const float /*control_interval*/,
 		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_curr)
 {
 	if (_time_started_landing == 0) {
@@ -1804,8 +1804,8 @@ FixedWingModeManager::control_auto_landing_circular(const hrt_abstime &now, cons
 }
 
 void
-FixedWingModeManager::control_manual_altitude(const float control_interval, const Vector2d &curr_pos,
-		const Vector2f &ground_speed)
+FixedWingModeManager::control_manual_altitude(const float /*control_interval*/, const Vector2d & /*curr_pos*/,
+		const Vector2f & /*ground_speed*/)
 {
 	updateManualTakeoffStatus();
 
@@ -1847,8 +1847,8 @@ FixedWingModeManager::control_manual_altitude(const float control_interval, cons
 }
 
 void
-FixedWingModeManager::control_manual_position(const hrt_abstime now, const float control_interval,
-		const Vector2d &curr_pos,
+FixedWingModeManager::control_manual_position(const hrt_abstime now, const float /*control_interval*/,
+		const Vector2d & /*curr_pos*/,
 		const Vector2f &ground_speed)
 {
 	updateManualTakeoffStatus();
@@ -2744,7 +2744,7 @@ void FixedWingModeManager::publish_lateral_guidance_status(const hrt_abstime now
 	_fixed_wing_lateral_guidance_status_pub.publish(fixed_wing_lateral_guidance_status);
 }
 
-int FixedWingModeManager::task_spawn(int argc, char *argv[])
+int FixedWingModeManager::task_spawn(int /*argc*/, char ** /*argv*/)
 {
 	FixedWingModeManager *instance = new FixedWingModeManager();
 
@@ -2767,7 +2767,7 @@ int FixedWingModeManager::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int FixedWingModeManager::custom_command(int argc, char *argv[])
+int FixedWingModeManager::custom_command(int /*argc*/, char ** /*argv*/)
 {
 	return print_usage("unknown command");
 }

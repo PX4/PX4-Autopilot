@@ -33,7 +33,7 @@
 
 #include "missionCheck.hpp"
 
-void MissionChecks::checkAndReport(const Context &context, Report &reporter)
+void MissionChecks::checkAndReport(const Context & /*context*/, Report &reporter)
 {
 	reporter.failsafeFlags().mission_failure = false;
 	reporter.failsafeFlags().auto_mission_missing = true;

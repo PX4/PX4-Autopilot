@@ -282,7 +282,7 @@ void GyroCalibration::Run()
 	}
 }
 
-int GyroCalibration::task_spawn(int argc, char *argv[])
+int GyroCalibration::task_spawn(int /*argc*/, char ** /*argv*/)
 {
 	GyroCalibration *instance = new GyroCalibration();
 
@@ -322,7 +322,7 @@ int GyroCalibration::print_status()
 	return 0;
 }
 
-int GyroCalibration::custom_command(int argc, char *argv[])
+int GyroCalibration::custom_command(int /*argc*/, char ** /*argv*/)
 {
 	return print_usage("unknown command");
 }

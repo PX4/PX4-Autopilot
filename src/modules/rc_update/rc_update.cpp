@@ -688,7 +688,7 @@ void RCUpdate::UpdateManualControlInput(const hrt_abstime &timestamp_sample)
 	_last_manual_control_input_publish = manual_control_input.timestamp;
 }
 
-int RCUpdate::task_spawn(int argc, char *argv[])
+int RCUpdate::task_spawn(int /*argc*/, char ** /*argv*/)
 {
 	RCUpdate *instance = new RCUpdate();
 
@@ -731,7 +731,7 @@ int RCUpdate::print_status()
 	return 0;
 }
 
-int RCUpdate::custom_command(int argc, char *argv[])
+int RCUpdate::custom_command(int /*argc*/, char ** /*argv*/)
 {
 	return print_usage("unknown command");
 }

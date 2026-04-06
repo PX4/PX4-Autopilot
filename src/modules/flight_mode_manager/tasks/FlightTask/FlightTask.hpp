@@ -87,7 +87,7 @@ public:
 	 * @param success set to true if it was successfully applied, false on error
 	 * @return true if handled
 	 */
-	virtual bool applyCommandParameters(const vehicle_command_s &command, bool &success) { return false; }
+	virtual bool applyCommandParameters(const vehicle_command_s & /*command*/, bool & /*success*/) { return false; }
 
 	/**
 	 * Call before activate() or update()

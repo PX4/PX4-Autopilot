@@ -156,7 +156,7 @@ BlockLocalPositionEstimator::init()
 }
 
 Vector<float, BlockLocalPositionEstimator::n_x> BlockLocalPositionEstimator::dynamics(
-	float t,
+	float /*t*/,
 	const Vector<float, BlockLocalPositionEstimator::n_x> &x,
 	const Vector<float, BlockLocalPositionEstimator::n_u> &u)
 {
@@ -1020,13 +1020,13 @@ int BlockLocalPositionEstimator::getDelayPeriods(float delay, uint8_t *periods)
 }
 
 int
-BlockLocalPositionEstimator::custom_command(int argc, char *argv[])
+BlockLocalPositionEstimator::custom_command(int /*argc*/, char ** /*argv*/)
 {
 	return print_usage("unknown command");
 }
 
 int
-BlockLocalPositionEstimator::task_spawn(int argc, char *argv[])
+BlockLocalPositionEstimator::task_spawn(int /*argc*/, char ** /*argv*/)
 {
 	BlockLocalPositionEstimator *instance = new BlockLocalPositionEstimator();
 

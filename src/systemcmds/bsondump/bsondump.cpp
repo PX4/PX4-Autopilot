@@ -59,7 +59,7 @@ static void print_usage(const char *reason = nullptr, const char *command = null
 	}
 }
 
-static int bson_print_callback(bson_decoder_t decoder, bson_node_t node)
+static int bson_print_callback(bson_decoder_t /*decoder*/, bson_node_t node)
 {
 	switch (node->type) {
 	case BSON_EOO:
@@ -91,7 +91,7 @@ static int bson_print_callback(bson_decoder_t decoder, bson_node_t node)
 }
 
 static int
-bson_docsize_callback(bson_decoder_t decoder, bson_node_t node)
+bson_docsize_callback(bson_decoder_t /*decoder*/, bson_node_t node)
 {
 
 	if (node->type == BSON_EOO) {

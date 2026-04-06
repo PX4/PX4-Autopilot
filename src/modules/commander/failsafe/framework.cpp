@@ -651,7 +651,7 @@ bool FailsafeBase::actionAllowsUserTakeover(Action action) const
 	return action == Action::Hold || action == Action::RTL || action == Action::Land || action == Action::Descend;
 }
 
-void FailsafeBase::clearDelayIfNeeded(const State &state,
+void FailsafeBase::clearDelayIfNeeded(const State &/*state*/,
 				      const failsafe_flags_s &status_flags)
 {
 	// Clear delay if one of the following is true:

@@ -144,7 +144,7 @@ bool ActuatorEffectivenessHelicopter::getEffectivenessMatrix(Configuration &conf
 }
 
 void ActuatorEffectivenessHelicopter::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
-		int matrix_index, ActuatorVector &actuator_sp, const ActuatorVector &actuator_min, const ActuatorVector &actuator_max)
+		int /*matrix_index*/, ActuatorVector &actuator_sp, const ActuatorVector &actuator_min, const ActuatorVector &actuator_max)
 {
 	_saturation_flags = {};
 
@@ -255,7 +255,7 @@ void ActuatorEffectivenessHelicopter::setSaturationFlag(float coeff, bool &posit
 	}
 }
 
-void ActuatorEffectivenessHelicopter::getUnallocatedControl(int matrix_index, control_allocator_status_s &status)
+void ActuatorEffectivenessHelicopter::getUnallocatedControl(int /*matrix_index*/, control_allocator_status_s &status)
 {
 	// Note: the values '-1', '1' and '0' are just to indicate a negative,
 	// positive or no saturation to the rate controller. The actual magnitude is not used.

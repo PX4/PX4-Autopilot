@@ -54,7 +54,7 @@ px4::AppState CDevExample::appState;
 
 static bool g_exit = false;
 
-static int writer_main(int argc, char *argv[])
+static int writer_main(int /*argc*/, char ** /*argv*/)
 {
 	char buf[1];
 
@@ -155,7 +155,7 @@ int CDevNode::close(cdev::file_t *handlep)
 	return 0;
 }
 
-ssize_t CDevNode::write(cdev::file_t *handlep, const char *buffer, size_t buflen)
+ssize_t CDevNode::write(cdev::file_t * /*handlep*/, const char *buffer, size_t buflen)
 {
 	for (size_t i = 0; i < buflen && _write_offset < 1000; i++) {
 		_buf[_write_offset] = buffer[i];

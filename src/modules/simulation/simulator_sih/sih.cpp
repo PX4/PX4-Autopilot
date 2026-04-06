@@ -672,7 +672,7 @@ void Sih::send_airspeed(const hrt_abstime &time_now_us)
 	_airspeed_pub.publish(airspeed);
 }
 
-void Sih::send_dist_snsr(const hrt_abstime &time_now_us)
+void Sih::send_dist_snsr(const hrt_abstime & /*time_now_us*/)
 {
 	device::Device::DeviceId device_id;
 	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
@@ -929,7 +929,7 @@ int Sih::run_trampoline(int argc, char *argv[])
 	}, argc, argv);
 }
 
-int Sih::task_spawn(int argc, char *argv[])
+int Sih::task_spawn(int /*argc*/, char *argv[])
 {
 	desc.task_id = px4_task_spawn_cmd("sih",
 					  SCHED_DEFAULT,
@@ -946,7 +946,7 @@ int Sih::task_spawn(int argc, char *argv[])
 	return 0;
 }
 
-Sih *Sih::instantiate(int argc, char *argv[])
+Sih *Sih::instantiate(int /*argc*/, char ** /*argv*/)
 {
 	Sih *instance = new Sih();
 
@@ -957,7 +957,7 @@ Sih *Sih::instantiate(int argc, char *argv[])
 	return instance;
 }
 
-int Sih::custom_command(int argc, char *argv[])
+int Sih::custom_command(int /*argc*/, char ** /*argv*/)
 {
 	return print_usage("unknown command");
 }

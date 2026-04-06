@@ -71,10 +71,10 @@ static cdev::file_t filemap[PX4_MAX_FD] {};
 class VFile : public cdev::CDev
 {
 public:
-	VFile(const char *fname, mode_t mode) : cdev::CDev(fname) {}
+	VFile(const char *fname, mode_t /*mode*/) : cdev::CDev(fname) {}
 	~VFile() override = default;
 
-	ssize_t write(cdev::file_t *handlep, const char *buffer, size_t buflen) override
+	ssize_t write(cdev::file_t * /*handlep*/, const char * /*buffer*/, size_t buflen) override
 	{
 		// ignore what was written, but let pollers know something was written
 		poll_notify(POLLIN);
@@ -113,7 +113,7 @@ static cdev::CDev *getFile(int fd)
 
 extern "C" {
 
-	int register_driver(const char *name, const cdev::px4_file_operations_t *fops, cdev::mode_t mode, void *data)
+	int register_driver(const char *name, const cdev::px4_file_operations_t * /*fops*/, cdev::mode_t /*mode*/, void *data)
 	{
 		PX4_DEBUG("CDev::register_driver %s", name);
 		int ret = -ENOSPC;

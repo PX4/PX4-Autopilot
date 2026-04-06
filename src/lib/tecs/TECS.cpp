@@ -713,7 +713,7 @@ void TECS::initialize(const float altitude, const float altitude_rate, const flo
 	_enabled_fast_descend_timestamp = 0U;
 }
 
-void TECS::update(float pitch, float altitude, float hgt_setpoint, float EAS_setpoint, float equivalent_airspeed,
+void TECS::update(float /*pitch*/, float altitude, float hgt_setpoint, float EAS_setpoint, float equivalent_airspeed,
 		  float eas_to_tas, float throttle_min, float throttle_setpoint_max,
 		  float throttle_trim, float pitch_limit_min, float pitch_limit_max, float target_climbrate,
 		  float target_sinkrate, const float speed_deriv_forward, float hgt_rate, float hgt_rate_sp)

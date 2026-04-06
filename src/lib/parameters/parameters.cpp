@@ -86,7 +86,7 @@ using namespace time_literals;
 #if defined(FLASH_BASED_PARAMS)
 #include "flashparams/flashparams.h"
 #else
-inline static int flash_param_save(param_filter_func filter) { return -1; }
+inline static int flash_param_save(param_filter_func /*filter*/) { return -1; }
 inline static int flash_param_load() { return -1; }
 inline static int flash_param_import() { return -1; }
 #endif
@@ -401,7 +401,7 @@ param_control_autosave(bool enable)
 }
 
 static int
-param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes, bool update_remote = true)
+param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes, [[maybe_unused]] bool update_remote = true)
 {
 	if (!handle_in_range(param)) {
 		PX4_ERR("set invalid param %d", param);
@@ -914,7 +914,7 @@ param_load_default()
 	return res;
 }
 
-static int param_verify_callback(bson_decoder_t decoder, bson_node_t node)
+static int param_verify_callback(bson_decoder_t /*decoder*/, bson_node_t node)
 {
 	if (node->type == BSON_EOO) {
 		return 0;
@@ -1151,7 +1151,7 @@ out:
 }
 
 static int
-param_import_callback(bson_decoder_t decoder, bson_node_t node)
+param_import_callback(bson_decoder_t /*decoder*/, bson_node_t node)
 {
 	/*
 	 * EOO means the end of the parameter object. (Currently not supporting

@@ -1142,7 +1142,7 @@ int MissionBase::goToPreviousItem(bool execute_jump)
 	return goToItem(_mission.current_seq - 1, execute_jump, true);
 }
 
-int MissionBase::goToPreviousPositionItem(bool execute_jump)
+int MissionBase::goToPreviousPositionItem(bool /*execute_jump*/)
 {
 	size_t num_found_items{0U};
 	int32_t previous_position_item_index;
@@ -1157,7 +1157,7 @@ int MissionBase::goToPreviousPositionItem(bool execute_jump)
 	}
 }
 
-int MissionBase::goToNextPositionItem(bool execute_jump)
+int MissionBase::goToNextPositionItem(bool /*execute_jump*/)
 {
 	size_t num_found_items{0U};
 	int32_t next_position_item_index;

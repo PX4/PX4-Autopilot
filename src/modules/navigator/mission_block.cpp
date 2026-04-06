@@ -989,7 +989,7 @@ void MissionBlock::setLandMissionItem(mission_item_s &item, const PositionYawSet
 	item.origin = ORIGIN_ONBOARD;
 }
 
-void MissionBlock::startPrecLand(uint16_t land_precision)
+void MissionBlock::startPrecLand(uint16_t /*land_precision*/)
 {
 	if (_mission_item.land_precision == 1) {
 		_navigator->get_precland()->set_mode(PrecLandMode::Opportunistic);

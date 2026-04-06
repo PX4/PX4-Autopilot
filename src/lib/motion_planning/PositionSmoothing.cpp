@@ -151,7 +151,7 @@ const Vector3f PositionSmoothing::_getCrossingPoint(const Vector3f &position, co
 	return _getL1Point(position, waypoints);
 }
 
-const Vector3f PositionSmoothing::_getL1Point(const Vector3f &position, const Vector3f(&waypoints)[3]) const
+const Vector3f PositionSmoothing::_getL1Point(const Vector3f & /*position*/, const Vector3f(&waypoints)[3]) const
 {
 	const Vector3f pos_traj(_trajectory[0].getCurrentPosition(), _trajectory[1].getCurrentPosition(),
 				_trajectory[2].getCurrentPosition());

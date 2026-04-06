@@ -361,7 +361,7 @@ int SeptentrioDriver::task_spawn(int argc, char *argv[])
 	return task_spawn(argc, argv, Instance::Main);
 }
 
-int SeptentrioDriver::task_spawn(int argc, char *argv[], Instance instance)
+int SeptentrioDriver::task_spawn(int /*argc*/, char *argv[], Instance instance)
 {
 	px4_main_t entry_point;
 	static constexpr int k_task_stack_size = PX4_STACK_ADJUSTED(2048);

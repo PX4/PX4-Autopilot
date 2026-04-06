@@ -359,7 +359,7 @@ and communicates back the delivery result as an acknowledgement internally
 	return 0;
 }
 
-int PayloadDeliverer::task_spawn(int argc, char *argv[])
+int PayloadDeliverer::task_spawn(int /*argc*/, char ** /*argv*/)
 {
 	PayloadDeliverer *instance = new PayloadDeliverer();
 

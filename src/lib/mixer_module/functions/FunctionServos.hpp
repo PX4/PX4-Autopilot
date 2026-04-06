@@ -61,7 +61,7 @@ public:
 
 	uORB::SubscriptionCallbackWorkItem *subscriptionCallback() override { return &_topic; }
 
-	float defaultFailsafeValue(OutputFunction func) const override { return 0.f; }
+	float defaultFailsafeValue(OutputFunction /*func*/) const override { return 0.f; }
 
 private:
 	uORB::SubscriptionCallbackWorkItem _topic;

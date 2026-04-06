@@ -428,7 +428,7 @@ bool Geofence::checkPointAgainstPolygonCircle(const PolygonInfo &polygon, double
 	return checksPass;
 }
 
-bool Geofence::insidePolygon(const PolygonInfo &polygon, double lat, double lon, float altitude)
+bool Geofence::insidePolygon(const PolygonInfo &polygon, double lat, double lon, float /*altitude*/)
 {
 	/**
 	 * Adaptation of algorithm originally presented as
@@ -482,7 +482,7 @@ bool Geofence::insidePolygon(const PolygonInfo &polygon, double lat, double lon,
 	return c;
 }
 
-bool Geofence::insideCircle(const PolygonInfo &polygon, double lat, double lon, float altitude)
+bool Geofence::insideCircle(const PolygonInfo &polygon, double lat, double lon, float /*altitude*/)
 {
 
 	mission_fence_point_s circle_point{};
@@ -526,7 +526,7 @@ Geofence::valid()
 }
 
 int
-Geofence::loadFromFile(const char *filename)
+Geofence::loadFromFile(const char * /*filename*/)
 {
 	FILE *fp;
 	char line[120];

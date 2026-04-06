@@ -49,7 +49,7 @@ ModuleBase::Descriptor SendEvent::desc{task_spawn, custom_command, print_usage};
 // Run it at 30 Hz.
 static constexpr uint32_t SEND_EVENT_INTERVAL_US{1_s / 30};
 
-int SendEvent::task_spawn(int argc, char *argv[])
+int SendEvent::task_spawn(int /*argc*/, char ** /*argv*/)
 {
 	SendEvent *send_event = new SendEvent();
 
@@ -154,7 +154,7 @@ The tasks can be started via CLI or uORB topics (vehicle_command from MAVLink, e
 	return 0;
 }
 
-int SendEvent::custom_command(int argc, char *argv[])
+int SendEvent::custom_command(int /*argc*/, char ** /*argv*/)
 {
 	// TODO: what is my purpose?
 	print_usage("unrecognized command");

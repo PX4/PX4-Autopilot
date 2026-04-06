@@ -170,7 +170,7 @@ void OutputPredictor::resetLatLonTo(const double &new_latitude, const double &ne
 	_global_ref.setLongitudeDeg(new_longitude);
 }
 
-void OutputPredictor::resetAltitudeTo(const float new_altitude, const float vert_pos_change)
+void OutputPredictor::resetAltitudeTo(const float new_altitude, const float /*vert_pos_change*/)
 {
 	_global_ref.setAltitude(new_altitude);
 }

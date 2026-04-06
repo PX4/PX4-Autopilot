@@ -52,7 +52,7 @@ MspV1::MspV1(int fd) :
 {
 }
 
-int MspV1::GetMessageSize(int message_type)
+int MspV1::GetMessageSize(int /*message_type*/)
 {
 	return 0;
 }
