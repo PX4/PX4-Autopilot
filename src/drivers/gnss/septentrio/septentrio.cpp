@@ -1464,7 +1464,7 @@ bool SeptentrioDriver::send_message_and_wait_for_ack(const char *msg, const int 
 	uint16_t response_check_character = 0;
 	// Length of the message without the newline but including the preceding response part "$R: "
 	size_t response_len = strlen(msg) + 3;
-	hrt_abstime timeout_time = hrt_absolute_time() + static_cast<hrt_abstime>(1000 * timeout);
+	hrt_abstime timeout_time = hrt_absolute_time() + static_cast<hrt_abstime>(timeout) * 1000;
 
 	do {
 		int read_result = read(reinterpret_cast<uint8_t*>(buf), sizeof(buf), 50);
@@ -1523,7 +1523,7 @@ int SeptentrioDriver::receive(unsigned timeout)
 		}
 
 		// abort after timeout if no useful packets received
-		if (time_started + static_cast<hrt_abstime>(timeout * 1000) < hrt_absolute_time()) {
+		if (time_started + static_cast<hrt_abstime>(timeout) * 1000 < hrt_absolute_time()) {
 			PX4_DEBUG("timed out, returning");
 			return -1;
 		}
