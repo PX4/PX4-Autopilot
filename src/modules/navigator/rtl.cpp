@@ -370,12 +370,7 @@ void RTL::setRtlTypeAndDestination()
 
 	} else if (_param_rtl_type.get() == 6) {
 		// estimate time to fly home using the same infrastructure as the battery failsafe
-<<<<<<< HEAD
-		const float rtl_alt_home = computeReturnAltitude(destination, DestinationType::DESTINATION_TYPE_HOME,
-						(float)_param_rtl_cone_ang.get());
-=======
 		const float rtl_alt_home = computeReturnAltitude(destination);
->>>>>>> a1dbebc558 (fixup! Add new RTL_TYPE for prioritizing home over rally points with a reachability condition)
 		_rtl_direct.setRtlAlt(rtl_alt_home);
 		_rtl_direct.setRtlPosition(destination, landing_loiter);
 
@@ -383,18 +378,18 @@ void RTL::setRtlTypeAndDestination()
 		const float battery_remaining_s = _battery_status_sub.get().time_remaining_s;
 
 		const bool home_within_reach = time_to_home.valid
-						&& PX4_ISFINITE(battery_remaining_s)
-						&& (time_to_home.safe_time_estimate < battery_remaining_s);
+					       && PX4_ISFINITE(battery_remaining_s)
+					       && (time_to_home.safe_time_estimate < battery_remaining_s);
 
 		if (!home_within_reach) {
 			// If battery data is valid, home is out of range: pick the closest rally point unconditionally
 			// If battery data is unavailable (NaN), we cannot assess reachability: pick the closest home or rally point
 			const float min_dist = PX4_ISFINITE(battery_remaining_s)
-						? FLT_MAX
-						: get_distance_to_next_waypoint(_global_pos_sub.get().lat,
-									       _global_pos_sub.get().lon,
-									       _home_pos_sub.get().lat,
-									       _home_pos_sub.get().lon);
+					       ? FLT_MAX
+					       : get_distance_to_next_waypoint(_global_pos_sub.get().lat,
+							       _global_pos_sub.get().lon,
+							       _home_pos_sub.get().lat,
+							       _home_pos_sub.get().lon);
 
 			PositionYawSetpoint safe_point = findClosestSafePoint(min_dist, safe_point_index);
 
@@ -402,6 +397,7 @@ void RTL::setRtlTypeAndDestination()
 				destination = safe_point;
 				destination_type = DestinationType::DESTINATION_TYPE_SAFE_POINT;
 			}
+
 			// If no rally points are closer (or none are defined), fall back to home (already set as the destination)
 		}
 
@@ -413,9 +409,9 @@ void RTL::setRtlTypeAndDestination()
 		landing_loiter.height_m = NAN;
 
 		if (_vehicle_status_sub.get().is_vtol
-			&& (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)
-			&& rtl_land_approaches.isAnyApproachValid()) {
-				landing_loiter = chooseBestLandingApproach(rtl_land_approaches);
+		    && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)
+		    && rtl_land_approaches.isAnyApproachValid()) {
+			landing_loiter = chooseBestLandingApproach(rtl_land_approaches);
 		}
 
 	} else {
