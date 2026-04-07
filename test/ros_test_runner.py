@@ -215,7 +215,7 @@ def is_everything_ready(config: Dict[str, str], build_dir: str) -> bool:
             result = False
         if not os.path.isfile(os.path.join(build_dir, 'bin/px4')):
             print("PX4 SITL is not built\n"
-                  "run `make px4_sitl_default`")
+                  "run `make px4_sitl_sih`")
             result = False
         if config.get('simulator') == 'gazebo':
             if is_running('gzserver'):
