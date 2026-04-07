@@ -42,9 +42,10 @@
  *   - goToNextPositionItem()
  *   - goToPreviousPositionItem()
  *
- * These tests cover both traversal modes:
- *   - Follow mission control flow, which preserves the legacy DO_JUMP behavior
- *   - Ignore DO_JUMP, which treats jump items as geometry-free control items
+ * These tests cover both traversal modes: Follow mission control flow and ignore DO_JUMP.
+ *
+ * @author Jonas Perolini <jonspero@me.com>
+ *
  */
 
 #include <gtest/gtest.h>
@@ -203,7 +204,7 @@ protected:
 	MissionBaseTestPeer mission_base{};
 };
 
-// WHY: Geometry-only position traversal must skip non-position mission items while searching for the next position item.
+// WHY: Geometry-only position traversal must skip non-position mission items.
 // WHAT: Starting from a VTOL transition item, the helper skips it and returns the next position item.
 TEST_F(MissionBaseTraversalTest, FindNextSkipsNonPositionItems)
 {
@@ -225,8 +226,29 @@ TEST_F(MissionBaseTraversalTest, FindNextSkipsNonPositionItems)
 	EXPECT_EQ(next_index, 2);
 }
 
-// WHY: Geometry-only traversal must not execute DO_JUMP items. It must treat
-//      jump items as non-position items and keep scanning for the next position item.
+// WHY: Geometry-only position traversal must skip non-position mission items.
+// WHAT: Starting from a position item after a VTOL transition, the helper skips it and returns the previous position item.
+TEST_F(MissionBaseTraversalTest, FindPreviousSkipsNonPositionItems)
+{
+	// GIVEN: A position item, a non-position VTOL transition, and then another position item.
+	mission_base.loadTestMission({
+		makePositionItem(kBaseLat, kBaseLon, kAlt), // idx 0
+		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW), // idx 1
+		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt), // idx 2
+	});
+
+	int32_t previous_index{-1};
+
+	// WHEN: Geometry-only traversal searches backward from the non-position item.
+	const bool found = mission_base.findPreviousPositionIndex(2, previous_index,
+			   MissionBaseTestPeer::MissionTraversalType::IgnoreDoJump);
+
+	// THEN: The previous position item is returned.
+	EXPECT_TRUE(found);
+	EXPECT_EQ(previous_index, 0);
+}
+
+// WHY: Geometry-only traversal must skip DO_JUMP items.
 // WHAT: [WP, DO_JUMP, WP, WP] starting from idx 1 returns idx 2.
 TEST_F(MissionBaseTraversalTest, FindNextSkipsDoJumpItems)
 {
@@ -249,8 +271,7 @@ TEST_F(MissionBaseTraversalTest, FindNextSkipsDoJumpItems)
 	EXPECT_EQ(next_index, 2);
 }
 
-// WHY: Geometry-only traversal must not execute DO_JUMP items. It must treat
-//      jump items as non-position items and keep scanning for the previous position item.
+// WHY: Geometry-only traversal must skip DO_JUMP items.
 // WHAT: [WP, WP, DO_JUMP, WP] starting from idx 3 returns idx 1.
 TEST_F(MissionBaseTraversalTest, FindPreviousSkipsDoJumpItems)
 {
@@ -296,15 +317,15 @@ TEST_F(MissionBaseTraversalTest, FindNextSkipsConsecutiveNonPositionItems)
 	EXPECT_EQ(next_index, 3);
 }
 
-// WHY: Consecutive non-position items must be skipped in reverse as well.
-// WHAT: [WP, DO_JUMP, DO_JUMP, WP] starting from idx 3 returns idx 0.
-TEST_F(MissionBaseTraversalTest, FindPreviousSkipsConsecutiveDoJumps)
+// WHY: Consecutive non-position items must be skipped in reverse.
+// WHAT: [WP, DO_JUMP, VTOL_FW, WP] starting from idx 3 returns idx 0.
+TEST_F(MissionBaseTraversalTest, FindPreviousSkipsConsecutiveNonPositionItems)
 {
 	// GIVEN: Consecutive non-position items before the previous position item.
 	mission_base.loadTestMission({
 		makePositionItem(kBaseLat, kBaseLon, kAlt), // idx 0
 		makeDoJump(0, 3), // idx 1
-		makeDoJump(0, 2), // idx 2
+		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW), // idx 2
 		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt), // idx 3
 	});
 
@@ -342,7 +363,7 @@ TEST_F(MissionBaseTraversalTest, FindNextReturnsFalseAtEnd)
 
 // WHY: Callers need a failure when no earlier position item exists.
 // WHAT: [DO_JUMP, WP] starting from idx 1 returns false.
-TEST_F(MissionBaseTraversalTest, FindPreviousReturnsFalseWhenOnlyJumpsBefore)
+TEST_F(MissionBaseTraversalTest, FindPreviousReturnsFalseAtStart)
 {
 	// GIVEN: A mission with no position item before the starting index.
 	mission_base.loadTestMission({
@@ -407,7 +428,7 @@ TEST_F(MissionBaseTraversalTest, FindPreviousReturnsFalseOnCacheReadFailure)
 	EXPECT_EQ(previous_index, -1);
 }
 
-// WHY: The shared traversal API must expose both behaviors on the same mission.
+// WHY: findNextPositionIndex must use MissionTraversalType
 // WHAT: [DO_JUMP->2, WP1, WP2] starting from idx 0 resolves to idx 2 in mission-control
 //       mode and idx 1 in geometry-only mode.
 TEST_F(MissionBaseTraversalTest, FindNextSupportsBothTraversalSemantics)
@@ -435,7 +456,7 @@ TEST_F(MissionBaseTraversalTest, FindNextSupportsBothTraversalSemantics)
 	EXPECT_EQ(next_geometry, 1);
 }
 
-// WHY: Backward single-item lookup also needs both semantics exposed on the same mission.
+// WHY: findPreviousPositionIndex must use MissionTraversalType
 // WHAT: [WP0, WP1, DO_JUMP->0, WP3] starting from idx 3 resolves to idx 0 in mission-control
 //       mode and idx 1 in geometry-only mode.
 TEST_F(MissionBaseTraversalTest, FindPreviousSupportsBothTraversalSemantics)
@@ -462,48 +483,6 @@ TEST_F(MissionBaseTraversalTest, FindPreviousSupportsBothTraversalSemantics)
 	EXPECT_TRUE(found_geometry);
 	EXPECT_EQ(previous_follow, 0);
 	EXPECT_EQ(previous_geometry, 1);
-}
-
-// WHY: The original bug was that goToNextPositionItem(IgnoreDoJump) still followed DO_JUMP
-//      control flow.
-// WHAT: [DO_JUMP->2, WP1, WP2] from current_seq=-1 should land on idx 1 in geometry-only mode.
-TEST_F(MissionBaseTraversalTest, GoToNextPositionItemIgnoresDoJump)
-{
-	// GIVEN: A mission whose first item is an active DO_JUMP.
-	mission_base.loadTestMission({
-		makeDoJump(2, 1, 0), // idx 0
-		makePositionItem(kBaseLat, kBaseLon, kAlt), // idx 1
-		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt), // idx 2
-	});
-	mission_base.setCurrentSequence(-1);
-
-	// WHEN: The caller requests geometry-only traversal.
-	const int ret = mission_base.goToNextPositionItem(MissionBaseTestPeer::MissionTraversalType::IgnoreDoJump);
-
-	// THEN: Traversal lands on the first position item instead of the jump target.
-	EXPECT_EQ(ret, PX4_OK);
-	EXPECT_EQ(mission_base.currentSequence(), 1);
-}
-
-// WHY: The same traversal-mode bug existed in the backward position API.
-// WHAT: [WP0, WP1, DO_JUMP->0, WP3] from current_seq=3 should land on idx 1 in geometry-only mode.
-TEST_F(MissionBaseTraversalTest, GoToPreviousPositionItemIgnoresDoJump)
-{
-	// GIVEN: A mission whose previous path includes a DO_JUMP item.
-	mission_base.loadTestMission({
-		makePositionItem(kBaseLat, kBaseLon, kAlt), // idx 0
-		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt), // idx 1
-		makeDoJump(0, 2, 0), // idx 2
-		makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt), // idx 3
-	});
-	mission_base.setCurrentSequence(3);
-
-	// WHEN: The caller explicitly requests geometry-only traversal.
-	const int ret = mission_base.goToPreviousPositionItem(MissionBaseTestPeer::MissionTraversalType::IgnoreDoJump);
-
-	// THEN: Traversal lands on the previous position item instead of following the jump.
-	EXPECT_EQ(ret, PX4_OK);
-	EXPECT_EQ(mission_base.currentSequence(), 1);
 }
 
 // WHY: The refactor must not change the legacy mission-control behavior.
@@ -563,7 +542,7 @@ TEST_F(MissionBaseTraversalTest, GetNextPositionItemsFollowsActiveDoJump)
 	int32_t next_items[2] = {-1, -1};
 	size_t num_found_items = 0;
 
-	// WHEN: The legacy multi-item helper walks forward with default traversal semantics.
+	// WHEN: The multi-item helper walks forward with default traversal semantics.
 	mission_base.getNextPositionItems(2, next_items, num_found_items, 2u);
 
 	// THEN: The active DO_JUMP is followed.
@@ -572,8 +551,7 @@ TEST_F(MissionBaseTraversalTest, GetNextPositionItemsFollowsActiveDoJump)
 	EXPECT_EQ(next_items[1], 1);
 }
 
-// WHY: Existing reverse mission flows rely on getPreviousPositionItems() preserving the
-//      legacy behavior of following active DO_JUMP control flow by default.
+// WHY: Reverse mission flows rely on getPreviousPositionItems() following active DO_JUMP.
 // WHAT: [WP0, WP1, DO_JUMP->0, WP3] starting from idx 3 returns idx 0.
 TEST_F(MissionBaseTraversalTest, GetPreviousPositionItemsFollowsActiveDoJump)
 {
@@ -588,7 +566,7 @@ TEST_F(MissionBaseTraversalTest, GetPreviousPositionItemsFollowsActiveDoJump)
 	int32_t previous_items[1] = {-1};
 	size_t num_found_items = 0;
 
-	// WHEN: The legacy multi-item helper walks backward with default traversal semantics.
+	// WHEN: The multi-item helper walks backward with default traversal semantics.
 	mission_base.getPreviousPositionItems(3, previous_items, num_found_items, 1u);
 
 	// THEN: The active DO_JUMP is followed.
