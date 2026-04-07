@@ -431,6 +431,22 @@ PARAM_DEFINE_FLOAT(FW_MAN_Y_SC, 1.0f);
 PARAM_DEFINE_FLOAT(FW_RLL_TO_YAW_FF, 0.0f);
 
 /**
+ * Flap input in manual flight
+ *
+ * Chose source for manual setting of flaps in manual flight modes.
+ *
+ * @value 0 Disabled
+ * @value 1 Aux1
+ * @value 2 Aux2
+ * @value 3 Aux3
+ * @value 4 Aux4
+ * @value 5 Aux5
+ * @value 6 Flaps channel
+ * @group FW Rate Control
+ */
+PARAM_DEFINE_INT32(FW_FLAPS_MAN, 0);
+
+/**
  * Spoiler input in manual flight
  *
  * Chose source for manual setting of spoilers in manual flight modes.
@@ -438,6 +454,9 @@ PARAM_DEFINE_FLOAT(FW_RLL_TO_YAW_FF, 0.0f);
  * @value 0 Disabled
  * @value 1 Flaps channel
  * @value 2 Aux1
+ * @value 3 Aux2
+ * @value 4 Aux3
+ * @value 5 Aux4
  * @group FW Rate Control
  */
 PARAM_DEFINE_INT32(FW_SPOILERS_MAN, 0);
