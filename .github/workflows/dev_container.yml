@@ -45,8 +45,8 @@ jobs:
       meta_tags: ${{ steps.meta.outputs.tags }}
       meta_labels: ${{ steps.meta.outputs.labels }}
     steps:
-      - uses: runs-on/action@v1
-      - uses: actions/checkout@v4
+      - uses: runs-on/action@v2
+      - uses: actions/checkout@v5
         with:
           fetch-tags: true
           submodules: false
@@ -64,7 +64,7 @@ jobs:
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: |
             ghcr.io/PX4/px4-dev
@@ -89,22 +89,22 @@ jobs:
             runner: x64
     runs-on: [runs-on,"runner=4cpu-linux-${{ matrix.runner }}","image=ubuntu24-full-${{ matrix.runner }}","run-id=${{ github.run_id }}",extras=s3-cache,spot=false]
     steps:
-      - uses: runs-on/action@v1
-      - uses: actions/checkout@v4
+      - uses: runs-on/action@v2
+      - uses: actions/checkout@v5
         with:
           fetch-tags: true
           submodules: false
           fetch-depth: 0
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         if: ${{ startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_to_registry) }}
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         if: ${{ startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_to_registry) }}
         with:
           registry: ghcr.io
@@ -112,13 +112,13 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
         with:
           driver: docker-container
           platforms: ${{ matrix.platform }}
 
       - name: Build and Load Container Image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         id: docker
         with:
           context: Tools/setup
@@ -130,8 +130,8 @@ jobs:
           load: false
           push: ${{ startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_to_registry) }}
           provenance: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.arch }},ignore-error=true
 
   deploy:
     name: Deploy To Registry
@@ -140,23 +140,26 @@ jobs:
       packages: write
     runs-on: [runs-on,"runner=4cpu-linux-x64","image=ubuntu24-full-x64","run-id=${{ github.run_id }}",extras=s3-cache,spot=false]
     needs: [build, setup]
-    if: ${{ startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_to_registry) }}
+    if: |
+      !cancelled() &&
+      needs.setup.result == 'success' &&
+      (startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_to_registry == 'true'))
     steps:
-      - uses: runs-on/action@v1
-      - uses: actions/checkout@v4
+      - uses: runs-on/action@v2
+      - uses: actions/checkout@v5
         with:
           fetch-tags: true
           submodules: false
           fetch-depth: 0
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -164,10 +167,10 @@ jobs:
 
       - name: Verify Images Exist Before Creating Manifest
         run: |
-          docker manifest inspect px4io/px4-dev:${{ needs.setup.outputs.px4_version }}-arm64 || echo "⚠️ Warning: No ARM64 image found!"
-          docker manifest inspect px4io/px4-dev:${{ needs.setup.outputs.px4_version }}-amd64 || echo "⚠️ Warning: No AMD64 image found!"
-          docker manifest inspect ghcr.io/px4/px4-dev:${{ needs.setup.outputs.px4_version }}-arm64 || echo "⚠️ Warning: No ARM64 image found!"
-          docker manifest inspect ghcr.io/px4/px4-dev:${{ needs.setup.outputs.px4_version }}-amd64 || echo "⚠️ Warning: No AMD64 image found!"
+          docker manifest inspect px4io/px4-dev:${{ needs.setup.outputs.px4_version }}-arm64
+          docker manifest inspect px4io/px4-dev:${{ needs.setup.outputs.px4_version }}-amd64
+          docker manifest inspect ghcr.io/px4/px4-dev:${{ needs.setup.outputs.px4_version }}-arm64
+          docker manifest inspect ghcr.io/px4/px4-dev:${{ needs.setup.outputs.px4_version }}-amd64
 
       - name: Create and Push Multi-Arch Manifest for Docker Hub
         run: |
