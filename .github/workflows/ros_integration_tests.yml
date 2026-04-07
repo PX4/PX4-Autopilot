@@ -43,12 +43,14 @@ jobs:
         sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg && \
         echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
 
-    - name: Install gazebo
+    - name: Prepare ccache timestamp
+      id: ccache_cache_timestamp
+      shell: cmake -P {0}
       run: |
-        apt update && apt install -y gazebo11 libgazebo11-dev gstreamer1.0-plugins-bad gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly libgstreamer-plugins-base1.0-dev
-
-    - uses: ./.github/actions/setup-ccache
-      id: ccache
+        string(TIMESTAMP current_date "%Y-%m-%d-%H;%M;%S" UTC)
+        message("::set-output name=timestamp::${current_date}")
+    - name: ccache cache files
+      uses: actions/cache@v4
       with:
         cache-key-prefix: ccache-ros-integration
         max-size: 400M
@@ -110,8 +112,10 @@ jobs:
         rm -rf src/translation_node src/px4_msgs_old
         colcon build --symlink-install
 
-    - uses: ./.github/actions/build-gazebo-sitl
-
+    - name: Build PX4
+      run: make px4_sitl_default
+    - name: ccache post-run px4/firmware
+      run: ccache -s
     - name: Core dump settings
       run: |
         ulimit -c unlimited
@@ -122,7 +126,7 @@ jobs:
       run: |
         . /opt/px4_ws/install/setup.bash
         /opt/Micro-XRCE-DDS-Agent/build/MicroXRCEAgent udp4 localhost -p 8888 -v 0 &
-        test/ros_test_runner.py --verbose --model iris --force-color
+        test/ros_test_runner.py --verbose --model quadx --upload --force-color
       timeout-minutes: 45
 
     - uses: ./.github/actions/save-ccache

@@ -1,18 +1,16 @@
 {
     "mode": "sitl",
-    "simulator": "gazebo",
-    "model_prefix": "gazebo-classic_",
+    "model_prefix": "sihsim_",
+    "mavlink_connection": "udpin://0.0.0.0:14540",
     "tests":
     [
         {
-            "model": "iris",
-            "vehicle": "iris",
+            "model": "quadx",
             "test_filter": "ModesTest.*",
             "timeout_min": 10
         },
         {
-            "model": "iris",
-            "vehicle": "iris",
+            "model": "quadx",
             "test_filter": "LocalPositionInterfaceTest.*",
             "timeout_min": 10,
             "env": {
@@ -20,8 +18,7 @@
             }
         },
         {
-            "model": "iris",
-            "vehicle": "iris",
+            "model": "quadx",
             "test_filter": "GlobalPositionInterfaceTest.*",
             "timeout_min": 10,
             "env": {
