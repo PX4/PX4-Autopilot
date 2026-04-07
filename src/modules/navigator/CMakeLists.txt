@@ -33,7 +33,10 @@
 
 add_subdirectory(GeofenceBreachAvoidance)
 add_subdirectory(MissionFeasibility)
-add_subdirectory(test)
+
+if(BUILD_TESTING)
+	add_subdirectory(test)
+endif()
 
 set(NAVIGATOR_SOURCES
 	navigator_main.cpp
