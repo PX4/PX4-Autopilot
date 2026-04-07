@@ -43,8 +43,6 @@
 
 #include <mathlib/mathlib.h>
 #include <uORB/topics/rate_ctrl_status.h>
-#include <string>
-#include <vector>
 
 #include "FALCON/RSLQR/RSLQR.hpp"
 
@@ -124,7 +122,7 @@ public:
 	 */
 	void getRateControlStatus(rate_ctrl_status_s &rate_ctrl_status);
 
-	void exportToCSV(const std::string& filename, const std::vector<float>& data);
+	// void exportToCSV(const std::string& filename, const std::vector<float>& data);
 
 private:
 
@@ -139,6 +137,8 @@ private:
 	matrix::Vector3f _rate_int; ///< integral term of the rate controller
 
 	// Controllers
+
+	//FALCON_Controller _falcon_controller;
 	RSLQR _roll_controller;
 	RSLQR _pitch_controller;
 	RSLQR _yaw_controller;
@@ -147,5 +147,5 @@ private:
 	matrix::Vector<bool, 3> _control_allocator_saturation_negative;
 	matrix::Vector<bool, 3> _control_allocator_saturation_positive;
 
-	bool _logControllerState{true};
+	bool _logControllerState{false};
 };

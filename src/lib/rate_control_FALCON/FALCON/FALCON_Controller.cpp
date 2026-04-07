@@ -1,6 +1,5 @@
 #include "FALCON_Controller.hpp"
 #include <px4_platform_common/defines.h>
-#include <iostream>
 #include <fstream>
 
 FALCON_Controller::FALCON_Controller(float proportional_gain, float integral_gain, float saturation_positive, float saturation_negative, float integral_limit){

@@ -1,0 +1,12 @@
+menuconfig MODULES_MC_DATA_ANALYSIS
+	bool "mc_data_analysis"
+	default n
+	---help---
+		Enable csv logging of controller data
+
+menuconfig USER_MC_DATA_ANALYSIS
+	bool "mc_data_analysis running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && MODULES_MC_DATA_ANALYSIS
+	---help---
+		Put mc_data_analysis in userspace memory

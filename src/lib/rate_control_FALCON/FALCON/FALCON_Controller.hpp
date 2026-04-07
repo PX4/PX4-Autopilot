@@ -2,11 +2,6 @@
 
 #include <matrix/matrix/math.hpp>
 #include <mathlib/mathlib.h>
-#include "json.hpp"
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <vector>
 
 class FALCON_Controller
 {
@@ -22,7 +17,6 @@ class FALCON_Controller
 
         void log_state() const;
 
-        nlohmann::json _config;
 
         float _proportional_gain;
         float _integral_gain;

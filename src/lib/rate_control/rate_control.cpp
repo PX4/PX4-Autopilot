@@ -37,7 +37,7 @@
 
 #include "rate_control.hpp"
 #include <px4_platform_common/defines.h>
-#include <iostream>
+
 
 using namespace matrix;
 
@@ -46,7 +46,6 @@ void RateControl::setPidGains(const Vector3f &P, const Vector3f &I, const Vector
 	_gain_p = P;
 	_gain_i = I;
 	_gain_d = D;
-	std::cout << "Using old pixhawk" << std::endl;
 }
 
 void RateControl::setSaturationStatus(const Vector3<bool> &saturation_positive,

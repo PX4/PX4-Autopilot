@@ -37,8 +37,7 @@
 
 #include "rate_control_falcon.hpp"
 #include <px4_platform_common/defines.h>
-#include <fstream>
-#include <iostream>
+
 
 
 using namespace matrix;
@@ -115,7 +114,7 @@ Vector3f RateControlFalcon::update(const Vector3f &rate, const Vector3f &rate_sp
 	Vector3f torque = {roll_torque, pitch_torque, yaw_torque};
 
 	// Export controller state to CSV for analysis
-	if (_logControllerState) {
+	/* if (_logControllerState) {
 		std::vector<float> data = {
 			{rate(0), rate(1), rate(2), 
 			rate_sp(0), rate_sp(1), rate_sp(2), 
@@ -123,7 +122,7 @@ Vector3f RateControlFalcon::update(const Vector3f &rate, const Vector3f &rate_sp
 			torque(0), torque(1), torque(2)}
 		};
 		exportToCSV("controller_state.csv", data);
-	}
+	} */
 	
 	return torque;
 }
@@ -136,7 +135,7 @@ void RateControlFalcon::getRateControlStatus(rate_ctrl_status_s &rate_ctrl_statu
 	rate_ctrl_status.yawspeed_integ = _rate_int(2);
 }
 
-void RateControlFalcon::exportToCSV(const std::string& filename, const std::vector<float>& data) {
+/* void RateControlFalcon::exportToCSV(const std::string& filename, const std::vector<float>& data) {
 	std::ifstream infile(filename);
    
     bool exists = infile.good();
@@ -156,4 +155,4 @@ void RateControlFalcon::exportToCSV(const std::string& filename, const std::vect
         file << value << ",";
     }
     file << "\n";
-}
+} */

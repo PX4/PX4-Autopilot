@@ -31,21 +31,18 @@
 #
 ############################################################################
 
-px4_add_module(
-	MODULE modules__mc_rate_control
-	MAIN mc_rate_control
-	COMPILE_FLAGS
-		${MAX_CUSTOM_OPT_LEVEL}
-	SRCS
-		MulticopterRateControl.cpp
-		MulticopterRateControl.hpp
-	MODULE_CONFIG
-		mc_acro_params.yaml
-		mc_rate_control_params.yaml
-	DEPENDS
-		circuit_breaker
-		mathlib
-		RateControlFalcon
-		#RateControl
-		px4_work_queue
-	)
+# px4_add_module(
+# 	MODULE modules__mc_data_analysis
+# 	MAIN mc_data_analysis
+# 	COMPILE_FLAGS
+# 		${MAX_CUSTOM_OPT_LEVEL}
+# 	SRCS
+# 		MulticopterDataAnalysis.cpp
+# 		MulticopterDataAnalysis.hpp
+# 	MODULE_CONFIG
+		
+# 	DEPENDS
+# 		circuit_breaker
+# 		mathlib
+# 		px4_work_queue
+# 	)
