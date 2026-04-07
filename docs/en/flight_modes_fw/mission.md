@@ -61,7 +61,7 @@ This ensures that in survey/camera missions the planned path is captured.
 A mission can be uploaded while the vehicle is paused, in which case the current active mission item is set to 1.
 
 ::: info
-The route-rejoin behavior uses the same full-mission cache and projection logic as [Route Safe Point Return](../flight_modes/route_safe_point_return.md). Set [MIS_ROUTE_JOIN](../advanced_config/parameter_reference.md#MIS_ROUTE_JOIN) to `0` to disable the smart branch-in and always resume with the legacy direct-to-current-item behavior. Missions larger than `CONFIG_RTL_MISSION_CACHE_SIZE` also fall back to the legacy resume behavior. Smart route rejoin does not yet insert a front-transition before resuming a fixed-wing segment; only the post-join back-transition path is implemented.
+The route-rejoin behaviour uses the same full-mission cache and projection logic as [Route Safe Point Return](../flight_modes/route_safe_point_return.md). Set [MIS_ROUTE_JOIN](../advanced_config/parameter_reference.md#MIS_ROUTE_JOIN) to `0` to disable the smart branch-in and always resume with the legacy direct-to-current-item behaviour. Missions larger than `CONFIG_RTL_MISSION_CACHE_SIZE` also fall back to the legacy resume behaviour. For fixed-wing missions, smart route rejoin supports the required transition handling around the join before continuing the resumed mission segment.
 :::
 
 ::: info

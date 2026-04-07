@@ -130,7 +130,7 @@ parameters:
         long: |-
           When projecting the safe point position onto the uploaded mission route (RTL_TYPE = 6).
           A projection point is only considered a valid candidate if the crosstrack distance
-          from the safe point to the segment does not not exceed the crosstrack distance
+          from the safe point to the segment does not exceed the crosstrack distance
           from the safe point to the closest available segment plus the allowed margin: RTL_RP_SEG_DIST.
       type: float
       default: 30.0

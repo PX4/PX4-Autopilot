@@ -130,7 +130,7 @@ parameters:
         long: |-
           When projecting the vehicle position onto the uploaded mission route for Mission resume or RTL_TYPE = 6.
           A projection point is only considered a valid candidate if the crosstrack distance
-          from the vehicle to the segment does not not exceed the crosstrack distance
+          from the vehicle to the segment does not exceed the crosstrack distance
           from the vehicle to the closest available segment plus the allowed margin: MIS_MC_SEG_DIST.
       type: float
       default: 30.0
@@ -144,7 +144,7 @@ parameters:
         long: |-
           When projecting the vehicle position onto the uploaded mission route for Mission resume or RTL_TYPE = 6.
           A projection point is only considered a valid candidate if the crosstrack distance
-          from the vehicle to the segment does not not exceed the crosstrack distance
+          from the vehicle to the segment does not exceed the crosstrack distance
           from the vehicle to the closest available segment plus the allowed margin: MIS_FW_SEG_DIST.
       type: float
       default: 150.0
