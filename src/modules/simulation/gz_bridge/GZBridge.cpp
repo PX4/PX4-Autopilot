@@ -390,7 +390,10 @@ void GZBridge::magnetometerCallback(const gz::msgs::Magnetometer &msg)
 	id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
 	id.devid_s.devtype = DRV_MAG_DEVTYPE_MAGSIM;
 	id.devid_s.bus = 1;
-	id.devid_s.address = 3; // TODO: any value other than 3 causes Commander to not use the mag.... wtf
+
+	// Parameters CAL_MAGx_ID set to 0x3030C and 0x3040C in init.d-posix so only address 3 and 4 are valid for sim magnetometers (unless overwritten)
+	// See: https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d-posix/rcS#L146-L149
+	id.devid_s.address = 3;
 
 	sensor_mag_s report{};
 	report.timestamp = timestamp;
@@ -398,7 +401,7 @@ void GZBridge::magnetometerCallback(const gz::msgs::Magnetometer &msg)
 	report.device_id = id.devid;
 	report.temperature = this->_temperature;
 
-	// FIMEX: once we're on jetty or later
+	// FIXME: once we're on jetty or later
 	// The magnetometer plugin publishes in units of gauss and in a weird left handed coordinate system
 	// https://github.com/gazebosim/gz-sim/pull/2460
 	report.x = -msg.field_tesla().y();

@@ -87,6 +87,9 @@ Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us, 
 	snprintf(param_name, sizeof(param_name), "BAT%d_SOURCE", _index);
 	_param_handles.source = param_find(param_name);
 
+	snprintf(param_name, sizeof(param_name), "BAT%d_I_OVERWRITE", _index);
+	_param_handles.i_overwrite = param_find(param_name);
+
 	_param_handles.low_thr = param_find("BAT_LOW_THR");
 	_param_handles.crit_thr = param_find("BAT_CRIT_THR");
 	_param_handles.emergen_thr = param_find("BAT_EMERGEN_THR");
@@ -103,7 +106,13 @@ void Battery::updateVoltage(const float voltage_v)
 
 void Battery::updateCurrent(const float current_a)
 {
-	_current_a = current_a;
+	// Overwrite the measured current if current overwrite is defined and vehicle is unarmed
+	if (!_armed && _params.i_overwrite > FLT_EPSILON) {
+		_current_a = _params.i_overwrite;
+
+	} else {
+		_current_a = current_a;
+	}
 }
 
 void Battery::updateTemperature(const float temperature_c)
@@ -143,6 +152,14 @@ void Battery::updateBatteryStatus(const hrt_abstime &timestamp)
 
 	if (_connected && _battery_initialized) {
 		_warning = determineWarning(_state_of_charge);
+	}
+
+	if (_vehicle_status_sub.updated()) {
+		vehicle_status_s vehicle_status;
+
+		if (_vehicle_status_sub.copy(&vehicle_status)) {
+			_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+		}
 	}
 }
 
@@ -359,7 +376,6 @@ float Battery::computeRemainingTime(float current_a)
 		vehicle_status_s vehicle_status;
 
 		if (_vehicle_status_sub.copy(&vehicle_status)) {
-			_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 
 			if (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING && !_vehicle_status_is_fw) {
 				reset_current_avg_filter = true;
@@ -412,6 +428,7 @@ void Battery::updateParams()
 	param_get(_param_handles.crit_thr, &_params.crit_thr);
 	param_get(_param_handles.emergen_thr, &_params.emergen_thr);
 	param_get(_param_handles.bat_avrg_current, &_params.bat_avrg_current);
+	param_get(_param_handles.i_overwrite, &_params.i_overwrite);
 
 	float capacity{0.f};
 	param_get(_param_handles.capacity, &capacity);

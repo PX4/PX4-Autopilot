@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/usr/bin/env bash
 # Copy a git diff between two commits if msg versioning is added
 
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )

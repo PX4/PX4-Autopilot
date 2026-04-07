@@ -1613,6 +1613,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 	case vehicle_command_s::VEHICLE_CMD_REQUEST_CAMERA_INFORMATION:
 	case vehicle_command_s::VEHICLE_CMD_EXTERNAL_ATTITUDE_ESTIMATE:
 	case vehicle_command_s::VEHICLE_CMD_DO_AUTOTUNE_ENABLE:
+	case vehicle_command_s::VEHICLE_CMD_ESTIMATOR_SENSOR_ENABLE:
 		/* ignore commands that are handled by other parts of the system */
 		break;
 
@@ -1870,6 +1871,7 @@ void Commander::run()
 #endif // BOARD_HAS_POWER_CONTROL
 
 	_boot_timestamp = hrt_absolute_time();
+	_arm_on_boot_requested = _param_com_arm_on_boot.get();
 
 	arm_auth_init(&_mavlink_log_pub, &_vehicle_status.system_id);
 
@@ -1949,6 +1951,20 @@ void Commander::run()
 
 			perf_end(_preflight_check_perf);
 			checkAndInformReadyForTakeoff();
+
+			// Arm automatically on boot once preflight checks pass
+			// _arm_on_boot_done prevents re-arming after disarming
+			const bool should_arm_on_boot = _arm_on_boot_requested
+							&& !_arm_on_boot_done
+							&& !isArmed()
+							&& hrt_elapsed_time(&_boot_timestamp) > 5_s
+							&& pre_flight_checks_pass;
+
+			if (should_arm_on_boot) {
+				if (arm(arm_disarm_reason_t::mission_start, false) != TRANSITION_DENIED) {
+					_arm_on_boot_done = true;
+				}
+			}
 		}
 
 		// handle commands last, as the system needs to be updated to handle them
@@ -2935,7 +2951,7 @@ void Commander::dataLinkCheck()
 	// Parachute system
 	if ((hrt_elapsed_time(&_datalink_last_heartbeat_parachute_system) > 3_s)
 	    && !_parachute_system_lost) {
-		mavlink_log_critical(&_mavlink_log_pub, "Parachute system lost");
+		mavlink_log_critical(&_mavlink_log_pub, "Parachute system lost\t");
 		_vehicle_status.parachute_system_present = false;
 		_vehicle_status.parachute_system_healthy = false;
 		_parachute_system_lost = true;
@@ -2945,7 +2961,7 @@ void Commander::dataLinkCheck()
 	// Remote ID system
 	if ((hrt_elapsed_time(&_datalink_last_heartbeat_open_drone_id_system) > 3_s)
 	    && !_open_drone_id_system_lost) {
-		mavlink_log_critical(&_mavlink_log_pub, "Remote ID system lost");
+		mavlink_log_critical(&_mavlink_log_pub, "Remote ID system lost\t");
 		events::send(events::ID("commander_remote_id_lost"), events::Log::Critical, "Remote ID system lost");
 		_vehicle_status.open_drone_id_system_present = false;
 		_vehicle_status.open_drone_id_system_healthy = false;
@@ -2954,9 +2970,9 @@ void Commander::dataLinkCheck()
 	}
 
 	// Traffic avoidance system (ADSB/FLARM)
-	if ((hrt_elapsed_time(&_datalink_last_heartbeat_traffic_avoidance_system) > 3_s)
+	if ((_param_com_arm_traff.get() > 0) && (hrt_elapsed_time(&_datalink_last_heartbeat_traffic_avoidance_system) > 3_s)
 	    && !_traffic_avoidance_system_lost) {
-		mavlink_log_critical(&_mavlink_log_pub, "Traffic avoidance system lost");
+		mavlink_log_critical(&_mavlink_log_pub, "Traffic avoidance system lost\t");
 		events::send(events::ID("commander_traffic_avoidance_lost"), events::Log::Critical, "Traffic avoidance system lost");
 		_vehicle_status.traffic_avoidance_system_present = false;
 		_traffic_avoidance_system_lost = true;

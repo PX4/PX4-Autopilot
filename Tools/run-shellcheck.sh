@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Script to run ShellCheck (a static analysis tool for shell scripts) over a
 # script directory

@@ -224,7 +224,7 @@ MissionBase::on_activation()
 
 	if (_inactivation_index > 0 && cameraWasTriggering()) {
 		size_t num_found_items{0U};
-		getPreviousPositionItems(_inactivation_index - 1, &resume_index, num_found_items, 1U);
+		getPreviousPositionItems(_inactivation_index, &resume_index, num_found_items, 1U);
 
 		if (num_found_items == 1U) {
 			// The mission we are resuming had camera triggering enabled. In order to not lose any images

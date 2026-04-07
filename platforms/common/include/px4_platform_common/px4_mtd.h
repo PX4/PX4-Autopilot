@@ -80,6 +80,11 @@ __EXPORT ssize_t px4_mtd_get_partition_size(const mtd_instance_s *instance, cons
 int px4_at24c_initialize(FAR struct i2c_master_s *dev,
 			 uint8_t address, FAR struct mtd_dev_s **mtd_dev);
 
+/*
+  Update the page count of an already-initialised device.
+ */
+int px4_at24c_set_npages(FAR struct mtd_dev_s *dev, uint16_t npages);
+
 void px4_at24c_deinitialize(void);
 
 int flexspi_attach(mtd_instance_s *instance);

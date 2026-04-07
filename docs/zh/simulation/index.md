@@ -3,37 +3,78 @@
 在仿真机中模拟器允许 px4 飞行代码来控制计算机建模工具。
 You can interact with this vehicle just as you might with a real vehicle, using _QGroundControl_, an offboard API, or a radio controller/gamepad.
 
-:::tip
-Simulation is a quick, easy, and most importantly, _safe_ way to test changes to PX4 code before attempting to fly in the real world.
-It is also a good way to start flying with PX4 when you haven't yet got a vehicle to experiment with.
-:::
-
 PX4 supports both _Software In the Loop (SITL)_ simulation, where the flight stack runs on computer (either the same computer or another computer on the same network) and _Hardware In the Loop (HITL)_ simulation using a simulation firmware on a real flight controller board.
 
 Information about available simulators and how to set them up are provided in the next section.
 The other sections provide general information about how the simulator works, and are not required to _use_ the simulators.
 
+:::tip
+Simulation is a quick, easy, and most importantly, _safe_ way to test changes to PX4 code before attempting to fly in the real world.
+It is also a good way to start flying with PX4 when you haven't yet got a vehicle to experiment with.
+:::
+
 ## 支持的仿真器
 
 The following simulators are supported by the PX4 core development team.
+
+:::info
+Gazebo Classic is being downgraded to [community supported](../simulation/community_supported_simulators.md) and is no longer recommended as the default simulation solution.
+Use [Gazebo](../sim_gazebo_gz/index.md) (formerly Gazebo Ignition) for new projects.
+If you have an older workflow that does not yet work in newer Gazebo, Gazebo Classic remains available but will not receive core team maintenance going forward.
+See [PX4-Autopilot#23602](https://github.com/PX4/PX4-Autopilot/issues/23602) for the deprecation timeline and migration status.
+:::
 
 | 仿真器                                              | 描述                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [Gazebo](../sim_gazebo_gz/index.md)              | Gazebo supersedes [Gazebo Classic](../sim_gazebo_classic/index.md), featuring more advanced rendering, physics and sensor models. It is the only version of Gazebo available from Ubuntu Linux 22.04<br><br>A powerful 3D simulation environment that is particularly suitable for testing object-avoidance and computer vision. 它还可用于 [多工具仿真](../simulation/multi-vehicle-simulation.md)，通常用于 [ROS](../simulation/ros_interface.md)，这是一种用于自动控制的工具集。 <br><br><strong>Supported Vehicles:</strong> Quad, VTOL (Standard, Tailsitter, Tiltroter), Plane, Rovers                                                                                                     |
 | [Gazebo Classic](../sim_gazebo_classic/index.md) | A powerful 3D simulation environment that is particularly suitable for testing object-avoidance and computer vision. It can also be used for [multi-vehicle simulation](../simulation/multi-vehicle-simulation.md) and is commonly used with [ROS](../simulation/ros_interface.md), a collection of tools for automating vehicle control.<br><br>**Supported Vehicles:** Quad ([Iris](../airframes/airframe_reference.md#copter_quadrotor_x_generic_quadcopter)), Hex (Typhoon H480), [Generic Standard VTOL (QuadPlane)](../airframes/airframe_reference.md#vtol_standard_vtol_generic_standard_vtol), Tailsitter, Plane, Rover, Submarine |
+| [SIH](../sim_sih/index.md)                       | A lightweight, headless simulator that runs physics directly inside PX4 as a C++ module (no external dependencies). Headless by default for fastest iteration. Supports ROS 2 via uXRCE-DDS. Can also run on flight controller hardware (`SYS_HITL=2`).<br><br>**Supported Vehicles:** Quad, Hex, Plane, Tailsitter, Standard VTOL, Rover                                                                                                                                                                                                                                                                                      |
 
 There are also a number of [Community Supported Simulators](../simulation/community_supported_simulators.md).
 
----
+### Simulator Comparison
 
-所有模拟器都使用 Simulator MAVLink API 与 PX4 进行通信。
-It is not required to _use_ the simulators.
+| 特性                        | Gazebo                                            | SIH                                                                                    |
+| ------------------------- | ------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| **Default Mode**          | GUI with 3D rendering                             | Headless (fastest iteration)                                        |
+| **3D Visualization**      | Built-in (photorealistic)      | Optional: QGC map or jMAVSim display-only                              |
+| **Physics Engine**        | External (gz-physics)          | Internal (C++ module, uORB)                                         |
+| **External Dependencies** | Gazebo packages, rendering libs                   | None                                                                                   |
+| **Vehicle Types**         | Quad, VTOL, Plane, Rovers                         | Quad, Hex, Plane, Tailsitter, Std VTOL, Rover                                          |
+| **Multi-vehicle**         | Yes (documented)               | Yes ([multi-vehicle](../sim_sih/index.md#multi-vehicle-simulation)) |
+| **Sensor Simulation**     | Camera, LiDAR, depth, IMU, GPS, baro, mag         | IMU, GPS, baro, mag, airspeed                                                          |
+| **Custom Worlds/Models**  | Yes (SDF, large model library) | No                                                                                     |
+| **ROS 2 Integration**     | Yes (uXRCE-DDS)                | Yes (uXRCE-DDS)                                                     |
+| **Extensibility**         | Plugins, custom sensors, environments             | Modify C++ source, tune SIH\_\* parameters                       |
+| **Community/Ecosystem**   | Large Gazebo community, model repos               | PX4-internal                                                                           |
+| **Faster-than-Realtime**  | Yes                                               | Yes                                                                                    |
+| **Runs on FC Hardware**   | No                                                | Yes (SYS_HITL=2)                               |
+| **macOS Apple Silicon**   | Unstable (known issues)        | Works natively                                                                         |
+| **Lockstep**              | Yes                                               | Yes                                                                                    |
+
+:::tip
+For a detailed analysis of PX4 simulation user needs, priorities, and pain points, see the [PX4 Simulation Integration Survey Report](https://www.mcguirerobotics.com/px4_sim_research_report/) (K. McGuire, Dronecode Foundation, Dec 2025, 120 respondents).
+:::
+
+### Which Simulator Should I Use?
+
+- **Full-featured simulation with 3D rendering, custom worlds, camera/lidar sensors, or rich sensor ecosystems:** Use [Gazebo](../sim_gazebo_gz/index.md). Largest ecosystem, custom models and plugins, photorealistic rendering, extensive sensor library, large community.
+- **Fast headless iteration, controls research, zero-dependency setup, or macOS:** Use [SIH](../sim_sih/index.md). Runs entirely inside PX4 with no external dependencies, headless by default for maximum speed, physics parameters directly tunable via `SIH_*` params. Supports ROS 2 via uXRCE-DDS.
+- **Hardware integration testing without propellers:** Use [SIH on flight controller hardware](../sim_sih/index.md#sih-on-flight-controller-hardware) (`SYS_HITL=2`).
+
+:::info
+SIH is headless by default. For optional 3D visualization, you can use [jMAVSim in display-only mode](../sim_sih/index.md#visualization-optional) or monitor the vehicle in QGroundControl's map view.
+:::
 
 ## 仿真器 MAVLink API
 
-All simulators except for Gazebo communicate with PX4 using the Simulator MAVLink API.
+Most external simulators communicate with PX4 using the Simulator MAVLink API.
 This API defines a set of MAVLink messages that supply sensor data from the simulated world to PX4 and return motor and actuator values from the flight code that will be applied to the simulated vehicle.
 The image below shows the message flow.
+
+:::info
+SIH does not use the MAVLink simulator API. It runs physics internally via uORB messages. Gazebo communicates with PX4 via gz_bridge (Gazebo transport), not MAVLink.
+:::
 
 ![Simulator MAVLink API](../../assets/simulation/px4_simulator_messages.svg)
 
@@ -96,7 +137,7 @@ See [System Startup](../concept/system_startup.md) to learn more.
 
 ## SITL 仿真环境
 
-The diagram below shows a typical SITL simulation environment for any of the supported simulators that use MAVLink (i.e. all of them except Gazebo).
+The diagram below shows a typical SITL simulation environment for any of the supported simulators that use MAVLink (i.e. most external simulators, but not Gazebo or SIH).
 
 ![PX4 SITL overview](../../assets/simulation/px4_sitl_overview.svg)
 
@@ -153,7 +194,15 @@ make px4_sitl jmavsim
 
 # Start PX4 with no simulator (i.e. to use your own "custom" simulator)
 make px4_sitl none_iris
+
+# SIH (headless, zero dependencies)
+make px4_sitl_sih sihsim_quadx
+make px4_sitl_sih sihsim_airplane
 ```
+
+:::info
+Use `px4_sitl_sih` instead of `px4_sitl` to avoid building Gazebo dependencies.
+:::
 
 The simulation can be further configured via environment variables:
 
@@ -165,7 +214,7 @@ For more information see: [Building the Code > PX4 Make Build Targets](../dev_se
 
 ### Run Simulation Faster than Realtime {#simulation_speed}
 
-SITL can be run faster or slower than real-time when using Gazebo, Gazebo Classic, or jMAVSim.
+SITL can be run faster or slower than real-time when using Gazebo, Gazebo Classic, jMAVSim, or SIH.
 
 The speed factor is set using the environment variable `PX4_SIM_SPEED_FACTOR`.
 
@@ -179,6 +228,7 @@ This is what makes it possible to run the simulation at different speeds, and al
 - Gazebo: [Change Simulation Speed](../sim_gazebo_gz/index.md#change-simulation-speed)
 - Gazebo Classic: [Change Simulation Speed](../sim_gazebo_classic/index.md#change-simulation-speed) and [Lockstep](../sim_gazebo_classic/index.md#lockstep)
 - jMAVSim: [Change Simulation Speed](../sim_jmavsim/index.md#change-simulation-speed) and [Lockstep](../sim_jmavsim/index.md#lockstep)
+- SIH: Supports `PX4_SIM_SPEED_FACTOR` for faster-than-realtime simulation.
 
 ### 启动脚本
 

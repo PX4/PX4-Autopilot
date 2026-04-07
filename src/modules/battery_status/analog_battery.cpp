@@ -67,9 +67,6 @@ AnalogBattery::AnalogBattery(int index, ModuleParams *parent, const int sample_i
 	snprintf(param_name, sizeof(param_name), "BAT%d_V_CHANNEL", index);
 	_analog_param_handles.v_channel = param_find(param_name);
 
-	snprintf(param_name, sizeof(param_name), "BAT%d_I_OVERWRITE", index);
-	_analog_param_handles.i_overwrite = param_find(param_name);
-
 	snprintf(param_name, sizeof(param_name), "BAT%d_V_FILT", index);
 	_analog_param_handles.v_filt = param_find(param_name);
 
@@ -99,15 +96,6 @@ AnalogBattery::updateBatteryStatusADC(hrt_abstime timestamp, float voltage_raw, 
 
 		if (_analog_params.i_filt > FLT_EPSILON) {
 			current_a = _current_filter.update(fmaxf(current_a, 0.f), dt);
-		}
-	}
-
-	// Overwrite the measured current if current overwrite is defined and vehicle is unarmed
-	if (_analog_params.i_overwrite > 0) {
-		updateTopics();
-
-		if (_arming_state == vehicle_status_s::ARMING_STATE_DISARMED) {
-			current_a = _analog_params.i_overwrite;
 		}
 	}
 
@@ -153,7 +141,6 @@ AnalogBattery::updateParams()
 	param_get(_analog_param_handles.v_div, &_analog_params.v_div);
 	param_get(_analog_param_handles.a_per_v, &_analog_params.a_per_v);
 	param_get(_analog_param_handles.v_channel, &_analog_params.v_channel);
-	param_get(_analog_param_handles.i_overwrite, &_analog_params.i_overwrite);
 	param_get(_analog_param_handles.v_offs_cur, &_analog_params.v_offs_cur);
 	param_get(_analog_param_handles.v_filt, &_analog_params.v_filt);
 	param_get(_analog_param_handles.i_filt, &_analog_params.i_filt);
@@ -167,13 +154,4 @@ AnalogBattery::updateParams()
 	}
 
 	Battery::updateParams();
-}
-
-void AnalogBattery::updateTopics()
-{
-	vehicle_status_s vehicle_status;
-
-	if (_vehicle_status_sub.update(&vehicle_status)) {
-		_arming_state = vehicle_status.arming_state;
-	}
 }

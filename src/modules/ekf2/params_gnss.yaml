@@ -101,7 +101,7 @@ parameters:
         short: Required EPH to use GPS
       type: float
       default: 3.0
-      min: 2
+      min: 0.1
       max: 100
       unit: m
       decimal: 1
@@ -110,7 +110,7 @@ parameters:
         short: Required EPV to use GPS
       type: float
       default: 5.0
-      min: 2
+      min: 0.1
       max: 100
       unit: m
       decimal: 1

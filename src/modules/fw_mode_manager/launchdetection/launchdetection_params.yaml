@@ -5,8 +5,8 @@ parameters:
     FW_LAUN_AC_THLD:
       description:
         short: Trigger acceleration threshold
-        long: Launch is detected when acceleration in body forward direction is above
-          FW_LAUN_AC_THLD for FW_LAUN_AC_T seconds.
+        long: Launch is detected when the norm of body acceleration
+          is above FW_LAUN_AC_THLD for FW_LAUN_AC_T seconds.
       type: float
       default: 30.0
       unit: m/s^2
@@ -16,8 +16,8 @@ parameters:
     FW_LAUN_AC_T:
       description:
         short: Trigger time
-        long: Launch is detected when acceleration in body forward direction is above
-          FW_LAUN_AC_THLD for FW_LAUN_AC_T seconds.
+        long: Launch is detected when the norm of body acceleration
+          is above FW_LAUN_AC_THLD for FW_LAUN_AC_T seconds.
       type: float
       default: 0.05
       unit: s

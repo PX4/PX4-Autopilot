@@ -86,7 +86,7 @@ This calibration is similar to the well-known figure-8 compass calibration done 
    2-3 oscillations of ~30 degrees in every direction is usually sufficient.
 2. Wait for the heading estimate to stabilize and verify that the compass rose is pointing to the correct direction (this can take a couple of seconds).
 
-참고:
+Notes:
 
 - There is no start/stop for this type of calibration (the algorithm runs continuously when the vehicle is disarmed).
 - The calibration is immediately applied to the data (no reboot is required) but is saved to the calibration parameters after disarming the vehicle only (the calibration is lost if no arming/disarming sequence is performed between calibration and shutdown).
@@ -109,7 +109,7 @@ This calibration process leverages external knowledge of vehicle's orientation a
    commander calibrate mag quick
    ```
 
-참고:
+Notes:
 
 - This method is specifically designed for vehicles where full rotation is impractical or impossible.
   If full rotation is possible, use the [complete calibration](#complete-calibration) instead.

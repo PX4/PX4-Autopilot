@@ -31,7 +31,7 @@ Overview of the mixing pipeline in terms of modules and uORB topics (press to sh
 
 ![Pipeline Overview](../../assets/concepts/control_allocation_pipeline.png)
 
-참고:
+Notes:
 
 - The rate controller outputs torque and thrust setpoints
 - the `control_allocator` module:

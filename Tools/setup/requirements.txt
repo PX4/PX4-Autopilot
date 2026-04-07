@@ -23,7 +23,7 @@ pyserial
 pyulog>=0.5.0
 pyyaml
 requests
-setuptools>=39.2.0
+setuptools>=39.2.0,<=81.0.0
 six>=1.12.0
 sympy>=1.10.1
 toml>=0.9

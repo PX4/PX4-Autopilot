@@ -46,6 +46,8 @@ jobs:
           fetch-depth: 0
 
       - name: Building [${{ matrix.check }}]
+        env:
+          PX4_SBOM_DISABLE: 1
         run: |
           cd "$GITHUB_WORKSPACE"
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
