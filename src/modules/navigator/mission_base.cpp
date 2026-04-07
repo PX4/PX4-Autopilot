@@ -909,7 +909,7 @@ MissionBase::do_abort_landing()
 
 	} else {
 		// move mission index back (landing approach point)
-		_is_current_planned_mission_item_valid = (goToPreviousItem(false) == PX4_OK);
+		_is_current_planned_mission_item_valid = (goToPreviousItem(MissionTraversalType::IgnoreDoJump) == PX4_OK);
 	}
 
 	// send reposition cmd to get out of mission
@@ -967,7 +967,7 @@ bool MissionBase::isMissionValid() const
 	return ret_val;
 }
 
-int MissionBase::getNonJumpItem(int32_t &mission_index, mission_item_s &mission, bool execute_jump,
+int MissionBase::getNonJumpItem(int32_t &mission_index, mission_item_s &mission, MissionTraversalType traversal_type,
 				bool write_jumps, bool mission_direction_backward)
 {
 	if (mission_index >= _mission.count || mission_index < 0) {
@@ -995,7 +995,8 @@ int MissionBase::getNonJumpItem(int32_t &mission_index, mission_item_s &mission,
 				return PX4_ERROR;
 			}
 
-			if ((new_mission.do_jump_current_count < new_mission.do_jump_repeat_count) && execute_jump) {
+			if ((new_mission.do_jump_current_count < new_mission.do_jump_repeat_count)
+			    && traversal_type == MissionTraversalType::FollowMissionControlFlow) {
 				if (write_jumps) {
 					const dm_item_t mission_dataman_id = static_cast<dm_item_t>(_mission.mission_dataman_id);
 					new_mission.do_jump_current_count++;
@@ -1035,11 +1036,11 @@ int MissionBase::getNonJumpItem(int32_t &mission_index, mission_item_s &mission,
 	return PX4_OK;
 }
 
-int MissionBase::goToItem(int32_t index, bool execute_jump, bool mission_direction_backward)
+int MissionBase::goToItem(int32_t index, MissionTraversalType traversal_type, bool mission_direction_backward)
 {
 	mission_item_s mission_item;
 
-	if (getNonJumpItem(index, mission_item, execute_jump, true, mission_direction_backward) == PX4_OK) {
+	if (getNonJumpItem(index, mission_item, traversal_type, true, mission_direction_backward) == PX4_OK) {
 		setMissionIndex(index);
 		return PX4_OK;
 
@@ -1067,7 +1068,7 @@ bool MissionBase::loadMissionItemFromCache(int32_t index, mission_item_s &missio
 }
 
 bool MissionBase::findNextPositionIndex(int32_t start_index, int32_t &next_index,
-					PositionTraversalType traversal_type)
+					MissionTraversalType traversal_type)
 {
 	for (int32_t mission_index = start_index; mission_index < _mission.count;) {
 		int32_t traversed_index = mission_index;
@@ -1089,7 +1090,7 @@ bool MissionBase::findNextPositionIndex(int32_t start_index, int32_t &next_index
 }
 
 bool MissionBase::findPreviousPositionIndex(int32_t start_index, int32_t &previous_index,
-		PositionTraversalType traversal_type)
+		MissionTraversalType traversal_type)
 {
 	for (int32_t mission_index = start_index - 1; mission_index >= 0;) {
 		int32_t traversed_index = mission_index;
@@ -1111,17 +1112,18 @@ bool MissionBase::findPreviousPositionIndex(int32_t start_index, int32_t &previo
 }
 
 bool MissionBase::loadTraversalItem(int32_t &mission_index, mission_item_s &mission_item,
-				    PositionTraversalType traversal_type, bool direction_backward)
+				    MissionTraversalType traversal_type, bool direction_backward)
 {
-	if (traversal_type == PositionTraversalType::FollowMissionControlFlow) {
-		return getNonJumpItem(mission_index, mission_item, true, false, direction_backward) == PX4_OK;
+	if (traversal_type == MissionTraversalType::FollowMissionControlFlow) {
+		return getNonJumpItem(mission_index, mission_item, MissionTraversalType::FollowMissionControlFlow,
+				      false, direction_backward) == PX4_OK;
 	}
 
 	return loadMissionItemFromCache(mission_index, mission_item);
 }
 
 void MissionBase::getPreviousPositionItems(int32_t start_index, int32_t items_index[],
-		size_t &num_found_items, uint8_t max_num_items, PositionTraversalType traversal_type)
+		size_t &num_found_items, uint8_t max_num_items, MissionTraversalType traversal_type)
 {
 	num_found_items = 0u;
 
@@ -1147,7 +1149,7 @@ void MissionBase::getPreviousPositionItems(int32_t start_index, int32_t items_in
 
 void MissionBase::getNextPositionItems(int32_t start_index, int32_t items_index[],
 				       size_t &num_found_items, uint8_t max_num_items,
-				       PositionTraversalType traversal_type)
+				       MissionTraversalType traversal_type)
 {
 	// Make sure vector does not contain any preexisting elements.
 	num_found_items = 0u;
@@ -1172,25 +1174,25 @@ void MissionBase::getNextPositionItems(int32_t start_index, int32_t items_index[
 	}
 }
 
-int MissionBase::goToNextItem(bool execute_jump)
+int MissionBase::goToNextItem(MissionTraversalType traversal_type)
 {
 	if (_mission.current_seq + 1 >= (_mission.count)) {
 		return PX4_ERROR;
 	}
 
-	return goToItem(_mission.current_seq + 1, execute_jump);
+	return goToItem(_mission.current_seq + 1, traversal_type);
 }
 
-int MissionBase::goToPreviousItem(bool execute_jump)
+int MissionBase::goToPreviousItem(MissionTraversalType traversal_type)
 {
 	if (_mission.current_seq <= 0) {
 		return PX4_ERROR;
 	}
 
-	return goToItem(_mission.current_seq - 1, execute_jump, true);
+	return goToItem(_mission.current_seq - 1, traversal_type, true);
 }
 
-int MissionBase::goToPreviousPositionItem(PositionTraversalType traversal_type)
+int MissionBase::goToPreviousPositionItem(MissionTraversalType traversal_type)
 {
 	int32_t previous_position_item_index{-1};
 
@@ -1203,7 +1205,7 @@ int MissionBase::goToPreviousPositionItem(PositionTraversalType traversal_type)
 	}
 }
 
-int MissionBase::goToNextPositionItem(PositionTraversalType traversal_type)
+int MissionBase::goToNextPositionItem(MissionTraversalType traversal_type)
 {
 	int32_t next_position_item_index{-1};
 

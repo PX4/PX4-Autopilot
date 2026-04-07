@@ -99,7 +99,7 @@ protected:
 		MISSION_TYPE_MISSION
 	} _mission_type{MissionType::MISSION_TYPE_NONE};
 
-	enum class PositionTraversalType : uint8_t {
+	enum class MissionTraversalType : uint8_t {
 		FollowMissionControlFlow = 0,
 		IgnoreDoJump,
 	};
@@ -111,11 +111,11 @@ protected:
 	 * @param[out] items_index Array of the previous position item indices
 	 * @param[out] num_found_items Number of position items found
 	 * @param[in] max_num_items Maximum number of position items to collect
-	 * @param[in] traversal_type Whether to follow DO_JUMP mission control flow or treat jumps as geometry only
+	 * @param[in] traversal_type Whether to follow DO_JUMP mission control flow or ignore DO_JUMP items
 	 */
 	void getPreviousPositionItems(int32_t start_index, int32_t items_index[], size_t &num_found_items,
 				      uint8_t max_num_items,
-				      PositionTraversalType traversal_type = PositionTraversalType::FollowMissionControlFlow);
+				      MissionTraversalType traversal_type = MissionTraversalType::FollowMissionControlFlow);
 	/**
 	 * @brief Get the next mission item containing a position setpoint.
 	 *
@@ -123,11 +123,11 @@ protected:
 	 * @param[out] items_index Array of the next position item indices
 	 * @param[out] num_found_items Number of position items found
 	 * @param[in] max_num_items Maximum number of position items to collect
-	 * @param[in] traversal_type Whether to follow DO_JUMP mission control flow or treat jumps as geometry only
+	 * @param[in] traversal_type Whether to follow DO_JUMP mission control flow or ignore DO_JUMP items
 	 */
 	void getNextPositionItems(int32_t start_index, int32_t items_index[], size_t &num_found_items,
 				  uint8_t max_num_items,
-				  PositionTraversalType traversal_type = PositionTraversalType::FollowMissionControlFlow);
+				  MissionTraversalType traversal_type = MissionTraversalType::FollowMissionControlFlow);
 	/**
 	 * @brief Mission has a land start, a land, and is valid
 	 *
@@ -139,40 +139,41 @@ protected:
 	 * @brief Go to next Mission Item
 	 * Go to next non jump mission item
 	 *
-	 * @param[in] execute_jump Flag indicating if a jump should be executed or ignored
+	 * @param[in] traversal_type Whether to follow DO_JUMP mission control flow or ignore DO_JUMP items
 	 * @return PX4_OK if next mission item exists, PX4_ERR otherwise
 	 */
-	int goToNextItem(bool execute_jump);
+	int goToNextItem(MissionTraversalType traversal_type = MissionTraversalType::FollowMissionControlFlow);
 	/**
 	 * @brief Go to previous Mission Item
 	 * Go to previous non jump mission item
-	 * @param[in] execute_jump Flag indicating if a jump should be executed or ignored
+	 * @param[in] traversal_type Whether to follow DO_JUMP mission control flow or ignore DO_JUMP items
 	 * @return PX4_OK if previous mission item exists, PX4_ERR otherwise
 	 */
-	int goToPreviousItem(bool execute_jump);
+	int goToPreviousItem(MissionTraversalType traversal_type = MissionTraversalType::FollowMissionControlFlow);
 	/**
 	 * @brief Go to Mission Item
 	 *
 	 * @param[in] index Index of the mission item to go to
-	 * @param[in] execute_jump Flag indicating if a jump should be executed of ignored
+	 * @param[in] traversal_type Whether to follow DO_JUMP mission control flow or ignore DO_JUMP items
 	 * @param[in] mission_direction_backward Flag indicating if a mission is flown backward
 	 * @return PX4_OK if the mission item exists, PX4_ERR otherwise
 	 */
-	int goToItem(int32_t index, bool execute_jump, bool mission_direction_backward = false);
+	int goToItem(int32_t index, MissionTraversalType traversal_type = MissionTraversalType::FollowMissionControlFlow,
+		     bool mission_direction_backward = false);
 	/**
 	 * @brief Go To Previous Mission Position Item
 	 *
-	 * @param[in] traversal_type Whether to follow DO_JUMP mission control flow or treat jumps as geometry only
+	 * @param[in] traversal_type Whether to follow DO_JUMP mission control flow or ignore DO_JUMP items
 	 * @return PX4_OK if previous mission item exists, PX4_ERR otherwise
 	 */
-	int goToPreviousPositionItem(PositionTraversalType traversal_type = PositionTraversalType::FollowMissionControlFlow);
+	int goToPreviousPositionItem(MissionTraversalType traversal_type = MissionTraversalType::FollowMissionControlFlow);
 	/**
 	 * @brief Go To Next Mission Position Item
 	 *
-	 * @param[in] traversal_type Whether to follow DO_JUMP mission control flow or treat jumps as geometry only
+	 * @param[in] traversal_type Whether to follow DO_JUMP mission control flow or ignore DO_JUMP items
 	 * @return PX4_OK if next mission item exists, PX4_ERR otherwise
 	 */
-	int goToNextPositionItem(PositionTraversalType traversal_type = PositionTraversalType::FollowMissionControlFlow);
+	int goToNextPositionItem(MissionTraversalType traversal_type = MissionTraversalType::FollowMissionControlFlow);
 	/**
 	 * @brief Go to Mission Land Start Item
 	 *
@@ -211,13 +212,13 @@ protected:
 	 *
 	 * @param[out] mission_index Index of the mission item
 	 * @param[out] mission The return mission item
-	 * @param execute_jump Flag indicating if a jump item should be executed or ignored
+	 * @param traversal_type Whether to follow DO_JUMP mission control flow or ignore DO_JUMP items
 	 * @param write_jumps Flag indicating if the jump counter should be updated
 	 * @param mission_direction_backward Flag indicating if the mission is flown backwards
 	 * @return PX4_OK if mission item could be loaded, PX4_ERR otherwise
 	 */
-	int getNonJumpItem(int32_t &mission_index, mission_item_s &mission, bool execute_jump, bool write_jumps,
-			   bool mission_direction_backward = false);
+	int getNonJumpItem(int32_t &mission_index, mission_item_s &mission, MissionTraversalType traversal_type,
+			   bool write_jumps, bool mission_direction_backward = false);
 	/**
 	 * @brief Is Mission Valid
 	 *
@@ -348,11 +349,11 @@ protected:
 	 *
 	 * @param[in] start_index First index to check
 	 * @param[out] next_index Index of the found position item
-	 * @param[in] traversal_type Whether to follow DO_JUMP mission control flow or treat jumps as geometry only
+	 * @param[in] traversal_type Whether to follow DO_JUMP mission control flow or ignore DO_JUMP items
 	 * @return true if a position item was found
 	 */
 	bool findNextPositionIndex(int32_t start_index, int32_t &next_index,
-				   PositionTraversalType traversal_type = PositionTraversalType::FollowMissionControlFlow);
+				   MissionTraversalType traversal_type = MissionTraversalType::FollowMissionControlFlow);
 
 	/**
 	 * @brief Find the previous position mission item.
@@ -361,11 +362,11 @@ protected:
 	 *
 	 * @param[in] start_index Search starts one before this index
 	 * @param[out] previous_index Index of the found position item
-	 * @param[in] traversal_type Whether to follow DO_JUMP mission control flow or treat jumps as geometry only
+	 * @param[in] traversal_type Whether to follow DO_JUMP mission control flow or ignore DO_JUMP items
 	 * @return true if a position item was found
 	 */
 	bool findPreviousPositionIndex(int32_t start_index, int32_t &previous_index,
-				       PositionTraversalType traversal_type = PositionTraversalType::FollowMissionControlFlow);
+				       MissionTraversalType traversal_type = MissionTraversalType::FollowMissionControlFlow);
 
 	bool _is_current_planned_mission_item_valid{false};	/**< Flag indicating if the currently loaded mission item is valid*/
 	bool _mission_has_been_activated{false};		/**< Flag indicating if the mission has been activated*/
@@ -407,10 +408,10 @@ private:
 	void updateMavlinkMission();
 
 	/**
-	 * @brief Load a mission item according to the requested position traversal type.
+	 * @brief Load a mission item according to the requested mission traversal type.
 	 */
 	bool loadTraversalItem(int32_t &mission_index, mission_item_s &mission_item,
-			       PositionTraversalType traversal_type, bool direction_backward);
+			       MissionTraversalType traversal_type, bool direction_backward);
 
 	/**
 	 * Reset mission

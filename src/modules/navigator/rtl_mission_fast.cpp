@@ -101,7 +101,7 @@ void RtlMissionFast::on_activation()
 
 bool RtlMissionFast::setNextMissionItem()
 {
-	return (goToNextPositionItem(PositionTraversalType::FollowMissionControlFlow) == PX4_OK);
+	return (goToNextPositionItem(MissionTraversalType::FollowMissionControlFlow) == PX4_OK);
 }
 
 void RtlMissionFast::setActiveMissionItems()
