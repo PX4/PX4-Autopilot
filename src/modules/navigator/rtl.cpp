@@ -78,9 +78,18 @@ void RTL::updateDatamanCache()
 	const mission_s &mission = _mission_sub.get();
 	MissionRouteCache *mission_route_cache = _navigator->get_mission_route_cache();
 
-	if (mission.mission_id != _route_plan_mission_id || mission.safe_points_id != _route_plan_safe_points_id) {
+	const bool mission_definition_changed = (mission.mission_id != _route_plan_mission_id)
+						|| (mission.count != _route_plan_mission_count)
+						|| (mission.mission_dataman_id != _route_plan_mission_dataman_id);
+	const bool safe_points_definition_changed = (mission.safe_points_id != _route_plan_safe_points_id)
+			|| (mission.safepoint_dataman_id != _route_plan_safe_points_dataman_id);
+
+	if (mission_definition_changed || safe_points_definition_changed) {
 		_route_plan_mission_id = mission.mission_id;
+		_route_plan_mission_count = mission.count;
+		_route_plan_mission_dataman_id = mission.mission_dataman_id;
 		_route_plan_safe_points_id = mission.safe_points_id;
+		_route_plan_safe_points_dataman_id = mission.safepoint_dataman_id;
 		resetRouteSafePointState();
 	}
 

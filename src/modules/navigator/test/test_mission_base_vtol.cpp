@@ -181,6 +181,7 @@ public:
 	using MissionBase::updateLastFlownLoopSegmentForNominalAdvance;
 	using MissionBase::computeFrontTransitionAlignmentYaw;
 	using MissionBase::checkMissionRestart;
+	using MissionBase::getIncomingMissionCurrentSeq;
 
 	void setCurrentSequence(int32_t index)
 	{
@@ -252,6 +253,8 @@ class MissionBaseTraversalTest : public MissionBaseVtolTest {};
 class MissionBaseLoopTrackingTest : public MissionBaseVtolTest {};
 /** @brief Covers mission restart behavior after inactive finished missions. */
 class MissionBaseRestartBehaviorTest : public MissionBaseVtolTest {};
+/** @brief Covers sanitizing current_seq when a mission topic update omits it. */
+class MissionBaseMissionStateSanitizationTest : public MissionBaseVtolTest {};
 
 static float wrappedAngleError(float a, float b)
 {
@@ -1198,4 +1201,59 @@ TEST_F(MissionBaseRestartBehaviorTest, CheckMissionRestartResetsFinishedMissionW
 	// THEN: Mission execution restarts from the beginning and the finished latch is cleared.
 	EXPECT_EQ(mission_base_peer.currentSequenceForTest(), 0);
 	EXPECT_FALSE(navigator.get_mission_result()->finished);
+}
+
+
+// WHY: The new mission is independant from the previous mission.
+// WHAT: Upload a new mission and with an invalid current_seq and ensure that we default to zero (first item)
+TEST_F(MissionBaseMissionStateSanitizationTest, FreshMissionWithoutCurrentItemResetsToZero)
+{
+	mission_s current_mission{};
+	current_mission.count = 12;
+	current_mission.current_seq = 8;
+	current_mission.mission_id = 21;
+	current_mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+
+	mission_s uploaded_mission = current_mission;
+	uploaded_mission.count = 9;
+	uploaded_mission.current_seq = -1;
+	uploaded_mission.mission_id = 22;
+	uploaded_mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_1;
+
+	EXPECT_EQ(MissionBaseTestPeer::getIncomingMissionCurrentSeq(uploaded_mission, current_mission), 0);
+}
+
+// WHY: The new mission is independant from the previous mission.
+// WHAT: Upload a new mission and with a valid current_seq and ensure that we use current_seq
+TEST_F(MissionBaseMissionStateSanitizationTest, FreshMissionWithCurrentItemUsesIt)
+{
+	mission_s current_mission{};
+	current_mission.count = 12;
+	current_mission.current_seq = 8;
+	current_mission.mission_id = 21;
+	current_mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+
+	mission_s uploaded_mission = current_mission;
+	uploaded_mission.count = 9;
+	uploaded_mission.current_seq = 7; // different to current_mission.current_seq
+	uploaded_mission.mission_id = 22;
+	uploaded_mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_1;
+
+	EXPECT_EQ(MissionBaseTestPeer::getIncomingMissionCurrentSeq(uploaded_mission, current_mission), 7);
+}
+
+// WHY: If the same mission is uploaded with an invalid current_seq, keep the previous progress
+// WHAT: Upload the same mission as previously with an invalid current_seq, confirm that the old current_seq is used
+TEST_F(MissionBaseMissionStateSanitizationTest, ExistingMissionWithoutCurrentItemKeepsPreviousProgress)
+{
+	mission_s current_mission{};
+	current_mission.count = 12;
+	current_mission.current_seq = 8;
+	current_mission.mission_id = 21;
+	current_mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+
+	mission_s repeated_state = current_mission;
+	repeated_state.current_seq = -1;
+
+	EXPECT_EQ(MissionBaseTestPeer::getIncomingMissionCurrentSeq(repeated_state, current_mission), 8);
 }

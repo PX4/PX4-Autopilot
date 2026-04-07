@@ -102,13 +102,11 @@ void MissionBase::updateMavlinkMission()
 		mission_s new_mission;
 		_mission_sub.update(&new_mission);
 
-		const bool mission_items_changed = (new_mission.mission_id != _mission.mission_id);
+		new_mission.current_seq = getIncomingMissionCurrentSeq(new_mission, _mission);
+		const bool mission_items_changed = (new_mission.mission_dataman_id != _mission.mission_dataman_id)
+						   || (new_mission.mission_id != _mission.mission_id)
+						   || (new_mission.count != _mission.count);
 		const bool mission_data_changed = checkMissionDataChanged(new_mission);
-
-		if (new_mission.current_seq < 0) {
-			new_mission.current_seq = math::constrain(_mission.current_seq, INT32_C(0),
-						  static_cast<int32_t>(new_mission.count) - 1);
-		}
 
 		if (new_mission.geofence_id != _mission.geofence_id) {
 			// New geofence data, need to check mission again.
@@ -125,6 +123,27 @@ void MissionBase::updateMavlinkMission()
 
 		_is_current_planned_mission_item_valid = isMissionValid();
 	}
+}
+
+int32_t MissionBase::getIncomingMissionCurrentSeq(const mission_s &incoming_mission,
+		const mission_s &current_mission)
+{
+	if (incoming_mission.current_seq >= 0) {
+		return incoming_mission.current_seq;
+	}
+
+	const bool mission_definition_changed = (incoming_mission.mission_dataman_id != current_mission.mission_dataman_id)
+						|| (incoming_mission.mission_id != current_mission.mission_id)
+						|| (incoming_mission.count != current_mission.count);
+
+	if (mission_definition_changed || incoming_mission.count <= 0) {
+		// A fresh mission upload without an explicit current item must restart at the beginning
+		// instead of inheriting the previous mission's progress.
+		return 0;
+	}
+
+	return math::constrain(current_mission.current_seq, INT32_C(0),
+			       static_cast<int32_t>(incoming_mission.count) - 1);
 }
 
 void MissionBase::onMissionUpdate(bool has_mission_items_changed)

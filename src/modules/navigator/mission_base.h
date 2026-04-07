@@ -247,6 +247,8 @@ protected:
 	 * @param[in] has_mission_items_changed flag if the mission items have been changed.
 	 */
 	void onMissionUpdate(bool has_mission_items_changed);
+	static int32_t getIncomingMissionCurrentSeq(const mission_s &incoming_mission,
+			const mission_s &current_mission);
 
 	/**
 	 * Update mission topic

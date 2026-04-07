@@ -234,7 +234,10 @@ private:
 
 	uint32_t _last_route_safe_point_warning_mission_id{0};
 	uint32_t _route_plan_mission_id{0};
+	uint16_t _route_plan_mission_count{0};
+	uint8_t _route_plan_mission_dataman_id{0};
 	uint32_t _route_plan_safe_points_id{0};
+	uint8_t _route_plan_safe_points_dataman_id{0};
 
 	RtlDirect _rtl_direct;
 
