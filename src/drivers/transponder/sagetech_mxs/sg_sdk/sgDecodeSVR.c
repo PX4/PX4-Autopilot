@@ -47,9 +47,16 @@
 /*
  * Documented in the header file.
  */
-bool sgDecodeSVR(uint8_t *buffer, sg_svr_t *svr)
+#define NEED(n) do { if ((size_t)PBASE + (size_t)ofs + (size_t)(n) > len) { return false; } } while (0)
+
+bool sgDecodeSVR(uint8_t *buffer, size_t len, sg_svr_t *svr)
 {
 	//   memset(svr, 0, sizeof(sg_svr_t));
+
+	// minimum mandatory header: PBASE + 9 bytes (fields[0..2], flags, eflags, addr, addrType)
+	if (len < (size_t)PBASE + 9) {
+		return false;
+	}
 
 	uint8_t fields[3];
 	memcpy(&fields, &buffer[PBASE + 0], 3);
@@ -63,21 +70,25 @@ bool sgDecodeSVR(uint8_t *buffer, sg_svr_t *svr)
 	uint8_t ofs = 9;
 
 	if (fields[0] & SV_PARAM_TOA_EPOS) {
+		NEED(2);
 		svr->toaEst = toTOA(&buffer[PBASE + ofs]);
 		ofs += 2;
 	}
 
 	if (fields[0] & SV_PARAM_TOA_POS) {
+		NEED(2);
 		svr->toaPosition = toTOA(&buffer[PBASE + ofs]);
 		ofs += 2;
 	}
 
 	if (fields[0] & SV_PARAM_TOA_VEL) {
+		NEED(2);
 		svr->toaSpeed = toTOA(&buffer[PBASE + ofs]);
 		ofs += 2;
 	}
 
 	if (fields[0] & SV_PARAM_LATLON) {
+		NEED(6);
 		if (svr->validity.position) {
 			svr->lat = toLatLon(&buffer[PBASE + ofs + 0]);
 			svr->lon = toLatLon(&buffer[PBASE + ofs + 3]);
@@ -92,6 +103,7 @@ bool sgDecodeSVR(uint8_t *buffer, sg_svr_t *svr)
 
 	if (svr->type == svrAirborne) {
 		if (fields[1] & SV_PARAM_GEOALT) {
+			NEED(3);
 			if (svr->validity.geoAlt) {
 				svr->airborne.geoAlt = toAlt(&buffer[PBASE + ofs]);
 
@@ -103,6 +115,7 @@ bool sgDecodeSVR(uint8_t *buffer, sg_svr_t *svr)
 		}
 
 		if (fields[1] & SV_PARAM_VEL) {
+			NEED(4);
 			if (svr->validity.airSpeed) {
 				int16_t nvel = toVel(&buffer[PBASE + ofs + 0]);
 				int16_t evel = toVel(&buffer[PBASE + ofs + 2]);
@@ -123,6 +136,7 @@ bool sgDecodeSVR(uint8_t *buffer, sg_svr_t *svr)
 		}
 
 		if (fields[1] & SV_PARAM_BAROALT) {
+			NEED(3);
 			if (svr->validity.baroAlt) {
 				svr->airborne.baroAlt = toAlt(&buffer[PBASE + ofs]);
 
@@ -134,6 +148,7 @@ bool sgDecodeSVR(uint8_t *buffer, sg_svr_t *svr)
 		}
 
 		if (fields[1] & SV_PARAM_VRATE) {
+			NEED(2);
 			if (svr->validity.baroVRate || svr->validity.geoVRate) {
 				svr->airborne.vrate = toInt16(&buffer[PBASE + ofs]);
 
@@ -146,6 +161,7 @@ bool sgDecodeSVR(uint8_t *buffer, sg_svr_t *svr)
 
 	} else {
 		if (fields[1] & SV_PARAM_SURF_GS) {
+			NEED(1);
 			if (svr->validity.surfSpeed) {
 				svr->surface.speed = toGS(&buffer[PBASE + ofs]);
 
@@ -157,6 +173,7 @@ bool sgDecodeSVR(uint8_t *buffer, sg_svr_t *svr)
 		}
 
 		if (fields[1] & SV_PARAM_SURF_HEAD) {
+			NEED(1);
 			if (svr->validity.surfHeading) {
 				svr->surface.heading = toHeading(&buffer[PBASE + ofs]);
 
@@ -169,12 +186,14 @@ bool sgDecodeSVR(uint8_t *buffer, sg_svr_t *svr)
 	}
 
 	if (fields[1] & SV_PARAM_NIC) {
+		NEED(1);
 		svr->nic = buffer[PBASE + ofs];
 
 		ofs += 1;
 	}
 
 	if (fields[1] & SV_PARAM_ESTLAT) {
+		NEED(3);
 		if (svr->evalidity.estPosition) {
 			svr->airborne.estLat = toLatLon(&buffer[PBASE + ofs]);
 
@@ -186,6 +205,7 @@ bool sgDecodeSVR(uint8_t *buffer, sg_svr_t *svr)
 	}
 
 	if (fields[2] & SV_PARAM_ESTLON) {
+		NEED(3);
 		if (svr->evalidity.estPosition) {
 			svr->airborne.estLon = toLatLon(&buffer[PBASE + ofs]);
 
@@ -197,13 +217,17 @@ bool sgDecodeSVR(uint8_t *buffer, sg_svr_t *svr)
 	}
 
 	if (fields[2] & SV_PARAM_SURV) {
+		NEED(1);
 		svr->survStatus = buffer[PBASE + ofs];
 		ofs += 1;
 	}
 
 	if (fields[2] & SV_PARAM_REPORT) {
+		NEED(1);
 		svr->mode = buffer[PBASE + ofs];
 	}
 
 	return true;
 }
+
+#undef NEED

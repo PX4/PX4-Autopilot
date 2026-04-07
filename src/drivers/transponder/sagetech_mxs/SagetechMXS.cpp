@@ -903,7 +903,10 @@ void SagetechMXS::handle_packet(const Packet &msg)
 	case MsgType::ADSB_StateVector_Report: {
 			sg_svr_t svr{};
 
-			if (sgDecodeSVR((uint8_t *) &msg, &svr)) {
+			// pass total valid byte length (4-byte header + payload) so the decoder can bounds-check
+			const size_t svr_len = (size_t)msg.payload_length + 4u;
+
+			if (sgDecodeSVR((uint8_t *) &msg, svr_len, &svr)) {
 				handle_svr(svr);
 			}
 
