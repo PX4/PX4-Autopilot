@@ -326,6 +326,24 @@ parameters:
         0: Disabled
         1: Flaps channel
         2: Aux1
+        3: Aux2
+        4: Aux3
+        5: Aux4
+        6: Aux5
+      default: 0
+    FW_FLAPS_MAN:
+      description:
+        short: Flap input in manual flight
+        long: Chose source for manual setting of flaps in manual flight modes.
+      type: enum
+      values:
+        0: Disabled
+        1: Aux1
+        2: Aux2
+        3: Aux3
+        4: Aux4
+        5: Aux5
+        6: Flaps channel
       default: 0
     FW_ACRO_YAW_EN:
       description:

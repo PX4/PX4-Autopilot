@@ -271,3 +271,13 @@ parameters:
       type: float
       default: 0.0
       unit: m/s
+    SIH_RNGBC_NOISE:
+      description:
+        short: Ranging beacon measurement noise standard deviation
+        long: Gaussian noise added to simulated ranging beacon measurements. Set to 0 to disable noise.
+      type: float
+      default: 30.0
+      unit: m
+      min: 0.0
+      max: 100.0
+      decimal: 1

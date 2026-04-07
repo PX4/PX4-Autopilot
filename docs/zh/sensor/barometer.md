@@ -65,7 +65,7 @@ This calibration is controlled by the [SENS_BAR_AUTOCAL](../advanced_config/para
 The algorithm monitors GNSS quality, collects altitude differences over a 2-second filtered window, and verifies stability within 4m tolerance.
 Once stable, it uses binary search to calculate pressure offsets that align baro altitude with GNSS altitude (0.1m precision), then applies the offset to all sensors and saves the parameters.
 
-备注：
+Notes:
 
 - **EKF Independence**: GNSS-baro calibration operates independently of EKF2 altitude fusion settings.
 - **Execution Timing**: Calibration runs even when [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) altitude fusion is disabled.

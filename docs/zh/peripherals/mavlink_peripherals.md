@@ -26,38 +26,12 @@ The parameters for each instance are:
 - <a id="MAV_X_CONFIG"></a>[MAV_X_CONFIG](../advanced_config/parameter_reference.md#MAV_0_CONFIG) - Set the serial port (UART) for this instance "X", where X is 0, 1, 2.
   It can be any unused port, e.g.: `TELEM2`, `TELEM3`, `GPS2` etc.
   For more information see [Serial Port Configuration](../peripherals/serial_configuration.md).
-
-- <a id="MAV_X_MODE"></a>[MAV_X_MODE](../advanced_config/parameter_reference.md#MAV_0_MODE) - Specify the telemetry mode/target (the set of messages to stream for the current instance and their rate).
-  The default values are:
-
-  - _Normal_: Standard set of messages for a GCS.
-  - _Custom_ or _Magic_: Nothing (in the default PX4 implementation).
-    Modes may be used for testing when developing a new mode.
-  - _Onboard_: Standard set of messages for a companion computer.
-  - _OSD_: Standard set of messages for an OSD system.
-  - _Config_: Standard set of messages and rate configuration for a fast link (e.g. USB).
-  - _Minimal_: Minimal set of messages for use with a GCS connected on a high latency link.
-  - _External Vision_: Messages for offboard vision systems.
-  - _Gimbal_: Messages for a gimbal. Note this also enables [message forwarding](#MAV_X_FORWARD)
-  - _Onboard Low Bandwidth_: Standard set of messages for a companion computer connected on a lower speed link.
-  - _uAvionix_: Messages for a uAvionix ADS-B beacon.
-
-  ::: info
-  If you need to find the specific set of message for each mode search for `MAVLINK_MODE_` in [/src/modules/mavlink/mavlink_main.cpp](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/mavlink/mavlink_main.cpp).
-
-:::
-
-  :::tip
-  The mode defines the _default_ messages and rates.
-  A connected MAVLink system can still request the streams/rates that it wants using [MAV_CMD_SET_MESSAGE_INTERVAL](https://mavlink.io/en/messages/common.html#MAV_CMD_SET_MESSAGE_INTERVAL).
-
-:::
-
+- <a id="MAV_X_MODE"></a>[MAV_X_MODE](../advanced_config/parameter_reference.md#MAV_0_MODE) - Specify the [MAVLink profile](../mavlink/mavlink_profiles.md) for the instance, such as _Normal_ or _OSD_.
+  Profiles define a particular set of streamed messages and their rates — you should choose a profile that is appropriate for your channel and the peripheral.
 - <a id="MAV_X_RATE"></a>[MAV_X_RATE](../advanced_config/parameter_reference.md#MAV_0_MODE) - Set the maximum _data rate_ for this instance (bytes/second).
   - This is the combined rate for all streams of individual message (the rates for individual messages are reduced if the total rate exceeds this value).
   - The default setting will generally be acceptable, but might be reduced if the telemetry link becomes saturated and too many messages are being dropped.
   - A value of 0 sets the data rate to half the theoretical value.
-
 - <a id="MAV_X_FORWARD"></a>[MAV_X_FORWARD](../advanced_config/parameter_reference.md#MAV_0_FORWARD) - Enable forwarding of MAVLink packets received by the current instance onto other interfaces.
   This might be used, for example, to transfer messages between a GCS and a companion computer so that the GCS can talk to a MAVLink enabled camera connected to the companion computer.
 
@@ -121,6 +95,7 @@ Links to setup instructions for specific MAVLink components:
 
 ## 另见
 
+- [MAVLink Profiles](../mavlink/mavlink_profiles.md)
 - [串口配置](../peripherals/serial_configuration.md)
 - [PX4 Ethernet Setup > PX4 MAVLink Serial Port Configuration](../advanced_config/ethernet_setup.md#px4-mavlink-serial-port-configuration)
 - [串口映射](../hardware/serial_port_mapping.md)
