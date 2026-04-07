@@ -1062,29 +1062,87 @@ void MissionBase::setMissionIndex(int32_t index)
 	}
 }
 
+bool MissionBase::loadMissionItemFromCache(int32_t index, mission_item_s &mission_item)
+{
+	return index >= 0
+	       && index < _mission.count
+	       && _dataman_cache.loadWait(static_cast<dm_item_t>(_mission.mission_dataman_id), index,
+					  reinterpret_cast<uint8_t *>(&mission_item), sizeof(mission_item),
+					  MAX_DATAMAN_LOAD_WAIT);
+}
+
+bool MissionBase::findNextPositionIndex(int32_t start_index, int32_t &next_index,
+					PositionTraversalType traversal_type)
+{
+	for (int32_t mission_index = start_index; mission_index < _mission.count;) {
+		int32_t traversed_index = mission_index;
+		mission_item_s mission_item{};
+
+		if (!loadTraversalItem(traversed_index, mission_item, traversal_type, false)) {
+			return false;
+		}
+
+		if (item_contains_position(mission_item)) {
+			next_index = traversed_index;
+			return true;
+		}
+
+		mission_index = traversed_index + 1;
+	}
+
+	return false;
+}
+
+bool MissionBase::findPreviousPositionIndex(int32_t start_index, int32_t &previous_index,
+		PositionTraversalType traversal_type)
+{
+	for (int32_t mission_index = start_index - 1; mission_index >= 0;) {
+		int32_t traversed_index = mission_index;
+		mission_item_s mission_item{};
+
+		if (!loadTraversalItem(traversed_index, mission_item, traversal_type, true)) {
+			return false;
+		}
+
+		if (item_contains_position(mission_item)) {
+			previous_index = traversed_index;
+			return true;
+		}
+
+		mission_index = traversed_index - 1;
+	}
+
+	return false;
+}
+
+bool MissionBase::loadTraversalItem(int32_t &mission_index, mission_item_s &mission_item,
+				    PositionTraversalType traversal_type, bool direction_backward)
+{
+	if (traversal_type == PositionTraversalType::FollowMissionControlFlow) {
+		return getNonJumpItem(mission_index, mission_item, true, false, direction_backward) == PX4_OK;
+	}
+
+	return loadMissionItemFromCache(mission_index, mission_item);
+}
+
 void MissionBase::getPreviousPositionItems(int32_t start_index, int32_t items_index[],
-		size_t &num_found_items, uint8_t max_num_items)
+		size_t &num_found_items, uint8_t max_num_items, PositionTraversalType traversal_type)
 {
 	num_found_items = 0u;
 
-	int32_t next_mission_index{start_index};
+	int32_t search_index{start_index};
 
 	for (size_t item_idx = 0u; item_idx < max_num_items; item_idx++) {
-		if (next_mission_index < 0) {
+		if (search_index < 0) {
 			break;
 		}
 
-		mission_item_s next_mission_item;
-		bool found_next_item{false};
+		int32_t previous_position_index{-1};
 
-		do {
-			next_mission_index--;
-			found_next_item = getNonJumpItem(next_mission_index, next_mission_item, true, false, true) == PX4_OK;
-		} while (!MissionBlock::item_contains_position(next_mission_item) && found_next_item);
-
-		if (found_next_item) {
-			items_index[item_idx] = next_mission_index;
+		if (findPreviousPositionIndex(search_index, previous_position_index, traversal_type)) {
+			items_index[item_idx] = previous_position_index;
 			num_found_items = item_idx + 1;
+			search_index = previous_position_index;
 
 		} else {
 			break;
@@ -1093,30 +1151,25 @@ void MissionBase::getPreviousPositionItems(int32_t start_index, int32_t items_in
 }
 
 void MissionBase::getNextPositionItems(int32_t start_index, int32_t items_index[],
-				       size_t &num_found_items, uint8_t max_num_items)
+				       size_t &num_found_items, uint8_t max_num_items,
+				       PositionTraversalType traversal_type)
 {
 	// Make sure vector does not contain any preexisting elements.
 	num_found_items = 0u;
 
-	int32_t next_mission_index{start_index};
+	int32_t search_index{start_index};
 
 	for (size_t item_idx = 0u; item_idx < max_num_items; item_idx++) {
-		if (next_mission_index >= _mission.count) {
+		if (search_index >= _mission.count) {
 			break;
 		}
 
-		mission_item_s next_mission_item;
-		bool found_next_item{false};
+		int32_t next_position_index{-1};
 
-		do {
-			found_next_item = getNonJumpItem(next_mission_index, next_mission_item, true, false, false) == PX4_OK;
-			next_mission_index++;
-		} while (!MissionBlock::item_contains_position(next_mission_item) && found_next_item);
-
-		if (found_next_item) {
-			items_index[item_idx] = math::max(next_mission_index - 1,
-							  static_cast<int32_t>(0)); // subtract 1 to get the index of the first position item
+		if (findNextPositionIndex(search_index, next_position_index, traversal_type)) {
+			items_index[item_idx] = next_position_index;
 			num_found_items = item_idx + 1;
+			search_index = next_position_index + 1;
 
 		} else {
 			break;
@@ -1142,13 +1195,11 @@ int MissionBase::goToPreviousItem(bool execute_jump)
 	return goToItem(_mission.current_seq - 1, execute_jump, true);
 }
 
-int MissionBase::goToPreviousPositionItem(bool execute_jump)
+int MissionBase::goToPreviousPositionItem(PositionTraversalType traversal_type)
 {
-	size_t num_found_items{0U};
-	int32_t previous_position_item_index;
-	getPreviousPositionItems(_mission.current_seq, &previous_position_item_index, num_found_items, 1);
+	int32_t previous_position_item_index{-1};
 
-	if (num_found_items == 1U) {
+	if (findPreviousPositionIndex(_mission.current_seq, previous_position_item_index, traversal_type)) {
 		setMissionIndex(previous_position_item_index);
 		return PX4_OK;
 
@@ -1157,13 +1208,11 @@ int MissionBase::goToPreviousPositionItem(bool execute_jump)
 	}
 }
 
-int MissionBase::goToNextPositionItem(bool execute_jump)
+int MissionBase::goToNextPositionItem(PositionTraversalType traversal_type)
 {
-	size_t num_found_items{0U};
-	int32_t next_position_item_index;
-	getNextPositionItems(_mission.current_seq + 1, &next_position_item_index, num_found_items, 1);
+	int32_t next_position_item_index{-1};
 
-	if (num_found_items == 1U) {
+	if (findNextPositionIndex(_mission.current_seq + 1, next_position_item_index, traversal_type)) {
 		setMissionIndex(next_position_item_index);
 		return PX4_OK;
 
