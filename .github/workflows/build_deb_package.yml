@@ -137,10 +137,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { image: sih,    target: sih,     arch: amd64, runner: x64,   platform: "linux/amd64", dockerfile: Dockerfile.sih }
-          - { image: sih,    target: sih,     arch: arm64, runner: arm64, platform: "linux/arm64", dockerfile: Dockerfile.sih }
-          - { image: gazebo, target: default, arch: amd64, runner: x64,   platform: "linux/amd64", dockerfile: Dockerfile.gazebo }
-          - { image: gazebo, target: default, arch: arm64, runner: arm64, platform: "linux/arm64", dockerfile: Dockerfile.gazebo }
+          - { image: sih,    repo: px4-sitl,        target: sih,     arch: amd64, runner: x64,   platform: "linux/amd64", dockerfile: Dockerfile.sih }
+          - { image: sih,    repo: px4-sitl,        target: sih,     arch: arm64, runner: arm64, platform: "linux/arm64", dockerfile: Dockerfile.sih }
+          - { image: gazebo, repo: px4-sitl-gazebo, target: default, arch: amd64, runner: x64,   platform: "linux/amd64", dockerfile: Dockerfile.gazebo }
+          - { image: gazebo, repo: px4-sitl-gazebo, target: default, arch: arm64, runner: arm64, platform: "linux/arm64", dockerfile: Dockerfile.gazebo }
     steps:
       - uses: runs-on/action@v2
       - uses: actions/checkout@v4
@@ -175,10 +175,10 @@ jobs:
           context: docker-context
           file: Tools/packaging/${{ matrix.dockerfile }}
           tags: |
-            px4io/px4-sitl-${{ matrix.image }}:${{ needs.setup.outputs.px4_version }}-${{ matrix.arch }}
-            px4io/px4-sitl-${{ matrix.image }}:latest-${{ matrix.arch }}
-            ghcr.io/px4/px4-sitl-${{ matrix.image }}:${{ needs.setup.outputs.px4_version }}-${{ matrix.arch }}
-            ghcr.io/px4/px4-sitl-${{ matrix.image }}:latest-${{ matrix.arch }}
+            px4io/${{ matrix.repo }}:${{ needs.setup.outputs.px4_version }}-${{ matrix.arch }}
+            px4io/${{ matrix.repo }}:latest-${{ matrix.arch }}
+            ghcr.io/px4/${{ matrix.repo }}:${{ needs.setup.outputs.px4_version }}-${{ matrix.arch }}
+            ghcr.io/px4/${{ matrix.repo }}:latest-${{ matrix.arch }}
           platforms: ${{ matrix.platform }}
           load: false
           push: ${{ needs.setup.outputs.should_push == 'true' }}
@@ -196,7 +196,9 @@ jobs:
     runs-on: [runs-on,"runner=1cpu-linux-x64","image=ubuntu24-full-x64","run-id=${{ github.run_id }}",extras=s3-cache,spot=false]
     strategy:
       matrix:
-        image: [sih, gazebo]
+        include:
+          - { image: sih,    repo: px4-sitl }
+          - { image: gazebo, repo: px4-sitl-gazebo }
     steps:
       - uses: runs-on/action@v2
 
@@ -210,7 +212,7 @@ jobs:
           VERSION="${{ needs.setup.outputs.px4_version }}"
 
           for REGISTRY in px4io ghcr.io/px4; do
-            IMAGE="${REGISTRY}/px4-sitl-${{ matrix.image }}"
+            IMAGE="${REGISTRY}/${{ matrix.repo }}"
 
             for TAG in ${VERSION} latest; do
               docker manifest create ${IMAGE}:${TAG} \
