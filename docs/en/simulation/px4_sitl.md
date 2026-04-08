@@ -12,7 +12,7 @@ Two simulators are packaged, each available as a `.deb` package (Ubuntu) or a Do
 | Simulator                                    | Format    | Package / Image         | Size    |
 | -------------------------------------------- | --------- | ----------------------- | ------- |
 | [SIH](../sim_sih/index.md)                   | .deb      | `px4`                   | ~10 MB  |
-|                                              | container | `px4io/px4-sitl-sih`    | ~100 MB |
+|                                              | container | `px4io/px4-sitl`        | ~100 MB |
 | [Gazebo Harmonic](../sim_gazebo_gz/index.md) | .deb      | `px4-gazebo`            | ~30 MB  |
 |                                              | container | `px4io/px4-sitl-gazebo` | ~2 GB   |
 
@@ -74,7 +74,7 @@ You will need to [install Docker](https://docs.docker.com/get-docker/).
 
 | Image                         | Simulator       |
 | ----------------------------- | --------------- |
-| `px4io/px4-sitl-sih:<tag>`    | SIH (headless)  |
+| `px4io/px4-sitl:<tag>`        | SIH (headless)  |
 | `px4io/px4-sitl-gazebo:<tag>` | Gazebo Harmonic |
 
 Tags follow PX4 versions (e.g. `v1.17.0`).
@@ -83,7 +83,7 @@ Tags follow PX4 versions (e.g. `v1.17.0`).
 
 ```bash
 # SIH
-docker run --rm -it -p 14550:14550/udp px4io/px4-sitl-sih:latest
+docker run --rm -it -p 14550:14550/udp px4io/px4-sitl:latest
 
 # Gazebo
 docker run --rm -it -p 14550:14550/udp px4io/px4-sitl-gazebo:latest
@@ -94,7 +94,7 @@ Pass environment variables with `-e`:
 ```bash
 docker run --rm -it -p 14550:14550/udp \
   -e PX4_SIM_MODEL=sihsim_airplane \
-  px4io/px4-sitl-sih:latest
+  px4io/px4-sitl:latest
 ```
 
 The quick-start command above only exposes the QGroundControl port.
@@ -106,7 +106,7 @@ docker run --rm -it \
   -p 14540:14540/udp \
   -p 8888:8888/udp \
   -p 19410:19410/udp \
-  px4io/px4-sitl-sih:latest
+  px4io/px4-sitl:latest
 ```
 
 | Port  | Protocol | Used by                     |
@@ -119,7 +119,7 @@ docker run --rm -it \
 On Linux, you can skip individual port flags and use `--network host` instead:
 
 ```bash
-docker run --rm -it --network host px4io/px4-sitl-sih:latest
+docker run --rm -it --network host px4io/px4-sitl:latest
 ```
 
 ## Configuration

@@ -7,7 +7,7 @@ Validates that the SIH Docker container works end-to-end with MAVSDK.
 
 Prerequisites:
   - Docker container running:
-      docker run --rm --network host px4io/px4-sitl-sih:v1.17.0-alpha1
+      docker run --rm --network host px4io/px4-sitl:v1.17.0-alpha1
   - pip install mavsdk
   - mavsim-viewer running (optional):
       /path/to/mavsim-viewer -n 1

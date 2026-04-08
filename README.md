@@ -70,7 +70,7 @@ PX4 is an open-source autopilot stack for drones and unmanned vehicles. It suppo
 Run PX4 in simulation with a single command. No build tools, no dependencies beyond Docker:
 
 ```bash
-docker run --rm -it -p 14550:14550/udp px4io/px4-sitl-sih:latest
+docker run --rm -it -p 14550:14550/udp px4io/px4-sitl:latest
 ```
 
 Open [QGroundControl](https://qgroundcontrol.com) and fly. See [Try PX4 Simulation](https://docs.px4.io/main/en/dev_setup/try_px4) for more options.

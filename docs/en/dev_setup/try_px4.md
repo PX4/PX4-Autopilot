@@ -4,7 +4,7 @@ PX4 runs a full autopilot in simulation, on your laptop, with nothing to install
 One command and you have a flying vehicle ready for QGroundControl, MAVSDK, or ROS 2.
 
 ```sh
-docker run --rm -it -p 14550:14550/udp px4io/px4-sitl-sih:latest
+docker run --rm -it -p 14550:14550/udp px4io/px4-sitl:latest
 ```
 
 That's it.
@@ -32,7 +32,7 @@ Just install [Docker](https://docs.docker.com/get-docker/) (a free tool that run
 This command then works on Linux, macOS, and Windows:
 
 ```sh
-docker run --rm -it -p 14550:14550/udp px4io/px4-sitl-sih:latest
+docker run --rm -it -p 14550:14550/udp px4io/px4-sitl:latest
 ```
 
 PX4 starts a simulated quadcopter.
