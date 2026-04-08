@@ -1,9 +1,9 @@
 # Maintainer Role
 
-Dronecode maintainers have technical leadership and responsibility for specific areas of PX4, and for other ecosystem components such as MAVLink, MAVSDK, QGroundControl, and others.
+Dronecode maintainers provide technical leadership for PX4 and for other ecosystem components such as MAVLink, MAVSDK, QGroundControl, and others. Some maintainers take responsibility for specific areas of the project, while others help across the project more broadly.
 The maintainer role is defined by the community with help and supervision from the [Dronecode Foundation](https://dronecode.org/).
 
-To find the most up-to-date maintainers list, visit [PX4-Autopilot README](https://github.com/PX4/PX4-Autopilot#maintenance-team).
+To find the most up-to-date maintainers list, see [`MAINTAINERS.md`](https://github.com/PX4/PX4-Autopilot/blob/main/MAINTAINERS.md) in the PX4-Autopilot repository.
 
 ## Maintainer Types
 
@@ -19,7 +19,7 @@ The Reviewer role is a good fit for contributors who want to help steward the pr
 If you would like to join the PX4 maintainers team or if you want to nominate someone else follow the steps below:
 
 1. Read the [role description](#dronecode-maintainer-role-description), and make sure you understand the responsibilities of the role.
-2. To nominate yourself, reach out to one of the maintainers (see the complete list in the [PX4-Autopilot README](https://github.com/PX4/PX4-Autopilot#maintenance-team)), and seek their sponsorship.
+2. To nominate yourself, reach out to one of the maintainers (see the complete list in [`MAINTAINERS.md`](https://github.com/PX4/PX4-Autopilot/blob/main/MAINTAINERS.md)), and seek their sponsorship.
 3. Express your interest in becoming a maintainer, and specify whether you are applying as a **Code Owner** (for a specific category) or as a **Reviewer** (helping across the project without a fixed category).
 4. The sponsoring maintainer needs to bring this up for discussion in one of the [weekly developer calls](dev_call.md).
    The maintainer team will vote on the call to determine whether to accept you as a maintainer.
@@ -48,7 +48,7 @@ Once accepted every maintainers will go through the following process:
    2. Permission to trigger GitHub actions when a new contributor opens a PR.
    3. Permission to edit Issue/PR contents.
 3. **Add your info to official PX4 channels**:
-   1. Include your information on the PX4 [README](https://github.com/PX4/PX4-Autopilot/blob/main/README.md) next to the rest of the team (under the **Code Owners** table with your category, or the **Reviewers** table if you are joining as a Reviewer)
+   1. Add your information to [`MAINTAINERS.md`](https://github.com/PX4/PX4-Autopilot/blob/main/MAINTAINERS.md) in the PX4-Autopilot repository (under the **Code Owners** table with your category, or the **Reviewers** table if you are joining as a Reviewer)
    2. Listed on the [Maintainers section](https://px4.io/community/maintainers/) of the PX4 website.
    3. Add your information to the internal Dronecode database of maintainers to keep you in sync.
    4. Community introduction to the new maintainer in the form of a forum post, which is promoted through ever growing official channels
@@ -61,20 +61,28 @@ The responsibilities and qualifications below describe the **Code Owner** role i
 
 Maintainers lead/manage the development of a **specific category (referred to as category below)** of any Open Source Projects hosted within the Dronecode Foundation, such as the PX4 Autopilot.
 
-### Responsibilities
+### Responsibilities (Code Owner)
 
 1. Take charge of overseeing the development in their category.
 2. Provide guidance/advice on community members in their category.
 3. Review relevant pull requests and issues from the community on GitHub.
 4. Coordinate with the maintainer group.
-5. Keep regular attendance on [weekly meetings ](dev_call.md).
+5. Keep regular attendance on [weekly meetings](dev_call.md).
 6. Help create and maintain a roadmap for the project your represent.
 7. Uphold the [Code of Conduct](https://github.com/Dronecode/foundation/blob/main/CODE-OF-CONDUCT.md) of our community.
+
+### Responsibilities (Reviewer)
+
+1. Review relevant pull requests and issues across the project where your expertise applies.
+2. Help triage issues and guide community contributors.
+3. Coordinate with the maintainer group.
+4. Keep regular attendance on [weekly meetings](dev_call.md).
+5. Uphold the [Code of Conduct](https://github.com/Dronecode/foundation/blob/main/CODE-OF-CONDUCT.md) of our community.
 
 ### Qualifications
 
 1. Proven track record of valuable contributions.
-2. Domain expertise in the category field.
+2. Domain expertise in the category field (for Code Owners) or broad working knowledge of the project (for Reviewers).
 3. Good overview of the project you are applying to.
 4. You need to manage approval from your employer when relevant.
 
