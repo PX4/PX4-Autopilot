@@ -98,6 +98,10 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
+      - name: Use AWS regional apt mirror
+        if: startsWith(runner.name, 'runs-on--')
+        run: ./Tools/ci/use_aws_apt_mirror.sh
+
       - name: Cache apt packages
         uses: actions/cache@v5
         with:
@@ -126,10 +130,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { image: sih,    image_name: px4-sitl,        target: sih,     arch: amd64, runner: x64,   platform: "linux/amd64", dockerfile: Dockerfile.sih }
-          - { image: sih,    image_name: px4-sitl,        target: sih,     arch: arm64, runner: arm64, platform: "linux/arm64", dockerfile: Dockerfile.sih }
-          - { image: gazebo, image_name: px4-sitl-gazebo, target: default, arch: amd64, runner: x64,   platform: "linux/amd64", dockerfile: Dockerfile.gazebo }
-          - { image: gazebo, image_name: px4-sitl-gazebo, target: default, arch: arm64, runner: arm64, platform: "linux/arm64", dockerfile: Dockerfile.gazebo }
+          - { image: sih,    repo: px4-sitl,        target: sih,     arch: amd64, runner: x64,   platform: "linux/amd64", dockerfile: Dockerfile.sih }
+          - { image: sih,    repo: px4-sitl,        target: sih,     arch: arm64, runner: arm64, platform: "linux/arm64", dockerfile: Dockerfile.sih }
+          - { image: gazebo, repo: px4-sitl-gazebo, target: default, arch: amd64, runner: x64,   platform: "linux/amd64", dockerfile: Dockerfile.gazebo }
+          - { image: gazebo, repo: px4-sitl-gazebo, target: default, arch: arm64, runner: arm64, platform: "linux/arm64", dockerfile: Dockerfile.gazebo }
     steps:
       - uses: runs-on/action@v2
       - uses: actions/checkout@v6
@@ -138,7 +142,7 @@ jobs:
           fetch-depth: 1
 
       - name: Download Noble .deb artifact
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v4
         with:
           name: px4-sitl-debs-${{ matrix.target }}-noble-${{ matrix.arch }}
           path: docker-context
@@ -153,21 +157,21 @@ jobs:
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@v3
         with:
           driver: docker-container
           platforms: ${{ matrix.platform }}
 
       - name: Build and push container image
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@v6
         with:
           context: docker-context
           file: Tools/packaging/${{ matrix.dockerfile }}
           tags: |
-            px4io/${{ matrix.image_name }}:${{ needs.setup.outputs.px4_version }}-${{ matrix.arch }}
-            px4io/${{ matrix.image_name }}:latest-${{ matrix.arch }}
-            ghcr.io/px4/${{ matrix.image_name }}:${{ needs.setup.outputs.px4_version }}-${{ matrix.arch }}
-            ghcr.io/px4/${{ matrix.image_name }}:latest-${{ matrix.arch }}
+            px4io/${{ matrix.repo }}:${{ needs.setup.outputs.px4_version }}-${{ matrix.arch }}
+            px4io/${{ matrix.repo }}:latest-${{ matrix.arch }}
+            ghcr.io/px4/${{ matrix.repo }}:${{ needs.setup.outputs.px4_version }}-${{ matrix.arch }}
+            ghcr.io/px4/${{ matrix.repo }}:latest-${{ matrix.arch }}
           platforms: ${{ matrix.platform }}
           load: false
           push: ${{ needs.setup.outputs.should_push == 'true' }}
@@ -186,8 +190,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - { image: sih,    image_name: px4-sitl }
-          - { image: gazebo, image_name: px4-sitl-gazebo }
+          - { image: sih,    repo: px4-sitl }
+          - { image: gazebo, repo: px4-sitl-gazebo }
     steps:
       - uses: runs-on/action@v2
 
@@ -201,7 +205,7 @@ jobs:
           VERSION="${{ needs.setup.outputs.px4_version }}"
 
           for REGISTRY in px4io ghcr.io/px4; do
-            IMAGE="${REGISTRY}/${{ matrix.image_name }}"
+            IMAGE="${REGISTRY}/${{ matrix.repo }}"
 
             for TAG in ${VERSION} latest; do
               docker manifest create ${IMAGE}:${TAG} \

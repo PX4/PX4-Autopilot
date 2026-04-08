@@ -24,6 +24,11 @@ on:
         description: 'Container tag (e.g. v1.16.0)'
         required: true
         type: string
+      build_ref:
+        description: 'Git ref to build from (branch, tag, or SHA). Leave empty to build from the dispatch ref.'
+        required: false
+        type: string
+        default: ''
       deploy_to_registry:
         description: 'Whether to push built images to the registry'
         required: false
@@ -48,6 +53,7 @@ jobs:
       - uses: runs-on/action@v2
       - uses: actions/checkout@v5
         with:
+          ref: ${{ github.event.inputs.build_ref || github.ref }}
           fetch-tags: true
           submodules: false
           fetch-depth: 0
@@ -92,6 +98,7 @@ jobs:
       - uses: runs-on/action@v2
       - uses: actions/checkout@v5
         with:
+          ref: ${{ github.event.inputs.build_ref || github.ref }}
           fetch-tags: true
           submodules: false
           fetch-depth: 0
@@ -148,6 +155,7 @@ jobs:
       - uses: runs-on/action@v2
       - uses: actions/checkout@v5
         with:
+          ref: ${{ github.event.inputs.build_ref || github.ref }}
           fetch-tags: true
           submodules: false
           fetch-depth: 0
