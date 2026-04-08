@@ -528,6 +528,7 @@ private:
 		uint64_t last_sample_ts{0};
 		bool hit_pending{false};
 		bool altitude_good_for_local_control{true};
+		float altitude_offset{0.f};
 
 		void updateBaroLpf(float baro_alt, uint64_t timestamp);
 		void update(const sensor_gps_s &gps, uORB::PublicationMulti<gps_altitude_drift_correction_s> &pub);

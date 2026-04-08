@@ -2626,6 +2626,7 @@ void EKF2::GpsAltDriftDetector::updateBaroLpf(float baro_alt, uint64_t timestamp
 
 void EKF2::GpsAltDriftDetector::update(const sensor_gps_s &gps, uORB::PublicationMulti<gps_altitude_drift_correction_s> &pub)
 {
+	altitude_offset = 0.f;
 	const bool gps_timeout = (last_gps_ts != 0) && (gps.timestamp - last_gps_ts > 500000);
 
 	if (!gps_timeout && (last_gps_ts != 0) && (last_baro_ts != 0)) {
@@ -2663,10 +2664,12 @@ void EKF2::GpsAltDriftDetector::update(const sensor_gps_s &gps, uORB::Publicatio
 
 				// hit pending to filter out single outliers
 				if (hit && hit_pending) {
+					const float offset = d1[newest] - d1[oldest];
 					gps_altitude_drift_correction_s correction{};
 					correction.timestamp = hrt_absolute_time();
-					correction.altitude_offset = d1[newest] - d1[oldest];
+					correction.altitude_offset = offset;
 					pub.publish(correction);
+					altitude_offset += offset;
 					hit_pending = false;
 					altitude_good_for_local_control = false;
 					wcount = 1;
@@ -2691,6 +2694,7 @@ void EKF2::GpsAltDriftDetector::update(const sensor_gps_s &gps, uORB::Publicatio
 							correction.timestamp = hrt_absolute_time();
 							correction.altitude_offset = residual;
 							pub.publish(correction);
+							altitude_offset += residual;
 						}
 
 						wcount = 1;
@@ -2790,6 +2794,14 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 
 		if (_ekf.control_status_flags().in_air &&  _ekf.getHeightSensorRef() == HeightSensor::GNSS) {
 			_gps_alt_drift.update(vehicle_gps_position, _gps_alt_drift_pub);
+
+			if (fabsf(_gps_alt_drift.altitude_offset) > 0.f) {
+				_ekf.adjustBaroBiasForDriftCorrection(_gps_alt_drift.altitude_offset);
+			}
+
+			if (!_gps_alt_drift.altitude_good_for_local_control) {
+				_ekf.uncorrelateCovariance<1>(estimator::State::pos.idx + 2);
+			}
 
 		} else {
 			_gps_alt_drift.reset();
