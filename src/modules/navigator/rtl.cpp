@@ -496,7 +496,7 @@ PositionYawSetpoint RTL::findClosestSafePoint(float min_dist, uint8_t &safe_poin
 			const bool far_from_home = get_distance_to_next_waypoint(_home_pos_sub.get().lat, _home_pos_sub.get().lon,
 						   mission_safe_point.lat, mission_safe_point.lon) > MAX_DIST_FROM_HOME_FOR_LAND_APPROACHES;
 
-			if (far_from_home || (_param_rtl_type.get() == 5) || (_param_rtl_type.get() == 6)) {
+			if (mission_safe_point.nav_cmd == NAV_CMD_RALLY_POINT && (far_from_home || (_param_rtl_type.get() == 5) || (_param_rtl_type.get() == 6))) {
 				const float dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, mission_safe_point.lat, mission_safe_point.lon)};
 
 				PositionYawSetpoint safepoint_position;
