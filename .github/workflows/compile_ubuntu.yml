@@ -38,17 +38,6 @@ jobs:
 
       - name: Fix git in container
         run: |
-          # Switch to AWS regional mirrors. runs-on instances are in us-west-2,
-          # and the EC2 archive mirrors are Canonical-operated, region-local,
-          # and sync aggressively. The default archive.ubuntu.com round-robin
-          # sometimes serves out-of-sync index files mid-sync, breaking
-          # apt-get update.
-          if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then
-            sed -i 's|http://archive.ubuntu.com/ubuntu|http://us-west-2.ec2.archive.ubuntu.com/ubuntu|g; s|http://security.ubuntu.com/ubuntu|http://us-west-2.ec2.archive.ubuntu.com/ubuntu|g' /etc/apt/sources.list.d/ubuntu.sources
-          fi
-          if [ -f /etc/apt/sources.list ]; then
-            sed -i 's|http://archive.ubuntu.com/ubuntu|http://us-west-2.ec2.archive.ubuntu.com/ubuntu|g; s|http://security.ubuntu.com/ubuntu|http://us-west-2.ec2.archive.ubuntu.com/ubuntu|g' /etc/apt/sources.list
-          fi
           # we only need this because we are running the job in a container
           # when checkout pulls git it does it in a shared volume
           # and file ownership changes between steps
@@ -59,6 +48,9 @@ jobs:
           git config --global --add safe.directory $(realpath .)
 
       - uses: actions/checkout@v4
+
+      - name: Use AWS regional apt mirror
+        run: ./Tools/ci/use_aws_apt_mirror.sh
 
       - name: Install Deps, Build, and Make Quick Check
         run: |

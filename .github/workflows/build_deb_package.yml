@@ -90,17 +90,6 @@ jobs:
 
       - name: Fix git in container
         run: |
-          # Switch to AWS regional mirrors. runs-on instances are in us-west-2,
-          # and the EC2 archive mirrors are Canonical-operated, region-local,
-          # and sync aggressively. The default archive.ubuntu.com round-robin
-          # sometimes serves out-of-sync index files mid-sync, breaking
-          # apt-get update.
-          if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then
-            sed -i 's|http://archive.ubuntu.com/ubuntu|http://us-west-2.ec2.archive.ubuntu.com/ubuntu|g; s|http://security.ubuntu.com/ubuntu|http://us-west-2.ec2.archive.ubuntu.com/ubuntu|g' /etc/apt/sources.list.d/ubuntu.sources
-          fi
-          if [ -f /etc/apt/sources.list ]; then
-            sed -i 's|http://archive.ubuntu.com/ubuntu|http://us-west-2.ec2.archive.ubuntu.com/ubuntu|g; s|http://security.ubuntu.com/ubuntu|http://us-west-2.ec2.archive.ubuntu.com/ubuntu|g' /etc/apt/sources.list
-          fi
           apt-get update && apt-get install -y git
           git config --global --add safe.directory $(realpath .)
 
@@ -108,6 +97,9 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
+
+      - name: Use AWS regional apt mirror
+        run: ./Tools/ci/use_aws_apt_mirror.sh
 
       - name: Cache apt packages
         uses: actions/cache@v4
