@@ -68,7 +68,7 @@ private:
 			if (battery_sub.update(&battery_status)) {
 				mavlink_battery_status_v2_t bat_msg{};
 
-				bat_msg.id = battery_status.id;
+				bat_msg.id = battery_status.id - 1; // uORB id is 1-indexed, MAVLink is 0-indexed (matches BATTERY_STATUS and BATTERY_INFO)
 				bat_msg.temperature = (battery_status.connected
 						       && PX4_ISFINITE(battery_status.temperature)) ? static_cast<int16_t>(battery_status.temperature * 1e2f) : INT16_MAX;
 				bat_msg.voltage = (battery_status.connected
