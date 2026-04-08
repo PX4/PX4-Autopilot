@@ -65,6 +65,8 @@
 #include <conversion/rotation.h>    	// math::radians,
 // #include <lib/mathlib/mathlib.h>
 #include <math.h>
+#include <px4_platform_common/defines.h>	// PX4_ISFINITE
+#include <px4_platform_common/log.h>		// PX4_INFO
 
 // class Thruster using the terminology from UIUC Propeller Data site https://m-selig.ae.illinois.edu/props/propDB.html
 class Thruster
@@ -290,13 +292,13 @@ public:
 	void print_status()
 	{
 		if (CT0 <= 0.0f) {
-			printf("Thruster simple model: Tmax %.4f N, Qmax %.4f Nm\n", (double)T_MAX, (double)Q_MAX);
+			PX4_INFO("Thruster simple model: Tmax %.4f N, Qmax %.4f Nm", (double)T_MAX, (double)Q_MAX);
 
 		} else {
-			printf("Thruster dyn. model: dia %.4f m, max rpm %.0f, Tmax %.4f N, Qmax %.4f Nm\n",
-			       (double)_d_m, (double)_rpm_max, (double)T_MAX, (double)Q_MAX);
-			printf("   Tmax: %.3f N at 10 m/s, %.3f N at 20 m/s\n",
-			       (double)compute_thrust_from_throttle(1.0f, 10.0f), (double)compute_thrust_from_throttle(1.0f, 20.0f));
+			PX4_INFO("Thruster dyn. model: dia %.4f m, max rpm %.0f, Tmax %.4f N, Qmax %.4f Nm",
+				 (double)_d_m, (double)_rpm_max, (double)T_MAX, (double)Q_MAX);
+			PX4_INFO("   Tmax: %.3f N at 10 m/s, %.3f N at 20 m/s",
+				 (double)compute_thrust_from_throttle(1.0f, 10.0f), (double)compute_thrust_from_throttle(1.0f, 20.0f));
 		}
 	}
 };
