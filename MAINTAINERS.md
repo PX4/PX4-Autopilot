@@ -3,7 +3,7 @@ Maintainers
 
 PX4 is maintained by a group of contributors trusted to steward the project. All maintainers listed below are members of the @PX4/dev-team, have write access, and participate in maintainer decisions. We recognize two types: **Code Owners**, responsible for specific components, and **Reviewers**, who help across the project without a fixed component.
 
-See [the documentation on Maintainers](https://docs.px4.io/main/en/contribute/maintainers.html) to learn about the role of the maintainers and the process to become one.
+See [the documentation on Maintainers](https://docs.px4.io/main/en/contribute/maintainers) to learn about the role of the maintainers and the process to become one.
 
 **Code Owners**
 
