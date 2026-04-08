@@ -108,7 +108,14 @@ Tests in `test_generators.py` use the `snapshot` fixture from `conftest.py`.
   - `src/timer_config.cpp` — timer groups and channels
   - `default.px4board` — Kconfig board settings (serial labels, RC, GPS, drivers)
   - `nuttx-config/include/board.h` — flow control GPIO definitions
-  - `init/rc.board_sensors` — sensor driver start commands
+  - `init/rc.board_sensors` — sensor driver start commands; comments immediately
+    preceding a sensor start line are parsed for port labels (e.g.
+    `# External compass on GPS1/I2C1:` → `port_label: 'GPS1'` on that sensor entry);
+    power monitor drivers (INA226/INA228/INA238) are also captured in
+    `sensor_bus_info['power_monitor']`
+  - `src/i2c.cpp` — authoritative I2C bus routing:
+    `initI2CBusExternal(N)` = external connector; `initI2CBusInternal(N)` = on-board only.
+    When present, stored in `i2c_bus_config` and enables the detailed per-bus I2C output.
 
 - **Metadata JSON** in `metadata/` caches parsed data (`*_data.json`) and
   wizard-supplied overrides (`*_wizard.json`). Wizard data persists across runs
@@ -139,3 +146,11 @@ Tests in `test_generators.py` use the `snapshot` fixture from `conftest.py`.
 1. All existing tests must pass: run `pytest` from `docs/scripts/fc_doc_generator/`
 2. New functionality must have new tests (unit tests and/or snapshot tests as appropriate)
 3. Update this `CLAUDE.md` if the change affects how to run the script, the architecture, extension patterns, or conventions
+4. **Wizard JSON backward compatibility** — `metadata/*_wizard.json` files are persisted user
+   data. A new tool version must work correctly with an old wizard JSON:
+   - **Adding** a new field to `_WIZARD_CACHE_FIELDS`: safe — missing keys are read via
+     `cached.get(...)` which returns `None`, triggering re-prompting.
+   - **Renaming** an existing field or **changing its structure** (e.g. the shape of
+     `i2c_buses_wizard` entries): **breaking change** — old data is silently lost or
+     misinterpreted. This must be explicitly flagged in the plan and requires a migration
+     strategy (e.g. read both old and new key names, or add a one-time upgrade step).

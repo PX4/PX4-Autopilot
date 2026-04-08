@@ -1,33 +1,24 @@
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H753 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-
-### Sensors
-
-- **IMU**: ICM-42688P (SPI)
-- **Barometer**: MS5611 (SPI)
-- **Magnetometer**: TODO: list magnetometer(s)
-
-### Interfaces
-
-- **I2C ports**: TODO: number of I2C ports
-- **SPI buses**: 4
-  - ICM-42688P (IMU)
-  - MS5611 (barometer)
-- **USB**: TODO: confirm USB connector type
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
+- **Processor**
+  - **Main FMU Processor**: STM32H753 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: ICM-42688P (SPI)
+  - **Barometer**: MS5611 (SPI)
+  - **Magnetometer**: TODO: list magnetometer(s)
+- **Interfaces**
+  - **I2C ports**: TODO: number of I2C ports
+  - **SPI buses**: 4
+    - ICM-42688P (IMU)
+    - MS5611 (barometer)
+  - **USB**: TODO: confirm USB connector type
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
 
 <!-- overview-source-data
 {

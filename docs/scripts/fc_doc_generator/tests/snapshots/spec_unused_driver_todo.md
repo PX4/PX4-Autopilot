@@ -3,16 +3,12 @@
 - **Processor**
   - **Main FMU Processor**: STM32H753 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
 - **Sensors**
-  - **IMU**: ICM-42688P (SPI); BMI088 (SPI, variant HW000001), ICM-20602 (SPI, other variants)
-  - **Barometer**: MS5611 (SPI)
-  - **Magnetometer**: IST8310 (I2C, internal), IST8310 (I2C, bus 1, external)
+  - **IMU**: ICM-20649, ICM-20689, BMI088 <!-- TODO: Unnecessary driver(s) in firmware?: ICM-20948, ICM-42688P. -->
+  - **Barometer**: TODO: list barometer(s)
+  - **Magnetometer**: RM3100 <!-- TODO: Unnecessary driver(s) in firmware?: IST8310. -->
 - **Interfaces**
-  - **I2C ports**: 4 (3 internal, 1 external)
-    - TODO: label for I2C bus 1 (I2C1, external): IST8310 (magnetometer)
-    - Internal: IST8310 (magnetometer)
-  - **SPI buses**: 5
-    - ICM-42688P (IMU)
-    - MS5611 (barometer)
+  - **I2C ports**: TODO: number of I2C ports
+  - **SPI buses**: 3
   - **USB**: TODO: confirm USB connector type
   - **Analog battery inputs**: 1
   - **Additional analog inputs**: TODO: number of additional analog inputs
@@ -33,24 +29,34 @@
   "has_sd_card": false,
   "has_ethernet": false,
   "has_heater": false,
-  "num_i2c_buses": 4,
-  "num_spi_buses": 5,
+  "num_i2c_buses": 0,
+  "num_spi_buses": 3,
   "num_can_buses": 0,
   "has_usb": false,
   "sensor_drivers": {
     "imu": [
-      "ICM-42688P",
+      "ICM-20649",
+      "ICM-20689",
       "BMI088",
-      "ICM-20602"
+      "ICM-20948",
+      "ICM-42688P"
     ],
-    "baro": [
-      "MS5611"
-    ],
+    "baro": [],
     "mag": [
+      "RM3100",
       "IST8310"
     ],
     "osd": []
   },
-  "overview_wizard": null
+  "overview_wizard": {
+    "imu": [
+      "ICM-20649",
+      "ICM-20689",
+      "BMI088"
+    ],
+    "mag": [
+      "RM3100"
+    ]
+  }
 }
 -->

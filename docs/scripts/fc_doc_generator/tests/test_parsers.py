@@ -466,7 +466,7 @@ class TestParseRcBoardSensorBus:
 
     def test_missing_file_returns_empty(self, tmp_path):
         result = fcdg.parse_rc_board_sensor_bus(tmp_path)
-        assert result == {'imu': [], 'baro': [], 'mag': [], 'osd': []}
+        assert result == {'imu': [], 'baro': [], 'mag': [], 'osd': [], 'power_monitor': []}
 
     def test_skips_variant_block(self, board_stm32h7_variant):
         """Sensors inside if ver hwtypecmp blocks must not appear in sensor_bus_info."""
@@ -477,6 +477,147 @@ class TestParseRcBoardSensorBus:
         assert 'ICM-20602' not in imu_names
         # icm42688p is unconditional → must be present
         assert 'ICM-42688P' in imu_names
+
+    def test_external_port_label_detected_from_comment(self, board_stm32h7_all_dshot):
+        """External sensor preceded by 'GPS1/I2C1' comment gets port_label='GPS1'."""
+        result = fcdg.parse_rc_board_sensor_bus(board_stm32h7_all_dshot)
+        external = [e for e in result['mag'] if e['external']]
+        assert len(external) == 1
+        assert external[0]['port_label'] == 'GPS1'
+
+    def test_internal_sensor_port_label_none(self, board_stm32h7_all_dshot):
+        """Internal sensor preceded by 'Internal compass' comment gets port_label=None."""
+        result = fcdg.parse_rc_board_sensor_bus(board_stm32h7_all_dshot)
+        internal = [e for e in result['mag'] if not e['external']]
+        assert len(internal) == 1
+        assert internal[0]['port_label'] is None
+
+    def test_spi_sensor_port_label_none(self, board_stm32h7_all_dshot):
+        """SPI sensor with no GPS/I2C comment gets port_label=None."""
+        result = fcdg.parse_rc_board_sensor_bus(board_stm32h7_all_dshot)
+        assert result['imu'][0]['port_label'] is None
+
+
+# ---------------------------------------------------------------------------
+# parse_i2c_bus_config
+# ---------------------------------------------------------------------------
+
+class TestParseI2cBusConfig:
+    def test_missing_file_returns_empty_dict(self, tmp_path):
+        """No src/i2c.cpp → empty dict."""
+        assert fcdg.parse_i2c_bus_config(tmp_path) == {}
+
+    def test_external_buses_parsed(self, tmp_path):
+        (tmp_path / 'src').mkdir(parents=True)
+        (tmp_path / 'src' / 'i2c.cpp').write_text(
+            'constexpr px4_i2c_bus_t buses[] = {\n'
+            '    initI2CBusExternal(1),\n'
+            '    initI2CBusExternal(2),\n'
+            '};\n'
+        )
+        result = fcdg.parse_i2c_bus_config(tmp_path)
+        assert result['external'] == [1, 2]
+        assert result['internal'] == []
+
+    def test_internal_buses_parsed(self, tmp_path):
+        (tmp_path / 'src').mkdir(parents=True)
+        (tmp_path / 'src' / 'i2c.cpp').write_text(
+            'constexpr px4_i2c_bus_t buses[] = {\n'
+            '    initI2CBusInternal(3),\n'
+            '};\n'
+        )
+        result = fcdg.parse_i2c_bus_config(tmp_path)
+        assert result['external'] == []
+        assert result['internal'] == [3]
+
+    def test_mixed_buses_parsed_and_sorted(self, tmp_path):
+        (tmp_path / 'src').mkdir(parents=True)
+        (tmp_path / 'src' / 'i2c.cpp').write_text(
+            'constexpr px4_i2c_bus_t buses[] = {\n'
+            '    initI2CBusExternal(1),\n'
+            '    initI2CBusExternal(2),\n'
+            '    initI2CBusInternal(3),\n'
+            '    initI2CBusExternal(4),\n'
+            '};\n'
+        )
+        result = fcdg.parse_i2c_bus_config(tmp_path)
+        assert result['external'] == [1, 2, 4]
+        assert result['internal'] == [3]
+
+    def test_whitespace_in_args(self, tmp_path):
+        (tmp_path / 'src').mkdir(parents=True)
+        (tmp_path / 'src' / 'i2c.cpp').write_text(
+            'initI2CBusExternal( 1 );\ninitI2CBusInternal( 2 );\n'
+        )
+        result = fcdg.parse_i2c_bus_config(tmp_path)
+        assert 1 in result['external']
+        assert 2 in result['internal']
+
+    def test_empty_file_returns_empty_dict(self, tmp_path):
+        (tmp_path / 'src').mkdir(parents=True)
+        (tmp_path / 'src' / 'i2c.cpp').write_text('// no bus entries\n')
+        assert fcdg.parse_i2c_bus_config(tmp_path) == {}
+
+
+# ---------------------------------------------------------------------------
+# power_monitor category in parse_rc_board_sensor_bus
+# ---------------------------------------------------------------------------
+
+class TestPowerMonitorSensorBus:
+    def test_ina226_classified_as_power_monitor(self, tmp_path):
+        (tmp_path / 'init').mkdir(parents=True)
+        (tmp_path / 'init' / 'rc.board_sensors').write_text(
+            'ina226 -X -b 2 -t 1 -k start\n'
+        )
+        result = fcdg.parse_rc_board_sensor_bus(tmp_path)
+        assert len(result['power_monitor']) == 1
+        pm = result['power_monitor'][0]
+        assert pm['name'] == 'INA226'
+        assert pm['bus_type'] == 'I2C'
+        assert pm['bus_num'] == 2
+        assert pm['external'] is True
+
+    def test_ina228_classified_as_power_monitor(self, tmp_path):
+        (tmp_path / 'init').mkdir(parents=True)
+        (tmp_path / 'init' / 'rc.board_sensors').write_text(
+            'ina228 -X -b 1 start\n'
+        )
+        result = fcdg.parse_rc_board_sensor_bus(tmp_path)
+        assert result['power_monitor'][0]['name'] == 'INA228'
+
+
+# ---------------------------------------------------------------------------
+# _extract_port_label_from_comment
+# ---------------------------------------------------------------------------
+
+class TestExtractPortLabelFromComment:
+    def test_gps_port_extracted(self):
+        assert fcdg._extract_port_label_from_comment(
+            'External compass on GPS1/I2C1: standard puck') == 'GPS1'
+
+    def test_gps2_extracted(self):
+        assert fcdg._extract_port_label_from_comment('compass on GPS2') == 'GPS2'
+
+    def test_telem_extracted_when_no_gps(self):
+        assert fcdg._extract_port_label_from_comment('sensor on TELEM1') == 'TELEM1'
+
+    def test_i2c_numbered_extracted_when_no_gps_or_telem(self):
+        assert fcdg._extract_port_label_from_comment('I2C2 ist8310 magnetometer') == 'I2C2'
+
+    def test_i2c_without_digit_returns_none(self):
+        # "Internal magnetometer on I2C" — no digit suffix
+        assert fcdg._extract_port_label_from_comment('Internal magnetometer on I2C') is None
+
+    def test_none_input_returns_none(self):
+        assert fcdg._extract_port_label_from_comment(None) is None
+
+    def test_empty_comment_returns_none(self):
+        assert fcdg._extract_port_label_from_comment('') is None
+
+    def test_gps_takes_priority_over_i2c(self):
+        # Comment mentions both GPS1 and I2C1 — GPS should win
+        assert fcdg._extract_port_label_from_comment(
+            'External compass on GPS1/I2C1 (the 3rd external bus)') == 'GPS1'
 
 
 # ---------------------------------------------------------------------------
@@ -527,7 +668,7 @@ class TestParseSensorVariantBlocks:
     def test_missing_file_returns_has_variants_false(self, tmp_path):
         result = fcdg.parse_sensor_variant_blocks(tmp_path)
         assert result['has_variants'] is False
-        assert result['unconditional'] == {'imu': [], 'baro': [], 'mag': [], 'osd': []}
+        assert result['unconditional'] == {'imu': [], 'baro': [], 'mag': [], 'osd': [], 'power_monitor': []}
         assert result['variants'] == {}
 
     def test_graceful_fail_sensors_moved_to_variant(self, board_stm32h7_graceful_fail):

@@ -13,44 +13,36 @@ Auto-generated from source. See `fc_doc_generator.py`.
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20602 (SPI), ICM-20948 (SPI)
-- **Barometer**: DPS310 (SPI)
-- **Magnetometer**: TODO: list magnetometer(s)
-
-### Interfaces
-
-- **PWM outputs**: 8 (FMU)
-- **Serial ports**: 6
-- **I2C ports**: 3
-- **SPI buses**: 3
-  - ICM-20602 (IMU)
-  - BMI088 (IMU)
-  - ICM-20948 (IMU)
-  - DPS310 (barometer)
-- **CAN buses**: 2
-- **USB**: Yes
-- **RC input**: PPM
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20602 (SPI), ICM-20948 (SPI)
+  - **Barometer**: DPS310 (SPI)
+  - **Magnetometer**: TODO: list magnetometer(s)
+- **Interfaces**
+  - **PWM outputs**: 8 (FMU)
+  - **Serial ports**: 6
+  - **I2C ports**: 3 (3 external)
+    - I2C1 (external): free (no sensor detected)
+    - I2C3 (external): free (no sensor detected)
+    - I2C4 (external): free (no sensor detected)
+  - **SPI buses**: 3
+    - ICM-20602 (IMU)
+    - BMI088 (IMU)
+    - ICM-20948 (IMU)
+    - DPS310 (barometer)
+  - **CAN buses**: 2
+  - **USB**: Yes
+  - **RC input**: PPM
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -324,50 +316,40 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H753 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-- **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-42688P (SPI), ICM-42688P (SPI)
-- **Barometer**: TODO: confirm which is installed — BMP388, ICP-20100 (I2C, internal), ICP-20100 (I2C, external), MS5611
-- **Magnetometer**: TODO: confirm which is installed — BMM150, IST8308, IST8310 (I2C, bus 1, external), MMC5983MA, RM3100 (I2C, bus 4, internal)
-
-### Interfaces
-
-- **PWM outputs**: 17 (9 FMU + 8 IO)
-- **Serial ports**: 8
-- **I2C ports**: 4
-  - ICP-20100 (barometer, internal)
-  - ICP-20100 (barometer, external)
-  - RM3100 (magnetometer, internal, bus 4)
-  - IST8310 (magnetometer, external, bus 1)
-- **SPI buses**: 5
-  - BMI088 (IMU)
-  - ICM-42688P (IMU)
-  - ICM-42688P (IMU)
-- **CAN buses**: 2
-- **USB**: Yes
-- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
-- **Analog battery inputs**: 2
-- **Additional analog inputs**: TODO: number of additional analog inputs
-- **Ethernet**: Yes
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
-- **Onboard heater**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H753 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+  - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-42688P (SPI), ICM-42688P (SPI)
+  - **Barometer**: TODO: confirm which is installed — BMP388, ICP-20100 (I2C, internal), ICP-20100 (I2C, external), MS5611
+  - **Magnetometer**: TODO: confirm which is installed — BMM150, IST8308, IST8310 (I2C, bus 1, external), MMC5983MA, RM3100 (I2C, bus 4, internal)
+- **Interfaces**
+  - **PWM outputs**: 17 (9 FMU + 8 IO)
+  - **Serial ports**: 8
+  - **I2C ports**: 4 (3 external, 1 internal)
+    - I2C1 (external, GPS1): IST8310 (magnetometer), INA226 (power monitor), INA228 (power monitor), INA238 (power monitor) — on GPS connector
+    - I2C2 (external): INA226 (power monitor), INA228 (power monitor), INA238 (power monitor)
+    - I2C3 (external): free (no sensor detected)
+    - I2C4 (internal): ICP-20100 (barometer), RM3100 (magnetometer)
+  - **SPI buses**: 5
+    - BMI088 (IMU)
+    - ICM-42688P (IMU)
+    - ICM-42688P (IMU)
+  - **CAN buses**: 2
+  - **USB**: Yes
+  - **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
+  - **Analog battery inputs**: 2
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+  - **Ethernet**: Yes
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+  - **Power supply**: Dual redundant (POWER1, POWER2)
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
+  - **Onboard heater**: Yes
 
 <!-- overview-source-data
 {
@@ -657,24 +639,20 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 **Existing doc section (for reference):**
 
 <!--
-## PWM Outputs {#pwm_outputs}
+## PWM Output
 
-This flight controller supports up to 9 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
+PWM M1-M8 (IO Main PWM), A1-A8(FMU PWM).
+All these 16 support normal PWM output formats.
+FMU PWM A1-A6 can support DShot and B-Directional DShot.
+A1-A8(FMU PWM) are grouped as:
 
-FMU Outputs:
+- Group 1: A1, A2, A3, A4
+- Group 2: A5, A6
+- Group 3: A7, A8
 
-- Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-9 do not support DShot.
-- Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
+The motor and servo system should be connected to these ports according to the order outlined in the fuselage reference for your carrier.
 
-The 9 outputs are in 4 groups:
-
-- Outputs 1-4 in group1 (Timer5)
-- Outputs 5-6 in group2 (Timer4)
-- Outputs 7-8 in group3 (Timer12)
-- Output 9 in group4 (Timer1)
-
-All outputs within the same group must use the same output protocol and rate.
+![G-A1 PWM Motor Servo](../../assets/flight_controller/accton-godwit/ga1/motor_servo.png "G-A1 PWM Motor Servo")
 -->
 
 ---
@@ -682,49 +660,38 @@ All outputs within the same group must use the same output protocol and rate.
 ### airmind/mindpx-v2
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/mindpx](https://docs.px4.io/main/en/flight_controller/mindpx)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32F42
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — ICM-20948, MPU-6000 (SPI)
-- **Barometer**: MS5611 (SPI)
-- **Magnetometer**: TODO: confirm which is installed — HMC5883L (I2C, internal), QMC5883L (I2C, internal)
-
-### Interfaces
-
-- **PWM outputs**: 8 (FMU)
-- **I2C ports**: 2
-  - HMC5883L (magnetometer, internal)
-  - QMC5883L (magnetometer, internal)
-- **SPI buses**: 3
-  - MPU-6000 (IMU)
-  - MS5611 (barometer)
-- **USB**: Yes
-- **RC input**: PPM
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32F42
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — ICM-20948, MPU-6000 (SPI)
+  - **Barometer**: MS5611 (SPI)
+  - **Magnetometer**: TODO: confirm which is installed — HMC5883L (I2C, internal), QMC5883L (I2C, internal)
+- **Interfaces**
+  - **PWM outputs**: 8 (FMU)
+  - **I2C ports**: 2 (1 external, 1 internal)
+    - I2C1 (internal): HMC5883L (magnetometer), QMC5883L (magnetometer)
+    - I2C2 (external): free (no sensor detected)
+  - **SPI buses**: 3
+    - MPU-6000 (IMU)
+    - MS5611 (barometer)
+  - **USB**: Yes
+  - **RC input**: PPM
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -966,23 +933,6 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 Serial port mapping could not be determined from source.
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 8 FMU PWM outputs (MAIN).
-
-[DShot](../peripherals/dshot.md) is not supported.
-
-The 8 outputs are in 2 groups:
-
-- Outputs 1-4 in group1 (Timer1)
-- Outputs 5-8 in group2 (Timer4)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### ark/cannode
@@ -994,44 +944,27 @@ All outputs within the same group must use the same output protocol and rate.
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32F412
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — ADIS16507, ICM-20948, ICM-42688P (SPI)
-- **Barometer**: SPL06 (I2C, external)
-- **Magnetometer**: TODO: confirm which is installed — HMC5883L (I2C, external), IST8308 (I2C, external), IST8310 (I2C, external), IIS2MDC (I2C, external), LIS3MDL (I2C, external), QMC5883L (I2C, external), RM3100 (I2C, external), AK09916 (I2C, external)
-
-### Interfaces
-
-- **PWM outputs**: 8 (FMU)
-- **I2C ports**: 1
-  - SPL06 (barometer, external)
-  - HMC5883L (magnetometer, external)
-  - IST8308 (magnetometer, external)
-  - IST8310 (magnetometer, external)
-  - IIS2MDC (magnetometer, external)
-  - LIS3MDL (magnetometer, external)
-  - QMC5883L (magnetometer, external)
-  - RM3100 (magnetometer, external)
-  - AK09916 (magnetometer, external)
-- **SPI buses**: 2
-  - ICM-42688P (IMU)
-- **CAN buses**: 1
-- **USB**: TODO: confirm USB connector type
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
+- **Processor**
+  - **Main FMU Processor**: STM32F412
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — ADIS16507, ICM-20948, ICM-42688P (SPI)
+  - **Barometer**: SPL06 (I2C, external)
+  - **Magnetometer**: TODO: confirm which is installed — HMC5883L (I2C, external), IST8308 (I2C, external), IST8310 (I2C, external), IIS2MDC (I2C, external), LIS3MDL (I2C, external), QMC5883L (I2C, external), RM3100 (I2C, external), AK09916 (I2C, external)
+- **Interfaces**
+  - **PWM outputs**: 8 (FMU)
+  - **I2C ports**: 1 (1 external)
+    - I2C1 (external): free (no sensor detected)
+  - **SPI buses**: 2
+    - ICM-42688P (IMU)
+  - **CAN buses**: 1
+  - **USB**: TODO: confirm USB connector type
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
 
 <!-- overview-source-data
 {
@@ -1273,52 +1206,44 @@ Serial port mapping could not be determined from source.
 ### ark/fmu-v6x
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/ark_v6x](https://docs.px4.io/main/en/flight_controller/ark_v6x)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H753 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-- **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
-
-### Sensors
-
-- **IMU**: IIM-42652 (SPI, variant ARKV6X000), ICM-42688P (SPI, variant ARKV6X000)
-- **Barometer**: BMP388 (I2C, internal)
-- **Magnetometer**: BMM150 (I2C, internal)
-
-### Interfaces
-
-- **PWM outputs**: 17 (9 FMU + 8 IO)
-- **Serial ports**: 8
-- **I2C ports**: 4
-  - BMP388 (barometer, internal)
-  - BMM150 (magnetometer, internal)
-- **SPI buses**: 5
-- **CAN buses**: 2
-- **USB**: Yes
-- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
-- **Analog battery inputs**: 2
-- **Additional analog inputs**: TODO: number of additional analog inputs
-- **Ethernet**: Yes
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
-- **Onboard heater**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H753 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+  - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
+- **Sensors**
+  - **IMU**: IIM-42652 (SPI, variant ARKV6X000), ICM-42688P (SPI, variant ARKV6X000)
+  - **Barometer**: BMP388 (I2C, internal)
+  - **Magnetometer**: BMM150 (I2C, internal)
+- **Interfaces**
+  - **PWM outputs**: 17 (9 FMU + 8 IO)
+  - **Serial ports**: 8
+  - **I2C ports**: 4 (3 external, 1 internal)
+    - I2C1 (external): INA226 (power monitor), INA228 (power monitor), INA238 (power monitor)
+    - I2C2 (external): INA226 (power monitor), INA228 (power monitor), INA238 (power monitor)
+    - I2C3 (external): INA226 (power monitor), INA228 (power monitor), INA238 (power monitor)
+    - I2C4 (internal): BMP388 (barometer), BMM150 (magnetometer)
+  - **SPI buses**: 5
+  - **CAN buses**: 2
+  - **USB**: Yes
+  - **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
+  - **Analog battery inputs**: 2
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+  - **Ethernet**: Yes
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+  - **Power supply**: Dual redundant (POWER1, POWER2)
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
+  - **Onboard heater**: Yes
 
 <!-- overview-source-data
 {
@@ -1610,78 +1535,46 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | UART8 | /dev/ttyS7 | GPS2 | - |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 9 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
-
-FMU Outputs:
-
-- Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-9 do not support DShot.
-- Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-
-The 9 outputs are in 4 groups:
-
-- Outputs 1-4 in group1 (Timer5)
-- Outputs 5-6 in group2 (Timer4)
-- Outputs 7-8 in group3 (Timer12)
-- Output 9 in group4 (Timer1)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### ark/fpv
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/ark_fpv](https://docs.px4.io/main/en/flight_controller/ark_fpv)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-
-### Sensors
-
-- **IMU**: TODO: list imu(s)
-- **Barometer**: BMP388 (I2C, bus 2, internal)
-- **Magnetometer**: TODO: confirm which is installed — BMM150, HMC5883L, QMC5883L, IST8308, IST8310, LIS3MDL, LSM303AGR, RM3100, IIS2MDC (I2C, bus 4, internal)
-
-### Interfaces
-
-- **PWM outputs**: 9 (FMU)
-- **Serial ports**: 7
-- **I2C ports**: 3
-  - BMP388 (barometer, internal, bus 2)
-  - IIS2MDC (magnetometer, internal, bus 4)
-- **SPI buses**: 2
-- **CAN buses**: 1
-- **USB**: Yes
-- **RC input**: DSM/SRXL2, S.Bus
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
-- **Onboard heater**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: TODO: list imu(s)
+  - **Barometer**: BMP388 (I2C, bus 2, internal)
+  - **Magnetometer**: TODO: confirm which is installed — BMM150, HMC5883L, QMC5883L, IST8308, IST8310, LIS3MDL, LSM303AGR, RM3100, IIS2MDC (I2C, bus 4, internal)
+- **Interfaces**
+  - **PWM outputs**: 9 (FMU)
+  - **Serial ports**: 7
+  - **I2C ports**: 3 (1 external, 2 internal)
+    - I2C1 (external): free (no sensor detected)
+    - I2C2 (internal)
+    - I2C4 (internal)
+    - Internal buses: BMP388 (barometer), IIS2MDC (magnetometer)
+  - **SPI buses**: 2
+  - **CAN buses**: 1
+  - **USB**: Yes
+  - **RC input**: DSM/SRXL2, S.Bus
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
+  - **Onboard heater**: Yes
 
 <!-- overview-source-data
 {
@@ -1955,77 +1848,46 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | UART7 | /dev/ttyS6 | TELEM1 | Yes |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 9 FMU PWM outputs (MAIN).
-
-Outputs:
-
-- Outputs 1-8 support [DShot](../peripherals/dshot.md).
-- Output 9 does not support DShot.
-- Outputs 1-8 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-
-The 9 outputs are in 3 groups:
-
-- Outputs 1-4 in group1 (Timer5)
-- Outputs 5-8 in group2 (Timer8)
-- Output 9 in group3 (Timer4)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### ark/pi6x
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/ark_pi6x](https://docs.px4.io/main/en/flight_controller/ark_pi6x)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-
-### Sensors
-
-- **IMU**: ICM-42688P (SPI, variant ARKPI6X000)
-- **Barometer**: BMP388 (I2C, bus 4, internal)
-- **Magnetometer**: MMC5983MA (I2C, bus 4, internal)
-
-### Interfaces
-
-- **PWM outputs**: 8 (FMU)
-- **Serial ports**: 6
-- **I2C ports**: 3
-  - BMP388 (barometer, internal, bus 4)
-  - MMC5983MA (magnetometer, internal, bus 4)
-- **SPI buses**: 4
-- **CAN buses**: 1
-- **USB**: Yes
-- **RC input**: DSM/SRXL2, S.Bus
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
-- **Onboard heater**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: ICM-42688P (SPI, variant ARKPI6X000)
+  - **Barometer**: BMP388 (I2C, bus 4, internal)
+  - **Magnetometer**: MMC5983MA (I2C, bus 4, internal)
+- **Interfaces**
+  - **PWM outputs**: 8 (FMU)
+  - **Serial ports**: 6
+  - **I2C ports**: 3 (1 external, 2 internal)
+    - I2C1 (external): free (no sensor detected)
+    - I2C3 (internal)
+    - I2C4 (internal)
+    - Internal buses: BMP388 (barometer), MMC5983MA (magnetometer), INA226 (power monitor)
+  - **SPI buses**: 4
+  - **CAN buses**: 1
+  - **USB**: Yes
+  - **RC input**: DSM/SRXL2, S.Bus
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
+  - **Onboard heater**: Yes
 
 <!-- overview-source-data
 {
@@ -2292,28 +2154,6 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | UART7 | /dev/ttyS5 | TELEM1 | Yes |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 8 FMU PWM outputs (MAIN).
-
-Outputs:
-
-- Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-8 do not support DShot.
-- Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-
-The 8 outputs are in 3 groups:
-
-- Outputs 1-4 in group1 (Timer5)
-- Outputs 5-6 in group2 (Timer4)
-- Outputs 7-8 in group3 (Timer12)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### atl/mantis-edu
@@ -2325,40 +2165,30 @@ All outputs within the same group must use the same output protocol and rate.
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32F765 (32-bit Arm® Cortex®-M7, 216 MHz, 2MB flash, 512KB RAM)
-
-### Sensors
-
-- **IMU**: ICM-20602 (SPI)
-- **Barometer**: MPC2520 (I2C, bus 4, internal)
-- **Magnetometer**: IST8310 (I2C, bus 2, internal)
-
-### Interfaces
-
-- **Serial ports**: 8
-- **I2C ports**: 2
-  - MPC2520 (barometer, internal, bus 4)
-  - IST8310 (magnetometer, internal, bus 2)
-- **SPI buses**: 2
-  - ICM-20602 (IMU)
-- **USB**: Yes
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32F765 (32-bit Arm® Cortex®-M7, 216 MHz, 2MB flash, 512KB RAM)
+- **Sensors**
+  - **IMU**: ICM-20602 (SPI)
+  - **Barometer**: MPC2520 (I2C, bus 4, internal)
+  - **Magnetometer**: IST8310 (I2C, bus 2, internal)
+- **Interfaces**
+  - **Serial ports**: 8
+  - **I2C ports**: 2 (2 internal)
+    - I2C2 (internal, I2C2)
+    - I2C4 (internal, I2C4)
+    - Internal buses: MPC2520 (barometer), IST8310 (magnetometer)
+  - **SPI buses**: 2
+    - ICM-20602 (IMU)
+  - **USB**: Yes
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -2608,44 +2438,33 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-
-### Sensors
-
-- **IMU**: BMI088 (SPI)
-- **Barometer**: BMP388 (I2C, bus 4, internal)
-- **Magnetometer**: IST8310 (I2C, bus 1, external); BMM150 (I2C, internal, variant V6S013), BMM150 (I2C, internal, variant V6S015), BMM350 (I2C, internal, other variants)
-
-### Interfaces
-
-- **PWM outputs**: 10 (FMU)
-- **Serial ports**: 7
-- **I2C ports**: 2
-  - BMP388 (barometer, internal, bus 4)
-  - IST8310 (magnetometer, external, bus 1)
-- **SPI buses**: 2
-  - BMI088 (IMU)
-- **CAN buses**: 1
-- **USB**: TODO: confirm USB connector type
-- **RC input**: DSM/SRXL2, S.Bus
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-- **Ethernet**: Yes
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: BMI088 (SPI)
+  - **Barometer**: BMP388 (I2C, bus 4, internal)
+  - **Magnetometer**: IST8310 (I2C, bus 1, external); BMM150 (I2C, internal, variant V6S013), BMM150 (I2C, internal, variant V6S015), BMM350 (I2C, internal, other variants)
+- **Interfaces**
+  - **PWM outputs**: 10 (FMU)
+  - **Serial ports**: 7
+  - **I2C ports**: 2 (1 external, 1 internal)
+    - I2C1 (external, I2C1): IST8310 (magnetometer), INA226 (power monitor), INA228 (power monitor), INA238 (power monitor)
+    - I2C4 (internal, I2C4)
+  - **SPI buses**: 2
+    - BMI088 (IMU)
+  - **CAN buses**: 1
+  - **USB**: TODO: confirm USB connector type
+  - **RC input**: DSM/SRXL2, S.Bus
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+  - **Ethernet**: Yes
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -2925,49 +2744,39 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H753 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-- **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20602 (SPI), ICM-42688P (SPI)
-- **Barometer**: BMP388 (I2C, internal), BMP388 (I2C, external)
-- **Magnetometer**: TODO: confirm which is installed — BMM150 (I2C, internal), IST8310 (I2C, bus 1, external)
-
-### Interfaces
-
-- **PWM outputs**: 17 (9 FMU + 8 IO)
-- **Serial ports**: 8
-- **I2C ports**: 4
-  - BMP388 (barometer, internal)
-  - BMP388 (barometer, external)
-  - BMM150 (magnetometer, internal)
-  - IST8310 (magnetometer, external, bus 1)
-- **SPI buses**: 5
-  - BMI088 (IMU)
-  - ICM-42688P (IMU)
-  - ICM-20602 (IMU)
-- **CAN buses**: 2
-- **USB**: Yes
-- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
-- **Analog battery inputs**: 2
-- **Additional analog inputs**: TODO: number of additional analog inputs
-- **Ethernet**: Yes
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H753 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+  - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20602 (SPI), ICM-42688P (SPI)
+  - **Barometer**: BMP388 (I2C, internal), BMP388 (I2C, external)
+  - **Magnetometer**: TODO: confirm which is installed — BMM150 (I2C, internal), IST8310 (I2C, bus 1, external)
+- **Interfaces**
+  - **PWM outputs**: 17 (9 FMU + 8 IO)
+  - **Serial ports**: 8
+  - **I2C ports**: 4 (3 external, 1 internal)
+    - I2C1 (external, GPS1): IST8310 (magnetometer), INA226 (power monitor), INA228 (power monitor), INA238 (power monitor) — on GPS connector
+    - I2C2 (external): INA226 (power monitor), INA228 (power monitor), INA238 (power monitor)
+    - I2C3 (external): free (no sensor detected)
+    - I2C4 (internal): BMP388 (barometer), BMM150 (magnetometer)
+  - **SPI buses**: 5
+    - BMI088 (IMU)
+    - ICM-42688P (IMU)
+    - ICM-20602 (IMU)
+  - **CAN buses**: 2
+  - **USB**: Yes
+  - **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
+  - **Analog battery inputs**: 2
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+  - **Ethernet**: Yes
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+  - **Power supply**: Dual redundant (POWER1, POWER2)
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -3266,42 +3075,34 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32F777 (32-bit Arm® Cortex®-M7, 216 MHz, 2MB flash, 512KB RAM)
-
-### Sensors
-
-- **IMU**: ICM-20948
-- **Barometer**: TODO: list barometer(s)
-- **Magnetometer**: LSM303AGR (SPI)
-
-### Interfaces
-
-- **PWM outputs**: 9 (FMU)
-- **Serial ports**: 8
-- **I2C ports**: 3
-- **SPI buses**: 4
-  - LSM303AGR (magnetometer)
-- **CAN buses**: 1
-- **USB**: TODO: confirm USB connector type
-- **RC input**: Yes
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-- **Ethernet**: Yes
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32F777 (32-bit Arm® Cortex®-M7, 216 MHz, 2MB flash, 512KB RAM)
+- **Sensors**
+  - **IMU**: ICM-20948
+  - **Barometer**: TODO: list barometer(s)
+  - **Magnetometer**: LSM303AGR (SPI)
+- **Interfaces**
+  - **PWM outputs**: 9 (FMU)
+  - **Serial ports**: 8
+  - **I2C ports**: 3 (2 external, 1 internal)
+    - I2C2 (external): free (no sensor detected)
+    - I2C3 (internal)
+    - I2C4 (external): free (no sensor detected)
+  - **SPI buses**: 4
+    - LSM303AGR (magnetometer)
+  - **CAN buses**: 1
+  - **USB**: TODO: confirm USB connector type
+  - **RC input**: Yes
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+  - **Ethernet**: Yes
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -3573,39 +3374,28 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32F405 (32-bit Arm® Cortex®-M4, 168 MHz, 1MB flash, 192KB RAM)
-
-### Sensors
-
-- **IMU**: MPU-9250
-- **Barometer**: LPS25H (I2C, bus 3, internal)
-- **Magnetometer**: AK8963 (I2C, bus 3, internal)
-
-### Interfaces
-
-- **PWM outputs**: 4 (FMU)
-- **I2C ports**: 2
-  - LPS25H (barometer, internal, bus 3)
-  - AK8963 (magnetometer, internal, bus 3)
-- **SPI buses**: 1
-- **USB**: Yes
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32F405 (32-bit Arm® Cortex®-M4, 168 MHz, 1MB flash, 192KB RAM)
+- **Sensors**
+  - **IMU**: MPU-9250
+  - **Barometer**: LPS25H (I2C, bus 3, internal)
+  - **Magnetometer**: AK8963 (I2C, bus 3, internal)
+- **Interfaces**
+  - **PWM outputs**: 4 (FMU)
+  - **I2C ports**: 2 (1 external, 1 internal)
+    - I2C1 (external): free (no sensor detected)
+    - I2C3 (internal): LPS25H (barometer), AK8963 (magnetometer)
+  - **SPI buses**: 1
+  - **USB**: Yes
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -3855,38 +3645,28 @@ Serial port mapping could not be determined from source.
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32F405 (32-bit Arm® Cortex®-M4, 168 MHz, 1MB flash, 192KB RAM)
-
-### Sensors
-
-- **IMU**: TODO: list imu(s)
-- **Barometer**: BMP388 (I2C, internal)
-- **Magnetometer**: TODO: list magnetometer(s)
-
-### Interfaces
-
-- **PWM outputs**: 4 (FMU)
-- **I2C ports**: 2
-  - BMP388 (barometer, internal)
-- **SPI buses**: 1
-- **USB**: Yes
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32F405 (32-bit Arm® Cortex®-M4, 168 MHz, 1MB flash, 192KB RAM)
+- **Sensors**
+  - **IMU**: TODO: list imu(s)
+  - **Barometer**: BMP388 (I2C, internal)
+  - **Magnetometer**: TODO: list magnetometer(s)
+- **Interfaces**
+  - **PWM outputs**: 4 (FMU)
+  - **I2C ports**: 2 (1 external, 1 internal)
+    - I2C1 (external): free (no sensor detected)
+    - I2C3 (internal): BMP388 (barometer)
+  - **SPI buses**: 1
+  - **USB**: Yes
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -4126,51 +3906,40 @@ Serial port mapping could not be determined from source.
 ### corvon/743v1
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/corvon_743v1](https://docs.px4.io/main/en/flight_controller/corvon_743v1)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — BMI088 (SPI), BMI270 (SPI)
-- **Barometer**: DPS310 (I2C, internal)
-- **Magnetometer**: IST8310 (I2C, internal)
-
-### Interfaces
-
-- **PWM outputs**: 10 (FMU)
-- **Serial ports**: 7
-- **I2C ports**: 2
-  - DPS310 (barometer, internal)
-  - IST8310 (magnetometer, internal)
-- **SPI buses**: 1
-  - BMI088 (IMU)
-  - BMI270 (IMU)
-- **CAN buses**: 1
-- **USB**: Yes
-- **RC input**: DSM/SRXL2, S.Bus
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), BMI270 (SPI)
+  - **Barometer**: DPS310 (I2C, internal)
+  - **Magnetometer**: IST8310 (I2C, internal)
+- **Interfaces**
+  - **PWM outputs**: 10 (FMU)
+  - **Serial ports**: 7
+  - **I2C ports**: 2 (1 external, 1 internal)
+    - I2C1 (external): free (no sensor detected)
+    - I2C2 (internal): DPS310 (barometer), IST8310 (magnetometer)
+  - **SPI buses**: 1
+    - BMI088 (IMU)
+    - BMI270 (IMU)
+  - **CAN buses**: 1
+  - **USB**: Yes
+  - **RC input**: DSM/SRXL2, S.Bus
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -4439,28 +4208,6 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | UART8 | /dev/ttyS6 | TELEM4 | - |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 10 FMU PWM outputs (MAIN).
-
-Outputs:
-
-- Outputs 1-10 support [DShot](../peripherals/dshot.md).
-- Outputs 1-9 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-- Output 10 supports Bidirectional DShot output only (no eRPM capture).
-
-The 10 outputs are in 3 groups:
-
-- Outputs 1-4 in group1 (Timer1)
-- Outputs 5-6 in group2 (Timer3)
-- Outputs 7-10 in group3 (Timer4)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### cuav/7-nano
@@ -4472,47 +4219,38 @@ All outputs within the same group must use the same output protocol and rate.
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H753 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20948, IIM-42652 (SPI)
-- **Barometer**: TODO: confirm which is installed — BMP581 (SPI), ICP-20100 (I2C, internal)
-- **Magnetometer**: TODO: confirm which is installed — IIS2MDC (I2C, internal), IST8310 (I2C, bus 1, external)
-
-### Interfaces
-
-- **PWM outputs**: 14 (FMU)
-- **Serial ports**: 7
-- **I2C ports**: 4
-  - ICP-20100 (barometer, internal)
-  - IIS2MDC (magnetometer, internal)
-  - IST8310 (magnetometer, external, bus 1)
-- **SPI buses**: 5
-  - IIM-42652 (IMU)
-  - BMI088 (IMU)
-  - BMP581 (barometer)
-- **CAN buses**: 2
-- **USB**: Yes
-- **RC input**: PPM
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-- **Ethernet**: Yes
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H753 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20948, IIM-42652 (SPI)
+  - **Barometer**: TODO: confirm which is installed — BMP581 (SPI), ICP-20100 (I2C, internal)
+  - **Magnetometer**: TODO: confirm which is installed — IIS2MDC (I2C, internal), IST8310 (I2C, bus 1, external)
+- **Interfaces**
+  - **PWM outputs**: 14 (FMU)
+  - **Serial ports**: 7
+  - **I2C ports**: 4 (2 external, 2 internal)
+    - I2C1 (external, GPS1): IST8310 (magnetometer) — on GPS connector
+    - I2C2 (external): free (no sensor detected)
+    - I2C3 (internal)
+    - I2C4 (internal)
+    - Internal buses: ICP-20100 (barometer), IIS2MDC (magnetometer)
+  - **SPI buses**: 5
+    - IIM-42652 (IMU)
+    - BMI088 (IMU)
+    - BMP581 (barometer)
+  - **CAN buses**: 2
+  - **USB**: Yes
+  - **RC input**: PPM
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+  - **Ethernet**: Yes
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -4797,57 +4535,47 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 ### cuav/fmu-v6x
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/cuav_pixhawk_v6x](https://docs.px4.io/main/en/flight_controller/cuav_pixhawk_v6x)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H753 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-- **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20948, ICM-45686 (SPI), IIM-42652 (SPI)
-- **Barometer**: TODO: confirm which is installed — BMP581 (I2C, bus 2, external), ICP-20100 (I2C, internal)
-- **Magnetometer**: TODO: confirm which is installed — RM3100 (I2C, bus 4, internal), IST8310 (I2C, bus 1, external)
-
-### Interfaces
-
-- **PWM outputs**: 17 (9 FMU + 8 IO)
-- **Serial ports**: 8
-- **I2C ports**: 4
-  - BMP581 (barometer, external, bus 2)
-  - ICP-20100 (barometer, internal)
-  - RM3100 (magnetometer, internal, bus 4)
-  - IST8310 (magnetometer, external, bus 1)
-- **SPI buses**: 5
-  - IIM-42652 (IMU)
-  - BMI088 (IMU)
-  - ICM-45686 (IMU)
-- **CAN buses**: 2
-- **USB**: Yes
-- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
-- **Analog battery inputs**: 2
-- **Additional analog inputs**: TODO: number of additional analog inputs
-- **Ethernet**: Yes
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
-- **Onboard heater**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H753 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+  - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20948, ICM-45686 (SPI), IIM-42652 (SPI)
+  - **Barometer**: TODO: confirm which is installed — BMP581 (I2C, bus 2, external), ICP-20100 (I2C, internal)
+  - **Magnetometer**: TODO: confirm which is installed — RM3100 (I2C, bus 4, internal), IST8310 (I2C, bus 1, external)
+- **Interfaces**
+  - **PWM outputs**: 17 (9 FMU + 8 IO)
+  - **Serial ports**: 8
+  - **I2C ports**: 4 (3 external, 1 internal)
+    - I2C1 (external, GPS1): IST8310 (magnetometer), INA226 (power monitor), INA228 (power monitor), INA238 (power monitor) — on GPS connector
+    - I2C2 (external): BMP581 (barometer), INA226 (power monitor), INA228 (power monitor), INA238 (power monitor)
+    - I2C3 (external): free (no sensor detected)
+    - I2C4 (internal): ICP-20100 (barometer), RM3100 (magnetometer)
+  - **SPI buses**: 5
+    - IIM-42652 (IMU)
+    - BMI088 (IMU)
+    - ICM-45686 (IMU)
+  - **CAN buses**: 2
+  - **USB**: Yes
+  - **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
+  - **Analog battery inputs**: 2
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+  - **Ethernet**: Yes
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+  - **Power supply**: Dual redundant (POWER1, POWER2)
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
+  - **Onboard heater**: Yes
 
 <!-- overview-source-data
 {
@@ -5132,29 +4860,6 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | UART8 | /dev/ttyS7 | GPS2 | - |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 9 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
-
-FMU Outputs:
-
-- Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-9 do not support DShot.
-- Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-
-The 9 outputs are in 4 groups:
-
-- Outputs 1-4 in group1 (Timer5)
-- Outputs 5-6 in group2 (Timer4)
-- Outputs 7-8 in group3 (Timer12)
-- Output 9 in group4 (Timer1)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### cuav/nora
@@ -5167,49 +4872,42 @@ All outputs within the same group must use the same output protocol and rate.
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20649, ICM-20689 (SPI), ICM-20689 (SPI), ICM-20948, ICM-42688P (SPI)
-- **Barometer**: MS5611 (SPI), MS5611 (SPI)
-- **Magnetometer**: TODO: confirm which is installed — RM3100 (SPI), IST8310 (I2C, bus 1, external)
-
-### Interfaces
-
-- **PWM outputs**: 14 (FMU)
-- **Serial ports**: 6
-- **I2C ports**: 4
-  - IST8310 (magnetometer, external, bus 1)
-- **SPI buses**: 5
-  - ICM-20689 (IMU)
-  - BMI088 (IMU)
-  - ICM-42688P (IMU)
-  - ICM-20689 (IMU)
-  - MS5611 (barometer)
-  - MS5611 (barometer)
-  - RM3100 (magnetometer)
-- **CAN buses**: 2
-- **USB**: Yes
-- **RC input**: PPM
-- **Analog battery inputs**: 2
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
-- **Onboard heater**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20649, ICM-20689 (SPI), ICM-20689 (SPI), ICM-20948, ICM-42688P (SPI)
+  - **Barometer**: MS5611 (SPI), MS5611 (SPI)
+  - **Magnetometer**: TODO: confirm which is installed — RM3100 (SPI), IST8310 (I2C, bus 1, external)
+- **Interfaces**
+  - **PWM outputs**: 14 (FMU)
+  - **Serial ports**: 6
+  - **I2C ports**: 4 (3 external, 1 internal)
+    - I2C1 (external, GPS1): IST8310 (magnetometer) — on GPS connector
+    - I2C2 (external): free (no sensor detected)
+    - I2C3 (internal)
+    - I2C4 (external): free (no sensor detected)
+  - **SPI buses**: 5
+    - ICM-20689 (IMU)
+    - BMI088 (IMU)
+    - ICM-42688P (IMU)
+    - ICM-20689 (IMU)
+    - MS5611 (barometer)
+    - MS5611 (barometer)
+    - RM3100 (magnetometer)
+  - **CAN buses**: 2
+  - **USB**: Yes
+  - **RC input**: PPM
+  - **Analog battery inputs**: 2
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+  - **Power supply**: Dual redundant (POWER1, POWER2)
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
+  - **Onboard heater**: Yes
 
 <!-- overview-source-data
 {
@@ -5518,54 +5216,47 @@ All outputs within the same group must use the same output protocol and rate.
 ### cuav/x25-evo
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/cuav_x25-evo](https://docs.px4.io/main/en/flight_controller/cuav_x25-evo)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — ICM-20948, IIM-42652 (SPI)
-- **Barometer**: TODO: confirm which is installed — BMP581 (SPI), ICP-20100 (I2C, bus 4, internal)
-- **Magnetometer**: TODO: confirm which is installed — RM3100 (SPI), IST8310 (I2C, bus 1, external)
-
-### Interfaces
-
-- **PWM outputs**: 16 (FMU)
-- **Serial ports**: 8
-- **I2C ports**: 4
-  - ICP-20100 (barometer, internal, bus 4)
-  - IST8310 (magnetometer, external, bus 1)
-- **SPI buses**: 5
-  - IIM-42652 (IMU)
-  - BMP581 (barometer)
-  - RM3100 (magnetometer)
-- **CAN buses**: 2
-- **USB**: Yes
-- **RC input**: PPM
-- **Analog battery inputs**: 2
-- **Additional analog inputs**: TODO: number of additional analog inputs
-- **Ethernet**: Yes
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
-- **Onboard heater**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — ICM-20948, IIM-42652 (SPI)
+  - **Barometer**: TODO: confirm which is installed — BMP581 (SPI), ICP-20100 (I2C, bus 4, internal)
+  - **Magnetometer**: TODO: confirm which is installed — RM3100 (SPI), IST8310 (I2C, bus 1, external)
+- **Interfaces**
+  - **PWM outputs**: 16 (FMU)
+  - **Serial ports**: 8
+  - **I2C ports**: 4 (2 external, 2 internal)
+    - I2C1 (external, GPS1): IST8310 (magnetometer), INA226 (power monitor), INA228 (power monitor), INA238 (power monitor) — on GPS connector
+    - I2C2 (external): INA226 (power monitor), INA228 (power monitor), INA238 (power monitor)
+    - I2C3 (internal)
+    - I2C4 (internal)
+    - Internal buses: ICP-20100 (barometer)
+  - **SPI buses**: 5
+    - IIM-42652 (IMU)
+    - BMP581 (barometer)
+    - RM3100 (magnetometer)
+  - **CAN buses**: 2
+  - **USB**: Yes
+  - **RC input**: PPM
+  - **Analog battery inputs**: 2
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+  - **Ethernet**: Yes
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+  - **Power supply**: Dual redundant (POWER1, POWER2)
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
+  - **Onboard heater**: Yes
 
 <!-- overview-source-data
 {
@@ -5846,84 +5537,51 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | UART8 | /dev/ttyS7 |  | - |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 16 FMU PWM outputs (MAIN).
-
-Outputs:
-
-- Outputs 1-8 support [DShot](../peripherals/dshot.md).
-- Outputs 9-16 do not support DShot.
-- Outputs 1-7 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-- Output 8 supports Bidirectional DShot output only (no eRPM capture).
-
-The 16 outputs are in 5 groups:
-
-- Outputs 1-4 in group1 (Timer5)
-- Outputs 5-8 in group2 (Timer4)
-- Outputs 9-11 in group3 (Timer1)
-- Outputs 12-14 in group4 (Timer8)
-- Outputs 15-16 in group5 (Timer12)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### cuav/x25-super
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/cuav_x25-super](https://docs.px4.io/main/en/flight_controller/cuav_x25-super)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-
-### Sensors
-
-- **IMU**: IIM-42652 (SPI)
-- **Barometer**: TODO: confirm which is installed — BMP581 (SPI), ICP-20100 (I2C, bus 4, internal)
-- **Magnetometer**: TODO: confirm which is installed — RM3100 (SPI), IST8310 (I2C, bus 1, external)
-
-### Interfaces
-
-- **PWM outputs**: 16 (FMU)
-- **Serial ports**: 8
-- **I2C ports**: 4
-  - ICP-20100 (barometer, internal, bus 4)
-  - IST8310 (magnetometer, external, bus 1)
-- **SPI buses**: 5
-  - IIM-42652 (IMU)
-  - BMP581 (barometer)
-  - RM3100 (magnetometer)
-- **CAN buses**: 2
-- **USB**: Yes
-- **RC input**: PPM
-- **Analog battery inputs**: 2
-- **Additional analog inputs**: TODO: number of additional analog inputs
-- **Ethernet**: Yes
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
-- **Onboard heater**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: IIM-42652 (SPI)
+  - **Barometer**: TODO: confirm which is installed — BMP581 (SPI), ICP-20100 (I2C, bus 4, internal)
+  - **Magnetometer**: TODO: confirm which is installed — RM3100 (SPI), IST8310 (I2C, bus 1, external)
+- **Interfaces**
+  - **PWM outputs**: 16 (FMU)
+  - **Serial ports**: 8
+  - **I2C ports**: 4 (3 external, 1 internal)
+    - I2C1 (external, GPS1): IST8310 (magnetometer), INA226 (power monitor), INA228 (power monitor), INA238 (power monitor) — on GPS connector
+    - I2C2 (external): INA226 (power monitor), INA228 (power monitor), INA238 (power monitor)
+    - I2C3 (external): free (no sensor detected)
+    - I2C4 (internal): ICP-20100 (barometer)
+  - **SPI buses**: 5
+    - IIM-42652 (IMU)
+    - BMP581 (barometer)
+    - RM3100 (magnetometer)
+  - **CAN buses**: 2
+  - **USB**: Yes
+  - **RC input**: PPM
+  - **Analog battery inputs**: 2
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+  - **Ethernet**: Yes
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+  - **Power supply**: Dual redundant (POWER1, POWER2)
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
+  - **Onboard heater**: Yes
 
 <!-- overview-source-data
 {
@@ -6203,86 +5861,54 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | UART8 | /dev/ttyS7 |  | - |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 16 FMU PWM outputs (MAIN).
-
-Outputs:
-
-- Outputs 1-8 support [DShot](../peripherals/dshot.md).
-- Outputs 9-16 do not support DShot.
-- Outputs 1-7 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-- Output 8 supports Bidirectional DShot output only (no eRPM capture).
-
-The 16 outputs are in 5 groups:
-
-- Outputs 1-4 in group1 (Timer5)
-- Outputs 5-8 in group2 (Timer4)
-- Outputs 9-11 in group3 (Timer1)
-- Outputs 12-14 in group4 (Timer8)
-- Outputs 15-16 in group5 (Timer12)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### cuav/x7pro
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/cuav_x7](https://docs.px4.io/main/en/flight_controller/cuav_x7)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — ADIS16470 (SPI), BMI088 (SPI), ICM-20649, ICM-20689 (SPI), ICM-20948, ICM-42688P (SPI)
-- **Barometer**: MS5611 (SPI), MS5611 (SPI)
-- **Magnetometer**: TODO: confirm which is installed — RM3100 (SPI), IST8310 (I2C, bus 1, external)
-
-### Interfaces
-
-- **PWM outputs**: 14 (FMU)
-- **Serial ports**: 6
-- **I2C ports**: 4
-  - IST8310 (magnetometer, external, bus 1)
-- **SPI buses**: 5
-  - ADIS16470 (IMU)
-  - BMI088 (IMU)
-  - ICM-42688P (IMU)
-  - ICM-20689 (IMU)
-  - MS5611 (barometer)
-  - MS5611 (barometer)
-  - RM3100 (magnetometer)
-- **CAN buses**: 2
-- **USB**: Yes
-- **RC input**: PPM
-- **Analog battery inputs**: 2
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
-- **Onboard heater**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — ADIS16470 (SPI), BMI088 (SPI), ICM-20649, ICM-20689 (SPI), ICM-20948, ICM-42688P (SPI)
+  - **Barometer**: MS5611 (SPI), MS5611 (SPI)
+  - **Magnetometer**: TODO: confirm which is installed — RM3100 (SPI), IST8310 (I2C, bus 1, external)
+- **Interfaces**
+  - **PWM outputs**: 14 (FMU)
+  - **Serial ports**: 6
+  - **I2C ports**: 4 (3 external, 1 internal)
+    - I2C1 (external, GPS1): IST8310 (magnetometer) — on GPS connector
+    - I2C2 (external): free (no sensor detected)
+    - I2C3 (internal)
+    - I2C4 (external): free (no sensor detected)
+  - **SPI buses**: 5
+    - ADIS16470 (IMU)
+    - BMI088 (IMU)
+    - ICM-42688P (IMU)
+    - ICM-20689 (IMU)
+    - MS5611 (barometer)
+    - MS5611 (barometer)
+    - RM3100 (magnetometer)
+  - **CAN buses**: 2
+  - **USB**: Yes
+  - **RC input**: PPM
+  - **Analog battery inputs**: 2
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+  - **Power supply**: Dual redundant (POWER1, POWER2)
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
+  - **Onboard heater**: Yes
 
 <!-- overview-source-data
 {
@@ -6563,83 +6189,51 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | UART8 | /dev/ttyS5 |  | - |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 14 FMU PWM outputs (MAIN).
-
-Outputs:
-
-- Outputs 1-12 support [DShot](../peripherals/dshot.md).
-- Outputs 13-14 do not support DShot.
-- Outputs 1-7, 9-12 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-- Output 8 supports Bidirectional DShot output only (no eRPM capture).
-
-The 14 outputs are in 4 groups:
-
-- Outputs 1-4 in group1 (Timer5)
-- Outputs 5-8 in group2 (Timer4)
-- Outputs 9-12 in group3 (Timer1)
-- Outputs 13-14 in group4 (Timer12)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### cubepilot/cubeorange
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/cubepilot_cube_orange](https://docs.px4.io/main/en/flight_controller/cubepilot_cube_orange)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-- **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — ICM-20602 (SPI), ICM-20649 (SPI), ICM-20948 (SPI)
-- **Barometer**: MS5611 (SPI), MS5611 (SPI)
-- **Magnetometer**: TODO: list magnetometer(s)
-
-### Interfaces
-
-- **PWM outputs**: 14 (6 FMU + 8 IO)
-- **Serial ports**: 6
-- **I2C ports**: 2
-- **SPI buses**: 3
-  - ICM-20602 (IMU)
-  - ICM-20948 (IMU)
-  - ICM-20649 (IMU)
-  - MS5611 (barometer)
-  - MS5611 (barometer)
-- **CAN buses**: 2
-- **USB**: Yes
-- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
-- **Analog battery inputs**: 2
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
-- **Onboard heater**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+  - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — ICM-20602 (SPI), ICM-20649 (SPI), ICM-20948 (SPI)
+  - **Barometer**: MS5611 (SPI), MS5611 (SPI)
+  - **Magnetometer**: TODO: list magnetometer(s)
+- **Interfaces**
+  - **PWM outputs**: 14 (6 FMU + 8 IO)
+  - **Serial ports**: 6
+  - **I2C ports**: 2 (2 external)
+    - I2C1 (external): free (no sensor detected)
+    - I2C2 (external): free (no sensor detected)
+  - **SPI buses**: 3
+    - ICM-20602 (IMU)
+    - ICM-20948 (IMU)
+    - ICM-20649 (IMU)
+    - MS5611 (barometer)
+    - MS5611 (barometer)
+  - **CAN buses**: 2
+  - **USB**: Yes
+  - **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
+  - **Analog battery inputs**: 2
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+  - **Power supply**: Dual redundant (POWER1, POWER2)
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
+  - **Onboard heater**: Yes
 
 <!-- overview-source-data
 {
@@ -6906,77 +6500,52 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | UART8 | /dev/ttyS5 | GPS2 | - |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 6 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
-
-All FMU outputs support [DShot](../peripherals/dshot.md) and [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-
-The 6 outputs are in 2 groups:
-
-- Outputs 1-4 in group1 (Timer1)
-- Outputs 5-6 in group2 (Timer4)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### cubepilot/cubeorangeplus
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/cubepilot_cube_orangeplus](https://docs.px4.io/main/en/flight_controller/cubepilot_cube_orangeplus)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H747 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-- **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — ICM-20649 (SPI), ICM-20948, ICM-42688P (SPI), ICM-45686 (SPI)
-- **Barometer**: MS5611 (SPI), MS5611 (SPI)
-- **Magnetometer**: AK09916 (I2C, internal)
-
-### Interfaces
-
-- **PWM outputs**: 14 (6 FMU + 8 IO)
-- **Serial ports**: 6
-- **I2C ports**: 3
-  - AK09916 (magnetometer, internal)
-- **SPI buses**: 3
-  - ICM-42688P (IMU)
-  - ICM-45686 (IMU)
-  - ICM-20649 (IMU)
-  - MS5611 (barometer)
-  - MS5611 (barometer)
-- **CAN buses**: 2
-- **USB**: Yes
-- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
-- **Analog battery inputs**: 2
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
-- **Onboard heater**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H747 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+  - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — ICM-20649 (SPI), ICM-20948, ICM-42688P (SPI), ICM-45686 (SPI)
+  - **Barometer**: MS5611 (SPI), MS5611 (SPI)
+  - **Magnetometer**: AK09916 (I2C, internal)
+- **Interfaces**
+  - **PWM outputs**: 14 (6 FMU + 8 IO)
+  - **Serial ports**: 6
+  - **I2C ports**: 3 (2 external, 1 internal)
+    - I2C1 (external): free (no sensor detected)
+    - I2C2 (external): free (no sensor detected)
+    - I2C4 (internal): AK09916 (magnetometer)
+  - **SPI buses**: 3
+    - ICM-42688P (IMU)
+    - ICM-45686 (IMU)
+    - ICM-20649 (IMU)
+    - MS5611 (barometer)
+    - MS5611 (barometer)
+  - **CAN buses**: 2
+  - **USB**: Yes
+  - **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
+  - **Analog battery inputs**: 2
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+  - **Power supply**: Dual redundant (POWER1, POWER2)
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
+  - **Onboard heater**: Yes
 
 <!-- overview-source-data
 {
@@ -7246,75 +6815,50 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | UART8 | /dev/ttyS5 | GPS2 | - |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 6 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
-
-All FMU outputs support [DShot](../peripherals/dshot.md) and [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-
-The 6 outputs are in 2 groups:
-
-- Outputs 1-4 in group1 (Timer1)
-- Outputs 5-6 in group2 (Timer4)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### cubepilot/cubeyellow
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/cubepilot_cube_yellow](https://docs.px4.io/main/en/flight_controller/cubepilot_cube_yellow)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32F777 (32-bit Arm® Cortex®-M7, 216 MHz, 2MB flash, 512KB RAM)
-- **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — ICM-20602 (SPI), ICM-20649 (SPI), ICM-20948 (SPI)
-- **Barometer**: MS5611 (SPI), MS5611 (SPI)
-- **Magnetometer**: TODO: list magnetometer(s)
-
-### Interfaces
-
-- **PWM outputs**: 14 (6 FMU + 8 IO)
-- **Serial ports**: 6
-- **I2C ports**: 2
-- **SPI buses**: 3
-  - ICM-20602 (IMU)
-  - ICM-20948 (IMU)
-  - ICM-20649 (IMU)
-  - MS5611 (barometer)
-  - MS5611 (barometer)
-- **CAN buses**: 2
-- **USB**: Yes
-- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
-- **Analog battery inputs**: 2
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32F777 (32-bit Arm® Cortex®-M7, 216 MHz, 2MB flash, 512KB RAM)
+  - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — ICM-20602 (SPI), ICM-20649 (SPI), ICM-20948 (SPI)
+  - **Barometer**: MS5611 (SPI), MS5611 (SPI)
+  - **Magnetometer**: TODO: list magnetometer(s)
+- **Interfaces**
+  - **PWM outputs**: 14 (6 FMU + 8 IO)
+  - **Serial ports**: 6
+  - **I2C ports**: 2 (2 external)
+    - I2C1 (external): free (no sensor detected)
+    - I2C2 (external): free (no sensor detected)
+  - **SPI buses**: 3
+    - ICM-20602 (IMU)
+    - ICM-20948 (IMU)
+    - ICM-20649 (IMU)
+    - MS5611 (barometer)
+    - MS5611 (barometer)
+  - **CAN buses**: 2
+  - **USB**: Yes
+  - **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
+  - **Analog battery inputs**: 2
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+  - **Power supply**: Dual redundant (POWER1, POWER2)
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -7586,27 +7130,6 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | UART8 | /dev/ttyS5 | GPS2 | - |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 6 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
-
-FMU Outputs:
-
-- Outputs 1-4 support [DShot](../peripherals/dshot.md).
-- Outputs 5-6 do not support DShot.
-- Outputs 1-4 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-
-The 6 outputs are in 2 groups:
-
-- Outputs 1-4 in group1 (Timer1)
-- Outputs 5-6 in group2 (Timer4)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### cubepilot/io-v2
@@ -7618,34 +7141,25 @@ All outputs within the same group must use the same output protocol and rate.
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32F100
-
-### Sensors
-
-- **IMU**: TODO: list imu(s)
-- **Barometer**: TODO: list barometer(s)
-- **Magnetometer**: TODO: list magnetometer(s)
-
-### Interfaces
-
-- **PWM outputs**: 8 (FMU)
-- **I2C ports**: TODO: number of I2C ports
-- **SPI buses**: TODO: number of SPI buses
-- **USB**: TODO: confirm USB connector type
-- **RC input**: PPM
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
+- **Processor**
+  - **Main FMU Processor**: STM32F100
+- **Sensors**
+  - **IMU**: TODO: list imu(s)
+  - **Barometer**: TODO: list barometer(s)
+  - **Magnetometer**: TODO: list magnetometer(s)
+- **Interfaces**
+  - **PWM outputs**: 8 (FMU)
+  - **I2C ports**: TODO: number of I2C ports
+  - **SPI buses**: TODO: number of SPI buses
+  - **USB**: TODO: confirm USB connector type
+  - **RC input**: PPM
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
 
 <!-- overview-source-data
 {
@@ -7883,37 +7397,27 @@ Serial port mapping could not be determined from source.
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32F405 (32-bit Arm® Cortex®-M4, 168 MHz, 1MB flash, 192KB RAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — ICM-20602, MPU-6000, MPU-9250, ICM-42688P (SPI)
-- **Barometer**: BMP280 (I2C, bus 2, external)
-- **Magnetometer**: TODO: confirm which is installed — AK8963 (I2C, bus 2, external), HMC5883L
-
-### Interfaces
-
-- **PWM outputs**: 4 (FMU)
-- **I2C ports**: 1
-  - BMP280 (barometer, external, bus 2)
-  - AK8963 (magnetometer, external, bus 2)
-- **SPI buses**: 3
-  - ICM-42688P (IMU)
-- **USB**: Yes
-- **RC input**: PPM
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
+- **Processor**
+  - **Main FMU Processor**: STM32F405 (32-bit Arm® Cortex®-M4, 168 MHz, 1MB flash, 192KB RAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — ICM-20602, MPU-6000, MPU-9250, ICM-42688P (SPI)
+  - **Barometer**: BMP280 (I2C, bus 2, external)
+  - **Magnetometer**: TODO: confirm which is installed — AK8963 (I2C, bus 2, external), HMC5883L
+- **Interfaces**
+  - **PWM outputs**: 4 (FMU)
+  - **I2C ports**: 1 (1 external)
+    - I2C2 (external): BMP280 (barometer), AK8963 (magnetometer)
+  - **SPI buses**: 3
+    - ICM-42688P (IMU)
+  - **USB**: Yes
+  - **RC input**: PPM
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
 
 <!-- overview-source-data
 {
@@ -8156,38 +7660,28 @@ Serial port mapping could not be determined from source.
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: TODO: chip model
-
-### Sensors
-
-- **IMU**: TODO: list imu(s)
-- **Barometer**: TODO: list barometer(s)
-- **Magnetometer**: TODO: list magnetometer(s)
-
-### Interfaces
-
-- **PWM outputs**: 4 (FMU)
-- **I2C ports**: TODO: number of I2C ports
-- **SPI buses**: TODO: number of SPI buses
-- **USB**: TODO: confirm USB connector type
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-- **Ethernet**: Yes
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: TODO: chip model
+- **Sensors**
+  - **IMU**: TODO: list imu(s)
+  - **Barometer**: TODO: list barometer(s)
+  - **Magnetometer**: TODO: list magnetometer(s)
+- **Interfaces**
+  - **PWM outputs**: 4 (FMU)
+  - **I2C ports**: 1 (1 internal)
+    - I2C1 (internal)
+  - **SPI buses**: TODO: number of SPI buses
+  - **USB**: TODO: confirm USB connector type
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+  - **Ethernet**: Yes
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -8200,7 +7694,7 @@ Serial port mapping could not be determined from source.
   "has_sd_card": true,
   "has_ethernet": true,
   "has_heater": false,
-  "num_i2c_buses": 0,
+  "num_i2c_buses": 1,
   "num_spi_buses": 0,
   "num_can_buses": 0,
   "has_usb": false,
@@ -8430,36 +7924,27 @@ Serial port mapping could not be determined from source.
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32F405 (32-bit Arm® Cortex®-M4, 168 MHz, 1MB flash, 192KB RAM)
-
-### Sensors
-
-- **IMU**: MPU-6000 (SPI)
-- **Barometer**: BMP280 (I2C, external)
-- **Magnetometer**: TODO: list magnetometer(s)
-
-### Interfaces
-
-- **PWM outputs**: 4 (FMU)
-- **I2C ports**: 1
-  - BMP280 (barometer, external)
-- **SPI buses**: 3
-  - MPU-6000 (IMU)
-- **USB**: Yes
-- **RC input**: PPM
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
+- **Processor**
+  - **Main FMU Processor**: STM32F405 (32-bit Arm® Cortex®-M4, 168 MHz, 1MB flash, 192KB RAM)
+- **Sensors**
+  - **IMU**: MPU-6000 (SPI)
+  - **Barometer**: BMP280 (I2C, external)
+  - **Magnetometer**: TODO: list magnetometer(s)
+- **Interfaces**
+  - **PWM outputs**: 4 (FMU)
+  - **I2C ports**: 1 (1 external)
+    - I2C1 (external): free (no sensor detected)
+  - **SPI buses**: 3
+    - MPU-6000 (IMU)
+  - **USB**: Yes
+  - **RC input**: PPM
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
 
 <!-- overview-source-data
 {
@@ -8690,45 +8175,36 @@ Serial port mapping could not be determined from source.
 ### gearup/airbrainh743
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/gearup_airbrainh743](https://docs.px4.io/main/en/flight_controller/gearup_airbrainh743)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-
-### Sensors
-
-- **IMU**: ICM-42688P (SPI)
-- **Barometer**: DPS310 (I2C, internal)
-- **Magnetometer**: TODO: confirm which is installed — HMC5883L, IST8310, LIS3MDL, QMC5883L, IIS2MDC (I2C, internal)
-
-### Interfaces
-
-- **PWM outputs**: 9 (FMU)
-- **Serial ports**: 7
-- **I2C ports**: 2
-  - DPS310 (barometer, internal)
-  - IIS2MDC (magnetometer, internal)
-- **SPI buses**: 3
-  - ICM-42688P (IMU)
-- **USB**: Yes
-- **RC input**: Yes
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: ICM-42688P (SPI)
+  - **Barometer**: DPS310 (I2C, internal)
+  - **Magnetometer**: TODO: confirm which is installed — HMC5883L, IST8310, LIS3MDL, QMC5883L, IIS2MDC (I2C, internal)
+- **Interfaces**
+  - **PWM outputs**: 9 (FMU)
+  - **Serial ports**: 7
+  - **I2C ports**: 2 (1 external, 1 internal)
+    - I2C1 (internal): DPS310 (barometer), IIS2MDC (magnetometer)
+    - I2C4 (external): free (no sensor detected)
+  - **SPI buses**: 3
+    - ICM-42688P (IMU)
+  - **USB**: Yes
+  - **RC input**: Yes
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
 
 <!-- overview-source-data
 {
@@ -8989,29 +8465,6 @@ This board does not have an SD card slot.
 | UART8 | /dev/ttyS6 | GPS1 | - |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 9 FMU PWM outputs (MAIN).
-
-Outputs:
-
-- Outputs 1-8 support [DShot](../peripherals/dshot.md).
-- Output 9 does not support DShot.
-- Outputs 1-8 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-
-The 9 outputs are in 4 groups:
-
-- Outputs 1-4 in group1 (Timer1)
-- Outputs 5-6 in group2 (Timer3)
-- Outputs 7-8 in group3 (Timer2)
-- Output 9 in group4 (Timer5)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### hkust/nxt-dual
@@ -9023,42 +8476,32 @@ All outputs within the same group must use the same output protocol and rate.
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-
-### Sensors
-
-- **IMU**: BMI088 (SPI), BMI088 (SPI)
-- **Barometer**: SPL06 (I2C, external)
-- **Magnetometer**: TODO: list magnetometer(s)
-
-### Interfaces
-
-- **PWM outputs**: 8 (FMU)
-- **Serial ports**: 8
-- **I2C ports**: 2
-  - SPL06 (barometer, external)
-- **SPI buses**: 4
-  - BMI088 (IMU)
-  - BMI088 (IMU)
-- **USB**: Yes
-- **RC input**: Yes
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: BMI088 (SPI), BMI088 (SPI)
+  - **Barometer**: SPL06 (I2C, external)
+  - **Magnetometer**: TODO: list magnetometer(s)
+- **Interfaces**
+  - **PWM outputs**: 8 (FMU)
+  - **Serial ports**: 8
+  - **I2C ports**: 2 (2 external)
+    - I2C1 (external): free (no sensor detected)
+    - I2C4 (external): free (no sensor detected)
+  - **SPI buses**: 4
+    - BMI088 (IMU)
+    - BMI088 (IMU)
+  - **USB**: Yes
+  - **RC input**: Yes
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -9338,42 +8781,32 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20602, ICM-42688P (SPI)
-- **Barometer**: BMP388 (I2C, internal)
-- **Magnetometer**: TODO: list magnetometer(s)
-
-### Interfaces
-
-- **PWM outputs**: 8 (FMU)
-- **Serial ports**: 6
-- **I2C ports**: 2
-  - BMP388 (barometer, internal)
-- **SPI buses**: 3
-  - ICM-42688P (IMU)
-  - BMI088 (IMU)
-- **USB**: Yes
-- **RC input**: Yes
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20602, ICM-42688P (SPI)
+  - **Barometer**: BMP388 (I2C, internal)
+  - **Magnetometer**: TODO: list magnetometer(s)
+- **Interfaces**
+  - **PWM outputs**: 8 (FMU)
+  - **Serial ports**: 6
+  - **I2C ports**: 2 (1 external, 1 internal)
+    - I2C1 (internal): BMP388 (barometer)
+    - I2C2 (external): free (no sensor detected)
+  - **SPI buses**: 3
+    - ICM-42688P (IMU)
+    - BMI088 (IMU)
+  - **USB**: Yes
+  - **RC input**: Yes
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -9652,53 +9085,45 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 ### holybro/durandal-v1
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/durandal](https://docs.px4.io/main/en/flight_controller/durandal)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-- **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
-
-### Sensors
-
-- **IMU**: ICM-20689 (SPI); BMI088 (SPI, variant VD000000), ICM-20602 (SPI, variant VD000001)
-- **Barometer**: MS5611 (SPI)
-- **Magnetometer**: IST8310 (I2C, internal), IST8310 (I2C, bus 1, external)
-
-### Interfaces
-
-- **PWM outputs**: 18 (10 FMU + 8 IO)
-- **Serial ports**: 7
-- **I2C ports**: 4
-  - IST8310 (magnetometer, internal)
-  - IST8310 (magnetometer, external, bus 1)
-- **SPI buses**: 5
-  - ICM-20689 (IMU)
-  - MS5611 (barometer)
-- **CAN buses**: 2
-- **USB**: Yes
-- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
-- **Analog battery inputs**: 2
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
-- **Onboard heater**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+  - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
+- **Sensors**
+  - **IMU**: ICM-20689 (SPI); BMI088 (SPI, variant VD000000), ICM-20602 (SPI, variant VD000001)
+  - **Barometer**: MS5611 (SPI)
+  - **Magnetometer**: IST8310 (I2C, internal), IST8310 (I2C, bus 1, external)
+- **Interfaces**
+  - **PWM outputs**: 18 (10 FMU + 8 IO)
+  - **Serial ports**: 7
+  - **I2C ports**: 4 (3 external, 1 internal)
+    - I2C1 (external, GPS1): IST8310 (magnetometer) — on GPS connector
+    - I2C2 (external): free (no sensor detected)
+    - I2C3 (internal): IST8310 (magnetometer)
+    - I2C4 (external): free (no sensor detected)
+  - **SPI buses**: 5
+    - ICM-20689 (IMU)
+    - MS5611 (barometer)
+  - **CAN buses**: 2
+  - **USB**: Yes
+  - **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
+  - **Analog battery inputs**: 2
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+  - **Power supply**: Dual redundant (POWER1, POWER2)
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
+  - **Onboard heater**: Yes
 
 <!-- overview-source-data
 {
@@ -9975,73 +9400,41 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | UART8 | /dev/ttyS6 | PX4IO | - |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 10 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
-
-FMU Outputs:
-
-- Outputs 1-5 support [DShot](../peripherals/dshot.md).
-- Outputs 6-10 do not support DShot.
-- Outputs 1-5 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-
-The 10 outputs are in 4 groups:
-
-- Outputs 1-4 in group1 (Timer1)
-- Output 5 in group2 (Timer4)
-- Outputs 6-8 in group3 (Timer2)
-- Outputs 9-10 in group4 (Timer12)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### holybro/kakutef7
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/kakutef7](https://docs.px4.io/main/en/flight_controller/kakutef7)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32F745
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — ICM-20689 (SPI), MPU-6000
-- **Barometer**: BMP280 (I2C, external)
-- **Magnetometer**: TODO: list magnetometer(s)
-- **OSD**: AT7456E
-
-### Interfaces
-
-- **PWM outputs**: 6 (FMU)
-- **Serial ports**: 6
-- **I2C ports**: 1
-  - BMP280 (barometer, external)
-- **SPI buses**: 3
-  - ICM-20689 (IMU)
-- **USB**: Yes
-- **RC input**: Yes
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
+- **Processor**
+  - **Main FMU Processor**: STM32F745
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — ICM-20689 (SPI), MPU-6000
+  - **Barometer**: BMP280 (I2C, external)
+  - **Magnetometer**: TODO: list magnetometer(s)
+  - **OSD**: AT7456E
+- **Interfaces**
+  - **PWM outputs**: 6 (FMU)
+  - **Serial ports**: 6
+  - **I2C ports**: 1 (1 external)
+    - I2C1 (external): free (no sensor detected)
+  - **SPI buses**: 3
+    - ICM-20689 (IMU)
+  - **USB**: Yes
+  - **RC input**: Yes
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
 
 <!-- overview-source-data
 {
@@ -10296,76 +9689,42 @@ This board does not have an SD card slot.
 | UART7 | /dev/ttyS5 |  | - |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 6 FMU PWM outputs (MAIN).
-
-Outputs:
-
-- Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 3-4 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-- Outputs 1-2, 5-6 support Bidirectional DShot output only (no eRPM capture).
-
-The 6 outputs are in 4 groups:
-
-- Outputs 1-2 in group1 (Timer3)
-- Outputs 3-4 in group2 (Timer1)
-- Output 5 in group3 (Timer8)
-- Output 6 in group4 (Timer5)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### holybro/kakuteh7
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/kakuteh7](https://docs.px4.io/main/en/flight_controller/kakuteh7)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — BMI270, ICM-42688P (SPI), MPU-6000
-- **Barometer**: SPA06 (I2C, external)
-- **Magnetometer**: TODO: list magnetometer(s)
-
-### Interfaces
-
-- **PWM outputs**: 8 (FMU)
-- **Serial ports**: 6
-- **I2C ports**: 1
-  - SPA06 (barometer, external)
-- **SPI buses**: 3
-  - ICM-42688P (IMU)
-- **USB**: Yes
-- **RC input**: Yes
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — BMI270, ICM-42688P (SPI), MPU-6000
+  - **Barometer**: SPA06 (I2C, external)
+  - **Magnetometer**: TODO: list magnetometer(s)
+- **Interfaces**
+  - **PWM outputs**: 8 (FMU)
+  - **Serial ports**: 6
+  - **I2C ports**: 1 (1 external)
+    - I2C1 (external): free (no sensor detected)
+  - **SPI buses**: 3
+    - ICM-42688P (IMU)
+  - **USB**: Yes
+  - **RC input**: Yes
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -10627,75 +9986,48 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | UART7 | /dev/ttyS5 |  | - |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 8 FMU PWM outputs (MAIN).
-
-All outputs support [DShot](../peripherals/dshot.md) and [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-
-The 8 outputs are in 4 groups:
-
-- Outputs 1-2 in group1 (Timer3)
-- Outputs 3-4 in group2 (Timer2)
-- Outputs 5-6 in group3 (Timer5)
-- Outputs 7-8 in group4 (Timer8)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### holybro/kakuteh7-wing
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/kakuteh7-wing](https://docs.px4.io/main/en/flight_controller/kakuteh7-wing)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-
-### Sensors
-
-- **IMU**: ICM-42688P (SPI)
-- **Barometer**: TODO: confirm which is installed — BMP280, SPA06 (I2C, bus 4, internal)
-- **Magnetometer**: TODO: list magnetometer(s)
-- **OSD**: AT7456E (SPI)
-
-### Interfaces
-
-- **PWM outputs**: 14 (FMU)
-- **Serial ports**: 7
-- **I2C ports**: 3
-  - SPA06 (barometer, internal, bus 4)
-- **SPI buses**: 3
-  - ICM-42688P (IMU)
-  - AT7456E (OSD)
-- **CAN buses**: 1
-- **USB**: Yes
-- **RC input**: PPM
-- **Analog battery inputs**: 2
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: ICM-42688P (SPI)
+  - **Barometer**: TODO: confirm which is installed — BMP280, SPA06 (I2C, bus 4, internal)
+  - **Magnetometer**: TODO: list magnetometer(s)
+  - **OSD**: AT7456E (SPI)
+- **Interfaces**
+  - **PWM outputs**: 14 (FMU)
+  - **Serial ports**: 7
+  - **I2C ports**: 3 (2 external, 1 internal)
+    - I2C1 (external): free (no sensor detected)
+    - I2C2 (external): free (no sensor detected)
+    - I2C4 (internal): SPA06 (barometer)
+  - **SPI buses**: 3
+    - ICM-42688P (IMU)
+    - AT7456E (OSD)
+  - **CAN buses**: 1
+  - **USB**: Yes
+  - **RC input**: PPM
+  - **Analog battery inputs**: 2
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+  - **Power supply**: Dual redundant (POWER1, POWER2)
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -10975,82 +10307,45 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | UART8 | /dev/ttyS6 | Debug Console | - |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 14 FMU PWM outputs (MAIN).
-
-Outputs:
-
-- Outputs 1-8, 11-14 support [DShot](../peripherals/dshot.md).
-- Outputs 9-10 do not support DShot.
-- Outputs 1-5, 7-8, 11-14 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-- Output 6 supports Bidirectional DShot output only (no eRPM capture).
-
-The 14 outputs are in 6 groups:
-
-- Outputs 1-4 in group1 (Timer1)
-- Outputs 5-6 in group2 (Timer4)
-- Outputs 7-8 in group3 (Timer5)
-- Outputs 9-10 in group4 (Timer15)
-- Outputs 11-13 in group5 (Timer3)
-- Output 14 in group6 (Timer2)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### holybro/kakuteh7dualimu
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/kakuteh7v2](https://docs.px4.io/main/en/flight_controller/kakuteh7v2)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — ICM-42688P (SPI), ICM-45686 (SPI)
-- **Barometer**: ICP-20100 (I2C, external)
-- **Magnetometer**: TODO: list magnetometer(s)
-- **OSD**: AT7456E
-
-### Interfaces
-
-- **PWM outputs**: 8 (FMU)
-- **Serial ports**: 6
-- **I2C ports**: 1
-  - ICP-20100 (barometer, external)
-- **SPI buses**: 3
-  - ICM-45686 (IMU)
-  - ICM-42688P (IMU)
-- **CAN buses**: 1
-- **USB**: Yes
-- **RC input**: PPM
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — ICM-42688P (SPI), ICM-45686 (SPI)
+  - **Barometer**: ICP-20100 (I2C, external)
+  - **Magnetometer**: TODO: list magnetometer(s)
+  - **OSD**: AT7456E
+- **Interfaces**
+  - **PWM outputs**: 8 (FMU)
+  - **Serial ports**: 6
+  - **I2C ports**: 1 (1 external)
+    - I2C1 (external): free (no sensor detected)
+  - **SPI buses**: 3
+    - ICM-45686 (IMU)
+    - ICM-42688P (IMU)
+  - **CAN buses**: 1
+  - **USB**: Yes
+  - **RC input**: PPM
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -11315,72 +10610,42 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | UART7 | /dev/ttyS5 | TELEM4 | - |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 8 FMU PWM outputs (MAIN).
-
-All outputs support [DShot](../peripherals/dshot.md) and [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-
-The 8 outputs are in 4 groups:
-
-- Outputs 1-2 in group1 (Timer3)
-- Outputs 3-4 in group2 (Timer2)
-- Outputs 5-6 in group3 (Timer5)
-- Outputs 7-8 in group4 (Timer8)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### holybro/kakuteh7mini
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/kakuteh7mini](https://docs.px4.io/main/en/flight_controller/kakuteh7mini)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — BMI270, ICM-42688P (SPI), MPU-6000
-- **Barometer**: SPA06 (I2C, external)
-- **Magnetometer**: TODO: list magnetometer(s)
-
-### Interfaces
-
-- **PWM outputs**: 8 (FMU)
-- **Serial ports**: 6
-- **I2C ports**: 1
-  - SPA06 (barometer, external)
-- **SPI buses**: 3
-  - ICM-42688P (IMU)
-- **USB**: Yes
-- **RC input**: Yes
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — BMI270, ICM-42688P (SPI), MPU-6000
+  - **Barometer**: SPA06 (I2C, external)
+  - **Magnetometer**: TODO: list magnetometer(s)
+- **Interfaces**
+  - **PWM outputs**: 8 (FMU)
+  - **Serial ports**: 6
+  - **I2C ports**: 1 (1 external)
+    - I2C1 (external): free (no sensor detected)
+  - **SPI buses**: 3
+    - ICM-42688P (IMU)
+  - **USB**: Yes
+  - **RC input**: Yes
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -11642,72 +10907,42 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | UART7 | /dev/ttyS5 |  | - |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 8 FMU PWM outputs (MAIN).
-
-All outputs support [DShot](../peripherals/dshot.md) and [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-
-The 8 outputs are in 4 groups:
-
-- Outputs 1-2 in group1 (Timer3)
-- Outputs 3-4 in group2 (Timer2)
-- Outputs 5-6 in group3 (Timer5)
-- Outputs 7-8 in group4 (Timer8)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### holybro/kakuteh7v2
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/kakuteh7v2](https://docs.px4.io/main/en/flight_controller/kakuteh7v2)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — BMI270, ICM-42688P (SPI), MPU-6000
-- **Barometer**: SPA06 (I2C, external)
-- **Magnetometer**: TODO: list magnetometer(s)
-
-### Interfaces
-
-- **PWM outputs**: 8 (FMU)
-- **Serial ports**: 6
-- **I2C ports**: 1
-  - SPA06 (barometer, external)
-- **SPI buses**: 3
-  - ICM-42688P (IMU)
-- **USB**: Yes
-- **RC input**: Yes
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — BMI270, ICM-42688P (SPI), MPU-6000
+  - **Barometer**: SPA06 (I2C, external)
+  - **Magnetometer**: TODO: list magnetometer(s)
+- **Interfaces**
+  - **PWM outputs**: 8 (FMU)
+  - **Serial ports**: 6
+  - **I2C ports**: 1 (1 external)
+    - I2C1 (external): free (no sensor detected)
+  - **SPI buses**: 3
+    - ICM-42688P (IMU)
+  - **USB**: Yes
+  - **RC input**: Yes
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -11969,78 +11204,51 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | UART7 | /dev/ttyS5 |  | - |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 8 FMU PWM outputs (MAIN).
-
-All outputs support [DShot](../peripherals/dshot.md) and [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-
-The 8 outputs are in 4 groups:
-
-- Outputs 1-2 in group1 (Timer3)
-- Outputs 3-4 in group2 (Timer2)
-- Outputs 5-6 in group3 (Timer5)
-- Outputs 7-8 in group4 (Timer8)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### holybro/pix32v5
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/holybro_pix32_v5](https://docs.px4.io/main/en/flight_controller/holybro_pix32_v5)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32F765 (32-bit Arm® Cortex®-M7, 216 MHz, 2MB flash, 512KB RAM)
-- **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — BMI055 (SPI), ICM-20602 (SPI), ICM-20689 (SPI), ICM-20948
-- **Barometer**: MS5611 (SPI)
-- **Magnetometer**: IST8310 (I2C, internal), IST8310 (I2C, bus 1, external)
-
-### Interfaces
-
-- **PWM outputs**: 19 (11 FMU + 8 IO)
-- **Serial ports**: 7
-- **I2C ports**: 4
-  - IST8310 (magnetometer, internal)
-  - IST8310 (magnetometer, external, bus 1)
-- **SPI buses**: 5
-  - ICM-20602 (IMU)
-  - ICM-20689 (IMU)
-  - BMI055 (IMU)
-  - MS5611 (barometer)
-- **CAN buses**: 3
-- **USB**: Yes
-- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
-- **Analog battery inputs**: 2
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32F765 (32-bit Arm® Cortex®-M7, 216 MHz, 2MB flash, 512KB RAM)
+  - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — BMI055 (SPI), ICM-20602 (SPI), ICM-20689 (SPI), ICM-20948
+  - **Barometer**: MS5611 (SPI)
+  - **Magnetometer**: IST8310 (I2C, internal), IST8310 (I2C, bus 1, external)
+- **Interfaces**
+  - **PWM outputs**: 19 (11 FMU + 8 IO)
+  - **Serial ports**: 7
+  - **I2C ports**: 4 (3 external, 1 internal)
+    - I2C1 (external, GPS1): IST8310 (magnetometer) — on GPS connector
+    - I2C2 (external): free (no sensor detected)
+    - I2C3 (internal): IST8310 (magnetometer)
+    - I2C4 (external): free (no sensor detected)
+  - **SPI buses**: 5
+    - ICM-20602 (IMU)
+    - ICM-20689 (IMU)
+    - BMI055 (IMU)
+    - MS5611 (barometer)
+  - **CAN buses**: 3
+  - **USB**: Yes
+  - **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
+  - **Analog battery inputs**: 2
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+  - **Power supply**: Dual redundant (POWER1, POWER2)
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -12317,29 +11525,6 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | UART8 | /dev/ttyS6 | PX4IO | - |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 11 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
-
-FMU Outputs:
-
-- Outputs 1-4 support [DShot](../peripherals/dshot.md).
-- Outputs 5-11 do not support DShot.
-- Outputs 1-4 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-
-The 11 outputs are in 4 groups:
-
-- Outputs 1-4 in group1 (Timer1)
-- Outputs 5-6 in group2 (Timer4)
-- Outputs 7-8 in group3 (Timer12)
-- Outputs 9-11 in group4 (Timer2)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### matek/gnss-m9n-f4
@@ -12351,37 +11536,28 @@ All outputs within the same group must use the same output protocol and rate.
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32F405 (32-bit Arm® Cortex®-M4, 168 MHz, 1MB flash, 192KB RAM)
-
-### Sensors
-
-- **IMU**: ICM-20602 (SPI)
-- **Barometer**: DPS310 (I2C, external)
-- **Magnetometer**: RM3100 (SPI)
-
-### Interfaces
-
-- **PWM outputs**: 4 (FMU)
-- **I2C ports**: 1
-  - DPS310 (barometer, external)
-- **SPI buses**: 3
-  - ICM-20602 (IMU)
-  - RM3100 (magnetometer)
-- **CAN buses**: 1
-- **USB**: Yes
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
+- **Processor**
+  - **Main FMU Processor**: STM32F405 (32-bit Arm® Cortex®-M4, 168 MHz, 1MB flash, 192KB RAM)
+- **Sensors**
+  - **IMU**: ICM-20602 (SPI)
+  - **Barometer**: DPS310 (I2C, external)
+  - **Magnetometer**: RM3100 (SPI)
+- **Interfaces**
+  - **PWM outputs**: 4 (FMU)
+  - **I2C ports**: 1 (1 external)
+    - I2C2 (external): free (no sensor detected)
+  - **SPI buses**: 3
+    - ICM-20602 (IMU)
+    - RM3100 (magnetometer)
+  - **CAN buses**: 1
+  - **USB**: Yes
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
 
 <!-- overview-source-data
 {
@@ -12619,43 +11795,32 @@ Serial port mapping could not be determined from source.
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — ICM-20602, ICM-42688P (SPI), MPU-6000
-- **Barometer**: DPS310 (I2C, internal)
-- **Magnetometer**: QMC5883L (I2C, external)
-
-### Interfaces
-
-- **PWM outputs**: 12 (FMU)
-- **Serial ports**: 7
-- **I2C ports**: 2
-  - DPS310 (barometer, internal)
-  - QMC5883L (magnetometer, external)
-- **SPI buses**: 4
-  - ICM-42688P (IMU)
-- **CAN buses**: 1
-- **USB**: Yes
-- **RC input**: Yes
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — ICM-20602, ICM-42688P (SPI), MPU-6000
+  - **Barometer**: DPS310 (I2C, internal)
+  - **Magnetometer**: QMC5883L (I2C, external)
+- **Interfaces**
+  - **PWM outputs**: 12 (FMU)
+  - **Serial ports**: 7
+  - **I2C ports**: 2 (1 external, 1 internal)
+    - I2C1 (external): free (no sensor detected)
+    - I2C2 (internal): DPS310 (barometer)
+  - **SPI buses**: 4
+    - ICM-42688P (IMU)
+  - **CAN buses**: 1
+  - **USB**: Yes
+  - **RC input**: Yes
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -12933,44 +12098,33 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — ICM-20602 (SPI), MPU-6000 (SPI)
-- **Barometer**: DPS310 (I2C, internal)
-- **Magnetometer**: QMC5883L (I2C, external)
-
-### Interfaces
-
-- **PWM outputs**: 12 (FMU)
-- **Serial ports**: 7
-- **I2C ports**: 2
-  - DPS310 (barometer, internal)
-  - QMC5883L (magnetometer, external)
-- **SPI buses**: 4
-  - ICM-20602 (IMU)
-  - MPU-6000 (IMU)
-- **CAN buses**: 1
-- **USB**: Yes
-- **RC input**: Yes
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — ICM-20602 (SPI), MPU-6000 (SPI)
+  - **Barometer**: DPS310 (I2C, internal)
+  - **Magnetometer**: QMC5883L (I2C, external)
+- **Interfaces**
+  - **PWM outputs**: 12 (FMU)
+  - **Serial ports**: 7
+  - **I2C ports**: 2 (1 external, 1 internal)
+    - I2C1 (external): free (no sensor detected)
+    - I2C2 (internal): DPS310 (barometer)
+  - **SPI buses**: 4
+    - ICM-20602 (IMU)
+    - MPU-6000 (IMU)
+  - **CAN buses**: 1
+  - **USB**: Yes
+  - **RC input**: Yes
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -13247,44 +12401,33 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — ICM-20602 (SPI), ICM-42688P, MPU-6000 (SPI)
-- **Barometer**: DPS310 (I2C, internal)
-- **Magnetometer**: QMC5883L (I2C, external)
-
-### Interfaces
-
-- **PWM outputs**: 12 (FMU)
-- **Serial ports**: 7
-- **I2C ports**: 2
-  - DPS310 (barometer, internal)
-  - QMC5883L (magnetometer, external)
-- **SPI buses**: 4
-  - MPU-6000 (IMU)
-  - ICM-20602 (IMU)
-- **CAN buses**: 1
-- **USB**: Yes
-- **RC input**: Yes
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — ICM-20602 (SPI), ICM-42688P, MPU-6000 (SPI)
+  - **Barometer**: DPS310 (I2C, internal)
+  - **Magnetometer**: QMC5883L (I2C, external)
+- **Interfaces**
+  - **PWM outputs**: 12 (FMU)
+  - **Serial ports**: 7
+  - **I2C ports**: 2 (1 external, 1 internal)
+    - I2C1 (external): free (no sensor detected)
+    - I2C2 (internal): DPS310 (barometer)
+  - **SPI buses**: 4
+    - MPU-6000 (IMU)
+    - ICM-20602 (IMU)
+  - **CAN buses**: 1
+  - **USB**: Yes
+  - **RC input**: Yes
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -13562,44 +12705,33 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — BMI088 (SPI), BMI270 (SPI)
-- **Barometer**: DPS310 (I2C, internal)
-- **Magnetometer**: IST8310 (I2C, internal)
-
-### Interfaces
-
-- **PWM outputs**: 10 (FMU)
-- **Serial ports**: 7
-- **I2C ports**: 2
-  - DPS310 (barometer, internal)
-  - IST8310 (magnetometer, internal)
-- **SPI buses**: 1
-  - BMI088 (IMU)
-  - BMI270 (IMU)
-- **CAN buses**: 1
-- **USB**: Yes
-- **RC input**: DSM/SRXL2, S.Bus
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), BMI270 (SPI)
+  - **Barometer**: DPS310 (I2C, internal)
+  - **Magnetometer**: IST8310 (I2C, internal)
+- **Interfaces**
+  - **PWM outputs**: 10 (FMU)
+  - **Serial ports**: 7
+  - **I2C ports**: 2 (1 external, 1 internal)
+    - I2C1 (external): free (no sensor detected)
+    - I2C2 (internal): DPS310 (barometer), IST8310 (magnetometer)
+  - **SPI buses**: 1
+    - BMI088 (IMU)
+    - BMI270 (IMU)
+  - **CAN buses**: 1
+  - **USB**: Yes
+  - **RC input**: DSM/SRXL2, S.Bus
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -13879,42 +13011,32 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — BMI088 (SPI), BMI270 (SPI)
-- **Barometer**: DPS310 (I2C, internal)
-- **Magnetometer**: TODO: list magnetometer(s)
-
-### Interfaces
-
-- **PWM outputs**: 9 (FMU)
-- **Serial ports**: 7
-- **I2C ports**: 2
-  - DPS310 (barometer, internal)
-- **SPI buses**: 1
-  - BMI088 (IMU)
-  - BMI270 (IMU)
-- **USB**: Yes
-- **RC input**: DSM/SRXL2, S.Bus
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), BMI270 (SPI)
+  - **Barometer**: DPS310 (I2C, internal)
+  - **Magnetometer**: TODO: list magnetometer(s)
+- **Interfaces**
+  - **PWM outputs**: 9 (FMU)
+  - **Serial ports**: 7
+  - **I2C ports**: 2 (1 external, 1 internal)
+    - I2C1 (external): free (no sensor detected)
+    - I2C2 (internal): DPS310 (barometer)
+  - **SPI buses**: 1
+    - BMI088 (IMU)
+    - BMI270 (IMU)
+  - **USB**: Yes
+  - **RC input**: DSM/SRXL2, S.Bus
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -14182,48 +13304,38 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 ### micoair/h743-lite
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/micoair743-lite](https://docs.px4.io/main/en/flight_controller/micoair743-lite)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-
-### Sensors
-
-- **IMU**: ICM-45686 (SPI)
-- **Barometer**: SPA06 (I2C, bus 2, external)
-- **Magnetometer**: TODO: list magnetometer(s)
-
-### Interfaces
-
-- **PWM outputs**: 14 (FMU)
-- **Serial ports**: 8
-- **I2C ports**: 2
-  - SPA06 (barometer, external, bus 2)
-- **SPI buses**: 1
-  - ICM-45686 (IMU)
-- **USB**: Yes
-- **RC input**: DSM/SRXL2, S.Bus
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: ICM-45686 (SPI)
+  - **Barometer**: SPA06 (I2C, bus 2, external)
+  - **Magnetometer**: TODO: list magnetometer(s)
+- **Interfaces**
+  - **PWM outputs**: 14 (FMU)
+  - **Serial ports**: 8
+  - **I2C ports**: 2 (2 external)
+    - I2C1 (external): free (no sensor detected)
+    - I2C2 (external): SPA06 (barometer)
+  - **SPI buses**: 1
+    - ICM-45686 (IMU)
+  - **USB**: Yes
+  - **RC input**: DSM/SRXL2, S.Bus
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -14498,30 +13610,6 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | UART8 | /dev/ttyS7 | TELEM4 | - |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 14 FMU PWM outputs (MAIN).
-
-Outputs:
-
-- Outputs 1-8, 11-12 support [DShot](../peripherals/dshot.md).
-- Outputs 9-10, 13-14 do not support DShot.
-- Outputs 1-8, 11-12 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-
-The 14 outputs are in 5 groups:
-
-- Outputs 1-4 in group1 (Timer1)
-- Outputs 5-8 in group2 (Timer3)
-- Outputs 11-12 in group3 (Timer4)
-- Outputs 13-14 in group4 (Timer12)
-- Outputs 9-10 in group5 (Timer15)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### micoair/h743-v2
@@ -14533,43 +13621,32 @@ All outputs within the same group must use the same output protocol and rate.
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — BMI088 (SPI), BMI270 (SPI)
-- **Barometer**: SPL06 (I2C, internal)
-- **Magnetometer**: QMC5883L (I2C, internal)
-
-### Interfaces
-
-- **PWM outputs**: 10 (FMU)
-- **Serial ports**: 8
-- **I2C ports**: 2
-  - SPL06 (barometer, internal)
-  - QMC5883L (magnetometer, internal)
-- **SPI buses**: 2
-  - BMI088 (IMU)
-  - BMI270 (IMU)
-- **USB**: Yes
-- **RC input**: DSM/SRXL2, S.Bus
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), BMI270 (SPI)
+  - **Barometer**: SPL06 (I2C, internal)
+  - **Magnetometer**: QMC5883L (I2C, internal)
+- **Interfaces**
+  - **PWM outputs**: 10 (FMU)
+  - **Serial ports**: 8
+  - **I2C ports**: 2 (1 external, 1 internal)
+    - I2C1 (external): free (no sensor detected)
+    - I2C2 (internal): SPL06 (barometer), QMC5883L (magnetometer)
+  - **SPI buses**: 2
+    - BMI088 (IMU)
+    - BMI270 (IMU)
+  - **USB**: Yes
+  - **RC input**: DSM/SRXL2, S.Bus
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -14851,51 +13928,43 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 ### modalai/fc-v1
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/modalai_fc_v1](https://docs.px4.io/main/en/flight_controller/modalai_fc_v1)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32F765 (32-bit Arm® Cortex®-M7, 216 MHz, 2MB flash, 512KB RAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20602 (SPI), ICM-20948, ICM-42688P (SPI)
-- **Barometer**: BMP388 (I2C, internal)
-- **Magnetometer**: TODO: list magnetometer(s)
-
-### Interfaces
-
-- **PWM outputs**: 8 (FMU)
-- **Serial ports**: 8
-- **I2C ports**: 4
-  - BMP388 (barometer, internal)
-- **SPI buses**: 4
-  - ICM-20602 (IMU)
-  - ICM-42688P (IMU)
-  - BMI088 (IMU)
-- **CAN buses**: 1
-- **USB**: Yes
-- **RC input**: PPM
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32F765 (32-bit Arm® Cortex®-M7, 216 MHz, 2MB flash, 512KB RAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20602 (SPI), ICM-20948, ICM-42688P (SPI)
+  - **Barometer**: BMP388 (I2C, internal)
+  - **Magnetometer**: TODO: list magnetometer(s)
+- **Interfaces**
+  - **PWM outputs**: 8 (FMU)
+  - **Serial ports**: 8
+  - **I2C ports**: 4 (3 external, 1 internal)
+    - I2C1 (external): free (no sensor detected)
+    - I2C2 (external): free (no sensor detected)
+    - I2C3 (external): free (no sensor detected)
+    - I2C4 (internal): BMP388 (barometer)
+  - **SPI buses**: 4
+    - ICM-20602 (IMU)
+    - ICM-42688P (IMU)
+    - BMI088 (IMU)
+  - **CAN buses**: 1
+  - **USB**: Yes
+  - **RC input**: PPM
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -15164,27 +14233,6 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | UART8 | /dev/ttyS7 |  | - |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 8 FMU PWM outputs (MAIN).
-
-Outputs:
-
-- Outputs 1-8 support [DShot](../peripherals/dshot.md).
-- Outputs 1-7 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-- Output 8 supports Bidirectional DShot output only (no eRPM capture).
-
-The 8 outputs are in 2 groups:
-
-- Outputs 1-4 in group1 (Timer1)
-- Outputs 5-8 in group2 (Timer4)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### modalai/fc-v2
@@ -15196,44 +14244,36 @@ All outputs within the same group must use the same output protocol and rate.
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H753 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-- **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
-
-### Sensors
-
-- **IMU**: ICM-42688P (SPI), ICM-42688P (SPI)
-- **Barometer**: ICP-20100 (I2C, internal)
-- **Magnetometer**: TODO: list magnetometer(s)
-
-### Interfaces
-
-- **PWM outputs**: 16 (8 FMU + 8 IO)
-- **Serial ports**: 8
-- **I2C ports**: 4
-  - ICP-20100 (barometer, internal)
-- **SPI buses**: 4
-  - ICM-42688P (IMU)
-  - ICM-42688P (IMU)
-- **CAN buses**: 1
-- **USB**: Yes
-- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H753 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+  - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
+- **Sensors**
+  - **IMU**: ICM-42688P (SPI), ICM-42688P (SPI)
+  - **Barometer**: ICP-20100 (I2C, internal)
+  - **Magnetometer**: TODO: list magnetometer(s)
+- **Interfaces**
+  - **PWM outputs**: 16 (8 FMU + 8 IO)
+  - **Serial ports**: 8
+  - **I2C ports**: 4 (3 external, 1 internal)
+    - I2C1 (external): free (no sensor detected)
+    - I2C2 (external): free (no sensor detected)
+    - I2C3 (external): free (no sensor detected)
+    - I2C4 (internal): ICP-20100 (barometer)
+  - **SPI buses**: 4
+    - ICM-42688P (IMU)
+    - ICM-42688P (IMU)
+  - **CAN buses**: 1
+  - **USB**: Yes
+  - **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -15508,34 +14548,25 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32F100
-
-### Sensors
-
-- **IMU**: TODO: list imu(s)
-- **Barometer**: TODO: list barometer(s)
-- **Magnetometer**: TODO: list magnetometer(s)
-
-### Interfaces
-
-- **PWM outputs**: 8 (FMU)
-- **I2C ports**: TODO: number of I2C ports
-- **SPI buses**: TODO: number of SPI buses
-- **USB**: TODO: confirm USB connector type
-- **RC input**: PPM
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
+- **Processor**
+  - **Main FMU Processor**: STM32F100
+- **Sensors**
+  - **IMU**: TODO: list imu(s)
+  - **Barometer**: TODO: list barometer(s)
+  - **Magnetometer**: TODO: list magnetometer(s)
+- **Interfaces**
+  - **PWM outputs**: 8 (FMU)
+  - **I2C ports**: TODO: number of I2C ports
+  - **SPI buses**: TODO: number of SPI buses
+  - **USB**: TODO: confirm USB connector type
+  - **RC input**: PPM
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
 
 <!-- overview-source-data
 {
@@ -15773,44 +14804,35 @@ Serial port mapping could not be determined from source.
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20602 (SPI), ICM-20948 (SPI)
-- **Barometer**: DPS310 (SPI)
-- **Magnetometer**: TODO: list magnetometer(s)
-
-### Interfaces
-
-- **PWM outputs**: 12 (FMU)
-- **Serial ports**: 6
-- **I2C ports**: 2
-- **SPI buses**: 4
-  - ICM-20602 (IMU)
-  - BMI088 (IMU)
-  - ICM-20948 (IMU)
-  - DPS310 (barometer)
-- **CAN buses**: 2
-- **USB**: Yes
-- **RC input**: PPM
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20602 (SPI), ICM-20948 (SPI)
+  - **Barometer**: DPS310 (SPI)
+  - **Magnetometer**: TODO: list magnetometer(s)
+- **Interfaces**
+  - **PWM outputs**: 12 (FMU)
+  - **Serial ports**: 6
+  - **I2C ports**: 2 (2 external)
+    - I2C1 (external): free (no sensor detected)
+    - I2C4 (external): free (no sensor detected)
+  - **SPI buses**: 4
+    - ICM-20602 (IMU)
+    - BMI088 (IMU)
+    - ICM-20948 (IMU)
+    - DPS310 (barometer)
+  - **CAN buses**: 2
+  - **USB**: Yes
+  - **RC input**: PPM
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -16091,51 +15113,41 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 ### mro/ctrl-zero-f7
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/mro_control_zero_f7](https://docs.px4.io/main/en/flight_controller/mro_control_zero_f7)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32F777 (32-bit Arm® Cortex®-M7, 216 MHz, 2MB flash, 512KB RAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20602 (SPI), ICM-20948 (SPI)
-- **Barometer**: DPS310 (SPI)
-- **Magnetometer**: TODO: list magnetometer(s)
-
-### Interfaces
-
-- **PWM outputs**: 8 (FMU)
-- **Serial ports**: 6
-- **I2C ports**: 1
-- **SPI buses**: 3
-  - ICM-20602 (IMU)
-  - BMI088 (IMU)
-  - ICM-20948 (IMU)
-  - DPS310 (barometer)
-- **CAN buses**: 1
-- **USB**: Yes
-- **RC input**: PPM
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32F777 (32-bit Arm® Cortex®-M7, 216 MHz, 2MB flash, 512KB RAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20602 (SPI), ICM-20948 (SPI)
+  - **Barometer**: DPS310 (SPI)
+  - **Magnetometer**: TODO: list magnetometer(s)
+- **Interfaces**
+  - **PWM outputs**: 8 (FMU)
+  - **Serial ports**: 6
+  - **I2C ports**: 1 (1 external)
+    - I2C1 (external): free (no sensor detected)
+  - **SPI buses**: 3
+    - ICM-20602 (IMU)
+    - BMI088 (IMU)
+    - ICM-20948 (IMU)
+    - DPS310 (barometer)
+  - **CAN buses**: 1
+  - **USB**: Yes
+  - **RC input**: PPM
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -16396,74 +15408,48 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | UART8 | /dev/ttyS5 |  | - |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 8 FMU PWM outputs (MAIN).
-
-[DShot](../peripherals/dshot.md) is not supported.
-
-The 8 outputs are in 3 groups:
-
-- Outputs 1-4 in group1 (Timer1)
-- Outputs 5-6 in group2 (Timer4)
-- Outputs 7-8 in group3 (Timer8)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### mro/ctrl-zero-f7-oem
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/mro_control_zero_f7](https://docs.px4.io/main/en/flight_controller/mro_control_zero_f7)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32F777 (32-bit Arm® Cortex®-M7, 216 MHz, 2MB flash, 512KB RAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20602 (SPI), ICM-20948 (SPI)
-- **Barometer**: DPS310 (SPI)
-- **Magnetometer**: TODO: list magnetometer(s)
-
-### Interfaces
-
-- **PWM outputs**: 8 (FMU)
-- **Serial ports**: 6
-- **I2C ports**: 3
-- **SPI buses**: 3
-  - ICM-20602 (IMU)
-  - BMI088 (IMU)
-  - ICM-20948 (IMU)
-  - DPS310 (barometer)
-- **CAN buses**: 2
-- **USB**: Yes
-- **RC input**: PPM
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32F777 (32-bit Arm® Cortex®-M7, 216 MHz, 2MB flash, 512KB RAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20602 (SPI), ICM-20948 (SPI)
+  - **Barometer**: DPS310 (SPI)
+  - **Magnetometer**: TODO: list magnetometer(s)
+- **Interfaces**
+  - **PWM outputs**: 8 (FMU)
+  - **Serial ports**: 6
+  - **I2C ports**: 3 (3 external)
+    - I2C1 (external): free (no sensor detected)
+    - I2C3 (external): free (no sensor detected)
+    - I2C4 (external): free (no sensor detected)
+  - **SPI buses**: 3
+    - ICM-20602 (IMU)
+    - BMI088 (IMU)
+    - ICM-20948 (IMU)
+    - DPS310 (barometer)
+  - **CAN buses**: 2
+  - **USB**: Yes
+  - **RC input**: PPM
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -16725,24 +15711,6 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | UART8 | /dev/ttyS5 | Debug Console | - |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 8 FMU PWM outputs (MAIN).
-
-[DShot](../peripherals/dshot.md) is not supported.
-
-The 8 outputs are in 3 groups:
-
-- Outputs 1-4 in group1 (Timer1)
-- Outputs 5-6 in group2 (Timer4)
-- Outputs 7-8 in group3 (Timer8)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### mro/ctrl-zero-h7
@@ -16754,44 +15722,34 @@ All outputs within the same group must use the same output protocol and rate.
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20602 (SPI), ICM-20948 (SPI)
-- **Barometer**: DPS310 (SPI)
-- **Magnetometer**: TODO: list magnetometer(s)
-
-### Interfaces
-
-- **PWM outputs**: 8 (FMU)
-- **Serial ports**: 6
-- **I2C ports**: 1
-- **SPI buses**: 3
-  - ICM-20602 (IMU)
-  - BMI088 (IMU)
-  - ICM-20948 (IMU)
-  - DPS310 (barometer)
-- **CAN buses**: 1
-- **USB**: Yes
-- **RC input**: PPM
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20602 (SPI), ICM-20948 (SPI)
+  - **Barometer**: DPS310 (SPI)
+  - **Magnetometer**: TODO: list magnetometer(s)
+- **Interfaces**
+  - **PWM outputs**: 8 (FMU)
+  - **Serial ports**: 6
+  - **I2C ports**: 1 (1 external)
+    - I2C1 (external): free (no sensor detected)
+  - **SPI buses**: 3
+    - ICM-20602 (IMU)
+    - BMI088 (IMU)
+    - ICM-20948 (IMU)
+    - DPS310 (barometer)
+  - **CAN buses**: 1
+  - **USB**: Yes
+  - **RC input**: PPM
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -17064,44 +16022,36 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20602 (SPI), ICM-20948 (SPI)
-- **Barometer**: DPS310 (SPI)
-- **Magnetometer**: TODO: list magnetometer(s)
-
-### Interfaces
-
-- **PWM outputs**: 8 (FMU)
-- **Serial ports**: 6
-- **I2C ports**: 3
-- **SPI buses**: 3
-  - ICM-20602 (IMU)
-  - BMI088 (IMU)
-  - ICM-20948 (IMU)
-  - DPS310 (barometer)
-- **CAN buses**: 2
-- **USB**: Yes
-- **RC input**: PPM
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20602 (SPI), ICM-20948 (SPI)
+  - **Barometer**: DPS310 (SPI)
+  - **Magnetometer**: TODO: list magnetometer(s)
+- **Interfaces**
+  - **PWM outputs**: 8 (FMU)
+  - **Serial ports**: 6
+  - **I2C ports**: 3 (3 external)
+    - I2C1 (external): free (no sensor detected)
+    - I2C3 (external): free (no sensor detected)
+    - I2C4 (external): free (no sensor detected)
+  - **SPI buses**: 3
+    - ICM-20602 (IMU)
+    - BMI088 (IMU)
+    - ICM-20948 (IMU)
+    - DPS310 (barometer)
+  - **CAN buses**: 2
+  - **USB**: Yes
+  - **RC input**: PPM
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -17368,51 +16318,41 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 ### mro/pixracerpro
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/pixracer](https://docs.px4.io/main/en/flight_controller/pixracer)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20602 (SPI), ICM-20948 (SPI)
-- **Barometer**: DPS310 (SPI)
-- **Magnetometer**: TODO: list magnetometer(s)
-
-### Interfaces
-
-- **PWM outputs**: 8 (FMU)
-- **Serial ports**: 7
-- **I2C ports**: 1
-- **SPI buses**: 4
-  - ICM-20602 (IMU)
-  - BMI088 (IMU)
-  - ICM-20948 (IMU)
-  - DPS310 (barometer)
-- **CAN buses**: 2
-- **USB**: Yes
-- **RC input**: PPM
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20602 (SPI), ICM-20948 (SPI)
+  - **Barometer**: DPS310 (SPI)
+  - **Magnetometer**: TODO: list magnetometer(s)
+- **Interfaces**
+  - **PWM outputs**: 8 (FMU)
+  - **Serial ports**: 7
+  - **I2C ports**: 1 (1 external)
+    - I2C1 (external): free (no sensor detected)
+  - **SPI buses**: 4
+    - ICM-20602 (IMU)
+    - BMI088 (IMU)
+    - ICM-20948 (IMU)
+    - DPS310 (barometer)
+  - **CAN buses**: 2
+  - **USB**: Yes
+  - **RC input**: PPM
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -17678,72 +16618,44 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | UART8 | /dev/ttyS6 | GPS2 | - |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 8 FMU PWM outputs (MAIN).
-
-All outputs support [DShot](../peripherals/dshot.md) and [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-
-The 8 outputs are in 3 groups:
-
-- Outputs 1-4 in group1 (Timer1)
-- Outputs 5-6 in group2 (Timer4)
-- Outputs 7-8 in group3 (Timer8)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### mro/x21
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/mro_x2.1](https://docs.px4.io/main/en/flight_controller/mro_x2.1)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32F42
-- **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — ICM-20602 (SPI), ICM-20948, MPU-9250 (SPI)
-- **Barometer**: MS5611 (SPI)
-- **Magnetometer**: TODO: list magnetometer(s)
-
-### Interfaces
-
-- **PWM outputs**: 14 (6 FMU + 8 IO)
-- **I2C ports**: 1
-- **SPI buses**: 2
-  - ICM-20602 (IMU)
-  - MPU-9250 (IMU)
-  - MS5611 (barometer)
-- **USB**: Yes
-- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32F42
+  - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — ICM-20602 (SPI), ICM-20948, MPU-9250 (SPI)
+  - **Barometer**: MS5611 (SPI)
+  - **Magnetometer**: TODO: list magnetometer(s)
+- **Interfaces**
+  - **PWM outputs**: 14 (6 FMU + 8 IO)
+  - **I2C ports**: 1 (1 external)
+    - I2C1 (external): free (no sensor detected)
+  - **SPI buses**: 2
+    - ICM-20602 (IMU)
+    - MPU-9250 (IMU)
+    - MS5611 (barometer)
+  - **USB**: Yes
+  - **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -17982,76 +16894,45 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 Serial port mapping could not be determined from source.
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 6 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
-
-FMU Outputs:
-
-- Outputs 1-4 support [DShot](../peripherals/dshot.md).
-- Outputs 5-6 do not support DShot.
-- Outputs 1-4 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-
-The 6 outputs are in 2 groups:
-
-- Outputs 1-4 in group1 (Timer1)
-- Outputs 5-6 in group2 (Timer4)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### mro/x21-777
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/mro_x2.1](https://docs.px4.io/main/en/flight_controller/mro_x2.1)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32F777 (32-bit Arm® Cortex®-M7, 216 MHz, 2MB flash, 512KB RAM)
-- **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — ICM-20602 (SPI), ICM-20948, MPU-9250 (SPI)
-- **Barometer**: MS5611 (SPI)
-- **Magnetometer**: TODO: list magnetometer(s)
-
-### Interfaces
-
-- **PWM outputs**: 14 (6 FMU + 8 IO)
-- **Serial ports**: 7
-- **I2C ports**: 1
-- **SPI buses**: 2
-  - ICM-20602 (IMU)
-  - MPU-9250 (IMU)
-  - MS5611 (barometer)
-- **USB**: Yes
-- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32F777 (32-bit Arm® Cortex®-M7, 216 MHz, 2MB flash, 512KB RAM)
+  - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — ICM-20602 (SPI), ICM-20948, MPU-9250 (SPI)
+  - **Barometer**: MS5611 (SPI)
+  - **Magnetometer**: TODO: list magnetometer(s)
+- **Interfaces**
+  - **PWM outputs**: 14 (6 FMU + 8 IO)
+  - **Serial ports**: 7
+  - **I2C ports**: 1 (1 external)
+    - I2C1 (external): free (no sensor detected)
+  - **SPI buses**: 2
+    - ICM-20602 (IMU)
+    - MPU-9250 (IMU)
+    - MS5611 (barometer)
+  - **USB**: Yes
+  - **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -18315,27 +17196,6 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | UART8 | /dev/ttyS6 |  | - |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 6 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
-
-FMU Outputs:
-
-- Outputs 1-4 support [DShot](../peripherals/dshot.md).
-- Outputs 5-6 do not support DShot.
-- Outputs 1-4 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-
-The 6 outputs are in 2 groups:
-
-- Outputs 1-4 in group1 (Timer1)
-- Outputs 5-6 in group2 (Timer4)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### narinfc/h7
@@ -18348,50 +17208,43 @@ All outputs within the same group must use the same output protocol and rate.
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — ADIS16470 (SPI), BMI088 (SPI), ICM-20649, ICM-20689 (SPI), ICM-20948, ICM-42688P (SPI)
-- **Barometer**: MS5611 (SPI), MS5611 (SPI)
-- **Magnetometer**: TODO: confirm which is installed — RM3100 (SPI), RM3100 (SPI), IST8310 (I2C, bus 1, external)
-
-### Interfaces
-
-- **PWM outputs**: 14 (FMU)
-- **Serial ports**: 6
-- **I2C ports**: 4
-  - IST8310 (magnetometer, external, bus 1)
-- **SPI buses**: 5
-  - ADIS16470 (IMU)
-  - BMI088 (IMU)
-  - ICM-42688P (IMU)
-  - ICM-20689 (IMU)
-  - MS5611 (barometer)
-  - MS5611 (barometer)
-  - RM3100 (magnetometer)
-  - RM3100 (magnetometer)
-- **CAN buses**: 2
-- **USB**: Yes
-- **RC input**: PPM
-- **Analog battery inputs**: 2
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
-- **Onboard heater**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — ADIS16470 (SPI), BMI088 (SPI), ICM-20649, ICM-20689 (SPI), ICM-20948, ICM-42688P (SPI)
+  - **Barometer**: MS5611 (SPI), MS5611 (SPI)
+  - **Magnetometer**: TODO: confirm which is installed — RM3100 (SPI), RM3100 (SPI), IST8310 (I2C, bus 1, external)
+- **Interfaces**
+  - **PWM outputs**: 14 (FMU)
+  - **Serial ports**: 6
+  - **I2C ports**: 4 (3 external, 1 internal)
+    - I2C1 (external, GPS1): IST8310 (magnetometer) — on GPS connector
+    - I2C2 (external): free (no sensor detected)
+    - I2C3 (internal)
+    - I2C4 (external): free (no sensor detected)
+  - **SPI buses**: 5
+    - ADIS16470 (IMU)
+    - BMI088 (IMU)
+    - ICM-42688P (IMU)
+    - ICM-20689 (IMU)
+    - MS5611 (barometer)
+    - MS5611 (barometer)
+    - RM3100 (magnetometer)
+    - RM3100 (magnetometer)
+  - **CAN buses**: 2
+  - **USB**: Yes
+  - **RC input**: PPM
+  - **Analog battery inputs**: 2
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+  - **Power supply**: Dual redundant (POWER1, POWER2)
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
+  - **Onboard heater**: Yes
 
 <!-- overview-source-data
 {
@@ -18677,49 +17530,37 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 ### nxp/fmuk66-e
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/nxp_rddrone_fmuk66](https://docs.px4.io/main/en/flight_controller/nxp_rddrone_fmuk66)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: TODO: chip model
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20948, ICM-42688P (SPI)
-- **Barometer**: TODO: confirm which is installed — MPL3115A2, BMP280 (I2C, internal)
-- **Magnetometer**: BMM150 (I2C, internal)
-
-### Interfaces
-
-- **PWM outputs**: 8 (FMU)
-- **I2C ports**: TODO: number of I2C ports
-  - BMP280 (barometer, internal)
-  - BMM150 (magnetometer, internal)
-- **SPI buses**: TODO: number of SPI buses
-  - BMI088 (IMU)
-  - ICM-42688P (IMU)
-- **USB**: TODO: confirm USB connector type
-- **RC input**: PPM
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: TODO: chip model
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20948, ICM-42688P (SPI)
+  - **Barometer**: TODO: confirm which is installed — MPL3115A2, BMP280 (I2C, internal)
+  - **Magnetometer**: BMM150 (I2C, internal)
+- **Interfaces**
+  - **PWM outputs**: 8 (FMU)
+  - **I2C ports**: TODO: number of I2C ports
+    - Internal: BMP280 (barometer), BMM150 (magnetometer)
+  - **SPI buses**: TODO: number of SPI buses
+    - BMI088 (IMU)
+    - ICM-42688P (IMU)
+  - **USB**: TODO: confirm USB connector type
+  - **RC input**: PPM
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -18966,70 +17807,40 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 Serial port mapping could not be determined from source.
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 6 FMU PWM outputs (MAIN).
-
-[DShot](../peripherals/dshot.md) is not supported.
-
-The 6 outputs are in 2 groups:
-
-- Outputs 1-4 in group1 (FTM0)
-- Outputs 5-6 in group2 (FTM3)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### nxp/fmuk66-v3
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/nxp_rddrone_fmuk66](https://docs.px4.io/main/en/flight_controller/nxp_rddrone_fmuk66)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: TODO: chip model
-
-### Sensors
-
-- **IMU**: ICM-20948
-- **Barometer**: TODO: confirm which is installed — MPL3115A2 (I2C, internal), BMP280 (I2C, internal)
-- **Magnetometer**: BMM150 (I2C, internal)
-
-### Interfaces
-
-- **PWM outputs**: 6 (FMU)
-- **I2C ports**: TODO: number of I2C ports
-  - BMP280 (barometer, internal)
-  - MPL3115A2 (barometer, internal)
-  - BMM150 (magnetometer, internal)
-- **SPI buses**: TODO: number of SPI buses
-- **USB**: TODO: confirm USB connector type
-- **RC input**: PPM
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: TODO: chip model
+- **Sensors**
+  - **IMU**: ICM-20948
+  - **Barometer**: TODO: confirm which is installed — MPL3115A2 (I2C, internal), BMP280 (I2C, internal)
+  - **Magnetometer**: BMM150 (I2C, internal)
+- **Interfaces**
+  - **PWM outputs**: 6 (FMU)
+  - **I2C ports**: TODO: number of I2C ports
+    - Internal: BMP280 (barometer), MPL3115A2 (barometer), BMM150 (magnetometer)
+  - **SPI buses**: TODO: number of SPI buses
+  - **USB**: TODO: confirm USB connector type
+  - **RC input**: PPM
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -19274,23 +18085,6 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 Serial port mapping could not be determined from source.
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 6 FMU PWM outputs (MAIN).
-
-[DShot](../peripherals/dshot.md) is not supported.
-
-The 6 outputs are in 2 groups:
-
-- Outputs 1-4 in group1 (FTM0)
-- Outputs 5-6 in group2 (FTM3)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### nxp/mr-canhubk3
@@ -19302,40 +18096,28 @@ All outputs within the same group must use the same output protocol and rate.
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: TODO: chip model
-
-### Sensors
-
-- **IMU**: ICM-42688P (variant MR-CANHUBK3-ADAP), ICM-20649 (variant MR-CANHUBK3-ADAP), ICM-20649 (other variants), ICM-42688P (other variants)
-- **Barometer**: BMP388 (I2C, external)
-- **Magnetometer**: LIS3MDL (I2C, bus 2, external); BMM150 (I2C, external, variant MR-CANHUBK3-ADAP), IST8310 (I2C, bus 1, external, variant MR-CANHUBK3-ADAP), BMM150 (I2C, external, other variants), IST8310 (I2C, bus 2, external, other variants)
-
-### Interfaces
-
-- **PWM outputs**: 8 (FMU)
-- **I2C ports**: TODO: number of I2C ports
-  - BMP388 (barometer, external)
-  - LIS3MDL (magnetometer, external, bus 2)
-- **SPI buses**: TODO: number of SPI buses
-- **USB**: TODO: confirm USB connector type
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-- **Ethernet**: Yes
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: TODO: chip model
+- **Sensors**
+  - **IMU**: ICM-42688P (variant MR-CANHUBK3-ADAP), ICM-20649 (variant MR-CANHUBK3-ADAP), ICM-20649 (other variants), ICM-42688P (other variants)
+  - **Barometer**: BMP388 (I2C, external)
+  - **Magnetometer**: LIS3MDL (I2C, bus 2, external); BMM150 (I2C, external, variant MR-CANHUBK3-ADAP), IST8310 (I2C, bus 1, external, variant MR-CANHUBK3-ADAP), BMM150 (I2C, external, other variants), IST8310 (I2C, bus 2, external, other variants)
+- **Interfaces**
+  - **PWM outputs**: 8 (FMU)
+  - **I2C ports**: TODO: number of I2C ports
+    - GPS1 (I2C2, external): LIS3MDL (magnetometer) — on GPS connector
+  - **SPI buses**: TODO: number of SPI buses
+  - **USB**: TODO: confirm USB connector type
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+  - **Ethernet**: Yes
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -19592,52 +18374,41 @@ Serial port mapping could not be determined from source.
 ### nxp/mr-tropic
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/nxp_mr_vmu_rt1176](https://docs.px4.io/main/en/flight_controller/nxp_mr_vmu_rt1176)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: MIMXRT1064
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20948, ICM-42688P, ICM-45686 (SPI)
-- **Barometer**: TODO: confirm which is installed — BMP388 (I2C, bus 4, internal), ICP-20100, MS5611
-- **Magnetometer**: TODO: confirm which is installed — BMM350 (I2C, bus 4, internal), IST8310 (I2C, bus 1, external)
-
-### Interfaces
-
-- **PWM outputs**: 8 (FMU)
-- **Serial ports**: 7
-- **I2C ports**: 3
-  - BMP388 (barometer, internal, bus 4)
-  - BMM350 (magnetometer, internal, bus 4)
-  - IST8310 (magnetometer, external, bus 1)
-- **SPI buses**: 2
-  - ICM-45686 (IMU)
-  - BMI088 (IMU)
-- **USB**: TODO: confirm USB connector type
-- **RC input**: DSM/SRXL2, S.Bus
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-- **Ethernet**: Yes
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: MIMXRT1064
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20948, ICM-42688P, ICM-45686 (SPI)
+  - **Barometer**: TODO: confirm which is installed — BMP388 (I2C, bus 4, internal), ICP-20100, MS5611
+  - **Magnetometer**: TODO: confirm which is installed — BMM350 (I2C, bus 4, internal), IST8310 (I2C, bus 1, external)
+- **Interfaces**
+  - **PWM outputs**: 8 (FMU)
+  - **Serial ports**: 7
+  - **I2C ports**: 3 (2 external, 1 internal)
+    - I2C1 (external, GPS1): IST8310 (magnetometer) — on GPS connector
+    - I2C3 (external): INA226 (power monitor), INA228 (power monitor), INA238 (power monitor)
+    - I2C4 (internal): BMP388 (barometer), BMM350 (magnetometer)
+  - **SPI buses**: 2
+    - ICM-45686 (IMU)
+    - BMI088 (IMU)
+  - **USB**: TODO: confirm USB connector type
+  - **RC input**: DSM/SRXL2, S.Bus
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+  - **Ethernet**: Yes
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -19909,78 +18680,45 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | LPUART8 | /dev/ttyS6 | RC | - |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 6 FMU PWM outputs (MAIN).
-
-Outputs:
-
-- Outputs 1-3, 5-6 support [DShot](../peripherals/dshot.md).
-- Output 4 does not support DShot.
-- Outputs 1-3, 5-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-
-The 6 outputs are in 2 groups:
-
-- Outputs 1-4 in group1 (PWM2)
-- Outputs 5-6 in group2 (PWM4)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### nxp/tropic-community
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/nxp_mr_vmu_rt1176](https://docs.px4.io/main/en/flight_controller/nxp_mr_vmu_rt1176)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: MIMXRT1062 (32-bit Arm® Cortex®-M7, 600 MHz, 8MB flash, 1MB RAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20948, ICM-42688P (SPI), ICM-45686
-- **Barometer**: TODO: confirm which is installed — BMP388 (I2C, bus 4, internal), ICP-20100, MS5611
-- **Magnetometer**: TODO: confirm which is installed — BMM150 (I2C, bus 4, internal), IST8310 (I2C, bus 1, external)
-
-### Interfaces
-
-- **PWM outputs**: 6 (FMU)
-- **Serial ports**: 5
-- **I2C ports**: 2
-  - BMP388 (barometer, internal, bus 4)
-  - BMM150 (magnetometer, internal, bus 4)
-  - IST8310 (magnetometer, external, bus 1)
-- **SPI buses**: 2
-  - ICM-42688P (IMU)
-  - BMI088 (IMU)
-- **USB**: TODO: confirm USB connector type
-- **RC input**: DSM/SRXL2, S.Bus
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-- **Ethernet**: Yes
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: MIMXRT1062 (32-bit Arm® Cortex®-M7, 600 MHz, 8MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20948, ICM-42688P (SPI), ICM-45686
+  - **Barometer**: TODO: confirm which is installed — BMP388 (I2C, bus 4, internal), ICP-20100, MS5611
+  - **Magnetometer**: TODO: confirm which is installed — BMM150 (I2C, bus 4, internal), IST8310 (I2C, bus 1, external)
+- **Interfaces**
+  - **PWM outputs**: 6 (FMU)
+  - **Serial ports**: 5
+  - **I2C ports**: 2 (1 external, 1 internal)
+    - I2C1 (external, GPS1): IST8310 (magnetometer), INA226 (power monitor), INA228 (power monitor), INA238 (power monitor) — on GPS connector
+    - I2C4 (internal): BMP388 (barometer), BMM150 (magnetometer)
+  - **SPI buses**: 2
+    - ICM-42688P (IMU)
+    - BMI088 (IMU)
+  - **USB**: TODO: confirm USB connector type
+  - **RC input**: DSM/SRXL2, S.Bus
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+  - **Ethernet**: Yes
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -20248,27 +18986,6 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | LPUART8 | /dev/ttyS4 |  | - |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 6 FMU PWM outputs (MAIN).
-
-Outputs:
-
-- Outputs 1-3, 5-6 support [DShot](../peripherals/dshot.md).
-- Output 4 does not support DShot.
-- Outputs 1-3, 5-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-
-The 6 outputs are in 2 groups:
-
-- Outputs 1-4 in group1 (PWM2)
-- Outputs 5-6 in group2 (PWM4)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### nxp/ucans32k146
@@ -20280,40 +18997,24 @@ All outputs within the same group must use the same output protocol and rate.
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: TODO: chip model
-
-### Sensors
-
-- **IMU**: TODO: list imu(s)
-- **Barometer**: TODO: list barometer(s)
-- **Magnetometer**: TODO: confirm which is installed — HMC5883L (I2C, external), IST8308 (I2C, external), IST8310 (I2C, external), IIS2MDC (I2C, external), LIS3MDL (I2C, external), QMC5883L (I2C, external), RM3100 (I2C, external)
-
-### Interfaces
-
-- **PWM outputs**: 2 (FMU)
-- **I2C ports**: TODO: number of I2C ports
-  - HMC5883L (magnetometer, external)
-  - IST8308 (magnetometer, external)
-  - IST8310 (magnetometer, external)
-  - IIS2MDC (magnetometer, external)
-  - LIS3MDL (magnetometer, external)
-  - QMC5883L (magnetometer, external)
-  - RM3100 (magnetometer, external)
-- **SPI buses**: TODO: number of SPI buses
-- **USB**: TODO: confirm USB connector type
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
+- **Processor**
+  - **Main FMU Processor**: TODO: chip model
+- **Sensors**
+  - **IMU**: TODO: list imu(s)
+  - **Barometer**: TODO: list barometer(s)
+  - **Magnetometer**: TODO: confirm which is installed — HMC5883L (I2C, external), IST8308 (I2C, external), IST8310 (I2C, external), IIS2MDC (I2C, external), LIS3MDL (I2C, external), QMC5883L (I2C, external), RM3100 (I2C, external)
+- **Interfaces**
+  - **PWM outputs**: 2 (FMU)
+  - **I2C ports**: TODO: number of I2C ports
+  - **SPI buses**: TODO: number of SPI buses
+  - **USB**: TODO: confirm USB connector type
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
 
 <!-- overview-source-data
 {
@@ -20547,42 +19248,34 @@ Serial port mapping could not be determined from source.
 ### omnibus/f4sd
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/omnibus_f4_sd](https://docs.px4.io/main/en/flight_controller/omnibus_f4_sd)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32F405 (32-bit Arm® Cortex®-M4, 168 MHz, 1MB flash, 192KB RAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — ICM-20602, MPU-6000
-- **Barometer**: BMP280 (SPI)
-- **Magnetometer**: HMC5883L
-
-### Interfaces
-
-- **PWM outputs**: 4 (FMU)
-- **I2C ports**: 1
-- **SPI buses**: 3
-  - BMP280 (barometer)
-- **USB**: Yes
-- **RC input**: PPM
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
+- **Processor**
+  - **Main FMU Processor**: STM32F405 (32-bit Arm® Cortex®-M4, 168 MHz, 1MB flash, 192KB RAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — ICM-20602, MPU-6000
+  - **Barometer**: BMP280 (SPI)
+  - **Magnetometer**: HMC5883L
+- **Interfaces**
+  - **PWM outputs**: 4 (FMU)
+  - **I2C ports**: 1 (1 external)
+    - I2C2 (external): free (no sensor detected)
+  - **SPI buses**: 3
+    - BMP280 (barometer)
+  - **USB**: Yes
+  - **RC input**: PPM
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
 
 <!-- overview-source-data
 {
@@ -20811,74 +19504,47 @@ This board does not have an SD card slot.
 Serial port mapping could not be determined from source.
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 4 FMU PWM outputs (MAIN).
-
-All outputs support [DShot](../peripherals/dshot.md) ([Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry) not supported).
-
-The 4 outputs are in 2 groups:
-
-- Outputs 1-2 in group1 (Timer3)
-- Outputs 3-4 in group2 (Timer2)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### px4/fmu-v2
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/pixhawk](https://docs.px4.io/main/en/flight_controller/pixhawk)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32F42
-- **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — MPU-6000 (SPI), MPU-9250 (SPI)
-- **Barometer**: MS5611 (SPI), MS5611 (SPI)
-- **Magnetometer**: HMC5883L (I2C, internal), HMC5883L (SPI)
-
-### Interfaces
-
-- **PWM outputs**: 14 (6 FMU + 8 IO)
-- **I2C ports**: 2
-  - HMC5883L (magnetometer, internal)
-- **SPI buses**: 3
-  - MPU-6000 (IMU)
-  - MPU-9250 (IMU)
-  - MS5611 (barometer)
-  - MS5611 (barometer)
-  - HMC5883L (magnetometer)
-- **USB**: Yes
-- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32F42
+  - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — MPU-6000 (SPI), MPU-9250 (SPI)
+  - **Barometer**: MS5611 (SPI), MS5611 (SPI)
+  - **Magnetometer**: HMC5883L (I2C, internal), HMC5883L (SPI)
+- **Interfaces**
+  - **PWM outputs**: 14 (6 FMU + 8 IO)
+  - **I2C ports**: 2 (1 external, 1 internal)
+    - I2C1 (external): free (no sensor detected)
+    - I2C2 (internal): HMC5883L (magnetometer)
+  - **SPI buses**: 3
+    - MPU-6000 (IMU)
+    - MPU-9250 (IMU)
+    - MS5611 (barometer)
+    - MS5611 (barometer)
+    - HMC5883L (magnetometer)
+  - **USB**: Yes
+  - **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -21118,75 +19784,48 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 Serial port mapping could not be determined from source.
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 6 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
-
-All FMU outputs support [DShot](../peripherals/dshot.md) ([Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry) not supported).
-
-The 6 outputs are in 2 groups:
-
-- Outputs 1-4 in group1 (Timer1)
-- Outputs 5-6 in group2 (Timer4)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### px4/fmu-v3
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/pixhawk-2](https://docs.px4.io/main/en/flight_controller/pixhawk-2)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32F42
-- **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — ICM-20948, MPU-6000 (SPI), MPU-9250 (SPI)
-- **Barometer**: MS5611 (SPI), MS5611 (SPI)
-- **Magnetometer**: HMC5883L (I2C, internal), HMC5883L (SPI)
-
-### Interfaces
-
-- **PWM outputs**: 14 (6 FMU + 8 IO)
-- **I2C ports**: 2
-  - HMC5883L (magnetometer, internal)
-- **SPI buses**: 3
-  - MPU-6000 (IMU)
-  - MPU-9250 (IMU)
-  - MS5611 (barometer)
-  - MS5611 (barometer)
-  - HMC5883L (magnetometer)
-- **USB**: Yes
-- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
-- **Onboard heater**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32F42
+  - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — ICM-20948, MPU-6000 (SPI), MPU-9250 (SPI)
+  - **Barometer**: MS5611 (SPI), MS5611 (SPI)
+  - **Magnetometer**: HMC5883L (I2C, internal), HMC5883L (SPI)
+- **Interfaces**
+  - **PWM outputs**: 14 (6 FMU + 8 IO)
+  - **I2C ports**: 2 (1 external, 1 internal)
+    - I2C1 (external): free (no sensor detected)
+    - I2C2 (internal): HMC5883L (magnetometer)
+  - **SPI buses**: 3
+    - MPU-6000 (IMU)
+    - MPU-9250 (IMU)
+    - MS5611 (barometer)
+    - MS5611 (barometer)
+    - HMC5883L (magnetometer)
+  - **USB**: Yes
+  - **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
+  - **Onboard heater**: Yes
 
 <!-- overview-source-data
 {
@@ -21427,70 +20066,43 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 Serial port mapping could not be determined from source.
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 6 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
-
-All FMU outputs support [DShot](../peripherals/dshot.md) ([Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry) not supported).
-
-The 6 outputs are in 2 groups:
-
-- Outputs 1-4 in group1 (Timer1)
-- Outputs 5-6 in group2 (Timer4)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### px4/fmu-v4
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/pixracer](https://docs.px4.io/main/en/flight_controller/pixracer)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32F42
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — ICM-20602, ICM-20948, MPU-9250 (SPI)
-- **Barometer**: MS5611 (SPI)
-- **Magnetometer**: LIS3MDL (SPI)
-
-### Interfaces
-
-- **I2C ports**: 1
-- **SPI buses**: 3
-  - MPU-9250 (IMU)
-  - MS5611 (barometer)
-  - LIS3MDL (magnetometer)
-- **USB**: Yes
-- **RC input**: PPM
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
-- **Onboard heater**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32F42
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — ICM-20602, ICM-20948, MPU-9250 (SPI)
+  - **Barometer**: MS5611 (SPI)
+  - **Magnetometer**: LIS3MDL (SPI)
+- **Interfaces**
+  - **I2C ports**: 1 (1 external)
+    - I2C1 (external): free (no sensor detected)
+  - **SPI buses**: 3
+    - MPU-9250 (IMU)
+    - MS5611 (barometer)
+    - LIS3MDL (magnetometer)
+  - **USB**: Yes
+  - **RC input**: PPM
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
+  - **Onboard heater**: Yes
 
 <!-- overview-source-data
 {
@@ -21727,72 +20339,46 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 Serial port mapping could not be determined from source.
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 8 FMU PWM outputs (MAIN).
-
-All outputs support [DShot](../peripherals/dshot.md) and [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-
-The 8 outputs are in 3 groups:
-
-- Outputs 1-4 in group1 (Timer1)
-- Outputs 5-6 in group2 (Timer4)
-- Outputs 7-8 in group3 (Timer8)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### px4/fmu-v4pro
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/pixhawk3_pro](https://docs.px4.io/main/en/flight_controller/pixhawk3_pro)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32F46
-- **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — ICM-20602, ICM-20948, MPU-9250 (SPI)
-- **Barometer**: MS5611 (SPI)
-- **Magnetometer**: LIS3MDL (SPI)
-
-### Interfaces
-
-- **PWM outputs**: 14 (6 FMU + 8 IO)
-- **I2C ports**: 2
-- **SPI buses**: 4
-  - MPU-9250 (IMU)
-  - MS5611 (barometer)
-  - LIS3MDL (magnetometer)
-- **USB**: Yes
-- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
-- **Analog battery inputs**: 2
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32F46
+  - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — ICM-20602, ICM-20948, MPU-9250 (SPI)
+  - **Barometer**: MS5611 (SPI)
+  - **Magnetometer**: LIS3MDL (SPI)
+- **Interfaces**
+  - **PWM outputs**: 14 (6 FMU + 8 IO)
+  - **I2C ports**: 2 (1 external, 1 internal)
+    - I2C1 (internal)
+    - I2C2 (external): free (no sensor detected)
+  - **SPI buses**: 4
+    - MPU-9250 (IMU)
+    - MS5611 (barometer)
+    - LIS3MDL (magnetometer)
+  - **USB**: Yes
+  - **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
+  - **Analog battery inputs**: 2
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+  - **Power supply**: Dual redundant (POWER1, POWER2)
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -22039,76 +20625,51 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 Serial port mapping could not be determined from source.
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 6 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
-
-[DShot](../peripherals/dshot.md) is not supported.
-
-The 6 outputs are in 2 groups:
-
-- Outputs 1-4 in group1 (Timer1)
-- Outputs 5-6 in group2 (Timer4)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### px4/fmu-v5
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/pixhawk4](https://docs.px4.io/main/en/flight_controller/pixhawk4)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32F765 (32-bit Arm® Cortex®-M7, 216 MHz, 2MB flash, 512KB RAM)
-- **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
-
-### Sensors
-
-- **IMU**: ICM-20689 (SPI), BMI055 (SPI); ICM-42688P (SPI, variant V5005002), ICM-42688P (SPI, variant V5006002), ICM-20602 (SPI, other variants)
-- **Barometer**: MS5611 (SPI)
-- **Magnetometer**: IST8310 (I2C, internal), IST8310 (I2C, bus 1, external)
-
-### Interfaces
-
-- **PWM outputs**: 19 (11 FMU + 8 IO)
-- **Serial ports**: 7
-- **I2C ports**: 4
-  - IST8310 (magnetometer, internal)
-  - IST8310 (magnetometer, external, bus 1)
-- **SPI buses**: 5
-  - ICM-20689 (IMU)
-  - BMI055 (IMU)
-  - MS5611 (barometer)
-- **CAN buses**: 3
-- **USB**: Yes
-- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
-- **Analog battery inputs**: 2
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
-- **Onboard heater**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32F765 (32-bit Arm® Cortex®-M7, 216 MHz, 2MB flash, 512KB RAM)
+  - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
+- **Sensors**
+  - **IMU**: ICM-20689 (SPI), BMI055 (SPI); ICM-42688P (SPI, variant V5005002), ICM-42688P (SPI, variant V5006002), ICM-20602 (SPI, other variants)
+  - **Barometer**: MS5611 (SPI)
+  - **Magnetometer**: IST8310 (I2C, internal), IST8310 (I2C, bus 1, external)
+- **Interfaces**
+  - **PWM outputs**: 19 (11 FMU + 8 IO)
+  - **Serial ports**: 7
+  - **I2C ports**: 4 (3 external, 1 internal)
+    - I2C1 (external, GPS1): IST8310 (magnetometer) — on GPS connector
+    - I2C2 (external): free (no sensor detected)
+    - I2C3 (internal): IST8310 (magnetometer)
+    - I2C4 (external): free (no sensor detected)
+  - **SPI buses**: 5
+    - ICM-20689 (IMU)
+    - BMI055 (IMU)
+    - MS5611 (barometer)
+  - **CAN buses**: 3
+  - **USB**: Yes
+  - **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
+  - **Analog battery inputs**: 2
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+  - **Power supply**: Dual redundant (POWER1, POWER2)
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
+  - **Onboard heater**: Yes
 
 <!-- overview-source-data
 {
@@ -22385,82 +20946,51 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | UART8 | /dev/ttyS6 | PX4IO | - |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 11 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
-
-FMU Outputs:
-
-- Outputs 1-4 support [DShot](../peripherals/dshot.md).
-- Outputs 5-11 do not support DShot.
-- Outputs 1-4 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-
-The 11 outputs are in 4 groups:
-
-- Outputs 1-4 in group1 (Timer1)
-- Outputs 5-6 in group2 (Timer4)
-- Outputs 7-8 in group3 (Timer12)
-- Outputs 9-11 in group4 (Timer2)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### px4/fmu-v5x
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/pixhawk5x](https://docs.px4.io/main/en/flight_controller/pixhawk5x)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32F765 (32-bit Arm® Cortex®-M7, 216 MHz, 2MB flash, 512KB RAM)
-- **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
-
-### Sensors
-
-- **IMU**: ICM-42688P (SPI), ICM-20602 (SPI); BMI088 (SPI, variant V5X000), BMI088 (SPI, variant V5X001), ICM-20649 (SPI, other variants)
-- **Barometer**: BMP388 (I2C, internal, variant V5X000), BMP388 (I2C, bus 2, external, other variants)
-- **Magnetometer**: BMM150 (I2C, internal), IST8310 (I2C, bus 1, external)
-
-### Interfaces
-
-- **PWM outputs**: 17 (9 FMU + 8 IO)
-- **Serial ports**: 8
-- **I2C ports**: 4
-  - BMM150 (magnetometer, internal)
-  - IST8310 (magnetometer, external, bus 1)
-- **SPI buses**: 5
-  - ICM-42688P (IMU)
-  - ICM-20602 (IMU)
-- **CAN buses**: 2
-- **USB**: Yes
-- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
-- **Analog battery inputs**: 2
-- **Additional analog inputs**: TODO: number of additional analog inputs
-- **Ethernet**: Yes
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
-- **Onboard heater**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32F765 (32-bit Arm® Cortex®-M7, 216 MHz, 2MB flash, 512KB RAM)
+  - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
+- **Sensors**
+  - **IMU**: ICM-42688P (SPI), ICM-20602 (SPI); BMI088 (SPI, variant V5X000), BMI088 (SPI, variant V5X001), ICM-20649 (SPI, other variants)
+  - **Barometer**: BMP388 (I2C, internal, variant V5X000), BMP388 (I2C, bus 2, external, other variants)
+  - **Magnetometer**: BMM150 (I2C, internal), IST8310 (I2C, bus 1, external)
+- **Interfaces**
+  - **PWM outputs**: 17 (9 FMU + 8 IO)
+  - **Serial ports**: 8
+  - **I2C ports**: 4 (3 external, 1 internal)
+    - I2C1 (external, GPS1): IST8310 (magnetometer), INA226 (power monitor), INA228 (power monitor), INA238 (power monitor) — on GPS connector
+    - I2C2 (external): INA226 (power monitor), INA228 (power monitor), INA238 (power monitor)
+    - I2C3 (external): free (no sensor detected)
+    - I2C4 (internal): BMM150 (magnetometer)
+  - **SPI buses**: 5
+    - ICM-42688P (IMU)
+    - ICM-20602 (IMU)
+  - **CAN buses**: 2
+  - **USB**: Yes
+  - **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
+  - **Analog battery inputs**: 2
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+  - **Ethernet**: Yes
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+  - **Power supply**: Dual redundant (POWER1, POWER2)
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
+  - **Onboard heater**: Yes
 
 <!-- overview-source-data
 {
@@ -22753,81 +21283,48 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | UART8 | /dev/ttyS7 | GPS2 | - |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 9 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
-
-FMU Outputs:
-
-- Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-9 do not support DShot.
-- Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-
-The 9 outputs are in 4 groups:
-
-- Outputs 1-4 in group1 (Timer1)
-- Outputs 5-6 in group2 (Timer4)
-- Outputs 7-8 in group3 (Timer12)
-- Output 9 in group4 (Timer5)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### px4/fmu-v6c
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/pixhawk6c](https://docs.px4.io/main/en/flight_controller/pixhawk6c)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-- **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
-
-### Sensors
-
-- **IMU**: ICM-42688P (SPI); BMI088 (SPI, variant V6C000002), BMI088 (SPI, variant V6C002002), BMI055 (SPI, other variants)
-- **Barometer**: MS5611 (I2C, bus 4, external)
-- **Magnetometer**: IST8310 (I2C, bus 4, external), IST8310 (I2C, bus 1, external)
-
-### Interfaces
-
-- **PWM outputs**: 16 (8 FMU + 8 IO)
-- **Serial ports**: 7
-- **I2C ports**: 3
-  - MS5611 (barometer, external, bus 4)
-  - IST8310 (magnetometer, external, bus 4)
-  - IST8310 (magnetometer, external, bus 1)
-- **SPI buses**: 2
-  - ICM-42688P (IMU)
-- **CAN buses**: 2
-- **USB**: Yes
-- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
-- **Analog battery inputs**: 2
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
-- **Onboard heater**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+  - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
+- **Sensors**
+  - **IMU**: ICM-42688P (SPI); BMI088 (SPI, variant V6C000002), BMI088 (SPI, variant V6C002002), BMI055 (SPI, other variants)
+  - **Barometer**: MS5611 (I2C, bus 4, external)
+  - **Magnetometer**: IST8310 (I2C, bus 4, external), IST8310 (I2C, bus 1, external)
+- **Interfaces**
+  - **PWM outputs**: 16 (8 FMU + 8 IO)
+  - **Serial ports**: 7
+  - **I2C ports**: 3 (3 external)
+    - I2C1 (external, I2C1): IST8310 (magnetometer)
+    - I2C2 (external): free (no sensor detected)
+    - I2C4 (external, I2C4): MS5611 (barometer), IST8310 (magnetometer)
+  - **SPI buses**: 2
+    - ICM-42688P (IMU)
+  - **CAN buses**: 2
+  - **USB**: Yes
+  - **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
+  - **Analog battery inputs**: 2
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+  - **Power supply**: Dual redundant (POWER1, POWER2)
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
+  - **Onboard heater**: Yes
 
 <!-- overview-source-data
 {
@@ -23104,81 +21601,49 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | UART8 | /dev/ttyS6 | GPS2 | - |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 8 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
-
-FMU Outputs:
-
-- Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-8 do not support DShot.
-- Outputs 1-5 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-- Output 6 supports Bidirectional DShot output only (no eRPM capture).
-
-The 8 outputs are in 3 groups:
-
-- Outputs 1-4 in group1 (Timer1)
-- Outputs 5-6 in group2 (Timer4)
-- Outputs 7-8 in group3 (Timer5)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### px4/fmu-v6u
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/pixhawk6x_pro](https://docs.px4.io/main/en/flight_controller/pixhawk6x_pro)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H753 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20602 (SPI), ICM-20948
-- **Barometer**: TODO: confirm which is installed — BMP388 (I2C, internal), MS5611 (I2C, external)
-- **Magnetometer**: BMM150 (I2C, internal)
-
-### Interfaces
-
-- **PWM outputs**: 9 (FMU)
-- **Serial ports**: 8
-- **I2C ports**: 4
-  - BMP388 (barometer, internal)
-  - MS5611 (barometer, external)
-  - BMM150 (magnetometer, internal)
-- **SPI buses**: 5
-  - ICM-20602 (IMU)
-  - BMI088 (IMU)
-- **CAN buses**: 1
-- **USB**: Yes
-- **RC input**: PPM
-- **Analog battery inputs**: 2
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
-- **Onboard heater**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H753 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20602 (SPI), ICM-20948
+  - **Barometer**: TODO: confirm which is installed — BMP388 (I2C, internal), MS5611 (I2C, external)
+  - **Magnetometer**: BMM150 (I2C, internal)
+- **Interfaces**
+  - **PWM outputs**: 9 (FMU)
+  - **Serial ports**: 8
+  - **I2C ports**: 4 (3 external, 1 internal)
+    - I2C1 (external): free (no sensor detected)
+    - I2C2 (external): free (no sensor detected)
+    - I2C3 (external): free (no sensor detected)
+    - I2C4 (internal): BMP388 (barometer), BMM150 (magnetometer)
+  - **SPI buses**: 5
+    - ICM-20602 (IMU)
+    - BMI088 (IMU)
+  - **CAN buses**: 1
+  - **USB**: Yes
+  - **RC input**: PPM
+  - **Analog battery inputs**: 2
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+  - **Power supply**: Dual redundant (POWER1, POWER2)
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
+  - **Onboard heater**: Yes
 
 <!-- overview-source-data
 {
@@ -23458,79 +21923,49 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | UART8 | /dev/ttyS7 | GPS2 | - |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 9 FMU PWM outputs (MAIN).
-
-Outputs:
-
-- Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-9 do not support DShot.
-- Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-
-The 9 outputs are in 4 groups:
-
-- Outputs 1-4 in group1 (Timer5)
-- Outputs 5-6 in group2 (Timer4)
-- Outputs 7-8 in group3 (Timer12)
-- Output 9 in group4 (Timer1)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### px4/fmu-v6x
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/pixhawk6x](https://docs.px4.io/main/en/flight_controller/pixhawk6x)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H753 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-- **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
-
-### Sensors
-
-- **IMU**: ADIS16470 (SPI, variant V6X006), IIM-42652 (SPI, variant V6X006), ICM-45686 (SPI, variant V6X006), ICM-45686 (SPI, other variants), BMI088 (SPI, other variants), ICM-42688P (SPI, other variants), ICM-20649 (SPI, other variants), ICM-20649 (SPI, variant V6X004), ICM-42670P (SPI, variant V6X004), BMI088 (SPI, variant V6X010), ICM-42688P (SPI, variant V6X010), ICM-42670P (SPI, variant V6X003)
-- **Barometer**: ICP-20100 (I2C, internal, variant V6X006), BMP388 (I2C, internal, other variants), BMP388 (I2C, external, other variants), ICP-20100 (I2C, internal, variant V6X001), ICP-20100 (I2C, external, variant V6X001), ICP-20100 (I2C, internal, variant V6X008)
-- **Magnetometer**: IST8310 (I2C, bus 1, external); BMM150 (I2C, internal, other variants), RM3100 (I2C, bus 4, internal, variant V6X001)
-
-### Interfaces
-
-- **PWM outputs**: 17 (9 FMU + 8 IO)
-- **Serial ports**: 8
-- **I2C ports**: 4
-  - IST8310 (magnetometer, external, bus 1)
-- **SPI buses**: 5
-- **CAN buses**: 2
-- **USB**: Yes
-- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
-- **Analog battery inputs**: 2
-- **Additional analog inputs**: TODO: number of additional analog inputs
-- **Ethernet**: Yes
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
-- **Onboard heater**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H753 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+  - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
+- **Sensors**
+  - **IMU**: ADIS16470 (SPI, variant V6X006), IIM-42652 (SPI, variant V6X006), ICM-45686 (SPI, variant V6X006), ICM-45686 (SPI, other variants), BMI088 (SPI, other variants), ICM-42688P (SPI, other variants), ICM-20649 (SPI, other variants), ICM-20649 (SPI, variant V6X004), ICM-42670P (SPI, variant V6X004), BMI088 (SPI, variant V6X010), ICM-42688P (SPI, variant V6X010), ICM-42670P (SPI, variant V6X003)
+  - **Barometer**: ICP-20100 (I2C, internal, variant V6X006), BMP388 (I2C, internal, other variants), BMP388 (I2C, external, other variants), ICP-20100 (I2C, internal, variant V6X001), ICP-20100 (I2C, external, variant V6X001), ICP-20100 (I2C, internal, variant V6X008)
+  - **Magnetometer**: IST8310 (I2C, bus 1, external); BMM150 (I2C, internal, other variants), RM3100 (I2C, bus 4, internal, variant V6X001)
+- **Interfaces**
+  - **PWM outputs**: 17 (9 FMU + 8 IO)
+  - **Serial ports**: 8
+  - **I2C ports**: 4 (3 external, 1 internal)
+    - I2C1 (external, GPS1): IST8310 (magnetometer), INA226 (power monitor), INA228 (power monitor), INA238 (power monitor) — on GPS connector
+    - I2C2 (external): INA226 (power monitor), INA228 (power monitor), INA238 (power monitor)
+    - I2C3 (external): free (no sensor detected)
+    - I2C4 (internal)
+  - **SPI buses**: 5
+  - **CAN buses**: 2
+  - **USB**: Yes
+  - **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
+  - **Analog battery inputs**: 2
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+  - **Ethernet**: Yes
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+  - **Power supply**: Dual redundant (POWER1, POWER2)
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
+  - **Onboard heater**: Yes
 
 <!-- overview-source-data
 {
@@ -23824,79 +22259,47 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | UART8 | /dev/ttyS7 | GPS2 | - |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 9 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
-
-FMU Outputs:
-
-- Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-9 do not support DShot.
-- Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-
-The 9 outputs are in 4 groups:
-
-- Outputs 1-4 in group1 (Timer5)
-- Outputs 5-6 in group2 (Timer4)
-- Outputs 7-8 in group3 (Timer12)
-- Output 9 in group4 (Timer1)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### px4/fmu-v6xrt
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/pixhawk6x-rt](https://docs.px4.io/main/en/flight_controller/pixhawk6x-rt)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: MIMXRT1176
-- **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
-
-### Sensors
-
-- **IMU**: ICM-42688P (SPI, variant V6XRT000), BMI088 (SPI, variant V6XRT000), ICM-42688P (SPI, variant V6XRT001), BMI088 (SPI, variant V6XRT001), ICM-45686 (SPI, variant V6XRT002), BMI088 (SPI, variant V6XRT002)
-- **Barometer**: BMP388 (I2C, bus 3, internal), BMP388 (I2C, bus 2, external)
-- **Magnetometer**: IST8310 (I2C, bus 1, external); BMM150 (I2C, internal, variant V6XRT000), BMM350 (I2C, internal, variant V6XRT001), BMM350 (I2C, internal, variant V6XRT002)
-
-### Interfaces
-
-- **PWM outputs**: 20 (12 FMU + 8 IO)
-- **Serial ports**: 8
-- **I2C ports**: 4
-  - BMP388 (barometer, internal, bus 3)
-  - BMP388 (barometer, external, bus 2)
-  - IST8310 (magnetometer, external, bus 1)
-- **SPI buses**: 4
-- **USB**: TODO: confirm USB connector type
-- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
-- **Analog battery inputs**: 2
-- **Additional analog inputs**: TODO: number of additional analog inputs
-- **Ethernet**: Yes
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: MIMXRT1176
+  - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
+- **Sensors**
+  - **IMU**: ICM-42688P (SPI, variant V6XRT000), BMI088 (SPI, variant V6XRT000), ICM-42688P (SPI, variant V6XRT001), BMI088 (SPI, variant V6XRT001), ICM-45686 (SPI, variant V6XRT002), BMI088 (SPI, variant V6XRT002)
+  - **Barometer**: BMP388 (I2C, bus 3, internal), BMP388 (I2C, bus 2, external)
+  - **Magnetometer**: IST8310 (I2C, bus 1, external); BMM150 (I2C, internal, variant V6XRT000), BMM350 (I2C, internal, variant V6XRT001), BMM350 (I2C, internal, variant V6XRT002)
+- **Interfaces**
+  - **PWM outputs**: 20 (12 FMU + 8 IO)
+  - **Serial ports**: 8
+  - **I2C ports**: 4 (3 external, 1 internal)
+    - I2C1 (external, GPS1): IST8310 (magnetometer), INA226 (power monitor), INA228 (power monitor), INA238 (power monitor) — on GPS connector
+    - I2C2 (external): BMP388 (barometer), INA226 (power monitor), INA228 (power monitor), INA238 (power monitor)
+    - I2C3 (internal): BMP388 (barometer)
+    - I2C6 (external): free (no sensor detected)
+  - **SPI buses**: 4
+  - **USB**: TODO: confirm USB connector type
+  - **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
+  - **Analog battery inputs**: 2
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+  - **Ethernet**: Yes
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+  - **Power supply**: Dual redundant (POWER1, POWER2)
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -24194,29 +22597,6 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | LPUART11 | /dev/ttyS7 |  | - |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 12 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
-
-FMU Outputs:
-
-- Outputs 1-8 support [DShot](../peripherals/dshot.md).
-- Outputs 9-12 do not support DShot.
-- Outputs 1-8 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-
-The 12 outputs are in 4 groups:
-
-- Outputs 1-3 in group1 (PWM1)
-- Outputs 4-7 in group2 (PWM2)
-- Outputs 8-10 in group3 (PWM3)
-- Outputs 11-12 in group4 (PWM4)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### px4/io-v2
@@ -24228,34 +22608,25 @@ All outputs within the same group must use the same output protocol and rate.
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32F100
-
-### Sensors
-
-- **IMU**: TODO: list imu(s)
-- **Barometer**: TODO: list barometer(s)
-- **Magnetometer**: TODO: list magnetometer(s)
-
-### Interfaces
-
-- **PWM outputs**: 8 (FMU)
-- **I2C ports**: TODO: number of I2C ports
-- **SPI buses**: TODO: number of SPI buses
-- **USB**: TODO: confirm USB connector type
-- **RC input**: PPM
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
+- **Processor**
+  - **Main FMU Processor**: STM32F100
+- **Sensors**
+  - **IMU**: TODO: list imu(s)
+  - **Barometer**: TODO: list barometer(s)
+  - **Magnetometer**: TODO: list magnetometer(s)
+- **Interfaces**
+  - **PWM outputs**: 8 (FMU)
+  - **I2C ports**: TODO: number of I2C ports
+  - **SPI buses**: TODO: number of SPI buses
+  - **USB**: TODO: confirm USB connector type
+  - **RC input**: PPM
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
 
 <!-- overview-source-data
 {
@@ -24487,53 +22858,41 @@ Serial port mapping could not be determined from source.
 ### radiolink/PIX6
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/radiolink_pix6](https://docs.px4.io/main/en/flight_controller/radiolink_pix6)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32F765 (32-bit Arm® Cortex®-M7, 216 MHz, 2MB flash, 512KB RAM)
-- **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-42688P (SPI), MPU-6000, MPU-9250
-- **Barometer**: TODO: confirm which is installed — SPA06 (I2C, internal), MS5611
-- **Magnetometer**: IST8310 (I2C, internal), IST8310 (I2C, external)
-
-### Interfaces
-
-- **PWM outputs**: 16 (8 FMU + 8 IO)
-- **Serial ports**: 6
-- **I2C ports**: 2
-  - SPA06 (barometer, internal)
-  - IST8310 (magnetometer, internal)
-  - IST8310 (magnetometer, external)
-- **SPI buses**: 3
-  - ICM-42688P (IMU)
-  - BMI088 (IMU)
-- **CAN buses**: 2
-- **USB**: Yes
-- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32F765 (32-bit Arm® Cortex®-M7, 216 MHz, 2MB flash, 512KB RAM)
+  - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-42688P (SPI), MPU-6000, MPU-9250
+  - **Barometer**: TODO: confirm which is installed — SPA06 (I2C, internal), MS5611
+  - **Magnetometer**: IST8310 (I2C, internal), IST8310 (I2C, external)
+- **Interfaces**
+  - **PWM outputs**: 16 (8 FMU + 8 IO)
+  - **Serial ports**: 6
+  - **I2C ports**: 2 (1 external, 1 internal)
+    - I2C1 (internal): SPA06 (barometer), IST8310 (magnetometer)
+    - I2C2 (external): INA226 (power monitor), INA228 (power monitor), INA238 (power monitor)
+  - **SPI buses**: 3
+    - ICM-42688P (IMU)
+    - BMI088 (IMU)
+  - **CAN buses**: 2
+  - **USB**: Yes
+  - **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -24807,28 +23166,6 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | UART8 | /dev/ttyS5 | PX4IO | - |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 8 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
-
-FMU Outputs:
-
-- Outputs 1-8 support [DShot](../peripherals/dshot.md).
-- Outputs 1-4 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-- Outputs 5-8 support Bidirectional DShot output only (no eRPM capture).
-
-The 8 outputs are in 3 groups:
-
-- Outputs 1-4 in group1 (Timer1)
-- Outputs 5-6 in group2 (Timer2)
-- Outputs 7-8 in group3 (Timer3)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### raspberrypi/pico
@@ -24840,34 +23177,26 @@ All outputs within the same group must use the same output protocol and rate.
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: TODO: chip model
-
-### Sensors
-
-- **IMU**: MPU-9250
-- **Barometer**: BMP280
-- **Magnetometer**: HMC5883L
-
-### Interfaces
-
-- **PWM outputs**: 4 (FMU)
-- **I2C ports**: TODO: number of I2C ports
-- **SPI buses**: TODO: number of SPI buses
-- **USB**: TODO: confirm USB connector type
-- **RC input**: PPM
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
+- **Processor**
+  - **Main FMU Processor**: TODO: chip model
+- **Sensors**
+  - **IMU**: MPU-9250
+  - **Barometer**: BMP280
+  - **Magnetometer**: HMC5883L
+- **Interfaces**
+  - **PWM outputs**: 4 (FMU)
+  - **I2C ports**: 1 (1 external)
+    - I2C2 (external): free (no sensor detected)
+  - **SPI buses**: TODO: number of SPI buses
+  - **USB**: TODO: confirm USB connector type
+  - **RC input**: PPM
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
 
 <!-- overview-source-data
 {
@@ -24880,7 +23209,7 @@ All outputs within the same group must use the same output protocol and rate.
   "has_sd_card": false,
   "has_ethernet": false,
   "has_heater": false,
-  "num_i2c_buses": 0,
+  "num_i2c_buses": 1,
   "num_spi_buses": 0,
   "num_can_buses": 0,
   "has_usb": false,
@@ -25106,47 +23435,38 @@ Serial port mapping could not be determined from source.
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-- **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20689 (SPI)
-- **Barometer**: MS5611 (SPI)
-- **Magnetometer**: IST8310 (I2C, bus 1, external), IST8310 (I2C, bus 3, internal)
-
-### Interfaces
-
-- **PWM outputs**: 13 (5 FMU + 8 IO)
-- **Serial ports**: 5
-- **I2C ports**: 4
-  - IST8310 (magnetometer, external, bus 1)
-  - IST8310 (magnetometer, internal, bus 3)
-- **SPI buses**: 3
-  - BMI088 (IMU)
-  - ICM-20689 (IMU)
-  - MS5611 (barometer)
-- **CAN buses**: 1
-- **USB**: Yes
-- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
-- **Onboard heater**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+  - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20689 (SPI)
+  - **Barometer**: MS5611 (SPI)
+  - **Magnetometer**: IST8310 (I2C, bus 1, external), IST8310 (I2C, bus 3, internal)
+- **Interfaces**
+  - **PWM outputs**: 13 (5 FMU + 8 IO)
+  - **Serial ports**: 5
+  - **I2C ports**: 4 (3 external, 1 internal)
+    - I2C1 (external, I2C1): IST8310 (magnetometer)
+    - I2C2 (external): free (no sensor detected)
+    - I2C3 (internal, I2C3)
+    - I2C4 (external): free (no sensor detected)
+  - **SPI buses**: 3
+    - BMI088 (IMU)
+    - ICM-20689 (IMU)
+    - MS5611 (barometer)
+  - **CAN buses**: 1
+  - **USB**: Yes
+  - **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
+  - **Onboard heater**: Yes
 
 <!-- overview-source-data
 {
@@ -25417,51 +23737,39 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32F765 (32-bit Arm® Cortex®-M7, 216 MHz, 2MB flash, 512KB RAM)
-- **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — BMI088, ICM-20602 (SPI), MPU-9250 (SPI), MPU-9250 (SPI)
-- **Barometer**: TODO: confirm which is installed — MS5611 (I2C, external), BMP388 (I2C, internal)
-- **Magnetometer**: TODO: confirm which is installed — BMM150 (I2C, internal), HMC5883L (I2C, external), LIS3MDL (I2C, external)
-
-### Interfaces
-
-- **PWM outputs**: 16 (8 FMU + 8 IO)
-- **Serial ports**: 8
-- **I2C ports**: 4
-  - MS5611 (barometer, external)
-  - BMP388 (barometer, internal)
-  - BMM150 (magnetometer, internal)
-  - HMC5883L (magnetometer, external)
-  - LIS3MDL (magnetometer, external)
-- **SPI buses**: 5
-  - MPU-9250 (IMU)
-  - ICM-20602 (IMU)
-  - MPU-9250 (IMU)
-- **CAN buses**: 2
-- **USB**: Yes
-- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-- **Ethernet**: Yes
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
-- **Onboard heater**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32F765 (32-bit Arm® Cortex®-M7, 216 MHz, 2MB flash, 512KB RAM)
+  - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — BMI088, ICM-20602 (SPI), MPU-9250 (SPI), MPU-9250 (SPI)
+  - **Barometer**: TODO: confirm which is installed — MS5611 (I2C, external), BMP388 (I2C, internal)
+  - **Magnetometer**: TODO: confirm which is installed — BMM150 (I2C, internal), HMC5883L (I2C, external), LIS3MDL (I2C, external)
+- **Interfaces**
+  - **PWM outputs**: 16 (8 FMU + 8 IO)
+  - **Serial ports**: 8
+  - **I2C ports**: 4 (3 external, 1 internal)
+    - I2C1 (external): free (no sensor detected)
+    - I2C2 (external): free (no sensor detected)
+    - I2C3 (external): free (no sensor detected)
+    - I2C4 (internal): BMP388 (barometer), BMM150 (magnetometer)
+  - **SPI buses**: 5
+    - MPU-9250 (IMU)
+    - ICM-20602 (IMU)
+    - MPU-9250 (IMU)
+  - **CAN buses**: 2
+  - **USB**: Yes
+  - **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+  - **Ethernet**: Yes
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
+  - **Onboard heater**: Yes
 
 <!-- overview-source-data
 {
@@ -25746,23 +24054,22 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 **Existing doc section (for reference):**
 
 <!--
-## PWM Outputs {#pwm_outputs}
+## Outputs
 
-This flight controller supports up to 8 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
+AIRLink has 16 PWM outputs. Main outputs 1-8 and connected to IO MCU. AUX outputs 1-8 are connected to FMU.
 
-FMU Outputs:
+| Output | Timer    | Channel   |
+| ------ | -------- | --------- |
+| AUX 1  | Timer 1  | Channel 4 |
+| AUX 2  | Timer 1  | Channel 3 |
+| AUX 3  | Timer 1  | Channel 2 |
+| AUX 4  | Timer 1  | Channel 1 |
+| AUX 5  | Timer 4  | Channel 2 |
+| AUX 6  | Timer 4  | Channel 3 |
+| AUX 7  | Timer 12 | Channel 1 |
+| AUX 8  | Timer 12 | Channel 2 |
 
-- Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-8 do not support DShot.
-- Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-
-The 8 outputs are in 3 groups:
-
-- Outputs 1-4 in group1 (Timer1)
-- Outputs 5-6 in group2 (Timer4)
-- Outputs 7-8 in group3 (Timer12)
-
-All outputs within the same group must use the same output protocol and rate.
+[DShot](../peripherals/dshot.md) can be used on the first four AUX pins.
 -->
 
 ---
@@ -25770,49 +24077,38 @@ All outputs within the same group must use the same output protocol and rate.
 ### spracing/h7extreme
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/spracingh7extreme](https://docs.px4.io/main/en/flight_controller/spracingh7extreme)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — ICM-20602, ICM-42688P (SPI), ICM-42688P (SPI), MPU-6000
-- **Barometer**: BMP388 (I2C, internal)
-- **Magnetometer**: TODO: list magnetometer(s)
-
-### Interfaces
-
-- **PWM outputs**: 8 (FMU)
-- **Serial ports**: 7
-- **I2C ports**: 1
-  - BMP388 (barometer, internal)
-- **SPI buses**: 3
-  - ICM-42688P (IMU)
-  - ICM-42688P (IMU)
-- **USB**: Yes
-- **RC input**: Yes
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — ICM-20602, ICM-42688P (SPI), ICM-42688P (SPI), MPU-6000
+  - **Barometer**: BMP388 (I2C, internal)
+  - **Magnetometer**: TODO: list magnetometer(s)
+- **Interfaces**
+  - **PWM outputs**: 8 (FMU)
+  - **Serial ports**: 7
+  - **I2C ports**: 1 (1 internal)
+    - I2C1 (internal): BMP388 (barometer)
+  - **SPI buses**: 3
+    - ICM-42688P (IMU)
+    - ICM-42688P (IMU)
+  - **USB**: Yes
+  - **RC input**: Yes
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -26060,24 +24356,6 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | UART8 | /dev/ttyS6 | Debug Console | - |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 8 FMU PWM outputs (MAIN).
-
-All outputs support [DShot](../peripherals/dshot.md) and [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-
-The 8 outputs are in 3 groups:
-
-- Outputs 1-4 in group1 (Timer5)
-- Outputs 5-6 in group2 (Timer4)
-- Outputs 7-8 in group3 (Timer8)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### svehicle/e2
@@ -26090,50 +24368,40 @@ All outputs within the same group must use the same output protocol and rate.
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H753 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-- **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — ICM-42688P (SPI), ICM-20649 (SPI), BMI088 (SPI), ICM-45686
-- **Barometer**: TODO: confirm which is installed — BMP388, MS5611, ICP-20100 (I2C, external), ICP-20100 (I2C, internal)
-- **Magnetometer**: TODO: confirm which is installed — QMC5883L, BMM150 (I2C, internal), RM3100 (I2C, internal)
-
-### Interfaces
-
-- **PWM outputs**: 17 (9 FMU + 8 IO)
-- **Serial ports**: 8
-- **I2C ports**: 4
-  - ICP-20100 (barometer, external)
-  - ICP-20100 (barometer, internal)
-  - RM3100 (magnetometer, internal)
-  - BMM150 (magnetometer, internal)
-- **SPI buses**: 5
-  - BMI088 (IMU)
-  - ICM-42688P (IMU)
-  - ICM-20649 (IMU)
-- **CAN buses**: 2
-- **USB**: Yes
-- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
-- **Analog battery inputs**: 2
-- **Additional analog inputs**: TODO: number of additional analog inputs
-- **Ethernet**: Yes
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
-- **Onboard heater**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H753 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+  - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — ICM-42688P (SPI), ICM-20649 (SPI), BMI088 (SPI), ICM-45686
+  - **Barometer**: TODO: confirm which is installed — BMP388, MS5611, ICP-20100 (I2C, external), ICP-20100 (I2C, internal)
+  - **Magnetometer**: TODO: confirm which is installed — QMC5883L, BMM150 (I2C, internal), RM3100 (I2C, internal)
+- **Interfaces**
+  - **PWM outputs**: 17 (9 FMU + 8 IO)
+  - **Serial ports**: 8
+  - **I2C ports**: 4 (3 external, 1 internal)
+    - I2C1 (external): free (no sensor detected)
+    - I2C2 (external): free (no sensor detected)
+    - I2C3 (external): free (no sensor detected)
+    - I2C4 (internal): ICP-20100 (barometer), RM3100 (magnetometer), BMM150 (magnetometer)
+  - **SPI buses**: 5
+    - BMI088 (IMU)
+    - ICM-42688P (IMU)
+    - ICM-20649 (IMU)
+  - **CAN buses**: 2
+  - **USB**: Yes
+  - **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
+  - **Analog battery inputs**: 2
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+  - **Ethernet**: Yes
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+  - **Power supply**: Dual redundant (POWER1, POWER2)
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
+  - **Onboard heater**: Yes
 
 <!-- overview-source-data
 {
@@ -26423,24 +24691,41 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 **Existing doc section (for reference):**
 
 <!--
-## PWM Outputs {#pwm_outputs}
+## PWM Output
 
-This flight controller supports up to 9 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
+The E2-Plus flight controller supports up to 14 PWM outputs.
+The first 8 outputs (labelled M1 to M8) are controlled by a dedicated STM32F103 IOMCU controller.
+The remaining 6 outputs (labelled 9 to 14) are the "auxiliary" outputs.
+These are directly attached to the STM32H753 FMU controller .
 
-FMU Outputs:
+The 14 PWM outputs are:
 
-- Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-9 do not support DShot.
-- Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
+M1 - M8 are connected to the IOMCU
+A1 - A6 are connected to the FMU
 
-The 9 outputs are in 4 groups:
+M1 - M8 support DShot and are in 3 groups:
 
-- Outputs 1-4 in group1 (Timer5)
-- Outputs 5-6 in group2 (Timer4)
-- Outputs 7-8 in group3 (Timer12)
-- Output 9 in group4 (Timer1)
+- M1, M2 in group 1
+- M3, M4 in group 2
+- M5, M6, M7, M8 in group 3
 
-All outputs within the same group must use the same output protocol and rate.
+The 6 FMU PWM outputs are in 2 groups:
+
+A1 - A4 are in one group.
+A5, A6 are in a 2nd group.
+
+Channels within the same group need to use the same output rate.
+If any channel in a group uses DShot then all channels in the group need to use DShot.
+
+### Electrical data
+
+- Voltage Ratings:
+  - Max input voltage: 5.7V
+  - USB Power Input: 4.75\~5.25V
+  - Servo Rail Input: 0\~9.9V
+- Current Ratings:
+  - TELEM1 and GPS2 combined output current limiter: 1.5A
+  - All other port combined output current limiter: 1.5A
 -->
 
 ---
@@ -26448,49 +24733,40 @@ All outputs within the same group must use the same output protocol and rate.
 ### thepeach/k1
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/thepeach_k1](https://docs.px4.io/main/en/flight_controller/thepeach_k1)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32F42
-- **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — ICM-20602 (SPI), MPU-9250 (SPI)
-- **Barometer**: MS5611 (SPI)
-- **Magnetometer**: TODO: list magnetometer(s)
-
-### Interfaces
-
-- **PWM outputs**: 13 (5 FMU + 8 IO)
-- **I2C ports**: 2
-- **SPI buses**: 2
-  - ICM-20602 (IMU)
-  - MPU-9250 (IMU)
-  - MS5611 (barometer)
-- **USB**: Yes
-- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32F42
+  - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — ICM-20602 (SPI), MPU-9250 (SPI)
+  - **Barometer**: MS5611 (SPI)
+  - **Magnetometer**: TODO: list magnetometer(s)
+- **Interfaces**
+  - **PWM outputs**: 13 (5 FMU + 8 IO)
+  - **I2C ports**: 2 (2 external)
+    - I2C1 (external): free (no sensor detected)
+    - I2C2 (external): free (no sensor detected)
+  - **SPI buses**: 2
+    - ICM-20602 (IMU)
+    - MPU-9250 (IMU)
+    - MS5611 (barometer)
+  - **USB**: Yes
+  - **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -26728,71 +25004,44 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 Serial port mapping could not be determined from source.
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 5 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
-
-[DShot](../peripherals/dshot.md) is not supported.
-
-The 5 outputs are in 2 groups:
-
-- Outputs 1-4 in group1 (Timer1)
-- Output 5 in group2 (Timer4)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### thepeach/r1
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/thepeach_r1](https://docs.px4.io/main/en/flight_controller/thepeach_r1)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32F42
-- **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — ICM-20602 (SPI), MPU-9250 (SPI)
-- **Barometer**: MS5611 (SPI)
-- **Magnetometer**: TODO: list magnetometer(s)
-
-### Interfaces
-
-- **PWM outputs**: 14 (6 FMU + 8 IO)
-- **I2C ports**: 1
-- **SPI buses**: 2
-  - ICM-20602 (IMU)
-  - MPU-9250 (IMU)
-  - MS5611 (barometer)
-- **USB**: Yes
-- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32F42
+  - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — ICM-20602 (SPI), MPU-9250 (SPI)
+  - **Barometer**: MS5611 (SPI)
+  - **Magnetometer**: TODO: list magnetometer(s)
+- **Interfaces**
+  - **PWM outputs**: 14 (6 FMU + 8 IO)
+  - **I2C ports**: 1 (1 external)
+    - I2C1 (external): free (no sensor detected)
+  - **SPI buses**: 2
+    - ICM-20602 (IMU)
+    - MPU-9250 (IMU)
+    - MS5611 (barometer)
+  - **USB**: Yes
+  - **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -27030,23 +25279,6 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 Serial port mapping could not be determined from source.
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 6 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
-
-[DShot](../peripherals/dshot.md) is not supported.
-
-The 6 outputs are in 2 groups:
-
-- Outputs 1-4 in group1 (Timer1)
-- Outputs 5-6 in group2 (Timer4)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### uvify/core
@@ -27058,40 +25290,29 @@ All outputs within the same group must use the same output protocol and rate.
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32F42
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — ICM-20602, MPU-9250 (SPI)
-- **Barometer**: MS5611 (SPI)
-- **Magnetometer**: TODO: confirm which is installed — BMM150, IST8310, LIS3MDL (I2C, external)
-
-### Interfaces
-
-- **I2C ports**: 1
-  - LIS3MDL (magnetometer, external)
-- **SPI buses**: 2
-  - MPU-9250 (IMU)
-  - MS5611 (barometer)
-- **USB**: Yes
-- **RC input**: PPM
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32F42
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — ICM-20602, MPU-9250 (SPI)
+  - **Barometer**: MS5611 (SPI)
+  - **Magnetometer**: TODO: confirm which is installed — BMM150, IST8310, LIS3MDL (I2C, external)
+- **Interfaces**
+  - **I2C ports**: 1 (1 external)
+    - I2C1 (external): free (no sensor detected)
+  - **SPI buses**: 2
+    - MPU-9250 (IMU)
+    - MS5611 (barometer)
+  - **USB**: Yes
+  - **RC input**: PPM
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -27341,45 +25562,35 @@ Serial port mapping could not be determined from source.
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-- **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — BMI270 (SPI), BMI270 (SPI), ICM-42688P
-- **Barometer**: TODO: confirm which is installed — DPS310, SPL06 (I2C, internal)
-- **Magnetometer**: TODO: confirm which is installed — IST8310, QMC5883L, QMC5883P (I2C, internal)
-
-### Interfaces
-
-- **PWM outputs**: 15 (7 FMU + 8 IO)
-- **Serial ports**: 7
-- **I2C ports**: 3
-  - SPL06 (barometer, internal)
-  - QMC5883P (magnetometer, internal)
-- **SPI buses**: 3
-  - BMI270 (IMU)
-  - BMI270 (IMU)
-- **CAN buses**: 2
-- **USB**: Yes
-- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+  - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — BMI270 (SPI), BMI270 (SPI), ICM-42688P
+  - **Barometer**: TODO: confirm which is installed — DPS310, SPL06 (I2C, internal)
+  - **Magnetometer**: TODO: confirm which is installed — IST8310, QMC5883L, QMC5883P (I2C, internal)
+- **Interfaces**
+  - **PWM outputs**: 15 (7 FMU + 8 IO)
+  - **Serial ports**: 7
+  - **I2C ports**: 3 (2 external, 1 internal)
+    - I2C1 (internal): SPL06 (barometer), QMC5883P (magnetometer)
+    - I2C2 (external): free (no sensor detected)
+    - I2C4 (external): free (no sensor detected)
+  - **SPI buses**: 3
+    - BMI270 (IMU)
+    - BMI270 (IMU)
+  - **CAN buses**: 2
+  - **USB**: Yes
+  - **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -27655,19 +25866,39 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 **Existing doc section (for reference):**
 
 <!--
-## PWM Outputs {#pwm_outputs}
+## PWM Output
 
-This flight controller supports up to 7 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
+The AP-H743-R1 flight controller supports up to 15 PWM outputs.
+The first 8 outputs (labelled M1 to M8) are controlled by a dedicated STM32F103 IOMCU controller.
+The remaining 7 outputs (labelled A1 to A7) are the "auxiliary" outputs.
+These are directly attached to the STM32H743 FMU controller .
 
-All FMU outputs support [DShot](../peripherals/dshot.md) and [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
+The 15 PWM outputs are:
 
-The 7 outputs are in 3 groups:
+M1 - M8 are connected to the IOMCU.
+A1 - A7 are connected to the FMU.
 
-- Outputs 1-4 in group1 (Timer1)
-- Output 7 in group2 (Timer2)
-- Outputs 5-6 in group3 (Timer3)
+M1 - M8 support DShot and are in 3 groups:
 
-All outputs within the same group must use the same output protocol and rate.
+- M1, M2 in group 1
+- M3, M4 in group 2
+- M5, M6, M7, M8 in group 3
+
+The 7 FMU PWM outputs are in 3 groups:
+
+- A1 - A4 are in one group.
+- A5, A6 are in a 2nd group.
+- A7 is in a 3rd group.
+
+Channels within the same group need to use the same output rate.
+If any channel in a group uses DShot then all channels in the group need to use DShot.
+
+### Electrical data
+
+- Voltage Ratings:
+  - Max input voltage: 5.4V
+  - USB Power Input: 4.75\~5.25V
+  - Servo Rail Input: 0\~9.9V
 -->
 
 ---
@@ -27681,46 +25912,35 @@ All outputs within the same group must use the same output protocol and rate.
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-42688P (SPI)
-- **Barometer**: DPS310 (I2C, internal)
-- **Magnetometer**: TODO: confirm which is installed — IST8310 (I2C, internal), QMC5883L
-- **OSD**: AT7456E (SPI)
-
-### Interfaces
-
-- **PWM outputs**: 8 (FMU)
-- **Serial ports**: 8
-- **I2C ports**: 2
-  - DPS310 (barometer, internal)
-  - IST8310 (magnetometer, internal)
-- **SPI buses**: 4
-  - BMI088 (IMU)
-  - ICM-42688P (IMU)
-  - AT7456E (OSD)
-- **CAN buses**: 1
-- **USB**: Yes
-- **RC input**: Yes
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-42688P (SPI)
+  - **Barometer**: DPS310 (I2C, internal)
+  - **Magnetometer**: TODO: confirm which is installed — IST8310 (I2C, internal), QMC5883L
+  - **OSD**: AT7456E (SPI)
+- **Interfaces**
+  - **PWM outputs**: 8 (FMU)
+  - **Serial ports**: 8
+  - **I2C ports**: 2 (1 external, 1 internal)
+    - I2C1 (internal): DPS310 (barometer), IST8310 (magnetometer)
+    - I2C4 (external): free (no sensor detected)
+  - **SPI buses**: 4
+    - BMI088 (IMU)
+    - ICM-42688P (IMU)
+    - AT7456E (OSD)
+  - **CAN buses**: 1
+  - **USB**: Yes
+  - **RC input**: Yes
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -28000,44 +26220,33 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-42688P (SPI)
-- **Barometer**: DPS310 (I2C, internal)
-- **Magnetometer**: TODO: confirm which is installed — IST8310 (I2C, internal), QMC5883L
-
-### Interfaces
-
-- **PWM outputs**: 8 (FMU)
-- **Serial ports**: 8
-- **I2C ports**: 2
-  - DPS310 (barometer, internal)
-  - IST8310 (magnetometer, internal)
-- **SPI buses**: 4
-  - BMI088 (IMU)
-  - ICM-42688P (IMU)
-- **CAN buses**: 1
-- **USB**: Yes
-- **RC input**: Yes
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-42688P (SPI)
+  - **Barometer**: DPS310 (I2C, internal)
+  - **Magnetometer**: TODO: confirm which is installed — IST8310 (I2C, internal), QMC5883L
+- **Interfaces**
+  - **PWM outputs**: 8 (FMU)
+  - **Serial ports**: 8
+  - **I2C ports**: 2 (1 external, 1 internal)
+    - I2C1 (internal): DPS310 (barometer), IST8310 (magnetometer)
+    - I2C4 (external): free (no sensor detected)
+  - **SPI buses**: 4
+    - BMI088 (IMU)
+    - ICM-42688P (IMU)
+  - **CAN buses**: 1
+  - **USB**: Yes
+  - **RC input**: Yes
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -28315,44 +26524,33 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-
-### Sensors
-
-- **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-42688P (SPI)
-- **Barometer**: DPS310 (I2C, internal)
-- **Magnetometer**: TODO: confirm which is installed — IST8310 (I2C, internal), QMC5883L
-
-### Interfaces
-
-- **PWM outputs**: 8 (FMU)
-- **Serial ports**: 8
-- **I2C ports**: 2
-  - DPS310 (barometer, internal)
-  - IST8310 (magnetometer, internal)
-- **SPI buses**: 4
-  - BMI088 (IMU)
-  - ICM-42688P (IMU)
-- **CAN buses**: 1
-- **USB**: Yes
-- **RC input**: Yes
-- **Analog battery inputs**: 1
-- **Additional analog inputs**: TODO: number of additional analog inputs
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-42688P (SPI)
+  - **Barometer**: DPS310 (I2C, internal)
+  - **Magnetometer**: TODO: confirm which is installed — IST8310 (I2C, internal), QMC5883L
+- **Interfaces**
+  - **PWM outputs**: 8 (FMU)
+  - **Serial ports**: 8
+  - **I2C ports**: 2 (1 external, 1 internal)
+    - I2C1 (internal): DPS310 (barometer), IST8310 (magnetometer)
+    - I2C4 (external): free (no sensor detected)
+  - **SPI buses**: 4
+    - BMI088 (IMU)
+    - ICM-42688P (IMU)
+  - **CAN buses**: 1
+  - **USB**: Yes
+  - **RC input**: Yes
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
 
 <!-- overview-source-data
 {
@@ -28630,48 +26828,37 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 ```markdown
 ## Specifications {#specifications}
 
-### Processor
-
-- **Main FMU Processor**: STM32H753 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-- **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
-
-### Sensors
-
-- **IMU**: ICM-45686 (SPI, variant ZeroOneX6000), BMI088 (SPI, variant ZeroOneX6000), BMI088 (SPI, variant ZeroOneX6001), BMI088 (SPI, variant //X6), BMI088 (SPI, variant PRO)
-- **Barometer**: ICP-20100 (I2C, internal), ICP-20100 (I2C, external)
-- **Magnetometer**: RM3100 (I2C, bus 4, internal), IST8310 (I2C, bus 1, external), IST8310 (I2C, internal)
-
-### Interfaces
-
-- **PWM outputs**: 17 (9 FMU + 8 IO)
-- **Serial ports**: 8
-- **I2C ports**: 4
-  - ICP-20100 (barometer, internal)
-  - ICP-20100 (barometer, external)
-  - RM3100 (magnetometer, internal, bus 4)
-  - IST8310 (magnetometer, external, bus 1)
-  - IST8310 (magnetometer, internal)
-- **SPI buses**: 5
-- **CAN buses**: 2
-- **USB**: Yes
-- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
-- **Analog battery inputs**: 2
-- **Additional analog inputs**: TODO: number of additional analog inputs
-- **Ethernet**: Yes
-
-### Electrical Data
-
-- **Input voltage**: TODO: supply voltage range
-
-### Mechanical Data
-
-- **Dimensions**: TODO: dimensions (mm)
-- **Weight**: TODO: weight (g)
-
-### Other
-
-- **SD card**: Yes
-- **Onboard heater**: Yes
+- **Processor**
+  - **Main FMU Processor**: STM32H753 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+  - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
+- **Sensors**
+  - **IMU**: ICM-45686 (SPI, variant ZeroOneX6000), BMI088 (SPI, variant ZeroOneX6000), BMI088 (SPI, variant ZeroOneX6001), BMI088 (SPI, variant //X6), BMI088 (SPI, variant PRO)
+  - **Barometer**: ICP-20100 (I2C, internal), ICP-20100 (I2C, external)
+  - **Magnetometer**: RM3100 (I2C, bus 4, internal), IST8310 (I2C, bus 1, external), IST8310 (I2C, internal)
+- **Interfaces**
+  - **PWM outputs**: 17 (9 FMU + 8 IO)
+  - **Serial ports**: 8
+  - **I2C ports**: 4 (3 external, 1 internal)
+    - I2C1 (external, GPS1): IST8310 (magnetometer), INA226 (power monitor), INA228 (power monitor), INA238 (power monitor) — on GPS connector
+    - I2C2 (external): INA226 (power monitor), INA228 (power monitor), INA238 (power monitor)
+    - I2C3 (external): free (no sensor detected)
+    - I2C4 (internal): ICP-20100 (barometer), RM3100 (magnetometer), IST8310 (magnetometer)
+  - **SPI buses**: 5
+  - **CAN buses**: 2
+  - **USB**: Yes
+  - **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)
+  - **Analog battery inputs**: 2
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+  - **Ethernet**: Yes
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+  - **Power supply**: Dual redundant (POWER1, POWER2)
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
+  - **Onboard heater**: Yes
 
 <!-- overview-source-data
 {

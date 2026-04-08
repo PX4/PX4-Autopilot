@@ -829,6 +829,10 @@ _SENSOR_CHIP_NAMES = {
     # OSD chips
     'ATXXXX':    'AT7456E',
     # MSP_OSD is a protocol adapter, not a chip — intentionally omitted
+    # Power monitors
+    'INA226':    'INA226',
+    'INA228':    'INA228',
+    'INA238':    'INA238',
 }
 
 # CONFIG_DRIVERS_<CATEGORY> prefix → sensor type key
@@ -863,6 +867,10 @@ _CHIP_TO_CATEGORY: dict[str, str] = {
     'MMC5983MA': 'mag', 'VCM1193L': 'mag', 'IIS2MDC': 'mag',
     # OSD
     'ATXXXX': 'osd',
+    # Power monitors
+    'INA226': 'power_monitor',
+    'INA228': 'power_monitor',
+    'INA238': 'power_monitor',
 }
 
 
@@ -949,7 +957,7 @@ def parse_rc_board_sensors(board_path: Path) -> dict:
         chip_key = m.group(1).upper()  # e.g. 'ms5611' → 'MS5611'
         category = _CHIP_TO_CATEGORY.get(chip_key)
         display_name = _SENSOR_CHIP_NAMES.get(chip_key)
-        if category and display_name and display_name not in result[category]:
+        if category and display_name and category in result and display_name not in result[category]:
             result[category].append(display_name)
 
     return result
@@ -992,6 +1000,32 @@ def _parse_sensor_line(line: str) -> dict | None:
     }
 
 
+def _extract_port_label_from_comment(comment: str | None) -> str | None:
+    """Extract a port label from a comment preceding a sensor start command.
+
+    Looks for GPS port labels first (GPS1, GPS2), then TELEM labels (TELEM1),
+    then numbered I2C port labels (I2C1, I2C2). Returns the first match, or None.
+
+    Examples:
+        "External compass on GPS1/I2C1: ..."  → "GPS1"
+        "External sensors on I2C1"             → "I2C1"
+        "Internal magnetometer on I2C"         → None  (no digit suffix)
+    """
+    if not comment:
+        return None
+    m = re.search(r'\bGPS(\d+)\b', comment, re.IGNORECASE)
+    if m:
+        return f'GPS{m.group(1)}'
+    m = re.search(r'\bTELEM(\d+)\b', comment, re.IGNORECASE)
+    if m:
+        return f'TELEM{m.group(1)}'
+    # Numbered I2C port (I2C1, I2C2, ...) — a digit suffix distinguishes port name from generic "on I2C"
+    m = re.search(r'\bI2C(\d+)\b', comment, re.IGNORECASE)
+    if m:
+        return f'I2C{m.group(1)}'
+    return None
+
+
 def parse_rc_board_sensor_bus(board_path: Path) -> dict:
     """Parse sensor bus type and number from init/rc.board_sensors.
 
@@ -1003,13 +1037,19 @@ def parse_rc_board_sensor_bus(board_path: Path) -> dict:
     the same chip on different buses (e.g. internal vs external IST8310):
         {
           'imu':  [{'name': ..., 'bus_type': 'SPI'|'I2C'|None,
-                    'bus_num': int|None, 'external': bool}],
+                    'bus_num': int|None, 'external': bool,
+                    'port_label': str|None}],
           'baro': [...],
           'mag':  [...],
           'osd':  [],
         }
+    port_label is auto-detected from the comment immediately preceding the
+    sensor start command (e.g. "# External compass on GPS1/I2C1:" → "GPS1").
+    power_monitor entries (INA226/INA228/INA238) are included in a
+    ``power_monitor`` category alongside the standard sensor categories.
     """
     result: dict[str, list] = {k: [] for k in _DRIVER_CATEGORY_MAP.values()}
+    result['power_monitor'] = []
     seen: set = set()
 
     rc_sensors = board_path / 'init' / 'rc.board_sensors'
@@ -1018,34 +1058,46 @@ def parse_rc_board_sensor_bus(board_path: Path) -> dict:
 
     variant_depth = 0   # depth counter for hwtypecmp if-blocks (lines inside are skipped)
     other_depth = 0     # depth of other if-blocks (still counted to match fi correctly)
+    last_comment: str | None = None
 
     text = rc_sensors.read_text(errors='ignore')
     for line in text.splitlines():
         line = line.strip()
-        if not line or line.startswith('#') or line.startswith('//'):
+        if not line:
+            last_comment = None
+            continue
+        if line.startswith('#') or line.startswith('//'):
+            last_comment = line.lstrip('#/').strip()
             continue
 
         # Track if/fi structure to skip variant-specific blocks
         if re.match(r'^if\s+ver\s+hwtypecmp\b', line):
             variant_depth += 1
+            last_comment = None
             continue
         if re.match(r'^if\b', line):
             if variant_depth > 0:
                 other_depth += 1   # nested block inside a variant block
+            last_comment = None
             continue
         if line == 'fi':
             if other_depth > 0:
                 other_depth -= 1
             elif variant_depth > 0:
                 variant_depth -= 1
+            last_comment = None
             continue
         if line in ('then', 'else', 'do'):
+            last_comment = None
             continue
 
         if variant_depth > 0:
+            last_comment = None
             continue   # skip all lines inside hwtypecmp blocks
 
         entry = _parse_sensor_line(line)
+        port_label = _extract_port_label_from_comment(last_comment)
+        last_comment = None
         if entry is None:
             continue
 
@@ -1057,6 +1109,7 @@ def parse_rc_board_sensor_bus(board_path: Path) -> dict:
                 'bus_type': entry['bus_type'],
                 'bus_num': entry['bus_num'],
                 'external': entry['external'],
+                'port_label': port_label,
             })
 
     return result
@@ -1090,7 +1143,9 @@ def parse_sensor_variant_blocks(board_path: Path) -> dict:
     variant dict(s) where they were explicitly listed.
     """
     def _empty_cat_dict() -> dict:
-        return {k: [] for k in _DRIVER_CATEGORY_MAP.values()}
+        d = {k: [] for k in _DRIVER_CATEGORY_MAP.values()}
+        d['power_monitor'] = []
+        return d
 
     unconditional = _empty_cat_dict()
     variants: dict[str, dict] = {}
@@ -1104,10 +1159,15 @@ def parse_sensor_variant_blocks(board_path: Path) -> dict:
     # context_stack entries: {'type': 'hwtypecmp'|'other', 'codes': [...], 'in_else': bool}
     context_stack: list[dict] = []
 
+    last_comment: str | None = None
     text = rc_sensors.read_text(errors='ignore')
     for line in text.splitlines():
         line = line.strip()
-        if not line or line.startswith('#') or line.startswith('//'):
+        if not line:
+            last_comment = None
+            continue
+        if line.startswith('#') or line.startswith('//'):
+            last_comment = line.lstrip('#/').strip()
             continue
 
         # Shell control flow
@@ -1115,22 +1175,29 @@ def parse_sensor_variant_blocks(board_path: Path) -> dict:
         if m_htc:
             codes = m_htc.group(1).split()
             context_stack.append({'type': 'hwtypecmp', 'codes': codes, 'in_else': False})
+            last_comment = None
             continue
         if re.match(r'^if\b', line):
             context_stack.append({'type': 'other', 'codes': [], 'in_else': False})
+            last_comment = None
             continue
         if line == 'else':
             if context_stack and context_stack[-1]['type'] == 'hwtypecmp':
                 context_stack[-1]['in_else'] = True
+            last_comment = None
             continue
         if line == 'fi':
             if context_stack:
                 context_stack.pop()
+            last_comment = None
             continue
         if line in ('then', 'do'):
+            last_comment = None
             continue
 
         entry = _parse_sensor_line(line)
+        port_label = _extract_port_label_from_comment(last_comment)
+        last_comment = None
         if entry is None:
             continue
 
@@ -1149,6 +1216,7 @@ def parse_sensor_variant_blocks(board_path: Path) -> dict:
                     'bus_type': entry['bus_type'],
                     'bus_num': entry['bus_num'],
                     'external': entry['external'],
+                    'port_label': port_label,
                 })
         elif htc_ctx['in_else']:
             # else branch → store under __other__
@@ -1165,6 +1233,7 @@ def parse_sensor_variant_blocks(board_path: Path) -> dict:
                         'bus_type': entry['bus_type'],
                         'bus_num': entry['bus_num'],
                         'external': entry['external'],
+                        'port_label': port_label,
                     })
         else:
             # Inside a specific variant block — add to each matching code
@@ -1180,6 +1249,7 @@ def parse_sensor_variant_blocks(board_path: Path) -> dict:
                         'bus_type': entry['bus_type'],
                         'bus_num': entry['bus_num'],
                         'external': entry['external'],
+                        'port_label': port_label,
                     })
 
     has_variants = bool(variants)
@@ -1251,6 +1321,38 @@ def parse_interface_config(board_path: Path) -> dict:
         'num_can_buses': len(can),
         'has_usb': has_usb,
     }
+
+
+def parse_i2c_bus_config(board_path: Path) -> dict:
+    """Parse authoritative I2C bus routing from src/i2c.cpp.
+
+    Reads ``initI2CBusExternal(N)`` and ``initI2CBusInternal(N)`` entries to
+    determine which I2C buses go to external connectors (user-accessible) and
+    which are wired only to on-board chips (not externally accessible).
+
+    Returns
+    -------
+    {
+        'external': [1, 2, 4],   # bus numbers routed to external connectors
+        'internal': [3],          # bus numbers wired only to on-board chips
+    }
+    Returns an empty dict ``{}`` when ``src/i2c.cpp`` is absent or contains no
+    recognised entries.
+    """
+    i2c_cpp = board_path / 'src' / 'i2c.cpp'
+    if not i2c_cpp.exists():
+        return {}
+
+    text = i2c_cpp.read_text(errors='ignore')
+    external = sorted(
+        int(m) for m in re.findall(r'initI2CBusExternal\s*\(\s*(\d+)\s*\)', text)
+    )
+    internal = sorted(
+        int(m) for m in re.findall(r'initI2CBusInternal\s*\(\s*(\d+)\s*\)', text)
+    )
+    if not external and not internal:
+        return {}
+    return {'external': external, 'internal': internal}
 
 
 def compute_groups(timers: list, channels: list) -> list:
@@ -2283,6 +2385,20 @@ def _fmt_list(items: list) -> str:
     return ', '.join(str(i) for i in items if i)
 
 
+def _fmt_list_counted(items: list) -> str:
+    """Format a list of names, collapsing consecutive duplicates with a count suffix.
+
+    E.g. ['MS5611', 'MS5611'] → 'MS5611 (2)'
+         ['ICM-42688P', 'MS5611'] → 'ICM-42688P, MS5611'
+    """
+    from collections import Counter
+    counts = Counter(str(i) for i in items if i)
+    return ', '.join(
+        f'{name} ({n})' if n > 1 else name
+        for name, n in counts.items()
+    )
+
+
 def generate_specifications_section(board_key: str, entry: dict) -> str:
     """Generate a '## Specifications {#specifications}' markdown section.
 
@@ -2371,18 +2487,14 @@ def generate_specifications_section(board_key: str, entry: dict) -> str:
         """
         wizard_val = ow.get(wizard_key)
         if wizard_val:
-            display = _fmt_list(wizard_val) if isinstance(wizard_val, list) else wizard_val
+            display = _fmt_list_counted(wizard_val) if isinstance(wizard_val, list) else wizard_val
             sensor_line = f'- **{label}**: {display}'
             # Note any detected drivers not confirmed by the wizard — may be unnecessary firmware bloat
             confirmed_upper = {w.upper() for w in (wizard_val if isinstance(wizard_val, list) else [wizard_val])}
             detected_raw = entry.get(driver_key) or []
             unused = [d for d in detected_raw if d.upper() not in confirmed_upper]
             if unused:
-                sensor_line += (
-                    f'\n<!-- TODO: These {label.lower()} drivers are built into the firmware'
-                    f' but were not confirmed as installed: {", ".join(unused)}.'
-                    f' Remove from board config if not needed. -->'
-                )
+                sensor_line += f' <!-- TODO: Unnecessary driver(s) in firmware?: {", ".join(unused)}. -->'
             return sensor_line
 
         if _has_variants:
@@ -2451,41 +2563,36 @@ def generate_specifications_section(board_key: str, entry: dict) -> str:
         return None
 
     # --- Processor ---
-    lines.append('### Processor')
-    lines.append('')
+    lines.append('- **Processor**')
     chip_model = entry.get('chip_model')
     specs = CHIP_SPECS.get(chip_model) if chip_model else None
     if chip_model and specs:
         lines.append(
-            f'- **Main FMU Processor**: {chip_model} '
+            f'  - **Main FMU Processor**: {chip_model} '
             f'(32-bit Arm\u00ae {specs["core"]}, {specs["mhz"]} MHz, '
             f'{specs["flash"]} flash, {specs["ram"]} RAM)'
         )
     elif chip_model:
-        lines.append(f'- **Main FMU Processor**: {chip_model}')
+        lines.append(f'  - **Main FMU Processor**: {chip_model}')
     else:
-        lines.append('- **Main FMU Processor**: TODO: chip model')
+        lines.append('  - **Main FMU Processor**: TODO: chip model')
 
     if entry.get('has_io_board'):
-        lines.append(f'- **IO Processor**: {_IO_PROC_SPEC}')
-    lines.append('')
+        lines.append(f'  - **IO Processor**: {_IO_PROC_SPEC}')
 
     # --- Sensors ---
-    lines.append('### Sensors')
-    lines.append('')
+    lines.append('- **Sensors**')
     imu_line  = _resolve_sensor('imu',  'sensor_imu_drivers',  'IMU',          category='imu',  required=True)
     baro_line = _resolve_sensor('baro', 'sensor_baro_drivers', 'Barometer',    category='baro', required=True)
     mag_line  = _resolve_sensor('mag',  'sensor_mag_drivers',  'Magnetometer', category='mag',  required=True)
     osd_line  = _resolve_sensor('osd',  'sensor_osd_drivers',  'OSD',          category='osd',  required=False)
-    if imu_line:  lines.append(imu_line)
-    if baro_line: lines.append(baro_line)
-    if mag_line:  lines.append(mag_line)
-    if osd_line:  lines.append(osd_line)
-    lines.append('')
+    if imu_line:  lines.append('  ' + imu_line)
+    if baro_line: lines.append('  ' + baro_line)
+    if mag_line:  lines.append('  ' + mag_line)
+    if osd_line:  lines.append('  ' + osd_line)
 
     # --- Interfaces ---
-    lines.append('### Interfaces')
-    lines.append('')
+    lines.append('- **Interfaces**')
     # Use group-derived count — DIRECT_PWM_OUTPUT_CHANNELS in board_config.h
     # counts all FMU timer channels, which matches groups since
     # initIOTimerChannelCapture entries are also counted as outputs.
@@ -2494,15 +2601,18 @@ def generate_specifications_section(board_key: str, entry: dict) -> str:
     io_out = entry.get('io_outputs', 0) or 0
     has_io = entry.get('has_io_board', False)
     if has_io and io_out:
-        lines.append(f'- **PWM outputs**: {fmu_out + io_out} ({fmu_out} FMU + {io_out} IO)')
+        lines.append(f'  - **PWM outputs**: {fmu_out + io_out} ({fmu_out} FMU + {io_out} IO)')
     elif fmu_out:
-        lines.append(f'- **PWM outputs**: {fmu_out} (FMU)')
+        lines.append(f'  - **PWM outputs**: {fmu_out} (FMU)')
 
     num_serial = len(entry.get('serial_ports') or [])
     if num_serial:
-        lines.append(f'- **Serial ports**: {num_serial}')
+        lines.append(f'  - **Serial ports**: {num_serial}')
 
-    _BUS_CAT_LABEL = {'imu': 'IMU', 'baro': 'barometer', 'mag': 'magnetometer', 'osd': 'OSD'}
+    _BUS_CAT_LABEL = {
+        'imu': 'IMU', 'baro': 'barometer', 'mag': 'magnetometer',
+        'osd': 'OSD', 'power_monitor': 'power monitor',
+    }
     # For bus sub-bullets, use unconditional sensors when variant data is available,
     # so variant-specific sensors don't appear in the "always-present" bus list.
     _bus_sub_source = _sv_unconditional if _has_variants else (entry.get('sensor_bus_info') or {})
@@ -2512,21 +2622,121 @@ def generate_specifications_section(board_key: str, entry: dict) -> str:
                    for e in entries if e.get('bus_type') == 'I2C']
 
     num_i2c = entry.get('num_i2c_buses', 0)
-    lines.append(f'- **I2C ports**: {num_i2c}' if num_i2c else '- **I2C ports**: TODO: number of I2C ports')
+
+    # Build per-bus maps from sensor data
+    _ext_bus_map = {}   # bus_num(int) → [(cat, sensor_name), ...]
+    _int_sensors  = []  # (cat, sensor_name) for internal I2C sensors (bus_num=None)
     for _cat, _e in i2c_sensors:
-        _i2c_parts = ['external' if _e.get('external') else 'internal']
-        if _e.get('bus_num') is not None:
-            _i2c_parts.append(f'bus {_e["bus_num"]}')
-        lines.append(f'  - {_e["name"]} ({_BUS_CAT_LABEL[_cat]}, {", ".join(_i2c_parts)})')
+        _bn = _e.get('bus_num')
+        if _e.get('external') and _bn is not None:
+            _ext_bus_map.setdefault(_bn, []).append((_cat, _e['name']))
+        elif not _e.get('external'):
+            _int_sensors.append((_cat, _e['name']))
+    _n_ext = len(_ext_bus_map)
+
+    _i2c_wizard = entry.get('i2c_buses_wizard') or []
+    _wizard_by_bus = {b['bus_num']: b['label'] for b in _i2c_wizard}
+    # Auto-detected port labels from source comments (e.g. "# External compass on GPS1/I2C1:")
+    _src_port_labels: dict[int, str] = {}
+    for _cat_entries in _bus_sub_source.values():
+        for _e in _cat_entries:
+            _bn2 = _e.get('bus_num')
+            _pl = _e.get('port_label')
+            if _pl and _bn2 is not None and _bn2 not in _src_port_labels:
+                _src_port_labels[_bn2] = _pl
+
+    _i2c_bus_config = entry.get('i2c_bus_config')   # {'external': [...], 'internal': [...]} or None
+
+    if _i2c_bus_config:
+        # DETAILED PATH: authoritative per-bus routing from src/i2c.cpp
+        _ext_buses_cfg = set(_i2c_bus_config.get('external', []))
+        _int_buses_cfg = set(_i2c_bus_config.get('internal', []))
+        _all_buses = sorted(_ext_buses_cfg | _int_buses_cfg)
+        _n_ext_cfg = len(_ext_buses_cfg)
+        _n_int_cfg = len(_int_buses_cfg)
+        _total = len(_all_buses)
+
+        if not _total:
+            lines.append('  - **I2C ports**: TODO: number of I2C ports')
+        elif _n_ext_cfg > 0 and _n_int_cfg > 0:
+            lines.append(f'  - **I2C ports**: {_total} ({_n_ext_cfg} external, {_n_int_cfg} internal)')
+        elif _n_ext_cfg > 0:
+            lines.append(f'  - **I2C ports**: {_total} ({_n_ext_cfg} external)')
+        else:
+            lines.append(f'  - **I2C ports**: {_total} ({_n_int_cfg} internal)')
+
+        for _bn in _all_buses:
+            _is_ext = _bn in _ext_buses_cfg
+            _routing = 'external' if _is_ext else 'internal'
+            _label = _wizard_by_bus.get(_bn) or _src_port_labels.get(_bn)
+            _paren = f'{_routing}, {_label}' if _label else _routing
+            if _is_ext:
+                _sensor_parts = _ext_bus_map.get(_bn, [])
+                if _sensor_parts:
+                    _notes = ', '.join(
+                        f'{_nm} ({_BUS_CAT_LABEL.get(_c, _c)})' for _c, _nm in _sensor_parts
+                    )
+                    _bus_str = f'I2C{_bn} ({_paren}): {_notes}'
+                    if _label and re.match(r'^GPS\d+$', _label):
+                        _bus_str += ' — on GPS connector'
+                else:
+                    _bus_str = f'I2C{_bn} ({_paren}): free (no sensor detected)'
+            else:
+                # Internal bus — try to attach known internal sensors when only one internal bus
+                _bus_str = f'I2C{_bn} ({_paren})'
+            lines.append(f'    - {_bus_str}')
+
+        # For internal buses: internal sensors have bus_num=None so we can't map per-bus.
+        # When exactly one internal bus, retrofit sensor list onto its bullet.
+        # Otherwise add a grouped summary line.
+        if _int_sensors:
+            _notes = ', '.join(f'{_nm} ({_BUS_CAT_LABEL.get(_c, _c)})' for _c, _nm in _int_sensors)
+            if _n_int_cfg == 1:
+                _int_bn = sorted(_int_buses_cfg)[0]
+                _label = _wizard_by_bus.get(_int_bn) or _src_port_labels.get(_int_bn)
+                _paren = f'internal, {_label}' if _label else 'internal'
+                _target = f'    - I2C{_int_bn} (internal)'
+                for _i in range(len(lines) - 1, -1, -1):
+                    if lines[_i] == _target:
+                        lines[_i] = f'    - I2C{_int_bn} ({_paren}): {_notes}'
+                        break
+            else:
+                lines.append(f'    - Internal buses: {_notes}')
+
+    else:
+        # FALLBACK PATH: existing format when i2c_bus_config is absent
+        if not num_i2c:
+            lines.append('  - **I2C ports**: TODO: number of I2C ports')
+        elif _n_ext > 0 and _n_ext <= num_i2c:
+            _n_int = num_i2c - _n_ext
+            lines.append(f'  - **I2C ports**: {num_i2c} ({_n_int} internal, {_n_ext} external)')
+        else:
+            lines.append(f'  - **I2C ports**: {num_i2c}')
+
+        _all_ext_bus_nums = sorted(set(list(_ext_bus_map) + list(_wizard_by_bus)))
+        for _bn in _all_ext_bus_nums:
+            _label = _wizard_by_bus.get(_bn) or _src_port_labels.get(_bn) or f'TODO: label for I2C bus {_bn}'
+            _sensor_parts = _ext_bus_map.get(_bn, [])
+            _bus_str = f'{_label} (I2C{_bn}, external)'
+            if _sensor_parts:
+                _notes = ', '.join(f'{_nm} ({_BUS_CAT_LABEL[_c]})' for _c, _nm in _sensor_parts)
+                _bus_str += f': {_notes}'
+            if re.match(r'^GPS\d+$', _label):
+                _bus_str += ' — on GPS connector'
+            lines.append(f'    - {_bus_str}')
+
+        if _int_sensors:
+            _notes = ', '.join(f'{_nm} ({_BUS_CAT_LABEL[_c]})' for _c, _nm in _int_sensors)
+            lines.append(f'    - Internal: {_notes}')
 
     num_spi = entry.get('num_spi_buses', 0)
-    lines.append(f'- **SPI buses**: {num_spi}' if num_spi else '- **SPI buses**: TODO: number of SPI buses')
+    lines.append(f'  - **SPI buses**: {num_spi}' if num_spi else '  - **SPI buses**: TODO: number of SPI buses')
     for _cat, _e in spi_sensors:
-        lines.append(f'  - {_e["name"]} ({_BUS_CAT_LABEL[_cat]})')
+        lines.append(f'    - {_e["name"]} ({_BUS_CAT_LABEL[_cat]})')
 
     num_can = entry.get('num_can_buses', 0)
     if num_can:
-        lines.append(f'- **CAN buses**: {num_can}')
+        lines.append(f'  - **CAN buses**: {num_can}')
     # CAN omitted (no TODO) when not detected — not all FCs have CAN
 
     if entry.get('has_usb'):
@@ -2534,14 +2744,23 @@ def generate_specifications_section(board_key: str, entry: dict) -> str:
         connectors = ow.get('usb_connectors') or (
             [ow['usb_connector']] if ow.get('usb_connector') else []
         )
-        if connectors:
+        labels = ow.get('usb_labels') or []
+        non_default_labels = any(l != 'USB' for l in labels)
+        if non_default_labels:
+            # Pair each label with its connector (if available)
+            parts = []
+            for i, lbl in enumerate(labels):
+                conn = connectors[i] if i < len(connectors) else None
+                parts.append(f'{lbl} ({conn})' if conn else lbl)
+            lines.append(f'  - **USB**: {", ".join(parts)}')
+        elif connectors:
             from collections import Counter
             parts = [f'{c} (\u00d72)' if n > 1 else c for c, n in Counter(connectors).items()]
-            lines.append(f'- **USB**: {", ".join(parts)}')
+            lines.append(f'  - **USB**: {", ".join(parts)}')
         else:
-            lines.append('- **USB**: Yes')
+            lines.append('  - **USB**: Yes')
     else:
-        lines.append('- **USB**: TODO: confirm USB connector type')
+        lines.append('  - **USB**: TODO: confirm USB connector type')
 
     # RC input
     has_rc = entry.get('has_rc_input', False)
@@ -2551,34 +2770,32 @@ def generate_specifications_section(board_key: str, entry: dict) -> str:
     if has_io:
         # IO processor handles multi-protocol RC; list all supported protocols
         if has_ppm:
-            lines.append('- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)')
+            lines.append('  - **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST, PPM (via IO)')
         else:
-            lines.append('- **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)')
+            lines.append('  - **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)')
     elif has_common_rc and has_ppm:
-        lines.append('- **RC input**: DSM/SRXL2, S.Bus/CPPM')
+        lines.append('  - **RC input**: DSM/SRXL2, S.Bus/CPPM')
     elif has_common_rc:
-        lines.append('- **RC input**: DSM/SRXL2, S.Bus')
+        lines.append('  - **RC input**: DSM/SRXL2, S.Bus')
     elif has_ppm:
-        lines.append('- **RC input**: PPM')
+        lines.append('  - **RC input**: PPM')
     elif has_rc:
-        lines.append('- **RC input**: Yes')
+        lines.append('  - **RC input**: Yes')
 
     # Analog battery monitoring
     num_power = entry.get('num_power_inputs', 0) or 0
     if num_power:
-        lines.append(f'- **Analog battery inputs**: {num_power}')
+        lines.append(f'  - **Analog battery inputs**: {num_power}')
 
     # Additional analog inputs (wizard, always TODO if not set)
     num_adc = ow.get('num_additional_adc_inputs')
     if num_adc is not None:
-        lines.append(f'- **Additional analog inputs**: {num_adc}')
+        lines.append(f'  - **Additional analog inputs**: {num_adc}')
     else:
-        lines.append('- **Additional analog inputs**: TODO: number of additional analog inputs')
+        lines.append('  - **Additional analog inputs**: TODO: number of additional analog inputs')
 
     if entry.get('has_ethernet'):
-        lines.append('- **Ethernet**: Yes')
-
-    lines.append('')
+        lines.append('  - **Ethernet**: Yes')
 
     # --- Electrical Data (always emitted; TODO when wizard data absent) ---
     min_v = ow.get('min_voltage')
@@ -2586,17 +2803,49 @@ def generate_specifications_section(board_key: str, entry: dict) -> str:
     # Backward compat: old JSONs may have voltage_range as a single string
     if not min_v and not max_v and ow.get('voltage_range'):
         max_v = ow['voltage_range']
-    lines.append('### Electrical Data')
-    lines.append('')
+    lines.append('- **Electrical Data**')
     if min_v and max_v:
-        lines.append(f'- **Input voltage**: {min_v}\u2013{max_v}')
+        lines.append(f'  - **Operating voltage**: {min_v}\u2013{max_v} (V)')
     elif max_v:
-        lines.append(f'- **Input voltage**: TODO\u2013{max_v}')
+        lines.append(f'  - **Operating voltage**: TODO\u2013{max_v} (V)')
     elif min_v:
-        lines.append(f'- **Input voltage**: {min_v}\u2013TODO')
+        lines.append(f'  - **Operating voltage**: {min_v}\u2013TODO (V)')
     else:
-        lines.append('- **Input voltage**: TODO: supply voltage range')
-    lines.append('')
+        lines.append('  - **Operating voltage**: TODO: supply voltage range')
+    # USB power input line
+    if ow.get('usb_powers_fc') and ow.get('usb_pwr_min_v') and ow.get('usb_pwr_max_v'):
+        lines.append(f'  - **USB-C power input**: {ow["usb_pwr_min_v"]}\u2013{ow["usb_pwr_max_v"]} (V)')
+    elif ow.get('usb_powers_fc'):
+        lines.append('  - **USB-C power input**: TODO: USB-C voltage range')
+    # Servo rail line
+    if ow.get('has_servo_rail'):
+        srv_max = ow.get('servo_rail_max_v')
+        _srv_suffix = ' (servo rail must be separately powered and does not power the autopilot)'
+        if srv_max:
+            try:
+                _srv_high = float(str(srv_max).rstrip('Vv').strip()) > 12
+            except ValueError:
+                _srv_high = False
+            if _srv_high:
+                lines.append(f'  - **Servo rail**: High-voltage capable, up to {srv_max} (V){_srv_suffix}')
+            else:
+                lines.append(f'  - **Servo rail**: Up to {srv_max} (V){_srv_suffix}')
+        else:
+            lines.append(f'  - **Servo rail**: TODO: servo rail max voltage{_srv_suffix}')
+    # Power supply redundancy line
+    _usb_pwr = ow.get('usb_powers_fc', False)
+    _n_pwr = entry.get('num_power_inputs', 1)
+    _total_sources = _n_pwr + (1 if _usb_pwr else 0)
+    if _total_sources >= 2:
+        _pwr_wizard = entry.get('power_ports_wizard') or []
+        if _pwr_wizard:
+            _src_names = [p['label'] for p in _pwr_wizard]
+        else:
+            _src_names = [f'POWER{i+1}' if _n_pwr > 1 else 'POWER' for i in range(_n_pwr)]
+        if _usb_pwr:
+            _src_names.append('USB-C')
+        _level = {2: 'Dual', 3: 'Triple'}.get(_total_sources, f'{_total_sources}-way')
+        lines.append(f'  - **Power supply**: {_level} redundant ({", ".join(_src_names)})')
 
     # --- Mechanical Data (always emitted; TODO when wizard data absent) ---
     dim_w = ow.get('width_mm')
@@ -2610,27 +2859,25 @@ def generate_specifications_section(board_key: str, entry: dict) -> str:
         elif len(_parts) == 2:
             dim_w, dim_l = _parts[0], _parts[1]
     weight = ow.get('weight_g')
-    lines.append('### Mechanical Data')
-    lines.append('')
+    lines.append('- **Mechanical Data**')
     if any([dim_w, dim_l, dim_h]):
         _dim_parts = [str(p) if p else 'TODO' for p in [dim_w, dim_l, dim_h]]
-        lines.append(f'- **Dimensions**: {" \u00d7 ".join(_dim_parts)} mm')
+        lines.append(f'  - **Dimensions**: {" \u00d7 ".join(_dim_parts)} (mm)')
     else:
-        lines.append('- **Dimensions**: TODO: dimensions (mm)')
-    lines.append(f'- **Weight**: {weight} g' if weight is not None else '- **Weight**: TODO: weight (g)')
-    lines.append('')
+        lines.append('  - **Dimensions**: TODO: dimensions (mm)')
+    lines.append(f'  - **Weight**: {weight} (g)' if weight is not None else '  - **Weight**: TODO: weight (g)')
 
     # --- Other (conditional, omit section if nothing applies) ---
     other_lines = []
     if entry.get('has_sd_card'):
-        other_lines.append('- **SD card**: Yes')
+        other_lines.append('  - **SD card**: Yes')
     if entry.get('has_heater'):
-        other_lines.append('- **Onboard heater**: Yes')
+        other_lines.append('  - **Onboard heater**: Yes')
     if other_lines:
-        lines.append('### Other')
-        lines.append('')
+        lines.append('- **Other**')
         lines.extend(other_lines)
-        lines.append('')
+
+    lines.append('')
 
     # Source data comment for traceability / future re-runs
     source_data = {
@@ -2875,7 +3122,7 @@ def apply_sections_to_docs(data: dict, sections: list = None, doc_filter: str = 
         if wizard_doc_data:
             entry = dict(entry)  # shallow copy — don't mutate shared data
             for _wf in ('rc_ports_wizard', 'gps_ports_wizard',
-                        'power_ports_wizard', 'overview_wizard'):
+                        'power_ports_wizard', 'overview_wizard', 'i2c_buses_wizard'):
                 if wizard_doc_data.get(_wf) is not None:
                     entry[_wf] = wizard_doc_data[_wf]
 
@@ -2931,7 +3178,7 @@ def _wizard_prompt(label: str, default: str = "", required: bool = False) -> str
 _WIZARD_CACHE_FIELDS = (
     "manufacturer", "product", "board", "fmu_version", "since_version",
     "manufacturer_url", "rc_ports_wizard", "gps_ports_wizard", "power_ports_wizard",
-    "overview_wizard",
+    "overview_wizard", "i2c_buses_wizard",
 )
 
 
@@ -3215,6 +3462,76 @@ def _run_wizard(args) -> None:
     else:
         args.gps_ports_wizard = None
 
+    # --- I2C external bus labels ---
+    _bus_info_raw = _rc_entry.get('sensor_bus_info') or {}
+    _ext_buses = {}       # bus_num → [(cat, name)] for buses with detected external sensors
+    _detected_labels = {} # bus_num → port_label auto-detected from source comments
+    for _cat, _entries in _bus_info_raw.items():
+        for _e in _entries:
+            _bn = _e.get('bus_num')
+            if _e.get('bus_type') == 'I2C' and _e.get('external') and _bn is not None:
+                _ext_buses.setdefault(_bn, []).append((_cat, _e['name']))
+            if _e.get('port_label') and _bn is not None and _bn not in _detected_labels:
+                _detected_labels[_bn] = _e['port_label']
+
+    _STANDARD_I2C_LABELS = ['GPS1', 'GPS2', 'I2C', 'I2C1', 'I2C2', 'POWER']
+    _cached_i2c = {b['bus_num']: b['label'] for b in (cached.get('i2c_buses_wizard') or [])}
+    _num_i2c = _rc_entry.get('num_i2c_buses', 0)
+    # Load authoritative bus routing from i2c.cpp if available in cached entry or board path
+    _wiz_i2c_cfg = _rc_entry.get('i2c_bus_config') or {}
+    if not _wiz_i2c_cfg and args.board:
+        _wiz_i2c_cfg = parse_i2c_bus_config(BOARDS / args.board)
+    _wiz_ext_buses_cfg = set(_wiz_i2c_cfg.get('external', []))
+    _wiz_int_buses_cfg = set(_wiz_i2c_cfg.get('internal', []))
+
+    i2c_buses_wizard = []
+    # Ask about all enabled I2C buses (not just sensor-bearing ones) so standalone
+    # external ports (e.g. I2C3, I2C4) can be labelled even without detected sensors.
+    _buses_to_ask = sorted(set(
+        list(_ext_buses) + list(_cached_i2c) +
+        list(_wiz_ext_buses_cfg) + list(_wiz_int_buses_cfg) +
+        (list(range(1, _num_i2c + 1)) if _num_i2c > 0 else [])
+    ))
+    if _buses_to_ask:
+        print()
+        if _ext_buses:
+            print("  External I2C buses detected from source:")
+            for _bn in sorted(_ext_buses):
+                _sensor_desc = ', '.join(_nm for _, _nm in _ext_buses[_bn])
+                _pl = _detected_labels.get(_bn)
+                _pl_str = f' [detected port: {_pl}]' if _pl else ''
+                print(f"    I2C bus {_bn}: {_sensor_desc}{_pl_str}")
+        if _wiz_i2c_cfg:
+            if _wiz_ext_buses_cfg:
+                print(f"  External buses (from src/i2c.cpp): {sorted(_wiz_ext_buses_cfg)}")
+            if _wiz_int_buses_cfg:
+                print(f"  Internal buses — no external connector: {sorted(_wiz_int_buses_cfg)}")
+        elif _num_i2c > 0:
+            print(f"  I2C buses enabled: 1–{_num_i2c}")
+        print(f"  Common port labels: {', '.join(_STANDARD_I2C_LABELS)}")
+        print()
+        for _bn in _buses_to_ask:
+            _cached_label = _cached_i2c.get(_bn, '')
+            _detected_label = _detected_labels.get(_bn, '')
+            _default = _cached_label or _detected_label or ''
+            _hint = f' [detected: {_detected_label}]' if _detected_label and not _cached_label else ''
+            _sensor_info = ', '.join(_nm for _, _nm in _ext_buses.get(_bn, []))
+            _sensor_hint = f' (sensor: {_sensor_info})' if _sensor_info else ''
+            if _bn in _wiz_int_buses_cfg:
+                _routing_note = ' [internal bus — no external connector, Enter to skip]'
+            elif _bn in _wiz_ext_buses_cfg and not _sensor_info:
+                _routing_note = ' [external — may be a free connector]'
+            else:
+                _routing_note = ''
+            _label = _wizard_prompt(
+                f"  Label for I2C bus {_bn} port as printed on board{_sensor_hint}{_hint}{_routing_note}",
+                default=_default
+            )
+            if _label:
+                i2c_buses_wizard.append({'bus_num': _bn, 'label': _label})
+
+    args.i2c_buses_wizard = i2c_buses_wizard or None
+
     # --- Sensors & Physical Specs (for ## Key Features section) ---
     print()
     print("  === Sensors & Physical Specs ===")
@@ -3279,7 +3596,8 @@ def _run_wizard(args) -> None:
     print()
 
     def _wizard_list(prompt_label: str, detected: list = None,
-                     cached_list: list = None) -> list:
+                     cached_list: list = None, max_items: int = None,
+                     item_hints: list = None) -> list:
         """Prompt for a multi-value list; blank entry ends input.
 
         Displays detected drivers as a numbered menu (1-N). Each prompt
@@ -3288,6 +3606,9 @@ def _run_wizard(args) -> None:
 
         Entering 0 stops immediately without applying any cache fallback,
         letting the user clear previously entered items.
+
+        max_items: stop after this many items (no trailing open-ended prompt).
+        item_hints: per-item hint strings shown in parentheses before the default.
         """
         items = []
         explicitly_done = False
@@ -3302,9 +3623,14 @@ def _run_wizard(args) -> None:
             print("    (press Enter to accept each default, or 0 to clear all)")
         idx = 1
         while True:
+            # Stop once we've reached the maximum allowed items
+            if max_items is not None and idx > max_items:
+                break
             # Show the corresponding cached entry as the default for this position
             cached_default = str(cached_list[idx - 1]) if cached_list and idx <= len(cached_list) else ""
-            val = _wizard_prompt(f"    item {idx}", default=cached_default)
+            hint = item_hints[idx - 1] if item_hints and idx <= len(item_hints) else None
+            label = f"    item {idx} ({hint})" if hint else f"    item {idx}"
+            val = _wizard_prompt(label, default=cached_default)
             # 0 = explicit stop (skips cache fallback)
             if val == "0":
                 explicitly_done = True
@@ -3336,25 +3662,52 @@ def _run_wizard(args) -> None:
     # Pre-populate from cached split fields, or parse old dimensions_mm string
     _dims_cached = cached_ov.get('dimensions_mm') or ''
     _dims_parts = re.split(r'\s*[xX]\s*', _dims_cached.strip()) if _dims_cached else []
-    dim_w     = _wizard_prompt("Width mm (optional, e.g. 38.0)",
+    dim_w     = _wizard_prompt("Width (mm)",
                                default=str(cached_ov.get('width_mm') or '')
                                        or (_dims_parts[0] if len(_dims_parts) > 0 else ''))
-    dim_l     = _wizard_prompt("Length mm (optional, e.g. 38.0)",
+    dim_l     = _wizard_prompt("Length (mm)",
                                default=str(cached_ov.get('length_mm') or '')
                                        or (_dims_parts[1] if len(_dims_parts) > 1 else ''))
-    dim_h     = _wizard_prompt("Height mm (optional, e.g. 7.0)",
+    dim_h     = _wizard_prompt("Height (mm)",
                                default=str(cached_ov.get('height_mm') or '')
                                        or (_dims_parts[2] if len(_dims_parts) > 2 else ''))
-    weight_raw = _wizard_prompt("Weight g (optional)",
+    weight_raw = _wizard_prompt("Weight (g)",
                                 default=str(cached_ov.get('weight_g') or ''))
-    min_v     = _wizard_prompt("Minimum input voltage (optional, e.g. 4.5V, 7V)",
+    min_v     = _wizard_prompt("Minimum input voltage (V)",
                                default=cached_ov.get('min_voltage') or '')
-    max_v     = _wizard_prompt("Maximum input voltage (optional, e.g. 17.5V, 42V)",
+    max_v     = _wizard_prompt("Maximum input voltage (V)",
                                default=cached_ov.get('max_voltage') or '')
+    _usb_pwr_cached = 'y' if cached_ov.get('usb_powers_fc') else 'n'
+    _usb_pwr_raw  = _wizard_prompt("Can USB power the flight controller? (y/n)",
+                                   default=_usb_pwr_cached)
+    usb_powers_fc = _usb_pwr_raw.strip().lower() in ('y', 'yes')
+    if usb_powers_fc:
+        usb_pwr_min = _wizard_prompt("USB minimum power voltage (V)",
+                                     default=cached_ov.get('usb_pwr_min_v') or '4.75')
+        usb_pwr_max = _wizard_prompt("USB maximum power voltage (V)",
+                                     default=cached_ov.get('usb_pwr_max_v') or '5.25')
+    else:
+        usb_pwr_min = None
+        usb_pwr_max = None
+    _servo_cached = 'y' if cached_ov.get('has_servo_rail', True) else 'n'
+    _servo_raw    = _wizard_prompt("Does the board have a servo/output rail? (y/n)",
+                                   default=_servo_cached)
+    has_servo_rail = _servo_raw.strip().lower() in ('y', 'yes')
+    if has_servo_rail:
+        servo_rail_max_v = _wizard_prompt("Maximum servo rail voltage (V)",
+                                          default=cached_ov.get('servo_rail_max_v') or '')
+    else:
+        servo_rail_max_v = None
     _usb_cached = (cached_ov.get('usb_connectors')
                    or ([cached_ov['usb_connector']] if cached_ov.get('usb_connector') else None))
     usb_list  = _wizard_list("USB connector type(s) (e.g. USB-C, Micro-USB)",
                               [], cached_list=_usb_cached)
+    _usb_labels_default = (cached_ov.get('usb_labels')
+                           or (['USB'] * len(usb_list) if usb_list else ['USB']))
+    usb_labels = _wizard_list("USB port label(s) (e.g. USB, USB2)",
+                               [], cached_list=_usb_labels_default,
+                               max_items=len(usb_list) if usb_list else None,
+                               item_hints=usb_list or None)
     adc_raw   = _wizard_prompt("Additional analog inputs beyond battery monitoring (optional, integer)",
                                default=str(cached_ov.get('num_additional_adc_inputs') or ''))
 
@@ -3383,7 +3736,13 @@ def _run_wizard(args) -> None:
         'weight_g':                  weight_g,
         'min_voltage':               min_v or None,
         'max_voltage':               max_v or None,
+        'usb_powers_fc':             usb_powers_fc,
+        'usb_pwr_min_v':             usb_pwr_min or None,
+        'usb_pwr_max_v':             usb_pwr_max or None,
+        'has_servo_rail':            has_servo_rail,
+        'servo_rail_max_v':          servo_rail_max_v or None,
         'usb_connectors':            usb_list or None,
+        'usb_labels':                usb_labels or None,
         'num_additional_adc_inputs': num_additional_adc,
         'sensor_variant_labels':     variant_labels or None,
     }
@@ -3641,6 +4000,7 @@ def gather_board_data() -> dict:
                 if _chip not in sensor_cfg[_cat]:
                     sensor_cfg[_cat].append(_chip)
         iface_cfg = parse_interface_config(board_path)
+        i2c_bus_cfg = parse_i2c_bus_config(board_path)
         sensor_bus_cfg = parse_rc_board_sensor_bus(board_path)
         sensor_variant_info = parse_sensor_variant_blocks(board_path)
 
@@ -3701,7 +4061,11 @@ def gather_board_data() -> dict:
             "sensor_osd_drivers":       sensor_cfg.get('osd', []),
             "sensor_bus_info":          sensor_bus_cfg,
             "sensor_variant_info":      sensor_variant_info,
-            "num_i2c_buses":            iface_cfg.get('num_i2c_buses', 0),
+            "i2c_bus_config":           i2c_bus_cfg or None,
+            "num_i2c_buses":            (
+                len(i2c_bus_cfg.get('external', [])) + len(i2c_bus_cfg.get('internal', []))
+                if i2c_bus_cfg else iface_cfg.get('num_i2c_buses', 0)
+            ),
             "num_spi_buses":            iface_cfg.get('num_spi_buses', 0),
             "num_can_buses":            iface_cfg.get('num_can_buses', 0),
             "has_usb":                  iface_cfg.get('has_usb', False),
@@ -3776,7 +4140,8 @@ def create_stub_doc(manufacturer: str, product: str,
                     rc_ports_wizard: list = None,
                     gps_ports_wizard: list = None,
                     power_ports_wizard: list = None,
-                    overview_wizard: dict = None) -> Path | None:
+                    overview_wizard: dict = None,
+                    i2c_buses_wizard: list = None) -> Path | None:
     """Create a stub FC documentation page in docs/en/flight_controller/."""
     # Auto-discover board key first so fmu_version can be inferred before the
     # filename is built (px4/fmu-v6x → fmu_version="fmu-v6x" → filename suffix).
@@ -3801,7 +4166,7 @@ def create_stub_doc(manufacturer: str, product: str,
         if not entry:
             print(f"WARNING: board '{board_key}' not found in parsed data; PWM section will be empty.")
 
-    if rc_ports_wizard or gps_ports_wizard or power_ports_wizard or overview_wizard:
+    if rc_ports_wizard or gps_ports_wizard or power_ports_wizard or overview_wizard or i2c_buses_wizard:
         entry = dict(entry)   # shallow copy — don't mutate cached data
     if rc_ports_wizard:
         entry['rc_ports_wizard'] = rc_ports_wizard
@@ -3811,6 +4176,8 @@ def create_stub_doc(manufacturer: str, product: str,
         entry['power_ports_wizard'] = power_ports_wizard
     if overview_wizard:
         entry['overview_wizard'] = overview_wizard
+    if i2c_buses_wizard:
+        entry['i2c_buses_wizard'] = i2c_buses_wizard
 
     # Infer manufacturer URL from existing docs when not explicitly provided
     if not manufacturer_url:
@@ -3834,6 +4201,7 @@ def create_stub_doc(manufacturer: str, product: str,
         'gps_ports_wizard': gps_ports_wizard,
         'power_ports_wizard': power_ports_wizard,
         'overview_wizard': overview_wizard,
+        'i2c_buses_wizard': i2c_buses_wizard,
     }
     if any(v is not None for v in wizard_data.values()):
         content = _embed_wizard_data_comment(content, wizard_data)
@@ -4447,7 +4815,8 @@ if __name__ == "__main__":
                         rc_ports_wizard=getattr(args, 'rc_ports_wizard', None) or _wiz_cache.get('rc_ports_wizard'),
                         gps_ports_wizard=getattr(args, 'gps_ports_wizard', None) or _wiz_cache.get('gps_ports_wizard'),
                         power_ports_wizard=getattr(args, 'power_ports_wizard', None) or _wiz_cache.get('power_ports_wizard'),
-                        overview_wizard=getattr(args, 'overview_wizard', None) or _wiz_cache.get('overview_wizard'))
+                        overview_wizard=getattr(args, 'overview_wizard', None) or _wiz_cache.get('overview_wizard'),
+                        i2c_buses_wizard=getattr(args, 'i2c_buses_wizard', None) or _wiz_cache.get('i2c_buses_wizard'))
     else:
         data = gather_board_data()
         meta_dir = args.output_dir / "metadata" if args.output_dir else METADATA_DIR

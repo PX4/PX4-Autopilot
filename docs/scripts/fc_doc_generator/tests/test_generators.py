@@ -721,6 +721,25 @@ def _spec_base_entry():
     }
 
 
+def _entry_i2c_detailed():
+    """Entry with mixed internal/external I2C sensors and a wizard label for the external bus."""
+    e = _spec_base_entry()
+    e.update({
+        "num_i2c_buses": 4,
+        "sensor_bus_info": {
+            "imu":  [],
+            "baro": [{"name": "BMP388",  "bus_type": "I2C", "bus_num": None, "external": False}],
+            "mag":  [
+                {"name": "IST8310", "bus_type": "I2C", "bus_num": 1, "external": True},
+                {"name": "RM3100",  "bus_type": "I2C", "bus_num": None, "external": False},
+            ],
+            "osd":  [],
+        },
+        "i2c_buses_wizard": [{"bus_num": 1, "label": "GPS1"}],
+    })
+    return e
+
+
 class TestGenerateSpecificationsSection:
     def test_spi_sensors_with_subbullets(self, snapshot):
         """SPI-flagged sensors produce bus annotations and SPI sub-bullets."""
@@ -785,6 +804,211 @@ class TestGenerateSpecificationsSection:
         })
         result = fcdg.generate_specifications_section(BOARD_KEY, entry)
         snapshot("spec_wizard_override.md", result)
+
+    def test_duplicate_sensors_counted(self, snapshot):
+        """Duplicate sensor names in wizard list collapse to Name (N) format."""
+        entry = _spec_base_entry()
+        entry.update({
+            "num_spi_buses": 2,
+            "sensor_baro_drivers": ["MS5611"],
+            "overview_wizard": {
+                "baro": ["MS5611", "MS5611"],
+            },
+        })
+        result = fcdg.generate_specifications_section(BOARD_KEY, entry)
+        snapshot("spec_sensor_counted.md", result)
+
+    def test_unused_driver_todo_inline(self, snapshot):
+        """Drivers detected but not in wizard list get an inline TODO comment."""
+        entry = _spec_base_entry()
+        entry.update({
+            "num_spi_buses": 3,
+            "sensor_imu_drivers": ["ICM-20649", "ICM-20689", "BMI088", "ICM-20948", "ICM-42688P"],
+            "sensor_mag_drivers": ["RM3100", "IST8310"],
+            "overview_wizard": {
+                "imu": ["ICM-20649", "ICM-20689", "BMI088"],
+                "mag": ["RM3100"],
+            },
+        })
+        result = fcdg.generate_specifications_section(BOARD_KEY, entry)
+        snapshot("spec_unused_driver_todo.md", result)
+
+    def test_electrical_full(self, snapshot):
+        """Full electrical data: operating voltage, USB power, high-voltage servo rail, triple redundancy."""
+        entry = _spec_base_entry()
+        entry.update({
+            "num_power_inputs": 2,
+            "has_redundant_power": True,
+            "power_ports_wizard": [
+                {"label": "POWER1", "connector_type": "6-pin Molex CLIK-Mate"},
+                {"label": "POWER2", "connector_type": "6-pin Molex CLIK-Mate"},
+            ],
+            "overview_wizard": {
+                "min_voltage": "7.0",
+                "max_voltage": "55.0",
+                "usb_powers_fc": True,
+                "usb_pwr_min_v": "4.75",
+                "usb_pwr_max_v": "5.25",
+                "has_servo_rail": True,
+                "servo_rail_max_v": "36",
+                "width_mm": "46",
+                "length_mm": "64",
+                "height_mm": "22",
+                "weight_g": 75.0,
+            },
+        })
+        result = fcdg.generate_specifications_section(BOARD_KEY, entry)
+        snapshot("spec_electrical_full.md", result)
+
+    def test_electrical_normal_servo_rail(self, snapshot):
+        """Servo rail ≤12 V gets 'Up to' label (not High-voltage)."""
+        entry = _spec_base_entry()
+        entry.update({
+            "num_power_inputs": 2,
+            "has_redundant_power": True,
+            "overview_wizard": {
+                "min_voltage": "4.3",
+                "max_voltage": "5.4",
+                "usb_powers_fc": True,
+                "usb_pwr_min_v": "4.75",
+                "usb_pwr_max_v": "5.25",
+                "has_servo_rail": True,
+                "servo_rail_max_v": "10.5",
+            },
+        })
+        result = fcdg.generate_specifications_section(BOARD_KEY, entry)
+        snapshot("spec_electrical_normal_servo.md", result)
+
+    def test_usb_multi_labels(self, snapshot):
+        """Multiple USB ports with distinct labels show Label (ConnectorType) pairs."""
+        entry = _spec_base_entry()
+        entry.update({
+            "has_usb": True,
+            "overview_wizard": {
+                "usb_connectors": ["USB-C", "Micro-USB"],
+                "usb_labels": ["USB", "Debug USB"],
+            },
+        })
+        result = fcdg.generate_specifications_section(BOARD_KEY, entry)
+        snapshot("spec_usb_multi_labels.md", result)
+
+    def test_usb_single_default_label(self, snapshot):
+        """Single USB port with default label 'USB' shows connector type only."""
+        entry = _spec_base_entry()
+        entry.update({
+            "has_usb": True,
+            "overview_wizard": {
+                "usb_connectors": ["USB-C"],
+                "usb_labels": ["USB"],
+            },
+        })
+        result = fcdg.generate_specifications_section(BOARD_KEY, entry)
+        snapshot("spec_usb_single_label.md", result)
+
+    def test_i2c_external_with_label(self, snapshot):
+        """External I2C bus with wizard label shows label + sensor; internal summarised."""
+        result = fcdg.generate_specifications_section(BOARD_KEY, _entry_i2c_detailed())
+        snapshot("spec_i2c_external_label.md", result)
+
+    def test_i2c_external_no_label(self, snapshot):
+        """External I2C bus without wizard label shows TODO placeholder."""
+        e = _entry_i2c_detailed()
+        del e['i2c_buses_wizard']
+        result = fcdg.generate_specifications_section(BOARD_KEY, e)
+        snapshot("spec_i2c_external_no_label.md", result)
+
+    def test_i2c_count_line_split(self):
+        """Count line shows internal/external split when external buses are detected."""
+        result = fcdg.generate_specifications_section(BOARD_KEY, _entry_i2c_detailed())
+        assert '**I2C ports**: 4 (3 internal, 1 external)' in result
+
+    def test_i2c_external_sub_bullet(self):
+        """External bus sub-bullet shows wizard label, bus number, and sensor purpose."""
+        result = fcdg.generate_specifications_section(BOARD_KEY, _entry_i2c_detailed())
+        assert 'GPS1 (I2C1, external): IST8310 (magnetometer)' in result
+
+    def test_i2c_gps_connector_note(self):
+        """External I2C bus labelled GPS1 appends '— on GPS connector' note."""
+        result = fcdg.generate_specifications_section(BOARD_KEY, _entry_i2c_detailed())
+        assert 'GPS1 (I2C1, external): IST8310 (magnetometer) — on GPS connector' in result
+
+    def test_i2c_internal_summary_line(self):
+        """Internal sensors appear on a single summary sub-bullet."""
+        result = fcdg.generate_specifications_section(BOARD_KEY, _entry_i2c_detailed())
+        assert '    - Internal: BMP388 (barometer), RM3100 (magnetometer)' in result
+
+    def test_i2c_port_label_auto_fill_from_source(self):
+        """port_label in sensor_bus_info auto-fills label when no wizard label is set."""
+        e = _entry_i2c_detailed()
+        del e['i2c_buses_wizard']
+        # Add port_label to the external sensor entry
+        e['sensor_bus_info']['mag'][0]['port_label'] = 'GPS1'
+        result = fcdg.generate_specifications_section(BOARD_KEY, e)
+        # Should use auto-detected label instead of TODO placeholder
+        assert 'GPS1 (I2C1, external): IST8310 (magnetometer) — on GPS connector' in result
+        assert 'TODO: label for I2C bus 1' not in result
+
+
+# ---------------------------------------------------------------------------
+# Specifications section — I2C bus config (detailed) path
+# ---------------------------------------------------------------------------
+
+def _entry_i2c_bus_config():
+    """Entry with i2c_bus_config: buses 1/2/4 external, bus 3 internal."""
+    e = _spec_base_entry()
+    e.update({
+        "num_i2c_buses": 4,
+        "i2c_bus_config": {"external": [1, 2, 4], "internal": [3]},
+        "sensor_bus_info": {
+            "imu":  [],
+            "baro": [{"name": "BMP388", "bus_type": "I2C", "bus_num": None,
+                      "external": False, "port_label": None}],
+            "mag":  [{"name": "IST8310", "bus_type": "I2C", "bus_num": 1,
+                      "external": True, "port_label": None}],
+            "osd":  [],
+            "power_monitor": [{"name": "INA226", "bus_type": "I2C", "bus_num": 2,
+                                "external": True, "port_label": None}],
+        },
+        "i2c_buses_wizard": [
+            {"bus_num": 1, "label": "GPS1"},
+            {"bus_num": 2, "label": "POWER"},
+        ],
+    })
+    return e
+
+
+class TestI2cBusConfigPath:
+    def test_count_line_external_internal_split(self):
+        result = fcdg.generate_specifications_section(BOARD_KEY, _entry_i2c_bus_config())
+        assert '**I2C ports**: 4 (3 external, 1 internal)' in result
+
+    def test_free_external_bus_marked(self):
+        result = fcdg.generate_specifications_section(BOARD_KEY, _entry_i2c_bus_config())
+        assert 'I2C4 (external): free (no sensor detected)' in result
+
+    def test_external_bus_with_sensor_and_gps_note(self):
+        result = fcdg.generate_specifications_section(BOARD_KEY, _entry_i2c_bus_config())
+        assert 'I2C1 (external, GPS1): IST8310 (magnetometer) — on GPS connector' in result
+
+    def test_external_bus_with_power_monitor(self):
+        result = fcdg.generate_specifications_section(BOARD_KEY, _entry_i2c_bus_config())
+        assert 'I2C2 (external, POWER): INA226 (power monitor)' in result
+
+    def test_internal_bus_with_internal_sensor(self):
+        """Single internal bus gets the internal sensor list retrofitted onto it."""
+        result = fcdg.generate_specifications_section(BOARD_KEY, _entry_i2c_bus_config())
+        assert 'I2C3 (internal): BMP388 (barometer)' in result
+
+    def test_fallback_path_unchanged(self):
+        """Entry without i2c_bus_config uses existing format."""
+        result = fcdg.generate_specifications_section(BOARD_KEY, _entry_i2c_detailed())
+        assert '**I2C ports**: 4 (3 internal, 1 external)' in result
+        assert 'GPS1 (I2C1, external): IST8310 (magnetometer) — on GPS connector' in result
+
+    def test_snapshot(self, snapshot):
+        """Full snapshot of i2c_bus_config present path."""
+        result = fcdg.generate_specifications_section(BOARD_KEY, _entry_i2c_bus_config())
+        snapshot("spec_i2c_bus_config.md", result)
 
 
 # ---------------------------------------------------------------------------
@@ -888,7 +1112,7 @@ class TestGenerateSpecSectionVariants:
         result = fcdg.generate_specifications_section(BOARD_KEY, _spec_variant_entry())
         lines = result.splitlines()
         spi_idx = next(i for i, l in enumerate(lines) if '**SPI buses**' in l)
-        subbullets = [l for l in lines[spi_idx+1:] if l.startswith('  -')]
+        subbullets = [l for l in lines[spi_idx+1:] if l.startswith('    -')]
         sub_names = [l.strip('- ').split(' ')[0] for l in subbullets]
         assert 'ICM-42688P' in sub_names    # unconditional IMU
         assert 'MS5611' in sub_names        # unconditional baro
