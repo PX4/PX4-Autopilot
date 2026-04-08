@@ -1,6 +1,6 @@
 ﻿# Holybro SiK Telemetry Radio - Long Range
 
-This Holybro SiK Long Range Telemetry Radio is a small, light, and inexpensive open-source radio platform with an extended range compared to the standard model.
+This Holybro SiK Long Range Telemetry Radio is a small, light, and inexpensive open-source radio platform with an extended range (~20km) compared to the standard model.
 
 This radio is plug-and-play, ready for all Pixhawk Standard and other similar flight controllers, providing the easiest way to set up a telemetry connection between your controller and a ground station.
 It uses open-source firmware that has been specially designed to work well with MAVLink packets and to be integrated with PX4, ArduPilot, Mission Planner and QGroundControl.
@@ -16,9 +16,9 @@ Please purchase the model that is appropriate for your country/region.
 
 ## Features
 
+- 1W maximum RF output and up to 20km range (compared to 100mW/300m for the short range version).
 - Open-source SIK firmware
 - Plug-n-play for Pixhawk Standard Flight Controllers
-- 1W maximum RF output
 - The Easiest way to connect your controller and Ground Station
 - Interchangeable air and ground radio
 - 6-position JST-GH connector
