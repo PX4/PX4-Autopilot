@@ -1,9 +1,11 @@
 # Pre-built SITL Packages
 
 Pre-built packages let you run [PX4 SITL simulation](index.md) without setting up a build environment.
-Install a package or pull a container, set a model, and you have a working autopilot ready to connect to [QGroundControl](https://qgroundcontrol.com), [MAVSDK](https://mavsdk.mavlink.io), or [ROS 2](../ros2/user_guide.md).
 
-For a quick start, see [Try PX4 Simulation](../dev_setup/px4_simulation_quickstart.md).
+This is very useful if you don't need to modify PX4 itself.
+For example, if you want to write drone apps using [MAVSDK](https://mavsdk.mavlink.io) or [ROS 2](../ros2/user_guide.md), or you just want to fly with PX4.
+
+See [PX4 Simulation QuickStart](../dev_setup/px4_simulation_quickstart.md) for a one-line instruction to run the packages in a container.
 
 ## What's Available
 
@@ -264,7 +266,7 @@ PX4_SIM_MODEL=sihsim_quadx px4 -d
 $XDG_DATA_HOME/px4/rootfs/<instance>/   # parameters, dataman, eeprom
 ```
 
-## Building Locally
+## Building .deb Files Locally
 
 To build `.deb` files locally (e.g. to package a custom PX4 branch):
 
