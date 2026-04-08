@@ -50,6 +50,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Use AWS regional apt mirror
+        if: startsWith(runner.name, 'runs-on--')
         run: ./Tools/ci/use_aws_apt_mirror.sh
 
       - name: Install Deps, Build, and Make Quick Check

@@ -99,6 +99,7 @@ jobs:
           fetch-tags: true
 
       - name: Use AWS regional apt mirror
+        if: startsWith(runner.name, 'runs-on--')
         run: ./Tools/ci/use_aws_apt_mirror.sh
 
       - name: Cache apt packages
