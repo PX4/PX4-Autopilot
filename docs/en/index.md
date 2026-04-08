@@ -23,7 +23,7 @@ Documented changes since the stable release are captured in the evolving [releas
 
 ## Try PX4
 
-No hardware needed. Run PX4 in simulation with a single command using [Docker or a .deb package](dev_setup/try_px4.md). Connect [QGroundControl](https://qgroundcontrol.com), [MAVSDK](https://mavsdk.mavlink.io/), or [ROS 2](ros2/index.md) and start flying immediately.
+No hardware needed. Run PX4 in simulation with a single command using [Docker or a .deb package](dev_setup/px4_simulation_quickstart.md). Connect [QGroundControl](https://qgroundcontrol.com), [MAVSDK](https://mavsdk.mavlink.io/), or [ROS 2](ros2/index.md) and start flying immediately.
 
 ## For Developers
 

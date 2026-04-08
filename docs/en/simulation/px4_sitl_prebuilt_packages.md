@@ -3,7 +3,7 @@
 Pre-built packages let you run [PX4 SITL simulation](index.md) without setting up a build environment.
 Install a package or pull a container, set a model, and you have a working autopilot ready to connect to [QGroundControl](https://qgroundcontrol.com), [MAVSDK](https://mavsdk.mavlink.io), or [ROS 2](../ros2/user_guide.md).
 
-For a quick start, see [Try PX4 Simulation](../dev_setup/try_px4.md).
+For a quick start, see [Try PX4 Simulation](../dev_setup/px4_simulation_quickstart.md).
 
 ## What's Available
 

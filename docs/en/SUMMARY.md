@@ -437,8 +437,8 @@
 
 - [Development](development/development.md)
   - [Getting Started](dev_setup/getting_started.md)
+    - [Try PX4 (Simulation)](dev_setup/px4_simulation_quickstart.md)
     - [Recommended Hardware/Setup](dev_setup/config_initial.md)
-    - [Try PX4 Simulation](dev_setup/try_px4.md)
     - [Toolchain Installation](dev_setup/dev_env.md)
       - [Ubuntu Setup](dev_setup/dev_env_linux_ubuntu.md)
       - [Windows Setup](dev_setup/dev_env_windows_wsl.md)
@@ -474,7 +474,7 @@
       - [Worlds](sim_gazebo_classic/worlds.md)
       - [Multi-Vehicle Sim](sim_gazebo_classic/multi_vehicle_simulation.md)
     - [Simulate Failsafes](simulation/failsafes.md)
-    - [Pre-built Packages](simulation/px4_sitl.md)
+    - [Pre-built Packages](simulation/px4_sitl_prebuilt_packages.md)
   - [Hardware](hardware/index.md)
     - [Flight Controller Reference Design](hardware/reference_design.md)
     - [Manufacturer’s Board Support Guide](hardware/board_support_guide.md)

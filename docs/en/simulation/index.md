@@ -33,7 +33,7 @@ See [PX4-Autopilot#23602](https://github.com/PX4/PX4-Autopilot/issues/23602) for
 There are also a number of [Community Supported Simulators](../simulation/community_supported_simulators.md).
 
 :::tip
-To run PX4 SITL without setting up a build environment, [pre-built packages and containers](px4_sitl.md) are available.
+To run PX4 SITL without setting up a build environment, [pre-built packages and containers](px4_sitl_prebuilt_packages.md) are available.
 :::
 
 ### Simulator Comparison

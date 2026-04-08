@@ -2,7 +2,7 @@
 
 ::: tip
 You only need a toolchain if you want to **modify and build** PX4 from source.
-If you just want to run PX4 simulation without changing the code, use a pre-built [Docker container or .deb package](try_px4.md) instead.
+If you just want to run PX4 simulation without changing the code, use a pre-built [Docker container or .deb package](px4_simulation_quickstart.md) instead.
 :::
 
 The _supported platforms_ for PX4 development are:
