@@ -48,10 +48,8 @@ Once accepted every maintainers will go through the following process:
    2. Permission to trigger GitHub actions when a new contributor opens a PR.
    3. Permission to edit Issue/PR contents.
 3. **Add your info to official PX4 channels**:
-   1. Add your information to [`MAINTAINERS.md`](https://github.com/PX4/PX4-Autopilot/blob/main/MAINTAINERS.md) in the PX4-Autopilot repository (under the **Code Owners** table with your category, or the **Reviewers** table if you are joining as a Reviewer)
-   2. Listed on the [Maintainers section](https://px4.io/community/maintainers/) of the PX4 website.
-   3. Add your information to the internal Dronecode database of maintainers to keep you in sync.
-   4. Community introduction to the new maintainer in the form of a forum post, which is promoted through ever growing official channels
+   1. Add your information to the internal Dronecode database of maintainers to keep you in sync.
+   2. Community introduction to the new maintainer in the form of a forum post, which is promoted through ever growing official channels
 
 ## Dronecode Maintainer Role Description
 
