@@ -26,6 +26,16 @@ If you would like to join the PX4 maintainers team or if you want to nominate so
 
 A Reviewer may later transition to a Code Owner role for a specific category. This requires agreement from the existing Code Owners of that category and sign-off from the maintainer team, following the same discussion and vote on the weekly developer call.
 
+### Adding a new maintainer
+
+Once the maintainer team has agreed to add a new maintainer, the change is landed via a pull request to [`MAINTAINERS.md`](https://github.com/PX4/PX4-Autopilot/blob/main/MAINTAINERS.md). The process is intentionally simple:
+
+1. A current maintainer opens a PR adding the new maintainer to the appropriate table (**Code Owners** with a category, or **Reviewers**).
+2. The PR must be approved by at least one other current maintainer.
+3. If the new maintainer is being added as a Code Owner or sub-owner of a specific component, the existing Code Owner of that component must be among the approvers.
+
+Once the PR is merged, the new maintainer proceeds through the [Onboarding Process](#onboarding-process) below.
+
 ## Onboarding Process
 
 Once accepted every maintainers will go through the following process:
