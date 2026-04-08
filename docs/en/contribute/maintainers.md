@@ -5,15 +5,26 @@ The maintainer role is defined by the community with help and supervision from t
 
 To find the most up-to-date maintainers list, visit [PX4-Autopilot README](https://github.com/PX4/PX4-Autopilot#maintenance-team).
 
+## Maintainer Types
+
+PX4 recognizes two types of maintainers. Both are full members of the maintainer team, have write access via the [`Dev Team`](https://github.com/orgs/PX4/teams/dev-team) GitHub team, and participate in maintainer decisions.
+
+- **Code Owners** are responsible for a specific category of the project (for example, State Estimation, Multirotor, or CI). They have final say on changes to their area, are the primary reviewers for that code, and help shape its roadmap. This is the role described in detail below.
+- **Reviewers** help maintain PX4 across the project without ownership of a specific category. They review, triage, and contribute wherever their interests and time allow. Reviewers have the same access and voting rights as Code Owners, but no on-call responsibility for any specific area of the codebase.
+
+The Reviewer role is a good fit for contributors who want to help steward the project without committing to a specific component up front. A Reviewer may later become a Code Owner for a category by mutual agreement with the existing Code Owners of that category and sign-off from the maintainer team.
+
 ## Recruitment Process
 
 If you would like to join the PX4 maintainers team or if you want to nominate someone else follow the steps below:
 
 1. Read the [role description](#dronecode-maintainer-role-description), and make sure you understand the responsibilities of the role.
 2. To nominate yourself, reach out to one of the maintainers (see the complete list in the [PX4-Autopilot README](https://github.com/PX4/PX4-Autopilot#maintenance-team)), and seek their sponsorship.
-3. Express your interest in becoming a maintainer, and specify which area you would like to maintain.
+3. Express your interest in becoming a maintainer, and specify whether you are applying as a **Code Owner** (for a specific category) or as a **Reviewer** (helping across the project without a fixed category).
 4. The sponsoring maintainer needs to bring this up for discussion in one of the [weekly developer calls](dev_call.md).
    The maintainer team will vote on the call to determine whether to accept you as a maintainer.
+
+A Reviewer may later transition to a Code Owner role for a specific category. This requires agreement from the existing Code Owners of that category and sign-off from the maintainer team, following the same discussion and vote on the weekly developer call.
 
 ## Onboarding Process
 
@@ -27,12 +38,14 @@ Once accepted every maintainers will go through the following process:
    2. Permission to trigger GitHub actions when a new contributor opens a PR.
    3. Permission to edit Issue/PR contents.
 3. **Add your info to official PX4 channels**:
-   1. Include your information on the PX4 [README](https://github.com/PX4/PX4-Autopilot/blob/main/README.md) next to the rest of the team
+   1. Include your information on the PX4 [README](https://github.com/PX4/PX4-Autopilot/blob/main/README.md) next to the rest of the team (under the **Code Owners** table with your category, or the **Reviewers** table if you are joining as a Reviewer)
    2. Listed on the [Maintainers section](https://px4.io/community/maintainers/) of the PX4 website.
    3. Add your information to the internal Dronecode database of maintainers to keep you in sync.
    4. Community introduction to the new maintainer in the form of a forum post, which is promoted through ever growing official channels
 
 ## Dronecode Maintainer Role Description
+
+The responsibilities and qualifications below describe the **Code Owner** role in detail. **Reviewers** share the same spirit of technical stewardship, community guidance, and participation in maintainer meetings, without being tied to a specific category. Reviewers are expected to review and triage across the project where their expertise and interest apply.
 
 ### Summary
 
