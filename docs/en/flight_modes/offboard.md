@@ -5,7 +5,7 @@
 :::: warning
 
 Offboard control with ROS 2 requires _significant care_ to ensure that it is used safely.
-Please read [ROS 2 Offboard control](#ros-2-offboard-control) carefully to fully understand the risks involved when using it.
+Please read [ROS 2 Offboard Control](#ros-2-offboard-control) carefully to fully understand the risks involved when using it.
 A good understanding of [PX4 controller diagrams](../flight_stack/controller_diagrams.md) is advised.
 
 ::: tip
@@ -24,7 +24,7 @@ PX4 enables switching to offboard control mode only after receiving the signal f
 
 - This mode requires position or pose/attitude information - e.g. GPS, optical flow, visual-inertial odometry, mocap, etc. depending on the type of offboard setpoints that the external controller sends.
 - Manual control is disabled except to change modes (you can also fly without any manual controller at all by setting the parameter [COM_RC_IN_MODE](../advanced_config/parameter_reference.md#COM_RC_IN_MODE) to `4: Disable manual control`).
-- The vehicle must be already be receiving a stream of MAVLink setpoint messages or ROS 2 [OffboardControlMode](../msg_docs/OffboardControlMode.md) messages before arming in offboard mode or switching to offboard mode when flying.
+- The vehicle must already be receiving a stream of MAVLink setpoint messages or ROS 2 [OffboardControlMode](../msg_docs/OffboardControlMode.md) messages before arming in offboard mode or switching to offboard mode when flying.
 - The vehicle will exit offboard mode if MAVLink setpoint messages or `OffboardControlMode` are not received at a rate of > 2Hz.
 - Not all coordinate frames and field values allowed by MAVLink are supported for all setpoint messages and vehicles.
   Read the sections below _carefully_ to ensure only supported values are used.
@@ -62,14 +62,14 @@ In Offboard mode (only), an external system can use [`OffboardControlMode`](#the
 ::: warning
 
 PX4 has no means of filtering and distinguishing ROS 2 messages from internal messages, in any mode.
-In order to interwork safely the external controller must:
+In order to interwork safely, the external controller must:
 
 - Publish PX4 setpoint messages **ONLY** in Offboard mode.
 - Specify which setpoints it will write using the `OffboardControlMode` topic.
 - Stream the `OffboardControlMode` topic as a keep-alive signal.
 - Stream the setpoints it wants: unlike with MAVLink, PX4 won't trigger a failsafe if setpoints aren't sent regularly.
 
-If external setpoints are sent in any other flight mode, or they overwrite topics that not been disabled by PX4 when in offboard mode, collisions are likely.
+If external setpoints are sent in any other flight mode, or they overwrite topics that have not been disabled by PX4 when in offboard mode, collisions are likely.
 This will result in unexpected, and possibly catastrophic, behaviour.
 
 :::
@@ -117,30 +117,30 @@ For example, if the `acceleration` field is the first non-zero value, then PX4 r
 | thrust and torque (FRD)  | ✗              | ✗              | ✗                  | ✗              | ✗               | ✓                       | -                     | none              | [VehicleThrustSetpoint](../msg_docs/VehicleThrustSetpoint.md) and [VehicleTorqueSetpoint](../msg_docs/VehicleTorqueSetpoint.md) |
 | direct motors and servos | ✗              | ✗              | ✗                  | ✗              | ✗               | ✗                       | ✓                     | none              | [ActuatorMotors](../msg_docs/ActuatorMotors.md) and [ActuatorServos](../msg_docs/ActuatorServos.md)                             |
 
-where ✓ means that the bit is set, ✘ means that the bit is not set and `-` means that the bit is value is irrelevant.
+where ✓ means that the bit is set, ✘ means that the bit is not set and `-` means that the bit value is irrelevant.
 
 ::: info
 Before using offboard mode with ROS 2, please spend a few minutes understanding the different [frame conventions](../ros2/user_guide.md#ros-2-px4-frame-conventions) that PX4 and ROS 2 use.
 :::
 
 In the following, the different setpoint messages for the main supported airframes are explained.
-For Fixed Wings offboard control, please refer to the [PX4 ROS 2 Interface Library](../ros2/px4_ros2_interface_lib.md).
+For fixed-wing offboard control, please refer to the [PX4 ROS 2 Interface Library](../ros2/px4_ros2_interface_lib.md).
 
 ### Multicopters
 
 - [px4_msgs::msg::TrajectorySetpoint](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/TrajectorySetpoint.msg)
   - The following input combinations are supported:
     - Position setpoint (`position` different from `NaN`). Non-`NaN` values of velocity and acceleration are used as feedforward terms for the inner loop controllers.
-    - Velocity setpoint (`velocity` different from `NaN` and `position` set to `NaN`). Non-`NaN` values acceleration are used as feedforward terms for the inner loop controllers.
+    - Velocity setpoint (`velocity` different from `NaN` and `position` set to `NaN`). Non-`NaN` values of acceleration are used as feedforward terms for the inner loop controllers.
     - Acceleration setpoint (`acceleration` different from `NaN` and `position` and `velocity` set to `NaN`)
 
   - All values are interpreted in NED (North, East, Down) coordinate system and the units are `[m]`, `[m/s]` and `[m/s^2]` for position, velocity and acceleration, respectively.
 
   ::: warning
 
-  Position, velocity and acceleration control for multicopter are all handled by the `mc_pos_control` module.
+  Position, velocity and acceleration control for multicopters are all handled by the `mc_pos_control` module.
   This module is enabled if any of `position`, `velocity` and `acceleration` fields are set to true.
-  However, only the content of the `TrajectorySetpoint` messages determines which of the three controller shall run.
+  However, only the content of the `TrajectorySetpoint` messages determines which of the three controllers shall run.
 
   This means that even if `OffboardControlMode` messages carry the intention of velocity control (only `velocity` field is set) but non-`NaN` position values are sent in the `TrajectorySetpoint` messages, then PX4 will keep running the position controller.
 
@@ -216,7 +216,7 @@ We recommend using [RoverSteeringSetpoint](../msg_docs/RoverSteeringSetpoint.md)
 #### (Deprecated) Trajectory Setpoint
 
 ::: warning
-The [Rover Setpoints](#rover-setpoints) are a replacement for the [TrajectorySetpoint](../msg_docs/TrajectorySetpoint.md) and we highly recommend using those instead as they have a well defined behavior and offer more flexibility.
+The [Rover Setpoints](#rover-setpoints) are a replacement for the [TrajectorySetpoint](../msg_docs/TrajectorySetpoint.md) and we highly recommend using those instead as they have a well defined behaviour and offer more flexibility.
 :::
 
 The rover modules support the _position_, _velocity_ and _yaw_ fields of the [TrajectorySetpoint](../msg_docs/TrajectorySetpoint.md).
