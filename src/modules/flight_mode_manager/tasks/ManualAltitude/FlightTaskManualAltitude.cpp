@@ -310,6 +310,22 @@ bool FlightTaskManualAltitude::update()
 	_updateConstraintsFromEstimator();
 	_scaleSticks();
 	_updateSetpoints();
+
+	// When altitude estimate is degraded, fall back to velocity-only control
+	if (!_is_altitude_good_for_local_control) {
+		if (_altitude_was_good_for_local_control) {
+		}
+
+		_position_setpoint(2) = NAN;
+		_dist_to_ground_lock = NAN;
+		_altitude_was_good_for_local_control = false;
+
+	} else if (!_altitude_was_good_for_local_control) {
+		// Altitude recovered: reset reference to current position
+		_position_setpoint(2) = _position(2);
+		_altitude_was_good_for_local_control = true;
+	}
+
 	_constraints.want_takeoff = _checkTakeoff();
 	_max_distance_to_ground = INFINITY;
 
