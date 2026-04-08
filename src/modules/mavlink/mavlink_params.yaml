@@ -72,7 +72,7 @@ parameters:
         23: VTOL Tailsitter
       default: 0
       min: 0
-      max: 22
+      max: 23
     MAV_USEHILGPS:
       description:
         short: Use/Accept HIL GPS message even if not in HIL mode

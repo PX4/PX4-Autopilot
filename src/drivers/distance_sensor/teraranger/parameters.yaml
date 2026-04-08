@@ -16,4 +16,4 @@ parameters:
       default: 0
       reboot_required: true
       min: 0
-      max: 3
+      max: 5

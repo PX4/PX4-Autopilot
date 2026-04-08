@@ -49,7 +49,7 @@ parameters:
       default: 0
       reboot_required: true
       min: 0
-      max: 2
+      max: 3
     VOXL_ESC_SDIR1:
       description:
         short: UART ESC ID 1 Spin Direction Flag
