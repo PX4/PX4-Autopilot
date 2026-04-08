@@ -1,6 +1,6 @@
 - [Introduction](index.md)
   - [Basic Concepts](getting_started/px4_basic_concepts.md)
-
+- [Try PX4 (Simulation)](dev_setup/px4_simulation_quickstart.md)
 - [Multicopters](frames_multicopter/index.md)
   - [Features](features_mc/index.md)
     - [Flight Modes](flight_modes_mc/index.md)
@@ -437,7 +437,6 @@
 
 - [Development](development/development.md)
   - [Getting Started](dev_setup/getting_started.md)
-    - [Try PX4 (Simulation)](dev_setup/px4_simulation_quickstart.md)
     - [Recommended Hardware/Setup](dev_setup/config_initial.md)
     - [Toolchain Installation](dev_setup/dev_env.md)
       - [Ubuntu Setup](dev_setup/dev_env_linux_ubuntu.md)

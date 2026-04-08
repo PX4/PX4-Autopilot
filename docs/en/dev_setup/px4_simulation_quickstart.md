@@ -9,7 +9,35 @@ docker run --rm -it -p 14550:14550/udp px4io/px4-sitl:latest
 
 That's it — open [QGroundControl](https://qgroundcontrol.com) and fly.
 
+::: tip
+
+If you want to try out [other vehicle types](../sim_sih/#supported-vehicle-types) you can use `-e` to append the vehicle model as shown:
+
+```sh
+-e PX4_SIM_MODEL=sihsim_airplane # Plane
+-e PX4_SIM_MODEL=sihsim_standard_vtol # Standard VTOL
+-e PX4_SIM_MODEL=sihsim_rover # Ackermann rover
+```
+
 For other vehicle types, environment variables, and configuration, see the full [SIH Simulation](../sim_sih/index.md) guide.
+
+:::
+
+## Now What?
+
+Once PX4 is running, you can try out the following options:
+
+1. **Fly around.**
+   Open [QGroundControl](https://qgroundcontrol.com) — it connects automatically.
+   Arm the vehicle, take off, and explore the flight modes.
+2. **Control it with code.**
+   Use [MAVSDK](https://mavsdk.mavlink.io/) to write a program that commands the vehicle: takeoff, fly a mission, land.
+   This supports many programming languages (it uses the MAVLink protocol for the underlying connection).
+3. **Connect ROS 2.**
+   PX4 publishes vehicle state and accepts commands over [uXRCE-DDS](../ros2/user_guide.md).
+   If ROS 2 is your stack, you can subscribe to topics and send setpoints from ROS nodes.
+4. **Go deeper.**
+   Ready to modify PX4 itself? Head to the next page to set up a development environment and build from source.
 
 ## What This Runs
 
@@ -30,7 +58,7 @@ See the [simulator comparison table](../simulation/index.md#simulator-comparison
 
 ## Native Install (Ubuntu)
 
-On Ubuntu (only) you can alternatively install the PX4 simulation as a native application (instead of using a container running in Docker).
+On Ubuntu (only) you can also install the PX4 simulation as a native application (instead of using a container running in Docker).
 Both lightweight and Gazebo 3D packages are available for Ubuntu 22.04 and 24.04.
 
 Download the desired `.deb` files from the [PX4 Releases](https://github.com/PX4/PX4-Autopilot/releases) page, then install them as shown:
@@ -41,19 +69,3 @@ PX4_SIM_MODEL=sihsim_quadx px4
 ```
 
 For Gazebo packages, multi-instance, ROS 2 integration, and all configuration options, see the [Pre-built SITL Packages](../simulation/px4_sitl_prebuilt_packages.md) guide.
-
-## Now What?
-
-Once PX4 is running, you can try out the following options:
-
-1. **Fly around.**
-   Open [QGroundControl](https://qgroundcontrol.com) — it connects automatically.
-   Arm the vehicle, take off, and explore the flight modes.
-2. **Control it with code.**
-   Use [MAVSDK](https://mavsdk.mavlink.io/) to write a program that commands the vehicle: takeoff, fly a mission, land.
-   This supports many programming languages (it uses the MAVLink protocol for the underlying connection).
-3. **Connect ROS 2.**
-   PX4 publishes vehicle state and accepts commands over [uXRCE-DDS](../ros2/user_guide.md).
-   If ROS 2 is your stack, you can subscribe to topics and send setpoints from ROS nodes.
-4. **Go deeper.**
-   Ready to modify PX4 itself? Head to the next page to set up a development environment and build from source.
