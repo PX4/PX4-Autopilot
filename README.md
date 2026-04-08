@@ -104,6 +104,22 @@ make px4_sitl
 
 We welcome contributions of all kinds — bug reports, documentation, new features, and code reviews. Please read the [Contribution Guide](https://docs.px4.io/main/en/contribute/) to get started.
 
+## Citation
+
+If you use PX4 in academic work, please cite it. BibTeX:
+
+```bibtex
+@software{px4_autopilot,
+  author    = {Meier, Lorenz and {The PX4 Contributors}},
+  title     = {{PX4 Autopilot}},
+  publisher = {Zenodo},
+  doi       = {10.5281/zenodo.595432},
+  url       = {https://px4.io}
+}
+```
+
+The DOI above is a Zenodo concept DOI that always resolves to the latest release. For a version-pinned citation, see the [Zenodo record](https://doi.org/10.5281/zenodo.595432) or our [`CITATION.cff`](CITATION.cff).
+
 ## Governance
 
 The PX4 Autopilot project is hosted by the [Dronecode Foundation](https://www.dronecode.org/), a [Linux Foundation](https://www.linuxfoundation.org/) Collaborative Project. Dronecode holds all PX4 trademarks and serves as the project's legal guardian, ensuring vendor-neutral stewardship — no single company owns the name or controls the roadmap. The source code is licensed under the [BSD 3-Clause](LICENSE) license, so you are free to use, modify, and distribute it in your own projects.
