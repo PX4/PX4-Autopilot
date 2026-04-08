@@ -42,7 +42,7 @@ Once accepted every maintainers will go through the following process:
 
 1. **Discord** server admin will grant you the `dev team` role, which gives you:
    1. Basic admin privileges on discord.
-   2. Access to the `#maintainers` channel.
+   2. Access to the private `#maintainers` channel for internal maintainer discussion.
 2. You will be given access to the GitHub team: "[`Dev Team`](https://github.com/orgs/PX4/teams/dev-team)" which grants you:
    1. Permission to merge the PR of any of PX4 workspace repositories after it's approved
    2. Permission to trigger GitHub actions when a new contributor opens a PR.
