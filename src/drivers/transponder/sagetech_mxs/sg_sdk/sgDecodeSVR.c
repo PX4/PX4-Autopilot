@@ -89,6 +89,7 @@ bool sgDecodeSVR(uint8_t *buffer, size_t len, sg_svr_t *svr)
 
 	if (fields[0] & SV_PARAM_LATLON) {
 		NEED(6);
+
 		if (svr->validity.position) {
 			svr->lat = toLatLon(&buffer[PBASE + ofs + 0]);
 			svr->lon = toLatLon(&buffer[PBASE + ofs + 3]);
@@ -104,6 +105,7 @@ bool sgDecodeSVR(uint8_t *buffer, size_t len, sg_svr_t *svr)
 	if (svr->type == svrAirborne) {
 		if (fields[1] & SV_PARAM_GEOALT) {
 			NEED(3);
+
 			if (svr->validity.geoAlt) {
 				svr->airborne.geoAlt = toAlt(&buffer[PBASE + ofs]);
 
@@ -116,6 +118,7 @@ bool sgDecodeSVR(uint8_t *buffer, size_t len, sg_svr_t *svr)
 
 		if (fields[1] & SV_PARAM_VEL) {
 			NEED(4);
+
 			if (svr->validity.airSpeed) {
 				int16_t nvel = toVel(&buffer[PBASE + ofs + 0]);
 				int16_t evel = toVel(&buffer[PBASE + ofs + 2]);
@@ -137,6 +140,7 @@ bool sgDecodeSVR(uint8_t *buffer, size_t len, sg_svr_t *svr)
 
 		if (fields[1] & SV_PARAM_BAROALT) {
 			NEED(3);
+
 			if (svr->validity.baroAlt) {
 				svr->airborne.baroAlt = toAlt(&buffer[PBASE + ofs]);
 
@@ -149,6 +153,7 @@ bool sgDecodeSVR(uint8_t *buffer, size_t len, sg_svr_t *svr)
 
 		if (fields[1] & SV_PARAM_VRATE) {
 			NEED(2);
+
 			if (svr->validity.baroVRate || svr->validity.geoVRate) {
 				svr->airborne.vrate = toInt16(&buffer[PBASE + ofs]);
 
@@ -162,6 +167,7 @@ bool sgDecodeSVR(uint8_t *buffer, size_t len, sg_svr_t *svr)
 	} else {
 		if (fields[1] & SV_PARAM_SURF_GS) {
 			NEED(1);
+
 			if (svr->validity.surfSpeed) {
 				svr->surface.speed = toGS(&buffer[PBASE + ofs]);
 
@@ -174,6 +180,7 @@ bool sgDecodeSVR(uint8_t *buffer, size_t len, sg_svr_t *svr)
 
 		if (fields[1] & SV_PARAM_SURF_HEAD) {
 			NEED(1);
+
 			if (svr->validity.surfHeading) {
 				svr->surface.heading = toHeading(&buffer[PBASE + ofs]);
 
@@ -194,6 +201,7 @@ bool sgDecodeSVR(uint8_t *buffer, size_t len, sg_svr_t *svr)
 
 	if (fields[1] & SV_PARAM_ESTLAT) {
 		NEED(3);
+
 		if (svr->evalidity.estPosition) {
 			svr->airborne.estLat = toLatLon(&buffer[PBASE + ofs]);
 
@@ -206,6 +214,7 @@ bool sgDecodeSVR(uint8_t *buffer, size_t len, sg_svr_t *svr)
 
 	if (fields[2] & SV_PARAM_ESTLON) {
 		NEED(3);
+
 		if (svr->evalidity.estPosition) {
 			svr->airborne.estLon = toLatLon(&buffer[PBASE + ofs]);
 
