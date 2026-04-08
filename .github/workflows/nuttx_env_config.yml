@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
 
     container:
-      image: px4io/px4-dev:v1.16.0-rc1-258-g0369abd556
+      image: ghcr.io/px4/px4-dev:v1.17.0-rc2
 
     strategy:
       matrix:
@@ -36,7 +36,7 @@ jobs:
       - name: Build PX4 and Run Test [${{ matrix.config }}]
         run: |
           cd "$GITHUB_WORKSPACE"
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git config --system --add safe.directory '*'
           export PX4_EXTRA_NUTTX_CONFIG='CONFIG_NSH_LOGIN_PASSWORD="test";CONFIG_NSH_CONSOLE_LOGIN=y'
           echo "PX4_EXTRA_NUTTX_CONFIG: $PX4_EXTRA_NUTTX_CONFIG"
 

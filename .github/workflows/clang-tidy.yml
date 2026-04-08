@@ -20,7 +20,7 @@ jobs:
     name: Clang-Tidy
     runs-on: [runs-on, runner=16cpu-linux-x64, "run-id=${{ github.run_id }}", "extras=s3-cache"]
     container:
-      image: px4io/px4-dev:v1.17.0-beta1
+      image: ghcr.io/px4/px4-dev:v1.17.0-rc2
     steps:
     - uses: runs-on/action@v2
     - uses: actions/checkout@v4
