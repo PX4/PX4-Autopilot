@@ -59,7 +59,7 @@ FLARM has an on-board DF-13 6 Pin connector that has an identical pinout to the 
 The TX and RX on the flight controller must be connected to the RX and TX on the FLARM, respectively.
 :::
 
-## Software Configuration
+## PX4 Configuration
 
 ### Port Configuration
 
