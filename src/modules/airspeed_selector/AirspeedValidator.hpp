@@ -145,9 +145,9 @@ private:
 	static constexpr int SCALE_CHECK_SAMPLES = 12; ///< take samples from 12 segments (every 360/12=30°)
 
 	static constexpr float kHighThrottleDelta =
-		0.05f; ///<  throttle delta above trim throttle required to consider throttle high
+		0.07f; ///<  throttle delta above trim throttle required to consider throttle high
 	static constexpr float kIASDerivateThreshold =
-		0.1f; ///< threshold for IAS derivative to detect airspeed failure. Failure is
+		0.07f; ///< threshold for IAS derivative to detect airspeed failure. Failure is
 	// detected if in a high throttle and low pitch situation and the filtered IAS derivative is below this threshold
 
 	// general states
