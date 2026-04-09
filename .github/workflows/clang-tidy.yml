@@ -61,7 +61,10 @@ jobs:
       if: always() && github.event_name == 'pull_request'
       run: |
         mkdir -p pr-review
-        git diff -U0 origin/${{ github.base_ref }}...HEAD \
+        # Exclude msg/translation_node: it is a standalone ROS 2 package that
+        # depends on px4_msgs_old, which is not installed in the SITL clang-tidy
+        # environment.  It has its own CI via ros_translation_node.yml.
+        git diff -U0 origin/${{ github.base_ref }}...HEAD -- ':!msg/translation_node' \
           | clang-tidy-diff-18.py -p1 \
               -path build/px4_sitl_default-clang \
               -export-fixes pr-review/fixes.yml \

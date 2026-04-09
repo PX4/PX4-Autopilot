@@ -27,6 +27,7 @@ EXCLUDE_EXTRA = '|'.join([
     'src/drivers/gpio',
     r'src/modules/commander/failsafe/emscripten',
     r'failsafe_test\.dir',
+    'msg/translation_node',  # separate ROS 2 package; depends on px4_msgs_old not available in SITL build
 ])
 
 
