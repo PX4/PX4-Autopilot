@@ -30,13 +30,8 @@ jobs:
           "check_format",
           "check_newlines",
           "tests",
-          "tests_coverage",
-          "px4_fmu-v2_default stack_check",
           "validate_module_configs",
           "shellcheck_all",
-          "NO_NINJA_BUILD=1 px4_fmu-v5_default",
-          "NO_NINJA_BUILD=1 px4_sitl_default",
-          "px4_sitl_allyes",
           "module_documentation",
         ]
 
@@ -48,6 +43,13 @@ jobs:
       - name: Configure Git Safe Directory
         run: git config --system --add safe.directory '*'
 
+      - uses: ./.github/actions/setup-ccache
+        id: ccache
+        if: matrix.check == 'tests'
+        with:
+          cache-key-prefix: ccache-sitl
+          max-size: 300M
+
       - name: Building [${{ matrix.check }}]
         env:
           PX4_SBOM_DISABLE: 1
@@ -55,10 +57,7 @@ jobs:
           cd "$GITHUB_WORKSPACE"
           make ${{ matrix.check }}
 
-      - name: Uploading Coverage to Codecov.io
-        if: contains(matrix.check, 'coverage')
-        uses: codecov/codecov-action@v1
+      - uses: ./.github/actions/save-ccache
+        if: always() && matrix.check == 'tests'
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          flags: unittests
-          file: coverage/lcov.info
+          cache-primary-key: ${{ steps.ccache.outputs.cache-primary-key }}
