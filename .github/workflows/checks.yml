@@ -24,7 +24,7 @@ jobs:
       image: ghcr.io/px4/px4-dev:v1.17.0-rc2
 
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         check: [
           "check_format",
@@ -43,14 +43,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
+
+      - name: Configure Git Safe Directory
+        run: git config --system --add safe.directory '*'
 
       - name: Building [${{ matrix.check }}]
         env:
           PX4_SBOM_DISABLE: 1
         run: |
           cd "$GITHUB_WORKSPACE"
-          git config --system --add safe.directory '*'
           make ${{ matrix.check }}
 
       - name: Uploading Coverage to Codecov.io
