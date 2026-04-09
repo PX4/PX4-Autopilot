@@ -40,7 +40,7 @@ name: PR Comment Poster
 #      manifest and body itself, NOT copied fork-controlled content into
 #      them. Producer workflows are responsible for that.
 #
-#   6. `actions/checkout@v4` below uses NO ref (so it pulls the base branch,
+#   6. `actions/checkout@v6` below uses NO ref (so it pulls the base branch,
 #      the default-branch commit this workflow file was loaded from) AND uses
 #      sparse-checkout to materialize ONLY Tools/ci/pr-comment-poster.py and
 #      its stdlib-only helper module Tools/ci/_github_helpers.py. The rest of
@@ -95,11 +95,11 @@ jobs:
     if: github.event.workflow_run.conclusion != 'cancelled'
     steps:
       # Checkout runs first so the poster script is available AND so that
-      # actions/checkout@v4's default clean step does not delete the artifact
+      # actions/checkout@v6's default clean step does not delete the artifact
       # zip that the next step writes into the workspace. Sparse-checkout
       # restricts the materialized tree to just the poster script.
       - name: Checkout poster script only
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           sparse-checkout: |
             Tools/ci/pr-comment-poster.py
@@ -108,7 +108,7 @@ jobs:
 
       - name: Download pr-comment artifact
         id: download
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const artifacts = await github.rest.actions.listWorkflowRunArtifacts({

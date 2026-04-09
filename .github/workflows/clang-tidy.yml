@@ -26,7 +26,7 @@ jobs:
       pull-requests: read
     steps:
     - uses: runs-on/action@v2
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         fetch-depth: 0
         fetch-tags: true
@@ -83,7 +83,7 @@ jobs:
 
     - name: Upload pr-review artifact
       if: always() && github.event_name == 'pull_request'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: pr-review
         path: |
