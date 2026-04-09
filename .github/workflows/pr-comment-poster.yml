@@ -42,10 +42,11 @@ name: PR Comment Poster
 #
 #   6. `actions/checkout@v4` below uses NO ref (so it pulls the base branch,
 #      the default-branch commit this workflow file was loaded from) AND uses
-#      sparse-checkout to materialize ONLY Tools/ci/pr-comment-poster.py. The
-#      rest of the repo never touches the workspace. This is safe: the only
-#      file the job executes is a base-repo Python script that was reviewed
-#      through normal code review, never anything from the PR.
+#      sparse-checkout to materialize ONLY Tools/ci/pr-comment-poster.py and
+#      its stdlib-only helper module Tools/ci/_github_helpers.py. The rest of
+#      the repo never touches the workspace. This is safe: the only files the
+#      job executes are base-repo Python scripts that were reviewed through
+#      normal code review, never anything from the PR.
 #
 # ==============================================================================
 # ARTIFACT CONTRACT
@@ -102,6 +103,7 @@ jobs:
         with:
           sparse-checkout: |
             Tools/ci/pr-comment-poster.py
+            Tools/ci/_github_helpers.py
           sparse-checkout-cone-mode: false
 
       - name: Download pr-comment artifact

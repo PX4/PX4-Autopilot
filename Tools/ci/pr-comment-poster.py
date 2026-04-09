@@ -37,9 +37,9 @@ import argparse
 import json
 import os
 import sys
-import typing
-import urllib.error
-import urllib.request
+
+import _github_helpers
+from _github_helpers import fail as _fail
 
 
 # GitHub hard limit is 65535 bytes. Cap well under to leave headroom for
@@ -53,18 +53,12 @@ MARKER_MAX_LEN = 200
 
 ACCEPTED_MODES = ('upsert',)
 
-GITHUB_API = 'https://api.github.com'
 USER_AGENT = 'px4-pr-comment-poster'
 
 
 # ---------------------------------------------------------------------------
 # Validation
 # ---------------------------------------------------------------------------
-
-def _fail(msg: str) -> typing.NoReturn:
-    print('error: {}'.format(msg), file=sys.stderr)
-    sys.exit(1)
-
 
 def _is_printable_ascii(s):
     # Space (0x20) through tilde (0x7E) inclusive.
@@ -162,120 +156,10 @@ def validate_manifest(directory):
 
 
 # ---------------------------------------------------------------------------
-# GitHub HTTP helpers
-# ---------------------------------------------------------------------------
-
-def _github_request(method, url, token, json_body=None):
-    """Perform a single GitHub REST request.
-
-    Returns a tuple (parsed_json_or_none, headers_dict). Raises RuntimeError
-    with the server response body on HTTP errors so CI logs show what
-    GitHub complained about.
-    """
-    data = None
-    headers = {
-        'Authorization': 'Bearer {}'.format(token),
-        'Accept': 'application/vnd.github+json',
-        # Pin the API version so GitHub deprecations don't silently change
-        # the response shape under us.
-        'X-GitHub-Api-Version': '2022-11-28',
-        'User-Agent': USER_AGENT,
-    }
-    if json_body is not None:
-        data = json.dumps(json_body).encode('utf-8')
-        headers['Content-Type'] = 'application/json; charset=utf-8'
-
-    req = urllib.request.Request(url, data=data, method=method, headers=headers)
-    try:
-        with urllib.request.urlopen(req) as resp:
-            raw = resp.read()
-            # HTTPMessage is case-insensitive on lookup but its items() preserves
-            # the original case. GitHub sends "Link" with a capital L, which is
-            # what _parse_next_link expects.
-            resp_headers = dict(resp.headers.items())
-            if not raw:
-                return None, resp_headers
-            return json.loads(raw.decode('utf-8')), resp_headers
-    except urllib.error.HTTPError as e:
-        # GitHub error bodies are JSON with a "message" field and often a
-        # "documentation_url". Dump the raw body into the exception so the CI
-        # log shows exactly what the API objected to. A bare "HTTP 422"
-        # tells us nothing useful.
-        try:
-            err_body = e.read().decode('utf-8', errors='replace')
-        except Exception:
-            err_body = '(no body)'
-        raise RuntimeError(
-            'GitHub API {} {} failed: HTTP {} {}\n{}'.format(
-                method, url, e.code, e.reason, err_body))
-    except urllib.error.URLError as e:
-        # Network layer failure (DNS, TLS, connection reset). No HTTP response
-        # to parse; just surface the transport reason.
-        raise RuntimeError(
-            'GitHub API {} {} failed: {}'.format(method, url, e.reason))
-
-
-def _parse_next_link(link_header):
-    """Return the URL for rel="next" from an RFC 5988 Link header, or None.
-
-    The Link header is comma-separated entries of the form:
-      <https://...?page=2>; rel="next", <https://...?page=5>; rel="last"
-    We walk each entry and return the URL of the one whose rel attribute is
-    "next". Accept single-quoted rel values for robustness even though GitHub
-    always emits double quotes.
-    """
-    if not link_header:
-        return None
-    for part in link_header.split(','):
-        segs = part.strip().split(';')
-        if len(segs) < 2:
-            continue
-        url_seg = segs[0].strip()
-        if not (url_seg.startswith('<') and url_seg.endswith('>')):
-            continue
-        url = url_seg[1:-1]
-        for attr in segs[1:]:
-            attr = attr.strip()
-            if attr == 'rel="next"' or attr == "rel='next'":
-                return url
-    return None
-
-
-def github_api(method, path, token, json_body=None):
-    """GET/POST/PATCH a single GitHub API path. Non-paginated."""
-    url = '{}/{}'.format(GITHUB_API.rstrip('/'), path.lstrip('/'))
-    body, _ = _github_request(method, url, token, json_body=json_body)
-    return body
-
-
-def github_api_paginated(path, token):
-    """GET a GitHub API path and follow rel="next" Link headers.
-
-    Yields items from each page's JSON array.
-    """
-    url = '{}/{}'.format(GITHUB_API.rstrip('/'), path.lstrip('/'))
-    # GitHub defaults to per_page=30. Bump to 100 (the max) so a PR with a
-    # few hundred comments fetches in 3 or 4 round-trips instead of 10+.
-    sep = '&' if '?' in url else '?'
-    url = '{}{}per_page=100'.format(url, sep)
-    while url is not None:
-        body, headers = _github_request('GET', url, token)
-        if body is None:
-            return
-        if not isinstance(body, list):
-            raise RuntimeError(
-                'expected JSON array from {}, got {}'.format(
-                    url, type(body).__name__))
-        for item in body:
-            yield item
-        url = _parse_next_link(headers.get('Link'))
-
-
-# ---------------------------------------------------------------------------
 # Comment upsert
 # ---------------------------------------------------------------------------
 
-def find_existing_comment_id(token, repo, pr_number, marker):
+def find_existing_comment_id(client, repo, pr_number, marker):
     """Return the id of the first PR comment whose body contains marker, or None.
 
     PR comments are issue comments in GitHub's data model, so we hit
@@ -286,7 +170,7 @@ def find_existing_comment_id(token, repo, pr_number, marker):
     appear in user-written prose.
     """
     path = 'repos/{}/issues/{}/comments'.format(repo, pr_number)
-    for comment in github_api_paginated(path, token):
+    for comment in client.paginated(path):
         body = comment.get('body') or ''
         if marker in body:
             return comment.get('id')
@@ -308,24 +192,22 @@ def build_final_body(body, marker):
     return '{}\n\n{}\n'.format(body.rstrip('\n'), marker)
 
 
-def upsert_comment(token, repo, pr_number, marker, body):
+def upsert_comment(client, repo, pr_number, marker, body):
     final_body = build_final_body(body, marker)
-    existing_id = find_existing_comment_id(token, repo, pr_number, marker)
+    existing_id = find_existing_comment_id(client, repo, pr_number, marker)
 
     if existing_id is not None:
         print('Updating comment {} on PR #{}'.format(existing_id, pr_number))
-        github_api(
+        client.request(
             'PATCH',
             'repos/{}/issues/comments/{}'.format(repo, existing_id),
-            token,
             json_body={'body': final_body},
         )
     else:
         print('Creating new comment on PR #{}'.format(pr_number))
-        github_api(
+        client.request(
             'POST',
             'repos/{}/issues/{}/comments'.format(repo, pr_number),
-            token,
             json_body={'body': final_body},
         )
 
@@ -364,8 +246,9 @@ def cmd_post(args):
         _fail('GITHUB_REPOSITORY must be "owner/name", got {!r}'.format(repo))
 
     try:
+        client = _github_helpers.GitHubClient(token, user_agent=USER_AGENT)
         upsert_comment(
-            token=token,
+            client=client,
             repo=repo,
             pr_number=result['pr_number'],
             marker=result['marker'],
