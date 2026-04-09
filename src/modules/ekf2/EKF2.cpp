@@ -825,9 +825,9 @@ void EKF2::Run()
 		if (_ekf.update()) {
 			perf_set_elapsed(_ekf_update_perf, hrt_elapsed_time(&ekf_update_start));
 
-			const Vector3f vel_deriv{_ekf.getVelocityDerivative()};
-			PublishLocalPosition(now, vel_deriv);
-			PublishOdometry(now, imu_sample_new, vel_deriv);
+			_vel_deriv = _ekf.getVelocityDerivative();
+			PublishLocalPosition(now);
+			PublishOdometry(now, imu_sample_new);
 			_ekf.resetVelocityDerivativeAccumulation();
 			PublishGlobalPosition(now);
 			PublishSensorBias(now);
@@ -1691,7 +1691,7 @@ void EKF2::PublishInnovationVariances(const hrt_abstime &timestamp)
 	_estimator_innovation_variances_pub.publish(variances);
 }
 
-void EKF2::PublishLocalPosition(const hrt_abstime &timestamp, const Vector3f &vel_deriv)
+void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 {
 	vehicle_local_position_s lpos{};
 	// generate vehicle local position data
@@ -1713,9 +1713,9 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp, const Vector3f &ve
 	lpos.z_deriv = _ekf.getVerticalPositionDerivative();
 
 	// Acceleration of body origin in local frame
-	lpos.ax = vel_deriv(0);
-	lpos.ay = vel_deriv(1);
-	lpos.az = vel_deriv(2);
+	lpos.ax = _vel_deriv(0);
+	lpos.ay = _vel_deriv(1);
+	lpos.az = _vel_deriv(2);
 
 	lpos.xy_valid = _ekf.isLocalHorizontalPositionValid();
 	lpos.v_xy_valid = _ekf.isLocalHorizontalPositionValid();
@@ -1812,7 +1812,7 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp, const Vector3f &ve
 	_local_position_pub.publish(lpos);
 }
 
-void EKF2::PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu_sample, const Vector3f &vel_deriv)
+void EKF2::PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu_sample)
 {
 	// generate vehicle odometry data
 	vehicle_odometry_s odom;
@@ -1830,7 +1830,7 @@ void EKF2::PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu_sa
 	_ekf.getVelocity().copyTo(odom.velocity);
 
 	// acceleration
-	vel_deriv.copyTo(odom.acceleration);
+	_vel_deriv.copyTo(odom.acceleration);
 
 	// angular_velocity
 	_ekf.getAngularVelocityAndResetAccumulator().copyTo(odom.angular_velocity);

@@ -193,8 +193,8 @@ private:
 	void PublishInnovations(const hrt_abstime &timestamp);
 	void PublishInnovationTestRatios(const hrt_abstime &timestamp);
 	void PublishInnovationVariances(const hrt_abstime &timestamp);
-	void PublishLocalPosition(const hrt_abstime &timestamp, const matrix::Vector3f &vel_deriv);
-	void PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu_sample, const matrix::Vector3f &vel_deriv);
+	void PublishLocalPosition(const hrt_abstime &timestamp);
+	void PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu_sample);
 	void PublishSensorBias(const hrt_abstime &timestamp);
 	void PublishStates(const hrt_abstime &timestamp);
 	void PublishStatus(const hrt_abstime &timestamp);
@@ -301,6 +301,8 @@ private:
 
 	Vector3f _last_accel_bias_published{};
 	Vector3f _last_gyro_bias_published{};
+
+	Vector3f _vel_deriv{}; ///< NED velocity derivative (acceleration), shared between PublishLocalPosition and PublishOdometry
 
 	hrt_abstime _last_sensor_bias_published{0};
 
