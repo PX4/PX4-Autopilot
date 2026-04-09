@@ -39,10 +39,10 @@ jobs:
       - name: Check for issues
         id: check
         run: |
-          if grep -q "NOASSERTION" /tmp/sbom-verify.txt; then
+          if grep -q "<-- UNRESOLVED" /tmp/sbom-verify.txt; then
             echo "has_issues=true" >> "$GITHUB_OUTPUT"
-            # Extract NOASSERTION lines
-            grep "NOASSERTION" /tmp/sbom-verify.txt | grep -v "skipped" > /tmp/sbom-issues.txt || true
+            # Extract only genuinely unresolved license lines
+            grep "<-- UNRESOLVED" /tmp/sbom-verify.txt > /tmp/sbom-issues.txt || true
             # Extract copyleft lines
             sed -n '/Copyleft licenses detected/,/^$/p' /tmp/sbom-verify.txt > /tmp/sbom-copyleft.txt || true
           else

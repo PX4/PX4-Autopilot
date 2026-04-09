@@ -127,7 +127,7 @@ Configure the emitter type of the vehicle.
 
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; | 0        | 15       |           | 14      |      |
+| &check; | 0        | 19       |           | 14      |      |
 
 ### ADSB_GPS_OFF_LAT (`INT32`) {#ADSB_GPS_OFF_LAT}
 
@@ -17716,9 +17716,9 @@ Negative values are ignored and will cause the measured current to be used.
 The default value of 0 disables the overwrite, in which case the measured value
 is always used.
 
-| Reboot  | minValue | maxValue | increment | default | unit |
-| ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; |          |          |           | 0       |      |
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |      |
 
 ### BAT1_N_CELLS (`INT32`) {#BAT1_N_CELLS}
 
@@ -17894,9 +17894,9 @@ Negative values are ignored and will cause the measured current to be used.
 The default value of 0 disables the overwrite, in which case the measured value
 is always used.
 
-| Reboot  | minValue | maxValue | increment | default | unit |
-| ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; |          |          |           | 0       |      |
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |      |
 
 ### BAT2_N_CELLS (`INT32`) {#BAT2_N_CELLS}
 
@@ -18035,6 +18035,22 @@ Defines the capacity of battery 3 in mAh.
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; | -1.0     | 100000   | 50        | -1.0    | mAh  |
+
+### BAT3_I_OVERWRITE (`FLOAT`) {#BAT3_I_OVERWRITE}
+
+Battery 3 idle current overwrite.
+
+This parameter allows to overwrite the current measured during
+idle (unarmed) state with a user-defined constant value (expressed in amperes).
+When the system is armed, the measured current is used. This is useful
+because on certain ESCs current measurements are inaccurate in case of no load.
+Negative values are ignored and will cause the measured current to be used.
+The default value of 0 disables the overwrite, in which case the measured value
+is always used.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |      |
 
 ### BAT3_N_CELLS (`INT32`) {#BAT3_N_CELLS}
 
@@ -18482,7 +18498,7 @@ parameters.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 3        |           | 0       |      |
+| &nbsp; | 0        | 4        |           | 0       |      |
 
 ### COM_ARMABLE (`INT32`) {#COM_ARMABLE}
 
@@ -21790,6 +21806,32 @@ EKF2 selector maximum accumulated velocity threshold for comparing accelerometer
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; |          |          |           | 2.0     | m/s  |
 
+### EKF2_SENS_EN (`INT32`) {#EKF2_SENS_EN}
+
+Sensor fusion enable bitmask.
+
+Bitmask to control which sensor fusion sources are enabled. Sources whose bit is cleared will be disabled. Only applied while disarmed. For in-flight changes use the MAVLink command VEHICLE_CMD_ESTIMATOR_SENSOR_ENABLE or the individual CTRL params (e.g. EKF2_GPS_CTRL, EKF2_BARO_CTRL).
+
+**Bitmask:**
+
+- `0`: GNSS 0
+- `1`: GNSS 1
+- `2`: Optical flow
+- `3`: External vision
+- `4`: Aux global position 0
+- `5`: Aux global position 1
+- `6`: Aux global position 2
+- `7`: Aux global position 3
+- `8`: Barometer
+- `9`: Range finder
+- `10`: Magnetometer
+- `11`: Airspeed
+- `12`: Ranging beacon
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 8191     |           | 8191    |      |
+
 ### EKF2_SYNT_MAG_Z (`INT32`) {#EKF2_SYNT_MAG_Z}
 
 Enable synthetic magnetometer Z component measurement.
@@ -23104,6 +23146,26 @@ This increment is added to TRIM_YAW when airspeed is FW_AIRSPD_MIN.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | -0.5     | 0.5      | 0.01      | 0.0     |      |
 
+### FW_FLAPS_MAN (`INT32`) {#FW_FLAPS_MAN}
+
+Flap input in manual flight.
+
+Chose source for manual setting of flaps in manual flight modes.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Aux1
+- `2`: Aux2
+- `3`: Aux3
+- `4`: Aux4
+- `5`: Aux5
+- `6`: Flaps channel
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |      |
+
 ### FW_GC_EN (`INT32`) {#FW_GC_EN}
 
 Enable rate gain compression.
@@ -23264,6 +23326,10 @@ Chose source for manual setting of spoilers in manual flight modes.
 - `0`: Disabled
 - `1`: Flaps channel
 - `2`: Aux1
+- `3`: Aux2
+- `4`: Aux3
+- `5`: Aux4
+- `6`: Aux5
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -23850,7 +23916,7 @@ Mode 6 is intended for use with a ground control station (not necessarily an RTK
 
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; | 0        | 1        |           | 0       |      |
+| &check; | 0        | 6        |           | 0       |      |
 
 ### GPS_UBX_PPK (`INT32`) {#GPS_UBX_PPK}
 
@@ -28505,7 +28571,7 @@ MAVLink airframe type.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 22       |           | 0       |      |
+| &nbsp; | 0        | 23       |           | 0       |      |
 
 ### MAV_USEHILGPS (`INT32`) {#MAV_USEHILGPS}
 
@@ -28762,7 +28828,7 @@ Heading behavior in autonomous modes.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 4        |           | 0       |      |
+| &nbsp; | 0        | 5        |           | 0       |      |
 
 ### NAV_ACC_RAD (`FLOAT`) {#NAV_ACC_RAD}
 
@@ -37716,7 +37782,7 @@ TeraRanger Rangefinder (i2c).
 
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; | 0        | 3        |           | 0       |      |
+| &check; | 0        | 5        |           | 0       |      |
 
 ### SENS_EN_VL53L0X (`INT32`) {#SENS_EN_VL53L0X}
 
@@ -39938,6 +40004,104 @@ Absolute value superior to 10000 will disable distance sensor
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; |          |          |           | -1.0    | m    |
 
+### SIH_F_CP0 (`FLOAT`) {#SIH_F_CP0}
+
+Forward thruster static power coefficient.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.0      |          |           | 0.0     |      |
+
+### SIH_F_CP1 (`FLOAT`) {#SIH_F_CP1}
+
+Forward thruster power coefficient 1.
+
+CP(J) = CP0 + CP1*J + CP2*J^2
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0.0     |      |
+
+### SIH_F_CP2 (`FLOAT`) {#SIH_F_CP2}
+
+Forward thruster power coefficient 2.
+
+CP(J) = CP0 + CP1*J + CP2*J^2
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          | 0.0      |           | 0.0     |      |
+
+### SIH_F_CT0 (`FLOAT`) {#SIH_F_CT0}
+
+Forward thruster static thrust coefficient.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.0      |          |           | 0.0     |      |
+
+### SIH_F_CT1 (`FLOAT`) {#SIH_F_CT1}
+
+Forward thruster thrust coefficient 1.
+
+CT(J) = CT0 + CT1*J + CT2*J^2
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0.0     |      |
+
+### SIH_F_CT2 (`FLOAT`) {#SIH_F_CT2}
+
+Forward thruster thrust coefficient 2.
+
+CT(J) = CT0 + CT1*J + CT2*J^2
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          | 0.0      |           | 0.0     |      |
+
+### SIH_F_DIA_INCH (`FLOAT`) {#SIH_F_DIA_INCH}
+
+Forward thruster propeller diameter in inches.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.1      |          |           | 0.1     |      |
+
+### SIH_F_Q_MAX (`FLOAT`) {#SIH_F_Q_MAX}
+
+Forward thruster max torque (Nm).
+
+This is used for the Fixed-Wing, Tailsitter, or pusher of the Standard VTOL
+if SIH_F_CP0 <= 0.
+If SIH_F_CP0 > 0, propeller model with advance ratio J is used
+and this parameter value is overridden at simulation startup.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.0      |          |           | 0.0165  | Nm   |
+
+### SIH_F_RPM_MAX (`FLOAT`) {#SIH_F_RPM_MAX}
+
+Forward thruster max RPM.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.1      |          |           | 6000.0  |      |
+
+### SIH_F_T_MAX (`FLOAT`) {#SIH_F_T_MAX}
+
+Forward thruster max thrust (N).
+
+This is used for the Fixed-Wing, Tailsitter, or pusher of the Standard VTOL
+if SIH_F_CT0 <= 0.
+If SIH_F_CT0 > 0, propeller model with advance ratio J is used
+and this parameter value is overridden at simulation startup.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.0      |          |           | 2.0     | N    |
+
 ### SIH_IXX (`FLOAT`) {#SIH_IXX}
 
 Vehicle inertia about X axis.
@@ -40112,12 +40276,14 @@ This value can be measured by weighting the quad on a scale.
 
 ### SIH_Q_MAX (`FLOAT`) {#SIH_Q_MAX}
 
-Max propeller torque.
+Max multicopter propeller torque.
 
 This is the maximum torque delivered by one propeller
 when the motor is running at full speed.
 
 This value is usually about few percent of the maximum thrust force.
+
+Refer to SIH_F_Q_MAX for the propeller torque for FW, Tailsitter, and VTOL pusher.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -40135,12 +40301,14 @@ Gaussian noise added to simulated ranging beacon measurements. Set to 0 to disab
 
 ### SIH_T_MAX (`FLOAT`) {#SIH_T_MAX}
 
-Max propeller thrust force.
+Max multicopter propeller thrust force.
 
 This is the maximum force delivered by one propeller
 when the motor is running at full speed.
 
 This value is usually about 5 times the mass of the quadrotor.
+
+Refer to SIH_F_T_MAX for the thrust for FW, Tailsitter, and VTOL pusher.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -43906,7 +44074,7 @@ Selects what type of mode is enabled, if any
 
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; | 0        | 2        |           | 0       |      |
+| &check; | 0        | 3        |           | 0       |      |
 
 ### VOXL_ESC_PUB_BST (`INT32`) {#VOXL_ESC_PUB_BST}
 

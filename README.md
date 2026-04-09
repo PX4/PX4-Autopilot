@@ -9,11 +9,16 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/PX4/PX4-Autopilot/releases"><img src="https://img.shields.io/github/release/PX4/PX4-Autopilot.svg" alt="Releases"></a>
-  <a href="https://www.bestpractices.dev/projects/6520"><img src="https://www.bestpractices.dev/projects/6520/badge" alt="OpenSSF Best Practices"></a>
+  <a href="https://github.com/PX4/PX4-Autopilot/releases"><img src="https://img.shields.io/github/release/PX4/PX4-Autopilot.svg" alt="Release"></a>
   <a href="https://zenodo.org/badge/latestdoi/22634/PX4/PX4-Autopilot"><img src="https://zenodo.org/badge/22634/PX4/PX4-Autopilot.svg" alt="DOI"></a>
-  <a href="https://github.com/PX4/PX4-Autopilot/actions/workflows/build_all_targets.yml"><img src="https://github.com/PX4/PX4-Autopilot/actions/workflows/build_all_targets.yml/badge.svg?branch=main" alt="Build Targets"></a>
-  <a href="https://discord.gg/dronecode"><img src="https://discordapp.com/api/guilds/1022170275984457759/widget.png?style=shield" alt="Discord"></a>
+  <a href="https://discord.gg/dronecode"><img src="https://img.shields.io/discord/1022170275984457759?label=discord&logo=discord&logoColor=white&color=5865F2" alt="Discord"></a>
+</p>
+
+<p align="center">
+  <a href="https://www.bestpractices.dev/projects/6520"><img src="https://www.bestpractices.dev/projects/6520/badge" alt="OpenSSF Best Practices"></a>
+  <a href="https://insights.linuxfoundation.org/project/px4"><img src="https://insights.linuxfoundation.org/api/badge/health-score?project=px4" alt="LFX Health Score"></a>
+  <a href="https://insights.linuxfoundation.org/project/px4"><img src="https://insights.linuxfoundation.org/api/badge/contributors?project=px4" alt="LFX Contributors"></a>
+  <a href="https://insights.linuxfoundation.org/project/px4"><img src="https://insights.linuxfoundation.org/api/badge/active-contributors?project=px4" alt="LFX Active Contributors"></a>
 </p>
 
 ---
@@ -65,7 +70,17 @@ PX4 is an open-source autopilot stack for drones and unmanned vehicles. It suppo
 
 <sub>…and many more: helicopters, autogyros, airships, submarines, boats, and other experimental platforms. These frames have basic support but are not part of the regular flight-test program. See the <a href="https://docs.px4.io/main/en/airframes/airframe_reference.html">full airframe reference</a>.</sub>
 
-## Quick Start
+## Try PX4
+
+Run PX4 in simulation with a single command. No build tools, no dependencies beyond Docker:
+
+```bash
+docker run --rm -it -p 14550:14550/udp px4io/px4-sitl:latest
+```
+
+Open [QGroundControl](https://qgroundcontrol.com) and fly. See [PX4 Simulation Quickstart](../dev_setup/px4_simulation_quickstart.md) for more options.
+
+## Build from Source
 
 ```bash
 git clone https://github.com/PX4/PX4-Autopilot.git --recursive
@@ -98,6 +113,22 @@ make px4_sitl
 ## Contributing
 
 We welcome contributions of all kinds — bug reports, documentation, new features, and code reviews. Please read the [Contribution Guide](https://docs.px4.io/main/en/contribute/) to get started.
+
+## Citation
+
+If you use PX4 in academic work, please cite it. BibTeX:
+
+```bibtex
+@software{px4_autopilot,
+  author    = {Meier, Lorenz and {The PX4 Contributors}},
+  title     = {{PX4 Autopilot}},
+  publisher = {Zenodo},
+  doi       = {10.5281/zenodo.595432},
+  url       = {https://px4.io}
+}
+```
+
+The DOI above is a Zenodo concept DOI that always resolves to the latest release. For a version-pinned citation, see the [Zenodo record](https://doi.org/10.5281/zenodo.595432) or our [`CITATION.cff`](CITATION.cff).
 
 ## Governance
 

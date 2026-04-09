@@ -1,0 +1,22 @@
+name: Save ccache
+description: Print ccache stats and save to cache
+
+inputs:
+  cache-primary-key:
+    description: Primary cache key from setup-ccache output
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Cache - Stats
+      if: always()
+      shell: bash
+      run: ccache -s
+
+    - name: Cache - Save ccache
+      if: always()
+      uses: actions/cache/save@v4
+      with:
+        path: ~/.ccache
+        key: ${{ inputs.cache-primary-key }}

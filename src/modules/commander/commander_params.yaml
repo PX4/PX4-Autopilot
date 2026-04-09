@@ -507,7 +507,7 @@ parameters:
         4: Terminate
       default: 0
       min: 0
-      max: 3
+      max: 4
     COM_PARACHUTE:
       description:
         short: Require MAVLink parachute system to be present and healthy

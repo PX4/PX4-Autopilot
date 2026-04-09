@@ -41,7 +41,9 @@
 
 void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 {
-	if (!_gps_buffer || (_params.ekf2_gps_ctrl == 0)) {
+	_fc.gps.available = (_params.ekf2_gps_ctrl != 0);
+
+	if (!_gps_buffer || !_fc.gps.intended()) {
 		stopGnssFusion();
 		return;
 	}

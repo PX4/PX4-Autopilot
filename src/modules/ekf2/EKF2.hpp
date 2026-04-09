@@ -73,6 +73,7 @@
 #include <uORB/topics/estimator_states.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/estimator_status_flags.h>
+#include <uORB/topics/estimator_fusion_control.h>
 #include <uORB/topics/launch_detection_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_combined.h>
@@ -198,6 +199,7 @@ private:
 	void PublishStates(const hrt_abstime &timestamp);
 	void PublishStatus(const hrt_abstime &timestamp);
 	void PublishStatusFlags(const hrt_abstime &timestamp);
+	void PublishFusionControl(const hrt_abstime &timestamp);
 #if defined(CONFIG_EKF2_WIND)
 	void PublishWindEstimate(const hrt_abstime &timestamp);
 #endif // CONFIG_EKF2_WIND
@@ -405,6 +407,25 @@ private:
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Publication<vehicle_command_ack_s> _vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
+	enum SensEnBit : uint16_t {
+		SENS_EN_GPS0   = 0,
+		SENS_EN_GPS1   = 1,
+		SENS_EN_OF     = 2,
+		SENS_EN_EV     = 3,
+		SENS_EN_AGP0   = 4,
+		// bit: 5-7 reserved for AGP1..3
+		SENS_EN_BARO   = 8,
+		SENS_EN_RNG    = 9,
+		SENS_EN_MAG    = 10,
+		SENS_EN_ASPD   = 11,
+		SENS_EN_RNGBCN = 12,
+	};
+	bool _prev_armed{false};
+
+	void initFusionControl();
+	void handleSensorFusionCommand(const vehicle_command_s &cmd, vehicle_command_ack_s &ack);
+	void syncSensEnParam();
+
 	uORB::SubscriptionCallbackWorkItem _sensor_combined_sub{this, ORB_ID(sensor_combined)};
 	uORB::SubscriptionCallbackWorkItem _vehicle_imu_sub{this, ORB_ID(vehicle_imu)};
 
@@ -443,6 +464,7 @@ private:
 	uORB::PublicationMulti<estimator_sensor_bias_s>      _estimator_sensor_bias_pub{ORB_ID(estimator_sensor_bias)};
 	uORB::PublicationMulti<estimator_states_s>           _estimator_states_pub{ORB_ID(estimator_states)};
 	uORB::PublicationMulti<estimator_status_flags_s>     _estimator_status_flags_pub{ORB_ID(estimator_status_flags)};
+	uORB::PublicationMulti<estimator_fusion_control_s>   _estimator_fc_pub{ORB_ID(estimator_fusion_control)};
 	uORB::PublicationMulti<estimator_status_s>           _estimator_status_pub{ORB_ID(estimator_status)};
 
 	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_fake_hgt_pub{ORB_ID(estimator_aid_src_fake_hgt)};
@@ -496,6 +518,7 @@ private:
 	Ekf _ekf;
 
 	parameters *_params;	///< pointer to ekf parameter struct (located in _ekf class instance)
+	FusionControl &_fc;
 
 	DEFINE_PARAMETERS(
 		(ParamBool<px4::params::EKF2_LOG_VERBOSE>) _param_ekf2_log_verbose,
@@ -504,6 +527,7 @@ private:
 		(ParamExtInt<px4::params::EKF2_IMU_CTRL>) _param_ekf2_imu_ctrl,
 		(ParamExtFloat<px4::params::EKF2_VEL_LIM>) _param_ekf2_vel_lim,
 		(ParamBool<px4::params::EKF2_POS_LOCK>) _param_ekf2_pos_lock,
+		(ParamExtInt<px4::params::EKF2_SENS_EN>) _param_ekf2_sens_en,
 
 #if defined(CONFIG_EKF2_AUXVEL)
 		(ParamExtFloat<px4::params::EKF2_AVEL_DELAY>)
@@ -553,7 +577,7 @@ private:
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_BAROMETER)
-		(ParamExtInt<px4::params::EKF2_BARO_CTRL>) _param_ekf2_baro_ctrl,///< barometer control selection
+		(ParamExtInt<px4::params::EKF2_BARO_CTRL>) _param_ekf2_baro_ctrl,
 		(ParamExtFloat<px4::params::EKF2_BARO_DELAY>) _param_ekf2_baro_delay,
 		(ParamExtFloat<px4::params::EKF2_BARO_NOISE>) _param_ekf2_baro_noise,
 		(ParamExtFloat<px4::params::EKF2_BARO_GATE>) _param_ekf2_baro_gate,
@@ -675,7 +699,7 @@ private:
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 		// optical flow fusion
 		(ParamExtInt<px4::params::EKF2_OF_CTRL>)
-		_param_ekf2_of_ctrl, ///< optical flow fusion selection
+		_param_ekf2_of_ctrl,
 		(ParamExtInt<px4::params::EKF2_OF_GYR_SRC>)
 		_param_ekf2_of_gyr_src,
 		(ParamExtFloat<px4::params::EKF2_OF_DELAY>)

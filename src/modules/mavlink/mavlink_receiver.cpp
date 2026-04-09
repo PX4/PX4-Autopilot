@@ -1054,6 +1054,18 @@ MavlinkReceiver::handle_message_att_pos_mocap(mavlink_message_t *msg)
 	_mocap_odometry_pub.publish(odom);
 }
 
+offboard_control_mode_s
+MavlinkReceiver::fill_offboard_control_mode(const trajectory_setpoint_s &setpoint)
+{
+	offboard_control_mode_s ocm{};
+	ocm.position = !matrix::Vector3f(setpoint.position).isAllNan();
+	ocm.velocity = !matrix::Vector3f(setpoint.velocity).isAllNan();
+	ocm.acceleration = !matrix::Vector3f(setpoint.acceleration).isAllNan();
+	ocm.attitude = PX4_ISFINITE(setpoint.yaw);
+	ocm.body_rate = PX4_ISFINITE(setpoint.yawspeed);
+	return ocm;
+}
+
 void
 MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t *msg)
 {
@@ -1140,12 +1152,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 		setpoint.yawspeed = (type_mask & POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE) ? (float)NAN : target_local_ned.yaw_rate;
 
 
-		offboard_control_mode_s ocm{};
-		ocm.position = !matrix::Vector3f(setpoint.position).isAllNan();
-		ocm.velocity = !matrix::Vector3f(setpoint.velocity).isAllNan();
-		ocm.acceleration = !matrix::Vector3f(setpoint.acceleration).isAllNan();
-		ocm.attitude = PX4_ISFINITE(setpoint.yaw);
-		ocm.body_rate = PX4_ISFINITE(setpoint.yawspeed);
+		offboard_control_mode_s ocm = fill_offboard_control_mode(setpoint);
 
 		if (ocm.acceleration && (type_mask & POSITION_TARGET_TYPEMASK_FORCE_SET)) {
 			mavlink_log_critical(&_mavlink_log_pub, "SET_POSITION_TARGET_LOCAL_NED force not supported\t");
@@ -1264,12 +1271,7 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 		setpoint.yawspeed = (type_mask & POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE) ? (float)NAN : target_global_int.yaw_rate;
 
 
-		offboard_control_mode_s ocm{};
-		ocm.position = !matrix::Vector3f(setpoint.position).isAllNan();
-		ocm.velocity = !matrix::Vector3f(setpoint.velocity).isAllNan();
-		ocm.acceleration = !matrix::Vector3f(setpoint.acceleration).isAllNan();
-		ocm.attitude = PX4_ISFINITE(setpoint.yaw);
-		ocm.body_rate = PX4_ISFINITE(setpoint.yawspeed);
+		offboard_control_mode_s ocm = fill_offboard_control_mode(setpoint);
 
 		if (ocm.acceleration && (type_mask & POSITION_TARGET_TYPEMASK_FORCE_SET)) {
 			mavlink_log_critical(&_mavlink_log_pub, "SET_POSITION_TARGET_GLOBAL_INT force not supported\t");

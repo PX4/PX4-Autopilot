@@ -137,6 +137,10 @@ public:
 	const Vector3f &getFlowRefBodyRate() const { return _ref_body_rate; }
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
+#if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)
+	uint8_t getAgpFusingBitmask() const { return _aux_global_position.sourceFusingBitmask(); }
+#endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
+
 	float getHeadingInnov() const;
 	float getHeadingInnovVar() const;
 	float getHeadingInnovRatio() const;

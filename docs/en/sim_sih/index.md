@@ -6,6 +6,11 @@ SIH (Simulation-In-Hardware) is a lightweight, headless simulator with zero exte
 No GUI, no external processes, no rendering overhead — just PX4 running a C++ physics model.
 This makes it the fastest way to iterate on flight code.
 
+::: tip
+SIH is also available as a [prebuilt Docker container or .deb package](../simulation/px4_sitl_prebuilt_packages.md), which is useful if you don't need to modify PX4 itself.
+See [PX4 Simulation QuickStart](px4_simulation_quickstart.md) for a one-line instruction on how this is used.
+:::
+
 ## Overview
 
 SIH runs as a PX4 module that replaces real sensor and actuator hardware with a simulated physics model.

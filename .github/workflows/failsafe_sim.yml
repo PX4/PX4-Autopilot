@@ -29,7 +29,7 @@ jobs:
           "failsafe_web",
         ]
     container:
-      image: px4io/px4-dev:v1.16.0-rc1-258-g0369abd556
+      image: ghcr.io/px4/px4-dev:v1.17.0-rc2
       options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
     steps:
       - name: Install Node v20.18.0

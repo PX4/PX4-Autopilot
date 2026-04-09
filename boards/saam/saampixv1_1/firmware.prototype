@@ -1,0 +1,13 @@
+{
+    "board_id": 1,
+    "magic": "PX4FWv1",
+    "description": "Firmware for the SaamPixV1_1 board",
+    "image": "", 
+    "build_time": 0, 
+    "summary": "SaamPixV1_1",      
+    "version": "1.1",
+    "image_size": 0,
+    "image_maxsize": 2080768,
+    "git_identity": "",
+    "board_revision": 0
+}

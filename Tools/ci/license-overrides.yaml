@@ -9,6 +9,12 @@ overrides:
     license: "LGPL-3.0-only AND MIT"
     comment: "Generator is LGPL-3.0; PX4 ships only MIT-licensed generated headers."
 
+  Tools/simulation/gazebo-classic/sitl_gazebo-classic:
+    license: "BSD-3-Clause"
+    comment: >-
+      PX4 org project. No LICENSE file in repo; source files carry
+      BSD-3-Clause headers consistent with the PX4 project license.
+
   src/lib/cdrstream/cyclonedds:
     license: "EPL-2.0 OR BSD-3-Clause"
     comment: >-
