@@ -213,7 +213,6 @@ jobs:
     if: always() && (github.event_name == 'pull_request')
     permissions:
       contents: read
-      pull-requests: write
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -281,12 +280,32 @@ jobs:
             > ./logs/link-check-results.md || true
           cat ./logs/link-check-results.md
 
-      - name: Post PR comment with link check results
-        if: github.event.pull_request.head.repo.full_name == github.repository
-        uses: marocchino/sticky-pull-request-comment@v2
+      - name: Prepare pr-comment artifact
+        id: prepare-pr-comment
+        run: |
+          if [ ! -s ./logs/filtered-link-check-results.md ]; then
+            echo "No link-check results file; skipping pr-comment artifact."
+            echo "prepared=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          mkdir -p pr-comment
+          cp ./logs/filtered-link-check-results.md pr-comment/body.md
+          cat > pr-comment/manifest.json <<EOF
+          {
+            "pr_number": ${{ github.event.pull_request.number }},
+            "marker": "<!-- pr-comment-poster:docs-link-check -->",
+            "mode": "upsert"
+          }
+          EOF
+          echo "prepared=true" >> "$GITHUB_OUTPUT"
+
+      - name: Upload pr-comment artifact
+        if: steps.prepare-pr-comment.outputs.prepared == 'true'
+        uses: actions/upload-artifact@v4
         with:
-          header: flaws
-          path: ./logs/filtered-link-check-results.md
+          name: pr-comment
+          path: pr-comment/
+          retention-days: 1
 
       - name: Upload link check results
         uses: actions/upload-artifact@v4

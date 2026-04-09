@@ -78,7 +78,7 @@ on:
     # trigger the poster, which will no-op if no `pr-comment` artifact exists.
     workflows:
       - "FLASH usage analysis"
-      - "Static Analysis"
+      - "Docs - Orchestrator"
     types:
       - completed
 
