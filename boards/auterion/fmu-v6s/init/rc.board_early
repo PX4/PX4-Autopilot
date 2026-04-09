@@ -1,0 +1,19 @@
+#!/bin/sh
+#
+# Board early init.
+#
+# On FRAM boards STORAGE_AVAILABLE=yes will set the USE_* flags. Additional
+# enable required for task watchdog as this is not a generally used feature.
+# On EEPROM boards: Only airframes and params are needed.
+#
+
+if mft query -q -k MTD -s MTD_PARAMETERS -v /mnt/microsd
+then
+	# Start the task_watchdog as we do not have the logger watchdog
+	set USE_TASK_WATCHDOG yes
+else
+	set PARAM_FILE /fs/microsd/params
+	set STORAGE_CHECK no
+	set USE_EXTERNAL_AIRFRAMES yes
+	set USE_ALT_UPDATE_DIRS yes
+fi

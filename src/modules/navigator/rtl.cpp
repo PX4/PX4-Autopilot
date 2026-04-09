@@ -394,7 +394,7 @@ void RTL::setRtlTypeAndDestination()
 		}
 	}
 
-	const float rtl_alt = computeReturnAltitude(destination, destination_type, (float)_param_rtl_cone_ang.get());
+	const float rtl_alt = computeReturnAltitude(destination);
 	_rtl_direct.setRtlAlt(rtl_alt);
 	_rtl_direct.setRtlPosition(destination, landing_loiter);
 
@@ -558,12 +558,14 @@ void RTL::setSafepointAsDestination(PositionYawSetpoint &rtl_position, const mis
 	// TODO: handle all possible mission_safe_point.frame cases
 	switch (mission_safe_point.frame) {
 	case 0: // MAV_FRAME_GLOBAL
+	case 5: // MAV_FRAME_GLOBAL_INT
 		rtl_position.lat = mission_safe_point.lat;
 		rtl_position.lon = mission_safe_point.lon;
-		rtl_position.alt = mission_safe_point.altitude;
+		rtl_position.alt = mission_safe_point.altitude;	// alt of safe point is relative to MSL
 		break;
 
 	case 3: // MAV_FRAME_GLOBAL_RELATIVE_ALT
+	case 6: // MAV_FRAME_GLOBAL_RELATIVE_ALT_INT
 		rtl_position.lat = mission_safe_point.lat;
 		rtl_position.lon = mission_safe_point.lon;
 		rtl_position.alt = mission_safe_point.altitude + _home_pos_sub.get().alt; // alt of safe point is rel to home
@@ -577,7 +579,7 @@ void RTL::setSafepointAsDestination(PositionYawSetpoint &rtl_position, const mis
 	}
 }
 
-float RTL::computeReturnAltitude(const PositionYawSetpoint &rtl_position, DestinationType destination_type, float cone_half_angle_deg) const
+float RTL::computeReturnAltitude(const PositionYawSetpoint &rtl_position) const
 {
 	if (_param_rtl_cone_ang.get() > 0 && _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 		// horizontal distance to destination
@@ -600,7 +602,7 @@ float RTL::computeReturnAltitude(const PositionYawSetpoint &rtl_position, Destin
 			if (destination_dist <= _param_rtl_min_dist.get()) {
 
 				// constrain cone half angle to meaningful values. All other cases are already handled above.
-				const float cone_half_angle_rad = radians(constrain(cone_half_angle_deg, 1.0f, 89.0f));
+				const float cone_half_angle_rad = radians(constrain((float)_param_rtl_cone_ang.get(), 1.0f, 89.0f));
 
 				// minimum altitude we need in order to be within the user defined cone
 				const float cone_intersection_altitude_amsl = destination_dist / tanf(cone_half_angle_rad) + rtl_position.alt;

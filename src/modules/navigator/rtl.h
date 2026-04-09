@@ -155,11 +155,10 @@ private:
 	 * @brief calculate return altitude from return altitude parameter, current altitude and cone angle
 	 *
 	 * @param[in] rtl_position landing position of the rtl
-	 * @param[in] destination_type type of the rtl destination
-	 * @param[in] cone_half_angle_deg half angle of the cone [deg]
+	 *
 	 * @return return altitude
 	 */
-	float computeReturnAltitude(const PositionYawSetpoint &rtl_position, DestinationType destination_type, float cone_half_angle_deg) const;
+	float computeReturnAltitude(const PositionYawSetpoint &rtl_position) const;
 
 	/**
 	 * @brief initialize RTL mission type

@@ -50,7 +50,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### Estimation
 
-- TBD
+- Added [EKF2_POS_LOCK](../advanced_config/parameter_reference.md#EKF2_POS_LOCK) to force constant position fusion while landed, useful for vehicles relying on dead-reckoning sensors (airspeed, optical flow) that provide no aiding on the ground.
 
 ### 센서
 

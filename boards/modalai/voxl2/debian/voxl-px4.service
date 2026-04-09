@@ -4,11 +4,10 @@ After=sscrpcd.service
 Requires=sscrpcd.service
 
 [Service]
-Type=simple
+ExecStartPre=/bin/sleep 2
 ExecStart=/usr/bin/voxl-px4
 ExecStopPost=/usr/bin/voxl-reset-slpi
 Restart=on-failure
-RestartSec=5
 
 [Install]
 WantedBy=multi-user.target

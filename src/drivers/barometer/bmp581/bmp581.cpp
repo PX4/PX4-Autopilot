@@ -137,8 +137,12 @@ int BMP581::collect()
 
 	perf_begin(_sample_perf);
 
-	/* this should be fairly close to the end of the conversion, so the best approximation of the time */
-	const hrt_abstime timestamp_sample = hrt_absolute_time();
+	/* Correct for measurement integration delay: the pressure was
+	 * integrated over the preceding measurement_time window, so the
+	 * effective sample midpoint is half the measurement time before now. */
+	const hrt_abstime now = hrt_absolute_time();
+	const hrt_abstime half_meas = get_measurement_time() / 2;
+	const hrt_abstime timestamp_sample = (now > half_meas) ? (now - half_meas) : now;
 
 	int_status = get_interrupt_status();
 

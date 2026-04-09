@@ -36,8 +36,8 @@ jobs:
             px4io/px4-dev-ros-melodic:2021-09-08 \
             bash -c '
               git config --global --add safe.directory /workspace
-              make px4_sitl_default
-              make px4_sitl_default sitl_gazebo-classic
+              PX4_SBOM_DISABLE=1 make px4_sitl_default
+              PX4_SBOM_DISABLE=1 make px4_sitl_default sitl_gazebo-classic
               ./test/rostest_px4_run.sh \
                 mavros_posix_test_mission.test \
                 mission:=MC_mission_box \

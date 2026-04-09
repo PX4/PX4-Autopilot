@@ -14,6 +14,7 @@
 
 param set UAVCAN_ENABLE 0
 
+param set-default CA_AIRFRAME 1
 param set-default CA_ROTOR_COUNT 1
 param set-default CA_ROTOR0_PX 0.3
 
@@ -38,7 +39,6 @@ param set-default SYS_HITL 2
 # - without real battery
 param set-default CBRK_SUPPLY_CHK 894281
 
-param set SIH_T_MAX 6
 param set SIH_MASS 0.3
 param set SIH_IXX 0.00402
 param set SIH_IYY 0.0144
@@ -48,3 +48,21 @@ param set SIH_KDV 0.2
 
 param set SIH_VEHICLE_TYPE 1 	# sih as fixed wing
 param set RWTO_TKOFF 1  # enable takeoff from runway (as opposed to launched)
+
+# pusher propeller model with advance ratio, model from UIUC APC 8x6"
+param set SIH_F_T_MAX 6
+param set SIH_F_Q_MAX 0.03
+# if SIH_F_CT0 > 0, SIH_F_T_MAX and SIH_F_Q_MAX will be overridden
+param set SIH_F_CT0 0.131
+param set SIH_F_CT1 0.004
+param set SIH_F_CT2 -0.146
+param set SIH_F_CP0 0.0777
+param set SIH_F_CP1 0.0498
+param set SIH_F_CP2 -0.11
+param set SIH_F_DIA_INCH 8
+param set SIH_F_RPM_MAX 9000
+
+param set-default FW_AIRSPD_MIN 7
+param set-default FW_AIRSPD_TRIM 10
+param set-default FW_AIRSPD_MAX 12
+param set-default FW_PSP_OFF 0.5

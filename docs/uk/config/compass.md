@@ -86,7 +86,7 @@ Once you've calibrated the vehicle in all the positions _QGroundControl_ will di
    2-3 коливань на кут близько 30 градусів у кожному напрямку зазвичай достатньо.
 2. Зачекайте, поки оцінка заголовку стабілізується, і перевірте, що компас вказує в правильному напрямку (це може зайняти кілька секунд).
 
-Примітки:
+Notes:
 
 - Немає можливості початку/зупинки для цього типу калібрування (алгоритм працює безперервно, коли транспортний засіб роззброєний).
 - Калібрування негайно застосовується до даних (перезавантаження не потрібно), але зберігається в параметрах калібрування лише після відброшення транспортного засобу (калібрування втрачається, якщо між калібруванням і вимкненням не виконана послідовність увімкнення/вимкнення).
@@ -109,7 +109,7 @@ This calibration process leverages external knowledge of vehicle's orientation a
    commander calibrate mag quick
    ```
 
-Примітки:
+Notes:
 
 - This method is specifically designed for vehicles where full rotation is impractical or impossible.
   If full rotation is possible, use the [complete calibration](#complete-calibration) instead.

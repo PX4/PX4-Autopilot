@@ -253,7 +253,7 @@ FixedWingModeManager::vehicle_attitude_poll()
 		_pitch = euler_angles(1);
 
 		const Vector3f body_acceleration = R.transpose() * Vector3f{_local_pos.ax, _local_pos.ay, _local_pos.az};
-		_body_acceleration_x = body_acceleration(0);
+		_body_acceleration_norm = body_acceleration.norm();
 
 		const Vector3f body_velocity = R.transpose() * Vector3f{_local_pos.vx, _local_pos.vy, _local_pos.vz};
 		_body_velocity_x = body_velocity(0);
@@ -1196,8 +1196,8 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 			if (_control_mode.flag_armed) {
 				/* Perform launch detection */
 
-				/* Detect launch using body X (forward) acceleration */
-				_launchDetector.update(control_interval, _body_acceleration_x);
+				/* Detect launch using body acceleration norm */
+				_launchDetector.update(control_interval, _body_acceleration_norm);
 			}
 
 		} else	{
@@ -1372,8 +1372,8 @@ FixedWingModeManager::control_auto_takeoff_no_nav(const hrt_abstime &now, const 
 		    _launchDetector.getLaunchDetected() < launch_detection_status_s::STATE_FLYING) {
 
 			if (_control_mode.flag_armed) {
-				/* Detect launch using body X (forward) acceleration */
-				_launchDetector.update(control_interval, _body_acceleration_x);
+				/* Detect launch using body acceleration norm */
+				_launchDetector.update(control_interval, _body_acceleration_norm);
 			}
 
 		} else	{

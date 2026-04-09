@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 160" width="520" height="160" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">
+  <!-- Arrow marker -->
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="10" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 3.5 L 0 7 z" fill="#4a5568"/>
+    </marker>
+  </defs>
+
+  <!-- Left label: Actuator Outputs -->
+  <text x="20" y="72" font-size="13" fill="#4a5568" font-weight="500" text-anchor="start">Actuator</text>
+  <text x="20" y="90" font-size="13" fill="#4a5568" font-weight="500" text-anchor="start">Outputs</text>
+  <text x="20" y="108" font-size="11" fill="#718096" text-anchor="start">(uORB)</text>
+
+  <!-- Left arrow -->
+  <line x1="100" y1="80" x2="170" y2="80" stroke="#4a5568" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- SIH Module box -->
+  <rect x="180" y="30" width="160" height="100" rx="8" ry="8" fill="#edf2f7" stroke="#4a5568" stroke-width="2"/>
+  <text x="260" y="72" font-size="16" fill="#2d3748" font-weight="600" text-anchor="middle">SIH Module</text>
+  <text x="260" y="96" font-size="12" fill="#718096" text-anchor="middle">C++ / uORB</text>
+
+  <!-- Right arrow -->
+  <line x1="350" y1="80" x2="420" y2="80" stroke="#4a5568" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Right label: Simulated Sensor Data -->
+  <text x="432" y="72" font-size="13" fill="#4a5568" font-weight="500" text-anchor="start">Simulated</text>
+  <text x="432" y="90" font-size="13" fill="#4a5568" font-weight="500" text-anchor="start">Sensor Data</text>
+  <text x="432" y="108" font-size="11" fill="#718096" text-anchor="start">(uORB)</text>
+</svg>

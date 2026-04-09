@@ -35,8 +35,10 @@
 
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/sensor_accel.h>
 
 using namespace time_literals;
 
@@ -89,5 +91,6 @@ private:
 
 	// Subscriptions
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::Subscription _sensor_accel_sub{ORB_ID(sensor_accel)};
 
 };
