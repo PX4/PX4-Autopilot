@@ -113,7 +113,13 @@ jobs:
   post:
     name: Post PR Review
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.conclusion != 'cancelled'
+    # Only run for pull_request producer runs. Push-to-main and other
+    # non-PR triggers have no review to post, so gating at the job level
+    # surfaces those as a clean "Skipped" in the UI instead of a
+    # silent no-op buried inside the script.
+    if: >-
+      github.event.workflow_run.conclusion != 'cancelled'
+      && github.event.workflow_run.event == 'pull_request'
     steps:
       # Checkout runs first so the poster scripts are available AND so
       # that actions/checkout@v6's default clean step does not delete the

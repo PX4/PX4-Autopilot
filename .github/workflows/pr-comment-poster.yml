@@ -92,7 +92,13 @@ jobs:
   post:
     name: Post PR Comment
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.conclusion != 'cancelled'
+    # Only run for pull_request producer runs. Push-to-main and other
+    # non-PR triggers would have no comment to post, and silently no-oping
+    # inside the script made it look like the poster was broken. Gating at
+    # the job level surfaces those as a clean "Skipped" in the UI instead.
+    if: >-
+      github.event.workflow_run.conclusion != 'cancelled'
+      && github.event.workflow_run.event == 'pull_request'
     steps:
       # Checkout runs first so the poster script is available AND so that
       # actions/checkout@v6's default clean step does not delete the artifact
