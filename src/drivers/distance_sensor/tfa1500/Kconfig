@@ -1,0 +1,5 @@
+menuconfig DRIVERS_DISTANCE_SENSOR_TFA1500
+	bool "tfa1500"
+	default n
+	---help---
+		Enable support for tfa1500
