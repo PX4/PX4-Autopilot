@@ -76,8 +76,7 @@ parameters:
         4: Return to the planned mission landing, or to home via the reverse mission
           path, whichever is estimated to be closer using mission item indices.
           Skip DO_JUMP and other non-position mission items while following either
-          mission path. Missions with DO_JUMP or many non-position items may therefore
-          differ from the loop-skipping path length actually flown. Do not consider
+          mission path. Do not consider
           rally points.
         5: Return directly to safe landing point (do not consider mission landing
           and Home)

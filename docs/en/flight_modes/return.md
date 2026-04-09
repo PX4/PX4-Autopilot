@@ -127,7 +127,6 @@ Mission _without_ landing pattern defined:
 - **Mission mode:**
   - Mission flown "fast-backward" (in reverse) starting from the previous waypoint
     - DO_JUMP commands, delays and other non-position mission items are ignored, and loiter and other position waypoints are converted to simple waypoints.
-    - If reverse RTL starts before the first position waypoint, any leading DO_JUMP loop is skipped and the vehicle targets the first position item.
     - VTOL vehicles transition to FW mode (if needed) before flying the mission in reverse.
   - On reaching waypoint 1, the vehicle ascends to the [minimum return altitude](#minimum-return-altitude) and flies to the home position (where it [lands or waits](#loiter-landing-at-destination)).
 - **Auto mode other than mission mode:**
