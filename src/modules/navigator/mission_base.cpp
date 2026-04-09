@@ -1123,6 +1123,12 @@ bool MissionBase::loadTraversalItem(int32_t &mission_index, mission_item_s &miss
 }
 
 void MissionBase::getPreviousPositionItems(int32_t start_index, int32_t items_index[],
+		size_t &num_found_items, uint8_t max_num_items)
+{
+	getPreviousPositionItems(start_index, items_index, num_found_items, max_num_items, traversalType());
+}
+
+void MissionBase::getPreviousPositionItems(int32_t start_index, int32_t items_index[],
 		size_t &num_found_items, uint8_t max_num_items, MissionTraversalType traversal_type)
 {
 	num_found_items = 0u;
@@ -1145,6 +1151,12 @@ void MissionBase::getPreviousPositionItems(int32_t start_index, int32_t items_in
 			break;
 		}
 	}
+}
+
+void MissionBase::getNextPositionItems(int32_t start_index, int32_t items_index[],
+				       size_t &num_found_items, uint8_t max_num_items)
+{
+	getNextPositionItems(start_index, items_index, num_found_items, max_num_items, traversalType());
 }
 
 void MissionBase::getNextPositionItems(int32_t start_index, int32_t items_index[],
@@ -1174,6 +1186,11 @@ void MissionBase::getNextPositionItems(int32_t start_index, int32_t items_index[
 	}
 }
 
+int MissionBase::goToNextItem()
+{
+	return goToNextItem(traversalType());
+}
+
 int MissionBase::goToNextItem(MissionTraversalType traversal_type)
 {
 	if (_mission.current_seq + 1 >= (_mission.count)) {
@@ -1183,6 +1200,11 @@ int MissionBase::goToNextItem(MissionTraversalType traversal_type)
 	return goToItem(_mission.current_seq + 1, traversal_type);
 }
 
+int MissionBase::goToPreviousItem()
+{
+	return goToPreviousItem(traversalType());
+}
+
 int MissionBase::goToPreviousItem(MissionTraversalType traversal_type)
 {
 	if (_mission.current_seq <= 0) {
@@ -1190,6 +1212,11 @@ int MissionBase::goToPreviousItem(MissionTraversalType traversal_type)
 	}
 
 	return goToItem(_mission.current_seq - 1, traversal_type, true);
+}
+
+int MissionBase::goToPreviousPositionItem()
+{
+	return goToPreviousPositionItem(traversalType());
 }
 
 int MissionBase::goToPreviousPositionItem(MissionTraversalType traversal_type)
@@ -1203,6 +1230,11 @@ int MissionBase::goToPreviousPositionItem(MissionTraversalType traversal_type)
 	} else {
 		return PX4_ERROR;
 	}
+}
+
+int MissionBase::goToNextPositionItem()
+{
+	return goToNextPositionItem(traversalType());
 }
 
 int MissionBase::goToNextPositionItem(MissionTraversalType traversal_type)

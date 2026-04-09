@@ -115,7 +115,7 @@ void RtlDirectMissionLand::on_activation()
 
 bool RtlDirectMissionLand::setNextMissionItem()
 {
-	return (goToNextPositionItem(MissionTraversalType::FollowMissionControlFlow) == PX4_OK);
+	return (goToNextPositionItem() == PX4_OK);
 }
 
 void RtlDirectMissionLand::setActiveMissionItems()

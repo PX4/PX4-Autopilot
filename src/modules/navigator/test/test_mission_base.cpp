@@ -159,6 +159,15 @@ private:
 	std::vector<int32_t> _load_failure_indices;
 };
 
+class IgnoreDoJumpMissionBaseTestPeer : public MissionBaseTestPeer
+{
+protected:
+	MissionTraversalType traversalType() const override
+	{
+		return MissionTraversalType::IgnoreDoJump;
+	}
+};
+
 static constexpr double kBaseLat = 47.0;
 static constexpr double kBaseLon = 8.0;
 static constexpr float kAlt = 100.f;
@@ -202,6 +211,19 @@ protected:
 	static void TearDownTestSuite() {}
 
 	MissionBaseTestPeer mission_base{};
+};
+
+class IgnoreDoJumpMissionBaseTraversalTest : public ::testing::Test
+{
+protected:
+	static void SetUpTestSuite()
+	{
+		(void)navigatorDatamanRuntime();
+	}
+
+	static void TearDownTestSuite() {}
+
+	IgnoreDoJumpMissionBaseTestPeer mission_base{};
 };
 
 // WHY: Geometry-only position traversal must skip non-position mission items.
@@ -572,4 +594,45 @@ TEST_F(MissionBaseTraversalTest, GetPreviousPositionItemsFollowsActiveDoJump)
 	// THEN: The active DO_JUMP is followed.
 	ASSERT_EQ(num_found_items, 1u);
 	EXPECT_EQ(previous_items[0], 0);
+}
+
+// WHY: Mission-based RTL configures position traversal to skip DO_JUMP loops consistently.
+// WHAT: [DO_JUMP->2, WP1, WP2] from current_seq=-1 lands on idx 1 with the configured traversal.
+TEST_F(IgnoreDoJumpMissionBaseTraversalTest, ConfiguredTraversalSkipsDoJumpForGoToNextPositionItem)
+{
+	// GIVEN: A mission whose first item is an active DO_JUMP.
+	mission_base.loadTestMission({
+		makeDoJump(2, 1, 0), // idx 0
+		makePositionItem(kBaseLat, kBaseLon, kAlt), // idx 1
+		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt), // idx 2
+	});
+	mission_base.setCurrentSequence(-1);
+
+	// WHEN: The mode advances using its configured traversal policy.
+	const int ret = mission_base.goToNextPositionItem();
+
+	// THEN: The DO_JUMP loop is skipped and the geometric next waypoint is selected.
+	EXPECT_EQ(ret, PX4_OK);
+	EXPECT_EQ(mission_base.currentSequence(), 1);
+}
+
+// WHY: Reverse mission-path RTL must skip DO_JUMP loops for backward progression too.
+// WHAT: [WP0, WP1, DO_JUMP->0, WP3] from current_seq=3 lands on idx 1 with the configured traversal.
+TEST_F(IgnoreDoJumpMissionBaseTraversalTest, ConfiguredTraversalSkipsDoJumpForGoToPreviousPositionItem)
+{
+	// GIVEN: A mission with an active jump loop before the current position item.
+	mission_base.loadTestMission({
+		makePositionItem(kBaseLat, kBaseLon, kAlt), // idx 0
+		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt), // idx 1
+		makeDoJump(0, 2, 0), // idx 2
+		makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt), // idx 3
+	});
+	mission_base.setCurrentSequence(3);
+
+	// WHEN: The mode advances backward using its configured traversal policy.
+	const int ret = mission_base.goToPreviousPositionItem();
+
+	// THEN: The DO_JUMP loop is skipped and the geometric previous waypoint is selected.
+	EXPECT_EQ(ret, PX4_OK);
+	EXPECT_EQ(mission_base.currentSequence(), 1);
 }

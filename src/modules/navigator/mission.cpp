@@ -130,7 +130,7 @@ Mission::set_current_mission_index(uint16_t index)
 
 bool Mission::setNextMissionItem()
 {
-	return (goToNextItem(MissionTraversalType::FollowMissionControlFlow) == PX4_OK);
+	return (goToNextItem() == PX4_OK);
 }
 
 bool

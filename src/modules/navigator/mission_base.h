@@ -105,7 +105,20 @@ protected:
 	};
 
 	/**
-	 * @brief Get the previous mission position items.
+	 * @brief Get the previous mission position items using this mode's traversal policy.
+	 *
+	 * Convenience overload for callers that want the navigation mode default. Keep the
+	 * explicit traversal overload below for cases that intentionally need different semantics.
+	 *
+	 * @param[in] start_index Index from which to start searching backward
+	 * @param[out] items_index Array of the previous position item indices
+	 * @param[out] num_found_items Number of position items found
+	 * @param[in] max_num_items Maximum number of position items to collect
+	 */
+	void getPreviousPositionItems(int32_t start_index, int32_t items_index[], size_t &num_found_items,
+				      uint8_t max_num_items);
+	/**
+	 * @brief Get the previous mission position items using an explicit traversal policy.
 	 *
 	 * @param[in] start_index Index from which to start searching backward
 	 * @param[out] items_index Array of the previous position item indices
@@ -115,9 +128,19 @@ protected:
 	 */
 	void getPreviousPositionItems(int32_t start_index, int32_t items_index[], size_t &num_found_items,
 				      uint8_t max_num_items,
-				      MissionTraversalType traversal_type = MissionTraversalType::FollowMissionControlFlow);
+				      MissionTraversalType traversal_type);
 	/**
-	 * @brief Get the next mission item containing a position setpoint.
+	 * @brief Get the next mission item containing a position setpoint using this mode's traversal policy.
+	 *
+	 * @param[in] start_index Index from which to start searching forward
+	 * @param[out] items_index Array of the next position item indices
+	 * @param[out] num_found_items Number of position items found
+	 * @param[in] max_num_items Maximum number of position items to collect
+	 */
+	void getNextPositionItems(int32_t start_index, int32_t items_index[], size_t &num_found_items,
+				  uint8_t max_num_items);
+	/**
+	 * @brief Get the next mission item containing a position setpoint using an explicit traversal policy.
 	 *
 	 * @param[in] start_index Index from which to start searching forward
 	 * @param[out] items_index Array of the next position item indices
@@ -127,7 +150,7 @@ protected:
 	 */
 	void getNextPositionItems(int32_t start_index, int32_t items_index[], size_t &num_found_items,
 				  uint8_t max_num_items,
-				  MissionTraversalType traversal_type = MissionTraversalType::FollowMissionControlFlow);
+				  MissionTraversalType traversal_type);
 	/**
 	 * @brief Mission has a land start, a land, and is valid
 	 *
@@ -136,20 +159,35 @@ protected:
 	 */
 	bool hasMissionLandStart() const { return _mission.land_start_index >= 0 && _mission.land_index >= 0 && isMissionValid();};
 	/**
-	 * @brief Go to next Mission Item
+	 * @brief Go to next Mission Item using this mode's traversal policy.
+	 * Go to next non jump mission item
+	 *
+	 * @return PX4_OK if next mission item exists, PX4_ERR otherwise
+	 */
+	int goToNextItem();
+	/**
+	 * @brief Go to next Mission Item using an explicit traversal policy.
 	 * Go to next non jump mission item
 	 *
 	 * @param[in] traversal_type Whether to follow DO_JUMP mission control flow or ignore DO_JUMP items
 	 * @return PX4_OK if next mission item exists, PX4_ERR otherwise
 	 */
-	int goToNextItem(MissionTraversalType traversal_type = MissionTraversalType::FollowMissionControlFlow);
+	int goToNextItem(MissionTraversalType traversal_type);
 	/**
-	 * @brief Go to previous Mission Item
+	 * @brief Go to previous Mission Item using this mode's traversal policy.
 	 * Go to previous non jump mission item
+	 *
+	 * @return PX4_OK if previous mission item exists, PX4_ERR otherwise
+	 */
+	int goToPreviousItem();
+	/**
+	 * @brief Go to previous Mission Item using an explicit traversal policy.
+	 * Go to previous non jump mission item
+	 *
 	 * @param[in] traversal_type Whether to follow DO_JUMP mission control flow or ignore DO_JUMP items
 	 * @return PX4_OK if previous mission item exists, PX4_ERR otherwise
 	 */
-	int goToPreviousItem(MissionTraversalType traversal_type = MissionTraversalType::FollowMissionControlFlow);
+	int goToPreviousItem(MissionTraversalType traversal_type);
 	/**
 	 * @brief Go to Mission Item
 	 *
@@ -161,19 +199,31 @@ protected:
 	int goToItem(int32_t index, MissionTraversalType traversal_type = MissionTraversalType::FollowMissionControlFlow,
 		     bool mission_direction_backward = false);
 	/**
-	 * @brief Go To Previous Mission Position Item
+	 * @brief Go To Previous Mission Position Item using this mode's traversal policy.
+	 *
+	 * @return PX4_OK if previous mission item exists, PX4_ERR otherwise
+	 */
+	int goToPreviousPositionItem();
+	/**
+	 * @brief Go To Previous Mission Position Item using an explicit traversal policy.
 	 *
 	 * @param[in] traversal_type Whether to follow DO_JUMP mission control flow or ignore DO_JUMP items
 	 * @return PX4_OK if previous mission item exists, PX4_ERR otherwise
 	 */
-	int goToPreviousPositionItem(MissionTraversalType traversal_type = MissionTraversalType::FollowMissionControlFlow);
+	int goToPreviousPositionItem(MissionTraversalType traversal_type);
 	/**
-	 * @brief Go To Next Mission Position Item
+	 * @brief Go To Next Mission Position Item using this mode's traversal policy.
+	 *
+	 * @return PX4_OK if next mission item exists, PX4_ERR otherwise
+	 */
+	int goToNextPositionItem();
+	/**
+	 * @brief Go To Next Mission Position Item using an explicit traversal policy.
 	 *
 	 * @param[in] traversal_type Whether to follow DO_JUMP mission control flow or ignore DO_JUMP items
 	 * @return PX4_OK if next mission item exists, PX4_ERR otherwise
 	 */
-	int goToNextPositionItem(MissionTraversalType traversal_type = MissionTraversalType::FollowMissionControlFlow);
+	int goToNextPositionItem(MissionTraversalType traversal_type);
 	/**
 	 * @brief Go to Mission Land Start Item
 	 *
@@ -327,6 +377,18 @@ protected:
 	bool position_setpoint_equal(const position_setpoint_s *p1, const position_setpoint_s *p2) const;
 
 	/**
+	 * @brief Traversal mode used by this navigation mode when walking position items.
+	 *
+	 * Mission mode follows active DO_JUMP control flow by default. Derived modes such as
+	 * mission-based RTL can override this to walk the geometric mission path instead.
+	 * Traversal helpers use this policy unless the caller explicitly overrides it.
+	 */
+	virtual MissionTraversalType traversalType() const
+	{
+		return MissionTraversalType::FollowMissionControlFlow;
+	}
+
+	/**
 	 * @brief Set the Mission Index
 	 *
 	 * @param[in] index Index of the mission item
@@ -353,7 +415,7 @@ protected:
 	 * @return true if a position item was found
 	 */
 	bool findNextPositionIndex(int32_t start_index, int32_t &next_index,
-				   MissionTraversalType traversal_type = MissionTraversalType::FollowMissionControlFlow);
+				   MissionTraversalType traversal_type);
 
 	/**
 	 * @brief Find the previous position mission item.
@@ -366,7 +428,7 @@ protected:
 	 * @return true if a position item was found
 	 */
 	bool findPreviousPositionIndex(int32_t start_index, int32_t &previous_index,
-				       MissionTraversalType traversal_type = MissionTraversalType::FollowMissionControlFlow);
+				       MissionTraversalType traversal_type);
 
 	bool _is_current_planned_mission_item_valid{false};	/**< Flag indicating if the currently loaded mission item is valid*/
 	bool _mission_has_been_activated{false};		/**< Flag indicating if the mission has been activated*/
