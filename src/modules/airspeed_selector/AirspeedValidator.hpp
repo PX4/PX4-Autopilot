@@ -151,6 +151,8 @@ private:
 		0.07f; ///< threshold for IAS derivative to detect airspeed failure. Failure is
 	// detected if in a high throttle and low pitch situation and the filtered IAS derivative is below this threshold
 
+	static constexpr float kFirstPrincipleCheckMaxTempC = 5.0f;
+
 	// general states
 	bool _in_fixed_wing_flight{false}; ///< variable to bypass innovation and load factor checks
 	float _IAS{0.0f}; ///< indicated airsped in m/s
@@ -216,7 +218,7 @@ private:
 				       float estimator_status_hdg_test_ratio, const matrix::Vector3f &vI, bool gnss_valid);
 	void check_load_factor(float accel_z);
 	void check_first_principle(const uint64_t timestamp, const float throttle, const float throttle_trim,
-				   const uint64_t tecs_timestamp, const Quatf &att_q, const bool in_level_flight);
+				   const uint64_t tecs_timestamp, const Quatf &att_q, const bool in_level_flight, const float ambient_temp_celsius);
 	void update_airspeed_valid_status(const uint64_t timestamp);
 	void reset();
 	void reset_CAS_scale_check();
