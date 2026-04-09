@@ -183,17 +183,11 @@ public:
 	// get the diagonal elements of the covariance matrix
 	matrix::Vector<float, State::size> covariances_diagonal() const { return P.diag(); }
 
-	template <size_t Width>
-	void uncorrelateCovariance(size_t first) { P.uncorrelateCovariance<Width>(first); }
-
-	// adjust baro bias for a GPS altitude drift correction so baro fusion
-	// doesn't slowly fight the corrected GPS reference
-	void adjustBaroBiasForDriftCorrection(float altitude_offset)
+	void shiftAltOrigin(float offset)
 	{
-#if defined(CONFIG_EKF2_BAROMETER)
-		const float delta_z = -altitude_offset;
-		_baro_b_est.setBias(_baro_b_est.getBias() + delta_z);
-#endif
+		if (PX4_ISFINITE(_local_origin_alt)) {
+			_local_origin_alt += offset;
+		}
 	}
 
 	matrix::Vector3f getRotVarBody() const;

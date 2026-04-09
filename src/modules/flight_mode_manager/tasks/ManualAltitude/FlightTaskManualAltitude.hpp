@@ -127,7 +127,6 @@ private:
 	bool _updateYawCorrection();
 
 	uint8_t _reset_counter = 0; /**< counter for estimator resets in z-direction */
-	bool _altitude_was_good_for_local_control{true}; /**< tracks previous state for edge detection */
 
 	float _min_distance_to_ground{(float)(-INFINITY)}; /**< min distance to ground constraint */
 	float _max_distance_to_ground{(float)INFINITY};  /**< max distance to ground constraint */
