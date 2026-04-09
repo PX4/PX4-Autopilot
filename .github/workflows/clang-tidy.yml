@@ -21,6 +21,8 @@ jobs:
     runs-on: [runs-on, runner=16cpu-linux-x64, "run-id=${{ github.run_id }}", "extras=s3-cache"]
     container:
       image: ghcr.io/px4/px4-dev:v1.17.0-rc2
+    outputs:
+      has_findings: ${{ steps.clang_tidy.outputs.has_findings }}
     steps:
     - uses: runs-on/action@v2
     - uses: actions/checkout@v4
@@ -31,39 +33,110 @@ jobs:
     - name: Configure Git Safe Directory
       run: git config --system --add safe.directory '*'
 
-    - name: Restore Compiler Cache
-      id: cc_restore
-      uses: actions/cache/restore@v4
+    - uses: ./.github/actions/setup-ccache
+      id: ccache
       with:
-        path: ~/.ccache
-        key: ccache-clang-tidy-${{ github.head_ref || github.ref_name }}
-        restore-keys: |
-          ccache-clang-tidy-${{ github.head_ref || github.ref_name }}-
-          ccache-clang-tidy-main-
-          ccache-clang-tidy-
+        cache-key-prefix: ccache-clang-tidy
+        max-size: 120M
 
-    - name: Configure Compiler Cache
-      run: |
-        mkdir -p ~/.ccache
-        echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
-        echo "compression = true" >> ~/.ccache/ccache.conf
-        echo "compression_level = 6" >> ~/.ccache/ccache.conf
-        echo "max_size = 120M" >> ~/.ccache/ccache.conf
-        echo "hash_dir = false" >> ~/.ccache/ccache.conf
-        echo "compiler_check = content" >> ~/.ccache/ccache.conf
-        ccache -s
-        ccache -z
+    - name: Build - px4_sitl_default (Clang)
+      run: make -j16 px4_sitl_default-clang
 
     - name: Run Clang-Tidy Analysis
-      run: make -j16 clang-tidy
+      id: clang_tidy
+      run: |
+        if [ "${{ github.event_name }}" != "pull_request" ]; then
+          make -j$(nproc) clang-tidy
+          echo "has_findings=false" >> $GITHUB_OUTPUT
+        else
+          output=$(python3 Tools/ci/run-clang-tidy-pr.py origin/${{ github.base_ref }} 2>&1)
+          exit_code=$?
+          echo "$output"
+          # Helper prints this message on both early-exit paths
+          # (no changed C++ files, or no matching TUs in the compile DB)
+          if echo "$output" | grep -q "skipping clang-tidy"; then
+            echo "has_findings=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_findings=true" >> $GITHUB_OUTPUT
+          fi
+          exit $exit_code
+        fi
 
-    - name: Compiler Cache Stats
-      if: always()
-      run: ccache -s
-
-    - name: Save Compiler Cache
-      if: always()
-      uses: actions/cache/save@v4
+    - name: Upload compile_commands.json
+      if: always() && github.event_name == 'pull_request'
+      uses: actions/upload-artifact@v4
       with:
-        path: ~/.ccache
-        key: ${{ steps.cc_restore.outputs.cache-primary-key }}
+        name: compile-commands
+        path: build/px4_sitl_default-clang/compile_commands.json
+        retention-days: 1
+
+    - uses: ./.github/actions/save-ccache
+      if: always()
+      with:
+        cache-primary-key: ${{ steps.ccache.outputs.cache-primary-key }}
+
+  post_clang_tidy_comments:
+    name: Clang-Tidy PR Annotations
+    needs: [clang_tidy]
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+    if: >-
+      always()
+      && github.event.pull_request
+      && github.event.pull_request.head.repo.full_name == github.repository
+      && (needs.clang_tidy.result == 'success' || needs.clang_tidy.result == 'failure')
+      && needs.clang_tidy.outputs.has_findings == 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install clang-tools (for clang-tidy-diff)
+        run: sudo apt-get install -y clang-tools
+
+      - name: Download compile_commands.json
+        uses: actions/download-artifact@v4
+        with:
+          name: compile-commands
+          path: build/px4_sitl_default-clang
+
+      - name: Run clang-tidy-diff and export fixes
+        run: |
+          # WHY WE REWRITE compile_commands.json PATHS
+          #
+          # The clang_tidy job runs on a RunsOn/AWS runner where the workspace
+          # root is "/__w/PX4-Autopilot/PX4-Autopilot". All absolute paths baked
+          # into compile_commands.json (the "file" and "directory" fields, and
+          # every -I include path in "command") use that prefix.
+          #
+          # This annotation job runs on a GitHub-hosted runner where the
+          # workspace root is "/home/runner/work/PX4-Autopilot/PX4-Autopilot".
+          # When clang-tidy-diff invokes clang-tidy, it reads the "directory"
+          # field from compile_commands.json and calls chdir() on it. Since
+          # the AWS-style path does not exist here, clang-tidy crashes with:
+          #   LLVM ERROR: Cannot chdir into "/__w/.../build/px4_sitl_default-clang"
+          # and silently produces an empty fixes.yml, so no annotations are posted.
+          #
+          # Fix: rewrite all occurrences of the AWS workspace prefix to the
+          # current runner workspace ($GITHUB_WORKSPACE) before invoking
+          # clang-tidy-diff. Safe because compile_commands.json is a local
+          # scratch file pulled from the artifact; no source file is modified.
+          sed -i "s|/__w/PX4-Autopilot/PX4-Autopilot|${GITHUB_WORKSPACE}|g" \
+            build/px4_sitl_default-clang/compile_commands.json
+
+          mkdir -p clang-tidy-result
+          git diff -U0 origin/${{ github.base_ref }}...HEAD \
+            | clang-tidy-diff-18.py -p1 \
+                -path build/px4_sitl_default-clang \
+                -export-fixes clang-tidy-result/fixes.yml \
+                -j0 || true
+
+      - name: Annotate PR with clang-tidy findings
+        uses: platisd/clang-tidy-pr-comments@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          clang_tidy_fixes: clang-tidy-result/fixes.yml
+          request_changes: true
+          suggestions_per_comment: 10
