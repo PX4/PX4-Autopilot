@@ -1,6 +1,6 @@
 - [Introduction](index.md)
   - [Basic Concepts](getting_started/px4_basic_concepts.md)
-- [Try PX4 (Simulation)](dev_setup/px4_simulation_quickstart.md)
+- [Try PX4 (Simulation)](simulation/px4_simulation_quickstart.md)
 - [Multicopters](frames_multicopter/index.md)
   - [Features](features_mc/index.md)
     - [Flight Modes](flight_modes_mc/index.md)

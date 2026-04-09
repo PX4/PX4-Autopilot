@@ -5,11 +5,13 @@ Pre-built packages let you run [PX4 SITL simulation](index.md) without setting u
 This is very useful if you don't need to modify PX4 itself.
 For example, if you want to write drone apps using [MAVSDK](https://mavsdk.mavlink.io) or [ROS 2](../ros2/user_guide.md), or you just want to fly with PX4.
 
-See [PX4 Simulation QuickStart](../dev_setup/px4_simulation_quickstart.md) for a one-line instruction to run the packages in a container.
+::: tip
+See [PX4 Simulation QuickStart](px4_simulation_quickstart.md) for a one-line instruction to run the SIH package in a container.
+:::
 
 ## What's Available
 
-Two simulators are packaged, each available as a `.deb` package (Ubuntu) or a Docker container (any OS):
+Two simulators are packaged, each available as a `.deb` package (Ubuntu) or a Docker [container](#container-images) (any OS):
 
 | Simulator                                    | Format    | Package / Image         | Size    |
 | -------------------------------------------- | --------- | ----------------------- | ------- |
@@ -34,6 +36,7 @@ Stable releases and pre-releases are published on the [PX4 Releases](https://git
 ## .deb Packages (Ubuntu)
 
 Download the `.deb` file for your Ubuntu version and architecture from the [PX4 Releases](https://github.com/PX4/PX4-Autopilot/releases) page, then install as shown below.
+After installation the binary is added to the default Ubuntu system paths, and can be run from anywhere.
 
 ### px4 (SIH)
 
@@ -127,17 +130,30 @@ docker run --rm -it --network host px4io/px4-sitl:latest
 ## Configuration
 
 These options apply to both `.deb` packages and containers.
+Note that after the first section below we only show how to use them with the deb packages (the pattern for using the options doesn't change).
 
 ### Vehicle Selection
 
-Set `PX4_SIM_MODEL` to choose a vehicle:
+Set `PX4_SIM_MODEL` to choose a vehicle.
+
+SIH:
 
 ```bash
-# SIH
-PX4_SIM_MODEL=sihsim_quadx px4
+# Deb package
+PX4_SIM_MODEL=sihsim_airplane px4
 
-# Gazebo
+# Container
+docker run --rm -it -p 14550:14550/udp px4io/px4-sitl:latest -e PX4_SIM_MODEL=sihsim_airplane
+```
+
+Gazebo:
+
+```
+# Deb package
 PX4_SIM_MODEL=gz_x500 px4-gazebo
+
+# Container
+docker run --rm -it -p 14550:14550/udp px4io/px4-sitl-gazebo:latest -e PX4_SIM_MODEL=gz_x500
 ```
 
 See [SIH Supported Vehicles](../sim_sih/index.md#supported-vehicle-types) and [Gazebo Vehicles](../sim_gazebo_gz/vehicles.md) for the full lists.
