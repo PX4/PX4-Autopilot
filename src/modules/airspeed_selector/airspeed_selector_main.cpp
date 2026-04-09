@@ -396,6 +396,7 @@ AirspeedModule::Run()
 		input_data.tecs_timestamp = _tecs_status.timestamp;
 		input_data.fixed_wing_throttle_filtered = _throttle_filtered.getState();
 		input_data.fixed_wing_tecs_throttle_trim = _tecs_status.throttle_trim;
+		input_data.in_level_flight = _flight_phase_estimation_sub.get().flight_phase == flight_phase_estimation_s::FLIGHT_PHASE_LEVEL;
 
 		// iterate through all airspeed sensors, poll new data from them and update their validators
 		for (int i = 0; i < _number_of_airspeed_sensors; i++) {

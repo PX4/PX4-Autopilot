@@ -61,7 +61,7 @@ AirspeedValidator::update_airspeed_validator(const airspeed_validator_update_dat
 	check_airspeed_innovation(input_data.timestamp, input_data.vel_test_ratio, input_data.hdg_test_ratio,
 				  input_data.ground_velocity, input_data.gnss_valid);
 	check_first_principle(input_data.timestamp, input_data.fixed_wing_throttle_filtered,
-			      input_data.fixed_wing_tecs_throttle_trim, input_data.tecs_timestamp, input_data.q_att);
+			      input_data.fixed_wing_tecs_throttle_trim, input_data.tecs_timestamp, input_data.q_att, input_data.in_level_flight);
 	update_airspeed_valid_status(input_data.timestamp);
 }
 
@@ -282,7 +282,7 @@ AirspeedValidator::check_load_factor(float accel_z)
 
 void
 AirspeedValidator::check_first_principle(const uint64_t timestamp, const float throttle_fw, const float throttle_trim,
-		const uint64_t tecs_timestamp, const Quatf &att_q)
+		const uint64_t tecs_timestamp, const Quatf &att_q, const bool in_level_flight)
 {
 	if (! _first_principle_check_enabled) {
 		_first_principle_check_failed = false;
@@ -294,7 +294,8 @@ AirspeedValidator::check_first_principle(const uint64_t timestamp, const float t
 	const hrt_abstime tecs_dt = timestamp - tecs_timestamp; // return if TECS data is old (TECS not running)
 
 	if (!_in_fixed_wing_flight || tecs_dt > 500_ms || !PX4_ISFINITE(_IAS) || !PX4_ISFINITE(throttle_fw)
-	    || !PX4_ISFINITE(throttle_trim) || !PX4_ISFINITE(pitch)) {
+	    || !PX4_ISFINITE(throttle_trim) || !PX4_ISFINITE(pitch)
+	    || !in_level_flight) {
 		// do not do anything in that case
 		return;
 	}
