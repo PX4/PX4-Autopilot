@@ -31,7 +31,7 @@ Reviewers help maintain PX4 across the project without ownership of a specific c
 
 | Name | GitHub | Chat | email
 |------|--------|------|----------------------
-| Onur Ozkan | [@onur-ozkan](https://github.com/onur-ozkan) | onur_ozkan0126 | <work@onurozkan.dev>
+| Onur Ozkan | [@onur-ozkan](https://github.com/onur-ozkan) | onur_ozkan0126 | <onur@orkavian.com>
 
 
 **Documentation Maintainers**
