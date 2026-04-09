@@ -47,7 +47,7 @@
  * @value 2 RTCM output (PPK)
  * @group GPS
  */
-PARAM_DEFINE_INT32(GPS_DUMP_COMM, 0);
+PARAM_DEFINE_INT32(GPS_DUMP_COMM, 1);
 
 /**
  * u-blox GPS dynamic platform model
@@ -215,7 +215,7 @@ PARAM_DEFINE_INT32(GPS_UBX_CFG_INTF, 0);
  * @reboot_required true
  * @group GPS
  */
-PARAM_DEFINE_INT32(GPS_UBX_PPK, 0);
+PARAM_DEFINE_INT32(GPS_UBX_PPK, 1);
 
 /**
  * u-blox GPS jamming detection high sensitivity mode
