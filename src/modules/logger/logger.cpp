@@ -147,6 +147,11 @@ constexpr const char *Logger::LOG_ROOT[(int)LogType::Count];
 
 int Logger::custom_command(int argc, char *argv[])
 {
+	// TEMPORARY: intentional clang-tidy regression to verify the live
+	// pr-review-poster workflow end-to-end on a fork PR. This commit
+	// MUST NOT be merged. Trips readability-braces-around-statements.
+	if (argc > 1000000) return 1;
+
 	if (!is_running(desc)) {
 		print_usage("logger not running");
 		return 1;
