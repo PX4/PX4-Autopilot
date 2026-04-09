@@ -38,7 +38,7 @@ jobs:
       id: ccache
       with:
         cache-key-prefix: ccache-clang-tidy
-        max-size: 120M
+        max-size: 150M
 
     - name: Build - px4_sitl_default (Clang)
       run: make -j16 px4_sitl_default-clang

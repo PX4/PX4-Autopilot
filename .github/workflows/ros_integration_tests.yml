@@ -27,6 +27,8 @@ jobs:
     container:
       image: px4io/px4-dev-ros2-galactic:2021-09-08
       options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
+    env:
+      PX4_SBOM_DISABLE: 1
     steps:
     - uses: actions/checkout@v4
       with:
@@ -45,30 +47,21 @@ jobs:
       run: |
         apt update && apt install -y gazebo11 libgazebo11-dev gstreamer1.0-plugins-bad gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly libgstreamer-plugins-base1.0-dev
 
-    - name: Prepare ccache timestamp
-      id: ccache_cache_timestamp
-      shell: cmake -P {0}
-      run: |
-        string(TIMESTAMP current_date "%Y-%m-%d-%H;%M;%S" UTC)
-        message("::set-output name=timestamp::${current_date}")
-    - name: ccache cache files
+    - uses: ./.github/actions/setup-ccache
+      id: ccache
+      with:
+        cache-key-prefix: ccache-ros-integration
+        max-size: 400M
+
+    - name: Cache - Restore Micro-XRCE-DDS Agent
+      id: cache-xrce-agent
       uses: actions/cache@v4
       with:
-        path: ~/.ccache
-        key: ros_integration_tests-${{matrix.config.build_type}}-ccache-${{steps.ccache_cache_timestamp.outputs.timestamp}}
-        restore-keys: ros_integration_tests-${{matrix.config.build_type}}-ccache-
-    - name: setup ccache
-      run: |
-        mkdir -p ~/.ccache
-        echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
-        echo "compression = true" >> ~/.ccache/ccache.conf
-        echo "compression_level = 6" >> ~/.ccache/ccache.conf
-        echo "max_size = 300M" >> ~/.ccache/ccache.conf
-        echo "hash_dir = false" >> ~/.ccache/ccache.conf
-        ccache -s
-        ccache -z
+        path: /opt/Micro-XRCE-DDS-Agent
+        key: xrce-agent-v2.2.1-fastdds-2.8.2-galactic-2021-09-08
 
-    - name: Get and build micro-xrce-dds-agent
+    - name: Build - Micro-XRCE-DDS Agent (v2.2.1)
+      if: steps.cache-xrce-agent.outputs.cache-hit != 'true'
       run: |
         cd /opt
         git clone --recursive https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
@@ -79,10 +72,18 @@ jobs:
         cd build
         cmake ..
         make -j2
-    - name: ccache post-run micro-xrce-dds-agent
-      run: ccache -s
 
-    - name: Get and build the ros2 interface library
+    - name: Cache - Restore PX4 ROS 2 Interface Library Workspace
+      id: cache-px4-ros2-ws
+      uses: actions/cache@v4
+      with:
+        path: /opt/px4_ws
+        # Bump 'v1' when the cached workspace layout changes in a way
+        # that is not captured by the message/service hash below.
+        key: px4-ros2-ws-v1-galactic-2021-09-08-${{ hashFiles('msg/*.msg', 'msg/versioned/*.msg', 'srv/*.srv') }}
+
+    - name: Build - PX4 ROS 2 Interface Library
+      if: steps.cache-px4-ros2-ws.outputs.cache-hit != 'true'
       shell: bash
       run: |
         PX4_DIR="$(pwd)"
@@ -108,19 +109,8 @@ jobs:
         "${PX4_DIR}/Tools/copy_to_ros_ws.sh" "$(pwd)"
         rm -rf src/translation_node src/px4_msgs_old
         colcon build --symlink-install
-    - name: ccache post-run ros workspace
-      run: ccache -s
 
-    - name: Build PX4
-      env:
-        PX4_SBOM_DISABLE: 1
-      run: make px4_sitl_default
-    - name: ccache post-run px4/firmware
-      run: ccache -s
-    - name: Build SITL Gazebo
-      run: make px4_sitl_default sitl_gazebo-classic
-    - name: ccache post-run sitl_gazebo-classic
-      run: ccache -s
+    - uses: ./.github/actions/build-gazebo-sitl
 
     - name: Core dump settings
       run: |
@@ -134,6 +124,11 @@ jobs:
         /opt/Micro-XRCE-DDS-Agent/build/MicroXRCEAgent udp4 localhost -p 8888 -v 0 &
         test/ros_test_runner.py --verbose --model iris --force-color
       timeout-minutes: 45
+
+    - uses: ./.github/actions/save-ccache
+      if: always()
+      with:
+        cache-primary-key: ${{ steps.ccache.outputs.cache-primary-key }}
 
     - name: Upload failed logs
       if: failure()

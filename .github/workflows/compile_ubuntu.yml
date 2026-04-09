@@ -53,9 +53,19 @@ jobs:
         if: startsWith(runner.name, 'runs-on--')
         run: ./Tools/ci/use_aws_apt_mirror.sh
 
-      - name: Install Deps, Build, and Make Quick Check
-        run: |
-          # we need to install dependencies and build on the same step
-          # given the stateless nature of docker images
-          ./Tools/setup/ubuntu.sh
-          make quick_check
+      - name: Install Deps
+        run: ./Tools/setup/ubuntu.sh
+
+      - uses: ./.github/actions/setup-ccache
+        id: ccache
+        with:
+          cache-key-prefix: ccache-ubuntu-${{ matrix.version }}
+          max-size: 200M
+
+      - name: Make Quick Check
+        run: make quick_check
+
+      - uses: ./.github/actions/save-ccache
+        if: always()
+        with:
+          cache-primary-key: ${{ steps.ccache.outputs.cache-primary-key }}

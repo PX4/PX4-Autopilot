@@ -44,7 +44,15 @@ jobs:
       - name: Git ownership workaround
         run: git config --system --add safe.directory '*'
 
+      - name: Cache - Restore Emscripten SDK
+        id: cache-emsdk
+        uses: actions/cache@v4
+        with:
+          path: _emscripten_sdk
+          key: emsdk-4.0.15
+
       - name: Install empscripten
+        if: steps.cache-emsdk.outputs.cache-hit != 'true'
         run: |
           git clone https://github.com/emscripten-core/emsdk.git _emscripten_sdk
           cd _emscripten_sdk
