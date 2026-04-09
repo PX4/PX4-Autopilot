@@ -186,8 +186,15 @@ private:
 	int _num_actuators[(int)ActuatorType::COUNT] {};
 
 	// Inputs
+	//
+	// Torque and thrust setpoints are usually published together.
+	// Only torque drives the callback so control allocation runs once, then Run() reads the latest thrust.
+	// Refs:
+	//   - https://github.com/PX4/PX4-Autopilot/pull/24955
+	//   - https://github.com/PX4/PX4-Autopilot/issues/24230
+	//   - https://github.com/PX4/PX4-Autopilot/issues/26971
 	uORB::SubscriptionCallbackWorkItem _vehicle_torque_setpoint_sub{this, ORB_ID(vehicle_torque_setpoint)};  /**< vehicle torque setpoint subscription */
-	uORB::Subscription _vehicle_thrust_setpoint_sub{ORB_ID(vehicle_thrust_setpoint)};	 /**< vehicle thrust setpoint subscription */
+	uORB::Subscription _vehicle_thrust_setpoint_sub{ORB_ID(vehicle_thrust_setpoint)};  /**< vehicle thrust setpoint subscription, polled when torque is triggered*/
 
 	uORB::Subscription _vehicle_torque_setpoint1_sub{ORB_ID(vehicle_torque_setpoint), 1};  /**< vehicle torque setpoint subscription (2. instance) */
 	uORB::Subscription _vehicle_thrust_setpoint1_sub{ORB_ID(vehicle_thrust_setpoint), 1};	 /**< vehicle thrust setpoint subscription (2. instance) */

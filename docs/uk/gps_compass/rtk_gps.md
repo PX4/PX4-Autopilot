@@ -74,7 +74,7 @@ PX4 supports the [u-blox M8P](https://www.u-blox.com/en/product/neo-m8p-series),
 [mosaic-G5 P3H]: https://www.septentrio.com/en/products/gnss-receivers/gnss-receiver-modules/mosaic-G5-P3H
 [D10P]: https://docs.datagnss.com/gnss/gnss_module/D10P_RTK
 
-Примітки:
+Notes:
 
 - ✓ or a specific part number indicate that a features is supported, while ✘ or empty show that the feature is not supported.
   "?" означає "невідомо".

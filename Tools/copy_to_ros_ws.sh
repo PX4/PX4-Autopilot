@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/usr/bin/env bash
 # Copy msgs and the message translation node into a ROS workspace directory
 
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )

@@ -469,9 +469,35 @@ void FixedwingRateControl::Run()
 			// Flaps control
 			float flaps_control = 0.f; // default to no flaps
 
-			/* map flaps by default to manual if valid */
-			if (PX4_ISFINITE(_manual_control_setpoint.flaps)) {
-				flaps_control = math::max(_manual_control_setpoint.flaps, 0.f); // do not consider negative switch settings
+			switch (_param_fw_flaps_man.get()) { 		// do not consider negative switch settings
+			case 0:
+				break;
+
+			case 1:
+				flaps_control = PX4_ISFINITE(_manual_control_setpoint.aux1) ? math::max(_manual_control_setpoint.aux1, 0.f) : 0.f;
+				break;
+
+			case 2:
+				flaps_control = PX4_ISFINITE(_manual_control_setpoint.aux2) ? math::max(_manual_control_setpoint.aux2, 0.f) : 0.f;
+				break;
+
+			case 3:
+				flaps_control = PX4_ISFINITE(_manual_control_setpoint.aux3) ? math::max(_manual_control_setpoint.aux3, 0.f) : 0.f;
+				break;
+
+			case 4:
+				flaps_control = PX4_ISFINITE(_manual_control_setpoint.aux4) ? math::max(_manual_control_setpoint.aux4, 0.f) : 0.f;
+				break;
+
+			case 5:
+				flaps_control = PX4_ISFINITE(_manual_control_setpoint.aux5) ? math::max(_manual_control_setpoint.aux5, 0.f) : 0.f;
+				break;
+
+			case 6:
+				flaps_control = PX4_ISFINITE(_manual_control_setpoint.flaps) ? math::max(_manual_control_setpoint.flaps, 0.f) : 0.f;
+				break;
+
+
 			}
 
 			normalized_unsigned_setpoint_s flaps_setpoint;
@@ -482,18 +508,28 @@ void FixedwingRateControl::Run()
 			// Spoilers control
 			float spoilers_control = 0.f; // default to no spoilers
 
-			switch (_param_fw_spoilers_man.get()) {
+			switch (_param_fw_spoilers_man.get()) {		// do not consider negative switch settings
 			case 0:
 				break;
 
 			case 1:
-				// do not consider negative switch settings
 				spoilers_control = PX4_ISFINITE(_manual_control_setpoint.flaps) ? math::max(_manual_control_setpoint.flaps, 0.f) : 0.f;
 				break;
 
 			case 2:
-				// do not consider negative switch settings
 				spoilers_control = PX4_ISFINITE(_manual_control_setpoint.aux1) ? math::max(_manual_control_setpoint.aux1, 0.f) : 0.f;
+				break;
+
+			case 3:
+				spoilers_control = PX4_ISFINITE(_manual_control_setpoint.aux2) ? math::max(_manual_control_setpoint.aux2, 0.f) : 0.f;
+				break;
+
+			case 4:
+				spoilers_control = PX4_ISFINITE(_manual_control_setpoint.aux3) ? math::max(_manual_control_setpoint.aux3, 0.f) : 0.f;
+				break;
+
+			case 5:
+				spoilers_control = PX4_ISFINITE(_manual_control_setpoint.aux4) ? math::max(_manual_control_setpoint.aux4, 0.f) : 0.f;
 				break;
 			}
 

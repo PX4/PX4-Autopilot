@@ -22,37 +22,31 @@ jMAVSim can also be used for HITL Simulation ([as shown here](../simulation/hitl
 
 ## 安装
 
-jMAVSim setup is included in our [standard build instructions](../dev_setup/dev_env.md) for Ubuntu Linux and Windows.
-Follow the instructions below to install jMAVSim on macOS.
+jMAVSim requires JDK 17 or later.
+On Ubuntu and Windows, the [standard development environment setup](../dev_setup/dev_env.md) scripts install all required dependencies including Java.
+On macOS, you need to install Java manually as shown below.
 
 ### macOS
 
-To setup the environment for [jMAVSim](../sim_jmavsim/index.md) simulation:
+jMAVSim requires OpenJDK 17 or later.
+Install it via Homebrew:
 
-1. Install a recent version of Java (e.g. Java 15).
-   You can download [Java 15 (or later) from Oracle](https://www.oracle.com/java/technologies/downloads/?er=221886) or use [Eclipse Temurin](https://adoptium.net):
+```sh
+brew install openjdk@17
+```
 
-   ```sh
-   brew install --cask temurin
-   ```
+Homebrew installs OpenJDK but does not link it into your `PATH`, so you need to set `JAVA_HOME` for jMAVSim to find it.
+Add this to your shell profile (e.g. `~/.zshrc`):
 
-2. Install jMAVSim:
-
-   ```sh
-   brew install px4-sim-jmavsim
-   ```
-
-   :::warning
-   PX4 v1.11 and beyond require at least JDK 15 for jMAVSim simulation.
-
-   For earlier versions, macOS users might see the error `Exception in thread "main" java.lang.UnsupportedClassVersionError:`.
-   You can find the fix in the [jMAVSim with SITL > Troubleshooting](../sim_jmavsim/index.md#troubleshooting)).
-
-:::
+```sh
+export JAVA_HOME=$(/usr/libexec/java_home -v 17)
+```
 
 ## Simulation Environment
 
-Software in the Loop Simulation runs the complete system on the host machine and simulates the autopilot. It connects via local network to the simulator. The setup looks like this:
+Software in the Loop Simulation runs the complete system on the host machine and simulates the autopilot.
+It connects via local network to the simulator.
+The setup looks like this:
 
 [![Mermaid graph: SITL Simulator](https://mermaid.ink/img/eyJjb2RlIjoiZ3JhcGggTFI7XG4gIFNpbXVsYXRvci0tPk1BVkxpbms7XG4gIE1BVkxpbmstLT5TSVRMOyIsIm1lcm1haWQiOnsidGhlbWUiOiJkZWZhdWx0In0sInVwZGF0ZUVkaXRvciI6ZmFsc2V9)](https://mermaid-js.github.io/mermaid-live-editor/#/edit/eyJjb2RlIjoiZ3JhcGggTFI7XG4gIFNpbXVsYXRvci0tPk1BVkxpbms7XG4gIE1BVkxpbmstLT5TSVRMOyIsIm1lcm1haWQiOnsidGhlbWUiOiJkZWZhdWx0In0sInVwZGF0ZUVkaXRvciI6ZmFsc2V9)
 
@@ -95,7 +89,8 @@ It will also bring up a window showing a 3D view of the [jMAVSim](https://github
 
 ## Taking it to the Sky
 
-The system will start printing status information. You will be able to start flying once you have a position lock (shortly after the console displays the message: _EKF commencing GPS fusion_).
+The system will start printing status information.
+You will be able to start flying once you have a position lock (shortly after the console displays the message: _EKF commencing GPS fusion_).
 
 To takeoff enter the following into the console:
 
@@ -220,11 +215,13 @@ To disable lockstep in:
 
 ## Extending and Customizing
 
-To extend or customize the simulation interface, edit the files in the **Tools/jMAVSim** folder. The code can be accessed through the[jMAVSim repository](https://github.com/px4/jMAVSim) on Github.
+To extend or customize the simulation interface, edit the files in the **Tools/jMAVSim** folder.
+The code can be accessed through the[jMAVSim repository](https://github.com/px4/jMAVSim) on Github.
 
 :::info
 The build system enforces the correct submodule to be checked out for all dependencies, including the simulator.
-It will not overwrite changes in files in the directory, however, when these changes are committed the submodule needs to be registered in the Firmware repo with the new commit hash. To do so, `git add Tools/jMAVSim` and commit the change.
+It will not overwrite changes in files in the directory, however, when these changes are committed the submodule needs to be registered in the Firmware repo with the new commit hash.
+To do so, `git add Tools/jMAVSim` and commit the change.
 This will update the GIT hash of the simulator.
 :::
 
@@ -236,6 +233,75 @@ The simulation can be [interfaced to ROS](../simulation/ros_interface.md) the sa
 
 - The startup scripts are discussed in [System Startup](../concept/system_startup.md).
 - The simulated root file system ("`/`" directory) is created inside the build directory here: `build/px4_sitl_default/rootfs`.
+
+## Display-Only Mode
+
+jMAVSim can run as a display-only renderer for other simulators (like [SIH](../sim_sih/index.md)), with its internal physics disabled.
+In this mode, jMAVSim receives vehicle position via MAVLink and only renders the 3D view.
+
+To use jMAVSim as a display for SIH running in SITL:
+
+```sh
+# Start SIH first
+make px4_sitl_sih sihsim_quadx
+
+# In another terminal, start jMAVSim in display-only mode
+./Tools/simulation/jmavsim/jmavsim_run.sh -p 19410 -u -q -o  # 19410 is the default SIH display port
+```
+
+For SIH running on flight controller hardware:
+
+```sh
+./Tools/simulation/jmavsim/jmavsim_run.sh -q -d /dev/ttyACM0 -b 2000000 -o
+```
+
+Use `-a` for airplane display or `-t` for tailsitter display.
+
+## Command-Line Reference
+
+The `jmavsim_run.sh` launch script accepts the following flags:
+
+| Flag          | 描述                                                                                           |
+| ------------- | -------------------------------------------------------------------------------------------- |
+| `-b <rate>`   | Serial baud rate (default: 921600)                        |
+| `-d <device>` | Serial device path (e.g., `/dev/ttyACM0`) |
+| `-u`          | Use UDP connection instead of serial                                                         |
+| `-i <id>`     | Simulated MAVLink system ID                                                                  |
+| `-p <port>`   | UDP port (default: 14560)                                 |
+| `-q`          | No interactive console                                                                       |
+| `-s <port>`   | TCP serial port                                                                              |
+| `-r <rate>`   | Render rate in Hz                                                                            |
+| `-l`          | Enable lockstep                                                                              |
+| `-o`          | Display-only mode (disable physics, render only)                          |
+| `-a`          | Use airplane model                                                                           |
+| `-t`          | Use tailsitter model                                                                         |
+| `HEADLESS=1`  | Environment variable: run without GUI window                                 |
+
+## How jMAVSim Works
+
+jMAVSim is a Java-based lightweight simulator that communicates with PX4 via MAVLink HIL (Hardware-In-the-Loop) messages.
+
+In normal mode:
+
+1. PX4 sends actuator commands via [HIL_ACTUATOR_CONTROLS](https://mavlink.io/en/messages/common.html#HIL_ACTUATOR_CONTROLS).
+2. jMAVSim runs its physics engine to compute the vehicle state.
+3. jMAVSim sends sensor data back via [HIL_SENSOR](https://mavlink.io/en/messages/common.html#HIL_SENSOR) and [HIL_GPS](https://mavlink.io/en/messages/common.html#HIL_GPS).
+
+In **display-only mode** (`-o` flag), jMAVSim disables its physics engine and only reads [HIL_STATE_QUATERNION](https://mavlink.io/en/messages/common.html#HIL_STATE_QUATERNION) messages to render the vehicle position.
+This allows it to visualize vehicles from other simulators like SIH.
+
+jMAVSim supports [lockstep synchronization](#lockstep) with PX4 (enabled with `-l` flag), ensuring deterministic simulation results.
+
+## Keyboard Shortcuts
+
+Camera modes in the jMAVSim 3D view:
+
+| Key                              | Camera Mode                                             |
+| -------------------------------- | ------------------------------------------------------- |
+| **F**                            | First person (attached to vehicle)   |
+| **S**                            | Stationary (fixed position)          |
+| **G**                            | Gimbal (follows vehicle orientation) |
+| **(default)** | Third person follow                                     |
 
 ## 故障处理
 
@@ -327,8 +393,8 @@ Exception in thread "main" java.lang.UnsupportedClassVersionError: me/drton/jmav
 This error is telling you, you need a more recent version of Java in your environment.
 Class file version 58 corresponds to jdk14, version 59 to jdk15, version 60 to jdk 16 etc.
 
-To fix it under macOS, we recommend installing OpenJDK through homebrew
+To fix it under macOS, install a newer OpenJDK via Homebrew:
 
 ```sh
-brew install --cask adoptopenjdk16
+brew install openjdk@17
 ```

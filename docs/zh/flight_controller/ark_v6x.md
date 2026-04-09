@@ -5,7 +5,7 @@ PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://arkelectron.com/contact-us/) for hardware support or compliance issues.
 :::
 
-The USA-built [ARKV6X](\(https://arkelectron.gitbook.io/ark-documentation/flight-controllers/arkv6x\)) flight controller is based on the [FMUV6X and Pixhawk Autopilot Bus open source standards](https://github.com/pixhawk/Pixhawk-Standards).
+The USA-built [ARKV6X](https://arkelectron.gitbook.io/ark-documentation/flight-controllers/arkv6x) flight controller is based on the [FMUV6X and Pixhawk Autopilot Bus open source standards](https://github.com/pixhawk/Pixhawk-Standards).
 
 With triple synced IMUs, data averaging, voting, and filtering is possible.
 The Pixhawk Autopilot Bus (PAB) form factor enables the ARKV6X to be used on any [PAB-compatible carrier board](../flight_controller/pixhawk_autopilot_bus.md), such as the [ARK Pixhawk Autopilot Bus Carrier](../flight_controller/ark_pab.md).

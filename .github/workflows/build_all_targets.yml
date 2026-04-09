@@ -268,4 +268,5 @@ jobs:
           files: |
             artifacts/*.px4
             artifacts/*.deb
+            artifacts/**/*.sbom.spdx.json
           name: ${{ steps.upload-location.outputs.uploadlocation }}

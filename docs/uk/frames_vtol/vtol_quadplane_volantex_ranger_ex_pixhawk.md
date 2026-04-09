@@ -90,17 +90,17 @@ Please note that the conversion in this build log is performed on a wing that sh
 Виходи Pixhawk повинні бути підключені таким чином (орієнтація, як бачиться
 як "сидячи в літаку").
 
-| Порт   | Підключення                |
-| ------ | -------------------------- |
-| MAIN 1 | Передній правий мотор, CCW |
-| MAIN 2 | Задній лівий мотор, CCW    |
-| MAIN 3 | Передній лівий мотор, CW   |
-| MAIN 4 | Задній правий мотор, CW    |
-| AUX 1  | Лівий елерон               |
-| AUX 2  | Правий елерон              |
-| AUX 3  | Elevator                   |
-| AUX 4  | Rudder                     |
-| AUX 5  | Тяга                       |
+| Порт   | Підключення            |
+| ------ | ---------------------- |
+| MAIN 1 | Front right motor, CCW |
+| MAIN 2 | Back left motor, CCW   |
+| MAIN 3 | Front left motor, CW   |
+| MAIN 4 | Back right motor, CW   |
+| AUX 1  | Left aileron           |
+| AUX 2  | Right aileron          |
+| AUX 3  | Elevator               |
+| AUX 4  | Rudder                 |
+| AUX 5  | Throttle               |
 
 :::info
 The servo direction can be reversed using the PWM_REV parameters in the PWM_OUTPUT group of QGroundControl (cogwheel tab, last item in the left menu)

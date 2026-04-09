@@ -20,10 +20,13 @@ jobs:
     name: Clang-Tidy
     runs-on: [runs-on, runner=16cpu-linux-x64, "run-id=${{ github.run_id }}", "extras=s3-cache"]
     container:
-      image: px4io/px4-dev:v1.17.0-beta1
+      image: ghcr.io/px4/px4-dev:v1.17.0-rc2
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
     - uses: runs-on/action@v2
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         fetch-depth: 0
         fetch-tags: true
@@ -31,39 +34,64 @@ jobs:
     - name: Configure Git Safe Directory
       run: git config --system --add safe.directory '*'
 
-    - name: Restore Compiler Cache
-      id: cc_restore
-      uses: actions/cache/restore@v4
+    - uses: ./.github/actions/setup-ccache
+      id: ccache
       with:
-        path: ~/.ccache
-        key: ccache-clang-tidy-${{ github.head_ref || github.ref_name }}
-        restore-keys: |
-          ccache-clang-tidy-${{ github.head_ref || github.ref_name }}-
-          ccache-clang-tidy-main-
-          ccache-clang-tidy-
+        cache-key-prefix: ccache-clang-tidy
+        max-size: 120M
 
-    - name: Configure Compiler Cache
-      run: |
-        mkdir -p ~/.ccache
-        echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
-        echo "compression = true" >> ~/.ccache/ccache.conf
-        echo "compression_level = 6" >> ~/.ccache/ccache.conf
-        echo "max_size = 120M" >> ~/.ccache/ccache.conf
-        echo "hash_dir = false" >> ~/.ccache/ccache.conf
-        echo "compiler_check = content" >> ~/.ccache/ccache.conf
-        ccache -s
-        ccache -z
+    - name: Build - px4_sitl_default (Clang)
+      run: make -j16 px4_sitl_default-clang
 
     - name: Run Clang-Tidy Analysis
-      run: make -j16 clang-tidy
+      id: clang_tidy
+      run: |
+        if [ "${{ github.event_name }}" != "pull_request" ]; then
+          make -j$(nproc) clang-tidy
+        else
+          python3 Tools/ci/run-clang-tidy-pr.py origin/${{ github.base_ref }}
+        fi
 
-    - name: Compiler Cache Stats
-      if: always()
-      run: ccache -s
+    # On PRs, also produce a `pr-review` artifact for the PR Review Poster
+    # workflow to consume. clang-tidy-diff-18 emits a unified fixes.yml that
+    # the producer script translates into line-anchored review comments.
+    # Running this inside the same container as the build means there is no
+    # workspace-path rewriting and no cross-runner artifact handoff.
+    - name: Export clang-tidy fixes for PR review
+      if: always() && github.event_name == 'pull_request'
+      run: |
+        mkdir -p pr-review
+        git diff -U0 origin/${{ github.base_ref }}...HEAD \
+          | clang-tidy-diff-18.py -p1 \
+              -path build/px4_sitl_default-clang \
+              -export-fixes pr-review/fixes.yml \
+              -j0 || true
 
-    - name: Save Compiler Cache
-      if: always()
-      uses: actions/cache/save@v4
+    - name: Build pr-review artifact
+      if: always() && github.event_name == 'pull_request'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        python3 Tools/ci/clang-tidy-fixes-to-review.py \
+          --fixes pr-review/fixes.yml \
+          --repo-root "$GITHUB_WORKSPACE" \
+          --repo "$GITHUB_REPOSITORY" \
+          --pr-number "${{ github.event.pull_request.number }}" \
+          --commit-sha "${{ github.event.pull_request.head.sha }}" \
+          --out-dir pr-review \
+          --event REQUEST_CHANGES
+
+    - name: Upload pr-review artifact
+      if: always() && github.event_name == 'pull_request'
+      uses: actions/upload-artifact@v7
       with:
-        path: ~/.ccache
-        key: ${{ steps.cc_restore.outputs.cache-primary-key }}
+        name: pr-review
+        path: |
+          pr-review/manifest.json
+          pr-review/comments.json
+        retention-days: 1
+
+    - uses: ./.github/actions/save-ccache
+      if: always()
+      with:
+        cache-primary-key: ${{ steps.ccache.outputs.cache-primary-key }}

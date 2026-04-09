@@ -141,17 +141,6 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_mission);
 	}
 
-	if (reporter.failsafeFlags().offboard_control_signal_lost && reporter.failsafeFlags().mode_req_offboard_signal != 0) {
-		/* EVENT
-		 * @description
-		 * The offboard component is not sending setpoints or the required estimate (e.g. position) is missing.
-		 */
-		reporter.armingCheckFailure((NavModes)reporter.failsafeFlags().mode_req_offboard_signal, health_component_t::system,
-					    events::ID("check_modes_offboard_signal"),
-					    events::Log::Error, "No offboard signal");
-		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_offboard_signal);
-	}
-
 	if (reporter.failsafeFlags().home_position_invalid && reporter.failsafeFlags().mode_req_home_position != 0) {
 		/* EVENT
 		 */

@@ -89,7 +89,9 @@ jobs:
         . /opt/ros/galactic/setup.bash
         mkdir -p /opt/px4_ws/src
         cd /opt/px4_ws/src
-        BRANCH="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+        # On a PR, target the branch we're merging into (main or release/X.Y).
+        # On a direct push, fall back to the branch we're running on.
+        BRANCH="${GITHUB_BASE_REF:-$GITHUB_REF_NAME}"
         REPO_URL="https://github.com/Auterion/px4-ros2-interface-lib.git"
         if git ls-remote --heads "$REPO_URL" "$BRANCH" | grep -q "$BRANCH"; then
           echo "Cloning px4-ros2-interface-lib with matching branch: $BRANCH"
@@ -110,6 +112,8 @@ jobs:
       run: ccache -s
 
     - name: Build PX4
+      env:
+        PX4_SBOM_DISABLE: 1
       run: make px4_sitl_default
     - name: ccache post-run px4/firmware
       run: ccache -s
@@ -128,7 +132,7 @@ jobs:
       run: |
         . /opt/px4_ws/install/setup.bash
         /opt/Micro-XRCE-DDS-Agent/build/MicroXRCEAgent udp4 localhost -p 8888 -v 0 &
-        test/ros_test_runner.py --verbose --model iris --upload --force-color
+        test/ros_test_runner.py --verbose --model iris --force-color
       timeout-minutes: 45
 
     - name: Upload failed logs

@@ -258,7 +258,7 @@ private:
 	float _pitch{0.0f}; // [rad] current pitch angle from attitude
 	float _throttle{0.0f}; // [0-1] last set throttle
 
-	float _body_acceleration_x{0.f};
+	float _body_acceleration_norm{0.f};
 	float _body_velocity_x{0.f};
 
 	MapProjection _global_local_proj_ref{};
