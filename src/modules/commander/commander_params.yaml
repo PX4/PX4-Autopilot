@@ -136,8 +136,9 @@ parameters:
         short: GNSS loss failsafe mode
         long: |-
           Action the system takes when a GNSS failure is detected during flight.
-          Triggers when the active GNSS count drops below SYS_HAS_NUM_GNSS or when
-          two receivers report positions inconsistent with their reported accuracy.
+          Triggers when the active GNSS count drops below SYS_HAS_NUM_GNSS (disabled
+          when SYS_HAS_NUM_GNSS=0), or when two receivers report positions inconsistent
+          with their reported accuracy and SYS_HAS_NUM_GNSS=2 (otherwise warning only).
           Any value above Warning also blocks arming.
       type: enum
       values:

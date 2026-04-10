@@ -136,6 +136,20 @@ public:
 			& (uint64_t)events::px4::enums::health_component_t::gps) != 0;
 	}
 
+	// Runs one check cycle and returns true if gnss_lost was set (failsafe would trigger)
+	bool hasGnssLost(bool armed)
+	{
+		vehicle_status_s status{};
+		status.arming_state = armed
+				      ? vehicle_status_s::ARMING_STATE_ARMED
+				      : vehicle_status_s::ARMING_STATE_DISARMED;
+		Context context{status};
+		failsafe_flags_s failsafe_flags{};
+		Report reporter{failsafe_flags, 0_s};
+		_check->checkAndReport(context, reporter);
+		return failsafe_flags.gnss_lost;
+	}
+
 	static orb_advert_t _pub0;
 	static orb_advert_t _pub1;
 	GpsRedundancyChecks *_check{nullptr};
@@ -196,6 +210,41 @@ TEST_F(GpsRedundancyCheckTest, FixTypeBelow3TreatedAsInactive)
 	orb_publish(ORB_ID(sensor_gps), _pub0, &gps0);
 	orb_publish(ORB_ID(sensor_gps), _pub1, &gps1);
 	EXPECT_FALSE(hasDivergenceWarning(false));
+}
+
+// Divergence with SYS_HAS_NUM_GNSS=2 and COM_GPS_LOSS_ACT>0 → gnss_lost set (failsafe fires)
+TEST_F(GpsRedundancyCheckTest, DivergenceWithRedundancyRequiredSetsGnssLost)
+{
+	int i = 2;
+	param_set(param_find("SYS_HAS_NUM_GNSS"), &i);
+	i = 1; // Return
+	param_set(param_find("COM_GPS_LOSS_ACT"), &i);
+	delete _check;
+	_check = new GpsRedundancyChecks();
+
+	sensor_gps_s gps0 = makeGps(BASE_LAT, BASE_LON);
+	sensor_gps_s gps1 = makeGps(DIVERGING_LAT, BASE_LON);
+	orb_publish(ORB_ID(sensor_gps), _pub0, &gps0);
+	orb_publish(ORB_ID(sensor_gps), _pub1, &gps1);
+	EXPECT_TRUE(hasGnssLost(false));
+}
+
+// Divergence with SYS_HAS_NUM_GNSS=0 and COM_GPS_LOSS_ACT>0 → warning only, gnss_lost not set
+TEST_F(GpsRedundancyCheckTest, DivergenceWithoutRedundancyRequiredWarnsOnly)
+{
+	int i = 0;
+	param_set(param_find("SYS_HAS_NUM_GNSS"), &i);
+	i = 1; // Return
+	param_set(param_find("COM_GPS_LOSS_ACT"), &i);
+	delete _check;
+	_check = new GpsRedundancyChecks();
+
+	sensor_gps_s gps0 = makeGps(BASE_LAT, BASE_LON);
+	sensor_gps_s gps1 = makeGps(DIVERGING_LAT, BASE_LON);
+	orb_publish(ORB_ID(sensor_gps), _pub0, &gps0);
+	orb_publish(ORB_ID(sensor_gps), _pub1, &gps1);
+	EXPECT_FALSE(hasGnssLost(false));
+	EXPECT_TRUE(hasDivergenceWarning(false));
 }
 
 // Divergence then recovery: timer resets and warning stops

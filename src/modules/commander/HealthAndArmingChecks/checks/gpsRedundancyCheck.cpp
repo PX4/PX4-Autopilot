@@ -75,12 +75,16 @@ void GpsRedundancyChecks::checkAndReport(const Context &context, Report &reporte
 		}
 	}
 
+	const int required = _param_sys_has_num_gnss.get();
+
 	// Position divergence check: warn if two fixed receivers disagree beyond their combined
 	// uncertainty. The gate is: lever-arm separation + GNSS_DIVERGENCE_SIGMA * RMS(eph0, eph1).
 	// Using RMS(eph) means the gate tightens when both receivers are accurate and widens
 	// automatically when one degrades, avoiding false alarms without a hard-coded threshold.
 	// Pre-arm: warn immediately. In-flight: require GPS_DIVERGENCE_SUSTAIN to suppress
 	// transient multipath spikes.
+	// The failsafe action is only triggered when SYS_HAS_NUM_GNSS >= 2; otherwise divergence
+	// is reported as a warning only.
 	bool divergence_active = false;
 
 	if (fixed_count >= 2) {
@@ -106,8 +110,8 @@ void GpsRedundancyChecks::checkAndReport(const Context &context, Report &reporte
 			}
 
 			if (hrt_elapsed_time(&_divergence_since) >= sustain) {
-				divergence_active = true;
-				const bool act = (_param_com_gnss_loss_act.get() > 0);
+				const bool act = (_param_com_gnss_loss_act.get() > 0) && (required >= 2);
+				divergence_active = act;
 
 				/* EVENT
 				 * @description
@@ -115,6 +119,7 @@ void GpsRedundancyChecks::checkAndReport(const Context &context, Report &reporte
 				 *
 				 * <profile name="dev">
 				 * Configure the failsafe action with <param>COM_GPS_LOSS_ACT</param>.
+				 * The failsafe action is only triggered when <param>SYS_HAS_NUM_GNSS</param> is set to 2.
 				 * </profile>
 				 */
 				reporter.healthFailure<float, float>(act ? NavModes::All : NavModes::None,
@@ -135,7 +140,6 @@ void GpsRedundancyChecks::checkAndReport(const Context &context, Report &reporte
 		_peak_fixed_count = fixed_count;
 	}
 
-	const int required = _param_sys_has_num_gnss.get();
 	const bool below_required = (required > 0 && fixed_count < required);
 	const bool dropped_below_peak = (_peak_fixed_count > 1 && fixed_count < _peak_fixed_count);
 
