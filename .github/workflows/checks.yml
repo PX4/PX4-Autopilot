@@ -53,6 +53,11 @@ jobs:
     runs-on: [runs-on,runner=8cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
     container:
       image: ghcr.io/px4/px4-dev:v1.17.0-rc2
+    permissions:
+      contents: write
+    env:
+      GIT_COMMITTER_EMAIL: bot@px4.io
+      GIT_COMMITTER_NAME: PX4BuildBot
     steps:
       - uses: runs-on/action@v2
       - uses: actions/checkout@v6
@@ -76,3 +81,19 @@ jobs:
         if: always()
         with:
           cache-primary-key: ${{ steps.ccache.outputs.cache-primary-key }}
+
+      - name: Auto-update EKF change indication baselines
+        if: github.event_name == 'push'
+        uses: stefanzweifel/git-auto-commit-action@v7
+        with:
+          file_pattern: 'src/modules/ekf2/test/change_indication/*.csv'
+          commit_user_name: ${{ env.GIT_COMMITTER_NAME }}
+          commit_user_email: ${{ env.GIT_COMMITTER_EMAIL }}
+          commit_message: |
+            [AUTO COMMIT] update EKF change indication
+
+            See .github/workflows/checks.yml for more details
+
+      - name: Check for EKF functional changes
+        run: git diff --exit-code
+        working-directory: src/modules/ekf2/test/change_indication
