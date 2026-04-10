@@ -19,12 +19,6 @@ concurrency:
 jobs:
   build:
     runs-on: macos-latest
-    strategy:
-      matrix:
-        config: [
-          px4_fmu-v5_default,
-          px4_sitl
-          ]
     steps:
     - name: install Python 3.10
       uses: actions/setup-python@v5
@@ -55,11 +49,17 @@ jobs:
     - uses: ./.github/actions/setup-ccache
       id: ccache
       with:
-        cache-key-prefix: ccache-macos-${{ matrix.config }}
+        cache-key-prefix: ccache-macos
         max-size: 200M
 
-    - name: make ${{matrix.config}}
-      run: make ${{matrix.config}}
+    - name: Build px4_sitl
+      run: make px4_sitl
+
+    - name: Cache - Stats after px4_sitl
+      run: ccache -s
+
+    - name: Build px4_fmu-v5_default
+      run: make px4_fmu-v5_default
 
     - uses: ./.github/actions/save-ccache
       if: always()
