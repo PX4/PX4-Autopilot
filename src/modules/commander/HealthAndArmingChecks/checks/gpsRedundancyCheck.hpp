@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -56,8 +56,8 @@ private:
 	hrt_abstime _divergence_since{0};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
-					(ParamInt<px4::params::SYS_HAS_NUM_GPS>)   _param_sys_has_num_gps,
-					(ParamInt<px4::params::COM_GPS_LOSS_ACT>)  _param_com_gps_loss_act,
+					(ParamInt<px4::params::SYS_HAS_NUM_GNSS>)   _param_sys_has_num_gnss,
+					(ParamInt<px4::params::COM_GPS_LOSS_ACT>)  _param_com_gnss_loss_act,
 					(ParamFloat<px4::params::SENS_GPS0_OFFX>)  _param_gps0_offx,
 					(ParamFloat<px4::params::SENS_GPS0_OFFY>)  _param_gps0_offy,
 					(ParamFloat<px4::params::SENS_GPS1_OFFX>)  _param_gps1_offx,

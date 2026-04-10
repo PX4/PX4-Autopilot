@@ -136,18 +136,17 @@ parameters:
       type: boolean
       default: 1
       reboot_required: true
-    SYS_HAS_NUM_GPS:
+    SYS_HAS_NUM_GNSS:
       description:
-        short: Control if and how many GPS receivers are expected
+        short: Control if and how many GNSS receivers are expected
         long: |-
-          0: Disable GPS redundancy check (any number of GPS is acceptable).
-          1-N: Require the presence of N GPS receivers for arming and during flight.
+          0: Disable GNSS redundancy check (any number of GNSS receivers is acceptable).
+          1-N: Require the presence of N GNSS receivers for arming and during flight.
           If the active count drops below this value in flight, COM_GPS_LOSS_ACT is triggered.
       type: int32
       default: 0
       min: 0
       max: 2
-      reboot_required: false
     SYS_HAS_MAG:
       description:
         short: Control if and how many magnetometers are expected

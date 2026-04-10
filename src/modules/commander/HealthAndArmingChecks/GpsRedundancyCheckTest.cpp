@@ -89,7 +89,7 @@ public:
 		f = 0.f;
 		param_set(param_find("SENS_GPS1_OFFY"), &f);
 		int i = 0;
-		param_set(param_find("SYS_HAS_NUM_GPS"), &i);
+		param_set(param_find("SYS_HAS_NUM_GNSS"), &i);
 		param_set(param_find("COM_GPS_LOSS_ACT"), &i);
 
 		// Construct check after params are set so ParamFloat reads correct initial values
@@ -145,13 +145,13 @@ orb_advert_t GpsRedundancyCheckTest::_pub0{nullptr};
 orb_advert_t GpsRedundancyCheckTest::_pub1{nullptr};
 
 // No GPS published → active_count=0 → no divergence check
-TEST_F(GpsRedundancyCheckTest, no_gps)
+TEST_F(GpsRedundancyCheckTest, NoGnss)
 {
 	EXPECT_FALSE(hasDivergenceWarning(false));
 }
 
 // Only one active receiver → divergence check requires ≥ 2
-TEST_F(GpsRedundancyCheckTest, single_gps)
+TEST_F(GpsRedundancyCheckTest, SingleGnss)
 {
 	sensor_gps_s gps0 = makeGps(BASE_LAT, BASE_LON);
 	orb_publish(ORB_ID(sensor_gps), _pub0, &gps0);
@@ -159,7 +159,7 @@ TEST_F(GpsRedundancyCheckTest, single_gps)
 }
 
 // Two receivers ~0.4m apart (within gate of 0.785m) → no warning
-TEST_F(GpsRedundancyCheckTest, two_gps_agreeing_prearm)
+TEST_F(GpsRedundancyCheckTest, TwoGnssAgreeingPrearm)
 {
 	sensor_gps_s gps0 = makeGps(BASE_LAT, BASE_LON);
 	sensor_gps_s gps1 = makeGps(AGREEING_LAT, BASE_LON);
@@ -169,7 +169,7 @@ TEST_F(GpsRedundancyCheckTest, two_gps_agreeing_prearm)
 }
 
 // Two receivers ~2.0m apart (beyond gate), pre-arm → immediate warning (sustain=0 pre-arm)
-TEST_F(GpsRedundancyCheckTest, two_gps_diverging_prearm)
+TEST_F(GpsRedundancyCheckTest, TwoGnssDivergingPrearm)
 {
 	sensor_gps_s gps0 = makeGps(BASE_LAT, BASE_LON);
 	sensor_gps_s gps1 = makeGps(DIVERGING_LAT, BASE_LON);
@@ -179,7 +179,7 @@ TEST_F(GpsRedundancyCheckTest, two_gps_diverging_prearm)
 }
 
 // Two receivers ~2.0m apart, in-flight, first call → no warning yet (2s sustain not elapsed)
-TEST_F(GpsRedundancyCheckTest, two_gps_diverging_inflight_not_yet_sustained)
+TEST_F(GpsRedundancyCheckTest, TwoGnssDivergingInflightNotYetSustained)
 {
 	sensor_gps_s gps0 = makeGps(BASE_LAT, BASE_LON);
 	sensor_gps_s gps1 = makeGps(DIVERGING_LAT, BASE_LON);
@@ -189,7 +189,7 @@ TEST_F(GpsRedundancyCheckTest, two_gps_diverging_inflight_not_yet_sustained)
 }
 
 // GPS1 fix_type=2 (2D only) → treated as inactive → only 1 active receiver → no divergence check
-TEST_F(GpsRedundancyCheckTest, fix_type_below_3_treated_as_inactive)
+TEST_F(GpsRedundancyCheckTest, FixTypeBelow3TreatedAsInactive)
 {
 	sensor_gps_s gps0 = makeGps(BASE_LAT, BASE_LON);
 	sensor_gps_s gps1 = makeGps(DIVERGING_LAT, BASE_LON, 0.02f, 2);
@@ -199,7 +199,7 @@ TEST_F(GpsRedundancyCheckTest, fix_type_below_3_treated_as_inactive)
 }
 
 // Divergence then recovery: timer resets and warning stops
-TEST_F(GpsRedundancyCheckTest, divergence_clears_after_recovery)
+TEST_F(GpsRedundancyCheckTest, DivergenceClearsAfterRecovery)
 {
 	// First: diverging pre-arm → warning fires
 	sensor_gps_s gps0 = makeGps(BASE_LAT, BASE_LON);

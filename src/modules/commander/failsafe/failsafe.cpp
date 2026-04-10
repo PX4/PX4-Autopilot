@@ -385,7 +385,7 @@ FailsafeBase::ActionOptions Failsafe::fromPosLowActParam(int param_value)
 	return options;
 }
 
-FailsafeBase::ActionOptions Failsafe::fromGpsRedundancyActParam(int param_value)
+FailsafeBase::ActionOptions Failsafe::fromGnssLossActParam(int param_value)
 {
 	ActionOptions options{};
 
@@ -672,7 +672,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 
 	CHECK_FAILSAFE(status_flags, fd_imbalanced_prop, Action::Warn);
 	CHECK_FAILSAFE(status_flags, fd_motor_failure, fromActuatorFailureActParam(_param_com_actuator_failure_act.get()));
-	CHECK_FAILSAFE(status_flags, gps_redundancy_lost, fromGpsRedundancyActParam(_param_com_gps_loss_act.get()));
+	CHECK_FAILSAFE(status_flags, gnss_lost, fromGnssLossActParam(_param_com_gnss_loss_act.get()));
 
 
 
