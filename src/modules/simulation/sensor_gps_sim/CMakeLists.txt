@@ -38,6 +38,8 @@ px4_add_module(
 	SRCS
 		SensorGpsSim.cpp
 		SensorGpsSim.hpp
+		SensorGpsFailureInjector.cpp
+		SensorGpsFailureInjector.hpp
 	MODULE_CONFIG
 		parameters.yaml
 	DEPENDS
