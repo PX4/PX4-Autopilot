@@ -82,14 +82,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      - name: Update python packaging to avoid canonicalize_version() error
-        run: |
-            pip3 install -U packaging
-
       - name: Install Python Dependencies
-        uses: py-actions/py-dependency-install@v4
-        with:
-          path: "./Tools/setup/requirements.txt"
+        run: pip3 install -U packaging -r ./Tools/setup/requirements.txt
 
       - id: set-matrix
         name: Generate Build Matrix
