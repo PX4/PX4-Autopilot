@@ -378,13 +378,14 @@ void Ekf::controlGnssYawEstimator(estimator_aid_source3d_s &aid_src_vel)
 {
 	// update yaw estimator velocity (basic sanity check on GNSS velocity data)
 	const float vel_var = aid_src_vel.observation_variance[0];
+	const float vel_accuracy = sqrtf(vel_var);
 	const Vector2f vel_xy(aid_src_vel.observation);
 
 	if ((vel_var > 0.f)
-	    && (vel_var < _params.ekf2_req_sacc)
+	    && (vel_accuracy < _params.ekf2_req_sacc)
 	    && vel_xy.isAllFinite()) {
 
-		_yawEstimator.fuseVelocity(vel_xy, vel_var, _control_status.flags.in_air);
+		_yawEstimator.fuseVelocity(vel_xy, vel_accuracy, _control_status.flags.in_air);
 
 		// Try to align yaw using estimate if available
 		if (((_params.ekf2_gps_ctrl & static_cast<int32_t>(GnssCtrl::VEL))
