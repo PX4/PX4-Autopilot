@@ -159,6 +159,7 @@ void Battery::updateBatteryStatus(const hrt_abstime &timestamp)
 
 		if (_vehicle_status_sub.copy(&vehicle_status)) {
 			_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+			_vehicle_status_is_fw = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 		}
 	}
 }
@@ -370,28 +371,18 @@ void Battery::computeScale()
 float Battery::computeRemainingTime(float current_a)
 {
 	float time_remaining_s = NAN;
-	bool reset_current_avg_filter = false;
-
-	if (_vehicle_status_sub.updated()) {
-		vehicle_status_s vehicle_status;
-
-		if (_vehicle_status_sub.copy(&vehicle_status)) {
-
-			if (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING && !_vehicle_status_is_fw) {
-				reset_current_avg_filter = true;
-			}
-
-			_vehicle_status_is_fw = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
-		}
-	}
 
 	_flight_phase_estimation_sub.update();
 
+	bool reset_filter_transition_now = !_vehicle_status_was_fw && _vehicle_status_is_fw;
+
 	// reset filter if not feasible, negative or we did a VTOL transition to FW mode
 	if (!PX4_ISFINITE(_current_average_filter_a.getState()) || _current_average_filter_a.getState() < FLT_EPSILON
-	    || reset_current_avg_filter) {
+	    || reset_filter_transition_now) {
 		_current_average_filter_a.reset(_params.bat_avrg_current);
 	}
+
+	_vehicle_status_was_fw = _vehicle_status_is_fw;
 
 	if (_armed && PX4_ISFINITE(current_a)) {
 		// For FW only update when we are in level flight
