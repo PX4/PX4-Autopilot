@@ -22,7 +22,7 @@ jobs:
         lc: [ko, uk, zh-CN] # Target languages https://developer.crowdin.com/language-codes/
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Debug Environment Variables
         run: |
           echo "CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_DOCS_PROJECT_ID }}"

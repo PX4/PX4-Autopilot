@@ -24,7 +24,7 @@ jobs:
         run: |
           git config --global --add safe.directory $(realpath .)
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Build and Run Fuzz Tests
         run: |

@@ -34,12 +34,10 @@ jobs:
           - {name: "Offboard", test_file: "mavros_posix_tests_offboard_posctl.test", params: "vehicle:=iris"}
     steps:
       - uses: runs-on/action@v2
-
       - uses: actions/checkout@v6
         with:
           fetch-depth: 1
-
-      - name: Setup - Configure Git Safe Directory
+      - name: Configure Git Safe Directory
         run: git config --system --add safe.directory '*'
 
       - name: Setup - Install Python Test Dependencies

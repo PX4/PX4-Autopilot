@@ -20,7 +20,7 @@ jobs:
       image: ghcr.io/px4/px4-dev:v1.17.0-rc2
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 

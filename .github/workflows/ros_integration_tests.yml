@@ -31,12 +31,10 @@ jobs:
       PX4_SBOM_DISABLE: 1
     steps:
     - uses: runs-on/action@v2
-
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         fetch-depth: 1
-
-    - name: Git Ownership Workaround
+    - name: Configure Git Safe Directory
       run: git config --system --add safe.directory '*'
 
     - name: Update ROS Keys
@@ -57,7 +55,7 @@ jobs:
 
     - name: Cache - Restore Micro-XRCE-DDS Agent
       id: cache-xrce-agent
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: /opt/Micro-XRCE-DDS-Agent
         key: xrce-agent-v2.2.1-fastdds-2.8.2-galactic-2021-09-08
@@ -77,7 +75,7 @@ jobs:
 
     - name: Cache - Restore PX4 ROS 2 Interface Library Workspace
       id: cache-px4-ros2-ws
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: /opt/px4_ws
         # Bump 'v1' when the cached workspace layout changes in a way
@@ -134,7 +132,7 @@ jobs:
 
     - name: Upload failed logs
       if: failure()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: failed-logs.zip
         path: |

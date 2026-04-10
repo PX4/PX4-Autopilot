@@ -48,7 +48,7 @@ jobs:
           apt update && apt install git -y
           git config --global --add safe.directory $(realpath .)
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Use AWS regional apt mirror
         if: startsWith(runner.name, 'runs-on--')

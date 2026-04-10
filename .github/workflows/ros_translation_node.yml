@@ -35,11 +35,9 @@ jobs:
       image: ros:${{ matrix.config.ros_version }}-ros-base-${{ matrix.config.ubuntu }}
     steps:
       - uses: runs-on/action@v2
-
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-
       - name: Configure Git Safe Directory
         run: git config --system --add safe.directory '*'
 

@@ -33,22 +33,20 @@ jobs:
       options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
     steps:
       - uses: runs-on/action@v2
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Configure Git Safe Directory
+        run: git config --system --add safe.directory '*'
 
       - name: Install Node v20.18.0
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20.18.0
 
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Git ownership workaround
-        run: git config --system --add safe.directory '*'
-
       - name: Cache - Restore Emscripten SDK
         id: cache-emsdk
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: _emscripten_sdk
           key: emsdk-4.0.15

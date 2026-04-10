@@ -30,7 +30,6 @@ jobs:
       with:
         fetch-depth: 0
         fetch-tags: true
-
     - name: Configure Git Safe Directory
       run: git config --system --add safe.directory '*'
 

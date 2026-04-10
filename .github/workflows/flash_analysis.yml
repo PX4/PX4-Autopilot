@@ -37,18 +37,16 @@ jobs:
       px4_fmu-v6x-bloaty-summary-map: ${{ steps.gen-output.outputs.px4_fmu-v6x-bloaty-summary-map }}
     steps:
       - uses: runs-on/action@v2
-
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           submodules: recursive
-
-      - name: Git ownership workaround
+      - name: Configure Git Safe Directory
         run: git config --system --add safe.directory '*'
 
       - name: Cache - Restore ccache (current)
         id: cache_current
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: ~/.ccache
           key: ccache-flash-${{ matrix.target }}-current-${{ github.ref_name }}-${{ github.sha }}
@@ -79,7 +77,7 @@ jobs:
 
       - name: Cache - Save ccache (current)
         if: always()
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: ~/.ccache
           key: ${{ steps.cache_current.outputs.cache-primary-key }}
@@ -105,7 +103,7 @@ jobs:
 
       - name: Cache - Restore ccache (baseline)
         id: cache_baseline
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: ~/.ccache
           key: ccache-flash-${{ matrix.target }}-baseline-${{ github.sha }}
@@ -126,7 +124,7 @@ jobs:
 
       - name: Cache - Save ccache (baseline)
         if: always()
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: ~/.ccache
           key: ${{ steps.cache_baseline.outputs.cache-primary-key }}
@@ -162,7 +160,7 @@ jobs:
     if: github.event.pull_request
     steps:
       - name: Find Comment
-        uses: peter-evans/find-comment@v3
+        uses: peter-evans/find-comment@v4
         id: fc
         with:
           issue-number: ${{ github.event.pull_request.number }}
@@ -220,7 +218,7 @@ jobs:
           env.V5X-SUMMARY-MAP-ABS <= fromJSON(env.MIN_FLASH_NEG_DIFF_FOR_COMMENT) ||
           env.V6X-SUMMARY-MAP-ABS >= fromJSON(env.MIN_FLASH_POS_DIFF_FOR_COMMENT) ||
           env.V6X-SUMMARY-MAP-ABS <= fromJSON(env.MIN_FLASH_NEG_DIFF_FOR_COMMENT)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pr-comment
           path: pr-comment/
