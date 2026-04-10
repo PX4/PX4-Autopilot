@@ -32,3 +32,5 @@ uint8 FLAG_SUB_HALF_CYC = 16
 uint8 FLAG_HALF_CYCLE   = 32
 uint8 FLAG_CODE_LOCK    = 64
 uint8 FLAG_CARR_LOCK    = 128
+
+# TOPICS sensor_gps_raw

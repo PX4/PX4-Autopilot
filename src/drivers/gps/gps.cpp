@@ -205,6 +205,7 @@ private:
 
 	uORB::PublicationMulti<sensor_gps_s>	_sensor_gps_pub{ORB_ID(sensor_gps)};	///< uORB pub for gps position
 	uORB::PublicationMulti<sensor_gnss_relative_s> _sensor_gnss_relative_pub{ORB_ID(sensor_gnss_relative)};
+	uORB::PublicationMulti<sensor_gps_raw_s> _sensor_gps_raw_pub{ORB_ID(sensor_gps_raw)};
 
 	uORB::PublicationMulti<satellite_info_s>	_report_sat_info_pub{ORB_ID(satellite_info)};		///< uORB pub for satellite info
 
@@ -256,6 +257,11 @@ private:
 	 * Publish RTCM corrections
 	 */
 	void 				publishRelativePosition(sensor_gnss_relative_s &gnss_relative);
+
+	/**
+	 * Publish raw GNSS observations
+	 */
+	void 				publishRawObservations(const sensor_gps_raw_s &raw);
 
 	/**
 	 * This is an abstraction for the poll on serial used.
@@ -462,6 +468,12 @@ int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
 			gps->publishRelativePosition(*static_cast<sensor_gnss_relative_s *>(data1));
 		}
 
+		break;
+
+	case GPSCallbackType::gotRawObservationsMessage:
+		if (data1 && data2 == sizeof(sensor_gps_raw_s)) {
+			gps->publishRawObservations(*static_cast<sensor_gps_raw_s *>(data1));
+		}
 		break;
 
 	case GPSCallbackType::surveyInStatus:
@@ -1420,6 +1432,15 @@ GPS::publishRelativePosition(sensor_gnss_relative_s &gnss_relative)
 	gnss_relative.device_id = get_device_id();
 	gnss_relative.timestamp = hrt_absolute_time();
 	_sensor_gnss_relative_pub.publish(gnss_relative);
+}
+
+void
+GPS::publishRawObservations(const sensor_gps_raw_s &raw)
+{
+	sensor_gps_raw_s raw_report{raw};
+	raw_report.device_id = get_device_id();
+	raw_report.timestamp = hrt_absolute_time();
+	_sensor_gps_raw_pub.publish(raw_report);
 }
 
 int

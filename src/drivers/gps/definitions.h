@@ -44,6 +44,7 @@
 #include <px4_platform_common/log.h>
 #include <uORB/topics/satellite_info.h>
 #include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gps_raw.h>
 #include <uORB/topics/sensor_gnss_relative.h>
 
 #define GPS_INFO(...) PX4_INFO(__VA_ARGS__)
