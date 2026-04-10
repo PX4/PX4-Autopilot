@@ -217,7 +217,7 @@ jobs:
           path: artifacts/
 
       - uses: ./.github/actions/save-ccache
-        if: always()
+        if: success()
         with:
           cache-primary-key: ${{ steps.ccache-restore.outputs.cache-primary-key }}
 
