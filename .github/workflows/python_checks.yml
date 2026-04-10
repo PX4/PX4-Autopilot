@@ -14,8 +14,10 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
+    runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}"]
     steps:
+    - uses: runs-on/action@v2
+
     - uses: actions/checkout@v4
       with:
         fetch-depth: 1

@@ -18,12 +18,14 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
 
     strategy:
       fail-fast: false
 
     steps:
+      - uses: runs-on/action@v2
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
