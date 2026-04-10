@@ -17,7 +17,7 @@ jobs:
       GIT_COMMITTER_NAME: PX4BuildBot
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -39,7 +39,7 @@ jobs:
 
       - name: auto-commit any changes to change indication
         if: steps.diff-check.outputs.CHANGE_INDICATED == 'true'
-        uses: stefanzweifel/git-auto-commit-action@v4
+        uses: stefanzweifel/git-auto-commit-action@v7
         with:
           file_pattern: 'src/modules/ekf2/test/change_indication/*.csv'
           commit_user_name: ${{ env.GIT_COMMITTER_NAME }}
