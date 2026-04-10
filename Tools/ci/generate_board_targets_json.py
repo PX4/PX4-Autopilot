@@ -38,8 +38,14 @@ if args.filter:
     for target in args.filter.split(','):
         target_filter.append(target)
 
-default_container = 'ghcr.io/px4/px4-dev:v1.17.0-rc2'
-voxl2_container = 'ghcr.io/px4/px4-dev-voxl2:v1.7'
+# Load CI configuration from YAML
+import yaml
+ci_config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'build_all_config.yml')
+with open(ci_config_path) as f:
+    ci_config = yaml.safe_load(f)
+
+default_container = ci_config['containers']['default']
+voxl2_container = ci_config['containers']['voxl2']
 build_configs = []
 grouped_targets = {}
 excluded_boards = ['px4_ros2', 'espressif_esp32']  # TODO: fix and enable
@@ -60,7 +66,7 @@ excluded_labels = [
     ]
 
 # Labels that mark isolated/special builds (poor cache reuse with normal builds)
-special_labels = ['lto', 'protected']
+special_labels = ci_config.get('special_labels', ['lto', 'protected'])
 
 def detect_chip_family(manufacturer_name, board_name, label):
     """Detect the chip family for a board by reading its NuttX defconfig.
@@ -371,23 +377,15 @@ if (args.group):
     #      "voxl2-0" (unchanged)
     #   5. Non-NuttX groups: "base-N", "aarch64-N", "armhf-N" (unchanged)
     final_groups = []
-    # Per-chip-family split limits tuned for a ~10 min wall-clock cap per group
-    # with warm seeder caches. Full FMU boards take ~45s each (H7/F7), CAN nodes
-    # and bootloaders take ~10-25s (F4), so F4 groups can be much larger.
-    CHIP_SPLIT_LIMITS = {
-        'stm32h7': 10,
-        'stm32f7': 12,
-        'stm32f4': 20,
-        'stm32f1': 39,
-        'imxrt':   12,
-        'kinetis': 14,
-        's32k':    17,
-        'rp2040':  10,
-        'special': 10,
-        'native':  17,
-    }
-    DEFAULT_SPLIT_LIMIT = 12
-    LOWER_LIMIT = 3
+    # Load grouping and cache config
+    grouping_config = ci_config.get('grouping', {})
+    CHIP_SPLIT_LIMITS = grouping_config.get('chip_split_limits', {})
+    DEFAULT_SPLIT_LIMIT = grouping_config.get('default_split_limit', 12)
+    LOWER_LIMIT = grouping_config.get('lower_limit', 3)
+
+    cache_config = ci_config.get('cache', {})
+    DEFAULT_CACHE_SIZE = cache_config.get('default_size', '400M')
+    CHIP_CACHE_SIZES = cache_config.get('chip_sizes', {})
 
     if(verbose):
         print(f'=:Architectures: [{grouped_targets.keys()}]')
@@ -432,7 +430,7 @@ if (args.group):
                 # NXP chip families (imxrt, kinetis, s32k) pool all manufacturers
                 # under "nxp" since all boards use NXP silicon regardless of
                 # which directory they live in (e.g., px4/fmu-v6xrt is imxrt).
-                nxp_chips = ('imxrt', 'kinetis', 's32k')
+                nxp_chips = tuple(ci_config.get('nxp_chip_families', ['imxrt', 'kinetis', 's32k']))
                 man_targets = {}
                 for (c, m), targets in chip_man_buckets.items():
                     if c == chip:
@@ -583,6 +581,10 @@ if (args.group):
                     })
                     chunk_counter += 1
 
+    # Add cache_size to each group based on chip family
+    for g in final_groups:
+        g['cache_size'] = CHIP_CACHE_SIZES.get(g['chip_family'], DEFAULT_CACHE_SIZE)
+
     if(verbose):
         import pprint
         print("================")
@@ -598,18 +600,7 @@ if (args.group):
         # Generate one seeder entry per chip family present in the groups.
         # Each seeder builds a representative target to warm the ccache for
         # all groups sharing that chip family.
-        seeder_targets = {
-            'stm32h7': 'px4_fmu-v6x_default',
-            'stm32f7': 'px4_fmu-v5_default',
-            'stm32f4': 'px4_fmu-v4_default',
-            'stm32f1': 'px4_io-v2_default',
-            'imxrt':   'nxp_mr-tropic_default',
-            'kinetis': 'nxp_fmuk66-v3_default',
-            's32k':    'nxp_mr-canhubk3_default',
-            'rp2040':  'raspberrypi_pico_default',
-            'special': 'px4_fmu-v6x_default',  # special group seeds from H7
-            'native':  'px4_sitl_default',
-        }
+        seeder_targets = ci_config.get('seeders', {})
         seeder_containers = {
             'native': default_container,
         }

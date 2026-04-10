@@ -146,7 +146,7 @@ jobs:
       - uses: ./.github/actions/setup-ccache
         id: ccache
         with:
-          cache-key-prefix: ccache-seed-${{ matrix.chip_family }}-${{ matrix.runner }}
+          cache-key-prefix: ccache-${{ matrix.chip_family }}-${{ matrix.runner }}-seeder
           max-size: 400M
       - name: Build seed target
         run: make ${{ matrix.target }}
@@ -182,13 +182,12 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: ~/.ccache
-          key: ccache-${{ runner.os }}-${{ matrix.runner }}-${{ matrix.group }}-${{ github.ref_name }}-${{ github.sha }}
+          key: ccache-${{ matrix.chip_family }}-${{ matrix.runner }}-${{ matrix.group }}-${{ github.ref_name }}-${{ github.sha }}
           restore-keys: |
-            ccache-${{ runner.os }}-${{ matrix.runner }}-${{ matrix.group }}-${{ github.ref_name }}-
-            ccache-${{ runner.os }}-${{ matrix.runner }}-${{ matrix.group }}-${{ github.base_ref || 'main' }}-
-            ccache-${{ runner.os }}-${{ matrix.runner }}-${{ matrix.group }}-
-            ccache-seed-${{ matrix.chip_family }}-${{ matrix.runner }}-${{ github.ref_name }}-
-            ccache-seed-${{ matrix.chip_family }}-${{ matrix.runner }}-
+            ccache-${{ matrix.chip_family }}-${{ matrix.runner }}-${{ matrix.group }}-${{ github.ref_name }}-
+            ccache-${{ matrix.chip_family }}-${{ matrix.runner }}-${{ matrix.group }}-${{ github.base_ref || 'main' }}-
+            ccache-${{ matrix.chip_family }}-${{ matrix.runner }}-${{ matrix.group }}-
+            ccache-${{ matrix.chip_family }}-${{ matrix.runner }}-
 
       - name: Cache - Configure ccache
         run: |
@@ -196,7 +195,7 @@ jobs:
           echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
           echo "compression = true" >> ~/.ccache/ccache.conf
           echo "compression_level = 6" >> ~/.ccache/ccache.conf
-          echo "max_size = 400M" >> ~/.ccache/ccache.conf
+          echo "max_size = ${{ matrix.cache_size }}" >> ~/.ccache/ccache.conf
           echo "hash_dir = false" >> ~/.ccache/ccache.conf
           echo "compiler_check = content" >> ~/.ccache/ccache.conf
           ccache -s
