@@ -17,25 +17,44 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-
+  gate_checks:
+    name: Gate Checks [${{ matrix.check }}]
+    runs-on: [runs-on,runner=2cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
     container:
       image: ghcr.io/px4/px4-dev:v1.17.0-rc2
-
     strategy:
       fail-fast: true
       matrix:
         check: [
           "check_format",
           "check_newlines",
-          "tests",
           "validate_module_configs",
           "shellcheck_all",
           "module_documentation",
         ]
-
     steps:
+      - uses: runs-on/action@v2
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Configure Git Safe Directory
+        run: git config --system --add safe.directory '*'
+
+      - name: Building [${{ matrix.check }}]
+        env:
+          PX4_SBOM_DISABLE: 1
+        run: make ${{ matrix.check }}
+
+  tests:
+    name: Unit Tests
+    runs-on: [runs-on,runner=8cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
+    container:
+      image: ghcr.io/px4/px4-dev:v1.17.0-rc2
+    steps:
+      - uses: runs-on/action@v2
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
@@ -45,19 +64,16 @@ jobs:
 
       - uses: ./.github/actions/setup-ccache
         id: ccache
-        if: matrix.check == 'tests'
         with:
           cache-key-prefix: ccache-sitl
           max-size: 300M
 
-      - name: Building [${{ matrix.check }}]
+      - name: Build and run unit tests
         env:
           PX4_SBOM_DISABLE: 1
-        run: |
-          cd "$GITHUB_WORKSPACE"
-          make ${{ matrix.check }}
+        run: make tests
 
       - uses: ./.github/actions/save-ccache
-        if: always() && matrix.check == 'tests'
+        if: always()
         with:
           cache-primary-key: ${{ steps.ccache.outputs.cache-primary-key }}
