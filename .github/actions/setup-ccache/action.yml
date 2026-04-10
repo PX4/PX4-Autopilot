@@ -33,7 +33,7 @@ runs:
 
     - name: Cache - Restore ccache
       id: restore
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v5
       with:
         path: ~/.ccache
         key: ${{ inputs.cache-key-prefix }}-${{ github.ref_name }}-${{ github.sha }}

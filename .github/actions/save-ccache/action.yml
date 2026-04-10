@@ -16,7 +16,7 @@ runs:
 
     - name: Cache - Save ccache
       if: always()
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@v5
       with:
         path: ~/.ccache
         key: ${{ inputs.cache-primary-key }}

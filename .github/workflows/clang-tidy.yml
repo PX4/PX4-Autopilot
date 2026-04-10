@@ -30,7 +30,6 @@ jobs:
       with:
         fetch-depth: 0
         fetch-tags: true
-
     - name: Configure Git Safe Directory
       run: git config --system --add safe.directory '*'
 
@@ -38,7 +37,7 @@ jobs:
       id: ccache
       with:
         cache-key-prefix: ccache-clang-tidy
-        max-size: 120M
+        max-size: 150M
 
     - name: Build - px4_sitl_default (Clang)
       run: make -j16 px4_sitl_default-clang

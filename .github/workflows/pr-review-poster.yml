@@ -136,7 +136,7 @@ jobs:
 
       - name: Download pr-review artifact
         id: download
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
