@@ -22,7 +22,7 @@ jobs:
   build:
     runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",extras=s3-cache,spot=false]
     steps:
-      - uses: runs-on/action@v1
+      - uses: runs-on/action@v2
       - name: Checkout
         uses: actions/checkout@v4
 

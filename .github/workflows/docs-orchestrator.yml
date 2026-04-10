@@ -72,7 +72,7 @@ jobs:
     container:
       image: ghcr.io/px4/px4-dev:v1.17.0-rc2
     steps:
-      - uses: runs-on/action@v1
+      - uses: runs-on/action@v2
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -134,7 +134,7 @@ jobs:
     container:
       image: ghcr.io/px4/px4-dev:v1.17.0-rc2
     steps:
-      - uses: runs-on/action@v1
+      - uses: runs-on/action@v2
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -332,7 +332,7 @@ jobs:
       branchname: ${{ steps.set-branch.outputs.branchname }}
       releaseversion: ${{ steps.set-version.outputs.releaseversion }}
     steps:
-      - uses: runs-on/action@v1
+      - uses: runs-on/action@v2
 
       - name: Checkout
         uses: actions/checkout@v4
