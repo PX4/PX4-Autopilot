@@ -25,9 +25,11 @@ name: PR Review Poster
 #   2. `pr_number` is validated to be a positive integer before use.
 #      `marker` is validated to be printable ASCII only before use.
 #      `commit_sha` is validated to be 40 lowercase hex characters.
-#      `event` is validated against an allowlist of `COMMENT` and
-#      `REQUEST_CHANGES`. `APPROVE` is intentionally forbidden so a bot
-#      cannot approve a pull request. Validation happens inside
+#      `event` is validated against an allowlist of `COMMENT` only.
+#      `APPROVE` and `REQUEST_CHANGES` are intentionally forbidden:
+#      bots should not approve PRs, and REQUEST_CHANGES reviews cannot
+#      be dismissed by the GITHUB_TOKEN under branch protection rules.
+#      Validation happens inside
 #      Tools/ci/pr-review-poster.py which is checked out from the base
 #      branch, not from the artifact.
 #
@@ -71,7 +73,7 @@ name: PR Review Poster
 #     {
 #       "pr_number":  12345,                                      // required, int > 0
 #       "marker":     "<!-- pr-review-poster:clang-tidy -->",     // required, printable ASCII
-#       "event":      "REQUEST_CHANGES",                          // required, "COMMENT" | "REQUEST_CHANGES"
+#       "event":      "COMMENT",                                   // required, "COMMENT" only
 #       "commit_sha": "0123456789abcdef0123456789abcdef01234567", // required, 40 hex chars
 #       "summary":    "Optional review summary text"              // optional
 #     }

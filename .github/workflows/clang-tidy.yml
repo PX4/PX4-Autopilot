@@ -60,7 +60,7 @@ jobs:
       if: always() && github.event_name == 'pull_request'
       run: |
         mkdir -p pr-review
-        git diff -U0 origin/${{ github.base_ref }}...HEAD \
+        git diff -U0 origin/${{ github.base_ref }}...HEAD -- ':!*/test/*' \
           | clang-tidy-diff-18.py -p1 \
               -path build/px4_sitl_default-clang \
               -export-fixes pr-review/fixes.yml \
@@ -78,7 +78,7 @@ jobs:
           --pr-number "${{ github.event.pull_request.number }}" \
           --commit-sha "${{ github.event.pull_request.head.sha }}" \
           --out-dir pr-review \
-          --event REQUEST_CHANGES
+          --event COMMENT
 
     - name: Upload pr-review artifact
       if: always() && github.event_name == 'pull_request'

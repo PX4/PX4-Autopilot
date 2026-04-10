@@ -20,7 +20,7 @@ Artifact contract (directory passed on the command line):
     {
       "pr_number":  12345,                                    (required, int > 0)
       "marker":     "<!-- pr-review-poster:clang-tidy -->",   (required, printable ASCII)
-      "event":      "REQUEST_CHANGES",                         (required, "COMMENT" | "REQUEST_CHANGES")
+      "event":      "COMMENT",                                 (required, "COMMENT" only)
       "commit_sha": "0123456789abcdef0123456789abcdef01234567",(required, 40 hex chars)
       "summary":    "Optional review body text"                (optional)
     }
@@ -34,8 +34,10 @@ Artifact contract (directory passed on the command line):
          "side": "RIGHT", "start_side": "RIGHT", "body": "..."}
       ]
 
-Note: an `APPROVE` event is intentionally NOT supported. Bots should never
-approve a pull request.
+Note: `APPROVE` and `REQUEST_CHANGES` events are intentionally NOT
+supported. Bots should never approve a pull request, and REQUEST_CHANGES
+cannot be dismissed by the GITHUB_TOKEN when branch protection restricts
+review dismissals, leading to undismissable spam on every push.
 
 Security: this script is run in a write-token context from a workflow that
 MUST NOT check out PR code. Both manifest.json and comments.json are
@@ -90,7 +92,7 @@ COMMENTS_PER_REVIEW = 10
 # and cuts user-visible latency.
 SLEEP_BETWEEN_CHUNKS_SECONDS = 5
 
-ACCEPTED_EVENTS = ('COMMENT', 'REQUEST_CHANGES')
+ACCEPTED_EVENTS = ('COMMENT',)
 ACCEPTED_SIDES = ('LEFT', 'RIGHT')
 COMMIT_SHA_RE = re.compile(r'^[0-9a-f]{40}$')
 
@@ -194,8 +196,9 @@ def validate_manifest(directory):
 
     event = manifest.get('event')
     if event not in ACCEPTED_EVENTS:
-        _fail('event must be one of {} (got {!r}). APPROVE is intentionally '
-              'forbidden.'.format(', '.join(ACCEPTED_EVENTS), event))
+        _fail('event must be one of {} (got {!r}). APPROVE and '
+              'REQUEST_CHANGES are intentionally forbidden.'.format(
+                  ', '.join(ACCEPTED_EVENTS), event))
 
     commit_sha = manifest.get('commit_sha')
     if not isinstance(commit_sha, str) or not COMMIT_SHA_RE.match(commit_sha):
@@ -254,13 +257,17 @@ def find_stale_reviews(client, repo, pr_number, marker):
 
 
 def dismiss_stale_reviews(client, repo, pr_number, marker):
-    """Dismiss (or, for PENDING reviews, delete) every stale matching review."""
+    """Dismiss (or, for PENDING reviews, delete) every stale matching review.
+
+    Returns the number of reviews that could NOT be dismissed (still active).
+    """
     dismissal_message = 'Superseded by a newer run'
+    failed_dismissals = 0
     for review_id, state in find_stale_reviews(client, repo, pr_number, marker):
         if review_id is None:
             continue
-        if state == 'DISMISSED':
-            # Already inert; nothing to do.
+        if state in ('DISMISSED', 'COMMENTED'):
+            # Already inert or non-blocking; nothing to do.
             continue
         if state == 'PENDING':
             # PENDING reviews cannot be dismissed; they must be deleted.
@@ -271,8 +278,7 @@ def dismiss_stale_reviews(client, repo, pr_number, marker):
                     'repos/{}/pulls/{}/reviews/{}'.format(
                         repo, pr_number, review_id))
             except RuntimeError as e:
-                # Don't abort the run on dismissal failure: the new review
-                # will still be posted.
+                failed_dismissals += 1
                 print('warning: failed to delete pending review {}: {}'.format(
                     review_id, e), file=sys.stderr)
             continue
@@ -288,8 +294,10 @@ def dismiss_stale_reviews(client, repo, pr_number, marker):
                 },
             )
         except RuntimeError as e:
+            failed_dismissals += 1
             print('warning: failed to dismiss review {}: {}'.format(
                 review_id, e), file=sys.stderr)
+    return failed_dismissals
 
 
 # ---------------------------------------------------------------------------
@@ -417,12 +425,17 @@ def cmd_post(args):
 
     try:
         client = _github_helpers.GitHubClient(token, user_agent=USER_AGENT)
-        dismiss_stale_reviews(
+        undismissed = dismiss_stale_reviews(
             client=client,
             repo=repo,
             pr_number=result['pr_number'],
             marker=result['marker'],
         )
+
+        if undismissed > 0:
+            print('{} prior review(s) could not be dismissed (likely '
+                  'branch protection).'.format(undismissed))
+
         post_review(
             client=client,
             repo=repo,
