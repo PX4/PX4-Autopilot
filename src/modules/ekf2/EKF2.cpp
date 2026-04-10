@@ -825,8 +825,10 @@ void EKF2::Run()
 		if (_ekf.update()) {
 			perf_set_elapsed(_ekf_update_perf, hrt_elapsed_time(&ekf_update_start));
 
+			_vel_deriv = _ekf.getVelocityDerivative();
 			PublishLocalPosition(now);
 			PublishOdometry(now, imu_sample_new);
+			_ekf.resetVelocityDerivativeAccumulation();
 			PublishGlobalPosition(now);
 			PublishSensorBias(now);
 
@@ -1711,11 +1713,9 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 	lpos.z_deriv = _ekf.getVerticalPositionDerivative();
 
 	// Acceleration of body origin in local frame
-	const Vector3f vel_deriv{_ekf.getVelocityDerivative()};
-	_ekf.resetVelocityDerivativeAccumulation();
-	lpos.ax = vel_deriv(0);
-	lpos.ay = vel_deriv(1);
-	lpos.az = vel_deriv(2);
+	lpos.ax = _vel_deriv(0);
+	lpos.ay = _vel_deriv(1);
+	lpos.az = _vel_deriv(2);
 
 	lpos.xy_valid = _ekf.isLocalHorizontalPositionValid();
 	lpos.v_xy_valid = _ekf.isLocalHorizontalPositionValid();
@@ -1828,6 +1828,9 @@ void EKF2::PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu_sa
 	// velocity
 	odom.velocity_frame = vehicle_odometry_s::VELOCITY_FRAME_NED;
 	_ekf.getVelocity().copyTo(odom.velocity);
+
+	// acceleration
+	_vel_deriv.copyTo(odom.acceleration);
 
 	// angular_velocity
 	_ekf.getAngularVelocityAndResetAccumulator().copyTo(odom.angular_velocity);

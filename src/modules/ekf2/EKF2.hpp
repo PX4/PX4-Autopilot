@@ -302,6 +302,8 @@ private:
 	Vector3f _last_accel_bias_published{};
 	Vector3f _last_gyro_bias_published{};
 
+	Vector3f _vel_deriv{}; ///< NED velocity derivative (acceleration), shared between PublishLocalPosition and PublishOdometry
+
 	hrt_abstime _last_sensor_bias_published{0};
 
 	hrt_abstime _status_fake_hgt_pub_last{0};
