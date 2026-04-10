@@ -30,6 +30,8 @@ jobs:
     env:
       PX4_SBOM_DISABLE: 1
     steps:
+    - uses: runs-on/action@v2
+
     - uses: actions/checkout@v4
       with:
         fetch-depth: 1
