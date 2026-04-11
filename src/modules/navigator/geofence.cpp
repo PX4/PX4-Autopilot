@@ -526,7 +526,7 @@ Geofence::valid()
 }
 
 int
-Geofence::loadFromFile(const char * /*filename*/)
+Geofence::loadFromFile(const char *filename = GEOFENCE_FILENAME)
 {
 	FILE *fp;
 	char line[120];
@@ -549,7 +549,7 @@ Geofence::loadFromFile(const char * /*filename*/)
 	dm_item_t write_fence_dataman_id{static_cast<dm_item_t>(stat.dataman_id) == DM_KEY_FENCE_POINTS_0 ? DM_KEY_FENCE_POINTS_1 : DM_KEY_FENCE_POINTS_0};
 
 	/* open the mixer definition file */
-	fp = fopen(GEOFENCE_FILENAME, "r");
+	fp = fopen(filename, "r");
 
 	if (fp == nullptr) {
 		return PX4_ERROR;

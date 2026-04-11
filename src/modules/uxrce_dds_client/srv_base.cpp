@@ -86,7 +86,7 @@ SrvBase::SrvBase(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStr
 
 bool SrvBase::create_replier(uxrStreamId input_stream_id,
 			     uxrObjectId participant_id, uint16_t index, const char *client_namespace, const char *service_name_simple,
-			     const char *service_type_name_simple, uint16_t /*queue_depth*/)
+			     const char *service_type_name_simple, uint16_t queue_depth = 1)
 {
 // request and reply names
 	char request_name[TOPIC_NAME_SIZE];
@@ -125,7 +125,7 @@ bool SrvBase::create_replier(uxrStreamId input_stream_id,
 		.durability = UXR_DURABILITY_PERSISTENT,
 		.reliability = UXR_RELIABILITY_RELIABLE,
 		.history = UXR_HISTORY_KEEP_LAST,
-		.depth = 1,
+		.depth = queue_depth,
 	};
 
 	uint16_t replier_req = uxr_buffer_create_replier_bin(session_, reliable_out_stream_id_, replier_id_, participant_id,
