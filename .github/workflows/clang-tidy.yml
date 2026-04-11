@@ -16,9 +16,51 @@ permissions:
   contents: read
 
 jobs:
-  clang_tidy:
+  # Push-to-main: unchanged historical behavior. Single clang build dir
+  # with BUILD_TESTING=OFF. `make clang-tidy` builds and analyzes every
+  # TU in compile_commands.json. Test files are not in the DB and
+  # therefore never analyzed.
+  clang_tidy_push:
     name: Clang-Tidy
+    if: github.event_name != 'pull_request'
     runs-on: [runs-on, runner=16cpu-linux-x64, "run-id=${{ github.run_id }}", "extras=s3-cache"]
+    container:
+      image: ghcr.io/px4/px4-dev:v1.17.0-rc2
+    permissions:
+      contents: read
+    steps:
+    - uses: runs-on/action@v2
+    - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+        fetch-tags: true
+
+    - name: Configure Git Safe Directory
+      run: git config --system --add safe.directory '*'
+
+    - uses: ./.github/actions/setup-ccache
+      id: ccache
+      with:
+        cache-key-prefix: ccache-clang-tidy
+        max-size: 150M
+
+    - name: Build and Analyze - Clang-Tidy
+      run: make -j$(nproc) clang-tidy
+
+    - uses: ./.github/actions/save-ccache
+      if: always()
+      with:
+        cache-primary-key: ${{ steps.ccache.outputs.cache-primary-key }}
+
+  # Pull request: diff-based analysis with a second BUILD_TESTING=ON
+  # build dir so test files in the PR diff can be linted by
+  # clang-tidy-diff-18.py with resolved gtest/fuzztest includes.
+  # Results are uploaded as a `pr-review` artifact for the PR Review
+  # Poster workflow to post as inline comments.
+  clang_tidy_pr:
+    name: Clang-Tidy
+    if: github.event_name == 'pull_request'
+    runs-on: [runs-on, runner=8cpu-linux-x64, "run-id=${{ github.run_id }}", "extras=s3-cache"]
     container:
       image: ghcr.io/px4/px4-dev:v1.17.0-rc2
     permissions:
@@ -30,6 +72,7 @@ jobs:
       with:
         fetch-depth: 0
         fetch-tags: true
+
     - name: Configure Git Safe Directory
       run: git config --system --add safe.directory '*'
 
@@ -39,35 +82,57 @@ jobs:
         cache-key-prefix: ccache-clang-tidy
         max-size: 150M
 
-    - name: Build - px4_sitl_default (Clang)
-      run: make -j16 px4_sitl_default-clang
+    # fuzztest (enabled via BUILD_TESTING in the -test build dir) pulls
+    # in abseil via FetchContent, and abseil runs a try_compile with
+    # fuzztest's -fsanitize=address flags. The px4-dev container ships
+    # clang but not the clang compiler-rt runtime, so that link fails
+    # and the configure reports a misleading "pthreads not found".
+    # libclang-rt-18-dev provides libclang_rt.asan and friends.
+    - name: Install clang compiler-rt
+      run: |
+        apt-get update
+        apt-get install -y --no-install-recommends libclang-rt-18-dev
+
+    # `make clang-ci` prepares both clang build directories:
+    #   - build/px4_sitl_default-clang:       full build, BUILD_TESTING=OFF
+    #     (used by run-clang-tidy-pr.py for whole-file analysis of
+    #      changed production code)
+    #   - build/px4_sitl_default-clang-test:  configure-only, BUILD_TESTING=ON
+    #     (used by clang-tidy-diff-18.py so test files are in the
+    #      compilation database with resolved gtest/fuzztest includes)
+    - name: Build clang SITL
+      run: make -j$(nproc) clang-ci
 
     - name: Run Clang-Tidy Analysis
-      id: clang_tidy
-      run: |
-        if [ "${{ github.event_name }}" != "pull_request" ]; then
-          make -j$(nproc) clang-tidy
-        else
-          python3 Tools/ci/run-clang-tidy-pr.py origin/${{ github.base_ref }}
-        fi
+      run: python3 Tools/ci/run-clang-tidy-pr.py origin/${{ github.base_ref }}
 
-    # On PRs, also produce a `pr-review` artifact for the PR Review Poster
-    # workflow to consume. clang-tidy-diff-18 emits a unified fixes.yml that
+    # Produce a `pr-review` artifact for the PR Review Poster workflow
+    # to consume. clang-tidy-diff-18 emits a unified fixes.yml that
     # the producer script translates into line-anchored review comments.
-    # Running this inside the same container as the build means there is no
-    # workspace-path rewriting and no cross-runner artifact handoff.
     - name: Export clang-tidy fixes for PR review
-      if: always() && github.event_name == 'pull_request'
+      if: always()
       run: |
         mkdir -p pr-review
-        git diff -U0 origin/${{ github.base_ref }}...HEAD -- ':!*/test/*' \
-          | clang-tidy-diff-18.py -p1 \
-              -path build/px4_sitl_default-clang \
-              -export-fixes pr-review/fixes.yml \
-              -j0 || true
+        # Drop changed C/C++ source files that are not in
+        # compile_commands.json for the test-enabled build. Files not
+        # in the DB are platform-specific sources, vendored code, or
+        # submodule code we don't own. Feeding them to clang-tidy-diff
+        # produces false positives from unresolved headers.
+        python3 Tools/ci/clang-tidy-diff-filter.py \
+          --build-dir build/px4_sitl_default-clang-test \
+          --base-ref origin/${{ github.base_ref }} \
+          --out pr-review/diff.patch
+        if [ -s pr-review/diff.patch ]; then
+          clang-tidy-diff-18.py -p1 \
+            -path build/px4_sitl_default-clang-test \
+            -export-fixes pr-review/fixes.yml \
+            -j0 < pr-review/diff.patch || true
+        else
+          echo "No analyzable files in diff; skipping clang-tidy-diff"
+        fi
 
     - name: Build pr-review artifact
-      if: always() && github.event_name == 'pull_request'
+      if: always()
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
@@ -81,7 +146,7 @@ jobs:
           --event COMMENT
 
     - name: Upload pr-review artifact
-      if: always() && github.event_name == 'pull_request'
+      if: always()
       uses: actions/upload-artifact@v7
       with:
         name: pr-review
