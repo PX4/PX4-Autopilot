@@ -14,16 +14,17 @@ jobs:
   Fuzzing:
     runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
     container:
-      image: ghcr.io/px4/px4-dev:v1.17.0-rc2
+      image: px4io/px4-dev:v1.16.0-rc2-4-gb67c65bfe6
     steps:
       - uses: runs-on/action@v2
 
       - uses: actions/checkout@v6
-        with:
-          fetch-depth: 1
 
       - name: Configure Git Safe Directory
         run: git config --system --add safe.directory '*'
+
+      - name: Install clang
+        run: apt-get update && apt-get install -y clang
 
       - uses: ./.github/actions/setup-ccache
         id: ccache
