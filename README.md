@@ -19,6 +19,7 @@
   <a href="https://insights.linuxfoundation.org/project/px4"><img src="https://insights.linuxfoundation.org/api/badge/health-score?project=px4" alt="LFX Health Score"></a>
   <a href="https://insights.linuxfoundation.org/project/px4"><img src="https://insights.linuxfoundation.org/api/badge/contributors?project=px4" alt="LFX Contributors"></a>
   <a href="https://insights.linuxfoundation.org/project/px4"><img src="https://insights.linuxfoundation.org/api/badge/active-contributors?project=px4" alt="LFX Active Contributors"></a>
+  <a href="https://membrowse.com/public/PX4/PX4-Autopilot"><img src="https://membrowse.com/badge.svg" alt="MemBrowse"></a>
 </p>
 
 ---

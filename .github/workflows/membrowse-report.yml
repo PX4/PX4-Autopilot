@@ -1,0 +1,60 @@
+name: MemBrowse Memory Report
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'push' && github.sha || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  load-targets:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Load target matrix
+        id: set-matrix
+        run: echo "matrix=$(jq -c '.' .github/membrowse-targets.json)" >> $GITHUB_OUTPUT
+
+  analyze:
+    needs: load-targets
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/px4/px4-dev:v1.17.0-rc2
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.load-targets.outputs.matrix) }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Install packages
+        run: ${{ matrix.setup_cmd }}
+
+      - name: Build
+        run: ${{ matrix.build_cmd }}
+
+      - name: Run MemBrowse analysis
+        uses: membrowse/membrowse-action@main
+        with:
+          target_name: ${{ matrix.target_name }}
+          elf: ${{ matrix.elf }}
+          ld: ${{ matrix.ld }}
+          limits: ${{ matrix.limits }}
+          linker_vars: ${{ matrix.linker_vars }}
+          map_file: ${{ matrix.map_file }}
+          api_key: ${{ secrets.MEMBROWSE_API_KEY }}
+          api_url: ${{ vars.MEMBROWSE_API_URL }}
+          verbose: INFO

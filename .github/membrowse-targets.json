@@ -1,0 +1,22 @@
+[
+  {
+    "target_name": "px4_fmu-v6x",
+    "setup_cmd": "git config --system --add safe.directory '*' && rm -f /usr/lib/python*/EXTERNALLY-MANAGED",
+    "build_cmd": "make px4_fmu-v6x_flash-analysis",
+    "elf": "build/px4_fmu-v6x_flash-analysis/px4_fmu-v6x_flash-analysis.elf",
+    "ld": "boards/px4/fmu-v6x/nuttx-config/scripts/flash-analysis-script.ld",
+    "limits": "boards/px4/fmu-v6x/nuttx-config/scripts/script.ld",
+    "linker_vars": "",
+    "map_file": "build/px4_fmu-v6x_flash-analysis/px4_fmu-v6x_flash-analysis.map"
+  },
+  {
+    "target_name": "px4_fmu-v5x",
+    "setup_cmd": "git config --system --add safe.directory '*' && rm -f /usr/lib/python*/EXTERNALLY-MANAGED",
+    "build_cmd": "make px4_fmu-v5x_flash-analysis",
+    "elf": "build/px4_fmu-v5x_flash-analysis/px4_fmu-v5x_flash-analysis.elf",
+    "ld": "boards/px4/fmu-v5x/nuttx-config/scripts/flash-analysis-script.ld",
+    "limits": "boards/px4/fmu-v5x/nuttx-config/scripts/script.ld",
+    "linker_vars": "",
+    "map_file": "build/px4_fmu-v5x_flash-analysis/px4_fmu-v5x_flash-analysis.map"
+  }
+]
