@@ -63,8 +63,11 @@ jobs:
           cache-key-prefix: ccache-ubuntu-${{ matrix.version }}
           max-size: 200M
 
-      - name: Make Quick Check
-        run: make quick_check
+      - name: Build px4_sitl_default
+        run: make px4_sitl_default
+
+      - name: Build px4_fmu-v5_default
+        run: make px4_fmu-v5_default
 
       - uses: ./.github/actions/save-ccache
         if: always()
