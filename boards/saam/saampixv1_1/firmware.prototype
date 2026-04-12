@@ -1,5 +1,5 @@
 {
-    "board_id": 1,
+    "board_id": 200,
     "magic": "PX4FWv1",
     "description": "Firmware for the SaamPixV1_1 board",
     "image": "", 
