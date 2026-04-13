@@ -83,16 +83,6 @@ MavlinkMissionManager::MavlinkMissionManager(Mavlink &mavlink) :
 							sizeof(mission_s));
 
 		if (success) {
-			// Do not resume a previously persisted mission item after a platform restart.
-			if (mission_state.current_seq != 0) {
-				mission_state.current_seq = 0;
-
-				if (!_dataman_client.writeSync(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&mission_state),
-							       sizeof(mission_s))) {
-					PX4_WARN("mission state seq reset failed");
-				}
-			}
-
 			init_offboard_mission(mission_state);
 			load_geofence_stats();
 			load_safepoint_stats();

@@ -749,8 +749,8 @@ MissionBase::report_do_jump_mission_changed(int index, int do_jumps_remaining)
 void
 MissionBase::checkMissionRestart()
 {
-	if (_system_disarmed_while_inactive && _mission_has_been_activated && (_mission.count > 0U)
-	    && ((_mission.current_seq + 1) == _mission.count)) {
+	if (_system_disarmed_while_inactive && (_mission.count > 0U)
+	    && (!_mission_has_been_activated || (_mission.current_seq + 1) == _mission.count)) {
 		setMissionIndex(0);
 		_inactivation_index = -1; // reset
 		_is_current_planned_mission_item_valid = isMissionValid();
