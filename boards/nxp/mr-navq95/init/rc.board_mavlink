@@ -1,0 +1,9 @@
+#!/bin/sh
+#
+# NavQ95 specific board MAVLink startup script.
+#------------------------------------------------------------------------------
+
+
+mavlink start -a -w -x -d /dev/ttyproxy -b 921600 -m onboard
+
+mavlink start -a -w -x -d /dev/ttymavmin -b 115200 -r 30000 -m minimal
