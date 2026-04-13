@@ -51,7 +51,7 @@ public:
 		}
 	}
 
-	static FunctionProviderBase *allocate(const Context &context) { return new FunctionActuatorSet(); }
+	static FunctionProviderBase *allocate(const Context & /*context*/) { return new FunctionActuatorSet(); }
 
 	void update() override
 	{

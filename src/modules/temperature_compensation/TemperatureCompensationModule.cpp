@@ -358,7 +358,7 @@ void TemperatureCompensationModule::Run()
 	perf_end(_loop_perf);
 }
 
-int TemperatureCompensationModule::task_spawn(int argc, char *argv[])
+int TemperatureCompensationModule::task_spawn(int /*argc*/, char ** /*argv*/)
 {
 	TemperatureCompensationModule *instance = new TemperatureCompensationModule();
 

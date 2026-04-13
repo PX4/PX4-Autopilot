@@ -606,22 +606,22 @@ bool FlightTaskAuto::_compute_heading_from_2D_vector(float &heading, Vector2f v)
  * Those functions are called by the base FlightTask in
  * case of an EKF reset event
  */
-void FlightTaskAuto::_ekfResetHandlerPositionXY(const matrix::Vector2f &delta_xy)
+void FlightTaskAuto::_ekfResetHandlerPositionXY(const matrix::Vector2f & /*delta_xy*/)
 {
 	_position_smoothing.forceSetPosition({_position(0), _position(1), NAN});
 }
 
-void FlightTaskAuto::_ekfResetHandlerVelocityXY(const matrix::Vector2f &delta_vxy)
+void FlightTaskAuto::_ekfResetHandlerVelocityXY(const matrix::Vector2f & /*delta_vxy*/)
 {
 	_position_smoothing.forceSetVelocity({_velocity(0), _velocity(1), NAN});
 }
 
-void FlightTaskAuto::_ekfResetHandlerPositionZ(const float delta_z)
+void FlightTaskAuto::_ekfResetHandlerPositionZ(const float /*delta_z*/)
 {
 	_position_smoothing.forceSetPosition({NAN, NAN, _position(2)});
 }
 
-void FlightTaskAuto::_ekfResetHandlerVelocityZ(const float delta_vz)
+void FlightTaskAuto::_ekfResetHandlerVelocityZ(const float /*delta_vz*/)
 {
 	_position_smoothing.forceSetVelocity({NAN, NAN, _velocity(2)});
 }

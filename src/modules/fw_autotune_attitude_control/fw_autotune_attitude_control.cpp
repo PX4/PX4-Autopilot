@@ -926,7 +926,7 @@ int FwAutotuneAttitudeControl::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int FwAutotuneAttitudeControl::custom_command(int argc, char *argv[])
+int FwAutotuneAttitudeControl::custom_command(int /*argc*/, char ** /*argv*/)
 {
 	return print_usage("unknown command");
 }

@@ -58,7 +58,7 @@ void PRINT_MODULE_DESCRIPTION(const char *description)
 
 #endif /* __PX4_NUTTX */
 
-void PRINT_MODULE_USAGE_NAME(const char *executable_name, const char *category)
+void PRINT_MODULE_USAGE_NAME(const char *executable_name, const char */*category*/)
 {
 #ifndef CONSTRAINED_FLASH_NO_HELP
 	PX4_INFO_RAW("Usage: %s <command> [arguments...]\n", executable_name);
@@ -73,7 +73,7 @@ void PRINT_MODULE_USAGE_SUBCATEGORY(const char *subcategory)
 	(void)subcategory;
 }
 
-void PRINT_MODULE_USAGE_NAME_SIMPLE(const char *executable_name, const char *category)
+void PRINT_MODULE_USAGE_NAME_SIMPLE(const char *executable_name, const char */*category*/)
 {
 #ifndef CONSTRAINED_FLASH_NO_HELP
 	PX4_INFO_RAW("Usage: %s [arguments...]\n", executable_name);
@@ -143,7 +143,7 @@ void PRINT_MODULE_USAGE_PARAMS_I2C_KEEP_RUNNING_FLAG()
 #endif
 }
 
-void PRINT_MODULE_USAGE_PARAM_INT(char option_char, int default_val, int min_val, int max_val,
+void PRINT_MODULE_USAGE_PARAM_INT(char option_char, int default_val, int /*min_val*/, int /*max_val*/,
 				  const char *description, bool is_optional)
 {
 #ifndef CONSTRAINED_FLASH_NO_HELP
@@ -162,7 +162,7 @@ void PRINT_MODULE_USAGE_PARAM_INT(char option_char, int default_val, int min_val
 #endif
 }
 
-void PRINT_MODULE_USAGE_PARAM_FLOAT(char option_char, float default_val, float min_val, float max_val,
+void PRINT_MODULE_USAGE_PARAM_FLOAT(char option_char, float default_val, float /*min_val*/, float /*max_val*/,
 				    const char *description, bool is_optional)
 {
 #ifndef CONSTRAINED_FLASH_NO_HELP

@@ -453,7 +453,7 @@ void UUVAttitudeControl::Run()
 	perf_end(_loop_perf);
 }
 
-int UUVAttitudeControl::task_spawn(int argc, char *argv[])
+int UUVAttitudeControl::task_spawn(int /*argc*/, char ** /*argv*/)
 {
 	UUVAttitudeControl *instance = new UUVAttitudeControl();
 
@@ -476,7 +476,7 @@ int UUVAttitudeControl::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int UUVAttitudeControl::custom_command(int argc, char *argv[])
+int UUVAttitudeControl::custom_command(int /*argc*/, char ** /*argv*/)
 {
 	return print_usage("unknown command");
 }

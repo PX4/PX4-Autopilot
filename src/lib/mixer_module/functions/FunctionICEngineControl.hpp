@@ -48,7 +48,7 @@ public:
 		resetAllToDisarmedValue();
 	}
 
-	static FunctionProviderBase *allocate(const Context &context) { return new FunctionICEControl(); }
+	static FunctionProviderBase *allocate(const Context & /*context*/) { return new FunctionICEControl(); }
 
 	void update() override
 	{

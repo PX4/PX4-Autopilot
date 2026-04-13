@@ -149,7 +149,7 @@ void SensorRangeFinder::updateStuckCheck()
 	}
 }
 
-void SensorRangeFinder::updateFogCheck(const float dist_bottom, const uint64_t time_us)
+void SensorRangeFinder::updateFogCheck(const float dist_bottom, const uint64_t /*time_us*/)
 {
 	if (_max_fog_dist > 0.f) {
 

@@ -711,7 +711,7 @@ do_show_print(void *arg, param_t param)
 }
 
 static void
-do_show_print_for_airframe(void *arg, param_t param)
+do_show_print_for_airframe(void * /*arg*/, param_t param)
 {
 	// exceptions
 	const char *p_name = param_name(param);

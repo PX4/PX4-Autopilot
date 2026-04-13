@@ -156,7 +156,7 @@ CameraFeedback::Run()
 }
 
 int
-CameraFeedback::task_spawn(int argc, char *argv[])
+CameraFeedback::task_spawn(int /*argc*/, char ** /*argv[]*/)
 {
 	CameraFeedback *instance = new CameraFeedback();
 
@@ -180,7 +180,7 @@ CameraFeedback::task_spawn(int argc, char *argv[])
 }
 
 int
-CameraFeedback::custom_command(int argc, char *argv[])
+CameraFeedback::custom_command(int /*argc*/, char ** /*argv[]*/)
 {
 	return print_usage("unknown command");
 }

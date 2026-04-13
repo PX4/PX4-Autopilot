@@ -37,7 +37,7 @@ RallyPointChecks::RallyPointChecks()
 {
 }
 
-void RallyPointChecks::checkAndReport(const Context &context, Report &reporter)
+void RallyPointChecks::checkAndReport(const Context & /*context*/, Report &reporter)
 {
 	int32_t rtl_type = 0;
 

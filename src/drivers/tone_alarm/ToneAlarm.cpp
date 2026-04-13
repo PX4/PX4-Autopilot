@@ -71,7 +71,7 @@ bool ToneAlarm::Init()
 	return true;
 }
 
-void ToneAlarm::InterruptStopNote(void *arg)
+void ToneAlarm::InterruptStopNote(void * /*arg*/)
 {
 	ToneAlarmInterface::stop_note();
 }
@@ -235,7 +235,7 @@ void ToneAlarm::Run()
 	}
 }
 
-int ToneAlarm::task_spawn(int argc, char *argv[])
+int ToneAlarm::task_spawn(int /*argc*/, char ** /*argv[]*/)
 {
 	ToneAlarm *instance = new ToneAlarm();
 

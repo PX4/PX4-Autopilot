@@ -153,7 +153,7 @@ int PWMSim::task_spawn(int argc, char *argv[])
 	return 0;
 }
 
-int PWMSim::custom_command(int argc, char *argv[])
+int PWMSim::custom_command(int /*argc*/, char ** /*argv*/)
 {
 	return print_usage("unknown command");
 }

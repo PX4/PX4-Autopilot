@@ -2300,7 +2300,7 @@ void EKF2::UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps)
 #endif // CONFIG_EKF2_AIRSPEED
 
 #if defined(CONFIG_EKF2_AUXVEL)
-void EKF2::UpdateAuxVelSample(ekf2_timestamps_s &ekf2_timestamps)
+void EKF2::UpdateAuxVelSample(ekf2_timestamps_s & /*ekf2_timestamps*/)
 {
 	// EKF auxiliary velocity sample
 	//  - use the landing target pose estimate as another source of velocity data
@@ -2322,7 +2322,7 @@ void EKF2::UpdateAuxVelSample(ekf2_timestamps_s &ekf2_timestamps)
 #endif // CONFIG_EKF2_AUXVEL
 
 #if defined(CONFIG_EKF2_RANGING_BEACON)
-void EKF2::UpdateRangingBeaconSample(ekf2_timestamps_s &ekf2_timestamps)
+void EKF2::UpdateRangingBeaconSample(ekf2_timestamps_s & /*ekf2_timestamps*/)
 {
 	ranging_beacon_s ranging_beacon;
 
@@ -2605,7 +2605,7 @@ bool EKF2::UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps)
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_GNSS)
-void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
+void EKF2::UpdateGpsSample(ekf2_timestamps_s & /*ekf2_timestamps*/)
 {
 	// EKF GPS message
 	sensor_gps_s vehicle_gps_position;
@@ -2967,7 +2967,7 @@ void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
 }
 #endif // CONFIG_EKF2_MAGNETOMETER
 
-int EKF2::custom_command(int argc, char *argv[])
+int EKF2::custom_command(int /*argc*/, char ** /*argv*/)
 {
 	return print_usage("unknown command");
 }

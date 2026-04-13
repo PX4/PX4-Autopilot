@@ -33,7 +33,7 @@
 
 #include "failureDetectorCheck.hpp"
 
-void FailureDetectorChecks::checkAndReport(const Context &context, Report &reporter)
+void FailureDetectorChecks::checkAndReport(const Context & /*context*/, Report &reporter)
 {
 	failure_detector_status_s fd_status;
 

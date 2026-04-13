@@ -90,7 +90,7 @@ static bool initialize_params(ParameterHandles &param_handles, Parameters &param
 static int gimbal_thread_main(int argc, char *argv[]);
 extern "C" __EXPORT int gimbal_main(int argc, char *argv[]);
 
-static int gimbal_thread_main(int argc, char *argv[])
+static int gimbal_thread_main(int /*argc*/, char ** /*argv*/)
 {
 	ParameterHandles param_handles;
 	Parameters params {};

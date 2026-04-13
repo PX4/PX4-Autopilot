@@ -41,7 +41,7 @@ CpuResourceChecks::CpuResourceChecks()
 	_high_cpu_load_hysteresis.set_hysteresis_time_from(true, 2_s);
 }
 
-void CpuResourceChecks::checkAndReport(const Context &context, Report &reporter)
+void CpuResourceChecks::checkAndReport(const Context & /*context*/, Report &reporter)
 {
 	const bool cpu_load_check_enabled = _param_com_cpu_max.get() > FLT_EPSILON;
 	const bool ram_usage_check_enabled = _param_com_ram_max.get() > FLT_EPSILON;

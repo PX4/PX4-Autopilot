@@ -255,7 +255,7 @@ AirspeedModule::~AirspeedModule()
 }
 
 int
-AirspeedModule::task_spawn(int argc, char *argv[])
+AirspeedModule::task_spawn(int /*argc*/, char ** /*argv[]*/)
 {
 	AirspeedModule *dev = new AirspeedModule();
 

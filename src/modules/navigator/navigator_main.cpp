@@ -1111,7 +1111,7 @@ int Navigator::run_trampoline(int argc, char *argv[])
 	}, argc, argv);
 }
 
-int Navigator::task_spawn(int argc, char *argv[])
+int Navigator::task_spawn(int /*argc*/, char *argv[])
 {
 	desc.task_id = px4_task_spawn_cmd("navigator",
 					  SCHED_DEFAULT,
@@ -1128,7 +1128,7 @@ int Navigator::task_spawn(int argc, char *argv[])
 	return 0;
 }
 
-Navigator *Navigator::instantiate(int argc, char *argv[])
+Navigator *Navigator::instantiate(int /*argc*/, char ** /*argv*/)
 {
 	Navigator *instance = new Navigator();
 
@@ -1348,7 +1348,7 @@ bool Navigator::force_vtol()
 	       && _param_nav_force_vt.get();
 }
 
-int Navigator::custom_command(int argc, char *argv[])
+int Navigator::custom_command(int /*argc*/, char *argv[])
 {
 	if (!is_running(desc)) {
 		print_usage("not running");

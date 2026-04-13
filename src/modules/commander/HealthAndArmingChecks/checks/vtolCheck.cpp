@@ -35,7 +35,7 @@
 
 using namespace time_literals;
 
-void VtolChecks::checkAndReport(const Context &context, Report &reporter)
+void VtolChecks::checkAndReport(const Context & /*context*/, Report &reporter)
 {
 	vtol_vehicle_status_s vtol_vehicle_status;
 

@@ -396,7 +396,7 @@ void Report::armingCheckFailure(NavModes required_modes, HealthComponentIndex co
 }
 
 template<typename... Args>
-bool Report::addEvent(uint32_t event_id, const events::LogLevels &log_levels, const char *message, uint32_t modes,
+bool Report::addEvent(uint32_t event_id, const events::LogLevels &log_levels, [[maybe_unused]] const char *message, uint32_t modes,
 		      Args... args)
 {
 	constexpr unsigned args_size = events::util::sizeofArguments(modes, args...);

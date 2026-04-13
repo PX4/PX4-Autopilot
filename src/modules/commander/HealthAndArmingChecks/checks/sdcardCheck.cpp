@@ -42,7 +42,7 @@
 #include <sys/statfs.h>
 #endif
 
-void SdCardChecks::checkAndReport(const Context &context, Report &reporter)
+void SdCardChecks::checkAndReport(const Context & /*context*/, Report &reporter)
 {
 #ifdef PX4_STORAGEDIR
 

@@ -1511,7 +1511,7 @@ int GPS::task_spawn(int argc, char *argv[])
 	return task_spawn(argc, argv, Instance::Main);
 }
 
-int GPS::task_spawn(int argc, char *argv[], Instance instance)
+int GPS::task_spawn(int /*argc*/, char *argv[], Instance instance)
 {
 	px4_main_t entry_point;
 	if (instance == Instance::Main) {

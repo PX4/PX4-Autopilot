@@ -61,12 +61,12 @@ bool FlightTaskManualAltitudeSmoothVel::activate(const trajectory_setpoint_s &la
 	return ret;
 }
 
-void FlightTaskManualAltitudeSmoothVel::_ekfResetHandlerPositionZ(float delta_z)
+void FlightTaskManualAltitudeSmoothVel::_ekfResetHandlerPositionZ(float /*delta_z*/)
 {
 	_smoothing.setCurrentPosition(_position(2));
 }
 
-void FlightTaskManualAltitudeSmoothVel::_ekfResetHandlerVelocityZ(float delta_vz)
+void FlightTaskManualAltitudeSmoothVel::_ekfResetHandlerVelocityZ(float /*delta_vz*/)
 {
 	_smoothing.setCurrentVelocity(_velocity(2));
 }

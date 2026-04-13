@@ -41,7 +41,7 @@
 static constexpr const char *EV_AID_SRC_NAME = "EV position";
 
 
-void Ekf::controlEvPosFusion(const imuSample &imu_sample, const extVisionSample &ev_sample,
+void Ekf::controlEvPosFusion(const imuSample & /*imu_sample*/, const extVisionSample &ev_sample,
 			     const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient,
 			     estimator_aid_source2d_s &aid_src)
 {

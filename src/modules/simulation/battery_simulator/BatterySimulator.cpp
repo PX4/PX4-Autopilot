@@ -174,7 +174,7 @@ void BatterySimulator::updateCommands()
 	}
 }
 
-int BatterySimulator::task_spawn(int argc, char *argv[])
+int BatterySimulator::task_spawn(int /*argc*/, char ** /*argv*/)
 {
 	BatterySimulator *instance = new BatterySimulator();
 
@@ -197,7 +197,7 @@ int BatterySimulator::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int BatterySimulator::custom_command(int argc, char *argv[])
+int BatterySimulator::custom_command(int /*argc*/, char ** /*argv*/)
 {
 	return print_usage("unknown command");
 }

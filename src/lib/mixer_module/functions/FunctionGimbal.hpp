@@ -44,7 +44,7 @@ class FunctionGimbal : public FunctionProviderBase
 {
 public:
 	FunctionGimbal() = default;
-	static FunctionProviderBase *allocate(const Context &context) { return new FunctionGimbal(); }
+	static FunctionProviderBase *allocate(const Context & /*context*/) { return new FunctionGimbal(); }
 
 	void update() override
 	{

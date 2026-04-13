@@ -80,7 +80,7 @@ int InputMavlinkROI::initialize()
 }
 
 InputMavlinkROI::UpdateResult
-InputMavlinkROI::update(unsigned int timeout_ms, ControlData &control_data, bool already_active)
+InputMavlinkROI::update(unsigned int timeout_ms, ControlData &control_data, bool /*already_active*/)
 {
 	const int num_poll = 2;
 	px4_pollfd_struct_t polls[num_poll];
@@ -198,7 +198,7 @@ int InputMavlinkCmdMount::initialize()
 
 
 InputMavlinkCmdMount::UpdateResult
-InputMavlinkCmdMount::update(unsigned int timeout_ms, ControlData &control_data, bool already_active)
+InputMavlinkCmdMount::update(unsigned int timeout_ms, ControlData &control_data, bool /*already_active*/)
 {
 	const int num_poll = 1;
 	px4_pollfd_struct_t polls[num_poll];
@@ -529,7 +529,7 @@ void InputMavlinkGimbalV2::_stream_gimbal_manager_information(const ControlData 
 }
 
 InputMavlinkGimbalV2::UpdateResult
-InputMavlinkGimbalV2::update(unsigned int timeout_ms, ControlData &control_data, bool already_active)
+InputMavlinkGimbalV2::update(unsigned int timeout_ms, ControlData &control_data, bool /*already_active*/)
 {
 
 	const int num_poll = 5;

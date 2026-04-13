@@ -144,7 +144,7 @@ void UUVPOSControl::check_setpoint_validity(vehicle_local_position_s &vlocal_pos
 	}
 }
 
-void UUVPOSControl::generate_trajectory_setpoint(vehicle_local_position_s &vlocal_pos,
+void UUVPOSControl::generate_trajectory_setpoint(vehicle_local_position_s & /*vlocal_pos*/,
 		vehicle_attitude_s &vehicle_attitude,
 		float dt)
 {
@@ -422,7 +422,7 @@ void UUVPOSControl::Run()
 	perf_end(_loop_perf);
 }
 
-int UUVPOSControl::task_spawn(int argc, char *argv[])
+int UUVPOSControl::task_spawn(int /*argc*/, char ** /*argv*/)
 {
 	UUVPOSControl *instance = new UUVPOSControl();
 
@@ -445,7 +445,7 @@ int UUVPOSControl::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int UUVPOSControl::custom_command(int argc, char *argv[])
+int UUVPOSControl::custom_command(int /*argc*/, char ** /*argv*/)
 {
 	return print_usage("unknown command");
 }

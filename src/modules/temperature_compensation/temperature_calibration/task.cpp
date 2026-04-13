@@ -314,7 +314,7 @@ void TemperatureCalibration::task_main()
 	PX4_INFO("Exiting temperature calibration task");
 }
 
-int TemperatureCalibration::do_temperature_calibration(int argc, char *argv[])
+int TemperatureCalibration::do_temperature_calibration(int /*argc*/, char ** /*argv*/)
 {
 	temperature_calibration::instance.load()->task_main();
 	return 0;

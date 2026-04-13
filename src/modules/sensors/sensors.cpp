@@ -735,7 +735,7 @@ int Sensors::print_status()
 	return 0;
 }
 
-int Sensors::custom_command(int argc, char *argv[])
+int Sensors::custom_command(int /*argc*/, char ** /*argv*/)
 {
 	return print_usage("unknown command");
 }

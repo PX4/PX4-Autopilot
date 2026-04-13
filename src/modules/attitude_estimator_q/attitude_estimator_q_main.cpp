@@ -588,12 +588,12 @@ void AttitudeEstimatorQ::update_mag_declination(float new_declination)
 	}
 }
 
-int AttitudeEstimatorQ::custom_command(int argc, char *argv[])
+int AttitudeEstimatorQ::custom_command(int /*argc*/, char ** /*argv[]*/)
 {
 	return print_usage("unknown command");
 }
 
-int AttitudeEstimatorQ::task_spawn(int argc, char *argv[])
+int AttitudeEstimatorQ::task_spawn(int /*argc*/, char ** /*argv[]*/)
 {
 	AttitudeEstimatorQ *instance = new AttitudeEstimatorQ();
 

@@ -679,7 +679,7 @@ void GyroFFT::Publish()
 	_sensor_gyro_fft_pub.publish(_sensor_gyro_fft);
 }
 
-int GyroFFT::task_spawn(int argc, char *argv[])
+int GyroFFT::task_spawn(int /*argc*/, char ** /*argv*/)
 {
 	GyroFFT *instance = new GyroFFT();
 
@@ -713,7 +713,7 @@ int GyroFFT::print_status()
 	return 0;
 }
 
-int GyroFFT::custom_command(int argc, char *argv[])
+int GyroFFT::custom_command(int /*argc*/, char ** /*argv*/)
 {
 	return print_usage("unknown command");
 }

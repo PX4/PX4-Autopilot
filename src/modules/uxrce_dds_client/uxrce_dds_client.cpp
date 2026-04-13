@@ -57,7 +57,7 @@ using namespace time_literals;
 
 ModuleBase::Descriptor UxrceddsClient::desc{task_spawn, custom_command, print_usage};
 
-static void on_time(uxrSession *session, int64_t current_time, int64_t client_transmit_timestamp,
+static void on_time(uxrSession *session, int64_t current_time, int64_t /*client_transmit_timestamp*/,
 		    int64_t agent_receive_timestamp, int64_t originate_timestamp, void *args)
 {
 	if (args) {
@@ -68,8 +68,8 @@ static void on_time(uxrSession *session, int64_t current_time, int64_t client_tr
 	}
 }
 
-static void on_time_no_sync(uxrSession *session, int64_t current_time, int64_t client_transmit_timestamp,
-			    int64_t agent_receive_timestamp, int64_t originate_timestamp, void *args)
+static void on_time_no_sync(uxrSession *session, int64_t /*current_time*/, int64_t /*client_transmit_timestamp*/,
+			    int64_t /*agent_receive_timestamp*/, int64_t /*originate_timestamp*/, void * /*args*/)
 {
 	session->time_offset = 0;
 }
@@ -917,7 +917,7 @@ void UxrceddsClient::delete_repliers()
 	_num_of_repliers = 0;
 }
 
-int UxrceddsClient::custom_command(int argc, char *argv[])
+int UxrceddsClient::custom_command(int /*argc*/, char ** /*argv*/)
 {
 	return print_usage("unknown command");
 }
@@ -929,7 +929,7 @@ int UxrceddsClient::run_trampoline(int argc, char *argv[])
 	}, argc, argv);
 }
 
-int UxrceddsClient::task_spawn(int argc, char *argv[])
+int UxrceddsClient::task_spawn(int /*argc*/, char *argv[])
 {
 	desc.task_id = px4_task_spawn_cmd("uxrce_dds_client",
 					  SCHED_DEFAULT,

@@ -192,7 +192,7 @@ void RoverDifferential::reset()
 	_manual_mode.reset();
 }
 
-int RoverDifferential::task_spawn(int argc, char *argv[])
+int RoverDifferential::task_spawn(int /*argc*/, char ** /*argv*/)
 {
 	RoverDifferential *instance = new RoverDifferential();
 
@@ -215,7 +215,7 @@ int RoverDifferential::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int RoverDifferential::custom_command(int argc, char *argv[])
+int RoverDifferential::custom_command(int /*argc*/, char ** /*argv*/)
 {
 	return print_usage("unknown command");
 }

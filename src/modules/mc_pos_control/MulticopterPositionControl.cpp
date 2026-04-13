@@ -763,7 +763,7 @@ int MulticopterPositionControl::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int MulticopterPositionControl::custom_command(int argc, char *argv[])
+int MulticopterPositionControl::custom_command(int /*argc*/, char ** /*argv*/)
 {
 	return print_usage("unknown command");
 }

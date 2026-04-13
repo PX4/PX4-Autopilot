@@ -455,7 +455,7 @@ int FixedwingAttitudeControl::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int FixedwingAttitudeControl::custom_command(int argc, char *argv[])
+int FixedwingAttitudeControl::custom_command(int /*argc*/, char ** /*argv*/)
 {
 	return print_usage("unknown command");
 }

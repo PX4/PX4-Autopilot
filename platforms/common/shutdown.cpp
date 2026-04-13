@@ -156,7 +156,7 @@ int px4_unregister_shutdown_hook(shutdown_hook_t hook)
  * work queue callback method to shutdown.
  * @param arg unused
  */
-static void shutdown_worker(void *arg)
+static void shutdown_worker(void */*arg*/)
 {
 	PX4_DEBUG("shutdown worker (%i)", shutdown_counter);
 	bool done = true;

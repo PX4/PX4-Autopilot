@@ -46,7 +46,7 @@ void TakeoffHandling::generateInitialRampValue(float velocity_p_gain)
 }
 
 void TakeoffHandling::updateTakeoffState(const bool armed, const bool landed, const bool want_takeoff,
-		const float takeoff_desired_vz, const bool skip_takeoff, const hrt_abstime &now_us)
+		const float /*takeoff_desired_vz*/, const bool skip_takeoff, const hrt_abstime &now_us)
 {
 	_spoolup_time_hysteresis.set_state_and_update(armed, now_us);
 

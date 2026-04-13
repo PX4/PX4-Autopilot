@@ -35,7 +35,7 @@
 
 using namespace time_literals;
 
-void DistanceSensorChecks::checkAndReport(const Context &context, Report &reporter)
+void DistanceSensorChecks::checkAndReport(const Context & /*context*/, Report &reporter)
 {
 	if (_param_sys_has_num_dist.get() <= 0) {
 		return;

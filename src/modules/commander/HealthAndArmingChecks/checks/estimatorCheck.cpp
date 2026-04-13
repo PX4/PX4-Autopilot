@@ -514,7 +514,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 
 }
 
-void EstimatorChecks::checkSensorBias(const Context &context, Report &reporter, NavModes required_groups)
+void EstimatorChecks::checkSensorBias(const Context & /*context*/, Report &reporter, NavModes required_groups)
 {
 	// _estimator_sensor_bias_sub instance got changed above already
 	estimator_sensor_bias_s bias;
@@ -591,8 +591,8 @@ void EstimatorChecks::checkSensorBias(const Context &context, Report &reporter, 
 	}
 }
 
-void EstimatorChecks::checkEstimatorStatusFlags(const Context &context, Report &reporter,
-		const estimator_status_s &estimator_status, const vehicle_local_position_s &lpos)
+void EstimatorChecks::checkEstimatorStatusFlags(const Context & /*context*/, Report &reporter,
+		const estimator_status_s & /*estimator_status*/, const vehicle_local_position_s & /*lpos*/)
 {
 	estimator_status_flags_s estimator_status_flags;
 
@@ -628,7 +628,7 @@ void EstimatorChecks::checkEstimatorStatusFlags(const Context &context, Report &
 	}
 }
 
-void EstimatorChecks::checkGps(const Context &context, Report &reporter, const sensor_gps_s &vehicle_gps_position) const
+void EstimatorChecks::checkGps(const Context & /*context*/, Report &reporter, const sensor_gps_s &vehicle_gps_position) const
 {
 	if (vehicle_gps_position.jamming_state == sensor_gps_s::JAMMING_STATE_DETECTED) {
 		/* EVENT
@@ -681,9 +681,9 @@ void EstimatorChecks::lowPositionAccuracy(const Context &context, Report &report
 	reporter.failsafeFlags().position_accuracy_low = position_valid_but_low_accuracy;
 }
 
-void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_flt_fail_innov_heading,
+void EstimatorChecks::setModeRequirementFlags(const Context &context, bool /*pre_flt_fail_innov_heading*/,
 		bool pre_flt_fail_innov_vel_horiz, bool pre_flt_fail_innov_pos_horiz,
-		const vehicle_local_position_s &lpos, const sensor_gps_s &vehicle_gps_position, failsafe_flags_s &failsafe_flags,
+		const vehicle_local_position_s &lpos, const sensor_gps_s & /*vehicle_gps_position*/, failsafe_flags_s &failsafe_flags,
 		Report &reporter)
 {
 	// The following flags correspond to mode requirements, and are reported in the corresponding mode checks

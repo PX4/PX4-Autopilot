@@ -529,7 +529,7 @@ int blockDelayTest()
 
 extern "C" __EXPORT int controllib_test_main(int argc, char *argv[]);
 
-int controllib_test_main(int argc, char *argv[])
+int controllib_test_main(int /*argc*/, char ** /*argv[]*/)
 {
 	return basicBlocksTest();
 }

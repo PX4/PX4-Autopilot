@@ -103,7 +103,7 @@ public:
 	 * @param count		The number of items to read.
 	 * @return		The number of items read on success, negative errno otherwise.
 	 */
-	virtual int	read(unsigned address, void *data, unsigned count) { return -ENODEV; }
+	virtual int	read(unsigned /*address*/, void */*data*/, unsigned /*count*/) { return -ENODEV; }
 
 	/**
 	 * Write directly to the device.
@@ -115,7 +115,7 @@ public:
 	 * @param count		The number of items to write.
 	 * @return		The number of items written on success, negative errno otherwise.
 	 */
-	virtual int	write(unsigned address, void *data, unsigned count) { return -ENODEV; }
+	virtual int	write(unsigned /*address*/, void */*data*/, unsigned /*count*/) { return -ENODEV; }
 
 	/**
 	 * Read a register from the device.
@@ -123,7 +123,7 @@ public:
 	 * @param		The register to read.
 	 * @return		The value that was read.
 	 */
-	virtual uint8_t read_reg(unsigned reg) { return -ENODEV; }
+	virtual uint8_t read_reg(unsigned /*reg*/) { return -ENODEV; }
 
 	/**
 	 * Write a register in the device.
@@ -132,7 +132,7 @@ public:
 	 * @param value		The new value to write.
 	 * @return		OK on success, negative errno otherwise.
 	 */
-	virtual int write_reg(unsigned reg, uint8_t value) { return -ENODEV; }
+	virtual int write_reg(unsigned /*reg*/, uint8_t /*value*/) { return -ENODEV; }
 
 	/**
 	 * Perform a device-specific operation.
@@ -141,7 +141,7 @@ public:
 	 * @param arg		An argument to the operation.
 	 * @return		Negative errno on error, OK or positive value on success.
 	 */
-	virtual int	ioctl(unsigned operation, unsigned &arg) { return -ENODEV; }
+	virtual int	ioctl(unsigned /*operation*/, unsigned & /*arg*/) { return -ENODEV; }
 
 	/** Device bus types for DEVID */
 	enum DeviceBusType {

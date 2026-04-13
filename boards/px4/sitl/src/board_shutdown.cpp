@@ -43,12 +43,12 @@
 #include <stdlib.h>
 
 #if defined(BOARD_HAS_POWER_CONTROL)
-int board_register_power_state_notification_cb(power_button_state_notification_t cb)
+int board_register_power_state_notification_cb(power_button_state_notification_t /*cb*/)
 {
 	return 0;
 }
 
-int board_power_off(int status)
+int board_power_off(int /*status*/)
 {
 	printf("Exiting NOW.\n");
 	fflush(stdout);

@@ -60,7 +60,7 @@ bool TerrainEstimator::is_distance_valid(float distance)
 
 void TerrainEstimator::predict(float dt, const struct vehicle_attitude_s *attitude,
 			       const struct sensor_combined_s *sensor,
-			       const struct distance_sensor_s *distance)
+			       const struct distance_sensor_s * /*distance*/)
 {
 	matrix::Dcmf R_att = matrix::Quatf(attitude->q);
 	matrix::Vector3f a{sensor->accelerometer_m_s2[0], sensor->accelerometer_m_s2[1], sensor->accelerometer_m_s2[2]};

@@ -606,7 +606,7 @@ int FixedwingRateControl::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int FixedwingRateControl::custom_command(int argc, char *argv[])
+int FixedwingRateControl::custom_command(int /*argc*/, char ** /*argv*/)
 {
 	return print_usage("unknown command");
 }

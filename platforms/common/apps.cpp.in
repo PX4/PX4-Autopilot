@@ -41,20 +41,20 @@ void list_builtins(apps_map_type &apps)
 	}
 }
 
-int shutdown_main(int argc, char *argv[])
+int shutdown_main(int /*argc*/, char ** /*argv*/)
 {
 	printf("Exiting NOW.\n");
 	uorb_shutdown();
 	system_exit(0);
 }
 
-int list_tasks_main(int argc, char *argv[])
+int list_tasks_main(int /*argc*/, char ** /*argv*/)
 {
 	px4_show_tasks();
 	return 0;
 }
 
-int list_files_main(int argc, char *argv[])
+int list_files_main(int /*argc*/, char ** /*argv*/)
 {
 	px4_show_files();
 	return 0;

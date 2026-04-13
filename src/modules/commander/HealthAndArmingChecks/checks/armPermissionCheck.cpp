@@ -33,7 +33,7 @@
 
 #include "armPermissionCheck.hpp"
 
-void ArmPermissionChecks::checkAndReport(const Context &context, Report &reporter)
+void ArmPermissionChecks::checkAndReport(const Context & /*context*/, Report &reporter)
 {
 	if (_param_com_armable.get() < 1) {
 		/* EVENT

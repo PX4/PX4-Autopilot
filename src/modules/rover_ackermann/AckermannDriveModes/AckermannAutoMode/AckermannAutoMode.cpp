@@ -135,8 +135,8 @@ float AckermannAutoMode::updateAcceptanceRadius(const float waypoint_transition_
 	return acceptance_radius;
 }
 
-float AckermannAutoMode::arrivalSpeed(const float cruising_speed, const float min_speed, const float acc_rad,
-				      const int curr_wp_type, const float waypoint_transition_angle, const float max_yaw_rate)
+float AckermannAutoMode::arrivalSpeed(const float cruising_speed, const float min_speed, const float /*acc_rad*/,
+				      const int curr_wp_type, const float waypoint_transition_angle, const float /*max_yaw_rate*/)
 {
 	if (!PX4_ISFINITE(waypoint_transition_angle)
 	    || curr_wp_type == position_setpoint_s::SETPOINT_TYPE_LAND

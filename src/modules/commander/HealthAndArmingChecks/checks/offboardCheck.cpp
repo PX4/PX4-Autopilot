@@ -35,7 +35,7 @@
 
 using namespace time_literals;
 
-void OffboardChecks::checkAndReport(const Context &context, Report &reporter)
+void OffboardChecks::checkAndReport(const Context & /*context*/, Report &reporter)
 {
 	reporter.failsafeFlags().offboard_control_signal_lost = true;
 

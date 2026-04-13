@@ -74,7 +74,7 @@ void init_once()
 	px4_platform_init();
 }
 
-void init(int argc, char *argv[], const char *app_name)
+void init(int /*argc*/, char ** /*argv[]*/, const char *app_name)
 {
 	printf("\n");
 	printf("______  __   __    ___ \n");

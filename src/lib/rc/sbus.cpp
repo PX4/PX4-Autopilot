@@ -152,7 +152,7 @@ sbus_init(const char *device, bool singlewire)
 }
 
 int
-sbus_config(int sbus_fd, bool singlewire)
+sbus_config(int sbus_fd, [[maybe_unused]] bool singlewire)
 {
 	int ret = -1;
 
@@ -565,7 +565,7 @@ static const struct sbus_bit_pick sbus_decoder[SBUS_INPUT_CHANNELS][3] = {
 };
 
 bool
-sbus_decode(uint64_t frame_time, uint8_t *frame, uint16_t *values, uint16_t *num_values,
+sbus_decode(uint64_t /*frame_time*/, uint8_t *frame, uint16_t *values, uint16_t *num_values,
 	    bool *sbus_failsafe, bool *sbus_frame_drop, uint16_t max_values)
 {
 

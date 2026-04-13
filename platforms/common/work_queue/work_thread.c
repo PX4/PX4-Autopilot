@@ -258,6 +258,8 @@ void work_queues_init(void)
 
 int work_hpthread(int argc, char *argv[])
 {
+	(void)argc;
+	(void)argv;
 	/* Loop forever */
 
 	for (;;) {
@@ -286,6 +288,8 @@ int work_hpthread(int argc, char *argv[])
 
 int work_lpthread(int argc, char *argv[])
 {
+	(void)argc;
+	(void)argv;
 	/* Loop forever */
 
 	for (;;) {

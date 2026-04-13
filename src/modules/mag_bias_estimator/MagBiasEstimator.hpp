@@ -66,7 +66,7 @@ public:
 	static int task_spawn(int argc, char *argv[]);
 
 	/** @see ModuleBase */
-	static int custom_command(int argc, char *argv[])
+	static int custom_command(int /*argc*/, char ** /*argv*/)
 	{
 		return print_usage("unknown command");
 	}

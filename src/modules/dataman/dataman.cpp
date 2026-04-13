@@ -649,7 +649,7 @@ _ram_shutdown()
 }
 
 static int
-task_main(int argc, char *argv[])
+task_main(int /*argc*/, char ** /*argv*/)
 {
 	/* Dataman can use disk or RAM */
 	switch (backend) {

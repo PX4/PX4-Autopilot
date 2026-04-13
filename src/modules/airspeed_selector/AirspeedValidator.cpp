@@ -74,7 +74,7 @@ AirspeedValidator::reset_airspeed_to_invalid(const uint64_t timestamp)
 
 void
 AirspeedValidator::update_wind_estimator(const uint64_t time_now_usec, float airspeed_true_raw, bool gnss_valid,
-		const matrix::Vector3f &vI, float lpos_evh, float lpos_evv, const Quatf &q_att)
+		const matrix::Vector3f &vI, float lpos_evh, float /*lpos_evv*/, const Quatf &q_att)
 {
 	_wind_estimator.update(time_now_usec);
 

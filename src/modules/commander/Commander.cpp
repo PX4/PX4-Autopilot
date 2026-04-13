@@ -2746,7 +2746,7 @@ int Commander::run_trampoline(int argc, char *argv[])
 	}, argc, argv);
 }
 
-int Commander::task_spawn(int argc, char *argv[])
+int Commander::task_spawn(int /*argc*/, char *argv[])
 {
 	desc.task_id = px4_task_spawn_cmd("commander",
 					  SCHED_DEFAULT,

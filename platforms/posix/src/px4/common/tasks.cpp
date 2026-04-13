@@ -421,7 +421,7 @@ const char *px4_get_taskname()
 	return prog_name;
 }
 
-int px4_prctl(int option, const char *arg2, px4_task_t pid)
+int px4_prctl(int option, const char *arg2, px4_task_t /*pid*/)
 {
 	int rv = -1;
 

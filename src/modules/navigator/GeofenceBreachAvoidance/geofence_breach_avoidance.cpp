@@ -71,7 +71,7 @@ void GeofenceBreachAvoidance::setCurrentPosition(double lat, double lon, float a
 	_current_alt_amsl = alt;
 }
 
-void GeofenceBreachAvoidance::setHomePosition(double lat, double lon, float alt)
+void GeofenceBreachAvoidance::setHomePosition(double lat, double lon, float /*alt*/)
 {
 	_home_lat_lon(0) = lat;
 	_home_lat_lon(1) = lon;

@@ -39,8 +39,8 @@
 
 #define ut_declare_test_c(test_function, test_class)	\
 	extern "C" {										\
-		int test_function(int argc, char *argv[]);		\
-		int test_function(int argc, char *argv[])		\
+		int test_function(int /*argc*/, char ** /*argv[]*/);		\
+		int test_function(int /*argc*/, char ** /*argv[]*/)		\
 		{												\
 			test_class* test = new test_class();		\
 			bool success = test->run_tests();			\

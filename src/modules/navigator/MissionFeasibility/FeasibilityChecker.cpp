@@ -180,7 +180,7 @@ bool FeasibilityChecker::processNextItem(mission_item_s &mission_item, const int
 	return true;
 }
 
-void FeasibilityChecker::doCommonChecks(mission_item_s &mission_item, const int current_index)
+void FeasibilityChecker::doCommonChecks(mission_item_s &mission_item, const int /*current_index*/)
 {
 
 	if (!_checks_failed.flags.distance_between_waypoints_failed) {
@@ -220,7 +220,7 @@ void FeasibilityChecker::doFixedWingChecks(mission_item_s &mission_item, const i
 
 }
 
-void FeasibilityChecker::doMulticopterChecks(mission_item_s &mission_item, const int current_index)
+void FeasibilityChecker::doMulticopterChecks(mission_item_s &mission_item, const int /*current_index*/)
 {
 	// this flag is used for the checkTakeoffLandAvailable check at the very end
 	_landing_valid |= mission_item.nav_cmd == NAV_CMD_LAND;

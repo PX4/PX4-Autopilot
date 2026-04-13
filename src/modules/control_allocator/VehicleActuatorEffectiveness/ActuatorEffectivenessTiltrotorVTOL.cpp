@@ -124,7 +124,7 @@ void ActuatorEffectivenessTiltrotorVTOL::allocateAuxilaryControls(const float dt
 
 }
 
-void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
+void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<float, NUM_AXES> & /*control_sp*/,
 		int matrix_index, ActuatorVector &actuator_sp, const ActuatorVector &actuator_min, const ActuatorVector &actuator_max)
 {
 	// apply tilt

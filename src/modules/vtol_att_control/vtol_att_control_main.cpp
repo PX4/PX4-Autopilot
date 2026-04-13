@@ -497,7 +497,7 @@ VtolAttitudeControl::Run()
 }
 
 int
-VtolAttitudeControl::task_spawn(int argc, char *argv[])
+VtolAttitudeControl::task_spawn(int /*argc*/, char ** /*argv*/)
 {
 	VtolAttitudeControl *instance = new VtolAttitudeControl();
 
@@ -521,7 +521,7 @@ VtolAttitudeControl::task_spawn(int argc, char *argv[])
 }
 
 int
-VtolAttitudeControl::custom_command(int argc, char *argv[])
+VtolAttitudeControl::custom_command(int /*argc*/, char ** /*argv*/)
 {
 	return print_usage("unknown command");
 }

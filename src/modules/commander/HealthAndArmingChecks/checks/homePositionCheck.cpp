@@ -33,7 +33,7 @@
 
 #include "homePositionCheck.hpp"
 
-void HomePositionChecks::checkAndReport(const Context &context, Report &reporter)
+void HomePositionChecks::checkAndReport(const Context & /*context*/, Report &reporter)
 {
 	home_position_s home_position;
 

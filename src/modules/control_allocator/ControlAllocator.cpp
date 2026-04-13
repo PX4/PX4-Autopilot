@@ -818,7 +818,7 @@ ControlAllocator::check_for_motor_failures()
 	}
 }
 
-int ControlAllocator::task_spawn(int argc, char *argv[])
+int ControlAllocator::task_spawn(int /*argc*/, char ** /*argv[]*/)
 {
 	ControlAllocator *instance = new ControlAllocator();
 
@@ -994,7 +994,7 @@ int ControlAllocator::print_status()
 	return 0;
 }
 
-int ControlAllocator::custom_command(int argc, char *argv[])
+int ControlAllocator::custom_command(int /*argc*/, char ** /*argv[]*/)
 {
 	return print_usage("unknown command");
 }
