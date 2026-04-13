@@ -1,0 +1,55 @@
+menu "MR-NavQ95 board options"
+
+choice
+	prompt "GPIO_IO23 (PWM header J9 pin 9)"
+	default BOARD_NAVQ95_IO23_PWM
+	---help---
+		The pad is TPM6 channel 1. As PWM output 8 it is the fourth output
+		group, PWM or DShot like the other seven. As the buzzer it drives the
+		GPS connector buzzer line (J8 pin 9) through the tone alarm driver;
+		switch S1 must be closed for the buzzer to sound. Both need the
+		System Manager configuration that assigns LPTPM6 to the M7, which
+		the NavQ95 BSP provides. Unused leaves the pad and TPM6 untouched,
+		for a System Manager configuration without that assignment.
+
+config BOARD_NAVQ95_IO23_PWM
+	bool "PWM output 8"
+
+config BOARD_NAVQ95_IO23_BUZZER
+	bool "Buzzer"
+	select DRIVERS_TONE_ALARM
+
+config BOARD_NAVQ95_IO23_NONE
+	bool "Unused"
+endchoice
+
+choice
+	prompt "LPUART2 (/dev/ttyS1, M7 console port)"
+	default BOARD_NAVQ95_LPUART2_RC
+	---help---
+		LPUART2 is the M7 console port of the board: it reaches the CP2105
+		USB serial bridge on the IO board (J1 CONSOLE, second port, ttyUSB1
+		on a Linux host) and the main board J2 CONSOLE header (pins 4 and 5).
+		As RC input it carries the RC protocol (CRSF, SBUS, ...) instead,
+		with the receiver on J2 pins 4 and 5; do not connect a PC to ttyUSB1
+		then, as its transmitter shares the line with the receiver. As NSH
+		console it runs an NSH shell started after boot on that port, a
+		plain USB serial console that does not need the Linux side; the
+		NuttX system console itself stays on the RPMsg tty. UART2 TX is also
+		the BT_MODE1 boot strap, so nothing may drive that line while the
+		board resets.
+
+config BOARD_NAVQ95_LPUART2_RC
+	bool "RC input"
+
+config BOARD_NAVQ95_LPUART2_CONSOLE
+	bool "NSH console"
+endchoice
+
+config BOARD_SERIAL_RC
+	default "/dev/ttyS1" if BOARD_NAVQ95_LPUART2_RC
+
+config BOARD_ADDITIONAL_INIT
+	default "rc.lpuart2_console" if BOARD_NAVQ95_LPUART2_CONSOLE
+
+endmenu

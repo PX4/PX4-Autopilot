@@ -1,0 +1,6 @@
+#!/bin/sh
+#
+# NSH console on LPUART2 (/dev/ttyS1, CP2105 USB serial)
+#------------------------------------------------------------------------------
+
+nshterm /dev/ttyS1 &
