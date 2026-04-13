@@ -1,0 +1,17 @@
+#!/bin/sh
+#
+# NavQ95 specific board sensors init
+#------------------------------------------------------------------------------
+
+board_adc start
+
+icm45686 -R 12 -s start
+
+# Internal on IMU SPI BMI088
+bmi088 -A -R 6 -s start
+bmi088 -G -R 6 -s start
+
+bmm350 -I -b 1 -R 6 start
+bmp581 -I -b 1 start
+
+i2c_launcher start -b 6 -t 1
