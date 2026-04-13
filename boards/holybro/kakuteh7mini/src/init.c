@@ -234,57 +234,70 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		led_on(LED_RED);
 	}
 
-#ifdef CONFIG_MTD_W25N
-	/* Initialize W25N01GV NAND Flash on SPI1 */
-	struct spi_dev_s *spi1 = stm32_spibus_initialize(1);
+	/* Initialize SPI1 flash: try W25N NAND (v1.3) first, fall back to W25 NOR (v1.5 W25Q128) */
+	{
+		struct spi_dev_s *spi1 = stm32_spibus_initialize(1);
+		struct mtd_dev_s *flash_mtd = NULL;
 
-	if (!spi1) {
-		syslog(LOG_ERR, "[boot] FAILED to initialize SPI1 for W25N\n");
-		led_on(LED_RED);
-
-	} else {
-		struct mtd_dev_s *mtd = w25n_initialize(spi1, 0);
-
-		if (!mtd) {
-			syslog(LOG_ERR, "[boot] FAILED to initialize W25N MTD driver\n");
+		if (!spi1) {
+			syslog(LOG_ERR, "[boot] FAILED to initialize SPI1 for flash\n");
 			led_on(LED_RED);
 
 		} else {
-			int ret = register_mtddriver("/dev/mtd0", mtd, 0755, NULL);
+#ifdef CONFIG_MTD_W25N
+			flash_mtd = w25n_initialize(spi1, 0);
 
-			if (ret < 0) {
-				syslog(LOG_ERR, "[boot] FAILED to register MTD driver: %d\n", ret);
+			if (flash_mtd) {
+				syslog(LOG_INFO, "[boot] W25N NAND flash detected on SPI1\n");
+			}
+
+#endif
+#ifdef CONFIG_MTD_W25
+
+			if (!flash_mtd) {
+				flash_mtd = w25_initialize(spi1);
+
+				if (flash_mtd) {
+					syslog(LOG_INFO, "[boot] W25 NOR flash detected on SPI1\n");
+				}
+			}
+
+#endif
+
+			if (!flash_mtd) {
+				syslog(LOG_ERR, "[boot] FAILED to detect flash chip on SPI1\n");
 				led_on(LED_RED);
 
 			} else {
-				syslog(LOG_INFO, "[boot] W25N MTD registered at /dev/mtd0\n");
-
-				struct mtd_geometry_s geo;
-
-				if (mtd->ioctl(mtd, MTDIOC_GEOMETRY, (unsigned long)((uintptr_t)&geo)) == 0) {
-					syslog(LOG_INFO, "[boot] W25N: %lu erase blocks, %lu bytes/block, %lu total bytes\n",
-					       (unsigned long)geo.neraseblocks,
-					       (unsigned long)geo.erasesize,
-					       (unsigned long)geo.neraseblocks * (unsigned long)geo.erasesize);
-				}
-
-#ifdef CONFIG_FS_LITTLEFS
-				ret = nx_mount("/dev/mtd0", CONFIG_BOARD_ROOT_PATH, "littlefs", 0, "autoformat");
+				int ret = register_mtddriver("/dev/mtd0", flash_mtd, 0755, NULL);
 
 				if (ret < 0) {
-					syslog(LOG_ERR, "[boot] FAILED to mount littlefs: %d\n", ret);
+					syslog(LOG_ERR, "[boot] FAILED to register MTD driver: %d\n", ret);
 					led_on(LED_RED);
 
 				} else {
-					syslog(LOG_INFO, "[boot] LittleFS mounted at %s\n", CONFIG_BOARD_ROOT_PATH);
-				}
+#ifdef CONFIG_FS_LITTLEFS
+					mkdir("/fs/flash", 0777);
+					ret = nx_mount("/dev/mtd0", "/fs/flash", "littlefs", 0, "autoformat");
+
+					if (ret < 0) {
+						syslog(LOG_WARNING, "[boot] littlefs autoformat failed (%d), forcing format\n", ret);
+						ret = nx_mount("/dev/mtd0", "/fs/flash", "littlefs", 0, "forceformat");
+					}
+
+					if (ret < 0) {
+						syslog(LOG_ERR, "[boot] FAILED to mount littlefs at /fs/flash: %d\n", ret);
+						led_on(LED_RED);
+
+					} else {
+						syslog(LOG_INFO, "[boot] LittleFS mounted at /fs/flash\n");
+					}
 
 #endif
+				}
 			}
 		}
 	}
-
-#endif
 
 	up_udelay(20);
 
@@ -306,17 +319,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	/* Configure the HW based on the manifest */
 	px4_platform_configure();
-
-	/* Mount LittleFS on W25Q128 flash for logging */
-	mkdir("/fs/microsd", 0777);
-
-	if (nx_mount("/dev/mtdblock0", "/fs/microsd", "littlefs", 0, "autoformat") != 0) {
-		syslog(LOG_ERR, "[boot] FAILED to mount littlefs on mtdblock0\n");
-		led_on(LED_BLUE);
-
-	} else {
-		syslog(LOG_INFO, "[boot] LittleFS mounted on /fs/microsd\n");
-	}
 
 	return OK;
 }

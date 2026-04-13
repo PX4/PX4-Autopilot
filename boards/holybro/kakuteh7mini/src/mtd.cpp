@@ -31,45 +31,14 @@
  *
  ****************************************************************************/
 
-#include <nuttx/spi/spi.h>
 #include <px4_platform_common/px4_manifest.h>
 
-// W25Q128 on SPI1: 16MB (128Mbit), 4KB sectors, 64KB blocks
-// For parameters we use a small portion - 128KB (32 x 4KB blocks)
-static const px4_mft_device_t spi1 = {
-	.bus_type = px4_mft_device_t::SPI,
-	.devid    = SPIDEV_FLASH(0)
-};
-
-static const px4_mtd_entry_t w25q128_flash = {
-	.device = &spi1,
-	.npart = 1,
-	.partd = {
-		{
-			.type = MTD_WAYPOINTS,  // Use for data storage
-			.path = "/fs/mtd_data",
-			.nblocks = 65536  // 65536 x 256 bytes = 16MB (full flash)
-		}
-	},
-};
-
-static const px4_mtd_manifest_t board_mtd_config = {
-	.nconfigs   = 1,
-	.entries = {
-		&w25q128_flash
-	}
-};
-
-static const px4_mft_entry_s mtd_mft = {
-	.type = MTD,
-	.pmft = (void *) &board_mtd_config,
-};
+// SPI1 flash (W25N NAND on v1.3, W25Q128 NOR on v1.5) is initialized
+// directly in init.c with runtime chip detection and mounted as littlefs
+// at /fs/flash. No MTD manifest entry needed here.
 
 static const px4_mft_s mft = {
-	.nmft = 1,
-	.mfts = {
-		&mtd_mft
-	}
+	.nmft = 0,
 };
 
 const px4_mft_s *board_get_manifest(void)
