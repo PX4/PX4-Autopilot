@@ -35,6 +35,9 @@ commander mode ext{RAPTOR_MODE_ID}
 
 #### Usage with External Trajectory Setpoint
 
+When `MC_RAPTOR_OFFB=1` and RAPTOR replaces `OFFBOARD`, standard MAVLink offboard setpoints
+(`SET_POSITION_TARGET_*`, `SET_ATTITUDE_TARGET`) are still accepted by the FMU and routed to the internal setpoint pipeline.
+
 
 Send Lissajous setpoints via Mavlink:
 ```bash
