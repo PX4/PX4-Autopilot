@@ -285,8 +285,8 @@ int up_input_capture_set_filter(unsigned channel,  capture_filter_t filter)
 				break;
 
 			case 3:
-				rvalue = rFILTER(timer) & ~FTM_FILTER_CH2FVAL_MASK;
-				rvalue |= (filter << FTM_FILTER_CH2FVAL_SHIFT);
+				rvalue = rFILTER(timer) & ~FTM_FILTER_CH3FVAL_MASK;
+				rvalue |= (filter << FTM_FILTER_CH3FVAL_SHIFT);
 				rFILTER(timer) = rvalue;
 				break;
 
