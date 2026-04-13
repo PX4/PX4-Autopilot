@@ -22,7 +22,8 @@ Update these notes with features that are going to be in `main` (PX4 v1.18 or la
 
 ## Read Before Upgrading
 
-- TBD …
+- The `SDLOG_DIRS_MAX` parameter has been removed. Log storage management is now controlled entirely by [SDLOG_ROTATE](../advanced_config/parameter_reference.md#SDLOG_ROTATE) (disk usage percentage) and [SDLOG_MAX_SIZE](../advanced_config/parameter_reference.md#SDLOG_MAX_SIZE). If you previously relied on `SDLOG_DIRS_MAX`, adjust these two parameters instead. See [Log Cleanup](../dev_log/logging.md#log-cleanup) for details.
+- `SDLOG_MAX_SIZE` default lowered from `4095` to `1024` MB. This caps individual log files at ~1 GB, which fits a typical flight in a single file and keeps cleanup behavior reasonable on typical SD cards. Users with unusually large flight data can raise this value manually.
 
 Please continue reading for [upgrade instructions](#upgrade-guide).
 
@@ -73,6 +74,12 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 ### Debug & Logging
 
 - [Asset Tracking](../debug/asset_tracking.md): Automatic tracking and logging of external device information including vendor name, firmware and hardware version, serial numbers. Currently supports DroneCAN devices. ([PX4-Autopilot#25617](https://github.com/PX4/PX4-Autopilot/pull/25617))
+- Logger: support for small flash storage (e.g. 128 MB W25N NAND on kakuteh7mini, kakuteh7v2, airbrainh743). Logs can now be written directly to an internal littlefs volume instead of requiring an SD card.
+- Logger: reworked log rotation and cleanup:
+  - Added [SDLOG_ROTATE](../advanced_config/parameter_reference.md#SDLOG_ROTATE) (default `90`): maximum disk usage percentage. Cleanup guarantees `(100 - SDLOG_ROTATE)%` of the disk stays free at all times, even while writing a new log file. Set `0` to disable space-based cleanup, `100` to allow filling the disk completely.
+  - [SDLOG_MAX_SIZE](../advanced_config/parameter_reference.md#SDLOG_MAX_SIZE) default lowered from `4095` to `1024` MB. The old default caused over-aggressive cleanup on typical SD cards (e.g. an 8 GB card would only retain 1 log file at a time). Users with unusually large flight data can raise it explicitly.
+  - Removed `SDLOG_DIRS_MAX`. Directory-count limits are now handled by the space-based cleanup alone.
+- New `mklittlefs` systemcmd for reformatting a littlefs volume from the NSH console, analogous to `mkfatfs` for FAT filesystems.
 
 ### Ethernet
 

@@ -60,6 +60,8 @@
 #include <nuttx/spi/spi.h>
 #include <nuttx/analog/adc.h>
 #include <nuttx/mm/gran.h>
+#include <nuttx/mtd/mtd.h>
+#include <nuttx/fs/fs.h>
 #include <chip.h>
 #include <stm32_uart.h>
 #include <arch/board/board.h>
@@ -232,7 +234,59 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		led_on(LED_RED);
 	}
 
+#ifdef CONFIG_MTD_W25N
+	/* Initialize W25N01GV NAND Flash on SPI1 */
+	struct spi_dev_s *spi1 = stm32_spibus_initialize(1);
 
+	if (!spi1) {
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI1 for W25N\n");
+		led_on(LED_RED);
+
+	} else {
+		struct mtd_dev_s *mtd = w25n_initialize(spi1, 0);
+
+		if (!mtd) {
+			syslog(LOG_ERR, "[boot] FAILED to initialize W25N MTD driver\n");
+			led_on(LED_RED);
+
+		} else {
+			int ret = register_mtddriver("/dev/mtd0", mtd, 0755, NULL);
+
+			if (ret < 0) {
+				syslog(LOG_ERR, "[boot] FAILED to register MTD driver: %d\n", ret);
+				led_on(LED_RED);
+
+			} else {
+				syslog(LOG_INFO, "[boot] W25N MTD registered at /dev/mtd0\n");
+
+				struct mtd_geometry_s geo;
+
+				if (mtd->ioctl(mtd, MTDIOC_GEOMETRY, (unsigned long)((uintptr_t)&geo)) == 0) {
+					syslog(LOG_INFO, "[boot] W25N: %lu erase blocks, %lu bytes/block, %lu total bytes\n",
+					       (unsigned long)geo.neraseblocks,
+					       (unsigned long)geo.erasesize,
+					       (unsigned long)geo.neraseblocks * (unsigned long)geo.erasesize);
+				}
+
+#ifdef CONFIG_FS_LITTLEFS
+				ret = nx_mount("/dev/mtd0", CONFIG_BOARD_ROOT_PATH, "littlefs", 0, "autoformat");
+
+				if (ret < 0) {
+					syslog(LOG_ERR, "[boot] FAILED to mount littlefs: %d\n", ret);
+					led_on(LED_RED);
+
+				} else {
+					syslog(LOG_INFO, "[boot] LittleFS mounted at %s\n", CONFIG_BOARD_ROOT_PATH);
+				}
+
+#endif
+			}
+		}
+	}
+
+#endif
+
+	up_udelay(20);
 
 #if defined(FLASH_BASED_PARAMS)
 	static sector_descriptor_t params_sector_map[] = {

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,12 +31,48 @@
  *
  ****************************************************************************/
 
-#pragma once
+/**
+ * @file mklittlefs.cpp
+ *
+ * Format a device with littlefs filesystem.
+ */
 
-#define DMAMAP_SPI1_RX    DMAMAP_DMA12_SPI1RX_0 /* DMA1 */
-#define DMAMAP_SPI1_TX    DMAMAP_DMA12_SPI1TX_0 /* DMA1 */
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/module.h>
 
-#define DMAMAP_SPI4_RX    DMAMAP_DMA12_SPI4RX_1 /* DMA2 */
-#define DMAMAP_SPI4_TX    DMAMAP_DMA12_SPI4TX_1 /* DMA2 */
+#include <sys/mount.h>
+#include <errno.h>
+#include <string.h>
 
-#define DMAMAP_USART2_RX   DMAMAP_DMA12_USART2RX_1 /* DMA2 */
+static void print_usage()
+{
+	PRINT_MODULE_DESCRIPTION("Format a device with the littlefs filesystem.");
+
+	PRINT_MODULE_USAGE_NAME_SIMPLE("mklittlefs", "command");
+	PRINT_MODULE_USAGE_ARG("<device> <mountpoint>", "Device and mount point (e.g. /dev/mtd0 /fs/flash)", false);
+}
+
+extern "C" __EXPORT int mklittlefs_main(int argc, char *argv[])
+{
+	if (argc < 3) {
+		print_usage();
+		return 1;
+	}
+
+	const char *device = argv[1];
+	const char *mountpoint = argv[2];
+
+	// Try to unmount first (ignore error if not mounted)
+	umount(mountpoint);
+
+	int ret = mount(device, mountpoint, "littlefs", 0, "forceformat");
+
+	if (ret < 0) {
+		PX4_ERR("format failed: %s", strerror(errno));
+		return 1;
+	}
+
+	PX4_INFO("formatted %s as littlefs, mounted at %s", device, mountpoint);
+	return 0;
+}

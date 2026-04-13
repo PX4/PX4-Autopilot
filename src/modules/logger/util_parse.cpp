@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,12 +31,60 @@
  *
  ****************************************************************************/
 
-#pragma once
+#include "util_parse.h"
+#include <cstdio>
 
-#define DMAMAP_SPI1_RX    DMAMAP_DMA12_SPI1RX_0 /* DMA1 */
-#define DMAMAP_SPI1_TX    DMAMAP_DMA12_SPI1TX_0 /* DMA1 */
+namespace px4
+{
+namespace logger
+{
+namespace util
+{
 
-#define DMAMAP_SPI4_RX    DMAMAP_DMA12_SPI4RX_1 /* DMA2 */
-#define DMAMAP_SPI4_TX    DMAMAP_DMA12_SPI4TX_1 /* DMA2 */
+bool parse_sess_dir_name(const char *name, int &sess_idx)
+{
+	return sscanf(name, "sess%d", &sess_idx) == 1;
+}
 
-#define DMAMAP_USART2_RX   DMAMAP_DMA12_USART2RX_1 /* DMA2 */
+bool parse_date_dir_name(const char *name, int &year, int &month, int &day)
+{
+	return sscanf(name, "%d-%d-%d", &year, &month, &day) == 3;
+}
+
+bool is_date_older(int y1, int m1, int d1, int y2, int m2, int d2)
+{
+	return y1 < y2 ||
+	       (y1 == y2 && m1 < m2) ||
+	       (y1 == y2 && m1 == m2 && d1 < d2);
+}
+
+void process_dir_entry(const char *name, LogDirInfo &info)
+{
+	int sess_idx;
+	int year, month, day;
+
+	if (parse_sess_dir_name(name, sess_idx)) {
+		info.num_sess++;
+
+		if (sess_idx > info.sess_idx_max) {
+			info.sess_idx_max = sess_idx;
+		}
+
+		if (sess_idx < info.sess_idx_min) {
+			info.sess_idx_min = sess_idx;
+		}
+
+	} else if (parse_date_dir_name(name, year, month, day)) {
+		info.num_dates++;
+
+		if (is_date_older(year, month, day, info.oldest_year, info.oldest_month, info.oldest_day)) {
+			info.oldest_year = year;
+			info.oldest_month = month;
+			info.oldest_day = day;
+		}
+	}
+}
+
+} //namespace util
+} //namespace logger
+} //namespace px4
