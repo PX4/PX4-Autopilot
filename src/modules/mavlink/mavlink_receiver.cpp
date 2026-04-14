@@ -2736,18 +2736,41 @@ MavlinkReceiver::handle_message_gps_rtcm_data(mavlink_message_t *msg)
 	mavlink_gps_rtcm_data_t gps_rtcm_data_msg;
 	mavlink_msg_gps_rtcm_data_decode(msg, &gps_rtcm_data_msg);
 
+	// Drop packets with an invalid payload length
+	if (gps_rtcm_data_msg.len > sizeof(gps_rtcm_data_msg.data)) {
+		return;
+	}
+
+	const hrt_abstime now = hrt_absolute_time();
+	const size_t packet_len = static_cast<size_t>(gps_rtcm_data_msg.len);
+	size_t message_len = 0;
+
+	const uint8_t *message = _gps_rtcm_message_assembler.addPacket(gps_rtcm_data_msg.flags, gps_rtcm_data_msg.data,
+				 packet_len, now, message_len);
+
+	if (message != nullptr) {
+		publish_gps_inject_data(message, message_len);
+	}
+}
+
+void
+MavlinkReceiver::publish_gps_inject_data(const uint8_t *data, size_t len)
+{
 	gps_inject_data_s gps_inject_data_topic{};
 
-	gps_inject_data_topic.timestamp = hrt_absolute_time();
+	const size_t capacity = sizeof(gps_inject_data_topic.data);
+	gps_inject_data_topic.flags = (len > capacity) ? 1 : 0;
 
-	gps_inject_data_topic.len = math::min((int)sizeof(gps_rtcm_data_msg.data),
-					      (int)sizeof(uint8_t) * gps_rtcm_data_msg.len);
-	gps_inject_data_topic.flags = gps_rtcm_data_msg.flags;
-	memcpy(gps_inject_data_topic.data, gps_rtcm_data_msg.data,
-	       math::min((int)sizeof(gps_inject_data_topic.data), (int)sizeof(uint8_t) * gps_inject_data_topic.len));
+	size_t written = 0;
 
-	gps_inject_data_topic.timestamp = hrt_absolute_time();
-	_gps_inject_data_pub.publish(gps_inject_data_topic);
+	while (written < len) {
+		const size_t chunk_len = math::min(len - written, capacity);
+		gps_inject_data_topic.timestamp = hrt_absolute_time();
+		gps_inject_data_topic.len = static_cast<decltype(gps_inject_data_topic.len)>(chunk_len);
+		memcpy(gps_inject_data_topic.data, &data[written], chunk_len);
+		_gps_inject_data_pub.publish(gps_inject_data_topic);
+		written += chunk_len;
+	}
 }
 
 void

@@ -62,6 +62,17 @@ static constexpr size_t   RTCM3_MAX_PAYLOAD_LEN = 1023;
 static constexpr size_t   RTCM3_MAX_FRAME_LEN   = RTCM3_HEADER_LEN + RTCM3_MAX_PAYLOAD_LEN + RTCM3_CRC_LEN; // 1029
 static constexpr uint32_t RTCM3_CRC24Q_POLY     = 0x1864CFB;
 
+// MAVLink GPS_RTCM_DATA fragmentation constants.
+static constexpr size_t   GPS_RTCM_MAX_FRAGMENT_LEN         = 180;
+static constexpr size_t   GPS_RTCM_MAX_FRAGMENTS            = 4;
+static constexpr size_t   GPS_RTCM_MAX_MESSAGE_LEN          = GPS_RTCM_MAX_FRAGMENT_LEN * GPS_RTCM_MAX_FRAGMENTS;
+static constexpr uint64_t GPS_RTCM_FRAGMENT_TIMEOUT_US      = 1000000;
+static constexpr uint8_t  GPS_RTCM_FLAG_FRAGMENTED          = 1 << 0;
+static constexpr uint8_t  GPS_RTCM_FLAG_FRAGMENT_ID_SHIFT   = 1;
+static constexpr uint8_t  GPS_RTCM_FLAG_FRAGMENT_ID_MASK    = 0x03;
+static constexpr uint8_t  GPS_RTCM_FLAG_SEQUENCE_ID_SHIFT   = 3;
+static constexpr uint8_t  GPS_RTCM_FLAG_SEQUENCE_ID_MASK    = 0x1f;
+
 /**
  * Calculate CRC-24Q checksum for RTCM3 messages.
  *
@@ -94,6 +105,74 @@ inline size_t rtcm3_payload_length(const uint8_t *frame)
 {
 	return ((static_cast<size_t>(frame[1]) & 0x03) << 8) | frame[2];
 }
+
+inline bool gps_rtcm_is_fragmented(uint8_t flags)
+{
+	return (flags & GPS_RTCM_FLAG_FRAGMENTED) != 0;
+}
+
+inline uint8_t gps_rtcm_fragment_id(uint8_t flags)
+{
+	return (flags >> GPS_RTCM_FLAG_FRAGMENT_ID_SHIFT) & GPS_RTCM_FLAG_FRAGMENT_ID_MASK;
+}
+
+inline uint8_t gps_rtcm_sequence_id(uint8_t flags)
+{
+	return (flags >> GPS_RTCM_FLAG_SEQUENCE_ID_SHIFT) & GPS_RTCM_FLAG_SEQUENCE_ID_MASK;
+}
+
+class GpsRtcmMessageAssembler
+{
+public:
+	GpsRtcmMessageAssembler() = default;
+
+	/**
+	 * Add a MAVLink GPS_RTCM_DATA packet.
+	 *
+	 * Fragmented packets are buffered until the full message is available. The
+	 * returned pointer is valid until the next call to addPacket().
+	 *
+	 * @param flags       MAVLink GPS_RTCM_DATA flags
+	 * @param data        Packet payload
+	 * @param len         Packet payload length
+	 * @param timestamp   Packet arrival timestamp in microseconds
+	 * @param out_len     Set to the reassembled message length, or 0 if incomplete/invalid
+	 * @return            Pointer to a complete message, or nullptr if the message is incomplete or invalid
+	 */
+	const uint8_t *addPacket(uint8_t flags, const uint8_t *data, size_t len, uint64_t timestamp, size_t &out_len);
+
+	void reset();
+
+private:
+	struct FragmentSlot {
+		uint8_t data[GPS_RTCM_MAX_FRAGMENT_LEN] {};
+		size_t len {0};
+		bool present {false};
+	};
+
+	struct SequenceState {
+		uint8_t sequence_id {0};
+		int8_t last_fragment_id {-1};
+		uint64_t timestamp {0};
+		bool active {false};
+	};
+
+	void resetActiveState();
+	void clearCompletedSequence();
+	bool hasFragmentAfter(uint8_t fragment_id) const;
+	void rememberCompletedSequence(uint8_t sequence_id, int8_t last_fragment_id, uint64_t timestamp);
+
+	bool isComplete() const;
+	size_t lastFragmentIndex() const;
+
+	FragmentSlot _fragments[GPS_RTCM_MAX_FRAGMENTS] {};
+	uint8_t _assembled_message[GPS_RTCM_MAX_MESSAGE_LEN] {};
+	// State for the sequence that is currently being assembled.
+	SequenceState _active_sequence {};
+	// Remember a recently completed short sequence so late higher fragments
+	// with the same sequence ID can be rejected.
+	SequenceState _completed_sequence {};
+};
 
 /**
  * RTCM3 parser statistics.
