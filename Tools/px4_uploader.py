@@ -198,7 +198,6 @@ class BootloaderCommand(IntEnum):
     GET_OTP = 0x2A  # rev4+, get a word from OTP area
     GET_SN = 0x2B  # rev4+, get a word from SN area
     GET_CHIP = 0x2C  # rev5+, get chip version
-    SET_BOOT_DELAY = 0x2D  # rev5+, set boot delay
     GET_CHIP_DES = 0x2E  # rev5+, get chip description in ASCII
     GET_VERSION = 0x2F  # rev5+, get bootloader version in ASCII
     REBOOT = 0x30
@@ -1148,20 +1147,6 @@ class BootloaderProtocol:
         else:
             self.verify_read(firmware, progress_callback)
 
-    def set_boot_delay(self, delay_ms: int) -> None:
-        """Set boot delay in flash (v5+).
-
-        Args:
-            delay_ms: Boot delay in milliseconds
-        """
-        if self.bl_rev < 5:
-            logger.warning("Boot delay requires bootloader v5+")
-            return
-
-        self._send_command(BootloaderCommand.SET_BOOT_DELAY, struct.pack("b", delay_ms))
-        self._get_sync()
-        logger.info(f"Boot delay set to {delay_ms}ms")
-
     def reboot(self) -> None:
         """Reboot into the application.
 
@@ -1569,7 +1554,6 @@ class UploaderConfig:
     baud_flightstack: list[int] = field(default_factory=lambda: [57600])
     force: bool = False
     force_erase: bool = False
-    boot_delay: Optional[int] = None
     use_protocol_splitter: bool = False
     retry_count: int = 3
     windowed: bool = False
@@ -1924,10 +1908,6 @@ class Uploader:
         # Verify
         protocol.verify(firmware, progress_callback=progress.update_verify)
 
-        # Set boot delay if requested
-        if self.config.boot_delay is not None:
-            protocol.set_boot_delay(self.config.boot_delay)
-
         # Reboot and show summary
         protocol.reboot()
         progress.finish()
@@ -2010,9 +1990,6 @@ Examples:
         help="Force full chip erase (v6+ bootloader)",
     )
     parser.add_argument(
-        "--boot-delay", type=int, help="Boot delay in milliseconds to store in flash"
-    )
-    parser.add_argument(
         "--use-protocol-splitter-format",
         action="store_true",
         help="Use protocol splitter framing for reboot commands",
@@ -2068,7 +2045,6 @@ Examples:
         baud_flightstack=baud_flightstack,
         force=args.force,
         force_erase=args.force_erase,
-        boot_delay=args.boot_delay,
         use_protocol_splitter=args.use_protocol_splitter_format,
         windowed=args.windowed,
         noninteractive=args.noninteractive or args.noninteractive_json,
