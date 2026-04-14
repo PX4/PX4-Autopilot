@@ -43,7 +43,10 @@
 
 static mavlink_signing_streams_t global_mavlink_signing_streams = {};
 
+// Messages accepted without signing per MAVLink spec recommendation.
+// HEARTBEAT is required for link discovery/interop but allows spoofed phantom vehicles on GCS.
 static const uint32_t unsigned_messages[] = {
+	MAVLINK_MSG_ID_HEARTBEAT,
 	MAVLINK_MSG_ID_RADIO_STATUS,
 	MAVLINK_MSG_ID_ADSB_VEHICLE,
 	MAVLINK_MSG_ID_COLLISION
@@ -57,11 +60,11 @@ MavlinkSignControl::~MavlinkSignControl()
 {
 }
 
-void MavlinkSignControl::start(int _instance_id, mavlink_status_t *_mavlink_status,
+void MavlinkSignControl::start(int instance_id, mavlink_status_t *mavlink_status,
 			       mavlink_accept_unsigned_t accept_unsigned_callback)
 {
-	_mavlink_signing.link_id = _instance_id;
-	_mavlink_signing.flags = MAVLINK_SIGNING_FLAG_SIGN_OUTGOING;
+	_mavlink_status = mavlink_status;
+	_mavlink_signing.link_id = instance_id;
 	_mavlink_signing.accept_unsigned_callback = accept_unsigned_callback;
 	_is_signing_initialized = false;
 
@@ -71,19 +74,18 @@ void MavlinkSignControl::start(int _instance_id, mavlink_status_t *_mavlink_stat
 		PX4_ERR("failed creating module storage dir: %s (%i)", MAVLINK_FOLDER_PATH, errno);
 
 	} else {
-		int _fd = ::open(MAVLINK_SECRET_FILE, O_CREAT | O_RDONLY, PX4_O_MODE_600);
+		int fd = ::open(MAVLINK_SECRET_FILE, O_RDONLY);
 
-		if (_fd == -1) {
+		if (fd == -1) {
 			if (errno != ENOENT) {
-				PX4_ERR("failed creating mavlink secret key file: %s (%i)", MAVLINK_SECRET_FILE, errno);
+				PX4_ERR("failed opening mavlink secret key file: %s (%i)", MAVLINK_SECRET_FILE, errno);
 			}
 
 		} else {
-			//if we dont have enough bytes we simply ignore it , because it may be not set yet
-			ssize_t bytes_read = ::read(_fd, _mavlink_signing.secret_key, MAVLINK_SECRET_KEY_LENGTH);
+			ssize_t bytes_read = ::read(fd, _mavlink_signing.secret_key, MAVLINK_SECRET_KEY_LENGTH);
 
 			if (bytes_read == MAVLINK_SECRET_KEY_LENGTH) {
-				bytes_read = ::read(_fd, &_mavlink_signing.timestamp, MAVLINK_SECRET_KEY_TIMESTAMP_LENGTH);
+				bytes_read = ::read(fd, &_mavlink_signing.timestamp, MAVLINK_SECRET_KEY_TIMESTAMP_LENGTH);
 
 				if (bytes_read == MAVLINK_SECRET_KEY_TIMESTAMP_LENGTH) {
 					if (_mavlink_signing.timestamp != 0 || !is_array_all_zeros(_mavlink_signing.secret_key, MAVLINK_SECRET_KEY_LENGTH)) {
@@ -92,99 +94,145 @@ void MavlinkSignControl::start(int _instance_id, mavlink_status_t *_mavlink_stat
 				}
 			}
 
-			close(_fd);
+			close(fd);
 		}
 	}
 
-	//lets reset it to nulls if it was not read properly
 	if (!_is_signing_initialized) {
-		for (size_t i = 0; i < MAVLINK_SECRET_KEY_LENGTH; ++i) {
-			_mavlink_signing.secret_key[i] = 0;
-		}
-
+		memset(_mavlink_signing.secret_key, 0, MAVLINK_SECRET_KEY_LENGTH);
 		_mavlink_signing.timestamp = 0;
 	}
 
-	// copy pointer of the signing to status struct
-	_mavlink_status -> signing = &_mavlink_signing;
-	_mavlink_status -> signing_streams = &global_mavlink_signing_streams;
+	_update_signing_state();
 }
 
-bool MavlinkSignControl::check_for_signing(const mavlink_message_t *msg)
+MavlinkSignControl::SetupSigningResult MavlinkSignControl::check_for_signing(const mavlink_message_t *msg)
 {
 	if (msg->msgid != MAVLINK_MSG_ID_SETUP_SIGNING) {
-		return false;
+		return NOT_SETUP_SIGNING;
 	}
 
 	mavlink_setup_signing_t setup_signing;
 	mavlink_msg_setup_signing_decode(msg, &setup_signing);
 
-	//setup signing provides new key , lets update it
-	//we update it only in case everything was stored properly
-	memcpy(_mavlink_signing.secret_key, setup_signing.secret_key, MAVLINK_SECRET_KEY_LENGTH);
-	_mavlink_signing.timestamp = setup_signing.initial_timestamp;
+	bool new_key_blank = (setup_signing.initial_timestamp == 0
+			      && is_array_all_zeros(setup_signing.secret_key, MAVLINK_SECRET_KEY_LENGTH));
 
-	if (setup_signing.initial_timestamp != 0 || !is_array_all_zeros(setup_signing.secret_key, MAVLINK_SECRET_KEY_LENGTH)) {
-		_is_signing_initialized = true;
+	if (new_key_blank) {
+		// Disable signing: only allowed if signing is active and the message is signed
+		if (!_is_signing_initialized) {
+			// Already disabled, nothing to do
+			return SIGNING_DISABLED;
+		}
 
-	} else {
+		bool msg_is_signed = (msg->incompat_flags & MAVLINK_IFLAG_SIGNED);
+
+		if (!msg_is_signed) {
+			PX4_WARN("SETUP_SIGNING blank key rejected: message must be signed");
+			return BLANK_KEY_REJECTED;
+		}
+
+		memset(_mavlink_signing.secret_key, 0, MAVLINK_SECRET_KEY_LENGTH);
+		_mavlink_signing.timestamp = 0;
 		_is_signing_initialized = false;
+
+		_update_signing_state();
+		write_key_and_timestamp();
+
+		return SIGNING_DISABLED;
 	}
 
+	memcpy(_mavlink_signing.secret_key, setup_signing.secret_key, MAVLINK_SECRET_KEY_LENGTH);
+	_mavlink_signing.timestamp = setup_signing.initial_timestamp;
+	_is_signing_initialized = true;
+
+	_update_signing_state();
 	write_key_and_timestamp();
 
-	return true;
+	return KEY_ACCEPTED;
+}
+
+void MavlinkSignControl::reload_key()
+{
+	if (_mavlink_status == nullptr) {
+		return;
+	}
+
+	_is_signing_initialized = false;
+
+	int fd = ::open(MAVLINK_SECRET_FILE, O_RDONLY);
+
+	if (fd != -1) {
+		ssize_t bytes_read = ::read(fd, _mavlink_signing.secret_key, MAVLINK_SECRET_KEY_LENGTH);
+
+		if (bytes_read == MAVLINK_SECRET_KEY_LENGTH) {
+			bytes_read = ::read(fd, &_mavlink_signing.timestamp, MAVLINK_SECRET_KEY_TIMESTAMP_LENGTH);
+
+			if (bytes_read == MAVLINK_SECRET_KEY_TIMESTAMP_LENGTH) {
+				if (_mavlink_signing.timestamp != 0 || !is_array_all_zeros(_mavlink_signing.secret_key, MAVLINK_SECRET_KEY_LENGTH)) {
+					_is_signing_initialized = true;
+				}
+			}
+		}
+
+		close(fd);
+	}
+
+	if (!_is_signing_initialized) {
+		memset(_mavlink_signing.secret_key, 0, MAVLINK_SECRET_KEY_LENGTH);
+		_mavlink_signing.timestamp = 0;
+	}
+
+	_update_signing_state();
+}
+
+void MavlinkSignControl::_update_signing_state()
+{
+	if (_is_signing_initialized) {
+		_mavlink_signing.flags = MAVLINK_SIGNING_FLAG_SIGN_OUTGOING;
+		_mavlink_status->signing = &_mavlink_signing;
+		_mavlink_status->signing_streams = &global_mavlink_signing_streams;
+
+	} else {
+		_mavlink_signing.flags = 0;
+		_mavlink_status->signing = nullptr;
+		_mavlink_status->signing_streams = nullptr;
+	}
 }
 
 void MavlinkSignControl::write_key_and_timestamp()
 {
-	int _fd = ::open(MAVLINK_SECRET_FILE, O_CREAT | O_WRONLY | O_TRUNC, PX4_O_MODE_600);
+	int fd = ::open(MAVLINK_SECRET_FILE, O_CREAT | O_WRONLY | O_TRUNC, PX4_O_MODE_600);
 
-	if (_fd == -1) {
+	if (fd == -1) {
 		if (errno != ENOENT) {
 			PX4_ERR("failed opening mavlink secret key file for writing: %s (%i)", MAVLINK_SECRET_FILE, errno);
 		}
 
 	} else {
-		ssize_t bytes_write = ::write(_fd, _mavlink_signing.secret_key, MAVLINK_SECRET_KEY_LENGTH);
+		ssize_t bytes_write = ::write(fd, _mavlink_signing.secret_key, MAVLINK_SECRET_KEY_LENGTH);
 
 		if (bytes_write == MAVLINK_SECRET_KEY_LENGTH) {
-			bytes_write = ::write(_fd, &_mavlink_signing.timestamp, MAVLINK_SECRET_KEY_TIMESTAMP_LENGTH);
+			bytes_write = ::write(fd, &_mavlink_signing.timestamp, MAVLINK_SECRET_KEY_TIMESTAMP_LENGTH);
 		}
 
-		close(_fd);
+		close(fd);
 	}
 }
 
-bool MavlinkSignControl::accept_unsigned(int32_t sign_mode, bool is_usb_uart, uint32_t message_id)
+bool MavlinkSignControl::accept_unsigned(uint32_t message_id)
 {
-	// if signing is not initilized properly or has all zeroes we will allow any message
 	if (!_is_signing_initialized) {
 		return true;
 	}
 
-	// Always accept a few select messages even if unsigned
 	for (unsigned i = 0; i < sizeof(unsigned_messages) / sizeof(unsigned_messages[0]); i++) {
 		if (unsigned_messages[i] == message_id) {
 			return true;
 		}
 	}
 
-	switch (sign_mode) {
-	// If signing is not required always return true
-	case MavlinkSignControl::PROTO_SIGN_OPTIONAL:
-		return true;
-
-	// Accept USB links if enabled
-	case MavlinkSignControl::PROTO_SIGN_NON_USB:
-		return is_usb_uart;
-
-	case MavlinkSignControl::PROTO_SIGN_ALWAYS:
-
-	// fallthrough
-	default:
-		return false;
-	}
+	return false;
 }
 
 bool MavlinkSignControl::is_array_all_zeros(uint8_t arr[], size_t size)

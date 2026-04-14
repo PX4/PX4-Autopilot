@@ -49,7 +49,7 @@ void Ekf::controlEvPosFusion(const imuSample &imu_sample, const extVisionSample 
 					   || (_control_status_prev.flags.yaw_align != _control_status.flags.yaw_align);
 
 	// determine if we should use EV position aiding
-	bool continuing_conditions_passing = (_params.ekf2_ev_ctrl & static_cast<int32_t>(EvCtrl::HPOS))
+	bool continuing_conditions_passing = _fc.ev.enabled && (_params.ekf2_ev_ctrl & static_cast<int32_t>(EvCtrl::HPOS))
 					     && _control_status.flags.tilt_align
 					     && PX4_ISFINITE(ev_sample.pos(0))
 					     && PX4_ISFINITE(ev_sample.pos(1));

@@ -1,7 +1,6 @@
 ---
 name: pr
 description: Create a pull request with conventional commit title and description
-disable-model-invocation: true
 argument-hint: "[optional: target branch or description]"
 allowed-tools: Bash, Read, Glob, Grep
 ---

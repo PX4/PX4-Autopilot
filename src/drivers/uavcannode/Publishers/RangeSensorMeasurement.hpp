@@ -75,6 +75,7 @@ public:
 		if (uORB::SubscriptionCallbackWorkItem::update(&dist)) {
 			uavcan::equipment::range_sensor::Measurement range_sensor{};
 
+			range_sensor.timestamp.usec = getNode().getUtcTime().toUSec() - (hrt_absolute_time() - dist.timestamp);
 			range_sensor.sensor_id = get_instance();
 			range_sensor.range = dist.current_distance;
 			range_sensor.field_of_view = dist.h_fov;

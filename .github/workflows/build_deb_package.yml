@@ -1,0 +1,218 @@
+name: SITL Packages and Containers
+
+on:
+  push:
+    tags: ['v*']
+  pull_request:
+    paths:
+      - 'cmake/package.cmake'
+      - 'platforms/posix/CMakeLists.txt'
+      - 'Tools/packaging/**'
+      - 'boards/px4/sitl/sih.px4board'
+      - '.github/workflows/build_deb_package.yml'
+      - '.github/actions/build-deb/**'
+  workflow_dispatch:
+    inputs:
+      deploy_containers:
+        description: 'Push container images to registry'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+
+  # ---------------------------------------------------------------------------
+  # Setup: extract version and determine whether to push containers
+  # ---------------------------------------------------------------------------
+  setup:
+    name: Setup
+    runs-on: [runs-on,"runner=1cpu-linux-x64","image=ubuntu24-full-x64","run-id=${{ github.run_id }}",extras=s3-cache,spot=false]
+    outputs:
+      px4_version: ${{ steps.version.outputs.px4_version }}
+      should_push: ${{ steps.push.outputs.should_push }}
+    steps:
+      - uses: runs-on/action@v2
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set PX4 version
+        id: version
+        run: echo "px4_version=$(git describe --tags --match 'v[0-9]*')" >> $GITHUB_OUTPUT
+
+      - name: Check if we should push containers
+        id: push
+        run: |
+          if [[ "${{ startsWith(github.ref, 'refs/tags/') }}" == "true" ]] || \
+             [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.deploy_containers }}" == "true" ]]; then
+            echo "should_push=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_push=false" >> $GITHUB_OUTPUT
+          fi
+
+  # ---------------------------------------------------------------------------
+  # Build .deb packages (all distros, arches, targets)
+  # ---------------------------------------------------------------------------
+  build-deb:
+    name: "Build .deb (${{ matrix.target }}/${{ matrix.codename }}/${{ matrix.arch }})"
+    needs: setup
+    runs-on: [runs-on,"runner=4cpu-linux-${{ matrix.runner }}","image=ubuntu24-full-${{ matrix.runner }}","run-id=${{ github.run_id }}",extras=s3-cache,spot=false]
+    container:
+      image: ${{ matrix.container }}
+      volumes:
+        - /github/workspace:/github/workspace
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { codename: noble,  arch: amd64, runner: x64,   container: "ubuntu:24.04", target: default, setup_flags: "" }
+          - { codename: noble,  arch: arm64, runner: arm64, container: "ubuntu:24.04", target: default, setup_flags: "" }
+          - { codename: jammy,  arch: amd64, runner: x64,   container: "ubuntu:22.04", target: default, setup_flags: "" }
+          - { codename: jammy,  arch: arm64, runner: arm64, container: "ubuntu:22.04", target: default, setup_flags: "" }
+          - { codename: noble,  arch: amd64, runner: x64,   container: "ubuntu:24.04", target: sih, setup_flags: "--no-sim-tools" }
+          - { codename: noble,  arch: arm64, runner: arm64, container: "ubuntu:24.04", target: sih, setup_flags: "--no-sim-tools" }
+          - { codename: jammy,  arch: amd64, runner: x64,   container: "ubuntu:22.04", target: sih, setup_flags: "--no-sim-tools" }
+          - { codename: jammy,  arch: arm64, runner: arm64, container: "ubuntu:22.04", target: sih, setup_flags: "--no-sim-tools" }
+    env:
+      RUNS_IN_DOCKER: true
+    steps:
+      - uses: runs-on/action@v2
+
+      - name: Fix git in container
+        run: |
+          apt-get update && apt-get install -y git
+          git config --global --add safe.directory $(realpath .)
+
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Use AWS regional apt mirror
+        if: startsWith(runner.name, 'runs-on--')
+        run: ./Tools/ci/use_aws_apt_mirror.sh
+
+      - name: Cache apt packages
+        uses: actions/cache@v5
+        with:
+          path: /var/cache/apt/archives
+          key: apt-${{ matrix.target }}-${{ matrix.codename }}-${{ matrix.arch }}-${{ hashFiles('Tools/setup/ubuntu.sh') }}
+          restore-keys: apt-${{ matrix.target }}-${{ matrix.codename }}-${{ matrix.arch }}-
+
+      - name: Install dependencies
+        run: ./Tools/setup/ubuntu.sh --no-nuttx ${{ matrix.setup_flags }}
+
+      - name: Build and package .deb
+        uses: ./.github/actions/build-deb
+        with:
+          target: ${{ matrix.target }}
+          artifact-name: px4-sitl-debs-${{ matrix.target }}-${{ matrix.codename }}-${{ matrix.arch }}
+          ccache-key-prefix: deb-ccache-${{ matrix.target }}-${{ matrix.codename }}-${{ matrix.arch }}
+
+  # ---------------------------------------------------------------------------
+  # Build Docker images from Noble .debs
+  # ---------------------------------------------------------------------------
+  build-docker:
+    name: "Build Image (${{ matrix.image }}/${{ matrix.arch }})"
+    needs: [setup, build-deb]
+    runs-on: [runs-on,"runner=4cpu-linux-${{ matrix.runner }}","image=ubuntu24-full-${{ matrix.runner }}","run-id=${{ github.run_id }}",extras=s3-cache,spot=false]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { image: sih,    repo: px4-sitl,        target: sih,     arch: amd64, runner: x64,   platform: "linux/amd64", dockerfile: Dockerfile.sih }
+          - { image: sih,    repo: px4-sitl,        target: sih,     arch: arm64, runner: arm64, platform: "linux/arm64", dockerfile: Dockerfile.sih }
+          - { image: gazebo, repo: px4-sitl-gazebo, target: default, arch: amd64, runner: x64,   platform: "linux/amd64", dockerfile: Dockerfile.gazebo }
+          - { image: gazebo, repo: px4-sitl-gazebo, target: default, arch: arm64, runner: arm64, platform: "linux/arm64", dockerfile: Dockerfile.gazebo }
+    steps:
+      - uses: runs-on/action@v2
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Download Noble .deb artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: px4-sitl-debs-${{ matrix.target }}-noble-${{ matrix.arch }}
+          path: docker-context
+
+      - name: Prepare build context
+        run: cp Tools/packaging/px4-entrypoint.sh docker-context/
+
+      - name: Login to registries
+        if: needs.setup.outputs.should_push == 'true'
+        run: |
+          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+        with:
+          driver: docker-container
+          platforms: ${{ matrix.platform }}
+
+      - name: Build and push container image
+        uses: docker/build-push-action@v7
+        with:
+          context: docker-context
+          file: Tools/packaging/${{ matrix.dockerfile }}
+          tags: |
+            px4io/${{ matrix.repo }}:${{ needs.setup.outputs.px4_version }}-${{ matrix.arch }}
+            px4io/${{ matrix.repo }}:latest-${{ matrix.arch }}
+            ghcr.io/px4/${{ matrix.repo }}:${{ needs.setup.outputs.px4_version }}-${{ matrix.arch }}
+            ghcr.io/px4/${{ matrix.repo }}:latest-${{ matrix.arch }}
+          platforms: ${{ matrix.platform }}
+          load: false
+          push: ${{ needs.setup.outputs.should_push == 'true' }}
+          provenance: false
+          cache-from: type=gha,scope=sitl-${{ matrix.image }}-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=sitl-${{ matrix.image }}-${{ matrix.arch }}
+
+  # ---------------------------------------------------------------------------
+  # Deploy: create multi-arch manifests and push to registries
+  # ---------------------------------------------------------------------------
+  deploy:
+    name: "Deploy (${{ matrix.image }})"
+    needs: [setup, build-docker]
+    if: needs.setup.outputs.should_push == 'true'
+    runs-on: [runs-on,"runner=1cpu-linux-x64","image=ubuntu24-full-x64","run-id=${{ github.run_id }}",extras=s3-cache,spot=false]
+    strategy:
+      matrix:
+        include:
+          - { image: sih,    repo: px4-sitl }
+          - { image: gazebo, repo: px4-sitl-gazebo }
+    steps:
+      - uses: runs-on/action@v2
+
+      - name: Login to registries
+        run: |
+          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Create and push multi-arch manifests
+        run: |
+          VERSION="${{ needs.setup.outputs.px4_version }}"
+
+          for REGISTRY in px4io ghcr.io/px4; do
+            IMAGE="${REGISTRY}/${{ matrix.repo }}"
+
+            for TAG in ${VERSION} latest; do
+              docker manifest create ${IMAGE}:${TAG} \
+                --amend ${IMAGE}:${TAG}-arm64 \
+                --amend ${IMAGE}:${TAG}-amd64
+
+              docker manifest annotate ${IMAGE}:${TAG} ${IMAGE}:${TAG}-arm64 --arch arm64
+              docker manifest annotate ${IMAGE}:${TAG} ${IMAGE}:${TAG}-amd64 --arch amd64
+
+              docker manifest push ${IMAGE}:${TAG}
+            done
+          done

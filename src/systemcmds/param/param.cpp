@@ -725,8 +725,7 @@ do_show_print_for_airframe(void *arg, param_t param)
 	}
 
 	if (!strncmp(p_name, "RC", 2) || !strncmp(p_name, "TC_", 3) || !strncmp(p_name, "CAL_", 4) ||
-	    !strncmp(p_name, "SENS_BOARD_", 11) || !strcmp(p_name, "SENS_DPRES_OFF") ||
-	    !strcmp(p_name, "MAV_TYPE")) {
+		!strcmp(p_name, "SENS_DPRES_OFF") || !strcmp(p_name, "MAV_TYPE")) {
 		return;
 	}
 

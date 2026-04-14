@@ -1,0 +1,84 @@
+# syntax=docker/dockerfile:1
+# PX4 SITL Gazebo Harmonic runtime image
+# Runs PX4 SITL with Gazebo Harmonic. Supports X11 forwarding for GUI.
+#
+# Build:
+#   make px4_sitl_default && cd build/px4_sitl_default && cpack -G DEB && cd ../..
+#   docker build -f Tools/packaging/Dockerfile.gazebo -t px4io/px4-sitl-gazebo:v1.17.0 build/px4_sitl_default/
+#
+# Run (headless):
+#   docker run --rm -it --network host px4io/px4-sitl-gazebo:v1.17.0
+#
+# Run (X11 GUI):
+#   xhost +local:docker
+#   docker run --rm -it --network host \
+#     -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix \
+#     --gpus all px4io/px4-sitl-gazebo:v1.17.0
+
+FROM ubuntu:24.04 AS extract
+COPY px4-gazebo_*.deb /tmp/
+RUN apt-get update && apt-get install -y --no-install-recommends binutils \
+    && dpkg -x /tmp/px4-gazebo_*.deb /staging \
+    && strip /staging/opt/px4-gazebo/bin/px4 \
+    && rm -rf /var/lib/apt/lists/*
+
+FROM ubuntu:24.04
+LABEL maintainer="PX4 Development Team"
+LABEL description="PX4 SITL with Gazebo Harmonic simulation"
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV RUNS_IN_DOCKER=true
+
+# Install Gazebo Harmonic with buildkit cache mounts for apt
+# The --mount=type=cache persists /var/cache/apt and /var/lib/apt across builds
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update \
+    && apt-get install -y --no-install-recommends \
+        bc \
+        ca-certificates \
+        gnupg \
+        lsb-release \
+        wget \
+    && wget -q https://packages.osrfoundation.org/gazebo.gpg \
+        -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" \
+        > /etc/apt/sources.list.d/gazebo-stable.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+        gz-harmonic
+
+# Install PX4 files from .deb
+COPY --from=extract /staging/opt/px4-gazebo /opt/px4-gazebo
+RUN ln -sf /opt/px4-gazebo/bin/px4-gazebo /usr/bin/px4-gazebo
+
+# Create the DART physics engine symlink (avoids needing the -dev package)
+RUN GZ_PHYSICS_DIR=$(find /usr/lib -maxdepth 3 -type d -name "engine-plugins" -path "*/gz-physics-7/*" 2>/dev/null | head -1) \
+    && if [ -n "$GZ_PHYSICS_DIR" ] && [ -d "$GZ_PHYSICS_DIR" ]; then \
+        VERSIONED=$(ls "$GZ_PHYSICS_DIR"/libgz-physics*-dartsim-plugin.so.* 2>/dev/null | head -1) \
+        && [ -n "$VERSIONED" ] \
+        && ln -sf "$(basename "$VERSIONED")" "$GZ_PHYSICS_DIR/libgz-physics-dartsim-plugin.so"; \
+    fi
+
+# Gazebo resource paths
+ENV GZ_SIM_RESOURCE_PATH=/opt/px4-gazebo/share/gz/models:/opt/px4-gazebo/share/gz/worlds
+ENV GZ_SIM_SYSTEM_PLUGIN_PATH=/opt/px4-gazebo/lib/gz/plugins
+ENV GZ_SIM_SERVER_CONFIG_PATH=/opt/px4-gazebo/share/gz/server.config
+ENV PX4_GZ_MODELS=/opt/px4-gazebo/share/gz/models
+ENV PX4_GZ_WORLDS=/opt/px4-gazebo/share/gz/worlds
+
+ENV PX4_SIM_MODEL=gz_x500
+ENV HOME=/root
+
+# MAVLink, MAVSDK, DDS
+EXPOSE 14550/udp 14540/udp 8888/udp
+
+# Platform-adaptive entrypoint: detects Docker Desktop (macOS/Windows) via
+# host.docker.internal and configures MAVLink + DDS to target the host.
+COPY px4-entrypoint.sh /opt/px4-gazebo/bin/px4-entrypoint.sh
+RUN chmod +x /opt/px4-gazebo/bin/px4-entrypoint.sh
+
+WORKDIR /root
+
+ENTRYPOINT ["/opt/px4-gazebo/bin/px4-entrypoint.sh"]
+CMD []

@@ -285,6 +285,13 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_open_drone_id_system(msg);
 		break;
 
+#if defined(MAVLINK_MSG_ID_RANGING_BEACON)
+
+	case MAVLINK_MSG_ID_RANGING_BEACON:
+		handle_message_ranging_beacon(msg);
+		break;
+#endif // MAVLINK_MSG_ID_RANGING_BEACON
+
 #if !defined(CONSTRAINED_FLASH)
 
 	case MAVLINK_MSG_ID_NAMED_VALUE_FLOAT:
@@ -1047,6 +1054,18 @@ MavlinkReceiver::handle_message_att_pos_mocap(mavlink_message_t *msg)
 	_mocap_odometry_pub.publish(odom);
 }
 
+offboard_control_mode_s
+MavlinkReceiver::fill_offboard_control_mode(const trajectory_setpoint_s &setpoint)
+{
+	offboard_control_mode_s ocm{};
+	ocm.position = !matrix::Vector3f(setpoint.position).isAllNan();
+	ocm.velocity = !matrix::Vector3f(setpoint.velocity).isAllNan();
+	ocm.acceleration = !matrix::Vector3f(setpoint.acceleration).isAllNan();
+	ocm.attitude = PX4_ISFINITE(setpoint.yaw);
+	ocm.body_rate = PX4_ISFINITE(setpoint.yawspeed);
+	return ocm;
+}
+
 void
 MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t *msg)
 {
@@ -1133,12 +1152,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 		setpoint.yawspeed = (type_mask & POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE) ? (float)NAN : target_local_ned.yaw_rate;
 
 
-		offboard_control_mode_s ocm{};
-		ocm.position = !matrix::Vector3f(setpoint.position).isAllNan();
-		ocm.velocity = !matrix::Vector3f(setpoint.velocity).isAllNan();
-		ocm.acceleration = !matrix::Vector3f(setpoint.acceleration).isAllNan();
-		ocm.attitude = PX4_ISFINITE(setpoint.yaw);
-		ocm.body_rate = PX4_ISFINITE(setpoint.yawspeed);
+		offboard_control_mode_s ocm = fill_offboard_control_mode(setpoint);
 
 		if (ocm.acceleration && (type_mask & POSITION_TARGET_TYPEMASK_FORCE_SET)) {
 			mavlink_log_critical(&_mavlink_log_pub, "SET_POSITION_TARGET_LOCAL_NED force not supported\t");
@@ -1155,8 +1169,8 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 			vehicle_status_s vehicle_status{};
 			_vehicle_status_sub.copy(&vehicle_status);
 
-			if (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
-				// only publish setpoint once in OFFBOARD
+			if (vehicle_status.accepts_offboard_setpoints) {
+				// only publish setpoint once in mode that accepts offboard setpoints
 				setpoint.timestamp = hrt_absolute_time();
 				_trajectory_setpoint_pub.publish(setpoint);
 			}
@@ -1257,12 +1271,7 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 		setpoint.yawspeed = (type_mask & POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE) ? (float)NAN : target_global_int.yaw_rate;
 
 
-		offboard_control_mode_s ocm{};
-		ocm.position = !matrix::Vector3f(setpoint.position).isAllNan();
-		ocm.velocity = !matrix::Vector3f(setpoint.velocity).isAllNan();
-		ocm.acceleration = !matrix::Vector3f(setpoint.acceleration).isAllNan();
-		ocm.attitude = PX4_ISFINITE(setpoint.yaw);
-		ocm.body_rate = PX4_ISFINITE(setpoint.yawspeed);
+		offboard_control_mode_s ocm = fill_offboard_control_mode(setpoint);
 
 		if (ocm.acceleration && (type_mask & POSITION_TARGET_TYPEMASK_FORCE_SET)) {
 			mavlink_log_critical(&_mavlink_log_pub, "SET_POSITION_TARGET_GLOBAL_INT force not supported\t");
@@ -2574,6 +2583,34 @@ MavlinkReceiver::handle_message_global_position_sensor(mavlink_message_t *msg)
 	_aux_global_position_pub.publish(aux_global_position);
 }
 
+#if defined(MAVLINK_MSG_ID_RANGING_BEACON)
+void
+MavlinkReceiver::handle_message_ranging_beacon(mavlink_message_t *msg)
+{
+	mavlink_ranging_beacon_t beacon_pos;
+	mavlink_msg_ranging_beacon_decode(msg, &beacon_pos);
+
+	ranging_beacon_s ranging_beacon{};
+	ranging_beacon.timestamp = hrt_absolute_time();
+	ranging_beacon.timestamp_sample = beacon_pos.time_usec;
+	ranging_beacon.beacon_id = beacon_pos.beacon_id;
+	ranging_beacon.range = (beacon_pos.range != UINT32_MAX) ? static_cast<float>(beacon_pos.range) * 1e-3f : NAN;
+	ranging_beacon.lat = static_cast<double>(beacon_pos.lat) * 1e-7;
+	ranging_beacon.lon = static_cast<double>(beacon_pos.lon) * 1e-7;
+	ranging_beacon.alt = beacon_pos.alt;
+	ranging_beacon.alt_type = beacon_pos.alt_type;
+	ranging_beacon.hacc = (beacon_pos.hacc_est != UINT32_MAX) ? static_cast<float>(beacon_pos.hacc_est) * 1e-3f : NAN;
+	ranging_beacon.vacc = (beacon_pos.vacc_est != UINT32_MAX) ? static_cast<float>(beacon_pos.vacc_est) * 1e-3f : NAN;
+	ranging_beacon.sequence_nr = beacon_pos.sequence;
+	ranging_beacon.status = beacon_pos.status;
+	ranging_beacon.carrier_freq = beacon_pos.carrier_freq;
+	ranging_beacon.range_accuracy = (beacon_pos.range_accuracy != UINT32_MAX)
+					? static_cast<float>(beacon_pos.range_accuracy) * 1e-3f : NAN;
+
+	_ranging_beacon_pub.publish(ranging_beacon);
+}
+#endif // MAVLINK_MSG_ID_RANGING_BEACON
+
 void
 MavlinkReceiver::handle_message_follow_target(mavlink_message_t *msg)
 {
@@ -3271,6 +3308,9 @@ MavlinkReceiver::run()
 			// update parameters from storage
 			updateParams();
 		}
+
+		// Reload signing key if another instance updated it
+		_mavlink.check_signing_key_dirty();
 
 		int ret = poll(&fds[0], 1, timeout);
 

@@ -193,6 +193,7 @@ endif()
 # board custom init files
 set(OPTIONAL_BOARD_RC)
 list(APPEND OPTIONAL_BOARD_RC
+	rc.board_early
 	rc.board_defaults
 	rc.board_sensors
 	rc.board_extras

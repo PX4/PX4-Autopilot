@@ -193,7 +193,7 @@ config WQ_HP_DEFAULT_PRIORITY
 
 config WQ_UAVCAN_STACKSIZE
 	int "Stack size for uavcan"
-	default 3624
+	default 3754
 	range 1000 10000
 	help
 	  Sets the stack size for the uavcan work queue.

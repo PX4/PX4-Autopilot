@@ -220,6 +220,10 @@ menu "examples"
 source "src/examples/Kconfig"
 endmenu
 
+menu "templates"
+source "src/templates/Kconfig"
+endmenu
+
 menu "platforms"
 depends on PLATFORM_QURT || PLATFORM_POSIX || PLATFORM_NUTTX
 source "platforms/Kconfig"
