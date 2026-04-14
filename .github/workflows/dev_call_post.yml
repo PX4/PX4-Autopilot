@@ -1,0 +1,200 @@
+name: PX4 Weekly Dev Call Post
+
+on:
+  schedule:
+    # Every Monday at 10:00 UTC (2 days before Wednesday call)
+    # Format: minute hour day-of-month month day-of-week
+    # day-of-week: 0=Sun 1=Mon 2=Tue 3=Wed 4=Thu 5=Fri 6=Sat
+    - cron: '0 10 * * 1'
+  workflow_dispatch:
+
+jobs:
+  post-dev-call:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      DISCOURSE_API_KEY: ${{ secrets.DISCOURSE_API_KEY }}
+      DISCOURSE_USER: farhang
+      DISCOURSE_URL: https://discuss.px4.io
+      # DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+      CATEGORY_ID: 39
+
+    steps:
+      - name: Calculate dates
+        id: dates
+        run: |
+          NEXT_WED=$(date -d "next Wednesday" +"%Y-%m-%d")
+          DISPLAY_DATE=$(date -d "$NEXT_WED" +"%b %d, %Y")
+          WEEK_AGO=$(date -d "7 days ago" +"%Y-%m-%d")
+          echo "call_date=$NEXT_WED" >> "$GITHUB_OUTPUT"
+          echo "display_date=$DISPLAY_DATE" >> "$GITHUB_OUTPUT"
+          echo "week_ago=$WEEK_AGO" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch merged PRs (last 7 days)
+        id: prs
+        run: |
+          SINCE=${{ steps.dates.outputs.week_ago }}
+
+          MERGED=$(gh pr list --repo PX4/PX4-Autopilot \
+            --state merged \
+            --search "merged:>=${SINCE}" \
+            --json number,title,author,url \
+            --limit 50)
+
+          NEEDS_REVIEW=$(gh pr list --repo PX4/PX4-Autopilot \
+            --state open \
+            --search "review:none created:>=${SINCE}" \
+            --json number,title,author,url \
+            --limit 20)
+
+          echo "$MERGED" | jq -r '
+            if length == 0 then "- None this week"
+            else .[] |
+              "- [#\(.number) \(.title)](\(.url)) by @\(.author.login)"
+            end' > /tmp/merged_prs.md
+
+          echo "$NEEDS_REVIEW" | jq -r '
+            if length == 0 then "- None pending"
+            else .[] |
+              "- [#\(.number) \(.title)](\(.url)) by @\(.author.login)"
+            end' > /tmp/review_prs.md
+
+          echo "merged_count=$(echo "$MERGED" | jq 'length')" >> "$GITHUB_OUTPUT"
+          echo "review_count=$(echo "$NEEDS_REVIEW" | jq 'length')" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch new issues (last 7 days)
+        id: issues
+        run: |
+          SINCE=${{ steps.dates.outputs.week_ago }}
+
+          BUGS=$(gh issue list --repo PX4/PX4-Autopilot \
+            --state all \
+            --search "created:>=${SINCE} label:bug" \
+            --json number,title,url \
+            --limit 20)
+
+          OTHER=$(gh issue list --repo PX4/PX4-Autopilot \
+            --state all \
+            --search "created:>=${SINCE} -label:bug" \
+            --json number,title,url \
+            --limit 20)
+
+          echo "$BUGS" | jq -r '
+            if length == 0 then "- No new bugs"
+            else .[] |
+              "- [#\(.number) \(.title)](\(.url))"
+            end' > /tmp/bug_issues.md
+
+          echo "$OTHER" | jq -r '
+            if length == 0 then "- None"
+            else .[] |
+              "- [#\(.number) \(.title)](\(.url))"
+            end' > /tmp/other_issues.md
+
+          echo "bug_count=$(echo "$BUGS" | jq 'length')" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build post body
+        run: |
+          cp .github/dev_call_template.md /tmp/post_body.md
+
+          sed -i "s|__CALL_DATE__|${{ steps.dates.outputs.call_date }}|g" /tmp/post_body.md
+          sed -i "s|__MERGED_COUNT__|${{ steps.prs.outputs.merged_count }}|g" /tmp/post_body.md
+          sed -i "s|__REVIEW_COUNT__|${{ steps.prs.outputs.review_count }}|g" /tmp/post_body.md
+          sed -i "s|__BUG_COUNT__|${{ steps.issues.outputs.bug_count }}|g" /tmp/post_body.md
+
+          MERGED=$(cat /tmp/merged_prs.md)
+          REVIEW=$(cat /tmp/review_prs.md)
+          BUGS=$(cat /tmp/bug_issues.md)
+          OTHER=$(cat /tmp/other_issues.md)
+
+          awk -v m="$MERGED" '{gsub(/__MERGED_PRS__/, m)} 1' /tmp/post_body.md > /tmp/out.md && mv /tmp/out.md /tmp/post_body.md
+          awk -v r="$REVIEW" '{gsub(/__REVIEW_PRS__/, r)} 1' /tmp/post_body.md > /tmp/out.md && mv /tmp/out.md /tmp/post_body.md
+          awk -v b="$BUGS"   '{gsub(/__BUG_ISSUES__/, b)} 1' /tmp/post_body.md > /tmp/out.md && mv /tmp/out.md /tmp/post_body.md
+          awk -v o="$OTHER"  '{gsub(/__OTHER_ISSUES__/, o)} 1' /tmp/post_body.md > /tmp/out.md && mv /tmp/out.md /tmp/post_body.md
+
+      - name: Check for duplicate Discourse topic
+        id: duplicate_check
+        run: |
+          DISPLAY_DATE="${{ steps.dates.outputs.display_date }}"
+          TITLE="PX4 Dev Call: ${DISPLAY_DATE} (Team sync, and Community Q&A)"
+
+          ENCODED_TITLE=$(python3 -c "import urllib.parse, sys; print(urllib.parse.quote(sys.argv[1]))" "$TITLE")
+          SEARCH=$(curl -s "${DISCOURSE_URL}/search.json?q=${ENCODED_TITLE}&in=title" \
+            -H "Api-Key: ${DISCOURSE_API_KEY}" \
+            -H "Api-Username: ${DISCOURSE_USER}")
+
+          EXISTING=$(echo "$SEARCH" | jq -r --arg title "$TITLE" \
+            '.topics[]? | select(.title == $title) | .id' | head -1)
+
+          if [ -n "$EXISTING" ]; then
+            echo "::warning::Topic already exists: ${DISCOURSE_URL}/t/${EXISTING} — skipping post."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Post to Discourse
+        id: discourse
+        if: steps.duplicate_check.outputs.skip == 'false'
+        run: |
+          DISPLAY_DATE="${{ steps.dates.outputs.display_date }}"
+          TITLE="PX4 Dev Call: ${DISPLAY_DATE} (Team sync, and Community Q&A)"
+          BODY=$(cat /tmp/post_body.md)
+
+          RESPONSE=$(curl -s -X POST "${DISCOURSE_URL}/posts.json" \
+            -H "Api-Key: ${DISCOURSE_API_KEY}" \
+            -H "Api-Username: ${DISCOURSE_USER}" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg title "$TITLE" \
+              --arg raw "$BODY" \
+              --argjson category "$CATEGORY_ID" \
+              '{title: $title, raw: $raw, category: $category}'
+            )")
+
+          TOPIC_ID=$(echo "$RESPONSE" | jq -r '.topic_id // empty')
+
+          if [ -z "$TOPIC_ID" ]; then
+            echo "::error::Failed to create Discourse topic"
+            echo "$RESPONSE"
+            exit 1
+          fi
+
+          TOPIC_URL="${DISCOURSE_URL}/t/${TOPIC_ID}"
+          echo "topic_url=$TOPIC_URL" >> "$GITHUB_OUTPUT"
+          echo "title=$TITLE" >> "$GITHUB_OUTPUT"
+          echo "Created: $TOPIC_URL"
+
+      # - name: Notify Discord
+      #   if: env.DISCORD_WEBHOOK != ''
+      #   run: |
+      #     TITLE="${{ steps.discourse.outputs.title }}"
+      #     TOPIC_URL="${{ steps.discourse.outputs.topic_url }}"
+      #     MERGED=${{ steps.prs.outputs.merged_count }}
+      #     REVIEW=${{ steps.prs.outputs.review_count }}
+      #     BUGS=${{ steps.issues.outputs.bug_count }}
+
+      #     curl -s -X POST "$DISCORD_WEBHOOK" \
+      #       -H "Content-Type: application/json" \
+      #       -d "$(jq -n \
+      #         --arg title "$TITLE" \
+      #         --arg url "$TOPIC_URL" \
+      #         --arg desc "Weekly dev call agenda is up. Add your items before Wednesday 17:00 CET." \
+      #         --arg stats "${MERGED} PRs merged | ${REVIEW} awaiting review | ${BUGS} new bugs" \
+      #         '{
+      #           embeds: [{
+      #             title: $title,
+      #             url: $url,
+      #             description: $desc,
+      #             color: 3447003,
+      #             fields: [
+      #               {name: "This Week", value: $stats, inline: false}
+      #             ]
+      #           }]
+      #         }'
+      #       )"
