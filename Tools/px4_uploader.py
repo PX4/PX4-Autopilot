@@ -201,6 +201,7 @@ class BootloaderCommand(IntEnum):
     GET_CHIP_DES = 0x2E  # rev5+, get chip description in ASCII
     GET_VERSION = 0x2F  # rev5+, get bootloader version in ASCII
     REBOOT = 0x30
+    VERIFY_SIG = 0x39  # verify signature of programmed image (secure boot)
     CHIP_FULL_ERASE = 0x40  # Full erase of flash, rev6+
 
 
@@ -293,6 +294,7 @@ class Firmware:
     image: bytes = field(init=False)
     image_size: int = field(init=False)
     image_maxsize: int = field(init=False)
+    image_signed: bool = field(init=False)
     description: dict = field(init=False)
 
     def __post_init__(self):
@@ -330,6 +332,7 @@ class Firmware:
         self.board_revision = self.description.get("board_revision", 0)
         self.image_size = self.description["image_size"]
         self.image_maxsize = self.description["image_maxsize"]
+        self.image_signed = bool(self.description.get("image_signed", False))
 
         # Decompress image
         try:
@@ -1147,6 +1150,81 @@ class BootloaderProtocol:
         else:
             self.verify_read(firmware, progress_callback)
 
+    def verify_signature(self, image_signed: bool) -> None:
+        """Ask the bootloader to verify the signature of the programmed image.
+
+        Always call this — the bootloader is the source of truth for whether
+        signature verification is required, not the host. If the bootloader
+        was built without BOOTLOADER_USE_SECURITY it returns INVALID and
+        we proceed normally; if it does verify, we surface a clean error
+        before REBOOT instead of letting the device silently stay in BL.
+
+        Args:
+            image_signed: True if the firmware metadata claimed the image
+                is signed. Used only to upgrade the "bootloader doesn't
+                support secure boot" warning into an error: a signed image
+                being uploaded to a non-secure bootloader is a config
+                mismatch worth flagging loudly.
+
+        Raises:
+            ProtocolError: If the bootloader reports the signature is bad,
+                or if a signed image was sent to a non-secure bootloader.
+        """
+        logger.info("Verifying image signature")
+        self._send_command(BootloaderCommand.VERIFY_SIG)
+        self.transport.flush()
+
+        # ed25519 verification over a multi-megabyte image runs a full
+        # SHA-512 over every byte in flash, which on a slow-clocked H7
+        # bootloader with monocypher can comfortably exceed the default
+        # serial timeout. Give the response a generous window.
+        try:
+            insync = self.transport.recv(1, timeout=3.0)
+        except TimeoutError:
+            # Old bootloader from before VERIFY_SIG existed: no response,
+            # just silently dropped the byte. Treat as "no secure boot
+            # support" and continue. The downside is that a signed image
+            # going to a really old bootloader won't be caught here.
+            logger.debug("VERIFY_SIG timed out; assuming pre-secureboot bootloader")
+            return
+
+        if insync[0] != BootloaderResponse.INSYNC:
+            raise ProtocolError(
+                f"Expected INSYNC (0x{BootloaderResponse.INSYNC:02X}), "
+                f"got 0x{insync[0]:02X}",
+                port=self.transport.port_name,
+                operation="verify_signature",
+            )
+
+        result = self.transport.recv(1)
+        if result[0] == BootloaderResponse.OK:
+            logger.info("Signature verification passed")
+            return
+        if result[0] == BootloaderResponse.FAILED:
+            if image_signed:
+                msg = ("Signature does not verify against any trusted key "
+                       "in the bootloader.")
+            else:
+                msg = ("Secure bootloader rejected an unsigned image. "
+                       "Build with CONFIG_BOARD_SECUREBOOT or flash a "
+                       "non-secure bootloader.")
+            raise ProtocolError(msg, port=self.transport.port_name)
+        if result[0] == BootloaderResponse.INVALID:
+            if image_signed:
+                raise ProtocolError(
+                    "Image is marked signed but the bootloader has no "
+                    "secure boot support.",
+                    port=self.transport.port_name,
+                )
+            logger.debug("Bootloader has no secure boot; skipping verification")
+            return
+
+        raise ProtocolError(
+            f"Unexpected VERIFY_SIG response: 0x{result[0]:02X}",
+            port=self.transport.port_name,
+            operation="verify_signature",
+        )
+
     def reboot(self) -> None:
         """Reboot into the application.
 
@@ -1660,7 +1738,10 @@ class Uploader:
                 last_error = e
                 continue
             except UploadError as e:
-                logger.error(f"Upload failed on {port}: {e}")
+                # Don't log here: we re-raise and the top-level handler
+                # in main() will print the error message. Logging here
+                # too produces duplicate user-facing output.
+                logger.debug(f"Upload failed on {port}: {e}")
                 last_error = e
                 raise
 
@@ -1907,6 +1988,22 @@ class Uploader:
 
         # Verify
         protocol.verify(firmware, progress_callback=progress.update_verify)
+
+        # Always ask the bootloader to verify the signature before reboot.
+        # The bootloader is the source of truth for whether secure boot
+        # is enabled — non-secure bootloaders return INVALID and we just
+        # proceed. Reporting a bad signature here is much more actionable
+        # than letting the device silently stay in the bootloader.
+        # The progress bar above uses carriage-return overwrites and
+        # leaves the cursor on the same line; drop to a fresh line so
+        # any verify-step output doesn't clobber the progress bar.
+        if not self.config.json_output:
+            print()
+            if firmware.image_signed:
+                print("Verifying image signature...", end="", flush=True)
+        protocol.verify_signature(firmware.image_signed)
+        if not self.config.json_output and firmware.image_signed:
+            print(" passed")
 
         # Reboot and show summary
         protocol.reboot()
