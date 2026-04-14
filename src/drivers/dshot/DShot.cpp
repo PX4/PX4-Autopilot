@@ -440,6 +440,22 @@ bool DShot::process_serial_telemetry()
 		return false;
 	}
 
+	// Periodically retry skipped motors when disarmed so channels that came online late
+	// (e.g. ESC power-cycled after boot) can recover. We don't retry while armed to avoid
+	// timeout blips on healthy channels during flight.
+	bool armed = _esc_status.esc_armed_flags != 0;
+
+	if (!armed && _serial_telem_skip_mask != 0
+	    && hrt_elapsed_time(&_serial_telem_last_retry) > SERIAL_TELEM_RETRY_INTERVAL) {
+		_serial_telem_skip_mask = 0;
+
+		for (int i = 0; i < DSHOT_MAX_MOTORS; i++) {
+			_serial_telem_consecutive_timeouts[i] = 0;
+		}
+
+		_serial_telem_last_retry = hrt_absolute_time();
+	}
+
 	bool all_telem_sampled = false;
 
 	if (!_telemetry.commandResponseFinished()) {
