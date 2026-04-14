@@ -35,6 +35,7 @@
  * @file test_mission_base.cpp
  *
  * Unit tests for MissionBase position traversal helpers:
+ *   - getNonJumpItem()
  *   - findNextPositionIndex()
  *   - findPreviousPositionIndex()
  *   - getNextPositionItems()
@@ -148,6 +149,7 @@ public:
 
 	using MissionBase::findNextPositionIndex;
 	using MissionBase::findPreviousPositionIndex;
+	using MissionBase::getNonJumpItem;
 	using MissionBase::getNextPositionItems;
 	using MissionBase::getPreviousPositionItems;
 	using MissionBase::goToNextPositionItem;
@@ -225,6 +227,136 @@ protected:
 
 	IgnoreDoJumpMissionBaseTestPeer mission_base{};
 };
+
+// WHY: getNonJumpItem is used to find the next mission item.
+// WHAT: A non-DO_JUMP item is returned unchanged.
+TEST_F(MissionBaseTraversalTest, GetNonJumpItemReturnsCurrentNonJumpItem)
+{
+	// GIVEN: A mission that starts with a normal position item.
+	mission_base.loadTestMission({
+		makePositionItem(kBaseLat, kBaseLon, kAlt), // idx 0
+		makeDoJump(0, 1, 0), // idx 1
+	});
+
+	int32_t mission_index = 0;
+	mission_item_s mission_item{};
+
+	// WHEN: The helper loads the current item directly.
+	const int ret = mission_base.getNonJumpItem(mission_index, mission_item,
+			MissionBaseTestPeer::MissionTraversalType::FollowMissionControlFlow,
+			false, false);
+
+	// THEN: It returns the same item and leaves the index unchanged.
+	ASSERT_EQ(ret, PX4_OK);
+	EXPECT_EQ(mission_index, 0);
+	EXPECT_EQ(mission_item.nav_cmd, NAV_CMD_WAYPOINT);
+	EXPECT_DOUBLE_EQ(mission_item.lat, kBaseLat);
+	EXPECT_DOUBLE_EQ(mission_item.lon, kBaseLon);
+	EXPECT_FLOAT_EQ(mission_item.altitude, kAlt);
+}
+
+// WHY: getNonJumpItem() must follow active DO_JUMP targets.
+// WHAT: [DO_JUMP->2, WP1, WP2] starting from idx 0 returns idx 2.
+TEST_F(MissionBaseTraversalTest, GetNonJumpItemFollowsActiveForwardDoJump)
+{
+	// GIVEN: A forward DO_JUMP that points to a later position item.
+	mission_base.loadTestMission({
+		makeDoJump(2, 1, 0), // idx 0
+		makePositionItem(kBaseLat, kBaseLon, kAlt), // idx 1
+		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt), // idx 2
+	});
+
+	int32_t mission_index = 0;
+	mission_item_s mission_item{};
+
+	// WHEN: Mission-control traversal resolves the jump without writing counters.
+	const int ret = mission_base.getNonJumpItem(mission_index, mission_item,
+			MissionBaseTestPeer::MissionTraversalType::FollowMissionControlFlow,
+			false, false);
+
+	// THEN: The helper follows the jump and returns the target item.
+	ASSERT_EQ(ret, PX4_OK);
+	EXPECT_EQ(mission_index, 2);
+	EXPECT_EQ(mission_item.nav_cmd, NAV_CMD_WAYPOINT);
+	EXPECT_DOUBLE_EQ(mission_item.lat, kBaseLat + 0.001);
+	EXPECT_DOUBLE_EQ(mission_item.lon, kBaseLon);
+	EXPECT_FLOAT_EQ(mission_item.altitude, kAlt);
+}
+
+// WHY: Once a DO_JUMP has already used all repeats, callers should move on to the next item.
+// WHAT: [WP0, DO_JUMP->0 done, WP2] starting from idx 1 returns idx 2.
+TEST_F(MissionBaseTraversalTest, GetNonJumpItemSkipsDoJumpAfterLastRepeat)
+{
+	// GIVEN: A DO_JUMP whose repeat count is already reached.
+	mission_base.loadTestMission({
+		makePositionItem(kBaseLat, kBaseLon, kAlt), // idx 0
+		makeDoJump(0, 1, 1), // idx 1
+		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt), // idx 2
+	});
+
+	int32_t mission_index = 1;
+	mission_item_s mission_item{};
+
+	// WHEN: The helper resolves the jump while traversing forward.
+	const int ret = mission_base.getNonJumpItem(mission_index, mission_item,
+			MissionBaseTestPeer::MissionTraversalType::FollowMissionControlFlow,
+			false, false);
+
+	// THEN: The jump is skipped and the next non-jump item is returned.
+	ASSERT_EQ(ret, PX4_OK);
+	EXPECT_EQ(mission_index, 2);
+	EXPECT_EQ(mission_item.nav_cmd, NAV_CMD_WAYPOINT);
+	EXPECT_DOUBLE_EQ(mission_item.lat, kBaseLat + 0.001);
+}
+
+// WHY: Reverse traversal that ignores DO_JUMP must step backward instead of following control flow.
+// WHAT: [WP0, DO_JUMP->2, WP2] starting from idx 1 returns idx 0.
+TEST_F(MissionBaseTraversalTest, GetNonJumpItemSkipsDoJumpBackwardWhenIgnoringJumps)
+{
+	// GIVEN: An active forward DO_JUMP with a valid non-jump item before it.
+	mission_base.loadTestMission({
+		makePositionItem(kBaseLat, kBaseLon, kAlt), // idx 0
+		makeDoJump(2, 1, 0), // idx 1
+		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt), // idx 2
+	});
+
+	int32_t mission_index = 1;
+	mission_item_s mission_item{};
+
+	// WHEN: The helper resolves the jump while moving backward in geometry-only mode.
+	const int ret = mission_base.getNonJumpItem(mission_index, mission_item,
+			MissionBaseTestPeer::MissionTraversalType::IgnoreDoJump,
+			false, true);
+
+	// THEN: The DO_JUMP is skipped and the previous non-jump item is returned.
+	ASSERT_EQ(ret, PX4_OK);
+	EXPECT_EQ(mission_index, 0);
+	EXPECT_EQ(mission_item.nav_cmd, NAV_CMD_WAYPOINT);
+	EXPECT_DOUBLE_EQ(mission_item.lat, kBaseLat);
+}
+
+// WHY: Bad jump targets must return an error.
+// WHAT: A DO_JUMP that points beyond the mission bounds returns PX4_ERROR.
+TEST_F(MissionBaseTraversalTest, GetNonJumpItemReturnsErrorForOutOfBoundsDoJumpTarget)
+{
+	// GIVEN: A mission with a DO_JUMP that points outside the mission.
+	mission_base.loadTestMission({
+		makeDoJump(3, 1, 0), // idx 0
+		makePositionItem(kBaseLat, kBaseLon, kAlt), // idx 1
+	});
+
+	int32_t mission_index = 0;
+	mission_item_s mission_item{};
+
+	// WHEN: The helper tries to resolve that jump.
+	const int ret = mission_base.getNonJumpItem(mission_index, mission_item,
+			MissionBaseTestPeer::MissionTraversalType::FollowMissionControlFlow,
+			false, false);
+
+	// THEN: The helper returns an error.
+	EXPECT_EQ(ret, PX4_ERROR);
+	EXPECT_EQ(mission_index, 0);
+}
 
 // WHY: Geometry-only position traversal must skip non-position mission items.
 // WHAT: Starting from a VTOL transition item, the helper skips it and returns the next position item.
