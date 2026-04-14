@@ -114,6 +114,9 @@ public:
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
 
+	/** Print the mixing matrix (raw pseudo-inverse + normalization scale + normalized form) for each instance. */
+	int print_mixer();
+
 	void Run() override;
 
 	bool init();

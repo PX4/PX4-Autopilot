@@ -41,6 +41,23 @@
 
 #include "ControlAllocation.hpp"
 
+#include <cmath>
+#include <cstdio>
+
+void
+ControlAllocation::printMatrixCell(double d)
+{
+	if (fabs(d - 0.0) < 1e-9) {
+		printf(" 0       ");
+
+	} else if ((fabs(d) < 1e-4) || (fabs(d) >= 10.0)) {
+		printf("% .1e ", d);
+
+	} else {
+		printf("% 6.5f ", d);
+	}
+}
+
 ControlAllocation::ControlAllocation()
 {
 	_control_allocation_scale.setAll(1.f);

@@ -154,6 +154,25 @@ public:
 	const matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &getEffectivenessMatrix() const { return _effectiveness; }
 
 	/**
+	 * Get the per-axis scale applied during allocation (roll, pitch, yaw, thrust x/y/z).
+	 */
+	const matrix::Vector<float, NUM_AXES> &getControlAllocationScale() const { return _control_allocation_scale; }
+
+	/**
+	 * Print the mixing matrix (if the allocation method has one).
+	 *
+	 * Default: no-op. Derived methods that compute a mix should override to print
+	 * both the raw pseudo-inverse and the normalized form actually applied.
+	 */
+	virtual void printMixingMatrix() const {}
+
+	/**
+	 * Shared formatter for matrix cells used by status/mixer prints.
+	 * Matches the display convention of print_status(): 0 / scientific / fixed.
+	 */
+	static void printMatrixCell(double d);
+
+	/**
 	 * Set the minimum actuator values
 	 *
 	 * @param actuator_min Minimum actuator values

@@ -41,6 +41,9 @@
 
 #include "ControlAllocationPseudoInverse.hpp"
 
+#include <cstdio>
+#include <px4_platform_common/log.h>
+
 void
 ControlAllocationPseudoInverse::setEffectivenessMatrix(
 	const matrix::Matrix<float, ControlAllocation::NUM_AXES, ControlAllocation::NUM_ACTUATORS> &effectiveness,
@@ -186,4 +189,49 @@ ControlAllocationPseudoInverse::allocate()
 
 	// Allocate
 	_actuator_sp = _actuator_trim + _mix * (_control_sp - _control_trim);
+}
+
+void
+ControlAllocationPseudoInverse::printMixingMatrix() const
+{
+	const char *col_labels[NUM_AXES] = {"Mx", "My", "Mz", "Fx", "Fy", "Fz"};
+
+	// Recompute the raw pseudo-inverse on demand (not cached — this is a debug-only path).
+	matrix::Matrix<float, NUM_ACTUATORS, NUM_AXES> raw_mix;
+	matrix::geninv(_effectiveness, raw_mix);
+
+	auto print_mix = [&](const matrix::Matrix<float, NUM_ACTUATORS, NUM_AXES> &m) {
+		printf("    ");
+
+		for (int col = 0; col < NUM_AXES; col++) {
+			printf("|%-8s", col_labels[col]);
+		}
+
+		printf("\n");
+
+		for (int row = 0; row < _num_actuators; row++) {
+			printf("%2d |", row);
+
+			for (int col = 0; col < NUM_AXES; col++) {
+				ControlAllocation::printMatrixCell(static_cast<double>(m(row, col)));
+			}
+
+			printf("\n");
+		}
+	};
+
+	PX4_INFO("  Raw mixing matrix (pseudo-inverse of effectiveness) =");
+	print_mix(raw_mix);
+
+	PX4_INFO("  Normalization scale (moments): Mx=%.5f My=%.5f Mz=%.5f",
+		 static_cast<double>(_control_allocation_scale(0)),
+		 static_cast<double>(_control_allocation_scale(1)),
+		 static_cast<double>(_control_allocation_scale(2)));
+	PX4_INFO("  Normalization scale (forces):  Fx=%.5f Fy=%.5f Fz=%.5f",
+		 static_cast<double>(_control_allocation_scale(3)),
+		 static_cast<double>(_control_allocation_scale(4)),
+		 static_cast<double>(_control_allocation_scale(5)));
+
+	PX4_INFO("  Mixing matrix (normalized, applied) =");
+	print_mix(_mix);
 }
