@@ -38,6 +38,31 @@
 #ifdef BOOTLOADER_USE_SECURITY
 
 #include <px4_platform_common/crypto_backend.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <nuttx/arch.h>
+
+/* sw_crypto unconditionally references px4_get_secure_random from the
+ * XCHACHA20 path in crypto_open(). The bootloader only verifies
+ * ed25519 signatures and has no reason to generate randomness, but
+ * the linker still demands the symbol. Supplying it here avoids
+ * pulling NuttX's random pool (CONFIG_CRYPTO_RANDOM_POOL) into the
+ * bootloader build just to resolve an unreachable call site.
+ *
+ * The implementation panics rather than returning zeros: if anyone
+ * ever enables bootloader-side encryption without also wiring up a
+ * real RNG, silently handing out predictable bytes would be a
+ * serious security bug. up_assert() makes that mistake loud.
+ */
+size_t px4_get_secure_random(uint8_t *out, size_t outlen)
+{
+	(void)out;
+	(void)outlen;
+
+	up_assert(__FILE__, __LINE__);
+
+	return 0;
+}
 
 bool verify_app(uint16_t idx, const image_toc_entry_t *toc_entries)
 {
