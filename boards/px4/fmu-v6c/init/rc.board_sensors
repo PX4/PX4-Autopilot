@@ -19,7 +19,8 @@ fi
 icm42688p -R 6 -s start
 
 # Internal barometer on I2C4 (The same bus is also exposed externally, and therefore marked as external)
-ms5611 -X -b 4 -a 0x77 start
+# ms5611 -X -b 4 -a 0x77 start
+ms5837 -X -b 2 start
 
 # Internal compass on IMU I2C4 (The same bus is also exposed externally, and therefore marked as external)
 ist8310 -X -b 4 -a 0xc  start

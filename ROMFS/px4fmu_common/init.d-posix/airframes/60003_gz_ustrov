@@ -1,0 +1,117 @@
+#!/bin/sh
+#
+# @name USTROV 8-Thruster Heavy
+# @type UUV
+# @class UUV
+#
+# @maintainer USTROV Developer
+#
+
+# 继承基础的水下机器人环境配置
+. ${R}etc/init.d/rc.uuv_defaults
+export PX4_SIMULATOR=gz
+export PX4_SIM_MODEL=gz_ustrov
+export PX4_GZ_WORLD=default
+# 【核心开启】启用最新的动态控制分配模块！
+#param set-default SYS_CTRL_ALLOC 1
+param set-default CA_ROTOR_COUNT 8
+
+param set-default SIM_GZ_EN 1
+
+# =======================================================
+# 终极输出映射：连接 Gazebo 电调(EC) 与 飞控电机(101-108)
+# =======================================================
+param set-default SIM_GZ_EC_FUNC1 101
+param set-default SIM_GZ_EC_FUNC2 102
+param set-default SIM_GZ_EC_FUNC3 103
+param set-default SIM_GZ_EC_FUNC4 104
+param set-default SIM_GZ_EC_FUNC5 105
+param set-default SIM_GZ_EC_FUNC6 106
+param set-default SIM_GZ_EC_FUNC7 107
+param set-default SIM_GZ_EC_FUNC8 108
+
+# ROV 需要在水里完全静止，所以把所有电机的最小怠速设为 0（不用像无人机那样设 150）
+param set-default SIM_GZ_EC_MIN1 -1000
+param set-default SIM_GZ_EC_MIN2 -1000
+param set-default SIM_GZ_EC_MIN3 -1000
+param set-default SIM_GZ_EC_MIN4 -1000
+param set-default SIM_GZ_EC_MIN5 -1000
+param set-default SIM_GZ_EC_MIN6 -1000
+param set-default SIM_GZ_EC_MIN7 -1000
+param set-default SIM_GZ_EC_MIN8 -1000
+
+param set-default SIM_GZ_EC_MAX1 1000
+param set-default SIM_GZ_EC_MAX2 1000
+param set-default SIM_GZ_EC_MAX3 1000
+param set-default SIM_GZ_EC_MAX4 1000
+param set-default SIM_GZ_EC_MAX5 1000
+param set-default SIM_GZ_EC_MAX6 1000
+param set-default SIM_GZ_EC_MAX7 1000
+param set-default SIM_GZ_EC_MAX8 1000
+
+# 注入你的物理数学模型 (FRD 坐标系：前右下)
+
+
+# Motor 0 (T1): 右前水平 (Forward & Left Thrust)
+param set-default CA_ROTOR0_PX 0.2
+param set-default CA_ROTOR0_PY 0.15
+param set-default CA_ROTOR0_PZ 0.0
+param set-default CA_ROTOR0_AX 0.7071
+param set-default CA_ROTOR0_AY -0.7071
+param set-default CA_ROTOR0_AZ 0.0
+
+# Motor 1 (T2): 左前水平 (Forward & Right Thrust)
+param set-default CA_ROTOR1_PX 0.2
+param set-default CA_ROTOR1_PY -0.15
+param set-default CA_ROTOR1_PZ 0.0
+param set-default CA_ROTOR1_AX 0.7071
+param set-default CA_ROTOR1_AY 0.7071
+param set-default CA_ROTOR1_AZ 0.0
+
+# Motor 2 (T3): 右后水平 (Backward & Left Thrust)
+param set-default CA_ROTOR2_PX -0.2
+param set-default CA_ROTOR2_PY 0.15
+param set-default CA_ROTOR2_PZ 0.0
+param set-default CA_ROTOR2_AX -0.7071
+param set-default CA_ROTOR2_AY -0.7071
+param set-default CA_ROTOR2_AZ 0.0
+
+# Motor 3 (T4): 左后水平 (Backward & Right Thrust)
+param set-default CA_ROTOR3_PX -0.2
+param set-default CA_ROTOR3_PY -0.15
+param set-default CA_ROTOR3_PZ 0.0
+param set-default CA_ROTOR3_AX -0.7071
+param set-default CA_ROTOR3_AY 0.7071
+param set-default CA_ROTOR3_AZ 0.0
+
+# Motor 4 (T5): 右前垂直 (Downward Thrust)
+param set-default CA_ROTOR4_PX 0.2
+param set-default CA_ROTOR4_PY 0.15
+param set-default CA_ROTOR4_PZ 0.0
+param set-default CA_ROTOR4_AX 0.0
+param set-default CA_ROTOR4_AY 0.0
+param set-default CA_ROTOR4_AZ 1.0
+
+# Motor 5 (T6): 左前垂直 (Downward Thrust)
+param set-default CA_ROTOR5_PX 0.2
+param set-default CA_ROTOR5_PY -0.15
+param set-default CA_ROTOR5_PZ 0.0
+param set-default CA_ROTOR5_AX 0.0
+param set-default CA_ROTOR5_AY 0.0
+param set-default CA_ROTOR5_AZ 1.0
+
+# Motor 6 (T7): 右后垂直 (Downward Thrust)
+param set-default CA_ROTOR6_PX -0.2
+param set-default CA_ROTOR6_PY 0.15
+param set-default CA_ROTOR6_PZ 0.0
+param set-default CA_ROTOR6_AX 0.0
+param set-default CA_ROTOR6_AY 0.0
+param set-default CA_ROTOR6_AZ 1.0
+
+# Motor 7 (T8): 左后垂直 (Downward Thrust)
+param set-default CA_ROTOR7_PX -0.2
+param set-default CA_ROTOR7_PY -0.15
+param set-default CA_ROTOR7_PZ 0.0
+param set-default CA_ROTOR7_AX 0.0
+param set-default CA_ROTOR7_AY 0.0
+param set-default CA_ROTOR7_AZ 1.0
