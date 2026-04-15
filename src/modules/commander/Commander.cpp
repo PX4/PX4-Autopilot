@@ -1343,6 +1343,13 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				// reject if armed or shutting down
 				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
 
+			} else if (_vehicle_status.hil_state == vehicle_status_s::HIL_STATE_ON) {
+				// reject calibration in SIH mode — simulated sensors cannot be calibrated
+				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED);
+				mavlink_log_critical(&_mavlink_log_pub, "Calibration denied: not supported in SIH mode\t");
+				events::send(events::ID("commander_calib_denied_sih"), events::Log::Critical,
+					     "Calibration denied: not supported in SIH mode");
+
 			} else {
 
 				if ((int)(cmd.param1) == 1) {
@@ -1455,6 +1462,13 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 				// reject if armed or shutting down
 				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
+
+			} else if (_vehicle_status.hil_state == vehicle_status_s::HIL_STATE_ON) {
+				// reject calibration in SIH mode — simulated sensors cannot be calibrated
+				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED);
+				mavlink_log_critical(&_mavlink_log_pub, "Calibration denied: not supported in SIH mode\t");
+				events::send(events::ID("commander_mag_yaw_calib_denied_sih"), events::Log::Critical,
+					     "Calibration denied: not supported in SIH mode");
 
 			} else {
 				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);

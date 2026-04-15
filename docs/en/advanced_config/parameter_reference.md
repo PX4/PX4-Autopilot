@@ -33060,9 +33060,9 @@ Return mode destination and flight path (home location, rally point, mission lan
 
 - `0`: Return to closest safe point (home or rally point) via direct path.
 - `1`: Return to closest safe point other than home (mission landing pattern or rally point), via direct path. If no mission landing or rally points are defined return home via direct path. Always choose closest safe landing point if vehicle is a VTOL in hover mode.
-- `2`: Return to a planned mission landing, if available, using the mission path, else return to home via the reverse mission path. Do not consider rally points.
+- `2`: Return to a planned mission landing, if available, using the mission path while skipping DO_JUMP and other non-position mission items, else return to home via the reverse mission path with the same traversal rules. Do not consider rally points.
 - `3`: Return via direct path to closest destination: home, start of mission landing pattern or safe point. If the destination is a mission landing pattern, follow the pattern to land.
-- `4`: Return to the planned mission landing, or to home via the reverse mission path, whichever is closer by counting waypoints. Do not consider rally points.
+- `4`: Return to the planned mission landing, or to home via the reverse mission path, whichever is estimated to be closer using mission item indices. Skip DO_JUMP and other non-position mission items while following either mission path. Do not consider rally points.
 - `5`: Return directly to safe landing point (do not consider mission landing and Home)
 
 | Reboot | minValue | maxValue | increment | default | unit |
