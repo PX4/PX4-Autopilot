@@ -59,6 +59,7 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
 
+#include <GaussianNoise.hpp>
 #include <matrix/matrix/math.hpp>   // matrix, vectors, dcm, quaterions
 #include <conversion/rotation.h>    // math::radians,
 #include <lib/atmosphere/atmosphere.h>        // to get the physical constants
@@ -117,11 +118,6 @@ public:
 
 	/** @see ModuleBase::run() */
 	void run() override;
-
-	static float generate_wgn();    // generate white Gaussian noise sample
-
-	// generate white Gaussian noise sample as a 3D vector with specified std
-	static matrix::Vector3f noiseGauss3f(float stdx, float stdy, float stdz);
 
 private:
 	void parameters_updated();

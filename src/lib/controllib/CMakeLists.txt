@@ -44,6 +44,8 @@ px4_add_library(controllib
 	BlockLowPass2.cpp
 )
 
+target_link_libraries(controllib PUBLIC noise)
+
 if(PX4_TESTING)
 	add_subdirectory(controllib_test)
 endif()

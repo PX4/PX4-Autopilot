@@ -38,6 +38,8 @@
 #include "GZMixingInterfaceWheel.hpp"
 #include "GZGimbal.hpp"
 
+#include <GaussianNoise.hpp>
+
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
@@ -135,8 +137,6 @@ private:
 	void magnetometerCallback(const gz::msgs::Magnetometer &msg);
 
 	static void rotateQuaternion(gz::math::Quaterniond &q_FRD_to_NED, const gz::math::Quaterniond q_FLU_to_ENU);
-
-	static float generate_wgn();
 
 	void addGpsNoise(double &latitude, double &longitude, double &altitude,
 			 float &vel_north, float &vel_east, float &vel_down);

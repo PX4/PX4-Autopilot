@@ -57,37 +57,6 @@ bool SensorBaroSim::init()
 	return true;
 }
 
-float SensorBaroSim::generate_wgn()
-{
-	// generate white Gaussian noise sample with std=1
-
-	// algorithm 1:
-	// float temp=((float)(rand()+1))/(((float)RAND_MAX+1.0f));
-	// return sqrtf(-2.0f*logf(temp))*cosf(2.0f*M_PI_F*rand()/RAND_MAX);
-	// algorithm 2: from BlockRandGauss.hpp
-	static float V1, V2, S;
-	static bool phase = true;
-	float X;
-
-	if (phase) {
-		do {
-			float U1 = (float)rand() / (float)RAND_MAX;
-			float U2 = (float)rand() / (float)RAND_MAX;
-			V1 = 2.0f * U1 - 1.0f;
-			V2 = 2.0f * U2 - 1.0f;
-			S = V1 * V1 + V2 * V2;
-		} while (S >= 1.0f || fabsf(S) < 1e-8f);
-
-		X = V1 * float(sqrtf(-2.0f * float(logf(S)) / S));
-
-	} else {
-		X = V2 * float(sqrtf(-2.0f * float(logf(S)) / S));
-	}
-
-	phase = !phase;
-	return X;
-}
-
 void SensorBaroSim::Run()
 {
 	if (should_exit()) {
@@ -134,8 +103,8 @@ void SensorBaroSim::Run()
 
 				if (!_baro_rnd_use_last) {
 					do {
-						x1 = 2.f * generate_wgn() - 1.f;
-						x2 = 2.f * generate_wgn() - 1.f;
+						x1 = 2.f * math::generate_wgn() - 1.f;
+						x2 = 2.f * math::generate_wgn() - 1.f;
 						w = x1 * x1 + x2 * x2;
 					} while (w >= 1.0f);
 

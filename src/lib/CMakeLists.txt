@@ -43,6 +43,9 @@ add_subdirectory(clock_offset_estimator EXCLUDE_FROM_ALL)
 add_subdirectory(collision_prevention EXCLUDE_FROM_ALL)
 add_subdirectory(component_information EXCLUDE_FROM_ALL)
 add_subdirectory(control_allocation EXCLUDE_FROM_ALL)
+# noise must come before controllib: controllib_test depends on it and is
+# processed as a subdirectory of controllib.
+add_subdirectory(noise EXCLUDE_FROM_ALL)
 add_subdirectory(controllib EXCLUDE_FROM_ALL)
 add_subdirectory(conversion EXCLUDE_FROM_ALL)
 add_subdirectory(crc EXCLUDE_FROM_ALL)

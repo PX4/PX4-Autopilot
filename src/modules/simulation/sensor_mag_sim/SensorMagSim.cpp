@@ -58,37 +58,6 @@ bool SensorMagSim::init()
 	return true;
 }
 
-float SensorMagSim::generate_wgn()
-{
-	// generate white Gaussian noise sample with std=1
-
-	// algorithm 1:
-	// float temp=((float)(rand()+1))/(((float)RAND_MAX+1.0f));
-	// return sqrtf(-2.0f*logf(temp))*cosf(2.0f*M_PI_F*rand()/RAND_MAX);
-	// algorithm 2: from BlockRandGauss.hpp
-	static float V1, V2, S;
-	static bool phase = true;
-	float X;
-
-	if (phase) {
-		do {
-			float U1 = (float)rand() / (float)RAND_MAX;
-			float U2 = (float)rand() / (float)RAND_MAX;
-			V1 = 2.0f * U1 - 1.0f;
-			V2 = 2.0f * U2 - 1.0f;
-			S = V1 * V1 + V2 * V2;
-		} while (S >= 1.0f || fabsf(S) < 1e-8f);
-
-		X = V1 * float(sqrtf(-2.0f * float(logf(S)) / S));
-
-	} else {
-		X = V2 * float(sqrtf(-2.0f * float(logf(S)) / S));
-	}
-
-	phase = !phase;
-	return X;
-}
-
 void SensorMagSim::Run()
 {
 	if (should_exit()) {
@@ -132,7 +101,7 @@ void SensorMagSim::Run()
 		if (_vehicle_attitude_sub.update(&attitude)) {
 			Vector3f expected_field = Dcmf{Quatf{attitude.q}} .transpose() * _mag_earth_pred;
 
-			expected_field += noiseGauss3f(0.02f, 0.02f, 0.03f);
+			expected_field += math::noiseGauss3f(0.02f, 0.02f, 0.03f);
 
 			_px4_mag.update(attitude.timestamp,
 					expected_field(0) + _sim_mag_offset_x.get(),

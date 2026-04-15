@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include <GaussianNoise.hpp>
 #include <lib/lat_lon_alt/lat_lon_alt.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
@@ -74,9 +75,6 @@ private:
 	};
 
 	void Run() override;
-
-	// generate white Gaussian noise sample with std=1
-	static float generate_wgn();
 
 	LatLonAlt _measured_lla{};
 	matrix::Vector3f _position_bias{};

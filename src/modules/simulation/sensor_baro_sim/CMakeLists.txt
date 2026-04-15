@@ -43,5 +43,6 @@ px4_add_module(
 	DEPENDS
 		drivers_barometer
 		geo
+		noise
 		px4_work_queue
 	)

@@ -58,37 +58,6 @@ bool SensorAirspeedSim::init()
 	return true;
 }
 
-float SensorAirspeedSim::generate_wgn()
-{
-	// generate white Gaussian noise sample with std=1
-
-	// algorithm 1:
-	// float temp=((float)(rand()+1))/(((float)RAND_MAX+1.0f));
-	// return sqrtf(-2.0f*logf(temp))*cosf(2.0f*M_PI_F*rand()/RAND_MAX);
-	// algorithm 2: from BlockRandGauss.hpp
-	static float V1, V2, S;
-	static bool phase = true;
-	float X;
-
-	if (phase) {
-		do {
-			float U1 = (float)rand() / (float)RAND_MAX;
-			float U2 = (float)rand() / (float)RAND_MAX;
-			V1 = 2.0f * U1 - 1.0f;
-			V2 = 2.0f * U2 - 1.0f;
-			S = V1 * V1 + V2 * V2;
-		} while (S >= 1.0f || fabsf(S) < 1e-8f);
-
-		X = V1 * float(sqrtf(-2.0f * float(logf(S)) / S));
-
-	} else {
-		X = V2 * float(sqrtf(-2.0f * float(logf(S)) / S));
-	}
-
-	phase = !phase;
-	return X;
-}
-
 void SensorAirspeedSim::Run()
 {
 	if (should_exit()) {
@@ -141,7 +110,7 @@ void SensorAirspeedSim::Run()
 
 			if (!_airspeed_stuck) {
 				// calculate differential pressure + noise in hPa
-				const float diff_pressure_noise = (float)generate_wgn() * 0.01f;
+				const float diff_pressure_noise = (float)math::generate_wgn() * 0.01f;
 				float diff_pressure = sign(body_velocity(0)) * 0.005f * air_density  * body_velocity(0) * body_velocity(
 							      0) + diff_pressure_noise;
 

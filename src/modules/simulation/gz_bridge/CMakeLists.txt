@@ -75,6 +75,7 @@ if (gz-transport_FOUND)
 			drivers_rangefinder
 			drivers_barometer
 			mixer_module
+			noise
 			px4_work_queue
 			${GZ_TRANSPORT_TARGET}
 		MODULE_CONFIG

@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include <GaussianNoise.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
@@ -68,9 +69,6 @@ public:
 
 private:
 	void Run() override;
-
-	// generate white Gaussian noise sample with std=1
-	static float generate_wgn();
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position_groundtruth)};

@@ -41,5 +41,6 @@ px4_add_module(
 	MODULE_CONFIG
 		parameters.yaml
 	DEPENDS
+		noise
 		px4_work_queue
 	)

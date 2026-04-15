@@ -42,5 +42,6 @@ px4_add_module(
 		parameters.yaml
 	DEPENDS
 		failure_injection
+		noise
 		px4_work_queue
 	)

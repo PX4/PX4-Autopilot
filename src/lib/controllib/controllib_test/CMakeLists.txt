@@ -41,4 +41,5 @@ px4_add_module(
 	MODULE_CONFIG
 		test_params.yaml
 	DEPENDS
+		noise
 	)

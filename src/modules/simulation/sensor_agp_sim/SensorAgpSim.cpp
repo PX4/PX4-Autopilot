@@ -58,33 +58,6 @@ bool SensorAgpSim::init()
 	return true;
 }
 
-float SensorAgpSim::generate_wgn()
-{
-	// generate white Gaussian noise sample with std=1
-	// from BlockRandGauss.hpp
-	static float V1, V2, S;
-	static bool phase = true;
-	float X;
-
-	if (phase) {
-		do {
-			float U1 = (float)rand() / (float)RAND_MAX;
-			float U2 = (float)rand() / (float)RAND_MAX;
-			V1 = 2.0f * U1 - 1.0f;
-			V2 = 2.0f * U2 - 1.0f;
-			S = V1 * V1 + V2 * V2;
-		} while (S >= 1.0f || fabsf(S) < 1e-8f);
-
-		X = V1 * float(sqrtf(-2.0f * float(logf(S)) / S));
-
-	} else {
-		X = V2 * float(sqrtf(-2.0f * float(logf(S)) / S));
-	}
-
-	phase = !phase;
-	return X;
-}
-
 void SensorAgpSim::Run()
 {
 	if (should_exit()) {
@@ -125,11 +98,11 @@ void SensorAgpSim::Run()
 			_position_bias.zero();
 		}
 
-		const double latitude = _measured_lla.latitude_deg() + math::degrees((double)generate_wgn() * 2.0 /
+		const double latitude = _measured_lla.latitude_deg() + math::degrees((double)math::generate_wgn() * 2.0 /
 					CONSTANTS_RADIUS_OF_EARTH);
-		const double longitude = _measured_lla.longitude_deg() + math::degrees((double)generate_wgn() * 2.0 /
+		const double longitude = _measured_lla.longitude_deg() + math::degrees((double)math::generate_wgn() * 2.0 /
 					 CONSTANTS_RADIUS_OF_EARTH);
-		const double altitude = (double)(_measured_lla.altitude() + (generate_wgn() * 0.5f));
+		const double altitude = (double)(_measured_lla.altitude() + (math::generate_wgn() * 0.5f));
 
 		aux_global_position_s sample{};
 

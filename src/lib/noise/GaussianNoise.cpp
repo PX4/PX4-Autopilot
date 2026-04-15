@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,57 +31,46 @@
  *
  ****************************************************************************/
 
-/**
- * @file BlockRandGauss.hpp
- *
- * Controller library code
- */
+#include "GaussianNoise.hpp"
 
-#pragma once
-
-#include <px4_platform_common/defines.h>
-#include <assert.h>
-#include <time.h>
-#include <stdlib.h>
 #include <math.h>
-#include <GaussianNoise.hpp>
-#include <mathlib/math/test/test.hpp>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <stdlib.h>
 
-#include "block/Block.hpp"
-#include "block/BlockParam.hpp"
-
-#include "matrix/math.hpp"
-
-namespace control
+namespace math
 {
 
-class __EXPORT BlockRandGauss: public Block
+// noinline: keep a single out-of-line copy of the rejection-loop body instead
+// of letting LTO clone it into every simulation call site.
+__attribute__((noinline)) float generate_wgn()
 {
-public:
-// methods
-	BlockRandGauss(SuperBlock *parent,
-		       const char *name) :
-		Block(parent, name),
-		_mean(this, "MEAN"),
-		_stdDev(this, "DEV")
-	{
-		// seed should be initialized somewhere
-		// in main program for all calls to rand
-		// XXX currently in nuttx if you seed to 0, rand breaks
-	}
-	virtual ~BlockRandGauss() = default;
-	float update()
-	{
-		return math::generate_wgn() * getStdDev() + getMean();
-	}
-// accessors
-	float getMean() { return _mean.get(); }
-	float getStdDev() { return _stdDev.get(); }
-private:
-// attributes
-	control::BlockParamFloat _mean;
-	control::BlockParamFloat _stdDev;
-};
+	static float V1, V2, S;
+	static bool phase = true;
+	float X;
 
-} // namespace control
+	if (phase) {
+		do {
+			float U1 = (float)rand() / (float)RAND_MAX;
+			float U2 = (float)rand() / (float)RAND_MAX;
+			V1 = 2.0f * U1 - 1.0f;
+			V2 = 2.0f * U2 - 1.0f;
+			S = V1 * V1 + V2 * V2;
+		} while (S >= 1.0f || fabsf(S) < 1e-8f);
+
+		X = V1 * sqrtf(-2.0f * logf(S) / S);
+
+	} else {
+		X = V2 * sqrtf(-2.0f * logf(S) / S);
+	}
+
+	phase = !phase;
+	return X;
+}
+
+matrix::Vector3f noiseGauss3f(float stdx, float stdy, float stdz)
+{
+	return matrix::Vector3f(generate_wgn() * stdx,
+				generate_wgn() * stdy,
+				generate_wgn() * stdz);
+}
+
+} // namespace math

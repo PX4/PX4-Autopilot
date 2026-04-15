@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,56 +32,46 @@
  ****************************************************************************/
 
 /**
- * @file BlockRandGauss.hpp
+ * @file GaussianNoise.hpp
  *
- * Controller library code
+ * Standard normal sample generators for simulation use.
+ *
+ * generate_wgn() draws from N(0, 1) using the Marsaglia polar method.
+ *
+ * Callers are responsible for seeding the process-global rand() via
+ * srand() if deterministic sequences are required.
  */
 
 #pragma once
 
-#include <px4_platform_common/defines.h>
-#include <assert.h>
-#include <time.h>
-#include <stdlib.h>
-#include <math.h>
-#include <GaussianNoise.hpp>
-#include <mathlib/math/test/test.hpp>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <matrix/math.hpp>
 
-#include "block/Block.hpp"
-#include "block/BlockParam.hpp"
-
-#include "matrix/math.hpp"
-
-namespace control
+namespace math
 {
 
-class __EXPORT BlockRandGauss: public Block
-{
-public:
-// methods
-	BlockRandGauss(SuperBlock *parent,
-		       const char *name) :
-		Block(parent, name),
-		_mean(this, "MEAN"),
-		_stdDev(this, "DEV")
-	{
-		// seed should be initialized somewhere
-		// in main program for all calls to rand
-		// XXX currently in nuttx if you seed to 0, rand breaks
-	}
-	virtual ~BlockRandGauss() = default;
-	float update()
-	{
-		return math::generate_wgn() * getStdDev() + getMean();
-	}
-// accessors
-	float getMean() { return _mean.get(); }
-	float getStdDev() { return _stdDev.get(); }
-private:
-// attributes
-	control::BlockParamFloat _mean;
-	control::BlockParamFloat _stdDev;
-};
+/**
+ * Draw a sample from the standard normal distribution N(0, 1) using the
+ * Marsaglia polar method (variant of Box-Muller).
+ *
+ * Avoids trig (cos/sin) at the cost of a rejection loop (acceptance
+ * probability ~ pi/4) and amortises two rand() calls across two samples by
+ * caching the second half of each iteration.
+ *
+ * Not thread-safe: uses shared static state (phase / V1 / V2 / S) across all
+ * callers and translation units. Safe for the single-threaded / serialised
+ * work-queue usage in PX4 simulation modules.
+ *
+ * Defined out-of-line (and marked noinline) so the rejection-loop body is
+ * emitted once rather than duplicated into every call site.
+ *
+ * https://en.wikipedia.org/wiki/Marsaglia_polar_method
+ */
+float generate_wgn();
 
-} // namespace control
+/**
+ * Draw a 3D vector of independent standard normal samples, each scaled by
+ * the given per-axis standard deviation. Uses generate_wgn() internally.
+ */
+matrix::Vector3f noiseGauss3f(float stdx, float stdy, float stdz);
+
+} // namespace math

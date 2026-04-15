@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include <GaussianNoise.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
@@ -69,12 +70,6 @@ public:
 
 private:
 	void Run() override;
-
-	// generate white Gaussian noise sample with std=1
-	static float generate_wgn();
-
-	// generate white Gaussian noise sample as a 3D vector with specified std
-	matrix::Vector3f noiseGauss3f(float stdx, float stdy, float stdz) { return matrix::Vector3f(generate_wgn() * stdx, generate_wgn() * stdy, generate_wgn() * stdz); }
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude_groundtruth)};
