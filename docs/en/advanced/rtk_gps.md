@@ -15,7 +15,7 @@ It relies on a single reference station to provide real-time corrections, which 
 Two RTK GNSS modules and a datalink are required to setup RTK with PX4.
 The fixed-position ground-based GPS unit is called the _Base_ and the in-air unit is called the _Rover_.
 The Base unit connects to _QGroundControl_ (via USB) and uses the datalink to stream RTCM corrections to the vehicle (using the MAVLink [GPS_RTCM_DATA](https://mavlink.io/en/messages/common.html#GPS_RTCM_DATA) message).
-On the autopilot, the MAVLink packets are unpacked and sent to the Rover unit, where they are processed to get the RTK solution.
+On the autopilot, `GPS_RTCM_DATA` packets are reassembled according to the MAVLink fragment and sequence fields before the RTCM byte stream is forwarded to the Rover unit, where it is processed to get the RTK solution.
 
 The datalink should typically be able to handle an uplink rate of 300 bytes per second (see the [Uplink Datarate](#uplink-datarate) section below for more information).
 
@@ -32,7 +32,7 @@ Make sure to select the correct variant.
 
 The PX4 GPS stack automatically sets up the GPS modules to send and receive the correct messages over the UART or USB, depending on where the module is connected (to _QGroundControl_ or the autopilot).
 
-As soon as the autopilot receives `GPS_RTCM_DATA` MAVLink messages, it automatically forwards the RTCM data to the attached GPS module over existing data channels (a dedicated channel for correction data is not required).
+As soon as the autopilot receives `GPS_RTCM_DATA` MAVLink messages, it reassembles fragmented packets when needed and then forwards the RTCM data to the attached GPS module over existing data channels (a dedicated channel for correction data is not required).
 
 ::: info
 The u-blox U-Center RTK module configuration tool is not needed/used!
@@ -42,6 +42,21 @@ The u-blox U-Center RTK module configuration tool is not needed/used!
 Both _QGroundControl_ and the autopilot firmware share the same [PX4 GPS driver stack](https://github.com/PX4/PX4-GPSDrivers).
 In practice, this means that support for new protocols and/or messages only need to be added to one place.
 :::
+
+### GPS_RTCM_DATA handling
+
+If you are sending RTCM corrections to PX4 yourself, follow the MAVLink [`GPS_RTCM_DATA`](https://mavlink.io/en/messages/common.html#GPS_RTCM_DATA) definition:
+
+- Each MAVLink packet carries up to 180 bytes of RTCM data.
+- If the RTCM payload does not fit in one packet, use the MAVLink `fragment_id` and `sequence_id` fields to split it across up to 4 packets.
+- PX4 reassembles fragmented packets according to the MAVLink rules and supports out-of-order delivery for one in-progress fragmented message at a time.
+- A fragmented message is considered complete when either all 4 fragments are present, or when all fragments before the first non-full fragment have been received.
+- If the RTCM payload length is an exact multiple of 180 bytes and uses fewer than 4 fragments, the sender must still send a final zero-length fragment to mark completion. A 720-byte payload is complete after fragment 3.
+
+Current limitations:
+
+- PX4 keeps only one in-progress fragmented `GPS_RTCM_DATA` message at a time. A packet with a different `sequence_id` starts a new buffer.
+- Stale partial state is dropped after about 1 second if the rest of the fragments do not arrive.
 
 ### RTCM messages
 
