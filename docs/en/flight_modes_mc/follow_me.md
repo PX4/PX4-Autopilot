@@ -20,7 +20,20 @@ _Follow Me_ mode allows a multicopter to autonomously hold position and altitude
 
 :::
 
-<!--@include: ../flight_modes_mc/mode_requirements_rotary_wing_auto_follow_target.md-->
+<!-- AUTO-GENERATED: mode_requirements_rotary_wing_auto_follow_target -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_local_alt`](../flight_modes/mode_requirements.md#mode_req_local_alt) — Local altitude relative to EKF2 origin ('0') position
+- [`mode_req_local_position`](../flight_modes/mode_requirements.md#mode_req_local_position) — Position relative to EKF2 origin ('0') point
+- [`mode_req_prevent_arming`](../flight_modes/mode_requirements.md#mode_req_prevent_arming) — Mode prevents arming (vehicle must be armed to switch to this mode)
+- [`mode_req_wind_and_flight_time_compliance`](../flight_modes/mode_requirements.md#mode_req_wind_and_flight_time_compliance) — Safety compliance limits on wind and flight time.
+
+<!-- END AUTO-GENERATED: mode_requirements_rotary_wing_auto_follow_target -->
 
 ## Overview
 

@@ -37,7 +37,17 @@ The vehicle course and altitude are not maintained, and can drift due to wind.
   Can be used to manually change the side slip of the vehicle.
 - Manual control input is required (such as RC control, joystick).
 
-<!--@include: ../flight_modes_fw/mode_requirements_fixed_wing_stab.md-->
+<!-- AUTO-GENERATED: mode_requirements_fixed_wing_stab -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_manual_control`](../flight_modes/mode_requirements.md#mode_req_manual_control) — Requires stick input
+
+<!-- END AUTO-GENERATED: mode_requirements_fixed_wing_stab -->
 
 ## Parameters
 

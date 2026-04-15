@@ -56,7 +56,19 @@ Centered sticks level vehicle and hold it to fixed altitude and position against
   - Yaw: Assistance from autopilot to stabilize the attitude rate.
     Position of RC stick maps to the rate of rotation of vehicle in that orientation.
 
-<!--@include: ../flight_modes_mc/mode_requirements_rotary_wing_posctl.md-->
+<!-- AUTO-GENERATED: mode_requirements_rotary_wing_posctl -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_local_alt`](../flight_modes/mode_requirements.md#mode_req_local_alt) — Local altitude relative to EKF2 origin ('0') position
+- [`mode_req_local_position_relaxed`](../flight_modes/mode_requirements.md#mode_req_local_position_relaxed) — Position relative to EKF2 origin ('0') point but accepts poor accuracy
+- [`mode_req_manual_control`](../flight_modes/mode_requirements.md#mode_req_manual_control) — Requires stick input
+
+<!-- END AUTO-GENERATED: mode_requirements_rotary_wing_posctl -->
 
 ### Parameters
 

@@ -37,7 +37,17 @@ The vehicle will flare if configured to do so (see [Flaring](../flight_modes_fw/
 
 [Manual nudging](../flight_modes_fw/mission.md#automatic-abort) and [automatic land abort](../flight_modes_fw/mission.md#nudging) are not available in land mode.
 
-<!--@include: ../flight_modes_fw/mode_requirements_fixed_wing_descend.md-->
+<!-- AUTO-GENERATED: mode_requirements_fixed_wing_descend -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_prevent_arming`](../flight_modes/mode_requirements.md#mode_req_prevent_arming) — Mode prevents arming (vehicle must be armed to switch to this mode)
+
+<!-- END AUTO-GENERATED: mode_requirements_fixed_wing_descend -->
 
 ### Parameters
 

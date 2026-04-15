@@ -23,7 +23,18 @@ A multi rotor ascends vertically to the altitude defined in [MIS_TAKEOFF_ALT](..
 
 Stick movement will change the vehicle to [Position mode](../flight_modes_mc/position.md) (by [default](#MAN_OVERRIDE_SPD)).
 
-<!--@include: ../flight_modes_mc/mode_requirements_rotary_wing_auto_takeoff.md-->
+<!-- AUTO-GENERATED: mode_requirements_rotary_wing_auto_takeoff -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_local_alt`](../flight_modes/mode_requirements.md#mode_req_local_alt) — Local altitude relative to EKF2 origin ('0') position
+- [`mode_req_local_position`](../flight_modes/mode_requirements.md#mode_req_local_position) — Position relative to EKF2 origin ('0') point
+
+<!-- END AUTO-GENERATED: mode_requirements_rotary_wing_auto_takeoff -->
 
 ### Parameters
 

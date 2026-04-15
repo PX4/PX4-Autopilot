@@ -43,7 +43,18 @@ The vehicle course is not maintained, and can drift due to wind.
 - Manual control input is required (such as RC control, joystick).
 - An altitude measurement source is required (usually barometer or GPS)
 
-<!--@include: ../flight_modes_fw/mode_requirements_fixed_wing_altctl.md-->
+<!-- AUTO-GENERATED: mode_requirements_fixed_wing_altctl -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_local_alt`](../flight_modes/mode_requirements.md#mode_req_local_alt) — Local altitude relative to EKF2 origin ('0') position
+- [`mode_req_manual_control`](../flight_modes/mode_requirements.md#mode_req_manual_control) — Requires stick input
+
+<!-- END AUTO-GENERATED: mode_requirements_fixed_wing_altctl -->
 
 ## Parameters
 
