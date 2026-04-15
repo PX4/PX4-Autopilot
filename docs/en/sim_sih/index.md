@@ -8,7 +8,7 @@ This makes it the fastest way to iterate on flight code.
 
 ::: tip
 SIH is also available as a [prebuilt Docker container or .deb package](../simulation/px4_sitl_prebuilt_packages.md), which is useful if you don't need to modify PX4 itself.
-See [PX4 Simulation QuickStart](px4_simulation_quickstart.md) for a one-line instruction on how this is used.
+See [PX4 Simulation QuickStart](../simulation/px4_simulation_quickstart.md) for a one-line instruction on how this is used.
 :::
 
 ## Overview
