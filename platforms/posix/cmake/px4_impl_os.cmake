@@ -225,6 +225,12 @@ function(px4_os_add_flags)
 		if(UNIX AND APPLE)
 			add_definitions(-D__PX4_DARWIN)
 
+			# Silence Apple ld warning about duplicate static libs. CMake intentionally
+			# re-emits them to resolve circular deps (px4_layer, px4_work_queue,
+			# px4_daemon, lockstep_scheduler). See also CMAKE_*_ARCHIVE_FINISH override
+			# at the top of the root CMakeLists.txt for the matching ranlib silence.
+			add_link_options(LINKER:-no_warn_duplicate_libraries)
+
 		elseif(CYGWIN)
 			add_definitions(
 				-D__PX4_CYGWIN

@@ -83,12 +83,14 @@ parameters:
       increment: 0.005
     SIH_T_MAX:
       description:
-        short: Max propeller thrust force
+        short: Max multicopter propeller thrust force
         long: |-
           This is the maximum force delivered by one propeller
           when the motor is running at full speed.
 
           This value is usually about 5 times the mass of the quadrotor.
+
+          Refer to SIH_F_T_MAX for the thrust for FW, Tailsitter, and VTOL pusher.
       type: float
       default: 5.0
       unit: N
@@ -97,12 +99,14 @@ parameters:
       increment: 0.5
     SIH_Q_MAX:
       description:
-        short: Max propeller torque
+        short: Max multicopter propeller torque
         long: |-
           This is the maximum torque delivered by one propeller
           when the motor is running at full speed.
 
           This value is usually about few percent of the maximum thrust force.
+
+          Refer to SIH_F_Q_MAX for the propeller torque for FW, Tailsitter, and VTOL pusher.
       type: float
       default: 0.1
       unit: Nm
@@ -280,4 +284,88 @@ parameters:
       unit: m
       min: 0.0
       max: 100.0
+      decimal: 1
+    SIH_F_T_MAX:
+      description:
+        short: Forward thruster max thrust (N)
+        long: |-
+          This is used for the Fixed-Wing, Tailsitter, or pusher of the Standard VTOL
+          if SIH_F_CT0 <= 0.
+          If SIH_F_CT0 > 0, propeller model with advance ratio J is used
+          and this parameter value is overridden at simulation startup.
+      type: float
+      default: 2.0
+      unit: N
+      min: 0.0
+      decimal: 3
+    SIH_F_Q_MAX:
+      description:
+        short: Forward thruster max torque (Nm)
+        long: |-
+          This is used for the Fixed-Wing, Tailsitter, or pusher of the Standard VTOL
+          if SIH_F_CP0 <= 0.
+          If SIH_F_CP0 > 0, propeller model with advance ratio J is used
+          and this parameter value is overridden at simulation startup.
+      type: float
+      default: 0.0165
+      unit: Nm
+      min: 0.0
+      decimal: 3
+    SIH_F_CT0:
+      description:
+        short: Forward thruster static thrust coefficient
+      type: float
+      default: 0.0
+      min: 0.0
+      decimal: 3
+    SIH_F_CT1:
+      description:
+        short: Forward thruster thrust coefficient 1
+        long: CT(J) = CT0 + CT1*J + CT2*J^2
+      type: float
+      default: 0.0
+      decimal: 3
+    SIH_F_CT2:
+      description:
+        short: Forward thruster thrust coefficient 2
+        long: CT(J) = CT0 + CT1*J + CT2*J^2
+      type: float
+      default: 0.0
+      max: 0.0
+      decimal: 3
+    SIH_F_CP0:
+      description:
+        short: Forward thruster static power coefficient
+      type: float
+      default: 0.0
+      min: 0.0
+      decimal: 3
+    SIH_F_CP1:
+      description:
+        short: Forward thruster power coefficient 1
+        long: CP(J) = CP0 + CP1*J + CP2*J^2
+      type: float
+      default: 0.0
+      decimal: 3
+    SIH_F_CP2:
+      description:
+        short: Forward thruster power coefficient 2
+        long: CP(J) = CP0 + CP1*J + CP2*J^2
+      type: float
+      default: 0.0
+      max: 0.0
+      decimal: 3
+    SIH_F_DIA_INCH:
+      description:
+        short: Forward thruster propeller diameter in inches
+      type: float
+      default: 0.1
+      min: 0.1
+      decimal: 1
+    SIH_F_RPM_MAX:
+      description:
+        short: Forward thruster max RPM
+      type: float
+      default: 6000.0
+      min: 0.1
       decimal: 1

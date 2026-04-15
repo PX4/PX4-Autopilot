@@ -4,13 +4,13 @@
 #
 # Build:
 #   make px4_sitl_sih && cd build/px4_sitl_sih && cpack -G DEB && cd ../..
-#   docker build -f Tools/packaging/Dockerfile.sih -t px4io/px4-sitl-sih:v1.17.0 build/px4_sitl_sih/
+#   docker build -f Tools/packaging/Dockerfile.sih -t px4io/px4-sitl:v1.17.0 build/px4_sitl_sih/
 #
 # Run (Linux):
-#   docker run --rm -it --network host px4io/px4-sitl-sih:v1.17.0
+#   docker run --rm -it --network host px4io/px4-sitl:v1.17.0
 #
 # Run (macOS / Windows):
-#   docker run --rm -it -p 14550:14550/udp -p 14540:14540/udp -p 19410:19410/udp -p 8888:8888/udp px4io/px4-sitl-sih:v1.17.0
+#   docker run --rm -it -p 14550:14550/udp -p 14540:14540/udp -p 19410:19410/udp -p 8888:8888/udp px4io/px4-sitl:v1.17.0
 
 FROM ubuntu:24.04 AS build
 COPY px4_*.deb /tmp/

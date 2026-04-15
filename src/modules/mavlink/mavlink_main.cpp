@@ -97,10 +97,14 @@ mavlink_message_t *mavlink_get_channel_buffer(uint8_t channel) { return mavlink_
 
 static bool accept_unsigned_callback(const mavlink_status_t *status, uint32_t message_id)
 {
-	Mavlink *m = Mavlink::get_instance_for_status(status);
+	// Use link_id to index directly: the callback fires on the instance's own
+	// receiver thread, so no lock needed (instance can't be destroyed while running).
+	if (status->signing) {
+		Mavlink *inst = mavlink_module_instances[status->signing->link_id];
 
-	if (m != nullptr) {
-		return m -> accept_unsigned(m->sign_mode(), m -> is_usb_uart(), message_id);
+		if (inst != nullptr) {
+			return inst->accept_unsigned(message_id);
+		}
 	}
 
 	return false;
@@ -318,20 +322,6 @@ Mavlink::get_instance_for_device(const char *device_name)
 
 	for (Mavlink *inst : mavlink_module_instances) {
 		if (inst && (inst->_protocol == Protocol::SERIAL) && (strcmp(inst->_device_name, device_name) == 0)) {
-			return inst;
-		}
-	}
-
-	return nullptr;
-}
-
-Mavlink *
-Mavlink::get_instance_for_status(const mavlink_status_t *status)
-{
-	LockGuard lg{mavlink_module_mutex};
-
-	for (Mavlink *inst : mavlink_module_instances) {
-		if (status == mavlink_get_channel_status(inst->get_instance_id())) {
 			return inst;
 		}
 	}
@@ -1054,10 +1044,50 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 	 *  NOTE: this is called from the receiver thread
 	 */
 
-	if (is_usb_uart()) {
-		if (_sign_control.check_for_signing(msg)) {
+	// SETUP_SIGNING must never be forwarded to other links (MAVLink spec requirement).
+	if (msg->msgid == MAVLINK_MSG_ID_SETUP_SIGNING) {
+		// Reject signing changes while armed
+		vehicle_status_s vehicle_status{};
+
+		if (_vehicle_status_sub.copy(&vehicle_status)
+		    && vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+			send_statustext_critical("MAVLink signing: rejected while armed");
 			return;
 		}
+
+		MavlinkSignControl::SetupSigningResult result = _sign_control.check_for_signing(msg);
+
+		switch (result) {
+		case MavlinkSignControl::KEY_ACCEPTED:
+			send_statustext_info("MAVLink signing key accepted");
+			break;
+
+		case MavlinkSignControl::SIGNING_DISABLED:
+			send_statustext_info("MAVLink signing disabled");
+			break;
+
+		case MavlinkSignControl::BLANK_KEY_REJECTED:
+			send_statustext_critical("MAVLink signing: blank key rejected");
+			break;
+
+		default:
+			break;
+		}
+
+		if (result == MavlinkSignControl::KEY_ACCEPTED || result == MavlinkSignControl::SIGNING_DISABLED) {
+			// Signal all other instances to reload key from file on their own thread
+			LockGuard lg{mavlink_module_mutex};
+
+			for (int i = 0; i < MAVLINK_COMM_NUM_BUFFERS; i++) {
+				Mavlink *inst = mavlink_module_instances[i];
+
+				if (inst != nullptr && inst != this) {
+					inst->set_signing_key_dirty();
+				}
+			}
+		}
+
+		return;
 	}
 
 	if (get_forwarding_on()) {
@@ -1985,8 +2015,6 @@ Mavlink::task_main(int argc, char *argv[])
 		}
 	}
 
-	_sign_control.start(_instance_id, get_status(), &accept_unsigned_callback);
-
 	int ch;
 	_baudrate = 57600;
 	_datarate = 0;
@@ -2325,6 +2353,8 @@ Mavlink::task_main(int argc, char *argv[])
 		PX4_ERR("no instances available");
 		return PX4_ERROR;
 	}
+
+	_sign_control.start(get_instance_id(), get_status(), &accept_unsigned_callback);
 
 	pthread_mutex_init(&_mavlink_shell_mutex, nullptr);
 	pthread_mutex_init(&_message_buffer_mutex, nullptr);

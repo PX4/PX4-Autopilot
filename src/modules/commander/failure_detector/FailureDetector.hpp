@@ -60,6 +60,8 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_imu_status.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 
 union failure_detector_status_u {
@@ -89,6 +91,8 @@ public:
 
 private:
 	void updateAttitudeStatus(const vehicle_status_s &vehicle_status);
+	void updateAltitudeStatus(const vehicle_status_s &vehicle_status,
+				  const vehicle_control_mode_s &vehicle_control_mode);
 	void updateExternalAtsStatus();
 	void updateImbalancedPropStatus();
 
@@ -96,7 +100,11 @@ private:
 
 	systemlib::Hysteresis _roll_failure_hysteresis{false};
 	systemlib::Hysteresis _pitch_failure_hysteresis{false};
+	systemlib::Hysteresis _alt_loss_hysteresis{false};
 	systemlib::Hysteresis _ext_ats_failure_hysteresis{false};
+
+	float _alt_loss_ref_z{NAN}; // ratcheting NED-z reference for altitude loss detection
+	uint8_t _alt_loss_z_reset_counter{0}; // tracks EKF z resets to avoid false altitude loss triggers
 
 	static constexpr float _imbalanced_prop_lpf_time_constant{5.f};
 	AlphaFilter<float> _imbalanced_prop_lpf{};
@@ -105,6 +113,8 @@ private:
 
 
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::Subscription _vehicle_local_position_setpoint_sub{ORB_ID(vehicle_local_position_setpoint)};
 	uORB::Subscription _pwm_input_sub{ORB_ID(pwm_input)};
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 	uORB::Subscription _vehicle_imu_status_sub{ORB_ID(vehicle_imu_status)};
@@ -120,6 +130,8 @@ private:
 		(ParamFloat<px4::params::FD_FAIL_P_TTRI>) _param_fd_fail_p_ttri,
 		(ParamBool<px4::params::FD_EXT_ATS_EN>) _param_fd_ext_ats_en,
 		(ParamInt<px4::params::FD_EXT_ATS_TRIG>) _param_fd_ext_ats_trig,
-		(ParamInt<px4::params::FD_IMB_PROP_THR>) _param_fd_imb_prop_thr
+		(ParamInt<px4::params::FD_IMB_PROP_THR>) _param_fd_imb_prop_thr,
+		(ParamFloat<px4::params::FD_ALT_LOSS>) _param_fd_alt_loss,
+		(ParamFloat<px4::params::FD_ALT_LOSS_T>) _param_fd_alt_loss_ttri
 	)
 };

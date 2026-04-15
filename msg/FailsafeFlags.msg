@@ -45,10 +45,11 @@ bool battery_low_remaining_time       # Low battery based on remaining flight ti
 bool battery_unhealthy                # Battery unhealthy
 
 # Failure detector
-bool fd_critical_failure              # Critical failure (attitude/altitude limit exceeded, or external ATS)
+bool fd_critical_failure              # Critical failure (attitude limit exceeded, or external ATS)
 bool fd_esc_arming_failure            # ESC failed to arm
 bool fd_imbalanced_prop               # Imbalanced propeller detected
 bool fd_motor_failure                 # Motor failure
+bool fd_alt_loss                      # Uncommanded altitude loss (rotary-wing, altitude-controlled flight)
 
 # Other
 bool geofence_breached        	      # Geofence breached (one or multiple)

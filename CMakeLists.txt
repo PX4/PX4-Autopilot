@@ -229,6 +229,28 @@ endif()
 #
 project(px4 CXX C ASM)
 
+# Silence Apple ranlib "has no symbols" warnings. Several PX4 sources are
+# wrapped in #if defined(CONFIG_*) guards (e.g. platforms/common/i2c.cpp,
+# spi.cpp, board_common.c, pab_manifest.c, px4_log_history.cpp) and some
+# libraries carry a dummy.cpp placeholder, all of which legitimately produce
+# empty object files on POSIX/SITL. GNU ranlib ignores this; Apple's warns.
+#
+# The warning is actually emitted by `ar qc` (which implicitly builds a symbol
+# table), not by the standalone ranlib call. So we use `ar qcS` to skip the
+# implicit symbol table, then let CMAKE_*_ARCHIVE_FINISH run ranlib with the
+# -no_warning_for_no_symbols flag to add it quietly.
+if(APPLE)
+	set(CMAKE_C_ARCHIVE_CREATE    "<CMAKE_AR> qcS <TARGET> <LINK_FLAGS> <OBJECTS>")
+	set(CMAKE_CXX_ARCHIVE_CREATE  "<CMAKE_AR> qcS <TARGET> <LINK_FLAGS> <OBJECTS>")
+	set(CMAKE_ASM_ARCHIVE_CREATE  "<CMAKE_AR> qcS <TARGET> <LINK_FLAGS> <OBJECTS>")
+	set(CMAKE_C_ARCHIVE_APPEND    "<CMAKE_AR> qS  <TARGET> <LINK_FLAGS> <OBJECTS>")
+	set(CMAKE_CXX_ARCHIVE_APPEND  "<CMAKE_AR> qS  <TARGET> <LINK_FLAGS> <OBJECTS>")
+	set(CMAKE_ASM_ARCHIVE_APPEND  "<CMAKE_AR> qS  <TARGET> <LINK_FLAGS> <OBJECTS>")
+	set(CMAKE_C_ARCHIVE_FINISH    "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
+	set(CMAKE_CXX_ARCHIVE_FINISH  "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
+	set(CMAKE_ASM_ARCHIVE_FINISH  "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
+endif()
+
 # CMake build type (Debug Release RelWithDebInfo MinSizeRel Coverage)
 if(NOT CMAKE_BUILD_TYPE)
 	if(${PX4_PLATFORM} STREQUAL "nuttx")

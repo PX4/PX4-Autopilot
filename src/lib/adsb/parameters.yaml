@@ -93,7 +93,7 @@ parameters:
       default: 14
       reboot_required: true
       min: 0
-      max: 15
+      max: 19
     ADSB_MAX_SPEED:
       description:
         short: ADSB-Out Vehicle Max Speed

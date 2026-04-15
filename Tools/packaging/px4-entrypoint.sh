@@ -17,9 +17,12 @@ else
     PX4_PREFIX=/opt/px4
 fi
 
-if getent hosts host.docker.internal >/dev/null 2>&1; then
-    DOCKER_HOST_IP=$(getent hosts host.docker.internal | awk '{print $1}')
+# Resolve host.docker.internal to an IPv4 address. mavlink and uxrce_dds_client
+# only parse IPv4, and on Docker Desktop for Windows the default `getent hosts`
+# lookup can return an IPv6 ULA first, which both modules then reject.
+DOCKER_HOST_IP=$(getent ahostsv4 host.docker.internal 2>/dev/null | awk '/STREAM/ {print $1; exit}')
 
+if [ -n "$DOCKER_HOST_IP" ]; then
     # MAVLink: replace default target (127.0.0.1) with the Docker host IP
     sed -i "s/mavlink start -x -u/mavlink start -x -t $DOCKER_HOST_IP -u/g" \
         "$PX4_PREFIX/etc/init.d-posix/px4-rc.mavlink"

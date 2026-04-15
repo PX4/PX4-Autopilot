@@ -202,6 +202,7 @@ private:
 	hrt_abstime _last_timestamp{0};
 	bool _armed{false};
 	bool _vehicle_status_is_fw{false};
+	bool _vehicle_status_was_fw{false};
 	hrt_abstime _last_unconnected_timestamp{0};
 
 	// Internal Resistance estimation

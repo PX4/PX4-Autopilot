@@ -20,7 +20,7 @@ runs:
   steps:
     - name: Restore ccache
       id: ccache-restore
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v5
       with:
         path: ~/.ccache
         key: ${{ inputs.ccache-key-prefix }}-${{ github.ref_name }}-${{ github.sha }}
@@ -52,7 +52,7 @@ runs:
       run: ccache -s
 
     - name: Save ccache
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@v5
       if: always()
       with:
         path: ~/.ccache
@@ -108,7 +108,7 @@ runs:
         echo "PASS: gazebo package validation successful"
 
     - name: Upload .deb artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ${{ inputs.artifact-name }}
         path: build/px4_sitl_${{ inputs.target }}/*.deb
