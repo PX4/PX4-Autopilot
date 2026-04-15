@@ -280,6 +280,19 @@ The failsafe action and arming behaviour are both configured by the `COM_ARM_ODI
 | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="COM_ARM_ODID"></a>[COM_ARM_ODID](../advanced_config/parameter_reference.md#COM_ARM_ODID) | Remote ID arming check and in-flight failsafe. `0`: Disabled (default), `1`: Warning only, `2`: Error only (prevents arming), `3`: Return, `4`: Land, `5`: Terminate.<br><br>On failsafe:<br>- `Error`, `Return`, `Land` and `Terminate` prevent arming.<br>- `Return`, `Land` and `Terminate` start the associated action/mode when airborne. |
 
+## Parachute Health Failsafe
+
+<Badge type="tip" text="PX4 v1.18" />
+
+The parachute health failsafe is triggered when a [MAVLink parachute](../peripherals/parachute.md) system is missing or unhealthy while the vehicle is armed and airborne.
+
+| Parameter                                                                                          | Description                                                                                                                                           |
+| -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="COM_PARACHUTE"></a>[COM_PARACHUTE](../advanced_config/parameter_reference.md#COM_PARACHUTE) | Parachute system monitoring and failsafe action. `0`: Disabled (default), `1`: Warning only, `2`: Error only, `3`: Return, `4`: Land. |
+
+Values `2`–`4` prevent arming when the parachute system is not present and healthy.
+Values `3`–`4` also trigger the configured failsafe action if the parachute system is missing or unhealthy while airborne.
+
 ## Quad-chute Failsafe
 
 Failsafe for when a VTOL vehicle can no longer fly in fixed-wing mode, perhaps due to the failure of a pusher motor, airspeed sensor, or control surface.
