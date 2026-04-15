@@ -397,46 +397,42 @@ TEST_F(RtcmTest, GpsRtcmAssemblerDropsStalePartialMessage)
 	EXPECT_EQ(memcmp(message, payload.data(), payload.size()), 0);
 }
 
-// WHAT: Verify that a higher fragment arriving after a short completed message is rejected.
-// WHY: A short fragment marks the end of the sequence, so any later higher
-// fragment with the same 5-bit sequence ID is malformed or wraparound-aliased
-// and must not seed a new broken buffer.
-TEST_F(RtcmTest, GpsRtcmAssemblerRejectsHigherFragmentAfterShortCompletion)
+// WHAT: Verify that a conflicting fragment slot restarts assembly from the
+// newest packet.
+// WHY: The sequence ID only identifies one active buffer. If a slot is reused
+// with different bytes, the old partial state is no longer trustworthy.
+TEST_F(RtcmTest, GpsRtcmAssemblerRestartsOnFragmentContentMismatch)
 {
-	// GIVEN: A one-fragment short message and a later valid two-fragment message with the same sequence ID.
-	std::vector<uint8_t> short_payload(100, 0x55);
-	std::vector<uint8_t> later_payload(GPS_RTCM_MAX_FRAGMENT_LEN + 12, 0x66);
+	// GIVEN: Two different payloads that reuse the same fragment slot under the
+	// same sequence ID.
+	std::vector<uint8_t> old_fragment(GPS_RTCM_MAX_FRAGMENT_LEN, 0x55);
+	std::vector<uint8_t> payload(GPS_RTCM_MAX_FRAGMENT_LEN * 2 + 12);
+	std::iota(payload.begin(), payload.end(), 0);
 	size_t len = 0;
 
-	// WHEN: The short fragment completes immediately.
-	const uint8_t *first_message = gps_rtcm_assembler.addPacket(buildGpsRtcmFlags(true, 0, 9),
-				       short_payload.data(), short_payload.size(), 10, len);
+	// WHEN: Fragment 1 is first buffered with old content, then replaced with
+	// new content for the same sequence ID.
+	EXPECT_EQ(gps_rtcm_assembler.addPacket(buildGpsRtcmFlags(true, 1, 9), old_fragment.data(),
+					       old_fragment.size(), 10, len), nullptr);
+	EXPECT_EQ(gps_rtcm_assembler.addPacket(buildGpsRtcmFlags(true, 1, 9),
+					       &payload[GPS_RTCM_MAX_FRAGMENT_LEN], GPS_RTCM_MAX_FRAGMENT_LEN, 20, len), nullptr);
 
-	// THEN: The short payload is returned as a complete message.
-	ASSERT_NE(first_message, nullptr);
-	EXPECT_EQ(len, short_payload.size());
-	EXPECT_EQ(memcmp(first_message, short_payload.data(), short_payload.size()), 0);
-
-	// WHEN: A malformed higher fragment from the same sequence arrives afterwards.
-	EXPECT_EQ(gps_rtcm_assembler.addPacket(buildGpsRtcmFlags(true, 1, 9), later_payload.data(),
-					       GPS_RTCM_MAX_FRAGMENT_LEN, 20, len), nullptr);
-
-	// WHEN: A clean new message reuses the same sequence ID.
-	EXPECT_EQ(gps_rtcm_assembler.addPacket(buildGpsRtcmFlags(true, 0, 9), later_payload.data(),
+	// WHEN: The remaining fragments for the new buffer arrive.
+	EXPECT_EQ(gps_rtcm_assembler.addPacket(buildGpsRtcmFlags(true, 0, 9), payload.data(),
 					       GPS_RTCM_MAX_FRAGMENT_LEN, 30, len), nullptr);
-	const uint8_t *second_message = gps_rtcm_assembler.addPacket(buildGpsRtcmFlags(true, 1, 9),
-					&later_payload[GPS_RTCM_MAX_FRAGMENT_LEN], 12, 40, len);
+	const uint8_t *message = gps_rtcm_assembler.addPacket(buildGpsRtcmFlags(true, 2, 9),
+				 &payload[GPS_RTCM_MAX_FRAGMENT_LEN * 2], 12, 40, len);
 
-	// THEN: The malformed higher fragment was ignored and did not poison the next reconstruction.
-	ASSERT_NE(second_message, nullptr);
-	EXPECT_EQ(len, later_payload.size());
-	EXPECT_EQ(memcmp(second_message, later_payload.data(), later_payload.size()), 0);
+	// THEN: The assembler returns the newer payload, not the abandoned partial buffer.
+	ASSERT_NE(message, nullptr);
+	EXPECT_EQ(len, payload.size());
+	EXPECT_EQ(memcmp(message, payload.data(), payload.size()), 0);
 }
 
 // WHAT: Verify that a short fragment cannot appear before an already buffered higher fragment.
 // WHY: Once a fragment claims to be the final short fragment, any stored
-// higher fragment makes the sequence internally inconsistent. That also
-// matches the wraparound-aliased orphan case, so the buffer must be dropped.
+// higher fragment makes the buffered message internally inconsistent and the
+// buffer must be dropped.
 TEST_F(RtcmTest, GpsRtcmAssemblerRejectsShortFragmentBeforeBufferedHigherFragment)
 {
 	// GIVEN: An out-of-order higher fragment and a later valid two-fragment message with the same sequence ID.

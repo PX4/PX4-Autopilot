@@ -159,9 +159,7 @@ private:
 	};
 
 	void resetActiveState();
-	void clearCompletedSequence();
 	bool hasFragmentAfter(uint8_t fragment_id) const;
-	void rememberCompletedSequence(uint8_t sequence_id, int8_t last_fragment_id, uint64_t timestamp);
 
 	bool isComplete() const;
 	size_t lastFragmentIndex() const;
@@ -170,9 +168,6 @@ private:
 	uint8_t _assembled_message[GPS_RTCM_MAX_MESSAGE_LEN] {};
 	// State for the sequence that is currently being assembled.
 	SequenceState _active_sequence {};
-	// Remember a recently completed short sequence so late higher fragments
-	// with the same 5-bit sequence ID can be rejected.
-	SequenceState _completed_sequence {};
 };
 
 /**

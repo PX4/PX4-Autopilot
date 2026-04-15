@@ -94,25 +94,6 @@ const uint8_t *GpsRtcmMessageAssembler::addPacket(uint8_t flags, const uint8_t *
 	const uint8_t fragment_id = gps_rtcm_fragment_id(flags);
 	const bool is_short_fragment = len < GPS_RTCM_MAX_FRAGMENT_LEN;
 
-	if (_completed_sequence.active && (_completed_sequence.timestamp != 0)
-	    && (timestamp > _completed_sequence.timestamp + GPS_RTCM_FRAGMENT_TIMEOUT_US)) {
-		clearCompletedSequence();
-	}
-
-	// Fragment 0 can legitimately start a fresh message, even if the sender
-	// reused the same sequence ID immediately after a short completed message.
-	if (_completed_sequence.active && (sequence_id == _completed_sequence.sequence_id) && (fragment_id == 0)) {
-		clearCompletedSequence();
-	}
-
-	// If a sequence just completed on a short final fragment, a later fragment
-	// with a higher fragment ID from the same 5-bit sequence ID is invalid.
-	// This rejects wraparound-aliased orphan fragments until the timeout expires.
-	if (_completed_sequence.active && (sequence_id == _completed_sequence.sequence_id)
-	    && (fragment_id > _completed_sequence.last_fragment_id)) {
-		return nullptr;
-	}
-
 	// Timeout, clear stale partial state.
 	if (_active_sequence.active && (_active_sequence.timestamp != 0)
 	    && (timestamp > _active_sequence.timestamp + GPS_RTCM_FRAGMENT_TIMEOUT_US)) {
@@ -142,8 +123,7 @@ const uint8_t *GpsRtcmMessageAssembler::addPacket(uint8_t flags, const uint8_t *
 	}
 
 	// A short fragment cannot terminate the message if a higher fragment is
-	// already buffered. Besides malformed input, this also catches
-	// wraparound-aliased orphan fragments from an older message.
+	// already buffered.
 	if (is_short_fragment && hasFragmentAfter(fragment_id)) {
 		resetActiveState();
 		return nullptr;
@@ -152,15 +132,10 @@ const uint8_t *GpsRtcmMessageAssembler::addPacket(uint8_t flags, const uint8_t *
 	FragmentSlot &fragment = _fragments[fragment_id];
 
 	if (fragment.present && ((fragment.len != len) || (memcmp(fragment.data, data, len) != 0))) {
-		// Reusing a slot with different bytes means the partial buffer is no
-		// longer trustworthy, for example after sequence-ID wraparound or sender
-		// restart.
+		// Reusing a slot with different bytes means the current buffer no longer
+		// matches the incoming fragments. Drop the old partial state and treat
+		// this packet as the start of a new buffer for the same sequence ID.
 		resetActiveState();
-
-		if (fragment_id != 0) {
-			return nullptr;
-		}
-
 		_active_sequence.active = true;
 		_active_sequence.sequence_id = sequence_id;
 	}
@@ -190,7 +165,6 @@ const uint8_t *GpsRtcmMessageAssembler::addPacket(uint8_t flags, const uint8_t *
 
 	out_len = assembled_len;
 
-	rememberCompletedSequence(_active_sequence.sequence_id, _active_sequence.last_fragment_id, timestamp);
 	resetActiveState();
 	return _assembled_message;
 }
@@ -198,7 +172,6 @@ const uint8_t *GpsRtcmMessageAssembler::addPacket(uint8_t flags, const uint8_t *
 void GpsRtcmMessageAssembler::reset()
 {
 	resetActiveState();
-	clearCompletedSequence();
 }
 
 void GpsRtcmMessageAssembler::resetActiveState()
@@ -211,11 +184,6 @@ void GpsRtcmMessageAssembler::resetActiveState()
 	_active_sequence = {};
 }
 
-void GpsRtcmMessageAssembler::clearCompletedSequence()
-{
-	_completed_sequence = {};
-}
-
 bool GpsRtcmMessageAssembler::hasFragmentAfter(uint8_t fragment_id) const
 {
 	for (size_t i = fragment_id + 1; i < GPS_RTCM_MAX_FRAGMENTS; i++) {
@@ -225,15 +193,6 @@ bool GpsRtcmMessageAssembler::hasFragmentAfter(uint8_t fragment_id) const
 	}
 
 	return false;
-}
-
-void GpsRtcmMessageAssembler::rememberCompletedSequence(uint8_t sequence_id, int8_t last_fragment_id, uint64_t timestamp)
-{
-	_completed_sequence.sequence_id = sequence_id;
-	_completed_sequence.last_fragment_id = last_fragment_id;
-	_completed_sequence.timestamp = timestamp;
-	_completed_sequence.active = (last_fragment_id >= 0)
-				     && (last_fragment_id < static_cast<int8_t>(GPS_RTCM_MAX_FRAGMENTS - 1));
 }
 
 bool GpsRtcmMessageAssembler::isComplete() const
