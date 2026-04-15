@@ -5,6 +5,35 @@ This replaces real sensors with simulated data while running on the actual autop
 
 For a comparison of SIH and HITL on hardware, see [Hardware Simulation](../simulation/hardware.md).
 
+## Starting SIH
+
+1. Connect the flight controller to QGroundControl via USB.
+2. Set `SYS_AUTOSTART` parameter to the desired airframe.
+3. Reboot the flight controller.
+4. The SIH module starts automatically and provides simulated sensor data.
+
+::: tip
+To ensure there is no leftover parameter from previous setup, it is recommended to reset all the parameters to firmware's default before modifying `SYS_AUTOSTART`.
+:::
+
+The following airframes are supported
+
+| SIH Airframe    | SYS_AUTOSTART | Status            |
+| --------------- | ------------- | ----------------- |
+| Quadrotor X     | 1100          | Stable            |
+| Airplane        | 1101          | Experimental      |
+| Tailsitter Duo  | 1102          | Experimental      |
+| Standard VTOL   | 1103          | Experimental      |
+| Ackermann Rover | 1104          | Experimental      |
+| Hexacopter X    | 1105          | Experimental      |
+
+Once running, the vehicle can be controlled from QGroundControl or an RC controller.
+
+:::warning
+To save flash memory on boards with limited storage, SIH can be built with only quadrotor support.
+Set `SIH_VEHICLE_TYPE` before building to limit included vehicle models.
+:::
+
 ## Firmware Builds with SIH
 
 The SIH module is included in many, but not all, default firmware builds.
@@ -80,20 +109,6 @@ To add SIH to a custom build, enable it in the board configuration:
 ```txt
 CONFIG_MODULES_SIMULATION_SIMULATOR_SIH=y
 ```
-
-## Starting SIH
-
-1. Connect the flight controller to QGroundControl via USB.
-2. Set `SYS_HITL` parameter to `2`.
-3. Reboot the flight controller.
-4. The SIH module starts automatically and provides simulated sensor data.
-
-Once running, the vehicle can be controlled from QGroundControl or an RC controller.
-
-:::warning
-To save flash memory on boards with limited storage, SIH can be built with only quadrotor support.
-Set `SIH_VEHICLE_TYPE` before building to limit included vehicle models.
-:::
 
 ## Visualization (Optional) {#hardware-visualization}
 
