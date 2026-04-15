@@ -106,16 +106,16 @@ const uint8_t *GpsRtcmMessageAssembler::addPacket(uint8_t flags, const uint8_t *
 	}
 
 	// If a sequence just completed on a short final fragment, a later fragment
-	// with a higher fragment ID from the same sequence is invalid.
+	// with a higher fragment ID from the same 5-bit sequence ID is invalid.
+	// This rejects wraparound-aliased orphan fragments until the timeout expires.
 	if (_completed_sequence.active && (sequence_id == _completed_sequence.sequence_id)
 	    && (fragment_id > _completed_sequence.last_fragment_id)) {
 		return nullptr;
 	}
 
+	// Timeout, clear stale partial state.
 	if (_active_sequence.active && (_active_sequence.timestamp != 0)
 	    && (timestamp > _active_sequence.timestamp + GPS_RTCM_FRAGMENT_TIMEOUT_US)) {
-		// Timeout only clears stale partial state. The next fragment can still
-		// arrive out of order, so do not require fragment 0 here.
 		resetActiveState();
 	}
 
@@ -134,13 +134,16 @@ const uint8_t *GpsRtcmMessageAssembler::addPacket(uint8_t flags, const uint8_t *
 		return nullptr;
 	}
 
-	// A short fragment before the known end would contradict the current end-of-message boundary.
+	// A short fragment before the known end would contradict the current
+	// end-of-message boundary. That can only come from malformed sender state.
 	if (last_fragment_known && (fragment_id < _active_sequence.last_fragment_id) && is_short_fragment) {
 		resetActiveState();
 		return nullptr;
 	}
 
-	// A short fragment cannot terminate the message if a higher fragment is already buffered.
+	// A short fragment cannot terminate the message if a higher fragment is
+	// already buffered. Besides malformed input, this also catches
+	// wraparound-aliased orphan fragments from an older message.
 	if (is_short_fragment && hasFragmentAfter(fragment_id)) {
 		resetActiveState();
 		return nullptr;
@@ -149,7 +152,9 @@ const uint8_t *GpsRtcmMessageAssembler::addPacket(uint8_t flags, const uint8_t *
 	FragmentSlot &fragment = _fragments[fragment_id];
 
 	if (fragment.present && ((fragment.len != len) || (memcmp(fragment.data, data, len) != 0))) {
-		// Reusing a slot with different bytes means the partial buffer is no longer trustworthy.
+		// Reusing a slot with different bytes means the partial buffer is no
+		// longer trustworthy, for example after sequence-ID wraparound or sender
+		// restart.
 		resetActiveState();
 
 		if (fragment_id != 0) {

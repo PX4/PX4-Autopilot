@@ -229,10 +229,13 @@ TEST_F(RtcmTest, GpsRtcmAssemblerReturnsUnfragmentedPayload)
 }
 
 // WHAT: Verify that the unfragmented path accepts the largest payload the helper stores.
-// WHY: This keeps the explicit size guard covered and protects against off-by-one changes.
+// WHY: This keeps the direct helper's explicit size guard covered even though
+// MAVLink GPS_RTCM_DATA packets top out at 180 payload bytes.
 TEST_F(RtcmTest, GpsRtcmAssemblerAcceptsMaxSizeUnfragmentedPayload)
 {
-	// GIVEN: A payload that is exactly as large as the assembler's internal message buffer.
+	// GIVEN: A payload that is exactly as large as the assembler's internal
+	// message buffer. This exceeds what MAVLink can carry in one packet, but the
+	// direct helper still needs a checked upper bound.
 	std::vector<uint8_t> payload(GPS_RTCM_MAX_MESSAGE_LEN);
 	std::iota(payload.begin(), payload.end(), 0);
 	size_t len = 0;
@@ -395,8 +398,9 @@ TEST_F(RtcmTest, GpsRtcmAssemblerDropsStalePartialMessage)
 }
 
 // WHAT: Verify that a higher fragment arriving after a short completed message is rejected.
-// WHY: A short fragment marks the end of the sequence, so any later higher fragment with the
-// same sequence ID is malformed and must not seed a new broken buffer.
+// WHY: A short fragment marks the end of the sequence, so any later higher
+// fragment with the same 5-bit sequence ID is malformed or wraparound-aliased
+// and must not seed a new broken buffer.
 TEST_F(RtcmTest, GpsRtcmAssemblerRejectsHigherFragmentAfterShortCompletion)
 {
 	// GIVEN: A one-fragment short message and a later valid two-fragment message with the same sequence ID.
@@ -430,8 +434,9 @@ TEST_F(RtcmTest, GpsRtcmAssemblerRejectsHigherFragmentAfterShortCompletion)
 }
 
 // WHAT: Verify that a short fragment cannot appear before an already buffered higher fragment.
-// WHY: Once a fragment claims to be the final short fragment, any stored higher fragment makes the
-// sequence internally inconsistent and the buffer must be discarded.
+// WHY: Once a fragment claims to be the final short fragment, any stored
+// higher fragment makes the sequence internally inconsistent. That also
+// matches the wraparound-aliased orphan case, so the buffer must be dropped.
 TEST_F(RtcmTest, GpsRtcmAssemblerRejectsShortFragmentBeforeBufferedHigherFragment)
 {
 	// GIVEN: An out-of-order higher fragment and a later valid two-fragment message with the same sequence ID.

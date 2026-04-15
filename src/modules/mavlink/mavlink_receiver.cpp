@@ -2757,12 +2757,17 @@ void
 MavlinkReceiver::publish_gps_inject_data(const uint8_t *data, size_t len)
 {
 	gps_inject_data_s gps_inject_data_topic{};
+	constexpr uint8_t gps_inject_data_flag_fragmented = 1;
 
 	const size_t capacity = sizeof(gps_inject_data_topic.data);
-	gps_inject_data_topic.flags = (len > capacity) ? 1 : 0;
+	// gps_inject_data only carries the transport-level fragmented bit. The
+	// MAVLink fragment/sequence bits are consumed by the assembler above.
+	gps_inject_data_topic.flags = (len > capacity) ? gps_inject_data_flag_fragmented : 0;
 
 	size_t written = 0;
 
+	// gps_inject_data transports RTCM in 300-byte uORB chunks, so a fully
+	// reassembled RTCM frame may still require multiple publications.
 	while (written < len) {
 		const size_t chunk_len = math::min(len - written, capacity);
 		gps_inject_data_topic.timestamp = hrt_absolute_time();

@@ -63,6 +63,7 @@ static constexpr size_t   RTCM3_MAX_FRAME_LEN   = RTCM3_HEADER_LEN + RTCM3_MAX_P
 static constexpr uint32_t RTCM3_CRC24Q_POLY     = 0x1864CFB;
 
 // MAVLink GPS_RTCM_DATA fragmentation constants.
+// Spec: https://mavlink.io/en/messages/common.html#GPS_RTCM_DATA
 static constexpr size_t   GPS_RTCM_MAX_FRAGMENT_LEN         = 180;
 static constexpr size_t   GPS_RTCM_MAX_FRAGMENTS            = 4;
 static constexpr size_t   GPS_RTCM_MAX_MESSAGE_LEN          = GPS_RTCM_MAX_FRAGMENT_LEN * GPS_RTCM_MAX_FRAGMENTS;
@@ -170,7 +171,7 @@ private:
 	// State for the sequence that is currently being assembled.
 	SequenceState _active_sequence {};
 	// Remember a recently completed short sequence so late higher fragments
-	// with the same sequence ID can be rejected.
+	// with the same 5-bit sequence ID can be rejected.
 	SequenceState _completed_sequence {};
 };
 
