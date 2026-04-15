@@ -211,6 +211,8 @@ size_t GpsRtcmMessageAssembler::lastFragmentIndex() const
 	// Per the MAVLink GPS_RTCM_DATA completion rule, a fragmented message is
 	// only known to be shorter than 4 packets after the first non-full packet
 	// arrives. Until then we must assume that all 4 fragment slots may be used.
+	// This means a payload that is an exact multiple of 180 bytes and shorter
+	// than 720 bytes must still be terminated by an empty fragment.
 	return (_active_sequence.last_fragment_id >= 0) ? static_cast<size_t>(_active_sequence.last_fragment_id) :
 	       (GPS_RTCM_MAX_FRAGMENTS - 1);
 }

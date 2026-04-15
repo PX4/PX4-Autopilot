@@ -371,6 +371,34 @@ TEST_F(RtcmTest, GpsRtcmAssemblerCompletesOnFourthFullFragment)
 	EXPECT_EQ(memcmp(message, payload.data(), payload.size()), 0);
 }
 
+// WHAT: Verify that an exact multiple of 180 bytes below 720 bytes can be
+// completed with an empty terminating fragment.
+// WHY: Per the MAVLink completion rule, the receiver only knows the message is
+// shorter than 4 fragments after the first non-full fragment arrives.
+TEST_F(RtcmTest, GpsRtcmAssemblerCompletesOnZeroLengthTerminatingFragment)
+{
+	// GIVEN: A 360-byte payload split into two full fragments.
+	std::vector<uint8_t> payload(GPS_RTCM_MAX_FRAGMENT_LEN * 2);
+	std::iota(payload.begin(), payload.end(), 0);
+
+	size_t len = 0;
+
+	// WHEN: The two full fragments arrive.
+	EXPECT_EQ(gps_rtcm_assembler.addPacket(buildGpsRtcmFlags(true, 0, 11), payload.data(),
+					       GPS_RTCM_MAX_FRAGMENT_LEN, 10, len), nullptr);
+	EXPECT_EQ(gps_rtcm_assembler.addPacket(buildGpsRtcmFlags(true, 1, 11),
+					       payload.data() + GPS_RTCM_MAX_FRAGMENT_LEN, GPS_RTCM_MAX_FRAGMENT_LEN, 20, len), nullptr);
+
+	// WHEN: An empty fragment marks the end of the MAVLink fragmented payload.
+	const uint8_t *message = gps_rtcm_assembler.addPacket(buildGpsRtcmFlags(true, 2, 11),
+				 payload.data() + payload.size(), 0, 30, len);
+
+	// THEN: The assembler returns the original 360-byte payload.
+	ASSERT_NE(message, nullptr);
+	EXPECT_EQ(len, payload.size());
+	EXPECT_EQ(memcmp(message, payload.data(), payload.size()), 0);
+}
+
 // WHAT: Verify that a stale partial buffer is dropped after the timeout.
 // WHY: This prevents an old fragment from being mixed into a later message with the same sequence ID.
 TEST_F(RtcmTest, GpsRtcmAssemblerDropsStalePartialMessage)
