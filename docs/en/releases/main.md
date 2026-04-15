@@ -40,6 +40,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### Common
 
+- [Remote ID (Open Drone ID) in-flight failsafe](../peripherals/remote_id.md): extended [COM_ARM_ODID](../advanced_config/parameter_reference.md#COM_ARM_ODID) to also trigger a configurable failsafe action (Return, Land, or Terminate) if the Remote ID heartbeat is lost while airborne. Users previously on `COM_ARM_ODID=2` retain the same arming behaviour; set to `3` or higher to enable the in-flight action. ([PX4-Autopilot#27029](https://github.com/PX4/PX4-Autopilot/pull/27029))
 - [QGroundControl Bootloader Update](../advanced_config/bootloader_update.md#qgc-bootloader-update-sys-bl-update) via the [SYS_BL_UPDATE](../advanced_config/parameter_reference.md#SYS_BL_UPDATE) parameter has been re-enabled after being broken for a number of releases. ([PX4-Autopilot#25032: build: romf: fix generation of rc.board_bootloader_upgrade](https://github.com/PX4/PX4-Autopilot/pull/25032)).
 - [Feature: Allow prioritization of manual control inputs based on their instance number in ascending or descending order](../config/manual_control.md#px4-configuration). ([PX4-Autopilot#25602: Ascending and descending manual control input priorities](https://github.com/PX4/PX4-Autopilot/pull/25602)).
 
