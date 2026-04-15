@@ -259,7 +259,11 @@ The specific differences for SIH simulation airframes are listed in the sections
 
 ### SIH on Flight Controller
 
-For FC-specific airframe setup (file locations, `HIL_ACT_FUNC*` parameters), see [Adding New Airframes (FC)](hardware.md#adding-new-airframes-fc).
+::: warning
+The SIH on flight controller is community supported and might not work right away across different versions.
+:::
+
+SIH can also run on flight controller hardware by replacing real sensors with simulated data while running on the actual autopilot. Setting it is a simple as selecting the appropriate SIH airframe, refer to [SIH on Flight Controller](hardware.md).
 
 ### SIH as SITL
 
@@ -286,8 +290,19 @@ The dynamic models for the various vehicles are:
 - Tailsitter: based on Chiappinelli (2018), see references below
 - Rover: bicycle model with linear tire model
 
-Since PX4 v1.17, the propeller model for fixed-wing, tailsitter, and VTOL pusher vehicles is based on [UIUC propeller data](https://m-selig.ae.illinois.edu/props/propDB.html).
-The maximum thrust force is realistically reduced as aircraft speed increases.
+**Propeller model with advance ratio**
+
+Since PX4 v1.17, the propeller model for fixed-wing, tailsitter, and VTOL pusher vehicles is based on the equations from UIUC Propeller Database.
+
+<img width="588" height="183" alt="UIUC_prop_equations" src="https://github.com/user-attachments/assets/55413486-b23b-4269-9ac5-dd630ec0849b" />
+
+This model includes the thrust coefficient CT(J) and power coefficient CP(J) as functions of the advance ratio J. As a result, the maximum thrust force is realistically reduced as the aircraft speed is increased. The SIH implements the thrust and power coeffients as second order polynomial fits
+
+CT = SIH_F_CT0 + SIH_F_CT1⋅J + SIH_F_CT2⋅J²
+
+CP = SIH_F_CP0 + SIH_F_CP1⋅J + SIH_F_CP2⋅J²
+
+If SIH_F_CT0 and SIH_F_CP0 and non zero positive, the SIH uses the model with advance ratio. If not, the SIH uses a simple model with maximum thrust force given by SIH_F_T_MAX and maximum torque given by SIH_F_Q_MAX.
 
 **References:**
 
@@ -295,19 +310,20 @@ The maximum thrust force is realistically reduced as aircraft speed increases.
 2. W. Khan, "Dynamics modeling of agile fixed-wing unmanned aerial vehicles," Ph.D. thesis, Dept. of Mechanical Engineering, McGill University, Montreal, 2016.
 3. R. Chiappinelli, "Modeling and control of a flying wing tailsitter unmanned aerial vehicle," M.Sc. thesis, Dept. of Mechanical Engineering, McGill University, Montreal, 2018.
 4. S. Anumakonda, "Everything you need to know about Self-Driving Cars," 2021. [Link](https://srianumakonda.medium.com/everything-you-need-to-know-about-self-driving-in-30-minutes-b38d68bd3427)
+5. J.B. Brandt, R.W. Deters, G.K. Ananda, O.D. Dantsker, and M.S. Selig, UIUC Propeller Database, Vols 1-4, University of Illinois at Urbana-Champaign, Department of Aerospace Engineering, retrieved from https://m-selig.ae.illinois.edu/props/propDB.html.
 
 ## Video
 
-@[youtube](https://youtu.be/PzIpSCRD8Jo)
+SIH demo with a fixed-wing vehicle @[youtube](https://youtu.be/PzIpSCRD8Jo)  
+How to parametrize the thrust and power coefficients CT & CP @[youtube](https://www.youtube.com/watch?v=KNSd9ge0sSw)
 
 ## Credits
 
 SIH was originally developed by Coriolis g Corporation.
 The airplane model and tailsitter models were added by Altitude R&D inc.
-Both are Canadian companies:
 
 - Coriolis g developed a new type of Vertical Takeoff and Landing (VTOL) vehicles based on passive coupling systems;
-- [Altitude R&D](https://www.altitude-rd.com/) is specialized in dynamics, control, and real-time simulation (today relocated in Zurich).
+- [Altitude R&D](https://www.altitude-rd.com/) is specialized in dynamics, control, and real-time simulation (located in Zurich).
 
 The simulator is released for free under BSD license.
 
