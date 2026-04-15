@@ -229,6 +229,22 @@ In Fixed-wing, the position estimate is never strictly invalidated as long as we
 
 Note that if there is no horizontal aiding source anymore, the position estimate is invalidated after `EKF2_NOAID_TOUT`, and the standard position loss failsafe applies.
 
+### GNSS Check Failsafe
+
+<Badge type="tip" text="PX4 v1.18" />
+
+The GNSS check failsafe has two triggers, both configured by [COM_GPS_LOSS_ACT](#COM_GPS_LOSS_ACT):
+
+- **Count drop**: the number of receivers with a 3D fix drops below [SYS_HAS_NUM_GNSS](#SYS_HAS_NUM_GNSS). No action when `SYS_HAS_NUM_GNSS=0`, only a warning.
+- **Position divergence**: two receivers report positions that disagree by more than their expected separation on the vehicle (configured via [SENS_GPS0_OFFX](../advanced_config/parameter_reference.md#SENS_GPS0_OFFX), [SENS_GPS0_OFFY](../advanced_config/parameter_reference.md#SENS_GPS0_OFFY), [SENS_GPS1_OFFX](../advanced_config/parameter_reference.md#SENS_GPS1_OFFX), [SENS_GPS1_OFFY](../advanced_config/parameter_reference.md#SENS_GPS1_OFFY)) plus their reported accuracy margin. Always produces a warning regardless of `SYS_HAS_NUM_GNSS`; the `COM_GPS_LOSS_ACT` failsafe action is only triggered when `SYS_HAS_NUM_GNSS=2`. Make sure to configure the lever arm offsets of both receivers for accurate detection.
+
+When `COM_GPS_LOSS_ACT` is set to Warning, both triggers produce a warning only and never block arming. When set to Return, Land, or Terminate, both triggers block arming and fire the configured in-flight failsafe action (subject to the `SYS_HAS_NUM_GNSS` condition above).
+
+| Parameter                                                                                                      | Description                                                                                                                                                    |
+| -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="SYS_HAS_NUM_GNSS"></a>[SYS_HAS_NUM_GNSS](../advanced_config/parameter_reference.md#SYS_HAS_NUM_GNSS) | Number of GNSS receivers required for arming and flight. `0`: No minimum (default), `1`: Require one, `2`: Require two.                                       |
+| <a id="COM_GPS_LOSS_ACT"></a>[COM_GPS_LOSS_ACT](../advanced_config/parameter_reference.md#COM_GPS_LOSS_ACT)   | Failsafe action when a GNSS failure is detected. `0`: Warning only (default), `1`: Return, `2`: Land, `3`: Terminate. Values above Warning also block arming. |
+
 ## Offboard Loss Failsafe
 
 The _Offboard Loss Failsafe_ is triggered if the offboard link is lost while under [Offboard control](../flight_modes/offboard.md).
