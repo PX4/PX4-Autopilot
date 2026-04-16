@@ -257,14 +257,11 @@ The relevant parameters are shown below:
 
 The Remote ID failsafe is triggered when the [Remote ID (Open Drone ID)](../peripherals/remote_id.md) module is missing or loses its heartbeat while the vehicle is armed and airborne.
 
-The failsafe action and arming behaviour are both configured by a single parameter:
+The failsafe action and arming behaviour are both configured by the `COM_ARM_ODID` parameter:
 
-| Parameter                                                                                       | Description                                                                                                                                                                                                                                                                                                                                                              |
-| ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| <a id="COM_ARM_ODID"></a>[COM_ARM_ODID](../advanced_config/parameter_reference.md#COM_ARM_ODID) | Remote ID arming check and in-flight failsafe. `0`: Disabled (default), `1`: Warning only, `2`: Error only, `3`: Return, `4`: Land, `5`: Terminate. |
-
-Values `2`–`5` prevent arming when the Remote ID system is not present and healthy.
-Values `3`–`5` also trigger the configured failsafe action if the Remote ID system is missing or unhealthy while airborne.
+| Parameter                                                                                       | Description                                                                                                                                                                                                                                                                                                                                    |
+| ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="COM_ARM_ODID"></a>[COM_ARM_ODID](../advanced_config/parameter_reference.md#COM_ARM_ODID) | Remote ID arming check and in-flight failsafe. `0`: Disabled (default), `1`: Warning only, `2`: Error only (prevents arming), `3`: Return, `4`: Land, `5`: Terminate.<br><br>On failsafe:<br>- `Error`, `Return`, `Land` and `Terminate` prevent arming.<br>- `Return`, `Land` and `Terminate` start the associated action/mode when airborne. |
 
 ## Quad-chute Failsafe
 

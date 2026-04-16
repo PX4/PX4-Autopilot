@@ -143,18 +143,12 @@ The [CAN Remote ID Not Working](../peripherals/remote_id.md#can-remote-id-not-wo
 
 There is no need to explicitly enable Remote ID (supported Remote ID messages are either streamed by default or must be requested in the current implementation, even if no remote ID is connected).
 
-### Remote ID Arming Check and In-Flight Failsafe
+### Remote ID Failsafe and Arming Check
 
 <Badge type="tip" text="PX4 v1.18" />
 
-The [COM_ARM_ODID](../advanced_config/parameter_reference.md#COM_ARM_ODID) parameter configures both the arming check and the in-flight failsafe action when the Remote ID system is missing or unhealthy:
-
-| Parameter                                                                                       | Description                                                                                                                                                                                                                                                                                                                                                                          |
-| ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| <a id="COM_ARM_ODID"></a>[COM_ARM_ODID](../advanced_config/parameter_reference.md#COM_ARM_ODID) | `0`: Disabled (default), `1`: Warning only, `2`: Error only, `3`: Return, `4`: Land, `5`: Terminate. |
-
-Values `2`–`5` prevent arming when the Remote ID system is not present and healthy.
-Values `3`–`5` also trigger the configured failsafe action if the Remote ID system is missing or unhealthy while airborne.
+The [COM_ARM_ODID](../advanced_config/parameter_reference.md#COM_ARM_ODID) parameter configures both the arming check and the in-flight failsafe action when the Remote ID system is missing or unhealthy.
+For more information see [Remote ID Failsafe](http://localhost:5173/px4_user_guide/en/config/safety#remote-id-failsafe) in _Safety Configuration_.
 
 ## Module Broadcast Testing
 
