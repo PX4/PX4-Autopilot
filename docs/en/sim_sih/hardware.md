@@ -29,11 +29,6 @@ The following airframes are supported.
 
 Once running, the vehicle can be controlled from QGroundControl or an RC controller.
 
-:::warning
-To save flash memory on boards with limited storage, SIH can be built with only quadrotor support.
-Set `SIH_VEHICLE_TYPE` before building to limit included vehicle models.
-:::
-
 ## Firmware Builds with SIH
 
 The SIH module is included in many, but not all, default firmware builds.
