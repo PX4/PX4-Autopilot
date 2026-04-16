@@ -425,7 +425,7 @@ TEST_P(RtcmUorbRoundTripTest, ThroughMavlinkFragmentation)
 
 	constexpr size_t uorb_chunk_capacity = 300;
 
-	const auto chunk_bytes = [uorb_chunk_capacity](const uint8_t *data, size_t len) {
+	const auto chunk_bytes = [](const uint8_t *data, size_t len) {
 		std::vector<std::vector<uint8_t>> chunks;
 
 		for (size_t offset = 0; offset < len; offset += uorb_chunk_capacity) {
