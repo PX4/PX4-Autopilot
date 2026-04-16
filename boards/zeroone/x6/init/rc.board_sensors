@@ -82,12 +82,16 @@ then
 	iim42653 -b 1 -s -R 8 start
 fi
 
-# External compass on GPS
+# External compass on GPS1/I2C1 bus
 ist8310 -X -b 1 -R 10 start
 # Internal compass
-rm3100  -I -b 4               start      # X6 & X6 PRO & X6 Ultra
-ist8310 -I      -a 0x0E -R 12 start      # X6 air
-bmm350  -I -b 4 -a 0x15 -R 14  start      # X6 air II
+if ! rm3100 -I -b 4 start # X6 & X6 PRO & X6 Ultra
+then
+	if ! ist8310 -I      -a 0x0E -R 12 start      # X6 air
+	then
+		bmm350  -I -b 4 -a 0x15 -R 14  start      # X6 air II
+	fi
+fi
 
 # Possible internal Baro
 if param compare SENS_INT_BARO_EN 1
