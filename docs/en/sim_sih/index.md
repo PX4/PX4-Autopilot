@@ -283,9 +283,9 @@ This model includes the thrust coefficient CT(J) and power coefficient CP(J) as 
 As a result, the maximum thrust force is realistically reduced as the aircraft speed is increased.
 The SIH implements the thrust and power coefficients as second-order polynomial fits.
 
-$$C_T = \text{SIH\_F\_CT0} + \text{SIH\_F\_CT1} \cdot J + \text{SIH\_F\_CT2} \cdot J^2$$
+CT = SIH_F_CT0 + SIH_F_CT1⋅J + SIH_F_CT2⋅J²
 
-$$C_P = \text{SIH\_F\_CP0} + \text{SIH\_F\_CP1} \cdot J + \text{SIH\_F\_CP2} \cdot J^2$$
+CP = SIH_F_CP0 + SIH_F_CP1⋅J + SIH_F_CP2⋅J²
 
 If `SIH_F_CT0` and `SIH_F_CP0` are non-zero and positive, the SIH uses the model with advance ratio.
 If not, the SIH uses a simple model with maximum thrust force given by `SIH_F_T_MAX` and maximum torque given by `SIH_F_Q_MAX`.
