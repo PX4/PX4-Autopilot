@@ -255,7 +255,7 @@ The relevant parameters are shown below:
 
 <Badge type="tip" text="PX4 v1.18" />
 
-The Remote ID failsafe is triggered when the [Remote ID (Open Drone ID)](../peripherals/remote_id.md) module is missing or loses its heartbeat while the vehicle is armed and airborne.
+The Remote ID failsafe is triggered when the [Remote ID (Open Drone ID)](../peripherals/remote_id.md) module is not detected or reports as unhealthy while the vehicle is armed.
 
 The failsafe action and arming behaviour are both configured by the `COM_ARM_ODID` parameter:
 
