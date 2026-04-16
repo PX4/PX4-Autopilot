@@ -119,19 +119,22 @@
         "name": "ICM-20602",
         "bus_type": "SPI",
         "bus_num": 4,
-        "external": false
+        "external": false,
+        "port_label": null
       },
       {
         "name": "ICM-20948",
         "bus_type": "SPI",
         "bus_num": 4,
-        "external": false
+        "external": false,
+        "port_label": null
       },
       {
         "name": "ICM-20649",
         "bus_type": "SPI",
         "bus_num": 1,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "baro": [
@@ -139,17 +142,20 @@
         "name": "MS5611",
         "bus_type": "SPI",
         "bus_num": 4,
-        "external": false
+        "external": false,
+        "port_label": null
       },
       {
         "name": "MS5611",
         "bus_type": "SPI",
         "bus_num": 1,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "mag": [],
-    "osd": []
+    "osd": [],
+    "power_monitor": []
   },
   "sensor_variant_info": {
     "has_variants": false,
@@ -159,19 +165,22 @@
           "name": "ICM-20602",
           "bus_type": "SPI",
           "bus_num": 4,
-          "external": false
+          "external": false,
+          "port_label": null
         },
         {
           "name": "ICM-20948",
           "bus_type": "SPI",
           "bus_num": 4,
-          "external": false
+          "external": false,
+          "port_label": null
         },
         {
           "name": "ICM-20649",
           "bus_type": "SPI",
           "bus_num": 1,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "baro": [
@@ -179,19 +188,29 @@
           "name": "MS5611",
           "bus_type": "SPI",
           "bus_num": 4,
-          "external": false
+          "external": false,
+          "port_label": null
         },
         {
           "name": "MS5611",
           "bus_type": "SPI",
           "bus_num": 1,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "mag": [],
-      "osd": []
+      "osd": [],
+      "power_monitor": []
     },
     "variants": {}
+  },
+  "i2c_bus_config": {
+    "external": [
+      1,
+      2
+    ],
+    "internal": []
   },
   "num_i2c_buses": 2,
   "num_spi_buses": 3,
@@ -200,5 +219,5 @@
   "doc_url": "https://docs.px4.io/main/en/flight_controller/cubepilot_cube_yellow",
   "doc_file": "cubepilot_cube_yellow.md",
   "doc_exists": true,
-  "documented": true
+  "documented": false
 }

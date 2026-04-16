@@ -141,19 +141,22 @@
         "name": "ICM-20602",
         "bus_type": "SPI",
         "bus_num": 1,
-        "external": false
+        "external": false,
+        "port_label": null
       },
       {
         "name": "BMI088",
         "bus_type": "SPI",
         "bus_num": 5,
-        "external": false
+        "external": false,
+        "port_label": null
       },
       {
         "name": "ICM-20948",
         "bus_type": "SPI",
         "bus_num": 1,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "baro": [
@@ -161,11 +164,13 @@
         "name": "DPS310",
         "bus_type": "SPI",
         "bus_num": 2,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "mag": [],
-    "osd": []
+    "osd": [],
+    "power_monitor": []
   },
   "sensor_variant_info": {
     "has_variants": false,
@@ -175,19 +180,22 @@
           "name": "ICM-20602",
           "bus_type": "SPI",
           "bus_num": 1,
-          "external": false
+          "external": false,
+          "port_label": null
         },
         {
           "name": "BMI088",
           "bus_type": "SPI",
           "bus_num": 5,
-          "external": false
+          "external": false,
+          "port_label": null
         },
         {
           "name": "ICM-20948",
           "bus_type": "SPI",
           "bus_num": 1,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "baro": [
@@ -195,13 +203,23 @@
           "name": "DPS310",
           "bus_type": "SPI",
           "bus_num": 2,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "mag": [],
-      "osd": []
+      "osd": [],
+      "power_monitor": []
     },
     "variants": {}
+  },
+  "i2c_bus_config": {
+    "external": [
+      1,
+      3,
+      4
+    ],
+    "internal": []
   },
   "num_i2c_buses": 3,
   "num_spi_buses": 3,

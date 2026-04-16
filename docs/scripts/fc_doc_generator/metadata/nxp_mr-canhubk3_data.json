@@ -157,7 +157,8 @@
         "name": "BMP388",
         "bus_type": "I2C",
         "bus_num": null,
-        "external": true
+        "external": true,
+        "port_label": null
       }
     ],
     "mag": [
@@ -165,10 +166,12 @@
         "name": "LIS3MDL",
         "bus_type": "I2C",
         "bus_num": 2,
-        "external": true
+        "external": true,
+        "port_label": "GPS1"
       }
     ],
-    "osd": []
+    "osd": [],
+    "power_monitor": []
   },
   "sensor_variant_info": {
     "has_variants": true,
@@ -179,7 +182,8 @@
           "name": "BMP388",
           "bus_type": "I2C",
           "bus_num": null,
-          "external": true
+          "external": true,
+          "port_label": null
         }
       ],
       "mag": [
@@ -187,10 +191,12 @@
           "name": "LIS3MDL",
           "bus_type": "I2C",
           "bus_num": 2,
-          "external": true
+          "external": true,
+          "port_label": "GPS1"
         }
       ],
-      "osd": []
+      "osd": [],
+      "power_monitor": []
     },
     "variants": {
       "MR-CANHUBK3-ADAP": {
@@ -199,13 +205,15 @@
             "name": "ICM-42688P",
             "bus_type": null,
             "bus_num": 3,
-            "external": false
+            "external": false,
+            "port_label": null
           },
           {
             "name": "ICM-20649",
             "bus_type": null,
             "bus_num": 4,
-            "external": false
+            "external": false,
+            "port_label": null
           }
         ],
         "baro": [],
@@ -214,16 +222,19 @@
             "name": "BMM150",
             "bus_type": "I2C",
             "bus_num": null,
-            "external": true
+            "external": true,
+            "port_label": null
           },
           {
             "name": "IST8310",
             "bus_type": "I2C",
             "bus_num": 1,
-            "external": true
+            "external": true,
+            "port_label": null
           }
         ],
-        "osd": []
+        "osd": [],
+        "power_monitor": []
       },
       "__other__": {
         "imu": [
@@ -231,13 +242,15 @@
             "name": "ICM-20649",
             "bus_type": null,
             "bus_num": 4,
-            "external": false
+            "external": false,
+            "port_label": null
           },
           {
             "name": "ICM-42688P",
             "bus_type": null,
             "bus_num": 3,
-            "external": false
+            "external": false,
+            "port_label": null
           }
         ],
         "baro": [],
@@ -246,19 +259,23 @@
             "name": "BMM150",
             "bus_type": "I2C",
             "bus_num": null,
-            "external": true
+            "external": true,
+            "port_label": null
           },
           {
             "name": "IST8310",
             "bus_type": "I2C",
             "bus_num": 2,
-            "external": true
+            "external": true,
+            "port_label": "GPS1"
           }
         ],
-        "osd": []
+        "osd": [],
+        "power_monitor": []
       }
     }
   },
+  "i2c_bus_config": null,
   "num_i2c_buses": 0,
   "num_spi_buses": 0,
   "num_can_buses": 0,

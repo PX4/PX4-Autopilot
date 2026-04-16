@@ -79,7 +79,8 @@
         "name": "MPU-9250",
         "bus_type": "SPI",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "baro": [
@@ -87,7 +88,8 @@
         "name": "MS5611",
         "bus_type": "SPI",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "mag": [
@@ -95,10 +97,12 @@
         "name": "LIS3MDL",
         "bus_type": "SPI",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
-    "osd": []
+    "osd": [],
+    "power_monitor": []
   },
   "sensor_variant_info": {
     "has_variants": false,
@@ -108,7 +112,8 @@
           "name": "MPU-9250",
           "bus_type": "SPI",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "baro": [
@@ -116,7 +121,8 @@
           "name": "MS5611",
           "bus_type": "SPI",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "mag": [
@@ -124,12 +130,22 @@
           "name": "LIS3MDL",
           "bus_type": "SPI",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
-      "osd": []
+      "osd": [],
+      "power_monitor": []
     },
     "variants": {}
+  },
+  "i2c_bus_config": {
+    "external": [
+      2
+    ],
+    "internal": [
+      1
+    ]
   },
   "num_i2c_buses": 2,
   "num_spi_buses": 4,
@@ -138,5 +154,5 @@
   "doc_url": "https://docs.px4.io/main/en/flight_controller/pixhawk3_pro",
   "doc_file": "pixhawk3_pro.md",
   "doc_exists": true,
-  "documented": true
+  "documented": false
 }

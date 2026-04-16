@@ -155,19 +155,22 @@
         "name": "MPU-9250",
         "bus_type": "SPI",
         "bus_num": 2,
-        "external": false
+        "external": false,
+        "port_label": null
       },
       {
         "name": "ICM-20602",
         "bus_type": "SPI",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       },
       {
         "name": "MPU-9250",
         "bus_type": "SPI",
         "bus_num": 3,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "baro": [
@@ -175,13 +178,15 @@
         "name": "MS5611",
         "bus_type": "I2C",
         "bus_num": null,
-        "external": true
+        "external": true,
+        "port_label": null
       },
       {
         "name": "BMP388",
         "bus_type": "I2C",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "mag": [
@@ -189,22 +194,26 @@
         "name": "BMM150",
         "bus_type": "I2C",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       },
       {
         "name": "HMC5883L",
         "bus_type": "I2C",
         "bus_num": null,
-        "external": true
+        "external": true,
+        "port_label": null
       },
       {
         "name": "LIS3MDL",
         "bus_type": "I2C",
         "bus_num": null,
-        "external": true
+        "external": true,
+        "port_label": null
       }
     ],
-    "osd": []
+    "osd": [],
+    "power_monitor": []
   },
   "sensor_variant_info": {
     "has_variants": false,
@@ -214,19 +223,22 @@
           "name": "MPU-9250",
           "bus_type": "SPI",
           "bus_num": 2,
-          "external": false
+          "external": false,
+          "port_label": null
         },
         {
           "name": "ICM-20602",
           "bus_type": "SPI",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         },
         {
           "name": "MPU-9250",
           "bus_type": "SPI",
           "bus_num": 3,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "baro": [
@@ -234,13 +246,15 @@
           "name": "MS5611",
           "bus_type": "I2C",
           "bus_num": null,
-          "external": true
+          "external": true,
+          "port_label": null
         },
         {
           "name": "BMP388",
           "bus_type": "I2C",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "mag": [
@@ -248,24 +262,38 @@
           "name": "BMM150",
           "bus_type": "I2C",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         },
         {
           "name": "HMC5883L",
           "bus_type": "I2C",
           "bus_num": null,
-          "external": true
+          "external": true,
+          "port_label": null
         },
         {
           "name": "LIS3MDL",
           "bus_type": "I2C",
           "bus_num": null,
-          "external": true
+          "external": true,
+          "port_label": null
         }
       ],
-      "osd": []
+      "osd": [],
+      "power_monitor": []
     },
     "variants": {}
+  },
+  "i2c_bus_config": {
+    "external": [
+      1,
+      2,
+      3
+    ],
+    "internal": [
+      4
+    ]
   },
   "num_i2c_buses": 4,
   "num_spi_buses": 5,

@@ -157,13 +157,15 @@
         "name": "BMI088",
         "bus_type": "SPI",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       },
       {
         "name": "ICM-42688P",
         "bus_type": "SPI",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "baro": [
@@ -171,7 +173,8 @@
         "name": "DPS310",
         "bus_type": "I2C",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "mag": [
@@ -179,7 +182,8 @@
         "name": "IST8310",
         "bus_type": "I2C",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "osd": [
@@ -187,9 +191,11 @@
         "name": "AT7456E",
         "bus_type": "SPI",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       }
-    ]
+    ],
+    "power_monitor": []
   },
   "sensor_variant_info": {
     "has_variants": false,
@@ -199,13 +205,15 @@
           "name": "BMI088",
           "bus_type": "SPI",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         },
         {
           "name": "ICM-42688P",
           "bus_type": "SPI",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "baro": [
@@ -213,7 +221,8 @@
           "name": "DPS310",
           "bus_type": "I2C",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "mag": [
@@ -221,7 +230,8 @@
           "name": "IST8310",
           "bus_type": "I2C",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "osd": [
@@ -229,11 +239,21 @@
           "name": "AT7456E",
           "bus_type": "SPI",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         }
-      ]
+      ],
+      "power_monitor": []
     },
     "variants": {}
+  },
+  "i2c_bus_config": {
+    "external": [
+      4
+    ],
+    "internal": [
+      1
+    ]
   },
   "num_i2c_buses": 2,
   "num_spi_buses": 4,

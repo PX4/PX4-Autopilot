@@ -140,13 +140,15 @@
         "name": "ICM-45686",
         "bus_type": "SPI",
         "bus_num": 3,
-        "external": false
+        "external": false,
+        "port_label": null
       },
       {
         "name": "BMI088",
         "bus_type": "SPI",
         "bus_num": 4,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "baro": [
@@ -154,7 +156,8 @@
         "name": "BMP388",
         "bus_type": "I2C",
         "bus_num": 4,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "mag": [
@@ -162,16 +165,41 @@
         "name": "BMM350",
         "bus_type": "I2C",
         "bus_num": 4,
-        "external": false
+        "external": false,
+        "port_label": null
       },
       {
         "name": "IST8310",
         "bus_type": "I2C",
         "bus_num": 1,
-        "external": true
+        "external": true,
+        "port_label": "GPS1"
       }
     ],
-    "osd": []
+    "osd": [],
+    "power_monitor": [
+      {
+        "name": "INA226",
+        "bus_type": "I2C",
+        "bus_num": 3,
+        "external": true,
+        "port_label": null
+      },
+      {
+        "name": "INA228",
+        "bus_type": "I2C",
+        "bus_num": 3,
+        "external": true,
+        "port_label": null
+      },
+      {
+        "name": "INA238",
+        "bus_type": "I2C",
+        "bus_num": 3,
+        "external": true,
+        "port_label": null
+      }
+    ]
   },
   "sensor_variant_info": {
     "has_variants": false,
@@ -181,13 +209,15 @@
           "name": "ICM-45686",
           "bus_type": "SPI",
           "bus_num": 3,
-          "external": false
+          "external": false,
+          "port_label": null
         },
         {
           "name": "BMI088",
           "bus_type": "SPI",
           "bus_num": 4,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "baro": [
@@ -195,7 +225,8 @@
           "name": "BMP388",
           "bus_type": "I2C",
           "bus_num": 4,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "mag": [
@@ -203,18 +234,52 @@
           "name": "BMM350",
           "bus_type": "I2C",
           "bus_num": 4,
-          "external": false
+          "external": false,
+          "port_label": null
         },
         {
           "name": "IST8310",
           "bus_type": "I2C",
           "bus_num": 1,
-          "external": true
+          "external": true,
+          "port_label": "GPS1"
         }
       ],
-      "osd": []
+      "osd": [],
+      "power_monitor": [
+        {
+          "name": "INA226",
+          "bus_type": "I2C",
+          "bus_num": 3,
+          "external": true,
+          "port_label": null
+        },
+        {
+          "name": "INA228",
+          "bus_type": "I2C",
+          "bus_num": 3,
+          "external": true,
+          "port_label": null
+        },
+        {
+          "name": "INA238",
+          "bus_type": "I2C",
+          "bus_num": 3,
+          "external": true,
+          "port_label": null
+        }
+      ]
     },
     "variants": {}
+  },
+  "i2c_bus_config": {
+    "external": [
+      1,
+      3
+    ],
+    "internal": [
+      4
+    ]
   },
   "num_i2c_buses": 3,
   "num_spi_buses": 2,
@@ -223,5 +288,5 @@
   "doc_url": "https://docs.px4.io/main/en/flight_controller/nxp_mr_vmu_rt1176",
   "doc_file": "nxp_mr_vmu_rt1176.md",
   "doc_exists": true,
-  "documented": true
+  "documented": false
 }

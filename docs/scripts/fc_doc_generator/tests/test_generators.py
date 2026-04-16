@@ -108,9 +108,9 @@ def _entry_imxrt():
 
 
 def _entry_stm32h7_capture_channels():
-    """16 outputs: 8 with DShot (Timer5/Timer4) + 8 capture-only (Timer1/Timer8/Timer12)."""
+    """8 outputs (Timer5/Timer4 only); Timer1/Timer8/Timer12 are capture-only and excluded."""
     return {
-        "has_io_board": False, "total_outputs": 16, "io_outputs": 0,
+        "has_io_board": False, "total_outputs": 8, "io_outputs": 0,
         "serial_ports": [],
         "has_rc_input": False, "has_common_rc": False, "rc_serial_device": None,
         "has_ppm_pin": False, "ppm_shared_with_rc_serial": False,
@@ -123,9 +123,6 @@ def _entry_stm32h7_capture_channels():
         "groups": [
             _group(1, "Timer5", [1, 2, 3, 4], bdshot_outputs=[1, 2, 3, 4]),
             _group(2, "Timer4", [5, 6, 7, 8], bdshot_outputs=[5, 6, 7], bdshot_output_only=[8]),
-            _group(3, "Timer1", [9, 10, 11], dshot=False),
-            _group(4, "Timer8", [12, 13, 14], dshot=False),
-            _group(5, "Timer12", [15, 16], dshot=False),
         ],
     }
 

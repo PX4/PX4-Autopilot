@@ -147,19 +147,22 @@
         "name": "ICM-20602",
         "bus_type": "SPI",
         "bus_num": 1,
-        "external": false
+        "external": false,
+        "port_label": null
       },
       {
         "name": "BMI088",
         "bus_type": "SPI",
         "bus_num": 5,
-        "external": false
+        "external": false,
+        "port_label": null
       },
       {
         "name": "ICM-20948",
         "bus_type": "SPI",
         "bus_num": 1,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "baro": [
@@ -167,11 +170,13 @@
         "name": "DPS310",
         "bus_type": "SPI",
         "bus_num": 2,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "mag": [],
-    "osd": []
+    "osd": [],
+    "power_monitor": []
   },
   "sensor_variant_info": {
     "has_variants": false,
@@ -181,19 +186,22 @@
           "name": "ICM-20602",
           "bus_type": "SPI",
           "bus_num": 1,
-          "external": false
+          "external": false,
+          "port_label": null
         },
         {
           "name": "BMI088",
           "bus_type": "SPI",
           "bus_num": 5,
-          "external": false
+          "external": false,
+          "port_label": null
         },
         {
           "name": "ICM-20948",
           "bus_type": "SPI",
           "bus_num": 1,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "baro": [
@@ -201,13 +209,21 @@
           "name": "DPS310",
           "bus_type": "SPI",
           "bus_num": 2,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "mag": [],
-      "osd": []
+      "osd": [],
+      "power_monitor": []
     },
     "variants": {}
+  },
+  "i2c_bus_config": {
+    "external": [
+      1
+    ],
+    "internal": []
   },
   "num_i2c_buses": 1,
   "num_spi_buses": 4,
@@ -216,5 +232,5 @@
   "doc_url": "https://docs.px4.io/main/en/flight_controller/pixracer",
   "doc_file": "pixracer.md",
   "doc_exists": true,
-  "documented": true
+  "documented": false
 }

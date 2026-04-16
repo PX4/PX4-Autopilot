@@ -189,7 +189,8 @@
         "name": "ICM-45686",
         "bus_type": "SPI",
         "bus_num": 3,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "baro": [
@@ -197,11 +198,13 @@
         "name": "SPA06",
         "bus_type": "I2C",
         "bus_num": 2,
-        "external": true
+        "external": true,
+        "port_label": null
       }
     ],
     "mag": [],
-    "osd": []
+    "osd": [],
+    "power_monitor": []
   },
   "sensor_variant_info": {
     "has_variants": false,
@@ -211,7 +214,8 @@
           "name": "ICM-45686",
           "bus_type": "SPI",
           "bus_num": 3,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "baro": [
@@ -219,13 +223,22 @@
           "name": "SPA06",
           "bus_type": "I2C",
           "bus_num": 2,
-          "external": true
+          "external": true,
+          "port_label": null
         }
       ],
       "mag": [],
-      "osd": []
+      "osd": [],
+      "power_monitor": []
     },
     "variants": {}
+  },
+  "i2c_bus_config": {
+    "external": [
+      1,
+      2
+    ],
+    "internal": []
   },
   "num_i2c_buses": 2,
   "num_spi_buses": 1,
@@ -234,5 +247,5 @@
   "doc_url": "https://docs.px4.io/main/en/flight_controller/micoair743-lite",
   "doc_file": "micoair743-lite.md",
   "doc_exists": true,
-  "documented": true
+  "documented": false
 }

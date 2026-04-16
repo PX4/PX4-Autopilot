@@ -70,11 +70,13 @@
         "name": "BMP388",
         "bus_type": "I2C",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "mag": [],
-    "osd": []
+    "osd": [],
+    "power_monitor": []
   },
   "sensor_variant_info": {
     "has_variants": false,
@@ -85,13 +87,23 @@
           "name": "BMP388",
           "bus_type": "I2C",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "mag": [],
-      "osd": []
+      "osd": [],
+      "power_monitor": []
     },
     "variants": {}
+  },
+  "i2c_bus_config": {
+    "external": [
+      1
+    ],
+    "internal": [
+      3
+    ]
   },
   "num_i2c_buses": 2,
   "num_spi_buses": 1,

@@ -1,34 +1,29 @@
 {
-  "board": "px4/fmu-v6u",
-  "chip_family": "stm32h7",
-  "chip_model": "STM32H753",
-  "total_outputs": 9,
+  "board": "saam/saampixv1_1",
+  "chip_family": "stm32f4",
+  "chip_model": "STM32F42",
+  "total_outputs": 8,
   "has_io_board": false,
   "io_outputs": 0,
   "groups": [
     {
       "group": 1,
-      "timer": "Timer5",
+      "timer": "Timer1",
       "outputs": [
         1,
         2,
         3,
         4
       ],
-      "dshot": true,
-      "dshot_outputs": [
+      "dshot": false,
+      "dshot_outputs": [],
+      "non_dshot_outputs": [
         1,
         2,
         3,
         4
       ],
-      "non_dshot_outputs": [],
-      "bdshot_outputs": [
-        1,
-        2,
-        3,
-        4
-      ],
+      "bdshot_outputs": [],
       "bdshot_output_only": []
     },
     {
@@ -36,30 +31,15 @@
       "timer": "Timer4",
       "outputs": [
         5,
-        6
-      ],
-      "dshot": true,
-      "dshot_outputs": [
-        5,
-        6
-      ],
-      "non_dshot_outputs": [],
-      "bdshot_outputs": [
-        5,
-        6
-      ],
-      "bdshot_output_only": []
-    },
-    {
-      "group": 3,
-      "timer": "Timer12",
-      "outputs": [
+        6,
         7,
         8
       ],
       "dshot": false,
       "dshot_outputs": [],
       "non_dshot_outputs": [
+        5,
+        6,
         7,
         8
       ],
@@ -67,84 +47,37 @@
       "bdshot_output_only": []
     }
   ],
-  "serial_ports": [
-    {
-      "uart": "USART1",
-      "device": "/dev/ttyS0",
-      "label": "GPS1",
-      "flow_control": false
-    },
-    {
-      "uart": "USART2",
-      "device": "/dev/ttyS1",
-      "label": "TELEM3",
-      "flow_control": true
-    },
-    {
-      "uart": "USART3",
-      "device": "/dev/ttyS2",
-      "label": "Debug Console",
-      "flow_control": false
-    },
-    {
-      "uart": "UART4",
-      "device": "/dev/ttyS3",
-      "label": "",
-      "flow_control": false
-    },
-    {
-      "uart": "UART5",
-      "device": "/dev/ttyS4",
-      "label": "TELEM2",
-      "flow_control": false
-    },
-    {
-      "uart": "USART6",
-      "device": "/dev/ttyS5",
-      "label": "",
-      "flow_control": false
-    },
-    {
-      "uart": "UART7",
-      "device": "/dev/ttyS6",
-      "label": "TELEM1",
-      "flow_control": true
-    },
-    {
-      "uart": "UART8",
-      "device": "/dev/ttyS7",
-      "label": "GPS2",
-      "flow_control": false
-    }
-  ],
+  "serial_ports": [],
   "has_rc_input": true,
   "has_common_rc": false,
   "rc_serial_device": null,
   "has_ppm_pin": true,
   "ppm_shared_with_rc_serial": false,
   "has_pps_capture": false,
-  "has_safety_switch": true,
-  "has_safety_led": true,
-  "has_buzzer": true,
-  "num_power_inputs": 2,
-  "has_redundant_power": true,
-  "has_dual_battery_monitoring": true,
-  "has_dronecan_power_input": true,
+  "has_safety_switch": false,
+  "has_safety_led": false,
+  "has_buzzer": false,
+  "num_power_inputs": 1,
+  "has_redundant_power": false,
+  "has_dual_battery_monitoring": false,
+  "has_dronecan_power_input": false,
   "power_monitor_type": "ina226",
   "has_sd_card": true,
   "has_ethernet": false,
-  "has_heater": true,
+  "has_heater": false,
   "sensor_imu_drivers": [
-    "BMI088",
+    "ICM-20948",
+    "MPU-6000",
     "ICM-20602",
-    "ICM-20948"
+    "MPU-9250"
   ],
   "sensor_baro_drivers": [
-    "BMP388",
     "MS5611"
   ],
   "sensor_mag_drivers": [
-    "BMM150"
+    "LIS3MDL",
+    "HMC5883L",
+    "QMC5883L"
   ],
   "sensor_osd_drivers": [],
   "sensor_bus_info": {
@@ -157,7 +90,7 @@
         "port_label": null
       },
       {
-        "name": "BMI088",
+        "name": "MPU-9250",
         "bus_type": "SPI",
         "bus_num": null,
         "external": false,
@@ -166,24 +99,31 @@
     ],
     "baro": [
       {
-        "name": "BMP388",
-        "bus_type": "I2C",
+        "name": "MS5611",
+        "bus_type": "SPI",
         "bus_num": null,
         "external": false,
         "port_label": null
-      },
-      {
-        "name": "MS5611",
-        "bus_type": "I2C",
-        "bus_num": null,
-        "external": true,
-        "port_label": "I2C3"
       }
     ],
     "mag": [
       {
-        "name": "BMM150",
+        "name": "HMC5883L",
         "bus_type": "I2C",
+        "bus_num": null,
+        "external": true,
+        "port_label": null
+      },
+      {
+        "name": "QMC5883L",
+        "bus_type": "I2C",
+        "bus_num": null,
+        "external": true,
+        "port_label": null
+      },
+      {
+        "name": "LIS3MDL",
+        "bus_type": "SPI",
         "bus_num": null,
         "external": false,
         "port_label": null
@@ -204,7 +144,7 @@
           "port_label": null
         },
         {
-          "name": "BMI088",
+          "name": "MPU-9250",
           "bus_type": "SPI",
           "bus_num": null,
           "external": false,
@@ -213,24 +153,31 @@
       ],
       "baro": [
         {
-          "name": "BMP388",
-          "bus_type": "I2C",
+          "name": "MS5611",
+          "bus_type": "SPI",
           "bus_num": null,
           "external": false,
           "port_label": null
-        },
-        {
-          "name": "MS5611",
-          "bus_type": "I2C",
-          "bus_num": null,
-          "external": true,
-          "port_label": "I2C3"
         }
       ],
       "mag": [
         {
-          "name": "BMM150",
+          "name": "HMC5883L",
           "bus_type": "I2C",
+          "bus_num": null,
+          "external": true,
+          "port_label": null
+        },
+        {
+          "name": "QMC5883L",
+          "bus_type": "I2C",
+          "bus_num": null,
+          "external": true,
+          "port_label": null
+        },
+        {
+          "name": "LIS3MDL",
+          "bus_type": "SPI",
           "bus_num": null,
           "external": false,
           "port_label": null
@@ -243,20 +190,18 @@
   },
   "i2c_bus_config": {
     "external": [
-      1,
-      2,
-      3
+      2
     ],
     "internal": [
-      4
+      1
     ]
   },
-  "num_i2c_buses": 4,
-  "num_spi_buses": 5,
-  "num_can_buses": 1,
+  "num_i2c_buses": 2,
+  "num_spi_buses": 3,
+  "num_can_buses": 0,
   "has_usb": true,
-  "doc_url": "https://docs.px4.io/main/en/flight_controller/pixhawk6x_pro",
-  "doc_file": "pixhawk6x_pro.md",
-  "doc_exists": true,
+  "doc_url": null,
+  "doc_file": null,
+  "doc_exists": false,
   "documented": false
 }

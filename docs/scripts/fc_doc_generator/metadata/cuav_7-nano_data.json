@@ -65,54 +65,6 @@
       ],
       "bdshot_outputs": [],
       "bdshot_output_only": []
-    },
-    {
-      "group": 4,
-      "timer": "Timer8",
-      "outputs": [
-        9,
-        10,
-        11
-      ],
-      "dshot": false,
-      "dshot_outputs": [],
-      "non_dshot_outputs": [
-        9,
-        10,
-        11
-      ],
-      "bdshot_outputs": [],
-      "bdshot_output_only": []
-    },
-    {
-      "group": 5,
-      "timer": "Timer15",
-      "outputs": [
-        12
-      ],
-      "dshot": false,
-      "dshot_outputs": [],
-      "non_dshot_outputs": [
-        12
-      ],
-      "bdshot_outputs": [],
-      "bdshot_output_only": []
-    },
-    {
-      "group": 6,
-      "timer": "Timer12",
-      "outputs": [
-        13,
-        14
-      ],
-      "dshot": false,
-      "dshot_outputs": [],
-      "non_dshot_outputs": [
-        13,
-        14
-      ],
-      "bdshot_outputs": [],
-      "bdshot_output_only": []
     }
   ],
   "serial_ports": [
@@ -196,13 +148,15 @@
         "name": "IIM-42652",
         "bus_type": "SPI",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       },
       {
         "name": "BMI088",
         "bus_type": "SPI",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "baro": [
@@ -210,13 +164,15 @@
         "name": "BMP581",
         "bus_type": "SPI",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       },
       {
         "name": "ICP-20100",
         "bus_type": "I2C",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "mag": [
@@ -224,16 +180,19 @@
         "name": "IIS2MDC",
         "bus_type": "I2C",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       },
       {
         "name": "IST8310",
         "bus_type": "I2C",
         "bus_num": 1,
-        "external": true
+        "external": true,
+        "port_label": "GPS1"
       }
     ],
-    "osd": []
+    "osd": [],
+    "power_monitor": []
   },
   "sensor_variant_info": {
     "has_variants": false,
@@ -243,13 +202,15 @@
           "name": "IIM-42652",
           "bus_type": "SPI",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         },
         {
           "name": "BMI088",
           "bus_type": "SPI",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "baro": [
@@ -257,13 +218,15 @@
           "name": "BMP581",
           "bus_type": "SPI",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         },
         {
           "name": "ICP-20100",
           "bus_type": "I2C",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "mag": [
@@ -271,18 +234,31 @@
           "name": "IIS2MDC",
           "bus_type": "I2C",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         },
         {
           "name": "IST8310",
           "bus_type": "I2C",
           "bus_num": 1,
-          "external": true
+          "external": true,
+          "port_label": "GPS1"
         }
       ],
-      "osd": []
+      "osd": [],
+      "power_monitor": []
     },
     "variants": {}
+  },
+  "i2c_bus_config": {
+    "external": [
+      1,
+      2
+    ],
+    "internal": [
+      3,
+      4
+    ]
   },
   "num_i2c_buses": 4,
   "num_spi_buses": 5,

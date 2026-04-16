@@ -65,20 +65,6 @@
       ],
       "bdshot_outputs": [],
       "bdshot_output_only": []
-    },
-    {
-      "group": 4,
-      "timer": "Timer1",
-      "outputs": [
-        9
-      ],
-      "dshot": false,
-      "dshot_outputs": [],
-      "non_dshot_outputs": [
-        9
-      ],
-      "bdshot_outputs": [],
-      "bdshot_output_only": []
     }
   ],
   "serial_ports": [
@@ -175,10 +161,55 @@
         "name": "IST8310",
         "bus_type": "I2C",
         "bus_num": 1,
-        "external": true
+        "external": true,
+        "port_label": "GPS1"
       }
     ],
-    "osd": []
+    "osd": [],
+    "power_monitor": [
+      {
+        "name": "INA226",
+        "bus_type": "I2C",
+        "bus_num": 1,
+        "external": true,
+        "port_label": null
+      },
+      {
+        "name": "INA226",
+        "bus_type": "I2C",
+        "bus_num": 2,
+        "external": true,
+        "port_label": null
+      },
+      {
+        "name": "INA228",
+        "bus_type": "I2C",
+        "bus_num": 1,
+        "external": true,
+        "port_label": null
+      },
+      {
+        "name": "INA228",
+        "bus_type": "I2C",
+        "bus_num": 2,
+        "external": true,
+        "port_label": null
+      },
+      {
+        "name": "INA238",
+        "bus_type": "I2C",
+        "bus_num": 1,
+        "external": true,
+        "port_label": null
+      },
+      {
+        "name": "INA238",
+        "bus_type": "I2C",
+        "bus_num": 2,
+        "external": true,
+        "port_label": null
+      }
+    ]
   },
   "sensor_variant_info": {
     "has_variants": true,
@@ -190,10 +221,55 @@
           "name": "IST8310",
           "bus_type": "I2C",
           "bus_num": 1,
-          "external": true
+          "external": true,
+          "port_label": "GPS1"
         }
       ],
-      "osd": []
+      "osd": [],
+      "power_monitor": [
+        {
+          "name": "INA226",
+          "bus_type": "I2C",
+          "bus_num": 1,
+          "external": true,
+          "port_label": null
+        },
+        {
+          "name": "INA226",
+          "bus_type": "I2C",
+          "bus_num": 2,
+          "external": true,
+          "port_label": null
+        },
+        {
+          "name": "INA228",
+          "bus_type": "I2C",
+          "bus_num": 1,
+          "external": true,
+          "port_label": null
+        },
+        {
+          "name": "INA228",
+          "bus_type": "I2C",
+          "bus_num": 2,
+          "external": true,
+          "port_label": null
+        },
+        {
+          "name": "INA238",
+          "bus_type": "I2C",
+          "bus_num": 1,
+          "external": true,
+          "port_label": null
+        },
+        {
+          "name": "INA238",
+          "bus_type": "I2C",
+          "bus_num": 2,
+          "external": true,
+          "port_label": null
+        }
+      ]
     },
     "variants": {
       "V6X006": {
@@ -202,19 +278,22 @@
             "name": "ADIS16470",
             "bus_type": "SPI",
             "bus_num": null,
-            "external": false
+            "external": false,
+            "port_label": null
           },
           {
             "name": "IIM-42652",
             "bus_type": "SPI",
             "bus_num": null,
-            "external": false
+            "external": false,
+            "port_label": null
           },
           {
             "name": "ICM-45686",
             "bus_type": "SPI",
             "bus_num": null,
-            "external": false
+            "external": false,
+            "port_label": null
           }
         ],
         "baro": [
@@ -222,11 +301,13 @@
             "name": "ICP-20100",
             "bus_type": "I2C",
             "bus_num": null,
-            "external": false
+            "external": false,
+            "port_label": null
           }
         ],
         "mag": [],
-        "osd": []
+        "osd": [],
+        "power_monitor": []
       },
       "__other__": {
         "imu": [
@@ -234,37 +315,43 @@
             "name": "ICM-45686",
             "bus_type": "SPI",
             "bus_num": 3,
-            "external": false
+            "external": false,
+            "port_label": null
           },
           {
             "name": "ICM-45686",
             "bus_type": "SPI",
             "bus_num": 2,
-            "external": false
+            "external": false,
+            "port_label": null
           },
           {
             "name": "ICM-45686",
             "bus_type": "SPI",
             "bus_num": 1,
-            "external": false
+            "external": false,
+            "port_label": null
           },
           {
             "name": "BMI088",
             "bus_type": "SPI",
             "bus_num": null,
-            "external": false
+            "external": false,
+            "port_label": null
           },
           {
             "name": "ICM-42688P",
             "bus_type": "SPI",
             "bus_num": null,
-            "external": false
+            "external": false,
+            "port_label": null
           },
           {
             "name": "ICM-20649",
             "bus_type": "SPI",
             "bus_num": null,
-            "external": false
+            "external": false,
+            "port_label": null
           }
         ],
         "baro": [
@@ -272,13 +359,15 @@
             "name": "BMP388",
             "bus_type": "I2C",
             "bus_num": null,
-            "external": false
+            "external": false,
+            "port_label": null
           },
           {
             "name": "BMP388",
             "bus_type": "I2C",
             "bus_num": null,
-            "external": true
+            "external": true,
+            "port_label": null
           }
         ],
         "mag": [
@@ -286,10 +375,12 @@
             "name": "BMM150",
             "bus_type": "I2C",
             "bus_num": null,
-            "external": false
+            "external": false,
+            "port_label": null
           }
         ],
-        "osd": []
+        "osd": [],
+        "power_monitor": []
       },
       "V6X004": {
         "imu": [
@@ -297,18 +388,21 @@
             "name": "ICM-20649",
             "bus_type": "SPI",
             "bus_num": null,
-            "external": false
+            "external": false,
+            "port_label": null
           },
           {
             "name": "ICM-42670P",
             "bus_type": "SPI",
             "bus_num": null,
-            "external": false
+            "external": false,
+            "port_label": null
           }
         ],
         "baro": [],
         "mag": [],
-        "osd": []
+        "osd": [],
+        "power_monitor": []
       },
       "V6X010": {
         "imu": [
@@ -316,18 +410,21 @@
             "name": "BMI088",
             "bus_type": "SPI",
             "bus_num": null,
-            "external": false
+            "external": false,
+            "port_label": null
           },
           {
             "name": "ICM-42688P",
             "bus_type": "SPI",
             "bus_num": null,
-            "external": false
+            "external": false,
+            "port_label": null
           }
         ],
         "baro": [],
         "mag": [],
-        "osd": []
+        "osd": [],
+        "power_monitor": []
       },
       "V6X003": {
         "imu": [
@@ -335,12 +432,14 @@
             "name": "ICM-42670P",
             "bus_type": "SPI",
             "bus_num": null,
-            "external": false
+            "external": false,
+            "port_label": null
           }
         ],
         "baro": [],
         "mag": [],
-        "osd": []
+        "osd": [],
+        "power_monitor": []
       },
       "V6X001": {
         "imu": [],
@@ -349,13 +448,15 @@
             "name": "ICP-20100",
             "bus_type": "I2C",
             "bus_num": null,
-            "external": false
+            "external": false,
+            "port_label": null
           },
           {
             "name": "ICP-20100",
             "bus_type": "I2C",
             "bus_num": null,
-            "external": true
+            "external": true,
+            "port_label": null
           }
         ],
         "mag": [
@@ -363,10 +464,12 @@
             "name": "RM3100",
             "bus_type": "I2C",
             "bus_num": 4,
-            "external": false
+            "external": false,
+            "port_label": null
           }
         ],
-        "osd": []
+        "osd": [],
+        "power_monitor": []
       },
       "V6X008": {
         "imu": [],
@@ -375,13 +478,25 @@
             "name": "ICP-20100",
             "bus_type": "I2C",
             "bus_num": null,
-            "external": false
+            "external": false,
+            "port_label": null
           }
         ],
         "mag": [],
-        "osd": []
+        "osd": [],
+        "power_monitor": []
       }
     }
+  },
+  "i2c_bus_config": {
+    "external": [
+      1,
+      2,
+      3
+    ],
+    "internal": [
+      4
+    ]
   },
   "num_i2c_buses": 4,
   "num_spi_buses": 5,
@@ -390,5 +505,5 @@
   "doc_url": "https://docs.px4.io/main/en/flight_controller/pixhawk6x",
   "doc_file": "pixhawk6x.md",
   "doc_exists": true,
-  "documented": true
+  "documented": false
 }

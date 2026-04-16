@@ -148,13 +148,15 @@
         "name": "BMI270",
         "bus_type": "SPI",
         "bus_num": 1,
-        "external": false
+        "external": false,
+        "port_label": null
       },
       {
         "name": "BMI270",
         "bus_type": "SPI",
         "bus_num": 4,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "baro": [
@@ -162,7 +164,8 @@
         "name": "SPL06",
         "bus_type": "I2C",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "mag": [
@@ -170,10 +173,12 @@
         "name": "QMC5883P",
         "bus_type": "I2C",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
-    "osd": []
+    "osd": [],
+    "power_monitor": []
   },
   "sensor_variant_info": {
     "has_variants": false,
@@ -183,13 +188,15 @@
           "name": "BMI270",
           "bus_type": "SPI",
           "bus_num": 1,
-          "external": false
+          "external": false,
+          "port_label": null
         },
         {
           "name": "BMI270",
           "bus_type": "SPI",
           "bus_num": 4,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "baro": [
@@ -197,7 +204,8 @@
           "name": "SPL06",
           "bus_type": "I2C",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "mag": [
@@ -205,12 +213,23 @@
           "name": "QMC5883P",
           "bus_type": "I2C",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
-      "osd": []
+      "osd": [],
+      "power_monitor": []
     },
     "variants": {}
+  },
+  "i2c_bus_config": {
+    "external": [
+      2,
+      4
+    ],
+    "internal": [
+      1
+    ]
   },
   "num_i2c_buses": 3,
   "num_spi_buses": 3,

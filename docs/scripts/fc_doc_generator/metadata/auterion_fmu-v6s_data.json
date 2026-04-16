@@ -69,20 +69,6 @@
       ],
       "bdshot_outputs": [],
       "bdshot_output_only": []
-    },
-    {
-      "group": 4,
-      "timer": "Timer8",
-      "outputs": [
-        10
-      ],
-      "dshot": false,
-      "dshot_outputs": [],
-      "non_dshot_outputs": [
-        10
-      ],
-      "bdshot_outputs": [],
-      "bdshot_output_only": []
     }
   ],
   "serial_ports": [
@@ -164,7 +150,8 @@
         "name": "BMI088",
         "bus_type": "SPI",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "baro": [
@@ -172,7 +159,8 @@
         "name": "BMP388",
         "bus_type": "I2C",
         "bus_num": 4,
-        "external": false
+        "external": false,
+        "port_label": "I2C4"
       }
     ],
     "mag": [
@@ -180,10 +168,34 @@
         "name": "IST8310",
         "bus_type": "I2C",
         "bus_num": 1,
-        "external": true
+        "external": true,
+        "port_label": "I2C1"
       }
     ],
-    "osd": []
+    "osd": [],
+    "power_monitor": [
+      {
+        "name": "INA226",
+        "bus_type": "I2C",
+        "bus_num": 1,
+        "external": true,
+        "port_label": null
+      },
+      {
+        "name": "INA228",
+        "bus_type": "I2C",
+        "bus_num": 1,
+        "external": true,
+        "port_label": null
+      },
+      {
+        "name": "INA238",
+        "bus_type": "I2C",
+        "bus_num": 1,
+        "external": true,
+        "port_label": null
+      }
+    ]
   },
   "sensor_variant_info": {
     "has_variants": true,
@@ -193,7 +205,8 @@
           "name": "BMI088",
           "bus_type": "SPI",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "baro": [
@@ -201,7 +214,8 @@
           "name": "BMP388",
           "bus_type": "I2C",
           "bus_num": 4,
-          "external": false
+          "external": false,
+          "port_label": "I2C4"
         }
       ],
       "mag": [
@@ -209,10 +223,34 @@
           "name": "IST8310",
           "bus_type": "I2C",
           "bus_num": 1,
-          "external": true
+          "external": true,
+          "port_label": "I2C1"
         }
       ],
-      "osd": []
+      "osd": [],
+      "power_monitor": [
+        {
+          "name": "INA226",
+          "bus_type": "I2C",
+          "bus_num": 1,
+          "external": true,
+          "port_label": null
+        },
+        {
+          "name": "INA228",
+          "bus_type": "I2C",
+          "bus_num": 1,
+          "external": true,
+          "port_label": null
+        },
+        {
+          "name": "INA238",
+          "bus_type": "I2C",
+          "bus_num": 1,
+          "external": true,
+          "port_label": null
+        }
+      ]
     },
     "variants": {
       "V6S013": {
@@ -223,10 +261,12 @@
             "name": "BMM150",
             "bus_type": "I2C",
             "bus_num": null,
-            "external": false
+            "external": false,
+            "port_label": null
           }
         ],
-        "osd": []
+        "osd": [],
+        "power_monitor": []
       },
       "V6S015": {
         "imu": [],
@@ -236,10 +276,12 @@
             "name": "BMM150",
             "bus_type": "I2C",
             "bus_num": null,
-            "external": false
+            "external": false,
+            "port_label": null
           }
         ],
-        "osd": []
+        "osd": [],
+        "power_monitor": []
       },
       "__other__": {
         "imu": [],
@@ -249,12 +291,22 @@
             "name": "BMM350",
             "bus_type": "I2C",
             "bus_num": null,
-            "external": false
+            "external": false,
+            "port_label": null
           }
         ],
-        "osd": []
+        "osd": [],
+        "power_monitor": []
       }
     }
+  },
+  "i2c_bus_config": {
+    "external": [
+      1
+    ],
+    "internal": [
+      4
+    ]
   },
   "num_i2c_buses": 2,
   "num_spi_buses": 2,

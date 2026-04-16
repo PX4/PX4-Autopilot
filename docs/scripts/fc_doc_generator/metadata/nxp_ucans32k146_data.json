@@ -73,46 +73,54 @@
         "name": "HMC5883L",
         "bus_type": "I2C",
         "bus_num": null,
-        "external": true
+        "external": true,
+        "port_label": null
       },
       {
         "name": "IST8308",
         "bus_type": "I2C",
         "bus_num": null,
-        "external": true
+        "external": true,
+        "port_label": null
       },
       {
         "name": "IST8310",
         "bus_type": "I2C",
         "bus_num": null,
-        "external": true
+        "external": true,
+        "port_label": null
       },
       {
         "name": "IIS2MDC",
         "bus_type": "I2C",
         "bus_num": null,
-        "external": true
+        "external": true,
+        "port_label": null
       },
       {
         "name": "LIS3MDL",
         "bus_type": "I2C",
         "bus_num": null,
-        "external": true
+        "external": true,
+        "port_label": null
       },
       {
         "name": "QMC5883L",
         "bus_type": "I2C",
         "bus_num": null,
-        "external": true
+        "external": true,
+        "port_label": null
       },
       {
         "name": "RM3100",
         "bus_type": "I2C",
         "bus_num": null,
-        "external": true
+        "external": true,
+        "port_label": null
       }
     ],
-    "osd": []
+    "osd": [],
+    "power_monitor": []
   },
   "sensor_variant_info": {
     "has_variants": false,
@@ -124,49 +132,58 @@
           "name": "HMC5883L",
           "bus_type": "I2C",
           "bus_num": null,
-          "external": true
+          "external": true,
+          "port_label": null
         },
         {
           "name": "IST8308",
           "bus_type": "I2C",
           "bus_num": null,
-          "external": true
+          "external": true,
+          "port_label": null
         },
         {
           "name": "IST8310",
           "bus_type": "I2C",
           "bus_num": null,
-          "external": true
+          "external": true,
+          "port_label": null
         },
         {
           "name": "IIS2MDC",
           "bus_type": "I2C",
           "bus_num": null,
-          "external": true
+          "external": true,
+          "port_label": null
         },
         {
           "name": "LIS3MDL",
           "bus_type": "I2C",
           "bus_num": null,
-          "external": true
+          "external": true,
+          "port_label": null
         },
         {
           "name": "QMC5883L",
           "bus_type": "I2C",
           "bus_num": null,
-          "external": true
+          "external": true,
+          "port_label": null
         },
         {
           "name": "RM3100",
           "bus_type": "I2C",
           "bus_num": null,
-          "external": true
+          "external": true,
+          "port_label": null
         }
       ],
-      "osd": []
+      "osd": [],
+      "power_monitor": []
     },
     "variants": {}
   },
+  "i2c_bus_config": null,
   "num_i2c_buses": 0,
   "num_spi_buses": 0,
   "num_can_buses": 0,

@@ -180,10 +180,12 @@
         "name": "LSM303AGR",
         "bus_type": "SPI",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
-    "osd": []
+    "osd": [],
+    "power_monitor": []
   },
   "sensor_variant_info": {
     "has_variants": false,
@@ -195,12 +197,23 @@
           "name": "LSM303AGR",
           "bus_type": "SPI",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
-      "osd": []
+      "osd": [],
+      "power_monitor": []
     },
     "variants": {}
+  },
+  "i2c_bus_config": {
+    "external": [
+      2,
+      4
+    ],
+    "internal": [
+      3
+    ]
   },
   "num_i2c_buses": 3,
   "num_spi_buses": 4,

@@ -321,16 +321,16 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
 - **Sensors**
   - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-42688P (SPI), ICM-42688P (SPI)
-  - **Barometer**: TODO: confirm which is installed — BMP388, ICP-20100 (I2C, internal), ICP-20100 (I2C, external), MS5611
+  - **Barometer**: TODO: confirm which is installed — BMP388, DPS310 (I2C, internal), DPS310 (I2C, external), ICP-20100 (I2C, internal), ICP-20100 (I2C, external), MS5611
   - **Magnetometer**: TODO: confirm which is installed — BMM150, IST8308, IST8310 (I2C, bus 1, external), MMC5983MA, RM3100 (I2C, bus 4, internal)
 - **Interfaces**
-  - **PWM outputs**: 17 (9 FMU + 8 IO)
+  - **PWM outputs**: 16 (8 FMU + 8 IO)
   - **Serial ports**: 8
   - **I2C ports**: 4 (3 external, 1 internal)
     - I2C1 (external, GPS1): IST8310 (magnetometer), INA226 (power monitor), INA228 (power monitor), INA238 (power monitor) — on GPS connector
     - I2C2 (external): INA226 (power monitor), INA228 (power monitor), INA238 (power monitor)
     - I2C3 (external): free (no sensor detected)
-    - I2C4 (internal): ICP-20100 (barometer), RM3100 (magnetometer)
+    - I2C4 (internal): ICP-20100 (barometer), DPS310 (barometer), RM3100 (magnetometer)
   - **SPI buses**: 5
     - BMI088 (IMU)
     - ICM-42688P (IMU)
@@ -357,7 +357,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   "chip_model": "STM32H753",
   "has_io_board": true,
   "total_outputs": 9,
-  "fmu_servo_outputs": 9,
+  "fmu_servo_outputs": 8,
   "io_outputs": 8,
   "has_sd_card": true,
   "has_ethernet": true,
@@ -373,6 +373,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
     ],
     "baro": [
       "BMP388",
+      "DPS310",
       "ICP-20100",
       "MS5611"
     ],
@@ -442,20 +443,19 @@ For battery and power module configuration see [Battery and Power Module Setup](
 ```markdown
 ## PWM Outputs {#pwm_outputs}
 
-This flight controller supports up to 9 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
+This flight controller supports up to 8 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
 
 FMU Outputs:
 
 - Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-9 do not support DShot.
+- Outputs 7-8 do not support DShot.
 - Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 
-The 9 outputs are in 4 groups:
+The 8 outputs are in 3 groups:
 
 - Outputs 1-4 in group1 (Timer5)
 - Outputs 5-6 in group2 (Timer4)
 - Outputs 7-8 in group3 (Timer12)
-- Output 9 in group4 (Timer1)
 
 All outputs within the same group must use the same output protocol and rate.
 ```
@@ -1221,7 +1221,7 @@ Serial port mapping could not be determined from source.
   - **Barometer**: BMP388 (I2C, internal)
   - **Magnetometer**: BMM150 (I2C, internal)
 - **Interfaces**
-  - **PWM outputs**: 17 (9 FMU + 8 IO)
+  - **PWM outputs**: 16 (8 FMU + 8 IO)
   - **Serial ports**: 8
   - **I2C ports**: 4 (3 external, 1 internal)
     - I2C1 (external): INA226 (power monitor), INA228 (power monitor), INA238 (power monitor)
@@ -1251,7 +1251,7 @@ Serial port mapping could not be determined from source.
   "chip_model": "STM32H753",
   "has_io_board": true,
   "total_outputs": 9,
-  "fmu_servo_outputs": 9,
+  "fmu_servo_outputs": 8,
   "io_outputs": 8,
   "has_sd_card": true,
   "has_ethernet": true,
@@ -1335,20 +1335,19 @@ For battery and power module configuration see [Battery and Power Module Setup](
 ```markdown
 ## PWM Outputs {#pwm_outputs}
 
-This flight controller supports up to 9 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
+This flight controller supports up to 8 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
 
 FMU Outputs:
 
 - Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-9 do not support DShot.
+- Outputs 7-8 do not support DShot.
 - Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 
-The 9 outputs are in 4 groups:
+The 8 outputs are in 3 groups:
 
 - Outputs 1-4 in group1 (Timer5)
 - Outputs 5-6 in group2 (Timer4)
 - Outputs 7-8 in group3 (Timer12)
-- Output 9 in group4 (Timer1)
 
 All outputs within the same group must use the same output protocol and rate.
 ```
@@ -2445,7 +2444,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   - **Barometer**: BMP388 (I2C, bus 4, internal)
   - **Magnetometer**: IST8310 (I2C, bus 1, external); BMM150 (I2C, internal, variant V6S013), BMM150 (I2C, internal, variant V6S015), BMM350 (I2C, internal, other variants)
 - **Interfaces**
-  - **PWM outputs**: 10 (FMU)
+  - **PWM outputs**: 9 (FMU)
   - **Serial ports**: 7
   - **I2C ports**: 2 (1 external, 1 internal)
     - I2C1 (external, I2C1): IST8310 (magnetometer), INA226 (power monitor), INA228 (power monitor), INA238 (power monitor)
@@ -2472,7 +2471,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   "chip_model": "STM32H743",
   "has_io_board": false,
   "total_outputs": 10,
-  "fmu_servo_outputs": 10,
+  "fmu_servo_outputs": 9,
   "io_outputs": 0,
   "has_sd_card": true,
   "has_ethernet": true,
@@ -2550,20 +2549,19 @@ For battery and power module configuration see [Battery and Power Module Setup](
 ```markdown
 ## PWM Outputs {#pwm_outputs}
 
-This flight controller supports up to 10 FMU PWM outputs (MAIN).
+This flight controller supports up to 9 FMU PWM outputs (MAIN).
 
 Outputs:
 
 - Outputs 1-8 support [DShot](../peripherals/dshot.md).
-- Outputs 9-10 do not support DShot.
+- Output 9 does not support DShot.
 - Outputs 1-8 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 
-The 10 outputs are in 4 groups:
+The 9 outputs are in 3 groups:
 
 - Outputs 1-4 in group1 (Timer1)
 - Outputs 5-8 in group2 (Timer3)
 - Output 9 in group3 (Timer5)
-- Output 10 in group4 (Timer8)
 
 All outputs within the same group must use the same output protocol and rate.
 ```
@@ -2752,7 +2750,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   - **Barometer**: BMP388 (I2C, internal), BMP388 (I2C, external)
   - **Magnetometer**: TODO: confirm which is installed — BMM150 (I2C, internal), IST8310 (I2C, bus 1, external)
 - **Interfaces**
-  - **PWM outputs**: 17 (9 FMU + 8 IO)
+  - **PWM outputs**: 16 (8 FMU + 8 IO)
   - **Serial ports**: 8
   - **I2C ports**: 4 (3 external, 1 internal)
     - I2C1 (external, GPS1): IST8310 (magnetometer), INA226 (power monitor), INA228 (power monitor), INA238 (power monitor) — on GPS connector
@@ -2784,7 +2782,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   "chip_model": "STM32H753",
   "has_io_board": true,
   "total_outputs": 9,
-  "fmu_servo_outputs": 9,
+  "fmu_servo_outputs": 8,
   "io_outputs": 8,
   "has_sd_card": true,
   "has_ethernet": true,
@@ -2865,20 +2863,19 @@ For battery and power module configuration see [Battery and Power Module Setup](
 ```markdown
 ## PWM Outputs {#pwm_outputs}
 
-This flight controller supports up to 9 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
+This flight controller supports up to 8 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
 
 FMU Outputs:
 
 - Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-9 do not support DShot.
+- Outputs 7-8 do not support DShot.
 - Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 
-The 9 outputs are in 4 groups:
+The 8 outputs are in 3 groups:
 
 - Outputs 1-4 in group1 (Timer5)
 - Outputs 5-6 in group2 (Timer4)
 - Outputs 7-8 in group3 (Timer12)
-- Output 9 in group4 (Timer1)
 
 All outputs within the same group must use the same output protocol and rate.
 ```
@@ -4226,7 +4223,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   - **Barometer**: TODO: confirm which is installed — BMP581 (SPI), ICP-20100 (I2C, internal)
   - **Magnetometer**: TODO: confirm which is installed — IIS2MDC (I2C, internal), IST8310 (I2C, bus 1, external)
 - **Interfaces**
-  - **PWM outputs**: 14 (FMU)
+  - **PWM outputs**: 8 (FMU)
   - **Serial ports**: 7
   - **I2C ports**: 4 (2 external, 2 internal)
     - I2C1 (external, GPS1): IST8310 (magnetometer) — on GPS connector
@@ -4258,7 +4255,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   "chip_model": "STM32H753",
   "has_io_board": false,
   "total_outputs": 14,
-  "fmu_servo_outputs": 14,
+  "fmu_servo_outputs": 8,
   "io_outputs": 0,
   "has_sd_card": true,
   "has_ethernet": true,
@@ -4338,22 +4335,19 @@ For battery and power module configuration see [Battery and Power Module Setup](
 ```markdown
 ## PWM Outputs {#pwm_outputs}
 
-This flight controller supports up to 14 FMU PWM outputs (MAIN).
+This flight controller supports up to 8 FMU PWM outputs (MAIN).
 
 Outputs:
 
 - Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-14 do not support DShot.
+- Outputs 7-8 do not support DShot.
 - Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 
-The 14 outputs are in 6 groups:
+The 8 outputs are in 3 groups:
 
 - Outputs 1-4 in group1 (Timer5)
 - Outputs 5-6 in group2 (Timer4)
 - Outputs 7-8 in group3 (Timer1)
-- Outputs 9-11 in group4 (Timer8)
-- Output 12 in group5 (Timer15)
-- Outputs 13-14 in group6 (Timer12)
 
 All outputs within the same group must use the same output protocol and rate.
 ```
@@ -4550,7 +4544,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   - **Barometer**: TODO: confirm which is installed — BMP581 (I2C, bus 2, external), ICP-20100 (I2C, internal)
   - **Magnetometer**: TODO: confirm which is installed — RM3100 (I2C, bus 4, internal), IST8310 (I2C, bus 1, external)
 - **Interfaces**
-  - **PWM outputs**: 17 (9 FMU + 8 IO)
+  - **PWM outputs**: 16 (8 FMU + 8 IO)
   - **Serial ports**: 8
   - **I2C ports**: 4 (3 external, 1 internal)
     - I2C1 (external, GPS1): IST8310 (magnetometer), INA226 (power monitor), INA228 (power monitor), INA238 (power monitor) — on GPS connector
@@ -4583,7 +4577,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   "chip_model": "STM32H753",
   "has_io_board": true,
   "total_outputs": 9,
-  "fmu_servo_outputs": 9,
+  "fmu_servo_outputs": 8,
   "io_outputs": 8,
   "has_sd_card": true,
   "has_ethernet": true,
@@ -4666,20 +4660,19 @@ For battery and power module configuration see [Battery and Power Module Setup](
 ```markdown
 ## PWM Outputs {#pwm_outputs}
 
-This flight controller supports up to 9 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
+This flight controller supports up to 8 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
 
 FMU Outputs:
 
 - Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-9 do not support DShot.
+- Outputs 7-8 do not support DShot.
 - Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 
-The 9 outputs are in 4 groups:
+The 8 outputs are in 3 groups:
 
 - Outputs 1-4 in group1 (Timer5)
 - Outputs 5-6 in group2 (Timer4)
 - Outputs 7-8 in group3 (Timer12)
-- Output 9 in group4 (Timer1)
 
 All outputs within the same group must use the same output protocol and rate.
 ```
@@ -4865,7 +4858,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 ### cuav/nora
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/cuav_nora](https://docs.px4.io/main/en/flight_controller/cuav_nora)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
@@ -5187,36 +5180,12 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | UART8 | /dev/ttyS5 |  | - |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 14 FMU PWM outputs (MAIN).
-
-Outputs:
-
-- Outputs 1-12 support [DShot](../peripherals/dshot.md).
-- Outputs 13-14 do not support DShot.
-- Outputs 1-7, 9-12 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-- Output 8 supports Bidirectional DShot output only (no eRPM capture).
-
-The 14 outputs are in 4 groups:
-
-- Outputs 1-4 in group1 (Timer5)
-- Outputs 5-8 in group2 (Timer4)
-- Outputs 9-12 in group3 (Timer1)
-- Outputs 13-14 in group4 (Timer12)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### cuav/x25-evo
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/cuav_x25-evo](https://docs.px4.io/main/en/flight_controller/cuav_x25-evo)
-**Documented:** No
+**Documented:** Yes
 
 **Proposed `specifications` section:**
 
@@ -5230,7 +5199,7 @@ All outputs within the same group must use the same output protocol and rate.
   - **Barometer**: TODO: confirm which is installed — BMP581 (SPI), ICP-20100 (I2C, bus 4, internal)
   - **Magnetometer**: TODO: confirm which is installed — RM3100 (SPI), IST8310 (I2C, bus 1, external)
 - **Interfaces**
-  - **PWM outputs**: 16 (FMU)
+  - **PWM outputs**: 8 (FMU)
   - **Serial ports**: 8
   - **I2C ports**: 4 (2 external, 2 internal)
     - I2C1 (external, GPS1): IST8310 (magnetometer), INA226 (power monitor), INA228 (power monitor), INA238 (power monitor) — on GPS connector
@@ -5264,7 +5233,7 @@ All outputs within the same group must use the same output protocol and rate.
   "chip_model": "STM32H743",
   "has_io_board": false,
   "total_outputs": 16,
-  "fmu_servo_outputs": 16,
+  "fmu_servo_outputs": 8,
   "io_outputs": 0,
   "has_sd_card": true,
   "has_ethernet": true,
@@ -5345,22 +5314,18 @@ For battery and power module configuration see [Battery and Power Module Setup](
 ```markdown
 ## PWM Outputs {#pwm_outputs}
 
-This flight controller supports up to 16 FMU PWM outputs (MAIN).
+This flight controller supports up to 8 FMU PWM outputs (MAIN).
 
 Outputs:
 
 - Outputs 1-8 support [DShot](../peripherals/dshot.md).
-- Outputs 9-16 do not support DShot.
 - Outputs 1-7 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 - Output 8 supports Bidirectional DShot output only (no eRPM capture).
 
-The 16 outputs are in 5 groups:
+The 8 outputs are in 2 groups:
 
 - Outputs 1-4 in group1 (Timer5)
 - Outputs 5-8 in group2 (Timer4)
-- Outputs 9-11 in group3 (Timer1)
-- Outputs 12-14 in group4 (Timer8)
-- Outputs 15-16 in group5 (Timer12)
 
 All outputs within the same group must use the same output protocol and rate.
 ```
@@ -5537,6 +5502,31 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | UART8 | /dev/ttyS7 |  | - |
 ```
 
+**Existing doc section (for reference):**
+
+<!--
+## PWM Outputs {#pwm_outputs}
+
+This flight controller supports up to 16 FMU PWM outputs (MAIN).
+
+Outputs:
+
+- Outputs 1-8 support [DShot](../peripherals/dshot.md).
+- Outputs 9-16 do not support DShot.
+- Outputs 1-7 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
+- Output 8 supports Bidirectional DShot output only (no eRPM capture).
+
+The 16 outputs are in 5 groups:
+
+- Outputs 1-4 in group1 (Timer5)
+- Outputs 5-8 in group2 (Timer4)
+- Outputs 9-11 in group3 (Timer1)
+- Outputs 12-14 in group4 (Timer8)
+- Outputs 15-16 in group5 (Timer12)
+
+All outputs within the same group must use the same output protocol and rate.
+-->
+
 ---
 
 ### cuav/x25-super
@@ -5556,7 +5546,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   - **Barometer**: TODO: confirm which is installed — BMP581 (SPI), ICP-20100 (I2C, bus 4, internal)
   - **Magnetometer**: TODO: confirm which is installed — RM3100 (SPI), IST8310 (I2C, bus 1, external)
 - **Interfaces**
-  - **PWM outputs**: 16 (FMU)
+  - **PWM outputs**: 8 (FMU)
   - **Serial ports**: 8
   - **I2C ports**: 4 (3 external, 1 internal)
     - I2C1 (external, GPS1): IST8310 (magnetometer), INA226 (power monitor), INA228 (power monitor), INA238 (power monitor) — on GPS connector
@@ -5589,7 +5579,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   "chip_model": "STM32H743",
   "has_io_board": false,
   "total_outputs": 16,
-  "fmu_servo_outputs": 16,
+  "fmu_servo_outputs": 8,
   "io_outputs": 0,
   "has_sd_card": true,
   "has_ethernet": true,
@@ -5669,22 +5659,18 @@ For battery and power module configuration see [Battery and Power Module Setup](
 ```markdown
 ## PWM Outputs {#pwm_outputs}
 
-This flight controller supports up to 16 FMU PWM outputs (MAIN).
+This flight controller supports up to 8 FMU PWM outputs (MAIN).
 
 Outputs:
 
 - Outputs 1-8 support [DShot](../peripherals/dshot.md).
-- Outputs 9-16 do not support DShot.
 - Outputs 1-7 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 - Output 8 supports Bidirectional DShot output only (no eRPM capture).
 
-The 16 outputs are in 5 groups:
+The 8 outputs are in 2 groups:
 
 - Outputs 1-4 in group1 (Timer5)
 - Outputs 5-8 in group2 (Timer4)
-- Outputs 9-11 in group3 (Timer1)
-- Outputs 12-14 in group4 (Timer8)
-- Outputs 15-16 in group5 (Timer12)
 
 All outputs within the same group must use the same output protocol and rate.
 ```
@@ -9100,7 +9086,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   - **Barometer**: MS5611 (SPI)
   - **Magnetometer**: IST8310 (I2C, internal), IST8310 (I2C, bus 1, external)
 - **Interfaces**
-  - **PWM outputs**: 18 (10 FMU + 8 IO)
+  - **PWM outputs**: 13 (5 FMU + 8 IO)
   - **Serial ports**: 7
   - **I2C ports**: 4 (3 external, 1 internal)
     - I2C1 (external, GPS1): IST8310 (magnetometer) — on GPS connector
@@ -9131,7 +9117,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   "chip_model": "STM32H743",
   "has_io_board": true,
   "total_outputs": 10,
-  "fmu_servo_outputs": 10,
+  "fmu_servo_outputs": 5,
   "io_outputs": 8,
   "has_sd_card": true,
   "has_ethernet": false,
@@ -9212,20 +9198,14 @@ For battery and power module configuration see [Battery and Power Module Setup](
 ```markdown
 ## PWM Outputs {#pwm_outputs}
 
-This flight controller supports up to 10 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
+This flight controller supports up to 5 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
 
-FMU Outputs:
+All FMU outputs support [DShot](../peripherals/dshot.md) and [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 
-- Outputs 1-5 support [DShot](../peripherals/dshot.md).
-- Outputs 6-10 do not support DShot.
-- Outputs 1-5 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-
-The 10 outputs are in 4 groups:
+The 5 outputs are in 2 groups:
 
 - Outputs 1-4 in group1 (Timer1)
 - Output 5 in group2 (Timer4)
-- Outputs 6-8 in group3 (Timer2)
-- Outputs 9-10 in group4 (Timer12)
 
 All outputs within the same group must use the same output protocol and rate.
 ```
@@ -11224,7 +11204,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   - **Barometer**: MS5611 (SPI)
   - **Magnetometer**: IST8310 (I2C, internal), IST8310 (I2C, bus 1, external)
 - **Interfaces**
-  - **PWM outputs**: 19 (11 FMU + 8 IO)
+  - **PWM outputs**: 16 (8 FMU + 8 IO)
   - **Serial ports**: 7
   - **I2C ports**: 4 (3 external, 1 internal)
     - I2C1 (external, GPS1): IST8310 (magnetometer) — on GPS connector
@@ -11256,7 +11236,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   "chip_model": "STM32F765",
   "has_io_board": true,
   "total_outputs": 11,
-  "fmu_servo_outputs": 11,
+  "fmu_servo_outputs": 8,
   "io_outputs": 8,
   "has_sd_card": true,
   "has_ethernet": false,
@@ -11337,20 +11317,19 @@ For battery and power module configuration see [Battery and Power Module Setup](
 ```markdown
 ## PWM Outputs {#pwm_outputs}
 
-This flight controller supports up to 11 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
+This flight controller supports up to 8 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
 
 FMU Outputs:
 
 - Outputs 1-4 support [DShot](../peripherals/dshot.md).
-- Outputs 5-11 do not support DShot.
+- Outputs 5-8 do not support DShot.
 - Outputs 1-4 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 
-The 11 outputs are in 4 groups:
+The 8 outputs are in 3 groups:
 
 - Outputs 1-4 in group1 (Timer1)
 - Outputs 5-6 in group2 (Timer4)
 - Outputs 7-8 in group3 (Timer12)
-- Outputs 9-11 in group4 (Timer2)
 
 All outputs within the same group must use the same output protocol and rate.
 ```
@@ -20630,7 +20609,7 @@ Serial port mapping could not be determined from source.
 ### px4/fmu-v5
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/pixhawk4](https://docs.px4.io/main/en/flight_controller/pixhawk4)
-**Documented:** No
+**Documented:** Yes
 
 **Proposed `specifications` section:**
 
@@ -20645,7 +20624,7 @@ Serial port mapping could not be determined from source.
   - **Barometer**: MS5611 (SPI)
   - **Magnetometer**: IST8310 (I2C, internal), IST8310 (I2C, bus 1, external)
 - **Interfaces**
-  - **PWM outputs**: 19 (11 FMU + 8 IO)
+  - **PWM outputs**: 16 (8 FMU + 8 IO)
   - **Serial ports**: 7
   - **I2C ports**: 4 (3 external, 1 internal)
     - I2C1 (external, GPS1): IST8310 (magnetometer) — on GPS connector
@@ -20677,7 +20656,7 @@ Serial port mapping could not be determined from source.
   "chip_model": "STM32F765",
   "has_io_board": true,
   "total_outputs": 11,
-  "fmu_servo_outputs": 11,
+  "fmu_servo_outputs": 8,
   "io_outputs": 8,
   "has_sd_card": true,
   "has_ethernet": false,
@@ -20759,20 +20738,19 @@ For battery and power module configuration see [Battery and Power Module Setup](
 ```markdown
 ## PWM Outputs {#pwm_outputs}
 
-This flight controller supports up to 11 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
+This flight controller supports up to 8 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
 
 FMU Outputs:
 
 - Outputs 1-4 support [DShot](../peripherals/dshot.md).
-- Outputs 5-11 do not support DShot.
+- Outputs 5-8 do not support DShot.
 - Outputs 1-4 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 
-The 11 outputs are in 4 groups:
+The 8 outputs are in 3 groups:
 
 - Outputs 1-4 in group1 (Timer1)
 - Outputs 5-6 in group2 (Timer4)
 - Outputs 7-8 in group3 (Timer12)
-- Outputs 9-11 in group4 (Timer2)
 
 All outputs within the same group must use the same output protocol and rate.
 ```
@@ -20946,6 +20924,28 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | UART8 | /dev/ttyS6 | PX4IO | - |
 ```
 
+**Existing doc section (for reference):**
+
+<!--
+## PWM Outputs {#pwm_outputs}
+
+This flight controller supports up to 11 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
+
+FMU Outputs:
+
+- Outputs 1-4 support [DShot](../peripherals/dshot.md).
+- Outputs 5-8 do not support DShot.
+- Outputs 1-4 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
+
+The 11 outputs are in 3 groups:
+
+- Outputs 1-4 in group1 (Timer1)
+- Outputs 5-6 in group2 (Timer4)
+- Outputs 7-8 in group3 (Timer12)
+
+All outputs within the same group must use the same output protocol and rate.
+-->
+
 ---
 
 ### px4/fmu-v5x
@@ -20966,7 +20966,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   - **Barometer**: BMP388 (I2C, internal, variant V5X000), BMP388 (I2C, bus 2, external, other variants)
   - **Magnetometer**: BMM150 (I2C, internal), IST8310 (I2C, bus 1, external)
 - **Interfaces**
-  - **PWM outputs**: 17 (9 FMU + 8 IO)
+  - **PWM outputs**: 16 (8 FMU + 8 IO)
   - **Serial ports**: 8
   - **I2C ports**: 4 (3 external, 1 internal)
     - I2C1 (external, GPS1): IST8310 (magnetometer), INA226 (power monitor), INA228 (power monitor), INA238 (power monitor) — on GPS connector
@@ -20998,7 +20998,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   "chip_model": "STM32F765",
   "has_io_board": true,
   "total_outputs": 9,
-  "fmu_servo_outputs": 9,
+  "fmu_servo_outputs": 8,
   "io_outputs": 8,
   "has_sd_card": true,
   "has_ethernet": true,
@@ -21084,20 +21084,19 @@ For battery and power module configuration see [Battery and Power Module Setup](
 ```markdown
 ## PWM Outputs {#pwm_outputs}
 
-This flight controller supports up to 9 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
+This flight controller supports up to 8 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
 
 FMU Outputs:
 
 - Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-9 do not support DShot.
+- Outputs 7-8 do not support DShot.
 - Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 
-The 9 outputs are in 4 groups:
+The 8 outputs are in 3 groups:
 
 - Outputs 1-4 in group1 (Timer1)
 - Outputs 5-6 in group2 (Timer4)
 - Outputs 7-8 in group3 (Timer12)
-- Output 9 in group4 (Timer5)
 
 All outputs within the same group must use the same output protocol and rate.
 ```
@@ -21299,7 +21298,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
   - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
 - **Sensors**
-  - **IMU**: ICM-42688P (SPI); BMI088 (SPI, variant V6C000002), BMI088 (SPI, variant V6C002002), BMI055 (SPI, other variants)
+  - **IMU**: BMI088 (SPI, variant V6C000002), BMI088 (SPI, variant V6C002002), BMI055 (SPI, other variants)
   - **Barometer**: MS5611 (I2C, bus 4, external)
   - **Magnetometer**: IST8310 (I2C, bus 4, external), IST8310 (I2C, bus 1, external)
 - **Interfaces**
@@ -21310,7 +21309,6 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
     - I2C2 (external): free (no sensor detected)
     - I2C4 (external, I2C4): MS5611 (barometer), IST8310 (magnetometer)
   - **SPI buses**: 2
-    - ICM-42688P (IMU)
   - **CAN buses**: 2
   - **USB**: Yes
   - **RC input**: SBUS, DSM/DSMX, ST24, SUMD, CRSF, GHST (via IO)
@@ -21620,7 +21618,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   - **Barometer**: TODO: confirm which is installed — BMP388 (I2C, internal), MS5611 (I2C, external)
   - **Magnetometer**: BMM150 (I2C, internal)
 - **Interfaces**
-  - **PWM outputs**: 9 (FMU)
+  - **PWM outputs**: 8 (FMU)
   - **Serial ports**: 8
   - **I2C ports**: 4 (3 external, 1 internal)
     - I2C1 (external): free (no sensor detected)
@@ -21651,7 +21649,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   "chip_model": "STM32H753",
   "has_io_board": false,
   "total_outputs": 9,
-  "fmu_servo_outputs": 9,
+  "fmu_servo_outputs": 8,
   "io_outputs": 0,
   "has_sd_card": true,
   "has_ethernet": false,
@@ -21732,20 +21730,19 @@ For battery and power module configuration see [Battery and Power Module Setup](
 ```markdown
 ## PWM Outputs {#pwm_outputs}
 
-This flight controller supports up to 9 FMU PWM outputs (MAIN).
+This flight controller supports up to 8 FMU PWM outputs (MAIN).
 
 Outputs:
 
 - Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-9 do not support DShot.
+- Outputs 7-8 do not support DShot.
 - Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 
-The 9 outputs are in 4 groups:
+The 8 outputs are in 3 groups:
 
 - Outputs 1-4 in group1 (Timer5)
 - Outputs 5-6 in group2 (Timer4)
 - Outputs 7-8 in group3 (Timer12)
-- Output 9 in group4 (Timer1)
 
 All outputs within the same group must use the same output protocol and rate.
 ```
@@ -21943,7 +21940,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   - **Barometer**: ICP-20100 (I2C, internal, variant V6X006), BMP388 (I2C, internal, other variants), BMP388 (I2C, external, other variants), ICP-20100 (I2C, internal, variant V6X001), ICP-20100 (I2C, external, variant V6X001), ICP-20100 (I2C, internal, variant V6X008)
   - **Magnetometer**: IST8310 (I2C, bus 1, external); BMM150 (I2C, internal, other variants), RM3100 (I2C, bus 4, internal, variant V6X001)
 - **Interfaces**
-  - **PWM outputs**: 17 (9 FMU + 8 IO)
+  - **PWM outputs**: 16 (8 FMU + 8 IO)
   - **Serial ports**: 8
   - **I2C ports**: 4 (3 external, 1 internal)
     - I2C1 (external, GPS1): IST8310 (magnetometer), INA226 (power monitor), INA228 (power monitor), INA238 (power monitor) — on GPS connector
@@ -21973,7 +21970,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   "chip_model": "STM32H753",
   "has_io_board": true,
   "total_outputs": 9,
-  "fmu_servo_outputs": 9,
+  "fmu_servo_outputs": 8,
   "io_outputs": 8,
   "has_sd_card": true,
   "has_ethernet": true,
@@ -22060,20 +22057,19 @@ For battery and power module configuration see [Battery and Power Module Setup](
 ```markdown
 ## PWM Outputs {#pwm_outputs}
 
-This flight controller supports up to 9 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
+This flight controller supports up to 8 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
 
 FMU Outputs:
 
 - Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-9 do not support DShot.
+- Outputs 7-8 do not support DShot.
 - Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 
-The 9 outputs are in 4 groups:
+The 8 outputs are in 3 groups:
 
 - Outputs 1-4 in group1 (Timer5)
 - Outputs 5-6 in group2 (Timer4)
 - Outputs 7-8 in group3 (Timer12)
-- Output 9 in group4 (Timer1)
 
 All outputs within the same group must use the same output protocol and rate.
 ```
@@ -23426,6 +23422,288 @@ Serial port mapping could not be determined from source.
 
 ---
 
+### saam/saampixv1_1
+
+**Doc:** No flight controller doc found
+
+**Proposed `specifications` section:**
+
+```markdown
+## Specifications {#specifications}
+
+- **Processor**
+  - **Main FMU Processor**: STM32F42
+- **Sensors**
+  - **IMU**: TODO: confirm which is installed — ICM-20948, MPU-6000, ICM-20602 (SPI), MPU-9250 (SPI)
+  - **Barometer**: MS5611 (SPI)
+  - **Magnetometer**: TODO: confirm which is installed — LIS3MDL (SPI), HMC5883L (I2C, external), QMC5883L (I2C, external)
+- **Interfaces**
+  - **PWM outputs**: 8 (FMU)
+  - **I2C ports**: 2 (1 external, 1 internal)
+    - I2C1 (internal)
+    - I2C2 (external): free (no sensor detected)
+  - **SPI buses**: 3
+    - ICM-20602 (IMU)
+    - MPU-9250 (IMU)
+    - MS5611 (barometer)
+    - LIS3MDL (magnetometer)
+  - **USB**: Yes
+  - **RC input**: PPM
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
+
+<!-- overview-source-data
+{
+  "board": "saam/saampixv1_1",
+  "chip_model": "STM32F42",
+  "has_io_board": false,
+  "total_outputs": 8,
+  "fmu_servo_outputs": 8,
+  "io_outputs": 0,
+  "has_sd_card": true,
+  "has_ethernet": false,
+  "has_heater": false,
+  "num_i2c_buses": 2,
+  "num_spi_buses": 3,
+  "num_can_buses": 0,
+  "has_usb": true,
+  "sensor_drivers": {
+    "imu": [
+      "ICM-20948",
+      "MPU-6000",
+      "ICM-20602",
+      "MPU-9250"
+    ],
+    "baro": [
+      "MS5611"
+    ],
+    "mag": [
+      "LIS3MDL",
+      "HMC5883L",
+      "QMC5883L"
+    ],
+    "osd": []
+  },
+  "overview_wizard": null
+}
+-->
+```
+
+**Proposed `power` section:**
+
+```markdown
+## Power {#power}
+
+The flight controller can be powered from a power module connected to the **TODO: POWER port label** port.
+
+The power module must supply a regulated **5V** at a minimum of **3A continuous**.
+
+Power ports:
+
+- `TODO: POWER port label`: TODO: connector type
+
+:::warning
+The PWM output ports are not powered by the POWER port.
+The output rail must be [separately powered](../assembly/servo_power.md) if it needs to power servos or other hardware.
+This is generally true for VTOL and fixed-wing vehicles, but not necessarily true for MC vehicles.
+:::
+
+For battery and power module configuration see [Battery and Power Module Setup](../config/battery.md).
+
+![Power Connection](../../assets/flight_controller/saampixv1_1/power_connection.png)
+
+<!-- checklist
+- [ ] Confirm power port label(s) as printed on board
+- [ ] Confirm connector type(s)
+- [ ] Confirm voltage/current ratings of power module used
+- [ ] Add a connection diagram image showing power port location
+-->
+
+<!-- power-source-data
+{
+  "board": "saam/saampixv1_1",
+  "source": {
+    "num_power_inputs": 1,
+    "has_redundant_power": false,
+    "has_dual_battery_monitoring": false,
+    "has_dronecan_power_input": false,
+    "power_monitor_type": "ina226"
+  },
+  "power_ports_wizard": null
+}
+-->
+```
+
+**Proposed `pwm_outputs` section:**
+
+```markdown
+## PWM Outputs {#pwm_outputs}
+
+This flight controller supports up to 8 FMU PWM outputs (MAIN).
+
+[DShot](../peripherals/dshot.md) is not supported.
+
+The 8 outputs are in 2 groups:
+
+- Outputs 1-4 in group1 (Timer1)
+- Outputs 5-8 in group2 (Timer4)
+
+All outputs within the same group must use the same output protocol and rate.
+```
+
+**Proposed `radio_control` section:**
+
+```markdown
+### Radio Control {#radio_control}
+
+A remote control (RC) radio system is required if you want to _manually_ control your vehicle (PX4 does not require a radio system for autonomous flight modes).
+
+You will need to [select a compatible transmitter/receiver](../getting_started/rc_transmitter_receiver.md) and then _bind_ them so that they communicate (read the instructions that come with your specific transmitter/receiver).
+
+The ports and supported protocols are:
+
+- `TODO: RC port label` (FMU): SBUS, DSM/DSMX, ST24, SUMD, CRSF, and GHST receivers
+- `TODO: PPM port label` (FMU): PPM
+
+For PPM and S.Bus receivers, a single signal wire carries all channels. If your receiver outputs individual PWM signals (one wire per channel) it must be connected via a [PPM encoder](../getting_started/rc_transmitter_receiver.md#pwm-receivers).
+
+![RC Connection Diagram](../../assets/flight_controller/saam_saampixv1_1/rc_connection_diagram.png)
+
+<!-- checklist
+- [ ] List all RC port names exactly as labeled on the board
+- [ ] State which protocols each port supports
+- [ ] State the connector type used for each RC port
+- [ ] Confirm which protocols have been tested with this board
+- [ ] Add a connection diagram image showing where to plug in the RC receiver
+-->
+
+<!-- rc-source-data
+{
+  "board": "saam/saampixv1_1",
+  "modules": {
+    "rc_input": true,
+    "common_rc": false,
+    "px4io": false,
+    "has_ppm_pin": true,
+    "ppm_shared_with_serial": false
+  },
+  "rc_serial": null,
+  "io_serial": null,
+  "rc_ports_wizard": null
+}
+-->
+```
+
+**Proposed `gps_compass` section:**
+
+```markdown
+### GPS & Compass {#gps_compass}
+
+PX4 supports GPS modules connected to the GPS port(s) listed below.
+The module should be [mounted on the frame](../assembly/mount_gps_compass.md) as far away from other electronics as possible, with the direction marker pointing towards the front of the vehicle.
+
+The GPS ports are:
+
+- `TODO: GPS port label` (FMU): TODO: connector type — GPS, compass (I2C)
+
+![GNSS Connection](../../assets/flight_controller/saam_saampixv1_1/gnss_connection.png)
+
+<!-- checklist
+- [ ] Confirm physical label(s) of GPS port(s) as printed on board
+- [ ] Confirm connector type (e.g. 10-pin JST GH Pixhawk full or 6-pin basic)
+- [ ] Confirm whether GPS1 includes safety switch, buzzer and LED pins
+- [ ] Note whether an external compass is required or integrated in GPS module
+- [ ] Add a connection diagram image showing GPS port location
+-->
+
+<!-- gps-source-data
+{
+  "board": "saam/saampixv1_1",
+  "source": {
+    "gps_ports": [],
+    "has_pps_capture": false,
+    "has_safety_switch": false,
+    "has_safety_led": false,
+    "has_buzzer": false
+  },
+  "gps_ports_wizard": null
+}
+-->
+```
+
+**Proposed `telemetry` section:**
+
+```markdown
+## Telemetry Radios (Optional) {#telemetry}
+
+[Telemetry radios](../telemetry/index.md) may be used to communicate and control a vehicle in flight from a ground station (for example, you can direct the UAV to a particular position, or upload a new mission).
+
+The vehicle-based radio should be connected to the **TODO: TELEM port label** port (if connected to this port, no further configuration is required).
+The other radio is connected to your ground station computer or mobile device (usually by USB).
+
+![Telemetry Radio](../../assets/flight_controller/saampixv1_1/telemetry_radio.jpg)
+
+<!-- checklist
+- [ ] Confirm TELEM port label(s) as printed on board
+- [ ] Add a wiring photo showing telemetry radio connected to TELEM1
+-->
+
+<!-- telemetry-source-data
+{
+  "board": "saam/saampixv1_1",
+  "source": {
+    "telem_ports": []
+  }
+}
+-->
+```
+
+**Proposed `sd_card` section:**
+
+```markdown
+## SD Card (Optional) {#sd_card}
+
+SD cards are highly recommended as they are needed to [log and analyse flight details](../getting_started/flight_reporting.md), to run missions, and to use UAVCAN-bus hardware.
+Insert the card into _TODO: saampixv1_1 board name_ as shown below.
+
+![SD Card Slot](../../assets/flight_controller/saampixv1_1/sd_card_slot.jpg)
+
+:::tip
+For more information see [Basic Concepts > SD Cards (Removable Memory)](../getting_started/px4_basic_concepts.md#sd-cards-removable-memory).
+:::
+
+<!-- checklist
+- [ ] Confirm SD card slot location
+- [ ] Add photo showing SD card insertion
+-->
+
+<!-- sd-source-data
+{
+  "board": "saam/saampixv1_1",
+  "source": {
+    "has_sd_card": true
+  }
+}
+-->
+```
+
+**Proposed `serial_ports` section:**
+
+```markdown
+## Serial Port Mapping
+
+Serial port mapping could not be determined from source.
+```
+
+---
+
 ### siyi/n7
 
 **Doc:** No flight controller doc found
@@ -24376,7 +24654,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   - **Barometer**: TODO: confirm which is installed — BMP388, MS5611, ICP-20100 (I2C, external), ICP-20100 (I2C, internal)
   - **Magnetometer**: TODO: confirm which is installed — QMC5883L, BMM150 (I2C, internal), RM3100 (I2C, internal)
 - **Interfaces**
-  - **PWM outputs**: 17 (9 FMU + 8 IO)
+  - **PWM outputs**: 16 (8 FMU + 8 IO)
   - **Serial ports**: 8
   - **I2C ports**: 4 (3 external, 1 internal)
     - I2C1 (external): free (no sensor detected)
@@ -24409,7 +24687,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   "chip_model": "STM32H753",
   "has_io_board": true,
   "total_outputs": 9,
-  "fmu_servo_outputs": 9,
+  "fmu_servo_outputs": 8,
   "io_outputs": 8,
   "has_sd_card": true,
   "has_ethernet": true,
@@ -24494,20 +24772,19 @@ For battery and power module configuration see [Battery and Power Module Setup](
 ```markdown
 ## PWM Outputs {#pwm_outputs}
 
-This flight controller supports up to 9 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
+This flight controller supports up to 8 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
 
 FMU Outputs:
 
 - Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-9 do not support DShot.
+- Outputs 7-8 do not support DShot.
 - Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 
-The 9 outputs are in 4 groups:
+The 8 outputs are in 3 groups:
 
 - Outputs 1-4 in group1 (Timer5)
 - Outputs 5-6 in group2 (Timer4)
 - Outputs 7-8 in group3 (Timer12)
-- Output 9 in group4 (Timer1)
 
 All outputs within the same group must use the same output protocol and rate.
 ```
@@ -26211,614 +26488,6 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 
 ---
 
-### xc-fly/xc-slam
-
-**Doc:** No flight controller doc found
-
-**Proposed `specifications` section:**
-
-```markdown
-## Specifications {#specifications}
-
-- **Processor**
-  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-- **Sensors**
-  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-42688P (SPI)
-  - **Barometer**: DPS310 (I2C, internal)
-  - **Magnetometer**: TODO: confirm which is installed — IST8310 (I2C, internal), QMC5883L
-- **Interfaces**
-  - **PWM outputs**: 8 (FMU)
-  - **Serial ports**: 8
-  - **I2C ports**: 2 (1 external, 1 internal)
-    - I2C1 (internal): DPS310 (barometer), IST8310 (magnetometer)
-    - I2C4 (external): free (no sensor detected)
-  - **SPI buses**: 4
-    - BMI088 (IMU)
-    - ICM-42688P (IMU)
-  - **CAN buses**: 1
-  - **USB**: Yes
-  - **RC input**: Yes
-  - **Analog battery inputs**: 1
-  - **Additional analog inputs**: TODO: number of additional analog inputs
-- **Electrical Data**
-  - **Operating voltage**: TODO: supply voltage range
-- **Mechanical Data**
-  - **Dimensions**: TODO: dimensions (mm)
-  - **Weight**: TODO: weight (g)
-- **Other**
-  - **SD card**: Yes
-
-<!-- overview-source-data
-{
-  "board": "xc-fly/xc-slam",
-  "chip_model": "STM32H743",
-  "has_io_board": false,
-  "total_outputs": 8,
-  "fmu_servo_outputs": 8,
-  "io_outputs": 0,
-  "has_sd_card": true,
-  "has_ethernet": false,
-  "has_heater": false,
-  "num_i2c_buses": 2,
-  "num_spi_buses": 4,
-  "num_can_buses": 1,
-  "has_usb": true,
-  "sensor_drivers": {
-    "imu": [
-      "BMI088",
-      "ICM-42688P"
-    ],
-    "baro": [
-      "DPS310"
-    ],
-    "mag": [
-      "IST8310",
-      "QMC5883L"
-    ],
-    "osd": []
-  },
-  "overview_wizard": null
-}
--->
-```
-
-**Proposed `power` section:**
-
-```markdown
-## Power {#power}
-
-The flight controller can be powered from a power module connected to the **TODO: POWER port label** port.
-
-The power module must supply a regulated **5V** at a minimum of **3A continuous**.
-
-Power ports:
-
-- `TODO: POWER port label`: TODO: connector type
-
-:::warning
-The PWM output ports are not powered by the POWER port.
-The output rail must be [separately powered](../assembly/servo_power.md) if it needs to power servos or other hardware.
-This is generally true for VTOL and fixed-wing vehicles, but not necessarily true for MC vehicles.
-:::
-
-For battery and power module configuration see [Battery and Power Module Setup](../config/battery.md).
-
-![Power Connection](../../assets/flight_controller/xc-slam/power_connection.png)
-
-<!-- checklist
-- [ ] Confirm power port label(s) as printed on board
-- [ ] Confirm connector type(s)
-- [ ] Confirm voltage/current ratings of power module used
-- [ ] Add a connection diagram image showing power port location
--->
-
-<!-- power-source-data
-{
-  "board": "xc-fly/xc-slam",
-  "source": {
-    "num_power_inputs": 1,
-    "has_redundant_power": false,
-    "has_dual_battery_monitoring": false,
-    "has_dronecan_power_input": false,
-    "power_monitor_type": null
-  },
-  "power_ports_wizard": null
-}
--->
-```
-
-**Proposed `pwm_outputs` section:**
-
-```markdown
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 8 FMU PWM outputs (MAIN).
-
-All outputs support [DShot](../peripherals/dshot.md) and [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-
-The 8 outputs are in 3 groups:
-
-- Outputs 1-4 in group1 (Timer1)
-- Outputs 7-8 in group2 (Timer2)
-- Outputs 5-6 in group3 (Timer3)
-
-All outputs within the same group must use the same output protocol and rate.
-```
-
-**Proposed `radio_control` section:**
-
-```markdown
-### Radio Control {#radio_control}
-
-A remote control (RC) radio system is required if you want to _manually_ control your vehicle (PX4 does not require a radio system for autonomous flight modes).
-
-You will need to [select a compatible transmitter/receiver](../getting_started/rc_transmitter_receiver.md) and then _bind_ them so that they communicate (read the instructions that come with your specific transmitter/receiver).
-
-The ports and supported protocols are:
-
-- `RC` (FMU): SBUS, DSM/DSMX, ST24, SUMD, CRSF, and GHST receivers
-
-For PPM and S.Bus receivers, a single signal wire carries all channels. If your receiver outputs individual PWM signals (one wire per channel) it must be connected via a [PPM encoder](../getting_started/rc_transmitter_receiver.md#pwm-receivers).
-
-![RC Connection Diagram](../../assets/flight_controller/xc-fly_xc-slam/rc_connection_diagram.png)
-
-<!-- checklist
-- [ ] List all RC port names exactly as labeled on the board
-- [ ] State which protocols each port supports
-- [ ] State the connector type used for each RC port
-- [ ] Confirm which protocols have been tested with this board
-- [ ] Add a connection diagram image showing where to plug in the RC receiver
--->
-
-<!-- rc-source-data
-{
-  "board": "xc-fly/xc-slam",
-  "modules": {
-    "rc_input": true,
-    "common_rc": false,
-    "px4io": false,
-    "has_ppm_pin": false,
-    "ppm_shared_with_serial": false
-  },
-  "rc_serial": {
-    "device": "/dev/ttyS4",
-    "uart": "UART5",
-    "label": "RC",
-    "side": "FMU"
-  },
-  "io_serial": null,
-  "rc_ports_wizard": null
-}
--->
-```
-
-**Proposed `gps_compass` section:**
-
-```markdown
-### GPS & Compass {#gps_compass}
-
-PX4 supports GPS modules connected to the GPS port(s) listed below.
-The module should be [mounted on the frame](../assembly/mount_gps_compass.md) as far away from other electronics as possible, with the direction marker pointing towards the front of the vehicle.
-
-The GPS ports are:
-
-- `GPS1` (FMU): TODO: connector type — GPS, compass (I2C)
-
-![GNSS Connection](../../assets/flight_controller/xc-fly_xc-slam/gnss_connection.png)
-
-<!-- checklist
-- [ ] Confirm physical label(s) of GPS port(s) as printed on board
-- [ ] Confirm connector type (e.g. 10-pin JST GH Pixhawk full or 6-pin basic)
-- [ ] Confirm whether GPS1 includes safety switch, buzzer and LED pins
-- [ ] Note whether an external compass is required or integrated in GPS module
-- [ ] Add a connection diagram image showing GPS port location
--->
-
-<!-- gps-source-data
-{
-  "board": "xc-fly/xc-slam",
-  "source": {
-    "gps_ports": [
-      {
-        "label": "GPS1",
-        "device": "/dev/ttyS0",
-        "uart": "USART1"
-      }
-    ],
-    "has_pps_capture": false,
-    "has_safety_switch": false,
-    "has_safety_led": false,
-    "has_buzzer": true
-  },
-  "gps_ports_wizard": null
-}
--->
-```
-
-**Proposed `telemetry` section:**
-
-```markdown
-## Telemetry Radios (Optional) {#telemetry}
-
-[Telemetry radios](../telemetry/index.md) may be used to communicate and control a vehicle in flight from a ground station (for example, you can direct the UAV to a particular position, or upload a new mission).
-
-The vehicle-based radio should be connected to a TELEM port — **TELEM1**, **TELEM2**, **TELEM3**, **TELEM4** (if connected to **TELEM1**, no further configuration is required).
-The other radio is connected to your ground station computer or mobile device (usually by USB).
-
-![Telemetry Radio](../../assets/flight_controller/xc-slam/telemetry_radio.jpg)
-
-<!-- checklist
-- [ ] Confirm TELEM port label(s) as printed on board
-- [ ] Add a wiring photo showing telemetry radio connected to TELEM1
--->
-
-<!-- telemetry-source-data
-{
-  "board": "xc-fly/xc-slam",
-  "source": {
-    "telem_ports": [
-      "TELEM1",
-      "TELEM2",
-      "TELEM3",
-      "TELEM4"
-    ]
-  }
-}
--->
-```
-
-**Proposed `sd_card` section:**
-
-```markdown
-## SD Card (Optional) {#sd_card}
-
-SD cards are highly recommended as they are needed to [log and analyse flight details](../getting_started/flight_reporting.md), to run missions, and to use UAVCAN-bus hardware.
-Insert the card into _TODO: xc-slam board name_ as shown below.
-
-![SD Card Slot](../../assets/flight_controller/xc-slam/sd_card_slot.jpg)
-
-:::tip
-For more information see [Basic Concepts > SD Cards (Removable Memory)](../getting_started/px4_basic_concepts.md#sd-cards-removable-memory).
-:::
-
-<!-- checklist
-- [ ] Confirm SD card slot location
-- [ ] Add photo showing SD card insertion
--->
-
-<!-- sd-source-data
-{
-  "board": "xc-fly/xc-slam",
-  "source": {
-    "has_sd_card": true
-  }
-}
--->
-```
-
-**Proposed `serial_ports` section:**
-
-```markdown
-## Serial Port Mapping
-
-| UART | Device | Port | Flow Control |
-|------|--------|------|:---:|
-| USART1 | /dev/ttyS0 | GPS1 | - |
-| USART2 | /dev/ttyS1 | TELEM1 | - |
-| USART3 | /dev/ttyS2 | EXT2 | - |
-| UART4 | /dev/ttyS3 | TELEM2 | - |
-| UART5 | /dev/ttyS4 | RC | - |
-| USART6 | /dev/ttyS5 | TELEM3 | - |
-| UART7 | /dev/ttyS6 |  | - |
-| UART8 | /dev/ttyS7 | TELEM4 | - |
-```
-
----
-
-### xc-fly/xc-slim
-
-**Doc:** No flight controller doc found
-
-**Proposed `specifications` section:**
-
-```markdown
-## Specifications {#specifications}
-
-- **Processor**
-  - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
-- **Sensors**
-  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-42688P (SPI)
-  - **Barometer**: DPS310 (I2C, internal)
-  - **Magnetometer**: TODO: confirm which is installed — IST8310 (I2C, internal), QMC5883L
-- **Interfaces**
-  - **PWM outputs**: 8 (FMU)
-  - **Serial ports**: 8
-  - **I2C ports**: 2 (1 external, 1 internal)
-    - I2C1 (internal): DPS310 (barometer), IST8310 (magnetometer)
-    - I2C4 (external): free (no sensor detected)
-  - **SPI buses**: 4
-    - BMI088 (IMU)
-    - ICM-42688P (IMU)
-  - **CAN buses**: 1
-  - **USB**: Yes
-  - **RC input**: Yes
-  - **Analog battery inputs**: 1
-  - **Additional analog inputs**: TODO: number of additional analog inputs
-- **Electrical Data**
-  - **Operating voltage**: TODO: supply voltage range
-- **Mechanical Data**
-  - **Dimensions**: TODO: dimensions (mm)
-  - **Weight**: TODO: weight (g)
-- **Other**
-  - **SD card**: Yes
-
-<!-- overview-source-data
-{
-  "board": "xc-fly/xc-slim",
-  "chip_model": "STM32H743",
-  "has_io_board": false,
-  "total_outputs": 8,
-  "fmu_servo_outputs": 8,
-  "io_outputs": 0,
-  "has_sd_card": true,
-  "has_ethernet": false,
-  "has_heater": false,
-  "num_i2c_buses": 2,
-  "num_spi_buses": 4,
-  "num_can_buses": 1,
-  "has_usb": true,
-  "sensor_drivers": {
-    "imu": [
-      "BMI088",
-      "ICM-42688P"
-    ],
-    "baro": [
-      "DPS310"
-    ],
-    "mag": [
-      "IST8310",
-      "QMC5883L"
-    ],
-    "osd": []
-  },
-  "overview_wizard": null
-}
--->
-```
-
-**Proposed `power` section:**
-
-```markdown
-## Power {#power}
-
-The flight controller can be powered from a power module connected to the **TODO: POWER port label** port.
-
-The power module must supply a regulated **5V** at a minimum of **3A continuous**.
-
-Power ports:
-
-- `TODO: POWER port label`: TODO: connector type
-
-:::warning
-The PWM output ports are not powered by the POWER port.
-The output rail must be [separately powered](../assembly/servo_power.md) if it needs to power servos or other hardware.
-This is generally true for VTOL and fixed-wing vehicles, but not necessarily true for MC vehicles.
-:::
-
-For battery and power module configuration see [Battery and Power Module Setup](../config/battery.md).
-
-![Power Connection](../../assets/flight_controller/xc-slim/power_connection.png)
-
-<!-- checklist
-- [ ] Confirm power port label(s) as printed on board
-- [ ] Confirm connector type(s)
-- [ ] Confirm voltage/current ratings of power module used
-- [ ] Add a connection diagram image showing power port location
--->
-
-<!-- power-source-data
-{
-  "board": "xc-fly/xc-slim",
-  "source": {
-    "num_power_inputs": 1,
-    "has_redundant_power": false,
-    "has_dual_battery_monitoring": false,
-    "has_dronecan_power_input": false,
-    "power_monitor_type": null
-  },
-  "power_ports_wizard": null
-}
--->
-```
-
-**Proposed `pwm_outputs` section:**
-
-```markdown
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 8 FMU PWM outputs (MAIN).
-
-All outputs support [DShot](../peripherals/dshot.md) and [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-
-The 8 outputs are in 3 groups:
-
-- Outputs 1-4 in group1 (Timer1)
-- Outputs 7-8 in group2 (Timer2)
-- Outputs 5-6 in group3 (Timer3)
-
-All outputs within the same group must use the same output protocol and rate.
-```
-
-**Proposed `radio_control` section:**
-
-```markdown
-### Radio Control {#radio_control}
-
-A remote control (RC) radio system is required if you want to _manually_ control your vehicle (PX4 does not require a radio system for autonomous flight modes).
-
-You will need to [select a compatible transmitter/receiver](../getting_started/rc_transmitter_receiver.md) and then _bind_ them so that they communicate (read the instructions that come with your specific transmitter/receiver).
-
-The ports and supported protocols are:
-
-- `RC` (FMU): SBUS, DSM/DSMX, ST24, SUMD, CRSF, and GHST receivers
-
-For PPM and S.Bus receivers, a single signal wire carries all channels. If your receiver outputs individual PWM signals (one wire per channel) it must be connected via a [PPM encoder](../getting_started/rc_transmitter_receiver.md#pwm-receivers).
-
-![RC Connection Diagram](../../assets/flight_controller/xc-fly_xc-slim/rc_connection_diagram.png)
-
-<!-- checklist
-- [ ] List all RC port names exactly as labeled on the board
-- [ ] State which protocols each port supports
-- [ ] State the connector type used for each RC port
-- [ ] Confirm which protocols have been tested with this board
-- [ ] Add a connection diagram image showing where to plug in the RC receiver
--->
-
-<!-- rc-source-data
-{
-  "board": "xc-fly/xc-slim",
-  "modules": {
-    "rc_input": true,
-    "common_rc": false,
-    "px4io": false,
-    "has_ppm_pin": false,
-    "ppm_shared_with_serial": false
-  },
-  "rc_serial": {
-    "device": "/dev/ttyS4",
-    "uart": "UART5",
-    "label": "RC",
-    "side": "FMU"
-  },
-  "io_serial": null,
-  "rc_ports_wizard": null
-}
--->
-```
-
-**Proposed `gps_compass` section:**
-
-```markdown
-### GPS & Compass {#gps_compass}
-
-PX4 supports GPS modules connected to the GPS port(s) listed below.
-The module should be [mounted on the frame](../assembly/mount_gps_compass.md) as far away from other electronics as possible, with the direction marker pointing towards the front of the vehicle.
-
-The GPS ports are:
-
-- `GPS1` (FMU): TODO: connector type — GPS, compass (I2C)
-
-![GNSS Connection](../../assets/flight_controller/xc-fly_xc-slim/gnss_connection.png)
-
-<!-- checklist
-- [ ] Confirm physical label(s) of GPS port(s) as printed on board
-- [ ] Confirm connector type (e.g. 10-pin JST GH Pixhawk full or 6-pin basic)
-- [ ] Confirm whether GPS1 includes safety switch, buzzer and LED pins
-- [ ] Note whether an external compass is required or integrated in GPS module
-- [ ] Add a connection diagram image showing GPS port location
--->
-
-<!-- gps-source-data
-{
-  "board": "xc-fly/xc-slim",
-  "source": {
-    "gps_ports": [
-      {
-        "label": "GPS1",
-        "device": "/dev/ttyS0",
-        "uart": "USART1"
-      }
-    ],
-    "has_pps_capture": false,
-    "has_safety_switch": false,
-    "has_safety_led": false,
-    "has_buzzer": true
-  },
-  "gps_ports_wizard": null
-}
--->
-```
-
-**Proposed `telemetry` section:**
-
-```markdown
-## Telemetry Radios (Optional) {#telemetry}
-
-[Telemetry radios](../telemetry/index.md) may be used to communicate and control a vehicle in flight from a ground station (for example, you can direct the UAV to a particular position, or upload a new mission).
-
-The vehicle-based radio should be connected to a TELEM port — **TELEM1**, **TELEM2**, **TELEM3**, **TELEM4** (if connected to **TELEM1**, no further configuration is required).
-The other radio is connected to your ground station computer or mobile device (usually by USB).
-
-![Telemetry Radio](../../assets/flight_controller/xc-slim/telemetry_radio.jpg)
-
-<!-- checklist
-- [ ] Confirm TELEM port label(s) as printed on board
-- [ ] Add a wiring photo showing telemetry radio connected to TELEM1
--->
-
-<!-- telemetry-source-data
-{
-  "board": "xc-fly/xc-slim",
-  "source": {
-    "telem_ports": [
-      "TELEM1",
-      "TELEM2",
-      "TELEM3",
-      "TELEM4"
-    ]
-  }
-}
--->
-```
-
-**Proposed `sd_card` section:**
-
-```markdown
-## SD Card (Optional) {#sd_card}
-
-SD cards are highly recommended as they are needed to [log and analyse flight details](../getting_started/flight_reporting.md), to run missions, and to use UAVCAN-bus hardware.
-Insert the card into _TODO: xc-slim board name_ as shown below.
-
-![SD Card Slot](../../assets/flight_controller/xc-slim/sd_card_slot.jpg)
-
-:::tip
-For more information see [Basic Concepts > SD Cards (Removable Memory)](../getting_started/px4_basic_concepts.md#sd-cards-removable-memory).
-:::
-
-<!-- checklist
-- [ ] Confirm SD card slot location
-- [ ] Add photo showing SD card insertion
--->
-
-<!-- sd-source-data
-{
-  "board": "xc-fly/xc-slim",
-  "source": {
-    "has_sd_card": true
-  }
-}
--->
-```
-
-**Proposed `serial_ports` section:**
-
-```markdown
-## Serial Port Mapping
-
-| UART | Device | Port | Flow Control |
-|------|--------|------|:---:|
-| USART1 | /dev/ttyS0 | GPS1 | - |
-| USART2 | /dev/ttyS1 | TELEM1 | - |
-| USART3 | /dev/ttyS2 | EXT2 | - |
-| UART4 | /dev/ttyS3 | TELEM2 | - |
-| UART5 | /dev/ttyS4 | RC | - |
-| USART6 | /dev/ttyS5 | TELEM3 | - |
-| UART7 | /dev/ttyS6 |  | - |
-| UART8 | /dev/ttyS7 | TELEM4 | - |
-```
-
----
-
 ### zeroone/x6
 
 **Doc:** No flight controller doc found
@@ -26836,7 +26505,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   - **Barometer**: ICP-20100 (I2C, internal), ICP-20100 (I2C, external)
   - **Magnetometer**: RM3100 (I2C, bus 4, internal), IST8310 (I2C, bus 1, external), IST8310 (I2C, internal)
 - **Interfaces**
-  - **PWM outputs**: 17 (9 FMU + 8 IO)
+  - **PWM outputs**: 16 (8 FMU + 8 IO)
   - **Serial ports**: 8
   - **I2C ports**: 4 (3 external, 1 internal)
     - I2C1 (external, GPS1): IST8310 (magnetometer), INA226 (power monitor), INA228 (power monitor), INA238 (power monitor) — on GPS connector
@@ -26866,7 +26535,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   "chip_model": "STM32H753",
   "has_io_board": true,
   "total_outputs": 9,
-  "fmu_servo_outputs": 9,
+  "fmu_servo_outputs": 8,
   "io_outputs": 8,
   "has_sd_card": true,
   "has_ethernet": true,
@@ -26946,20 +26615,19 @@ For battery and power module configuration see [Battery and Power Module Setup](
 ```markdown
 ## PWM Outputs {#pwm_outputs}
 
-This flight controller supports up to 9 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
+This flight controller supports up to 8 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
 
 FMU Outputs:
 
 - Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-9 do not support DShot.
+- Outputs 7-8 do not support DShot.
 - Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 
-The 9 outputs are in 4 groups:
+The 8 outputs are in 3 groups:
 
 - Outputs 1-4 in group1 (Timer5)
 - Outputs 5-6 in group2 (Timer4)
 - Outputs 7-8 in group3 (Timer12)
-- Output 9 in group4 (Timer1)
 
 All outputs within the same group must use the same output protocol and rate.
 ```

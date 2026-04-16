@@ -29,8 +29,17 @@
     "weight_g": null,
     "min_voltage": null,
     "max_voltage": null,
+    "usb_powers_fc": false,
+    "usb_pwr_min_v": null,
+    "usb_pwr_max_v": null,
+    "has_servo_rail": true,
+    "servo_rail_max_v": null,
     "usb_connectors": null,
+    "usb_labels": [
+      "USB"
+    ],
     "num_additional_adc_inputs": null,
     "sensor_variant_labels": null
-  }
+  },
+  "i2c_buses_wizard": null
 }

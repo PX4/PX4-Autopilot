@@ -84,13 +84,15 @@
         "name": "BMI088",
         "bus_type": "SPI",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       },
       {
         "name": "ICM-42688P",
         "bus_type": "SPI",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "baro": [
@@ -98,7 +100,8 @@
         "name": "BMP280",
         "bus_type": "I2C",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "mag": [
@@ -106,10 +109,12 @@
         "name": "BMM150",
         "bus_type": "I2C",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
-    "osd": []
+    "osd": [],
+    "power_monitor": []
   },
   "sensor_variant_info": {
     "has_variants": false,
@@ -119,13 +124,15 @@
           "name": "BMI088",
           "bus_type": "SPI",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         },
         {
           "name": "ICM-42688P",
           "bus_type": "SPI",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "baro": [
@@ -133,7 +140,8 @@
           "name": "BMP280",
           "bus_type": "I2C",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "mag": [
@@ -141,13 +149,16 @@
           "name": "BMM150",
           "bus_type": "I2C",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
-      "osd": []
+      "osd": [],
+      "power_monitor": []
     },
     "variants": {}
   },
+  "i2c_bus_config": null,
   "num_i2c_buses": 0,
   "num_spi_buses": 0,
   "num_can_buses": 0,
@@ -155,5 +166,5 @@
   "doc_url": "https://docs.px4.io/main/en/flight_controller/nxp_rddrone_fmuk66",
   "doc_file": "nxp_rddrone_fmuk66.md",
   "doc_exists": true,
-  "documented": true
+  "documented": false
 }

@@ -142,20 +142,14 @@
   ],
   "sensor_osd_drivers": [],
   "sensor_bus_info": {
-    "imu": [
-      {
-        "name": "ICM-42688P",
-        "bus_type": "SPI",
-        "bus_num": null,
-        "external": false
-      }
-    ],
+    "imu": [],
     "baro": [
       {
         "name": "MS5611",
         "bus_type": "I2C",
         "bus_num": 4,
-        "external": true
+        "external": true,
+        "port_label": "I2C4"
       }
     ],
     "mag": [
@@ -163,34 +157,31 @@
         "name": "IST8310",
         "bus_type": "I2C",
         "bus_num": 4,
-        "external": true
+        "external": true,
+        "port_label": "I2C4"
       },
       {
         "name": "IST8310",
         "bus_type": "I2C",
         "bus_num": 1,
-        "external": true
+        "external": true,
+        "port_label": "I2C1"
       }
     ],
-    "osd": []
+    "osd": [],
+    "power_monitor": []
   },
   "sensor_variant_info": {
     "has_variants": true,
     "unconditional": {
-      "imu": [
-        {
-          "name": "ICM-42688P",
-          "bus_type": "SPI",
-          "bus_num": null,
-          "external": false
-        }
-      ],
+      "imu": [],
       "baro": [
         {
           "name": "MS5611",
           "bus_type": "I2C",
           "bus_num": 4,
-          "external": true
+          "external": true,
+          "port_label": "I2C4"
         }
       ],
       "mag": [
@@ -198,16 +189,19 @@
           "name": "IST8310",
           "bus_type": "I2C",
           "bus_num": 4,
-          "external": true
+          "external": true,
+          "port_label": "I2C4"
         },
         {
           "name": "IST8310",
           "bus_type": "I2C",
           "bus_num": 1,
-          "external": true
+          "external": true,
+          "port_label": "I2C1"
         }
       ],
-      "osd": []
+      "osd": [],
+      "power_monitor": []
     },
     "variants": {
       "V6C000002": {
@@ -216,12 +210,14 @@
             "name": "BMI088",
             "bus_type": "SPI",
             "bus_num": null,
-            "external": false
+            "external": false,
+            "port_label": null
           }
         ],
         "baro": [],
         "mag": [],
-        "osd": []
+        "osd": [],
+        "power_monitor": []
       },
       "V6C002002": {
         "imu": [
@@ -229,12 +225,14 @@
             "name": "BMI088",
             "bus_type": "SPI",
             "bus_num": null,
-            "external": false
+            "external": false,
+            "port_label": null
           }
         ],
         "baro": [],
         "mag": [],
-        "osd": []
+        "osd": [],
+        "power_monitor": []
       },
       "__other__": {
         "imu": [
@@ -242,14 +240,24 @@
             "name": "BMI055",
             "bus_type": "SPI",
             "bus_num": null,
-            "external": false
+            "external": false,
+            "port_label": null
           }
         ],
         "baro": [],
         "mag": [],
-        "osd": []
+        "osd": [],
+        "power_monitor": []
       }
     }
+  },
+  "i2c_bus_config": {
+    "external": [
+      1,
+      2,
+      4
+    ],
+    "internal": []
   },
   "num_i2c_buses": 3,
   "num_spi_buses": 2,
@@ -258,5 +266,5 @@
   "doc_url": "https://docs.px4.io/main/en/flight_controller/pixhawk6c",
   "doc_file": "pixhawk6c.md",
   "doc_exists": true,
-  "documented": true
+  "documented": false
 }

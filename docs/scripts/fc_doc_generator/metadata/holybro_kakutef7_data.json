@@ -149,7 +149,8 @@
         "name": "ICM-20689",
         "bus_type": "SPI",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "baro": [
@@ -157,11 +158,13 @@
         "name": "BMP280",
         "bus_type": "I2C",
         "bus_num": null,
-        "external": true
+        "external": true,
+        "port_label": null
       }
     ],
     "mag": [],
-    "osd": []
+    "osd": [],
+    "power_monitor": []
   },
   "sensor_variant_info": {
     "has_variants": false,
@@ -171,7 +174,8 @@
           "name": "ICM-20689",
           "bus_type": "SPI",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "baro": [
@@ -179,13 +183,21 @@
           "name": "BMP280",
           "bus_type": "I2C",
           "bus_num": null,
-          "external": true
+          "external": true,
+          "port_label": null
         }
       ],
       "mag": [],
-      "osd": []
+      "osd": [],
+      "power_monitor": []
     },
     "variants": {}
+  },
+  "i2c_bus_config": {
+    "external": [
+      1
+    ],
+    "internal": []
   },
   "num_i2c_buses": 1,
   "num_spi_buses": 3,
@@ -194,5 +206,5 @@
   "doc_url": "https://docs.px4.io/main/en/flight_controller/kakutef7",
   "doc_file": "kakutef7.md",
   "doc_exists": true,
-  "documented": true
+  "documented": false
 }

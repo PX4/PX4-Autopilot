@@ -73,7 +73,8 @@
         "name": "MPU-9250",
         "bus_type": null,
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "baro": [
@@ -81,11 +82,13 @@
         "name": "BMP280",
         "bus_type": null,
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "mag": [],
-    "osd": []
+    "osd": [],
+    "power_monitor": []
   },
   "sensor_variant_info": {
     "has_variants": false,
@@ -95,7 +98,8 @@
           "name": "MPU-9250",
           "bus_type": null,
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "baro": [
@@ -103,15 +107,23 @@
           "name": "BMP280",
           "bus_type": null,
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "mag": [],
-      "osd": []
+      "osd": [],
+      "power_monitor": []
     },
     "variants": {}
   },
-  "num_i2c_buses": 0,
+  "i2c_bus_config": {
+    "external": [
+      2
+    ],
+    "internal": []
+  },
+  "num_i2c_buses": 1,
   "num_spi_buses": 0,
   "num_can_buses": 0,
   "has_usb": false,

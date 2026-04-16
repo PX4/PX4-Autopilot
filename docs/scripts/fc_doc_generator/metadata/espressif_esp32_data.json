@@ -53,7 +53,8 @@
     "imu": [],
     "baro": [],
     "mag": [],
-    "osd": []
+    "osd": [],
+    "power_monitor": []
   },
   "sensor_variant_info": {
     "has_variants": false,
@@ -61,11 +62,18 @@
       "imu": [],
       "baro": [],
       "mag": [],
-      "osd": []
+      "osd": [],
+      "power_monitor": []
     },
     "variants": {}
   },
-  "num_i2c_buses": 0,
+  "i2c_bus_config": {
+    "external": [],
+    "internal": [
+      1
+    ]
+  },
+  "num_i2c_buses": 1,
   "num_spi_buses": 0,
   "num_can_buses": 0,
   "has_usb": false,

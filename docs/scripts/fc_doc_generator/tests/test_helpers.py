@@ -151,3 +151,59 @@ class TestRcSerialProtocols:
         entry = {}
         protos = fcdg._rc_serial_protocols(entry)
         assert protos == []
+
+
+# ---------------------------------------------------------------------------
+# _apply_section — hand-written section preservation
+# ---------------------------------------------------------------------------
+
+_PROPOSED = "## PWM Outputs {#pwm_outputs}\n\nGenerated content.\n"
+
+
+class TestApplySectionPreservation:
+    def test_generated_section_is_replaced(self):
+        """A section with the {#pwm_outputs} anchor was previously generated — replace it."""
+        doc = (
+            "# My FC\n\n"
+            "Some intro.\n\n"
+            "## PWM Outputs {#pwm_outputs}\n\n"
+            "Old generated content.\n\n"
+            "## Where to Buy\n"
+        )
+        result = fcdg._apply_section(doc, _PROPOSED, "pwm_outputs")
+        assert "Old generated content." not in result
+        assert "Generated content." in result
+        assert "## PWM Outputs {#pwm_outputs}" in result
+
+    def test_handwritten_section_preserved(self):
+        """A section without the anchor is hand-written — preserve it, append as comment."""
+        doc = (
+            "# My FC\n\n"
+            "Some intro.\n\n"
+            "## PWM Output\n\n"
+            "Hand-written content with port labels.\n\n"
+            "## Where to Buy\n"
+        )
+        result = fcdg._apply_section(doc, _PROPOSED, "pwm_outputs")
+        # Original content must be preserved
+        assert "Hand-written content with port labels." in result
+        # Proposed content appended as an HTML comment (not as live markdown)
+        assert "<!-- pwm_outputs-proposed" in result
+        assert "Generated content." in result
+        # The comment block must be closed
+        assert result.count("<!-- pwm_outputs-proposed") == 1
+        assert "-->" in result
+
+    def test_handwritten_section_comment_at_end_of_section(self):
+        """The proposed comment is appended directly after the hand-written section body."""
+        doc = (
+            "# My FC\n\n"
+            "## PWM Output\n\n"
+            "Hand-written.\n\n"
+            "## Where to Buy\n"
+        )
+        result = fcdg._apply_section(doc, _PROPOSED, "pwm_outputs")
+        # Comment must appear before "## Where to Buy"
+        comment_pos = result.index("<!-- pwm_outputs-proposed")
+        buy_pos = result.index("## Where to Buy")
+        assert comment_pos < buy_pos

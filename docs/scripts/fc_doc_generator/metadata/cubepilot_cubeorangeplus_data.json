@@ -125,19 +125,22 @@
         "name": "ICM-42688P",
         "bus_type": "SPI",
         "bus_num": 4,
-        "external": false
+        "external": false,
+        "port_label": null
       },
       {
         "name": "ICM-45686",
         "bus_type": "SPI",
         "bus_num": 4,
-        "external": false
+        "external": false,
+        "port_label": null
       },
       {
         "name": "ICM-20649",
         "bus_type": "SPI",
         "bus_num": 1,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "baro": [
@@ -145,13 +148,15 @@
         "name": "MS5611",
         "bus_type": "SPI",
         "bus_num": 4,
-        "external": false
+        "external": false,
+        "port_label": null
       },
       {
         "name": "MS5611",
         "bus_type": "SPI",
         "bus_num": 1,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "mag": [
@@ -159,10 +164,12 @@
         "name": "AK09916",
         "bus_type": "I2C",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
-    "osd": []
+    "osd": [],
+    "power_monitor": []
   },
   "sensor_variant_info": {
     "has_variants": false,
@@ -172,19 +179,22 @@
           "name": "ICM-42688P",
           "bus_type": "SPI",
           "bus_num": 4,
-          "external": false
+          "external": false,
+          "port_label": null
         },
         {
           "name": "ICM-45686",
           "bus_type": "SPI",
           "bus_num": 4,
-          "external": false
+          "external": false,
+          "port_label": null
         },
         {
           "name": "ICM-20649",
           "bus_type": "SPI",
           "bus_num": 1,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "baro": [
@@ -192,13 +202,15 @@
           "name": "MS5611",
           "bus_type": "SPI",
           "bus_num": 4,
-          "external": false
+          "external": false,
+          "port_label": null
         },
         {
           "name": "MS5611",
           "bus_type": "SPI",
           "bus_num": 1,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "mag": [
@@ -206,12 +218,23 @@
           "name": "AK09916",
           "bus_type": "I2C",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
-      "osd": []
+      "osd": [],
+      "power_monitor": []
     },
     "variants": {}
+  },
+  "i2c_bus_config": {
+    "external": [
+      1,
+      2
+    ],
+    "internal": [
+      4
+    ]
   },
   "num_i2c_buses": 3,
   "num_spi_buses": 3,
@@ -220,5 +243,5 @@
   "doc_url": "https://docs.px4.io/main/en/flight_controller/cubepilot_cube_orangeplus",
   "doc_file": "cubepilot_cube_orangeplus.md",
   "doc_exists": true,
-  "documented": true
+  "documented": false
 }

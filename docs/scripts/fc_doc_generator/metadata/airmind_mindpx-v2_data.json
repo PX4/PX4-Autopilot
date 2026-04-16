@@ -83,7 +83,8 @@
         "name": "MPU-6000",
         "bus_type": "SPI",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "baro": [
@@ -91,7 +92,8 @@
         "name": "MS5611",
         "bus_type": "SPI",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "mag": [
@@ -99,16 +101,19 @@
         "name": "HMC5883L",
         "bus_type": "I2C",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       },
       {
         "name": "QMC5883L",
         "bus_type": "I2C",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
-    "osd": []
+    "osd": [],
+    "power_monitor": []
   },
   "sensor_variant_info": {
     "has_variants": false,
@@ -118,7 +123,8 @@
           "name": "MPU-6000",
           "bus_type": "SPI",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "baro": [
@@ -126,7 +132,8 @@
           "name": "MS5611",
           "bus_type": "SPI",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "mag": [
@@ -134,18 +141,29 @@
           "name": "HMC5883L",
           "bus_type": "I2C",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         },
         {
           "name": "QMC5883L",
           "bus_type": "I2C",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
-      "osd": []
+      "osd": [],
+      "power_monitor": []
     },
     "variants": {}
+  },
+  "i2c_bus_config": {
+    "external": [
+      2
+    ],
+    "internal": [
+      1
+    ]
   },
   "num_i2c_buses": 2,
   "num_spi_buses": 3,
@@ -154,5 +172,5 @@
   "doc_url": "https://docs.px4.io/main/en/flight_controller/mindpx",
   "doc_file": "mindpx.md",
   "doc_exists": true,
-  "documented": true
+  "documented": false
 }

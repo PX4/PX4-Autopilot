@@ -149,37 +149,36 @@ class TestComputeBdshot:
         groups = fcdg.compute_bdshot(groups, channels, "unknown")
         assert all(g["bdshot_outputs"] == [] for g in groups)
 
-    def test_capture_channel_no_bdshot_on_no_dma_timers(self, board_stm32h7_capture_channels):
-        # Timer1/Timer8/Timer12 have no DMA → dshot=False → bdshot=False
+    def test_capture_channels_not_in_groups(self, board_stm32h7_capture_channels):
+        # initIOTimerChannelCapture entries are excluded from channels by the parser,
+        # so Timer1/Timer8/Timer12 (capture-only timers) produce no groups at all.
         timers, channels = _parse(board_stm32h7_capture_channels)
         groups = fcdg.compute_groups(timers, channels)
-        groups = fcdg.compute_bdshot(groups, channels, "stm32h7")
-        for g in groups:
-            if g["timer"] in ("Timer1", "Timer8", "Timer12"):
-                assert g["dshot"] is False
-                assert g["bdshot"] is False
-                assert g["bdshot_outputs"] == []
+        group_timers = {g["timer"] for g in groups}
+        assert group_timers.isdisjoint({"Timer1", "Timer8", "Timer12"})
 
 
 class TestComputeGroupsCapture:
     def test_capture_group_count(self, board_stm32h7_capture_channels):
+        # Capture channels excluded → only Timer5 and Timer4 remain
         timers, channels = _parse(board_stm32h7_capture_channels)
         groups = fcdg.compute_groups(timers, channels)
-        assert len(groups) == 5
+        assert len(groups) == 2
 
     def test_capture_total_outputs(self, board_stm32h7_capture_channels):
+        # 8 regular outputs (Timer5: 1–4, Timer4: 5–8); capture entries skipped
         timers, channels = _parse(board_stm32h7_capture_channels)
         groups = fcdg.compute_groups(timers, channels)
         all_outputs = sorted(o for g in groups for o in g["outputs"])
-        assert all_outputs == list(range(1, 17))
+        assert all_outputs == list(range(1, 9))
 
     def test_capture_dshot_only_on_dma_timers(self, board_stm32h7_capture_channels):
         timers, channels = _parse(board_stm32h7_capture_channels)
         groups = fcdg.compute_groups(timers, channels)
+        # Both remaining groups (Timer5, Timer4) have DMA → dshot=True
         dshot_groups = {g["timer"] for g in groups if g["dshot"]}
         assert dshot_groups == {"Timer5", "Timer4"}
-        non_dshot_groups = {g["timer"] for g in groups if not g["dshot"]}
-        assert non_dshot_groups == {"Timer1", "Timer8", "Timer12"}
+        assert all(g["dshot"] for g in groups)
 
     def test_capture_timer_group_memberships(self, board_stm32h7_capture_channels):
         timers, channels = _parse(board_stm32h7_capture_channels)
@@ -187,6 +186,7 @@ class TestComputeGroupsCapture:
         by_timer = {g["timer"]: g["outputs"] for g in groups}
         assert by_timer["Timer5"] == [1, 2, 3, 4]
         assert by_timer["Timer4"] == [5, 6, 7, 8]
-        assert by_timer["Timer1"] == [9, 10, 11]
-        assert by_timer["Timer8"] == [12, 13, 14]
-        assert by_timer["Timer12"] == [15, 16]
+        # Capture-only timers must not appear as groups
+        assert "Timer1" not in by_timer
+        assert "Timer8" not in by_timer
+        assert "Timer12" not in by_timer

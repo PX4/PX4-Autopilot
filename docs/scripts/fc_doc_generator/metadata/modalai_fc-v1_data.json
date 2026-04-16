@@ -142,19 +142,22 @@
         "name": "ICM-20602",
         "bus_type": "SPI",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       },
       {
         "name": "ICM-42688P",
         "bus_type": "SPI",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       },
       {
         "name": "BMI088",
         "bus_type": "SPI",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "baro": [
@@ -162,11 +165,13 @@
         "name": "BMP388",
         "bus_type": "I2C",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "mag": [],
-    "osd": []
+    "osd": [],
+    "power_monitor": []
   },
   "sensor_variant_info": {
     "has_variants": false,
@@ -176,19 +181,22 @@
           "name": "ICM-20602",
           "bus_type": "SPI",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         },
         {
           "name": "ICM-42688P",
           "bus_type": "SPI",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         },
         {
           "name": "BMI088",
           "bus_type": "SPI",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "baro": [
@@ -196,13 +204,25 @@
           "name": "BMP388",
           "bus_type": "I2C",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "mag": [],
-      "osd": []
+      "osd": [],
+      "power_monitor": []
     },
     "variants": {}
+  },
+  "i2c_bus_config": {
+    "external": [
+      1,
+      2,
+      3
+    ],
+    "internal": [
+      4
+    ]
   },
   "num_i2c_buses": 4,
   "num_spi_buses": 4,
@@ -211,5 +231,5 @@
   "doc_url": "https://docs.px4.io/main/en/flight_controller/modalai_fc_v1",
   "doc_file": "modalai_fc_v1.md",
   "doc_exists": true,
-  "documented": true
+  "documented": false
 }

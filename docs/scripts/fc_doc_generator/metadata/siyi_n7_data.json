@@ -114,13 +114,15 @@
         "name": "BMI088",
         "bus_type": "SPI",
         "bus_num": 1,
-        "external": false
+        "external": false,
+        "port_label": null
       },
       {
         "name": "ICM-20689",
         "bus_type": "SPI",
         "bus_num": 1,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "baro": [
@@ -128,7 +130,8 @@
         "name": "MS5611",
         "bus_type": "SPI",
         "bus_num": 4,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "mag": [
@@ -136,16 +139,19 @@
         "name": "IST8310",
         "bus_type": "I2C",
         "bus_num": 1,
-        "external": true
+        "external": true,
+        "port_label": "I2C1"
       },
       {
         "name": "IST8310",
         "bus_type": "I2C",
         "bus_num": 3,
-        "external": false
+        "external": false,
+        "port_label": "I2C3"
       }
     ],
-    "osd": []
+    "osd": [],
+    "power_monitor": []
   },
   "sensor_variant_info": {
     "has_variants": false,
@@ -155,13 +161,15 @@
           "name": "BMI088",
           "bus_type": "SPI",
           "bus_num": 1,
-          "external": false
+          "external": false,
+          "port_label": null
         },
         {
           "name": "ICM-20689",
           "bus_type": "SPI",
           "bus_num": 1,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "baro": [
@@ -169,7 +177,8 @@
           "name": "MS5611",
           "bus_type": "SPI",
           "bus_num": 4,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "mag": [
@@ -177,18 +186,31 @@
           "name": "IST8310",
           "bus_type": "I2C",
           "bus_num": 1,
-          "external": true
+          "external": true,
+          "port_label": "I2C1"
         },
         {
           "name": "IST8310",
           "bus_type": "I2C",
           "bus_num": 3,
-          "external": false
+          "external": false,
+          "port_label": "I2C3"
         }
       ],
-      "osd": []
+      "osd": [],
+      "power_monitor": []
     },
     "variants": {}
+  },
+  "i2c_bus_config": {
+    "external": [
+      1,
+      2,
+      4
+    ],
+    "internal": [
+      3
+    ]
   },
   "num_i2c_buses": 4,
   "num_spi_buses": 3,

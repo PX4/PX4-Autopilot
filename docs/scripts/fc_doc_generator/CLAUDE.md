@@ -32,7 +32,7 @@ fc_doc_generator/
     │   ├── stm32h7_all_dshot/
     │   ├── stm32h7_mixed_io/
     │   ├── stm32h7_ppm_shared/
-    │   ├── stm32h7_capture_channels/   # 8 regular + 8 initIOTimerChannelCapture outputs
+    │   ├── stm32h7_capture_channels/   # 8 regular outputs + 8 initIOTimerChannelCapture inputs (excluded)
     │   ├── stm32f4_no_dshot/
     │   └── imxrt_all_dshot/
     ├── snapshots/           # Expected markdown output (.md files)
@@ -105,7 +105,9 @@ Tests in `test_generators.py` use the `snapshot` fixture from `conftest.py`.
 - **Parsers** read from `boards/<vendor>/<board>/` source files:
   - `nuttx-config/nsh/defconfig` — chip family, enabled UARTs, SD card
   - `src/board_config.h` — PWM count, IO board presence, GPIOs
-  - `src/timer_config.cpp` — timer groups and channels
+  - `src/timer_config.cpp` — timer groups and channels; `initIOTimerChannelCapture`
+    entries are **excluded** from the FMU output count — these are timer-capture
+    inputs (e.g. RC PPM, pulse-width measurement), not usable as PWM outputs
   - `default.px4board` — Kconfig board settings (serial labels, RC, GPS, drivers)
   - `nuttx-config/include/board.h` — flow control GPIO definitions
   - `init/rc.board_sensors` — sensor driver start commands; comments immediately
@@ -126,8 +128,13 @@ Tests in `test_generators.py` use the `snapshot` fixture from `conftest.py`.
 
 - **Section insertion** — `_apply_section()` finds existing headings and
   replaces them, or inserts before anchor headings like `## Where to Buy`.
-  The `specifications` section is special: it preserves hand-written content
-  and appends generated content as a `<!-- specifications-proposed -->` comment.
+  - The `specifications` section always preserves hand-written content and
+    appends generated content as a `<!-- specifications-proposed -->` comment.
+  - All other sections check whether the existing heading contains the
+    `{#section_key}` anchor (e.g. `{#pwm_outputs}`). If it does, the section
+    was previously generated and is safely replaced. If not, the section is
+    hand-written: it is preserved and the proposed content is appended as a
+    `<!-- section_key-proposed -->` comment, with a console warning.
 
 - **Wizard** — `--new-doc` runs an interactive prompts session and caches
   answers to `metadata/<stem>_wizard.json` for future re-use.

@@ -155,7 +155,8 @@
         "name": "BMP388",
         "bus_type": "I2C",
         "bus_num": 2,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "mag": [
@@ -163,10 +164,12 @@
         "name": "IIS2MDC",
         "bus_type": "I2C",
         "bus_num": 4,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
-    "osd": []
+    "osd": [],
+    "power_monitor": []
   },
   "sensor_variant_info": {
     "has_variants": false,
@@ -177,7 +180,8 @@
           "name": "BMP388",
           "bus_type": "I2C",
           "bus_num": 2,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "mag": [
@@ -185,12 +189,23 @@
           "name": "IIS2MDC",
           "bus_type": "I2C",
           "bus_num": 4,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
-      "osd": []
+      "osd": [],
+      "power_monitor": []
     },
     "variants": {}
+  },
+  "i2c_bus_config": {
+    "external": [
+      1
+    ],
+    "internal": [
+      2,
+      4
+    ]
   },
   "num_i2c_buses": 3,
   "num_spi_buses": 2,
@@ -199,5 +214,5 @@
   "doc_url": "https://docs.px4.io/main/en/flight_controller/ark_fpv",
   "doc_file": "ark_fpv.md",
   "doc_exists": true,
-  "documented": true
+  "documented": false
 }

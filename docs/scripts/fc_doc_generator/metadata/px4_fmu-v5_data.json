@@ -62,24 +62,6 @@
       ],
       "bdshot_outputs": [],
       "bdshot_output_only": []
-    },
-    {
-      "group": 4,
-      "timer": "Timer2",
-      "outputs": [
-        9,
-        10,
-        11
-      ],
-      "dshot": false,
-      "dshot_outputs": [],
-      "non_dshot_outputs": [
-        9,
-        10,
-        11
-      ],
-      "bdshot_outputs": [],
-      "bdshot_output_only": []
     }
   ],
   "serial_ports": [
@@ -163,13 +145,15 @@
         "name": "ICM-20689",
         "bus_type": "SPI",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       },
       {
         "name": "BMI055",
         "bus_type": "SPI",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "baro": [
@@ -177,7 +161,8 @@
         "name": "MS5611",
         "bus_type": "SPI",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "mag": [
@@ -185,16 +170,19 @@
         "name": "IST8310",
         "bus_type": "I2C",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       },
       {
         "name": "IST8310",
         "bus_type": "I2C",
         "bus_num": 1,
-        "external": true
+        "external": true,
+        "port_label": "GPS1"
       }
     ],
-    "osd": []
+    "osd": [],
+    "power_monitor": []
   },
   "sensor_variant_info": {
     "has_variants": true,
@@ -204,13 +192,15 @@
           "name": "ICM-20689",
           "bus_type": "SPI",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         },
         {
           "name": "BMI055",
           "bus_type": "SPI",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "baro": [
@@ -218,7 +208,8 @@
           "name": "MS5611",
           "bus_type": "SPI",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "mag": [
@@ -226,16 +217,19 @@
           "name": "IST8310",
           "bus_type": "I2C",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         },
         {
           "name": "IST8310",
           "bus_type": "I2C",
           "bus_num": 1,
-          "external": true
+          "external": true,
+          "port_label": "GPS1"
         }
       ],
-      "osd": []
+      "osd": [],
+      "power_monitor": []
     },
     "variants": {
       "V5005002": {
@@ -244,12 +238,14 @@
             "name": "ICM-42688P",
             "bus_type": "SPI",
             "bus_num": null,
-            "external": false
+            "external": false,
+            "port_label": null
           }
         ],
         "baro": [],
         "mag": [],
-        "osd": []
+        "osd": [],
+        "power_monitor": []
       },
       "V5006002": {
         "imu": [
@@ -257,12 +253,14 @@
             "name": "ICM-42688P",
             "bus_type": "SPI",
             "bus_num": null,
-            "external": false
+            "external": false,
+            "port_label": null
           }
         ],
         "baro": [],
         "mag": [],
-        "osd": []
+        "osd": [],
+        "power_monitor": []
       },
       "__other__": {
         "imu": [
@@ -270,14 +268,26 @@
             "name": "ICM-20602",
             "bus_type": "SPI",
             "bus_num": null,
-            "external": false
+            "external": false,
+            "port_label": null
           }
         ],
         "baro": [],
         "mag": [],
-        "osd": []
+        "osd": [],
+        "power_monitor": []
       }
     }
+  },
+  "i2c_bus_config": {
+    "external": [
+      1,
+      2,
+      4
+    ],
+    "internal": [
+      3
+    ]
   },
   "num_i2c_buses": 4,
   "num_spi_buses": 5,

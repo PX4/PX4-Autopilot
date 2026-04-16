@@ -145,13 +145,15 @@
         "name": "ICM-42688P",
         "bus_type": "SPI",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       },
       {
         "name": "BMI088",
         "bus_type": "SPI",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "baro": [
@@ -159,7 +161,8 @@
         "name": "SPA06",
         "bus_type": "I2C",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "mag": [
@@ -167,16 +170,41 @@
         "name": "IST8310",
         "bus_type": "I2C",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       },
       {
         "name": "IST8310",
         "bus_type": "I2C",
         "bus_num": null,
-        "external": true
+        "external": true,
+        "port_label": "GPS1"
       }
     ],
-    "osd": []
+    "osd": [],
+    "power_monitor": [
+      {
+        "name": "INA226",
+        "bus_type": "I2C",
+        "bus_num": 2,
+        "external": true,
+        "port_label": null
+      },
+      {
+        "name": "INA228",
+        "bus_type": "I2C",
+        "bus_num": 2,
+        "external": true,
+        "port_label": null
+      },
+      {
+        "name": "INA238",
+        "bus_type": "I2C",
+        "bus_num": 2,
+        "external": true,
+        "port_label": null
+      }
+    ]
   },
   "sensor_variant_info": {
     "has_variants": false,
@@ -186,13 +214,15 @@
           "name": "ICM-42688P",
           "bus_type": "SPI",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         },
         {
           "name": "BMI088",
           "bus_type": "SPI",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "baro": [
@@ -200,7 +230,8 @@
           "name": "SPA06",
           "bus_type": "I2C",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "mag": [
@@ -208,18 +239,51 @@
           "name": "IST8310",
           "bus_type": "I2C",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         },
         {
           "name": "IST8310",
           "bus_type": "I2C",
           "bus_num": null,
-          "external": true
+          "external": true,
+          "port_label": "GPS1"
         }
       ],
-      "osd": []
+      "osd": [],
+      "power_monitor": [
+        {
+          "name": "INA226",
+          "bus_type": "I2C",
+          "bus_num": 2,
+          "external": true,
+          "port_label": null
+        },
+        {
+          "name": "INA228",
+          "bus_type": "I2C",
+          "bus_num": 2,
+          "external": true,
+          "port_label": null
+        },
+        {
+          "name": "INA238",
+          "bus_type": "I2C",
+          "bus_num": 2,
+          "external": true,
+          "port_label": null
+        }
+      ]
     },
     "variants": {}
+  },
+  "i2c_bus_config": {
+    "external": [
+      2
+    ],
+    "internal": [
+      1
+    ]
   },
   "num_i2c_buses": 2,
   "num_spi_buses": 3,
@@ -228,5 +292,5 @@
   "doc_url": "https://docs.px4.io/main/en/flight_controller/radiolink_pix6",
   "doc_file": "radiolink_pix6.md",
   "doc_exists": true,
-  "documented": true
+  "documented": false
 }

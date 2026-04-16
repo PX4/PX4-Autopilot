@@ -79,13 +79,15 @@
         "name": "MPU-6000",
         "bus_type": "SPI",
         "bus_num": 1,
-        "external": false
+        "external": false,
+        "port_label": null
       },
       {
         "name": "MPU-9250",
         "bus_type": "SPI",
         "bus_num": 1,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "baro": [
@@ -93,13 +95,15 @@
         "name": "MS5611",
         "bus_type": "SPI",
         "bus_num": 1,
-        "external": false
+        "external": false,
+        "port_label": null
       },
       {
         "name": "MS5611",
         "bus_type": "SPI",
         "bus_num": 4,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "mag": [
@@ -107,16 +111,19 @@
         "name": "HMC5883L",
         "bus_type": "I2C",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       },
       {
         "name": "HMC5883L",
         "bus_type": "SPI",
         "bus_num": 1,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
-    "osd": []
+    "osd": [],
+    "power_monitor": []
   },
   "sensor_variant_info": {
     "has_variants": false,
@@ -126,13 +133,15 @@
           "name": "MPU-6000",
           "bus_type": "SPI",
           "bus_num": 1,
-          "external": false
+          "external": false,
+          "port_label": null
         },
         {
           "name": "MPU-9250",
           "bus_type": "SPI",
           "bus_num": 1,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "baro": [
@@ -140,13 +149,15 @@
           "name": "MS5611",
           "bus_type": "SPI",
           "bus_num": 1,
-          "external": false
+          "external": false,
+          "port_label": null
         },
         {
           "name": "MS5611",
           "bus_type": "SPI",
           "bus_num": 4,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "mag": [
@@ -154,18 +165,29 @@
           "name": "HMC5883L",
           "bus_type": "I2C",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         },
         {
           "name": "HMC5883L",
           "bus_type": "SPI",
           "bus_num": 1,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
-      "osd": []
+      "osd": [],
+      "power_monitor": []
     },
     "variants": {}
+  },
+  "i2c_bus_config": {
+    "external": [
+      1
+    ],
+    "internal": [
+      2
+    ]
   },
   "num_i2c_buses": 2,
   "num_spi_buses": 3,
@@ -174,5 +196,5 @@
   "doc_url": "https://docs.px4.io/main/en/flight_controller/pixhawk-2",
   "doc_file": "pixhawk-2.md",
   "doc_exists": true,
-  "documented": true
+  "documented": false
 }

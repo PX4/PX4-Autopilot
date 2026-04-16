@@ -46,40 +46,6 @@
         5
       ],
       "bdshot_output_only": []
-    },
-    {
-      "group": 3,
-      "timer": "Timer2",
-      "outputs": [
-        6,
-        7,
-        8
-      ],
-      "dshot": false,
-      "dshot_outputs": [],
-      "non_dshot_outputs": [
-        6,
-        7,
-        8
-      ],
-      "bdshot_outputs": [],
-      "bdshot_output_only": []
-    },
-    {
-      "group": 4,
-      "timer": "Timer12",
-      "outputs": [
-        9,
-        10
-      ],
-      "dshot": false,
-      "dshot_outputs": [],
-      "non_dshot_outputs": [
-        9,
-        10
-      ],
-      "bdshot_outputs": [],
-      "bdshot_output_only": []
     }
   ],
   "serial_ports": [
@@ -162,13 +128,15 @@
         "name": "ICM-20689",
         "bus_type": "SPI",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       },
       {
         "name": "BMI088",
         "bus_type": "SPI",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "baro": [
@@ -176,7 +144,8 @@
         "name": "MS5611",
         "bus_type": "SPI",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "mag": [
@@ -184,16 +153,19 @@
         "name": "IST8310",
         "bus_type": "I2C",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       },
       {
         "name": "IST8310",
         "bus_type": "I2C",
         "bus_num": 1,
-        "external": true
+        "external": true,
+        "port_label": "GPS1"
       }
     ],
-    "osd": []
+    "osd": [],
+    "power_monitor": []
   },
   "sensor_variant_info": {
     "has_variants": true,
@@ -203,7 +175,8 @@
           "name": "ICM-20689",
           "bus_type": "SPI",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "baro": [
@@ -211,7 +184,8 @@
           "name": "MS5611",
           "bus_type": "SPI",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "mag": [
@@ -219,16 +193,19 @@
           "name": "IST8310",
           "bus_type": "I2C",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         },
         {
           "name": "IST8310",
           "bus_type": "I2C",
           "bus_num": 1,
-          "external": true
+          "external": true,
+          "port_label": "GPS1"
         }
       ],
-      "osd": []
+      "osd": [],
+      "power_monitor": []
     },
     "variants": {
       "VD000000": {
@@ -237,12 +214,14 @@
             "name": "BMI088",
             "bus_type": "SPI",
             "bus_num": null,
-            "external": false
+            "external": false,
+            "port_label": null
           }
         ],
         "baro": [],
         "mag": [],
-        "osd": []
+        "osd": [],
+        "power_monitor": []
       },
       "VD000001": {
         "imu": [
@@ -250,14 +229,26 @@
             "name": "ICM-20602",
             "bus_type": "SPI",
             "bus_num": null,
-            "external": false
+            "external": false,
+            "port_label": null
           }
         ],
         "baro": [],
         "mag": [],
-        "osd": []
+        "osd": [],
+        "power_monitor": []
       }
     }
+  },
+  "i2c_bus_config": {
+    "external": [
+      1,
+      2,
+      4
+    ],
+    "internal": [
+      3
+    ]
   },
   "num_i2c_buses": 4,
   "num_spi_buses": 5,
@@ -266,5 +257,5 @@
   "doc_url": "https://docs.px4.io/main/en/flight_controller/durandal",
   "doc_file": "durandal.md",
   "doc_exists": true,
-  "documented": true
+  "documented": false
 }

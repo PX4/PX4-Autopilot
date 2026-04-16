@@ -75,11 +75,13 @@
         "name": "BMP280",
         "bus_type": "SPI",
         "bus_num": null,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "mag": [],
-    "osd": []
+    "osd": [],
+    "power_monitor": []
   },
   "sensor_variant_info": {
     "has_variants": false,
@@ -90,13 +92,21 @@
           "name": "BMP280",
           "bus_type": "SPI",
           "bus_num": null,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "mag": [],
-      "osd": []
+      "osd": [],
+      "power_monitor": []
     },
     "variants": {}
+  },
+  "i2c_bus_config": {
+    "external": [
+      2
+    ],
+    "internal": []
   },
   "num_i2c_buses": 1,
   "num_spi_buses": 3,
@@ -105,5 +115,5 @@
   "doc_url": "https://docs.px4.io/main/en/flight_controller/omnibus_f4_sd",
   "doc_file": "omnibus_f4_sd.md",
   "doc_exists": true,
-  "documented": true
+  "documented": false
 }

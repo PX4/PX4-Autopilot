@@ -77,13 +77,15 @@
         "name": "ICM-20602",
         "bus_type": "SPI",
         "bus_num": 1,
-        "external": false
+        "external": false,
+        "port_label": null
       },
       {
         "name": "MPU-9250",
         "bus_type": "SPI",
         "bus_num": 1,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "baro": [
@@ -91,11 +93,13 @@
         "name": "MS5611",
         "bus_type": "SPI",
         "bus_num": 1,
-        "external": false
+        "external": false,
+        "port_label": null
       }
     ],
     "mag": [],
-    "osd": []
+    "osd": [],
+    "power_monitor": []
   },
   "sensor_variant_info": {
     "has_variants": false,
@@ -105,13 +109,15 @@
           "name": "ICM-20602",
           "bus_type": "SPI",
           "bus_num": 1,
-          "external": false
+          "external": false,
+          "port_label": null
         },
         {
           "name": "MPU-9250",
           "bus_type": "SPI",
           "bus_num": 1,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "baro": [
@@ -119,13 +125,21 @@
           "name": "MS5611",
           "bus_type": "SPI",
           "bus_num": 1,
-          "external": false
+          "external": false,
+          "port_label": null
         }
       ],
       "mag": [],
-      "osd": []
+      "osd": [],
+      "power_monitor": []
     },
     "variants": {}
+  },
+  "i2c_bus_config": {
+    "external": [
+      1
+    ],
+    "internal": []
   },
   "num_i2c_buses": 1,
   "num_spi_buses": 2,
@@ -134,5 +148,5 @@
   "doc_url": "https://docs.px4.io/main/en/flight_controller/mro_x2.1",
   "doc_file": "mro_x2.1.md",
   "doc_exists": true,
-  "documented": true
+  "documented": false
 }

@@ -112,23 +112,17 @@ class TestParseTimerConfig:
         result = fcdg.parse_timer_config(board_imxrt)
         assert len(result["channels"]) == 8
 
-    def test_capture_channel_count(self, board_stm32h7_capture_channels):
-        # 8 regular + 8 initIOTimerChannelCapture = 16 total
+    def test_capture_channels_excluded(self, board_stm32h7_capture_channels):
+        # initIOTimerChannelCapture entries are input-capture pins, not PWM outputs.
+        # Only the 8 regular initIOTimerChannel entries (Timer5/Timer4) should appear.
         result = fcdg.parse_timer_config(board_stm32h7_capture_channels)
-        assert len(result["channels"]) == 16
-
-    def test_capture_channels_include_capture_timers(self, board_stm32h7_capture_channels):
-        result = fcdg.parse_timer_config(board_stm32h7_capture_channels)
-        timer_names = {ch["timer"] for ch in result["channels"]}
-        assert "Timer1" in timer_names
-        assert "Timer8" in timer_names
-        assert "Timer12" in timer_names
-
-    def test_capture_channels_output_indices(self, board_stm32h7_capture_channels):
-        # All 16 outputs are numbered 1..16 in order
-        result = fcdg.parse_timer_config(board_stm32h7_capture_channels)
+        assert len(result["channels"]) == 8
+        # output indices must be 1–8 (no gap from skipped capture entries)
         indices = [ch["output_index"] for ch in result["channels"]]
-        assert indices == list(range(1, 17))
+        assert indices == list(range(1, 9))
+        # No channel should reference Timer1/Timer8/Timer12 (capture-only timers)
+        timers_used = {ch["timer"] for ch in result["channels"]}
+        assert timers_used.isdisjoint({"Timer1", "Timer8", "Timer12"})
 
     def test_stm32f4_no_dshot(self, board_stm32f4):
         result = fcdg.parse_timer_config(board_stm32f4)
