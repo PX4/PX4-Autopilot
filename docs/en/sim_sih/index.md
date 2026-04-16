@@ -204,7 +204,7 @@ Each instance allocates ports automatically (all offset by instance number):
 
 See [Port Reference](#port-reference) for the complete list of ports.
 
-## SIH on Flight Controller Hardware {#sih-on-flight-controller-hardware}
+## Running the SIH on Flight Controller Hardware {#sih-on-flight-controller-hardware}
 
 ::: info
 The SIH on flight controller is community supported.
