@@ -201,6 +201,16 @@ if [[ "${UBUNTU_RELEASE}" == "25.10" ]]; then
 	INSTALL_SIM="false"
 fi
 
+if [[ "${UBUNTU_RELEASE}" == "26.04" ]]; then
+	echo "[ubuntu.sh] Gazebo binaries are not available for 26.04, skipping installation"
+	INSTALL_SIM="false"
+	echo "[ubuntu.sh] Installing outdated Astyle 3.1 before transitioning to a new linter"
+	sudo DEBIAN_FRONTEND=noninteractive apt -y --quiet purge astyle
+	wget http://archive.ubuntu.com/ubuntu/pool/universe/a/astyle/astyle_3.1-3build1_amd64.deb -P $DIR
+	sudo DEBIAN_FRONTEND=noninteractive apt -y --quiet --no-install-recommends install $DIR/astyle_3.1-3build1_amd64.deb
+	rm $DIR/astyle_3.1-3build1_amd64.deb
+fi
+
 # Simulation tools
 if [[ $INSTALL_SIM == "true" ]]; then
 
