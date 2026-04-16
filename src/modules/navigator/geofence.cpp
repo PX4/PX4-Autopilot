@@ -298,6 +298,9 @@ void Geofence::_updateFence()
 	}
 }
 
+// TODO: Refactor geofence inclusion logic to support OR (union) semantics
+// Tracking issue: https://github.com/PX4/PX4-Autopilot/issues/27099
+
 bool Geofence::checkHomeRequirementsForGeofence(const PolygonInfo &polygon)
 {
 	bool checks_pass = true;
