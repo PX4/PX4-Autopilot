@@ -17,7 +17,7 @@ SIH runs as a PX4 module that replaces real sensor and actuator hardware with a 
 It provides simulated IMU, GPS, barometer, magnetometer, and airspeed sensor data via uORB, and reads actuator outputs to update the vehicle state at each timestep.
 
 The simulation runs in lockstep with PX4, ensuring deterministic and reproducible results.
-It also integrates seamlessly with ROS 2 via with no additional configuration (see [ROS 2 Integration](#ros-2-integration) below).
+It also integrates seamlessly with ROS 2 with no additional configuration (see [ROS 2 Integration](#ros-2-integration) below).
 
 Two modes are supported:
 
@@ -40,7 +40,7 @@ The following vehicle types are supported:
 | Ackermann Rover <Badge type="tip" text="PX4 v1.16" />           | `make px4_sitl_sih sihsim_rover`         | Experimental |
 
 ::: warning
-Only the quadrotor vehicle type is stable and recommended for development. All other vehicle types (hexarotor, fixed-wing, VTOL, rover) are experimental and may have aerodynamic model or controller interaction issues that produce unrealistic flight behavior.
+Only the quadrotor vehicle type is stable and recommended for development. All other vehicle types (hexarotor, fixed-wing, VTOL, rover) are experimental and may have aerodynamic model or controller interaction issues that produce unrealistic flight behaviour.
 :::
 
 ### How SIH Works
@@ -97,7 +97,7 @@ Flags:
 
 - `-a` for airplane model
 - `-t` for tailsitter model
-- `-o` enable display-only mode.
+- `-o` enables display-only mode.
 
 See [jMAVSim Display-Only Mode](../sim_jmavsim/index.md#display-only-mode) for details.
 
@@ -206,25 +206,12 @@ See [Port Reference](#port-reference) for the complete list of ports.
 
 ## SIH on Flight Controller Hardware {#sih-on-flight-controller-hardware}
 
-SIH can also run on flight controller hardware by replacing real sensors with simulated data while running on the actual autopilot. Setting it is a simple as selecting the appropriate SIH airframe. The easiest method to run the SIH Quadrotor X is to set the parameter `SYS_AUTOSTART=1100` then reboot the vehicle. 
-
-::: tip
-To ensure that the vehicles behaves well, it is recommended to reset all the parameters to firmware's default before modifying `SYS_AUTOSTART`.
+::: info
+The SIH on flight controller is community supported.
 :::
 
-The following airframes are supported
-
-| SIH Airframe    | SYS_AUTOSTART | Status            |
-| --------------- | ------------- | ----------------- |
-| Quadrotor X     | 1100          | Stable            |
-| Airplane        | 1101          | Experimental      |
-| Tailsitter Duo  | 1102          | Experimental      |
-| Standard VTOL   | 1103          | Experimental      |
-| Ackermann Rover | 1104          | Experimental      |
-| Hexacopter X    | 1105          | Experimental      |
-
-
-See [SIH on Flight Controller Hardware](hardware.md) for more details and compilation instructions.
+SIH can also run on flight controller hardware, replacing real sensors with simulated data while running on the actual autopilot.
+See [SIH on Flight Controller Hardware](hardware.md) for setup instructions.
 
 ## Adding New Airframes
 
@@ -259,11 +246,7 @@ The specific differences for SIH simulation airframes are listed in the sections
 
 ### SIH on Flight Controller
 
-::: warning
-The SIH on flight controller is community supported and might not work right away across different versions.
-:::
-
-SIH can also run on flight controller hardware by replacing real sensors with simulated data while running on the actual autopilot. Setting it is a simple as selecting the appropriate SIH airframe, refer to [SIH on Flight Controller](hardware.md).
+See [Adding New Airframes (FC)](../sim_sih/hardware.md#adding-new-airframes-fc) in _SIH on Flight Controller Hardware_.
 
 ### SIH as SITL
 
@@ -296,13 +279,16 @@ Since PX4 v1.17, the propeller model for fixed-wing, tailsitter, and VTOL pusher
 
 <img width="588" height="183" alt="UIUC_prop_equations" src="https://github.com/user-attachments/assets/55413486-b23b-4269-9ac5-dd630ec0849b" />
 
-This model includes the thrust coefficient CT(J) and power coefficient CP(J) as functions of the advance ratio J. As a result, the maximum thrust force is realistically reduced as the aircraft speed is increased. The SIH implements the thrust and power coeffients as second order polynomial fits
+This model includes the thrust coefficient CT(J) and power coefficient CP(J) as functions of the advance ratio J.
+As a result, the maximum thrust force is realistically reduced as the aircraft speed is increased.
+The SIH implements the thrust and power coefficients as second-order polynomial fits.
 
-CT = SIH_F_CT0 + SIH_F_CT1⋅J + SIH_F_CT2⋅J²
+$$C_T = \text{SIH\_F\_CT0} + \text{SIH\_F\_CT1} \cdot J + \text{SIH\_F\_CT2} \cdot J^2$$
 
-CP = SIH_F_CP0 + SIH_F_CP1⋅J + SIH_F_CP2⋅J²
+$$C_P = \text{SIH\_F\_CP0} + \text{SIH\_F\_CP1} \cdot J + \text{SIH\_F\_CP2} \cdot J^2$$
 
-If SIH_F_CT0 and SIH_F_CP0 and non zero positive, the SIH uses the model with advance ratio. If not, the SIH uses a simple model with maximum thrust force given by SIH_F_T_MAX and maximum torque given by SIH_F_Q_MAX.
+If `SIH_F_CT0` and `SIH_F_CP0` are non-zero and positive, the SIH uses the model with advance ratio.
+If not, the SIH uses a simple model with maximum thrust force given by `SIH_F_T_MAX` and maximum torque given by `SIH_F_Q_MAX`.
 
 **References:**
 
