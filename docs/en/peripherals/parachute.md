@@ -44,6 +44,7 @@ To enable flight termination:
 
 - Set [Safety](../config/safety.md) action to _Flight termination_ for checks where you want the parachute to trigger.
 - Set [Failure Detector](../config/safety.md#failure-detector) pitch angles, roll angles and time triggers for crash/flip detection, and disable the failure/IMU timeout circuit breaker (i.e. set [CBRK_FLIGHTTERM=0](../advanced_config/parameter_reference.md#CBRK_FLIGHTTERM)).
+- <Badge type="tip" text="PX4 v1.18" /> Set [FD_ALT_LOSS](../advanced_config/parameter_reference.md#FD_ALT_LOSS) to enable flight termination if a rotary-wing vehicle loses too much altitude below its setpoint (see [Altitude Loss Trigger](../config/safety.md#altitude-loss-trigger)).
 
 ::: info
 You can also configure an [external Automatic Trigger System (ATS)](../config/safety.md#external-automatic-trigger-system-ats) for failure detection.

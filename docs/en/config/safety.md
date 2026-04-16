@@ -345,6 +345,17 @@ overcurrent:  {esc current} > {MOTFAIL_C2T} * {motor command [0,1]} + {MOTFAIL_H
 | <a id="MOTFAIL_TIME"></a>[MOTFAIL_TIME](../advanced_config/parameter_reference.md#MOTFAIL_TIME)             | Hysteresis time (s) for which the current threshold must remain exceeded before a motor failure is triggered.                                                                                                                             |
 | <a id="CA_FAILURE_MODE"></a>[CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE)    | Configure to not only warn about a motor failure but remove the first motor that detects a failure from the allocation effectiveness which turns off the motor and tries to operate the vehicle without it until disarming the next time. |
 
+### Altitude Loss Trigger {#altitude-loss-trigger} <Badge type="tip" text="PX4 v1.18" />
+
+The failure detector can be configured to trigger if a rotary-wing vehicle loses too much altitude below its commanded setpoint while in an altitude-controlled flight mode.
+
+If the vehicle descends more than [FD_ALT_LOSS](#FD_ALT_LOSS) meters below the setpoint, [flight termination](../advanced_config/flight_termination.md) is triggered, which may deploy a [parachute](../peripherals/parachute.md).
+
+| Parameter                                                                                          | Description                                                                                                                            |
+| -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="FD_ALT_LOSS"></a>[FD_ALT_LOSS](../advanced_config/parameter_reference.md#FD_ALT_LOSS)       | Altitude loss threshold (m). Flight termination is triggered when the vehicle drops this far below the setpoint. Set to 0 to disable.  |
+| <a id="FD_ALT_LOSS_T"></a>[FD_ALT_LOSS_T](../advanced_config/parameter_reference.md#FD_ALT_LOSS_T) | Time (s) the vehicle must remain below the threshold before flight termination is triggered.                                           |
+
 ### External Automatic Trigger System (ATS)
 
 The [failure detector](#failure-detector), if [enabled](#CBRK_FLIGHTTERM), can also be triggered by an external ATS system.

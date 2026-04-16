@@ -50,6 +50,10 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - Added new flight mode(s): [Altitude Cruise (MC)](../flight_modes_mc/altitude_cruise.md), Altitude Cruise (FW).
   For fixed-wing the mode behaves the same as Altitude mode but you can disable the manual control loss failsafe. ([PX4-Autopilot#25435: Add new flight mode: Altitude Cruise](https://github.com/PX4/PX4-Autopilot/pull/25435)).
 
+### Safety
+
+- Rotary-wing vehicles now support uncommanded altitude loss detection: if the vehicle descends more than [FD_ALT_LOSS](../advanced_config/parameter_reference.md#FD_ALT_LOSS) meters below its setpoint in altitude-controlled flight, flight termination (and parachute deployment) is triggered. See [Altitude Loss Trigger](../config/safety.md#altitude-loss-trigger). ([PX4-Autopilot#26837](https://github.com/PX4/PX4-Autopilot/pull/26837))
+
 ### Estimation
 
 - Added [EKF2_POS_LOCK](../advanced_config/parameter_reference.md#EKF2_POS_LOCK) to force constant position fusion while landed, useful for vehicles relying on dead-reckoning sensors (airspeed, optical flow) that provide no aiding on the ground.
