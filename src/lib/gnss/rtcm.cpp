@@ -92,7 +92,7 @@ const uint8_t *GpsRtcmMessageAssembler::addPacket(uint8_t flags, const uint8_t *
 
 	const uint8_t sequence_id = gps_rtcm_sequence_id(flags);
 	const uint8_t fragment_id = gps_rtcm_fragment_id(flags);
-	const bool is_short_fragment = len < GPS_RTCM_MAX_FRAGMENT_LEN;
+	const bool is_non_full_fragment = len < GPS_RTCM_MAX_FRAGMENT_LEN;
 
 	// Timeout, clear stale partial state.
 	if (_active_sequence.active && (_active_sequence.timestamp != 0)
@@ -109,22 +109,22 @@ const uint8_t *GpsRtcmMessageAssembler::addPacket(uint8_t flags, const uint8_t *
 
 	const bool last_fragment_known = (_active_sequence.last_fragment_id >= 0);
 
-	// Once a shorter final fragment is known, any later fragment index is invalid.
+	// Once a non-full final fragment is known, any later fragment index is invalid.
 	if (last_fragment_known && (fragment_id > _active_sequence.last_fragment_id)) {
 		resetActiveState();
 		return nullptr;
 	}
 
-	// A short fragment before the known end would contradict the current
+	// A non-full fragment before the known end would contradict the current
 	// end-of-message boundary. That can only come from malformed sender state.
-	if (last_fragment_known && (fragment_id < _active_sequence.last_fragment_id) && is_short_fragment) {
+	if (last_fragment_known && (fragment_id < _active_sequence.last_fragment_id) && is_non_full_fragment) {
 		resetActiveState();
 		return nullptr;
 	}
 
-	// A short fragment cannot terminate the message if a higher fragment is
-	// already buffered.
-	if (is_short_fragment && hasFragmentAfter(fragment_id)) {
+	// The first fragment with a non-full payload defines the completion
+	// boundary. A higher buffered fragment would contradict that boundary.
+	if (is_non_full_fragment && hasFragmentAfter(fragment_id)) {
 		resetActiveState();
 		return nullptr;
 	}
@@ -145,9 +145,11 @@ const uint8_t *GpsRtcmMessageAssembler::addPacket(uint8_t flags, const uint8_t *
 	fragment.present = true;
 	_active_sequence.timestamp = timestamp;
 
-	// A short fragment explicitly ends the message. Fragment 3 also ends it
-	// because GPS_RTCM_DATA never uses more than 4 fragment slots.
-	if (is_short_fragment || (fragment_id == GPS_RTCM_MAX_FRAGMENTS - 1)) {
+	// The buffer is complete when either all 4 fragments are present, or when
+	// the first fragment with a non-full payload has been received and every
+	// lower fragment ID is already present. Recording fragment 3 as the
+	// boundary covers the "all 4 fragments" case.
+	if (is_non_full_fragment || (fragment_id == GPS_RTCM_MAX_FRAGMENTS - 1)) {
 		_active_sequence.last_fragment_id = fragment_id;
 	}
 
@@ -208,13 +210,108 @@ bool GpsRtcmMessageAssembler::isComplete() const
 
 size_t GpsRtcmMessageAssembler::lastFragmentIndex() const
 {
-	// Per the MAVLink GPS_RTCM_DATA completion rule, a fragmented message is
-	// only known to be shorter than 4 packets after the first non-full packet
-	// arrives. Until then we must assume that all 4 fragment slots may be used.
-	// This means a payload that is an exact multiple of 180 bytes and shorter
-	// than 720 bytes must still be terminated by an empty fragment.
+	// Per the MAVLink GPS_RTCM_DATA rule, a buffer is complete once either all
+	// 4 fragments are present, or the first fragment with a non-full payload
+	// has been received and every lower fragment ID is present. Until such a
+	// fragment arrives, the receiver must assume that all 4 fragment slots may
+	// still be used. A sender therefore needs an extra zero-length fragment
+	// when a message is shorter than 720 bytes but its length is still an
+	// exact multiple of 180.
 	return (_active_sequence.last_fragment_id >= 0) ? static_cast<size_t>(_active_sequence.last_fragment_id) :
 	       (GPS_RTCM_MAX_FRAGMENTS - 1);
+}
+
+bool GpsRtcmMessageFragmenter::startMessage(const uint8_t *data, size_t len)
+{
+	resetActiveState();
+
+	if ((data == nullptr) || (len == 0) || (len > GPS_RTCM_MAX_MESSAGE_LEN)) {
+		return false;
+	}
+
+	memcpy(_message, data, len);
+	_active.len = len;
+	_active.total_packets = packetCountForLength(len);
+	_active.sequence_id = _next_sequence_id;
+	_next_sequence_id = (_next_sequence_id + 1) & GPS_RTCM_FLAG_SEQUENCE_ID_MASK;
+
+	return true;
+}
+
+bool GpsRtcmMessageFragmenter::nextPacket(uint8_t &out_flags, const uint8_t *&out_data, size_t &out_len)
+{
+	out_flags = 0;
+	out_data = nullptr;
+	out_len = 0;
+
+	if (!active()) {
+		return false;
+	}
+
+	out_flags = ((_active.next_fragment_id & GPS_RTCM_FLAG_FRAGMENT_ID_MASK) << GPS_RTCM_FLAG_FRAGMENT_ID_SHIFT) |
+		    ((_active.sequence_id & GPS_RTCM_FLAG_SEQUENCE_ID_MASK) << GPS_RTCM_FLAG_SEQUENCE_ID_SHIFT);
+
+	if (_active.total_packets > 1) {
+		out_flags |= GPS_RTCM_FLAG_FRAGMENTED;
+	}
+
+	if (_active.total_packets == 1) {
+		out_data = _message;
+		out_len = _active.len;
+		resetActiveState();
+		return true;
+	}
+
+	const size_t offset = static_cast<size_t>(_active.next_fragment_id) * GPS_RTCM_MAX_FRAGMENT_LEN;
+
+	if (offset < _active.len) {
+		const size_t remaining = _active.len - offset;
+		out_len = (remaining > GPS_RTCM_MAX_FRAGMENT_LEN) ? GPS_RTCM_MAX_FRAGMENT_LEN : remaining;
+		out_data = &_message[offset];
+
+	} else {
+		// Exact multiples of 180 bytes below 720 bytes need a zero-length
+		// fragment so the receiver can observe the first non-full payload and
+		// close the buffer early.
+		out_data = _message;
+	}
+
+	_active.next_fragment_id++;
+
+	if (_active.next_fragment_id >= _active.total_packets) {
+		resetActiveState();
+	}
+
+	return true;
+}
+
+bool GpsRtcmMessageFragmenter::active() const
+{
+	return _active.total_packets > 0;
+}
+
+uint8_t GpsRtcmMessageFragmenter::packetCountForLength(size_t len)
+{
+	if (len <= GPS_RTCM_MAX_FRAGMENT_LEN) {
+		return 1;
+	}
+
+	uint8_t packets = static_cast<uint8_t>((len + GPS_RTCM_MAX_FRAGMENT_LEN - 1) / GPS_RTCM_MAX_FRAGMENT_LEN);
+
+	// Exact multiples of 180 bytes below 720 bytes emit a final zero-length fragment so receivers
+	// can apply the MAVLink completion rule: a fragmented payload is complete
+	// once either all 4 fragments are present, or the first fragment with a
+	// non-full payload has been received and every lower fragment ID is present.
+	if ((len < GPS_RTCM_MAX_MESSAGE_LEN) && ((len % GPS_RTCM_MAX_FRAGMENT_LEN) == 0)) {
+		packets++;
+	}
+
+	return packets;
+}
+
+void GpsRtcmMessageFragmenter::resetActiveState()
+{
+	_active = {};
 }
 
 size_t Rtcm3Parser::addData(const uint8_t *data, size_t len)

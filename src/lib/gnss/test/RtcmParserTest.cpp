@@ -212,7 +212,7 @@ TEST_F(RtcmTest, GetNextOnEmptyBuffer)
 // =============================================================================
 
 // WHAT: Verify that a normal unfragmented payload is passed through unchanged.
-// WHY: The assembler must stay out of the way when MAVLink fragmentation is not in use.
+// WHY: The assembler must ignore sequence bits when the fragmented flag is not set.
 TEST_F(RtcmTest, GpsRtcmAssemblerReturnsUnfragmentedPayload)
 {
 	// GIVEN: A small payload that fits in one packet.
@@ -220,7 +220,8 @@ TEST_F(RtcmTest, GpsRtcmAssemblerReturnsUnfragmentedPayload)
 	size_t len = 0;
 
 	// WHEN: The payload is added without the fragmented flag.
-	const uint8_t *message = gps_rtcm_assembler.addPacket(buildGpsRtcmFlags(false), payload.data(), payload.size(), 10, len);
+	const uint8_t *message = gps_rtcm_assembler.addPacket(buildGpsRtcmFlags(false, 0, 9), payload.data(), payload.size(), 10,
+				 len);
 
 	// THEN: The assembler returns the full payload unchanged.
 	ASSERT_NE(message, nullptr);
@@ -266,12 +267,350 @@ TEST_F(RtcmTest, GpsRtcmAssemblerRejectsOversizedFragment)
 	EXPECT_EQ(len, 0u);
 }
 
+// WHAT: Verify that a short RTCM message is emitted as one unfragmented MAVLink packet.
+// WHY: A single-packet message should keep the fragmented bit clear while still
+// using fragment ID 0 and the current sequence ID.
+TEST_F(RtcmTest, GpsRtcmFragmenterReturnsSingleUnfragmentedPacket)
+{
+	std::vector<uint8_t> payload(64);
+	std::iota(payload.begin(), payload.end(), 0);
+
+	ASSERT_TRUE(gps_rtcm_fragmenter.startMessage(payload.data(), payload.size()));
+
+	uint8_t flags = 0xff;
+	const uint8_t *packet = nullptr;
+	size_t len = 0;
+
+	ASSERT_TRUE(gps_rtcm_fragmenter.nextPacket(flags, packet, len));
+	EXPECT_FALSE(gps_rtcm_is_fragmented(flags));
+	EXPECT_EQ(gps_rtcm_fragment_id(flags), 0u);
+	EXPECT_EQ(gps_rtcm_sequence_id(flags), 0u);
+	ASSERT_NE(packet, nullptr);
+	EXPECT_EQ(len, payload.size());
+	EXPECT_EQ(memcmp(packet, payload.data(), payload.size()), 0);
+	EXPECT_FALSE(gps_rtcm_fragmenter.active());
+	EXPECT_FALSE(gps_rtcm_fragmenter.nextPacket(flags, packet, len));
+}
+
+// WHAT: Verify the number of packets produced at the packet-count boundaries.
+// WHY: This covers the helper that decides when to add a terminating empty
+// fragment for exact multiples below 720 bytes.
+struct GpsRtcmPacketCountCase {
+	const char *name;
+	size_t message_len;
+	uint8_t expected_packets;
+};
+
+class GpsRtcmPacketCountTest : public RtcmTest, public ::testing::WithParamInterface<GpsRtcmPacketCountCase> {};
+
+TEST_P(GpsRtcmPacketCountTest, UsesExpectedPacketCountAtBoundaries)
+{
+	const auto &param = GetParam();
+	SCOPED_TRACE(param.name);
+
+	// GIVEN: An RTCM message with a boundary-case length.
+	std::vector<uint8_t> payload(param.message_len, 0x5a);
+	ASSERT_TRUE(gps_rtcm_fragmenter.startMessage(payload.data(), payload.size()));
+
+	// WHEN: All MAVLink packets for that message are emitted.
+	uint8_t flags = 0;
+	const uint8_t *packet = nullptr;
+	size_t len = 0;
+	uint8_t packet_count = 0;
+
+	while (gps_rtcm_fragmenter.nextPacket(flags, packet, len)) {
+		packet_count++;
+	}
+
+	// THEN: The packet count matches the expected boundary behavior.
+	EXPECT_EQ(packet_count, param.expected_packets);
+}
+
+INSTANTIATE_TEST_SUITE_P(BoundaryCases, GpsRtcmPacketCountTest,
+			 ::testing::Values(
+				 GpsRtcmPacketCountCase{"Below180", 179, 1},
+				 GpsRtcmPacketCountCase{"At180", 180, 1},
+				 GpsRtcmPacketCountCase{"Above180", 181, 2},
+				 GpsRtcmPacketCountCase{"ExactMultipleBelow720", 360, 3},
+				 GpsRtcmPacketCountCase{"At720", 720, 4}),
+			 [](const testing::TestParamInfo<GpsRtcmPacketCountCase> &param_info)
+{
+	return param_info.param.name;
+});
+
+// WHAT: Verify that a fragmented outbound packet stream round-trips through the assembler.
+// WHY: The transmit and receive helpers should agree on the MAVLink GPS_RTCM_DATA contract.
+TEST_F(RtcmTest, GpsRtcmFragmenterRoundTripsThroughAssembler)
+{
+	std::vector<uint8_t> payload(GPS_RTCM_MAX_FRAGMENT_LEN * 2 + 37);
+	std::iota(payload.begin(), payload.end(), 0);
+
+	ASSERT_TRUE(gps_rtcm_fragmenter.startMessage(payload.data(), payload.size()));
+
+	uint8_t flags = 0;
+	const uint8_t *packet = nullptr;
+	size_t len = 0;
+	size_t assembled_len = 0;
+	const uint8_t *assembled = nullptr;
+	int packet_count = 0;
+
+	while (gps_rtcm_fragmenter.nextPacket(flags, packet, len)) {
+		assembled = gps_rtcm_assembler.addPacket(flags, packet, len, 10 + packet_count, assembled_len);
+		packet_count++;
+	}
+
+	ASSERT_NE(assembled, nullptr);
+	EXPECT_EQ(packet_count, 3);
+	EXPECT_EQ(assembled_len, payload.size());
+	EXPECT_EQ(memcmp(assembled, payload.data(), payload.size()), 0);
+}
+
+// WHAT: Verify that exact multiples of 180 bytes below 720 bytes emit a zero-length terminator.
+// WHY: Per the MAVLink rule, the first fragment with a non-full payload marks
+// the end of the buffer, so an exact multiple below 720 bytes needs an empty
+// fragment to provide that boundary.
+TEST_F(RtcmTest, GpsRtcmFragmenterAddsZeroLengthTerminator)
+{
+	std::vector<uint8_t> payload(GPS_RTCM_MAX_FRAGMENT_LEN * 3);
+	std::iota(payload.begin(), payload.end(), 0);
+
+	ASSERT_TRUE(gps_rtcm_fragmenter.startMessage(payload.data(), payload.size()));
+
+	std::vector<size_t> packet_lengths;
+	std::vector<uint8_t> packet_flags;
+	uint8_t flags = 0;
+	const uint8_t *packet = nullptr;
+	size_t len = 0;
+	size_t assembled_len = 0;
+	const uint8_t *assembled = nullptr;
+
+	while (gps_rtcm_fragmenter.nextPacket(flags, packet, len)) {
+		packet_lengths.push_back(len);
+		packet_flags.push_back(flags);
+		assembled = gps_rtcm_assembler.addPacket(flags, packet, len, 100 + packet_lengths.size(), assembled_len);
+	}
+
+	ASSERT_EQ(packet_lengths.size(), 4u);
+	EXPECT_EQ(packet_lengths[0], GPS_RTCM_MAX_FRAGMENT_LEN);
+	EXPECT_EQ(packet_lengths[1], GPS_RTCM_MAX_FRAGMENT_LEN);
+	EXPECT_EQ(packet_lengths[2], GPS_RTCM_MAX_FRAGMENT_LEN);
+	EXPECT_EQ(packet_lengths[3], 0u);
+	EXPECT_EQ(gps_rtcm_fragment_id(packet_flags[0]), 0u);
+	EXPECT_EQ(gps_rtcm_fragment_id(packet_flags[1]), 1u);
+	EXPECT_EQ(gps_rtcm_fragment_id(packet_flags[2]), 2u);
+	EXPECT_EQ(gps_rtcm_fragment_id(packet_flags[3]), 3u);
+	EXPECT_EQ(gps_rtcm_sequence_id(packet_flags[0]), gps_rtcm_sequence_id(packet_flags[3]));
+	ASSERT_NE(assembled, nullptr);
+	EXPECT_EQ(assembled_len, payload.size());
+	EXPECT_EQ(memcmp(assembled, payload.data(), payload.size()), 0);
+}
+
+// WHAT: Verify the full uORB -> RTCM parser -> MAVLink fragmenter ->
+// MAVLink assembler loop across the MAVLink fragmentation boundary cases.
+// WHY: This tests the end-to-end transport coverage focused on the boundary
+// values that matter.
+struct UorbRtcmRoundTripCase {
+	const char *name;
+	size_t frame_len;
+	std::vector<size_t> expected_packet_lengths;
+	bool expect_fragmented;
+};
+
+class RtcmUorbRoundTripTest : public RtcmTest, public ::testing::WithParamInterface<UorbRtcmRoundTripCase> {};
+
+TEST_P(RtcmUorbRoundTripTest, ThroughMavlinkFragmentation)
+{
+	const auto &param = GetParam();
+	SCOPED_TRACE(param.name);
+
+	constexpr size_t uorb_chunk_capacity = 300;
+
+	const auto chunk_bytes = [uorb_chunk_capacity](const uint8_t *data, size_t len) {
+		std::vector<std::vector<uint8_t>> chunks;
+
+		for (size_t offset = 0; offset < len; offset += uorb_chunk_capacity) {
+			const size_t chunk_len = (len - offset < uorb_chunk_capacity) ? (len - offset) : uorb_chunk_capacity;
+			chunks.emplace_back(data + offset, data + offset + chunk_len);
+		}
+
+		return chunks;
+	};
+
+	// GIVEN: A boundary-case RTCM frame length
+	const size_t payload_len = param.frame_len - RTCM3_HEADER_LEN - RTCM3_CRC_LEN;
+	std::vector<uint8_t> payload(payload_len);
+
+	for (size_t i = 0; i < payload.size(); i++) {
+		payload[i] = static_cast<uint8_t>((param.frame_len + i) & 0xff);
+	}
+
+	const std::vector<uint8_t> frame = buildRawFrame(payload);
+	ASSERT_EQ(frame.size(), param.frame_len);
+
+	const std::vector<std::vector<uint8_t>> uorb_chunks = chunk_bytes(frame.data(), frame.size());
+
+	Rtcm3Parser roundtrip_parser;
+	GpsRtcmMessageAssembler roundtrip_assembler;
+	GpsRtcmMessageFragmenter roundtrip_fragmenter;
+
+	size_t parsed_len = 0;
+	const uint8_t *parsed_frame = nullptr;
+
+	// WHEN: The uORB-sized chunks are fed into the RTCM parser.
+	for (size_t i = 0; i < uorb_chunks.size(); i++) {
+		const auto &chunk = uorb_chunks[i];
+		ASSERT_EQ(roundtrip_parser.addData(chunk.data(), chunk.size()), chunk.size());
+		const uint8_t *candidate = roundtrip_parser.getNextMessage(&parsed_len);
+
+		// THEN: The RTCM frame is only complete after the last uORB chunk.
+		if (i + 1 < uorb_chunks.size()) {
+			EXPECT_EQ(candidate, nullptr);
+
+		} else {
+			parsed_frame = candidate;
+		}
+	}
+
+	// THEN: The parser returns the original RTCM frame.
+	ASSERT_NE(parsed_frame, nullptr);
+	EXPECT_EQ(parsed_len, frame.size());
+
+	// WHEN: The parsed RTCM frame is fragmented for MAVLink transport.
+	ASSERT_TRUE(roundtrip_fragmenter.startMessage(parsed_frame, parsed_len));
+	roundtrip_parser.consumeMessage(parsed_len);
+
+	uint8_t flags = 0;
+	const uint8_t *packet = nullptr;
+	size_t packet_len = 0;
+	size_t assembled_len = 0;
+	const uint8_t *assembled = nullptr;
+	uint64_t timestamp = 100;
+	std::vector<size_t> packet_lengths;
+	std::vector<uint8_t> packet_flags;
+
+	// WHEN: The emitted MAVLink packets are reassembled back into one frame.
+	while (roundtrip_fragmenter.nextPacket(flags, packet, packet_len)) {
+		packet_lengths.push_back(packet_len);
+		packet_flags.push_back(flags);
+		assembled = roundtrip_assembler.addPacket(flags, packet, packet_len, timestamp++, assembled_len);
+	}
+
+	// THEN: The MAVLink packet lengths match the boundary-case expectation.
+	ASSERT_EQ(packet_lengths, param.expected_packet_lengths);
+
+	if (param.expect_fragmented) {
+		for (uint8_t packet_flag : packet_flags) {
+			EXPECT_TRUE(gps_rtcm_is_fragmented(packet_flag));
+		}
+
+	} else {
+		ASSERT_EQ(packet_flags.size(), 1u);
+		EXPECT_FALSE(gps_rtcm_is_fragmented(packet_flags[0]));
+		EXPECT_EQ(gps_rtcm_fragment_id(packet_flags[0]), 0u);
+	}
+
+	// THEN: MAVLink reassembly returns the original RTCM frame.
+	ASSERT_NE(assembled, nullptr);
+	EXPECT_EQ(assembled_len, frame.size());
+	EXPECT_EQ(memcmp(assembled, frame.data(), frame.size()), 0);
+
+	// WHEN: The reassembled frame is split back into uORB-sized chunks.
+	const std::vector<std::vector<uint8_t>> reconstructed_uorb_chunks = chunk_bytes(assembled, assembled_len);
+
+	// THEN: The uORB chunking is preserved across the full round trip.
+	EXPECT_EQ(reconstructed_uorb_chunks, uorb_chunks);
+}
+
+INSTANTIATE_TEST_SUITE_P(BoundaryCases, RtcmUorbRoundTripTest,
+			 ::testing::Values(
+				 UorbRtcmRoundTripCase{"Below180", 179, std::vector<size_t>{179}, false},
+				 UorbRtcmRoundTripCase{"At180", 180, std::vector<size_t>{180}, false},
+				 UorbRtcmRoundTripCase{"Above180", 181, std::vector<size_t>{180, 1}, true},
+				 UorbRtcmRoundTripCase{"ExactMultipleBelow720", 360, std::vector<size_t>{180, 180, 0}, true},
+				 UorbRtcmRoundTripCase{"At720", 720, std::vector<size_t>{180, 180, 180, 180}, true}),
+			 [](const testing::TestParamInfo<UorbRtcmRoundTripCase> &param_info)
+{
+	return param_info.param.name;
+});
+
+// WHAT: Verify that the maximum MAVLink-capable RTCM message uses four full fragments with no terminator.
+// WHY: This is the "all 4 fragments are present" branch of the MAVLink rule.
+TEST_F(RtcmTest, GpsRtcmFragmenterUsesFourFullFragmentsAt720Bytes)
+{
+	std::vector<uint8_t> payload(GPS_RTCM_MAX_MESSAGE_LEN);
+	std::iota(payload.begin(), payload.end(), 0);
+
+	ASSERT_TRUE(gps_rtcm_fragmenter.startMessage(payload.data(), payload.size()));
+
+	std::vector<size_t> packet_lengths;
+	uint8_t flags = 0;
+	const uint8_t *packet = nullptr;
+	size_t len = 0;
+	size_t assembled_len = 0;
+	const uint8_t *assembled = nullptr;
+
+	while (gps_rtcm_fragmenter.nextPacket(flags, packet, len)) {
+		packet_lengths.push_back(len);
+		assembled = gps_rtcm_assembler.addPacket(flags, packet, len, 200 + packet_lengths.size(), assembled_len);
+	}
+
+	ASSERT_EQ(packet_lengths.size(), GPS_RTCM_MAX_FRAGMENTS);
+	EXPECT_EQ(packet_lengths[0], GPS_RTCM_MAX_FRAGMENT_LEN);
+	EXPECT_EQ(packet_lengths[1], GPS_RTCM_MAX_FRAGMENT_LEN);
+	EXPECT_EQ(packet_lengths[2], GPS_RTCM_MAX_FRAGMENT_LEN);
+	EXPECT_EQ(packet_lengths[3], GPS_RTCM_MAX_FRAGMENT_LEN);
+	ASSERT_NE(assembled, nullptr);
+	EXPECT_EQ(assembled_len, payload.size());
+	EXPECT_EQ(memcmp(assembled, payload.data(), payload.size()), 0);
+}
+
+// WHAT: Verify that every new message consumes a sequence ID.
+// WHY: Both fragmented and unfragmented packets carry a sequence ID to avoid message corruption.
+TEST_F(RtcmTest, GpsRtcmFragmenterAdvancesSequenceIdForEveryMessage)
+{
+	std::vector<uint8_t> fragmented_payload(GPS_RTCM_MAX_FRAGMENT_LEN + 1, 0x42);
+	std::vector<uint8_t> unfragmented_payload(64, 0x24);
+
+	ASSERT_TRUE(gps_rtcm_fragmenter.startMessage(fragmented_payload.data(), fragmented_payload.size()));
+
+	uint8_t first_flags = 0;
+	const uint8_t *packet = nullptr;
+	size_t len = 0;
+	ASSERT_TRUE(gps_rtcm_fragmenter.nextPacket(first_flags, packet, len));
+
+	while (gps_rtcm_fragmenter.nextPacket(first_flags, packet, len)) {}
+
+	ASSERT_TRUE(gps_rtcm_fragmenter.startMessage(unfragmented_payload.data(), unfragmented_payload.size()));
+
+	uint8_t unfragmented_flags = 0xff;
+	ASSERT_TRUE(gps_rtcm_fragmenter.nextPacket(unfragmented_flags, packet, len));
+	EXPECT_FALSE(gps_rtcm_is_fragmented(unfragmented_flags));
+	EXPECT_EQ(gps_rtcm_fragment_id(unfragmented_flags), 0u);
+	EXPECT_EQ((gps_rtcm_sequence_id(first_flags) + 1) & GPS_RTCM_FLAG_SEQUENCE_ID_MASK,
+		  gps_rtcm_sequence_id(unfragmented_flags));
+
+	ASSERT_TRUE(gps_rtcm_fragmenter.startMessage(fragmented_payload.data(), fragmented_payload.size()));
+
+	uint8_t second_flags = 0;
+	ASSERT_TRUE(gps_rtcm_fragmenter.nextPacket(second_flags, packet, len));
+	EXPECT_EQ((gps_rtcm_sequence_id(first_flags) + 2) & GPS_RTCM_FLAG_SEQUENCE_ID_MASK,
+		  gps_rtcm_sequence_id(second_flags));
+}
+
+// WHAT: Verify that messages larger than the MAVLink transport capacity are rejected.
+// WHY: GPS_RTCM_DATA can carry at most 4 x 180 bytes.
+TEST_F(RtcmTest, GpsRtcmFragmenterRejectsOversizedMessage)
+{
+	std::vector<uint8_t> payload(GPS_RTCM_MAX_MESSAGE_LEN + 1, 0x5a);
+	EXPECT_FALSE(gps_rtcm_fragmenter.startMessage(payload.data(), payload.size()));
+}
+
 
 // WHAT: Verify that fragments can arrive out of order and still be reassembled correctly.
 // WHY: The sequence/fragment handling exists to allow for unreliable delivery order.
 TEST_F(RtcmTest, GpsRtcmAssemblerReordersFragments)
 {
-	// GIVEN: A payload that spans three fragments with a short final fragment.
+	// GIVEN: A payload that spans three fragments with a non-full final fragment.
 	std::vector<uint8_t> payload(GPS_RTCM_MAX_FRAGMENT_LEN * 2 + 25);
 	std::iota(payload.begin(), payload.end(), 0);
 	const uint8_t flags0 = buildGpsRtcmFlags(true, 0, 7);
@@ -298,7 +637,7 @@ TEST_F(RtcmTest, GpsRtcmAssemblerReordersFragments)
 // WHY: Retransmissions should not reset a healthy buffer or corrupt the assembled payload.
 TEST_F(RtcmTest, GpsRtcmAssemblerIgnoresDuplicateMatchingFragment)
 {
-	// GIVEN: A payload that spans one full fragment and one short fragment.
+	// GIVEN: A payload that spans one full fragment and one non-full fragment.
 	std::vector<uint8_t> payload(GPS_RTCM_MAX_FRAGMENT_LEN + 12);
 	std::iota(payload.begin(), payload.end(), 0);
 	const uint8_t flags0 = buildGpsRtcmFlags(true, 0, 5);
@@ -309,7 +648,7 @@ TEST_F(RtcmTest, GpsRtcmAssemblerIgnoresDuplicateMatchingFragment)
 	EXPECT_EQ(gps_rtcm_assembler.addPacket(flags0, payload.data(), GPS_RTCM_MAX_FRAGMENT_LEN, 10, len), nullptr);
 	EXPECT_EQ(gps_rtcm_assembler.addPacket(flags0, payload.data(), GPS_RTCM_MAX_FRAGMENT_LEN, 11, len), nullptr);
 
-	// WHEN: The short final fragment arrives.
+	// WHEN: The non-full final fragment arrives.
 	const uint8_t *message = gps_rtcm_assembler.addPacket(flags1, &payload[GPS_RTCM_MAX_FRAGMENT_LEN], 12, 20, len);
 
 	// THEN: The assembler still returns the expected full payload once.
@@ -403,7 +742,7 @@ TEST_F(RtcmTest, GpsRtcmAssemblerCompletesOnZeroLengthTerminatingFragment)
 // WHY: This prevents an old fragment from being mixed into a later message with the same sequence ID.
 TEST_F(RtcmTest, GpsRtcmAssemblerDropsStalePartialMessage)
 {
-	// GIVEN: A payload that spans one full fragment and one short fragment.
+	// GIVEN: A payload that spans one full fragment and one non-full fragment.
 	std::vector<uint8_t> payload(GPS_RTCM_MAX_FRAGMENT_LEN + 15, 0x44);
 
 	size_t len = 0;
@@ -457,11 +796,11 @@ TEST_F(RtcmTest, GpsRtcmAssemblerRestartsOnFragmentContentMismatch)
 	EXPECT_EQ(memcmp(message, payload.data(), payload.size()), 0);
 }
 
-// WHAT: Verify that a short fragment cannot appear before an already buffered higher fragment.
-// WHY: Once a fragment claims to be the final short fragment, any stored
+// WHAT: Verify that a non-full fragment cannot appear before an already buffered higher fragment.
+// WHY: Once a fragment claims to be the first non-full fragment, any stored
 // higher fragment makes the buffered message internally inconsistent and the
 // buffer must be dropped.
-TEST_F(RtcmTest, GpsRtcmAssemblerRejectsShortFragmentBeforeBufferedHigherFragment)
+TEST_F(RtcmTest, GpsRtcmAssemblerRejectsNonFullFragmentBeforeBufferedHigherFragment)
 {
 	// GIVEN: An out-of-order higher fragment and a later valid two-fragment message with the same sequence ID.
 	std::vector<uint8_t> garbage_fragment(GPS_RTCM_MAX_FRAGMENT_LEN, 0x77);
@@ -472,7 +811,7 @@ TEST_F(RtcmTest, GpsRtcmAssemblerRejectsShortFragmentBeforeBufferedHigherFragmen
 	EXPECT_EQ(gps_rtcm_assembler.addPacket(buildGpsRtcmFlags(true, 2, 10), garbage_fragment.data(),
 					       garbage_fragment.size(), 10, len), nullptr);
 
-	// WHEN: A short lower fragment arrives and would incorrectly claim the message already ended.
+	// WHEN: A non-full lower fragment arrives and would incorrectly claim the message already ended.
 	EXPECT_EQ(gps_rtcm_assembler.addPacket(buildGpsRtcmFlags(true, 1, 10), &payload[GPS_RTCM_MAX_FRAGMENT_LEN], 16, 20,
 					       len), nullptr);
 

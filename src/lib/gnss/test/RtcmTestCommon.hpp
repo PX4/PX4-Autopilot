@@ -47,6 +47,7 @@ class RtcmTest : public ::testing::Test
 protected:
 	Rtcm3Parser parser;
 	GpsRtcmMessageAssembler gps_rtcm_assembler;
+	GpsRtcmMessageFragmenter gps_rtcm_fragmenter;
 
 	uint8_t buildGpsRtcmFlags(bool fragmented, uint8_t fragment_id = 0, uint8_t sequence_id = 0)
 	{
