@@ -206,6 +206,7 @@ def build_snippet_to_parent_map(docs_base: Path) -> dict:
     """
     mapping = {}
     search_dirs = [
+        docs_base / "flight_modes",
         docs_base / "flight_modes_fw",
         docs_base / "flight_modes_mc",
     ]
@@ -316,14 +317,18 @@ if __name__ == "__main__":
 
     mode_requirements_markdown = f"""# Mode Requirements
 
+::: info
+This documentation was auto-generated from the source code (see [docs/scripts/get_mode_requirements](https://github.com/PX4/PX4-Autopilot/tree/main/docs/scripts/get_mode_requirements)).
+:::
+
 Mode requirements define the set of conditions that must be met in order to arm in a particular flight mode, or to switch to the mode if it is already armed.
 
-Requirements are defined for internal modes in [/src/modules/commander/ModeUtil/mode_requirements.cpp](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/commander/ModeUtil/mode_requirements.cpp), and for ROS 2 external modes in [requirement_flags.hpp](https://github.com/Auterion/px4-ros2-interface-lib/blob/main/px4_ros2_cpp/include/px4_ros2/common/requirement_flags.hpp) (Github `Auterion/px4-ros2-interface-lib` repository).
+Requirements are defined for internal modes in [mode_requirements.cpp](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/commander/ModeUtil/mode_requirements.cpp), and for ROS 2 external modes in [requirement_flags.hpp](https://github.com/Auterion/px4-ros2-interface-lib/blob/main/px4_ros2_cpp/include/px4_ros2/common/requirement_flags.hpp) (Github `Auterion/px4-ros2-interface-lib` repository).
 The mode requirements are the same in both cases.
 
 The following sections provide an overview of the requirements and what modes they are used in.
 
-## Requirement definitions
+## Requirements Definitions
 
 {requirement_table}
 ### Naming Conventions
@@ -396,6 +401,12 @@ This allows PX4 automatic flight modes that require a global position to be used
     if not args.snippets:
         snippet_to_parent = build_snippet_to_parent_map(docs_output_path_base)
 
+    # Display labels for vehicle types used in shared-doc headings.
+    _VT_DISPLAY_LABEL = {
+        "VEHICLE_TYPE_FIXED_WING": "Fixed-Wing",
+        "VEHICLE_TYPE_ROTARY_WING": "Multicopter",
+    }
+
     for vehicle_type in vehicle_modes_sorted:
         for flight_mode in vehicle_modes_sorted[vehicle_type]:
             vehicle_part = vehicle_type.split("VEHICLE_TYPE_")[-1]
@@ -422,7 +433,19 @@ This allows PX4 automatic flight modes that require a global position to be used
                 print(f"  Skipping {snippet_stem} (warn=false, no doc in mode_nav_state_defns.json)")
                 continue
 
-            vehicle_mode_markdown = """### Mode Requirements
+            # Resolve parent doc early so we can choose the right heading.
+            parent = snippet_to_parent.get(snippet_stem) if not args.snippets else None
+
+            # Use a labeled heading when injecting into a shared doc (flight_modes/)
+            # so readers know which vehicle type each section applies to.
+            is_shared_doc = parent is not None and parent.parent.name == "flight_modes"
+            if is_shared_doc:
+                vt_label = _VT_DISPLAY_LABEL.get(vehicle_type, vehicle_type)
+                req_heading = f"### Mode Requirements — {vt_label}"
+            else:
+                req_heading = "### Mode Requirements"
+
+            vehicle_mode_markdown = f"""{req_heading}
 
 The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
 
@@ -442,7 +465,6 @@ The following requirements must be met to arm in this mode, or to switch to this
                     print(f"❌ An error occurred writing {vehicle_mode_filepath}: {e}")
             else:
                 # Default behaviour: inject directly into parent flight-mode doc
-                parent = snippet_to_parent.get(snippet_stem)
                 if parent:
                     inline_requirements_into_doc(parent, snippet_stem, vehicle_mode_markdown)
                 else:

@@ -122,6 +122,7 @@
     - [Flight Termination Configuration](advanced_config/flight_termination.md)
     - [First Flight Guidelines](flying/first_flight_guidelines.md)
   - [Flying](flying/index.md)
+    - [Mode Requirements](flight_modes/mode_requirements.md)
   - [Missions](flying/missions.md)
   - [Flight Reporting](getting_started/flight_reporting.md)
   - [Flight Log Analysis](log/flight_log_analysis.md)
