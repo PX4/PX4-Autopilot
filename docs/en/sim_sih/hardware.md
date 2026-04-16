@@ -107,11 +107,6 @@ To add SIH to a custom build, enable it in the board configuration:
 CONFIG_MODULES_SIMULATION_SIMULATOR_SIH=y
 ```
 
-:::warning
-To save flash memory on boards with limited storage, SIH can be built with only quadrotor support.
-Set `SIH_VEHICLE_TYPE` before building to limit included vehicle models.
-:::
-
 ## Visualization (Optional) {#hardware-visualization}
 
 If you need a visual aid to see what the simulated vehicle is doing on hardware:
