@@ -34,7 +34,7 @@
 #ifndef GPS_RTCM_DATA_HPP
 #define GPS_RTCM_DATA_HPP
 
-#include <uORB/topics/gps_inject_data.h>
+#include <uORB/topics/rtcm_corrections.h>
 
 class MavlinkStreamGPSRTCMData : public MavlinkStream
 {
@@ -49,25 +49,25 @@ public:
 
 	unsigned get_size() override
 	{
-		return _gps_inject_data_sub.advertised() ? (MAVLINK_MSG_ID_GPS_RTCM_DATA_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+		return _rtcm_corrections_sub.advertised() ? (MAVLINK_MSG_ID_GPS_RTCM_DATA_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
 
 private:
 	explicit MavlinkStreamGPSRTCMData(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	uORB::Subscription _gps_inject_data_sub{ORB_ID(gps_inject_data), 0};
+	uORB::Subscription _rtcm_corrections_sub{ORB_ID(rtcm_corrections), 0};
 
 	bool send() override
 	{
-		gps_inject_data_s gps_inject_data;
+		rtcm_corrections_s corrections;
 		bool sent = false;
 
-		while ((_mavlink->get_free_tx_buf() >= get_size()) && _gps_inject_data_sub.update(&gps_inject_data)) {
+		while ((_mavlink->get_free_tx_buf() >= get_size()) && _rtcm_corrections_sub.update(&corrections)) {
 			mavlink_gps_rtcm_data_t msg{};
 
-			msg.len = gps_inject_data.len;
-			msg.flags = gps_inject_data.flags;
-			memcpy(msg.data, gps_inject_data.data, sizeof(msg.data));
+			msg.len = corrections.len;
+			msg.flags = corrections.flags;
+			memcpy(msg.data, corrections.data, sizeof(msg.data));
 
 			mavlink_msg_gps_rtcm_data_send_struct(_mavlink->get_channel(), &msg);
 

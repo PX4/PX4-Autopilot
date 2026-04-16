@@ -39,7 +39,7 @@
 
 #include <lib/drivers/device/Device.hpp>
 #include <uORB/Publication.hpp>
-#include <uORB/topics/gps_inject_data.h>
+#include <uORB/topics/rtcm_moving_baseline.h>
 
 namespace uavcannode
 {
@@ -75,7 +75,7 @@ public:
 		printf("\t%s:%d -> %s\n",
 		       ardupilot::gnss::MovingBaselineData::getDataTypeFullName(),
 		       ardupilot::gnss::MovingBaselineData::DefaultDataTypeID,
-		       _gps_inject_data_pub.get_topic()->o_name);
+		       _rtcm_moving_baseline_pub.get_topic()->o_name);
 	}
 
 private:
@@ -83,13 +83,13 @@ private:
 	{
 		// Don't republish a message from ourselves
 		if (msg.getSrcNodeID().get() != getNode().getNodeID().get()) {
-			gps_inject_data_s gps_inject_data{};
+			rtcm_moving_baseline_s moving_baseline{};
 
-			gps_inject_data.len = msg.data.size();
+			moving_baseline.len = msg.data.size();
 
-			memcpy(gps_inject_data.data, &msg.data[0], gps_inject_data.len);
+			memcpy(moving_baseline.data, &msg.data[0], moving_baseline.len);
 
-			gps_inject_data.timestamp = hrt_absolute_time();
+			moving_baseline.timestamp = hrt_absolute_time();
 
 			union device::Device::DeviceId device_id;
 
@@ -97,12 +97,12 @@ private:
 			device_id.devid_s.address = msg.getSrcNodeID().get();
 			device_id.devid_s.devtype = DRV_GPS_DEVTYPE_UAVCAN;
 
-			gps_inject_data.device_id = device_id.devid;
+			moving_baseline.device_id = device_id.devid;
 
-			_gps_inject_data_pub.publish(gps_inject_data);
+			_rtcm_moving_baseline_pub.publish(moving_baseline);
 		}
 	}
 
-	uORB::Publication<gps_inject_data_s> _gps_inject_data_pub{ORB_ID(gps_inject_data)};
+	uORB::Publication<rtcm_moving_baseline_s> _rtcm_moving_baseline_pub{ORB_ID(rtcm_moving_baseline)};
 };
 } // namespace uavcannode

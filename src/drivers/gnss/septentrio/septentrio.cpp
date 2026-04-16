@@ -56,7 +56,7 @@
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/time.h>
 #include <lib/systemlib/mavlink_log.h>
-#include <uORB/topics/gps_inject_data.h>
+#include <uORB/topics/rtcm_corrections.h>
 #include <uORB/topics/sensor_gps.h>
 
 #include "util.h"
@@ -1626,27 +1626,23 @@ int SeptentrioDriver::set_baudrate(uint32_t baud)
 	}
 }
 
-void SeptentrioDriver::handle_inject_data_topic()
+template <typename T, uint8_t N>
+void SeptentrioDriver::drain_rtcm_subscriptions(uORB::SubscriptionMultiArray<T, N> &subs, uint8_t &selected_instance,
+		hrt_abstime &last_injection_time)
 {
-	// We don't want to call copy again further down if we have already done a copy in the selection process.
 	bool already_copied = false;
-	gps_inject_data_s msg;
+	T msg;
 
 	const hrt_abstime now = hrt_absolute_time();
 
 	// If there has not been a valid RTCM message for a while, try to switch to a different RTCM link
-	if (now > _last_rtcm_injection_time + 5_s) {
-		for (int instance = 0; instance < _gps_inject_data_sub.size(); instance++) {
-			const bool exists = _gps_inject_data_sub[instance].advertised();
-
-			if (exists) {
-				if (_gps_inject_data_sub[instance].copy(&msg)) {
-					if (now < msg.timestamp + 5_s) {
-						// Remember that we already did a copy on this instance.
-						already_copied = true;
-						_selected_rtcm_instance = instance;
-						break;
-					}
+	if (now > last_injection_time + 5_s) {
+		for (int instance = 0; instance < subs.size(); instance++) {
+			if (subs[instance].advertised() && subs[instance].copy(&msg)) {
+				if (msg.device_id != get_device_id() && now < msg.timestamp + 5_s) {
+					already_copied = true;
+					selected_instance = instance;
+					break;
 				}
 			}
 		}
@@ -1654,34 +1650,38 @@ void SeptentrioDriver::handle_inject_data_topic()
 
 	bool updated = already_copied;
 
-	// Limit maximum number of GPS injections to 8 since usually
-	// GPS injections should consist of 1-4 packets (GPS, GLONASS, BeiDou, Galileo).
-	// Looking at 8 packets thus guarantees, that at least a full injection
-	// data set is evaluated.
-	// Moving Base requires a higher rate, so we allow up to 8 packets.
-	const size_t max_num_injections = gps_inject_data_s::ORB_QUEUE_LENGTH;
+	const size_t max_num_injections = T::ORB_QUEUE_LENGTH;
 	size_t num_injections = 0;
 
 	do {
 		if (updated) {
 			num_injections++;
 
-			// Prevent injection of data from self or from ground if moving base and this is rover.
-			if ((_instance == Instance::Secondary && msg.device_id != get_device_id()) || (_instance == Instance::Main && msg.device_id == get_device_id()) || _receiver_setup != ReceiverSetup::MovingBase) {
-				/* Write the message to the gps device. Note that the message could be fragmented.
-				* But as we don't write anywhere else to the device during operation, we don't
-				* need to assemble the message first.
-				*/
+			// Prevent injection of data from self
+			if (msg.device_id != get_device_id()) {
 				write(msg.data, msg.len);
-
 				++_current_interval_rtcm_injections;
-				_last_rtcm_injection_time = hrt_absolute_time();
+				last_injection_time = hrt_absolute_time();
 			}
 		}
 
-		updated = _gps_inject_data_sub[_selected_rtcm_instance].update(&msg);
-
+		updated = subs[selected_instance].update(&msg);
 	} while (updated && num_injections < max_num_injections);
+}
+
+void SeptentrioDriver::handle_inject_data_topic()
+{
+	// Fixed-base RTCM corrections (from MAVLink GPS_RTCM_DATA, UAVCAN RTCMStream).
+	// Both the moving-base (Secondary) and the rover (Main) can benefit from external RTCM.
+	drain_rtcm_subscriptions(_rtcm_corrections_sub, _selected_rtcm_instance, _last_rtcm_injection_time);
+
+	// Moving-baseline RTCM is only consumed by the rover (Main instance) in a moving-base setup. It
+	// uses its own stale-link timer so corrections failover is not suppressed by moving-baseline
+	// traffic (and vice versa).
+	if (_receiver_setup == ReceiverSetup::MovingBase && _instance == Instance::Main) {
+		drain_rtcm_subscriptions(_rtcm_moving_baseline_sub, _selected_moving_baseline_instance,
+					 _last_moving_baseline_injection_time);
+	}
 }
 
 void SeptentrioDriver::publish()
@@ -1715,35 +1715,25 @@ bool SeptentrioDriver::first_gps_uorb_message_created() const
 
 void SeptentrioDriver::publish_rtcm_corrections(uint8_t *data, size_t len)
 {
-	gps_inject_data_s gps_inject_data{};
+	// The only path into this function is the moving-base Secondary decoding RTCM from its
+	// receiver (see _rtcm_decoder allocation in the constructor), so the output is always
+	// moving-baseline data intended for the rover.
+	rtcm_moving_baseline_s moving_baseline{};
 
-	gps_inject_data.timestamp = hrt_absolute_time();
-	gps_inject_data.device_id = get_device_id();
+	moving_baseline.timestamp = hrt_absolute_time();
+	moving_baseline.device_id = get_device_id();
 
-	size_t capacity = (sizeof(gps_inject_data.data) / sizeof(gps_inject_data.data[0]));
-
-	if (len > capacity) {
-		gps_inject_data.flags = 1; //LSB: 1=fragmented
-
-	} else {
-		gps_inject_data.flags = 0;
-	}
+	const size_t capacity = sizeof(moving_baseline.data) / sizeof(moving_baseline.data[0]);
+	moving_baseline.flags = (len > capacity) ? 1 : 0; // LSB: 1=fragmented
 
 	size_t written = 0;
 
 	while (written < len) {
-
-		gps_inject_data.len = len - written;
-
-		if (gps_inject_data.len > capacity) {
-			gps_inject_data.len = capacity;
-		}
-
-		memcpy(gps_inject_data.data, &data[written], gps_inject_data.len);
-
-		_gps_inject_data_pub.publish(gps_inject_data);
-
-		written = written + gps_inject_data.len;
+		const size_t chunk = math::min(len - written, capacity);
+		moving_baseline.len = chunk;
+		memcpy(moving_baseline.data, &data[written], chunk);
+		_rtcm_moving_baseline_pub.publish(moving_baseline);
+		written += chunk;
 	}
 }
 

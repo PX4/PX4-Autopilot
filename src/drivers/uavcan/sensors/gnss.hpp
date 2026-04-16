@@ -48,7 +48,8 @@
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_gps.h>
-#include <uORB/topics/gps_inject_data.h>
+#include <uORB/topics/rtcm_corrections.h>
+#include <uORB/topics/rtcm_moving_baseline.h>
 #include <uORB/topics/gps_dump.h>
 
 #include <lib/failure_injection/FailureInjection.hpp>
@@ -147,9 +148,12 @@ private:
 	float		_last_gnss_auxiliary_hdop{0.0f};
 	float		_last_gnss_auxiliary_vdop{0.0f};
 
-	uORB::SubscriptionMultiArray<gps_inject_data_s, gps_inject_data_s::MAX_INSTANCES> _orb_inject_data_sub{ORB_ID::gps_inject_data};
+	uORB::SubscriptionMultiArray<rtcm_corrections_s, rtcm_corrections_s::MAX_INSTANCES> _rtcm_corrections_sub{ORB_ID::rtcm_corrections};
+	uORB::SubscriptionMultiArray<rtcm_moving_baseline_s, rtcm_moving_baseline_s::MAX_INSTANCES> _rtcm_moving_baseline_sub{ORB_ID::rtcm_moving_baseline};
 	hrt_abstime		_last_rtcm_injection_time{0};	///< time of last rtcm injection
+	hrt_abstime		_last_moving_baseline_injection_time{0};	///< time of last moving-baseline injection
 	uint8_t			_selected_rtcm_instance{0};	///< uorb instance that is being used for RTCM corrections
+	uint8_t			_selected_moving_baseline_instance{0};	///< uorb instance used for moving-baseline input
 
 	uORB::Publication<gps_dump_s> _gps_dump_pub{ORB_ID(gps_dump)}; // For PPK
 
