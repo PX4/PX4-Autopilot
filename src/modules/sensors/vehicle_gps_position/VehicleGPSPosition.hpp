@@ -45,6 +45,8 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss_relative.h>
+#include <uORB/topics/vehicle_gnss_heading.h>
 #include <uORB/topics/pps_capture.h>
 
 #include "gps_blending.hpp"
@@ -82,6 +84,7 @@ private:
 		      "GPS_MAX_RECEIVERS must match to GPS_MAX_RECEIVERS_BLEND");
 
 	uORB::Publication<sensor_gps_s> _vehicle_gps_position_pub{ORB_ID(vehicle_gps_position)};
+	uORB::Publication<vehicle_gnss_heading_s> _vehicle_gnss_heading_pub{ORB_ID(vehicle_gnss_heading)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -91,6 +94,13 @@ private:
 	};
 
 	uORB::Subscription _pps_capture_sub{ORB_ID(pps_capture)};
+
+	uORB::Subscription _sensor_gnss_relative_sub[GPS_MAX_RECEIVERS] {
+		{ORB_ID(sensor_gnss_relative), 0},
+		{ORB_ID(sensor_gnss_relative), 1},
+	};
+
+	hrt_abstime _last_gnss_relative_timestamp[GPS_MAX_RECEIVERS] {};
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 

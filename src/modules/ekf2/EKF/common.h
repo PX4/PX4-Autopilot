@@ -200,12 +200,16 @@ struct gnssSample {
 	uint8_t     fix_type{};   ///< 0-1: no fix, 2: 2D fix, 3: 3D fix, 4: RTCM code differential, 5: Real-Time
 	uint8_t     nsats{};      ///< number of satellites used
 	float       pdop{};       ///< position dilution of precision
-	float       yaw{};        ///< yaw angle. NaN if not set (used for dual antenna GPS), (rad, [-PI, PI])
-	float       yaw_acc{};    ///< 1-std yaw error (rad)
-	float       yaw_offset{}; ///< Heading/Yaw offset for dual antenna GPS - refer to description for GPS_YAW_OFFSET
 	bool        spoofed{};    ///< true if GNSS data is spoofed
 	bool        jammed{};     ///< true if GNSS data is jammed
 	Vector3f    pos_body{};   ///< position of GPS antenna in body frame (m)
+};
+
+struct gnssYawSample {
+	uint64_t    time_us{};    ///< timestamp of the measurement (uSec)
+	float       yaw{};        ///< yaw angle from dual antenna GNSS (rad, [-PI, PI])
+	float       yaw_acc{};    ///< 1-std yaw error (rad)
+	float       yaw_offset{}; ///< Heading/Yaw offset for dual antenna GPS - refer to description for GPS_YAW_OFFSET
 };
 
 struct magSample {

@@ -807,6 +807,9 @@ void EKF2::Run()
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 #if defined(CONFIG_EKF2_GNSS)
 		UpdateGpsSample(ekf2_timestamps);
+# if defined(CONFIG_EKF2_GNSS_YAW)
+		UpdateGnssYawSample(ekf2_timestamps);
+# endif // CONFIG_EKF2_GNSS_YAW
 #endif // CONFIG_EKF2_GNSS
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 		UpdateMagSample(ekf2_timestamps);
@@ -2623,15 +2626,6 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 			return; //TODO: change and set to NAN
 		}
 
-		if (fabsf(_param_ekf2_gps_yaw_off.get()) > 0.f) {
-			if (!PX4_ISFINITE(vehicle_gps_position.heading_offset) && PX4_ISFINITE(vehicle_gps_position.heading)) {
-				// Apply offset
-				float yaw_offset = matrix::wrap_pi(math::radians(_param_ekf2_gps_yaw_off.get()));
-				vehicle_gps_position.heading_offset = yaw_offset;
-				vehicle_gps_position.heading = matrix::wrap_pi(vehicle_gps_position.heading - yaw_offset);
-			}
-		}
-
 		const float altitude_amsl = static_cast<float>(vehicle_gps_position.altitude_msl_m);
 		const float altitude_ellipsoid = static_cast<float>(vehicle_gps_position.altitude_ellipsoid_m);
 
@@ -2652,9 +2646,6 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 			.nsats = vehicle_gps_position.satellites_used,
 			.pdop = sqrtf(vehicle_gps_position.hdop *vehicle_gps_position.hdop
 				      + vehicle_gps_position.vdop * vehicle_gps_position.vdop),
-			.yaw = vehicle_gps_position.heading, //TODO: move to different message
-			.yaw_acc = vehicle_gps_position.heading_accuracy,
-			.yaw_offset = vehicle_gps_position.heading_offset,
 			.spoofed = vehicle_gps_position.spoofing_state == sensor_gps_s::SPOOFING_STATE_DETECTED,
 			.jammed = vehicle_gps_position.jamming_state == sensor_gps_s::JAMMING_STATE_DETECTED,
 			.pos_body = Vector3f(vehicle_gps_position.antenna_offset_x,
@@ -2679,6 +2670,40 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 
 	}
 }
+
+#if defined(CONFIG_EKF2_GNSS_YAW)
+void EKF2::UpdateGnssYawSample(ekf2_timestamps_s &ekf2_timestamps)
+{
+	vehicle_gnss_heading_s gnss_heading;
+
+	if (_vehicle_gnss_heading_sub.update(&gnss_heading)) {
+
+		float yaw = gnss_heading.heading;
+		float yaw_offset = gnss_heading.heading_offset;
+
+		// Apply EKF2_GPS_YAW_OFF if the driver didn't set an offset
+		if (fabsf(_param_ekf2_gps_yaw_off.get()) > 0.f) {
+			if (!PX4_ISFINITE(yaw_offset) && PX4_ISFINITE(yaw)) {
+				yaw_offset = matrix::wrap_pi(math::radians(_param_ekf2_gps_yaw_off.get()));
+				yaw = matrix::wrap_pi(yaw - yaw_offset);
+			}
+		}
+
+		if (!PX4_ISFINITE(yaw_offset)) {
+			yaw_offset = 0.f;
+		}
+
+		gnssYawSample gnss_yaw_sample{
+			.time_us = (gnss_heading.timestamp_sample > 0) ? gnss_heading.timestamp_sample : gnss_heading.timestamp,
+			.yaw = yaw,
+			.yaw_acc = gnss_heading.heading_accuracy,
+			.yaw_offset = yaw_offset,
+		};
+
+		_ekf.setGnssYawData(gnss_yaw_sample);
+	}
+}
+#endif // CONFIG_EKF2_GNSS_YAW
 
 float EKF2::altEllipsoidToAmsl(float ellipsoid_alt) const
 {

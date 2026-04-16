@@ -96,12 +96,26 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 		}
 	}
 
-	if (_gps_data_ready) {
+	// GNSS yaw fusion - independent of position/velocity quality gates
 #if defined(CONFIG_EKF2_GNSS_YAW)
-		const gnssSample &gnss_sample = _gps_sample_delayed;
-		controlGnssYawFusion(gnss_sample);
+
+	if (_gnss_yaw_buffer) {
+		const bool gnss_yaw_data_ready = _gnss_yaw_buffer->pop_first_older_than(imu_delayed.time_us,
+						 &_gnss_yaw_sample_delayed);
+
+		if (gnss_yaw_data_ready) {
+			controlGnssYawFusion(_gnss_yaw_sample_delayed);
+
+		} else if (_control_status.flags.gnss_yaw
+			   && !isNewestSampleRecent(_time_last_gnss_yaw_buffer_push, _params.reset_timeout_max)) {
+			// No yaw data arriving -- stop fusion
+			stopGnssYawFusion();
+		}
+	}
+
 #endif // CONFIG_EKF2_GNSS_YAW
 
+	if (_gps_data_ready) {
 		controlGnssYawEstimator(_aid_src_gnss_vel);
 
 		bool do_vel_pos_reset = false;

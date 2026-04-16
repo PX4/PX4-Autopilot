@@ -48,6 +48,9 @@ EstimatorInterface::~EstimatorInterface()
 {
 #if defined(CONFIG_EKF2_GNSS)
 	delete _gps_buffer;
+# if defined(CONFIG_EKF2_GNSS_YAW)
+	delete _gnss_yaw_buffer;
+# endif // CONFIG_EKF2_GNSS_YAW
 #endif // CONFIG_EKF2_GNSS
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	delete _mag_buffer;
@@ -192,19 +195,45 @@ void EstimatorInterface::setGpsData(const gnssSample &gnss_sample)
 		_gps_buffer->push(gnss_sample_new);
 		_time_last_gps_buffer_push = _time_latest_us;
 
-#if defined(CONFIG_EKF2_GNSS_YAW)
-
-		if (PX4_ISFINITE(gnss_sample.yaw)) {
-			_time_last_gnss_yaw_buffer_push = _time_latest_us;
-		}
-
-#endif // CONFIG_EKF2_GNSS_YAW
-
 	} else {
-		ECL_WARN("GPS data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _gps_buffer->get_newest().time_us,
-			 _min_obs_interval_us);
+		ECL_WARN("GPS data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _gps_buffer->get_newest().time_us, _min_obs_interval_us);
 	}
 }
+
+#if defined(CONFIG_EKF2_GNSS_YAW)
+void EstimatorInterface::setGnssYawData(const gnssYawSample &gnss_yaw_sample)
+{
+	if (!_initialised) {
+		return;
+	}
+
+	if (_gnss_yaw_buffer == nullptr) {
+		_gnss_yaw_buffer = new TimestampedRingBuffer<gnssYawSample>(_obs_buffer_length);
+
+		if (_gnss_yaw_buffer == nullptr || !_gnss_yaw_buffer->valid()) {
+			delete _gnss_yaw_buffer;
+			_gnss_yaw_buffer = nullptr;
+			printBufferAllocationFailed("GNSS yaw");
+			return;
+		}
+	}
+
+	const int64_t time_us = gnss_yaw_sample.time_us - static_cast<int64_t>(_dt_ekf_avg * 5e5f);
+
+	if (time_us >= static_cast<int64_t>(_gnss_yaw_buffer->get_newest().time_us + _min_obs_interval_us)) {
+
+		gnssYawSample sample_new(gnss_yaw_sample);
+		sample_new.time_us = time_us;
+
+		_gnss_yaw_buffer->push(sample_new);
+		_time_last_gnss_yaw_buffer_push = _time_latest_us;
+
+	} else {
+		ECL_WARN("GNSS yaw data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _gnss_yaw_buffer->get_newest().time_us, _min_obs_interval_us);
+	}
+}
+#endif // CONFIG_EKF2_GNSS_YAW
+
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_BAROMETER)

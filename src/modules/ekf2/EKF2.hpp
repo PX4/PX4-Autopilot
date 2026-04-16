@@ -87,6 +87,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_gnss_heading.h>
 #include <uORB/topics/yaw_estimator_status.h>
 
 #if defined(CONFIG_EKF2_AIRSPEED)
@@ -224,6 +225,9 @@ private:
 	void PublishGnssHgtBias(const hrt_abstime &timestamp);
 	void PublishYawEstimatorStatus(const hrt_abstime &timestamp);
 	void UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps);
+# if defined(CONFIG_EKF2_GNSS_YAW)
+	void UpdateGnssYawSample(ekf2_timestamps_s &ekf2_timestamps);
+# endif // CONFIG_EKF2_GNSS_YAW
 #endif // CONFIG_EKF2_GNSS
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	bool UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps);
@@ -507,6 +511,7 @@ private:
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	hrt_abstime _status_gnss_yaw_pub_last {0};
 	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_gnss_yaw_pub {ORB_ID(estimator_aid_src_gnss_yaw)};
+	uORB::Subscription _vehicle_gnss_heading_sub{ORB_ID(vehicle_gnss_heading)};
 # endif // CONFIG_EKF2_GNSS_YAW
 #endif // CONFIG_EKF2_GNSS
 

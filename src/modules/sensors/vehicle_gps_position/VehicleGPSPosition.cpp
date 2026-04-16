@@ -45,6 +45,7 @@ VehicleGPSPosition::VehicleGPSPosition() :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
 	_vehicle_gps_position_pub.advertise();
+	_vehicle_gnss_heading_pub.advertise();
 }
 
 VehicleGPSPosition::~VehicleGPSPosition()
@@ -213,6 +214,61 @@ void VehicleGPSPosition::Run()
 			}
 
 			_vehicle_gps_position_pub.publish(gps_output);
+		}
+	}
+
+	// Publish vehicle_gnss_heading from sensor_gnss_relative (preferred) or sensor_gps heading (fallback)
+	{
+		bool heading_published = false;
+
+		// Preferred path: use sensor_gnss_relative which has independent timestamps
+		for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+			sensor_gnss_relative_s gnss_rel;
+
+			if (_sensor_gnss_relative_sub[i].update(&gnss_rel)) {
+				_last_gnss_relative_timestamp[i] = gnss_rel.timestamp;
+
+				if (gnss_rel.heading_valid && PX4_ISFINITE(gnss_rel.heading)) {
+					vehicle_gnss_heading_s heading_out{};
+					heading_out.timestamp_sample = (gnss_rel.timestamp_sample > 0) ? gnss_rel.timestamp_sample : gnss_rel.timestamp;
+					heading_out.device_id = gnss_rel.device_id;
+					heading_out.heading = gnss_rel.heading;
+					heading_out.heading_accuracy = gnss_rel.heading_accuracy;
+					heading_out.heading_offset = NAN; // offset not available in sensor_gnss_relative
+					heading_out.timestamp = hrt_absolute_time();
+					_vehicle_gnss_heading_pub.publish(heading_out);
+					heading_published = true;
+				}
+			}
+		}
+
+		// Fallback: extract heading from sensor_gps for receivers that don't publish sensor_gnss_relative
+		// (e.g. Septentrio). Only use if no sensor_gnss_relative is being published.
+		if (!heading_published && any_gps_updated) {
+			bool any_gnss_relative_active = false;
+
+			for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+				if (_last_gnss_relative_timestamp[i] > 0
+				    && hrt_elapsed_time(&_last_gnss_relative_timestamp[i]) < 3_s) {
+					any_gnss_relative_active = true;
+					break;
+				}
+			}
+
+			if (!any_gnss_relative_active) {
+				const sensor_gps_s &gps_out = _gps_blending.getOutputGpsData();
+
+				if (PX4_ISFINITE(gps_out.heading)) {
+					vehicle_gnss_heading_s heading_out{};
+					heading_out.timestamp_sample = (gps_out.timestamp_sample > 0) ? gps_out.timestamp_sample : gps_out.timestamp;
+					heading_out.device_id = gps_out.device_id;
+					heading_out.heading = gps_out.heading;
+					heading_out.heading_accuracy = gps_out.heading_accuracy;
+					heading_out.heading_offset = gps_out.heading_offset;
+					heading_out.timestamp = hrt_absolute_time();
+					_vehicle_gnss_heading_pub.publish(heading_out);
+				}
+			}
 		}
 	}
 

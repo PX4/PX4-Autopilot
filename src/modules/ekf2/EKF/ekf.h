@@ -906,7 +906,7 @@ private:
 	bool isGnssHgtResetAllowed();
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
-	void controlGnssYawFusion(const gnssSample &gps_sample);
+	void controlGnssYawFusion(const gnssYawSample &gnss_yaw_sample);
 	void stopGnssYawFusion();
 
 	// fuse the yaw angle obtained from a dual antenna GPS unit
@@ -916,7 +916,7 @@ private:
 	// return true if the reset was successful
 	bool resetYawToGnss(float gnss_yaw, float gnss_yaw_offset);
 
-	void updateGnssYaw(const gnssSample &gps_sample);
+	void updateGnssYaw(const gnssYawSample &gnss_yaw_sample);
 
 # endif // CONFIG_EKF2_GNSS_YAW
 
