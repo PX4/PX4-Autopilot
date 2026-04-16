@@ -250,7 +250,7 @@ jobs:
 
       - name: Run filtered link checker (changed files)
         run: |
-          npm -g install markdown_link_checker_sc@0.0.138
+          npm -g install markdown_link_checker_sc@0.0.144
           if [ "$(jq length ./logs/prFiles.json)" -gt 0 ]; then
             markdown_link_checker_sc \
               -r "$GITHUB_WORKSPACE" \
