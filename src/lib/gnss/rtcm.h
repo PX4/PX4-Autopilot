@@ -185,69 +185,6 @@ private:
 	SequenceState _active_sequence {};
 };
 
-class GpsRtcmMessageFragmenter
-{
-public:
-	GpsRtcmMessageFragmenter() = default;
-
-	/**
-	 * Start fragmenting a complete RTCM message into MAVLink GPS_RTCM_DATA packets.
-	 *
-	 * Messages up to 180 bytes are sent as a single packet with the fragmented
-	 * bit clear and fragment ID 0. Larger messages are split into packets that
-	 * share a sequence ID and use increasing fragment IDs. Exact multiples of
-	 * 180 bytes below 720 bytes emit a final zero-length fragment so receivers
-	 * can apply the MAVLink completion rule: a fragmented payload is complete
-	 * once either all 4 fragments are present, or the first fragment with a
-	 * non-full payload has been received and every lower fragment ID is
-	 * present.
-	 *
-	 * @param data  Pointer to complete RTCM message bytes
-	 * @param len   RTCM message length
-	 * @return      true if packetization started successfully
-	 */
-	bool startMessage(const uint8_t *data, size_t len);
-
-	/**
-	 * Get the next MAVLink GPS_RTCM_DATA packet for the current message.
-	 *
-	 * The returned data pointer remains valid until the next call to
-	 * startMessage() or nextPacket().
-	 *
-	 * @param out_flags  MAVLink GPS_RTCM_DATA flags for this packet
-	 * @param out_data   Pointer to packet payload bytes
-	 * @param out_len    Packet payload length
-	 * @return           true if a packet was produced
-	 */
-	bool nextPacket(uint8_t &out_flags, const uint8_t *&out_data, size_t &out_len);
-
-	bool active() const;
-
-private:
-	/**
-	 * @brief Return how many MAVLink GPS_RTCM_DATA packets a message needs.
-	 *
-	 * Examples:
-	 *  - 180 bytes -> 1 packet (no fragmentation so no need for empty terminator)
-	 *  - 181 bytes -> 2 packets
-	 *  - 360 bytes -> 3 packets (2 full packets + empty terminator)
-	 *  - 720 bytes -> 4 packets
-	 */
-	static uint8_t packetCountForLength(size_t len);
-	void resetActiveState();
-
-	struct ActiveMessageState {
-		size_t len {0};
-		uint8_t sequence_id {0};
-		uint8_t next_fragment_id {0};
-		uint8_t total_packets {0};
-	};
-
-	uint8_t _message[GPS_RTCM_MAX_MESSAGE_LEN] {};
-	uint8_t _next_sequence_id {0};
-	ActiveMessageState _active {};
-};
-
 /**
  * RTCM3 parser statistics.
  */
