@@ -2748,8 +2748,9 @@ MavlinkReceiver::handle_message_gps_rtcm_data(mavlink_message_t *msg)
 	const uint8_t *message = _gps_rtcm_message_assembler.addPacket(gps_rtcm_data_msg.flags, gps_rtcm_data_msg.data,
 				 packet_len, now, message_len);
 
-	if (message != nullptr) {
+	while (message != nullptr) {
 		publish_gps_inject_data(message, message_len);
+		message = _gps_rtcm_message_assembler.takeDeferredMessage(message_len);
 	}
 }
 

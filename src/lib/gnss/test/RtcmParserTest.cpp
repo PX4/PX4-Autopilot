@@ -318,30 +318,195 @@ TEST_F(RtcmTest, GpsRtcmAssemblerIgnoresDuplicateMatchingFragment)
 	EXPECT_EQ(memcmp(message, payload.data(), payload.size()), 0);
 }
 
-// WHAT: Verify that a new sequence flushes the partial state of the old sequence.
-// WHY: Sequence IDs are the protocol mechanism that prevents mixing unrelated buffers.
-TEST_F(RtcmTest, GpsRtcmAssemblerFlushesOnSequenceChange)
-{
-	// GIVEN: Two different payloads that start with fragment 0 but use different sequence IDs.
-	std::vector<uint8_t> first_payload(GPS_RTCM_MAX_FRAGMENT_LEN + 10, 0x11);
-	std::vector<uint8_t> second_payload(GPS_RTCM_MAX_FRAGMENT_LEN + 20, 0x22);
+struct GpsRtcmSequenceChangeCase {
+	const char *name;
+	std::vector<uint8_t> old_fragment_ids;
+	size_t expected_flushed_fragments;
+};
 
+class GpsRtcmSequenceChangeTest : public RtcmTest, public ::testing::WithParamInterface<GpsRtcmSequenceChangeCase>
+{
+};
+
+// WHAT: Verify that legacy exact-multiple fragmented messages are sent
+// when every buffered fragment is a full 180-byte prefix starting at fragment 0.
+// WHY: This keeps the receiver compatible with older QGC senders while still
+// rejecting partial buffers that have a missing fragment in the middle.
+TEST_P(GpsRtcmSequenceChangeTest, GpsRtcmAssemblerFlushesOnlyGapFreeFullPrefixOnSequenceChange)
+{
+	const GpsRtcmSequenceChangeCase &param = GetParam();
+	const uint8_t old_sequence_id = 9;
+	const uint8_t new_sequence_id = 10;
+	size_t len = 0;
+	uint64_t timestamp = 10;
+	std::vector<std::vector<uint8_t>> old_fragments(GPS_RTCM_MAX_FRAGMENTS);
+
+	// GIVEN: A buffered old sequence with full-sized fragments as described by
+	// the parameter set, followed by a new sequence that starts with fragment 0.
+	for (const uint8_t fragment_id : param.old_fragment_ids) {
+		old_fragments[fragment_id].resize(GPS_RTCM_MAX_FRAGMENT_LEN);
+		std::iota(old_fragments[fragment_id].begin(), old_fragments[fragment_id].end(),
+			  static_cast<uint8_t>(0x20 + fragment_id * 0x10));
+		EXPECT_EQ(gps_rtcm_assembler.addPacket(buildGpsRtcmFlags(true, fragment_id, old_sequence_id),
+						       old_fragments[fragment_id].data(), old_fragments[fragment_id].size(), timestamp, len),
+			  nullptr);
+		EXPECT_EQ(len, 0u);
+		timestamp += 10;
+	}
+
+	std::vector<uint8_t> expected_old_message;
+
+	for (size_t fragment_id = 0; fragment_id < param.expected_flushed_fragments; fragment_id++) {
+		expected_old_message.insert(expected_old_message.end(), old_fragments[fragment_id].begin(), old_fragments[fragment_id].end());
+	}
+
+	std::vector<uint8_t> new_fragment0(GPS_RTCM_MAX_FRAGMENT_LEN);
+	std::iota(new_fragment0.begin(), new_fragment0.end(), static_cast<uint8_t>(0x70));
+
+	// WHEN: A packet for the next sequence arrives.
+	const uint8_t *message = gps_rtcm_assembler.addPacket(buildGpsRtcmFlags(true, 0, new_sequence_id), new_fragment0.data(),
+				 new_fragment0.size(), timestamp, len);
+
+	// THEN: Only a gap-free run of full 180-byte fragments from fragment 0 is
+	// flushed. Any gap in the buffered old sequence emits nothing.
+	if (expected_old_message.empty()) {
+		EXPECT_EQ(message, nullptr);
+		EXPECT_EQ(len, 0u);
+
+	} else {
+		ASSERT_NE(message, nullptr);
+		EXPECT_EQ(len, expected_old_message.size());
+		EXPECT_EQ(memcmp(message, expected_old_message.data(), expected_old_message.size()), 0);
+	}
+
+	std::vector<uint8_t> new_fragment1(7);
+	std::iota(new_fragment1.begin(), new_fragment1.end(), static_cast<uint8_t>(0x90));
+	message = gps_rtcm_assembler.addPacket(buildGpsRtcmFlags(true, 1, new_sequence_id), new_fragment1.data(), new_fragment1.size(),
+					       timestamp + 10, len);
+
+	std::vector<uint8_t> expected_new_message = new_fragment0;
+	expected_new_message.insert(expected_new_message.end(), new_fragment1.begin(), new_fragment1.end());
+
+	ASSERT_NE(message, nullptr);
+	EXPECT_EQ(len, expected_new_message.size());
+	EXPECT_EQ(memcmp(message, expected_new_message.data(), expected_new_message.size()), 0);
+}
+
+INSTANTIATE_TEST_SUITE_P(RolloverFlushCases, GpsRtcmSequenceChangeTest,
+			 ::testing::Values(
+				 GpsRtcmSequenceChangeCase {"Single180ByteFragment", {0}, 1},
+				 GpsRtcmSequenceChangeCase {"Two180ByteFragments", {0, 1}, 2},
+				 GpsRtcmSequenceChangeCase {"Three180ByteFragments", {0, 1, 2}, 3},
+				 GpsRtcmSequenceChangeCase {"MissingFragmentZero", {1, 2}, 0},
+				 GpsRtcmSequenceChangeCase {"GapAfterFragmentZero", {0, 2}, 0},
+				 GpsRtcmSequenceChangeCase {"GapBeforeFragmentThree", {0, 1, 3}, 0}
+			 ),
+			 [](const ::testing::TestParamInfo<GpsRtcmSequenceChangeCase> &test_param_info)
+{
+	return test_param_info.param.name;
+});
+
+// WHAT: Verify that the fragmented sequence-change path can emit both the
+// older buffered message and a new single-fragment fragmented message.
+// WHY: A non-full fragment 0 is already a complete fragmented message. This
+// only happens if the sender sets the fragmented bit on a packet that would
+// normally be sent unfragmented, but PX4 still needs to handle it safely.
+TEST_F(RtcmTest, GpsRtcmAssemblerQueuesSingleFragmentMessageAfterSequenceChangeFlush)
+{
+	// GIVEN: An old exact-180-byte fragmented message and a new sequence whose
+	// fragment 0 is non-full, so it is also the final fragment even though a
+	// compliant sender would usually send it as unfragmented.
+	std::vector<uint8_t> old_payload(GPS_RTCM_MAX_FRAGMENT_LEN);
+	std::iota(old_payload.begin(), old_payload.end(), 0);
+	std::vector<uint8_t> new_payload(23);
+	std::iota(new_payload.begin(), new_payload.end(), static_cast<uint8_t>(0x80));
 	size_t len = 0;
 
-	// WHEN: A new sequence starts before the old one is complete.
-	EXPECT_EQ(gps_rtcm_assembler.addPacket(buildGpsRtcmFlags(true, 0, 1), first_payload.data(), GPS_RTCM_MAX_FRAGMENT_LEN, 10,
-					       len), nullptr);
-	EXPECT_EQ(gps_rtcm_assembler.addPacket(buildGpsRtcmFlags(true, 0, 2), second_payload.data(), GPS_RTCM_MAX_FRAGMENT_LEN, 20,
-					       len), nullptr);
+	EXPECT_EQ(gps_rtcm_assembler.addPacket(buildGpsRtcmFlags(true, 0, 9), old_payload.data(),
+					       old_payload.size(), 10, len), nullptr);
 
-	// WHEN: The matching final fragment for the new sequence arrives.
-	const uint8_t *message = gps_rtcm_assembler.addPacket(buildGpsRtcmFlags(true, 1, 2),
-				 &second_payload[GPS_RTCM_MAX_FRAGMENT_LEN], 20, 30, len);
+	// WHEN: A new sequence starts with a non-full fragment 0, which completes
+	// the new message immediately while also flushing the old sequence.
+	const uint8_t *message = gps_rtcm_assembler.addPacket(buildGpsRtcmFlags(true, 0, 10), new_payload.data(),
+				 new_payload.size(), 20, len);
 
-	// THEN: Only the new sequence is returned.
+	// THEN: addPacket() returns the older flushed message first.
 	ASSERT_NE(message, nullptr);
-	EXPECT_EQ(len, second_payload.size());
-	EXPECT_EQ(memcmp(message, second_payload.data(), second_payload.size()), 0);
+	EXPECT_EQ(len, old_payload.size());
+	EXPECT_EQ(memcmp(message, old_payload.data(), old_payload.size()), 0);
+
+	message = gps_rtcm_assembler.takeDeferredMessage(len);
+
+	// THEN: The new short complete message is queued and can be drained
+	// immediately afterwards.
+	ASSERT_NE(message, nullptr);
+	EXPECT_EQ(len, new_payload.size());
+	EXPECT_EQ(memcmp(message, new_payload.data(), new_payload.size()), 0);
+	EXPECT_EQ(gps_rtcm_assembler.takeDeferredMessage(len), nullptr);
+	EXPECT_EQ(len, 0u);
+}
+
+// WHAT: Verify that the unfragmented path can emit both the older buffered
+// message and the new unfragmented packet from one call.
+// WHY: This covers the separate unfragmented branch, which uses the same
+// compatibility fallback but does not go through fragmented reassembly.
+TEST_F(RtcmTest, GpsRtcmAssemblerQueuesSecondUnfragmentedMessageAfterLegacyFlush)
+{
+	// GIVEN: An old exact-180-byte fragmented message followed by a new
+	// unfragmented packet.
+	std::vector<uint8_t> old_payload(GPS_RTCM_MAX_FRAGMENT_LEN);
+	std::iota(old_payload.begin(), old_payload.end(), 0);
+	std::vector<uint8_t> new_payload(23);
+	std::iota(new_payload.begin(), new_payload.end(), static_cast<uint8_t>(0xa0));
+	size_t len = 0;
+
+	EXPECT_EQ(gps_rtcm_assembler.addPacket(buildGpsRtcmFlags(true, 0, 11), old_payload.data(),
+					       old_payload.size(), 10, len), nullptr);
+
+	// WHEN: The next packet arrives without the fragmented flag.
+	const uint8_t *message = gps_rtcm_assembler.addPacket(buildGpsRtcmFlags(false, 0, 12), new_payload.data(),
+				 new_payload.size(), 20, len);
+
+	// THEN: addPacket() returns the older flushed message first from
+	// _assembled_message; the new unfragmented payload is deferred.
+	ASSERT_NE(message, nullptr);
+	EXPECT_EQ(len, old_payload.size());
+	EXPECT_EQ(memcmp(message, old_payload.data(), old_payload.size()), 0);
+
+	message = gps_rtcm_assembler.takeDeferredMessage(len);
+
+	// THEN: The new unfragmented payload is queued and can be drained
+	// immediately afterwards.
+	ASSERT_NE(message, nullptr);
+	EXPECT_EQ(len, new_payload.size());
+	EXPECT_EQ(memcmp(message, new_payload.data(), new_payload.size()), 0);
+	EXPECT_EQ(gps_rtcm_assembler.takeDeferredMessage(len), nullptr);
+	EXPECT_EQ(len, 0u);
+}
+
+// WHAT: Verify that a spec-compliant sender still completes on the short
+// terminal fragment before any sequence rollover logic is needed.
+// WHY: The receiver-side sequence-change fallback must not change the normal
+// completion path for a standard [180, short] fragmented payload.
+TEST_F(RtcmTest, GpsRtcmAssemblerCompletesOnShortTerminalBeforeSequenceChange)
+{
+	// GIVEN: A payload with one full fragment and one short terminal fragment.
+	std::vector<uint8_t> payload(GPS_RTCM_MAX_FRAGMENT_LEN + 23);
+	std::iota(payload.begin(), payload.end(), 0);
+	size_t len = 0;
+
+	// WHEN: The fragmented payload arrives in order and completes on the short
+	// final fragment.
+	EXPECT_EQ(gps_rtcm_assembler.addPacket(buildGpsRtcmFlags(true, 0, 3), payload.data(),
+					       GPS_RTCM_MAX_FRAGMENT_LEN, 10, len), nullptr);
+	const uint8_t *message = gps_rtcm_assembler.addPacket(buildGpsRtcmFlags(true, 1, 3),
+				 &payload[GPS_RTCM_MAX_FRAGMENT_LEN], 23, 20, len);
+
+	// THEN: The message completes immediately, without waiting for a later
+	// sequence change.
+	ASSERT_NE(message, nullptr);
+	EXPECT_EQ(len, payload.size());
+	EXPECT_EQ(memcmp(message, payload.data(), payload.size()), 0);
 }
 
 // WHAT: Verify that four full-sized fragments complete a message explicitly.

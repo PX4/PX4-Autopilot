@@ -145,8 +145,21 @@ public:
 	 * buffer, while the sequence ID prevents fragments from different buffers
 	 * from being mixed together. A fragmented payload is complete once either
 	 * all 4 fragments are present, or the first fragment with a non-full
-	 * payload has been received and every lower fragment ID is present.
-	 * The returned pointer is valid until the next call to addPacket().
+	 * payload has been received and every lower fragment ID is present. If the
+	 * RTCM payload length is an exact multiple of 180 bytes and uses fewer than
+	 * 4 fragments, the sender must still send a final zero-length fragment to
+	 * mark completion.
+	 *
+	 * As a compatibility fallback for older senders that omit
+	 * that terminator, PX4 also flushes a buffered message when a different
+	 * sequence ID arrives, but only if the buffered fragments are a gap-free
+	 * run of full 180-byte fragments starting at fragment 0 (the start of the
+	 * RTCM message). This fallback only works while the older sequence remains
+	 * buffered (up to the 1 second fragment timeout).
+	 *
+	 * If processing a packet completes two messages, addPacket() returns the older one
+	 * and queues the newer one for takeDeferredMessage(). The returned pointer
+	 * is valid until the next call to addPacket().
 	 *
 	 * @param flags       MAVLink GPS_RTCM_DATA flags
 	 * @param data        Packet payload
@@ -156,6 +169,18 @@ public:
 	 * @return            Pointer to a complete message, or nullptr if the message is incomplete or invalid
 	 */
 	const uint8_t *addPacket(uint8_t flags, const uint8_t *data, size_t len, uint64_t timestamp, size_t &out_len);
+
+	/**
+	 * Retrieve a second complete message queued by addPacket().
+	 *
+	 * This is only needed when processing one input packet completes two RTCM
+	 * messages, for example when a legacy exact-multiple sequence is flushed on
+	 * sequence rollover and the same packet also completes the new sequence.
+	 *
+	 * @param out_len     Set to the queued message length, or 0 if none is queued
+	 * @return            Pointer to the queued message, or nullptr if none is queued
+	 */
+	const uint8_t *takeDeferredMessage(size_t &out_len);
 
 	void reset();
 
@@ -176,11 +201,26 @@ private:
 	void resetActiveState();
 	bool hasFragmentAfter(uint8_t fragment_id) const;
 
+	/**
+	 * Compatibility fallback for older QGroundControl builds that omit the
+	 * final zero-length fragment: assemble the buffered message only if the
+	 * buffered fragments are a gap-free run of full 180-byte fragments
+	 * starting at fragment 0.
+	 *
+	 * @param destination Buffer that receives the assembled message bytes
+	 * @return Length of the assembled message, or 0 if the fallback does not apply
+	 *
+	 */
+	size_t assembleLegacyExactMultipleMessage(uint8_t *destination) const;
+
 	bool isComplete() const;
 	size_t lastFragmentIndex() const;
 
 	FragmentSlot _fragments[GPS_RTCM_MAX_FRAGMENTS] {};
 	uint8_t _assembled_message[GPS_RTCM_MAX_MESSAGE_LEN] {};
+	uint8_t _deferred_message[GPS_RTCM_MAX_MESSAGE_LEN] {};
+	size_t _deferred_message_len {0};
+	bool _deferred_message_valid {false};
 	// State for the sequence that is currently being assembled.
 	SequenceState _active_sequence {};
 };
