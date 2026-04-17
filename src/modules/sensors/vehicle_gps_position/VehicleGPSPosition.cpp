@@ -229,8 +229,34 @@ void VehicleGPSPosition::Run()
 				_last_gnss_relative_timestamp[i] = gnss_rel.timestamp;
 
 				if (gnss_rel.heading_valid && PX4_ISFINITE(gnss_rel.heading)) {
+					// Match device_id to receiver slot for per-receiver delay (mirrors position path)
+					hrt_abstime delay_us = 110_ms; // matches SENS_GPS*_DELAY default
+					bool matched = false;
+
+					for (uint8_t slot = 0; slot < GPS_MAX_RECEIVERS; slot++) {
+						if (_gps_param_slots[slot].device_id != 0
+						    && _gps_param_slots[slot].device_id == gnss_rel.device_id) {
+							delay_us = _gps_param_slots[slot].delay_us;
+							matched = true;
+							break;
+						}
+					}
+
+					if (!matched && _gps_param_slots[0].device_id == 0 && _gps_param_slots[1].device_id == 0) {
+						delay_us = _gps_param_slots[i].delay_us;
+					}
+
+					uint64_t timestamp_sample = gnss_rel.timestamp_sample;
+
+					// Apply delay if the driver didn't provide a measurement-time sample distinct from publish time
+					if (timestamp_sample == 0 || timestamp_sample == gnss_rel.timestamp) {
+						timestamp_sample = (delay_us > 0 && gnss_rel.timestamp > delay_us)
+								   ? gnss_rel.timestamp - delay_us
+								   : gnss_rel.timestamp;
+					}
+
 					vehicle_gnss_heading_s heading_out{};
-					heading_out.timestamp_sample = (gnss_rel.timestamp_sample > 0) ? gnss_rel.timestamp_sample : gnss_rel.timestamp;
+					heading_out.timestamp_sample = timestamp_sample;
 					heading_out.device_id = gnss_rel.device_id;
 					heading_out.heading = gnss_rel.heading;
 					heading_out.heading_accuracy = gnss_rel.heading_accuracy;
