@@ -51,12 +51,12 @@ If you are sending RTCM corrections to PX4 yourself, follow the MAVLink [`GPS_RT
 - If the RTCM payload does not fit in one packet, use the MAVLink `fragment_id` and `sequence_id` fields to split it across up to 4 packets.
 - PX4 reassembles fragmented packets according to the MAVLink rules and supports out-of-order delivery for one in-progress fragmented message at a time.
 - A fragmented message is considered complete when either all 4 fragments are present, or when all fragments before the first non-full fragment have been received.
-- If the RTCM payload length is an exact multiple of 180 bytes and uses fewer than 4 fragments, the sender must still send a final zero-length fragment to mark completion. A 720-byte payload is complete after fragment 3.
+- If the RTCM payload length is an exact multiple of 180 bytes and uses fewer than 4 fragments, the sender must still send a final zero-length fragment to mark completion. A 720-byte payload (all 4 fragments full) is complete after the last fragment is received.
 
 Current limitations:
 
 - PX4 keeps only one in-progress fragmented `GPS_RTCM_DATA` message at a time. A packet with a different `sequence_id` starts a new buffer.
-- Stale partial state is dropped after about 1 second if the rest of the fragments do not arrive.
+- Stale partial state is dropped after 1 second if the rest of the fragments do not arrive.
 
 ### RTCM messages
 
