@@ -366,6 +366,7 @@ public:
 		case ORB_ID::estimator_aid_src_rng_hgt:
 		case ORB_ID::estimator_baro_bias:
 		case ORB_ID::estimator_event_flags:
+		case ORB_ID::estimator_fusion_control:
 		case ORB_ID::estimator_gnss_hgt_bias:
 		case ORB_ID::estimator_innovation_test_ratios:
 		case ORB_ID::estimator_innovation_variances:
