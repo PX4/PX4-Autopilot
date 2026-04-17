@@ -87,6 +87,8 @@
 #include "mavlink_shell.h"
 #include "mavlink_ulog.h"
 
+#include "gimbal/gimbal_params.h"
+
 #define DEFAULT_BAUD_RATE       57600
 #define DEFAULT_DEVICE_NAME     "/dev/ttyS1"
 
@@ -495,7 +497,6 @@ public:
 	bool accept_unsigned(uint32_t message_id) { return _sign_control.accept_unsigned(message_id); }
 	void set_signing_key_dirty() { _signing_key_dirty.store(true); }
 	void check_signing_key_dirty() { if (_signing_key_dirty.load()) { _signing_key_dirty.store(false); _sign_control.reload_key(); } }
-
 
 private:
 	MavlinkReceiver 	_receiver;

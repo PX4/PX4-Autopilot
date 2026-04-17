@@ -531,22 +531,47 @@ void InputMavlinkGimbalV2::_stream_gimbal_manager_information(const ControlData 
 InputMavlinkGimbalV2::UpdateResult
 InputMavlinkGimbalV2::update(unsigned int timeout_ms, ControlData &control_data, bool already_active)
 {
+	// In MISSION-ONLY mode, do not poll gimbal_manager_set_attitude/manual-control topics
+	// because they should only be active in FULL Mavlink V2 control mode
+	px4_pollfd_struct_t polls[5] {};
+	int num_poll = 0;
 
-	const int num_poll = 5;
-	px4_pollfd_struct_t polls[num_poll];
-	polls[0].fd = _gimbal_manager_set_attitude_sub;
-	polls[0].events = POLLIN;
-	polls[1].fd = _vehicle_roi_sub;
-	polls[1].events = POLLIN;
-	polls[2].fd = _position_setpoint_triplet_sub;
-	polls[2].events = POLLIN;
-	polls[3].fd = _vehicle_command_sub;
-	polls[3].events = POLLIN;
-	polls[4].fd = _gimbal_manager_set_manual_control_sub;
-	polls[4].events = POLLIN;
+	int idx_gimbal_manager_set_attitude = -1;
+	int idx_vehicle_roi = -1;
+	int idx_position_setpoint_triplet = -1;
+	int idx_vehicle_command = -1;
+	int idx_gimbal_manager_set_manual_control = -1;
+
+	if (_input_mavlinkv2_mode == MavlinkInputMode::FULL) {
+		idx_gimbal_manager_set_attitude = num_poll;
+		polls[num_poll].fd = _gimbal_manager_set_attitude_sub;
+		polls[num_poll].events = POLLIN;
+		num_poll++;
+	}
+
+	idx_vehicle_roi = num_poll;
+	polls[num_poll].fd = _vehicle_roi_sub;
+	polls[num_poll].events = POLLIN;
+	num_poll++;
+
+	idx_position_setpoint_triplet = num_poll;
+	polls[num_poll].fd = _position_setpoint_triplet_sub;
+	polls[num_poll].events = POLLIN;
+	num_poll++;
+
+	idx_vehicle_command = num_poll;
+	polls[num_poll].fd = _vehicle_command_sub;
+	polls[num_poll].events = POLLIN;
+	num_poll++;
+
+	if (_input_mavlinkv2_mode == MavlinkInputMode::FULL) {
+		idx_gimbal_manager_set_manual_control = num_poll;
+		polls[num_poll].fd = _gimbal_manager_set_manual_control_sub;
+		polls[num_poll].events = POLLIN;
+		num_poll++;
+	}
 
 	int poll_timeout = (int) timeout_ms;
-
 	hrt_abstime poll_start = hrt_absolute_time();
 
 	// If we get a command that we need to handle we exit the loop, otherwise we poll until we
@@ -563,16 +588,17 @@ InputMavlinkGimbalV2::update(unsigned int timeout_ms, ControlData &control_data,
 		if (ret <= 0) {
 			// Error, or timeout, give up.
 			exit_loop = true;
+			break;
 		}
 
-		if (polls[0].revents & POLLIN) {
+		if (idx_gimbal_manager_set_attitude >= 0 && polls[idx_gimbal_manager_set_attitude].revents & POLLIN) {
 			gimbal_manager_set_attitude_s set_attitude;
 			orb_copy(ORB_ID(gimbal_manager_set_attitude), _gimbal_manager_set_attitude_sub, &set_attitude);
 
 			update_result = _process_set_attitude(control_data, set_attitude);
 		}
 
-		if (polls[1].revents & POLLIN) {
+		if (polls[idx_vehicle_roi].revents & POLLIN) {
 			vehicle_roi_s vehicle_roi;
 			orb_copy(ORB_ID(vehicle_roi), _vehicle_roi_sub, &vehicle_roi);
 
@@ -584,7 +610,7 @@ InputMavlinkGimbalV2::update(unsigned int timeout_ms, ControlData &control_data,
 		}
 
 		// check whether the position setpoint got updated
-		if (polls[2].revents & POLLIN) {
+		if (polls[idx_position_setpoint_triplet].revents & POLLIN) {
 			position_setpoint_triplet_s position_setpoint_triplet;
 			orb_copy(ORB_ID(position_setpoint_triplet), _position_setpoint_triplet_sub,
 				 &position_setpoint_triplet);
@@ -596,7 +622,7 @@ InputMavlinkGimbalV2::update(unsigned int timeout_ms, ControlData &control_data,
 			}
 		}
 
-		if (polls[3].revents & POLLIN) {
+		if (polls[idx_vehicle_command].revents & POLLIN) {
 			vehicle_command_s vehicle_command;
 			orb_copy(ORB_ID(vehicle_command), _vehicle_command_sub, &vehicle_command);
 
@@ -607,7 +633,7 @@ InputMavlinkGimbalV2::update(unsigned int timeout_ms, ControlData &control_data,
 			}
 		}
 
-		if (polls[4].revents & POLLIN) {
+		if (idx_gimbal_manager_set_manual_control >= 0 && polls[idx_gimbal_manager_set_manual_control].revents & POLLIN) {
 			gimbal_manager_set_manual_control_s set_manual_control;
 			orb_copy(ORB_ID(gimbal_manager_set_manual_control), _gimbal_manager_set_manual_control_sub,
 				 &set_manual_control);
@@ -618,11 +644,14 @@ InputMavlinkGimbalV2::update(unsigned int timeout_ms, ControlData &control_data,
 		poll_timeout = timeout_ms - (hrt_absolute_time() - poll_start) / 1000;
 	}
 
-	_stream_gimbal_manager_status(control_data);
+	// Only streams gimbal_manager_status / information when it is in FULL MAVLink V2 control mode
+	if (_input_mavlinkv2_mode == MavlinkInputMode::FULL) {
+		_stream_gimbal_manager_status(control_data);
 
-	if (_last_device_compid != control_data.device_compid) {
-		_last_device_compid = control_data.device_compid;
-		_stream_gimbal_manager_information(control_data);
+		if (_last_device_compid != control_data.device_compid) {
+			_last_device_compid = control_data.device_compid;
+			_stream_gimbal_manager_information(control_data);
+		}
 	}
 
 	return update_result;
@@ -715,6 +744,12 @@ InputMavlinkGimbalV2::_process_command(ControlData &control_data, const vehicle_
 				     (vehicle_command.target_component == 0));
 
 	if (!sysid_correct || !compid_correct) {
+		return UpdateResult::NoUpdate;
+	}
+
+	// Reject the ownership changing command because MNT_MODE_OUT = MNT_MODE_OUT_TO_GIMBAL_MANAGER handles DO_GIMBAL_MANAGER_CONFIGURE
+	if (_input_mavlinkv2_mode == MavlinkInputMode::MISSION_ONLY
+	    && vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_CONFIGURE) {
 		return UpdateResult::NoUpdate;
 	}
 

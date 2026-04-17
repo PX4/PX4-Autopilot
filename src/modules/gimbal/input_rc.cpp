@@ -155,7 +155,7 @@ InputRC::UpdateResult InputRC::_read_control_data_from_subscription(ControlData 
 			control_data.type_data.angle.q[2] = NAN;
 			control_data.type_data.angle.q[3] = NAN;
 
-			control_data.type_data.angle.angular_velocity[0] = 0.f;
+			control_data.type_data.angle.angular_velocity[0] = math::radians(_parameters.mnt_rate_roll) * new_aux_values[0];
 			control_data.type_data.angle.angular_velocity[1] = math::radians(_parameters.mnt_rate_pitch) * new_aux_values[1];
 			control_data.type_data.angle.angular_velocity[2] = math::radians(_parameters.mnt_rate_yaw) * new_aux_values[2];
 

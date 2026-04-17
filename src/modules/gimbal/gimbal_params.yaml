@@ -34,9 +34,10 @@ parameters:
         0: AUX
         1: MAVLink gimbal protocol v1
         2: MAVLink gimbal protocol v2
+        3: MAVLink gimbal protocol v3 (mount gimbal manager)
       default: 0
       min: 0
-      max: 2
+      max: 3
       reboot_required: true
     MNT_MAV_SYSID:
       description:
@@ -156,6 +157,15 @@ parameters:
       type: float
       default: 30.0
       min: 1.0
+      max: 90.0
+      unit: deg/s
+    MNT_RATE_ROLL:
+      description:
+        short: Angular roll rate for manual input in degrees/second
+        long: Full stick input [-1..1] translats to [-roll rate..roll rate].
+      type: float
+      default: 0.0
+      min: 0.0
       max: 90.0
       unit: deg/s
     MNT_RATE_YAW:
