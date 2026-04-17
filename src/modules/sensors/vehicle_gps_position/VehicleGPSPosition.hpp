@@ -73,6 +73,11 @@ private:
 
 	void ParametersUpdate(bool force = false);
 
+	// Helpers shared between position path and heading publish paths
+	hrt_abstime resolveReceiverDelay(uint32_t device_id, uint8_t instance_index) const;
+	static uint64_t resolveSampleTimestamp(uint64_t driver_timestamp_sample, uint64_t driver_timestamp,
+					       hrt_abstime delay_us);
+
 	// defines used to specify the mask position for use of different accuracy metrics in the GPS blending algorithm
 	static constexpr uint8_t BLEND_MASK_USE_SPD_ACC  = 1;
 	static constexpr uint8_t BLEND_MASK_USE_HPOS_ACC = 2;
