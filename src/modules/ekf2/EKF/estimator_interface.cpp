@@ -196,7 +196,8 @@ void EstimatorInterface::setGpsData(const gnssSample &gnss_sample)
 		_time_last_gps_buffer_push = _time_latest_us;
 
 	} else {
-		ECL_WARN("GPS data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _gps_buffer->get_newest().time_us, _min_obs_interval_us);
+		ECL_WARN("GPS data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _gps_buffer->get_newest().time_us,
+			 _min_obs_interval_us);
 	}
 }
 
@@ -229,7 +230,8 @@ void EstimatorInterface::setGnssYawData(const gnssYawSample &gnss_yaw_sample)
 		_time_last_gnss_yaw_buffer_push = _time_latest_us;
 
 	} else {
-		ECL_WARN("GNSS yaw data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _gnss_yaw_buffer->get_newest().time_us, _min_obs_interval_us);
+		ECL_WARN("GNSS yaw data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us,
+			 _gnss_yaw_buffer->get_newest().time_us, _min_obs_interval_us);
 	}
 }
 #endif // CONFIG_EKF2_GNSS_YAW
