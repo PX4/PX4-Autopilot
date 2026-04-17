@@ -83,13 +83,6 @@ public:
 						 math::constrain(restriction_raw, (int) UNRESTRICTED, (int) NO_LOCAL)
 					 );
 
-		if (restriction == UNRESTRICTED && _undefined_redaction_warnings_shown > MAX_WARNINGS) {
-			// Early return only if we have stopped showing warnings, so we can
-			// show warnings even when the feature is disabled.
-			return;
-		}
-
-
 		const ORB_ID orb_id = static_cast<ORB_ID>(meta->o_id);
 
 		switch (orb_id) {
