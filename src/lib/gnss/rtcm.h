@@ -171,7 +171,7 @@ public:
 	const uint8_t *addPacket(uint8_t flags, const uint8_t *data, size_t len, uint64_t timestamp, size_t &out_len);
 
 	/**
-	 * Retrieve a second complete message queued by addPacket().
+	 * Retrieve the single deferred message queued by addPacket().
 	 *
 	 * This is only needed when processing one input packet completes two RTCM
 	 * messages, for example when a legacy exact-multiple sequence is flushed on

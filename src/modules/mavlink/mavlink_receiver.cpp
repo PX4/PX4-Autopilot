@@ -2748,9 +2748,15 @@ MavlinkReceiver::handle_message_gps_rtcm_data(mavlink_message_t *msg)
 	const uint8_t *message = _gps_rtcm_message_assembler.addPacket(gps_rtcm_data_msg.flags, gps_rtcm_data_msg.data,
 				 packet_len, now, message_len);
 
-	while (message != nullptr) {
+	if (message != nullptr) {
 		publish_gps_inject_data(message, message_len);
-		message = _gps_rtcm_message_assembler.takeDeferredMessage(message_len);
+
+		// addPacket() can queue at most one deferred message.
+		const uint8_t *deferred_message = _gps_rtcm_message_assembler.takeDeferredMessage(message_len);
+
+		if (deferred_message != nullptr) {
+			publish_gps_inject_data(deferred_message, message_len);
+		}
 	}
 }
 
