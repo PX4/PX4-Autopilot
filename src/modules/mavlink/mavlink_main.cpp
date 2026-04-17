@@ -110,6 +110,18 @@ static bool accept_unsigned_callback(const mavlink_status_t *status, uint32_t me
 	return false;
 }
 
+static int32_t get_mnt_mode_out()
+{
+	param_t param_handle = param_find_no_notification("MNT_MODE_OUT");
+	int32_t mnt_mode_out = -1; // Mount mode out
+
+	if (param_handle != PARAM_INVALID) {
+		param_get(param_handle, &mnt_mode_out);
+	}
+
+	return mnt_mode_out;
+}
+
 static void usage();
 
 hrt_abstime Mavlink::_first_start_time = {0};
@@ -1501,10 +1513,18 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 #endif
 		configure_stream_local("EXTENDED_SYS_STATE", 1.0f);
 		configure_stream_local("GIMBAL_DEVICE_ATTITUDE_STATUS", 5.0f);
-		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 5.0f);
-		configure_stream_local("GIMBAL_MANAGER_STATUS", 0.5f);
+
+		if (get_mnt_mode_out() == static_cast<int32_t>(gimbal::MNT_MODE_OUT_TO_GIMBAL_MANAGER)) {
+			configure_stream_local("EXTERNAL_GIMBAL_MANAGER_SET_ATTITUDE", 5.0f);
+
+		} else {
+			configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 5.0f);
+			configure_stream_local("GIMBAL_MANAGER_STATUS", 0.5f);
+		}
+
 		configure_stream_local("GLOBAL_POSITION_SENSOR", 5.0f);
 		configure_stream_local("GLOBAL_POSITION_INT", 5.0f);
+
 #if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
 		configure_stream_local("GNSS_INTEGRITY", 1.0f);
 #endif
@@ -1583,8 +1603,15 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 #endif
 		configure_stream_local("EXTENDED_SYS_STATE", 5.0f);
 		configure_stream_local("GIMBAL_DEVICE_ATTITUDE_STATUS", 5.0f);
-		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 5.0f);
-		configure_stream_local("GIMBAL_MANAGER_STATUS", 0.5f);
+
+		if (get_mnt_mode_out() == static_cast<int32_t>(gimbal::MNT_MODE_OUT_TO_GIMBAL_MANAGER)) {
+			configure_stream_local("EXTERNAL_GIMBAL_MANAGER_SET_ATTITUDE", 5.0f);
+
+		} else {
+			configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 5.0f);
+			configure_stream_local("GIMBAL_MANAGER_STATUS", 0.5f);
+		}
+
 		configure_stream_local("GLOBAL_POSITION_INT", 50.0f);
 #if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
 		configure_stream_local("GNSS_INTEGRITY", 1.0f);
@@ -1634,7 +1661,14 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 	case MAVLINK_MODE_GIMBAL:
 		// Note: streams requiring low latency come first
 		configure_stream_local("AUTOPILOT_STATE_FOR_GIMBAL_DEVICE", 20.0f);
-		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 20.0f);
+
+		if (get_mnt_mode_out() == static_cast<int32_t>(gimbal::MNT_MODE_OUT_TO_GIMBAL_MANAGER)) {
+			configure_stream_local("EXTERNAL_GIMBAL_MANAGER_SET_ATTITUDE", 20.0f);
+
+		} else {
+			configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 20.0f);
+		}
+
 		break;
 
 	case MAVLINK_MODE_EXTVISION:
@@ -1843,8 +1877,15 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("MOUNT_ORIENTATION", 10.0f);
 		configure_stream_local("OBSTACLE_DISTANCE", 10.0f);
 		configure_stream_local("GIMBAL_DEVICE_ATTITUDE_STATUS", 5.0f);
-		configure_stream_local("GIMBAL_MANAGER_STATUS", 0.5f);
-		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 5.0f);
+
+		if (get_mnt_mode_out() == static_cast<int32_t>(gimbal::MNT_MODE_OUT_TO_GIMBAL_MANAGER)) {
+			configure_stream_local("EXTERNAL_GIMBAL_MANAGER_SET_ATTITUDE", 5.0f);
+
+		} else {
+			configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 5.0f);
+			configure_stream_local("GIMBAL_MANAGER_STATUS", 0.5f);
+		}
+
 		configure_stream_local("ESC_INFO", 1.0f);
 		configure_stream_local("ESC_STATUS", 5.0f);
 #if defined(MAVLINK_MSG_ID_ESC_EEPROM)
@@ -1912,8 +1953,15 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("MOUNT_ORIENTATION", 2.0f);
 		configure_stream_local("OBSTACLE_DISTANCE", 2.0f);
 		configure_stream_local("GIMBAL_DEVICE_ATTITUDE_STATUS", 5.0f);
-		configure_stream_local("GIMBAL_MANAGER_STATUS", 0.5f);
-		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 2.0f);
+
+		if (get_mnt_mode_out() == static_cast<int32_t>(gimbal::MNT_MODE_OUT_TO_GIMBAL_MANAGER)) {
+			configure_stream_local("EXTERNAL_GIMBAL_MANAGER_SET_ATTITUDE", 2.0f);
+
+		} else {
+			configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 2.0f);
+			configure_stream_local("GIMBAL_MANAGER_STATUS", 0.5f);
+		}
+
 		configure_stream_local("ESC_INFO", 1.0f);
 		configure_stream_local("ESC_STATUS", 2.0f);
 #if defined(MAVLINK_MSG_ID_ESC_EEPROM)

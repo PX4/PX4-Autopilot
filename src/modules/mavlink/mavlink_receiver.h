@@ -73,6 +73,8 @@
 #include <uORB/topics/cellular_status.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/external_gimbal_manager_information.h>
+#include <uORB/topics/external_gimbal_manager_status.h>
 #include <uORB/topics/follow_target.h>
 #include <uORB/topics/generator_status.h>
 #include <uORB/topics/gimbal_manager_set_attitude.h>
@@ -215,6 +217,8 @@ private:
 	void handle_message_vision_position_estimate(mavlink_message_t *msg);
 	void handle_message_gimbal_manager_set_attitude(mavlink_message_t *msg);
 	void handle_message_gimbal_manager_set_manual_control(mavlink_message_t *msg);
+	void handle_message_external_gimbal_manager_information(mavlink_message_t *msg);
+	void handle_message_external_gimbal_manager_status(mavlink_message_t *msg);
 	void handle_message_gimbal_device_information(mavlink_message_t *msg);
 	void handle_message_gimbal_device_attitude_status(mavlink_message_t *msg);
 	void handle_message_global_position_sensor(mavlink_message_t *msg);
@@ -315,6 +319,8 @@ private:
 	uORB::Publication<camera_status_s>			_camera_status_pub{ORB_ID(camera_status)};
 	uORB::Publication<cellular_status_s>			_cellular_status_pub{ORB_ID(cellular_status)};
 	uORB::Publication<differential_pressure_s>		_differential_pressure_pub{ORB_ID(differential_pressure)};
+	uORB::Publication<external_gimbal_manager_information_s> _external_gimbal_manager_information_pub{ORB_ID(external_gimbal_manager_information)};
+	uORB::Publication<external_gimbal_manager_status_s>	_external_gimbal_manager_status_pub{ORB_ID(external_gimbal_manager_status)};
 	uORB::Publication<follow_target_s>			_follow_target_pub{ORB_ID(follow_target)};
 	uORB::Publication<gimbal_manager_set_attitude_s>	_gimbal_manager_set_attitude_pub{ORB_ID(gimbal_manager_set_attitude)};
 	uORB::Publication<gimbal_manager_set_manual_control_s>	_gimbal_manager_set_manual_control_pub{ORB_ID(gimbal_manager_set_manual_control)};

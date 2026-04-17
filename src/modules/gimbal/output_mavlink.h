@@ -37,10 +37,23 @@
 #include "output.h"
 
 #include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
+
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_command_ack.h>
+#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/gimbal_device_set_attitude.h>
 #include <uORB/topics/gimbal_device_information.h>
 #include <uORB/topics/gimbal_device_attitude_status.h>
+#include <uORB/topics/gimbal_manager_status.h>
+#include <uORB/topics/gimbal_manager_set_attitude.h>
+#include <uORB/topics/gimbal_manager_information.h>
+#include <uORB/topics/external_gimbal_manager_information.h>
+#include <uORB/topics/external_gimbal_manager_status.h>
+#include <uORB/topics/external_gimbal_manager_set_attitude.h>
+
+#include <px4_platform_common/time.h>
+#include <cmath>
 
 
 namespace gimbal
@@ -86,4 +99,85 @@ private:
 	bool _gimbal_device_found {false};
 };
 
+/**
+ * @brief	Bridges PX4 gimbal setpoints to an external MAVLink gimbal manager (Gremsy Lynx)
+ *
+ * @class	OutputMavlinkToGimbalManager
+ */
+class OutputMavlinkToGimbalManager : public OutputBase
+{
+public:
+	explicit OutputMavlinkToGimbalManager(const Parameters &parameters);
+	~OutputMavlinkToGimbalManager() override = default;
+
+	void update(const ControlData &control_data, bool new_setpoints, uint8_t &gimbal_device_id) override;
+	void print_status() const override;
+
+private:
+	// uORB publications
+	uORB::Publication<vehicle_command_s> _vehicle_command_pub{ORB_ID(vehicle_command)};
+	uORB::Publication<external_gimbal_manager_set_attitude_s> _external_gimbal_manager_set_attitude_pub{ORB_ID(external_gimbal_manager_set_attitude)};
+
+	// uORB subscriptions
+	uORB::Subscription _external_gimbal_manager_information_sub{ORB_ID(external_gimbal_manager_information)};
+	uORB::Subscription _external_gimbal_manager_status_sub{ORB_ID(external_gimbal_manager_status)};
+	uORB::Subscription _vehicle_command_ack_sub{ORB_ID(vehicle_command_ack)};
+
+	/**
+	 * Control ownership reported by the external gimbal manager
+	 */
+	enum class ControlRights : uint8_t {
+		NONE = 0,
+		PRIMARY = 1,
+		SECONDARY = 2
+	};
+
+	// Discovery
+	void _check_for_gimbal_manager_information();
+	void _request_gimbal_manager_information();
+	void _check_for_gimbal_manager_status();
+
+	// Control ownership
+	bool _check_for_take_control_ack();
+	bool _handle_take_control_command_ack(const vehicle_command_ack_s &ack);
+
+	bool _acquire_control_for_autopilot(const hrt_abstime &now);
+	void _send_take_control_request();
+	void _reset_take_control_state();
+
+	// Setpoint output
+	void _publish_gimbal_manager_set_attitude();
+
+	// Helpers
+	bool _have_valid_manager() const
+	{
+		return	((_manager_sysid != 0) &&
+			 (_manager_compid != 0) &&
+			 (_gimbal_device_id != 0));
+	}
+
+	static const char *_control_right_str(ControlRights control_rights);
+
+	// Cache identity of the external gimbal manager
+	uint8_t		_manager_sysid{0};
+	uint8_t		_manager_compid{0};
+	uint8_t		_gimbal_device_id{0};
+
+	// Control state
+	ControlRights 	_control_rights{ControlRights::NONE};
+	uint8_t 	_take_control_retry_count{0};
+
+	bool 		_can_publish_set_attitude{false};
+	bool		_take_control_ack_received{false};
+	bool		_take_control_ack_accepted{false};
+
+	// Timing state
+	hrt_abstime _last_info_request{0};
+	hrt_abstime _wait_ack_start_time{0};
+	hrt_abstime _take_control_backoff_start{0};
+
+	static constexpr hrt_abstime INFO_REQUEST_PERIOD_US	= 1'000'000;	///< Discovery request rate
+	static constexpr hrt_abstime GIMBAL_BUSY_TIMEOUT_US 	= 15'000'000;	///< Backoff after repeated failures
+	static constexpr hrt_abstime WAIT_ACK_TIMEOUT_US	= 1'000'000;	///< Timeout while waiting for ACK
+};
 } /* namespace gimbal */

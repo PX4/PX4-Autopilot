@@ -153,6 +153,7 @@
 # include "streams/GIMBAL_DEVICE_SET_ATTITUDE.hpp"
 # include "streams/GIMBAL_MANAGER_INFORMATION.hpp"
 # include "streams/GIMBAL_MANAGER_STATUS.hpp"
+# include "streams/EXTERNAL_GIMBAL_MANAGER_SET_ATTITUDE.hpp"
 # include "streams/GIMBAL_DEVICE_INFORMATION.hpp"
 # include "streams/GPS2_RAW.hpp"
 # include "streams/HIGH_LATENCY2.hpp"
@@ -364,6 +365,9 @@ static const StreamListItem streams_list[] = {
 #if defined(GIMBAL_MANAGER_STATUS_HPP)
 	create_stream_list_item<MavlinkStreamGimbalManagerStatus>(),
 #endif // GIMBAL_MANAGER_STATUS_HPP
+#if defined(EXTERNAL_GIMBAL_MANAGER_SET_ATTITUDE_HPP)
+	create_stream_list_item<MavlinkStreamExternalGimbalManagerSetAttitude>(),
+#endif // EXTERNAL_GIMBAL_MANAGER_SET_ATTITUDE
 #if defined(GIMBAL_DEVICE_SET_ATTITUDE_HPP)
 	create_stream_list_item<MavlinkStreamGimbalDeviceSetAttitude>(),
 #endif // GIMBAL_DEVICE_SET_ATTITUDE_HPP

@@ -42,17 +42,18 @@ namespace gimbal
 
 enum MntModeIn {
 	MNT_MODE_IN_DISABLED = -1,
-	MNT_MODE_IN_AUTO,				// RC and MAVLink gimbal protocol v2
+	MNT_MODE_IN_AUTO,		// RC and MAVLink gimbal protocol v2
 	MNT_MODE_IN_RC,
-	MNT_MODE_IN_MAVLINK_ROI,			// MAVLink gimbal protocol v1 (to be deprecated)
-	MNT_MODE_IN_MAVLINK_DO_MOUNT,		// MAVLink gimbal protocol v1 (to be deprecated)
-	MNT_MODE_IN_MAVLINK_V2			// MAVLink gimbal protocol v2
+	MNT_MODE_IN_MAVLINK_ROI,	// MAVLink gimbal protocol v1 (to be deprecated)
+	MNT_MODE_IN_MAVLINK_DO_MOUNT,	// MAVLink gimbal protocol v1 (to be deprecated)
+	MNT_MODE_IN_MAVLINK_V2		// MAVLink gimbal protocol v2
 };
 
 enum MntModeOut {
 	MNT_MODE_OUT_AUX = 0,
-	MNT_MODE_OUT_MAVLINK_V1, 			// MAVLink gimbal protocol v1 (to be deprecated)
-	MNT_MODE_OUT_MAVLINK_V2 			// MAVLink gimbal protocol v2
+	MNT_MODE_OUT_MAVLINK_V1, 	// MAVLink gimbal protocol v1 (to be deprecated)
+	MNT_MODE_OUT_MAVLINK_V2, 	// MAVLink gimbal protocol v2
+	MNT_MODE_OUT_TO_GIMBAL_MANAGER	// MAVLink gimbal protocol v2 (mount gimbal manager)
 };
 
 struct Parameters {
@@ -71,6 +72,7 @@ struct Parameters {
 	int32_t mav_sysid;
 	int32_t mav_compid;
 	float mnt_rate_pitch;
+	float mnt_rate_roll;
 	float mnt_rate_yaw;
 	int32_t mnt_rc_in_mode;
 	float mnt_lnd_p_min;
@@ -94,6 +96,7 @@ struct ParameterHandles {
 	param_t mav_sysid;
 	param_t mav_compid;
 	param_t mnt_rate_pitch;
+	param_t mnt_rate_roll;
 	param_t mnt_rate_yaw;
 	param_t mnt_rc_in_mode;
 	param_t mnt_lnd_p_min;

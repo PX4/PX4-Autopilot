@@ -42,6 +42,7 @@
  * - PWM
  * - MAVLink gimbal protocol v1
  * - MAVLink gimbal protocol v2
+ * - MAVLink gimbal protocol v2 (gimbal manager mount)
  */
 
 #include <cstdint>
@@ -82,7 +83,6 @@ struct ThreadData {
 };
 static ThreadData *g_thread_data = nullptr;
 
-
 static void usage();
 static void update_params(ParameterHandles &param_handles, Parameters &params);
 static bool initialize_params(ParameterHandles &param_handles, Parameters &params);
@@ -99,6 +99,21 @@ static int gimbal_thread_main(int argc, char *argv[])
 	if (!initialize_params(param_handles, params)) {
 		PX4_ERR("could not get mount parameters!");
 		delete g_thread_data->test_input;
+		return -1;
+	}
+
+	// When MNT_MODE_OUT = MNT_MODE_OUT_TO_GIMBAL_MANAGER,
+	// MNT_MODE_IN = MAVLINK_ROI || MAVLINK_DO_MOUNT || MAVLINK_V2 are NOT ALLOWED
+	// However, people can access MAVLINK_V2 through MNT_MODE_IN = AUTO.
+	const bool px4_acts_as_gimbal_manager = (params.mnt_mode_in == MNT_MODE_IN_MAVLINK_ROI)
+						|| (params.mnt_mode_in == MNT_MODE_IN_MAVLINK_DO_MOUNT)
+						|| (params.mnt_mode_in == MNT_MODE_IN_MAVLINK_V2);
+
+	const bool connected_to_external_gimbal_manager = (params.mnt_mode_out == gimbal::MNT_MODE_OUT_TO_GIMBAL_MANAGER);
+
+	// Conflict occurs when PX4 itself acts as a gimbal manager while also communicating with an external gimbal manager.
+	if (px4_acts_as_gimbal_manager && connected_to_external_gimbal_manager) {
+		PX4_ERR("MNT_MODE_OUT=MNT_MODE_OUT_TO_GIMBAL_MANAGER is only compatible with MNT_MODE_IN=AUTO or RC.");
 		return -1;
 	}
 
@@ -181,6 +196,13 @@ static int gimbal_thread_main(int argc, char *argv[])
 
 	case MNT_MODE_OUT_MAVLINK_V2: //MAVLink gimbal v2 protocol
 		thread_data.output_obj = new OutputMavlinkV2(params);
+
+		if (!thread_data.output_obj) { alloc_failed = true; }
+
+		break;
+
+	case MNT_MODE_OUT_TO_GIMBAL_MANAGER: //Gimbal manager protocol
+		thread_data.output_obj = new OutputMavlinkToGimbalManager(params);
 
 		if (!thread_data.output_obj) { alloc_failed = true; }
 
@@ -288,9 +310,11 @@ static int gimbal_thread_main(int argc, char *argv[])
 				thread_data.control_data,
 				update_result != InputBase::UpdateResult::NoUpdate, thread_data.control_data.device_compid);
 
-			// Only publish the mount orientation if the mode is not mavlink v1 or v2
+			// Only publish the mount orientation if the mode is not MAVLink-based.
 			// If the gimbal speaks mavlink it publishes its own orientation.
-			if (params.mnt_mode_out != MNT_MODE_OUT_MAVLINK_V1 && params.mnt_mode_out != MNT_MODE_OUT_MAVLINK_V2) {
+			if (params.mnt_mode_out != MNT_MODE_OUT_MAVLINK_V1 &&
+			    params.mnt_mode_out != MNT_MODE_OUT_MAVLINK_V2 &&
+			    params.mnt_mode_out != MNT_MODE_OUT_TO_GIMBAL_MANAGER) {
 				thread_data.output_obj->publish();
 			}
 
@@ -554,6 +578,7 @@ void update_params(ParameterHandles &param_handles, Parameters &params)
 	param_get(param_handles.mav_sysid, &params.mav_sysid);
 	param_get(param_handles.mav_compid, &params.mav_compid);
 	param_get(param_handles.mnt_rate_pitch, &params.mnt_rate_pitch);
+	param_get(param_handles.mnt_rate_roll, &params.mnt_rate_roll);
 	param_get(param_handles.mnt_rate_yaw, &params.mnt_rate_yaw);
 	param_get(param_handles.mnt_rc_in_mode, &params.mnt_rc_in_mode);
 	param_get(param_handles.mnt_lnd_p_min, &params.mnt_lnd_p_min);
@@ -578,6 +603,7 @@ bool initialize_params(ParameterHandles &param_handles, Parameters &params)
 	param_handles.mav_sysid = param_find("MAV_SYS_ID");
 	param_handles.mav_compid = param_find("MAV_COMP_ID");
 	param_handles.mnt_rate_pitch = param_find("MNT_RATE_PITCH");
+	param_handles.mnt_rate_roll = param_find("MNT_RATE_ROLL");
 	param_handles.mnt_rate_yaw = param_find("MNT_RATE_YAW");
 	param_handles.mnt_rc_in_mode = param_find("MNT_RC_IN_MODE");
 	param_handles.mnt_lnd_p_min = param_find("MNT_LND_P_MIN");
@@ -599,6 +625,7 @@ bool initialize_params(ParameterHandles &param_handles, Parameters &params)
 	    param_handles.mav_sysid == PARAM_INVALID ||
 	    param_handles.mav_compid == PARAM_INVALID ||
 	    param_handles.mnt_rate_pitch == PARAM_INVALID ||
+	    param_handles.mnt_rate_roll == PARAM_INVALID ||
 	    param_handles.mnt_rate_yaw == PARAM_INVALID ||
 	    param_handles.mnt_rc_in_mode == PARAM_INVALID ||
 	    param_handles.mnt_lnd_p_min == PARAM_INVALID ||

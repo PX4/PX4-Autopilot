@@ -323,6 +323,14 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_gimbal_manager_set_manual_control(msg);
 		break;
 
+	case MAVLINK_MSG_ID_GIMBAL_MANAGER_INFORMATION:
+		handle_message_external_gimbal_manager_information(msg);
+		break;
+
+	case MAVLINK_MSG_ID_GIMBAL_MANAGER_STATUS:
+		handle_message_external_gimbal_manager_status(msg);
+		break;
+
 	case MAVLINK_MSG_ID_GIMBAL_DEVICE_INFORMATION:
 		handle_message_gimbal_device_information(msg);
 		break;
@@ -439,6 +447,14 @@ void MavlinkReceiver::handle_messages_in_gimbal_mode(mavlink_message_t &msg)
 
 	case MAVLINK_MSG_ID_GIMBAL_MANAGER_SET_MANUAL_CONTROL:
 		handle_message_gimbal_manager_set_manual_control(&msg);
+		break;
+
+	case MAVLINK_MSG_ID_GIMBAL_MANAGER_INFORMATION:
+		handle_message_external_gimbal_manager_information(&msg);
+		break;
+
+	case MAVLINK_MSG_ID_GIMBAL_MANAGER_STATUS:
+		handle_message_external_gimbal_manager_status(&msg);
 		break;
 
 	case MAVLINK_MSG_ID_GIMBAL_DEVICE_INFORMATION:
@@ -562,6 +578,54 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 	vcmd.from_external = true;
 
 	handle_message_command_both(msg, cmd_mavlink, vcmd);
+}
+
+void MavlinkReceiver::handle_message_external_gimbal_manager_information(mavlink_message_t *msg)
+{
+	mavlink_gimbal_manager_information_t m{};
+	mavlink_msg_gimbal_manager_information_decode(msg, &m);
+
+	external_gimbal_manager_information_s info{};
+	info.timestamp 			= hrt_absolute_time();
+
+	// Sender identity from MAVLink header
+	info.source_system		= msg -> sysid;
+	info.source_component		= msg -> compid;
+
+	// Payload fields from decoded MAVLink message
+	info.cap_flags 			= m.cap_flags;
+	info.gimbal_device_id 		= m.gimbal_device_id;
+	info.roll_min 			= m.roll_min;
+	info.roll_max 			= m.roll_max;
+	info.pitch_min 			= m.pitch_min;
+	info.pitch_max			= m.pitch_max;
+	info.yaw_min			= m.yaw_min;
+	info.yaw_max			= m.yaw_max;
+
+	_external_gimbal_manager_information_pub.publish(info);
+}
+
+void MavlinkReceiver::handle_message_external_gimbal_manager_status(mavlink_message_t *msg)
+{
+	mavlink_gimbal_manager_status_t m{};
+	mavlink_msg_gimbal_manager_status_decode(msg, &m);
+
+	external_gimbal_manager_status_s st{};
+	st.timestamp		= hrt_absolute_time();
+
+	st.flags			= m.flags;
+	st.gimbal_device_id		= m.gimbal_device_id;
+
+	st.primary_control_sysid	= m.primary_control_sysid;
+	st.primary_control_compid	= m.primary_control_compid;
+
+	st.secondary_control_sysid	= m.secondary_control_sysid;
+	st.secondary_control_compid	= m.secondary_control_compid;
+
+	st.source_system		= msg -> sysid;
+	st.source_component		= msg -> compid;
+
+	_external_gimbal_manager_status_pub.publish(st);
 }
 
 template <class T>
