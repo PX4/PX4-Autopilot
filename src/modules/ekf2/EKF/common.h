@@ -207,8 +207,8 @@ struct gnssSample {
 
 struct gnssYawSample {
 	uint64_t    time_us{};    ///< timestamp of the measurement (uSec)
-	float       yaw{};        ///< yaw angle from dual antenna GNSS (rad, [-PI, PI])
-	float       yaw_acc{};    ///< 1-std yaw error (rad)
+	float       yaw{NAN};     ///< yaw angle from dual antenna GNSS (rad, [-PI, PI]); NAN indicates no measurement
+	float       yaw_acc{NAN}; ///< 1-std yaw error (rad); NAN indicates accuracy not provided
 	float       yaw_offset{}; ///< Heading/Yaw offset for dual antenna GPS - refer to description for GPS_YAW_OFFSET
 };
 
