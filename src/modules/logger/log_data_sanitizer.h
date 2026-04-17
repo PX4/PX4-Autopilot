@@ -498,7 +498,11 @@ public:
 				// If it does contain position data, follow the pattern above and specify which fields
 				// contain what position using REDACT_LOCAL and REDACT_GLOBAL.
 
-				PX4_WARN("Undefined position redaction for %s. Redacting entire message.", meta->o_name);
+				PX4_WARN(
+					"Undefined position redaction for %s. %s",
+					meta->o_name,
+					restriction != UNRESTRICTED ? "Redacting entire message." : ""
+				);
 
 				_undefined_redaction_warnings_shown++;
 
