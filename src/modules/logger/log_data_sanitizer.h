@@ -25,6 +25,7 @@
 #include <uORB/topics/mavlink_tunnel.h>
 #include <uORB/topics/navigator_mission_item.h>
 #include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/ranging_beacon.h>
 #include <uORB/topics/rover_position_setpoint.h>
 #include <uORB/topics/rover_speed_setpoint.h>
 #include <uORB/topics/rover_speed_status.h>
@@ -301,6 +302,14 @@ public:
 			// to include the index definitions here, or fail silently when they change.
 			REDACT_LOCAL(buffer, estimator_states_s, states, restriction);
 			break;
+
+		case ORB_ID::ranging_beacon:
+			REDACT_GLOBAL(buffer, ranging_beacon_s, lat, restriction);
+			REDACT_GLOBAL(buffer, ranging_beacon_s, lon, restriction);
+
+			// Without knowing the beacon positions, the raw range
+			// correspond at best to a 1D local position measurement
+			REDACT_LOCAL(buffer, ranging_beacon_s, range, restriction);
 
 		// These debug topics may contain any information, including position. However, by default:
 		//  - they are not published and are in MAVLink as a catch-all debugging tool.
