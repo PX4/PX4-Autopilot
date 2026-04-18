@@ -93,9 +93,9 @@ private:
 	Gains _gains{};
 	float _max_rpm{1.f};
 
-	float _sp_rpm[MAX_MOTORS]{};
-	float _meas_rpm[MAX_MOTORS]{};
-	float _integral[MAX_MOTORS]{};
-	float _prev_err[MAX_MOTORS]{};
-	float _last_cmd_norm[MAX_MOTORS]{};
+	float _sp_rpm[MAX_MOTORS] {};
+	float _meas_rpm[MAX_MOTORS] {};
+	float _integral[MAX_MOTORS] {};
+	float _prev_err[MAX_MOTORS] {};
+	float _last_cmd_norm[MAX_MOTORS] {};
 };
