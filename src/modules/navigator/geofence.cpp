@@ -216,7 +216,7 @@ void Geofence::_updateFence()
 	const bool current_position_check_required = (getGeofenceAction() != geofence_result_s::GF_ACTION_NONE
 						 && !_navigator->get_land_detected()->landed);
 
-	const vehicle_global_position_s *home_position = _navigator->get_home_position();
+	const home_position_s *home_position = _navigator->get_home_position();
 	const vehicle_global_position_s *current_position = _navigator->get_global_position();
 
 	bool has_inclusion = false;
@@ -330,6 +330,7 @@ void Geofence::_updateFence()
 		}
 	}
 
+	// Home/position valid iff inside at least one inclusion (if any) AND outside all exclusions
 	const bool home_check_okay = !home_check_required
 					 || (home_exclusion_ok && (!has_inclusion || home_inclusion_ok));
 	const bool current_position_check_okay = !current_position_check_required
@@ -353,45 +354,6 @@ void Geofence::_updateFence()
 		_polygons = nullptr;
 		_num_polygons = 0;
 	}
-}
-
-bool Geofence::checkHomeRequirementsForGeofence(const PolygonInfo &polygon)
-{
-	bool checks_pass = true;
-
-	if (_navigator->home_global_position_valid()) {
-		checks_pass = checkPointAgainstPolygonCircle(polygon, _navigator->get_home_position()->lat,
-				_navigator->get_home_position()->lon,
-				_navigator->get_home_position()->alt);
-	}
-
-
-	if (!checks_pass) {
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence invalid, doesn't contain Home position\t");
-		events::send(events::ID("navigator_geofence_invalid_against_home"), {events::Log::Critical, events::LogInternal::Warning},
-			     "Geofence invalid, doesn't contain Home position");
-	}
-
-	return checks_pass;
-}
-
-bool Geofence::checkCurrentPositionRequirementsForGeofence(const PolygonInfo &polygon)
-{
-	bool checks_pass = true;
-
-	// do not allow upload of geofence if vehicle is flying and current geofence would be immediately violated
-	if (getGeofenceAction() != geofence_result_s::GF_ACTION_NONE && !_navigator->get_land_detected()->landed) {
-		checks_pass = checkPointAgainstPolygonCircle(polygon, _navigator->get_global_position()->lat,
-				_navigator->get_global_position()->lon, _navigator->get_global_position()->alt);
-	}
-
-	if (!checks_pass) {
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence invalid, doesn't contain current vehicle position\t");
-		events::send(events::ID("navigator_geofence_invalid_against_cur_pos"), {events::Log::Critical, events::LogInternal::Warning},
-			     "Geofence invalid, doesn't contain current vehicle position");
-	}
-
-	return checks_pass;
 }
 
 
