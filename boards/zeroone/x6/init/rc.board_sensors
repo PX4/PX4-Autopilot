@@ -87,9 +87,9 @@ ist8310 -X -b 1 -R 10 start
 # Internal compass
 if ! rm3100 -I -b 4 start # X6 & X6 PRO & X6 Ultra
 then
-	if ! ist8310 -I      -a 0x0E -R 12 start      # X6 air
+	if ! ist8310 -I -a 0x0E -R 12 start # X6 air
 	then
-		bmm350  -I -b 4 -a 0x15 -R 14  start      # X6 air II
+		bmm350 -I -b 4 -a 0x15 -R 14 start # X6 air II
 	fi
 fi
 
