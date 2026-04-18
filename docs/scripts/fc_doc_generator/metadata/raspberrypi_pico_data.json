@@ -39,6 +39,7 @@
       "bdshot_output_only": []
     }
   ],
+  "capture_channels": [],
   "serial_ports": [],
   "has_rc_input": true,
   "has_common_rc": false,

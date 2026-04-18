@@ -6,6 +6,7 @@
   "has_io_board": false,
   "io_outputs": 0,
   "groups": [],
+  "capture_channels": [],
   "serial_ports": [
     {
       "uart": "USART1",

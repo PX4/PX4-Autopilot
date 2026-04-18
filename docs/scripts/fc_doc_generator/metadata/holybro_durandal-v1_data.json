@@ -48,6 +48,33 @@
       "bdshot_output_only": []
     }
   ],
+  "capture_channels": [
+    {
+      "timer": "Timer2",
+      "channel": "Channel4",
+      "channel_index": 3
+    },
+    {
+      "timer": "Timer2",
+      "channel": "Channel2",
+      "channel_index": 1
+    },
+    {
+      "timer": "Timer2",
+      "channel": "Channel1",
+      "channel_index": 0
+    },
+    {
+      "timer": "Timer12",
+      "channel": "Channel2",
+      "channel_index": 1
+    },
+    {
+      "timer": "Timer12",
+      "channel": "Channel1",
+      "channel_index": 0
+    }
+  ],
   "serial_ports": [
     {
       "uart": "USART1",

@@ -1059,7 +1059,7 @@ For battery and power module configuration see [Battery and Power Module Setup](
 
 This flight controller supports up to 8 FMU PWM outputs (MAIN).
 
-All outputs support [DShot](../peripherals/dshot.md) ([Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry) not supported).
+[DShot](../peripherals/dshot.md) is not supported.
 
 The 8 outputs are in 3 groups:
 
@@ -6932,11 +6932,7 @@ For battery and power module configuration see [Battery and Power Module Setup](
 
 This flight controller supports up to 6 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
 
-FMU Outputs:
-
-- Outputs 1-4 support [DShot](../peripherals/dshot.md).
-- Outputs 5-6 do not support DShot.
-- Outputs 1-4 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
+[DShot](../peripherals/dshot.md) is not supported.
 
 The 6 outputs are in 2 groups:
 
@@ -7493,7 +7489,7 @@ For battery and power module configuration see [Battery and Power Module Setup](
 
 This flight controller supports up to 4 FMU PWM outputs (MAIN).
 
-All outputs support [DShot](../peripherals/dshot.md) ([Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry) not supported).
+[DShot](../peripherals/dshot.md) is not supported.
 
 The 4 outputs are in 2 groups:
 
@@ -8014,7 +8010,7 @@ For battery and power module configuration see [Battery and Power Module Setup](
 
 This flight controller supports up to 4 FMU PWM outputs (MAIN).
 
-All outputs support [DShot](../peripherals/dshot.md) ([Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry) not supported).
+[DShot](../peripherals/dshot.md) is not supported.
 
 The 4 outputs are in 2 groups:
 
@@ -9501,11 +9497,7 @@ For battery and power module configuration see [Battery and Power Module Setup](
 
 This flight controller supports up to 6 FMU PWM outputs (MAIN).
 
-Outputs:
-
-- Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 3-4 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-- Outputs 1-2, 5-6 support Bidirectional DShot output only (no eRPM capture).
+[DShot](../peripherals/dshot.md) is not supported.
 
 The 6 outputs are in 4 groups:
 
@@ -11319,11 +11311,7 @@ For battery and power module configuration see [Battery and Power Module Setup](
 
 This flight controller supports up to 8 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
 
-FMU Outputs:
-
-- Outputs 1-4 support [DShot](../peripherals/dshot.md).
-- Outputs 5-8 do not support DShot.
-- Outputs 1-4 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
+[DShot](../peripherals/dshot.md) is not supported.
 
 The 8 outputs are in 3 groups:
 
@@ -11622,7 +11610,7 @@ For battery and power module configuration see [Battery and Power Module Setup](
 
 This flight controller supports up to 4 FMU PWM outputs (MAIN).
 
-All outputs support [DShot](../peripherals/dshot.md) ([Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry) not supported).
+[DShot](../peripherals/dshot.md) is not supported.
 
 The 4 outputs are in 2 groups:
 
@@ -14030,11 +14018,7 @@ For battery and power module configuration see [Battery and Power Module Setup](
 
 This flight controller supports up to 8 FMU PWM outputs (MAIN).
 
-Outputs:
-
-- Outputs 1-8 support [DShot](../peripherals/dshot.md).
-- Outputs 1-7 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-- Output 8 supports Bidirectional DShot output only (no eRPM capture).
+[DShot](../peripherals/dshot.md) is not supported.
 
 The 8 outputs are in 2 groups:
 
@@ -16997,11 +16981,7 @@ For battery and power module configuration see [Battery and Power Module Setup](
 
 This flight controller supports up to 6 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
 
-FMU Outputs:
-
-- Outputs 1-4 support [DShot](../peripherals/dshot.md).
-- Outputs 5-6 do not support DShot.
-- Outputs 1-4 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
+[DShot](../peripherals/dshot.md) is not supported.
 
 The 6 outputs are in 2 groups:
 
@@ -19341,7 +19321,7 @@ For battery and power module configuration see [Battery and Power Module Setup](
 
 This flight controller supports up to 4 FMU PWM outputs (MAIN).
 
-All outputs support [DShot](../peripherals/dshot.md) ([Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry) not supported).
+[DShot](../peripherals/dshot.md) is not supported.
 
 The 4 outputs are in 2 groups:
 
@@ -19610,7 +19590,7 @@ For battery and power module configuration see [Battery and Power Module Setup](
 
 This flight controller supports up to 6 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
 
-All FMU outputs support [DShot](../peripherals/dshot.md) ([Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry) not supported).
+[DShot](../peripherals/dshot.md) is not supported.
 
 The 6 outputs are in 2 groups:
 
@@ -19892,7 +19872,7 @@ For battery and power module configuration see [Battery and Power Module Setup](
 
 This flight controller supports up to 6 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
 
-All FMU outputs support [DShot](../peripherals/dshot.md) ([Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry) not supported).
+[DShot](../peripherals/dshot.md) is not supported.
 
 The 6 outputs are in 2 groups:
 
@@ -20609,7 +20589,7 @@ Serial port mapping could not be determined from source.
 ### px4/fmu-v5
 
 **Doc:** [https://docs.px4.io/main/en/flight_controller/pixhawk4](https://docs.px4.io/main/en/flight_controller/pixhawk4)
-**Documented:** Yes
+**Documented:** No
 
 **Proposed `specifications` section:**
 
@@ -20740,11 +20720,7 @@ For battery and power module configuration see [Battery and Power Module Setup](
 
 This flight controller supports up to 8 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
 
-FMU Outputs:
-
-- Outputs 1-4 support [DShot](../peripherals/dshot.md).
-- Outputs 5-8 do not support DShot.
-- Outputs 1-4 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
+[DShot](../peripherals/dshot.md) is not supported.
 
 The 8 outputs are in 3 groups:
 
@@ -20924,28 +20900,6 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 | UART8 | /dev/ttyS6 | PX4IO | - |
 ```
 
-**Existing doc section (for reference):**
-
-<!--
-## PWM Outputs {#pwm_outputs}
-
-This flight controller supports up to 11 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
-
-FMU Outputs:
-
-- Outputs 1-4 support [DShot](../peripherals/dshot.md).
-- Outputs 5-8 do not support DShot.
-- Outputs 1-4 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-
-The 11 outputs are in 3 groups:
-
-- Outputs 1-4 in group1 (Timer1)
-- Outputs 5-6 in group2 (Timer4)
-- Outputs 7-8 in group3 (Timer12)
-
-All outputs within the same group must use the same output protocol and rate.
--->
-
 ---
 
 ### px4/fmu-v5x
@@ -21086,11 +21040,7 @@ For battery and power module configuration see [Battery and Power Module Setup](
 
 This flight controller supports up to 8 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
 
-FMU Outputs:
-
-- Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-8 do not support DShot.
-- Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
+[DShot](../peripherals/dshot.md) is not supported.
 
 The 8 outputs are in 3 groups:
 
@@ -22978,11 +22928,7 @@ For battery and power module configuration see [Battery and Power Module Setup](
 
 This flight controller supports up to 8 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
 
-FMU Outputs:
-
-- Outputs 1-8 support [DShot](../peripherals/dshot.md).
-- Outputs 1-4 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-- Outputs 5-8 support Bidirectional DShot output only (no eRPM capture).
+[DShot](../peripherals/dshot.md) is not supported.
 
 The 8 outputs are in 3 groups:
 
@@ -24138,11 +24084,7 @@ For battery and power module configuration see [Battery and Power Module Setup](
 
 This flight controller supports up to 8 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
 
-FMU Outputs:
-
-- Outputs 1-6 support [DShot](../peripherals/dshot.md).
-- Outputs 7-8 do not support DShot.
-- Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
+[DShot](../peripherals/dshot.md) is not supported.
 
 The 8 outputs are in 3 groups:
 

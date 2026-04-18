@@ -82,9 +82,8 @@ BDSHOT_CAPTURE_MAP = {
         "Timer17": [0],
     },
     "stm32f7": {
-        # Only Timer1 and Timer4 have channel DMA; Timer4 CH4 = 0
-        "Timer1":  [0, 1, 2, 3],
-        "Timer4":  [0, 1, 2],   # CH4 = 0
+        # DShot not supported on F7 (DMA IP V1); no BDShot either
+        "_none": True,
     },
     "stm32f4": {
         # getTimerChannelDMAMap is explicitly "Not supported" — no BDShot at all
@@ -99,6 +98,13 @@ BDSHOT_CAPTURE_MAP = {
         "_all": True,
     },
 }
+
+# Chip families where DShot is not supported in PX4 firmware.
+# Both STM32F4 and STM32F7 use DMA IP V1; PX4's dshot.c skips these MCUs entirely
+# (#if CONFIG_STM32_HAVE_IP_DMA_V1 → do nothing).  Timer DMA presence in
+# timer_config.cpp is therefore not sufficient to infer DShot capability on these
+# families — the suppression is applied in compute_groups().
+DSHOT_UNSUPPORTED_FAMILIES = frozenset({'stm32f4', 'stm32f7'})
 
 # ---------------------------------------------------------------------------
 # Chip model → hardware specification lookup
@@ -332,8 +338,9 @@ def parse_timer_config(board_path: Path) -> dict:
     # Parse timer_io_channels[] array entries
     # Handle: initIOTimerChannel(io_timers, {Timer::Timer5, Timer::Channel1}, ...)
     # Handle: initIOTimerChannelOutputClear(...), initIOTimerChannelDshot(...)
-    # Handle: initIOTimerChannelCapture(...) -- dual-purpose capture/output channels
+    # Handle: initIOTimerChannelCapture(...) -- timer-capture inputs (RC PPM, FMU_CAP*, etc.)
     channels = []
+    capture_channels = []
     io_channels_match = re.search(
         r'constexpr\s+timer_io_channels_t\s+timer_io_channels\[.*?\]\s*=\s*\{(.*?)\};',
         text, re.DOTALL
@@ -353,17 +360,21 @@ def parse_timer_config(board_path: Path) -> dict:
             # Skip channel mapping entries (not actual channels)
             if "Mapping" in func_name:
                 continue
-            # Skip input-capture channels — these are timer-capture inputs (e.g. RC PPM,
-            # pulse-width measurement), not PWM output pins.  They appear in
-            # timer_io_channels[] as initIOTimerChannelCapture() entries but are NOT
-            # usable as PWM outputs and must not be counted or listed as such.
-            if "Capture" in func_name:
-                continue
-            # Extract channel number
+            # Extract channel number (shared by both output and capture paths)
             ch_num_match = re.search(r'Channel(\d+)|Submodule(\d+)|CH(\d+)', channel_name)
             ch_idx = None
             if ch_num_match:
                 ch_idx = int(next(g for g in ch_num_match.groups() if g is not None)) - 1
+            # Collect input-capture channels separately — these are timer-capture inputs
+            # (e.g. RC PPM, FMU_CAP*, pulse-width measurement), not PWM output pins.
+            # They are NOT counted as outputs but are stored for use in other doc sections.
+            if "Capture" in func_name:
+                capture_channels.append({
+                    "timer": timer_name,
+                    "channel": channel_name,
+                    "channel_index": ch_idx,
+                })
+                continue
             channels.append({
                 "output_index": output_idx,
                 "timer": timer_name,
@@ -390,6 +401,7 @@ def parse_timer_config(board_path: Path) -> dict:
     return {
         "timers": timers,
         "channels": channels,
+        "capture_channels": capture_channels,
     }
 
 
@@ -1361,7 +1373,7 @@ def parse_i2c_bus_config(board_path: Path) -> dict:
     return {'external': external, 'internal': internal}
 
 
-def compute_groups(timers: list, channels: list) -> list:
+def compute_groups(timers: list, channels: list, family: str = "") -> list:
     """Group PWM output channels by their shared hardware timer.
 
     Mechanism
@@ -1383,6 +1395,11 @@ def compute_groups(timers: list, channels: list) -> list:
       the whole group supports DShot.
     - iMXRT: per-channel — initIOTimerChannelDshot() marks individual channels;
       the group's dshot_outputs / non_dshot_outputs lists reflect this split.
+
+    Family-level DShot suppression:
+    - Families in DSHOT_UNSUPPORTED_FAMILIES (stm32f4, stm32f7) do not support
+      DShot in PX4 firmware regardless of DMA presence in timer_config.cpp.
+      All groups are forced to dshot=False for these families.
 
     Returns a list of group dicts, one per timer, each containing:
       group            int  — 1-based group number
@@ -1422,6 +1439,12 @@ def compute_groups(timers: list, channels: list) -> list:
                 "dshot_outputs": dshot_outputs,
                 "non_dshot_outputs": non_dshot_outputs,
             })
+    # Suppress DShot for chip families where PX4 firmware does not support it
+    if family in DSHOT_UNSUPPORTED_FAMILIES:
+        for g in groups:
+            g["dshot"] = False
+            g["dshot_outputs"] = []
+            g["non_dshot_outputs"] = g["outputs"][:]
     return groups
 
 
@@ -4042,7 +4065,7 @@ def gather_board_data() -> dict:
 
         timers = timer_cfg.get("timers", [])
         channels = timer_cfg.get("channels", [])
-        groups = compute_groups(timers, channels)
+        groups = compute_groups(timers, channels, chip_family)
         groups = compute_bdshot(groups, channels, chip_family)
 
         doc_filename = BOARD_TO_DOC.get(key)
@@ -4073,6 +4096,7 @@ def gather_board_data() -> dict:
                 }
                 for g in groups
             ],
+            "capture_channels": timer_cfg.get("capture_channels", []),
             "serial_ports": serial_cfg.get("serial_ports", []),
             "has_rc_input": rc_cfg.get('has_rc_input', False),
             "has_common_rc": rc_cfg.get('has_common_rc', False),

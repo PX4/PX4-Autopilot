@@ -77,6 +77,7 @@
       ]
     }
   ],
+  "capture_channels": [],
   "serial_ports": [
     {
       "uart": "USART1",

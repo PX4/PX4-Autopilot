@@ -58,6 +58,48 @@
       ]
     }
   ],
+  "capture_channels": [
+    {
+      "timer": "Timer1",
+      "channel": "Channel2",
+      "channel_index": 1
+    },
+    {
+      "timer": "Timer1",
+      "channel": "Channel1",
+      "channel_index": 0
+    },
+    {
+      "timer": "Timer1",
+      "channel": "Channel3",
+      "channel_index": 2
+    },
+    {
+      "timer": "Timer8",
+      "channel": "Channel2",
+      "channel_index": 1
+    },
+    {
+      "timer": "Timer8",
+      "channel": "Channel3",
+      "channel_index": 2
+    },
+    {
+      "timer": "Timer8",
+      "channel": "Channel1",
+      "channel_index": 0
+    },
+    {
+      "timer": "Timer12",
+      "channel": "Channel1",
+      "channel_index": 0
+    },
+    {
+      "timer": "Timer12",
+      "channel": "Channel2",
+      "channel_index": 1
+    }
+  ],
   "serial_ports": [
     {
       "uart": "USART1",

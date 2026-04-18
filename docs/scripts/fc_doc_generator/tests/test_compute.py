@@ -190,3 +190,43 @@ class TestComputeGroupsCapture:
         assert "Timer1" not in by_timer
         assert "Timer8" not in by_timer
         assert "Timer12" not in by_timer
+
+
+# ---------------------------------------------------------------------------
+# STM32F7 DShot suppression
+# ---------------------------------------------------------------------------
+
+class TestComputeGroupsF7:
+    """F7 boards have DMA-capable timers in timer_config.cpp but DShot is not
+    supported in PX4 firmware (DMA IP V1).  The family parameter must suppress
+    DShot for all groups even when the hardware timer has DMA configured."""
+
+    def test_f7_groups_still_present(self, board_stm32f7_no_dshot):
+        timers, channels = _parse(board_stm32f7_no_dshot)
+        groups = fcdg.compute_groups(timers, channels, "stm32f7")
+        # Timer1 (ch1-4), Timer4 (ch5-6), Timer12 (ch7-8) → 3 groups
+        assert len(groups) == 3
+
+    def test_f7_dshot_suppressed_despite_dma(self, board_stm32f7_no_dshot):
+        timers, channels = _parse(board_stm32f7_no_dshot)
+        groups = fcdg.compute_groups(timers, channels, "stm32f7")
+        assert all(g["dshot"] is False for g in groups)
+
+    def test_f7_dshot_outputs_empty(self, board_stm32f7_no_dshot):
+        timers, channels = _parse(board_stm32f7_no_dshot)
+        groups = fcdg.compute_groups(timers, channels, "stm32f7")
+        assert all(g["dshot_outputs"] == [] for g in groups)
+
+    def test_f7_non_dshot_outputs_full(self, board_stm32f7_no_dshot):
+        timers, channels = _parse(board_stm32f7_no_dshot)
+        groups = fcdg.compute_groups(timers, channels, "stm32f7")
+        for g in groups:
+            assert g["non_dshot_outputs"] == g["outputs"]
+
+    def test_f7_no_bdshot(self, board_stm32f7_no_dshot):
+        timers, channels = _parse(board_stm32f7_no_dshot)
+        groups = fcdg.compute_groups(timers, channels, "stm32f7")
+        groups = fcdg.compute_bdshot(groups, channels, "stm32f7")
+        assert all(not g["bdshot"] for g in groups)
+        assert all(g["bdshot_outputs"] == [] for g in groups)
+        assert all(g["bdshot_output_only"] == [] for g in groups)

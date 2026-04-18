@@ -107,7 +107,9 @@ Tests in `test_generators.py` use the `snapshot` fixture from `conftest.py`.
   - `src/board_config.h` — PWM count, IO board presence, GPIOs
   - `src/timer_config.cpp` — timer groups and channels; `initIOTimerChannelCapture`
     entries are **excluded** from the FMU output count — these are timer-capture
-    inputs (e.g. RC PPM, pulse-width measurement), not usable as PWM outputs
+    inputs (e.g. RC PPM, pulse-width measurement), not usable as PWM outputs.
+    They are stored separately in `capture_channels` in the metadata JSON for use
+    in other documentation sections.
   - `default.px4board` — Kconfig board settings (serial labels, RC, GPS, drivers)
   - `nuttx-config/include/board.h` — flow control GPIO definitions
   - `init/rc.board_sensors` — sensor driver start commands; comments immediately
@@ -118,6 +120,12 @@ Tests in `test_generators.py` use the `snapshot` fixture from `conftest.py`.
   - `src/i2c.cpp` — authoritative I2C bus routing:
     `initI2CBusExternal(N)` = external connector; `initI2CBusInternal(N)` = on-board only.
     When present, stored in `i2c_bus_config` and enables the detailed per-bus I2C output.
+
+- **`DSHOT_UNSUPPORTED_FAMILIES`** — constant listing chip families where PX4 firmware
+  does not support DShot (currently `stm32f4`, `stm32f7`). Both use DMA IP V1; PX4's
+  `dshot.c` skips DMA V1 MCUs entirely. `compute_groups()` suppresses DShot for all
+  groups when the board's family is in this set, regardless of DMA presence in
+  `timer_config.cpp`.
 
 - **Metadata JSON** in `metadata/` caches parsed data (`*_data.json`) and
   wizard-supplied overrides (`*_wizard.json`). Wizard data persists across runs

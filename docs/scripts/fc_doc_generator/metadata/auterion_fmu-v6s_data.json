@@ -71,6 +71,13 @@
       "bdshot_output_only": []
     }
   ],
+  "capture_channels": [
+    {
+      "timer": "Timer8",
+      "channel": "Channel2",
+      "channel_index": 1
+    }
+  ],
   "serial_ports": [
     {
       "uart": "USART1",

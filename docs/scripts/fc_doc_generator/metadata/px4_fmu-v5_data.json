@@ -15,20 +15,15 @@
         3,
         4
       ],
-      "dshot": true,
-      "dshot_outputs": [
+      "dshot": false,
+      "dshot_outputs": [],
+      "non_dshot_outputs": [
         1,
         2,
         3,
         4
       ],
-      "non_dshot_outputs": [],
-      "bdshot_outputs": [
-        1,
-        2,
-        3,
-        4
-      ],
+      "bdshot_outputs": [],
       "bdshot_output_only": []
     },
     {
@@ -62,6 +57,23 @@
       ],
       "bdshot_outputs": [],
       "bdshot_output_only": []
+    }
+  ],
+  "capture_channels": [
+    {
+      "timer": "Timer2",
+      "channel": "Channel1",
+      "channel_index": 0
+    },
+    {
+      "timer": "Timer2",
+      "channel": "Channel2",
+      "channel_index": 1
+    },
+    {
+      "timer": "Timer2",
+      "channel": "Channel4",
+      "channel_index": 3
     }
   ],
   "serial_ports": [
@@ -296,5 +308,5 @@
   "doc_url": "https://docs.px4.io/main/en/flight_controller/pixhawk4",
   "doc_file": "pixhawk4.md",
   "doc_exists": true,
-  "documented": true
+  "documented": false
 }

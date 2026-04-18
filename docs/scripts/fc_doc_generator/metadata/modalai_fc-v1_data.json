@@ -15,20 +15,15 @@
         3,
         4
       ],
-      "dshot": true,
-      "dshot_outputs": [
+      "dshot": false,
+      "dshot_outputs": [],
+      "non_dshot_outputs": [
         1,
         2,
         3,
         4
       ],
-      "non_dshot_outputs": [],
-      "bdshot_outputs": [
-        1,
-        2,
-        3,
-        4
-      ],
+      "bdshot_outputs": [],
       "bdshot_output_only": []
     },
     {
@@ -40,24 +35,19 @@
         7,
         8
       ],
-      "dshot": true,
-      "dshot_outputs": [
+      "dshot": false,
+      "dshot_outputs": [],
+      "non_dshot_outputs": [
         5,
         6,
         7,
         8
       ],
-      "non_dshot_outputs": [],
-      "bdshot_outputs": [
-        5,
-        6,
-        7
-      ],
-      "bdshot_output_only": [
-        8
-      ]
+      "bdshot_outputs": [],
+      "bdshot_output_only": []
     }
   ],
+  "capture_channels": [],
   "serial_ports": [
     {
       "uart": "USART1",

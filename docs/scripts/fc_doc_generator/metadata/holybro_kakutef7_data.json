@@ -13,17 +13,14 @@
         1,
         2
       ],
-      "dshot": true,
-      "dshot_outputs": [
+      "dshot": false,
+      "dshot_outputs": [],
+      "non_dshot_outputs": [
         1,
         2
       ],
-      "non_dshot_outputs": [],
       "bdshot_outputs": [],
-      "bdshot_output_only": [
-        1,
-        2
-      ]
+      "bdshot_output_only": []
     },
     {
       "group": 2,
@@ -32,16 +29,13 @@
         3,
         4
       ],
-      "dshot": true,
-      "dshot_outputs": [
+      "dshot": false,
+      "dshot_outputs": [],
+      "non_dshot_outputs": [
         3,
         4
       ],
-      "non_dshot_outputs": [],
-      "bdshot_outputs": [
-        3,
-        4
-      ],
+      "bdshot_outputs": [],
       "bdshot_output_only": []
     },
     {
@@ -50,15 +44,13 @@
       "outputs": [
         5
       ],
-      "dshot": true,
-      "dshot_outputs": [
+      "dshot": false,
+      "dshot_outputs": [],
+      "non_dshot_outputs": [
         5
       ],
-      "non_dshot_outputs": [],
       "bdshot_outputs": [],
-      "bdshot_output_only": [
-        5
-      ]
+      "bdshot_output_only": []
     },
     {
       "group": 4,
@@ -66,17 +58,16 @@
       "outputs": [
         6
       ],
-      "dshot": true,
-      "dshot_outputs": [
+      "dshot": false,
+      "dshot_outputs": [],
+      "non_dshot_outputs": [
         6
       ],
-      "non_dshot_outputs": [],
       "bdshot_outputs": [],
-      "bdshot_output_only": [
-        6
-      ]
+      "bdshot_output_only": []
     }
   ],
+  "capture_channels": [],
   "serial_ports": [
     {
       "uart": "USART1",

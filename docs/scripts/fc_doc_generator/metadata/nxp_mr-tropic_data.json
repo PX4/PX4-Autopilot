@@ -57,6 +57,7 @@
       "bdshot_output_only": []
     }
   ],
+  "capture_channels": [],
   "serial_ports": [
     {
       "uart": "LPUART2",

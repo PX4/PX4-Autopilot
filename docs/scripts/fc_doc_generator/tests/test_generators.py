@@ -154,6 +154,28 @@ def _entry_stm32f4_no_dshot():
     }
 
 
+def _entry_stm32f7_no_dshot():
+    """STM32F7 board: Timer1/Timer4 have DMA in hardware but DShot is suppressed
+    by the family-level override (DSHOT_UNSUPPORTED_FAMILIES)."""
+    return {
+        "has_io_board": False, "total_outputs": 8, "io_outputs": 0,
+        "serial_ports": [],
+        "has_rc_input": False, "has_common_rc": False, "rc_serial_device": None,
+        "has_ppm_pin": False, "ppm_shared_with_rc_serial": False,
+        "has_pps_capture": False, "has_safety_switch": False, "has_safety_led": False,
+        "has_buzzer": False,
+        "num_power_inputs": 1, "has_redundant_power": False,
+        "has_dual_battery_monitoring": False, "has_dronecan_power_input": False,
+        "power_monitor_type": "analog", "has_sd_card": False,
+        "rc_ports_wizard": None, "gps_ports_wizard": None, "power_ports_wizard": None,
+        "groups": [
+            _group(1, "Timer1", [1, 2, 3, 4], dshot=False),
+            _group(2, "Timer4", [5, 6], dshot=False),
+            _group(3, "Timer12", [7, 8], dshot=False),
+        ],
+    }
+
+
 # ---------------------------------------------------------------------------
 # PWM section snapshots
 # ---------------------------------------------------------------------------
@@ -178,6 +200,10 @@ class TestGeneratePwmSection:
     def test_stm32f4_no_dshot(self, snapshot):
         result = fcdg.generate_pwm_section(BOARD_KEY, _entry_stm32f4_no_dshot())
         snapshot("pwm_stm32f4_no_dshot.md", result)
+
+    def test_stm32f7_no_dshot(self, snapshot):
+        result = fcdg.generate_pwm_section(BOARD_KEY, _entry_stm32f7_no_dshot())
+        snapshot("pwm_stm32f7_no_dshot.md", result)
 
     def test_no_groups(self, snapshot):
         entry = {"has_io_board": False, "total_outputs": 0, "io_outputs": 0, "groups": []}

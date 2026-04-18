@@ -137,6 +137,41 @@ class TestParseTimerConfig:
         assert fcdg.parse_timer_config(tmp_path) == {}
 
 
+class TestParseTimerConfigCaptureChannels:
+    """parse_timer_config() must return capture_channels for initIOTimerChannelCapture
+    entries, and those entries must not appear in channels."""
+
+    def test_capture_channels_returned(self, board_stm32h7_capture_channels):
+        result = fcdg.parse_timer_config(board_stm32h7_capture_channels)
+        assert "capture_channels" in result
+        assert len(result["capture_channels"]) == 8
+
+    def test_capture_channels_timers(self, board_stm32h7_capture_channels):
+        result = fcdg.parse_timer_config(board_stm32h7_capture_channels)
+        cap_timers = {c["timer"] for c in result["capture_channels"]}
+        assert cap_timers == {"Timer1", "Timer8", "Timer12"}
+
+    def test_capture_channels_not_in_regular_channels(self, board_stm32h7_capture_channels):
+        result = fcdg.parse_timer_config(board_stm32h7_capture_channels)
+        reg_pairs = {(c["timer"], c["channel"]) for c in result["channels"]}
+        cap_pairs = {(c["timer"], c["channel"]) for c in result["capture_channels"]}
+        assert reg_pairs.isdisjoint(cap_pairs)
+
+    def test_f7_capture_channel_stored(self, board_stm32f7_no_dshot):
+        # stm32f7_no_dshot has one initIOTimerChannelCapture on Timer5/Channel4
+        result = fcdg.parse_timer_config(board_stm32f7_no_dshot)
+        caps = result.get("capture_channels", [])
+        assert len(caps) == 1
+        assert caps[0]["timer"] == "Timer5"
+        assert caps[0]["channel"] == "Channel4"
+        assert caps[0]["channel_index"] == 3  # Channel4 → index 3
+
+    def test_no_capture_channels_when_none_present(self, board_stm32h7_all_dshot):
+        # stm32h7_all_dshot has no initIOTimerChannelCapture entries
+        result = fcdg.parse_timer_config(board_stm32h7_all_dshot)
+        assert result.get("capture_channels", []) == []
+
+
 # ---------------------------------------------------------------------------
 # parse_serial_config
 # ---------------------------------------------------------------------------

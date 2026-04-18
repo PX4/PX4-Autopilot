@@ -126,3 +126,10 @@ def board_stm32h7_graceful_fail():
 def board_stm32h7_capture_channels():
     """STM32H7, 16 outputs: 8 regular (DShot) + 8 initIOTimerChannelCapture (no DShot)."""
     return FIXTURES_DIR / "stm32h7_capture_channels"
+
+
+@pytest.fixture(scope="session")
+def board_stm32f7_no_dshot():
+    """STM32F7, 8 outputs across 3 timer groups; Timer1/Timer4 have DMA but DShot is
+    suppressed at family level (DSHOT_UNSUPPORTED_FAMILIES). One capture channel on Timer5."""
+    return FIXTURES_DIR / "stm32f7_no_dshot"

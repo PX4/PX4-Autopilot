@@ -14,13 +14,13 @@
         2,
         3
       ],
-      "dshot": true,
-      "dshot_outputs": [
+      "dshot": false,
+      "dshot_outputs": [],
+      "non_dshot_outputs": [
         1,
         2,
         3
       ],
-      "non_dshot_outputs": [],
       "bdshot_outputs": [],
       "bdshot_output_only": []
     },
@@ -33,14 +33,14 @@
         6,
         7
       ],
-      "dshot": true,
-      "dshot_outputs": [
+      "dshot": false,
+      "dshot_outputs": [],
+      "non_dshot_outputs": [
         4,
         5,
         6,
         7
       ],
-      "non_dshot_outputs": [],
       "bdshot_outputs": [],
       "bdshot_output_only": []
     },
@@ -50,15 +50,16 @@
       "outputs": [
         8
       ],
-      "dshot": true,
-      "dshot_outputs": [
+      "dshot": false,
+      "dshot_outputs": [],
+      "non_dshot_outputs": [
         8
       ],
-      "non_dshot_outputs": [],
       "bdshot_outputs": [],
       "bdshot_output_only": []
     }
   ],
+  "capture_channels": [],
   "serial_ports": [],
   "has_rc_input": false,
   "has_common_rc": false,
