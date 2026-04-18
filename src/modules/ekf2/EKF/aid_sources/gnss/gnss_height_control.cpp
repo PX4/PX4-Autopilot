@@ -40,6 +40,11 @@
 
 void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 {
+	if (!_fc.gps.intended()) {
+		stopGpsHgtFusion();
+		return;
+	}
+
 	static constexpr const char *HGT_SRC_NAME = "GNSS";
 
 	auto &aid_src = _aid_src_gnss_hgt;
