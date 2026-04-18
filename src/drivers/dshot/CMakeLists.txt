@@ -51,6 +51,7 @@ px4_add_module(
 		arch_io_pins
 		arch_dshot
 		mixer_module
+		rpm_control
 	MODULE_CONFIG
 		module.yaml
 	)

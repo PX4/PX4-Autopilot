@@ -137,6 +137,12 @@ bool DShot::updateOutputs(float *outputs, unsigned num_outputs, unsigned num_con
 	_esc_status.esc_armed_flags = esc_armed_mask(hw_outputs, num_outputs);
 	bool armed = _esc_status.esc_armed_flags != 0;
 
+	// Closed-loop RPM control: when enabled and armed, rewrite the DShot commands to
+	// drive measured RPM towards the setpoint using per-motor PID.
+	if (armed && _rpm_ctrl_enabled && _bdshot_output_mask) {
+		apply_rpm_control(hw_outputs, num_outputs);
+	}
+
 	if (!armed) {
 		// Select next command to send (if any)
 		if (_telemetry.telemetryResponseFinished() &&
@@ -156,9 +162,74 @@ bool DShot::updateOutputs(float *outputs, unsigned num_outputs, unsigned num_con
 		update_motor_outputs(hw_outputs, num_outputs);
 	}
 
+	if (_rpm_ctrl_enabled) {
+		publish_rpm_controller_info(num_outputs);
+	}
+
 	up_dshot_trigger();
 
 	return true;
+}
+
+void DShot::apply_rpm_control(uint16_t *outputs, int num_outputs)
+{
+	const hrt_abstime now = hrt_absolute_time();
+	const float dt = (_rpm_last_update > 0) ? (now - _rpm_last_update) * 1e-6f : 0.002f;
+	_rpm_last_update = now;
+
+	for (int i = 0; i < num_outputs; i++) {
+		const int motor_index = motor_index_from_output(i);
+
+		if (motor_index < 0) {
+			continue;
+		}
+
+		if (outputs[i] == DSHOT_DISARM_VALUE) {
+			_rpm_ctrl.reset(motor_index);
+			_last_dshot_cmd[motor_index] = DSHOT_DISARM_VALUE;
+			continue;
+		}
+
+		const float sp_norm  = (float)outputs[i] / (float)DSHOT_MAX_THROTTLE;
+		const float meas_rpm = (float)_esc_status.esc[motor_index].esc_rpm;
+
+		const float cmd_norm = _rpm_ctrl.update(motor_index, sp_norm, meas_rpm, dt);
+
+		const uint16_t dshot_cmd = math::min((uint16_t)roundf(cmd_norm * (float)DSHOT_MAX_THROTTLE),
+						     DSHOT_MAX_THROTTLE);
+
+		outputs[i] = dshot_cmd;
+		_last_dshot_cmd[motor_index] = dshot_cmd;
+	}
+}
+
+void DShot::publish_rpm_controller_info(int num_outputs)
+{
+	rpm_controller_info_s msg{};
+	msg.timestamp  = hrt_absolute_time();
+	msg.num_motors = _motor_count;
+
+	static_assert(sizeof(msg.rpm_setpoint) / sizeof(msg.rpm_setpoint[0]) >= DSHOT_MAX_MOTORS,
+		      "rpm_controller_info arrays must cover all motors");
+
+	for (int i = 0; i < num_outputs; i++) {
+		const int motor_index = motor_index_from_output(i);
+
+		if (motor_index < 0) {
+			continue;
+		}
+
+		const float sp   = _rpm_ctrl.setpointRpm(motor_index);
+		const float meas = _rpm_ctrl.measuredRpm(motor_index);
+
+		msg.rpm_setpoint[motor_index]  = sp;
+		msg.rpm_measured[motor_index]  = meas;
+		msg.rpm_error[motor_index]     = sp - meas;
+		msg.cmd_norm[motor_index]      = _rpm_ctrl.lastCmdNorm(motor_index);
+		msg.dshot_command[motor_index] = _last_dshot_cmd[motor_index];
+	}
+
+	_rpm_info_pub.publish(msg);
 }
 
 // TODO: this needs a refactor
@@ -918,6 +989,16 @@ void DShot::update_params()
 	_3d_dead_h = _param_dshot_3d_dead_h.get();
 	_dshot_min = _param_dshot_min.get();
 	_esc_type = _param_dshot_esc_type.get();
+
+	// Closed-loop RPM controller: push current gains and max-RPM scaling into the library.
+	_rpm_ctrl_enabled = _param_rpm_ctrl_enabled.get();
+	_rpm_ctrl.setMaxRpm((float)_param_rpm_max_throttle.get());
+	_rpm_ctrl.setGains({
+		_param_rpm_kp.get(),
+		_param_rpm_ki.get(),
+		_param_rpm_kd.get(),
+		_param_rpm_i_lim.get(),
+	});
 
 	// Calculate minimum DShot output as percent of throttle and constrain.
 	float min_value = _dshot_min * (float)DSHOT_MAX_THROTTLE;
