@@ -401,6 +401,11 @@ void UxrceddsClient::deleteSession(uxrSession *session)
 		_session_created = false;
 	}
 
+	if (_subs) {
+		_subs->reset();
+	}
+
+	_connected = false;
 	_last_payload_tx_rate = 0;
 	_timesync.reset_filter();
 }
@@ -741,6 +746,7 @@ void UxrceddsClient::run()
 			/* PONG_IN_SESSION_STATUS */
 			if (session.on_pong_flag == 1) {
 				_had_ping_reply = true;
+				session.on_pong_flag = 0;
 			}
 
 			// Calculate the payload tx/rx rate for connectivity monitoring
@@ -752,6 +758,7 @@ void UxrceddsClient::run()
 			perf_end(_loop_perf);
 		}
 
+		PX4_INFO("session disconnected, attempting to reconnect...");
 		deleteSession(&session);
 	}
 }

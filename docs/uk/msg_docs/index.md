@@ -271,6 +271,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [HomePositionV0](HomePositionV0.md) — GPS home position in WGS84 coordinates.
 - [RegisterExtComponentReplyV0](RegisterExtComponentReplyV0.md)
 - [RegisterExtComponentRequestV0](RegisterExtComponentRequestV0.md) — Request to register an external component.
+- [RegisterExtComponentRequestV1](RegisterExtComponentRequestV1.md) — Request to register an external component.
 - [VehicleAttitudeSetpointV0](VehicleAttitudeSetpointV0.md)
 - [VehicleCommandAckV0](VehicleCommandAckV0.md) — Vehicle Command Ackonwledgement uORB message. Used for acknowledging the vehicle command being received. Follows the MAVLink COMMAND_ACK message definition.
 - [VehicleGlobalPositionV0](VehicleGlobalPositionV0.md) — Fused global position in WGS84. This struct contains global position estimation. It is not the raw GPS. measurement (@see vehicle_gps_position). This topic is usually published by the position. estimator, which will take more sources of information into account than just GPS,. e.g. control inputs of the vehicle in a Kalman-filter implementation.
@@ -278,3 +279,4 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [VehicleStatusV0](VehicleStatusV0.md) — Encodes the system state of the vehicle published by commander.
 - [VehicleStatusV1](VehicleStatusV1.md) — Encodes the system state of the vehicle published by commander.
 - [VehicleStatusV2](VehicleStatusV2.md) — Encodes the system state of the vehicle published by commander.
+- [VehicleStatusV3](VehicleStatusV3.md) — Encodes the system state of the vehicle published by commander.

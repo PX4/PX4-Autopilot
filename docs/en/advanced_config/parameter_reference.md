@@ -4196,7 +4196,7 @@ Note: this is only useful for servos.
 
 Output Protocol Configuration for PWM Aux 1-4.
 
-Select which Output Protocol to use for outputs PWM Aux 1-4.
+Select the output protocol for PWM Aux 1-4: PWM, OneShot, DShot, or Bidirectional DShot.
 
 Custom PWM rates can be used by directly setting any value >0.
 
@@ -4226,7 +4226,7 @@ Custom PWM rates can be used by directly setting any value >0.
 
 Output Protocol Configuration for PWM Aux 5-6.
 
-Select which Output Protocol to use for outputs PWM Aux 5-6.
+Select the output protocol for PWM Aux 5-6: PWM, OneShot, DShot, or Bidirectional DShot.
 
 Custom PWM rates can be used by directly setting any value >0.
 
@@ -4250,7 +4250,7 @@ Custom PWM rates can be used by directly setting any value >0.
 
 Output Protocol Configuration for PWM Aux 7-8.
 
-Select which Output Protocol to use for outputs PWM Aux 7-8.
+Select the output protocol for PWM Aux 7-8: PWM, OneShot, DShot, or Bidirectional DShot.
 
 Custom PWM rates can be used by directly setting any value >0.
 
@@ -4274,7 +4274,7 @@ Custom PWM rates can be used by directly setting any value >0.
 
 Output Protocol Configuration for PWM Capture 1-3.
 
-Select which Output Protocol to use for outputs PWM Capture 1-3.
+Select the output protocol for PWM Capture 1-3: PWM, OneShot, DShot, or Bidirectional DShot.
 
 Custom PWM rates can be used by directly setting any value >0.
 

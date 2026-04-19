@@ -790,6 +790,32 @@ lsm303d <command> [arguments...]
    status        print status info
 ```
 
+## lsm6dsv
+
+Source: [drivers/imu/st/lsm6dsv](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/st/lsm6dsv)
+
+### Usage {#lsm6dsv_usage}
+
+```
+lsm6dsv <command> [arguments...]
+ Commands:
+   start
+     [-s]        Internal SPI bus(es)
+     [-S]        External SPI bus(es)
+     [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
+                 (default=1))
+     [-c <val>]  chip-select pin (for internal SPI) or index (for external SPI)
+     [-m <val>]  SPI mode
+     [-f <val>]  bus frequency in kHz
+     [-q]        quiet startup (no message if no device found)
+     [-R <val>]  Rotation
+                 default: 0
+
+   stop
+
+   status        print status info
+```
+
 ## lsm9ds1
 
 Source: [drivers/imu/st/lsm9ds1](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/st/lsm9ds1)

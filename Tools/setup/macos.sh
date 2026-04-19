@@ -40,31 +40,43 @@ then
 	/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
 fi
 
-# Install px4-dev formula
+# Required taps. Homebrew 4.5+ no longer auto-resolves cross-tap
+# dependencies, so every tap that a package lives in must be added
+# explicitly here before `brew install`.
+#
+# - osx-cross/arm: arm-gcc-bin@13 (ARM cross-compiler)
+# - PX4/px4:       fastdds, genromfs, kconfig-frontends (PX4-specific)
+brew tap osx-cross/arm
+brew tap PX4/px4
+
+# Package list. This replaces the px4-dev meta-formula, which is kept
+# as a deprecated no-op upstream. See PX4/homebrew-px4 for history.
+PX4_BREW_PACKAGES=(
+	ant
+	astyle
+	bash-completion
+	ccache
+	cmake
+	fastdds
+	genromfs
+	kconfig-frontends
+	ncurses
+	ninja
+	osx-cross/arm/arm-gcc-bin@13
+	python
+	python-tk
+)
+
 if [[ $REINSTALL_FORMULAS == "--reinstall" ]]; then
-	echo "[macos.sh] Re-installing dependencies (homebrew px4-dev)"
-
-	# confirm Homebrew installed correctly
+	echo "[macos.sh] Re-installing PX4 toolchain dependencies"
 	brew doctor
-
-	brew tap osx-cross/arm
-	brew tap PX4/px4
-
-	brew reinstall px4-dev
-	brew link --overwrite --force arm-gcc-bin@13
+	brew reinstall "${PX4_BREW_PACKAGES[@]}"
 else
-	if brew ls --versions px4-dev > /dev/null; then
-		echo "[macos.sh] px4-dev already installed"
-	else
-		echo "[macos.sh] Installing general dependencies (homebrew px4-dev)"
-
-		brew tap osx-cross/arm
-		brew tap PX4/px4
-
-		brew install px4-dev
-		brew link --overwrite --force arm-gcc-bin@13
-	fi
+	echo "[macos.sh] Installing PX4 toolchain dependencies"
+	brew install "${PX4_BREW_PACKAGES[@]}"
 fi
+
+brew link --overwrite --force arm-gcc-bin@13
 
 # Python dependencies
 echo "[macos.sh] Installing Python3 dependencies"
