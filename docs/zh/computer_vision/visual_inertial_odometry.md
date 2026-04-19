@@ -101,8 +101,8 @@ A plot of external data vs. onboard estimate (as above) can be generated using [
 
 ## Check/Verify VIO Estimate {#verify_estimate}
 
-:::info
-The [MAV_ODOM_LP](../advanced_config/parameter_reference.md#MAV_ODOM_LP) parameter mentioned below was removed in PX4 v1.14.
+:::warning
+The `MAV_ODOM_LP` parameter mentioned below was removed in PX4 v1.14.
 This section needs to be updated. <!-- https://github.com/PX4/PX4-Autopilot/pull/20501#issuecomment-1993788815 -->
 :::
 

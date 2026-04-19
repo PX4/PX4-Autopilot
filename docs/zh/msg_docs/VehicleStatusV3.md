@@ -2,11 +2,11 @@
 pageClass: is-wide-page
 ---
 
-# VehicleStatus (UORB message)
+# VehicleStatusV3 (UORB message)
 
 Encodes the system state of the vehicle published by commander.
 
-**TOPICS:** vehicle_status
+**TOPICS:** vehicle_status_v3
 
 ## Fields
 
@@ -23,7 +23,6 @@ Encodes the system state of the vehicle published by commander.
 | nav_state                                                                                   | `uint8`  |                                                                  |            | Currently active mode                                                                                                                                                                    |
 | executor_in_charge                                                     | `uint8`  |                                                                  |            | Current mode executor in charge (0=Autopilot)                                                                                                                         |
 | nav_state_display                                                      | `uint8`  |                                                                  |            | User-visible nav state sent via MAVLink (executor state if active, otherwise nav_state)                                                          |
-| accepts_offboard_setpoints                                             | `bool`   |                                                                  |            | True if the current mode accepts offboard trajectory setpoints via MAVLink                                                                                                               |
 | valid_nav_states_mask                             | `uint32` |                                                                  |            | Bitmask for all valid nav_state values                                                                                                                              |
 | can_set_nav_states_mask      | `uint32` |                                                                  |            | Bitmask for all modes that a user can select                                                                                                                                             |
 | hil_state                                                                                   | `uint8`  |                                                                  |            |                                                                                                                                                                                          |
@@ -58,7 +57,7 @@ Encodes the system state of the vehicle published by commander.
 
 | 参数名                                                                                                                                                                         | 类型       | 值  | 描述                                                    |
 | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -- | ----------------------------------------------------- |
-| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                                                                                          | `uint32` | 4  |                                                       |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                                                                                          | `uint32` | 3  |                                                       |
 | <a id="#ARMING_STATE_DISARMED"></a> ARMING_STATE_DISARMED                                                                         | `uint8`  | 1  |                                                       |
 | <a id="#ARMING_STATE_ARMED"></a> ARMING_STATE_ARMED                                                                               | `uint8`  | 2  |                                                       |
 | <a id="#ARM_DISARM_REASON_STICK_GESTURE"></a> ARM_DISARM_REASON_STICK_GESTURE           | `uint8`  | 1  |                                                       |
@@ -115,7 +114,7 @@ Encodes the system state of the vehicle published by commander.
 
 ## Source Message
 
-[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleStatus.msg)
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/px4_msgs_old/msg/VehicleStatusV3.msg)
 
 :::details
 Click here to see original file
@@ -123,7 +122,7 @@ Click here to see original file
 ```c
 # Encodes the system state of the vehicle published by commander
 
-uint32 MESSAGE_VERSION = 4
+uint32 MESSAGE_VERSION = 3
 
 uint64 timestamp # time since system start (microseconds)
 
@@ -187,8 +186,6 @@ uint8 NAVIGATION_STATE_MAX = 31
 
 uint8 executor_in_charge                        # Current mode executor in charge (0=Autopilot)
 uint8 nav_state_display                         # User-visible nav state sent via MAVLink (executor state if active, otherwise nav_state)
-
-bool accepts_offboard_setpoints                 # True if the current mode accepts offboard trajectory setpoints via MAVLink
 
 uint32 valid_nav_states_mask                    # Bitmask for all valid nav_state values
 uint32 can_set_nav_states_mask                  # Bitmask for all modes that a user can select

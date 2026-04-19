@@ -2,11 +2,11 @@
 pageClass: is-wide-page
 ---
 
-# RegisterExtComponentRequest (UORB message)
+# RegisterExtComponentRequestV1 (UORB message)
 
 Request to register an external component.
 
-**TOPICS:** register_ext_component_request
+**TOPICS:** register_ext_component_request_v1
 
 ## Fields
 
@@ -23,19 +23,18 @@ Request to register an external component.
 | replace_internal_mode                             | `uint8`    |                                                                  |            | vehicle_status::NAVIGATION_STATE_\*                                   |
 | activate_mode_immediately                         | `bool`     |                                                                  |            | switch to the registered mode (can only be set in combination with an executor)                         |
 | not_user_selectable                               | `bool`     |                                                                  |            | mode cannot be selected by the user                                                                                        |
-| request_offboard_setpoints                        | `bool`     |                                                                  |            | set to true if the registered mode wants to receive offboard trajectory setpoints via MAVLink                              |
 
 ## Constants
 
 | 参数名                                                                                                                                                       | 类型       | 值 | 描述                                                                                                                                                                                                                     |
 | --------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | - | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                                                                        | `uint32` | 2 |                                                                                                                                                                                                                        |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                                                                        | `uint32` | 1 |                                                                                                                                                                                                                        |
 | <a id="#LATEST_PX4_ROS2_API_VERSION"></a> LATEST_PX4_ROS2_API_VERSION | `uint16` | 1 | API version compatibility. Increase this on a breaking semantic change. Changes to any message field are detected separately and do not require an API version change. |
 | <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH                                                                 | `uint8`  | 2 |                                                                                                                                                                                                                        |
 
 ## Source Message
 
-[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/RegisterExtComponentRequest.msg)
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/px4_msgs_old/msg/RegisterExtComponentRequestV1.msg)
 
 :::details
 Click here to see original file
@@ -43,7 +42,7 @@ Click here to see original file
 ```c
 # Request to register an external component
 
-uint32 MESSAGE_VERSION = 2
+uint32 MESSAGE_VERSION = 1
 
 uint64 timestamp # time since system start (microseconds)
 
@@ -63,7 +62,6 @@ bool enable_replace_internal_mode  # set to true if an internal mode should be r
 uint8 replace_internal_mode        # vehicle_status::NAVIGATION_STATE_*
 bool activate_mode_immediately     # switch to the registered mode (can only be set in combination with an executor)
 bool not_user_selectable           # mode cannot be selected by the user
-bool request_offboard_setpoints    # set to true if the registered mode wants to receive offboard trajectory setpoints via MAVLink
 
 uint8 ORB_QUEUE_LENGTH = 2
 ```
