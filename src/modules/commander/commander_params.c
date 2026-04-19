@@ -574,6 +574,81 @@ PARAM_DEFINE_INT32(COM_FLTMODE5, -1);
 PARAM_DEFINE_INT32(COM_FLTMODE6, -1);
 
 /**
+ * Identify function type
+ *
+ * Select what identify mode should run.
+ *
+ * @group Commander
+ * @value 0 Disabled
+ * @value 1 Motor identify (fixed time step, IDEN_STEP_TIME)
+ * @value 2 Motor identify (AUX2 rising edge: <=0 to >0 adds one step; falling edge holds level)
+ */
+PARAM_DEFINE_INT32(IDEN_TYPE, 0);
+
+/**
+ * Identify motor index
+ *
+ * Target motor index for motor identification.
+ *
+ * @group Commander
+ * @min 1
+ * @max 12
+ */
+PARAM_DEFINE_INT32(IDEN_MOTOR_IDX, 1);
+
+/**
+ * Identify trigger throttle threshold
+ *
+ * Trigger identify after throttle is above this value for IDEN_TRIG_TIME.
+ *
+ * @group Commander
+ * @unit norm
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(IDEN_TRIG_THR, 0.3f);
+
+/**
+ * Identify trigger hold time
+ *
+ * Throttle must stay above IDEN_TRIG_THR for this duration to start identify.
+ *
+ * @group Commander
+ * @unit s
+ * @min 0.1
+ * @max 10.0
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(IDEN_TRIG_TIME, 1.0f);
+
+/**
+ * Identify step hold time
+ *
+ * Duration for each identify thrust step (0.1, 0.15, ... 1.0 in steps of 0.05).
+ *
+ * @group Commander
+ * @unit s
+ * @min 0.1
+ * @max 10.0
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(IDEN_STEP_TIME, 5.0f);
+
+/**
+ * Identify AUX1 threshold
+ *
+ * When RC AUX1 (manual_control_setpoint.aux1, -1..1) is above this value,
+ * motor identify is allowed (with IDEN_TYPE 1 or 2).
+ *
+ * @group Commander
+ * @min -1.0
+ * @max 1.0
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(IDEN_AUX_THR, 0.3f);
+
+/**
  * Maximum EKF position innovation test ratio that will allow arming
  *
  * @group Commander

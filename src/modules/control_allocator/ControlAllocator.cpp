@@ -49,6 +49,19 @@
 using namespace matrix;
 using namespace time_literals;
 
+namespace
+{
+static constexpr float k_iden_u0 = 0.1f;
+static constexpr float k_iden_du = 0.05f;
+static constexpr uint32_t k_iden_n_steps = 19u; // 0.1,0.15,...,1.0
+static constexpr uint32_t k_iden_last_step_idx = 18u; // 0.1 + 18*du = 1.0
+
+static inline bool identify_is_motor_mode(int iden_type)
+{
+	return iden_type == 1 || iden_type == 2;
+}
+} // namespace
+
 ControlAllocator::ControlAllocator() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
@@ -58,6 +71,7 @@ ControlAllocator::ControlAllocator() :
 	_actuator_motors_pub.advertise();
 	_actuator_servos_pub.advertise();
 	_actuator_servos_trim_pub.advertise();
+	_identify_data_pub.advertise();
 
 	for (int i = 0; i < MAX_NUM_MOTORS; ++i) {
 		char buffer[17];
@@ -280,6 +294,21 @@ ControlAllocator::update_effectiveness_source()
 	return false;
 }
 
+bool ControlAllocator::identify_rc_mode_active() const
+{
+	switch (_vehicle_status.nav_state) {
+	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
+	case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
+	case vehicle_status_s::NAVIGATION_STATE_POSCTL:
+	case vehicle_status_s::NAVIGATION_STATE_STAB:
+	case vehicle_status_s::NAVIGATION_STATE_ACRO:
+		return true;
+
+	default:
+		return false;
+	}
+}
+
 void
 ControlAllocator::Run()
 {
@@ -305,44 +334,46 @@ ControlAllocator::Run()
 		parameters_updated();
 	}
 
+	// Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
+	const hrt_abstime now = hrt_absolute_time();
+
+	_vehicle_status_sub.copy(&_vehicle_status);
+	_armed = _vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
+
+	updateIdentifyState(now);
+
 	if (_num_control_allocation == 0 || _actuator_effectiveness == nullptr) {
+		// Still publish Identify_data so listeners / logger see the topic when the module runs
+		publishIdentifyData(_identify_completed_this_boot ? 0.f : NAN);
+		perf_end(_loop_perf);
 		return;
 	}
 
 	{
-		vehicle_status_s vehicle_status;
+		ActuatorEffectiveness::FlightPhase flight_phase{ActuatorEffectiveness::FlightPhase::HOVER_FLIGHT};
 
-		if (_vehicle_status_sub.update(&vehicle_status)) {
+		// Check if the current flight phase is HOVER or FIXED_WING
+		if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+			flight_phase = ActuatorEffectiveness::FlightPhase::HOVER_FLIGHT;
 
-			_armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
+		} else {
+			flight_phase = ActuatorEffectiveness::FlightPhase::FORWARD_FLIGHT;
+		}
 
-			ActuatorEffectiveness::FlightPhase flight_phase{ActuatorEffectiveness::FlightPhase::HOVER_FLIGHT};
-
-			// Check if the current flight phase is HOVER or FIXED_WING
-			if (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-				flight_phase = ActuatorEffectiveness::FlightPhase::HOVER_FLIGHT;
+		// Special cases for VTOL in transition
+		if (_vehicle_status.is_vtol && _vehicle_status.in_transition_mode) {
+			if (_vehicle_status.in_transition_to_fw) {
+				flight_phase = ActuatorEffectiveness::FlightPhase::TRANSITION_HF_TO_FF;
 
 			} else {
-				flight_phase = ActuatorEffectiveness::FlightPhase::FORWARD_FLIGHT;
+				flight_phase = ActuatorEffectiveness::FlightPhase::TRANSITION_FF_TO_HF;
 			}
-
-			// Special cases for VTOL in transition
-			if (vehicle_status.is_vtol && vehicle_status.in_transition_mode) {
-				if (vehicle_status.in_transition_to_fw) {
-					flight_phase = ActuatorEffectiveness::FlightPhase::TRANSITION_HF_TO_FF;
-
-				} else {
-					flight_phase = ActuatorEffectiveness::FlightPhase::TRANSITION_FF_TO_HF;
-				}
-			}
-
-			// Forward to effectiveness source
-			_actuator_effectiveness->setFlightPhase(flight_phase);
 		}
+
+		// Forward to effectiveness source
+		_actuator_effectiveness->setFlightPhase(flight_phase);
 	}
 
-	// Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
-	const hrt_abstime now = hrt_absolute_time();
 	const float dt = math::constrain(((now - _last_run) / 1e6f), 0.0002f, 0.02f);
 
 	bool do_update = false;
@@ -601,6 +632,15 @@ ControlAllocator::publish_actuator_controls()
 	int actuator_idx_matrix[ActuatorEffectiveness::MAX_NUM_MATRICES] {};
 
 	uint32_t stopped_motors = _actuator_effectiveness->getStoppedMotors();
+	const bool identify_mode_selected = identify_rc_mode_active()
+					    && identify_is_motor_mode(_param_iden_type.get()) && _identify_aux_active;
+	const bool identify_force_stop = identify_mode_selected && (_identify_kill_active || !_armed);
+	// 仅当电机序号在有效范围内才覆盖输出，避免非法序号时把所有电机置 0
+	const bool motor_index_ok = (_identify_motor_index >= 0)
+				    && (_identify_motor_index < _num_actuators[(int)ActuatorType::MOTORS]);
+	const bool identify_override_active = _identify_gate_ok && (_identify_state == IdentifyState::Running)
+					      && !_identify_kill_active && motor_index_ok;
+	float identify_selected_motor_cmd = NAN;
 
 	// motors
 	int motors_idx;
@@ -614,6 +654,20 @@ ControlAllocator::publish_actuator_controls()
 			actuator_motors.control[motors_idx] = NAN;
 		}
 
+		if (identify_force_stop) {
+			actuator_motors.control[motors_idx] = 0.f;
+		}
+
+		if (identify_override_active) {
+			if (motors_idx == _identify_motor_index) {
+				actuator_motors.control[motors_idx] = _identify_cmd;
+				identify_selected_motor_cmd = _identify_cmd;
+
+			} else {
+				actuator_motors.control[motors_idx] = 0.f;
+			}
+		}
+
 		++actuator_idx_matrix[selected_matrix];
 		++actuator_idx;
 	}
@@ -622,7 +676,15 @@ ControlAllocator::publish_actuator_controls()
 		actuator_motors.control[i] = NAN;
 	}
 
+	// 阶跃整轮结束后：所有电机输出保持为 0（直到重启）
+	if (_identify_completed_this_boot && identify_is_motor_mode(_param_iden_type.get())) {
+		for (int i = 0; i < motors_idx && i < actuator_motors_s::NUM_CONTROLS; i++) {
+			actuator_motors.control[i] = 0.f;
+		}
+	}
+
 	_actuator_motors_pub.publish(actuator_motors);
+	publishIdentifyData(_identify_completed_this_boot ? 0.f : identify_selected_motor_cmd);
 
 	// servos
 	if (_num_actuators[1] > 0) {
@@ -642,6 +704,159 @@ ControlAllocator::publish_actuator_controls()
 
 		_actuator_servos_pub.publish(actuator_servos);
 	}
+}
+
+void ControlAllocator::updateIdentifyState(const hrt_abstime now)
+{
+	manual_control_setpoint_s manual_control_setpoint{};
+	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
+
+	if (manual_control_setpoint.valid) {
+		_manual_throttle_z = manual_control_setpoint.z;
+	}
+
+	// AUX1: RC 通常为 [-1,1]，大于 0 即视为打开辨识门控
+	_identify_aux_active = manual_control_setpoint.valid && (manual_control_setpoint.aux1 > 0.f);
+
+	actuator_armed_s actuator_armed{};
+	_actuator_armed_sub.copy(&actuator_armed);
+	_identify_kill_active = actuator_armed.manual_lockdown || actuator_armed.lockdown;
+
+	_identify_motor_index = math::max(0, static_cast<int>(_param_iden_motor_idx.get() - 1));
+
+	const int iden_type = _param_iden_type.get();
+
+	const bool identify_mode_active = identify_rc_mode_active()
+					  && _identify_aux_active
+					  && _vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED
+					  && identify_is_motor_mode(iden_type)
+					  && !_identify_kill_active;
+
+	_identify_gate_ok = identify_mode_active;
+
+	// 门控暂时不满足时：只清零指令，不要清 Idle/步进时间，否则下一帧又会 Idle→Running 导致阶跃从头循环
+	if (!identify_mode_active) {
+		_identify_cmd = 0.f;
+		return;
+	}
+
+	// 本轮上电已跑完阶跃，不再进入 Running（需重启飞控才能再测）
+	if (_identify_completed_this_boot) {
+		_identify_cmd = 0.f;
+		return;
+	}
+
+	const hrt_abstime step_time_us = (hrt_abstime)(math::max(_param_iden_step_time.get(), 0.1f) * 1_s);
+
+	switch (_identify_state) {
+	case IdentifyState::Idle:
+		_identify_cmd = 0.f;
+		_identify_trigger_start = 0;
+		_identify_state = IdentifyState::Running;
+		_identify_step_start = now;
+		_identify_cmd = k_iden_u0;
+		_identify_step_idx = 0;
+
+		if (iden_type == 2) {
+			// 避免进入 Running 的同一帧误判 AUX2 上升沿
+			if (manual_control_setpoint.valid) {
+				_identify_aux2_prev = manual_control_setpoint.aux2;
+				_identify_aux2_prev_valid = true;
+
+			} else {
+				_identify_aux2_prev_valid = false;
+			}
+		}
+
+		break;
+
+	case IdentifyState::Running: {
+			if (iden_type == 1) {
+				// 类型 1：按固定时间 IDEN_STEP_TIME 升档
+				if (_identify_step_start == 0) {
+					_identify_step_start = now;
+				}
+
+				const uint32_t step_index = (uint32_t)((now - _identify_step_start) / step_time_us);
+
+				if (step_index < k_iden_n_steps) {
+					_identify_cmd = k_iden_u0 + (float)step_index * k_iden_du;
+
+				} else {
+					_identify_completed_this_boot = true;
+					_identify_state = IdentifyState::Idle;
+					_identify_step_start = 0;
+					_identify_trigger_start = 0;
+					_identify_cmd = 0.f;
+				}
+
+			} else if (iden_type == 2) {
+				// 类型 2：AUX2 从 <=0 到 >0 上升沿升一档 +0.05；从 >0 到 <=0 不降档、不升档
+				if (manual_control_setpoint.valid) {
+					const float aux2 = manual_control_setpoint.aux2;
+
+					if (_identify_aux2_prev_valid) {
+						const bool rising_edge = (_identify_aux2_prev <= 0.f) && (aux2 > 0.f);
+
+						if (rising_edge && (_identify_step_idx < k_iden_last_step_idx)) {
+							_identify_step_idx++;
+						}
+					}
+
+					_identify_aux2_prev = aux2;
+					_identify_aux2_prev_valid = true;
+				}
+
+				_identify_cmd = k_iden_u0 + (float)_identify_step_idx * k_iden_du;
+
+				if (_identify_step_idx == k_iden_last_step_idx) {
+					_identify_completed_this_boot = true;
+					_identify_state = IdentifyState::Idle;
+					_identify_step_start = 0;
+					_identify_trigger_start = 0;
+					_identify_cmd = 0.f;
+				}
+			}
+		}
+		break;
+	}
+}
+
+void ControlAllocator::publishIdentifyData(float selected_motor_cmd)
+{
+	identify_data_s identify_data{};
+	identify_data.timestamp = hrt_absolute_time();
+	identify_data.motor_idx = _param_iden_motor_idx.get();
+
+	const bool running = _identify_gate_ok && (_identify_state == IdentifyState::Running) && !_identify_kill_active;
+	identify_data.identify_active = running;
+
+	const bool manual_identify_ctx = identify_rc_mode_active()
+					 && identify_is_motor_mode(_param_iden_type.get()) && _identify_aux_active
+					 && (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+
+	if (_identify_completed_this_boot && identify_is_motor_mode(_param_iden_type.get())) {
+		identify_data.cmd_norm = 0.f;
+
+	} else if (running && PX4_ISFINITE(selected_motor_cmd)) {
+		identify_data.cmd_norm = selected_motor_cmd;
+
+	} else if (manual_identify_ctx) {
+		identify_data.cmd_norm = _manual_throttle_z;
+
+	} else {
+		identify_data.cmd_norm = 0.f;
+	}
+
+	actuator_outputs_s actuator_outputs{};
+	if (_actuator_outputs_sub.update(&actuator_outputs)) {
+		if (_identify_motor_index >= 0 && _identify_motor_index < (int)actuator_outputs.noutputs) {
+			_identify_pwm_out = actuator_outputs.output[_identify_motor_index];
+		}
+	}
+
+	identify_data.pwm_out = _identify_pwm_out;
+	_identify_data_pub.publish(identify_data);
 }
 
 int ControlAllocator::task_spawn(int argc, char *argv[])

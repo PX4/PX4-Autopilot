@@ -639,8 +639,8 @@ static inline navigation_mode_t navigation_mode(uint8_t main_state)
 	case commander_state_s::MAIN_STATE_AUTO_VTOL_TAKEOFF: return navigation_mode_t::auto_vtol_takeoff;
 	}
 
-	static_assert(commander_state_s::MAIN_STATE_MAX - 1 == (int)navigation_mode_t::auto_vtol_takeoff,
-		      "enum definition mismatch");
+	static_assert(commander_state_s::MAIN_STATE_AUTO_VTOL_TAKEOFF == (int)navigation_mode_t::auto_vtol_takeoff,
+		      "AUTO_VTOL_TAKEOFF enum definition mismatch");
 
 	return navigation_mode_t::unknown;
 }

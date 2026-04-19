@@ -66,9 +66,13 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_motors.h>
+#include <uORB/topics/actuator_outputs.h>
+#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_servos.h>
 #include <uORB/topics/actuator_servos_trim.h>
 #include <uORB/topics/control_allocator_status.h>
+#include <uORB/topics/identify_data.h>
+#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_torque_setpoint.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
@@ -130,6 +134,11 @@ private:
 	void publish_control_allocator_status();
 
 	void publish_actuator_controls();
+	void updateIdentifyState(const hrt_abstime now);
+	void publishIdentifyData(float selected_motor_cmd);
+
+	/** RC 手飞类模式（多数用户用自稳/定高而非纯 Manual），用于辨识门控 */
+	bool identify_rc_mode_active() const;
 
 	AllocationMethod _allocation_method_id{AllocationMethod::NONE};
 	ControlAllocation *_control_allocation[ActuatorEffectiveness::MAX_NUM_MATRICES] {}; 	///< class for control allocation calculations
@@ -169,13 +178,18 @@ private:
 	uORB::Publication<actuator_motors_s>	_actuator_motors_pub{ORB_ID(actuator_motors)};
 	uORB::Publication<actuator_servos_s>	_actuator_servos_pub{ORB_ID(actuator_servos)};
 	uORB::Publication<actuator_servos_trim_s>	_actuator_servos_trim_pub{ORB_ID(actuator_servos_trim)};
+	uORB::Publication<identify_data_s> _identify_data_pub{ORB_ID(Identify_data)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
+	uORB::Subscription _actuator_outputs_sub{ORB_ID(actuator_outputs)};
+	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
 
 	matrix::Vector3f _torque_sp;
 	matrix::Vector3f _thrust_sp;
+	vehicle_status_s _vehicle_status{};
 
 	perf_counter_t	_loop_perf;			/**< loop duration performance counter */
 
@@ -183,6 +197,30 @@ private:
 	hrt_abstime _last_run{0};
 	hrt_abstime _timestamp_sample{0};
 	hrt_abstime _last_status_pub{0};
+	hrt_abstime _identify_trigger_start{0};
+	hrt_abstime _identify_step_start{0};
+
+	enum class IdentifyState : uint8_t {
+		Idle = 0,
+		Running
+	};
+
+	IdentifyState _identify_state{IdentifyState::Idle};
+	/** 本机上电后已完成一轮阶跃，复位需断电重启 */
+	bool _identify_completed_this_boot{false};
+	/** 与 identify_mode_active 一致：门控满足时才允许单电机覆盖（避免状态机在 RC 抖动时被清成 Idle 又重启） */
+	bool _identify_gate_ok{false};
+	float _identify_cmd{0.f};
+	bool _identify_kill_active{false};
+	bool _identify_aux_active{false};
+	float _manual_throttle_z{0.f};
+	int _identify_motor_index{0}; // zero-based
+	float _identify_pwm_out{NAN};
+
+	/** IDEN_TYPE==2：AUX2 边沿检测 */
+	float _identify_aux2_prev{NAN};
+	bool _identify_aux2_prev_valid{false};
+	uint32_t _identify_step_idx{0};
 
 	ParamHandles _param_handles{};
 	Params _params{};
@@ -191,7 +229,13 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::CA_AIRFRAME>) _param_ca_airframe,
 		(ParamInt<px4::params::CA_METHOD>) _param_ca_method,
-		(ParamInt<px4::params::CA_R_REV>) _param_r_rev
+		(ParamInt<px4::params::CA_R_REV>) _param_r_rev,
+		(ParamInt<px4::params::IDEN_TYPE>) _param_iden_type,
+		(ParamInt<px4::params::IDEN_MOTOR_IDX>) _param_iden_motor_idx,
+		(ParamFloat<px4::params::IDEN_TRIG_THR>) _param_iden_trig_thr,
+		(ParamFloat<px4::params::IDEN_TRIG_TIME>) _param_iden_trig_time,
+		(ParamFloat<px4::params::IDEN_STEP_TIME>) _param_iden_step_time,
+		(ParamFloat<px4::params::IDEN_AUX_THR>) _param_iden_aux_thr
 	)
 
 };

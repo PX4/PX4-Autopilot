@@ -84,7 +84,8 @@ const char *const nav_state_names[vehicle_status_s::NAVIGATION_STATE_MAX] = {
 	"AUTO_LAND",
 	"AUTO_FOLLOW_TARGET",
 	"AUTO_PRECLAND",
-	"ORBIT"
+	"ORBIT",
+	"AUTO_VTOL_TAKEOFF"
 };
 
 void set_link_loss_nav_state(vehicle_status_s &status, actuator_armed_s &armed,
