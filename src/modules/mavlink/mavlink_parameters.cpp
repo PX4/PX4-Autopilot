@@ -47,10 +47,104 @@
 #include "mavlink_main.h"
 #include <lib/systemlib/mavlink_log.h>
 
+// Static member definitions
+pthread_once_t MavlinkParametersManager::_whitelist_once = PTHREAD_ONCE_INIT;
+param_t MavlinkParametersManager::_whitelist_ids[MavlinkParametersManager::WHITELIST_MAX_SIZE] = {};
+size_t MavlinkParametersManager::_whitelist_count = 0;
+
+void MavlinkParametersManager::init_whitelist()
+{
+	static const char *const whitelist_names[] = {
+		"BAT_CRIT_THR",
+		"BAT_EMERGEN_THR",
+		"BAT_LOW_THR",
+		"CA_SV_CS0_TRIM",
+		"CA_SV_CS1_TRIM",
+		"CA_SV_CS2_TRIM",
+		"CA_SV_CS3_TRIM",
+		"CA_SV_CS4_TRIM",
+		"CA_SV_CS5_TRIM",
+		"CA_SV_CS6_TRIM",
+		"CA_SV_CS7_TRIM",
+		"COM_ARM_WO_GPS",
+		"COM_DLL_EXCEPT",
+		"COM_DLL_NAV_CTL",
+		"COM_LOW_BAT_ACT",
+		"COM_RC_IN_MODE",
+		"COM_RC_LOSS_T",
+		"COM_RC_OVERRIDE",
+		"COM_RCL_EXCEPT",
+		"COM_WIND_MAX_ACT",
+		"EKF2_AGP0_CTRL",
+		"EKF2_AGP1_CTRL",
+		"EKF2_AGP_CTRL",
+		"EKF2_GPS_CTRL",
+		"GF_ACTION",
+		"GF_MAX_HOR_DIST",
+		"GF_MAX_VER_DIST",
+		"MAV_SYS_ID",
+		"NAV_DLL_ACT",
+		"NAV_RCL_ACT",
+		"RTL_DESCEND_ALT",
+		"RTL_LAND_DELAY",
+		"RTL_RETURN_ALT",
+	};
+
+	_whitelist_count = 0;
+
+	for (const char *name : whitelist_names) {
+		param_t id = param_find_no_notification(name);
+
+		if (id != PARAM_INVALID && _whitelist_count < WHITELIST_MAX_SIZE) {
+			_whitelist_ids[_whitelist_count++] = id;
+		}
+	}
+
+	// Resolve PWM pattern parameters: {PWM_MAIN,PWM_AUX,PCA9685}_{MIN,MAX,DIS,CENT}{1..16}
+	// 3x4x16=192 parameters
+	static const char *const pwm_prefixes[] = {"PWM_MAIN", "PWM_AUX", "PCA9685"};
+	static const char *const pwm_suffixes[] = {"MIN", "MAX", "DIS", "CENT"};
+
+	for (const char *prefix : pwm_prefixes) {
+		for (const char *suffix : pwm_suffixes) {
+			for (int i = 1; i <= 16; i++) {
+				char buf[16];
+				snprintf(buf, sizeof(buf), "%s_%s%d", prefix, suffix, i);
+				param_t id = param_find_no_notification(buf);
+
+				if (id != PARAM_INVALID && _whitelist_count < WHITELIST_MAX_SIZE) {
+					_whitelist_ids[_whitelist_count++] = id;
+				}
+			}
+		}
+	}
+
+	if (_whitelist_count >= WHITELIST_MAX_SIZE) {
+		PX4_ERR("MAVLink parameter whitelist overflow, increase WHITELIST_MAX_SIZE");
+	}
+
+	// Sort for binary search
+	qsort(_whitelist_ids, _whitelist_count, sizeof(param_t), [](const void *a, const void *b) {
+		return static_cast<int>(*static_cast<const param_t *>(a)) - static_cast<int>(*static_cast<const param_t *>(b));
+	});
+}
+
+bool MavlinkParametersManager::is_whitelisted(param_t param)
+{
+	if (param == PARAM_INVALID) {
+		return false;
+	}
+
+	return bsearch(&param, _whitelist_ids, _whitelist_count, sizeof(param_t), [](const void *a, const void *b) {
+		return static_cast<int>(*static_cast<const param_t *>(a)) - static_cast<int>(*static_cast<const param_t *>(b));
+	}) != nullptr;
+}
+
 MavlinkParametersManager::MavlinkParametersManager(Mavlink &mavlink) :
 	_mavlink(mavlink)
 {
-	param_find("MAV_PARAM_LOCK"); // Make sure the parameter is touched and adevrtised to the ground station
+	param_find("MAV_PARAM_LOCK"); // Make sure the parameter is touched and advertised to the ground station
+	pthread_once(&_whitelist_once, init_whitelist);
 }
 
 unsigned
@@ -125,6 +219,9 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 					return;
 				}
 
+				/* attempt to find parameter and check whitelist by ID */
+				param_t param = param_find_no_notification(name);
+
 				// Lock parameter access by configuration
 				int32_t param_mav_param_lock = 0;
 				param_get(param_find("MAV_PARAM_LOCK"), &param_mav_param_lock);
@@ -133,19 +230,9 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				enable_parameter_lock |= param_mav_param_lock == 0;
 #endif /* PX4_RESTRICTED_BUILD */
 
-				if (enable_parameter_lock) {
-					// only allow setting the following params
-					if (strcmp(name, "RTL_RETURN_ALT") != 0 &&
-					    strcmp(name, "GF_ACTION") != 0 &&
-					    strcmp(name, "GF_MAX_HOR_DIST") != 0 &&
-					    strcmp(name, "GF_MAX_VER_DIST") != 0 &&
-					    strcmp(name, "MAV_SYS_ID") != 0) {
-						return;
-					}
+				if (enable_parameter_lock && !is_whitelisted(param)) {
+					return;
 				}
-
-				/* attempt to find parameter, set and send it */
-				param_t param = param_find_no_notification(name);
 
 				if (param == PARAM_INVALID) {
 					PX4_ERR("unknown param: %s", name);

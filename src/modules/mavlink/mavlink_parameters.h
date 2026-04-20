@@ -42,6 +42,7 @@
 
 #pragma once
 
+#include <pthread.h>
 #include <parameters/param.h>
 
 #include "mavlink_bridge_header.h"
@@ -94,6 +95,15 @@ private:
 	/* do not allow top copying this class */
 	MavlinkParametersManager(MavlinkParametersManager &);
 	MavlinkParametersManager &operator = (const MavlinkParametersManager &);
+
+	// making them static to run computation only once for all instances of MavlinkParametersManager, as the whitelist is the same for all instances
+	static constexpr size_t WHITELIST_MAX_SIZE = 250; // increase if more parameters need to be whitelisted
+	static pthread_once_t _whitelist_once;
+	static param_t _whitelist_ids[WHITELIST_MAX_SIZE];
+	static size_t _whitelist_count;
+
+	static void init_whitelist();
+	static bool is_whitelisted(param_t param);
 
 protected:
 	/// send a single param if a PARAM_REQUEST_LIST is in progress
