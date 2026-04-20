@@ -877,12 +877,26 @@ void SbgEcom::send_config_file(SbgEComHandle *pHandle, const char *file_path)
 		return;
 	}
 
-	ssize_t ret = read(fd, body, s.st_size);
+	ssize_t total_read = 0;
 
-	if (ret < 0) {
-		PX4_ERR("Read failed: %s", strerror(errno));
-		close(fd);
-		return;
+	while (total_read < s.st_size) {
+		const ssize_t ret = read(fd, body + total_read, s.st_size - total_read);
+
+		if (ret < 0) {
+			PX4_ERR("Read failed: %s", strerror(errno));
+			free(body);
+			close(fd);
+			return;
+		}
+
+		if (ret == 0) {
+			PX4_ERR("Read failed: unexpected end of file");
+			free(body);
+			close(fd);
+			return;
+		}
+
+		total_read += ret;
 	}
 
 	body[s.st_size] = '\0';
