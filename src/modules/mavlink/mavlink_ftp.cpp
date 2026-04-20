@@ -48,6 +48,8 @@
 using namespace time_literals;
 
 constexpr const char MavlinkFTP::_root_dir[];
+constexpr const char MavlinkFTP::_mav_log_prefix[];
+constexpr const char MavlinkFTP::_mav_log_dir[];
 
 MavlinkFTP::MavlinkFTP(Mavlink &mavlink) :
 	_mavlink(mavlink)
@@ -310,6 +312,24 @@ MavlinkFTP::_reply(mavlink_file_transfer_protocol_t *ftp_req)
 }
 void MavlinkFTP::_constructPath(char *dst, int dst_len, const char *path) const
 {
+	// MAVLink FTP virtual directory: paths starting with "@MAV_LOG" (optionally prefixed with '/')
+	// are remapped to the flight-stack log root directory.
+	const char *p = path;
+
+	if (p[0] == '/') {
+		p++;
+	}
+
+	if (strncmp(p, _mav_log_prefix, _mav_log_prefix_len) == 0
+	    && (p[_mav_log_prefix_len] == '\0' || p[_mav_log_prefix_len] == '/')) {
+		strncpy(dst, _mav_log_dir, dst_len);
+		dst[dst_len - 1] = '\0';
+		int used = strlen(dst);
+		strncpy(dst + used, p + _mav_log_prefix_len, dst_len - used);
+		dst[dst_len - 1] = '\0';
+		return;
+	}
+
 	strncpy(dst, _root_dir, dst_len);
 	int root_dir_len = _root_dir_len;
 
