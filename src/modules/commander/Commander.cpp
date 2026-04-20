@@ -259,7 +259,7 @@ int Commander::custom_command(int argc, char *argv[])
 							return 1;
 						}
 
-						heading_deg = roundf(heading_deg);
+						heading_deg = matrix::wrap(roundf(heading_deg), 0.f, 360.f);
 					}
 
 					// Send command with heading (param1), other params zeroed (use GPS)
