@@ -54,6 +54,7 @@
 
 #ifdef __APPLE__
 #include <mach-o/dyld.h>
+#include <crt_externs.h>
 #endif
 
 #ifndef PATH_MAX
@@ -90,6 +91,12 @@ extern "C" int boardctl(unsigned int cmd, uintptr_t arg)
 
 		if (len == -1) {
 			PX4_ERR("readlink /proc/self/exe failed: %s", strerror(errno));
+			system_exit(1);
+			return -1;
+		}
+
+		if (len == static_cast<ssize_t>(sizeof(exe_path) - 1)) {
+			PX4_ERR("readlink /proc/self/exe returned a truncated executable path");
 			system_exit(1);
 			return -1;
 		}
@@ -147,8 +154,6 @@ extern "C" int boardctl(unsigned int cmd, uintptr_t arg)
 		argv[argc] = nullptr;
 
 #elif defined(__APPLE__)
-		extern int *_NSGetArgc(void);
-		extern char ***_NSGetArgv(void);
 		char **argv = *_NSGetArgv();
 #endif
 
@@ -159,7 +164,13 @@ extern "C" int boardctl(unsigned int cmd, uintptr_t arg)
 		// Close all file descriptors except stdin/stdout/stderr before exec.
 		// Without this, sockets (MAVLink UDP ports, etc.) survive across execv
 		// and the new process fails to bind them ("Address already in use").
-		for (int i = 3; i < 1024; i++) {
+		long max_fd = sysconf(_SC_OPEN_MAX);
+
+		if (max_fd < 0) {
+			max_fd = 1024;
+		}
+
+		for (int i = 3; i < max_fd; i++) {
 			close(i);
 		}
 
