@@ -264,10 +264,10 @@ int Commander::custom_command(int argc, char *argv[])
 
 					// Send command with heading (param1), other params zeroed (use GPS)
 					send_vehicle_command(vehicle_command_s::VEHICLE_CMD_FIXED_MAG_CAL_YAW,
-							     heading_deg,  // param1: heading in degrees
-							     0.0f,         // param2: unused
-							     0.0f,         // param3: latitude (0 triggers GPS)
-							     0.0f,         // param4: longitude (0 triggers GPS)
+							     heading_deg,  // param1: Yaw of vehicle in earth frame (deg)
+							     0.0f,         // param2: CompassMask, 0 for all
+							     0.0f,         // param3: latitude (deg) If Latitude and longitude are both zero then use the current vehicle location
+							     0.0f,         // param4: longitude (deg)
 							     0.0,          // param5: unused
 							     0.0,          // param6: unused
 							     0.0f);        // param7: unused
