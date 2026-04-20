@@ -50,10 +50,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
-
-#ifdef __linux__
-#include <linux/limits.h>
-#endif
+#include <limits.h>
 
 #ifdef __APPLE__
 #include <mach-o/dyld.h>
@@ -82,7 +79,7 @@ int board_power_off(int status)
 
 #include <sys/boardctl.h>
 
-int boardctl(unsigned int cmd, uintptr_t arg)
+extern "C" int boardctl(unsigned int cmd, uintptr_t arg)
 {
 	if (cmd == BOARDIOC_RESET) {
 
