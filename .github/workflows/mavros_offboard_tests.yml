@@ -26,10 +26,10 @@ jobs:
       fail-fast: false
 
     steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-        token: ${{ secrets.AUTERION_CI_ACCESS_TOKEN }}
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.AUTERION_CI_ACCESS_TOKEN }}
 
       - name: Build SITL and Run Tests (inside old ROS container)
         run: |
