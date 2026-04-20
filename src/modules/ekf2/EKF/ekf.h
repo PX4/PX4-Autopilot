@@ -426,11 +426,13 @@ public:
 
 	void resetHeadingToExternalObservation(float heading, float heading_accuracy)
 	{
+		const float heading_variance = sq(heading_accuracy);
+
 		if (_control_status.flags.yaw_align) {
-			resetYawByFusion(heading, heading_accuracy);
+			resetYawByFusion(heading, heading_variance);
 
 		} else {
-			resetQuatStateYaw(heading, heading_accuracy);
+			resetQuatStateYaw(heading, heading_variance);
 			_control_status.flags.yaw_align = true;
 		}
 
