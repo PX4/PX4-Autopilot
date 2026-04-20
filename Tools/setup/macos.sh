@@ -40,37 +40,60 @@ then
 	/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
 fi
 
-# Install px4-dev formula
+# Required taps. Homebrew 4.5+ no longer auto-resolves cross-tap
+# dependencies, so every tap that a package lives in must be added
+# explicitly here before `brew install`.
+#
+# - osx-cross/arm: arm-gcc-bin@13 (ARM cross-compiler)
+# - PX4/px4:       fastdds, genromfs, kconfig-frontends (PX4-specific)
+brew tap osx-cross/arm
+brew tap PX4/px4
+
+# Package list. This replaces the px4-dev meta-formula, which is kept
+# as a deprecated no-op upstream. See PX4/homebrew-px4 for history.
+PX4_BREW_PACKAGES=(
+	ant
+	astyle
+	bash-completion
+	ccache
+	cmake
+	fastdds
+	genromfs
+	kconfig-frontends
+	ncurses
+	ninja
+	osx-cross/arm/arm-gcc-bin@13
+	python
+	python-tk
+)
+
 if [[ $REINSTALL_FORMULAS == "--reinstall" ]]; then
-	echo "[macos.sh] Re-installing dependencies (homebrew px4-dev)"
-
-	# confirm Homebrew installed correctly
+	echo "[macos.sh] Re-installing PX4 toolchain dependencies"
 	brew doctor
-
-	brew tap osx-cross/arm
-	brew tap PX4/px4
-
-	brew reinstall px4-dev
-	brew link --overwrite --force arm-gcc-bin@13
+	brew reinstall "${PX4_BREW_PACKAGES[@]}"
 else
-	if brew ls --versions px4-dev > /dev/null; then
-		echo "[macos.sh] px4-dev already installed"
-	else
-		echo "[macos.sh] Installing general dependencies (homebrew px4-dev)"
-
-		brew tap osx-cross/arm
-		brew tap PX4/px4
-
-		brew install px4-dev
-		brew link --overwrite --force arm-gcc-bin@13
-	fi
+	echo "[macos.sh] Installing PX4 toolchain dependencies"
+	brew install "${PX4_BREW_PACKAGES[@]}"
 fi
+
+brew link --overwrite --force arm-gcc-bin@13
 
 # Python dependencies
 echo "[macos.sh] Installing Python3 dependencies"
+
+# Resolve to git repo root based on script location (handles submodules and subdirectory invocation)
+ROOT_DIR="$(git -C "$DIR" rev-parse --show-toplevel 2>/dev/null || echo "$DIR")"
+VENV_DIR="$ROOT_DIR/.venv"
+
+# Create virtual environment if it doesn't exist
+if [ ! -d "$VENV_DIR" ]; then
+	echo "[macos.sh] Creating Python virtual environment at $VENV_DIR"
+	python3 -m venv "$VENV_DIR"
+fi
+
 # We need to have future to install pymavlink later.
-python3 -m pip install future
-python3 -m pip install --user -r ${DIR}/requirements.txt
+"$VENV_DIR/bin/pip" install future
+"$VENV_DIR/bin/pip" install -r "${DIR}/requirements.txt"
 
 # Optional, but recommended additional simulation tools:
 if [[ $INSTALL_SIM == "--sim-tools" ]]; then
@@ -88,4 +111,12 @@ if [[ $INSTALL_SIM == "--sim-tools" ]]; then
 	fi
 fi
 
+echo ""
 echo "[macos.sh] All set! The PX4 Autopilot toolchain was installed."
+echo ""
+echo "Python dependencies were installed into a virtual environment at:"
+echo "    $VENV_DIR"
+echo ""
+echo "Activate it before building (run in each new terminal session):"
+echo "    source $VENV_DIR/bin/activate"
+echo ""
