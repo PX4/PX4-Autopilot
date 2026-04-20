@@ -41,7 +41,9 @@
 
 void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 {
-	if (!_gps_buffer || (_params.ekf2_gps_ctrl == 0)) {
+	_fc.gps.available = (_params.ekf2_gps_ctrl != 0);
+
+	if (!_gps_buffer || !_fc.gps.intended()) {
 		stopGnssFusion();
 		return;
 	}
@@ -304,7 +306,7 @@ bool Ekf::isGnssPosResetAllowed() const
 void Ekf::updateGnssVel(const imuSample &imu_sample, const gnssSample &gnss_sample, estimator_aid_source3d_s &aid_src)
 {
 	// correct velocity for offset relative to IMU
-	const Vector3f pos_offset_body = _params.gps_pos_body - _params.imu_pos_body;
+	const Vector3f pos_offset_body = gnss_sample.pos_body - _params.imu_pos_body;
 
 	const Vector3f angular_velocity = imu_sample.delta_ang / imu_sample.delta_ang_dt - _state.gyro_bias;
 	const Vector3f vel_offset_body = angular_velocity % pos_offset_body;
@@ -342,7 +344,7 @@ void Ekf::updateGnssVel(const imuSample &imu_sample, const gnssSample &gnss_samp
 void Ekf::updateGnssPos(const gnssSample &gnss_sample, estimator_aid_source2d_s &aid_src)
 {
 	// correct position and height for offset relative to IMU
-	const Vector3f pos_offset_body = _params.gps_pos_body - _params.imu_pos_body;
+	const Vector3f pos_offset_body = gnss_sample.pos_body - _params.imu_pos_body;
 	const Vector3f pos_offset_earth = Vector3f(_R_to_earth * pos_offset_body);
 	const LatLonAlt measurement(gnss_sample.lat, gnss_sample.lon, gnss_sample.alt);
 	const LatLonAlt measurement_corrected = measurement + (-pos_offset_earth);
@@ -376,13 +378,14 @@ void Ekf::controlGnssYawEstimator(estimator_aid_source3d_s &aid_src_vel)
 {
 	// update yaw estimator velocity (basic sanity check on GNSS velocity data)
 	const float vel_var = aid_src_vel.observation_variance[0];
+	const float vel_accuracy = sqrtf(vel_var);
 	const Vector2f vel_xy(aid_src_vel.observation);
 
 	if ((vel_var > 0.f)
-	    && (vel_var < _params.ekf2_req_sacc)
+	    && (vel_accuracy < _params.ekf2_req_sacc)
 	    && vel_xy.isAllFinite()) {
 
-		_yawEstimator.fuseVelocity(vel_xy, vel_var, _control_status.flags.in_air);
+		_yawEstimator.fuseVelocity(vel_xy, vel_accuracy, _control_status.flags.in_air);
 
 		// Try to align yaw using estimate if available
 		if (((_params.ekf2_gps_ctrl & static_cast<int32_t>(GnssCtrl::VEL))

@@ -1,0 +1,26 @@
+module_name: battery_simulator
+parameters:
+- group: SITL
+  definitions:
+    SIM_BAT_DRAIN:
+      description:
+        short: Simulated battery full-discharge time
+        long: |-
+          Time in seconds for the simulated battery to drain from 100% to 0% while armed. Set to 0 to disable the battery simulator entirely (useful when battery state is provided externally, e.g. via MAVLink).
+      type: float
+      default: 60
+      min: 0
+      increment: 1
+      unit: s
+    SIM_BAT_MIN_PCT:
+      description:
+        short: Simulator Battery minimal percentage
+        long: |-
+          Can be used to alter the battery level during SITL- or HITL-simulation on the fly.
+          Particularly useful for testing different low-battery behaviour.
+      type: float
+      default: 50.0
+      min: 0
+      max: 100
+      increment: 0.1
+      unit: '%'

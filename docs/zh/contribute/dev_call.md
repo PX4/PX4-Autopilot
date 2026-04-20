@@ -15,8 +15,8 @@ The PX4 dev team and community come together to discuss any topic of interest to
 
 ## Who should attend?
 
-- 核心项目维护者
-- 组件维护者
+- Code Owners
+- Reviewers
 - 测试团队负责人
 - 无人机编码成员
 - Community members (you!)

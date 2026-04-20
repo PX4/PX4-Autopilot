@@ -51,10 +51,10 @@ For example, you might wire it up like this example (orientation as if "sitting 
 | MAIN 3 | 전방 좌측 모터(시계 방향)  |
 | MAIN 4 | 후방 우측 모터(시계 방향)  |
 | AUX 1  | 좌측 보조익 TODO                         |
-| AUX 2  | 우측 보조익                              |
-| AUX 3  | 승강타                                 |
-| AUX 4  | 방향타                                 |
-| AUX 5  | 스로틀                                 |
+| AUX 2  | Right aileron                       |
+| AUX 3  | Elevator                            |
+| AUX 4  | Rudder                              |
+| AUX 5  | Throttle                            |
 
 For further instructions on wiring and configurations please see:
 [Standard VTOL Wiring and Configuration](../config_vtol/vtol_quad_configuration.md). <!-- replace with Pixhawk Wiring Quickstart -->
@@ -69,7 +69,7 @@ For further instructions on wiring and configurations please see:
 
 3. The default parameters are often sufficient for stable flight. For more detailed tuning information see [Standard VTOL Wiring and Configuration](../config_vtol/vtol_quad_configuration.md).
 
-보정을 마치면 VTOL이 비행할 준비가 됩니다.
+After you finish calibration the VTOL is ready to fly.
 
 ## 비디오
 

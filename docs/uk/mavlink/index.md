@@ -9,9 +9,15 @@ It also links instructions for how you can add PX4 support for:
 
 - [Adding Standard Messages](../mavlink/adding_messages.md)
 - [Streaming MAVLink messages](../mavlink/streaming_messages.md)
+- [Configuring/Using MAVLink Profiles](../mavlink/mavlink_profiles.md)
 - [Handling incoming MAVLink messages (and writing to a uORB topic)](../mavlink/receiving_messages.md)
 - [Custom MAVLink Messages](../mavlink/custom_messages.md)
+- [Message Signing](../mavlink/message_signing.md)
 - [Protocols/Microservices](../mavlink/protocols.md)
+
+:::warning
+MAVLink messages are unauthenticated by default. Without [message signing](../mavlink/message_signing.md) enabled, any device that can send MAVLink messages to the vehicle can execute commands including shell access, file operations, and flight termination. Production deployments must enable signing and follow the [Security Hardening](../mavlink/security_hardening.md) guide.
+:::
 
 :::info
 We do not yet cover _command_ handling and sending, or how to implement your own microservices.

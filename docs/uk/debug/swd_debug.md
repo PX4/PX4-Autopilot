@@ -5,7 +5,7 @@ PX4 runs on ARM Cortex-M microcontrollers, which contain dedicated hardware for 
 Інтерфейс відладки SWD дозволяє прямий, низькорівневий, апаратний доступ до процесора мікроконтролера та периферійних пристроїв, тому він не залежить від будь-якого програмного забезпечення на пристрої.
 Отже, його можна використовувати для налагодження завантажувальних програм та операційних систем, таких як NuttX.
 
-## Налагодження сигналів
+## Debug Signals {#debug-signals}
 
 Чотири сигнали необхідні для відлагодження (в жирному шрифті), а решту лише рекомендується.
 
@@ -29,7 +29,7 @@ SWO-пін може випромінювати дані профілювання
 
 ## Autopilot Debug Ports {#debug-ports}
 
-Flight controllers commonly provide a single debug port that exposes both the [SWD Interface](#debug-signals) and [System Console](system_console).
+Flight controllers commonly provide a single debug port that exposes both the [SWD Interface](#debug-signals) and [System Console](system_console.md).
 
 The [Pixhawk Connector Standards](#pixhawk-standard-debug-ports) formalize the port that must be used in each FMU version.
 However there are still many boards that use different pinouts or connectors, so we recommend you check the [documentation for your autopilot](../flight_controller/index.md) to confirm port location and pinout.
@@ -91,7 +91,7 @@ There FMU and Pixhawk versions are (only) consistent after FMUv5X.
 
 ### Pixhawk Debug Mini
 
-The [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf) defines the _Pixhawk Debug Mini_, a _6-Pin SH Debug Port_ that provides access to both SWD pins and the [System Console](system_console).
+The [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf) defines the _Pixhawk Debug Mini_, a _6-Pin SH Debug Port_ that provides access to both SWD pins and the [System Console](system_console.md).
 
 Це використовується в FMUv4 та FMUv5.
 
@@ -122,7 +122,7 @@ You can connect to the debug port using a [cable like this one](https://www.digi
 
 ### Порти відладки Pixhawk Full
 
-The [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf) defines _Pixhawk Debug Full_, a _10-Pin SH Debug Port_ that provides access to both SWD pins and the [System Console](system_console).
+The [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf) defines _Pixhawk Debug Full_, a _10-Pin SH Debug Port_ that provides access to both SWD pins and the [System Console](system_console.md).
 This essentially moves the solder pads from beside the [Pixhawk Debug Mini](#pixhawk-debug-mini) into the connector, and also adds an SWO pin.
 
 Цей порт вказаний для використання в FMUv5x, FMUv6, FMUv6x.
@@ -154,14 +154,14 @@ You can connect to the debug port using a [cable like this one](https://www.digi
 
 ## Debug Probes for PX4 Hardware {#debug-probes}
 
-Flight controllers commonly provide a [single debug port](#autopilot-debug-ports) that exposes both the [SWD Interface](#debug-signals) and [System Console](system_console).
+Flight controllers commonly provide a [single debug port](#autopilot-debug-ports) that exposes both the [SWD Interface](#debug-signals) and [System Console](system_console.md).
 
 Є кілька зондів відлагодження, які були перевірені та підтримуються для підключення до одного або обох цих інтерфейсів:
 
 - [SEGGER J-Link](../debug/probe_jlink.md): commercial probe, no built-in serial console, requires adapter.
 - [Black Magic Probe](../debug/probe_bmp.md): integrated GDB server and serial console, requires adapter.
-- [STLink](../debug/probe_stlink): best value, integrated serial console, adapter must be soldered.
-- [MCU-Link](../debug/probe_mculink): best value, integrated serial console, requires adapter.
+- [STLink](../debug/probe_stlink.md): best value, integrated serial console, adapter must be soldered.
+- [MCU-Link](../debug/probe_mculink.md): best value, integrated serial console, requires adapter.
 
 Адаптер для підключення до роз'єму відладки може поставлятися разом із вашим контролером польоту або відлагоджувальним зондом.
 Інші варіанти наведено нижче.
@@ -199,7 +199,7 @@ Some SWD [debug probes](#debug-probes) come with adapters/cables for connecting 
 
 ### Адаптери, специфічні для плати
 
-Some manufacturers provide cables to make it easy to connect the SWD interface and [System Console](../debug/system_console).
+Some manufacturers provide cables to make it easy to connect the SWD interface and [System Console](../debug/system_console.md).
 
 - [CUAV V5nano](../flight_controller/cuav_v5_nano.md#debug_port) and [CUAV V5+](../flight_controller/cuav_v5_plus.md#debug-port) include this debug cable:
 
@@ -213,7 +213,7 @@ Some manufacturers provide cables to make it easy to connect the SWD interface a
 - Підключіть контакт VREF, якщо його підтримує засіб відлагодження.
 - Підключіть залишкові контакти, якщо вони є.
 
-See the [STLinkv3-MINIE](probe_stlink) for a guide on how to solder a custom cable.
+See the [STLinkv3-MINIE](probe_stlink.md) for a guide on how to solder a custom cable.
 
 :::tip
 Where possible, we highly recommend that you create or obtain an adapter board rather than custom cables for connecting to SWD/JTAG debuggers and computers.

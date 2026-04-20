@@ -1,0 +1,10 @@
+module_name: spa06
+parameters:
+- group: Sensors
+  definitions:
+    SENS_EN_SPA06:
+      description:
+        short: Goertek SPA06 Barometer (external I2C)
+      type: boolean
+      default: 0
+      reboot_required: true

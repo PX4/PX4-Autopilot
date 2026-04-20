@@ -85,6 +85,8 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [DistanceSensorModeChangeRequest](DistanceSensorModeChangeRequest.md)
 - [DronecanNodeStatus](DronecanNodeStatus.md)
 - [Ekf2Timestamps](Ekf2Timestamps.md) — this message contains the (relative) timestamps of the sensor inputs used by EKF2. It can be used for reproducible replay.
+- [EscEepromRead](EscEepromRead.md)
+- [EscEepromWrite](EscEepromWrite.md)
 - [EscReport](EscReport.md)
 - [EscStatus](EscStatus.md)
 - [EstimatorAidSource1d](EstimatorAidSource1d.md)
@@ -93,6 +95,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [EstimatorBias](EstimatorBias.md)
 - [EstimatorBias3d](EstimatorBias3d.md)
 - [EstimatorEventFlags](EstimatorEventFlags.md)
+- [EstimatorFusionControl](EstimatorFusionControl.md)
 - [EstimatorGpsStatus](EstimatorGpsStatus.md)
 - [EstimatorInnovations](EstimatorInnovations.md)
 - [EstimatorSelectorStatus](EstimatorSelectorStatus.md)
@@ -190,6 +193,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [QshellReq](QshellReq.md)
 - [QshellRetval](QshellRetval.md)
 - [RadioStatus](RadioStatus.md)
+- [RangingBeacon](RangingBeacon.md) — Ranging beacon measurement data (e.g. LoRa, UWB).
 - [RateCtrlStatus](RateCtrlStatus.md)
 - [RcChannels](RcChannels.md)
 - [RcParameterMap](RcParameterMap.md)
@@ -267,9 +271,12 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [HomePositionV0](HomePositionV0.md) — GPS home position in WGS84 coordinates.
 - [RegisterExtComponentReplyV0](RegisterExtComponentReplyV0.md)
 - [RegisterExtComponentRequestV0](RegisterExtComponentRequestV0.md) — Request to register an external component.
+- [RegisterExtComponentRequestV1](RegisterExtComponentRequestV1.md) — Request to register an external component.
 - [VehicleAttitudeSetpointV0](VehicleAttitudeSetpointV0.md)
 - [VehicleCommandAckV0](VehicleCommandAckV0.md) — Vehicle Command Ackonwledgement uORB message. Used for acknowledging the vehicle command being received. Follows the MAVLink COMMAND_ACK message definition.
 - [VehicleGlobalPositionV0](VehicleGlobalPositionV0.md) — Fused global position in WGS84. This struct contains global position estimation. It is not the raw GPS. measurement (@see vehicle_gps_position). This topic is usually published by the position. estimator, which will take more sources of information into account than just GPS,. e.g. control inputs of the vehicle in a Kalman-filter implementation.
 - [VehicleLocalPositionV0](VehicleLocalPositionV0.md) — Fused local position in NED. The coordinate system origin is the vehicle position at the time when the EKF2-module was started.
 - [VehicleStatusV0](VehicleStatusV0.md) — Encodes the system state of the vehicle published by commander.
 - [VehicleStatusV1](VehicleStatusV1.md) — Encodes the system state of the vehicle published by commander.
+- [VehicleStatusV2](VehicleStatusV2.md) — Encodes the system state of the vehicle published by commander.
+- [VehicleStatusV3](VehicleStatusV3.md) — Encodes the system state of the vehicle published by commander.

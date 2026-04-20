@@ -1,0 +1,10 @@
+module_name: pga460
+parameters:
+- group: Sensors
+  definitions:
+    SENS_EN_PGA460:
+      description:
+        short: PGA460 Ultrasonic driver (PGA460)
+      type: boolean
+      default: 0
+      reboot_required: true

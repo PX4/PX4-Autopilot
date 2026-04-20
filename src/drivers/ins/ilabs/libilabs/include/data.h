@@ -188,7 +188,7 @@ enum NewAidingData {
 
 enum JammingStatus : uint8_t {
 	UNKOWN_OR_DISABLED = 0,
-	OK                 = 1,  // No significant jamming
+	NO_SIGNIFICANT     = 1,  // No significant jamming
 	WARNING            = 2,  // Interference visible but fix ok
 	CRITICAL           = 3,  // Interference visible and no fix
 };

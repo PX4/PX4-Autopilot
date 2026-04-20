@@ -312,23 +312,24 @@ The failure detector is active in all vehicle types and modes, except for those 
 
 ### Motor Failure Trigger
 
-The failure detector can be configured to detect a motor failure while armed (and trigger an associated action) in the following conditions:
+The failure detector can be configured to detect a motor failure while armed (and trigger an associated action) if the ESC current falls outside expected bounds for more than [MOTFAIL_TIME](#MOTFAIL_TIME) seconds.
+Motor failures are non-latching: if the failure condition clears, the failure is cleared.
 
-- A 300 ms timeout occurs in telemetry from an ESC that was previously available.
-- The input current in the telemetry of an ESC which was previously positive gets too low for more than [`FD_ACT_MOT_TOUT`](FD_ACT_MOT_TOUT) ms.
-  The "too low" condition is defined by:
+The undercurrent and overcurrent conditions are defined by:
 
-  ```text
-  {esc current} < {parameter FD_ACT_MOT_C2T} * {motor command between 0 and 1}
-  ```
+```text
+undercurrent: {esc current} < {MOTFAIL_C2T} * {motor command [0,1]} - {MOTFAIL_LOW_OFF}
+overcurrent:  {esc current} > {MOTFAIL_C2T} * {motor command [0,1]} + {MOTFAIL_HIGH_OFF}
+```
 
-| Параметр                                                                                                                                                                | Опис                                                                                                                                                                                                                                                      |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="FD_ACT_EN"></a>[FD_ACT_EN](../advanced_config/parameter_reference.md#FD_ACT_EN)                                        | Enable/disable the motor failure trigger completely.                                                                                                                                                                                      |
-| <a id="FD_ACT_MOT_THR"></a>[FD_ACT_MOT_THR](../advanced_config/parameter_reference.md#FD_ACT_MOT_THR)    | Minimum normalized [0,1] motor command below which motor under current is ignored.                                                                                                    |
-| <a id="FD_ACT_MOT_C2T"></a>[FD_ACT_MOT_C2T](../advanced_config/parameter_reference.md#FD_ACT_MOT_C2T)    | Scale between normalized [0,1] motor command and expected minimally reported current when the rotor is healthy.                                                                       |
-| <a id="FD_ACT_MOT_TOUT"></a>[FD_ACT_MOT_TOUT](../advanced_config/parameter_reference.md#FD_ACT_MOT_TOUT) | Time in milliseconds for which the under current detection condition needs to stay true.                                                                                                                                                  |
-| <a id="CA_FAILURE_MODE"></a>[CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE)                      | Configure to not only warn about a motor failure but remove the first motor that detects a failure from the allocation effectiveness which turns off the motor and tries to operate the vehicle without it until disarming the next time. |
+| Параметр                                                                                                                                              | Опис                                                                                                                                                                                                                                                                                    |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="FD_ACT_EN"></a>[FD_ACT_EN](../advanced_config/parameter_reference.md#FD_ACT_EN)                      | Enable/disable the motor failure trigger completely.                                                                                                                                                                                                                    |
+| <a id="MOTFAIL_C2T"></a>[MOTFAIL_C2T](../advanced_config/parameter_reference.md#MOTFAIL_C2T)                                     | Slope between normalized motor command [0–1] and expected steady-state current (FD_ACT_MOT_C2T at 100%) (A/%). |
+| <a id="MOTFAIL_LOW_OFF"></a>[MOTFAIL_LOW_OFF](../advanced_config/parameter_reference.md#MOTFAIL_LOW_OFF)    | Undercurrent detection threshold offset (A). Subtracted from the expected current to form the lower bound.                                                                                                                           |
+| <a id="MOTFAIL_HIGH_OFF"></a>[MOTFAIL_HIGH_OFF](../advanced_config/parameter_reference.md#MOTFAIL_HIGH_OFF) | Overcurrent detection threshold offset (A). Added to the expected current to form the upper bound.                                                                                                                                   |
+| <a id="MOTFAIL_TIME"></a>[MOTFAIL_TIME](../advanced_config/parameter_reference.md#MOTFAIL_TIME)                                  | Hysteresis time (s) for which the current threshold must remain exceeded before a motor failure is triggered.                                                                                                                                        |
+| <a id="CA_FAILURE_MODE"></a>[CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE)    | Configure to not only warn about a motor failure but remove the first motor that detects a failure from the allocation effectiveness which turns off the motor and tries to operate the vehicle without it until disarming the next time.                               |
 
 ### Зовнішня автоматична система тригерування (ATS)
 
@@ -362,11 +363,7 @@ Remote control switches can be configured (as part of _QGroundControl_ [Flight M
 
 A kill switch immediately stops all motor outputs — if flying, the vehicle will start to fall!
 
-[By default](#COM_KILL_DISARM) the motors will restart if the switch is reverted within 5 seconds, after which the vehicle will automatically disarm, and you will need to arm it again in order to start the motors.
-
-| Параметр                                                                                                                                           | Опис                                                                                                                            |
-| -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="COM_KILL_DISARM"></a>[COM_KILL_DISARM](../advanced_config/parameter_reference.md#COM_KILL_DISARM) | Timeout value for disarming after kill switch is engaged. Default: `5` seconds. |
+The motors will restart if the switch is reverted within 5 seconds, after which the vehicle will automatically disarm, and you will need to arm it again in order to start the motors.
 
 :::info
 There is also a [Kill Gesture](#kill-gesture), which cannot be reverted.
@@ -408,7 +405,7 @@ A return switch can be used to immediately engage [Return mode](../flight_modes/
 
 A kill gesture immediately stops all motor outputs — if flying, the vehicle will start to fall!
 
-The action cannot be reverted without a reboot (this differs from a [Kill Switch](#kill-switch), where the operation can be reverted within the time period defined by [COM_KILL_DISARM](#COM_KILL_DISARM)).
+The action cannot be reverted without a reboot (this differs from a [Kill Switch](#kill-switch), where the operation can be reverted within 5 seconds).
 
 | Параметр                                                                                                                                                                | Опис                                                                                                                                                                    |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

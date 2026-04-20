@@ -270,7 +270,7 @@ MAIN:
 4. Aileron left
 5. Elevator right
 6. Elevator left
-7. 방향타
+7. Rudder
 
 AUX:
 

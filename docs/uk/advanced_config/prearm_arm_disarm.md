@@ -93,6 +93,28 @@ The button should be held down for one second to arm (when disarmed) or disarm (
 | <a id="COM_DISARM_LAND"></a>[COM_DISARM_LAND](../advanced_config/parameter_reference.md#COM_DISARM_LAND)    | Час очікування для автоматичного відбрасування після приземлення. За замовчуванням: 2с (значення -1, щоб вимкнути).                               |
 | <a id="COM_DISARM_PRFLT"></a>[COM_DISARM_PRFLT](../advanced_config/parameter_reference.md#COM_DISARM_PRFLT) | Час очікування для автоматичного відбрасування, якщо занадто повільно підйом. За замовчуванням: 10с (<=0, щоб вимкнути). |
 
+## Auto-Arming on Boot
+
+The vehicle can be configured to arm automatically on boot once all preflight checks pass,
+using the `COM_ARM_ON_BOOT` parameter. For safety, PX4 enforces a minimum 5-second delay after boot before attempting to arm.
+
+Once armed this way, the vehicle will not re-arm automatically after a manual disarm.
+
+:::info
+The parameter value is read once at boot.
+Changing it while the system is running has no effect until the next reboot.
+:::
+
+:::warning
+Use with caution.
+A vehicle that arms automatically can spin up motors and actuators without any operator gesture.
+Ensure the vehicle is in a safe state before powering on.
+:::
+
+| Параметр                                                                                                                                                                | Опис                                                                                                                                                 |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="COM_ARM_ON_BOOT"></a>[COM_ARM_ON_BOOT](../advanced_config/parameter_reference.md#COM_ARM_ON_BOOT) | Arm automatically once preflight checks pass after boot. Default: `0` (Disabled). |
+
 ## Pre-Arm Checks
 
 To reduce accidents, vehicles are only allowed to arm certain conditions are met (some of which are configurable).

@@ -1,0 +1,43 @@
+module_name: pcf8583
+parameters:
+- group: Sensors
+  definitions:
+    SENS_EN_PCF8583:
+      description:
+        short: PCF8583 enable driver
+        long: Run PCF8583 driver automatically
+      type: enum
+      values:
+        0: Disabled
+        1: Enabled
+      default: 0
+      reboot_required: true
+      min: 0
+      max: 1
+    PCF8583_POOL:
+      description:
+        short: PCF8583 rotorfreq (i2c) poll interval
+        long: Determines how often the sensor is read out.
+      type: int32
+      default: 1000000
+      reboot_required: true
+      unit: us
+    PCF8583_RESET:
+      description:
+        short: PCF8583 rotorfreq (i2c) pulse reset value
+        long: |-
+          Internal device counter is reset to 0 when overrun this value,
+          counter is able to store up to 6 digits
+          reset of counter takes some time - measurement with reset has worse accuracy.
+          0 means reset counter after every measurement.
+      type: int32
+      default: 500000
+      reboot_required: true
+    PCF8583_MAGNET:
+      description:
+        short: PCF8583 rotorfreq (i2c) pulse count
+        long: Number of signals per rotation of actuator
+      type: int32
+      default: 2
+      reboot_required: true
+      min: 1

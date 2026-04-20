@@ -1,0 +1,54 @@
+module_name: lightware_laser_i2c
+parameters:
+- group: Sensors
+  definitions:
+    SENS_EN_SF1XX:
+      description:
+        short: Lightware laser rangefinder (i2c)
+      type: enum
+      values:
+        0: Disabled
+        1: SF10/a
+        2: SF10/b
+        3: SF10/c
+        4: SF11/c
+        5: SF/LW20/b
+        6: SF/LW20/c
+        7: SF/LW30/d
+        8: GRF250
+        9: GRF500
+      default: 0
+      reboot_required: true
+      min: 0
+      max: 9
+    SF1XX_ROT:
+      description:
+        short: Lightware laser rangefinder Rotation
+        long: |-
+          Distance sensor orientation as MAV_SENSOR_ORIENTATION enum.
+          Applies to all models supported by SENS_EN_SF1XX.
+      type: enum
+      values:
+        0: Forward
+        2: Right
+        4: Backward
+        6: Left
+        24: Upward
+        25: Downward
+      default: 25
+      reboot_required: true
+      min: 0
+      max: 25
+- group: Miscellaneous
+  definitions:
+    SF1XX_MODE:
+      description:
+        short: Lightware laser rangefinder Operation Mode
+      type: enum
+      values:
+        0: Disabled
+        1: Enabled
+        2: Enabled in VTOL MC mode, listen to request from system in FW mode
+      default: 1
+      min: 0
+      max: 2

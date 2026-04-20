@@ -73,7 +73,7 @@ public:
 
 	bool initialized() { return _initialized; };
 
-	void update_outputs(uint16_t outputs[MAX_ACTUATORS], uint8_t output_array_size);
+	void update_outputs(float outputs[MAX_ACTUATORS], uint8_t output_array_size);
 
 	/**
 	 * Sets the number of rotors and enable timer
@@ -99,12 +99,12 @@ private:
 	/**
 	 * Checks all the ESCs freshness based on timestamp, if an ESC exceeds the timeout then is flagged offline.
 	 */
-	uint8_t check_escs_status();
+	uint16_t check_escs_status();
 
 	/**
 	 * Gets failure flags for a specific ESC
 	 */
-	uint32_t get_failures(uint8_t esc_index);
+	uint32_t get_failures(uint8_t esc_index, uint8_t node_id);
 
 	typedef uavcan::MethodBinder<UavcanEscController *,
 		void (UavcanEscController::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status>&)> StatusCbBinder;

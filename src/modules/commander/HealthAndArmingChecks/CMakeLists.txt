@@ -56,6 +56,7 @@ px4_add_library(health_and_arming_checks
 	checks/manualControlCheck.cpp
 	checks/missionCheck.cpp
 	checks/modeCheck.cpp
+	checks/rallyPointCheck.cpp
 	checks/navigatorCheck.cpp
 	checks/offboardCheck.cpp
 	checks/openDroneIDCheck.cpp
@@ -71,6 +72,7 @@ px4_add_library(health_and_arming_checks
 
 	checks/externalChecks.cpp
 )
+set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/esc_check_params.yaml)
 add_dependencies(health_and_arming_checks mode_util)
 
 px4_add_functional_gtest(SRC HealthAndArmingChecksTest.cpp

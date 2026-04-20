@@ -316,7 +316,9 @@ Param | Units | Range/Enum | Description
                 if val.minValue or val.maxValue:
                     rangeVal = f"[{val.minValue if val.minValue else '-'} : {val.maxValue if val.maxValue else '-' }]"
 
-                output+=f"{i} | {", ".join(val.units)}|{', '.join(f"[{e}](#{e})" for e in val.enums)}{rangeVal} | {val.description}\n"
+                units_str = ", ".join(val.units)
+                enums_str = ', '.join("[{}](#{})".format(e, e) for e in val.enums)
+                output+=f"{i} | {units_str}|{enums_str}{rangeVal} | {val.description}\n"
             else:
                 output+=f"{i} | | | ?\n"
 

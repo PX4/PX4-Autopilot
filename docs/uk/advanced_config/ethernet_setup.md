@@ -27,6 +27,8 @@ PX4 supports Ethernet connectivity on [Pixhawk 5X-standard](https://github.com/p
 
 - [ARK Electronics ARKV6X](../flight_controller/ark_v6x.md)
 - [CUAV Pixhawk V6X](../flight_controller/cuav_pixhawk_v6x.md)
+- [CUAV X25 EVO](../flight_controller/cuav_x25-evo.md)
+- [CUAV X25 SUPER](../flight_controller/cuav_x25-super.md)
 - [Holybro Pixhawk 5X](../flight_controller/pixhawk5x.md)
 - [Holybro Pixhawk 6X](../flight_controller/pixhawk6x.md)
 - [RaccoonLab FMUv6X Autopilot](../flight_controller/raccoonlab_fmu6x.md)

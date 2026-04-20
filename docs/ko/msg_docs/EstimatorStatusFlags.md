@@ -61,6 +61,8 @@ pageClass: is-wide-page
 | cs_gnss_fault                                                      | `bool`   |                                                                  |            | 45 - true if GNSS true if GNSS measurements (lat, lon, vel) have been declared faulty |
 | cs_yaw_manual                                                      | `bool`   |                                                                  |            | 46 - true if yaw has been set manually                                                                   |
 | cs_gnss_hgt_fault                             | `bool`   |                                                                  |            | 47 - true if GNSS true if GNSS measurements (alt) have been declared faulty           |
+| cs_in_transition                                                   | `bool`   |                                                                  |            | 48 - true if the vehicle is in vtol transition                                                           |
+| cs_heading_observable                                              | `bool`   |                                                                  |            | 49 - true when heading is observable                                                                     |
 | fault_status_changes                                               | `uint32` |                                                                  |            | number of filter fault status (fs) changes                                            |
 | fs_bad_mag_x                                  | `bool`   |                                                                  |            | 0 - true if the fusion of the magnetometer X-axis has encountered a numerical error                      |
 | fs_bad_mag_y                                  | `bool`   |                                                                  |            | 1 - true if the fusion of the magnetometer Y-axis has encountered a numerical error                      |
@@ -136,6 +138,8 @@ bool cs_gnss_vel                # 44 - true if GNSS velocity measurement fusion 
 bool cs_gnss_fault              # 45 - true if GNSS true if GNSS measurements (lat, lon, vel) have been declared faulty
 bool cs_yaw_manual              # 46 - true if yaw has been set manually
 bool cs_gnss_hgt_fault          # 47 - true if GNSS true if GNSS measurements (alt) have been declared faulty
+bool cs_in_transition           # 48 - true if the vehicle is in vtol transition
+bool cs_heading_observable      # 49 - true when heading is observable
 
 # fault status
 uint32 fault_status_changes   # number of filter fault status (fs) changes

@@ -126,6 +126,7 @@ px4_add_module(
 		tune_publisher.cpp
 	MODULE_CONFIG
 		module.yaml
+		mavlink_params.yaml
 	DEPENDS
 		adsb
 		airspeed
@@ -144,10 +145,6 @@ px4_add_module(
 		version
 	UNITY_BUILD
 	)
-
-if(PX4_TESTING)
-	add_subdirectory(mavlink_tests)
-endif()
 
 px4_add_unit_gtest(SRC MavlinkStatustextHandlerTest.cpp
 	INCLUDES

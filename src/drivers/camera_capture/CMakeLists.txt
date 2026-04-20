@@ -44,6 +44,8 @@ px4_add_module(
 		-DPARAM_PREFIX="${PARAM_PREFIX}"
 	SRCS
 		camera_capture.cpp
+	MODULE_CONFIG
+		camera_capture_params.yaml
 	DEPENDS
 		arch_io_pins
 )

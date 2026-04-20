@@ -92,6 +92,11 @@ public:
 	// copy assignment
 	Subscription &operator=(const Subscription &other)
 	{
+		// Check for self-assignment
+		if (this == &other) {
+			return *this;
+		}
+
 		unsubscribe();
 		_orb_id = other._orb_id;
 		_instance = other._instance;

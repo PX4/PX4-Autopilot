@@ -42,7 +42,7 @@ Each function is represented by a value that defines two behaviours: one when th
 | 6 | Status/Green  | System status colour | 绿色                   |
 | 7 | Status/Off    | System status colour | Off                  |
 
-备注：
+Notes:
 
 - The [system status colours](../getting_started/led_meanings.md#ui-led) is the same LED pattern used by the flight controller's onboard status LED (e.g. red when disarmed, green when armed and ready).
 - A fixed colour, commonly used to indicate aircraft orientation. For example it is a common convention to have a red light on the port side, green on starboard, or white to the rear.

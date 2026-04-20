@@ -16,7 +16,7 @@ if [ -n "$CHECK_FAILED" ]; then
 	if [[ $PX4_ASTYLE_FIX -eq 1 ]]; then
 		${DIR}/fix_code_style.sh $FILE
 	else
-		echo 'to fix automatically run "make format" or "./Tools/astyle/fix_code_style.sh' $FILE'"'
+		echo 'to fix automatically run "make format", "make format_changed" or "./Tools/astyle/fix_code_style.sh' $FILE'"'
 		exit 1
 	fi
 fi

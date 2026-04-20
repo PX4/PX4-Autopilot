@@ -85,7 +85,8 @@ void BatterySimulator::Run()
 
 	const hrt_abstime now_us = hrt_absolute_time();
 
-	const float discharge_interval_us = _param_sim_bat_drain.get() * 1000 * 1000;
+	// Limit to +1.0 s to guard against division by 0
+	const float discharge_interval_us = math::max(_param_sim_bat_drain.get(), 1.0f) * 1000 * 1000;
 
 	if (_armed) {
 		if (_last_integration_us != 0) {
