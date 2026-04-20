@@ -98,7 +98,6 @@ exception_list_sitl = [
     'DRIVERS_TAP_ESC', # No nuttx/arch.h
     'DRIVERS_DSHOT', # No Posix driver, I think this only works on NuttX
     'DRIVERS_PWM_OUT', # No Posix driver, I think this only works on NuttX
-    'SYSTEMCMDS_REBOOT', # Sitl can't reboot
     'MODULES_BATTERY_STATUS', # Sitl doesn't provide a power brick
     'SYSTEMCMDS_SERIAL_PASSTHRU', # Not supported in SITL
     'SYSTEMCMDS_SERIAL_TEST', # Not supported in SITL
