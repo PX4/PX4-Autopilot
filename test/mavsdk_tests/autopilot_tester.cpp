@@ -33,6 +33,7 @@
 
 #include "autopilot_tester.h"
 #include "math_helpers.h"
+#include <atomic>
 #include <iostream>
 #include <future>
 #include <thread>
@@ -893,12 +894,15 @@ void AutopilotTester::start_and_wait_for_mission_sequence_raw(int sequence_numbe
 {
 	auto prom = std::promise<void> {};
 	auto fut = prom.get_future();
+	// Guards against bunched progress events (e.g. under high sim speed factor) firing the
+	// callback twice before unsubscribe takes effect, which would set the promise twice.
+	std::atomic<bool> done{false};
 
 	MissionRaw::MissionProgressHandle handle = _mission_raw->subscribe_mission_progress(
-	[&prom, &handle, this, sequence_number](MissionRaw::MissionProgress progress) {
+	[&prom, &handle, &done, this, sequence_number](MissionRaw::MissionProgress progress) {
 		std::cout << time_str() << "Progress: " << progress.current << "/" << progress.total << std::endl;
 
-		if (progress.current >= sequence_number) {
+		if (progress.current >= sequence_number && !done.exchange(true)) {
 			_mission_raw->unsubscribe_mission_progress(handle);
 			prom.set_value();
 		}
