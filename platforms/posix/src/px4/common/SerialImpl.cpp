@@ -343,7 +343,7 @@ ssize_t SerialImpl::readAtLeast(uint8_t *buffer, size_t buffer_size, size_t char
 	}
 
 	const hrt_abstime start_time_us = hrt_absolute_time();
-	hrt_abstime timeout_us = timeout_ms * 1000;
+	hrt_abstime timeout_us = static_cast<hrt_abstime>(timeout_ms) * 1000;
 	int total_bytes_read = 0;
 
 	while ((total_bytes_read < (int) character_count) && (hrt_elapsed_time(&start_time_us) < timeout_us)) {
@@ -407,7 +407,7 @@ ssize_t SerialImpl::writeBlocking(const void *buffer, size_t buffer_size, uint32
 	const uint8_t *data = static_cast<const uint8_t *>(buffer);
 	size_t total_written = 0;
 	const hrt_abstime start_time_us = hrt_absolute_time();
-	const hrt_abstime timeout_us = timeout_ms * 1000;
+	const hrt_abstime timeout_us = static_cast<hrt_abstime>(timeout_ms) * 1000;
 
 	while (total_written < buffer_size) {
 		if (hrt_elapsed_time(&start_time_us) > timeout_us) {

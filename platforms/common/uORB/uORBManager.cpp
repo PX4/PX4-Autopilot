@@ -402,7 +402,7 @@ int uORB::Manager::orb_check(int handle, bool *updated)
 
 int uORB::Manager::orb_set_interval(int handle, unsigned interval)
 {
-	return px4_ioctl(handle, ORBIOCSETINTERVAL, interval * 1000);
+	return px4_ioctl(handle, ORBIOCSETINTERVAL, (unsigned long)interval * 1000);
 }
 
 int uORB::Manager::orb_get_interval(int handle, unsigned *interval)

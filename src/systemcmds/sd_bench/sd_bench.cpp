@@ -231,7 +231,7 @@ void write_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size)
 		unsigned int max_write_time = 0;
 		unsigned int fsync_time = 0;
 
-		while ((int64_t)hrt_elapsed_time(&start) < cfg->run_duration * 1000) {
+		while ((int64_t)hrt_elapsed_time(&start) < static_cast<int64_t>(cfg->run_duration) * 1000) {
 
 			hrt_abstime write_start = hrt_absolute_time();
 			*blocknumber =  total_blocks + num_blocks;
@@ -317,7 +317,7 @@ int read_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size)
 		unsigned int num_blocks = 0;
 		unsigned int max_read_time = 0;
 
-		while ((int64_t)hrt_elapsed_time(&start) < cfg->run_duration * 1000
+		while ((int64_t)hrt_elapsed_time(&start) < static_cast<int64_t>(cfg->run_duration) * 1000
 		       && total_blocks + num_blocks < cfg->total_blocks_written) {
 
 			hrt_abstime read_start = hrt_absolute_time();
