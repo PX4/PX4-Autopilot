@@ -78,7 +78,7 @@ The shutter integration setting (`param2`) is only obeyed with a GPIO backend.
 
 ## Trigger Configuration
 
-Cameras can be connected to the FC for triggering using different intefaces, such as PWM, and GPIO, by specifying the appropriate [trigger interface backend](#trigger-interface-backends).
+Cameras can be connected to the FC for triggering using different interfaces, such as PWM, and GPIO, by specifying the appropriate [trigger interface backend](#trigger-interface-backends).
 You can also indicate the camera [trigger mode](#trigger-modes).
 
 This configuration can most easily be done from the _QGroundControl_ [Vehicle Setup > Camera](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/camera.html#px4-camera-setup) section.

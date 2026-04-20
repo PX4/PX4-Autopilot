@@ -1,0 +1,232 @@
+module_name: mc_rate_control
+parameters:
+- group: Multicopter Rate Control
+  definitions:
+    MC_ROLLRATE_P:
+      description:
+        short: Roll rate P gain
+        long: Roll rate proportional gain, i.e. control output for angular speed error
+          1 rad/s.
+      type: float
+      default: 0.15
+      min: 0.01
+      max: 0.5
+      decimal: 3
+      increment: 0.01
+    MC_ROLLRATE_I:
+      description:
+        short: Roll rate I gain
+        long: Roll rate integral gain. Can be set to compensate static thrust difference
+          or gravity center offset.
+      type: float
+      default: 0.2
+      min: 0.0
+      decimal: 3
+      increment: 0.01
+    MC_RR_INT_LIM:
+      description:
+        short: Roll rate integrator limit
+        long: Roll rate integrator limit. Can be set to increase the amount of integrator
+          available to counteract disturbances or reduced to improve settling time
+          after large roll moment trim changes.
+      type: float
+      default: 0.3
+      min: 0.0
+      decimal: 2
+      increment: 0.01
+    MC_ROLLRATE_D:
+      description:
+        short: Roll rate D gain
+        long: Roll rate differential gain. Small values help reduce fast oscillations.
+          If value is too big oscillations will appear again.
+      type: float
+      default: 0.003
+      min: 0.0
+      max: 0.01
+      decimal: 4
+      increment: 0.0005
+    MC_ROLLRATE_FF:
+      description:
+        short: Roll rate feedforward
+        long: Improves tracking performance.
+      type: float
+      default: 0.0
+      min: 0.0
+      decimal: 4
+    MC_ROLLRATE_K:
+      description:
+        short: Roll rate controller gain
+        long: |-
+          Global gain of the controller.
+
+          This gain scales the P, I and D terms of the controller:
+          output = MC_ROLLRATE_K * (MC_ROLLRATE_P * error
+          + MC_ROLLRATE_I * error_integral
+          + MC_ROLLRATE_D * error_derivative)
+          Set MC_ROLLRATE_P=1 to implement a PID in the ideal form.
+          Set MC_ROLLRATE_K=1 to implement a PID in the parallel form.
+      type: float
+      default: 1.0
+      min: 0.01
+      max: 5.0
+      decimal: 4
+      increment: 0.0005
+    MC_PITCHRATE_P:
+      description:
+        short: Pitch rate P gain
+        long: Pitch rate proportional gain, i.e. control output for angular speed
+          error 1 rad/s.
+      type: float
+      default: 0.15
+      min: 0.01
+      max: 0.6
+      decimal: 3
+      increment: 0.01
+    MC_PITCHRATE_I:
+      description:
+        short: Pitch rate I gain
+        long: Pitch rate integral gain. Can be set to compensate static thrust difference
+          or gravity center offset.
+      type: float
+      default: 0.2
+      min: 0.0
+      decimal: 3
+      increment: 0.01
+    MC_PR_INT_LIM:
+      description:
+        short: Pitch rate integrator limit
+        long: Pitch rate integrator limit. Can be set to increase the amount of integrator
+          available to counteract disturbances or reduced to improve settling time
+          after large pitch moment trim changes.
+      type: float
+      default: 0.3
+      min: 0.0
+      decimal: 2
+      increment: 0.01
+    MC_PITCHRATE_D:
+      description:
+        short: Pitch rate D gain
+        long: Pitch rate differential gain. Small values help reduce fast oscillations.
+          If value is too big oscillations will appear again.
+      type: float
+      default: 0.003
+      min: 0.0
+      decimal: 4
+      increment: 0.0005
+    MC_PITCHRATE_FF:
+      description:
+        short: Pitch rate feedforward
+        long: Improves tracking performance.
+      type: float
+      default: 0.0
+      min: 0.0
+      decimal: 4
+    MC_PITCHRATE_K:
+      description:
+        short: Pitch rate controller gain
+        long: |-
+          Global gain of the controller.
+
+          This gain scales the P, I and D terms of the controller:
+          output = MC_PITCHRATE_K * (MC_PITCHRATE_P * error
+          + MC_PITCHRATE_I * error_integral
+          + MC_PITCHRATE_D * error_derivative)
+          Set MC_PITCHRATE_P=1 to implement a PID in the ideal form.
+          Set MC_PITCHRATE_K=1 to implement a PID in the parallel form.
+      type: float
+      default: 1.0
+      min: 0.01
+      max: 5.0
+      decimal: 4
+      increment: 0.0005
+    MC_YAWRATE_P:
+      description:
+        short: Yaw rate P gain
+        long: Yaw rate proportional gain, i.e. control output for angular speed error
+          1 rad/s.
+      type: float
+      default: 0.2
+      min: 0.0
+      max: 0.6
+      decimal: 3
+      increment: 0.01
+    MC_YAWRATE_I:
+      description:
+        short: Yaw rate I gain
+        long: Yaw rate integral gain. Can be set to compensate static thrust difference
+          or gravity center offset.
+      type: float
+      default: 0.1
+      min: 0.0
+      decimal: 3
+      increment: 0.01
+    MC_YR_INT_LIM:
+      description:
+        short: Yaw rate integrator limit
+        long: Yaw rate integrator limit. Can be set to increase the amount of integrator
+          available to counteract disturbances or reduced to improve settling time
+          after large yaw moment trim changes.
+      type: float
+      default: 0.3
+      min: 0.0
+      decimal: 2
+      increment: 0.01
+    MC_YAWRATE_D:
+      description:
+        short: Yaw rate D gain
+        long: Yaw rate differential gain. Small values help reduce fast oscillations.
+          If value is too big oscillations will appear again.
+      type: float
+      default: 0.0
+      min: 0.0
+      decimal: 4
+      increment: 0.0005
+    MC_YAWRATE_FF:
+      description:
+        short: Yaw rate feedforward
+        long: Improves tracking performance.
+      type: float
+      default: 0.0
+      min: 0.0
+      decimal: 4
+    MC_YAWRATE_K:
+      description:
+        short: Yaw rate controller gain
+        long: |-
+          Global gain of the controller.
+
+          This gain scales the P, I and D terms of the controller:
+          output = MC_YAWRATE_K * (MC_YAWRATE_P * error
+          + MC_YAWRATE_I * error_integral
+          + MC_YAWRATE_D * error_derivative)
+          Set MC_YAWRATE_P=1 to implement a PID in the ideal form.
+          Set MC_YAWRATE_K=1 to implement a PID in the parallel form.
+      type: float
+      default: 1.0
+      min: 0.01
+      max: 5.0
+      decimal: 4
+      increment: 0.0005
+    MC_BAT_SCALE_EN:
+      description:
+        short: Battery power level scaler
+        long: |-
+          This compensates for voltage drop of the battery over time by attempting to
+          normalize performance across the operating range of the battery. The copter
+          should constantly behave as if it was fully charged with reduced max acceleration
+          at lower battery percentages. i.e. if hover is at 0.5 throttle at 100% battery,
+          it will still be 0.5 at 60% battery.
+      type: boolean
+      default: 0
+    MC_YAW_TQ_CUTOFF:
+      description:
+        short: Low pass filter cutoff frequency for yaw torque setpoint
+        long: |-
+          Reduces vibrations by lowering high frequency torque caused by rotor acceleration.
+          0 disables the filter
+      type: float
+      default: 2.0
+      min: 0
+      max: 10
+      unit: Hz
+      decimal: 3

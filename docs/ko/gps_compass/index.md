@@ -64,7 +64,7 @@ These have been tested by the PX4 dev team, or which are popular within the PX4 
 [Hb Micro M8N]: https://holybro.com/products/micro-m8n-gps
 [CubePilot Here2]: ../gps_compass/gps_hex_here2.md
 
-참고:
+Notes:
 
 - ✓ or a specific part number indicate that a features is supported, while ✘ or empty show that the feature is not supported.
   "?"는 "알 수 없음"을 나타냅니다.
@@ -187,9 +187,9 @@ Some of GNSS terms that are useful for interpreting the data include:
 - `DOP`: Dilution of position (dimensionless).
   This is a measure of the geometric quality of satellite positions and their effect on the precision of the GPS receiver's calculations.
 - `EPH`: Standard deviation of horizontal position error (metres).
-  This represents the the uncertainty in the GPS fix latitude and longitude.
+  This represents the uncertainty in the GPS fix latitude and longitude.
 - `EPV`: Standard deviation of vertical position error (metres).
-  This represents the the uncertainty in the GPS fix altitude.
+  This represents the uncertainty in the GPS fix altitude.
 
 ### DOP vs EPH/EPV
 

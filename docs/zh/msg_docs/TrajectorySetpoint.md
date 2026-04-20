@@ -22,9 +22,9 @@ Trajectory setpoint in NED frame. Input to PID position controller. Needs to be 
 
 ## Constants
 
-| 参数名                                                                  | 类型       | 值 | 描述 |
-| -------------------------------------------------------------------- | -------- | - | -- |
-| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 0 |    |
+| 参数名                                                                | 类型       | 值 | 描述 |
+| ------------------------------------------------------------------ | -------- | - | -- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 0 |    |
 
 ## Source Message
 

@@ -70,7 +70,7 @@ For PX4 Vision v1 with ECN below 010/carrier board below RC04, the _UP Core_ sho
 
 ![PV4 Vision v1.5](../../assets/hardware/px4_vision_devkit/px4_vision_v1.5_whats_inside.jpg)
 
-Про те, що знаходиться всередині PX4 Vision V1, можна дізнатися тут [PX4 v1.13 Docs here] (https://docs.px4.io/v1.13/en/complete_vehicles/px4_vision_kit.html#what-is-inside).
+What's inside the PX4 Vision V1 can be found here in the [PX4 v1.13 Docs here](https://docs.px4.io/v1.13/en/complete_vehicles/px4_vision_kit#what-is-inside).
 
 PX4 Vision DevKit містить наступні компоненти:
 
@@ -403,7 +403,7 @@ You can modify PX4 itself, and [install it as custom firmware](../config/firmwar
 ## Інші Ресурси Розробника
 
 - [_UP Core_ Wiki](https://github.com/up-board/up-community/wiki/Ubuntu) - _Up Core_ супутниковий комп'ютер технічна інформація
-- [Occipital Developer Forum](https://structure.io/developers/) - _Structure Core_ camera information
+- [Occipital Developer Forum](https://structure.io/structure-sdk/) - _Structure Core_ camera information
 - [Огляд Pixhawk 4](../flight_controller/pixhawk4.md)
 - [Огляд Pixhawk 6C](../flight_controller/pixhawk6c.md)
 

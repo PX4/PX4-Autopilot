@@ -48,7 +48,7 @@ This is useful when there are few obstacles near the destination, because it may
 
 ![Return mode cone](../../assets/flying/rtl_cone.jpg)
 
-The cone affects the minimum return altitude if return mode is triggered within the cylinder defined by the maximum cone radius and `RTL_RETURN_ALT`: outside this cyclinder `RTL_RETURN_ALT` is used.
+The cone affects the minimum return altitude if return mode is triggered within the cylinder defined by the maximum cone radius and `RTL_RETURN_ALT`: outside this cylinder `RTL_RETURN_ALT` is used.
 Inside the code the minimum return altitude is the intersection of the vehicle position with the cone, or `RTL_DESCEND_ALT` (whichever is higher).
 In other words, the vehicle must always ascend to at least `RTL_DESCEND_ALT` if below that value.
 

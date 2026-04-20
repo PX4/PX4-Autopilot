@@ -1,4 +1,4 @@
-# 硬件选择和设置
+# Hardware Selection & Setup
 
 本节包含可以用在无人机中的组件以及它们是如何设置的。
 

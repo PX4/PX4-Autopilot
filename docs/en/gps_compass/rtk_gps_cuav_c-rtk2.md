@@ -10,7 +10,7 @@ In addition to surveying/mapping, it is suitable for many other use-cases, inclu
 
 - High-performance H7 processor
 - High precision industrial grade IMU
-- Support RTK and save RAW raw data (PPK) at the same time
+- Support RTK and save raw data (PPK) at the same time
 - Multi-satellite and multi-frequency receivers
 - UAVCAN/Dronecan protocol
 - Support hotshoe and shutter trigger

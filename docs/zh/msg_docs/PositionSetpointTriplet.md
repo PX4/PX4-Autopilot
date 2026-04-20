@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Global position setpoint triplet in WGS84 coordinates. This are the three next waypoints (or just the next two or one).
 
-**TOPICS:** position_setpointtriplet
+**TOPICS:** position_setpoint_triplet
 
 ## Fields
 

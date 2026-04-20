@@ -1,0 +1,5 @@
+menuconfig DRIVERS_IMU_ST_LSM6DSV
+	bool "lsm6dsv"
+	default n
+	---help---
+		Enable support for lsm6dsv

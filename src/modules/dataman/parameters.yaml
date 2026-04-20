@@ -1,0 +1,18 @@
+module_name: dataman
+parameters:
+- group: System
+  definitions:
+    SYS_DM_BACKEND:
+      description:
+        short: Dataman storage backend
+        long: |-
+          If the board supports persistent storage (i.e., the KConfig variable DATAMAN_PERSISTENT_STORAGE is set),
+          the 'Default storage' backend uses a file on persistent storage. If not supported, this backend uses
+          non-persistent storage in RAM.
+      type: enum
+      values:
+        -1: Dataman disabled
+        0: Default storage
+        1: RAM storage
+      default: 0
+      reboot_required: true

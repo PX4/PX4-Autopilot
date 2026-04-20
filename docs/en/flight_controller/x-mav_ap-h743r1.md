@@ -26,7 +26,7 @@ These flight controllers are [manufacturer supported](../flight_controller/autop
 - On-board sensors
   - Accel/Gyro: ICM-42688-P\*2(Version1), BMI270\*2(Version2)
   - Mag: QMC5883P
-  - Barometer: DPS310(Version1),SPL06(Version2)
+  - Barometer: SPL06
 
 ### Interfaces
 
@@ -131,7 +131,7 @@ make x-mav_ap-h743r1_default
 Any multirotor/airplane/rover or boat that can be controlled using normal RC servos or Futaba S-Bus servos.
 The complete set of supported configurations can be found in the [Airframe Reference](../airframes/airframe_reference.md).
 
-## Debug Port
+## Debug Port {#debug_port}
 
 ### SWD
 

@@ -21,7 +21,7 @@ On POSIX, the system shell is used as script interpreter (e.g. /bin/sh, being sy
 - Модулі PX4 повинні виглядати для системи як окремі виконувані файли.
   Це робиться за допомогою символьних посилань.
   For each module a symbolic link `px4-<module> -> px4` is created in the `bin` directory of the build folder.
-  При виконанні двійкового файлу перевіряється його шлях (`argv[0]`) і якщо це модуль (починається з `px4-`) він відправляє команду на основний екземпляр px4 (див. нижче).
+  When executed, the binary path is checked (`argv[0]`), and if it is a module (starts with `px4-`), it sends the command to the main PX4 instance (see below).
 
   :::tip
   The `px4-` prefix is used to avoid conflicts with system commands (e.g. `shutdown`), and it also allows for simple tab completion by typing `px4-<TAB>`.
@@ -32,7 +32,7 @@ On POSIX, the system shell is used as script interpreter (e.g. /bin/sh, being sy
   For that the `bin` directory with the symbolic links is added to the `PATH` variable right before executing the startup scripts.
 
 - Оболонка запускає кожен модуль як новий (клієнтський) процес.
-  Кожен клієнтський процес повинен спілкуватися з головним екземпляром px4 (сервером), де справжні модулі працюють як потоки.
+  Each client process needs to communicate with the main instance of PX4 (the server), where the actual modules are running as threads.
   This is done through a [UNIX socket](https://man7.org/linux/man-pages/man7/unix.7.html).
   Сервер прослуховує сокет, до якого клієнти можуть під'єднатися та надіслати команду.
   Сервер відправляє вихідні дані та код повернення назад до клієнта.
@@ -40,7 +40,7 @@ On POSIX, the system shell is used as script interpreter (e.g. /bin/sh, being sy
 - The startup scripts call the module directly, e.g. `commander start`, rather than using the `px4-` prefix.
   This works via aliases: for each module an alias in the form of `alias <module>=px4-<module>` is created in the file `bin/px4-alias.sh`.
 
-- Скрипт `rcS` виконується з основного екземпляра Px4.
+- The `rcS` script is executed from the main PX4 instance.
   Він не запускає жодних модулів, але спочатку оновлює змінну `PATH`, а потім просто запускає оболонку з файлом `rcS` як аргумент.
 
 - Крім того, декілька екземплярів серверу можуть бути запущені для симуляції кількох засобів.

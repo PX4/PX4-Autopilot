@@ -1,0 +1,62 @@
+module_name: HealthAndArmingChecks
+parameters:
+- group: Motor Failure
+  definitions:
+    FD_ACT_EN:
+      description:
+        short: Enable Actuator Failure check
+        long: |-
+          If enabled, the HealthAndArmingChecks will verify that for motors, a minimum amount of ESC current per throttle
+          level is being consumed.
+          Otherwise this indicates an motor failure.
+          This check only works for ESCs that report current consumption.
+      type: boolean
+      default: 0
+    MOTFAIL_C2T:
+      description:
+        short: Motor Failure Current/Throttle Scale
+        long: |-
+          Determines the slope between expected steady state current and linearized, normalized thrust command.
+          E.g. FD_ACT_MOT_C2T A represents the expected steady state current at 100%.
+          FD_ACT_LOW_OFF and FD_ACT_HIGH_OFF offset the threshold from that slope.
+      type: float
+      default: 35.0
+      min: 0.0
+      max: 50.0
+      unit: A/%
+      decimal: 2
+      increment: 1
+    MOTFAIL_LOW_OFF:
+      description:
+        short: Undercurrent motor failure limit offset
+        long: threshold = FD_ACT_MOT_C2T * thrust - FD_ACT_LOW_OFF
+      type: float
+      default: 10.0
+      min: 0
+      max: 30
+      unit: A
+      decimal: 2
+      increment: 1
+    MOTFAIL_HIGH_OFF:
+      description:
+        short: Overcurrent motor failure limit offset
+        long: threshold = FD_ACT_MOT_C2T * thrust + FD_ACT_HIGH_OFF
+      type: float
+      default: 10.0
+      min: 0
+      max: 30
+      unit: A
+      decimal: 2
+      increment: 1
+    MOTFAIL_TIME:
+      description:
+        short: Motor Failure Hysteresis Time
+        long: Motor failure only triggers after current thresholds are exceeded for
+          this time.
+      type: float
+      default: 1.0
+      unit: s
+      min: 0.01
+      max: 10
+      decimal: 2
+      increment: 1

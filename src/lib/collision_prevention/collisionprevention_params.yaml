@@ -1,0 +1,47 @@
+module_name: collision_prevention
+parameters:
+- group: Multicopter Position Control
+  definitions:
+    CP_DIST:
+      description:
+        short: Minimum distance the vehicle should keep to all obstacles
+        long: Only used in Position mode. Collision avoidance is disabled by setting
+          this parameter to a negative value
+      type: float
+      default: -1.0
+      min: -1
+      max: 15
+      unit: m
+    CP_DELAY:
+      description:
+        short: Range sensor and position controller average delay
+        long: |-
+          Average delay of the range sensor message plus the tracking delay of the position controller in seconds
+
+          Only used in Position mode.
+      type: float
+      default: 0.4
+      min: 0
+      max: 1
+      unit: s
+    CP_GUIDE_ANG:
+      description:
+        short: Collision prevention guidance angle
+        long: |-
+          Angle left/right from the commanded setpoint by which the collision prevention algorithm can choose to change the setpoint direction
+
+          Only used in Position mode.
+      type: float
+      default: 30.0
+      min: 0
+      max: 90
+      unit: deg
+    CP_GO_NO_DATA:
+      description:
+        short: Allow moving into directions without sensor data
+        long: |-
+          Boolean to allow moving into directions where there is no sensor data (outside FOV)
+
+          Only used in Position mode.
+      type: boolean
+      default: 0

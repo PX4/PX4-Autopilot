@@ -160,7 +160,7 @@ After the bootloader has updated you can [Load PX4 Firmware](../config/firmware.
 ## FMUv2 Bootloader Update
 
 If _QGroundControl_ installs the FMUv2 target (see console during installation), and you have a newer board, you may need to update the bootloader in order to access all the memory on your flight controller.
-This example explains how you can use [QGC Bootloader Update](qgc-bootloader-update-sys-bl-update) to update the bootloader.
+This example explains how you can use [QGC Bootloader Update](#qgc-bootloader-update-sys-bl-update) to update the bootloader.
 
 ::: info
 Early FMUv2 [Pixhawk-series](../flight_controller/pixhawk_series.md#fmu_versions) flight controllers had a [hardware issue](../flight_controller/silicon_errata.md#fmuv2-pixhawk-silicon-errata) that restricted them to using 1MB of flash memory.

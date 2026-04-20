@@ -110,7 +110,7 @@ Make sure to tune the attitude controller before attempting to tune TECS.
 스로틀을 높이면 속도가 증가하지만, 양력 증가로 인하여 높이도 증가합니다.
 따라서 제어 문제를 어렵게 만드는 두 개의 출력(대기 속도 및 고도)에 모두 영향을 미치는 두 개의 입력(피치 각도 및 스로틀)이 존재합니다.
 
-TECS는 원래 설정이 아닌 에너지 측면에서 문제를 표현하여 솔루션을 제공합니다.
+TECS offers a solution by representing the problem in terms of energies rather than the original setpoints.
 항공기의 총 에너지는 운동 에너지와 위치 에너지의 합입니다. 추력(스로틀 제어를 통해)은 항공기의 총 에너지를 증가시킵니다. 주어진 총 에너지 상태는 위치 에너지와 운동 에너지의 조합입니다.
 즉, 높은 고도에서 느린 속도로 비행하는 것은 총 에너지 측면에서 낮은 고도에서 더 빠른 속도로 비행하는 것과 동일합니다. 이를 특정 에너지 균형이라고 하며, 현재 고도와 실제 속도 설정값으로 계산합니다.
 특정 에너지 균형은 항공기 피치 각도를 통하여 제어됩니다.
@@ -164,6 +164,42 @@ $$\dot{B} = \gamma - \frac{\dot{V_T}}{g}$$
 
 ## 고정익 자세 콘트롤러
 
+### Setpoint modificaiton
+
+Most fixed-wing aircraft cannot generate a sustained yaw rate using the rudder alone. As a result, the yaw component of the quaternion attitude error should be removed before computing the control action.
+
+This is achieved by premultiplying the setpoint quaternion with a rotation about the global down axis. The additional rotation cancels the yaw component of the attitude error while preserving the roll and pitch components.
+
+The yaw offset is
+
+$$
+\psi =-2\frac{\hat{q}_0 q_3 - \hat{q}_1 q_2 + \hat{q}_2 q_1 -\hat{q}_3 q_0}
+{\hat{q}_0 q_0 - \hat{q}_1 q_1 - \hat{q}_2 q_2 + \hat{q}_3 q_3}
+$$
+
+The quaternion representing the yaw offset is
+
+$$
+ℚ_{\text{yaw}} =
+\operatorname{normalize}
+\left(
+\begin{bmatrix}
+1 \
+0 \
+0 \
+\frac{\psi}{2}
+\end{bmatrix}
+\right)
+$$
+
+The corrected setpoint quaternion is then obtained by applying the rotation
+
+$$
+ℚ_{\text{sp, corrected}} = ℚ_{\text{yaw}} \otimes ℚ_{sp}
+$$
+
+### Quaternion based attitude controller
+
 ![FW Attitude Controller Diagram](../../assets/diagrams/px4_fw_attitude_controller_diagram.png)
 
 <!-- The drawing is on draw.io: https://drive.google.com/file/d/1ibxekmtc6Ljq60DvNMplgnnU-JOvKYLQ/view?usp=sharing
@@ -186,12 +222,16 @@ If no airspeed sensor is used then gain scheduling for the FW attitude controlle
 
 ### Turn coordination
 
-롤 및 피치 컨트롤러는 동일한 구조를 가지며, 종방향 역학과 횡방향 역학은 독립적으로 작동하기에 충분히 분리되어 있다고 가정합니다.
-그러나, 요 콘트롤러는 항공기가 미끄러질 때 생성되는 측면 가속도를 최소화하기 위해 선회 조정 제약 조건을 사용하여 요 각속도 설정점을 계산합니다. The turn coordination algorithm is based solely on coordinated turn geometry calculation.
+The yaw rate setpoint is generated using the turn coordination constraint in order to minimize lateral acceleration, generated when the aircraft is slipping.
 
-$$\dot{\Psi}_{sp} = \frac{g}{V_T} \tan{\phi_{sp}} \cos{\theta_{sp}}$$
+$$r_{sp} = \frac{2g}{V_T}\left(q_0 q_1 + q_2 q_3\right)$$
 
-The yaw rate controller also helps to counteract [adverse yaw effects](https://youtu.be/sNV_SDDxuWk) and to damp the [Dutch roll mode](https://en.wikipedia.org/wiki/Dutch_roll) by providing extra directional damping.
+This also helps to counteract [adverse yaw effects](https://youtu.be/sNV_SDDxuWk) and to damp the [Dutch roll mode](https://en.wikipedia.org/wiki/Dutch_roll) by providing extra directional damping.
+
+To compensate for the non-zero pitch rate that naturally occurs during coordinated turns, a geometry-based feedforward term is added to the pitch-rate command.
+This feedforward term accounts for the aircraft's current attitude and airspeed so that the controller does not need to generate this motion purely through feedback.
+
+$$q_{sp}^{ff} = \frac{4g(q_0 q_1 + q_2 q_3)^2}{V(1 - 2q_1^2 - 2q_2^2)}$$
 
 ## VTOL 콘트롤러
 

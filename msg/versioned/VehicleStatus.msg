@@ -1,6 +1,6 @@
 # Encodes the system state of the vehicle published by commander
 
-uint32 MESSAGE_VERSION = 2
+uint32 MESSAGE_VERSION = 4
 
 uint64 timestamp # time since system start (microseconds)
 
@@ -65,20 +65,10 @@ uint8 NAVIGATION_STATE_MAX = 31
 uint8 executor_in_charge                        # Current mode executor in charge (0=Autopilot)
 uint8 nav_state_display                         # User-visible nav state sent via MAVLink (executor state if active, otherwise nav_state)
 
+bool accepts_offboard_setpoints                 # True if the current mode accepts offboard trajectory setpoints via MAVLink
+
 uint32 valid_nav_states_mask                    # Bitmask for all valid nav_state values
 uint32 can_set_nav_states_mask                  # Bitmask for all modes that a user can select
-
-# Bitmask of detected failures
-uint16 failure_detector_status
-uint16 FAILURE_NONE = 0
-uint16 FAILURE_ROLL = 1              # (1 << 0)
-uint16 FAILURE_PITCH = 2             # (1 << 1)
-uint16 FAILURE_ALT = 4               # (1 << 2)
-uint16 FAILURE_EXT = 8               # (1 << 3)
-uint16 FAILURE_ARM_ESC = 16          # (1 << 4)
-uint16 FAILURE_BATTERY = 32          # (1 << 5)
-uint16 FAILURE_IMBALANCED_PROP = 64  # (1 << 6)
-uint16 FAILURE_MOTOR = 128           # (1 << 7)
 
 uint8 hil_state
 uint8 HIL_STATE_OFF = 0

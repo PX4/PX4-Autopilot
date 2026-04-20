@@ -67,7 +67,7 @@ The consensus [appears to be](https://discuss.px4.io/t/vio-vs-optical-flow/34680
 
 Optical flow:
 
-- Downward facing optical flow gives you a planar velocity thats corrected for angular velocity with the gyro.
+- Downward facing optical flow gives you a planar velocity that's corrected for angular velocity with the gyro.
 - Requires an accurate distance to the ground and assumes a planar surface.
   Given those conditions it can be just as accurate/reliable as VIO (such as indoor flight)
 - Is more robust than VIO as it has fewer states.

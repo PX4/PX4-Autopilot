@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # LandingGearWheel (UORB message)
 
-**TOPICS:** landing_gearwheel
+**TOPICS:** landing_gear_wheel
 
 ## Fields
 

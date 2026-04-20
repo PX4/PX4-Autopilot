@@ -533,8 +533,7 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 		sensor_gps.vdop = msg.pdop;
 	}
 
-	// Use heading from RelPosHeading message if available and we have RTK Fixed solution.
-	if (_rel_heading_valid && (fix_type == sensor_gps_s::FIX_TYPE_RTK_FIXED)) {
+	if (_rel_heading_valid) {
 		sensor_gps.heading = _rel_heading;
 		sensor_gps.heading_offset = NAN;
 		sensor_gps.heading_accuracy = _rel_heading_accuracy;

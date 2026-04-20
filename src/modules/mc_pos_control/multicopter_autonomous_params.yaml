@@ -1,0 +1,132 @@
+module_name: mc_pos_control
+parameters:
+- group: Mission
+  definitions:
+    MPC_YAW_MODE:
+      description:
+        short: Heading behavior in autonomous modes
+      type: enum
+      values:
+        0: towards waypoint
+        1: towards home
+        2: away from home
+        3: along trajectory
+        4: towards waypoint (yaw first)
+        5: yaw fixed
+      default: 0
+      min: 0
+      max: 5
+- group: Multicopter Attitude Control
+  definitions:
+    MPC_YAWRAUTO_MAX:
+      description:
+        short: Maximum yaw rate in autonomous modes
+        long: |-
+          Limits the rate of change of the yaw setpoint to avoid large
+          control output and mixer saturation.
+      type: float
+      default: 60.0
+      unit: deg/s
+      min: 5
+      max: 360
+      decimal: 0
+      increment: 5
+    MPC_YAWRAUTO_ACC:
+      description:
+        short: Maximum yaw acceleration in autonomous modes
+        long: |-
+          Limits the acceleration of the yaw setpoint to avoid large
+          control output and mixer saturation.
+      type: float
+      default: 20.0
+      unit: deg/s^2
+      min: 5
+      max: 360
+      decimal: 0
+      increment: 5
+- group: Multicopter Position Control
+  definitions:
+    MPC_XY_CRUISE:
+      description:
+        short: Default horizontal velocity in autonomous modes
+        long: e.g. in Missions, RTL, Goto if the waypoint does not specify differently
+      type: float
+      default: 5.0
+      unit: m/s
+      min: 3
+      max: 20
+      decimal: 0
+      increment: 1
+    MPC_Z_V_AUTO_UP:
+      description:
+        short: Ascent velocity in autonomous modes
+        long: For manually controlled modes and offboard see MPC_Z_VEL_MAX_UP
+      type: float
+      default: 3.0
+      unit: m/s
+      min: 0.5
+      max: 8
+      decimal: 1
+      increment: 0.5
+    MPC_Z_V_AUTO_DN:
+      description:
+        short: Descent velocity in autonomous modes
+        long: For manual modes and offboard, see MPC_Z_VEL_MAX_DN
+      type: float
+      default: 1.5
+      unit: m/s
+      min: 0.5
+      max: 4
+      decimal: 1
+      increment: 0.5
+    MPC_ACC_HOR:
+      description:
+        short: Acceleration for autonomous and for manual modes
+        long: When piloting manually, this parameter is only used in MPC_POS_MODE
+          Acceleration based.
+      type: float
+      default: 3.0
+      unit: m/s^2
+      min: 2
+      max: 15
+      decimal: 1
+      increment: 1
+    MPC_JERK_AUTO:
+      description:
+        short: Jerk limit in autonomous modes
+        long: |-
+          Limit the maximum jerk of the vehicle (how fast the acceleration can change).
+          A lower value leads to smoother vehicle motions but also limited agility.
+      type: float
+      default: 4.0
+      unit: m/s^3
+      min: 1
+      max: 80
+      decimal: 1
+      increment: 1
+    MPC_XY_TRAJ_P:
+      description:
+        short: Proportional gain for horizontal trajectory position error
+      type: float
+      default: 0.5
+      min: 0.1
+      max: 1
+      decimal: 1
+      increment: 0.1
+    MPC_XY_ERR_MAX:
+      description:
+        short: Maximum horizontal error allowed by the trajectory generator
+        long: |-
+          The integration speed of the trajectory setpoint is linearly
+          reduced with the horizontal position tracking error. When the
+          error is above this parameter, the integration of the
+          trajectory is stopped to wait for the drone.
+
+          This value can be adjusted depending on the tracking
+          capabilities of the vehicle.
+      type: float
+      default: 2.0
+      min: 0.1
+      max: 10
+      decimal: 1
+      increment: 1

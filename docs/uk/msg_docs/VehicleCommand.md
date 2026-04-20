@@ -1052,6 +1052,20 @@ Actuator configuration command.
 | 6     |       |            | ?               |
 | 7     |       |            | ?               |
 
+### VEHICLE_CMD_ESC_REQUEST_EEPROM (312)
+
+Request EEPROM data from an ESC.
+
+| Param | Units | Range/Enum | Опис          |
+| ----- | ----- | ---------- | ------------- |
+| 1     |       |            | ESC Index     |
+| 2     |       |            | Firmware Type |
+| 3     |       |            | Unused        |
+| 4     |       |            | Unused        |
+| 5     |       |            | Unused        |
+| 6     |       |            | ?             |
+| 7     |       |            | ?             |
+
 ### VEHICLE_CMD_COMPONENT_ARM_DISARM (400)
 
 Arms / Disarms a component.
@@ -1444,6 +1458,20 @@ None
 | 6     |       |            | ?    |
 | 7     |       |            | ?    |
 
+### VEHICLE_CMD_ESTIMATOR_SENSOR_ENABLE (43006)
+
+Enable/disable estimator sensor fusion.
+
+| Param | Units | Range/Enum | Опис                                                                  |
+| ----- | ----- | ---------- | --------------------------------------------------------------------- |
+| 1     |       |            | Source (FUSION_SOURCE_\*)                          |
+| 2     |       |            | Sensor instance (0-based)                          |
+| 3     |       |            | Enable (1) or Disable (0)       |
+| 4     |       |            | Estimator Instance (NaN: not used) |
+| 5     |       |            | Пусто                                                                 |
+| 6     |       |            | Пусто                                                                 |
+| 7     |       |            | Пусто                                                                 |
+
 ### VEHICLE_CMD_PX4_INTERNAL_START (65537)
 
 Start of PX4 internal only vehicle commands (> UINT16_MAX).
@@ -1490,34 +1518,34 @@ Change mode by specifying nav_state directly.
 
 ### ORBIT_YAW_BEHAVIOUR {#ORBIT_YAW_BEHAVIOUR}
 
-| Назва                                                                                                                                                                                                                                                                | Тип     | Значення | Опис |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | -------- | ---- |
-| <a href="#ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TO_CIRCLE_CENTER"></a> ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TO_CIRCLE_CENTER   | `uint8` | 0        |      |
-| <a href="#ORBIT_YAW_BEHAVIOUR_HOLD_INITIAL_HEADING"></a> ORBIT_YAW_BEHAVIOUR_HOLD_INITIAL_HEADING                                                           | `uint8` | 1        |      |
-| <a href="#ORBIT_YAW_BEHAVIOUR_UNCONTROLLED"></a> ORBIT_YAW_BEHAVIOUR_UNCONTROLLED                                                                                                                     | `uint8` | 2        |      |
-| <a href="#ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TANGENT_TO_CIRCLE"></a> ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TANGENT_TO_CIRCLE | `uint8` | 3        |      |
-| <a href="#ORBIT_YAW_BEHAVIOUR_RC_CONTROLLED"></a> ORBIT_YAW_BEHAVIOUR_RC_CONTROLLED                                                                                              | `uint8` | 4        |      |
-| <a href="#ORBIT_YAW_BEHAVIOUR_UNCHANGED"></a> ORBIT_YAW_BEHAVIOUR_UNCHANGED                                                                                                                           | `uint8` | 5        |      |
+| Назва                                                                                                                                                                                                                                                              | Тип     | Значення | Опис |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------- | -------- | ---- |
+| <a id="#ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TO_CIRCLE_CENTER"></a> ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TO_CIRCLE_CENTER   | `uint8` | 0        |      |
+| <a id="#ORBIT_YAW_BEHAVIOUR_HOLD_INITIAL_HEADING"></a> ORBIT_YAW_BEHAVIOUR_HOLD_INITIAL_HEADING                                                           | `uint8` | 1        |      |
+| <a id="#ORBIT_YAW_BEHAVIOUR_UNCONTROLLED"></a> ORBIT_YAW_BEHAVIOUR_UNCONTROLLED                                                                                                                     | `uint8` | 2        |      |
+| <a id="#ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TANGENT_TO_CIRCLE"></a> ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TANGENT_TO_CIRCLE | `uint8` | 3        |      |
+| <a id="#ORBIT_YAW_BEHAVIOUR_RC_CONTROLLED"></a> ORBIT_YAW_BEHAVIOUR_RC_CONTROLLED                                                                                              | `uint8` | 4        |      |
+| <a id="#ORBIT_YAW_BEHAVIOUR_UNCHANGED"></a> ORBIT_YAW_BEHAVIOUR_UNCHANGED                                                                                                                           | `uint8` | 5        |      |
 
 ### VEHICLE_ROI {#VEHICLE_ROI}
 
-| Назва                                                                                                                    | Тип     | Значення | Опис                                         |
-| ------------------------------------------------------------------------------------------------------------------------ | ------- | -------- | -------------------------------------------- |
-| <a href="#VEHICLE_ROI_NONE"></a> VEHICLE_ROI_NONE                              | `uint8` | 0        | No region of interest.       |
-| <a href="#VEHICLE_ROI_WPNEXT"></a> VEHICLE_ROI_WPNEXT                          | `uint8` | 1        | Point toward next MISSION.   |
-| <a href="#VEHICLE_ROI_WPINDEX"></a> VEHICLE_ROI_WPINDEX                        | `uint8` | 2        | Point toward given MISSION.  |
-| <a href="#VEHICLE_ROI_LOCATION"></a> VEHICLE_ROI_LOCATION                      | `uint8` | 3        | Point toward fixed location. |
-| <a href="#VEHICLE_ROI_TARGET"></a> VEHICLE_ROI_TARGET                          | `uint8` | 4        | Point toward target.         |
-| <a href="#VEHICLE_ROI_ENUM_END"></a> VEHICLE_ROI_ENUM_END | `uint8` | 5        |                                              |
+| Назва                                                                                                                  | Тип     | Значення | Опис                                         |
+| ---------------------------------------------------------------------------------------------------------------------- | ------- | -------- | -------------------------------------------- |
+| <a id="#VEHICLE_ROI_NONE"></a> VEHICLE_ROI_NONE                              | `uint8` | 0        | No region of interest.       |
+| <a id="#VEHICLE_ROI_WPNEXT"></a> VEHICLE_ROI_WPNEXT                          | `uint8` | 1        | Point toward next MISSION.   |
+| <a id="#VEHICLE_ROI_WPINDEX"></a> VEHICLE_ROI_WPINDEX                        | `uint8` | 2        | Point toward given MISSION.  |
+| <a id="#VEHICLE_ROI_LOCATION"></a> VEHICLE_ROI_LOCATION                      | `uint8` | 3        | Point toward fixed location. |
+| <a id="#VEHICLE_ROI_TARGET"></a> VEHICLE_ROI_TARGET                          | `uint8` | 4        | Point toward target.         |
+| <a id="#VEHICLE_ROI_ENUM_END"></a> VEHICLE_ROI_ENUM_END | `uint8` | 5        |                                              |
 
 ### SPEED_TYPE {#SPEED_TYPE}
 
-| Назва                                                                                                                            | Тип     | Значення | Опис |
-| -------------------------------------------------------------------------------------------------------------------------------- | ------- | -------- | ---- |
-| <a href="#SPEED_TYPE_AIRSPEED"></a> SPEED_TYPE_AIRSPEED                                | `uint8` | 0        |      |
-| <a href="#SPEED_TYPE_GROUNDSPEED"></a> SPEED_TYPE_GROUNDSPEED                          | `uint8` | 1        |      |
-| <a href="#SPEED_TYPE_CLIMB_SPEED"></a> SPEED_TYPE_CLIMB_SPEED     | `uint8` | 2        |      |
-| <a href="#SPEED_TYPE_DESCEND_SPEED"></a> SPEED_TYPE_DESCEND_SPEED | `uint8` | 3        |      |
+| Назва                                                                                                                          | Тип     | Значення | Опис |
+| ------------------------------------------------------------------------------------------------------------------------------ | ------- | -------- | ---- |
+| <a id="#SPEED_TYPE_AIRSPEED"></a> SPEED_TYPE_AIRSPEED                                | `uint8` | 0        |      |
+| <a id="#SPEED_TYPE_GROUNDSPEED"></a> SPEED_TYPE_GROUNDSPEED                          | `uint8` | 1        |      |
+| <a id="#SPEED_TYPE_CLIMB_SPEED"></a> SPEED_TYPE_CLIMB_SPEED     | `uint8` | 2        |      |
+| <a id="#SPEED_TYPE_DESCEND_SPEED"></a> SPEED_TYPE_DESCEND_SPEED | `uint8` | 3        |      |
 
 ### MAV_MOUNT_MODE {#MAV_MOUNT_MODE}
 
@@ -1526,50 +1554,65 @@ Change mode by specifying nav_state directly.
 
 ## Constants
 
-| Назва                                                                                                                                                                         | Тип      | Значення | Опис                                                                                                                                                               |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                                                                                          | `uint32` | 0        |                                                                                                                                                                    |
-| <a href="#PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION"></a> PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION    | `uint16` | 3        | Param value for VEHICLE_CMD_PREFLIGHT_CALIBRATION to start temperature calibration. |
-| <a href="#VEHICLE_MOUNT_MODE_RETRACT"></a> VEHICLE_MOUNT_MODE_RETRACT                                          | `uint8`  | 0        | Load and keep safe position (Roll,Pitch,Yaw) from permanent memory and stop stabilization.                                      |
-| <a href="#VEHICLE_MOUNT_MODE_NEUTRAL"></a> VEHICLE_MOUNT_MODE_NEUTRAL                                          | `uint8`  | 1        | Load and keep neutral position (Roll,Pitch,Yaw) from permanent memory.                                                          |
-| <a href="#VEHICLE_MOUNT_MODE_MAVLINK_TARGETING"></a> VEHICLE_MOUNT_MODE_MAVLINK_TARGETING | `uint8`  | 2        | Load neutral position and start MAVLink Roll,Pitch,Yaw control with stabilization.                                                                 |
-| <a href="#VEHICLE_MOUNT_MODE_RC_TARGETING"></a> VEHICLE_MOUNT_MODE_RC_TARGETING           | `uint8`  | 3        | Load neutral position and start RC Roll,Pitch,Yaw control with stabilization.                                                                      |
-| <a href="#VEHICLE_MOUNT_MODE_GPS_POINT"></a> VEHICLE_MOUNT_MODE_GPS_POINT                 | `uint8`  | 4        | Load neutral position and start to point to Lat,Lon,Alt.                                                                                           |
-| <a href="#VEHICLE_MOUNT_MODE_ENUM_END"></a> VEHICLE_MOUNT_MODE_ENUM_END                   | `uint8`  | 5        |                                                                                                                                                                    |
-| <a href="#PARACHUTE_ACTION_DISABLE"></a> PARACHUTE_ACTION_DISABLE                                                                   | `uint8`  | 0        |                                                                                                                                                                    |
-| <a href="#PARACHUTE_ACTION_ENABLE"></a> PARACHUTE_ACTION_ENABLE                                                                     | `uint8`  | 1        |                                                                                                                                                                    |
-| <a href="#PARACHUTE_ACTION_RELEASE"></a> PARACHUTE_ACTION_RELEASE                                                                   | `uint8`  | 2        |                                                                                                                                                                    |
-| <a href="#FAILURE_UNIT_SENSOR_GYRO"></a> FAILURE_UNIT_SENSOR_GYRO                                              | `uint8`  | 0        |                                                                                                                                                                    |
-| <a href="#FAILURE_UNIT_SENSOR_ACCEL"></a> FAILURE_UNIT_SENSOR_ACCEL                                            | `uint8`  | 1        |                                                                                                                                                                    |
-| <a href="#FAILURE_UNIT_SENSOR_MAG"></a> FAILURE_UNIT_SENSOR_MAG                                                | `uint8`  | 2        |                                                                                                                                                                    |
-| <a href="#FAILURE_UNIT_SENSOR_BARO"></a> FAILURE_UNIT_SENSOR_BARO                                              | `uint8`  | 3        |                                                                                                                                                                    |
-| <a href="#FAILURE_UNIT_SENSOR_GPS"></a> FAILURE_UNIT_SENSOR_GPS                                                | `uint8`  | 4        |                                                                                                                                                                    |
-| <a href="#FAILURE_UNIT_SENSOR_OPTICAL_FLOW"></a> FAILURE_UNIT_SENSOR_OPTICAL_FLOW         | `uint8`  | 5        |                                                                                                                                                                    |
-| <a href="#FAILURE_UNIT_SENSOR_VIO"></a> FAILURE_UNIT_SENSOR_VIO                                                | `uint8`  | 6        |                                                                                                                                                                    |
-| <a href="#FAILURE_UNIT_SENSOR_DISTANCE_SENSOR"></a> FAILURE_UNIT_SENSOR_DISTANCE_SENSOR   | `uint8`  | 7        |                                                                                                                                                                    |
-| <a href="#FAILURE_UNIT_SENSOR_AIRSPEED"></a> FAILURE_UNIT_SENSOR_AIRSPEED                                      | `uint8`  | 8        |                                                                                                                                                                    |
-| <a href="#FAILURE_UNIT_SYSTEM_BATTERY"></a> FAILURE_UNIT_SYSTEM_BATTERY                                        | `uint8`  | 100      |                                                                                                                                                                    |
-| <a href="#FAILURE_UNIT_SYSTEM_MOTOR"></a> FAILURE_UNIT_SYSTEM_MOTOR                                            | `uint8`  | 101      |                                                                                                                                                                    |
-| <a href="#FAILURE_UNIT_SYSTEM_SERVO"></a> FAILURE_UNIT_SYSTEM_SERVO                                            | `uint8`  | 102      |                                                                                                                                                                    |
-| <a href="#FAILURE_UNIT_SYSTEM_AVOIDANCE"></a> FAILURE_UNIT_SYSTEM_AVOIDANCE                                    | `uint8`  | 103      |                                                                                                                                                                    |
-| <a href="#FAILURE_UNIT_SYSTEM_RC_SIGNAL"></a> FAILURE_UNIT_SYSTEM_RC_SIGNAL               | `uint8`  | 104      |                                                                                                                                                                    |
-| <a href="#FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL"></a> FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL     | `uint8`  | 105      |                                                                                                                                                                    |
-| <a href="#FAILURE_TYPE_OK"></a> FAILURE_TYPE_OK                                                                                     | `uint8`  | 0        |                                                                                                                                                                    |
-| <a href="#FAILURE_TYPE_OFF"></a> FAILURE_TYPE_OFF                                                                                   | `uint8`  | 1        |                                                                                                                                                                    |
-| <a href="#FAILURE_TYPE_STUCK"></a> FAILURE_TYPE_STUCK                                                                               | `uint8`  | 2        |                                                                                                                                                                    |
-| <a href="#FAILURE_TYPE_GARBAGE"></a> FAILURE_TYPE_GARBAGE                                                                           | `uint8`  | 3        |                                                                                                                                                                    |
-| <a href="#FAILURE_TYPE_WRONG"></a> FAILURE_TYPE_WRONG                                                                               | `uint8`  | 4        |                                                                                                                                                                    |
-| <a href="#FAILURE_TYPE_SLOW"></a> FAILURE_TYPE_SLOW                                                                                 | `uint8`  | 5        |                                                                                                                                                                    |
-| <a href="#FAILURE_TYPE_DELAYED"></a> FAILURE_TYPE_DELAYED                                                                           | `uint8`  | 6        |                                                                                                                                                                    |
-| <a href="#FAILURE_TYPE_INTERMITTENT"></a> FAILURE_TYPE_INTERMITTENT                                                                 | `uint8`  | 7        |                                                                                                                                                                    |
-| <a href="#ARMING_ACTION_DISARM"></a> ARMING_ACTION_DISARM                                                                           | `int8`   | 0        |                                                                                                                                                                    |
-| <a href="#ARMING_ACTION_ARM"></a> ARMING_ACTION_ARM                                                                                 | `int8`   | 1        |                                                                                                                                                                    |
-| <a href="#GRIPPER_ACTION_RELEASE"></a> GRIPPER_ACTION_RELEASE                                                                       | `uint8`  | 0        |                                                                                                                                                                    |
-| <a href="#GRIPPER_ACTION_GRAB"></a> GRIPPER_ACTION_GRAB                                                                             | `uint8`  | 1        |                                                                                                                                                                    |
-| <a href="#SAFETY_OFF"></a> SAFETY_OFF                                                                                                                    | `uint8`  | 0        |                                                                                                                                                                    |
-| <a href="#SAFETY_ON"></a> SAFETY_ON                                                                                                                      | `uint8`  | 1        |                                                                                                                                                                    |
-| <a href="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH                                                                                   | `uint8`  | 8        |                                                                                                                                                                    |
-| <a href="#COMPONENT_MODE_EXECUTOR_START"></a> COMPONENT_MODE_EXECUTOR_START                                    | `uint16` | 1000     |                                                                                                                                                                    |
+| Назва                                                                                                                                                                       | Тип      | Значення | Опис                                                                                                                                                               |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                                                                                          | `uint32` | 0        |                                                                                                                                                                    |
+| <a id="#PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION"></a> PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION    | `uint16` | 3        | Param value for VEHICLE_CMD_PREFLIGHT_CALIBRATION to start temperature calibration. |
+| <a id="#FUSION_SOURCE_GPS"></a> FUSION_SOURCE_GPS                                                                                 | `uint8`  | 0        | GNSS (EKF2_GPS{i}\_CTRL, use instance param)                                                         |
+| <a id="#FUSION_SOURCE_OF"></a> FUSION_SOURCE_OF                                                                                   | `uint8`  | 1        | Optical Flow (EKF2_OF_CTRL)                                                                           |
+| <a id="#FUSION_SOURCE_EV"></a> FUSION_SOURCE_EV                                                                                   | `uint8`  | 2        | External Vision (EKF2_EV_CTRL)                                                                        |
+| <a id="#FUSION_SOURCE_AGP"></a> FUSION_SOURCE_AGP                                                                                 | `uint8`  | 3        | Auxiliary Global Position (EKF2_AGP{i}\_CTRL, use instance param)                                    |
+| <a id="#FUSION_SOURCE_BARO"></a> FUSION_SOURCE_BARO                                                                               | `uint8`  | 4        | Barometer (EKF2_BARO_CTRL)                                                                            |
+| <a id="#FUSION_SOURCE_RNG"></a> FUSION_SOURCE_RNG                                                                                 | `uint8`  | 5        | Range Finder (EKF2_RNG_CTRL)                                                                          |
+| <a id="#FUSION_SOURCE_MAG"></a> FUSION_SOURCE_MAG                                                                                 | `uint8`  | 6        | Magnetometer (EKF2_MAG_TYPE)                                                                          |
+| <a id="#FUSION_SOURCE_ASPD"></a> FUSION_SOURCE_ASPD                                                                               | `uint8`  | 7        | Airspeed (EKF2_ARSP_THR)                                                                              |
+| <a id="#FUSION_SOURCE_RNGBCN"></a> FUSION_SOURCE_RNGBCN                                                                           | `uint8`  | 8        | Ranging Beacon                                                                                                                                                     |
+| <a id="#VEHICLE_MOUNT_MODE_RETRACT"></a> VEHICLE_MOUNT_MODE_RETRACT                                          | `uint8`  | 0        | Load and keep safe position (Roll,Pitch,Yaw) from permanent memory and stop stabilization.                                      |
+| <a id="#VEHICLE_MOUNT_MODE_NEUTRAL"></a> VEHICLE_MOUNT_MODE_NEUTRAL                                          | `uint8`  | 1        | Load and keep neutral position (Roll,Pitch,Yaw) from permanent memory.                                                          |
+| <a id="#VEHICLE_MOUNT_MODE_MAVLINK_TARGETING"></a> VEHICLE_MOUNT_MODE_MAVLINK_TARGETING | `uint8`  | 2        | Load neutral position and start MAVLink Roll,Pitch,Yaw control with stabilization.                                                                 |
+| <a id="#VEHICLE_MOUNT_MODE_RC_TARGETING"></a> VEHICLE_MOUNT_MODE_RC_TARGETING           | `uint8`  | 3        | Load neutral position and start RC Roll,Pitch,Yaw control with stabilization.                                                                      |
+| <a id="#VEHICLE_MOUNT_MODE_GPS_POINT"></a> VEHICLE_MOUNT_MODE_GPS_POINT                 | `uint8`  | 4        | Load neutral position and start to point to Lat,Lon,Alt.                                                                                           |
+| <a id="#VEHICLE_MOUNT_MODE_ENUM_END"></a> VEHICLE_MOUNT_MODE_ENUM_END                   | `uint8`  | 5        |                                                                                                                                                                    |
+| <a id="#ACTUATOR_CONFIGURATION_NONE"></a> ACTUATOR_CONFIGURATION_NONE                                                             | `uint8`  | 0        | Do nothing.                                                                                                                                        |
+| <a id="#ACTUATOR_CONFIGURATION_BEEP"></a> ACTUATOR_CONFIGURATION_BEEP                                                             | `uint8`  | 1        | Command the actuator to beep now.                                                                                                                  |
+| <a id="#ACTUATOR_CONFIGURATION_3D_MODE_ON"></a> ACTUATOR_CONFIGURATION_3D_MODE_ON       | `uint8`  | 2        | Permanently set the actuator (ESC) to 3D mode (reversible thrust).                                           |
+| <a id="#ACTUATOR_CONFIGURATION_3D_MODE_OFF"></a> ACTUATOR_CONFIGURATION_3D_MODE_OFF     | `uint8`  | 3        | Permanently set the actuator (ESC) to non 3D mode (non-reversible thrust).                                   |
+| <a id="#ACTUATOR_CONFIGURATION_SPIN_DIRECTION1"></a> ACTUATOR_CONFIGURATION_SPIN_DIRECTION1                  | `uint8`  | 4        | Permanently set the actuator (ESC) to spin direction 1 (which can be clockwise or counter-clockwise).        |
+| <a id="#ACTUATOR_CONFIGURATION_SPIN_DIRECTION2"></a> ACTUATOR_CONFIGURATION_SPIN_DIRECTION2                  | `uint8`  | 5        | Permanently set the actuator (ESC) to spin direction 2 (opposite of direction 1).                            |
+| <a id="#PARACHUTE_ACTION_DISABLE"></a> PARACHUTE_ACTION_DISABLE                                                                   | `uint8`  | 0        |                                                                                                                                                                    |
+| <a id="#PARACHUTE_ACTION_ENABLE"></a> PARACHUTE_ACTION_ENABLE                                                                     | `uint8`  | 1        |                                                                                                                                                                    |
+| <a id="#PARACHUTE_ACTION_RELEASE"></a> PARACHUTE_ACTION_RELEASE                                                                   | `uint8`  | 2        |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_SENSOR_GYRO"></a> FAILURE_UNIT_SENSOR_GYRO                                              | `uint8`  | 0        |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_SENSOR_ACCEL"></a> FAILURE_UNIT_SENSOR_ACCEL                                            | `uint8`  | 1        |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_SENSOR_MAG"></a> FAILURE_UNIT_SENSOR_MAG                                                | `uint8`  | 2        |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_SENSOR_BARO"></a> FAILURE_UNIT_SENSOR_BARO                                              | `uint8`  | 3        |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_SENSOR_GPS"></a> FAILURE_UNIT_SENSOR_GPS                                                | `uint8`  | 4        |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_SENSOR_OPTICAL_FLOW"></a> FAILURE_UNIT_SENSOR_OPTICAL_FLOW         | `uint8`  | 5        |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_SENSOR_VIO"></a> FAILURE_UNIT_SENSOR_VIO                                                | `uint8`  | 6        |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_SENSOR_DISTANCE_SENSOR"></a> FAILURE_UNIT_SENSOR_DISTANCE_SENSOR   | `uint8`  | 7        |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_SENSOR_AIRSPEED"></a> FAILURE_UNIT_SENSOR_AIRSPEED                                      | `uint8`  | 8        |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_SYSTEM_BATTERY"></a> FAILURE_UNIT_SYSTEM_BATTERY                                        | `uint8`  | 100      |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_SYSTEM_MOTOR"></a> FAILURE_UNIT_SYSTEM_MOTOR                                            | `uint8`  | 101      |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_SYSTEM_SERVO"></a> FAILURE_UNIT_SYSTEM_SERVO                                            | `uint8`  | 102      |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_SYSTEM_AVOIDANCE"></a> FAILURE_UNIT_SYSTEM_AVOIDANCE                                    | `uint8`  | 103      |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_SYSTEM_RC_SIGNAL"></a> FAILURE_UNIT_SYSTEM_RC_SIGNAL               | `uint8`  | 104      |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL"></a> FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL     | `uint8`  | 105      |                                                                                                                                                                    |
+| <a id="#FAILURE_TYPE_OK"></a> FAILURE_TYPE_OK                                                                                     | `uint8`  | 0        |                                                                                                                                                                    |
+| <a id="#FAILURE_TYPE_OFF"></a> FAILURE_TYPE_OFF                                                                                   | `uint8`  | 1        |                                                                                                                                                                    |
+| <a id="#FAILURE_TYPE_STUCK"></a> FAILURE_TYPE_STUCK                                                                               | `uint8`  | 2        |                                                                                                                                                                    |
+| <a id="#FAILURE_TYPE_GARBAGE"></a> FAILURE_TYPE_GARBAGE                                                                           | `uint8`  | 3        |                                                                                                                                                                    |
+| <a id="#FAILURE_TYPE_WRONG"></a> FAILURE_TYPE_WRONG                                                                               | `uint8`  | 4        |                                                                                                                                                                    |
+| <a id="#FAILURE_TYPE_SLOW"></a> FAILURE_TYPE_SLOW                                                                                 | `uint8`  | 5        |                                                                                                                                                                    |
+| <a id="#FAILURE_TYPE_DELAYED"></a> FAILURE_TYPE_DELAYED                                                                           | `uint8`  | 6        |                                                                                                                                                                    |
+| <a id="#FAILURE_TYPE_INTERMITTENT"></a> FAILURE_TYPE_INTERMITTENT                                                                 | `uint8`  | 7        |                                                                                                                                                                    |
+| <a id="#ARMING_ACTION_DISARM"></a> ARMING_ACTION_DISARM                                                                           | `int8`   | 0        |                                                                                                                                                                    |
+| <a id="#ARMING_ACTION_ARM"></a> ARMING_ACTION_ARM                                                                                 | `int8`   | 1        |                                                                                                                                                                    |
+| <a id="#GRIPPER_ACTION_RELEASE"></a> GRIPPER_ACTION_RELEASE                                                                       | `uint8`  | 0        |                                                                                                                                                                    |
+| <a id="#GRIPPER_ACTION_GRAB"></a> GRIPPER_ACTION_GRAB                                                                             | `uint8`  | 1        |                                                                                                                                                                    |
+| <a id="#SAFETY_OFF"></a> SAFETY_OFF                                                                                                                    | `uint8`  | 0        |                                                                                                                                                                    |
+| <a id="#SAFETY_ON"></a> SAFETY_ON                                                                                                                      | `uint8`  | 1        |                                                                                                                                                                    |
+| <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH                                                                                   | `uint8`  | 8        |                                                                                                                                                                    |
+| <a id="#COMPONENT_MODE_EXECUTOR_START"></a> COMPONENT_MODE_EXECUTOR_START                                    | `uint16` | 1000     |                                                                                                                                                                    |
 
 ## Source Message
 
@@ -1661,6 +1704,7 @@ uint16 VEHICLE_CMD_GIMBAL_DEVICE_INFORMATION = 283 # Command to ask information 
 uint16 VEHICLE_CMD_MISSION_START = 300 # Start running a mission. |first_item: the first mission item to run|last_item: the last mission item to run (after this item is run, the mission ends)|
 uint16 VEHICLE_CMD_ACTUATOR_TEST = 310 # Actuator testing command. |[@range -1,1] value|[s] timeout|Unused|Unused|output function|
 uint16 VEHICLE_CMD_CONFIGURE_ACTUATOR = 311 # Actuator configuration command. |configuration|Unused|Unused|Unused|output function|
+uint16 VEHICLE_CMD_ESC_REQUEST_EEPROM = 312 # Request EEPROM data from an ESC. |ESC Index|Firmware Type|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_COMPONENT_ARM_DISARM = 400 # Arms / Disarms a component. |1 to arm, 0 to disarm.
 uint16 VEHICLE_CMD_RUN_PREARM_CHECKS = 401 # Instructs a target system to run pre-arm checks.
 uint16 VEHICLE_CMD_INJECT_FAILURE = 420 # Inject artificial failure for testing purposes.
@@ -1690,6 +1734,17 @@ uint16 VEHICLE_CMD_DO_WINCH = 42600 # Command to operate winch.
 
 uint16 VEHICLE_CMD_EXTERNAL_POSITION_ESTIMATE = 43003 # External reset of estimator global position when dead reckoning.
 uint16 VEHICLE_CMD_EXTERNAL_WIND_ESTIMATE = 43004
+uint16 VEHICLE_CMD_ESTIMATOR_SENSOR_ENABLE = 43006 # Enable/disable estimator sensor fusion. |Source (FUSION_SOURCE_*)|Sensor instance (0-based)|Enable (1) or Disable (0)|Estimator Instance (NaN: not used)|Empty|Empty|Empty|
+# Sensor fusion source types for VEHICLE_CMD_ESTIMATOR_SENSOR_ENABLE
+uint8 FUSION_SOURCE_GPS = 0   # GNSS (EKF2_GPS{i}_CTRL, use instance param)
+uint8 FUSION_SOURCE_OF = 1    # Optical Flow (EKF2_OF_CTRL)
+uint8 FUSION_SOURCE_EV = 2    # External Vision (EKF2_EV_CTRL)
+uint8 FUSION_SOURCE_AGP = 3   # Auxiliary Global Position (EKF2_AGP{i}_CTRL, use instance param)
+uint8 FUSION_SOURCE_BARO = 4  # Barometer (EKF2_BARO_CTRL)
+uint8 FUSION_SOURCE_RNG = 5   # Range Finder (EKF2_RNG_CTRL)
+uint8 FUSION_SOURCE_MAG = 6   # Magnetometer (EKF2_MAG_TYPE)
+uint8 FUSION_SOURCE_ASPD = 7  # Airspeed (EKF2_ARSP_THR)
+uint8 FUSION_SOURCE_RNGBCN = 8 # Ranging Beacon
 
 # PX4 vehicle commands (beyond 16 bit MAVLink commands).
 uint32 VEHICLE_CMD_PX4_INTERNAL_START = 65537 # Start of PX4 internal only vehicle commands (> UINT16_MAX).
@@ -1709,6 +1764,13 @@ uint8 VEHICLE_ROI_WPINDEX = 2 # Point toward given MISSION.
 uint8 VEHICLE_ROI_LOCATION = 3 # Point toward fixed location.
 uint8 VEHICLE_ROI_TARGET = 4 # Point toward target.
 uint8 VEHICLE_ROI_ENUM_END = 5
+
+uint8 ACTUATOR_CONFIGURATION_NONE = 0 # Do nothing.
+uint8 ACTUATOR_CONFIGURATION_BEEP = 1 # Command the actuator to beep now.
+uint8 ACTUATOR_CONFIGURATION_3D_MODE_ON = 2 # Permanently set the actuator (ESC) to 3D mode (reversible thrust).
+uint8 ACTUATOR_CONFIGURATION_3D_MODE_OFF = 3 # Permanently set the actuator (ESC) to non 3D mode (non-reversible thrust).
+uint8 ACTUATOR_CONFIGURATION_SPIN_DIRECTION1 = 4 # Permanently set the actuator (ESC) to spin direction 1 (which can be clockwise or counter-clockwise).
+uint8 ACTUATOR_CONFIGURATION_SPIN_DIRECTION2 = 5 # Permanently set the actuator (ESC) to spin direction 2 (opposite of direction 1).
 
 uint8 PARACHUTE_ACTION_DISABLE = 0
 uint8 PARACHUTE_ACTION_ENABLE = 1

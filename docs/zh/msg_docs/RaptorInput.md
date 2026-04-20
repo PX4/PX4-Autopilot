@@ -23,10 +23,10 @@ Raptor Input.
 
 ## Constants
 
-| 参数名                                                                  | 类型       | 值 | 描述                                                               |
-| -------------------------------------------------------------------- | -------- | - | ---------------------------------------------------------------- |
-| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 0 |                                                                  |
-| <a href="#ACTION_DIM"></a> ACTION_DIM           | `uint8`  | 4 | Policy output dimensionality (for quadrotors) |
+| 参数名                                                                | 类型       | 值 | 描述                                                               |
+| ------------------------------------------------------------------ | -------- | - | ---------------------------------------------------------------- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 0 |                                                                  |
+| <a id="#ACTION_DIM"></a> ACTION_DIM           | `uint8`  | 4 | Policy output dimensionality (for quadrotors) |
 
 ## Source Message
 

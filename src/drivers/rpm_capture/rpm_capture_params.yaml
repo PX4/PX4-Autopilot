@@ -1,0 +1,21 @@
+module_name: rpm_capture
+parameters:
+- group: System
+  definitions:
+    RPM_CAP_ENABLE:
+      description:
+        short: RPM capture enable
+        long: Enables the RPM capture module to estimate RPM from pulses detected
+          on a PWM pin configured as "RPM Input".
+      type: boolean
+      default: 0
+      reboot_required: true
+    RPM_PULS_PER_REV:
+      description:
+        short: Voltage pulses per revolution
+        long: Number of voltage pulses per one rotor revolution on the capturing pin.
+      type: int32
+      default: 1
+      min: 1
+      max: 50
+      reboot_required: true

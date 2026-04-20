@@ -32,6 +32,8 @@
  ****************************************************************************/
 
 #include "FixedwingAttitudeControl.hpp"
+#include <lib/geo/geo.h>
+
 
 using namespace time_literals;
 using namespace matrix;
@@ -72,14 +74,9 @@ FixedwingAttitudeControl::init()
 void
 FixedwingAttitudeControl::parameters_update()
 {
-	_roll_ctrl.set_time_constant(_param_fw_r_tc.get());
-	_roll_ctrl.set_max_rate(radians(_param_fw_r_rmax.get()));
-
-	_pitch_ctrl.set_time_constant(_param_fw_p_tc.get());
-	_pitch_ctrl.set_max_rate_pos(radians(_param_fw_p_rmax_pos.get()));
-	_pitch_ctrl.set_max_rate_neg(radians(_param_fw_p_rmax_neg.get()));
-
-	_yaw_ctrl.set_max_rate(radians(_param_fw_y_rmax.get()));
+	_proportional_gain = matrix::Vector3f(1.0f / math::max(0.01f, _param_fw_r_tc.get()),
+					      1.0f / math::max(0.01f, _param_fw_p_tc.get()),
+					      1.0f);
 
 	_wheel_ctrl.set_k_p(_param_fw_wr_p.get());
 	_wheel_ctrl.set_k_i(_param_fw_wr_i.get());
@@ -99,7 +96,7 @@ FixedwingAttitudeControl::vehicle_manual_poll(const float yaw_body)
 
 			if (!_vcontrol_mode.flag_control_climb_rate_enabled && _vcontrol_mode.flag_control_attitude_enabled) {
 
-				// STABILIZED mode generate the attitude setpoint from manual user inputs
+				// STABILIZED mode: setpoint generation
 
 				const float roll_body = _manual_control_setpoint.roll * radians(_param_fw_man_r_max.get());
 
@@ -108,10 +105,13 @@ FixedwingAttitudeControl::vehicle_manual_poll(const float yaw_body)
 				pitch_body = constrain(pitch_body,
 						       -radians(_param_fw_man_p_max.get()), radians(_param_fw_man_p_max.get()));
 
-				_att_sp.thrust_body[0] = (_manual_control_setpoint.throttle + 1.f) * .5f;
+				const Quatf q_sp_rp = Eulerf(roll_body, pitch_body, 0.f);
+				const Quatf q_sp_yaw(cosf(yaw_body / 2.f), 0.f, 0.f, sinf(yaw_body / 2.f));
+				Quatf q = q_sp_yaw * q_sp_rp;
 
-				const Quatf q(Eulerf(roll_body, pitch_body, yaw_body));
 				q.copyTo(_att_sp.q_d);
+
+				_att_sp.thrust_body[0] = (_manual_control_setpoint.throttle + 1.f) * .5f;
 
 				_att_sp.timestamp = hrt_absolute_time();
 
@@ -207,7 +207,6 @@ void FixedwingAttitudeControl::Run()
 			dt = math::constrain((att.timestamp_sample - _last_run) * 1e-6f, DT_MIN, DT_MAX);
 			_last_run = att.timestamp_sample;
 
-			// get current rotation matrix and euler angles from control state quaternions
 			_R = matrix::Quatf(att.q);
 		}
 
@@ -299,20 +298,29 @@ void FixedwingAttitudeControl::Run()
 				const Quatf q_sp(_att_sp.q_d);
 
 				if (q_sp.isAllFinite()) {
-					const Eulerf euler_sp(q_sp);
-					const float roll_sp = euler_sp.phi();
-					const float pitch_sp = euler_sp.theta();
+					const Quatf q_current(att.q);
+					const Vector3f att_err = computeAttitudeError(q_current, q_sp);
 
-					_roll_ctrl.control_roll(roll_sp, _yaw_ctrl.get_euler_rate_setpoint(), euler_angles.phi(),
-								euler_angles.theta());
-					_pitch_ctrl.control_pitch(pitch_sp, _yaw_ctrl.get_euler_rate_setpoint(), euler_angles.phi(),
-								  euler_angles.theta());
-					_yaw_ctrl.control_yaw(roll_sp, _pitch_ctrl.get_euler_rate_setpoint(), euler_angles.phi(),
-							      euler_angles.theta(), get_airspeed_constrained());
+					Vector3f body_rates_setpoint;
+					body_rates_setpoint = _proportional_gain.emult(att_err);
 
-					/* Update input data for rate controllers */
-					Vector3f body_rates_setpoint = Vector3f(_roll_ctrl.get_body_rate_setpoint(), _pitch_ctrl.get_body_rate_setpoint(),
-										_yaw_ctrl.get_body_rate_setpoint());
+					// Turn coordination
+					const float V = math::max(get_airspeed_constrained(), 0.1f);
+					const float q1 = 2.f * (q_current(0) * q_current(1) + q_current(2) * q_current(3)); // equivalent to 2.f * sin(roll) * cos(pitch)
+					const float yawrate_ff = CONSTANTS_ONE_G * q1 / V;
+					const float pitchrate_ff = q1 * yawrate_ff / (1.f - 2.f * q_current(1) * q_current(1) - 2.f * q_current(2) * q_current(2));
+
+					// Limit turn coordination to normal flight envelope
+					const float cos_tilt = 1.f - 2.f * (q_current(1) * q_current(1) + q_current(2) * q_current(2));
+					const float tilt = acosf(math::constrain((cos_tilt), -1.f, 1.f));
+					const float ff_scale = math::interpolate(tilt, radians(70.f), radians(75.f), 1.f, 0.f);
+
+					body_rates_setpoint(1) += ff_scale * pitchrate_ff;
+					body_rates_setpoint(2) += ff_scale * yawrate_ff;
+
+					body_rates_setpoint(0) = math::constrain(body_rates_setpoint(0), -radians(_param_fw_r_rmax.get()), radians(_param_fw_r_rmax.get()));
+					body_rates_setpoint(1) = math::constrain(body_rates_setpoint(1), -radians(_param_fw_p_rmax_neg.get()), radians(_param_fw_p_rmax_pos.get()));
+					body_rates_setpoint(2) = math::constrain(body_rates_setpoint(2), -radians(_param_fw_y_rmax.get()), radians(_param_fw_y_rmax.get()));
 
 					autotune_attitude_control_status_s pid_autotune;
 					matrix::Vector3f bodyrate_autotune_ff;

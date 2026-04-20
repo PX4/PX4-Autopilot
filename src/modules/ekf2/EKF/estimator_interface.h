@@ -89,7 +89,7 @@ public:
 	void setIMUData(const imuSample &imu_sample);
 
 #if defined(CONFIG_EKF2_GNSS)
-	void setGpsData(const gnssSample &gnss_sample, const bool pps_compensation = false);
+	void setGpsData(const gnssSample &gnss_sample);
 
 	const gnssSample &get_gps_sample_delayed() const { return _gps_sample_delayed; }
 
@@ -146,11 +146,16 @@ public:
 	void setAuxVelData(const auxVelSample &auxvel_sample);
 #endif // CONFIG_EKF2_AUXVEL
 
+#if defined(CONFIG_EKF2_RANGING_BEACON)
+	void setRangingBeaconData(const rangingBeaconSample &ranging_beacon_sample);
+#endif // CONFIG_EKF2_RANGING_BEACON
+
 	void setSystemFlagData(const systemFlagUpdate &system_flags);
 
 	// return a address to the parameters struct
 	// in order to give access to the application
 	parameters *getParamHandle() { return &_params; }
+	FusionControl *getFusionControlHandle() { return &_fc; }
 
 	// set vehicle landed status data
 	void set_in_air_status(bool in_air)
@@ -197,7 +202,7 @@ public:
 	// set vehicle is fixed wing status
 	void set_is_fixed_wing(bool is_fixed_wing) { _control_status.flags.fixed_wing = is_fixed_wing; }
 
-	void set_in_transition_to_fw(bool in_transition) { _control_status.flags.in_transition_to_fw = in_transition; }
+	void set_in_transition(bool in_transition) { _control_status.flags.in_transition = in_transition; }
 
 	// set flag if static pressure rise due to ground effect is expected
 	// use _params.ekf2_gnd_eff_dz to adjust for expected rise in static pressure
@@ -332,6 +337,7 @@ protected:
 	virtual bool init(uint64_t timestamp) = 0;
 
 	parameters _params{};		// filter parameters
+	FusionControl _fc{};
 
 	/*
 	 OBS_BUFFER_LENGTH defines how many observations (non-IMU measurements) we can buffer
@@ -453,6 +459,11 @@ protected:
 	TimestampedRingBuffer<auxVelSample> *_auxvel_buffer {nullptr};
 #endif // CONFIG_EKF2_AUXVEL
 	TimestampedRingBuffer<systemFlagUpdate> *_system_flag_buffer {nullptr};
+
+#if defined(CONFIG_EKF2_RANGING_BEACON)
+	TimestampedRingBuffer<rangingBeaconSample> *_ranging_beacon_buffer {nullptr};
+	uint64_t _time_last_ranging_beacon_buffer_push{0};
+#endif // CONFIG_EKF2_RANGING_BEACON
 
 #if defined(CONFIG_EKF2_BAROMETER)
 	TimestampedRingBuffer<baroSample> *_baro_buffer {nullptr};

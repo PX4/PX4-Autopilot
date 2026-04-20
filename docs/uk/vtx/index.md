@@ -86,7 +86,8 @@ vtxtable save
 
 This will create a VTX table with 5 power levels.
 
-```nsh> vtxtable status
+```sh
+nsh> vtxtable status
 INFO  [vtxtable] VTX table "Peak THOR T67":
 INFO  [vtxtable] Power levels:
 INFO  [vtxtable]   1:  0 = 25

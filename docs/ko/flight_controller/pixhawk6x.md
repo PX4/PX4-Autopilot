@@ -160,7 +160,7 @@ The Pixhawk®​ 6X is perfect for developers at corporate research labs, startu
 - 기타 특성:
   - Operating & storage temperature: -40 ~ 85°c
 
-## 구매처
+## Where to Buy {#store}
 
 Order from [Holybro](https://holybro.com/products/pixhawk-6x).
 
@@ -180,7 +180,7 @@ Sample Wiring Diagram
 - [Holybro Pixhawk Jetson Baseboard](https://docs.holybro.com/autopilot/pixhawk-baseboards/pixhawk-jetson-baseboard)
 - [Holybro Pixhawk RPi CM4 Baseboard](https://docs.holybro.com/autopilot/pixhawk-baseboards/pixhawk-rpi-cm4-baseboard)
 
-참고:
+Notes:
 
 - The [camera capture pin](../camera/fc_connected_camera.md#camera-capture-configuration) (`PI0`) is pin 2 on the AD&IO port, marked above as `FMU_CAP1`.
 
@@ -215,7 +215,7 @@ The **POWER1** & **POWER2** ports on the Pixhawk 6X uses the 6 circuit [2.00mm P
 
 **Absolute Maximum Ratings**
 
-Under these conditions, the system will not draw any power (will not be operational) but will remain intact.
+Under these conditions, the system will not draw any power (will not be operational), but will remain intact.
 
 1. **POWER1** and **POWER2** inputs (operational range 4.1V to 5.7V, 0V to 10V undamaged)
 2. **USB** input (operational range 4.1V to 5.7V, 0V to 6V undamaged)
@@ -238,13 +238,11 @@ It is pre-built and automatically installed by _QGroundControl_ when appropriate
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v6x_default
 ```
 
-<a id="debug_port"></a>
-
-## 디버그 포트
+## Debug Port {#debug_port}
 
 The [PX4 System Console](../debug/system_console.md) and [SWD interface](../debug/swd_debug.md) run on the **FMU Debug** port.
 

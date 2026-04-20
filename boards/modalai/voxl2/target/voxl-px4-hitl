@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Make sure that the SLPI DSP test signature is there otherwise px4 cannot run
 # on the DSP
@@ -6,10 +6,12 @@ if /bin/ls /usr/lib/rfsa/adsp/testsig-*.so &> /dev/null; then
     /bin/echo "Found DSP signature file"
 else
     /bin/echo "[WARNING] Could not find DSP signature file"
-    # Look for the DSP signature generation script
-    if [ -f /share/modalai/qrb5165-slpi-test-sig/generate-test-sig.sh ]; then
-        /bin/echo "[INFO] Attempting to generate the DSP signature file"
-        # Automatically generate the test signature so that px4 can run on SLPI DSP
+    # Look for the DSP signature generation script (platform-specific)
+    if [ -f /share/modalai/qcs6490-slpi-test-sig/generate-test-sig.sh ]; then
+        /bin/echo "[INFO] Attempting to generate the DSP signature file (qcs6490)"
+        /share/modalai/qcs6490-slpi-test-sig/generate-test-sig.sh
+    elif [ -f /share/modalai/qrb5165-slpi-test-sig/generate-test-sig.sh ]; then
+        /bin/echo "[INFO] Attempting to generate the DSP signature file (qrb5165)"
         /share/modalai/qrb5165-slpi-test-sig/generate-test-sig.sh
     else
         /bin/echo "[ERROR] Could not find the DSP signature file generation script"

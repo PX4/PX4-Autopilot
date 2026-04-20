@@ -46,6 +46,11 @@ The flag comments are used as label for the failsafe state machine simulation
 | battery_warning                                                                                                                                   | `uint8`  |                                                                  |            | Battery warning level (see BatteryStatus.msg)                                                             |
 | battery_low_remaining_time                                                                              | `bool`   |                                                                  |            | Low battery based on remaining flight time                                                                                                   |
 | battery_unhealthy                                                                                                                                 | `bool`   |                                                                  |            | Battery unhealthy                                                                                                                            |
+| fd_critical_failure                                                                                                          | `bool`   |                                                                  |            | Critical failure (attitude limit exceeded, or external ATS)                                                               |
+| fd_esc_arming_failure                                                                                   | `bool`   |                                                                  |            | ESC failed to arm                                                                                                                            |
+| fd_imbalanced_prop                                                                                                           | `bool`   |                                                                  |            | Imbalanced propeller detected                                                                                                                |
+| fd_motor_failure                                                                                                             | `bool`   |                                                                  |            | Motor failure                                                                                                                                |
+| fd_alt_loss                                                                                                                  | `bool`   |                                                                  |            | Uncommanded altitude loss (rotary-wing, altitude-controlled flight)                                                       |
 | geofence_breached                                                                                                                                 | `bool`   |                                                                  |            | Geofence breached (one or multiple)                                                                                       |
 | mission_failure                                                                                                                                   | `bool`   |                                                                  |            | Mission failure                                                                                                                              |
 | vtol_fixed_wing_system_failure                                                     | `bool`   |                                                                  |            | vehicle in fixed-wing system failure failsafe mode (after quad-chute)                                                     |
@@ -53,10 +58,7 @@ The flag comments are used as label for the failsafe state machine simulation
 | flight_time_limit_exceeded                                                                              | `bool`   |                                                                  |            | Maximum flight time exceeded                                                                                                                 |
 | position_accuracy_low                                                                                                        | `bool`   |                                                                  |            | Position estimate has dropped below threshold, but is currently still declared valid                                                         |
 | navigator_failure                                                                                                                                 | `bool`   |                                                                  |            | Navigator failed to execute a mode                                                                                                           |
-| fd_critical_failure                                                                                                          | `bool`   |                                                                  |            | Critical failure (attitude/altitude limit exceeded, or external ATS)                                                      |
-| fd_esc_arming_failure                                                                                   | `bool`   |                                                                  |            | ESC failed to arm                                                                                                                            |
-| fd_imbalanced_prop                                                                                                           | `bool`   |                                                                  |            | Imbalanced propeller detected                                                                                                                |
-| fd_motor_failure                                                                                                             | `bool`   |                                                                  |            | Motor failure                                                                                                                                |
+| parachute_unhealthy                                                                                                                               | `bool`   |                                                                  |            | Parachute system missing or unhealthy                                                                                                        |
 
 ## Source Message
 
@@ -112,6 +114,13 @@ uint8 battery_warning                 # Battery warning level (see BatteryStatus
 bool battery_low_remaining_time       # Low battery based on remaining flight time
 bool battery_unhealthy                # Battery unhealthy
 
+# Failure detector
+bool fd_critical_failure              # Critical failure (attitude limit exceeded, or external ATS)
+bool fd_esc_arming_failure            # ESC failed to arm
+bool fd_imbalanced_prop               # Imbalanced propeller detected
+bool fd_motor_failure                 # Motor failure
+bool fd_alt_loss                      # Uncommanded altitude loss (rotary-wing, altitude-controlled flight)
+
 # Other
 bool geofence_breached        	      # Geofence breached (one or multiple)
 bool mission_failure                  # Mission failure
@@ -120,12 +129,7 @@ bool wind_limit_exceeded              # Wind limit exceeded
 bool flight_time_limit_exceeded       # Maximum flight time exceeded
 bool position_accuracy_low            # Position estimate has dropped below threshold, but is currently still declared valid
 bool navigator_failure        	      # Navigator failed to execute a mode
-
-# Failure detector
-bool fd_critical_failure              # Critical failure (attitude/altitude limit exceeded, or external ATS)
-bool fd_esc_arming_failure            # ESC failed to arm
-bool fd_imbalanced_prop               # Imbalanced propeller detected
-bool fd_motor_failure                 # Motor failure
+bool parachute_unhealthy              # Parachute system missing or unhealthy
 ```
 
 :::

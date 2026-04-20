@@ -42,6 +42,27 @@ px4_add_module(
 		temperature_calibration/gyro.cpp
 		temperature_calibration/mag.cpp
 		temperature_calibration/task.cpp
+	MODULE_CONFIG
+		temp_comp_params_accel.yaml
+		temp_comp_params_accel_0.yaml
+		temp_comp_params_accel_1.yaml
+		temp_comp_params_accel_2.yaml
+		temp_comp_params_accel_3.yaml
+		temp_comp_params_baro.yaml
+		temp_comp_params_baro_0.yaml
+		temp_comp_params_baro_1.yaml
+		temp_comp_params_baro_2.yaml
+		temp_comp_params_baro_3.yaml
+		temp_comp_params_gyro.yaml
+		temp_comp_params_gyro_0.yaml
+		temp_comp_params_gyro_1.yaml
+		temp_comp_params_gyro_2.yaml
+		temp_comp_params_gyro_3.yaml
+		temp_comp_params_mag.yaml
+		temp_comp_params_mag_0.yaml
+		temp_comp_params_mag_1.yaml
+		temp_comp_params_mag_2.yaml
+		temp_comp_params_mag_3.yaml
 	DEPENDS
 		mathlib
 	)

@@ -1,0 +1,169 @@
+module_name: fw_performance_model
+parameters:
+- group: FW Performance
+  definitions:
+    FW_THR_TRIM:
+      description:
+        short: Trim throttle
+        long: Required throttle (at sea level, standard atmosphere) for level flight
+          at FW_AIRSPD_TRIM
+      type: float
+      default: 0.6
+      unit: norm
+      min: 0.0
+      max: 1.0
+      decimal: 2
+      increment: 0.01
+    FW_THR_ASPD_MIN:
+      description:
+        short: Throttle at min airspeed
+        long: |-
+          Required throttle (at sea level, standard atmosphere) for level flight at minimum airspeed FW_AIRSPD_MIN
+
+          Set to 0 to disable mapping of airspeed to trim throttle below FW_AIRSPD_TRIM.
+      type: float
+      default: 0.0
+      min: 0
+      max: 1
+      decimal: 2
+      increment: 0.01
+    FW_THR_ASPD_MAX:
+      description:
+        short: Throttle at max airspeed
+        long: |-
+          Required throttle (at sea level, standard atmosphere) for level flight at maximum airspeed FW_AIRSPD_MAX
+
+          Set to 0 to disable mapping of airspeed to trim throttle.
+      type: float
+      default: 0.0
+      min: 0
+      max: 1
+      decimal: 2
+      increment: 0.01
+    FW_SERVICE_CEIL:
+      description:
+        short: Service ceiling
+        long: |-
+          Altitude in standard atmosphere at which the vehicle in normal configuration (WEIGHT_BASE) is still able to achieve a maximum climb rate of
+          0.5m/s at maximum throttle (FW_THR_MAX). Used to compensate for air density in FW_T_CLMB_MAX.
+          Set negative to disable.
+      type: float
+      default: -1.0
+      min: -1.0
+      unit: m
+      decimal: 0
+      increment: 1.0
+    WEIGHT_BASE:
+      description:
+        short: Vehicle base weight
+        long: |-
+          This is the weight of the vehicle at which it's performance limits were derived. A zero or negative value
+          disables trim throttle and minimum airspeed compensation based on weight.
+      type: float
+      default: -1.0
+      unit: kg
+      decimal: 1
+      increment: 0.5
+    WEIGHT_GROSS:
+      description:
+        short: Vehicle gross weight
+        long: |-
+          This is the actual weight of the vehicle at any time. This value will differ from WEIGHT_BASE in case weight was added
+          or removed from the base weight. Examples are the addition of payloads or larger batteries. A zero or negative value
+          disables trim throttle and minimum airspeed compensation based on weight.
+      type: float
+      default: -1.0
+      unit: kg
+      decimal: 1
+      increment: 0.1
+    FW_T_CLMB_MAX:
+      description:
+        short: Maximum climb rate
+        long: |-
+          This is the maximum calibrated climb rate that the aircraft can achieve with
+          the throttle set to FW_THR_MAX and the airspeed set to the
+          trim value. For electric aircraft make sure this number can be
+          achieved towards the end of flight when the battery voltage has reduced.
+      type: float
+      default: 5.0
+      unit: m/s
+      min: 1.0
+      decimal: 1
+      increment: 0.5
+    FW_T_SINK_MIN:
+      description:
+        short: Minimum descent rate
+        long: |-
+          This is the minimum calibrated sink rate of the aircraft with the throttle
+          set to THR_MIN and flown at the same airspeed as used
+          to measure FW_T_CLMB_MAX.
+      type: float
+      default: 2.0
+      unit: m/s
+      min: 1.0
+      decimal: 1
+      increment: 0.5
+    FW_AIRSPD_TRIM:
+      description:
+        short: Trim (Cruise) Airspeed
+        long: |-
+          The trim CAS (calibrated airspeed) of the vehicle. If an airspeed controller is active,
+          this is the default airspeed setpoint that the controller will try to achieve.
+          This value corresponds to the trim airspeed with the default load factor (level flight, default weight).
+      type: float
+      default: 15.0
+      unit: m/s
+      min: 0.5
+      decimal: 1
+      increment: 0.5
+    FW_AIRSPD_STALL:
+      description:
+        short: Stall Airspeed (CAS)
+        long: |-
+          The stall airspeed (calibrated airspeed) of the vehicle.
+          It is used for airspeed sensor failure detection and for the control
+          surface scaling airspeed limits.
+      type: float
+      default: 7.0
+      unit: m/s
+      min: 0.5
+      decimal: 1
+      increment: 0.5
+    FW_AIRSPD_MIN:
+      description:
+        short: Minimum Airspeed (CAS)
+        long: |-
+          The minimal airspeed (calibrated airspeed) the user is able to command.
+          Further, if the airspeed falls below this value, the TECS controller will try to
+          increase airspeed more aggressively.
+          Has to be set according to the vehicle's stall speed (which should be set in FW_AIRSPD_STALL),
+          with some margin between the stall speed and minimum airspeed.
+          This value corresponds to the desired minimum speed with the default load factor (level flight, default weight),
+          and is automatically adpated to the current load factor (calculated from roll setpoint and WEIGHT_GROSS/WEIGHT_BASE).
+      type: float
+      default: 10.0
+      unit: m/s
+      min: 0.5
+      decimal: 1
+      increment: 0.5
+    FW_AIRSPD_MAX:
+      description:
+        short: Maximum Airspeed (CAS)
+        long: The maximal airspeed (calibrated airspeed) the user is able to command.
+      type: float
+      default: 20.0
+      unit: m/s
+      min: 0.5
+      decimal: 1
+      increment: 0.5
+    FW_AIRSPD_FLP_SC:
+      description:
+        short: Airspeed scale with full flaps
+        long: Factor applied to the minimum and stall airspeed when flaps are fully
+          deployed.
+      type: float
+      default: 1.0
+      min: 0.5
+      max: 1
+      decimal: 2
+      increment: 0.01

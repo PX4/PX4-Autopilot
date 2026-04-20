@@ -1,0 +1,84 @@
+module_name: sensors
+parameters:
+- group: Sensor Calibration
+  definitions:
+    CAL_MAG_COMP_TYP:
+      description:
+        short: Type of magnetometer compensation
+      category: System
+      type: enum
+      values:
+        0: Disabled
+        1: Throttle-based compensation
+        2: Current-based compensation (battery_status instance 0)
+        3: Current-based compensation (battery_status instance 1)
+      default: 0
+- group: Sensors
+  definitions:
+    SENS_MAG_SIDES:
+      description:
+        short: Bitfield selecting mag sides for calibration
+        long: |-
+          If set to two side calibration, only the offsets are estimated, the scale
+          calibration is left unchanged. Thus an initial six side calibration is
+          recommended.
+
+          Bits:
+          ORIENTATION_TAIL_DOWN = 1
+          ORIENTATION_NOSE_DOWN = 2
+          ORIENTATION_LEFT = 4
+          ORIENTATION_RIGHT = 8
+          ORIENTATION_UPSIDE_DOWN = 16
+          ORIENTATION_RIGHTSIDE_UP = 32
+      type: enum
+      values:
+        34: Two side calibration
+        38: Three side calibration
+        63: Six side calibration
+      default: 63
+      min: 34
+      max: 63
+    CAL_MAG_SIDES:
+      description:
+        short: For legacy QGC support only
+        long: Use SENS_MAG_SIDES instead
+      category: Developer
+      type: int32
+      default: 63
+    SENS_MAG_AUTOROT:
+      description:
+        short: Automatically set external rotations
+        long: During calibration attempt to automatically determine the rotation of
+          external magnetometers.
+      type: boolean
+      default: 1
+    SENS_MAG_RATE:
+      description:
+        short: Magnetometer max rate
+        long: |-
+          Magnetometer data maximum publication rate. This is an upper bound,
+          actual magnetometer data rate is still dependent on the sensor.
+      type: float
+      default: 15.0
+      min: 1
+      max: 200
+      unit: Hz
+      reboot_required: true
+    SENS_MAG_MODE:
+      description:
+        short: Sensors hub mag mode
+      category: System
+      type: enum
+      values:
+        0: Publish all magnetometers
+        1: Publish primary magnetometer
+      default: 1
+      reboot_required: true
+    SENS_MAG_AUTOCAL:
+      description:
+        short: Magnetometer auto calibration
+        long: Automatically initialize magnetometer calibration from bias estimate
+          if available.
+      category: System
+      type: boolean
+      default: 1

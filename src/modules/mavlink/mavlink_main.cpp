@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -61,6 +61,10 @@
 #include "mavlink_receiver.h"
 #include "mavlink_main.h"
 
+#ifdef MAVLINK_UDP
+#include <sys/time.h>
+#endif
+
 // Guard against MAVLink misconfiguration
 #ifndef MAVLINK_CRC_EXTRA
 #error MAVLINK_CRC_EXTRA has to be defined on PX4 systems
@@ -94,6 +98,21 @@ void mavlink_start_uart_send(mavlink_channel_t chan, int length) { mavlink_modul
 void mavlink_end_uart_send(mavlink_channel_t chan, int length) { mavlink_module_instances[chan]->send_finish(); }
 mavlink_status_t *mavlink_get_channel_status(uint8_t channel) { return mavlink_module_instances[channel]->get_status(); }
 mavlink_message_t *mavlink_get_channel_buffer(uint8_t channel) { return mavlink_module_instances[channel]->get_buffer(); }
+
+static bool accept_unsigned_callback(const mavlink_status_t *status, uint32_t message_id)
+{
+	// Use link_id to index directly: the callback fires on the instance's own
+	// receiver thread, so no lock needed (instance can't be destroyed while running).
+	if (status->signing) {
+		Mavlink *inst = mavlink_module_instances[status->signing->link_id];
+
+		if (inst != nullptr) {
+			return inst->accept_unsigned(message_id);
+		}
+	}
+
+	return false;
+}
 
 static void usage();
 
@@ -1007,6 +1026,19 @@ void Mavlink::init_udp()
 		return;
 	}
 
+	// Cap UDP send time to avoid blocking indefinitely if the NuttX net
+	// stack hasn't finished initializing the IOB write-buffer semaphore.
+	// 10ms is ~4x the worst-case send time measured on STM32H7.
+	constexpr long UDP_SEND_TIMEOUT_US = 10000;
+	struct timeval tv {
+		.tv_sec = 0,
+		.tv_usec = UDP_SEND_TIMEOUT_US
+	};
+
+	if (setsockopt(_socket_fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv)) < 0) {
+		PX4_WARN("setting socket timeout failed: %s", strerror(errno));
+	}
+
 	if (bind(_socket_fd, (struct sockaddr *)&_myaddr, sizeof(_myaddr)) < 0) {
 		PX4_WARN("bind failed: %s", strerror(errno));
 		return;
@@ -1028,6 +1060,52 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 	/*
 	 *  NOTE: this is called from the receiver thread
 	 */
+
+	// SETUP_SIGNING must never be forwarded to other links (MAVLink spec requirement).
+	if (msg->msgid == MAVLINK_MSG_ID_SETUP_SIGNING) {
+		// Reject signing changes while armed
+		vehicle_status_s vehicle_status{};
+
+		if (_vehicle_status_sub.copy(&vehicle_status)
+		    && vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+			send_statustext_critical("MAVLink signing: rejected while armed");
+			return;
+		}
+
+		MavlinkSignControl::SetupSigningResult result = _sign_control.check_for_signing(msg);
+
+		switch (result) {
+		case MavlinkSignControl::KEY_ACCEPTED:
+			send_statustext_info("MAVLink signing key accepted");
+			break;
+
+		case MavlinkSignControl::SIGNING_DISABLED:
+			send_statustext_info("MAVLink signing disabled");
+			break;
+
+		case MavlinkSignControl::BLANK_KEY_REJECTED:
+			send_statustext_critical("MAVLink signing: blank key rejected");
+			break;
+
+		default:
+			break;
+		}
+
+		if (result == MavlinkSignControl::KEY_ACCEPTED || result == MavlinkSignControl::SIGNING_DISABLED) {
+			// Signal all other instances to reload key from file on their own thread
+			LockGuard lg{mavlink_module_mutex};
+
+			for (int i = 0; i < MAVLINK_COMM_NUM_BUFFERS; i++) {
+				Mavlink *inst = mavlink_module_instances[i];
+
+				if (inst != nullptr && inst != this) {
+					inst->set_signing_key_dirty();
+				}
+			}
+		}
+
+		return;
+	}
 
 	if (get_forwarding_on()) {
 		/* forward any messages to other mavlink instances */
@@ -1424,7 +1502,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 
 	switch (_mode) {
 	case MAVLINK_MODE_NORMAL:
-		configure_stream_local("ADSB_VEHICLE", unlimited_rate);
+		configure_stream_local("ADSB_VEHICLE", 5.f);
 		configure_stream_local("ALTITUDE", 1.0f);
 		configure_stream_local("ATTITUDE", 15.0f);
 		configure_stream_local("ATTITUDE_QUATERNION", 10.0f);
@@ -1437,7 +1515,13 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("EFI_STATUS", 2.0f);
 		configure_stream_local("ESC_INFO", 1.0f);
 		configure_stream_local("ESC_STATUS", 1.0f);
+#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
+		configure_stream_local("ESC_EEPROM", unlimited_rate);
+#endif
 		configure_stream_local("ESTIMATOR_STATUS", 0.5f);
+#if defined(MAVLINK_MSG_ID_ESTIMATOR_SENSOR_FUSION_STATUS)
+		configure_stream_local("ESTIMATOR_SENSOR_FUSION_STATUS", 0.5f);
+#endif
 		configure_stream_local("EXTENDED_SYS_STATE", 1.0f);
 		configure_stream_local("GIMBAL_DEVICE_ATTITUDE_STATUS", 5.0f);
 		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 5.0f);
@@ -1501,11 +1585,14 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("DISTANCE_SENSOR", 10.0f);
 		configure_stream_local("ESC_INFO", 10.0f);
 		configure_stream_local("ESC_STATUS", 10.0f);
+#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
+		configure_stream_local("ESC_EEPROM", unlimited_rate);
+#endif
 		configure_stream_local("MOUNT_ORIENTATION", 10.0f);
 		configure_stream_local("OBSTACLE_DISTANCE", 10.0f);
 		configure_stream_local("ODOMETRY", 30.0f);
 
-		configure_stream_local("ADSB_VEHICLE", unlimited_rate);
+		configure_stream_local("ADSB_VEHICLE", 5.f);
 		configure_stream_local("ATTITUDE_QUATERNION", 50.0f);
 		configure_stream_local("ATTITUDE_TARGET", 10.0f);
 		configure_stream_local("AVAILABLE_MODES", 0.3f);
@@ -1514,6 +1601,9 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("CURRENT_MODE", 0.5f);
 		configure_stream_local("EFI_STATUS", 2.0f);
 		configure_stream_local("ESTIMATOR_STATUS", 1.0f);
+#if defined(MAVLINK_MSG_ID_ESTIMATOR_SENSOR_FUSION_STATUS)
+		configure_stream_local("ESTIMATOR_SENSOR_FUSION_STATUS", 1.0f);
+#endif
 		configure_stream_local("EXTENDED_SYS_STATE", 5.0f);
 		configure_stream_local("GIMBAL_DEVICE_ATTITUDE_STATUS", 5.0f);
 		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 5.0f);
@@ -1586,7 +1676,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("OBSTACLE_DISTANCE", 10.0f);
 		configure_stream_local("ODOMETRY", 30.0f);
 
-		configure_stream_local("ADSB_VEHICLE", unlimited_rate);
+		configure_stream_local("ADSB_VEHICLE", 5.f);
 		configure_stream_local("ATTITUDE_TARGET", 2.0f);
 		configure_stream_local("AVAILABLE_MODES", 0.3f);
 		configure_stream_local("BATTERY_STATUS", 0.5f);
@@ -1667,7 +1757,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("MOUNT_ORIENTATION", 10.0f);
 		configure_stream_local("ODOMETRY", 30.0f);
 
-		configure_stream_local("ADSB_VEHICLE", unlimited_rate);
+		configure_stream_local("ADSB_VEHICLE", 5.f);
 		configure_stream_local("ALTITUDE", 10.0f);
 		configure_stream_local("ATTITUDE", 50.0f);
 		configure_stream_local("ATTITUDE_QUATERNION", 50.0f);
@@ -1679,7 +1769,13 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("EFI_STATUS", 10.0f);
 		configure_stream_local("ESC_INFO", 10.0f);
 		configure_stream_local("ESC_STATUS", 10.0f);
+#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
+		configure_stream_local("ESC_EEPROM", unlimited_rate);
+#endif
 		configure_stream_local("ESTIMATOR_STATUS", 5.0f);
+#if defined(MAVLINK_MSG_ID_ESTIMATOR_SENSOR_FUSION_STATUS)
+		configure_stream_local("ESTIMATOR_SENSOR_FUSION_STATUS", 1.0f);
+#endif
 		configure_stream_local("EXTENDED_SYS_STATE", 2.0f);
 		configure_stream_local("GLOBAL_POSITION_INT", 10.0f);
 #if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
@@ -1774,8 +1870,11 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 5.0f);
 		configure_stream_local("ESC_INFO", 1.0f);
 		configure_stream_local("ESC_STATUS", 5.0f);
+#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
+		configure_stream_local("ESC_EEPROM", unlimited_rate);
+#endif
 
-		configure_stream_local("ADSB_VEHICLE", unlimited_rate);
+		configure_stream_local("ADSB_VEHICLE", 5.f);
 		configure_stream_local("ATTITUDE_TARGET", 2.0f);
 		configure_stream_local("AVAILABLE_MODES", 0.3f);
 		configure_stream_local("BATTERY_STATUS", 0.5f);
@@ -1840,6 +1939,9 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 2.0f);
 		configure_stream_local("ESC_INFO", 1.0f);
 		configure_stream_local("ESC_STATUS", 2.0f);
+#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
+		configure_stream_local("ESC_EEPROM", unlimited_rate);
+#endif
 		configure_stream_local("ADSB_VEHICLE", 1.0f);
 		configure_stream_local("ATTITUDE_TARGET", 0.5f);
 		configure_stream_local("AVAILABLE_MODES", 0.3f);
@@ -2274,6 +2376,8 @@ Mavlink::task_main(int argc, char *argv[])
 		PX4_ERR("no instances available");
 		return PX4_ERROR;
 	}
+
+	_sign_control.start(get_instance_id(), get_status(), &accept_unsigned_callback);
 
 	pthread_mutex_init(&_mavlink_shell_mutex, nullptr);
 	pthread_mutex_init(&_message_buffer_mutex, nullptr);

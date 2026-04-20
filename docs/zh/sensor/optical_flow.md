@@ -34,6 +34,12 @@ The information is written to the corresponding uORB topics: [DistanceSensor](..
 | Right            | - X             |
 | Left             | + X             |
 
+:::info
+The integrated flow values are **angular measurements** (radians) representing rotation of the image about the sensor's body axes using the right-hand convention.
+They are _not_ translational displacements along those axes, which is why forward vehicle movement (along X) appears in the Y flow axis, and rightward movement (along Y) appears in the X flow axis.
+Specifically, forward movement causes the ground image to rotate about the Y axis (+ Y), while rightward movement causes a negative rotation about the X axis (- X).
+:::
+
 Sensor data from the optical flow device is fused with other velocity data sources.
 The approach used for fusing sensor data and any offsets from the center of the vehicle must be configured in the [estimator](#estimators).
 
@@ -71,7 +77,7 @@ It is used in a number of products, including some from: Bitcraze, Tindie, Hex, 
 ### Other Cameras/Sensors
 
 It is also possible to use a board/quad that has an integrated camera.
-For this the [Optical Flow repo](https://github.com/PX4/OpticalFlow) can be used (see also [snap_cam](https://github.com/PX4/snap_cam)).
+For this the [Optical Flow repo](https://github.com/PX4/PX4-OpticalFlow) can be used (see also [snap_cam](https://github.com/PX4/snap_cam)).
 
 ## Range Finders
 

@@ -108,7 +108,7 @@ To enable multi-antenna attitude determination, follow the following procedure:
    These can be compensated for with the heading parameters provided by the Septentrio driver in PX4.
 
 ::: info
-For optimal heading results, the two antennas should be seperated by at least 30cm / 11.8 in (ideally 50cm / 19.7in or more).
+For optimal heading results, the two antennas should be separated by at least 30cm / 11.8 in (ideally 50cm / 19.7in or more).
 
 For additional configuration of the dual antenna setup, please refer to our [Knowledge Base](https://support.septentrio.com/l/858493/2022-04-19/xgrqd) or the [hardware manual](https://web.septentrio.com/l/858493/2022-04-19/xgrql).
 :::

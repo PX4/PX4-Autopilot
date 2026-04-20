@@ -34,6 +34,7 @@
 #include "param_translation.h"
 
 
+#include <inttypes.h>
 #include <px4_platform_common/log.h>
 #include <lib/drivers/device/Device.hpp>
 #include <drivers/drv_sensor.h>
@@ -174,6 +175,72 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 				PX4_INFO("migrating %s -> %s, %s", "MNT_RANGE_PITCH", "MNT_MAX_PITCH", "MNT_MIN_PITCH");
 			}
 
+		}
+	}
+
+	// 2026-03-11: translate EKF2_GPS_POS_X/Y/Z -> SENS_GPS0_OFFX/OFFY/OFFZ
+	{
+		if (strcmp("EKF2_GPS_POS_X", node->name) == 0) {
+			strcpy(node->name, "SENS_GPS0_OFFX");
+			PX4_INFO("migrating %s -> %s", "EKF2_GPS_POS_X", "SENS_GPS0_OFFX");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+
+		if (strcmp("EKF2_GPS_POS_Y", node->name) == 0) {
+			strcpy(node->name, "SENS_GPS0_OFFY");
+			PX4_INFO("migrating %s -> %s", "EKF2_GPS_POS_Y", "SENS_GPS0_OFFY");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+
+		if (strcmp("EKF2_GPS_POS_Z", node->name) == 0) {
+			strcpy(node->name, "SENS_GPS0_OFFZ");
+			PX4_INFO("migrating %s -> %s", "EKF2_GPS_POS_Z", "SENS_GPS0_OFFZ");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
+	// 2026-03-11: translate EKF2_GPS_DELAY to SENS_GPS0_DELAY and SENS_GPS1_DELAY
+	{
+		if (strcmp("EKF2_GPS_DELAY", node->name) == 0) {
+			int32_t delay_ms = static_cast<int32_t>(node->d);
+			param_set(param_find("SENS_GPS0_DELAY"), &delay_ms);
+			param_set(param_find("SENS_GPS1_DELAY"), &delay_ms);
+			PX4_INFO("migrating %s -> %s, %s", "EKF2_GPS_DELAY", "SENS_GPS0_DELAY", "SENS_GPS1_DELAY");
+		}
+	}
+
+	// 2026-03-11: translate MOT_POLE_COUNT to per-motor DSHOT_MOT_POL1-12
+	{
+		if ((node->type == bson_type_t::BSON_INT32) && (strcmp("MOT_POLE_COUNT", node->name) == 0)) {
+			for (int i = 1; i <= 12; i++) {
+				char name[20];
+				snprintf(name, sizeof(name), "DSHOT_MOT_POL%d", i);
+				param_set(param_find(name), &node->i32);
+			}
+
+			PX4_INFO("migrating %s -> DSHOT_MOT_POL1-12 (value=%" PRId32 ")", "MOT_POLE_COUNT", node->i32);
+			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
+		}
+	}
+
+	// 2026-03-19: translate EKF2_ENGINE_WRM to EKF2_POS_LOCK
+	{
+		if (strcmp("EKF2_ENGINE_WRM", node->name) == 0) {
+			int32_t delay_ms = static_cast<int32_t>(node->d);
+			param_set(param_find("EKF2_POS_LOCK"), &delay_ms);
+			PX4_INFO("migrating %s -> %s", "EKF2_ENGINE_WRM", "EKF2_POS_LOCK");
+			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
+		}
+	}
+
+	// 2026-03-19: translate RC*_REV from float to int32
+	{
+		if ((node->type == bson_type_t::BSON_DOUBLE) && (strncmp("RC", node->name, 2) == 0)
+		    && strstr(node->name, "_REV") != nullptr) {
+			node->i32 = (node->d < 0.0) ? -1 : 1;
+			node->type = bson_type_t::BSON_INT32;
+			PX4_INFO("migrating %s from float to int32", node->name);
+			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 	}
 

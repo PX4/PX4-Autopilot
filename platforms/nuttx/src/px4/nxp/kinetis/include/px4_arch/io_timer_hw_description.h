@@ -93,7 +93,7 @@ static inline constexpr timer_io_channels_t initIOTimerChannel(const io_timers_t
 	ret.gpio_in = gpio_af | gpio_pin_port;
 	ret.gpio_out = gpio_af | gpio_pin_port;
 
-	ret.timer_channel = (int)timer.channel + 1;
+	ret.timer_channel = (uint8_t)timer.channel;
 
 	// find timer index
 	ret.timer_index = 0xff;

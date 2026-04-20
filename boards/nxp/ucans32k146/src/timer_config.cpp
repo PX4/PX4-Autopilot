@@ -131,19 +131,19 @@ const struct timer_io_channels_t led_pwm_channels[MAX_TIMER_LED_CHANNELS] = {
 		.gpio_out = LED_TIM0_CH0OUT, // RGB_R
 		.gpio_in  = 0,
 		.timer_index = 0,
-		.timer_channel = 1,
+		.timer_channel = 0,
 	},
 	{
 		.gpio_out = LED_TIM0_CH1OUT, // RGB_G
 		.gpio_in  = 0,
 		.timer_index = 0,
-		.timer_channel = 2,
+		.timer_channel = 1,
 	},
 	{
 		.gpio_out = LED_TIM0_CH2OUT, // RGB_B
 		.gpio_in  = 0,
 		.timer_index = 0,
-		.timer_channel = 3,
+		.timer_channel = 2,
 	},
 };
 

@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # HoverThrustEstimate (повідомлення UORB)
 
-**TOPICS:** hover_thrustestimate
+**TOPICS:** hover_thrust_estimate
 
 ## Fields
 

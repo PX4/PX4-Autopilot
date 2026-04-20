@@ -163,7 +163,7 @@ For the full list of versioned and non-versioned messages see: [uORB Message Ref
 For more on PX4 and ROS 2 communication, see [PX4-ROS 2 Bridge](../ros/ros2_comm.md).
 
 ::: info
-ROS 2 plans to natively support message versioning in the future, but this is not implememented yet.
+ROS 2 plans to natively support message versioning in the future, but this is not implemented yet.
 See the related ROS Enhancement Proposal ([REP 2011](https://github.com/ros-infrastructure/rep/pull/358)).
 See also this [Foxglove post](https://foxglove.dev/blog/sending-ros2-message-types-over-the-wire) on message hashing and type fetching.
 :::

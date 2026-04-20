@@ -28,7 +28,7 @@ Order this module from:
 - Pixhawk Standard SPI Connector
   - 7 Pin JST GH
 - PWM Connector
-  - 10 Pin JST JST
+  - 10 Pin JST
   - 8 PWM Outputs
   - Matches Pixhawk 4 PWM Connector Pinout
 - Pixhawk Standard Debug Connector
@@ -77,7 +77,7 @@ DroneCAN configuration in PX4 is explained in more detail in [DroneCAN > Enablin
 
 You will need to enable the subscriber appropriate for each of the sensors that are connected to the ARK CANnode.
 
-This is done using the the parameters named like `UAVCAN_SUB_*` in the parameter reference (such as [UAVCAN_SUB_ASPD](../advanced_config/parameter_reference.md#UAVCAN_SUB_ASPD), [UAVCAN_SUB_BARO](../advanced_config/parameter_reference.md#UAVCAN_SUB_BARO) etc.).
+This is done using the parameters named like `UAVCAN_SUB_*` in the parameter reference (such as [UAVCAN_SUB_ASPD](../advanced_config/parameter_reference.md#UAVCAN_SUB_ASPD), [UAVCAN_SUB_BARO](../advanced_config/parameter_reference.md#UAVCAN_SUB_BARO) etc.).
 
 ## Ark CANNode Configuration
 

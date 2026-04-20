@@ -4,11 +4,26 @@ EkfWrapper::EkfWrapper(std::shared_ptr<Ekf> ekf):
 	_ekf{ekf}
 {
 	_ekf_params = _ekf->getParamHandle();
+	_fc = _ekf->getFusionControlHandle();
+
+	_fc->gps.enabled = true;
+	_fc->of.enabled = true;
+	_fc->ev.enabled = true;
+	_fc->baro.enabled = true;
+	_fc->rng.enabled = true;
+	_fc->mag.enabled = true;
+	_fc->aspd.enabled = true;
+	_fc->rngbcn.enabled = true;
+
+	for (int i = 0; i < MAX_AGP_INSTANCES; i++) {
+		_fc->agp[i].enabled = true;
+	}
 }
 
 EkfWrapper::~EkfWrapper()
 {
 }
+
 
 void EkfWrapper::setBaroHeightRef()
 {
@@ -18,6 +33,7 @@ void EkfWrapper::setBaroHeightRef()
 void EkfWrapper::enableBaroHeightFusion()
 {
 	_ekf_params->ekf2_baro_ctrl = 1;
+	_fc->baro.enabled = true;
 }
 
 void EkfWrapper::disableBaroHeightFusion()
@@ -58,6 +74,7 @@ void EkfWrapper::setRangeHeightRef()
 void EkfWrapper::enableRangeHeightFusion()
 {
 	_ekf_params->ekf2_rng_ctrl = static_cast<int32_t>(RngCtrl::ENABLED);
+	_fc->rng.enabled = true;
 }
 
 void EkfWrapper::disableRangeHeightFusion()
@@ -148,6 +165,7 @@ bool EkfWrapper::isIntendingGpsHeadingFusion() const
 void EkfWrapper::enableFlowFusion()
 {
 	_ekf_params->ekf2_of_ctrl = 1;
+	_fc->of.enabled = true;
 }
 
 void EkfWrapper::disableFlowFusion()

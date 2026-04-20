@@ -109,7 +109,7 @@ Increasing aircraft pitch angle will cause an increase in height but also a decr
 Increasing the throttle will increase airspeed but also height will increase due to the increase in lift.
 Therefore, we have two inputs (pitch angle and throttle) which both affect the two outputs (airspeed and altitude) which makes the control problem challenging.
 
-TECS offers a solution by respresenting the problem in terms of energies rather than the original setpoints.
+TECS offers a solution by representing the problem in terms of energies rather than the original setpoints.
 The total energy of an aircraft is the sum of kinetic and potential energy. Thrust (via throttle control) increases the total energy state of the aircraft. A given total energy state can be achieved by arbitrary combinations of potential and kinetic energies.
 In other words, flying at a high altitude but at a slow speed can be equivalent to flying at a low altitude but at a faster airspeed in a total energy sense. We refer to this as the specific energy balance and it is calculated from the current altitude and true airspeed setpoint.
 The specific energy balance is controlled via the aircraft pitch angle.
@@ -163,6 +163,42 @@ $$\dot{B} = \gamma - \frac{\dot{V_T}}{g}$$
 
 ## Fixed-Wing Attitude Controller
 
+### Setpoint modificaiton
+
+Most fixed-wing aircraft cannot generate a sustained yaw rate using the rudder alone. As a result, the yaw component of the quaternion attitude error should be removed before computing the control action.
+
+This is achieved by premultiplying the setpoint quaternion with a rotation about the global down axis. The additional rotation cancels the yaw component of the attitude error while preserving the roll and pitch components.
+
+The yaw offset is
+
+$$
+\psi =-2\frac{\hat{q}_0 q_3 - \hat{q}_1 q_2 + \hat{q}_2 q_1 -\hat{q}_3 q_0}
+{\hat{q}_0 q_0 - \hat{q}_1 q_1 - \hat{q}_2 q_2 + \hat{q}_3 q_3}
+$$
+
+The quaternion representing the yaw offset is
+
+$$
+ℚ_{\text{yaw}} =
+\operatorname{normalize}
+\left(
+\begin{bmatrix}
+1 \
+0 \
+0 \
+\frac{\psi}{2}
+\end{bmatrix}
+\right)
+$$
+
+The corrected setpoint quaternion is then obtained by applying the rotation
+
+$$
+ℚ_{\text{sp, corrected}} = ℚ_{\text{yaw}} \otimes ℚ_{sp}
+$$
+
+### Quaternion based attitude controller
+
 ![FW Attitude Controller Diagram](../../assets/diagrams/px4_fw_attitude_controller_diagram.png)
 
 <!-- The drawing is on draw.io: https://drive.google.com/file/d/1ibxekmtc6Ljq60DvNMplgnnU-JOvKYLQ/view?usp=sharing
@@ -185,12 +221,16 @@ In order to keep a constant rate, this damping can be compensated using feedforw
 
 ### Turn coordination
 
-The roll and pitch controllers have the same structure and the longitudinal and lateral dynamics are assumed to be uncoupled enough to work independently.
-The yaw controller, however, generates its yaw rate setpoint using the turn coordination constraint in order to minimize lateral acceleration, generated when the aircraft is slipping. The turn coordination algorithm is based solely on coordinated turn geometry calculation.
+The yaw rate setpoint is generated using the turn coordination constraint in order to minimize lateral acceleration, generated when the aircraft is slipping.
 
-$$\dot{\Psi}_{sp} = \frac{g}{V_T} \tan{\phi_{sp}} \cos{\theta_{sp}}$$
+$$r_{sp} = \frac{2g}{V_T}\left(q_0 q_1 + q_2 q_3\right)$$
 
-The yaw rate controller also helps to counteract [adverse yaw effects](https://youtu.be/sNV_SDDxuWk) and to damp the [Dutch roll mode](https://en.wikipedia.org/wiki/Dutch_roll) by providing extra directional damping.
+This also helps to counteract [adverse yaw effects](https://youtu.be/sNV_SDDxuWk) and to damp the [Dutch roll mode](https://en.wikipedia.org/wiki/Dutch_roll) by providing extra directional damping.
+
+To compensate for the non-zero pitch rate that naturally occurs during coordinated turns, a geometry-based feedforward term is added to the pitch-rate command.
+This feedforward term accounts for the aircraft's current attitude and airspeed so that the controller does not need to generate this motion purely through feedback.
+
+$$q_{sp}^{ff} = \frac{4g(q_0 q_1 + q_2 q_3)^2}{V(1 - 2q_1^2 - 2q_2^2)}$$
 
 ## VTOL Flight Controller
 

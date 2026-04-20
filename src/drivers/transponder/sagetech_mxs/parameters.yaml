@@ -1,0 +1,62 @@
+module_name: sagetech_mxs
+parameters:
+- group: Serial
+  definitions:
+    SER_MXS_BAUD:
+      description:
+        short: MXS Serial Communication Baud rate
+        long: Baudrate for the Serial Port connected to the MXS Transponder
+      type: enum
+      values:
+        0: '38400'
+        1: '600'
+        2: '4800'
+        3: '9600'
+        4: RESERVED
+        5: '57600'
+        6: '115200'
+        7: '230400'
+        8: '19200'
+        9: '460800'
+        10: '921600'
+      default: 5
+      reboot_required: true
+      min: 0
+      max: 10
+- group: Transponder
+  definitions:
+    MXS_OP_MODE:
+      description:
+        short: Sagetech MXS mode configuration
+        long: This parameter defines the operating mode of the MXS
+      type: enum
+      values:
+        0: 'Off'
+        1: 'On'
+        2: Standby
+        3: Alt
+      default: 0
+      reboot_required: false
+      min: 0
+      max: 3
+    MXS_TARG_PORT:
+      description:
+        short: Sagetech MXS Participant Configuration
+        long: The MXS communication port to receive Target data from
+      type: enum
+      values:
+        0: Auto
+        1: COM0
+        2: COM1
+      default: 1
+      min: 0
+      max: 2
+      reboot_required: false
+    MXS_EXT_CFG:
+      description:
+        short: Sagetech External Configuration Mode
+        long: Disables auto-configuration mode enabling MXS config through external
+          software.
+      type: boolean
+      default: 0
+      reboot_required: true

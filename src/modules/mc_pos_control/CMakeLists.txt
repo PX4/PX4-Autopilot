@@ -42,6 +42,17 @@ px4_add_module(
 	SRCS
 		MulticopterPositionControl.cpp
 		MulticopterPositionControl.hpp
+	MODULE_CONFIG
+		multicopter_altitude_mode_params.yaml
+		multicopter_autonomous_params.yaml
+		multicopter_nudging_params.yaml
+		multicopter_position_control_gain_params.yaml
+		multicopter_position_control_limits_params.yaml
+		multicopter_position_control_params.yaml
+		multicopter_position_mode_params.yaml
+		multicopter_responsiveness_params.yaml
+		multicopter_stabilized_mode_params.yaml
+		multicopter_takeoff_land_params.yaml
 	DEPENDS
 		GotoControl
 		PositionControl

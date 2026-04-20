@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # FigureEightStatus (повідомлення UORB)
 
-**TOPICS:** figure_eightstatus
+**TOPICS:** figure_eight_status
 
 ## Fields
 

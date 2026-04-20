@@ -31,6 +31,10 @@
 #
 ############################################################################
 
+if(NOT "${PX4_PLATFORM}" STREQUAL "posix")
+	return()
+endif()
+
 # Initialize libfc-sensor-api submodule (fetches from GitLab if not present)
 execute_process(
 	COMMAND Tools/check_submodules.sh boards/modalai/voxl2/libfc-sensor-api

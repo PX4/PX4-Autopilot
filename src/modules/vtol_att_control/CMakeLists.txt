@@ -39,4 +39,8 @@ px4_add_module(
 		vtol_type.cpp
 		tailsitter.cpp
 		standard.cpp
+	MODULE_CONFIG
+		standard_params.yaml
+		tiltrotor_params.yaml
+		vtol_att_control_params.yaml
 	)

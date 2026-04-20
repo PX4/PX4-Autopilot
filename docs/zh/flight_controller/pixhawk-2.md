@@ -47,9 +47,7 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
 - High-power, multi-tone piezo audio indicator
 - microSD card for high-rate logging over extended periods of time
 
-<a id="stores"></a>
-
-## 购买渠道
+## Where to Buy {#store}
 
 [Cube Black](https://www.cubepilot.com/#/reseller/list) (Reseller list)
 
@@ -155,7 +153,7 @@ It is pre-built and automatically installed by _QGroundControl_ when appropriate
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v3_default
 ```
 

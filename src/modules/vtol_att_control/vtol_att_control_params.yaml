@@ -1,0 +1,302 @@
+module_name: vtol_att_control
+parameters:
+- group: VTOL Attitude Control
+  definitions:
+    VT_TYPE:
+      description:
+        short: VTOL Type (Tailsitter=0, Tiltrotor=1, Standard=2)
+      type: enum
+      values:
+        0: Tailsitter
+        1: Tiltrotor
+        2: Standard
+      default: 0
+      min: 0
+      max: 2
+      reboot_required: true
+    VT_ELEV_MC_LOCK:
+      description:
+        short: Lock control surfaces in hover
+        long: If set to 1 the control surfaces are locked at the disarmed value in
+          multicopter mode.
+      type: boolean
+      default: 1
+    VT_F_TRANS_DUR:
+      description:
+        short: Duration of a front transition
+        long: Time in seconds used for a transition
+      type: float
+      default: 5.0
+      unit: s
+      min: 0.1
+      max: 20.0
+      increment: 1
+      decimal: 2
+    VT_B_TRANS_DUR:
+      description:
+        short: Maximum duration of a back transition
+        long: Transition is also declared over if the groundspeed drops below MPC_XY_CRUISE.
+      type: float
+      default: 10.0
+      unit: s
+      min: 0.1
+      max: 20.0
+      increment: 1
+      decimal: 2
+    VT_F_TRANS_THR:
+      description:
+        short: Target throttle value for the transition to fixed-wing flight
+      type: float
+      default: 1.0
+      min: 0.0
+      max: 1.0
+      increment: 0.01
+      decimal: 3
+    VT_B_DEC_MSS:
+      description:
+        short: Approximate deceleration during back transition
+        long: |-
+          Used to calculate back transition distance in an auto mode.
+          For standard vtol and tiltrotors a controller is used to track this value during the transition.
+      type: float
+      default: 2.0
+      unit: m/s^2
+      min: 0.5
+      max: 10
+      increment: 0.1
+      decimal: 2
+    VT_ARSP_BLEND:
+      description:
+        short: Transition blending airspeed
+        long: Airspeed at which we can start blending both fw and mc controls. Set
+          to 0 to disable.
+      type: float
+      default: 8.0
+      unit: m/s
+      min: 0.0
+      max: 30.0
+      increment: 1
+      decimal: 2
+    VT_ARSP_TRANS:
+      description:
+        short: Transition airspeed
+        long: Airspeed at which we can switch to fw mode
+      type: float
+      default: 10.0
+      unit: m/s
+      min: 0.0
+      max: 30.0
+      increment: 1
+      decimal: 2
+    VT_TRANS_TIMEOUT:
+      description:
+        short: Front transition timeout
+        long: Time in seconds after which transition will be cancelled.
+      type: float
+      default: 15.0
+      unit: s
+      min: 0.1
+      max: 30.0
+      increment: 1
+      decimal: 2
+    VT_TRANS_MIN_TM:
+      description:
+        short: Front transition minimum time
+        long: Minimum time in seconds for front transition.
+      type: float
+      default: 2.0
+      unit: s
+      min: 0.0
+      max: 20.0
+      increment: 0.1
+      decimal: 1
+    VT_FW_MIN_ALT:
+      description:
+        short: Quad-chute altitude
+        long: |-
+          Minimum altitude for fixed-wing flight. When the vehicle is in fixed-wing mode
+          and the altitude drops below this altitude (relative altitude above local origin),
+          it will instantly switch back to MC mode and execute behavior defined in COM_QC_ACT.
+      type: float
+      default: 0.0
+      unit: m
+      min: 0.0
+      max: 200.0
+      increment: 1
+      decimal: 1
+    VT_QC_ALT_LOSS:
+      description:
+        short: Quad-chute uncommanded descent threshold
+        long: |-
+          Altitude error threshold for quad-chute triggering during fixed-wing flight.
+          The check is only active if altitude is controlled and the vehicle is below the current altitude reference.
+          The altitude error is relative to the highest altitude the vehicle has achieved since it has flown below the current
+          altitude reference.
+
+          Set to 0 do disable.
+      type: float
+      default: 0.0
+      unit: m
+      min: 0.0
+      max: 200.0
+      increment: 1
+      decimal: 1
+    VT_QC_T_ALT_LOSS:
+      description:
+        short: Quad-chute transition altitude loss threshold
+        long: |-
+          Altitude loss threshold for quad-chute triggering during VTOL transition to fixed-wing flight
+          in altitude-controlled flight modes.
+          Active until 5s after completing transition to fixed-wing.
+          If the current altitude is more than this value below the altitude at the beginning of the
+          transition, it will instantly switch back to MC mode and execute behavior defined in COM_QC_ACT.
+
+          Set to 0 do disable this threshold.
+      type: float
+      default: 20.0
+      unit: m
+      min: 0
+      max: 50
+      increment: 1
+      decimal: 1
+    VT_FW_QC_P:
+      description:
+        short: Quad-chute max pitch threshold
+        long: |-
+          Absolute pitch threshold for quad-chute triggering in FW mode.
+          Above this the vehicle will transition back to MC mode and execute behavior defined in COM_QC_ACT.
+          Set to 0 do disable this threshold.
+      type: int32
+      default: 0
+      unit: deg
+      min: 0
+      max: 180
+    VT_FW_QC_R:
+      description:
+        short: Quad-chute max roll threshold
+        long: |-
+          Absolute roll threshold for quad-chute triggering in FW mode.
+          Above this the vehicle will transition back to MC mode and execute behavior defined in COM_QC_ACT.
+          Set to 0 do disable this threshold.
+      type: int32
+      default: 0
+      unit: deg
+      min: 0
+      max: 180
+    VT_FW_QC_HMAX:
+      description:
+        short: Quad-chute maximum height
+        long: |-
+          Maximum height above the ground (if available, otherwise above
+          Home if available, otherwise above the local origin) where triggering a quad-chute is possible.
+          At high altitudes there is a big risk to deplete the battery and therefore crash if quad-chuting there.
+      type: int32
+      default: 0
+      unit: m
+      min: 0
+      increment: 1
+    VT_F_TR_OL_TM:
+      description:
+        short: Airspeed-less front transition time (open loop)
+        long: |-
+          The duration of the front transition when there is no airspeed feedback available.
+          When airspeed is used, transition timeout is declared if airspeed does not
+          reach VT_ARSP_BLEND after this time.
+      type: float
+      default: 6.0
+      unit: s
+      min: 1.0
+      max: 30.0
+      increment: 0.5
+      decimal: 1
+    VT_FW_DIFTHR_EN:
+      description:
+        short: Differential thrust in forwards flight
+        long: |-
+          Enable differential thrust separately for roll, pitch, yaw in forward (fixed-wing) mode.
+          The effectiveness of differential thrust around the corresponding axis can be
+          tuned by setting VT_FW_DIFTHR_S_R / VT_FW_DIFTHR_S_P / VT_FW_DIFTHR_S_Y.
+      type: bitmask
+      bit:
+        0: Yaw
+        1: Roll
+        2: Pitch
+      default: 0
+      min: 0
+      max: 7
+    VT_FW_DIFTHR_S_R:
+      description:
+        short: Roll differential thrust factor in forward flight
+        long: Differential thrust in forward flight is enabled via VT_FW_DIFTHR_EN.
+      type: float
+      default: 1.0
+      min: 0.0
+      max: 2.0
+      decimal: 2
+      increment: 0.1
+    VT_FW_DIFTHR_S_P:
+      description:
+        short: Pitch differential thrust factor in forward flight
+        long: Differential thrust in forward flight is enabled via VT_FW_DIFTHR_EN.
+      type: float
+      default: 1.0
+      min: 0.0
+      max: 2.0
+      decimal: 2
+      increment: 0.1
+    VT_FW_DIFTHR_S_Y:
+      description:
+        short: Yaw differential thrust factor in forward flight
+        long: Differential thrust in forward flight is enabled via VT_FW_DIFTHR_EN.
+      type: float
+      default: 0.1
+      min: 0.0
+      max: 2.0
+      decimal: 2
+      increment: 0.1
+    VT_B_DEC_I:
+      description:
+        short: Backtransition deceleration setpoint to tilt I gain
+      type: float
+      default: 0.1
+      unit: rad s/m
+      min: 0
+      max: 0.3
+      decimal: 2
+      increment: 0.05
+    VT_PITCH_MIN:
+      description:
+        short: Minimum pitch angle during hover
+        long: |-
+          Any pitch setpoint below this value is translated to a forward force by the fixed-wing forward actuation if
+          VT_FWD_TRHUST_EN is set.
+      type: float
+      default: 0.0
+      unit: deg
+      min: -10.0
+      max: 45.0
+      increment: 0.1
+      decimal: 1
+    VT_LND_PITCH_MIN:
+      description:
+        short: Minimum pitch angle during hover landing
+        long: |-
+          Overrides VT_PITCH_MIN when the vehicle is in LAND mode (hovering).
+          During landing it can be beneficial to reduce the pitch angle to reduce the generated lift in head wind.
+      type: float
+      default: 0.0
+      unit: deg
+      min: -10.0
+      max: 45.0
+      increment: 0.1
+      decimal: 1
+    VT_SPOILER_MC_LD:
+      description:
+        short: Spoiler setting while landing (hover)
+      type: float
+      default: 0.0
+      unit: norm
+      min: -1
+      max: 1
+      decimal: 1
+      increment: 0.1

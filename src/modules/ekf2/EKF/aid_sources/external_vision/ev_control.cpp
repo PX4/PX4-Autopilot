@@ -41,6 +41,8 @@
 
 void Ekf::controlExternalVisionFusion(const imuSample &imu_sample)
 {
+	_fc.ev.available = (_params.ekf2_ev_ctrl != 0);
+
 	_ev_pos_b_est.predict(_dt_ekf_avg);
 	_ev_hgt_b_est.predict(_dt_ekf_avg);
 

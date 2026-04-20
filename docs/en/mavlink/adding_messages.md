@@ -39,7 +39,7 @@ Once the message headers for your definitions are generated in the PX4 build, yo
 
 The first step in debugging is to confirm that any messages you've created are being sent/received as you expect.
 
-You should should first use the `uorb top [<message_name>]` command to verify in real-time that your message is published and the rate (see [uORB Messaging](../middleware/uorb.md#uorb-top-command)).
+You should first use the `uorb top [<message_name>]` command to verify in real-time that your message is published and the rate (see [uORB Messaging](../middleware/uorb.md#uorb-top-command)).
 This approach can also be used to test incoming messages that publish a uORB topic (for other messages you might use `printf` in your code and test in SITL).
 
 There are several approaches you can use to view MAVLink traffic:
