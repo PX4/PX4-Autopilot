@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,58 +31,31 @@
  *
  ****************************************************************************/
 /**
- * @file rtl_direct_mission_land.h
+ * @file rtl_geofence_avoidance_helper.h
  *
- * Helper class for RTL
- *
- * @author Julian Oes <julian@oes.ch>
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * Shared helper for accumulating the remaining horizontal legs of a
+ * geofence-avoidance path into an RtlTimeEstimator.
  */
 
 #pragma once
 
-#include "rtl_base.h"
-
-#include <lib/rtl/rtl_time_estimator.h>
 #include <matrix/math.hpp>
+#include "RTLPlanner/geofence_avoidance_planner.h"
 
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/home_position.h>
-#include <uORB/topics/rtl_time_estimate.h>
+class RtlTimeEstimator;
 
-class Navigator;
-
-class RtlDirectMissionLand : public RtlBase
-{
-public:
-	RtlDirectMissionLand(Navigator *navigator);
-	~RtlDirectMissionLand() = default;
-
-	void on_activation() override;
-	void on_inactive() override;
-
-	rtl_time_estimate_s calc_rtl_time_estimate() override;
-
-	void setReturnAltMin(bool min) override { _enforce_rtl_alt = min; };
-	void setRtlAlt(float alt) override {_rtl_alt = alt;};
-
-private:
-	bool setNextMissionItem() override;
-	void setActiveMissionItems() override;
-	void updateDatamanCache() override;
-	bool checkNeedsToClimb();
-
-	/**
-	 * @brief Get lat/lon of the first position-containing mission item after the DO_LAND_START marker.
-	 *
-	 * @return matrix::Vector2d(lat, lon) of the item, or (NaN, NaN) if no such item exists
-	 *         or the dataman load failed.
-	 */
-	matrix::Vector2d get_first_position_after_land_start_index();
-
-	bool _needs_climbing{false}; 	//< Flag if climbing is required at the start
-	bool _enforce_rtl_alt{false};
-	float _rtl_alt{0.0f};	///< AMSL altitude at which the vehicle should return to the land position
-
-	RtlTimeEstimator _rtl_time_estimator;
-};
+/**
+ * @brief Accumulate the remaining geofence-avoidance legs into the time estimator.
+ *
+ * Iterates from the planner's current cursor position to the end of the materialized path,
+ * adding each leg from current_position (or the previous waypoint) to the next waypoint.
+ *
+ * @param estimator        Time estimator to accumulate distances into.
+ * @param planner          The geofence avoidance planner (read-only).
+ * @param current_position Vehicle's current global position (lat, lon).
+ * @return Horizontal position at the end of the path, or current_position if the path is empty.
+ */
+matrix::Vector2d add_geofence_avoidance_path_distance(
+	RtlTimeEstimator &estimator,
+	const GeofenceAvoidancePlanner &planner,
+	const matrix::Vector2d &current_position);

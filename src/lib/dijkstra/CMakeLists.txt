@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2026 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,63 +31,10 @@
 #
 ############################################################################
 
-add_subdirectory(MissionFeasibility)
-add_subdirectory(RTLPlanner)
+px4_add_library(dijkstra
+	dijkstra.cpp
+)
 
-if(BUILD_TESTING)
-	add_subdirectory(test)
-endif()
+target_include_directories(dijkstra PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-set(NAVIGATOR_SOURCES
-	navigator_main.cpp
-	navigator_mode.cpp
-	mission_base.cpp
-	mission_block.cpp
-	mission.cpp
-	course.cpp
-	loiter.cpp
-	rtl.cpp
-	rtl_direct.cpp
-	rtl_direct_mission_land.cpp
-	rtl_mission_fast.cpp
-	rtl_mission_fast_reverse.cpp
-	takeoff.cpp
-	land.cpp
-	precland.cpp
-	mission_feasibility_checker.cpp
-	geofence.cpp)
-
-set(NAVIGATOR_DEPENDS
-	dataman_client
-	geo
-	adsb
-	motion_planning
-	mission_feasibility_checker
-	rtl_time_estimator)
-
-if(CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE)
-	list(APPEND NAVIGATOR_SOURCES rtl_geofence_avoidance_helper.cpp)
-	# geofence_utils (polygon offsetting / visibility graph) is only used by the planner
-	list(APPEND NAVIGATOR_DEPENDS geofence_utils geofence_avoidance_planner)
-endif()
-
-if(CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF)
-	set(NAVIGATOR_SOURCES
-		${NAVIGATOR_SOURCES}
-		vtol_takeoff.cpp)
-endif()
-
-px4_add_module(
-	MODULE modules__navigator
-	MAIN navigator
-	SRCS ${NAVIGATOR_SOURCES}
-	MODULE_CONFIG
-		geofence_params.yaml
-		mission_params.yaml
-		navigator_params.yaml
-		precland_params.yaml
-		rtl_params.yaml
-		vtol_takeoff_params.yaml
-	DEPENDS
-		${NAVIGATOR_DEPENDS}
-	)
+px4_add_unit_gtest(SRC DijkstraTest.cpp LINKLIBS dijkstra)

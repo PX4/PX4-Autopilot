@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,63 +31,10 @@
 #
 ############################################################################
 
-add_subdirectory(MissionFeasibility)
-add_subdirectory(RTLPlanner)
+px4_add_library(geofence_avoidance_planner
+	geofence_avoidance_planner.cpp
+	geofence_avoidance_planner.h
+)
 
-if(BUILD_TESTING)
-	add_subdirectory(test)
-endif()
-
-set(NAVIGATOR_SOURCES
-	navigator_main.cpp
-	navigator_mode.cpp
-	mission_base.cpp
-	mission_block.cpp
-	mission.cpp
-	course.cpp
-	loiter.cpp
-	rtl.cpp
-	rtl_direct.cpp
-	rtl_direct_mission_land.cpp
-	rtl_mission_fast.cpp
-	rtl_mission_fast_reverse.cpp
-	takeoff.cpp
-	land.cpp
-	precland.cpp
-	mission_feasibility_checker.cpp
-	geofence.cpp)
-
-set(NAVIGATOR_DEPENDS
-	dataman_client
-	geo
-	adsb
-	motion_planning
-	mission_feasibility_checker
-	rtl_time_estimator)
-
-if(CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE)
-	list(APPEND NAVIGATOR_SOURCES rtl_geofence_avoidance_helper.cpp)
-	# geofence_utils (polygon offsetting / visibility graph) is only used by the planner
-	list(APPEND NAVIGATOR_DEPENDS geofence_utils geofence_avoidance_planner)
-endif()
-
-if(CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF)
-	set(NAVIGATOR_SOURCES
-		${NAVIGATOR_SOURCES}
-		vtol_takeoff.cpp)
-endif()
-
-px4_add_module(
-	MODULE modules__navigator
-	MAIN navigator
-	SRCS ${NAVIGATOR_SOURCES}
-	MODULE_CONFIG
-		geofence_params.yaml
-		mission_params.yaml
-		navigator_params.yaml
-		precland_params.yaml
-		rtl_params.yaml
-		vtol_takeoff_params.yaml
-	DEPENDS
-		${NAVIGATOR_DEPENDS}
-	)
+target_link_libraries(geofence_avoidance_planner PRIVATE geo geofence_utils perf dijkstra)
+px4_add_functional_gtest(SRC GeofenceAvoidancePlannerTest.cpp LINKLIBS geofence_avoidance_planner geo geofence_utils dijkstra perf)
