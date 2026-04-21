@@ -1,0 +1,106 @@
+#!/bin/sh
+#
+# ARK V6X-RT specific board sensors init
+#------------------------------------------------------------------------------
+#
+# UART mapping on ARK V6X-RT:
+#
+# LPUART1       /dev/ttyS0      CONSOLE
+# LPUART3       /dev/ttyS1      GPS
+# LPUART4       /dev/ttyS2      TELEM1
+# LPUART5       /dev/ttyS3      GPS2
+# LPUART6       /dev/ttyS4      PX4IO
+# LPUART8       /dev/ttyS5      TELEM2
+# LPUART10      /dev/ttyS6      TELEM3
+# LPUART11      /dev/ttyS7      EXT2
+#
+#------------------------------------------------------------------------------
+
+set HAVE_PM2 yes
+set INA_CONFIGURED no
+
+if mft query -q -k MFT -s MFT_PM2 -v 0
+then
+	set HAVE_PM2 no
+fi
+if param compare -s ADC_ADS1115_EN 1
+then
+	ads1115 start -X
+	board_adc start -n
+else
+	board_adc start
+fi
+
+
+if param compare SENS_EN_INA226 1
+then
+	# Start Digital power monitors
+	ina226 -X -b 1 -t 1 -k start
+
+	if [ $HAVE_PM2 = yes ]
+	then
+		ina226 -X -b 2 -t 2 -k start
+	fi
+
+	set INA_CONFIGURED yes
+fi
+
+if param compare SENS_EN_INA228 1
+then
+	# Start Digital power monitors
+	ina228 -X -b 1 -t 1 -k start
+	if [ $HAVE_PM2 = yes ]
+	then
+		ina228 -X -b 2 -t 2 -k start
+	fi
+
+	set INA_CONFIGURED yes
+fi
+
+if param compare SENS_EN_INA238 1
+then
+	# Start Digital power monitors
+	ina238 -X -b 1 -t 1 -k start
+	if [ $HAVE_PM2 = yes ]
+	then
+		ina238 -X -b 2 -t 2 -k start
+	fi
+
+	set INA_CONFIGURED yes
+fi
+
+if [ $INA_CONFIGURED = no ]
+then
+	# INA226, INA228, INA238 auto-start
+	i2c_launcher start -b 1
+	if [ $HAVE_PM2 = yes ]
+	then
+		i2c_launcher start -b 2
+	fi
+fi
+
+if ver hwtypecmp ARKV6XRT000
+then
+	# Internal SPI1 ICM-45686 Accel/Gyro
+	icm45686 -R 2 -b 1 -s start
+
+	# Internal SPI2 IIM-20670 Accel/Gyro
+	# TODO: IIM-20670 driver not yet available rotation?
+	# iim20670 -R 6 -b 2 -s start
+
+	# Internal SPI3 LSM6DSV80X Accel/Gyro
+	# TODO: LSM6DSV80X driver not yet available rotation?
+	# lsm6dsv80x -R 4 -b 3 -s start
+fi
+
+# Internal magnetometer IIS2MDC on I2C3
+iis2mdc -I -b 3 start
+
+# Internal Baro BMP390 on I2C2
+if param compare SENS_INT_BARO_EN 1
+then
+	bmp388 -X -b 2 start
+fi
+
+unset INA_CONFIGURED
+unset HAVE_PM2
