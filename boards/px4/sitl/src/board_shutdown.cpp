@@ -80,7 +80,7 @@ int board_power_off(int status)
 
 #include <sys/boardctl.h>
 
-extern "C" int boardctl(unsigned int cmd, uintptr_t arg)
+extern "C" __EXPORT int boardctl(unsigned int cmd, uintptr_t arg)
 {
 	if (cmd == BOARDIOC_RESET) {
 
