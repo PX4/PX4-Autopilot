@@ -149,6 +149,13 @@ extern "C" __EXPORT int boardctl(unsigned int cmd, uintptr_t arg)
 			return -1;
 		}
 
+		if ((size_t)bytes >= sizeof(cmdline) - 1) {
+			PX4_ERR("/proc/self/cmdline exceeds %zu bytes; refusing to re-exec with truncated argv",
+				sizeof(cmdline) - 1);
+			system_exit(1);
+			return -1;
+		}
+
 		cmdline[bytes] = '\0';
 
 		// Parse NUL-separated arguments into argv array
@@ -159,6 +166,12 @@ extern "C" __EXPORT int boardctl(unsigned int cmd, uintptr_t arg)
 		while (p < cmdline + bytes && argc < 63) {
 			argv[argc++] = p;
 			p += strlen(p) + 1;
+		}
+
+		if (p < cmdline + bytes) {
+			PX4_ERR("original argv exceeds %d args; refusing to re-exec with truncated argv", 63);
+			system_exit(1);
+			return -1;
 		}
 
 		argv[argc] = nullptr;
