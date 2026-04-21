@@ -105,8 +105,6 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 
 	// Check if user wants to break
 	const bool apply_brake = fabsf(_sticks.getThrottleZeroCenteredExpo()) <= FLT_EPSILON;
-
-	// Check if vehicle has stopped
 	const bool stopped = (_param_mpc_hold_max_z.get() < FLT_EPSILON || fabsf(_velocity(2)) < _param_mpc_hold_max_z.get());
 
 	// Manage transition between use of distance to ground and distance to local origin
@@ -158,13 +156,11 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 
 	} else {
 		// normal mode where height is dependent on local frame
-
 		if (apply_brake && stopped && !PX4_ISFINITE(_position_setpoint(2))) {
 			// lock position
 			_position_setpoint(2) = _position(2);
 
-			// Ensure that minimum altitude is respected if
-			// there is a distance sensor and distance to bottom is below minimum.
+			// Ensure that minimum altitude is respected if there is a distance sensor and distance to bottom is below minimum.
 			if (PX4_ISFINITE(_dist_to_bottom) && _dist_to_bottom < _min_distance_to_ground) {
 				_terrainFollowing(apply_brake, stopped);
 
@@ -173,8 +169,7 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 			}
 
 		} else if (PX4_ISFINITE(_position_setpoint(2)) && apply_brake) {
-			// Position is locked but check if a reset event has happened.
-			// We will shift the setpoints.
+			// Position is locked but check if a reset event has happened. We will shift the setpoints.
 			if (_sub_vehicle_local_position.get().z_reset_counter != _reset_counter) {
 				_position_setpoint(2) = _position(2);
 				_reset_counter = _sub_vehicle_local_position.get().z_reset_counter;
@@ -183,7 +178,6 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 		} else  {
 			// user demands velocity change
 			_position_setpoint(2) = NAN;
-			// ensure that maximum altitude is respected
 		}
 	}
 
