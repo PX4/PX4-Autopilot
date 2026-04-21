@@ -555,4 +555,3 @@ void OutputMavlinkToGimbalManager::print_status() const
 	PX4_INFO("	control_rights: %s", _control_right_str(_control_rights));
 }
 }
-
