@@ -6,11 +6,11 @@ This fork adds airframes and board configurations required for operating the UAS
 
 ## Additional Board Configuration
 
-### `boards/px4/fmu-v6x`
+### `boards/px4/fmu-v5x`
 
-- [crsf.px4board](boards/px4/fmu-v6x/crsf.px4board)
+- [fsr.px4board](boards/fsr/fmu-v5x/fsr.px4board)
 
-  Enable crossfire as RC.
+  Default board config for FSR.
 
 ## Additional Airframes
 
