@@ -79,10 +79,16 @@ int board_power_off(int status)
 #if defined(CONFIG_BOARDCTL_RESET)
 
 #include <sys/boardctl.h>
+#include <px4_platform_common/shutdown.h>
 
 extern "C" __EXPORT int boardctl(unsigned int cmd, uintptr_t arg)
 {
 	if (cmd == BOARDIOC_RESET) {
+
+		if (arg != REBOOT_REQUEST) {
+			PX4_WARN("SITL has no bootloader/ISP target; treating reboot request %u as normal reboot",
+				 (unsigned)arg);
+		}
 
 		char exe_path[PATH_MAX];
 
