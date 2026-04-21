@@ -29,7 +29,7 @@ LABEL description="PX4 SITL with Gazebo Harmonic simulation"
 ENV DEBIAN_FRONTEND=noninteractive
 ENV RUNS_IN_DOCKER=true
 
-# Install Gazebo Harmonic with buildkit cache mounts for apt
+# Install Gazebo Harmonic and run-time dependencies with buildkit cache mounts for apt
 # The --mount=type=cache persists /var/cache/apt and /var/lib/apt across builds
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
@@ -46,7 +46,17 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         > /etc/apt/sources.list.d/gazebo-stable.list \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
-        gz-harmonic
+        gz-harmonic \
+        gstreamer1.0-plugins-bad \
+        gstreamer1.0-plugins-base \
+        gstreamer1.0-plugins-good \
+        gstreamer1.0-plugins-ugly \
+        gstreamer1.0-libav \
+        libopencv-core406t64 \
+        libopencv-imgproc406t64 \
+        libopencv-video406t64 \
+        libopencv-calib3d406t64 \
+        libopencv-features2d406t64
 
 # Install PX4 files from .deb
 COPY --from=extract /staging/opt/px4-gazebo /opt/px4-gazebo
