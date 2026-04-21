@@ -17,6 +17,7 @@ This fork adds airframes and board configurations required for operating the UAS
 ### `ROMFS/px4fmu_common/init.d/airframes`
 
 - [4002_tuda_fsr_edufly](ROMFS/px4fmu_common/init.d/airframes/4002_tuda_fsr_edufly)
+- [4002_tuda_fsr_scidom](ROMFS/px4fmu_common/init.d/airframes/4003_tuda_fsr_scidom)
 - [13001_tuda_fsr_scidragon](ROMFS/px4fmu_common/init.d/airframes/13001_tuda_fsr_scidragon)
 
 ### `ROMFS/px4fmu_common/init.d-posix/airframes` (Simulation)
