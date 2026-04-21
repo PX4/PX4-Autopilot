@@ -2,6 +2,37 @@
 # - If you want to keep the tests running in GitHub Actions you need to uncomment the "runs-on: ubuntu-latest" lines
 #   and comment the "runs-on: [runs-on,runner=..." lines.
 # - If you would like to duplicate this setup try setting up "RunsOn" on your own AWS account try https://runs-on.com
+#
+# ===================================================================================
+# RELEASE UPLOAD LOGIC
+# ===================================================================================
+# This workflow handles building firmware and uploading to S3 + GitHub Releases.
+#
+# S3 Bucket Structure (s3://px4-travis/Firmware/):
+#   - master/          <- Latest main branch build (for QGC compatibility)
+#   - stable/          <- Latest stable release, controlled by 'stable' branch
+#   - beta/            <- Latest pre-release, controlled by 'beta' branch
+#   - vX.Y.Z/          <- Archived stable release
+#   - vX.Y.Z-beta1/    <- Archived pre-release
+#
+# Trigger Behavior:
+#   - Tag v1.16.1        -> Upload to: v1.16.1/ only (versioned archive)
+#   - Tag v1.17.0-beta1  -> Upload to: v1.17.0-beta1/ only (versioned archive)
+#   - Branch main        -> Upload to: master/ (for QGC compatibility)
+#   - Branch stable      -> Upload to: stable/ (QGC stable firmware)
+#   - Branch beta        -> Upload to: beta/ (QGC beta firmware)
+#   - Branch release/**  -> Build only, no S3 upload (CI validation)
+#   - Pull requests      -> Build only, no S3 upload (CI validation)
+#
+# GitHub Releases:
+#   - All version tags create a draft GitHub Release
+#   - Pre-releases (alpha/beta/rc suffixes) are automatically marked as such
+#
+# IMPORTANT: Version tags do NOT upload to stable/ or beta/. Only the
+# corresponding branch pushes control those directories. This prevents
+# pre-release tags from accidentally overwriting stable firmware (#26340)
+# and avoids race conditions between tag and branch builds.
+# ===================================================================================
 
 name: Build all targets
 
@@ -159,6 +190,13 @@ jobs:
           path: ~/.ccache
           key: ${{ steps.cc_restore.outputs.cache-primary-key }}
 
+  # ===========================================================================
+  # ARTIFACT UPLOAD JOB
+  # ===========================================================================
+  # Uploads build artifacts to S3 and creates GitHub Releases.
+  # Runs for version tags (v*), main, stable, and beta branch pushes.
+  # See header comments for full upload logic documentation.
+  # ===========================================================================
   artifacts:
     name: Upload Artifacts
     # runs-on: ubuntu-latest
@@ -177,31 +215,31 @@ jobs:
       - name: Choose Upload Location
         id: upload-location
         run: |
-          # Determine upload location based on branch or tag with the following considerations:
-          # Destination: AWS S3 bucket px4-travis in folder Firmware/
-          # - If branch is main -> upload to master/
-          #   - Older versions of QGC are hardocded to look for master/
-          # - If branch is stable or beta -> upload to stable/ or beta/
-          # - If a tag vX.Y.Z -> upload to vX.Y.Z/
-          #   - Also update stable/ to point to the same version
-          #.  - Older versions of QGC are hardocded to look for stable/
-          # - If a pull request -> do not upload
           set -euo pipefail
 
           ref="${GITHUB_REF}"
           branch=${{ needs.group_targets.outputs.branchname  }}
           location="$branch"
+          is_prerelease="false"
 
+          # Main branch uploads to "master" for QGC backward compatibility
           if [[ "$branch" == "main" ]]; then
             location="master"
           fi
 
+          # Version tags: upload to versioned directory (e.g., v1.16.1/)
           if [[ "$ref" == refs/tags/v[0-9]* ]]; then
             tag="${ref#refs/tags/}"
             location="$tag"
+
+            # Pre-release tags contain -alpha, -beta, or -rc suffix
+            if [[ "$tag" =~ -(alpha|beta|rc) ]]; then
+              is_prerelease="true"
+            fi
           fi
 
           echo "uploadlocation=$location" >> $GITHUB_OUTPUT
+          echo "is_prerelease=$is_prerelease" >> $GITHUB_OUTPUT
 
       - name: Uploading Artifacts to S3 [${{ steps.upload-location.outputs.uploadlocation }}]
         uses: jakejarvis/s3-sync-action@master
@@ -215,28 +253,13 @@ jobs:
           SOURCE_DIR: artifacts/
           DEST_DIR: Firmware/${{ steps.upload-location.outputs.uploadlocation }}/
 
-      # if we are uploading artifacts to a versioned folder
-      # we should also update the stable folder in the s3 bucket
-      - name: Uploading Artifacts to S3 [stable]
-        uses: jakejarvis/s3-sync-action@master
-        if: startsWith(github.ref, 'refs/tags/v')
-        with:
-          args: --acl public-read
-        env:
-          AWS_S3_BUCKET: 'px4-travis'
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: 'us-west-1'
-          SOURCE_DIR: artifacts/
-          DEST_DIR: Firmware/stable/
-
-      # if build is a release triggered by a versioned tag then create a github release
-      # and upload the build artifacts. A draft release is created so that the release
-      # can be reviewed before publishing
+      # Create a draft GitHub Release for all version tags
+      # Pre-releases are automatically marked as such
       - name: Upload Artifacts to GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/v')
         with:
           draft: true
+          prerelease: ${{ steps.upload-location.outputs.is_prerelease == 'true' }}
           files: artifacts/*.px4
           name: ${{ steps.upload-location.outputs.uploadlocation }}
