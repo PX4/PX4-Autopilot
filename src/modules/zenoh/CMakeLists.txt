@@ -61,6 +61,9 @@ set(BATCH_UNICAST_SIZE 256 CACHE STRING "Use this to override the maximum unicas
 set(BATCH_MULTICAST_SIZE 256 CACHE STRING "Use this to override the maximum multicast batch size")
 
 set(Z_FEATURE_UNSTABLE_API 1 CACHE STRING "Toggle unstable Zenoh-C API")
+set(Z_FEATURE_CONNECTIVITY 0 CACHE STRING "Toggle connectivity status/events API (unstable)" FORCE)
+set(Z_FEATURE_ADMIN_SPACE 0 CACHE STRING "Toggle admin space support" FORCE)
+set(Z_FEATURE_LOCAL_QUERYABLE 0 CACHE STRING "Toggle local queryables" FORCE)
 
 px4_add_git_submodule(TARGET git_zenoh-pico PATH "zenoh-pico")
 add_subdirectory(zenoh-pico)
