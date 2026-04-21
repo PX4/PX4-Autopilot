@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2020, 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,23 +31,60 @@
  *
  ****************************************************************************/
 
-#include <px4_arch/spi_hw_description.h>
-#include <drivers/drv_sensor.h>
-#include <nuttx/spi/spi.h>
+#include "util_parse.h"
+#include <cstdio>
 
-constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-	initSPIBus(SPI::Bus::SPI1, {
-		initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortA, GPIO::Pin4})
-	}),
-	initSPIBus(SPI::Bus::SPI2, {
-		initSPIDevice(DRV_OSD_DEVTYPE_ATXXXX, SPI::CS{GPIO::PortB, GPIO::Pin12}),
-	}),
-	initSPIBus(SPI::Bus::SPI4, {
-		//<V1.1 have the mpu6000, v1.3 have a BMI270, v1.5 have a ICM42688P
-		initSPIDevice(DRV_IMU_DEVTYPE_MPU6000, SPI::CS{GPIO::PortE, GPIO::Pin4}, SPI::DRDY{GPIO::PortE, GPIO::Pin1}),
-		initSPIDevice(DRV_IMU_DEVTYPE_BMI270, SPI::CS{GPIO::PortE, GPIO::Pin4}, SPI::DRDY{GPIO::PortE, GPIO::Pin1}),
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::PortE, GPIO::Pin4}, SPI::DRDY{GPIO::PortE, GPIO::Pin1})
-	}),
-};
+namespace px4
+{
+namespace logger
+{
+namespace util
+{
 
-static constexpr bool unused = validateSPIConfig(px4_spi_buses);
+bool parse_sess_dir_name(const char *name, int &sess_idx)
+{
+	return sscanf(name, "sess%d", &sess_idx) == 1;
+}
+
+bool parse_date_dir_name(const char *name, int &year, int &month, int &day)
+{
+	return sscanf(name, "%d-%d-%d", &year, &month, &day) == 3;
+}
+
+bool is_date_older(int y1, int m1, int d1, int y2, int m2, int d2)
+{
+	return y1 < y2 ||
+	       (y1 == y2 && m1 < m2) ||
+	       (y1 == y2 && m1 == m2 && d1 < d2);
+}
+
+void process_dir_entry(const char *name, LogDirInfo &info)
+{
+	int sess_idx;
+	int year, month, day;
+
+	if (parse_sess_dir_name(name, sess_idx)) {
+		info.num_sess++;
+
+		if (sess_idx > info.sess_idx_max) {
+			info.sess_idx_max = sess_idx;
+		}
+
+		if (sess_idx < info.sess_idx_min) {
+			info.sess_idx_min = sess_idx;
+		}
+
+	} else if (parse_date_dir_name(name, year, month, day)) {
+		info.num_dates++;
+
+		if (is_date_older(year, month, day, info.oldest_year, info.oldest_month, info.oldest_day)) {
+			info.oldest_year = year;
+			info.oldest_month = month;
+			info.oldest_day = day;
+		}
+	}
+}
+
+} //namespace util
+} //namespace logger
+} //namespace px4

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2020, 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,23 +31,17 @@
  *
  ****************************************************************************/
 
-#include <px4_arch/spi_hw_description.h>
-#include <drivers/drv_sensor.h>
-#include <nuttx/spi/spi.h>
+#include <px4_platform_common/px4_manifest.h>
 
-constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-	initSPIBus(SPI::Bus::SPI1, {
-		initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortA, GPIO::Pin4})
-	}),
-	initSPIBus(SPI::Bus::SPI2, {
-		initSPIDevice(DRV_OSD_DEVTYPE_ATXXXX, SPI::CS{GPIO::PortB, GPIO::Pin12}),
-	}),
-	initSPIBus(SPI::Bus::SPI4, {
-		//<V1.1 have the mpu6000, v1.3 have a BMI270, v1.5 have a ICM42688P
-		initSPIDevice(DRV_IMU_DEVTYPE_MPU6000, SPI::CS{GPIO::PortE, GPIO::Pin4}, SPI::DRDY{GPIO::PortE, GPIO::Pin1}),
-		initSPIDevice(DRV_IMU_DEVTYPE_BMI270, SPI::CS{GPIO::PortE, GPIO::Pin4}, SPI::DRDY{GPIO::PortE, GPIO::Pin1}),
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::PortE, GPIO::Pin4}, SPI::DRDY{GPIO::PortE, GPIO::Pin1})
-	}),
+// SPI1 flash (W25N NAND on v1.3, W25Q128 NOR on v1.5) is initialized
+// directly in init.c with runtime chip detection and mounted as littlefs
+// at /fs/flash. No MTD manifest entry needed here.
+
+static const px4_mft_s mft = {
+	.nmft = 0,
 };
 
-static constexpr bool unused = validateSPIConfig(px4_spi_buses);
+const px4_mft_s *board_get_manifest(void)
+{
+	return &mft;
+}

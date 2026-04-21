@@ -52,6 +52,7 @@
 #include <string.h>
 #include <debug.h>
 #include <errno.h>
+#include <sys/stat.h>
 #include <syslog.h>
 
 #include <nuttx/config.h>
@@ -59,6 +60,8 @@
 #include <nuttx/spi/spi.h>
 #include <nuttx/analog/adc.h>
 #include <nuttx/mm/gran.h>
+#include <nuttx/mtd/mtd.h>
+#include <nuttx/fs/fs.h>
 #include <chip.h>
 #include <stm32_uart.h>
 #include <arch/board/board.h>
@@ -231,13 +234,69 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		led_on(LED_RED);
 	}
 
-	// MARK: this will *not* work as the minis have a W25N NAND flash chip
-	/* Get the SPI port for the microSD slot */
-	struct spi_dev_s *spi_dev = stm32_spibus_initialize(CONFIG_NSH_MMCSDSPIPORTNO);
+	/* Initialize SPI1 flash: try W25N NAND (v1.3) first, fall back to W25 NOR (v1.5 W25Q128) */
+	{
+		struct spi_dev_s *spi1 = stm32_spibus_initialize(1);
+		struct mtd_dev_s *flash_mtd = NULL;
 
-	if (!spi_dev) {
-		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", CONFIG_NSH_MMCSDSPIPORTNO);
-		led_on(LED_BLUE);
+		if (!spi1) {
+			syslog(LOG_ERR, "[boot] FAILED to initialize SPI1 for flash\n");
+			led_on(LED_RED);
+
+		} else {
+#ifdef CONFIG_MTD_W25N
+			flash_mtd = w25n_initialize(spi1, 0);
+
+			if (flash_mtd) {
+				syslog(LOG_INFO, "[boot] W25N NAND flash detected on SPI1\n");
+			}
+
+#endif
+#ifdef CONFIG_MTD_W25
+
+			if (!flash_mtd) {
+				flash_mtd = w25_initialize(spi1);
+
+				if (flash_mtd) {
+					syslog(LOG_INFO, "[boot] W25 NOR flash detected on SPI1\n");
+				}
+			}
+
+#endif
+
+			if (!flash_mtd) {
+				syslog(LOG_ERR, "[boot] FAILED to detect flash chip on SPI1\n");
+				led_on(LED_RED);
+
+			} else {
+				int ret = register_mtddriver("/dev/mtd0", flash_mtd, 0755, NULL);
+
+				if (ret < 0) {
+					syslog(LOG_ERR, "[boot] FAILED to register MTD driver: %d\n", ret);
+					led_on(LED_RED);
+
+				} else {
+#ifdef CONFIG_FS_LITTLEFS
+					mkdir("/fs/flash", 0777);
+					ret = nx_mount("/dev/mtd0", "/fs/flash", "littlefs", 0, "autoformat");
+
+					if (ret < 0) {
+						syslog(LOG_WARNING, "[boot] littlefs autoformat failed (%d), forcing format\n", ret);
+						ret = nx_mount("/dev/mtd0", "/fs/flash", "littlefs", 0, "forceformat");
+					}
+
+					if (ret < 0) {
+						syslog(LOG_ERR, "[boot] FAILED to mount littlefs at /fs/flash: %d\n", ret);
+						led_on(LED_RED);
+
+					} else {
+						syslog(LOG_INFO, "[boot] LittleFS mounted at /fs/flash\n");
+					}
+
+#endif
+				}
+			}
+		}
 	}
 
 	up_udelay(20);
@@ -259,7 +318,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 #endif
 
 	/* Configure the HW based on the manifest */
-
 	px4_platform_configure();
 
 	return OK;

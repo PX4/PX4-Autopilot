@@ -29,11 +29,14 @@ param set-default CBRK_BUZZER 782090
 
 param set-default IMU_GYRO_RATEMAX 2000
 
-# Store missions in RAM
-param set-default SYS_DM_BACKEND 1
-
 # Ignore that there is no SD card
 param set-default COM_ARM_SDCARD 0
 
-# Disable logging
-param set-default SDLOG_BACKEND 0
+# Flash logging: constrained by W25Q128 NOR (v1.5, 16 MB). W25N NAND (v1.3)
+# is 128 MB but we use the same firmware image for both, so cap at 12 MB to
+# guarantee the W25Q128 can hold at least one full log with headroom.
+# SDLOG_ROTATE=90 (default) keeps >=10% of disk free during rotation.
+param set-default SDLOG_MAX_SIZE 12
+
+# Store missions in RAM
+param set-default SYS_DM_BACKEND 1

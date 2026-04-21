@@ -18,3 +18,21 @@ menuconfig LOGGER_STACK_SIZE
 	---help---
 		Stack size of the logger task. Some configurations require more stack
 		than the default.
+
+config LOGGER_WRITER_STACK_SIZE
+	int "stack size of log writer thread"
+	default 1170
+	depends on MODULES_LOGGER
+	---help---
+		Stack size of the log writer thread. Flash-based logging with
+		LittleFS requires more stack than SD card logging (use 4096).
+
+config LOGGER_MIN_SPACE_MB
+	int "minimum free space threshold to start logging (MiB)"
+	default 50
+	depends on MODULES_LOGGER
+	---help---
+		If free space on the log storage is below this threshold, the
+		logger will refuse to start and report "Storage full". The
+		default of 50 MiB is appropriate for SD cards. Boards with
+		small SPI flash (e.g. 16 MiB NOR) should set this lower.

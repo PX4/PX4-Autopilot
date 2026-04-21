@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2020, 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,23 +31,48 @@
  *
  ****************************************************************************/
 
-#include <px4_arch/spi_hw_description.h>
-#include <drivers/drv_sensor.h>
-#include <nuttx/spi/spi.h>
+/**
+ * @file mklittlefs.cpp
+ *
+ * Format a device with littlefs filesystem.
+ */
 
-constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-	initSPIBus(SPI::Bus::SPI1, {
-		initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortA, GPIO::Pin4})
-	}),
-	initSPIBus(SPI::Bus::SPI2, {
-		initSPIDevice(DRV_OSD_DEVTYPE_ATXXXX, SPI::CS{GPIO::PortB, GPIO::Pin12}),
-	}),
-	initSPIBus(SPI::Bus::SPI4, {
-		//<V1.1 have the mpu6000, v1.3 have a BMI270, v1.5 have a ICM42688P
-		initSPIDevice(DRV_IMU_DEVTYPE_MPU6000, SPI::CS{GPIO::PortE, GPIO::Pin4}, SPI::DRDY{GPIO::PortE, GPIO::Pin1}),
-		initSPIDevice(DRV_IMU_DEVTYPE_BMI270, SPI::CS{GPIO::PortE, GPIO::Pin4}, SPI::DRDY{GPIO::PortE, GPIO::Pin1}),
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::PortE, GPIO::Pin4}, SPI::DRDY{GPIO::PortE, GPIO::Pin1})
-	}),
-};
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/module.h>
 
-static constexpr bool unused = validateSPIConfig(px4_spi_buses);
+#include <sys/mount.h>
+#include <errno.h>
+#include <string.h>
+
+static void print_usage()
+{
+	PRINT_MODULE_DESCRIPTION("Format a device with the littlefs filesystem.");
+
+	PRINT_MODULE_USAGE_NAME_SIMPLE("mklittlefs", "command");
+	PRINT_MODULE_USAGE_ARG("<device> <mountpoint>", "Device and mount point (e.g. /dev/mtd0 /fs/flash)", false);
+}
+
+extern "C" __EXPORT int mklittlefs_main(int argc, char *argv[])
+{
+	if (argc < 3) {
+		print_usage();
+		return 1;
+	}
+
+	const char *device = argv[1];
+	const char *mountpoint = argv[2];
+
+	// Try to unmount first (ignore error if not mounted)
+	umount(mountpoint);
+
+	int ret = mount(device, mountpoint, "littlefs", 0, "forceformat");
+
+	if (ret < 0) {
+		PX4_ERR("format failed: %s", strerror(errno));
+		return 1;
+	}
+
+	PX4_INFO("formatted %s as littlefs, mounted at %s", device, mountpoint);
+	return 0;
+}

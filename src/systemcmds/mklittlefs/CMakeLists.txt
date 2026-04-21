@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2026 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,44 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-set(LOGGER_MODULE_PARAMS)
-
-if(PX4_CRYPTO)
-	list(APPEND LOGGER_MODULE_PARAMS module_params_crypto.yaml)
-endif()
-
 px4_add_module(
-	MODULE modules__logger
-	MAIN logger
-	PRIORITY "SCHED_PRIORITY_MAX-30"
-	STACK_MAIN 2500
-	MODULE_CONFIG
-		module.yaml
-		${LOGGER_MODULE_PARAMS}
+	MODULE systemcmds__mklittlefs
+	MAIN mklittlefs
+	STACK_MAIN 2048
 	COMPILE_FLAGS
-		${MAX_CUSTOM_OPT_LEVEL}
-		-Wno-cast-align # TODO: fix and enable
 	SRCS
-		logged_topics.cpp
-		logger.cpp
-		log_writer.cpp
-		log_writer_file.cpp
-		log_writer_mavlink.cpp
-		util.cpp
-		util_parse.cpp
-		watchdog.cpp
+		mklittlefs.cpp
 	DEPENDS
-		version
-		component_general_json # for checksums.h
 	)
-
-px4_add_unit_gtest(SRC ULogMessagesTest.cpp)
-
-if(BUILD_TESTING)
-	# Separate library for pure parsing functions (testable without PX4 dependencies)
-	add_library(logger_util_parse STATIC util_parse.cpp)
-	target_include_directories(logger_util_parse PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-endif()
-
-px4_add_unit_gtest(SRC loggerUtilTest.cpp LINKLIBS logger_util_parse)
