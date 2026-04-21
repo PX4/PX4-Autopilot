@@ -44,7 +44,7 @@ The following sections explain how to configure the [return type](#return_types)
 
 ## Return Types (RTL_TYPE)
 
-PX4 provides four alternative approaches for finding an unobstructed path to a safe destination and/or landing, which are set using the [RTL_TYPE](#RTL_TYPE) parameter.
+PX4 provides several alternative approaches for finding an unobstructed path to a safe destination and/or landing, which are set using the [RTL_TYPE](#RTL_TYPE) parameter.
 
 At high level these are:
 
@@ -56,6 +56,12 @@ At high level these are:
   If no _mission_ defined, return direct to home (rally points are ignored).
 - [Closest safe destination return](#closest-safe-destination-return-type-rtl-type-3) (`RTL_TYPE=3`): Ascend to a safe altitude and return via direct path to closest destination: home, start of mission landing pattern, or rally point.
   If the destination is a mission landing pattern, follow the pattern to land.
+- [Closest mission landing or reverse mission return](#closest-mission-landing-or-reverse-mission-return-type-rtl-type-4) (`RTL_TYPE=4`): Like `RTL_TYPE=2`, but chooses between mission landing and reverse mission path based on which requires fewer waypoints to traverse.
+  Rally points are not considered.
+- [Rally point return](#rally-point-return-type-rtl-type-5) (`RTL_TYPE=5`): Return directly to the closest rally point, ignoring home and mission landing.
+  If no rally point is defined, land at the current position.
+- [Battery-aware home priority return](#battery-aware-home-priority-return-type-rtl-type-6) (`RTL_TYPE=6`): Return to home if the estimated flight time is within the remaining battery time, otherwise return to the closest rally point.
+  Falls back to the closest safe point (home or rally) if battery time remaining is unavailable.
 
 More detailed explanations for each of the types are provided in the following sections.
 
@@ -145,7 +151,7 @@ This is only an approximation of the flown path length, because the number if mi
 
 ### Closest Safe Destination Return Type (RTL_TYPE=3)
 
-In this return type the vehicle:
+In this return type, the vehicle:
 
 - Ascends to a safe [minimum return altitude](#minimum-return-altitude) (above any expected obstacles).
 - Flies a direct path to the closest destination of: home location, mission landing pattern or rally point.
@@ -153,6 +159,47 @@ In this return type the vehicle:
 - If the destination is a home location or rally point, the vehicle will descend to the descent altitude ([RTL_DESCEND_ALT](#RTL_DESCEND_ALT)) and then [lands or waits](#loiter-landing-at-destination).
   By default an MC or VTOL in MC mode will land, and a fixed-wing vehicle circles at the descent altitude.
   A VTOL in FW mode aligns its heading to the destination point, transitions to MC mode, and then lands.
+
+### Closest Mission Landing or Reverse Mission Return Type (RTL_TYPE=4)
+
+This return type is similar to [Mission Path Return (RTL_TYPE=2)](#mission-path-return-type-rtl-type-2) but selects between the forward mission landing and the reverse mission path based on
+which requires fewer waypoints to traverse from the current position, rather than always preferring the forward mission landing.
+
+In this return type, the vehicle:
+
+- If a mission landing is defined and the landing start is closer by waypoint count than the mission start
+(i.e. fewer waypoints remain to reach the landing than have been passed since the start): flies fast-forward
+through the remaining mission waypoints to land.
+- Otherwise, if a valid mission is defined: fast-reverses the mission path back to home.
+- If no mission is defined: flies directly to home.
+
+Rally points are not considered.
+Landing behaviour at the destination follows the same rules as RTL_TYPE=2.
+
+### Rally Point Return Type (RTL_TYPE=5)
+
+In this return type, the vehicle ignores home and mission landing patterns entirely and returns only to rally points:
+
+- Ascends to a safe minimum return altitude (above any expected obstacles).
+- Flies via direct path to the closest rally point.
+- Lands or waits at the rally point destination.
+
+::: info
+If no rally points are defined the vehicle will land at its current position rather than returning to home.
+This type is intended for use cases where only pre-approved rally points are acceptable landing destinations.
+:::
+
+### Battery-Aware Home Priority Return Type (RTL_TYPE=6)
+
+In this return type, the vehicle uses the estimated flight time to home compared against the remaining battery time to decide the return destination:
+
+- Computes the estimated time to fly home, including a safety factor and margin (RTL_TIME_FACTOR and RTL_TIME_MARGIN).
+- If the estimated flight time to home is less than the remaining battery time (`time_remaining_s`): returns to home via a direct path.
+- If home is not within battery reach: returns to the closest rally point via a direct path.
+- If no rally point is closer than home, or no rally points are defined, falls back to home.
+- If the battery time remaining estimate is unavailable (e.g. no current sensor, battery capacity not
+configured): falls back to returning to the closest safe point — whichever of home or the defined rally
+points is nearest.
 
 ## Minimum Return Altitude
 
@@ -214,7 +261,7 @@ The RTL parameters are listed in [Parameter Reference > Return Mode](../advanced
 
 | Parameter                                                                                                   | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="RTL_TYPE"></a>[RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE)                         | Return mechanism (path and destination).<br>`0`: Return to a rally point or home (whichever is closest) via direct path.<br>`1`: Return to a rally point or the mission landing pattern start point (whichever is closest), via direct path. If neither mission landing or rally points are defined return home via a direct path. If the destination is a mission landing pattern, follow the pattern to land.<br>`2`: Use the mission path to landing while skipping DO_JUMP and other non-position mission items if a landing pattern is defined, otherwise fast-reverse to home with the same traversal rules. Ignore rally points. Fly direct to home if no mission plan is defined.<br>`3`: Return via direct path to closest destination: home, start of mission landing pattern or safe point. If the destination is a mission landing pattern, follow the pattern to land. |
+| <a id="RTL_TYPE"></a>[RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE)                         | Return mechanism (path and destination).<br>`0`: Return to a rally point or home (whichever is closest) via direct path.<br>`1`: Return to a rally point or the mission landing pattern start point (whichever is closest), via direct path. If neither mission landing or rally points are defined return home via a direct path. If the destination is a mission landing pattern, follow the pattern to land.<br>`2`: Use the mission path to landing while skipping DO_JUMP and other non-position mission items if a landing pattern is defined, otherwise fast-reverse to home with the same traversal rules. Ignore rally points. Fly direct to home if no mission plan is defined.<br>`3`: Return via direct path to closest destination: home, start of mission landing pattern or safe point. If the destination is a mission landing pattern, follow the pattern to land.<br>`4`: Like type 2, but selects between mission landing (fast-forward) and reverse mission path based on which requires fewer waypoints from the current position. Rally points not considered. Fly direct to home if no mission is defined.<br>`5`: Return via direct path to closest rally point. If no rally points are defined, land at current position.<br>`6`: Return to home if estimated flight time to home is less than remaining battery time, otherwise return to closest rally point. Falls back to closest safe point (home or rally) if battery time remaining is unavailable. |
 | <a id="RTL_RETURN_ALT"></a>[RTL_RETURN_ALT](../advanced_config/parameter_reference.md#RTL_RETURN_ALT)       | Return altitude in meters (default: 60m) when [RTL_CONE_ANG](../advanced_config/parameter_reference.md#RTL_CONE_ANG) is 0. If already above this value the vehicle will return at its current altitude.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | <a id="RTL_DESCEND_ALT"></a>[RTL_DESCEND_ALT](../advanced_config/parameter_reference.md#RTL_DESCEND_ALT)    | Minimum return altitude and altitude at which the vehicle will slow or stop its initial descent from a higher return altitude (default: 30m)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | <a id="RTL_LAND_DELAY"></a>[RTL_LAND_DELAY](../advanced_config/parameter_reference.md#RTL_LAND_DELAY)       | Time to wait at `RTL_DESCEND_ALT` before landing (default: 0.5s) -by default this period is short so that the vehicle will simply slow and then land immediately. If set to -1 the system will loiter at `RTL_DESCEND_ALT` rather than landing. The delay is provided to allow you to configure time for landing gear to be deployed (triggered automatically).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |

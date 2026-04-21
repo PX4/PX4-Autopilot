@@ -48,6 +48,9 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 - Added new flight mode(s): [Altitude Cruise (MC)](../flight_modes_mc/altitude_cruise.md), Altitude Cruise (FW).
   For fixed-wing the mode behaves the same as Altitude mode but you can disable the manual control loss failsafe. ([PX4-Autopilot#25435: Add new flight mode: Altitude Cruise](https://github.com/PX4/PX4-Autopilot/pull/25435)).
+- Added `RTL_TYPE=6` for battery-aware home priority return ([PX4-Autopilot#26968](https://github.com/PX4/PX4-Autopilot/pull/26968)).
+  Returns to home if the estimated flight time to home is within the remaining battery time; otherwise returns to the closest rally point.
+  Falls back to the closest safe point (home or rally) if battery time remaining is unavailable.
 
 ### Estimation
 
