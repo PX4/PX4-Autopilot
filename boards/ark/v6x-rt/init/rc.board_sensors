@@ -94,7 +94,7 @@ then
 fi
 
 # Internal magnetometer IIS2MDC on I2C3
-iis2mdc -I -b 3 start
+iis2mdc -R 4 -I -b 3 start
 
 # Internal Baro BMP390 on I2C2
 if param compare SENS_INT_BARO_EN 1
