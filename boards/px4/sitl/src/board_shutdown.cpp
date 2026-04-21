@@ -52,6 +52,10 @@
 #include <fcntl.h>
 #include <limits.h>
 
+#ifdef __linux__
+#include <sys/syscall.h>
+#endif
+
 #ifdef __APPLE__
 #include <mach-o/dyld.h>
 #include <crt_externs.h>
@@ -170,14 +174,28 @@ extern "C" __EXPORT int boardctl(unsigned int cmd, uintptr_t arg)
 		// Close all file descriptors except stdin/stdout/stderr before exec.
 		// Without this, sockets (MAVLink UDP ports, etc.) survive across execv
 		// and the new process fails to bind them ("Address already in use").
-		long max_fd = sysconf(_SC_OPEN_MAX);
+		// Prefer close_range(2) (Linux 5.9+, glibc 2.34+) so we don't iterate
+		// up to RLIMIT_NOFILE, which on systemd hosts is often 1048576.
+		bool closed = false;
 
-		if (max_fd < 0) {
-			max_fd = 1024;
+#if defined(__linux__) && defined(SYS_close_range)
+
+		if (syscall(SYS_close_range, 3U, ~0U, 0U) == 0) {
+			closed = true;
 		}
 
-		for (int i = 3; i < max_fd; i++) {
-			close(i);
+#endif
+
+		if (!closed) {
+			long max_fd = sysconf(_SC_OPEN_MAX);
+
+			if (max_fd < 0) {
+				max_fd = 1024;
+			}
+
+			for (int i = 3; i < max_fd; i++) {
+				close(i);
+			}
 		}
 
 		execv(exe_path, argv);
