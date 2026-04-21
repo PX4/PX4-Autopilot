@@ -61,6 +61,10 @@
 #include "mavlink_receiver.h"
 #include "mavlink_main.h"
 
+#ifdef MAVLINK_UDP
+#include <sys/time.h>
+#endif
+
 // Guard against MAVLink misconfiguration
 #ifndef MAVLINK_CRC_EXTRA
 #error MAVLINK_CRC_EXTRA has to be defined on PX4 systems
@@ -1022,6 +1026,19 @@ void Mavlink::init_udp()
 		return;
 	}
 
+	// Cap UDP send time to avoid blocking indefinitely if the NuttX net
+	// stack hasn't finished initializing the IOB write-buffer semaphore.
+	// 10ms is ~4x the worst-case send time measured on STM32H7.
+	constexpr long UDP_SEND_TIMEOUT_US = 10000;
+	struct timeval tv {
+		.tv_sec = 0,
+		.tv_usec = UDP_SEND_TIMEOUT_US
+	};
+
+	if (setsockopt(_socket_fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv)) < 0) {
+		PX4_WARN("setting socket timeout failed: %s", strerror(errno));
+	}
+
 	if (bind(_socket_fd, (struct sockaddr *)&_myaddr, sizeof(_myaddr)) < 0) {
 		PX4_WARN("bind failed: %s", strerror(errno));
 		return;
@@ -1290,6 +1307,12 @@ Mavlink::configure_stream_threadsafe(const char *stream_name, const float rate)
 		/* copy stream name */
 		unsigned n = strlen(stream_name) + 1;
 		char *s = new char[n];
+
+		if (s == nullptr) {
+			PX4_ERR("stream allocation failed");
+			return;
+		}
+
 		strcpy(s, stream_name);
 
 		/* set subscription task */
@@ -2605,7 +2628,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 	_receiver.stop();
 
-	delete _subscribe_to_stream;
+	delete[] _subscribe_to_stream;
 	_subscribe_to_stream = nullptr;
 
 	/* delete streams */

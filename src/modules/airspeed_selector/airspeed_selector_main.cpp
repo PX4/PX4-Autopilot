@@ -751,11 +751,10 @@ void AirspeedModule::select_airspeed_and_publish()
 	airspeed_validated.indicated_airspeed_m_s = NAN;
 	airspeed_validated.calibrated_airspeed_m_s = NAN;
 	airspeed_validated.true_airspeed_m_s = NAN;
+	airspeed_validated.airspeed_derivative_filtered = NAN;
+	airspeed_validated.pitch_filtered = NAN;
 
-	airspeed_validated.airspeed_derivative_filtered = _airspeed_validator[valid_airspeed_index -
-					     1].get_airspeed_derivative();
 	airspeed_validated.throttle_filtered = _throttle_filtered.getState();
-	airspeed_validated.pitch_filtered = _airspeed_validator[valid_airspeed_index - 1].get_pitch_filtered();
 
 	airspeed_validated.airspeed_source = valid_airspeed_index;
 	_prev_airspeed_src = _valid_airspeed_src;
@@ -791,6 +790,8 @@ void AirspeedModule::select_airspeed_and_publish()
 		airspeed_validated.true_airspeed_m_s = _airspeed_validator[valid_airspeed_index - 1].get_TAS();
 		airspeed_validated.calibrated_ground_minus_wind_m_s = _ground_minus_wind_CAS;
 		airspeed_validated.calibraded_airspeed_synth_m_s = get_synthetic_airspeed(airspeed_validated.throttle_filtered);
+		airspeed_validated.airspeed_derivative_filtered = _airspeed_validator[valid_airspeed_index - 1].get_airspeed_derivative();
+		airspeed_validated.pitch_filtered = _airspeed_validator[valid_airspeed_index - 1].get_pitch_filtered();
 		break;
 	}
 
