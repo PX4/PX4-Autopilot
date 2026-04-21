@@ -521,8 +521,8 @@ private:
 		uint64_t last_gps_ts{0};
 		float vel_integral{0.f};
 
-		float d1[kWindowSize] {}; // gps_alt - baro_alt
-		float d2[kWindowSize] {}; // gps_alt - vel_integral
+		float d1[kWindowSize] {}; // ekf_amsl - baro_alt
+		float d2[kWindowSize] {}; // ekf_amsl - vel_integral
 		int widx{0};
 		int wcount{0};
 		uint64_t last_sample_ts{0};
@@ -531,7 +531,7 @@ private:
 		float altitude_offset{0.f};
 
 		void updateBaroLpf(float baro_alt, uint64_t timestamp);
-		void update(const sensor_gps_s &gps, uORB::PublicationMulti<gps_altitude_drift_correction_s> &pub);
+		void update(const sensor_gps_s &gps, float ekf_amsl, uORB::PublicationMulti<gps_altitude_drift_correction_s> &pub);
 		void reset();
 	};
 

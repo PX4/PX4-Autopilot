@@ -2623,7 +2623,8 @@ void EKF2::GpsAltDriftDetector::updateBaroLpf(float baro_alt, uint64_t timestamp
 	last_baro_ts = timestamp;
 }
 
-void EKF2::GpsAltDriftDetector::update(const sensor_gps_s &gps, uORB::PublicationMulti<gps_altitude_drift_correction_s> &pub)
+void EKF2::GpsAltDriftDetector::update(const sensor_gps_s &gps, float ekf_amsl,
+				       uORB::PublicationMulti<gps_altitude_drift_correction_s> &pub)
 {
 	altitude_offset = 0.f;
 	const bool gps_timeout = (last_gps_ts != 0) && (gps.timestamp - last_gps_ts > 500000);
@@ -2638,9 +2639,8 @@ void EKF2::GpsAltDriftDetector::update(const sensor_gps_s &gps, uORB::Publicatio
 					|| (gps.timestamp >= last_sample_ts + 1000000);
 
 		if (sample_due) {
-			const float gps_alt = static_cast<float>(gps.altitude_msl_m);
-			d1[widx] = gps_alt - baro_lpf.getState();
-			d2[widx] = gps_alt - vel_integral;
+			d1[widx] = ekf_amsl - baro_lpf.getState();
+			d2[widx] = ekf_amsl - vel_integral;
 
 			widx = (widx + 1) % kWindowSize;
 
@@ -2654,8 +2654,8 @@ void EKF2::GpsAltDriftDetector::update(const sensor_gps_s &gps, uORB::Publicatio
 				const int newest = (widx - 1 + kWindowSize) % kWindowSize;
 				const int oldest = (widx - wcount + kWindowSize) % kWindowSize;
 
-				const float a = fabsf(d1[newest] - d1[oldest]); // change in (gps_alt - baro_alt) over window
-				const float b = fabsf(d2[newest] - d2[oldest]); // change in (gps_alt - vel_integral) over window
+				const float a = fabsf(d1[newest] - d1[oldest]); // change in (ekf_amsl - baro_alt) over window
+				const float b = fabsf(d2[newest] - d2[oldest]); // change in (ekf_amsl - vel_integral) over window
 				const float c = fabsf((d1[newest] - d2[newest]) - (d1[oldest] - d2[oldest])); // change in (vel_integral - baro_alt) over window
 
 				// gps_alt drift has to have relevant magnitude and larger than vel-baro drift
@@ -2792,7 +2792,8 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 		}
 
 		if (_ekf.control_status_flags().in_air &&  _ekf.getHeightSensorRef() == HeightSensor::GNSS) {
-			_gps_alt_drift.update(vehicle_gps_position, _gps_alt_drift_pub);
+			const float ekf_amsl = _ekf.getLatLonAlt().altitude();
+			_gps_alt_drift.update(vehicle_gps_position, ekf_amsl, _gps_alt_drift_pub);
 
 			if (fabsf(_gps_alt_drift.altitude_offset) > 0.f) {
 				_ekf.shiftAltOrigin(_gps_alt_drift.altitude_offset);
