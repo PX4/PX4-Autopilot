@@ -153,15 +153,18 @@ parameters:
       default: 1
     COM_LOW_BAT_ACT:
       description:
-        short: Battery failsafe mode
+        short: Battery & bingo fuel failsafe
         long: |-
-          Action the system takes at critical battery. See also BAT_CRIT_THR and BAT_EMERGEN_THR
-          for definition of battery states.
+          Action the system takes when battery gets low on charge. See also BAT_CRIT_THR and BAT_EMERGEN_THR
+          for definition of battery levels.
+          Bingo fuel - RTL when estimated remaining flight time is low, only works when BATn_CAPACITY is set.
       type: enum
       values:
         0: Warning
         2: Land mode
-        3: Return at critical level, land at emergency level
+        3: Bingo fuel, Critical RTL , Emergency land
+        4: Critical RTL , Emergency land
+        5: Warning, no bingo fuel
       default: 0
     COM_FAIL_ACT_T:
       description:
@@ -792,19 +795,6 @@ parameters:
       decimal: 1
       increment: 0.1
       unit: m/s
-    COM_FLTT_LOW_ACT:
-      description:
-        short: Remaining flight time low failsafe
-        long: |-
-          Action the system takes when the remaining flight time is below
-          the estimated time it takes to reach the RTL destination.
-      type: enum
-      values:
-        0: None
-        1: Warning
-        3: Return
-      default: 0
-      increment: 1
     COM_MODE_ARM_CHK:
       description:
         short: Allow external mode registration while armed

@@ -298,8 +298,7 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 #endif /* EMSCRIPTEN_BUILD */
 }
 
-bool FailsafeBase::checkFailsafe(int caller_id, bool last_state_failure, bool cur_state_failure,
-				 const ActionOptions &options)
+bool FailsafeBase::checkFailsafe(int caller_id, bool last_state_failure, bool cur_state_failure, const ActionOptions &options)
 {
 	if (cur_state_failure) {
 		// Invalid state: find or add action
