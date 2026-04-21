@@ -34,7 +34,7 @@ parameters:
         0: AUX
         1: MAVLink gimbal protocol v1
         2: MAVLink gimbal protocol v2
-        3: MAVLink gimbal protocol v3 (mount gimbal manager)
+        3: MAVLink gimbal protocol v2 (mount gimbal manager)
       default: 0
       min: 0
       max: 3
