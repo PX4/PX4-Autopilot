@@ -82,7 +82,7 @@ fi
 if ver hwtypecmp ARKV6XRT000
 then
 	# Internal SPI1 ICM-45686 Accel/Gyro
-	icm45686 -R 2 -b 1 -s start
+	icm45686 -R 6 -b 1 -s start
 
 	# Internal SPI2 IIM-20670 Accel/Gyro
 	# TODO: IIM-20670 driver not yet available rotation?
