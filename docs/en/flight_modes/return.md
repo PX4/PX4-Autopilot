@@ -165,7 +165,7 @@ This return type uses the mission (if defined) to provide a safe return path (ei
 - If no valid mission is defined, the vehicle returns directly to home.
 - Rally points are ignored.
 
-Note that this is similar to [RTL_TYPE=2](#mission-path-return-type-rtl-type-2), but the choice between fast-forward and fast-reverse is based on which destination is _closer by waypoint count_ rather than which flight mode is active when return mode is activated.
+Note that this is similar to [RTL_TYPE=2](#mission-path-return-type-rtl-type-2), but the choice between fast-forward and fast-reverse is based on which destination is _closer by waypoint count_, rather than which flight mode is active when return mode is activated.
 
 ### Safe Point Return Type (RTL_TYPE=5)
 
