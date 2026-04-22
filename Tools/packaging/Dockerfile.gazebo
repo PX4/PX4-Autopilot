@@ -51,7 +51,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 COPY px4-gazebo_*.deb /tmp/
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt-get install -y --no-install-recommends \
+    apt-get update \
+    && apt-get install -y --no-install-recommends \
         /tmp/px4-gazebo_*.deb \
         binutils \
     && strip /opt/px4-gazebo/bin/px4 \
