@@ -98,45 +98,59 @@ bool expandOrShrinkPolygon(const matrix::Vector2f *vertices_in, int num_vertices
 			   float margin, bool expand,
 			   matrix::Vector2f *vertices_out)
 {
+	if (num_vertices < 3) {
+		return false;
+	}
+
+	// shoelace formula used to check if the polygon is CCW or CW
+	// https://en.wikipedia.org/wiki/Shoelace_formula
+	float signed_area_2x = 0.f;
+
 	for (int i = 0; i < num_vertices; i++) {
-		int prev = (i + num_vertices - 1) % num_vertices;
-		int next = (i + 1) % num_vertices;
+		const int j = (i + 1) % num_vertices;
+		signed_area_2x += vertices_in[i](0) * vertices_in[j](1)
+				  - vertices_in[j](0) * vertices_in[i](1);
+	}
 
-		const matrix::Vector2f edge_prev = vertices_in[prev] - vertices_in[i];
-		const matrix::Vector2f edge_next = vertices_in[next] - vertices_in[i];
+	if (fabsf(signed_area_2x) < FLT_EPSILON) {
+		return false; // degenerate (zero-area) polygon
+	}
 
-		if (edge_prev.norm() < FLT_EPSILON || edge_next.norm() < FLT_EPSILON) {
+	// If area is positive, polygon is CCW and we want to rotate vector to the left to get inward normal
+	const float rot_sign = (signed_area_2x > 0.f) ? 1.f : -1.f;
+
+	// Expand pushes vertices outward, shrink pushes them inward.
+	const float step_sign = expand ? -1.f : 1.f;
+
+	for (int i = 0; i < num_vertices; i++) {
+		const int prev = (i + num_vertices - 1) % num_vertices;
+		const int next = (i + 1) % num_vertices;
+
+		const matrix::Vector2f edge_in  = vertices_in[i] - vertices_in[prev];
+		const matrix::Vector2f edge_out = vertices_in[next] - vertices_in[i];
+
+		if (edge_in.norm() < FLT_EPSILON || edge_out.norm() < FLT_EPSILON) {
 			return false;
 		}
 
-		// Normalized directions from vertex to its neighbors
-		const matrix::Vector2f to_prev = edge_prev.normalized();
-		const matrix::Vector2f to_next = edge_next.normalized();
+		const matrix::Vector2f edge_in_unit  = edge_in.normalized();
+		const matrix::Vector2f edge_out_unit = edge_out.normalized();
 
-		// Bisector points inward (toward the polygon interior)
-		matrix::Vector2f bisector = to_prev + to_next;
+		// Unit inward normals of the two adjacent edges.
+		const matrix::Vector2f n_in {-rot_sign * edge_in_unit(1), rot_sign * edge_in_unit(0)};
+		const matrix::Vector2f n_out{-rot_sign * edge_out_unit(1), rot_sign * edge_out_unit(0)};
 
-		if (bisector.length() < FLT_EPSILON) {
-			// this happens when all three vertices are exactly on one line
-			bisector = matrix::Vector2f(-to_prev(1), to_prev(0)); // rotate 90 degrees to get a perpendicular direction
+		matrix::Vector2f bisector = n_in + n_out;
+		const float bisector_len = bisector.length();
 
-		} else {
-			bisector.normalize();
+		if (bisector_len < FLT_EPSILON) {
+			// degenerate case, edges are antiparallel
+			return false;
 		}
 
-		const matrix::Vector2f test_point = vertices_in[i] + bisector;
-		const bool test_point_inside = geofence_utils::insidePolygon(vertices_in, num_vertices, test_point);
+		bisector.normalize();
 
-		float direction = 1.f;
-
-		if (expand) {
-			direction = (test_point_inside) ? -1.f : 1.f;
-
-		} else {
-			direction = (test_point_inside) ? 1.f : -1.f;
-		}
-
-		vertices_out[i] = vertices_in[i] + bisector * margin * direction;
+		vertices_out[i] = vertices_in[i] + bisector * margin * step_sign;
 	}
 
 	return true;

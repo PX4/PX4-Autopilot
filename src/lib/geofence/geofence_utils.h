@@ -110,9 +110,14 @@ bool lineSegmentIntersectsCircle(const matrix::Vector2f &start, const matrix::Ve
 				 const matrix::Vector2f &center, float radius);
 
 /**
- * Offset polygon vertices expand or inward by computing the bisector
- * of the two normalized edge directions at each vertex.
- * Works in local frame (meters).
+ * Offset polygon vertices outward (expand) or inward (shrink) by `margin`.
+ *
+ * Determines winding direction once via the shoelace formula, then at each vertex
+ * averages the inward normals of the two adjacent edges to get the bisector.
+ * O(n) overall. Works in local frame (meters).
+ *
+ * Returns false for degenerate polygons: fewer than 3 vertices, zero signed area,
+ * zero-length edges, or antiparallel adjacent edges (polygon doubles back).
  *
  * @param vertices_in   input vertices in local frame
  * @param num_vertices  number of vertices
