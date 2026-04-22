@@ -63,12 +63,44 @@ MavlinkParametersManager::get_size()
 void
 MavlinkParametersManager::update_observed_camera_components()
 {
-	camera_status_s status;
+	camera_status_s cam_status;
 
-	while (_camera_status_sub.update(&status)) {
-		if (status.active_comp_id >= MAV_COMP_ID_CAMERA
-		    && status.active_comp_id <= MAV_COMP_ID_CAMERA6) {
-			_camera_comp_last_seen[status.active_comp_id - MAV_COMP_ID_CAMERA] = status.timestamp;
+	while (_camera_status_sub.update(&cam_status)) {
+		if (cam_status.active_comp_id >= MAV_COMP_ID_CAMERA
+		    && cam_status.active_comp_id <= MAV_COMP_ID_CAMERA6) {
+			_camera_comp_last_seen[cam_status.active_comp_id - MAV_COMP_ID_CAMERA] = cam_status.timestamp;
+		}
+	}
+
+	// Warn once per comp ID when a MAVLink camera and a DroneCAN node share an
+	// ID in 100..105. Camera takes precedence at the UAVCAN bridge, so the CAN
+	// node's params become unreachable via MAVLink until the user reassigns
+	// the CAN node ID. Fires regardless of which side joined first.
+	static constexpr uint8_t kAllWarned = (1u << CAMERA_COMP_ID_COUNT) - 1;
+
+	if (_camera_cannode_collision_warned_mask == kAllWarned) {
+		return;
+	}
+
+	for (unsigned i = 0; i < CAMERA_COMP_ID_COUNT; ++i) {
+		const uint8_t warn_bit = 1u << i;
+
+		if (_camera_cannode_collision_warned_mask & warn_bit) {
+			continue;
+		}
+
+		if (_camera_comp_last_seen[i] == 0
+		    || hrt_elapsed_time(&_camera_comp_last_seen[i]) >= CAMERA_OBSERVATION_TIMEOUT) {
+			continue;
+		}
+
+		const uint8_t comp_id = MAV_COMP_ID_CAMERA + i;
+
+		if (is_dronecan_node_online(comp_id)) {
+			_camera_cannode_collision_warned_mask |= warn_bit;
+			mavlink_log_warning(_mavlink.get_mavlink_log_pub(),
+					    "CAN node %u blocked by MAV camera (reassign ID)\t",
+					    comp_id);
 		}
 	}
 }
@@ -87,6 +119,23 @@ MavlinkParametersManager::is_observed_mavlink_camera(uint8_t target_component) c
 	}
 
 	return hrt_elapsed_time(&last_seen) < CAMERA_OBSERVATION_TIMEOUT;
+}
+
+bool
+MavlinkParametersManager::is_dronecan_node_online(uint8_t node_id)
+{
+	dronecan_node_status_s status;
+
+	for (auto &sub : _dronecan_node_status_subs) {
+		if (sub.copy(&status)
+		    && status.node_id == node_id
+		    && status.mode != dronecan_node_status_s::MODE_OFFLINE
+		    && hrt_elapsed_time(&status.timestamp) < CAMERA_OBSERVATION_TIMEOUT) {
+			return true;
+		}
+	}
+
+	return false;
 }
 
 #endif // CONFIG_MAVLINK_UAVCAN_PARAMETERS

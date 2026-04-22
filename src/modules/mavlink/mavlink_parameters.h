@@ -48,6 +48,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/rc_parameter_map.h>
 #include <uORB/topics/parameter_update.h>
 #include <drivers/drv_hrt.h>
@@ -56,6 +57,7 @@
 # include <uORB/topics/uavcan_parameter_request.h>
 # include <uORB/topics/uavcan_parameter_value.h>
 # include <uORB/topics/camera_status.h>
+# include <uORB/topics/dronecan_node_status.h>
 #endif // CONFIG_MAVLINK_UAVCAN_PARAMETERS
 
 using namespace time_literals;
@@ -187,11 +189,19 @@ protected:
 	 */
 	bool is_observed_mavlink_camera(uint8_t target_component) const;
 
+	/**
+	 * True if any dronecan_node_status instance reports a live (non-OFFLINE,
+	 * recently updated) node at the given node_id.
+	 */
+	bool is_dronecan_node_online(uint8_t node_id);
+
 	static constexpr hrt_abstime CAMERA_OBSERVATION_TIMEOUT = 5_s;
 	static constexpr unsigned CAMERA_COMP_ID_COUNT = MAV_COMP_ID_CAMERA6 - MAV_COMP_ID_CAMERA + 1;
 
 	uORB::Subscription _camera_status_sub{ORB_ID(camera_status)};
+	uORB::SubscriptionMultiArray<dronecan_node_status_s, ORB_MULTI_MAX_INSTANCES> _dronecan_node_status_subs{ORB_ID::dronecan_node_status};
 	hrt_abstime _camera_comp_last_seen[CAMERA_COMP_ID_COUNT] {};
+	uint8_t _camera_cannode_collision_warned_mask{0}; ///< bit i: already warned for MAV_COMP_ID_CAMERA + i
 #endif // CONFIG_MAVLINK_UAVCAN_PARAMETERS
 
 	uORB::Publication<rc_parameter_map_s>	_rc_param_map_pub{ORB_ID(rc_parameter_map)};
