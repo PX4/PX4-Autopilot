@@ -17,8 +17,8 @@ It is recommended (in particular) for control and communication from a companion
 
 Communication between ROS 2 and PX4 can leverage two independent middlewares:
 
-- [XRCE-DDS protocol](../middleware/uxrce_dds.md) - more tested and included by default in most PX4 builds.
-- [Zenoh protocol](../middleware/zenoh.md) - it needs to be manually enabled and added to PX4 builds.
+- [XRCE-DDS protocol](../middleware/uxrce_dds.md) — Original middleware. More tested and included by default in most PX4 builds.
+- [Zenoh protocol](../middleware/zenoh.md) — Must be manually added and enabled to most PX4 builds.
 
 The middlewares expose PX4 [uORB messages](../msg_docs/index.md) as ROS 2 messages and types, effectively allowing direct access to PX4 from ROS 2 workflows and nodes.
 The middlewares use uORB message definitions to generate code to serialise and deserialise the messages heading in and out of PX4.
