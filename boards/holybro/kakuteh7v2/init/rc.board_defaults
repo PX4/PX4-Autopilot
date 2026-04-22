@@ -35,6 +35,7 @@ param set-default SYS_DM_BACKEND 1
 # Ignore that there is no SD card
 param set-default COM_ARM_SDCARD 0
 
-# W25N NAND flash with littlefs (128 MB): larger buffer, auto-rotate
-set LOGGER_BUF 32
-param set-default SDLOG_DIRS_MAX 3
+# W25N NAND flash with littlefs (128 MB): small log file size so we can keep
+# a few recent logs, and fill up to 95%.
+param set-default SDLOG_ROTATE 95
+param set-default SDLOG_MAX_SIZE 40
