@@ -80,6 +80,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   - New [SDLOG_MAX_SIZE](../advanced_config/parameter_reference.md#SDLOG_MAX_SIZE) (default `1024` MB) caps the size of a single log file; once reached, the logger closes the current file and starts a new one.
   - New [SDLOG_ROTATE](../advanced_config/parameter_reference.md#SDLOG_ROTATE) (default `90`) sets the maximum disk usage percentage. Cleanup guarantees `(100 - SDLOG_ROTATE)%` of the disk stays free at all times, even while writing a new log file. Set `0` to disable space-based cleanup, `100` to allow filling the disk completely.
   - `SDLOG_DIRS_MAX` is now an orthogonal cap on the number of log directories (default `0` = disabled), on top of the space-based cleanup driven by `SDLOG_ROTATE` and `SDLOG_MAX_SIZE`. SITL defaults to `7`.
+- New `mklittlefs` systemcmd for reformatting a littlefs volume from the NSH console, analogous to `mkfatfs` for FAT filesystems.
 
 ### Ethernet
 
