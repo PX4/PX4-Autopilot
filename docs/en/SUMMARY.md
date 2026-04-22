@@ -860,6 +860,7 @@
         - [Multi-Vehicle Sim with JMAVSim](sim_jmavsim/multi_vehicle.md)
       - [JSBSim Simulation](sim_jsbsim/index.md)
       - [AirSim Simulation](sim_airsim/index.md)
+      - [RotorPy Simulation](sim_rotorpy/index.md)
       - [Hardware Simulation](simulation/hardware.md)
         - [HITL Simulation](simulation/hitl.md)
         - [SIH on Hardware](sim_sih/hardware.md)
