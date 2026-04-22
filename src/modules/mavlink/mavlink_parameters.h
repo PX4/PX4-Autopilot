@@ -55,6 +55,7 @@
 #if defined(CONFIG_MAVLINK_UAVCAN_PARAMETERS)
 # include <uORB/topics/uavcan_parameter_request.h>
 # include <uORB/topics/uavcan_parameter_value.h>
+# include <uORB/topics/camera_status.h>
 #endif // CONFIG_MAVLINK_UAVCAN_PARAMETERS
 
 using namespace time_literals;
@@ -169,6 +170,28 @@ protected:
 		      "uavcan_parameter_request_s MAV_PARAM_TYPE_INT64 constant mismatch");
 
 	uORB::Subscription _uavcan_parameter_value_sub{ORB_ID(uavcan_parameter_value)};
+
+	/**
+	 * Poll camera_status uORB and record the last time each comp ID in the
+	 * MAV_COMP_ID_CAMERA..MAV_COMP_ID_CAMERA6 range was seen as a MAVLink
+	 * camera (HEARTBEAT with MAV_TYPE_CAMERA).
+	 */
+	void update_observed_camera_components();
+
+	/**
+	 * True if target_component is in MAV_COMP_ID_CAMERA..MAV_COMP_ID_CAMERA6
+	 * and we have observed a MAVLink camera heartbeat on it within
+	 * CAMERA_OBSERVATION_TIMEOUT. When false, the UAVCAN parameter bridge may
+	 * forward to CAN node target_component even if that ID falls in 100..105,
+	 * which is required for DroneCAN peripherals (e.g. ESCs) assigned those IDs.
+	 */
+	bool is_observed_mavlink_camera(uint8_t target_component) const;
+
+	static constexpr hrt_abstime CAMERA_OBSERVATION_TIMEOUT = 5_s;
+	static constexpr unsigned CAMERA_COMP_ID_COUNT = MAV_COMP_ID_CAMERA6 - MAV_COMP_ID_CAMERA + 1;
+
+	uORB::Subscription _camera_status_sub{ORB_ID(camera_status)};
+	hrt_abstime _camera_comp_last_seen[CAMERA_COMP_ID_COUNT] {};
 #endif // CONFIG_MAVLINK_UAVCAN_PARAMETERS
 
 	uORB::Publication<rc_parameter_map_s>	_rc_param_map_pub{ORB_ID(rc_parameter_map)};

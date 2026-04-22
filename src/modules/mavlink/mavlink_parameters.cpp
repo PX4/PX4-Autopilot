@@ -58,9 +58,46 @@ MavlinkParametersManager::get_size()
 	return MAVLINK_MSG_ID_PARAM_VALUE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 }
 
+#if defined(CONFIG_MAVLINK_UAVCAN_PARAMETERS)
+
+void
+MavlinkParametersManager::update_observed_camera_components()
+{
+	camera_status_s status;
+
+	while (_camera_status_sub.update(&status)) {
+		if (status.active_comp_id >= MAV_COMP_ID_CAMERA
+		    && status.active_comp_id <= MAV_COMP_ID_CAMERA6) {
+			_camera_comp_last_seen[status.active_comp_id - MAV_COMP_ID_CAMERA] = status.timestamp;
+		}
+	}
+}
+
+bool
+MavlinkParametersManager::is_observed_mavlink_camera(uint8_t target_component) const
+{
+	if (target_component < MAV_COMP_ID_CAMERA || target_component > MAV_COMP_ID_CAMERA6) {
+		return false;
+	}
+
+	const hrt_abstime last_seen = _camera_comp_last_seen[target_component - MAV_COMP_ID_CAMERA];
+
+	if (last_seen == 0) {
+		return false;
+	}
+
+	return hrt_elapsed_time(&last_seen) < CAMERA_OBSERVATION_TIMEOUT;
+}
+
+#endif // CONFIG_MAVLINK_UAVCAN_PARAMETERS
+
 void
 MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 {
+#if defined(CONFIG_MAVLINK_UAVCAN_PARAMETERS)
+	update_observed_camera_components();
+#endif // CONFIG_MAVLINK_UAVCAN_PARAMETERS
+
 	switch (msg->msgid) {
 	case MAVLINK_MSG_ID_PARAM_REQUEST_LIST: {
 			/* request all parameters */
@@ -81,7 +118,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 #if defined(CONFIG_MAVLINK_UAVCAN_PARAMETERS)
 
 			if (req_list.target_system == mavlink_system.sysid && req_list.target_component < 127 &&
-			    !(req_list.target_component >= MAV_COMP_ID_CAMERA && req_list.target_component <= MAV_COMP_ID_CAMERA6) &&
+			    !is_observed_mavlink_camera(req_list.target_component) &&
 			    (req_list.target_component != mavlink_system.compid || req_list.target_component == MAV_COMP_ID_ALL)) {
 				// publish list request to UAVCAN driver via uORB.
 				uavcan_parameter_request_s req{};
@@ -151,7 +188,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 #if defined(CONFIG_MAVLINK_UAVCAN_PARAMETERS)
 
 			if (set.target_system == mavlink_system.sysid && set.target_component < 127 &&
-			    !(set.target_component >= MAV_COMP_ID_CAMERA && set.target_component <= MAV_COMP_ID_CAMERA6) &&
+			    !is_observed_mavlink_camera(set.target_component) &&
 			    (set.target_component != mavlink_system.compid || set.target_component == MAV_COMP_ID_ALL)) {
 				// publish set request to UAVCAN driver via uORB.
 				uavcan_parameter_request_s req{};
@@ -244,7 +281,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 #if defined(CONFIG_MAVLINK_UAVCAN_PARAMETERS)
 
 			if (req_read.target_system == mavlink_system.sysid && req_read.target_component < 127 &&
-			    !(req_read.target_component >= MAV_COMP_ID_CAMERA && req_read.target_component <= MAV_COMP_ID_CAMERA6) &&
+			    !is_observed_mavlink_camera(req_read.target_component) &&
 			    (req_read.target_component != mavlink_system.compid || req_read.target_component == MAV_COMP_ID_ALL)) {
 				// publish set request to UAVCAN driver via uORB.
 				uavcan_parameter_request_s req{};
