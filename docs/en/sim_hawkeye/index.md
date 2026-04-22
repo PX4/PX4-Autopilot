@@ -1,10 +1,10 @@
 # Hawkeye Visualizer
 
-[Hawkeye](https://github.com/PX4/Hawkeye) is a real-time 3D flight visualizer for PX4.
-It renders vehicle state from MAVLink `HIL_STATE_QUATERNION` messages, so it pairs naturally with [SIH](../sim_sih/index.md) — SIH runs the physics, Hawkeye shows you what's happening.
-Hawkeye has zero runtime dependencies, supports up to 16 vehicles simultaneously, and can replay PX4 ULog (`.ulg`) flight logs with transport controls, markers, and multi-drone correlation analysis.
+[Hawkeye](https://px4.github.io/Hawkeye/) is a real-time 3D flight _visualizer_ for PX4.
 
-It's a visualizer only — no physics are simulated inside Hawkeye.
+Hawkeye is the natural pair for [SIH](../sim_sih/index.md) — SIH runs the physics of an aircraft simulation and outputs MAVLink [HIL_STATE_QUATERNION](https://mavlink.io/en/messages/common.html#HIL_STATE_QUATERNION) messages, Hawkeye uses these to show you what's happening.
+
+Hawkeye has zero runtime dependencies, supports up to 16 vehicles simultaneously, and can replay PX4 ULog (`.ulg`) flight logs with transport controls, markers, and multi-drone correlation analysis.
 
 ## Install
 
@@ -25,7 +25,13 @@ sudo dpkg -i hawkeye-*.deb
 
 ### Windows and source builds
 
-See [Building from source](https://px4.github.io/Hawkeye/developer/build) in the Hawkeye docs.
+For Ubuntu 24.04 or later in WSL2 you can install the packages in the same way:
+
+```sh
+sudo dpkg -i hawkeye-*.deb
+```
+
+For other versions of Ubuntu (or native Windows builds) you may need to [Build from source](https://px4.github.io/Hawkeye/developer/build) (Hawkeye docs).
 
 ## Usage with SIH
 
@@ -39,7 +45,7 @@ make px4_sitl sihsim_quadx
 hawkeye
 ```
 
-Hawkeye listens on UDP port 19410 — the same port SIH sends `HIL_STATE_QUATERNION` on — so no configuration is needed.
+Hawkeye listens on UDP port 19410 — the same port SIH sends [HIL_STATE_QUATERNION](https://mavlink.io/en/messages/common.html#HIL_STATE_QUATERNION) on — so no configuration is needed.
 The vehicle appears in the Hawkeye window as soon as SIH starts streaming.
 
 For fixed-wing or tailsitter simulation, Hawkeye auto-detects the vehicle type from MAVLink `HEARTBEAT` and loads the matching 3D model.
@@ -52,3 +58,4 @@ Complete documentation — including multi-vehicle SITL, ULog replay, HUD modes,
 - [Multi-Drone Replay](https://px4.github.io/Hawkeye/multi_drone) — compare multiple flights with deconfliction and correlation
 - [Live SITL Integration](https://px4.github.io/Hawkeye/sitl) — single-vehicle and multi-instance swarm workflows
 - [Command-Line Reference](https://px4.github.io/Hawkeye/cli) — every CLI flag with examples
+- [Source code](https://github.com/PX4/Hawkeye)

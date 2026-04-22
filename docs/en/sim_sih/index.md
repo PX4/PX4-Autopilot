@@ -87,7 +87,8 @@ QGC auto-connects on UDP port 14550. Open QGC while SIH is running and the vehic
 
 #### Hawkeye (3D Visualizer)
 
-[Hawkeye](../sim_hawkeye/index.md) renders a real-time 3D view of the vehicle using MAVLink position data. No physics are simulated in Hawkeye — it is a visualizer only.
+[Hawkeye](../sim_hawkeye/index.md) renders a real-time 3D view of the vehicle using MAVLink position data.
+No physics are simulated in Hawkeye — it is a visualizer only.
 
 In a separate terminal, run:
 
@@ -96,9 +97,10 @@ hawkeye
 ```
 
 Hawkeye connects on UDP port 19410 by default (the same port SIH sends `HIL_STATE_QUATERNION` on).
+It then auto-detects the vehicle type from the MAVLink `HEARTBEAT` and loads the matching 3D model.
 
-Use `-fw` for fixed-wing or `-ts` for tailsitter models.
-See the [Hawkeye docs](https://px4.github.io/Hawkeye/) for install, ULog replay, and multi-vehicle visualization.
+The [Hawkeye](../sim_hawkeye/index.md) overview page explains how to install the software.
+See the [Hawkeye docs](https://px4.github.io/Hawkeye/) for other features, such as ULog replay, and multi-vehicle visualization.
 
 ### Environment Configuration
 
@@ -152,14 +154,14 @@ See [uXRCE-DDS (PX4-ROS 2/DDS Bridge)](../middleware/uxrce_dds.md) for full setu
 
 PX4 SITL opens the following UDP ports (all instance-aware, offset by instance number N).
 
-| PX4 sends to (remote) | PX4 listens on (local) | Use for                         | Instance offset                           |
-| --------------------- | ---------------------- | ------------------------------- | ----------------------------------------- |
-| **14550**             | 18570 (+N)             | QGroundControl, GCS tools       | Yes                                       |
-| **14540** (+N)        | 14580 (+N)             | MAVSDK, MAVROS, offboard APIs   | Yes (capped at 14549 for 10+ instances)   |
-| **14030** (+N)        | 14280 (+N)             | Onboard camera/payload          | Yes                                       |
-| **13280** (+N)        | 13030 (+N)             | Gimbal control                  | Yes                                       |
-| **19410** (+N)        | 19450 (+N)             | Hawkeye visualizer (SIH only)   | Yes                                       |
-| **8888**              | -                      | uXRCE-DDS / ROS 2               | No (use DDS namespace for multi-instance) |
+| PX4 sends to (remote) | PX4 listens on (local) | Use for                       | Instance offset                           |
+| --------------------- | ---------------------- | ----------------------------- | ----------------------------------------- |
+| **14550**             | 18570 (+N)             | QGroundControl, GCS tools     | Yes                                       |
+| **14540** (+N)        | 14580 (+N)             | MAVSDK, MAVROS, offboard APIs | Yes (capped at 14549 for 10+ instances)   |
+| **14030** (+N)        | 14280 (+N)             | Onboard camera/payload        | Yes                                       |
+| **13280** (+N)        | 13030 (+N)             | Gimbal control                | Yes                                       |
+| **19410** (+N)        | 19450 (+N)             | Hawkeye visualizer (SIH only) | Yes                                       |
+| **8888**              | -                      | uXRCE-DDS / ROS 2             | No (use DDS namespace for multi-instance) |
 
 QGC auto-connects on port **14550** by default. MAVSDK connects on **14540**. No manual port configuration needed for single-instance use.
 
