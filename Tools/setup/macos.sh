@@ -95,6 +95,12 @@ fi
 "$VENV_DIR/bin/pip" install future
 "$VENV_DIR/bin/pip" install -r "${DIR}/requirements.txt"
 
+# Register pre-commit git hooks
+echo "[macos.sh] Installing git hooks (pre-commit)"
+if [ -d "${ROOT_DIR}/.git" ] && [ -x "${VENV_DIR}/bin/pre-commit" ]; then
+	(cd "${ROOT_DIR}" && "${VENV_DIR}/bin/pre-commit" install) || echo "[macos.sh] Note: 'pre-commit install' failed — run it manually from the repo root after activating the venv"
+fi
+
 # Optional, but recommended additional simulation tools:
 if [[ $INSTALL_SIM == "--sim-tools" ]]; then
 	# Simulation packages. This replaces the px4-sim / px4-sim-gazebo

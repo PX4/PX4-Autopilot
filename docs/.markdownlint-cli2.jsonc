@@ -1,0 +1,93 @@
+{
+  // markdownlint-cli2 config for PX4 docs/en/
+  // Intentionally permissive to match existing VitePress conventions.
+  // Tighten rules incrementally after a bulk-fix pass.
+  "config": {
+    "default": true,
+
+    // --- Disabled: VitePress / PX4 doc conventions ---
+
+    // Line length — prettier uses printWidth:9999 (long lines intentional)
+    "MD013": false,
+
+    // Inline HTML — docs use <img width="...">, <a id="...">, <sup>, etc.
+    "MD033": false,
+
+    // First line must be a heading — many files start with YAML frontmatter
+    "MD041": false,
+
+    // Duplicate heading text — pages repeat section names like "Overview"
+    "MD024": false,
+
+    // Single H1 per document — some docs intentionally have multiple H1s
+    "MD025": false,
+
+    // Unordered list style — mix of - and * exists; normalise in a bulk pass
+    "MD004": false,
+
+    // Lists surrounded by blank lines — VitePress containers near lists cause false positives
+    "MD032": false,
+
+    // Bare URLs — common in PX4 prose
+    "MD034": false,
+
+    // Emphasis used as heading — common pattern in these docs
+    "MD036": false,
+
+    // Fenced code block language — many blocks lack language specifiers
+    "MD040": false,
+
+    // Link fragment validation — VitePress uses custom anchor generation
+    "MD051": false,
+
+    // Reference link image / definition checks — VitePress handles these
+    "MD052": false,
+    "MD053": false,
+
+    // Images without alt text — pre-existing violations; re-enable after bulk-fix
+    "MD045": false,
+
+    // Non-descriptive link text ("here", "click here") — pre-existing violations
+    "MD059": false,
+
+    // Heading levels should only increment by one — pre-existing violations
+    "MD001": false,
+
+    // Code block style (indented vs fenced) — pre-existing indented blocks resist auto-fix
+    "MD046": false,
+
+    // Table column count mismatch — pre-existing malformed tables
+    "MD056": false,
+
+    // Table column pipe alignment — pre-existing alignment issues
+    "MD060": false,
+
+    // Table pipe style (leading/trailing pipes) — pre-existing violations
+    "MD055": false,
+
+    // Spaces inside link text — pre-existing violations
+    "MD039": false,
+
+    // Emphasis style (asterisk vs underscore) — prettier normalises this; let prettier own it
+    "MD049": false,
+
+    // --- Configured rules ---
+
+    // Unordered list indent: match prettier tabWidth:2
+    "MD007": { "indent": 2 },
+
+    // Ordered list marker: 1. 2. 3. style (not 1. 1. 1.)
+    "MD029": { "style": "ordered" },
+
+    // Heading style: ATX (# Heading), not setext (underline style)
+    "MD003": { "style": "atx" },
+
+    // Fenced code block delimiter: backtick, not tilde
+    "MD048": { "style": "backtick" }
+  },
+
+  // Paths are relative to this file (docs/)
+  "ignores": [
+    "node_modules/**"
+  ]
+}

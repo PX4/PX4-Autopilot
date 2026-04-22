@@ -1,0 +1,45 @@
+# Docs - Markdown Lint
+#
+# Checks that docs/en/ markdown files changed in a PR pass:
+#   1. Prettier formatting
+#   2. markdownlint-cli2
+#
+# Uses the same pre-commit config and tool versions as local hooks.
+# Run only on changed files — not the full docs/en/ tree.
+
+name: Docs - Markdown Lint
+
+on:
+  pull_request:
+    paths:
+      - "docs/en/**/*.md"
+      - "docs/.markdownlint-cli2.jsonc"
+      - "docs/.prettierrc"
+      - ".pre-commit-config.yaml"
+      - ".github/workflows/docs-markdown-lint.yml"
+
+concurrency:
+  group: docs-markdown-lint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  markdown-lint:
+    name: "Markdown Lint & Format Check"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: >
+            --from-ref ${{ github.event.pull_request.base.sha }}
+            --to-ref ${{ github.event.pull_request.head.sha }}

@@ -1,0 +1,38 @@
+# Pre-commit hooks for PX4-Autopilot
+#
+# Runs prettier formatting and markdownlint on docs/en/ markdown files only.
+# Does NOT affect firmware, drivers, or any non-docs files.
+#
+# One-time setup (run from repo root):
+#   Ubuntu/macOS (after running Tools/setup/ubuntu.sh or macos.sh):
+#     pre-commit install
+#   Windows (native, Python required):
+#     pip install pre-commit
+#     pre-commit install
+#
+# Skip hooks on a single commit:
+#   git commit --no-verify
+#
+# Run manually on all docs/en/ markdown:
+#   pre-commit run prettier --all-files
+#   pre-commit run markdownlint-cli2 --all-files
+
+repos:
+  # Prettier: auto-formats docs/en/**/*.md
+  # Config: docs/.prettierrc (discovered by walking up from each linted file)
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: "v3.1.0"
+    hooks:
+      - id: prettier
+        files: ^docs/en/.*\.md$
+        additional_dependencies:
+          - prettier@3.1.0
+
+  # markdownlint-cli2: lints and auto-fixes docs/en/**/*.md
+  # Config: docs/.markdownlint.jsonc (discovered by walking up from each linted file)
+  - repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: "v0.22.0"
+    hooks:
+      - id: markdownlint-cli2
+        name: markdownlint
+        files: ^docs/en/.*\.md$

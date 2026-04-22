@@ -122,6 +122,14 @@ else
 	fi
 fi
 
+# Register pre-commit git hooks
+echo
+echo "[ubuntu.sh] Installing git hooks (pre-commit)"
+REPO_ROOT="$(git -C "${DIR}" rev-parse --show-toplevel 2>/dev/null || true)"
+if [ -n "${REPO_ROOT}" ] && command -v pre-commit >/dev/null 2>&1; then
+	(cd "${REPO_ROOT}" && pre-commit install) || echo "[ubuntu.sh] Note: 'pre-commit install' failed — run it manually from the repo root"
+fi
+
 # NuttX toolchain (arm-none-eabi-gcc)
 if [[ $INSTALL_NUTTX == "true" ]]; then
 
