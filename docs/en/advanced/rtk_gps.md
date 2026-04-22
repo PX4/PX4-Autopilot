@@ -48,11 +48,12 @@ In practice, this means that support for new protocols and/or messages only need
 If you are sending RTCM corrections to PX4 yourself, follow the MAVLink [`GPS_RTCM_DATA`](https://mavlink.io/en/messages/common.html#GPS_RTCM_DATA) definition:
 
 - Each MAVLink packet carries up to 180 bytes of RTCM data.
-- If the RTCM payload does not fit in one packet, use the MAVLink `fragment_id` and `sequence_id` fields to split it across up to 4 packets.
+- If the RTCM payload exceeds 180 bytes, split it across up to 4 packets using the Fragment ID and Sequence ID (encoded in `GPS_RTCM_DATA.flags`).
+  Every packet except the last one must be filled to its maximum 180-byte capacity; only the final packet may be partially filled.
 - PX4 reassembles fragmented packets according to the MAVLink rules and supports out-of-order delivery for one in-progress fragmented message at a time.
-- A fragmented message is considered complete when either all 4 fragments are present, or when all fragments before the first non-full fragment have been received.
+- A fragmented message is considered complete when either 4 fragments with the same Sequence ID have been received, or when you receive a partial fragment and you have already recieved all the fully-packed fragments that precede it (by Fragment ID) in the current sequence.
 - If the RTCM payload length is an exact multiple of 180 bytes and uses fewer than 4 fragments, the sender must still send a final zero-length fragment to mark completion. A 720-byte payload (all 4 fragments full) is complete after the last fragment is received.
-- As a compatibility fallback for older QGroundControl builds that omit that final zero-length fragment, PX4 also flushes a buffered message when a different `sequence_id` arrives, but only if the buffered fragments are a gap-free run of full 180-byte fragments starting at fragment 0.
+- As a compatibility fallback for older QGroundControl builds that omit that final zero-length fragment, PX4 also flushes a buffered RTCM message to the GNSS when a `GPS_RTCM_DATA` message with a different Sequence ID arrives, but only if the buffered fragments are a gap-free run of full 180-byte fragments starting at fragment 0.
 
 Current limitations:
 
