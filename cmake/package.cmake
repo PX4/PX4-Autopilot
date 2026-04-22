@@ -92,7 +92,7 @@ if("${CMAKE_SYSTEM}" MATCHES "Linux")
 			set(CPACK_PACKAGING_INSTALL_PREFIX "/opt/px4-gazebo")
 			set(CPACK_DEBIAN_PACKAGE_NAME "px4-gazebo")
 			set(CPACK_DEBIAN_FILE_NAME "px4-gazebo_${DEB_VERSION}-${DEB_CODENAME}_${DEB_ARCHITECTURE}.deb")
-			set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6, libstdc++6, gz-sim8-cli, libgz-sim8-plugins, libgz-physics7-dartsim, gz-tools2, gstreamer1.0-plugins-base, gstreamer1.0-plugins-good, gstreamer1.0-plugins-bad, gstreamer1.0-plugins-ugly, gstreamer1.0-libav")
+			set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6, libstdc++6, gz-harmonic, gstreamer1.0-plugins-base, gstreamer1.0-plugins-good, gstreamer1.0-plugins-bad, gstreamer1.0-plugins-ugly, gstreamer1.0-libav")
 			set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "PX4 SITL autopilot with Gazebo Harmonic simulation resources")
 			set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA
 				"${PX4_SOURCE_DIR}/Tools/packaging/postinst;${PX4_SOURCE_DIR}/Tools/packaging/postrm")
