@@ -724,7 +724,11 @@ do_show_print_for_airframe(void *arg, param_t param)
 		return;
 	}
 
-	if (!strncmp(p_name, "RC", 2) || !strncmp(p_name, "TC_", 3) || !strncmp(p_name, "CAL_", 4) ||
+	// Exclude CAL_ params except priority ones (CAL_*_PRIO)
+	const bool is_cal = !strncmp(p_name, "CAL_", 4);
+	const bool is_cal_prio = is_cal && (strlen(p_name) > 4) && !strcmp(p_name + strlen(p_name) - 5, "_PRIO");
+
+	if (!strncmp(p_name, "RC", 2) || !strncmp(p_name, "TC_", 3) || (is_cal && !is_cal_prio) ||
 		!strcmp(p_name, "SENS_DPRES_OFF") || !strcmp(p_name, "MAV_TYPE")) {
 		return;
 	}
