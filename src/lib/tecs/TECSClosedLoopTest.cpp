@@ -60,6 +60,9 @@
 
 #include <cmath>
 #include <algorithm>
+#include <cstdio>
+#include <cstdlib>
+#include <string>
 
 using math::constrain;
 
@@ -231,10 +234,28 @@ protected:
 
 	// Advance simulation for `duration` seconds.
 	// Returns the peak |V - V_sp| observed (over all steps, including transients).
+	// If TECS_TEST_LOG_DIR is set in the environment, writes a CSV to
+	// $TECS_TEST_LOG_DIR/<test_name>.csv with one row per timestep.
 	float run(float duration)
 	{
 		float peak_v_err = 0.f;
 		const int steps = static_cast<int>(std::lround(duration / DT));
+
+		FILE *csv = nullptr;
+		const char *log_dir = std::getenv("TECS_TEST_LOG_DIR");
+
+		if (log_dir) {
+			const auto *test_info = ::testing::UnitTest::GetInstance()->current_test_info();
+			std::string path = std::string(log_dir) + "/" + test_info->name() + ".csv";
+			csv = std::fopen(path.c_str(), "w");
+
+			if (csv) {
+				std::fprintf(csv,
+					     "t,V,h,V_sp,alt_sp,pitch_cmd,throttle,"
+					     "pitch_integ,throttle_integ,"
+					     "ste_rate_sp,ste_rate_est,seb_rate_sp,seb_rate_est\n");
+			}
+		}
 
 		for (int i = 0; i < steps; ++i) {
 
@@ -246,7 +267,20 @@ protected:
 			_state      = aircraft_step(DT, _tecs.getThrottleSetpoint(), _pitch_prev, _state);
 			peak_v_err = std::max(peak_v_err, std::fabs(_state.V - _V_sp));
 
+			if (csv) {
+				const auto &dbg = _tecs.getDebugOutput();
+				std::fprintf(csv, "%.4f,%.6f,%.4f,%.4f,%.4f,%.6f,%.6f,%.6f,%.6f,%.4f,%.4f,%.4f,%.4f\n",
+					     (i + 1) * (double) DT,
+					     (double) _state.V, (double) _state.h,
+					     (double) _V_sp, (double) _alt_sp,
+					     (double) _pitch_prev, (double) _tecs.getThrottleSetpoint(),
+					     (double) dbg.pitch_integrator, (double) dbg.throttle_integrator,
+					     (double) dbg.total_energy_rate_sp, (double) dbg.total_energy_rate_estimate,
+					     (double) dbg.energy_balance_rate_sp, (double) dbg.energy_balance_rate_estimate);
+			}
 		}
+
+		if (csv) { std::fclose(csv); }
 
 		return peak_v_err;
 	}
