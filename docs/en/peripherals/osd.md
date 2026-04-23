@@ -61,7 +61,7 @@ Then rebuild and flash.
 1. Assign the selected serial port to MSP OSD with [`MSP_OSD_CONFIG`](../advanced_config/parameter_reference.md#MSP_OSD_CONFIG).
 2. Set the matching `SER_<PORT>_BAUD` to `115200`.
 3. Reboot.
-4. Tune the display via the [`OSD_*` parameters](../advanced_config/parameter_reference.md#OSD):
+4. Tune the display via the [`OSD_*` parameters](../advanced_config/parameter_reference.md#osd):
    - [`OSD_SYMBOLS`](../advanced_config/parameter_reference.md#OSD_SYMBOLS) — bitmask selecting which items appear.
    - [`OSD_CH_HEIGHT`](../advanced_config/parameter_reference.md#OSD_CH_HEIGHT) — vertical position of the crosshairs.
    - [`OSD_LOG_LEVEL`](../advanced_config/parameter_reference.md#OSD_LOG_LEVEL) — minimum severity for on-screen warnings.
