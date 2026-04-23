@@ -122,6 +122,7 @@ bool lineSegmentIntersectsCircle(const matrix::Vector2f &start, const matrix::Ve
 bool isPolygonCCW(const matrix::Vector2f *vertices, int num_vertices)
 {
 	// https://en.wikipedia.org/wiki/Shoelace_formula
+	// Triangle formula
 	float signed_area_2x = 0.f;
 
 	for (int i = 0; i < num_vertices; i++) {
@@ -137,6 +138,12 @@ bool expandOrShrinkPolygon(const matrix::Vector2f *vertices_in, int num_vertices
 			   float margin, bool expand,
 			   matrix::Vector2f *vertices_out)
 {
+	// Algorithm which shrinks or expands a polygon with given vertices.
+	// It calculates the inward vector at each vertex as the sum of the inward normals of the two adjacent edges
+	// The vertex of the new polygon is then moved by margin along the inward vector, either positively (shrink) or
+	// negatively (expand). The inward vector of an edge can be easily found if the polygon orientation (CW or CCW),
+	// is known. We use the triangle formula to find the polygon orientation.
+
 	if (num_vertices < 3) {
 		return false;
 	}
