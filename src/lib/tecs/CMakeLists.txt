@@ -39,3 +39,5 @@ px4_add_library(tecs
 target_link_libraries(tecs PRIVATE geo)
 
 px4_add_functional_gtest(SRC TECSTest.cpp LINKLIBS tecs motion_planning)
+
+px4_add_unit_gtest(SRC TECSClosedLoopTest.cpp EXTRA_SRCS TECSTestStubs.cpp LINKLIBS tecs motion_planning)
