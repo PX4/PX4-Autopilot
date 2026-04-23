@@ -17,7 +17,7 @@ Create a git commit in conventional-commit format: `type(scope): description`.
   `.github/workflows/` → `ci`).
 - **description:** imperative, concise, ≥5 chars.
 
-**NEVER add Co-Authored-By lines. No Claude attribution.**
+**NEVER add Co-Authored-By Claude Code. No Claude attribution.**
 
 ## Steps
 
