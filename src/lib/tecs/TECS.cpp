@@ -719,7 +719,7 @@ void TECS::initialize(const float altitude, const float altitude_rate, const flo
 void TECS::update(float pitch, float altitude, float hgt_setpoint, float EAS_setpoint, float equivalent_airspeed,
 		  float eas_to_tas, float throttle_min, float throttle_setpoint_max,
 		  float throttle_trim, float pitch_limit_min, float pitch_limit_max, float target_climbrate,
-		  float target_sinkrate, const float speed_deriv_forward, float hgt_rate, float hgt_rate_sp)
+		  float target_sinkrate, const float true_airspeed_rate, float hgt_rate, float hgt_rate_sp)
 {
 	// Calculate the time since last update (seconds)
 	const hrt_abstime now(hrt_absolute_time());
@@ -745,7 +745,7 @@ void TECS::update(float pitch, float altitude, float hgt_setpoint, float EAS_set
 
 		// Update airspeedfilter submodule
 		const TECSAirspeedFilter::Input airspeed_input{ .equivalent_airspeed = equivalent_airspeed,
-				.equivalent_airspeed_rate = speed_deriv_forward / eas_to_tas};
+				.equivalent_airspeed_rate = true_airspeed_rate / eas_to_tas};
 
 		_airspeed_filter.update(dt, airspeed_input, _airspeed_filter_param, _control_flag.airspeed_enabled);
 
