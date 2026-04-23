@@ -493,7 +493,7 @@ void TECSControl::_calcPitchControlUpdate(float dt, const Input &input, const Co
 float TECSControl::_calcPitchControlOutput(const Input &input, const ControlValues &seb_rate, const Param &param,
 		const Flag &flag) const
 {
-	float airspeed_for_seb_rate = param.equivalent_airspeed_trim;
+	float airspeed_for_seb_rate = param.tas_trim;
 
 	// avoid division by zero by checking if airspeed is finite and greater than zero
 	if (flag.airspeed_enabled && PX4_ISFINITE(input.tas) && input.tas > FLT_EPSILON) {
