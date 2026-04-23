@@ -413,9 +413,8 @@ AirspeedModule::Run()
 				if (_in_takeoff_situation) {
 					// set flag to false if either speed is above stall speed,
 					// or launch detection + land detection indicate flying
-					const bool speed_above_stall = airspeed_raw.indicated_airspeed_m_s > _param_fw_airspd_stall.get();
-					airspeed_raw.indicated_airspeed_m_s > _param_fw_airspd_stall.get()
-					|| (PX4_ISFINITE(_ground_minus_wind_CAS) && _ground_minus_wind_CAS > _param_fw_airspd_stall.get());
+					const bool speed_above_stall = _airspeed_validator[i].get_CAS() > _param_fw_airspd_stall.get()
+								       || (PX4_ISFINITE(_ground_minus_wind_CAS) && _ground_minus_wind_CAS > _param_fw_airspd_stall.get());
 
 					launch_detection_status_s launch_detection_status{};
 					_launch_detection_status_sub.copy(&launch_detection_status);
