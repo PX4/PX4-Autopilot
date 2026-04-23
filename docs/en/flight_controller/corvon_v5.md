@@ -43,7 +43,7 @@ This flight controller is [manufacturer supported](autopilot_manufacturer_suppor
 
 - **Power System:**
   - Power Brick Input: 4.75~5.5V
-  - USB Power Input: 4.75~5.25V
+  - USB-C Power Input: 4.75~5.25V
 
 - **Weight and Dimensions:**
   - Weight: 42.1g
@@ -66,15 +66,15 @@ Download Corvon V5 pinouts from here: [corvon_v5_pinout.xlsx](https://github.com
 
 ## Serial Port Mapping
 
-| UART   | Device       | Port                                     |
-| ------ | ------------ | ---------------------------------------- |
-| UART1  | `/dev/ttyS0` | GPS                                      |
-| USART2 | `/dev/ttyS1` | TELEM1                                   |
-| USART3 | `/dev/ttyS2` | TELEM2                                   |
-| UART4  | `/dev/ttyS3` | TELEM4                                   |
-| USART6 | `/dev/ttyS4` | TX is RC input from SBUS_RC connector    |
-| UART7  | `/dev/ttyS5` | Debug Console                            |
-| UART8  | `/dev/ttyS6` | Reserved for optional onboard RTK module |
+| UART   | Device       | Port                                     | Flow Control |
+| ------ | ------------ | ---------------------------------------- | :----------: |
+| USART1 | `/dev/ttyS0` | GPS                                      |      -       |
+| USART2 | `/dev/ttyS1` | TELEM1                                   |     Yes      |
+| USART3 | `/dev/ttyS2` | TELEM2                                   |     Yes      |
+| UART4  | `/dev/ttyS3` | TELEM4                                   |      -       |
+| USART6 | `/dev/ttyS4` | RC                                       |      -       |
+| UART7  | `/dev/ttyS5` | Debug Console                            |      -       |
+| UART8  | `/dev/ttyS6` | Reserved for optional onboard RTK module |      -       |z
 
 ::: info
 UART8 is reserved for an optional onboard UM982 module footprint and is not intended for general external use.
@@ -91,9 +91,7 @@ The ports and supported protocols are:
 - `RC`: PPM
 
 For PPM and S.Bus receivers, a single signal wire carries all channels.
-If your receiver outputs individual PWM signals (one wire per channel) it must be connected via a [PPM encoder](../getting_started/rc_transmitter_receiver.md#pwm-receivers).
-
-<!-- ![RC Connection Diagram](../../assets/flight_controller/corvon_v5/rc_connection_diagram.png) -->
+If your receiver outputs individual PWM signals (one wire per channel) it must be connected via a [PPM encoder](../getting_started/rc_transmitter_receiver.md).
 
 ### GPS & Compass {#gps_compass}
 
