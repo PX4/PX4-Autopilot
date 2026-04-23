@@ -4,16 +4,16 @@ PR comment poster for analysis workflows.
 
 This script is invoked from the `PR Comment Poster` workflow which runs on
 `workflow_run` in the base repository context. It consumes a `pr-comment`
-artifact produced by an upstream analysis job (clang-tidy, flash_analysis,
-etc.) and posts or updates a sticky PR comment via the GitHub REST API.
+artifact produced by an upstream analysis job (clang-tidy, etc.) and posts
+or updates a sticky PR comment via the GitHub REST API.
 
 Artifact contract (directory passed on the command line):
 
   manifest.json
     {
-      "pr_number": 12345,                                     (required, int > 0)
-      "marker":    "<!-- pr-comment-poster:flash-analysis -->", (required, printable ASCII)
-      "mode":      "upsert"                                    (optional, default "upsert")
+      "pr_number": 12345,                                  (required, int > 0)
+      "marker":    "<!-- pr-comment-poster:clang-tidy -->", (required, printable ASCII)
+      "mode":      "upsert"                                 (optional, default "upsert")
     }
 
   body.md
@@ -47,7 +47,7 @@ from _github_helpers import fail as _fail
 MAX_BODY_BYTES = 60000
 
 # Marker length bounds. 1..200 is plenty for an HTML comment tag such as
-# "<!-- pr-comment-poster:flash-analysis -->".
+# "<!-- pr-comment-poster:clang-tidy -->".
 MARKER_MIN_LEN = 1
 MARKER_MAX_LEN = 200
 
