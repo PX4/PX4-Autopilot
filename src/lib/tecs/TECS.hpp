@@ -704,6 +704,7 @@ private:
 	static constexpr float DT_MIN = 0.001f;				///< minimum allowed value of _dt (sec)
 	static constexpr float DT_MAX = 1.0f;				///< max value of _dt allowed before a filter state reset is performed (sec)
 	static constexpr hrt_abstime FAST_DESCEND_RAMP_UP_TIME = 2_s; 	///< Ramp up time until fast descend is fully engaged
+	static constexpr float FAST_DESCEND_RAMP_DOWN_MARGIN = 5.f;	///< Altitude above setpoint [m] at which fast-descend ramp-out reaches zero
 
 	DebugOutput _debug_status{};
 

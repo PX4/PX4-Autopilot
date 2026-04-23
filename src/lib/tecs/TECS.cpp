@@ -805,8 +805,7 @@ void TECS::_setFastDescend(const float alt_setpoint, const float alt)
 					      static_cast<float>(FAST_DESCEND_RAMP_UP_TIME)), 0.f, 1.f);
 
 	} else if (PX4_ISFINITE(alt_setpoint) && (_fast_descend > FLT_EPSILON) && (_fast_descend_alt_err > FLT_EPSILON)) {
-		// Were in fast descend, scale it down. up until 5m above target altitude
-		_fast_descend = constrain((alt - alt_setpoint - 5.f) / _fast_descend_alt_err, 0.f, 1.f);
+		_fast_descend = constrain((alt - alt_setpoint - FAST_DESCEND_RAMP_DOWN_MARGIN) / _fast_descend_alt_err, 0.f, 1.f);
 		_enabled_fast_descend_timestamp = 0U;
 
 	} else {
