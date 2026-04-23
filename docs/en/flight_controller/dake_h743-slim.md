@@ -3,43 +3,44 @@
 <Badge type="tip" text="PX4 v1.18" />
 
 ::: warning
-PX4 does not manufacture this (or any such) autopilot system. For hardware support or compliance issues, please contact the [manufacturer](http://dakefpv.com/).
+PX4 does not manufacture this (or any) autopilot.
+Contact the [manufacturer](http://dakefpv.com/) for hardware support or compliance issues.
 :::
 
 The [DAKEFPV H743-SLIM](http://dakefpv.com/pd.jsp?id=89) integrates numerous features, including a plug-and-play 4-in-1 ESC interface, barometer, OSD functionality, 8 UART interfaces, a black box MicroSD card slot, 5V BEC, convenient soldering layout, LED and buzzer pads, and I2C pads (SDA and SCL) for connecting an external GPS/magnetometer, among many other features.
 
 ![DAKEFPV H743-SLIM](../../assets/flight_controller/dake_h743-slim/dakefpvh743_slim.png)
 
-::: tip
-This flight controller is [supported by the manufacturer](../flight_controller/autopilot_manufacturer_supported.md).
+::: info
+This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
 :::
 
 ## Key Features
 
-- Main Control Chip: STM32H743 32-bit processor with a running frequency of 480 MHz
-- Gyroscope: MPU6000
+- MCU: STM32H743 32-bit processor running at 480 MHz
+- IMU: MPU6000
 - Barometer: BMP280
 - OSD: AT7456E
-- On-board Bluetooth module: Disabled when used with PX4
+- Onboard Bluetooth chip: Disabled with PX4
 - 1x JST-SH1.0_8pin interface (for single ESC or 4-in-1 ESC)
 - 1x GH1.25-4Pin Interface (CAN Bus)
 - Battery Input Voltage: 2S - 12S
-- BEC 5V 2A continuous power supply.
+- BEC 5V 2A Cont.
 - Mounting Hole Spacing: 30.5 mm × 30.5 mm / holes with a diameter of 4 mm
 - Size: 35x35mm
 - Weight: 8g
 
-## Purchase Channels
+## Where to Buy {#store}
 
-This board can be purchased from one of the stores listed below (for example):
+The board can be bought from one of the following shops (for example):
 
 - [DAKEFPV Official Website](http://dakefpv.com/pd.jsp?id=89)
 
-::: Tip
+::: tip
 The _DAKEFPV H743-SLIM_ is designed to be used with the _BX 6S 55A_ 4-in-1 ESC, and the two can be purchased as a set.
 :::
 
-## Interfaces and Pads
+## Connectors and Pins
 
 This is a top view of the DAKEFPVH743_SLIM, showing the top pads of the circuit board:
 
@@ -75,7 +76,6 @@ This is a top view of the DAKEFPVH743_SLIM, showing the top pads of the circuit 
 | Buz-            | Piezo buzzer negative pin (connect the buzzer positive pin to the 5V pad) |                     |
 | S1 to S4        | Motor signal output terminals                                             |                     |
 | S5 to S8        | Motor signal output terminals                                             |                     |
-| S5 to S8        | Motor signal output terminals                                             |                     |
 | LED             | WS2182 addressable LED signal line (untested)                             |                     |
 
 ## Sample Wiring Diagram
@@ -90,25 +90,26 @@ This is a top view of the DAKEFPVH743_SLIM, showing the top pads of the circuit 
 
 This board comes pre-installed with [Betaflight](https://github.com/betaflight/betaflight/wiki) firmware. Before installing PX4 firmware, the PX4 bootloader must be flashed. Download the [kakuteh7_bl.hex](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/flight_controller/kakuteh7/holybro_kakuteh7_bootloader.hex) bootloader binary file and refer to [this page](../advanced_config/bootloader_update_from_betaflight.md) for flashing instructions.
 
-## Compile Firmware
+## Building Firmware
 
-Build the [PX4](../dev_setup/building_px4.md) system for this target:
+To [build PX4](../dev_setup/building_px4.md) for this target:
 
 ```sh
 make dake_h743-slim_default
 ```
 
-## Install PX4 Firmware
+## Installing PX4 Firmware
 
 Firmware can be installed in any of the usual ways:
 
-- Build and upload the source code
+- Build and upload the firmware:
 
   ```sh
   make dake_h743-slim_default upload
   ```
 
-- Load the firmware using _QGroundControl_ [Loading Firmware](../config/firmware.md). You can choose either the pre-built firmware or use your own custom firmware.
+- [Load the firmware](../config/firmware.md) using _QGroundControl_.
+  You can use either pre-built firmware or your own custom firmware.
 
 ::: info
 If you are loading pre-built firmware via QGroundcontrol, you must use QGC Daily or a version of QGC later than 4.1.7.
@@ -135,7 +136,7 @@ In addition to the [basic configuration](../config/index.md), the following para
 | UART7  | /dev/ttyS6 | Debug Console |
 | UART8  | /dev/ttyS7 | TELEM4        |
 
-## Debug Interfaces
+## Debug Port
 
 ### System Console
 
@@ -143,7 +144,7 @@ The receive and transmit ports of UART7 are configured to be used as the [system
 
 ### SWD
 
-The SWD (JTAG) pins are as follows:
+The [SWD interface](../debug/swd_debug.md) (JTAG) pins are:
 
 - `SWCLK`: Test Point 2 (Pin 72 on the CPU)
 - `SWDIO`: Test Point 3 (Pin 76 on the CPU)
