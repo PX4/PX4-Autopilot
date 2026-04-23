@@ -74,7 +74,7 @@ Download Corvon V5 pinouts from here: [corvon_v5_pinout.xlsx](https://github.com
 | UART4  | `/dev/ttyS3` | TELEM4                                   |      -       |
 | USART6 | `/dev/ttyS4` | RC                                       |      -       |
 | UART7  | `/dev/ttyS5` | Debug Console                            |      -       |
-| UART8  | `/dev/ttyS6` | Reserved for optional onboard RTK module |      -       |z
+| UART8  | `/dev/ttyS6` | Reserved for optional onboard RTK module |      -       |
 
 ::: info
 UART8 is reserved for an optional onboard UM982 module footprint and is not intended for general external use.
