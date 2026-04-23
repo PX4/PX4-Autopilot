@@ -533,6 +533,7 @@ void TECSControl::_calcThrottleControl(float dt, const SpecificEnergyRates &spec
 	if (1.f - param.fast_descend < FLT_EPSILON) {
 		// During fast descend, we control airspeed over the pitch control loop. Give minimal thrust as soon as we are descending
 		throttle_setpoint = param.throttle_min;
+		_throttle_integ_state = 0.0f;
 
 	} else {
 		_calcThrottleControlUpdate(dt, limit, ste_rate, param, flag);
