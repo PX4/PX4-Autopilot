@@ -269,7 +269,7 @@ In overview:
 - Images must be stored in a sub folder of `/assets`.
   This is two folders down from content folders, so if you add an image you will reference it like:
 
-  ```plain
+  ```txt
   ![Image Description](../../assets/path_to_file/filename.jpg)
   ```
 

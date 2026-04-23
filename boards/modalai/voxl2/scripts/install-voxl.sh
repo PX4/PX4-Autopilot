@@ -12,16 +12,19 @@ adb push boards/modalai/voxl2/target/voxl-px4 /usr/bin
 adb push boards/modalai/voxl2/target/voxl-px4-start /usr/bin
 adb push boards/modalai/voxl2/target/voxl-px4-hitl /usr/bin
 adb push boards/modalai/voxl2/target/voxl-px4-hitl-start /usr/bin
+adb push boards/modalai/voxl2/target/voxl-px4-sih-start /usr/bin
 adb shell chmod a+x /usr/bin/px4-alias.sh
 adb shell chmod a+x /usr/bin/voxl-px4
 adb shell chmod a+x /usr/bin/voxl-px4-start
 adb shell chmod a+x /usr/bin/voxl-px4-hitl
 adb shell chmod a+x /usr/bin/voxl-px4-hitl-start
+adb shell chmod a+x /usr/bin/voxl-px4-sih-start
 
 # Push configuration file
 adb shell mkdir -p /etc/modalai
 adb push boards/modalai/voxl2/target/voxl-px4-fake-imu-calibration.config /etc/modalai
 adb push boards/modalai/voxl2/target/voxl-px4-hitl-set-default-parameters.config /etc/modalai
+adb push boards/modalai/voxl2/target/voxl-px4-sih-set-default-parameters.config /etc/modalai
 
 # Make sure to setup all of the needed px4 aliases.
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-accelsim"
@@ -132,6 +135,7 @@ adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-sensor_baro_bridge"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-dps310"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-icp101xx"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-vehicle_local_position_bridge"
+adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-sih_vio_bridge"
 
 # Make sure any required directories exist
 adb shell "/bin/mkdir -p /data/px4/param"

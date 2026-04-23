@@ -263,7 +263,10 @@ public:
 	}
 
 	// fuse single direct state measurement (eg NED velocity, NED position, mag earth field, etc)
-	void fuseDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index);
+	// constrain_variances must be false when called from inside constrainStateVar to prevent
+	// unbounded recursion (constrainStateVariances can call back into this function).
+	void fuseDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index,
+					bool constrain_variances = true);
 
 	bool measurementUpdate(VectorState &K, const VectorState &H, const float R, const float innovation);
 
@@ -426,11 +429,13 @@ public:
 
 	void resetHeadingToExternalObservation(float heading, float heading_accuracy)
 	{
+		const float heading_variance = sq(heading_accuracy);
+
 		if (_control_status.flags.yaw_align) {
-			resetYawByFusion(heading, heading_accuracy);
+			resetYawByFusion(heading, heading_variance);
 
 		} else {
-			resetQuatStateYaw(heading, heading_accuracy);
+			resetQuatStateYaw(heading, heading_variance);
 			_control_status.flags.yaw_align = true;
 		}
 

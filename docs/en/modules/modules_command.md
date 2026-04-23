@@ -342,6 +342,19 @@ mft_cfg <command> [arguments...]
                  <hwver>, id == revision for <hwrev> )
 ```
 
+## mklittlefs
+
+Source: [systemcmds/mklittlefs](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/mklittlefs)
+
+Format a device with the littlefs filesystem.
+
+### Usage {#mklittlefs_usage}
+
+```
+mklittlefs [arguments...]
+     <device> <mountpoint> Device and mount point (e.g. /dev/mtd0 /fs/flash)
+```
+
 ## mtd
 
 Source: [systemcmds/mtd](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/mtd)
