@@ -203,6 +203,7 @@ public:
 		float max_climb_rate;			///< Climb rate produced by max allowed throttle [m/s].
 		float vert_accel_limit;			///< Magnitude of the maximum vertical acceleration allowed [m/s²].
 		float equivalent_airspeed_trim;		///< Equivalent cruise airspeed for airspeed less mode [m/s].
+		float tas_trim;				///< True airspeed at trim (cruise) condition [m/s].
 		float tas_min;				///< True airspeed demand lower limit [m/s].
 		float tas_max;				///< True airspeed demand upper limit [m/s].
 		float pitch_max;			///< Maximum pitch angle above trim allowed in [rad].
@@ -730,6 +731,7 @@ private:
 		.max_climb_rate = 5.0f,
 		.vert_accel_limit = 0.0f,
 		.equivalent_airspeed_trim = 15.0f,
+		.tas_trim = 15.0f,
 		.tas_min = 10.0f,
 		.tas_max = 20.0f,
 		.pitch_max = 0.5f,

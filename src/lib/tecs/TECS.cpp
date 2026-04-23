@@ -378,12 +378,12 @@ void TECSControl::_detectUnderspeed(const Input &input, const Param &param, cons
 
 	// this is the expected (something like standard) deviation from the airspeed setpoint that we allow the airspeed
 	// to vary in before ramping in underspeed mitigation
-	const float tas_error_bound = param.tas_error_percentage * param.equivalent_airspeed_trim;
+	const float tas_error_bound = param.tas_error_percentage * param.tas_trim;
 
 	// this is the soft boundary where underspeed mitigation is ramped in
 	// NOTE: it's currently the same as the error bound, but separated here to indicate these values do not in general
 	// need to be the same
-	const float tas_underspeed_soft_bound = param.tas_error_percentage * param.equivalent_airspeed_trim;
+	const float tas_underspeed_soft_bound = param.tas_error_percentage * param.tas_trim;
 
 	const float tas_fully_undersped = math::max(param.tas_min - tas_error_bound - tas_underspeed_soft_bound, 0.0f);
 	const float tas_starting_to_underspeed = math::max(param.tas_min - tas_error_bound, tas_fully_undersped);
@@ -674,6 +674,7 @@ void TECS::initControlParams(float target_climbrate, float target_sinkrate, floa
 	// Control
 	_control_param.tas_min = eas_to_tas * _equivalent_airspeed_min;
 	_control_param.tas_max = eas_to_tas * _equivalent_airspeed_max;
+	_control_param.tas_trim = eas_to_tas * _control_param.equivalent_airspeed_trim;
 	_control_param.pitch_max = pitch_limit_max;
 	_control_param.pitch_min = pitch_limit_min;
 	_control_param.throttle_trim = throttle_trim;
