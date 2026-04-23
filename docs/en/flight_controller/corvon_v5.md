@@ -1,6 +1,6 @@
 # CORVON V5 Autopilot
 
-<Badge type="tip" text="main (planned for: PX4 v1.18)" />
+<Badge type="tip" text="PX4 v1.18" />
 
 :::warning
 PX4 does not manufacture this (or any) autopilot.
@@ -15,7 +15,7 @@ The CORVON V5 is based on the Pixhawk FMUv5 design standard and runs PX4 on Nutt
 This flight controller is [manufacturer supported](autopilot_manufacturer_supported.md).
 :::
 
-## Quick Summary
+## Specifications {#specifications}
 
 - **Main FMU Processor:** STM32F765IIK
   - 32 Bit Arm® Cortex®-M7, 216MHz, 2MB memory, 512KB RAM
@@ -80,14 +80,42 @@ Download Corvon V5 pinouts from here: [corvon_v5_pinout.xlsx](https://github.com
 UART8 is reserved for an optional onboard UM982 module footprint and is not intended for general external use.
 :::
 
-## Radio Control
+## Radio Control {#radio_control}
 
-RC inputs (both CPPM and Spektrum/S.Bus) are physically connected directly to the FMU. The `rc` and `spektrum` drivers are enabled by default for this board.
+RC inputs (both CPPM and Spektrum/S.Bus) are physically connected directly to the FMU.
+The `rc` and `spektrum` drivers are enabled by default for this board.
 
 - S.Bus and Spektrum / DSM receivers connect to the **SBUS_RC** port.
 - CPPM receivers connect to the dedicated CPPM input.
 
 For more information about selecting and connecting a radio receiver, see [Radio Control Registration](../getting_started/rc_transmitter_receiver.md).
+
+### GPS & Compass {#gps_compass}
+
+PX4 supports GPS modules connected to the GPS port(s) listed below.
+The module should be [mounted on the frame](../assembly/mount_gps_compass.md) as far away from other electronics as possible, with the direction marker pointing towards the front of the vehicle.
+
+The GPS ports are:
+
+- `GPS&SAFETY` (FMU): 10-pin JST GH ([Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf)) — GPS, compass (I2C), safety switch, buzzer, LED.
+
+The GPS module's integrated safety switch is enabled _by default_ (when enabled, PX4 will not let you arm the vehicle).
+To disable the safety switch press and hold it for 1 second.
+You can press the safety switch again to enable safety and disarm the vehicle.
+
+## PWM Outputs {#pwm_outputs}
+
+This flight controller supports up to 8 FMU PWM outputs (`MAIN`).
+
+[DShot](../peripherals/dshot.md) is not supported.
+
+The 8 outputs are in 3 groups:
+
+- Outputs 1-4 in group1 (Timer1)
+- Outputs 5-6 in group2 (Timer4)
+- Outputs 7-8 in group3 (Timer12)
+
+All outputs within the same group must use the same output protocol and rate.
 
 ## Debug Port {#debug_port}
 
@@ -95,20 +123,20 @@ The [PX4 System Console](../debug/system_console.md) and [SWD interface](../debu
 
 The debug port (`DSU7`) has the following pinout:
 
-| Pin | Signal         | Volt  |
-| --- | -------------- | ----- |
-| 1   | GND            | GND   |
-| 2   | FMU_SWCLK      | +3.3V |
-| 3   | FMU_SWDIO      | +3.3V |
-| 4   | DEBUG RX       | +3.3V |
-| 5   | DEBUG TX       | +3.3V |
-| 6   | 5V+            | +5V   |
+| Pin | Signal    | Volt  |
+| --- | --------- | ----- |
+| 1   | GND       | GND   |
+| 2   | FMU_SWCLK | +3.3V |
+| 3   | FMU_SWDIO | +3.3V |
+| 4   | DEBUG RX  | +3.3V |
+| 5   | DEBUG TX  | +3.3V |
+| 6   | 5V+       | +5V   |
 
 ::: warning
 The 5V+ pin (6) provides 5V, but the CPU logic runs at 3.3V!
 
 Some JTAG/SWD adapters (like SEGGER J-Link) may use the Vref voltage pin to set the logic level on the SWD data lines. Connecting 5V to the adapter's `Vtref` can damage the CPU.
-For a direct connection to a *Segger Jlink*, we recommend you use a 3.3V source to provide `Vtref` to the JTAG adapter (i.e. providing 3.3V and *NOT* 5V).
+For a direct connection to a _Segger Jlink_, we recommend you use a 3.3V source to provide `Vtref` to the JTAG adapter (i.e. providing 3.3V and _NOT_ 5V).
 :::
 
 ## Voltage Ratings
@@ -139,7 +167,8 @@ The firmware can be installed in any of the normal ways:
   make corvon_v5_default upload
   ```
 
-- **Load the firmware using _QGroundControl_.** You can use either pre-built firmware or your own custom firmware.
+- **Load the firmware using _QGroundControl_.**
+  You can use either pre-built firmware or your own custom firmware.
 
 :::info
 If this target is not listed in _QGroundControl_, build and upload from source or load a custom firmware file (see [Installing PX4 Main, Beta or Custom Firmware](../config/firmware.md#installing-px4-main-beta-or-custom-firmware)).
