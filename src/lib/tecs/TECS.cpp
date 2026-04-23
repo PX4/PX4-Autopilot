@@ -103,8 +103,12 @@ void TECSAirspeedFilter::update(const float dt, const Input &input, const Param 
 	new_state_predicted(0) = _airspeed_state.speed + dt * _airspeed_state.speed_rate;
 	new_state_predicted(1) = _airspeed_state.speed_rate;
 
-	const float airspeed_noise_inv{1.0f / param.airspeed_measurement_std_dev};
-	const float airspeed_rate_noise_inv{1.0f / param.airspeed_rate_measurement_std_dev};
+	if (param.airspeed_measurement_std_dev < FLT_EPSILON || param.airspeed_rate_measurement_std_dev < FLT_EPSILON) {
+		PX4_WARN("Airspeed filter: noise std_dev params must be > 0, clamping to FLT_EPSILON.");
+	}
+
+	const float airspeed_noise_inv{1.0f / math::max(param.airspeed_measurement_std_dev, FLT_EPSILON)};
+	const float airspeed_rate_noise_inv{1.0f / math::max(param.airspeed_rate_measurement_std_dev, FLT_EPSILON)};
 	const float airspeed_rate_noise_inv_squared_process_noise{airspeed_rate_noise_inv *airspeed_rate_noise_inv * param.airspeed_rate_noise_std_dev};
 	const float denom{airspeed_noise_inv + airspeed_rate_noise_inv_squared_process_noise};
 	const float common_nom{std::sqrt(param.airspeed_rate_noise_std_dev * (2.0f * airspeed_noise_inv + airspeed_rate_noise_inv_squared_process_noise))};
