@@ -77,3 +77,15 @@ TEST(GeofenceUtilsTest, SegmentAndCircleIntersect)
 	EXPECT_FALSE(geofence_utils::lineSegmentIntersectsCircle(p1, p2, center, 0.9f));
 
 }
+TEST(GeofenceUtilsTest, PolygonIsCCW)
+{
+	// square with vertices in CCW order
+	Vector2f p1(0.f, 0.f);
+	Vector2f p2(1.f, 0.f);
+	Vector2f p3(1.f, 1.f);
+	Vector2f p4(0.f, 1.f);
+
+	Vector2f vertices[4] = {p1, p2, p3, p4};
+
+	EXPECT_TRUE(geofence_utils::isPolygonCCW(vertices, 4));
+}

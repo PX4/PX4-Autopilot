@@ -59,39 +59,78 @@ bool insideCircle(const matrix::Vector2<double> &center, float radius,
 bool segmentsIntersect(const matrix::Vector2f &p1, const matrix::Vector2f &p2,
 		       const matrix::Vector2f &v1, const matrix::Vector2f &v2)
 {
-	float d1x = p2(0) - p1(0), d1y = p2(1) - p1(1);
-	float d2x = v2(0) - v1(0), d2y = v2(1) - v1(1);
-	float denom = d1x * d2y - d1y * d2x;
+	// line intersection algorithm from wikipedia
+	// https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
+	// Basic idea: a 2D vector formula for each line is created, consisting of a start point e.g. p1
+	// and a direction vector pointing from p1 to p2. A running variable t [0,1] defines the position
+	// on the line betwen p1 and p2. So in this case the formula for the line is P = p1 + t * (p2-p1).
+	// The same is done for the second line and then both lines are set to be equal (to find the intersection).
+	// We get two equations with two unknowns (t and u) which can be solved. If the denominator is zero, the lines are parallel
+	// or coinciding, which means we can stop. If the solution for t and u is between 0 and 1, the line segments intersect, otherwise they don't.
 
-	if (fabsf(denom) < FLT_EPSILON) {
+	float x1 = p1(0), y1 = p1(1);
+	float x2 = p2(0), y2 = p2(1);
+	float x3 = v1(0), y3 = v1(1);
+	float x4 = v2(0), y4 = v2(1);
+
+	float denominator = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+
+	if (fabsf(denominator) < FLT_EPSILON) {
 		return false;
 	}
 
-	float d3x = v1(0) - p1(0), d3y = v1(1) - p1(1);
-	float t = (d3x * d2y - d3y * d2x) / denom;
-	float u = (d3x * d1y - d3y * d1x) / denom;
+	float t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denominator;
+	float u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denominator;
 
+	// lines intersect if both running variables are between 0 and 1
 	return t > 0.0f && t < 1.0f && u > 0.0f && u < 1.0f;
 }
 
 bool lineSegmentIntersectsCircle(const matrix::Vector2f &start, const matrix::Vector2f &end,
 				 const matrix::Vector2f &center, float radius)
 {
-	const matrix::Vector2f d = end - start;
-	const float len_sq = d.dot(d);
+	// Algorithm borrowed from here: https://stackoverflow.com/questions/1073336/circle-line-segment-collision-detection-algorithm
+	// Basic idea: Find the closest point on the line segment from the circle center.
+	// If that point is outside the circle, we don't have an intersection. If the point is inside the
+	// radius then we just need to check if either the start or the end of the line segment is outside the circle.
 
-	if (len_sq < FLT_EPSILON) {
+
+	// let vector from start to circle center be A and vector from start to end be B
+	// then the projection of A onto B gives the closest point on the line from the circle center.
+	// By constraining the projection length to [0, |B|] we make sure that we find the closest point on the
+	// line segment and not the infinite line that coincides with B.
+	const matrix::Vector2f A = center - start;
+	const matrix::Vector2f B = end - start;
+	const float B_length = B.norm();
+
+	if (B_length < FLT_EPSILON) {
 		return false;
 	}
 
-	const float t = math::constrain((center - start).dot(d) / len_sq, 0.f, 1.f);
-	const matrix::Vector2f closest = start + d * t;
+	const float projection_A_on_B = math::constrain(A.dot(B) / B_length, 0.f, B_length);
+	const matrix::Vector2f closest = start + projection_A_on_B * B.normalized();
 
+	// closest point is not even inside the radius, so no intersection
 	if ((closest - center).norm() >= radius) {
 		return false;
 	}
 
+	// we have an intersection if at least one of start or end is further away than radius from center
 	return (start - center).norm() >= radius || (end - center).norm() >= radius;
+}
+
+bool isPolygonCCW(const matrix::Vector2f *vertices, int num_vertices)
+{
+	// https://en.wikipedia.org/wiki/Shoelace_formula
+	float signed_area_2x = 0.f;
+
+	for (int i = 0; i < num_vertices; i++) {
+		const int j = (i + 1) % num_vertices;
+		signed_area_2x += vertices[i](0) * vertices[j](1)
+				  - vertices[j](0) * vertices[i](1);
+	}
+
+	return signed_area_2x > 0.f;
 }
 
 bool expandOrShrinkPolygon(const matrix::Vector2f *vertices_in, int num_vertices,
@@ -102,22 +141,8 @@ bool expandOrShrinkPolygon(const matrix::Vector2f *vertices_in, int num_vertices
 		return false;
 	}
 
-	// shoelace formula used to check if the polygon is CCW or CW
-	// https://en.wikipedia.org/wiki/Shoelace_formula
-	float signed_area_2x = 0.f;
-
-	for (int i = 0; i < num_vertices; i++) {
-		const int j = (i + 1) % num_vertices;
-		signed_area_2x += vertices_in[i](0) * vertices_in[j](1)
-				  - vertices_in[j](0) * vertices_in[i](1);
-	}
-
-	if (fabsf(signed_area_2x) < FLT_EPSILON) {
-		return false; // degenerate (zero-area) polygon
-	}
-
-	// If area is positive, polygon is CCW and we want to rotate vector to the left to get inward normal
-	const float rot_sign = (signed_area_2x > 0.f) ? 1.f : -1.f;
+	// If polygon is CCW we rotate the edge vector to the left to get the inward normal.
+	const float rot_sign = isPolygonCCW(vertices_in, num_vertices) ? 1.f : -1.f;
 
 	// Expand pushes vertices outward, shrink pushes them inward.
 	const float step_sign = expand ? -1.f : 1.f;
