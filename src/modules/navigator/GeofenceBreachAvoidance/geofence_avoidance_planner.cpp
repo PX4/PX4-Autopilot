@@ -84,7 +84,7 @@ PlannedPath GeofenceAvoidancePlanner::planPath(const matrix::Vector2<double> &st
 		}
 	}
 
-	if (num_vertices_total - 2 > kMaxNodes) {
+	if (num_vertices_total + 2 > kMaxNodes) {
 		path.num_points = 0;
 		return path;
 	}
@@ -96,6 +96,7 @@ PlannedPath GeofenceAvoidancePlanner::planPath(const matrix::Vector2<double> &st
 
 	// reset to the start location
 	int graph_index = 0;
+	int last_graph_index = 0;
 
 	while (true) {
 		// get visible vertices from current node
@@ -146,6 +147,12 @@ PlannedPath GeofenceAvoidancePlanner::planPath(const matrix::Vector2<double> &st
 			}
 		}
 
+		if (last_graph_index == graph_index) {
+			// we are stuck, destination does not seem to be reachable
+			path.num_points = 0;
+			return path;
+		}
+
 		if (_graph_nodes[graph_index].type == Node::DESTINATION) {
 			break;
 		}
@@ -170,12 +177,6 @@ PlannedPath GeofenceAvoidancePlanner::planPath(const matrix::Vector2<double> &st
 
 
 	path.num_points = count - 1;
-
-	// fail if path is too long
-	if (path.num_points > PlannedPath::kMaxPathPoints) {
-		path.num_points = 0;
-		return path;
-	}
 
 	// Walk backwards again and fill points in reverse, converting local to lat/lon
 	MapProjection ref{_reference(0), _reference(1)};

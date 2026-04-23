@@ -429,58 +429,6 @@ bool Geofence::checkPointAgainstPolygonCircle(const PolygonInfo &polygon, double
 	return checksPass;
 }
 
-bool Geofence::polygonIntersectsLine(const PolygonInfo &polygon,
-				     const matrix::Vector2<double> &start,
-				     const matrix::Vector2<double> &end)
-{
-	mission_fence_point_s temp_vertex_i{};
-	mission_fence_point_s temp_vertex_j{};
-
-	// Project to local Cartesian coordinates for correct segment intersection math
-	MapProjection projection(start(0), start(1));
-	const matrix::Vector2f start_local{0.f, 0.f};
-	const matrix::Vector2f end_local = projection.project(end(0), end(1));
-
-	for (unsigned i = 0, j = polygon.vertex_count - 1; i < polygon.vertex_count; j = i++) {
-
-		dm_item_t fence_dataman_id{static_cast<dm_item_t>(_stats.dataman_id)};
-		bool success = _dataman_cache.loadWait(fence_dataman_id, polygon.dataman_index + i,
-						       reinterpret_cast<uint8_t *>(&temp_vertex_i), sizeof(mission_fence_point_s));
-
-		if (!success) {
-			break;
-		}
-
-		success = _dataman_cache.loadWait(fence_dataman_id, polygon.dataman_index + j,
-						  reinterpret_cast<uint8_t *>(&temp_vertex_j), sizeof(mission_fence_point_s));
-
-		if (!success) {
-			break;
-		}
-
-		switch (temp_vertex_i.frame) {
-		case NAV_FRAME_GLOBAL:
-		case NAV_FRAME_GLOBAL_INT:
-		case NAV_FRAME_GLOBAL_RELATIVE_ALT:
-		case NAV_FRAME_GLOBAL_RELATIVE_ALT_INT:
-			break;
-
-		default:
-			PX4_ERR("Frame type %i not supported", (int)temp_vertex_i.frame);
-			return false;
-		}
-
-		const matrix::Vector2f edge_start_local = projection.project(temp_vertex_i.lat, temp_vertex_i.lon);
-		const matrix::Vector2f edge_end_local = projection.project(temp_vertex_j.lat, temp_vertex_j.lon);
-
-		if (geofence_utils::segmentsIntersect(start_local, end_local, edge_start_local, edge_end_local)) {
-			return true;
-		}
-	}
-
-	return false;
-}
-
 bool Geofence::insidePolygon(const PolygonInfo &polygon, double lat, double lon, float altitude)
 {
 	/**

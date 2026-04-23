@@ -195,14 +195,6 @@ private:
 
 
 	/**
-	 * Check if a line segment intersects a polygon
-	 * @return true if the line intersects the polygon
-	 */
-	bool polygonIntersectsLine(const PolygonInfo &polygon,
-				   const matrix::Vector2<double> &start,
-				   const matrix::Vector2<double> &end);
-
-	/**
 	 * Check if a single point is within a polygon
 	 * @return true if within polygon
 	 */
