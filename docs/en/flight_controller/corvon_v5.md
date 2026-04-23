@@ -82,13 +82,18 @@ UART8 is reserved for an optional onboard UM982 module footprint and is not inte
 
 ## Radio Control {#radio_control}
 
-RC inputs (both CPPM and Spektrum/S.Bus) are physically connected directly to the FMU.
-The `rc` and `spektrum` drivers are enabled by default for this board.
+A remote control (RC) radio system is required if you want to _manually_ control your vehicle (PX4 does not require a radio system for autonomous flight modes).
+You will need to [select a compatible transmitter/receiver](../getting_started/rc_transmitter_receiver.md) and then _bind_ them so that they communicate (read the instructions that come with your specific transmitter/receiver).
 
-- S.Bus and Spektrum / DSM receivers connect to the **SBUS_RC** port.
-- CPPM receivers connect to the dedicated CPPM input.
+The ports and supported protocols are:
 
-For more information about selecting and connecting a radio receiver, see [Radio Control Registration](../getting_started/rc_transmitter_receiver.md).
+- `DSM/SBUS/RSSI` (FMU): SBUS, DSM/DSMX, ST24, SUMD, CRSF, and GHST receivers
+- `RC`: PPM
+
+For PPM and S.Bus receivers, a single signal wire carries all channels.
+If your receiver outputs individual PWM signals (one wire per channel) it must be connected via a [PPM encoder](../getting_started/rc_transmitter_receiver.md#pwm-receivers).
+
+<!-- ![RC Connection Diagram](../../assets/flight_controller/corvon_v5/rc_connection_diagram.png) -->
 
 ### GPS & Compass {#gps_compass}
 
