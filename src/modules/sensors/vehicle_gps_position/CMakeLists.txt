@@ -36,6 +36,8 @@ px4_add_library(vehicle_gps_position
 	VehicleGPSPosition.hpp
 	gps_blending.cpp
 	gps_blending.hpp
+	GnssRedundancyMonitor.cpp
+	GnssRedundancyMonitor.hpp
 	PpsTimeSync.cpp
 	PpsTimeSync.hpp
 )
@@ -46,3 +48,4 @@ target_link_libraries(vehicle_gps_position
 )
 
 px4_add_unit_gtest(SRC gps_blending_test.cpp LINKLIBS vehicle_gps_position)
+px4_add_functional_gtest(SRC GnssRedundancyMonitorTest.cpp LINKLIBS vehicle_gps_position)

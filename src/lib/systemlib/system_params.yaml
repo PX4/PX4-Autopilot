@@ -142,10 +142,10 @@ parameters:
         long: |-
           0: No minimum receiver count required. Position divergence between two receivers
           and loss of a GNSS receiver still produce a warning but never trigger the
-          COM_GPS_LOSS_ACT failsafe action.
+          COM_GNSS_LSS_ACT failsafe action.
           1-N: Require the presence of N GNSS receivers for arming and during flight.
-          If the active count drops below this value in flight, COM_GPS_LOSS_ACT is triggered.
-          When set to 2, position divergence between the two receivers also triggers COM_GPS_LOSS_ACT.
+          If the active count drops below this value in flight, COM_GNSS_LSS_ACT is triggered.
+          When set to 2, position divergence between the two receivers also triggers COM_GNSS_LSS_ACT.
       type: int32
       default: 0
       min: 0

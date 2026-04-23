@@ -33,153 +33,79 @@
 
 #include "gpsRedundancyCheck.hpp"
 
-#include <lib/geo/geo.h>
-
-using namespace time_literals;
-
-// eph is firmware-dependent and not a rigorous 1-sigma, so 3 is a heuristic consistency gate
-// rather than a precise statistical claim. It relaxes the gate automatically when receivers degrade.
-static constexpr float GNSS_DIVERGENCE_SIGMA = 3.0f;
-
-// Matches the 1 s staleness threshold used by other sensor checks in this framework.
-static constexpr uint64_t GNSS_ONLINE_TIMEOUT = 1_s;
-
-// Multipath spikes typically resolve within 1 s; 2 s filters these out while still
-// detecting real receiver faults promptly.
-static constexpr uint64_t GNSS_DIVERGENCE_SUSTAIN = 2_s;
-
 void GpsRedundancyChecks::checkAndReport(const Context &context, Report &reporter)
 {
-	// Always reset — will be set below only when the condition is active
 	reporter.failsafeFlags().gnss_lost = false;
 
-	// Separate "online" (present + fresh data) from "fixed" (online + 3D fix).
-	// online_count tracks receivers that are communicating; fixed_count tracks those
-	// suitable for navigation. Keeping them separate lets us emit a more informative
-	// warning: "receiver offline" vs "receiver lost fix".
-	int online_count = 0;
-	int fixed_count = 0;
-	sensor_gps_s fixed_gps[GPS_MAX_INSTANCES] {};
+	gnss_redundancy_status_s status;
 
-	for (int i = 0; i < _sensor_gps_sub.size(); i++) {
-		sensor_gps_s gps{};
+	if (_gnss_redundancy_status_sub.copy(&status)) {
+		const bool act_configured = (_param_com_gnss_loss_act.get() > 0);
 
-		if (_sensor_gps_sub[i].copy(&gps)
-		    && (gps.device_id != 0)
-		    && (hrt_elapsed_time(&gps.timestamp) < GNSS_ONLINE_TIMEOUT)) {
-			online_count++;
+		// Divergence triggers the failsafe only when the operator explicitly expects two
+		// receivers (SYS_HAS_NUM_GNSS >= 2); otherwise it remains a warning.
+		const bool divergence_triggers_failsafe = status.divergence_detected
+				&& (status.num_receivers_required >= 2);
 
-			if (gps.fix_type >= 3) {
-				fixed_gps[fixed_count++] = gps;
-			}
-		}
-	}
+		reporter.failsafeFlags().gnss_lost = status.below_required || divergence_triggers_failsafe;
 
-	const int required = _param_sys_has_num_gnss.get();
+		if (status.below_required || status.dropped_below_peak) {
+			const bool block_arming = status.below_required && act_configured;
+			const NavModes nav_modes = block_arming ? NavModes::All : NavModes::None;
+			const events::Log log_level = block_arming ? events::Log::Error : events::Log::Warning;
+			const uint8_t expected = status.below_required ? status.num_receivers_required
+						 : status.peak_receivers_fixed;
 
-	// Position divergence check: warn if two fixed receivers disagree beyond their combined
-	// uncertainty. The gate is: lever-arm separation + GNSS_DIVERGENCE_SIGMA * RMS(eph0, eph1).
-	// Using RMS(eph) means the gate tightens when both receivers are accurate and widens
-	// automatically when one degrades, avoiding false alarms without a hard-coded threshold.
-	// Pre-arm: warn immediately. In-flight: require GPS_DIVERGENCE_SUSTAIN to suppress
-	// transient multipath spikes.
-	// The failsafe action is only triggered when SYS_HAS_NUM_GNSS >= 2; otherwise divergence
-	// is reported as a warning only.
-	bool divergence_active = false;
-
-	if (fixed_count >= 2) {
-		float north, east;
-		get_vector_to_next_waypoint(fixed_gps[0].latitude_deg, fixed_gps[0].longitude_deg,
-					    fixed_gps[1].latitude_deg, fixed_gps[1].longitude_deg,
-					    &north, &east);
-
-		const float divergence_m = sqrtf(north * north + east * east);
-		const float rms_eph = sqrtf(fixed_gps[0].eph * fixed_gps[0].eph + fixed_gps[1].eph * fixed_gps[1].eph);
-		const float dx = _param_gps0_offx.get() - _param_gps1_offx.get();
-		const float dy = _param_gps0_offy.get() - _param_gps1_offy.get();
-		const float expected_d = sqrtf(dx * dx + dy * dy);
-		const float gate_m = expected_d + rms_eph * GNSS_DIVERGENCE_SIGMA;
-
-		// Pre-arm: trigger immediately so the operator can decide before takeoff.
-		// In-flight: require sustained divergence to avoid false alarms from transient multipath.
-		const uint64_t sustain = context.isArmed() ? GNSS_DIVERGENCE_SUSTAIN : 0_s;
-
-		if (divergence_m > gate_m) {
-			if (_divergence_since == 0) {
-				_divergence_since = hrt_absolute_time();
-			}
-
-			if (hrt_elapsed_time(&_divergence_since) >= sustain) {
-				const bool act = (_param_com_gnss_loss_act.get() > 0) && (required >= 2);
-				divergence_active = act;
-
+			if (status.num_receivers_online < status.num_receivers_fixed
+			    || status.num_receivers_online < status.num_receivers_required) {
 				/* EVENT
 				 * @description
-				 * Two GNSS receivers report positions that are inconsistent with their reported accuracy.
-				 *
 				 * <profile name="dev">
-				 * Configure the failsafe action with <param>COM_GPS_LOSS_ACT</param>.
-				 * The failsafe action is only triggered when <param>SYS_HAS_NUM_GNSS</param> is set to 2.
+				 * Configure the minimum required GPS count with <param>SYS_HAS_NUM_GNSS</param>.
+				 * Configure the failsafe action with <param>COM_GNSS_LSS_ACT</param>.
 				 * </profile>
 				 */
-				reporter.healthFailure<float, float>(act ? NavModes::All : NavModes::None,
-								     health_component_t::gps,
-								     events::ID("check_gps_position_divergence"),
-								     act ? events::Log::Error : events::Log::Warning,
-								     "GPS receivers disagree: {1:.1}m apart (gate {2:.1}m)",
-								     (double)divergence_m, (double)gate_m);
+				reporter.healthFailure<uint8_t, uint8_t>(nav_modes, health_component_t::gps,
+						events::ID("check_gps_redundancy_offline"),
+						log_level,
+						"GPS receiver offline: {1} of {2} online",
+						status.num_receivers_online, expected);
+
+			} else {
+				/* EVENT
+				 * @description
+				 * <profile name="dev">
+				 * Configure the minimum required GPS count with <param>SYS_HAS_NUM_GNSS</param>.
+				 * Configure the failsafe action with <param>COM_GNSS_LSS_ACT</param>.
+				 * </profile>
+				 */
+				reporter.healthFailure<uint8_t, uint8_t>(nav_modes, health_component_t::gps,
+						events::ID("check_gps_redundancy_no_fix"),
+						log_level,
+						"GPS receiver lost 3D fix: {1} of {2} fixed",
+						status.num_receivers_fixed, expected);
 			}
-
-		} else {
-			_divergence_since = 0;
 		}
-	}
 
-	// Track the highest fixed count seen — used to detect any GPS loss regardless of SYS_HAS_NUM_GNSS
-	if (fixed_count > _peak_fixed_count) {
-		_peak_fixed_count = fixed_count;
-	}
+		if (status.divergence_detected) {
+			const bool block_arming = divergence_triggers_failsafe && act_configured;
+			const NavModes nav_modes = block_arming ? NavModes::All : NavModes::None;
+			const events::Log log_level = block_arming ? events::Log::Error : events::Log::Warning;
 
-	const bool below_required = (required > 0 && fixed_count < required);
-	const bool dropped_below_peak = (_peak_fixed_count > 1 && fixed_count < _peak_fixed_count);
-
-	reporter.failsafeFlags().gnss_lost = below_required || divergence_active;
-
-	if (below_required || dropped_below_peak) {
-		// act==0: warn only, never blocks arming; act>0: blocks arming and shows red
-		const bool block_arming = below_required && (_param_com_gnss_loss_act.get() > 0);
-		const NavModes nav_modes = block_arming ? NavModes::All : NavModes::None;
-		const events::Log log_level = block_arming ? events::Log::Error : events::Log::Warning;
-		const uint8_t expected = below_required ? (uint8_t)required : (uint8_t)_peak_fixed_count;
-
-		// Differentiate: if online_count is also low the receiver is offline; otherwise it lost fix.
-		if (online_count < fixed_count || online_count < required) {
 			/* EVENT
 			 * @description
+			 * Two GNSS receivers report positions that are inconsistent with their reported accuracy.
+			 *
 			 * <profile name="dev">
-			 * Configure the minimum required GPS count with <param>SYS_HAS_NUM_GNSS</param>.
-			 * Configure the failsafe action with <param>COM_GPS_LOSS_ACT</param>.
+			 * Configure the failsafe action with <param>COM_GNSS_LSS_ACT</param>.
+			 * The failsafe action is only triggered when <param>SYS_HAS_NUM_GNSS</param> is set to 2.
 			 * </profile>
 			 */
-			reporter.healthFailure<uint8_t, uint8_t>(nav_modes, health_component_t::gps,
-					events::ID("check_gps_redundancy_offline"),
-					log_level,
-					"GPS receiver offline: {1} of {2} online",
-					(uint8_t)online_count, expected);
-
-		} else {
-			/* EVENT
-			 * @description
-			 * <profile name="dev">
-			 * Configure the minimum required GPS count with <param>SYS_HAS_NUM_GNSS</param>.
-			 * Configure the failsafe action with <param>COM_GPS_LOSS_ACT</param>.
-			 * </profile>
-			 */
-			reporter.healthFailure<uint8_t, uint8_t>(nav_modes, health_component_t::gps,
-					events::ID("check_gps_redundancy_no_fix"),
-					log_level,
-					"GPS receiver lost 3D fix: {1} of {2} fixed",
-					(uint8_t)fixed_count, expected);
+			reporter.healthFailure<float, float>(nav_modes, health_component_t::gps,
+							     events::ID("check_gps_position_divergence"),
+							     log_level,
+							     "GPS receivers disagree: {1:.1}m apart (gate {2:.1}m)",
+							     (double)status.divergence_m, (double)status.divergence_gate_m);
 		}
 	}
 }

@@ -46,7 +46,9 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/pps_capture.h>
+#include <uORB/topics/vehicle_status.h>
 
+#include "GnssRedundancyMonitor.hpp"
 #include "gps_blending.hpp"
 #include "PpsTimeSync.hpp"
 
@@ -91,11 +93,13 @@ private:
 	};
 
 	uORB::Subscription _pps_capture_sub{ORB_ID(pps_capture)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
 	GpsBlending _gps_blending;
 	PpsTimeSync _pps_time_sync;
+	GnssRedundancyMonitor _gnss_redundancy_monitor{this};
 
 	struct GpsParamSlot {
 		uint32_t device_id{0};

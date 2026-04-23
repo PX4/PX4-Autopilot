@@ -191,7 +191,21 @@ void VehicleGPSPosition::Run()
 
 	if (any_gps_updated) {
 		_gps_blending.update(hrt_absolute_time());
+	}
 
+	// Tick the redundancy monitor every cycle so silence is detected.
+	{
+		vehicle_status_s vehicle_status{};
+		_vehicle_status_sub.copy(&vehicle_status);
+		const bool is_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+
+		_gnss_redundancy_monitor.update(_gps_blending.getGpsStates(),
+						_gps_blending.getAntennaOffsets(),
+						GPS_MAX_RECEIVERS,
+						is_armed);
+	}
+
+	if (any_gps_updated) {
 		if (_gps_blending.isNewOutputDataAvailable()) {
 			sensor_gps_s gps_output{_gps_blending.getOutputGpsData()};
 

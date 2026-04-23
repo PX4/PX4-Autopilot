@@ -99,6 +99,12 @@ public:
 	}
 	int getSelectedGps() const { return _selected_gps; }
 
+	// Exposed for the redundancy monitor so it can inspect the last known
+	// sample (and its resolved antenna offset) from each instance without
+	// maintaining a second set of subscriptions.
+	const sensor_gps_s *getGpsStates() const { return _gps_state; }
+	const Vector3f *getAntennaOffsets() const { return _antenna_offset; }
+
 private:
 	/*
 	 * Update the internal state estimate for a blended GPS solution that is a weighted average of the phsyical

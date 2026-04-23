@@ -115,6 +115,7 @@ set(msg_files
 	GpioIn.msg
 	GpioOut.msg
 	GpioRequest.msg
+	GnssRedundancyStatus.msg
 	GpsDump.msg
 	GpsInjectData.msg
 	Gripper.msg

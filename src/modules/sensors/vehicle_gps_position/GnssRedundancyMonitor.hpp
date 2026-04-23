@@ -33,23 +33,43 @@
 
 #pragma once
 
-#include "../Common.hpp"
-
-#include <uORB/Subscription.hpp>
+#include <drivers/drv_hrt.h>
+#include <lib/matrix/matrix/math.hpp>
+#include <px4_platform_common/module_params.h>
+#include <uORB/Publication.hpp>
 #include <uORB/topics/gnss_redundancy_status.h>
+#include <uORB/topics/sensor_gps.h>
 
-class GpsRedundancyChecks : public HealthAndArmingCheckBase
+#include "gps_blending.hpp"
+
+namespace sensors
+{
+
+// Computes system-wide GNSS redundancy health from the last-known sample of
+// each receiver and publishes it on the gnss_redundancy_status topic.
+// Kept separate from VehicleGPSPosition so the detection logic is small and
+// unit-testable; instantiated and driven by VehicleGPSPosition each cycle.
+class GnssRedundancyMonitor : public ModuleParams
 {
 public:
-	GpsRedundancyChecks() = default;
-	~GpsRedundancyChecks() = default;
+	GnssRedundancyMonitor(ModuleParams *parent);
 
-	void checkAndReport(const Context &context, Report &reporter) override;
+	// Evaluate the current state given the per-instance samples and resolved
+	// antenna offsets (as maintained by the blender), and publish the status.
+	void update(const sensor_gps_s *gps_states,
+		    const matrix::Vector3f *antenna_offsets,
+		    uint8_t num_receivers,
+		    bool is_armed);
 
 private:
-	uORB::Subscription _gnss_redundancy_status_sub{ORB_ID(gnss_redundancy_status)};
+	uORB::Publication<gnss_redundancy_status_s> _gnss_redundancy_status_pub{ORB_ID(gnss_redundancy_status)};
 
-	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
-					(ParamInt<px4::params::COM_GNSS_LSS_ACT>) _param_com_gnss_loss_act
+	uint8_t _peak_fixed_count{0};
+	hrt_abstime _divergence_since{0};
+
+	DEFINE_PARAMETERS_CUSTOM_PARENT(ModuleParams,
+					(ParamInt<px4::params::SYS_HAS_NUM_GNSS>) _param_sys_has_num_gnss
 				       )
 };
+
+} // namespace sensors

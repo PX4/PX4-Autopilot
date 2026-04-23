@@ -131,7 +131,7 @@ parameters:
         1: Allow arming (with warning)
         2: Allow arming (no warning)
       default: 1
-    COM_GPS_LOSS_ACT:
+    COM_GNSS_LSS_ACT:
       description:
         short: GNSS loss failsafe mode
         long: |-
