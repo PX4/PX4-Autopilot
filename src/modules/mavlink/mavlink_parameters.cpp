@@ -63,7 +63,7 @@ MavlinkParametersManager::get_size()
 void
 MavlinkParametersManager::update_observed_camera_components()
 {
-	camera_status_s cam_status;
+	camera_status_s cam_status {};
 
 	while (_camera_status_sub.update(&cam_status)) {
 		if (cam_status.active_comp_id >= MAV_COMP_ID_CAMERA
