@@ -155,8 +155,9 @@ void TECSAltitudeReferenceModel::update(const float dt, const AltitudeReferenceS
 	_velocity_control_traj_generator.setMaxJerk(param.jerk_max);
 	_velocity_control_traj_generator.setMaxAccelUp(param.vert_accel_limit);
 	_velocity_control_traj_generator.setMaxAccelDown(param.vert_accel_limit);
-	_velocity_control_traj_generator.setMaxVelUp(param.max_sink_rate); // different convention for FW than for MC
-	_velocity_control_traj_generator.setMaxVelDown(param.max_climb_rate); // different convention for FW than for MC
+	// ManualVelocitySmoothingZ uses positive-down NED convention: VelUp = increasing NED Z = sinking in altitude frame.
+	_velocity_control_traj_generator.setMaxVelUp(param.max_sink_rate);
+	_velocity_control_traj_generator.setMaxVelDown(param.max_climb_rate);
 
 	// Altitude setpoint reference
 	_alt_control_traj_generator.setMaxJerk(param.jerk_max);
