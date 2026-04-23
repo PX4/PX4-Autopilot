@@ -405,6 +405,8 @@ private:
 		float ske_weighting;	///< Specific kinetic energy weight.
 	};
 
+	friend class TECSClosedLoopTest;
+
 private:
 	/**
 	 * @brief Get control error from etpoint and estimate
