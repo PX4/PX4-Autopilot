@@ -9,12 +9,12 @@ PX4 supports three distinct OSD mechanisms, each targeting a different class of 
 | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | -------------------- | -------------------------------------------------------------- |
 | [MSP OSD](#msp-osd)                     | Digital FPV air units and video goggles that speak Betaflight MSP (e.g. DJI O3/O4, Walksnail, HDZero, Caddx Vista)              | Serial, MSPv1        | Yes — [`msp_osd`](../modules/modules_driver.md#msp-osd) driver |
 | [ATXXXX Analog OSD](#atxxxx-analog-osd) | Legacy analog video with an on-board MAX7456/ATXXXX overlay chip (e.g. OmnibusF4SD)                                             | SPI to on-board chip | Yes — [`atxxxx`](../modules/modules_driver.md#atxxxx) driver   |
-| [MAVLink OSD](#mavlink-osd)             | MAVLink-aware ground stations and displays that render their own OSD from telemetry (e.g. Yaapu on OpenTX, Skydroid, mLRS HUDs) | Serial, MAVLink      | No — streams MAVLink; the display renders the OSD              |
+| [MAVLink OSD](#mavlink-osd)             | MAVLink-aware ground stations and displays that render their own OSD from telemetry (e.g. Yaapu on EdgeTX/OpenTX, Skydroid, mLRS HUDs) | Serial, MAVLink      | No — streams MAVLink; the display renders the OSD              |
 
 Which one you use is determined by your video hardware, not by PX4 preference.
 If you're unsure, start with your video system's documentation and match the OSD mechanism it expects.
 
-## MSP OSD {}
+## MSP OSD
 
 **MSP (MultiWii Serial Protocol) OSD** is the mechanism used by digital FPV systems (DJI, Walksnail, HDZero) and by many digital goggles/air units to render telemetry over the pilot's video feed.
 PX4 implements the subset of MSP used for OSD telemetry, matching what Betaflight and INAV send.
@@ -81,7 +81,7 @@ PX4 exposes this via a dedicated MAVLink stream profile.
 To use a MAVLink OSD:
 
 1. Choose an unused MAVLink instance ([`MAV_X_CONFIG`](../peripherals/mavlink_peripherals.md#default_ports)) and assign it to the serial port connected to the display.
-2. Configure mode of the selected MAVLink instance with [`MAV_X_MODE`](./mavlink_peripherals.md) by setting it to **`OSD`**.
+2. Configure the mode of the selected MAVLink instance with [`MAV_X_MODE`](./mavlink_peripherals.md#MAV_X_MODE) by setting it to **`OSD`**.
    The `OSD` mode uses a built-in rate table tuned for low-bandwidth OSD consumption.
 3. Set the matching `SER_<PORT>_BAUD` to the baud rate the display expects.
 
