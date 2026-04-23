@@ -124,7 +124,7 @@ MavlinkParametersManager::is_observed_mavlink_camera(uint8_t target_component) c
 bool
 MavlinkParametersManager::is_dronecan_node_online(uint8_t node_id)
 {
-	dronecan_node_status_s status;
+	dronecan_node_status_s status {};
 
 	for (auto &sub : _dronecan_node_status_subs) {
 		if (sub.copy(&status)
