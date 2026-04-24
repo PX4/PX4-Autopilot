@@ -81,7 +81,14 @@ const uint16_t latency_bucket_count = LATENCY_BUCKET_COUNT;
 const uint16_t latency_buckets[LATENCY_BUCKET_COUNT] = { 1, 2, 5, 10, 20, 50, 100, 1000 };
 __EXPORT uint32_t latency_counters[LATENCY_BUCKET_COUNT + 1];
 
-static px4_sem_t 	_hrt_lock;
+// Recursive mutex so hrt_call_invoke() can hold it across callbacks that may
+// re-enter hrt_call_* on the same thread (e.g. a callout that reschedules
+// itself). On NuttX this is implicit: the equivalent code there uses
+// enter_critical_section(), which is a nestable IRQ-disable counter. On POSIX
+// we need PTHREAD_MUTEX_RECURSIVE to get matching semantics — without it we'd
+// have to unlock around callbacks, which leaks the queue to other threads and
+// causes list corruption under load.
+static pthread_mutex_t	_hrt_lock;
 static struct work_s	_hrt_work;
 
 static void hrt_latency_update();
@@ -91,13 +98,12 @@ static void hrt_call_invoke();
 
 static void hrt_lock()
 {
-	// loop as the wait may be interrupted by a signal
-	do {} while (px4_sem_wait(&_hrt_lock) != 0);
+	pthread_mutex_lock(&_hrt_lock);
 }
 
 static void hrt_unlock()
 {
-	px4_sem_post(&_hrt_lock);
+	pthread_mutex_unlock(&_hrt_lock);
 }
 
 /*
@@ -201,11 +207,15 @@ void	hrt_init()
 {
 	sq_init(&callout_queue);
 
-	int sem_ret = px4_sem_init(&_hrt_lock, 0, 1);
+	pthread_mutexattr_t attr;
+	pthread_mutexattr_init(&attr);
+	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
 
-	if (sem_ret) {
-		PX4_ERR("SEM INIT FAIL: %s", strerror(errno));
+	if (pthread_mutex_init(&_hrt_lock, &attr) != 0) {
+		PX4_ERR("hrt mutex init failed: %s", strerror(errno));
 	}
+
+	pthread_mutexattr_destroy(&attr);
 
 	memset(&_hrt_work, 0, sizeof(_hrt_work));
 }
@@ -428,13 +438,15 @@ hrt_call_invoke()
 		void *arg = call->arg;
 
 		if (callout) {
-			// Unlock so we don't deadlock in callback
-			hrt_unlock();
-
-			//PX4_INFO("call %p: %p(%p)", call, callout, arg);
+			// We hold _hrt_lock across the callout. Previously we unlocked
+			// here to let callbacks re-enter hrt_call_*, but that exposes the
+			// callout queue to other threads while the current entry is mid-
+			// invocation (removed from the queue but about to be re-inserted
+			// by the periodic path below). Under load that caused list
+			// corruption — entries orphaned with stale flink, queue torn.
+			// _hrt_lock is now a recursive mutex, so same-thread re-entry
+			// from the callback is safe.
 			callout(arg);
-
-			hrt_lock();
 		}
 
 		/* if the callout has a non-zero period, it has to be re-entered */
