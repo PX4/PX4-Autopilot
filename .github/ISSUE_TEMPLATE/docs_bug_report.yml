@@ -1,6 +1,6 @@
 name: 📑 Documentation Bug report
 description: Create a report to help us improve the docs
-title: "[Docs] [Bug] "
+title: "docs(bug): "
 labels: ["scope:docs"]
 body:
   - type: textarea
