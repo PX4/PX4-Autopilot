@@ -52,6 +52,17 @@
 #include <errno.h>
 #include "hrt_work.h"
 
+// Debug aid: walk the hrt callout queue after every modification and abort on
+// structural corruption (tail unreachable from head, flink dangling, tail with
+// non-null flink, cycles). Silent on success — only fires at the moment of a
+// tear, so timing is not perturbed in normal runs. Intended for hunting HRT
+// queue corruption; leave disabled by default.
+// #define HRT_DEBUG_QUEUE_INTEGRITY_CHECK 1
+#if defined(HRT_DEBUG_QUEUE_INTEGRITY_CHECK)
+#include <cstdio>
+#include <cstdlib>
+#endif
+
 // Voxl2 board specific API definitions to get time offset
 #if defined(CONFIG_MUORB_APPS_SYNC_TIMESTAMP)
 #include "fc_sensor.h"
@@ -107,6 +118,99 @@ static void hrt_unlock()
 	pthread_mutex_unlock(&_hrt_lock);
 }
 
+#if defined(HRT_DEBUG_QUEUE_INTEGRITY_CHECK)
+// Dump chain + tail details and abort. Called by hrt_check_queue on corruption.
+static void hrt_corruption_dump(const char *where, const char *reason,
+				const struct hrt_call *subject)
+{
+	fprintf(stderr, "HRT CORRUPTION at %s: %s (subject=%p)\n",
+		where, reason, (const void *)subject);
+	fprintf(stderr, "  head=%p tail=%p\n",
+		(void *)callout_queue.head, (void *)callout_queue.tail);
+
+	// Dump the reachable chain from head (bounded).
+	struct sq_entry_s *n = callout_queue.head;
+	int i = 0;
+	constexpr int kDumpMax = 64;
+
+	while (n != nullptr && i < kDumpMax) {
+		const struct hrt_call *c = (const struct hrt_call *)n;
+		fprintf(stderr, "  [%d] @%p flink=%p deadline=%llu period=%llu callout=%p arg=%p\n",
+			i, (const void *)c, (void *)c->link.flink,
+			(unsigned long long)c->deadline, (unsigned long long)c->period,
+			(void *)c->callout, c->arg);
+		n = n->flink;
+		++i;
+	}
+
+	// Dump tail's fields for comparison.
+	if (callout_queue.tail != nullptr) {
+		const struct hrt_call *t = (const struct hrt_call *)callout_queue.tail;
+		fprintf(stderr, "  tail @%p flink=%p deadline=%llu period=%llu callout=%p arg=%p\n",
+			(const void *)t, (void *)t->link.flink,
+			(unsigned long long)t->deadline, (unsigned long long)t->period,
+			(void *)t->callout, t->arg);
+	}
+
+	std::abort();
+}
+
+// Walk the callout queue and abort on structural corruption. Must be called
+// while holding _hrt_lock. No-op when queue is empty. Aborts (SIGABRT, core
+// dump) on the first inconsistency so we catch the tear at the moment it
+// happens. Silent on success — no logging, so timing isn't perturbed.
+static void hrt_check_queue(const char *where, const struct hrt_call *subject)
+{
+	constexpr int kMaxNodes = 256; // sanity bound; real queue is ~20
+
+	struct sq_entry_s *head = callout_queue.head;
+	struct sq_entry_s *tail = callout_queue.tail;
+
+	if (head == nullptr) {
+		if (tail != nullptr) {
+			hrt_corruption_dump(where, "head=NULL but tail!=NULL", subject);
+		}
+
+		return;
+	}
+
+	if (tail == nullptr) {
+		hrt_corruption_dump(where, "head!=NULL but tail=NULL", subject);
+	}
+
+	struct sq_entry_s *n = head;
+
+	int count = 0;
+
+	bool reached_tail = false;
+
+	while (n != nullptr) {
+		if (++count > kMaxNodes) {
+			hrt_corruption_dump(where, "queue exceeded kMaxNodes (cycle?)", subject);
+		}
+
+		if (n == tail) {
+			reached_tail = true;
+
+			if (n->flink != nullptr) {
+				hrt_corruption_dump(where, "tail->flink != NULL", subject);
+			}
+
+			break;
+		}
+
+		n = n->flink;
+	}
+
+	if (!reached_tail) {
+		hrt_corruption_dump(where, "tail not reachable from head", subject);
+	}
+}
+#else
+// No-op when the integrity check is disabled. Call sites stay unchanged.
+static inline void hrt_check_queue(const char *, const struct hrt_call *) {}
+#endif
+
 /*
  * Get absolute time.
  */
@@ -153,7 +257,9 @@ bool	hrt_called(struct hrt_call *entry)
 void	hrt_cancel(struct hrt_call *entry)
 {
 	hrt_lock();
+	hrt_check_queue("hrt_cancel:enter", entry);
 	sq_rem(&entry->link, &callout_queue);
+	hrt_check_queue("hrt_cancel:after sq_rem", entry);
 	entry->deadline = 0;
 
 	/* if this is a periodic call being removed by the callout, prevent it from
@@ -226,11 +332,14 @@ hrt_call_enter(struct hrt_call *entry)
 {
 	struct hrt_call	*call, *next;
 
+	hrt_check_queue("hrt_call_enter:enter", entry);
+
 	call = (struct hrt_call *)sq_peek(&callout_queue);
 
 	if ((call == nullptr) || (entry->deadline < call->deadline)) {
 		sq_addfirst(&entry->link, &callout_queue);
 		//if (call != nullptr) PX4_INFO("call enter at head, reschedule (%lu %lu)", entry->deadline, call->deadline);
+		hrt_check_queue("hrt_call_enter:after sq_addfirst", entry);
 		/* we changed the next deadline, reschedule the timer event */
 		hrt_call_reschedule();
 
@@ -241,6 +350,7 @@ hrt_call_enter(struct hrt_call *entry)
 			if ((next == nullptr) || (entry->deadline < next->deadline)) {
 				//lldbg("call enter after head\n");
 				sq_addafter(&call->link, &entry->link, &callout_queue);
+				hrt_check_queue("hrt_call_enter:after sq_addafter", entry);
 				break;
 			}
 		} while ((call = next) != nullptr);
@@ -342,8 +452,11 @@ hrt_call_internal(struct hrt_call *entry, hrt_abstime deadline, hrt_abstime inte
 	   queue for the uninitialised entry->link but we don't do
 	   anything actually unsafe.
 	*/
+	hrt_check_queue("hrt_call_internal:enter", entry);
+
 	if (entry->deadline != 0) {
 		sq_rem(&entry->link, &callout_queue);
+		hrt_check_queue("hrt_call_internal:after sq_rem", entry);
 	}
 
 #if 1
@@ -415,6 +528,7 @@ hrt_call_invoke()
 	hrt_abstime max_lateness = 0;
 
 	hrt_lock();
+	hrt_check_queue("hrt_call_invoke:enter", nullptr);
 
 	while (true) {
 		/* get the current time */
@@ -439,6 +553,7 @@ hrt_call_invoke()
 		callouts_fired++;
 
 		sq_rem(&call->link, &callout_queue);
+		hrt_check_queue("hrt_call_invoke:after sq_rem", call);
 		//PX4_INFO("call pop");
 
 		/* save the intended deadline for periodic calls */
