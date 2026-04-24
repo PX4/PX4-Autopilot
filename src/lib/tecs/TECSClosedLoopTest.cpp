@@ -90,6 +90,9 @@ static constexpr float STE_RATE_MIN_ABS = MIN_SINK_RATE  * G;
 
 static constexpr float MAX_V_TRACKING_ERR = 0.1; ///< [m/s]
 
+/// Tolerance for checking equations that should hold exactly
+static constexpr float NUMERICAL_TOL = 1e-12;
+
 // --- Aircraft model -----------------------------------------------------------
 // pitch_cmd drives altitude rate instantly; all pitch-rate limiting comes from
 // TECS's vert_accel_limit. STE uses the same piecewise-linear throttle-to-energy
@@ -321,10 +324,11 @@ TEST_F(TECSClosedLoopTest, SteadyStateCruiseDefaultTuning)
 	initTecs();
 
 	run(60.f);
-	EXPECT_LT(_sim_stats.max_airspeed_error, 1e-5f);
 
-	EXPECT_NEAR(_state.V, _V_sp,   1e-5f);
-	EXPECT_NEAR(_state.h, _alt_sp, 1e-5f);
+	EXPECT_LT(_sim_stats.max_airspeed_error, NUMERICAL_TOL);
+	EXPECT_LT(_sim_stats.max_altitude_error, NUMERICAL_TOL);
+	EXPECT_LT(_sim_stats.max_throttle_integ_norm, NUMERICAL_TOL);
+	EXPECT_LT(_sim_stats.max_pitch_integ_norm, NUMERICAL_TOL);
 }
 
 TEST_F(TECSClosedLoopTest, SteadyStateCruiseHighSpeedWeight)
@@ -337,10 +341,11 @@ TEST_F(TECSClosedLoopTest, SteadyStateCruiseHighSpeedWeight)
 	initTecs();
 
 	run(60.f);
-	EXPECT_LT(_sim_stats.max_airspeed_error, 1e-5f);
 
-	EXPECT_NEAR(_state.V, _V_sp,   1e-5f);
-	EXPECT_NEAR(_state.h, _alt_sp, 1e-5f);
+	EXPECT_LT(_sim_stats.max_airspeed_error, NUMERICAL_TOL);
+	EXPECT_LT(_sim_stats.max_altitude_error, NUMERICAL_TOL);
+	EXPECT_LT(_sim_stats.max_throttle_integ_norm, NUMERICAL_TOL);
+	EXPECT_LT(_sim_stats.max_pitch_integ_norm, NUMERICAL_TOL);
 }
 
 TEST_F(TECSClosedLoopTest, SteadyStateCruiseLowSpeedWeight)
@@ -353,10 +358,11 @@ TEST_F(TECSClosedLoopTest, SteadyStateCruiseLowSpeedWeight)
 	initTecs();
 
 	run(60.f);
-	EXPECT_LT(_sim_stats.max_airspeed_error, 1e-5f);
 
-	EXPECT_NEAR(_state.V, _V_sp,   1e-5f);
-	EXPECT_NEAR(_state.h, _alt_sp, 1e-5f);
+	EXPECT_LT(_sim_stats.max_airspeed_error, NUMERICAL_TOL);
+	EXPECT_LT(_sim_stats.max_altitude_error, NUMERICAL_TOL);
+	EXPECT_LT(_sim_stats.max_throttle_integ_norm, NUMERICAL_TOL);
+	EXPECT_LT(_sim_stats.max_pitch_integ_norm, NUMERICAL_TOL);
 }
 
 // --- Altitude steps, default tuning (FW_T_SPDWEIGHT = 1.0) -------------------
