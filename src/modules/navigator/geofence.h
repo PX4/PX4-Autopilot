@@ -154,7 +154,7 @@ public:
 		_avoidance_planner.update_destination(destination, *this);
 	}
 
-	PlannedPath planPath() { return _avoidance_planner.planPath(); };
+	PlannedPath planPath() { return _avoidance_planner.planPath(); }
 
 	/**
 	 * print Geofence status to the console

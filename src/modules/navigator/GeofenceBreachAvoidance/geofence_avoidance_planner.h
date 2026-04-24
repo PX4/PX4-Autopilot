@@ -47,7 +47,7 @@ static constexpr int kMaxNodes = 100;
 static constexpr int kCircleApproxVertices = 8;
 
 struct PlannedPath {
-	// does not include the start and the end, just intermediate points
+	// points[0] is the start (latched valid position); intermediate waypoints follow; destination is not included
 	matrix::Vector2<double> points[kMaxNodes];
 	int num_points{0};
 	int current_index{0};

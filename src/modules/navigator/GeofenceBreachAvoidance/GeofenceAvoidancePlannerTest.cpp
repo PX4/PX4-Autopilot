@@ -142,12 +142,14 @@ TEST_F(GeofenceAvoidancePlannerTest, PathAroundExclusionZone)
 
 	PlannedPath path = _planner.planPath();
 
-	ASSERT_EQ(path.num_points, 2);
-	// The optimal path is via vertex 1 and 2
-	EXPECT_NEAR(path.points[0](0), vertices[1](0), 1e-3);
-	EXPECT_NEAR(path.points[0](1), vertices[1](1), 1e-3);
-	EXPECT_NEAR(path.points[1](0), vertices[2](0), 1e-3);
-	EXPECT_NEAR(path.points[1](1), vertices[2](1), 1e-3);
+	// points[0] is the start itself (always emitted); optimal detour is via vertex 1 and 2
+	ASSERT_EQ(path.num_points, 3);
+	EXPECT_NEAR(path.points[0](0), start(0), 1e-3);
+	EXPECT_NEAR(path.points[0](1), start(1), 1e-3);
+	EXPECT_NEAR(path.points[1](0), vertices[1](0), 1e-3);
+	EXPECT_NEAR(path.points[1](1), vertices[1](1), 1e-3);
+	EXPECT_NEAR(path.points[2](0), vertices[2](0), 1e-3);
+	EXPECT_NEAR(path.points[2](1), vertices[2](1), 1e-3);
 }
 
 TEST_F(GeofenceAvoidancePlannerTest, PathInsideInclusionZone)
@@ -173,9 +175,11 @@ TEST_F(GeofenceAvoidancePlannerTest, PathInsideInclusionZone)
 
 	PlannedPath path = _planner.planPath();
 
-	ASSERT_EQ(path.num_points, 1);
-	ASSERT_NEAR(path.points[0](0), vertices[5](0), 1e-3);
-	ASSERT_NEAR(path.points[0](1), vertices[5](1), 1e-3);
+	ASSERT_EQ(path.num_points, 2);
+	ASSERT_NEAR(path.points[0](0), start(0), 1e-3);
+	ASSERT_NEAR(path.points[0](1), start(1), 1e-3);
+	ASSERT_NEAR(path.points[1](0), vertices[5](0), 1e-3);
+	ASSERT_NEAR(path.points[1](1), vertices[5](1), 1e-3);
 }
 TEST_F(GeofenceAvoidancePlannerTest, DestinationOutsideInclusion)
 {

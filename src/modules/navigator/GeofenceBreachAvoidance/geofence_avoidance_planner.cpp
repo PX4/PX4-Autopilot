@@ -120,7 +120,7 @@ PlannedPath GeofenceAvoidancePlanner::planPath()
 		_graph_nodes[graph_index].visited = true;
 	}
 
-	// figure out the path by backtracking from destination to start
+	// backtrack from destination to start and count the nodes along the way
 	int count = 0;
 	int idx = graph_index;
 
@@ -135,10 +135,10 @@ PlannedPath GeofenceAvoidancePlanner::planPath()
 		idx = _graph_nodes[idx].previous_index;
 	}
 
+	path.num_points = count;
 
-	path.num_points = count - 1;
-
-	// Walk backwards again and fill points in reverse, converting local to lat/lon
+	// Walk backwards and fill points in reverse, converting local to lat/lon.
+	// The last iteration lands on the start node, which becomes points[0].
 	MapProjection ref{_reference(0), _reference(1)};
 	idx = _graph_nodes[graph_index].previous_index; // skip destination
 
