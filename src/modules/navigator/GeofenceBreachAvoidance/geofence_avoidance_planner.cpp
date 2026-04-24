@@ -46,53 +46,17 @@ static matrix::Vector2f get_vertex_local_position(int poly_index, int vertex_idx
 	return local;
 }
 
-PlannedPath GeofenceAvoidancePlanner::planPath(const matrix::Vector2<double> &start,
-		const matrix::Vector2<double> &destination,
-		GeofenceInterface *geofence,
-		float margin)
+PlannedPath GeofenceAvoidancePlanner::planPath()
 {
 	PlannedPath path;
 
-	margin = math::max(margin, 1.f); // margin should be non-zero as otherwhise the algorithm breaks down
-
-	if (!start.isAllFinite() || !destination.isAllFinite()) {
+	if (!_polygons_healthy || !_start_healthy || !_destination_healthy) {
+		// we are not in a state where we can reliably plan a path, return an empty one
 		path.num_points = 0;
 		return path;
 	}
 
-	if (!lat_lon_within_bounds(start) || !lat_lon_within_bounds(destination)) {
-		path.num_points = 0;
-		return path;
-	}
-
-	if ((start - destination).norm() < 1e-10) {
-		path.num_points = 0;
-		return path;
-	}
-
-	const int num_polygons = geofence->getNumPolygons();
-	int num_vertices_total = 0;
-
-	for (int poly_index = 0; poly_index < num_polygons; poly_index++) {
-		const PolygonInfo info = geofence->getPolygonInfoByIndex(poly_index);
-
-		if (info.fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION || info.fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION) {
-			num_vertices_total += kCircleApproxVertices;
-
-		} else {
-			num_vertices_total += info.vertex_count;
-		}
-	}
-
-	if (num_vertices_total + 2 > kMaxNodes) {
-		path.num_points = 0;
-		return path;
-	}
-
-	if (!calculate_graph_nodes(start, destination, geofence, margin)) {
-		path.num_points = 0;
-		return path;
-	}
+	reset_graph_state();
 
 	// reset to the start location
 	int graph_index = 0;
@@ -104,24 +68,19 @@ PlannedPath GeofenceAvoidancePlanner::planPath(const matrix::Vector2<double> &st
 		VisibleVertices visible_vertices = {};
 		int visible_count = 0;
 
-		for (int i = 0; i < num_vertices_total + 2; i++) { // +2 accounts for start and destination node
+		for (int i = 0; i < _num_nodes; i++) {
 
 			if (i == graph_index) {
 				continue;
 			}
 
-			// check if the line from our current node to any other node is clear
-			const bool clear = !geofence->checkIfLineViolatesAnyFence(_graph_nodes[graph_index].position,
-					   _graph_nodes[i].position, _reference);
+			const float distance = _distances[geofence_utils::symmetricPairIndex(graph_index, i, _num_nodes)];
 
-			if (clear) {
+			if (distance < INFINITY) {
 				visible_vertices.items[visible_count].index = i;
-				visible_vertices.items[visible_count].distance =
-					(_graph_nodes[graph_index].position - _graph_nodes[i].position).norm();
+				visible_vertices.items[visible_count].distance = distance;
 				visible_count++;
 			}
-
-
 		}
 
 		visible_vertices.count = visible_count;
@@ -138,9 +97,10 @@ PlannedPath GeofenceAvoidancePlanner::planPath(const matrix::Vector2<double> &st
 		}
 
 		// find the unvisited node with the smallest best distance
+		last_graph_index = graph_index;
 		float min_dist = INFINITY;
 
-		for (int i = 0; i < num_vertices_total + 2; i++) {	// +2 accounts for start and destination
+		for (int i = 0; i < _num_nodes; i++) {
 			if (!_graph_nodes[i].visited && _graph_nodes[i].best_distance < min_dist) {
 				min_dist = _graph_nodes[i].best_distance;
 				graph_index = i;
@@ -197,42 +157,63 @@ PlannedPath GeofenceAvoidancePlanner::planPath(const matrix::Vector2<double> &st
 	return path;
 }
 
-bool GeofenceAvoidancePlanner::calculate_graph_nodes(const matrix::Vector2<double> &start,
-		const matrix::Vector2<double> &destination,
-		GeofenceInterface *geofence,
-		float margin)
+bool GeofenceAvoidancePlanner::update_vertices(GeofenceInterface *geofence, float margin)
 {
-	_reference = start;
-	MapProjection ref{start(0), start(1)};
+	_polygons_healthy = true;
+	margin = math::max(margin, 1.f); // margin should be non-zero otherwise polygon expansion breaks down
 
 	const int num_polygons = geofence->getNumPolygons();
+	int num_vertices{0};
 
-	int node_index = 0;
-	// Node 0: START at local origin
-	_graph_nodes[node_index].type = Node::Type::START;
-	_graph_nodes[node_index].position = {0.f, 0.f};
-	_graph_nodes[node_index].best_distance = 0.0f;
-	_graph_nodes[node_index].previous_index = 0;
-	_graph_nodes[node_index].visited = true;
+	for (int poly_idx = 0; poly_idx < num_polygons; poly_idx++) {
+		PolygonInfo info = geofence->getPolygonInfoByIndex(poly_idx);
 
-	node_index++;
+		if (info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION || info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION) {
+			num_vertices += info.vertex_count;
+
+		} else if (info.fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION || info.fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION) {
+			num_vertices += kCircleApproxVertices;
+		}
+	}
+
+	if (num_vertices == 0 || num_vertices > kMaxNodes - 2) { // -2 to reserve start and destination slots
+		_polygons_healthy = false;
+		return false;
+	}
+
+	_reference = geofence->getPolygonVertexByIndex(0, 0);
+
+	if (!update_graph_nodes_without_start_and_destination(geofence, margin)) {
+		_polygons_healthy = false;
+		return false;
+	}
+
+	update_distances_between_vertices(geofence);
+	return true;
+}
+
+bool GeofenceAvoidancePlanner::update_graph_nodes_without_start_and_destination(
+	GeofenceInterface *geofence, float margin)
+{
+	// local frame is anchored at _reference (set by update_vertices); this can be computed
+	// once up-front; start and destination nodes are filled in later when they are known
+	const int num_polygons = geofence->getNumPolygons();
+
+	int node_index = 1; // reserve index 0 for the start
 
 	for (int poly_index = 0; poly_index < num_polygons; poly_index++) {
-		PolygonInfo info = geofence->getPolygonInfoByIndex(poly_index);
 
+		PolygonInfo info = geofence->getPolygonInfoByIndex(poly_index);
 
 		if (info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION || info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION) {
 
-			// Project vertices to local frame
 			matrix::Vector2f local_in[info.vertex_count];
 			matrix::Vector2f local_out[info.vertex_count];
 
 			for (int vertex_idx = 0; vertex_idx < info.vertex_count; vertex_idx++) {
-				local_in[vertex_idx] = get_vertex_local_position(poly_index, vertex_idx, geofence, start);
+				local_in[vertex_idx] = get_vertex_local_position(poly_index, vertex_idx, geofence, _reference);
 			}
 
-			// In order to avoid moving too close to the edges of the polygons, we either expand (inclusion polygon)
-			// or shrink (exclusion) the polygon by a margin and use the resulting vertices as graph nodes.
 			const bool should_expand = (info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION);
 
 			if (!geofence_utils::expandOrShrinkPolygon(local_in, info.vertex_count, margin, should_expand,
@@ -250,7 +231,7 @@ bool GeofenceAvoidancePlanner::calculate_graph_nodes(const matrix::Vector2<doubl
 			}
 
 		} else if (info.fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION || info.fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION) {
-			const matrix::Vector2f center = get_vertex_local_position(poly_index, 0, geofence, start);
+			const matrix::Vector2f center = get_vertex_local_position(poly_index, 0, geofence, _reference);
 			const float delta_angle = 2.f * M_PI_F / kCircleApproxVertices;
 
 			float adjusted_radius;
@@ -278,17 +259,129 @@ bool GeofenceAvoidancePlanner::calculate_graph_nodes(const matrix::Vector2<doubl
 		}
 	}
 
-	// Last node: DESTINATION in local frame
+	// node_index now points at the reserved destination slot; total count includes it
+	_num_vertices = node_index - 1;
+	_num_nodes = node_index + 1;	// +1 for the destination
+
+	return true;
+}
+
+void GeofenceAvoidancePlanner::update_distances_between_vertices(GeofenceInterface *geofence)
+{
+	// vertices occupy indices 1 .. _num_vertices; index 0 and the last slot hold the
+	// start and destination, which are handled by update_start / update_destination
+	const int last_vertex = _num_vertices;
+
+	// loop through all possible vertex to vertex combinations and store the distance between them
+	for (int i = 1; i <= last_vertex; i++) {
+		for (int j = i + 1; j <= last_vertex; j++) {
+			const size_t idx = geofence_utils::symmetricPairIndex(i, j, _num_nodes);
+
+			const bool clear = !geofence->checkIfLineViolatesAnyFence(_graph_nodes[i].position,
+					   _graph_nodes[j].position, _reference);
+
+			if (clear) {
+				_distances[idx] = (_graph_nodes[i].position - _graph_nodes[j].position).norm();
+
+			} else {
+				_distances[idx] = INFINITY;
+			}
+		}
+	}
+}
+
+void GeofenceAvoidancePlanner::update_start(const matrix::Vector2d &start, GeofenceInterface *geofence)
+{
+	if (!start.isAllFinite() || !lat_lon_within_bounds(start) || !_polygons_healthy) {
+		_start_healthy = false;
+		return;
+	}
+
+	MapProjection ref{_reference(0), _reference(1)};
+	matrix::Vector2f start_local;
+	ref.project(start(0), start(1), start_local(0), start_local(1));
+
+	_graph_nodes[0].position = start_local;
+
+	// distances from start to each vertex
+	for (int graph_idx = 1; graph_idx <= _num_vertices; graph_idx++) {
+		const size_t dist_idx = geofence_utils::symmetricPairIndex(0, graph_idx, _num_nodes);
+
+		const bool clear = !geofence->checkIfLineViolatesAnyFence(_graph_nodes[0].position,
+				   _graph_nodes[graph_idx].position, _reference);
+
+		if (clear) {
+			_distances[dist_idx] = (_graph_nodes[0].position - _graph_nodes[graph_idx].position).norm();
+
+		} else {
+			_distances[dist_idx] = INFINITY;
+		}
+	}
+
+	// refresh start <-> destination edge if destination is already known
+	if (_destination_healthy) {
+		const int dest_idx = _num_nodes - 1;
+		const size_t dist_idx = geofence_utils::symmetricPairIndex(0, dest_idx, _num_nodes);
+
+		const bool clear = !geofence->checkIfLineViolatesAnyFence(_graph_nodes[0].position,
+				   _graph_nodes[dest_idx].position, _reference);
+
+		if (clear) {
+			_distances[dist_idx] = (_graph_nodes[0].position - _graph_nodes[dest_idx].position).norm();
+
+		} else {
+			_distances[dist_idx] = INFINITY;
+		}
+	}
+
+	_start_healthy = true;
+}
+
+void GeofenceAvoidancePlanner::update_destination(const matrix::Vector2d &destination, GeofenceInterface *geofence)
+{
+	if (!destination.isAllFinite() || !lat_lon_within_bounds(destination) || !_polygons_healthy) {
+		_destination_healthy = false;
+		return;
+	}
+
+	MapProjection ref{_reference(0), _reference(1)};
 	matrix::Vector2f dest_local;
 	ref.project(destination(0), destination(1), dest_local(0), dest_local(1));
 
-	_graph_nodes[node_index].type = Node::Type::DESTINATION;
-	_graph_nodes[node_index].position = dest_local;
-	_graph_nodes[node_index].best_distance = FLT_MAX;
-	_graph_nodes[node_index].previous_index = -1;
-	_graph_nodes[node_index].visited = false;
+	const int dest_idx = _num_nodes - 1;
+	_graph_nodes[dest_idx].position = dest_local;
 
-	return true;
+	// distances from each vertex to destination
+	for (int graph_idx = 1; graph_idx <= _num_vertices; graph_idx++) {
+		const size_t dist_idx = geofence_utils::symmetricPairIndex(graph_idx, dest_idx, _num_nodes);
+
+		const bool clear = !geofence->checkIfLineViolatesAnyFence(_graph_nodes[graph_idx].position,
+				   _graph_nodes[dest_idx].position, _reference);
+
+		if (clear) {
+			_distances[dist_idx] = (_graph_nodes[graph_idx].position - _graph_nodes[dest_idx].position).norm();
+
+		} else {
+			_distances[dist_idx] = INFINITY;
+		}
+	}
+
+	// refresh start <-> destination edge if start is already known
+	if (_start_healthy) {
+		const size_t dist_idx = geofence_utils::symmetricPairIndex(0, dest_idx, _num_nodes);
+
+		const bool clear = !geofence->checkIfLineViolatesAnyFence(_graph_nodes[0].position,
+				   _graph_nodes[dest_idx].position, _reference);
+
+		if (clear) {
+			_distances[dist_idx] = (_graph_nodes[0].position - _graph_nodes[dest_idx].position).norm();
+
+		} else {
+			_distances[dist_idx] = INFINITY;
+		}
+	}
+
+	_destination_healthy = true;
 }
 
 bool GeofenceAvoidancePlanner::lat_lon_within_bounds(const matrix::Vector2<double> &lat_lon)
@@ -298,4 +391,24 @@ bool GeofenceAvoidancePlanner::lat_lon_within_bounds(const matrix::Vector2<doubl
 	}
 
 	return true;
+}
+
+void GeofenceAvoidancePlanner::reset_graph_state()
+{
+
+	_graph_nodes[0].best_distance = 0.0f;
+	_graph_nodes[0].previous_index = 0;
+	_graph_nodes[0].visited = true;
+
+	// reset vertex Dijkstra state
+	for (int i = 1; i <= _num_vertices; i++) {
+		_graph_nodes[i].best_distance = FLT_MAX;
+		_graph_nodes[i].previous_index = -1;
+		_graph_nodes[i].visited = false;
+	}
+
+	_graph_nodes[_num_nodes - 1].best_distance = FLT_MAX;
+	_graph_nodes[_num_nodes - 1].previous_index = -1;
+	_graph_nodes[_num_nodes - 1].visited = false;
+	_graph_nodes[_num_nodes - 1].type = Node::Type::DESTINATION;
 }

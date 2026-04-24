@@ -182,7 +182,6 @@ void RTL::on_inactive()
 	if ((now - _destination_check_time) > 2_s) {
 		_destination_check_time = now;
 		setRtlTypeAndDestination();
-		updateRtlPath();
 		publishRemainingTimeEstimate();
 	}
 
@@ -217,25 +216,6 @@ void RTL::publishRemainingTimeEstimate()
 	}
 
 	_rtl_time_estimate_pub.publish(estimated_time);
-}
-
-void RTL::updateRtlPath()
-{
-
-	const bool global_position_recently_updated = _global_pos_sub.get().timestamp > 0
-			&& hrt_elapsed_time(&_global_pos_sub.get().timestamp) < 10_s;
-
-	if (_navigator->home_global_position_valid() && global_position_recently_updated) {
-		switch (_rtl_type) {
-		case RtlType::RTL_DIRECT:
-			_rtl_direct.updateRtlPath();
-			break;
-
-
-		default:
-			break;
-		}
-	}
 }
 
 void RTL::on_activation()

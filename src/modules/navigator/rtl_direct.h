@@ -112,8 +112,6 @@ public:
 
 	bool isLanding() { return (_rtl_state != RTLState::IDLE) && (_rtl_state >= RTLState::LOITER_DOWN);};
 
-	void updateRtlPath();
-
 private:
 	/**
 	 * @brief Return to launch state machine.

@@ -89,3 +89,18 @@ TEST(GeofenceUtilsTest, PolygonIsCCW)
 
 	EXPECT_TRUE(geofence_utils::isPolygonCCW(vertices, 4));
 }
+TEST(GeofenceUtilsTest, SymmetricPairIndex)
+{
+	EXPECT_EQ(geofence_utils::symmetricPairIndex(0, 1, 4), 0);
+	EXPECT_EQ(geofence_utils::symmetricPairIndex(0, 2, 4), 1);
+	EXPECT_EQ(geofence_utils::symmetricPairIndex(3, 2, 4), 5);
+	EXPECT_EQ(geofence_utils::symmetricPairIndex(1, 3, 4), 4);
+	EXPECT_EQ(geofence_utils::symmetricPairIndex(3, 1, 4), 4);
+
+
+	EXPECT_EQ(geofence_utils::symmetricPairIndex(0, 1, 5), 0);
+	EXPECT_EQ(geofence_utils::symmetricPairIndex(2, 4, 5), 8);
+	EXPECT_EQ(geofence_utils::symmetricPairIndex(3, 2, 5), 7);
+	EXPECT_EQ(geofence_utils::symmetricPairIndex(1, 3, 5), 5);
+	EXPECT_EQ(geofence_utils::symmetricPairIndex(3, 1, 5), 5);
+}

@@ -312,10 +312,19 @@ public:
 
 	void trigger_hagl_failsafe(uint8_t nav_state);
 
-	PlannedPath planPathToDestination(const matrix::Vector2<double> &start, const matrix::Vector2<double> &destination,
-					  float margin)
+	void updateStartOfRTLPathPlanner(const matrix::Vector2<double> &start)
 	{
-		return _geofence.planPathToDestination(start, destination, margin);
+		_geofence.updateStartForRTLPathPlanner(start);
+	}
+
+	void updateDestinationOfRTLPathPlanner(const matrix::Vector2<double> &destination)
+	{
+		_geofence.updateDestinationForRTLPathPlanner(destination);
+	}
+
+	PlannedPath planPath()
+	{
+		return _geofence.planPath();
 	}
 
 private:

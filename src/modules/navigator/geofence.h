@@ -144,9 +144,17 @@ public:
 
 	bool isHomeRequired();
 
-	PlannedPath planPathToDestination(const matrix::Vector2<double> &start,
-					  const matrix::Vector2<double> &destination,
-					  float margin);
+	void updateStartForRTLPathPlanner(const matrix::Vector2<double> &start)
+	{
+		_avoidance_planner.update_start(start, this);
+	}
+
+	void updateDestinationForRTLPathPlanner(const matrix::Vector2<double> &destination)
+	{
+		_avoidance_planner.update_destination(destination, this);
+	}
+
+	PlannedPath planPath() { return _avoidance_planner.planPath(); };
 
 	/**
 	 * print Geofence status to the console

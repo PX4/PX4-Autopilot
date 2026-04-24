@@ -119,21 +119,30 @@ public:
 	GeofenceAvoidancePlanner() = default;
 	~GeofenceAvoidancePlanner() = default;
 
-	PlannedPath planPath(const matrix::Vector2<double> &start,
-			     const matrix::Vector2<double> &destination,
-			     GeofenceInterface *geofence,
-			     float margin = 10.0f);
+	PlannedPath planPath();
 
+	bool update_vertices(GeofenceInterface *geofence, float margin = 10.0f);
+	void update_start(const matrix::Vector2d &start, GeofenceInterface *geofence);
+	void update_destination(const matrix::Vector2d &destination, GeofenceInterface *geofence);
 
 private:
 
-	Node _graph_nodes[kMaxNodes];
-	matrix::Vector2<double> _reference; // lat/lon of start, used as local frame origin
+	static constexpr int num_distances_in_graph = (kMaxNodes) * (kMaxNodes - 1) / 2;
 
-	bool calculate_graph_nodes(const matrix::Vector2<double> &start,
-				   const matrix::Vector2<double> &destination,
-				   GeofenceInterface *geofence,
-				   float margin);
+	Node _graph_nodes[kMaxNodes];
+	float _distances[num_distances_in_graph];
+	int _num_nodes{0};
+	int _num_vertices{0};
+	matrix::Vector2<double> _reference; // lat/lon anchor of the local frame
+
+	bool _polygons_healthy{false};
+	bool _start_healthy{false};
+	bool _destination_healthy{false};
+
+	bool update_graph_nodes_without_start_and_destination(GeofenceInterface *geofence, float margin);
+	void update_distances_between_vertices(GeofenceInterface *geofence);
+
+	void reset_graph_state();
 
 	bool lat_lon_within_bounds(const matrix::Vector2<double> &lat_lon);
 

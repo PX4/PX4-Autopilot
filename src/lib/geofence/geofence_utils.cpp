@@ -188,6 +188,18 @@ bool expandOrShrinkPolygon(const matrix::Vector2f *vertices_in, int num_vertices
 	return true;
 }
 
+size_t symmetricPairIndex(size_t i, size_t j, size_t num_nodes)
+{
+	// Pack the strict upper triangle (i < j) of an N x N symmetric matrix into a flat array.
+	// Row i contains (N - 1 - i) entries and starts at offset i*(2N - i - 1)/2.
+	// Within row i, column j sits at local offset (j - i - 1).
+	if (i > j) {
+		const size_t tmp = i;
+		i = j;
+		j = tmp;
+	}
 
+	return i * (2 * num_nodes - i - 1) / 2 + (j - i - 1);
+}
 
 } // namespace geofence_utils

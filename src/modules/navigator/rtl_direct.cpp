@@ -73,6 +73,9 @@ void RtlDirect::on_activation()
 	_global_pos_sub.update();
 	_vehicle_status_sub.update();
 
+	_navigator->updateStartOfRTLPathPlanner(matrix::Vector2d{_global_pos_sub.get().lat, _global_pos_sub.get().lon});
+	_geofence_aware_return_path = _navigator->planPath();
+
 	parameters_update();
 
 	_rtl_state = getActivationState();
@@ -131,6 +134,8 @@ void RtlDirect::setRtlPosition(const PositionYawSetpoint &rtl_position, const lo
 	if (!isActive()) {
 		_destination = rtl_position;
 		_force_heading = false;
+
+		_navigator->updateDestinationOfRTLPathPlanner(matrix::Vector2d{_destination.lat, _destination.lon});
 
 		_land_approach = sanitizeLandApproach(loiter_pos);
 
@@ -659,11 +664,4 @@ void RtlDirect::publish_rtl_direct_navigator_mission_item()
 	navigator_mission_item.timestamp = hrt_absolute_time();
 
 	_navigator_mission_item_pub.publish(navigator_mission_item);
-}
-
-void RtlDirect::updateRtlPath()
-{
-	const matrix::Vector2d current_position{_global_pos_sub.get().lat, _global_pos_sub.get().lon};
-	_geofence_aware_return_path = _navigator->planPathToDestination(current_position, matrix::Vector2d(_destination.lat, _destination.lon),
-				      2.0f * _navigator->get_acceptance_radius());
 }

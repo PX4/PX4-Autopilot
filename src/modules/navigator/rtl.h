@@ -126,8 +126,6 @@ private:
 	 */
 	void publishRemainingTimeEstimate();
 
-	void updateRtlPath();
-
 	/**
 	 * @brief Find RTL destination.
 	 *

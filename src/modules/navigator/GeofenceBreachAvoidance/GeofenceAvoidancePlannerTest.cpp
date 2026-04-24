@@ -95,7 +95,11 @@ TEST_F(GeofenceAvoidancePlannerTest, StartEqualsDestination)
 	Vector2<double> point(47.3977, 8.5456);
 
 	FakeGeofence fake(nullptr, 0, NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
-	PlannedPath path = _planner.planPath(point, point, &fake);
+	_planner.update_vertices(&fake);
+	_planner.update_start(point, &fake);
+	_planner.update_destination(point, &fake);
+
+	PlannedPath path = _planner.planPath();
 
 	ASSERT_EQ(path.num_points, 0);
 }
@@ -107,7 +111,12 @@ TEST_F(GeofenceAvoidancePlannerTest, DirectPathNoFence)
 	Vector2<double> destination(47.3984, 8.5470);
 
 	FakeGeofence fake(nullptr, 0, NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
-	PlannedPath path = _planner.planPath(start, destination, &fake);
+	_planner.update_vertices(&fake);
+	_planner.update_start(start, &fake);
+	_planner.update_destination(destination, &fake);
+
+	PlannedPath path = _planner.planPath();
+
 	ASSERT_EQ(path.num_points, 0);
 }
 
@@ -127,7 +136,12 @@ TEST_F(GeofenceAvoidancePlannerTest, PathAroundExclusionZone)
 	};
 
 	FakeGeofence fake(vertices, 4, NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION);
-	PlannedPath path = _planner.planPath(start, destination, &fake);
+	_planner.update_vertices(&fake);
+	_planner.update_start(start, &fake);
+	_planner.update_destination(destination, &fake);
+
+	PlannedPath path = _planner.planPath();
+
 	ASSERT_EQ(path.num_points, 2);
 	// The optimal path is via vertex 1 and 2
 	EXPECT_NEAR(path.points[0](0), vertices[1](0), 1e-3);
@@ -153,7 +167,12 @@ TEST_F(GeofenceAvoidancePlannerTest, PathInsideInclusionZone)
 	};
 
 	FakeGeofence fake(vertices, 6, NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
-	PlannedPath path = _planner.planPath(start, destination, &fake);
+	_planner.update_vertices(&fake);
+	_planner.update_start(start, &fake);
+	_planner.update_destination(destination, &fake);
+
+	PlannedPath path = _planner.planPath();
+
 	ASSERT_EQ(path.num_points, 1);
 	ASSERT_NEAR(path.points[0](0), vertices[5](0), 1e-3);
 	ASSERT_NEAR(path.points[0](1), vertices[5](1), 1e-3);
@@ -175,7 +194,12 @@ TEST_F(GeofenceAvoidancePlannerTest, DestinationOutsideInclusion)
 	};
 
 	FakeGeofence fake(vertices, 6, NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
-	PlannedPath path = _planner.planPath(start, destination, &fake);
+	_planner.update_vertices(&fake);
+	_planner.update_start(start, &fake);
+	_planner.update_destination(destination, &fake);
+
+	PlannedPath path = _planner.planPath();
+
 	ASSERT_EQ(path.num_points, 0);
 }
 TEST_F(GeofenceAvoidancePlannerTest, DestinationInsideExclusion)
@@ -194,7 +218,12 @@ TEST_F(GeofenceAvoidancePlannerTest, DestinationInsideExclusion)
 	};
 
 	FakeGeofence fake(vertices, 4, NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION);
-	PlannedPath path = _planner.planPath(start, destination, &fake);
+	_planner.update_vertices(&fake);
+	_planner.update_start(start, &fake);
+	_planner.update_destination(destination, &fake);
+
+	PlannedPath path = _planner.planPath();
+
 	ASSERT_EQ(path.num_points, 0);
 }
 TEST_F(GeofenceAvoidancePlannerTest, StartInsideExclusion)
@@ -214,7 +243,12 @@ TEST_F(GeofenceAvoidancePlannerTest, StartInsideExclusion)
 	};
 
 	FakeGeofence fake(vertices, 4, NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION);
-	PlannedPath path = _planner.planPath(start, destination, &fake);
+	_planner.update_vertices(&fake);
+	_planner.update_start(start, &fake);
+	_planner.update_destination(destination, &fake);
+
+	PlannedPath path = _planner.planPath();
+
 	ASSERT_EQ(path.num_points, 0);
 }
 TEST_F(GeofenceAvoidancePlannerTest, NanStartOrDestination)
@@ -225,11 +259,18 @@ TEST_F(GeofenceAvoidancePlannerTest, NanStartOrDestination)
 	Vector2<double> nan_lon(47.3977, NAN);
 
 	FakeGeofence fake(nullptr, 0, NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
+	_planner.update_vertices(&fake);
 
-	EXPECT_EQ(_planner.planPath(nan_lat, valid, &fake).num_points, 0);
-	EXPECT_EQ(_planner.planPath(nan_lon, valid, &fake).num_points, 0);
-	EXPECT_EQ(_planner.planPath(valid, nan_lat, &fake).num_points, 0);
-	EXPECT_EQ(_planner.planPath(valid, nan_lon, &fake).num_points, 0);
+	auto plan = [&](const Vector2<double> &s, const Vector2<double> &d) {
+		_planner.update_start(s, &fake);
+		_planner.update_destination(d, &fake);
+		return _planner.planPath();
+	};
+
+	EXPECT_EQ(plan(nan_lat, valid).num_points, 0);
+	EXPECT_EQ(plan(nan_lon, valid).num_points, 0);
+	EXPECT_EQ(plan(valid, nan_lat).num_points, 0);
+	EXPECT_EQ(plan(valid, nan_lon).num_points, 0);
 }
 
 TEST_F(GeofenceAvoidancePlannerTest, LatLonOutOfBounds)
@@ -242,15 +283,22 @@ TEST_F(GeofenceAvoidancePlannerTest, LatLonOutOfBounds)
 	Vector2<double> lon_too_low(47.3977, -181.0);
 
 	FakeGeofence fake(nullptr, 0, NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
+	_planner.update_vertices(&fake);
 
-	EXPECT_EQ(_planner.planPath(lat_too_high, valid, &fake).num_points, 0);
-	EXPECT_EQ(_planner.planPath(lat_too_low, valid, &fake).num_points, 0);
-	EXPECT_EQ(_planner.planPath(lon_too_high, valid, &fake).num_points, 0);
-	EXPECT_EQ(_planner.planPath(lon_too_low, valid, &fake).num_points, 0);
-	EXPECT_EQ(_planner.planPath(valid, lat_too_high, &fake).num_points, 0);
-	EXPECT_EQ(_planner.planPath(valid, lat_too_low, &fake).num_points, 0);
-	EXPECT_EQ(_planner.planPath(valid, lon_too_high, &fake).num_points, 0);
-	EXPECT_EQ(_planner.planPath(valid, lon_too_low, &fake).num_points, 0);
+	auto plan = [&](const Vector2<double> &s, const Vector2<double> &d) {
+		_planner.update_start(s, &fake);
+		_planner.update_destination(d, &fake);
+		return _planner.planPath();
+	};
+
+	EXPECT_EQ(plan(lat_too_high, valid).num_points, 0);
+	EXPECT_EQ(plan(lat_too_low, valid).num_points, 0);
+	EXPECT_EQ(plan(lon_too_high, valid).num_points, 0);
+	EXPECT_EQ(plan(lon_too_low, valid).num_points, 0);
+	EXPECT_EQ(plan(valid, lat_too_high).num_points, 0);
+	EXPECT_EQ(plan(valid, lat_too_low).num_points, 0);
+	EXPECT_EQ(plan(valid, lon_too_high).num_points, 0);
+	EXPECT_EQ(plan(valid, lon_too_low).num_points, 0);
 }
 
 TEST_F(GeofenceAvoidancePlannerTest, DuplicateNeighborVertex)
@@ -273,7 +321,11 @@ TEST_F(GeofenceAvoidancePlannerTest, DuplicateNeighborVertex)
 	};
 
 	FakeGeofence fake(vertices, 7, NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
-	PlannedPath path = _planner.planPath(start, destination, &fake);
+	_planner.update_vertices(&fake);
+	_planner.update_start(start, &fake);
+	_planner.update_destination(destination, &fake);
+
+	PlannedPath path = _planner.planPath();
 
 	// THEN the pathplanner should fail
 	ASSERT_EQ(path.num_points, 0);

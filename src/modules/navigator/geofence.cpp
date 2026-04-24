@@ -157,6 +157,7 @@ void Geofence::run()
 			} else {
 				_dataman_state = DatamanState::UpdateRequestWait;
 				_fence_updated = true;
+				_avoidance_planner.update_vertices(this);
 
 				geofence_status_s status{};
 				status.timestamp = hrt_absolute_time();
@@ -184,6 +185,8 @@ void Geofence::run()
 			status.status = geofence_status_s::GF_STATUS_READY;
 
 			_geofence_status_pub.publish(status);
+
+			_avoidance_planner.update_vertices(this);
 		}
 
 		break;
@@ -724,13 +727,6 @@ void Geofence::printStatus()
 }
 
 
-
-PlannedPath
-Geofence::planPathToDestination(const matrix::Vector2<double> &start, const matrix::Vector2<double> &destination,
-				float margin)
-{
-	return _avoidance_planner.planPath(start, destination, this, margin);
-}
 
 bool Geofence::checkIfLineViolatesAnyFence(const matrix::Vector2f &start_local, const matrix::Vector2f &end_local,
 		const matrix::Vector2<double> &reference)
