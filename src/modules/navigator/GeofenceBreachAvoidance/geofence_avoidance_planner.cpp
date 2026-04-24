@@ -36,10 +36,10 @@
 #include <lib/geofence/geofence_utils.h>
 
 static matrix::Vector2f get_vertex_local_position(int poly_index, int vertex_idx,
-		GeofenceInterface *geofence,
+		GeofenceInterface &geofence,
 		const matrix::Vector2<double> &reference)
 {
-	matrix::Vector2<double> latlon = geofence->getPolygonVertexByIndex(poly_index, vertex_idx);
+	matrix::Vector2<double> latlon = geofence.getPolygonVertexByIndex(poly_index, vertex_idx);
 	MapProjection ref{reference(0), reference(1)};
 	matrix::Vector2f local;
 	ref.project(latlon(0), latlon(1), local(0), local(1));
@@ -157,16 +157,16 @@ PlannedPath GeofenceAvoidancePlanner::planPath()
 	return path;
 }
 
-bool GeofenceAvoidancePlanner::update_vertices(GeofenceInterface *geofence, float margin)
+bool GeofenceAvoidancePlanner::update_vertices(GeofenceInterface &geofence, float margin)
 {
 	_polygons_healthy = true;
 	margin = math::max(margin, 1.f); // margin should be non-zero otherwise polygon expansion breaks down
 
-	const int num_polygons = geofence->getNumPolygons();
+	const int num_polygons = geofence.getNumPolygons();
 	int num_vertices{0};
 
 	for (int poly_idx = 0; poly_idx < num_polygons; poly_idx++) {
-		PolygonInfo info = geofence->getPolygonInfoByIndex(poly_idx);
+		PolygonInfo info = geofence.getPolygonInfoByIndex(poly_idx);
 
 		if (info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION || info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION) {
 			num_vertices += info.vertex_count;
@@ -181,7 +181,7 @@ bool GeofenceAvoidancePlanner::update_vertices(GeofenceInterface *geofence, floa
 		return false;
 	}
 
-	_reference = geofence->getPolygonVertexByIndex(0, 0);
+	_reference = geofence.getPolygonVertexByIndex(0, 0);
 
 	if (!update_graph_nodes_without_start_and_destination(geofence, margin)) {
 		_polygons_healthy = false;
@@ -193,17 +193,17 @@ bool GeofenceAvoidancePlanner::update_vertices(GeofenceInterface *geofence, floa
 }
 
 bool GeofenceAvoidancePlanner::update_graph_nodes_without_start_and_destination(
-	GeofenceInterface *geofence, float margin)
+	GeofenceInterface &geofence, float margin)
 {
 	// local frame is anchored at _reference (set by update_vertices); this can be computed
 	// once up-front; start and destination nodes are filled in later when they are known
-	const int num_polygons = geofence->getNumPolygons();
+	const int num_polygons = geofence.getNumPolygons();
 
 	int node_index = 1; // reserve index 0 for the start
 
 	for (int poly_index = 0; poly_index < num_polygons; poly_index++) {
 
-		PolygonInfo info = geofence->getPolygonInfoByIndex(poly_index);
+		PolygonInfo info = geofence.getPolygonInfoByIndex(poly_index);
 
 		if (info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION || info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION) {
 
@@ -266,7 +266,7 @@ bool GeofenceAvoidancePlanner::update_graph_nodes_without_start_and_destination(
 	return true;
 }
 
-void GeofenceAvoidancePlanner::update_distances_between_vertices(GeofenceInterface *geofence)
+void GeofenceAvoidancePlanner::update_distances_between_vertices(GeofenceInterface &geofence)
 {
 	// vertices occupy indices 1 .. _num_vertices; index 0 and the last slot hold the
 	// start and destination, which are handled by update_start / update_destination
@@ -277,7 +277,7 @@ void GeofenceAvoidancePlanner::update_distances_between_vertices(GeofenceInterfa
 		for (int j = i + 1; j <= last_vertex; j++) {
 			const size_t idx = geofence_utils::symmetricPairIndex(i, j, _num_nodes);
 
-			const bool clear = !geofence->checkIfLineViolatesAnyFence(_graph_nodes[i].position,
+			const bool clear = !geofence.checkIfLineViolatesAnyFence(_graph_nodes[i].position,
 					   _graph_nodes[j].position, _reference);
 
 			if (clear) {
@@ -290,7 +290,7 @@ void GeofenceAvoidancePlanner::update_distances_between_vertices(GeofenceInterfa
 	}
 }
 
-void GeofenceAvoidancePlanner::update_start(const matrix::Vector2d &start, GeofenceInterface *geofence)
+void GeofenceAvoidancePlanner::update_start(const matrix::Vector2d &start, GeofenceInterface &geofence)
 {
 	if (!start.isAllFinite() || !lat_lon_within_bounds(start) || !_polygons_healthy) {
 		_start_healthy = false;
@@ -307,7 +307,7 @@ void GeofenceAvoidancePlanner::update_start(const matrix::Vector2d &start, Geofe
 	for (int graph_idx = 1; graph_idx <= _num_vertices; graph_idx++) {
 		const size_t dist_idx = geofence_utils::symmetricPairIndex(0, graph_idx, _num_nodes);
 
-		const bool clear = !geofence->checkIfLineViolatesAnyFence(_graph_nodes[0].position,
+		const bool clear = !geofence.checkIfLineViolatesAnyFence(_graph_nodes[0].position,
 				   _graph_nodes[graph_idx].position, _reference);
 
 		if (clear) {
@@ -323,7 +323,7 @@ void GeofenceAvoidancePlanner::update_start(const matrix::Vector2d &start, Geofe
 		const int dest_idx = _num_nodes - 1;
 		const size_t dist_idx = geofence_utils::symmetricPairIndex(0, dest_idx, _num_nodes);
 
-		const bool clear = !geofence->checkIfLineViolatesAnyFence(_graph_nodes[0].position,
+		const bool clear = !geofence.checkIfLineViolatesAnyFence(_graph_nodes[0].position,
 				   _graph_nodes[dest_idx].position, _reference);
 
 		if (clear) {
@@ -337,7 +337,7 @@ void GeofenceAvoidancePlanner::update_start(const matrix::Vector2d &start, Geofe
 	_start_healthy = true;
 }
 
-void GeofenceAvoidancePlanner::update_destination(const matrix::Vector2d &destination, GeofenceInterface *geofence)
+void GeofenceAvoidancePlanner::update_destination(const matrix::Vector2d &destination, GeofenceInterface &geofence)
 {
 	if (!destination.isAllFinite() || !lat_lon_within_bounds(destination) || !_polygons_healthy) {
 		_destination_healthy = false;
@@ -355,7 +355,7 @@ void GeofenceAvoidancePlanner::update_destination(const matrix::Vector2d &destin
 	for (int graph_idx = 1; graph_idx <= _num_vertices; graph_idx++) {
 		const size_t dist_idx = geofence_utils::symmetricPairIndex(graph_idx, dest_idx, _num_nodes);
 
-		const bool clear = !geofence->checkIfLineViolatesAnyFence(_graph_nodes[graph_idx].position,
+		const bool clear = !geofence.checkIfLineViolatesAnyFence(_graph_nodes[graph_idx].position,
 				   _graph_nodes[dest_idx].position, _reference);
 
 		if (clear) {
@@ -370,7 +370,7 @@ void GeofenceAvoidancePlanner::update_destination(const matrix::Vector2d &destin
 	if (_start_healthy) {
 		const size_t dist_idx = geofence_utils::symmetricPairIndex(0, dest_idx, _num_nodes);
 
-		const bool clear = !geofence->checkIfLineViolatesAnyFence(_graph_nodes[0].position,
+		const bool clear = !geofence.checkIfLineViolatesAnyFence(_graph_nodes[0].position,
 				   _graph_nodes[dest_idx].position, _reference);
 
 		if (clear) {
@@ -400,7 +400,6 @@ void GeofenceAvoidancePlanner::reset_graph_state()
 	_graph_nodes[0].previous_index = 0;
 	_graph_nodes[0].visited = true;
 
-	// reset vertex Dijkstra state
 	for (int i = 1; i <= _num_vertices; i++) {
 		_graph_nodes[i].best_distance = FLT_MAX;
 		_graph_nodes[i].previous_index = -1;

@@ -73,7 +73,7 @@ void RtlDirect::on_activation()
 	_global_pos_sub.update();
 	_vehicle_status_sub.update();
 
-	_navigator->updateStartOfRTLPathPlanner(matrix::Vector2d{_global_pos_sub.get().lat, _global_pos_sub.get().lon});
+	_navigator->updateStartOfRTLPathPlanner(_navigator->getRtlPlanningStart());
 	_geofence_aware_return_path = _navigator->planPath();
 
 	parameters_update();

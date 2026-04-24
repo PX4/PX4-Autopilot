@@ -1037,6 +1037,11 @@ void Navigator::geofence_breach_check()
 
 		_last_geofence_check = hrt_absolute_time();
 
+		// latch the current position as a valid RTL planner start whenever no fence is violated
+		if (!_geofence_result.geofence_max_dist_triggered && !_geofence_result.geofence_custom_fence_triggered) {
+			_last_valid_position_in_fence = matrix::Vector2<double>{current_latitude, current_longitude};
+		}
+
 		_geofence_result.timestamp = hrt_absolute_time();
 		_geofence_result.geofence_action = _geofence.getGeofenceAction();
 
@@ -1614,6 +1619,18 @@ bool Navigator::geofence_allows_position(const vehicle_global_position_s &pos)
 	}
 
 	return true;
+}
+
+matrix::Vector2<double> Navigator::getRtlPlanningStart()
+{
+	// geofence_breach_check() latches the current position into _last_valid_position_in_fence
+	// whenever no fence is violated, so the stored value is either the current position
+	// (if inside all fences) or the last known good one.
+	if (_last_valid_position_in_fence.isAllFinite()) {
+		return _last_valid_position_in_fence;
+	}
+
+	return matrix::Vector2<double>{_global_pos.lat, _global_pos.lon};
 }
 
 void Navigator::preproject_stop_point(double &lat, double &lon)

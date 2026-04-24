@@ -121,9 +121,9 @@ public:
 
 	PlannedPath planPath();
 
-	bool update_vertices(GeofenceInterface *geofence, float margin = 10.0f);
-	void update_start(const matrix::Vector2d &start, GeofenceInterface *geofence);
-	void update_destination(const matrix::Vector2d &destination, GeofenceInterface *geofence);
+	bool update_vertices(GeofenceInterface &geofence, float margin = 10.0f);
+	void update_start(const matrix::Vector2d &start, GeofenceInterface &geofence);
+	void update_destination(const matrix::Vector2d &destination, GeofenceInterface &geofence);
 
 private:
 
@@ -139,8 +139,8 @@ private:
 	bool _start_healthy{false};
 	bool _destination_healthy{false};
 
-	bool update_graph_nodes_without_start_and_destination(GeofenceInterface *geofence, float margin);
-	void update_distances_between_vertices(GeofenceInterface *geofence);
+	bool update_graph_nodes_without_start_and_destination(GeofenceInterface &geofence, float margin);
+	void update_distances_between_vertices(GeofenceInterface &geofence);
 
 	void reset_graph_state();
 

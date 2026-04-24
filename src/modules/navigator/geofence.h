@@ -146,12 +146,12 @@ public:
 
 	void updateStartForRTLPathPlanner(const matrix::Vector2<double> &start)
 	{
-		_avoidance_planner.update_start(start, this);
+		_avoidance_planner.update_start(start, *this);
 	}
 
 	void updateDestinationForRTLPathPlanner(const matrix::Vector2<double> &destination)
 	{
-		_avoidance_planner.update_destination(destination, this);
+		_avoidance_planner.update_destination(destination, *this);
 	}
 
 	PlannedPath planPath() { return _avoidance_planner.planPath(); };

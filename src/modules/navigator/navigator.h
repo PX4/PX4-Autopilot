@@ -327,6 +327,13 @@ public:
 		return _geofence.planPath();
 	}
 
+	/**
+	 * Returns the last position that was confirmed to be inside all geofences.
+	 * Used as a fallback RTL planner start when the current position is in violation.
+	 * Falls back to the current position if no valid position has ever been latched.
+	 */
+	matrix::Vector2<double> getRtlPlanningStart();
+
 private:
 
 	int _local_pos_sub{-1};
@@ -380,6 +387,8 @@ private:
 	Geofence	_geofence;			/**< class that handles the geofence */
 	GeofenceBreachAvoidance _gf_breach_avoidance;
 	hrt_abstime _last_geofence_check{0};
+
+	matrix::Vector2d _last_valid_position_in_fence{static_cast<double>(NAN), static_cast<double>(NAN)};
 
 	bool _navigator_status_updated{false};
 	hrt_abstime _last_navigator_status_publication{0};
