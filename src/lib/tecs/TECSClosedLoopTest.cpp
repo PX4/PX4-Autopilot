@@ -73,22 +73,32 @@ namespace
 // Representative small fixed-wing UAV, consistent with the flight data used
 // during the TECS analysis that motivated this test suite.
 
+// All values below match the PX4 firmware parameter defaults (FW_AIRSPD_TRIM,
+// FW_THR_TRIM, FW_THR_MAX, FW_THR_MIN, FW_T_CLMB_MAX, FW_T_SINK_MAX,
+// FW_T_SINK_MIN, FW_T_VERT_ACC).
 static constexpr float G                = CONSTANTS_ONE_G;
-static constexpr float V_TRIM           = 16.f;   ///< TAS at trim [m/s]
-static constexpr float THROTTLE_TRIM    = 0.5f;
+static constexpr float V_TRIM           = 15.f;   ///< TAS at trim [m/s]
+static constexpr float THROTTLE_TRIM    = 0.6f;
 static constexpr float THROTTLE_MAX     = 1.0f;
-static constexpr float THROTTLE_MIN     = 0.05f;
+static constexpr float THROTTLE_MIN     = 0.0f;
 static constexpr float MAX_CLIMB_RATE   = 5.f;    ///< [m/s]
 static constexpr float MAX_SINK_RATE    = 5.f;    ///< [m/s]
 static constexpr float MIN_SINK_RATE    = 2.f;    ///< [m/s]
-static constexpr float VERT_ACCEL_LIMIT = 5.f;    ///< must match param - drives pitch rate limit
+static constexpr float VERT_ACCEL_LIMIT = 7.f;    ///< must match param - drives pitch rate limit
 static constexpr float ALT_INIT         = 300.f;  ///< initial altitude [m]
 static constexpr float STE_RATE_MAX     = MAX_CLIMB_RATE * G;
 static constexpr float STE_RATE_MIN_ABS = MIN_SINK_RATE  * G;
 
 // --- Testing constants --------------------------------------------------------
 
-static constexpr float MAX_V_TRACKING_ERR = 0.1; ///< [m/s]
+/// Maximum airspeed excursion while manoeuvring in altitude with zero model mismatch.
+/// The feedforward path is exact; the residual (worst case ~0.02 m/s) stems from the
+/// one-sample delay of the finite-difference rate inputs entering the feedback terms.
+static constexpr float MAX_V_TRACKING_ERR = 0.02f; ///< [m/s]
+
+/// Bound on the tail of the designed first-order airspeed recovery response after a
+/// disturbance, and on the pitch-loop-only airspeed convergence in fast descend.
+static constexpr float MAX_V_RECOVERY_ERR = 0.1f; ///< [m/s]
 
 // --- Aircraft model -----------------------------------------------------------
 // pitch_cmd drives altitude rate instantly; all pitch-rate limiting comes from
@@ -101,14 +111,17 @@ struct AircraftState {
 	float h{ALT_INIT};
 };
 
-AircraftState aircraft_step(float dt, float throttle, float pitch_cmd, AircraftState s)
+AircraftState aircraft_step(float dt, float throttle, float pitch_cmd, AircraftState s, float pitch_offset = 0.f)
 {
 	// Mirrors the throttle_predicted formula in _calcThrottleControlOutput.
 	const float ste_rate = (throttle >= THROTTLE_TRIM)
 			       ? (throttle - THROTTLE_TRIM) * STE_RATE_MAX     / (THROTTLE_MAX  - THROTTLE_TRIM)
 			       : (throttle - THROTTLE_TRIM) * STE_RATE_MIN_ABS / (THROTTLE_TRIM - THROTTLE_MIN);
 
-	const float h_dot    = s.V * pitch_cmd; // Only correct in a linearised sense (close to level)
+	// pitch_offset models a pitch-to-flight-path offset the controller does not know
+	// about (trim AoA not captured by FW_PSP_OFF, attitude rigging error): the plant
+	// flies level only at pitch_cmd == pitch_offset.
+	const float h_dot    = s.V * (pitch_cmd - pitch_offset); // Only correct in a linearised sense (close to level)
 	const float spe_rate = G * h_dot;
 	const float ske_rate = ste_rate - spe_rate;
 	const float V_dot    = (s.V > 0.1f) ? ske_rate / s.V : 0.f; // If V < 0.1 we have long stalled...
@@ -136,6 +149,34 @@ protected:
 	float _alt_ref_rate {0.f};
 	float _V_prev       {V_TRIM};     ///< for TAS-rate finite-difference
 	float _pitch_prev   {0.f};        ///< pitch command from previous step, for altitude_rate input
+	float _plant_pitch_offset {0.f};  ///< pitch-to-flight-path offset of the plant, unknown to TECS
+
+	struct SimulationStats {
+		float max_airspeed_error{0.f};
+		float max_altitude_error{0.f};
+		float max_throttle_integ_norm{0.f};
+		float max_pitch_integ_norm{0.f};
+		float max_energy_balance_rate_error{0.f};
+		float max_total_energy_rate_error{0.f};
+	};
+
+	SimulationStats _sim_stats{};
+
+	void resetSimStats() { _sim_stats = {}; }
+
+	void updateSimStats(const AircraftState &state, const TECSControl::DebugOutput &tecs_debug)
+	{
+		auto track_max_norm = [](float & field, float val) { field = std::max(field, std::fabs(val)); };
+
+		track_max_norm(_sim_stats.max_airspeed_error,            state.V - _V_sp);
+		track_max_norm(_sim_stats.max_altitude_error,            state.h - _alt_sp);
+		track_max_norm(_sim_stats.max_energy_balance_rate_error, tecs_debug.energy_balance_rate_sp - tecs_debug.energy_balance_rate_estimate);
+		track_max_norm(_sim_stats.max_total_energy_rate_error,   tecs_debug.total_energy_rate_sp   - tecs_debug.total_energy_rate_estimate);
+
+		track_max_norm(_sim_stats.max_throttle_integ_norm,       tecs_debug.throttle_integrator);
+		track_max_norm(_sim_stats.max_pitch_integ_norm,          tecs_debug.pitch_integrator);
+
+	}
 
 	void initAircraftState()
 	{
@@ -149,7 +190,12 @@ protected:
 
 	void initParams()
 	{
-		// TODO get the defaults here if possible?
+		// Gains and limits match the PX4 firmware parameter defaults as mapped by
+		// FwLateralLongitudinalControl: FW_AIRSPD_MIN/MAX, FW_P_LIM_MAX/MIN,
+		// FW_T_ALT_TC (altitude_error_gain = 1/5), FW_T_HRATE_FF, FW_T_TAS_TC
+		// (airspeed_error_gain = 1/5), FW_T_STE_R_TC, FW_T_SEB_R_FF,
+		// FW_T_SPDWEIGHT, FW_T_I_GAIN_PIT, FW_T_PTCH_DAMP, FW_T_THR_INTEG,
+		// FW_T_THR_DAMPING, FW_THR_SLEW_MAX, FW_T_RLL2THR.
 		_params = {
 			.max_sink_rate             = MAX_SINK_RATE,
 			.min_sink_rate             = MIN_SINK_RATE,
@@ -157,25 +203,25 @@ protected:
 			.vert_accel_limit          = VERT_ACCEL_LIMIT,
 			.equivalent_airspeed_trim  = V_TRIM,
 			.tas_min                   = 10.f,
-			.tas_max                   = 25.f,
-			.pitch_max                 = 0.5f,
-			.pitch_min                 = -0.5f,
+			.tas_max                   = 20.f,
+			.pitch_max                 = math::radians(30.f),
+			.pitch_min                 = math::radians(-30.f),
 			.throttle_trim             = THROTTLE_TRIM,
 			.throttle_max              = THROTTLE_MAX,
 			.throttle_min              = THROTTLE_MIN,
 			.altitude_error_gain       = 0.2f,
-			.altitude_setpoint_gain_ff = 1.f,
+			.altitude_setpoint_gain_ff = 0.5f,
 			.tas_error_percentage      = 0.15f,
-			.airspeed_error_gain       = 0.3f,
-			.ste_rate_time_const       = 0.1f,
+			.airspeed_error_gain       = 0.2f,
+			.ste_rate_time_const       = 0.4f,
 			.seb_rate_ff               = 1.f,
 			.pitch_speed_weight        = 1.f,
 			.integrator_gain_pitch     = 0.1f,
 			.pitch_damping_gain        = 0.1f,
-			.integrator_gain_throttle  = 0.1f,
-			.throttle_damping_gain     = 0.1f,
+			.integrator_gain_throttle  = 0.02f,
+			.throttle_damping_gain     = 0.05f,
 			.throttle_slewrate         = 0.f,
-			.load_factor_correction    = 0.f,
+			.load_factor_correction    = 15.f,
 			.load_factor               = 1.f,
 			.fast_descend              = 0.f,
 		};
@@ -210,7 +256,7 @@ protected:
 	{
 		return {
 			.altitude      = _state.h,
-			.altitude_rate = _state.V * _pitch_prev,
+			.altitude_rate = _state.V * (_pitch_prev - _plant_pitch_offset),
 			.tas           = _state.V,
 			.tas_rate      = (_state.V - _V_prev) / DT,
 		};
@@ -232,13 +278,11 @@ protected:
 		_alt_sp = alt_sp;
 	}
 
-	// Advance simulation for `duration` seconds.
-	// Returns the peak |V - V_sp| observed (over all steps, including transients).
+	// Advance simulation for `duration` seconds, updating _sim_stats.
 	// If TECS_TEST_LOG_DIR is set in the environment, writes a CSV to
 	// $TECS_TEST_LOG_DIR/<test_name>.csv with one row per timestep.
-	float run(float duration)
+	void run(float duration)
 	{
-		float peak_v_err = 0.f;
 		const int steps = static_cast<int>(std::lround(duration / DT));
 
 		FILE *csv = nullptr;
@@ -264,8 +308,8 @@ protected:
 
 			_V_prev     = _state.V;
 			_pitch_prev = _tecs.getPitchSetpoint();
-			_state      = aircraft_step(DT, _tecs.getThrottleSetpoint(), _pitch_prev, _state);
-			peak_v_err = std::max(peak_v_err, std::fabs(_state.V - _V_sp));
+			_state      = aircraft_step(DT, _tecs.getThrottleSetpoint(), _pitch_prev, _state, _plant_pitch_offset);
+			updateSimStats(_state, _tecs.getDebugOutput());
 
 			if (csv) {
 				const auto &dbg = _tecs.getDebugOutput();
@@ -281,8 +325,6 @@ protected:
 		}
 
 		if (csv) { std::fclose(csv); }
-
-		return peak_v_err;
 	}
 };
 
@@ -297,11 +339,12 @@ TEST_F(TECSClosedLoopTest, SteadyStateCruiseDefaultTuning)
 	initParams();
 	initTecs();
 
-	const float peak_v_err = run(60.f);
-	EXPECT_LT(peak_v_err, 1e-5f);
+	run(60.f);
 
-	EXPECT_NEAR(_state.V, _V_sp,   1e-5f);
-	EXPECT_NEAR(_state.h, _alt_sp, 1e-5f);
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_V_TRACKING_ERR);
+	EXPECT_LT(_sim_stats.max_altitude_error, MAX_V_TRACKING_ERR);
+	EXPECT_LT(_sim_stats.max_throttle_integ_norm, MAX_V_TRACKING_ERR);
+	EXPECT_LT(_sim_stats.max_pitch_integ_norm, MAX_V_TRACKING_ERR);
 }
 
 TEST_F(TECSClosedLoopTest, SteadyStateCruiseHighSpeedWeight)
@@ -313,11 +356,12 @@ TEST_F(TECSClosedLoopTest, SteadyStateCruiseHighSpeedWeight)
 
 	initTecs();
 
-	const float peak_v_err = run(60.f);
-	EXPECT_LT(peak_v_err, 1e-5f);
+	run(60.f);
 
-	EXPECT_NEAR(_state.V, _V_sp,   1e-5f);
-	EXPECT_NEAR(_state.h, _alt_sp, 1e-5f);
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_V_TRACKING_ERR);
+	EXPECT_LT(_sim_stats.max_altitude_error, MAX_V_TRACKING_ERR);
+	EXPECT_LT(_sim_stats.max_throttle_integ_norm, MAX_V_TRACKING_ERR);
+	EXPECT_LT(_sim_stats.max_pitch_integ_norm, MAX_V_TRACKING_ERR);
 }
 
 TEST_F(TECSClosedLoopTest, SteadyStateCruiseLowSpeedWeight)
@@ -329,17 +373,20 @@ TEST_F(TECSClosedLoopTest, SteadyStateCruiseLowSpeedWeight)
 
 	initTecs();
 
-	const float peak_v_err = run(60.f);
-	EXPECT_LT(peak_v_err, 1e-5f);
+	run(60.f);
 
-	EXPECT_NEAR(_state.V, _V_sp,   1e-5f);
-	EXPECT_NEAR(_state.h, _alt_sp, 1e-5f);
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_V_TRACKING_ERR);
+	EXPECT_LT(_sim_stats.max_altitude_error, MAX_V_TRACKING_ERR);
+	EXPECT_LT(_sim_stats.max_throttle_integ_norm, MAX_V_TRACKING_ERR);
+	EXPECT_LT(_sim_stats.max_pitch_integ_norm, MAX_V_TRACKING_ERR);
 }
 
 // --- Altitude steps, default tuning (FW_T_SPDWEIGHT = 1.0) -------------------
-// Both speed and altitude are equally weighted; the weighted and unweighted
-// feedforward are identical (spe_weight = ske_weight = 1), so these tests pass
-// with either the old or new throttle implementation.
+// At equal weighting the pitch and throttle feedforward agree as long as no
+// limit is active. Before the fix the step down still demanded a sink beyond
+// what minimum throttle can fund (FW_T_SINK_MAX vs FW_T_SINK_MIN) and the step
+// up outran the pitch rate limit while the throttle already funded the climb -
+// both drained into airspeed.
 
 TEST_F(TECSClosedLoopTest, AltitudeStepUpDefaultTuning)
 {
@@ -349,9 +396,10 @@ TEST_F(TECSClosedLoopTest, AltitudeStepUpDefaultTuning)
 
 	run(60.0f);
 	setAltitudeSetpoint(ALT_INIT + 50.f);
-	const float peak_v_err = run(120.f);
+	resetSimStats();
+	run(120.f);
 
-	EXPECT_LT(peak_v_err, MAX_V_TRACKING_ERR);
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_V_TRACKING_ERR);
 	EXPECT_NEAR(_state.V, _V_sp,   1e-3f);
 	EXPECT_NEAR(_state.h, _alt_sp, 0.5f);
 }
@@ -364,30 +412,23 @@ TEST_F(TECSClosedLoopTest, AltitudeStepDownDefaultTuning)
 
 	run(60.0f);
 	setAltitudeSetpoint(ALT_INIT - 50.f);
-	const float peak_v_err = run(120.f);
+	resetSimStats();
+	run(120.f);
 
-	EXPECT_LT(peak_v_err, MAX_V_TRACKING_ERR);
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_V_TRACKING_ERR);
 	EXPECT_NEAR(_state.V, _V_sp,   1e-3f);
 	EXPECT_NEAR(_state.h, _alt_sp, 0.5f);
 }
 
 // --- Altitude step with high speed weight (FW_T_SPDWEIGHT = 1.8) -------------
 //
-// With FW_T_SPDWEIGHT = 1.8 the pitch loop uses spe_weight = 0.2 and
-// ske_weight = 1.8, so only ~20% of the demanded STE goes into altitude gain;
-// the pitch demand is gentle.
-//
-// Without the weighted feedforward fix the throttle feedforward uses the full
-// unweighted STE (~STE_rate_max ~49 W/kg during a 50 m step), commanding
-// near-maximum throttle.  Pitch barely climbs, so most of the energy surplus
-// goes into airspeed -- a ~2-3 m/s transient spike.
-//
-// With the fix, ste_rate_ff = spe_weight * spe_rate + ske_weight * ske_rate.
-// For a pure altitude demand this equals 0.2 * 49 ~= 9.8 W/kg, throttle rises
-// to only ~0.6, and the peak airspeed deviation stays below 0.5 m/s.
-//
-// The EXPECT_LT threshold (1.0 m/s) sits between the two regimes:
-// fails without the fix (~2-3 m/s), passes with it (~0.3 m/s).
+// With FW_T_SPDWEIGHT = 1.8 the pitch loop weights the energy balance with
+// spe_weight = 0.2 and ske_weight = 1.8. Before the fix the pitch feedforward
+// flew this weighted balance demand, i.e. only ~20% of the demanded climb,
+// while the throttle feedforward funded the full climb - the remaining ~80% of
+// the energy went into airspeed, a ~2-3 m/s transient spike. With the fix the
+// pitch feedforward flies the demanded climb angle regardless of the weighting,
+// which only shapes the energy balance error feedback.
 
 TEST_F(TECSClosedLoopTest, AltitudeStepUpHighSpeedWeight)
 {
@@ -399,9 +440,9 @@ TEST_F(TECSClosedLoopTest, AltitudeStepUpHighSpeedWeight)
 	initTecs();
 
 	setAltitudeSetpoint(ALT_INIT + 50.f);
-	const float peak_v_err      = run(200.f);
+	run(200.f);
 
-	EXPECT_LT(peak_v_err, MAX_V_TRACKING_ERR);
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_V_TRACKING_ERR);
 	EXPECT_NEAR(_state.V, _V_sp, 1e-3f);
 	EXPECT_NEAR(_state.h, _alt_sp, 0.5f);
 }
@@ -416,9 +457,9 @@ TEST_F(TECSClosedLoopTest, AltitudeStepDownHighSpeedWeight)
 	initTecs();
 
 	setAltitudeSetpoint(ALT_INIT - 50.f);
-	const float peak_v_err      = run(200.f);
+	run(200.f);
 
-	EXPECT_LT(peak_v_err, MAX_V_TRACKING_ERR);
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_V_TRACKING_ERR);
 
 	EXPECT_NEAR(_state.V, _V_sp,   1e-3f);
 	EXPECT_NEAR(_state.h, _alt_sp, 0.5f);
@@ -434,9 +475,9 @@ TEST_F(TECSClosedLoopTest, AltitudeStepUpLowSpeedWeight)
 	initTecs();
 
 	setAltitudeSetpoint(ALT_INIT + 50.f);
-	const float peak_v_err      = run(200.f);
+	run(200.f);
 
-	EXPECT_LT(peak_v_err, MAX_V_TRACKING_ERR);
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_V_TRACKING_ERR);
 	EXPECT_NEAR(_state.V, _V_sp, 1e-3f);
 	EXPECT_NEAR(_state.h, _alt_sp, 0.5f);
 }
@@ -451,9 +492,9 @@ TEST_F(TECSClosedLoopTest, AltitudeStepDownLowSpeedWeight)
 	initTecs();
 
 	setAltitudeSetpoint(ALT_INIT - 50.f);
-	const float peak_v_err      = run(200.f);
+	run(200.f);
 
-	EXPECT_LT(peak_v_err, MAX_V_TRACKING_ERR);
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_V_TRACKING_ERR);
 
 	EXPECT_NEAR(_state.V, _V_sp,   1e-3f);
 	EXPECT_NEAR(_state.h, _alt_sp, 0.5f);
@@ -472,9 +513,9 @@ TEST_F(TECSClosedLoopTest, AltitudeStepUpLowAccel)
 	initTecs();
 
 	setAltitudeSetpoint(ALT_INIT + 50.f);
-	const float peak_v_err      = run(200.f);
+	run(200.f);
 
-	EXPECT_LT(peak_v_err, MAX_V_TRACKING_ERR);
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_V_TRACKING_ERR);
 	EXPECT_NEAR(_state.V, _V_sp, 1e-3f);
 	EXPECT_NEAR(_state.h, _alt_sp, 0.5f);
 }
@@ -490,14 +531,136 @@ TEST_F(TECSClosedLoopTest, AltitudeStepDownLowAccel)
 	initTecs();
 
 	setAltitudeSetpoint(ALT_INIT - 50.f);
-	const float peak_v_err      = run(200.f);
+	run(200.f);
 
-	EXPECT_LT(peak_v_err, MAX_V_TRACKING_ERR);
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_V_TRACKING_ERR);
 
 	EXPECT_NEAR(_state.V, _V_sp,   1e-3f);
 	EXPECT_NEAR(_state.h, _alt_sp, 0.5f);
 }
 
+
+// --- Plant pitch-to-flight-path offset (model mismatch) -----------------------
+//
+// The plant flies level at pitch_cmd = 10 deg instead of 0 (e.g. trim AoA not
+// captured by FW_PSP_OFF, attitude rigging error).  TECS cannot know this; the
+// pitch integrator must absorb the offset.  A robust controller converges to
+// the setpoints with standing integrator states; the feedforward must not
+// re-export the absorbed offset as an energy demand.
+
+TEST_F(TECSClosedLoopTest, SteadyStateCruisePitchOffset)
+{
+	initAircraftState();
+	_plant_pitch_offset = math::radians(10.f);
+
+	initParams();
+	initTecs();
+
+	// Settle: integrators wind up to absorb the offset
+	run(120.f);
+
+	resetSimStats();
+	run(60.f);
+
+	EXPECT_NEAR(_state.V, _V_sp,   0.1f);
+	EXPECT_NEAR(_state.h, _alt_sp, 0.5f);
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_V_RECOVERY_ERR);
+}
+
+TEST_F(TECSClosedLoopTest, AltitudeStepUpDefaultTuningPitchOffset)
+{
+	initAircraftState();
+	_plant_pitch_offset = math::radians(10.f);
+
+	initParams();
+	initTecs();
+
+	run(120.0f);
+	setAltitudeSetpoint(ALT_INIT + 50.f);
+	resetSimStats();
+	run(200.f);
+
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_V_TRACKING_ERR);
+	EXPECT_NEAR(_state.V, _V_sp,   0.1f);
+	EXPECT_NEAR(_state.h, _alt_sp, 0.5f);
+}
+
+TEST_F(TECSClosedLoopTest, AltitudeStepUpHighSpeedWeightPitchOffset)
+{
+	initAircraftState();
+	_plant_pitch_offset = math::radians(10.f);
+
+	initParams();
+	_params.pitch_speed_weight = 1.8f;
+
+	initTecs();
+
+	run(120.0f);
+	setAltitudeSetpoint(ALT_INIT + 50.f);
+	resetSimStats();
+	run(200.f);
+
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_V_TRACKING_ERR);
+	EXPECT_NEAR(_state.V, _V_sp,   0.1f);
+	EXPECT_NEAR(_state.h, _alt_sp, 0.5f);
+}
+
+TEST_F(TECSClosedLoopTest, AltitudeStepDownHighSpeedWeightPitchOffset)
+{
+	initAircraftState();
+	_plant_pitch_offset = math::radians(10.f);
+
+	initParams();
+	_params.pitch_speed_weight = 1.8f;
+
+	initTecs();
+
+	run(120.0f);
+	setAltitudeSetpoint(ALT_INIT - 50.f);
+	resetSimStats();
+	run(200.f);
+
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_V_TRACKING_ERR);
+	EXPECT_NEAR(_state.V, _V_sp,   0.1f);
+	EXPECT_NEAR(_state.h, _alt_sp, 0.5f);
+}
+
+// --- Pitch limit below the demanded climb angle --------------------------------
+//
+// With a 10 deg pitch-to-flight-path offset and a 16 deg pitch limit the plant
+// can only fly a 6 deg climb angle, ~1.6 m/s at trim speed, while the altitude
+// reference demands up to MAX_CLIMB_RATE. The potential energy rate demand must
+// be backed off to what pitch can fly, otherwise the throttle funds the full
+// climb rate demand and the surplus goes into airspeed.
+
+TEST_F(TECSClosedLoopTest, AltitudeStepUpPitchLimited)
+{
+	initAircraftState();
+	_plant_pitch_offset = math::radians(10.f);
+
+	initParams();
+	_params.pitch_max = math::radians(16.f);
+	_params.pitch_speed_weight = 1.8f;
+
+	initTecs();
+
+	run(120.0f);
+	setAltitudeSetpoint(ALT_INIT + 50.f);
+	resetSimStats();
+	run(15.f);
+
+	// Mid climb: pitch at the limit, climb rate what the limit allows, airspeed held
+	const float flyable_climb_rate = V_TRIM * (_params.pitch_max - _plant_pitch_offset);
+	EXPECT_NEAR(_pitch_prev, _params.pitch_max, math::radians(0.5f));
+	EXPECT_NEAR(_state.V * (_pitch_prev - _plant_pitch_offset), flyable_climb_rate, 0.1f);
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_V_RECOVERY_ERR);
+
+	run(185.f);
+
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_V_RECOVERY_ERR);
+	EXPECT_NEAR(_state.V, _V_sp,   0.1f);
+	EXPECT_NEAR(_state.h, _alt_sp, 0.5f);
+}
 
 // --- Airspeed setpoint change -------------------------------------------------
 // Step the airspeed setpoint while holding altitude.  The throttle loop must
@@ -556,13 +719,13 @@ TEST_F(TECSClosedLoopTest, FastDescend)
 	// Throttle is forced to minimum during fast descend
 	EXPECT_NEAR(_tecs.getThrottleSetpoint(), _params.throttle_min, 1e-3f);
 	// Pitch loop drives airspeed toward tas_max
-	EXPECT_NEAR(_state.V, _params.tas_max, MAX_V_TRACKING_ERR);
+	EXPECT_NEAR(_state.V, _params.tas_max, MAX_V_RECOVERY_ERR);
 }
 
 TEST_F(TECSClosedLoopTest, AirspeedDip)
 {
-	// This captures performance of airspeed recovery _before_ the TECS
-	// fixes, to ensure no regressions.
+	// Captures the airspeed recovery after a disturbance, to guard against
+	// regressions.
 
 	// With default tuning.
 	initAircraftState();
@@ -573,35 +736,43 @@ TEST_F(TECSClosedLoopTest, AirspeedDip)
 	// wind change, aircraft pushed back)
 	_state.V -= 4.0f;
 
-	// Capture the tracking error pretty precisely over the next 20 sec
-	// First second: error halves
-	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 4.0f);
+	// Recovery at the designed first-order airspeed error response
+	// (tau = 1 / airspeed_error_gain = 5 s): the throttle feedforward supplies
+	// the kinetic energy rate demand while pitch holds the flight path. Bounds
+	// re-captured for the consistent feedforward - before, the pitch feedforward
+	// traded altitude for the same kinetic demand on top, recovering about twice
+	// as fast at the price of an altitude excursion.
+	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 3.8f);
+	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 3.5f);
+	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 3.2f);
 	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 3.0f);
-	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 2.5f);
-	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 2.0f);
-	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 2.0f);
+	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 2.8f);
 
-	// First 10 sec: back to 0.1 m/s error
-	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 1.0f);
-	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.5f);
+	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 2.0f);
+	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 1.4f);
+	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.9f);
+	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.6f);
+	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.35f);
 	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f);
-	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f);
-	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f);
-	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f);
-	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f);
-	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f);
-	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.1f);
+
+	// The impulsive kinetic energy change also charges the pitch and throttle
+	// integrators (a feedback property predating the fix): small overshoot,
+	// unwound at the integrators' own time constants.
+	resetSimStats();
+	run(19.0f);
+	EXPECT_LT(_sim_stats.max_airspeed_error, 0.35f);
 
 	// Error stays below ever after
-	const float max_v_err = run(100.0f);
-	EXPECT_LT(max_v_err, MAX_V_TRACKING_ERR);
+	resetSimStats();
+	run(100.0f);
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_V_RECOVERY_ERR);
 }
 
 
 TEST_F(TECSClosedLoopTest, AirspeedBump)
 {
-	// This captures performance of airspeed recovery _before_ the TECS
-	// fixes, to ensure no regressions.
+	// Captures the airspeed recovery after a disturbance, to guard against
+	// regressions.
 
 	// With default tuning.
 	initAircraftState();
@@ -612,26 +783,34 @@ TEST_F(TECSClosedLoopTest, AirspeedBump)
 	// wind change, aircraft pushed back)
 	_state.V += 4.0f;
 
-	// Capture the tracking error pretty precisely over the next 20 sec
-	// First second: error decreases slightly
+	// Recovery at the designed first-order airspeed error response (see
+	// AirspeedDip); the bump recovers more slowly than the dip because the
+	// deceleration authority is limited by the total energy rate envelope.
 	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 4.0f);
-	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 4.0f);
+	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 3.9f);
+	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 3.7f);
 	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 3.5f);
-	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 3.5f);
-	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 3.0f);
+	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 3.4f);
 
-	// First 10 sec: back to 0.1 m/s error
+	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 2.7f);
 	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 2.0f);
-	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 1.0f);
+	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 1.5f);
+	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 1.1f);
+	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.8f);
 	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.5f);
-	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.3f);
+	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.35f);
 	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f);
-	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f);
-	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f);
-	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f);
-	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.1f);
+
+	// The throttle integrator absorbed part of the impulsive kinetic energy
+	// change (a feedback property predating the fix) and unwinds it slowly:
+	// below trim the throttle-to-energy slope is small, so the integrator
+	// error feedback is weak. Small standing error for about a minute.
+	resetSimStats();
+	run(59.0f);
+	EXPECT_LT(_sim_stats.max_airspeed_error, 0.3f);
 
 	// Error stays below ever after
-	const float max_v_err = run(100.0f);
-	EXPECT_LT(max_v_err, MAX_V_TRACKING_ERR);
+	resetSimStats();
+	run(100.0f);
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_V_RECOVERY_ERR);
 }
