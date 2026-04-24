@@ -57,14 +57,47 @@ exception_list = [
 ]
 
 exception_list_sitl = [
-    'DRIVERS_BAROMETER', # Fails I2C dependencies
+    'DRIVERS_ADC', # Fails I2C dependencies
     'COMMON_BAROMETERS', # Fails I2C dependencies
+    'DRIVERS_BAROMETER', # Fails I2C dependencies
+    'DRIVERS_BATT_SMBUS', # Fails I2C dependencies in SMBus library
+    'COMMON_DIFFERENTIAL_PRESSURE', # Fails I2C dependencies
+    'DRIVERS_DIFFERENTIAL_PRESSURE', # Fails I2C dependencies
+    'COMMON_DISTANCE_SENSOR', # Fails I2C dependencies
+    'DRIVERS_DISTANCE_SENSOR', # Fails I2C dependencies
+    'COMMON_HYGROMETERS', # Fails I2C dependencies
+    'DRIVERS_HYGROMETER', # Fails I2C dependencies
+    'COMMON_IMU', # Fails I2C dependencies
+    'DRIVERS_IMU', # Fails I2C dependencies
+    'DRIVERS_IRLOCK', # Fails I2C dependencies
+    'COMMON_LIGHT', # Fails I2C dependencies
+    'DRIVERS_LIGHTS', # Fails I2C dependencies
+    'DRIVERS_MAGNETOMETER', # Fails I2C dependencies
+    'COMMON_MAGNETOMETER', # Fails I2C dependencies
+    'DRIVERS_OPTICAL_FLOW', # Fails I2C dependencies
+    'COMMON_OPTICAL_FLOW', # Fails I2C dependencies
+    'COMMON_OSD', # Fails I2C dependencies
+    'DRIVERS_OSD', # Fails I2C dependencies
+    'DRIVERS_PCA9685', # Fails I2C dependencies
+    'DRIVERS_POWER_MONITOR', # Fails I2C dependencies
+    'DRIVERS_RPM', # Fails I2C dependencies
+    'COMMON_RPM', # Fails I2C dependencies
+    'DRIVERS_SMART_BATTERY', # Fails I2C dependencies in SMBus library
+    'DRIVERS_TELEMETRY', # Fails I2C dependencies
+    'COMMON_TELEMETRY', # Fails I2C dependencies
+    'DRIVERS_TEMPERATURE', # Fails I2C dependencies
+    'COMMON_UWB', # Fail in UWB_PORT_CFG
+    'DRIVERS_UWB', # Fail in UWB_PORT_CFG
+    'DRIVERS_HEATER', # GPIO config failure
+    'DRIVERS_AUTERION_AUTOSTARTER', # Sitl doesn't provide a builtin lib
+    'DRIVERS_CYPHAL', # Sitl doesn't provide a memalign function
+    'DRIVERS_GPIO', # Sitl doesn't provide a mcp-common lib
     'DRIVERS_ADC_BOARD_ADC', # Fails HW dependencies, I think this only works on NuttX
     'DRIVERS_CAMERA_CAPTURE', # GPIO config failure
+    'DRIVERS_SAFETY_BUTTON', # GPIO config failure
+    'DRIVERS_TAP_ESC', # No nuttx/arch.h
     'DRIVERS_DSHOT', # No Posix driver, I think this only works on NuttX
     'DRIVERS_PWM_OUT', # No Posix driver, I think this only works on NuttX
-    'COMMON', # Fails I2C dependencies
-    'DRIVERS', # Fails I2C dependencies
     'SYSTEMCMDS_REBOOT', # Sitl can't reboot
     'MODULES_BATTERY_STATUS', # Sitl doesn't provide a power brick
     'SYSTEMCMDS_SERIAL_PASSTHRU', # Not supported in SITL
