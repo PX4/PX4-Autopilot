@@ -5,7 +5,7 @@
 # @type Quadrotor x
 # @class Copter
 #
-# @maintainer UAS Team FSR@TUDa <uas@fsr.tu-darmstadt.de>
+# @maintainer UAS Team FSR-TUDa <uas@fsr.tu-darmstadt.de>
 #
 
 . ${R}etc/init.d/rc.mc_defaults
@@ -48,9 +48,9 @@ param set-default CA_ROTOR3_KM -0.05
 
 # Battery parameters (eventuell ändern, wenn andere Batterie verwendet wird)
 
-param set-default BAT_N_CELLS 6
-param set-default BAT_V_EMPTY 3.7
-param set-default BAT_V_CHARGED 4.2
+param set-default BAT1_N_CELLS 6
+param set-default BAT1_V_EMPTY 3.7
+param set-default BAT1_V_CHARGED 4.2
 
 # RC setup
 param set-default COM_FLTMODE1 2

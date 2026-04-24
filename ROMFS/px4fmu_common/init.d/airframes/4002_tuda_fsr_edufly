@@ -5,7 +5,7 @@
 # @type Quadrotor x
 # @class Copter
 #
-# @maintainer UAS Team FSR@TUDa <uas@fsr.tu-darmstadt.de>
+# @maintainer UAS Team FSR-TUDa <uas@fsr.tu-darmstadt.de>
 #
 
 . ${R}etc/init.d/rc.mc_defaults
