@@ -37,6 +37,10 @@
     // Fenced code block language — many blocks lack language specifiers
     "MD040": false,
 
+    // Hard tabs inside code blocks — intentional in CMake, Makefile, and shell examples
+    // (PX4 CMake convention uses tabs; prettier-ignore is needed separately to preserve them)
+    "MD010": { "code_blocks": false },
+
     // Link fragment validation — VitePress uses custom anchor generation
     "MD051": false,
 
