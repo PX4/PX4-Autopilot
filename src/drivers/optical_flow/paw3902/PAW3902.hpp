@@ -125,6 +125,9 @@ private:
 	int _failure_count{0};
 	int _discard_reading{0};
 
+	uint16_t _discard_count{0};
+	uint16_t _mode_change_count{0};
+
 	px4::atomic<hrt_abstime> _drdy_timestamp_sample{0};
 	bool _motion_interrupt_enabled{false};
 

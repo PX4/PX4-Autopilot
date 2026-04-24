@@ -59,6 +59,10 @@ extern "C" __attribute__((weak)) const char *board_get_uavcan_hw_name(void)
 #include "Publishers/FlowMeasurement.hpp"
 #endif // CONFIG_UAVCANNODE_FLOW_MEASUREMENT
 
+#if defined(CONFIG_UAVCANNODE_FLOW_MEASUREMENT_AUX)
+#include "Publishers/FlowMeasurementAux.hpp"
+#endif // CONFIG_UAVCANNODE_FLOW_MEASUREMENT_AUX
+
 #if defined(UAVCANNODE_HYGROMETER_MEASUREMENT)
 #include "Publishers/HygrometerMeasurement.hpp"
 #endif // UAVCANNODE_HYGROMETER_MEASUREMENT
@@ -384,6 +388,10 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 #if defined(CONFIG_UAVCANNODE_FLOW_MEASUREMENT)
 	_publisher_list.add(new FlowMeasurement(this, _node));
 #endif // CONFIG_UAVCANNODE_FLOW_MEASUREMENT
+
+#if defined(CONFIG_UAVCANNODE_FLOW_MEASUREMENT_AUX)
+	_publisher_list.add(new FlowMeasurementAux(this, _node));
+#endif // CONFIG_UAVCANNODE_FLOW_MEASUREMENT_AUX
 
 #if defined(UAVCANNODE_HYGROMETER_MEASUREMENT)
 	_publisher_list.add(new HygrometerMeasurement(this, _node));

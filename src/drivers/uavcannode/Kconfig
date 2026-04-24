@@ -30,6 +30,11 @@ if DRIVERS_UAVCANNODE
         bool "Include flow measurement"
         default n
 
+    config UAVCANNODE_FLOW_MEASUREMENT_AUX
+        bool "Include flow measurement aux (com.ark.equipment.flow.MeasurementAux)"
+        default n
+        depends on UAVCANNODE_FLOW_MEASUREMENT
+
     config UAVCANNODE_GNSS_FIX
         bool "Include GNSS fix"
         default n

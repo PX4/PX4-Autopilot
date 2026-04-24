@@ -120,6 +120,17 @@ private:
 	uint16_t _quality_sum{0};
 	uint8_t _accumulated_count{0};
 
+	// Per-sample diagnostics carried through from sensor_optical_flow.
+	// Reductions: shutter/mode/discard_count/mode_change_count = latest;
+	// motion/challenging_surface = OR; chip_health_ok = AND.
+	uint32_t _latest_shutter{0};
+	uint8_t _latest_mode{0};
+	uint16_t _latest_discard_count{0};
+	uint16_t _latest_mode_change_count{0};
+	bool _any_motion{false};
+	bool _any_challenging_surface{false};
+	bool _all_chip_health_ok{true};
+
 	hrt_abstime _last_range_sensor_update{0};
 
 	bool _delta_angle_available{false};

@@ -209,6 +209,15 @@ void VehicleOpticalFlow::Run()
 		_quality_sum += sensor_optical_flow.quality;
 		_accumulated_count++;
 
+		// per-sample diagnostics carry-through
+		_latest_shutter = sensor_optical_flow.shutter;
+		_latest_mode = sensor_optical_flow.mode;
+		_latest_discard_count = sensor_optical_flow.discard_count;
+		_latest_mode_change_count = sensor_optical_flow.mode_change_count;
+		_any_motion = _any_motion || sensor_optical_flow.motion;
+		_any_challenging_surface = _any_challenging_surface || sensor_optical_flow.challenging_surface;
+		_all_chip_health_ok = _all_chip_health_ok && sensor_optical_flow.chip_health_ok;
+
 		bool publish = true;
 
 		if (_param_sens_flow_rate.get() > 0) {
@@ -233,6 +242,14 @@ void VehicleOpticalFlow::Run()
 			vehicle_optical_flow.integration_timespan_us = _integration_timespan_us;
 
 			vehicle_optical_flow.quality = _quality_sum / _accumulated_count;
+
+			vehicle_optical_flow.mode = _latest_mode;
+			vehicle_optical_flow.shutter = _latest_shutter;
+			vehicle_optical_flow.motion = _any_motion;
+			vehicle_optical_flow.challenging_surface = _any_challenging_surface;
+			vehicle_optical_flow.chip_health_ok = _all_chip_health_ok;
+			vehicle_optical_flow.discard_count = _latest_discard_count;
+			vehicle_optical_flow.mode_change_count = _latest_mode_change_count;
 
 			if (_distance_sum_count > 0 && PX4_ISFINITE(_distance_sum)) {
 				vehicle_optical_flow.distance_m = _distance_sum / _distance_sum_count;
@@ -480,6 +497,11 @@ void VehicleOpticalFlow::ClearAccumulatedData()
 
 	_quality_sum = 0;
 	_accumulated_count = 0;
+
+	_any_motion = false;
+	_any_challenging_surface = false;
+	_all_chip_health_ok = true;
+	// _latest_* values persist; they get overwritten on the next sample.
 
 	_gyro_integrator.reset();
 }
