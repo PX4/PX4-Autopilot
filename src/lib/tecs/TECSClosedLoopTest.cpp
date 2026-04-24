@@ -137,6 +137,33 @@ protected:
 	float _V_prev       {V_TRIM};     ///< for TAS-rate finite-difference
 	float _pitch_prev   {0.f};        ///< pitch command from previous step, for altitude_rate input
 
+	struct SimulationStats {
+		float max_airspeed_error{0.f};
+		float max_altitude_error{0.f};
+		float max_throttle_integ_norm{0.f};
+		float max_pitch_integ_norm{0.f};
+		float max_energy_balance_rate_error{0.f};
+		float max_total_energy_rate_error{0.f};
+	};
+
+	SimulationStats _sim_stats{};
+
+	void resetSimStats() { _sim_stats = {}; }
+
+	void updateSimStats(const AircraftState &state, const TECSControl::DebugOutput &tecs_debug)
+	{
+		auto track_max_norm = [](float & field, float val) { field = std::max(field, std::fabs(val)); };
+
+		track_max_norm(_sim_stats.max_airspeed_error,            state.V - _V_sp);
+		track_max_norm(_sim_stats.max_altitude_error,            state.h - _alt_sp);
+		track_max_norm(_sim_stats.max_energy_balance_rate_error, tecs_debug.energy_balance_rate_sp - tecs_debug.energy_balance_rate_estimate);
+		track_max_norm(_sim_stats.max_total_energy_rate_error,   tecs_debug.total_energy_rate_sp   - tecs_debug.total_energy_rate_estimate);
+
+		track_max_norm(_sim_stats.max_throttle_integ_norm,       tecs_debug.throttle_integrator);
+		track_max_norm(_sim_stats.max_pitch_integ_norm,          tecs_debug.pitch_integrator);
+
+	}
+
 	void initAircraftState()
 	{
 		_state        = {};
@@ -232,13 +259,11 @@ protected:
 		_alt_sp = alt_sp;
 	}
 
-	// Advance simulation for `duration` seconds.
-	// Returns the peak |V - V_sp| observed (over all steps, including transients).
+	// Advance simulation for `duration` seconds, updating _sim_stats.
 	// If TECS_TEST_LOG_DIR is set in the environment, writes a CSV to
 	// $TECS_TEST_LOG_DIR/<test_name>.csv with one row per timestep.
-	float run(float duration)
+	void run(float duration)
 	{
-		float peak_v_err = 0.f;
 		const int steps = static_cast<int>(std::lround(duration / DT));
 
 		FILE *csv = nullptr;
@@ -265,7 +290,7 @@ protected:
 			_V_prev     = _state.V;
 			_pitch_prev = _tecs.getPitchSetpoint();
 			_state      = aircraft_step(DT, _tecs.getThrottleSetpoint(), _pitch_prev, _state);
-			peak_v_err = std::max(peak_v_err, std::fabs(_state.V - _V_sp));
+			updateSimStats(_state, _tecs.getDebugOutput());
 
 			if (csv) {
 				const auto &dbg = _tecs.getDebugOutput();
@@ -281,8 +306,6 @@ protected:
 		}
 
 		if (csv) { std::fclose(csv); }
-
-		return peak_v_err;
 	}
 };
 
@@ -297,8 +320,8 @@ TEST_F(TECSClosedLoopTest, SteadyStateCruiseDefaultTuning)
 	initParams();
 	initTecs();
 
-	const float peak_v_err = run(60.f);
-	EXPECT_LT(peak_v_err, 1e-5f);
+	run(60.f);
+	EXPECT_LT(_sim_stats.max_airspeed_error, 1e-5f);
 
 	EXPECT_NEAR(_state.V, _V_sp,   1e-5f);
 	EXPECT_NEAR(_state.h, _alt_sp, 1e-5f);
@@ -313,8 +336,8 @@ TEST_F(TECSClosedLoopTest, SteadyStateCruiseHighSpeedWeight)
 
 	initTecs();
 
-	const float peak_v_err = run(60.f);
-	EXPECT_LT(peak_v_err, 1e-5f);
+	run(60.f);
+	EXPECT_LT(_sim_stats.max_airspeed_error, 1e-5f);
 
 	EXPECT_NEAR(_state.V, _V_sp,   1e-5f);
 	EXPECT_NEAR(_state.h, _alt_sp, 1e-5f);
@@ -329,8 +352,8 @@ TEST_F(TECSClosedLoopTest, SteadyStateCruiseLowSpeedWeight)
 
 	initTecs();
 
-	const float peak_v_err = run(60.f);
-	EXPECT_LT(peak_v_err, 1e-5f);
+	run(60.f);
+	EXPECT_LT(_sim_stats.max_airspeed_error, 1e-5f);
 
 	EXPECT_NEAR(_state.V, _V_sp,   1e-5f);
 	EXPECT_NEAR(_state.h, _alt_sp, 1e-5f);
@@ -349,9 +372,10 @@ TEST_F(TECSClosedLoopTest, AltitudeStepUpDefaultTuning)
 
 	run(60.0f);
 	setAltitudeSetpoint(ALT_INIT + 50.f);
-	const float peak_v_err = run(120.f);
+	resetSimStats();
+	run(120.f);
 
-	EXPECT_LT(peak_v_err, MAX_V_TRACKING_ERR);
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_V_TRACKING_ERR);
 	EXPECT_NEAR(_state.V, _V_sp,   1e-3f);
 	EXPECT_NEAR(_state.h, _alt_sp, 0.5f);
 }
@@ -364,9 +388,10 @@ TEST_F(TECSClosedLoopTest, AltitudeStepDownDefaultTuning)
 
 	run(60.0f);
 	setAltitudeSetpoint(ALT_INIT - 50.f);
-	const float peak_v_err = run(120.f);
+	resetSimStats();
+	run(120.f);
 
-	EXPECT_LT(peak_v_err, MAX_V_TRACKING_ERR);
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_V_TRACKING_ERR);
 	EXPECT_NEAR(_state.V, _V_sp,   1e-3f);
 	EXPECT_NEAR(_state.h, _alt_sp, 0.5f);
 }
@@ -399,9 +424,9 @@ TEST_F(TECSClosedLoopTest, AltitudeStepUpHighSpeedWeight)
 	initTecs();
 
 	setAltitudeSetpoint(ALT_INIT + 50.f);
-	const float peak_v_err      = run(200.f);
+	run(200.f);
 
-	EXPECT_LT(peak_v_err, MAX_V_TRACKING_ERR);
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_V_TRACKING_ERR);
 	EXPECT_NEAR(_state.V, _V_sp, 1e-3f);
 	EXPECT_NEAR(_state.h, _alt_sp, 0.5f);
 }
@@ -416,9 +441,9 @@ TEST_F(TECSClosedLoopTest, AltitudeStepDownHighSpeedWeight)
 	initTecs();
 
 	setAltitudeSetpoint(ALT_INIT - 50.f);
-	const float peak_v_err      = run(200.f);
+	run(200.f);
 
-	EXPECT_LT(peak_v_err, MAX_V_TRACKING_ERR);
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_V_TRACKING_ERR);
 
 	EXPECT_NEAR(_state.V, _V_sp,   1e-3f);
 	EXPECT_NEAR(_state.h, _alt_sp, 0.5f);
@@ -434,9 +459,9 @@ TEST_F(TECSClosedLoopTest, AltitudeStepUpLowSpeedWeight)
 	initTecs();
 
 	setAltitudeSetpoint(ALT_INIT + 50.f);
-	const float peak_v_err      = run(200.f);
+	run(200.f);
 
-	EXPECT_LT(peak_v_err, MAX_V_TRACKING_ERR);
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_V_TRACKING_ERR);
 	EXPECT_NEAR(_state.V, _V_sp, 1e-3f);
 	EXPECT_NEAR(_state.h, _alt_sp, 0.5f);
 }
@@ -451,9 +476,9 @@ TEST_F(TECSClosedLoopTest, AltitudeStepDownLowSpeedWeight)
 	initTecs();
 
 	setAltitudeSetpoint(ALT_INIT - 50.f);
-	const float peak_v_err      = run(200.f);
+	run(200.f);
 
-	EXPECT_LT(peak_v_err, MAX_V_TRACKING_ERR);
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_V_TRACKING_ERR);
 
 	EXPECT_NEAR(_state.V, _V_sp,   1e-3f);
 	EXPECT_NEAR(_state.h, _alt_sp, 0.5f);
@@ -472,9 +497,9 @@ TEST_F(TECSClosedLoopTest, AltitudeStepUpLowAccel)
 	initTecs();
 
 	setAltitudeSetpoint(ALT_INIT + 50.f);
-	const float peak_v_err      = run(200.f);
+	run(200.f);
 
-	EXPECT_LT(peak_v_err, MAX_V_TRACKING_ERR);
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_V_TRACKING_ERR);
 	EXPECT_NEAR(_state.V, _V_sp, 1e-3f);
 	EXPECT_NEAR(_state.h, _alt_sp, 0.5f);
 }
@@ -490,9 +515,9 @@ TEST_F(TECSClosedLoopTest, AltitudeStepDownLowAccel)
 	initTecs();
 
 	setAltitudeSetpoint(ALT_INIT - 50.f);
-	const float peak_v_err      = run(200.f);
+	run(200.f);
 
-	EXPECT_LT(peak_v_err, MAX_V_TRACKING_ERR);
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_V_TRACKING_ERR);
 
 	EXPECT_NEAR(_state.V, _V_sp,   1e-3f);
 	EXPECT_NEAR(_state.h, _alt_sp, 0.5f);
@@ -593,8 +618,9 @@ TEST_F(TECSClosedLoopTest, AirspeedDip)
 	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.1f);
 
 	// Error stays below ever after
-	const float max_v_err = run(100.0f);
-	EXPECT_LT(max_v_err, MAX_V_TRACKING_ERR);
+	resetSimStats();
+	run(100.0f);
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_V_TRACKING_ERR);
 }
 
 
@@ -632,6 +658,7 @@ TEST_F(TECSClosedLoopTest, AirspeedBump)
 	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.1f);
 
 	// Error stays below ever after
-	const float max_v_err = run(100.0f);
-	EXPECT_LT(max_v_err, MAX_V_TRACKING_ERR);
+	resetSimStats();
+	run(100.0f);
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_V_TRACKING_ERR);
 }
