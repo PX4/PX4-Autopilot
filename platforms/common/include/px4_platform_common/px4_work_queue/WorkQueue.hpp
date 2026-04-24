@@ -43,6 +43,8 @@
 #include <px4_platform_common/sem.h>
 #include <px4_platform_common/tasks.h>
 
+#include <pthread.h>
+
 namespace px4
 {
 
@@ -68,6 +70,11 @@ public:
 	void Clear();
 
 	void Run();
+
+	// Thread id of the worker that executes Run(). Captured once on the
+	// worker thread itself (WorkQueue is constructed on its own worker).
+	// Used by WorkItem::Deinit to avoid self-wait when called from inside Run().
+	pthread_t runner_tid() const { return _runner_tid; }
 
 	void request_stop() { _should_exit.store(true); }
 
@@ -100,6 +107,7 @@ private:
 	const wq_config_t		&_config;
 	BlockingList<WorkItem *>	_work_items;
 	px4::atomic_bool		_should_exit{false};
+	pthread_t			_runner_tid{};
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	int _lockstep_component {-1};

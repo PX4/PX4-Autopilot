@@ -47,6 +47,12 @@ namespace px4
 WorkQueue::WorkQueue(const wq_config_t &config) :
 	_config(config)
 {
+	// WorkQueue is constructed on its own worker thread (see
+	// WorkQueueRunner in WorkQueueManager.cpp), so pthread_self() here
+	// captures the worker's tid for later self-wait checks in
+	// WorkItem::Deinit.
+	_runner_tid = pthread_self();
+
 	// set the threads name
 #ifdef __PX4_DARWIN
 	pthread_setname_np(_config.name);
@@ -173,20 +179,37 @@ void WorkQueue::Clear()
 
 void WorkQueue::Run()
 {
+	hrt_abstime _diag_last_run_time = 0;
+	static hrt_abstime _diag_last_warn_time = 0;
+
 	while (!should_exit()) {
 		// loop as the wait may be interrupted by a signal
 		do {} while (px4_sem_wait(&_process_lock) != 0);
 
+		hrt_abstime now = hrt_absolute_time();
+		hrt_abstime gap = (_diag_last_run_time > 0) ? (now - _diag_last_run_time) : 0;
+		_diag_last_run_time = now;
+
 		work_lock();
+
+		// Instrumentation: count queue depth
+		int queue_depth = (int)_q.size();
 
 		// process queued work
 		while (!_q.empty()) {
 			WorkItem *work = _q.pop();
 
+			// Mark as in-flight so ~WorkItem / Deinit on another thread
+			// can wait for us to return before the item's memory is torn
+			// down. Without this, a Run() executing after Deinit has
+			// popped the item will call Schedule* on dead memory,
+			// corrupting the hrt callout queue.
+			work->_run_in_progress.store(true);
+
 			work_unlock(); // unlock work queue to run (item may requeue itself)
 			work->RunPreamble();
 			work->Run();
-			// Note: after Run() we cannot access work anymore, as it might have been deleted
+			work->_run_in_progress.store(false);
 			work_lock(); // re-lock
 		}
 
@@ -200,6 +223,20 @@ void WorkQueue::Run()
 #endif // ENABLE_LOCKSTEP_SCHEDULER
 
 		work_unlock();
+
+		// Instrumentation: warn when work queue has large gaps
+		if (gap > 100000) { // > 100ms sim time gap
+			hrt_abstime warn_now = hrt_absolute_time();
+
+			if (warn_now - _diag_last_warn_time > 1000000) { // max once per second sim time
+				PX4_WARN("wq '%s': gap=%llums depth=%d sim_t=%.3fs",
+					 _config.name,
+					 (unsigned long long)(gap / 1000),
+					 queue_depth,
+					 (double)warn_now / 1e6);
+				_diag_last_warn_time = warn_now;
+			}
+		}
 	}
 
 	PX4_DEBUG("%s: exiting", _config.name);
