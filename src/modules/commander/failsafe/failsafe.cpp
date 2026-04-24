@@ -442,6 +442,38 @@ FailsafeBase::ActionOptions Failsafe::fromRemainingFlightTimeLowActParam(int par
 	return options;
 }
 
+FailsafeBase::ActionOptions Failsafe::fromOdidFailActParam(int param_value)
+{
+	ActionOptions options{};
+
+	switch (open_drone_id_failsafe_mode(param_value)) {
+	case open_drone_id_failsafe_mode::Return_mode:
+		options.action = Action::RTL;
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
+		break;
+
+	case open_drone_id_failsafe_mode::Land_mode:
+		options.action = Action::Land;
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
+		break;
+
+	case open_drone_id_failsafe_mode::Terminate:
+		options.allow_user_takeover = UserTakeoverAllowed::Never;
+		options.action = Action::Terminate;
+		options.clear_condition = ClearCondition::Never;
+		break;
+
+	case open_drone_id_failsafe_mode::None:
+	case open_drone_id_failsafe_mode::Warning:
+	case open_drone_id_failsafe_mode::Error:
+	default:
+		options.action = Action::None;
+		break;
+	}
+
+	return options;
+}
+
 bool Failsafe::isFailsafeIgnored(uint8_t user_intended_mode, int32_t exception_mask_parameter)
 {
 	switch (user_intended_mode) {
@@ -577,6 +609,11 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	// Parachute system health failsafe
 	CHECK_FAILSAFE(status_flags, parachute_unhealthy, Action::RTL);
 
+	// Remote ID (Open Drone ID) loss failsafe
+	if (state.armed && _param_com_arm_odid.get() >= int32_t(open_drone_id_failsafe_mode::Return_mode)) {
+		CHECK_FAILSAFE(status_flags, remote_id_unhealthy, fromOdidFailActParam(_param_com_arm_odid.get()));
+	}
+
 	// Battery low failsafe
 	// If battery was low and arming was allowed through COM_ARM_BAT_MIN, don't failsafe immediately for the current low battery warning state
 	const bool warning_worse_than_at_arming = (status_flags.battery_warning > _battery_warning_at_arming);
@@ -624,12 +661,15 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 		+ static_cast<hrt_abstime>((_param_com_lkdown_tko.get() + _param_com_spoolup_time.get()) * 1_s))
 	   ) {
 		CHECK_FAILSAFE(status_flags, fd_critical_failure, ActionOptions(Action::Disarm).cannotBeDeferred());
+		CHECK_FAILSAFE(status_flags, fd_alt_loss, ActionOptions(Action::Disarm).cannotBeDeferred());
 
 	} else if (!circuit_breaker_enabled_by_val(_param_cbrk_flightterm.get(), CBRK_FLIGHTTERM_KEY)) {
 		CHECK_FAILSAFE(status_flags, fd_critical_failure, ActionOptions(Action::Terminate).cannotBeDeferred());
+		CHECK_FAILSAFE(status_flags, fd_alt_loss, ActionOptions(Action::Terminate).cannotBeDeferred());
 
 	} else {
 		CHECK_FAILSAFE(status_flags, fd_critical_failure, Action::Warn);
+		CHECK_FAILSAFE(status_flags, fd_alt_loss, Action::Warn);
 	}
 
 	CHECK_FAILSAFE(status_flags, fd_imbalanced_prop, fromImbalancedPropActParam(_param_com_imb_prop_act.get()));

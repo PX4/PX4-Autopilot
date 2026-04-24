@@ -58,9 +58,95 @@ MavlinkParametersManager::get_size()
 	return MAVLINK_MSG_ID_PARAM_VALUE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 }
 
+#if defined(CONFIG_MAVLINK_UAVCAN_PARAMETERS)
+
+void
+MavlinkParametersManager::update_observed_camera_components()
+{
+	camera_status_s cam_status {};
+
+	while (_camera_status_sub.update(&cam_status)) {
+		if (cam_status.active_comp_id >= MAV_COMP_ID_CAMERA
+		    && cam_status.active_comp_id <= MAV_COMP_ID_CAMERA6) {
+			_camera_comp_last_seen[cam_status.active_comp_id - MAV_COMP_ID_CAMERA] = cam_status.timestamp;
+		}
+	}
+
+	// Warn once per comp ID when a MAVLink camera and a DroneCAN node share an
+	// ID in 100..105. Camera takes precedence at the UAVCAN bridge, so the CAN
+	// node's params become unreachable via MAVLink until the user reassigns
+	// the CAN node ID. Fires regardless of which side joined first.
+	static constexpr uint8_t kAllWarned = (1u << CAMERA_COMP_ID_COUNT) - 1;
+
+	if (_camera_cannode_collision_warned_mask == kAllWarned) {
+		return;
+	}
+
+	for (unsigned i = 0; i < CAMERA_COMP_ID_COUNT; ++i) {
+		const uint8_t warn_bit = 1u << i;
+
+		if (_camera_cannode_collision_warned_mask & warn_bit) {
+			continue;
+		}
+
+		if (_camera_comp_last_seen[i] == 0
+		    || hrt_elapsed_time(&_camera_comp_last_seen[i]) >= CAMERA_OBSERVATION_TIMEOUT) {
+			continue;
+		}
+
+		const uint8_t comp_id = MAV_COMP_ID_CAMERA + i;
+
+		if (is_dronecan_node_online(comp_id)) {
+			_camera_cannode_collision_warned_mask |= warn_bit;
+			mavlink_log_warning(_mavlink.get_mavlink_log_pub(),
+					    "CAN node %u blocked by MAV camera (reassign ID)\t",
+					    comp_id);
+		}
+	}
+}
+
+bool
+MavlinkParametersManager::is_observed_mavlink_camera(uint8_t target_component) const
+{
+	if (target_component < MAV_COMP_ID_CAMERA || target_component > MAV_COMP_ID_CAMERA6) {
+		return false;
+	}
+
+	const hrt_abstime last_seen = _camera_comp_last_seen[target_component - MAV_COMP_ID_CAMERA];
+
+	if (last_seen == 0) {
+		return false;
+	}
+
+	return hrt_elapsed_time(&last_seen) < CAMERA_OBSERVATION_TIMEOUT;
+}
+
+bool
+MavlinkParametersManager::is_dronecan_node_online(uint8_t node_id)
+{
+	dronecan_node_status_s status {};
+
+	for (auto &sub : _dronecan_node_status_subs) {
+		if (sub.copy(&status)
+		    && status.node_id == node_id
+		    && status.mode != dronecan_node_status_s::MODE_OFFLINE
+		    && hrt_elapsed_time(&status.timestamp) < CAMERA_OBSERVATION_TIMEOUT) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+#endif // CONFIG_MAVLINK_UAVCAN_PARAMETERS
+
 void
 MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 {
+#if defined(CONFIG_MAVLINK_UAVCAN_PARAMETERS)
+	update_observed_camera_components();
+#endif // CONFIG_MAVLINK_UAVCAN_PARAMETERS
+
 	switch (msg->msgid) {
 	case MAVLINK_MSG_ID_PARAM_REQUEST_LIST: {
 			/* request all parameters */
@@ -81,7 +167,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 #if defined(CONFIG_MAVLINK_UAVCAN_PARAMETERS)
 
 			if (req_list.target_system == mavlink_system.sysid && req_list.target_component < 127 &&
-			    !(req_list.target_component >= MAV_COMP_ID_CAMERA && req_list.target_component <= MAV_COMP_ID_CAMERA6) &&
+			    !is_observed_mavlink_camera(req_list.target_component) &&
 			    (req_list.target_component != mavlink_system.compid || req_list.target_component == MAV_COMP_ID_ALL)) {
 				// publish list request to UAVCAN driver via uORB.
 				uavcan_parameter_request_s req{};
@@ -151,7 +237,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 #if defined(CONFIG_MAVLINK_UAVCAN_PARAMETERS)
 
 			if (set.target_system == mavlink_system.sysid && set.target_component < 127 &&
-			    !(set.target_component >= MAV_COMP_ID_CAMERA && set.target_component <= MAV_COMP_ID_CAMERA6) &&
+			    !is_observed_mavlink_camera(set.target_component) &&
 			    (set.target_component != mavlink_system.compid || set.target_component == MAV_COMP_ID_ALL)) {
 				// publish set request to UAVCAN driver via uORB.
 				uavcan_parameter_request_s req{};
@@ -244,7 +330,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 #if defined(CONFIG_MAVLINK_UAVCAN_PARAMETERS)
 
 			if (req_read.target_system == mavlink_system.sysid && req_read.target_component < 127 &&
-			    !(req_read.target_component >= MAV_COMP_ID_CAMERA && req_read.target_component <= MAV_COMP_ID_CAMERA6) &&
+			    !is_observed_mavlink_camera(req_read.target_component) &&
 			    (req_read.target_component != mavlink_system.compid || req_read.target_component == MAV_COMP_ID_ALL)) {
 				// publish set request to UAVCAN driver via uORB.
 				uavcan_parameter_request_s req{};
@@ -716,6 +802,12 @@ void MavlinkParametersManager::enque_uavcan_request(uavcan_parameter_request_s *
 	}
 
 	_uavcan_open_request_list_item *new_reqest = new _uavcan_open_request_list_item;
+
+	if (new_reqest == nullptr) {
+		PX4_ERR("uavcan request alloc failed");
+		return;
+	}
+
 	new_reqest->req = *req;
 	new_reqest->next = nullptr;
 

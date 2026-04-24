@@ -91,7 +91,7 @@ For FMUv6S, you need to route the PPS signal separately:
 
 For ARK FMUv6X on the Jetson carrier board:
 
-1. Connect your GNSS module using either the 10-pin or 6-pin GPS connector: [ARK PAB GPS1 Interface](../flight_controller/ark_pab#gps1)
+1. Connect your GNSS module using either the 10-pin or 6-pin GPS connector: [ARK PAB GPS1 Interface](../flight_controller/ark_pab.md#gps1)
 2. Connect the PPS signal to the **FMU_CAP** pin: [ARK PAB ADIO Interface](../flight_controller/ark_pab.md#adio)
 
 ## 검증

@@ -127,7 +127,7 @@ Configure the emitter type of the vehicle.
 
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; | 0        | 15       |           | 14      |      |
+| &check; | 0        | 19       |           | 14      |      |
 
 ### ADSB_GPS_OFF_LAT (`INT32`) {#ADSB_GPS_OFF_LAT}
 
@@ -4196,7 +4196,7 @@ Note: this is only useful for servos.
 
 Output Protocol Configuration for PWM Aux 1-4.
 
-Select which Output Protocol to use for outputs PWM Aux 1-4.
+Select the output protocol for PWM Aux 1-4: PWM, OneShot, DShot, or Bidirectional DShot.
 
 Custom PWM rates can be used by directly setting any value >0.
 
@@ -4226,7 +4226,7 @@ Custom PWM rates can be used by directly setting any value >0.
 
 Output Protocol Configuration for PWM Aux 5-6.
 
-Select which Output Protocol to use for outputs PWM Aux 5-6.
+Select the output protocol for PWM Aux 5-6: PWM, OneShot, DShot, or Bidirectional DShot.
 
 Custom PWM rates can be used by directly setting any value >0.
 
@@ -4250,7 +4250,7 @@ Custom PWM rates can be used by directly setting any value >0.
 
 Output Protocol Configuration for PWM Aux 7-8.
 
-Select which Output Protocol to use for outputs PWM Aux 7-8.
+Select the output protocol for PWM Aux 7-8: PWM, OneShot, DShot, or Bidirectional DShot.
 
 Custom PWM rates can be used by directly setting any value >0.
 
@@ -4274,7 +4274,7 @@ Custom PWM rates can be used by directly setting any value >0.
 
 Output Protocol Configuration for PWM Capture 1-3.
 
-Select which Output Protocol to use for outputs PWM Capture 1-3.
+Select the output protocol for PWM Capture 1-3: PWM, OneShot, DShot, or Bidirectional DShot.
 
 Custom PWM rates can be used by directly setting any value >0.
 
@@ -17716,9 +17716,9 @@ Negative values are ignored and will cause the measured current to be used.
 The default value of 0 disables the overwrite, in which case the measured value
 is always used.
 
-| Reboot  | minValue | maxValue | increment | default | unit |
-| ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; |          |          |           | 0       |      |
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |      |
 
 ### BAT1_N_CELLS (`INT32`) {#BAT1_N_CELLS}
 
@@ -17894,9 +17894,9 @@ Negative values are ignored and will cause the measured current to be used.
 The default value of 0 disables the overwrite, in which case the measured value
 is always used.
 
-| Reboot  | minValue | maxValue | increment | default | unit |
-| ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; |          |          |           | 0       |      |
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |      |
 
 ### BAT2_N_CELLS (`INT32`) {#BAT2_N_CELLS}
 
@@ -18035,6 +18035,22 @@ Defines the capacity of battery 3 in mAh.
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; | -1.0     | 100000   | 50        | -1.0    | mAh  |
+
+### BAT3_I_OVERWRITE (`FLOAT`) {#BAT3_I_OVERWRITE}
+
+Battery 3 idle current overwrite.
+
+This parameter allows to overwrite the current measured during
+idle (unarmed) state with a user-defined constant value (expressed in amperes).
+When the system is armed, the measured current is used. This is useful
+because on certain ESCs current measurements are inaccurate in case of no load.
+Negative values are ignored and will cause the measured current to be used.
+The default value of 0 disables the overwrite, in which case the measured value
+is always used.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |      |
 
 ### BAT3_N_CELLS (`INT32`) {#BAT3_N_CELLS}
 
@@ -18482,7 +18498,7 @@ parameters.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 3        |           | 0       |      |
+| &nbsp; | 0        | 4        |           | 0       |      |
 
 ### COM_ARMABLE (`INT32`) {#COM_ARMABLE}
 
@@ -18646,17 +18662,18 @@ The default allows to arm the vehicle without a valid mission.
 
 ### COM_ARM_ODID (`INT32`) {#COM_ARM_ODID}
 
-Enable Drone ID system detection and health check.
+Open Drone ID system check and in-flight failsafe.
 
-This check detects if the Open Drone ID system is missing.
-Depending on the value of the parameter, the check can be
-disabled, warn only or deny arming.
+Actions other than warning also prevent arming.
 
 **Values:**
 
 - `0`: Disabled
 - `1`: Warning only
-- `2`: Enforce Open Drone ID system presence
+- `2`: Error only
+- `3`: Return
+- `4`: Land
+- `5`: Terminate
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -21557,6 +21574,49 @@ Maximum vertical drift speed to use GPS.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 0.1      | 1.5      |           | 0.2     | m/s  |
 
+### EKF2_RNGBC_CTRL (`INT32`) {#EKF2_RNGBC_CTRL}
+
+Ranging beacon fusion control.
+
+Enable/disable ranging beacon fusion.
+
+**Values:**
+
+- `0`: Disable ranging beacon fusion
+- `1`: Enable ranging beacon fusion
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |      |
+
+### EKF2_RNGBC_DELAY (`FLOAT`) {#EKF2_RNGBC_DELAY}
+
+Ranging beacon measurement delay relative to IMU measurements.
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 0        | 1000     |           | 0       | ms   |
+
+### EKF2_RNGBC_GATE (`FLOAT`) {#EKF2_RNGBC_GATE}
+
+Gate size for ranging beacon fusion.
+
+Sets the number of standard deviations used by the innovation consistency test.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 1.0      |          |           | 5.0     | SD   |
+
+### EKF2_RNGBC_NOISE (`FLOAT`) {#EKF2_RNGBC_NOISE}
+
+Measurement noise for ranging beacon fusion.
+
+Used to lower bound or replace the uncertainty included in the message
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.1      | 500.0    |           | 30.0    | m    |
+
 ### EKF2_RNG_A_HMAX (`FLOAT`) {#EKF2_RNG_A_HMAX}
 
 Maximum height above ground allowed for conditional range aid mode.
@@ -21746,6 +21806,32 @@ EKF2 selector maximum accumulated velocity threshold for comparing accelerometer
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; |          |          |           | 2.0     | m/s  |
+
+### EKF2_SENS_EN (`INT32`) {#EKF2_SENS_EN}
+
+Sensor fusion enable bitmask.
+
+Bitmask to control which sensor fusion sources are enabled. Sources whose bit is cleared will be disabled. Only applied while disarmed. For in-flight changes use the MAVLink command VEHICLE_CMD_ESTIMATOR_SENSOR_ENABLE or the individual CTRL params (e.g. EKF2_GPS_CTRL, EKF2_BARO_CTRL).
+
+**Bitmask:**
+
+- `0`: GNSS 0
+- `1`: GNSS 1
+- `2`: Optical flow
+- `3`: External vision
+- `4`: Aux global position 0
+- `5`: Aux global position 1
+- `6`: Aux global position 2
+- `7`: Aux global position 3
+- `8`: Barometer
+- `9`: Range finder
+- `10`: Magnetometer
+- `11`: Airspeed
+- `12`: Ranging beacon
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 8191     |           | 8191    |      |
 
 ### EKF2_SYNT_MAG_Z (`INT32`) {#EKF2_SYNT_MAG_Z}
 
@@ -23061,6 +23147,26 @@ This increment is added to TRIM_YAW when airspeed is FW_AIRSPD_MIN.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | -0.5     | 0.5      | 0.01      | 0.0     |      |
 
+### FW_FLAPS_MAN (`INT32`) {#FW_FLAPS_MAN}
+
+Flap input in manual flight.
+
+Chose source for manual setting of flaps in manual flight modes.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Aux1
+- `2`: Aux2
+- `3`: Aux3
+- `4`: Aux4
+- `5`: Aux5
+- `6`: Flaps channel
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |      |
+
 ### FW_GC_EN (`INT32`) {#FW_GC_EN}
 
 Enable rate gain compression.
@@ -23221,6 +23327,10 @@ Chose source for manual setting of spoilers in manual flight modes.
 - `0`: Disabled
 - `1`: Flaps channel
 - `2`: Aux1
+- `3`: Aux2
+- `4`: Aux3
+- `5`: Aux4
+- `6`: Aux5
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -23284,6 +23394,26 @@ Yaw rate proportional gain.
 | &nbsp; | 0.0      | 10       | 0.005     | 0.05    | %/rad/s |
 
 ## Failure Detector
+
+### FD_ALT_LOSS (`FLOAT`) {#FD_ALT_LOSS}
+
+Altitude loss threshold for termination and parachute deployment.
+
+Maximum altitude loss below the setpoint allowed before the vehicle terminates and deploys the parachute. Set to 0 to disable.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.0      | 200.0    | 0.5       | 0.0     | m    |
+
+### FD_ALT_LOSS_T (`FLOAT`) {#FD_ALT_LOSS_T}
+
+Altitude loss failure trigger time.
+
+Seconds that the altitude loss threshold must be exceeded before the failure is declared.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.02     | 5.0      |           | 1.0     | s    |
 
 ### FD_EXT_ATS_EN (`INT32`) {#FD_EXT_ATS_EN}
 
@@ -23807,7 +23937,7 @@ Mode 6 is intended for use with a ground control station (not necessarily an RTK
 
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; | 0        | 1        |           | 0       |      |
+| &check; | 0        | 6        |           | 0       |      |
 
 ### GPS_UBX_PPK (`INT32`) {#GPS_UBX_PPK}
 
@@ -28370,20 +28500,6 @@ control is reset.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 1        | 250      |           | 5       | s    |
 
-### MAV_SIGN_CFG (`INT32`) {#MAV_SIGN_CFG}
-
-MAVLink protocol signing.
-
-**Values:**
-
-- `0`: Message signing disabled
-- `1`: Signing enabled except on USB
-- `2`: Signing always enabled
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 0       |      |
-
 ### MAV_SIK_RADIO_ID (`INT32`) {#MAV_SIK_RADIO_ID}
 
 MAVLink SiK Radio ID.
@@ -28462,7 +28578,7 @@ MAVLink airframe type.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 22       |           | 0       |      |
+| &nbsp; | 0        | 23       |           | 0       |      |
 
 ### MAV_USEHILGPS (`INT32`) {#MAV_USEHILGPS}
 
@@ -28719,7 +28835,7 @@ Heading behavior in autonomous modes.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 4        |           | 0       |      |
+| &nbsp; | 0        | 5        |           | 0       |      |
 
 ### NAV_ACC_RAD (`FLOAT`) {#NAV_ACC_RAD}
 
@@ -32945,9 +33061,9 @@ Return mode destination and flight path (home location, rally point, mission lan
 
 - `0`: Return to closest safe point (home or rally point) via direct path.
 - `1`: Return to closest safe point other than home (mission landing pattern or rally point), via direct path. If no mission landing or rally points are defined return home via direct path. Always choose closest safe landing point if vehicle is a VTOL in hover mode.
-- `2`: Return to a planned mission landing, if available, using the mission path, else return to home via the reverse mission path. Do not consider rally points.
+- `2`: Return to a planned mission landing, if available, using the mission path while skipping DO_JUMP and other non-position mission items, else return to home via the reverse mission path with the same traversal rules. Do not consider rally points.
 - `3`: Return via direct path to closest destination: home, start of mission landing pattern or safe point. If the destination is a mission landing pattern, follow the pattern to land.
-- `4`: Return to the planned mission landing, or to home via the reverse mission path, whichever is closer by counting waypoints. Do not consider rally points.
+- `4`: Return to the planned mission landing, or to home via the reverse mission path, whichever is estimated to be closer using mission item indices. Skip DO_JUMP and other non-position mission items while following either mission path. Do not consider rally points.
 - `5`: Return directly to safe landing point (do not consider mission landing and Home)
 
 | Reboot | minValue | maxValue | increment | default | unit |
@@ -33526,7 +33642,7 @@ When enabled, logging will not start from boot if battery power is not detected 
 
 Maximum number of log directories to keep.
 
-If there are more log directories than this value, the system will delete the oldest directories during startup. In addition, the system will delete old logs if there is not enough free space left. The minimum amount is 300 MB. If this is set to 0, old directories will only be removed if the free space falls below the minimum. Note: this does not apply to mission log files.
+If greater than 0, the oldest log directories are deleted at log start to keep the total directory count at or below this value. This cleanup is orthogonal to the free-space cleanup driven by SDLOG_ROTATE and SDLOG_MAX_SIZE, and is useful for capping log usage by count independent of available disk size (e.g. in SITL). A value of 0 disables this count-based cleanup.
 
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
@@ -33551,6 +33667,16 @@ Selects the key in keystore, used for encrypting the log. When using a symmetric
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 0        | 255      |           | 2       |      |
+
+### SDLOG_MAX_SIZE (`INT32`) {#SDLOG_MAX_SIZE}
+
+Maximum log file size.
+
+Maximum size of a single log file in megabytes. When reached, the log file is closed and a new one is started. This value is also added to the cleanup threshold (see SDLOG_ROTATE) to reserve headroom for the next log file. A value of 0 disables both file rotation and the cleanup reservation. Must stay below the FAT32 file size limit of 4 GiB.
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 0        | 4095     |           | 1024    |      |
 
 ### SDLOG_MISSION (`INT32`) {#SDLOG_MISSION}
 
@@ -33611,6 +33737,16 @@ This integer bitmask controls the set and rates of logged topics. The default al
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; | 0        | 4095     |           | 1       |      |
 
+### SDLOG_ROTATE (`INT32`) {#SDLOG_ROTATE}
+
+Maximum disk usage percentage.
+
+Maximum percentage of disk space that logs may occupy during operation, including while writing a new log file. For example, a value of 90 means at least 10% of disk is always kept free, even while writing. A value of 100 lets logs fill the disk completely. A value of 0 disables space-based cleanup entirely. At log start, oldest logs are deleted as needed to maintain this guarantee, accounting for the next file write of up to SDLOG_MAX_SIZE. Cleanup always happens at log start (not boot) so logs can be downloaded via FTP before deletion.
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 0        | 100      |           | 90      |      |
+
 ### SDLOG_UTC_OFFSET (`INT32`) {#SDLOG_UTC_OFFSET}
 
 UTC offset (unit: min).
@@ -33635,23 +33771,13 @@ If set to 1, add an ID to the log, which uniquely identifies the vehicle
 
 ### SIM_BAT_DRAIN (`FLOAT`) {#SIM_BAT_DRAIN}
 
-Simulator Battery drain interval.
+Simulated battery full-discharge time.
+
+Time in seconds for the simulated battery to drain from 100% to 0% while armed. Set to 0 to disable the battery simulator entirely (useful when battery state is provided externally, e.g. via MAVLink).
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 1        | 86400    | 1         | 60      | s    |
-
-### SIM_BAT_ENABLE (`INT32`) {#SIM_BAT_ENABLE}
-
-Simulator Battery enabled.
-
-Enable or disable the internal battery simulation. This is useful
-when the battery is simulated externally and interfaced with PX4
-through MAVLink for example.
-
-| Reboot | minValue | maxValue | increment | default     | unit |
-| ------ | -------- | -------- | --------- | ----------- | ---- |
-| &nbsp; |          |          |           | Enabled (1) |      |
+| &nbsp; | 0        |          | 1         | 60      | s    |
 
 ### SIM_BAT_MIN_PCT (`FLOAT`) {#SIM_BAT_MIN_PCT}
 
@@ -37673,7 +37799,7 @@ TeraRanger Rangefinder (i2c).
 
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; | 0        | 3        |           | 0       |      |
+| &check; | 0        | 5        |           | 0       |      |
 
 ### SENS_EN_VL53L0X (`INT32`) {#SENS_EN_VL53L0X}
 
@@ -38878,19 +39004,6 @@ The usb port on the sensor indicates 180deg, opposite usb is forward facing
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          |           | 0       |      |
 
-### SIM_ARSPD_FAIL (`INT32`) {#SIM_ARSPD_FAIL}
-
-Dynamically simulate failure of airspeed sensor instance.
-
-**Values:**
-
-- `0`: Disabled
-- `1`: Enabled
-
-| Reboot  | minValue | maxValue | increment | default | unit |
-| ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; | 0        | 1        |           | 0       |      |
-
 ### VN_MODE (`INT32`) {#VN_MODE}
 
 VectorNav driver mode.
@@ -39895,6 +40008,104 @@ Absolute value superior to 10000 will disable distance sensor
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; |          |          |           | -1.0    | m    |
 
+### SIH_F_CP0 (`FLOAT`) {#SIH_F_CP0}
+
+Forward thruster static power coefficient.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.0      |          |           | 0.0     |      |
+
+### SIH_F_CP1 (`FLOAT`) {#SIH_F_CP1}
+
+Forward thruster power coefficient 1.
+
+CP(J) = CP0 + CP1*J + CP2*J^2
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0.0     |      |
+
+### SIH_F_CP2 (`FLOAT`) {#SIH_F_CP2}
+
+Forward thruster power coefficient 2.
+
+CP(J) = CP0 + CP1*J + CP2*J^2
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          | 0.0      |           | 0.0     |      |
+
+### SIH_F_CT0 (`FLOAT`) {#SIH_F_CT0}
+
+Forward thruster static thrust coefficient.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.0      |          |           | 0.0     |      |
+
+### SIH_F_CT1 (`FLOAT`) {#SIH_F_CT1}
+
+Forward thruster thrust coefficient 1.
+
+CT(J) = CT0 + CT1*J + CT2*J^2
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0.0     |      |
+
+### SIH_F_CT2 (`FLOAT`) {#SIH_F_CT2}
+
+Forward thruster thrust coefficient 2.
+
+CT(J) = CT0 + CT1*J + CT2*J^2
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          | 0.0      |           | 0.0     |      |
+
+### SIH_F_DIA_INCH (`FLOAT`) {#SIH_F_DIA_INCH}
+
+Forward thruster propeller diameter in inches.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.1      |          |           | 0.1     |      |
+
+### SIH_F_Q_MAX (`FLOAT`) {#SIH_F_Q_MAX}
+
+Forward thruster max torque (Nm).
+
+This is used for the Fixed-Wing, Tailsitter, or pusher of the Standard VTOL
+if SIH_F_CP0 <= 0.
+If SIH_F_CP0 > 0, propeller model with advance ratio J is used
+and this parameter value is overridden at simulation startup.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.0      |          |           | 0.0165  | Nm   |
+
+### SIH_F_RPM_MAX (`FLOAT`) {#SIH_F_RPM_MAX}
+
+Forward thruster max RPM.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.1      |          |           | 6000.0  |      |
+
+### SIH_F_T_MAX (`FLOAT`) {#SIH_F_T_MAX}
+
+Forward thruster max thrust (N).
+
+This is used for the Fixed-Wing, Tailsitter, or pusher of the Standard VTOL
+if SIH_F_CT0 <= 0.
+If SIH_F_CT0 > 0, propeller model with advance ratio J is used
+and this parameter value is overridden at simulation startup.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.0      |          |           | 2.0     | N    |
+
 ### SIH_IXX (`FLOAT`) {#SIH_IXX}
 
 Vehicle inertia about X axis.
@@ -40069,25 +40280,39 @@ This value can be measured by weighting the quad on a scale.
 
 ### SIH_Q_MAX (`FLOAT`) {#SIH_Q_MAX}
 
-Max propeller torque.
+Max multicopter propeller torque.
 
 This is the maximum torque delivered by one propeller
 when the motor is running at full speed.
 
 This value is usually about few percent of the maximum thrust force.
 
+Refer to SIH_F_Q_MAX for the propeller torque for FW, Tailsitter, and VTOL pusher.
+
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 0.0      |          | 0.05      | 0.1     | Nm   |
 
+### SIH_RNGBC_NOISE (`FLOAT`) {#SIH_RNGBC_NOISE}
+
+Ranging beacon measurement noise standard deviation.
+
+Gaussian noise added to simulated ranging beacon measurements. Set to 0 to disable noise.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.0      | 100.0    |           | 30.0    | m    |
+
 ### SIH_T_MAX (`FLOAT`) {#SIH_T_MAX}
 
-Max propeller thrust force.
+Max multicopter propeller thrust force.
 
 This is the maximum force delivered by one propeller
 when the motor is running at full speed.
 
 This value is usually about 5 times the mass of the quadrotor.
+
+Refer to SIH_F_T_MAX for the thrust for FW, Tailsitter, and VTOL pusher.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -43853,7 +44078,7 @@ Selects what type of mode is enabled, if any
 
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; | 0        | 2        |           | 0       |      |
+| &check; | 0        | 3        |           | 0       |      |
 
 ### VOXL_ESC_PUB_BST (`INT32`) {#VOXL_ESC_PUB_BST}
 

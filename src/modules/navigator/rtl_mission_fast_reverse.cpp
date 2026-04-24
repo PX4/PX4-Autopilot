@@ -87,7 +87,7 @@ void RtlMissionFastReverse::on_activation()
 
 		} else {
 			// No prior position items, so try to go to the first one.
-			_is_current_planned_mission_item_valid = (goToNextPositionItem(false) == PX4_OK);
+			_is_current_planned_mission_item_valid = (goToNextPositionItem() == PX4_OK);
 		}
 	}
 
@@ -107,7 +107,7 @@ void RtlMissionFastReverse::on_active()
 
 bool RtlMissionFastReverse::setNextMissionItem()
 {
-	return (goToPreviousPositionItem(true) == PX4_OK);
+	return (goToPreviousPositionItem() == PX4_OK);
 }
 
 void RtlMissionFastReverse::setActiveMissionItems()

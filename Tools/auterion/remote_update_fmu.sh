@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Flash PX4 to a device running AuterionOS in the local network
 if [ "$1" == "-h" ] || [ "$1" == "--help" ] || [ $# -lt 2 ]; then
 	echo "Usage: $0 -f <firmware.px4|.elf> [-c <configuration_dir>] -d <IP/Device> [-u <user>] [-p <ssh_port>] [--revert]"

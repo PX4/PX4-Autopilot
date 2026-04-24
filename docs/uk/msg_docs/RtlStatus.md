@@ -8,14 +8,14 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Назва                                                           | Тип      | Unit [Frame] | Range/Enum | Опис                                                                                                                                                                                  |
-| --------------------------------------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| timestamp                                                       | `uint64` |                                                                  |            | time since system start (microseconds)                                                                                                                             |
-| safe_points_id        | `uint32` |                                                                  |            | unique ID of active set of safe_point_items                                                                                                 |
-| is_evaluation_pending | `bool`   |                                                                  |            | flag if the RTL point needs reevaluation (e.g. new safe points available, but need loading).                       |
-| has_vtol_approach     | `bool`   |                                                                  |            | flag if approaches are defined for current RTL_TYPE parameter setting                                                                                            |
-| rtl_type                                   | `uint8`  |                                                                  |            | Type of RTL chosen                                                                                                                                                                    |
-| safe_point_index      | `uint8`  |                                                                  |            | index of the chosen safe point, if in RTL_STATUS_TYPE_DIRECT_SAFE_POINT mode |
+| Назва                                                           | Тип      | Unit [Frame] | Range/Enum | Опис                                                                                                                                                            |
+| --------------------------------------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| timestamp                                                       | `uint64` |                                                                  |            | time since system start (microseconds)                                                                                                       |
+| safe_points_id        | `uint32` |                                                                  |            | unique ID of active set of safe_point_items                                                                           |
+| is_evaluation_pending | `bool`   |                                                                  |            | flag if the RTL point needs reevaluation (e.g. new safe points available, but need loading). |
+| has_vtol_approach     | `bool`   |                                                                  |            | flag if approaches are defined for current RTL_TYPE parameter setting                                                                      |
+| rtl_type                                   | `uint8`  |                                                                  |            | Type of RTL chosen                                                                                                                                              |
+| safe_point_index      | `uint8`  |                                                                  |            | index of the chosen safe point, UINT8_MAX if no rally point was chosen                                                                     |
 
 ## Constants
 
@@ -43,7 +43,7 @@ bool is_evaluation_pending 	      # flag if the RTL point needs reevaluation (e.
 bool has_vtol_approach 		      # flag if approaches are defined for current RTL_TYPE parameter setting
 
 uint8 rtl_type	      		      # Type of RTL chosen
-uint8 safe_point_index 		      # index of the chosen safe point, if in RTL_STATUS_TYPE_DIRECT_SAFE_POINT mode
+uint8 safe_point_index 		      # index of the chosen safe point, UINT8_MAX if no rally point was chosen
 
 uint8 RTL_STATUS_TYPE_NONE=0       		# pending if evaluation can't pe performed currently e.g. when it is still loading the safe points
 uint8 RTL_STATUS_TYPE_DIRECT_SAFE_POINT=1 	# chosen to directly go to a safe point or home position

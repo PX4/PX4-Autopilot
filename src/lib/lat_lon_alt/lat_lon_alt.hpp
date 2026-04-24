@@ -103,6 +103,9 @@ public:
 	 */
 	matrix::Vector3f computeAngularRateNavFrame(const matrix::Vector3f &v_ned) const;
 
+	// Compute the ECEF to NED coordinate transformation matrix at the current position
+	matrix::Dcmf computeRotEcefToNed() const;
+
 	struct Wgs84 {
 		static constexpr double equatorial_radius = 6378137.0;
 		static constexpr double eccentricity = 0.0818191908425;

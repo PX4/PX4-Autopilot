@@ -19,9 +19,6 @@ param set-default BAT1_A_PER_V 59.5
 # system_power unavailable
 param set-default CBRK_SUPPLY_CHK 894281
 
-# Select the Generic 250 Racer by default
-param set-default SYS_AUTOSTART 4050
-
 # use EKF2 without mag
 param set-default SYS_HAS_MAG 0
 # and enable gravity fusion
@@ -32,11 +29,13 @@ param set-default CBRK_BUZZER 782090
 
 param set-default IMU_GYRO_RATEMAX 2000
 
-# Store missions in RAM
-param set-default SYS_DM_BACKEND 1
-
 # Ignore that there is no SD card
 param set-default COM_ARM_SDCARD 0
 
-# Disable logging
-param set-default SDLOG_BACKEND 0
+# W25N NAND flash with littlefs (128 MB): small log file size so we can keep
+# a few recent logs, and fill up to 95%.
+param set-default SDLOG_ROTATE 95
+param set-default SDLOG_MAX_SIZE 40
+
+# Store missions in RAM
+param set-default SYS_DM_BACKEND 1

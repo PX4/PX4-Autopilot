@@ -457,6 +457,10 @@ div.frame_variant td, div.frame_variant th {
  <td>SIH Quadcopter X</td>
  <td>Maintainer: Romain Chiappinelli &lt;romain.chiap@gmail.com&gt;<p><code>SYS_AUTOSTART</code> = 1100</p></td>
 </tr>
+<tr id="copter_simulation_sih_hexacopter_x">
+ <td>SIH Hexacopter X</td>
+ <td>Maintainer: Romain Chiappinelli &lt;romain.chiap@gmail.com&gt;<p><code>SYS_AUTOSTART</code> = 1105</p></td>
+</tr>
 </tbody>
 </table>
 </div>

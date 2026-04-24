@@ -90,6 +90,8 @@ private:
 		self->processData(data);
 	}
 
+private:
+	DEFINE_PARAMETERS((ParamInt<px4::params::ILABS_MODE>)_param_ilabs_mode)
 	InertialLabs::Sensor _sensor{};
 
 	char _serialDeviceName[20]{};
@@ -127,6 +129,4 @@ private:
 	    perf_alloc(PC_INTERVAL, MODULE_NAME ": local position publish interval")};
 	perf_counter_t _global_position_pub_interval_perf{
 	    perf_alloc(PC_INTERVAL, MODULE_NAME ": global position publish interval")};
-
-	DEFINE_PARAMETERS((ParamInt<px4::params::ILABS_MODE>)_param_ilabs_mode)
 };

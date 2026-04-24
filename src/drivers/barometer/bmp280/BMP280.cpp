@@ -144,8 +144,12 @@ BMP280::collect()
 
 	_collect_phase = false;
 
-	// this should be fairly close to the end of the conversion, so the best approximation of the time
-	const hrt_abstime timestamp_sample = hrt_absolute_time();
+	/* Correct for measurement integration delay: the pressure was
+	 * integrated over the preceding _measure_interval window, so the
+	 * effective sample midpoint is half the measurement time before now. */
+	const hrt_abstime now = hrt_absolute_time();
+	const hrt_abstime half_meas = _measure_interval / 2;
+	const hrt_abstime timestamp_sample = (now > half_meas) ? (now - half_meas) : now;
 	bmp280::data_s *data = _interface->get_data(BMP280_ADDR_DATA);
 
 	if (data == nullptr) {

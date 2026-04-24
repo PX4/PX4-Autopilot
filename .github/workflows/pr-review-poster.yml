@@ -1,0 +1,179 @@
+name: PR Review Poster
+
+# Generic PR review-comment poster. Sibling of "PR Comment Poster": that
+# workflow posts sticky issue-style comments, this one posts line-anchored
+# review comments on the "Files changed" tab. Any analysis workflow that
+# wants to flag specific lines can produce a `pr-review` artifact and this
+# workflow will dismiss any stale matching review and post a fresh one.
+# Designed so analysis jobs running on untrusted fork PRs can still get
+# their inline annotations posted back to the PR.
+#
+# ==============================================================================
+# SECURITY INVARIANTS
+# ==============================================================================
+# This workflow runs on `workflow_run` which means it runs in the BASE REPO
+# context with a WRITE token, even when the triggering PR comes from a fork.
+# That is the entire reason it exists, and also the reason it is a loaded
+# footgun. Anyone modifying this file MUST preserve the following invariants:
+#
+#   1. NEVER check out PR code. No `actions/checkout` with a ref. No git clone
+#      of a fork branch. No execution of scripts from the downloaded artifact.
+#      The ONLY things read from the artifact are `manifest.json` and
+#      `comments.json`, and both are treated as opaque data (JSON parsed by
+#      the poster script and the comment fields posted via the GitHub API).
+#
+#   2. `pr_number` is validated to be a positive integer before use.
+#      `marker` is validated to be printable ASCII only before use.
+#      `commit_sha` is validated to be 40 lowercase hex characters.
+#      `event` is validated against an allowlist of `COMMENT` only.
+#      `APPROVE` and `REQUEST_CHANGES` are intentionally forbidden:
+#      bots should not approve PRs, and REQUEST_CHANGES reviews cannot
+#      be dismissed by the GITHUB_TOKEN under branch protection rules.
+#      Validation happens inside
+#      Tools/ci/pr-review-poster.py which is checked out from the base
+#      branch, not from the artifact.
+#
+#   3. Comment bodies and the optional summary are passed to the GitHub API
+#      as JSON fields, never interpolated into a shell command string.
+#
+#   4. This workflow file lives on the default branch. `workflow_run` only
+#      loads workflow files from the default branch, so a fork cannot modify
+#      THIS file as part of a PR. The fork CAN cause this workflow to fire
+#      by triggering a producer workflow that uploads a `pr-review`
+#      artifact. That is intended.
+#
+#   5. The artifact-name filter (`pr-review`) is the only gate on which
+#      workflow runs get processed. Any workflow in this repo that uploads
+#      an artifact named `pr-review` is trusted to have written the
+#      manifest and comments itself, NOT copied fork-controlled content
+#      into them. Producer workflows are responsible for that.
+#
+#   6. `actions/checkout@v6` below uses NO ref (so it pulls the base branch,
+#      the default-branch commit this workflow file was loaded from) AND
+#      uses sparse-checkout to materialize ONLY
+#      Tools/ci/pr-review-poster.py and its stdlib-only helper module
+#      Tools/ci/_github_helpers.py. The rest of the repo never touches the
+#      workspace. This is safe: the only files the job executes are
+#      base-repo Python scripts that were reviewed through normal code
+#      review, never anything from the PR.
+#
+#   7. Stale-review dismissal is restricted to reviews whose AUTHOR is
+#      `github-actions[bot]` AND whose body contains the producer's
+#      marker. A fork PR cannot impersonate the bot login, and cannot
+#      inject the marker into a human reviewer's body without API
+#      access. Both filters together prevent the poster from ever
+#      dismissing a human review.
+#
+# ==============================================================================
+# ARTIFACT CONTRACT
+# ==============================================================================
+# Producers upload an artifact named exactly `pr-review` containing:
+#
+#   manifest.json:
+#     {
+#       "pr_number":  12345,                                      // required, int > 0
+#       "marker":     "<!-- pr-review-poster:clang-tidy -->",     // required, printable ASCII
+#       "event":      "COMMENT",                                   // required, "COMMENT" only
+#       "commit_sha": "0123456789abcdef0123456789abcdef01234567", // required, 40 hex chars
+#       "summary":    "Optional review summary text"              // optional
+#     }
+#
+#   comments.json: JSON array of line-anchored review comment objects:
+#     [
+#       {"path": "src/foo.cpp", "line": 42, "side": "RIGHT", "body": "..."},
+#       {"path": "src/bar.hpp", "start_line": 10, "line": 15,
+#        "side": "RIGHT", "start_side": "RIGHT", "body": "..."}
+#     ]
+#
+# The `marker` string is used to find an existing matching review to
+# dismiss before posting a new one. It MUST be unique per producer (e.g.
+# include the producer name).
+#
+# Producers MUST write `pr_number` and `commit_sha` from their own
+# workflow context (`github.event.pull_request.number` and
+# `github.event.pull_request.head.sha`) and MUST NOT read either from any
+# fork-controlled source.
+
+on:
+  workflow_run:
+    # Producers that may upload a `pr-review` artifact. When a new
+    # producer is wired up, add its workflow name here. Runs of workflows
+    # not in this list will never trigger the poster. Every run of a
+    # listed workflow will trigger the poster, which will no-op if no
+    # `pr-review` artifact exists.
+    workflows:
+      - "Static Analysis"
+    types:
+      - completed
+
+permissions:
+  pull-requests: write
+  actions: read
+  contents: read
+
+jobs:
+  post:
+    name: Post PR Review
+    runs-on: ubuntu-latest
+    # Only run for pull_request producer runs. Push-to-main and other
+    # non-PR triggers have no review to post, so gating at the job level
+    # surfaces those as a clean "Skipped" in the UI instead of a
+    # silent no-op buried inside the script.
+    if: >-
+      github.event.workflow_run.conclusion != 'cancelled'
+      && github.event.workflow_run.event == 'pull_request'
+    steps:
+      # Checkout runs first so the poster scripts are available AND so
+      # that actions/checkout@v6's default clean step does not delete the
+      # artifact zip that the next step writes into the workspace.
+      # Sparse-checkout restricts the materialized tree to just the
+      # poster script and its stdlib helper module.
+      - name: Checkout poster script only
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            Tools/ci/pr-review-poster.py
+            Tools/ci/_github_helpers.py
+          sparse-checkout-cone-mode: false
+
+      - name: Download pr-review artifact
+        id: download
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.payload.workflow_run.id,
+            });
+            const match = artifacts.data.artifacts.find(a => a.name === 'pr-review');
+            if (!match) {
+              core.info('No pr-review artifact on this run; nothing to post.');
+              core.setOutput('found', 'false');
+              return;
+            }
+            const download = await github.rest.actions.downloadArtifact({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              artifact_id: match.id,
+              archive_format: 'zip',
+            });
+            const fs = require('fs');
+            fs.writeFileSync('pr-review.zip', Buffer.from(download.data));
+            core.setOutput('found', 'true');
+
+      - name: Unpack artifact
+        if: steps.download.outputs.found == 'true'
+        run: |
+          mkdir -p pr-review
+          unzip -q pr-review.zip -d pr-review
+
+      - name: Validate artifact
+        if: steps.download.outputs.found == 'true'
+        run: python3 Tools/ci/pr-review-poster.py validate pr-review
+
+      - name: Post PR review
+        if: steps.download.outputs.found == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 Tools/ci/pr-review-poster.py post pr-review

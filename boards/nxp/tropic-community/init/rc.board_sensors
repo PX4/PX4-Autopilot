@@ -5,10 +5,10 @@
 #
 # UART mapping on Tropic Community:
 #
-# LPUART5       /dev/ttyS0      CONSOLE
-# LPUART3       /dev/ttyS1      GPS
-# LPUART2       /dev/ttyS2      TELEM1
-# LPUART4       /dev/ttyS3      TELEM2
+# LPUART5       /dev/ttyS0      DEBUG
+# LPUART3       /dev/ttyS2      TELEM
+# LPUART2       /dev/ttyS1      GPS
+# LPUART4       /dev/ttyS3      AUX
 # LPUART8       /dev/ttyS4      RC
 #
 #------------------------------------------------------------------------------

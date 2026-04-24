@@ -274,7 +274,7 @@ void VehicleAirData::Run()
 
 				const hrt_abstime timestamp_sample = _timestamp_sample_sum[instance] / _data_sum_count[instance];
 
-				if (time_now_us >= _last_publication_timestamp[instance] + interval_us) {
+				if (timestamp_sample >= _last_publication_timestamp[instance] + interval_us) {
 
 					bool publish = (time_now_us <= timestamp_sample + 1_s);
 
@@ -312,7 +312,12 @@ void VehicleAirData::Run()
 						_vehicle_air_data_pub.publish(out);
 					}
 
-					_last_publication_timestamp[instance] = time_now_us;
+					// epoch-advance to prevent aliasing; catch up if more than one interval behind
+					_last_publication_timestamp[instance] += interval_us;
+
+					if (timestamp_sample > _last_publication_timestamp[instance] + interval_us) {
+						_last_publication_timestamp[instance] = timestamp_sample;
+					}
 
 					// reset
 					_timestamp_sample_sum[instance] = 0;

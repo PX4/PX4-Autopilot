@@ -45,10 +45,11 @@ bool battery_low_remaining_time       # Low battery based on remaining flight ti
 bool battery_unhealthy                # Battery unhealthy
 
 # Failure detector
-bool fd_critical_failure              # Critical failure (attitude/altitude limit exceeded, or external ATS)
+bool fd_critical_failure              # Critical failure (attitude limit exceeded, or external ATS)
 bool fd_esc_arming_failure            # ESC failed to arm
 bool fd_imbalanced_prop               # Imbalanced propeller detected
 bool fd_motor_failure                 # Motor failure
+bool fd_alt_loss                      # Uncommanded altitude loss (rotary-wing, altitude-controlled flight)
 
 # Other
 bool geofence_breached        	      # Geofence breached (one or multiple)
@@ -59,3 +60,4 @@ bool flight_time_limit_exceeded       # Maximum flight time exceeded
 bool position_accuracy_low            # Position estimate has dropped below threshold, but is currently still declared valid
 bool navigator_failure        	      # Navigator failed to execute a mode
 bool parachute_unhealthy              # Parachute system missing or unhealthy
+bool remote_id_unhealthy              # Remote ID (Open Drone ID) system missing or unhealthy

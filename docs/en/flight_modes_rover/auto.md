@@ -13,14 +13,14 @@ The mission is typically created and uploaded with a Ground Control Station (GCS
 
 The following commands can be used in missions at time of writing (PX4 v1.16):
 
-| QGC mission item    | Command                                                      | Description                                       |
-| ------------------- | ------------------------------------------------------------ | ------------------------------------------------- |
-| Mission start       | [MAV_CMD_MISSION_START](MAV_CMD_MISSION_START)               | Starts the mission.                               |
-| Waypoint            | [MAV_CMD_NAV_WAYPOINT](MAV_CMD_NAV_WAYPOINT)                 | Navigate to waypoint.                             |
-| Return to launch    | [MAV_CMD_NAV_RETURN_TO_LAUNCH][MAV_CMD_NAV_RETURN_TO_LAUNCH] | Return to the launch location.                    |
-| Change speed        | [MAV_CMD_DO_CHANGE_SPEED][MAV_CMD_DO_CHANGE_SPEED]           | Change the speed setpoint                         |
-| Set launch location | [MAV_CMD_DO_SET_HOME](MAV_CMD_DO_SET_HOME)                   | Changes launch location to specified coordinates. |
-| Jump to item (all)  | [MAV_CMD_DO_JUMP][MAV_CMD_DO_JUMP] (and other jump commands) | Jump to specified mission item.                   |
+| QGC mission item    | Command                                     | Description                                       |
+| ------------------- | ------------------------------------------- | ------------------------------------------------- |
+| Mission start       | [MAV_CMD_MISSION_START]                     | Starts the mission.                               |
+| Waypoint            | [MAV_CMD_NAV_WAYPOINT]                      | Navigate to waypoint.                             |
+| Return to launch    | [MAV_CMD_NAV_RETURN_TO_LAUNCH]              | Return to the launch location.                    |
+| Change speed        | [MAV_CMD_DO_CHANGE_SPEED]                   | Change the speed setpoint                         |
+| Set launch location | [MAV_CMD_DO_SET_HOME]                       | Changes launch location to specified coordinates. |
+| Jump to item (all)  | [MAV_CMD_DO_JUMP] (and other jump commands) | Jump to specified mission item.                   |
 
 [MAV_CMD_MISSION_START]: https://mavlink.io/en/messages/common.html#MAV_CMD_MISSION_START
 [MAV_CMD_NAV_WAYPOINT]: https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_WAYPOINT

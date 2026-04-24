@@ -1458,6 +1458,20 @@ None
 | 6     |                               |            | ?  |
 | 7     |                               |            | ?  |
 
+### VEHICLE_CMD_ESTIMATOR_SENSOR_ENABLE (43006)
+
+Enable/disable estimator sensor fusion.
+
+| Param | 单位 (Units) | Range/Enum | 描述                                                                    |
+| ----- | ----------------------------- | ---------- | --------------------------------------------------------------------- |
+| 1     |                               |            | Source (FUSION_SOURCE_\*)                          |
+| 2     |                               |            | Sensor instance (0-based)                          |
+| 3     |                               |            | Enable (1) or Disable (0)       |
+| 4     |                               |            | Estimator Instance (NaN: not used) |
+| 5     |                               |            | 空                                                                     |
+| 6     |                               |            | 空                                                                     |
+| 7     |                               |            | 空                                                                     |
+
 ### VEHICLE_CMD_PX4_INTERNAL_START (65537)
 
 Start of PX4 internal only vehicle commands (> UINT16_MAX).
@@ -1544,6 +1558,15 @@ Change mode by specifying nav_state directly.
 | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                                                                                          | `uint32` | 0    |                                                                                                                                                                    |
 | <a id="#PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION"></a> PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION    | `uint16` | 3    | Param value for VEHICLE_CMD_PREFLIGHT_CALIBRATION to start temperature calibration. |
+| <a id="#FUSION_SOURCE_GPS"></a> FUSION_SOURCE_GPS                                                                                 | `uint8`  | 0    | GNSS (EKF2_GPS{i}\_CTRL, use instance param)                                                         |
+| <a id="#FUSION_SOURCE_OF"></a> FUSION_SOURCE_OF                                                                                   | `uint8`  | 1    | Optical Flow (EKF2_OF_CTRL)                                                                           |
+| <a id="#FUSION_SOURCE_EV"></a> FUSION_SOURCE_EV                                                                                   | `uint8`  | 2    | External Vision (EKF2_EV_CTRL)                                                                        |
+| <a id="#FUSION_SOURCE_AGP"></a> FUSION_SOURCE_AGP                                                                                 | `uint8`  | 3    | Auxiliary Global Position (EKF2_AGP{i}\_CTRL, use instance param)                                    |
+| <a id="#FUSION_SOURCE_BARO"></a> FUSION_SOURCE_BARO                                                                               | `uint8`  | 4    | Barometer (EKF2_BARO_CTRL)                                                                            |
+| <a id="#FUSION_SOURCE_RNG"></a> FUSION_SOURCE_RNG                                                                                 | `uint8`  | 5    | Range Finder (EKF2_RNG_CTRL)                                                                          |
+| <a id="#FUSION_SOURCE_MAG"></a> FUSION_SOURCE_MAG                                                                                 | `uint8`  | 6    | Magnetometer (EKF2_MAG_TYPE)                                                                          |
+| <a id="#FUSION_SOURCE_ASPD"></a> FUSION_SOURCE_ASPD                                                                               | `uint8`  | 7    | Airspeed (EKF2_ARSP_THR)                                                                              |
+| <a id="#FUSION_SOURCE_RNGBCN"></a> FUSION_SOURCE_RNGBCN                                                                           | `uint8`  | 8    | Ranging Beacon                                                                                                                                                     |
 | <a id="#VEHICLE_MOUNT_MODE_RETRACT"></a> VEHICLE_MOUNT_MODE_RETRACT                                          | `uint8`  | 0    | Load and keep safe position (Roll,Pitch,Yaw) from permanent memory and stop stabilization.                                      |
 | <a id="#VEHICLE_MOUNT_MODE_NEUTRAL"></a> VEHICLE_MOUNT_MODE_NEUTRAL                                          | `uint8`  | 1    | Load and keep neutral position (Roll,Pitch,Yaw) from permanent memory.                                                          |
 | <a id="#VEHICLE_MOUNT_MODE_MAVLINK_TARGETING"></a> VEHICLE_MOUNT_MODE_MAVLINK_TARGETING | `uint8`  | 2    | Load neutral position and start MAVLink Roll,Pitch,Yaw control with stabilization.                                                                 |
@@ -1711,6 +1734,17 @@ uint16 VEHICLE_CMD_DO_WINCH = 42600 # Command to operate winch.
 
 uint16 VEHICLE_CMD_EXTERNAL_POSITION_ESTIMATE = 43003 # External reset of estimator global position when dead reckoning.
 uint16 VEHICLE_CMD_EXTERNAL_WIND_ESTIMATE = 43004
+uint16 VEHICLE_CMD_ESTIMATOR_SENSOR_ENABLE = 43006 # Enable/disable estimator sensor fusion. |Source (FUSION_SOURCE_*)|Sensor instance (0-based)|Enable (1) or Disable (0)|Estimator Instance (NaN: not used)|Empty|Empty|Empty|
+# Sensor fusion source types for VEHICLE_CMD_ESTIMATOR_SENSOR_ENABLE
+uint8 FUSION_SOURCE_GPS = 0   # GNSS (EKF2_GPS{i}_CTRL, use instance param)
+uint8 FUSION_SOURCE_OF = 1    # Optical Flow (EKF2_OF_CTRL)
+uint8 FUSION_SOURCE_EV = 2    # External Vision (EKF2_EV_CTRL)
+uint8 FUSION_SOURCE_AGP = 3   # Auxiliary Global Position (EKF2_AGP{i}_CTRL, use instance param)
+uint8 FUSION_SOURCE_BARO = 4  # Barometer (EKF2_BARO_CTRL)
+uint8 FUSION_SOURCE_RNG = 5   # Range Finder (EKF2_RNG_CTRL)
+uint8 FUSION_SOURCE_MAG = 6   # Magnetometer (EKF2_MAG_TYPE)
+uint8 FUSION_SOURCE_ASPD = 7  # Airspeed (EKF2_ARSP_THR)
+uint8 FUSION_SOURCE_RNGBCN = 8 # Ranging Beacon
 
 # PX4 vehicle commands (beyond 16 bit MAVLink commands).
 uint32 VEHICLE_CMD_PX4_INTERNAL_START = 65537 # Start of PX4 internal only vehicle commands (> UINT16_MAX).

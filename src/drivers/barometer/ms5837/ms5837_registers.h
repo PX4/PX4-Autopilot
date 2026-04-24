@@ -83,6 +83,7 @@
  * conversion finished
  */
 #define MS5837_CONVERSION_INTERVAL	10000	/* microseconds */
+#define MS5837_OSR1024_CONVERSION_TIME	2280	/* max ADC conversion time at OSR 1024, microseconds */
 #define MS5837_MEASUREMENT_RATIO	3	/* pressure measurements per temperature measurement */
 
 namespace ms5837

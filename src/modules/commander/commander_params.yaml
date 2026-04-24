@@ -507,7 +507,7 @@ parameters:
         4: Terminate
       default: 0
       min: 0
-      max: 3
+      max: 4
     COM_PARACHUTE:
       description:
         short: Require MAVLink parachute system to be present and healthy
@@ -612,16 +612,16 @@ parameters:
       default: 1
     COM_ARM_ODID:
       description:
-        short: Enable Drone ID system detection and health check
-        long: |-
-          This check detects if the Open Drone ID system is missing.
-          Depending on the value of the parameter, the check can be
-          disabled, warn only or deny arming.
+        short: Open Drone ID system check and in-flight failsafe
+        long: Actions other than warning also prevent arming.
       type: enum
       values:
         0: Disabled
         1: Warning only
-        2: Enforce Open Drone ID system presence
+        2: Error only
+        3: Return
+        4: Land
+        5: Terminate
       default: 0
     COM_ARM_TRAFF:
       description:
