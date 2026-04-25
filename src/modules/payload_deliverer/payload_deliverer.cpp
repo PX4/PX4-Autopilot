@@ -42,6 +42,11 @@ PayloadDeliverer::PayloadDeliverer()
 
 bool PayloadDeliverer::init()
 {
+	// Initialize state the callbacks will read before arming them —
+	// otherwise ScheduleOnInterval/registerCallback can invoke Run()
+	// concurrently with configure_gripper().
+	configure_gripper();
+
 	ScheduleOnInterval(100_ms);
 
 	if (!_vehicle_command_sub.registerCallback()) {
@@ -49,7 +54,6 @@ bool PayloadDeliverer::init()
 		return false;
 	}
 
-	configure_gripper();
 	return true;
 }
 
