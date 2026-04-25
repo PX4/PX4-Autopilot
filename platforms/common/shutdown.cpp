@@ -206,7 +206,11 @@ static void shutdown_worker(void *arg)
 #elif defined(__PX4_POSIX)
 			// simply exit on posix if real shutdown (poweroff) not available
 			PX4_INFO_RAW("Exiting NOW.");
+#if defined(__SANITIZE_ADDRESS__) || defined(__has_feature) && __has_feature(address_sanitizer)
+			exit(0); // Use exit() instead of _exit() so ASAN can report errors
+#else
 			system_exit(0);
+#endif
 #else
 			PX4_PANIC("board shutdown not available");
 #endif
