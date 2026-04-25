@@ -130,3 +130,19 @@ parameters:
       max: 10
       decimal: 1
       increment: 1
+    MPC_Z_ERR_MAX:
+      description:
+        short: Maximum vertical error allowed by the trajectory generator
+        long: |-
+          Vertical analog of MPC_XY_ERR_MAX. When the smoothed trajectory z
+          leads the drone by more than this value, trajectory integration is
+          slowed down so the virtual setpoint can't walk away from the drone.
+          This suppresses altitude overshoots caused by a noisy altitude
+          reference (e.g. mission setpoint jittering as the home altitude
+          estimate is refined in flight).
+      type: float
+      default: 1.0
+      min: 0.1
+      max: 10
+      decimal: 1
+      increment: 0.1
