@@ -1,0 +1,85 @@
+name: Request Copilot Review
+
+# Automatically request a review from GitHub Copilot on every new pull
+# request, using credits from the PR author's (or repo's) Copilot
+# subscription. Copilot is a Bot actor, so the REST
+# `requested_reviewers` endpoint cannot add it; the GraphQL
+# `requestReviews` mutation is used instead.
+#
+# Runs on `pull_request_target` so GITHUB_TOKEN has `pull-requests:
+# write` on fork PRs too. The job never checks out PR head code; it
+# only issues GraphQL calls with values from the event payload, so the
+# usual `pull_request_target` footguns do not apply here.
+
+on:
+  pull_request_target:
+    types: [opened, reopened, ready_for_review]
+
+permissions:
+  pull-requests: write
+
+concurrency:
+  group: request-copilot-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  request:
+    name: Request Copilot review
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    steps:
+      - name: Request review
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+
+            const lookup = await github.graphql(`
+              query($owner: String!, $name: String!) {
+                repository(owner: $owner, name: $name) {
+                  suggestedActors(capabilities: [CAN_BE_ASSIGNED], first: 100) {
+                    nodes {
+                      login
+                      __typename
+                      ... on Bot { id }
+                      ... on User { id }
+                    }
+                  }
+                }
+              }
+            `, {
+              owner: context.repo.owner,
+              name: context.repo.repo,
+            });
+
+            const copilot = lookup.repository.suggestedActors.nodes.find(
+              (n) => n.login === 'copilot-pull-request-reviewer'
+            );
+            if (!copilot) {
+              core.warning(
+                'Copilot reviewer is not available for this repository. ' +
+                'Enable Copilot code review in repo settings or check that ' +
+                'the org has Copilot Pro+/Enterprise seats with code review.'
+              );
+              return;
+            }
+
+            try {
+              await github.graphql(`
+                mutation($pullRequestId: ID!, $userIds: [ID!]!) {
+                  requestReviews(input: {
+                    pullRequestId: $pullRequestId,
+                    userIds: $userIds,
+                    union: true
+                  }) {
+                    clientMutationId
+                  }
+                }
+              `, {
+                pullRequestId: pr.node_id,
+                userIds: [copilot.id],
+              });
+              core.info(`Requested Copilot review for PR #${pr.number}`);
+            } catch (err) {
+              core.warning(`Failed to request Copilot review: ${err.message}`);
+            }
