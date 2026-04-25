@@ -1,11 +1,13 @@
-# This workflow will triage pull requests and apply a label based on the
-# paths that are modified in the pull request.
-# The paths are set up in .github/labeler.yml
+# This workflow will triage pull requests and apply labels based on the
+# PR title prefix and paths that are modified in the pull request.
+# The path labels are set up in .github/labeler.yml
 #
 # See: https://github.com/actions/labeler
 
 name: Labeler
-on: [pull_request_target]
+on:
+  pull_request_target:
+    types: [opened, edited, synchronize, reopened, ready_for_review]
 
 jobs:
   label:
@@ -13,9 +15,44 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      issues: write
       pull-requests: write
 
     steps:
+    - name: Label PR title type
+      env:
+        GH_TOKEN: ${{ github.token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        PR_TITLE: ${{ github.event.pull_request.title }}
+      run: |
+        set -euo pipefail
+
+        if [[ ! "$PR_TITLE" =~ ^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)\([a-zA-Z0-9_./-]+\)!?:\ .{5,}$ ]]; then
+          echo "No conventional commit type detected; Commit Quality validates title format."
+          exit 0
+        fi
+
+        type="${BASH_REMATCH[1]}"
+
+        case "$type" in
+          feat) label="kind:feature" ;;
+          fix) label="kind:bug" ;;
+          refactor) label="kind:refactor" ;;
+          perf) label="kind:improvement" ;;
+          test) label="kind:test" ;;
+          docs|style|build|ci|chore|revert) label="kind:chore" ;;
+        esac
+
+        current_labels="$(gh pr view "$PR_NUMBER" --json labels --jq '.labels[].name')"
+
+        if grep -Fxq "$label" <<< "$current_labels"; then
+          echo "PR already has $label."
+          exit 0
+        fi
+
+        echo "Adding $label based on PR title type '$type'."
+        gh pr edit "$PR_NUMBER" --add-label "$label"
+
     - uses: actions/labeler@v6
       with:
         repo-token: "${{ secrets.GITHUB_TOKEN }}"
