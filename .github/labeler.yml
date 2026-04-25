@@ -3,8 +3,333 @@
 # Docs for the syntax in this file can be found at
 # https://github.com/actions/labeler
 
+"scope:boards":
+- changed-files:
+  - any-glob-to-any-file:
+    - boards/**
+    - src/drivers/px4io/**
+    - src/modules/px4iofirmware/**
 
-# Add 'Documentation' label to any changes within 'docs' folder or any subfolders
+"scope:build-system":
+- changed-files:
+  - any-glob-to-any-file:
+    - CMakeLists.txt
+    - Makefile
+    - Kconfig
+    - cmake/**
+    - platforms/*/cmake/**
+    - platforms/*/Kconfig
+    - boards/**/Kconfig
+    - boards/**/*.cmake
+    - boards/**/*.px4board
+
+"scope:commander":
+- changed-files:
+  - any-glob-to-any-file:
+    - src/modules/commander/**
+    - src/modules/health_and_arming_checks/**
+
+"scope:control":
+- changed-files:
+  - any-glob-to-any-file:
+    - src/modules/*_att_control/**
+    - src/modules/*_rate_control/**
+    - src/modules/*_pos_control/**
+    - src/modules/*_mode_manager/**
+    - src/modules/control_allocator/**
+    - src/modules/flight_mode_manager/**
+    - src/modules/fw_lateral_longitudinal_control/**
+    - src/modules/mc_hover_thrust_estimator/**
+    - src/modules/mc_nn_control/**
+    - src/modules/mc_raptor/**
+    - src/modules/rover_*/**
+    - src/drivers/actuators/**
+    - src/drivers/dshot/**
+    - src/drivers/pwm_out/**
+    - src/drivers/pca9685_pwm_out/**
+    - src/drivers/tap_esc/**
+
+"scope:dependencies":
+- changed-files:
+  - any-glob-to-any-file:
+    - .gitmodules
+    - package.xml
+    - src/modules/mavlink/mavlink/**
+    - src/modules/uxrce_dds_client/Micro-XRCE-DDS-Client/**
+    - src/lib/crypto/monocypher/**
+    - src/lib/heatshrink/heatshrink/**
+    - platforms/nuttx/NuttX/**
+
 "scope:docs":
 - changed-files:
-  - any-glob-to-any-file: docs/**
+  - any-glob-to-any-file:
+    - docs/**
+    - .github/instructions/docs*.md
+
+"scope:drivers":
+- changed-files:
+  - any-glob-to-any-file:
+    - src/drivers/**
+
+"scope:estimation":
+- changed-files:
+  - any-glob-to-any-file:
+    - src/modules/ekf2/**
+    - src/modules/local_position_estimator/**
+    - src/modules/attitude_estimator_q/**
+    - src/modules/landing_target_estimator/**
+    - src/modules/mag_bias_estimator/**
+    - src/modules/gyro_calibration/**
+    - src/modules/gyro_fft/**
+    - Tools/ecl_ekf/**
+
+"scope:infrastructure":
+- changed-files:
+  - any-glob-to-any-file:
+    - .devcontainer/**
+    - .github/**
+    - .vscode/**
+    - .clang-tidy
+    - .dockerignore
+    - Jenkinsfile
+    - Tools/ci/**
+    - Tools/docker/**
+
+"scope:logging":
+- changed-files:
+  - any-glob-to-any-file:
+    - src/modules/logger/**
+    - src/modules/replay/**
+    - src/modules/events/**
+    - src/modules/hardfault_stream/**
+    - src/lib/events/**
+    - src/lib/ulog_streaming/**
+    - Tools/flight_review/**
+    - Tools/log_encryption/**
+
+"scope:mavlink":
+- changed-files:
+  - any-glob-to-any-file:
+    - src/modules/mavlink/**
+    - src/drivers/telemetry/**
+    - src/drivers/transponder/**
+    - Tools/HIL/**
+
+"scope:middleware":
+- changed-files:
+  - any-glob-to-any-file:
+    - src/modules/muorb/**
+    - src/modules/uxrce_dds_client/**
+    - src/modules/zenoh/**
+    - src/drivers/cyphal/**
+    - src/drivers/uavcan/**
+    - src/drivers/uavcannode/**
+    - platforms/ros2/**
+    - msg/translation_node/**
+
+"scope:navigation":
+- changed-files:
+  - any-glob-to-any-file:
+    - src/modules/navigator/**
+    - src/modules/dataman/**
+    - src/modules/land_detector/**
+    - src/modules/payload_deliverer/**
+    - src/lib/collision_prevention/**
+    - src/lib/flight_tasks/**
+    - src/lib/geofence/**
+    - src/lib/landing_slope/**
+    - src/lib/takeoff/**
+    - src/lib/weather_vane/**
+
+"scope:offboard":
+- changed-files:
+  - any-glob-to-any-file:
+    - src/modules/mavlink/mavlink_offboard.cpp
+    - src/modules/mavlink/mavlink_receiver.*
+    - src/modules/mavlink/streams/TRAJECTORY_REPRESENTATION_*.hpp
+    - src/modules/uxrce_dds_client/**
+    - src/modules/zenoh/**
+    - msg/OffboardControlMode.msg
+    - msg/TrajectorySetpoint.msg
+    - msg/VehicleCommand.msg
+    - msg/VehicleCommandAck.msg
+
+"scope:parameters":
+- changed-files:
+  - any-glob-to-any-file:
+    - "**/*_params.c"
+    - "**/*_params.cpp"
+    - "**/*_params.yaml"
+    - "**/parameters.c"
+    - "**/parameters.cpp"
+    - "**/module.yaml"
+    - src/lib/parameters/**
+    - src/modules/param/**
+    - Tools/param_metadata/**
+    - ROMFS/px4fmu_common/init.d*/**/*.params
+
+"scope:release":
+- changed-files:
+  - any-glob-to-any-file:
+    - docs/**/releases/**
+    - docs/**/release_process.md
+    - Tools/packaging/**
+    - platforms/**/package*.sh
+
+"scope:sensors":
+- changed-files:
+  - any-glob-to-any-file:
+    - src/modules/sensors/**
+    - src/modules/airspeed_selector/**
+    - src/modules/battery_status/**
+    - src/modules/esc_battery/**
+    - src/modules/temperature_compensation/**
+    - src/drivers/adc/**
+    - src/drivers/barometer/**
+    - src/drivers/batt_smbus/**
+    - src/drivers/differential_pressure/**
+    - src/drivers/distance_sensor/**
+    - src/drivers/gnss/**
+    - src/drivers/gps/**
+    - src/drivers/hygrometer/**
+    - src/drivers/imu/**
+    - src/drivers/ins/**
+    - src/drivers/irlock/**
+    - src/drivers/magnetometer/**
+    - src/drivers/optical_flow/**
+    - src/drivers/power_monitor/**
+    - src/drivers/pps_capture/**
+    - src/drivers/rpm/**
+    - src/drivers/rpm_capture/**
+    - src/drivers/smart_battery/**
+    - src/drivers/tattu_can/**
+    - src/drivers/temperature_sensor/**
+    - src/drivers/uwb/**
+    - src/drivers/wind_sensor/**
+
+"scope:simulation":
+- changed-files:
+  - any-glob-to-any-file:
+    - launch/**
+    - posix-configs/**
+    - src/modules/simulation/**
+    - Tools/simulation/**
+    - ROMFS/px4fmu_common/init.d-posix/**
+    - platforms/posix/**
+
+"scope:testing":
+- changed-files:
+  - any-glob-to-any-file:
+    - integrationtests/**
+    - test/**
+    - test_data/**
+    - validation/**
+    - src/systemcmds/tests/**
+    - src/examples/**
+    - "**/*[Tt]est.*"
+    - "**/*_test.*"
+    - "**/test_*.*"
+    - .github/workflows/*test*.yml
+    - .github/workflows/checks.yml
+    - .github/workflows/fuzzing.yml
+
+"scope:tools":
+- changed-files:
+  - any-glob-to-any-file:
+    - Tools/**
+    - msg/tools/**
+    - src/templates/**
+
+"scope:uorb":
+- changed-files:
+  - any-glob-to-any-file:
+    - msg/**
+    - srv/**
+    - platforms/common/uORB/**
+    - src/lib/uORB/**
+    - Tools/msg/**
+    - Tools/uorb_graph/**
+
+"kind:test":
+- changed-files:
+  - any-glob-to-any-file:
+    - integrationtests/**
+    - test/**
+    - test_data/**
+    - validation/**
+    - src/systemcmds/tests/**
+    - "**/*[Tt]est.*"
+    - "**/*_test.*"
+    - "**/test_*.*"
+
+"risk:safety-critical":
+- changed-files:
+  - any-glob-to-any-file:
+    - src/modules/commander/**
+    - src/modules/navigator/**
+    - src/modules/ekf2/**
+    - src/modules/sensors/**
+    - src/modules/*_control/**
+    - src/modules/control_allocator/**
+    - src/modules/land_detector/**
+    - src/modules/flight_mode_manager/**
+    - src/drivers/actuators/**
+    - src/drivers/imu/**
+    - src/drivers/ins/**
+    - src/drivers/pwm_out/**
+    - src/lib/collision_prevention/**
+    - src/lib/flight_tasks/**
+    - src/lib/geofence/**
+
+"risk:security":
+- changed-files:
+  - any-glob-to-any-file:
+    - SECURITY.md
+    - src/drivers/stub_keystore/**
+    - src/drivers/sw_crypto/**
+    - src/lib/crypto/**
+    - Tools/log_encryption/**
+    - Tools/test_keys/**
+
+"vehicle:airship":
+- changed-files:
+  - any-glob-to-any-file:
+    - src/modules/airship_att_control/**
+    - docs/**/frames_airship/**
+
+"vehicle:copter":
+- changed-files:
+  - any-glob-to-any-file:
+    - src/modules/mc_*/**
+    - docs/**/frames_multicopter/**
+    - docs/**/complete_vehicles_mc/**
+
+"vehicle:fixed-wing":
+- changed-files:
+  - any-glob-to-any-file:
+    - src/modules/fw_*/**
+    - docs/**/frames_plane/**
+    - docs/**/flying/fixed_wing*
+
+"vehicle:rover":
+- changed-files:
+  - any-glob-to-any-file:
+    - src/modules/rover_*/**
+    - docs/**/frames_rover/**
+
+"vehicle:spacecraft":
+- changed-files:
+  - any-glob-to-any-file:
+    - src/modules/spacecraft/**
+
+"vehicle:uuv":
+- changed-files:
+  - any-glob-to-any-file:
+    - src/modules/uuv_*/**
+    - docs/**/frames_sub/**
+
+"vehicle:vtol":
+- changed-files:
+  - any-glob-to-any-file:
+    - src/modules/vtol_att_control/**
+    - docs/**/frames_vtol/**
