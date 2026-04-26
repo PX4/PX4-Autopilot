@@ -146,6 +146,12 @@ void Sih::lockstep_loop()
 		sensor_step();
 		perf_end(_loop_perf);
 
+		// Wait for work-queue components (baro sim, mag sim, logger, etc.)
+		// to finish processing the sensor publications we just made before
+		// advancing sim time again. Without this, fast iterations can
+		// outrun consumers and produce torn state at speed factors > 1.
+		px4_lockstep_wait_for_components();
+
 		// Only do lock-step once we received the first actuator output
 		int sleep_time;
 		uint64_t current_wall_time_us;
