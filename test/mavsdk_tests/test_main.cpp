@@ -35,6 +35,8 @@
 #include "catch2/catch.hpp"
 
 #include <mavsdk/mavsdk.h>
+#include <csignal>
+#include <cstdlib>
 #include <iostream>
 #include <string>
 #include "autopilot_tester.h"
@@ -43,8 +45,28 @@
 static void usage(const std::string &bin_name);
 static void remove_argv(int &argc, char **argv, int pos);
 
+#if 0 // debug: convert SIGTERM into SIGABRT so a hung test produces a coredump
+// When the outer test harness times out a hung test it sends SIGTERM, whose
+// default action is plain termination — no coredump, no backtrace, leaving us
+// with no clue which loop was stuck. Flip this to capture all thread stacks
+// for post-mortem with gdb.
+static void sigterm_to_abort(int /*signum*/)
+{
+	std::abort();
+}
+#endif
+
 int main(int argc, char **argv)
 {
+#if 0 // debug: see sigterm_to_abort above
+	{
+		struct sigaction sa {};
+		sa.sa_handler = sigterm_to_abort;
+		sigemptyset(&sa.sa_mask);
+		sigaction(SIGTERM, &sa, nullptr);
+	}
+#endif
+
 	for (int i = 0; i < argc; ++i) {
 		const std::string argv_string(argv[i]);
 
