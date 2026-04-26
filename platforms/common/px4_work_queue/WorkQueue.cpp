@@ -179,21 +179,26 @@ void WorkQueue::Clear()
 
 void WorkQueue::Run()
 {
+#if 0 // diagnostics: warn on large gaps between Run() invocations
 	hrt_abstime _diag_last_run_time = 0;
 	static hrt_abstime _diag_last_warn_time = 0;
+#endif
 
 	while (!should_exit()) {
 		// loop as the wait may be interrupted by a signal
 		do {} while (px4_sem_wait(&_process_lock) != 0);
 
+#if 0 // diagnostics
 		hrt_abstime now = hrt_absolute_time();
 		hrt_abstime gap = (_diag_last_run_time > 0) ? (now - _diag_last_run_time) : 0;
 		_diag_last_run_time = now;
+#endif
 
 		work_lock();
 
-		// Instrumentation: count queue depth
+#if 0 // diagnostics: count queue depth
 		int queue_depth = (int)_q.size();
+#endif
 
 		// process queued work
 		while (!_q.empty()) {
@@ -224,7 +229,8 @@ void WorkQueue::Run()
 
 		work_unlock();
 
-		// Instrumentation: warn when work queue has large gaps
+#if 0 // diagnostics: warn when work queue has large gaps
+
 		if (gap > 100000) { // > 100ms sim time gap
 			hrt_abstime warn_now = hrt_absolute_time();
 
@@ -237,6 +243,8 @@ void WorkQueue::Run()
 				_diag_last_warn_time = warn_now;
 			}
 		}
+
+#endif
 	}
 
 	PX4_DEBUG("%s: exiting", _config.name);

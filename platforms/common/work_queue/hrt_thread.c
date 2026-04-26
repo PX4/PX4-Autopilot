@@ -123,6 +123,12 @@ static void hrt_work_process(void)
 	uint32_t remaining;
 	uint32_t next;
 
+#if 0 // diagnostics: kept for future debugging of hrt overdue items
+	static uint64_t last_diag_time = 0;
+	int items_processed = 0;
+	uint64_t max_overdue_us = 0;
+#endif
+
 	// set the threads name
 #ifdef __PX4_DARWIN
 	pthread_setname_np("HRT");
@@ -163,6 +169,15 @@ static void hrt_work_process(void)
 
 		//PX4_INFO("hrt work_process: in usec elapsed=%lu delay=%u work=%p", elapsed, work->delay, work);
 		if (elapsed >= work->delay) {
+#if 0 // diagnostics
+			uint64_t overdue = elapsed - work->delay;
+
+			if (overdue > max_overdue_us) {
+				max_overdue_us = overdue;
+			}
+
+			items_processed++;
+#endif
 			/* Remove the ready-to-execute work from the list */
 
 			(void)dq_rem((dq_entry_t *)&work->dq, &wqueue->q);
@@ -226,6 +241,23 @@ static void hrt_work_process(void)
 	 * the time elapses or until we are awakened by a signal.
 	 */
 	hrt_work_unlock();
+
+#if 0 // diagnostics: warn when hrt work items are significantly overdue
+
+	if (max_overdue_us > 10000) { // > 10ms sim time
+		uint64_t now_wall = hrt_absolute_time();
+
+		if (now_wall - last_diag_time > 1000000) { // max once per second sim time
+			double sim_t = (double)now_wall / 1e6;
+			PX4_WARN("hrt_work: %d items, max overdue=%llums sim_t=%.3fs",
+				 items_processed,
+				 (unsigned long long)(max_overdue_us / 1000),
+				 sim_t);
+			last_diag_time = now_wall;
+		}
+	}
+
+#endif
 
 	/* might sleep less if a signal received and new item was queued */
 	//PX4_INFO("Sleeping for %u usec", next);
