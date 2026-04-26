@@ -38,7 +38,7 @@ To build for [other targets](../dev_setup/dev_env.md#supported-targets) you will
 
 4. **Ensure Python 3 is available.** Some PX4 build scripts require `python3` and `pip3` to be in your `PATH`. The Xcode Command Line Tools include Python 3 by default.
 
-   :::tip
+   ::: tip
    If you need to install or manage a different Python version, we recommend [pyenv](https://github.com/pyenv/pyenv), which lets you set global and per-directory Python versions.
 
 :::
@@ -58,6 +58,19 @@ To build for [other targets](../dev_setup/dev_env.md#supported-targets) you will
    ```sh
    ./Tools/setup/macos.sh --sim-tools
    ```
+
+   ::: info
+   The setup script creates a Python virtual environment at `.venv` in the repo root and installs all Python dependencies into it. This keeps PX4's Python requirements isolated from your system Python and avoids conflicts with Homebrew's externally-managed Python.
+
+   Activate it before building:
+
+   ```sh
+   source .venv/bin/activate
+   ```
+
+   You'll need to re-run this command in each new terminal session. To activate it automatically when you `cd` into the repo, consider a tool like [direnv](https://direnv.net/) or add the activation to your `~/.zshrc`.
+
+:::
 
    This installs:
 

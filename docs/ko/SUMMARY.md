@@ -386,6 +386,7 @@
 
   - [Peripherals](peripherals/index.md)
     - [ADSB/FLARM/UTM (Traffic Avoidance)](peripherals/adsb_flarm.md)
+    - [On-Screen Display (OSD)](peripherals/osd.md)
     - [낙하산](peripherals/parachute.md)
     - [Remote ID](peripherals/remote_id.md)
 
@@ -492,6 +493,7 @@
       - [Gazebo Models Repository](sim_gazebo_gz/gazebo_models.md)
       - [Multi-Vehicle Sim](sim_gazebo_gz/multi_vehicle_simulation.md)
     - [SIH Simulation](sim_sih/index.md)
+      - [Hawkeye Visualizer](sim_hawkeye/index.md)
     - [Gazebo Classic Simulation](sim_gazebo_classic/index.md)
       - [Vehicles](sim_gazebo_classic/vehicles.md)
       - [Worlds](sim_gazebo_classic/worlds.md)
