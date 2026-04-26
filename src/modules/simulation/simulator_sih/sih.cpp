@@ -43,6 +43,8 @@
 #include "aero.hpp"
 #include "sih.hpp"
 
+#include <cstdlib>
+
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
 
@@ -132,6 +134,18 @@ void Sih::lockstep_loop()
 	// Track whether we've ever been in lockstep mode (had actuator output)
 	bool lockstep_was_active = false;
 
+#if 0 // diagnostics: keep available for future debugging of lockstep timing
+	// Instrumentation accumulators (reset every N iterations)
+	const int diag_interval = 1000;
+	int diag_count = 0;
+	uint64_t diag_sensor_step_wall_us = 0;
+	uint64_t diag_actuator_poll_wall_us = 0;
+	uint64_t diag_sleep_wall_us = 0;
+	uint64_t diag_total_wall_us = 0;
+	int diag_poll_timeouts = 0;
+	int diag_no_lockstep_iters = 0;
+#endif
+
 	while (!should_exit()) {
 		pre_compute_wall_time_us = micros();
 
@@ -142,9 +156,15 @@ void Sih::lockstep_loop()
 		abstime_to_ts(&ts, _current_simulation_time_us);
 		px4_clock_settime(CLOCK_MONOTONIC, &ts);
 
+#if 0 // diagnostics
+		uint64_t t_before_sensor = micros();
+#endif
 		perf_begin(_loop_perf);
 		sensor_step();
 		perf_end(_loop_perf);
+#if 0 // diagnostics
+		uint64_t t_after_sensor = micros();
+#endif
 
 		// Wait for work-queue components (baro sim, mag sim, logger, etc.)
 		// to finish processing the sensor publications we just made before
@@ -163,6 +183,9 @@ void Sih::lockstep_loop()
 			current_wall_time_us = micros();
 			int target_interval = lockstep_was_active ? rt_interval_us : sim_interval_us;
 			sleep_time = math::max(0, target_interval - (int)(current_wall_time_us - pre_compute_wall_time_us));
+#if 0 // diagnostics
+			diag_no_lockstep_iters++;
+#endif
 
 		} else {
 			lockstep_was_active = true;
@@ -186,16 +209,123 @@ void Sih::lockstep_loop()
 				PX4_INFO("SIH: no actuator output for 500ms, exiting lockstep");
 				current_wall_time_us = micros();
 				sleep_time = 0;
+#if 0 // diagnostics
+				diag_poll_timeouts++;
+#endif
 
 			} else {
 				current_wall_time_us = micros();
 				sleep_time = math::max(0, rt_interval_us - (int)(current_wall_time_us - pre_compute_wall_time_us));
 			}
+
+#if 0 // diagnostics
+			diag_actuator_poll_wall_us += current_wall_time_us - t_after_sensor;
+#endif
 		}
+
+#if 0 // diagnostics
+		diag_sensor_step_wall_us += t_after_sensor - t_before_sensor;
+#endif
 
 		_achieved_speedup = 0.99f * _achieved_speedup + 0.01f * ((float)sim_interval_us / (float)(
 					    current_wall_time_us - pre_compute_wall_time_us + sleep_time));
+
+#if 0 // diagnostics
+		uint64_t t_before_sleep = micros();
+#endif
 		usleep(sleep_time);
+#if 0 // diagnostics
+		uint64_t t_after_sleep = micros();
+
+		diag_sleep_wall_us += t_after_sleep - t_before_sleep;
+		diag_total_wall_us += t_after_sleep - pre_compute_wall_time_us;
+#endif
+
+#if 0 // sensor watchdog: kept for future debugging of stalled sensor sims
+
+		// Watchdog for SensorBaroSim/SensorMagSim: they publish at 20 Hz / 50 Hz
+		// respectively, so any gap > 200 ms sim time means something stalled
+		// them (not normal idle behaviour). Only meaningful once we're in
+		// lockstep and have seen at least one publish. Rate-limit warnings
+		// to once per sim-second, and if the stall persists past ABORT_THRESHOLD
+		// deliberately abort() so we get a coredump capturing all thread stacks
+		// at the stuck moment (otherwise the test times out with no clue).
+		if (lockstep_was_active) {
+			sensor_baro_s baro_msg;
+
+			if (_watchdog_baro_sub.update(&baro_msg)) {
+				_watchdog_last_baro_pub_us = baro_msg.timestamp;
+			}
+
+			sensor_mag_s mag_msg;
+
+			if (_watchdog_mag_sub.update(&mag_msg)) {
+				_watchdog_last_mag_pub_us = mag_msg.timestamp;
+			}
+
+			const hrt_abstime now_sim = hrt_absolute_time();
+			static constexpr hrt_abstime ABORT_THRESHOLD = 2_s;
+
+			if (!_watchdog_baro_disabled
+			    && _watchdog_last_baro_pub_us > 0
+			    && now_sim - _watchdog_last_baro_pub_us > 200_ms
+			    && now_sim - _watchdog_last_warn_baro_us > 1_s) {
+				const uint64_t gap_ms = (now_sim - _watchdog_last_baro_pub_us) / 1000;
+				PX4_WARN("WATCHDOG sensor_baro stale: last_pub=%.3fs now=%.3fs gap=%llums",
+					 (double)_watchdog_last_baro_pub_us / 1e6,
+					 (double)now_sim / 1e6,
+					 (unsigned long long)gap_ms);
+				_watchdog_last_warn_baro_us = now_sim;
+
+				if (now_sim - _watchdog_last_baro_pub_us > ABORT_THRESHOLD) {
+					PX4_ERR("WATCHDOG sensor_baro stall exceeded abort threshold — aborting for coredump");
+					std::abort();
+				}
+			}
+
+			if (!_watchdog_mag_disabled
+			    && _watchdog_last_mag_pub_us > 0
+			    && now_sim - _watchdog_last_mag_pub_us > 200_ms
+			    && now_sim - _watchdog_last_warn_mag_us > 1_s) {
+				const uint64_t gap_ms = (now_sim - _watchdog_last_mag_pub_us) / 1000;
+				PX4_WARN("WATCHDOG sensor_mag stale: last_pub=%.3fs now=%.3fs gap=%llums",
+					 (double)_watchdog_last_mag_pub_us / 1e6,
+					 (double)now_sim / 1e6,
+					 (unsigned long long)gap_ms);
+				_watchdog_last_warn_mag_us = now_sim;
+
+				if (now_sim - _watchdog_last_mag_pub_us > ABORT_THRESHOLD) {
+					PX4_ERR("WATCHDOG sensor_mag stall exceeded abort threshold — aborting for coredump");
+					std::abort();
+				}
+			}
+		}
+
+#endif // sensor watchdog
+
+#if 0 // diagnostics: per-1000-iteration timing summary
+
+		if (++diag_count >= diag_interval) {
+			PX4_INFO("SIH diag [%d iters]: sim_t=%.1fs speed=%.1fx | wall: sensor=%llums poll=%llums sleep=%llums total=%llums | no_ls=%d poll_to=%d",
+				 diag_count,
+				 (double)_current_simulation_time_us / 1e6,
+				 (double)_achieved_speedup,
+				 (unsigned long long)(diag_sensor_step_wall_us / 1000),
+				 (unsigned long long)(diag_actuator_poll_wall_us / 1000),
+				 (unsigned long long)(diag_sleep_wall_us / 1000),
+				 (unsigned long long)(diag_total_wall_us / 1000),
+				 diag_no_lockstep_iters,
+				 diag_poll_timeouts);
+			diag_count = 0;
+			diag_sensor_step_wall_us = 0;
+			diag_actuator_poll_wall_us = 0;
+			diag_sleep_wall_us = 0;
+			diag_total_wall_us = 0;
+			diag_poll_timeouts = 0;
+			diag_no_lockstep_iters = 0;
+		}
+
+#endif
 	}
 }
 #endif
@@ -302,6 +432,33 @@ void Sih::check_failure_injections()
 				_gyro_blocked = false;
 			}
 		}
+
+#if 0 // sensor watchdog: kept paired with the watchdog block above
+
+		// Watchdog-only observation: track baro/mag failure injections so the
+		// SensorBaroSim/SensorMagSim watchdog above doesn't false-positive when
+		// a test deliberately stops mag/baro publishing. The actual command is
+		// still handled (and acknowledged) by SensorBaroSim / SensorMagSim on
+		// their own subscriptions — don't set handled=true here.
+		if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_BARO) {
+			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF
+			    || failure_type == vehicle_command_s::FAILURE_TYPE_STUCK) {
+				_watchdog_baro_disabled = true;
+
+			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
+				_watchdog_baro_disabled = false;
+			}
+
+		} else if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_MAG) {
+			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
+				_watchdog_mag_disabled = true;
+
+			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
+				_watchdog_mag_disabled = false;
+			}
+		}
+
+#endif
 
 		if (handled) {
 			vehicle_command_ack_s ack{};
