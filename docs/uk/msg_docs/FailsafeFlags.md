@@ -59,6 +59,7 @@ The flag comments are used as label for the failsafe state machine simulation
 | position_accuracy_low                                                                                                        | `bool`   |                                                                  |            | Position estimate has dropped below threshold, but is currently still declared valid                                                         |
 | navigator_failure                                                                                                                                 | `bool`   |                                                                  |            | Navigator failed to execute a mode                                                                                                           |
 | parachute_unhealthy                                                                                                                               | `bool`   |                                                                  |            | Parachute system missing or unhealthy                                                                                                        |
+| remote_id_unhealthy                                                                                                          | `bool`   |                                                                  |            | Remote ID (Open Drone ID) system missing or unhealthy                                                                     |
 
 ## Source Message
 
@@ -130,6 +131,7 @@ bool flight_time_limit_exceeded       # Maximum flight time exceeded
 bool position_accuracy_low            # Position estimate has dropped below threshold, but is currently still declared valid
 bool navigator_failure        	      # Navigator failed to execute a mode
 bool parachute_unhealthy              # Parachute system missing or unhealthy
+bool remote_id_unhealthy              # Remote ID (Open Drone ID) system missing or unhealthy
 ```
 
 :::

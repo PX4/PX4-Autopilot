@@ -13,7 +13,7 @@ The available profiles (in source-code declaration order) are:
 - _Gimbal_ (`MAVLINK_MODE_GIMBAL`): Messages for a gimbal. Note this also enables message forwarding.
 - _External Vision_ (`MAVLINK_MODE_EXTVISION`): Messages for offboard vision systems.
 - _External Vision Minimal_ (`MAVLINK_MODE_EXTVISIONMIN`): Messages for offboard vision systems on slower links.
-- _OSD_ (`MAVLINK_MODE_OSD`): Set of messages for an OSD system.
+- _OSD_ (`MAVLINK_MODE_OSD`): Set of messages for an [On-Screen Display (OSD)](../peripherals/osd.md#mavlink-osd) system.
 - _Magic_ (`MAVLINK_MODE_MAGIC`): No messages streamed by default. Used when configuring streaming dynamically via MAVLink.
 - _Custom_ (`MAVLINK_MODE_CUSTOM`): Same as `MAVLINK_MODE_MAGIC`.
 - _Config_ (`MAVLINK_MODE_CONFIG`): Set of messages for configuration interface, sent at higher rates. This is used, for example, to send the `MAVLINK_MODE_NORMAL` message set via USB to a GCS.
@@ -29,7 +29,7 @@ The profile defines the _default_ messages and rates.
 A connected MAVLink system can still request the streams/rates it wants using [MAV_CMD_SET_MESSAGE_INTERVAL](https://mavlink.io/en/messages/common.html#MAV_CMD_SET_MESSAGE_INTERVAL).
 :::
 
-To find the exact messages in each profile, search for ` configure_streams_to_default` (or the above profile names) in [mavlink_main.cpp](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/mavlink/mavlink_main.cpp).
+To find the exact messages in each profile, search for `configure_streams_to_default` (or the above profile names) in [mavlink_main.cpp](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/mavlink/mavlink_main.cpp).
 
 ## Assigning Profiles to Ports
 
