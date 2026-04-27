@@ -633,9 +633,11 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 				}
 			}
 
-		} else if (calling_reason == arm_disarm_reason_t::stick_gesture
-			   || calling_reason == arm_disarm_reason_t::rc_switch
-			   || calling_reason == arm_disarm_reason_t::rc_button) {
+		} else if ((calling_reason == arm_disarm_reason_t::stick_gesture
+			    || calling_reason == arm_disarm_reason_t::rc_switch
+			    || calling_reason == arm_disarm_reason_t::rc_button)
+			   && _vehicle_status.nav_state != vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF
+			   && _vehicle_status.nav_state != vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF) {
 
 			mavlink_log_critical(&_mavlink_log_pub, "Arming denied: switch to manual mode first\t");
 			events::send(events::ID("commander_arm_denied_not_manual"), {events::Log::Critical, events::LogInternal::Info},
