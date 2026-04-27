@@ -70,7 +70,7 @@ struct PlannedPath {
 			return points[current_index++];
 
 		} else {
-			return matrix::Vector2d{NAN, NAN};
+			return matrix::Vector2d{(double)NAN, (double)NAN};
 		}
 
 	}
@@ -82,7 +82,7 @@ struct PlannedPath {
 			return points[current_index];
 		}
 
-		return matrix::Vector2d{NAN, NAN};
+		return matrix::Vector2d{(double)NAN, (double)NAN};
 
 	}
 };
