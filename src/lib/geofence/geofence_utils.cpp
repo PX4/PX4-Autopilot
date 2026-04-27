@@ -191,8 +191,7 @@ bool expandOrShrinkPolygon(const matrix::Vector2f *vertices_in, int num_vertices
 size_t symmetricPairIndex(size_t i, size_t j, size_t num_nodes)
 {
 	// Pack the strict upper triangle (i < j) of an N x N symmetric matrix into a flat array.
-	// Row i contains (N - 1 - i) entries and starts at offset i*(2N - i - 1)/2.
-	// Within row i, column j sits at local offset (j - i - 1).
+	// https://stackoverflow.com/questions/27086195/linear-index-upper-triangular-matrix
 	if (i > j) {
 		const size_t tmp = i;
 		i = j;
