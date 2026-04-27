@@ -188,11 +188,7 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::ASPD_WIND_NSD>) _param_aspd_wind_nsd,
-		(ParamFloat<px4::params::ASPD_SCALE_NSD>) _param_aspd_scale_nsd,
 		(ParamFloat<px4::params::ASPD_TAS_NOISE>) _param_west_tas_noise,
-		(ParamFloat<px4::params::ASPD_BETA_NOISE>) _param_west_beta_noise,
-		(ParamInt<px4::params::ASPD_TAS_GATE>) _param_west_tas_gate,
-		(ParamInt<px4::params::ASPD_BETA_GATE>) _param_west_beta_gate,
 		(ParamInt<px4::params::ASPD_SCALE_APPLY>) _param_aspd_scale_apply,
 		(ParamFloat<px4::params::ASPD_SCALE_1>) _param_airspeed_scale_1,
 		(ParamFloat<px4::params::ASPD_SCALE_2>) _param_airspeed_scale_2,
@@ -518,19 +514,10 @@ void AirspeedModule::update_params()
 	}
 
 	_wind_estimator_sideslip.set_wind_process_noise_spectral_density(_param_aspd_wind_nsd.get());
-	_wind_estimator_sideslip.set_tas_scale_process_noise_spectral_density(_param_aspd_scale_nsd.get());
-	_wind_estimator_sideslip.set_tas_noise(_param_west_tas_noise.get());
-	_wind_estimator_sideslip.set_beta_noise(_param_west_beta_noise.get());
-	_wind_estimator_sideslip.set_tas_gate(_param_west_tas_gate.get());
-	_wind_estimator_sideslip.set_beta_gate(_param_west_beta_gate.get());
 
 	for (int i = 0; i < MAX_NUM_AIRSPEED_SENSORS; i++) {
 		_airspeed_validator[i].set_wind_estimator_wind_process_noise_spectral_density(_param_aspd_wind_nsd.get());
-		_airspeed_validator[i].set_wind_estimator_tas_scale_process_noise_spectral_density(_param_aspd_scale_nsd.get());
 		_airspeed_validator[i].set_wind_estimator_tas_noise(_param_west_tas_noise.get());
-		_airspeed_validator[i].set_wind_estimator_beta_noise(_param_west_beta_noise.get());
-		_airspeed_validator[i].set_wind_estimator_tas_gate(_param_west_tas_gate.get());
-		_airspeed_validator[i].set_wind_estimator_beta_gate(_param_west_beta_gate.get());
 
 		_airspeed_validator[i].set_tas_scale_apply(_param_aspd_scale_apply.get());
 		_airspeed_validator[i].set_wind_estimator_tas_scale_init(_param_airspeed_scale[i]);
