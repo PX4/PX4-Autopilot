@@ -140,9 +140,8 @@ bool expandOrShrinkPolygon(const matrix::Vector2f *vertices_in, int num_vertices
 			   matrix::Vector2f *vertices_out);
 
 /**
- * Map an unordered pair (i, j) of node indices to a flat array index for storing
- * symmetric pairwise values (e.g. distances where d(i,j) == d(j,i)). Diagonal
- * entries (i == j) are not stored; caller must ensure i != j.
+ * Map the upper triangular matrix WITHOUT the diagonal into a flat array. Caller must ensure i != j.
+ *
  *
  * Required array size is num_nodes * (num_nodes - 1) / 2.
  *
