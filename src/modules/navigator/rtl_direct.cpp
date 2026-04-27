@@ -492,25 +492,14 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 			}
 
 		// FALLTHROUGH
-		case RTLState::MOVE_TO_INTERMEDIATE_POINT: {
-				matrix::Vector2f direction{};
-				matrix::Vector2d intermediate_point = _geofence_aware_return_path.getCurrentPoint();
-				get_vector_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, intermediate_point(0),
-							    intermediate_point(1), &direction(0), &direction(1));
-				float move_to_land_dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, intermediate_point(0), intermediate_point(1))};
-
-				_rtl_time_estimator.addDistance(move_to_land_dist, direction, 0.f);
-			}
+		case RTLState::MOVE_TO_INTERMEDIATE_POINT:
 
 		// FALLTHROUGH
 		case RTLState::MOVE_TO_LOITER: {
 				matrix::Vector2f direction{};
-				matrix::Vector2d intermediate_point = _geofence_aware_return_path.getCurrentPoint();
-				const matrix::Vector2d start_position = intermediate_point.isAllFinite() ? matrix::Vector2d(intermediate_point(0), intermediate_point(1))
-									: matrix::Vector2d(_global_pos_sub.get().lat, _global_pos_sub.get().lon);
-				get_vector_to_next_waypoint(start_position(0), start_position(1), land_approach.lat,
+				get_vector_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, land_approach.lat,
 							    land_approach.lon, &direction(0), &direction(1));
-				float move_to_land_dist{get_distance_to_next_waypoint(start_position(0), start_position(1), land_approach.lat, land_approach.lon)};
+				float move_to_land_dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, land_approach.lat, land_approach.lon)};
 
 				if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 					move_to_land_dist = max(0.f, move_to_land_dist - land_approach.loiter_radius_m);
