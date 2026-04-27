@@ -46,6 +46,7 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/FastAllocated.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
@@ -63,7 +64,7 @@ using namespace time_literals;
 namespace sensors
 {
 
-class VehicleIMU : public ModuleParams, public px4::ScheduledWorkItem
+class VehicleIMU : public ModuleParams, public px4::ScheduledWorkItem, public FastAllocated
 {
 public:
 	VehicleIMU() = delete;

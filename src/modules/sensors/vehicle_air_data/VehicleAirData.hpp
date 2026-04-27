@@ -44,6 +44,7 @@
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/FastAllocated.hpp>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
@@ -62,7 +63,7 @@ using namespace time_literals;
 
 namespace sensors
 {
-class VehicleAirData : public ModuleParams, public px4::ScheduledWorkItem
+class VehicleAirData : public ModuleParams, public px4::ScheduledWorkItem, public FastAllocated
 {
 public:
 

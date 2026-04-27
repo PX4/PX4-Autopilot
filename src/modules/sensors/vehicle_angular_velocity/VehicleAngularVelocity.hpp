@@ -44,6 +44,7 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/FastAllocated.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
@@ -62,7 +63,7 @@ using namespace time_literals;
 namespace sensors
 {
 
-class VehicleAngularVelocity : public ModuleParams, public px4::ScheduledWorkItem
+class VehicleAngularVelocity : public ModuleParams, public px4::ScheduledWorkItem, public FastAllocated
 {
 public:
 	VehicleAngularVelocity();

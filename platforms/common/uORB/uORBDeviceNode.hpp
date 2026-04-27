@@ -41,6 +41,7 @@
 #include <containers/IntrusiveSortedList.hpp>
 #include <containers/List.hpp>
 #include <px4_platform_common/atomic.h>
+#include <px4_platform_common/FastAllocated.hpp>
 #include <px4_platform_common/px4_config.h>
 
 namespace uORB
@@ -59,7 +60,7 @@ class UnitTest;
 /**
  * Per-object device instance.
  */
-class uORB::DeviceNode : public cdev::CDev, public IntrusiveSortedListNode<uORB::DeviceNode *>
+class uORB::DeviceNode : public cdev::CDev, public IntrusiveSortedListNode<uORB::DeviceNode *>, public FastAllocated
 {
 public:
 	DeviceNode(const struct orb_metadata *meta, const uint8_t instance, const char *path);

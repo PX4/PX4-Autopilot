@@ -74,6 +74,7 @@
 #include <px4_platform/gpio.h>
 #include <px4_platform/board_determine_hw_info.h>
 #include <px4_platform/board_dma_alloc.h>
+#include <px4_arch/dtcm.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -210,6 +211,10 @@ stm32_boardinitialize(void)
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
 #if !defined(BOOTLOADER)
+
+#ifdef HAVE_DTCM_HEAP
+	dtcm_initialize();
+#endif
 
 	/* Power on Interfaces */
 	VDD_3V3_SD_CARD_EN(true);

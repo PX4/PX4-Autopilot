@@ -42,6 +42,7 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/FastAllocated.hpp>
 #include <lib/systemlib/mavlink_log.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
@@ -63,7 +64,7 @@
 
 using namespace time_literals;
 
-class MulticopterRateControl : public ModuleBase, public ModuleParams, public px4::WorkItem
+class MulticopterRateControl : public ModuleBase, public ModuleParams, public px4::WorkItem, public FastAllocated
 {
 public:
 	static Descriptor desc;

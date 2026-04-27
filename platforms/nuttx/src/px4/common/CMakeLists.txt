@@ -37,6 +37,7 @@ if(NOT PX4_BOARD MATCHES "io-v2")
 	set(KERNEL_SRCS
 		board_crashdump.c
 		board_dma_alloc.c
+		px4_fast_alloc.cpp
 		board_fat_dma_alloc.c
 		console_buffer.cpp
 		cpuload.cpp
