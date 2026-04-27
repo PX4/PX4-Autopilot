@@ -157,7 +157,6 @@ void Geofence::run()
 			} else {
 				_dataman_state = DatamanState::UpdateRequestWait;
 				_fence_updated = true;
-				_avoidance_planner.update_vertices(*this);
 
 				geofence_status_s status{};
 				status.timestamp = hrt_absolute_time();
