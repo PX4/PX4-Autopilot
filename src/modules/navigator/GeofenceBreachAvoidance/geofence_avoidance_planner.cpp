@@ -46,14 +46,16 @@ static matrix::Vector2f get_vertex_local_position(int poly_index, int vertex_idx
 	return local;
 }
 
-PlannedPath GeofenceAvoidancePlanner::planPath()
+const PlannedPath &GeofenceAvoidancePlanner::planPath()
 {
-	PlannedPath path;
+	// The navigator task stack is only ~2 KB, so we keep the result as a member
+	// and return it by reference to avoid overflowing the stack on RTL entry.
+	_planned_path.num_points = 0;
+	_planned_path.current_index = 0;
 
 	if (!_polygons_healthy || !_start_healthy || !_destination_healthy) {
 		// we are not in a state where we can reliably plan a path, return an empty one
-		path.num_points = 0;
-		return path;
+		return _planned_path;
 	}
 
 	reset_graph_state();
@@ -109,8 +111,7 @@ PlannedPath GeofenceAvoidancePlanner::planPath()
 
 		if (last_graph_index == graph_index) {
 			// we are stuck, destination does not seem to be reachable
-			path.num_points = 0;
-			return path;
+			return _planned_path;
 		}
 
 		if (_graph_nodes[graph_index].type == Node::DESTINATION) {
@@ -127,34 +128,33 @@ PlannedPath GeofenceAvoidancePlanner::planPath()
 	while (idx != 0) {
 		if (idx < 0) {
 			// can happen if the destination is not reachable
-			path.num_points = 0;
-			return path;
+			return _planned_path;
 		}
 
 		count++;
 		idx = _graph_nodes[idx].previous_index;
 	}
 
-	path.num_points = count;
+	_planned_path.num_points = count;
 
 	// Walk backwards and fill points in reverse, converting local to lat/lon.
 	// The last iteration lands on the start node, which becomes points[0].
 	MapProjection ref{_reference(0), _reference(1)};
 	idx = _graph_nodes[graph_index].previous_index; // skip destination
 
-	for (int i = path.num_points - 1; i >= 0; i--) {
+	for (int i = _planned_path.num_points - 1; i >= 0; i--) {
 		if (idx < 0) {
 			// this should never happen, but just in case, we return an empty path
-			path.num_points = 0;
+			_planned_path.num_points = 0;
 			break;
 		}
 
 		ref.reproject(_graph_nodes[idx].position(0), _graph_nodes[idx].position(1),
-			      path.points[i](0), path.points[i](1));
+			      _planned_path.points[i](0), _planned_path.points[i](1));
 		idx = _graph_nodes[idx].previous_index;
 	}
 
-	return path;
+	return _planned_path;
 }
 
 bool GeofenceAvoidancePlanner::update_vertices(GeofenceInterface &geofence, float margin)

@@ -119,7 +119,7 @@ public:
 	GeofenceAvoidancePlanner() = default;
 	~GeofenceAvoidancePlanner() = default;
 
-	PlannedPath planPath();
+	const PlannedPath &planPath();
 
 	bool update_vertices(GeofenceInterface &geofence, float margin = 10.0f);
 	void update_start(const matrix::Vector2d &start, GeofenceInterface &geofence);
@@ -131,6 +131,7 @@ private:
 
 	Node _graph_nodes[kMaxNodes];
 	float _distances[num_distances_in_graph];
+	PlannedPath _planned_path{};
 	int _num_nodes{0};
 	int _num_vertices{0};
 	matrix::Vector2<double> _reference; // lat/lon anchor of the local frame
