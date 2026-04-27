@@ -323,7 +323,7 @@ public:
 		_geofence.updateDestinationForRTLPathPlanner(destination);
 	}
 
-	PlannedPath planPath() { return _geofence.planPath(); }
+	const PlannedPath &planPath() { return _geofence.planPath(); }
 
 	/**
 	 * Returns the last position that was confirmed to be inside all geofences.
