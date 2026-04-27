@@ -2575,11 +2575,14 @@ Mavlink::task_main(int argc, char *argv[])
 		send_autopilot_capabilities();
 	}
 
+	// Initialize _mavlink_start_time before starting the receiver thread —
+	// the receiver reads it via get_start_time(), so writing it afterwards
+	// would race with the receiver's first iterations.
+	_mavlink_start_time = hrt_absolute_time();
+
 	_receiver.start();
 
 	uint16_t event_sequence_offset = 0; // offset to account for skipped events, not sent via MAVLink
-
-	_mavlink_start_time = hrt_absolute_time();
 
 	_task_running.store(true);
 
