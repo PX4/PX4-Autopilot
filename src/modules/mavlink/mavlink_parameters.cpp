@@ -439,8 +439,15 @@ MavlinkParametersManager::send()
 		max_num_to_send = 3;
 
 	} else {
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+		// In lockstep mode at high sim speeds, the MAVLink main loop can run at
+		// 10,000+ Hz wall time, so reduce the batch size to avoid overwhelming
+		// external consumers' UDP receive buffers during parameter fetch.
+		max_num_to_send = 3;
+#else
 		// speed up parameter loading via UDP or USB: try to send 20 at once
 		max_num_to_send = 20;
+#endif
 	}
 
 	int i = 0;
