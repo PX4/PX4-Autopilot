@@ -369,7 +369,7 @@ void RTL::setRtlTypeAndDestination()
 		}
 
 	} else if (_param_rtl_type.get() == 6) {
-		// estimate time to fly home using the same infrastructure as the battery failsafe
+		// Set _rtl_direct with the home destination so calc_rtl_time_estimate() can check its reachability
 		const float rtl_alt_home = computeReturnAltitude(destination);
 		_rtl_direct.setRtlAlt(rtl_alt_home);
 		_rtl_direct.setRtlPosition(destination, landing_loiter);
