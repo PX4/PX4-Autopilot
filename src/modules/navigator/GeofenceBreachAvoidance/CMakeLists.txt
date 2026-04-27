@@ -42,5 +42,5 @@ px4_add_library(geofence_avoidance_planner
 )
 
 px4_add_functional_gtest(SRC GeofenceBreachAvoidanceTest.cpp LINKLIBS geofence_breach_avoidance modules__navigator motion_planning)
-target_link_libraries(geofence_avoidance_planner PRIVATE geo geofence_utils)
-px4_add_unit_gtest(SRC GeofenceAvoidancePlannerTest.cpp LINKLIBS geofence_avoidance_planner geo geofence_utils)
+target_link_libraries(geofence_avoidance_planner PRIVATE geo geofence_utils perf)
+px4_add_unit_gtest(SRC GeofenceAvoidancePlannerTest.cpp LINKLIBS geofence_avoidance_planner geo geofence_utils perf)
