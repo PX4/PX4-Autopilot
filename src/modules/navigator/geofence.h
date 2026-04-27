@@ -53,12 +53,14 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/sensor_gps.h>
+#include "./GeofenceBreachAvoidance/geofence_avoidance_planner.h"
 
 #define GEOFENCE_FILENAME PX4_STORAGEDIR"/etc/geofence.txt"
 
 class Navigator;
 
-class Geofence : public ModuleParams
+
+class Geofence : public ModuleParams, public GeofenceInterface
 {
 public:
 	Geofence(Navigator *navigator);
@@ -142,6 +144,18 @@ public:
 
 	bool isHomeRequired();
 
+	void updateStartForRTLPathPlanner(const matrix::Vector2<double> &start)
+	{
+		_avoidance_planner.update_start(start, *this);
+	}
+
+	void updateDestinationForRTLPathPlanner(const matrix::Vector2<double> &destination)
+	{
+		_avoidance_planner.update_destination(destination, *this);
+	}
+
+	PlannedPath planPath() { return _avoidance_planner.planPath(); }
+
 	/**
 	 * print Geofence status to the console
 	 */
@@ -157,17 +171,11 @@ private:
 		Error
 	};
 
-	struct PolygonInfo {
-		uint16_t fence_type; ///< one of MAV_CMD_NAV_FENCE_* (can also be a circular region)
-		uint16_t dataman_index;
-		union {
-			uint16_t vertex_count;
-			float circle_radius;
-		};
-	};
 
 	Navigator   *_navigator{nullptr};
 	PolygonInfo *_polygons{nullptr};
+
+	GeofenceAvoidancePlanner _avoidance_planner{};
 
 	mission_stats_entry_s _stats;
 	DatamanState _dataman_state{DatamanState::UpdateRequestWait};
@@ -225,6 +233,16 @@ private:
 	 * @return true if checks pass
 	 */
 	bool checkCurrentPositionRequirementsForGeofence(const PolygonInfo &polygon);
+
+	bool checkIfLineViolatesAnyFence(const matrix::Vector2f &start_local,
+					 const matrix::Vector2f &end_local,
+					 const matrix::Vector2<double> &reference) override;
+
+	PolygonInfo getPolygonInfoByIndex(int index) override { return _polygons[index]; }
+
+	matrix::Vector2<double> getPolygonVertexByIndex(int poly_idx, int idx) override;
+
+	int getNumPolygons() const override { return _num_polygons; }
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::GF_ACTION>)         _param_gf_action,

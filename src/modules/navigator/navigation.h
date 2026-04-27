@@ -201,6 +201,15 @@ struct mission_stats_entry_s {
 	uint8_t padding[1];
 };
 
+struct PolygonInfo {
+	uint16_t fence_type; ///< one of MAV_CMD_NAV_FENCE_* (can also be a circular region)
+	uint16_t dataman_index;
+	union {
+		uint16_t vertex_count;
+		float circle_radius;
+	};
+};
+
 /**
  * Geofence vertex point.
  * Corresponds to the DM_KEY_FENCE_POINTS_0 dataman item

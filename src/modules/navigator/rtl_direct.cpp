@@ -73,6 +73,9 @@ void RtlDirect::on_activation()
 	_global_pos_sub.update();
 	_vehicle_status_sub.update();
 
+	_navigator->updateStartOfRTLPathPlanner(_navigator->getRtlPlanningStart());
+	_geofence_aware_return_path = _navigator->planPath();
+
 	parameters_update();
 
 	_rtl_state = getActivationState();
@@ -132,6 +135,8 @@ void RtlDirect::setRtlPosition(const PositionYawSetpoint &rtl_position, const lo
 		_destination = rtl_position;
 		_force_heading = false;
 
+		_navigator->updateDestinationOfRTLPathPlanner(matrix::Vector2d{_destination.lat, _destination.lon});
+
 		_land_approach = sanitizeLandApproach(loiter_pos);
 
 		const float dist_to_destination{get_distance_to_next_waypoint(_land_approach.lat, _land_approach.lon, _destination.lat, _destination.lon)};
@@ -146,13 +151,30 @@ void RtlDirect::_updateRtlState()
 {
 	// RTL_LAND_DELAY > 0 -> wait seconds, < 0 wait indefinitely
 	const bool wait_at_rtl_descend_alt = fabsf(_param_rtl_land_delay.get()) > FLT_EPSILON;
-	const bool is_multicopter = (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	const bool is_multicopter = (_vehicle_status_sub.get().vehicle_type ==
+				     vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 
 	RTLState new_state{RTLState::IDLE};
 
 	switch (_rtl_state) {
 	case RTLState::CLIMBING:
-		new_state = RTLState::MOVE_TO_LOITER;
+		if (_geofence_aware_return_path.hasNextPoint()) {
+			new_state = RTLState::MOVE_TO_INTERMEDIATE_POINT;
+
+		} else {
+			new_state = RTLState::MOVE_TO_LOITER;
+		}
+
+		break;
+
+	case RTLState::MOVE_TO_INTERMEDIATE_POINT:
+		if (_geofence_aware_return_path.hasNextPoint()) {
+			new_state = RTLState::MOVE_TO_INTERMEDIATE_POINT;
+
+		} else {
+			new_state = RTLState::MOVE_TO_LOITER;
+		}
+
 		break;
 
 	case RTLState::MOVE_TO_LOITER:
@@ -171,7 +193,8 @@ void RtlDirect::_updateRtlState()
 
 	case RTLState::LOITER_HOLD:
 		if (_vehicle_status_sub.get().is_vtol
-		    && _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+		    && _vehicle_status_sub.get().vehicle_type ==
+		    vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 			new_state = RTLState::MOVE_TO_LAND;
 
 		} else {
@@ -205,7 +228,6 @@ void RtlDirect::_updateRtlState()
 	_rtl_state = new_state;
 }
 
-
 void RtlDirect::set_rtl_item()
 {
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
@@ -231,10 +253,32 @@ void RtlDirect::set_rtl_item()
 			break;
 		}
 
-	case RTLState::MOVE_TO_LOITER: {
+	case RTLState::MOVE_TO_INTERMEDIATE_POINT: {
+
+			matrix::Vector2d point = _geofence_aware_return_path.getAndPopCurrentPoint();
+
+			if (point.isAllNan()) {
+				// should never happen
+				point(0) = _land_approach.lat;
+				point(1) = _land_approach.lon;
+			}
+
 			PositionYawSetpoint pos_yaw_sp {
-				.lat = _land_approach.lat,
-				.lon = _land_approach.lon,
+				.lat = point(0),
+				.lon = point(1),
+				.alt = _rtl_alt,
+			};
+
+			setMoveToPositionMissionItem(_mission_item, pos_yaw_sp);
+			break;
+		}
+
+	case RTLState::MOVE_TO_LOITER: {
+
+			const loiter_point_s current_destination = _land_approach;
+			PositionYawSetpoint pos_yaw_sp {
+				.lat = current_destination.lat,
+				.lon = current_destination.lon,
 				.alt = _rtl_alt,
 			};
 
@@ -242,7 +286,7 @@ void RtlDirect::set_rtl_item()
 			// can be displayed on groundstation and the WP is accepted once within loiter radius
 			if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 				pos_yaw_sp.yaw = NAN;
-				setLoiterHoldMissionItem(_mission_item, pos_yaw_sp, 0.f, _land_approach.loiter_radius_m);
+				setLoiterHoldMissionItem(_mission_item, pos_yaw_sp, 0.f, current_destination.loiter_radius_m);
 
 			} else {
 				// already set final yaw if close to destination and weather vane is disabled
@@ -404,6 +448,9 @@ RtlDirect::RTLState RtlDirect::getActivationState()
 	} else if ((_global_pos_sub.get().alt < _rtl_alt) || _enforce_rtl_alt) {
 		activation_state = RTLState::CLIMBING;
 
+	} else if (_geofence_aware_return_path.hasNextPoint()) {
+		activation_state = RTLState::MOVE_TO_INTERMEDIATE_POINT;
+
 	} else {
 		activation_state = RTLState::MOVE_TO_LOITER;
 	}
@@ -443,6 +490,9 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 					_rtl_time_estimator.addVertDistance(_rtl_alt - _global_pos_sub.get().alt);
 				}
 			}
+
+		// FALLTHROUGH
+		case RTLState::MOVE_TO_INTERMEDIATE_POINT:
 
 		// FALLTHROUGH
 		case RTLState::MOVE_TO_LOITER: {

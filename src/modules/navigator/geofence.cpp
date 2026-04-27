@@ -48,6 +48,7 @@
 #include <dataman_client/DatamanClient.hpp>
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
+#include <lib/geofence/geofence_utils.h>
 #include <systemlib/mavlink_log.h>
 #include <px4_platform_common/events.h>
 
@@ -183,6 +184,8 @@ void Geofence::run()
 			status.status = geofence_status_s::GF_STATUS_READY;
 
 			_geofence_status_pub.publish(status);
+
+			_avoidance_planner.update_vertices(*this);
 		}
 
 		break;
@@ -441,6 +444,8 @@ bool Geofence::insidePolygon(const PolygonInfo &polygon, double lat, double lon,
 	mission_fence_point_s temp_vertex_j{};
 	bool c = false;
 
+	const matrix::Vector2<double> test_point{lat, lon};
+
 	for (unsigned i = 0, j = polygon.vertex_count - 1; i < polygon.vertex_count; j = i++) {
 
 		dm_item_t fence_dataman_id{static_cast<dm_item_t>(_stats.dataman_id)};
@@ -472,11 +477,10 @@ bool Geofence::insidePolygon(const PolygonInfo &polygon, double lat, double lon,
 
 		}
 
-		if (((double)temp_vertex_i.lon >= lon) != ((double)temp_vertex_j.lon >= lon) &&
-		    (lat <= (double)(temp_vertex_j.lat - temp_vertex_i.lat) * (lon - (double)temp_vertex_i.lon) /
-		     (double)(temp_vertex_j.lon - temp_vertex_i.lon) + (double)temp_vertex_i.lat)) {
-			c = !c;
-		}
+		const matrix::Vector2<double> vertex_i{(double)temp_vertex_i.lat, (double)temp_vertex_i.lon};
+		const matrix::Vector2<double> vertex_j{(double)temp_vertex_j.lat, (double)temp_vertex_j.lon};
+
+		geofence_utils::insidePolygonUpdateState(c, vertex_i, vertex_j, test_point);
 	}
 
 	return c;
@@ -719,4 +723,84 @@ void Geofence::printStatus()
 	PX4_INFO("Geofence: %i inclusion, %i exclusion polygons, %i inclusion circles, %i exclusion circles, %i total vertices",
 		 num_inclusion_polygons, num_exclusion_polygons, num_inclusion_circles, num_exclusion_circles,
 		 total_num_vertices);
+}
+
+
+
+bool Geofence::checkIfLineViolatesAnyFence(const matrix::Vector2f &start_local, const matrix::Vector2f &end_local,
+		const matrix::Vector2<double> &reference)
+{
+	MapProjection ref{reference(0), reference(1)};
+
+	// loop through all the polygons
+	for (int poly_idx = 0; poly_idx < _num_polygons; poly_idx++) {
+		PolygonInfo info = _polygons[poly_idx];
+
+		if (info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION || info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION) {
+
+			for (int vertex_idx = 0; vertex_idx < info.vertex_count; vertex_idx++) {
+				mission_fence_point_s vertex_current{};
+				mission_fence_point_s vertex_previous{};
+
+				int prev_idx = vertex_idx == 0 ? info.vertex_count - 1 : vertex_idx - 1;
+
+				dm_item_t fence_dataman_id{static_cast<dm_item_t>(_stats.dataman_id)};
+				bool success = _dataman_cache.loadWait(fence_dataman_id, info.dataman_index + vertex_idx,
+								       reinterpret_cast<uint8_t *>(&vertex_current),
+								       sizeof(mission_fence_point_s));
+
+				if (!success) {
+					break;
+				}
+
+				success = _dataman_cache.loadWait(fence_dataman_id, info.dataman_index + prev_idx,
+								  reinterpret_cast<uint8_t *>(&vertex_previous),
+								  sizeof(mission_fence_point_s));
+
+				if (!success) {
+					break;
+				}
+
+				matrix::Vector2f vertex_current_local = ref.project(vertex_current.lat, vertex_current.lon);
+				matrix::Vector2f vertex_previous_local = ref.project(vertex_previous.lat, vertex_previous.lon);
+
+				if (geofence_utils::segmentsIntersect(start_local, end_local, vertex_current_local, vertex_previous_local)) {
+					return true;
+				}
+			}
+
+		} else if (info.fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION || info.fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION) {
+			mission_fence_point_s circle_point{};
+			bool success = _dataman_cache.loadWait(static_cast<dm_item_t>(_stats.dataman_id), info.dataman_index,
+							       reinterpret_cast<uint8_t *>(&circle_point), sizeof(mission_fence_point_s));
+
+			if (!success) {
+				PX4_ERR("dm_read failed");
+				break;
+			}
+
+			matrix::Vector2f circle_center_local = ref.project(circle_point.lat, circle_point.lon);
+
+			if (geofence_utils::lineSegmentIntersectsCircle(start_local, end_local, circle_center_local, circle_point.circle_radius)) {
+				return true;
+			}
+		}
+
+	}
+
+	return false;
+}
+
+matrix::Vector2<double>  Geofence::getPolygonVertexByIndex(int poly_idx, int idx)
+{
+	PolygonInfo info = _polygons[poly_idx];
+
+	mission_fence_point_s vertex{};
+
+	dm_item_t fence_dataman_id{static_cast<dm_item_t>(_stats.dataman_id)};
+	_dataman_cache.loadWait(fence_dataman_id, info.dataman_index + idx,
+				reinterpret_cast<uint8_t *>(&vertex),
+				sizeof(mission_fence_point_s));
+
+	return matrix::Vector2d {vertex.lat, vertex.lon};
 }
