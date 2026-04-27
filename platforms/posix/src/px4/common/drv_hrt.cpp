@@ -45,13 +45,14 @@
 #include <px4_platform_common/tasks.h>
 #include <drivers/drv_hrt.h>
 
+#include <sched.h>
 #include <semaphore.h>
 #include <time.h>
 #include <string.h>
 #include <errno.h>
 #include "hrt_work.h"
 
-// Voxl board specific API definitions to get time
+// Voxl2 board specific API definitions to get time offset
 #if defined(CONFIG_MUORB_APPS_SYNC_TIMESTAMP)
 #include "fc_sensor.h"
 #endif
@@ -502,7 +503,14 @@ int px4_usleep(useconds_t usec)
 
 	const uint64_t time_finished = lockstep_scheduler.get_absolute_time() + usec;
 
-	return lockstep_scheduler.usleep_until(time_finished);
+	int ret = lockstep_scheduler.usleep_until(time_finished);
+
+	// Yield CPU after lockstep wait returns. At high sim speeds, usleep_until
+	// returns immediately when sim time has already advanced past the target,
+	// causing tight loops that starve external consumers (e.g. MAVSDK on UDP).
+	sched_yield();
+
+	return ret;
 }
 
 unsigned int px4_sleep(unsigned int seconds)
