@@ -35,6 +35,15 @@
 #include <lib/geo/geo.h>
 #include <lib/geofence/geofence_utils.h>
 
+GeofenceAvoidancePlanner::~GeofenceAvoidancePlanner()
+{
+	perf_free(_setup_perf);
+	perf_free(_setup_distances_perf);
+	perf_free(_update_start_perf);
+	perf_free(_update_destination_perf);
+	perf_free(_plan_path_perf);
+}
+
 static matrix::Vector2f get_vertex_local_position(int poly_index, int vertex_idx,
 		GeofenceInterface &geofence,
 		const matrix::Vector2<double> &reference)
@@ -57,6 +66,8 @@ const PlannedPath &GeofenceAvoidancePlanner::planPath()
 		// we are not in a state where we can reliably plan a path, return an empty one
 		return _planned_path;
 	}
+
+	perf_begin(_plan_path_perf);
 
 	reset_graph_state();
 
@@ -111,6 +122,7 @@ const PlannedPath &GeofenceAvoidancePlanner::planPath()
 
 		if (last_graph_index == graph_index) {
 			// we are stuck, destination does not seem to be reachable
+			perf_end(_plan_path_perf);
 			return _planned_path;
 		}
 
@@ -128,6 +140,7 @@ const PlannedPath &GeofenceAvoidancePlanner::planPath()
 	while (idx != 0) {
 		if (idx < 0) {
 			// can happen if the destination is not reachable
+			perf_end(_plan_path_perf);
 			return _planned_path;
 		}
 
@@ -154,6 +167,7 @@ const PlannedPath &GeofenceAvoidancePlanner::planPath()
 		idx = _graph_nodes[idx].previous_index;
 	}
 
+	perf_end(_plan_path_perf);
 	return _planned_path;
 }
 
@@ -181,14 +195,18 @@ bool GeofenceAvoidancePlanner::update_vertices(GeofenceInterface &geofence, floa
 		return false;
 	}
 
+	perf_begin(_setup_perf);
+
 	_reference = geofence.getPolygonVertexByIndex(0, 0);
 
 	if (!update_graph_nodes_without_start_and_destination(geofence, margin)) {
 		_polygons_healthy = false;
+		perf_cancel(_setup_perf);
 		return false;
 	}
 
 	update_distances_between_vertices(geofence);
+	perf_end(_setup_perf);
 	return true;
 }
 
@@ -268,6 +286,7 @@ bool GeofenceAvoidancePlanner::update_graph_nodes_without_start_and_destination(
 
 void GeofenceAvoidancePlanner::update_distances_between_vertices(GeofenceInterface &geofence)
 {
+	perf_begin(_setup_distances_perf);
 	// vertices occupy indices 1 .. _num_vertices; index 0 and the last slot hold the
 	// start and destination, which are handled by update_start / update_destination
 	const int last_vertex = _num_vertices;
@@ -288,6 +307,8 @@ void GeofenceAvoidancePlanner::update_distances_between_vertices(GeofenceInterfa
 			}
 		}
 	}
+
+	perf_end(_setup_distances_perf);
 }
 
 void GeofenceAvoidancePlanner::update_start(const matrix::Vector2d &start, GeofenceInterface &geofence)
@@ -296,6 +317,8 @@ void GeofenceAvoidancePlanner::update_start(const matrix::Vector2d &start, Geofe
 		_start_healthy = false;
 		return;
 	}
+
+	perf_begin(_update_start_perf);
 
 	MapProjection ref{_reference(0), _reference(1)};
 	matrix::Vector2f start_local;
@@ -335,6 +358,7 @@ void GeofenceAvoidancePlanner::update_start(const matrix::Vector2d &start, Geofe
 	}
 
 	_start_healthy = true;
+	perf_end(_update_start_perf);
 }
 
 void GeofenceAvoidancePlanner::update_destination(const matrix::Vector2d &destination, GeofenceInterface &geofence)
@@ -343,6 +367,8 @@ void GeofenceAvoidancePlanner::update_destination(const matrix::Vector2d &destin
 		_destination_healthy = false;
 		return;
 	}
+
+	perf_begin(_update_destination_perf);
 
 	MapProjection ref{_reference(0), _reference(1)};
 	matrix::Vector2f dest_local;
@@ -382,6 +408,7 @@ void GeofenceAvoidancePlanner::update_destination(const matrix::Vector2d &destin
 	}
 
 	_destination_healthy = true;
+	perf_end(_update_destination_perf);
 }
 
 bool GeofenceAvoidancePlanner::lat_lon_within_bounds(const matrix::Vector2<double> &lat_lon)

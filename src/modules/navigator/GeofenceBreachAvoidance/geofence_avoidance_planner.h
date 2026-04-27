@@ -41,6 +41,7 @@
 
 #include <cstdint>
 #include <matrix/math.hpp>
+#include <lib/perf/perf_counter.h>
 #include "geofence_interface.h"
 
 static constexpr int kMaxNodes = 100;
@@ -117,7 +118,7 @@ class GeofenceAvoidancePlanner
 {
 public:
 	GeofenceAvoidancePlanner() = default;
-	~GeofenceAvoidancePlanner() = default;
+	~GeofenceAvoidancePlanner();
 
 	const PlannedPath &planPath();
 
@@ -139,6 +140,12 @@ private:
 	bool _polygons_healthy{false};
 	bool _start_healthy{false};
 	bool _destination_healthy{false};
+
+	perf_counter_t _setup_perf{perf_alloc(PC_ELAPSED, "rtl_planner: setup")};
+	perf_counter_t _setup_distances_perf{perf_alloc(PC_ELAPSED, "rtl_planner: setup distances")};
+	perf_counter_t _update_start_perf{perf_alloc(PC_ELAPSED, "rtl_planner: update start")};
+	perf_counter_t _update_destination_perf{perf_alloc(PC_ELAPSED, "rtl_planner: update destination")};
+	perf_counter_t _plan_path_perf{perf_alloc(PC_ELAPSED, "rtl_planner: plan path")};
 
 	bool update_graph_nodes_without_start_and_destination(GeofenceInterface &geofence, float margin);
 	void update_distances_between_vertices(GeofenceInterface &geofence);
