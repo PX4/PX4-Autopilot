@@ -1,4 +1,5 @@
 import queue
+import signal
 import time
 import os
 import atexit
@@ -124,9 +125,20 @@ class Runner:
             self.process.terminate()
 
             try:
-                returncode = self.process.wait(timeout=1)
+                returncode = self.process.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 pass
+
+            if returncode is None:
+                if self.verbose:
+                    print("Aborting {} (SIGABRT for core dump)".format(
+                        self.name))
+                self.process.send_signal(signal.SIGABRT)
+
+                try:
+                    returncode = self.process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    pass
 
             if returncode is None:
                 if self.verbose:
@@ -170,6 +182,15 @@ class Px4Runner(Runner):
             ]
         self.env["PX4_SIM_MODEL"] = model
         self.env["PX4_SIM_SPEED_FACTOR"] = str(speed_factor)
+        # Route AddressSanitizer output to a per-test log file so reports
+        # don't interleave with the test runner's stdout. Inherits any
+        # existing ASAN_OPTIONS so callers can extend (e.g. to set the
+        # symbolizer path, which varies across hosts).
+        self.asan_log_path = os.path.join(log_dir, "asan")
+        self.env["ASAN_OPTIONS"] = (
+            self.env.get("ASAN_OPTIONS", "") +
+            ",log_path=" + self.asan_log_path
+        ).lstrip(",")
         self.debugger = debugger
         self.clear_rootfs()
         self.create_rootfs()

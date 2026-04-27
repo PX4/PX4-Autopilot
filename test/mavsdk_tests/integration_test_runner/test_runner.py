@@ -412,6 +412,21 @@ class Tester:
                 if self.verbose:
                     print(line, end="")
 
+                # Detect MAVSDK heartbeat timeout and SIGABRT PX4
+                # to get a core dump showing where MAVLink threads are stuck.
+                if "heartbeats timed out" in line:
+                    import signal
+                    for r in self.active_runners:
+                        if r.name == "px4" and r.poll() is None:
+                            print(colorize(
+                                ">>> Heartbeat timeout detected, "
+                                "aborting PX4 for core dump <<<",
+                                color.BOLD))
+                            try:
+                                r.process.send_signal(signal.SIGABRT)
+                            except Exception as e:
+                                print("Failed to abort PX4: {}".format(e))
+
     def parse_for_ulog_file(self, log: str) -> Optional[str]:
 
         match = "[logger] Opened full log file: ./"

@@ -244,6 +244,11 @@ private:
 		if (_telemetry && _telemetry->attitude_quaternion().timestamp_us != 0) {
 			// A system is connected. We can base the timeouts on the autopilot time.
 			const int64_t start_time_us = _telemetry->attitude_quaternion().timestamp_us;
+#if 0 // debug: abort if sim time stalls (likely lost heartbeats), to get a coredump
+			const auto wall_start = std::chrono::steady_clock::now();
+			int64_t last_timestamp_us = start_time_us;
+			auto last_progress_time = wall_start;
+#endif
 
 			while (!fun()) {
 				std::this_thread::sleep_for(duration_us / check_resolution);
@@ -258,6 +263,23 @@ private:
 						  (elapsed_time_us) / 1e6 << " seconds\n";
 					return false;
 				}
+
+#if 0 // debug: see wall_start above
+				const int64_t current_timestamp_us = _telemetry->attitude_quaternion().timestamp_us;
+				auto now_wall = std::chrono::steady_clock::now();
+
+				if (current_timestamp_us != last_timestamp_us) {
+					last_timestamp_us = current_timestamp_us;
+					last_progress_time = now_wall;
+
+				} else if (std::chrono::duration_cast<std::chrono::seconds>(
+						   now_wall - last_progress_time).count() > 5) {
+					std::cout << time_str()
+						  << "Aborting: sim time stalled for 5s (lost heartbeats?)\n";
+					std::abort();
+				}
+
+#endif
 			}
 
 		} else {
