@@ -64,6 +64,7 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
+#include <px4_platform_common/FastAllocated.hpp>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
@@ -80,7 +81,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/failure_detector_status.h>
 
-class ControlAllocator : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
+class ControlAllocator : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem, public FastAllocated
 {
 public:
 	static Descriptor desc;

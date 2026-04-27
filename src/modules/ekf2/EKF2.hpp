@@ -57,6 +57,7 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
+#include <px4_platform_common/FastAllocated.hpp>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <px4_platform_common/time.h>
 #include <uORB/Publication.hpp>
@@ -130,7 +131,7 @@
 
 extern pthread_mutex_t ekf2_module_mutex;
 
-class EKF2 final : public ModuleParams, public px4::ScheduledWorkItem
+class EKF2 final : public ModuleParams, public px4::ScheduledWorkItem, public FastAllocated
 {
 public:
 	EKF2() = delete;

@@ -40,6 +40,7 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
+#include <px4_platform_common/FastAllocated.hpp>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
@@ -64,7 +65,7 @@
 using namespace time_literals;
 
 class MulticopterAttitudeControl : public ModuleBase, public ModuleParams,
-	public px4::WorkItem
+	public px4::WorkItem, public FastAllocated
 {
 public:
 	static Descriptor desc;

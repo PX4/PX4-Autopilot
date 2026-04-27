@@ -41,6 +41,7 @@
 #include <px4_platform_common/time.h>
 #include <lib/hysteresis/hysteresis.h>
 #include <lib/mathlib/mathlib.h>
+#include <px4_platform_common/FastAllocated.hpp>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
@@ -64,7 +65,7 @@
 
 using namespace time_literals;
 
-class EKF2Selector : public ModuleParams, public px4::ScheduledWorkItem
+class EKF2Selector : public ModuleParams, public px4::ScheduledWorkItem, public FastAllocated
 {
 public:
 	EKF2Selector();

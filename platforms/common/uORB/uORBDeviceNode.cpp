@@ -36,6 +36,8 @@
 #include "uORBUtils.hpp"
 #include "uORBManager.hpp"
 
+#include <px4_platform_common/px4_fast_alloc.h>
+
 #include "SubscriptionCallback.hpp"
 
 #ifdef CONFIG_ORB_COMMUNICATOR
@@ -57,7 +59,7 @@ uORB::DeviceNode::DeviceNode(const struct orb_metadata *meta, const uint8_t inst
 
 uORB::DeviceNode::~DeviceNode()
 {
-	free(_data);
+	px4_fast_free(_data);
 
 	const char *devname = get_devname();
 
@@ -160,7 +162,7 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 			/* re-check size */
 			if (nullptr == _data) {
 				const size_t data_size = _meta->o_size * _meta->o_queue;
-				_data = (uint8_t *) px4_cache_aligned_alloc(data_size);
+				_data = (uint8_t *) px4_fast_cache_aligned_alloc(data_size);
 
 				if (_data) {
 					memset(_data, 0, data_size);
