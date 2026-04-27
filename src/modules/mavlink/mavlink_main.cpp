@@ -2617,6 +2617,15 @@ Mavlink::task_main(int argc, char *argv[])
 
 		configure_sik_radio();
 
+		// FIXME: proper fix is to refactor the MAVLink library so per-channel
+		// status is owned by its Mavlink instance (not a shared global), and
+		// TX seq becomes atomic so no lock is needed in the common path.
+		// Until then: lock_send() guards access to the shared per-channel
+		// mavlink_status_t (current_tx_seq etc.) which
+		// _mav_finalize_message_chan_send() reads and writes. The receiver
+		// thread already takes this lock around its own sends; taking it here
+		// prevents a race with those. Each helper below takes it internally
+		// around the actual mavlink send call.
 		handleStatus();
 		handleCommands();
 		handleAndGetCurrentCommandAck();
@@ -2625,6 +2634,12 @@ Mavlink::task_main(int argc, char *argv[])
 		check_requested_subscriptions();
 
 		/* update streams */
+		// Lock held across streams, ulog, events, and forwarding — everything
+		// that calls into the MAVLink send helpers in this iteration. The
+		// mutex is recursive, so nested locking via send_start/send_finish or
+		// other lock_send() callers inside the send path is safe.
+		lock_send();
+
 		for (const auto &stream : _streams) {
 			stream->update(t);
 
@@ -2702,6 +2717,8 @@ Mavlink::task_main(int argc, char *argv[])
 				resend_message(&msg);
 			}
 		}
+
+		unlock_send();
 
 		/* update TX/RX rates*/
 		if (t > _bytes_timestamp + 1_s) {
@@ -2813,9 +2830,11 @@ void Mavlink::handleMavlinkShellOutput()
 			}
 		}
 
-		// Send message without lock
+		// Send message without the shell lock (but under the channel send lock).
 		if (msg.count > 0) {
+			lock_send();
 			mavlink_msg_serial_control_send_struct(get_channel(), &msg);
+			unlock_send();
 		}
 	}
 }
@@ -2896,7 +2915,9 @@ void Mavlink::handleCommands()
 		msg.target_component = cmd.target_component;
 		msg.confirmation = 0;
 
+		lock_send();
 		mavlink_msg_command_long_send_struct(get_channel(), &msg);
+		unlock_send();
 	}
 }
 
@@ -2947,11 +2968,15 @@ void Mavlink::handleAndGetCurrentCommandAck()
 					if (_mode == MAVLINK_MODE_IRIDIUM) {
 						if (command_ack.from_external) {
 							// for MAVLINK_MODE_IRIDIUM send only if external
+							lock_send();
 							mavlink_msg_command_ack_send_struct(get_channel(), &msg);
+							unlock_send();
 						}
 
 					} else {
+						lock_send();
 						mavlink_msg_command_ack_send_struct(get_channel(), &msg);
+						unlock_send();
 					}
 
 				}

@@ -146,7 +146,9 @@ MavlinkFTP::_process_request(
 		    && last_reply->target_component == target_comp_id) {
 			// this is the same request as the one we replied to last. It means the (n)ack got lost, and the GCS
 			// resent the request
+			_mavlink.lock_send();
 			mavlink_msg_file_transfer_protocol_send_struct(_mavlink.get_channel(), last_reply);
+			_mavlink.unlock_send();
 			return;
 		}
 	}
@@ -301,8 +303,11 @@ MavlinkFTP::_reply(mavlink_file_transfer_protocol_t *ftp_req)
 
 	PX4_DEBUG("FTP: %s seq_number: %" PRIu16, payload->opcode == kRspAck ? "Ack" : "Nak", payload->seq_number);
 
+	// Called from the receiver thread; the per-channel mavlink_status global is
+	// also written by the sending task_main thread, so serialize via lock_send().
+	_mavlink.lock_send();
 	mavlink_msg_file_transfer_protocol_send_struct(_mavlink.get_channel(), ftp_req);
-
+	_mavlink.unlock_send();
 }
 void MavlinkFTP::_constructPath(char *dst, int dst_len, const char *path) const
 {

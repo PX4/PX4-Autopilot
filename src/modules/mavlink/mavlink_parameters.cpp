@@ -291,7 +291,9 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 						strncpy(param_value.param_id, HASH_PARAM, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
 						param_value.param_type = MAV_PARAM_TYPE_UINT32;
 						memcpy(&param_value.param_value, &hash, sizeof(hash));
+						_mavlink.lock_send();
 						mavlink_msg_param_value_send_struct(_mavlink.get_channel(), &param_value);
+						_mavlink.unlock_send();
 
 					} else {
 						/* local name buffer to enforce null-terminated string */
@@ -666,6 +668,12 @@ MavlinkParametersManager::send_param(param_t param, int component_id)
 		msg.param_type = MAVLINK_TYPE_FLOAT;
 	}
 
+	// send_param can be called from the periodic send path (lock_send already
+	// held by Mavlink::task_main) or from the incoming handle_message path
+	// (no outer lock). Take lock_send here to cover the latter — the mutex
+	// is recursive so the nested case is fine.
+	_mavlink.lock_send();
+
 	/* default component ID */
 	if (component_id < 0) {
 		mavlink_msg_param_value_send_struct(_mavlink.get_channel(), &msg);
@@ -676,6 +684,8 @@ MavlinkParametersManager::send_param(param_t param, int component_id)
 		mavlink_msg_param_value_encode_chan(mavlink_system.sysid, component_id, _mavlink.get_channel(), &mavlink_packet, &msg);
 		_mavlink_resend_uart(_mavlink.get_channel(), &mavlink_packet);
 	}
+
+	_mavlink.unlock_send();
 
 	_last_param_sent = hrt_absolute_time();
 
@@ -719,6 +729,8 @@ int MavlinkParametersManager:: send_error(MAV_PARAM_ERROR error, const char *par
 #endif/* code */
 	}
 
+	_mavlink.lock_send();
+
 	/* default component ID */
 	if (component_id < 0) {
 		mavlink_msg_param_error_send_struct(_mavlink.get_channel(), &msg);
@@ -729,6 +741,8 @@ int MavlinkParametersManager:: send_error(MAV_PARAM_ERROR error, const char *par
 		mavlink_msg_param_error_encode_chan(mavlink_system.sysid, component_id, _mavlink.get_channel(), &mavlink_packet, &msg);
 		_mavlink_resend_uart(_mavlink.get_channel(), &mavlink_packet);
 	}
+
+	_mavlink.unlock_send();
 
 	return 0;
 }
