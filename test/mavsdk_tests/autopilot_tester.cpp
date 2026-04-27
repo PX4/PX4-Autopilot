@@ -52,7 +52,12 @@ AutopilotTester::AutopilotTester() :
 
 AutopilotTester::~AutopilotTester()
 {
-	_events->unsubscribe_events(_events_handle);
+	// _events is only initialized in connect(). If the test fails before
+	// connect() completes (e.g., system discovery timeout), _events stays null.
+	if (_events) {
+		_events->unsubscribe_events(_events_handle);
+	}
+
 	_should_exit = true;
 	_real_time_report_thread.join();
 }
