@@ -195,9 +195,13 @@ void Navigator::run()
 			continue;
 		}
 
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
-		int lockstep_component = px4_lockstep_register_component();
-#endif
+		// Register as a lockstep component while processing this tick so the
+		// simulator waits for us to finish before advancing sim time. Navigator
+		// runs on its own thread (it accesses the SD card, so it can't live on
+		// a shared work queue) and otherwise wouldn't participate in the
+		// lockstep barrier at all.
+		const int lockstep_component = px4_lockstep_register_component();
+
 		perf_begin(_loop_perf);
 
 		orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
@@ -944,9 +948,7 @@ void Navigator::run()
 
 		perf_end(_loop_perf);
 
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
 		px4_lockstep_unregister_component(lockstep_component);
-#endif
 	}
 }
 
