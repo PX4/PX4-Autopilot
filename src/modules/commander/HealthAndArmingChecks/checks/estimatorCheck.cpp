@@ -142,10 +142,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 				reporter.failsafeFlags().mode_req_local_position_relaxed |
 				(1u << vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF));
 
-	// Read fresh estimator_status_flags. Only EKF2 publishes this topic, so external-INS
-	// drivers (MicroStrain MS_MODE=1, VectorNav, ILabs, sbgecom) and BlockLocalPositionEstimator
-	// will see a stale/empty struct here. Gate the new "no heading reference" branch below
-	// on a successful copy plus a freshness check so those code paths are unaffected.
+	// Freshness gate keeps the no-heading-source branch inactive for non-EKF2 estimators.
 	estimator_status_flags_s estimator_status_flags{};
 	const bool estimator_status_flags_valid =
 		_estimator_status_flags_sub.copy(&estimator_status_flags)
@@ -167,22 +164,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 	} else if (!context.isArmed() && estimator_status_flags_valid && !estimator_status_flags.cs_yaw_align) {
 		/* EVENT
 		 * @description
-		 * No absolute heading source has aligned the EKF yaw state. This is the normal
-		 * steady-state for optical-flow-only setups (no magnetometer, no GNSS yaw, no
-		 * external-vision yaw, no aux GNSS yaw): optical flow observes ground-relative
-		 * velocity in the body frame but cannot resolve absolute heading. Without an
-		 * aligned yaw the EKF's local position output is not NED-aligned, so
-		 * position-domain navigation modes cannot use it safely.
-		 *
-		 * The check is mode-scoped to heading_required_groups (PR #26778), so all modes
-		 * that set mode_req_local_position or mode_req_local_position_relaxed
-		 * (POSCTL, AUTO_LOITER, AUTO_MISSION, AUTO_RTL, AUTO_LAND, AUTO_FOLLOW_TARGET,
-		 * AUTO_PRECLAND, ORBIT, AUTO_VTOL_TAKEOFF, POSITION_SLOW), plus AUTO_TAKEOFF, are
-		 * blocked. Attitude- and stick-only modes (STAB, ACRO, MANUAL, ALTCTL) are
-		 * unaffected and arm normally. This branch supersedes the silent-pass protection
-		 * that PR #26596 previously routed through pre_flt_fail_innov_heading by reading
-		 * the dedicated cs_yaw_align flag instead, so the user-facing message reflects
-		 * the actual condition (no source) rather than a fabricated innovation failure.
+		 * No heading source has aligned the EKF yaw (e.g. optical-flow-only setups).
 		 */
 		reporter.armingCheckFailure(heading_required_groups, health_component_t::local_position_estimate,
 					    events::ID("check_estimator_heading_no_source"),

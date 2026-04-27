@@ -1987,22 +1987,7 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 	status.time_slip = _last_time_slip_us * 1e-6f;
 
 	static constexpr float kMinTestRatioPreflight = 0.5f;
-	// Heading innovation-failure flag only.
-	//
-	// PR #26596 previously folded "no heading source available" into this flag via the
-	// "|| !yaw_align" clause. That plugged a silent-pass case where, with no heading
-	// source fused, getHeadingInnovationTestRatio() leaves its internal -1.f sentinel
-	// untouched and returns NAN; "(0.5f < NaN)" resolves to false (IEEE 754), so the
-	// innovation comparison alone would let arming proceed. The side-effect was that
-	// optical-flow-only setups, which never align yaw, could never clear the flag,
-	// surfacing as a misleading "Preflight Fail: heading estimate invalid" in modes
-	// that don't actually depend on heading (issue #27107).
-	//
-	// Source-availability is now reported separately via the already-published
-	// estimator_status_flags.cs_yaw_align and consumed by commander's estimator check
-	// under the same mode-scoping introduced by PR #26778, so the silent-pass
-	// protection is preserved while the message correctly distinguishes "innovation
-	// failure" from "no heading source".
+	// Innovation failures only; "no heading source" is reported via cs_yaw_align (issue #27107).
 	status.pre_flt_fail_innov_heading   = (kMinTestRatioPreflight < status.hdg_test_ratio);
 	status.pre_flt_fail_innov_height    = (kMinTestRatioPreflight < status.hgt_test_ratio);
 	status.pre_flt_fail_innov_pos_horiz = (kMinTestRatioPreflight < status.pos_test_ratio);
