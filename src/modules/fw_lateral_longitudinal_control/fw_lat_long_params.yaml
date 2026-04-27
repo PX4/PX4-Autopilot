@@ -182,7 +182,7 @@ parameters:
       description:
         short: Height rate feed forward
       type: float
-      default: 0.3
+      default: 0.5
       min: 0.0
       max: 1.0
       decimal: 2
