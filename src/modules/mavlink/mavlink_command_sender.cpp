@@ -40,23 +40,29 @@
 
 #include "mavlink_command_sender.h"
 #include <px4_platform_common/log.h>
+#include <pthread.h>
 
 #define CMD_DEBUG(FMT, ...) PX4_LOG_NAMED_COND("cmd sender", _debug_enabled, FMT, ##__VA_ARGS__)
 
 MavlinkCommandSender *MavlinkCommandSender::_instance = nullptr;
 px4_sem_t MavlinkCommandSender::_lock;
 
-void MavlinkCommandSender::initialize()
+static pthread_once_t mavlink_command_sender_init_once = PTHREAD_ONCE_INIT;
+
+void MavlinkCommandSender::do_initialize()
 {
 	px4_sem_init(&_lock, 1, 1);
+	_instance = new MavlinkCommandSender();
+}
 
-	if (_instance == nullptr) {
-		_instance = new MavlinkCommandSender();
-
-		if (_instance == nullptr) {
-			PX4_ERR("MavlinkCommandSender alloc failed");
-		}
-	}
+void MavlinkCommandSender::initialize()
+{
+	// Multiple Mavlink instances can call start() concurrently, each of which
+	// hits initialize(). Only the first call may set up the shared lock and
+	// singleton — otherwise we'd re-init a semaphore another thread is already
+	// using (classic race that TSan flags). pthread_once is portable across
+	// POSIX and NuttX.
+	pthread_once(&mavlink_command_sender_init_once, do_initialize);
 }
 
 MavlinkCommandSender &MavlinkCommandSender::instance()
@@ -150,7 +156,14 @@ void MavlinkCommandSender::handle_mavlink_command_ack(const mavlink_command_ack_
 
 void MavlinkCommandSender::check_timeout(mavlink_channel_t channel)
 {
-	lock();
+	// Use try_lock: check_timeout is called very frequently (every MAVLink
+	// main loop iteration on every instance). If another instance is already
+	// holding the lock, skip this cycle — we'll retry on the next update.
+	// This prevents lock convoys that can stall the MAVLink sender and
+	// receiver threads, causing heartbeat loss under high load.
+	if (!try_lock()) {
+		return;
+	}
 
 	_commands.reset_to_start();
 
