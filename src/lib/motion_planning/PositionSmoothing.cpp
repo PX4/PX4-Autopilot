@@ -208,9 +208,17 @@ const Vector3f PositionSmoothing::_generateVelocitySetpoint(const Vector3f &posi
 			_max_speed_previous = xy_speed;
 		}
 
-		Vector3f vel_sp_constrained = u_pos_traj_to_dest * sqrtf(xy_speed * xy_speed + z_speed * z_speed);
-		math::trajectory::clampToXYNorm(vel_sp_constrained, xy_speed, 0.5f);
-		math::trajectory::clampToZNorm(vel_sp_constrained, z_speed, 0.5f);
+		// Compute XY and Z velocity components independently to avoid
+		// Z clamping from reducing XY speed (and vice versa)
+		const Vector3f pos_to_dest = crossing_point - pos_traj;
+		const Vector2f u_pos_to_dest_xy = Vector2f(pos_to_dest).unit_or_zero();
+		const float z_sign = matrix::sign(pos_to_dest(2));
+
+		Vector3f vel_sp_constrained{
+			u_pos_to_dest_xy(0) *xy_speed,
+			u_pos_to_dest_xy(1) *xy_speed,
+			z_sign *z_speed
+		};
 
 		for (int i = 0; i < 3; i++) {
 			// If available, use the existing velocity as a feedforward, otherwise replace it
