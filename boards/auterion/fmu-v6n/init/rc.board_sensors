@@ -40,11 +40,15 @@ fi
 # GPIO Expander driver on external I2C3
 mcp23017 start -b 3 -X -a 0x25 -D 0xff00 -O 0xff00 -P 0xffff -U 10
 
-# Voltage rail monitoring ADC on external I2C3
-# tla2528 start -b 3 -X -a 0x10
+# HW base 0x14 (20dec) has working external ADCs
+if ver hwbasecmp 014
+then
+	# PWM current monitoring ADC on external I2C3
+	ads7128 start -b 3 -X -a 0x13
 
-# PWM current monitoring ADC on external I2C3
-# tla2528 start -b 3 -X -a 0x13
+	# Voltage rail monitoring ADC on external I2C3
+	ads7128 start -b 3 -X -a 0x14
+fi
 
 # SSD/LTE temperature monitoring on external I2C3
 tmp102 start -b 3 -X -a 0x48
