@@ -1,0 +1,127 @@
+module_name: ManualAccelerationSlow
+parameters:
+- group: Multicopter Position Slow Mode
+  definitions:
+    MC_SLOW_MAP_HVEL:
+      description:
+        short: Manual input mapped to scale horizontal velocity in position slow mode
+      type: enum
+      values:
+        0: No rescaling
+        1: AUX1
+        2: AUX2
+        3: AUX3
+        4: AUX4
+        5: AUX5
+        6: AUX6
+      default: 0
+    MC_SLOW_MAP_VVEL:
+      description:
+        short: Manual input mapped to scale vertical velocity in position slow mode
+      type: enum
+      values:
+        0: No rescaling
+        1: AUX1
+        2: AUX2
+        3: AUX3
+        4: AUX4
+        5: AUX5
+        6: AUX6
+      default: 0
+    MC_SLOW_MAP_YAWR:
+      description:
+        short: Manual input mapped to scale yaw rate in position slow mode
+      type: enum
+      values:
+        0: No rescaling
+        1: AUX1
+        2: AUX2
+        3: AUX3
+        4: AUX4
+        5: AUX5
+        6: AUX6
+      default: 0
+    MC_SLOW_MIN_HVEL:
+      description:
+        short: Horizontal velocity lower limit
+        long: The lowest input maps and is clamped to this velocity.
+      type: float
+      default: 0.3
+      unit: m/s
+      min: 0.1
+      increment: 0.1
+      decimal: 2
+    MC_SLOW_MIN_VVEL:
+      description:
+        short: Vertical velocity lower limit
+        long: The lowest input maps and is clamped to this velocity.
+      type: float
+      default: 0.3
+      unit: m/s
+      min: 0.1
+      increment: 0.1
+      decimal: 2
+    MC_SLOW_MIN_YAWR:
+      description:
+        short: Yaw rate lower limit
+        long: The lowest input maps and is clamped to this rate.
+      type: float
+      default: 3.0
+      unit: deg/s
+      min: 1
+      increment: 0.1
+      decimal: 0
+    MC_SLOW_DEF_HVEL:
+      description:
+        short: Default horizontal velocity limit
+        long: |-
+          This value is used in slow mode if
+          no aux channel is mapped and
+          no limit is commanded through MAVLink.
+      type: float
+      default: 3.0
+      unit: m/s
+      min: 0.1
+      increment: 0.1
+      decimal: 2
+    MC_SLOW_DEF_VVEL:
+      description:
+        short: Default vertical velocity limit
+        long: |-
+          This value is used in slow mode if
+          no aux channel is mapped and
+          no limit is commanded through MAVLink.
+      type: float
+      default: 1.0
+      unit: m/s
+      min: 0.1
+      increment: 0.1
+      decimal: 2
+    MC_SLOW_DEF_YAWR:
+      description:
+        short: Default yaw rate limit
+        long: |-
+          This value is used in slow mode if
+          no aux channel is mapped and
+          no limit is commanded through MAVLink.
+      type: float
+      default: 45.0
+      unit: deg/s
+      min: 1
+      increment: 0.1
+      decimal: 0
+    MC_SLOW_MAP_PTCH:
+      description:
+        short: Gimbal pitch rate control input in position slow mode
+        long: RC_MAP_AUX{N} to allow for gimbal pitch rate control in position slow
+          mode
+      type: enum
+      values:
+        0: No pitch rate input
+        1: AUX1
+        2: AUX2
+        3: AUX3
+        4: AUX4
+        5: AUX5
+        6: AUX6
+      default: 0

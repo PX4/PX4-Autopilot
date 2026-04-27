@@ -77,6 +77,8 @@ px4_add_module(
 		${CMSIS_DSP}/Source/TransformFunctions/arm_cfft_radix4_q15.c
 		${CMSIS_DSP}/Source/TransformFunctions/arm_rfft_init_q15.c
 		${CMSIS_DSP}/Source/TransformFunctions/arm_rfft_q15.c
+	MODULE_CONFIG
+		parameters.yaml
 	DEPENDS
 		px4_work_queue
 )

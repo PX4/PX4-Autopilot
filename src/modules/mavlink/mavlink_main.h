@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -83,6 +83,7 @@
 #include "mavlink_events.h"
 #include "mavlink_messages.h"
 #include "mavlink_receiver.h"
+#include "mavlink_sign_control.h"
 #include "mavlink_shell.h"
 #include "mavlink_ulog.h"
 
@@ -120,6 +121,7 @@ public:
 	{
 		_task_should_exit.store(true);
 		_receiver.request_stop();
+		_sign_control.write_key_and_timestamp();
 	}
 
 	void display_status();
@@ -142,8 +144,8 @@ public:
 	static int get_status_all_instances(bool show_streams_status);
 	static bool serial_instance_exists(const char *device_name, Mavlink *self);
 
-	static bool component_was_seen(int system_id, int component_id, Mavlink &self);
 	static void forward_message(const mavlink_message_t *msg, Mavlink *self);
+	static bool component_was_seen(int system_id, int component_id, Mavlink &self);
 
 	bool check_events() const { return _should_check_events.load(); }
 	void check_events_enable() { _should_check_events.store(true); }
@@ -490,14 +492,22 @@ public:
 
 	bool radio_status_critical() const { return _radio_status_critical; }
 
+	bool accept_unsigned(uint32_t message_id) { return _sign_control.accept_unsigned(message_id); }
+	void set_signing_key_dirty() { _signing_key_dirty.store(true); }
+	void check_signing_key_dirty() { if (_signing_key_dirty.load()) { _signing_key_dirty.store(false); _sign_control.reload_key(); } }
+
+
 private:
 	MavlinkReceiver 	_receiver;
+
+	MavlinkSignControl	_sign_control{};
 
 	int			_instance_id{-1};
 	int			_task_id{-1};
 
 	px4::atomic_bool	_task_should_exit{false};
 	px4::atomic_bool	_task_running{false};
+	px4::atomic_bool	_signing_key_dirty{false};
 
 	bool			_transmitting_enabled{true};
 	bool			_transmitting_enabled_commanded{false};

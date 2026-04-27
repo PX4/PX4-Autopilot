@@ -1,0 +1,28 @@
+module_name: sensor_baro_sim
+parameters:
+- group: Sensors
+  definitions:
+    SENS_EN_BAROSIM:
+      description:
+        short: Enable simulated barometer sensor instance
+      type: enum
+      values:
+        0: Disabled
+        1: Enabled
+      default: 0
+      reboot_required: true
+      min: 0
+      max: 1
+- group: Simulator
+  definitions:
+    SIM_BARO_OFF_P:
+      description:
+        short: simulated barometer pressure offset
+      type: float
+      default: 0.0
+    SIM_BARO_OFF_T:
+      description:
+        short: simulated barometer temperature offset
+      type: float
+      default: 0.0
+      unit: celcius

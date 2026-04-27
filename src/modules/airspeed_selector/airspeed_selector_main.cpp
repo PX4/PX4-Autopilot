@@ -413,9 +413,8 @@ AirspeedModule::Run()
 				if (_in_takeoff_situation) {
 					// set flag to false if either speed is above stall speed,
 					// or launch detection + land detection indicate flying
-					const bool speed_above_stall = airspeed_raw.indicated_airspeed_m_s > _param_fw_airspd_stall.get();
-					airspeed_raw.indicated_airspeed_m_s > _param_fw_airspd_stall.get()
-					|| (PX4_ISFINITE(_ground_minus_wind_CAS) && _ground_minus_wind_CAS > _param_fw_airspd_stall.get());
+					const bool speed_above_stall = _airspeed_validator[i].get_CAS() > _param_fw_airspd_stall.get()
+								       || (PX4_ISFINITE(_ground_minus_wind_CAS) && _ground_minus_wind_CAS > _param_fw_airspd_stall.get());
 
 					launch_detection_status_s launch_detection_status{};
 					_launch_detection_status_sub.copy(&launch_detection_status);
@@ -444,8 +443,10 @@ AirspeedModule::Run()
 
 			// save estimated airspeed scale after disarm if airspeed is valid and scale has changed
 			if (!armed && _armed_prev) {
+				const float scale_change_threshold = _param_airspeed_scale[i] * 0.03f; // 3% relative change threshold
+
 				if (_param_aspd_scale_apply.get() > 0 && _airspeed_validator[i].get_airspeed_valid()
-				    && fabsf(_airspeed_validator[i].get_CAS_scale_validated() - _param_airspeed_scale[i]) > FLT_EPSILON) {
+				    && fabsf(_airspeed_validator[i].get_CAS_scale_validated() - _param_airspeed_scale[i]) > scale_change_threshold) {
 
 					mavlink_log_info(&_mavlink_log_pub, "Airspeed sensor Nr. %d ASPD_SCALE updated: %.4f --> %.4f", i + 1,
 							 (double)_param_airspeed_scale[i],
@@ -749,11 +750,10 @@ void AirspeedModule::select_airspeed_and_publish()
 	airspeed_validated.indicated_airspeed_m_s = NAN;
 	airspeed_validated.calibrated_airspeed_m_s = NAN;
 	airspeed_validated.true_airspeed_m_s = NAN;
+	airspeed_validated.airspeed_derivative_filtered = NAN;
+	airspeed_validated.pitch_filtered = NAN;
 
-	airspeed_validated.airspeed_derivative_filtered = _airspeed_validator[valid_airspeed_index -
-					     1].get_airspeed_derivative();
 	airspeed_validated.throttle_filtered = _throttle_filtered.getState();
-	airspeed_validated.pitch_filtered = _airspeed_validator[valid_airspeed_index - 1].get_pitch_filtered();
 
 	airspeed_validated.airspeed_source = valid_airspeed_index;
 	_prev_airspeed_src = _valid_airspeed_src;
@@ -789,6 +789,8 @@ void AirspeedModule::select_airspeed_and_publish()
 		airspeed_validated.true_airspeed_m_s = _airspeed_validator[valid_airspeed_index - 1].get_TAS();
 		airspeed_validated.calibrated_ground_minus_wind_m_s = _ground_minus_wind_CAS;
 		airspeed_validated.calibraded_airspeed_synth_m_s = get_synthetic_airspeed(airspeed_validated.throttle_filtered);
+		airspeed_validated.airspeed_derivative_filtered = _airspeed_validator[valid_airspeed_index - 1].get_airspeed_derivative();
+		airspeed_validated.pitch_filtered = _airspeed_validator[valid_airspeed_index - 1].get_pitch_filtered();
 		break;
 	}
 

@@ -1,0 +1,10 @@
+module_name: srf05
+parameters:
+- group: Sensors
+  definitions:
+    SENS_EN_SR05:
+      description:
+        short: HY-SRF05 / HC-SR05
+      type: boolean
+      default: 0
+      reboot_required: true

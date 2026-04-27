@@ -176,7 +176,7 @@ Select the **Advanced** checkbox in the top right corner of the view to display 
 
 #### Конфігурація масштабу закрилка та спойлера
 
-"Керування флапами" та "керування спойлерами" - це аеродинамічні конфігурації, які можуть керуватися вручну пілотом (наприклад, за допомогою RC) або встановлюватися автоматично контролером.
+"Flap-control" and "Spoiler-control" are aerodynamic configurations that can either be commanded manually by the pilot (using RC or a Joystick, say) (see [Flaps and Spoiler Control with Manual Control](#flaps-and-spoiler-control-with-manual-control)), or are set automatically by the controller.
 Наприклад, пілот або система посадки можуть ввести "керування спойлерами", щоб зменшити швидкість повітря перед посадкою.
 
 The configurations are an _abstract_ way for the controller to tell the allocator how much it should adjust the aerodynamic properties of the wings relative to the "full flaps" or "full spoiler" configuration (between `[0,1]`, where "1" indicates the full range).
@@ -198,6 +198,20 @@ The `flap scale` and `spoiler scale` settings in the actuator UI inform the allo
   It also has non-zero entries in the `Flap Scale` and `Spoiler Scale` fields.
   Це відхилення елеватора, яке додається для компенсації моментів по тангажу, створених дією поверхні флапів та спойлерів.
   У цьому випадку елеватор буде відхилений на 0,3 вгору при повному розгортанні флапів для компенсації моменту, спрямованого вниз, який викликано дією флапів.
+
+#### Flaps and Spoiler Control with Manual Control
+
+The preferred method to manually actuate spoilers and flaps is to map a manual control switch to an `AUX` output (see [Generic Actuator Control with RC](../payloads/generic_actuator_control.md#generic-actuator-control-with-rc)), and then map that AUX output to the flap or spoiler function using [FW_FLAPS_MAN](../advanced_config/parameter_reference.md#FW_FLAPS_MAN) or [FW_SPOILERS_MAN](../advanced_config/parameter_reference.md#FW_SPOILERS_MAN).
+The source for the manual control can be RC or MAVLink.
+
+:::warning
+The following method is not recommended, and will be removed in a future release.
+If using it you should migrate to using the AUX-based method.
+
+It is also possible to define a flaps channel directly on the RC using [RC_MAP_FLAPS](../advanced_config/parameter_reference.md#RC_MAP_FLAPS).
+This channel can also be used to control the spoilers by setting [FW_SPOILERS_MAN](../advanced_config/parameter_reference.md#FW_SPOILERS_MAN) to `Flaps channel`.
+This method is not possible when the source for the manual control is MAVLink.
+:::
 
 #### Масштабування крену, кута та повороту приводу
 
@@ -675,7 +689,6 @@ First set the _frame rate_ for the servos used in each group of outputs.
 - Якщо використовується кнопка безпеки, її потрібно натиснути перед тим, як буде дозволено проводити випробування приводу.
 - Вимикач вимкнення все ще може бути використаний для негайного зупинення двигунів.
 - Сервоприводи фактично не рухаються, поки не буде змінено відповідний слайдер.
-- The parameter [COM_MOT_TEST_EN](../advanced_config/parameter_reference.md#COM_MOT_TEST_EN) can be used to completely disable actuator testing.
 - On the shell, [actuator_test](../modules/modules_command.md#actuator-test) can be used as well for actuator testing.
 - VTOLs will automatically turn off motors pointing upwards during **fixed-wing flight**:
   - Стандартний VTOL: Двигуни, визначені як багатокоптерні двигуни, будуть вимкнені

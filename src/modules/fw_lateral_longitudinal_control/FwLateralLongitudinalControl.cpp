@@ -118,6 +118,8 @@ FwLateralLongitudinalControl::parameters_update()
 
 	_tecs_alt_time_const_slew_rate.setSlewRate(TECS_ALT_TIME_CONST_SLEW_RATE);
 	_tecs_alt_time_const_slew_rate.setForcedValue(_param_fw_t_h_error_tc.get() * _param_fw_thrtc_sc.get());
+
+	_airspeed_direction_control.setPGainFromPeriodAndDamping(_param_npfg_damping.get(), _param_npfg_period.get());
 }
 
 void FwLateralLongitudinalControl::Run()
@@ -298,7 +300,7 @@ void FwLateralLongitudinalControl::Run()
 			// additional is_finite checks that should not be necessary, but are kept for safety
 			float roll_body = PX4_ISFINITE(roll_sp) ? roll_sp : 0.0f;
 			float pitch_body = PX4_ISFINITE(pitch_sp) ? pitch_sp : 0.0f;
-			const float yaw_body = _yaw; // yaw is not controlled in fixed wing, need to set it though for quaternion generation
+			float yaw_body = _yaw;
 			const float thrust_body_x = PX4_ISFINITE(throttle_sp) ? throttle_sp : 0.0f;
 
 			if (_control_mode_sub.get().flag_control_manual_enabled) {

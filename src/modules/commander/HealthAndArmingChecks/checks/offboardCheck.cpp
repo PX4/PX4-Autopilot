@@ -40,6 +40,9 @@ void OffboardChecks::checkAndReport(const Context &context, Report &reporter)
 	reporter.failsafeFlags().offboard_control_signal_lost = true;
 
 	offboard_control_mode_s offboard_control_mode;
+	const NavModes affected_modes = (NavModes)reporter.failsafeFlags().mode_req_offboard_signal;
+	const bool has_affected_modes = affected_modes != NavModes::None;
+	bool has_specific_reason = false;
 
 	if (_offboard_control_mode_sub.copy(&offboard_control_mode)) {
 
@@ -52,16 +55,63 @@ void OffboardChecks::checkAndReport(const Context &context, Report &reporter)
 
 		if (offboard_control_mode.position && reporter.failsafeFlags().local_position_invalid) {
 			offboard_available = false;
+			has_specific_reason = true;
+
+			if (has_affected_modes) {
+				/* EVENT
+				 * @description
+				 * Offboard position control requires a valid local position estimate.
+				 */
+				reporter.armingCheckFailure(affected_modes, health_component_t::system,
+							    events::ID("check_modes_offboard_no_local_position"),
+							    events::Log::Error, "Offboard requires local position");
+				reporter.clearCanRunBits(affected_modes);
+			}
 
 		} else if (offboard_control_mode.velocity && reporter.failsafeFlags().local_velocity_invalid) {
 			offboard_available = false;
+			has_specific_reason = true;
 
-		} else if (offboard_control_mode.acceleration && reporter.failsafeFlags().attitude_invalid) {
-			// OFFBOARD acceleration handled by position controller
+			if (has_affected_modes) {
+				/* EVENT
+				 * @description
+				 * Offboard velocity control requires a valid local velocity estimate.
+				 */
+				reporter.armingCheckFailure(affected_modes, health_component_t::system,
+							    events::ID("check_modes_offboard_no_local_velocity"),
+							    events::Log::Error, "Offboard requires local velocity");
+				reporter.clearCanRunBits(affected_modes);
+			}
+
+		} else if ((offboard_control_mode.acceleration || offboard_control_mode.attitude)
+			   && reporter.failsafeFlags().attitude_invalid) {
 			offboard_available = false;
+			has_specific_reason = true;
+
+			if (has_affected_modes) {
+				/* EVENT
+				 * @description
+				 * Offboard acceleration and attitude control require a valid attitude estimate.
+				 */
+				reporter.armingCheckFailure(affected_modes, health_component_t::system,
+							    events::ID("check_modes_offboard_no_attitude"),
+							    events::Log::Error, "Offboard requires attitude estimate");
+				reporter.clearCanRunBits(affected_modes);
+			}
 		}
 
 		// This is a mode requirement, no need to report
 		reporter.failsafeFlags().offboard_control_signal_lost = !offboard_available;
+	}
+
+	if (reporter.failsafeFlags().offboard_control_signal_lost && !has_specific_reason && has_affected_modes) {
+		/* EVENT
+		 * @description
+		 * The offboard component is not sending recent setpoints.
+		 */
+		reporter.armingCheckFailure(affected_modes, health_component_t::system,
+					    events::ID("check_modes_offboard_signal_lost"),
+					    events::Log::Error, "No offboard signal");
+		reporter.clearCanRunBits(affected_modes);
 	}
 }

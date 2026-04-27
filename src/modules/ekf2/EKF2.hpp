@@ -73,6 +73,7 @@
 #include <uORB/topics/estimator_states.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/estimator_status_flags.h>
+#include <uORB/topics/estimator_fusion_control.h>
 #include <uORB/topics/launch_detection_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_combined.h>
@@ -122,6 +123,10 @@
 #if defined(CONFIG_EKF2_WIND)
 # include <uORB/topics/wind.h>
 #endif // CONFIG_EKF2_WIND
+
+#if defined(CONFIG_EKF2_RANGING_BEACON)
+# include <uORB/topics/ranging_beacon.h>
+#endif // CONFIG_EKF2_RANGING_BEACON
 
 extern pthread_mutex_t ekf2_module_mutex;
 
@@ -194,6 +199,7 @@ private:
 	void PublishStates(const hrt_abstime &timestamp);
 	void PublishStatus(const hrt_abstime &timestamp);
 	void PublishStatusFlags(const hrt_abstime &timestamp);
+	void PublishFusionControl(const hrt_abstime &timestamp);
 #if defined(CONFIG_EKF2_WIND)
 	void PublishWindEstimate(const hrt_abstime &timestamp);
 #endif // CONFIG_EKF2_WIND
@@ -229,6 +235,9 @@ private:
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	void UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps);
 #endif // CONFIG_EKF2_RANGE_FINDER
+#if defined(CONFIG_EKF2_RANGING_BEACON)
+	void UpdateRangingBeaconSample(ekf2_timestamps_s &ekf2_timestamps);
+#endif // CONFIG_EKF2_RANGING_BEACON
 
 	void UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps);
 
@@ -339,6 +348,10 @@ private:
 	hrt_abstime _status_aux_vel_pub_last{0};
 #endif // CONFIG_EKF2_AUXVEL
 
+#if defined(CONFIG_EKF2_RANGING_BEACON)
+	uORB::Subscription _ranging_beacon_sub {ORB_ID(ranging_beacon)};
+#endif // CONFIG_EKF2_RANGING_BEACON
+
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	uORB::Subscription _vehicle_optical_flow_sub {ORB_ID(vehicle_optical_flow)};
 	uORB::PublicationMulti<vehicle_optical_flow_vel_s> _estimator_optical_flow_vel_pub{ORB_ID(estimator_optical_flow_vel)};
@@ -394,6 +407,25 @@ private:
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Publication<vehicle_command_ack_s> _vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
+	enum SensEnBit : uint16_t {
+		SENS_EN_GPS0   = 0,
+		SENS_EN_GPS1   = 1,
+		SENS_EN_OF     = 2,
+		SENS_EN_EV     = 3,
+		SENS_EN_AGP0   = 4,
+		// bit: 5-7 reserved for AGP1..3
+		SENS_EN_BARO   = 8,
+		SENS_EN_RNG    = 9,
+		SENS_EN_MAG    = 10,
+		SENS_EN_ASPD   = 11,
+		SENS_EN_RNGBCN = 12,
+	};
+	bool _prev_armed{false};
+
+	void initFusionControl();
+	void handleSensorFusionCommand(const vehicle_command_s &cmd, vehicle_command_ack_s &ack);
+	void syncSensEnParam();
+
 	uORB::SubscriptionCallbackWorkItem _sensor_combined_sub{this, ORB_ID(sensor_combined)};
 	uORB::SubscriptionCallbackWorkItem _vehicle_imu_sub{this, ORB_ID(vehicle_imu)};
 
@@ -406,6 +438,11 @@ private:
 	hrt_abstime _last_range_sensor_update{0};
 	int _distance_sensor_selected{-1}; // because we can have several distance sensor instances with different orientations
 #endif // CONFIG_EKF2_RANGE_FINDER
+
+#if defined(CONFIG_EKF2_RANGING_BEACON)
+	hrt_abstime _status_ranging_beacon_pub_last {0};
+	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_ranging_beacon_pub{ORB_ID(estimator_aid_src_ranging_beacon)};
+#endif // CONFIG_EKF2_RANGING_BEACON
 
 	bool _callback_registered{false};
 
@@ -427,6 +464,7 @@ private:
 	uORB::PublicationMulti<estimator_sensor_bias_s>      _estimator_sensor_bias_pub{ORB_ID(estimator_sensor_bias)};
 	uORB::PublicationMulti<estimator_states_s>           _estimator_states_pub{ORB_ID(estimator_states)};
 	uORB::PublicationMulti<estimator_status_flags_s>     _estimator_status_flags_pub{ORB_ID(estimator_status_flags)};
+	uORB::PublicationMulti<estimator_fusion_control_s>   _estimator_fc_pub{ORB_ID(estimator_fusion_control)};
 	uORB::PublicationMulti<estimator_status_s>           _estimator_status_pub{ORB_ID(estimator_status)};
 
 	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_fake_hgt_pub{ORB_ID(estimator_aid_src_fake_hgt)};
@@ -480,6 +518,7 @@ private:
 	Ekf _ekf;
 
 	parameters *_params;	///< pointer to ekf parameter struct (located in _ekf class instance)
+	FusionControl &_fc;
 
 	DEFINE_PARAMETERS(
 		(ParamBool<px4::params::EKF2_LOG_VERBOSE>) _param_ekf2_log_verbose,
@@ -487,7 +526,8 @@ private:
 		(ParamExtFloat<px4::params::EKF2_DELAY_MAX>) _param_ekf2_delay_max,
 		(ParamExtInt<px4::params::EKF2_IMU_CTRL>) _param_ekf2_imu_ctrl,
 		(ParamExtFloat<px4::params::EKF2_VEL_LIM>) _param_ekf2_vel_lim,
-		(ParamBool<px4::params::EKF2_ENGINE_WRM>) _param_ekf2_engine_wrm,
+		(ParamBool<px4::params::EKF2_POS_LOCK>) _param_ekf2_pos_lock,
+		(ParamExtInt<px4::params::EKF2_SENS_EN>) _param_ekf2_sens_en,
 
 #if defined(CONFIG_EKF2_AUXVEL)
 		(ParamExtFloat<px4::params::EKF2_AVEL_DELAY>)
@@ -514,12 +554,6 @@ private:
 #if defined(CONFIG_EKF2_GNSS)
 		(ParamExtInt<px4::params::EKF2_GPS_CTRL>) _param_ekf2_gps_ctrl,
 		(ParamExtInt<px4::params::EKF2_GPS_MODE>) _param_ekf2_gps_mode,
-		(ParamExtFloat<px4::params::EKF2_GPS_DELAY>) _param_ekf2_gps_delay,
-
-		(ParamExtFloat<px4::params::EKF2_GPS_POS_X>) _param_ekf2_gps_pos_x,
-		(ParamExtFloat<px4::params::EKF2_GPS_POS_Y>) _param_ekf2_gps_pos_y,
-		(ParamExtFloat<px4::params::EKF2_GPS_POS_Z>) _param_ekf2_gps_pos_z,
-
 		(ParamExtFloat<px4::params::EKF2_GPS_V_NOISE>) _param_ekf2_gps_v_noise,
 		(ParamExtFloat<px4::params::EKF2_GPS_P_NOISE>) _param_ekf2_gps_p_noise,
 
@@ -543,7 +577,7 @@ private:
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_BAROMETER)
-		(ParamExtInt<px4::params::EKF2_BARO_CTRL>) _param_ekf2_baro_ctrl,///< barometer control selection
+		(ParamExtInt<px4::params::EKF2_BARO_CTRL>) _param_ekf2_baro_ctrl,
 		(ParamExtFloat<px4::params::EKF2_BARO_DELAY>) _param_ekf2_baro_delay,
 		(ParamExtFloat<px4::params::EKF2_BARO_NOISE>) _param_ekf2_baro_noise,
 		(ParamExtFloat<px4::params::EKF2_BARO_GATE>) _param_ekf2_baro_gate,
@@ -628,6 +662,14 @@ private:
 		(ParamExtFloat<px4::params::EKF2_RNG_POS_Z>) _param_ekf2_rng_pos_z,
 #endif // CONFIG_EKF2_RANGE_FINDER
 
+#if defined(CONFIG_EKF2_RANGING_BEACON)
+		// ranging beacon fusion
+		(ParamExtInt<px4::params::EKF2_RNGBC_CTRL>) _param_ekf2_rngbc_ctrl,
+		(ParamExtFloat<px4::params::EKF2_RNGBC_DELAY>) _param_ekf2_rngbc_delay,
+		(ParamExtFloat<px4::params::EKF2_RNGBC_NOISE>) _param_ekf2_rngbc_noise,
+		(ParamExtFloat<px4::params::EKF2_RNGBC_GATE>) _param_ekf2_rngbc_gate,
+#endif // CONFIG_EKF2_RANGING_BEACON
+
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 		// vision estimate fusion
 		(ParamExtFloat<px4::params::EKF2_EV_DELAY>)
@@ -657,7 +699,7 @@ private:
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 		// optical flow fusion
 		(ParamExtInt<px4::params::EKF2_OF_CTRL>)
-		_param_ekf2_of_ctrl, ///< optical flow fusion selection
+		_param_ekf2_of_ctrl,
 		(ParamExtInt<px4::params::EKF2_OF_GYR_SRC>)
 		_param_ekf2_of_gyr_src,
 		(ParamExtFloat<px4::params::EKF2_OF_DELAY>)

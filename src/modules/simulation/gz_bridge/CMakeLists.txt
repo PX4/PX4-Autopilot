@@ -69,6 +69,7 @@ if (gz-transport_FOUND)
 			${GZ_TRANSPORT_TARGET}
 		MODULE_CONFIG
 			module.yaml
+			parameters.yaml
 	)
 
     target_include_directories(modules__simulation__gz_bridge
@@ -120,7 +121,9 @@ if (gz-transport_FOUND)
 	endforeach()
 
 	# Setup the environment variables: PX4_GZ_MODELS, PX4_GZ_WORLDS, GZ_SIM_RESOURCE_PATH
-	configure_file(gz_env.sh.in ${PX4_BINARY_DIR}/rootfs/gz_env.sh)
+	# @ONLY disables ${VAR} substitution so that shell $VAR references in the
+	# template are passed through untouched.
+	configure_file(gz_env.sh.in ${PX4_BINARY_DIR}/rootfs/gz_env.sh @ONLY)
 
 else()
 	# Create fallback targets that provide helpful error messages when Gazebo dependencies are missing

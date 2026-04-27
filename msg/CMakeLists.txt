@@ -69,6 +69,8 @@ set(msg_files
 	DistanceSensorModeChangeRequest.msg
 	DronecanNodeStatus.msg
 	Ekf2Timestamps.msg
+	EscEepromRead.msg
+	EscEepromWrite.msg
 	EscReport.msg
 	EscStatus.msg
 	EstimatorAidSource1d.msg
@@ -77,6 +79,7 @@ set(msg_files
 	EstimatorBias.msg
 	EstimatorBias3d.msg
 	EstimatorEventFlags.msg
+	EstimatorFusionControl.msg
 	EstimatorGpsStatus.msg
 	EstimatorInnovations.msg
 	EstimatorSelectorStatus.msg
@@ -175,6 +178,7 @@ set(msg_files
 	QshellReq.msg
 	QshellRetval.msg
 	RadioStatus.msg
+	RangingBeacon.msg
 	RateCtrlStatus.msg
 	RcChannels.msg
 	RcParameterMap.msg
@@ -450,7 +454,21 @@ if(CONFIG_LIB_CDRSTREAM)
 	file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/idlc)
 	execute_process(COMMAND ${CMAKE_COMMAND} ${PX4_SOURCE_DIR}/src/lib/cdrstream/cyclonedds
 			-DCMAKE_C_COMPILER=/usr/bin/gcc
+			-DCMAKE_C_COMPILER_LAUNCHER=ccache
+			-DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+			-DCMAKE_C_FLAGS=-Wno-maybe-uninitialized\ -Wno-unused-parameter
 			-DBUILD_EXAMPLES=OFF
+			-DENABLE_SSL=OFF
+			-DENABLE_SECURITY=OFF
+			-DBUILD_DDSPERF=OFF
+			-DENABLE_LTO=OFF
+			-DENABLE_LIFESPAN=OFF
+			-DENABLE_DEADLINE_MISSED=OFF
+			-DENABLE_NETWORK_PARTITIONS=oFF
+			-DENABLE_SOURCE_SPECIFIC_MULTICAST=oFF
+			-DENABLE_IPV6=OFF
+			-DENABLE_TYPE_DISCOVERY=OFF
+			-DENABLE_TOPIC_DISCOVERY=oFF
 			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/idlc
 			RESULT_VARIABLE CMD_ERROR
 			OUTPUT_FILE CMD_OUTPUT )

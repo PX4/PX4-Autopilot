@@ -1,0 +1,42 @@
+name: SBOM License Check
+
+on:
+  push:
+    branches:
+      - 'main'
+      - 'release/**'
+      - 'stable'
+    paths:
+      - '.gitmodules'
+      - 'Tools/ci/license-overrides.yaml'
+      - 'Tools/ci/generate_sbom.py'
+  pull_request:
+    branches:
+      - '**'
+    paths:
+      - '.gitmodules'
+      - 'Tools/ci/license-overrides.yaml'
+      - 'Tools/ci/generate_sbom.py'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-licenses:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          submodules: false
+
+      - name: Install PyYAML
+        run: pip install pyyaml --break-system-packages
+
+      - name: Verify submodule licenses
+        run: python3 Tools/ci/generate_sbom.py --verify-licenses --source-dir .

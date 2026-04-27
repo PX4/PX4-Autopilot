@@ -1,14 +1,14 @@
-# Cameras
+# 相机
 
 相机对许多[有效载荷使用](../payloads/use_cases.md)很重要，包括绘图和勘测、监视、搜索和救援、作物健康和虫害检测等等。
 它们通常安装在一个 [云台](../advanced/gimbal_control.md)上，它能够提供相机稳定性、点跟踪和独立运动。
 
 ## 相机类型
 
-PX4 integrates with three types of cameras:
+PX4 集成了三种类型的相机：
 
-- [MAVLink cameras](../camera/mavlink_v2_camera.md) that support the [Camera Protocol v2](https://mavlink.io/en/services/camera.html) (**RECOMMENDED**).
-- [Simple MAVLink cameras](../camera/mavlink_v1_camera.md) that support the older [Camera Protocol v1](https://mavlink.io/en/services/camera.html).
+- [MAVLink 相机](../camera/mavlink_v2_camera.md) 支持 [Camera Protocol v2](https://mavlink.io/en/services/camera.html) (**推荐**)。
+- [简单的 MAVLink 摄像头](../camera/mavlink_v1_camera.md) 支持旧的 [Camera Protocol v1](https://mavlink.io/en/services/camera.html)。
 - [Cameras attached to flight controller outputs](../camera/fc_connected_camera.md), which are controlled using the [Camera Protocol v1](https://mavlink.io/en/services/camera.html).
 
 推荐[MAVLink 摄像头](../camera/mavlink_v2_camera.md)，因为它们使用简单一致的命令/消息集提供了最广泛的相机功能访问。

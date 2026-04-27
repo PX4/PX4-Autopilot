@@ -91,6 +91,18 @@ Firmware can be installed in any of the normal ways:
 - [Load the firmware](../config/firmware.md) using _QGroundControl_.
   Ви можете використовувати або готове вбудоване програмне забезпечення, або власне користувацьке програмне забезпечення.
 
+### Flash Storage Troubleshooting
+
+The AirBrainH743 uses a 128MB NAND flash (W25N) with a littlefs filesystem for [logging](../dev_log/logging.md).
+If the flash filesystem becomes corrupted, you can reformat it using the [System Console](../debug/system_console.md):
+
+```sh
+mklittlefs /dev/mtd0 /fs/flash
+```
+
+This will erase all data on the flash and create a fresh littlefs filesystem.
+The filesystem is immediately available after the command completes.
+
 ### Системна консоль
 
 UART1 (ttyS0) is configured for use as the [System Console](../debug/system_console.md).

@@ -136,13 +136,13 @@ From the PX4-Autopilot directory:
 
 - [mRo Pixhawk (FMUv3)](../flight_controller/mro_pixhawk.md): `make px4_fmu-v3_default` (支持 2MB Flash)
 
-- [Holybro pix32 (FMUv2)](../flight_controller/holybro_pix32.md): `make px4_fmu-v2_default`
+- [Holybro pix32 (FMUv2)](../flight_controller/autopilot_discontinued.md): `make px4_fmu-v2_default` - Discontinued
 
-- [Pixfalcon (FMUv2)](../flight_controller/pixfalcon.md): `make px4_fmu-v2_default`
+- [Pixfalcon (FMUv2)](../flight_controller/autopilot_discontinued.md): `make px4_fmu-v2_default` - Discontinued
 
-- [Dropix (FMUv2)](../flight_controller/dropix.md): `make px4_fmu-v2_default`
+- [Dropix (FMUv2)](../flight_controller/autopilot_discontinued.md): `make px4_fmu-v2_default` - Discontinued
 
-- [Pixhawk 1 (FMUv2)](../flight_controller/pixhawk.md): `make px4_fmu-v2_default`
+- [Pixhawk 1 (FMUv2)](../flight_controller/autopilot_discontinued.md): `make px4_fmu-v2_default` - Discontinued
 
   :::warning
   You **must** use a supported version of GCC to build this board (e.g. the `gcc-arm-none-eabi` package from the current Ubuntu LTS, which is the same toolchain used by CI) or remove modules from the build.
@@ -282,7 +282,7 @@ make [VENDOR_][MODEL][_VARIANT] [VIEWER_MODEL_DEBUGGER_WORLD]
 - \*\*VENDOR：\*\*主板制造商：`px4`、`aerotenna`、`airmind`、`atlflight`、`auav`、`beaglebone`、`intel`、`nxp` 等。
   Pixhawk 系列主板的供应商名称为 `px4`。
 - \*\*MODEL：\*\*飞控板型号 “model”：`sitl`、`fmu-v2`、`fmu-v3`、`fmu-v4`、`fmu-v5`、`navio2` 等。
-- **VARIANT:** 指示特定的配置：例如`bootloader`, `cyphal`, 其中包含不存在于“默认”配置中的组件。
+- **VARIANT:** Indicates particular configurations: e.g. `bootloader`, `cyphal`, `sih`, which add or remove components to/from the `default` configuration.
   最常见的情况是 `default`, 并且可能被省略。
 
 :::tip

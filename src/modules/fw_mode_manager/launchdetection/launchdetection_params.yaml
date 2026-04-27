@@ -1,0 +1,38 @@
+module_name: launchdetection
+parameters:
+- group: FW Auto Takeoff
+  definitions:
+    FW_LAUN_AC_THLD:
+      description:
+        short: Trigger acceleration threshold
+        long: Launch is detected when the norm of body acceleration
+          is above FW_LAUN_AC_THLD for FW_LAUN_AC_T seconds.
+      type: float
+      default: 30.0
+      unit: m/s^2
+      min: 0
+      decimal: 1
+      increment: 0.5
+    FW_LAUN_AC_T:
+      description:
+        short: Trigger time
+        long: Launch is detected when the norm of body acceleration
+          is above FW_LAUN_AC_THLD for FW_LAUN_AC_T seconds.
+      type: float
+      default: 0.05
+      unit: s
+      min: 0.0
+      max: 5.0
+      decimal: 2
+      increment: 0.05
+    FW_LAUN_MOT_DEL:
+      description:
+        short: Motor delay
+        long: Start the motor(s) this amount of seconds after launch is detected.
+      type: float
+      default: 0.0
+      unit: s
+      min: 0.0
+      max: 10.0
+      decimal: 1
+      increment: 0.5

@@ -254,7 +254,6 @@ int ZENOH::setupSession()
 	// Start read and lease tasks for zenoh-pico
 	if (zp_start_read_task(z_loan_mut(_s), NULL) < 0 || zp_start_lease_task(z_loan_mut(_s), NULL) < 0) {
 		PX4_ERR("Unable to start read and lease tasks");
-		z_drop(z_move(_s));
 		ret = -EINVAL;
 	}
 
@@ -415,6 +414,42 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 	return ret;
 }
 
+void ZENOH::cleanupSession()
+{
+	PX4_INFO("Cleaning up Zenoh session...");
+
+	for (int i = 0; i < _sub_count; i++) {
+		if (_zenoh_subscribers && _zenoh_subscribers[i]) {
+			delete _zenoh_subscribers[i];
+		}
+	}
+
+	if (_zenoh_subscribers) {
+		free(_zenoh_subscribers);
+		_zenoh_subscribers = nullptr;
+	}
+
+	for (int i = 0; i < _pub_count; i++) {
+		if (_zenoh_publishers && _zenoh_publishers[i]) {
+			delete _zenoh_publishers[i];
+		}
+	}
+
+	if (_zenoh_publishers) {
+		free(_zenoh_publishers);
+		_zenoh_publishers = nullptr;
+	}
+
+	if (z_internal_check(_s)) {
+		zp_stop_read_task(z_session_loan_mut(&_s));
+		zp_stop_lease_task(z_session_loan_mut(&_s));
+
+		z_drop(z_session_move(&_s));
+	}
+
+	connected = false;
+}
+
 void ZENOH::run()
 {
 	z_result_t ret;
@@ -425,6 +460,8 @@ void ZENOH::run()
 
 	if (setupSession() < 0) {
 		PX4_ERR("Failed to setup Zenoh session");
+		cleanupSession();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -434,6 +471,8 @@ void ZENOH::run()
 
 	if (setupTopics(pfds) < 0) {
 		PX4_ERR("Failed to setup topics");
+		cleanupSession();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -464,30 +503,7 @@ void ZENOH::run()
 		}
 	}
 
-	// Exiting cleaning up publisher and subscribers
-	for (i = 0; i < _sub_count; i++) {
-		if (_zenoh_subscribers[i]) {
-			delete _zenoh_subscribers[i];
-		}
-	}
-
-	free(_zenoh_subscribers);
-
-	for (i = 0; i < _pub_count; i++) {
-		if (_zenoh_publishers[i]) {
-			delete _zenoh_publishers[i];
-		}
-	}
-
-	free(_zenoh_publishers);
-
-	// Stop read and lease tasks for zenoh-pico
-	zp_stop_read_task(z_session_loan_mut(&_s));
-	zp_stop_lease_task(z_session_loan_mut(&_s));
-
-	z_drop(z_session_move(&_s));
-
-	connected = false;
+	cleanupSession();
 	exit_and_cleanup(desc);
 }
 

@@ -1,0 +1,10 @@
+module_name: temperature_compensation
+parameters:
+- group: Thermal Compensation
+  definitions:
+    TC_B_ENABLE:
+      description:
+        short: Thermal compensation for barometric pressure sensors
+      type: boolean
+      default: 0
+      reboot_required: true

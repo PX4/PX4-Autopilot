@@ -1,9 +1,11 @@
 Maintainers
 ===========
 
-See [the documentation on Maintainers](https://docs.px4.io/main/en/contribute/maintainers.html) to learn about the role of the maintainers and the process to become one.
+PX4 is maintained by a group of contributors trusted to steward the project. All maintainers listed below are members of the @PX4/dev-team, have write access, and participate in maintainer decisions. We recognize two types: **Code Owners**, responsible for specific components, and **Reviewers**, who help across the project without a fixed component.
 
-**Active Maintainers**
+See [the documentation on Maintainers](https://docs.px4.io/main/en/contribute/maintainers) to learn about the role of the maintainers and the process to become one.
+
+**Code Owners**
 
 | Name                    | Sector | GitHub | Chat | email
 |-------------------------|--------|--------|------|----------------
@@ -21,6 +23,15 @@ See [the documentation on Maintainers](https://docs.px4.io/main/en/contribute/ma
 | Christian Friedrich | Rover | [@chfriedrich98](https://github.com/chfriedrich98) | christian982564 |
 | Pedro Roque | Spacecraft | [@Pedro-Roque](https://github.com/Pedro-Roque) | .pedroroque | <roque@caltech.edu>
 | Jacob Dahl | Simulation | [@dakejahl](https://github.com/dakejahl) | dakejahl | <dahl.jakejacob@gmail.com>
+
+
+**Reviewers**
+
+Reviewers help maintain PX4 across the project without ownership of a specific component.
+
+| Name | GitHub | Chat | email
+|------|--------|------|----------------------
+| Onur Ozkan | [@onur-ozkan](https://github.com/onur-ozkan) | onur_ozkan0126 | <onur@orkavian.com>
 
 
 **Documentation Maintainers**

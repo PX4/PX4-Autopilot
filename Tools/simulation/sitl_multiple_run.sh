@@ -1,25 +1,28 @@
-#!/bin/bash
-# run multiple instances of the 'px4' binary, but w/o starting the simulator.
-# It assumes px4 is already built, with 'make px4_sitl_default'
+#!/usr/bin/env bash
+# Run multiple instances of the 'px4' binary, without starting an external simulator.
+# It assumes px4 is already built with the specified build target.
+#
+# Usage: ./Tools/simulation/sitl_multiple_run.sh [num_instances] [model] [build_target]
+# Examples:
+#   ./Tools/simulation/sitl_multiple_run.sh 3 sihsim_quadx px4_sitl_sih
+#   ./Tools/simulation/sitl_multiple_run.sh 2 gazebo-classic_iris px4_sitl_default
+#   ./Tools/simulation/sitl_multiple_run.sh     # defaults: 2 instances, gazebo-classic_iris, px4_sitl_default
 
-# The simulator is expected to send to TCP port 4560+i for i in [0, N-1]
-# For example jmavsim can be run like this:
-#./Tools/simulation/jmavsim/jmavsim_run.sh -p 4561 -l
-
-sitl_num=2
-[ -n "$1" ] && sitl_num="$1"
+sitl_num=${1:-2}
+sim_model=${2:-gazebo-classic_iris}
+build_target=${3:-px4_sitl_default}
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 src_path="$SCRIPT_DIR/../../"
 
-build_path=${src_path}/build/px4_sitl_default
+build_path=${src_path}/build/${build_target}
 
 echo "killing running instances"
 pkill -x px4 || true
 
 sleep 1
 
-export PX4_SIM_MODEL=gazebo-classic_iris
+export PX4_SIM_MODEL=${sim_model}
 
 n=0
 while [ $n -lt $sitl_num ]; do

@@ -97,6 +97,7 @@ private:
 			char *type, char *keyexpr, const char *entity_str);
 	int setupSession();
 	int setupTopics(px4_pollfd_struct_t *pfds);
+	void cleanupSession();
 
 	Zenoh_Config _config;
 

@@ -49,15 +49,15 @@ Adding a feature to PX4 follows a defined workflow. In order to share your contr
   git add <file name>
   ```
 
-  If you prefer having a GUI to add your files see [Gitk](https://git-scm.com/book/en/v2/Appendix-A:-Git-in-Other-Environments-Graphical-Interfaces) or [`git add -p`](https://nuclearsquid.com/writings/git-add/).
+  If you prefer having a GUI to add your files see [Gitk](https://git-scm.com/book/en/v2/Git-in-Other-Environments-Graphical-Interfaces) or [`git add -p`](https://nuclearsquid.com/writings/git-add/).
 
 - 提交添加的文件, 并顺便记录一条有意义的消息, 解释您的更改
 
   ```sh
-  git commit -m "<your commit message>"
+  git commit -s -m "feat(ekf2): add height fusion timeout"
   ```
 
-  For a good commit message, please refer to the [Source Code Management](../contribute/code.md#commits-and-commit-messages) section.
+  Use [conventional commits](https://www.conventionalcommits.org/) format: `type(scope): description`. For details on types and scopes, see the [Source Code Management](../contribute/code.md#commits-and-commit-messages) section.
 
 - Some time might have passed and the [upstream main](https://github.com/PX4/PX4-Autopilot) has changed.
   PX4 prefers a linear commit history and uses [git rebase](https://git-scm.com/book/en/v2/Git-Branching-Rebasing).

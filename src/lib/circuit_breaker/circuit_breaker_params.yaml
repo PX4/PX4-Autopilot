@@ -1,0 +1,83 @@
+module_name: circuit_breaker
+parameters:
+- group: Circuit Breaker
+  definitions:
+    CBRK_SUPPLY_CHK:
+      description:
+        short: Circuit breaker for power supply check
+        long: |-
+          Setting this parameter to 894281 will disable the power valid
+          checks in the commander.
+          WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
+      category: Developer
+      type: int32
+      default: 0
+      min: 0
+      max: 894281
+    CBRK_IO_SAFETY:
+      description:
+        short: Circuit breaker for IO safety
+        long: |-
+          Setting this parameter to 22027 will disable IO safety.
+          WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
+      category: Developer
+      type: int32
+      default: 22027
+      min: 0
+      max: 22027
+    CBRK_FLIGHTTERM:
+      description:
+        short: Circuit breaker for flight termination
+        long: |-
+          Setting this parameter to 121212 will disable the flight termination action if triggered
+          by the FailureDetector logic or if FMU is lost.
+          This circuit breaker does not affect the RC loss, data link loss, geofence,
+          and takeoff failure detection safety logic.
+      category: Developer
+      type: int32
+      default: 121212
+      reboot_required: true
+      min: 0
+      max: 121212
+    CBRK_BUZZER:
+      description:
+        short: Circuit breaker for disabling buzzer
+        long: |-
+          Setting this parameter to 782097 will disable the buzzer audio notification.
+
+          Setting this parameter to 782090 will disable the startup tune, while keeping
+          all others enabled.
+      category: Developer
+      type: int32
+      default: 0
+      reboot_required: true
+      min: 0
+      max: 782097
+    CBRK_USB_CHK:
+      description:
+        short: Circuit breaker for USB link check
+        long: |-
+          Setting this parameter to 197848 will disable the USB connected
+          checks in the commander, setting it to 0 keeps them enabled (recommended).
+
+          We are generally recommending to not fly with the USB link
+          connected and production vehicles should set this parameter to
+          zero to prevent users from flying USB powered. However, for R&D purposes
+          it has proven over the years to work just fine.
+      category: Developer
+      type: int32
+      default: 197848
+      min: 0
+      max: 197848
+    CBRK_VTOLARMING:
+      description:
+        short: Circuit breaker for arming in fixed-wing mode check
+        long: |-
+          Setting this parameter to 159753 will enable arming in fixed-wing
+          mode for VTOLs.
+          WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
+      category: Developer
+      type: int32
+      default: 0
+      min: 0
+      max: 159753

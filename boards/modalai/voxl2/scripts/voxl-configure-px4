@@ -1,0 +1,270 @@
+#!/usr/bin/env bash
+################################################################################
+# Copyright 2023 ModalAI Inc.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# 1. Redistributions of source code must retain the above copyright notice,
+#    this list of conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+#    this list of conditions and the following disclaimer in the documentation
+#    and/or other materials provided with the distribution.
+#
+# 3. Neither the name of the copyright holder nor the names of its contributors
+#    may be used to endorse or promote products derived from this software
+#    without specific prior written permission.
+#
+# 4. The Software is used solely in conjunction with devices provided by
+#    ModalAI Inc.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+################################################################################
+
+NAME="voxl-px4"
+SERVICE_FILE="${NAME}.service"
+CONFIG_FILE="/etc/modalai/${NAME}.conf"
+USER=$(whoami)
+
+print_usage () {
+	echo ""
+	echo "Config script for voxl-px4"
+	echo "wizard coming soon. For now, call with one of the following args:"
+	echo ""
+	echo ""
+	echo "voxl-configure-px4 disable"
+	echo "voxl-configure-px4 enable"
+	echo "voxl-configure-px4 factory_enable"
+	echo "voxl-configure-px4 d0005_v2"
+	echo "voxl-configure-px4 starling_v2"
+	echo "voxl-configure-px4 d0006_v1"
+	echo "voxl-configure-px4 sentinel_v1"
+	echo "voxl-configure-px4 d0008"
+	echo "voxl-configure-px4 fpv_revB"
+	echo "voxl-configure-px4 d0010"
+	echo "voxl-configure-px4 d0011"
+	echo "voxl-configure-px4 d0013"
+	echo "voxl-configure-px4 d0015"
+	echo "voxl-configure-px4 voxl2-mini"
+	echo ""
+	echo "show this help message:"
+	echo "voxl-configure-px4 help"
+	echo ""
+	echo "Use voxl-configure-px4 factory_enable to configure default values"
+
+}
+
+## set most parameters which don't have quotes in json
+set_param () {
+	if [ "$#" != "2" ]; then
+		echo "set_param expected 2 args"
+		exit 1
+	fi
+
+	var=$1
+	val=$2
+
+	sed -i "/$var=/c $var=$val" ${CONFIG_FILE}
+}
+
+disable_service_and_exit () {
+	echo "disabling ${NAME} systemd service"
+	systemctl disable ${SERVICE_FILE}
+	echo "stopping ${NAME} systemd service"
+	systemctl stop ${SERVICE_FILE}
+	echo "Done configuring ${NAME}"
+	exit 0
+}
+
+enable_service_and_exit () {
+	echo "enabling  ${NAME} systemd service"
+	systemctl enable  ${SERVICE_FILE}
+	echo "Done configuring ${NAME}"
+	exit 0
+}
+
+reset_config_file_to_default () {
+	echo "wiping old config file"
+	rm -rf ${CONFIG_FILE}
+
+	# create config description section on top of file
+    echo -e "#!/bin/bash\n#\n# voxl-px4 Configuration File\
+    \n#\
+    \n# AIRFRAME:\
+    \n#     Tell PX4 which AIRFRAME to use.\
+    \n#     Options include: [MULTICOPTER, FIXED_WING]\
+    \n#\
+    \n# GPS:\
+    \n#     Tell PX4 which GPS to use. If there is no GPS unit use NONE. Otherwise\
+    \n#     choose AUTODETECT and the startup script will attempt to automatically\
+    \n#     configure the GPS, magnetometer, and status LED\
+    \n#     Options include: [NONE, AUTODETECT]\
+    \n#\
+    \n# RC:\
+    \n#     Tell PX4 which RC transmitter to use. \
+    \n#     Use EXTERNAL when getting RC control from external Mavlink messages (e.g Via QGC)\
+    \n#     Options include: [SPEKTRUM, CRSF_MAV, CRSF_RAW, M0065_SBUS, EXTERNAL, FAKE_RC_INPUT]\
+    \n#\
+    \n# ESC:\
+    \n#     Tell PX4 which type of ESC to use. \
+    \n#     Options include: [VOXL_ESC, VOXL2_IO_PWM_ESC]\
+    \n#\
+    \n# POWER_MANAGER:\
+    \n#     Tell PX4 which power manager to use. \
+    \n#     Use NONE for ModalAI Mini-ESC since the ESC driver handles PM.\
+    \n#     Use EXTERNAL when not using the ModalAI APM power manager to power the board\
+    \n#       This also just disables the voxlpm driver, same as the NONE option\
+    \n#     Options include: [VOXLPM, EXTERNAL, NONE]\
+    \n#\
+    \n# AIRSPEED_SENSOR:\
+    \n#     Tell PX4 which airspeed sensor peripheral to use. \
+    \n#     Note: The sensor will be started on external I2C port on voxl2\
+    \n#     Options include: [NONE, MS4525DO]\
+    \n#\
+    \n# DISTANCE_SENSOR:\
+    \n#     Tell PX4 which distance sensor peripheral to use. \
+	\n#     Note: The sensor will be started on the RC port so it is only\
+	\n#           really possible to use it when using external RC.\
+    \n#     Options include: [NONE, LIGHTWARE_SF000]\
+    \n#\
+    \n# OSD:\
+    \n#     Tell PX4 whether to enable OSD (on-screen display). \
+    \n#     Options include: [ENABLE, DISABLE]\
+    \n#\
+    \n# DAEMON_MODE:\
+    \n#     Tell PX4 whether to enable daemon mode. \
+    \n#     Options include: [ENABLE, DISABLE]\
+    \n#\
+    \n# SENSOR_CAL:\
+    \n#     Tell PX4 where to source sensor calibration information. \
+    \n#     Options include: [ACTUAL, FAKE]\
+    \n#\
+    \n# ARTIFACT_MODE:\
+    \n#     Do not allow artifacts to be saved to disk. Will not start the logging \
+    \n#     module, will delete any current log files, and will delete the data manager file. \
+    \n#     Options include: [ENABLE, DISABLE]\
+    \n#\
+    \n# EXTRA_STEPS:\
+    \n#     Optional field that allows a user to define custom commands to be run by PX4 on boot. \
+    \n#     Must be a valid bash array as seen below \
+    \n#     Example: EXTRA_STEPS=( \"qshell gps start\" \"qshell commander mode manual\" ) \
+    \n#\
+    \n#" > $CONFIG_FILE
+
+    echo "AIRFRAME=MULTICOPTER" >> $CONFIG_FILE
+    echo "GPS=NONE" >> $CONFIG_FILE
+    echo "RC=SPEKTRUM" >> $CONFIG_FILE
+    echo "ESC=VOXL_ESC" >> $CONFIG_FILE
+	echo "POWER_MANAGER=VOXLPM" >> $CONFIG_FILE
+    echo "AIRSPEED_SENSOR=NONE" >> $CONFIG_FILE
+    echo "DISTANCE_SENSOR=NONE" >> $CONFIG_FILE
+    echo "OSD=DISABLE" >> $CONFIG_FILE
+    echo "DAEMON_MODE=ENABLE" >> $CONFIG_FILE
+    echo "SENSOR_CAL=ACTUAL" >> $CONFIG_FILE
+	echo "ARTIFACT_MODE=DISABLE" >> $CONFIG_FILE
+    echo "EXTRA_STEPS=()" >> $CONFIG_FILE
+}
+
+################################################################################
+## actual start of execution, handle optional arguments first
+################################################################################
+
+## sanity checks
+if [ "${USER}" != "root" ]; then
+	echo "Please run this script as root"
+	exit 1
+fi
+
+## convert argument to lower case for robustness
+arg=$(echo "$1" | tr '[:upper:]' '[:lower:]')
+
+## parse arguments
+case ${arg} in
+	"")
+		echo "ERROR no argument given"
+		print_usage
+		exit 1
+		;;
+	"h"|"-h"|"help"|"--help")
+		print_usage
+		exit 0
+		;;
+	"disable")
+		disable_service_and_exit
+		;;
+	"enable")
+		enable_service_and_exit
+		;;
+	"factory_enable")
+		reset_config_file_to_default
+		enable_service_and_exit
+		;;
+	"crsf_gps_apm"|"d0005_v2"|"starling_v2"|"d0006_v2"|"sentinel_v2")
+		reset_config_file_to_default
+		set_param GPS AUTODETECT
+		set_param RC CRSF_RAW
+		enable_service_and_exit
+		;;
+	"spektrum_gps_apm"|"d0006_v1"|"sentinel_v1")
+		## First revision Sentinel with Holybro GPS and Spektrum Radio
+		reset_config_file_to_default
+		set_param GPS AUTODETECT
+		set_param RC SPEKTRUM
+		enable_service_and_exit
+		;;
+	"d0008"|"fpv_revb")
+		reset_config_file_to_default
+		set_param GPS NONE
+		set_param RC CRSF_RAW
+		set_param OSD ENABLE
+		enable_service_and_exit
+		;;
+	"crsf_nogps_apm"|"d0010")
+		## Starling 1 with no GPS
+		reset_config_file_to_default
+		set_param GPS NONE
+		set_param RC CRSF_RAW
+		enable_service_and_exit
+		;;
+	"crsf_gps_noapm"|"d0011"|"voxl2-mini")
+		reset_config_file_to_default
+		set_param GPS AUTODETECT
+		set_param RC CRSF_RAW
+		set_param POWER_MANAGER NONE
+		enable_service_and_exit
+		;;
+	"crsf_nogps_noapm"|"d0013")
+		reset_config_file_to_default
+		set_param GPS NONE
+		set_param RC CRSF_RAW
+		set_param POWER_MANAGER NONE
+		enable_service_and_exit
+		;;
+	"d0015")
+		reset_config_file_to_default
+		set_param GPS AUTODETECT
+		set_param ESC VOXL2_IO_PWM_ESC
+		set_param RC CRSF_RAW
+		set_param AIRFRAME FIXED_WING
+		set_param AIRSPEED_SENSOR MS4525DO
+		set_param DISTANCE_SENSOR LIGHTWARE_SF000
+		enable_service_and_exit
+		;;
+	*)
+		echo "invalid option: $arg"
+		exit 1
+esac
+
+## should never get here
+exit 1

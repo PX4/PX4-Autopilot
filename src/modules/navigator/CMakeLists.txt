@@ -34,6 +34,10 @@
 add_subdirectory(GeofenceBreachAvoidance)
 add_subdirectory(MissionFeasibility)
 
+if(BUILD_TESTING)
+	add_subdirectory(test)
+endif()
+
 set(NAVIGATOR_SOURCES
 	navigator_main.cpp
 	navigator_mode.cpp
@@ -62,6 +66,13 @@ px4_add_module(
 	MODULE modules__navigator
 	MAIN navigator
 	SRCS ${NAVIGATOR_SOURCES}
+	MODULE_CONFIG
+		geofence_params.yaml
+		mission_params.yaml
+		navigator_params.yaml
+		precland_params.yaml
+		rtl_params.yaml
+		vtol_takeoff_params.yaml
 	DEPENDS
 		dataman_client
 		geo
