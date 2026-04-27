@@ -68,6 +68,9 @@ public:
 	 */
 	void wait_for_components();
 
+	int get_components_used_bitset() const { return _components_used_bitset.load(); }
+	int get_components_progress_bitset() const { return _components_progress_bitset.load(); }
+
 private:
 	const bool _no_cleanup_on_destroy;
 

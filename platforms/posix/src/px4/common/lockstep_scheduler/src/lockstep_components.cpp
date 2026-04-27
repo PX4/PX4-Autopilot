@@ -40,7 +40,9 @@
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/tasks.h>
+#include <errno.h>
 #include <limits.h>
+#include <time.h>
 
 LockstepComponents::LockstepComponents(bool no_cleanup_on_destroy)
 	: _no_cleanup_on_destroy(no_cleanup_on_destroy)
@@ -128,5 +130,16 @@ void LockstepComponents::wait_for_components()
 		return;
 	}
 
-	while (px4_sem_wait(&_components_sem) != 0) {}
+	struct timespec ts;
+
+	clock_gettime(CLOCK_REALTIME, &ts);
+
+	ts.tv_sec += 1; // 1 second timeout
+
+	int ret = px4_sem_timedwait(&_components_sem, &ts);
+
+	if (ret != 0 && errno == ETIMEDOUT) {
+		PX4_ERR("lockstep wait timeout! used=0x%x progress=0x%x",
+			_components_used_bitset.load(), _components_progress_bitset.load());
+	}
 }
