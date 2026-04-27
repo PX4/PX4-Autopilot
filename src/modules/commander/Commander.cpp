@@ -606,7 +606,8 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 	}
 
 	if (run_preflight_checks) {
-		if (_vehicle_control_mode.flag_control_manual_enabled) {
+		if (_vehicle_control_mode.flag_control_manual_enabled  || (_vehicle_control_mode.flag_control_auto_enabled
+				&& _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION)) {
 
 			if (!_failsafe_flags.manual_control_signal_lost) {
 				bool throttle_safe;
