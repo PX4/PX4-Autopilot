@@ -89,9 +89,16 @@ INA238::INA238(const I2CSPIDriverConfig &config, int battery_index) :
 	_register_cfg[2].set_bits = _shunt_calibration;
 	_register_cfg[2].clear_bits = ~_shunt_calibration;
 
+	// Give the zero-reading discard logic a warmup grace period so that zeros
+	// observed immediately at startup are treated like recent valid samples.
+	const hrt_abstime now = hrt_absolute_time();
+	_last_valid_voltage_timestamp = now;
+	_last_valid_current_timestamp = now;
+	_last_valid_temperature_timestamp = now;
+
 	// We need to publish immediately, to guarantee that the first instance of the driver publishes to uORB instance 0
 	setConnected(false);
-	_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
+	_battery.updateAndPublishBatteryStatus(now);
 
 	I2C::_retries = 5;
 }
@@ -102,6 +109,7 @@ INA238::~INA238()
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
 	perf_free(_collection_errors);
+	perf_free(_zero_reading_perf);
 }
 
 int INA238::read(uint8_t address, uint16_t &data)
@@ -251,11 +259,21 @@ int INA238::collect()
 	success = success && (RegisterRead(Register::DIETEMP, (uint16_t &)temperature) == PX4_OK);
 
 	if (setConnected(success)) {
-		_battery.updateVoltage(static_cast<float>(bus_voltage * INA238_VSCALE));
-		_battery.updateCurrent(static_cast<float>(current * _current_lsb));
-		_battery.updateTemperature(static_cast<float>(temperature * INA238_TSCALE));
+		const hrt_abstime now = hrt_absolute_time();
 
-		_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
+		if (acceptReading(bus_voltage, _last_valid_voltage_timestamp, now)) {
+			_battery.updateVoltage(static_cast<float>(bus_voltage * INA238_VSCALE));
+		}
+
+		if (acceptReading(current, _last_valid_current_timestamp, now)) {
+			_battery.updateCurrent(static_cast<float>(current * _current_lsb));
+		}
+
+		if (acceptReading(temperature, _last_valid_temperature_timestamp, now)) {
+			_battery.updateTemperature(static_cast<float>(temperature * INA238_TSCALE));
+		}
+
+		_battery.updateAndPublishBatteryStatus(now);
 	}
 
 	if (!success || hrt_elapsed_time(&_last_config_check_timestamp) > 100_ms) {
@@ -367,6 +385,23 @@ bool INA238::setConnected(bool state)
 	return state;
 }
 
+bool INA238::acceptReading(int16_t raw, hrt_abstime &last_valid_ts, hrt_abstime now)
+{
+	if (raw != 0) {
+		last_valid_ts = now;
+		return true;
+	}
+
+	if (now - last_valid_ts > ZERO_READING_THRESHOLD) {
+		// Sustained zeros: accept as genuine (e.g. battery truly disconnected).
+		return true;
+	}
+
+	// Brief zero reading — suspected EMI glitch, keep the previous value.
+	perf_count(_zero_reading_perf);
+	return false;
+}
+
 void INA238::print_status()
 {
 	I2CSPIDriverBase::print_status();
@@ -374,6 +409,7 @@ void INA238::print_status()
 	if (_initialized) {
 		perf_print_counter(_sample_perf);
 		perf_print_counter(_comms_errors);
+		perf_print_counter(_zero_reading_perf);
 
 		printf("poll interval:  %u \n", _measure_interval);
 

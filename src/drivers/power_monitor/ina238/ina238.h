@@ -133,6 +133,18 @@ private:
 	perf_counter_t _comms_errors;
 	perf_counter_t _collection_errors;
 	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
+	perf_counter_t _zero_reading_perf{perf_alloc(PC_COUNT, MODULE_NAME": zero reading")};
+
+	// Occasionally a register read "succeeds" but returns exactly zero, suspected to
+	// be caused by EMI corrupting the I2C payload while leaving the ACK/NACK intact.
+	// A true reading of exactly zero is extremely unlikely with noise, so we treat
+	// zero as invalid and discard such readings for up to ZERO_READING_THRESHOLD
+	// after the last valid sample for the same field. After that we accept the
+	// zero as genuine (e.g. the battery really was disconnected).
+	static constexpr hrt_abstime ZERO_READING_THRESHOLD{500_ms};
+	hrt_abstime _last_valid_voltage_timestamp{0};
+	hrt_abstime _last_valid_current_timestamp{0};
+	hrt_abstime _last_valid_temperature_timestamp{0};
 
 	// Configuration state, computed from params
 	float _max_current;
@@ -157,6 +169,11 @@ private:
 	uint8_t _connected{0};
 	// returns state unchanged
 	bool setConnected(bool state);
+
+	// Returns true if the caller should forward `raw` to the battery library.
+	// Side effects: updates `last_valid_ts` on valid readings; bumps
+	// `_zero_reading_perf` when a reading is discarded as a suspected glitch.
+	bool acceptReading(int16_t raw, hrt_abstime &last_valid_ts, hrt_abstime now);
 
 	int read(uint8_t address, uint16_t &data);
 	int write(uint8_t address, uint16_t data);
