@@ -34,10 +34,9 @@ publications:
 
 - topic: /fmu/out/sensor_combined
   type: px4_msgs::msg::SensorCombined
-
-- topic: /fmu/out/timesync_status
-  type: px4_msgs::msg::TimesyncStatus
-  rate_limit: 10
+  #       - topic: /fmu/out/timesync_status
+  # type: px4_msgs::msg::TimesyncStatus
+  # rate_limit: 10
 
 - topic: /fmu/out/vehicle_angular_velocity
   type: px4_msgs::msg::VehicleAngularVelocity
@@ -114,6 +113,10 @@ publications:
   type: px4_msgs::msg::EstimatorAidSource2d
   rate_limit: 10
 
+- topic: /fmu/out/estimator_aid_src_rng_hgt
+  type: px4_msgs::msg::EstimatorAidSource1d
+  rate_limit: 10
+
 - topic: /fmu/out/estimator_aid_src_ev_yaw
   type: px4_msgs::msg::EstimatorAidSource1d
   rate_limit: 10
@@ -187,13 +190,16 @@ subscriptions:
 - topic: /fmu/in/vehicle_attitude_setpoint
   type: px4_msgs::msg::VehicleAttitudeSetpoint
 
-- topic: /fmu/in/vehicle_mocap_odometry
-  type: px4_msgs::msg::VehicleOdometry
+# - topic: /fmu/in/vehicle_mocap_odometry
+#   type: px4_msgs::msg::VehicleOdometry
 
 - topic: /fmu/in/vehicle_rates_setpoint
   type: px4_msgs::msg::VehicleRatesSetpoint
 
 - topic: /fmu/in/vehicle_visual_odometry
+  type: px4_msgs::msg::VehicleOdometry
+
+- topic: /fmu/in/formic_odom
   type: px4_msgs::msg::VehicleOdometry
 
 - topic: /fmu/in/vehicle_command
@@ -205,11 +211,15 @@ subscriptions:
 - topic: /fmu/in/formic/debug_flag
   type: px4_msgs::msg::DebugFlag
 
+- topic: /fmu/in/formic_vio_status
+  type: px4_msgs::msg::FormicVioStatus
+
 # - topic: /fmu/in/vehicle_torque_setpoint
 #   type: px4_msgs::msg::VehicleTorqueSetpoint
 
 - topic: /fmu/in/actuator_motors
   type: px4_msgs::msg::ActuatorMotors
+
 # - topic: /fmu/in/aux_global_position
 #   type: px4_msgs::msg::VehicleGlobalPosition
 

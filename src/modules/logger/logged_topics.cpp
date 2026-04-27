@@ -67,6 +67,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("esc_status");
 	add_topic("failure_detector_status", 100);
 	add_topic("failsafe_flags");
+	add_topic("formic_vio_status");
 	add_optional_topic("follow_target", 500);
 	add_optional_topic("follow_target_estimator", 200);
 	add_optional_topic("follow_target_status", 400);

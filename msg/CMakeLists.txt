@@ -277,7 +277,7 @@ set(msg_files
 	versioned/Wind.msg
 	ddsFlag.msg
 	totalArmTime.msg
-	FormicCamSync.msg
+	FormicVioStatus.msg
 )
 list(SORT msg_files)
 
