@@ -445,7 +445,7 @@ public:
 
 	uint64_t		get_start_time() { return _mavlink_start_time; }
 
-	static bool		boot_complete() { return _boot_complete; }
+	static bool		boot_complete() { return _boot_complete.load(); }
 
 	bool			is_usb_uart() { return _is_usb_uart; }
 
@@ -530,7 +530,7 @@ private:
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _gimbal_v1_command_sub{ORB_ID(gimbal_v1_command)};
 
-	static bool		_boot_complete;
+	static px4::atomic_bool	_boot_complete;
 
 	static constexpr int	MAVLINK_MIN_INTERVAL{1500};
 	static constexpr int	MAVLINK_MAX_INTERVAL{10000};
@@ -585,8 +585,8 @@ private:
 	 */
 	unsigned int		_mavlink_param_queue_index{0};
 
-	char			*_subscribe_to_stream{nullptr};
-	float			_subscribe_to_stream_rate{0.0f};  ///< rate of stream to subscribe to (0=disable, -1=unlimited, -2=default)
+	px4::atomic<char *>	_subscribe_to_stream{nullptr}; ///< handoff between producer (any thread) and consumer (main mavlink thread); SEQ_CST ordering synchronizes access to _subscribe_to_stream_rate below
+	float			_subscribe_to_stream_rate{0.0f};  ///< rate of stream to subscribe to (0=disable, -1=unlimited, -2=default); written before atomic store on _subscribe_to_stream, read after atomic load
 	bool			_udp_initialised{false};
 
 	FLOW_CONTROL_MODE	_flow_control_mode{Mavlink::FLOW_CONTROL_OFF};
