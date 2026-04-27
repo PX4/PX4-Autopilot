@@ -18,7 +18,7 @@ fi
 if ! icm42688p -s -b 4 -R 26 start
 then
 	# Internal SPI bus MPU-6000 on V1.0 and V1.5 boards
-	mpu6000 -s -b 1 -R 12 start
+	mpu6000 -s -b 4 -R 12 start
 fi
 
 if ! param compare OSD_ATXXXX_CFG 0
@@ -27,7 +27,13 @@ then
 fi
 
 # Internal baro
-dps310 -I start -a 118
+if ! dps310 -I start -a 118
+then
+	bmp280 -I start -a 118
+fi
 
 # External mag
-qmc5883l start -I I2C2 -a 13
+if ! param compare SYS_HAS_MAG 0
+then
+	qmc5883l start -I I2C2 -a 13
+fi
