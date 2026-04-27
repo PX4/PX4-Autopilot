@@ -131,6 +131,14 @@ private:
 	static uint32_t		_crc32[3];				///< Checksum of items in (active) mission for each MAV_MISSION_TYPE
 	static int32_t		_current_seq;				///< Current item sequence in active mission
 
+public:
+	// Serializes access to the shared static state above. Multiple Mavlink
+	// instances' receiver threads concurrently detect mission changes and
+	// write these statics; without this lock they race on writes.
+	// Public so that the pthread_once initializer can reach it.
+	static pthread_mutex_t	_shared_state_mutex;
+private:
+
 	int32_t			_last_reached{-1};			///< Last reached waypoint in active mission (-1 means nothing reached)
 
 	dm_item_t		_transfer_dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_1};	///< Dataman storage ID for current transmission
