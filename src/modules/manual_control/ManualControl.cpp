@@ -137,14 +137,15 @@ void ManualControl::processInput(hrt_abstime now)
 			_selector.setpoint().yaw = 0.f;
 		}
 
-		// User override by stick
+		// User override by stick: any axis velocity exceeds COM_RC_STICK_OV
 		const float dt_s = (now - _timestamp_last_loop) / 1e6f;
-		const float minimum_stick_change = 0.01f * _param_com_rc_stick_ov.get();
+		const float velocity_threshold = _param_com_rc_stick_ov.get();
 
-		_selector.setpoint().sticks_moving = (fabsf(_roll_diff.update(_selector.setpoint().roll, dt_s)) > minimum_stick_change)
-						     || (fabsf(_pitch_diff.update(_selector.setpoint().pitch, dt_s)) > minimum_stick_change)
-						     || (fabsf(_yaw_diff.update(_selector.setpoint().yaw, dt_s)) > minimum_stick_change)
-						     || (fabsf(_throttle_diff.update(_selector.setpoint().throttle, dt_s)) > minimum_stick_change);
+		_selector.setpoint().sticks_moving =
+			(fabsf(_roll_diff.update(_selector.setpoint().roll, dt_s)) > velocity_threshold)
+			|| (fabsf(_pitch_diff.update(_selector.setpoint().pitch, dt_s)) > velocity_threshold)
+			|| (fabsf(_yaw_diff.update(_selector.setpoint().yaw, dt_s)) > velocity_threshold)
+			|| (fabsf(_throttle_diff.update(_selector.setpoint().throttle, dt_s)) > velocity_threshold);
 
 		_selector.setpoint().timestamp = now;
 		_manual_control_setpoint_pub.publish(_selector.setpoint());

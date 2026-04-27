@@ -285,17 +285,18 @@ parameters:
       max: 3
     COM_RC_STICK_OV:
       description:
-        short: Stick override threshold
+        short: Stick override velocity threshold
         long: |-
-          If COM_RC_OVERRIDE is enabled and the joystick input is moved more than this threshold
-          the pilot takes over control.
+          If COM_RC_OVERRIDE is enabled, the pilot takes over control when any stick velocity
+          exceeds this threshold. Unit is normalized stick travel per second: at the default
+          3.0, a half-stick movement in ~170 ms triggers override. Lower = more sensitive.
       type: float
-      default: 30.0
-      unit: '%'
-      min: 5
-      max: 80
-      decimal: 0
-      increment: 0.05
+      default: 3.0
+      unit: '1/s'
+      min: 1.0
+      max: 10.0
+      decimal: 1
+      increment: 0.5
     COM_ARM_MIS_REQ:
       description:
         short: Require valid mission to arm
