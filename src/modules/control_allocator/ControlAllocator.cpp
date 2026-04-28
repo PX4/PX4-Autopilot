@@ -639,6 +639,7 @@ ControlAllocator::publish_control_allocator_status(int matrix_index)
 {
 	control_allocator_status_s control_allocator_status{};
 	control_allocator_status.timestamp = hrt_absolute_time();
+	control_allocator_status.cs_preflight_check_active = _cs_preflight_check.isActive();
 
 	// TODO: disabled motors (?)
 

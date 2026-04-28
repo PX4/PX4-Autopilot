@@ -59,6 +59,8 @@ public:
 	ControlSurfacePreflightCheck() = default;
 	~ControlSurfacePreflightCheck() = default;
 
+	bool isActive() const { return _running; }
+
 	/** Poll vehicle_command for a preflight-check request and start it if conditions allow. */
 	void handleCommand(hrt_abstime now, bool armed, bool is_tiltrotor);
 
