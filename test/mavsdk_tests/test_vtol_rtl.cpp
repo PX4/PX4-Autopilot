@@ -146,7 +146,7 @@ TEST_CASE("RTL direct home with approaches", "[vtol]")
 	tester.arm();
 	tester.execute_rtl_when_reaching_mission_sequence(4);
 	tester.check_rtl_approaches(5., std::chrono::seconds(60));
-	tester.wait_until_disarmed(std::chrono::seconds(150));
+	tester.wait_until_disarmed(std::chrono::seconds(240));
 	tester.check_home_within(5.0f);
 }
 

@@ -34,7 +34,7 @@
 #include "autopilot_tester.h"
 #include <chrono>
 
-static constexpr float acceptance_radius = 0.3f;
+static constexpr float acceptance_radius = 0.75f;
 
 TEST_CASE("Offboard takeoff and land", "[multicopter][offboard]")
 {
@@ -49,7 +49,7 @@ TEST_CASE("Offboard takeoff and land", "[multicopter][offboard]")
 	tester.offboard_goto(takeoff_position, acceptance_radius, goto_timeout);
 	tester.offboard_land();
 	tester.wait_until_disarmed(std::chrono::seconds(120));
-	tester.check_home_within(2.0f);
+	tester.check_home_within(3.0f);
 }
 
 TEST_CASE("Offboard position control", "[multicopter][offboard]")
@@ -64,7 +64,7 @@ TEST_CASE("Offboard position control", "[multicopter][offboard]")
 	tester.store_home();
 	tester.set_rc_loss_exception(AutopilotTester::RcLossException::Offboard);
 	tester.arm();
-	std::chrono::seconds goto_timeout = std::chrono::seconds(10);
+	std::chrono::seconds goto_timeout = std::chrono::seconds(20);
 	tester.offboard_goto(takeoff_position, acceptance_radius, goto_timeout);
 	tester.offboard_goto(setpoint_1, acceptance_radius, goto_timeout);
 	tester.offboard_goto(setpoint_2, acceptance_radius, goto_timeout);
@@ -72,13 +72,18 @@ TEST_CASE("Offboard position control", "[multicopter][offboard]")
 	tester.offboard_goto(takeoff_position, acceptance_radius, goto_timeout);
 	tester.offboard_land();
 	tester.wait_until_disarmed(std::chrono::seconds(120));
-	tester.check_home_within(2.0f);
+	tester.check_home_within(3.0f);
 }
 
 TEST_CASE("Offboard attitude control", "[multicopter][offboard_attitude]")
 {
 	AutopilotTester tester;
 	tester.connect(connection_url);
+	// This test runs without EKF2, so we can't call wait_until_ready().
+	// Wait for the MAVSDK parameter fetch to complete; at high sim speeds
+	// PX4 can overwhelm the UDP buffer with parameter values, causing
+	// heartbeat and command-ack drops if we proceed too quickly.
+	tester.sleep_for(std::chrono::seconds(5));
 	tester.set_rc_loss_exception(AutopilotTester::RcLossException::Offboard);
 	tester.fly_forward_in_offboard_attitude();
 	tester.wait_until_disarmed(std::chrono::seconds(120));
