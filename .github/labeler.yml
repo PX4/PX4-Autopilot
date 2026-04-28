@@ -152,7 +152,7 @@
     - msg/OffboardControlMode.msg
     - msg/TrajectorySetpoint.msg
     - msg/VehicleCommand.msg
-    - msg/VehicleCommandAck.msg
+    - msg/versioned/VehicleCommandAck.msg
 
 "scope:parameters":
 - changed-files:
