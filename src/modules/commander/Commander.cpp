@@ -346,6 +346,48 @@ int Commander::custom_command(int argc, char *argv[])
 		return 0;
 	}
 
+	if (!strcmp(argv[0], "cs_check")) {
+		if (argc < 2) {
+			PX4_ERR("missing argument");
+			return 1;
+		}
+
+		int group;
+
+		if (!strcmp(argv[1], "roll")) {
+			group = vehicle_command_s::ACTUATOR_TEST_GROUP_ROLL_TORQUE;
+
+		} else if (!strcmp(argv[1], "pitch")) {
+			group = vehicle_command_s::ACTUATOR_TEST_GROUP_PITCH_TORQUE;
+
+		} else if (!strcmp(argv[1], "yaw")) {
+			group = vehicle_command_s::ACTUATOR_TEST_GROUP_YAW_TORQUE;
+
+		} else if (!strcmp(argv[1], "tilt")) {
+			group = vehicle_command_s::ACTUATOR_TEST_GROUP_COLLECTIVE_TILT;
+
+		} else {
+			PX4_ERR("argument %s unsupported.", argv[1]);
+			return 1;
+		}
+
+		float value = 1.f;
+
+		if (argc > 2) {
+			const float user_value = std::atof(argv[2]);
+
+			if (PX4_ISFINITE(user_value)) {
+				value = user_value;
+
+			} else {
+				PX4_WARN("cs_check: value \"%s\" is invalid. Using default +1.0.", argv[2]);
+			}
+		}
+
+		send_vehicle_command(vehicle_command_s::VEHICLE_CMD_ACTUATOR_GROUP_TEST, group, value);
+		return 0;
+	}
+
 	if (!strcmp(argv[0], "arm")) {
 		float param2 = 0.f;
 
@@ -3169,6 +3211,9 @@ The commander module contains the state machine for mode switching and failsafe 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("check", "Run preflight checks");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("safety", "Change prearm safety state");
 	PRINT_MODULE_USAGE_ARG("on|off", "[on] to activate safety, [off] to deactivate safety and allow control surface movements", false);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("cs_check", "Run control surface preflight checks");
+	PRINT_MODULE_USAGE_ARG("roll|pitch|yaw|tilt", "Axis", false);
+	PRINT_MODULE_USAGE_ARG("torque", "Normalized torque command [-1.0, +1.0], default +1.0", true);
 	PRINT_MODULE_USAGE_COMMAND("arm");
 	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Force arming (do not run preflight checks)", true);
 	PRINT_MODULE_USAGE_COMMAND("disarm");
