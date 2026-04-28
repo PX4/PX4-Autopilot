@@ -285,6 +285,10 @@ Mavlink::mavlink_update_parameters()
 {
 	updateParams();
 
+	// Refresh atomic snapshots of params read by the receiver thread, so the
+	// receiver doesn't read the (non-atomic) ModuleParams members directly.
+	_use_hil_gps_atomic.store(_param_mav_usehilgps.get());
+
 	setProtocolVersion(_param_mav_proto_ver.get());
 
 	if (_param_mav_type.get() < 0 || _param_mav_type.get() >= MAV_TYPE_ENUM_END) {
@@ -379,14 +383,24 @@ Mavlink::set_instance_id()
 
 void Mavlink::setProtocolVersion(uint8_t version)
 {
+	// Take the channel send lock for the get_status()->flags update — it
+	// touches the per-channel mavlink_channel_statuses[] global which the
+	// receiver thread also reads/writes from mavlink_frame_char_buffer.
+	// _protocol_version is atomic so its store doesn't need the lock, but
+	// keeping the store inside the lock makes the flag/version pair update
+	// atomic with respect to any caller that holds lock_send().
+	lock_send();
+
 	if (version == 1) {
 		get_status()->flags |= MAVLINK_STATUS_FLAG_OUT_MAVLINK1;
-		_protocol_version = 1;
+		_protocol_version.store(1);
 
 	} else {
 		get_status()->flags &= ~(MAVLINK_STATUS_FLAG_OUT_MAVLINK1);
-		_protocol_version = 2;
+		_protocol_version.store(2);
 	}
+
+	unlock_send();
 }
 
 int
@@ -1323,7 +1337,7 @@ Mavlink::send_protocol_version()
 {
 	mavlink_protocol_version_t msg = {};
 
-	msg.version = _protocol_version * 100;
+	msg.version = _protocol_version.load() * 100;
 	msg.min_version = 100;
 	msg.max_version = 203;
 	uint64_t mavlink_lib_git_version_binary = px4_mavlink_lib_version_binary();
@@ -3075,7 +3089,7 @@ void Mavlink::publish_telemetry_status()
 	_tstatus.flow_control = get_flow_control_enabled();
 	_tstatus.ftp = ftp_enabled();
 	_tstatus.forwarding = get_forwarding_on();
-	_tstatus.mavlink_v2 = (_protocol_version == 2);
+	_tstatus.mavlink_v2 = (_protocol_version.load() == 2);
 
 	_tstatus.streams = _streams.size();
 
@@ -3310,7 +3324,7 @@ Mavlink::display_status()
 	}
 
 	printf("\tForwarding: %s\n", get_forwarding_on() ? "On" : "Off");
-	printf("\tMAVLink version: %" PRId8 "\n", _protocol_version);
+	printf("\tMAVLink version: %" PRId8 "\n", _protocol_version.load());
 
 	printf("\ttransport protocol: ");
 

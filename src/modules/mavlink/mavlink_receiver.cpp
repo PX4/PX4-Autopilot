@@ -3394,8 +3394,12 @@ MavlinkReceiver::run()
 
 					if (parsed) {
 
-						// If we receive a complete MAVLink 2 packet, also switch the outgoing protocol version
-						if (!(_mavlink.get_status()->flags & MAVLINK_STATUS_FLAG_IN_MAVLINK1)
+						// If we receive a complete MAVLink 2 packet, also switch the outgoing protocol version.
+						// Read flags from the receiver-local _status (mavlink_parse_char copies flags from the
+						// channel-global status into it) rather than from the channel global, which would race
+						// with concurrent writers (setProtocolVersion on the main thread, parse_char on us)
+						// outside of lock_send().
+						if (!(_status.flags & MAVLINK_STATUS_FLAG_IN_MAVLINK1)
 						    && _mavlink.getProtocolVersion() != 2) {
 							PX4_INFO("Upgrade to MAVLink v2 because of incoming packet");
 							_mavlink.setProtocolVersion(2);

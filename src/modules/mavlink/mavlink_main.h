@@ -138,7 +138,7 @@ public:
 	mavlink_status_t *get_status();
 
 	void setProtocolVersion(uint8_t version);
-	uint8_t getProtocolVersion() const { return _protocol_version; };
+	uint8_t getProtocolVersion() const { return _protocol_version.load(); };
 
 	static int destroy_all_instances();
 	static int get_status_all_instances(bool show_streams_status);
@@ -249,7 +249,11 @@ public:
 
 	bool			get_hil_enabled() { return _hil_enabled; }
 
-	bool			get_use_hil_gps() { return _param_mav_usehilgps.get(); }
+	// Snapshot of MAV_USEHILGPS read on the main mavlink thread; the receiver
+	// thread reads this in its hot path (handle_message), so the param-backed
+	// member must not be read directly from there. Refreshed in
+	// mavlink_update_parameters().
+	bool			get_use_hil_gps() { return _use_hil_gps_atomic.load(); }
 
 	bool			get_forward_externalsp() { return _param_mav_fwdextsp.get(); }
 
@@ -594,7 +598,14 @@ private:
 	uint64_t		_last_write_success_time{0};
 	uint64_t		_last_write_try_time{0};
 	uint64_t		_mavlink_start_time{0};
-	uint8_t _protocol_version = 0; ///< after initialization the only values are 1 and 2
+	// Touched by both the main mavlink thread (mavlink_update_parameters)
+	// and the receiver thread (auto-upgrade to v2 on first incoming v2 packet).
+	// Atomic so concurrent reads/writes are race-free without taking lock_send().
+	px4::atomic<uint8_t> _protocol_version{0}; ///< after initialization the only values are 1 and 2
+
+	// Atomic snapshot of MAV_USEHILGPS, written from the main mavlink thread
+	// in mavlink_update_parameters() and read from the receiver thread.
+	px4::atomic_bool _use_hil_gps_atomic{false};
 
 	px4::atomic<unsigned>	_bytes_tx{0};
 	px4::atomic<unsigned>	_bytes_txerr{0};
