@@ -49,11 +49,29 @@ AS_DT1::AS_DT1(const char *port, uint8_t rotation):
 	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(port)),
 	_px4_rangefinder(0, rotation)
 {
+	// store port name
+	strncpy(_port, port, sizeof(_port) - 1);
+
+	// enforce null termination
+	_port[sizeof(_port) - 1] = '\0';
+
+	device::Device::DeviceId device_id;
+	device_id.devid_s.devtype = DRV_DIST_DEVTYPE_ASDT1;
+	device_id.devid_s.bus_type = device::Device::DeviceBusType_SERIAL;
+
+	uint8_t bus_num = atoi(&_port[strlen(_port) - 1]); // Assuming '/dev/ttySx'
+
+	if (bus_num < 10) {
+		device_id.devid_s.bus = bus_num;
+	}
+
+	_px4_rangefinder.set_device_id(device_id.devid);
+	_px4_rangefinder.set_rangefinder_type(distance_sensor_s::MAV_DISTANCE_SENSOR_LASER);
 	// Initialize with 2 rows (index 0 and 1)
-	points.resize(2);
+	// points.resize(2);
 	// Reserve space for 576 points each
-	points[0].reserve(576);
-	points[1].reserve(576);
+	// points[0].reserve(576);
+	// points[1].reserve(576);
 
 	// _MPDATATBL - transmission order to raw index mapping
 	const int MPDATATBL[] = {
@@ -84,11 +102,11 @@ AS_DT1::AS_DT1(const char *port, uint8_t rotation):
 	};
 
 	// Build inverse mapping: xyDataTbl[mp] = xycnt
-	xyDataTbl.resize(576);
 
-	for (int xycnt = 0; xycnt < 576; xycnt++) {
+
+	for (int xycnt = 0; xycnt < mpdata_s; xycnt++) {
 		int mp = MPDATATBL[xycnt];
-		xyDataTbl[mp] = xycnt;
+		xyDataTbl(mp) = xycnt;
 	}
 }
 
@@ -208,10 +226,11 @@ bool AS_DT1::convertBinaryToPCD()
 	// Read length is set to 4320
 	size_t read_length = 4320;
 
+	//TODO:
 	// Temporary points, fill it with 0s first, then we will fill it with the extracted points
-	std::vector<std::vector<Eigen::Vector3f>> pcd_raw(2);
-	pcd_raw[0].reserve(576);
-	pcd_raw[1].reserve(576);
+	// matrix::Vector3f pcd_raw(2);
+	// pcd_raw[0].reserve(576);
+	// pcd_raw[1].reserve(576);
 
 	// // Fill temporary points with 0s
 	// for (int i = 0; i < 576; ++i) {

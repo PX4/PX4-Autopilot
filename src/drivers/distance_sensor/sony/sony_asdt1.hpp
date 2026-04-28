@@ -51,11 +51,15 @@
 #include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
 #include <uORB/topics/distance_sensor.h>
 
-#include "matrix/Matrix.hpp"
+#include <matrix/matrix/math.hpp>
 #include "matrix/Vector2.hpp"
-#include <mathlib/math/Functions.hpp>
+#include <mathlib/mathlib.h>
+
+#define MPDATASIZE 576
 
 using namespace time_literals;
+using matrix::Vector3f;
+using matrix::Vector;
 
 class AS_DT1 : public px4::ScheduledWorkItem
 {
@@ -81,6 +85,8 @@ private:
 	char _linebuf[10] {};
 	char _port[20] {};
 
+	matrix::Vector3f points;
+	matrix::Vector<int, MPDATASIZE> xyDataTbl;
 	static constexpr int kCONVERSIONINTERVAL{9_ms};
 
 	int _fd{-1};
