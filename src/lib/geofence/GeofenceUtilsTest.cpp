@@ -104,16 +104,12 @@ TEST(GeofenceUtilsTest, SymmetricPairIndex)
 
 	std::srand(42);
 
-	for (size_t i = 0; i < N; ++i) {
-		for (size_t j = 0; j < N; ++j) {
-			matrix[i][j] = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
-		}
-	}
-
 	int idx = 0;
 
 	for (size_t i = 0; i < N; ++i) {
 		for (size_t j = i + 1; j < N; ++j) {
+			matrix[i][j] = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
+			matrix[j][i] = matrix[i][j]; // symmetric
 			packed[idx++] = matrix[i][j];
 		}
 	}
@@ -124,6 +120,7 @@ TEST(GeofenceUtilsTest, SymmetricPairIndex)
 		for (size_t j = i + 1; j < N; ++j) {
 			counter++;
 			EXPECT_FLOAT_EQ(matrix[i][j], packed[geofence_utils::symmetricPairIndex(i, j, N)]);
+			EXPECT_FLOAT_EQ(matrix[i][j], packed[geofence_utils::symmetricPairIndex(j, i, N)]);
 		}
 	}
 
