@@ -50,9 +50,9 @@ void BaroChecks::checkAndReport(const Context &context, Report &reporter)
 
 		const bool exists = _sensor_baro_sub[instance].advertised();
 		bool is_valid = false;
+		sensor_baro_s baro_data{};
 
 		if (exists) {
-			sensor_baro_s baro_data;
 			is_valid = _sensor_baro_sub[instance].copy(&baro_data) && (baro_data.device_id != 0) && (baro_data.timestamp != 0)
 				   && (hrt_elapsed_time(&baro_data.timestamp) < 1_s);
 			reporter.setIsPresent(health_component_t::absolute_pressure);
@@ -73,6 +73,19 @@ void BaroChecks::checkAndReport(const Context &context, Report &reporter)
 				}
 
 			} else if (!is_valid) {
+				if (baro_data.timestamp > 0) {
+					static bool logged_once = false;
+
+					if (!logged_once) {
+						PX4_WARN("baro %d stale: baro_ts=%.3fs now=%.3fs elapsed=%.0fms",
+							 instance,
+							 (double)baro_data.timestamp / 1e6,
+							 (double)hrt_absolute_time() / 1e6,
+							 (double)hrt_elapsed_time(&baro_data.timestamp) / 1000.0);
+						logged_once = true;
+					}
+				}
+
 				/* EVENT
 				 */
 				reporter.healthFailure<uint8_t>(NavModes::All, health_component_t::absolute_pressure,
