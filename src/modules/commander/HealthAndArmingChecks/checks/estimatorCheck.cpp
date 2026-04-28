@@ -142,12 +142,6 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 				reporter.failsafeFlags().mode_req_local_position_relaxed |
 				(1u << vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF));
 
-	// Freshness gate keeps the no-heading-source branch inactive for non-EKF2 estimators.
-	estimator_status_flags_s estimator_status_flags{};
-	const bool estimator_status_flags_valid =
-		_estimator_status_flags_sub.copy(&estimator_status_flags)
-		&& (hrt_absolute_time() - estimator_status_flags.timestamp < 5_s);
-
 	if (!context.isArmed() && estimator_status.pre_flt_fail_innov_heading) {
 		/* EVENT
 		 * @description
@@ -159,19 +153,6 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 
 		if (reporter.mavlink_log_pub()) {
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: heading estimate invalid");
-		}
-
-	} else if (!context.isArmed() && estimator_status_flags_valid && !estimator_status_flags.cs_yaw_align) {
-		/* EVENT
-		 * @description
-		 * No heading source has aligned the EKF yaw
-		 */
-		reporter.armingCheckFailure(heading_required_groups, health_component_t::local_position_estimate,
-					    events::ID("check_estimator_heading_no_source"),
-					    events::Log::Error, "No heading reference");
-
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: no heading reference");
 		}
 
 	} else if (!context.isArmed() && estimator_status.pre_flt_fail_innov_vel_horiz) {
@@ -642,6 +623,29 @@ void EstimatorChecks::checkEstimatorStatusFlags(const Context &context, Report &
 
 			if (reporter.mavlink_log_pub()) {
 				mavlink_log_critical(reporter.mavlink_log_pub(), "GNSS heading not reliable - Land now!\t");
+			}
+		}
+
+		// only do the following if the estimator status flags are recent (less than 5 seconds old)
+		if (!context.isArmed()
+		    && (hrt_absolute_time() - estimator_status_flags.timestamp < 5_s)
+		    && !estimator_status_flags.cs_yaw_align) {
+
+			const NavModes heading_required_groups = (NavModes)(
+						reporter.failsafeFlags().mode_req_local_position |
+						reporter.failsafeFlags().mode_req_local_position_relaxed |
+						(1u << vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF));
+
+			/* EVENT
+			 * @description
+			 * No heading source has aligned the EKF yaw
+			 */
+			reporter.armingCheckFailure(heading_required_groups, health_component_t::local_position_estimate,
+						    events::ID("check_estimator_heading_no_source"),
+						    events::Log::Error, "No heading reference");
+
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: no heading reference");
 			}
 		}
 	}
