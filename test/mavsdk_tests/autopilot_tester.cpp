@@ -431,7 +431,15 @@ void AutopilotTester::check_mission_item_speed_above(int item_index, float min_s
 		auto progress = _mission->mission_progress();
 
 		if (progress.current == item_index) {
+			std::cout << time_str() << "Speed check at item " << item_index
+				  << ": horizontal=" << horizontal << " min=" << min_speed_m_s
+				  << (horizontal > min_speed_m_s ? " OK" : " FAIL") << std::endl;
 			CHECK(horizontal > min_speed_m_s);
+
+		} else {
+			std::cout << time_str() << "No Speed check at item " << item_index
+				  << ": horizontal=" << horizontal << " min=" << min_speed_m_s
+				  << (horizontal > min_speed_m_s ? " OK" : " FAIL") << std::endl;
 		}
 	});
 }
