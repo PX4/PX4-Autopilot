@@ -27,7 +27,6 @@
 - changed-files:
   - any-glob-to-any-file:
     - src/modules/commander/**
-    - src/modules/health_and_arming_checks/**
 
 "scope:control":
 - changed-files:
