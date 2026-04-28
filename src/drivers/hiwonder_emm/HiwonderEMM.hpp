@@ -69,9 +69,11 @@ static constexpr uint8_t MOTOR_TYPE_JGB37_520_12V_110RPM = 3; // JGB37 encoder m
 static constexpr uint8_t I2CBUS = 1;                          // I2C bus number
 static constexpr uint8_t CHANNEL_COUNT = 4;                   // Number of output channels
 
-class HiwonderEMM : public ModuleBase<HiwonderEMM>, public OutputModuleInterface, public device::I2C
+class HiwonderEMM : public ModuleBase, public OutputModuleInterface, public device::I2C
 {
 public:
+	static Descriptor desc;
+
 	HiwonderEMM();
 	~HiwonderEMM() override = default;
 
@@ -85,7 +87,7 @@ public:
 	int print_status() override;
 
 	// OutputModuleInterface
-	bool updateOutputs(uint16_t *outputs, unsigned num_outputs,
+	bool updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs,
 			   unsigned num_control_groups_updated) override;
 
 protected:

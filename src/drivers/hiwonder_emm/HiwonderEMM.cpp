@@ -33,6 +33,12 @@
 
 #include "HiwonderEMM.hpp"
 
+ModuleBase::Descriptor HiwonderEMM::desc{
+	HiwonderEMM::task_spawn,
+	HiwonderEMM::custom_command,
+	HiwonderEMM::print_usage,
+};
+
 HiwonderEMM::HiwonderEMM() :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default), I2C(DRV_MOTOR_DEVTYPE_HIWONDER_EMM,
 			MODULE_NAME, I2CBUS, I2C_ADDR, 400000)
@@ -73,13 +79,17 @@ int HiwonderEMM::init()
 	return PX4_OK;
 }
 
-bool HiwonderEMM::updateOutputs(uint16_t *outputs, unsigned num_outputs,
+bool HiwonderEMM::updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs,
 				unsigned num_control_groups_updated)
 {
 	uint8_t speed_values[CHANNEL_COUNT];
 
 	for (unsigned i = 0; i < num_outputs && i < CHANNEL_COUNT; i++) {
-		speed_values[i] = (uint8_t)(outputs[i] - 128);
+		// Mixer output is float in [min, max] = [0, 255] with disarmed/center 128.
+		// Wire format is int8_t on the I2C bus: 0 = stop, +forward, -reverse.
+		// Go via int8_t so negative values wrap correctly (a direct float->uint8_t
+		// cast saturates negatives to 0 on ARM, which would suppress all reverse).
+		speed_values[i] = static_cast<uint8_t>(static_cast<int8_t>(outputs[i] - 128.0f));
 	}
 
 	set_motor_speed(speed_values, CHANNEL_COUNT);
@@ -92,7 +102,7 @@ void HiwonderEMM::Run()
 	if (should_exit()) {
 		ScheduleClear();
 		_mixing_output.unregister();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -210,8 +220,8 @@ int HiwonderEMM::task_spawn(int argc, char **argv) {
 	auto *instance = new HiwonderEMM();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init() == PX4_OK) {
 			return PX4_OK;
@@ -222,12 +232,12 @@ int HiwonderEMM::task_spawn(int argc, char **argv) {
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
 
 extern "C" __EXPORT int hiwonder_emm_main(int argc, char *argv[]){
-	return HiwonderEMM::main(argc, argv);
+	return ModuleBase::main(HiwonderEMM::desc, argc, argv);
 }
