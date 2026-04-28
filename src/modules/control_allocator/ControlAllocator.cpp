@@ -380,6 +380,9 @@ ControlAllocator::Run()
 	const hrt_abstime now = hrt_absolute_time();
 	const float dt = math::constrain(((now - _last_run) / 1e6f), 0.0002f, 0.02f);
 
+	_cs_preflight_check.handleCommand(now, _armed,
+					  _effectiveness_source_id == EffectivenessSource::TILTROTOR_VTOL);
+
 	bool do_update = false;
 	vehicle_torque_setpoint_s vehicle_torque_setpoint;
 	vehicle_thrust_setpoint_s vehicle_thrust_setpoint;
@@ -426,6 +429,9 @@ ControlAllocator::Run()
 				c[1](5) = vehicle_thrust_setpoint.xyz[2];
 			}
 		}
+
+		_cs_preflight_check.updateState(now, _armed);
+		_cs_preflight_check.applyOverrides(c, _is_vtol, *_actuator_effectiveness);
 
 		for (int i = 0; i < _num_control_allocation; ++i) {
 
