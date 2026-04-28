@@ -45,6 +45,8 @@ target_link_libraries(${PROJECT_NAME}
     PUBLIC ${GZ_TRANSPORT_TARGET}
 )
 
+target_compile_options(${PROJECT_NAME} PRIVATE -Wno-maybe-uninitialized)
+
 target_include_directories(${PROJECT_NAME}
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
     PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
