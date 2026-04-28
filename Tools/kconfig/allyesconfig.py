@@ -66,6 +66,7 @@ exception_list_sitl = [
     'COMMON_DISTANCE_SENSOR', # Fails I2C dependencies
     'DRIVERS_DISTANCE_SENSOR', # Fails I2C dependencies
     'COMMON_HYGROMETERS', # Fails I2C dependencies
+    'DRIVERS_HIWONDER_EMM', # Fails I2C dependencies
     'DRIVERS_HYGROMETER', # Fails I2C dependencies
     'COMMON_IMU', # Fails I2C dependencies
     'DRIVERS_IMU', # Fails I2C dependencies
