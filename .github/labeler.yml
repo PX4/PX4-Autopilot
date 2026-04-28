@@ -135,7 +135,6 @@
     - src/modules/land_detector/**
     - src/modules/payload_deliverer/**
     - src/lib/collision_prevention/**
-    - src/lib/flight_tasks/**
     - src/lib/geofence/**
     - src/lib/landing_slope/**
     - src/lib/takeoff/**
