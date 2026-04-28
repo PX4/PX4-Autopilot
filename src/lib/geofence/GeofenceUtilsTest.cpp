@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
+#include <cstdlib>
 #include "geofence_utils.h"
 
 using namespace matrix;
@@ -91,16 +92,41 @@ TEST(GeofenceUtilsTest, PolygonIsCCW)
 }
 TEST(GeofenceUtilsTest, SymmetricPairIndex)
 {
-	EXPECT_EQ(geofence_utils::symmetricPairIndex(0, 1, 4), 0);
-	EXPECT_EQ(geofence_utils::symmetricPairIndex(0, 2, 4), 1);
-	EXPECT_EQ(geofence_utils::symmetricPairIndex(3, 2, 4), 5);
-	EXPECT_EQ(geofence_utils::symmetricPairIndex(1, 3, 4), 4);
-	EXPECT_EQ(geofence_utils::symmetricPairIndex(3, 1, 4), 4);
 
+	// create a NxN matrix and fill with random data. Then pack the upper triangle into a 1D array.
+	// Then loop through the upper triangle and read the values from the array using  symmetricPairIndex
+	// and verify that the values match.
+	constexpr size_t N = 21;
+	constexpr size_t kPairs = N * (N - 1) / 2;
 
-	EXPECT_EQ(geofence_utils::symmetricPairIndex(0, 1, 5), 0);
-	EXPECT_EQ(geofence_utils::symmetricPairIndex(2, 4, 5), 8);
-	EXPECT_EQ(geofence_utils::symmetricPairIndex(3, 2, 5), 7);
-	EXPECT_EQ(geofence_utils::symmetricPairIndex(1, 3, 5), 5);
-	EXPECT_EQ(geofence_utils::symmetricPairIndex(3, 1, 5), 5);
+	float matrix[N][N];
+	float packed[kPairs];
+
+	std::srand(42);
+
+	for (size_t i = 0; i < N; ++i) {
+		for (size_t j = 0; j < N; ++j) {
+			matrix[i][j] = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
+		}
+	}
+
+	int idx = 0;
+
+	for (size_t i = 0; i < N; ++i) {
+		for (size_t j = i + 1; j < N; ++j) {
+			packed[idx++] = matrix[i][j];
+		}
+	}
+
+	int counter = 0;
+
+	for (size_t i = 0; i < N; ++i) {
+		for (size_t j = i + 1; j < N; ++j) {
+			counter++;
+			EXPECT_FLOAT_EQ(matrix[i][j], packed[geofence_utils::symmetricPairIndex(i, j, N)]);
+		}
+	}
+
+	// verify that we have the expected number of pairs
+	EXPECT_EQ(counter, kPairs);
 }
