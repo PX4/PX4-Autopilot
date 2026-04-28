@@ -102,7 +102,6 @@
     - src/modules/events/**
     - src/modules/hardfault_stream/**
     - src/lib/events/**
-    - src/lib/ulog_streaming/**
     - Tools/flight_review/**
     - Tools/log_encryption/**
 
