@@ -148,7 +148,7 @@
     - src/modules/zenoh/**
     - msg/OffboardControlMode.msg
     - msg/TrajectorySetpoint.msg
-    - msg/VehicleCommand.msg
+    - msg/versioned/VehicleCommand.msg
     - msg/versioned/VehicleCommandAck.msg
 
 "scope:parameters":
