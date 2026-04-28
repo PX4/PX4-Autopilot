@@ -1987,7 +1987,6 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 	status.time_slip = _last_time_slip_us * 1e-6f;
 
 	static constexpr float kMinTestRatioPreflight = 0.5f;
-	// Innovation failures only; "no heading source" is reported via cs_yaw_align (issue #27107).
 	status.pre_flt_fail_innov_heading   = (kMinTestRatioPreflight < status.hdg_test_ratio);
 	status.pre_flt_fail_innov_height    = (kMinTestRatioPreflight < status.hgt_test_ratio);
 	status.pre_flt_fail_innov_pos_horiz = (kMinTestRatioPreflight < status.pos_test_ratio);

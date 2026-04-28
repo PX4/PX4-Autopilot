@@ -164,7 +164,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 	} else if (!context.isArmed() && estimator_status_flags_valid && !estimator_status_flags.cs_yaw_align) {
 		/* EVENT
 		 * @description
-		 * No heading source has aligned the EKF yaw (e.g. optical-flow-only setups).
+		 * No heading source has aligned the EKF yaw
 		 */
 		reporter.armingCheckFailure(heading_required_groups, health_component_t::local_position_estimate,
 					    events::ID("check_estimator_heading_no_source"),
