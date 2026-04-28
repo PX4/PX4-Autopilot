@@ -52,9 +52,53 @@ void AttitudeControl::setProportionalGain(const matrix::Vector3f &proportional_g
 	}
 }
 
+void AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_setpoint, const float dt)
+{
+	Quatf qd_normalized = qd;
+	qd_normalized.normalize();
+
+	if (_ref_initialized && dt > 0.f) {
+		// Driven 2nd-order ref model: damping is biased toward the analytical yaw
+		// rate, so a constant yaw command is the equilibrium (no yaw-step transient).
+		const Vector3f w_known_in_ref = std::isfinite(yawspeed_setpoint)
+						? _q_ref.inversed().dcm_z() * yawspeed_setpoint
+						: Vector3f{};
+
+		Quatf q_err = _q_ref.inversed() * qd_normalized;
+		q_err.canonicalize();
+		const Vector3f e = 2.f * q_err.imag();
+
+		const Vector3f w_dot = kKq * e - kKomega * (_omega_ref - w_known_in_ref);
+
+		_omega_ref += w_dot * dt;
+		_q_ref = _q_ref * Quatf(AxisAnglef(_omega_ref * dt));
+		_q_ref.normalize();
+
+	} else {
+		// First call (or dt out of range): snap reference to the current setpoint.
+		_q_ref = qd_normalized;
+		_omega_ref.zero();
+		_ref_initialized = true;
+	}
+
+	_attitude_setpoint_q = qd_normalized;
+}
+
+void AttitudeControl::adaptAttitudeSetpoint(const Quatf &q_delta)
+{
+	_attitude_setpoint_q = q_delta * _attitude_setpoint_q;
+	_attitude_setpoint_q.normalize();
+	// Apply the same world-frame delta to the reference attitude. _omega_ref is in
+	// the reference body frame and physically invariant under a world relabeling.
+	_q_ref = q_delta * _q_ref;
+	_q_ref.normalize();
+}
+
 matrix::Vector3f AttitudeControl::update(const Quatf &q) const
 {
-	Quatf qd = _attitude_setpoint_q;
+	// FF off (e.g. autotune): P targets the raw setpoint (legacy behavior).
+	// FF on: P targets the reference model's smoothed trajectory.
+	Quatf qd = _ff_enabled ? _q_ref : _attitude_setpoint_q;
 
 	// calculate reduced desired attitude neglecting vehicle's yaw to prioritize roll and pitch
 	const Vector3f e_z = q.dcm_z();
@@ -94,15 +138,10 @@ matrix::Vector3f AttitudeControl::update(const Quatf &q) const
 	// calculate angular rates setpoint
 	Vector3f rate_setpoint = eq.emult(_proportional_gain);
 
-	// Feed forward the yaw setpoint rate.
-	// yawspeed_setpoint is the feed forward commanded rotation around the world z-axis,
-	// but we need to apply it in the body frame (because _rates_sp is expressed in the body frame).
-	// Therefore we infer the world z-axis (expressed in the body frame) by taking the last column of R.transposed (== q.inversed)
-	// and multiply it by the yaw setpoint rate (yawspeed_setpoint).
-	// This yields a vector representing the commanded rotatation around the world z-axis expressed in the body frame
-	// such that it can be added to the rates setpoint.
-	if (std::isfinite(_yawspeed_setpoint)) {
-		rate_setpoint += q.inversed().dcm_z() * _yawspeed_setpoint;
+	if (_ff_enabled) {
+		// Feed forward the reference model's angular velocity. _omega_ref lives in
+		// q_ref's body frame; go through world to land in the current body frame.
+		rate_setpoint += q.rotateVectorInverse(_q_ref.rotateVector(_omega_ref));
 	}
 
 	// limit rates

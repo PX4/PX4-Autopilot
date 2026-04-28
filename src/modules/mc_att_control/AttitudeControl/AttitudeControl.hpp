@@ -57,6 +57,13 @@ public:
 	AttitudeControl() = default;
 	~AttitudeControl() = default;
 
+	// Natural frequency of the attitude reference model (rad/s).
+	// Damping ratio is fixed at 1.0 (critical damping, monotonic settling).
+	// Placeholder value; revisit after flight test if needed.
+	static constexpr float kFFNaturalFreq = 10.0f;
+	static constexpr float kKq            = kFFNaturalFreq * kFFNaturalFreq; ///< spring constant
+	static constexpr float kKomega        = 2.0f * kFFNaturalFreq;           ///< damping coeff (ζ=1)
+
 	/**
 	 * Set proportional attitude control gain
 	 * @param proportional_gain 3D vector containing gains for roll, pitch, yaw
@@ -74,24 +81,22 @@ public:
 	 * Set a new attitude setpoint replacing the one tracked before
 	 * @param qd desired vehicle attitude setpoint
 	 * @param yawspeed_setpoint [rad/s] yaw feed forward angular rate in world frame
+	 * @param dt [s] time since previous setpoint; <= 0 skips the FF derivative update
 	 */
-	void setAttitudeSetpoint(const matrix::Quatf &qd, const float yawspeed_setpoint)
-	{
-		_attitude_setpoint_q = qd;
-		_attitude_setpoint_q.normalize();
-		_yawspeed_setpoint = yawspeed_setpoint;
-	}
+	void setAttitudeSetpoint(const matrix::Quatf &qd, const float yawspeed_setpoint, const float dt = -1.f);
 
 	/**
 	 * Adjust last known attitude setpoint by a delta rotation
 	 * Optional use to avoid glitches when attitude estimate reference e.g. heading changes.
 	 * @param q_delta delta rotation to apply
 	 */
-	void adaptAttitudeSetpoint(const matrix::Quatf &q_delta)
-	{
-		_attitude_setpoint_q = q_delta * _attitude_setpoint_q;
-		_attitude_setpoint_q.normalize();
-	}
+	void adaptAttitudeSetpoint(const matrix::Quatf &q_delta);
+
+	/**
+	 * Gate the setpoint-derivative feedforward (the filter keeps running, only
+	 * its addition to the rate setpoint is suppressed). Used during autotune.
+	 */
+	void setFeedForwardEnabled(bool enabled) { _ff_enabled = enabled; }
 
 	/**
 	 * Run one control loop cycle calculation
@@ -100,11 +105,26 @@ public:
 	 */
 	matrix::Vector3f update(const matrix::Quatf &q) const;
 
+	/**
+	 * Reference attitude tracked by the model (the smoothed target the cascaded
+	 * controller actually follows). Exposed for tests and diagnostics.
+	 */
+	const matrix::Quatf &getReferenceAttitude() const { return _q_ref; }
+
 private:
 	matrix::Vector3f _proportional_gain;
 	matrix::Vector3f _rate_limit;
 	float _yaw_w{0.f}; ///< yaw weight [0,1] to deprioritize compared to roll and pitch
 
-	matrix::Quatf _attitude_setpoint_q; ///< latest known attitude setpoint e.g. from position control
-	float _yawspeed_setpoint{0.f}; ///< latest known yawspeed feed-forward setpoint
+	matrix::Quatf _attitude_setpoint_q; ///< latest known raw attitude setpoint e.g. from position control
+
+	// Reference model state: a driven 2nd-order system that tracks _attitude_setpoint_q.
+	// The damping term is biased toward the analytical yaw rate setpoint, so the
+	// model's equilibrium is "rotating at the commanded yaw rate" — yielding
+	// near-zero transient on yaw step commands.
+	matrix::Quatf _q_ref;                  ///< reference attitude (smoothed target)
+	matrix::Vector3f _omega_ref;           ///< reference body angular velocity (FF output)
+	bool _ref_initialized{false};          ///< false until first valid setpoint received
+
+	bool _ff_enabled{true};
 };
