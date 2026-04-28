@@ -281,16 +281,8 @@ void AutopilotTester::execute_mission()
 	REQUIRE(poll_condition_with_timeout(
 	[this]() { return _mission->start_mission() == Mission::Result::Success; }, std::chrono::seconds(3)));
 
-	float speed_factor = 1.0f;
-
-	if (_info != nullptr) {
-		speed_factor = _info->get_speed_factor().second;
-	}
-
-	const float mission_finish_waiting_time_in_simulation_s = 500.f;
-	float mission_finish_waiting_time_in_real_s = mission_finish_waiting_time_in_simulation_s / speed_factor;
-
-	wait_for_mission_finished(std::chrono::seconds(static_cast<int>(mission_finish_waiting_time_in_real_s)));
+	// poll_condition_with_timeout uses autopilot sim time, so pass sim-time timeout directly
+	wait_for_mission_finished(std::chrono::seconds(500));
 }
 
 void AutopilotTester::execute_mission_and_lose_gps()
