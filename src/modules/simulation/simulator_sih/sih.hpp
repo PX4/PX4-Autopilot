@@ -144,6 +144,7 @@ private:
 	uORB::Subscription _actuator_out_sub{ORB_ID(actuator_outputs_sim)};
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 
+
 	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	bool _airspeed_blocked{false};

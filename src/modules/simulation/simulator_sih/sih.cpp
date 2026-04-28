@@ -49,6 +49,8 @@
 #include <drivers/drv_pwm_output.h>         // to get PWM flags
 #include <lib/drivers/device/Device.hpp>
 
+#include <sched.h>
+
 using namespace math;
 using namespace matrix;
 using namespace time_literals;
@@ -82,6 +84,8 @@ void Sih::run()
 	_vehicle = static_cast<VehicleType>(constrain(_sih_vtype.get(),
 					    static_cast<int32_t>(VehicleType::First),
 					    static_cast<int32_t>(VehicleType::Last)));
+
+	_actuator_out_sub = uORB::Subscription{ORB_ID(actuator_outputs_sim)};
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	lockstep_loop();
@@ -125,8 +129,12 @@ void Sih::lockstep_loop()
 	PX4_INFO("Simulation with %.1fx speedup. Loop with (%d us wall time interval)", (double)speed_factor, rt_interval_us);
 	uint64_t pre_compute_wall_time_us;
 
+	// Track whether we've ever been in lockstep mode (had actuator output)
+	bool lockstep_was_active = false;
+
 	while (!should_exit()) {
 		pre_compute_wall_time_us = micros();
+
 		perf_count(_loop_interval_perf);
 
 		_current_simulation_time_us += sim_interval_us;
@@ -143,30 +151,40 @@ void Sih::lockstep_loop()
 		uint64_t current_wall_time_us;
 
 		if (_last_actuator_output_time <= 0) {
-			PX4_DEBUG("SIH starting up - no lockstep yet");
+			// Before first actuator output (startup) or after actuators stopped (disarm):
+			// Run without lockstep synchronization, paced by wall-clock sleep.
+			// Use configured speed if we've been in lockstep before, otherwise ~1x during startup.
 			current_wall_time_us = micros();
-			sleep_time = math::max(0, sim_interval_us - (int)(current_wall_time_us - pre_compute_wall_time_us));
+			int target_interval = lockstep_was_active ? rt_interval_us : sim_interval_us;
+			sleep_time = math::max(0, target_interval - (int)(current_wall_time_us - pre_compute_wall_time_us));
 
 		} else {
-			px4_lockstep_wait_for_components();
+			lockstep_was_active = true;
 
-			// Wait for the control pipeline to produce new actuator outputs.
-			// Without this, under CPU load the controllers may not run between
-			// SIH iterations, causing stale actuator data and sluggish response.
-			uint64_t wait_start_us = micros();
-			constexpr uint64_t actuator_wait_timeout_us = 10'000'000; // 10s wall time
+			uint64_t poll_start = micros();
+			bool poll_timed_out = false;
 
-			while (!_actuator_out_sub.updated() && !should_exit()) {
-				if (micros() - wait_start_us > actuator_wait_timeout_us) {
-					PX4_WARN("SIH lockstep: timed out waiting for actuator_outputs_sim");
+			while (!_actuator_out_sub.updated()) {
+				if (micros() - poll_start > 500000) { // 500ms wall-clock safety timeout
+					poll_timed_out = true;
 					break;
 				}
 
-				usleep(100);
+				sched_yield();
 			}
 
-			current_wall_time_us = micros();
-			sleep_time = math::max(0, rt_interval_us - (int)(current_wall_time_us - pre_compute_wall_time_us));
+			if (poll_timed_out) {
+				// Actuator outputs stopped (e.g., after disarm).
+				// Exit lockstep to keep sim time advancing at configured speed.
+				_last_actuator_output_time = 0;
+				PX4_INFO("SIH: no actuator output for 500ms, exiting lockstep");
+				current_wall_time_us = micros();
+				sleep_time = 0;
+
+			} else {
+				current_wall_time_us = micros();
+				sleep_time = math::max(0, rt_interval_us - (int)(current_wall_time_us - pre_compute_wall_time_us));
+			}
 		}
 
 		_achieved_speedup = 0.99f * _achieved_speedup + 0.01f * ((float)sim_interval_us / (float)(
@@ -432,6 +450,10 @@ void Sih::read_motors(const float dt)
 	actuator_outputs_s actuators_out;
 
 	if (_actuator_out_sub.update(&actuators_out)) {
+		if (_last_actuator_output_time == 0) {
+			PX4_INFO("SIH: first actuator output at sim_t=%.3fs, entering lockstep", (double)hrt_absolute_time() / 1e6);
+		}
+
 		_last_actuator_output_time = actuators_out.timestamp;
 
 		for (int i = 0; i < NUM_ACTUATORS_MAX; i++) { // saturate the motor signals
