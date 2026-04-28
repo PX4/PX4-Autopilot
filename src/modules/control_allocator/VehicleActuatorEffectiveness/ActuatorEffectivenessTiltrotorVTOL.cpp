@@ -124,14 +124,29 @@ void ActuatorEffectivenessTiltrotorVTOL::allocateAuxilaryControls(const float dt
 
 }
 
+void ActuatorEffectivenessTiltrotorVTOL::overrideCollectiveTilt(bool do_override, float collective_tilt)
+{
+	// When set, updateSetpoint() takes the collective tilt from
+	// _collective_tilt_normalized_setpoint instead of the uORB message and
+	// drives the tilt actuators even when motors are not yet spooled up. Used
+	// by the control-surface preflight check.
+	_do_override_collective_tilt = do_override;
+	_collective_tilt_normalized_setpoint = collective_tilt;
+}
+
 void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
 		int matrix_index, ActuatorVector &actuator_sp, const ActuatorVector &actuator_min, const ActuatorVector &actuator_max)
 {
 	// apply tilt
 	if (matrix_index == 0) {
-		tiltrotor_extra_controls_s tiltrotor_extra_controls;
+		tiltrotor_extra_controls_s tiltrotor_extra_controls{};
+		const bool has_tiltrotor_extra_controls = _tiltrotor_extra_controls_sub.copy(&tiltrotor_extra_controls);
 
-		if (_tiltrotor_extra_controls_sub.copy(&tiltrotor_extra_controls)) {
+		if (has_tiltrotor_extra_controls || _do_override_collective_tilt) {
+			if (_do_override_collective_tilt) {
+				tiltrotor_extra_controls.collective_tilt_normalized_setpoint = _collective_tilt_normalized_setpoint;
+			}
+
 			float control_collective_tilt = tiltrotor_extra_controls.collective_tilt_normalized_setpoint * 2.f - 1.f;
 
 			// set control_collective_tilt to exactly -1 or 1 if close to these end points
@@ -165,7 +180,7 @@ void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<flo
 				if (_tilts.config(i).tilt_direction == ActuatorEffectivenessTilts::TiltDirection::TowardsFront) {
 
 					// as long as throttle spoolup is not completed, leave the tilts in the disarmed position (in hover)
-					if (throttleSpoolupFinished() || _flight_phase != FlightPhase::HOVER_FLIGHT) {
+					if (throttleSpoolupFinished() || _flight_phase != FlightPhase::HOVER_FLIGHT || _do_override_collective_tilt) {
 						actuator_sp(i + _first_tilt_idx) += control_collective_tilt;
 
 					} else {
