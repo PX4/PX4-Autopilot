@@ -92,6 +92,7 @@ private:
 	float _last_temperature{0.0f};
 
 	hrt_abstime _last_update_time{0};
+	hrt_abstime _last_run_time{0};
 
 	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
 

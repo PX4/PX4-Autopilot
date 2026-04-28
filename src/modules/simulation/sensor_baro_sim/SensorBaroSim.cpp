@@ -149,6 +149,17 @@ void SensorBaroSim::Run()
 
 	perf_begin(_loop_perf);
 
+	// Detect if Run() hasn't been called in a long time (scheduling gap)
+	hrt_abstime now = hrt_absolute_time();
+
+	if (_last_run_time > 0 && hrt_elapsed_time(&_last_run_time) > 200_ms) {
+		PX4_WARN("sensor_baro_sim: Run() gap of %.0fms at sim_t=%.3fs",
+			 (double)hrt_elapsed_time(&_last_run_time) / 1000.0,
+			 (double)now / 1e6);
+	}
+
+	_last_run_time = now;
+
 	// Check if parameters have changed
 	if (_parameter_update_sub.updated()) {
 		// clear update
@@ -183,6 +194,9 @@ void SensorBaroSim::Run()
 		vehicle_global_position_s gpos;
 
 		if (_vehicle_global_position_sub.copy(&gpos)) {
+			if (_last_update_time == 0) {
+				PX4_INFO("sensor_baro_sim: first groundtruth at sim_t=%.3fs", (double)hrt_absolute_time() / 1e6);
+			}
 
 			const float dt = math::constrain((gpos.timestamp - _last_update_time) * 1e-6f, 0.001f, 0.1f);
 
@@ -250,6 +264,18 @@ void SensorBaroSim::Run()
 
 
 			_last_update_time = gpos.timestamp;
+		}
+
+	} else if (_last_update_time > 0 && hrt_elapsed_time(&_last_update_time) > 200_ms) {
+		static hrt_abstime last_warn_time = 0;
+
+		if (hrt_elapsed_time(&last_warn_time) > 1_s) {
+			PX4_WARN("sensor_baro_sim: no groundtruth for %.0fms at sim_t=%.3fs, "
+				 "last_run_gap=%.0fms",
+				 (double)hrt_elapsed_time(&_last_update_time) / 1000.0,
+				 (double)hrt_absolute_time() / 1e6,
+				 (_last_run_time > 0) ? (double)hrt_elapsed_time(&_last_run_time) / 1000.0 : 0.0);
+			last_warn_time = hrt_absolute_time();
 		}
 	}
 

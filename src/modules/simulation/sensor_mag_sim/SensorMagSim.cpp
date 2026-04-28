@@ -142,6 +142,17 @@ void SensorMagSim::Run()
 
 	perf_begin(_loop_perf);
 
+	// Detect if Run() hasn't been called in a long time (scheduling gap)
+	hrt_abstime now = hrt_absolute_time();
+
+	if (_last_run_time > 0 && hrt_elapsed_time(&_last_run_time) > 200_ms) {
+		PX4_WARN("sensor_mag_sim: Run() gap of %.0fms at sim_t=%.3fs",
+			 (double)hrt_elapsed_time(&_last_run_time) / 1000.0,
+			 (double)now / 1e6);
+	}
+
+	_last_run_time = now;
+
 	// Check if parameters have changed
 	if (_parameter_update_sub.updated()) {
 		// clear update
