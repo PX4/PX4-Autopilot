@@ -429,6 +429,9 @@ public:
 
 	void resetHeadingToExternalObservation(float heading, float heading_accuracy)
 	{
+		// External heading is an observation of yaw. Setting heading_observable = true
+		// prevents clearInhibitedStateKalmanGains() from inhibiting the update
+		_control_status.flags.heading_observable = true;
 		const float heading_variance = sq(heading_accuracy);
 
 		if (_control_status.flags.yaw_align) {
