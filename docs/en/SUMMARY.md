@@ -403,6 +403,7 @@
   - [Serial Port Configuration](peripherals/serial_configuration.md)
   - [PX4 Ethernet Setup](advanced_config/ethernet_setup.md)
   - [Standard Configuration](config/index.md)
+  - [OEM Configuration](advanced_config/oem.md)
   - [Advanced Configuration](advanced_config/index.md)
     - [Using PX4's Navigation Filter (EKF2)](advanced_config/tuning_the_ecl_ekf.md)
     - [GNSS-Denied & Degraded Flight](advanced_config/gnss_degraded_or_denied_flight.md)
