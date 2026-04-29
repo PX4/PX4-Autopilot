@@ -62,9 +62,7 @@ The TX and RX on the flight controller must be connected to the RX and TX on the
 ### Port Configuration
 
 The receivers are configured in the same way as any other [MAVLink Peripheral](../peripherals/mavlink_peripherals.md).
-The only _specific_ setup is that the port baud rate must be set to 57600 and the a low-bandwidth profile (`MAV_X_MODE`).
-
-Assuming you have connected the device to the TELEM2 port, [set the parameters](../advanced_config/parameters.md) as shown:
+The recommended configuration for most devices (unless they have device-specific configuration like PingRX) is to connect to `TELEM 2` and [set the parameters](../advanced_config/parameters.md) as shown:
 
 | Parameter                                                                | Recommended Value                 |
 | ------------------------------------------------------------------------ | --------------------------------- |
