@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-if("${PX4_BOARD_LABEL}" STREQUAL  "bootloader")
+if("${PX4_BOARD_LABEL}" MATCHES "^bootloader")
 	add_compile_definitions(BOOTLOADER)
 	add_library(drivers_board
 		bootloader_main.c
@@ -49,7 +49,7 @@ if("${PX4_BOARD_LABEL}" STREQUAL  "bootloader")
 	target_include_directories(drivers_board PRIVATE ${PX4_SOURCE_DIR}/platforms/nuttx/src/bootloader/common)
 
 else()
-	add_library(drivers_board
+	set(_drivers_board_sources
 		can.c
 		i2c.cpp
 		init.cpp
@@ -60,6 +60,14 @@ else()
 		timer_config.cpp
 		usb.c
 	)
+
+	# Secure-boot variant: populate the image TOC slot the linker
+	# script (selected via CONFIG_BOARD_LINKER_PREFIX) reserves.
+	if("${PX4_BOARD_LABEL}" STREQUAL "secureboot")
+		list(APPEND _drivers_board_sources toc.c)
+	endif()
+
+	add_library(drivers_board ${_drivers_board_sources})
 	add_dependencies(drivers_board arch_board_hw_info)
 
 	target_link_libraries(drivers_board
