@@ -206,6 +206,11 @@ bool GeofenceAvoidancePlanner::update_vertices(GeofenceInterface &geofence, floa
 	}
 
 	update_distances_between_vertices(geofence);
+
+	// invalidate start and end to make sure they are refreshed
+	_start_healthy = false;
+	_destination_healthy = false;
+
 	perf_end(_setup_perf);
 	return true;
 }
