@@ -139,18 +139,6 @@ parameters:
           1: Arming/disarming triggers when holding the momentary button down like the stick gesture.
       type: boolean
       default: 0
-    COM_DISARM_MAN:
-      description:
-        short: Allow disarming in manual thrust modes
-        long: |-
-          Allow disarming via switch/stick/button on multicopters in manual thrust modes
-
-          0: Disallow disarming when not landed
-          1: Allow disarming in multicopter flight in modes where
-          the thrust is directly controlled by thr throttle stick
-          e.g. Stabilized, Acro
-      type: boolean
-      default: 1
     COM_LOW_BAT_ACT:
       description:
         short: Battery failsafe mode
