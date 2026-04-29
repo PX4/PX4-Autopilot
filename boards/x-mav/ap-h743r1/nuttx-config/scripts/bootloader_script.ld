@@ -110,7 +110,7 @@
 MEMORY
 {
 	itcm  (rwx) : ORIGIN = 0x00000000, LENGTH =   64K
-	flash (rx)  : ORIGIN = 0x08000000, LENGTH = 2048K
+	flash (rx)  : ORIGIN = 0x08000000, LENGTH =  128K
 	dtcm1 (rwx) : ORIGIN = 0x20000000, LENGTH =   64K
 	dtcm2 (rwx) : ORIGIN = 0x20010000, LENGTH =   64K
 	sram  (rwx) : ORIGIN = 0x24000000, LENGTH =  512K
