@@ -139,10 +139,12 @@ bool expandOrShrinkPolygon(const matrix::Vector2f *vertices_in, int num_vertices
 			   matrix::Vector2f *vertices_out)
 {
 	// Algorithm which shrinks or expands a polygon with given vertices.
-	// It calculates the inward vector at each vertex as the sum of the inward normals of the two adjacent edges
-	// The vertex of the new polygon is then moved by margin along the inward vector, either positively (shrink) or
-	// negatively (expand). The inward vector of an edge can be easily found if the polygon orientation (CW or CCW),
-	// is known. We use the triangle formula to find the polygon orientation.
+	// At each vertex we compute the inward bisector as the sum of the inward normals of the two
+	// adjacent edges. The unnormalized bisector has length 2*sin(alpha/2), where alpha is the
+	// interior angle. To push each adjacent edge by exactly `margin` (i.e. so that the face
+	// distance from the new vertex to each adjacent edge is `margin`), we move the vertex by
+	// `margin / sin(alpha/2)` along the unit bisector. The inward normal of an edge follows from
+	// the polygon orientation (CW or CCW), which we get from the shoelace formula.
 
 	if (num_vertices < 3) {
 		return false;
@@ -172,7 +174,7 @@ bool expandOrShrinkPolygon(const matrix::Vector2f *vertices_in, int num_vertices
 		const matrix::Vector2f n_in {-rot_sign * edge_in_unit(1), rot_sign * edge_in_unit(0)};
 		const matrix::Vector2f n_out{-rot_sign * edge_out_unit(1), rot_sign * edge_out_unit(0)};
 
-		matrix::Vector2f bisector = n_in + n_out;
+		const matrix::Vector2f bisector = n_in + n_out;
 		const float bisector_len = bisector.length();
 
 		if (bisector_len < FLT_EPSILON) {
@@ -180,9 +182,12 @@ bool expandOrShrinkPolygon(const matrix::Vector2f *vertices_in, int num_vertices
 			return false;
 		}
 
-		bisector.normalize();
+		// bisector_len = 2*sin(alpha/2), so margin / sin(alpha/2) = 2 * margin / bisector_len.
+		// Multiplying the unnormalized bisector by (2 / bisector_len^2) gives the offset vector
+		// of length margin / sin(alpha/2) along the unit bisector.
+		const float offset_scale = 2.f / (bisector_len * bisector_len);
 
-		vertices_out[i] = vertices_in[i] + bisector * margin * step_sign;
+		vertices_out[i] = vertices_in[i] + bisector * (margin * step_sign * offset_scale);
 	}
 
 	return true;
