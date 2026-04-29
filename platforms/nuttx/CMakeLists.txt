@@ -67,8 +67,15 @@ endif()
 
 set(nuttx_libs)
 set(SCRIPT_PREFIX)
-if("${PX4_BOARD_LABEL}" STREQUAL "bootloader")
-	set(SCRIPT_PREFIX ${PX4_BOARD_LABEL}_)
+# Match "bootloader" and any "bootloader_<variant>" label (e.g.
+# "bootloader_secureboot") so a board can ship a bootloader variant
+# with extra Kconfig (crypto, keystore, etc.) without duplicating
+# the bootloader build wiring.
+if("${PX4_BOARD_LABEL}" MATCHES "^bootloader")
+	# All bootloader variants share the same linker script
+	# (bootloader_script.ld); the label suffix only changes which
+	# Kconfig and which Tools/test_keys/*.pub are baked in.
+	set(SCRIPT_PREFIX bootloader_)
 	add_subdirectory(src/bootloader)
 	list(APPEND nuttx_libs
 		bootloader
