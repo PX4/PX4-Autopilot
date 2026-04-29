@@ -59,6 +59,16 @@ struct PlannedPath {
 		current_index = 0;
 	}
 
+	matrix::Vector2d getPoint(int index)
+	{
+		if (index < num_points) {
+			return points[index];
+
+		} else {
+			return matrix::Vector2d{(double)NAN, (double)NAN};
+		}
+	}
+
 	bool hasNextPoint()
 	{
 		return current_index < num_points;

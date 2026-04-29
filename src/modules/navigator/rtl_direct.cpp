@@ -492,20 +492,48 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 			}
 
 		// FALLTHROUGH
-		case RTLState::MOVE_TO_INTERMEDIATE_POINT:
+		case RTLState::MOVE_TO_INTERMEDIATE_POINT: {
+				const int num_points = _geofence_aware_return_path.num_points;
+
+				for (int i = 0; i < num_points - 1; ++i) {
+					matrix::Vector2d start = _geofence_aware_return_path.getPoint(i);
+					matrix::Vector2d end = _geofence_aware_return_path.getPoint(i + 1);
+
+					matrix::Vector2f direction{};
+					get_vector_to_next_waypoint(start(0), start(1), end(0), end(1), &direction(0),
+								    &direction(1));
+					float dist{get_distance_to_next_waypoint(start(0), start(1),
+							end(0), end(1))};
+
+					_rtl_time_estimator.addDistance(dist, direction, 0.f);
+				}
+			}
 
 		// FALLTHROUGH
 		case RTLState::MOVE_TO_LOITER: {
 				matrix::Vector2f direction{};
-				get_vector_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, land_approach.lat,
-							    land_approach.lon, &direction(0), &direction(1));
-				float move_to_land_dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, land_approach.lat, land_approach.lon)};
 
-				if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
-					move_to_land_dist = max(0.f, move_to_land_dist - land_approach.loiter_radius_m);
+				float dist{0.f};
+
+				if (_geofence_aware_return_path.num_points > 0) {
+					const matrix::Vector2d last_point = _geofence_aware_return_path.getPoint(_geofence_aware_return_path.num_points - 1);
+					get_vector_to_next_waypoint(last_point(0), last_point(1), land_approach.lat,
+								    land_approach.lon, &direction(0), &direction(1));
+					dist = get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, land_approach.lat, land_approach.lon);
+
+				} else {
+
+					get_vector_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, land_approach.lat,
+								    land_approach.lon, &direction(0), &direction(1));
+					dist = get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, land_approach.lat, land_approach.lon);
 				}
 
-				_rtl_time_estimator.addDistance(move_to_land_dist, direction, 0.f);
+
+				if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+					dist = max(0.f, dist - land_approach.loiter_radius_m);
+				}
+
+				_rtl_time_estimator.addDistance(dist, direction, 0.f);
 			}
 
 		// FALLTHROUGH
@@ -653,4 +681,9 @@ void RtlDirect::publish_rtl_direct_navigator_mission_item()
 	navigator_mission_item.timestamp = hrt_absolute_time();
 
 	_navigator_mission_item_pub.publish(navigator_mission_item);
+}
+
+void RtlDirect::updatePlannedPath()
+{
+	_geofence_aware_return_path =  _navigator->planPath();
 }

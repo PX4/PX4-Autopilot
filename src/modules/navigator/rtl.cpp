@@ -182,6 +182,14 @@ void RTL::on_inactive()
 	if ((now - _destination_check_time) > 2_s) {
 		_destination_check_time = now;
 		setRtlTypeAndDestination();
+		const bool global_position_recently_updated = _global_pos_sub.get().timestamp > 0
+				&& hrt_elapsed_time(&_global_pos_sub.get().timestamp) < 10_s;
+
+		if (global_position_recently_updated) {
+			_navigator->updateStartOfRTLPathPlanner(_navigator->getRtlPlanningStart());
+			_rtl_direct.updatePlannedPath();
+		}
+
 		publishRemainingTimeEstimate();
 	}
 
