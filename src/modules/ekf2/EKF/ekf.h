@@ -190,6 +190,11 @@ public:
 		}
 	}
 
+	void decorrelateAltPos()
+	{
+		P.uncorrelateCovariance<1>(State::pos.idx + 2);
+	}
+
 	matrix::Vector3f getRotVarBody() const;
 	matrix::Vector3f getRotVarNed() const;
 	float getYawVar() const;

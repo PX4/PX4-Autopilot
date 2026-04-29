@@ -1750,6 +1750,7 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 	lpos.heading_var = _ekf.getYawVar();
 	lpos.delta_heading = Eulerf(delta_q_reset).psi();
 	lpos.heading_good_for_control = _ekf.isYawFinalAlignComplete();
+	lpos.altitude_good_for_local_control = _gps_alt_drift.altitude_good_for_local_control;
 	lpos.tilt_var = _ekf.getTiltVariance();
 
 #if defined(CONFIG_EKF2_TERRAIN)
@@ -2791,12 +2792,16 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 			_last_geoid_height_update_us = gnss_sample.time_us;
 		}
 
-		if (_ekf.control_status_flags().in_air &&  _ekf.getHeightSensorRef() == HeightSensor::GNSS) {
+		if (_ekf.control_status_flags().in_air
+		    && _ekf.getHeightSensorRef() == HeightSensor::GNSS
+		    && _ekf.control_status_flags().baro_hgt
+		    && (_param_ekf2_gps_ctrl.get() & static_cast<int32_t>(GnssCtrl::VEL))) {
+
 			const float ekf_amsl = _ekf.getLatLonAlt().altitude();
 			_gps_alt_drift.update(vehicle_gps_position, ekf_amsl, _gps_alt_drift_pub);
 
-			if (fabsf(_gps_alt_drift.altitude_offset) > 0.f) {
-				_ekf.shiftAltOrigin(_gps_alt_drift.altitude_offset);
+			if (!_gps_alt_drift.altitude_good_for_local_control) {
+				_ekf.decorrelateAltPos();
 			}
 
 		} else {

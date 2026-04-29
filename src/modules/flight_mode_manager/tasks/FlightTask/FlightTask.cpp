@@ -132,6 +132,7 @@ void FlightTask::_evaluateVehicleLocalPosition()
 		_yaw = _sub_vehicle_local_position.get().heading;
 		_unaided_yaw = _sub_vehicle_local_position.get().unaided_heading;
 		_is_yaw_good_for_control = _sub_vehicle_local_position.get().heading_good_for_control;
+		_is_altitude_good_for_local_control = _sub_vehicle_local_position.get().altitude_good_for_local_control;
 
 		// position
 		if (_sub_vehicle_local_position.get().xy_valid) {
