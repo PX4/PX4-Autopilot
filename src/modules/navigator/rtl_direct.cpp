@@ -162,7 +162,7 @@ void RtlDirect::_updateRtlState()
 	switch (_rtl_state) {
 	case RTLState::CLIMBING:
 		if (_geofence_aware_return_path.hasNextPoint()) {
-			new_state = RTLState::MOVE_TO_INTERMEDIATE_POINT;
+			new_state = RTLState::AVOID_GEOFENCE;
 
 		} else {
 			new_state = RTLState::MOVE_TO_LOITER;
@@ -170,9 +170,9 @@ void RtlDirect::_updateRtlState()
 
 		break;
 
-	case RTLState::MOVE_TO_INTERMEDIATE_POINT:
+	case RTLState::AVOID_GEOFENCE:
 		if (_geofence_aware_return_path.hasNextPoint()) {
-			new_state = RTLState::MOVE_TO_INTERMEDIATE_POINT;
+			new_state = RTLState::AVOID_GEOFENCE;
 
 		} else {
 			new_state = RTLState::MOVE_TO_LOITER;
@@ -256,7 +256,7 @@ void RtlDirect::set_rtl_item()
 			break;
 		}
 
-	case RTLState::MOVE_TO_INTERMEDIATE_POINT: {
+	case RTLState::AVOID_GEOFENCE: {
 
 			matrix::Vector2d point = _geofence_aware_return_path.getAndPopCurrentPoint();
 
@@ -452,7 +452,7 @@ RtlDirect::RTLState RtlDirect::getActivationState()
 		activation_state = RTLState::CLIMBING;
 
 	} else if (_geofence_aware_return_path.hasNextPoint()) {
-		activation_state = RTLState::MOVE_TO_INTERMEDIATE_POINT;
+		activation_state = RTLState::AVOID_GEOFENCE;
 
 	} else {
 		activation_state = RTLState::MOVE_TO_LOITER;
@@ -495,7 +495,7 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 			}
 
 		// FALLTHROUGH
-		case RTLState::MOVE_TO_INTERMEDIATE_POINT: {
+		case RTLState::AVOID_GEOFENCE: {
 				const int num_points = _geofence_aware_return_path.num_points;
 
 				for (int i = 0; i < num_points - 1; ++i) {
