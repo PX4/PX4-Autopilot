@@ -1,0 +1,10 @@
+module_name: px4io
+parameters:
+- group: PWM Outputs
+  definitions:
+    PWM_SBUS_MODE:
+      description:
+        short: S.BUS out
+        long: Set to 1 to enable S.BUS version 1 output instead of RSSI.
+      type: boolean
+      default: 0

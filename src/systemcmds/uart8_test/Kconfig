@@ -1,0 +1,5 @@
+menuconfig SYSTEMCMDS_UART8_TEST
+	bool "uart8_test"
+	default n
+	---help---
+		Enable support for uart8_test command

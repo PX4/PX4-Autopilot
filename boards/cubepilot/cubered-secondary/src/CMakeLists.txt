@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2025 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,31 +30,34 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+if("${PX4_BOARD_LABEL}" STREQUAL  "bootloader")
+	add_library(drivers_board
+		bootloader_main.c
+		usb.c
+	)
+	target_link_libraries(drivers_board
+		PRIVATE
+			nuttx_arch
+			nuttx_drivers
+			bootloader
+	)
+	target_include_directories(drivers_board PRIVATE ${PX4_SOURCE_DIR}/platforms/nuttx/src/bootloader/common)
 
-# actuator metadata generation
-get_property(module_config_files GLOBAL PROPERTY PX4_MODULE_CONFIG_FILES)
-if(CONFIG_BOARD_IO OR CONFIG_DRIVERS_CUBERED_BRIDGE_PRIMARY)
-	set(board_with_io_arg --board-with-io)
+else()
+	add_library(drivers_board
+		init.c
+		spi.cpp
+		timer_config.cpp
+		led.c
+	)
+
+	target_link_libraries(drivers_board
+		PRIVATE
+			arch_io_pins
+			arch_spi
+			drivers__led
+			nuttx_arch
+			nuttx_drivers
+			px4_layer
+	)
 endif()
-set(generated_actuators_metadata_file ${PX4_BINARY_DIR}/actuators.json)
-add_custom_command(OUTPUT ${generated_actuators_metadata_file}
-	${generated_actuators_metadata_file}.xz
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/module_config/generate_actuators_metadata.py
-		${board_with_io_arg}
-		--timer-config ${PX4_BOARD_DIR}/src/timer_config.cpp
-		--config-files ${module_config_files} #--verbose
-		--compress
-		--board ${PX4_BOARD}
-		--output-file ${generated_actuators_metadata_file}
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/validate_json.py
-		--schema-file ${PX4_SOURCE_DIR}/src/modules/mavlink/mavlink/component_information/actuators.schema.json
-		${generated_actuators_metadata_file}
-		--skip-if-no-schema # mavlink submodule might not exist for current target if built in CI
-		#--verbose
-	DEPENDS
-		${module_config_files}
-		${PX4_SOURCE_DIR}/Tools/module_config/generate_actuators_metadata.py
-		${PX4_SOURCE_DIR}/src/lib/mixer_module/output_functions.yaml
-	COMMENT "Generating actuators.json"
-)
-add_custom_target(actuators_json DEPENDS ${generated_actuators_metadata_file})

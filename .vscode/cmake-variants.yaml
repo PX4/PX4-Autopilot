@@ -356,6 +356,16 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: cubepilot_cubeorangeplus_test
+    cubepilot_cubered-primary_default:
+      short: cubepilot_cubered-primary
+      buildType: MinSizeRel
+      settings:
+        CONFIG: cubepilot_cubered-primary_default
+    cubepilot_cubered-secondary_default:
+      short: cubepilot_cubered-secondary
+      buildType: MinSizeRel
+      settings:
+        CONFIG: cubepilot_cubered-primary_default
     emlid_navio2_default:
       short: emlid_navio2
       buildType: MinSizeRel

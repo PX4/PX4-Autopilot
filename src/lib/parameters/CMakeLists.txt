@@ -72,7 +72,7 @@ endif()
 if(PX4_ETHERNET)
 	set(added_arguments --ethernet)
 endif()
-if(CONFIG_BOARD_IO)
+if(CONFIG_BOARD_IO OR CONFIG_DRIVERS_CUBERED_BRIDGE_PRIMARY)
 	set(board_with_io_arg --board-with-io)
 endif()
 

@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2025 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,31 +30,20 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-# actuator metadata generation
-get_property(module_config_files GLOBAL PROPERTY PX4_MODULE_CONFIG_FILES)
-if(CONFIG_BOARD_IO OR CONFIG_DRIVERS_CUBERED_BRIDGE_PRIMARY)
-	set(board_with_io_arg --board-with-io)
-endif()
-set(generated_actuators_metadata_file ${PX4_BINARY_DIR}/actuators.json)
-add_custom_command(OUTPUT ${generated_actuators_metadata_file}
-	${generated_actuators_metadata_file}.xz
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/module_config/generate_actuators_metadata.py
-		${board_with_io_arg}
-		--timer-config ${PX4_BOARD_DIR}/src/timer_config.cpp
-		--config-files ${module_config_files} #--verbose
-		--compress
-		--board ${PX4_BOARD}
-		--output-file ${generated_actuators_metadata_file}
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/validate_json.py
-		--schema-file ${PX4_SOURCE_DIR}/src/modules/mavlink/mavlink/component_information/actuators.schema.json
-		${generated_actuators_metadata_file}
-		--skip-if-no-schema # mavlink submodule might not exist for current target if built in CI
-		#--verbose
+px4_add_module(
+	MODULE drivers__cubered_bridge_primary
+	MAIN cubered_bridge_primary
+	COMPILE_FLAGS
+		-Wno-cast-align # TODO: fix and enable
+	SRCS
+		cubered_bridge_primary.cpp
+		cubered_bridge_primary_serial.cpp
+	MODULE_CONFIG
+		module.yaml
+		cubered_bridge_primary_params.yaml
 	DEPENDS
-		${module_config_files}
-		${PX4_SOURCE_DIR}/Tools/module_config/generate_actuators_metadata.py
-		${PX4_SOURCE_DIR}/src/lib/mixer_module/output_functions.yaml
-	COMMENT "Generating actuators.json"
-)
-add_custom_target(actuators_json DEPENDS ${generated_actuators_metadata_file})
+		arch_px4io_serial
+		button_publisher
+		circuit_breaker
+		mixer_module
+	)
