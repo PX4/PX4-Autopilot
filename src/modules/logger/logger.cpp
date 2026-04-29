@@ -1439,11 +1439,11 @@ void Logger::start_log_file(LogType type)
 	}
 
 	if (type == LogType::Full) {
-		int32_t max_size_mb = _param_sdlog_max_size.get();
+		int32_t max_size_mib = _param_sdlog_max_size.get();
 
-		if (max_size_mb > 0) {
-			_max_log_file_size = (size_t)max_size_mb * 1024ULL * 1024ULL;
-			PX4_INFO("Max log file size: %" PRId32 " MB", max_size_mb);
+		if (max_size_mib > 0) {
+			_max_log_file_size = (size_t)max_size_mib * 1024ULL * 1024ULL;
+			PX4_INFO("Max log file size: %" PRId32 " MiB", max_size_mib);
 
 		} else {
 			_max_log_file_size = 0; // unlimited
@@ -1457,7 +1457,7 @@ void Logger::start_log_file(LogType type)
 		hrt_abstime cleanup_start = hrt_absolute_time();
 
 		if (util::cleanup_old_logs(LOG_ROOT[(int)LogType::Full], _mavlink_log_pub,
-					   (uint32_t)_param_sdlog_rotate.get(), (uint32_t)max_size_mb,
+					   (uint32_t)_param_sdlog_rotate.get(), (uint32_t)max_size_mib,
 					   _param_sdlog_dirs_max.get()) == 1) {
 			return;  // Not enough space even after cleanup
 		}

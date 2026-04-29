@@ -139,7 +139,7 @@ bool scan_log_directories(const char *log_root_dir, LogDirInfo &info)
 }
 
 int cleanup_old_logs(const char *log_root_dir, orb_advert_t &mavlink_log_pub,
-		     uint32_t rotate_pct, uint32_t max_file_size_mb,
+		     uint32_t rotate_pct, uint32_t max_file_size_mib,
 		     int32_t max_dirs_to_keep)
 {
 	uint64_t avail_bytes = 0;
@@ -159,7 +159,7 @@ int cleanup_old_logs(const char *log_root_dir, orb_advert_t &mavlink_log_pub,
 
 	if (rotate_pct > 0 && rotate_pct <= 100) {
 		cleanup_threshold = (total_bytes * (100 - rotate_pct)) / 100;
-		cleanup_threshold += (uint64_t)max_file_size_mb * 1024ULL * 1024ULL;
+		cleanup_threshold += (uint64_t)max_file_size_mib * 1024ULL * 1024ULL;
 	}
 
 	bool need_space_cleanup = avail_bytes < cleanup_threshold;

@@ -98,14 +98,14 @@ bool scan_log_directories(const char *log_root_dir, LogDirInfo &info);
  * @param mavlink_log_pub mavlink log publisher
  * @param rotate_pct maximum disk usage percentage (0 disables space-based
  *                   cleanup; 90 keeps at least 10% free during writing)
- * @param max_file_size_mb maximum log file size in MB; reserved as headroom
- *                         for the next log file write
+ * @param max_file_size_mib maximum log file size in MiB; reserved as headroom
+ *                          for the next log file write
  * @param max_dirs_to_keep maximum number of log directories to keep (0 to
  *                         disable count-based cleanup)
  * @return 0 on success, 1 if not enough space even after cleanup
  */
 int cleanup_old_logs(const char *log_root_dir, orb_advert_t &mavlink_log_pub,
-		     uint32_t rotate_pct, uint32_t max_file_size_mb,
+		     uint32_t rotate_pct, uint32_t max_file_size_mib,
 		     int32_t max_dirs_to_keep);
 
 /**

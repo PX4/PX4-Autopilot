@@ -105,16 +105,17 @@ parameters:
     SDLOG_MAX_SIZE:
       description:
         short: Maximum log file size
-        long: 'Maximum size of a single log file in megabytes. When reached,
-          the log file is closed and a new one is started. This value is also
-          added to the cleanup threshold (see SDLOG_ROTATE) to reserve headroom
-          for the next log file. A value of 0 disables both file rotation and
-          the cleanup reservation.
+        long: 'Maximum size of a single log file in mebibytes (1 MiB = 1024 * 1024
+          bytes). When reached, the log file is closed and a new one is started.
+          This value is also added to the cleanup threshold (see SDLOG_ROTATE) to
+          reserve headroom for the next log file. A value of 0 disables both file
+          rotation and the cleanup reservation.
           Must stay below the FAT32 file size limit of 4 GiB.'
       type: int32
       default: 1024
       min: 0
       max: 4095
+      unit: MiB
       reboot_required: false
     SDLOG_ROTATE:
       description:
