@@ -143,6 +143,31 @@ config BOARD_CRYPTO
     help
         Enable PX4 Crypto Support. Select the implementation under drivers
 
+config BOARD_SECUREBOOT
+    bool "Sign firmware image for secure boot"
+    default n
+    help
+        Run Tools/secure_bootloader/sign_firmware.py over the built .bin
+        to append an ed25519 signature, and mark the resulting .px4 as
+        image_signed: true so the uploader runs the bootloader's
+        VERIFY_SIG step before reboot. The matching public key must be
+        baked into the bootloader via CONFIG_PUBLIC_KEY0 in the
+        bootloader's .px4board file.
+
+config BOARD_SECUREBOOT_KEY
+    string "Path to JSON private key (absolute or relative to repo root)"
+    depends on BOARD_SECUREBOOT
+    default "Tools/test_keys/test_keys.json"
+    help
+        Private key used by sign_firmware.py to sign the firmware
+        image. The default points at the upstream development test
+        key, which is pre-paired with Tools/test_keys/key0.pub. For
+        production builds, generate a new keypair with
+        Tools/secure_bootloader/generate_signing_keys.py and update
+        both this option and the bootloader's CONFIG_PUBLIC_KEY0.
+        The environment variable BOARD_SECUREBOOT_KEY overrides this
+        value at build time.
+
 config BOARD_PROTECTED
     bool "Memory protection"
     help
