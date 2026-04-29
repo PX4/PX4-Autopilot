@@ -37,4 +37,9 @@ private:
 
     float _last_aoa_dp_pa{0.f};
     float _last_sideslip_dp_pa{0.f};
+
+
+    // New: angle caches for uORB fields aoa_deg / aos_deg
+    float _last_aoa_deg{0.f};
+    float _last_aos_deg{0.f};
 };
