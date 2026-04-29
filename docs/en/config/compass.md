@@ -90,7 +90,7 @@ Notes:
 
 ### Large Vehicle Calibration
 
-<Badge type="tip" text="PX4 v1.17" />
+<Badge type="tip" text="PX4 v1.18" />
 
 This calibration process leverages external knowledge of the vehicle's orientation and location, along with a World Magnetic Model (WMM), to calibrate hard-iron biases.
 It is designed for large or heavy vehicles where full-axis rotation is impractical.
