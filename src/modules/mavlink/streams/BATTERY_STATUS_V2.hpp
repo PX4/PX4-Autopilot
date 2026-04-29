@@ -76,29 +76,29 @@ private:
 						   && !math::isZero(battery_status.voltage_v)) ? battery_status.voltage_v : float(NAN);
 				bat_msg.current = (battery_status.connected
 						   && PX4_ISFINITE(battery_status.current_a)
-						   && fabsf(battery_status.current_a - (-1.0f)) > FLT_EPSILON) ? battery_status.current_a : float(NAN);
-				bat_msg.capacity_consumed = (battery_status.connected
-							     && PX4_ISFINITE(battery_status.discharged_mah)
-							     && fabsf(battery_status.discharged_mah - (-1.0f)) > FLT_EPSILON) ? battery_status.discharged_mah * 1e-3f : float(NAN);
-				bat_msg.capacity_remaining = (battery_status.connected && PX4_ISFINITE(battery_status.remaining_capacity_wh)
-							      && PX4_ISFINITE(battery_status.nominal_voltage)
-							      && !math::isZero(battery_status.nominal_voltage)) ?
-							     battery_status.remaining_capacity_wh / battery_status.nominal_voltage : float(NAN);
-				bat_msg.percent_remaining = (battery_status.connected && PX4_ISFINITE(battery_status.remaining)
-							     && fabsf(battery_status.remaining - (-1.0f)) > FLT_EPSILON) ?
-							    static_cast<uint8_t>(roundf(battery_status.remaining * 1e2f)) : UINT8_MAX;
+						   && battery_status.current_a != -1.0f ? battery_status.current_a : float(NAN);
+						   bat_msg.capacity_consumed = (battery_status.connected
+								   && PX4_ISFINITE(battery_status.discharged_mah)
+								   && battery_status.discharged_mah != -1.0f ? battery_status.discharged_mah * 1e-3f : float(NAN);
+								   bat_msg.capacity_remaining = (battery_status.connected && PX4_ISFINITE(battery_status.remaining_capacity_wh)
+										   && PX4_ISFINITE(battery_status.nominal_voltage)
+										   && !math::isZero(battery_status.nominal_voltage)) ?
+										   battery_status.remaining_capacity_wh / battery_status.nominal_voltage : float(NAN);
+								   bat_msg.percent_remaining = (battery_status.connected && PX4_ISFINITE(battery_status.remaining)
+										   && battery_status.remaining != -1.0f ?
+										   static_cast<uint8_t>(roundf(battery_status.remaining * 1e2f)) : UINT8_MAX;
 
-				bat_msg.status_flags = get_status_flags(battery_status);
+										   bat_msg.status_flags = get_status_flags(battery_status);
 
-				mavlink_msg_battery_status_v2_send_struct(_mavlink->get_channel(), &bat_msg);
-				updated = true;
+										   mavlink_msg_battery_status_v2_send_struct(_mavlink->get_channel(), &bat_msg);
+										   updated = true;
 			}
 		}
 
-		return updated;
+						   return updated;
 	}
 
-	inline uint32_t get_status_flags(const battery_status_s &battery_status) const
+			  inline uint32_t get_status_flags(const battery_status_s &battery_status) const
 	{
 		uint32_t status_flags = 0;
 		uint16_t faults = battery_status.faults;
@@ -113,6 +113,10 @@ private:
 
 		if (faults & battery_status_s::FAULT_HARDWARE_FAILURE) {
 			status_flags |= MAV_BATTERY_STATUS_FLAGS_REQUIRES_SERVICE | MAV_BATTERY_STATUS_FLAGS_BAD_BATTERY;
+		}
+
+		if (faults & battery_status_s::FAULT_CELL_FAIL) {
+			status_flags |= MAV_BATTERY_STATUS_FLAGS_BAD_BATTERY;
 		}
 
 		if (faults & battery_status_s::FAULT_OVER_TEMPERATURE) {
