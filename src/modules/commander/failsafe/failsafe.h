@@ -219,7 +219,7 @@ private:
 					(ParamInt<px4::params::COM_FLTT_LOW_ACT>) _param_com_fltt_low_act,
 					(ParamInt<px4::params::COM_POS_LOW_ACT>) _param_com_pos_low_act,
 					(ParamInt<px4::params::COM_ARM_ODID>) _param_com_arm_odid,
-					(ParamInt<px4::params::COM_GNSS_LSS_ACT>) _param_com_gnss_loss_act
+					(ParamInt<px4::params::COM_GNSSLOSS_ACT>) _param_com_gnssloss_act
 				       );
 
 };

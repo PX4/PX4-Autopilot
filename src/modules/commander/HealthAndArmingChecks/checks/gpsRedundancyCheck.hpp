@@ -50,6 +50,6 @@ private:
 	uORB::Subscription _gnss_redundancy_status_sub{ORB_ID(gnss_redundancy_status)};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
-					(ParamInt<px4::params::COM_GNSS_LSS_ACT>) _param_com_gnss_loss_act
+					(ParamInt<px4::params::COM_GNSSLOSS_ACT>) _param_com_gnssloss_act
 				       )
 };

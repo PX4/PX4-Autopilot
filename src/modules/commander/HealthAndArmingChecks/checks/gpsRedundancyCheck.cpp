@@ -40,7 +40,7 @@ void GpsRedundancyChecks::checkAndReport(const Context &context, Report &reporte
 	gnss_redundancy_status_s status;
 
 	if (_gnss_redundancy_status_sub.copy(&status)) {
-		const bool act_configured = (_param_com_gnss_loss_act.get() > 0);
+		const bool act_configured = (_param_com_gnssloss_act.get() > 0);
 
 		// Divergence triggers the failsafe only when the operator explicitly expects two
 		// receivers (SYS_HAS_NUM_GNSS >= 2); otherwise it remains a warning.
@@ -62,7 +62,7 @@ void GpsRedundancyChecks::checkAndReport(const Context &context, Report &reporte
 				 * @description
 				 * <profile name="dev">
 				 * Configure the minimum required GPS count with <param>SYS_HAS_NUM_GNSS</param>.
-				 * Configure the failsafe action with <param>COM_GNSS_LSS_ACT</param>.
+				 * Configure the failsafe action with <param>COM_GNSSLOSS_ACT</param>.
 				 * </profile>
 				 */
 				reporter.healthFailure<uint8_t, uint8_t>(nav_modes, health_component_t::gps,
@@ -76,7 +76,7 @@ void GpsRedundancyChecks::checkAndReport(const Context &context, Report &reporte
 				 * @description
 				 * <profile name="dev">
 				 * Configure the minimum required GPS count with <param>SYS_HAS_NUM_GNSS</param>.
-				 * Configure the failsafe action with <param>COM_GNSS_LSS_ACT</param>.
+				 * Configure the failsafe action with <param>COM_GNSSLOSS_ACT</param>.
 				 * </profile>
 				 */
 				reporter.healthFailure<uint8_t, uint8_t>(nav_modes, health_component_t::gps,
@@ -97,7 +97,7 @@ void GpsRedundancyChecks::checkAndReport(const Context &context, Report &reporte
 			 * Two GNSS receivers report positions that are inconsistent with their reported accuracy.
 			 *
 			 * <profile name="dev">
-			 * Configure the failsafe action with <param>COM_GNSS_LSS_ACT</param>.
+			 * Configure the failsafe action with <param>COM_GNSSLOSS_ACT</param>.
 			 * The failsafe action is only triggered when <param>SYS_HAS_NUM_GNSS</param> is set to 2.
 			 * </profile>
 			 */
