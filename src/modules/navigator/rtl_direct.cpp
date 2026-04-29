@@ -94,6 +94,12 @@ void RtlDirect::on_activation()
 	events::send<int32_t, int32_t>(events::ID("vrtl_return_at"), events::Log::Info,
 				       "RTL: start return at {1m_v} ({2m_v} above destination)",
 				       (int32_t)ceilf(_rtl_alt), (int32_t)ceilf(_rtl_alt - _destination.alt));
+
+	// send out message only for the first point
+	if (_geofence_aware_return_path.num_points > 0) {
+		mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: avoiding geofence\t");
+		events::send(events::ID("rtl_avoiding_geofence"), events::Log::Info, "RTL: avoiding geofence");
+	}
 }
 
 void RtlDirect::on_active()
@@ -256,6 +262,7 @@ void RtlDirect::set_rtl_item()
 		}
 
 	case RTLState::AVOID_GEOFENCE: {
+
 
 			matrix::Vector2d point = _geofence_aware_return_path.getAndPopCurrentPoint();
 
