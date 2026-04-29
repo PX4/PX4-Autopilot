@@ -45,8 +45,10 @@ public:
 
 	bool checkIfLineViolatesAnyFence(const matrix::Vector2f &start_local,
 					 const matrix::Vector2f &end_local,
-					 const matrix::Vector2<double> &reference) override
+					 const matrix::Vector2<double> &reference,
+					 float margin) override
 	{
+		(void)margin;
 		MapProjection ref{reference(0), reference(1)};
 
 		for (int i = 0; i < _num_vertices; i++) {

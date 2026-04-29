@@ -175,6 +175,7 @@ bool GeofenceAvoidancePlanner::update_vertices(GeofenceInterface &geofence, floa
 {
 	_polygons_healthy = true;
 	margin = math::max(margin, 1.f); // margin should be non-zero otherwise polygon expansion breaks down
+	_margin = margin;
 
 	const int num_polygons = geofence.getNumPolygons();
 	int num_vertices{0};
@@ -297,7 +298,7 @@ void GeofenceAvoidancePlanner::update_distances_between_vertices(GeofenceInterfa
 			const size_t idx = geofence_utils::symmetricPairIndex(i, j, _num_nodes);
 
 			const bool clear = !geofence.checkIfLineViolatesAnyFence(_graph_nodes[i].position,
-					   _graph_nodes[j].position, _reference);
+					   _graph_nodes[j].position, _reference, _margin);
 
 			if (clear) {
 				_distances[idx] = (_graph_nodes[i].position - _graph_nodes[j].position).norm();
@@ -331,7 +332,7 @@ void GeofenceAvoidancePlanner::update_start(const matrix::Vector2d &start, Geofe
 		const size_t dist_idx = geofence_utils::symmetricPairIndex(0, graph_idx, _num_nodes);
 
 		const bool clear = !geofence.checkIfLineViolatesAnyFence(_graph_nodes[0].position,
-				   _graph_nodes[graph_idx].position, _reference);
+				   _graph_nodes[graph_idx].position, _reference, _margin);
 
 		if (clear) {
 			_distances[dist_idx] = (_graph_nodes[0].position - _graph_nodes[graph_idx].position).norm();
@@ -347,7 +348,7 @@ void GeofenceAvoidancePlanner::update_start(const matrix::Vector2d &start, Geofe
 		const size_t dist_idx = geofence_utils::symmetricPairIndex(0, dest_idx, _num_nodes);
 
 		const bool clear = !geofence.checkIfLineViolatesAnyFence(_graph_nodes[0].position,
-				   _graph_nodes[dest_idx].position, _reference);
+				   _graph_nodes[dest_idx].position, _reference, _margin);
 
 		if (clear) {
 			_distances[dist_idx] = (_graph_nodes[0].position - _graph_nodes[dest_idx].position).norm();
@@ -382,7 +383,7 @@ void GeofenceAvoidancePlanner::update_destination(const matrix::Vector2d &destin
 		const size_t dist_idx = geofence_utils::symmetricPairIndex(graph_idx, dest_idx, _num_nodes);
 
 		const bool clear = !geofence.checkIfLineViolatesAnyFence(_graph_nodes[graph_idx].position,
-				   _graph_nodes[dest_idx].position, _reference);
+				   _graph_nodes[dest_idx].position, _reference, _margin);
 
 		if (clear) {
 			_distances[dist_idx] = (_graph_nodes[graph_idx].position - _graph_nodes[dest_idx].position).norm();
@@ -397,7 +398,7 @@ void GeofenceAvoidancePlanner::update_destination(const matrix::Vector2d &destin
 		const size_t dist_idx = geofence_utils::symmetricPairIndex(0, dest_idx, _num_nodes);
 
 		const bool clear = !geofence.checkIfLineViolatesAnyFence(_graph_nodes[0].position,
-				   _graph_nodes[dest_idx].position, _reference);
+				   _graph_nodes[dest_idx].position, _reference, _margin);
 
 		if (clear) {
 			_distances[dist_idx] = (_graph_nodes[0].position - _graph_nodes[dest_idx].position).norm();

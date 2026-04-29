@@ -135,6 +135,7 @@ private:
 	PlannedPath _planned_path{};
 	int _num_nodes{0};
 	int _num_vertices{0};
+	float _margin{0.f};
 	matrix::Vector2<double> _reference; // lat/lon anchor of the local frame
 
 	bool _polygons_healthy{false};

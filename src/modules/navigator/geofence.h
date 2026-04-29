@@ -236,7 +236,8 @@ private:
 
 	bool checkIfLineViolatesAnyFence(const matrix::Vector2f &start_local,
 					 const matrix::Vector2f &end_local,
-					 const matrix::Vector2<double> &reference) override;
+					 const matrix::Vector2<double> &reference,
+					 float margin) override;
 
 	PolygonInfo getPolygonInfoByIndex(int index) override { return _polygons[index]; }
 

@@ -10,7 +10,8 @@ public:
 
 	virtual bool checkIfLineViolatesAnyFence(const matrix::Vector2f &start_local,
 			const matrix::Vector2f &end_local,
-			const matrix::Vector2<double> &reference) = 0;
+			const matrix::Vector2<double> &reference,
+			float margin) = 0;
 
 	virtual PolygonInfo getPolygonInfoByIndex(int index) = 0;
 

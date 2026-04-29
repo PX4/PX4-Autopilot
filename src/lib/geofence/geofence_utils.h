@@ -44,6 +44,15 @@ namespace geofence_utils
 {
 
 /**
+ * Scale factor applied to the planner margin when inflating polygons / circles for the
+ * line-vs-fence visibility check. The planning graph is built from polygons inflated by
+ * `margin`; the visibility check uses polygons inflated by `kVisibilityCheckMarginScale * margin`
+ * (slightly less) so that edges riding exactly on the planning-inflated boundary are not
+ * rejected by float noise.
+ */
+static constexpr float kVisibilityCheckMarginScale = 0.99f;
+
+/**
  * Update the PNPOLY inside/outside state for a single polygon edge.
  * Templated on the coordinate scalar type so the same test can be used
  * with either float (local frame, meters) or double (lat/lon degrees).

@@ -728,9 +728,13 @@ void Geofence::printStatus()
 
 
 bool Geofence::checkIfLineViolatesAnyFence(const matrix::Vector2f &start_local, const matrix::Vector2f &end_local,
-		const matrix::Vector2<double> &reference)
+		const matrix::Vector2<double> &reference, float margin)
 {
 	MapProjection ref{reference(0), reference(1)};
+
+	// Inflate polygons / circles by slightly less than the planner's margin so that segments
+	// riding exactly on the planning-inflated boundary are not falsely rejected.
+	const float check_margin = math::max(margin, 0.f) * geofence_utils::kVisibilityCheckMarginScale;
 
 	// loop through all the polygons
 	for (int poly_idx = 0; poly_idx < _num_polygons; poly_idx++) {
@@ -738,33 +742,45 @@ bool Geofence::checkIfLineViolatesAnyFence(const matrix::Vector2f &start_local, 
 
 		if (info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION || info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION) {
 
+			matrix::Vector2f vertices_local[info.vertex_count];
+			matrix::Vector2f vertices_inflated[info.vertex_count];
+			bool load_ok = true;
+			dm_item_t fence_dataman_id{static_cast<dm_item_t>(_stats.dataman_id)};
+
 			for (int vertex_idx = 0; vertex_idx < info.vertex_count; vertex_idx++) {
-				mission_fence_point_s vertex_current{};
-				mission_fence_point_s vertex_previous{};
-
-				int prev_idx = vertex_idx == 0 ? info.vertex_count - 1 : vertex_idx - 1;
-
-				dm_item_t fence_dataman_id{static_cast<dm_item_t>(_stats.dataman_id)};
+				mission_fence_point_s vertex{};
 				bool success = _dataman_cache.loadWait(fence_dataman_id, info.dataman_index + vertex_idx,
-								       reinterpret_cast<uint8_t *>(&vertex_current),
+								       reinterpret_cast<uint8_t *>(&vertex),
 								       sizeof(mission_fence_point_s));
 
 				if (!success) {
+					load_ok = false;
 					break;
 				}
 
-				success = _dataman_cache.loadWait(fence_dataman_id, info.dataman_index + prev_idx,
-								  reinterpret_cast<uint8_t *>(&vertex_previous),
-								  sizeof(mission_fence_point_s));
+				vertices_local[vertex_idx] = ref.project(vertex.lat, vertex.lon);
+			}
 
-				if (!success) {
-					break;
+			if (!load_ok) {
+				break;
+			}
+
+			const matrix::Vector2f *vertices_for_check = vertices_local;
+
+			if (check_margin > 0.f) {
+				const bool should_expand = (info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION);
+
+				if (geofence_utils::expandOrShrinkPolygon(vertices_local, info.vertex_count, check_margin, should_expand,
+						vertices_inflated)) {
+					vertices_for_check = vertices_inflated;
 				}
+			}
 
-				matrix::Vector2f vertex_current_local = ref.project(vertex_current.lat, vertex_current.lon);
-				matrix::Vector2f vertex_previous_local = ref.project(vertex_previous.lat, vertex_previous.lon);
+			for (int vertex_idx = 0; vertex_idx < info.vertex_count; vertex_idx++) {
+				const int prev_idx = vertex_idx == 0 ? info.vertex_count - 1 : vertex_idx - 1;
 
-				if (geofence_utils::segmentsIntersect(start_local, end_local, vertex_current_local, vertex_previous_local)) {
+				if (geofence_utils::segmentsIntersect(start_local, end_local,
+								      vertices_for_check[vertex_idx], vertices_for_check[prev_idx])) {
 					return true;
 				}
 			}
@@ -781,7 +797,20 @@ bool Geofence::checkIfLineViolatesAnyFence(const matrix::Vector2f &start_local, 
 
 			matrix::Vector2f circle_center_local = ref.project(circle_point.lat, circle_point.lon);
 
-			if (geofence_utils::lineSegmentIntersectsCircle(start_local, end_local, circle_center_local, circle_point.circle_radius)) {
+			float radius = circle_point.circle_radius;
+
+			if (info.fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION) {
+				radius += check_margin;
+
+			} else {
+				radius -= check_margin;
+
+				if (radius <= 0.f) {
+					return true;
+				}
+			}
+
+			if (geofence_utils::lineSegmentIntersectsCircle(start_local, end_local, circle_center_local, radius)) {
 				return true;
 			}
 		}
