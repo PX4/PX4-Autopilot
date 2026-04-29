@@ -124,7 +124,11 @@ ArchPX4IOSerial::~ArchPX4IOSerial()
 
 	/* reset the UART */
 	rCR1 = 0;
+#ifdef PX4IO_SERIAL_SWAPPED
+	rCR2 = USART_CR2_SWAP;
+#else
 	rCR2 = 0;
+#endif
 	rCR3 = 0;
 
 	/* detach our interrupt handler */
@@ -171,7 +175,11 @@ ArchPX4IOSerial::init()
 
 	/* reset & configure the UART */
 	rCR1 = 0;
+#ifdef PX4IO_SERIAL_SWAPPED
+	rCR2 = USART_CR2_SWAP;
+#else
 	rCR2 = 0;
+#endif
 	rCR3 = 0;
 
 	/* clear data that may be in the RDR and clear overrun error: */
@@ -370,6 +378,7 @@ ArchPX4IOSerial::_bus_exchange(IOPacket *_packet)
 				 * In all cases DMA is stopped by either HW or the ISR error service path.
 				 */
 				perf_count(_pc_dmaerrs);
+				printf("DMA error?\n");
 				ret = -EIO;
 				break;
 
@@ -407,6 +416,7 @@ ArchPX4IOSerial::_bus_exchange(IOPacket *_packet)
 
 		if ((crc != crc_packet(_current_packet)) || (PKT_CODE(*_current_packet) == PKT_CODE_CORRUPT)) {
 			perf_count(_pc_crcerrs);
+			printf("CRC error\n");
 			ret = -EIO;
 		}
 	}
