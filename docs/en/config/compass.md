@@ -90,12 +90,12 @@ Notes:
 
 ### Large Vehicle Calibration
 
-<Badge type="tip" text="PX4 v1.18" />
+<Badge type="tip" text="PX4 v1.15" />
 
 This calibration process leverages external knowledge of the vehicle's orientation and location, along with a World Magnetic Model (WMM), to calibrate hard-iron biases.
 It is designed for large or heavy vehicles where full-axis rotation is impractical.
 
-The calibration accepts an optional heading argument, allowing you to specify the vehicle's current true heading.
+The calibration accepts an optional heading argument (<Badge type="tip" text="PX4 v1.18" />), allowing you to specify the vehicle's current true heading.
 This means you can perform a valid magnetometer calibration while the vehicle is pointed in any direction, not just North.
 
 ::: tip
@@ -106,7 +106,7 @@ If the large vehicle calibration fails (magnetometer readings are inconsistent, 
 
 ::: details Implementation details
 
-This implementation replaces an earlier version (PX4 v1.15 - PX4 v1.16) that required the vehicle to be facing True North.
+This implementation replaces an earlier version (PX4 v1.15 - PX4 v1.17) that required the vehicle to be facing True North.
 
 The calibration process:
 
