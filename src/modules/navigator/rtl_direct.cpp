@@ -74,6 +74,9 @@ void RtlDirect::on_activation()
 	_vehicle_status_sub.update();
 
 	_navigator->updateStartOfRTLPathPlanner(_navigator->getRtlPlanningStart());
+
+	// destination will only update if the location is different or the previous location was invalid
+	_navigator->updateDestinationOfRTLPathPlanner(matrix::Vector2d{_land_approach.lat, _land_approach.lon});
 	_geofence_aware_return_path = _navigator->planPath();
 
 	parameters_update();

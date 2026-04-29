@@ -368,13 +368,18 @@ void GeofenceAvoidancePlanner::update_destination(const matrix::Vector2d &destin
 		return;
 	}
 
-	perf_begin(_update_destination_perf);
-
 	MapProjection ref{_reference(0), _reference(1)};
 	matrix::Vector2f dest_local;
 	ref.project(destination(0), destination(1), dest_local(0), dest_local(1));
 
 	const int dest_idx = _num_nodes - 1;
+
+	if (_destination_healthy && (dest_local - _graph_nodes[dest_idx].position).norm() < FLT_EPSILON) {
+		// no change in destination, skip the update
+		return;
+	}
+
+	perf_begin(_update_destination_perf);
 	_graph_nodes[dest_idx].position = dest_local;
 
 	// distances from each vertex to destination
