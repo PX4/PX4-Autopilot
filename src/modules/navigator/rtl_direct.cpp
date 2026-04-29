@@ -154,8 +154,7 @@ void RtlDirect::_updateRtlState()
 {
 	// RTL_LAND_DELAY > 0 -> wait seconds, < 0 wait indefinitely
 	const bool wait_at_rtl_descend_alt = fabsf(_param_rtl_land_delay.get()) > FLT_EPSILON;
-	const bool is_multicopter = (_vehicle_status_sub.get().vehicle_type ==
-				     vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	const bool is_multicopter = (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 
 	RTLState new_state{RTLState::IDLE};
 
