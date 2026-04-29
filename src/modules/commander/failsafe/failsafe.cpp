@@ -46,6 +46,7 @@ FailsafeBase::ActionOptions Failsafe::fromNavDllOrRclActParam(int param_value)
 
 	switch (gcs_connection_loss_failsafe_mode(param_value)) {
 	case gcs_connection_loss_failsafe_mode::Disabled:
+	default:
 		options.action = Action::None;
 		break;
 
@@ -74,10 +75,6 @@ FailsafeBase::ActionOptions Failsafe::fromNavDllOrRclActParam(int param_value)
 		options.allow_user_takeover = UserTakeoverAllowed::Never;
 		options.action = Action::Disarm;
 		break;
-
-	default:
-		options.action = Action::None;
-		break;
 	}
 
 	return options;
@@ -93,6 +90,7 @@ FailsafeBase::ActionOptions Failsafe::fromGfActParam(int param_value)
 		break;
 
 	case geofence_violation_action::Warning:
+	default:
 		options.action = Action::Warn;
 		break;
 
@@ -116,10 +114,6 @@ FailsafeBase::ActionOptions Failsafe::fromGfActParam(int param_value)
 	case geofence_violation_action::Land_mode:
 		options.action = Action::Land;
 		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
-		break;
-
-	default:
-		options.action = Action::Warn;
 		break;
 	}
 
@@ -165,8 +159,8 @@ FailsafeBase::ActionOptions Failsafe::fromBatteryWarningActParam(int param_value
 	ActionOptions options{};
 
 	switch (battery_warning) {
-	default:
 	case battery_status_s::WARNING_NONE:
+	default:
 		options.action = Action::None;
 		break;
 
@@ -309,6 +303,7 @@ FailsafeBase::ActionOptions Failsafe::fromHighWindLimitActParam(int param_value)
 		break;
 
 	case command_after_high_wind_failsafe::Warning:
+	default:
 		options.action = Action::Warn;
 		break;
 
@@ -333,10 +328,6 @@ FailsafeBase::ActionOptions Failsafe::fromHighWindLimitActParam(int param_value)
 		options.action = Action::Land;
 		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 		break;
-
-	default:
-		options.action = Action::Warn;
-		break;
 	}
 
 	return options;
@@ -353,6 +344,7 @@ FailsafeBase::ActionOptions Failsafe::fromPosLowActParam(int param_value)
 		break;
 
 	case command_after_pos_low_failsafe::Warning:
+	default:
 		options.action = Action::Warn;
 		break;
 
@@ -375,10 +367,6 @@ FailsafeBase::ActionOptions Failsafe::fromPosLowActParam(int param_value)
 	case command_after_pos_low_failsafe::Land_mode:
 		options.action = Action::Land;
 		options.clear_condition = ClearCondition::WhenConditionClears;
-		break;
-
-	default:
-		options.action = Action::Warn;
 		break;
 	}
 
