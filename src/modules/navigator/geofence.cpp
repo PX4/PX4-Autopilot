@@ -743,7 +743,7 @@ bool Geofence::checkIfLineViolatesAnyFence(const matrix::Vector2f &start_local, 
 		if (info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION || info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION) {
 
 			matrix::Vector2f vertices_local[info.vertex_count];
-			matrix::Vector2f vertices_inflated[info.vertex_count];
+			matrix::Vector2f vertices_inflated[2 * info.vertex_count];
 			bool load_ok = true;
 			dm_item_t fence_dataman_id{static_cast<dm_item_t>(_stats.dataman_id)};
 
@@ -766,18 +766,21 @@ bool Geofence::checkIfLineViolatesAnyFence(const matrix::Vector2f &start_local, 
 			}
 
 			const matrix::Vector2f *vertices_for_check = vertices_local;
+			int check_count = info.vertex_count;
 
 			if (check_margin > 0.f) {
 				const bool should_expand = (info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION);
+				int num_out = 0;
 
 				if (geofence_utils::expandOrShrinkPolygon(vertices_local, info.vertex_count, check_margin, should_expand,
-						vertices_inflated)) {
+						vertices_inflated, &num_out)) {
 					vertices_for_check = vertices_inflated;
+					check_count = num_out;
 				}
 			}
 
-			for (int vertex_idx = 0; vertex_idx < info.vertex_count; vertex_idx++) {
-				const int prev_idx = vertex_idx == 0 ? info.vertex_count - 1 : vertex_idx - 1;
+			for (int vertex_idx = 0; vertex_idx < check_count; vertex_idx++) {
+				const int prev_idx = vertex_idx == 0 ? check_count - 1 : vertex_idx - 1;
 
 				if (geofence_utils::segmentsIntersect(start_local, end_local,
 								      vertices_for_check[vertex_idx], vertices_for_check[prev_idx])) {

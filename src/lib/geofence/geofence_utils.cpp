@@ -136,25 +136,42 @@ bool isPolygonCCW(const matrix::Vector2f *vertices, int num_vertices)
 
 bool expandOrShrinkPolygon(const matrix::Vector2f *vertices_in, int num_vertices,
 			   float margin, bool expand,
-			   matrix::Vector2f *vertices_out)
+			   matrix::Vector2f *vertices_out, int *num_vertices_out)
 {
-	// Algorithm which shrinks or expands a polygon with given vertices.
 	// At each vertex we compute the inward bisector as the sum of the inward normals of the two
 	// adjacent edges. The unnormalized bisector has length 2*sin(alpha/2), where alpha is the
-	// interior angle. To push each adjacent edge by exactly `margin` (i.e. so that the face
-	// distance from the new vertex to each adjacent edge is `margin`), we move the vertex by
+	// interior angle. To push each adjacent face by exactly `margin`, we move the vertex by
 	// `margin / sin(alpha/2)` along the unit bisector. The inward normal of an edge follows from
 	// the polygon orientation (CW or CCW), which we get from the shoelace formula.
+	//
+	// For interior angles below 90 degrees the bisector offset diverges as 1/sin(alpha/2) and the
+	// single offset vertex would sit further than sqrt(2)*margin from the original. We instead
+	// emit two vertices, one on each adjacent offset edge, both lying on the tangent line
+	// perpendicular to the bisector at distance `margin` from the original vertex. This caps the
+	// vertex displacement at sqrt(2)*margin while keeping each face at exactly `margin` from the
+	// new edges (a piecewise-linear approximation of the rounded Minkowski offset corner).
+
+	if (num_vertices_out == nullptr) {
+		return false;
+	}
+
+	*num_vertices_out = 0;
 
 	if (num_vertices < 3) {
 		return false;
 	}
+
+	// Threshold on the unnormalized bisector length below which we split the vertex.
+	// bisector_len = 2*sin(alpha/2); alpha = 90 deg -> bisector_len = sqrt(2).
+	static constexpr float kSplitBisectorLenThreshold = 1.41421356f;
 
 	// If polygon is CCW we rotate the edge vector to the left to get the inward normal.
 	const float rot_sign = isPolygonCCW(vertices_in, num_vertices) ? 1.f : -1.f;
 
 	// Expand pushes vertices outward, shrink pushes them inward.
 	const float step_sign = expand ? -1.f : 1.f;
+
+	int out_idx = 0;
 
 	for (int i = 0; i < num_vertices; i++) {
 		const int prev = (i + num_vertices - 1) % num_vertices;
@@ -182,14 +199,37 @@ bool expandOrShrinkPolygon(const matrix::Vector2f *vertices_in, int num_vertices
 			return false;
 		}
 
-		// bisector_len = 2*sin(alpha/2), so margin / sin(alpha/2) = 2 * margin / bisector_len.
-		// Multiplying the unnormalized bisector by (2 / bisector_len^2) gives the offset vector
-		// of length margin / sin(alpha/2) along the unit bisector.
-		const float offset_scale = 2.f / (bisector_len * bisector_len);
+		if (bisector_len < kSplitBisectorLenThreshold) {
+			// Sharp corner: replace the single bisector vertex with two vertices on the tangent
+			// line perpendicular to the bisector at distance `margin` from the original vertex.
+			// V_in_new  = V + step_sign*margin*n_in  + t_in *edge_in_unit
+			// V_out_new = V + step_sign*margin*n_out + t_out*edge_out_unit
+			// solved from (V_*_new - T) . b_hat = 0 with T = V + step_sign*margin*b_hat.
+			const matrix::Vector2f b_hat = bisector / bisector_len;
+			const float n_in_dot_b  = n_in.dot(b_hat);   // = sin(alpha/2)
+			const float n_out_dot_b = n_out.dot(b_hat);  // = sin(alpha/2)
+			const float e_in_dot_b  = edge_in_unit.dot(b_hat);
+			const float e_out_dot_b = edge_out_unit.dot(b_hat);
 
-		vertices_out[i] = vertices_in[i] + bisector * (margin * step_sign * offset_scale);
+			if (fabsf(e_in_dot_b) < FLT_EPSILON || fabsf(e_out_dot_b) < FLT_EPSILON) {
+				return false;
+			}
+
+			const float t_in  = margin * step_sign * (1.f - n_in_dot_b)  / e_in_dot_b;
+			const float t_out = margin * step_sign * (1.f - n_out_dot_b) / e_out_dot_b;
+
+			vertices_out[out_idx++] = vertices_in[i] + n_in  * (margin * step_sign) + edge_in_unit  * t_in;
+			vertices_out[out_idx++] = vertices_in[i] + n_out * (margin * step_sign) + edge_out_unit * t_out;
+
+		} else {
+			// bisector_len = 2*sin(alpha/2); 2 / bisector_len^2 scales the unnormalized bisector
+			// to a vector of length margin / sin(alpha/2) along the unit bisector.
+			const float offset_scale = 2.f / (bisector_len * bisector_len);
+			vertices_out[out_idx++] = vertices_in[i] + bisector * (margin * step_sign * offset_scale);
+		}
 	}
 
+	*num_vertices_out = out_idx;
 	return true;
 }
 

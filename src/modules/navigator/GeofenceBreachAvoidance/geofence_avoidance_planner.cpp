@@ -184,7 +184,8 @@ bool GeofenceAvoidancePlanner::update_vertices(GeofenceInterface &geofence, floa
 		PolygonInfo info = geofence.getPolygonInfoByIndex(poly_idx);
 
 		if (info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION || info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION) {
-			num_vertices += info.vertex_count;
+			// Worst case: every vertex below the 90-degree threshold splits into two.
+			num_vertices += 2 * info.vertex_count;
 
 		} else if (info.fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION || info.fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION) {
 			num_vertices += kCircleApproxVertices;
@@ -227,7 +228,8 @@ bool GeofenceAvoidancePlanner::update_graph_nodes_without_start_and_destination(
 		if (info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION || info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION) {
 
 			matrix::Vector2f local_in[info.vertex_count];
-			matrix::Vector2f local_out[info.vertex_count];
+			matrix::Vector2f local_out[2 * info.vertex_count];
+			int num_out = 0;
 
 			for (int vertex_idx = 0; vertex_idx < info.vertex_count; vertex_idx++) {
 				local_in[vertex_idx] = get_vertex_local_position(poly_index, vertex_idx, geofence, _reference);
@@ -236,11 +238,11 @@ bool GeofenceAvoidancePlanner::update_graph_nodes_without_start_and_destination(
 			const bool should_expand = (info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION);
 
 			if (!geofence_utils::expandOrShrinkPolygon(local_in, info.vertex_count, margin, should_expand,
-					local_out)) {
+					local_out, &num_out)) {
 				return false;
 			}
 
-			for (int vertex_idx = 0; vertex_idx < info.vertex_count; vertex_idx++) {
+			for (int vertex_idx = 0; vertex_idx < num_out; vertex_idx++) {
 				_graph_nodes[node_index].type = Node::Type::VERTEX;
 				_graph_nodes[node_index].position = local_out[vertex_idx];
 				_graph_nodes[node_index].best_distance = FLT_MAX;

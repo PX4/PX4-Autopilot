@@ -129,24 +129,33 @@ bool lineSegmentIntersectsCircle(const matrix::Vector2f &start, const matrix::Ve
 bool isPolygonCCW(const matrix::Vector2f *vertices, int num_vertices);
 
 /**
- * Offset polygon vertices outward (expand) or inward (shrink) by `margin`.
+ * Offset polygon vertices outward (expand) or inward (shrink) so that every face is at exactly
+ * `margin` distance from the corresponding original face.
  *
- * Determines winding direction once via the shoelace formula, then at each vertex
- * averages the inward normals of the two adjacent edges to get the bisector.
- * O(n) overall. Works in local frame (meters).
+ * At each vertex the offset point is moved by `margin / sin(alpha/2)` along the unit bisector,
+ * which keeps both adjacent faces at distance `margin`. For interior angles below 90 degrees the
+ * single bisector point would lie further than sqrt(2) * margin from the original vertex, so the
+ * vertex is replaced by two vertices on the tangent line at distance `margin` from the original
+ * vertex (one for each adjacent edge). This caps the maximum vertex displacement at sqrt(2) *
+ * margin and keeps the resulting polygon a piecewise-linear approximation of the Minkowski offset
+ * curve.
+ *
+ * Output buffer must hold at least `2 * num_vertices` elements; the actual count is written to
+ * *num_vertices_out.
  *
  * Returns false for degenerate polygons: fewer than 3 vertices, zero-length edges,
  * or antiparallel adjacent edges (polygon doubles back).
  *
- * @param vertices_in   input vertices in local frame
- * @param num_vertices  number of vertices
- * @param margin        offset distance in meters
- * @param expand       true to expand, false to shrink
- * @param vertices_out  output array (must hold at least num_vertices elements)
+ * @param vertices_in       input vertices in local frame
+ * @param num_vertices      number of input vertices
+ * @param margin            offset distance in meters
+ * @param expand            true to expand, false to shrink
+ * @param vertices_out      output array (must hold at least 2 * num_vertices elements)
+ * @param num_vertices_out  output: number of vertices actually written
  */
 bool expandOrShrinkPolygon(const matrix::Vector2f *vertices_in, int num_vertices,
 			   float margin, bool expand,
-			   matrix::Vector2f *vertices_out);
+			   matrix::Vector2f *vertices_out, int *num_vertices_out);
 
 /**
  * Map the upper triangular matrix WITHOUT the diagonal into a flat array. Caller must ensure i != j.
