@@ -547,6 +547,7 @@ void MulticopterPositionControl::Run()
 				math::min(speed_up, _param_mpc_z_vel_max_up.get()), // takeoff ramp starts with negative velocity limit
 				math::max(speed_down, 0.f));
 
+			_control.setGroundContact(not_taken_off || flying_but_ground_contact);
 			_control.setInputSetpoint(_setpoint);
 
 			// update states

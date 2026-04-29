@@ -168,6 +168,7 @@ public:
 	 * If set, the tilt setpoint is computed by assuming no vertical acceleration
 	 */
 	void decoupleHorizontalAndVecticalAcceleration(bool val) { _decouple_horizontal_and_vertical_acceleration = val; }
+	void setGroundContact(bool val) { _ground_contact = val; }
 
 	/**
 	 * Get the controllers output local position setpoint
@@ -218,6 +219,7 @@ private:
 
 	float _hover_thrust{}; ///< Thrust [HOVER_THRUST_MIN, HOVER_THRUST_MAX] with which the vehicle hovers not accelerating down or up with level orientation
 	bool _decouple_horizontal_and_vertical_acceleration{true}; ///< Ignore vertical acceleration setpoint to remove its effect on the tilt setpoint
+	bool _ground_contact{false}; ///< Prevents high acceleration setpoints during ground-contact affecting the tilt setpoint
 
 	// States
 	matrix::Vector3f _pos; /**< current position */
