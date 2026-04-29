@@ -123,11 +123,11 @@ uint16_t EscChecks::checkEscOnline(const Context &context, Report &reporter, con
 			continue; // Skip unmapped ESC status entries
 		}
 
-		const bool timeout = now > esc_status.esc[esc_index].timestamp + ESC_TIMEOUT_US;
+		const bool esc_telemetry_timeout = now > esc_status.esc[esc_index].timestamp + ESC_TIMEOUT_US;
 		const bool is_offline = (esc_status.esc_online_flags & (1 << esc_index)) == 0;
 
 		// Set failure bits for this motor
-		if (timeout || is_offline) {
+		if (esc_telemetry_timeout || is_offline) {
 			mask |= (1u << esc_index);
 
 			uint8_t esc_nr = esc_index + 1;
