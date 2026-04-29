@@ -209,8 +209,8 @@ void PositionControl::_accelerationControl()
 	// Assume standard acceleration due to gravity in vertical direction for attitude generation
 	float z_specific_force = -CONSTANTS_ONE_G;
 
-	if (!_decouple_horizontal_and_vertical_acceleration) {
-		// Include vertical acceleration setpoint for better horizontal acceleration tracking
+	if (!_decouple_horizontal_and_vertical_acceleration && !_ground_contact) {
+		// Include vertical acceleration setpoint for better horizontal acceleration tracking except during ground contact due to high downwards acceleration setpoint.
 		z_specific_force += _acc_sp(2);
 	}
 
