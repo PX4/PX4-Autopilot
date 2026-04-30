@@ -1054,6 +1054,7 @@ bootloader(unsigned timeout)
 			}
 
 #ifdef BOOTLOADER_USE_SECURITY
+
 			/* Only accept VERIFY_SIG at the same point in the upload
 			 * state machine where we would accept BOOT — i.e. after
 			 * PROG_MULTI + GET_CRC have been issued in the right order.
