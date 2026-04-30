@@ -589,19 +589,6 @@ parameters:
       min: -1.0
       max: 5.0
       decimal: 3
-    COM_ARM_SDCARD:
-      description:
-        short: Enable FMU SD card detection check
-        long: |-
-          This check detects if the FMU SD card is missing.
-          Depending on the value of the parameter, the check can be
-          disabled, warn only or deny arming.
-      type: enum
-      values:
-        0: Disabled
-        1: Warning only
-        2: Enforce SD card presence
-      default: 1
     COM_ARM_HFLT_CHK:
       description:
         short: Enable FMU SD card hardfault / watchdog detection check
