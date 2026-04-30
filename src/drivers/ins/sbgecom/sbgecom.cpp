@@ -514,15 +514,6 @@ void SbgEcom::handleLogGnssPosVelHdt(SbgEComMsgId msg, const SbgEComLogUnion *re
 			sensor_gps.fix_type = 6;
 			break;
 
-		case SBG_ECOM_GNSS_POS_TYPE_FIXED:
-			sensor_gps.fix_type = 7;
-			break;
-
-		case SBG_ECOM_GNSS_POS_TYPE_PPP_FLOAT:
-		case SBG_ECOM_GNSS_POS_TYPE_PPP_INT:
-			sensor_gps.fix_type = 8;
-			break;
-
 		default:
 			sensor_gps.fix_type = 3;
 			break;
@@ -598,9 +589,9 @@ void SbgEcom::handleLogGnssPosVelHdt(SbgEComMsgId msg, const SbgEComLogUnion *re
 
 			if ((time_diff(time_now_us, hdt_time) < max_time_diff) &&
 			    (time_diff(pos_time, hdt_time) < max_time_diff) &&
-			    (time_diff(vel_time, hdt_time) < max_time_diff)) {
+			    (time_diff(vel_time, hdt_time) < max_time_diff) &&
+			    sbgEComLogGnssHdtHeadingIsValid(&gnss_data->gps_hdt)) {
 				sensor_gps.heading = math::radians(gnss_data->gps_hdt.heading);
-				sensor_gps.heading_offset = math::radians(gnss_data->gps_hdt.pitch);
 				sensor_gps.heading_accuracy = math::radians(gnss_data->gps_hdt.headingAccuracy);
 			}
 		}
