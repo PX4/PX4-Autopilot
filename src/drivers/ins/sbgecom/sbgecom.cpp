@@ -411,6 +411,12 @@ void SbgEcom::handleLogEkfNav(const SbgEComLogUnion *ref_sbg_data, void *user_ar
 	perf_count(instance->_global_position_pub_interval_perf);
 }
 
+hrt_abstime SbgEcom::time_diff(hrt_abstime first_timestamp, hrt_abstime second_timestamp)
+{
+	return (first_timestamp > second_timestamp) ? (first_timestamp - second_timestamp) :
+	       (second_timestamp - first_timestamp);
+}
+
 void SbgEcom::handleLogGnssPosVelHdt(SbgEComMsgId msg, const SbgEComLogUnion *ref_sbg_data, void *user_arg)
 {
 	const hrt_abstime time_now_us = hrt_absolute_time();
@@ -571,12 +577,12 @@ void SbgEcom::handleLogGnssPosVelHdt(SbgEComMsgId msg, const SbgEComLogUnion *re
 		hrt_abstime vel_time = gnss_data->vel_timestamp;
 		hrt_abstime hdt_time = gnss_data->hdt_timestamp;
 
-		if (((time_now_us - pos_time) < max_time_diff) &&
-		    ((time_now_us - vel_time) < max_time_diff) &&
-		    ((time_now_us - hdt_time) < max_time_diff) &&
-		    ((pos_time - vel_time) < max_time_diff) &&
-		    ((pos_time - hdt_time) < max_time_diff) &&
-		    ((vel_time - hdt_time) < max_time_diff)) {
+		if ((time_diff(time_now_us, pos_time) < max_time_diff) &&
+			(time_diff(time_now_us, vel_time) < max_time_diff) &&
+			(time_diff(time_now_us, hdt_time) < max_time_diff) &&
+			(time_diff(pos_time, vel_time) < max_time_diff) &&
+			(time_diff(pos_time, hdt_time) < max_time_diff) &&
+			(time_diff(vel_time, hdt_time) < max_time_diff)) {
 			instance->_sensor_gps_pub.publish(sensor_gps);
 			perf_count(instance->_gnss_pub_interval_perf);
 		}
