@@ -175,20 +175,26 @@ int HiwonderEMM::read_encoder_counts(int32_t *encoder_counts, const uint8_t coun
 
 int HiwonderEMM::set_motor_speed(const uint8_t *speed_values, const uint8_t count)
 {
-	uint8_t cmd[1 + CHANNEL_COUNT];
+	uint8_t cmd[1 + CHANNEL_COUNT] {};
 	cmd[0] = MOTOR_FIXED_SPEED_ADDR;
 
 	for (unsigned int i = 0; i < count && i < CHANNEL_COUNT; i++) {
 		cmd[i + 1] = speed_values[i];
 	}
 
-	const int ret = transfer(cmd, sizeof(cmd), nullptr, 0);
+        const int ret = transfer(cmd, sizeof(cmd), nullptr, 0);
 
-	if (ret != PX4_OK) {
-		PX4_ERR("Failed to set motor speed. Error: %d", ret);
-	}
+        if (ret != PX4_OK) {
+		if (!_set_speed_failed) {
+			PX4_ERR("Failed to set motor speed. Error: %d", ret);
+			_set_speed_failed = true;
+		}
+        } else if (_set_speed_failed) {
+		PX4_INFO("Motor speed write recovered");
+		_set_speed_failed = false;
+        }
 
-	return ret;
+        return ret;
 }
 
 int HiwonderEMM::print_usage(const char *reason)

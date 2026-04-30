@@ -19,8 +19,4 @@ parameters:
           short: Enable the Hiwonder EMM output driver
           long: |
             Enable the Hiwonder EMM output driver.
-        type: enum
-        values:
-              0: Disabled
-              1: Enabled
-        default: 0
+        type: boolean
