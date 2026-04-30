@@ -201,6 +201,11 @@ jobs:
           ccache -s
           ccache -z
 
+      - name: Install pynacl for secure-boot signing
+        # TODO: drop once the build container ships with pynacl preinstalled
+        # (currently pinned to v1.17.0-rc2 in Tools/ci/build_all_config.yml).
+        run: pip install pynacl --break-system-packages
+
       - name: Building Artifacts for [${{ matrix.targets }}]
         run: |
             ./Tools/ci/build_all_runner.sh ${{matrix.targets}} ${{matrix.arch}}
