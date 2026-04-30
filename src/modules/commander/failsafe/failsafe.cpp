@@ -126,33 +126,6 @@ FailsafeBase::ActionOptions Failsafe::fromGfActParam(int param_value)
 	return options;
 }
 
-FailsafeBase::ActionOptions Failsafe::fromImbalancedPropActParam(int param_value)
-{
-	ActionOptions options{};
-
-	switch (imbalanced_propeller_failsafe_mode(param_value)) {
-	case imbalanced_propeller_failsafe_mode::Disabled:
-	default:
-		options.action = Action::None;
-		break;
-
-	case imbalanced_propeller_failsafe_mode::Warning:
-		options.action = Action::Warn;
-		break;
-
-	case imbalanced_propeller_failsafe_mode::Return:
-		options.action = Action::RTL;
-		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
-		break;
-
-	case imbalanced_propeller_failsafe_mode::Land:
-		options.action = Action::Land;
-		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
-		break;
-	}
-
-	return options;
-}
 
 FailsafeBase::ActionOptions Failsafe::fromActuatorFailureActParam(int param_value)
 {
@@ -672,7 +645,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 		CHECK_FAILSAFE(status_flags, fd_alt_loss, Action::Warn);
 	}
 
-	CHECK_FAILSAFE(status_flags, fd_imbalanced_prop, fromImbalancedPropActParam(_param_com_imb_prop_act.get()));
+	CHECK_FAILSAFE(status_flags, fd_imbalanced_prop, Action::Warn);
 	CHECK_FAILSAFE(status_flags, fd_motor_failure, fromActuatorFailureActParam(_param_com_actuator_failure_act.get()));
 
 

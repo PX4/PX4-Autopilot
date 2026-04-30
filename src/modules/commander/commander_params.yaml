@@ -179,20 +179,6 @@ parameters:
       min: 0.0
       max: 25.0
       decimal: 1
-    COM_IMB_PROP_ACT:
-      description:
-        short: Imbalanced propeller failsafe mode
-        long: |-
-          Action the system takes when an imbalanced propeller is detected by the failure detector.
-          See also FD_IMB_PROP_THR to set the failure threshold.
-      type: enum
-      values:
-        -1: Disabled
-        0: Warning
-        1: Return
-        2: Land
-      default: 0
-      increment: 1
     COM_OF_LOSS_T:
       description:
         short: Offboard connection loss timeout
