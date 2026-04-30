@@ -13,6 +13,7 @@
 #include <uORB/topics/debug_value.h>
 #include <uORB/topics/debug_vect.h>
 #include <uORB/topics/estimator_aid_source2d.h>
+#include <uORB/topics/estimator_aid_source3d.h>
 #include <uORB/topics/estimator_gps_status.h>
 #include <uORB/topics/estimator_states.h>
 #include <uORB/topics/follow_target.h>
@@ -77,8 +78,26 @@ class LogDataSanitizer
 {
 public:
 
+	/**
+	 * Remove position data from the message buffer according to the configured logging restriction.
+	 *
+	 * If buffer == nullptr, only print warnings when the given redaction is undefined.
+	 *
+	 * @param meta: pointer to orb_metadata struct describing the topic
+	 * @param buffer: raw buffer representing the logged message
+	 * @param restriction_raw: parameter value of SDLOG_NO_POS_DAT
+	 */
 	void redact_position(const orb_id_t meta, uint8_t *buffer, int restriction_raw)
 	{
+
+		bool warn_only = false;
+
+		if (!buffer) {
+			// Warn-only mode - set unrestricted to avoid dereferencing nullptr
+			restriction_raw = UNRESTRICTED;
+			warn_only = true;
+		}
+
 		// Clamp to available values if invalid parameter is given
 		const auto restriction = static_cast<log_restriction>(
 						 math::constrain(restriction_raw, (int) UNRESTRICTED, (int) NO_LOCAL)
@@ -137,12 +156,17 @@ public:
 			break;
 
 		case ORB_ID::estimator_aid_src_aux_vel:
-		case ORB_ID::estimator_aid_src_gnss_vel:
-		case ORB_ID::estimator_aid_src_ev_vel:
 		case ORB_ID::estimator_aid_src_ev_pos:
 			REDACT_LOCAL(buffer, estimator_aid_source2d_s, observation[0], restriction);
 			REDACT_LOCAL(buffer, estimator_aid_source2d_s, observation[1], restriction);
 			break;
+
+		case ORB_ID::estimator_aid_src_gnss_vel:
+		case ORB_ID::estimator_aid_src_ev_vel:
+			REDACT_LOCAL(buffer, estimator_aid_source3d_s, observation[0], restriction);
+			REDACT_LOCAL(buffer, estimator_aid_source3d_s, observation[1], restriction);
+			break;
+
 
 		case ORB_ID::estimator_gps_status:
 			// For fixed wing, is pretty accurate local velocity together with heading / course
@@ -310,6 +334,7 @@ public:
 			// Without knowing the beacon positions, the raw range
 			// correspond at best to a 1D local position measurement
 			REDACT_LOCAL(buffer, ranging_beacon_s, range, restriction);
+			break;
 
 		// These debug topics may contain any information, including position. However, by default:
 		//  - they are not published and are in MAVLink as a catch-all debugging tool.
@@ -373,6 +398,8 @@ public:
 		case ORB_ID::estimator_aid_src_gravity:
 		case ORB_ID::estimator_aid_src_mag:
 		case ORB_ID::estimator_aid_src_rng_hgt:
+		case ORB_ID::estimator_aid_src_sideslip:
+		case ORB_ID::estimator_attitude:
 		case ORB_ID::estimator_baro_bias:
 		case ORB_ID::estimator_event_flags:
 		case ORB_ID::estimator_fusion_control:
@@ -384,6 +411,7 @@ public:
 		case ORB_ID::estimator_sensor_bias:
 		case ORB_ID::estimator_status:
 		case ORB_ID::estimator_status_flags:
+		case ORB_ID::estimator_wind:
 		case ORB_ID::external_ins_attitude:
 		case ORB_ID::failsafe_flags:
 		case ORB_ID::failure_detector_status:
@@ -494,9 +522,10 @@ public:
 			if (restriction != UNRESTRICTED) {
 				// No redactiond defined: redact entire message to be safe
 				memset(buffer, 0, meta->o_size);
-			}
 
-			if (_undefined_redaction_warnings_shown < MAX_WARNINGS) {
+			} else if (warn_only) {
+
+				// Only warn on initial call (nullptr buffer and unrestricted redaction)
 
 				// This warning means that you are logging a topic for which no position redaction is
 				// defined. As a safety mechanism, the entire message is redacted before logging if
@@ -509,21 +538,15 @@ public:
 				// contain what position using REDACT_LOCAL and REDACT_GLOBAL.
 
 				PX4_WARN(
-					"Undefined position redaction for %s. %s",
-					meta->o_name,
-					restriction != UNRESTRICTED ? "Redacting entire message." : ""
+					"Undefined position redaction for %s. SDLOG_NO_POS_DAT will redact entire message.",
+					meta->o_name
 				);
-
-				_undefined_redaction_warnings_shown++;
-
-			} else if (_undefined_redaction_warnings_shown == MAX_WARNINGS) {
-				PX4_WARN("Suppressing further warnings about missing position redaction");
-				_undefined_redaction_warnings_shown++;
 			}
 		}
 	}
 
-private:
-	int _undefined_redaction_warnings_shown{0};
-	static constexpr int MAX_WARNINGS{10};
+	void warn_if_undefined_redaction(const orb_id_t meta)
+	{
+		redact_position(meta, nullptr, UNRESTRICTED);
+	}
 };

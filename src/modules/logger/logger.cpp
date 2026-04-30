@@ -572,6 +572,10 @@ bool Logger::initialize_topics()
 			const LoggedTopics::RequestedSubscription &sub = logged_topics.subscriptions().sub[i];
 			_subscriptions[i] = LoggerSubscription(sub.id, sub.interval_ms, sub.instance);
 			_subscriptions[i].subscribe();
+
+			// Trigger any "undefined position redaction" warning at init,
+			// rather than the first time the topic is logged.
+			_sanitizer.warn_if_undefined_redaction(_subscriptions[i].get_topic());
 		}
 	}
 
