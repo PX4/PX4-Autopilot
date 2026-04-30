@@ -452,7 +452,28 @@ void SbgEcom::handleLogGnssPosVelHdt(SbgEComMsgId msg, const SbgEComLogUnion *re
 		break;
 	}
 
-	if (gnss_data->pos_received && gnss_data->vel_received && gnss_data->hdt_received) {
+	if (gnss_data->pos_received && gnss_data->vel_received) {
+		// Check timestamp synchronization for position and velocity first.
+		const hrt_abstime max_time_diff = 100000; // Maximum allowed time difference in microseconds
+		const hrt_abstime pos_time = gnss_data->pos_timestamp;
+		const hrt_abstime vel_time = gnss_data->vel_timestamp;
+
+		if ((time_diff(time_now_us, pos_time) >= max_time_diff) ||
+		    (time_diff(time_now_us, vel_time) >= max_time_diff) ||
+		    (time_diff(pos_time, vel_time) >= max_time_diff)) {
+			if (pos_time <= vel_time) {
+				gnss_data->pos_received = false;
+				gnss_data->pos_timestamp = 0;
+			}
+
+			if (vel_time <= pos_time) {
+				gnss_data->vel_received = false;
+				gnss_data->vel_timestamp = 0;
+			}
+
+			return;
+		}
+
 		// publish sensor_gps
 		sensor_gps_s sensor_gps{};
 
@@ -566,35 +587,30 @@ void SbgEcom::handleLogGnssPosVelHdt(SbgEComMsgId msg, const SbgEComLogUnion *re
 		sensor_gps.time_utc_usec = 0;
 
 		sensor_gps.satellites_used = gnss_data->gps_pos.numSvUsed;
+		sensor_gps.heading = NAN;
+		sensor_gps.heading_offset = NAN;
+		sensor_gps.heading_accuracy = NAN;
 
-		sensor_gps.heading = math::radians(gnss_data->gps_hdt.heading);
-		sensor_gps.heading_offset = math::radians(gnss_data->gps_hdt.pitch);
-		sensor_gps.heading_accuracy = math::radians(gnss_data->gps_hdt.headingAccuracy);
+		if (gnss_data->hdt_received) {
+			const hrt_abstime hdt_time = gnss_data->hdt_timestamp;
 
-		// Check timestamp synchronization
-		const hrt_abstime max_time_diff = 1000000; // Maximum allowed time difference in microseconds (e.g., 1 second)
-		hrt_abstime pos_time = gnss_data->pos_timestamp;
-		hrt_abstime vel_time = gnss_data->vel_timestamp;
-		hrt_abstime hdt_time = gnss_data->hdt_timestamp;
-
-		if ((time_diff(time_now_us, pos_time) < max_time_diff) &&
-			(time_diff(time_now_us, vel_time) < max_time_diff) &&
-			(time_diff(time_now_us, hdt_time) < max_time_diff) &&
-			(time_diff(pos_time, vel_time) < max_time_diff) &&
-			(time_diff(pos_time, hdt_time) < max_time_diff) &&
-			(time_diff(vel_time, hdt_time) < max_time_diff)) {
-			instance->_sensor_gps_pub.publish(sensor_gps);
-			perf_count(instance->_gnss_pub_interval_perf);
+			if ((time_diff(time_now_us, hdt_time) < max_time_diff) &&
+			    (time_diff(pos_time, hdt_time) < max_time_diff) &&
+			    (time_diff(vel_time, hdt_time) < max_time_diff)) {
+				sensor_gps.heading = math::radians(gnss_data->gps_hdt.heading);
+				sensor_gps.heading_offset = math::radians(gnss_data->gps_hdt.pitch);
+				sensor_gps.heading_accuracy = math::radians(gnss_data->gps_hdt.headingAccuracy);
+			}
 		}
 
-		// Reset the flags and timestamps
+		instance->_sensor_gps_pub.publish(sensor_gps);
+		perf_count(instance->_gnss_pub_interval_perf);
+
+		// Reset the consumed position and velocity samples.
 		gnss_data->pos_received = false;
 		gnss_data->vel_received = false;
-		gnss_data->hdt_received = false;
-
 		gnss_data->pos_timestamp = 0;
 		gnss_data->vel_timestamp = 0;
-		gnss_data->hdt_timestamp = 0;
 	}
 }
 
