@@ -540,6 +540,24 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 		return calibrate_return_error;
 	}
 
+	// if any external mag is enabled, disable the internal mags as they should not be used for navigation
+	bool has_enabled_external = false;
+
+	for (uint8_t cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
+		if (worker_data.calibration[cur_mag].external() && worker_data.calibration[cur_mag].enabled()) {
+			has_enabled_external = true;
+			break;
+		}
+	}
+
+	if (has_enabled_external) {
+		for (uint8_t cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
+			if (!worker_data.calibration[cur_mag].external()) {
+				worker_data.calibration[cur_mag].disable();
+			}
+		}
+	}
+
 	if (result == calibrate_return_ok) {
 		result = calibrate_from_orientation(mavlink_log_pub,                    // uORB handle to write output
 						    worker_data.side_data_collected,    // Sides to calibrate
@@ -923,15 +941,6 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 		bool param_save = false;
 		bool failed = true;
 
-		bool external_mag_available = false;
-
-		for (unsigned cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
-			if (worker_data.calibration[cur_mag].external() && worker_data.calibration[cur_mag].enabled()) {
-				external_mag_available = true;
-				break;
-			}
-		}
-
 		for (unsigned cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
 
 			calibration::Magnetometer &current_cal = worker_data.calibration[cur_mag];
@@ -948,11 +957,6 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 					current_cal.set_offset(sphere[cur_mag]);
 					current_cal.set_scale(diag[cur_mag]);
 					current_cal.set_offdiagonal(offdiag[cur_mag]);
-				}
-
-				if (external_mag_available && !current_cal.external()) {
-					// automatically disable the internal mags as they should not be used for navigation
-					current_cal.disable();
 				}
 
 				current_cal.PrintStatus();
