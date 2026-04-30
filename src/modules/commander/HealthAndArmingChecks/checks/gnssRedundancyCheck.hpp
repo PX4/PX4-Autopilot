@@ -33,43 +33,33 @@
 
 #pragma once
 
-#include <drivers/drv_hrt.h>
-#include <lib/matrix/matrix/math.hpp>
-#include <px4_platform_common/module_params.h>
-#include <uORB/Publication.hpp>
-#include <uORB/topics/gnss_redundancy_status.h>
+#include "../Common.hpp"
+#include <lib/hysteresis/hysteresis.h>
+#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/sensor_gps.h>
 
-#include "gps_blending.hpp"
-
-namespace sensors
-{
-
-// Computes system-wide GNSS redundancy health from the last-known sample of
-// each receiver and publishes it on the gnss_redundancy_status topic.
-// Kept separate from VehicleGPSPosition so the detection logic is small and
-// unit-testable; instantiated and driven by VehicleGPSPosition each cycle.
-class GnssRedundancyMonitor : public ModuleParams
+class GnssRedundancyChecks : public HealthAndArmingCheckBase
 {
 public:
-	GnssRedundancyMonitor(ModuleParams *parent);
+	GnssRedundancyChecks();
+	~GnssRedundancyChecks() = default;
 
-	// Evaluate the current state given the per-instance samples and resolved
-	// antenna offsets (as maintained by the blender), and publish the status.
-	void update(const sensor_gps_s *gps_states,
-		    const matrix::Vector3f *antenna_offsets,
-		    uint8_t num_receivers,
-		    bool is_armed);
+	void checkAndReport(const Context &context, Report &reporter) override;
 
 private:
-	uORB::Publication<gnss_redundancy_status_s> _gnss_redundancy_status_pub{ORB_ID(gnss_redundancy_status)};
+	static constexpr int GPS_MAX_INSTANCES = 2;
+	uORB::SubscriptionMultiArray<sensor_gps_s, GPS_MAX_INSTANCES> _sensor_gps_sub{ORB_ID::sensor_gps};
 
 	uint8_t _peak_fixed_count{0};
-	hrt_abstime _divergence_since{0};
+	systemlib::Hysteresis _divergence_hysteresis;
 
-	DEFINE_PARAMETERS_CUSTOM_PARENT(ModuleParams,
-					(ParamInt<px4::params::SYS_HAS_NUM_GNSS>) _param_sys_has_num_gnss
+
+	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
+					(ParamInt<px4::params::SYS_HAS_NUM_GNSS>) _param_sys_has_num_gnss,
+					(ParamInt<px4::params::COM_GNSSLOSS_ACT>) _param_com_gnssloss_act,
+					(ParamFloat<px4::params::SENS_GPS0_OFFX>) _param_sens_gps0_offx,
+					(ParamFloat<px4::params::SENS_GPS0_OFFY>) _param_sens_gps0_offy,
+					(ParamFloat<px4::params::SENS_GPS1_OFFX>) _param_sens_gps1_offx,
+					(ParamFloat<px4::params::SENS_GPS1_OFFY>) _param_sens_gps1_offy
 				       )
 };
-
-} // namespace sensors
