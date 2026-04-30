@@ -1,6 +1,6 @@
 # Orbit status
 #
-# Current state of an orbit or loiter maneuver, published while the maneuver is executing.
+# Current state of an orbit or loiter manoeuver, published while the maneuver is executing.
 # For multirotors, published by the orbit flight task (FlightTaskOrbit) on each control cycle
 # when a valid GPS projection is available.
 # For fixed-wing, published by FixedWingModeManager during loiter.
@@ -20,9 +20,9 @@ float64 y # Y coordinate of center point. Coordinate system depends on frame fie
 float32 z # Altitude of center point. Coordinate system depends on frame field.
 
 uint8 yaw_behaviour # [@enum ORBIT_YAW_BEHAVIOUR]
-uint8 ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TO_CIRCLE_CENTER = 0
-uint8 ORBIT_YAW_BEHAVIOUR_HOLD_INITIAL_HEADING = 1
-uint8 ORBIT_YAW_BEHAVIOUR_UNCONTROLLED = 2
-uint8 ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TANGENT_TO_CIRCLE = 3
-uint8 ORBIT_YAW_BEHAVIOUR_RC_CONTROLLED = 4
-uint8 ORBIT_YAW_BEHAVIOUR_UNCHANGED = 5
+uint8 ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TO_CIRCLE_CENTER = 0 # Vehicle front points to the center (default).
+uint8 ORBIT_YAW_BEHAVIOUR_HOLD_INITIAL_HEADING = 1 # Vehicle front holds heading when message received.
+uint8 ORBIT_YAW_BEHAVIOUR_UNCONTROLLED = 2 # Yaw uncontrolled.
+uint8 ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TANGENT_TO_CIRCLE = 3 # Vehicle front follows flight path (tangential to circle).
+uint8 ORBIT_YAW_BEHAVIOUR_RC_CONTROLLED = 4 # Yaw controlled by RC input.
+uint8 ORBIT_YAW_BEHAVIOUR_UNCHANGED = 5 # Vehicle uses current yaw behaviour (unchanged). The vehicle-default yaw behaviour is used if this value is specified when orbit is first commanded.
