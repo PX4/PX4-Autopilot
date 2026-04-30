@@ -220,7 +220,7 @@ PARAM_DEFINE_FLOAT(FW_T_F_ALT_ERR, -1.0f);
  * @increment 0.05
  * @group FW Longitudinal Control
  */
-PARAM_DEFINE_FLOAT(FW_T_HRATE_FF, 0.3f);
+PARAM_DEFINE_FLOAT(FW_T_HRATE_FF, 0.5f);
 
 /**
  * True airspeed error time constant.
