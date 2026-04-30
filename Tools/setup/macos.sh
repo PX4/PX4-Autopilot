@@ -97,8 +97,8 @@ fi
 
 # Register pre-commit git hooks
 echo "[macos.sh] Installing git hooks (pre-commit)"
-if [ -d "${ROOT_DIR}/.git" ] && [ -x "${VENV_DIR}/bin/pre-commit" ]; then
-	(cd "${ROOT_DIR}" && "${VENV_DIR}/bin/pre-commit" install) || echo "[macos.sh] Note: 'pre-commit install' failed — run it manually from the repo root after activating the venv"
+if [ -e "${ROOT_DIR}/.git" ] && [ -x "${VENV_DIR}/bin/pre-commit" ]; then
+	(cd "${ROOT_DIR}" && "${VENV_DIR}/bin/pre-commit" install --install-hooks) || echo "[macos.sh] Note: 'pre-commit install' failed — run it manually from the repo root after activating the venv"
 fi
 
 # Optional, but recommended additional simulation tools:
