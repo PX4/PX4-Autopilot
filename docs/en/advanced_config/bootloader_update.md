@@ -2,7 +2,7 @@
 
 The _PX4 Bootloader_ is used to load firmware for [Pixhawk boards](../flight_controller/pixhawk_series.md) (PX4FMU, PX4IO).
 
-Pixhawk controllers usually comes with an appropriate bootloader version pre-installed.
+Pixhawk controllers usually come with an appropriate bootloader version pre-installed.
 However in some cases it is not present, or an older version is present that needs to be updated, or the board has been bricked and needs to be erased and the bootloader reinstalled.
 
 This topic explains how to build the PX4 bootloader, and several methods for flashing it to a board.
@@ -26,7 +26,7 @@ You can then initiate bootloader update on next restart by setting the parameter
 This approach can be used if the [`bl-update` module](../modules/modules_command.md#bl-update) is present in the firmware.
 The easiest way to check this is just to see if the [SYS_BL_UPDATE](../advanced_config/parameter_reference.md#SYS_BL_UPDATE) parameter is [found in QGroundControl](../advanced_config/parameters.md#finding-a-parameter).
 
-:::warning
+::: warning
 Boards that include the module will have the line `CONFIG_SYSTEMCMDS_BL_UPDATE=y` in their `default.px4board` file (for examples [see this search](https://github.com/search?q=repo%3APX4%2FPX4-Autopilot+path%3A**%2Fdefault.px4board+CONFIG_SYSTEMCMDS_BL_UPDATE%3Dy&type=code)).
 You can enable this key in your own custom firmware if needed.
 :::
@@ -34,20 +34,20 @@ You can enable this key in your own custom firmware if needed.
 The steps are:
 
 1. Insert an SD card (enables boot logging to debug any problems).
-1. [Update the Firmware](../config/firmware.md#custom) with an image containing the new/desired bootloader.
+2. [Update the Firmware](../config/firmware.md#custom) with an image containing the new/desired bootloader.
 
    ::: info
-   The updated bootloader might be included the default firmware for your board or supplied in custom firmware.
+   The updated bootloader might be included in the default firmware for your board or supplied in custom firmware.
    :::
 
-1. Wait for the vehicle to reboot.
-1. [Find and enable](../advanced_config/parameters.md) the parameter [SYS_BL_UPDATE](../advanced_config/parameter_reference.md#SYS_BL_UPDATE).
-1. Reboot (disconnect/reconnect the board).
+3. Wait for the vehicle to reboot.
+4. [Find and enable](../advanced_config/parameters.md) the parameter [SYS_BL_UPDATE](../advanced_config/parameter_reference.md#SYS_BL_UPDATE).
+5. Reboot (disconnect/reconnect the board).
    The bootloader update will only take a few seconds.
 
 Generally at this point you may then want to [update the firmware](../config/firmware.md) again using the correct/newly installed bootloader.
 
-An specific example of this process for updating the [FMUv2 bootloader](#fmuv2-bootloader-update) is given below.
+A specific example of this process for updating the [FMUv2 bootloader](#fmuv2-bootloader-update) is given below.
 
 ## Building the PX4 Bootloader
 
@@ -84,7 +84,7 @@ The following steps explain how you can "manually" update the bootloader using a
 
 1. Get a binary containing the bootloader (either from dev team or [build it yourself](#building-the-px4-bootloader)).
 2. Get a [Debug Probe](../debug/swd_debug.md#debug-probes-for-px4-hardware).
-   Connect the probe your PC via USB and setup the `gdbserver`.
+   Connect the probe to your PC via USB and setup the `gdbserver`.
 3. Go into the directory containing the binary and run the command for your target bootloader in the terminal:
    - FMUv6X
 
@@ -142,7 +142,7 @@ The following steps explain how you can "manually" update the bootloader using a
    If using a Zubax BugFace BF1 you may need to remove the case in order to connect to the `FMU-DEBUG` port (e.g. on Pixhawk 4 you would do this using a T6 Torx screwdriver).
    :::
 
-8. Use the following command to scan for the Pixhawk`s SWD and connect to it:
+8. Use the following command to scan for the Pixhawk's SWD and connect to it:
 
    ```sh
    (gdb) mon swdp_scan
@@ -198,4 +198,5 @@ For boards that are preflashed with Betaflight, see [Bootloader Flashing onto Be
 
 ## See Also
 
+- [Bootloader Secure Boot](../advanced_config/bootloader_secure_boot.md)
 - [OEM/Factory Configuration](../advanced_config/oem.md)
