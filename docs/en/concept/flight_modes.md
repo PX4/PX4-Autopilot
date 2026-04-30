@@ -61,7 +61,6 @@ A mode might define one or more tasks that define variations of the mode behavio
 
 The task that is used is normally defined in a parameter, and selected in [src/modules/flight_mode_manager/FlightModeManager.cpp](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/flight_mode_manager/FlightModeManager.cpp#L266-L285)
 
-
 Name the relevant modules in which code directly related to flight modes is defined.
 Name any base classes that modes must/should derive from
 Explain the core things you need to do to make a mode work

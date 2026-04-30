@@ -41,7 +41,7 @@ To make driver configurable:
      This is also used to validate all configuration files in CI.
      :::
 
-1. Add the module configuration to the **CMakeLists.txt** file for the driver module:
+2. Add the module configuration to the **CMakeLists.txt** file for the driver module:
 
    ```cmake
    px4_add_module(

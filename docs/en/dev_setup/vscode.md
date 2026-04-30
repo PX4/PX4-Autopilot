@@ -22,7 +22,7 @@ You must already have installed the command line [PX4 developer environment](../
 ## Installation & Setup
 
 1. [Download and install VSCode](https://code.visualstudio.com/) (you will be offered the correct version for your OS).
-1. Open VSCode and add the PX4 source code:
+2. Open VSCode and add the PX4 source code:
    - Select _Open folder ..._ option on the welcome page (or using the menu: **File > Open Folder**):
 
      ![Open Folder](../../assets/toolchain/vscode/welcome_open_folder.jpg)
@@ -32,14 +32,14 @@ You must already have installed the command line [PX4 developer environment](../
 
    The project files and configuration will then load into _VSCode_.
 
-1. Press **Install All** on the _This workspace has extension recommendations_ prompt (this will appear on the bottom right of the IDE).
+3. Press **Install All** on the _This workspace has extension recommendations_ prompt (this will appear on the bottom right of the IDE).
    ![Install extensions](../../assets/toolchain/vscode/prompt_install_extensions.jpg)
 
    VSCode will open the _Extensions_ panel on the left hand side so you can watch the progress of installation.
 
    ![PX4 loaded into VSCode Explorer](../../assets/toolchain/vscode/installing_extensions.jpg)
 
-1. A number of notifications/prompts may appear in the bottom right corner
+4. A number of notifications/prompts may appear in the bottom right corner
 
    :::tip
    If the prompts disappear, click the little "alarm" icon on the right of the bottom blue bar.
@@ -71,7 +71,7 @@ To build:
      When this is done the notification will disappear and you'll be shown the build location:
      ![Cmake config project](../../assets/toolchain/vscode/cmake_configuring_project_done.jpg).
 
-1. You can then kick off a build from the config bar (select either **Build** or **Debug**).
+2. You can then kick off a build from the config bar (select either **Build** or **Debug**).
    ![Run debug or build](../../assets/toolchain/vscode/run_debug_build.jpg)
 
 After building at least once you can now use [code completion](#code completion) and other _VSCode_ features.
@@ -87,14 +87,14 @@ To debug PX4 on SITL:
 1. Select the debug icon on the sidebar (marked in red) to display the debug panel.
    ![Run debug](../../assets/toolchain/vscode/vscode_debug.jpg)
 
-1. Then choose your debug target (e.g. _Debug SITL (Gazebo Iris)_) from the top bar debug dropdown (purple box).
+2. Then choose your debug target (e.g. _Debug SITL (Gazebo Iris)_) from the top bar debug dropdown (purple box).
 
    ::: info
    The debug targets that are offered (purple box) match your build target (yellow box on the bottom bar).
    For example, to debug SITL targets, your build target must include SITL.
    :::
 
-1. Start debugging by clicking the debug "play" arrow (next to the debug target in the top bar - pink box).
+3. Start debugging by clicking the debug "play" arrow (next to the debug target in the top bar - pink box).
 
 While debugging you can set breakpoints, step over code, and otherwise develop as normal.
 

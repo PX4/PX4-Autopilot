@@ -49,20 +49,20 @@ The calibration process is straightforward - you will be asked to move the stick
 To calibrate the radio:
 
 1. Turn on your RC transmitter.
-1. Start _QGroundControl_ and connect the vehicle.
-1. Select the **Gear** icon (Vehicle Setup) in the top toolbar and then **Radio** in the sidebar.
-1. Press **OK** to start the calibration.
+2. Start _QGroundControl_ and connect the vehicle.
+3. Select the **Gear** icon (Vehicle Setup) in the top toolbar and then **Radio** in the sidebar.
+4. Press **OK** to start the calibration.
 
    ![Radio setup - before starting](../../assets/qgc/setup/radio/radio_start_setup.jpg)
 
-1. Set the [transmitter mode](../getting_started/rc_transmitter_receiver.md#transmitter_modes) radio button that matches your transmitter (this ensures that _QGroundControl_ displays the correct stick positions for you to follow during calibration).
+5. Set the [transmitter mode](../getting_started/rc_transmitter_receiver.md#transmitter_modes) radio button that matches your transmitter (this ensures that _QGroundControl_ displays the correct stick positions for you to follow during calibration).
 
    ![Radio setup - move sticks](../../assets/qgc/setup/radio/radio_sticks_throttle.jpg)
 
-1. Move the sticks to the positions indicated in the text (and on the transmitter image). Press **Next** when the sticks are in position. Repeat for all positions.
-1. When prompted, move all other switches and dials through their full range (you will be able to observe them moving on the _Channel Monitor_).
+6. Move the sticks to the positions indicated in the text (and on the transmitter image). Press **Next** when the sticks are in position. Repeat for all positions.
+7. When prompted, move all other switches and dials through their full range (you will be able to observe them moving on the _Channel Monitor_).
 
-1. Press **Next** to save the settings.
+8. Press **Next** to save the settings.
 
 Radio calibration is demonstrated in the [autopilot setup video here](https://youtu.be/91VGmdSlbo4?t=4m30s) (youtube).
 
@@ -79,12 +79,12 @@ Before you can calibrate the radio system the receiver and transmitter must be c
 To bind a Spektrum transmitter/receiver:
 
 1. Select the **Spektrum Bind** button
-1. Select the radio button for your receiver
-1. Press **OK**
+2. Select the radio button for your receiver
+3. Press **OK**
 
    ![Spektrum Bind](../../assets/qgc/setup/radio/radio_additional_setup_spectrum_bind_select_channels.jpg)
 
-1. Power on your Spektrum transmitter while holding down the bind button.
+4. Power on your Spektrum transmitter while holding down the bind button.
 
 ### Copy Trims
 
@@ -99,12 +99,12 @@ The **Copy Trims** setting here moves the offsets into the autopilot.
 To copy the trims:
 
 1. Select **Copy Trims**.
-1. Center your sticks and move throttle all the way down.
-1. Press **Ok**.
+2. Center your sticks and move throttle all the way down.
+3. Press **Ok**.
 
    ![Copy Trims](../../assets/qgc/setup/radio/radio_additional_radio_setup_copy_trims.jpg)
 
-1. Reset the trims on your transmitter back to zero.
+4. Reset the trims on your transmitter back to zero.
 
 ### AUX Passthrough Channels
 
@@ -113,7 +113,7 @@ AUX passthrough channels allow you to control arbitrary optional hardware from y
 To use the AUX passthrough channels:
 
 1. Map up to 2 transmitter controls to separate channels.
-1. Specify these channels to map to the AUX1 and AUX2 ports respectively, as shown below.
+2. Specify these channels to map to the AUX1 and AUX2 ports respectively, as shown below.
    Values are saved to the vehicle as soon as they are set.
 
    ![AUX1 and AUX2 RC passthrough channels](../../assets/qgc/setup/radio/radio_additional_setup_aux_passthrough_channels.jpg)
@@ -133,7 +133,7 @@ The channels used for parameter tuning are assigned in the _Radio_ setup (here!)
 To set up tuning channels:
 
 1. Map up to 3 transmitter controls (dials or sliders) to separate channels.
-1. Select the mapping of _PARAM Tuning Id_ to radio channels, using the selection lists.
+2. Select the mapping of _PARAM Tuning Id_ to radio channels, using the selection lists.
    Values are saved to the vehicle as soon as they are set.
 
    ![Map radio channels to tuning channels](../../assets/qgc/setup/radio/radio_additional_radio_setup_param_tuning.jpg)
@@ -141,15 +141,15 @@ To set up tuning channels:
 To map a PARAM tuning channel to a parameter:
 
 1. Open the **Parameters** sidebar.
-1. Select the parameter to map to your transmitter (this will open the _Parameter Editor_).
-1. Check the **Advanced Settings** checkbox.
-1. Click the **Set RC to Param...** button (this will pop-up the foreground dialog displayed below)
+2. Select the parameter to map to your transmitter (this will open the _Parameter Editor_).
+3. Check the **Advanced Settings** checkbox.
+4. Click the **Set RC to Param...** button (this will pop-up the foreground dialog displayed below)
 
    ![Map tuning channels to parameters](../../assets/qgc/setup/radio/parameters_radio_channel_mapping.jpg)
 
-1. Select the tuning channel to map (1, 2 or 3) from the _Parameter Tuning ID_ selection list.
-1. Press **OK** to close the dialog.
-1. Press **Save** to save all changes and close the _Parameter Editor_.
+5. Select the tuning channel to map (1, 2 or 3) from the _Parameter Tuning ID_ selection list.
+6. Press **OK** to close the dialog.
+7. Press **Save** to save all changes and close the _Parameter Editor_.
 
 :::tip
 You can clear all parameter/tuning channel mappings by selecting menu **Tools > Clear RC to Param** at the top right of the _Parameters_ screen.

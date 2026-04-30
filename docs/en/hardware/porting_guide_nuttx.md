@@ -59,7 +59,7 @@ First you will need a bootloader, which depends on the hardware target:
 ### Firmware Porting Steps
 
 1. Make sure you have a working [development setup](../dev_setup/dev_env.md) and installed the NuttX `menuconfig`` tool (see above).
-1. Download the source code and make sure you can build an existing target:
+2. Download the source code and make sure you can build an existing target:
 
    ```sh
    git clone --recursive https://github.com/PX4/PX4-Autopilot.git
@@ -67,7 +67,7 @@ First you will need a bootloader, which depends on the hardware target:
    make px4_fmu-v5
    ```
 
-1. Find an existing target that uses the same (or a closely related) CPU type and copy it.
+3. Find an existing target that uses the same (or a closely related) CPU type and copy it.
    For example for STM32F7:
 
    ```sh
@@ -80,11 +80,11 @@ First you will need a bootloader, which depends on the hardware target:
 Next you need to go through all files under **boards/manufacturer/my-target-v1** and update them according to your board.
 
 1. **firmware.prototype**: update the board ID and name
-1. **default.px4board**: update the **VENDOR** and **MODEL** to match the directory names (**my-target-v1**).
+2. **default.px4board**: update the **VENDOR** and **MODEL** to match the directory names (**my-target-v1**).
    Configure the serial ports.
-1. Configure NuttX (**defconfig**) via `make manufacturer_my-target-v1 menuconfig`: Adjust the CPU and chip, configure the peripherals (UART's, SPI, I2C, ADC).
-1. **nuttx-config/include/board.h**: Configure the NuttX pins.
+3. Configure NuttX (**defconfig**) via `make manufacturer_my-target-v1 menuconfig`: Adjust the CPU and chip, configure the peripherals (UART's, SPI, I2C, ADC).
+4. **nuttx-config/include/board.h**: Configure the NuttX pins.
    For all peripherals with multiple pin options, NuttX needs to know the pin.
    They are defined in the chip-specific pinmap header file, for example [stm32f74xx75xx_pinmap.h](https://github.com/PX4/NuttX/blob/px4_firmware_nuttx-8.2/arch/arm/src/stm32f7/hardware/stm32f74xx75xx_pinmap.h).
-1. **src**: go through all files under **src** and update them as needed, in particular **board_config.h**.
-1. **init/rc.board_sensors**: start the sensors that are attached to the board.
+5. **src**: go through all files under **src** and update them as needed, in particular **board_config.h**.
+6. **init/rc.board_sensors**: start the sensors that are attached to the board.

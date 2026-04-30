@@ -104,7 +104,7 @@ This example explains how you can run standalone mode PX4 via two terminals on o
    PX4_GZ_STANDALONE=1 PX4_SYS_AUTOSTART=4001 PX4_SIM_MODEL=gz_x500 PX4_GZ_WORLD=windy ./build/px4_sitl_default/bin/px4
    ```
 
-1. In a second terminal window run:
+2. In a second terminal window run:
 
    ```sh
    python3 /path/to/simulation-gazebo --world windy

@@ -51,15 +51,15 @@ For more mounting requirements and recommendations, see the relevant [Quick Star
 To use the VectorNav driver:
 
 1. Include the module in firmware in the [kconfig board configuration](../hardware/porting_guide_config.md#px4-board-configuration-kconfig) by setting the kconfig variables: `CONFIG_DRIVERS_INS_VECTORNAV` or `CONFIG_COMMON_INS`.
-1. [Set the parameter](../advanced_config/parameters.md) [SENS_VN_CFG](../advanced_config/parameter_reference.md#SENS_VN_CFG) to the hardware port connected to the VectorNav (for more information see [Serial Port Configuration](../peripherals/serial_configuration.md)).
-1. Disable magnetometer preflight checks by setting [SYS_HAS_MAG](../advanced_config/parameter_reference.md#SYS_HAS_MAG) to `0`.
-1. Allow the VectorNav driver to initialize by restarting PX4.
-1. Configure driver as either an external INS or to provide raw data:
+2. [Set the parameter](../advanced_config/parameters.md) [SENS_VN_CFG](../advanced_config/parameter_reference.md#SENS_VN_CFG) to the hardware port connected to the VectorNav (for more information see [Serial Port Configuration](../peripherals/serial_configuration.md)).
+3. Disable magnetometer preflight checks by setting [SYS_HAS_MAG](../advanced_config/parameter_reference.md#SYS_HAS_MAG) to `0`.
+4. Allow the VectorNav driver to initialize by restarting PX4.
+5. Configure driver as either an external INS or to provide raw data:
    - If using the VectorNav as an external INS, set [VN_MODE](../advanced_config/parameter_reference.md#VN_MODE) to `INS`.
      This disables EKF2.
    - If using the VectorNav as external inertial sensors:
      1. Set [VN_MODE](../advanced_config/parameter_reference.md#VN_MODE) to `Sensors Only`
-     1. If internal sensors are enabled, prioritize VectorNav sensors using [CAL_GYROn_PRIO](../advanced_config/parameter_reference.md#CAL_GYRO0_PRIO), [CAL_ACCn_PRIO](../advanced_config/parameter_reference.md#CAL_ACC0_PRIO), [CAL_BAROn_PRIO](../advanced_config/parameter_reference.md#CAL_BARO0_PRIO), [CAL_MAGn_PRIO](../advanced_config/parameter_reference.md#CAL_MAG0_PRIO), where _n_ is the instance number of the IMU component (0, 1, etc.).
+     2. If internal sensors are enabled, prioritize VectorNav sensors using [CAL_GYROn_PRIO](../advanced_config/parameter_reference.md#CAL_GYRO0_PRIO), [CAL_ACCn_PRIO](../advanced_config/parameter_reference.md#CAL_ACC0_PRIO), [CAL_BAROn_PRIO](../advanced_config/parameter_reference.md#CAL_BARO0_PRIO), [CAL_MAGn_PRIO](../advanced_config/parameter_reference.md#CAL_MAG0_PRIO), where _n_ is the instance number of the IMU component (0, 1, etc.).
 
      ::: tip
      In most cases the external IMU (VN) is the highest-numbered.
@@ -69,7 +69,7 @@ To use the VectorNav driver:
      The priority is 0-255, where 0 is entirely disabled and 255 is highest priority.
      :::
 
-1. Restart PX4.
+6. Restart PX4.
 
 Once enabled, the module will be detected on boot.
 IMU data should be published at 800Hz (400Hz if using VN-300).

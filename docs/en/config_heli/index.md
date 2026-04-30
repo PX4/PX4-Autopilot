@@ -30,7 +30,7 @@ To setup and configure a helicopter:
    The actuator configuration screen will then change to support this frame type.
    :::
 
-1. Configure helicopter actuator geometry in **Vehicle Setup > Actuators**.
+2. Configure helicopter actuator geometry in **Vehicle Setup > Actuators**.
 
    ::: info
    Actuator setup and testing is covered for most frames in [Actuators](../config/actuators.md).
@@ -68,24 +68,24 @@ To setup and configure a helicopter:
    - `Throttle spoolup time`: Set value (in seconds) greater than the achievable minimum motor spool up time.
      A larger value may improve user experience.
 
-1. Remove the rotor blades and propellers
-1. Assign motors and servos to outputs and test (also in [Actuator configuration](../config/actuators.md)):
+3. Remove the rotor blades and propellers
+4. Assign motors and servos to outputs and test (also in [Actuator configuration](../config/actuators.md)):
    1. Assign the [motors and servos to the outputs](../config/actuators.md#actuator-outputs).
-   1. Power the vehicle with a battery and use the [actuator testing sliders](../config/actuators.md#actuator-testing) to validate correct servo and motor assignment and direction.
+   2. Power the vehicle with a battery and use the [actuator testing sliders](../config/actuators.md#actuator-testing) to validate correct servo and motor assignment and direction.
 
-1. Using an RC in [Acro mode](../flight_modes_mc/acro.md), verify the correct movement of the swash-plate. With most airframes you need to see the following:
+5. Using an RC in [Acro mode](../flight_modes_mc/acro.md), verify the correct movement of the swash-plate. With most airframes you need to see the following:
    - Moving the roll stick to the right should tilt the swash-plate to the right.
    - Moving the pitch stick forward should tilt the swash-plate forward.
 
    In case your airframe requires any phase lag angle offset this can simply be added to all swash-plate servo angles. Refer to the manufacturer's documentation for your airframe.
 
-1. Arm the vehicle and check the main rotor spins up slowly.
+6. Arm the vehicle and check the main rotor spins up slowly.
    Adjust the throttle spoolup time as needed using the parameter [COM_SPOOLUP_TIME](../advanced_config/parameter_reference.md#COM_SPOOLUP_TIME).
    You can also adjust the throttle curve with the parameters [CA_HELI_THR_Cx](../advanced_config/parameter_reference.md#CA_HELI_THR_C0).
    The default is constant, maximum throttle (suitable for most setups).
-1. Disarm again and power off.
-1. Put the rotor blades on and power the vehicle.
-1. Configure the collective pitch curve using the parameters [CA_HELI_PITCH_Cx](../advanced_config/parameter_reference.md#CA_HELI_PITCH_C0).
+7. Disarm again and power off.
+8. Put the rotor blades on and power the vehicle.
+9. Configure the collective pitch curve using the parameters [CA_HELI_PITCH_Cx](../advanced_config/parameter_reference.md#CA_HELI_PITCH_C0).
    Set the minimum and maximum according to the minimum and maximum blade angles you want.
    Make sure the minimum is low enough so the vehicle can still descend.
    Instead start off with a too low value.

@@ -91,26 +91,26 @@ Estimate time to assemble is 3.75 hours (180 minutes for frame, 45 minutes for a
 
    _Figure 2_: Landing gear assembled
 
-1. Then put the 4 arms through the 4 motor bases shown in figure 3.
+2. Then put the 4 arms through the 4 motor bases shown in figure 3.
    Make sure the rods protrude the base slightly and are consistent throughout all 4 arms, and be sure to have the motor wires facing outward.
 
    ![Attach arms to motor bases](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_step_2_fig3.png)
 
    _Figure 3_: Attach arms to motor bases
 
-1. Insert 4 nylon screws and nylon standoffs and attach the power module PM07 to the bottom plate using 4 nylon nuts as shown in Figures 4.
+3. Insert 4 nylon screws and nylon standoffs and attach the power module PM07 to the bottom plate using 4 nylon nuts as shown in Figures 4.
 
    ![Attach power module](../../assets/airframes/multicopter/x500_holybro_pixhawk4/power_module.jpg)
 
    _Figure 4_: Attach power module
 
-1. Feed the 4 motor ESCs through each of the arms and connect the 3-wires end to the motors shown in Figure 5.
+4. Feed the 4 motor ESCs through each of the arms and connect the 3-wires end to the motors shown in Figure 5.
 
    <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig17.jpg" width="250" title="Connect motors">
 
    _Figure 5_: Connect motors
 
-1. Connect the ESCs power wires onto the power module PM07, black->black and red->red, ESC PWM signal wires goes to "FMU-PWM-Out".
+5. Connect the ESCs power wires onto the power module PM07, black->black and red->red, ESC PWM signal wires goes to "FMU-PWM-Out".
    Make sure you connect the motor ESC PWM wires in the correct order.
    Refer to Figure 7 for airframe motor number and connect to the corresponding number on the PM07 board.
 
@@ -128,19 +128,19 @@ Estimate time to assemble is 3.75 hours (180 minutes for frame, 45 minutes for a
 
    _Figure 7-1_: Motor direction
 
-1. Connect the 10 pin cables to FMU-PWM-in, the 6 pin cables to the PWR1 on the PM07 power module.
+6. Connect the 10 pin cables to FMU-PWM-in, the 6 pin cables to the PWR1 on the PM07 power module.
 
    ![Flight controller/Power module PWM and Power connections](../../assets/airframes/multicopter/x500_holybro_pixhawk4/pm07_cable.jpg)
 
    _Figure 8_: Power module PWM and power wiring
 
-1. If you want to mount the GPS on the top plate, you can now secure the GPS mount onto the top plate using 4 screws and nuts.
+7. If you want to mount the GPS on the top plate, you can now secure the GPS mount onto the top plate using 4 screws and nuts.
 
    <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/gpsmount.jpg" width="400" title="Secure GPS mount onto top plate">
 
    _Figure 9_: Secure GPS mount onto top plate
 
-1. Feed the PM07 cables through the top plate.
+8. Feed the PM07 cables through the top plate.
    Connect the top and bottom plate by using 4 U-shaped nylon straps, screws, and nuts on each side, ensure that the motor ESC cables are inside the U-shape nylon straps like Figure 10, keep the nut loose.
 
    <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/top_plate.jpg" width="300">
@@ -151,22 +151,22 @@ Estimate time to assemble is 3.75 hours (180 minutes for frame, 45 minutes for a
 
    _Figure 10-2_: Connecting top and bottom plate
 
-1. Push the arm tubes a bit into the frame and make sure the amount of protrusion (red square from Figure 11) are consistent on all 4 arms.
+9. Push the arm tubes a bit into the frame and make sure the amount of protrusion (red square from Figure 11) are consistent on all 4 arms.
    Ensure all the motors are pointed directly upward, then tighten all the nuts and screws.
 
    ![Arms 3](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig16.jpg)
 
-1. Put the hanger gaskets into the 4 hangers and mount them onto the bottom plate using 8 hex screws (Figure 11).
-   The screw holes are noted by the white arrow in Figure 12.
-   We recommend tilting the drone sideway to make the installation easier.
+10. Put the hanger gaskets into the 4 hangers and mount them onto the bottom plate using 8 hex screws (Figure 11).
+    The screw holes are noted by the white arrow in Figure 12.
+    We recommend tilting the drone sideway to make the installation easier.
 
    <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig9.png" width="400" title="Hanger gaskets">
 
-   _Figure 11_: Hanger gaskets
+_Figure 11_: Hanger gaskets
 
-   ![Battery Mount 4](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig10.jpg)
+![Battery Mount 4](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig10.jpg)
 
-   _Figure 12_: Screw holes
+_Figure 12_: Screw holes
 
 1. Insert the slide bars onto the hanger rings (Figure 13).
    Assemble the battery mount and platform board and mount them onto the slide bars as shown in Figure 14.
@@ -179,21 +179,21 @@ Estimate time to assemble is 3.75 hours (180 minutes for frame, 45 minutes for a
 
    _Figure 14_: Battery mount on slide bars
 
-1. Mount the landing gear onto the bottom plate.
+2. Mount the landing gear onto the bottom plate.
    We recommend tilting the drone sideway to make this installation process easier.
 
    ![Landing Gear](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig5.jpg)
 
    _Figure 15_: Landing Gear
 
-1. Use the tape and stick the GPS to the top of the GPS mast and mount the GPS mast.
+3. Use the tape and stick the GPS to the top of the GPS mast and mount the GPS mast.
    Make sure the arrow on the gps is pointing forward (Figure 16).
 
    <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/gps2.jpg" width="400" title="Figure 16: GPS and mast">
 
    _Figure 16_: GPS and mast
 
-1. Mount the telemetry radio onto the top plate.
+4. Mount the telemetry radio onto the top plate.
    Plug the telemetry cable into `TELEM1` port and GPS module to `GPS MODULE` port on the flight controller.
    Plug the cable from PM07 `FMU-PWM-in` to `I/O-PWM-out`on the FC and PM07 `PWR1` to `POWER1` on the FC, as shown in Figure 17.
 

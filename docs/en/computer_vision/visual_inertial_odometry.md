@@ -127,11 +127,11 @@ If those steps are consistent, you can try your first flight:
    You should have a green light.
    The green light tells you that position feedback is available and position control is now activated.
 
-1. Put the throttle stick in the middle (the dead zone) so that the vehicle maintains its altitude.
+2. Put the throttle stick in the middle (the dead zone) so that the vehicle maintains its altitude.
    Raising the stick will increase the reference altitude while lowering the value will decrease it.
    Similarly, the other stick will change the position over the ground.
-1. Increase the value of the throttle stick and the vehicle will take off. Move it back to the middle immediately afterwards.
-1. Confirm that the vehicle can hold its position.
+3. Increase the value of the throttle stick and the vehicle will take off. Move it back to the middle immediately afterwards.
+4. Confirm that the vehicle can hold its position.
 
 ## Troubleshooting
 

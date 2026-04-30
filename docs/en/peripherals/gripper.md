@@ -39,7 +39,7 @@ MAVLink applications, such as ground stations, can also control the gripper usin
 PX4 gripper support is tied to the package delivery feature, which must be enabled and configured in order to be able to use a gripper.
 
 1. Ensure your board has the Payload Deliverer module enabled: CONFIG_MODULES_PAYLOAD_DELIVERER.
-1. Set [PD_GRIPPER_TYPE](../advanced_config/parameter_reference.md#PD_GRIPPER_TYPE) to match your gripper.
+2. Set [PD_GRIPPER_TYPE](../advanced_config/parameter_reference.md#PD_GRIPPER_TYPE) to match your gripper.
    For example, set to `Servo` for a [Servo Gripper](gripper_servo.md).
 
 ### Gripper Actuator Mapping
@@ -85,7 +85,7 @@ To set the actuation timeout:
 
    - Use the [Joystick](#qgc-joystick-configuration) to trigger gripper open and close actions.
 
-1. Set [PD_GRIPPER_TO](../advanced_config/parameter_reference.md#PD_GRIPPER_TO) to whichever of the gripper open and close time is larger.
+2. Set [PD_GRIPPER_TO](../advanced_config/parameter_reference.md#PD_GRIPPER_TO) to whichever of the gripper open and close time is larger.
 
 ### Mission Command Timeout
 
@@ -113,7 +113,7 @@ To map joystick buttons in QGroundControl:
 
    ![Gripper action mapping](../../assets/config/gripper/qgc_gripper_actions_joystick.png)
 
-1. Select `Gripper Open` and `Gripper Close` actions for your desired joystick buttons, as shown above.
+2. Select `Gripper Open` and `Gripper Close` actions for your desired joystick buttons, as shown above.
 
 You can test the actions by clicking on the mapped buttons and checking for gripper movement.
 If the gripper doesn't move as expected check the package delivery configuration and actuator mapping are set up properly.

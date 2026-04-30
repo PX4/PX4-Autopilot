@@ -43,15 +43,15 @@ This kit is still highly recommended for developing and testing vision solutions
 
 1. The kit is intended for computer vision projects that use a forward-facing camera (it does not have downward or rear-facing depth cameras).
    Consequently it can't be used (without modification) for testing features that require a downward-facing camera.
-1. Obstacle avoidance in missions can only be tested when GPS is available (missions use GPS coordinates).
+2. Obstacle avoidance in missions can only be tested when GPS is available (missions use GPS coordinates).
    Collision prevention can be tested in position mode provided there is a good position lock from either GPS or optical flow.
-1. The port labeled `USB1` may jam the GPS if used with a _USB3_ peripheral (disable GPS-dependent functionality including missions).
+3. The port labeled `USB1` may jam the GPS if used with a _USB3_ peripheral (disable GPS-dependent functionality including missions).
    This is why the boot image is supplied on a _USB2.0_ memory stick.
-1. PX4 Vision v1 with ECN 010 or above (carrier board RC05 and up), the _UP Core_ can be powered by either the DC plug or with battery.
+4. PX4 Vision v1 with ECN 010 or above (carrier board RC05 and up), the _UP Core_ can be powered by either the DC plug or with battery.
 
    ![RC Number](../../assets/hardware/px4_vision_devkit/rc.png) ![ECN Number](../../assets/hardware/px4_vision_devkit/serial_number_update.jpg)
 
-1. All PX4 Vision v1.5 _UP Core_ can be powered by either the DC plug or with battery.
+5. All PX4 Vision v1.5 _UP Core_ can be powered by either the DC plug or with battery.
 
 :::warning
 For PX4 Vision v1 with ECN below 010/carrier board below RC04, the _UP Core_ should only be powered using the battery (do not remove the _UP Core power_ socket safety cover). This does not apply to PX4 Vision v1.5
@@ -72,6 +72,7 @@ What's inside the PX4 Vision V1 can be found here in the [PX4 v1.13 Docs here](h
 The PX4 Vision DevKit contains following components:
 
 - Core Components:
+
   - 1x Pixhawk 4 or Pixhawk 6C (for v1.5) flight controller
   - 1x PMW3901 optical flow sensor
   - 1x TOF Infrared distance sensor (PSK‐CM8JL65‐CC5)
@@ -92,6 +93,7 @@ The PX4 Vision DevKit contains following components:
     - WiFi 802.11 b/g/n @ 2.4 GHz (attached to external antenna #1). Allows computer to access home WiFi network for Internet access/updates.
 
 - Mechanical Specification:
+
   - Frame: Full 5mm 3k carbon fiber twill
   - Motors: T-MOTOR KV1750
   - ESC: BEHEli-S 20A ESC
@@ -102,6 +104,7 @@ The PX4 Vision DevKit contains following components:
   - Telemetry: ESP8266 connected to flight controller (attached to external antenna #2). Enables wireless connection to the ground station.
 
 - A USB2.0 stick with pre-flashed software that bundles:
+
   - Ubuntu 18.04 LTS
   - ROS Melodic
   - Occipital Structure Core ROS driver
@@ -129,27 +132,29 @@ In addition, users will need ground station hardware/software:
 ## First-time Setup
 
 1. Attach a [compatible RC receiver](../getting_started/rc_transmitter_receiver.md#connecting-receivers) to the vehicle (not supplied with kit):
+
    - Remove/unscrew the top plate (where the battery goes) using an H2.0 hex key tool.
    - [Connect the receiver to the flight controller](../assembly/quick_start_pixhawk4.md#radio-control).
    - Re-attach the top plate.
    - Mount the RC receiver on the _UP Core_ carrier board plate at the back of the vehicle (use zipties or double-sided tape).
    - Ensure the antennas are clear of any obstructions and electrically isolated from the frame (e.g. secure them under the carrier board or to the vehicle arms or legs).
 
-1. [Bind](../getting_started/rc_transmitter_receiver.md#binding) the RC ground and air units (if not already done).
+2. [Bind](../getting_started/rc_transmitter_receiver.md#binding) the RC ground and air units (if not already done).
    The binding procedure depends on the specific radio system used (read the receiver manual).
-1. Raise the GPS mast to the vertical position and screw the cover onto the holder on the base plate. (Not required for v1.5)
+3. Raise the GPS mast to the vertical position and screw the cover onto the holder on the base plate. (Not required for v1.5)
 
    ![Raise GPS mast](../../assets/hardware/px4_vision_devkit/raise_gps_mast.jpg)
 
-1. Insert the pre-imaged USB2.0 stick from the kit into the _UP Core_ port labeled `USB1` (highlighted below).
+4. Insert the pre-imaged USB2.0 stick from the kit into the _UP Core_ port labeled `USB1` (highlighted below).
 
    ![UP Core: USB1 Port ](../../assets/hardware/px4_vision_devkit/upcore_port_usb1.png)
 
-1. Power the vehicle with a fully charged battery.
+5. Power the vehicle with a fully charged battery.
    ::: info
    Ensure propellers are removed before connecting the battery.
    :::
-1. Connect the ground station to the vehicle WiFi network (after a few seconds) using the following default credentials:
+6. Connect the ground station to the vehicle WiFi network (after a few seconds) using the following default credentials:
+
    - **SSID:** pixhawk4
    - **Password:** pixhawk4
 
@@ -158,37 +163,40 @@ In addition, users will need ground station hardware/software:
    The baud rate must not be changed from 921600.
    :::
 
-1. Start _QGroundControl_ on the ground station.
-1. [Configure/calibrate](../config/index.md) the vehicle:
+7. Start _QGroundControl_ on the ground station.
+8. [Configure/calibrate](../config/index.md) the vehicle:
 
    ::: info
    The vehicle should arrive pre-calibrated (e.g. with firmware, airframe, battery, and sensors all setup).
    You will however need to calibrate the radio system (that you just connected) and it is often worth re-doing the compass calibration.
    :::
+
    - [Calibrate the Radio System](../config/radio.md)
    - [Calibrate the Compass](../config/compass.md)
 
-1. (Optional) Configure a [Flight Mode selector switch](../config/flight_mode.md) on the remote controller.
+9. (Optional) Configure a [Flight Mode selector switch](../config/flight_mode.md) on the remote controller.
 
    ::: info
    Modes can also be changed using _QGroundControl_
    :::
 
    We recommend RC controller switches are define for:
+
    - [Position Mode](../flight_modes_mc/position.md) - a safe manual flight mode that can be used to test collision prevention.
    - [Mission Mode](../flight_modes_mc/mission.md) - run missions and test obstacle avoidance.
    - [Return Mode](../flight_modes_mc/return.md) - return vehicle safely to its launch point and land.
 
-1. Attach the propellers with the rotations as shown:
+10. Attach the propellers with the rotations as shown:
 
-   ![Motor Order Diagram](../../assets/hardware/px4_vision_devkit/motor_order_diagram.png)
-   - The propellers directions can be determined from the labels: _6045_ (normal, counter-clockwise) and _6045_**R** (reversed, clockwise).
+![Motor Order Diagram](../../assets/hardware/px4_vision_devkit/motor_order_diagram.png)
 
-     ![Propeller identification](../../assets/hardware/px4_vision_devkit/propeller_directions.jpg)
+- The propellers directions can be determined from the labels: _6045_ (normal, counter-clockwise) and _6045_**R** (reversed, clockwise).
 
-   - Screw down firmly using the provided propellor nuts:
+  ![Propeller identification](../../assets/hardware/px4_vision_devkit/propeller_directions.jpg)
 
-     ![Propeller nuts](../../assets/hardware/px4_vision_devkit/propeller_nuts.png)
+- Screw down firmly using the provided propellor nuts:
+
+  ![Propeller nuts](../../assets/hardware/px4_vision_devkit/propeller_nuts.png)
 
 ## Fly the Drone with Avoidance
 
@@ -196,28 +204,29 @@ When the vehicle setup described above is complete:
 
 1. Connect the battery to power the vehicle.
 
-1. Wait until the boot sequence completes and the avoidance system has started (the vehicle will reject arming commands during boot).
+2. Wait until the boot sequence completes and the avoidance system has started (the vehicle will reject arming commands during boot).
 
    :::tip
    The boot/startup process takes around 1 minute from the supplied USB stick (or 30 seconds from [internal memory](#install_image_mission_computer)).
    :::
 
-1. Check that the avoidance system has started properly:
+3. Check that the avoidance system has started properly:
+
    - The _QGroundControl_ notification log displays the message: **Avoidance system connected**.
 
      ![QGC Log showing avoidance system has started](../../assets/hardware/px4_vision_devkit/qgc_console_vision_system_started.jpg)
 
    - A red laser is visible on the front of the _Structure Core_ camera.
 
-1. Wait for the GPS LED to turn green.
+4. Wait for the GPS LED to turn green.
    This means that the vehicle has a GPS fix and is ready to fly!
-1. Connect the ground station to the vehicle WiFi network.
-1. Find a safe outdoor location for flying, ideally with a tree or some other convenient obstacle for testing PX4 Vision.
+5. Connect the ground station to the vehicle WiFi network.
+6. Find a safe outdoor location for flying, ideally with a tree or some other convenient obstacle for testing PX4 Vision.
 
-1. To test [collision prevention](../computer_vision/collision_prevention.md), enable [Position Mode](../flight_modes_mc/position.md) and fly manually towards an obstacle.
+7. To test [collision prevention](../computer_vision/collision_prevention.md), enable [Position Mode](../flight_modes_mc/position.md) and fly manually towards an obstacle.
    The vehicle should slow down and then stop within 6m of the obstacle (the distance can be [changed](../advanced_config/parameters.md) using the [CP_DIST](../advanced_config/parameter_reference.md#CP_DIST) parameter).
 
-1. To test obstacle avoidance, create a mission where the path is blocked by an obstacle.
+8. To test obstacle avoidance, create a mission where the path is blocked by an obstacle.
    Then switch to [Mission Mode](../flight_modes_mc/mission.md) to run the mission, and observe the vehicle moving around the obstacle and then returning to the planned course.
 
 ## Development using the Kit
@@ -259,8 +268,8 @@ Booting from internal memory takes around 30 seconds while booting from the supp
 To flash the USB image to the _UP Core_:
 
 1. Insert the pre-flashed USB drive into the _UP Core_ port labeled `USB1`.
-1. [Login to the companion computer](#login_mission_computer) (as described above).
-1. Open a terminal and run the following command to copy the image onto internal memory (eMMC).
+2. [Login to the companion computer](#login_mission_computer) (as described above).
+3. Open a terminal and run the following command to copy the image onto internal memory (eMMC).
    The terminal will prompt for a number of responses during the flashing process.
 
    ```sh
@@ -272,8 +281,8 @@ To flash the USB image to the _UP Core_:
    All information saved in the _UP Core_ computer will be removed when executing this script.
    :::
 
-1. Pull out the USB stick.
-1. Restart the vehicle.
+4. Pull out the USB stick.
+5. Restart the vehicle.
    The _UP Core_ computer will now boot from internal memory (eMMC).
 
 ### Boot the Companion Computer
@@ -299,19 +308,20 @@ To login to the companion computer:
 1. Connect a keyboard and mouse to the _UP Core_ via port `USB2`:
 
    ![UP Core: USB2](../../assets/hardware/px4_vision_devkit/upcore_port_usb2.png)
+
    - Use the USB-JST cable from the kit to get a USB A connector
 
      ![USB to JST cable](../../assets/hardware/px4_vision_devkit/usb_jst_cable.jpg)
 
    - A USB hub can be attached to the cable if the keyboard and mouse have separate connectors.
 
-1. Connect a monitor to the _UP Core_ HDMI port.
+2. Connect a monitor to the _UP Core_ HDMI port.
 
    ![UP Core: HDMI port](../../assets/hardware/px4_vision_devkit/upcore_port_hdmi.png)
 
    The Ubuntu login screen should then appear on the monitor.
 
-1. Login to the _UP Core_ using the credentials:
+3. Login to the _UP Core_ using the credentials:
    - **Username:** px4vision
    - **Password:** px4vision
 
@@ -347,16 +357,16 @@ To integrate a different planner, this needs to be disabled.
    systemctl enable avoidance.service
    ```
 
-1. The source code of the obstacle avoidance package can be found in https://github.com/PX4/PX4-Avoidance which is located in `~/catkin_ws/src/avoidance`.
+2. The source code of the obstacle avoidance package can be found in https://github.com/PX4/PX4-Avoidance which is located in `~/catkin_ws/src/avoidance`.
 
-1. Make changes to the code! To get the latest code of avoidance pull the code from the avoidance repo:
+3. Make changes to the code! To get the latest code of avoidance pull the code from the avoidance repo:
 
    ```sh
    git pull origin
    git checkout origin/master
    ```
 
-1. Build the package
+4. Build the package
 
    ```sh
    catkin build local_planner

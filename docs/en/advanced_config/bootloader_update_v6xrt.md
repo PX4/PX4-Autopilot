@@ -41,16 +41,16 @@ The tool is available for Windows, Linux and macOS.
 
    ![Flash bootloader through Secure provisioning - Step 1](../../assets/advanced_config/bootloader_6xrt/bootloader_update_v6xrt_step1.png)
 
-1. On first start you have to create a "New Workspace".
+2. On first start you have to create a "New Workspace".
    Select `i.mX RT11xx` and then select `MIMXRT1176`
 
    ![Flash bootloader through Secure provisioning - Step 2](../../assets/advanced_config/bootloader_6xrt/bootloader_update_v6xrt_step2.png)
 
-1. After creating a "New Workspace" click on the **FlexSPI NOR - simplified** button
+3. After creating a "New Workspace" click on the **FlexSPI NOR - simplified** button
 
    ![Flash bootloader through Secure provisioning - Step 3](../../assets/advanced_config/bootloader_6xrt/bootloader_update_v6xrt_step3.png)
 
-1. On the _Boot Memory Configuration_ window change the "Device type" to `Macronix Octal DDR` and press **OK**.
+4. On the _Boot Memory Configuration_ window change the "Device type" to `Macronix Octal DDR` and press **OK**.
 
 ![Flash bootloader through Secure provisioning - Step 4](../../assets/advanced_config/bootloader_6xrt/bootloader_update_v6xrt_step4.png)
 
@@ -58,7 +58,7 @@ The tool is available for Windows, Linux and macOS.
 
    ![Flash bootloader through Secure provisioning - Step 5](../../assets/advanced_config/bootloader_6xrt/bootloader_update_v6xrt_step5.png)
 
-1. You should get this pop-up indicating the Pixhawk V6X-RT is not in the "ISP bootloader mode".
+2. You should get this pop-up indicating the Pixhawk V6X-RT is not in the "ISP bootloader mode".
 
    ![Flash bootloader through Secure provisioning - Step 6](../../assets/advanced_config/bootloader_6xrt/bootloader_update_v6xrt_step6.png)
 
@@ -75,27 +75,27 @@ The tool is available for Windows, Linux and macOS.
 
       Press **YES** to launch the _Flash Programmer Tool_.
 
-1. When the Flash Programming has started you get a popup to configure the target memory press **Yes**
+3. When the Flash Programming has started you get a popup to configure the target memory press **Yes**
 
    ![Flash bootloader through Secure provisioning - Step 7](../../assets/advanced_config/bootloader_6xrt/bootloader_update_v6xrt_step7.png)
 
-1. When the Target Memory configuration is successful you can press the **Erase All** button
+4. When the Target Memory configuration is successful you can press the **Erase All** button
 
    ![Flash bootloader through Secure provisioning - Step 8](../../assets/advanced_config/bootloader_6xrt/bootloader_update_v6xrt_step8.png)
 
-1. After erasing the flash press the **Load ...** button and then press the **Browse** button
+5. After erasing the flash press the **Load ...** button and then press the **Browse** button
 
    ![Flash bootloader through Secure provisioning - Step 9](../../assets/advanced_config/bootloader_6xrt/bootloader_update_v6xrt_step9.png)
 
-1. Locate the `px4_fmu-v6xrt_bootloader.bin` file and press **Open** and then press on **Load**.
+6. Locate the `px4_fmu-v6xrt_bootloader.bin` file and press **Open** and then press on **Load**.
 
    ![Flash bootloader through Secure provisioning - Step 10](../../assets/advanced_config/bootloader_6xrt/bootloader_update_v6xrt_step10.png)
 
-1. If the load is successful you should see the "Success: load from file" at the bottom right
+7. If the load is successful you should see the "Success: load from file" at the bottom right
 
    ![Flash bootloader through Secure provisioning - Step 11](../../assets/advanced_config/bootloader_6xrt/bootloader_update_v6xrt_step11.png)
 
-1. Press the **Write** button to flash the PX4 bootloader
+8. Press the **Write** button to flash the PX4 bootloader
 
 ![Flash bootloader through Secure provisioning - Step 12](../../assets/advanced_config/bootloader_6xrt/bootloader_update_v6xrt_step12.png)
 

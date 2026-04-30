@@ -57,7 +57,7 @@ For example, this can be used to simulate absent or intermittent GPS, RC signal 
 For example, to simulate GPS failure:
 
 1. Enable the parameter [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN).
-1. Enter the following commands on the SITL instance _pxh shell_:
+2. Enter the following commands on the SITL instance _pxh shell_:
 
    ```sh
    # Turn (all) GPS off

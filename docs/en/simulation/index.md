@@ -271,7 +271,7 @@ PX4 connects/integrates with this camera in _exactly the same way_ as it would w
    In this mode the driver just sends a [CAMERA_TRIGGER](https://mavlink.io/en/messages/common.html#CAMERA_TRIGGER) message whenever an image capture is requested.
    For more information see [Cameras Connected to Flight Controller Outputs](../camera/fc_connected_camera.md).
    :::
-1. PX4 must forward all camera commands between the GCS and the (simulator) MAVLink Camera.
+2. PX4 must forward all camera commands between the GCS and the (simulator) MAVLink Camera.
    You can do this by starting [MAVLink](../modules/modules_communication.md#mavlink) with the `-f` flag as shown, specifying the UDP ports for the new connection.
 
    ```sh

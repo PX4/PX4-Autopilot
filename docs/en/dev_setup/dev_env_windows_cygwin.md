@@ -21,11 +21,11 @@ This environment can be used to build PX4 for:
 ## Installation Instructions
 
 1. Download the latest version of the ready-to-use MSI installer from: [Github releases](https://github.com/PX4/PX4-windows-toolchain/releases) or [Amazon S3](https://s3-us-west-2.amazonaws.com/px4-tools/PX4+Windows+Cygwin+Toolchain/PX4+Windows+Cygwin+Toolchain+0.9.msi) (fast download).
-1. Run it, choose your desired installation location, let it install:
+2. Run it, choose your desired installation location, let it install:
 
    ![jMAVSimOnWindows](../../assets/toolchain/cygwin_toolchain_installer.png)
 
-1. Tick the box at the end of the installation to _clone the PX4 repository, build and run simulation with jMAVSim_ (this simplifies the process to get you started).
+3. Tick the box at the end of the installation to _clone the PX4 repository, build and run simulation with jMAVSim_ (this simplifies the process to get you started).
 
    ::: info
    If you missed this step you will need to [clone the PX4-Autopilot repository manually](#getting-started).
@@ -37,8 +37,8 @@ At time of writing the installer is missing some dependencies (and cannot yet be
 To add these yourself:
 
 1. Browse to the toolchain installation directory (default **C:\\PX4\\**)
-1. Run **run-console.bat** (double click) to start the linux-like Cygwin bash console
-1. Enter the following command in the console:
+2. Run **run-console.bat** (double click) to start the linux-like Cygwin bash console
+3. Enter the following command in the console:
 
    ```sh
    pip3 install --user kconfiglib jsonschema future
@@ -51,8 +51,8 @@ To add these yourself:
 The toolchain uses a specially configured console window (started by running the **run-console.bat** script) from which you can call the normal PX4 build commands:
 
 1. Browse to the toolchain installation directory (default **C:\\PX4\\**)
-1. Run **run-console.bat** (double click) to start the linux-like Cygwin bash console (you must use this console to build PX4).
-1. Clone the PX4 PX4-Autopilot repository from within the console:
+2. Run **run-console.bat** (double click) to start the linux-like Cygwin bash console (you must use this console to build PX4).
+3. Clone the PX4 PX4-Autopilot repository from within the console:
 
    ::: info
    Skip this step if you ticked the installer option to _clone the PX4 repository, build and run simulation with jMAVSim_.
@@ -66,7 +66,7 @@ The toolchain uses a specially configured console window (started by running the
 
    You can now use the console/PX4-Autopilot repository to build PX4.
 
-1. For example, to run JMAVSim:
+4. For example, to run JMAVSim:
 
    ```sh
    # Navigate to PX4-Autopilot repo

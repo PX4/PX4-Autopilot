@@ -423,7 +423,7 @@ To counter this, [EKF2_POS_LOCK](../advanced_config/parameter_reference.md#EKF2_
 The fusion modes of operation are controlled by [EKF2_RNG_CTRL](../advanced_config/parameter_reference.md#EKF2_RNG_CTRL):
 
 1. [Conditional range aiding](#conditional-range-aiding)
-1. [Range height fusion](#range-height-fusion)
+2. [Range height fusion](#range-height-fusion)
 
 For more details about the configuration of height sources, [click here](#height).
 

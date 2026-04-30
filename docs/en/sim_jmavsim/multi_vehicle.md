@@ -19,19 +19,19 @@ To start multiple instances (on separate ports):
    make px4_sitl_default
    ```
 
-1. Run **sitl_multiple_run.sh**, specifying the number of instances to start (e.g. 2):
+2. Run **sitl_multiple_run.sh**, specifying the number of instances to start (e.g. 2):
 
    ```sh
    ./Tools/sitl_multiple_run.sh 2
    ```
 
-1. Start the first instance in the same terminal (this will run in the foreground):
+3. Start the first instance in the same terminal (this will run in the foreground):
 
    ```sh
    ./Tools/simulation/jmavsim/jmavsim_run.sh -l
    ```
 
-1. Open a new terminal for each subsequent instance, specifying the _simulation_ TCP port for the instance:
+4. Open a new terminal for each subsequent instance, specifying the _simulation_ TCP port for the instance:
 
    ```sh
    ./Tools/simulation/jmavsim/jmavsim_run.sh -p 4560 -l

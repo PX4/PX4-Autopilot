@@ -37,7 +37,7 @@ These instructions were tested on Ubuntu 18.04
 :::
 
 1. Install the usual [Development Environment on Ubuntu LTS / Debian Linux](../dev_setup/dev_env_linux_ubuntu.md).
-1. Install FlightGear:
+2. Install FlightGear:
 
    ```sh
    sudo add-apt-repository ppa:saiarcot895/flightgear
@@ -52,13 +52,13 @@ These instructions were tested on Ubuntu 18.04
    Install this using the [daily build PPA](https://launchpad.net/~saiarcot895/+archive/ubuntu/flightgear-edge).
    :::
 
-1. Check that you are able to run FlightGear:
+3. Check that you are able to run FlightGear:
 
    ```sh
    fgfs --launcher
    ```
 
-1. Set write permissions to the **Protocols** folder in the FlightGear installation directory:
+4. Set write permissions to the **Protocols** folder in the FlightGear installation directory:
 
    ```sh
    sudo chmod a+w /usr/share/games/flightgear/Protocol

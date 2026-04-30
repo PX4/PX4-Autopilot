@@ -94,19 +94,19 @@ Flight controller and wing connectors removed from the vehicle.
 
 1. Unsolder the ESC PWM-signal and ground pins and solder some servo extension wire to the pins.
    The cable should be long enough to connect the wire to the FMU pins of the flight controller.
-1. Unsolder the 3 female banana plug connectors of the rear motor (might not be necessary for the Pixhawk 6 integration).
-1. Screw the ESC back in place with 4 M2.5 x 12 screws.
-1. Shorten the rear motor wires and solder them as shown in the picture into place.
-1. Solder signal and GND wires to the PWM input to the ESC.
+2. Unsolder the 3 female banana plug connectors of the rear motor (might not be necessary for the Pixhawk 6 integration).
+3. Screw the ESC back in place with 4 M2.5 x 12 screws.
+4. Shorten the rear motor wires and solder them as shown in the picture into place.
+5. Solder signal and GND wires to the PWM input to the ESC.
 
    ![ESC 01](../../assets/airframes/vtol/omp_hobby_zmo_fpv/esc-01.jpg)
 
-1. Remove the female banana plug on the ESC.
+6. Remove the female banana plug on the ESC.
    This will give you more space to install the flight controller.
 
    ![ESC 02](../../assets/airframes/vtol/omp_hobby_zmo_fpv/esc-02.jpg)
 
-1. Solder the rear motor wires to the ESC.
+7. Solder the rear motor wires to the ESC.
    Make sure to connect such that the motor spins in the correct direction.
 
    ![ESC 03](../../assets/airframes/vtol/omp_hobby_zmo_fpv/esc-03.jpg)
@@ -117,7 +117,7 @@ To directly connect the wing connector when the wing gets attached, some 3D-prin
 This step is not essential, but makes the handling much easier and there is one step less you need to worry about when you mount the plane in the field.
 
 1. Glue the wing connectors into the 3D-Printed part with hot-glue or 5 min epoxy.
-1. Glue the 3D-printed part with the connector in to the fuselage.
+2. Glue the 3D-printed part with the connector in to the fuselage.
    Make sure to properly align the connector while the glue cures.
 
    The easiest way to align the connector is to mount the wing while the glue is curing, but make sure that no glue is between the fuselage and the wing, otherwise the wing might get stuck.
@@ -139,12 +139,12 @@ The connector glued into the fuselage. Make sure to properly align the connector
    ![Foam cutout 01](../../assets/airframes/vtol/omp_hobby_zmo_fpv/foam-cut-01.png)
    ![Pixhawk adapter board mount 01](../../assets/airframes/vtol/omp_hobby_zmo_fpv/pixhawk-adapter-01.jpg)
 
-1. Prepare the BEC to connect to the IO board and to the battery.
+2. Prepare the BEC to connect to the IO board and to the battery.
    The BEC can also be soldered directly to the battery pads of the ESC.
 
    ![BEC preparation](../../assets/airframes/vtol/omp_hobby_zmo_fpv/bec-01.jpg)
 
-1. Mount the BEC with double sided tape.
+3. Mount the BEC with double sided tape.
 
    ![BEC mounting](../../assets/airframes/vtol/omp_hobby_zmo_fpv/bec-02.jpg)
 
@@ -154,7 +154,7 @@ The connector glued into the fuselage. Make sure to properly align the connector
    Make sure that the cables are long enough to reach the Pixhawk adapter board.
    If you own a crimp tool, then you can also directly add the connectors without soldering.
 
-1. Plug the servo cables into the adapter IO board in the following order:
+2. Plug the servo cables into the adapter IO board in the following order:
    - 1 - Aileron left
    - 2 - Aileron right
    - 3 - V-Tail left
@@ -162,7 +162,7 @@ The connector glued into the fuselage. Make sure to properly align the connector
    - 5 - Tilt left
    - 6 - Tilt right
 
-1. Plug in the motor signal cables into the FMU adapter board in the following order:
+3. Plug in the motor signal cables into the FMU adapter board in the following order:
    - 1 - Front left
    - 2 - Front right
    - 3 - Rear
@@ -178,11 +178,11 @@ The connector glued into the fuselage. Make sure to properly align the connector
    The mount will enable you to push the tube back into the fuselage to protect it during transportation and handling.
    The sensor unit can be mounted on top of the 3D-Printed mount with double sided tape.
 
-1. Glue the 3D-Printed mount into place.
+2. Glue the 3D-Printed mount into place.
 
    ![Pitot tube 01](../../assets/airframes/vtol/omp_hobby_zmo_fpv/pitot-tube-01.png)
 
-1. The sensor can be mounted on top of the 3D-Printed mount.
+3. The sensor can be mounted on top of the 3D-Printed mount.
 
    ![Pitot tube 02](../../assets/airframes/vtol/omp_hobby_zmo_fpv/pitot-tube-02.png)
 
@@ -193,7 +193,7 @@ If needed a lidar can be installed in the front of the fuselage.
 To install the Lidar:
 
 1. Remove the heat sink
-1. Glue the lidar + 3D-Printed lidar mount into place.
+2. Glue the lidar + 3D-Printed lidar mount into place.
 
 ![Lidar 01](../../assets/airframes/vtol/omp_hobby_zmo_fpv/lidar-01.jpg)
 
@@ -202,18 +202,18 @@ To install the Lidar:
 To mount the GPS:
 
 1. Screw the two 3D-Printed parts with 3x M3x10 screws together.
-1. Take the GPS out of the plastic case and unplug the connector.
-1. Feed the cable through the carbon spar.
-1. Glue the 3D-Printed part with 5 min epoxy in place.
+2. Take the GPS out of the plastic case and unplug the connector.
+3. Feed the cable through the carbon spar.
+4. Glue the 3D-Printed part with 5 min epoxy in place.
    ![Glue the GPS mount into place](../../assets/airframes/vtol/omp_hobby_zmo_fpv/gps-01.jpg)
-1. After the glue has cured, screw the GPS with 4x M2.5x10 screws to the plate.
+5. After the glue has cured, screw the GPS with 4x M2.5x10 screws to the plate.
    ![Screw the GPS to the mount2](../../assets/airframes/vtol/omp_hobby_zmo_fpv/gps-02.jpg)
 
 #### USB Camera
 
 1. Cut the USB cable of the camera so that the length is 15 cm.
-1. Cut the USB-Adapter cable to be 25 cm and solder the two cables together.
-1. To install the camera you need to cut a hole into the foam of the wall.
+2. Cut the USB-Adapter cable to be 25 cm and solder the two cables together.
+3. To install the camera you need to cut a hole into the foam of the wall.
 
    ![USB Camera 01: Hole to feed the USB cable through the wall.](../../assets/airframes/vtol/omp_hobby_zmo_fpv/camera-01.jpg)
 
@@ -232,15 +232,15 @@ If a Pixhawk 6c or 6c mini is used, simply stick the flight controller with doub
 If a Skynode is used:
 
 1. Place it at the on top of the ESCs and mark the 2 rear mounting locations on the injection molded plastic part of the ZMO.
-1. Remove the Skynode from the vehicle and drill 2 holes with a 2.8 mm drill bit into the plastic part.
+2. Remove the Skynode from the vehicle and drill 2 holes with a 2.8 mm drill bit into the plastic part.
    ![Mounting holes for the Skynode in the back](../../assets/airframes/vtol/omp_hobby_zmo_fpv/flight-controller-01.jpg)
-1. Put the Skynode back into place and screw it down with 2x M3x10 screws.
+3. Put the Skynode back into place and screw it down with 2x M3x10 screws.
 
 Another option is to add some threaded inserts into the holes.
 Since the injection molded part of the ZMO is very thin, they need to be glued in place.
 
 1. Screw the front Skynode mount with 2x M3x10 screws at the Skynode.
-1. Then add some 5 min epoxy at the bottom of the mount and put a weight on top of the Skynode until the glue is cured.
+2. Then add some 5 min epoxy at the bottom of the mount and put a weight on top of the Skynode until the glue is cured.
    To access the 2 mounting screws at the front, poke 2 holes from the top through the foam.
 
    ![Skynode mount in the front](../../assets/airframes/vtol/omp_hobby_zmo_fpv/flight-controller-02.jpg)
@@ -258,7 +258,7 @@ An inexpensive example would be a [SiK Telemetry Radio](../telemetry/sik_radio.m
 
    ![LTE antenna 01](../../assets/airframes/vtol/omp_hobby_zmo_fpv/lte-antenna-01.jpg)
 
-1. The second antenna can be installed on the inside of the vehicle on the left side of the battery compartment.
+2. The second antenna can be installed on the inside of the vehicle on the left side of the battery compartment.
    The RC receiver can also be placed at the left side of the battery compartment.
 
    ![LTE antenna 2 and RC receiver](../../assets/airframes/vtol/omp_hobby_zmo_fpv/lte-antenna-02.jpg)
@@ -268,9 +268,9 @@ An inexpensive example would be a [SiK Telemetry Radio](../telemetry/sik_radio.m
 ### Select Airframe
 
 1. Open QGC, select the **Q** icon, and then select **Vehicle Setup**.
-1. Select the [Airframe](../config/airframe.md) tab
+2. Select the [Airframe](../config/airframe.md) tab
 
-1. Select [Generic Tiltrotor VTOL](../airframes/airframe_reference.md#vtol_vtol_tiltrotor_generic_tiltrotor_vtol) from the _VTOL Tiltrotor_ group, and then and click **Apply and Restart**.
+3. Select [Generic Tiltrotor VTOL](../airframes/airframe_reference.md#vtol_vtol_tiltrotor_generic_tiltrotor_vtol) from the _VTOL Tiltrotor_ group, and then and click **Apply and Restart**.
 
 ### Load Parameters File
 
@@ -280,9 +280,9 @@ If you have followed the wiring instructions for the motors you probably won't n
 To load the file:
 
 1. Download the [parameter file](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/airframes/vtol/omp_hobby_zmo_fpv/omp_hobby_zmo.params).
-1. Select the [Parameters](../advanced_config/parameters.md#finding-updating-parameters) tab and then click on **Tools** in the top right corner.
-1. Select **Load from file** and then choose the `omp_hobby_zmo.params` file you just downloaded.
-1. Reboot the vehicle.
+2. Select the [Parameters](../advanced_config/parameters.md#finding-updating-parameters) tab and then click on **Tools** in the top right corner.
+3. Select **Load from file** and then choose the `omp_hobby_zmo.params` file you just downloaded.
+4. Reboot the vehicle.
 
 ### Sensor Selection
 
@@ -325,14 +325,14 @@ If motors/servos were connected to different outputs than suggested, you will ne
 #### Tilt Servos
 
 1. Switch the vehicle into manual mode (either via the flight mode switch or type `commander mode manual` into the MAVLink shell).
-1. Check if the motors point upwards.
+2. Check if the motors point upwards.
    If the motors point forwards then their associated Tilt servos need to be reversed (selecting the checkbox next to each servo).
 
    ![Tilt Servo adjustment](../../assets/airframes/vtol/omp_hobby_zmo_fpv/tilt-limits-01.jpg)
 
-1. Adjust the minimum (or, if revesed: maximum) value such that the rotor thrust can point backward (needed for proper yaw allocation in Multicopter mode).
-1. Adjust the parameter `VT_TILT_MC` such that the rotors point exactly upwards when given zero input.
-1. Then type `commander transition` into the MAVLink shell to adjust the horizontal position.
+3. Adjust the minimum (or, if revesed: maximum) value such that the rotor thrust can point backward (needed for proper yaw allocation in Multicopter mode).
+4. Adjust the parameter `VT_TILT_MC` such that the rotors point exactly upwards when given zero input.
+5. Then type `commander transition` into the MAVLink shell to adjust the horizontal position.
 
 #### Control Surfaces
 

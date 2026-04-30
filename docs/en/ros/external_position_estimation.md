@@ -268,6 +268,7 @@ See [this video](https://www.youtube.com/watch?v=cNZaFEghTBU) for a tutorial on 
 
 - Install the `vrpn_client_ros` package
 - You can get each rigid body pose on an individual topic by running
+
   ```sh
   roslaunch vrpn_client_ros sample.launch server:=<mocap machine ip>
   ```

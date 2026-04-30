@@ -12,12 +12,12 @@ Safety points are created in _QGroundControl_ (which calls them "Rally Points").
 At high level:
 
 1. Open **QGroundControl > Plan View**
-1. Select the **Rally** tab/button on the _Plan Editor_ (right of screen).
-1. Select the **Rally Point** button on the toolbar (left of screen).
-1. Click anywhere on the map to add a rally/safety point.
+2. Select the **Rally** tab/button on the _Plan Editor_ (right of screen).
+3. Select the **Rally Point** button on the toolbar (left of screen).
+4. Click anywhere on the map to add a rally/safety point.
    - The _Plan Editor_ displays and lets you edit the current rally point (shown as a green **R** on the map).
    - You can select another rally point (shown as a more orange/yellow **R** on the map) to edit it instead.
-1. Select the **Upload Required** button to upload the rally points (along with any [mission](../flying/missions.md) and [geofence](../flying/geofence.md)) to the vehicle.
+5. Select the **Upload Required** button to upload the rally points (along with any [mission](../flying/missions.md) and [geofence](../flying/geofence.md)) to the vehicle.
 
 :::tip
 More complete documentation can be found in the _QGroundControl User Guide_: [Plan View - Rally Points](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/plan_view/plan_rally_points.html).

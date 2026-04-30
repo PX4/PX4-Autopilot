@@ -12,14 +12,14 @@ To setup the tool:
 
 1. Download AVL 3.36 from <https://web.mit.edu/drela/Public/web/avl/>.
    The file for AVL version 3.36 can be found about halfway down the page.
-1. After downloading, extract AVL and move it to the home directory using:
+2. After downloading, extract AVL and move it to the home directory using:
 
    ```sh
    sudo tar -xf avl3.36.tgz
    mv ./Avl /home/
    ```
 
-1. Follow the **index.md** found in `./Avl` to finish the setup process for AVL (this requires that you set up `plotlib` and `eispack` libraries).
+3. Follow the **index.md** found in `./Avl` to finish the setup process for AVL (this requires that you set up `plotlib` and `eispack` libraries).
    We recommend using the `gfortran` compile option, which might further require that you to install `gfortran`.
    On Ubuntu can be done by running:
 
@@ -45,7 +45,7 @@ This example template can be run using: `python input_avl.py --yaml_file input.y
 To run the tool for your plane:
 
 1. Copy the example `input.yml` to `<your_custom_yaml_file>.yml` and modify it to match your desired plane
-1. Run the tool on your yml file:
+2. Run the tool on your yml file:
 
    ```sh
    python input_avl.py <your_custom_yaml_file>.yml
@@ -53,7 +53,7 @@ To run the tool for your plane:
 
    Note that the `yaml` and `argparse` packages must be present in your Python environment.
 
-1. The tool prompts for a range of vehicle specific parameters that are needed in order to specify the geometry and physical properties of the plane.
+3. The tool prompts for a range of vehicle specific parameters that are needed in order to specify the geometry and physical properties of the plane.
    You can either:
    - select a predefined model template (such as a Cessna or a VTOL), which has a known number of control surfaces, and just modify some physical properties, or
    - define a completely custom model

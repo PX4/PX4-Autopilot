@@ -171,10 +171,10 @@ The default startup sequence is:
 1. Power-up.
    - All actuators locked into disarmed position
    - Not possible to arm.
-1. Safety switch is pressed.
+2. Safety switch is pressed.
    - System now prearmed: non-throttling actuators can move (e.g. ailerons).
    - System safety is off: Arming possible.
-1. Arm command is issued.
+3. Arm command is issued.
    - The system is armed.
    - All motors and actuators can move.
 
@@ -188,10 +188,10 @@ The startup sequence is:
 1. Power-up.
    - All actuators locked into disarmed position
    - Not possible to arm.
-1. Safety switch is pressed.
+2. Safety switch is pressed.
    - _All actuators stay locked into disarmed position (same as disarmed)._
    - System safety is off: Arming possible.
-1. Arm command is issued.
+3. Arm command is issued.
    - The system is armed.
    - All motors and actuators can move.
 
@@ -206,9 +206,9 @@ The startup sequence is:
 1. Power-up.
    - System now prearmed: non-throttling actuators can move (e.g. ailerons).
    - Not possible to arm.
-1. Safety switch is pressed.
+2. Safety switch is pressed.
    - System safety is off: Arming possible.
-1. Arm command is issued.
+3. Arm command is issued.
    - The system is armed.
    - All motors and actuators can move.
 
@@ -222,7 +222,7 @@ The startup sequence is:
 1. Power-up.
    - All actuators locked into disarmed position
    - System safety is off: Arming possible.
-1. Arm command is issued.
+2. Arm command is issued.
    - The system is armed.
    - All motors and actuators can move.
 
@@ -236,7 +236,7 @@ The startup sequence is:
 1. Power-up.
    - System now prearmed: non-throttling actuators can move (e.g. ailerons).
    - System safety is off: Arming possible.
-1. Arm command is issued.
+2. Arm command is issued.
    - The system is armed.
    - All motors and actuators can move.
 

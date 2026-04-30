@@ -20,10 +20,10 @@ The diagram below shows the mode behaviour visually (for a mode 2 transmitter).
 Landing in this mode is easy:
 
 1. Position the drone horizontally above the landing spot using the roll and pitch stick.
-1. Let go of the roll and pitch stick and give it enough time to come to a complete stop.
-1. Pull the throttle stick down gently until the vehicle touches the ground.
-1. Pull the throttle stick all the way down to facilitate and accelerate land detection.
-1. The vehicle will lower propeller thrust, detect the ground and [automatically disarm](../advanced_config/prearm_arm_disarm.md#auto-disarming) (by default).
+2. Let go of the roll and pitch stick and give it enough time to come to a complete stop.
+3. Pull the throttle stick down gently until the vehicle touches the ground.
+4. Pull the throttle stick all the way down to facilitate and accelerate land detection.
+5. The vehicle will lower propeller thrust, detect the ground and [automatically disarm](../advanced_config/prearm_arm_disarm.md#auto-disarming) (by default).
 
 :::warning
 While very rare on a well calibrated vehicle, sometimes there may be problems with landing.

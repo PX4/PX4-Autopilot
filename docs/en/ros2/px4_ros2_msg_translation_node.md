@@ -31,21 +31,21 @@ The following steps describe how to install and run the translation node on your
    mkdir -p /path/to/ros_ws/src
    ```
 
-1. Run the following helper script to copy the message definitions and translation node into your ROS workspace directory.
+2. Run the following helper script to copy the message definitions and translation node into your ROS workspace directory.
 
    ```sh
    cd /path/to/ros_ws
    /path/to/PX4-Autopilot/Tools/copy_to_ros_ws.sh .
    ```
 
-1. Build and source the workspace.
+3. Build and source the workspace.
 
    ```sh
    colcon build
    source /path/to/ros_ws/install/setup.bash
    ```
 
-1. Finally, run the translation node.
+4. Finally, run the translation node.
 
    ```sh
    ros2 run translation_node translation_node_bin
@@ -300,7 +300,7 @@ The example describes the process of updating the `VehicleAttitude` message defi
    For example:<br>
    Copy `msg/versioned/VehicleAttitude.msg` → `msg/versioned/px4_msgs_old/msg/VehicleAttitudeV3.msg`
 
-1. **Update Translation References to the Archived Definition**
+2. **Update Translation References to the Archived Definition**
 
    Update the existing translations header files `msg/translation_node/translations/*.h` to reference the newly archived message definition.
 
@@ -308,7 +308,7 @@ The example describes the process of updating the `VehicleAttitude` message defi
    - Replace `px4_msgs::msg::VehicleAttitude` → `px4_msgs_old::msg::VehicleAttitudeV3`
    - Replace `#include <px4_msgs/msg/vehicle_attitude.hpp>` → `#include <px4_msgs_old/msg/vehicle_attitude_v3.hpp>`
 
-1. **Update the Versioned Definition**
+3. **Update the Versioned Definition**
 
    Update the versioned `.msg` topic message file (or `.srv` service message file) with required changes.
 
@@ -332,7 +332,7 @@ The example describes the process of updating the `VehicleAttitude` message defi
    ...
    ```
 
-1. **Add a New Translation Header**
+4. **Add a New Translation Header**
 
    Add a new version translation to bridge the archived version and the updated current version, by creating a new translation header.
 
@@ -389,7 +389,7 @@ The example describes the process of updating the `VehicleAttitude` message defi
    - [Generic Topic Message Translation Template](https://github.com/PX4/PX4-Autopilot/blob/main/msg/translation_node/translations/example_translation_multi_v2.h)
    - [Direct Service Message Translation Template](https://github.com/PX4/PX4-Autopilot/blob/main/msg/translation_node/translations/example_translation_service_v1.h)
 
-1. **Include New Headers in `all_translations.h`**
+5. **Include New Headers in `all_translations.h`**
 
    Add all newly created headers to [`translations/all_translations.h`](https://github.com/PX4/PX4-Autopilot/blob/main/msg/translation_node/translations/all_translations.h) so that the translation node can find them.
 

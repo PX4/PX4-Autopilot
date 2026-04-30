@@ -163,6 +163,40 @@ PX4 is safety-critical software. All contributions must include adequate testing
 
 Since we care about safety, we will regularly ask you for test results. Best is to do a test flight (or bench test where it applies) and upload the log file from it (on the microSD card in the logs directory) to Google Drive or Dropbox and share the link.
 
+## Documentation contributions
+
+Changes to staged `docs/en/` markdown files are automatically linted (markdownlint) and formatted (prettier) on commit (other changed files are ignored).
+The same checks are run in CI when docs changes are merged into main.
+
+> [!NOTE]
+> Running checks on commit ensures that your local copy is always up to date, so you don't need to pull upstream before making your next commit.
+
+### One-time hook setup
+
+**Ubuntu/macOS**: The `pre-commit` tool is installed and hooks are registered automatically when you run `Tools/setup/ubuntu.sh` or `Tools/setup/macos.sh`.
+
+**Windows (native)**: Install `pre-commit` and register the hooks once:
+
+```bat
+pip install pre-commit
+pre-commit install
+```
+
+### How it works
+
+- On commit, prettier auto-formats and markdownlint auto-fixes staged `docs/en/**/*.md` files.
+- If any files were modified by the auto-fix, the commit is blocked so you can review and stage the changes, then commit again.
+- If markdownlint finds issues it cannot auto-fix, the commit is also blocked with an error.
+- To skip all hooks on a single commit: `git commit --no-verify`
+
+### Run checks manually
+
+```sh
+# Check all docs/en/ markdown
+pre-commit run prettier --all-files
+pre-commit run markdownlint-cli2-fix --all-files
+```
+
 ## Push your changes
 
 Push changes to your repo and send a [pull request](https://github.com/PX4/PX4-Autopilot/compare/).

@@ -179,15 +179,15 @@ To setup the ground station:
    sudo pip install pika tornado future
    ```
 
-1. Clone the SatComInfrastructure repository:
+2. Clone the SatComInfrastructure repository:
 
    ```sh
    git clone https://github.com/acfloria/SatComInfrastructure.git
    ```
 
-1. Edit the **udp2rabbit.cfg** configuration file to reflect your settings.
-1. [Install _QGroundControl_](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/getting_started/download_and_install.html) (daily build).
-1. Add a UDP connection in QGC with the parameters:
+3. Edit the **udp2rabbit.cfg** configuration file to reflect your settings.
+4. [Install _QGroundControl_](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/getting_started/download_and_install.html) (daily build).
+5. Add a UDP connection in QGC with the parameters:
    - Listening port: 10000
    - Target hosts: 127.0.0.1:10001
    - High Latency: checked
@@ -203,7 +203,7 @@ To setup the ground station:
    ./udp2rabbit.py
    ```
 
-1. Send a test message from [RockBlock Account](https://rockblock.rock7.com/Operations) to the created delivery group in the `Test Delivery Groups` tab.
+2. Send a test message from [RockBlock Account](https://rockblock.rock7.com/Operations) to the created delivery group in the `Test Delivery Groups` tab.
 
 If in the terminal where the `udp2rabbit.py` script is running within a couple of seconds the acknowledge for a message can be observed, then the RockBlock delivery group, the relay server and the udp2rabbit script are set up correctly:
 

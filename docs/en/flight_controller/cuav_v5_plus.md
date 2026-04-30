@@ -94,7 +94,7 @@ However, the pins marked **+** are all common, and a BEC may be connected to any
 Under these conditions all power sources will be used in this order to power the system:
 
 1. `Power1` and `Power2` inputs (4.3V to 5.4V)
-1. `USB` input (4.75V to 5.25V)
+2. `USB` input (4.75V to 5.25V)
 
 ## Over Current Protection
 

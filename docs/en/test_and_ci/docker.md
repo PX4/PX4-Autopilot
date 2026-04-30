@@ -202,7 +202,7 @@ The IP address is the one of your docker container, usually 172.17.0.1/16 when u
 The IP address of the docker container can be found with the following command (assuming the container name is `mycontainer`):
 
 ```sh
-$ docker inspect -f '{ {range .NetworkSettings.Networks}}{ {.IPAddress}}{ {end}}' mycontainer
+docker inspect -f '{ {range .NetworkSettings.Networks}}{ {.IPAddress}}{ {end}}' mycontainer
 ```
 
 ::: info

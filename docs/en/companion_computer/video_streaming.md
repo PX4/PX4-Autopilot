@@ -69,9 +69,9 @@ To setup and use video steaming with QGC:
    sudo apt install gstreamer1.0-plugins-bad gstreamer1.0-libav gstreamer1.0-gl -y
    ```
 
-1. Start QGC
-1. Enable video in _Fly View_: [QGroundControl > General Settings (Settings View) > Video](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/settings_view/general.html#video)
-1. If everything works, you should see the video stream displayed in the QGC Video Switcher (QGC Fly View bottom left corner).
+2. Start QGC
+3. Enable video in _Fly View_: [QGroundControl > General Settings (Settings View) > Video](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/settings_view/general.html#video)
+4. If everything works, you should see the video stream displayed in the QGC Video Switcher (QGC Fly View bottom left corner).
    You can click on the video switcher to toggle the video full-screen, as shown in the screenshot below.
 
    ![QGC displaying video stream](../../assets/videostreaming/qgc-screenshot.png)

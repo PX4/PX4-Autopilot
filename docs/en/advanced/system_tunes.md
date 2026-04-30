@@ -26,36 +26,36 @@ On Windows, one option is to use _Melody Master_ within _Dosbox_.
 The steps for using the software are:
 
 1. Download [DosBox](https://www.dosbox.com/) and install the app
-1. Download [Melody Master](ftp://archives.thebbs.org/ansi_utilities/melody21.zip) and unzip into a new directory
-1. Open the _Dosbox_ console
-1. Mount the melody master directory in Dosbox as shown below:
+2. Download [Melody Master](ftp://archives.thebbs.org/ansi_utilities/melody21.zip) and unzip into a new directory
+3. Open the _Dosbox_ console
+4. Mount the melody master directory in Dosbox as shown below:
 
    ```sh
    mount c C:\<path_to_directory\Melody21
    ```
 
-1. Start _Melody Master_ with the following commands
+5. Start _Melody Master_ with the following commands
 
    ```sh
    c:
    start
    ```
 
-1. You will then have the option to click through a few screens, then press **1** to display _Melody Master_:
+6. You will then have the option to click through a few screens, then press **1** to display _Melody Master_:
    ![Melody Master 2.1](../../assets/tunes/tunes_melody_master_2_1.jpg)
 
    The lower half of the screen provides helpful advice on keyboard shortcuts for using the tool (arrows for moving in stave, and numbers for selecting the note length, etc.).
 
-1. When you're ready to save the music:
+7. When you're ready to save the music:
    - Press **F2** to give the tune a name and save it in the _/Music_ sub folder of your Melody Master installation.
    - Press **F7**, the scroll down the list of output formats on the right to get to ANSI.
      The file will be exported to the _root_ of the Melody Master directory (with the same name and a file-type specific extension).
-1. Open the file.
+8. Open the file.
    The output might look like this:
 
    ![ANSI Output from file](../../assets/tunes/tune_musicmaker_ansi_output.png)
 
-1. The string that can be played in PX4 is the bit between `MNT` and `P64`: `150L1O3DL16CL32<B>C<AEL16A`
+9. The string that can be played in PX4 is the bit between `MNT` and `P64`: `150L1O3DL16CL32<B>C<AEL16A`
 
 ## Testing Tunes
 

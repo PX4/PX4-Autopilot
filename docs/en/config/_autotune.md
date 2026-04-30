@@ -88,22 +88,22 @@ The test steps are:
 
 <div style="display: inline;" v-if="$frontmatter.frame === 'Multicopter'">
 
-4. The drone will first start to perform quick roll motions followed by pitch and yaw motions.
+1. The drone will first start to perform quick roll motions followed by pitch and yaw motions.
    The progress is shown in the progress bar, next to the _Autotune_ button.
 
 </div><div v-else-if="$frontmatter.frame === 'Plane'">
 
-4. The drone will first start to perform quick roll motions followed by pitch and yaw motions. When [`FW_AT_SYSID_TYPE`](../advanced_config/parameter_reference.md#FW_AT_SYSID_TYPE) is set to linear/logarithmic sine sweep (recommended), the max rates reached during the maneuvers are 75% of the maximum configured roll (`FW_R_RMAX`), pitch (`FW_P_RMAX_NEG`, `FW_P_RMAX_POS`) and yaw (`FW_Y_RMAX`) rates. The progress is shown in the progress bar, next to the _Autotune_ button.
+1. The drone will first start to perform quick roll motions followed by pitch and yaw motions. When [`FW_AT_SYSID_TYPE`](../advanced_config/parameter_reference.md#FW_AT_SYSID_TYPE) is set to linear/logarithmic sine sweep (recommended), the max rates reached during the maneuvers are 75% of the maximum configured roll (`FW_R_RMAX`), pitch (`FW_P_RMAX_NEG`, `FW_P_RMAX_POS`) and yaw (`FW_Y_RMAX`) rates. The progress is shown in the progress bar, next to the _Autotune_ button.
 
 </div>
 <div style="display: inline;" v-if="$frontmatter.frame === 'Multicopter'">
 
-5. Manually land and disarm to apply the new tuning parameters.
+1. Manually land and disarm to apply the new tuning parameters.
    Takeoff carefully and manually test that the vehicle is stable.
 
 </div><div v-else-if="$frontmatter.frame === 'Plane'">
 
-5. The tuning will be immediately/automatically be applied and tested in flight (by default).
+1. The tuning will be immediately/automatically be applied and tested in flight (by default).
    PX4 will then run a 4 second test and revert the new tuning if a problem is detected.
 
 The figure below shows how steps 4 and 5 might look in flight on the pitch axis.

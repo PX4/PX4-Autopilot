@@ -31,16 +31,16 @@ For more information see [Basic Concepts](../getting_started/px4_basic_concepts.
 To set the orientations:
 
 1. Start _QGroundControl_ and connect the vehicle.
-1. Select **"Q" icon > Vehicle Setup > Sensors** (sidebar) to open _Sensor Setup_.
-1. Select the **Orientations** button.
+2. Select **"Q" icon > Vehicle Setup > Sensors** (sidebar) to open _Sensor Setup_.
+3. Select the **Orientations** button.
 
    ![Set sensor orientations](../../assets/qgc/setup/sensor/sensor_orientation_set_orientations.jpg)
 
-1. Select the **AutoPilot Orientation** (as [calculated above](#calculating-orientation)).
+4. Select the **AutoPilot Orientation** (as [calculated above](#calculating-orientation)).
 
    ![Orientation options](../../assets/qgc/setup/sensor/sensor_orientation_selector_values.jpg)
 
-1. Press **OK**.
+5. Press **OK**.
 
 ::: info
 You can use [Level Horizon Calibration](../config/level_horizon_calibration.md) to compensate for small miss-alignments in controller orientation and to level the horizon in flight view.

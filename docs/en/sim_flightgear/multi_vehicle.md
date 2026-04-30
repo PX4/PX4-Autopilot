@@ -29,15 +29,15 @@ To start multiple instances (on separate ports and IDs):
    git checkout flightgear-multi
    ```
 
-1. Build the PX4 Firmware using the standard toolchain (with FlightGear installed).
-1. Start the first instance using the [predefined scripts](https://github.com/ThunderFly-aerospace/PX4-FlightGear-Bridge/tree/master/scripts):
+2. Build the PX4 Firmware using the standard toolchain (with FlightGear installed).
+3. Start the first instance using the [predefined scripts](https://github.com/ThunderFly-aerospace/PX4-FlightGear-Bridge/tree/master/scripts):
 
    ```sh
    cd ./Tools/flightgear_bridge/scripts
    ./vehicle1.sh
    ```
 
-1. Start subsequent instances using another script:
+4. Start subsequent instances using another script:
 
    ```sh
    ./vehicle2.sh

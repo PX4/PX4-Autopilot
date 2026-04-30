@@ -191,7 +191,7 @@ The following sections are out of date and need retesting.
    camera_trigger test
    ```
 
-1. From _QGroundControl_:
+2. From _QGroundControl_:
 
    Click on **Trigger Camera** in the main instrument panel.
    These shots are not logged or counted for geotagging.

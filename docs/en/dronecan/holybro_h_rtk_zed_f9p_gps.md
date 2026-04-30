@@ -78,7 +78,7 @@ In order to use the Holybro ZED-F9P GPS board, connect it to the Pixhawk CAN bus
 The steps are:
 
 1. In _QGroundControl_ set the parameter [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE) to `2` or `3` and reboot (see [Finding/Updating Parameters](../advanced_config/parameters.md)).
-1. Connect Holybro ZED-F9P GPS CAN to the Pixhawk CAN.
+2. Connect Holybro ZED-F9P GPS CAN to the Pixhawk CAN.
 
 Once enabled, the module will be detected on boot and assigned a dynamic node ID via PX4.
 
@@ -96,10 +96,10 @@ DroneCAN configuration in PX4 is explained in more detail in [DroneCAN > Enablin
 In order to use dual ZED-F9P GPS heading in PX4, follow these steps:
 
 1. Open the QGroundControl parameters page.
-1. On the left side next to the parameters list, double-click on the _System_ section (this hides the section).
-1. Components should be visible on the left panel.
+2. On the left side next to the parameters list, double-click on the _System_ section (this hides the section).
+3. Components should be visible on the left panel.
    Click on the first `_Component_<ID#>` that maps to the ZED-F9P DroneCAN node (below shown as _Component 124_).
-1. Click on the _GPS_ subsection and configure the parameters listed below:
+4. Click on the _GPS_ subsection and configure the parameters listed below:
    - `GPS_TYPE`: Either set to `17` for moving baseline _base_, or set to `18` to be the moving baseline _rover_.
      One F9P MUST be _rover_, and the other MUST be _base_.
    - `GPS_AUTO_CONFIG`: set to 1 for both the rover and base

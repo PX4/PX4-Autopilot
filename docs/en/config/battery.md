@@ -19,8 +19,8 @@ PX4 provides a number of (progressively more effective) methods that can be used
 
 1. [Basic Battery Settings](#basic_settings) (default): raw measured voltage is compared to the range between "empty" and "full" voltages.
    This results in coarse estimates because measured voltage (and its corresponding capacity) will fluctuate under load.
-1. [Voltage-based Estimation with Load Compensation](#load_compensation): Counteracts the effects of loading on the capacity calculation.
-1. [Voltage-based Estimation with Current Integration](#current_integration): Fuses the load-compensated voltage-based estimate for the available capacity with a current-based estimate of the charge that has been consumed.
+2. [Voltage-based Estimation with Load Compensation](#load_compensation): Counteracts the effects of loading on the capacity calculation.
+3. [Voltage-based Estimation with Current Integration](#current_integration): Fuses the load-compensated voltage-based estimate for the available capacity with a current-based estimate of the charge that has been consumed.
    This results in a capacity estimate that is comparable to that of a smart battery.
 
 Later methods build on preceding methods.
@@ -53,7 +53,7 @@ This approach results in relatively coarse estimations due to fluctuations in th
 To configure the basic settings for battery 1:
 
 1. Start _QGroundControl_ and connect the vehicle.
-1. Select **"Q" icon > Vehicle Setup > Power** (sidebar) to open _Power Setup_.
+2. Select **"Q" icon > Vehicle Setup > Power** (sidebar) to open _Power Setup_.
 
 You are presented with the basic settings that characterize the battery.
 The sections below explain what values to set for each field.

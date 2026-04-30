@@ -23,13 +23,13 @@ The easiest way to access shell is to use the [QGroundControl MAVLink Console](h
 You can also access the shell in a terminal using the **mavlink_shell.py** script:
 
 1. Shut down _QGroundControl_.
-1. Install dependencies:
+2. Install dependencies:
 
    ```sh
    pip3 install --user pymavlink pyserial
    ```
 
-1. Open terminal (in PX4-Autopilot directory) and start the shell:
+3. Open terminal (in PX4-Autopilot directory) and start the shell:
 
    ```sh
    # For serial port

@@ -48,10 +48,10 @@ To use the Inertial Labs driver:
 
    If it is not present, you can add the key to your `default.px4board` file, or include it using the [kconfig board configuration](../hardware/porting_guide_config.md#px4-board-configuration-kconfig): Drivers -> INS -> ilabs.
 
-1. [Set the parameter](../advanced_config/parameters.md) [SENS_ILABS_CFG](../advanced_config/parameter_reference.md#SENS_ILABS_CFG) to the hardware port connected to the sensor, such as a spare `GPS` or `TELEM`.
+2. [Set the parameter](../advanced_config/parameters.md) [SENS_ILABS_CFG](../advanced_config/parameter_reference.md#SENS_ILABS_CFG) to the hardware port connected to the sensor, such as a spare `GPS` or `TELEM`.
    Make sure that nothing else is configured to use the port (for more information see [Serial Port Configuration](../peripherals/serial_configuration.md)).
-1. Restart PX4.
-1. Configure driver as either an external INS or to provide raw data:
+3. Restart PX4.
+4. Configure driver as either an external INS or to provide raw data:
    - For external INS, set [ILABS_MODE](../advanced_config/parameter_reference.md#ILABS_MODE) to `INS`.
    - For raw inertial sensors, set [ILABS_MODE](../advanced_config/parameter_reference.md#ILABS_MODE) to `Sensors Only`.
 
@@ -62,7 +62,7 @@ To use the Inertial Labs driver:
      You can get a list of the IMU components available using [`uorb top -1`](../middleware/uorb.md#uorb-top-command), you can differentiate between them using the [`listener`](../modules/modules_command.md#listener) command and looking through the data, or just the rates.
      :::
 
-1. Restart PX4.
+5. Restart PX4.
 
 Once enabled, the module will be detected on boot.
 

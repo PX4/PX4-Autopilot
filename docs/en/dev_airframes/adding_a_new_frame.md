@@ -23,10 +23,10 @@ To determine which parameters/values need to be set in the configuration file, y
 The recommended process for developing a new frame configuration is:
 
 1. Start by selecting an appropriate "generic configuration" for the target vehicle type in QGC, such as _Generic Quadcopter_.
-1. Configure the [geometry and actuator outputs](../config/actuators.md).
-1. Perform other [basic configuration](../config/index.md).
-1. Tune the vehicle.
-1. Run the [`param show-for-airframe`](../modules/modules_command.md#param) console command to list the parameter difference compared to the original generic airframe.
+2. Configure the [geometry and actuator outputs](../config/actuators.md).
+3. Perform other [basic configuration](../config/index.md).
+4. Tune the vehicle.
+5. Run the [`param show-for-airframe`](../modules/modules_command.md#param) console command to list the parameter difference compared to the original generic airframe.
 
 Once you have the parameters you can create a new frame configuration file by copying the configuration file for the generic configuration, and appending the new parameters.
 
@@ -39,8 +39,8 @@ To add a frame configuration to firmware:
 1. Create a new config file in the [init.d/airframes](https://github.com/PX4/PX4-Autopilot/tree/main/ROMFS/px4fmu_common/init.d/airframes) folder.
    - Give it a short descriptive filename and prepend the filename with an unused autostart ID (for example, `1033092_superfast_vtol`).
    - Update the file with configuration parameters and apps (see section above).
-1. Add the name of the new frame config file to the [CMakeLists.txt](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d/airframes/CMakeLists.txt) in the relevant section for the type of vehicle.
-1. [Build and upload](../dev_setup/building_px4.md) the software.
+2. Add the name of the new frame config file to the [CMakeLists.txt](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d/airframes/CMakeLists.txt) in the relevant section for the type of vehicle.
+3. [Build and upload](../dev_setup/building_px4.md) the software.
 
 ## How to add a Configuration to an SD Card
 
@@ -227,7 +227,7 @@ For a new frame belonging to an existing group, you don't need to do anything mo
 If the airframe is for a **new group** you additionally need to:
 
 1. Add the svg image for the group into user guide documentation (if no image is provided a placeholder image is displayed): [assets/airframes/types](https://github.com/PX4/PX4-user_guide/tree/master/assets/airframes/types)
-1. Add a mapping between the new group name and image filename in the [srcparser.py](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/px4airframes/srcparser.py) method `GetImageName()` (follow the pattern below):
+2. Add a mapping between the new group name and image filename in the [srcparser.py](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/px4airframes/srcparser.py) method `GetImageName()` (follow the pattern below):
 
    ```python
    def GetImageName(self):
@@ -243,7 +243,7 @@ If the airframe is for a **new group** you additionally need to:
        return "AirframeUnknown"
    ```
 
-1. Update _QGroundControl_:
+3. Update _QGroundControl_:
    - Add the svg image for the group into: [src/AutopilotPlugins/Common/images](https://github.com/mavlink/qgroundcontrol/tree/master/src/AutoPilotPlugins/Common/Images)
    - Add reference to the svg image into [qgcimages.qrc](https://github.com/mavlink/qgroundcontrol/blob/master/qgcimages.qrc), following the pattern below:
 
@@ -274,14 +274,14 @@ The following topics explain how to tune the parameters that will be specified i
 To make a new airframe available for section in the _QGroundControl_ [frame configuration](../config/airframe.md):
 
 1. Make a clean build (e.g. by running `make clean` and then `make px4_fmu-v5_default`)
-1. Open QGC and select **Custom firmware file...** as shown below:
+2. Open QGC and select **Custom firmware file...** as shown below:
 
 ![QGC flash custom firmware](../../assets/gcs/qgc_flash_custom_firmware.png)
 
 You will be asked to choose the **.px4** firmware file to flash (this file is a zipped JSON file and contains the airframe metadata).
 
 1. Navigate to the build folder and select the firmware file (e.g. **PX4-Autopilot/build/px4_fmu-v5_default/px4_fmu-v5_default.px4**).
-1. Press **OK** to start flashing the firmware.
-1. Restart _QGroundControl_.
+2. Press **OK** to start flashing the firmware.
+3. Restart _QGroundControl_.
 
 The new frame will then be available for selection in _QGroundControl_.

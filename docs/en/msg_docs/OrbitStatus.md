@@ -10,14 +10,14 @@ ORBIT_YAW_BEHAVIOUR.
 
 ## Fields
 
-| Name          | Type      | Unit [Frame] | Range/Enum | Description                                                                                                                                     |
-| ------------- | --------- | ------------ | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| timestamp     | `uint64`  |              |            | time since system start (microseconds)                                                                                                          |
-| radius        | `float32` |              |            | Radius of the orbit circle. Positive values orbit clockwise, negative values orbit counter-clockwise. [m]                                       |
-| frame         | `uint8`   |              |            | The coordinate system of the fields: x, y, z.                                                                                                   |
-| x             | `float64` |              |            | X coordinate of center point. Coordinate system depends on frame field: local = x position in meters _ 1e4, global = latitude in degrees _ 1e7. |
-| y             | `float64` |              |            | Y coordinate of center point. Coordinate system depends on frame field: local = y position in meters _ 1e4, global = latitude in degrees _ 1e7. |
-| z             | `float32` |              |            | Altitude of center point. Coordinate system depends on frame field.                                                                             |
+| Name          | Type      | Unit [Frame] | Range/Enum | Description                                                                                                                                   |
+| ------------- | --------- | ------------ | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| timestamp     | `uint64`  |              |            | time since system start (microseconds)                                                                                                        |
+| radius        | `float32` |              |            | Radius of the orbit circle. Positive values orbit clockwise, negative values orbit counter-clockwise. [m]                                     |
+| frame         | `uint8`   |              |            | The coordinate system of the fields: x, y, z.                                                                                                 |
+| x             | `float64` |              |            | X coordinate of center point. Coordinate system depends on frame field: local = x position in meters _1e4, global = latitude in degrees_ 1e7. |
+| y             | `float64` |              |            | Y coordinate of center point. Coordinate system depends on frame field: local = y position in meters _1e4, global = latitude in degrees_ 1e7. |
+| z             | `float32` |              |            | Altitude of center point. Coordinate system depends on frame field.                                                                           |
 | yaw_behaviour | `uint8`   |              |            |
 
 ## Constants

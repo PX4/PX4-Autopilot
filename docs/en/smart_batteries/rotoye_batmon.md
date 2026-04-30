@@ -24,16 +24,20 @@ More details can be found [here](https://github.com/rotoye/batmon_reader)
 ### Build PX4 Firmware
 
 1. Clone or download [Rotoye's fork of PX4:](https://github.com/rotoye/PX4-Autopilot/tree/batmon_4.03)
+
    ```sh
    git clone https://github.com/rotoye/PX4-Autopilot.git
    cd PX4-Autopilot
    ```
-1. Checkout the _batmon_4.03_ branch
+
+2. Checkout the _batmon_4.03_ branch
+
    ```sh
    git fetch origin batmon_4.03
    git checkout batmon_4.03
    ```
-1. [Build and upload the firmware](../dev_setup/building_px4.md) for your target board
+
+3. [Build and upload the firmware](../dev_setup/building_px4.md) for your target board
 
 ### Configure Parameters
 
@@ -43,9 +47,10 @@ In _QGroundControl_:
    - `BATx_SOURCE` to `External`,
    - `SENS_EN_BAT` to `true`,
    - `BAT_SMBUS_MODEL` to `3:Rotoye`
-1. Open the [MAVLink Console](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/analyze_view/mavlink_console.html)
-1. Start the [batt_smbus driver](../modules/modules_driver.md) in the console.
+2. Open the [MAVLink Console](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/analyze_view/mavlink_console.html)
+3. Start the [batt_smbus driver](../modules/modules_driver.md) in the console.
    For example, to run two BatMons on the same bus:
+
    ```sh
    batt_smbus start -X -b 1 -a 11 # External bus 1, address 0x0b
    batt_smbus start -X -b 1 -a 12 # External bus 1, address 0x0c

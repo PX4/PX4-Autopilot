@@ -109,14 +109,14 @@ To switch between branches:
    make distclean
    ```
 
-1. Switch to a new branch or tag (here we first fetch the fictional branch "PR_test_branch" from the `upstream` remote):
+2. Switch to a new branch or tag (here we first fetch the fictional branch "PR_test_branch" from the `upstream` remote):
 
    ```sh
    git fetch upstream PR_test_branch
    git checkout PR_test_branch
    ```
 
-1. Get the submodules for the new branch:
+3. Get the submodules for the new branch:
 
    ```sh
    make submodulesclean
@@ -150,13 +150,13 @@ To get the source code for a _specific older release_ (tag):
 
    :::
 
-1. Checkout code for particular tag (e.g. for tag v1.13.0-beta2)
+2. Checkout code for particular tag (e.g. for tag v1.13.0-beta2)
 
    ```sh
    git checkout v1.13.0-beta2
    ```
 
-1. Update submodules:
+3. Update submodules:
 
    ```sh
    make submodulesclean

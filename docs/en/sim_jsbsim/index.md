@@ -26,13 +26,13 @@ These instructions were tested on Ubuntu 18.04
 :::
 
 1. Install the usual [Development Environment on Ubuntu LTS / Debian Linux](../dev_setup/dev_env_linux_ubuntu.md).
-1. Install a JSBSim release from the [release page](https://github.com/JSBSim-Team/jsbsim/releases/tag/Linux):
+2. Install a JSBSim release from the [release page](https://github.com/JSBSim-Team/jsbsim/releases/tag/Linux):
 
    ```sh
    dpkg -i JSBSim-devel_1.1.0.dev1-<release-number>.bionic.amd64.deb
    ```
 
-1. (Optional) FlightGear may (optionally) be used for visualisation.
+3. (Optional) FlightGear may (optionally) be used for visualisation.
    To install FlightGear, refer to the [FlightGear installation instructions](../sim_flightgear/index.md)).
 
 ## Running the Simulation
@@ -69,7 +69,7 @@ To run JSBSim with ROS:
    git clone https://github.com/Auterion/px4-jsbsim-bridge.git
    ```
 
-1. Build the `jsbsim_bridge` catkin package:
+2. Build the `jsbsim_bridge` catkin package:
 
    ```sh
    catkin build jsbsim_bridge
@@ -79,7 +79,7 @@ To run JSBSim with ROS:
    You must have already set MAVROS in your workspace (if not, follow the instructions in the [MAVROS installation guide](../ros/mavros_installation.md)).
    :::
 
-1. So start JSBSim through ROS using the launch file as shown:
+3. So start JSBSim through ROS using the launch file as shown:
 
    ```sh
    roslaunch jsbsim_bridge px4_jsbsim_bridge.launch

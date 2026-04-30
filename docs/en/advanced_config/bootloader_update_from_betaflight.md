@@ -19,16 +19,16 @@ Older versions should work, though the precise versions are not known.
 To install the PX4 bootloader using the _Betaflight Configurator_:
 
 1. Download or build [bootloader firmware](#bootloader-firmware) for the board you want to flash.
-1. Download the [Betaflight Configurator](https://github.com/betaflight/betaflight-configurator/releases) for your platform.
+2. Download the [Betaflight Configurator](https://github.com/betaflight/betaflight-configurator/releases) for your platform.
 
    :::tip
    If using the _Chrome_ web browser, a simple cross-platform alternative is to install the configurator as an [extension from here](https://chromewebstore.google.com/detail/betaflight-configurator/kdaghagfopacdngbohiknlhcocjccjao?pli=1).
    :::
 
-1. Connect the board to your PC and start the Configurator.
-1. Press the **Load Firmware [Local]** button
+3. Connect the board to your PC and start the Configurator.
+4. Press the **Load Firmware [Local]** button
    ![Betaflight Configurator - Local Firmware](../../assets/flight_controller/omnibus_f4_sd/betaflight_configurator.jpg)
-1. Select the bootloader binary from the file system and then flash the board.
+5. Select the bootloader binary from the file system and then flash the board.
 
 You should now be able to install PX4 firmware on the board.
 
@@ -128,5 +128,5 @@ In order to switch back to _Betaflight_:
 
 1. Backup the PX4 parameters.
    You can do this by [exporting](../advanced/parameters_and_configurations.md#exporting-and-loading-parameters) them to an SD card.
-1. Keep the **bootloader** button pressed while attaching the USB cable
-1. Flash _Betaflight_ as usual with the _Betaflight-configurator_
+2. Keep the **bootloader** button pressed while attaching the USB cable
+3. Flash _Betaflight_ as usual with the _Betaflight-configurator_

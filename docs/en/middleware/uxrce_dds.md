@@ -134,7 +134,7 @@ To build the agent within ROS:
    mkdir -p ~/px4_ros_uxrce_dds_ws/src
    ```
 
-1. Clone the source code for the eProsima [Micro-XRCE-DDS-Agent](https://github.com/eProsima/Micro-XRCE-DDS-Agent) to the `/src` directory (the `main` branch is cloned by default):
+2. Clone the source code for the eProsima [Micro-XRCE-DDS-Agent](https://github.com/eProsima/Micro-XRCE-DDS-Agent) to the `/src` directory (the `main` branch is cloned by default):
 
    ::::tabs
 
@@ -167,7 +167,7 @@ To build the agent within ROS:
 
    ::::
 
-1. Source the ROS 2 development environment, and compile the workspace using `colcon`:
+3. Source the ROS 2 development environment, and compile the workspace using `colcon`:
 
    :::: tabs
 
@@ -640,7 +640,7 @@ The list of topics that are published and subscribed for a particular firmware i
 
 See [Supported uORB Messages](#supported-uorb-messages) and [DDS Topics YAML](#dds-topics-yaml) sections for more information.
 
-#### Topics no longer need to be synced between client and agent.
+#### Topics no longer need to be synced between client and agent
 
 The list of bridged topics between agent and client no longer needs to be synced for ROS 2, so the `update_px4_ros2_bridge.sh` script is no longer needed.
 

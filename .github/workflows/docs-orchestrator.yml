@@ -2,7 +2,7 @@
 #
 # Trigger paths:
 #   push (main, release/**)  → metadata-regen → build-site → deploy-aws
-#   pull_request              → detect-changes → pr-metadata-regen → link-check → build-site (if docs/source changed)
+#   pull_request              → detect-changes → markdown-lint → pr-metadata-regen → link-check → build-site (if docs/source changed)
 #   workflow_dispatch         → metadata-regen → build-site → deploy-aws
 #
 # Container jobs (pr-metadata-regen, metadata-regen) run in px4-dev image and
@@ -25,6 +25,7 @@ on:
   pull_request:
     paths:
       - "docs/**"
+      - ".pre-commit-config.yaml"
       - ".github/workflows/docs-orchestrator.yml"
   workflow_dispatch:
 
@@ -60,12 +61,38 @@ jobs:
               - 'docs/**'
 
   # =============================================================================
+  # Markdown Lint (PR only) — gates all T2/T3 jobs
+  # =============================================================================
+  markdown-lint:
+    name: "T1.5: Markdown Lint"
+    needs: [detect-changes]
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - uses: pre-commit/action@v3
+        with:
+          extra_args: >
+            --from-ref ${{ github.event.pull_request.base.sha }}
+            --to-ref ${{ github.event.pull_request.head.sha }}
+
+  # =============================================================================
   # PR Metadata Regen (conditional - only when PR touches source files)
   # =============================================================================
   pr-metadata-regen:
     name: "T2: PR Metadata"
-    needs: [detect-changes]
-    if: github.event_name == 'pull_request' && needs.detect-changes.outputs.source_changed == 'true'
+    needs: [detect-changes, markdown-lint]
+    if: >-
+      github.event_name == 'pull_request' &&
+      needs.detect-changes.outputs.source_changed == 'true' &&
+      needs.markdown-lint.result == 'success'
     permissions:
       contents: read
     runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
@@ -181,11 +208,11 @@ jobs:
           apt-get install -y nodejs
           corepack enable
 
-      - name: Format markdown with Prettier
+      - name: Format generated metadata with Prettier
         run: |
           cd docs
           yarn install --frozen-lockfile
-          yarn prettier --write "en/**/*.md"
+          git diff --name-only | grep '\.md$' | xargs --no-run-if-empty yarn prettier --write
 
       - name: Commit and push changes
         run: |
@@ -206,8 +233,11 @@ jobs:
   # =============================================================================
   link-check:
     name: "T2: Link Check"
-    needs: [detect-changes, pr-metadata-regen]
-    if: always() && (github.event_name == 'pull_request')
+    needs: [detect-changes, pr-metadata-regen, markdown-lint]
+    if: >-
+      always() &&
+      (github.event_name == 'pull_request') &&
+      needs.markdown-lint.result == 'success'
     permissions:
       contents: read
     runs-on: ubuntu-latest
@@ -316,11 +346,12 @@ jobs:
   # =============================================================================
   build-site:
     name: "T3: Build Site"
-    needs: [detect-changes, pr-metadata-regen, metadata-regen, link-check]
+    needs: [detect-changes, pr-metadata-regen, metadata-regen, link-check, markdown-lint]
     if: >-
       always() &&
       (needs.metadata-regen.result == 'success' || needs.metadata-regen.result == 'skipped') &&
       (needs.link-check.result == 'success' || needs.link-check.result == 'skipped') &&
+      (needs.markdown-lint.result == 'success' || needs.markdown-lint.result == 'skipped') &&
       (github.event_name != 'pull_request' || needs.detect-changes.outputs.docs_changed == 'true' || needs.detect-changes.outputs.source_changed == 'true')
     permissions:
       contents: read

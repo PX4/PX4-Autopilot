@@ -77,7 +77,7 @@ See the existing [`msg`](../msg_docs/index.md) files for other examples of how m
 ### Multi-Topic Messages
 
 Sometimes it is useful to use the same message definition for multiple topics.
-This can be specified at the end of the message using a line prefixed with `# TOPICS `, followed by space-separated topic ids.
+This can be specified at the end of the message using a line prefixed with `# TOPICS`, followed by space-separated topic ids.
 For example, the [ActuatorOutputs](../msg_docs/ActuatorOutputs.md) message definition is used to define the topic ids as shown:
 
 ```text

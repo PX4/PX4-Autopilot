@@ -31,7 +31,7 @@ Note that if landed, the next mission item after deployment should be another `W
 To create a package delivery mission (with a Gripper):
 
 1. Create a normal mission with a `Takeoff` mission item, and additional waypoints for your required flight path.
-1. Add a waypoint on the map for where you'd like to release the package.
+2. Add a waypoint on the map for where you'd like to release the package.
    - To drop the package while flying set an appropriate altitude for the waypoint (and ensure the waypoint is at a safe location to drop the package).
 
    - If you'd like to land the vehicle to make the delivery you will need to change the `Waypoint` to a `Land` mission item.
@@ -39,18 +39,18 @@ To create a package delivery mission (with a Gripper):
 
      ![Waypoint to Land mission item](../../assets/flying/package_delivery_land_waypoint.png)
 
-1. Add a waypoint on the map (anywhere) for the gripper release.
+3. Add a waypoint on the map (anywhere) for the gripper release.
    To change this to a `Gripper Mechanism` select the "Waypoint" heading, and in the popup changing the group to "Advanced", then selecting `Gripper Mechanism`.
 
    ![Action waypoint](../../assets/flying/qgc_mission_gripper_mechanism_item_example.png)
 
-1. Configure the action for the gripper in the editor.
+4. Configure the action for the gripper in the editor.
 
    ![Gripper action setting](../../assets/flying/qgc_mission_plan_gripper_action_setting.png)
    - Set it to "Release" in order to release the package.
    - The gripper ID does not need to be set for now.
 
-1. Add additional waypoints for the remainder of the path.
+5. Add additional waypoints for the remainder of the path.
    If you landed, then remember that you must include a waypoint after the `Gripper Mechanism` before adding a `Return` mission item.
 
 ### Example Plans
