@@ -207,13 +207,32 @@ bool UxrceddsClient::setupSession(uxrSession *session)
 
 	bool got_response = false;
 
-	while (!should_exit() && !got_response) {
+	// LOCAL FIX (uxrce-dds-stability-2026-04-30):
+	// Original loop was unbounded — `while (!should_exit() && !got_response)`
+	// with 1 second per attempt. On a permanently absent agent or a stuck
+	// serial driver, this spins indefinitely with zero diagnostic output to
+	// the operator. Now: bounded to MAX_PING_ATTEMPTS, with periodic status
+	// logs so the operator sees progress, and returning false on exhaustion
+	// lets the outer run() loop tear down and retry init() (which closes and
+	// reopens the underlying transport — the only known recovery for stuck
+	// USB-CDC / serial fds on Linux side).
+	static constexpr unsigned MAX_PING_ATTEMPTS = 30;
+	unsigned ping_attempt = 0;
+
+	while (!should_exit() && !got_response && ping_attempt < MAX_PING_ATTEMPTS) {
 		// Sending ping without initing a XRCE session
 		got_response = uxr_ping_agent_attempts(_comm, 1000, 1);
+		ping_attempt++;
+
+		if (!got_response && (ping_attempt == 1 || ping_attempt % 5 == 0)) {
+			PX4_WARN("waiting for agent ping reply (attempt %u/%u)",
+				 ping_attempt, MAX_PING_ATTEMPTS);
+		}
 	}
 
 	if (!got_response) {
-		PX4_ERR("got no ping from agent");
+		PX4_ERR("got no ping from agent after %u attempts; will retry from transport init",
+			ping_attempt);
 		return false;
 	}
 
@@ -363,10 +382,15 @@ bool UxrceddsClient::setupSession(uxrSession *session)
 	}
 
 	// create VehicleCommand replier
+	// LOCAL FIX (uxrce-dds-stability-2026-04-30):
+	// add_replier() now returns true on success / false on failure (standard
+	// convention). Caller inverted accordingly. The outer `_num_of_repliers <
+	// MAX_NUM_REPLIERS` is now redundant (add_replier checks internally and
+	// frees on overflow), but kept for clarity / defense in depth.
 	if (_num_of_repliers < MAX_NUM_REPLIERS) {
-		if (add_replier(new VehicleCommandSrv(session, _reliable_out, reliable_in, _participant_id, _client_namespace,
-						      _num_of_repliers))) {
-			PX4_ERR("replier init failed");
+		if (!add_replier(new VehicleCommandSrv(session, _reliable_out, reliable_in, _participant_id, _client_namespace,
+						       _num_of_repliers))) {
+			PX4_ERR("replier init failed (capacity %u exhausted or alloc failed)", MAX_NUM_REPLIERS);
 			return false;
 		}
 	}
@@ -391,6 +415,16 @@ void UxrceddsClient::deleteSession(uxrSession *session)
 	_connected = false;
 	_last_payload_tx_rate = 0;
 	_timesync.reset_filter();
+
+	// LOCAL FIX (uxrce-dds-stability-2026-04-30):
+	// Defense-in-depth: reset connectivity counters and ping bookkeeping at
+	// session teardown, not just on next setup success. Original code only
+	// called resetConnectivityCounters() AFTER a fresh setupSession() returned
+	// success (line ~647). Doing it here too ensures any code path that reads
+	// these fields between deleteSession() and the next setup sees clean
+	// state, eliminating a class of "spurious instant disconnect after
+	// reconnect" failures (cf. PX4 issue #26022).
+	resetConnectivityCounters();
 }
 
 UxrceddsClient::~UxrceddsClient()
@@ -868,13 +902,26 @@ bool UxrceddsClient::setBaudrate(int fd, unsigned baud)
 
 bool UxrceddsClient::add_replier(SrvBase *replier)
 {
-	if (_num_of_repliers < MAX_NUM_REPLIERS) {
-		_repliers[_num_of_repliers] = replier;
-
-		_num_of_repliers++;
+	// LOCAL FIX (uxrce-dds-stability-2026-04-30):
+	// Original implementation always returned `false` regardless of outcome.
+	// Combined with the caller's `if (add_replier(...)) PX4_ERR("replier init failed")`
+	// pattern, this had two failure modes:
+	//   1. When MAX_NUM_REPLIERS exceeded, the new replier is silently leaked
+	//      and the caller never sees an error.
+	//   2. The "init failed" error log path is unreachable on success, but
+	//      the inverted-sense convention is fragile and likely a copy/paste
+	//      bug from an earlier helper that returned -EBUSY style.
+	// New convention: return true on SUCCESS, false on FAILURE (standard).
+	// Caller updated correspondingly.
+	if (_num_of_repliers >= MAX_NUM_REPLIERS) {
+		// Out of capacity — caller passed ownership; release to avoid leak.
+		delete replier;
+		return false;
 	}
 
-	return false;
+	_repliers[_num_of_repliers] = replier;
+	_num_of_repliers++;
+	return true;
 }
 
 void UxrceddsClient::process_requests(uxrObjectId object_id, SampleIdentity *sample_id, ucdrBuffer *ub,
