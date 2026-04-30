@@ -177,7 +177,10 @@ endif
 # --------------------------------------------------------------------
 # describe how to build a cmake config
 define cmake-build
-	$(eval override CMAKE_ARGS += -DCONFIG=$(1))
+	# Strip BUILD_DIR_SUFFIX (e.g. _replay, _failsafe_web) from CONFIG so the
+	# board lookup in cmake/px4_config.cmake sees the bare <vendor>_<model>_<label>
+	# even when the build dir is suffixed for variant builds.
+	$(eval override CMAKE_ARGS += -DCONFIG=$(patsubst %$(BUILD_DIR_SUFFIX),%,$(1)))
 	@$(eval BUILD_DIR = "$(SRC_DIR)/build/$(1)")
 	@# check if the desired cmake configuration matches the cache then CMAKE_CACHE_CHECK stays empty
 	@$(call cmake-cache-check)
