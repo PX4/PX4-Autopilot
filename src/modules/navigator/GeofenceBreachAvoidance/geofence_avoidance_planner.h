@@ -98,17 +98,6 @@ struct PlannedPath {
 	}
 };
 
-struct VisibleVertex {
-	int index;
-	float distance;
-};
-
-struct VisibleVertices {
-	VisibleVertex items[kMaxNodes];
-	int count{0};
-};
-
-
 struct Node {
 	enum Type : uint8_t {
 		START,
