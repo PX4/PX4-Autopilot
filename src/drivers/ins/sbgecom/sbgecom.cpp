@@ -503,6 +503,9 @@ void SbgEcom::handleLogGnssPosVelHdt(SbgEComMsgId msg, const SbgEComLogUnion *re
 				      pow(gnss_data->gps_pos.latitudeAccuracy, 2));
 		sensor_gps.epv = gnss_data->gps_pos.altitudeAccuracy;
 
+		sensor_gps.hdop = sensor_gps.eph;
+		sensor_gps.vdop = sensor_gps.epv;
+
 		state = sbgEComLogGnssPosGetIfmStatus(&gnss_data->gps_pos);
 
 		switch (state) {
