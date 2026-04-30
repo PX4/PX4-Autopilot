@@ -73,10 +73,12 @@ const PlannedPath &GeofenceAvoidancePlanner::planPath()
 
 	// reset to the start location
 	int graph_index = 0;
-	int last_graph_index = 0;
 
 	while (true) {
 		// update the best distances to all neighbouring nodes
+		float min_dist = INFINITY;
+		int next_graph_index = -1;
+
 		for (int i = 0; i < _num_nodes; i++) {
 			if (i == graph_index) {
 				continue;
@@ -84,7 +86,7 @@ const PlannedPath &GeofenceAvoidancePlanner::planPath()
 
 			const float distance_to_neighbor = _distances[geofence_utils::symmetricPairIndex(graph_index, i, _num_nodes)];
 
-			if (distance_to_neighbor != INFINITY) {
+			if (distance_to_neighbor < INFINITY) {
 				const float total_distance_to_neighbor = distance_to_neighbor + _graph_nodes[graph_index].best_distance;
 
 				if (total_distance_to_neighbor < _graph_nodes[i].best_distance) {
@@ -92,30 +94,27 @@ const PlannedPath &GeofenceAvoidancePlanner::planPath()
 					_graph_nodes[i].previous_index = graph_index;
 				}
 			}
-		}
 
-		// find the unvisited node with the smallest best distance
-		last_graph_index = graph_index;
-		float min_dist = INFINITY;
-
-		for (int i = 0; i < _num_nodes; i++) {
 			if (!_graph_nodes[i].visited && _graph_nodes[i].best_distance < min_dist) {
 				min_dist = _graph_nodes[i].best_distance;
-				graph_index = i;
+				next_graph_index = i;
 			}
 		}
 
-		if (last_graph_index == graph_index) {
+		graph_index = next_graph_index;
+
+		if (graph_index < 0) {
 			// we are stuck, destination does not seem to be reachable
 			perf_end(_plan_path_perf);
 			return _planned_path;
 		}
 
+		_graph_nodes[graph_index].visited = true;
+
 		if (_graph_nodes[graph_index].type == Node::DESTINATION) {
 			break;
 		}
 
-		_graph_nodes[graph_index].visited = true;
 	}
 
 	// backtrack from destination to start and count the nodes along the way
