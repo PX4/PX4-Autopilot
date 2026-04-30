@@ -291,6 +291,14 @@ parameters:
         1: Deny arming
         2: Warning only
       default: 2
+    COM_ARM_META_CHK:
+      description:
+        short: Enable SD card metadata integrity check
+        long: |-
+          Verifies SD card files match the firmware version at startup.
+          If disabled, no check is performed.
+      type: boolean
+      default: 1
     COM_RC_OVERRIDE:
       description:
         short: Enable manual control stick override
