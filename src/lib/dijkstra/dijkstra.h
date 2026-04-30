@@ -47,10 +47,19 @@
  *         u = s; while (u != goal) { emit(u); u = next_node[u]; }
  *      No re-planning, no backtracking, no temporary buffers.
  *
- * The cost matrix is row-major with `cost[i * num_nodes + j]` giving the cost
- * of the directed edge i -> j. Costs may be asymmetric. Entries equal to
- * +INFINITY or NaN are treated as missing edges. Negative costs are not
- * supported (Dijkstra assumes non-negative edge weights).
+ * Two cost-matrix layouts are supported, selected by the `symmetric` flag:
+ *
+ *   - Asymmetric (default, symmetric = false): full N*N row-major matrix.
+ *     `cost[i * num_nodes + j]` is the cost of the directed edge i -> j.
+ *
+ *   - Symmetric (symmetric = true): packed upper triangle, no diagonal.
+ *     Buffer length is N*(N-1)/2 floats. The cost of the (undirected) edge
+ *     between i and j (i != j) is at:
+ *         offset(i, j) = a*(2*N - a - 1)/2 + (b - a - 1),  where a = min(i,j), b = max(i,j)
+ *     Self-loops are not stored; Dijkstra ignores them anyway.
+ *
+ * Entries equal to +INFINITY or NaN are treated as missing edges. Negative
+ * costs are not supported (Dijkstra assumes non-negative edge weights).
  */
 
 #pragma once
@@ -66,11 +75,13 @@ static constexpr float kUnreachable = INFINITY;
 /**
  * Compute backward shortest paths from every node to `goal`.
  *
- * @param num_nodes  number of nodes; cost is num_nodes x num_nodes row-major.
+ * @param num_nodes  number of nodes.
  * @param goal       target node index in [0, num_nodes).
- * @param cost       row-major N*N matrix; cost[i*num_nodes + j] is the cost of
- *                   the directed edge i -> j, or +INFINITY / NaN if there is
- *                   no edge. The diagonal is ignored.
+ * @param cost       cost buffer; layout depends on `symmetric` (see above).
+ *                   Missing edges are encoded as +INFINITY or NaN.
+ * @param symmetric  if true, `cost` is the packed upper triangle of a symmetric
+ *                   matrix (length N*(N-1)/2). If false, `cost` is the full
+ *                   N*N row-major matrix and edges may be asymmetric.
  * @param best_cost  out, length num_nodes: best_cost[i] = shortest cost from i
  *                   to goal, or kUnreachable. best_cost[goal] = 0.
  * @param next_node  out, length num_nodes: next_node[i] = the node to step to
@@ -83,7 +94,7 @@ static constexpr float kUnreachable = INFINITY;
  *         false otherwise. A `true` return does not imply that goal is
  *         reachable from any particular node — check best_cost[i] for that.
  */
-bool solveBackward(int num_nodes, int goal, const float *cost,
+bool solveBackward(int num_nodes, int goal, const float *cost, bool symmetric,
 		   float *best_cost, int *next_node, bool *visited);
 
 } // namespace dijkstra
