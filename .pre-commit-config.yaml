@@ -15,24 +15,24 @@
 #
 # Run manually on all docs/en/ markdown:
 #   pre-commit run prettier --all-files
-#   pre-commit run markdownlint-cli2 --all-files
+#   pre-commit run markdownlint-cli2-fix --all-files
 
 repos:
   # Prettier: auto-formats docs/en/**/*.md
   # Config: docs/.prettierrc (discovered by walking up from each linted file)
-  - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: "v3.1.0"
+  - repo: https://github.com/rbubley/mirrors-prettier
+    rev: "v3.2.5"
     hooks:
       - id: prettier
         files: ^docs/en/.*\.md$
         additional_dependencies:
-          - prettier@3.1.0
+          - prettier@3.2.5
 
   # markdownlint-cli2: lints and auto-fixes docs/en/**/*.md
-  # Config: docs/.markdownlint.jsonc (discovered by walking up from each linted file)
+  # Config: docs/.markdownlint-cli2.jsonc (discovered by walking up from each linted file)
   - repo: https://github.com/DavidAnson/markdownlint-cli2
     rev: "v0.22.0"
     hooks:
-      - id: markdownlint-cli2
-        name: markdownlint
+      - id: markdownlint-cli2-fix
+        name: markdownlint-fix
         files: ^docs/en/.*\.md$

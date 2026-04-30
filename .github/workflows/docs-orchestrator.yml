@@ -77,7 +77,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
-      - uses: pre-commit/action@v3.0.1
+      - uses: pre-commit/action@v3
         with:
           extra_args: >
             --from-ref ${{ github.event.pull_request.base.sha }}
