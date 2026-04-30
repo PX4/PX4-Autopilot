@@ -36,7 +36,7 @@
 namespace dijkstra
 {
 
-bool solveBackward(int num_nodes, int goal, const float *cost,
+bool solveBackward(int num_nodes, int goal, const float *cost, bool symmetric,
 		   float *best_cost, int *next_node, bool *visited)
 {
 	if (num_nodes <= 0 || goal < 0 || goal >= num_nodes
@@ -69,7 +69,19 @@ bool solveBackward(int num_nodes, int goal, const float *cost,
 				continue;
 			}
 
-			const float edge = cost[v * num_nodes + u];
+			// Edge v -> u. For asymmetric layout, look up the (v, u) entry directly.
+			// For symmetric packed upper-triangular: index by (min(v,u), max(v,u)).
+			// `symmetric` is loop-invariant; the compiler is expected to unswitch.
+			float edge;
+
+			if (symmetric) {
+				const int a = v < u ? v : u;
+				const int b = v < u ? u : v;
+				edge = cost[a * (2 * num_nodes - a - 1) / 2 + (b - a - 1)];
+
+			} else {
+				edge = cost[v * num_nodes + u];
+			}
 
 			// Treat +INFINITY and NaN as missing edges. `edge < kUnreachable` is false for
 			// both because NaN is unordered and INFINITY < INFINITY is false.
