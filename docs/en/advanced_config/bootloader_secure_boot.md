@@ -23,19 +23,20 @@ Verification is fast (no random number generator is required on the device), and
 A signed firmware image lays out in flash like this:
 
 ```txt
-+---------------------------+  APP_LOAD_ADDRESS
-| Vector table              |
-+---------------------------+  APP_LOAD_ADDRESS + BOARD_IMAGE_TOC_OFFSET
-| Image TOC                 |
-+---------------------------+
-| .text / .rodata / .data   |
-+---------------------------+  &_boot_signature
-| 64-byte ed25519 signature |
-+---------------------------+
++---------------------------+  APP_LOAD_ADDRESS              ─┐
+| Vector table              |                                 │
++---------------------------+  APP_LOAD_ADDRESS               │
+| Image TOC                 |    + BOARD_IMAGE_TOC_OFFSET     │ BOOT region
++---------------------------+                                 │ (hashed and signed)
+| .text / .rodata / .data   |                                 │
++---------------------------+  &_boot_signature              ─┤
+| 64-byte ed25519 signature |                                 │ SIG1
++---------------------------+                                ─┘
 ```
 
 The **Table of Contents (TOC)** is a small data structure compiled into the firmware that tells the bootloader which region to hash and which key slot to verify against.
 Its format is defined in [`src/include/image_toc.h`](https://github.com/PX4/PX4-Autopilot/blob/main/src/include/image_toc.h).
+For px4_fmu-v6x the TOC declares two entries: **BOOT** (the firmware bytes to verify) and **SIG1** (the 64-byte ed25519 signature to verify them against).
 
 On reset the bootloader reads the TOC at a fixed offset, computes an ed25519 signature over the BOOT region, and compares it to the SIG1 entry.
 If the signature verifies it jumps to the app; otherwise it stays in the bootloader and waits for a new upload.
