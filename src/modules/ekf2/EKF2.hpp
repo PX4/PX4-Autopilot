@@ -510,29 +510,36 @@ private:
 	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_gnss_yaw_pub {ORB_ID(estimator_aid_src_gnss_yaw)};
 # endif // CONFIG_EKF2_GNSS_YAW
 
-	struct GpsAltDriftDetector {
+	class GpsAltDriftDetector
+	{
+	public:
 		static constexpr int kWindowSize = 20; // roughly 20 seconds (at 1 Hz sample rate)
 		static constexpr int kStabilityWindow = 5; // samples to check for re-enable
 		static constexpr float kBaroLpfTimeConst = 3.f;
 		static constexpr float kDriftThreshold = 1.f; // [m]
 
-		AlphaFilter<float> baro_lpf;
-		uint64_t last_baro_ts{0};
-		uint64_t last_gps_ts{0};
-		float vel_integral{0.f};
-
-		float d1[kWindowSize] {}; // ekf_amsl - baro_alt
-		float d2[kWindowSize] {}; // ekf_amsl - vel_integral
-		int widx{0};
-		int wcount{0};
-		uint64_t last_sample_ts{0};
-		bool hit_pending{false};
-		bool altitude_good_for_local_control{true};
-		float altitude_offset{0.f};
-
 		void updateBaroLpf(float baro_alt, uint64_t timestamp);
 		void update(const sensor_gps_s &gps, float ekf_amsl, uORB::PublicationMulti<gps_altitude_drift_correction_s> &pub);
 		void reset();
+
+		bool altitude_good_for_local_control{true};
+
+	private:
+		void analyze(uORB::PublicationMulti<gps_altitude_drift_correction_s> &pub);
+		void publishCorrection(uORB::PublicationMulti<gps_altitude_drift_correction_s> &pub, float offset);
+
+		AlphaFilter<float> _baro_lpf;
+		uint64_t _last_baro_ts{0};
+		uint64_t _last_gps_ts{0};
+		float _vel_integral{0.f};
+
+		float _d1[kWindowSize] {}; // ekf_amsl - baro_alt
+		float _d2[kWindowSize] {}; // ekf_amsl - vel_integral
+		int _widx{0};
+		int _wcount{0};
+		uint64_t _last_sample_ts{0};
+		bool _hit_pending{false};
+		float _altitude_offset{0.f};
 	};
 
 	GpsAltDriftDetector _gps_alt_drift{};
