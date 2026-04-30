@@ -165,9 +165,11 @@ Since we care about safety, we will regularly ask you for test results. Best is 
 
 ## Documentation contributions
 
-Changes to `docs/en/` markdown files are automatically linted (markdownlint) and formatted (prettier) on commit.
+Changes to staged `docs/en/` markdown files are automatically linted (markdownlint) and formatted (prettier) on commit (other changed files are ignored).
+The same checks are run in CI when docs changes are merged into main.
 
-The hooks run only when `docs/en/**/*.md` files are staged — contributors who never touch docs are unaffected.
+> [!NOTE]
+> Running checks on commit ensures that your local copy is always up to date, so you don't need to pull upstream before making your next commit.
 
 ### One-time hook setup
 
