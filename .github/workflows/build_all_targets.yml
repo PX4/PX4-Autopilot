@@ -204,7 +204,10 @@ jobs:
       - name: Install pynacl for secure-boot signing
         # TODO: drop once the build container ships with pynacl preinstalled
         # (currently pinned to v1.17.0-rc2 in Tools/ci/build_all_config.yml).
-        run: pip install pynacl --break-system-packages
+        # Modern containers enforce PEP 668 and need --break-system-packages;
+        # older ones (e.g. voxl2) ship a pip that doesn't know the flag and
+        # don't need it either, so fall back to plain pip install.
+        run: pip install pynacl --break-system-packages || pip install pynacl
 
       - name: Building Artifacts for [${{ matrix.targets }}]
         run: |
