@@ -76,36 +76,21 @@ const PlannedPath &GeofenceAvoidancePlanner::planPath()
 	int last_graph_index = 0;
 
 	while (true) {
-		// get visible vertices from current node
-
-		VisibleVertices visible_vertices = {};
-		int visible_count = 0;
-
+		// update the best distances to all neighbouring nodes
 		for (int i = 0; i < _num_nodes; i++) {
-
 			if (i == graph_index) {
 				continue;
 			}
 
-			const float distance = _distances[geofence_utils::symmetricPairIndex(graph_index, i, _num_nodes)];
+			const float distance_to_neighbor = _distances[geofence_utils::symmetricPairIndex(graph_index, i, _num_nodes)];
 
-			if (distance < INFINITY) {
-				visible_vertices.items[visible_count].index = i;
-				visible_vertices.items[visible_count].distance = distance;
-				visible_count++;
-			}
-		}
+			if (distance_to_neighbor != INFINITY) {
+				const float total_distance_to_neighbor = distance_to_neighbor + _graph_nodes[graph_index].best_distance;
 
-		visible_vertices.count = visible_count;
-
-		// update the best distances to all neighbouring nodes
-		for (int i = 0; i < visible_vertices.count; i++) {
-			const int idx = visible_vertices.items[i].index;
-			const float distance = visible_vertices.items[i].distance + _graph_nodes[graph_index].best_distance;
-
-			if (distance < _graph_nodes[idx].best_distance) {
-				_graph_nodes[idx].best_distance = distance;
-				_graph_nodes[idx].previous_index = graph_index;
+				if (total_distance_to_neighbor < _graph_nodes[i].best_distance) {
+					_graph_nodes[i].best_distance = total_distance_to_neighbor;
+					_graph_nodes[i].previous_index = graph_index;
+				}
 			}
 		}
 
