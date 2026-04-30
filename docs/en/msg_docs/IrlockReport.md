@@ -16,8 +16,8 @@ IRLOCK_REPORT message data.
 | signature | `uint16`  |              |            |
 | pos_x     | `float32` |              |            | tan(theta), where theta is the angle between the target and the camera center of projection in camera x-axis |
 | pos_y     | `float32` |              |            | tan(theta), where theta is the angle between the target and the camera center of projection in camera y-axis |
-| size_x    | `float32` |              |            | /** size of target along camera x-axis in units of tan(theta) **/                                            |
-| size_y    | `float32` |              |            | /** size of target along camera y-axis in units of tan(theta) **/                                            |
+| size_x    | `float32` |              |            | /**size of target along camera x-axis in units of tan(theta)**/                                            |
+| size_y    | `float32` |              |            | /**size of target along camera y-axis in units of tan(theta)**/                                            |
 
 ## Source Message
 

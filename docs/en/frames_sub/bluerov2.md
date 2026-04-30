@@ -101,7 +101,7 @@ BlueROV2 does not come with PX4 installed.
 You will need to:
 
 1. [Install PX4 Firmware](../config/firmware.md#installing-px4-main-beta-or-custom-firmware)
-1. [Set the Airframe](../config/airframe.md).
+2. [Set the Airframe](../config/airframe.md).
    You will need to select the "BlueROV2 Heavy Configuration" as shown:
    ![QGC - select airframe for BlueROV2 Heay configuration](../../assets/airframes/sub/bluerov/qgc_airframe.jpg)
 

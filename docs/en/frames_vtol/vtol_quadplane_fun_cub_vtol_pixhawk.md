@@ -66,8 +66,8 @@ For further instructions on wiring and configurations please see:
 
    ![QCG - Select Generic Standard VTOL](../../assets/qgc/setup/airframe/px4_frame_generic_standard_vtol.png)
 
-1. Configure the outputs and geometry following the instructions in [Actuators Configuration](../config/actuators.md)
-1. The default parameters are often sufficient for stable flight. For more detailed tuning information see [Standard VTOL Wiring and Configuration](../config_vtol/vtol_quad_configuration.md).
+2. Configure the outputs and geometry following the instructions in [Actuators Configuration](../config/actuators.md)
+3. The default parameters are often sufficient for stable flight. For more detailed tuning information see [Standard VTOL Wiring and Configuration](../config_vtol/vtol_quad_configuration.md).
 
 After you finish calibration the VTOL is ready to fly.
 

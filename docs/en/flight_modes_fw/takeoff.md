@@ -92,8 +92,8 @@ All RC stick movement is ignored during the full takeoff sequence.
 To launch in this mode:
 
 1. Arm the vehicle
-1. Put the vehicle into _Takeoff mode_
-1. Launch/throw the vehicle (firmly) directly into the wind.
+2. Put the vehicle into _Takeoff mode_
+3. Launch/throw the vehicle (firmly) directly into the wind.
    You can also shake the vehicle first, wait till the motor spins up and then throw it
 
 ### Parameters (Launch Detector)

@@ -103,15 +103,15 @@ You must supply power to one of **POWER1**, **POWER2** or **USB** or the board w
 Under these conditions all power sources will be used in this order to power the system:
 
 1. **POWER1** and **POWER2** inputs (4.9V to 5.5V)
-1. **USB** input (4.75V to 5.25V)
+2. **USB** input (4.75V to 5.25V)
 
 **Absolute Maximum Ratings**
 
 Under these conditions the system will not draw any power (will not be operational), but will remain intact.
 
 1. **POWER1** and **POWER2** inputs (operational range 4.1V to 5.7V, 0V to 10V undamaged)
-1. **USB** input (operational range 4.1V to 5.7V, 0V to 6V undamaged)
-1. Servo input: VDD_SERVO pin of **FMU PWM OUT** and **I/O PWM OUT** (0V to 42V undamaged)
+2. **USB** input (operational range 4.1V to 5.7V, 0V to 6V undamaged)
+3. Servo input: VDD_SERVO pin of **FMU PWM OUT** and **I/O PWM OUT** (0V to 42V undamaged)
 
 ## Assembly/Setup
 

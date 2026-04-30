@@ -34,20 +34,20 @@ Geofence planning is fully documented in [Plan View > GeoFence](https://docs.qgr
 In summary:
 
 1. Open _QGroundControl > Plan View_.
-1. Select the _Plan Type_ radio button: **Fence**.
+2. Select the _Plan Type_ radio button: **Fence**.
    This will display the _GeoFence Editor_.
    ![Geofence Plan](../../assets/qgc/plan_geofence/geofence_editor.jpg)
-1. Select the **Polygon Fence** or **Circular Fence** button to add a _basic_ fence of the desired type to the map.
+3. Select the **Polygon Fence** or **Circular Fence** button to add a _basic_ fence of the desired type to the map.
    This also adds an entry for the type of fence in the editor.
-1. Use the map to configure the shape and position of the fence.
+4. Use the map to configure the shape and position of the fence.
    - The fence center marker can be used to move the fence to the correct position.
    - The marker on the border of a circular fence can be used to change the radius.
    - The markers on corners (vertices) can be used to change the geometry of a polygon.
      Additional vertices are created by clicking halfway along the lines between existing markers.
-1. Use the _Geofence Editor_ to set a fence as an inclusion or exclusion, and to select a fence to edit (**Edit** radio button) or Delete (**Del** button).
-1. Add as many fences as you like.
-1. Once finished, click on the **Upload** button (top right) to send the fence (along with rally points and mission) to the vehicle.
-1. Set the breach action in the [Geofence Failsafe](../config/safety.md#geofence-failsafe).
+5. Use the _Geofence Editor_ to set a fence as an inclusion or exclusion, and to select a fence to edit (**Edit** radio button) or Delete (**Del** button).
+6. Add as many fences as you like.
+7. Once finished, click on the **Upload** button (top right) to send the fence (along with rally points and mission) to the vehicle.
+8. Set the breach action in the [Geofence Failsafe](../config/safety.md#geofence-failsafe).
 
 ::: info
 Any geofence that does not include the Home position will be rejected by the flight controller and not uploaded.

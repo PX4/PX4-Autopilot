@@ -52,17 +52,17 @@ To calibrate the ESCs:
    However if calibration starts when the ESC is already powered, or if the ESC doesn't properly support/detect the calibration sequence, then it will respond to the PWM input by running the motor at maximum speed.
    :::
 
-1. Map the ESCs you're calibrating as motors in the vehicle's [Actuator Configuration](../config/actuators.md).
+2. Map the ESCs you're calibrating as motors in the vehicle's [Actuator Configuration](../config/actuators.md).
    Only mapped actuators get an output and only ESCs mapped as motors will be calibrated.
 
-1. Unpower the ESCs by unplugging the battery.
+3. Unpower the ESCs by unplugging the battery.
    The flight controller must stay powered, for example, by keeping the USB connected to the ground station.
 
-1. Open the _QGroundControl_ **Settings > Power**, then press the **Calibrate** button.
+4. Open the _QGroundControl_ **Settings > Power**, then press the **Calibrate** button.
 
    ![ESC Calibration step 1](../../assets/qgc/setup/esc/qgc_esc_calibration.png)
 
-1. After starting the calibration sequence without error, directly power the ESCs (you should be prompted):
+5. After starting the calibration sequence without error, directly power the ESCs (you should be prompted):
 
    ![ESC Calibration step 2](../../assets/qgc/setup/esc/esc_calibration_step_2.png)
 
@@ -70,14 +70,14 @@ To calibrate the ESCs:
 
    ![ESC Calibration step 3](../../assets/qgc/setup/esc/esc_calibration_step_3.png)
 
-1. During the calibration you should hear model-specific beeping from the ESC, which indicates the individual steps of the calibration.
+6. During the calibration you should hear model-specific beeping from the ESC, which indicates the individual steps of the calibration.
 
    You will be prompted when the calibration completes.
 
    <a id="actuatorconfig_step"></a>
    ![ESC Calibration step 4](../../assets/qgc/setup/esc/esc_calibration_step_4.png)
 
-1. Go back to the [Actuator Configuration](../config/actuators.md) section.
+7. Go back to the [Actuator Configuration](../config/actuators.md) section.
 
    Following ESC calibration all motors with the same (re)calibrated ESCs should behave in the same way for the same inputs. The default PWM settings for motor outputs in the actuator configuration should now work out of the box.
 
@@ -130,10 +130,10 @@ To calibrate the ESCs:
 
    <a id="problem_power_module"></a>
 
-1. Calibration cannot be started if you have a power module configured and connected (for safety reasons).
+2. Calibration cannot be started if you have a power module configured and connected (for safety reasons).
 
    Unplug power to the ESCs first.
    If you're blocked because a power module is necessary to keep your flight controller alive, but you can (un)power the ESCs separately, you can temporarily disable the detection of the power module just for the ESC calibration using the parameters [BATn_SOURCE](../advanced_config/parameter_reference.md#BAT1_SOURCE). Once the power module that's powering the autopilot is not detected as battery anymore a timing based calibration is possible.
 
-1. PX4 will abort calibration (for safety reasons) if the system detects an increase in current consumption immediately after initiating calibration.
+3. PX4 will abort calibration (for safety reasons) if the system detects an increase in current consumption immediately after initiating calibration.
    This requires a power module.

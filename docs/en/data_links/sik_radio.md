@@ -24,8 +24,8 @@ The SiK repository does not currently firmware for RFD900x or RFD900ux telemetry
 In order to update firmware on these radios (for instance, in order to support MAVLink v2.0), the following process is suggested:
 
 1. Download the appropriate firmware from the [RFDesign website](https://files.rfdesign.com.au/firmware/).
-1. On a Windows PC, download and install [RFD Modem Tools](https://files.rfdesign.com.au/tools/).
-1. Use the RFD Modem Tools GUI to upload the firmware to your RFD900x or RFD900ux telemetry radio.
+2. On a Windows PC, download and install [RFD Modem Tools](https://files.rfdesign.com.au/tools/).
+3. Use the RFD Modem Tools GUI to upload the firmware to your RFD900x or RFD900ux telemetry radio.
 
 :::
 

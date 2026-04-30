@@ -84,25 +84,25 @@ echo "PermitRootLogin yes" >>  /etc/ssh/sshd_config && systemctl restart sshd
       ```
 
       1. ENTER //no passphrase
-      1. ENTER
-      1. ENTER
+      2. ENTER
+      3. ENTER
 
-   1. Define the BeagleBone Blue board as `beaglebone` in **/etc/hosts** and copy the public SSH key to the board for password-less SSH access:
+   2. Define the BeagleBone Blue board as `beaglebone` in **/etc/hosts** and copy the public SSH key to the board for password-less SSH access:
 
       ```sh
       ssh-copy-id debian@beaglebone
       ```
 
-   1. Alternatively you can use the beaglebone's IP directly:
+   3. Alternatively you can use the beaglebone's IP directly:
 
       ```sh
       ssh-copy-id debian@<IP>
       ```
 
-   1. When prompted if you trust: yes
-   1. Enter root password
+   4. When prompted if you trust: yes
+   5. Enter root password
 
-1. Cross Compile Setup
+2. Cross Compile Setup
    1. Toolchain download
       1. First install the toolchain into _/opt/bbblue_toolchain/gcc-arm-linux-gnueabihf_.
          Here is an example of using soft link to select which version of the toolchain you want to use:
@@ -135,7 +135,7 @@ echo "PermitRootLogin yes" >>  /etc/ssh/sshd_config && systemctl restart sshd
 
          As a general rule of thumb is to choose a toolchain where the version of GCC is not higher than the version of GCC which comes with the OS image on _BeagleBone Blue_.
 
-      1. Add it to the PATH in ~/.profile as shown below
+      2. Add it to the PATH in ~/.profile as shown below
 
          ```sh
          export PATH=$PATH:/opt/bbblue_toolchain/gcc-arm-linux-gnueabihf/gcc-linaro-13.0.0-2022.06-x86_64_arm-linux-gnueabihf/bin
@@ -145,7 +145,7 @@ echo "PermitRootLogin yes" >>  /etc/ssh/sshd_config && systemctl restart sshd
          Logout and Login to apply the change, or execute the same line on your current shell.
          :::
 
-      1. Setup other dependencies by downloading the PX4 source code and then running the setup scripts:
+      3. Setup other dependencies by downloading the PX4 source code and then running the setup scripts:
 
          ````sh
          git clone https://github.com/PX4/PX4-Autopilot.git --recursive
@@ -192,8 +192,8 @@ You can also natively build PX4 builds directly on the BeagleBone Blue.
 After acquiring the pre-built library,
 
 1. Select the _librobotcontrol_ installation directory, and set it in the `LIBROBOTCONTROL_INSTALL_DIR` environment variable so that other unwanted headers will not be included
-1. Install **robotcontrol.h** and **rc/\*** into `$LIBROBOTCONTROL_INSTALL_DIR/include`
-1. Install pre-built native (ARM) version of librobotcontrol.\* into `$LIBROBOTCONTROL_INSTALL_DIR/lib`
+2. Install **robotcontrol.h** and **rc/\*** into `$LIBROBOTCONTROL_INSTALL_DIR/include`
+3. Install pre-built native (ARM) version of librobotcontrol.\* into `$LIBROBOTCONTROL_INSTALL_DIR/lib`
 
 Run the following commands on the BeagleBone Blue (i.e. via SSH):
 
@@ -204,8 +204,8 @@ Run the following commands on the BeagleBone Blue (i.e. via SSH):
    sudo apt-get install cmake python3-empy=3.3.4-2
    ```
 
-1. Clone the PX4 Firmware directly onto the BeagleBone Blue.
-1. Continue with the [standard build system installation](../dev_setup/dev_env_linux.md).
+2. Clone the PX4 Firmware directly onto the BeagleBone Blue.
+3. Continue with the [standard build system installation](../dev_setup/dev_env_linux.md).
 
 ## Changes in config
 

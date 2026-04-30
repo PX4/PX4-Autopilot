@@ -169,7 +169,7 @@ The low pass filters and the notch filter can be tuned independently (i.e. you d
    FPV racers typically tune for the absolute minimal latency (as a ballpark `IMU_GYRO_CUTOFF` around 120, `IMU_DGYRO_CUTOFF` of 50 to 80).
    For bigger vehicles latency is less critical and `IMU_GYRO_CUTOFF` of around 80 might be acceptable.
 
-1. You can start tuning at higher `IMU_GYRO_CUTOFF` values (e.g. 100Hz), which might be desirable because the default tuning of `IMU_GYRO_CUTOFF` is set very low (30Hz).
+2. You can start tuning at higher `IMU_GYRO_CUTOFF` values (e.g. 100Hz), which might be desirable because the default tuning of `IMU_GYRO_CUTOFF` is set very low (30Hz).
    The only caveat is that you must be aware of the risks:
    - Don't fly for more than 20-30 seconds
    - Check that the motors are not getting to hot

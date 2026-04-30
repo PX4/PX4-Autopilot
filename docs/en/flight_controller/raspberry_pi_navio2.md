@@ -98,13 +98,13 @@ To get the common dependencies for Raspberry Pi:
    wget https://raw.githubusercontent.com/PX4/PX4-Autopilot/main/Tools/setup/requirements.txt
    ```
 
-1. Run **ubuntu.sh** in a terminal to get just the common dependencies:
+2. Run **ubuntu.sh** in a terminal to get just the common dependencies:
 
    ```sh
    bash ubuntu.sh --no-nuttx --no-sim-tools
    ```
 
-1. Then setup a cross-compiler (either GCC or clang) as described in the following sections.
+3. Then setup a cross-compiler (either GCC or clang) as described in the following sections.
 
 ### GCC (armhf)
 

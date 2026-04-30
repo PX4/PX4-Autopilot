@@ -16,6 +16,7 @@ For more information see [Flashing the Rover Build](../config_rover/index.md#fla
 ![Rovers](../../assets/airframes/rover/rovers.png)
 
 PX4 provides support for the three most common types of rovers:
+
 | Rover Type | Steering |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [**Ackermann**](#ackermann) | Direction is controlled by pointing wheels in the direction of travel. This kind of steering is used on most commercial vehicles, including cars, trucks etc. |

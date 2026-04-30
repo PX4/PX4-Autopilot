@@ -35,7 +35,7 @@ If you're working with [ROS "Noetic"](https://wiki.ros.org/noetic) on Ubuntu 20.
       git clone https://github.com/PX4/PX4-Autopilot.git --recursive
       ```
 
-   1. Run the **ubuntu.sh** the `--no-sim-tools` (and optionally `--no-nuttx`):
+   2. Run the **ubuntu.sh** the `--no-sim-tools` (and optionally `--no-nuttx`):
 
       ```sh
       bash ./PX4-Autopilot/Tools/setup/ubuntu.sh --no-sim-tools --no-nuttx
@@ -43,15 +43,15 @@ If you're working with [ROS "Noetic"](https://wiki.ros.org/noetic) on Ubuntu 20.
 
       - Acknowledge any prompts as the script progress.
 
-   1. Restart the computer on completion.
+   3. Restart the computer on completion.
 
-1. You _may_ need to install the following additional dependencies:
+2. You _may_ need to install the following additional dependencies:
 
    ```sh
    sudo apt-get install protobuf-compiler libeigen3-dev libopencv-dev -y
    ```
 
-1. Follow the [Noetic Installation instructions](https://wiki.ros.org/noetic/Installation/Ubuntu#Installation) (ros-noetic-desktop-full is recommended).
+3. Follow the [Noetic Installation instructions](https://wiki.ros.org/noetic/Installation/Ubuntu#Installation) (ros-noetic-desktop-full is recommended).
 
 :::
 
@@ -65,7 +65,7 @@ If you're working with ROS "Melodic" on Ubuntu 18.04:
    wget https://raw.githubusercontent.com/PX4/Devguide/master/build_scripts/ubuntu_sim_ros_melodic.sh
    ```
 
-1. Run the script:
+2. Run the script:
 
    ```sh
    bash ubuntu_sim_ros_melodic.sh
@@ -131,7 +131,7 @@ While the package can be built using **catkin_make** the preferred method is usi
 If this is your first time using wstool you will need to initialize your source space with:
 
 ```sh
-$ wstool init ~/catkin_ws/src
+wstool init ~/catkin_ws/src
 ```
 
 Now you are ready to do the build:
@@ -143,7 +143,7 @@ Now you are ready to do the build:
    rosinstall_generator --rosdistro kinetic mavlink | tee /tmp/mavros.rosinstall
    ```
 
-1. Install MAVROS from source using either released or latest version:
+2. Install MAVROS from source using either released or latest version:
    - Released/stable
 
      ```sh
@@ -162,7 +162,7 @@ Now you are ready to do the build:
      #   rosinstall_generator --upstream mavros --deps | tee -a /tmp/mavros.rosinstall
      ```
 
-1. Create workspace & deps
+3. Create workspace & deps
 
    ```sh
    wstool merge -t src /tmp/mavros.rosinstall
@@ -170,19 +170,19 @@ Now you are ready to do the build:
    rosdep install --from-paths src --ignore-src -y
    ```
 
-1. Install [GeographicLib](https://geographiclib.sourceforge.io/) datasets:
+4. Install [GeographicLib](https://geographiclib.sourceforge.io/) datasets:
 
    ```sh
    ./src/mavros/mavros/scripts/install_geographiclib_datasets.sh
    ```
 
-1. Build source
+5. Build source
 
    ```sh
    catkin build
    ```
 
-1. Make sure that you use setup.bash or setup.zsh from workspace.
+6. Make sure that you use setup.bash or setup.zsh from workspace.
 
    ```sh
    #Needed or rosrun can't find nodes from this workspace.

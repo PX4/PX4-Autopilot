@@ -146,7 +146,6 @@ Autotune was never tested on a Helicopter.
 can you in theory autotune frame with any number of motors?
 In theory yes but it needs to be able to have reasonable authority around all axes so I'd expect autotune to not work well for a monocopter without swashplate and so on. Probably also the controllers wouldn't work out of the box. I saw issues before with designs that tilt the rotor e.g. tricopter, bicopter, ... again
 
-
 will PX4 still understand how to autotune?
 Autotune should work for any vehicle that has reasonable authority and dynamics around all the body axes. A tiltable motor e.g. tricopter has at the least dynamics which are less tested with autotune.
 My assumption is that the mixing system can cope with whatever geometry you throw at it.

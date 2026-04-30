@@ -16,25 +16,25 @@ Boards that are not compliant with the requirements are [unsupported](#unsupport
 The general requirements for all supported boards are:
 
 1. The hardware must be available in the market.
-1. The boards may not have blocking hardware bugs or unacceptable quality that make it impossible or dangerous to use the board with PX4 on a UAV.
+2. The boards may not have blocking hardware bugs or unacceptable quality that make it impossible or dangerous to use the board with PX4 on a UAV.
    Board needs to pass acceptance criteria to ensure quality of parts and assembly.
-1. A clear and easy way to contact customer support for customers.
+3. A clear and easy way to contact customer support for customers.
    One or more of the following is accepted:
    - PX4 Discord server presence
    - Support email
    - Phone number
 
-1. Point of contact (PoC) for the PX4 maintainers (direct email or available in Slack/Forum/Github)
-1. The board needs to use the [PX4 bootloader protocol](https://github.com/PX4/PX4-Autopilot/tree/main/platforms/nuttx/src/bootloader).
+4. Point of contact (PoC) for the PX4 maintainers (direct email or available in Slack/Forum/Github)
+5. The board needs to use the [PX4 bootloader protocol](https://github.com/PX4/PX4-Autopilot/tree/main/platforms/nuttx/src/bootloader).
    For more information on bootloaders see: [PX4 Nuttx Porting Guide > Bootloader](../hardware/porting_guide_nuttx.md#bootloader).
-1. Adequate documentation, which includes, but is not limited to:
+6. Adequate documentation, which includes, but is not limited to:
    - A complete pinout made available publicly that maps PX4 pin definitions to:
      1. Microcontroller pins
      2. Physical external connectors
    - A block diagram or full schematic of the main components (sensors, power supply, etc.) that allows to infer software requirements and boot order
    - A manual of the finished product detailing its use
 
-1. There must be a dedicated webpage for the board with PX4, which lists the features and limitations for usage with PX4, and includes or links to the above described documentation.
+7. There must be a dedicated webpage for the board with PX4, which lists the features and limitations for usage with PX4, and includes or links to the above described documentation.
 
 ## Board Support Categories
 

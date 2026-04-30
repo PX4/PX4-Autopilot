@@ -28,10 +28,10 @@ An overview of those parameters and their use case is shown below:
 The correct order to set the above parameters is:
 
 1. Trim the servos by physically adjusting the linkages lengths if possible and fine tune by trimming the PWM channels (use `PWM_MAIN/AUX_TRIMx`) on the bench to properly set the control surfaces to their theoretical position.
-1. Fly in stabilized mode at cruise speed and set the pitch setpoint offset (`FW_PSP_OFF`) to desired angle of attack.
+2. Fly in stabilized mode at cruise speed and set the pitch setpoint offset (`FW_PSP_OFF`) to desired angle of attack.
    The required angle of attack at cruise speed corresponds to the pitch angle that the airplane needs to fly at in order to keep constant altitude during wing-leveled flight.
    If you are using an airspeed sensor, also set the correct cruise airspeed (`FW_AIRSPD_TRIM`).
-1. Look at the actuator controls in the log file (upload it to [Flight Review](https://logs.px4.io) and check the _Actuator Controls_ plot for example) and set the pitch trim (`TRIM_PITCH`).
+3. Look at the actuator controls in the log file (upload it to [Flight Review](https://logs.px4.io) and check the _Actuator Controls_ plot for example) and set the pitch trim (`TRIM_PITCH`).
    Set that value to the average offset of the pitch signal during wing-leveled flight.
 
 Step 3 can be performed before step 2 if you don't want to have to look at the log, or if you feel comfortable flying in manual mode.

@@ -122,9 +122,9 @@ We're using Ubuntu 22.04 to match ROS 2 "Humble", so if you're working with ROS 
 First install Ubuntu onto the RPi:
 
 1. Prepare a Ubuntu 22.04 bootable Ubuntu Desktop SD card by following the official tutorial: [How to install Ubuntu Desktop on Raspberry Pi 4](https://ubuntu.com/tutorials/how-to-install-ubuntu-desktop-on-raspberry-pi-4#1-overview)
-1. Connect the mouse, keyboard, monitor and connect the RPi to a 5V Power Supply (external source/charger).
-1. Insert the SD card into the RPi and turn on the RPi to boot from the SD card.
-1. Follow the on-screen instructions to install Ubuntu.
+2. Connect the mouse, keyboard, monitor and connect the RPi to a 5V Power Supply (external source/charger).
+3. Insert the SD card into the RPi and turn on the RPi to boot from the SD card.
+4. Follow the on-screen instructions to install Ubuntu.
 
 Enter the following commands (in sequence) a terminal to configure Ubuntu for RPi:
 
@@ -136,34 +136,34 @@ Enter the following commands (in sequence) a terminal to configure Ubuntu for RP
    sudo apt-get install raspi-config
    ```
 
-1. Open `raspi-config`:
+2. Open `raspi-config`:
 
    ```sh
    sudo raspi-config
    ```
 
-1. Go to the **Interface Option** and then click **Serial Port**.
+3. Go to the **Interface Option** and then click **Serial Port**.
    - Select **No** to disable serial login shell.
    - Select **Yes** to enable the serial interface.
    - Click **Finish** and restart the RPi.
 
-1. Open the firmware boot configuration file in the `nano` editor on RPi:
+4. Open the firmware boot configuration file in the `nano` editor on RPi:
 
    ```sh
    sudo nano /boot/firmware/config.txt
    ```
 
-1. Append the following text to the end of the file (after the last line):
+5. Append the following text to the end of the file (after the last line):
 
    ```sh
    enable_uart=1
    dtoverlay=disable-bt
    ```
 
-1. Then save the file and restart the RPi.
+6. Then save the file and restart the RPi.
    - In `nano` you can save the file using the following sequence of keyboard shortcuts: **ctrl+x**, **ctrl+y**, **Enter**.
 
-1. Check that the serial port is available.
+7. Check that the serial port is available.
    In this case we use the following terminal commands to list the serial devices:
 
    ```sh
@@ -192,8 +192,8 @@ A very similar connection pattern would be used for MAVSDK and other MAVLink app
 First check the Pixhawk `TELEM 2` configuration:
 
 1. Connect the Pixhawk with the laptop using a USB cable.
-1. Open QGroundControl (the vehicle should connect).
-1. [Check/change the following parameters](../advanced_config/parameters.md) in QGroundControl:
+2. Open QGroundControl (the vehicle should connect).
+3. [Check/change the following parameters](../advanced_config/parameters.md) in QGroundControl:
 
    ```ini
    MAV_1_CONFIG = TELEM2
@@ -214,7 +214,7 @@ Then install setup MAVProxy on the RPi using the following terminal commands:
    sudo apt remove modemmanager
    ```
 
-1. Run MAVProxy, setting the port to connect to `/dev/ttyAMA0` and the baud rate to match the PX4:
+2. Run MAVProxy, setting the port to connect to `/dev/ttyAMA0` and the baud rate to match the PX4:
 
    ```sh
    sudo mavproxy.py --master=/dev/serial0 --baudrate 57600
@@ -251,7 +251,7 @@ We do this by changing parameters in QGroundControl, which can be connected via 
 The configuration steps are:
 
 1. Connect the Pixhawk with the laptop using a USB cable and open QGroundControl (if not currently connected).
-1. [Check/change the following parameters](../advanced_config/parameters.md) in QGroundControl:
+2. [Check/change the following parameters](../advanced_config/parameters.md) in QGroundControl:
 
    ```ini
    MAV_1_CONFIG = 0 (Disabled)
@@ -267,7 +267,7 @@ The configuration steps are:
    You will need to reboot the flight controller to apply any changes to these parameters.
    :::
 
-1. Check that the [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client) module is now running.
+3. Check that the [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client) module is now running.
    YOu can do this by running the following command in the QGroundControl [MAVLink Console](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/analyze_view/mavlink_console.html):
 
    ```sh

@@ -220,6 +220,7 @@ Order From [Ark Electronics](https://arkelectron.com/product/ark-pixhawk-autopil
 ## USB
 
 All signals in parallel with USB C connector
+
 Pin | Signal | Volt
 --- | --- | ---
 1 (red) | `VBUS_IN` | +5.0V

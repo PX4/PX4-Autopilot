@@ -104,7 +104,7 @@ Estimate time to assemble is 55 min (25 minutes for frame, 30 minutes for autopi
 
    _Figure 3_: Payload holder assembled
 
-1. The next is to go for attaching the bottom plate to the payload holder.
+2. The next is to go for attaching the bottom plate to the payload holder.
 
    You will need the parts as shown in Figure 4.
    Then mount the base for power distribution board using nylon nuts as Figure 5.
@@ -126,7 +126,7 @@ Estimate time to assemble is 55 min (25 minutes for frame, 30 minutes for autopi
 
    _Figure 7_: Mounted Plate on payload holder
 
-1. Let's gather the stuff needed for mounting landing gear as Figure 8.
+3. Let's gather the stuff needed for mounting landing gear as Figure 8.
    Use the hex screws to join landing gears to the bottom plate.
    You also need to open three hex screws on each of the leg stands so you can push them into carbon fiber pipes.
    Do not forget to tighten them back again.
@@ -139,7 +139,7 @@ Estimate time to assemble is 55 min (25 minutes for frame, 30 minutes for autopi
 
    _Figure 9_: Landing gear attachment to the body
 
-1. We will gather all the arms now to mount the top plate.
+4. We will gather all the arms now to mount the top plate.
    Please pay attention that the motor numbers on arms are a match with the ones mentioned on the top plate.
    Fortunately, motors are mounted and ESCs have been connected in advance.
    Start by passing through all the screws as you have the arms fixed in their own places (They have a guide as shown in Figure 11 to ensure they are in place) and tighten all nylon nuts a bit.
@@ -154,33 +154,33 @@ Estimate time to assemble is 55 min (25 minutes for frame, 30 minutes for autopi
 
    _Figure 11_: Guide for the arms mount
 
-1. Tighten all 16 screws and nuts by using both hex wrench and nut driver.
+5. Tighten all 16 screws and nuts by using both hex wrench and nut driver.
 
    ![Top plae mounted](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk5x/finalized_top_plate.png)
 
    _Figure 12_: Mounted top plate
 
-1. Next you can mount your pixhawk on the top plate by using the stickers.
+6. Next you can mount your pixhawk on the top plate by using the stickers.
    It is recommended to have the direction of your Pixhawk's arrow the same as the one mentioned on the top plate.
 
    ![Flight controller mounting stickers](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk5x/pixhawk5x_stickertapes.png)
 
    _Figure 13_: Sticker tapes on Pixhawk
 
-1. If you want to mount the GPS on the companion computer plate, you can now secure the GPS mount onto it using 4 screws and nuts.
+7. If you want to mount the GPS on the companion computer plate, you can now secure the GPS mount onto it using 4 screws and nuts.
 
    <img src="../../assets/airframes/multicopter/x500_v2_holybro_pixhawk5x/gps_mount_plate.png" width="400" title="Secure GPS mount onto companion plate">
 
    _Figure 14_: Secure GPS mount onto companion plate
 
-1. Use the tape and stick the GPS to the top of the GPS mast and mount the GPS mast.
+8. Use the tape and stick the GPS to the top of the GPS mast and mount the GPS mast.
    Make sure the arrow on the gps is pointing forward (Figure 15).
 
    <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/gps2.jpg" width="400" title="Figure 16: GPS and mast">
 
    _Figure 15_: GPS and mast
 
-1. Finally, you can connect the Pixhawk interfaces such as telemetry radio to 'TELEM1' and motors signal cables accordingly.
+9. Finally, you can connect the Pixhawk interfaces such as telemetry radio to 'TELEM1' and motors signal cables accordingly.
 
 Please refer to [Pixhawk 5X Quick Start](../assembly/quick_start_pixhawk5x.md) for more information.
 

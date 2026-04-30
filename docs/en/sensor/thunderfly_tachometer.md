@@ -105,7 +105,7 @@ For periodic display, you can add `-n 50` parameter after the command, which pri
 The QGroundControl [Mavlink Inspector](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/analyze_view/mavlink_inspector.html) can be used to observe MAVLink messages from PX4, including [RAW_RPM](https://mavlink.io/en/messages/common.html#RAW_RPM) emitted by the driver:
 
 1. Start the inspector from the QGC menu: **Analyze tools > Mavlink Inspector**
-1. Check that `RAW_RPM` is present in the list of messages (if it is missing, check that the driver is running).
+2. Check that `RAW_RPM` is present in the list of messages (if it is missing, check that the driver is running).
 
 ### Parameter Setup
 

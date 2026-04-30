@@ -37,8 +37,8 @@ If you do not know how to do this you probably should reconsider if you really n
 The sequence is
 
 1. Disconnect the JTAG cable
-1. Connect the USB power cable
-1. Connect the JTAG cable
+2. Connect the USB power cable
+3. Connect the JTAG cable
 
 ### Black Magic / Zubax BugFace BF1 Probe
 

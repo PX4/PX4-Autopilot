@@ -415,13 +415,13 @@ This is a safety feature to prevent sudden motor movements after switch is enabl
 Sliders can be used to verify the following:
 
 1. Actuators (Motors, Control surfaces, etc.) are assigned to the expected output.
-1. Motors don't spin when at the `disarmed` PWM output value
-1. Motors barely spin at the `minimum` PWM output value.
-1. Motors give **positive thrust** in the expected direction
-1. Control Surfaces are in the correct idle position for `disarmed` output value
-1. Control Surfaces move in the direction as defined in the [Control Surface Convention](#control-surface-deflection-convention)
-1. Motor Tilt Servos are in the correct idle position for `disarmed` output value
-1. Motor Tilt Servos move in the direction as defined in the [Tilt Servo Convention](#tilt-servo-coordinate-system)
+2. Motors don't spin when at the `disarmed` PWM output value
+3. Motors barely spin at the `minimum` PWM output value.
+4. Motors give **positive thrust** in the expected direction
+5. Control Surfaces are in the correct idle position for `disarmed` output value
+6. Control Surfaces move in the direction as defined in the [Control Surface Convention](#control-surface-deflection-convention)
+7. Motor Tilt Servos are in the correct idle position for `disarmed` output value
+8. Motor Tilt Servos move in the direction as defined in the [Tilt Servo Convention](#tilt-servo-coordinate-system)
 
 ## Output Assignment and Configuration
 
@@ -454,15 +454,15 @@ QGC will then spin the next motor for you to assign, and so on.
 Instructions:
 
 1. Setup the motor geometry to match the motors on your frame.
-1. Select the PWM tab where you want to assign the motors.
-1. Click the **Identify & Assign Motors** button.
-1. One motor will start spinning (click **Spin Motor Again** if it stops spinning too quickly to note.)
+2. Select the PWM tab where you want to assign the motors.
+3. Click the **Identify & Assign Motors** button.
+4. One motor will start spinning (click **Spin Motor Again** if it stops spinning too quickly to note.)
 
    Select the corresponding motor in the geometry section.
 
    ![Screenshot showing how to identify/assign motors](../../assets/config/actuators/identify_motors_in_progress.png)
 
-1. After assigning all motors, the tool will set the correct motor mapping for the outputs and then exit.
+5. After assigning all motors, the tool will set the correct motor mapping for the outputs and then exit.
 
 ### Output Assignment (Manual)
 
@@ -475,19 +475,19 @@ Actuator outputs for both motors and servos can be _manually_ assigned using sli
 To assign an actuator:
 
 1. First assign functions to the outputs that you think are _likely_ to be correct in the _Actuator Outputs_ section.
-1. Toggle the **Enable sliders** switch in _Actuator Testing_ section.
-1. Move the slider for the actuator you want to test:
+2. Toggle the **Enable sliders** switch in _Actuator Testing_ section.
+3. Move the slider for the actuator you want to test:
    - Motors should be moved to the minimum thrust position.
    - Servos should be moved near the middle position.
-1. Check which actuator moves on the vehicle.
+4. Check which actuator moves on the vehicle.
    This should match the actuator positions for your geometry (the [airframe reference](../airframes/airframe_reference.md) shows motor positions for a number of standard airframes).
    - If the correct actuator moves, then proceed to the next step.
    - If a wrong actuator moves, swap the output assignment over.
    - If nothing moves then increase the slider mid-way though the range, then higher if needed.
      If nothing moves after that the output might not be connected, the motor might not be powered, or the output might be misconfigured.
      You will need to troubleshoot (perhaps try other actuator outputs to see if "anything" moves).
-1. Return the slider to the "disarmed" position (bottom of slider for motors, centre of slider for servos).
-1. Repeat for all actuators
+5. Return the slider to the "disarmed" position (bottom of slider for motors, centre of slider for servos).
+6. Repeat for all actuators
 
 ### Motor Configuration
 

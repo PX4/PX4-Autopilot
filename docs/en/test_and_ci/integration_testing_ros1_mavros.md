@@ -115,7 +115,7 @@ To write a new test:
    	rostest.rosrun(PKG, 'mavros_new_test', MavrosNewTest)
    ```
 
-1. Run the new test only
+2. Run the new test only
    - Start the simulator:
 
      ```sh
@@ -132,11 +132,11 @@ To write a new test:
      rosrun px4 mavros_new_test.py
      ```
 
-1. Add new test node to a launch file
+3. Add new test node to a launch file
    - In `test/` create a new `<test_name>.test` ROS launch file.
    - Call the test file using one of the base scripts _rostest_px4_run.sh_ or _rostest_avoidance_run.sh_
 
-1. (Optional) Create a new target in the Makefile
+4. (Optional) Create a new target in the Makefile
    - Open the Makefile
    - Search the _Testing_ section
    - Add a new target name and call the test

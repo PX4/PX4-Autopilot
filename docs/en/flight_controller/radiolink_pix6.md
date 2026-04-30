@@ -341,6 +341,6 @@ You will need to [select a compatible transmitter/receiver](../getting_started/r
 
    There is no need to set the baud rate for the port, as this is configured by the driver.
 
-1. Enable [RC_CRSF_TEL_EN](../advanced_config/parameter_reference.md#RC_CRSF_TEL_EN) to activate Crossfire telemetry.
+2. Enable [RC_CRSF_TEL_EN](../advanced_config/parameter_reference.md#RC_CRSF_TEL_EN) to activate Crossfire telemetry.
 
 For more information about selecting a radio system, receiver compatibility, and binding your transmitter/receiver pair, see: [Remote Control Transmitters & Receivers](../getting_started/rc_transmitter_receiver.md).

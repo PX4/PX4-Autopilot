@@ -70,9 +70,9 @@ To build an example setup, follow the steps below:
    DONT_RUN=1 make px4_sitl gazebo-classic
    ```
 
-1. Build the `micro xrce-dds agent` and the interface package following the [instructions here](../ros2/user_guide.md).
+2. Build the `micro xrce-dds agent` and the interface package following the [instructions here](../ros2/user_guide.md).
 
-1. Run `Tools/simulation/gazebo-classic/sitl_multiple_run.sh`.
+3. Run `Tools/simulation/gazebo-classic/sitl_multiple_run.sh`.
    For example, to spawn 4 vehicles, run:
 
    ```sh
@@ -84,7 +84,7 @@ To build an example setup, follow the steps below:
    MAVLink system id 1 is skipped.
    :::
 
-1. Run `MicroXRCEAgent`.
+4. Run `MicroXRCEAgent`.
    It will automatically connect to all four vehicles:
 
    ```sh
@@ -117,14 +117,14 @@ To build an example setup, follow the step below:
    DONT_RUN=1 make px4_sitl_default gazebo-classic
    ```
 
-1. Source your environment:
+2. Source your environment:
 
    ```sh
    source Tools/simulation/gazebo-classic/setup_gazebo.bash $(pwd) $(pwd)/build/px4_sitl_default
    export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:$(pwd):$(pwd)/Tools/simulation/gazebo-classic/sitl_gazebo
    ```
 
-1. Run launch file:
+3. Run launch file:
 
    ```sh
    roslaunch px4 multi_uav_mavros_sitl.launch
@@ -246,7 +246,7 @@ The steps are:
    sudo apt install xmlstarlet
    ```
 
-1. Use _roslaunch_ with the **multi_uav_mavros_sitl_sdf.launch** launch file:
+2. Use _roslaunch_ with the **multi_uav_mavros_sitl_sdf.launch** launch file:
 
    ````sh
    roslaunch multi_uav_mavros_sitl_sdf.launch vehicle:=<model_file_name>
@@ -274,7 +274,7 @@ To add a new vehicle, you need to make sure the model can be found (in order to 
 
    - copy your model into the folder indicated above (following the same path convention).
 
-1. The `vehicle` argument is used to set the `PX4_SIM_MODEL` environment variable, which is used by the default rcS (startup script) to find the corresponding startup settings file for the model.
+2. The `vehicle` argument is used to set the `PX4_SIM_MODEL` environment variable, which is used by the default rcS (startup script) to find the corresponding startup settings file for the model.
    Within PX4 these startup files can be found in the **PX4-Autopilot/ROMFS/px4fmu_common/init.d-posix/** directory.
    For example, here is the plane model's [startup script](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d-posix/airframes/1030_gazebo-classic_plane).
    For this to work, the PX4 node in the launch file is passed arguments that specify the _rcS_ file (**etc/init.d/rcS**) and the location of the rootfs etc directory (`$(find px4)/build_px4_sitl_default/etc`).

@@ -152,8 +152,8 @@ The following steps show how to configure a secondary GPS on the `GPS 2` port in
 
      ![QGC Serial Example](../../assets/peripherals/qgc_serial_config_example.png)
 
-1. Reboot the vehicle in order to make the other parameters visible.
-1. Select the **Serial** tab, and open the [SER_GPS2_BAUD](../advanced_config/parameter_reference.md#SER_GPS2_BAUD) parameter (`GPS 2` port baud rate): set it to _Auto_ (or 115200 for the Trimble).
+2. Reboot the vehicle in order to make the other parameters visible.
+3. Select the **Serial** tab, and open the [SER_GPS2_BAUD](../advanced_config/parameter_reference.md#SER_GPS2_BAUD) parameter (`GPS 2` port baud rate): set it to _Auto_ (or 115200 for the Trimble).
 
    ![QGC Serial Baudrate Example](../../assets/peripherals/qgc_serial_baudrate_example.png)
 

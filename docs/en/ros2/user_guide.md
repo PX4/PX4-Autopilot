@@ -131,7 +131,7 @@ To install ROS 2 and its dependencies:
 
    ::::
 
-1. Some Python dependencies must also be installed (using **`pip`** or **`apt`**):
+2. Some Python dependencies must also be installed (using **`pip`** or **`apt`**):
 
    ```sh
    pip install --user -U empy==3.3.4 pyros-genmsg setuptools
@@ -149,7 +149,7 @@ Below we show how to build the agent "standalone" from source and connect to a c
 To setup and start the agent:
 
 1. Open a terminal.
-1. Enter the following commands to fetch and build the agent from source:
+2. Enter the following commands to fetch and build the agent from source:
 
    ```sh
    git clone -b v2.4.3 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
@@ -162,7 +162,7 @@ To setup and start the agent:
    sudo ldconfig /usr/local/lib/
    ```
 
-1. Start the agent with settings for connecting to the uXRCE-DDS client running on the simulator:
+3. Start the agent with settings for connecting to the uXRCE-DDS client running on the simulator:
 
    ```sh
    MicroXRCEAgent udp4 -p 8888
@@ -250,7 +250,7 @@ The example builds the [ROS 2 Listener](#ros-2-listener) example application, lo
 To create and build the workspace:
 
 1. Open a new terminal.
-1. Create and navigate into a new workspace directory using:
+2. Create and navigate into a new workspace directory using:
 
    ```sh
    mkdir -p ~/ws_sensor_combined/src/
@@ -261,14 +261,14 @@ To create and build the workspace:
    A naming convention for workspace folders can make it easier to manage workspaces.
    :::
 
-1. Clone the example repository and [px4_msgs](https://github.com/PX4/px4_msgs) to the `/src` directory (the `main` branch is cloned by default, which corresponds to the version of PX4 we are running):
+3. Clone the example repository and [px4_msgs](https://github.com/PX4/px4_msgs) to the `/src` directory (the `main` branch is cloned by default, which corresponds to the version of PX4 we are running):
 
    ```sh
    git clone https://github.com/PX4/px4_msgs.git
    git clone https://github.com/PX4/px4_ros_com.git
    ```
 
-1. Source the ROS 2 development environment into the current terminal and compile the workspace using `colcon`:
+4. Source the ROS 2 development environment into the current terminal and compile the workspace using `colcon`:
 
    :::: tabs
 
@@ -332,13 +332,13 @@ In a new terminal:
 
    ::::
 
-1. Source the `local_setup.bash`.
+2. Source the `local_setup.bash`.
 
    ```sh
    source install/local_setup.bash
    ```
 
-1. Now launch the example.
+3. Now launch the example.
    Note here that we use `ros2 launch`, which is described below.
 
    ```sh
@@ -376,7 +376,7 @@ If you were to use incompatible [message versions](../middleware/uorb.md#message
    /path/to/PX4-Autopilot/Tools/copy_to_ros_ws.sh .
    ```
 
-1. Build and run the translation node:
+2. Build and run the translation node:
 
    ```sh
    colcon build

@@ -85,8 +85,8 @@ Where the values are:
 To set the above "example" configuration using the _QGroundControl_:
 
 1. Connect the flight controller to the computer with the USB cable.
-1. Open **QGroundcontrol > Analyze Tools > MAVLink Console**
-1. Enter commands "like" the ones below into the _MAVLink Console_ (to write the values to the configuration file):
+2. Open **QGroundcontrol > Analyze Tools > MAVLink Console**
+3. Enter commands "like" the ones below into the _MAVLink Console_ (to write the values to the configuration file):
 
    ```sh
    echo DEVICE=eth0 > /fs/microsd/net.cfg
@@ -97,8 +97,8 @@ To set the above "example" configuration using the _QGroundControl_:
    echo DNS=10.41.10.254 >>/fs/microsd/net.cfg
    ```
 
-1. Once the network configuration has been set you can disconnect the USB cable.
-1. Reboot the flight controller to apply the settings.
+4. Once the network configuration has been set you can disconnect the USB cable.
+5. Reboot the flight controller to apply the settings.
 
 Note that the above setup gives the flight controller an address on the Ethernet network.
 You also need to [configure the Ethernet port](#px4-mavlink-serial-port-configuration) to use MAVLink.
@@ -119,7 +119,7 @@ To setup the Ubuntu Computer:
    sudo nano /etc/netplan/01-network-manager-all.yaml
    ```
 
-1. Copy and paste the following configuration information into the file (note: the indentations are important!):
+2. Copy and paste the following configuration information into the file (note: the indentations are important!):
 
    ```
    network:
@@ -138,7 +138,7 @@ To setup the Ubuntu Computer:
 
    Save and exit the editor.
 
-1. Apply the _netplan_ configuration by entering the following command into the Ubuntu terminal.
+3. Apply the _netplan_ configuration by entering the following command into the Ubuntu terminal.
 
    ```
    sudo netplan apply
@@ -184,14 +184,14 @@ Assuming you have already [Set up the Ethernet Network](#setting-up-the-ethernet
 To connect QGroundControl to PX4 over Ethernet:
 
 1. [Set up the Ethernet Network](#setting-up-the-ethernet-network) so your ground station computer and PX4 run on the same network.
-1. Connect the ground station computer and PX4 using an Ethernet cable.
-1. Start QGroundControl and [define a comm link](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/settings_view/settings_view.html) (**Application Settings > Comm Links**) specifying the _server address_ and port as the IP address and port assigned in PX4, respectively.
+2. Connect the ground station computer and PX4 using an Ethernet cable.
+3. Start QGroundControl and [define a comm link](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/settings_view/settings_view.html) (**Application Settings > Comm Links**) specifying the _server address_ and port as the IP address and port assigned in PX4, respectively.
 
    Assuming that the values are set as described in the rest of this topic the setup will look like this:
 
    ![QGC comm link for ethernet setup](../../assets/qgc/settings/comm_link/px4_ethernet_link_config.png)
 
-1. QGroundControl should then connect if you select this link.
+4. QGroundControl should then connect if you select this link.
 
 ::: info
 [PX4 Ethernet Port Configuration](#px4-ethernet-network-setup) should not be needed (the default are appropriate for a GCS).
@@ -202,9 +202,9 @@ To connect QGroundControl to PX4 over Ethernet:
 To setup MAVSDK-Python running on a companion computer:
 
 1. [Set up the Ethernet Network](#setting-up-the-ethernet-network) so your companion computer and PX4 run on the same network.
-1. Modify the [PX4 Ethernet Port Configuration](#px4-ethernet-network-setup) to connect to a companion computer.
+2. Modify the [PX4 Ethernet Port Configuration](#px4-ethernet-network-setup) to connect to a companion computer.
    You might change the parameters [MAV_2_REMOTE_PRT](../advanced_config/parameter_reference.md#MAV_2_REMOTE_PRT) and [MAV_2_UDP_PRT](../advanced_config/parameter_reference.md#MAV_2_UDP_PRT) to `14540`, and [MAV_2_MODE](../advanced_config/parameter_reference.md#MAV_2_MODE) to `2` (Onboard).
-1. Follow the instructions in [MAVSDK-python](https://github.com/mavlink/MAVSDK-Python) to install and use MAVSDK.
+3. Follow the instructions in [MAVSDK-python](https://github.com/mavlink/MAVSDK-Python) to install and use MAVSDK.
 
    For example, your code will connect to the PX4 using:
 

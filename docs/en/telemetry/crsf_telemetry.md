@@ -79,29 +79,29 @@ The steps are:
 
    As part of this process you will have used `git` to fetch source code into the **PX4-Autopilot** directory.
 
-1. Open a terminal and `cd` into the `PX4-Autopilot` directory.
+2. Open a terminal and `cd` into the `PX4-Autopilot` directory.
 
    ```sh
    cd PX4-Autopilot
    ```
 
-1. Launch the [PX4 board config tool (`menuconfig`)](../hardware/porting_guide_config.md#px4-menuconfig-setup) for your `make` target using the `boardconfig` option (here the target is the [ARK Electronics ARKV6X](../flight_controller/ark_v6x.md) flight controller):
+3. Launch the [PX4 board config tool (`menuconfig`)](../hardware/porting_guide_config.md#px4-menuconfig-setup) for your `make` target using the `boardconfig` option (here the target is the [ARK Electronics ARKV6X](../flight_controller/ark_v6x.md) flight controller):
 
    ```sh
    make ark_fmu-v6x_default boardconfig
    ```
 
-1. In the PX4 board config tool:
+4. In the PX4 board config tool:
    - Disable the default `rc_input` module
      1. Navigate to the `drivers` submenu, then scroll down to highlight `rc_input`.
-     1. Use the enter key to remove the `*` from `rc_input` checkbox.
+     2. Use the enter key to remove the `*` from `rc_input` checkbox.
    - Enable the `crsf_rc` module
      1. Scroll to highlight the `RC` submenu, then press enter to open it.
-     1. Scroll to highlight `crsf_rc` and press enter to enable it.
+     2. Scroll to highlight `crsf_rc` and press enter to enable it.
 
    Save and exit the PX4 board config tool.
 
-1. [Build the PX4 source code](../dev_setup/building_px4.md) with your changes (again assuming you are using ARKV6X):
+5. [Build the PX4 source code](../dev_setup/building_px4.md) with your changes (again assuming you are using ARKV6X):
 
    ```sh
    make ark_fmu-v6x_default
@@ -133,7 +133,7 @@ Alternatively you can use QGroundControl to install the firmware, as described i
 
    There is no need to set the baud rate for the port, as this is configured by the driver.
 
-1. [RC_CRSF_TEL_EN](../advanced_config/parameter_reference.md#RC_CRSF_TEL_EN) — Enable to activate Crossfire telemetry.
+2. [RC_CRSF_TEL_EN](../advanced_config/parameter_reference.md#RC_CRSF_TEL_EN) — Enable to activate Crossfire telemetry.
 
 ### Radio Setup
 
