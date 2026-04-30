@@ -61,6 +61,10 @@
 #include "mavlink_receiver.h"
 #include "mavlink_main.h"
 
+#ifdef MAVLINK_UDP
+#include <sys/time.h>
+#endif
+
 // Guard against MAVLink misconfiguration
 #ifndef MAVLINK_CRC_EXTRA
 #error MAVLINK_CRC_EXTRA has to be defined on PX4 systems
@@ -97,10 +101,14 @@ mavlink_message_t *mavlink_get_channel_buffer(uint8_t channel) { return mavlink_
 
 static bool accept_unsigned_callback(const mavlink_status_t *status, uint32_t message_id)
 {
-	Mavlink *m = Mavlink::get_instance_for_status(status);
+	// Use link_id to index directly: the callback fires on the instance's own
+	// receiver thread, so no lock needed (instance can't be destroyed while running).
+	if (status->signing) {
+		Mavlink *inst = mavlink_module_instances[status->signing->link_id];
 
-	if (m != nullptr) {
-		return m -> accept_unsigned(m->sign_mode(), m -> is_usb_uart(), message_id);
+		if (inst != nullptr) {
+			return inst->accept_unsigned(message_id);
+		}
 	}
 
 	return false;
@@ -318,20 +326,6 @@ Mavlink::get_instance_for_device(const char *device_name)
 
 	for (Mavlink *inst : mavlink_module_instances) {
 		if (inst && (inst->_protocol == Protocol::SERIAL) && (strcmp(inst->_device_name, device_name) == 0)) {
-			return inst;
-		}
-	}
-
-	return nullptr;
-}
-
-Mavlink *
-Mavlink::get_instance_for_status(const mavlink_status_t *status)
-{
-	LockGuard lg{mavlink_module_mutex};
-
-	for (Mavlink *inst : mavlink_module_instances) {
-		if (status == mavlink_get_channel_status(inst->get_instance_id())) {
 			return inst;
 		}
 	}
@@ -1032,6 +1026,19 @@ void Mavlink::init_udp()
 		return;
 	}
 
+	// Cap UDP send time to avoid blocking indefinitely if the NuttX net
+	// stack hasn't finished initializing the IOB write-buffer semaphore.
+	// 10ms is ~4x the worst-case send time measured on STM32H7.
+	constexpr long UDP_SEND_TIMEOUT_US = 10000;
+	struct timeval tv {
+		.tv_sec = 0,
+		.tv_usec = UDP_SEND_TIMEOUT_US
+	};
+
+	if (setsockopt(_socket_fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv)) < 0) {
+		PX4_WARN("setting socket timeout failed: %s", strerror(errno));
+	}
+
 	if (bind(_socket_fd, (struct sockaddr *)&_myaddr, sizeof(_myaddr)) < 0) {
 		PX4_WARN("bind failed: %s", strerror(errno));
 		return;
@@ -1054,10 +1061,50 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 	 *  NOTE: this is called from the receiver thread
 	 */
 
-	if (is_usb_uart()) {
-		if (_sign_control.check_for_signing(msg)) {
+	// SETUP_SIGNING must never be forwarded to other links (MAVLink spec requirement).
+	if (msg->msgid == MAVLINK_MSG_ID_SETUP_SIGNING) {
+		// Reject signing changes while armed
+		vehicle_status_s vehicle_status{};
+
+		if (_vehicle_status_sub.copy(&vehicle_status)
+		    && vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+			send_statustext_critical("MAVLink signing: rejected while armed");
 			return;
 		}
+
+		MavlinkSignControl::SetupSigningResult result = _sign_control.check_for_signing(msg);
+
+		switch (result) {
+		case MavlinkSignControl::KEY_ACCEPTED:
+			send_statustext_info("MAVLink signing key accepted");
+			break;
+
+		case MavlinkSignControl::SIGNING_DISABLED:
+			send_statustext_info("MAVLink signing disabled");
+			break;
+
+		case MavlinkSignControl::BLANK_KEY_REJECTED:
+			send_statustext_critical("MAVLink signing: blank key rejected");
+			break;
+
+		default:
+			break;
+		}
+
+		if (result == MavlinkSignControl::KEY_ACCEPTED || result == MavlinkSignControl::SIGNING_DISABLED) {
+			// Signal all other instances to reload key from file on their own thread
+			LockGuard lg{mavlink_module_mutex};
+
+			for (int i = 0; i < MAVLINK_COMM_NUM_BUFFERS; i++) {
+				Mavlink *inst = mavlink_module_instances[i];
+
+				if (inst != nullptr && inst != this) {
+					inst->set_signing_key_dirty();
+				}
+			}
+		}
+
+		return;
 	}
 
 	if (get_forwarding_on()) {
@@ -1260,6 +1307,12 @@ Mavlink::configure_stream_threadsafe(const char *stream_name, const float rate)
 		/* copy stream name */
 		unsigned n = strlen(stream_name) + 1;
 		char *s = new char[n];
+
+		if (s == nullptr) {
+			PX4_ERR("stream allocation failed");
+			return;
+		}
+
 		strcpy(s, stream_name);
 
 		/* set subscription task */
@@ -1985,8 +2038,6 @@ Mavlink::task_main(int argc, char *argv[])
 		}
 	}
 
-	_sign_control.start(_instance_id, get_status(), &accept_unsigned_callback);
-
 	int ch;
 	_baudrate = 57600;
 	_datarate = 0;
@@ -2326,6 +2377,8 @@ Mavlink::task_main(int argc, char *argv[])
 		return PX4_ERROR;
 	}
 
+	_sign_control.start(get_instance_id(), get_status(), &accept_unsigned_callback);
+
 	pthread_mutex_init(&_mavlink_shell_mutex, nullptr);
 	pthread_mutex_init(&_message_buffer_mutex, nullptr);
 	pthread_mutex_init(&_send_mutex, nullptr);
@@ -2575,7 +2628,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 	_receiver.stop();
 
-	delete _subscribe_to_stream;
+	delete[] _subscribe_to_stream;
 	_subscribe_to_stream = nullptr;
 
 	/* delete streams */

@@ -156,7 +156,7 @@ void vtxtable_print_status()
 		PX4_INFO("VTX table: <not configured>");
 
 	} else {
-		PX4_INFO("VTX table %ux%u: %s", vtxtable().bands(), vtxtable().channels(), vtxtable().name());
+		PX4_INFO("VTX table %zux%zu: %s", vtxtable().bands(), vtxtable().channels(), vtxtable().name());
 		vtxtable_print_frequencies();
 	}
 
@@ -306,7 +306,10 @@ int vtxtable_custom_command(int argc, char *argv[])
 void vtxtable_print_frequencies()
 {
 	for (uint8_t b = 0; b < vtxtable().bands(); b++) {
-		PX4_INFO_RAW("INFO  [vtxtable]  %c: %-*s=", vtxtable().band_letter(b), vtx::Config::NAME_LENGTH, vtxtable().band_name(b));
+		PX4_INFO_RAW("INFO  [vtxtable]  %c: %-*s=",
+			     vtxtable().band_letter(b),
+			     static_cast<int>(vtx::Config::NAME_LENGTH),
+			     vtxtable().band_name(b));
 
 		for (uint8_t c = 0; c < vtxtable().channels(); c++) {
 			PX4_INFO_RAW(" %4hu", vtxtable().frequency(b, c));

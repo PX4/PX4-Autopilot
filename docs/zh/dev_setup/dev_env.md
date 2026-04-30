@@ -1,5 +1,10 @@
 # 安装文件和代码
 
+:::tip
+You only need a toolchain if you want to **modify and build** PX4 from source.
+If you just want to run PX4 simulation without changing the code, use a pre-built [Docker container or .deb package](../simulation/px4_sitl_prebuilt_packages.md) instead.
+:::
+
 The _supported platforms_ for PX4 development are:
 
 - [Ubuntu Linux (24.04/22.04)](../dev_setup/dev_env_linux_ubuntu.md)

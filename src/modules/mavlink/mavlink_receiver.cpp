@@ -1054,6 +1054,18 @@ MavlinkReceiver::handle_message_att_pos_mocap(mavlink_message_t *msg)
 	_mocap_odometry_pub.publish(odom);
 }
 
+offboard_control_mode_s
+MavlinkReceiver::fill_offboard_control_mode(const trajectory_setpoint_s &setpoint)
+{
+	offboard_control_mode_s ocm{};
+	ocm.position = !matrix::Vector3f(setpoint.position).isAllNan();
+	ocm.velocity = !matrix::Vector3f(setpoint.velocity).isAllNan();
+	ocm.acceleration = !matrix::Vector3f(setpoint.acceleration).isAllNan();
+	ocm.attitude = PX4_ISFINITE(setpoint.yaw);
+	ocm.body_rate = PX4_ISFINITE(setpoint.yawspeed);
+	return ocm;
+}
+
 void
 MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t *msg)
 {
@@ -1140,12 +1152,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 		setpoint.yawspeed = (type_mask & POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE) ? (float)NAN : target_local_ned.yaw_rate;
 
 
-		offboard_control_mode_s ocm{};
-		ocm.position = !matrix::Vector3f(setpoint.position).isAllNan();
-		ocm.velocity = !matrix::Vector3f(setpoint.velocity).isAllNan();
-		ocm.acceleration = !matrix::Vector3f(setpoint.acceleration).isAllNan();
-		ocm.attitude = PX4_ISFINITE(setpoint.yaw);
-		ocm.body_rate = PX4_ISFINITE(setpoint.yawspeed);
+		offboard_control_mode_s ocm = fill_offboard_control_mode(setpoint);
 
 		if (ocm.acceleration && (type_mask & POSITION_TARGET_TYPEMASK_FORCE_SET)) {
 			mavlink_log_critical(&_mavlink_log_pub, "SET_POSITION_TARGET_LOCAL_NED force not supported\t");
@@ -1162,8 +1169,8 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 			vehicle_status_s vehicle_status{};
 			_vehicle_status_sub.copy(&vehicle_status);
 
-			if (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
-				// only publish setpoint once in OFFBOARD
+			if (vehicle_status.accepts_offboard_setpoints) {
+				// only publish setpoint once in mode that accepts offboard setpoints
 				setpoint.timestamp = hrt_absolute_time();
 				_trajectory_setpoint_pub.publish(setpoint);
 			}
@@ -1264,12 +1271,7 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 		setpoint.yawspeed = (type_mask & POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE) ? (float)NAN : target_global_int.yaw_rate;
 
 
-		offboard_control_mode_s ocm{};
-		ocm.position = !matrix::Vector3f(setpoint.position).isAllNan();
-		ocm.velocity = !matrix::Vector3f(setpoint.velocity).isAllNan();
-		ocm.acceleration = !matrix::Vector3f(setpoint.acceleration).isAllNan();
-		ocm.attitude = PX4_ISFINITE(setpoint.yaw);
-		ocm.body_rate = PX4_ISFINITE(setpoint.yawspeed);
+		offboard_control_mode_s ocm = fill_offboard_control_mode(setpoint);
 
 		if (ocm.acceleration && (type_mask & POSITION_TARGET_TYPEMASK_FORCE_SET)) {
 			mavlink_log_critical(&_mavlink_log_pub, "SET_POSITION_TARGET_GLOBAL_INT force not supported\t");
@@ -3306,6 +3308,9 @@ MavlinkReceiver::run()
 			// update parameters from storage
 			updateParams();
 		}
+
+		// Reload signing key if another instance updated it
+		_mavlink.check_signing_key_dirty();
 
 		int ret = poll(&fds[0], 1, timeout);
 

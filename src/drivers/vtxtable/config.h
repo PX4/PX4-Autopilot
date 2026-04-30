@@ -404,7 +404,7 @@ public:
 	inline int store(const char *filename) const
 	{
 		LockGuard lg{_mutex};
-		int fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC);
+		int fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0666);
 
 		if (fd < 0) {
 			return errno;
@@ -432,7 +432,7 @@ public:
 		}
 
 		LockGuard lg{_mutex};
-		int fd = open(filename, O_RDONLY);
+		int fd = open(filename, O_RDONLY, 0666);
 
 		if (fd < 0) {
 			return errno;
@@ -489,8 +489,34 @@ public:
 		}
 
 		// now read into the data structure directly
-		lseek(fd, sizeof(magic), SEEK_SET);
-		read(fd, &_data, sizeof(Storage));
+		if (lseek(fd, sizeof(magic), SEEK_SET) < 0) {
+			close(fd);
+			return -errno;
+		}
+
+		size_t total = 0;
+		uint8_t *ptr = reinterpret_cast<uint8_t *>(&_data);
+
+		while (total < sizeof(Storage)) {
+			const int n = read(fd, ptr + total, sizeof(Storage) - total);
+
+			if (n < 0) {
+				if (errno == EINTR) {
+					continue;
+				}
+
+				close(fd);
+				return -errno;
+			}
+
+			if (n == 0) {
+				close(fd);
+				return -EIO;
+			}
+
+			total += static_cast<size_t>(n);
+		}
+
 		close(fd);
 
 		_change_value++;

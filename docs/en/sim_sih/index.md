@@ -6,13 +6,18 @@ SIH (Simulation-In-Hardware) is a lightweight, headless simulator with zero exte
 No GUI, no external processes, no rendering overhead — just PX4 running a C++ physics model.
 This makes it the fastest way to iterate on flight code.
 
+::: tip
+SIH is also available as a [prebuilt Docker container or .deb package](../simulation/px4_sitl_prebuilt_packages.md), which is useful if you don't need to modify PX4 itself.
+See [PX4 Simulation QuickStart](../simulation/px4_simulation_quickstart.md) for a one-line instruction on how this is used.
+:::
+
 ## Overview
 
 SIH runs as a PX4 module that replaces real sensor and actuator hardware with a simulated physics model.
 It provides simulated IMU, GPS, barometer, magnetometer, and airspeed sensor data via uORB, and reads actuator outputs to update the vehicle state at each timestep.
 
 The simulation runs in lockstep with PX4, ensuring deterministic and reproducible results.
-It also integrates seamlessly with ROS 2 via with no additional configuration (see [ROS 2 Integration](#ros-2-integration) below).
+It also integrates seamlessly with ROS 2 with no additional configuration (see [ROS 2 Integration](#ros-2-integration) below).
 
 Two modes are supported:
 
@@ -35,7 +40,7 @@ The following vehicle types are supported:
 | Ackermann Rover <Badge type="tip" text="PX4 v1.16" />           | `make px4_sitl_sih sihsim_rover`         | Experimental |
 
 ::: warning
-Only the quadrotor vehicle type is stable and recommended for development. All other vehicle types (hexarotor, fixed-wing, VTOL, rover) are experimental and may have aerodynamic model or controller interaction issues that produce unrealistic flight behavior.
+Only the quadrotor vehicle type is stable and recommended for development. All other vehicle types (hexarotor, fixed-wing, VTOL, rover) are experimental and may have aerodynamic model or controller interaction issues that produce unrealistic flight behaviour.
 :::
 
 ### How SIH Works
@@ -74,27 +79,28 @@ The `px4_sitl` target will work, but will also build Gazebo libraries.
 ### Visualization (Optional) {#sitl-visualization}
 
 SIH is intentionally headless by default.
-If you need a visual aid to see what the vehicle is doing you can use QGroundControl to track path over ground, and/or jMAVSim as a 3D viewer.
+If you need a visual aid to see what the vehicle is doing you can use QGroundControl to track path over ground, and/or [Hawkeye](../sim_hawkeye/index.md) as a 3D viewer.
 
 #### QGroundControl
 
 QGC auto-connects on UDP port 14550. Open QGC while SIH is running and the vehicle appears on the map view with attitude, position, and telemetry.
 
-#### jMAVSim (3D Display-Only)
+#### Hawkeye (3D Visualizer)
 
-jMAVSim can render a 3D view of the vehicle using MAVLink position data. No physics are simulated in jMAVSim — it is display-only.
+[Hawkeye](../sim_hawkeye/index.md) renders a real-time 3D view of the vehicle using MAVLink position data.
+No physics are simulated in Hawkeye — it is a visualizer only.
+
+In a separate terminal, run:
 
 ```sh
-./Tools/simulation/jmavsim/jmavsim_run.sh -p 19410 -u -q -o
+hawkeye
 ```
 
-Flags:
+Hawkeye connects on UDP port 19410 by default (the same port SIH sends `HIL_STATE_QUATERNION` on).
+It then auto-detects the vehicle type from the MAVLink `HEARTBEAT` and loads the matching 3D model.
 
-- `-a` for airplane model
-- `-t` for tailsitter model
-- `-o` enable display-only mode.
-
-See [jMAVSim Display-Only Mode](../sim_jmavsim/index.md#display-only-mode) for details.
+The [Hawkeye](../sim_hawkeye/index.md) overview page explains how to install the software.
+See the [Hawkeye docs](https://px4.github.io/Hawkeye/) for other features, such as ULog replay, and multi-vehicle visualization.
 
 ### Environment Configuration
 
@@ -148,14 +154,14 @@ See [uXRCE-DDS (PX4-ROS 2/DDS Bridge)](../middleware/uxrce_dds.md) for full setu
 
 PX4 SITL opens the following UDP ports (all instance-aware, offset by instance number N).
 
-| PX4 sends to (remote) | PX4 listens on (local) | Use for                         | Instance offset                           |
-| --------------------- | ---------------------- | ------------------------------- | ----------------------------------------- |
-| **14550**             | 18570 (+N)             | QGroundControl, GCS tools       | Yes                                       |
-| **14540** (+N)        | 14580 (+N)             | MAVSDK, MAVROS, offboard APIs   | Yes (capped at 14549 for 10+ instances)   |
-| **14030** (+N)        | 14280 (+N)             | Onboard camera/payload          | Yes                                       |
-| **13280** (+N)        | 13030 (+N)             | Gimbal control                  | Yes                                       |
-| **19410** (+N)        | 19450 (+N)             | jMAVSim display-only (SIH only) | Yes                                       |
-| **8888**              | -                      | uXRCE-DDS / ROS 2               | No (use DDS namespace for multi-instance) |
+| PX4 sends to (remote) | PX4 listens on (local) | Use for                       | Instance offset                           |
+| --------------------- | ---------------------- | ----------------------------- | ----------------------------------------- |
+| **14550**             | 18570 (+N)             | QGroundControl, GCS tools     | Yes                                       |
+| **14540** (+N)        | 14580 (+N)             | MAVSDK, MAVROS, offboard APIs | Yes (capped at 14549 for 10+ instances)   |
+| **14030** (+N)        | 14280 (+N)             | Onboard camera/payload        | Yes                                       |
+| **13280** (+N)        | 13030 (+N)             | Gimbal control                | Yes                                       |
+| **19410** (+N)        | 19450 (+N)             | Hawkeye visualizer (SIH only) | Yes                                       |
+| **8888**              | -                      | uXRCE-DDS / ROS 2             | No (use DDS namespace for multi-instance) |
 
 QGC auto-connects on port **14550** by default. MAVSDK connects on **14540**. No manual port configuration needed for single-instance use.
 
@@ -199,9 +205,13 @@ Each instance allocates ports automatically (all offset by instance number):
 
 See [Port Reference](#port-reference) for the complete list of ports.
 
-## SIH on Flight Controller Hardware {#sih-on-flight-controller-hardware}
+## Running the SIH on Flight Controller Hardware {#sih-on-flight-controller-hardware}
 
-SIH can also run on flight controller hardware with `SYS_HITL=2`, replacing real sensors with simulated data while running on the actual autopilot.
+::: info
+The SIH on flight controller is community supported.
+:::
+
+SIH can also run on flight controller hardware, replacing real sensors with simulated data while running on the actual autopilot.
 See [SIH on Flight Controller Hardware](hardware.md) for setup instructions.
 
 ## Adding New Airframes
@@ -237,7 +247,7 @@ The specific differences for SIH simulation airframes are listed in the sections
 
 ### SIH on Flight Controller
 
-For FC-specific airframe setup (file locations, `HIL_ACT_FUNC*` parameters), see [Adding New Airframes (FC)](hardware.md#adding-new-airframes-fc).
+See [Adding New Airframes (FC)](../sim_sih/hardware.md#adding-new-airframes-fc) in _SIH on Flight Controller Hardware_.
 
 ### SIH as SITL
 
@@ -264,8 +274,22 @@ The dynamic models for the various vehicles are:
 - Tailsitter: based on Chiappinelli (2018), see references below
 - Rover: bicycle model with linear tire model
 
-Since PX4 v1.17, the propeller model for fixed-wing, tailsitter, and VTOL pusher vehicles is based on [UIUC propeller data](https://m-selig.ae.illinois.edu/props/propDB.html).
-The maximum thrust force is realistically reduced as aircraft speed increases.
+**Propeller model with advance ratio**
+
+Since PX4 v1.17, the propeller model for fixed-wing, tailsitter, and VTOL pusher vehicles is based on the equations from UIUC Propeller Database.
+
+<img width="588" height="183" alt="UIUC_prop_equations" src="https://github.com/user-attachments/assets/55413486-b23b-4269-9ac5-dd630ec0849b" />
+
+This model includes the thrust coefficient CT(J) and power coefficient CP(J) as functions of the advance ratio J.
+As a result, the maximum thrust force is realistically reduced as the aircraft speed is increased.
+The SIH implements the thrust and power coefficients as second-order polynomial fits.
+
+CT = SIH_F_CT0 + SIH_F_CT1⋅J + SIH_F_CT2⋅J²
+
+CP = SIH_F_CP0 + SIH_F_CP1⋅J + SIH_F_CP2⋅J²
+
+If `SIH_F_CT0` and `SIH_F_CP0` are non-zero and positive, the SIH uses the model with advance ratio.
+If not, the SIH uses a simple model with maximum thrust force given by `SIH_F_T_MAX` and maximum torque given by `SIH_F_Q_MAX`.
 
 **References:**
 
@@ -273,19 +297,20 @@ The maximum thrust force is realistically reduced as aircraft speed increases.
 2. W. Khan, "Dynamics modeling of agile fixed-wing unmanned aerial vehicles," Ph.D. thesis, Dept. of Mechanical Engineering, McGill University, Montreal, 2016.
 3. R. Chiappinelli, "Modeling and control of a flying wing tailsitter unmanned aerial vehicle," M.Sc. thesis, Dept. of Mechanical Engineering, McGill University, Montreal, 2018.
 4. S. Anumakonda, "Everything you need to know about Self-Driving Cars," 2021. [Link](https://srianumakonda.medium.com/everything-you-need-to-know-about-self-driving-in-30-minutes-b38d68bd3427)
+5. J.B. Brandt, R.W. Deters, G.K. Ananda, O.D. Dantsker, and M.S. Selig, UIUC Propeller Database, Vols 1-4, University of Illinois at Urbana-Champaign, Department of Aerospace Engineering, retrieved from https://m-selig.ae.illinois.edu/props/propDB.html.
 
 ## Video
 
-@[youtube](https://youtu.be/PzIpSCRD8Jo)
+SIH demo with a fixed-wing vehicle @[youtube](https://youtu.be/PzIpSCRD8Jo)  
+How to parametrize the thrust and power coefficients CT & CP @[youtube](https://www.youtube.com/watch?v=KNSd9ge0sSw)
 
 ## Credits
 
 SIH was originally developed by Coriolis g Corporation.
 The airplane model and tailsitter models were added by Altitude R&D inc.
-Both are Canadian companies:
 
 - Coriolis g developed a new type of Vertical Takeoff and Landing (VTOL) vehicles based on passive coupling systems;
-- [Altitude R&D](https://www.altitude-rd.com/) is specialized in dynamics, control, and real-time simulation (today relocated in Zurich).
+- [Altitude R&D](https://www.altitude-rd.com/) is specialized in dynamics, control, and real-time simulation (located in Zurich).
 
 The simulator is released for free under BSD license.
 

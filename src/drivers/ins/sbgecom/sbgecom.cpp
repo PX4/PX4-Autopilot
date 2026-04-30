@@ -43,6 +43,7 @@
 #include <lib/drivers/device/Device.hpp>
 #include <px4_platform_common/getopt.h>
 
+#include <errno.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <termios.h>
@@ -323,9 +324,9 @@ void SbgEcom::handleLogEkfNav(const SbgEComLogUnion *ref_sbg_data, void *user_ar
 	const double longitude = ref_sbg_data->ekfNavData.position[1];
 	const double altitude = ref_sbg_data->ekfNavData.position[2];
 
-	const double north_velocity = ref_sbg_data->ekfNavData.velocity[0];
-	const double east_velocity = ref_sbg_data->ekfNavData.velocity[1];
-	const double down_velocity = ref_sbg_data->ekfNavData.velocity[2];
+	const double north_velocity = static_cast<double>(ref_sbg_data->ekfNavData.velocity[0]);
+	const double east_velocity = static_cast<double>(ref_sbg_data->ekfNavData.velocity[1]);
+	const double down_velocity = static_cast<double>(ref_sbg_data->ekfNavData.velocity[2]);
 
 	if (!instance->_pos_ref.isInitialized()) {
 		instance->_pos_ref.initReference(latitude, longitude, time_now_us);
@@ -457,7 +458,7 @@ void SbgEcom::handleLogGnssPosVelHdt(SbgEComMsgId msg, const SbgEComLogUnion *re
 		sensor_gps.latitude_deg = gnss_data->gps_pos.latitude;
 		sensor_gps.longitude_deg = gnss_data->gps_pos.longitude;
 		sensor_gps.altitude_msl_m = gnss_data->gps_pos.altitude;
-		sensor_gps.altitude_ellipsoid_m = gnss_data->gps_pos.undulation;
+		sensor_gps.altitude_ellipsoid_m = static_cast<double>(gnss_data->gps_pos.undulation);
 
 		sensor_gps.s_variance_m_s = sqrt(pow(gnss_data->gps_vel.velocityAcc[0], 2) +
 						 pow(gnss_data->gps_vel.velocityAcc[1], 2) +
@@ -831,18 +832,18 @@ void SbgEcom::send_config(SbgEComHandle *pHandle, const char *config)
 
 	sbgEComCmdApiReplyConstruct(&reply);
 
-	sbgEComCmdApiPost(pHandle, "/api/v1/settings", NULL, config, &reply);
+	sbgEComCmdApiPost(pHandle, "/api/v1/settings", nullptr, config, &reply);
 
 	if (!sbgEComCmdApiReplySuccessful(&reply)) {
 		PX4_ERR("Fail to apply SBG configuration: %s", reply.pContent);
 
 	} else {
-		bool need_reboot = (strstr(reply.pContent, NEED_REBOOT_STR) != NULL);
-		sbgEComCmdApiPost(pHandle, "/api/v1/settings/save", NULL, NULL, &reply);
+		bool need_reboot = (strstr(reply.pContent, NEED_REBOOT_STR) != nullptr);
+		sbgEComCmdApiPost(pHandle, "/api/v1/settings/save", nullptr, nullptr, &reply);
 
 		if (need_reboot) {
 			PX4_INFO("Reboot SBG device");
-			sbgEComCmdApiPost(pHandle, "/api/v1/system/reboot", NULL, NULL, &reply);
+			sbgEComCmdApiPost(pHandle, "/api/v1/system/reboot", nullptr, nullptr, &reply);
 		}
 	}
 
@@ -852,7 +853,7 @@ void SbgEcom::send_config(SbgEComHandle *pHandle, const char *config)
 void SbgEcom::send_config_file(SbgEComHandle *pHandle, const char *file_path)
 {
 	int fd;
-	char *body = NULL;
+	char *body = nullptr;
 	struct stat s;
 
 	assert(pHandle);
@@ -869,12 +870,35 @@ void SbgEcom::send_config_file(SbgEComHandle *pHandle, const char *file_path)
 	body = (char *)malloc(s.st_size + 1);
 
 	if (!body) {
-		PX4_ERR("Failed to allocate memory (%ld) - %s", s.st_size + 1, strerror(get_errno()));
+		PX4_ERR("Failed to allocate memory (%lld) - %s",
+			static_cast<long long>(s.st_size + 1),
+			strerror(errno));
 		close(fd);
 		return;
 	}
 
-	read(fd, body, s.st_size);
+	ssize_t total_read = 0;
+
+	while (total_read < s.st_size) {
+		const ssize_t ret = read(fd, body + total_read, s.st_size - total_read);
+
+		if (ret < 0) {
+			PX4_ERR("Read failed: %s", strerror(errno));
+			free(body);
+			close(fd);
+			return;
+		}
+
+		if (ret == 0) {
+			PX4_ERR("Read failed: unexpected end of file");
+			free(body);
+			close(fd);
+			return;
+		}
+
+		total_read += ret;
+	}
+
 	body[s.st_size] = '\0';
 
 	send_config(pHandle, body);
@@ -896,7 +920,9 @@ int SbgEcom::init()
 	error_code = sbgInterfaceSerialCreate(&_sbg_interface, _device_name, _baudrate);
 
 	if (error_code == SBG_NO_ERROR) {
-		PX4_INFO("Serial interface created successfully on port: %s, baudrate: %ld", _device_name, _baudrate);
+		PX4_INFO("Serial interface created successfully on port: %s, baudrate: %ld",
+			 _device_name,
+			 static_cast<long int>(_baudrate));
 	}
 
 	pSerialHandle = (int *)_sbg_interface.handle;

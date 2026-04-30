@@ -50,7 +50,7 @@ namespace i2cdetect
 
 int detect(int bus)
 {
-	printf("Scanning I2C bus: %d\n", bus);
+	PX4_INFO("Scanning I2C bus: %d", bus);
 
 	int ret = PX4_ERROR;
 
@@ -62,14 +62,16 @@ int detect(int bus)
 		return PX4_ERROR;
 	}
 
-	printf("     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f\n");
+	// Line buffer for building up output
+	char line[80];
+	int pos = 0;
+
+	PX4_INFO("     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f");
 
 	for (int i = 0; i < 128; i += 16) {
-		printf("%02x: ", i);
+		pos = snprintf(line, sizeof(line), "%02x: ", i);
 
 		for (int j = 0; j < 16; j++) {
-
-			fflush(stdout);
 
 			uint8_t addr = i + j;
 
@@ -115,14 +117,14 @@ int detect(int bus)
 			} while (retry_count++ < retries);
 
 			if (found) {
-				printf("%02x ", addr);
+				pos += snprintf(line + pos, sizeof(line) - pos, "%02x ", addr);
 
 			} else {
-				printf("-- ");
+				pos += snprintf(line + pos, sizeof(line) - pos, "-- ");
 			}
 		}
 
-		printf("\n");
+		PX4_INFO("%s", line);
 	}
 
 	px4_i2cbus_uninitialize(i2c_dev);

@@ -100,8 +100,8 @@ void FailureDetectorChecks::checkAndReport(const Context &context, Report &repor
 		}
 	}
 
-	reporter.failsafeFlags().fd_critical_failure = fd_status.fd_roll || fd_status.fd_pitch || fd_status.fd_alt ||
-			fd_status.fd_ext;
+	reporter.failsafeFlags().fd_critical_failure = fd_status.fd_roll || fd_status.fd_pitch || fd_status.fd_ext;
+	reporter.failsafeFlags().fd_alt_loss = fd_status.fd_alt;
 
 	reporter.failsafeFlags().fd_imbalanced_prop = fd_status.fd_imbalanced_prop;
 

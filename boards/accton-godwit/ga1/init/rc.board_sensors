@@ -83,10 +83,12 @@ ist8310 -X -b 1 -R 10 start
 if param compare SENS_INT_BARO_EN 1
 then
 	icp201xx -I -a 0x64 start
+	dps310 -I start
 fi
 
 #external baro
 icp201xx -X start
+dps310 -X start
 
 unset INA_CONFIGURED
 unset HAVE_PM2

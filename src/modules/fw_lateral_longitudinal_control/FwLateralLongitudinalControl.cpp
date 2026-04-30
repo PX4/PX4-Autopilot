@@ -110,9 +110,6 @@ FwLateralLongitudinalControl::parameters_update()
 	_tecs.set_airspeed_error_time_constant(_param_fw_t_tas_error_tc.get());
 	_tecs.set_ste_rate_time_const(_param_ste_rate_time_const.get());
 	_tecs.set_seb_rate_ff_gain(_param_seb_rate_ff.get());
-	_tecs.set_airspeed_measurement_std_dev(_param_speed_standard_dev.get());
-	_tecs.set_airspeed_rate_measurement_std_dev(_param_speed_rate_standard_dev.get());
-	_tecs.set_airspeed_filter_process_std_dev(_param_process_noise_standard_dev.get());
 
 	_roll_slew_rate.setSlewRate(radians(_param_fw_pn_r_slew_max.get()));
 

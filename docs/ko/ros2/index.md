@@ -16,17 +16,21 @@ It can be used, for example, for [computer vision](../computer_vision/index.md) 
 ROS 2 enables a very deep integration with PX4, to the extent that you can create flight modes in ROS 2 that are indistinguisable from internal PX4 modes, and directly read from and write to internal uORB topics at high rate.
 It is recommended (in particular) for control and communication from a companion computer where low latency is important, when leveraging existing libraries from Linux, or when writing new high level flight modes.
 
-Communication between ROS 2 and PX4 uses middleware that implements the [XRCE-DDS protocol](../middleware/uxrce_dds.md).
-This middleware exposes PX4 [uORB messages](../msg_docs/index.md) as ROS 2 messages and types, effectively allowing direct access to PX4 from ROS 2 workflows and nodes.
-The middleware uses uORB message definitions to generate code to serialise and deserialise the messages heading in and out of PX4.
+Communication between ROS 2 and PX4 can leverage two independent middlewares:
+
+- [XRCE-DDS protocol](../middleware/uxrce_dds.md) — Original middleware. More tested and included by default in most PX4 builds.
+- [Zenoh protocol](../middleware/zenoh.md) — Must be manually added and enabled to most PX4 builds.
+
+The middlewares expose PX4 [uORB messages](../msg_docs/index.md) as ROS 2 messages and types, effectively allowing direct access to PX4 from ROS 2 workflows and nodes.
+The middlewares use uORB message definitions to generate code to serialise and deserialise the messages heading in and out of PX4.
 These same message definitions are used in ROS 2 applications to allow the messages to be interpreted.
 
 :::info
-ROS 2 can also connect with PX4 using [MAVROS](https://github.com/mavlink/mavros/tree/ros2/mavros) instead of XRCE-DDS.
+ROS 2 can also connect with PX4 using [MAVROS](https://github.com/mavlink/mavros/tree/ros2/mavros) instead of XRCE-DDS / Zenoh.
 This option is supported by the MAVROS project (it is not documented here).
 :::
 
-To use the [ROS 2](../ros2/user_guide.md) over XRCE-DDS effectively, you must (at time of writing) have a reasonable understanding of the PX4 internal architecture and conventions, which differ from those used by ROS.
+To use the [ROS 2](../ros2/user_guide.md) over XRCE-DDS / Zenoh effectively, you must (at time of writing) have a reasonable understanding of the PX4 internal architecture and conventions, which differ from those used by ROS.
 In the near term future we plan to provide ROS 2 APIs to abstract PX4 conventions, along with examples demonstrating their use.
 
 ## Topics
@@ -42,4 +46,5 @@ In the near term future we plan to provide ROS 2 APIs to abstract PX4 convention
 
 ## 추가 정보
 
-- [XRCE-DDS (PX4-ROS 2/DDS Bridge)](../middleware/uxrce_dds.md): PX4 middleware for connecting to ROS 2.
+- [XRCE-DDS (PX4-ROS 2/DDS Bridge)](../middleware/uxrce_dds.md): PX4 middleware leveranging micro XRCE-DDS for connecting to ROS 2.
+- [Zenoh (PX4 ROS 2)](../middleware/zenoh.md): PX4 middleware leveraging Zenoh pico for connecting to ROS 2.

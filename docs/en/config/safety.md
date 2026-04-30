@@ -251,6 +251,18 @@ The relevant parameters are shown below:
 | ---------------------------------------------------------------------------- | ---------------------------------------------------------------- |
 | [NAV_TRAFF_AVOID](../advanced_config/parameter_reference.md#NAV_TRAFF_AVOID) | Set the failsafe action: Disabled, Warn, Return mode, Land mode. |
 
+## Remote ID Failsafe
+
+<Badge type="tip" text="PX4 v1.18" />
+
+The Remote ID failsafe is triggered when the [Remote ID (Open Drone ID)](../peripherals/remote_id.md) module is not detected or reports as unhealthy while the vehicle is armed.
+
+The failsafe action and arming behaviour are both configured by the `COM_ARM_ODID` parameter:
+
+| Parameter                                                                                       | Description                                                                                                                                                                                                                                                                                                                                    |
+| ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="COM_ARM_ODID"></a>[COM_ARM_ODID](../advanced_config/parameter_reference.md#COM_ARM_ODID) | Remote ID arming check and in-flight failsafe. `0`: Disabled (default), `1`: Warning only, `2`: Error only (prevents arming), `3`: Return, `4`: Land, `5`: Terminate.<br><br>On failsafe:<br>- `Error`, `Return`, `Land` and `Terminate` prevent arming.<br>- `Return`, `Land` and `Terminate` start the associated action/mode when airborne. |
+
 ## Quad-chute Failsafe
 
 Failsafe for when a VTOL vehicle can no longer fly in fixed-wing mode, perhaps due to the failure of a pusher motor, airspeed sensor, or control surface.
@@ -297,6 +309,19 @@ During **takeoff** the failure detector [attitude trigger](#attitude-trigger) in
 Note that this check is _always enabled on takeoff_, irrespective of the `CBRK_FLIGHTTERM` parameter.
 
 The failure detector is active in all vehicle types and modes, except for those where the vehicle is _expected_ to do flips (i.e. [Acro mode (MC)](../flight_modes_mc/acro.md), [Acro mode (FW)](../flight_modes_fw/acro.md), and [Manual (FW)](../flight_modes_fw/manual.md)).
+
+### Altitude Loss Trigger {#altitude-loss-trigger}
+
+<Badge type="tip" text="PX4 v1.18" /> <Badge type="tip" text="MC, VTOL only" />
+
+The failure detector can be configured to trigger if a rotary-wing vehicle loses too much altitude below its commanded setpoint while in an altitude-controlled flight mode (such as [Position mode](../flight_modes_mc/position.md) or [Altitude mode](../flight_modes_mc/altitude.md)).
+
+If the vehicle descends more than [FD_ALT_LOSS](#FD_ALT_LOSS) meters below the setpoint, [flight termination](../advanced_config/flight_termination.md) is triggered, which may deploy a [parachute](../peripherals/parachute.md).
+
+| Parameter                                                                                          | Description                                                                                                                           |
+| -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="FD_ALT_LOSS"></a>[FD_ALT_LOSS](../advanced_config/parameter_reference.md#FD_ALT_LOSS)       | Altitude loss threshold (m). Flight termination is triggered when the vehicle drops this far below the setpoint. Set to 0 to disable. |
+| <a id="FD_ALT_LOSS_T"></a>[FD_ALT_LOSS_T](../advanced_config/parameter_reference.md#FD_ALT_LOSS_T) | Time (s) the vehicle must remain below the threshold before flight termination is triggered.                                          |
 
 ### Attitude Trigger
 
@@ -441,7 +466,7 @@ These parameters can be used to set conditions that prevent arming.
 | <a id="COM_ARM_MIS_REQ"></a>[COM_ARM_MIS_REQ](../advanced_config/parameter_reference.md#COM_ARM_MIS_REQ)    | Require valid mission to arm. `0`: Disabled (default), `1`: Enabled .                                                                                                                                      |
 | <a id="COM_ARM_SDCARD"></a>[COM_ARM_SDCARD](../advanced_config/parameter_reference.md#COM_ARM_SDCARD)       | Require SD card to arm. `0`: Disabled (default), `1`: Warning, `2`: Enabled.                                                                                                                               |
 | <a id="COM_ARM_AUTH_REQ"></a>[COM_ARM_AUTH_REQ](../advanced_config/parameter_reference.md#COM_ARM_AUTH_REQ) | Requires arm authorisation from an external (MAVLink) system. Flag to allow arming (at all). `1`: Enabled, `0`: Disabled (default). Associated configuration parameters are prefixed with `COM_ARM_AUTH_`. |
-| <a id="COM_ARM_ODID"></a>[COM_ARM_ODID](../advanced_config/parameter_reference.md#COM_ARM_ODID)             | Require healthy Remote ID system to arm. `0`: Disabled (default), `1`: Warning, `2`: Enabled.                                                                                                              |
+| <a id="COM_ARM_ODID"></a>[COM_ARM_ODID](../advanced_config/parameter_reference.md#COM_ARM_ODID)             | Remote ID arming check and in-flight failsafe. `0`: Disabled (default), `1`: Warning only, `2`: Error only, `3`: Return, `4`: Land, `5`: Terminate. See [Remote ID Failsafe](#remote-id-failsafe).         |
 
 In addition there are a number of parameters that configure system and sensor limits that make prevent arming if exceeded: [COM_CPU_MAX](../advanced_config/parameter_reference.md#COM_CPU_MAX), [COM_ARM_IMU_ACC](../advanced_config/parameter_reference.md#COM_ARM_IMU_ACC), [COM_ARM_IMU_GYR](../advanced_config/parameter_reference.md#COM_ARM_IMU_GYR), [COM_ARM_MAG_ANG](../advanced_config/parameter_reference.md#COM_ARM_MAG_ANG), [COM_ARM_MAG_STR](../advanced_config/parameter_reference.md#COM_ARM_MAG_STR).
 

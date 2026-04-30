@@ -24,9 +24,9 @@ env:
 jobs:
   analyze_flash:
     name: Analyzing ${{ matrix.target }}
-    runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false]
+    runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
     container:
-      image: px4io/px4-dev:v1.16.0-rc1-258-g0369abd556
+      image: ghcr.io/px4/px4-dev:v1.17.0-rc2
     strategy:
       matrix:
         target: [px4_fmu-v5x, px4_fmu-v6x]
@@ -36,13 +36,35 @@ jobs:
       px4_fmu-v6x-bloaty-output: ${{ steps.gen-output.outputs.px4_fmu-v6x-bloaty-output }}
       px4_fmu-v6x-bloaty-summary-map: ${{ steps.gen-output.outputs.px4_fmu-v6x-bloaty-summary-map }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: runs-on/action@v2
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           submodules: recursive
-
-      - name: Git ownership workaround
+      - name: Configure Git Safe Directory
         run: git config --system --add safe.directory '*'
+
+      - name: Cache - Restore ccache (current)
+        id: cache_current
+        uses: actions/cache/restore@v5
+        with:
+          path: ~/.ccache
+          key: ccache-flash-${{ matrix.target }}-current-${{ github.ref_name }}-${{ github.sha }}
+          restore-keys: |
+            ccache-flash-${{ matrix.target }}-current-${{ github.ref_name }}-
+            ccache-flash-${{ matrix.target }}-current-
+
+      - name: Cache - Configure ccache
+        run: |
+          mkdir -p ~/.ccache
+          echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
+          echo "compression = true" >> ~/.ccache/ccache.conf
+          echo "compression_level = 6" >> ~/.ccache/ccache.conf
+          echo "max_size = 200M" >> ~/.ccache/ccache.conf
+          echo "hash_dir = false" >> ~/.ccache/ccache.conf
+          echo "compiler_check = content" >> ~/.ccache/ccache.conf
+          ccache -s
+          ccache -z
 
       - name: Build Target
         run: make ${{ matrix.target }}_flash-analysis
@@ -50,11 +72,22 @@ jobs:
       - name: Store the ELF with the change
         run: cp ./build/**/*.elf ./with-change.elf
 
+      - name: Cache - Stats after Current Build
+        run: ccache -s
+
+      - name: Cache - Save ccache (current)
+        if: always()
+        uses: actions/cache/save@v5
+        with:
+          path: ~/.ccache
+          key: ${{ steps.cache_current.outputs.cache-primary-key }}
+
       - name: Clean previous build
         run: |
           make clean
           make distclean
           make submodulesclean
+          ccache -C
 
       - name: If it's a PR checkout the base branch
         if: ${{ github.event.pull_request }}
@@ -68,11 +101,33 @@ jobs:
       - name: Update submodules
         run: make submodulesupdate
 
+      - name: Cache - Restore ccache (baseline)
+        id: cache_baseline
+        uses: actions/cache/restore@v5
+        with:
+          path: ~/.ccache
+          key: ccache-flash-${{ matrix.target }}-baseline-${{ github.sha }}
+          restore-keys: |
+            ccache-flash-${{ matrix.target }}-baseline-
+
+      - name: Cache - Reset ccache stats
+        run: ccache -z
+
       - name: Build
         run: make ${{ matrix.target }}_flash-analysis
 
       - name: Store the ELF before the change
         run: cp ./build/**/*.elf ./before-change.elf
+
+      - name: Cache - Stats after Baseline Build
+        run: ccache -s
+
+      - name: Cache - Save ccache (baseline)
+        if: always()
+        uses: actions/cache/save@v5
+        with:
+          path: ~/.ccache
+          key: ${{ steps.cache_baseline.outputs.cache-primary-key }}
 
       - name: bloaty-action
         uses: PX4/bloaty-action@v1.0.0
@@ -93,9 +148,6 @@ jobs:
           echo '${{ steps.bloaty-step.outputs.bloaty-summary-map }}' >> $GITHUB_OUTPUT
           echo "$EOF" >> $GITHUB_OUTPUT
 
-  # TODO:
-  # This part of the workflow is causing errors for forks. We should find a way to fix this and enable it again for forks.
-  # Track this issue https://github.com/PX4/PX4-Autopilot/issues/24408
   post_pr_comment:
     name: Publish Results
     runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}"]
@@ -105,22 +157,22 @@ jobs:
       V5X-SUMMARY-MAP-PERC: ${{ fromJSON(fromJSON(needs.analyze_flash.outputs.px4_fmu-v5x-bloaty-summary-map).vm-percentage) }}
       V6X-SUMMARY-MAP-ABS: ${{ fromJSON(fromJSON(needs.analyze_flash.outputs.px4_fmu-v6x-bloaty-summary-map).vm-absolute) }}
       V6X-SUMMARY-MAP-PERC: ${{ fromJSON(fromJSON(needs.analyze_flash.outputs.px4_fmu-v6x-bloaty-summary-map).vm-percentage) }}
-    if: github.event.pull_request && github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event.pull_request
     steps:
       - name: Find Comment
-        uses: peter-evans/find-comment@v3
+        uses: peter-evans/find-comment@v4
         id: fc
         with:
           issue-number: ${{ github.event.pull_request.number }}
           comment-author: 'github-actions[bot]'
-          body-includes: FLASH Analysis
+          body-includes: '<!-- pr-comment-poster:flash-analysis -->'
 
       - name: Set Build Time
         id: bt
         run: |
           echo "timestamp=$(date +'%Y-%m-%dT%H:%M:%S')" >> $GITHUB_OUTPUT
 
-      - name: Create or update comment
+      - name: Write pr-comment artifact
         # This can't be moved to the job-level conditions, as GH actions don't allow a job-level if condition to access the env.
         if: |
           steps.fc.outputs.comment-id != '' ||
@@ -128,27 +180,46 @@ jobs:
           env.V5X-SUMMARY-MAP-ABS <= fromJSON(env.MIN_FLASH_NEG_DIFF_FOR_COMMENT) ||
           env.V6X-SUMMARY-MAP-ABS >= fromJSON(env.MIN_FLASH_POS_DIFF_FOR_COMMENT) ||
           env.V6X-SUMMARY-MAP-ABS <= fromJSON(env.MIN_FLASH_NEG_DIFF_FOR_COMMENT)
-        uses: peter-evans/create-or-update-comment@v4
+        run: |
+          mkdir -p pr-comment
+          cat > pr-comment/manifest.json <<EOF
+          {
+            "pr_number": ${{ github.event.pull_request.number }},
+            "marker": "<!-- pr-comment-poster:flash-analysis -->",
+            "mode": "upsert"
+          }
+          EOF
+          cat > pr-comment/body.md <<'PR_COMMENT_BODY_EOF'
+          <!-- pr-comment-poster:flash-analysis -->
+          ## 🔎 FLASH Analysis
+          <details>
+          <summary>px4_fmu-v5x [Total VM Diff: ${{ env.V5X-SUMMARY-MAP-ABS }} byte (${{ env.V5X-SUMMARY-MAP-PERC}} %)]</summary>
+
+          ```
+          ${{ needs.analyze_flash.outputs.px4_fmu-v5x-bloaty-output }}
+          ```
+          </details>
+
+          <details>
+          <summary>px4_fmu-v6x [Total VM Diff: ${{ env.V6X-SUMMARY-MAP-ABS }} byte (${{ env.V6X-SUMMARY-MAP-PERC }} %)]</summary>
+
+          ```
+          ${{ needs.analyze_flash.outputs.px4_fmu-v6x-bloaty-output }}
+          ```
+          </details>
+
+          **Updated: _${{ steps.bt.outputs.timestamp }}_**
+          PR_COMMENT_BODY_EOF
+
+      - name: Upload pr-comment artifact
+        if: |
+          steps.fc.outputs.comment-id != '' ||
+          env.V5X-SUMMARY-MAP-ABS >= fromJSON(env.MIN_FLASH_POS_DIFF_FOR_COMMENT) ||
+          env.V5X-SUMMARY-MAP-ABS <= fromJSON(env.MIN_FLASH_NEG_DIFF_FOR_COMMENT) ||
+          env.V6X-SUMMARY-MAP-ABS >= fromJSON(env.MIN_FLASH_POS_DIFF_FOR_COMMENT) ||
+          env.V6X-SUMMARY-MAP-ABS <= fromJSON(env.MIN_FLASH_NEG_DIFF_FOR_COMMENT)
+        uses: actions/upload-artifact@v7
         with:
-          comment-id: ${{ steps.fc.outputs.comment-id }}
-          issue-number: ${{ github.event.pull_request.number }}
-          body: |
-            ## 🔎 FLASH Analysis
-            <details>
-              <summary>px4_fmu-v5x [Total VM Diff: ${{ env.V5X-SUMMARY-MAP-ABS }} byte (${{ env.V5X-SUMMARY-MAP-PERC}} %)]</summary>
-
-              ```
-              ${{ needs.analyze_flash.outputs.px4_fmu-v5x-bloaty-output }}
-              ```
-            </details>
-
-            <details>
-              <summary>px4_fmu-v6x [Total VM Diff: ${{ env.V6X-SUMMARY-MAP-ABS }} byte (${{ env.V6X-SUMMARY-MAP-PERC }} %)]</summary>
-
-              ```
-              ${{ needs.analyze_flash.outputs.px4_fmu-v6x-bloaty-output }}
-              ```
-            </details>
-
-            **Updated: _${{ steps.bt.outputs.timestamp }}_**
-          edit-mode: replace
+          name: pr-comment
+          path: pr-comment/
+          retention-days: 1

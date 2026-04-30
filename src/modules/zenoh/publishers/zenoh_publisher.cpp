@@ -109,7 +109,14 @@ z_result_t Zenoh_Publisher::publish(const uint8_t *buf, int size)
 
 void Zenoh_Publisher::print()
 {
+	const z_loaned_keyexpr_t *ke = z_publisher_keyexpr(z_loan(_pub));
+
+	if (ke == NULL) {
+		printf("Topic: (unavailable)\n");
+		return;
+	}
+
 	z_view_string_t keystr;
-	z_keyexpr_as_view_string(z_publisher_keyexpr(z_loan(_pub)), &keystr);
+	z_keyexpr_as_view_string(ke, &keystr);
 	printf("Topic: %.*s\n", (int)z_string_len(z_loan(keystr)), z_string_data(z_loan(keystr)));
 }

@@ -1,0 +1,155 @@
+name: PR Comment Poster
+
+# Generic PR comment poster. Any analysis workflow (clang-tidy, flash_analysis,
+# fuzz coverage, SITL perf, etc.) can produce a `pr-comment` artifact and this
+# workflow will post or update a sticky PR comment with its contents. Designed
+# so that analysis jobs running on untrusted fork PRs can still get their
+# results posted back to the PR.
+#
+# ==============================================================================
+# SECURITY INVARIANTS
+# ==============================================================================
+# This workflow runs on `workflow_run` which means it runs in the BASE REPO
+# context with a WRITE token, even when the triggering PR comes from a fork.
+# That is the entire reason it exists, and also the reason it is a loaded
+# footgun. Anyone modifying this file MUST preserve the following invariants:
+#
+#   1. NEVER check out PR code. No `actions/checkout` with a ref. No git clone
+#      of a fork branch. No execution of scripts from the downloaded artifact.
+#      The ONLY things read from the artifact are `manifest.json` and `body.md`,
+#      and both are treated as opaque data (JSON parsed by the poster script
+#      and markdown posted verbatim via the GitHub API).
+#
+#   2. `pr_number` is validated to be a positive integer before use.
+#      `marker` is validated to be printable ASCII only before use. Validation
+#      happens inside Tools/ci/pr-comment-poster.py which is checked out from
+#      the base branch, not from the artifact.
+#
+#   3. The comment body is passed to the GitHub API as a JSON field, never
+#      interpolated into a shell command string.
+#
+#   4. This workflow file lives on the default branch. `workflow_run` only
+#      loads workflow files from the default branch, so a fork cannot modify
+#      THIS file as part of a PR. The fork CAN cause this workflow to fire
+#      by triggering a producer workflow that uploads a `pr-comment` artifact.
+#      That is intended.
+#
+#   5. The artifact-name filter (`pr-comment`) is the only gate on which
+#      workflow runs get processed. Any workflow in this repo that uploads
+#      an artifact named `pr-comment` is trusted to have written the
+#      manifest and body itself, NOT copied fork-controlled content into
+#      them. Producer workflows are responsible for that.
+#
+#   6. `actions/checkout@v6` below uses NO ref (so it pulls the base branch,
+#      the default-branch commit this workflow file was loaded from) AND uses
+#      sparse-checkout to materialize ONLY Tools/ci/pr-comment-poster.py and
+#      its stdlib-only helper module Tools/ci/_github_helpers.py. The rest of
+#      the repo never touches the workspace. This is safe: the only files the
+#      job executes are base-repo Python scripts that were reviewed through
+#      normal code review, never anything from the PR.
+#
+# ==============================================================================
+# ARTIFACT CONTRACT
+# ==============================================================================
+# Producers upload an artifact named exactly `pr-comment` containing:
+#
+#   manifest.json:
+#     {
+#       "pr_number": 12345,                                      // required, int > 0
+#       "marker": "<!-- pr-comment-poster:flash-analysis -->",   // required, printable ASCII
+#       "mode": "upsert"                                         // optional, default "upsert"
+#     }
+#
+#   body.md: the markdown content of the comment. Posted verbatim.
+#
+# The `marker` string is used to find an existing comment to update. It MUST
+# be unique per producer (e.g. include the producer name). If no existing
+# comment contains the marker, a new one is created. If the marker is found
+# in an existing comment, that comment is edited in place.
+#
+# Producers MUST write `pr_number` from their own workflow context
+# (`github.event.pull_request.number`) and MUST NOT read it from any
+# fork-controlled source.
+
+on:
+  workflow_run:
+    # Producers that may upload a `pr-comment` artifact. When a new producer
+    # is wired up, add its workflow name here. Runs of workflows not in this
+    # list will never trigger the poster. Every run of a listed workflow will
+    # trigger the poster, which will no-op if no `pr-comment` artifact exists.
+    workflows:
+      - "FLASH usage analysis"
+      - "Docs - Orchestrator"
+    types:
+      - completed
+
+permissions:
+  pull-requests: write
+  actions: read
+  contents: read
+
+jobs:
+  post:
+    name: Post PR Comment
+    runs-on: ubuntu-latest
+    # Only run for pull_request producer runs. Push-to-main and other
+    # non-PR triggers would have no comment to post, and silently no-oping
+    # inside the script made it look like the poster was broken. Gating at
+    # the job level surfaces those as a clean "Skipped" in the UI instead.
+    if: >-
+      github.event.workflow_run.conclusion != 'cancelled'
+      && github.event.workflow_run.event == 'pull_request'
+    steps:
+      # Checkout runs first so the poster script is available AND so that
+      # actions/checkout@v6's default clean step does not delete the artifact
+      # zip that the next step writes into the workspace. Sparse-checkout
+      # restricts the materialized tree to just the poster script.
+      - name: Checkout poster script only
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            Tools/ci/pr-comment-poster.py
+            Tools/ci/_github_helpers.py
+          sparse-checkout-cone-mode: false
+
+      - name: Download pr-comment artifact
+        id: download
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.payload.workflow_run.id,
+            });
+            const match = artifacts.data.artifacts.find(a => a.name === 'pr-comment');
+            if (!match) {
+              core.info('No pr-comment artifact on this run; nothing to post.');
+              core.setOutput('found', 'false');
+              return;
+            }
+            const download = await github.rest.actions.downloadArtifact({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              artifact_id: match.id,
+              archive_format: 'zip',
+            });
+            const fs = require('fs');
+            fs.writeFileSync('pr-comment.zip', Buffer.from(download.data));
+            core.setOutput('found', 'true');
+
+      - name: Unpack artifact
+        if: steps.download.outputs.found == 'true'
+        run: |
+          mkdir -p pr-comment
+          unzip -q pr-comment.zip -d pr-comment
+
+      - name: Validate artifact
+        if: steps.download.outputs.found == 'true'
+        run: python3 Tools/ci/pr-comment-poster.py validate pr-comment
+
+      - name: Upsert sticky comment
+        if: steps.download.outputs.found == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 Tools/ci/pr-comment-poster.py post pr-comment

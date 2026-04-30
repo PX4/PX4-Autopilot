@@ -128,3 +128,24 @@ TEST(PIDTest, InteralOpenLoop)
 	EXPECT_FLOAT_EQ(pid.update(0.f, 0.1f, true), 0.f);
 	EXPECT_FLOAT_EQ(pid.update(0.f, 0.1f, true), -.01f);
 }
+
+TEST(PIDTest, DerivativeOnlyDampsFeedbackMotion)
+{
+	// Derivative-on-measurement: the D term must oppose feedback motion so the
+	// output damps the plant rather than reinforcing its movement.
+	PID pid;
+	pid.setOutputLimit(100.f);
+	pid.setGains(0.f, 0.f, 1.f);
+	pid.setSetpoint(0.f);
+
+	// First sample seeds _last_feedback; derivative contribution is zero.
+	EXPECT_FLOAT_EQ(pid.update(0.f, 0.1f, false), 0.f);
+
+	// Feedback rises by 1.0 over dt = 0.1 -> d(feedback)/dt = +10.
+	// Expected output = -Kd * d(feedback)/dt = -10.
+	EXPECT_FLOAT_EQ(pid.update(1.f, 0.1f, false), -10.f);
+
+	// Feedback falls by 1.0 over dt = 0.1 -> d(feedback)/dt = -10.
+	// Expected output = +10 (still damping).
+	EXPECT_FLOAT_EQ(pid.update(0.f, 0.1f, false), 10.f);
+}

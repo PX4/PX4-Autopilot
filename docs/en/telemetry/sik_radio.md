@@ -14,6 +14,7 @@ Hardware for the SiK radio can be obtained from various manufacturers/stores in 
 ## Vendors
 
 - [Holybro Telemetry Radio](../telemetry/holybro_sik_radio.md)
+- [HolyBro SiK Long Range](../telemetry/holybro_sik_longrange.md)
 - [RFD900 Telemetry Radio](../telemetry/rfd900_telemetry.md)
 - [ThunderFly TFSIK01 Telemetry Radio](../telemetry/tfsik_telemetry.md)
 - <del>_HKPilot Telemetry Radio_</del> (Discontinued)

@@ -248,6 +248,8 @@ private:
 
 	void fill_thrust(float *thrust_body_array, uint8_t vehicle_type, float thrust);
 
+	static offboard_control_mode_s fill_offboard_control_mode(const trajectory_setpoint_s &setpoint);
+
 	void schedule_tune(const char *tune);
 
 	void update_message_statistics(const mavlink_message_t &message);

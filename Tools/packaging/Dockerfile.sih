@@ -4,33 +4,41 @@
 #
 # Build:
 #   make px4_sitl_sih && cd build/px4_sitl_sih && cpack -G DEB && cd ../..
-#   docker build -f Tools/packaging/Dockerfile.sih -t px4io/px4-sitl-sih:v1.17.0 build/px4_sitl_sih/
+#   docker build -f Tools/packaging/Dockerfile.sih -t px4io/px4-sitl:v1.17.0 build/px4_sitl_sih/
 #
 # Run (Linux):
-#   docker run --rm -it --network host px4io/px4-sitl-sih:v1.17.0
+#   docker run --rm -it --network host px4io/px4-sitl:v1.17.0
 #
 # Run (macOS / Windows):
-#   docker run --rm -it -p 14550:14550/udp -p 14540:14540/udp -p 19410:19410/udp -p 8888:8888/udp px4io/px4-sitl-sih:v1.17.0
-
-FROM ubuntu:24.04 AS build
-COPY px4_*.deb /tmp/
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt-get update \
-    && apt-get install -y --no-install-recommends binutils \
-    && dpkg -x /tmp/px4_*.deb /staging \
-    && strip /staging/opt/px4/bin/px4
+#   docker run --rm -it -p 14550:14550/udp -p 14540:14540/udp -p 19410:19410/udp -p 8888:8888/udp px4io/px4-sitl:v1.17.0
+#
+# Persist flight logs on the host (ulog files):
+#   mkdir -p ./px4-logs
+#   docker run --rm -it --network host \
+#     -v $(pwd)/px4-logs:/root/.local/share/px4/rootfs/log \
+#     px4io/px4-sitl:v1.17.0
 
 FROM ubuntu:24.04
 LABEL maintainer="PX4 Development Team"
 LABEL description="PX4 SITL with SIH physics (no simulator dependencies)"
 
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install px4 via apt so Depends: are resolved automatically. The binary is
+# stripped after install to trim image size (~a few MB).
+COPY px4_*.deb /tmp/
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt-get update && apt-get install -y --no-install-recommends bc
-
-COPY --from=build /staging/opt/px4 /opt/px4
-RUN ln -sf /opt/px4/bin/px4 /usr/bin/px4
+    apt-get update \
+    && apt-get install -y --no-install-recommends \
+        /tmp/px4_*.deb \
+        bc \
+        binutils \
+    && strip /opt/px4/bin/px4 \
+    && apt-get purge -y binutils \
+    && apt-get autoremove -y \
+    && rm -f /tmp/px4_*.deb \
+    && ln -sf /opt/px4/bin/px4 /usr/bin/px4
 
 # Platform-adaptive entrypoint: detects Docker Desktop (macOS/Windows) via
 # host.docker.internal and configures MAVLink + DDS to target the host.

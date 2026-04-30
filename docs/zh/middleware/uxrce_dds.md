@@ -32,6 +32,11 @@ The agent itself has no dependency on client-side code and can be built and/or i
 
 Code that wants to subscribe/publish to PX4 does have a dependency on client-side code; it requires uORB message definitions that match those used to create the PX4 uXRCE-DDS client so that it can interpret the messages.
 
+- For _versioned_ PX4 messages, the [PX4 ROS 2 Message Transition Node](../ros2/px4_ros2_msg_translation_node.md) handles compatibility automatically.
+  This node acts as an agent-side translator, allowing your code to interact with PX4 without requiring strict, manual message synchronization.
+- For unversioned messages, code that needs to publish to PX4 maintains a direct dependency on client-side definitions.
+  In these cases, you must ensure your local uORB message definitions exactly match those used to create the PX4 uXRCE-DDS client, so that the messages can be correctly interpreted.
+
 ## 代码生成
 
 PX4 [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client) 是在构建时生成，并且默认包含在 PX4 固件中。
@@ -397,11 +402,14 @@ The message definitions are stored in the ROS 2 interface package [PX4/px4_msgs]
 - 如果您正在使用 PX4 的主要版本或发布版本，您可以通过克隆接口包[PX4/px4_msgs](https://github.com/PX4/px4_msgs)获得消息定义。
 - 如果您要创建或修改 uORB 消息，必须从 PX4 源代码树中手动更新工作空间中的消息。
   一般来说，这意味着您将更新 [dds_topics.yaml](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/uxrce_dds_client/dds_topics.yaml)，克隆接口包。 然后手动同步，将新的/修改的消息定义从 [PX4-Autopilot/msg](https://github.com/PX4/PX4-Autopilot/tree/main/msg)复制到它的 `msg` 文件夹。
-  Assuming that PX4-Autopilot is in your home directory `~`, while `px4_msgs` is in `~/px4_ros_com/src/`, then the command might be:
+  Assuming that PX4-Autopilot is in your home directory `~`, while `px4_msgs` is in `~/ros2_px4_ws/src/`, then the command might be:
 
   ```sh
-  rm ~/px4_ros_com/src/px4_msgs/msg/*.msg
-  cp ~/PX4-Autopilot/msg/*.msg ~/px4_ros_com/src/px4_msgs/msg/
+  rm ~/ros2_px4_ws/src/px4_msgs/msg/*.msg
+  rm ~/ros2_px4_ws/src/px4_msgs/srv/*.srv
+  cp ~/PX4-Autopilot/msg/*.msg ~/ros2_px4_ws/src/px4_msgs/msg/
+  cp ~/PX4-Autopilot/msg/versioned/*.msg ~/ros2_px4_ws/src/px4_msgs/msg/
+  cp ~/PX4-Autopilot/srv/*.msg ~/ros2_px4_ws/src/px4_msgs/srv/
   ```
 
   ::: info
