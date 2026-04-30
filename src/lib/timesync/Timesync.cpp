@@ -110,10 +110,10 @@ void Timesync::update(const uint64_t now_us, const int64_t remote_timestamp_ns, 
 			// high-RTT sample (visible by default), then again every 50 thereafter, and use
 			// PX4_WARN so it shows up in the dmesg ring without enabling debug builds.
 			if (_high_rtt_count == 1 || _high_rtt_count % 50 == 0) {
-				PX4_WARN("timesync: RTT %llu ms exceeds gate %llu ms (count=%u)",
+				PX4_WARN("timesync: RTT %llu ms exceeds gate %llu ms (count=%lu)",
 					 (unsigned long long)(rtt_us / 1000ULL),
 					 (unsigned long long)(MAX_RTT_SAMPLE / 1000ULL),
-					 _high_rtt_count);
+					 (unsigned long)_high_rtt_count);
 			}
 		}
 

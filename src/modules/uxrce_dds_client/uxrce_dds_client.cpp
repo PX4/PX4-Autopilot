@@ -226,13 +226,13 @@ bool UxrceddsClient::setupSession(uxrSession *session)
 
 		if (!got_response && (ping_attempt == 1 || ping_attempt % 5 == 0)) {
 			PX4_WARN("waiting for agent ping reply (attempt %u/%u)",
-				 ping_attempt, MAX_PING_ATTEMPTS);
+				 (unsigned)ping_attempt, (unsigned)MAX_PING_ATTEMPTS);
 		}
 	}
 
 	if (!got_response) {
 		PX4_ERR("got no ping from agent after %u attempts; will retry from transport init",
-			ping_attempt);
+			(unsigned)ping_attempt);
 		return false;
 	}
 
@@ -576,8 +576,17 @@ void UxrceddsClient::checkConnectivity(uxrSession *session)
 			_had_ping_reply = false;
 		}
 
+		// LOCAL FIX (uxrce-dds-stability-2026-04-30):
+		// Original disconnect logs only said "disconnecting" with no diagnostic
+		// data. Issue #24770 (and many duplicates) reports "no idea why it
+		// disconnected" — operator sees only generic ERR. Now each disconnect
+		// path prints the counter value that triggered it, the relevant
+		// timeout (when applicable), and elapsed time, so post-mortem from
+		// dmesg / SD log is unambiguous.
 		if (_num_pings_missed >= 3) {
-			PX4_ERR("No ping response, disconnecting");
+			PX4_ERR("No ping response (missed=%d, last_reply_age_ms=%llu), disconnecting",
+				_num_pings_missed,
+				(unsigned long long)(hrt_elapsed_time(&_last_ping) / 1000ULL));
 			_connected = false;
 		}
 
@@ -585,12 +594,14 @@ void UxrceddsClient::checkConnectivity(uxrSession *session)
 		int32_t rx_timeout = _param_uxrce_dds_rx_to.get();
 
 		if (tx_timeout > 0 && _num_tx_rate_zero >= tx_timeout) {
-			PX4_ERR("Payload TX rate zero for too long, disconnecting");
+			PX4_ERR("Payload TX rate zero for %ds (limit %ds, last_rate=%.0f B/s), disconnecting",
+				(int)_num_tx_rate_zero, (int)tx_timeout, (double)_last_payload_tx_rate);
 			_connected = false;
 		}
 
 		if (rx_timeout > 0 && _num_rx_rate_zero >= rx_timeout) {
-			PX4_ERR("Payload RX rate zero for too long, disconnecting");
+			PX4_ERR("Payload RX rate zero for %ds (limit %ds, last_rate=%.0f B/s), disconnecting",
+				(int)_num_rx_rate_zero, (int)rx_timeout, (double)_last_payload_rx_rate);
 			_connected = false;
 		}
 	}
