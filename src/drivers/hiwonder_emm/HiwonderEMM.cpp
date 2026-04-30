@@ -107,6 +107,13 @@ void HiwonderEMM::Run()
 	}
 
 	_mixing_output.update();
+
+	if (_parameter_update_sub.updated()) {
+		parameter_update_s pu;
+		_parameter_update_sub.copy(&pu);
+		updateParams();
+	}
+
 	_mixing_output.updateSubscriptions(false);
 }
 

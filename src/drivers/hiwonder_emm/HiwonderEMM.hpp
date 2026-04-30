@@ -54,6 +54,8 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/sem.hpp>
 #include <px4_defines.h>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/parameter_update.h>
 
 static constexpr uint8_t I2C_ADDR = 0x34;                     // I2C address
 static constexpr uint8_t ADC_BAT_ADDR = 0;                    // Voltage address
@@ -101,6 +103,7 @@ private:
 		MixingOutput::SchedulingPolicy::Auto,
 		false
 	};
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	void Run() override;
 
 	/**
