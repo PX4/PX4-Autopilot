@@ -233,17 +233,6 @@ parameters:
         6: Terminate
         7: Disarm
       default: 0
-    COM_OBC_LOSS_T:
-      description:
-        short: Onboard computer connection loss timeout
-        long: Time-out to wait when onboard computer connection is lost before warning
-          about loss connection
-      type: float
-      default: 5.0
-      unit: s
-      min: 0
-      max: 60
-      increment: 0.01
     COM_ARM_IMU_ACC:
       description:
         short: Max accelerometer inconsistency for arming
