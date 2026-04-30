@@ -54,15 +54,20 @@ This consists of two build variants:
 The steps are:
 
 1. Build and flash the secure bootloader (one-time, via SWD)
+   - Build the bootloader:
 
-   ```sh
-   make px4_fmu-v6x_bootloader_secureboot
-   ```
+     ```sh
+     make px4_fmu-v6x_bootloader_secureboot
+     ```
 
-2. Flash the resulting `build/px4_fmu-v6x_bootloader_secureboot/px4_fmu-v6x_bootloader_secureboot.elf` via a debug probe.
-   This is the only step that needs SWD — once the secure bootloader is in place, all firmware updates go over USB.
+   - Flash the resulting `build/px4_fmu-v6x_bootloader_secureboot/px4_fmu-v6x_bootloader_secureboot.elf` via a debug probe.
+     See [Bootloader Update](../advanced_config/bootloader_update).
 
-3. Build and upload signed firmware
+     ::: tip
+     This is the only step that needs SWD — once the secure bootloader is in place, all firmware updates go over USB.
+     :::
+
+2. Build and upload signed firmware
 
    ```sh
    make px4_fmu-v6x_secureboot upload
