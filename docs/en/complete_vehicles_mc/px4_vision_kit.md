@@ -72,6 +72,7 @@ What's inside the PX4 Vision V1 can be found here in the [PX4 v1.13 Docs here](h
 The PX4 Vision DevKit contains following components:
 
 - Core Components:
+
   - 1x Pixhawk 4 or Pixhawk 6C (for v1.5) flight controller
   - 1x PMW3901 optical flow sensor
   - 1x TOF Infrared distance sensor (PSK‐CM8JL65‐CC5)
@@ -92,6 +93,7 @@ The PX4 Vision DevKit contains following components:
     - WiFi 802.11 b/g/n @ 2.4 GHz (attached to external antenna #1). Allows computer to access home WiFi network for Internet access/updates.
 
 - Mechanical Specification:
+
   - Frame: Full 5mm 3k carbon fiber twill
   - Motors: T-MOTOR KV1750
   - ESC: BEHEli-S 20A ESC
@@ -102,6 +104,7 @@ The PX4 Vision DevKit contains following components:
   - Telemetry: ESP8266 connected to flight controller (attached to external antenna #2). Enables wireless connection to the ground station.
 
 - A USB2.0 stick with pre-flashed software that bundles:
+
   - Ubuntu 18.04 LTS
   - ROS Melodic
   - Occipital Structure Core ROS driver
@@ -129,6 +132,7 @@ In addition, users will need ground station hardware/software:
 ## First-time Setup
 
 1. Attach a [compatible RC receiver](../getting_started/rc_transmitter_receiver.md#connecting-receivers) to the vehicle (not supplied with kit):
+
    - Remove/unscrew the top plate (where the battery goes) using an H2.0 hex key tool.
    - [Connect the receiver to the flight controller](../assembly/quick_start_pixhawk4.md#radio-control).
    - Re-attach the top plate.
@@ -150,6 +154,7 @@ In addition, users will need ground station hardware/software:
    Ensure propellers are removed before connecting the battery.
    :::
 6. Connect the ground station to the vehicle WiFi network (after a few seconds) using the following default credentials:
+
    - **SSID:** pixhawk4
    - **Password:** pixhawk4
 
@@ -165,6 +170,7 @@ In addition, users will need ground station hardware/software:
    The vehicle should arrive pre-calibrated (e.g. with firmware, airframe, battery, and sensors all setup).
    You will however need to calibrate the radio system (that you just connected) and it is often worth re-doing the compass calibration.
    :::
+
    - [Calibrate the Radio System](../config/radio.md)
    - [Calibrate the Compass](../config/compass.md)
 
@@ -175,6 +181,7 @@ In addition, users will need ground station hardware/software:
    :::
 
    We recommend RC controller switches are define for:
+
    - [Position Mode](../flight_modes_mc/position.md) - a safe manual flight mode that can be used to test collision prevention.
    - [Mission Mode](../flight_modes_mc/mission.md) - run missions and test obstacle avoidance.
    - [Return Mode](../flight_modes_mc/return.md) - return vehicle safely to its launch point and land.
@@ -204,6 +211,7 @@ When the vehicle setup described above is complete:
    :::
 
 3. Check that the avoidance system has started properly:
+
    - The _QGroundControl_ notification log displays the message: **Avoidance system connected**.
 
      ![QGC Log showing avoidance system has started](../../assets/hardware/px4_vision_devkit/qgc_console_vision_system_started.jpg)
@@ -300,6 +308,7 @@ To login to the companion computer:
 1. Connect a keyboard and mouse to the _UP Core_ via port `USB2`:
 
    ![UP Core: USB2](../../assets/hardware/px4_vision_devkit/upcore_port_usb2.png)
+
    - Use the USB-JST cable from the kit to get a USB A connector
 
      ![USB to JST cable](../../assets/hardware/px4_vision_devkit/usb_jst_cable.jpg)
