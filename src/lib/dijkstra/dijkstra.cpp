@@ -51,30 +51,18 @@ bool solveBackward(int num_nodes, int goal, const float *cost,
 	}
 
 	best_cost[goal] = 0.f;
+	visited[goal] = true;
 
-	// Standard O(N^2) Dijkstra on the reverse graph: pick the unvisited node u with
-	// the smallest current best_cost, then relax every incoming edge v -> u using
-	// cost(v, u). This yields, for each v, the shortest cost from v to goal and the
-	// next hop next_node[v] = u along that path.
-	for (int iter = 0; iter < num_nodes; ++iter) {
-		int u = -1;
-		float min_cost = kUnreachable;
+	// O(N^2) Dijkstra on the reverse graph. Each iteration relaxes incoming edges
+	// v -> u using cost(v, u) and, in the same sweep over v, tracks the smallest
+	// best_cost among still-unvisited nodes — that argmin is the u for the next
+	// iteration. The very first u is `goal` (the only node with best_cost == 0).
+	int u = goal;
+	float u_cost = 0.f;
 
-		for (int i = 0; i < num_nodes; ++i) {
-			if (!visited[i] && best_cost[i] < min_cost) {
-				min_cost = best_cost[i];
-				u = i;
-			}
-		}
-
-		if (u < 0) {
-			// No unvisited node is reachable; remaining nodes stay at kUnreachable.
-			break;
-		}
-
-		visited[u] = true;
-
-		const float u_cost = best_cost[u];
+	for (int iter = 0; iter < num_nodes - 1; ++iter) {
+		int next_u = -1;
+		float next_cost = kUnreachable;
 
 		for (int v = 0; v < num_nodes; ++v) {
 			if (visited[v]) {
@@ -85,17 +73,30 @@ bool solveBackward(int num_nodes, int goal, const float *cost,
 
 			// Treat +INFINITY and NaN as missing edges. `edge < kUnreachable` is false for
 			// both because NaN is unordered and INFINITY < INFINITY is false.
-			if (!(edge < kUnreachable)) {
-				continue;
+			if (edge < kUnreachable) {
+				const float candidate = u_cost + edge;
+
+				if (candidate < best_cost[v]) {
+					best_cost[v] = candidate;
+					next_node[v] = u;
+				}
 			}
 
-			const float candidate = u_cost + edge;
-
-			if (candidate < best_cost[v]) {
-				best_cost[v] = candidate;
-				next_node[v] = u;
+			// Same sweep: track argmin of best_cost over unvisited nodes for the next iter.
+			if (best_cost[v] < next_cost) {
+				next_cost = best_cost[v];
+				next_u = v;
 			}
 		}
+
+		if (next_u < 0) {
+			// No unvisited node is reachable; remaining nodes stay at kUnreachable.
+			break;
+		}
+
+		visited[next_u] = true;
+		u = next_u;
+		u_cost = next_cost;
 	}
 
 	return true;
