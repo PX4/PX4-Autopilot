@@ -181,14 +181,15 @@ In addition, users will need ground station hardware/software:
 
 10. Attach the propellers with the rotations as shown:
 
-   ![Motor Order Diagram](../../assets/hardware/px4_vision_devkit/motor_order_diagram.png)
+![Motor Order Diagram](../../assets/hardware/px4_vision_devkit/motor_order_diagram.png)
+
 - The propellers directions can be determined from the labels: _6045_ (normal, counter-clockwise) and _6045_**R** (reversed, clockwise).
 
-     ![Propeller identification](../../assets/hardware/px4_vision_devkit/propeller_directions.jpg)
+  ![Propeller identification](../../assets/hardware/px4_vision_devkit/propeller_directions.jpg)
 
 - Screw down firmly using the provided propellor nuts:
 
-     ![Propeller nuts](../../assets/hardware/px4_vision_devkit/propeller_nuts.png)
+  ![Propeller nuts](../../assets/hardware/px4_vision_devkit/propeller_nuts.png)
 
 ## Fly the Drone with Avoidance
 

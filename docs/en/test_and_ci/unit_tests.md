@@ -118,9 +118,9 @@ The steps to create new SITL unit tests are as follows:
 
 10. Within [tests_main.h](https://github.com/PX4/PX4-Autopilot/blob/main/src/systemcmds/tests/tests_main.h) define the new test:
 
-   ```cpp
-   extern int test_[description](int argc, char *argv[]);
-   ```
+```cpp
+extern int test_[description](int argc, char *argv[]);
+```
 
 1. Within [tests_main.c](https://github.com/PX4/PX4-Autopilot/blob/main/src/systemcmds/tests/tests_main.c) add description name, test function and option:
 

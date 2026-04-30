@@ -8,16 +8,16 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name         | Type      | Unit [Frame] | Range/Enum | Description                                                                                                                                     |
-| ------------ | --------- | ------------ | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| timestamp    | `uint64`  |              |            | time since system start (microseconds)                                                                                                          |
-| major_radius | `float32` |              |            | Major axis radius of the figure eight [m]. Positive values orbit clockwise, negative values orbit counter-clockwise.                            |
-| minor_radius | `float32` |              |            | Minor axis radius of the figure eight [m].                                                                                                      |
-| orientation  | `float32` |              |            | Orientation of the major axis of the figure eight [rad].                                                                                        |
-| frame        | `uint8`   |              |            | The coordinate system of the fields: x, y, z.                                                                                                   |
+| Name         | Type      | Unit [Frame] | Range/Enum | Description                                                                                                                                   |
+| ------------ | --------- | ------------ | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| timestamp    | `uint64`  |              |            | time since system start (microseconds)                                                                                                        |
+| major_radius | `float32` |              |            | Major axis radius of the figure eight [m]. Positive values orbit clockwise, negative values orbit counter-clockwise.                          |
+| minor_radius | `float32` |              |            | Minor axis radius of the figure eight [m].                                                                                                    |
+| orientation  | `float32` |              |            | Orientation of the major axis of the figure eight [rad].                                                                                      |
+| frame        | `uint8`   |              |            | The coordinate system of the fields: x, y, z.                                                                                                 |
 | x            | `int32`   |              |            | X coordinate of center point. Coordinate system depends on frame field: local = x position in meters _1e4, global = latitude in degrees_ 1e7. |
 | y            | `int32`   |              |            | Y coordinate of center point. Coordinate system depends on frame field: local = y position in meters _1e4, global = latitude in degrees_ 1e7. |
-| z            | `float32` |              |            | Altitude of center point. Coordinate system depends on frame field.                                                                             |
+| z            | `float32` |              |            | Altitude of center point. Coordinate system depends on frame field.                                                                           |
 
 ## Source Message
 

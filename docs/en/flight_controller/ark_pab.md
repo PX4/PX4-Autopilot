@@ -221,12 +221,12 @@ Order From [Ark Electronics](https://arkelectron.com/product/ark-pixhawk-autopil
 
 All signals in parallel with USB C connector
 
-Pin | Signal | Volt
---- | --- | ---
-1 (red) | `VBUS_IN` | +5.0V
-2 (blk) | USB_N | +3.3V
-3 (blk) | USB_P | +3.3V
-4 (blk) | `GND` | GND
+| Pin     | Signal    | Volt  |
+| ------- | --------- | ----- |
+| 1 (red) | `VBUS_IN` | +5.0V |
+| 2 (blk) | USB_N     | +3.3V |
+| 3 (blk) | USB_P     | +3.3V |
+| 4 (blk) | `GND`     | GND   |
 
 ## ETH
 

@@ -257,7 +257,7 @@ Connect with the M3X8 screws, a total of 8 pieces, 4 on each side.
 
 10. Plugin Telemetry and GPS module to the flight controller as seen in Figure 37; plug in the RC receiver, all 4 ESCs to the flight controller as well as the power module.
 
-   ![Figure 37](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig37.png)
+![Figure 37](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig37.png)
 
 Fully assembled, the kit looks as shown below:
 

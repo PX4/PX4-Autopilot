@@ -157,16 +157,16 @@ Estimate time to assemble is 3.75 hours (180 minutes for frame, 45 minutes for a
    ![Arms 3](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig16.jpg)
 
 10. Put the hanger gaskets into the 4 hangers and mount them onto the bottom plate using 8 hex screws (Figure 11).
-   The screw holes are noted by the white arrow in Figure 12.
-   We recommend tilting the drone sideway to make the installation easier.
+    The screw holes are noted by the white arrow in Figure 12.
+    We recommend tilting the drone sideway to make the installation easier.
 
    <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig9.png" width="400" title="Hanger gaskets">
 
-   _Figure 11_: Hanger gaskets
+_Figure 11_: Hanger gaskets
 
-   ![Battery Mount 4](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig10.jpg)
+![Battery Mount 4](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig10.jpg)
 
-   _Figure 12_: Screw holes
+_Figure 12_: Screw holes
 
 1. Insert the slide bars onto the hanger rings (Figure 13).
    Assemble the battery mount and platform board and mount them onto the slide bars as shown in Figure 14.
