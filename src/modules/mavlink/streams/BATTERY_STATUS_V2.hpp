@@ -69,36 +69,66 @@ private:
 				mavlink_battery_status_v2_t bat_msg{};
 
 				bat_msg.id = battery_status.id - 1; // uORB id is 1-indexed, MAVLink is 0-indexed (matches BATTERY_STATUS and BATTERY_INFO)
-				bat_msg.temperature = (battery_status.connected
-						       && PX4_ISFINITE(battery_status.temperature)) ? static_cast<int16_t>(battery_status.temperature * 1e2f) : INT16_MAX;
-				bat_msg.voltage = (battery_status.connected
-						   && PX4_ISFINITE(battery_status.voltage_v)
-						   && !math::isZero(battery_status.voltage_v)) ? battery_status.voltage_v : float(NAN);
-				bat_msg.current = (battery_status.connected
-						   && PX4_ISFINITE(battery_status.current_a)
-						   && battery_status.current_a != -1.0f ? battery_status.current_a : float(NAN);
-						   bat_msg.capacity_consumed = (battery_status.connected
-								   && PX4_ISFINITE(battery_status.discharged_mah)
-								   && battery_status.discharged_mah != -1.0f ? battery_status.discharged_mah * 1e-3f : float(NAN);
-								   bat_msg.capacity_remaining = (battery_status.connected && PX4_ISFINITE(battery_status.remaining_capacity_wh)
-										   && PX4_ISFINITE(battery_status.nominal_voltage)
-										   && !math::isZero(battery_status.nominal_voltage)) ?
-										   battery_status.remaining_capacity_wh / battery_status.nominal_voltage : float(NAN);
-								   bat_msg.percent_remaining = (battery_status.connected && PX4_ISFINITE(battery_status.remaining)
-										   && battery_status.remaining != -1.0f ?
-										   static_cast<uint8_t>(roundf(battery_status.remaining * 1e2f)) : UINT8_MAX;
 
-										   bat_msg.status_flags = get_status_flags(battery_status);
+				if (battery_status.connected && PX4_ISFINITE(battery_status.temperature)) {
+					bat_msg.temperature = static_cast<int16_t>(battery_status.temperature * 1e2f);
 
-										   mavlink_msg_battery_status_v2_send_struct(_mavlink->get_channel(), &bat_msg);
-										   updated = true;
+				} else {
+					bat_msg.temperature = INT16_MAX;
+				}
+
+				if (battery_status.connected && PX4_ISFINITE(battery_status.voltage_v)
+				    && !math::isZero(battery_status.voltage_v)) {
+					bat_msg.voltage = battery_status.voltage_v;
+
+				} else {
+					bat_msg.voltage = float(NAN);
+				}
+
+				if (battery_status.connected && PX4_ISFINITE(battery_status.current_a)
+				    && battery_status.current_a != -1.0f) {
+					bat_msg.current = battery_status.current_a;
+
+				} else {
+					bat_msg.current = float(NAN);
+				}
+
+				if (battery_status.connected && PX4_ISFINITE(battery_status.discharged_mah)
+				    && battery_status.discharged_mah != -1.0f) {
+					bat_msg.capacity_consumed = battery_status.discharged_mah * 1e-3f;
+
+				} else {
+					bat_msg.capacity_consumed = float(NAN);
+				}
+
+				if (battery_status.connected && PX4_ISFINITE(battery_status.remaining_capacity_wh)
+				    && PX4_ISFINITE(battery_status.nominal_voltage)
+				    && !math::isZero(battery_status.nominal_voltage)) {
+					bat_msg.capacity_remaining = battery_status.remaining_capacity_wh / battery_status.nominal_voltage;
+
+				} else {
+					bat_msg.capacity_remaining = float(NAN);
+				}
+
+				if (battery_status.connected && PX4_ISFINITE(battery_status.remaining)
+				    && battery_status.remaining != -1.0f) {
+					bat_msg.percent_remaining = static_cast<uint8_t>(roundf(battery_status.remaining * 1e2f));
+
+				} else {
+					bat_msg.percent_remaining = UINT8_MAX;
+				}
+
+				bat_msg.status_flags = get_status_flags(battery_status);
+
+				mavlink_msg_battery_status_v2_send_struct(_mavlink->get_channel(), &bat_msg);
+				updated = true;
 			}
 		}
 
-						   return updated;
+		return updated;
 	}
 
-			  inline uint32_t get_status_flags(const battery_status_s &battery_status) const
+	uint32_t get_status_flags(const battery_status_s &battery_status) const
 	{
 		uint32_t status_flags = 0;
 		uint16_t faults = battery_status.faults;
