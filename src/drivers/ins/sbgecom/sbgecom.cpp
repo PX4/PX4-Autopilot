@@ -323,6 +323,7 @@ void SbgEcom::handleLogEkfNav(const SbgEComLogUnion *ref_sbg_data, void *user_ar
 	const double latitude = ref_sbg_data->ekfNavData.position[0];
 	const double longitude = ref_sbg_data->ekfNavData.position[1];
 	const double altitude = ref_sbg_data->ekfNavData.position[2];
+	const double altitude_ellipsoid = altitude + static_cast<double>(ref_sbg_data->ekfNavData.undulation);
 
 	const double north_velocity = static_cast<double>(ref_sbg_data->ekfNavData.velocity[0]);
 	const double east_velocity = static_cast<double>(ref_sbg_data->ekfNavData.velocity[1]);
@@ -396,7 +397,7 @@ void SbgEcom::handleLogEkfNav(const SbgEComLogUnion *ref_sbg_data, void *user_ar
 	global_position.lat = latitude;
 	global_position.lon = longitude;
 	global_position.alt = altitude;
-	global_position.alt_ellipsoid = ref_sbg_data->ekfNavData.undulation;
+	global_position.alt_ellipsoid = altitude_ellipsoid;
 
 	global_position.lat_lon_valid = math::isFinite(latitude) && math::isFinite(longitude);
 	global_position.alt_valid = math::isFinite(altitude);
@@ -485,7 +486,8 @@ void SbgEcom::handleLogGnssPosVelHdt(SbgEComMsgId msg, const SbgEComLogUnion *re
 		sensor_gps.latitude_deg = gnss_data->gps_pos.latitude;
 		sensor_gps.longitude_deg = gnss_data->gps_pos.longitude;
 		sensor_gps.altitude_msl_m = gnss_data->gps_pos.altitude;
-		sensor_gps.altitude_ellipsoid_m = static_cast<double>(gnss_data->gps_pos.undulation);
+		sensor_gps.altitude_ellipsoid_m = gnss_data->gps_pos.altitude +
+						  static_cast<double>(gnss_data->gps_pos.undulation);
 
 		sensor_gps.s_variance_m_s = sqrt(pow(gnss_data->gps_vel.velocityAcc[0], 2) +
 						 pow(gnss_data->gps_vel.velocityAcc[1], 2) +
