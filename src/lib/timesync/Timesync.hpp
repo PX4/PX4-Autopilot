@@ -85,7 +85,15 @@ static constexpr uint32_t CONVERGENCE_WINDOW = 500;
 // of such events in a row will reset the filter. This usually happens only due to a time jump
 // on the remote system.
 // TODO : automatically determine these using ping statistics?
-static constexpr uint64_t MAX_RTT_SAMPLE = 10_ms;
+//
+// LOCAL FIX (uxrce-dds-stability-2026-04-30):
+// Original MAX_RTT_SAMPLE was 10 ms. On serial @ 921600 with realistic NuttX scheduler
+// + agent processing + Linux kernel buffering, steady-state RTT is 18-24 ms with spikes
+// to 50+ ms when CPU > 80%. Result: every sample rejected, filter never converges,
+// session setup hard-fails after TIMESYNC_MAX_TIMEOUTS. See PX4 issues #22382, #19626.
+// Raised to 50 ms which still rejects pathological samples (>5x worst case) but allows
+// the filter to actually run on serial transports.
+static constexpr uint64_t MAX_RTT_SAMPLE = 50_ms;
 static constexpr uint64_t MAX_DEVIATION_SAMPLE = 100_ms;
 static constexpr uint32_t MAX_CONSECUTIVE_HIGH_RTT = 10;
 static constexpr uint32_t MAX_CONSECUTIVE_HIGH_DEVIATION = 10;

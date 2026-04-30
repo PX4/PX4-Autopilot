@@ -103,8 +103,17 @@ void Timesync::update(const uint64_t now_us, const int64_t remote_timestamp_ns, 
 			// Increment counter if round trip time is too high for accurate timesync
 			_high_rtt_count++;
 
-			if (_high_rtt_count == MAX_CONSECUTIVE_HIGH_RTT) {
-				PX4_DEBUG("RTT too high for timesync: %llu ms", rtt_us / 1000ULL);
+			// LOCAL FIX (uxrce-dds-stability-2026-04-30):
+			// Original code logged once at exactly MAX_CONSECUTIVE_HIGH_RTT and at PX4_DEBUG
+			// level (invisible without verbose). On a chronically high-RTT link the counter
+			// keeps climbing and the operator never sees a single message. Now: warn on FIRST
+			// high-RTT sample (visible by default), then again every 50 thereafter, and use
+			// PX4_WARN so it shows up in the dmesg ring without enabling debug builds.
+			if (_high_rtt_count == 1 || _high_rtt_count % 50 == 0) {
+				PX4_WARN("timesync: RTT %llu ms exceeds gate %llu ms (count=%u)",
+					 (unsigned long long)(rtt_us / 1000ULL),
+					 (unsigned long long)(MAX_RTT_SAMPLE / 1000ULL),
+					 _high_rtt_count);
 			}
 		}
 
