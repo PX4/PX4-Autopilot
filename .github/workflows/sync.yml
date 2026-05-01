@@ -1,0 +1,20 @@
+name: Sync from upstream
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git clone --bare https://github.com/PX4/PX4-Autopilot.git up.git
+          cd up.git
+          git for-each-ref --format='%(refname)' refs/heads/ | while read ref; do
+            git push --force "https://x-access-token:${GH_TOKEN}@github.com/hob-robotics/HOB-Autopilot.git" "$ref:$ref"
+          done
+          git push --tags --force "https://x-access-token:${GH_TOKEN}@github.com/hob-robotics/HOB-Autopilot.git"
