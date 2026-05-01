@@ -113,8 +113,20 @@ def alignData(t_v, v_local, t_accel, accel, t_q, q, t_dist_bottom, dist_bottom):
         q_vb = qk.conjugate() * q_vl * qk # Get velocity in body frame
         vb = quaternion.as_float_array(q_vb)[1:4]
 
+        # Rotate NED gravity into body frame and add it back to the
+        # accelerometer mean. sensor_combined.accelerometer_m_s2 is
+        # specific force (a_inertial - g_body), but the drag model
+        # predicts inertial acceleration only, so g_body must be added
+        # back before fitting.
+        q_g_ned = np.quaternion(0, 0, 0, 9.80665)
+        q_g_body = qk.conjugate() * q_g_ned * qk
+        g_body = quaternion.as_float_array(q_g_body)[1:4]
+
+        accel_mean = accel_sum / accel_count
+        accel_inertial = accel_mean + np.array([[g_body[0]], [g_body[1]], [g_body[2]]])
+
         v_body_aligned = np.append(v_body_aligned, [[vb[0]], [vb[1]], [vb[2]]], axis=1)
-        accel_aligned = np.append(accel_aligned, accel_sum / accel_count, axis=1)
+        accel_aligned = np.append(accel_aligned, accel_inertial, axis=1)
         t_aligned.append(t)
 
     return (t_aligned, v_body_aligned, np.asarray(accel_aligned))
