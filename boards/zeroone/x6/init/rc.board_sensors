@@ -82,7 +82,24 @@ then
 	iim42653 -b 1 -s -R 8 start
 fi
 
-# External compass on GPS1/I2C1 bus
+if ver hwtypecmp ZeroOneX6002             # X6 Ultra
+then
+        # Internal SPI bus SCH16T with SPIX
+	zeroone_sch16t -b 2 -s -R 2 -m 0 start
+	# Internal SPI bus IIM42653 or IIM42652 with SPIX
+	if ! iim42653 -b 1 -s -R 8 start
+	then
+		iim42652 -b 1 -s -R 8 start
+	fi
+
+	# Internal SPI bus IIM42653 or IIM42652 with SPIX
+	if ! iim42653 -b 3 -s -R 0 start
+	then
+		iim42652 -b 3 -s -R 0 start
+	fi
+fi
+
+# External compass on GPS1/I2C1 (the 3rd external bus): standard Holybro Pixhawk 4 or CUAV V5 GPS/compass puck (with lights, safety button, and buzzer)
 ist8310 -X -b 1 -R 10 start
 # Internal compass
 if ! rm3100 -I -b 4 start # X6 & X6 PRO & X6 Ultra
