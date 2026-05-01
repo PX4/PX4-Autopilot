@@ -267,6 +267,10 @@ ControlAllocator::update_effectiveness_source()
 			tmp = new ActuatorEffectivenessHelicopterCoaxial(this);
 			break;
 
+		case EffectivenessSource::ROVER_MECANUM:
+			// rover_mecanum_control does allocation and publishes directly to actuator_motors topic
+			break;
+
 		case EffectivenessSource::SPACECRAFT_2D:
 			tmp = new ActuatorEffectivenessSpacecraft(this);
 			break;
