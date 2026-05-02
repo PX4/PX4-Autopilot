@@ -1118,8 +1118,6 @@ FixedWingModeManager::control_auto_path(const float control_interval, const Vect
 		_ctrl_configuration_handler.setThrottleMin(0.0f);
 		_ctrl_configuration_handler.setThrottleMax(0.0f);
 		_ctrl_configuration_handler.setSpeedWeight(2.0f);
-	} else {
-		_ctrl_configuration_handler.setSpeedWeight(1.0f);
 	}
 }
 
