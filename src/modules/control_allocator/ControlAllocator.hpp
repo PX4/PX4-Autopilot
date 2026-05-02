@@ -172,7 +172,6 @@ private:
 		HELICOPTER_COAXIAL = 12,
 		ROVER_MECANUM = 13,
 		SPACECRAFT_2D = 14,
-		SPACECRAFT_3D = 15,
 	};
 
 	enum class FailureMode {
