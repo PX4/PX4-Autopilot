@@ -394,9 +394,14 @@ set(TESTFILTER "" CACHE STRING "Filter string for ctest to selectively only run 
 
 include(px4_add_gtest)
 if(BUILD_TESTING)
-	# Setting FUZZTEST_FUZZING_MODE=on enables ASAN, and is only supported with Clang
+	# Setting FUZZTEST_FUZZING_MODE=on enables ASAN, and is only supported with Clang.
+	# Honor a user-supplied value (e.g. -DFUZZTEST_FUZZING_MODE=OFF) — the conda-forge
+	# clang + ASAN + sanitize-coverage combination hangs at startup on macOS arm64
+	# (Tahoe), so the pixi `test` task disables it by default.
 	if (("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang") OR ("${CMAKE_CXX_COMPILER_ID}" MATCHES "AppleClang"))
-		set(FUZZTEST_FUZZING_MODE ON)
+		if(NOT DEFINED FUZZTEST_FUZZING_MODE)
+			set(FUZZTEST_FUZZING_MODE ON)
+		endif()
 	endif()
 	add_subdirectory(test)
 	fuzztest_setup_fuzzing_flags()
