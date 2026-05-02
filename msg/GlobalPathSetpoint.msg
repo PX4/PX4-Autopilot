@@ -12,5 +12,5 @@ float64 lon			# Longitude, (degrees)
 float32 alt			# Altitude AMSL, (meters)
 # NED local world frame
 float32[3] tangent # Unit vector tangent to path
-float height_rate
+float32 height_rate
 float32 curvature
