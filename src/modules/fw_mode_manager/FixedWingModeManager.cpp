@@ -386,7 +386,8 @@ FixedWingModeManager::set_control_mode_current(const hrt_abstime &now)
 
 	if (_control_mode.flag_control_offboard_enabled && _position_setpoint_current_valid
 	    && _control_mode.flag_control_position_enabled) {
-		if (PX4_ISFINITE(_pos_sp_triplet.current.vx) && PX4_ISFINITE(_pos_sp_triplet.current.vy)) {
+		if (PX4_ISFINITE(_pos_sp_triplet.current.lat) && PX4_ISFINITE(_pos_sp_triplet.current.lon) && PX4_ISFINITE(_pos_sp_triplet.current.vx)
+		    && PX4_ISFINITE(_pos_sp_triplet.current.vy)) {
 			// Offboard position with velocity setpoints
 			_control_mode_current = FW_POSCTRL_MODE_AUTO_PATH;
 			return;
