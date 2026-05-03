@@ -255,4 +255,3 @@
 #define GPIO_SPI2_SCK    ADJ_SLEW_RATE(GPIO_SPI2_SCK_4) /* PB13 */
 #define GPIO_SPI2_MISO   GPIO_SPI2_MISO_2               /* PC2 */
 #define GPIO_SPI2_MOSI   GPIO_SPI2_MOSI_2               /* PC1 */
-
