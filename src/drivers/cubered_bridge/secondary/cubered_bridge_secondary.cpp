@@ -57,10 +57,6 @@
 // Include PX4IO protocol definitions
 #include <modules/px4iofirmware/protocol.h>
 
-#include <termios.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <poll.h>
 #include <errno.h>
 #include <string.h>
 #include <stdio.h>
@@ -155,10 +151,6 @@ CuberedBridgeSecondary::CuberedBridgeSecondary()
 
 CuberedBridgeSecondary::~CuberedBridgeSecondary()
 {
-	if (_serial_fd >= 0) {
-		::close(_serial_fd);
-	}
-
 	// Clean up PWM outputs
 	if (_pwm_initialized) {
 		up_pwm_servo_deinit(_pwm_mask);
@@ -222,52 +214,20 @@ bool CuberedBridgeSecondary::init()
 
 int CuberedBridgeSecondary::init_serial()
 {
-	// Open serial port
-	_serial_fd = ::open(DEVICE_NAME, O_RDWR | O_NOCTTY | O_NONBLOCK);
-
-	if (_serial_fd < 0) {
-		PX4_ERR("Failed to open %s: %s", DEVICE_NAME, strerror(errno));
+	if (!_uart.setPort(DEVICE_NAME)) {
+		PX4_ERR("Failed to set port %s", DEVICE_NAME);
 		return PX4_ERROR;
 	}
 
-	// Configure serial port
-	termios uart_config;
-
-	if (tcgetattr(_serial_fd, &uart_config) < 0) {
-		PX4_ERR("Failed to get termios config: %s", strerror(errno));
-		::close(_serial_fd);
-		_serial_fd = -1;
+	if (!_uart.setBaudrate(BAUDRATE)) {
+		PX4_ERR("Failed to set baudrate %" PRIu32, BAUDRATE);
 		return PX4_ERROR;
 	}
 
-	// Set baud rate
-	if (cfsetispeed(&uart_config, BAUDRATE) < 0 || cfsetospeed(&uart_config, BAUDRATE) < 0) {
-		PX4_ERR("Failed to set baudrate: %s", strerror(errno));
-		::close(_serial_fd);
-		_serial_fd = -1;
+	if (!_uart.open()) {
+		PX4_ERR("Failed to open %s", DEVICE_NAME);
 		return PX4_ERROR;
 	}
-
-	// Configure for raw mode
-	uart_config.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
-	uart_config.c_oflag &= ~OPOST;
-	uart_config.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
-	uart_config.c_cflag &= ~(CSIZE | PARENB);
-	uart_config.c_cflag |= CS8;
-
-	// Set timeouts for non-blocking read
-	uart_config.c_cc[VMIN] = 6;
-	uart_config.c_cc[VTIME] = 1;
-
-	if (tcsetattr(_serial_fd, TCSANOW, &uart_config) < 0) {
-		PX4_ERR("Failed to set termios config: %s", strerror(errno));
-		::close(_serial_fd);
-		_serial_fd = -1;
-		return PX4_ERROR;
-	}
-
-	// Flush any existing data
-	tcflush(_serial_fd, TCIOFLUSH);
 
 	return PX4_OK;
 }
@@ -369,58 +329,42 @@ void CuberedBridgeSecondary::poll_and_process()
 	size_t expected_packet_size = min_packet_size;
 
 	while (bytes_read < expected_packet_size) {
-		pollfd fds[1];
-		fds[0].fd = _serial_fd;
-		fds[0].events = POLLIN;
+		ssize_t read_ret = _uart.readAtLeast(
+					   reinterpret_cast<uint8_t *>(&packet) + bytes_read,
+					   sizeof(IOPacket) - bytes_read,
+					   1, POLL_TIMEOUT_MS);
 
-		int ret = poll(fds, 1, POLL_TIMEOUT_MS);
+		if (read_ret > 0) {
+			bytes_read += read_ret;
 
-		if (ret > 0) {
-			if (fds[0].revents & POLLIN) {
-				// Data available to read from CubeRed Primary
-				int read_ret = ::read(_serial_fd, (reinterpret_cast<uint8_t *>(&packet)) + bytes_read, sizeof(IOPacket) - bytes_read);
+			// Once we have at least min packet, try to determine actual size
+			if (bytes_read >= min_packet_size && expected_packet_size == min_packet_size) {
+				expected_packet_size = PKT_SIZE(packet);
+			}
 
-				if (read_ret > 0) {
-					bytes_read += read_ret;
+			// Check CRC when we have the complete packet
+			if (bytes_read >= expected_packet_size) {
 
-					// Once we have at least min packet, try to determine actual size
-					if (bytes_read >= min_packet_size && expected_packet_size == min_packet_size) {
-						expected_packet_size = PKT_SIZE(packet);
-					}
-
-					// Check CRC when we have the complete packet
-					if (bytes_read >= expected_packet_size) {
-
-						if (validate_crc(packet)) {
-							//printf("CRC OK at %zu bytes\n", bytes_read);
-							process_received_data(packet);
-							return;
-
-						} else {
-							printf("CRC failed at %zu bytes - restarting\n", bytes_read);
-							// CRC failed - start fresh
-							bytes_read = 0;
-							expected_packet_size = min_packet_size;
-							packet = {};
-							continue;
-						}
-					}
-
-				} else if (read_ret < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
-					PX4_ERR("Read error: %s", strerror(errno));
+				if (validate_crc(packet)) {
+					process_received_data(packet);
 					return;
+
+				} else {
+					printf("CRC failed at %zu bytes - restarting\n", bytes_read);
+					// CRC failed - start fresh
+					bytes_read = 0;
+					expected_packet_size = min_packet_size;
+					packet = {};
+					continue;
 				}
 			}
 
-		} else if (ret < 0 && errno != EINTR) {
-			PX4_ERR("Poll error: %s", strerror(errno));
+		} else if (read_ret < 0) {
+			PX4_ERR("Read error: %zd", read_ret);
 			return;
 
 		} else {
 			// Timeout, start fresh with clean buffer
-			bytes_read = 0;
-			expected_packet_size = min_packet_size;
-			packet = {};
 			return;
 		}
 	}
@@ -449,17 +393,15 @@ void CuberedBridgeSecondary::process_received_data(IOPacket &packet)
 
 void CuberedBridgeSecondary::send_response(IOPacket &packet)
 {
-	if (_serial_fd >= 0) {
-		size_t packet_size = PKT_SIZE(packet);
-		ssize_t bytes_written = ::write(_serial_fd, &packet, packet_size);
+	size_t packet_size = PKT_SIZE(packet);
+	ssize_t bytes_written = _uart.write(&packet, packet_size);
 
-		if (bytes_written != (ssize_t)packet_size) {
-			if (bytes_written < 0) {
-				PX4_ERR("Write error: %s", strerror(errno));
+	if (bytes_written != (ssize_t)packet_size) {
+		if (bytes_written < 0) {
+			PX4_ERR("Write error: %zd", bytes_written);
 
-			} else {
-				PX4_WARN("Partial write: %zd of %zu bytes", bytes_written, packet_size);
-			}
+		} else {
+			PX4_WARN("Partial write: %zd of %zu bytes", bytes_written, packet_size);
 		}
 	}
 }

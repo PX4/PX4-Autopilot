@@ -48,6 +48,7 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
+#include <px4_platform_common/Serial.hpp>
 
 #include <px4_platform_common/posix.h>
 
@@ -60,11 +61,6 @@
 
 // Include PX4IO protocol definitions
 #include <modules/px4iofirmware/protocol.h>
-
-#include <termios.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <poll.h>
 
 using namespace time_literals;
 
@@ -100,10 +96,10 @@ public:
 
 private:
 	static constexpr const char *DEVICE_NAME = "/dev/ttyS1";
-	static constexpr speed_t BAUDRATE = B1500000;
-	static constexpr int POLL_TIMEOUT_MS = 1; // 1ms timeout for low latency
+	static constexpr uint32_t BAUDRATE = 1500000;
+	static constexpr uint32_t POLL_TIMEOUT_MS = 1; // 1ms timeout for low latency
 
-	int _serial_fd{-1};
+	device::Serial _uart{};
 
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": loop")};
 	perf_counter_t _loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": loop interval")};
