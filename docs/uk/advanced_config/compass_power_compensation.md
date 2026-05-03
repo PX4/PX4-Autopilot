@@ -75,3 +75,7 @@
    Додатково, параметри компенсації для кожної вісі кожного компасу повинні бути встановлені.
 
    ![comp params](../../assets/advanced_config/comp_params.png)
+
+## Дивіться також
+
+- [OEM/Factory Configuration](../advanced_config/oem.md)
