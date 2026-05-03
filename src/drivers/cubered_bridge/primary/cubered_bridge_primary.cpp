@@ -589,6 +589,12 @@ void CuberedBridgePrimary::Run()
 				} else {
 					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED);
 				}
+
+			} else if ((unsigned int)cmd.command == vehicle_command_s::VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN
+				   && ((int)cmd.param1 == 1 || (int)cmd.param1 == 3)) {
+				// Primary is about to reboot; tell the secondary to reboot too so both halves come up fresh.
+				// Commander ACKs the command and triggers the primary reboot itself.
+				io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_REBOOT_BL, PX4IO_REBOOT_BL_MAGIC);
 			}
 		}
 
@@ -1537,6 +1543,19 @@ int CuberedBridgePrimary::custom_command(int argc, char *argv[])
 		return 0;
 	}
 
+	if (!strcmp(verb, "reboot")) {
+		int ret = get_instance<CuberedBridgePrimary>(desc)->io_reg_set(
+				  PX4IO_PAGE_SETUP, PX4IO_P_SETUP_REBOOT_BL, PX4IO_REBOOT_BL_MAGIC);
+
+		if (ret != 0) {
+			PX4_ERR("reboot failed (%i)", ret);
+			return 1;
+		}
+
+		PX4_INFO("secondary reboot requested");
+		return 0;
+	}
+
 	return print_usage("unknown command");
 }
 
@@ -1567,6 +1586,7 @@ flashed via the primary; flash it directly with its own build target.
 	PRINT_MODULE_USAGE_COMMAND_DESCR("supported", "Returns 0 if supported");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("test_fmu_fail", "test: turn off IO updates");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("test_fmu_ok", "re-enable IO updates");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("reboot", "reboot the secondary MCU");
 
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 

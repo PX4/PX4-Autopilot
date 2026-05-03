@@ -46,6 +46,7 @@
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/posix.h>
+#include <px4_platform_common/shutdown.h>
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/log.h>
@@ -698,10 +699,31 @@ void CuberedBridgeSecondary::handle_write_request(IOPacket &packet)
 		}
 		break;
 
-	case PX4IO_PAGE_SETUP:
-		// Update setup data
-		for (uint8_t i = 0; i < count && (offset + i) < sizeof(setup_page)/sizeof(setup_page[0]); i++) {
-			setup_page[offset + i] = packet.regs[i];
+	case PX4IO_PAGE_SETUP: {
+			// Update setup data
+			bool reboot_requested = false;
+
+			for (uint8_t i = 0; i < count && (offset + i) < sizeof(setup_page)/sizeof(setup_page[0]); i++) {
+				setup_page[offset + i] = packet.regs[i];
+
+				if ((offset + i) == PX4IO_P_SETUP_REBOOT_BL && packet.regs[i] == PX4IO_REBOOT_BL_MAGIC) {
+					reboot_requested = true;
+				}
+			}
+
+			if (reboot_requested) {
+				// Schedule reboot after responding so the primary gets the ACK on the wire first.
+				// Mirrors the original px4iofirmware schedule_reboot(100000) timing.
+				IOPacket response;
+				memset(&response, 0, sizeof(response));
+				response.count_code = 0 | PKT_CODE_SUCCESS;
+				response.page = packet.page;
+				response.offset = packet.offset;
+				send_packet(response);
+
+				px4_reboot_request(REBOOT_REQUEST, 100_ms);
+				return;
+			}
 		}
 		break;
 

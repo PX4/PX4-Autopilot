@@ -32,9 +32,6 @@ make cubepilot_cubered-secondary_default upload && \
 make cubepilot_cubered-primary_default upload
 ```
 
-A manual power cycle is currently required between the secondary upload
-finishing and the secondary rebooting into application mode.
-
 ## Console
 
 - Primary console is on the carrier's GPS2 connector (UART4) at 57600 baud.
