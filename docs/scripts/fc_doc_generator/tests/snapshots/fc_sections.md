@@ -323,6 +323,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-42688P (SPI), ICM-42688P (SPI)
   - **Barometer**: TODO: confirm which is installed — BMP388, DPS310 (I2C, internal), DPS310 (I2C, external), ICP-20100 (I2C, internal), ICP-20100 (I2C, external), MS5611
   - **Magnetometer**: TODO: confirm which is installed — BMM150, IST8308, IST8310 (I2C, bus 1, external), MMC5983MA, RM3100 (I2C, bus 4, internal)
+  - **OSD**: OSD
 - **Interfaces**
   - **PWM outputs**: 16 (8 FMU + 8 IO)
   - **Serial ports**: 8
@@ -384,7 +385,9 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
       "MMC5983MA",
       "RM3100"
     ],
-    "osd": []
+    "osd": [
+      "OSD"
+    ]
   },
   "overview_wizard": null
 }
@@ -670,7 +673,7 @@ The motor and servo system should be connected to these ports according to the o
 - **Processor**
   - **Main FMU Processor**: STM32F42
 - **Sensors**
-  - **IMU**: TODO: confirm which is installed — ICM-20948, MPU-6000 (SPI)
+  - **IMU**: TODO: confirm which is installed — ICM-20948, MPU-6000 (SPI), MPU6500, L3GD20, LSM303D
   - **Barometer**: MS5611 (SPI)
   - **Magnetometer**: TODO: confirm which is installed — HMC5883L (I2C, internal), QMC5883L (I2C, internal)
 - **Interfaces**
@@ -711,7 +714,10 @@ The motor and servo system should be connected to these ports according to the o
   "sensor_drivers": {
     "imu": [
       "ICM-20948",
-      "MPU-6000"
+      "MPU-6000",
+      "MPU6500",
+      "L3GD20",
+      "LSM303D"
     ],
     "baro": [
       "MS5611"
@@ -947,7 +953,7 @@ Serial port mapping could not be determined from source.
 - **Processor**
   - **Main FMU Processor**: STM32F412
 - **Sensors**
-  - **IMU**: TODO: confirm which is installed — ADIS16507, ICM-20948, ICM-42688P (SPI)
+  - **IMU**: TODO: confirm which is installed — ADIS16448, ADIS16507, ICM-20948, ICM-42688P (SPI)
   - **Barometer**: SPL06 (I2C, external)
   - **Magnetometer**: TODO: confirm which is installed — HMC5883L (I2C, external), IST8308 (I2C, external), IST8310 (I2C, external), IIS2MDC (I2C, external), LIS3MDL (I2C, external), QMC5883L (I2C, external), RM3100 (I2C, external), AK09916 (I2C, external)
 - **Interfaces**
@@ -983,6 +989,7 @@ Serial port mapping could not be determined from source.
   "has_usb": false,
   "sensor_drivers": {
     "imu": [
+      "ADIS16448",
       "ADIS16507",
       "ICM-20948",
       "ICM-42688P"
@@ -1264,7 +1271,9 @@ Serial port mapping could not be determined from source.
     "imu": [
       "ADIS16507",
       "ICM-42688P",
-      "IIM-42652"
+      "IIM-42652",
+      "IIM42653",
+      "SCH16T"
     ],
     "baro": [
       "BMP388"
@@ -1549,9 +1558,10 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 - **Processor**
   - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
 - **Sensors**
-  - **IMU**: TODO: list imu(s)
+  - **IMU**: TODO: confirm which is installed — IIM42653, SCH16T
   - **Barometer**: BMP388 (I2C, bus 2, internal)
   - **Magnetometer**: TODO: confirm which is installed — BMM150, HMC5883L, QMC5883L, IST8308, IST8310, LIS3MDL, LSM303AGR, RM3100, IIS2MDC (I2C, bus 4, internal)
+  - **OSD**: OSD
 - **Interfaces**
   - **PWM outputs**: 9 (FMU)
   - **Serial ports**: 7
@@ -1591,7 +1601,10 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   "num_can_buses": 1,
   "has_usb": true,
   "sensor_drivers": {
-    "imu": [],
+    "imu": [
+      "IIM42653",
+      "SCH16T"
+    ],
     "baro": [
       "BMP388"
     ],
@@ -1606,7 +1619,9 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
       "RM3100",
       "IIS2MDC"
     ],
-    "osd": []
+    "osd": [
+      "OSD"
+    ]
   },
   "overview_wizard": null
 }
@@ -3075,7 +3090,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 - **Processor**
   - **Main FMU Processor**: STM32F777 (32-bit Arm® Cortex®-M7, 216 MHz, 2MB flash, 512KB RAM)
 - **Sensors**
-  - **IMU**: ICM-20948
+  - **IMU**: TODO: confirm which is installed — ADIS16477, ADIS16497, ICM-20948
   - **Barometer**: TODO: list barometer(s)
   - **Magnetometer**: LSM303AGR (SPI)
 - **Interfaces**
@@ -3118,6 +3133,8 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   "has_usb": false,
   "sensor_drivers": {
     "imu": [
+      "ADIS16477",
+      "ADIS16497",
       "ICM-20948"
     ],
     "baro": [],
@@ -3645,7 +3662,7 @@ Serial port mapping could not be determined from source.
 - **Processor**
   - **Main FMU Processor**: STM32F405 (32-bit Arm® Cortex®-M4, 168 MHz, 1MB flash, 192KB RAM)
 - **Sensors**
-  - **IMU**: TODO: list imu(s)
+  - **IMU**: I2C
   - **Barometer**: BMP388 (I2C, internal)
   - **Magnetometer**: TODO: list magnetometer(s)
 - **Interfaces**
@@ -3681,7 +3698,9 @@ Serial port mapping could not be determined from source.
   "num_can_buses": 0,
   "has_usb": true,
   "sensor_drivers": {
-    "imu": [],
+    "imu": [
+      "I2C"
+    ],
     "baro": [
       "BMP388"
     ],
@@ -3897,6 +3916,334 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 
 Serial port mapping could not be determined from source.
 ```
+
+---
+
+### cbunmanned/h753-stamp
+
+**Doc:** [https://docs.px4.io/main/en/flight_controller/cbunmanned_h753-stamp](https://docs.px4.io/main/en/flight_controller/cbunmanned_h753-stamp)
+**Documented:** Yes
+
+**Proposed `specifications` section:**
+
+```markdown
+## Specifications {#specifications}
+
+- **Processor**
+  - **Main FMU Processor**: STM32H753 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
+- **Sensors**
+  - **IMU**: ICM-42670P (SPI)
+  - **Barometer**: LPS22HB
+  - **Magnetometer**: IST8310
+- **Interfaces**
+  - **PWM outputs**: 9 (FMU)
+  - **Serial ports**: 7
+  - **I2C ports**: 3 (2 external, 1 internal)
+    - I2C1 (internal)
+    - I2C3 (external): free (no sensor detected)
+    - I2C4 (external): free (no sensor detected)
+  - **SPI buses**: 2
+    - ICM-42670P (IMU)
+  - **CAN buses**: 2
+  - **USB**: Yes
+  - **RC input**: Yes
+  - **Analog battery inputs**: 1
+  - **Additional analog inputs**: TODO: number of additional analog inputs
+  - **Ethernet**: Yes
+- **Electrical Data**
+  - **Operating voltage**: TODO: supply voltage range
+- **Mechanical Data**
+  - **Dimensions**: TODO: dimensions (mm)
+  - **Weight**: TODO: weight (g)
+- **Other**
+  - **SD card**: Yes
+
+<!-- overview-source-data
+{
+  "board": "cbunmanned/h753-stamp",
+  "chip_model": "STM32H753",
+  "has_io_board": false,
+  "total_outputs": 9,
+  "fmu_servo_outputs": 9,
+  "io_outputs": 0,
+  "has_sd_card": true,
+  "has_ethernet": true,
+  "has_heater": false,
+  "num_i2c_buses": 3,
+  "num_spi_buses": 2,
+  "num_can_buses": 2,
+  "has_usb": true,
+  "sensor_drivers": {
+    "imu": [
+      "ICM-42670P"
+    ],
+    "baro": [
+      "LPS22HB"
+    ],
+    "mag": [
+      "IST8310"
+    ],
+    "osd": []
+  },
+  "overview_wizard": null
+}
+-->
+```
+
+**Proposed `power` section:**
+
+```markdown
+## Power {#power}
+
+The flight controller can be powered from a power module connected to the **TODO: POWER port label** port.
+
+The power module must supply a regulated **5V** at a minimum of **3A continuous**.
+
+Power ports:
+
+- `TODO: POWER port label`: TODO: connector type
+
+:::warning
+The PWM output ports are not powered by the POWER port.
+The output rail must be [separately powered](../assembly/servo_power.md) if it needs to power servos or other hardware.
+This is generally true for VTOL and fixed-wing vehicles, but not necessarily true for MC vehicles.
+:::
+
+For battery and power module configuration see [Battery and Power Module Setup](../config/battery.md).
+
+![Power Connection](../../assets/flight_controller/h753-stamp/power_connection.png)
+
+<!-- checklist
+- [ ] Confirm power port label(s) as printed on board
+- [ ] Confirm connector type(s)
+- [ ] Confirm voltage/current ratings of power module used
+- [ ] Add a connection diagram image showing power port location
+-->
+
+<!-- power-source-data
+{
+  "board": "cbunmanned/h753-stamp",
+  "source": {
+    "num_power_inputs": 1,
+    "has_redundant_power": false,
+    "has_dual_battery_monitoring": false,
+    "has_dronecan_power_input": false,
+    "power_monitor_type": null
+  },
+  "power_ports_wizard": null
+}
+-->
+```
+
+**Proposed `pwm_outputs` section:**
+
+```markdown
+## PWM Outputs {#pwm_outputs}
+
+This flight controller supports up to 9 FMU PWM outputs (MAIN).
+
+All outputs support [DShot](../peripherals/dshot.md) and [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
+
+The 9 outputs are in 4 groups:
+
+- Outputs 1-3 in group1 (Timer1)
+- Outputs 4-5 in group2 (Timer2)
+- Outputs 6-8 in group3 (Timer3)
+- Output 9 in group4 (Timer4)
+
+All outputs within the same group must use the same output protocol and rate.
+```
+
+**Proposed `radio_control` section:**
+
+```markdown
+### Radio Control {#radio_control}
+
+A remote control (RC) radio system is required if you want to _manually_ control your vehicle (PX4 does not require a radio system for autonomous flight modes).
+
+You will need to [select a compatible transmitter/receiver](../getting_started/rc_transmitter_receiver.md) and then _bind_ them so that they communicate (read the instructions that come with your specific transmitter/receiver).
+
+The ports and supported protocols are:
+
+- `RC` (FMU): SBUS, DSM/DSMX, ST24, SUMD, CRSF, and GHST receivers
+
+For PPM and S.Bus receivers, a single signal wire carries all channels. If your receiver outputs individual PWM signals (one wire per channel) it must be connected via a [PPM encoder](../getting_started/rc_transmitter_receiver.md#pwm-receivers).
+
+![RC Connection Diagram](../../assets/flight_controller/cbunmanned_h753-stamp/rc_connection_diagram.png)
+
+<!-- checklist
+- [ ] List all RC port names exactly as labeled on the board
+- [ ] State which protocols each port supports
+- [ ] State the connector type used for each RC port
+- [ ] Confirm which protocols have been tested with this board
+- [ ] Add a connection diagram image showing where to plug in the RC receiver
+-->
+
+<!-- rc-source-data
+{
+  "board": "cbunmanned/h753-stamp",
+  "modules": {
+    "rc_input": true,
+    "common_rc": false,
+    "px4io": false,
+    "has_ppm_pin": false,
+    "ppm_shared_with_serial": false
+  },
+  "rc_serial": {
+    "device": "/dev/ttyS4",
+    "uart": "USART6",
+    "label": "RC",
+    "side": "FMU"
+  },
+  "io_serial": null,
+  "rc_ports_wizard": null
+}
+-->
+```
+
+**Proposed `gps_compass` section:**
+
+```markdown
+### GPS & Compass {#gps_compass}
+
+PX4 supports GPS modules connected to the GPS port(s) listed below.
+The module should be [mounted on the frame](../assembly/mount_gps_compass.md) as far away from other electronics as possible, with the direction marker pointing towards the front of the vehicle.
+
+The GPS ports are:
+
+- `GPS1` (FMU): TODO: connector type — GPS, compass (I2C)
+- `GPS2` (FMU): TODO: connector type — GPS, compass (I2C)
+
+![GNSS Connection](../../assets/flight_controller/cbunmanned_h753-stamp/gnss_connection.png)
+
+<!-- checklist
+- [ ] Confirm physical label(s) of GPS port(s) as printed on board
+- [ ] Confirm connector type (e.g. 10-pin JST GH Pixhawk full or 6-pin basic)
+- [ ] Confirm whether GPS1 includes safety switch, buzzer and LED pins
+- [ ] Note whether an external compass is required or integrated in GPS module
+- [ ] Add a connection diagram image showing GPS port location
+-->
+
+<!-- gps-source-data
+{
+  "board": "cbunmanned/h753-stamp",
+  "source": {
+    "gps_ports": [
+      {
+        "label": "GPS1",
+        "device": "/dev/ttyS1",
+        "uart": "USART3"
+      },
+      {
+        "label": "GPS2",
+        "device": "/dev/ttyS2",
+        "uart": "UART4"
+      }
+    ],
+    "has_pps_capture": false,
+    "has_safety_switch": false,
+    "has_safety_led": false,
+    "has_buzzer": false
+  },
+  "gps_ports_wizard": null
+}
+-->
+```
+
+**Proposed `telemetry` section:**
+
+```markdown
+## Telemetry Radios (Optional) {#telemetry}
+
+[Telemetry radios](../telemetry/index.md) may be used to communicate and control a vehicle in flight from a ground station (for example, you can direct the UAV to a particular position, or upload a new mission).
+
+The vehicle-based radio should be connected to a TELEM port — **TELEM1**, **TELEM2**, **TELEM3** (if connected to **TELEM1**, no further configuration is required).
+The other radio is connected to your ground station computer or mobile device (usually by USB).
+
+![Telemetry Radio](../../assets/flight_controller/h753-stamp/telemetry_radio.jpg)
+
+<!-- checklist
+- [ ] Confirm TELEM port label(s) as printed on board
+- [ ] Add a wiring photo showing telemetry radio connected to TELEM1
+-->
+
+<!-- telemetry-source-data
+{
+  "board": "cbunmanned/h753-stamp",
+  "source": {
+    "telem_ports": [
+      "TELEM1",
+      "TELEM2",
+      "TELEM3"
+    ]
+  }
+}
+-->
+```
+
+**Proposed `sd_card` section:**
+
+```markdown
+## SD Card (Optional) {#sd_card}
+
+SD cards are highly recommended as they are needed to [log and analyse flight details](../getting_started/flight_reporting.md), to run missions, and to use UAVCAN-bus hardware.
+Insert the card into _TODO: h753-stamp board name_ as shown below.
+
+![SD Card Slot](../../assets/flight_controller/h753-stamp/sd_card_slot.jpg)
+
+:::tip
+For more information see [Basic Concepts > SD Cards (Removable Memory)](../getting_started/px4_basic_concepts.md#sd-cards-removable-memory).
+:::
+
+<!-- checklist
+- [ ] Confirm SD card slot location
+- [ ] Add photo showing SD card insertion
+-->
+
+<!-- sd-source-data
+{
+  "board": "cbunmanned/h753-stamp",
+  "source": {
+    "has_sd_card": true
+  }
+}
+-->
+```
+
+**Proposed `serial_ports` section:**
+
+```markdown
+## Serial Port Mapping
+
+| UART | Device | Port | Flow Control |
+|------|--------|------|:---:|
+| USART2 | /dev/ttyS0 | TELEM1 | Yes |
+| USART3 | /dev/ttyS1 | GPS1 | - |
+| UART4 | /dev/ttyS2 | GPS2 | - |
+| UART5 | /dev/ttyS3 | Debug Console | - |
+| USART6 | /dev/ttyS4 | RC | - |
+| UART7 | /dev/ttyS5 | TELEM2 | Yes |
+| UART8 | /dev/ttyS6 | TELEM3 | Yes |
+```
+
+**Existing doc section (for reference):**
+
+<!--
+## PWM Outputs {#pwm_outputs}
+
+This flight controller supports up to 9 FMU PWM outputs (MAIN).
+
+All outputs support [DShot](../peripherals/dshot.md) and [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
+
+The 9 outputs are in 4 groups:
+
+- Outputs 1-3 in group1 (Timer1)
+- Outputs 4-5 in group2 (Timer2)
+- Outputs 6-8 in group3 (Timer3)
+- Output 9 in group4 (Timer4)
+
+All outputs within the same group must use the same output protocol and rate.
+-->
 
 ---
 
@@ -4219,9 +4566,10 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 - **Processor**
   - **Main FMU Processor**: STM32H753 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
 - **Sensors**
-  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20948, IIM-42652 (SPI)
+  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20948, IIM-42652 (SPI), IIM42653
   - **Barometer**: TODO: confirm which is installed — BMP581 (SPI), ICP-20100 (I2C, internal)
   - **Magnetometer**: TODO: confirm which is installed — IIS2MDC (I2C, internal), IST8310 (I2C, bus 1, external)
+  - **OSD**: OSD
 - **Interfaces**
   - **PWM outputs**: 8 (FMU)
   - **Serial ports**: 7
@@ -4268,7 +4616,8 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
     "imu": [
       "BMI088",
       "ICM-20948",
-      "IIM-42652"
+      "IIM-42652",
+      "IIM42653"
     ],
     "baro": [
       "BMP581",
@@ -4278,7 +4627,9 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
       "IIS2MDC",
       "IST8310"
     ],
-    "osd": []
+    "osd": [
+      "OSD"
+    ]
   },
   "overview_wizard": null
 }
@@ -4543,6 +4894,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20948, ICM-45686 (SPI), IIM-42652 (SPI)
   - **Barometer**: TODO: confirm which is installed — BMP581 (I2C, bus 2, external), ICP-20100 (I2C, internal)
   - **Magnetometer**: TODO: confirm which is installed — RM3100 (I2C, bus 4, internal), IST8310 (I2C, bus 1, external)
+  - **OSD**: OSD
 - **Interfaces**
   - **PWM outputs**: 16 (8 FMU + 8 IO)
   - **Serial ports**: 8
@@ -4601,7 +4953,9 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
       "RM3100",
       "IST8310"
     ],
-    "osd": []
+    "osd": [
+      "OSD"
+    ]
   },
   "overview_wizard": null
 }
@@ -4868,7 +5222,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 - **Processor**
   - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
 - **Sensors**
-  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20649, ICM-20689 (SPI), ICM-20689 (SPI), ICM-20948, ICM-42688P (SPI)
+  - **IMU**: TODO: confirm which is installed — ADIS16448, BMI088 (SPI), ICM-20649, ICM-20689 (SPI), ICM-20689 (SPI), ICM-20948, ICM-42688P (SPI)
   - **Barometer**: MS5611 (SPI), MS5611 (SPI)
   - **Magnetometer**: TODO: confirm which is installed — RM3100 (SPI), IST8310 (I2C, bus 1, external)
 - **Interfaces**
@@ -4919,6 +5273,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   "has_usb": true,
   "sensor_drivers": {
     "imu": [
+      "ADIS16448",
       "BMI088",
       "ICM-20649",
       "ICM-20689",
@@ -5195,9 +5550,10 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 - **Processor**
   - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
 - **Sensors**
-  - **IMU**: TODO: confirm which is installed — ICM-20948, IIM-42652 (SPI)
+  - **IMU**: TODO: confirm which is installed — ICM-20948, IIM-42652 (SPI), IIM42653
   - **Barometer**: TODO: confirm which is installed — BMP581 (SPI), ICP-20100 (I2C, bus 4, internal)
   - **Magnetometer**: TODO: confirm which is installed — RM3100 (SPI), IST8310 (I2C, bus 1, external)
+  - **OSD**: OSD
 - **Interfaces**
   - **PWM outputs**: 8 (FMU)
   - **Serial ports**: 8
@@ -5245,7 +5601,8 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   "sensor_drivers": {
     "imu": [
       "ICM-20948",
-      "IIM-42652"
+      "IIM-42652",
+      "IIM42653"
     ],
     "baro": [
       "BMP581",
@@ -5255,7 +5612,9 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
       "RM3100",
       "IST8310"
     ],
-    "osd": []
+    "osd": [
+      "OSD"
+    ]
   },
   "overview_wizard": null
 }
@@ -5542,9 +5901,10 @@ All outputs within the same group must use the same output protocol and rate.
 - **Processor**
   - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
 - **Sensors**
-  - **IMU**: IIM-42652 (SPI)
+  - **IMU**: TODO: confirm which is installed — IIM-42652 (SPI), IIM42653, SCH16T
   - **Barometer**: TODO: confirm which is installed — BMP581 (SPI), ICP-20100 (I2C, bus 4, internal)
   - **Magnetometer**: TODO: confirm which is installed — RM3100 (SPI), IST8310 (I2C, bus 1, external)
+  - **OSD**: OSD
 - **Interfaces**
   - **PWM outputs**: 8 (FMU)
   - **Serial ports**: 8
@@ -5590,7 +5950,9 @@ All outputs within the same group must use the same output protocol and rate.
   "has_usb": true,
   "sensor_drivers": {
     "imu": [
-      "IIM-42652"
+      "IIM-42652",
+      "IIM42653",
+      "SCH16T"
     ],
     "baro": [
       "BMP581",
@@ -5600,7 +5962,9 @@ All outputs within the same group must use the same output protocol and rate.
       "RM3100",
       "IST8310"
     ],
-    "osd": []
+    "osd": [
+      "OSD"
+    ]
   },
   "overview_wizard": null
 }
@@ -5862,7 +6226,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 - **Processor**
   - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
 - **Sensors**
-  - **IMU**: TODO: confirm which is installed — ADIS16470 (SPI), BMI088 (SPI), ICM-20649, ICM-20689 (SPI), ICM-20948, ICM-42688P (SPI)
+  - **IMU**: TODO: confirm which is installed — ADIS16448, ADIS16470 (SPI), BMI088 (SPI), ICM-20649, ICM-20689 (SPI), ICM-20948, ICM-42688P (SPI)
   - **Barometer**: MS5611 (SPI), MS5611 (SPI)
   - **Magnetometer**: TODO: confirm which is installed — RM3100 (SPI), IST8310 (I2C, bus 1, external)
 - **Interfaces**
@@ -5913,6 +6277,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   "has_usb": true,
   "sensor_drivers": {
     "imu": [
+      "ADIS16448",
       "ADIS16470",
       "BMI088",
       "ICM-20649",
@@ -6191,7 +6556,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
   - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
 - **Sensors**
-  - **IMU**: TODO: confirm which is installed — ICM-20602 (SPI), ICM-20649 (SPI), ICM-20948 (SPI)
+  - **IMU**: TODO: confirm which is installed — ADIS16448, ICM-20602 (SPI), ICM-20649 (SPI), ICM-20948 (SPI)
   - **Barometer**: MS5611 (SPI), MS5611 (SPI)
   - **Magnetometer**: TODO: list magnetometer(s)
 - **Interfaces**
@@ -6238,6 +6603,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   "has_usb": true,
   "sensor_drivers": {
     "imu": [
+      "ADIS16448",
       "ICM-20602",
       "ICM-20649",
       "ICM-20948"
@@ -6502,7 +6868,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   - **Main FMU Processor**: STM32H747 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
   - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
 - **Sensors**
-  - **IMU**: TODO: confirm which is installed — ICM-20649 (SPI), ICM-20948, ICM-42688P (SPI), ICM-45686 (SPI)
+  - **IMU**: TODO: confirm which is installed — ADIS16448, ICM-20649 (SPI), ICM-20948, ICM-42688P (SPI), ICM-45686 (SPI)
   - **Barometer**: MS5611 (SPI), MS5611 (SPI)
   - **Magnetometer**: AK09916 (I2C, internal)
 - **Interfaces**
@@ -6550,6 +6916,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   "has_usb": true,
   "sensor_drivers": {
     "imu": [
+      "ADIS16448",
       "ICM-20649",
       "ICM-20948",
       "ICM-42688P",
@@ -6817,7 +7184,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   - **Main FMU Processor**: STM32F777 (32-bit Arm® Cortex®-M7, 216 MHz, 2MB flash, 512KB RAM)
   - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
 - **Sensors**
-  - **IMU**: TODO: confirm which is installed — ICM-20602 (SPI), ICM-20649 (SPI), ICM-20948 (SPI)
+  - **IMU**: TODO: confirm which is installed — ADIS16448, ICM-20602 (SPI), ICM-20649 (SPI), ICM-20948 (SPI)
   - **Barometer**: MS5611 (SPI), MS5611 (SPI)
   - **Magnetometer**: TODO: list magnetometer(s)
 - **Interfaces**
@@ -6863,6 +7230,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   "has_usb": true,
   "sensor_drivers": {
     "imu": [
+      "ADIS16448",
       "ICM-20602",
       "ICM-20649",
       "ICM-20948"
@@ -8170,6 +8538,7 @@ Serial port mapping could not be determined from source.
   - **IMU**: ICM-42688P (SPI)
   - **Barometer**: DPS310 (I2C, internal)
   - **Magnetometer**: TODO: confirm which is installed — HMC5883L, IST8310, LIS3MDL, QMC5883L, IIS2MDC (I2C, internal)
+  - **OSD**: OSD
 - **Interfaces**
   - **PWM outputs**: 9 (FMU)
   - **Serial ports**: 7
@@ -8217,7 +8586,9 @@ Serial port mapping could not be determined from source.
       "QMC5883L",
       "IIS2MDC"
     ],
-    "osd": []
+    "osd": [
+      "OSD"
+    ]
   },
   "overview_wizard": null
 }
@@ -8464,6 +8835,7 @@ This board does not have an SD card slot.
   - **IMU**: BMI088 (SPI), BMI088 (SPI)
   - **Barometer**: SPL06 (I2C, external)
   - **Magnetometer**: TODO: list magnetometer(s)
+  - **OSD**: OSD
 - **Interfaces**
   - **PWM outputs**: 8 (FMU)
   - **Serial ports**: 8
@@ -8508,7 +8880,9 @@ This board does not have an SD card slot.
       "SPL06"
     ],
     "mag": [],
-    "osd": []
+    "osd": [
+      "OSD"
+    ]
   },
   "overview_wizard": null
 }
@@ -8766,7 +9140,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 - **Processor**
   - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
 - **Sensors**
-  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20602, ICM-42688P (SPI)
+  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20602, ICM-42688P (SPI), MPU6500
   - **Barometer**: BMP388 (I2C, internal)
   - **Magnetometer**: TODO: list magnetometer(s)
 - **Interfaces**
@@ -8809,7 +9183,8 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
     "imu": [
       "BMI088",
       "ICM-20602",
-      "ICM-42688P"
+      "ICM-42688P",
+      "MPU6500"
     ],
     "baro": [
       "BMP388"
@@ -11192,7 +11567,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   - **Main FMU Processor**: STM32F765 (32-bit Arm® Cortex®-M7, 216 MHz, 2MB flash, 512KB RAM)
   - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
 - **Sensors**
-  - **IMU**: TODO: confirm which is installed — BMI055 (SPI), ICM-20602 (SPI), ICM-20689 (SPI), ICM-20948
+  - **IMU**: TODO: confirm which is installed — ADIS16448, BMI055 (SPI), ICM-20602 (SPI), ICM-20689 (SPI), ICM-20948
   - **Barometer**: MS5611 (SPI)
   - **Magnetometer**: IST8310 (I2C, internal), IST8310 (I2C, bus 1, external)
 - **Interfaces**
@@ -11239,6 +11614,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   "has_usb": true,
   "sensor_drivers": {
     "imu": [
+      "ADIS16448",
       "BMI055",
       "ICM-20602",
       "ICM-20689",
@@ -11765,7 +12141,7 @@ Serial port mapping could not be determined from source.
 - **Processor**
   - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
 - **Sensors**
-  - **IMU**: TODO: confirm which is installed — ICM-20602, ICM-42688P (SPI), MPU-6000
+  - **IMU**: TODO: confirm which is installed — ICM-20602, ICM42605, ICM-42688P (SPI), MPU-6000
   - **Barometer**: DPS310 (I2C, internal)
   - **Magnetometer**: QMC5883L (I2C, external)
 - **Interfaces**
@@ -11807,6 +12183,7 @@ Serial port mapping could not be determined from source.
   "sensor_drivers": {
     "imu": [
       "ICM-20602",
+      "ICM42605",
       "ICM-42688P",
       "MPU-6000"
     ],
@@ -12068,7 +12445,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 - **Processor**
   - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
 - **Sensors**
-  - **IMU**: TODO: confirm which is installed — ICM-20602 (SPI), MPU-6000 (SPI)
+  - **IMU**: TODO: confirm which is installed — ICM-20602 (SPI), ICM42605, MPU-6000 (SPI)
   - **Barometer**: DPS310 (I2C, internal)
   - **Magnetometer**: QMC5883L (I2C, external)
 - **Interfaces**
@@ -12111,6 +12488,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   "sensor_drivers": {
     "imu": [
       "ICM-20602",
+      "ICM42605",
       "MPU-6000"
     ],
     "baro": [
@@ -12371,7 +12749,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 - **Processor**
   - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
 - **Sensors**
-  - **IMU**: TODO: confirm which is installed — ICM-20602 (SPI), ICM-42688P, MPU-6000 (SPI)
+  - **IMU**: TODO: confirm which is installed — ICM-20602 (SPI), ICM42605, ICM-42688P, MPU-6000 (SPI)
   - **Barometer**: DPS310 (I2C, internal)
   - **Magnetometer**: QMC5883L (I2C, external)
 - **Interfaces**
@@ -12414,6 +12792,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   "sensor_drivers": {
     "imu": [
       "ICM-20602",
+      "ICM42605",
       "ICM-42688P",
       "MPU-6000"
     ],
@@ -12678,6 +13057,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   - **IMU**: TODO: confirm which is installed — BMI088 (SPI), BMI270 (SPI)
   - **Barometer**: DPS310 (I2C, internal)
   - **Magnetometer**: IST8310 (I2C, internal)
+  - **OSD**: OSD
 - **Interfaces**
   - **PWM outputs**: 10 (FMU)
   - **Serial ports**: 7
@@ -12726,7 +13106,9 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
     "mag": [
       "IST8310"
     ],
-    "osd": []
+    "osd": [
+      "OSD"
+    ]
   },
   "overview_wizard": null
 }
@@ -12984,6 +13366,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   - **IMU**: TODO: confirm which is installed — BMI088 (SPI), BMI270 (SPI)
   - **Barometer**: DPS310 (I2C, internal)
   - **Magnetometer**: TODO: list magnetometer(s)
+  - **OSD**: OSD
 - **Interfaces**
   - **PWM outputs**: 9 (FMU)
   - **Serial ports**: 7
@@ -13029,7 +13412,9 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
       "DPS310"
     ],
     "mag": [],
-    "osd": []
+    "osd": [
+      "OSD"
+    ]
   },
   "overview_wizard": null
 }
@@ -13594,6 +13979,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   - **IMU**: TODO: confirm which is installed — BMI088 (SPI), BMI270 (SPI)
   - **Barometer**: SPL06 (I2C, internal)
   - **Magnetometer**: QMC5883L (I2C, internal)
+  - **OSD**: OSD
 - **Interfaces**
   - **PWM outputs**: 10 (FMU)
   - **Serial ports**: 8
@@ -13641,7 +14027,9 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
     "mag": [
       "QMC5883L"
     ],
-    "osd": []
+    "osd": [
+      "OSD"
+    ]
   },
   "overview_wizard": null
 }
@@ -16291,7 +16679,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 - **Processor**
   - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
 - **Sensors**
-  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20602 (SPI), ICM-20948 (SPI)
+  - **IMU**: TODO: confirm which is installed — BMI085, BMI088 (SPI), ICM-20602 (SPI), ICM-20948 (SPI)
   - **Barometer**: DPS310 (SPI)
   - **Magnetometer**: TODO: list magnetometer(s)
 - **Interfaces**
@@ -16334,6 +16722,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   "has_usb": true,
   "sensor_drivers": {
     "imu": [
+      "BMI085",
       "BMI088",
       "ICM-20602",
       "ICM-20948"
@@ -16597,7 +16986,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   - **Main FMU Processor**: STM32F42
   - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
 - **Sensors**
-  - **IMU**: TODO: confirm which is installed — ICM-20602 (SPI), ICM-20948, MPU-9250 (SPI)
+  - **IMU**: TODO: confirm which is installed — ICM-20602 (SPI), ICM20608G, ICM-20948, MPU-9250 (SPI)
   - **Barometer**: MS5611 (SPI)
   - **Magnetometer**: TODO: list magnetometer(s)
 - **Interfaces**
@@ -16638,6 +17027,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   "sensor_drivers": {
     "imu": [
       "ICM-20602",
+      "ICM20608G",
       "ICM-20948",
       "MPU-9250"
     ],
@@ -16873,7 +17263,7 @@ Serial port mapping could not be determined from source.
   - **Main FMU Processor**: STM32F777 (32-bit Arm® Cortex®-M7, 216 MHz, 2MB flash, 512KB RAM)
   - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
 - **Sensors**
-  - **IMU**: TODO: confirm which is installed — ICM-20602 (SPI), ICM-20948, MPU-9250 (SPI)
+  - **IMU**: TODO: confirm which is installed — ICM-20602 (SPI), ICM20608G, ICM-20948, MPU-9250 (SPI)
   - **Barometer**: MS5611 (SPI)
   - **Magnetometer**: TODO: list magnetometer(s)
 - **Interfaces**
@@ -16915,6 +17305,7 @@ Serial port mapping could not be determined from source.
   "sensor_drivers": {
     "imu": [
       "ICM-20602",
+      "ICM20608G",
       "ICM-20948",
       "MPU-9250"
     ],
@@ -17170,7 +17561,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 - **Processor**
   - **Main FMU Processor**: STM32H743 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
 - **Sensors**
-  - **IMU**: TODO: confirm which is installed — ADIS16470 (SPI), BMI088 (SPI), ICM-20649, ICM-20689 (SPI), ICM-20948, ICM-42688P (SPI)
+  - **IMU**: TODO: confirm which is installed — ADIS16448, ADIS16470 (SPI), BMI088 (SPI), ICM-20649, ICM-20689 (SPI), ICM-20948, ICM-42688P (SPI)
   - **Barometer**: MS5611 (SPI), MS5611 (SPI)
   - **Magnetometer**: TODO: confirm which is installed — RM3100 (SPI), RM3100 (SPI), IST8310 (I2C, bus 1, external)
 - **Interfaces**
@@ -17222,6 +17613,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   "has_usb": true,
   "sensor_drivers": {
     "imu": [
+      "ADIS16448",
       "ADIS16470",
       "BMI088",
       "ICM-20649",
@@ -17781,7 +18173,7 @@ Serial port mapping could not be determined from source.
 - **Processor**
   - **Main FMU Processor**: TODO: chip model
 - **Sensors**
-  - **IMU**: ICM-20948
+  - **IMU**: TODO: confirm which is installed — ICM-20948, FXAS21002C, FXOS8701CQ
   - **Barometer**: TODO: confirm which is installed — MPL3115A2 (I2C, internal), BMP280 (I2C, internal)
   - **Magnetometer**: BMM150 (I2C, internal)
 - **Interfaces**
@@ -17818,7 +18210,9 @@ Serial port mapping could not be determined from source.
   "has_usb": false,
   "sensor_drivers": {
     "imu": [
-      "ICM-20948"
+      "ICM-20948",
+      "FXAS21002C",
+      "FXOS8701CQ"
     ],
     "baro": [
       "MPL3115A2",
@@ -18346,6 +18740,7 @@ Serial port mapping could not be determined from source.
   - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20948, ICM-42688P, ICM-45686 (SPI)
   - **Barometer**: TODO: confirm which is installed — BMP388 (I2C, bus 4, internal), ICP-20100, MS5611
   - **Magnetometer**: TODO: confirm which is installed — BMM350 (I2C, bus 4, internal), IST8310 (I2C, bus 1, external)
+  - **OSD**: OSD
 - **Interfaces**
   - **PWM outputs**: 8 (FMU)
   - **Serial ports**: 7
@@ -18400,7 +18795,9 @@ Serial port mapping could not be determined from source.
       "BMM350",
       "IST8310"
     ],
-    "osd": []
+    "osd": [
+      "OSD"
+    ]
   },
   "overview_wizard": null
 }
@@ -18657,6 +19054,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20948, ICM-42688P (SPI), ICM-45686
   - **Barometer**: TODO: confirm which is installed — BMP388 (I2C, bus 4, internal), ICP-20100, MS5611
   - **Magnetometer**: TODO: confirm which is installed — BMM150 (I2C, bus 4, internal), IST8310 (I2C, bus 1, external)
+  - **OSD**: OSD
 - **Interfaces**
   - **PWM outputs**: 6 (FMU)
   - **Serial ports**: 5
@@ -18710,7 +19108,9 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
       "BMM150",
       "IST8310"
     ],
-    "osd": []
+    "osd": [
+      "OSD"
+    ]
   },
   "overview_wizard": null
 }
@@ -19479,7 +19879,7 @@ Serial port mapping could not be determined from source.
   - **Main FMU Processor**: STM32F42
   - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
 - **Sensors**
-  - **IMU**: TODO: confirm which is installed — MPU-6000 (SPI), MPU-9250 (SPI)
+  - **IMU**: TODO: confirm which is installed — MPU-6000 (SPI), L3GD20, LSM303D, MPU-9250 (SPI)
   - **Barometer**: MS5611 (SPI), MS5611 (SPI)
   - **Magnetometer**: HMC5883L (I2C, internal), HMC5883L (SPI)
 - **Interfaces**
@@ -19523,6 +19923,8 @@ Serial port mapping could not be determined from source.
   "sensor_drivers": {
     "imu": [
       "MPU-6000",
+      "L3GD20",
+      "LSM303D",
       "MPU-9250"
     ],
     "baro": [
@@ -19759,7 +20161,7 @@ Serial port mapping could not be determined from source.
   - **Main FMU Processor**: STM32F42
   - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
 - **Sensors**
-  - **IMU**: TODO: confirm which is installed — ICM-20948, MPU-6000 (SPI), MPU-9250 (SPI)
+  - **IMU**: TODO: confirm which is installed — ADIS16448, ICM20608G, ICM-20948, MPU-6000 (SPI), MPU-9250 (SPI), L3GD20, LSM303D
   - **Barometer**: MS5611 (SPI), MS5611 (SPI)
   - **Magnetometer**: HMC5883L (I2C, internal), HMC5883L (SPI)
 - **Interfaces**
@@ -19803,9 +20205,13 @@ Serial port mapping could not be determined from source.
   "has_usb": true,
   "sensor_drivers": {
     "imu": [
+      "ADIS16448",
+      "ICM20608G",
       "ICM-20948",
       "MPU-6000",
-      "MPU-9250"
+      "MPU-9250",
+      "L3GD20",
+      "LSM303D"
     ],
     "baro": [
       "MS5611"
@@ -20040,7 +20446,7 @@ Serial port mapping could not be determined from source.
 - **Processor**
   - **Main FMU Processor**: STM32F42
 - **Sensors**
-  - **IMU**: TODO: confirm which is installed — ICM-20602, ICM-20948, MPU-9250 (SPI)
+  - **IMU**: TODO: confirm which is installed — ADIS16448, ICM-20602, ICM20608G, ICM-20948, MPU-9250 (SPI)
   - **Barometer**: MS5611 (SPI)
   - **Magnetometer**: LIS3MDL (SPI)
 - **Interfaces**
@@ -20080,7 +20486,9 @@ Serial port mapping could not be determined from source.
   "has_usb": true,
   "sensor_drivers": {
     "imu": [
+      "ADIS16448",
       "ICM-20602",
+      "ICM20608G",
       "ICM-20948",
       "MPU-9250"
     ],
@@ -20314,7 +20722,7 @@ Serial port mapping could not be determined from source.
   - **Main FMU Processor**: STM32F46
   - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
 - **Sensors**
-  - **IMU**: TODO: confirm which is installed — ICM-20602, ICM-20948, MPU-9250 (SPI)
+  - **IMU**: TODO: confirm which is installed — ADIS16448, ICM-20602, ICM20608G, ICM-20948, MPU-9250 (SPI)
   - **Barometer**: MS5611 (SPI)
   - **Magnetometer**: LIS3MDL (SPI)
 - **Interfaces**
@@ -20356,7 +20764,9 @@ Serial port mapping could not be determined from source.
   "has_usb": true,
   "sensor_drivers": {
     "imu": [
+      "ADIS16448",
       "ICM-20602",
+      "ICM20608G",
       "ICM-20948",
       "MPU-9250"
     ],
@@ -20647,6 +21057,7 @@ Serial port mapping could not be determined from source.
   "has_usb": true,
   "sensor_drivers": {
     "imu": [
+      "ADIS16448",
       "BMI055",
       "ICM-20602",
       "ICM-20689",
@@ -20963,6 +21374,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   "has_usb": true,
   "sensor_drivers": {
     "imu": [
+      "ADIS16448",
       "ADIS16507",
       "BMI088",
       "ICM-20602",
@@ -20979,7 +21391,9 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
       "BMM150",
       "IST8310"
     ],
-    "osd": []
+    "osd": [
+      "OSD"
+    ]
   },
   "overview_wizard": null
 }
@@ -21293,7 +21707,8 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
     "imu": [
       "BMI055",
       "BMI088",
-      "ICM-42688P"
+      "ICM-42688P",
+      "LSM6DSV"
     ],
     "baro": [
       "MS5611"
@@ -21564,7 +21979,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
 - **Processor**
   - **Main FMU Processor**: STM32H753 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
 - **Sensors**
-  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20602 (SPI), ICM-20948
+  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-20602 (SPI), ICM-20948, ICM42605
   - **Barometer**: TODO: confirm which is installed — BMP388 (I2C, internal), MS5611 (I2C, external)
   - **Magnetometer**: BMM150 (I2C, internal)
 - **Interfaces**
@@ -21612,7 +22027,8 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
     "imu": [
       "BMI088",
       "ICM-20602",
-      "ICM-20948"
+      "ICM-20948",
+      "ICM42605"
     ],
     "baro": [
       "BMP388",
@@ -21948,7 +22364,9 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
       "BMM150",
       "IST8310"
     ],
-    "osd": []
+    "osd": [
+      "OSD"
+    ]
   },
   "overview_wizard": null
 }
@@ -22285,7 +22703,9 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
       "BMM150",
       "IST8310"
     ],
-    "osd": []
+    "osd": [
+      "OSD"
+    ]
   },
   "overview_wizard": null
 }
@@ -22815,9 +23235,10 @@ Serial port mapping could not be determined from source.
   - **Main FMU Processor**: STM32F765 (32-bit Arm® Cortex®-M7, 216 MHz, 2MB flash, 512KB RAM)
   - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
 - **Sensors**
-  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-42688P (SPI), MPU-6000, MPU-9250
+  - **IMU**: TODO: confirm which is installed — BMI088 (SPI), ICM-42688P (SPI), MPU-6000, MPU6500, MPU-9250
   - **Barometer**: TODO: confirm which is installed — SPA06 (I2C, internal), MS5611
   - **Magnetometer**: IST8310 (I2C, internal), IST8310 (I2C, external)
+  - **OSD**: OSD
 - **Interfaces**
   - **PWM outputs**: 16 (8 FMU + 8 IO)
   - **Serial ports**: 6
@@ -22860,6 +23281,7 @@ Serial port mapping could not be determined from source.
       "BMI088",
       "ICM-42688P",
       "MPU-6000",
+      "MPU6500",
       "MPU-9250"
     ],
     "baro": [
@@ -22869,7 +23291,9 @@ Serial port mapping could not be determined from source.
     "mag": [
       "IST8310"
     ],
-    "osd": []
+    "osd": [
+      "OSD"
+    ]
   },
   "overview_wizard": null
 }
@@ -23380,7 +23804,7 @@ Serial port mapping could not be determined from source.
 - **Processor**
   - **Main FMU Processor**: STM32F42
 - **Sensors**
-  - **IMU**: TODO: confirm which is installed — ICM-20948, MPU-6000, ICM-20602 (SPI), MPU-9250 (SPI)
+  - **IMU**: TODO: confirm which is installed — ICM-20948, MPU-6000, MPU6500, L3GD20, LSM303D, ICM-20602 (SPI), MPU-9250 (SPI)
   - **Barometer**: MS5611 (SPI)
   - **Magnetometer**: TODO: confirm which is installed — LIS3MDL (SPI), HMC5883L (I2C, external), QMC5883L (I2C, external)
 - **Interfaces**
@@ -23424,6 +23848,9 @@ Serial port mapping could not be determined from source.
     "imu": [
       "ICM-20948",
       "MPU-6000",
+      "MPU6500",
+      "L3GD20",
+      "LSM303D",
       "ICM-20602",
       "MPU-9250"
     ],
@@ -24595,6 +25022,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   - **IMU**: TODO: confirm which is installed — ICM-42688P (SPI), ICM-20649 (SPI), BMI088 (SPI), ICM-45686
   - **Barometer**: TODO: confirm which is installed — BMP388, MS5611, ICP-20100 (I2C, external), ICP-20100 (I2C, internal)
   - **Magnetometer**: TODO: confirm which is installed — QMC5883L, BMM150 (I2C, internal), RM3100 (I2C, internal)
+  - **OSD**: OSD
 - **Interfaces**
   - **PWM outputs**: 16 (8 FMU + 8 IO)
   - **Serial ports**: 8
@@ -24655,7 +25083,9 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
       "BMM150",
       "RM3100"
     ],
-    "osd": []
+    "osd": [
+      "OSD"
+    ]
   },
   "overview_wizard": null
 }
@@ -25512,7 +25942,7 @@ Serial port mapping could not be determined from source.
 - **Processor**
   - **Main FMU Processor**: STM32F42
 - **Sensors**
-  - **IMU**: TODO: confirm which is installed — ICM-20602, MPU-9250 (SPI)
+  - **IMU**: TODO: confirm which is installed — ICM-20602, ICM20608G, MPU-9250 (SPI)
   - **Barometer**: MS5611 (SPI)
   - **Magnetometer**: TODO: confirm which is installed — BMM150, IST8310, LIS3MDL (I2C, external)
 - **Interfaces**
@@ -25551,6 +25981,7 @@ Serial port mapping could not be determined from source.
   "sensor_drivers": {
     "imu": [
       "ICM-20602",
+      "ICM20608G",
       "MPU-9250"
     ],
     "baro": [
@@ -26443,9 +26874,9 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   - **Main FMU Processor**: STM32H753 (32-bit Arm® Cortex®-M7, 480 MHz, 2MB flash, 1MB RAM)
   - **IO Processor**: STM32F100 (32-bit Arm® Cortex®-M3, 24 MHz, 8KB SRAM)
 - **Sensors**
-  - **IMU**: ICM-45686 (SPI, variant ZeroOneX6000), BMI088 (SPI, variant ZeroOneX6000), BMI088 (SPI, variant ZeroOneX6001), BMI088 (SPI, variant //X6), BMI088 (SPI, variant PRO)
+  - **IMU**: ICM-45686 (SPI, variant ZeroOneX6000), BMI088 (SPI, variant ZeroOneX6000), BMI088 (SPI, variant ZeroOneX6001), BMI088 (SPI, variant #), BMI088 (SPI, variant X6), BMI088 (SPI, variant PRO)
   - **Barometer**: ICP-20100 (I2C, internal), ICP-20100 (I2C, external)
-  - **Magnetometer**: RM3100 (I2C, bus 4, internal), IST8310 (I2C, bus 1, external), IST8310 (I2C, internal)
+  - **Magnetometer**: IST8310 (I2C, bus 1, external), BMM350 (I2C, bus 4, internal)
 - **Interfaces**
   - **PWM outputs**: 16 (8 FMU + 8 IO)
   - **Serial ports**: 8
@@ -26453,7 +26884,7 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
     - I2C1 (external, GPS1): IST8310 (magnetometer), INA226 (power monitor), INA228 (power monitor), INA238 (power monitor) — on GPS connector
     - I2C2 (external): INA226 (power monitor), INA228 (power monitor), INA238 (power monitor)
     - I2C3 (external): free (no sensor detected)
-    - I2C4 (internal): ICP-20100 (barometer), RM3100 (magnetometer), IST8310 (magnetometer)
+    - I2C4 (internal): ICP-20100 (barometer), BMM350 (magnetometer)
   - **SPI buses**: 5
   - **CAN buses**: 2
   - **USB**: Yes
@@ -26489,16 +26920,20 @@ For more information see [Basic Concepts > SD Cards (Removable Memory)](../getti
   "sensor_drivers": {
     "imu": [
       "BMI088",
-      "ICM-45686"
+      "ICM-45686",
+      "IIM42653",
+      "SCH16T"
     ],
     "baro": [
       "ICP-20100"
     ],
     "mag": [
-      "RM3100",
-      "IST8310"
+      "IST8310",
+      "BMM350"
     ],
-    "osd": []
+    "osd": [
+      "OSD"
+    ]
   },
   "overview_wizard": null
 }

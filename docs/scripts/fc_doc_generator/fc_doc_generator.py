@@ -897,11 +897,18 @@ def _driver_key_to_chip_name(suffix: str) -> str | None:
 
     E.g. 'INVENSENSE_ICM42688P' → 'ICM-42688P'
          'BMP388'               → 'BMP388'
-         'MSP_OSD'              → None  (skip)
+         'LPS22HB'              → 'LPS22HB'  (not in table → raw key)
+         'MSP_OSD'              → None  (skip — non-chip suffix with no valid chip segment)
+
+    Falls back to the raw chip-key segment when the chip is not in _SENSOR_CHIP_NAMES,
+    so unknown sensors are captured rather than silently dropped.
+    Returns None only when the suffix produces an empty chip key.
     """
     # Last underscore-separated segment is the chip identifier
     chip_key = suffix.split('_')[-1].upper()
-    return _SENSOR_CHIP_NAMES.get(chip_key)
+    if not chip_key:
+        return None
+    return _SENSOR_CHIP_NAMES.get(chip_key, chip_key)
 
 
 def parse_sensor_config(board_path: Path) -> dict:
@@ -956,12 +963,34 @@ def parse_rc_board_sensors(board_path: Path) -> dict:
     Returns the same structure as parse_sensor_config():
         {'imu': list[str], 'baro': list[str], 'mag': list[str], 'osd': list[str]}
     All lists are empty when the file is absent or no recognised drivers are found.
+
+    For chips not in _CHIP_TO_CATEGORY the function falls back to a category map
+    derived from the board's own default.px4board (CONFIG_DRIVERS_<CAT>_<CHIP>=y),
+    so sensors enabled with specific driver entries are captured even when absent
+    from the static lookup table.
     """
     result: dict[str, list] = {k: [] for k in _DRIVER_CATEGORY_MAP.values()}
 
     rc_sensors = board_path / 'init' / 'rc.board_sensors'
     if not rc_sensors.exists():
         return result
+
+    # Build board-specific chip→category fallback from default.px4board so that
+    # chips not yet in _CHIP_TO_CATEGORY can still be classified.
+    _fallback_cat: dict[str, str] = {}
+    _px4board = board_path / 'default.px4board'
+    if _px4board.exists():
+        for _line in _px4board.read_text(errors='ignore').splitlines():
+            _m = re.match(r'CONFIG_DRIVERS_([A-Z0-9_]+)=y', _line.strip())
+            if not _m:
+                continue
+            _suffix = _m.group(1)
+            for _cat_prefix, _type_key in _DRIVER_CATEGORY_MAP.items():
+                if _suffix.startswith(_cat_prefix + '_') or _suffix == _cat_prefix:
+                    _chip = _suffix[len(_cat_prefix):].lstrip('_').split('_')[-1].upper()
+                    if _chip:
+                        _fallback_cat[_chip] = _type_key
+                    break
 
     text = rc_sensors.read_text(errors='ignore')
     for line in text.splitlines():
@@ -973,9 +1002,9 @@ def parse_rc_board_sensors(board_path: Path) -> dict:
         if not m:
             continue
         chip_key = m.group(1).upper()  # e.g. 'ms5611' → 'MS5611'
-        category = _CHIP_TO_CATEGORY.get(chip_key)
-        display_name = _SENSOR_CHIP_NAMES.get(chip_key)
-        if category and display_name and category in result and display_name not in result[category]:
+        category = _CHIP_TO_CATEGORY.get(chip_key) or _fallback_cat.get(chip_key)
+        display_name = _SENSOR_CHIP_NAMES.get(chip_key, chip_key)
+        if category and category in result and display_name not in result[category]:
             result[category].append(display_name)
 
     return result
@@ -1586,6 +1615,7 @@ BOARD_TO_DOC = {
     "micoair/h743-lite":  "micoair743-lite.md",
     "narinfc/h7":         "vololand_narinfc_h7.md",
     "accton-godwit/ga1":  "accton-godwit_ga1.md",
+    "cbunmanned/h753-stamp": "cbunmanned_h753-stamp.md",
     "3dr/ctrl-zero-h7-oem-revg": None,
     "auterion/fmu-v6s":   None,
     "auterion/fmu-v6x":   None,

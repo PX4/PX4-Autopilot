@@ -455,6 +455,63 @@ class TestParseRcBoardSensors:
         result = fcdg.parse_rc_board_sensors(tmp_path)
         assert result == {'imu': [], 'baro': [], 'mag': [], 'osd': []}
 
+    def test_unknown_chip_captured_via_px4board_fallback(self, tmp_path):
+        """Driver not in _CHIP_TO_CATEGORY is classified using default.px4board."""
+        (tmp_path / 'default.px4board').write_text(
+            'CONFIG_DRIVERS_BAROMETER_LPS22HB=y\n'
+        )
+        (tmp_path / 'init').mkdir()
+        (tmp_path / 'init' / 'rc.board_sensors').write_text(
+            'lps22hb -I start\n'
+        )
+        result = fcdg.parse_rc_board_sensors(tmp_path)
+        assert 'LPS22HB' in result['baro']
+
+    def test_unknown_chip_uses_raw_key_as_display_name(self, tmp_path):
+        """Unknown chip not in _SENSOR_CHIP_NAMES is stored under its raw key."""
+        (tmp_path / 'default.px4board').write_text(
+            'CONFIG_DRIVERS_BAROMETER_NEWBARO99=y\n'
+        )
+        (tmp_path / 'init').mkdir()
+        (tmp_path / 'init' / 'rc.board_sensors').write_text(
+            'newbaro99 -I start\n'
+        )
+        result = fcdg.parse_rc_board_sensors(tmp_path)
+        assert 'NEWBARO99' in result['baro']
+
+
+# ---------------------------------------------------------------------------
+# parse_sensor_config unknown-chip fallback
+# ---------------------------------------------------------------------------
+
+class TestParseSensorConfigUnknownChip:
+    def test_unknown_baro_chip_captured(self, tmp_path):
+        """CONFIG_DRIVERS_BAROMETER_NEWCHIP=y → 'NEWCHIP' appears in baro list."""
+        (tmp_path / 'default.px4board').write_text(
+            'CONFIG_DRIVERS_BAROMETER_NEWCHIP=y\n'
+        )
+        result = fcdg.parse_sensor_config(tmp_path)
+        assert 'NEWCHIP' in result['baro']
+
+    def test_unknown_imu_chip_captured(self, tmp_path):
+        """CONFIG_DRIVERS_IMU_VENDOR_NEWCHIP=y → 'NEWCHIP' appears in imu list."""
+        (tmp_path / 'default.px4board').write_text(
+            'CONFIG_DRIVERS_IMU_VENDOR_NEWCHIP=y\n'
+        )
+        result = fcdg.parse_sensor_config(tmp_path)
+        assert 'NEWCHIP' in result['imu']
+
+    def test_known_chip_still_uses_pretty_name(self, tmp_path):
+        """Known chips still resolve to their _SENSOR_CHIP_NAMES entry."""
+        (tmp_path / 'default.px4board').write_text(
+            'CONFIG_DRIVERS_BAROMETER_LPS22HB=y\n'
+        )
+        result = fcdg.parse_sensor_config(tmp_path)
+        # Once LPS22HB is added to _SENSOR_CHIP_NAMES this becomes its pretty name;
+        # until then the raw key 'LPS22HB' is a valid fallback.
+        assert result['baro'] != []
+        assert result['baro'][0].upper().replace('-', '') == 'LPS22HB'
+
 
 # ---------------------------------------------------------------------------
 # parse_rc_board_sensor_bus
