@@ -423,6 +423,16 @@ void ADIS1650x::RunImpl()
 		if (_prod_id == ADIS16500_PROD_ID || _prod_id == ADIS16501_PROD_ID ||
 		    _prod_id == ADIS16505_PROD_ID || _prod_id == ADIS16507_PROD_ID) {
 			PX4_INFO("Detected PROD_ID=0x%04X", _prod_id);
+
+			const uint16_t diag_stat = read_reg16(Register::DIAG_STAT);
+
+			if (diag_stat != 0) {
+				PX4_WARN("DIAG_STAT=0x%04X after reset, retrying", diag_stat);
+				_state = STATE::RESET;
+				ScheduleDelayed(100000);
+				break;
+			}
+
 			_state = STATE::CONFIGURE;
 			ScheduleNow();
 
