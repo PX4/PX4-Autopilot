@@ -80,6 +80,15 @@ protected:
 	bool _sticks_data_required = true; ///< let inherited task-class define if it depends on stick data
 	bool _terrain_hold{false}; /**< true when vehicle is controlling height above a static ground position */
 
+	/**
+	 * Distance to ground during terrain following.
+	 * If user does not demand velocity change in D-direction and the vehicle
+	 * is in terrain-following mode, then height to ground will be locked to
+	 * _dist_to_ground_lock. Protected so the smoother subclass can detect
+	 * an active terrain lock and avoid overwriting the position setpoint.
+	 */
+	float _dist_to_ground_lock = NAN;
+
 	float _velocity_constraint_up{INFINITY};
 	float _velocity_constraint_down{INFINITY};
 
@@ -129,12 +138,4 @@ private:
 
 	float _min_distance_to_ground{(float)(-INFINITY)}; /**< min distance to ground constraint */
 	float _max_distance_to_ground{(float)INFINITY};  /**< max distance to ground constraint */
-
-	/**
-	 * Distance to ground during terrain following.
-	 * If user does not demand velocity change in D-direction and the vehcile
-	 * is in terrain-following mode, then height to ground will be locked to
-	 * _dist_to_ground_lock.
-	 */
-	float _dist_to_ground_lock = NAN;
 };

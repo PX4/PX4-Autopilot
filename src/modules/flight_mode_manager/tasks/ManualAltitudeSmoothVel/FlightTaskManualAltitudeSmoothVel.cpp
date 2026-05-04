@@ -107,14 +107,22 @@ void FlightTaskManualAltitudeSmoothVel::_setOutputState()
 	_acceleration_setpoint(2) = _smoothing.getCurrentAcceleration();
 	_velocity_setpoint(2) = _smoothing.getCurrentVelocity();
 
-	if (!_terrain_hold) {
+	// Terrain following (MPC_ALT_MODE 1) and terrain hold (MPC_ALT_MODE 2)
+	// both compute _position_setpoint(2) directly from the rangefinder lock
+	// in _terrainFollowing(). In those cases we must not overwrite it with
+	// the velocity-integrated smoother output, otherwise the climb/descend
+	// commanded to maintain AGL gets stomped every cycle. Mode 1 never sets
+	// _terrain_hold, so checking _dist_to_ground_lock catches both cases.
+	const bool terrain_lock_active = _terrain_hold || PX4_ISFINITE(_dist_to_ground_lock);
+
+	if (!terrain_lock_active) {
 		if (_terrain_hold_previous) {
-			// Reset position setpoint to current position when switching from terrain hold to non-terrain hold
+			// Reset smoother to current position when leaving terrain lock
 			_smoothing.setCurrentPosition(_position(2));
 		}
 
 		_position_setpoint(2) = _smoothing.getCurrentPosition();
 	}
 
-	_terrain_hold_previous = _terrain_hold;
+	_terrain_hold_previous = terrain_lock_active;
 }
