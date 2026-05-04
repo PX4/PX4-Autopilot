@@ -89,8 +89,8 @@ uint8_t FailsafeBase::update(const hrt_abstime &time_us, const State &state, boo
 	updateStartDelay(time_us - _last_update, action_state.delayed_action != Action::None);
 	updateFailsafeDeferState(time_us, action_state.failsafe_deferred);
 
-	// Notify user if the action is worse than before, or a new action got added
-	if (action_state.action > _selected_action || (action_state.action != Action::None && _notification_required)) {
+	// Notify user if the action is worse than before, or a new warn action got added
+	if (action_state.action > _selected_action || (action_state.action == Action::Warn && _notification_required)) {
 		notifyUser(state.user_intended_mode, action_state.action, action_state.delayed_action, action_state.cause);
 	}
 
