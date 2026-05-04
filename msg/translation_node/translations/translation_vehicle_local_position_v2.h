@@ -1,20 +1,20 @@
 /****************************************************************************
- * Copyright (c) 2025 PX4 Development Team.
+ * Copyright (c) 2026 PX4 Development Team.
  * SPDX-License-Identifier: BSD-3-Clause
  ****************************************************************************/
 #pragma once
 
-// Translate VehicleLocalPosition v0 <--> v1
-#include <px4_msgs_old/msg/vehicle_local_position_v0.hpp>
+// Translate VehicleLocalPosition v1 <--> v2
 #include <px4_msgs_old/msg/vehicle_local_position_v1.hpp>
+#include <px4_msgs/msg/vehicle_local_position.hpp>
 
-class VehicleLocalPositionV1Translation {
+class VehicleLocalPositionV2Translation {
 public:
-	using MessageOlder = px4_msgs_old::msg::VehicleLocalPositionV0;
-	static_assert(MessageOlder::MESSAGE_VERSION == 0);
+	using MessageOlder = px4_msgs_old::msg::VehicleLocalPositionV1;
+	static_assert(MessageOlder::MESSAGE_VERSION == 1);
 
-	using MessageNewer = px4_msgs_old::msg::VehicleLocalPositionV1;
-	static_assert(MessageNewer::MESSAGE_VERSION == 1);
+	using MessageNewer = px4_msgs::msg::VehicleLocalPosition;
+	static_assert(MessageNewer::MESSAGE_VERSION == 2);
 
 	static constexpr const char* kTopic = "fmu/out/vehicle_local_position";
 
@@ -69,20 +69,20 @@ public:
 	FUNCTION(dead_reckoning) \
 	FUNCTION(vxy_max) \
 	FUNCTION(vz_max) \
-	FUNCTION(hagl_min)
+	FUNCTION(hagl_min) \
+	FUNCTION(hagl_max_z) \
+	FUNCTION(hagl_max_xy)
 
 #define COPY_FIELD_FROM_OLDER(field) msg_newer.field = msg_older.field;
 #define COPY_FIELD_TO_OLDER(field) msg_older.field = msg_newer.field;
 
 	static void fromOlder(const MessageOlder &msg_older, MessageNewer &msg_newer) {
 		COMMON_VEHICLE_LOCAL_POSITION_FIELDS(COPY_FIELD_FROM_OLDER)
-		msg_newer.hagl_max_z = msg_older.hagl_max;
-		msg_newer.hagl_max_xy = msg_older.hagl_max;
+		msg_newer.altitude_good_for_local_control = false;
 	}
 
 	static void toOlder(const MessageNewer &msg_newer, MessageOlder &msg_older) {
 		COMMON_VEHICLE_LOCAL_POSITION_FIELDS(COPY_FIELD_TO_OLDER)
-		msg_older.hagl_max = msg_newer.hagl_max_z; // Use hagl_max_z for both xy and z in v0
 	}
 
 #undef COPY_FIELD_FROM_OLDER
@@ -90,4 +90,4 @@ public:
 #undef COMMON_VEHICLE_LOCAL_POSITION_FIELDS
 };
 
-REGISTER_TOPIC_TRANSLATION_DIRECT(VehicleLocalPositionV1Translation);
+REGISTER_TOPIC_TRANSLATION_DIRECT(VehicleLocalPositionV2Translation);

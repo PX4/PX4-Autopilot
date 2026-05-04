@@ -183,13 +183,6 @@ public:
 	// get the diagonal elements of the covariance matrix
 	matrix::Vector<float, State::size> covariances_diagonal() const { return P.diag(); }
 
-	void shiftAltOrigin(float offset)
-	{
-		if (PX4_ISFINITE(_local_origin_alt)) {
-			_local_origin_alt += offset;
-		}
-	}
-
 	void decorrelateAltPos()
 	{
 		P.uncorrelateCovariance<1>(State::pos.idx + 2);

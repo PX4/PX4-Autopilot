@@ -2631,8 +2631,6 @@ void EKF2::GpsAltDriftDetector::updateBaroLpf(float baro_alt, uint64_t timestamp
 void EKF2::GpsAltDriftDetector::update(const sensor_gps_s &gps, float ekf_amsl,
 				       uORB::PublicationMulti<gps_altitude_drift_correction_s> &pub)
 {
-	_altitude_offset = 0.f;
-
 	const bool gps_timeout = (_last_gps_ts != 0) && (gps.timestamp - _last_gps_ts > 500000);
 
 	if (gps_timeout || _last_gps_ts == 0 || _last_baro_ts == 0) {
@@ -2719,7 +2717,6 @@ void EKF2::GpsAltDriftDetector::publishCorrection(
 	correction.timestamp = hrt_absolute_time();
 	correction.altitude_offset = offset;
 	pub.publish(correction);
-	_altitude_offset += offset;
 }
 
 void EKF2::GpsAltDriftDetector::reset()

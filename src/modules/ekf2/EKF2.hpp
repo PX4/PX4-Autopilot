@@ -515,7 +515,6 @@ private:
 	public:
 		static constexpr int kWindowSize = 20; // roughly 20 seconds (at 1 Hz sample rate)
 		static constexpr int kStabilityWindow = 5; // samples to check for re-enable
-		static constexpr float kBaroLpfTimeConst = 3.f;
 		static constexpr float kDriftThreshold = 1.f; // [m]
 
 		void updateBaroLpf(float baro_alt, uint64_t timestamp);
@@ -539,7 +538,6 @@ private:
 		int _wcount{0};
 		uint64_t _last_sample_ts{0};
 		bool _hit_pending{false};
-		float _altitude_offset{0.f};
 	};
 
 	GpsAltDriftDetector _gps_alt_drift{};
