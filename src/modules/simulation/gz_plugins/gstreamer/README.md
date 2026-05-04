@@ -47,6 +47,20 @@ For RTMP streams, you can use any RTMP-compatible player, such as:
 - VLC: Media > Open Network Stream > rtmp://your-rtmp-url
 - ffplay: `ffplay rtmp://your-rtmp-url`
 
+## Multi-vehicle simulation
+
+The port specified in the SDF file is used as a base port. Each instance gets base_port + instance_index:
+| Instance | Port | 
+|----------|------|
+| 0        | 5600 | 
+| 1        | 5601 |
+| 2        | 5602 |
+
+Note: ports are assigned by the GStreamer plugin in launch order, not by the -i flag value. Always start instances sequentially: 0, then 1, then 2, etc.
+Restarting an individual instance preserves its port — e.g. a restarted instance 1 will use port 5601 again.
+
+*Warning:* RTMP streaming for multi-vehicle simulation is currently not supported.
+
 ## Environment Variables
 
 - `PX4_VIDEO_HOST_IP`: Can be set to override the default UDP destination IP

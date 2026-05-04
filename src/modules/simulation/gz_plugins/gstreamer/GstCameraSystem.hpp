@@ -38,19 +38,72 @@
 #include <thread>
 #include <mutex>
 #include <atomic>
-#include <regex>
+#include <unordered_set>
 
 #include <gz/sim/System.hh>
 #include <gz/transport/Node.hh>
 #include <gz/msgs/image.pb.h>
 #include <gz/sim/components/Name.hh>
 #include <gz/sim/components/World.hh>
+#include <gz/sim/components/ParentEntity.hh>
 
 #include <gst/gst.h>
 #include <gst/app/gstappsrc.h>
 
 namespace custom
 {
+
+class CameraStream
+{
+public:
+	CameraStream(const std::string &udpHost, int udpPort, bool useCuda,
+		     bool useRtmp, const std::string &rtmpLocation,
+		     const std::string &cameraTopic);
+	void start();
+
+	void stop();
+
+	int getUdpPort() const
+	{
+		return _udpPort;
+	}
+
+	~CameraStream();
+private:
+	std::string _cameraTopic;
+
+	// Transport
+	gz::transport::Node _node;
+
+	// Image processing
+	gz::msgs::Image _currentFrame;
+	std::mutex _frameMutex;
+	std::atomic<bool> _newFrameAvailable{};
+
+	// GStreamer elements
+	GMainLoop *_gstLoop{};
+	GstElement *_pipeline{};
+	GstElement *_source{};
+	std::thread _gstThread;
+	std::atomic<bool> _running{};
+
+	// stream params
+	int _width{0};
+	int _height{0};
+	double _rate{30.0};
+	std::string _udpHost;
+	int _udpPort = 5600;
+	bool _useRtmp{};
+	std::string _rtmpLocation;
+	bool _useCuda = true;
+
+	void onCameraInfo(const gz::msgs::Image &msg);
+	void onImage(const gz::msgs::Image &msg);
+
+	void gstThreadFunc();
+};
+
+
 class GstCameraSystem :
 	public gz::sim::System,
 	public gz::sim::ISystemConfigure,
@@ -58,7 +111,6 @@ class GstCameraSystem :
 {
 public:
 	GstCameraSystem();
-	~GstCameraSystem();
 
 	void Configure(const gz::sim::Entity &_entity,
 		       const std::shared_ptr<const sdf::Element> &_sdf,
@@ -68,48 +120,51 @@ public:
 	void PostUpdate(const gz::sim::UpdateInfo &_info,
 			const gz::sim::EntityComponentManager &_ecm) override;
 
+
 private:
-	void onImage(const gz::msgs::Image &msg);
-	void onCameraInfo(const gz::msgs::Image &msg);
+// Video streams
+	std::unordered_map<gz::sim::Entity, std::unique_ptr<CameraStream>> _streams;
 
-	// Find first camera topic in the world
-	void findCameraTopic();
 
-	void gstThreadFunc();
 
-	// Transport
-	gz::transport::Node _node;
-
-	// Image processing
-	gz::msgs::Image _currentFrame;
-	std::mutex _frameMutex;
-	std::atomic<bool> _newFrameAvailable {};
-
-	// GStreamer elements
-	GMainLoop *_gstLoop {};
-	GstElement *_pipeline {};
-	GstElement *_source {};
-	std::thread _gstThread;
-	std::atomic<bool> _running {};
-
+	std::string _buildTopic(const gz::sim::EntityComponentManager &_ecm,
+				const gz::sim::Entity &sensorEntity,
+				const gz::sim::components::Name *sensorName,
+				const gz::sim::components::ParentEntity *parent);
 	// Configuration
 	std::string _worldName;
 	std::string _udpHost;
-	int _udpPort = 5600;
+	int _baseUdpPort = 5600;
 	bool _useRtmp {};
 	std::string _rtmpLocation;
 	bool _useCuda = true;
 
-	// Topic info
-	std::string _cameraTopic;
-	int _width {};
-	int _height {};
-	double _rate = 30.0;
+	// methods below are used to maintain consistency in udp ports when restarting instances. For example, if we have
+	// instance 1 streaming on port 5601 we also want it to stream to the same port if we shutdown and restart the
+	// instance
+	std::unordered_set<int> _usedUdpPorts;
 
-	// Topic pattern for matching camera image topics
-	std::regex _cameraTopicPattern;
+	int getAvailableUdpPort()
+	{
+		int port = _baseUdpPort;
 
-	// Flag to control discovery
-	bool _initialized {};
+		while (_usedUdpPorts.count(port) > 0) {
+			port++;
+		}
+
+		_usedUdpPorts.insert(port);
+		return port;
+	}
+
+	void freeUdpPort(int port)
+	{
+		auto it_port = _usedUdpPorts.find(port);
+
+		if (it_port != _usedUdpPorts.end()) {
+			_usedUdpPorts.erase(it_port);
+		}
+	}
+
+
 };
 }  // namespace custom

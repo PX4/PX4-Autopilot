@@ -33,12 +33,17 @@
 
 #include "GstCameraSystem.hpp"
 
-#include <gz/plugin/Register.hh>
 #include <gz/common/Console.hh>
-#include <gz/transport/TopicUtils.hh>
+#include <gz/plugin/Register.hh>
 #include <gz/sim/Util.hh>
+#include <gz/sim/components/Camera.hh>
+#include <gz/transport/TopicUtils.hh>
 
 using namespace custom;
+
+// ----------------------------------------------------
+// -------------- GstCameraSystem Implementation --------
+// ----------------------------------------------------
 
 //////////////////////////////////////////////////
 GstCameraSystem::GstCameraSystem()
@@ -60,13 +65,189 @@ GstCameraSystem::GstCameraSystem()
 		gst_init(nullptr, nullptr);
 		gstInitialized = true;
 	}
-
-	// Setup camera topic regex pattern
-	_cameraTopicPattern = std::regex("/world/([^/]+)/model/([^/]+)/link/([^/]+)/sensor/([^/]+)/image");
 }
 
 //////////////////////////////////////////////////
-GstCameraSystem::~GstCameraSystem()
+void GstCameraSystem::Configure(const gz::sim::Entity &_entity,
+				const std::shared_ptr<const sdf::Element> &_sdf,
+				gz::sim::EntityComponentManager &_ecm,
+				gz::sim::EventManager & /*_eventMgr*/)
+{
+	// Check if this is a world entity
+	if (!_ecm.EntityHasComponentType(_entity,
+					 gz::sim::components::World::typeId)) {
+		gzerr << "GstCameraSystem should be attached to a world entity"
+		      << std::endl;
+		return;
+	}
+
+	// Get world name
+	auto worldNameComp = _ecm.Component<gz::sim::components::Name>(_entity);
+
+	if (worldNameComp) {
+		_worldName = worldNameComp->Data();
+
+	} else {
+		gzerr << "Failed to get world name" << std::endl;
+		return;
+	}
+
+	gzdbg << "GstCameraSystem configured for world [" << _worldName << "]"
+	      << std::endl;
+
+	// Parse SDF parameters
+	if (_sdf->HasElement("udpHost")) {
+		_udpHost = _sdf->Get<std::string>("udpHost");
+	}
+
+	if (_sdf->HasElement("udpPort")) {
+		_baseUdpPort = _sdf->Get<int>("udpPort");
+	}
+
+	if (_sdf->HasElement("rtmpLocation")) {
+		_rtmpLocation = _sdf->Get<std::string>("rtmpLocation");
+		_useRtmp = true;
+	}
+
+	if (_sdf->HasElement("useCuda")) {
+		_useCuda = _sdf->Get<bool>("useCuda");
+	}
+
+	gzdbg << "GstCameraSystem parameters:" << std::endl
+	      << "  UDP Host: " << _udpHost << std::endl
+	      << "  Base UDP Port: " << _baseUdpPort << std::endl
+	      << "  Use RTMP: " << (_useRtmp ? "true" : "false") << std::endl
+	      << "  RTMP Location: " << _rtmpLocation << std::endl
+	      << "  Use CUDA: " << (_useCuda ? "true" : "false") << std::endl;
+}
+
+/////////////////////////////////////////////////
+std::string
+GstCameraSystem::_buildTopic(const gz::sim::EntityComponentManager &_ecm,
+			     const gz::sim::Entity &sensorEntity,
+			     const gz::sim::components::Name *sensorName,
+			     const gz::sim::components::ParentEntity *parent)
+{
+	auto linkEntity = parent->Data();
+	auto linkName = _ecm.Component<gz::sim::components::Name>(linkEntity);
+
+	auto current = linkEntity;
+	gz::sim::Entity rootModelEntity = gz::sim::kNullEntity;
+
+	while (true) {
+		auto parentComp =
+			_ecm.Component<gz::sim::components::ParentEntity>(current);
+
+		if (!parentComp) {
+			break;
+		}
+
+		auto parentEntity = parentComp->Data();
+
+		if (_ecm.EntityHasComponentType(parentEntity,
+						gz::sim::components::World::typeId)) {
+			rootModelEntity = current;
+			break;
+		}
+
+		current = parentEntity;
+	}
+
+	if (rootModelEntity == gz::sim::kNullEntity || !linkName) {
+		return "";
+	}
+
+	auto rootModelName =
+		_ecm.Component<gz::sim::components::Name>(rootModelEntity);
+
+	if (!rootModelName) {
+		return "";
+	}
+
+	return "/world/" + _worldName + "/model/" + rootModelName->Data() + "/link/" +
+	       linkName->Data() + "/sensor/" + sensorName->Data() + "/image";
+}
+
+//////////////////////////////////////////////////
+void GstCameraSystem::PostUpdate(const gz::sim::UpdateInfo &_info,
+				 const gz::sim::EntityComponentManager &_ecm)
+{
+	if (_info.paused) {
+		return;
+	}
+
+	// New cameras appeared (for example, spawned new vehicle instance in
+	// multi-vehicle simulation)
+	_ecm.EachNew<gz::sim::components::Camera, gz::sim::components::Name,
+		     gz::sim::components::ParentEntity>(
+			     [&](const gz::sim::Entity & entity, const gz::sim::components::Camera *,
+				 const gz::sim::components::Name * sensorName,
+	const gz::sim::components::ParentEntity * parent) -> bool {
+		if (_streams.count(entity))
+		{
+			return true;
+		}
+
+		auto topic = _buildTopic(_ecm, entity, sensorName, parent);
+		int udpPort = getAvailableUdpPort();
+		auto [it, ok] = _streams.emplace(
+			entity,
+			std::make_unique<CameraStream>(_udpHost, udpPort, _useCuda,
+						       _useRtmp, _rtmpLocation, topic));
+
+		if (!ok)
+		{
+			gzdbg << "Failed to construct camera stream for topic " << topic
+			      << "\n";
+			return false;
+		}
+
+		// Start the stream
+		it->second->start();
+
+		gzdbg << "Tracking camera: " << topic << " → port " << udpPort << "\n";
+		return true;
+	});
+
+	// Cameras disapperead (vehicle disconnected)
+	_ecm.EachRemoved<gz::sim::components::Camera>(
+		[&](const gz::sim::Entity & entity,
+	const gz::sim::components::Camera *) -> bool {
+		auto it = _streams.find(entity);
+
+		if (it != _streams.end())
+		{
+			freeUdpPort(it->second->getUdpPort());
+			_streams.erase(
+				it); // desctructor of CameraStream closes gstreamer gracefully
+		}
+
+
+		return true;
+	});
+}
+
+// ----------------------------------------------------
+// -------------- Camera Stream Implementation --------
+// ----------------------------------------------------
+
+/////////////////////////////////////////////////
+CameraStream::CameraStream(const std::string &udpHost, int udpPort,
+			   bool useCuda, bool useRtmp,
+			   const std::string &rtmpLocation,
+			   const std::string &cameraTopic)
+	: _cameraTopic(cameraTopic), _udpHost(udpHost), _udpPort(udpPort),
+	  _useRtmp(useRtmp), _rtmpLocation(rtmpLocation), _useCuda(useCuda) {}
+
+//////////////////////////////////////////////////
+void CameraStream::start()
+{
+	// Subscribe on camera messages
+	_node.Subscribe(_cameraTopic, &CameraStream::onCameraInfo, this);
+}
+
+/////////////////////////////////////////////////
+void CameraStream::stop()
 {
 	_running = false;
 
@@ -84,101 +265,15 @@ GstCameraSystem::~GstCameraSystem()
 	}
 }
 
-//////////////////////////////////////////////////
-void GstCameraSystem::Configure(const gz::sim::Entity &_entity,
-				const std::shared_ptr<const sdf::Element> &_sdf,
-				gz::sim::EntityComponentManager &_ecm,
-				gz::sim::EventManager &/*_eventMgr*/)
+CameraStream::~CameraStream()
 {
-	// Check if this is a world entity
-	if (!_ecm.EntityHasComponentType(_entity, gz::sim::components::World::typeId)) {
-		gzerr << "GstCameraSystem should be attached to a world entity" << std::endl;
-		return;
-	}
-
-	// Get world name
-	auto worldNameComp = _ecm.Component<gz::sim::components::Name>(_entity);
-
-	if (worldNameComp) {
-		_worldName = worldNameComp->Data();
-
-	} else {
-		gzerr << "Failed to get world name" << std::endl;
-		return;
-	}
-
-	gzdbg << "GstCameraSystem configured for world [" << _worldName << "]" << std::endl;
-
-	// Parse SDF parameters
-	if (_sdf->HasElement("udpHost")) {
-		_udpHost = _sdf->Get<std::string>("udpHost");
-	}
-
-	if (_sdf->HasElement("udpPort")) {
-		_udpPort = _sdf->Get<int>("udpPort");
-	}
-
-	if (_sdf->HasElement("rtmpLocation")) {
-		_rtmpLocation = _sdf->Get<std::string>("rtmpLocation");
-		_useRtmp = true;
-	}
-
-	if (_sdf->HasElement("useCuda")) {
-		_useCuda = _sdf->Get<bool>("useCuda");
-	}
-
-	gzdbg << "GstCameraSystem parameters:" << std::endl
-	      << "  UDP Host: " << _udpHost << std::endl
-	      << "  UDP Port: " << _udpPort << std::endl
-	      << "  Use RTMP: " << (_useRtmp ? "true" : "false") << std::endl
-	      << "  RTMP Location: " << _rtmpLocation << std::endl
-	      << "  Use CUDA: " << (_useCuda ? "true" : "false") << std::endl;
-}
-
-//////////////////////////////////////////////////
-void GstCameraSystem::PostUpdate(const gz::sim::UpdateInfo &_info,
-				 const gz::sim::EntityComponentManager &/*_ecm*/)
-{
-	if (_info.paused || _initialized) {
-		return;
-	}
-
-	// Find a camera topic
-	findCameraTopic();
-}
-
-//////////////////////////////////////////////////
-void GstCameraSystem::findCameraTopic()
-{
-	// Get all available topics
-	std::vector<std::string> topics;
-	_node.TopicList(topics);
-
-	for (const auto &topic : topics) {
-		std::smatch matches;
-
-		// Check if the topic matches our camera pattern
-		if (std::regex_search(topic, matches, _cameraTopicPattern)) {
-			std::string worldName = matches[1].str();
-
-			// Only process cameras in our world
-			if (worldName == _worldName) {
-				_cameraTopic = topic;
-
-				gzdbg << "Found camera topic: " << _cameraTopic << std::endl;
-
-				// Subscribe to first message to get camera info
-				_node.Subscribe(_cameraTopic, &GstCameraSystem::onCameraInfo, this);
-
-				_initialized = true;
-				return;
-			}
-		}
+	if (_running) {
+		stop();
 	}
 }
 
 //////////////////////////////////////////////////
-void GstCameraSystem::onCameraInfo(const gz::msgs::Image &msg)
+void CameraStream::onCameraInfo(const gz::msgs::Image &msg)
 {
 	_width = msg.width();
 	_height = msg.height();
@@ -189,14 +284,14 @@ void GstCameraSystem::onCameraInfo(const gz::msgs::Image &msg)
 	_node.Unsubscribe(_cameraTopic);
 
 	// Subscribe to actual stream with our callback
-	_node.Subscribe(_cameraTopic, &GstCameraSystem::onImage, this);
+	_node.Subscribe(_cameraTopic, &CameraStream::onImage, this);
 
 	// Start GStreamer pipeline
-	_gstThread = std::thread(&GstCameraSystem::gstThreadFunc, this);
+	_gstThread = std::thread(&CameraStream::gstThreadFunc, this);
 }
 
 //////////////////////////////////////////////////
-void GstCameraSystem::onImage(const gz::msgs::Image &msg)
+void CameraStream::onImage(const gz::msgs::Image &msg)
 {
 	if (!_running) {
 		return;
@@ -210,12 +305,13 @@ void GstCameraSystem::onImage(const gz::msgs::Image &msg)
 		_newFrameAvailable = true;
 
 	} else {
-		gzwarn << "Unsupported pixel format: " << msg.pixel_format_type() << std::endl;
+		gzwarn << "Unsupported pixel format: " << msg.pixel_format_type()
+		       << std::endl;
 	}
 }
 
 //////////////////////////////////////////////////
-void GstCameraSystem::gstThreadFunc()
+void CameraStream::gstThreadFunc()
 {
 	gzdbg << "Starting GStreamer thread" << std::endl;
 
@@ -243,24 +339,15 @@ void GstCameraSystem::gstThreadFunc()
 	GstElement *queue2 = gst_element_factory_make("queue", nullptr);
 
 	// Configure source and queues for better buffering
-	g_object_set(G_OBJECT(queue1),
-		     "max-size-buffers", 30,
-		     "max-size-time", 0,
-		     "max-size-bytes", 0,
-		     "leaky", 2, // downstream (newer buffers)
+	g_object_set(G_OBJECT(queue1), "max-size-buffers", 30, "max-size-time", 0,
+		     "max-size-bytes", 0, "leaky", 2, // downstream (newer buffers)
 		     NULL);
 
-	g_object_set(G_OBJECT(queue2),
-		     "max-size-buffers", 30,
-		     "max-size-time", 0,
-		     "max-size-bytes", 0,
-		     NULL);
+	g_object_set(G_OBJECT(queue2), "max-size-buffers", 30, "max-size-time", 0,
+		     "max-size-bytes", 0, NULL);
 
 	// Configure video rate to reduce tearing
-	g_object_set(G_OBJECT(videoRate),
-		     "max-rate", 30,
-		     "drop-only", TRUE,
-		     NULL);
+	g_object_set(G_OBJECT(videoRate), "max-rate", 30, "drop-only", TRUE, NULL);
 
 	GstElement *encoder;
 
@@ -269,38 +356,38 @@ void GstCameraSystem::gstThreadFunc()
 
 		if (encoder) {
 			// Higher quality NVIDIA encoder settings
-			g_object_set(G_OBJECT(encoder),
-				     "bitrate", 4000,       // Increased bitrate for higher quality
-				     "preset", 2,           // Higher quality preset (HP)
-				     "rc-mode", 1,          // Constant bitrate mode
-				     "zerolatency", TRUE,   // Reduce latency
-				     "qp-const", 20,        // Lower QP (higher quality)
+			g_object_set(G_OBJECT(encoder), "bitrate",
+				     4000,                // Increased bitrate for higher quality
+				     "preset", 2,         // Higher quality preset (HP)
+				     "rc-mode", 1,        // Constant bitrate mode
+				     "zerolatency", TRUE, // Reduce latency
+				     "qp-const", 20,      // Lower QP (higher quality)
 				     NULL);
 
 		} else {
-			gzwarn << "NVIDIA H.264 encoder not available, falling back to software encoder" << std::endl;
+			gzwarn << "NVIDIA H.264 encoder not available, falling back to software "
+			       "encoder"
+			       << std::endl;
 			encoder = gst_element_factory_make("x264enc", nullptr);
-			g_object_set(G_OBJECT(encoder),
-				     "bitrate", 4000,
-				     "speed-preset", 4,     // Higher quality preset (slower)
-				     "tune", 4,             // 'zerolatency' tune option
-				     "key-int-max", 30,     // Keyframe every 30 frames (1s at 30 fps)
-				     "threads", 4,          // Use multiple threads
-				     "pass", 5,             // Quality-based VBR
-				     "quantizer", 20,       // Lower = higher quality
+			g_object_set(G_OBJECT(encoder), "bitrate", 4000, "speed-preset",
+				     4,                 // Higher quality preset (slower)
+				     "tune", 4,         // 'zerolatency' tune option
+				     "key-int-max", 30, // Keyframe every 30 frames (1s at 30 fps)
+				     "threads", 4,      // Use multiple threads
+				     "pass", 5,         // Quality-based VBR
+				     "quantizer", 20,   // Lower = higher quality
 				     NULL);
 		}
 
 	} else {
 		encoder = gst_element_factory_make("x264enc", nullptr);
-		g_object_set(G_OBJECT(encoder),
-			     "bitrate", 4000,
-			     "speed-preset", 4,       // Higher quality preset (slower)
-			     "tune", 4,               // 'zerolatency' tune option
-			     "key-int-max", 30,       // Keyframe every 30 frames (1s at 30 fps)
-			     "threads", 4,            // Use multiple threads
-			     "pass", 5,               // Quality-based VBR
-			     "quantizer", 20,         // Lower = higher quality
+		g_object_set(G_OBJECT(encoder), "bitrate", 4000, "speed-preset",
+			     4,                 // Higher quality preset (slower)
+			     "tune", 4,         // 'zerolatency' tune option
+			     "key-int-max", 30, // Keyframe every 30 frames (1s at 30 fps)
+			     "threads", 4,      // Use multiple threads
+			     "pass", 5,         // Quality-based VBR
+			     "quantizer", 20,   // Lower = higher quality
 			     NULL);
 	}
 
@@ -316,21 +403,20 @@ void GstCameraSystem::gstThreadFunc()
 	} else {
 		payloader = gst_element_factory_make("rtph264pay", nullptr);
 		// Improve RTP settings for local streaming
-		g_object_set(G_OBJECT(payloader),
-			     "config-interval", 1,    // Send SPS/PPS with every I-frame
-			     "mtu", 1400,             // Large MTU for local network
+		g_object_set(G_OBJECT(payloader), "config-interval",
+			     1,           // Send SPS/PPS with every I-frame
+			     "mtu", 1400, // Large MTU for local network
 			     NULL);
 
 		sink = gst_element_factory_make("udpsink", nullptr);
-		g_object_set(G_OBJECT(sink),
-			     "host", _udpHost.c_str(),
-			     "port", _udpPort,
-			     "sync", FALSE,           // Don't sync, reduce latency
-			     "async", FALSE,          // Don't async, reduce latency
+		g_object_set(G_OBJECT(sink), "host", _udpHost.c_str(), "port", _udpPort,
+			     "sync", FALSE,  // Don't sync, reduce latency
+			     "async", FALSE, // Don't async, reduce latency
 			     NULL);
 	}
 
-	if (!_source || !queue1 || !videoRate || !converter || !queue2 || !encoder || !payloader || !sink) {
+	if (!_source || !queue1 || !videoRate || !converter || !queue2 || !encoder ||
+	    !payloader || !sink) {
 		gzerr << "Failed to create one or more GStreamer elements" << std::endl;
 		gst_object_unref(_pipeline);
 		g_main_loop_unref(_gstLoop);
@@ -340,41 +426,33 @@ void GstCameraSystem::gstThreadFunc()
 	}
 
 	// Configure source
-	GstCaps *sourceCaps = gst_caps_new_simple("video/x-raw",
-			      "format", G_TYPE_STRING, "RGB",
-			      "width", G_TYPE_INT, _width,
-			      "height", G_TYPE_INT, _height,
-			      "framerate", GST_TYPE_FRACTION, (unsigned int)_rate, 1,
-			      NULL);
+	GstCaps *sourceCaps = gst_caps_new_simple(
+				      "video/x-raw", "format", G_TYPE_STRING, "RGB", "width", G_TYPE_INT,
+				      _width, "height", G_TYPE_INT, _height, "framerate", GST_TYPE_FRACTION,
+				      (unsigned int)_rate, 1, NULL);
 
-	g_object_set(G_OBJECT(_source),
-		     "caps", sourceCaps,
-		     "is-live", TRUE,
-		     "do-timestamp", TRUE,
-		     "stream-type", GST_APP_STREAM_TYPE_STREAM,
-		     "format", GST_FORMAT_TIME,
-		     "min-latency", 0,
-		     "max-latency", 0,
-		     "emit-signals", TRUE,
-		     NULL);
+	g_object_set(G_OBJECT(_source), "caps", sourceCaps, "is-live", TRUE,
+		     "do-timestamp", TRUE, "stream-type", GST_APP_STREAM_TYPE_STREAM,
+		     "format", GST_FORMAT_TIME, "min-latency", 0, "max-latency", 0,
+		     "emit-signals", TRUE, NULL);
 
 	gst_caps_unref(sourceCaps);
 
 	// Set caps filter after videorate to ensure consistent framerate
 	GstElement *capsFilter = gst_element_factory_make("capsfilter", nullptr);
-	GstCaps *rateCaps = gst_caps_new_simple("video/x-raw",
-						"framerate", GST_TYPE_FRACTION, (unsigned int)_rate, 1,
-						NULL);
+	GstCaps *rateCaps =
+		gst_caps_new_simple("video/x-raw", "framerate", GST_TYPE_FRACTION,
+				    (unsigned int)_rate, 1, NULL);
 	g_object_set(G_OBJECT(capsFilter), "caps", rateCaps, NULL);
 	gst_caps_unref(rateCaps);
 
 	// Add elements to pipeline
-	gst_bin_add_many(GST_BIN(_pipeline), _source, queue1, videoRate, capsFilter, converter, queue2, encoder, payloader,
-			 sink, nullptr);
+	gst_bin_add_many(GST_BIN(_pipeline), _source, queue1, videoRate, capsFilter,
+			 converter, queue2, encoder, payloader, sink, nullptr);
 
 	// Link elements
-	if (!gst_element_link_many(_source, queue1, videoRate, capsFilter, converter, queue2, encoder, payloader, sink,
-				   nullptr)) {
+	if (!gst_element_link_many(_source, queue1, videoRate, capsFilter, converter,
+				   queue2, encoder, payloader, sink, nullptr)) {
 		gzerr << "Failed to link GStreamer elements" << std::endl;
 		gst_object_unref(_pipeline);
 		g_main_loop_unref(_gstLoop);
@@ -384,7 +462,8 @@ void GstCameraSystem::gstThreadFunc()
 	}
 
 	// Start pipeline
-	if (gst_element_set_state(_pipeline, GST_STATE_PLAYING) == GST_STATE_CHANGE_FAILURE) {
+	if (gst_element_set_state(_pipeline, GST_STATE_PLAYING) ==
+	    GST_STATE_CHANGE_FAILURE) {
 		gzerr << "Failed to set GStreamer pipeline to playing state" << std::endl;
 		gst_object_unref(_pipeline);
 		g_main_loop_unref(_gstLoop);
@@ -394,7 +473,9 @@ void GstCameraSystem::gstThreadFunc()
 	}
 
 	gzdbg << "GStreamer pipeline started, streaming to "
-	      << (_useRtmp ? _rtmpLocation : (_udpHost + ":" + std::to_string(_udpPort))) << std::endl;
+	      << (_useRtmp ? _rtmpLocation
+		  : (_udpHost + ":" + std::to_string(_udpPort)))
+	      << std::endl;
 
 	_running = true;
 
@@ -421,12 +502,15 @@ void GstCameraSystem::gstThreadFunc()
 					gst_object_unref(clock);
 
 					GST_BUFFER_PTS(buffer) = timestamp;
-					GST_BUFFER_DURATION(buffer) = gst_util_uint64_scale_int(1, GST_SECOND, (int)_rate);
+					GST_BUFFER_DURATION(buffer) =
+						gst_util_uint64_scale_int(1, GST_SECOND, (int)_rate);
 
-					GstFlowReturn ret = gst_app_src_push_buffer(GST_APP_SRC(_source), buffer);
+					GstFlowReturn ret =
+						gst_app_src_push_buffer(GST_APP_SRC(_source), buffer);
 
 					if (ret != GST_FLOW_OK) {
-						gzerr << "Failed to push buffer to GStreamer pipeline: " << ret << std::endl;
+						gzerr << "Failed to push buffer to GStreamer pipeline: " << ret
+						      << std::endl;
 					}
 
 				} else {
@@ -458,8 +542,7 @@ void GstCameraSystem::gstThreadFunc()
 }
 
 // Register this plugin
-GZ_ADD_PLUGIN(GstCameraSystem,
-	      gz::sim::System,
+GZ_ADD_PLUGIN(GstCameraSystem, gz::sim::System,
 	      GstCameraSystem::ISystemConfigure,
 	      GstCameraSystem::ISystemPostUpdate)
 
