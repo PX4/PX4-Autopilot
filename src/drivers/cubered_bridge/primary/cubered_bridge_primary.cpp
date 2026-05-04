@@ -342,7 +342,7 @@ ModuleBase::Descriptor CuberedBridgePrimary::desc{task_spawn, custom_command, pr
 
 CuberedBridgePrimary::CuberedBridgePrimary(device::Device *interface) :
 	CDev(PX4IO_DEVICE_PATH),
-	OutputModuleInterface(MODULE_NAME, px4::serial_port_to_wq(PX4IO_SERIAL_DEVICE)),
+	OutputModuleInterface(MODULE_NAME, px4::serial_port_to_wq(CUBERED_BRIDGE_PRIMARY_DEVICE)),
 	_interface(interface)
 {
 	_mixing_output.setLowrateSchedulingInterval(20_ms);
@@ -491,6 +491,11 @@ int CuberedBridgePrimary::init()
 	_px4io_status_pub.advertise();
 
 	update_params();
+
+	// Release the serial fd opened in this task context. Run() will re-open
+	// it in the work queue's task context — NuttX file descriptors aren't
+	// shared across tasks.
+	cubered_bridge_primary_release(_interface);
 
 	ScheduleNow();
 
@@ -1394,7 +1399,7 @@ int CuberedBridgePrimary::ioctl(file *filep, int cmd, unsigned long arg)
 
 static device::Device *get_interface()
 {
-	device::Device *interface = PX4IO_serial_interface();
+	device::Device *interface = cubered_bridge_primary_interface();
 
 	if (interface != nullptr) {
 		if (interface->init() != OK) {

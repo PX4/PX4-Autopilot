@@ -41,8 +41,13 @@
 
 #include <board_config.h>
 
-#ifdef PX4IO_SERIAL_BASE
 #include <drivers/device/device.h>
 
-device::Device	*PX4IO_serial_interface();
-#endif
+device::Device	*cubered_bridge_primary_interface();
+
+/**
+ * Close the serial fd. Must be called once after the bridge's instance->init()
+ * completes (and before Run() starts) so the work queue can re-open the fd in
+ * its own task context — NuttX file descriptors aren't shared across tasks.
+ */
+void cubered_bridge_primary_release(device::Device *interface);

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,41 +32,74 @@
  ****************************************************************************/
 
 /**
- * @file px4io_serial.cpp
+ * @file cubered_bridge_primary_serial.cpp
  *
- * Serial interface for PX4IO
+ * Serial transport for the CubeRed primary bridge. Talks to the
+ * secondary MCU over UART7 using device::Serial (NuttX lower-half
+ * driver, DMA-backed via CONFIG_UART7_RXDMA/TXDMA=y).
+ *
+ * Originally derived from src/drivers/px4io/px4io_serial.cpp.
  */
 
 #include "cubered_bridge_primary_driver.h"
 
-#include <px4_arch/px4io_serial.h>
+#include <drivers/device/device.h>
+#include <lib/perf/perf_counter.h>
+#include <modules/px4iofirmware/protocol.h>
+#include <px4_platform_common/Serial.hpp>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/sem.h>
 
-static PX4IO_serial *g_interface;
+#include <string.h>
 
-device::Device
-*PX4IO_serial_interface()
+namespace
 {
-	return new ArchPX4IOSerial();
+
+class CuberedSerial : public device::Device
+{
+public:
+	CuberedSerial();
+	~CuberedSerial() override;
+
+	int init() override;
+
+	int read(unsigned address, void *data, unsigned count) override;
+	int write(unsigned address, void *data, unsigned count) override;
+
+private:
+	static constexpr uint32_t TRANSACTION_TIMEOUT_MS = 10;
+	static constexpr unsigned MAX_RETRIES = 3;
+
+	int ensure_open();
+	int exchange(size_t request_size, size_t expected_response_size);
+
+public:
+	void release();
+
+private:
+	device::Serial _uart{};
+	IOPacket _io_buffer{};
+	px4_sem_t _bus_semaphore;
+
+	perf_counter_t _pc_txns{perf_alloc(PC_ELAPSED, MODULE_NAME": txns")};
+	perf_counter_t _pc_retries{perf_alloc(PC_COUNT, MODULE_NAME": retries")};
+	perf_counter_t _pc_timeouts{perf_alloc(PC_COUNT, MODULE_NAME": timeouts")};
+	perf_counter_t _pc_crcerrs{perf_alloc(PC_COUNT, MODULE_NAME": crcerrs")};
+	perf_counter_t _pc_protoerrs{perf_alloc(PC_COUNT, MODULE_NAME": protoerrs")};
+};
+
+CuberedSerial::CuberedSerial() :
+	Device("cubered_bridge_primary")
+{
+	px4_sem_init(&_bus_semaphore, 0, 1);
 }
 
-PX4IO_serial::PX4IO_serial() :
-	Device("PX4IO_serial"),
-	_pc_txns(perf_alloc(PC_ELAPSED, MODULE_NAME": txns")),
-	_pc_retries(perf_alloc(PC_COUNT, MODULE_NAME": retries")),
-	_pc_timeouts(perf_alloc(PC_COUNT, MODULE_NAME": timeouts")),
-	_pc_crcerrs(perf_alloc(PC_COUNT, MODULE_NAME": crcerrs")),
-	_pc_protoerrs(perf_alloc(PC_COUNT, MODULE_NAME": protoerrs")),
-	_pc_uerrs(perf_alloc(PC_COUNT, MODULE_NAME": uarterrs")),
-	_pc_idle(perf_alloc(PC_COUNT, MODULE_NAME": idle")),
-	_pc_badidle(perf_alloc(PC_COUNT, MODULE_NAME": badidle")),
-	_bus_semaphore(SEM_INITIALIZER(0))
+CuberedSerial::~CuberedSerial()
 {
-	g_interface = this;
-}
+	if (_uart.isOpen()) {
+		_uart.close();
+	}
 
-PX4IO_serial::~PX4IO_serial()
-{
-	/* kill our semaphores */
 	px4_sem_destroy(&_bus_semaphore);
 
 	perf_free(_pc_txns);
@@ -74,31 +107,87 @@ PX4IO_serial::~PX4IO_serial()
 	perf_free(_pc_timeouts);
 	perf_free(_pc_crcerrs);
 	perf_free(_pc_protoerrs);
-	perf_free(_pc_uerrs);
-	perf_free(_pc_idle);
-	perf_free(_pc_badidle);
-
-	if (g_interface == this) {
-		g_interface = nullptr;
-	}
 }
 
-int
-PX4IO_serial::init(IOPacket *io_buffer)
+int CuberedSerial::init()
 {
-	_io_buffer_ptr = io_buffer;
-	/* create semaphores */
-	// in case the sub-class impl fails, the semaphore is cleaned up by destructor.
-	px4_sem_init(&_bus_semaphore, 0, 1);
+	if (!_uart.setPort(CUBERED_BRIDGE_PRIMARY_DEVICE)) {
+		PX4_ERR("setPort %s failed", CUBERED_BRIDGE_PRIMARY_DEVICE);
+		return -1;
+	}
+
+	if (!_uart.setBaudrate(CUBERED_BRIDGE_PRIMARY_BITRATE)) {
+		PX4_ERR("setBaudrate %u failed", CUBERED_BRIDGE_PRIMARY_BITRATE);
+		return -1;
+	}
+
+	return ensure_open();
+}
+
+int CuberedSerial::ensure_open()
+{
+	if (_uart.isOpen()) {
+		return 0;
+	}
+
+	if (!_uart.open()) {
+		PX4_ERR("open %s failed", CUBERED_BRIDGE_PRIMARY_DEVICE);
+		return -1;
+	}
+
+	// UART7 TX/RX are wired swapped between the primary and secondary MCUs.
+	if (!_uart.setSwapRxTxMode()) {
+		PX4_ERR("setSwapRxTxMode failed");
+		_uart.close();
+		return -1;
+	}
 
 	return 0;
 }
 
-int
-PX4IO_serial::write(unsigned address, void *data, unsigned count)
+void CuberedSerial::release()
 {
-	uint8_t page = address >> 8;
-	uint8_t offset = address & 0xff;
+	if (_uart.isOpen()) {
+		_uart.close();
+	}
+}
+
+int CuberedSerial::exchange(size_t request_size, size_t expected_response_size)
+{
+	perf_begin(_pc_txns);
+
+	if (_uart.write(&_io_buffer, request_size) != (ssize_t)request_size) {
+		perf_cancel(_pc_txns);
+		return -EIO;
+	}
+
+	uint8_t *buf = reinterpret_cast<uint8_t *>(&_io_buffer);
+	ssize_t got = _uart.readAtLeast(buf, sizeof(IOPacket),
+					expected_response_size, TRANSACTION_TIMEOUT_MS);
+
+	if (got < (ssize_t)expected_response_size) {
+		perf_count(_pc_timeouts);
+		perf_cancel(_pc_txns);
+		return -ETIMEDOUT;
+	}
+
+	const uint8_t received_crc = _io_buffer.crc;
+	_io_buffer.crc = 0;
+
+	if (crc_packet(&_io_buffer) != received_crc) {
+		perf_count(_pc_crcerrs);
+		perf_cancel(_pc_txns);
+		return -EIO;
+	}
+
+	perf_end(_pc_txns);
+	return 0;
+}
+
+int CuberedSerial::write(unsigned address, void *data, unsigned count)
+{
+	const uint8_t page = address >> 8;
+	const uint8_t offset = address & 0xff;
 	const uint16_t *values = reinterpret_cast<const uint16_t *>(data);
 
 	if (count > PKT_MAX_REGS) {
@@ -107,31 +196,35 @@ PX4IO_serial::write(unsigned address, void *data, unsigned count)
 
 	px4_sem_wait(&_bus_semaphore);
 
-	int result;
+	int result = -EIO;
 
-	for (unsigned retries = 0; retries < 3; retries++) {
-		_io_buffer_ptr->count_code = count | PKT_CODE_WRITE;
-		_io_buffer_ptr->page = page;
-		_io_buffer_ptr->offset = offset;
-		memcpy((void *)&_io_buffer_ptr->regs[0], (void *)values, (2 * count));
+	if (ensure_open() != 0) {
+		px4_sem_post(&_bus_semaphore);
+		return result;
+	}
+
+	for (unsigned retries = 0; retries < MAX_RETRIES; retries++) {
+		_io_buffer.count_code = count | PKT_CODE_WRITE;
+		_io_buffer.page = page;
+		_io_buffer.offset = offset;
+		memcpy(&_io_buffer.regs[0], values, 2 * count);
 
 		for (unsigned i = count; i < PKT_MAX_REGS; i++) {
-			_io_buffer_ptr->regs[i] = 0x55aa;
+			_io_buffer.regs[i] = 0x55aa;
 		}
 
-		_io_buffer_ptr->crc = 0;
-		_io_buffer_ptr->crc = crc_packet(_io_buffer_ptr);
+		_io_buffer.crc = 0;
+		_io_buffer.crc = crc_packet(&_io_buffer);
 
-		/* start the transaction and wait for it to complete */
-		result = _bus_exchange(_io_buffer_ptr);
+		const size_t request_size = PKT_SIZE(_io_buffer);
+		// Write ack response is just the 4-byte header.
+		const size_t response_size = sizeof(IOPacket) - sizeof(_io_buffer.regs);
 
-		/* successful transaction? */
-		if (result == OK) {
+		result = exchange(request_size, response_size);
 
-			/* check result in packet */
-			if (PKT_CODE(*_io_buffer_ptr) == PKT_CODE_ERROR) {
-
-				/* IO didn't like it - no point retrying */
+		if (result == 0) {
+			if (PKT_CODE(_io_buffer) == PKT_CODE_ERROR) {
+				// Secondary rejected the request — retrying won't help.
 				result = -EINVAL;
 				perf_count(_pc_protoerrs);
 			}
@@ -144,18 +237,13 @@ PX4IO_serial::write(unsigned address, void *data, unsigned count)
 
 	px4_sem_post(&_bus_semaphore);
 
-	if (result == OK) {
-		result = count;
-	}
-
-	return result;
+	return (result == 0) ? (int)count : result;
 }
 
-int
-PX4IO_serial::read(unsigned address, void *data, unsigned count)
+int CuberedSerial::read(unsigned address, void *data, unsigned count)
 {
-	uint8_t page = address >> 8;
-	uint8_t offset = address & 0xff;
+	const uint8_t page = address >> 8;
+	const uint8_t offset = address & 0xff;
 	uint16_t *values = reinterpret_cast<uint16_t *>(data);
 
 	if (count > PKT_MAX_REGS) {
@@ -164,47 +252,41 @@ PX4IO_serial::read(unsigned address, void *data, unsigned count)
 
 	px4_sem_wait(&_bus_semaphore);
 
-	int result;
+	int result = -EIO;
 
-	for (unsigned retries = 0; retries < 3; retries++) {
+	if (ensure_open() != 0) {
+		px4_sem_post(&_bus_semaphore);
+		return result;
+	}
 
-		/* Clear the entire packet to ensure no stale data */
-		memset(_io_buffer_ptr, 0, sizeof(IOPacket));
+	for (unsigned retries = 0; retries < MAX_RETRIES; retries++) {
+		memset(&_io_buffer, 0, sizeof(IOPacket));
 
-		_io_buffer_ptr->count_code = count | PKT_CODE_READ;
-		_io_buffer_ptr->page = page;
-		_io_buffer_ptr->offset = offset;
+		_io_buffer.count_code = count | PKT_CODE_READ;
+		_io_buffer.page = page;
+		_io_buffer.offset = offset;
+		_io_buffer.crc = 0;
+		_io_buffer.crc = crc_packet(&_io_buffer);
 
-		_io_buffer_ptr->crc = 0;
-		_io_buffer_ptr->crc = crc_packet(_io_buffer_ptr);
+		// Read requests carry `count` reg slots of padding so that the
+		// secondary's PKT_SIZE / CRC accounting matches what the response
+		// will look like.
+		const size_t request_size = PKT_SIZE(_io_buffer);
+		const size_t response_size = request_size;
 
-		/* start the transaction and wait for it to complete */
-		result = _bus_exchange(_io_buffer_ptr);
+		result = exchange(request_size, response_size);
 
-		/* successful transaction? */
-		if (result == OK) {
-
-			/* check result in packet */
-			if (PKT_CODE(*_io_buffer_ptr) == PKT_CODE_ERROR) {
-
-				/* IO didn't like it - no point retrying */
+		if (result == 0) {
+			if (PKT_CODE(_io_buffer) == PKT_CODE_ERROR) {
 				result = -EINVAL;
 				perf_count(_pc_protoerrs);
 
-				/* compare the received count with the expected count */
-
-			} else if (PKT_COUNT(*_io_buffer_ptr) != count) {
-
-				/* IO returned the wrong number of registers - no point retrying */
+			} else if (PKT_COUNT(_io_buffer) != count) {
 				result = -EIO;
 				perf_count(_pc_protoerrs);
 
-				/* successful read */
-
 			} else {
-
-				/* copy back the result */
-				memcpy(values, &_io_buffer_ptr->regs[0], (2 * count));
+				memcpy(values, &_io_buffer.regs[0], 2 * count);
 			}
 
 			break;
@@ -215,9 +297,19 @@ PX4IO_serial::read(unsigned address, void *data, unsigned count)
 
 	px4_sem_post(&_bus_semaphore);
 
-	if (result == OK) {
-		result = count;
-	}
+	return (result == 0) ? (int)count : result;
+}
 
-	return result;
+} // namespace
+
+device::Device *cubered_bridge_primary_interface()
+{
+	return new CuberedSerial();
+}
+
+void cubered_bridge_primary_release(device::Device *interface)
+{
+	if (interface != nullptr) {
+		static_cast<CuberedSerial *>(interface)->release();
+	}
 }

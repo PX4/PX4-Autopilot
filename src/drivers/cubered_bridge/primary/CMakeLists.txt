@@ -42,7 +42,6 @@ px4_add_module(
 		module.yaml
 		cubered_bridge_primary_params.yaml
 	DEPENDS
-		arch_px4io_serial
 		button_publisher
 		circuit_breaker
 		mixer_module

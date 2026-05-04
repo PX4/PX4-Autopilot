@@ -54,20 +54,10 @@
 #endif
 
 
-/* PX4IO connection configuration */
+/* CubeRed bridge link to the secondary MCU (UART7) */
 #define BOARD_USES_PX4IO_VERSION       2
-#define PX4IO_SERIAL_DEVICE            "/dev/ttyS4"
-#define PX4IO_SERIAL_TX_GPIO           GPIO_UART7_TX
-#define PX4IO_SERIAL_RX_GPIO           GPIO_UART7_RX
-#define PX4IO_SERIAL_BASE              STM32_UART7_BASE
-#define PX4IO_SERIAL_VECTOR            STM32_IRQ_UART7
-#define PX4IO_SERIAL_TX_DMAMAP         DMAMAP_UART7_TX
-#define PX4IO_SERIAL_RX_DMAMAP         DMAMAP_UART7_RX
-#define PX4IO_SERIAL_RCC_REG           STM32_RCC_APB1ENR
-#define PX4IO_SERIAL_RCC_EN            RCC_APB1LENR_UART7EN
-#define PX4IO_SERIAL_CLOCK             STM32_PCLK1_FREQUENCY
-#define PX4IO_SERIAL_BITRATE           1500000               /* 1.5Mbps -> max rate for IO */
-#define PX4IO_SERIAL_SWAPPED
+#define CUBERED_BRIDGE_PRIMARY_DEVICE  "/dev/ttyS4"
+#define CUBERED_BRIDGE_PRIMARY_BITRATE 1500000               /* 1.5 Mbps */
 
 
 /* LEDs */
