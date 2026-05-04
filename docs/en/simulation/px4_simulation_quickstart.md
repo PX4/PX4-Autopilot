@@ -12,7 +12,7 @@ That's it — open [QGroundControl](https://qgroundcontrol.com) and fly!
 
 ::: tip
 
-To try [other vehicle types](../sim_sih/#supported-vehicle-types) append the corresponding line below to the command:
+To try [other vehicle types](../sim_sih/#supported-vehicle-types), pass the `PX4_SIM_MODEL` environment variable to the `docker run` command, for example:
 
 ```sh
 -e PX4_SIM_MODEL=sihsim_airplane # Plane
