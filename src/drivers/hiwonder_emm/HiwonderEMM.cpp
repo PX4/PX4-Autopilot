@@ -182,19 +182,20 @@ int HiwonderEMM::set_motor_speed(const uint8_t *speed_values, const uint8_t coun
 		cmd[i + 1] = speed_values[i];
 	}
 
-        const int ret = transfer(cmd, sizeof(cmd), nullptr, 0);
+	const int ret = transfer(cmd, sizeof(cmd), nullptr, 0);
 
-        if (ret != PX4_OK) {
+	if (ret != PX4_OK) {
 		if (!_set_speed_failed) {
 			PX4_ERR("Failed to set motor speed. Error: %d", ret);
 			_set_speed_failed = true;
 		}
-        } else if (_set_speed_failed) {
+
+	} else if (_set_speed_failed) {
 		PX4_INFO("Motor speed write recovered");
 		_set_speed_failed = false;
-        }
+	}
 
-        return ret;
+	return ret;
 }
 
 int HiwonderEMM::print_usage(const char *reason)
