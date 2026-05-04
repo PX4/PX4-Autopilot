@@ -20,3 +20,4 @@ parameters:
           long: |
             Enable the Hiwonder EMM output driver.
         type: boolean
+        default: 0
