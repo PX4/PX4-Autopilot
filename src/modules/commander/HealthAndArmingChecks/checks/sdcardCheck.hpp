@@ -45,7 +45,9 @@ public:
 
 private:
 #ifdef PX4_STORAGEDIR
+#ifndef CONFIG_BOARD_NO_SDCARD
 	bool _sdcard_detected {false};
+#endif // CONFIG_BOARD_NO_SDCARD
 
 #ifdef __PX4_NUTTX
 	bool _hardfault_checked_once {false};
@@ -53,10 +55,9 @@ private:
 	bool _watchdog_checked_once {false};
 	bool _watchdog_file_present {false};
 #endif
-#endif
+#endif // PX4_STORAGEDIR
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
-					(ParamInt<px4::params::COM_ARM_SDCARD>) _param_com_arm_sdcard,
 					(ParamBool<px4::params::COM_ARM_HFLT_CHK>) _param_com_arm_hardfault_check
 				       )
 };
