@@ -172,6 +172,7 @@ protected:
 					(ParamFloat<px4::params::MPC_LAND_ALT3>) _param_mpc_land_alt3,
 					(ParamFloat<px4::params::MPC_Z_V_AUTO_UP>) _param_mpc_z_v_auto_up,
 					(ParamFloat<px4::params::MPC_Z_V_AUTO_DN>) _param_mpc_z_v_auto_dn,
+					(ParamFloat<px4::params::MPC_Z_P>) _param_mpc_z_p,
 					(ParamFloat<px4::params::MPC_TKO_SPEED>) _param_mpc_tko_speed,
 					(ParamFloat<px4::params::MPC_TKO_RAMP_T>) _param_mpc_tko_ramp_t
 				       );

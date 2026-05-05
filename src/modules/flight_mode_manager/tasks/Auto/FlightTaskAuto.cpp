@@ -159,6 +159,25 @@ bool FlightTaskAuto::update()
 		break;
 	}
 
+	// Terrain-relative altitude tracking: inject a Z velocity feedforward so the
+	// climb/descend response isn't dominated by the path's XY-direction unit
+	// vector. PositionSmoothing allocates Z velocity proportional to the
+	// (pos -> target) unit vector which leaves Z severely under-actuated when
+	// the XY distance is much larger than the Z change as terrain varies.
+	// Gain MPC_Z_P matches the position controller's altitude P gain, so users
+	// tune one knob for both manual (FlightTaskManualAltitude relies entirely
+	// on MPC_Z_P in mc_pos_control) and auto terrain following. Caps mirror
+	// the smoother's MPC_Z_V_AUTO limits so we don't command faster than the
+	// trajectory generator would actually allow.
+	if (_position_setpoint_triplet_sub.get().current.alt_is_terrain_relative
+	    && PX4_ISFINITE(_position_setpoint(2))
+	    && PX4_ISFINITE(_position(2))) {
+		const float z_error = _position_setpoint(2) - _position(2);
+		_velocity_setpoint(2) = math::constrain(z_error * _param_mpc_z_p.get(),
+							-_param_mpc_z_v_auto_up.get(),
+							_param_mpc_z_v_auto_dn.get());
+	}
+
 	_checkEmergencyBraking();
 	Vector3f waypoints[] = {_triplet_previous, _position_setpoint, _triplet_next};
 
