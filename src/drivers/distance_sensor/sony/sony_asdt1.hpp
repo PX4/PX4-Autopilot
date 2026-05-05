@@ -47,6 +47,7 @@
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/module.h>
+#include <px4_platform_common/Serial.hpp>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
 #include <uORB/topics/distance_sensor.h>
@@ -57,6 +58,7 @@
 
 #define MPDATASIZE 576
 
+using namespace device;
 using namespace time_literals;
 using matrix::Vector3f;
 using matrix::Vector;
@@ -64,13 +66,14 @@ using matrix::Vector;
 class AS_DT1 : public px4::ScheduledWorkItem
 {
 public:
-	// void readThreadFunction();
-	AS_DT1(const char *port, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+	AS_DT1(const char *device, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 	virtual ~AS_DT1();
 
 	int init();
 
 	void print_info();
+
+	bool writeCommand(const std::string &data);
 
 private:
 	int collect();
@@ -82,14 +85,13 @@ private:
 
 	PX4Rangefinder	_px4_rangefinder;
 
+	Serial *_uart = nullptr; ///< UART interface to ASDT1
 	char _linebuf[10] {};
-	char _port[20] {};
+	char _device[20] {}; ///< device / serial port path
 
 	matrix::Vector3f points;
 	matrix::Vector<int, MPDATASIZE> xyDataTbl;
 	static constexpr int kCONVERSIONINTERVAL{9_ms};
-
-	int _fd{-1};
 
 	unsigned int _linebuf_index{0};
 

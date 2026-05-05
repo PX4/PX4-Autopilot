@@ -40,30 +40,30 @@
  */
 
 #include "sony_asdt1.hpp"
-
+#include <px4_platform_common/defines.h>
 #include <lib/parameters/param.h>
 #include <lib/drivers/device/Device.hpp>
 #include <fcntl.h>
 
-AS_DT1::AS_DT1(const char *port, uint8_t rotation):
-	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(port)),
+AS_DT1::AS_DT1(const char *device, uint8_t rotation):
+	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(device)),
 	_px4_rangefinder(0, rotation)
 {
 	// store port name
-	strncpy(_port, port, sizeof(_port) - 1);
+	strncpy(_device, device, sizeof(_device) - 1);
 
 	// enforce null termination
-	_port[sizeof(_port) - 1] = '\0';
+	_device[sizeof(_device) - 1] = '\0';
 
 	device::Device::DeviceId device_id;
 	device_id.devid_s.devtype = DRV_DIST_DEVTYPE_ASDT1;
 	device_id.devid_s.bus_type = device::Device::DeviceBusType_SERIAL;
 
-	uint8_t bus_num = atoi(&_port[strlen(_port) - 1]); // Assuming '/dev/ttySx'
-
-	if (bus_num < 10) {
-		device_id.devid_s.bus = bus_num;
-	}
+	// uint8_t bus_num = atoi(&_device[strlen(_device) - 1]); // Assuming '/dev/ttySx'
+	//
+	// if (bus_num < 10) {
+	// 	device_id.devid_s.bus = bus_num;
+	// }
 
 	_px4_rangefinder.set_device_id(device_id.devid);
 	_px4_rangefinder.set_rangefinder_type(distance_sensor_s::MAV_DISTANCE_SENSOR_LASER);
@@ -109,78 +109,88 @@ AS_DT1::AS_DT1(const char *port, uint8_t rotation):
 		xyDataTbl(mp) = xycnt;
 	}
 }
+AS_DT1::~AS_DT1()
+{
 
-bool AS_DT1::connect()
+	if (_uart.isOpen()) {
+		_uart.close();
+	}
+}
+int AS_DT1::init()
 {
 	// If connection fails, print error and return false
-	if (!SERIAL_.open(PORT_, BAUD_)) {
-		std::cerr << "Failed to connect to AS-DT1 on port " << PORT_ << " at baud " << BAUD_ << "\n";
-		return false;
+	if (_uart.isOpen()) {
+		if (_uart.setBaudrate(baud) == false) {
+			PX4_ERR("Failed to set UART %lu baud", static_cast<unsigned long>(baud));
+		}
 	}
 
-	return true;
+	return PX4_OK;
 }
 
-bool AS_DT1::writeCommand(const std::string &data)
+bool AS_DT1::writeCommand(const uint8_t *data, size_t length)
 {
-
-	std::string command = data + "\r";
+	//TODO:
+	//const uint8_t *command = data + "\r";
 
 	// If write fails, print error and return false
-	if (!SERIAL_.write(command)) {
-		std::cerr << "Failed to write to AS-DT1\n";
-		return false;
+	if (!_uart.write(const_cast<uint8_t *>(data), length)) {
+		PX4_ERR("Failed to write to AS-DT1");
+		return PX4_ERROR;
 	}
 
-	// std::cout << "Command sent: " << command << "\n";
-
-	return true;
+	return PX4_OK;
 }
 
-void AS_DT1::readThreadFunction()
+// void AS_DT1::readThreadFunction()
+// {
+// 	while (reading) {
+// 		char buf[50000];
+// 		int n = SERIAL_.read(buf, sizeof(buf));
+//
+// 		if (n > 0) {
+// 			read_buffer.append(buf, n);
+// 			// std::cout.write(buf, n);
+// 			// std::cout.flush();
+//
+// 			// If "END" found, clear buffer and send command
+// 			if (read_buffer.find("END") != std::string::npos) {
+// 				// writeCommand("");
+//
+// 				// Store the latest read data
+// 				latest_read_data = read_buffer;
+//
+// 				// Clear the buffer for the next read
+// 				read_buffer.clear();
+// 			}
+// 		}
+//
+// 		// std::this_thread::sleep_for(std::chrono::milliseconds(1));
+// 	}
+// }
+// TODO:
+void AS_DT1::print_info()
 {
-	while (reading) {
-		char buf[50000];
-		int n = SERIAL_.read(buf, sizeof(buf));
 
-		if (n > 0) {
-			read_buffer.append(buf, n);
-			// std::cout.write(buf, n);
-			// std::cout.flush();
-
-			// If "END" found, clear buffer and send command
-			if (read_buffer.find("END") != std::string::npos) {
-				// writeCommand("");
-
-				// Store the latest read data
-				latest_read_data = read_buffer;
-
-				// Clear the buffer for the next read
-				read_buffer.clear();
-			}
-		}
-
-		// std::this_thread::sleep_for(std::chrono::milliseconds(1));
-	}
 }
-
-bool AS_DT1::startReading()
+int AS_DT1::collect()
 {
-	reading = true;
-	read_thread = std::thread(&AS_DT1::readThreadFunction, this);
-	return true;
+
 }
 
-bool AS_DT1::stopReading()
+AS_DT1::start()
 {
-	reading = false;
-
-	if (read_thread.joinable()) {
-		read_thread.join();
-	}
-
-	return true;
+	//TODO:
+	// schedule a cycle to start things (the sensor sends at 100Hz, but we run a bit faster to avoid missing data)
+	ScheduleOnInterval(7_ms);
 }
+
+void
+AS_DT1::stop()
+{
+	ScheduleClear();
+}
+
 
 bool AS_DT1::convertBinaryToPCD()
 {
