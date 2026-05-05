@@ -15,9 +15,7 @@ parameters:
     EKF2_PREDICT_US:
       description:
         short: EKF prediction period
-        long: EKF prediction period in microseconds. This should ideally be an integer
-          multiple of the IMU time delta. Actual filter update will be an integer
-          multiple of IMU update.
+        long: EKF prediction period in microseconds. This should ideally be an integer multiple of the IMU time delta. Actual filter update will be an integer multiple of IMU update.
       type: int32
       default: 10000
       min: 1000
@@ -26,8 +24,7 @@ parameters:
     EKF2_DELAY_MAX:
       description:
         short: Maximum delay of all the aiding sensors
-        long: Defines the delay between the current time and the delayed-time horizon.
-          This value should be at least as large as the largest EKF2_XXX_DELAY parameter.
+        long: Defines the delay between the current time and the delayed-time horizon. This value should be at least as large as the largest EKF2_XXX_DELAY parameter.
       type: float
       default: 200
       min: 0
@@ -48,8 +45,7 @@ parameters:
     EKF2_HDG_GATE:
       description:
         short: Gate size for heading fusion
-        long: Sets the number of standard deviations used by the innovation consistency
-          test.
+        long: Sets the number of standard deviations used by the innovation consistency test.
       type: float
       default: 2.6
       min: 1.0
@@ -76,9 +72,7 @@ parameters:
     EKF2_NOAID_TOUT:
       description:
         short: Maximum inertial dead-reckoning time
-        long: Maximum lapsed time from last fusion of measurements that constrain
-          velocity drift before the EKF will report the horizontal nav solution as
-          invalid
+        long: Maximum lapsed time from last fusion of measurements that constrain velocity drift before the EKF will report the horizontal nav solution as invalid
       type: int32
       default: 5000000
       min: 500000
@@ -87,13 +81,7 @@ parameters:
     EKF2_HGT_REF:
       description:
         short: Determines the reference source of height data used by the EKF
-        long: When multiple height sources are enabled at the same time, the height
-          estimate will always converge towards the reference height source selected
-          by this parameter. The range sensor and vision options should only be used
-          when for operation over a flat surface as the local NED origin will move
-          up and down with ground level.
-          If GPS is set as reference but altitude fusion is disabled in EKF2_GPS_CTRL,
-          the GPS altitude is still used to initiaize the bias of the other height sensors.
+        long: When multiple height sources are enabled at the same time, the height estimate will always converge towards the reference height source selected by this parameter. The range sensor and vision options should only be used when for operation over a flat surface as the local NED origin will move up and down with ground level. If GPS is set as reference but altitude fusion is disabled in EKF2_GPS_CTRL, the GPS altitude is still used to initiaize the bias of the other height sensors.
       type: enum
       values:
         0: Barometric pressure

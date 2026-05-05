@@ -2379,6 +2379,12 @@
  
  bool Commander::handleModeIntentionAndFailsafe()
  {
+	///////add by naor ////////////////
+	// Tick the position-stable counter: if a pos-required mode is pending,
+	// this counts valid-position iterations and switches after POS_STABLE_THRESHOLD.
+	 _user_mode_intention.tick();
+	///////add by naor ////////////////
+
 	 const uint8_t prev_nav_state = _vehicle_status.nav_state;
 	 const FailsafeBase::Action prev_failsafe_action = _failsafe.selectedAction();
 	 const uint8_t prev_failsafe_defer_state = _vehicle_status.failsafe_defer_state;
@@ -2436,6 +2442,15 @@
  
 	 _vehicle_status.failsafe = _failsafe.inFailsafe();
 	 _vehicle_status.failsafe_and_user_took_over = _failsafe.userTakeoverActive();
+
+	 ///////add by naor ////////////////
+	 // If failsafe is active and the actual nav_state is non-position, clear let_update_ev.
+	 // This handles the case where failsafe degrades POSCTL → ALTCTL without changing
+	 // the user-intended mode (so change() was never called with the fallback mode).
+	 if (_vehicle_status.failsafe) {
+		 _user_mode_intention.onFailsafeNavState(_vehicle_status.nav_state);
+	 }
+	 ///////add by naor ////////////////
  
 	 if (prev_nav_state != _vehicle_status.nav_state) {
 		 _vehicle_status.nav_state_timestamp = hrt_absolute_time();

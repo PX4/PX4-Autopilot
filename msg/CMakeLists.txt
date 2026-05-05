@@ -278,6 +278,7 @@ set(msg_files
 	ddsFlag.msg
 	totalArmTime.msg
 	FormicVioStatus.msg
+	FormicStateMachine.msg
 )
 list(SORT msg_files)
 

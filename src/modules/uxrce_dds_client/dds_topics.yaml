@@ -199,9 +199,6 @@ subscriptions:
 - topic: /fmu/in/vehicle_visual_odometry
   type: px4_msgs::msg::VehicleOdometry
 
-- topic: /fmu/in/formic_odom
-  type: px4_msgs::msg::VehicleOdometry
-
 - topic: /fmu/in/vehicle_command
   type: px4_msgs::msg::VehicleCommand
 

@@ -2206,6 +2206,15 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps)
 	// EKF external vision sample
 	bool new_ev_odom = false;
 
+	///////add by naor ////////////////
+	formic_state_machine_s formic_state_machine{};
+	_formic_state_machine_sub.copy(&formic_state_machine);
+
+
+	if (_param_ekf2_ev_pos_only.get() && !formic_state_machine.let_update_ev) {
+		return false;
+	}
+	/////add by naor ////////////////
 	vehicle_odometry_s ev_odom;
 
 	if (_ev_odom_sub.update(&ev_odom)) {
