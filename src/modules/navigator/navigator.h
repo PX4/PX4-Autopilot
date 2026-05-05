@@ -421,6 +421,17 @@ private:
 	void params_update();
 
 	/**
+	 * Re-resolve `alt` of every triplet entry whose `alt_is_terrain_relative`
+	 * flag is set, using the latest EKF terrain estimate. Called every loop
+	 * before the triplet is published so terrain-relative setpoints track
+	 * the surface continuously as the vehicle moves over varying terrain.
+	 *
+	 * This is a no-op until something (DO_REPOSITION with frame
+	 * MAV_FRAME_GLOBAL_TERRAIN_ALT_INT) actually sets the flag.
+	 */
+	void refresh_terrain_relative_setpoints();
+
+	/**
 	 * Publish a new position setpoint triplet for position controllers
 	 */
 	void publish_position_setpoint_triplet();
