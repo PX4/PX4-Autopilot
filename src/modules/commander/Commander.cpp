@@ -1640,6 +1640,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 	case vehicle_command_s::VEHICLE_CMD_EXTERNAL_ATTITUDE_ESTIMATE:
 	case vehicle_command_s::VEHICLE_CMD_DO_AUTOTUNE_ENABLE:
 	case vehicle_command_s::VEHICLE_CMD_ESTIMATOR_SENSOR_ENABLE:
+	case vehicle_command_s::VEHICLE_CMD_ACTUATOR_GROUP_TEST:
 		/* ignore commands that are handled by other parts of the system */
 		break;
 
