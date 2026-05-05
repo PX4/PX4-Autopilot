@@ -78,6 +78,7 @@ uint16 VEHICLE_CMD_DO_SET_STANDARD_MODE=262 # Enable the specified standard MAVL
 uint16 VEHICLE_CMD_GIMBAL_DEVICE_INFORMATION = 283 # Command to ask information about a low level gimbal.
 
 uint16 VEHICLE_CMD_MISSION_START = 300 # Start running a mission. |first_item: the first mission item to run|last_item: the last mission item to run (after this item is run, the mission ends)|
+uint16 VEHICLE_CMD_ACTUATOR_GROUP_TEST = 309 # Test groups of related actuators (e.g. all actuators contributing to roll torque). |[@enum ACTUATOR_TEST_GROUP] Group|[@range -1,1] Value|Unused|Unused|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_ACTUATOR_TEST = 310 # Actuator testing command. |[@range -1,1] value|[s] timeout|Unused|Unused|output function|
 uint16 VEHICLE_CMD_CONFIGURE_ACTUATOR = 311 # Actuator configuration command. |configuration|Unused|Unused|Unused|output function|
 uint16 VEHICLE_CMD_ESC_REQUEST_EEPROM = 312 # Request EEPROM data from an ESC. |ESC Index|Firmware Type|Unused|Unused|Unused|
@@ -209,6 +210,15 @@ uint8 GRIPPER_ACTION_GRAB = 1
 # Used as param1 in DO_SET_SAFETY_SWITCH_STATE command.
 uint8 SAFETY_OFF = 0
 uint8 SAFETY_ON = 1
+
+# param1 in VEHICLE_CMD_ACTUATOR_GROUP_TEST (matches MAVLink ACTUATOR_TEST_GROUP enum)
+uint8 ACTUATOR_TEST_GROUP_ROLL_TORQUE = 0
+uint8 ACTUATOR_TEST_GROUP_PITCH_TORQUE = 1
+uint8 ACTUATOR_TEST_GROUP_YAW_TORQUE = 2
+uint8 ACTUATOR_TEST_GROUP_COLLECTIVE_TILT = 3
+uint8 ACTUATOR_TEST_GROUP_X_THRUST = 4
+uint8 ACTUATOR_TEST_GROUP_Y_THRUST = 5
+uint8 ACTUATOR_TEST_GROUP_Z_THRUST = 6
 
 uint8 ORB_QUEUE_LENGTH = 8
 
