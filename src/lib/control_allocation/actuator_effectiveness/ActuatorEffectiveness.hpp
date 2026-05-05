@@ -221,6 +221,15 @@ public:
 	 */
 	virtual void stopMaskedMotorsWithZeroThrust(ActuatorBitmask stoppable_motors_mask, ActuatorVector &actuator_sp);
 
+	/**
+	 * Override the collective tilt setpoint that would normally come from
+	 * tiltrotor_extra_controls. Base implementation is a no-op.
+	 *
+	 * @param do_override When true, use @p collective_tilt instead of the uORB value.
+	 * @param collective_tilt Normalised setpoint in [0, 1]. 0: vertical, 1: horizontal.
+	 */
+	virtual void overrideCollectiveTilt(bool /*do_override*/, float /*collective_tilt*/) {}
+
 protected:
 	FlightPhase _flight_phase{FlightPhase::HOVER_FLIGHT};
 	ActuatorBitmask _stopped_motors_mask{0};
