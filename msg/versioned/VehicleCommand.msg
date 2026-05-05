@@ -1,9 +1,18 @@
 # Vehicle Command uORB message. Used for commanding a mission / action / etc.
 # Follows the MAVLink COMMAND_INT / COMMAND_LONG definition
 
-uint32 MESSAGE_VERSION = 0
+uint32 MESSAGE_VERSION = 1
 
 uint64 timestamp # [us] Time since system start.
+
+# Frame of reference for the lat/lon/alt fields (param5/6/7), mirrors MAV_FRAME.
+# Only frames relevant to position-bearing commands are listed.
+uint8 FRAME_GLOBAL = 0                  # WGS84 (MSL altitude)
+uint8 FRAME_GLOBAL_RELATIVE_ALT = 3     # Altitude is relative to home
+uint8 FRAME_GLOBAL_INT = 5              # Same as FRAME_GLOBAL but coordinates are int32
+uint8 FRAME_GLOBAL_RELATIVE_ALT_INT = 6 # Same as FRAME_GLOBAL_RELATIVE_ALT but int32 coords
+uint8 FRAME_GLOBAL_TERRAIN_ALT = 10     # Altitude is meters above terrain (AGL)
+uint8 FRAME_GLOBAL_TERRAIN_ALT_INT = 11 # Same as FRAME_GLOBAL_TERRAIN_ALT but int32 coords
 
 uint16 VEHICLE_CMD_CUSTOM_0 = 0 # Test command.
 uint16 VEHICLE_CMD_CUSTOM_1 = 1 # Test command.
@@ -231,6 +240,7 @@ float32 param4 # Parameter 4, as defined by MAVLink uint16 VEHICLE_CMD enum.
 float64 param5 # Parameter 5, as defined by MAVLink uint16 VEHICLE_CMD enum.
 float64 param6 # Parameter 6, as defined by MAVLink uint16 VEHICLE_CMD enum.
 float32 param7 # Parameter 7, as defined by MAVLink uint16 VEHICLE_CMD enum.
+uint8 frame # Frame of reference for param5/6/7 (FRAME_* constants above). Defaults to FRAME_GLOBAL when received via COMMAND_LONG which has no frame field.
 uint32 command # Command ID.
 uint8 target_system # System which should execute the command.
 uint8 target_component # Component which should execute the command, 0 for all components.
