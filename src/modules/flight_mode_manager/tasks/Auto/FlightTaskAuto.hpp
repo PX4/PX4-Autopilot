@@ -180,6 +180,7 @@ protected:
 #if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 					(ParamFloat<px4::params::MIS_TKO_PREC_DLY>) _param_mis_tko_prec_dly,
 #endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+					(ParamFloat<px4::params::MPC_Z_P>) _param_mpc_z_p,
 					(ParamFloat<px4::params::MPC_TKO_SPEED>) _param_mpc_tko_speed,
 					(ParamFloat<px4::params::MPC_TKO_RAMP_T>) _param_mpc_tko_ramp_t
 				       );
