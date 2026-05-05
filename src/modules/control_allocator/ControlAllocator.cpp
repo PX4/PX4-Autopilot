@@ -231,14 +231,6 @@ ControlAllocator::update_effectiveness_source()
 			tmp = new ActuatorEffectivenessTailsitterVTOL(this);
 			break;
 
-		case EffectivenessSource::ROVER_ACKERMANN:
-			tmp = new ActuatorEffectivenessRoverAckermann();
-			break;
-
-		case EffectivenessSource::ROVER_DIFFERENTIAL:
-			// rover_differential_control does allocation and publishes directly to actuator_motors topic
-			break;
-
 		case EffectivenessSource::FIXED_WING:
 			tmp = new ActuatorEffectivenessFixedWing(this);
 			break;
@@ -267,14 +259,13 @@ ControlAllocator::update_effectiveness_source()
 			tmp = new ActuatorEffectivenessHelicopterCoaxial(this);
 			break;
 
-		case EffectivenessSource::ROVER_MECANUM:
-			// rover_mecanum_control does allocation and publishes directly to actuator_motors topic
-			break;
-
 		case EffectivenessSource::SPACECRAFT_2D:
 			tmp = new ActuatorEffectivenessSpacecraft(this);
 			break;
 
+		case EffectivenessSource::ROVER_ACKERMANN: // Unreachable: Rover startup scripts don't load control_allocator. Controllers publish actuator_outputs directly.
+		case EffectivenessSource::ROVER_DIFFERENTIAL:
+		case EffectivenessSource::ROVER_MECANUM:
 		default:
 			PX4_ERR("Unknown airframe");
 			break;
