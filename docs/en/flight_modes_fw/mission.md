@@ -31,21 +31,21 @@ At high level all vehicle types behave in the same way when MISSION mode is enga
    - If flying the vehicle will loiter.
    - If landed the vehicle will "wait".
 
-1. If a mission is stored and PX4 is flying it will execute the [mission/flight plan](../flying/missions.md) from the current step.
+2. If a mission is stored and PX4 is flying it will execute the [mission/flight plan](../flying/missions.md) from the current step.
    - A takeoff mission item will be treated as a normal waypoint.
-1. If a mission is stored and the vehicle is landed it will only takeoff if the active waypoint is a `Takeoff`.
+3. If a mission is stored and the vehicle is landed it will only takeoff if the active waypoint is a `Takeoff`.
    If configured for catapult launch, the vehicle must also be launched (see [FW Takeoff/Landing in Mission](#mission-takeoff)).
-1. If no mission is stored, or if PX4 has finished executing all mission commands:
+4. If no mission is stored, or if PX4 has finished executing all mission commands:
    - If flying the vehicle will loiter.
    - If landed the vehicle will "wait".
-1. You can manually change the current mission command by selecting it in _QGroundControl_.
+5. You can manually change the current mission command by selecting it in _QGroundControl_.
 
    ::: info
    If you have a _Jump to item_ command in the mission, moving to another item will **not** reset the loop counter.
    One implication is that if you change the current mission command to 1 this will not "fully restart" the mission.
    :::
 
-1. The mission will only reset when the vehicle is disarmed or when a new mission is uploaded.
+6. The mission will only reset when the vehicle is disarmed or when a new mission is uploaded.
 
    :::tip
    To automatically disarm the vehicle after it lands, in _QGroundControl_ go to [Vehicle Setup > Safety](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/safety.html), navigate to _Land Mode Settings_ and check the box labeled _Disarm after_.
@@ -126,10 +126,12 @@ Unless otherwise noted, the implementation is as defined in the MAVLink specific
 Mission Items:
 
 - [MAV_CMD_NAV_WAYPOINT](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_WAYPOINT)
-  - _Param3_ (flythrough) is ignored. Flythrough is always enabled if _param 1_ (time_inside) > 0.
+  - _Param3_ (flythrough) is ignored.
+    Flythrough is always enabled if _param 1_ (time_inside) > 0.
 - [MAV_CMD_NAV_LOITER_UNLIM](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LOITER_UNLIM)
 - [MAV_CMD_NAV_LOITER_TIME](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LOITER_TIME)
-- [MAV_CMD_NAV_LAND](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LAND)
+- [MAV_CMD_NAV_LAND](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LAND) — defines the endpoint of a [landing sequence](../flight_modes_fw/mission.md#landing-sequence).
+  - Latitude, longitude, and altitude parameters are all used.
 - [MAV_CMD_NAV_TAKEOFF](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_TAKEOFF)
 - [MAV_CMD_NAV_LOITER_TO_ALT](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LOITER_TO_ALT)
 - [MAV_CMD_DO_JUMP](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_JUMP)
@@ -252,7 +254,7 @@ The following sections describe the landing sequence, land abort and nudging, sa
 
 ### Landing Sequence
 
-A landing pattern consists of a loiter waypoint ([MAV_CMD_NAV_LOITER_TO_ALT](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LOITER_TO_ALT)) followed by a land waypoint ([MAV_CMD_NAV_LAND](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LAND)).
+A landing pattern consists of a waypoint (typically a loiter waypoint: [MAV_CMD_NAV_LOITER_TO_ALT](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LOITER_TO_ALT)) followed by a land waypoint ([MAV_CMD_NAV_LAND](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LAND)).
 The positions of the two points define the start and end point of the landing approach, and hence the glide slope for the landing approach.
 
 This pattern results in the following landing sequence:
@@ -323,7 +325,7 @@ Automatic abort logic is additionally available for several conditions, if confi
 Available automatic abort criteria may be enabled via bitmask parameter [FW_LND_ABORT](#FW_LND_ABORT).
 One example of an automatic abort criteria is the absence of a valid range measurement from a distance sensor.
 
-:::warning
+::: warning
 Landing without a distance sensor is **strongly** discouraged.
 Disabling terrain estimation with [FW_LND_USETER](#FW_LND_USETER) and select bits of [FW_LND_ABORT](#FW_LND_ABORT) will remove the default distance sensor requirement, but consequently falls back to GNSS altitude to determine the flaring altitude, which may be several meters too high or too low, potentially resulting in damage to the airframe.
 :::

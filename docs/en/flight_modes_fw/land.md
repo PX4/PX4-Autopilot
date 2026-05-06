@@ -2,7 +2,7 @@
 
 <img src="../../assets/site/position_fixed.svg" title="Position estimate required (e.g. GPS)" width="30px" />
 
-The _Land_ flight mode causes the vehicle to descend at the position where the mode was engaged, following a circular path until touchdown.
+The _Land_ flight mode causes the vehicle to land at the position where the mode was engaged, following a descending spiral path until touchdown.
 After landing, vehicles will disarm after a short timeout (by default).
 
 :::warning
@@ -19,9 +19,8 @@ Where possible, instead use [Return mode](../flight_modes_fw/return.md) with a p
   - Flying vehicles can't switch to this mode without valid local position.
   - Flying vehicles will failsafe if they lose the position estimate.
 - Mode prevents arming (vehicle must be armed when switching to this mode).
-- RC control switches can be used to change flight modes on any vehicle.
-- RC stick movement is ignored.
-- The mode can be triggered using the [MAV_CMD_NAV_LAND](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LAND) MAVLink command, or by explicitly switching to Land mode.
+- Manual control control switches can be used to change flight modes on any vehicle.
+- Manual control stick movement is ignored.
 
 <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/commander/ModeUtil/mode_requirements.cpp -->
 
@@ -33,9 +32,22 @@ Land mode causes the vehicle follow a descending circular path (corkscrew) until
 
 When the mode is engaged, the vehicle starts to loiter around the current vehicle position with loiter radius [NAV_LOITER_RAD](#NAV_LOITER_RAD) and begins to descend with a constant descent speed.
 The descent speed is calculated using [FW_LND_ANG](#FW_LND_ANG) and the set landing airspeed [FW_LND_AIRSPD](#FW_LND_AIRSPD).
+
 The vehicle will flare if configured to do so (see [Flaring](../flight_modes_fw/mission.md#flaring-roll-out)), and otherwise proceed circling with the constant descent rate until landing is detected.
+The flare requires a downward-facing distance sensor (it will only fire if the vehicle's [VehicleLocalPosition.dist_bottom_valid](../msg_docs/VehicleLocalPosition.md#fields) is `true`).
+Without one [VehicleGlobalPosition.terrain_alt](../msg_docs/VehicleGlobalPosition.md#fields) falls back to 0 AMSL and the vehicle spirals into the ground.
 
 [Manual nudging](../flight_modes_fw/mission.md#automatic-abort) and [automatic land abort](../flight_modes_fw/mission.md#nudging) are not available in land mode.
+
+### Enabling the Mode
+
+The mode can be selected using a switch or button mapped on a manual controller.
+On a GCS you can similarly enable the mode from a **Land** button or by selecting _Land mode_ as the current mode.
+
+Using MAVLink commands:
+
+- [MAV_CMD_NAV_LAND](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LAND) switches to this mode and lands at the current position. Latitude, longitude, and altitude information in the command are ingored.
+- [MAV_CMD_DO_SET_STANDARD_MODE](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_STANDARD_MODE) with mode set to [MAV_STANDARD_MODE_LAND](https://mavlink.io/en/messages/common.html#MAV_STANDARD_MODE_LAND) switches to land mode.
 
 ### Parameters
 
