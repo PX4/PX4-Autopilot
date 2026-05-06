@@ -7,12 +7,19 @@ on:
     # day-of-week: 0=Sun 1=Mon 2=Tue 3=Wed 4=Thu 5=Fri 6=Sat
     - cron: '0 10 * * 1'
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Skip Discourse post and label cleanup — print rendered post body to logs only'
+        type: boolean
+        default: false
 
 jobs:
   post-dev-call:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      issues: write
+      pull-requests: write
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       DISCOURSE_API_KEY: ${{ secrets.DISCOURSE_API_KEY }}
@@ -95,6 +102,26 @@ jobs:
 
           echo "bug_count=$(echo "$BUGS" | jq 'length')" >> "$GITHUB_OUTPUT"
 
+      - name: Fetch Dev Call labeled items
+        id: dev_call
+        run: |
+          ISSUES=$(gh issue list --repo PX4/PX4-Autopilot \
+            --state open --label "Dev Call" \
+            --json number,title,url --limit 50)
+
+          PRS=$(gh pr list --repo PX4/PX4-Autopilot \
+            --search 'label:"Dev Call"' \
+            --json number,title,url --limit 50)
+
+          COMBINED=$(printf '%s\n%s' "$ISSUES" "$PRS" | jq -rs 'flatten')
+
+          echo "$COMBINED" | jq -r '
+            if length == 0 then "- None"
+            else map("- [#\(.number) \(.title)](\(.url))") | join("\n")
+            end' > /tmp/dev_call_items.md
+
+          echo "$COMBINED" | jq -r '.[].number' > /tmp/dev_call_numbers.txt
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -111,11 +138,20 @@ jobs:
           REVIEW=$(cat /tmp/review_prs.md)
           BUGS=$(cat /tmp/bug_issues.md)
           OTHER=$(cat /tmp/other_issues.md)
+          DEV_CALL=$(cat /tmp/dev_call_items.md)
 
-          awk -v m="$MERGED" '{gsub(/__MERGED_PRS__/, m)} 1' /tmp/post_body.md > /tmp/out.md && mv /tmp/out.md /tmp/post_body.md
-          awk -v r="$REVIEW" '{gsub(/__REVIEW_PRS__/, r)} 1' /tmp/post_body.md > /tmp/out.md && mv /tmp/out.md /tmp/post_body.md
-          awk -v b="$BUGS"   '{gsub(/__BUG_ISSUES__/, b)} 1' /tmp/post_body.md > /tmp/out.md && mv /tmp/out.md /tmp/post_body.md
-          awk -v o="$OTHER"  '{gsub(/__OTHER_ISSUES__/, o)} 1' /tmp/post_body.md > /tmp/out.md && mv /tmp/out.md /tmp/post_body.md
+          awk -v m="$MERGED"    '{gsub(/__MERGED_PRS__/, m)} 1'    /tmp/post_body.md > /tmp/out.md && mv /tmp/out.md /tmp/post_body.md
+          awk -v r="$REVIEW"    '{gsub(/__REVIEW_PRS__/, r)} 1'    /tmp/post_body.md > /tmp/out.md && mv /tmp/out.md /tmp/post_body.md
+          awk -v b="$BUGS"      '{gsub(/__BUG_ISSUES__/, b)} 1'    /tmp/post_body.md > /tmp/out.md && mv /tmp/out.md /tmp/post_body.md
+          awk -v o="$OTHER"     '{gsub(/__OTHER_ISSUES__/, o)} 1'  /tmp/post_body.md > /tmp/out.md && mv /tmp/out.md /tmp/post_body.md
+          awk -v d="$DEV_CALL"  '{gsub(/__DEV_CALL_ITEMS__/, d)} 1' /tmp/post_body.md > /tmp/out.md && mv /tmp/out.md /tmp/post_body.md
+
+      - name: Print rendered post body (dry run)
+        if: inputs.dry_run == true
+        run: |
+          echo "=== DRY RUN — post body that would be submitted ==="
+          cat /tmp/post_body.md
+          echo "====================================================="
 
       - name: Check for duplicate Discourse topic
         id: duplicate_check
@@ -140,7 +176,7 @@ jobs:
 
       - name: Post to Discourse
         id: discourse
-        if: steps.duplicate_check.outputs.skip == 'false'
+        if: inputs.dry_run != true && steps.duplicate_check.outputs.skip == 'false'
         run: |
           DISPLAY_DATE="${{ steps.dates.outputs.display_date }}"
           TITLE="PX4 Dev Call: ${DISPLAY_DATE} (Team sync, and Community Q&A)"
@@ -169,6 +205,23 @@ jobs:
           echo "topic_url=$TOPIC_URL" >> "$GITHUB_OUTPUT"
           echo "title=$TITLE" >> "$GITHUB_OUTPUT"
           echo "Created: $TOPIC_URL"
+
+      - name: Remove Dev Call labels and leave comments
+        if: inputs.dry_run != true && steps.discourse.outputs.topic_url != ''
+        run: |
+          if [ ! -s /tmp/dev_call_numbers.txt ]; then
+            echo "No Dev Call items to process"
+            exit 0
+          fi
+
+          TOPIC_URL="${{ steps.discourse.outputs.topic_url }}"
+          COMMENT="Added to the [Dev Call agenda](${TOPIC_URL})."
+
+          while IFS= read -r number; do
+            [ -z "$number" ] && continue
+            gh issue edit "$number" --repo PX4/PX4-Autopilot --remove-label "Dev Call"
+            gh issue comment "$number" --repo PX4/PX4-Autopilot --body "$COMMENT"
+          done < /tmp/dev_call_numbers.txt
 
       # - name: Notify Discord
       #   if: env.DISCORD_WEBHOOK != ''

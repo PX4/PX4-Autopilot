@@ -14,6 +14,12 @@
 
 ---
 
+## Dev Call Items
+
+__DEV_CALL_ITEMS__
+
+---
+
 ## Release
 
 **Current tag:** [v1.17.0-rc2](https://github.com/PX4/PX4-Autopilot/releases/tag/v1.17.0-rc2)
