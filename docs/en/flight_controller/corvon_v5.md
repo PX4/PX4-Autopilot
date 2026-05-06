@@ -110,7 +110,7 @@ You can press the safety switch again to enable safety and disarm the vehicle.
 
 This flight controller supports up to 8 FMU PWM outputs (`MAIN`).
 
-[DShot](../peripherals/dshot.md) is supported on outputs 1-4 (on Timer1).
+[DShot](../peripherals/dshot.md) is not supported.
 
 The 8 outputs are in 3 groups:
 
