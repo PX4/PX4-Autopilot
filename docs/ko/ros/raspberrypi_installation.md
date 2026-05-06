@@ -18,25 +18,21 @@ If you want to download packages (e.g. `sudo apt-get install ros-indigo-ros-tuto
 그런 오류가 발생하면, catkin 작업 공간(예: ~/ros_catkin_ws)으로 이동하여 패키지 이름을 변경합니다.
 
 ```sh
-$ cd ~/ros_catkin_ws
-
-$ rosinstall_generator ros_tutorials --rosdistro indigo --deps --wet-only --exclude roslisp --tar > indigo-custom_ros.rosinstall
+cd ~/ros_catkin_ws
+rosinstall_generator ros_tutorials --rosdistro indigo --deps --wet-only --exclude roslisp --tar > indigo-custom_ros.rosinstall
 ```
 
 다음으로 wstool로 작업 공간을 업데이트 합니다.
 
 ```sh
-$ wstool merge -t src indigo-custom_ros.rosinstall
-
-$ wstool update -t src
+wstool merge -t src indigo-custom_ros.rosinstall
+wstool update -t src
 ```
 
 다음으로(여전히 작업 공간 폴더에 있음) 파일을 소싱하고 빌드합니다.
 
 ```sh
-$ source /opt/ros/indigo/setup.bash
-
-$ source devel/setup.bash
-
-$ catkin_make
+source /opt/ros/indigo/setup.bash
+source devel/setup.bash
+catkin_make
 ```

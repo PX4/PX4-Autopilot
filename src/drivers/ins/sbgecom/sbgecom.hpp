@@ -184,6 +184,15 @@ private:
 	static void send_config_file(SbgEComHandle *pHandle, const char *file_path);
 
 	/**
+	* @brief Compute the absolute difference between two HRT timestamps.
+	*
+	* @param first_timestamp First HRT timestamp in microseconds.
+	* @param second_timestamp Second HRT timestamp in microseconds.
+	* @return Absolute difference between both timestamps in microseconds.
+	*/
+	static hrt_abstime time_diff(hrt_abstime first_timestamp, hrt_abstime second_timestamp);
+
+	/**
 	* @brief Get and print product info.
 	*
 	* @param handle SbgECom instance.

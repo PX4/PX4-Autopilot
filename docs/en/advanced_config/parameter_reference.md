@@ -18723,21 +18723,6 @@ A zero or negative value means that automatic disarming triggered by landing det
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; |          |          | 0.1       | 2.0     | s    | &nbsp;    |
 
-### COM_DISARM_MAN (`INT32`) {#COM_DISARM_MAN}
-
-Allow disarming in manual thrust modes.
-
-Allow disarming via switch/stick/button on multicopters in manual thrust modes
-
-0: Disallow disarming when not landed
-1: Allow disarming in multicopter flight in modes where
-the thrust is directly controlled by thr throttle stick
-e.g. Stabilized, Acro
-
-| Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
-| &nbsp; |          |          |           | Enabled (1) |      | &nbsp;    |
-
 ### COM_DISARM_PRFLT (`FLOAT`) {#COM_DISARM_PRFLT}
 
 Time-out for auto disarm if not taking off.
