@@ -1,0 +1,64 @@
+name: Pixi build
+
+on:
+  push:
+    branches:
+    - 'main'
+    paths-ignore:
+      - 'docs/**'
+  pull_request:
+    branches:
+      - '**'
+    paths-ignore:
+      - 'docs/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Setup CCache
+      uses: ./.github/actions/setup-ccache
+      id: ccache
+      with:
+        cache-key-prefix: ccache-pixi
+        max-size: 200M
+
+    - name: Install Pixi
+      uses: prefix-dev/setup-pixi@1b2de7f3351f171c8b4dfeb558c639cb58ed4ec0 # v0.9.5
+      with:
+        pixi-version: v0.67.2
+        cache: false
+
+    - name: Cache - Stats before build and reset
+      run: |
+        pixi run ccache -s
+        pixi run ccache -z
+        pixi run ccache -p
+
+    - name: Build px4_sitl
+      run: pixi run build px4_sitl
+
+    - name: Cache - Stats after px4_sitl
+      run: pixi run ccache -s
+
+    - name: Build px4_fmu-v5_default
+      run: pixi run build px4_fmu-v5_default
+
+    - name: Cache - Stats after v5_default
+      run: pixi run ccache -s
+
+    - uses: ./.github/actions/save-ccache
+      if: always()
+      with:
+        cache-primary-key: ${{ steps.ccache.outputs.cache-primary-key }}
