@@ -85,16 +85,14 @@ private:
 					bat_msg.voltage = float(NAN);
 				}
 
-				if (battery_status.connected && PX4_ISFINITE(battery_status.current_a)
-				    && battery_status.current_a != -1.0f) {
+				if (battery_status.connected && fabsf(battery_status.current_a + 1.f) > FLT_EPSILON) {
 					bat_msg.current = battery_status.current_a;
 
 				} else {
 					bat_msg.current = float(NAN);
 				}
 
-				if (battery_status.connected && PX4_ISFINITE(battery_status.discharged_mah)
-				    && battery_status.discharged_mah != -1.0f) {
+				if (battery_status.connected && fabsf(battery_status.discharged_mah + 1.f) > FLT_EPSILON) {
 					bat_msg.capacity_consumed = battery_status.discharged_mah * 1e-3f;
 
 				} else {
@@ -110,8 +108,7 @@ private:
 					bat_msg.capacity_remaining = float(NAN);
 				}
 
-				if (battery_status.connected && PX4_ISFINITE(battery_status.remaining)
-				    && battery_status.remaining != -1.0f) {
+				if (battery_status.connected && fabsf(battery_status.remaining + 1.f) > FLT_EPSILON) {
 					bat_msg.percent_remaining = static_cast<uint8_t>(roundf(battery_status.remaining * 1e2f));
 
 				} else {
