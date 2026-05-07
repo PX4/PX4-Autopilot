@@ -86,6 +86,20 @@ bool segmentsIntersect(const matrix::Vector2f &p1, const matrix::Vector2f &p2,
 	return t > 0.0f && t < 1.0f && u > 0.0f && u < 1.0f;
 }
 
+bool lineSegmentIntersectsPolygon(const matrix::Vector2f &start, const matrix::Vector2f &end,
+				  const matrix::Vector2f *vertices, int num_vertices)
+{
+	for (int vertex_idx = 0; vertex_idx < num_vertices; vertex_idx++) {
+		int prev_idx = vertex_idx == 0 ? num_vertices - 1 : vertex_idx - 1;
+
+		if (segmentsIntersect(start, end, vertices[vertex_idx], vertices[prev_idx])) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 bool lineSegmentIntersectsCircle(const matrix::Vector2f &start, const matrix::Vector2f &end,
 				 const matrix::Vector2f &center, float radius)
 {

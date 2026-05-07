@@ -738,35 +738,30 @@ bool Geofence::checkIfLineViolatesAnyFence(const matrix::Vector2f &start_local, 
 
 		if (info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION || info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION) {
 
+			matrix::Vector2f vertices_local[info.vertex_count];
+			dm_item_t fence_dataman_id{static_cast<dm_item_t>(_stats.dataman_id)};
+			bool load_success = true;
+
 			for (int vertex_idx = 0; vertex_idx < info.vertex_count; vertex_idx++) {
-				mission_fence_point_s vertex_current{};
-				mission_fence_point_s vertex_previous{};
+				mission_fence_point_s vertex{};
 
-				int prev_idx = vertex_idx == 0 ? info.vertex_count - 1 : vertex_idx - 1;
-
-				dm_item_t fence_dataman_id{static_cast<dm_item_t>(_stats.dataman_id)};
-				bool success = _dataman_cache.loadWait(fence_dataman_id, info.dataman_index + vertex_idx,
-								       reinterpret_cast<uint8_t *>(&vertex_current),
-								       sizeof(mission_fence_point_s));
-
-				if (!success) {
+				if (!_dataman_cache.loadWait(fence_dataman_id, info.dataman_index + vertex_idx,
+							     reinterpret_cast<uint8_t *>(&vertex),
+							     sizeof(mission_fence_point_s))) {
+					load_success = false;
 					break;
 				}
 
-				success = _dataman_cache.loadWait(fence_dataman_id, info.dataman_index + prev_idx,
-								  reinterpret_cast<uint8_t *>(&vertex_previous),
-								  sizeof(mission_fence_point_s));
+				vertices_local[vertex_idx] = ref.project(vertex.lat, vertex.lon);
+			}
 
-				if (!success) {
-					break;
-				}
+			if (!load_success) {
+				continue;
+			}
 
-				matrix::Vector2f vertex_current_local = ref.project(vertex_current.lat, vertex_current.lon);
-				matrix::Vector2f vertex_previous_local = ref.project(vertex_previous.lat, vertex_previous.lon);
-
-				if (geofence_utils::segmentsIntersect(start_local, end_local, vertex_current_local, vertex_previous_local)) {
-					return true;
-				}
+			if (geofence_utils::lineSegmentIntersectsPolygon(
+				    start_local, end_local, vertices_local, info.vertex_count)) {
+				return true;
 			}
 
 		} else if (info.fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION || info.fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION) {

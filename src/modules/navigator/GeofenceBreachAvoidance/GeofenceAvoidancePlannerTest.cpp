@@ -49,17 +49,14 @@ public:
 	{
 		MapProjection ref{reference(0), reference(1)};
 
-		for (int i = 0; i < _num_vertices; i++) {
-			matrix::Vector2f v1_local = ref.project(_vertices[i](0), _vertices[i](1));
-			matrix::Vector2f v2_local = ref.project(_vertices[(i + 1) % _num_vertices](0),
-								_vertices[(i + 1) % _num_vertices](1));
+		matrix::Vector2f vertices_local[_num_vertices];
 
-			if (geofence_utils::segmentsIntersect(start_local, end_local, v1_local, v2_local)) {
-				return true;
-			}
+		for (int i = 0; i < _num_vertices; i++) {
+			vertices_local[i] = ref.project(_vertices[i](0), _vertices[i](1));
 		}
 
-		return false;
+		return geofence_utils::lineSegmentIntersectsPolygon(start_local, end_local,
+				vertices_local, _num_vertices);
 	}
 
 	PolygonInfo getPolygonInfoByIndex(int index) override

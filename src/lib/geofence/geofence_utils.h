@@ -97,6 +97,19 @@ bool segmentsIntersect(const matrix::Vector2f &p1, const matrix::Vector2f &p2,
 		       const matrix::Vector2f &v1, const matrix::Vector2f &v2);
 
 /**
+ * Check if a line segment intersects any edge of a polygon (excluding endpoints).
+ * Works in local Cartesian coordinates (meters).
+ *
+ * @param start          segment start in local frame
+ * @param end            segment end in local frame
+ * @param vertices       polygon vertices in local frame
+ * @param num_vertices   number of vertices
+ * @return true if the segment intersects any polygon edge
+ */
+bool lineSegmentIntersectsPolygon(const matrix::Vector2f &start, const matrix::Vector2f &end,
+				  const matrix::Vector2f *vertices, int num_vertices);
+
+/**
  * Check if a line segment intersects a circle.
  * Works in local Cartesian coordinates (meters).
  *
