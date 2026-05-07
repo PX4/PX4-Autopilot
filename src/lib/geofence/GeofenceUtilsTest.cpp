@@ -104,11 +104,11 @@ TEST(GeofenceUtilsTest, SegmentsParallel)
 	EXPECT_FALSE(geofence_utils::segmentsIntersect(v1, v2, v1, v2));
 }
 
-TEST(GeofenceUtilsTest, SegmentPolygonIntersectOutside)
+TEST(GeofenceUtilsTest, SegmentPolygonExclusionOutside)
 {
 	static constexpr int N = 4;
 
-	// Unit square
+	// Unit square (exclusion zone: inside disallowed)
 	Vector2f p1(0.f, 0.f);
 	Vector2f p2(1.f, 0.f);
 	Vector2f p3(1.f, 1.f);
@@ -120,15 +120,15 @@ TEST(GeofenceUtilsTest, SegmentPolygonIntersectOutside)
 	Vector2f l1(4.f, 5.f);
 	Vector2f l2(5.f, 4.f);
 
-	// They should not intersect
-	EXPECT_FALSE(geofence_utils::lineSegmentIntersectsPolygon(l1, l2, vertices, N));
+	// Outside an exclusion zone is allowed -> no intersection
+	EXPECT_FALSE(geofence_utils::lineSegmentIntersectsPolygon(l1, l2, vertices, N, false));
 }
 
-TEST(GeofenceUtilsTest, SegmentPolygonIntersectThroughEdge)
+TEST(GeofenceUtilsTest, SegmentPolygonExclusionThroughEdge)
 {
 	static constexpr int N = 4;
 
-	// Unit square
+	// Unit square (exclusion zone)
 	Vector2f p1(0.f, 0.f);
 	Vector2f p2(1.f, 0.f);
 	Vector2f p3(1.f, 1.f);
@@ -140,22 +140,21 @@ TEST(GeofenceUtilsTest, SegmentPolygonIntersectThroughEdge)
 	Vector2f l1(0.5f, 0.5f);
 	Vector2f l2(0.5f, 1.5f);
 
-	// Should intersect
-	EXPECT_TRUE(geofence_utils::lineSegmentIntersectsPolygon(l1, l2, vertices, N));
+	// Crossing an edge always counts as intersection regardless of zone type
+	EXPECT_TRUE(geofence_utils::lineSegmentIntersectsPolygon(l1, l2, vertices, N, false));
 
 	// Line through several edges
 	Vector2f l3(0.5f, -0.5f);
 	Vector2f l4(0.5f, 1.5f);
 
-	// Should intersect
-	EXPECT_TRUE(geofence_utils::lineSegmentIntersectsPolygon(l3, l4, vertices, N));
+	EXPECT_TRUE(geofence_utils::lineSegmentIntersectsPolygon(l3, l4, vertices, N, false));
 }
 
-TEST(GeofenceUtilsTest, SegmentPolygonIntersectInside)
+TEST(GeofenceUtilsTest, SegmentPolygonExclusionInside)
 {
 	static constexpr int N = 4;
 
-	// Unit square
+	// Unit square (exclusion zone)
 	Vector2f p1(0.f, 0.f);
 	Vector2f p2(1.f, 0.f);
 	Vector2f p3(1.f, 1.f);
@@ -167,23 +166,83 @@ TEST(GeofenceUtilsTest, SegmentPolygonIntersectInside)
 	Vector2f l1(0.f, 0.f);
 	Vector2f l2(1.f, 1.f);
 
-	// Should intersect
-	EXPECT_TRUE(geofence_utils::lineSegmentIntersectsPolygon(l1, l2, vertices, N));
+	EXPECT_TRUE(geofence_utils::lineSegmentIntersectsPolygon(l1, l2, vertices, N, false));
 
 	// Line exactly touching sides
 	Vector2f l3(0.5f, 0.0f);
 	Vector2f l4(0.5f, 1.0f);
 
-	// Should intersect
-	EXPECT_TRUE(geofence_utils::lineSegmentIntersectsPolygon(l3, l4, vertices, N));
+	EXPECT_TRUE(geofence_utils::lineSegmentIntersectsPolygon(l3, l4, vertices, N, false));
 
-	// Line completely in the interior
+	// Line completely in the interior of an exclusion zone -> disallowed
 	Vector2f l5(0.2f, 0.2f);
 	Vector2f l6(0.6f, 0.5f);
 
-	// Should intersect
-	EXPECT_TRUE(geofence_utils::lineSegmentIntersectsPolygon(l5, l6, vertices, N));
+	EXPECT_TRUE(geofence_utils::lineSegmentIntersectsPolygon(l5, l6, vertices, N, false));
+}
 
+TEST(GeofenceUtilsTest, SegmentPolygonInclusionOutside)
+{
+	static constexpr int N = 4;
+
+	// Unit square (inclusion zone: outside disallowed)
+	Vector2f p1(0.f, 0.f);
+	Vector2f p2(1.f, 0.f);
+	Vector2f p3(1.f, 1.f);
+	Vector2f p4(0.f, 1.f);
+
+	Vector2f vertices[N] = {p1, p2, p3, p4};
+
+	// Line in a completely random place outside the polygon
+	Vector2f l1(4.f, 5.f);
+	Vector2f l2(5.f, 4.f);
+
+	// Outside an inclusion zone is disallowed -> intersection
+	EXPECT_TRUE(geofence_utils::lineSegmentIntersectsPolygon(l1, l2, vertices, N, true));
+}
+
+TEST(GeofenceUtilsTest, SegmentPolygonInclusionThroughEdge)
+{
+	static constexpr int N = 4;
+
+	// Unit square (inclusion zone)
+	Vector2f p1(0.f, 0.f);
+	Vector2f p2(1.f, 0.f);
+	Vector2f p3(1.f, 1.f);
+	Vector2f p4(0.f, 1.f);
+
+	Vector2f vertices[N] = {p1, p2, p3, p4};
+
+	// Line crossing an edge from inside to outside
+	Vector2f l1(0.5f, 0.5f);
+	Vector2f l2(0.5f, 1.5f);
+
+	EXPECT_TRUE(geofence_utils::lineSegmentIntersectsPolygon(l1, l2, vertices, N, true));
+
+	// Line through several edges
+	Vector2f l3(0.5f, -0.5f);
+	Vector2f l4(0.5f, 1.5f);
+
+	EXPECT_TRUE(geofence_utils::lineSegmentIntersectsPolygon(l3, l4, vertices, N, true));
+}
+
+TEST(GeofenceUtilsTest, SegmentPolygonInclusionInside)
+{
+	static constexpr int N = 4;
+
+	// Unit square (inclusion zone)
+	Vector2f p1(0.f, 0.f);
+	Vector2f p2(1.f, 0.f);
+	Vector2f p3(1.f, 1.f);
+	Vector2f p4(0.f, 1.f);
+
+	Vector2f vertices[N] = {p1, p2, p3, p4};
+
+	// Line completely in the interior of an inclusion zone -> allowed
+	Vector2f l1(0.2f, 0.2f);
+	Vector2f l2(0.6f, 0.5f);
+
+	EXPECT_FALSE(geofence_utils::lineSegmentIntersectsPolygon(l1, l2, vertices, N, true));
 }
 
 
