@@ -37,16 +37,37 @@
 namespace geofence_utils
 {
 
-bool insidePolygon(const matrix::Vector2f *vertices, int num_vertices,
-		   const matrix::Vector2f &point)
-{
-	bool c = false;
+// Ternary point-in-polygon classification used internally. OnBoundary is
+// returned when the point lies exactly on a polygon edge or vertex.
+enum class PointPolygonRelation { Inside, Outside, OnBoundary };
 
-	for (int i = 0, j = num_vertices - 1; i < num_vertices; j = i++) {
-		insidePolygonUpdateState(c, vertices[i], vertices[j], point);
+// Winding-number point-in-polygon test built on orient2d. Robust on the
+// boundary (returns OnBoundary deterministically) and orientation-independent.
+//
+// Reference: Dan Sunday, "Inclusion of a Point in a Polygon"
+// (https://web.archive.org/web/20130126163405/http://geomalgorithms.com/a03-_inclusion.html).
+static PointPolygonRelation classifyPointInPolygon(const matrix::Vector2f *vs, int n,
+		const matrix::Vector2f &p)
+{
+	int wn = 0;
+
+	for (int i = 0; i < n; i++) {
+		const matrix::Vector2f &a = vs[i];
+		const matrix::Vector2f &b = vs[(i + 1) % n];
+
+		const int side = orient2d(a, b, p);
+
+		if (side == 0 && collinearBetween(a, b, p)) {
+			return PointPolygonRelation::OnBoundary;
+		}
+
+		if (a(1) <= p(1)) {
+			if (b(1) > p(1) && side > 0) { wn++; }
+
+		} else if (b(1) <= p(1) && side < 0) { wn--; }
 	}
 
-	return c;
+	return wn != 0 ? PointPolygonRelation::Inside : PointPolygonRelation::Outside;
 }
 
 bool insideCircle(const matrix::Vector2<double> &center, float radius,
@@ -56,75 +77,113 @@ bool insideCircle(const matrix::Vector2<double> &center, float radius,
 	return dist < radius;
 }
 
-bool segmentsIntersect(const matrix::Vector2f &p1, const matrix::Vector2f &p2,
-		       const matrix::Vector2f &v1, const matrix::Vector2f &v2)
+// O'Rourke, "Computational Geometry in C" (2nd ed.), section 1.5: SegSegInt.
+// Classifies a segment-segment intersection from the four orient2d signs of
+// the endpoints. No asymmetric strict/non-strict tolerance convention is
+// baked in -- the caller decides which variants count as "intersecting".
+SegSegResult segmentsIntersect(const matrix::Vector2f &a, const matrix::Vector2f &b,
+			       const matrix::Vector2f &c, const matrix::Vector2f &d)
 {
-	// line intersection algorithm from wikipedia
-	// https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
-	// Basic idea: a 2D vector formula for each line is created, consisting of a start point e.g. p1
-	// and a direction vector pointing from p1 to p2. A running variable t [0,1] defines the position
-	// on the line betwen p1 and p2. So in this case the formula for the line is P = p1 + t * (p2-p1).
-	// The same is done for the second line and then both lines are set to be equal (to find the intersection).
-	// We get two equations with two unknowns (t and u) which can be solved. If the denominator is zero, the lines are parallel
-	// or coinciding, which means we can stop. If the solution for t and u is between 0 and 1, the line segments intersect, otherwise they don't.
+	const int o1 = orient2d(a, b, c);
+	const int o2 = orient2d(a, b, d);
+	const int o3 = orient2d(c, d, a);
+	const int o4 = orient2d(c, d, b);
 
-	// Convention:
-	//  - p (parameterised by t) is the line segment belonging to a polygon
-	//  - v (parameterised by u) is the line segment between two vertices, not necessarily belonging to a polygon
-	// Important because strict/non-strict inequalities are different
-
-	float x1 = p1(0), y1 = p1(1);
-	float x2 = p2(0), y2 = p2(1);
-	float x3 = v1(0), y3 = v1(1);
-	float x4 = v2(0), y4 = v2(1);
-
-	float denominator = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
-
-	if (fabsf(denominator) < FLT_EPSILON) {
-		// Lines are parallel (no intersection exists) or overlapping
-		// (no intersection by our convention, we allow riding the edge)
-		return false;
+	// Each segment strictly straddles the other's supporting line.
+	if (o1 && o2 && o3 && o4 && o1 != o2 && o3 != o4) {
+		return SegSegResult::Proper;
 	}
 
-	float t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denominator;
-	float u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denominator;
+	// All four points collinear: overlap iff any endpoint of one lies on the other.
+	if (!o1 && !o2 && !o3 && !o4) {
+		if (collinearBetween(a, b, c) || collinearBetween(a, b, d) ||
+		    collinearBetween(c, d, a) || collinearBetween(c, d, b)) {
+			return SegSegResult::CollinearOverlap;
+		}
 
-	// lines intersect if both running variables are between 0 and 1
+		return SegSegResult::None;
+	}
 
-	// The running variable t corresponding to the _polygon_ edge is 0 or 1
-	// if we go through a vertex, in which case we want to consider it an
-	// intersection, so we include that case.
+	// One endpoint sits on the other segment.
+	if ((!o1 && collinearBetween(a, b, c)) ||
+	    (!o2 && collinearBetween(a, b, d)) ||
+	    (!o3 && collinearBetween(c, d, a)) ||
+	    (!o4 && collinearBetween(c, d, b))) {
+		return SegSegResult::Touching;
+	}
 
-	// The running variable u corresponding to the non-polygon edge is 0 or
-	// 1 if the line touches a polygon vertex. Do not include this case - an
-	// outgoing line from a polygon vertex to another polygon can be
-	// collision-free.
-
-	return t >= 0.0f && t <= 1.0f && u > 0.0f && u < 1.0f;
+	return SegSegResult::None;
 }
 
 bool lineSegmentIntersectsPolygon(const matrix::Vector2f &start, const matrix::Vector2f &end,
 				  const matrix::Vector2f *vertices, int num_vertices, bool is_inclusion_zone)
 {
+	// Walk polygon edges, looking for proper boundary crossings. A proper
+	// crossing is a definite transition between inside and outside, which
+	// violates either zone type.
+	for (int i = 0; i < num_vertices; i++) {
+		const int prev = (i == 0) ? num_vertices - 1 : i - 1;
 
-	// First pass: If there is a proper intersection (open line segment
-	// start-end with closed line segment between vertices), it is
-	// intersecting.
-
-	for (int vertex_idx = 0; vertex_idx < num_vertices; vertex_idx++) {
-		int prev_idx = vertex_idx == 0 ? num_vertices - 1 : vertex_idx - 1;
-
-		if (segmentsIntersect(vertices[vertex_idx], vertices[prev_idx], start, end)) {
+		if (segmentsIntersect(vertices[prev], vertices[i], start, end) == SegSegResult::Proper) {
 			return true;
 		}
 	}
 
-	// Remaining cases: The line is either completely outside or completely inside.
-	const bool midpoint_inside = insidePolygon(vertices, num_vertices, 0.5f * (start + end));
+	// Polygon vertices touching the open segment do not by themselves prove a
+	// crossing -- the segment may merely graze (run along an incident edge,
+	// or skim a corner from outside). Record those as split points and below
+	// classify each sub-segment by sampling its midpoint.
+	const matrix::Vector2f delta = end - start;
+	const float delta_norm_sq = delta.dot(delta);
 
-	// Inclusion zone: inside -> no intersection, outside -> intersection
-	// Exclusion zone: inside -> intersection, outside -> no intersection
-	return midpoint_inside != is_inclusion_zone;
+	float vertex_hit_params[num_vertices];
+	int num_hits = 0;
+
+	if (delta_norm_sq >= FLT_EPSILON) {
+		for (int i = 0; i < num_vertices; i++) {
+			if (orient2d(start, end, vertices[i]) != 0) { continue; }
+
+			const float s = delta.dot(vertices[i] - start) / delta_norm_sq;
+
+			if (s > FLT_EPSILON && s < 1.0f - FLT_EPSILON) {
+				vertex_hit_params[num_hits++] = s;
+			}
+		}
+	}
+
+	// Insertion sort -- num_hits is small.
+	for (int i = 1; i < num_hits; i++) {
+		const float k = vertex_hit_params[i];
+		int j = i - 1;
+
+		while (j >= 0 && vertex_hit_params[j] > k) {
+			vertex_hit_params[j + 1] = vertex_hit_params[j];
+			j--;
+		}
+
+		vertex_hit_params[j + 1] = k;
+	}
+
+	// Each sub-segment between consecutive split points lies wholly on one
+	// side of the polygon boundary (or along it). Sample the midpoint.
+	// OnBoundary is treated as allowed for both zone types -- a segment
+	// running exactly along the fence line is not a violation.
+	float prev_s = 0.0f;
+
+	for (int i = 0; i <= num_hits; i++) {
+		const float next_s = (i == num_hits) ? 1.0f : vertex_hit_params[i];
+		const matrix::Vector2f sample = start + (0.5f * (prev_s + next_s)) * delta;
+		const PointPolygonRelation r = classifyPointInPolygon(vertices, num_vertices, sample);
+
+		if ((is_inclusion_zone && r == PointPolygonRelation::Outside) ||
+		    (!is_inclusion_zone && r == PointPolygonRelation::Inside)) {
+			return true;
+		}
+
+		prev_s = next_s;
+	}
+
+	return false;
 }
 
 bool lineSegmentIntersectsCircle(const matrix::Vector2f &start, const matrix::Vector2f &end,

@@ -84,19 +84,65 @@ bool insideCircle(const matrix::Vector2<double> &center, float radius,
 		  const matrix::Vector2<double> &point);
 
 /**
- * Check if two line segments intersect (excluding endpoints*).
- * Works in local Cartesian coordinates (meters).
+ * Sign of the signed area of triangle abc (twice the area). Equivalently the
+ * sign of the 2D cross product (b - a) x (c - a). The fundamental orientation
+ * predicate of 2D computational geometry: every higher-level test in this
+ * file (segment intersection, point-in-polygon, wedge classification) is
+ * built from it.
  *
- * * TODO write correctly - see inside
+ *   +1  c is strictly to the left of directed line a -> b   (CCW turn)
+ *    0  a, b, c are collinear (within FLT_EPSILON tolerance)
+ *   -1  c is strictly to the right of a -> b               (CW turn)
  *
- * @param p1  first segment start in local frame
- * @param p2  first segment end in local frame
- * @param v1  second segment start in local frame
- * @param v2  second segment end in local frame
- * @return true if the segments intersect
+ * Reference: O'Rourke, "Computational Geometry in C" (2nd ed.), section 1.5.
  */
-bool segmentsIntersect(const matrix::Vector2f &p1, const matrix::Vector2f &p2,
-		       const matrix::Vector2f &v1, const matrix::Vector2f &v2);
+inline int orient2d(const matrix::Vector2f &a,
+		    const matrix::Vector2f &b,
+		    const matrix::Vector2f &c)
+{
+	const float det = (b(0) - a(0)) * (c(1) - a(1)) - (b(1) - a(1)) * (c(0) - a(0));
+
+	if (det >  FLT_EPSILON) { return  1; }
+
+	if (det < -FLT_EPSILON) { return -1; }
+
+	return 0;
+}
+
+/**
+ * For a, b, c known to be collinear (orient2d == 0), is c on the closed
+ * segment ab?
+ */
+inline bool collinearBetween(const matrix::Vector2f &a,
+			     const matrix::Vector2f &b,
+			     const matrix::Vector2f &c)
+{
+	if (fabsf(a(0) - b(0)) >= fabsf(a(1) - b(1))) {
+		return (a(0) <= c(0) && c(0) <= b(0)) || (b(0) <= c(0) && c(0) <= a(0));
+
+	} else {
+		return (a(1) <= c(1) && c(1) <= b(1)) || (b(1) <= c(1) && c(1) <= a(1));
+	}
+}
+
+/**
+ * Result of a 2D segment-segment intersection test. The caller decides which
+ * variants count as "intersecting" for its purpose -- there is no baked-in
+ * convention. Reference: O'Rourke, "Computational Geometry in C" (2nd ed.),
+ * SegSegInt, section 1.5.
+ */
+enum class SegSegResult {
+	None,             ///< segments are disjoint
+	Proper,           ///< strict interior crossing of both segments
+	Touching,         ///< exactly one endpoint of one segment lies on the other (interior or shared endpoint)
+	CollinearOverlap, ///< segments are collinear and share more than a point
+};
+
+/**
+ * Classify the intersection of segment ab with segment cd. See SegSegResult.
+ */
+SegSegResult segmentsIntersect(const matrix::Vector2f &a, const matrix::Vector2f &b,
+			       const matrix::Vector2f &c, const matrix::Vector2f &d);
 
 /**
  * Check if a line segment and a polygon have non-empty intersection.
