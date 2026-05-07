@@ -107,7 +107,7 @@ bool GeofenceAvoidancePlanner::update_vertices(GeofenceInterface &geofence, floa
 		return false;
 	}
 
-	update_distances_between_vertices(geofence);
+	update_distances_between_vertices();
 
 	// invalidate destination to force a refresh on the next update_destination()
 	_destination_healthy = false;
@@ -123,7 +123,8 @@ bool GeofenceAvoidancePlanner::update_graph_nodes_without_start_and_destination(
 {
 	const int num_polygons = geofence.getNumPolygons();
 
-	int node_index = 0;
+	_polygons.reset();
+	_num_circles = 0;
 
 	for (int poly_index = 0; poly_index < num_polygons; poly_index++) {
 
@@ -131,14 +132,24 @@ bool GeofenceAvoidancePlanner::update_graph_nodes_without_start_and_destination(
 
 		if (info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION || info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION) {
 
+			const bool is_inclusion = (info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
+
 			matrix::Vector2f local_in[info.vertex_count];
-			matrix::Vector2f local_out[info.vertex_count];
 
 			for (int vertex_idx = 0; vertex_idx < info.vertex_count; vertex_idx++) {
 				local_in[vertex_idx] = get_vertex_local_position(poly_index, vertex_idx, geofence, _reference);
 			}
 
-			const bool should_expand = (info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION);
+			// Cached polygon for line-violation queries: stores the ACTUAL
+			// fence boundary (no margin). Graph-node positions below get
+			// margin-offset separately so paths between them legitimately
+			// run through the safety band without being flagged as violations.
+			if (!_polygons.addPolygon(local_in, info.vertex_count, is_inclusion)) {
+				return false;
+			}
+
+			matrix::Vector2f local_out[info.vertex_count];
+			const bool should_expand = !is_inclusion;
 
 			if (!geofence_utils::expandOrShrinkPolygon(local_in, info.vertex_count, margin, should_expand,
 					local_out)) {
@@ -146,14 +157,21 @@ bool GeofenceAvoidancePlanner::update_graph_nodes_without_start_and_destination(
 			}
 
 			for (int vertex_idx = 0; vertex_idx < info.vertex_count; vertex_idx++) {
-				_positions[node_index] = local_out[vertex_idx];
-				node_index++;
+				if (_polygons.addNode(local_out[vertex_idx]) < 0) { return false; }
 			}
 
 		} else if (info.fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION || info.fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION) {
-			const matrix::Vector2f center = get_vertex_local_position(poly_index, 0, geofence, _reference);
-			const float delta_angle = 2.f * M_PI_F / kCircleApproxVertices;
+			if (_num_circles >= kMaxCircles) {
+				return false;
+			}
 
+			const matrix::Vector2f center = get_vertex_local_position(poly_index, 0, geofence, _reference);
+			_circles[_num_circles++] = {center, info.circle_radius};
+
+			// graph nodes for the circle: polygon approximation at the
+			// margin-adjusted radius. The line-violation check uses the
+			// actual circle (radius above), not this approximation.
+			const float delta_angle = 2.f * M_PI_F / kCircleApproxVertices;
 			float adjusted_radius;
 
 			if (info.fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION) {
@@ -169,36 +187,69 @@ bool GeofenceAvoidancePlanner::update_graph_nodes_without_start_and_destination(
 
 			for (int i = 0; i < kCircleApproxVertices; i++) {
 				const float angle = i * delta_angle;
-				_positions[node_index] = center + matrix::Vector2f{adjusted_radius * cosf(angle), adjusted_radius * sinf(angle)};
-				node_index++;
+				const matrix::Vector2f p = center + matrix::Vector2f{
+					adjusted_radius * cosf(angle), adjusted_radius * sinf(angle)
+				};
+
+				if (_polygons.addNode(p) < 0) { return false; }
 			}
 		}
 	}
 
-	// node_index equals the polygon vertex count; the destination is reserved one slot beyond
-	_num_vertices = node_index;
-	_num_nodes = node_index + 1;	// +1 for the destination
+	// destination occupies one extra slot beyond the polygon/circle vertices
+	_num_vertices = _polygons.numNodes();
+	_dest_idx = _polygons.addNode({0.f, 0.f});
 
+	if (_dest_idx < 0) { return false; }
+
+	_num_nodes = _polygons.numNodes();
 	return true;
 }
 
-void GeofenceAvoidancePlanner::update_distances_between_vertices(GeofenceInterface &geofence)
+bool GeofenceAvoidancePlanner::lineViolatesAnyCachedFenceBetweenNodes(int a, int b) const
+{
+	if (_polygons.isLineBetweenNodesIntersectingAnyInside(a, b)) { return true; }
+
+	const matrix::Vector2f start = _polygons.node(a);
+	const matrix::Vector2f end = _polygons.node(b);
+
+	for (int i = 0; i < _num_circles; i++) {
+		if (geofence_utils::lineSegmentIntersectsCircle(start, end, _circles[i].center, _circles[i].radius)) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool GeofenceAvoidancePlanner::lineViolatesAnyCachedFenceFromPoint(const matrix::Vector2f &p, int node_idx) const
+{
+	if (_polygons.isLineFromPointToNodeIntersectingAnyInside(p, node_idx)) { return true; }
+
+	const matrix::Vector2f end = _polygons.node(node_idx);
+
+	for (int i = 0; i < _num_circles; i++) {
+		if (geofence_utils::lineSegmentIntersectsCircle(p, end, _circles[i].center, _circles[i].radius)) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void GeofenceAvoidancePlanner::update_distances_between_vertices()
 {
 	perf_begin(_setup_distances_perf);
 
-	// loop through all possible vertex to vertex combinations and store the distance between them
 	for (int i = 0; i < _num_vertices; i++) {
 		for (int j = i + 1; j < _num_vertices; j++) {
 			const size_t idx = geofence_utils::symmetricPairIndex(i, j, _num_nodes);
 
-			const bool clear = !geofence.checkIfLineViolatesAnyFence(_positions[i],
-					   _positions[j], _reference);
-
-			if (clear) {
-				_distances[idx] = (_positions[i] - _positions[j]).norm();
+			if (lineViolatesAnyCachedFenceBetweenNodes(i, j)) {
+				_distances[idx] = INFINITY;
 
 			} else {
-				_distances[idx] = INFINITY;
+				_distances[idx] = (_polygons.node(i) - _polygons.node(j)).norm();
 			}
 		}
 	}
@@ -217,28 +268,21 @@ void GeofenceAvoidancePlanner::update_destination(const matrix::Vector2d &destin
 	matrix::Vector2f dest_local;
 	ref.project(destination(0), destination(1), dest_local(0), dest_local(1));
 
-	const int dest_idx = _num_nodes - 1;
-
-	if (_destination_healthy && (dest_local - _positions[dest_idx]).norm() < FLT_EPSILON) {
-		// no change in destination, skip the update
+	if (_destination_healthy && (dest_local - _polygons.node(_dest_idx)).norm() < FLT_EPSILON) {
 		return;
 	}
 
 	perf_begin(_update_destination_perf);
-	_positions[dest_idx] = dest_local;
+	_polygons.setNode(_dest_idx, dest_local);
 
-	// distances from each vertex to destination
 	for (int graph_idx = 0; graph_idx < _num_vertices; graph_idx++) {
-		const size_t dist_idx = geofence_utils::symmetricPairIndex(graph_idx, dest_idx, _num_nodes);
+		const size_t dist_idx = geofence_utils::symmetricPairIndex(graph_idx, _dest_idx, _num_nodes);
 
-		const bool clear = !geofence.checkIfLineViolatesAnyFence(_positions[graph_idx],
-				   _positions[dest_idx], _reference);
-
-		if (clear) {
-			_distances[dist_idx] = (_positions[graph_idx] - _positions[dest_idx]).norm();
+		if (lineViolatesAnyCachedFenceBetweenNodes(graph_idx, _dest_idx)) {
+			_distances[dist_idx] = INFINITY;
 
 		} else {
-			_distances[dist_idx] = INFINITY;
+			_distances[dist_idx] = (_polygons.node(graph_idx) - _polygons.node(_dest_idx)).norm();
 		}
 	}
 
@@ -275,9 +319,9 @@ int GeofenceAvoidancePlanner::set_start_and_plan_path_to_destination(matrix::Vec
 
 	for (int node_idx = 0; node_idx < _num_nodes; node_idx++) {
 		// check if node is reachable from this position
-		if (!geofence.checkIfLineViolatesAnyFence(_start_local, _positions[node_idx], _reference)) {
+		if (!lineViolatesAnyCachedFenceFromPoint(_start_local, node_idx)) {
 
-			if (node_idx == _num_nodes - 1) {
+			if (node_idx == _dest_idx) {
 				// destination is directly reachable from start: no detour planning needed.
 				// If the vehicle is already at the start, no waypoints at all are needed.
 				// Otherwise we still need the anchor (point 0) so the vehicle flies back into the fence first.
@@ -286,7 +330,7 @@ int GeofenceAvoidancePlanner::set_start_and_plan_path_to_destination(matrix::Vec
 				return start_is_current_position ? 0 : 1;
 			}
 
-			const float cost = (_start_local - _positions[node_idx]).norm() + _best_distance[node_idx];
+			const float cost = (_start_local - _polygons.node(node_idx)).norm() + _best_distance[node_idx];
 
 			if (cost < best_cost) {
 				best_cost = cost;
@@ -307,7 +351,7 @@ int GeofenceAvoidancePlanner::set_start_and_plan_path_to_destination(matrix::Vec
 		int next = _next_node_buffer[current_index];
 		_num_path_points++;
 
-		if (next == _num_nodes - 1 || next < 0) {
+		if (next == _dest_idx || next < 0) {
 			break;
 		}
 
@@ -356,6 +400,7 @@ matrix::Vector2d GeofenceAvoidancePlanner::get_point_at_index(int index) const
 
 	matrix::Vector2d global;
 	MapProjection ref{_reference(0), _reference(1)};
-	ref.reproject(_positions[next](0), _positions[next](1), global(0), global(1));
+	const matrix::Vector2f p = _polygons.node(next);
+	ref.reproject(p(0), p(1), global(0), global(1));
 	return global;
 }
