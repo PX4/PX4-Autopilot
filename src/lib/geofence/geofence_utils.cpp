@@ -104,15 +104,17 @@ bool segmentsIntersect(const matrix::Vector2f &p1, const matrix::Vector2f &p2,
 }
 
 bool lineSegmentIntersectsPolygon(const matrix::Vector2f &start, const matrix::Vector2f &end,
-				  const matrix::Vector2f *vertices, int num_vertices)
+				  const matrix::Vector2f *vertices, int num_vertices, bool flipped)
 {
 
-	// Return true iff the intersection of the closed line segment and the
-	// closed polygon is non-empty
+	// If flipped, consider the outside to be the interior of the polygon.
 
-	// Simple case: If there is an actual intersection with an edge, it
-	// intersects (TODO: technically only a strict intersectio, with all the
-	// running variables in (0, 1))
+	// For exclusion zones, set !flipped. Results in lines completely outside being non-intersecting (allowed) and inside being intersecting (disallowed).
+	// For inclusion zones, set flipped. Results in lines completely ouside being intersecting (disallowed) and inside being non-intersecting (allowed).
+
+	// First pass: If there is a proper intersection (open line segment
+	// start-end with closed line segment between vertices), it is
+	// intersecting.
 
 	for (int vertex_idx = 0; vertex_idx < num_vertices; vertex_idx++) {
 		int prev_idx = vertex_idx == 0 ? num_vertices - 1 : vertex_idx - 1;
@@ -122,8 +124,10 @@ bool lineSegmentIntersectsPolygon(const matrix::Vector2f &start, const matrix::V
 		}
 	}
 
+	// Remaining cases: The line is either completely outside or completely inside.
+	const bool midpoint_inside = insidePolygon(vertices, num_vertices, 0.5f * (start + end));
 
-	return false;
+	return midpoint_inside == flipped;
 }
 
 bool lineSegmentIntersectsCircle(const matrix::Vector2f &start, const matrix::Vector2f &end,
