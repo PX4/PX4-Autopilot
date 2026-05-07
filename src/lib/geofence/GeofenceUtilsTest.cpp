@@ -37,16 +37,27 @@
 
 using namespace matrix;
 
+using geofence_utils::SegSegResult;
+
+TEST(GeofenceUtilsTest, Orient2d)
+{
+	// CCW turn -> +1, CW turn -> -1, collinear -> 0.
+	EXPECT_EQ(1,  geofence_utils::orient2d({0.f, 0.f}, {1.f, 0.f}, {0.f, 1.f}));
+	EXPECT_EQ(-1, geofence_utils::orient2d({0.f, 0.f}, {1.f, 0.f}, {0.f, -1.f}));
+	EXPECT_EQ(0,  geofence_utils::orient2d({0.f, 0.f}, {2.f, 2.f}, {1.f, 1.f}));
+	EXPECT_EQ(0,  geofence_utils::orient2d({0.f, 0.f}, {2.f, 2.f}, {3.f, 3.f}));
+}
+
 TEST(GeofenceUtilsTest, SegmentsSharedEndpointNoIntersection)
 {
-	// Two segments share endpoint (1,1) but go in different directions — no crossing
+	// Collinear, second segment is a sub-interval of the first.
 	Vector2f p1(0.f, 0.f);
 	Vector2f p2(2.f, 2.f);
 
 	Vector2f v1(1.f, 1.f);
 	Vector2f v2(2.f, 2.f);
 
-	EXPECT_FALSE(geofence_utils::segmentsIntersect(p1, p2, v1, v2));
+	EXPECT_EQ(SegSegResult::CollinearOverlap, geofence_utils::segmentsIntersect(p1, p2, v1, v2));
 }
 
 TEST(GeofenceUtilsTest, SegmentsCross)
@@ -58,7 +69,7 @@ TEST(GeofenceUtilsTest, SegmentsCross)
 	Vector2f v1(-0.0001f, 0.0001f);
 	Vector2f v2(1.f, 0.0001f);
 
-	EXPECT_TRUE(geofence_utils::segmentsIntersect(p1, p2, v1, v2));
+	EXPECT_EQ(SegSegResult::Proper, geofence_utils::segmentsIntersect(p1, p2, v1, v2));
 }
 
 TEST(GeofenceUtilsTest, SegmentsTouching)
@@ -71,37 +82,42 @@ TEST(GeofenceUtilsTest, SegmentsTouching)
 	Vector2f v1(0.f, 1.0f);
 	Vector2f v2(1.f, 1.0f);
 
-	// This asymmetry may seem very weird. It is explained in segmentsIntersect.
-
-	// If vertical line is part of polygon (first arg): No intersection
-	EXPECT_FALSE(geofence_utils::segmentsIntersect(p1, p2, v1, v2));
-
-	// If horizontal line is part of polygon (second arg): intersection
-	EXPECT_TRUE(geofence_utils::segmentsIntersect(v1, v2, p1, p2));
+	// Endpoint v1 of segment cd lies on the open segment ab. Symmetric in
+	// argument order: the convention-laden asymmetry of the old API is gone.
+	EXPECT_EQ(SegSegResult::Touching, geofence_utils::segmentsIntersect(p1, p2, v1, v2));
+	EXPECT_EQ(SegSegResult::Touching, geofence_utils::segmentsIntersect(v1, v2, p1, p2));
 
 	// Same, but with vertical line slanted for good measure
 	p1(0) = -1.0f;
 	p2(0) = 1.0f;
 
-	EXPECT_FALSE(geofence_utils::segmentsIntersect(p1, p2, v1, v2));
-	EXPECT_TRUE(geofence_utils::segmentsIntersect(v1, v2, p1, p2));
+	EXPECT_EQ(SegSegResult::Touching, geofence_utils::segmentsIntersect(p1, p2, v1, v2));
+	EXPECT_EQ(SegSegResult::Touching, geofence_utils::segmentsIntersect(v1, v2, p1, p2));
 }
 
 TEST(GeofenceUtilsTest, SegmentsParallel)
 {
-	// Slope = 1/3 for both lines
 	Vector2f p1(0.f, 0.f);
 	Vector2f p2(3.0f, 0.f);
 
 	Vector2f v1(10.f, 10.f);
 	Vector2f v2(40.f, 20.f);
 
-	// Parallel lines never intersect
-	EXPECT_FALSE(geofence_utils::segmentsIntersect(p1, p2, v1, v2));
+	// Disjoint, non-collinear: no intersection.
+	EXPECT_EQ(SegSegResult::None, geofence_utils::segmentsIntersect(p1, p2, v1, v2));
 
-	// Equal lines also don't (our convention)
-	EXPECT_FALSE(geofence_utils::segmentsIntersect(p1, p2, p1, p2));
-	EXPECT_FALSE(geofence_utils::segmentsIntersect(v1, v2, v1, v2));
+	// A segment with itself is fully collinear-overlapping.
+	EXPECT_EQ(SegSegResult::CollinearOverlap, geofence_utils::segmentsIntersect(p1, p2, p1, p2));
+	EXPECT_EQ(SegSegResult::CollinearOverlap, geofence_utils::segmentsIntersect(v1, v2, v1, v2));
+}
+
+TEST(GeofenceUtilsTest, SegmentsCollinearDisjoint)
+{
+	// Two segments on the same line but with non-overlapping intervals.
+	Vector2f a(0.f, 0.f), b(1.f, 0.f);
+	Vector2f c(2.f, 0.f), d(3.f, 0.f);
+
+	EXPECT_EQ(SegSegResult::None, geofence_utils::segmentsIntersect(a, b, c, d));
 }
 
 TEST(GeofenceUtilsTest, SegmentPolygonExclusionOutside)

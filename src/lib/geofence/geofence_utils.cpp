@@ -115,6 +115,24 @@ SegSegResult segmentsIntersect(const matrix::Vector2f &a, const matrix::Vector2f
 	return SegSegResult::None;
 }
 
+// Is point P strictly inside the CCW/CW interior wedge of polygon vertex V,
+// where Vp and Vn are the previous and next polygon vertices?
+//
+// Reference: standard convex/reflex vertex test built from orient2d. P lies
+// strictly to the left of both incident edges (Vp->V and V->Vn) for a convex
+// vertex, or to the left of either one for a reflex vertex.
+static bool pointInsideWedge(const matrix::Vector2f &P,
+			     const matrix::Vector2f &V,
+			     const matrix::Vector2f &Vp,
+			     const matrix::Vector2f &Vn)
+{
+	const int o_in     = orient2d(Vp, V,  P);
+	const int o_out    = orient2d(V,  Vn, P);
+	const int is_convex = orient2d(Vp, V, Vn);
+
+	return is_convex > 0 ? (o_in > 0 && o_out > 0) : (o_in > 0 || o_out > 0);
+}
+
 bool lineSegmentIntersectsPolygon(const matrix::Vector2f &start, const matrix::Vector2f &end,
 				  const matrix::Vector2f *vertices, int num_vertices, bool is_inclusion_zone)
 {
@@ -131,56 +149,41 @@ bool lineSegmentIntersectsPolygon(const matrix::Vector2f &start, const matrix::V
 
 	// Polygon vertices touching the open segment do not by themselves prove a
 	// crossing -- the segment may merely graze (run along an incident edge,
-	// or skim a corner from outside). Record those as split points and below
-	// classify each sub-segment by sampling its midpoint.
-	const matrix::Vector2f delta = end - start;
-	const float delta_norm_sq = delta.dot(delta);
+	// or skim a corner). For each such vertex, classify each segment endpoint
+	// against the wedge: if start is strictly inside the wedge and end is
+	// strictly outside (or vice versa), the segment really does cross the
+	// boundary at V.
+	for (int i = 0; i < num_vertices; i++) {
+		if (orient2d(start, end, vertices[i]) != 0 ||
+		    !collinearBetween(start, end, vertices[i]) ||
+		    vertices[i] == start || vertices[i] == end) {
+			continue;
+		}
 
-	float vertex_hit_params[num_vertices];
-	int num_hits = 0;
+		const int prev = (i == 0) ? num_vertices - 1 : i - 1;
+		const int next = (i + 1) % num_vertices;
 
-	if (delta_norm_sq >= FLT_EPSILON) {
-		for (int i = 0; i < num_vertices; i++) {
-			if (orient2d(start, end, vertices[i]) != 0) { continue; }
-
-			const float s = delta.dot(vertices[i] - start) / delta_norm_sq;
-
-			if (s > FLT_EPSILON && s < 1.0f - FLT_EPSILON) {
-				vertex_hit_params[num_hits++] = s;
-			}
+		if (pointInsideWedge(start, vertices[i], vertices[prev], vertices[next]) !=
+		    pointInsideWedge(end,   vertices[i], vertices[prev], vertices[next])) {
+			return true;
 		}
 	}
 
-	// Insertion sort -- num_hits is small.
-	for (int i = 1; i < num_hits; i++) {
-		const float k = vertex_hit_params[i];
-		int j = i - 1;
+	// No crossings: the segment lies entirely on one side of the boundary
+	// (or along it). Sample start, midpoint, end -- one of them will reveal
+	// the side unless the segment runs exactly along the boundary throughout
+	// (in which case OnBoundary at all three is the correct, allowed answer).
+	const matrix::Vector2f samples[3] = {
+		start, 0.5f * (start + end), end
+	};
 
-		while (j >= 0 && vertex_hit_params[j] > k) {
-			vertex_hit_params[j + 1] = vertex_hit_params[j];
-			j--;
-		}
-
-		vertex_hit_params[j + 1] = k;
-	}
-
-	// Each sub-segment between consecutive split points lies wholly on one
-	// side of the polygon boundary (or along it). Sample the midpoint.
-	// OnBoundary is treated as allowed for both zone types -- a segment
-	// running exactly along the fence line is not a violation.
-	float prev_s = 0.0f;
-
-	for (int i = 0; i <= num_hits; i++) {
-		const float next_s = (i == num_hits) ? 1.0f : vertex_hit_params[i];
-		const matrix::Vector2f sample = start + (0.5f * (prev_s + next_s)) * delta;
-		const PointPolygonRelation r = classifyPointInPolygon(vertices, num_vertices, sample);
+	for (const matrix::Vector2f &p : samples) {
+		const PointPolygonRelation r = classifyPointInPolygon(vertices, num_vertices, p);
 
 		if ((is_inclusion_zone && r == PointPolygonRelation::Outside) ||
 		    (!is_inclusion_zone && r == PointPolygonRelation::Inside)) {
 			return true;
 		}
-
-		prev_s = next_s;
 	}
 
 	return false;
