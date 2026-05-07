@@ -181,6 +181,35 @@ TEST(GeofenceUtilsTest, SegmentPolygonExclusionInside)
 	EXPECT_TRUE(geofence_utils::lineSegmentIntersectsPolygon(l5, l6, vertices, N, false));
 }
 
+TEST(GeofenceUtilsTest, SegmentPolygonExclusionTouching)
+{
+	static constexpr int N = 4;
+
+	// Unit square (exclusion zone)
+	Vector2f p1(0.f, 0.f);
+	Vector2f p2(1.f, 0.f);
+	Vector2f p3(1.f, 1.f);
+	Vector2f p4(0.f, 1.f);
+
+	Vector2f vertices[N] = {p1, p2, p3, p4};
+
+	// Line exactly equal to one of the edges
+	Vector2f l1(0.f, 0.f);
+	Vector2f l2(1.f, 0.f);
+
+	EXPECT_FALSE(geofence_utils::lineSegmentIntersectsPolygon(l1, l2, vertices, N, false));
+
+	// Same line but longer at one end - fails
+	EXPECT_FALSE(geofence_utils::lineSegmentIntersectsPolygon(l1, 2.f * l2, vertices, N, false));
+
+	// A line just skimming the (1, 1) vertex but staying outside
+	Vector2f l3(2.f, 0.f);
+	Vector2f l4(0.f, 2.f);
+
+	// Should be no intersection
+	EXPECT_FALSE(geofence_utils::lineSegmentIntersectsPolygon(l3, l4, vertices, N, false));
+}
+
 TEST(GeofenceUtilsTest, SegmentPolygonInclusionOutside)
 {
 	static constexpr int N = 4;
