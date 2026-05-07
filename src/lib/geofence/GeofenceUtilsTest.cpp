@@ -60,6 +60,90 @@ TEST(GeofenceUtilsTest, SegmentsCross)
 
 	EXPECT_TRUE(geofence_utils::segmentsIntersect(p1, p2, v1, v2));
 }
+
+TEST(GeofenceUtilsTest, SegmentPolygonIntersectOutside)
+{
+	static constexpr int N = 4;
+
+	// Unit square
+	Vector2f p1(0.f, 0.f);
+	Vector2f p2(1.f, 0.f);
+	Vector2f p3(1.f, 1.f);
+	Vector2f p4(0.f, 1.f);
+
+	Vector2f vertices[N] = {p1, p2, p3, p4};
+
+	// Line in a completely random place
+	Vector2f l1(4.f, 5.f);
+	Vector2f l2(5.f, 4.f);
+
+	// They should not intersect
+	EXPECT_FALSE(geofence_utils::lineSegmentIntersectsPolygon(l1, l2, vertices, N));
+}
+
+TEST(GeofenceUtilsTest, SegmentPolygonIntersectThroughEdge)
+{
+	static constexpr int N = 4;
+
+	// Unit square
+	Vector2f p1(0.f, 0.f);
+	Vector2f p2(1.f, 0.f);
+	Vector2f p3(1.f, 1.f);
+	Vector2f p4(0.f, 1.f);
+
+	Vector2f vertices[N] = {p1, p2, p3, p4};
+
+	// Line obviously passing through an edge
+	Vector2f l1(0.5f, 0.5f);
+	Vector2f l2(0.5f, 1.5f);
+
+	// Should intersect
+	EXPECT_TRUE(geofence_utils::lineSegmentIntersectsPolygon(l1, l2, vertices, N));
+
+	// Line through several edges
+	Vector2f l3(0.5f, -0.5f);
+	Vector2f l4(0.5f, 1.5f);
+
+	// Should intersect
+	EXPECT_TRUE(geofence_utils::lineSegmentIntersectsPolygon(l3, l4, vertices, N));
+}
+
+TEST(GeofenceUtilsTest, SegmentPolygonIntersectInside)
+{
+	static constexpr int N = 4;
+
+	// Unit square
+	Vector2f p1(0.f, 0.f);
+	Vector2f p2(1.f, 0.f);
+	Vector2f p3(1.f, 1.f);
+	Vector2f p4(0.f, 1.f);
+
+	Vector2f vertices[N] = {p1, p2, p3, p4};
+
+	// Line going exactly between opposite vertices
+	Vector2f l1(0.f, 0.f);
+	Vector2f l2(1.f, 1.f);
+
+	// Should intersect
+	EXPECT_TRUE(geofence_utils::lineSegmentIntersectsPolygon(l1, l2, vertices, N));
+
+	// Line exactly touching sides
+	Vector2f l3(0.5f, 0.0f);
+	Vector2f l4(0.5f, 1.0f);
+
+	// Should intersect
+	EXPECT_TRUE(geofence_utils::lineSegmentIntersectsPolygon(l3, l4, vertices, N));
+
+	// Line completely in the interior
+	Vector2f l5(0.2f, 0.2f);
+	Vector2f l6(0.6f, 0.5f);
+
+	// Should intersect
+	EXPECT_TRUE(geofence_utils::lineSegmentIntersectsPolygon(l5, l6, vertices, N));
+
+}
+
+
 TEST(GeofenceUtilsTest, SegmentAndCircleIntersect)
 {
 	// vertical line from origin straight up
