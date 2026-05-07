@@ -46,7 +46,10 @@ static constexpr uint8_t Bit7 = (1 << 7);
 namespace Infineon_DPS310
 {
 
-static constexpr uint8_t REV_AND_PROD_ID = 0x10;
+// Product ID register value: 0x10 for DPS310, 0x11 for DPS368
+// (the two parts are register-compatible; the same driver handles both)
+static constexpr uint8_t REV_AND_PROD_ID_DPS310 = 0x10;
+static constexpr uint8_t REV_AND_PROD_ID_DPS368 = 0x11;
 
 enum class
 Register : uint8_t {
