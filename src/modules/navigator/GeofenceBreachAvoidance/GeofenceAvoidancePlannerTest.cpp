@@ -55,8 +55,9 @@ public:
 			vertices_local[i] = ref.project(_vertices[i](0), _vertices[i](1));
 		}
 
+		const bool is_inclusion_zone = (_fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
 		return geofence_utils::lineSegmentIntersectsPolygon(start_local, end_local,
-				vertices_local, _num_vertices);
+				vertices_local, _num_vertices, is_inclusion_zone);
 	}
 
 	PolygonInfo getPolygonInfoByIndex(int index) override

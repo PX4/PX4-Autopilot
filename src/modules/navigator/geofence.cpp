@@ -759,8 +759,10 @@ bool Geofence::checkIfLineViolatesAnyFence(const matrix::Vector2f &start_local, 
 				continue;
 			}
 
+			const bool is_inclusion_zone = (info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
+
 			if (geofence_utils::lineSegmentIntersectsPolygon(
-				    start_local, end_local, vertices_local, info.vertex_count)) {
+				    start_local, end_local, vertices_local, info.vertex_count, is_inclusion_zone)) {
 				return true;
 			}
 
