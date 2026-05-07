@@ -144,9 +144,14 @@ public:
 
 	bool isHomeRequired();
 
-	void updateStartForRTLPathPlanner(const matrix::Vector2<double> &start)
+	int set_start_and_start_path_to_destination(const matrix::Vector2<double> &start, bool start_is_current_position = true)
 	{
-		_avoidance_planner.update_start(start, *this);
+		return _avoidance_planner.set_start_and_plan_path_to_destination(start, *this, start_is_current_position);
+	}
+
+	bool plannerStartIsCurrentPosition() const
+	{
+		return _avoidance_planner.start_is_current_position();
 	}
 
 	void updateDestinationForRTLPathPlanner(const matrix::Vector2<double> &destination)
@@ -154,7 +159,11 @@ public:
 		_avoidance_planner.update_destination(destination, *this);
 	}
 
-	const PlannedPath &planPath() { return _avoidance_planner.planPath(); }
+	const matrix::Vector2d get_point_at_index(int index) const
+	{
+		return _avoidance_planner.get_point_at_index(index);
+
+	}
 
 	/**
 	 * print Geofence status to the console

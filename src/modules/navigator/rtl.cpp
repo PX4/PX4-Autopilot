@@ -186,8 +186,12 @@ void RTL::on_inactive()
 				&& hrt_elapsed_time(&_global_pos_sub.get().timestamp) < 10_s;
 
 		if (global_position_recently_updated) {
-			_navigator->updateStartOfRTLPathPlanner(_navigator->getRtlPlanningStart());
-			_rtl_direct.updatePlannedPath();
+			if (_navigator->was_last_position_outside_fence()) {
+				_navigator->set_start_and_plan_path_to_destination(_navigator->getRtlPlanningStart(), false);
+
+			} else {
+				_navigator->set_start_and_plan_path_to_destination(matrix::Vector2d(_global_pos_sub.get().lat, _global_pos_sub.get().lon), true);
+			}
 		}
 
 		publishRemainingTimeEstimate();
