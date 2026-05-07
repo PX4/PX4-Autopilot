@@ -96,12 +96,11 @@ TEST_F(GeofenceAvoidancePlannerTest, StartEqualsDestination)
 
 	FakeGeofence fake(nullptr, 0, NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
 	_planner.update_vertices(fake);
-	_planner.update_start(point, fake);
 	_planner.update_destination(point, fake);
 
-	PlannedPath path = _planner.planPath();
+	const int num_waypoints = _planner.set_start_and_plan_path_to_destination(point, fake);
 
-	ASSERT_EQ(path.num_points, 0);
+	ASSERT_EQ(num_waypoints, 0);
 }
 
 TEST_F(GeofenceAvoidancePlannerTest, DirectPathNoFence)
@@ -112,18 +111,17 @@ TEST_F(GeofenceAvoidancePlannerTest, DirectPathNoFence)
 
 	FakeGeofence fake(nullptr, 0, NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
 	_planner.update_vertices(fake);
-	_planner.update_start(start, fake);
 	_planner.update_destination(destination, fake);
 
-	PlannedPath path = _planner.planPath();
+	const int num_waypoints = _planner.set_start_and_plan_path_to_destination(start, fake);
 
-	ASSERT_EQ(path.num_points, 0);
+	ASSERT_EQ(num_waypoints, 0);
 }
 
 TEST_F(GeofenceAvoidancePlannerTest, PathAroundExclusionZone)
 {
 	// in this test there is an exclusion zone between start and destination. The shortest path
-	// is chosen to be via vertex nr 2 and vertex nr 3, so the path should have two points
+	// is chosen to be via vertex nr 1 and vertex nr 2, so the path should have two waypoints
 	using namespace matrix;
 	Vector2<double> start(47.3559582, 8.5192064);
 	Vector2<double> destination(47.3546153, 8.5193195);
@@ -137,19 +135,23 @@ TEST_F(GeofenceAvoidancePlannerTest, PathAroundExclusionZone)
 
 	FakeGeofence fake(vertices, 4, NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION);
 	_planner.update_vertices(fake);
-	_planner.update_start(start, fake);
 	_planner.update_destination(destination, fake);
 
-	PlannedPath path = _planner.planPath();
+	const int num_waypoints = _planner.set_start_and_plan_path_to_destination(start, fake);
 
-	// points[0] is the start itself (always emitted); optimal detour is via vertex 1 and 2
-	ASSERT_EQ(path.num_points, 3);
-	EXPECT_NEAR(path.points[0](0), start(0), 1e-3);
-	EXPECT_NEAR(path.points[0](1), start(1), 1e-3);
-	EXPECT_NEAR(path.points[1](0), vertices[1](0), 1e-3);
-	EXPECT_NEAR(path.points[1](1), vertices[1](1), 1e-3);
-	EXPECT_NEAR(path.points[2](0), vertices[2](0), 1e-3);
-	EXPECT_NEAR(path.points[2](1), vertices[2](1), 1e-3);
+	// start is the current vehicle position, so it is not part of the returned path.
+	// path = vertex 1 + vertex 2 (2 points)
+	ASSERT_EQ(num_waypoints, 2);
+
+	// index 0 is the first waypoint after start
+	const Vector2d first_wp = _planner.get_point_at_index(0);
+	EXPECT_NEAR(first_wp(0), vertices[1](0), 1e-3);
+	EXPECT_NEAR(first_wp(1), vertices[1](1), 1e-3);
+
+	// index num_waypoints - 1 is the last waypoint before destination
+	const Vector2d last_wp = _planner.get_point_at_index(num_waypoints - 1);
+	EXPECT_NEAR(last_wp(0), vertices[2](0), 1e-3);
+	EXPECT_NEAR(last_wp(1), vertices[2](1), 1e-3);
 }
 
 TEST_F(GeofenceAvoidancePlannerTest, PathInsideInclusionZone)
@@ -170,17 +172,19 @@ TEST_F(GeofenceAvoidancePlannerTest, PathInsideInclusionZone)
 
 	FakeGeofence fake(vertices, 6, NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
 	_planner.update_vertices(fake);
-	_planner.update_start(start, fake);
 	_planner.update_destination(destination, fake);
 
-	PlannedPath path = _planner.planPath();
+	const int num_waypoints = _planner.set_start_and_plan_path_to_destination(start, fake);
 
-	ASSERT_EQ(path.num_points, 2);
-	ASSERT_NEAR(path.points[0](0), start(0), 1e-3);
-	ASSERT_NEAR(path.points[0](1), start(1), 1e-3);
-	ASSERT_NEAR(path.points[1](0), vertices[5](0), 1e-3);
-	ASSERT_NEAR(path.points[1](1), vertices[5](1), 1e-3);
+	// start is the current vehicle position, so it is not part of the returned path.
+	// path = vertex 5 (1 point)
+	ASSERT_EQ(num_waypoints, 1);
+
+	const Vector2d only_wp = _planner.get_point_at_index(0);
+	EXPECT_NEAR(only_wp(0), vertices[5](0), 1e-3);
+	EXPECT_NEAR(only_wp(1), vertices[5](1), 1e-3);
 }
+
 TEST_F(GeofenceAvoidancePlannerTest, DestinationOutsideInclusion)
 {
 	using namespace matrix;
@@ -199,13 +203,13 @@ TEST_F(GeofenceAvoidancePlannerTest, DestinationOutsideInclusion)
 
 	FakeGeofence fake(vertices, 6, NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
 	_planner.update_vertices(fake);
-	_planner.update_start(start, fake);
 	_planner.update_destination(destination, fake);
 
-	PlannedPath path = _planner.planPath();
+	const int num_waypoints = _planner.set_start_and_plan_path_to_destination(start, fake);
 
-	ASSERT_EQ(path.num_points, 0);
+	ASSERT_EQ(num_waypoints, 0);
 }
+
 TEST_F(GeofenceAvoidancePlannerTest, DestinationInsideExclusion)
 {
 	using namespace matrix;
@@ -223,13 +227,13 @@ TEST_F(GeofenceAvoidancePlannerTest, DestinationInsideExclusion)
 
 	FakeGeofence fake(vertices, 4, NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION);
 	_planner.update_vertices(fake);
-	_planner.update_start(start, fake);
 	_planner.update_destination(destination, fake);
 
-	PlannedPath path = _planner.planPath();
+	const int num_waypoints = _planner.set_start_and_plan_path_to_destination(start, fake);
 
-	ASSERT_EQ(path.num_points, 0);
+	ASSERT_EQ(num_waypoints, 0);
 }
+
 TEST_F(GeofenceAvoidancePlannerTest, StartInsideExclusion)
 {
 	using namespace matrix;
@@ -237,7 +241,6 @@ TEST_F(GeofenceAvoidancePlannerTest, StartInsideExclusion)
 	Vector2<double> start(47.3551506, 8.5193859);
 
 	Vector2<double> destination(47.3559582, 8.5192064);
-
 
 	static const Vector2<double> vertices[] = {
 		{47.3552420, 8.5192293},
@@ -248,13 +251,45 @@ TEST_F(GeofenceAvoidancePlannerTest, StartInsideExclusion)
 
 	FakeGeofence fake(vertices, 4, NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION);
 	_planner.update_vertices(fake);
-	_planner.update_start(start, fake);
 	_planner.update_destination(destination, fake);
 
-	PlannedPath path = _planner.planPath();
+	const int num_waypoints = _planner.set_start_and_plan_path_to_destination(start, fake);
 
-	ASSERT_EQ(path.num_points, 0);
+	ASSERT_EQ(num_waypoints, 0);
 }
+
+TEST_F(GeofenceAvoidancePlannerTest, StartInsideGeofence)
+{
+	using namespace matrix;
+	// Start and destination are both in valid airspace (north of the exclusion zone), so the
+	// destination is directly reachable from the start without any detour.
+	Vector2<double> start(47.3559582, 8.5192064);
+	Vector2<double> destination(47.3560100, 8.5192300);
+
+	static const Vector2<double> vertices[] = {
+		{47.3552420, 8.5192293},
+		{47.3555843, 8.5201174},
+		{47.3551382, 8.5209143},
+		{47.3550828, 8.5171901},
+	};
+
+	FakeGeofence fake(vertices, 4, NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION);
+	_planner.update_vertices(fake);
+	_planner.update_destination(destination, fake);
+
+	// Vehicle was outside the fence at plan time, so the start is used as an anchor the
+	// vehicle must fly back to. Even though the destination is directly visible from there,
+	// the path still has to include the anchor as the first (and only) waypoint.
+	const int num_waypoints =
+		_planner.set_start_and_plan_path_to_destination(start, fake, /*start_is_current_position=*/false);
+
+	ASSERT_EQ(num_waypoints, 1);
+
+	const Vector2d anchor_wp = _planner.get_point_at_index(0);
+	EXPECT_NEAR(anchor_wp(0), start(0), 1e-3);
+	EXPECT_NEAR(anchor_wp(1), start(1), 1e-3);
+}
+
 TEST_F(GeofenceAvoidancePlannerTest, NanStartOrDestination)
 {
 	using namespace matrix;
@@ -266,15 +301,14 @@ TEST_F(GeofenceAvoidancePlannerTest, NanStartOrDestination)
 	_planner.update_vertices(fake);
 
 	auto plan = [&](const Vector2<double> &s, const Vector2<double> &d) {
-		_planner.update_start(s, fake);
 		_planner.update_destination(d, fake);
-		return _planner.planPath();
+		return _planner.set_start_and_plan_path_to_destination(s, fake);
 	};
 
-	EXPECT_EQ(plan(nan_lat, valid).num_points, 0);
-	EXPECT_EQ(plan(nan_lon, valid).num_points, 0);
-	EXPECT_EQ(plan(valid, nan_lat).num_points, 0);
-	EXPECT_EQ(plan(valid, nan_lon).num_points, 0);
+	EXPECT_EQ(plan(nan_lat, valid), 0);
+	EXPECT_EQ(plan(nan_lon, valid), 0);
+	EXPECT_EQ(plan(valid, nan_lat), 0);
+	EXPECT_EQ(plan(valid, nan_lon), 0);
 }
 
 TEST_F(GeofenceAvoidancePlannerTest, LatLonOutOfBounds)
@@ -290,19 +324,18 @@ TEST_F(GeofenceAvoidancePlannerTest, LatLonOutOfBounds)
 	_planner.update_vertices(fake);
 
 	auto plan = [&](const Vector2<double> &s, const Vector2<double> &d) {
-		_planner.update_start(s, fake);
 		_planner.update_destination(d, fake);
-		return _planner.planPath();
+		return _planner.set_start_and_plan_path_to_destination(s, fake);
 	};
 
-	EXPECT_EQ(plan(lat_too_high, valid).num_points, 0);
-	EXPECT_EQ(plan(lat_too_low, valid).num_points, 0);
-	EXPECT_EQ(plan(lon_too_high, valid).num_points, 0);
-	EXPECT_EQ(plan(lon_too_low, valid).num_points, 0);
-	EXPECT_EQ(plan(valid, lat_too_high).num_points, 0);
-	EXPECT_EQ(plan(valid, lat_too_low).num_points, 0);
-	EXPECT_EQ(plan(valid, lon_too_high).num_points, 0);
-	EXPECT_EQ(plan(valid, lon_too_low).num_points, 0);
+	EXPECT_EQ(plan(lat_too_high, valid), 0);
+	EXPECT_EQ(plan(lat_too_low, valid), 0);
+	EXPECT_EQ(plan(lon_too_high, valid), 0);
+	EXPECT_EQ(plan(lon_too_low, valid), 0);
+	EXPECT_EQ(plan(valid, lat_too_high), 0);
+	EXPECT_EQ(plan(valid, lat_too_low), 0);
+	EXPECT_EQ(plan(valid, lon_too_high), 0);
+	EXPECT_EQ(plan(valid, lon_too_low), 0);
 }
 
 TEST_F(GeofenceAvoidancePlannerTest, DuplicateNeighborVertex)
@@ -326,11 +359,10 @@ TEST_F(GeofenceAvoidancePlannerTest, DuplicateNeighborVertex)
 
 	FakeGeofence fake(vertices, 7, NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
 	_planner.update_vertices(fake);
-	_planner.update_start(start, fake);
 	_planner.update_destination(destination, fake);
 
-	PlannedPath path = _planner.planPath();
+	const int num_waypoints = _planner.set_start_and_plan_path_to_destination(start, fake);
 
 	// THEN the pathplanner should fail
-	ASSERT_EQ(path.num_points, 0);
+	ASSERT_EQ(num_waypoints, 0);
 }

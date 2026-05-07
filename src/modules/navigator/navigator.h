@@ -312,9 +312,9 @@ public:
 
 	void trigger_hagl_failsafe(uint8_t nav_state);
 
-	void updateStartOfRTLPathPlanner(const matrix::Vector2<double> &start)
+	int set_start_and_plan_path_to_destination(const matrix::Vector2<double> &start, bool start_is_current_position = true)
 	{
-		_geofence.updateStartForRTLPathPlanner(start);
+		return _geofence.set_start_and_start_path_to_destination(start, start_is_current_position);
 	}
 
 	void updateDestinationOfRTLPathPlanner(const matrix::Vector2<double> &destination)
@@ -322,7 +322,15 @@ public:
 		_geofence.updateDestinationForRTLPathPlanner(destination);
 	}
 
-	const PlannedPath &planPath() { return _geofence.planPath(); }
+	matrix::Vector2d get_point_at_index(int index) const
+	{
+		return _geofence.get_point_at_index(index);
+	}
+
+	bool geofencePlannerStartIsCurrentPosition() const
+	{
+		return _geofence.plannerStartIsCurrentPosition();
+	}
 
 	/**
 	 * Returns the last position that was confirmed to be inside all geofences.
@@ -330,6 +338,8 @@ public:
 	 * Falls back to the current position if no valid position has ever been latched.
 	 */
 	matrix::Vector2<double> getRtlPlanningStart();
+
+	bool was_last_position_outside_fence() const { return _last_position_was_outside_fence; }
 
 private:
 
@@ -386,6 +396,7 @@ private:
 	hrt_abstime _last_geofence_check{0};
 
 	matrix::Vector2d _last_valid_position_in_fence{static_cast<double>(NAN), static_cast<double>(NAN)};
+	bool _last_position_was_outside_fence{false};
 
 	bool _navigator_status_updated{false};
 	hrt_abstime _last_navigator_status_publication{0};

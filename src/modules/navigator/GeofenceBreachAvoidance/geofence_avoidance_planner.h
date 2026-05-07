@@ -119,37 +119,52 @@ public:
 	GeofenceAvoidancePlanner() = default;
 	~GeofenceAvoidancePlanner();
 
-	const PlannedPath &planPath();
 
-	bool update_vertices(GeofenceInterface &geofence, float margin = 10.0f);
-	void update_start(const matrix::Vector2d &start, GeofenceInterface &geofence);
+	int set_start_and_plan_path_to_destination(matrix::Vector2d start, GeofenceInterface &geofence,
+			bool start_is_current_position = true);
+
+	matrix::Vector2d get_point_at_index(int index) const;
+
+	// True if the start passed to the last plan call was the vehicle's current position. False means
+	// planning was anchored to a stored point (e.g. last valid in-fence position when the vehicle is
+	// outside the fence), so the leg from current position to point 0 is unaccounted for in the path.
+	bool start_is_current_position() const { return _start_is_current_position; }
+
+	bool update_vertices(GeofenceInterface &geofence, float margin = 50.0f);
+
 	void update_destination(const matrix::Vector2d &destination, GeofenceInterface &geofence);
 
 private:
 
 	static constexpr int num_distances_in_graph = (kMaxNodes) * (kMaxNodes - 1) / 2;
 
-	Node _graph_nodes[kMaxNodes];
+	float _best_distance[kMaxNodes];
 	float _distances[num_distances_in_graph];
-	PlannedPath _planned_path{};
+	int _next_node_buffer[kMaxNodes];
+	bool _visited_buffer[kMaxNodes];
+
+	int _best_starting_index{-1};
+	int _num_path_points{0};
+
+	matrix::Vector2f _start_local;
+
+	matrix::Vector2f _positions[kMaxNodes];
 	int _num_nodes{0};
 	int _num_vertices{0};
 	matrix::Vector2<double> _reference; // lat/lon anchor of the local frame
 
 	bool _polygons_healthy{false};
-	bool _start_healthy{false};
 	bool _destination_healthy{false};
+	bool _start_is_current_position{true};
 
 	perf_counter_t _setup_perf{perf_alloc(PC_ELAPSED, "rtl_planner: setup")};
 	perf_counter_t _setup_distances_perf{perf_alloc(PC_ELAPSED, "rtl_planner: setup distances")};
-	perf_counter_t _update_start_perf{perf_alloc(PC_ELAPSED, "rtl_planner: update start")};
 	perf_counter_t _update_destination_perf{perf_alloc(PC_ELAPSED, "rtl_planner: update destination")};
 	perf_counter_t _plan_path_perf{perf_alloc(PC_ELAPSED, "rtl_planner: plan path")};
 
 	bool update_graph_nodes_without_start_and_destination(GeofenceInterface &geofence, float margin);
 	void update_distances_between_vertices(GeofenceInterface &geofence);
-
-	void reset_graph_state();
+	void planPath();
 
 	bool lat_lon_within_bounds(const matrix::Vector2<double> &lat_lon);
 
