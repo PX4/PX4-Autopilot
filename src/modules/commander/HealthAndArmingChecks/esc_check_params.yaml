@@ -29,7 +29,7 @@ parameters:
     MOTFAIL_OFF:
       description:
         short: Under/over-current motor failure limit offset
-        long: threshold = FD_ACT_MOT_C2T * thrust - FD_ACT_OFF
+        long: Check is triggered if `abs(FD_ACT_MOT_C2T * thrust - FD_ACT_OFF)` is above this value.
       type: float
       default: 10.0
       min: 0
