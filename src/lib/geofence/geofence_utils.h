@@ -84,8 +84,10 @@ bool insideCircle(const matrix::Vector2<double> &center, float radius,
 		  const matrix::Vector2<double> &point);
 
 /**
- * Check if two line segments intersect (excluding endpoints).
+ * Check if two line segments intersect (excluding endpoints*).
  * Works in local Cartesian coordinates (meters).
+ *
+ * * TODO write correctly - see inside
  *
  * @param p1  first segment start in local frame
  * @param p2  first segment end in local frame
@@ -97,17 +99,19 @@ bool segmentsIntersect(const matrix::Vector2f &p1, const matrix::Vector2f &p2,
 		       const matrix::Vector2f &v1, const matrix::Vector2f &v2);
 
 /**
- * Check if a line segment intersects any edge of a polygon (excluding endpoints).
+ * Check if a line segment and a polygon have non-empty intersection.
  * Works in local Cartesian coordinates (meters).
  *
- * @param start          segment start in local frame
- * @param end            segment end in local frame
- * @param vertices       polygon vertices in local frame
- * @param num_vertices   number of vertices
- * @return true if the segment intersects any polygon edge
+ * @param start             segment start in local frame
+ * @param end               segment end in local frame
+ * @param vertices          polygon vertices in local frame
+ * @param num_vertices      number of vertices
+ * @param is_inclusion_zone If true, consider completely outside lines intersecting, inside non-intersecting. If false the other way around.
+ *
+ * @return true if the segment intersects the disallowed part of the polygon
  */
 bool lineSegmentIntersectsPolygon(const matrix::Vector2f &start, const matrix::Vector2f &end,
-				  const matrix::Vector2f *vertices, int num_vertices);
+				  const matrix::Vector2f *vertices, int num_vertices, bool is_inclusion_zone);
 
 /**
  * Check if a line segment intersects a circle.

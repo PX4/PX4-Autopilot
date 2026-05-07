@@ -104,13 +104,8 @@ bool segmentsIntersect(const matrix::Vector2f &p1, const matrix::Vector2f &p2,
 }
 
 bool lineSegmentIntersectsPolygon(const matrix::Vector2f &start, const matrix::Vector2f &end,
-				  const matrix::Vector2f *vertices, int num_vertices, bool flipped)
+				  const matrix::Vector2f *vertices, int num_vertices, bool is_inclusion_zone)
 {
-
-	// If flipped, consider the outside to be the interior of the polygon.
-
-	// For exclusion zones, set !flipped. Results in lines completely outside being non-intersecting (allowed) and inside being intersecting (disallowed).
-	// For inclusion zones, set flipped. Results in lines completely ouside being intersecting (disallowed) and inside being non-intersecting (allowed).
 
 	// First pass: If there is a proper intersection (open line segment
 	// start-end with closed line segment between vertices), it is
@@ -127,7 +122,9 @@ bool lineSegmentIntersectsPolygon(const matrix::Vector2f &start, const matrix::V
 	// Remaining cases: The line is either completely outside or completely inside.
 	const bool midpoint_inside = insidePolygon(vertices, num_vertices, 0.5f * (start + end));
 
-	return midpoint_inside == flipped;
+	// Inclusion zone: inside -> no intersection, outside -> intersection
+	// Exclusion zone: inside -> intersection, outside -> no intersection
+	return midpoint_inside != is_inclusion_zone;
 }
 
 bool lineSegmentIntersectsCircle(const matrix::Vector2f &start, const matrix::Vector2f &end,
