@@ -88,13 +88,6 @@ private:
 		Terminate = 4,
 	};
 
-	enum class imbalanced_propeller_failsafe_mode : int32_t {
-		Disabled = -1,
-		Warning = 0,
-		Return = 1,
-		Land = 2,
-	};
-
 	enum class geofence_violation_action : int32_t {
 		None = 0,
 		Warning = 1,
@@ -169,7 +162,6 @@ private:
 	static ActionOptions fromNavDllOrRclActParam(int param_value);
 
 	static ActionOptions fromGfActParam(int param_value);
-	static ActionOptions fromImbalancedPropActParam(int param_value);
 	static ActionOptions fromActuatorFailureActParam(int param_value);
 	static ActionOptions fromBatteryWarningActParam(int param_value, uint8_t battery_warning);
 	static ActionOptions fromQuadchuteActParam(int param_value);
@@ -210,8 +202,6 @@ private:
 					(ParamInt<px4::params::COM_RC_IN_MODE>) _param_com_rc_in_mode,
 					(ParamInt<px4::params::GF_ACTION>)  	_param_gf_action,
 					(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time,
-					(ParamInt<px4::params::COM_IMB_PROP_ACT>) _param_com_imb_prop_act,
-					(ParamFloat<px4::params::COM_LKDOWN_TKO>) _param_com_lkdown_tko,
 					(ParamInt<px4::params::CBRK_FLIGHTTERM>) _param_cbrk_flightterm,
 					(ParamInt<px4::params::COM_ACT_FAIL_ACT>) _param_com_actuator_failure_act,
 					(ParamInt<px4::params::COM_LOW_BAT_ACT>) _param_com_low_bat_act,

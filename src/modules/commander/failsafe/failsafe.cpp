@@ -126,33 +126,6 @@ FailsafeBase::ActionOptions Failsafe::fromGfActParam(int param_value)
 	return options;
 }
 
-FailsafeBase::ActionOptions Failsafe::fromImbalancedPropActParam(int param_value)
-{
-	ActionOptions options{};
-
-	switch (imbalanced_propeller_failsafe_mode(param_value)) {
-	case imbalanced_propeller_failsafe_mode::Disabled:
-	default:
-		options.action = Action::None;
-		break;
-
-	case imbalanced_propeller_failsafe_mode::Warning:
-		options.action = Action::Warn;
-		break;
-
-	case imbalanced_propeller_failsafe_mode::Return:
-		options.action = Action::RTL;
-		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
-		break;
-
-	case imbalanced_propeller_failsafe_mode::Land:
-		options.action = Action::Land;
-		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
-		break;
-	}
-
-	return options;
-}
 
 FailsafeBase::ActionOptions Failsafe::fromActuatorFailureActParam(int param_value)
 {
@@ -597,9 +570,9 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	CHECK_FAILSAFE(status_flags, battery_low_remaining_time,
 		       ActionOptions(fromRemainingFlightTimeLowActParam(_param_com_fltt_low_act.get())));
 
-	if ((_armed_time != 0)
-	    && (time_us < _armed_time + static_cast<hrt_abstime>(_param_com_spoolup_time.get() * 1_s))
-	   ) {
+	const hrt_abstime spoolup = static_cast<hrt_abstime>(_param_com_spoolup_time.get() * 1_s);
+
+	if ((_armed_time != 0) && (time_us < _armed_time + spoolup)) {
 		CHECK_FAILSAFE(status_flags, battery_unhealthy, ActionOptions(Action::Disarm).cannotBeDeferred());
 
 	} else {
@@ -644,9 +617,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 
 
 	// Handle fails during spoolup just after arming
-	if ((_armed_time != 0)
-	    && (time_us < _armed_time + static_cast<hrt_abstime>(_param_com_spoolup_time.get() * 1_s))
-	   ) {
+	if ((_armed_time != 0) && (time_us < _armed_time + spoolup)) {
 		_last_state_fd_esc_arming = checkFailsafe(_caller_id_fd_esc_arming, _last_state_fd_esc_arming,
 					    status_flags.fd_esc_arming_failure,
 					    ActionOptions(Action::Disarm).cannotBeDeferred());
@@ -656,10 +627,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	}
 
 	// Handle fails during the early takeoff phase
-	if ((_armed_time != 0)
-	    && (time_us < _armed_time
-		+ static_cast<hrt_abstime>((_param_com_lkdown_tko.get() + _param_com_spoolup_time.get()) * 1_s))
-	   ) {
+	if ((_armed_time != 0) && (time_us < _armed_time + spoolup + 3_s)) {
 		CHECK_FAILSAFE(status_flags, fd_critical_failure, ActionOptions(Action::Disarm).cannotBeDeferred());
 		CHECK_FAILSAFE(status_flags, fd_alt_loss, ActionOptions(Action::Disarm).cannotBeDeferred());
 
@@ -672,7 +640,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 		CHECK_FAILSAFE(status_flags, fd_alt_loss, Action::Warn);
 	}
 
-	CHECK_FAILSAFE(status_flags, fd_imbalanced_prop, fromImbalancedPropActParam(_param_com_imb_prop_act.get()));
+	CHECK_FAILSAFE(status_flags, fd_imbalanced_prop, Action::Warn);
 	CHECK_FAILSAFE(status_flags, fd_motor_failure, fromActuatorFailureActParam(_param_com_actuator_failure_act.get()));
 
 

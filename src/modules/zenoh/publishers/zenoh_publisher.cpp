@@ -59,7 +59,8 @@ int Zenoh_Publisher::undeclare_publisher()
 	return 0;
 }
 
-int Zenoh_Publisher::declare_publisher(z_owned_session_t s, const char *keyexpr, uint8_t *gid)
+int Zenoh_Publisher::declare_publisher(z_owned_session_t s, const char *keyexpr, uint8_t *gid,
+				       z_publisher_options_t *opts)
 {
 	z_view_keyexpr_t ke;
 
@@ -68,7 +69,7 @@ int Zenoh_Publisher::declare_publisher(z_owned_session_t s, const char *keyexpr,
 		return -1;
 	}
 
-	if (z_declare_publisher(z_loan(s), &_pub, z_loan(ke), NULL) < 0) {
+	if (z_declare_publisher(z_loan(s), &_pub, z_loan(ke), opts) < 0) {
 		printf("Unable to declare publisher for key expression!\n");
 		return -1;
 	}

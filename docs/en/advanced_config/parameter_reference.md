@@ -18650,24 +18650,6 @@ Has no effect if COM_ARMABLE is 0.
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
 
-### COM_ARM_SDCARD (`INT32`) {#COM_ARM_SDCARD}
-
-Enable FMU SD card detection check.
-
-This check detects if the FMU SD card is missing.
-Depending on the value of the parameter, the check can be
-disabled, warn only or deny arming.
-
-**Values:**
-
-- `0`: Disabled
-- `1`: Warning only
-- `2`: Enforce SD card presence
-
-| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; |          |          |           | 1       |      | &nbsp;    |
-
 ### COM_ARM_SWISBTN (`INT32`) {#COM_ARM_SWISBTN}
 
 Arm switch is a momentary button.
@@ -18740,21 +18722,6 @@ A zero or negative value means that automatic disarming triggered by landing det
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; |          |          | 0.1       | 2.0     | s    | &nbsp;    |
-
-### COM_DISARM_MAN (`INT32`) {#COM_DISARM_MAN}
-
-Allow disarming in manual thrust modes.
-
-Allow disarming via switch/stick/button on multicopters in manual thrust modes
-
-0: Disallow disarming when not landed
-1: Allow disarming in multicopter flight in modes where
-the thrust is directly controlled by thr throttle stick
-e.g. Stabilized, Acro
-
-| Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
-| &nbsp; |          |          |           | Enabled (1) |      | &nbsp;    |
 
 ### COM_DISARM_PRFLT (`FLOAT`) {#COM_DISARM_PRFLT}
 
@@ -19135,37 +19102,6 @@ If no local position is available, home is set to the current position.
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
 
-### COM_IMB_PROP_ACT (`INT32`) {#COM_IMB_PROP_ACT}
-
-Imbalanced propeller failsafe mode.
-
-Action the system takes when an imbalanced propeller is detected by the failure detector.
-See also FD_IMB_PROP_THR to set the failure threshold.
-
-**Values:**
-
-- `-1`: Disabled
-- `0`: Warning
-- `1`: Return
-- `2`: Land
-
-| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; |          |          | 1         | 0       |      | &nbsp;    |
-
-### COM_LKDOWN_TKO (`FLOAT`) {#COM_LKDOWN_TKO}
-
-Timeout for detecting a failure after takeoff.
-
-A non-zero, positive value specifies the timeframe in seconds within failure detector is allowed to disarm the vehicle
-if attitude exceeds the limits defined in FD_FAIL_P and FD_FAIL_R.
-The check is not executed for flight modes that do support acrobatic maneuvers, e.g: Acro (MC/FW) and Manual (FW).
-A zero or negative value means that the check is disabled.
-
-| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | -1.0     | 5.0      |           | 3.0     | s    | &nbsp;    |
-
 ### COM_LOW_BAT_ACT (`INT32`) {#COM_LOW_BAT_ACT}
 
 Battery failsafe mode.
@@ -19288,16 +19224,6 @@ By default disabled for safety reasons
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
-
-### COM_OBC_LOSS_T (`FLOAT`) {#COM_OBC_LOSS_T}
-
-Onboard computer connection loss timeout.
-
-Time-out to wait when onboard computer connection is lost before warning about loss connection
-
-| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0        | 60       | 0.01      | 5.0     | s    | &nbsp;    |
 
 ### COM_OBL_RC_ACT (`INT32`) {#COM_OBL_RC_ACT}
 
@@ -19558,21 +19484,6 @@ Goal:
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 30       | 0.1       | 1.0     | s    | &nbsp;    |
-
-### COM_TAKEOFF_ACT (`INT32`) {#COM_TAKEOFF_ACT}
-
-Action after TAKEOFF has been accepted.
-
-The mode transition after TAKEOFF has completed successfully.
-
-**Values:**
-
-- `0`: Hold
-- `1`: Mission (if valid)
-
-| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; |          |          |           | 0       |      | &nbsp;    |
 
 ### COM_THROW_EN (`INT32`) {#COM_THROW_EN}
 
@@ -45325,3 +45236,35 @@ ROS2 RMW_ZENOH_CPP Domain id.
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 232      |           | 0       |      | &nbsp;    |
+
+### ZENOH_PUB_CC (`INT32`) {#ZENOH_PUB_CC}
+
+Zenoh publisher congestion control (global default).
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 1        |           | 0       |      | &nbsp;    |
+
+### ZENOH_PUB_EXPR (`INT32`) {#ZENOH_PUB_EXPR}
+
+Zenoh publisher express mode (global default).
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 1        |           | 0       |      | &nbsp;    |
+
+### ZENOH_PUB_PRIO (`INT32`) {#ZENOH_PUB_PRIO}
+
+Zenoh publisher priority (global default).
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 1        | 7        |           | 5       |      | &nbsp;    |
+
+### ZENOH_PUB_REL (`INT32`) {#ZENOH_PUB_REL}
+
+Zenoh publisher reliability (global default).
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 1        |           | 0       |      | &nbsp;    |

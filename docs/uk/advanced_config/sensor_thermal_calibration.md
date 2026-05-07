@@ -153,19 +153,19 @@ TC_[type][instance]_[cal_name]_[axis]
 Корекція теплового зсуву (за допомогою параметрів калібрування) виконується в [модулі датчиків](../modules/modules_system.md#sensors).
 Еталонна температура віднімається від виміряної температури, щоб отримати дельта-температуру, де:
 
-```
+```txt
 delta = measured_temperature - reference_temperature
 ```
 
 Потім дельта-температура використовується для розрахунку зсуву, де:
 
-```
+```txt
 offset = X0 + X1*delta + X2*delta**2 + ... + Xn*delta**n
 ```
 
 Зсув і температурний масштабний коефіцієнт потім використовуються для корекції вимірювання датчика, де:
 
-```
+```txt
 corrected_measurement = (raw_measurement - offset) * scale_factor
 ```
 
@@ -198,3 +198,7 @@ corrected_measurement = (raw_measurement - offset) * scale_factor
 [^2]: Для калібрування зсувів датчика барометричного тиску потрібен стабільний тиск повітря. The air pressure will change slowly due to weather and inside buildings can change rapidly due to external wind fluctuations and HVAC system operation.
 
 [^3]: Слід бути обережним під час нагрівання холодної дошки, щоб уникнути утворення конденсату на дошці, який за певних обставин може спричинити її пошкодження.
+
+## Дивіться також
+
+- [OEM/Factory Configuration](../advanced_config/oem.md)

@@ -654,16 +654,6 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 					return TRANSITION_DENIED;
 				}
 			}
-
-		} else if (calling_reason == arm_disarm_reason_t::stick_gesture
-			   || calling_reason == arm_disarm_reason_t::rc_switch
-			   || calling_reason == arm_disarm_reason_t::rc_button) {
-
-			mavlink_log_critical(&_mavlink_log_pub, "Arming denied: switch to manual mode first\t");
-			events::send(events::ID("commander_arm_denied_not_manual"), {events::Log::Critical, events::LogInternal::Info},
-				     "Arming denied: switch to manual mode first");
-			tune_negative(true);
-			return TRANSITION_DENIED;
 		}
 
 		_health_and_arming_checks.update(false, true);
@@ -710,7 +700,7 @@ transition_result_t Commander::disarm(arm_disarm_reason_t calling_reason, bool f
 					     || (calling_reason == arm_disarm_reason_t::rc_switch)
 					     || (calling_reason == arm_disarm_reason_t::rc_button);
 
-		if (!landed && !(mc_manual_thrust_mode && commanded_by_rc && _param_com_disarm_man.get())) {
+		if (!landed && !(mc_manual_thrust_mode && commanded_by_rc)) {
 			if (calling_reason != arm_disarm_reason_t::stick_gesture) {
 				mavlink_log_critical(&_mavlink_log_pub, "Disarming denied: not landed\t");
 				events::send(events::ID("commander_disarm_denied_not_landed"),
@@ -2138,15 +2128,8 @@ void Commander::checkForMissionUpdate()
 
 			if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF
 			    || _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF) {
-				// Transition mode to loiter or auto-mission after takeoff is completed.
-				if ((_param_com_takeoff_act.get() == 1) && auto_mission_available) {
-					_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
-
-				} else {
-					// Transition to loiter when the takeoff is completed (force into the Loiter, if mode is not executable then failsafe).
-					_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER, ModeChangeSource::ModeExecutor, false,
-								    true);
-				}
+				// Transition to loiter when the takeoff is completed (force into the Loiter, if mode is not executable then failsafe).
+				_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER, ModeChangeSource::ModeExecutor, false, true);
 
 			} else if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
 				// Transition to loiter when the mission is cleared and/or finished, and we are still in mission mode.
@@ -2976,7 +2959,7 @@ void Commander::dataLinkCheck()
 
 	// ONBOARD CONTROLLER data link loss failsafe
 	if ((_datalink_last_heartbeat_onboard_controller > 0)
-	    && (hrt_elapsed_time(&_datalink_last_heartbeat_onboard_controller) > (_param_com_obc_loss_t.get() * 1_s))
+	    && (hrt_elapsed_time(&_datalink_last_heartbeat_onboard_controller) > 5_s)
 	    && !_onboard_controller_lost) {
 
 		mavlink_log_critical(&_mavlink_log_pub, "Connection to mission computer lost\t");

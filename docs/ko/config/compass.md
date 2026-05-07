@@ -27,9 +27,9 @@ Several types of compass calibration are available:
 1. [Complete](#complete-calibration): This calibration is required after installing the autopilot on an airframe for the first time or when the configuration of the vehicle has changed significantly.
    It compensates for hard and soft iron effects by estimating an offset and a scale factor for each axis.
 2. [Partial](#partial-quick-calibration): This calibration can be performed as a routine when preparing the vehicle for a flight, after changing the payload, or simply when the compass rose seems inaccurate.
-   This type of calibration only estimates the offsets to compensate for a hard iron effect.
+   This type of calibration only estimates the offsets to compensate for a hard-iron effect.
 3. [Large vehicle](#large-vehicle-calibration): This calibration can be performed when the vehicle is too large or heavy to perform a complete calibration.
-   This type of calibration only estimates the offsets to compensate for a hard iron effect.
+   This type of calibration only estimates the offsets to compensate for a hard-iron effect.
 
 ## 보정 절차
 
@@ -97,28 +97,78 @@ Notes:
 
 <Badge type="tip" text="PX4 v1.15" />
 
-This calibration process leverages external knowledge of vehicle's orientation and location, and a World Magnetic Model (WMM) to calibrate the hard iron biases.
+This calibration process leverages external knowledge of the vehicle's orientation and location, along with a World Magnetic Model (WMM), to calibrate hard-iron biases.
+It is designed for large or heavy vehicles where full-axis rotation is impractical.
 
-1. Ensure GNSS Fix.
-   This is required to find the expected Earth magnetic field in WMM tables.
-2. Align the vehicle to face True North.
-   Be as accurate as possible for best results.
-3. Open the [QGroundControl MAVLink Console](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/analyze_view/mavlink_console.html) and send the following command:
+The calibration accepts an optional heading argument (<Badge type="tip" text="PX4 v1.18" />), allowing you to specify the vehicle's current true heading.
+This means you can perform a valid magnetometer calibration while the vehicle is pointed in any direction, not just North.
+
+:::tip
+The [complete calibration](#complete-calibration) is more reliable, and should be used if you can physically rotate the vehicle through all required orientations.
+
+If the large vehicle calibration fails (magnetometer readings are inconsistent, or if yaw is unstable or incorrect) you will need to [recalibrate](#recalibration) using the complete calibration.
+:::
+
+:::details
+Implementation details
+
+This implementation replaces an earlier version (PX4 v1.15 - PX4 v1.17) that required the vehicle to be facing True North.
+
+The calibration process:
+
+- Computes hard-iron bias offsets by comparing the expected Earth magnetic field vector (based on location and heading from WMM) with the measured field from the magnetometer(s).
+- Adjusts magnetometer offset parameters so the heading estimate aligns correctly without requiring full 3-axis rotation.
+- The calibration is applied immediately.
+  Offsets persist once parameters are saved (typically on disarm or reboot).
+
+:::
+
+#### 전제 조건
+
+- Obtain a valid GNSS fix (required for World Magnetic Model lookup).
+- 큰 금속 물체등과 같이 자기장이 강한 곳에서 멀리 떨어진 위치를 선택하십시오.
+- If using an external compass, ensure it is [mounted](../assembly/mount_gps_compass.md) as far as possible from other electronics.
+
+#### Procedure
+
+1. **Ensure GNSS Fix.**
+   This is required to look up the expected Earth magnetic field from WMM tables.
+2. **Align the vehicle to a known heading.**
+   This can be True North (0°), or any other known heading relative to True North.
+3. Open the [QGroundControl MAVLink Console](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/analyze_view/mavlink_console.html) and run:
 
    ```sh
-   commander calibrate mag quick
+   commander calibrate mag quick [heading]
    ```
 
-Notes:
+   | 매개변수                                    | 설명                                                                                                                                                       |
+   | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+   | `heading` (optional) | True heading of the vehicle in degrees (0–359). Defaults to 0° (North) if omitted. |
 
-- This method is specifically designed for vehicles where full rotation is impractical or impossible.
-  If full rotation is possible, use the [complete calibration](#complete-calibration) instead.
-- The vehicle doesn't need to be exactly levelled as this is automatically compensated using the tilt estimate.
+   **Examples:**
+
+   | Vehicle Facing                      | 통신                                  |
+   | ----------------------------------- | ----------------------------------- |
+   | North (0°)       | `commander calibrate mag quick`     |
+   | East (90°)       | `commander calibrate mag quick 90`  |
+   | South (180°)     | `commander calibrate mag quick 180` |
+   | Southwest (225°) | `commander calibrate mag quick 225` |
+
+:::info 참고
+
+- The vehicle doesn't need to be exactly level.
+  Tilt is automatically compensated using the attitude estimate.
 - This calibration can also be triggered using the MAVLink command [MAV_CMD_FIXED_MAG_CAL_YAW](https://mavlink.io/en/messages/common.html#MAV_CMD_FIXED_MAG_CAL_YAW).
 
-## 검증
+:::
 
-After the calibration is complete, check that the heading indicator and the heading of the arrow on the map are stable and match the orientation of the vehicle when turning it e.g. to the cardinal directions.
+#### 검증
+
+After calibration:
+
+1. Check that the heading indicator in QGroundControl is stable.
+2. Rotate the vehicle to cardinal directions (N/E/S/W) and verify the compass heading matches.
+3. If using multiple magnetometers, confirm the correct sensor priority is set.
 
 ## Recalibration
 
@@ -146,7 +196,7 @@ Recalibrate the compass when:
 
 ## Additional Calibration/Configuration
 
-The process above will autodetect, [set default rotations](../advanced_config/parameter_reference.md#SENS_MAG_AUTOROT), calibrate, and prioritise, all available magnetometers.
+The processes above will autodetect, [set default rotations](../advanced_config/parameter_reference.md#SENS_MAG_AUTOROT), calibrate, and prioritise, all available magnetometers.
 If external magnetometers are available, internal magnetometers are disabled.
 
 Further compass configuration should generally not be required.
