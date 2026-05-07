@@ -68,6 +68,11 @@ bool segmentsIntersect(const matrix::Vector2f &p1, const matrix::Vector2f &p2,
 	// We get two equations with two unknowns (t and u) which can be solved. If the denominator is zero, the lines are parallel
 	// or coinciding, which means we can stop. If the solution for t and u is between 0 and 1, the line segments intersect, otherwise they don't.
 
+	// Convention:
+	//  - p (parameterised by t) is the line segment belonging to a polygon
+	//  - v (parameterised by u) is the line segment between two vertices, not necessarily belonging to a polygon
+	// Important because strict/non-strict inequalities are different
+
 	float x1 = p1(0), y1 = p1(1);
 	float x2 = p2(0), y2 = p2(1);
 	float x3 = v1(0), y3 = v1(1);
@@ -76,6 +81,8 @@ bool segmentsIntersect(const matrix::Vector2f &p1, const matrix::Vector2f &p2,
 	float denominator = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
 
 	if (fabsf(denominator) < FLT_EPSILON) {
+		// Lines are parallel (no intersection exists) or overlapping
+		// (no intersection by our convention, we allow riding the edge)
 		return false;
 	}
 
@@ -83,7 +90,17 @@ bool segmentsIntersect(const matrix::Vector2f &p1, const matrix::Vector2f &p2,
 	float u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denominator;
 
 	// lines intersect if both running variables are between 0 and 1
-	return t > 0.0f && t < 1.0f && u > 0.0f && u < 1.0f;
+
+	// The running variable t corresponding to the _polygon_ edge is 0 or 1
+	// if we go through a vertex, in which case we want to consider it an
+	// intersection, so we include that case.
+
+	// The running variable u corresponding to the non-polygon edge is 0 or
+	// 1 if the line touches a polygon vertex. Do not include this case - an
+	// outgoing line from a polygon vertex to another polygon can be
+	// collision-free.
+
+	return t >= 0.0f && t <= 1.0f && u > 0.0f && u < 1.0f;
 }
 
 bool lineSegmentIntersectsPolygon(const matrix::Vector2f &start, const matrix::Vector2f &end,
@@ -92,7 +109,7 @@ bool lineSegmentIntersectsPolygon(const matrix::Vector2f &start, const matrix::V
 	for (int vertex_idx = 0; vertex_idx < num_vertices; vertex_idx++) {
 		int prev_idx = vertex_idx == 0 ? num_vertices - 1 : vertex_idx - 1;
 
-		if (segmentsIntersect(start, end, vertices[vertex_idx], vertices[prev_idx])) {
+		if (segmentsIntersect(vertices[vertex_idx], vertices[prev_idx], start, end)) {
 			return true;
 		}
 	}
