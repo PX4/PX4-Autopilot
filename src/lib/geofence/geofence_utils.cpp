@@ -37,17 +37,13 @@
 namespace geofence_utils
 {
 
-bool insidePolygon(const matrix::Vector2f *vertices, int num_vertices,
-		   const matrix::Vector2f &point)
+namespace
 {
-	bool c = false;
 
-	for (int i = 0, j = num_vertices - 1; i < num_vertices; j = i++) {
-		insidePolygonUpdateState(c, vertices[i], vertices[j], point);
-	}
+// Float-meter to int32-cm: the only conversion at the float/cm boundary.
+int32_t metersToCm(float m) { return static_cast<int32_t>(std::llroundf(m * 100.f)); }
 
-	return c;
-}
+} // namespace
 
 bool insideCircle(const matrix::Vector2<double> &center, float radius,
 		  const matrix::Vector2<double> &point)
@@ -56,34 +52,152 @@ bool insideCircle(const matrix::Vector2<double> &center, float radius,
 	return dist < radius;
 }
 
-bool segmentsIntersect(const matrix::Vector2f &p1, const matrix::Vector2f &p2,
-		       const matrix::Vector2f &v1, const matrix::Vector2f &v2)
+int PlannerPolygons::addNode(const matrix::Vector2f &p)
 {
-	// line intersection algorithm from wikipedia
-	// https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
-	// Basic idea: a 2D vector formula for each line is created, consisting of a start point e.g. p1
-	// and a direction vector pointing from p1 to p2. A running variable t [0,1] defines the position
-	// on the line betwen p1 and p2. So in this case the formula for the line is P = p1 + t * (p2-p1).
-	// The same is done for the second line and then both lines are set to be equal (to find the intersection).
-	// We get two equations with two unknowns (t and u) which can be solved. If the denominator is zero, the lines are parallel
-	// or coinciding, which means we can stop. If the solution for t and u is between 0 and 1, the line segments intersect, otherwise they don't.
+	if (_num_nodes >= kMaxNodes) { return -1; }
 
-	float x1 = p1(0), y1 = p1(1);
-	float x2 = p2(0), y2 = p2(1);
-	float x3 = v1(0), y3 = v1(1);
-	float x4 = v2(0), y4 = v2(1);
+	setNode(_num_nodes, p);
+	return _num_nodes++;
+}
 
-	float denominator = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+void PlannerPolygons::setNode(int idx, const matrix::Vector2f &p)
+{
+	_x_cm[idx] = metersToCm(p(0));
+	_y_cm[idx] = metersToCm(p(1));
+}
 
-	if (fabsf(denominator) < FLT_EPSILON) {
+bool PlannerPolygons::addPolygon(const matrix::Vector2f *vertices_in, int num_vertices, bool is_inclusion_zone)
+{
+	if (num_vertices < 3
+	    || _num_polygons >= kMaxPolygons
+	    || _num_nodes + num_vertices > kMaxNodes) {
 		return false;
 	}
 
-	float t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denominator;
-	float u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denominator;
+	// Canonical orientation: walking vertices in stored order, INSIDE is on
+	// the left of each edge. CCW for exclusion (bounded interior is forbidden),
+	// CW for inclusion (unbounded exterior is forbidden). Reverse iff input
+	// doesn't already match.
+	const bool reverse = (isPolygonCCW(vertices_in, num_vertices) == is_inclusion_zone);
 
-	// lines intersect if both running variables are between 0 and 1
-	return t > 0.0f && t < 1.0f && u > 0.0f && u < 1.0f;
+	PolygonInfo &poly = _polygons[_num_polygons];
+	poly.start_index = _num_nodes;
+	poly.num_vertices = num_vertices;
+	poly.inside_is_bounded = !is_inclusion_zone;
+
+	for (int i = 0; i < num_vertices; i++) {
+		setNode(poly.start_index + i, vertices_in[reverse ? (num_vertices - 1 - i) : i]);
+	}
+
+	_num_nodes += num_vertices;
+	++_num_polygons;
+	return true;
+}
+
+// Standard convex/reflex vertex test: at a convex vertex Inside is the small
+// wedge between the two incident edges (left of BOTH); at a reflex vertex it
+// is the large arc (left of EITHER).
+bool PlannerPolygons::pointInsideInteriorCone(const PolygonInfo &poly,
+		int32_t px, int32_t py, int v) const
+{
+	const int prev = poly.start_index + ((v == 0) ? poly.num_vertices - 1 : v - 1);
+	const int curr = poly.start_index + v;
+	const int next = poly.start_index + ((v + 1) % poly.num_vertices);
+
+	const int o_in     = orient2d(_x_cm[prev], _y_cm[prev], _x_cm[curr], _y_cm[curr], px, py);
+	const int o_out    = orient2d(_x_cm[curr], _y_cm[curr], _x_cm[next], _y_cm[next], px, py);
+	const int is_convex = orient2d(_x_cm[prev], _y_cm[prev], _x_cm[curr], _y_cm[curr], _x_cm[next], _y_cm[next]);
+
+	return is_convex > 0              // If convex == 0 (exact 180deg vertex) the below cases are equivalent
+	       ? (o_in > 0 && o_out > 0)  // Inside = intersection of both half-planes
+	       : (o_in > 0 || o_out > 0); // Inside = union of both half-planes
+}
+
+bool PlannerPolygons::intersectsInsideOf(const PolygonInfo &poly,
+		int32_t s_x, int32_t s_y, int32_t e_x, int32_t e_y) const
+{
+	const int32_t mid_x = (s_x + e_x) / 2;
+	const int32_t mid_y = (s_y + e_y) / 2;
+
+	// Single pass over polygon edges, doing two jobs at once:
+	//   (1) classify the test segment vs each polygon edge -- early-return on
+	//       a proper crossing, wedge-check polygon vertices that sit strictly
+	//       on the open test segment;
+	//   (2) accumulate Sunday's winding-number contribution for the midpoint,
+	//       used (with poly.inside_is_bounded) to classify the no-crossing
+	//       case as Inside or Outside.
+	int wn = 0;
+	bool mid_on_boundary = false;
+
+	for (int i = 0; i < poly.num_vertices; i++) {
+		const int prev_idx = poly.start_index + ((i == 0) ? poly.num_vertices - 1 : i - 1);
+		const int curr_idx = poly.start_index + i;
+		const int32_t ax = _x_cm[prev_idx], ay = _y_cm[prev_idx];
+		const int32_t bx = _x_cm[curr_idx], by = _y_cm[curr_idx];
+
+		// (1) test segment vs polygon edge (a, b)
+		switch (segmentsIntersect(ax, ay, bx, by, s_x, s_y, e_x, e_y)) {
+		case SegSegResult::Cross:
+			return true;
+
+		case SegSegResult::BInsideCD:
+			// polygon vertex `b` strictly on the open test segment -- a graze
+			// unless the wedge classifies the two endpoints differently
+			if (pointInsideInteriorCone(poly, s_x, s_y, i) !=
+			    pointInsideInteriorCone(poly, e_x, e_y, i)) {
+				return true;
+			}
+
+			break;
+
+		default:
+			break;
+		}
+
+		// (2) midpoint winding contribution (Sunday)
+		const int side = orient2d(ax, ay, bx, by, mid_x, mid_y);
+
+		if (side == 0 && collinearBetween(ax, ay, bx, by, mid_x, mid_y)) {
+			mid_on_boundary = true;
+
+		} else if (ay <= mid_y) {
+			if (by > mid_y && side > 0) { wn++; }
+
+		} else if (by <= mid_y && side < 0) { wn--; }
+	}
+
+	// Midpoint on the boundary: segment runs along it; non-violating in either zone.
+	if (mid_on_boundary) {
+		return false;
+	}
+
+	// wn != 0 means the midpoint is in the bounded region. The only place
+	// orientation polarity surfaces.
+	const bool bounded = (wn != 0);
+	return bounded == poly.inside_is_bounded;
+}
+
+bool PlannerPolygons::intersectsAnyInside(int32_t s_x, int32_t s_y, int32_t e_x, int32_t e_y) const
+{
+	for (int p = 0; p < _num_polygons; p++) {
+		if (intersectsInsideOf(_polygons[p], s_x, s_y, e_x, e_y)) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool PlannerPolygons::isLineBetweenNodesIntersectingAnyInside(int a, int b) const
+{
+	if (a == b) { return false; }
+
+	return intersectsAnyInside(_x_cm[a], _y_cm[a], _x_cm[b], _y_cm[b]);
+}
+
+bool PlannerPolygons::isLineFromPointToNodeIntersectingAnyInside(const matrix::Vector2f &p, int node_idx) const
+{
+	return intersectsAnyInside(metersToCm(p(0)), metersToCm(p(1)), _x_cm[node_idx], _y_cm[node_idx]);
 }
 
 bool lineSegmentIntersectsCircle(const matrix::Vector2f &start, const matrix::Vector2f &end,

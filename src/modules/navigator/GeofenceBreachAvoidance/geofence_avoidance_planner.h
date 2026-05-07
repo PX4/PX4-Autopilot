@@ -42,9 +42,11 @@
 #include <cstdint>
 #include <matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
+#include <lib/geofence/geofence_utils.h>
 #include "geofence_interface.h"
 
 static constexpr int kMaxNodes = 100;
+static constexpr int kMaxCircles = 16;
 static constexpr int kCircleApproxVertices = 8;
 
 struct PlannedPath {
@@ -148,10 +150,25 @@ private:
 
 	matrix::Vector2f _start_local;
 
-	matrix::Vector2f _positions[kMaxNodes];
 	int _num_nodes{0};
 	int _num_vertices{0};
+	int _dest_idx{-1};
 	matrix::Vector2<double> _reference; // lat/lon anchor of the local frame
+
+	// Cached, read-only fence representation. _polygons owns the master
+	// node buffer (polygon vertices + circle approximation vertices +
+	// destination); _circles holds the analytical circle metadata for the
+	// line-vs-circle violation check. Built once per `update_vertices`
+	// (= geofence geometry change); reused by every line-violates-fence
+	// query during distance setup, destination updates, and start-anchor
+	// selection.
+	struct CachedCircle {
+		matrix::Vector2f center;
+		float radius;
+	};
+	geofence_utils::PlannerPolygons _polygons;
+	CachedCircle _circles[kMaxCircles];
+	int _num_circles{0};
 
 	bool _polygons_healthy{false};
 	bool _destination_healthy{false};
@@ -163,8 +180,13 @@ private:
 	perf_counter_t _plan_path_perf{perf_alloc(PC_ELAPSED, "rtl_planner: plan path")};
 
 	bool update_graph_nodes_without_start_and_destination(GeofenceInterface &geofence, float margin);
-	void update_distances_between_vertices(GeofenceInterface &geofence);
+	void update_distances_between_vertices();
 	void planPath();
+
+	// Read-only query against the cached fence: union of polygon (index-based)
+	// and circle (analytic, float) checks. No geofence dataman roundtrips.
+	bool lineViolatesAnyCachedFenceBetweenNodes(int a, int b) const;
+	bool lineViolatesAnyCachedFenceFromPoint(const matrix::Vector2f &p, int node_idx) const;
 
 	bool lat_lon_within_bounds(const matrix::Vector2<double> &lat_lon);
 
