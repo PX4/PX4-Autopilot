@@ -106,6 +106,14 @@ bool segmentsIntersect(const matrix::Vector2f &p1, const matrix::Vector2f &p2,
 bool lineSegmentIntersectsPolygon(const matrix::Vector2f &start, const matrix::Vector2f &end,
 				  const matrix::Vector2f *vertices, int num_vertices)
 {
+
+	// Return true iff the intersection of the closed line segment and the
+	// closed polygon is non-empty
+
+	// Simple case: If there is an actual intersection with an edge, it
+	// intersects (TODO: technically only a strict intersectio, with all the
+	// running variables in (0, 1))
+
 	for (int vertex_idx = 0; vertex_idx < num_vertices; vertex_idx++) {
 		int prev_idx = vertex_idx == 0 ? num_vertices - 1 : vertex_idx - 1;
 
@@ -113,6 +121,7 @@ bool lineSegmentIntersectsPolygon(const matrix::Vector2f &start, const matrix::V
 			return true;
 		}
 	}
+
 
 	return false;
 }
