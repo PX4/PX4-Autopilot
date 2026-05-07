@@ -2,8 +2,6 @@
 
 The flight controller can be powered from a power module connected to the **POWER** port.
 
-The power module must supply a regulated **5V** at a minimum of **3A continuous**.
-
 Power ports:
 
 - `POWER`: 6-pin JST GH — DroneCAN battery monitoring.

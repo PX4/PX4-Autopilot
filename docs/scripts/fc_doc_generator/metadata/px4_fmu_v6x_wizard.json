@@ -15,7 +15,10 @@
   "power_ports_wizard": [
     {
       "label": "RC",
-      "connector_type": "n"
+      "connector_type": "n",
+      "normal_min_v": "GPS1",
+      "normal_max_v": "n",
+      "absolute_max_v": null
     }
   ],
   "overview_wizard": {
@@ -28,7 +31,7 @@
       "ICP-20100"
     ],
     "mag": null,
-    "osd": null,
+    "osd": "OSD",
     "width_mm": null,
     "length_mm": null,
     "height_mm": null,
@@ -40,6 +43,7 @@
     "usb_pwr_max_v": null,
     "has_servo_rail": true,
     "servo_rail_max_v": null,
+    "servo_rail_absolute_max_v": null,
     "usb_connectors": null,
     "usb_labels": [
       "USB"
@@ -56,5 +60,7 @@
       "bus_num": 2,
       "label": "n"
     }
-  ]
+  ],
+  "ethernet_wizard": null,
+  "extra_port_labels": null
 }

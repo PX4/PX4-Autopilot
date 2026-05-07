@@ -573,6 +573,44 @@ class TestGeneratePowerSection:
         # Mixed board should not claim "redundant power inputs" in the intro
         assert "redundant power inputs" not in prose.lower()
 
+    def test_pure_dronecan_omits_5v_requirement(self):
+        """Pure DroneCAN board must NOT say '5V regulated'."""
+        entry = {
+            **self._entry_single(),
+            "power_ports_wizard": [
+                {"label": "POWER C1", "connector_type": "8-pin JST GH",
+                 "monitor_type": "dronecan"},
+            ],
+        }
+        prose = fcdg.generate_power_section(BOARD_KEY, entry).split("<!-- power-source-data")[0]
+        assert "5V" not in prose
+
+    def test_analog_retains_5v_requirement(self):
+        """Analog board must keep the 5V/3A line."""
+        entry = {
+            **self._entry_single(),
+            "power_ports_wizard": [
+                {"label": "POWER", "connector_type": "6-pin JST GH",
+                 "monitor_type": "analog"},
+            ],
+        }
+        prose = fcdg.generate_power_section(BOARD_KEY, entry).split("<!-- power-source-data")[0]
+        assert "5V" in prose
+
+    def test_mixed_dronecan_analog_retains_5v_requirement(self):
+        """Mixed board (analog + DroneCAN) must keep the 5V/3A line for the analog port."""
+        entry = {
+            **self._entry_dual(),
+            "power_ports_wizard": [
+                {"label": "POWER 1", "connector_type": "6-pin Molex CLIK-Mate",
+                 "monitor_type": "analog"},
+                {"label": "POWER C1", "connector_type": "6-pin JST GH",
+                 "monitor_type": "dronecan"},
+            ],
+        }
+        prose = fcdg.generate_power_section(BOARD_KEY, entry).split("<!-- power-source-data")[0]
+        assert "5V" in prose
+
 
 # ---------------------------------------------------------------------------
 # Telemetry section snapshots and structural tests
@@ -1160,3 +1198,259 @@ class TestGenerateSpecSectionVariants:
         result = fcdg.generate_specifications_section(BOARD_KEY, entry)
         assert "hardware revision Rev 1.0" in result
         assert "hardware revision Rev 1.1" in result
+
+
+# ---------------------------------------------------------------------------
+# Ethernet section
+# ---------------------------------------------------------------------------
+
+class TestEthernetSection:
+    def test_ethernet_with_label(self, snapshot):
+        entry = {
+            'has_ethernet': True,
+            'ethernet_wizard': {'port_label': 'ETH', 'speed_mbps': '100', 'transformerless': True},
+        }
+        result = fcdg.generate_ethernet_section(BOARD_KEY, entry)
+        snapshot("ethernet_section.md", result)
+
+    def test_ethernet_no_label(self, snapshot):
+        entry = {
+            'has_ethernet': True,
+            'ethernet_wizard': {'port_label': None, 'speed_mbps': '100', 'transformerless': True},
+        }
+        result = fcdg.generate_ethernet_section(BOARD_KEY, entry)
+        snapshot("ethernet_section_no_label.md", result)
+
+    def test_ethernet_not_transformerless(self, snapshot):
+        entry = {
+            'has_ethernet': True,
+            'ethernet_wizard': {'port_label': 'ETH', 'speed_mbps': '1000', 'transformerless': False},
+        }
+        result = fcdg.generate_ethernet_section(BOARD_KEY, entry)
+        snapshot("ethernet_section_gigabit.md", result)
+
+    def test_ethernet_absent(self):
+        assert fcdg.generate_ethernet_section(BOARD_KEY, {'has_ethernet': False}) == ''
+
+    def test_ethernet_no_wizard(self, snapshot):
+        """Falls back to defaults when ethernet_wizard is absent."""
+        entry = {'has_ethernet': True}
+        result = fcdg.generate_ethernet_section(BOARD_KEY, entry)
+        snapshot("ethernet_section_no_wizard.md", result)
+
+    def test_label_is_code_style(self):
+        entry = {
+            'has_ethernet': True,
+            'ethernet_wizard': {'port_label': 'ETH', 'speed_mbps': '100', 'transformerless': True},
+        }
+        result = fcdg.generate_ethernet_section(BOARD_KEY, entry)
+        assert '`ETH`' in result
+        assert '**ETH**' not in result
+
+
+# ---------------------------------------------------------------------------
+# Voltage Ratings section
+# ---------------------------------------------------------------------------
+
+_VR_DRONECAN_ENTRY = {
+    'product': 'X25 Super',
+    'num_power_inputs': 2,
+    'has_redundant_power': True,
+    'has_dronecan_power_input': True,
+    'power_monitor_type': 'dronecan',
+    'power_ports_wizard': [
+        {'label': 'POWER C1', 'connector_type': '8-pin JST GH', 'monitor_type': 'dronecan',
+         'normal_min_v': '10', 'normal_max_v': '18', 'absolute_max_v': None},
+        {'label': 'POWER C2', 'connector_type': '8-pin JST GH', 'monitor_type': 'dronecan',
+         'normal_min_v': '10', 'normal_max_v': '18', 'absolute_max_v': None},
+    ],
+    'overview_wizard': {
+        'usb_powers_fc': True, 'usb_pwr_min_v': '4.75', 'usb_pwr_max_v': '5.25',
+        'has_servo_rail': True, 'servo_rail_max_v': '9.9',
+        'servo_rail_absolute_max_v': None,
+    },
+}
+
+_VR_SMBUS_ENTRY = {
+    'product': 'Pixhawk 5X',
+    'num_power_inputs': 2,
+    'has_redundant_power': True,
+    'has_dronecan_power_input': False,
+    'power_monitor_type': 'ina226',
+    'power_ports_wizard': [
+        {'label': 'POWER1', 'connector_type': '6-pin Molex CLIK-Mate',
+         'normal_min_v': '4.9', 'normal_max_v': '5.5', 'absolute_max_v': '10'},
+        {'label': 'POWER2', 'connector_type': '6-pin Molex CLIK-Mate',
+         'normal_min_v': '4.9', 'normal_max_v': '5.5', 'absolute_max_v': '10'},
+    ],
+    'overview_wizard': {
+        'usb_powers_fc': True, 'usb_pwr_min_v': '4.75', 'usb_pwr_max_v': '5.25',
+        'has_servo_rail': True, 'servo_rail_max_v': '10',
+        'servo_rail_absolute_max_v': '42',
+    },
+}
+
+_VR_ANALOG_ENTRY = {
+    'product': 'Durandal',
+    'num_power_inputs': 1,
+    'has_redundant_power': False,
+    'has_dronecan_power_input': False,
+    'power_monitor_type': 'analog',
+    'power_ports_wizard': [
+        {'label': 'POWER', 'connector_type': '6-pin JST GH',
+         'normal_min_v': '4.9', 'normal_max_v': '5.5', 'absolute_max_v': '6'},
+    ],
+    'overview_wizard': {
+        'usb_powers_fc': False,
+        'has_servo_rail': True, 'servo_rail_max_v': '9.9',
+        'servo_rail_absolute_max_v': None,
+    },
+}
+
+
+class TestVoltageRatingsSection:
+    def test_dronecan_dual(self, snapshot):
+        result = fcdg.generate_voltage_ratings_section(BOARD_KEY, _VR_DRONECAN_ENTRY)
+        snapshot("voltage_ratings_dronecan.md", result)
+
+    def test_smbus_dual(self, snapshot):
+        result = fcdg.generate_voltage_ratings_section(BOARD_KEY, _VR_SMBUS_ENTRY)
+        snapshot("voltage_ratings_smbus.md", result)
+
+    def test_analog_single(self, snapshot):
+        result = fcdg.generate_voltage_ratings_section(BOARD_KEY, _VR_ANALOG_ENTRY)
+        snapshot("voltage_ratings_analog.md", result)
+
+    def test_heading_present(self):
+        result = fcdg.generate_voltage_ratings_section(BOARD_KEY, _VR_SMBUS_ENTRY)
+        assert '## Voltage Ratings {#voltage_ratings}' in result
+
+    def test_normal_operation_section_present(self):
+        result = fcdg.generate_voltage_ratings_section(BOARD_KEY, _VR_SMBUS_ENTRY)
+        assert '**Normal Operation Maximum Ratings**' in result
+
+    def test_absolute_maximum_section_present(self):
+        result = fcdg.generate_voltage_ratings_section(BOARD_KEY, _VR_SMBUS_ENTRY)
+        assert '**Absolute Maximum Ratings**' in result
+
+    def test_voltage_monitoring_section_present(self):
+        result = fcdg.generate_voltage_ratings_section(BOARD_KEY, _VR_SMBUS_ENTRY)
+        assert '**Voltage monitoring**' in result
+
+    def test_dronecan_monitoring_text(self):
+        result = fcdg.generate_voltage_ratings_section(BOARD_KEY, _VR_DRONECAN_ENTRY)
+        assert 'DroneCAN/UAVCAN battery monitoring' in result
+
+    def test_i2c_monitoring_text(self):
+        result = fcdg.generate_voltage_ratings_section(BOARD_KEY, _VR_SMBUS_ENTRY)
+        assert 'Digital I2C battery monitoring' in result
+
+    def test_analog_monitoring_text(self):
+        result = fcdg.generate_voltage_ratings_section(BOARD_KEY, _VR_ANALOG_ENTRY)
+        assert 'Analog battery monitoring' in result
+
+    def test_absolute_max_v_shown(self):
+        result = fcdg.generate_voltage_ratings_section(BOARD_KEY, _VR_SMBUS_ENTRY)
+        assert '0V to 10V undamaged' in result
+
+    def test_servo_rail_absolute_max_shown(self):
+        result = fcdg.generate_voltage_ratings_section(BOARD_KEY, _VR_SMBUS_ENTRY)
+        assert '0V to 42V undamaged' in result
+
+    def test_servo_rail_todo_when_absent(self):
+        result = fcdg.generate_voltage_ratings_section(BOARD_KEY, _VR_DRONECAN_ENTRY)
+        assert '0V to TODO undamaged' in result
+
+    def test_source_comment_present(self):
+        result = fcdg.generate_voltage_ratings_section(BOARD_KEY, _VR_SMBUS_ENTRY)
+        assert '<!-- voltage-ratings-source-data' in result
+
+    def test_no_power_ports_uses_fallback(self):
+        entry = {
+            'product': 'Test Board',
+            'num_power_inputs': 1,
+            'has_redundant_power': False,
+            'power_monitor_type': 'analog',
+            'power_ports_wizard': None,
+            'overview_wizard': {'usb_powers_fc': False, 'has_servo_rail': False},
+        }
+        result = fcdg.generate_voltage_ratings_section(BOARD_KEY, entry)
+        assert '## Voltage Ratings' in result
+        assert 'TODO' in result
+
+    def test_mixed_dronecan_i2c_monitoring_note(self):
+        """Mixed DroneCAN + I2C ports produce a combined monitoring note."""
+        entry = {
+            **_VR_SMBUS_ENTRY,
+            'power_ports_wizard': [
+                {'label': 'POWER 1', 'normal_min_v': '4.9', 'normal_max_v': '5.5',
+                 'absolute_max_v': '10', 'monitor_type': 'i2c'},
+                {'label': 'POWER C1', 'normal_min_v': '10', 'normal_max_v': '18',
+                 'absolute_max_v': None, 'monitor_type': 'dronecan'},
+            ],
+        }
+        result = fcdg.generate_voltage_ratings_section(BOARD_KEY, entry)
+        assert 'DroneCAN/UAVCAN and I2C battery monitoring' in result
+
+    def test_per_port_monitor_type_overrides_board_level(self):
+        """Per-port monitor_type takes priority over board-level power_monitor_type."""
+        entry = {
+            **_VR_SMBUS_ENTRY,
+            'power_monitor_type': 'ina226',   # board-level says I2C
+            'power_ports_wizard': [
+                {'label': 'POWER C1', 'normal_min_v': '10', 'normal_max_v': '18',
+                 'absolute_max_v': None, 'monitor_type': 'dronecan'},  # port says DroneCAN
+            ],
+        }
+        result = fcdg.generate_voltage_ratings_section(BOARD_KEY, entry)
+        # Per-port dronecan wins over board-level ina226
+        assert 'DroneCAN/UAVCAN battery monitoring' in result
+        assert 'I2C battery monitoring' not in result
+
+
+# ---------------------------------------------------------------------------
+# _monitoring_note helper
+# ---------------------------------------------------------------------------
+
+class TestMonitoringNote:
+    def test_pure_dronecan(self):
+        ports = [{'monitor_type': 'dronecan'}, {'monitor_type': 'dronecan'}]
+        assert fcdg._monitoring_note(ports, None) == \
+            'Digital DroneCAN/UAVCAN battery monitoring is enabled by default.'
+
+    def test_pure_i2c_ina226(self):
+        ports = [{'monitor_type': 'ina226'}]
+        assert fcdg._monitoring_note(ports, None) == \
+            'Digital I2C battery monitoring is enabled by default.'
+
+    def test_pure_i2c_ltc44xx(self):
+        ports = [{'monitor_type': 'ltc44xx'}]
+        assert fcdg._monitoring_note(ports, None) == \
+            'Digital I2C battery monitoring is enabled by default.'
+
+    def test_pure_analog(self):
+        ports = [{'monitor_type': 'analog'}]
+        assert fcdg._monitoring_note(ports, None) == \
+            'Analog battery monitoring via ADC is enabled by default.'
+
+    def test_mixed_dronecan_i2c(self):
+        ports = [{'monitor_type': 'dronecan'}, {'monitor_type': 'ina226'}]
+        assert fcdg._monitoring_note(ports, None) == \
+            'Digital DroneCAN/UAVCAN and I2C battery monitoring are enabled by default.'
+
+    def test_mixed_dronecan_analog(self):
+        ports = [{'monitor_type': 'dronecan'}, {'monitor_type': 'analog'}]
+        assert fcdg._monitoring_note(ports, None) == \
+            'Digital DroneCAN/UAVCAN and analog ADC battery monitoring are enabled by default.'
+
+    def test_fallback_to_board_level_when_no_port_types(self):
+        ports = [{'label': 'POWER', 'connector_type': '6-pin JST GH'}]  # no monitor_type
+        assert fcdg._monitoring_note(ports, 'ina238') == \
+            'Digital I2C battery monitoring is enabled by default.'
+
+    def test_fallback_dronecan_board_level(self):
+        assert fcdg._monitoring_note([], 'dronecan') == \
+            'Digital DroneCAN/UAVCAN battery monitoring is enabled by default.'
+
+    def test_no_data_returns_todo(self):
+        assert 'TODO' in fcdg._monitoring_note([], None)

@@ -724,6 +724,8 @@ def parse_power_config(board_path: Path) -> dict:
         ptext = px4board.read_text(errors='ignore')
         if 'CONFIG_DRIVERS_POWER_MONITOR_INA238=y' in ptext:
             result['power_monitor_type'] = 'ina238'
+        elif 'CONFIG_DRIVERS_POWER_MONITOR_INA228=y' in ptext:
+            result['power_monitor_type'] = 'ina228'
         elif 'CONFIG_DRIVERS_POWER_MONITOR_INA226=y' in ptext:
             result['power_monitor_type'] = 'ina226'
         elif result['power_monitor_type'] is None and digital:
@@ -2298,10 +2300,17 @@ def generate_power_section(board_key: str, entry: dict) -> str:
         ':::'
     )
 
+    if has_dronecan_port and not has_mixed_types:
+        pwr_requirement = ''
+    else:
+        pwr_requirement = (
+            'The power module must supply a regulated **5V** at a minimum of **3A continuous**.\n\n'
+        )
+
     body = (
         f'## Power {{#power}}\n\n'
         f'{intro_ports}\n\n'
-        f'The power module must supply a regulated **5V** at a minimum of **3A continuous**.\n\n'
+        f'{pwr_requirement}'
         f'Power ports:\n\n'
         f'{port_block}\n\n'
         f'{warning}\n\n'
@@ -2323,6 +2332,186 @@ def generate_power_section(board_key: str, entry: dict) -> str:
     source_comment = f'\n\n<!-- power-source-data\n{_power_source_json(board_key, entry)}\n-->'
 
     return body + image_link + checklist + source_comment
+
+
+def _monitoring_note(power_ports: list, board_monitor_type: str | None) -> str:
+    """Return the Voltage monitoring note, derived from per-port types with board-level fallback."""
+    _INA_TYPES = {'ina226', 'ina228', 'ina238', 'ltc44xx', 'i2c'}
+    types_present: set[str] = set()
+    for p in power_ports:
+        mt = (p.get('monitor_type') or '').strip().lower()
+        if mt == 'dronecan':
+            types_present.add('dronecan')
+        elif mt in _INA_TYPES:
+            types_present.add('i2c')
+        elif mt == 'analog':
+            types_present.add('analog')
+
+    if not types_present:
+        bmt = (board_monitor_type or '').lower()
+        if bmt == 'dronecan':
+            types_present.add('dronecan')
+        elif bmt in _INA_TYPES:
+            types_present.add('i2c')
+        elif bmt == 'analog':
+            types_present.add('analog')
+
+    if types_present == {'dronecan'}:
+        return 'Digital DroneCAN/UAVCAN battery monitoring is enabled by default.'
+    if types_present == {'i2c'}:
+        return 'Digital I2C battery monitoring is enabled by default.'
+    if types_present == {'analog'}:
+        return 'Analog battery monitoring via ADC is enabled by default.'
+    if 'dronecan' in types_present and 'i2c' in types_present:
+        return 'Digital DroneCAN/UAVCAN and I2C battery monitoring are enabled by default.'
+    if 'dronecan' in types_present and 'analog' in types_present:
+        return 'Digital DroneCAN/UAVCAN and analog ADC battery monitoring are enabled by default.'
+    if 'i2c' in types_present and 'analog' in types_present:
+        return 'Digital I2C and analog ADC battery monitoring are enabled by default.'
+    return 'TODO: voltage monitoring description.'
+
+
+def _voltage_range_str(min_v, max_v, todo_label: str) -> str:
+    """Return 'Xv to Yv' or 'TODO: <label>' when data is absent."""
+    if min_v and max_v:
+        return f'{min_v}V to {max_v}V'
+    if max_v:
+        return f'TODO to {max_v}V'
+    if min_v:
+        return f'{min_v}V to TODO'
+    return f'TODO: {todo_label}'
+
+
+def generate_voltage_ratings_section(board_key: str, entry: dict) -> str:
+    """Generate the ## Voltage Ratings {#voltage_ratings} section.
+
+    Content is driven by:
+      - overview_wizard (min_voltage, max_voltage, usb_pwr_min/max_v,
+        has_servo_rail, servo_rail_absolute_max_v, usb_powers_fc)
+      - power_ports_wizard (label, normal_min_v, normal_max_v, absolute_max_v per port)
+      - power_monitor_type (source-derived) for voltage monitoring note
+      - has_redundant_power, num_power_inputs
+    """
+    ow = entry.get('overview_wizard') or {}
+    power_ports = entry.get('power_ports_wizard') or []
+    num_inputs = entry.get('num_power_inputs', 1)
+    has_redundant = entry.get('has_redundant_power', False)
+    usb_powers = ow.get('usb_powers_fc', False)
+    usb_min = ow.get('usb_pwr_min_v')
+    usb_max = ow.get('usb_pwr_max_v')
+    has_servo = ow.get('has_servo_rail', False)
+    srv_abs_max = ow.get('servo_rail_absolute_max_v')
+    monitor_type = entry.get('power_monitor_type')
+    product = entry.get('product') or board_key.split('/')[-1].replace('-', ' ').title()
+
+    # Intro
+    total_rails = num_inputs + (1 if usb_powers else 0)
+    redundancy_word = {2: 'dual', 3: 'triple'}.get(total_rails, f'{total_rails}-way')
+    can_be = 'can be' if total_rails >= 2 else 'is'
+
+    if not power_ports:
+        power_ports = [
+            {'label': f'POWER {i + 1}' if num_inputs > 1 else 'POWER'}
+            for i in range(max(num_inputs, 1))
+        ]
+
+    # Rails list for the intro sentence
+    rail_names = [f'**{p["label"]}**' for p in power_ports]
+    if usb_powers:
+        rail_names.append('**USB**')
+    if len(rail_names) == 1:
+        rails_str = rail_names[0]
+    elif len(rail_names) == 2:
+        rails_str = f'{rail_names[0]} and {rail_names[1]}'
+    else:
+        rails_str = ', '.join(rail_names[:-1]) + f' and {rail_names[-1]}'
+
+    intro = (
+        f'_{product}_ {can_be} {redundancy_word}-redundant on the power supply '
+        f'if {total_rails} power sources are supplied.\n'
+        f'The {total_rails} power rail{"s are" if total_rails > 1 else " is"}: {rails_str}.'
+    )
+
+    # Normal Operation Maximum Ratings
+    norm_lines = []
+    for port in power_ports:
+        p_min = port.get('normal_min_v') or ow.get('min_voltage')
+        p_max = port.get('normal_max_v') or ow.get('max_voltage')
+        vrange = _voltage_range_str(p_min, p_max, f'{port["label"]} voltage range')
+        norm_lines.append(f'1. **{port["label"]}** input ({vrange})')
+    if usb_powers:
+        usb_range = _voltage_range_str(usb_min, usb_max, 'USB voltage range')
+        norm_lines.append(f'1. **USB** input ({usb_range})')
+
+    norm_block = '\n'.join(norm_lines)
+
+    # Absolute Maximum Ratings
+    abs_lines = []
+    for port in power_ports:
+        p_min = port.get('normal_min_v') or ow.get('min_voltage')
+        p_max = port.get('normal_max_v') or ow.get('max_voltage')
+        p_abs = port.get('absolute_max_v')
+        op_range = _voltage_range_str(p_min, p_max, f'{port["label"]} voltage range')
+        if p_abs:
+            abs_str = f'operational range {op_range}, 0V to {p_abs}V undamaged'
+        else:
+            abs_str = f'operational range {op_range}, 0V to TODO undamaged'
+        abs_lines.append(f'1. **{port["label"]}** input ({abs_str})')
+    if usb_powers:
+        usb_range = _voltage_range_str(usb_min, usb_max, 'USB voltage range')
+        abs_lines.append(f'1. **USB** input (operational range {usb_range}, 0V to 6V undamaged)')
+    if has_servo:
+        if srv_abs_max:
+            abs_lines.append(
+                f'1. **Servo input:** `VDD_SERVO` pin of **FMU PWM OUT** (0V to {srv_abs_max}V undamaged)'
+            )
+        else:
+            abs_lines.append(
+                '1. **Servo input:** `VDD_SERVO` pin of **FMU PWM OUT** (0V to TODO undamaged)'
+            )
+
+    abs_block = '\n'.join(abs_lines)
+
+    # Voltage monitoring — derived from per-port types, falling back to board-level
+    monitoring_text = _monitoring_note(power_ports, monitor_type)
+
+    source_data = {
+        'board': board_key,
+        'source': {
+            'num_power_inputs': num_inputs,
+            'has_redundant_power': has_redundant,
+            'power_monitor_type': monitor_type,
+        },
+        'overview_wizard': {
+            'min_voltage': ow.get('min_voltage'),
+            'max_voltage': ow.get('max_voltage'),
+            'usb_pwr_min_v': usb_min,
+            'usb_pwr_max_v': usb_max,
+            'has_servo_rail': has_servo,
+            'servo_rail_absolute_max_v': srv_abs_max,
+        },
+        'power_ports_wizard': [
+            {k: p.get(k) for k in ('label', 'normal_min_v', 'normal_max_v', 'absolute_max_v')}
+            for p in power_ports
+        ],
+    }
+    source_comment = f'\n\n<!-- voltage-ratings-source-data\n{json.dumps(source_data, indent=2)}\n-->'
+
+    body = (
+        f'## Voltage Ratings {{#voltage_ratings}}\n\n'
+        f'{intro}\n\n'
+        f'**Normal Operation Maximum Ratings**\n\n'
+        f'Under these conditions all power sources will be used in this order to power the system:\n\n'
+        f'{norm_block}\n\n'
+        f'**Absolute Maximum Ratings**\n\n'
+        f'Under these conditions the system will not draw any power (will not be operational), '
+        f'but will remain intact.\n\n'
+        f'{abs_block}\n\n'
+        f'**Voltage monitoring**\n\n'
+        f'{monitoring_text}'
+    )
+
+    return body + source_comment
 
 
 def generate_telemetry_section(board_key: str, entry: dict) -> str:
@@ -2436,6 +2625,37 @@ def generate_sd_card_section(board_key: str, entry: dict) -> str:
     )
 
     return body + image_link + tip + checklist + source_comment
+
+
+def generate_ethernet_section(board_key: str, entry: dict) -> str:
+    """Generate the ## Ethernet section for an FC doc page."""
+    if not entry.get('has_ethernet'):
+        return ''
+
+    eth_wiz = entry.get('ethernet_wizard') or {}
+    port_label    = eth_wiz.get('port_label')
+    speed_mbps    = eth_wiz.get('speed_mbps', '100')
+    transformerless = eth_wiz.get('transformerless', True)
+
+    label_str = f'`{port_label}` port' if port_label else 'Ethernet port'
+    tl_note = ' (transformerless application)' if transformerless else ''
+
+    source_data = json.dumps({
+        'board': board_key,
+        'source': {'has_ethernet': True},
+        'ethernet_wizard': eth_wiz,
+    }, indent=2)
+    source_comment = f'\n\n<!-- ethernet-source-data\n{source_data}\n-->'
+
+    body = (
+        f'## Ethernet {{#ethernet}}\n\n'
+        f'The {label_str} provides {speed_mbps}Mbps wired network connectivity{tl_note}, '
+        f'enabling high-speed communication with companion computers and other '
+        f'network-capable devices.\n\n'
+        f'See [PX4 Ethernet Setup](../advanced_config/ethernet_setup.md) '
+        f'for setup and configuration information.'
+    )
+    return body + source_comment
 
 
 # ---------------------------------------------------------------------------
@@ -2986,23 +3206,27 @@ def generate_specifications_section(board_key: str, entry: dict) -> str:
 #                  to apply it explicitly.
 # ---------------------------------------------------------------------------
 SECTION_GENERATORS = {
-    "specifications": generate_specifications_section,
-    "power":          generate_power_section,
-    "pwm_outputs":    generate_pwm_section,
-    "radio_control":  generate_radio_control_section,
-    "gps_compass":    generate_gps_section,
-    "telemetry":      generate_telemetry_section,
-    "sd_card":        generate_sd_card_section,
-    "serial_ports":   generate_serial_section,
+    "specifications":   generate_specifications_section,
+    "power":            generate_power_section,
+    "voltage_ratings":  generate_voltage_ratings_section,
+    "pwm_outputs":      generate_pwm_section,
+    "radio_control":    generate_radio_control_section,
+    "gps_compass":      generate_gps_section,
+    "telemetry":        generate_telemetry_section,
+    "ethernet":         generate_ethernet_section,
+    "sd_card":          generate_sd_card_section,
+    "serial_ports":     generate_serial_section,
 }
 
 SECTION_ORDER = [
-    "specifications", # first: overview/specs near the top of each doc
-    "power",          # fundamental hardware connection
+    "specifications",  # first: overview/specs near the top of each doc
+    "power",           # fundamental hardware connection
+    "voltage_ratings", # voltage ratings and monitoring (after power)
     "pwm_outputs",
     "radio_control",
     "gps_compass",     # after RC, before serial ports
     "telemetry",
+    "ethernet",
     "sd_card",
     "serial_ports",
 ]
@@ -3011,9 +3235,11 @@ APPLY_SECTIONS = [
     "pwm_outputs",
     # specifications excluded — has TODO items for sensors; apply with --section specifications
     # power excluded — apply explicitly with --section power
+    # voltage_ratings excluded — apply explicitly with --section voltage_ratings
     # radio_control excluded — apply explicitly with --section radio_control
     # gps_compass excluded — apply explicitly with --section gps_compass
     # telemetry excluded — apply explicitly with --section telemetry
+    # ethernet excluded — apply explicitly with --section ethernet
     # sd_card excluded — apply explicitly with --section sd_card
 ]
 
@@ -3022,11 +3248,13 @@ SECTION_PATTERNS = {
                        r'##\s+Key\s+Design\s+Points', r'##\s+Quick\s+Summary',
                        r'##\s+Overview'],
     "power":          [r'##\s+Power\b', r'###\s+Power\b'],
+    "voltage_ratings": [r'##\s+Voltage\s+Ratings\b', r'###\s+Voltage\s+Ratings\b'],
     "pwm_outputs":    PWM_SECTION_PATTERNS,
     "radio_control":  [r'###\s+Radio\s+Control', r'##\s+Radio\s+Control'],
     "gps_compass":    [r'###\s+GPS\s*[&/]\s*Compass', r'###\s+GPS/Compass', r'###\s+GPS\b',
                        r'##\s+GPS\s*[&/]\s*Compass', r'##\s+GPS/Compass', r'##\s+GPS\b'],
     "telemetry":      [r'##\s+Telemetry\b', r'###\s+Telemetry\b'],
+    "ethernet":       [r'##\s+Ethernet\b', r'###\s+Ethernet\b'],
     "sd_card":        [r'##\s+SD\s+Card\b', r'###\s+SD\s+Card\b'],
     "serial_ports":   [r'##\s+Serial\s+Port\s+Mapping', r'##\s+Serial\s+Ports'],
 }
@@ -3186,6 +3414,18 @@ def apply_sections_to_docs(data: dict, sections: list = None, doc_filter: str = 
     sections_to_apply = sections or APPLY_SECTIONS
     updated, skipped = [], []
 
+    # Pre-load all wizard JSONs keyed by board key — used as a bootstrap fallback
+    # for wizard fields (e.g. ethernet_wizard) that may not yet be embedded in
+    # the doc's <!-- wizard-data --> block.
+    _wizard_by_board: dict[str, dict] = {}
+    for _wj in METADATA_DIR.glob("*_wizard.json"):
+        try:
+            _wd = json.loads(_wj.read_text(encoding='utf-8'))
+            if _wd.get('board'):
+                _wizard_by_board[_wd['board']] = _wd
+        except Exception:
+            pass
+
     # Normalise filter to bare filename with extension
     if doc_filter:
         p = Path(doc_filter)
@@ -3211,9 +3451,18 @@ def apply_sections_to_docs(data: dict, sections: list = None, doc_filter: str = 
         if wizard_doc_data:
             entry = dict(entry)  # shallow copy — don't mutate shared data
             for _wf in ('rc_ports_wizard', 'gps_ports_wizard',
-                        'power_ports_wizard', 'overview_wizard', 'i2c_buses_wizard'):
+                        'power_ports_wizard', 'overview_wizard', 'i2c_buses_wizard',
+                        'ethernet_wizard'):
                 if wizard_doc_data.get(_wf) is not None:
                     entry[_wf] = wizard_doc_data[_wf]
+
+        # Bootstrap: if wizard fields are still missing from the doc's embedded comment,
+        # fall back to the *_wizard.json file on disk (e.g. for first-run after adding
+        # a new wizard field).
+        _board_wizard = _wizard_by_board.get(key, {})
+        if _board_wizard.get('ethernet_wizard') and not entry.get('ethernet_wizard'):
+            entry = dict(entry)
+            entry['ethernet_wizard'] = _board_wizard['ethernet_wizard']
 
         new_text = doc_text
         for section_key in sections_to_apply:
@@ -3267,7 +3516,7 @@ def _wizard_prompt(label: str, default: str = "", required: bool = False) -> str
 _WIZARD_CACHE_FIELDS = (
     "manufacturer", "product", "board", "fmu_version", "since_version",
     "manufacturer_url", "rc_ports_wizard", "gps_ports_wizard", "power_ports_wizard",
-    "overview_wizard", "i2c_buses_wizard",
+    "overview_wizard", "i2c_buses_wizard", "ethernet_wizard", "extra_port_labels",
 )
 
 
@@ -3479,6 +3728,21 @@ def _run_wizard(args) -> None:
             'label': label,
             'connector_type': connector or 'TODO: connector type',
         }
+        _port_min_v = _wizard_prompt(
+            f"  Normal min voltage for {label} (V, blank=TODO)",
+            default=cp.get('normal_min_v') or '',
+        )
+        _port_max_v = _wizard_prompt(
+            f"  Normal max voltage for {label} (V, blank=TODO)",
+            default=cp.get('normal_max_v') or '',
+        )
+        _port_abs_v = _wizard_prompt(
+            f"  Absolute max voltage for {label} (V undamaged, blank=TODO)",
+            default=cp.get('absolute_max_v') or '',
+        )
+        port['normal_min_v'] = _port_min_v or None
+        port['normal_max_v'] = _port_max_v or None
+        port['absolute_max_v'] = _port_abs_v or None
         # When DroneCAN is detected, prompt for per-port monitor type
         if _has_dronecan:
             # Default: Pattern A → brick 1=analog, brick 2=dronecan; Pattern B → dronecan
@@ -3620,6 +3884,31 @@ def _run_wizard(args) -> None:
                 i2c_buses_wizard.append({'bus_num': _bn, 'label': _label})
 
     args.i2c_buses_wizard = i2c_buses_wizard or None
+
+    # --- Ethernet ---
+    if _rc_entry.get('has_ethernet'):
+        print()
+        print("  === Ethernet ===")
+        _cached_eth = (cached.get('ethernet_wizard') or {})
+        _eth_label = _wizard_prompt(
+            "  Ethernet port label as printed on board",
+            default=_cached_eth.get('port_label', 'ETH')
+        )
+        _eth_speed = _wizard_prompt(
+            "  Ethernet speed (Mbps)",
+            default=str(_cached_eth.get('speed_mbps') or '100')
+        )
+        _eth_tl_raw = _wizard_prompt(
+            "  Transformerless application? (y/n)",
+            default='y' if _cached_eth.get('transformerless', True) else 'n'
+        )
+        args.ethernet_wizard = {
+            'port_label':    _eth_label or None,
+            'speed_mbps':    _eth_speed or '100',
+            'transformerless': _eth_tl_raw.strip().lower() in ('y', 'yes'),
+        }
+    else:
+        args.ethernet_wizard = None
 
     # --- Sensors & Physical Specs (for ## Key Features section) ---
     print()
@@ -3785,8 +4074,13 @@ def _run_wizard(args) -> None:
     if has_servo_rail:
         servo_rail_max_v = _wizard_prompt("Maximum servo rail voltage (V)",
                                           default=cached_ov.get('servo_rail_max_v') or '')
+        servo_rail_absolute_max_v = _wizard_prompt(
+            "Servo rail absolute max voltage undamaged (V, e.g. 42 for Pixhawk-standard, blank=TODO)",
+            default=cached_ov.get('servo_rail_absolute_max_v') or '',
+        )
     else:
         servo_rail_max_v = None
+        servo_rail_absolute_max_v = None
     _usb_cached = (cached_ov.get('usb_connectors')
                    or ([cached_ov['usb_connector']] if cached_ov.get('usb_connector') else None))
     usb_list  = _wizard_list("USB connector type(s) (e.g. USB-C, Micro-USB)",
@@ -3830,11 +4124,71 @@ def _run_wizard(args) -> None:
         'usb_pwr_max_v':             usb_pwr_max or None,
         'has_servo_rail':            has_servo_rail,
         'servo_rail_max_v':          servo_rail_max_v or None,
+        'servo_rail_absolute_max_v': servo_rail_absolute_max_v or None,
         'usb_connectors':            usb_list or None,
         'usb_labels':                usb_labels or None,
         'num_additional_adc_inputs': num_additional_adc,
         'sensor_variant_labels':     variant_labels or None,
     }
+
+    # --- Additional port labels ---
+    # Compile all port labels collected so far (wizard sections + auto-detected serials).
+    _collected_labels: list[str] = []
+    for _p in (args.rc_ports_wizard or []):
+        if _p.get('label'):
+            _collected_labels.append(_p['label'])
+    for _p in (args.power_ports_wizard or []):
+        if _p.get('label'):
+            _collected_labels.append(_p['label'])
+    for _p in (args.gps_ports_wizard or []):
+        if _p.get('label'):
+            _collected_labels.append(_p['label'])
+    for _p in (args.i2c_buses_wizard or []):
+        if _p.get('label'):
+            _collected_labels.append(_p['label'])
+    if (args.ethernet_wizard or {}).get('port_label'):
+        _collected_labels.append(args.ethernet_wizard['port_label'])
+    _internal_labels = {'Debug Console', 'PX4IO'}
+    for _p in _rc_entry.get('serial_ports', []):
+        _lbl = _p.get('label', '')
+        if _lbl and _lbl not in _internal_labels and 'PX4IO' not in _lbl:
+            _collected_labels.append(_lbl)
+    _seen_labels: set[str] = set()
+    _unique_collected: list[str] = []
+    for _lbl in _collected_labels:
+        if _lbl not in _seen_labels:
+            _seen_labels.add(_lbl)
+            _unique_collected.append(_lbl)
+
+    print()
+    print("  === Additional Port Labels ===")
+    if _unique_collected:
+        print(f"  Port labels captured so far: {', '.join(_unique_collected)}")
+    else:
+        print("  No port labels captured yet.")
+    print("  Enter any additional port labels on the board not listed above")
+    print("  (e.g. CAN, CAN1, CAN2, SPI, DEBUG — blank to finish)")
+    _cached_extra: list[str] = cached.get('extra_port_labels') or []
+    if _cached_extra:
+        print("     0. (done — stop here / clear remaining)")
+        print("    (press Enter to accept each default, or 0 to clear all)")
+    extra_labels: list[str] = []
+    _extra_explicitly_done = False
+    _eidx = 1
+    while True:
+        _ecached_default = str(_cached_extra[_eidx - 1]) if _eidx <= len(_cached_extra) else ""
+        _elbl = _wizard_prompt(f"  extra port label {_eidx}", default=_ecached_default)
+        if _elbl == "0":
+            _extra_explicitly_done = True
+            break
+        if not _elbl:
+            break
+        extra_labels.append(_elbl)
+        _eidx += 1
+    if not extra_labels and not _extra_explicitly_done and _cached_extra:
+        extra_labels = list(_cached_extra)
+        print(f"    (using cached: {', '.join(extra_labels)})")
+    args.extra_port_labels = extra_labels or None
 
     _url_hint = (args.manufacturer_url
                  or cached.get('manufacturer_url')
@@ -4231,7 +4585,8 @@ def create_stub_doc(manufacturer: str, product: str,
                     gps_ports_wizard: list = None,
                     power_ports_wizard: list = None,
                     overview_wizard: dict = None,
-                    i2c_buses_wizard: list = None) -> Path | None:
+                    i2c_buses_wizard: list = None,
+                    ethernet_wizard: dict = None) -> Path | None:
     """Create a stub FC documentation page in docs/en/flight_controller/."""
     # Auto-discover board key first so fmu_version can be inferred before the
     # filename is built (px4/fmu-v6x → fmu_version="fmu-v6x" → filename suffix).
@@ -4256,7 +4611,7 @@ def create_stub_doc(manufacturer: str, product: str,
         if not entry:
             print(f"WARNING: board '{board_key}' not found in parsed data; PWM section will be empty.")
 
-    if rc_ports_wizard or gps_ports_wizard or power_ports_wizard or overview_wizard or i2c_buses_wizard:
+    if rc_ports_wizard or gps_ports_wizard or power_ports_wizard or overview_wizard or i2c_buses_wizard or ethernet_wizard:
         entry = dict(entry)   # shallow copy — don't mutate cached data
     if rc_ports_wizard:
         entry['rc_ports_wizard'] = rc_ports_wizard
@@ -4268,6 +4623,8 @@ def create_stub_doc(manufacturer: str, product: str,
         entry['overview_wizard'] = overview_wizard
     if i2c_buses_wizard:
         entry['i2c_buses_wizard'] = i2c_buses_wizard
+    if ethernet_wizard:
+        entry['ethernet_wizard'] = ethernet_wizard
 
     # Infer manufacturer URL from existing docs when not explicitly provided
     if not manufacturer_url:
@@ -4292,6 +4649,7 @@ def create_stub_doc(manufacturer: str, product: str,
         'power_ports_wizard': power_ports_wizard,
         'overview_wizard': overview_wizard,
         'i2c_buses_wizard': i2c_buses_wizard,
+        'ethernet_wizard': ethernet_wizard,
     }
     if any(v is not None for v in wizard_data.values()):
         content = _embed_wizard_data_comment(content, wizard_data)
@@ -4906,7 +5264,8 @@ if __name__ == "__main__":
                         gps_ports_wizard=getattr(args, 'gps_ports_wizard', None) or _wiz_cache.get('gps_ports_wizard'),
                         power_ports_wizard=getattr(args, 'power_ports_wizard', None) or _wiz_cache.get('power_ports_wizard'),
                         overview_wizard=getattr(args, 'overview_wizard', None) or _wiz_cache.get('overview_wizard'),
-                        i2c_buses_wizard=getattr(args, 'i2c_buses_wizard', None) or _wiz_cache.get('i2c_buses_wizard'))
+                        i2c_buses_wizard=getattr(args, 'i2c_buses_wizard', None) or _wiz_cache.get('i2c_buses_wizard'),
+                        ethernet_wizard=getattr(args, 'ethernet_wizard', None) or _wiz_cache.get('ethernet_wizard'))
     else:
         data = gather_board_data()
         meta_dir = args.output_dir / "metadata" if args.output_dir else METADATA_DIR

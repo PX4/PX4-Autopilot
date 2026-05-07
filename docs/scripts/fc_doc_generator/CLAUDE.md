@@ -14,7 +14,9 @@ inserted into `docs/en/flight_controller/*.md` docs. Sections generated:
 - `## Radio Control` — RC input protocols and ports
 - `## GPS & Compass` — GPS/safety connector info
 - `## Power` — power input ports and monitor type
+- `## Voltage Ratings` — per-port operating/absolute voltage ranges, servo rail, voltage monitoring note
 - `## Telemetry Radios` — TELEM port listing
+- `## Ethernet` — speed, transformerless flag, and link to setup guide (boards with `CONFIG_BOARD_ETHERNET=y`)
 - `## SD Card` — presence/absence
 
 ## File layout
@@ -144,8 +146,22 @@ Tests in `test_generators.py` use the `snapshot` fixture from `conftest.py`.
     hand-written: it is preserved and the proposed content is appended as a
     `<!-- section_key-proposed -->` comment, with a console warning.
 
+- **`parse_power_config()` detects INA228** — `CONFIG_DRIVERS_POWER_MONITOR_INA238=y` takes
+  precedence, then `INA228`, then `INA226`. Old code silently promoted INA228 boards to INA226.
+
 - **Wizard** — `--new-doc` runs an interactive prompts session and caches
   answers to `metadata/<stem>_wizard.json` for future re-use.
+  Key wizard fields and their shapes:
+  - `ethernet_wizard`: `{"port_label": str|null, "speed_mbps": str, "transformerless": bool}` — only
+    prompted when `CONFIG_BOARD_ETHERNET=y`; `port_label` is rendered as inline code (backticks) in the
+    generated section. `apply_sections_to_docs()` bootstraps this from the wizard JSON on first run
+    when the doc's `<!-- wizard-data -->` block doesn't yet contain it.
+  - `power_ports_wizard[].normal_min_v` / `normal_max_v` / `absolute_max_v` (str|null) — per-port
+    voltage ranges for the `## Voltage Ratings` section. Old wizard JSONs without these keys are safe;
+    missing values produce `TODO` placeholders in the generated section.
+  - `overview_wizard.servo_rail_absolute_max_v` (str|null) — undamaged absolute maximum for the servo
+    rail (e.g. `"42"` for Pixhawk-standard boards). Distinct from `servo_rail_max_v` (normal operating
+    max used in Specifications). Missing → `TODO` placeholder in Voltage Ratings.
 
 ## Conventions
 

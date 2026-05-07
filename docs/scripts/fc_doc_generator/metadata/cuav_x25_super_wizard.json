@@ -1,0 +1,118 @@
+{
+  "manufacturer": "CUAV",
+  "product": "x25 Super",
+  "board": "cuav/x25-super",
+  "fmu_version": null,
+  "since_version": "v1.18",
+  "manufacturer_url": "https://store.cuav.net/",
+  "rc_ports_wizard": [
+    {
+      "label": "RC IN",
+      "side": "FMU"
+    },
+    {
+      "label": "PPMNOTFOUND",
+      "side": "FMU",
+      "ppm_only": true
+    }
+  ],
+  "gps_ports_wizard": [
+    {
+      "port_key": "GPS1",
+      "label": "GPS&SAFETY",
+      "pixhawk_standard": true,
+      "full_port": true
+    },
+    {
+      "port_key": "GPS2",
+      "label": "GPS2",
+      "pixhawk_standard": true,
+      "full_port": false
+    }
+  ],
+  "power_ports_wizard": [
+    {
+      "label": "POWER C1",
+      "connector_type": "8-pin JST GH",
+      "monitor_type": "dronecan",
+      "normal_min_v": "10",
+      "normal_max_v": "18",
+      "absolute_max_v": null
+    },
+    {
+      "label": "POWER C2",
+      "connector_type": "8-pin JST GH",
+      "monitor_type": "dronecan",
+      "normal_min_v": "10",
+      "normal_max_v": "18",
+      "absolute_max_v": null
+    }
+  ],
+  "overview_wizard": {
+    "imu": [
+      "SCH16T",
+      "IIM42653",
+      "IIM42652"
+    ],
+    "baro": [
+      "BMP581",
+      "ICP-20100"
+    ],
+    "mag": [
+      "RM3100"
+    ],
+    "osd": null,
+    "width_mm": "45.45",
+    "length_mm": "76.5",
+    "height_mm": "38.7",
+    "weight_g": null,
+    "min_voltage": "10",
+    "max_voltage": "18",
+    "usb_powers_fc": true,
+    "usb_pwr_min_v": "4.75",
+    "usb_pwr_max_v": "5.25",
+    "has_servo_rail": true,
+    "servo_rail_max_v": "9.9",
+    "servo_rail_absolute_max_v": null,
+    "usb_connectors": [
+      "USB-C"
+    ],
+    "usb_labels": [
+      "USB"
+    ],
+    "num_additional_adc_inputs": null,
+    "sensor_variant_labels": null
+  },
+  "i2c_buses_wizard": [
+    {
+      "bus_num": 1,
+      "label": "I2C1"
+    },
+    {
+      "bus_num": 2,
+      "label": "I2C2"
+    },
+    {
+      "bus_num": 3,
+      "label": "I2C3"
+    }
+  ],
+  "ethernet_wizard": {
+    "port_label": "ETH",
+    "speed_mbps": "100",
+    "transformerless": true
+  },
+  "extra_port_labels": [
+    "TELEM1",
+    "TELEM2",
+    "CAN1",
+    "CAN2",
+    "RSSI",
+    "SPI6",
+    "UART4",
+    "ADC3V3",
+    "ADC6V6",
+    "DEBUG (DSU)",
+    "M1-M16"
+  ]
+}

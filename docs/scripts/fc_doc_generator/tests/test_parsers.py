@@ -379,6 +379,35 @@ class TestParsePowerConfig:
         result = fcdg.parse_power_config(board_stm32h7_all_dshot)
         assert result["has_dronecan_power_input"] is False
 
+    def test_ina228_detected(self, tmp_path):
+        """INA228-only board must not fall through to the INA226 fallback."""
+        src = tmp_path / "src"
+        src.mkdir()
+        (src / "board_config.h").write_text(
+            "#define BOARD_NUMBER_DIGITAL_BRICKS  1\n"
+            "#define BOARD_HAS_NBAT_V             1d\n"
+        )
+        (tmp_path / "default.px4board").write_text(
+            "CONFIG_DRIVERS_POWER_MONITOR_INA228=y\n"
+        )
+        result = fcdg.parse_power_config(tmp_path)
+        assert result["power_monitor_type"] == "ina228"
+
+    def test_ina238_takes_precedence_over_ina228(self, tmp_path):
+        """When both INA238 and INA228 are enabled, INA238 wins."""
+        src = tmp_path / "src"
+        src.mkdir()
+        (src / "board_config.h").write_text(
+            "#define BOARD_NUMBER_DIGITAL_BRICKS  1\n"
+            "#define BOARD_HAS_NBAT_V             1d\n"
+        )
+        (tmp_path / "default.px4board").write_text(
+            "CONFIG_DRIVERS_POWER_MONITOR_INA238=y\n"
+            "CONFIG_DRIVERS_POWER_MONITOR_INA228=y\n"
+        )
+        result = fcdg.parse_power_config(tmp_path)
+        assert result["power_monitor_type"] == "ina238"
+
 
 # ---------------------------------------------------------------------------
 # parse_sd_card_config

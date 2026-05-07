@@ -16,6 +16,7 @@ def _make_args(**kwargs):
         "rc_ports_wizard": None,
         "gps_ports_wizard": None,
         "power_ports_wizard": None,
+        "extra_port_labels": None,
     }
     defaults.update(kwargs)
     return argparse.Namespace(**defaults)
@@ -179,6 +180,59 @@ class TestRunWizard:
         args = _make_args()
         fcdg._run_wizard(args)
         assert args.since_version == "v1.19"
+
+    def test_extra_port_labels_stored(self, monkeypatch):
+        """Extra port labels entered at the final step are stored in args.extra_port_labels."""
+        board_data = {
+            "test/board": {
+                "has_rc_input": True, "has_common_rc": False,
+                "rc_serial_device": "/dev/ttyS4",
+                "has_ppm_pin": False, "ppm_shared_with_rc_serial": False,
+                "has_pps_capture": False, "has_safety_switch": False, "has_safety_led": False,
+                "serial_ports": [
+                    {"uart": "USART1", "device": "/dev/ttyS0", "label": "TELEM1"},
+                ],
+                "num_power_inputs": 1,
+            }
+        }
+        prompts_responses = {
+            "Manufacturer name": "TestMfr",
+            "Product name": "TestBoard",
+            "Board key (e.g. holybro/kakuteh7 or px4/fmu-v6x)": "test/board",
+            "FMU version suffix (e.g. fmu-v6x, optional)": "",
+            "PX4 version introduced in": "v1.18",
+            "Serial RC port label as printed on board": "RC",
+            "  POWER port label as printed on board": "POWER",
+            "  Connector type for POWER (e.g. 6-pin JST GH, 6-pin Molex CLIK-Mate)": "6-pin JST GH",
+            "Manufacturer URL": "https://example.com/",
+        }
+        extra_responses = iter(["CAN1", "CAN2", ""])   # two extra labels then stop
+
+        def mock_prompt(label, default="", required=False):
+            if label.startswith("  extra port label"):
+                return next(extra_responses, "")
+            return prompts_responses.get(label, default)
+
+        monkeypatch.setattr(fcdg, "_wizard_prompt", mock_prompt)
+        monkeypatch.setattr(fcdg, "gather_board_data", lambda: board_data)
+        monkeypatch.setattr(fcdg, "_load_wizard_cache", lambda *a, **kw: None)
+        monkeypatch.setattr(fcdg, "_save_wizard_cache", lambda *a, **kw: None)
+
+        args = _make_args()
+        fcdg._run_wizard(args)
+        assert args.extra_port_labels == ["CAN1", "CAN2"]
+
+    def test_extra_port_labels_none_when_no_input(self, monkeypatch):
+        """extra_port_labels is None when the user enters nothing extra."""
+        self._patch(monkeypatch, [
+            "TestMfr", "TestBoard", "",
+            "",
+            "v1.18",
+            "RC", "n",
+        ])
+        args = _make_args()
+        fcdg._run_wizard(args)
+        assert args.extra_port_labels is None
 
 
 # ---------------------------------------------------------------------------
