@@ -626,7 +626,6 @@ void EstimatorChecks::checkEstimatorStatusFlags(const Context &context, Report &
 			}
 		}
 
-		// only do the following if the estimator status flags are recent (less than 5 seconds old)
 		if (!context.isArmed()
 		    && (hrt_absolute_time() - estimator_status_flags.timestamp < 5_s)
 		    && !estimator_status_flags.cs_yaw_align) {
