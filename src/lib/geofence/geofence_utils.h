@@ -126,23 +126,16 @@ inline bool collinearBetween(const matrix::Vector2f &a,
 }
 
 /**
- * Result of a 2D segment-segment intersection test. The caller decides which
- * variants count as "intersecting" for its purpose -- there is no baked-in
- * convention. Reference: O'Rourke, "Computational Geometry in C" (2nd ed.),
- * SegSegInt, section 1.5.
+ * Test for a proper 2D segment-segment intersection: each segment strictly
+ * straddles the other's supporting line, with no endpoint lying on the other
+ * segment and no collinear overlap. Returns false for endpoint-touching,
+ * collinear-overlapping, or disjoint segments.
+ *
+ * Reference: O'Rourke, "Computational Geometry in C" (2nd ed.), SegSegInt,
+ * section 1.5.
  */
-enum class SegSegResult {
-	None,             ///< segments are disjoint
-	Proper,           ///< strict interior crossing of both segments
-	Touching,         ///< exactly one endpoint of one segment lies on the other (interior or shared endpoint)
-	CollinearOverlap, ///< segments are collinear and share more than a point
-};
-
-/**
- * Classify the intersection of segment ab with segment cd. See SegSegResult.
- */
-SegSegResult segmentsIntersect(const matrix::Vector2f &a, const matrix::Vector2f &b,
-			       const matrix::Vector2f &c, const matrix::Vector2f &d);
+bool segmentsIntersect(const matrix::Vector2f &a, const matrix::Vector2f &b,
+		       const matrix::Vector2f &c, const matrix::Vector2f &d);
 
 /**
  * Check if a line segment and a polygon have non-empty intersection.

@@ -78,41 +78,17 @@ bool insideCircle(const matrix::Vector2<double> &center, float radius,
 }
 
 // O'Rourke, "Computational Geometry in C" (2nd ed.), section 1.5: SegSegInt.
-// Classifies a segment-segment intersection from the four orient2d signs of
-// the endpoints. No asymmetric strict/non-strict tolerance convention is
-// baked in -- the caller decides which variants count as "intersecting".
-SegSegResult segmentsIntersect(const matrix::Vector2f &a, const matrix::Vector2f &b,
-			       const matrix::Vector2f &c, const matrix::Vector2f &d)
+// True iff each segment strictly straddles the other's supporting line; this
+// excludes endpoint-touching and collinear overlap.
+bool segmentsIntersect(const matrix::Vector2f &a, const matrix::Vector2f &b,
+		       const matrix::Vector2f &c, const matrix::Vector2f &d)
 {
 	const int o1 = orient2d(a, b, c);
 	const int o2 = orient2d(a, b, d);
 	const int o3 = orient2d(c, d, a);
 	const int o4 = orient2d(c, d, b);
 
-	// Each segment strictly straddles the other's supporting line.
-	if (o1 && o2 && o3 && o4 && o1 != o2 && o3 != o4) {
-		return SegSegResult::Proper;
-	}
-
-	// All four points collinear: overlap iff any endpoint of one lies on the other.
-	if (!o1 && !o2 && !o3 && !o4) {
-		if (collinearBetween(a, b, c) || collinearBetween(a, b, d) ||
-		    collinearBetween(c, d, a) || collinearBetween(c, d, b)) {
-			return SegSegResult::CollinearOverlap;
-		}
-
-		return SegSegResult::None;
-	}
-
-	// One endpoint sits on the other segment.
-	if ((!o1 && collinearBetween(a, b, c)) ||
-	    (!o2 && collinearBetween(a, b, d)) ||
-	    (!o3 && collinearBetween(c, d, a)) ||
-	    (!o4 && collinearBetween(c, d, b))) {
-		return SegSegResult::Touching;
-	}
-
-	return SegSegResult::None;
+	return o1 && o2 && o3 && o4 && o1 != o2 && o3 != o4;
 }
 
 // Is point P strictly inside the CCW/CW interior wedge of polygon vertex V,
@@ -142,7 +118,7 @@ bool lineSegmentIntersectsPolygon(const matrix::Vector2f &start, const matrix::V
 	for (int i = 0; i < num_vertices; i++) {
 		const int prev = (i == 0) ? num_vertices - 1 : i - 1;
 
-		if (segmentsIntersect(vertices[prev], vertices[i], start, end) == SegSegResult::Proper) {
+		if (segmentsIntersect(vertices[prev], vertices[i], start, end)) {
 			return true;
 		}
 	}
