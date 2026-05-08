@@ -280,6 +280,9 @@ private:
 	const bool _multi_mode;
 	int _instance{0};
 
+	// In process of arming
+	bool _armed_transition{false};
+
 	px4::atomic_bool _task_should_exit{false};
 
 	// time slip monitoring

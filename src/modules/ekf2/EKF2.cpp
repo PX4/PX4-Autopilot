@@ -1986,6 +1986,30 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 
 	status.time_slip = _last_time_slip_us * 1e-6f;
 
+	vehicle_status_s vehicle_status;
+	if (_status_sub.copy(&vehicle_status)) {
+		const bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+
+		bool just_armed = false;
+		
+		if (_armed_transition && !armed) {
+		    _armed_transition = false;
+		}
+		
+		if (armed && !_armed_transition) {
+		    _armed_transition = true;
+		    just_armed = true;  // only true on the rising edge
+		}
+
+		if (!_ekf.control_status_flags().yaw_align && _armed_transition && just_armed) {
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
+			PX4_WARN("No yaw_align set for control flags! Bypassing preflight estimation check! EV_CTRL: %d", _param_ekf2_ev_ctrl.get());
+#else // defined(CONFIG_EKF2_EXTERNAL_VISION)
+			PX4_WARN("No yaw_align set for control flags! Bypassing preflight estimation check!");
+#endif
+		}
+	}
+
 	static constexpr float kMinTestRatioPreflight = 0.5f;
 	status.pre_flt_fail_innov_heading   = (kMinTestRatioPreflight < status.hdg_test_ratio);
 	status.pre_flt_fail_innov_height    = (kMinTestRatioPreflight < status.hgt_test_ratio);

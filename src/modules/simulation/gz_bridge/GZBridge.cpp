@@ -604,8 +604,8 @@ void GZBridge::odometryCallback(const gz::msgs::OdometryWithCovariance &msg)
 	report.timestamp_sample = timestamp;
 	report.timestamp = timestamp;
 
-	// gz odometry position is in ENU frame and needs to be converted to NED
-	report.pose_frame = vehicle_odometry_s::POSE_FRAME_NED;
+	// gz odometry position is in ENU frame and needs to be converted to NED (vio-only positions in FRD frame)
+	report.pose_frame = vehicle_odometry_s::POSE_FRAME_FRD;
 	report.position[0] = msg.pose_with_covariance().pose().position().y();
 	report.position[1] = msg.pose_with_covariance().pose().position().x();
 	report.position[2] = -msg.pose_with_covariance().pose().position().z();
