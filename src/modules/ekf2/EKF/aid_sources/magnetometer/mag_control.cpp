@@ -186,17 +186,16 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 							       && !_control_status.flags.mag_field_disturbed
 							       && !_control_status.flags.ev_yaw
 							       && !_control_status.flags.gnss_yaw
-							       && (!_control_status.flags.yaw_manual || _control_status.flags.mag_aligned_in_flight);
+							       && (!_control_status.flags.yaw_manual || _control_status.flags.mag_aligned_in_flight)
+							       && !_control_status.flags.constant_pos;
 
 			_control_status.flags.mag_3D = common_conditions_passing
 						       && (_params.ekf2_mag_type == static_cast<int32_t>(MagFuseType::AUTO))
-						       && _control_status.flags.mag_aligned_in_flight
-						       && !_control_status.flags.constant_pos;
+						       && _control_status.flags.mag_aligned_in_flight;
 
 			_control_status.flags.mag_hdg = common_conditions_passing
 							&& ((_params.ekf2_mag_type == static_cast<int32_t>(MagFuseType::HEADING))
-							    || (_params.ekf2_mag_type == static_cast<int32_t>(MagFuseType::AUTO) && !_control_status.flags.mag_3D))
-							&& !_control_status.flags.constant_pos;
+							    || (_params.ekf2_mag_type == static_cast<int32_t>(MagFuseType::AUTO) && !_control_status.flags.mag_3D));
 		}
 
 		if (_control_status.flags.mag_3D && !_control_status_prev.flags.mag_3D) {
