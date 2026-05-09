@@ -88,13 +88,6 @@ private:
 		Terminate = 4,
 	};
 
-	enum class imbalanced_propeller_failsafe_mode : int32_t {
-		Disabled = -1,
-		Warning = 0,
-		Return = 1,
-		Land = 2,
-	};
-
 	enum class geofence_violation_action : int32_t {
 		None = 0,
 		Warning = 1,
@@ -157,10 +150,18 @@ private:
 		Return_mode = 3
 	};
 
+	enum class open_drone_id_failsafe_mode : int32_t {
+		None = 0,
+		Warning = 1,
+		Error = 2,
+		Return_mode = 3,
+		Land_mode = 4,
+		Terminate = 5,
+	};
+
 	static ActionOptions fromNavDllOrRclActParam(int param_value);
 
 	static ActionOptions fromGfActParam(int param_value);
-	static ActionOptions fromImbalancedPropActParam(int param_value);
 	static ActionOptions fromActuatorFailureActParam(int param_value);
 	static ActionOptions fromBatteryWarningActParam(int param_value, uint8_t battery_warning);
 	static ActionOptions fromQuadchuteActParam(int param_value);
@@ -168,6 +169,7 @@ private:
 	static ActionOptions fromHighWindLimitActParam(int param_value);
 	static ActionOptions fromPosLowActParam(int param_value);
 	static ActionOptions fromRemainingFlightTimeLowActParam(int param_value);
+	static ActionOptions fromOdidFailActParam(int param_value);
 
 	static bool isFailsafeIgnored(uint8_t user_intended_mode, int32_t exception_mask_parameter);
 
@@ -200,8 +202,6 @@ private:
 					(ParamInt<px4::params::COM_RC_IN_MODE>) _param_com_rc_in_mode,
 					(ParamInt<px4::params::GF_ACTION>)  	_param_gf_action,
 					(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time,
-					(ParamInt<px4::params::COM_IMB_PROP_ACT>) _param_com_imb_prop_act,
-					(ParamFloat<px4::params::COM_LKDOWN_TKO>) _param_com_lkdown_tko,
 					(ParamInt<px4::params::CBRK_FLIGHTTERM>) _param_cbrk_flightterm,
 					(ParamInt<px4::params::COM_ACT_FAIL_ACT>) _param_com_actuator_failure_act,
 					(ParamInt<px4::params::COM_LOW_BAT_ACT>) _param_com_low_bat_act,
@@ -209,7 +209,8 @@ private:
 					(ParamInt<px4::params::COM_QC_ACT>) _param_com_qc_act,
 					(ParamInt<px4::params::COM_WIND_MAX_ACT>) _param_com_wind_max_act,
 					(ParamInt<px4::params::COM_FLTT_LOW_ACT>) _param_com_fltt_low_act,
-					(ParamInt<px4::params::COM_POS_LOW_ACT>) _param_com_pos_low_act
+					(ParamInt<px4::params::COM_POS_LOW_ACT>) _param_com_pos_low_act,
+					(ParamInt<px4::params::COM_ARM_ODID>) _param_com_arm_odid
 				       );
 
 };

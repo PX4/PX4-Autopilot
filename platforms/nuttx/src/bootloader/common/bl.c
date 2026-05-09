@@ -104,7 +104,7 @@
 #define PROTO_GET_OTP               0x2a    // read a byte from OTP at the given address
 #define PROTO_GET_SN                0x2b    // read a word from UDID area ( Serial)  at the given address
 #define PROTO_GET_CHIP              0x2c    // read chip version (MCU IDCODE)
-#define PROTO_SET_DELAY             0x2d    // set minimum boot delay
+#define PROTO_SET_DELAY             0x2d    // set boot delay (deprecated; always NACKed)
 #define PROTO_GET_CHIP_DES          0x2e    // read chip version In ASCII
 #define PROTO_GET_VERSION           0x2f    // read version
 #define PROTO_BOOT                  0x30    // boot the application
@@ -1021,49 +1021,19 @@ bootloader(unsigned timeout)
 			}
 			break;
 
-#ifdef BOOT_DELAY_ADDRESS
-
-		case PROTO_SET_DELAY: {
-				/*
-				  Allow for the bootloader to setup a
-				  boot delay signature which tells the
-				  board to delay for at least a
-				  specified number of seconds on boot.
-				 */
-				int v = cin_wait(100);
-
-				if (v < 0) {
-					goto cmd_bad;
-				}
-
-				uint8_t boot_delay = v & 0xFF;
-
-				if (boot_delay > BOOT_DELAY_MAX) {
-					goto cmd_bad;
-				}
-
-				// expect EOC
-				if (!wait_for_eoc(2)) {
-					goto cmd_bad;
-				}
-
-				uint32_t sig1 = flash_func_read_word(BOOT_DELAY_ADDRESS);
-				uint32_t sig2 = flash_func_read_word(BOOT_DELAY_ADDRESS + 4);
-
-				if (sig1 != BOOT_DELAY_SIGNATURE1 ||
-				    sig2 != BOOT_DELAY_SIGNATURE2) {
-					goto cmd_bad;
-				}
-
-				uint32_t value = (BOOT_DELAY_SIGNATURE1 & 0xFFFFFF00) | boot_delay;
-				flash_func_write_word(BOOT_DELAY_ADDRESS, value);
-
-				if (flash_func_read_word(BOOT_DELAY_ADDRESS) != value) {
-					goto cmd_fail;
-				}
-			}
-			break;
-#endif
+		case PROTO_SET_DELAY:
+			/*
+			 * Boot delay used to let the bootloader pause before
+			 * starting the app by writing a signature next to the
+			 * vector table. It never worked correctly on modern
+			 * FMUs (signature was placed past where the bootloader
+			 * looked, H7 flash granularity prevented single-word
+			 * writes, and the flash cache never flushed the write),
+			 * so it has been removed. NACK so a client that still
+			 * sends it gets a clear rejection instead of silent
+			 * fake success.
+			 */
+			goto cmd_bad;
 
 		// finalise programming and boot the system
 		//

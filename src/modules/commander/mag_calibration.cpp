@@ -166,67 +166,6 @@ static unsigned progress_percentage(mag_worker_data_t *worker_data)
 	return 100 * ((float)worker_data->done_count) / worker_data->calibration_sides;
 }
 
-// Returns calibrate_return_error if any parameter is not finite
-// Logs if parameters are out of range
-static calibrate_return check_calibration_result(float offset_x, float offset_y, float offset_z,
-		float sphere_radius,
-		float diag_x, float diag_y, float diag_z,
-		float offdiag_x, float offdiag_y, float offdiag_z,
-		orb_advert_t *mavlink_log_pub, uint8_t cur_mag)
-{
-	float must_be_finite[] = {offset_x, offset_y, offset_z,
-				  sphere_radius,
-				  diag_x, diag_y, diag_z,
-				  offdiag_x, offdiag_y, offdiag_z
-				 };
-
-	float should_be_not_huge[] = {offset_x, offset_y, offset_z};
-	float should_be_positive[] = {sphere_radius, diag_x, diag_y, diag_z};
-
-	// Make sure every parameter is finite
-	const int num_finite = sizeof(must_be_finite) / sizeof(*must_be_finite);
-
-	for (unsigned i = 0; i < num_finite; ++i) {
-		if (!PX4_ISFINITE(must_be_finite[i])) {
-			calibration_log_emergency(mavlink_log_pub, "Retry calibration (sphere NaN, %" PRIu8 ")", cur_mag);
-			return calibrate_return_error;
-		}
-	}
-
-	// earth field between 0.25 and 0.65 Gauss
-	if (sphere_radius < 0.2f || sphere_radius >= 0.7f) {
-		calibration_log_emergency(mavlink_log_pub, "Retry calibration (mag %" PRIu8 " sphere radius invalid %.3f)", cur_mag,
-					  (double)sphere_radius);
-		return calibrate_return_error;
-	}
-
-	// Notify if a parameter which should be positive is non-positive
-	const int num_positive = sizeof(should_be_positive) / sizeof(*should_be_positive);
-
-	for (unsigned i = 0; i < num_positive; ++i) {
-		if (should_be_positive[i] <= 0.0f) {
-			calibration_log_emergency(mavlink_log_pub, "Retry calibration (mag %" PRIu8 " with non-positive scale)", cur_mag);
-			return calibrate_return_error;
-		}
-	}
-
-	// Notify if offsets are too large
-	const int num_not_huge = sizeof(should_be_not_huge) / sizeof(*should_be_not_huge);
-
-	for (unsigned i = 0; i < num_not_huge; ++i) {
-		// maximum measurement range is ~1.9 Ga, the earth field is ~0.6 Ga,
-		//  so an offset larger than ~1.3 Ga means the mag will saturate in some directions.
-		static constexpr float MAG_MAX_OFFSET_LEN = 1.3f;
-
-		if (fabsf(should_be_not_huge[i]) > MAG_MAX_OFFSET_LEN) {
-			calibration_log_critical(mavlink_log_pub, "Warning: mag %" PRIu8 " with large offsets", cur_mag);
-			break;
-		}
-	}
-
-	return calibrate_return_ok;
-}
-
 static float get_sphere_radius()
 {
 	// if GPS is available use real field intensity from world magnetic model
@@ -601,6 +540,24 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 		return calibrate_return_error;
 	}
 
+	// if any external mag is enabled, disable the internal mags as they should not be used for navigation
+	bool has_enabled_external = false;
+
+	for (uint8_t cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
+		if (worker_data.calibration[cur_mag].external() && worker_data.calibration[cur_mag].enabled()) {
+			has_enabled_external = true;
+			break;
+		}
+	}
+
+	if (has_enabled_external) {
+		for (uint8_t cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
+			if (!worker_data.calibration[cur_mag].external()) {
+				worker_data.calibration[cur_mag].disable();
+			}
+		}
+	}
+
 	if (result == calibrate_return_ok) {
 		result = calibrate_from_orientation(mavlink_log_pub,                    // uORB handle to write output
 						    worker_data.side_data_collected,    // Sides to calibrate
@@ -680,22 +637,49 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 					offdiag[cur_mag](i) = sphere_data.offdiag(i);
 				}
 
-				result = check_calibration_result(sphere[cur_mag](0), sphere[cur_mag](1), sphere[cur_mag](2),
-								  sphere_radius[cur_mag],
-								  diag[cur_mag](0), diag[cur_mag](1), diag[cur_mag](2),
-								  offdiag[cur_mag](0), offdiag[cur_mag](1), offdiag[cur_mag](2),
-								  mavlink_log_pub, cur_mag);
+				const char *fail_reason = nullptr;
+
+				if (!sphere[cur_mag].isAllFinite() || !PX4_ISFINITE(sphere_radius[cur_mag])
+				    || !diag[cur_mag].isAllFinite() || !offdiag[cur_mag].isAllFinite()) {
+					fail_reason = "NaN";
+					result = calibrate_return_error;
+
+				} else if (!math::isInRange(sphere_radius[cur_mag], .2f, .7f)) {
+					fail_reason = "invalid radius";
+					result = calibrate_return_error;
+
+				} else if (diag[cur_mag].min() <= 0.f) {
+					fail_reason = "negative scale";
+					result = calibrate_return_error;
+
+				} else if (sphere[cur_mag].longerThan(1.3f)) {
+					// maximum measurement range is ~1.9 Ga, the earth field is ~0.6 Ga,
+					// so an offset larger than ~1.3 Ga means the mag will saturate in some directions.
+					fail_reason = "large offsets";
+					result = calibrate_return_error;
+				}
+
+				const bool enabled = worker_data.calibration[cur_mag].enabled();
+
+				if ((result == calibrate_return_error) && fail_reason) {
+					if (enabled) {
+						calibration_log_emergency(mavlink_log_pub, "Retry cal mag %" PRIu8 ": %s", cur_mag, fail_reason);
+
+					} else {
+						PX4_DEBUG("Cal mag %" PRIu8 ": %s", cur_mag, fail_reason);
+					}
+				}
 
 				if (result == calibrate_return_error) {
-					// tolerate mag cal failures if this sensor is disabled
-					if (worker_data.calibration[cur_mag].enabled()) {
+					if (enabled) {
 						break;
 
 					} else {
-						// reset
+						// tolerate mag cal failures if this sensor is disabled
 						sphere[cur_mag].zero();
 						diag[cur_mag] = Vector3f{1.f, 1.f, 1.f};
 						offdiag[cur_mag].zero();
+						result = calibrate_return_ok;
 					}
 				}
 			}
@@ -957,15 +941,6 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 		bool param_save = false;
 		bool failed = true;
 
-		bool external_mag_available = false;
-
-		for (unsigned cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
-			if (worker_data.calibration[cur_mag].external() && worker_data.calibration[cur_mag].enabled()) {
-				external_mag_available = true;
-				break;
-			}
-		}
-
 		for (unsigned cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
 
 			calibration::Magnetometer &current_cal = worker_data.calibration[cur_mag];
@@ -982,11 +957,6 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 					current_cal.set_offset(sphere[cur_mag]);
 					current_cal.set_scale(diag[cur_mag]);
 					current_cal.set_offdiagonal(offdiag[cur_mag]);
-				}
-
-				if (external_mag_available && !current_cal.external()) {
-					// automatically disable the internal mags as they should not be used for navigation
-					current_cal.disable();
 				}
 
 				current_cal.PrintStatus();

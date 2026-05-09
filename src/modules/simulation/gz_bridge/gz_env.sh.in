@@ -19,3 +19,15 @@ export PX4_GZ_SERVER_CONFIG=@PX4_SOURCE_DIR@/src/modules/simulation/gz_bridge/se
 export GZ_SIM_RESOURCE_PATH=$GZ_SIM_RESOURCE_PATH:$PX4_GZ_MODELS:$PX4_GZ_WORLDS
 export GZ_SIM_SYSTEM_PLUGIN_PATH=$GZ_SIM_SYSTEM_PLUGIN_PATH:$PX4_GZ_PLUGINS
 export GZ_SIM_SERVER_CONFIG_PATH=$PX4_GZ_SERVER_CONFIG
+
+# macOS: dyld does not search /opt/homebrew/lib by default. Many
+# gobject-introspection typelibs reference libs by bare basename,
+# which fails to resolve unless we add Homebrew's lib dir to the
+# fallback search path. Prepend so it beats any system-placed libs,
+# and preserve any existing value the user has set.
+if [ "$(uname)" = "Darwin" ]; then
+	HOMEBREW_PREFIX=${HOMEBREW_PREFIX:-$(brew --prefix 2>/dev/null)}
+	if [ -n "$HOMEBREW_PREFIX" ]; then
+		export DYLD_FALLBACK_LIBRARY_PATH="$HOMEBREW_PREFIX/lib:${DYLD_FALLBACK_LIBRARY_PATH}"
+	fi
+fi

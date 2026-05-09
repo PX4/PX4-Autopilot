@@ -70,9 +70,6 @@ public:
 	 */
 	struct Param {
 		float equivalent_airspeed_trim; 	///< the trim value of the equivalent airspeed [m/s].
-		float airspeed_measurement_std_dev; 	///< airspeed measurement standard deviation in [m/s].
-		float airspeed_rate_measurement_std_dev;///< airspeed rate measurement standard deviation in [m/s²].
-		float airspeed_rate_noise_std_dev; 	///< standard deviation on the airspeed rate deviation in the model in [m/s²].
 	};
 
 	/**
@@ -116,6 +113,25 @@ public:
 private:
 	// States
 	AirspeedFilterState _airspeed_state{.speed = 0.0f, .speed_rate = 0.0f};	///< Complimentary filter state
+
+	// Steady-state Kalman gains for the 2-state (airspeed, airspeed_rate) complementary filter.
+	//
+	// Noise model: R = diag(σ_meas², σ_rate_meas²),  Q = diag(0, σ_proc²)
+	//
+	// Defining:  a = 1/σ_meas,  b = σ_proc/σ_rate_meas²,  d = a + b,  n = sqrt(σ_proc·(2a + b))
+	//
+	//   K = | a·n/d        b/d       |
+	//       | a²·σ_proc/d  b·n/d     |
+	//
+	// With σ_meas=0.07 m/s, σ_rate_meas=0.2 m/s², σ_proc=0.2 m/s²:
+	//   a=14.2857, b=5, d=19.2857, n=2.5912
+	//
+	// To recompute if any noise value changes:
+	//   python3 -c "import math; sm=0.07; sr=0.2; sp=0.2; a=1/sm; b=sp/sr**2; d=a+b; n=math.sqrt(sp*(2*a+b)); print(a*n/d, b/d, a*a*sp/d, b*n/d)"
+	static constexpr float kKg00{1.91940287f};
+	static constexpr float kKg01{0.25925926f};
+	static constexpr float kKg10{2.11640212f};
+	static constexpr float kKg11{0.67179101f};
 };
 
 class TECSAltitudeReferenceModel
@@ -598,9 +614,6 @@ public:
 	void set_detect_underspeed_enabled(bool enabled) { _control_flag.detect_underspeed_enabled = enabled; };
 
 	// setters for parameters
-	void set_airspeed_measurement_std_dev(float std_dev) {_airspeed_filter_param.airspeed_measurement_std_dev = std_dev;};
-	void set_airspeed_rate_measurement_std_dev(float std_dev) {_airspeed_filter_param.airspeed_rate_measurement_std_dev = std_dev;};
-	void set_airspeed_filter_process_std_dev(float std_dev) {_airspeed_filter_param.airspeed_rate_noise_std_dev = std_dev;};
 
 	void set_integrator_gain_throttle(float gain) { _control_param.integrator_gain_throttle = gain;};
 	void set_integrator_gain_pitch(float gain) { _control_param.integrator_gain_pitch = gain; };
@@ -710,9 +723,6 @@ private:
 	/// Airspeed filter parameters.
 	TECSAirspeedFilter::Param _airspeed_filter_param{
 		.equivalent_airspeed_trim = 15.0f,
-		.airspeed_measurement_std_dev = 0.2f,
-		.airspeed_rate_measurement_std_dev = 0.05f,
-		.airspeed_rate_noise_std_dev = 0.02f
 	};
 	/// Reference model parameters.
 	TECSAltitudeReferenceModel::Param _reference_param{

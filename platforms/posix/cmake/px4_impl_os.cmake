@@ -31,6 +31,24 @@
 #
 ############################################################################
 
+# Homebrew's qt@5 is keg-only on macOS. gz-gui8 (pulled in by gz-sim8
+# from the Gazebo simulation modules) links against Qt5 and CMake
+# cannot locate it without a prefix hint. This file is included early
+# from the root CMakeLists.txt, before any add_subdirectory descends
+# into find_package(gz-sim8). Only runs when the user has not already
+# set Qt5_DIR.
+if(APPLE AND NOT DEFINED Qt5_DIR)
+	execute_process(
+		COMMAND brew --prefix qt@5
+		OUTPUT_VARIABLE _brew_qt5_prefix
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+		ERROR_QUIET
+	)
+	if(_brew_qt5_prefix AND EXISTS "${_brew_qt5_prefix}/lib/cmake/Qt5")
+		list(APPEND CMAKE_PREFIX_PATH "${_brew_qt5_prefix}")
+	endif()
+endif()
+
 #=============================================================================
 #
 #	Defined functions in this file

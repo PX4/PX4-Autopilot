@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 # Make sure that the SLPI DSP test signature is there otherwise px4 cannot run
 # on the DSP

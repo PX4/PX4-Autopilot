@@ -525,7 +525,7 @@ bool DShot::process_serial_telemetry()
 
 				if (_serial_telem_consecutive_timeouts[motor_index] >= SERIAL_TELEM_SKIP_THRESHOLD) {
 					_serial_telem_skip_mask |= (1 << motor_index);
-					PX4_WARN("ESC%d serial telemetry lost, skipping", motor_index + 1);
+					PX4_DEBUG("ESC%d serial telemetry lost, skipping", motor_index + 1);
 				}
 			}
 

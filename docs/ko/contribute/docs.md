@@ -270,7 +270,7 @@ The guide uses the [Vitepress](https://vitepress.dev/) toolchain.
 - Images must be stored in a sub folder of `/assets`.
   이것은 콘텐츠 폴더에서 두 개의 폴더 아래에 있으므로, 이미지를 추가하면 다음과 같이 참조하게 됩니다.
 
-  ```plain
+  ```txt
   ![Image Description](../../assets/path_to_file/filename.jpg)
   ```
 

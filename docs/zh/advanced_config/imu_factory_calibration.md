@@ -32,3 +32,4 @@ If you only want to factory calibrate the accelerometer and the gyroscope you ca
 ## 更多信息
 
 - [QGroundControl User Guide > Sensors](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/sensors_px4.html)
+- [OEM/Factory Configuration](../advanced_config/oem.md)

@@ -41,7 +41,7 @@ The testing procedure for each controller (rate, attitude, velocity/position) an
 ## Передумови
 
 - You have selected the closest matching [default frame configuration](../config/airframe.md) for your vehicle.
-  Це повинно дати вам транспортний засіб, який вже літає.
+  This should give you a vehicle that already flies.
 
 - You should have done an [ESC calibration](../advanced_config/esc_calibration.md).
 
@@ -50,13 +50,13 @@ The testing procedure for each controller (rate, attitude, velocity/position) an
 
   This can be tested in [Acro mode](../flight_modes_mc/acro.md) or in [Stabilized mode](../flight_modes_mc/manual_stabilized.md):
 
-  - Видаліть пропелери
-  - Збройте транспортний засіб і знизьте оберти до мінімуму
-  - Нахиліть транспортний засіб у всі напрямки, близько 60 градусів
-  - Перевірте, чи не вимикаються мотори
+  - Remove propellers
+  - Arm the vehicle and lower the throttle to the minimum
+  - Tilt the vehicle to all directions, about 60 degrees
+  - Check that no motors turn off
 
-- Використовуйте високошвидкісне телеметричне з'єднання, таке як WiFi, якщо це взагалі можливо (типовий телеметричний радіо з невеликим діапазоном не є достатньо швидким для отримання реального часу зворотнього зв'язку та графіків).
-  Це особливо важливо для регулятора швидкості.
+- Use a high-rate telemetry link such as WiFi if at all possible (a typical low-range telemetry radio is not fast enough for real-time feedback and plots).
+  This is particularly important for the rate controller.
 
 - Disable [MC_AIRMODE](../advanced_config/parameter_reference.md#MC_AIRMODE) before tuning a vehicle (there is an options for this in the PID tuning screen).
 
@@ -65,9 +65,9 @@ Poorly tuned vehicles are likely to be unstable, and easy to crash.
 Make sure to have assigned a [Kill switch](../config/safety.md#emergency-switches).
 :::
 
-## Параметри налаштування
+## Tuning Procedure
 
-Параметри налаштування такі:
+The tuning procedure is:
 
 1. Arm the vehicle, takeoff, and hover (typically in [Position mode](../flight_modes_mc/position.md)).
 
@@ -82,12 +82,12 @@ Make sure to have assigned a [Kill switch](../config/safety.md#emergency-switche
 
    ::: info
    For PWM, power-based and (some) UAVCAN speed controllers, the control signal to thrust relationship may not be linear.
-   Як результат, оптимальне налаштування при потужності утримання може бути не ідеальним, коли транспортний засіб працює на вищій потужності.
+   As a result, the optimal tuning at hover thrust may not be ideal when the vehicle is operating at higher thrust.
 
-   Значення кривої тяги може бути використане для компенсації цієї нелинійності:
+   The thrust curve value can be used to compensate for this non-linearity:
 
    - For PWM controllers, 0.3 is a good default (which may benefit from [further tuning](../config_mc/pid_tuning_guide_multicopter.md#thrust-curve)).
-   - Для контролерів на основі RPM використовуйте 1 (додаткове налаштування не потрібно, оскільки вони мають квадратичну криву тяги).
+   - For RPM-based controllers, use 1 (no further tuning is required as these have a quadratic thrust curve).
 
    For more information see the [detailed PID tuning guide](../config_mc/pid_tuning_guide_multicopter.md#thrust-curve).
 
@@ -105,18 +105,21 @@ Make sure to have assigned a [Kill switch](../config/safety.md#emergency-switche
 10. Rapidly move the _roll stick_ full range and observe the step response on the plots.
     :::tip
     Stop tracking to enable easier inspection of the plots.
-    Це відбувається автоматично, коли ви збільшуєте/панорамуєте.
+    This happens automatically when you zoom/pan.
     Use the **Start** button to restart the plots, and **Clear** to reset them.
 
 :::
 
 11. Modify the three PID values using the sliders (for roll rate-tuning these affect `MC_ROLLRATE_K`, `MC_ROLLRATE_I`, `MC_ROLLRATE_D`) and observe the step response again.
-    Значення зберігаються на транспортний засіб, як тільки переміщуються слайдери.
+    The values are saved to the vehicle as soon as the sliders are moved.
+
     ::: info
     The goal is for the _Response_ curve to match the _Setpoint_ curve as closely as possible (i.e. a fast response without overshoots).
 
 :::
+
     The PID values can be adjusted as follows:
+
     - P (пропорційне) або К підсилення:
       - збільште це для більшої реакції
       - зменшити, якщо відповідь перевищує і / або коливається (до певної міри збільшення значення D також допомагає).

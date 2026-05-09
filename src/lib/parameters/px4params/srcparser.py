@@ -61,6 +61,7 @@ class Parameter(object):
         self.category = ""
         self.volatile = False
         self.boolean = False
+        self.readonly = False
 
     def GetName(self):
         return self.name
@@ -79,6 +80,9 @@ class Parameter(object):
 
     def GetBoolean(self):
         return self.boolean
+
+    def GetReadonly(self):
+        return self.readonly
 
     def SetField(self, code, value):
         """
@@ -109,6 +113,12 @@ class Parameter(object):
         Set boolean flag
         """
         self.boolean = True
+
+    def SetReadonly(self):
+        """
+        Set readonly flag
+        """
+        self.readonly = True
 
     def SetCategory(self, category):
         """
@@ -355,7 +365,7 @@ class SourceParser(object):
         allowedUnits = set ([
                                 '%', 'Hz', '1/s', 'mAh',
                                 'rad', '%/rad', 'rad/s', 'rad/s^2', '%/rad/s', 'rad s^2/m', 'rad s/m',
-                                'bit/s', 'B/s',
+                                'bit/s', 'B/s', 'MiB',
                                 'deg', 'deg*1e7', 'deg/s', 'deg/s^2',
                                 'celcius', 'gauss', 'gauss/s', 'gauss^2', 'liters',
                                 'hPa', 'kg', 'kg/m^2', 'kg m^2', 'kg/m^3',

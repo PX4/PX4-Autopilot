@@ -269,7 +269,7 @@ The guide uses the [Vitepress](https://vitepress.dev/) toolchain.
 - Images must be stored in a sub folder of `/assets`.
   Це на два рівні нижче від папок з вмістом, тому якщо ви додаєте зображення, ви посилаєтеся на нього так:
 
-  ```plain
+  ```txt
   ![Image Description](../../assets/path_to_file/filename.jpg)
   ```
 

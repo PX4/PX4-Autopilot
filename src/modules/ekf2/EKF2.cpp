@@ -1361,7 +1361,7 @@ void EKF2::PublishGlobalPosition(const hrt_abstime &timestamp)
 
 		float delta_hagl = 0.f;
 		_ekf.get_hagl_reset(&delta_hagl, &global_pos.terrain_reset_counter);
-		global_pos.delta_terrain = -delta_z;
+		global_pos.delta_terrain = -delta_hagl;
 #endif // CONFIG_EKF2_TERRAIN
 
 		global_pos.dead_reckoning = _ekf.control_status_flags().inertial_dead_reckoning
@@ -1987,7 +1987,7 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 	status.time_slip = _last_time_slip_us * 1e-6f;
 
 	static constexpr float kMinTestRatioPreflight = 0.5f;
-	status.pre_flt_fail_innov_heading   = (kMinTestRatioPreflight < status.hdg_test_ratio) || !_ekf.control_status_flags().yaw_align;
+	status.pre_flt_fail_innov_heading   = (kMinTestRatioPreflight < status.hdg_test_ratio);
 	status.pre_flt_fail_innov_height    = (kMinTestRatioPreflight < status.hgt_test_ratio);
 	status.pre_flt_fail_innov_pos_horiz = (kMinTestRatioPreflight < status.pos_test_ratio);
 	status.pre_flt_fail_innov_vel_horiz = (kMinTestRatioPreflight < vel_xy_test_ratio);
