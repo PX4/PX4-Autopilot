@@ -1016,6 +1016,7 @@ void MissionBlock::updateAltToAvoidTerrainCollisionAndRepublishTriplet(const mis
 	if (_navigator->get_nav_min_gnd_dist_param() > FLT_EPSILON && _mission_item.nav_cmd != NAV_CMD_LAND
 	    && _mission_item.nav_cmd != NAV_CMD_VTOL_LAND && _mission_item.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION
 	    && _mission_item.nav_cmd != NAV_CMD_IDLE
+	    && item_contains_position(mission_item)
 	    && _navigator->get_local_position()->dist_bottom_valid
 	    && _navigator->get_local_position()->dist_bottom < _navigator->get_nav_min_gnd_dist_param()
 	    && _navigator->get_local_position()->vz > FLT_EPSILON
