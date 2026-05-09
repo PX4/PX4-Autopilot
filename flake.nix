@@ -211,6 +211,7 @@
         pkgs.libusb1
         pkgs.shellcheck
         pkgs.texinfo
+        pkgs.kconfig-frontends
       ];
 
       ros = pkgs.rosPackages.kilted;
