@@ -102,7 +102,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### MAVLink
 
-- Removed deprecated request messages `MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES`, `MAV_CMD_REQUEST_PROTOCOL_VERSION`, `MAV_CMD_GET_HOME_POSITION`, `MAV_CMD_REQUEST_FLIGHT_INFORMATION`, `MAV_CMD_REQUEST_STORAGE_INFORMATION` (Replaced by `MAV_CMD_REQUEST_MESSAGE`).
+- Removed support for deprecated request commands `MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES`, `MAV_CMD_REQUEST_PROTOCOL_VERSION`, `MAV_CMD_GET_HOME_POSITION`, `MAV_CMD_REQUEST_FLIGHT_INFORMATION`, `MAV_CMD_REQUEST_STORAGE_INFORMATION` (Replaced by `MAV_CMD_REQUEST_MESSAGE`).
   ([PX4-Autopilot#27251: fix(mavlink): Remove deprecated MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES](https://github.com/PX4/PX4-Autopilot/pull/27251), [PX4-Autopilot#27252: fix(mavlink): Remove legacy mavlink message requestors#27252](https://github.com/PX4/PX4-Autopilot/pull/27252))
 
 ### RC
