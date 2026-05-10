@@ -244,6 +244,7 @@ void Ekf::updateEvPosFusion(const Vector2f &measurement, const Vector2f &measure
 				ECL_INFO("reset to %s", EV_AID_SRC_NAME);
 				_information_events.flags.reset_pos_to_vision = true;
 				resetHorizontalPositionTo(measurement - _ev_pos_b_est.getBias(), measurement_var);
+				_ev_pos_b_est.setBias(-getLocalHorizontalPosition() + measurement);
 
 			} else {
 				_ev_pos_b_est.setBias(-getLocalHorizontalPosition() + measurement);
@@ -287,6 +288,7 @@ void Ekf::updateEvPosFusion(const Vector2f &measurement, const Vector2f &measure
 
 				} else {
 					resetHorizontalPositionTo(measurement - _ev_pos_b_est.getBias(), measurement_var);
+					_ev_pos_b_est.setBias(-getLocalHorizontalPosition() + measurement);
 				}
 			}
 
