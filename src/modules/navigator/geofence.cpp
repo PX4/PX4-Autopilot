@@ -725,66 +725,6 @@ void Geofence::printStatus()
 
 
 
-bool Geofence::checkIfLineViolatesAnyFence(const matrix::Vector2f &start_local, const matrix::Vector2f &end_local,
-		const matrix::Vector2<double> &reference)
-{
-	MapProjection ref{reference(0), reference(1)};
-
-	// loop through all the polygons
-	for (int poly_idx = 0; poly_idx < _num_polygons; poly_idx++) {
-		PolygonInfo info = _polygons[poly_idx];
-
-		if (info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION || info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION) {
-
-			matrix::Vector2f vertices_local[info.vertex_count];
-			dm_item_t fence_dataman_id{static_cast<dm_item_t>(_stats.dataman_id)};
-			bool load_success = true;
-
-			for (int vertex_idx = 0; vertex_idx < info.vertex_count; vertex_idx++) {
-				mission_fence_point_s vertex{};
-
-				if (!_dataman_cache.loadWait(fence_dataman_id, info.dataman_index + vertex_idx,
-							     reinterpret_cast<uint8_t *>(&vertex),
-							     sizeof(mission_fence_point_s))) {
-					load_success = false;
-					break;
-				}
-
-				vertices_local[vertex_idx] = ref.project(vertex.lat, vertex.lon);
-			}
-
-			if (!load_success) {
-				continue;
-			}
-
-			const bool is_inclusion_zone = (info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
-
-			if (geofence_utils::lineSegmentIntersectsPolygon(start_local, end_local,
-					vertices_local, info.vertex_count, is_inclusion_zone)) {
-				return true;
-			}
-
-		} else if (info.fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION || info.fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION) {
-			mission_fence_point_s circle_point{};
-			bool success = _dataman_cache.loadWait(static_cast<dm_item_t>(_stats.dataman_id), info.dataman_index,
-							       reinterpret_cast<uint8_t *>(&circle_point), sizeof(mission_fence_point_s));
-
-			if (!success) {
-				PX4_ERR("dm_read failed");
-				break;
-			}
-
-			matrix::Vector2f circle_center_local = ref.project(circle_point.lat, circle_point.lon);
-
-			if (geofence_utils::lineSegmentIntersectsCircle(start_local, end_local, circle_center_local, circle_point.circle_radius)) {
-				return true;
-			}
-		}
-
-	}
-
-	return false;
-}
 
 matrix::Vector2<double>  Geofence::getPolygonVertexByIndex(int poly_idx, int idx)
 {

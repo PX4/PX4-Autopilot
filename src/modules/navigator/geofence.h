@@ -243,10 +243,6 @@ private:
 	 */
 	bool checkCurrentPositionRequirementsForGeofence(const PolygonInfo &polygon);
 
-	bool checkIfLineViolatesAnyFence(const matrix::Vector2f &start_local,
-					 const matrix::Vector2f &end_local,
-					 const matrix::Vector2<double> &reference) override;
-
 	PolygonInfo getPolygonInfoByIndex(int index) override { return _polygons[index]; }
 
 	matrix::Vector2<double> getPolygonVertexByIndex(int poly_idx, int idx) override;

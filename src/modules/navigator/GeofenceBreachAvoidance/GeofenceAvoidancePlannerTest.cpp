@@ -33,8 +33,6 @@
 
 #include <gtest/gtest.h>
 #include "geofence_avoidance_planner.h"
-#include <lib/geofence/geofence_utils.h>
-#include <lib/geo/geo.h>
 #include <navigator/navigation.h>
 
 class FakeGeofence : public GeofenceInterface
@@ -42,23 +40,6 @@ class FakeGeofence : public GeofenceInterface
 public:
 	FakeGeofence(const matrix::Vector2<double> *vertices, int num_vertices, uint16_t fence_type)
 		: _vertices(vertices), _num_vertices(num_vertices), _fence_type(fence_type) {}
-
-	bool checkIfLineViolatesAnyFence(const matrix::Vector2f &start_local,
-					 const matrix::Vector2f &end_local,
-					 const matrix::Vector2<double> &reference) override
-	{
-		MapProjection ref{reference(0), reference(1)};
-
-		matrix::Vector2f vertices_local[_num_vertices];
-
-		for (int i = 0; i < _num_vertices; i++) {
-			vertices_local[i] = ref.project(_vertices[i](0), _vertices[i](1));
-		}
-
-		const bool is_inclusion_zone = (_fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
-		return geofence_utils::lineSegmentIntersectsPolygon(start_local, end_local,
-				vertices_local, _num_vertices, is_inclusion_zone);
-	}
 
 	PolygonInfo getPolygonInfoByIndex(int index) override
 	{
