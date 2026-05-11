@@ -112,6 +112,9 @@ FixedwingAttitudeControl::vehicle_manual_poll(const float yaw_body)
 				q.copyTo(_att_sp.q_d);
 
 				_att_sp.thrust_body[0] = (_manual_control_setpoint.throttle + 1.f) * .5f;
+				_att_sp.thrust_body[1] = 0.f;
+				_att_sp.thrust_body[2] = 0.f;
+				_att_sp.yaw_sp_move_rate = 0.f;
 
 				_att_sp.timestamp = hrt_absolute_time();
 
