@@ -1,0 +1,157 @@
+name: Windows SITL build
+
+# Build px4_sitl_default for Windows on both supported toolchains:
+#   - MinGW-w64 cross-compile from Ubuntu (gate for the platforms/posix
+#     Windows shim layer and ld --wrap socket plumbing)
+#   - Native MSVC on a Windows runner (gate for the _MSC_VER paths in
+#     the shim headers and the MSVC-only sources under
+#     src/px4/windows/posix, e.g. socket_msvc.cpp / sys/time.cpp)
+
+on:
+  push:
+    branches:
+      - 'main'
+      - 'stable'
+      - 'beta'
+      - 'release/**'
+    paths-ignore:
+      - 'docs/**'
+  pull_request:
+    branches:
+      - '**'
+    paths-ignore:
+      - 'docs/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Windows SITL (${{ matrix.toolchain }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - toolchain: MinGW
+            runner: ubuntu-24.04
+            artifact: px4-sitl-windows-x86_64-mingw
+          - toolchain: MSVC
+            runner: windows-2022
+            artifact: px4-sitl-windows-x86_64-msvc
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      # ---- MinGW cross-build path (Ubuntu host) ----
+
+      - name: Install MinGW-w64 + PX4 base deps
+        if: matrix.toolchain == 'MinGW'
+        run: |
+          sudo apt-get update
+          # The *-posix variants of gcc/g++ ship winpthreads which PX4
+          # needs for std::thread and pthread_*.
+          sudo apt-get install -y --no-install-recommends \
+              mingw-w64 \
+              g++-mingw-w64-x86-64-posix \
+              gcc-mingw-w64-x86-64-posix \
+              cmake ninja-build ccache \
+              python3 python3-pip python3-jinja2 python3-yaml \
+              python3-toml python3-numpy python3-packaging \
+              python3-jsonschema python3-future \
+              python3-kconfiglib
+          # python3-pyros-genmsg is not packaged in Ubuntu noble; install
+          # it via pip alongside empy. PX4's msg/uxrce_dds/flight_tasks/
+          # zenoh generators rely on the empy 3.x Interpreter API, hence
+          # the <4 pin (matches Tools/setup/requirements.txt).  Use
+          # --break-system-packages on Ubuntu 24.04 where pip refuses to
+          # touch the system site-packages by default.
+          python3 -m pip install --user --break-system-packages "empy>=3.3,<4" pyros-genmsg || \
+              python3 -m pip install --user "empy>=3.3,<4" pyros-genmsg
+
+      - name: Setup ccache (MinGW)
+        if: matrix.toolchain == 'MinGW'
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: ccache-windows-sitl-mingw
+          max-size: 500M
+
+      - name: Cross-build px4.exe (MinGW)
+        if: matrix.toolchain == 'MinGW'
+        env:
+          CMAKE_ARGS: -DCMAKE_TOOLCHAIN_FILE=Toolchain-mingw-w64-x86_64
+        run: make px4_sitl_default
+
+      # ---- MSVC native path (Windows host) ----
+
+      - name: Setup Python (MSVC)
+        if: matrix.toolchain == 'MSVC'
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install Python deps (MSVC)
+        if: matrix.toolchain == 'MSVC'
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          # empy pinned <4: PX4's msg/uxrce_dds/flight_tasks/zenoh generators
+          # use the empy 3.x Interpreter(...options={em.RAW_OPT: True,
+          # em.BUFFERED_OPT: True}) API removed in empy 4.x. Matches the pin
+          # in Tools/setup/requirements.txt and Tools/setup/windows.ps1.
+          python -m pip install jinja2 pyyaml toml numpy packaging jsonschema future "empy>=3.3,<4" pyros-genmsg kconfiglib
+          # Verify kconfiglib import on the same Python that CMake will pick
+          # so we fail loud here rather than deep in cmake configure. Use
+          # `import kconfiglib` (not `menuconfig`) because the menuconfig
+          # entry point pulls in the standard `curses` module which is not
+          # shipped on Windows Pythons by default.
+          python -c "import kconfiglib; print(kconfiglib.__file__)"
+
+      - name: Install Ninja (MSVC)
+        if: matrix.toolchain == 'MSVC'
+        uses: seanmiddleditch/gha-setup-ninja@v5
+
+      - name: Install GNU make (MSVC)
+        if: matrix.toolchain == 'MSVC'
+        shell: pwsh
+        run: choco install -y make --no-progress
+
+      - name: Enable MSVC environment (x64)
+        if: matrix.toolchain == 'MSVC'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      # Run the standard top-level make target. With cl.exe + ninja on
+      # PATH (the previous step exports them via $GITHUB_ENV), the
+      # Makefile's existing Ninja branch picks the Ninja generator and
+      # cmake auto-detects MSVC as the host compiler — same entry point
+      # as Linux/macOS, no toolchain file needed.
+      #
+      # Pin Python3_ROOT_DIR to the setup-python interpreter so cmake's
+      # find_package(Python3) does not pick up the runner-image's other
+      # Python (3.12) where kconfiglib is not installed.
+      - name: Native-build px4.exe (MSVC)
+        if: matrix.toolchain == 'MSVC'
+        shell: bash
+        env:
+          CMAKE_ARGS: -DPython3_ROOT_DIR=${{ env.pythonLocation }} -DPython3_FIND_STRATEGY=LOCATION
+        run: make px4_sitl_default
+
+      # ---- Common ----
+
+      - name: Upload px4.exe artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: build/px4_sitl_default/bin/px4.exe
+          if-no-files-found: error
+          retention-days: 14
