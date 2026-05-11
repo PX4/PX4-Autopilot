@@ -100,7 +100,7 @@ bool PlannerPolygons::addPolygon(const matrix::Vector2f *vertices_in, int num_ve
 bool PlannerPolygons::pointInsideInteriorCone(const PolygonInfo &poly,
 		int32_t px, int32_t py, int v) const
 {
-	const int prev = poly.start_index + ((v == 0) ? poly.num_vertices - 1 : v - 1);
+	const int prev = poly.start_index + ((v + poly.num_vertices - 1) % poly.num_vertices);
 	const int curr = poly.start_index + v;
 	const int next = poly.start_index + ((v + 1) % poly.num_vertices);
 
@@ -130,7 +130,7 @@ bool PlannerPolygons::intersectsInsideOf(const PolygonInfo &poly,
 	const int32_t twice_mid_y = s_y + e_y;
 
 	for (int i = 0; i < poly.num_vertices; i++) {
-		const int prev_idx = poly.start_index + ((i == 0) ? poly.num_vertices - 1 : i - 1);
+		const int prev_idx = poly.start_index + (i + poly.num_vertices - 1) % poly.num_vertices;
 		const int curr_idx = poly.start_index + i;
 		const int32_t ax = _x_cm[prev_idx], ay = _y_cm[prev_idx];
 		const int32_t bx = _x_cm[curr_idx], by = _y_cm[curr_idx];
