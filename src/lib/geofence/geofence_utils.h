@@ -262,6 +262,7 @@ private:
 	bool intersectsInsideOf(const PolygonInfo &poly,
 				int32_t s_x, int32_t s_y, int32_t e_x, int32_t e_y) const;
 	bool pointInsideInteriorCone(const PolygonInfo &poly, int32_t px, int32_t py, int v) const;
+	bool segmentThroughVertexCrossesCone(const PolygonInfo &poly, int v, int32_t s_x, int32_t s_y) const;
 };
 
 /// Convenience for unit tests and one-shot callers: build a transient
