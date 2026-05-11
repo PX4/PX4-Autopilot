@@ -94,6 +94,58 @@ bool PlannerPolygons::addPolygon(const matrix::Vector2f *vertices_in, int num_ve
 	return true;
 }
 
+bool PlannerPolygons::addApproxCircle(const matrix::Vector2f &center, const float circle_radius, float margin, const int num_vertices,
+				      const bool is_inclusion_zone)
+{
+	// For planning we approximate circles by regular k-gons. This adds
+	// quite some nodes and additional restricted area. However, planning
+	// properly around circles would be more complicated. Read these if that
+	// becomes a priority regardless:
+	//
+	//  - https://dl.acm.org/doi/epdf/10.1145/323233.323261
+	//  - https://www.sciencedirect.com/science/article/pii/S0925772106000496
+	//
+	// Keep in mind that the added complexity would extend beyond the
+	// planner into all controllers, which would then have to also fly
+	// loiter segments, not just pure waypoint sequences.
+
+	if (_num_nodes + num_vertices > kMaxNodes || _num_polygons >= kMaxPolygons || circle_radius <= 0.1f) {
+		return false;  // Not enough space
+	}
+
+	// ensures that the k-gon is, w.r.t the real circle:
+	//  - over-approximation, if exclusion
+	//  - under-approximation, if inclusion
+	const float k_gon_radius = is_inclusion_zone
+				   ? circle_radius - margin
+				   : circle_radius / cosf(M_PI_F / num_vertices) + margin;
+
+	if (k_gon_radius <= FLT_EPSILON) {
+		return false;
+	}
+
+	// CCW for exclusion, CW for inclusion — same convention as addPolygon.
+	const float delta_angle = (is_inclusion_zone ? -1.f : 1.f) * 2.f * M_PI_F / num_vertices;
+
+	PolygonInfo &poly = _polygons[_num_polygons];
+	poly.start_index = _num_nodes;
+	poly.num_vertices = num_vertices;
+	poly.inside_is_bounded = !is_inclusion_zone;
+
+	for (int i = 0; i < num_vertices; i++) {
+		const float angle = i * delta_angle;
+		const matrix::Vector2f p = center + matrix::Vector2f{
+			k_gon_radius * cosf(angle), k_gon_radius * sinf(angle)
+		};
+		setNode(poly.start_index + i, p);
+	}
+
+	_num_nodes += num_vertices;
+	++_num_polygons;
+	return true;
+}
+
+
 // Precondition: vertex v lies strictly between segment endpoints s and e on
 // the open test segment (s, e collinear with v, v strictly interior).
 

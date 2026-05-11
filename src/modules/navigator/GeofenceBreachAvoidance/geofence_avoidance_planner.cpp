@@ -156,43 +156,20 @@ bool GeofenceAvoidancePlanner::update_graph_nodes_without_start_and_destination(
 				return false;
 			}
 
-			for (int vertex_idx = 0; vertex_idx < info.vertex_count; vertex_idx++) {
-				if (_polygons.addNode(local_out[vertex_idx]) < 0) { return false; }
-			}
-
 		} else if (info.fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION || info.fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION) {
+
 			if (_num_circles >= kMaxCircles) {
 				return false;
 			}
 
 			const matrix::Vector2f center = get_vertex_local_position(poly_index, 0, geofence, _reference);
-			_circles[_num_circles++] = {center, info.circle_radius};
 
-			// graph nodes for the circle: polygon approximation at the
-			// margin-adjusted radius. The line-violation check uses the
-			// actual circle (radius above), not this approximation.
-			const float delta_angle = 2.f * M_PI_F / kCircleApproxVertices;
-			float adjusted_radius;
+			const bool is_inclusion = info.fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION;
 
-			if (info.fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION) {
-				adjusted_radius = info.circle_radius / cosf(M_PI_F / kCircleApproxVertices) + margin;
-
-			} else {
-				adjusted_radius = info.circle_radius - margin;
-
-				if (adjusted_radius <= 0.f) {
-					return false;
-				}
+			if (!_polygons.addApproxCircle(center, info.circle_radius, kCircleApproxVertices, is_inclusion)) {
+				return false;
 			}
 
-			for (int i = 0; i < kCircleApproxVertices; i++) {
-				const float angle = i * delta_angle;
-				const matrix::Vector2f p = center + matrix::Vector2f{
-					adjusted_radius * cosf(angle), adjusted_radius * sinf(angle)
-				};
-
-				if (_polygons.addNode(p) < 0) { return false; }
-			}
 		}
 	}
 

@@ -234,6 +234,12 @@ public:
 	/// fewer-than-3-vertex input.
 	bool addPolygon(const matrix::Vector2f *vertices_in, int num_vertices, bool is_inclusion_zone);
 
+	/// Append an approximate circle, by discretising into a k-gon. Handles
+	/// shrinking / expanding depending on is_inclusion_zone (pass original
+	/// circle radius).
+	bool addApproxCircle(const matrix::Vector2f &center, const float radius, float margin, const int num_vertices,
+			     const bool is_inclusion_zone);
+
 	int numNodes() const { return _num_nodes; }
 
 	matrix::Vector2f node(int idx) const
