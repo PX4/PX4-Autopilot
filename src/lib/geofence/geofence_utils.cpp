@@ -330,19 +330,10 @@ bool PlannerPolygons::isLineFromPointToNodeIntersectingAnyInside(const matrix::V
 	return intersectsAnyInside(metersToCm(p(0)), metersToCm(p(1)), _x_cm[node_idx], _y_cm[node_idx]);
 }
 
+
 bool lineSegmentIntersectsCircle(const matrix::Vector2f &start, const matrix::Vector2f &end,
 				 const matrix::Vector2f &center, float radius)
 {
-	// Algorithm borrowed from here: https://stackoverflow.com/questions/1073336/circle-line-segment-collision-detection-algorithm
-	// Basic idea: Find the closest point on the line segment from the circle center.
-	// If that point is outside the circle, we don't have an intersection. If the point is inside the
-	// radius then we just need to check if either the start or the end of the line segment is outside the circle.
-
-
-	// let vector from start to circle center be A and vector from start to end be B
-	// then the projection of A onto B gives the closest point on the line from the circle center.
-	// By constraining the projection length to [0, |B|] we make sure that we find the closest point on the
-	// line segment and not the infinite line that coincides with B.
 	const matrix::Vector2f A = center - start;
 	const matrix::Vector2f B = end - start;
 	const float B_length = B.norm();
@@ -354,12 +345,10 @@ bool lineSegmentIntersectsCircle(const matrix::Vector2f &start, const matrix::Ve
 	const float projection_A_on_B = math::constrain(A.dot(B) / B_length, 0.f, B_length);
 	const matrix::Vector2f closest = start + projection_A_on_B * B.normalized();
 
-	// closest point is not even inside the radius, so no intersection
 	if ((closest - center).norm() >= radius) {
 		return false;
 	}
 
-	// we have an intersection if at least one of start or end is further away than radius from center
 	return (start - center).norm() >= radius || (end - center).norm() >= radius;
 }
 

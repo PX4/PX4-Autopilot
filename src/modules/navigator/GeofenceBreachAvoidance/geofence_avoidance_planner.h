@@ -46,7 +46,6 @@
 #include "geofence_interface.h"
 
 static constexpr int kMaxNodes = 100;
-static constexpr int kMaxCircles = 16;
 static constexpr int kCircleApproxVertices = 8;
 
 struct PlannedPath {
@@ -156,19 +155,11 @@ private:
 	matrix::Vector2<double> _reference; // lat/lon anchor of the local frame
 
 	// Cached, read-only fence representation. _polygons owns the master
-	// node buffer (polygon vertices + circle approximation vertices +
-	// destination); _circles holds the analytical circle metadata for the
-	// line-vs-circle violation check. Built once per `update_vertices`
-	// (= geofence geometry change); reused by every line-violates-fence
-	// query during distance setup, destination updates, and start-anchor
-	// selection.
-	struct CachedCircle {
-		matrix::Vector2f center;
-		float radius;
-	};
+	// node buffer (polygon vertices + circle k-gon approximation vertices +
+	// destination). Built once per `update_vertices` (= geofence geometry
+	// change); reused by every line-violates-fence query during distance
+	// setup, destination updates, and start-anchor selection.
 	geofence_utils::PlannerPolygons _polygons;
-	CachedCircle _circles[kMaxCircles];
-	int _num_circles{0};
 
 	bool _polygons_healthy{false};
 	bool _destination_healthy{false};
