@@ -93,7 +93,7 @@ TEST_F(GeofenceAvoidancePlannerTest, StartEqualsDestination)
 	Vector2<double> point(47.3977, 8.5456);
 
 	FakeGeofence fake(nullptr, 0, NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
-	_planner.update_vertices(fake);
+	_planner.update_vertices(fake, 0.f);
 	_planner.update_destination(point, fake);
 
 	const int num_waypoints = _planner.set_start_and_plan_path_to_destination(point, fake);
@@ -108,7 +108,7 @@ TEST_F(GeofenceAvoidancePlannerTest, DirectPathNoFence)
 	Vector2<double> destination(47.3984, 8.5470);
 
 	FakeGeofence fake(nullptr, 0, NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
-	_planner.update_vertices(fake);
+	_planner.update_vertices(fake, 0.f);
 	_planner.update_destination(destination, fake);
 
 	const int num_waypoints = _planner.set_start_and_plan_path_to_destination(start, fake);
@@ -132,7 +132,7 @@ TEST_F(GeofenceAvoidancePlannerTest, PathAroundExclusionZone)
 	};
 
 	FakeGeofence fake(vertices, 4, NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION);
-	_planner.update_vertices(fake);
+	_planner.update_vertices(fake, 0.f);
 	_planner.update_destination(destination, fake);
 
 	const int num_waypoints = _planner.set_start_and_plan_path_to_destination(start, fake);
@@ -169,7 +169,7 @@ TEST_F(GeofenceAvoidancePlannerTest, PathInsideInclusionZone)
 	};
 
 	FakeGeofence fake(vertices, 6, NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
-	_planner.update_vertices(fake);
+	_planner.update_vertices(fake, 0.f);
 	_planner.update_destination(destination, fake);
 
 	const int num_waypoints = _planner.set_start_and_plan_path_to_destination(start, fake);
@@ -200,7 +200,7 @@ TEST_F(GeofenceAvoidancePlannerTest, DestinationOutsideInclusion)
 	};
 
 	FakeGeofence fake(vertices, 6, NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
-	_planner.update_vertices(fake);
+	_planner.update_vertices(fake, 0.f);
 	_planner.update_destination(destination, fake);
 
 	const int num_waypoints = _planner.set_start_and_plan_path_to_destination(start, fake);
@@ -224,7 +224,7 @@ TEST_F(GeofenceAvoidancePlannerTest, DestinationInsideExclusion)
 	};
 
 	FakeGeofence fake(vertices, 4, NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION);
-	_planner.update_vertices(fake);
+	_planner.update_vertices(fake, 0.f);
 	_planner.update_destination(destination, fake);
 
 	const int num_waypoints = _planner.set_start_and_plan_path_to_destination(start, fake);
@@ -248,7 +248,7 @@ TEST_F(GeofenceAvoidancePlannerTest, StartInsideExclusion)
 	};
 
 	FakeGeofence fake(vertices, 4, NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION);
-	_planner.update_vertices(fake);
+	_planner.update_vertices(fake, 0.f);
 	_planner.update_destination(destination, fake);
 
 	const int num_waypoints = _planner.set_start_and_plan_path_to_destination(start, fake);
@@ -272,7 +272,7 @@ TEST_F(GeofenceAvoidancePlannerTest, StartInsideGeofence)
 	};
 
 	FakeGeofence fake(vertices, 4, NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION);
-	_planner.update_vertices(fake);
+	_planner.update_vertices(fake, 0.f);
 	_planner.update_destination(destination, fake);
 
 	// Vehicle was outside the fence at plan time, so the start is used as an anchor the
@@ -296,7 +296,7 @@ TEST_F(GeofenceAvoidancePlannerTest, NanStartOrDestination)
 	Vector2<double> nan_lon(47.3977, NAN);
 
 	FakeGeofence fake(nullptr, 0, NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
-	_planner.update_vertices(fake);
+	_planner.update_vertices(fake, 0.f);
 
 	auto plan = [&](const Vector2<double> &s, const Vector2<double> &d) {
 		_planner.update_destination(d, fake);
@@ -319,7 +319,7 @@ TEST_F(GeofenceAvoidancePlannerTest, LatLonOutOfBounds)
 	Vector2<double> lon_too_low(47.3977, -181.0);
 
 	FakeGeofence fake(nullptr, 0, NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
-	_planner.update_vertices(fake);
+	_planner.update_vertices(fake, 0.f);
 
 	auto plan = [&](const Vector2<double> &s, const Vector2<double> &d) {
 		_planner.update_destination(d, fake);
@@ -356,7 +356,7 @@ TEST_F(GeofenceAvoidancePlannerTest, DuplicateNeighborVertex)
 	};
 
 	FakeGeofence fake(vertices, 7, NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
-	_planner.update_vertices(fake);
+	_planner.update_vertices(fake, 0.f);
 	_planner.update_destination(destination, fake);
 
 	const int num_waypoints = _planner.set_start_and_plan_path_to_destination(start, fake);

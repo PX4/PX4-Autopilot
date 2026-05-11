@@ -66,7 +66,8 @@ void PlannerPolygons::setNode(int idx, const matrix::Vector2f &p)
 	_y_cm[idx] = metersToCm(p(1));
 }
 
-bool PlannerPolygons::addPolygon(const matrix::Vector2f *vertices_in, int num_vertices, bool is_inclusion_zone)
+bool PlannerPolygons::addPolygon(const matrix::Vector2f *vertices_in, int num_vertices,
+				 bool is_inclusion_zone, float margin)
 {
 	if (num_vertices < 3
 	    || _num_polygons >= kMaxPolygons
@@ -80,14 +81,59 @@ bool PlannerPolygons::addPolygon(const matrix::Vector2f *vertices_in, int num_ve
 	// doesn't already match.
 	const bool reverse = (isPolygonCCW(vertices_in, num_vertices) == is_inclusion_zone);
 
+	// Index into vertices_in in stored order (accounts for possible reversal).
+	auto vertex = [&](int i) -> const matrix::Vector2f & {
+		return vertices_in[reverse ? (num_vertices - 1 - i) : i];
+	};
+
 	PolygonInfo &poly = _polygons[_num_polygons];
-	poly.start_index = _num_nodes;
-	poly.num_vertices = num_vertices;
+	poly.start_index    = _num_nodes;
+	poly.num_vertices   = num_vertices;
 	poly.inside_is_bounded = !is_inclusion_zone;
 
-	for (int i = 0; i < num_vertices; i++) {
-		setNode(poly.start_index + i, vertices_in[reverse ? (num_vertices - 1 - i) : i]);
+	if (margin < -FLT_EPSILON) {
+		// Negative margin makes no sense, would move vertices into illegal region
+		// Zero margin might be desired sometimes
+		return false;
 	}
+
+	// Canonical stored orientation: left normal of each edge points inward for
+	// exclusion (CCW), outward for inclusion (CW) -- flip for inclusion.
+	const float inward_sign = is_inclusion_zone ? -1.f : 1.f;
+
+	for (int i = 0; i < num_vertices; i++) {
+		const int prev = (i + num_vertices - 1) % num_vertices;
+		const int next = (i + 1) % num_vertices;
+
+		const matrix::Vector2f edge_in  = vertex(i) - vertex(prev);
+		const matrix::Vector2f edge_out = vertex(next) - vertex(i);
+
+		const float edge_in_norm = edge_in.norm();
+		const float edge_out_norm = edge_out.norm();
+
+		if (edge_in_norm < FLT_EPSILON || edge_out_norm < FLT_EPSILON) {
+			return false;
+		}
+
+		const matrix::Vector2f edge_in_normalized = edge_in / edge_in_norm;
+		const matrix::Vector2f edge_out_normalized = edge_out / edge_out_norm;
+
+		// Inward normals of the two adjacent edges.
+		const matrix::Vector2f n_in  = inward_sign * matrix::Vector2f{-edge_in_normalized(1), edge_in_normalized(0)};
+		const matrix::Vector2f n_out = inward_sign * matrix::Vector2f{-edge_out_normalized(1), edge_out_normalized(0)};
+
+		matrix::Vector2f bisector = n_in + n_out;
+		const float bisector_len  = bisector.length();
+
+		if (bisector_len < FLT_EPSILON) {
+			return false; // antiparallel edges - polygon doubles back
+		}
+
+		bisector /= bisector_len;
+		// Exclusion: expand outward (against inward bisector). Inclusion: shrink inward (along it).
+		setNode(poly.start_index + i, vertex(i) - inward_sign * margin * bisector);
+	}
+
 
 	_num_nodes += num_vertices;
 	++_num_polygons;
@@ -331,59 +377,6 @@ bool isPolygonCCW(const matrix::Vector2f *vertices, int num_vertices)
 	return signed_area_2x > 0.f;
 }
 
-bool expandOrShrinkPolygon(const matrix::Vector2f *vertices_in, int num_vertices,
-			   float margin, bool expand,
-			   matrix::Vector2f *vertices_out)
-{
-	// Algorithm which shrinks or expands a polygon with given vertices.
-	// It calculates the inward vector at each vertex as the sum of the inward normals of the two adjacent edges
-	// The vertex of the new polygon is then moved by margin along the inward vector, either positively (shrink) or
-	// negatively (expand). The inward vector of an edge can be easily found if the polygon orientation (CW or CCW),
-	// is known. We use the triangle formula to find the polygon orientation.
-
-	if (num_vertices < 3) {
-		return false;
-	}
-
-	// If polygon is CCW we rotate the edge vector to the left to get the inward normal.
-	const float rot_sign = isPolygonCCW(vertices_in, num_vertices) ? 1.f : -1.f;
-
-	// Expand pushes vertices outward, shrink pushes them inward.
-	const float step_sign = expand ? -1.f : 1.f;
-
-	for (int i = 0; i < num_vertices; i++) {
-		const int prev = (i + num_vertices - 1) % num_vertices;
-		const int next = (i + 1) % num_vertices;
-
-		const matrix::Vector2f edge_in  = vertices_in[i] - vertices_in[prev];
-		const matrix::Vector2f edge_out = vertices_in[next] - vertices_in[i];
-
-		if (edge_in.norm() < FLT_EPSILON || edge_out.norm() < FLT_EPSILON) {
-			return false;
-		}
-
-		const matrix::Vector2f edge_in_unit  = edge_in.normalized();
-		const matrix::Vector2f edge_out_unit = edge_out.normalized();
-
-		// Unit inward normals of the two adjacent edges.
-		const matrix::Vector2f n_in {-rot_sign * edge_in_unit(1), rot_sign * edge_in_unit(0)};
-		const matrix::Vector2f n_out{-rot_sign * edge_out_unit(1), rot_sign * edge_out_unit(0)};
-
-		matrix::Vector2f bisector = n_in + n_out;
-		const float bisector_len = bisector.length();
-
-		if (bisector_len < FLT_EPSILON) {
-			// degenerate case, edges are antiparallel
-			return false;
-		}
-
-		bisector.normalize();
-
-		vertices_out[i] = vertices_in[i] + bisector * margin * step_sign;
-	}
-
-	return true;
-}
 
 size_t symmetricPairIndex(size_t i, size_t j, size_t num_nodes)
 {
