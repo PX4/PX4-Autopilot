@@ -216,16 +216,18 @@ public:
 	/// Replace the node at `idx` (used to update the destination slot in place).
 	void setNode(int idx, const matrix::Vector2f &p);
 
-	/// Append a polygon: canonicalize orientation, optionally offset each vertex
-	/// outward (exclusion) or inward (inclusion) by `margin` meters, quantize to
-	/// cm, append as nodes. Returns false on budget overflow, fewer than 3
-	/// vertices, or a degenerate edge/antiparallel corner when margin != 0.
+	/// Append a polygon:
+	///  - canonicalize orientation,
+	///  - optionally offset each vertex outward (exclusion) or inward (inclusion) by `margin` meters
+	///  - quantize to cm, append as nodes.
+	/// Returns false on budget overflow, fewer than 3 vertices, or a
+	/// degenerate edge/antiparallel corner when margin != 0.
 	bool addPolygon(const matrix::Vector2f *vertices_in, int num_vertices,
 			bool is_inclusion_zone, float margin = 0.f);
 
-	/// Append an approximate circle, by discretising into a k-gon. Handles
-	/// shrinking / expanding depending on is_inclusion_zone (pass original
-	/// circle radius).
+	/// Append an approximate circle (k-gon over/underapproximation).
+	///  - shrink/expand according to margin and is_inclusion_zone
+	///  - quantize to cm, append as nodes.
 	bool addApproxCircle(const matrix::Vector2f &center, const float radius, float margin, const int num_vertices,
 			     const bool is_inclusion_zone);
 
@@ -243,7 +245,7 @@ private:
 	struct PolygonInfo {
 		int start_index;
 		int num_vertices;
-		bool inside_is_bounded;
+		bool is_inclusion;
 	};
 
 	int32_t _x_cm[kMaxNodes];
