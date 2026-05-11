@@ -10,6 +10,19 @@ parameters:
     - group: Sensors
       definitions:
 
+        VN_PORT:
+            description:
+                short: VectorNav output port
+                long: |
+                    Selects which serial port the sensor streams output to.
+            category: System
+            type: enum
+            values:
+                1: Port 1
+                2: Port 2
+            default: 2
+            reboot_required: true
+
         VN_MODE:
             description:
                 short: VectorNav driver mode
@@ -20,3 +33,20 @@ parameters:
                 0: Sensors Only (default)
                 1: INS
             default: 0
+
+        VN_IMU_RATE:
+            description:
+                short: VectorNav IMU output rate
+                long: |
+                    Rate of the IMU output.
+                    The VectorNav base rate is 800 Hz. This parameter sets the
+                    divider, so the effective rate is 800 / divider.
+            category: System
+            type: enum
+            values:
+                1: 800 Hz
+                2: 400 Hz
+                4: 200 Hz
+                8: 100 Hz
+            default: 1
+            reboot_required: true
