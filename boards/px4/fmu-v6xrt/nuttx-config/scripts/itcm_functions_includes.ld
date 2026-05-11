@@ -515,7 +515,7 @@
 *(.text._ZN20MavlinkStreamESCInfo8get_sizeEv)
 *(.text._ZNK6matrix6VectorIfLj2EE4normEv)
 *(.text._Z15arm_auth_updateyb)
-*(.text._ZN3LED5ioctlEP4fileim)
+*(.text._ZN3LED5ioctlEP4fileij)
 *(.text._ZNK3px46logger9LogWriter20had_file_write_errorEv)
 *(.text._ZN29MavlinkStreamLocalPositionNED4sendEv)
 *(.text._ZNK6matrix6VectorIfLj3EE3dotERKNS_6MatrixIfLj3ELj1EEE)
