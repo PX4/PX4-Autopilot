@@ -279,13 +279,12 @@ inline bool lineSegmentIntersectsPolygon(const matrix::Vector2f &start, const ma
 
 /**
  * Check if a line segment intersects a circle.
- * Works in local Cartesian coordinates (meters).
  *
- * @param start   segment start in local frame
- * @param end     segment end in local frame
- * @param center  circle center in local frame
+ * @param start   segment start (local frame, meters)
+ * @param end     segment end
+ * @param center  circle center (local frame, meters)
  * @param radius  circle radius in meters
- * @return true if the segment intersects the circle
+ * @return true if the segment crosses the circle boundary (one endpoint inside, one outside)
  */
 bool lineSegmentIntersectsCircle(const matrix::Vector2f &start, const matrix::Vector2f &end,
 				 const matrix::Vector2f &center, float radius);

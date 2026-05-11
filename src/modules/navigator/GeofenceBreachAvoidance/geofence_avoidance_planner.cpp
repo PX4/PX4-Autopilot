@@ -124,7 +124,6 @@ bool GeofenceAvoidancePlanner::update_graph_nodes_without_start_and_destination(
 	const int num_polygons = geofence.getNumPolygons();
 
 	_polygons.reset();
-	_num_circles = 0;
 
 	for (int poly_index = 0; poly_index < num_polygons; poly_index++) {
 
@@ -146,10 +145,6 @@ bool GeofenceAvoidancePlanner::update_graph_nodes_without_start_and_destination(
 
 		} else if (info.fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION || info.fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION) {
 
-			if (_num_circles >= kMaxCircles) {
-				return false;
-			}
-
 			const matrix::Vector2f center = get_vertex_local_position(poly_index, 0, geofence, _reference);
 
 			if (!_polygons.addApproxCircle(center, info.circle_radius, margin, kCircleApproxVertices, is_inclusion)) {
@@ -170,33 +165,12 @@ bool GeofenceAvoidancePlanner::update_graph_nodes_without_start_and_destination(
 
 bool GeofenceAvoidancePlanner::lineViolatesAnyCachedFenceBetweenNodes(int a, int b) const
 {
-	if (_polygons.isLineBetweenNodesIntersectingAnyInside(a, b)) { return true; }
-
-	const matrix::Vector2f start = _polygons.node(a);
-	const matrix::Vector2f end = _polygons.node(b);
-
-	for (int i = 0; i < _num_circles; i++) {
-		if (geofence_utils::lineSegmentIntersectsCircle(start, end, _circles[i].center, _circles[i].radius)) {
-			return true;
-		}
-	}
-
-	return false;
+	return _polygons.isLineBetweenNodesIntersectingAnyInside(a, b);
 }
 
 bool GeofenceAvoidancePlanner::lineViolatesAnyCachedFenceFromPoint(const matrix::Vector2f &p, int node_idx) const
 {
-	if (_polygons.isLineFromPointToNodeIntersectingAnyInside(p, node_idx)) { return true; }
-
-	const matrix::Vector2f end = _polygons.node(node_idx);
-
-	for (int i = 0; i < _num_circles; i++) {
-		if (geofence_utils::lineSegmentIntersectsCircle(p, end, _circles[i].center, _circles[i].radius)) {
-			return true;
-		}
-	}
-
-	return false;
+	return _polygons.isLineFromPointToNodeIntersectingAnyInside(p, node_idx);
 }
 
 void GeofenceAvoidancePlanner::update_distances_between_vertices()

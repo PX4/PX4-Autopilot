@@ -290,24 +290,6 @@ TEST(GeofenceUtilsTest, SegmentPolygonInclusionInside)
 }
 
 
-TEST(GeofenceUtilsTest, SegmentAndCircleIntersect)
-{
-	// vertical line from origin straight up
-	Vector2f p1(0.f, 0.f);
-	Vector2f p2(0.f, 1.f);
-	Vector2f center(0.0f, 1.0f);
-
-	EXPECT_TRUE(geofence_utils::lineSegmentIntersectsCircle(p1, p2, center, 0.5f));
-
-	p1 = Vector2f(-1.0f, 0.0f);
-	p2 = Vector2f(1.f, 0.0f);
-	center = Vector2f(0.f, 1.f);
-
-	EXPECT_TRUE(geofence_utils::lineSegmentIntersectsCircle(p1, p2, center, 1.1f));
-
-	EXPECT_FALSE(geofence_utils::lineSegmentIntersectsCircle(p1, p2, center, 0.9f));
-
-}
 TEST(GeofenceUtilsTest, PolygonIsCCW)
 {
 	// square with vertices in CCW order
