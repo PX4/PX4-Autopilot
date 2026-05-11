@@ -116,9 +116,6 @@ bool PlannerPolygons::pointInsideInteriorCone(const PolygonInfo &poly,
 bool PlannerPolygons::intersectsInsideOf(const PolygonInfo &poly,
 		int32_t s_x, int32_t s_y, int32_t e_x, int32_t e_y) const
 {
-	const int32_t mid_x = (s_x + e_x) / 2;
-	const int32_t mid_y = (s_y + e_y) / 2;
-
 	// Single pass over polygon edges, doing two jobs at once:
 	//   (1) classify the test segment vs each polygon edge -- early-return on
 	//       a proper crossing, wedge-check polygon vertices that sit strictly
@@ -128,6 +125,9 @@ bool PlannerPolygons::intersectsInsideOf(const PolygonInfo &poly,
 	//       case as Inside or Outside.
 	int wn = 0;
 	bool mid_on_boundary = false;
+
+	const int32_t twice_mid_x = s_x + e_x;
+	const int32_t twice_mid_y = s_y + e_y;
 
 	for (int i = 0; i < poly.num_vertices; i++) {
 		const int prev_idx = poly.start_index + ((i == 0) ? poly.num_vertices - 1 : i - 1);
@@ -141,6 +141,7 @@ bool PlannerPolygons::intersectsInsideOf(const PolygonInfo &poly,
 			return true;
 
 		case SegSegResult::BInsideCD:
+
 			// polygon vertex `b` strictly on the open test segment -- a graze
 			// unless the wedge classifies the two endpoints differently
 			if (pointInsideInteriorCone(poly, s_x, s_y, i) !=
@@ -155,15 +156,22 @@ bool PlannerPolygons::intersectsInsideOf(const PolygonInfo &poly,
 		}
 
 		// (2) midpoint winding contribution (Sunday)
-		const int side = orient2d(ax, ay, bx, by, mid_x, mid_y);
 
-		if (side == 0 && collinearBetween(ax, ay, bx, by, mid_x, mid_y)) {
+		// Rather than calculating the midpoint (mid = (s + e)/2)
+		// explicitly, which will lead to rounding error for uneven
+		// numbers, we instead scale all other inputs by two, reducing
+		// the range by a factor of two (2^31 cm = 21400 km -> 2^30 cm =
+		// 10700 km)
+
+		const int side = orient2d(2 * ax, 2 * ay, 2 * bx, 2 * by, twice_mid_x, twice_mid_y);
+
+		if (side == 0 && collinearBetween(2 * ax, 2 * ay, 2 * bx, 2 * by, twice_mid_x, twice_mid_y)) {
 			mid_on_boundary = true;
 
-		} else if (ay <= mid_y) {
-			if (by > mid_y && side > 0) { wn++; }
+		} else if (2 * ay <= twice_mid_y) {
+			if (2 * by > twice_mid_y && side > 0) { wn++; }
 
-		} else if (by <= mid_y && side < 0) { wn--; }
+		} else if (2 * by <= twice_mid_y && side < 0) { wn--; }
 	}
 
 	// Midpoint on the boundary: segment runs along it; non-violating in either zone.
