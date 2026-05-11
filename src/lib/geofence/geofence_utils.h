@@ -76,16 +76,6 @@ void insidePolygonUpdateState(bool &last_state,
 	}
 }
 
-/**
- * Check if a point is inside a circle.
- *
- * @param center  circle center (lat, lon) in degrees
- * @param radius  circle radius in meters
- * @param point   test point (lat, lon) in degrees
- * @return true if the point is inside the circle
- */
-bool insideCircle(const matrix::Vector2<double> &center, float radius,
-		  const matrix::Vector2<double> &point);
 
 /**
  * Sign of the signed area of triangle abc -- the fundamental 2D orientation

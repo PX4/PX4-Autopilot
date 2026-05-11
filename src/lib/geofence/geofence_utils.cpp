@@ -45,12 +45,6 @@ int32_t metersToCm(float m) { return static_cast<int32_t>(std::llroundf(m * 100.
 
 } // namespace
 
-bool insideCircle(const matrix::Vector2<double> &center, float radius,
-		  const matrix::Vector2<double> &point)
-{
-	float dist = get_distance_to_next_waypoint(point(0), point(1), center(0), center(1));
-	return dist < radius;
-}
 
 int PlannerPolygons::addNode(const matrix::Vector2f &p)
 {
