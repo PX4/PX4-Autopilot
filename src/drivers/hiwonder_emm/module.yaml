@@ -16,8 +16,8 @@ parameters:
     definitions:
       HIWONDER_EMM_EN:
         description:
-          short: Enable the Hiwonder EMM output driver
+          short: Enable the Hiwonder Encoder Motor Module (EMM) motor driver.
           long: |
-            Enable the Hiwonder EMM output driver.
+            Enable the Hiwonder Encoder Motor Module (EMM) motor driver.
         type: boolean
         default: 0
