@@ -50,11 +50,27 @@
 # define UXRCE_DDS_CLIENT_UDP 1
 #endif
 
+// Micro-XRCE-DDS-Client's Windows platform has no serial transport — its
+// CMakeLists forces UCLIENT_PROFILE_SERIAL OFF under UCLIENT_PLATFORM_WINDOWS,
+// so the `uxrSerialTransport` type simply isn't emitted. Gate PX4's
+// serial wiring on the same build-time knob so the whole module keeps
+// compiling on Windows while serial stays available on NuttX/Linux.
+#if !defined(__PX4_WINDOWS)
+# define UXRCE_DDS_CLIENT_SERIAL 1
+#endif
+
 #include "srv_base.h"
 
 #define MAX_NUM_REPLIERS 5
 #define STREAM_HISTORY  4
-#define BUFFER_SIZE (UXR_CONFIG_SERIAL_TRANSPORT_MTU * STREAM_HISTORY) // MTU==512 by default
+// Pick the largest MTU across the profiles enabled for this build. The
+// serial transport's MTU is the historical cap, so on platforms where
+// serial is compiled out (Windows) we fall back to the UDP MTU.
+#if defined(UXRCE_DDS_CLIENT_SERIAL)
+# define BUFFER_SIZE (UXR_CONFIG_SERIAL_TRANSPORT_MTU * STREAM_HISTORY)
+#else
+# define BUFFER_SIZE (UXR_CONFIG_UDP_TRANSPORT_MTU * STREAM_HISTORY)
+#endif
 
 class UxrceddsClient : public ModuleBase, public ModuleParams
 {
@@ -144,7 +160,9 @@ private:
 
 	Transport _transport{};
 
-	uxrSerialTransport *_transport_serial{nullptr};
+#if defined(UXRCE_DDS_CLIENT_SERIAL)
+	uxrSerialTransport *_transport_serial {nullptr};
+#endif
 	char _device[32] {};
 	int _baudrate{};
 

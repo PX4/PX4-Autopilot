@@ -3411,7 +3411,7 @@ MavlinkReceiver::run()
 
 			else if (_mavlink.get_protocol() == Protocol::UDP) {
 				if (fds[0].revents & POLLIN) {
-					nread = recvfrom(_mavlink.get_socket_fd(), buf, sizeof(buf), 0, (struct sockaddr *)&srcaddr, &addrlen);
+					nread = recvfrom(_mavlink.get_socket_fd(), (char *)buf, sizeof(buf), 0, (struct sockaddr *)&srcaddr, &addrlen);
 				}
 
 				struct sockaddr_in &srcaddr_last = _mavlink.get_client_source_address();
@@ -3678,13 +3678,13 @@ void MavlinkReceiver::print_detailed_rx_stats() const
 {
 	// TODO: add mutex around shared data.
 	if (_component_states_count > 0) {
-		printf("\tReceived Messages:\n");
+		PX4_INFO_RAW("\tReceived Messages:\n");
 
 		for (const auto &comp_stat : _component_states) {
 			if (comp_stat.received_messages > 0) {
-				printf("\t  sysid:%3" PRIu8 ", compid:%3" PRIu8 ", Total: %" PRIu32 " (lost: %" PRIu32 ")\n",
-				       comp_stat.system_id, comp_stat.component_id,
-				       comp_stat.received_messages, comp_stat.missed_messages);
+				PX4_INFO_RAW("\t  sysid:%3" PRIu8 ", compid:%3" PRIu8 ", Total: %" PRIu32 " (lost: %" PRIu32 ")\n",
+					     comp_stat.system_id, comp_stat.component_id,
+					     comp_stat.received_messages, comp_stat.missed_messages);
 
 #if !defined(CONSTRAINED_FLASH)
 
@@ -3702,8 +3702,8 @@ void MavlinkReceiver::print_detailed_rx_stats() const
 
 							const float elapsed_s = (now_ms - msg_stat.last_time_received_ms) / 1000.f;
 
-							printf("\t    msgid:%5" PRIu16 ", Rate:%5.1f Hz, last %.2fs ago\n",
-							       msg_stat.msg_id, (double)msg_stat.avg_rate_hz, (double)elapsed_s);
+							PX4_INFO_RAW("\t    msgid:%5" PRIu16 ", Rate:%5.1f Hz, last %.2fs ago\n",
+								     msg_stat.msg_id, (double)msg_stat.avg_rate_hz, (double)elapsed_s);
 						}
 					}
 				}

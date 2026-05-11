@@ -46,7 +46,14 @@
 #endif
 #define PX4LOG_REGULAR_FILE    DT_REG
 #define PX4LOG_DIRECTORY       DT_DIR
+// Windows (MinGW) sets PATH_MAX to MAX_PATH=260. Use the larger of the
+// platform PATH_MAX and 1024 so the buffer always fits the 1023-char
+// scanf conversion target that the logger expects.
+#if defined(__PX4_WINDOWS) && PATH_MAX < 1024
+#define PX4_MAX_FILEPATH       1024
+#else
 #define PX4_MAX_FILEPATH       PATH_MAX
+#endif
 #define PX4_MAX_FILEPATH_SCANF 1023
 #endif
 

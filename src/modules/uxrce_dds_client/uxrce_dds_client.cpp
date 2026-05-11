@@ -65,7 +65,7 @@ static void configure_udp_socket_nonblocking(int fd)
 	// Prevent deadlocks in send() under RX buffer starvation by making the socket non-blocking.
 	int nonblock = 1;
 
-	if (ioctl(fd, FIONBIO, (unsigned long)&nonblock) != OK) {
+	if (ioctl(fd, FIONBIO, &nonblock) != OK) {
 		PX4_WARN("failed to set non-blocking (%i)", errno);
 	}
 }
@@ -133,6 +133,7 @@ bool UxrceddsClient::init()
 	deinit();
 
 	if (_transport == Transport::Serial) {
+#if defined(UXRCE_DDS_CLIENT_SERIAL)
 		int fd = open(_device, O_RDWR | O_NOCTTY | O_NONBLOCK);
 
 		if (fd < 0) {
@@ -165,6 +166,10 @@ bool UxrceddsClient::init()
 		_transport_serial = nullptr;
 
 		return false;
+#else
+		PX4_ERR("serial transport not supported on this platform");
+		return false;
+#endif // UXRCE_DDS_CLIENT_SERIAL
 	}
 
 #if defined(UXRCE_DDS_CLIENT_UDP)
@@ -185,6 +190,14 @@ bool UxrceddsClient::init()
 
 		} else {
 			PX4_ERR("init UDP agent IP:%s, port:%s failed", _agent_ip, _port);
+
+			// Symmetric with the serial path above: free the half-initialised
+			// transport here rather than leaving it dangling for the next
+			// init() call to clean up. uxr_init_udp_platform() now releases
+			// its socket / WSAStartup ref on its own failure paths, so
+			// dropping the C++ wrapper here does not leak Winsock state.
+			delete _transport_udp;
+			_transport_udp = nullptr;
 		}
 	}
 
@@ -195,11 +208,15 @@ bool UxrceddsClient::init()
 
 void UxrceddsClient::deinit()
 {
+#if defined(UXRCE_DDS_CLIENT_SERIAL)
+
 	if (_transport_serial) {
 		uxr_close_serial_transport(_transport_serial);
 		delete _transport_serial;
 		_transport_serial = nullptr;
 	}
+
+#endif // UXRCE_DDS_CLIENT_SERIAL
 
 #if defined(UXRCE_DDS_CLIENT_UDP)
 
@@ -417,10 +434,14 @@ UxrceddsClient::~UxrceddsClient()
 
 	delete_repliers();
 
+#if defined(UXRCE_DDS_CLIENT_SERIAL)
+
 	if (_transport_serial) {
 		uxr_close_serial_transport(_transport_serial);
 		delete _transport_serial;
 	}
+
+#endif // UXRCE_DDS_CLIENT_SERIAL
 
 	perf_free(_loop_perf);
 	perf_free(_loop_interval_perf);
@@ -710,7 +731,7 @@ void UxrceddsClient::run()
 				int fd_bytes_available = 0;
 
 				if ((_fd < 0)
-				    || (ioctl(_fd, FIONREAD, (unsigned long)&fd_bytes_available) != OK)
+				    || (ioctl(_fd, FIONREAD, &fd_bytes_available) != OK)
 				    || (fd_bytes_available <= 0)) {
 					break;
 				}
@@ -1000,9 +1021,13 @@ int UxrceddsClient::print_status()
 
 #endif
 
+#if defined(UXRCE_DDS_CLIENT_SERIAL)
+
 	if (_transport_serial != nullptr) {
 		PX4_INFO("Using transport:     serial");
 	}
+
+#endif // UXRCE_DDS_CLIENT_SERIAL
 
 	if (_connected) {
 		PX4_INFO("Payload tx:          %i B/s", _last_payload_tx_rate);

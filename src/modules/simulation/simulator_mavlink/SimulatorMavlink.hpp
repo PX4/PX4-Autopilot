@@ -87,9 +87,9 @@ using namespace time_literals;
 
 //! Enumeration to use on the bitmask in HIL_SENSOR
 enum class SensorSource {
-	ACCEL		= 0b111,
-	GYRO		= 0b111000,
-	MAG		= 0b111000000,
+	ACCEL_XYZ	= 0b111,
+	GYRO_XYZ	= 0b111000,
+	MAG_XYZ		= 0b111000000,
 	BARO		= 0b1101000000000,
 	DIFF_PRESS	= 0b10000000000
 };
