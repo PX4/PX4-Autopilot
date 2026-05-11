@@ -78,3 +78,6 @@ param set-default SIM_GZ_SV_FUNC3 203
 param set-default SIM_GZ_SV_FUNC4 204
 param set-default SIM_GZ_SV_FUNC5 205
 param set-default SIM_GZ_SV_FUNC6 206
+
+# Start simulated magnetometer
+param set-default SENS_EN_MAGSIM 1
