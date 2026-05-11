@@ -1,0 +1,97 @@
+#!/bin/sh
+#
+# @name Gazebo racer
+#
+# @type Quadrotor
+#
+
+. ${R}etc/init.d/rc.mc_defaults
+
+PX4_SIMULATOR=${PX4_SIMULATOR:=gz}
+PX4_GZ_WORLD=${PX4_GZ_WORLD:=default}
+PX4_SIM_MODEL=${PX4_SIM_MODEL:=racer}
+
+param set-default SIM_GZ_EN 1
+
+param set-default SENS_EN_GPSSIM 1
+param set-default SENS_EN_BAROSIM 0
+param set-default SENS_EN_MAGSIM 1
+
+param set-default CA_AIRFRAME 0
+param set-default CA_ROTOR_COUNT 4
+
+# Motor positions: 280mm diagonal, XY offset 0.099m
+# Gazebo Y-left → PX4 Y-right (sign flip)
+param set-default CA_ROTOR0_PX 0.099
+param set-default CA_ROTOR0_PY 0.099
+param set-default CA_ROTOR0_KM  0.05
+
+param set-default CA_ROTOR1_PX -0.099
+param set-default CA_ROTOR1_PY -0.099
+param set-default CA_ROTOR1_KM  0.05
+
+param set-default CA_ROTOR2_PX 0.099
+param set-default CA_ROTOR2_PY -0.099
+param set-default CA_ROTOR2_KM -0.05
+
+param set-default CA_ROTOR3_PX -0.099
+param set-default CA_ROTOR3_PY 0.099
+param set-default CA_ROTOR3_KM -0.05
+
+param set-default SIM_GZ_EC_FUNC1 101
+param set-default SIM_GZ_EC_FUNC2 102
+param set-default SIM_GZ_EC_FUNC3 103
+param set-default SIM_GZ_EC_FUNC4 104
+
+param set-default SIM_GZ_EC_MIN1 150
+param set-default SIM_GZ_EC_MIN2 150
+param set-default SIM_GZ_EC_MIN3 150
+param set-default SIM_GZ_EC_MIN4 150
+
+param set-default SIM_GZ_EC_MAX1 1000
+param set-default SIM_GZ_EC_MAX2 1000
+param set-default SIM_GZ_EC_MAX3 1000
+param set-default SIM_GZ_EC_MAX4 1000
+
+# T:W = 3:1, hover throttle = sqrt(1/3) = 0.577
+param set-default MPC_THR_HOVER 0.577
+param set-default NAV_DLL_ACT 2
+
+param set-default FD_FAIL_P 0
+param set-default FD_FAIL_R 0
+param set-default MPC_XY_VEL_MAX 50.0
+param set-default MPC_XY_VEL_ALL 20.0
+param set-default MPC_Z_VEL_ALL 10.0
+
+
+# Roll rate PID
+param set-default MC_ROLLRATE_P	0.13
+param set-default MC_ROLLRATE_I	0.20
+param set-default MC_ROLLRATE_D	0.003
+param set-default MC_ROLLRATE_K	1.0
+
+# Pitch rate PID
+param set-default MC_PITCHRATE_P	0.13
+param set-default MC_PITCHRATE_I	0.20
+param set-default MC_PITCHRATE_D	0.003
+param set-default MC_PITCHRATE_K	1.0
+
+# Yaw rate PID
+param set-default MC_YAWRATE_P	0.18
+param set-default MC_YAWRATE_I	0.15
+param set-default MC_YAWRATE_D	0.0
+param set-default MC_YAWRATE_K	1.0
+
+# Rate limits (deg/s)
+#MC_ROLLRATE_MAX	720.0
+#MC_PITCHRATE_MAX	720.0
+#MC_YAWRATE_MAX	400.0
+
+# ---- Attitude Controller (outer loop) ----
+
+param set-default MC_ROLL_P	7.0
+param set-default MC_PITCH_P	7.0
+param set-default MC_YAW_P	3.5
+
+# Hover throttle (derived: omega_hover=500, omega_max=1000 → 0.50)
+param set-default MPC_THR_HOVER	0.50
