@@ -45,7 +45,7 @@ jobs:
 
     - name: Install gazebo
       run: |
-        apt update && apt install -y gazebo11 libgazebo11-dev gstreamer1.0-plugins-bad gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly libgstreamer-plugins-base1.0-dev
+        apt update && apt install -y bc gazebo11 libgazebo11-dev gstreamer1.0-plugins-bad gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly libgstreamer-plugins-base1.0-dev
 
     - uses: ./.github/actions/setup-ccache
       id: ccache
