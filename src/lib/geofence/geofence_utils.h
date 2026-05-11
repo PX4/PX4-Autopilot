@@ -183,19 +183,6 @@ inline SegSegResult segmentsIntersect(int32_t ax, int32_t ay, int32_t bx, int32_
  */
 bool isPolygonCCW(const matrix::Vector2f *vertices, int num_vertices);
 
-/**
- * Offset polygon vertices outward (expand) or inward (shrink) by `margin`.
- *
- * Determines winding direction once via the shoelace formula, then at each vertex
- * averages the inward normals of the two adjacent edges to get the bisector.
- * O(n) overall. Works in local frame (meters).
- *
- * Returns false for degenerate polygons: fewer than 3 vertices, zero-length edges,
- * or antiparallel adjacent edges (polygon doubles back).
- */
-bool expandOrShrinkPolygon(const matrix::Vector2f *vertices_in, int num_vertices,
-			   float margin, bool expand,
-			   matrix::Vector2f *vertices_out);
 
 /**
  * Read-only fence cache. Owns a flat int32-cm node buffer that holds every
@@ -229,10 +216,12 @@ public:
 	/// Replace the node at `idx` (used to update the destination slot in place).
 	void setNode(int idx, const matrix::Vector2f &p);
 
-	/// Append a polygon: canonicalize orientation, quantize to cm, append
-	/// vertices as nodes. Returns false on budget overflow or
-	/// fewer-than-3-vertex input.
-	bool addPolygon(const matrix::Vector2f *vertices_in, int num_vertices, bool is_inclusion_zone);
+	/// Append a polygon: canonicalize orientation, optionally offset each vertex
+	/// outward (exclusion) or inward (inclusion) by `margin` meters, quantize to
+	/// cm, append as nodes. Returns false on budget overflow, fewer than 3
+	/// vertices, or a degenerate edge/antiparallel corner when margin != 0.
+	bool addPolygon(const matrix::Vector2f *vertices_in, int num_vertices,
+			bool is_inclusion_zone, float margin = 0.f);
 
 	/// Append an approximate circle, by discretising into a k-gon. Handles
 	/// shrinking / expanding depending on is_inclusion_zone (pass original

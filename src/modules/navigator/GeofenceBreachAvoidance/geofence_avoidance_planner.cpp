@@ -140,19 +140,7 @@ bool GeofenceAvoidancePlanner::update_graph_nodes_without_start_and_destination(
 				local_in[vertex_idx] = get_vertex_local_position(poly_index, vertex_idx, geofence, _reference);
 			}
 
-			// Cached polygon for line-violation queries: stores the ACTUAL
-			// fence boundary (no margin). Graph-node positions below get
-			// margin-offset separately so paths between them legitimately
-			// run through the safety band without being flagged as violations.
-			if (!_polygons.addPolygon(local_in, info.vertex_count, is_inclusion)) {
-				return false;
-			}
-
-			matrix::Vector2f local_out[info.vertex_count];
-			const bool should_expand = !is_inclusion;
-
-			if (!geofence_utils::expandOrShrinkPolygon(local_in, info.vertex_count, margin, should_expand,
-					local_out)) {
+			if (!_polygons.addPolygon(local_in, info.vertex_count, is_inclusion, margin)) {
 				return false;
 			}
 
@@ -166,7 +154,7 @@ bool GeofenceAvoidancePlanner::update_graph_nodes_without_start_and_destination(
 
 			const bool is_inclusion = info.fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION;
 
-			if (!_polygons.addApproxCircle(center, info.circle_radius, kCircleApproxVertices, is_inclusion)) {
+			if (!_polygons.addApproxCircle(center, info.circle_radius, margin, kCircleApproxVertices, is_inclusion)) {
 				return false;
 			}
 
