@@ -130,9 +130,9 @@ bool GeofenceAvoidancePlanner::update_graph_nodes_without_start_and_destination(
 
 		PolygonInfo info = geofence.getPolygonInfoByIndex(poly_index);
 
-		if (info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION || info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION) {
+		const bool is_inclusion = (info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
 
-			const bool is_inclusion = (info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
+		if (info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION || info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION) {
 
 			matrix::Vector2f local_in[info.vertex_count];
 
@@ -152,12 +152,9 @@ bool GeofenceAvoidancePlanner::update_graph_nodes_without_start_and_destination(
 
 			const matrix::Vector2f center = get_vertex_local_position(poly_index, 0, geofence, _reference);
 
-			const bool is_inclusion = info.fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION;
-
 			if (!_polygons.addApproxCircle(center, info.circle_radius, margin, kCircleApproxVertices, is_inclusion)) {
 				return false;
 			}
-
 		}
 	}
 

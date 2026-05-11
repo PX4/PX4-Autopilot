@@ -89,7 +89,7 @@ bool PlannerPolygons::addPolygon(const matrix::Vector2f *vertices_in, int num_ve
 	PolygonInfo &poly = _polygons[_num_polygons];
 	poly.start_index    = _num_nodes;
 	poly.num_vertices   = num_vertices;
-	poly.inside_is_bounded = !is_inclusion_zone;
+	poly.is_inclusion = is_inclusion_zone;
 
 	if (margin < -FLT_EPSILON) {
 		// Negative margin makes no sense, would move vertices into illegal region
@@ -176,7 +176,7 @@ bool PlannerPolygons::addApproxCircle(const matrix::Vector2f &center, const floa
 	PolygonInfo &poly = _polygons[_num_polygons];
 	poly.start_index = _num_nodes;
 	poly.num_vertices = num_vertices;
-	poly.inside_is_bounded = !is_inclusion_zone;
+	poly.is_inclusion = is_inclusion_zone;
 
 	for (int i = 0; i < num_vertices; i++) {
 		const float angle = i * delta_angle;
@@ -239,7 +239,7 @@ bool PlannerPolygons::intersectsInsideOf(const PolygonInfo &poly,
 	//       a proper crossing, wedge-check polygon vertices that sit strictly
 	//       on the open test segment;
 	//   (2) accumulate Sunday's winding-number contribution for the midpoint,
-	//       used (with poly.inside_is_bounded) to classify the no-crossing
+	//       used (with poly.is_inclusion) to classify the no-crossing
 	//       case as Inside or Outside.
 	int wn = 0;
 	bool mid_on_boundary = false;
@@ -303,7 +303,8 @@ bool PlannerPolygons::intersectsInsideOf(const PolygonInfo &poly,
 	// wn != 0 means the midpoint is in the bounded region. The only place
 	// orientation polarity surfaces.
 	const bool bounded = (wn != 0);
-	return bounded == poly.inside_is_bounded;
+	// Exclusion: violation when midpoint is inside (bounded). Inclusion: when outside (unbounded).
+	return bounded != poly.is_inclusion;
 }
 
 bool PlannerPolygons::intersectsAnyInside(int32_t s_x, int32_t s_y, int32_t e_x, int32_t e_y) const
