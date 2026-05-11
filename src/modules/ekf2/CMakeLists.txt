@@ -244,12 +244,19 @@ endif ()
 
 add_subdirectory(EKF)
 
+set(ekf2_compile_flags ${MAX_CUSTOM_OPT_LEVEL})
+
+if(MSVC)
+	list(APPEND ekf2_compile_flags /fp:precise)
+else()
+	list(APPEND ekf2_compile_flags -fno-associative-math)
+endif()
+
 px4_add_module(
 	MODULE modules__ekf2
 	MAIN ekf2
 	COMPILE_FLAGS
-		${MAX_CUSTOM_OPT_LEVEL}
-		-fno-associative-math
+		${ekf2_compile_flags}
 		#-DDEBUG_BUILD
 		#-O0
 	INCLUDES

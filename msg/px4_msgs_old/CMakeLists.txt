@@ -6,6 +6,8 @@ list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 	add_compile_options(-Wall -Wextra)
+elseif(MSVC)
+	add_compile_options(/W4)
 endif()
 
 find_package(ament_cmake REQUIRED)

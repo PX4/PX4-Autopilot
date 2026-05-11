@@ -42,10 +42,14 @@ endif()
 # CMSIS DSP contains ARM Cortex-M assembly that triggers clang warnings on 64-bit ARM.
 # This code is unused on POSIX platforms - only the C fallback implementations run.
 if(${PX4_PLATFORM} MATCHES "posix" AND ${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "arm64|aarch64")
-	add_compile_options(-Wno-asm-operand-widths)
+	px4_add_compile_options_for_compiler(
+		GNU_LIKE -Wno-asm-operand-widths
+	)
 endif()
 
-add_compile_options($<$<COMPILE_LANGUAGE:C>:-Wno-nested-externs>)
+px4_add_c_compile_options_for_compiler(
+	GNU_LIKE -Wno-nested-externs
+)
 
 px4_add_module(
 	MODULE modules__gyro_fft

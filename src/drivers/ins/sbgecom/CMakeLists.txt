@@ -51,16 +51,16 @@ add_dependencies(sbgECom prebuild_targets)
 # If you add a flag here, it should address a warning emitted by vendor
 # code only. Warnings triggered in PX4-authored code must be fixed at
 # the source, not silenced here.
-target_compile_options(sbgECom
-        PRIVATE
-        -Wno-format
-        -Wno-format-security
-        -Wno-bad-function-cast
-        -Wno-double-promotion
-        -Wno-type-limits
-        -Wno-maybe-uninitialized
-        -Wno-float-equal
-        -Wno-logical-op
+px4_target_compile_options_for_compiler(sbgECom PRIVATE
+	GNU_LIKE
+		-Wno-format
+		-Wno-format-security
+		-Wno-bad-function-cast
+		-Wno-double-promotion
+		-Wno-type-limits
+		-Wno-maybe-uninitialized
+		-Wno-float-equal
+		-Wno-logical-op
 )
 
 # -Wno-typedef-redefinition is Clang-only. GCC rejects unrecognized

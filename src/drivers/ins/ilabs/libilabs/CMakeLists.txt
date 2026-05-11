@@ -38,9 +38,8 @@ set(SOURCES
 )
 
 add_library(${LIBRARY_NAME} ${SOURCES})
-target_compile_options(${LIBRARY_NAME}
-	PRIVATE
-		-Wno-unused-function
+px4_target_compile_options_for_compiler(${LIBRARY_NAME} PRIVATE
+	GNU_LIKE -Wno-unused-function
 )
 
 target_include_directories(${LIBRARY_NAME} PUBLIC

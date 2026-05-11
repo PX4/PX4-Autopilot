@@ -31,13 +31,21 @@
 #
 ############################################################################
 
+set(simulator_mavlink_compile_flags)
+
+if(NOT MSVC)
+	list(APPEND simulator_mavlink_compile_flags
+		-Wno-double-promotion
+		-Wno-cast-align
+		-Wno-address-of-packed-member # TODO: fix in c_library_v2
+	)
+endif()
+
 px4_add_module(
 	MODULE modules__simulation__simulator_mavlink
 	MAIN simulator_mavlink
 	COMPILE_FLAGS
-		-Wno-double-promotion
-		-Wno-cast-align
-		-Wno-address-of-packed-member # TODO: fix in c_library_v2
+		${simulator_mavlink_compile_flags}
 	INCLUDES
 		${CMAKE_BINARY_DIR}/mavlink
 		${CMAKE_BINARY_DIR}/mavlink/${CONFIG_MAVLINK_DIALECT}

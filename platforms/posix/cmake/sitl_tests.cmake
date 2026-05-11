@@ -30,7 +30,7 @@ foreach(test_name ${tests})
 	configure_file(${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_template.in ${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_${test_name}_generated)
 
 	add_test(NAME ${test_name_prefix}
-		COMMAND $<TARGET_FILE:px4>
+		COMMAND px4
 			-s ${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_${test_name}_generated
 			-t ${PX4_SOURCE_DIR}/test_data
 			${PX4_SOURCE_DIR}/ROMFS/px4fmu_test
@@ -57,7 +57,7 @@ foreach(test_name ${cmd_tests})
 	configure_file(${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_cmd_template.in ${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_${test_name}_generated)
 
 	add_test(NAME ${test_name_prefix}
-		COMMAND $<TARGET_FILE:px4>
+		COMMAND px4
 			-s ${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_${test_name}_generated
 			-t ${PX4_SOURCE_DIR}/test_data
 			${PX4_SOURCE_DIR}/ROMFS/px4fmu_test
@@ -74,7 +74,7 @@ endforeach()
 
 # IMU filtering
 add_test(NAME sitl-imu_filtering
-	COMMAND $<TARGET_FILE:px4>
+	COMMAND px4
 		-s ${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_imu_filtering
 		-t ${PX4_SOURCE_DIR}/test_data
 		${PX4_SOURCE_DIR}/ROMFS/px4fmu_test
@@ -89,7 +89,7 @@ sanitizer_fail_test_on_error(sitl-imu_filtering)
 
 # # Shutdown test
 # add_test(NAME sitl-shutdown
-# 	COMMAND $<TARGET_FILE:px4>
+# 	COMMAND px4
 # 		-s ${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_shutdown
 # 		-t ${PX4_SOURCE_DIR}/test_data
 # 		${PX4_SOURCE_DIR}/ROMFS/px4fmu_test
@@ -104,7 +104,7 @@ sanitizer_fail_test_on_error(sitl-imu_filtering)
 
 # Dynamic module loading test
 add_test(NAME dyn
-	COMMAND $<TARGET_FILE:px4> -s "${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_dyn_hello"
+	COMMAND px4 -s "${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_dyn_hello"
 	WORKING_DIRECTORY ${PX4_BINARY_DIR}/src/examples/dyn_hello
 )
 set_tests_properties(dyn PROPERTIES PASS_REGULAR_EXPRESSION "1: PASSED")
@@ -122,7 +122,7 @@ foreach(cmd_name ${test_cmds})
 	configure_file(${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/cmd_template.in ${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/cmd_${cmd_name}_generated)
 
 	add_test(NAME posix_${cmd_name}
-		COMMAND $<TARGET_FILE:px4>
+		COMMAND px4
 			${PX4_SOURCE_DIR}/ROMFS/px4fmu_test
 			-s ${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/cmd_${cmd_name}_generated
 			-t ${PX4_SOURCE_DIR}/test_data

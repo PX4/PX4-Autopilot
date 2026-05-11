@@ -2,7 +2,7 @@ include_directories(
     ./include
     )
 
-add_compile_options(-Wno-unused-variable)
+px4_add_compile_options_for_compiler(GNU_LIKE -Wno-unused-variable)
 add_library(uavcan_socketcan_driver STATIC
     src/socketcan.cpp
     src/thread.cpp

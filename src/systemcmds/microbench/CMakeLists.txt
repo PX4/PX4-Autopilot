@@ -31,15 +31,19 @@
 #
 ############################################################################
 
+set(microbench_compile_flags
+	-Wno-double-promotion
+	-Wno-unused-but-set-variable
+	-Wno-unused-variable
+	-Wno-write-strings
+)
+
 px4_add_module(
 	MODULE systemcmds__microbench
 	MAIN microbench
 	STACK_MAIN 4096
 	COMPILE_FLAGS
-		-Wno-double-promotion
-		-Wno-unused-but-set-variable
-		-Wno-unused-variable
-		-Wno-write-strings
+		${microbench_compile_flags}
 	SRCS
 		microbench_main.cpp
 

@@ -31,11 +31,19 @@
 #
 ############################################################################
 
+set(controllib_test_compile_flags)
+
+if(NOT MSVC)
+	list(APPEND controllib_test_compile_flags
+		-Wno-double-promotion # TODO: fix in Matrix library Vector::pow()
+	)
+endif()
+
 px4_add_module(
 	MODULE lib__controllib__controllib_test
 	MAIN controllib_test
 	COMPILE_FLAGS
-		-Wno-double-promotion # TODO: fix in Matrix library Vector::pow()
+		${controllib_test_compile_flags}
 	SRCS
 		controllib_test_main.cpp
 	MODULE_CONFIG

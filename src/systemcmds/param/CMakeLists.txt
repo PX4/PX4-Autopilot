@@ -30,11 +30,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+set(param_compile_flags
+	-Wno-array-bounds
+)
+
 px4_add_module(
 	MODULE systemcmds__param
 	MAIN param
 	COMPILE_FLAGS
-		-Wno-array-bounds
+		${param_compile_flags}
 	STACK_MAIN 4096
 	SRCS
 		param.cpp

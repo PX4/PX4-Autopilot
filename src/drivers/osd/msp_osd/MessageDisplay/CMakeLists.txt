@@ -31,11 +31,13 @@
 #
 ############################################################################
 
-add_compile_options(-Wno-stringop-truncation) # full message intentional string truncation
-
 px4_add_library(message_display
 	MessageDisplay.cpp
 	MessageDisplay.hpp
+)
+
+px4_target_compile_options_for_compiler(message_display PRIVATE
+	GNU_LIKE -Wno-stringop-truncation # full message intentional string truncation
 )
 
 # unit testing

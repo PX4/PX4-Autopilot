@@ -77,7 +77,17 @@ px4_add_module(
 	MODULE systemcmds__tests
 	MAIN tests
 	STACK_MAIN 10000
-	COMPILE_FLAGS
+	SRCS
+		${srcs}
+	MODULE_CONFIG
+		params.yaml
+	DEPENDS
+		dataman_client
+		version
+	)
+px4_target_compile_options_for_compiler(systemcmds__tests PRIVATE
+	GNU_LIKE
+		-O2 # optimization needed to keep matrix code size reasonable
 		-Wno-double-promotion
 		-Wno-float-equal
 		-Wno-missing-declarations
@@ -88,14 +98,6 @@ px4_add_module(
 		-Wno-unused-variable
 		-Wno-vla-larger-than
 		-Wno-unused-but-set-parameter
-		-O2 # optimization needed to keep matrix code size reasonable
-	SRCS
-		${srcs}
-	MODULE_CONFIG
-		params.yaml
-	DEPENDS
-		dataman_client
-		version
-	)
+)
 
 add_subdirectory(hrt_test)

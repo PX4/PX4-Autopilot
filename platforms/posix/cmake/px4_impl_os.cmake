@@ -210,11 +210,26 @@ function(px4_posix_generate_symlinks)
 
 		if (MAIN)
 			set(ln_name "${PREFIX}${MAIN}")
-			add_custom_command(TARGET ${TARGET}
-				POST_BUILD
-				COMMAND ${CMAKE_COMMAND} -E create_symlink ${TARGET} ${ln_name}
-				WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
-			)
+			if(WIN32 OR MINGW)
+				set(alias_executable "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${ln_name}.exe")
+
+				# Windows symlinks require extra privileges. Hard links keep the
+				# px4-<module>.exe entry points without duplicating the MSVC exe.
+				add_custom_command(TARGET ${TARGET}
+					POST_BUILD
+					COMMAND ${CMAKE_COMMAND} -E remove -f
+						${alias_executable}
+					COMMAND ${CMAKE_COMMAND} -E create_hardlink
+						$<TARGET_FILE:${TARGET}>
+						${alias_executable}
+				)
+			else()
+				add_custom_command(TARGET ${TARGET}
+					POST_BUILD
+					COMMAND ${CMAKE_COMMAND} -E create_symlink ${TARGET} ${ln_name}
+					WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
+				)
+			endif()
 		endif()
 	endforeach()
 endfunction()
@@ -231,16 +246,106 @@ endfunction()
 #
 function(px4_os_add_flags)
 
-	add_definitions(
-		-D__PX4_POSIX
-		-Dnoreturn_function=__attribute__\(\(noreturn\)\)
-		)
+	add_definitions(-D__PX4_POSIX)
+
+	if(MSVC)
+		add_definitions(-Dnoreturn_function=)
+	else()
+		add_definitions(-Dnoreturn_function=__attribute__\(\(noreturn\)\))
+	endif()
 
 	include_directories(platforms/posix/include)
 
+	# When cross-compiling for Windows (MinGW) the shim headers have to
+	# sit *before* the MinGW sysroot in the search path so our termios.h,
+	# sys/mman.h, etc. are picked up instead of "no such file". -idirafter
+	# is not enough — sysroot headers win otherwise.
+	if(WIN32 OR MINGW)
+		include_directories(BEFORE platforms/posix/include/windows_shim)
+	endif()
+
 	if ("${PX4_BOARD}" MATCHES "sitl")
 
-		if(UNIX AND APPLE)
+		if(WIN32 OR MINGW)
+			add_definitions(
+				-D__PX4_WINDOWS
+				-D_GNU_SOURCE
+				-D_WIN32_WINNT=0x0A00
+				-DWINVER=0x0A00
+				-DNOMINMAX
+				-DWIN32_LEAN_AND_MEAN
+				-D_USE_MATH_DEFINES
+				)
+
+			if(MSVC)
+				add_definitions(
+					-D_CRT_SECURE_NO_WARNINGS
+					-D_CRT_NONSTDC_NO_DEPRECATE
+					-D_WINSOCK_DEPRECATED_NO_WARNINGS
+				)
+			else()
+				add_definitions(
+					# Strip __declspec(dllimport) from WinSock prototypes so PX4
+					# call sites resolve to the bare `bind`/`socket`/etc. symbol
+					# (a thunk emitted into the executable) rather than going
+					# through `__imp_<name>`. Required for the linker --wrap
+					# flags configured in platforms/posix/cmake/windows.cmake (which
+					# route those bare symbols through the errno-translating
+					# wrappers in src/px4/windows/posix/net/socket_wrap.cpp) to actually fire.
+					-DWINSOCK_API_LINKAGE=
+				)
+
+				# Relax a few warning classes that fire in every translation
+				# unit on MinGW and drown real diagnostics. Note: *do not* use
+				# -Wno-format here — PX4 globally enables -Wformat-security /
+				# -Wformat=1 and disabling the parent -Wformat makes those
+				# flags "ignored without -Wformat", which becomes an error
+				# under -Wfatal-errors.
+				add_compile_options(
+					-Wno-format-nonliteral
+					-Wno-format-truncation
+					-Wno-format-zero-length
+					-Wno-pedantic-ms-format
+					-Wno-cast-function-type
+					-Wno-unknown-pragmas
+					-Wno-attributes
+					-Wno-unused-variable
+					-Wno-unused-function
+					-Wno-unused-but-set-variable
+					-Wno-missing-field-initializers
+					-Wno-deprecated-declarations
+					# Even with __USE_MINGW_ANSI_STDIO=1, GCC's -Wformat still
+					# checks printf arguments against the ms_printf attribute
+					# that MinGW bakes into its stdio.h prototype. PX4 uses
+					# PRIu64/%llu/%zu heavily (via inttypes.h) — downgrade
+					# format mismatches from error to warning rather than
+					# mechanically rewriting thousands of call sites.
+					-Wno-error=format
+					-Wno-error=format-extra-args
+					# Cross-compile GCC flags uninitialized-use false positives
+					# where native GCC doesn't — downgrade, don't rewrite.
+					-Wno-error=uninitialized
+					-Wno-error=maybe-uninitialized
+					# WinSock typedefs SOCKET = unsigned long long; PX4 stores
+					# sockets in `int _fd` like everyone else. Downgrade the
+					# resulting narrowing warnings instead of rewriting every
+					# call site.
+					-Wno-error=narrowing
+					# MinGW LLP64: `unsigned long` is 32-bit but a pointer
+					# is 64-bit. A handful of PX4 call sites cast int->void*
+					# through `unsigned long`. Accept the warning rather
+					# than rewriting every cast with uintptr_t.
+					-Wno-error=int-to-pointer-cast
+					-Wno-error=pointer-to-int-cast
+					# Same LLP64 mismatch for C++'s stricter cast-from-pointer
+					# check. `(unsigned long)&p` truncates on Win64. Let the
+					# warning through without aborting the build.
+					$<$<COMPILE_LANGUAGE:CXX>:-fpermissive>
+					-Wno-error=shadow
+					)
+			endif()
+
+		elseif(UNIX AND APPLE)
 			add_definitions(-D__PX4_DARWIN)
 
 			# Silence Apple ld warning about duplicate static libs. CMake intentionally
@@ -262,7 +367,11 @@ function(px4_os_add_flags)
 
 	endif()
 
-	add_compile_options($<$<COMPILE_LANGUAGE:C>:-Wbad-function-cast>)
+	# -Wbad-function-cast is a C-only warning but it trips on the winsock
+	# socket() return type vs int on MinGW. Exclude it on Windows.
+	if(NOT (WIN32 OR MINGW))
+		add_compile_options($<$<COMPILE_LANGUAGE:C>:-Wbad-function-cast>)
+	endif()
 
 endfunction()
 

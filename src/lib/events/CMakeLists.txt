@@ -42,6 +42,14 @@ foreach(f ${all_px4_src_files})
 	list(APPEND all_px4_src_files_relative "${relative_path}")
 endforeach(f)
 
+# The relative list still blows past Windows' 8191-char cmd.exe line limit
+# (~50 KB worth of paths). Write it to a response file and pass it through
+# argparse's @file expansion so the python invocation stays a few hundred
+# bytes regardless of source count.
+set(events_srcs_response ${CMAKE_CURRENT_BINARY_DIR}/px4_event_srcs.rsp)
+string(REPLACE ";" "\n" _events_srcs_lines "${all_px4_src_files_relative}")
+file(WRITE ${events_srcs_response} "${_events_srcs_lines}\n")
+
 set(generated_events_dir ${PX4_BINARY_DIR}/events)
 set(generated_events_px4_file ${generated_events_dir}/px4.json)
 set(generated_events_common_enums_file ${generated_events_dir}/common_with_enums.json)
@@ -49,7 +57,7 @@ add_custom_command(OUTPUT ${generated_events_px4_file}
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${generated_events_dir}
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_events.py
 		--base-path ${PX4_SOURCE_DIR}/src
-		--src-path ${all_px4_src_files_relative}
+		--src-path @${events_srcs_response}
 		--json ${generated_events_px4_file} #--verbose
 	DEPENDS
 		${all_px4_src_files}

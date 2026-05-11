@@ -56,17 +56,25 @@ add_library(libvnc ${SOURCES})
 add_dependencies(libvnc prebuild_targets)
 target_compile_options(libvnc
         PRIVATE
-                -Wno-double-promotion
-                -Wno-pointer-sign
-                -Wno-cast-align
-                -Wno-unused-but-set-parameter
-                -Wno-sign-compare
-                -Wno-bad-function-cast
-                -Wno-empty-body
-                -Wno-switch
-                -Wno-unused-variable
-                -Wno-format
-                -Wno-format-security
+                $<$<C_COMPILER_ID:MSVC>:/wd4018>
+                $<$<C_COMPILER_ID:MSVC>:/wd4061>
+                $<$<C_COMPILER_ID:MSVC>:/wd4062>
+                $<$<C_COMPILER_ID:MSVC>:/wd4100>
+                $<$<C_COMPILER_ID:MSVC>:/wd4101>
+                $<$<C_COMPILER_ID:MSVC>:/wd4189>
+                $<$<C_COMPILER_ID:MSVC>:/wd4389>
+                $<$<C_COMPILER_ID:MSVC>:/wd4390>
+                $<$<NOT:$<C_COMPILER_ID:MSVC>>:-Wno-double-promotion>
+                $<$<NOT:$<C_COMPILER_ID:MSVC>>:-Wno-pointer-sign>
+                $<$<NOT:$<C_COMPILER_ID:MSVC>>:-Wno-cast-align>
+                $<$<NOT:$<C_COMPILER_ID:MSVC>>:-Wno-unused-but-set-parameter>
+                $<$<NOT:$<C_COMPILER_ID:MSVC>>:-Wno-sign-compare>
+                $<$<NOT:$<C_COMPILER_ID:MSVC>>:-Wno-bad-function-cast>
+                $<$<NOT:$<C_COMPILER_ID:MSVC>>:-Wno-empty-body>
+                $<$<NOT:$<C_COMPILER_ID:MSVC>>:-Wno-switch>
+                $<$<NOT:$<C_COMPILER_ID:MSVC>>:-Wno-unused-variable>
+                $<$<NOT:$<C_COMPILER_ID:MSVC>>:-Wno-format>
+                $<$<NOT:$<C_COMPILER_ID:MSVC>>:-Wno-format-security>
 )
 
 if("${PX4_PLATFORM}" MATCHES "nuttx")

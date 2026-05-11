@@ -31,7 +31,7 @@
 #
 ############################################################################
 
-add_compile_options(-Wno-cast-align)
+px4_add_compile_options_for_compiler(GNU_LIKE -Wno-cast-align)
 
 include(ExternalProject)
 ExternalProject_Add(librobotcontrol

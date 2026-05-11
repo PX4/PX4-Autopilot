@@ -83,7 +83,9 @@ set_source_files_properties(${MAVLINK_LIBRARY_DIR}/${CONFIG_MAVLINK_DIALECT}/${C
 
 # mavlink header only library
 add_library(mavlink_c INTERFACE)
-target_compile_options(mavlink_c INTERFACE -Wno-address-of-packed-member -Wno-cast-align)
+px4_target_compile_options_for_compiler(mavlink_c INTERFACE
+	GNU_LIKE -Wno-address-of-packed-member -Wno-cast-align
+)
 target_sources(mavlink_c
 	INTERFACE
 		${MAVLINK_LIBRARY_DIR}/${CONFIG_MAVLINK_DIALECT}/${CONFIG_MAVLINK_DIALECT}.h
@@ -95,13 +97,21 @@ target_include_directories(mavlink_c
 		${MAVLINK_LIBRARY_DIR}/../
 		${MAVLINK_LIBRARY_DIR}/${CONFIG_MAVLINK_DIALECT}
 		${MAVLINK_LIBRARY_DIR}/${MAVLINK_DIALECT_UAVIONIX}
-)
+	)
+
+set(mavlink_compile_flags)
+
+if(NOT MSVC)
+	list(APPEND mavlink_compile_flags
+		-Wno-enum-compare # ROTATION <-> MAV_SENSOR_ROTATION
+	)
+endif()
 
 px4_add_module(
 	MODULE modules__mavlink
 	MAIN mavlink
 	COMPILE_FLAGS
-		-Wno-enum-compare # ROTATION <-> MAV_SENSOR_ROTATION
+		${mavlink_compile_flags}
 		#-DDEBUG_BUILD
 	SRCS
 		mavlink.c

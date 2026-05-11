@@ -89,8 +89,8 @@ add_custom_target(flighttasks_generated
 	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/FlightTasks_generated.cpp)
 add_dependencies(prebuild_targets flighttasks_generated)
 
-add_compile_options(
-	-Wno-cast-align
+px4_add_compile_options_for_compiler(
+	GNU_LIKE -Wno-cast-align
 ) # TODO: fix and enable
 
 # add subdirectory containing all tasks

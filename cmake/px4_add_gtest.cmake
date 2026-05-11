@@ -88,6 +88,14 @@ function(px4_add_unit_gtest)
 endfunction()
 
 function(px4_add_functional_gtest)
+	# Functional tests link fuzztest::fuzztest directly (without
+	# link_fuzztest() so they pull only the runtime, not the gtest main).
+	# When fuzztest is unavailable for the active toolchain (e.g. native
+	# MSVC) we skip these definitions entirely so configure does not
+	# reference targets that were never built.
+	if(NOT PX4_HAS_FUZZTEST)
+		return()
+	endif()
 	# skip if unit testing is not configured
 	if(BUILD_TESTING)
 		# parse source file and library dependencies from arguments

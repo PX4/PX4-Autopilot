@@ -38,8 +38,11 @@ add_library(tinybson
 target_compile_definitions(tinybson PRIVATE -DMODULE_NAME="tinybson")
 target_compile_options(tinybson
 	PRIVATE
-		-Wno-sign-compare # TODO: fix this
 		${MAX_CUSTOM_OPT_LEVEL}
+)
+px4_target_compile_options_for_compiler(tinybson PRIVATE
+	GNU_LIKE -Wno-sign-compare
+	MSVC /wd4018 /wd4389
 )
 
 add_dependencies(tinybson prebuild_targets)

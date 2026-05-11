@@ -201,11 +201,13 @@ if(NOT "${PX4_BOARD}" MATCHES "px4_io")
 	target_link_libraries(parameters PRIVATE perf tinybson px4_platform)
 
 	target_compile_definitions(parameters PRIVATE -DMODULE_NAME="parameters" -D__KERNEL__)
-	target_compile_options(parameters
-		PRIVATE
-			#-DDEBUG_BUILD
+	#target_compile_options(parameters PRIVATE -DDEBUG_BUILD)
+	px4_target_compile_options_for_compiler(parameters PRIVATE
+		GNU_LIKE
 			-Wno-cast-align		# TODO: fix and enable
 			-Wno-sign-compare	# TODO: fix and enable
+		MSVC
+			/wd4389
 	)
 else()
 	add_library(parameters STATIC EXCLUDE_FROM_ALL ${PX4_SOURCE_DIR}/platforms/common/empty.c)

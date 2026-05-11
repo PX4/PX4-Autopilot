@@ -64,24 +64,48 @@ function(px4_add_git_submodule)
 
 	set(REL_PATH)
 
-	if(IS_ABSOLUTE ${PATH})
+	if(IS_ABSOLUTE "${PATH}")
+		set(ABS_PATH ${PATH})
 		file(RELATIVE_PATH REL_PATH ${PX4_SOURCE_DIR} ${PATH})
 	else()
-		file(RELATIVE_PATH REL_PATH ${PX4_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/${PATH})
+		get_filename_component(ABS_PATH "${CMAKE_CURRENT_SOURCE_DIR}/${PATH}" ABSOLUTE)
+		file(RELATIVE_PATH REL_PATH ${PX4_SOURCE_DIR} ${ABS_PATH})
 	endif()
 
-	execute_process(
-		COMMAND Tools/check_submodules.sh ${REL_PATH}
-		WORKING_DIRECTORY ${PX4_SOURCE_DIR}
-		)
+	set(GIT_SUBMODULE_DEPS ${PX4_SOURCE_DIR}/.gitmodules ${ABS_PATH}/.git)
 
-	string(REPLACE "/" "_" NAME ${PATH})
-	string(REPLACE "." "_" NAME ${NAME})
+	if(CMAKE_GENERATOR STREQUAL "MinGW Makefiles")
+		set(GIT_SUBMODULE_DEPS)
+	endif()
+
+	if(CMAKE_HOST_WIN32)
+		if(NOT EXISTS "${ABS_PATH}/.git")
+			execute_process(
+				COMMAND git submodule sync --recursive -- ${REL_PATH}
+				WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+				)
+			execute_process(
+				COMMAND git submodule update --init --recursive -- ${REL_PATH}
+				WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+				)
+		endif()
+
+		set(CHECK_SUBMODULE_COMMAND ${CMAKE_COMMAND} -E true)
+	else()
+		execute_process(
+			COMMAND Tools/check_submodules.sh ${REL_PATH}
+			WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+			)
+
+		set(CHECK_SUBMODULE_COMMAND Tools/check_submodules.sh ${REL_PATH})
+	endif()
+
+	string(MAKE_C_IDENTIFIER "${REL_PATH}" NAME)
 
 	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/git_init_${NAME}.stamp
-		COMMAND Tools/check_submodules.sh ${REL_PATH}
+		COMMAND ${CHECK_SUBMODULE_COMMAND}
 		COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_CURRENT_BINARY_DIR}/git_init_${NAME}.stamp
-		DEPENDS ${PX4_SOURCE_DIR}/.gitmodules ${PATH}/.git
+		DEPENDS ${GIT_SUBMODULE_DEPS}
 		COMMENT "git submodule ${REL_PATH}"
 		WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 		USES_TERMINAL

@@ -37,6 +37,12 @@ if(PX4_CRYPTO)
 	list(APPEND LOGGER_MODULE_PARAMS module_params_crypto.yaml)
 endif()
 
+set(logger_compile_flags ${MAX_CUSTOM_OPT_LEVEL})
+
+if(NOT MSVC)
+	list(APPEND logger_compile_flags -Wno-cast-align) # TODO: fix and enable
+endif()
+
 px4_add_module(
 	MODULE modules__logger
 	MAIN logger
@@ -46,8 +52,7 @@ px4_add_module(
 		module.yaml
 		${LOGGER_MODULE_PARAMS}
 	COMPILE_FLAGS
-		${MAX_CUSTOM_OPT_LEVEL}
-		-Wno-cast-align # TODO: fix and enable
+		${logger_compile_flags}
 	SRCS
 		logged_topics.cpp
 		logger.cpp

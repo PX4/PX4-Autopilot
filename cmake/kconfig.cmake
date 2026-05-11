@@ -1,8 +1,14 @@
 set(BOARD_DEFCONFIG ${PX4_CONFIG_FILE} CACHE FILEPATH "path to defconfig" FORCE)
 set(BOARD_CONFIG ${PX4_BINARY_DIR}/boardconfig CACHE FILEPATH "path to config" FORCE)
 
-execute_process(COMMAND ${PYTHON_EXECUTABLE} -c "import menuconfig" RESULT_VARIABLE ret)
-if(ret EQUAL "1")
+# Verify kconfiglib presence by importing the package itself rather than
+# the `menuconfig` entry point. `menuconfig` pulls in the standard
+# `curses` module which is not shipped on every Python install (e.g. the
+# setup-python interpreter on Windows runners, or some hostedtoolcache
+# Pythons on macOS), and we only need kconfiglib for non-interactive
+# config generation here.
+execute_process(COMMAND ${PYTHON_EXECUTABLE} -c "import kconfiglib" RESULT_VARIABLE ret)
+if(NOT ret EQUAL "0")
 	message(FATAL_ERROR "kconfiglib is not installed or not in PATH\n"
 				"please install using \"pip3 install kconfiglib\"\n")
 endif()
@@ -360,7 +366,7 @@ if(EXISTS ${BOARD_DEFCONFIG})
 
 	if(CONSTRAINED_FLASH)
 		set(px4_constrained_flash_build "1" CACHE INTERNAL "constrained flash build" FORCE)
-		add_definitions(-DCONSTRAINED_FLASH)
+		add_definitions(-DCONSTRAINED_FLASH=1)
 	endif()
 
 	if(NO_HELP)
@@ -382,7 +388,7 @@ if(EXISTS ${BOARD_DEFCONFIG})
 
 	if(CRYPTO)
 		set(PX4_CRYPTO "1" CACHE INTERNAL "PX4 crypto implementation" FORCE)
-		add_definitions(-DPX4_CRYPTO)
+		add_definitions(-DPX4_CRYPTO=1)
 	endif()
 
 	if(LINKER_PREFIX)

@@ -7,9 +7,10 @@ if(CONFIG_LIB_RL_TOOLS)
 
 	target_compile_features(rl_tools INTERFACE cxx_std_17)
 
-	target_compile_options(rl_tools INTERFACE
-		-Wno-unused-parameter
-		-Wno-unused-variable
-		-Wno-unused-local-typedefs
+	px4_target_compile_options_for_compiler(rl_tools INTERFACE
+		GNU_LIKE
+			-Wno-unused-parameter
+			-Wno-unused-variable
+			-Wno-unused-local-typedefs
 	)
 endif()
