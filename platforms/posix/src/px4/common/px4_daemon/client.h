@@ -64,7 +64,7 @@ public:
 	Client(Client &&other) : _fd(other._fd), _instance_id(other._instance_id)
 	{
 		// Steal the fd from the moved-from client.
-		other._fd = -1;
+		other._fd = invalid_socket_handle;
 	}
 
 	/**
@@ -80,7 +80,7 @@ private:
 	int _send_cmds(const int argc, const char **argv);
 	int _listen();
 
-	int _fd;
+	socket_handle_t _fd;
 	int _instance_id; ///< instance ID for running multiple instances of the px4 server
 };
 

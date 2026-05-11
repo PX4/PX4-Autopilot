@@ -302,7 +302,7 @@ orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta,
 	/* get the advertiser handle and close the node */
 	orb_advert_t advertiser;
 
-	int result = px4_ioctl(fd, ORBIOCGADVERTISER, (unsigned long)&advertiser);
+	int result = px4_ioctl(fd, ORBIOCGADVERTISER, (uintptr_t)&advertiser);
 	px4_close(fd);
 
 	if (result == PX4_ERROR) {
@@ -397,7 +397,7 @@ int uORB::Manager::orb_check(int handle, bool *updated)
 {
 	/* Set to false here so that if `px4_ioctl` fails to false. */
 	*updated = false;
-	return px4_ioctl(handle, ORBIOCUPDATED, (unsigned long)(uintptr_t)updated);
+	return px4_ioctl(handle, ORBIOCUPDATED, (uintptr_t)updated);
 }
 
 int uORB::Manager::orb_set_interval(int handle, unsigned interval)
@@ -407,7 +407,7 @@ int uORB::Manager::orb_set_interval(int handle, unsigned interval)
 
 int uORB::Manager::orb_get_interval(int handle, unsigned *interval)
 {
-	int ret = px4_ioctl(handle, ORBIOCGETINTERVAL, (unsigned long)interval);
+	int ret = px4_ioctl(handle, ORBIOCGETINTERVAL, (uintptr_t)interval);
 	*interval /= 1000;
 	return ret;
 }

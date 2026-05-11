@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,40 +30,40 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 /**
- * @file sock_protocol.cpp
+ * @file exit.h
  *
- * @author Mara Bos <m-ou.se@m-ou.se>
+ * Platform-level process exit hook.
  */
 
-#include "sock_protocol.h"
+#pragma once
 
-#include <cstdlib>
+#include <visibility.h>
 
-namespace px4_daemon
-{
-
-#ifdef __PX4_WINDOWS
-uint16_t get_socket_port(int instance_id)
-{
-	// Keep the local daemon control socket away from the default SITL MAVLink
-	// UDP ranges (for example 14580 + instance is used by px4-rc.mavlink).
-	// Override by setting PX4_DAEMON_PORT if the default collides with another
-	// app embedding PX4.
-	const char *override_port = std::getenv("PX4_DAEMON_PORT");
-
-	if (override_port) {
-		return static_cast<uint16_t>(std::atoi(override_port) + instance_id);
-	}
-
-	return static_cast<uint16_t>(14680 + instance_id);
-}
-#else
-std::string get_socket_path(int instance_id)
-{
-	// TODO: Use /var/run/px4/$instance/sock (or /var/run/user/$UID/... for non-root).
-	return "/tmp/px4-sock-" + std::to_string(instance_id);
-}
+#if defined(__PX4_WINDOWS)
+#include <px4_windows/platform.h>
 #endif
 
-} // namespace px4_daemon
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+static inline void px4_platform_exit(int status) noreturn_function;
+static inline void px4_platform_exit(int status)
+{
+#if defined(__PX4_WINDOWS)
+	px4_windows_exit(status);
+#else
+	system_exit(status);
+#endif
+#if defined(_MSC_VER) && !defined(__clang__)
+	__assume(0);
+#else
+	__builtin_unreachable();
+#endif
+}
+
+#ifdef __cplusplus
+}
+#endif

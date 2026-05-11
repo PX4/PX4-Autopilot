@@ -115,7 +115,7 @@ private:
 
 	int _instance_id; ///< instance ID for running multiple instances of the px4 server
 
-	int _fd;
+	socket_handle_t _fd;
 
 	static void _pthread_key_destructor(void *arg);
 

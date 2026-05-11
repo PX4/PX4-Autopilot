@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,40 +30,28 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-/**
- * @file sock_protocol.cpp
- *
- * @author Mara Bos <m-ou.se@m-ou.se>
- */
 
-#include "sock_protocol.h"
+#pragma once
 
-#include <cstdlib>
+#include <string>
 
-namespace px4_daemon
+namespace px4
 {
 
-#ifdef __PX4_WINDOWS
-uint16_t get_socket_port(int instance_id)
-{
-	// Keep the local daemon control socket away from the default SITL MAVLink
-	// UDP ranges (for example 14580 + instance is used by px4-rc.mavlink).
-	// Override by setting PX4_DAEMON_PORT if the default collides with another
-	// app embedding PX4.
-	const char *override_port = std::getenv("PX4_DAEMON_PORT");
+// Run a POSIX shell init script (rcS, test_*_generated, etc.) to start a
+// PX4 instance. The platform backend is responsible for actually executing
+// the script. On POSIX this typically shells out to /bin/sh. On Windows the
+// intended production path is a bundled in-process shell backend so px4.exe
+// can be embedded and redistributed without an external shell dependency.
+//
+// script_path     : absolute or cwd-relative path to the shell script
+// binary_dir      : directory containing px4.exe / px4-* commands; added
+//                   to PATH so the script can invoke them unqualified
+// instance        : PX4 instance id, forwarded as $1 to the script
+//
+// Returns the script's exit status (0 on success).
+int run_shell_script(const std::string &script_path,
+		     const std::string &binary_dir,
+		     int instance);
 
-	if (override_port) {
-		return static_cast<uint16_t>(std::atoi(override_port) + instance_id);
-	}
-
-	return static_cast<uint16_t>(14680 + instance_id);
-}
-#else
-std::string get_socket_path(int instance_id)
-{
-	// TODO: Use /var/run/px4/$instance/sock (or /var/run/user/$UID/... for non-root).
-	return "/tmp/px4-sock-" + std::to_string(instance_id);
-}
-#endif
-
-} // namespace px4_daemon
+} // namespace px4

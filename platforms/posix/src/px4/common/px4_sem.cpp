@@ -55,16 +55,21 @@ int px4_sem_init(px4_sem_t *s, int pshared, unsigned value)
 	// We do not used the process shared arg
 	(void)pshared;
 	s->value = value;
-	pthread_cond_init(&(s->wait), nullptr);
 	pthread_mutex_init(&(s->lock), nullptr);
 
-#if !defined(__PX4_DARWIN)
-	// We want to use CLOCK_MONOTONIC if possible but we can't on macOS
-	// because it's not available.
+#if !defined(__PX4_DARWIN) && !defined(__PX4_WINDOWS)
+	// Use CLOCK_MONOTONIC so the abstime passed to px4_sem_timedwait is not
+	// affected by wall-clock jumps. Not available on macOS; on MinGW
+	// winpthreads (up to at least 8.0), pthread_condattr_setclock is a
+	// no-op — pthread_cond_timedwait always interprets abstime as
+	// CLOCK_REALTIME. For Windows we default-init the cond and rewrite
+	// the abstime at wait time (see px4_sem_timedwait below).
 	pthread_condattr_t attr;
 	pthread_condattr_init(&attr);
 	pthread_condattr_setclock(&attr, CLOCK_MONOTONIC);
 	pthread_cond_init(&(s->wait), &attr);
+#else
+	pthread_cond_init(&(s->wait), nullptr);
 #endif
 
 	return 0;
@@ -133,11 +138,55 @@ int px4_sem_timedwait(px4_sem_t *s, const struct timespec *abstime)
 	s->value--;
 	errno = 0;
 
+#if defined(__PX4_WINDOWS) && !defined(ENABLE_LOCKSTEP_SCHEDULER)
+	// Callers build `abstime` from CLOCK_MONOTONIC, but MinGW winpthreads'
+	// pthread_cond_timedwait interprets it as CLOCK_REALTIME. Rebase onto
+	// CLOCK_REALTIME by taking the remaining duration against MONOTONIC
+	// now and adding it to REALTIME now.
+	struct timespec abstime_realtime = *abstime;
+
+	if (s->value < 0) {
+		struct timespec now_mono;
+		struct timespec now_real;
+		clock_gettime(CLOCK_MONOTONIC, &now_mono);
+		clock_gettime(CLOCK_REALTIME, &now_real);
+
+		int64_t remaining_ns =
+			((int64_t)abstime->tv_sec  - (int64_t)now_mono.tv_sec) * 1000000000LL +
+			((int64_t)abstime->tv_nsec - (int64_t)now_mono.tv_nsec);
+
+		if (remaining_ns < 0) {
+			remaining_ns = 0;
+		}
+
+		int64_t total_ns = (int64_t)now_real.tv_nsec + remaining_ns;
+		abstime_realtime.tv_sec  = now_real.tv_sec + total_ns / 1000000000LL;
+		abstime_realtime.tv_nsec = total_ns % 1000000000LL;
+	}
+
+	if (s->value < 0) {
+		ret = px4_pthread_cond_timedwait(&(s->wait), &(s->lock), &abstime_realtime);
+
+	} else {
+		ret = 0;
+	}
+
+#else
+
 	if (s->value < 0) {
 		ret = px4_pthread_cond_timedwait(&(s->wait), &(s->lock), abstime);
 
 	} else {
 		ret = 0;
+	}
+
+#endif
+
+	if (ret != 0) {
+		// The decrement above represents this waiter. If the timed wait
+		// expires or fails, the waiter is leaving and must not consume a
+		// future post.
+		s->value++;
 	}
 
 	errno = ret;

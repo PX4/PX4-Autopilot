@@ -209,7 +209,7 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 }
 
 int
-uORB::DeviceNode::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
+uORB::DeviceNode::ioctl(cdev::file_t *filp, int cmd, uintptr_t arg)
 {
 	switch (cmd) {
 	case ORBIOCUPDATED: {
