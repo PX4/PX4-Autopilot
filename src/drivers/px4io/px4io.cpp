@@ -130,7 +130,7 @@ public:
 	 * @param[in] cmd the IOCTL command
 	 * @param[in] the IOCTL command parameter (optional)
 	 */
-	int		ioctl(file *filp, int cmd, unsigned long arg) override;
+	int		ioctl(file *filp, int cmd, uintptr_t arg) override;
 
 	/**
 	 * Print IO status.
@@ -1309,7 +1309,7 @@ int PX4IO::print_status()
 	return 0;
 }
 
-int PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
+int PX4IO::ioctl(file *filep, int cmd, uintptr_t arg)
 {
 	SmartLock lock_guard(_lock);
 	int ret = OK;

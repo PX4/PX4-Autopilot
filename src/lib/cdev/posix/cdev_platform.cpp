@@ -312,7 +312,7 @@ extern "C" {
 		return ret;
 	}
 
-	int px4_ioctl(int fd, int cmd, unsigned long arg)
+	int px4_ioctl(int fd, int cmd, uintptr_t arg)
 	{
 		PX4_DEBUG("px4_ioctl fd = %d", fd);
 		int ret = 0;

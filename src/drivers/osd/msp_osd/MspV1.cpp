@@ -37,6 +37,7 @@
 #include <sys/types.h>
 #include <stdbool.h>
 #include <float.h>
+#include <stdint.h>
 #include <string.h>
 #include <math.h>
 #include <stdio.h>
@@ -79,6 +80,41 @@ const msp_message_descriptor_t msp_message_descriptors[MSP_DESCRIPTOR_COUNT] = {
 	{MSP_RC, true, sizeof(msp_rc_t)},
 };
 
+namespace
+{
+constexpr uint32_t MSP_V1_MAX_PAYLOAD_SIZE = UINT8_MAX;
+
+bool send_packet(int fd, const uint8_t message_id, const void *payload, const uint32_t payload_size)
+{
+	if ((payload_size > MSP_V1_MAX_PAYLOAD_SIZE) || ((payload_size > 0) && (payload == nullptr))) {
+		return false;
+	}
+
+	uint8_t packet[MSP_FRAME_START_SIZE + MSP_V1_MAX_PAYLOAD_SIZE + MSP_CRC_SIZE];
+
+	packet[0] = '$';
+	packet[1] = 'M';
+	packet[2] = '>';
+	packet[3] = static_cast<uint8_t>(payload_size);
+	packet[4] = message_id;
+
+	uint8_t crc = static_cast<uint8_t>(payload_size) ^ message_id;
+
+	if (payload_size > 0) {
+		memcpy(packet + MSP_FRAME_START_SIZE, payload, payload_size);
+	}
+
+	for (uint32_t i = 0; i < payload_size; i ++) {
+		crc ^= packet[MSP_FRAME_START_SIZE + i];
+	}
+
+	packet[MSP_FRAME_START_SIZE + payload_size] = crc;
+
+	const int packet_size = MSP_FRAME_START_SIZE + payload_size + MSP_CRC_SIZE;
+	return write(fd, packet, packet_size) == packet_size;
+}
+} // namespace
+
 bool MspV1::Send(const uint8_t message_id, const void *payload)
 {
 	uint32_t payload_size = 0;
@@ -102,52 +138,12 @@ bool MspV1::Send(const uint8_t message_id, const void *payload)
 
 	payload_size = desc->message_size;
 
-	uint8_t packet[MSP_FRAME_START_SIZE + payload_size + MSP_CRC_SIZE];
-	uint8_t crc;
-
-	packet[0] = '$';
-	packet[1] = 'M';
-	packet[2] = '>';
-	packet[3] = payload_size;
-	packet[4] = message_id;
-
-	crc = payload_size ^ message_id;
-
-	memcpy(packet + MSP_FRAME_START_SIZE, payload, payload_size);
-
-	for (uint32_t i = 0; i < payload_size; i ++) {
-		crc ^= packet[MSP_FRAME_START_SIZE + i];
-	}
-
-	packet[MSP_FRAME_START_SIZE + payload_size] = crc;
-
-	int packet_size =  MSP_FRAME_START_SIZE + payload_size + MSP_CRC_SIZE;
-	return  write(_fd, packet, packet_size) == packet_size;
+	return send_packet(_fd, message_id, payload, payload_size);
 }
 
 bool MspV1::Send(const uint8_t message_id, const void *payload, uint32_t payload_size)
 {
-	uint8_t packet[MSP_FRAME_START_SIZE + payload_size + MSP_CRC_SIZE];
-	uint8_t crc;
-
-	packet[0] = '$';
-	packet[1] = 'M';
-	packet[2] = '>';
-	packet[3] = payload_size;
-	packet[4] = message_id;
-
-	crc = payload_size ^ message_id;
-
-	memcpy(packet + MSP_FRAME_START_SIZE, payload, payload_size);
-
-	for (uint32_t i = 0; i < payload_size; i ++) {
-		crc ^= packet[MSP_FRAME_START_SIZE + i];
-	}
-
-	packet[MSP_FRAME_START_SIZE + payload_size] = crc;
-
-	int packet_size =  MSP_FRAME_START_SIZE + payload_size + MSP_CRC_SIZE;
-	return  write(_fd, packet, packet_size) == packet_size;
+	return send_packet(_fd, message_id, payload, payload_size);
 }
 
 

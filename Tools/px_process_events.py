@@ -49,7 +49,12 @@ import codecs
 
 def main():
     # Parse command line arguments
-    parser = argparse.ArgumentParser(description="Process events definitions.")
+    # Allow @file argument expansion so the (very long) source-file list can
+    # be passed via a response file. Required on Windows, where the
+    # 8191-char cmd.exe line limit otherwise truncates the build's full
+    # `--src-path file1 file2 …` invocation.
+    parser = argparse.ArgumentParser(description="Process events definitions.",
+                                     fromfile_prefix_chars='@')
     parser.add_argument("-s", "--src-path",
                         default=["../src"],
                         metavar="PATH",

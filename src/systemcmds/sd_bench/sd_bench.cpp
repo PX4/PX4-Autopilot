@@ -146,6 +146,17 @@ extern "C" __EXPORT int sd_bench_main(int argc, char *argv[])
 		}
 	}
 
+	// Reject any leftover positional arguments (e.g. "status", "start", "stop").
+	// sd_bench has no subcommands -- it only accepts the flags handled above --
+	// so silently ignoring extra args would run a multi-second benchmark when
+	// the user almost certainly meant a different module. Print usage and exit
+	// non-zero instead.
+	if (myoptind < argc) {
+		PX4_ERR("unrecognized argument: %s", argv[myoptind]);
+		usage();
+		return 1;
+	}
+
 	if (block_size <= 0 || cfg.num_runs <= 0) {
 		PX4_ERR("invalid argument");
 		return -1;

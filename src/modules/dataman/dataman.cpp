@@ -149,6 +149,21 @@ static constexpr size_t g_per_item_size_with_hdr[DM_KEY_NUM_KEYS] = {
 	g_per_item_size[DM_KEY_COMPAT] + DM_SECTOR_HDR_SIZE
 };
 
+static constexpr size_t max_item_size_with_hdr()
+{
+	size_t max_size = 0;
+
+	for (size_t i = 0; i < DM_KEY_NUM_KEYS; i++) {
+		if (g_per_item_size_with_hdr[i] > max_size) {
+			max_size = g_per_item_size_with_hdr[i];
+		}
+	}
+
+	return max_size;
+}
+
+static constexpr size_t g_max_item_size_with_hdr = max_item_size_with_hdr();
+
 /* Table of offset for index 0 of each item type */
 static unsigned int g_key_offsets[DM_KEY_NUM_KEYS];
 
@@ -260,7 +275,7 @@ _file_write(dm_item_t item, unsigned index, const void *buf, size_t count)
 		return -1;
 	}
 
-	unsigned char buffer[g_per_item_size_with_hdr[item]];
+	unsigned char buffer[g_max_item_size_with_hdr];
 
 	/* Get the offset for this item */
 	const int offset = calculate_offset(item, index);
@@ -383,7 +398,7 @@ _file_read(dm_item_t item, unsigned index, void *buf, size_t count)
 		return -1;
 	}
 
-	unsigned char buffer[g_per_item_size_with_hdr[item]];
+	unsigned char buffer[g_max_item_size_with_hdr];
 
 	/* Get the offset for this item */
 	int offset = calculate_offset(item, index);

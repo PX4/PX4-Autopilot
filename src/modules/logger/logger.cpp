@@ -196,6 +196,14 @@ int Logger::task_spawn(int argc, char *argv[])
 		return -errno;
 	}
 
+	// Wait for the logger instance to be constructed on the child thread
+	// before returning, so a subsequent `logger on` from the startup script
+	// doesn't race ahead and dereference a null instance pointer.
+	if (wait_until_running(desc) < 0) {
+		desc.task_id = -1;
+		return -1;
+	}
+
 	return 0;
 }
 
@@ -690,7 +698,7 @@ void Logger::run()
 
 		if (_writer.backend() & LogWriter::BackendFile) {
 
-			const pid_t pid_self = getpid();
+			const pid_t pid_self = px4_getpid();
 			const pthread_t writer_thread = _writer.thread_id_file();
 
 			// sched_note_start is already called from pthread_create and task_create,

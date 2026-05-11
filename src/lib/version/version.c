@@ -35,13 +35,14 @@
 
 #include "build_git_version.h"
 
+#include <stdio.h>
 #include <string.h>
 
 #if !defined(CONFIG_CDCACM_PRODUCTID)
 # define CONFIG_CDCACM_PRODUCTID 0
 #endif
 
-#if defined(__PX4_LINUX)
+#if defined(__PX4_LINUX) || defined(__PX4_DARWIN) || defined(__PX4_CYGWIN)
 #include <sys/utsname.h>
 #endif
 
@@ -300,9 +301,7 @@ uint32_t px4_board_version(void)
 
 uint32_t px4_os_version(void)
 {
-#if defined(__PX4_DARWIN) || defined(__PX4_CYGWIN) || defined(__PX4_QURT)
-	return 0; //TODO: implement version for Darwin, Cygwin, QuRT
-#elif defined(__PX4_LINUX)
+#if defined(__PX4_LINUX) || defined(__PX4_DARWIN) || defined(__PX4_CYGWIN)
 	struct utsname name;
 
 	if (uname(&name) == 0) {
@@ -320,6 +319,26 @@ uint32_t px4_os_version(void)
 		return 0;
 	}
 
+#elif defined(__PX4_WINDOWS)
+	// _WIN32_WINNT is the targeted Windows version, encoded as 0xMMmm
+	// (e.g. 0x0A00 → Windows 10.0). It is set by the toolchain.
+	char buf[16];
+	snprintf(buf, sizeof(buf), "%d.%d.0",
+		 (_WIN32_WINNT >> 8) & 0xFF,
+		 _WIN32_WINNT & 0xFF);
+	return version_tag_to_number(buf);
+#elif defined(__PX4_QURT)
+	// Hexagon clang sets __HEXAGON_ARCH__ to the DSP architecture revision
+	// (e.g. 66 for hexagonv66), which we map to a major.minor pair.
+#ifdef __HEXAGON_ARCH__
+	char buf[16];
+	snprintf(buf, sizeof(buf), "%d.%d.0",
+		 __HEXAGON_ARCH__ / 10,
+		 __HEXAGON_ARCH__ % 10);
+	return version_tag_to_number(buf);
+#else
+	return 0;
+#endif
 #elif defined(__PX4_NUTTX)
 	return version_tag_to_number(NUTTX_GIT_TAG_STR);
 #else
@@ -348,6 +367,8 @@ const char *px4_os_name(void)
 	return "NuttX";
 #elif defined(__PX4_CYGWIN)
 	return "Cygwin";
+#elif defined(__PX4_WINDOWS)
+	return "Windows";
 #else
 # error "px4_os_name not implemented for current OS"
 #endif

@@ -64,7 +64,7 @@ public:
 	~LED() override = default;
 
 	int	init() override;
-	int	ioctl(cdev::file_t *filp, int cmd, unsigned long arg) override;
+	int	ioctl(cdev::file_t *filp, int cmd, uintptr_t arg) override;
 };
 
 LED::LED() : CDev(LED0_DEVICE_PATH)
@@ -86,7 +86,7 @@ LED::init()
 }
 
 int
-LED::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
+LED::ioctl(cdev::file_t *filp, int cmd, uintptr_t arg)
 {
 	int result = OK;
 

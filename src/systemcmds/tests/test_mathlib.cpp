@@ -378,8 +378,8 @@ bool MathlibTest::testFinite()
 	ut_assert("PX4_ISFINITE(-1.0f)", PX4_ISFINITE(-1.0f) == true);
 
 	ut_assert("PX4_ISFINITE(NAN)", PX4_ISFINITE(NAN) == false);
-	ut_assert("PX4_ISFINITE(1/0)", PX4_ISFINITE(1.0f / 0.0f) == false);
-	ut_assert("PX4_ISFINITE(0/0)", PX4_ISFINITE(0.0f / 0.0f) == false);
+	ut_assert("PX4_ISFINITE(1/0)", PX4_ISFINITE(INFINITY) == false);
+	ut_assert("PX4_ISFINITE(0/0)", PX4_ISFINITE(NAN) == false);
 	ut_assert("PX4_ISFINITE(INFINITY)", PX4_ISFINITE(INFINITY) == false);
 	ut_assert("PX4_ISFINITE(NAN * INFINITY)", PX4_ISFINITE(NAN * INFINITY) == false);
 	ut_assert("PX4_ISFINITE(NAN * 1.0f)", PX4_ISFINITE(NAN * 1.0f) == false);

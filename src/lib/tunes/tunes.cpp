@@ -330,7 +330,13 @@ Tunes::Status Tunes::get_next_note(unsigned &frequency, unsigned &duration, unsi
 
 			break;
 
-		case 'A'...'G':	// Play a note in the current octave.
+		case 'A':	// Play a note in the current octave.
+		case 'B':
+		case 'C':
+		case 'D':
+		case 'E':
+		case 'F':
+		case 'G':
 			note = _note_tab[c - 'A'] + (_octave * 12) + 1;
 			c = next_char();
 

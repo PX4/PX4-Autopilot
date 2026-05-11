@@ -90,8 +90,11 @@ int check_user_abort(int fd)
 int
 test_file(int argc, char *argv[])
 {
-	const unsigned iterations = 2;
-	const unsigned alignments = 33;
+	enum {
+		iterations = 2,
+		alignments = 33,
+		max_chunk_size = 1500
+	};
 
 	/* check if microSD card is mounted */
 	struct stat buffer;
@@ -113,15 +116,16 @@ test_file(int argc, char *argv[])
 			printf("\n");
 			printf("----- alignment test: %u bytes -----\n", a);
 
-			uint8_t write_buf[chunk_sizes[c] + alignments] __attribute__((aligned(64)));
+			const size_t buffer_size = (size_t)chunk_sizes[c] + alignments;
+			uint8_t write_buf[max_chunk_size + alignments] __attribute__((aligned(64)));
 
 			/* fill write buffer with known values */
-			for (size_t i = 0; i < sizeof(write_buf); i++) {
+			for (size_t i = 0; i < buffer_size; i++) {
 				/* this will wrap, but we just need a known value with spacing */
 				write_buf[i] = i + 11;
 			}
 
-			uint8_t read_buf[chunk_sizes[c] + alignments] __attribute__((aligned(64)));
+			uint8_t read_buf[max_chunk_size + alignments] __attribute__((aligned(64)));
 			hrt_abstime start, end;
 
 			int fd = open(PX4_STORAGEDIR "/testfile", O_TRUNC | O_WRONLY | O_CREAT, 0600);
@@ -260,7 +264,7 @@ test_file(int argc, char *argv[])
 			bool unalign_read_ok = true;
 			int unalign_read_err_count = 0;
 
-			memset(read_buf, 0, sizeof(read_buf));
+			memset(read_buf, 0, buffer_size);
 
 			/* read back data unaligned */
 			for (unsigned i = 0; i < iterations; i++) {

@@ -45,10 +45,12 @@
 
 #include "tinybson.h"
 
+/* C99 variadic macro syntax — GCC's `args...` named-rest is rejected by
+ * MSVC (C2010 "'.' unexpected in macro parameter list"). */
 #if 0
-# define debug(fmt, args...)		do { PX4_INFO("BSON: " fmt, ##args); } while(0)
+# define debug(fmt, ...)		do { PX4_INFO("BSON: " fmt, ##__VA_ARGS__); } while(0)
 #else
-# define debug(fmt, args...)		do { } while(0)
+# define debug(fmt, ...)		do { (void)(fmt); } while(0)
 #endif
 
 #define CODER_CHECK(_c)		do { if ((_c)->dead) { PX4_ERR("coder dead"); return -1; }} while(0)

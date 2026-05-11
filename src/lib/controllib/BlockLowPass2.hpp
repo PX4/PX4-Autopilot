@@ -64,7 +64,7 @@ public:
 // methods
 	BlockLowPass2(SuperBlock *parent, const char *name, float sample_freq) :
 		Block(parent, name),
-		_state(0.0 / 0.0 /* initialize to invalid val, force into is_finite() check on first call */),
+		_state(NAN), // initialize to invalid val, force into is_finite() check on first call
 		_fCut(this, ""), // only one parameter, no need to name
 		_fs(sample_freq),
 		_lp(_fs, _fCut.get())

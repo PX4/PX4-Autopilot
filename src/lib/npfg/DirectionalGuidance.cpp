@@ -98,8 +98,7 @@ DirectionalGuidance::guideToPath(const Vector2f &curr_pos_local, const Vector2f 
 					   wind_cross_upt, airspeed, wind_speed, signed_track_error_, path_curvature) * feas_combined * track_proximity_;
 	course_sp_ = atan2f(bearing_vec_(1), bearing_vec_(0));
 
-	return DirectionalGuidanceOutput{.course_setpoint = course_sp_,
-					 .lateral_acceleration_feedforward = lateral_accel_ff_};
+	return DirectionalGuidanceOutput{course_sp_, lateral_accel_ff_};
 }
 
 float DirectionalGuidance::adaptPeriod(const float ground_speed, const float airspeed, const float wind_speed,
