@@ -48,6 +48,7 @@
 #include <drivers/drv_hrt.h>
 #include <lib/perf/perf_counter.h>
 #include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
+#include <lib/mathlib/math/filter/MedianFilter.hpp>
 #include <matrix/math.hpp>
 /* ST */
 #define SOFT_RESET                                          0x0000
@@ -101,7 +102,17 @@ class VL53L1X : public device::I2C, public I2CSPIDriver<VL53L1X>
 {
 public:
 	VL53L1X(const I2CSPIDriverConfig &config);
-
+	enum class RangeStatus : uint8_t {
+		Ok = 0,
+		SigmaFail = 1,
+		SignalFail = 2,
+		RangeValidMinRangeClipped = 3,
+		OutOfBounds = 4,
+		HardwareFail = 5,
+		RangeValidNoUpdate = 6,
+		Wraparound = 7,
+		RoiOutOfBounds = 13
+	};
 	~VL53L1X() override;
 
 	static void print_usage();
@@ -156,6 +167,10 @@ private:
 	int8_t VL53L1X_SetInterMeasurementInMs(uint32_t InterMeasurementInMs);
 	int8_t VL53L1X_SetROICenter(uint8_t data);
 	int8_t VL53L1X_SetROI(uint16_t x, uint16_t y);
+
+	math::MedianFilter<float, 3> _distance_filter;
+	int _status_error_count{0};
+	static constexpr int STATUS_HYSTERESIS_MAX = 3;
 	PX4Rangefinder    _px4_rangefinder;
 	Rotation _sensor_orientation{ROTATION_PITCH_270};
 	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com_err")};
