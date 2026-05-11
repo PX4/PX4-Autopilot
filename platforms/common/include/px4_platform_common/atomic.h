@@ -58,6 +58,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#if defined(_MSC_VER) && !defined(__clang__)
+# include <atomic>
+#endif
+
 #if defined(__PX4_NUTTX)
 # include <nuttx/irq.h>
 #endif // __PX4_NUTTX
@@ -73,7 +77,9 @@ public:
 #if defined(__PX4_POSIX)
 	// Ensure that all operations are lock-free, so that 'atomic' can be used from
 	// IRQ handlers. This might not be required everywhere though.
+# if !defined(_MSC_VER) || defined(__clang__)
 	static_assert(__atomic_always_lock_free(sizeof(T), 0), "atomic is not lock-free for the given type T");
+# endif
 #endif // __PX4_POSIX
 
 	atomic() = default;
@@ -95,7 +101,11 @@ public:
 		} else
 #endif // __PX4_NUTTX
 		{
+#if defined(_MSC_VER) && !defined(__clang__)
+			return _value.load(std::memory_order_seq_cst);
+#else
 			return __atomic_load_n(&_value, __ATOMIC_SEQ_CST);
+#endif
 		}
 	}
 
@@ -114,7 +124,11 @@ public:
 		} else
 #endif // __PX4_NUTTX
 		{
+#if defined(_MSC_VER) && !defined(__clang__)
+			_value.store(value, std::memory_order_seq_cst);
+#else
 			__atomic_store(&_value, &value, __ATOMIC_SEQ_CST);
+#endif
 		}
 	}
 
@@ -136,7 +150,11 @@ public:
 		} else
 #endif // __PX4_NUTTX
 		{
+#if defined(_MSC_VER) && !defined(__clang__)
+			return _value.fetch_add(num, std::memory_order_seq_cst);
+#else
 			return __atomic_fetch_add(&_value, num, __ATOMIC_SEQ_CST);
+#endif
 		}
 	}
 
@@ -158,7 +176,11 @@ public:
 		} else
 #endif // __PX4_NUTTX
 		{
+#if defined(_MSC_VER) && !defined(__clang__)
+			return _value.fetch_sub(num, std::memory_order_seq_cst);
+#else
 			return __atomic_fetch_sub(&_value, num, __ATOMIC_SEQ_CST);
+#endif
 		}
 	}
 
@@ -180,7 +202,11 @@ public:
 		} else
 #endif // __PX4_NUTTX
 		{
+#if defined(_MSC_VER) && !defined(__clang__)
+			return _value.fetch_and(num, std::memory_order_seq_cst);
+#else
 			return __atomic_fetch_and(&_value, num, __ATOMIC_SEQ_CST);
+#endif
 		}
 	}
 
@@ -202,7 +228,11 @@ public:
 		} else
 #endif // __PX4_NUTTX
 		{
+#if defined(_MSC_VER) && !defined(__clang__)
+			return _value.fetch_xor(num, std::memory_order_seq_cst);
+#else
 			return __atomic_fetch_xor(&_value, num, __ATOMIC_SEQ_CST);
+#endif
 		}
 	}
 
@@ -224,7 +254,11 @@ public:
 		} else
 #endif // __PX4_NUTTX
 		{
+#if defined(_MSC_VER) && !defined(__clang__)
+			return _value.fetch_or(num, std::memory_order_seq_cst);
+#else
 			return __atomic_fetch_or(&_value, num, __ATOMIC_SEQ_CST);
+#endif
 		}
 	}
 
@@ -246,7 +280,18 @@ public:
 		} else
 #endif // __PX4_NUTTX
 		{
+#if defined(_MSC_VER) && !defined(__clang__)
+			T expected = _value.load(std::memory_order_seq_cst);
+			T desired;
+
+			do {
+				desired = static_cast<T>(~(expected & num));
+			} while (!_value.compare_exchange_weak(expected, desired, std::memory_order_seq_cst, std::memory_order_seq_cst));
+
+			return expected;
+#else
 			return __atomic_fetch_nand(&_value, num, __ATOMIC_SEQ_CST);
+#endif
 		}
 	}
 
@@ -279,12 +324,20 @@ public:
 		} else
 #endif // __PX4_NUTTX
 		{
+#if defined(_MSC_VER) && !defined(__clang__)
+			return _value.compare_exchange_strong(*expected, desired, std::memory_order_seq_cst, std::memory_order_seq_cst);
+#else
 			return __atomic_compare_exchange(&_value, expected, &desired, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
+#endif
 		}
 	}
 
 private:
+#if defined(_MSC_VER) && !defined(__clang__)
+	std::atomic<T> _value {};
+#else
 	T _value {};
+#endif
 };
 
 using atomic_int = atomic<int>;

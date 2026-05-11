@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,95 +33,20 @@
 
 #pragma once
 
-#include "atomic.h"
+#include <string>
 
-namespace px4
+namespace px4::embedded_shell
 {
 
-template <size_t N>
-class AtomicBitset
-{
-public:
+// True when a real in-process shell backend is compiled into px4.exe.
+bool is_available();
 
-	AtomicBitset() = default;
+// Human-readable backend name for logs and diagnostics.
+const char *backend_name();
 
-	AtomicBitset(const AtomicBitset &other)
-	{
-		*this = other;
-	}
+// Execute the script in-process and return the shell exit status.
+int run_script(const std::string &script_path,
+	       const std::string &binary_dir,
+	       int instance);
 
-	AtomicBitset &operator=(const AtomicBitset &other)
-	{
-		if (this != &other) {
-			for (size_t i = 0; i < ARRAY_SIZE; i++) {
-				_data[i].store(other._data[i].load());
-			}
-		}
-
-		return *this;
-	}
-
-	size_t count() const
-	{
-		size_t total = 0;
-
-		for (const auto &x : _data) {
-			uint32_t y = x.load();
-
-			while (y) {
-				total += y & 1;
-				y >>= 1;
-			}
-		}
-
-		return total;
-	}
-
-	size_t size() const { return N; }
-
-	bool operator[](size_t position) const
-	{
-		if (position >= N) {
-			return false;
-		}
-
-		return _data[array_index(position)].load() & element_mask(position);
-	}
-
-	void set(size_t pos, bool val = true)
-	{
-		if (pos >= N) {
-			return;
-		}
-
-		const uint32_t bitmask = element_mask(pos);
-
-		if (val) {
-			_data[array_index(pos)].fetch_or(bitmask);
-
-		} else {
-			_data[array_index(pos)].fetch_and(~bitmask);
-		}
-	}
-
-	void reset()
-	{
-		// set bits to false
-		for (auto &d : _data) {
-			d.store(0);
-		}
-	}
-
-private:
-	static constexpr uint8_t BITS_PER_ELEMENT = 32;
-	static constexpr size_t ARRAY_SIZE = (N == 0) ? 1 :
-					     (((N % BITS_PER_ELEMENT) == 0) ? (N / BITS_PER_ELEMENT) : (N / BITS_PER_ELEMENT + 1));
-	static constexpr size_t ALLOCATED_BITS = ARRAY_SIZE * BITS_PER_ELEMENT;
-
-	size_t array_index(size_t position) const { return position / BITS_PER_ELEMENT; }
-	uint32_t element_mask(size_t position) const { return (1 << (position % BITS_PER_ELEMENT)); }
-
-	px4::atomic<uint32_t> _data[ARRAY_SIZE];
-};
-
-} // namespace px4
+} // namespace px4::embedded_shell

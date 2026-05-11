@@ -1,5 +1,7 @@
 #pragma once
 
+#include <visibility.h>
+
 #include <unistd.h>
 #include <sys/types.h>
 #include <time.h>
@@ -25,20 +27,25 @@ __END_DECLS
 
 #endif
 
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+#if defined(ENABLE_LOCKSTEP_SCHEDULER) || defined(__PX4_WINDOWS)
 
 __BEGIN_DECLS
 __EXPORT int px4_usleep(useconds_t usec);
 __EXPORT unsigned int px4_sleep(unsigned int seconds);
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
 __EXPORT int px4_pthread_cond_timedwait(pthread_cond_t *cond,
 					pthread_mutex_t *mutex,
 					const struct timespec *abstime);
+#endif
 __END_DECLS
 
 #else
 
 #define px4_usleep system_usleep
 #define px4_sleep system_sleep
-#define px4_pthread_cond_timedwait system_pthread_cond_timedwait
 
+#endif
+
+#if !defined(ENABLE_LOCKSTEP_SCHEDULER)
+#define px4_pthread_cond_timedwait system_pthread_cond_timedwait
 #endif

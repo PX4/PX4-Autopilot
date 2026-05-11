@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,98 +30,87 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+/**
+ * @file libgen.h
+ *
+ * basename()/dirname() helpers for Windows builds.
+ */
 
 #pragma once
 
-#include "atomic.h"
+#ifdef _WIN32
 
-namespace px4
+#include <string.h>
+
+/* This header is consumed from both C and C++ translation units. Provide a
+ * fall-back macro so the inline shim bodies below can spell `nullptr` while
+ * remaining valid in C, where `nullptr` is reserved before C23. */
+#if !defined(__cplusplus) && !defined(nullptr)
+#  define nullptr NULL
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/**
+ * @brief Return the final path component in place.
+ *
+ * Accepts both POSIX '/' and Windows '\\' separators. The returned pointer
+ * aliases @p path or points to a static "." literal for empty paths.
+ */
+static inline char *basename(char *path)
 {
+	if (!path || !*path) {
+		return (char *)".";
+	}
 
-template <size_t N>
-class AtomicBitset
+	char *last = path;
+
+	for (char *p = path; *p; ++p) {
+		if (*p == '/' || *p == '\\') {
+			last = p + 1;
+		}
+	}
+
+	return *last ? last : (char *)".";
+}
+
+/**
+ * @brief Replace the final path separator with NUL and return the directory.
+ *
+ * Accepts both POSIX '/' and Windows '\\' separators. The returned pointer
+ * aliases @p path or points to a static "." literal when no directory exists.
+ */
+static inline char *dirname(char *path)
 {
-public:
-
-	AtomicBitset() = default;
-
-	AtomicBitset(const AtomicBitset &other)
-	{
-		*this = other;
+	if (!path || !*path) {
+		return (char *)".";
 	}
 
-	AtomicBitset &operator=(const AtomicBitset &other)
-	{
-		if (this != &other) {
-			for (size_t i = 0; i < ARRAY_SIZE; i++) {
-				_data[i].store(other._data[i].load());
-			}
-		}
+	char *last = nullptr;
 
-		return *this;
-	}
-
-	size_t count() const
-	{
-		size_t total = 0;
-
-		for (const auto &x : _data) {
-			uint32_t y = x.load();
-
-			while (y) {
-				total += y & 1;
-				y >>= 1;
-			}
-		}
-
-		return total;
-	}
-
-	size_t size() const { return N; }
-
-	bool operator[](size_t position) const
-	{
-		if (position >= N) {
-			return false;
-		}
-
-		return _data[array_index(position)].load() & element_mask(position);
-	}
-
-	void set(size_t pos, bool val = true)
-	{
-		if (pos >= N) {
-			return;
-		}
-
-		const uint32_t bitmask = element_mask(pos);
-
-		if (val) {
-			_data[array_index(pos)].fetch_or(bitmask);
-
-		} else {
-			_data[array_index(pos)].fetch_and(~bitmask);
+	for (char *p = path; *p; ++p) {
+		if (*p == '/' || *p == '\\') {
+			last = p;
 		}
 	}
 
-	void reset()
-	{
-		// set bits to false
-		for (auto &d : _data) {
-			d.store(0);
-		}
+	if (!last) {
+		return (char *)".";
 	}
 
-private:
-	static constexpr uint8_t BITS_PER_ELEMENT = 32;
-	static constexpr size_t ARRAY_SIZE = (N == 0) ? 1 :
-					     (((N % BITS_PER_ELEMENT) == 0) ? (N / BITS_PER_ELEMENT) : (N / BITS_PER_ELEMENT + 1));
-	static constexpr size_t ALLOCATED_BITS = ARRAY_SIZE * BITS_PER_ELEMENT;
+	if (last == path) {
+		last[1] = '\0';
+		return path;
+	}
 
-	size_t array_index(size_t position) const { return position / BITS_PER_ELEMENT; }
-	uint32_t element_mask(size_t position) const { return (1 << (position % BITS_PER_ELEMENT)); }
+	*last = '\0';
+	return path;
+}
 
-	px4::atomic<uint32_t> _data[ARRAY_SIZE];
-};
+#ifdef __cplusplus
+}
+#endif
 
-} // namespace px4
+#endif /* _WIN32 */

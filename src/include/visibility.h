@@ -44,12 +44,52 @@
 #ifdef __EXPORT
 #  undef __EXPORT
 #endif
-#define __EXPORT __attribute__ ((visibility ("default")))
+#if defined(_MSC_VER) && !defined(__clang__)
+/* PX4 puts `__EXPORT` in postfix position on many declarations
+ * (e.g. `extern int foo(args) __EXPORT;`). GCC's
+ * `__attribute__((visibility("default")))` accepts that placement, but
+ * MSVC's `__declspec(dllexport)` does not — it's a parse error.
+ *
+ * For SITL on Windows everything ends up statically linked into
+ * px4.exe, so symbol-export visibility isn't load-bearing. The
+ * dyn_* `.px4mod` shared modules are the only consumers; they can be
+ * handled via `/DEF:` files or `--export-all-symbols`-equivalent. */
+#  define __EXPORT
+#else
+#  define __EXPORT __attribute__ ((visibility ("default")))
+#endif
 
 #ifdef __PRIVATE
 #  undef __PRIVATE
 #endif
-#define __PRIVATE __attribute__ ((visibility ("hidden")))
+#if defined(_MSC_VER) && !defined(__clang__)
+#  define __PRIVATE
+#else
+#  define __PRIVATE __attribute__ ((visibility ("hidden")))
+#endif
+
+#if defined(_MSC_VER) && !defined(__clang__) && !defined(__attribute__)
+#  define __attribute__(x)
+#endif
+
+#if defined(_MSC_VER) && !defined(__clang__)
+/* MSVC lacks GCC's `__builtin_*` family used throughout PX4. Map the
+ * floating-point classifiers to <math.h>'s C99 / std::math equivalents and
+ * neutralize the optimization-hint builtins that have no MSVC parallel. */
+#  include <math.h>
+#  ifdef __cplusplus
+#    include <cmath>
+#    define __builtin_isfinite(x) std::isfinite(x)
+#    define __builtin_isnan(x)    std::isnan(x)
+#    define __builtin_isinf(x)    std::isinf(x)
+#  else
+#    define __builtin_isfinite(x) isfinite(x)
+#    define __builtin_isnan(x)    isnan(x)
+#    define __builtin_isinf(x)    isinf(x)
+#  endif
+#  define __builtin_expect(expr, expected) (expr)
+#  define __builtin_unreachable()          __assume(0)
+#endif
 
 #ifdef __cplusplus
 #  define __BEGIN_DECLS		extern "C" {

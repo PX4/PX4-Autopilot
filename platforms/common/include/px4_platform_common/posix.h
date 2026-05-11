@@ -117,7 +117,7 @@ __EXPORT int 		px4_open(const char *path, int flags, ...);
 __EXPORT int 		px4_close(int fd);
 __EXPORT ssize_t	px4_read(int fd, void *buffer, size_t buflen);
 __EXPORT ssize_t	px4_write(int fd, const void *buffer, size_t buflen);
-__EXPORT int		px4_ioctl(int fd, int cmd, unsigned long arg);
+__EXPORT int		px4_ioctl(int fd, int cmd, uintptr_t arg);
 __EXPORT int		px4_poll(px4_pollfd_struct_t *fds, unsigned int nfds, int timeout);
 __EXPORT int		px4_access(const char *pathname, int mode);
 __EXPORT px4_task_t	px4_getpid(void);
@@ -131,7 +131,14 @@ __END_DECLS
 // we often run out of stack space when pointers are larger than 4 bytes.
 // Double the stack size on posix when we're on a 64-bit architecture.
 // Most full-scale OS use 1-4K of memory from the stack themselves
-#define PX4_STACK_ADJUSTED(_s) (_s * (__SIZEOF_POINTER__ >> 2) + PX4_STACK_OVERHEAD)
+#ifndef __SIZEOF_POINTER__
+#  if defined(_WIN64) || (defined(_MSC_VER) && defined(_M_X64))
+#    define __SIZEOF_POINTER__ 8
+#  else
+#    define __SIZEOF_POINTER__ 4
+#  endif
+#endif
+#define PX4_STACK_ADJUSTED(_s) ((_s) * (__SIZEOF_POINTER__ >> 2) + PX4_STACK_OVERHEAD)
 
 __BEGIN_DECLS
 
