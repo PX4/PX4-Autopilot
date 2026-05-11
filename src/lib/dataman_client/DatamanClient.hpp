@@ -173,6 +173,7 @@ private:
 	/* Synchronous response/request handler */
 	bool syncHandler(const dataman_request_s &request, dataman_response_s &response,
 			 const hrt_abstime &start_time, hrt_abstime timeout);
+	bool updateClientId(hrt_abstime timeout);
 
 	State _state{State::Idle};
 	Request _active_request{};

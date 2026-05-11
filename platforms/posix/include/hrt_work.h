@@ -41,6 +41,9 @@
 __BEGIN_DECLS
 
 extern px4_sem_t _hrt_work_lock;
+#if defined(__PX4_WINDOWS)
+extern px4_sem_t _hrt_work_signal;
+#endif
 extern struct wqueue_s g_hrt_work;
 
 void hrt_work_queue_init(void);

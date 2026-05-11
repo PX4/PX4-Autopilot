@@ -106,6 +106,7 @@
 int hrt_work_queue(struct work_s *work, worker_t worker, void *arg, uint32_t delay)
 {
 	struct wqueue_s *wqueue = &g_hrt_work;
+	const int wake_worker = (px4_getpid() != wqueue->pid);
 
 	/* First, initialize the work structure */
 
@@ -124,9 +125,18 @@ int hrt_work_queue(struct work_s *work, worker_t worker, void *arg, uint32_t del
 
 	dq_addlast(&work->dq, &wqueue->q);
 
-	if (px4_getpid() != wqueue->pid) { /* only need to wake up if called from a different thread */
+	if (wake_worker) { /* only need to wake up if called from a different thread */
 		//wqueue->pid == own task? -> don't signal
+#if defined(__PX4_WINDOWS)
+		int sem_val;
+
+		if (px4_sem_getvalue(&_hrt_work_signal, &sem_val) == 0 && sem_val <= 0) {
+			px4_sem_post(&_hrt_work_signal);
+		}
+
+#else
 		px4_task_kill(wqueue->pid, SIGCONT);      /* Wake up the worker thread */
+#endif
 	}
 
 	hrt_work_unlock();

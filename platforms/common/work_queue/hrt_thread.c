@@ -73,6 +73,9 @@ struct wqueue_s g_hrt_work;
  * Private Variables
  ****************************************************************************/
 px4_sem_t _hrt_work_lock;
+#if defined(__PX4_WINDOWS)
+px4_sem_t _hrt_work_signal;
+#endif
 
 /****************************************************************************
  * Private Functions
@@ -223,13 +226,17 @@ static void hrt_work_process(void)
 	}
 
 	/* Wait awhile to check the work list.  We will wait here until either
-	 * the time elapses or until we are awakened by a signal.
+	 * the time elapses or until a newly queued item wakes us.
 	 */
 	hrt_work_unlock();
 
-	/* might sleep less if a signal received and new item was queued */
-	//PX4_INFO("Sleeping for %u usec", next);
+#if defined(__PX4_WINDOWS)
+	struct timespec ts;
+	abstime_to_ts(&ts, hrt_absolute_time() + next);
+	px4_sem_timedwait(&_hrt_work_signal, &ts);
+#else
 	px4_usleep(next);
+#endif
 }
 
 /****************************************************************************
@@ -286,6 +293,10 @@ static int work_hrtthread(int argc, char *argv[])
 void hrt_work_queue_init(void)
 {
 	px4_sem_init(&_hrt_work_lock, 0, 1);
+#if defined(__PX4_WINDOWS)
+	px4_sem_init(&_hrt_work_signal, 0, 0);
+	px4_sem_setprotocol(&_hrt_work_signal, SEM_PRIO_NONE);
+#endif
 	memset(&g_hrt_work, 0, sizeof(g_hrt_work));
 
 	// Create high priority worker thread

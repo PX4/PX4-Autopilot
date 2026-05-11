@@ -31,6 +31,9 @@ public:
 		ls.set_absolute_time(ls.get_absolute_time());
 		_thread.join();
 	}
+
+	bool done() const { return _done; }
+
 private:
 	void execute()
 	{
@@ -116,6 +119,54 @@ void test_locked_semaphore_getting_unlocked()
 	pthread_mutex_unlock(&lock);
 
 	thread.join(ls);
+
+	pthread_mutex_destroy(&lock);
+	pthread_cond_destroy(&cond);
+}
+
+void test_condition_signal_wakes_without_time_advance()
+{
+	pthread_cond_t cond;
+	pthread_cond_init(&cond, nullptr);
+
+	pthread_mutex_t lock;
+	pthread_mutex_init(&lock, nullptr);
+
+	LockstepScheduler ls;
+	ls.set_absolute_time(some_time_us);
+
+	std::atomic<bool> waiting{false};
+	std::atomic<int> result{EINVAL};
+
+	TestThread thread([&]() {
+		pthread_mutex_lock(&lock);
+		waiting = true;
+		result = ls.cond_timedwait(&cond, &lock, some_time_us + 1000000);
+		pthread_mutex_unlock(&lock);
+	});
+
+	while (!waiting) {
+		std::this_thread::yield();
+	}
+
+	pthread_mutex_lock(&lock);
+	EXPECT_EQ(pthread_cond_signal(&cond), 0);
+	pthread_mutex_unlock(&lock);
+
+	const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(1);
+
+	while (!thread.done() && std::chrono::steady_clock::now() < deadline) {
+		std::this_thread::yield();
+	}
+
+	EXPECT_TRUE(thread.done());
+
+	if (!thread.done()) {
+		ls.set_absolute_time(some_time_us + 1000001);
+	}
+
+	thread.join(ls);
+	EXPECT_EQ(result, 0);
 
 	pthread_mutex_destroy(&lock);
 	pthread_cond_destroy(&cond);
@@ -314,6 +365,7 @@ TEST(LockstepScheduler, All)
 		test_absolute_time();
 		test_condition_timing_out();
 		test_locked_semaphore_getting_unlocked();
+		test_condition_signal_wakes_without_time_advance();
 		test_usleep();
 		test_multiple_semaphores_waiting();
 	}

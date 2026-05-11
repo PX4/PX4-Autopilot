@@ -149,9 +149,12 @@ static inline hrt_abstime ts_to_abstime(const struct timespec *ts)
  */
 static inline void abstime_to_ts(struct timespec *ts, hrt_abstime abstime)
 {
-	ts->tv_sec = (typeof(ts->tv_sec))(abstime / 1000000);
+	/* POSIX guarantees `time_t tv_sec` and `long tv_nsec`. Use explicit
+	 * casts instead of GCC's `typeof` so this header parses under MSVC C,
+	 * which lacks `typeof` outside the C23 mode we don't enable. */
+	ts->tv_sec = (time_t)(abstime / 1000000);
 	abstime -= (hrt_abstime)(ts->tv_sec) * 1000000;
-	ts->tv_nsec = (typeof(ts->tv_nsec))(abstime * 1000);
+	ts->tv_nsec = (long)(abstime * 1000);
 }
 
 /**

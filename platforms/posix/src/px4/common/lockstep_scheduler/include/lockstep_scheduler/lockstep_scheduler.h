@@ -38,15 +38,26 @@
 #include <vector>
 #include <memory>
 #include <atomic>
+
+#if defined(__PX4_WINDOWS) || defined(_WIN32)
+#ifndef PX4_WINDOWS_PTHREAD_LOCKSTEP_BRIDGE
+#define PX4_WINDOWS_PTHREAD_LOCKSTEP_BRIDGE 1
+#endif
+#endif
+
 #include <pthread.h>
 #include <unistd.h>
+
+#if defined(__PX4_WINDOWS) || defined(_WIN32)
+#include <windows.h>
+#endif
 
 #include "lockstep_components.h"
 
 class LockstepScheduler
 {
 public:
-	LockstepScheduler(bool no_cleanup_on_destroy = false) : _components(no_cleanup_on_destroy) {}
+	LockstepScheduler(bool no_cleanup_on_destroy = false);
 	~LockstepScheduler();
 
 	void set_absolute_time(uint64_t time_us);
@@ -56,8 +67,22 @@ public:
 
 	LockstepComponents &components() { return _components; }
 
+#if defined(__PX4_WINDOWS) || defined(_WIN32)
+	static void notify_pthread_condition(pthread_cond_t *cond, bool broadcast);
+#endif
+
 private:
 	struct TimedWait {
+#if defined(__PX4_WINDOWS) || defined(_WIN32)
+		// Windows: use native CONDITION_VARIABLE + SRWLOCK for the producer
+		// signaling path. winpthreads is known to occasionally drop
+		// pthread_cond_broadcast wakes; WakeAllConditionVariable is kernel-
+		// managed and never loses a wake. SRWLOCK and CONDITION_VARIABLE are
+		// trivially zero-initialised and have no destroy step (no kernel
+		// handle to leak).
+		SRWLOCK            wait_lock{SRWLOCK_INIT};
+		CONDITION_VARIABLE wait_cond{CONDITION_VARIABLE_INIT};
+#endif
 		~TimedWait()
 		{
 			if (!done) {
@@ -87,13 +112,20 @@ private:
 		pthread_mutex_t *passed_lock{nullptr};
 		uint64_t time_us{0};
 		bool timeout{false};
-		std::atomic<bool> done{false};
+#if defined(__PX4_WINDOWS) || defined(_WIN32)
+		bool signaled {false};
+#endif
+		std::atomic<bool> done {false};
 		std::atomic<bool> removed{true};
 
 		TimedWait *next{nullptr}; ///< linked list
 	};
 
 	LockstepComponents _components;
+
+#if defined(__PX4_WINDOWS) || defined(_WIN32)
+	bool notify_pthread_condition_locked(pthread_cond_t *cond, bool broadcast);
+#endif
 
 	std::atomic<uint64_t> _time_us{0};
 
