@@ -54,10 +54,25 @@ inline static param_t param_handle(px4::params p)
 }
 
 
+namespace do_not_explicitly_use_this_namespace
+{
+struct ParameterGroupInfo {
+	const char *name;
+	const char *availability;
+};
+} /* namespace do_not_explicitly_use_this_namespace */
 
+
+#define PARAMETER_GROUP_ALWAYS "always"
+#define PARAMETER_GROUP_FEATURE(feature) "defined(" #feature ")"
+#define PARAMETER_GROUP_CONDITION(condition) #condition
+
+
+#define _DEFINE_SINGLE_PARAMETER_EXPAND(type, name) \
+	do_not_explicitly_use_this_namespace::type name;
 
 #define _DEFINE_SINGLE_PARAMETER(x) \
-	do_not_explicitly_use_this_namespace::PAIR(x);
+	_DEFINE_SINGLE_PARAMETER_EXPAND(TYPEOF(x), STRIP(x))
 
 #define _CALL_UPDATE(x) \
 	STRIP(x).update();
@@ -94,6 +109,70 @@ inline static param_t param_handle(px4::params p)
 	APPLY_ALL(_DEFINE_SINGLE_PARAMETER, __VA_ARGS__) \
 	_DEFINE_PARAMETER_UPDATE_METHOD_CUSTOM_PARENT(parent_class, __VA_ARGS__)
 
+
+// Define a list of named parameter groups. Availability is required metadata
+// emitted as compile-time class information; declaration/update generation
+// consumes the parameter list from each group.
+#define DEFINE_PARAMETER_GROUP(name, availability, ...) (enabled, name, availability, (__VA_ARGS__))
+#define _DEFINE_PARAMETER_GROUP_DISABLED(name, availability) (disabled, name, availability, ())
+
+#define DEFINE_PARAMETER_GROUP_IF_ENABLED(feature, name, availability, ...) \
+	PX4_PP_IF(PX4_PP_IS_ENABLED(feature))( \
+					       DEFINE_PARAMETER_GROUP(name, availability, __VA_ARGS__), \
+					       _DEFINE_PARAMETER_GROUP_DISABLED(name, availability))
+
+#define DEFINE_PARAMETER_GROUP_UNLESS_ENABLED(feature, name, availability, ...) \
+	PX4_PP_IF(PX4_PP_IS_ENABLED(feature))( \
+					       _DEFINE_PARAMETER_GROUP_DISABLED(name, availability), \
+					       DEFINE_PARAMETER_GROUP(name, availability, __VA_ARGS__))
+
+#define DEFINE_PARAMETER_GROUP_IF_ALL2(feature1, feature2, name, availability, ...) \
+	PX4_PP_IF(PX4_PP_AND2(PX4_PP_IS_ENABLED(feature1), PX4_PP_IS_ENABLED(feature2)))( \
+			DEFINE_PARAMETER_GROUP(name, availability, __VA_ARGS__), \
+			_DEFINE_PARAMETER_GROUP_DISABLED(name, availability))
+
+#define DEFINE_PARAMETER_GROUP_IF_ANY3(feature1, feature2, feature3, name, availability, ...) \
+	PX4_PP_IF(PX4_PP_OR3(PX4_PP_IS_ENABLED(feature1), PX4_PP_IS_ENABLED(feature2), PX4_PP_IS_ENABLED(feature3)))( \
+			DEFINE_PARAMETER_GROUP(name, availability, __VA_ARGS__), \
+			_DEFINE_PARAMETER_GROUP_DISABLED(name, availability))
+
+#define _DEFINE_PARAMETER_GROUP_DECLARATIONS(group) \
+	_DEFINE_PARAMETER_GROUP_DECLARATIONS_IMPL group
+#define _DEFINE_PARAMETER_GROUP_DECLARATIONS_IMPL(state, name, availability, parameters) \
+	_DEFINE_PARAMETER_GROUP_DECLARATIONS_ ## state(name, availability, parameters)
+#define _DEFINE_PARAMETER_GROUP_DECLARATIONS_enabled(name, availability, parameters) \
+	APPLY_ALL(_DEFINE_SINGLE_PARAMETER, REM parameters)
+#define _DEFINE_PARAMETER_GROUP_DECLARATIONS_disabled(name, availability, parameters)
+
+#define _DEFINE_PARAMETER_GROUP_INFO(group) \
+	_DEFINE_PARAMETER_GROUP_INFO_IMPL group
+#define _DEFINE_PARAMETER_GROUP_INFO_IMPL(state, name, availability, parameters) \
+	_DEFINE_PARAMETER_GROUP_INFO_ ## state(name, availability, parameters)
+#define _DEFINE_PARAMETER_GROUP_INFO_enabled(name, availability, parameters) \
+	{ #name, availability },
+#define _DEFINE_PARAMETER_GROUP_INFO_disabled(name, availability, parameters)
+
+#define _CALL_UPDATE_GROUP(group) \
+	_CALL_UPDATE_GROUP_IMPL group
+#define _CALL_UPDATE_GROUP_IMPL(state, name, availability, parameters) \
+	_CALL_UPDATE_GROUP_ ## state(name, availability, parameters)
+#define _CALL_UPDATE_GROUP_enabled(name, availability, parameters) \
+	APPLY_ALL(_CALL_UPDATE, REM parameters)
+#define _CALL_UPDATE_GROUP_disabled(name, availability, parameters)
+
+#define _DEFINE_PARAMETER_UPDATE_METHOD_GROUPED(...) \
+	protected: \
+	void updateParamsImpl() final { \
+		APPLY_ALL_GROUPS(_CALL_UPDATE_GROUP, __VA_ARGS__) \
+	} \
+	private:
+
+#define DEFINE_PARAMETERS_GROUPED(...) \
+	APPLY_ALL_GROUPS(_DEFINE_PARAMETER_GROUP_DECLARATIONS, __VA_ARGS__) \
+	inline static constexpr do_not_explicitly_use_this_namespace::ParameterGroupInfo _px4_parameter_groups[] { \
+		APPLY_ALL_GROUPS(_DEFINE_PARAMETER_GROUP_INFO, __VA_ARGS__) \
+	}; \
+	_DEFINE_PARAMETER_UPDATE_METHOD_GROUPED(__VA_ARGS__)
 
 
 // This namespace never needs to be used directly. Use the DEFINE_PARAMETERS_CUSTOM_PARENT and

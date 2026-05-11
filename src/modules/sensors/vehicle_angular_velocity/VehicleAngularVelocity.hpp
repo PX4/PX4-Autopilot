@@ -181,20 +181,23 @@ private:
 	perf_counter_t _filter_reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro filter reset")};
 	perf_counter_t _selection_changed_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro selection changed")};
 
-	DEFINE_PARAMETERS(
-#if !defined(CONSTRAINED_FLASH)
-		(ParamInt<px4::params::IMU_GYRO_DNF_EN>) _param_imu_gyro_dnf_en,
-		(ParamInt<px4::params::IMU_GYRO_DNF_HMC>) _param_imu_gyro_dnf_hmc,
-		(ParamFloat<px4::params::IMU_GYRO_DNF_BW>) _param_imu_gyro_dnf_bw,
-		(ParamFloat<px4::params::IMU_GYRO_DNF_MIN>) _param_imu_gyro_dnf_min,
-#endif // !CONSTRAINED_FLASH
-		(ParamFloat<px4::params::IMU_GYRO_CUTOFF>) _param_imu_gyro_cutoff,
-		(ParamFloat<px4::params::IMU_GYRO_NF0_FRQ>) _param_imu_gyro_nf0_frq,
-		(ParamFloat<px4::params::IMU_GYRO_NF0_BW>) _param_imu_gyro_nf0_bw,
-		(ParamFloat<px4::params::IMU_GYRO_NF1_FRQ>) _param_imu_gyro_nf1_frq,
-		(ParamFloat<px4::params::IMU_GYRO_NF1_BW>) _param_imu_gyro_nf1_bw,
-		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _param_imu_gyro_ratemax,
-		(ParamFloat<px4::params::IMU_DGYRO_CUTOFF>) _param_imu_dgyro_cutoff
+	DEFINE_PARAMETERS_GROUPED(
+		DEFINE_PARAMETER_GROUP_UNLESS_ENABLED(CONSTRAINED_FLASH, dynamic_notch_filter,
+				PARAMETER_GROUP_CONDITION(!defined(CONSTRAINED_FLASH)),
+				(ParamInt<px4::params::IMU_GYRO_DNF_EN>) _param_imu_gyro_dnf_en,
+				(ParamInt<px4::params::IMU_GYRO_DNF_HMC>) _param_imu_gyro_dnf_hmc,
+				(ParamFloat<px4::params::IMU_GYRO_DNF_BW>) _param_imu_gyro_dnf_bw,
+				(ParamFloat<px4::params::IMU_GYRO_DNF_MIN>) _param_imu_gyro_dnf_min
+						     ),
+		DEFINE_PARAMETER_GROUP(gyro_filtering, PARAMETER_GROUP_ALWAYS,
+				       (ParamFloat<px4::params::IMU_GYRO_CUTOFF>) _param_imu_gyro_cutoff,
+				       (ParamFloat<px4::params::IMU_GYRO_NF0_FRQ>) _param_imu_gyro_nf0_frq,
+				       (ParamFloat<px4::params::IMU_GYRO_NF0_BW>) _param_imu_gyro_nf0_bw,
+				       (ParamFloat<px4::params::IMU_GYRO_NF1_FRQ>) _param_imu_gyro_nf1_frq,
+				       (ParamFloat<px4::params::IMU_GYRO_NF1_BW>) _param_imu_gyro_nf1_bw,
+				       (ParamInt<px4::params::IMU_GYRO_RATEMAX>) _param_imu_gyro_ratemax,
+				       (ParamFloat<px4::params::IMU_DGYRO_CUTOFF>) _param_imu_dgyro_cutoff
+				      )
 	)
 };
 

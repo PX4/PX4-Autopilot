@@ -249,16 +249,21 @@ private:
 	uint8_t _n_optical_flow{0};
 #endif // CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW
 
-	DEFINE_PARAMETERS(
-#if defined(CONFIG_SENSORS_VEHICLE_AIR_DATA)
-		(ParamBool<px4::params::SYS_HAS_BARO>) _param_sys_has_baro,
-#endif // CONFIG_SENSORS_VEHICLE_AIR_DATA
-#if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
-		(ParamBool<px4::params::SYS_HAS_GPS>) _param_sys_has_gps,
-#endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
-#if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
-		(ParamInt<px4::params::SYS_HAS_MAG>) _param_sys_has_mag,
-#endif // CONFIG_SENSORS_VEHICLE_MAGNETOMETER
-		(ParamBool<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode
+	DEFINE_PARAMETERS_GROUPED(
+		DEFINE_PARAMETER_GROUP_IF_ENABLED(CONFIG_SENSORS_VEHICLE_AIR_DATA, vehicle_air_data,
+				PARAMETER_GROUP_FEATURE(CONFIG_SENSORS_VEHICLE_AIR_DATA),
+				(ParamBool<px4::params::SYS_HAS_BARO>) _param_sys_has_baro
+						 ),
+		DEFINE_PARAMETER_GROUP_IF_ENABLED(CONFIG_SENSORS_VEHICLE_GPS_POSITION, vehicle_gps_position,
+				PARAMETER_GROUP_FEATURE(CONFIG_SENSORS_VEHICLE_GPS_POSITION),
+				(ParamBool<px4::params::SYS_HAS_GPS>) _param_sys_has_gps
+						 ),
+		DEFINE_PARAMETER_GROUP_IF_ENABLED(CONFIG_SENSORS_VEHICLE_MAGNETOMETER, vehicle_magnetometer,
+				PARAMETER_GROUP_FEATURE(CONFIG_SENSORS_VEHICLE_MAGNETOMETER),
+				(ParamInt<px4::params::SYS_HAS_MAG>) _param_sys_has_mag
+						 ),
+		DEFINE_PARAMETER_GROUP(imu_mode, PARAMETER_GROUP_ALWAYS,
+				       (ParamBool<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode
+				      )
 	)
 };

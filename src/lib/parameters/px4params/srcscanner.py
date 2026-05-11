@@ -35,7 +35,7 @@ class SourceScanner(object):
         parser.Parse method.
         """
 
-        with codecs.open(path, 'r', 'utf-8') as f:
+        with codecs.open(path, 'r', 'utf-8', errors='replace') as f:
             try:
                 contents = f.read()
             except:
