@@ -69,6 +69,9 @@ class Runner:
     def has_started_ok(self) -> bool:
         return True
 
+    def ready_to_start(self) -> bool:
+        return True
+
     def process_output(self) -> None:
         assert self.process.stdout is not None
         while True:
@@ -166,6 +169,8 @@ class Px4Runner(Runner):
                 "etc/init.d-posix/rcS",
                 "-t",
                 os.path.join(workspace_dir, "test_data"),
+                "-w",
+                self.cwd,
                 "-d"
             ]
         self.env["PX4_SIM_MODEL"] = "gazebo-classic_" + self.model
@@ -377,7 +382,11 @@ class TestRunnerMavsdk(Runner):
                      "--speed-factor", str(speed_factor),
                      case]
 
+
 class TestRunnerRos(Runner):
+    _PX4_ROS2_READY_TIMEOUT_S = 30
+    _PX4_ROS2_READY_MARKER = "successfully created rt/fmu/out/vehicle_status"
+
     def __init__(self,
                  workspace_dir: str,
                  log_dir: str,
@@ -394,6 +403,44 @@ class TestRunnerRos(Runner):
                          ros_package_build_dir,
                          "integration_tests"),
                      "--gtest_filter="+case, "--gtest_color=yes"]
+
+    def ready_to_start(self) -> bool:
+        px4_log_filename = os.path.join(self.log_dir, "log-px4.log")
+        deadline = time.time() + self._PX4_ROS2_READY_TIMEOUT_S
+        offset = 0
+
+        if self.verbose:
+            print("Waiting for PX4 ROS 2 vehicle_status publisher")
+
+        while time.time() < deadline:
+            try:
+                with open(px4_log_filename, 'r') as px4_log:
+                    px4_log.seek(offset)
+
+                    for line in px4_log:
+                        if self._PX4_ROS2_READY_MARKER in line:
+                            if self.verbose:
+                                print("PX4 ROS 2 vehicle_status publisher "
+                                      "is ready")
+                            return True
+
+                        if "PX4 Exiting" in line:
+                            print("PX4 exited before ROS 2 vehicle_status "
+                                  "publisher was ready")
+                            return False
+
+                    offset = px4_log.tell()
+
+            except FileNotFoundError:
+                pass
+
+            time.sleep(0.1)
+
+        message = ("Timed out waiting {}s for PX4 ROS 2 vehicle_status "
+                   "publisher in {}").format(
+                       self._PX4_ROS2_READY_TIMEOUT_S, px4_log_filename)
+        print(message)
+        return False
 
     def get_output_line(self) -> Optional[str]:
         line = super().get_output_line()
