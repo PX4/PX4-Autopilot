@@ -131,6 +131,10 @@ To install ROS 2 and its dependencies:
 
    ::::
 
+   ::: info
+   **Windows native users:** the Ubuntu `apt` recipe above does not apply. ROS 2 on Windows ships as a Pixi/`conda-forge` bundle; install it with the bundled helper [`Tools/setup/ros2_pixi_setup.ps1`](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/setup/ros2_pixi_setup.ps1) — defaults to Jazzy LTS, pass `-Distro rolling` or `-Distro latest` to pick a newer release — and activate it via `$env:TEMP\activate_ros2.ps1` (or `activate_ros2_<distro>.ps1`). See [Windows Native Development Environment > ROS 2 Setup on Windows Native](../dev_setup/dev_env_windows_native.md#ros-2-setup-on-windows-native) for the full walkthrough.
+   :::
+
 1. Some Python dependencies must also be installed (using **`pip`** or **`apt`**):
 
    ```sh
@@ -145,6 +149,10 @@ For ROS 2 to communicate with PX4, [uXRCE-DDS client](../modules/modules_system.
 
 The agent can be installed onto the companion computer in a [number of ways](../middleware/uxrce_dds.md#micro-xrce-dds-agent-installation).
 Below we show how to build the agent "standalone" from source and connect to a client running on the PX4 simulator.
+
+::: info Windows native
+The Linux `cmake .. && make && sudo make install` recipe below does not apply on Windows. Build `MicroXRCEAgent.exe` with the two-stage MSVC recipe in [Windows Native Development Environment > Building the Micro-XRCE-DDS Agent](../dev_setup/dev_env_windows_native.md#building-the-micro-xrce-dds-agent-optional-for-ros-2-dds-bridging) and run it from PowerShell with `fastcdr-2.2.dll` / `fastdds-3.6.dll` co-located on `PATH`.
+:::
 
 To setup and start the agent:
 
@@ -232,6 +240,10 @@ The micro XRCE-DDS agent terminal should also start to show output, as equivalen
 ### Build ROS 2 Workspace
 
 This section shows how to create a ROS 2 workspace hosted in your home directory (modify the commands as needed to put the source code elsewhere).
+
+::: info Windows native
+On Windows replace `source /opt/ros/<distro>/setup.bash` with `. $env:TEMP\activate_ros2.ps1 -WithVcvars` before running `colcon build` — `conda-forge` ships no MSVC, so `colcon` needs `vcvars64.bat` sourced in the same shell. See [Windows Native Development Environment > ROS 2 Setup on Windows Native](../dev_setup/dev_env_windows_native.md#ros-2-setup-on-windows-native).
+:::
 
 The [px4_ros_com](https://github.com/PX4/px4_ros_com) and [px4_msgs](https://github.com/PX4/px4_msgs) packages are cloned to a workspace folder, and then the `colcon` tool is used to build the workspace.
 The example is run using `ros2 launch`.

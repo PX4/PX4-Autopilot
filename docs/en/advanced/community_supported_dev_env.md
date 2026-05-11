@@ -18,6 +18,7 @@ Questions about these tools should be raised on the [discussion forums](../contr
   - [Windows VM Toolchain](../dev_setup/dev_env_windows_vm.md) — Ubuntu setup running in VM on Windows.
   - [Windows Cygwin Toolchain](../dev_setup/dev_env_windows_cygwin.md) — Windows setup only works to PX4 v1.12
     - [Windows Cygwin Toolchain Maintenance](../dev_setup/dev_env_windows_cygwin_packager_setup.md)
+  - [Windows Native (CMD/PowerShell)](../dev_setup/dev_env_windows_native.md) — Native Windows 10/11 SITL build using MSVC or MinGW-w64.
 - IDEs
   - [Qt Creator IDE](../dev_setup/qtcreator.md)
 - [Simulators](../simulation/community_supported_simulators.md) — [Simulation-In-Hardware](../sim_sih/index.md), [FlightGear](../sim_flightgear/index.md), [JSBSim](../sim_jsbsim/index.md), [AirSim](../sim_airsim/index.md), [HITL](../simulation/hitl.md)

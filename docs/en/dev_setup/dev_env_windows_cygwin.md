@@ -5,7 +5,7 @@ This development environment is [community supported and maintained](../advanced
 It may or may not work with current versions of PX4.
 
 The toolchain was previously recommended, but does not work with PX4 v1.12 and later due to packaging issues.
-The [Windows WSL2-Based Development Environment](../dev_setup/dev_env_windows_wsl.md) should be used by preference.
+The [Windows WSL2-Based Development Environment](../dev_setup/dev_env_windows_wsl.md) should be used by preference, or the [Windows Native (CMD/PowerShell)](../dev_setup/dev_env_windows_native.md) toolchain for SIH SITL or NuttX hardware builds without WSL.
 
 See [Toolchain Installation](../dev_setup/dev_env.md) for information about the environments and tools supported by the core development team.
 :::

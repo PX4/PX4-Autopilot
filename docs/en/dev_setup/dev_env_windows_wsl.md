@@ -2,6 +2,10 @@
 
 The following instructions explain how to set up a PX4 development environment on Windows 10 or 11, running on Ubuntu Linux within [WSL2](https://learn.microsoft.com/en-us/windows/wsl/about).
 
+::: info
+For a non-WSL build that produces a native `px4.exe` from CMD or PowerShell — limited to [SIH](../sim_sih/index.md) for SITL — see [Windows Native (CMD/PowerShell)](../dev_setup/dev_env_windows_native.md).
+:::
+
 This environment can be used to build PX4 for:
 
 - [Pixhawk and other NuttX-based hardware](../dev_setup/building_px4.md#nuttx-pixhawk-based-boards)
@@ -33,7 +37,7 @@ _QGroundControl for Windows_ is additionally required if you need to:
   Note that you can also use it to monitor a simulation, but you must manually [connect to the simulation running in WSL](#qgroundcontrol-on-windows).
 
 ::: info
-Connecting to an USB device from within WSL is not natively supported, however it can still be achieved by using the [USBIPD-WIN](https://learn.microsoft.com/en-us/windows/wsl/connect-usb) project. With this you can automatically upload firmware from the command line in WSL using the [`upload`](../dev_setup/building_px4.md#uploading-firmware-flashing-the-board) function.
+Connecting to a USB device from within WSL is not natively supported, however it can still be achieved by using the [USBIPD-WIN](https://learn.microsoft.com/en-us/windows/wsl/connect-usb) project. With this you can automatically upload firmware from the command line in WSL using the [`upload`](../dev_setup/building_px4.md#uploading-firmware-flashing-the-board) function.
 :::
 
 ::: info
@@ -47,8 +51,8 @@ The benefit of WSL2 is that its virtual machine is deeply integrated into Window
 
 To install WSL2 with Ubuntu on a new installation of Windows 10 or 11:
 
-1. Make sure your computer your computer's virtualization feature is enabled in the BIOS.
-   It's usually referred as "Virtualization Technology", "Intel VT-x" or "AMD-V" respectively
+1. Make sure your computer's virtualization feature is enabled in the BIOS.
+   It's usually referred to as "Virtualization Technology", "Intel VT-x" or "AMD-V".
 1. Open _cmd.exe_ as administrator.
    This can be done by pressing the start key, typing `cmd`, right-clicking on the _Command prompt_ entry and selecting **Run as administrator**.
 1. Execute the following commands to install WSL2 and a particular Ubuntu version:
@@ -71,7 +75,7 @@ To install WSL2 with Ubuntu on a new installation of Windows 10 or 11:
      ```
 
    ::: info
-   You can also [Ubuntu 24.04](https://www.microsoft.com/store/productId/9nz3klhxdjp5) or [Ubuntu 22.04](https://www.microsoft.com/store/productId/9PN20MSR04DW) from Microsoft Store, which allows you to delete the application using the normal Windows Add/Remove settings.
+   You can also install [Ubuntu 24.04](https://www.microsoft.com/store/productId/9nz3klhxdjp5) or [Ubuntu 22.04](https://www.microsoft.com/store/productId/9PN20MSR04DW) from the Microsoft Store, which allows you to delete the application using the normal Windows Add/Remove settings.
    :::
 
 1. WSL will prompt you for a user name and password for the Ubuntu installation.
@@ -156,7 +160,7 @@ To install the development toolchain:
    This installs tools to build PX4 for Pixhawk and either Gazebo or Gazebo Classic targets:
    - You can use the `--no-nuttx` and `--no-sim-tools` options to omit the NuttX and/or simulation tools.
    - Other Linux build targets are untested (you can try these by entering the appropriate commands in [Ubuntu Development Environment](../dev_setup/dev_env_linux_ubuntu.md) into the WSL shell).
-     :::
+   :::
 
 1. Restart the "WSL computer" after the script completes (exit the shell, shutdown WSL, and restart WSL):
 
@@ -211,7 +215,7 @@ To set up the integration:
 
    ![](../../assets/toolchain/vscode/vscode_wsl.png)
 
-   Note however that the IP address of the WSL virtual machine will have changed, so you won't be able to monitor simulation from QGC for Windows (you can still monitor using QGC for Linux)
+   Note however that the IP address of the WSL virtual machine will have changed, so you won't be able to monitor simulation from QGC for Windows (you can still monitor using QGC for Linux).
 
 ## QGroundControl
 
@@ -227,7 +231,7 @@ You can do this from within the WSL shell.
 1. In a web browser, navigate to the QGC [Ubuntu download section](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/getting_started/download_and_install.html#ubuntu)
 1. Right-click on the **QGroundControl.AppImage** link, and select "Copy link address".
    This will be something like _https://d176td9ibe4jno.cloudfront.net/builds/master/QGroundControl.AppImage_
-1. [Open a WSL shell](#opening-a-wsl-shell) and enter the following commands to download the appimage and make it executable (replace the AppImage URL where indicated):
+1. [Open a WSL shell](#opening-a-wsl-shell) and enter the following commands to download the AppImage and make it executable (replace the AppImage URL where indicated):
 
    ```sh
    cd ~
@@ -298,7 +302,7 @@ Do the following steps to flash your custom binary built in WSL:
 
 1. Detach the USB cable of your Pixhawk board from the computer if it was connected.
 1. Open QGC and navigate to **Q > Vehicle Setup > Firmware**.
-1. Plug your Pixhawk board via USB
+1. Plug in your Pixhawk board via USB.
 1. Once connected select "PX4 Flight Stack", check **Advanced settings** and choose _Custom firmware file ..._ from the drop down below.
 1. Continue and select the firmware binary you just built in WSL.
 
@@ -330,4 +334,4 @@ sudo apt upgrade
 
 - The connection between PX4 SITL on WSL2 and QGroundControl on Windows requires [broadcasting](../simulation/index.md#enable-udp-broadcasting) or [streaming to a specific address](../simulation/index.md#enable-streaming-to-specific-address) to be enabled.
   Streaming to a specific address should be enabled by default, but is something to check if a connection can't be established.
-- Network traffic might be blocked by firewall or antivirus on you system.
+- Network traffic might be blocked by firewall or antivirus on your system.

@@ -65,6 +65,10 @@ This section summarises the options that have been tested with PX4 during creati
 PX4 Micro XRCE-DDS Client is based on version `v2.x` which is not compatible with the latest `v3.x` Agent version.
 :::
 
+::: info
+**Windows native:** the snap and Ubuntu source-build paths below do not apply. On Windows you install ROS 2 via the Pixi helper [`Tools/setup/ros2_pixi_setup.ps1`](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/setup/ros2_pixi_setup.ps1) (defaults to Jazzy LTS; pass `-Distro rolling` or `-Distro latest` for newer releases) and build the agent natively with the two-stage MSVC recipe documented in [Windows Native Development Environment > Building the Micro-XRCE-DDS Agent](../dev_setup/dev_env_windows_native.md#building-the-micro-xrce-dds-agent-optional-for-ros-2-dds-bridging).
+:::
+
 ### Install Standalone from Source
 
 On Ubuntu you can build from source and install the Agent standalone using the following commands:

@@ -25,6 +25,10 @@ To start multiple instances (on separate ports):
    ./Tools/sitl_multiple_run.sh 2
    ```
 
+   ::: info Windows native
+   On Windows use the PowerShell variant `Tools\simulation\sitl_multiple_run.ps1`. Per-instance work dirs are created automatically — see [Windows Native Development Environment](../dev_setup/dev_env_windows_native.md).
+   :::
+
 1. Start the first instance in the same terminal (this will run in the foreground):
 
    ```sh

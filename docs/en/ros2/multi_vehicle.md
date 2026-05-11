@@ -36,6 +36,10 @@ The environment variable `PX4_UXRCE_DDS_NS`, if set, will override the namespace
 The first instance (`px4_instance=0`) does not have an additional namespace in order to be consistent with the default behavior of the `xrce-dds` client on a real vehicle.
 This mismatch can be fixed by manually using `PX4_UXRCE_DDS_NS` on the first instance or by starting adding vehicles from index `1` instead of `0` (this is the default behavior adopted by [sitl_multiple_run.sh](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/simulation/gazebo-classic/sitl_multiple_run.sh) for Gazebo Classic).
 
+::: info Windows native
+On Windows use the PowerShell launcher [`Tools\simulation\sitl_multiple_run.ps1`](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/simulation/sitl_multiple_run.ps1). Ad-hoc `px4.exe -i N` invocations auto-create a per-instance work dir, so multi-instance ROS 2 setups work with the same `UXRCE_DDS_KEY` / namespace rules as Linux. See [Windows Native Development Environment](../dev_setup/dev_env_windows_native.md).
+:::
+
 The default client configuration in simulation is summarized as follows:
 
 | `PX4_UXRCE_DDS_NS` | `px4_instance` | `UXRCE_DDS_KEY`  | client namespace      |
