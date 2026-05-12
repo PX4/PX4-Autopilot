@@ -186,43 +186,28 @@ bool PlannerPolygons::addApproxCircle(const matrix::Vector2f &center, const floa
 }
 
 
-// Precondition: vertex v lies strictly between segment endpoints s and e on
-// the open test segment (s, e collinear with v, v strictly interior).
-
-// Returns true iff the segment enters the polygon's interior cone on one side
-// of v and exits on the other (i.e. is not a graze).
-//
-// Because s, v, e are collinear with v strictly between, the orientation of
-// (prev, v, e) is the negation of (prev, v, s), and likewise for (v, next, *).
-// So we only evaluate the orientations for s and reason about e by sign flip;
-// the segment crosses the cone iff o_in and o_out are not strictly opposite
-// (with both-zero meaning the segment lies on the line through v).
-bool PlannerPolygons::segmentThroughVertexCrossesCone(const PolygonInfo &poly, int v,
-		int32_t s_x, int32_t s_y) const
+/**
+ * Consider the cone obtained by extending the triangle poly[prev] -> poly[curr]
+ * -> poly[next] outward from poly[curr] (the inside always being left of the
+ * points). This cone is the local interior of the forbidden region at the given
+ * vertex.
+ *
+ * Returns true if the point p is in the interior of that cone.
+ */
+bool PlannerPolygons::pointInsideInteriorCone(const PolygonInfo &poly,
+		int32_t px, int32_t py, int v) const
 {
 	const int prev = poly.start_index + ((v + poly.num_vertices - 1) % poly.num_vertices);
 	const int curr = poly.start_index + v;
 	const int next = poly.start_index + ((v + 1) % poly.num_vertices);
 
-	// Is point s left of the incoming edge?
-	const int left_in   = orient2d(_x_cm[prev], _y_cm[prev], _x_cm[curr], _y_cm[curr], s_x, s_y);
-	// Is s left of the outgoing edge?
-	const int left_out  = orient2d(_x_cm[curr], _y_cm[curr], _x_cm[next], _y_cm[next], s_x, s_y);
-	// Is the corner itself convex?
-	const int is_convex = orient2d(_x_cm[prev], _y_cm[prev], _x_cm[curr], _y_cm[curr], _x_cm[next], _y_cm[next]);
+	const int p_left_of_incoming  = orient2d(_x_cm[prev], _y_cm[prev], _x_cm[curr], _y_cm[curr], px, py);
+	const int p_left_of_outgoing  = orient2d(_x_cm[curr], _y_cm[curr], _x_cm[next], _y_cm[next], px, py);
+	const int is_convex           = orient2d(_x_cm[prev], _y_cm[prev], _x_cm[curr], _y_cm[curr], _x_cm[next], _y_cm[next]);
 
-	if (is_convex > 0) {
-		// Convex cone = strict intersection of half-planes. Endpoints classify
-		// differently iff left_in and left_out share a strict nonzero sign.
-		return left_in * left_out > 0;
-
-	} else {
-		// Reflex (or 180deg) cone = union of half-planes. Endpoints classify
-		// differently unless the signs are strictly opposite or both zero.
-		return left_in * left_out > 0
-		       || (left_in == 0 && left_out != 0)
-		       || (left_out == 0 && left_in != 0);
-	}
+	return is_convex > 0  // If convex==0 (exact 180 deg "corner") the two cases are equivalent
+	       ? (p_left_of_incoming > 0 && p_left_of_outgoing > 0)   // Convex: interior = intersection of two half-planes
+	       : (p_left_of_incoming > 0 || p_left_of_outgoing > 0);  // Reflex: interior = union of two half-planes
 }
 
 bool PlannerPolygons::intersectsInsideOf(const PolygonInfo &poly,
@@ -242,8 +227,10 @@ bool PlannerPolygons::intersectsInsideOf(const PolygonInfo &poly,
 	const int32_t twice_mid_y = s_y + e_y;
 
 	for (int i = 0; i < poly.num_vertices; i++) {
+
 		const int prev_idx = poly.start_index + (i + poly.num_vertices - 1) % poly.num_vertices;
 		const int curr_idx = poly.start_index + i;
+
 		const int32_t ax = _x_cm[prev_idx], ay = _y_cm[prev_idx];
 		const int32_t bx = _x_cm[curr_idx], by = _y_cm[curr_idx];
 
@@ -252,17 +239,23 @@ bool PlannerPolygons::intersectsInsideOf(const PolygonInfo &poly,
 		case SegSegResult::Cross:
 			return true;
 
-		case SegSegResult::BInsideCD:
+		// skip AInsideCD - A from this segment is B from the adjacent segment
+		case SegSegResult::BInsideCD: {
 
-			// Polygon vertex b is exaclty on interior of line segment
-			//  - If the segment crosses between inside and outside,
-			//    it violates either side - return true.
-			//  - If it does not, it is grazing the corner (from inside or outside).
-			if (segmentThroughVertexCrossesCone(poly, i, s_x, s_y)) {
-				return true;
+				// Polygon vertex b is exactly on the interior of the test segment.
+				// Detect if it passes from outside to inside through the inside.
+				//  - If yes, conclusive
+				//  - If no, record that we have grazed a vertex
+				const bool s_inside = pointInsideInteriorCone(poly, s_x, s_y, i);
+				const bool e_inside = pointInsideInteriorCone(poly, e_x, e_y, i);
+
+				if (s_inside || e_inside) {
+					// If either endpoint inside interior cone, interior is crossed
+					return true;
+				}
+
+				break;
 			}
-
-			break;
 
 		default:
 			break;
@@ -289,7 +282,9 @@ bool PlannerPolygons::intersectsInsideOf(const PolygonInfo &poly,
 		} else if (2 * by <= twice_mid_y && side < 0) { wn--; }
 	}
 
-	// Midpoint on the boundary: segment runs along it; non-violating in either zone.
+
+	// Midpoint on boundary, segment runs along it (strict crossing detected earlier).
+	// Non-intersecting in either zone.
 	if (mid_on_boundary) {
 		return false;
 	}
