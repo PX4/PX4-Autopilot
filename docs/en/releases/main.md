@@ -53,6 +53,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 ### Safety
 
 - Rotary-wing vehicles now support uncommanded altitude loss detection: if the vehicle descends more than [FD_ALT_LOSS](../advanced_config/parameter_reference.md#FD_ALT_LOSS) meters below its setpoint in altitude-controlled flight, flight termination (and parachute deployment) is triggered. See [Altitude Loss Trigger](../config/safety.md#altitude-loss-trigger). ([PX4-Autopilot#26837](https://github.com/PX4/PX4-Autopilot/pull/26837))
+- [GNSS check failsafe](../config/safety.md#gnss-check-failsafe): new failsafe that monitors the number of usable GNSS receivers with a 3D fix and their position consistency. The required number of receivers is set via [SYS_HAS_NUM_GNSS](../advanced_config/parameter_reference.md#SYS_HAS_NUM_GNSS) and the failsafe action via [COM_GNSSLOSS_ACT](../advanced_config/parameter_reference.md#COM_GNSSLOSS_ACT). ([PX4-Autopilot#26863](https://github.com/PX4/PX4-Autopilot/pull/26863))
 
 ### Estimation
 
@@ -102,7 +103,8 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### MAVLink
 
-- TBD
+- Removed support for deprecated request commands `MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES`, `MAV_CMD_REQUEST_PROTOCOL_VERSION`, `MAV_CMD_GET_HOME_POSITION`, `MAV_CMD_REQUEST_FLIGHT_INFORMATION`, `MAV_CMD_REQUEST_STORAGE_INFORMATION` (Replaced by `MAV_CMD_REQUEST_MESSAGE`).
+  ([PX4-Autopilot#27251: fix(mavlink): Remove deprecated MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES](https://github.com/PX4/PX4-Autopilot/pull/27251), [PX4-Autopilot#27252: fix(mavlink): Remove legacy mavlink message requestors#27252](https://github.com/PX4/PX4-Autopilot/pull/27252))
 
 ### RC
 

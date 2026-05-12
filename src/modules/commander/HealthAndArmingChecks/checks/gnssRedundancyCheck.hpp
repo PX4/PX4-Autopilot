@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2020, 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,35 +31,35 @@
  *
  ****************************************************************************/
 
-#include <px4_arch/spi_hw_description.h>
-#include <drivers/drv_sensor.h>
-#include <nuttx/spi/spi.h>
+#pragma once
 
-constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-	initSPIBus(SPI::Bus::SPI1, {
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::PortI, GPIO::Pin9}, SPI::DRDY{GPIO::PortF, GPIO::Pin2}),
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM45686, SPI::CS{GPIO::PortI, GPIO::Pin9}, SPI::DRDY{GPIO::PortF, GPIO::Pin2}),
-	}, {GPIO::PortI, GPIO::Pin11}),
-	initSPIBus(SPI::Bus::SPI2, {
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::PortH, GPIO::Pin5}, SPI::DRDY{GPIO::PortA, GPIO::Pin10}),
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM45686, SPI::CS{GPIO::PortH, GPIO::Pin5}, SPI::DRDY{GPIO::PortA, GPIO::Pin10}),
-	}, {GPIO::PortF, GPIO::Pin4}),
-	initSPIBus(SPI::Bus::SPI3, {
-		initSPIDevice(DRV_GYR_DEVTYPE_BMI088, SPI::CS{GPIO::PortI, GPIO::Pin8}, SPI::DRDY{GPIO::PortI, GPIO::Pin7}),
-		initSPIDevice(DRV_ACC_DEVTYPE_BMI088, SPI::CS{GPIO::PortI, GPIO::Pin4}),
-	}, {GPIO::PortE, GPIO::Pin7}),
-	//  initSPIBus(SPI::Bus::SPI4, {
-	//    // no devices
-	// TODO: if enabled, remove GPIO_VDD_3V3_SENSORS_EN from board_config.h
-	//  }, {GPIO::PortG, GPIO::Pin8}),
-	initSPIBus(SPI::Bus::SPI5, {
-		initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortG, GPIO::Pin7})
-	}),
-	initSPIBusExternal(SPI::Bus::SPI6, {
-		initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin10}, SPI::DRDY{GPIO::PortD, GPIO::Pin11}),
-		initSPIConfigExternal(SPI::CS{GPIO::PortA, GPIO::Pin15}, SPI::DRDY{GPIO::PortD, GPIO::Pin12}),
-	}),
+#include "../Common.hpp"
+#include <lib/hysteresis/hysteresis.h>
+#include <uORB/SubscriptionMultiArray.hpp>
+#include <uORB/topics/sensor_gps.h>
 
+class GnssRedundancyChecks : public HealthAndArmingCheckBase
+{
+public:
+	GnssRedundancyChecks();
+	~GnssRedundancyChecks() = default;
+
+	void checkAndReport(const Context &context, Report &reporter) override;
+
+private:
+	static constexpr int GPS_MAX_INSTANCES = 2;
+	uORB::SubscriptionMultiArray<sensor_gps_s, GPS_MAX_INSTANCES> _sensor_gps_sub{ORB_ID::sensor_gps};
+
+	uint8_t _peak_fixed_count{0};
+	systemlib::Hysteresis _divergence_hysteresis;
+
+
+	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
+					(ParamInt<px4::params::SYS_HAS_NUM_GNSS>) _param_sys_has_num_gnss,
+					(ParamInt<px4::params::COM_GNSSLOSS_ACT>) _param_com_gnssloss_act,
+					(ParamFloat<px4::params::SENS_GPS0_OFFX>) _param_sens_gps0_offx,
+					(ParamFloat<px4::params::SENS_GPS0_OFFY>) _param_sens_gps0_offy,
+					(ParamFloat<px4::params::SENS_GPS1_OFFX>) _param_sens_gps1_offx,
+					(ParamFloat<px4::params::SENS_GPS1_OFFY>) _param_sens_gps1_offy
+				       )
 };
-
-static constexpr bool unused = validateSPIConfig(px4_spi_buses);

@@ -71,6 +71,17 @@ bool px4_i2c_device_external(const uint32_t device_id)
 		if (device_id_mag.devid == device_id) {
 			return false;
 		}
+
+		// device_id: RM3100 on I2C4 address 0x20
+		device::Device::DeviceId device_id_rm3100{};
+		device_id_rm3100.devid_s.bus_type = device::Device::DeviceBusType_I2C;
+		device_id_rm3100.devid_s.bus = 4;
+		device_id_rm3100.devid_s.address = 0x20;
+		device_id_rm3100.devid_s.devtype = DRV_MAG_DEVTYPE_RM3100;
+
+		if (device_id_rm3100.devid == device_id) {
+			return false;
+		}
 	}
 
 	device::Device::DeviceId dev_id{};

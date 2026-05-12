@@ -19066,6 +19066,27 @@ Force safety when the vehicle disarms
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
 
+### COM_GNSSLOSS_ACT (`INT32`) {#COM_GNSSLOSS_ACT}
+
+GNSS loss failsafe mode.
+
+Action the system takes when a GNSS failure is detected during flight.
+Triggers when the active GNSS count drops below SYS_HAS_NUM_GNSS (disabled
+when SYS_HAS_NUM_GNSS=0), or when two receivers report positions inconsistent
+with their reported accuracy and SYS_HAS_NUM_GNSS=2 (otherwise warning only).
+Any value above Warning also blocks arming.
+
+**Values:**
+
+- `0`: Warning
+- `1`: Return
+- `2`: Land
+- `3`: Terminate
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; |          |          |           | 0       |      | &nbsp;    |
+
 ### COM_HLDL_LOSS_T (`INT32`) {#COM_HLDL_LOSS_T}
 
 High Latency Datalink loss time threshold.
@@ -40532,6 +40553,21 @@ Disable the check with 0.
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 4        |           | 0       |      | &nbsp;    |
+
+### SYS_HAS_NUM_GNSS (`INT32`) {#SYS_HAS_NUM_GNSS}
+
+Control if and how many GNSS receivers are required.
+
+0: No minimum receiver count required. Position divergence between two receivers
+and loss of a GNSS receiver still produce a warning but never trigger the
+COM_GNSSLOSS_ACT failsafe action.
+1-N: Require the presence of N GNSS receivers for arming and during flight.
+If the active count drops below this value in flight, COM_GNSSLOSS_ACT is triggered.
+When set to 2, position divergence between the two receivers also triggers COM_GNSSLOSS_ACT.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 2        |           | 0       |      | &nbsp;    |
 
 ### SYS_HAS_NUM_OF (`INT32`) {#SYS_HAS_NUM_OF}
 
