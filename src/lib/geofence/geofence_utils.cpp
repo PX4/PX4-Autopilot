@@ -320,27 +320,6 @@ bool PlannerPolygons::isLineFromPointToNodeIntersectingAnyInside(const matrix::V
 }
 
 
-bool lineSegmentIntersectsCircle(const matrix::Vector2f &start, const matrix::Vector2f &end,
-				 const matrix::Vector2f &center, float radius)
-{
-	const matrix::Vector2f A = center - start;
-	const matrix::Vector2f B = end - start;
-	const float B_length = B.norm();
-
-	if (B_length < FLT_EPSILON) {
-		return false;
-	}
-
-	const float projection_A_on_B = math::constrain(A.dot(B) / B_length, 0.f, B_length);
-	const matrix::Vector2f closest = start + projection_A_on_B * B.normalized();
-
-	if ((closest - center).norm() >= radius) {
-		return false;
-	}
-
-	return (start - center).norm() >= radius || (end - center).norm() >= radius;
-}
-
 bool isPolygonCCW(const matrix::Vector2f *vertices, int num_vertices)
 {
 	// https://en.wikipedia.org/wiki/Shoelace_formula

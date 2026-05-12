@@ -266,17 +266,6 @@ inline bool lineSegmentIntersectsPolygon(const matrix::Vector2f &start, const ma
 	return polys.isLineBetweenNodesIntersectingAnyInside(polys.addNode(start), polys.addNode(end));
 }
 
-/**
- * Check if a line segment intersects a circle.
- *
- * @param start   segment start (local frame, meters)
- * @param end     segment end
- * @param center  circle center (local frame, meters)
- * @param radius  circle radius in meters
- * @return true if the segment crosses the circle boundary (one endpoint inside, one outside)
- */
-bool lineSegmentIntersectsCircle(const matrix::Vector2f &start, const matrix::Vector2f &end,
-				 const matrix::Vector2f &center, float radius);
 
 /**
  * Map the upper triangular matrix WITHOUT the diagonal into a flat array. Caller must ensure i != j.
