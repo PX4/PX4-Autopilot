@@ -86,16 +86,16 @@ If a listed parameter is missing from the Firmware see: [Finding/Updating Parame
                     bitmask_output+='\n\n'
 
                 if is_boolean:
-                    STATUS_LABELS = {
+                    BOOLEAN_LABELS = {
                         '0': 'Disabled',
                         '1': 'Enabled'
                     }
                     # Give def_value an explanatory string (is def_value if no match)
-                    def_val = f"{STATUS_LABELS[def_val]} ({def_val})" if def_val in STATUS_LABELS else def_val
+                    def_val = f"{BOOLEAN_LABELS[def_val]} ({def_val})" if def_val in BOOLEAN_LABELSelse def_val
 
                     # Format values and their descriptions for display.
                     boolean_values = '**Values:**\n\n'
-                    for key, label in STATUS_LABELS.items():
+                    for key, label in BOOLEAN_LABELS.items():
                         boolean_values += f"- `{key}`: {label}\n"
                     boolean_values += '\n'
 
