@@ -50,7 +50,7 @@ void GnssAltitudeDriftDetector::updateBaroLpf(float baro_alt, uint64_t timestamp
 	_last_baro_ts = timestamp;
 }
 
-void GnssAltitudeDriftDetector::update(const sensor_gps_s &gps, float ekf_amsl, uORB::PublicationMulti<gnss_altitude_drift_s> &pub)
+void GnssAltitudeDriftDetector::update(const sensor_gps_s &gps, float ekf_amsl)
 {
 	const bool gps_timeout = (_last_gps_ts != 0) && (gps.timestamp - _last_gps_ts > 500000);
 
@@ -83,11 +83,11 @@ void GnssAltitudeDriftDetector::update(const sensor_gps_s &gps, float ekf_amsl, 
 	_last_sample_ts = gps.timestamp;
 
 	if (_wcount > 1) {
-		analyze(pub);
+		analyze();
 	}
 }
 
-void GnssAltitudeDriftDetector::analyze(uORB::PublicationMulti<gnss_altitude_drift_s> &pub)
+void GnssAltitudeDriftDetector::analyze()
 {
 	const int newest = (_widx - 1 + kWindowSize) % kWindowSize;
 	const int oldest = (_widx - _wcount + kWindowSize) % kWindowSize;
@@ -101,7 +101,7 @@ void GnssAltitudeDriftDetector::analyze(uORB::PublicationMulti<gnss_altitude_dri
 
 	// hit pending to filter out single outliers
 	if (hit && _hit_pending) {
-		publishCorrection(pub, _d1[newest] - _d1[oldest]);
+		publishCorrection(_d1[newest] - _d1[oldest]);
 		_hit_pending = false;
 		_altitude_good_for_lock = false;
 		_wcount = 1;
@@ -124,19 +124,19 @@ void GnssAltitudeDriftDetector::analyze(uORB::PublicationMulti<gnss_altitude_dri
 		const float residual = _d1[newest] - _d1[oldest];
 
 		if (fabsf(residual) > 0.01f) {
-			publishCorrection(pub, residual);
+			publishCorrection(residual);
 		}
 
 		_wcount = 1;
 	}
 }
 
-void GnssAltitudeDriftDetector::publishCorrection(uORB::PublicationMulti<gnss_altitude_drift_s> &pub, float offset)
+void GnssAltitudeDriftDetector::publishCorrection(float offset)
 {
 	gnss_altitude_drift_s gnss_altitude_drift{};
 	gnss_altitude_drift.timestamp = hrt_absolute_time();
 	gnss_altitude_drift.altitude_offset = offset;
-	pub.publish(gnss_altitude_drift);
+	_gnss_altitude_drift_pub.publish(gnss_altitude_drift);
 }
 
 void GnssAltitudeDriftDetector::reset()

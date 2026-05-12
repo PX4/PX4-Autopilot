@@ -512,7 +512,6 @@ private:
 # endif // CONFIG_EKF2_GNSS_YAW
 
 	GnssAltitudeDriftDetector _gnss_altitude_drift_detector;
-	uORB::PublicationMulti<gnss_altitude_drift_s> _gnss_altitude_drift_pub{ORB_ID(gnss_altitude_drift)};
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_GRAVITY_FUSION)
