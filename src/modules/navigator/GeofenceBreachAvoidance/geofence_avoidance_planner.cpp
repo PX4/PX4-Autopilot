@@ -163,16 +163,6 @@ bool GeofenceAvoidancePlanner::update_graph_nodes_without_start_and_destination(
 	return true;
 }
 
-bool GeofenceAvoidancePlanner::lineViolatesAnyCachedFenceBetweenNodes(int a, int b) const
-{
-	return _polygons.isLineBetweenNodesIntersectingAnyInside(a, b);
-}
-
-bool GeofenceAvoidancePlanner::lineViolatesAnyCachedFenceFromPoint(const matrix::Vector2f &p, int node_idx) const
-{
-	return _polygons.isLineFromPointToNodeIntersectingAnyInside(p, node_idx);
-}
-
 void GeofenceAvoidancePlanner::update_distances_between_vertices()
 {
 	perf_begin(_setup_distances_perf);
@@ -181,7 +171,7 @@ void GeofenceAvoidancePlanner::update_distances_between_vertices()
 		for (int j = i + 1; j < _num_vertices; j++) {
 			const size_t idx = geofence_utils::symmetricPairIndex(i, j, _num_nodes);
 
-			if (lineViolatesAnyCachedFenceBetweenNodes(i, j)) {
+			if (_polygons.isLineBetweenNodesIntersectingAnyInside(i, j)) {
 				_distances[idx] = INFINITY;
 
 			} else {
@@ -214,7 +204,7 @@ void GeofenceAvoidancePlanner::update_destination(const matrix::Vector2d &destin
 	for (int graph_idx = 0; graph_idx < _num_vertices; graph_idx++) {
 		const size_t dist_idx = geofence_utils::symmetricPairIndex(graph_idx, _dest_idx, _num_nodes);
 
-		if (lineViolatesAnyCachedFenceBetweenNodes(graph_idx, _dest_idx)) {
+		if (_polygons.isLineBetweenNodesIntersectingAnyInside(graph_idx, _dest_idx)) {
 			_distances[dist_idx] = INFINITY;
 
 		} else {
@@ -255,7 +245,7 @@ int GeofenceAvoidancePlanner::set_start_and_plan_path_to_destination(matrix::Vec
 
 	for (int node_idx = 0; node_idx < _num_nodes; node_idx++) {
 		// check if node is reachable from this position
-		if (!lineViolatesAnyCachedFenceFromPoint(_start_local, node_idx)) {
+		if (!_polygons.isLineFromPointToNodeIntersectingAnyInside(_start_local, node_idx)) {
 
 			if (node_idx == _dest_idx) {
 				// destination is directly reachable from start: no detour planning needed.

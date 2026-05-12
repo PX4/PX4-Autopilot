@@ -174,11 +174,6 @@ private:
 	void update_distances_between_vertices();
 	void planPath();
 
-	// Read-only query against the cached fence: union of polygon (index-based)
-	// and circle (analytic, float) checks. No geofence dataman roundtrips.
-	bool lineViolatesAnyCachedFenceBetweenNodes(int a, int b) const;
-	bool lineViolatesAnyCachedFenceFromPoint(const matrix::Vector2f &p, int node_idx) const;
-
 	bool lat_lon_within_bounds(const matrix::Vector2<double> &lat_lon);
 
 };
