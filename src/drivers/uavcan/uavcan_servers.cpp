@@ -104,11 +104,16 @@ int UavcanServers::init()
 	}
 
 	/* Initialize trace in the UAVCAN_NODE_DB_PATH directory */
-	ret = _tracer.init(UAVCAN_LOG_FILE);
+	int32_t trace_en = 1;
+	(void)param_get(param_find("UAVCAN_TRACE_EN"), &trace_en);
 
-	if (ret < 0) {
-		PX4_ERR("FileEventTracer init: %d, errno: %d", ret, errno);
-		return ret;
+	if (trace_en) {
+		ret = _tracer.init(UAVCAN_LOG_FILE);
+
+		if (ret < 0) {
+			PX4_ERR("FileEventTracer init: %d, errno: %d", ret, errno);
+			return ret;
+		}
 	}
 
 	/* hardware version */
