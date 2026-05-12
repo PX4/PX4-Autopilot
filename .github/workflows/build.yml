@@ -25,6 +25,14 @@ jobs:
       run: |
         git config --global --add safe.directory $GITHUB_WORKSPACE
 
+    - name: Inject Custom Startup Scripts (OpenMV & Sensors Config)
+      run: |
+        # Создаем команду автозапуска датчика MPU6050 на внешней шине I2C (-X)
+        echo "mpu6050 start -X" >> ROMFS/px4fmu_common/init.d/rcS
+        
+        # Создаем команду автозапуска связи с OpenMV по MAVLink на UART2
+        echo "mavlink start -d /dev/ttyS1 -b 115200 -m onboard -r 80" >> ROMFS/px4fmu_common/init.d/rcS
+
     - name: Configure and Build Firmware
       run: |
         # Обход ошибки валидации версии git через PX4_FORCE_VERSION
@@ -33,11 +41,21 @@ jobs:
         # Предварительная очистка
         make clean
         
-        # Запуск сборки таргета px4fmu-v2_default
-        make px4fmu-v2_default
+        # Запуск сборки нашего нового кастомного таргета для Blackpill
+        make px4_blackpill_default
+
+    - name: Check Firmware Size
+      run: |
+        # Проверяем размер бинарника. Для Blackpill лимит равен 512 КБ (524288 байт)
+        FW_SIZE=$(stat -c%s build/px4_blackpill_default/px4_blackpill_default.bin)
+        echo "Размер собранной прошивки: $FW_SIZE байт"
+        if [ "$FW_SIZE" -gt 524288 ]; then
+          echo "ОШИБКА: Прошивка превышает 512 КБ и не поместится на чип Blackpill!"
+          exit 1
+        fi
 
     - name: Upload Firmware Artifact
       uses: actions/upload-artifact@v3
       with:
-        name: px4fmu-v2_blackpill_firmware
-        path: build/px4fmu-v2_default/*.bin
+        name: px4_blackpill_v1.10.2_firmware
+        path: build/px4_blackpill_default/*.bin
