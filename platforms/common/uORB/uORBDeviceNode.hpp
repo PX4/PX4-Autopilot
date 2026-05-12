@@ -33,8 +33,10 @@
 
 #pragma once
 
+#if !defined(POSIX_SHM_DISABLED)
 #include <sys/shm.h>
 #include <sys/mman.h>
+#endif
 #include <signal.h>
 #include <string.h>
 #include <pthread.h>
