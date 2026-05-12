@@ -1751,9 +1751,9 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 	lpos.delta_heading = Eulerf(delta_q_reset).psi();
 	lpos.heading_good_for_control = _ekf.isYawFinalAlignComplete();
 #if defined(CONFIG_EKF2_GNSS)
-	lpos.altitude_good_for_local_control = _gps_alt_drift.altitude_good_for_local_control;
+	lpos.altitude_good_for_lock = _gps_alt_drift._altitude_good_for_lock;
 #else
-	lpos.altitude_good_for_local_control = true;
+	lpos.altitude_good_for_lock = true;
 #endif
 	lpos.tilt_var = _ekf.getTiltVariance();
 
@@ -2682,7 +2682,7 @@ void EKF2::GpsAltDriftDetector::analyze(uORB::PublicationMulti<gps_altitude_drif
 	if (hit && _hit_pending) {
 		publishCorrection(pub, _d1[newest] - _d1[oldest]);
 		_hit_pending = false;
-		altitude_good_for_local_control = false;
+		_altitude_good_for_lock = false;
 		_wcount = 1;
 
 	} else {
@@ -2690,7 +2690,7 @@ void EKF2::GpsAltDriftDetector::analyze(uORB::PublicationMulti<gps_altitude_drif
 	}
 
 	// Re-enable when recent samples show stability
-	if (altitude_good_for_local_control || _wcount < kStabilityWindow) {
+	if (_altitude_good_for_lock || _wcount < kStabilityWindow) {
 		return;
 	}
 
@@ -2699,7 +2699,7 @@ void EKF2::GpsAltDriftDetector::analyze(uORB::PublicationMulti<gps_altitude_drif
 	const float b_recent = fabsf(_d2[newest] - _d2[recent]);
 
 	if ((a_recent < 0.2f * kDriftThreshold) && (b_recent < 0.2f * kDriftThreshold)) {
-		altitude_good_for_local_control = true;
+		_altitude_good_for_lock = true;
 		const float residual = _d1[newest] - _d1[oldest];
 
 		if (fabsf(residual) > 0.01f) {
@@ -2726,7 +2726,7 @@ void EKF2::GpsAltDriftDetector::reset()
 	_widx = 0;
 	_last_sample_ts = 0;
 	_hit_pending = false;
-	altitude_good_for_local_control = true;
+	_altitude_good_for_lock = true;
 }
 
 void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
@@ -2809,8 +2809,8 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 			const float ekf_amsl = _ekf.getLatLonAlt().altitude();
 			_gps_alt_drift.update(vehicle_gps_position, ekf_amsl, _gps_alt_drift_pub);
 
-			if (!_gps_alt_drift.altitude_good_for_local_control) {
-				_ekf.decorrelateAltPos();
+			if (!_gps_alt_drift._altitude_good_for_lock) {
+				_ekf.decorrelateAltitudeFromPosition();
 			}
 
 		} else {

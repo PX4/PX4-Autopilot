@@ -521,7 +521,7 @@ private:
 		void update(const sensor_gps_s &gps, float ekf_amsl, uORB::PublicationMulti<gps_altitude_drift_correction_s> &pub);
 		void reset();
 
-		bool altitude_good_for_local_control{true};
+		bool _altitude_good_for_lock{true};
 
 	private:
 		void analyze(uORB::PublicationMulti<gps_altitude_drift_correction_s> &pub);

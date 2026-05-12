@@ -182,7 +182,7 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 	}
 
 	// When absolute altitude estimate is drifting, unlock altitude and temporarily use vertical velocity control only
-	if (!_is_altitude_good_for_local_control) {
+	if (!_altitude_good_for_lock) {
 		_position_setpoint(2) = _dist_to_ground_lock = NAN;
 	}
 
