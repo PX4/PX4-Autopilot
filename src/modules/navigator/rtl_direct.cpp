@@ -262,8 +262,8 @@ void RtlDirect::set_rtl_item()
 
 	case RTLState::AVOID_GEOFENCE: {
 
-
-			matrix::Vector2d point = _navigator->get_point_at_index(_current_geofence_avoidance_index++);
+			const int curr_idx = _current_geofence_avoidance_index++;
+			matrix::Vector2d point = _navigator->get_point_at_index(curr_idx);
 
 			if (point.isAllNan()) {
 				// should never happen
@@ -271,10 +271,21 @@ void RtlDirect::set_rtl_item()
 				point(1) = _land_approach.lon;
 			}
 
+			const matrix::Vector2d prev_point = (curr_idx > 0)
+							    ? _navigator->get_point_at_index(curr_idx - 1)
+							    : matrix::Vector2d{_global_pos_sub.get().lat, _global_pos_sub.get().lon};
+
+			float yaw = NAN;
+
+			if (!_param_wv_en.get() && prev_point.isAllFinite() && point.isAllFinite()) {
+				yaw = get_bearing_to_next_waypoint(prev_point(0), prev_point(1), point(0), point(1));
+			}
+
 			PositionYawSetpoint pos_yaw_sp {
 				.lat = point(0),
 				.lon = point(1),
 				.alt = _rtl_alt,
+				.yaw = yaw,
 			};
 
 			setMoveToPositionMissionItem(_mission_item, pos_yaw_sp);
