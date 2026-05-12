@@ -106,10 +106,22 @@ enum class SegSegResult {
 inline SegSegResult segmentsIntersect(int32_t ax, int32_t ay, int32_t bx, int32_t by,
 				      int32_t cx, int32_t cy, int32_t dx, int32_t dy)
 {
+	// These two early returns are logically not necessary (would catch the
+	// case in the end) but improve performance, as most segment pairs are
+	// expected to be completely disjoint. If both c and d are strictly on
+	// the same side of a-b (first check, second vice versa) we can already
+	// conclude the segments are disjoint. This does not detect _all_
+	// disjoint cases so the final return stays.
+
 	const int o1 = orient2d(ax, ay, bx, by, cx, cy);
 	const int o2 = orient2d(ax, ay, bx, by, dx, dy);
+
+	if (o1 != 0 && o1 == o2) { return SegSegResult::Disjoint; }
+
 	const int o3 = orient2d(cx, cy, dx, dy, ax, ay);
 	const int o4 = orient2d(cx, cy, dx, dy, bx, by);
+
+	if (o3 != 0 && o3 == o4) { return SegSegResult::Disjoint; }
 
 	if (o1 && o2 && o3 && o4 && o1 != o2 && o3 != o4) { return SegSegResult::Cross; }
 
