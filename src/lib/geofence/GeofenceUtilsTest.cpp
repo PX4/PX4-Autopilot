@@ -100,16 +100,13 @@ TEST(GeofenceUtilsTest, PolygonIsCCW)
 // (inside disallowed), under both polygon winding orders.
 // ===========================================================================
 
-namespace
-{
-
 constexpr int kMaxN = 8;
 
-// Run the segment against the polygon under both winding direction, both zone
-// types. Note that the used lineSegmentIntersectsPolygon first adds the polygon
-// to the internal representation which canonicalises orientation. So the
-// internal convention (left = illegal) should hold, this is also what we test
-// here.
+// Check segment/polygon interior intersection under both winding direction &
+// both zone types. Note that the used lineSegmentIntersectsPolygon first adds
+// the polygon to the internal representation which canonicalises orientation.
+// So the internal convention (left = illegal) should hold, this is also what we
+// test here.
 void expectSegmentVsPolygon(const Vector2f *vertices, int n,
 			    const Vector2f &a, const Vector2f &b,
 			    bool intersects_inclusion, bool intersects_exclusion)
@@ -125,16 +122,8 @@ void expectSegmentVsPolygon(const Vector2f *vertices, int n,
 	EXPECT_EQ(intersects_exclusion, geofence_utils::lineSegmentIntersectsPolygon(a, b, rev,      n, false));
 }
 
-// CCW unit square -- only convex vertices.
+// Convex polygon (unit square)
 const Vector2f kSquare[4] = {{0.f, 0.f}, {1.f, 0.f}, {1.f, 1.f}, {0.f, 1.f}};
-
-// CCW L-shape: bottom rect [0,2]x[0,1] joined with left rect [0,1]x[0,2].
-// The vertex at (1,1) is reflex; the rest are convex.
-const Vector2f kLShape[6] = {{0.f, 0.f}, {2.f, 0.f}, {2.f, 1.f}, {1.f, 1.f}, {1.f, 2.f}, {0.f, 2.f}};
-
-} // namespace
-
-// ---------- Convex polygon (unit square) ----------
 
 TEST(GeofenceUtilsTest, SquareSegment_Outside)
 {
@@ -172,7 +161,8 @@ TEST(GeofenceUtilsTest, SquareSegment_DiagonalThroughOppositeVertices)
 	expectSegmentVsPolygon(kSquare, 4, {0.f, 0.f}, {1.f, 1.f}, false, true);
 	// Segment passes through opposite vertices - both zones violated.
 	expectSegmentVsPolygon(kSquare, 4, {-0.5f, 0.5f}, {1.5f, 1.5f}, true, true);
-
+	// Diagonal through only one vertex - still both zones.
+	expectSegmentVsPolygon(kSquare, 4, {2.f, 2.f}, {0.5f, 0.5f}, true, true);
 }
 
 TEST(GeofenceUtilsTest, SquareSegment_AlongEdge)
@@ -189,38 +179,26 @@ TEST(GeofenceUtilsTest, SquareSegment_ExtendsBeyondEdge)
 	expectSegmentVsPolygon(kSquare, 4, {-1.f, 0.f}, {2.f, 0.f}, true, false);
 }
 
-TEST(GeofenceUtilsTest, SquareSegment_TangentThroughVertex_MidpointAtVertex)
+TEST(GeofenceUtilsTest, SquareSegment_TangentThroughVertex)
 {
-	// Tangent line touching the (1,1) corner. Symmetric endpoints, so the
-	// segment midpoint lands on the vertex and the boundary-midpoint handler
-	// reports a graze for both zones.
-	// TODO this is shit, should be different...
-	expectSegmentVsPolygon(kSquare, 4, {2.f, 0.f}, {0.f, 2.f}, false, false);
-}
-
-TEST(GeofenceUtilsTest, SquareSegment_TangentThroughVertex_MidpointOutside)
-{
-	// Same tangent line at (1,1) but asymmetric endpoints, so the midpoint
-	// stays strictly outside. The segment is mostly outside the polygon and
-	// only grazes the vertex -- inclusion is violated, exclusion is not.
+	// Tangent line touching the (1,1) corner with both endpoints outside.
+	// Inclusion violated (line outside), exclusion not (only boundary).
+	// One case with midpoint = vertex, one !=
+	expectSegmentVsPolygon(kSquare, 4, {2.f, 0.f}, {0.f, 2.f},  true, false);
 	expectSegmentVsPolygon(kSquare, 4, {2.f, 0.f}, {-1.f, 3.f}, true, false);
-}
 
-TEST(GeofenceUtilsTest, SquareSegment_TangentNudgedIn)
-{
-	// Same vertex-tangent geometry, nudged a few cm toward the square so the
-	// segment now properly crosses two edges -- both zones see a violation.
+	// If we nudge the point inward just a bit, we have a strict intersection
+	// and both zones are violated.
 	expectSegmentVsPolygon(kSquare, 4, {2.f, 0.f}, {0.f, 1.98f}, true, true);
 }
 
-TEST(GeofenceUtilsTest, SquareSegment_ThroughVertexIntoInterior)
-{
-	// Segment enters the polygon by passing through the (1,1) vertex (not via
-	// a strict edge crossing): one endpoint outside, the other in the interior.
-	expectSegmentVsPolygon(kSquare, 4, {2.f, 2.f}, {0.5f, 0.5f}, true, true);
-}
 
-// ---------- Concave polygon (L-shape with a reflex vertex at (1,1)) ----------
+
+
+
+
+// Nonconvex polygon (L-shape with a reflex vertex at (1,1))
+const Vector2f kLShape[6] = {{0.f, 0.f}, {2.f, 0.f}, {2.f, 1.f}, {1.f, 1.f}, {1.f, 2.f}, {0.f, 2.f}};
 
 TEST(GeofenceUtilsTest, LShapeSegment_DisjointOutside)
 {
@@ -228,13 +206,12 @@ TEST(GeofenceUtilsTest, LShapeSegment_DisjointOutside)
 	expectSegmentVsPolygon(kLShape, 6, {1.5f, 1.5f}, {1.8f, 1.8f}, true, false);
 }
 
-TEST(GeofenceUtilsTest, LShapeSegment_WhollyInsideBottomRect)
+TEST(GeofenceUtilsTest, LShapeSegment_EntirelyInside)
 {
+	// Horizontal line inside bottom rectangle - inclusion non-intersecting, exclusion intersecting
 	expectSegmentVsPolygon(kLShape, 6, {0.5f, 0.5f}, {1.5f, 0.5f}, false, true);
-}
 
-TEST(GeofenceUtilsTest, LShapeSegment_WhollyInsideUpperRect)
-{
+	// Skewed line inside upper rectangle - same
 	expectSegmentVsPolygon(kLShape, 6, {0.3f, 1.2f}, {0.7f, 1.8f}, false, true);
 }
 
@@ -246,11 +223,10 @@ TEST(GeofenceUtilsTest, LShapeSegment_CrossesNotchEdge)
 
 TEST(GeofenceUtilsTest, LShapeSegment_ThroughReflexVertex_InsideToInside)
 {
-	// Both endpoints inside the polygon, segment passes through the reflex
-	// (1,1) but stays inside: it visits both rectangles of the L via the
-	// shared reflex vertex. Mid (1.25, 0.75) is strictly interior, not on
-	// any boundary, so the bounded-midpoint result is used directly.
+	// Both endpoints inside, segment passes through the reflex (1,1) but
+	// stays inside. Inclusion non-intersecting, exclusion intersecting.
 	expectSegmentVsPolygon(kLShape, 6, {0.5f, 1.5f}, {2.f, 0.f}, false, true);
+	expectSegmentVsPolygon(kLShape, 6, {0.5f, 1.5f}, {1.5f, 0.5f}, false, true);
 }
 
 TEST(GeofenceUtilsTest, LShapeSegment_ThroughReflexVertex_IntoNotch)
@@ -270,10 +246,17 @@ TEST(GeofenceUtilsTest, LShapeSegment_BetweenTwoVerticesAcrossNotch)
 
 TEST(GeofenceUtilsTest, LShapeSegment_TangentThroughConvexVertex)
 {
-	// Line tangent at the (2,0) convex vertex, segment otherwise in the
-	// exterior. Asymmetric endpoints so the midpoint lies strictly outside.
+	// These lines touch a vertex from outside. Inclusion -> intersection,
+	// exclusion -> no intersection.
+
+	// Tangent at (2, 0)
 	expectSegmentVsPolygon(kLShape, 6, {3.f, 1.f}, {1.5f, -0.5f}, true, false);
+	// Tangent at (0, 0)
+	expectSegmentVsPolygon(kLShape, 6, {-1.f, 1.f}, {1.f, -1.f}, true, false);
+	// Tangent at both (1, 2) and (2, 1)
+	expectSegmentVsPolygon(kLShape, 6, {0.f, 3.f}, {3.f, 0.f}, true, false);
 }
+
 
 TEST(GeofenceUtilsTest, SymmetricPairIndex)
 {
