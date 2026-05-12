@@ -78,7 +78,7 @@ public:
 
 	static void fromOlder(const MessageOlder &msg_older, MessageNewer &msg_newer) {
 		COMMON_VEHICLE_LOCAL_POSITION_FIELDS(COPY_FIELD_FROM_OLDER)
-		msg_newer.altitude_good_for_lock = false;
+		msg_newer.altitude_good_for_lock = true;
 	}
 
 	static void toOlder(const MessageNewer &msg_newer, MessageOlder &msg_older) {
