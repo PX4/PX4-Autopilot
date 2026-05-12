@@ -351,15 +351,15 @@ void HomePosition::update(bool set_automatically, bool check_if_changed)
 					       && isGpsHorizontalFusionEnabled();
 	}
 
-	// Apply home altitude correction from GPS altitude drift detection
-	if (_param_com_home_en.get() && _gps_alt_drift_sub.updated()) {
-		gps_altitude_drift_correction_s correction;
-		_gps_alt_drift_sub.copy(&correction);
+	// Apply home altitude correction from GNSS altitude drift detection
+	if (_param_com_home_en.get() && _gnss_altitude_drift_sub.updated()) {
+		gnss_altitude_drift_s gnss_altitude_drift;
+		_gnss_altitude_drift_sub.copy(&gnss_altitude_drift);
 
 		home_position_s home = _home_position_pub.get();
 
-		home.alt += correction.altitude_offset;
-		home.z -= correction.altitude_offset;
+		home.alt += gnss_altitude_drift.altitude_offset;
+		home.z -= gnss_altitude_drift.altitude_offset;
 		home.timestamp = hrt_absolute_time();
 		home.manual_home = false;
 		home.update_count = _home_position_pub.get().update_count + 1U;

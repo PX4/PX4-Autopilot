@@ -50,8 +50,7 @@ void GnssAltitudeDriftDetector::updateBaroLpf(float baro_alt, uint64_t timestamp
 	_last_baro_ts = timestamp;
 }
 
-void GnssAltitudeDriftDetector::update(const sensor_gps_s &gps, float ekf_amsl,
-				       uORB::PublicationMulti<gps_altitude_drift_correction_s> &pub)
+void GnssAltitudeDriftDetector::update(const sensor_gps_s &gps, float ekf_amsl, uORB::PublicationMulti<gnss_altitude_drift_s> &pub)
 {
 	const bool gps_timeout = (_last_gps_ts != 0) && (gps.timestamp - _last_gps_ts > 500000);
 
@@ -88,7 +87,7 @@ void GnssAltitudeDriftDetector::update(const sensor_gps_s &gps, float ekf_amsl,
 	}
 }
 
-void GnssAltitudeDriftDetector::analyze(uORB::PublicationMulti<gps_altitude_drift_correction_s> &pub)
+void GnssAltitudeDriftDetector::analyze(uORB::PublicationMulti<gnss_altitude_drift_s> &pub)
 {
 	const int newest = (_widx - 1 + kWindowSize) % kWindowSize;
 	const int oldest = (_widx - _wcount + kWindowSize) % kWindowSize;
@@ -132,12 +131,12 @@ void GnssAltitudeDriftDetector::analyze(uORB::PublicationMulti<gps_altitude_drif
 	}
 }
 
-void GnssAltitudeDriftDetector::publishCorrection(uORB::PublicationMulti<gps_altitude_drift_correction_s> &pub, float offset)
+void GnssAltitudeDriftDetector::publishCorrection(uORB::PublicationMulti<gnss_altitude_drift_s> &pub, float offset)
 {
-	gps_altitude_drift_correction_s correction{};
-	correction.timestamp = hrt_absolute_time();
-	correction.altitude_offset = offset;
-	pub.publish(correction);
+	gnss_altitude_drift_s gnss_altitude_drift{};
+	gnss_altitude_drift.timestamp = hrt_absolute_time();
+	gnss_altitude_drift.altitude_offset = offset;
+	pub.publish(gnss_altitude_drift);
 }
 
 void GnssAltitudeDriftDetector::reset()

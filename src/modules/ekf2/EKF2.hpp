@@ -104,7 +104,7 @@
 
 #if defined(CONFIG_EKF2_GNSS)
 # include <uORB/topics/estimator_gps_status.h>
-# include <uORB/topics/gps_altitude_drift_correction.h>
+# include <uORB/topics/gnss_altitude_drift.h>
 # include <uORB/topics/sensor_gps.h>
 # include "GnssAltitudeDriftDetector.hpp"
 #endif // CONFIG_EKF2_GNSS
@@ -512,7 +512,7 @@ private:
 # endif // CONFIG_EKF2_GNSS_YAW
 
 	GnssAltitudeDriftDetector _gnss_altitude_drift_detector;
-	uORB::PublicationMulti<gps_altitude_drift_correction_s> _gnss_altitude_drift_pub{ORB_ID(gps_altitude_drift_correction)};
+	uORB::PublicationMulti<gnss_altitude_drift_s> _gnss_altitude_drift_pub{ORB_ID(gnss_altitude_drift)};
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_GRAVITY_FUSION)

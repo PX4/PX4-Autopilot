@@ -40,7 +40,7 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/gps_altitude_drift_correction.h>
+#include <uORB/topics/gnss_altitude_drift.h>
 #include <uORB/topics/failsafe_flags.h>
 #include <px4_platform_common/module_params.h>
 
@@ -79,23 +79,23 @@ private:
 	static void fillGlobalHomePos(home_position_s &home, const vehicle_global_position_s &gpos);
 	static void fillGlobalHomePos(home_position_s &home, double lat, double lon, double alt);
 
-	uORB::Subscription					_vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
-	uORB::Subscription					_gps_alt_drift_sub{ORB_ID(gps_altitude_drift_correction)};
+	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _gnss_altitude_drift_sub{ORB_ID(gnss_altitude_drift)};
 
-	uORB::SubscriptionData<vehicle_global_position_s>	_global_position_sub{ORB_ID(vehicle_global_position)};
-	uORB::SubscriptionData<vehicle_local_position_s>	_local_position_sub{ORB_ID(vehicle_local_position)};
-	uORB::SubscriptionData<vehicle_attitude_s>		_attitude_sub{ORB_ID(vehicle_attitude)};
-	uORB::PublicationData<home_position_s>			_home_position_pub{ORB_ID(home_position)};
+	uORB::SubscriptionData<vehicle_global_position_s> _global_position_sub{ORB_ID(vehicle_global_position)};
+	uORB::SubscriptionData<vehicle_local_position_s> _local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::SubscriptionData<vehicle_attitude_s> _attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::PublicationData<home_position_s> _home_position_pub{ORB_ID(home_position)};
 
-	uint8_t							_heading_reset_counter{0};
-	bool							_valid{false};
-	const failsafe_flags_s					&_failsafe_flags;
-	bool							_gps_position_for_home_valid{false};
-	double							_gps_lat{0};
-	double							_gps_lon{0};
-	double							_gps_alt{0};
-	float							_gps_eph{0.f};
-	float							_gps_epv{0.f};
+	uint8_t _heading_reset_counter{0};
+	bool _valid{false};
+	const failsafe_flags_s &_failsafe_flags;
+	bool _gps_position_for_home_valid{false};
+	double _gps_lat{0};
+	double _gps_lon{0};
+	double _gps_alt{0};
+	float _gps_eph{0.f};
+	float _gps_epv{0.f};
 
 	DEFINE_PARAMETERS(
 		(ParamBool<px4::params::COM_HOME_EN>) _param_com_home_en

@@ -37,7 +37,7 @@
 
 #include <stdint.h>
 #include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/gps_altitude_drift_correction.h>
+#include <uORB/topics/gnss_altitude_drift.h>
 #include <uORB/topics/sensor_gps.h>
 
 class GnssAltitudeDriftDetector
@@ -48,14 +48,14 @@ public:
 	static constexpr float kDriftThreshold = 1.f; // [m]
 
 	void updateBaroLpf(float baro_alt, uint64_t timestamp);
-	void update(const sensor_gps_s &gps, float ekf_amsl, uORB::PublicationMulti<gps_altitude_drift_correction_s> &pub);
+	void update(const sensor_gps_s &gps, float ekf_amsl, uORB::PublicationMulti<gnss_altitude_drift_s> &pub);
 	void reset();
 
 	bool _altitude_good_for_lock{true};
 
 private:
-	void analyze(uORB::PublicationMulti<gps_altitude_drift_correction_s> &pub);
-	void publishCorrection(uORB::PublicationMulti<gps_altitude_drift_correction_s> &pub, float offset);
+	void analyze(uORB::PublicationMulti<gnss_altitude_drift_s> &pub);
+	void publishCorrection(uORB::PublicationMulti<gnss_altitude_drift_s> &pub, float offset);
 
 	AlphaFilter<float> _baro_lpf;
 	uint64_t _last_baro_ts{0};
