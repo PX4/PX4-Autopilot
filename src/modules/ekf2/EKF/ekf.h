@@ -183,11 +183,6 @@ public:
 	// get the diagonal elements of the covariance matrix
 	matrix::Vector<float, State::size> covariances_diagonal() const { return P.diag(); }
 
-	void decorrelateAltPos()
-	{
-		P.uncorrelateCovariance<1>(State::pos.idx + 2);
-	}
-
 	matrix::Vector3f getRotVarBody() const;
 	matrix::Vector3f getRotVarNed() const;
 	float getYawVar() const;
@@ -452,6 +447,8 @@ public:
 		_control_status.flags.mag_heading_consistent = false;
 		_control_status.flags.yaw_manual = true;
 	}
+
+	void decorrelateAltitudeFromPosition() { P.uncorrelateCovariance<1>(State::pos.idx + 2); }
 
 	void updateParameters();
 
