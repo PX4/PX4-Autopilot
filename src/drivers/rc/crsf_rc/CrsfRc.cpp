@@ -249,10 +249,54 @@ void CrsfRc::Run()
 			}
 		}
 
-		if (_param_rc_crsf_tel_en.get() && !_is_singlewire
-		    && (_input_rc.timestamp > _telemetry_update_last + 100_ms)) {
-			switch (_next_type) {
-			case 0:
+		if (_param_rc_crsf_tel_en.get() && !_is_singlewire) {
+			SendNextTelemetryFrame(time_now_us);
+		}
+	}
+
+	// If no communication
+	if (time_now_us - _last_packet_seen > 500_ms) {
+		// Invalidate link statistics
+		_input_rc.rssi = -1;
+		_input_rc.rssi_dbm = NAN;
+		_input_rc.link_quality = -1;
+		_input_rc.rc_frame_rate = 0;
+		_input_rc.link_snr = -1;
+	}
+
+	// If we have not gotten RC updates specifically
+	if (time_now_us - _input_rc.timestamp_last_signal > 500_ms) {
+		_input_rc.rc_lost = 1;
+		_input_rc.rc_failsafe = 1;
+
+	} else {
+		_input_rc.rc_lost = 0;
+		_input_rc.rc_failsafe = 0;
+	}
+
+	_input_rc.channel_count = CRSF_CHANNEL_COUNT;
+	_input_rc.rc_ppm_frame_length = 0;
+	_input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_CRSF;
+	_input_rc.timestamp = hrt_absolute_time();
+	_input_rc_pub.publish(_input_rc);
+
+	perf_count(_publish_interval_perf);
+	ScheduleDelayed(4_ms);
+}
+bool CrsfRc::SendNextTelemetryFrame(const hrt_abstime now)
+{
+	for (int attempt = 0; attempt < telemetry_slot_count; ++attempt) {
+		_next_type = (_next_type + 1) % telemetry_slot_count;
+		const TelemetrySlot type = static_cast<TelemetrySlot>(_next_type);
+
+		if (now < _telemetry_last_sent[_next_type] + TelemetryMinInterval(type)) {
+			continue;
+		}
+
+		bool sent = false;
+
+		switch (type) {
+		case TelemetrySlot::Battery: {
 				battery_status_s battery_status;
 
 				if (_battery_status_sub.update(&battery_status)) {
@@ -260,40 +304,43 @@ void CrsfRc::Run()
 					uint16_t current = battery_status.current_a * 10;
 					int fuel = battery_status.discharged_mah;
 					uint8_t remaining = battery_status.remaining * 100;
-					this->SendTelemetryBattery(voltage, current, fuel, remaining);
+					sent = SendTelemetryBattery(voltage, current, fuel, remaining);
 				}
 
 				break;
+			}
 
-			case 1:
+		case TelemetrySlot::Gps: {
 				sensor_gps_s sensor_gps;
 
 				if (_vehicle_gps_position_sub.update(&sensor_gps)) {
 					int32_t latitude = static_cast<int32_t>(round(sensor_gps.latitude_deg * 1e7));
 					int32_t longitude = static_cast<int32_t>(round(sensor_gps.longitude_deg * 1e7));
-					uint16_t groundspeed = sensor_gps.vel_d_m_s / 3.6f * 10.f;
+					uint16_t groundspeed = sensor_gps.vel_m_s * 3.6f * 100.f; // km/h / 100
 					uint16_t gps_heading = math::degrees(sensor_gps.cog_rad) * 100.f;
 					uint16_t altitude = static_cast<int16_t>(sensor_gps.altitude_msl_m) + 1000;
 					uint8_t num_satellites = sensor_gps.satellites_used;
-					this->SendTelemetryGps(latitude, longitude, groundspeed, gps_heading, altitude, num_satellites);
+					sent = SendTelemetryGps(latitude, longitude, groundspeed, gps_heading, altitude, num_satellites);
 				}
 
 				break;
+			}
 
-			case 2:
+		case TelemetrySlot::Attitude: {
 				vehicle_attitude_s vehicle_attitude;
 
 				if (_vehicle_attitude_sub.update(&vehicle_attitude)) {
-					matrix::Eulerf attitude = matrix::Quatf(vehicle_attitude.q);
+					const matrix::Eulerf attitude = matrix::Quatf(vehicle_attitude.q);
 					int16_t pitch = attitude(1) * 1e4f;
 					int16_t roll = attitude(0) * 1e4f;
 					int16_t yaw = attitude(2) * 1e4f;
-					this->SendTelemetryAttitude(pitch, roll, yaw);
+					sent = SendTelemetryAttitude(pitch, roll, yaw);
 				}
 
 				break;
+			}
 
-			case 3:
+		case TelemetrySlot::FlightMode: {
 				vehicle_status_s vehicle_status;
 
 				if (_vehicle_status_sub.update(&vehicle_status)) {
@@ -336,7 +383,6 @@ void CrsfRc::Run()
 					/*case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL:
 						flight_mode = "Failure";
 						break;*/
-
 					case vehicle_status_s::NAVIGATION_STATE_ACRO:
 						flight_mode = "Acro";
 						break;
@@ -357,48 +403,35 @@ void CrsfRc::Run()
 						flight_mode = "Unknown";
 					}
 
-					this->SendTelemetryFlightMode(flight_mode);
+					sent = SendTelemetryFlightMode(flight_mode);
 				}
 
 				break;
 			}
 
-			_telemetry_update_last = _input_rc.timestamp;
-			_next_type = (_next_type + 1) % num_data_types;
+		case TelemetrySlot::Airspeed: {
+				airspeed_s airspeed;
+
+				if (_airspeed.update(&airspeed)) {
+					uint16_t airspeed_value = static_cast<uint16_t>(airspeed.indicated_airspeed_m_s * 3.6f * 10.f); // 0.1 * km/h
+					sent = SendTelemetryAirspeed(airspeed_value);
+				}
+
+				break;
+			}
+
+		default:
+			break;
+		}
+
+		if (sent) {
+			_telemetry_last_sent[_next_type] = now;
+			return true;
 		}
 	}
 
-	// If no communication
-	if (time_now_us - _last_packet_seen > 500_ms) {
-		// Invalidate link statistics
-		_input_rc.rssi = -1;
-		_input_rc.rssi_dbm = NAN;
-		_input_rc.link_quality = -1;
-		_input_rc.rc_frame_rate = 0;
-		_input_rc.link_snr = -1;
-	}
-
-	// If we have not gotten RC updates specifically
-	if (time_now_us - _input_rc.timestamp_last_signal > 500_ms) {
-		_input_rc.rc_lost = 1;
-		_input_rc.rc_failsafe = 1;
-
-	} else {
-		_input_rc.rc_lost = 0;
-		_input_rc.rc_failsafe = 0;
-	}
-
-	_input_rc.channel_count = CRSF_CHANNEL_COUNT;
-	_input_rc.rc_ppm_frame_length = 0;
-	_input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_CRSF;
-	_input_rc.timestamp = hrt_absolute_time();
-	_input_rc_pub.publish(_input_rc);
-
-	perf_count(_publish_interval_perf);
-
-	ScheduleDelayed(4_ms);
+	return false;
 }
-
 /**
  * write an uint8_t value to a buffer at a given offset and increment the offset
  */
@@ -406,7 +439,6 @@ static inline void write_uint8_t(uint8_t *buf, int &offset, uint8_t value)
 {
 	buf[offset++] = value;
 }
-
 /**
  * write an uint16_t value to a buffer at a given offset and increment the offset
  */
@@ -417,7 +449,6 @@ static inline void write_uint16_t(uint8_t *buf, int &offset, uint16_t value)
 	buf[offset + 1] = value & 0xff;
 	offset += 2;
 }
-
 /**
  * write an uint24_t value to a buffer at a given offset and increment the offset
  */
@@ -429,7 +460,6 @@ static inline void write_uint24_t(uint8_t *buf, int &offset, int value)
 	buf[offset + 2] = value & 0xff;
 	offset += 3;
 }
-
 /**
  * write an int32_t value to a buffer at a given offset and increment the offset
  */
@@ -442,20 +472,17 @@ static inline void write_int32_t(uint8_t *buf, int &offset, int32_t value)
 	buf[offset + 3] = value & 0xff;
 	offset += 4;
 }
-
 void CrsfRc::WriteFrameHeader(uint8_t *buf, int &offset, const crsf_frame_type_t type, const uint8_t payload_size)
 {
 	write_uint8_t(buf, offset, 0xc8); // this got changed from the address to the sync byte
 	write_uint8_t(buf, offset, payload_size + 2);
 	write_uint8_t(buf, offset, (uint8_t)type);
 }
-
 void CrsfRc::WriteFrameCrc(uint8_t *buf, int &offset, const int buf_size)
 {
 	// CRC does not include the address and length
 	write_uint8_t(buf, offset, Crc8Calc(buf + 2, buf_size - 3));
 }
-
 bool CrsfRc::SendTelemetryBattery(const uint16_t voltage, const uint16_t current, const int fuel,
 				  const uint8_t remaining)
 {
@@ -467,10 +494,8 @@ bool CrsfRc::SendTelemetryBattery(const uint16_t voltage, const uint16_t current
 	write_uint24_t(buf, offset, fuel);
 	write_uint8_t(buf, offset, remaining);
 	WriteFrameCrc(buf, offset, sizeof(buf));
-	return _uart->write((void *) buf, (size_t) offset);
-
+	return _uart->write((void *)buf, (size_t)offset) == offset;
 }
-
 bool CrsfRc::SendTelemetryGps(const int32_t latitude, const int32_t longitude, const uint16_t groundspeed,
 			      const uint16_t gps_heading, const uint16_t altitude, const uint8_t num_satellites)
 {
@@ -484,9 +509,8 @@ bool CrsfRc::SendTelemetryGps(const int32_t latitude, const int32_t longitude, c
 	write_uint16_t(buf, offset, altitude);
 	write_uint8_t(buf, offset, num_satellites);
 	WriteFrameCrc(buf, offset, sizeof(buf));
-	return _uart->write((void *) buf, (size_t) offset);
+	return _uart->write((void *)buf, (size_t)offset) == offset;
 }
-
 bool CrsfRc::SendTelemetryAttitude(const int16_t pitch, const int16_t roll, const int16_t yaw)
 {
 	uint8_t buf[(uint8_t)crsf_payload_size_t::attitude + 4];
@@ -496,9 +520,8 @@ bool CrsfRc::SendTelemetryAttitude(const int16_t pitch, const int16_t roll, cons
 	write_uint16_t(buf, offset, roll);
 	write_uint16_t(buf, offset, yaw);
 	WriteFrameCrc(buf, offset, sizeof(buf));
-	return _uart->write((void *) buf, (size_t) offset);
+	return _uart->write((void *)buf, (size_t)offset) == offset;
 }
-
 bool CrsfRc::SendTelemetryFlightMode(const char *flight_mode)
 {
 	const int max_length = 16;
@@ -515,7 +538,17 @@ bool CrsfRc::SendTelemetryFlightMode(const char *flight_mode)
 	offset += length;
 	buf[offset - 1] = 0; // ensure null-terminated string
 	WriteFrameCrc(buf, offset, length + 4);
-	return _uart->write((void *) buf, (size_t) offset);
+	return _uart->write((void *)buf, (size_t)offset) == offset;
+}
+
+bool CrsfRc::SendTelemetryAirspeed(const uint16_t airspeed)
+{
+	uint8_t buf[(uint8_t)crsf_payload_size_t::airspeed + 4];
+	int offset = 0;
+	WriteFrameHeader(buf, offset, crsf_frame_type_t::airspeed, (uint8_t)crsf_payload_size_t::airspeed);
+	write_uint16_t(buf, offset, airspeed);
+	WriteFrameCrc(buf, offset, sizeof(buf));
+	return _uart->write((void *)buf, (size_t)offset) == offset;
 }
 
 int CrsfRc::print_status()
@@ -534,17 +567,14 @@ int CrsfRc::print_status()
 
 	perf_print_counter(_cycle_interval_perf);
 	perf_print_counter(_publish_interval_perf);
-
 	PX4_INFO_RAW("Disposed bytes: %" PRIu32 "\n", _packet_parser_statistics.disposed_bytes);
 	PX4_INFO_RAW("Valid known packet CRCs: %" PRIu32 "\n", _packet_parser_statistics.crcs_valid_known_packets);
 	PX4_INFO_RAW("Valid unknown packet CRCs: %" PRIu32 "\n", _packet_parser_statistics.crcs_valid_unknown_packets);
 	PX4_INFO_RAW("Invalid CRCs: %" PRIu32 "\n", _packet_parser_statistics.crcs_invalid);
 	PX4_INFO_RAW("Invalid known packet sizes: %" PRIu32 "\n", _packet_parser_statistics.invalid_known_packet_sizes);
 	PX4_INFO_RAW("Invalid unknown packet sizes: %" PRIu32 "\n", _packet_parser_statistics.invalid_unknown_packet_sizes);
-
 	return 0;
 }
-
 int CrsfRc::custom_command(int argc, char *argv[])
 {
 #ifdef CONFIG_RC_CRSF_INJECT

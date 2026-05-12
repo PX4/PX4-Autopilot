@@ -53,8 +53,10 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/airspeed.h>
 
 using namespace device;
+using namespace time_literals;
 
 class CrsfRc : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
@@ -92,6 +94,43 @@ private:
 
 	bool SendTelemetryFlightMode(const char *flight_mode);
 
+	bool SendTelemetryAirspeed(const uint16_t airspeed);
+
+	bool SendNextTelemetryFrame(const hrt_abstime now);
+
+	static constexpr int telemetry_slot_count{5};
+
+	enum class TelemetrySlot {
+		Battery = 0,
+		Gps,
+		Attitude,
+		FlightMode,
+		Airspeed
+	};
+
+	static constexpr hrt_abstime TelemetryMinInterval(TelemetrySlot type)
+	{
+		switch (type) {
+		case TelemetrySlot::Battery:
+			return 500_ms;
+
+		case TelemetrySlot::Gps:
+			return 200_ms;
+
+		case TelemetrySlot::Attitude:
+			return 200_ms;
+
+		case TelemetrySlot::FlightMode:
+			return 500_ms;
+
+		case TelemetrySlot::Airspeed:
+			return 200_ms;
+
+		default:
+			return 500_ms;
+		}
+	}
+
 	Serial *_uart = nullptr; ///< UART interface to RC
 
 	char _device[20] {}; ///< device / serial port path
@@ -107,17 +146,18 @@ private:
 	CrsfParserStatistics_t _packet_parser_statistics{0};
 
 	// telemetry
-	hrt_abstime _telemetry_update_last{0};
-	static constexpr int num_data_types{4}; ///< number of different telemetry data types
 	int _next_type{0};
+	hrt_abstime _telemetry_last_sent[telemetry_slot_count] {};
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _airspeed{ORB_ID(airspeed)};
 
 	enum class crsf_frame_type_t : uint8_t {
 		gps = 0x02,
 		battery_sensor = 0x08,
+		airspeed = 0x0A,
 		link_statistics = 0x14,
 		rc_channels_packed = 0x16,
 		attitude = 0x1E,
@@ -138,6 +178,7 @@ private:
 		link_statistics = 10,
 		rc_channels = 22, ///< 11 bits per channel * 16 channels = 22 bytes.
 		attitude = 6,
+		airspeed = 2,
 	};
 
 	void WriteFrameHeader(uint8_t *buf, int &offset, const crsf_frame_type_t type, const uint8_t payload_size);
