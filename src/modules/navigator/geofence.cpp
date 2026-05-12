@@ -442,8 +442,6 @@ bool Geofence::insidePolygon(const PolygonInfo &polygon, double lat, double lon,
 	mission_fence_point_s temp_vertex_j{};
 	bool c = false;
 
-	const matrix::Vector2<double> test_point{lat, lon};
-
 	for (unsigned i = 0, j = polygon.vertex_count - 1; i < polygon.vertex_count; j = i++) {
 
 		dm_item_t fence_dataman_id{static_cast<dm_item_t>(_stats.dataman_id)};
@@ -475,10 +473,11 @@ bool Geofence::insidePolygon(const PolygonInfo &polygon, double lat, double lon,
 
 		}
 
-		const matrix::Vector2<double> vertex_i{(double)temp_vertex_i.lat, (double)temp_vertex_i.lon};
-		const matrix::Vector2<double> vertex_j{(double)temp_vertex_j.lat, (double)temp_vertex_j.lon};
-
-		geofence_utils::insidePolygonUpdateState(c, vertex_i, vertex_j, test_point);
+		if (((double)temp_vertex_i.lon >= lon) != ((double)temp_vertex_j.lon >= lon) &&
+		    (lat <= (double)(temp_vertex_j.lat - temp_vertex_i.lat) * (lon - (double)temp_vertex_i.lon) /
+		     (double)(temp_vertex_j.lon - temp_vertex_i.lon) + (double)temp_vertex_i.lat)) {
+			c = !c;
+		}
 	}
 
 	return c;
