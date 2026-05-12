@@ -141,10 +141,10 @@ void GnssAltitudeDriftDetector::publishCorrection(float offset)
 
 void GnssAltitudeDriftDetector::reset()
 {
+	_altitude_good_for_lock = true;
 	_vel_integral = 0.f;
 	_wcount = 0;
 	_widx = 0;
 	_last_sample_ts = 0;
 	_hit_pending = false;
-	_altitude_good_for_lock = true;
 }

@@ -2691,8 +2691,7 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 		    && _ekf.control_status_flags().baro_hgt
 		    && (_param_ekf2_gps_ctrl.get() & static_cast<int32_t>(GnssCtrl::VEL))) {
 
-			const float ekf_amsl = _ekf.getLatLonAlt().altitude();
-			_gnss_altitude_drift_detector.update(vehicle_gps_position, ekf_amsl);
+			_gnss_altitude_drift_detector.update(vehicle_gps_position, _ekf.getLatLonAlt().altitude());
 
 			if (!_gnss_altitude_drift_detector._altitude_good_for_lock) {
 				_ekf.decorrelateAltitudeFromPosition();

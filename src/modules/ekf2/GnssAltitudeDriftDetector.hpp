@@ -35,7 +35,6 @@
 
 #include "mathlib/math/filter/AlphaFilter.hpp"
 
-#include <stdint.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/gnss_altitude_drift.h>
 #include <uORB/topics/sensor_gps.h>
@@ -62,12 +61,13 @@ private:
 	AlphaFilter<float> _baro_lpf;
 	uint64_t _last_baro_ts{0};
 	uint64_t _last_gps_ts{0};
-	float _vel_integral{0.f};
 
 	float _d1[kWindowSize] {}; // ekf_amsl - baro_alt
 	float _d2[kWindowSize] {}; // ekf_amsl - vel_integral
-	int _widx{0};
+
+	float _vel_integral{0.f};
 	int _wcount{0};
+	int _widx{0};
 	uint64_t _last_sample_ts{0};
 	bool _hit_pending{false};
 };
