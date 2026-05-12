@@ -38,6 +38,13 @@ if(CONFIG_LIB_CDRSTREAM)
 	include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/lib/cdrstream/cyclonedds/src/core/ddsc/include)
 endif()
 
+option(PX4_POSIX_SHM_DISABLED "Disable POSIX shm backing for uORB" OFF)
+
+# Ensure shm backing is always disabled for all qurt targets.
+if("${PX4_PLATFORM}" STREQUAL "qurt")
+	set(PX4_POSIX_SHM_DISABLED ON CACHE BOOL "Disable POSIX shm backing for uORB" FORCE)
+endif()
+
 px4_add_library(uORB
 	ORBSet.hpp
 	Publication.cpp
@@ -72,6 +79,10 @@ endif()
 
 target_compile_options(uORB PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
 target_link_libraries(uORB PRIVATE uorb_msgs)
+
+if(PX4_POSIX_SHM_DISABLED)
+	target_compile_definitions(uORB PRIVATE POSIX_SHM_DISABLED)
+endif()
 
 if(PX4_TESTING)
 	add_subdirectory(uORB_tests)
