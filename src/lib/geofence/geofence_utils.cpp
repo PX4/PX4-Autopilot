@@ -46,14 +46,6 @@ int32_t metersToCm(float m) { return static_cast<int32_t>(std::llroundf(m * 100.
 } // namespace
 
 
-int PlannerPolygons::addNode(const matrix::Vector2f &p)
-{
-	if (_num_nodes >= kMaxNodes) { return -1; }
-
-	setNode(_num_nodes, p);
-	return _num_nodes++;
-}
-
 void PlannerPolygons::setNode(int idx, const matrix::Vector2f &p)
 {
 	_x_cm[idx] = metersToCm(p(0));
@@ -307,16 +299,36 @@ bool PlannerPolygons::intersectsAnyInside(int32_t s_x, int32_t s_y, int32_t e_x,
 	return false;
 }
 
-bool PlannerPolygons::isLineBetweenNodesIntersectingAnyInside(int a, int b) const
+void PlannerPolygons::setDestination(const matrix::Vector2f &p)
+{
+	setNode(destIndex(), p);
+}
+
+matrix::Vector2f PlannerPolygons::getDestination() const
+{
+	return node(destIndex());
+}
+
+bool PlannerPolygons::edgeVisible(int a, int b) const
 {
 	if (a == b) { return false; }
 
-	return intersectsAnyInside(_x_cm[a], _y_cm[a], _x_cm[b], _y_cm[b]);
+	return !intersectsAnyInside(_x_cm[a], _y_cm[a], _x_cm[b], _y_cm[b]);
 }
 
-bool PlannerPolygons::isLineFromPointToNodeIntersectingAnyInside(const matrix::Vector2f &p, int node_idx) const
+bool PlannerPolygons::edgeVisible(const matrix::Vector2f &a, int b) const
 {
-	return intersectsAnyInside(metersToCm(p(0)), metersToCm(p(1)), _x_cm[node_idx], _y_cm[node_idx]);
+	return !intersectsAnyInside(metersToCm(a(0)), metersToCm(a(1)), _x_cm[b], _y_cm[b]);
+}
+
+bool PlannerPolygons::edgeVisible(const matrix::Vector2f &a, const matrix::Vector2f &b) const
+{
+	return !intersectsAnyInside(metersToCm(a(0)), metersToCm(a(1)), metersToCm(b(0)), metersToCm(b(1)));
+}
+
+float PlannerPolygons::edgeCost(int a, int b) const
+{
+	return edgeVisible(a, b) ? (node(a) - node(b)).norm() : INFINITY;
 }
 
 
