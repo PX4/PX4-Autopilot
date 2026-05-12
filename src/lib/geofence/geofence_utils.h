@@ -175,20 +175,17 @@ bool isPolygonCCW(const matrix::Vector2f *vertices, int num_vertices);
 
 
 /**
- * Read-only fence cache. Owns a flat int32-cm node buffer that holds every
- * position the planner cares about (polygon vertices, circle-approximation
- * vertices, destination, ...) and a polygon metadata table that slices into
- * it. Polygons are stored in canonical orientation: walking vertices in
- * stored order, the polygon's INSIDE region is always to the left of each
- * edge (CCW for exclusion zones, CW for inclusion zones).
+ * Fence geometry cache for the geofence avoidance planner. Owns a flat
+ * int32-cm node buffer that holds polygon vertices, circle k-gon vertices,
+ * and one destination slot.
  *
- * Three layers of intersection query:
- *   (1) Free int32 predicates (orient2d, segmentsIntersect, collinearBetween)
- *       at the top of this header -- raw scalar coordinates, no cm semantics.
- *   (2) `isLineBetweenNodesIntersectingAnyInside(a, b)` -- node-to-node
- *       visibility for the planner's V^2 hot path; returns false if a == b.
- *   (3) `isLineFromPointToNodeIntersectingAnyInside(p, idx)` -- the only
- *       float bridge, intended for the vehicle's current position.
+ * Polygons are stored in canonical orientation: the polygon INSIDE is always to
+ * the left of each edge (CCW for exclusion zones, CW for inclusion zones).
+ *
+ * Typical lifecycle:
+ *   1. addPolygon / addApproxCircle  (one per geofence zone)
+ *   2. setDestination(p)             (called whenever destination changes)
+ *   3. edgeCost(a, b) / edgeVisible  (queried during planning)
  */
 class PlannerPolygons
 {
@@ -196,40 +193,53 @@ public:
 	static constexpr int kMaxNodes = 100;
 	static constexpr int kMaxPolygons = 16;
 
-	PlannerPolygons() = default;
+	PlannerPolygons() { reset(); }
 
-	void reset() { _num_nodes = 0; _num_polygons = 0; }
+	// Slot 0 is always reserved for the destination; polygon vertices start at index 1.
+	void reset() { _num_nodes = 1; _x_cm[0] = 0; _y_cm[0] = 0; _num_polygons = 0; }
 
-	/// Append a single point to the node buffer. Returns its index, or -1 if full.
-	int addNode(const matrix::Vector2f &p);
-
-	/// Replace the node at `idx` (used to update the destination slot in place).
-	void setNode(int idx, const matrix::Vector2f &p);
-
-	/// Append a polygon:
-	///  - canonicalize orientation,
-	///  - optionally offset each vertex outward (exclusion) or inward (inclusion) by `margin` meters
-	///  - quantize to cm, append as nodes.
-	/// Returns false on budget overflow, fewer than 3 vertices, or a
-	/// degenerate edge/antiparallel corner when margin != 0.
+	// Append a polygon:
+	//  - canonicalize orientation,
+	//  - optionally offset each vertex outward (exclusion) or inward (inclusion) by `margin` meters
+	//  - quantize to cm, append as nodes.
+	// Returns false on budget overflow, fewer than 3 vertices, or a
+	// degenerate edge/antiparallel corner when margin != 0.
 	bool addPolygon(const matrix::Vector2f *vertices_in, int num_vertices,
 			bool is_inclusion_zone, float margin = 0.f);
 
-	/// Append an approximate circle (k-gon over/underapproximation).
-	///  - shrink/expand according to margin and is_inclusion_zone
-	///  - quantize to cm, append as nodes.
+	// Append an approximate circle (k-gon over/underapproximation).
+	//  - shrink/expand according to margin and is_inclusion_zone
+	//  - quantize to cm, append as nodes.
 	bool addApproxCircle(const matrix::Vector2f &center, const float radius, float margin, const int num_vertices,
 			     const bool is_inclusion_zone);
 
 	int numNodes() const { return _num_nodes; }
+
+	// Number of polygon/circle nodes (excludes the destination at index 0).
+	int numVertices() const { return _num_nodes - 1; }
 
 	matrix::Vector2f node(int idx) const
 	{
 		return matrix::Vector2f{_x_cm[idx] / 100.f, _y_cm[idx] / 100.f};
 	}
 
-	bool isLineBetweenNodesIntersectingAnyInside(int a, int b) const;
-	bool isLineFromPointToNodeIntersectingAnyInside(const matrix::Vector2f &p, int node_idx) const;
+	// Update the destination position. Always safe to call after reset().
+	void setDestination(const matrix::Vector2f &p);
+
+	// Get the current destination position.
+	matrix::Vector2f getDestination() const;
+
+	// Destination is always at index 0; polygon vertices start at index 1.
+	static constexpr int destIndex() { return 0; }
+
+	// True if the segment (a, b) crosses no geofence interior.
+	bool edgeVisible(int a, int b) const;
+	bool edgeVisible(const matrix::Vector2f &a, int b) const;          // One float endpoint (e.g. vehicle position).
+	bool edgeVisible(const matrix::Vector2f &a, const matrix::Vector2f &b) const; // Both float endpoints.
+
+	// Traversal cost for edge (a, b): INFINITY if the edge crosses any fence,
+	// Euclidean distance (metres) otherwise.
+	float edgeCost(int a, int b) const;
 
 private:
 	struct PolygonInfo {
@@ -245,6 +255,10 @@ private:
 	PolygonInfo _polygons[kMaxPolygons];
 	int _num_polygons{0};
 
+	/// Write float-metre coordinates into an existing node slot (used internally by
+	/// addPolygon, addApproxCircle, and setDestination).
+	void setNode(int idx, const matrix::Vector2f &p);
+
 	bool intersectsAnyInside(int32_t s_x, int32_t s_y, int32_t e_x, int32_t e_y) const;
 	bool intersectsInsideOf(const PolygonInfo &poly,
 				int32_t s_x, int32_t s_y, int32_t e_x, int32_t e_y) const;
@@ -252,8 +266,7 @@ private:
 };
 
 /// Convenience for unit tests and one-shot callers: build a transient
-/// PlannerPolygons with the given polygon and two extra nodes for the segment
-/// endpoints, then run the node-to-node query.
+/// PlannerPolygons with the given polygon and query the segment.
 inline bool lineSegmentIntersectsPolygon(const matrix::Vector2f &start, const matrix::Vector2f &end,
 		const matrix::Vector2f *vertices, int num_vertices, bool is_inclusion_zone)
 {
@@ -263,7 +276,7 @@ inline bool lineSegmentIntersectsPolygon(const matrix::Vector2f &start, const ma
 		return false;
 	}
 
-	return polys.isLineBetweenNodesIntersectingAnyInside(polys.addNode(start), polys.addNode(end));
+	return !polys.edgeVisible(start, end);
 }
 
 

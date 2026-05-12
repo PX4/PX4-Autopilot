@@ -149,9 +149,6 @@ private:
 
 	matrix::Vector2f _start_local;
 
-	int _num_nodes{0};
-	int _num_vertices{0};
-	int _dest_idx{-1};
 	matrix::Vector2<double> _reference; // lat/lon anchor of the local frame
 
 	// Cached, read-only fence representation. _polygons owns the master
