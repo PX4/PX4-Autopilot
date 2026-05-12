@@ -33,9 +33,6 @@
 
 #include "GnssAltitudeDriftDetector.hpp"
 
-#include <drivers/drv_hrt.h>
-#include <math.h>
-
 void GnssAltitudeDriftDetector::updateBaroLpf(float baro_alt, uint64_t timestamp)
 {
 	const float dt = 1e-6f * (timestamp - _last_baro_ts);

@@ -33,8 +33,8 @@
 
 #pragma once
 
-#include "mathlib/math/filter/AlphaFilter.hpp"
-
+#include <drivers/drv_hrt.h>
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/gnss_altitude_drift.h>
 #include <uORB/topics/sensor_gps.h>
@@ -59,8 +59,8 @@ private:
 	uORB::PublicationMulti<gnss_altitude_drift_s> _gnss_altitude_drift_pub{ORB_ID(gnss_altitude_drift)};
 
 	AlphaFilter<float> _baro_lpf;
-	uint64_t _last_baro_ts{0};
-	uint64_t _last_gps_ts{0};
+	hrt_abstime _last_baro_ts{0};
+	hrt_abstime _last_gps_ts{0};
 
 	float _d1[kWindowSize] {}; // ekf_amsl - baro_alt
 	float _d2[kWindowSize] {}; // ekf_amsl - vel_integral
@@ -68,6 +68,6 @@ private:
 	float _vel_integral{0.f};
 	int _wcount{0};
 	int _widx{0};
-	uint64_t _last_sample_ts{0};
+	hrt_abstime _last_sample_ts{0};
 	bool _hit_pending{false};
 };
