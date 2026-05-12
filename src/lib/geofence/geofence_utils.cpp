@@ -41,7 +41,7 @@ namespace
 {
 
 // Float-meter to int32-cm: the only conversion at the float/cm boundary.
-int32_t metersToCm(float m) { return static_cast<int32_t>(std::llroundf(m * 100.f)); }
+int32_t metersToCm(float m) { return roundf(m * 100.f); }
 
 } // namespace
 
