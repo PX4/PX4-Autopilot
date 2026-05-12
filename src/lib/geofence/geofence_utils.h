@@ -48,36 +48,6 @@ namespace geofence_utils
 {
 
 /**
- * Update the PNPOLY inside/outside state for a single polygon edge.
- * Templated on the coordinate scalar type so the same test can be used
- * with either float (local frame, meters) or double (lat/lon degrees).
- *
- * @param last_state  state passed in on each call as reference, init to false
- * @param v1          edge start vertex
- * @param v2          edge end vertex
- * @param point       test point
- */
-template <typename T>
-void insidePolygonUpdateState(bool &last_state,
-			      const matrix::Vector2<T> &v1,
-			      const matrix::Vector2<T> &v2,
-			      const matrix::Vector2<T> &point)
-{
-	/**
-	 * Adaptation of algorithm originally presented as
-	 * PNPOLY - Point Inclusion in Polygon Test
-	 * W. Randolph Franklin (WRF)
-	 * Only supports non-complex polygons (not self intersecting)
-	 */
-	if (((v1(1) >= point(1)) != (v2(1) >= point(1))) &&
-	    (point(0) <= (v2(0) - v1(0)) * (point(1) - v1(1)) /
-	     (v2(1) - v1(1)) + v1(0))) {
-		last_state = !last_state;
-	}
-}
-
-
-/**
  * Sign of the signed area of triangle abc -- the fundamental 2D orientation
  * predicate. +1 if c is left of a->b (CCW turn), -1 if right (CW turn),
  * 0 if collinear. Reference: O'Rourke, "Computational Geometry in C", 1.5.
