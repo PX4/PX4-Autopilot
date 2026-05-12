@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015-2023 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015-2026 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -178,6 +178,7 @@ if(CONFIG_EKF2_GNSS)
 		EKF/aid_sources/gnss/gnss_checks.cpp
 		EKF/aid_sources/gnss/gnss_height_control.cpp
 		EKF/aid_sources/gnss/gps_control.cpp
+		GnssAltitudeDriftDetector.cpp
 	)
 
 	if(CONFIG_EKF2_GNSS_YAW)

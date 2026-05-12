@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015-2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -106,6 +106,7 @@
 # include <uORB/topics/estimator_gps_status.h>
 # include <uORB/topics/gps_altitude_drift_correction.h>
 # include <uORB/topics/sensor_gps.h>
+# include "GnssAltitudeDriftDetector.hpp"
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
@@ -510,38 +511,8 @@ private:
 	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_gnss_yaw_pub {ORB_ID(estimator_aid_src_gnss_yaw)};
 # endif // CONFIG_EKF2_GNSS_YAW
 
-	class GpsAltDriftDetector
-	{
-	public:
-		static constexpr int kWindowSize = 20; // roughly 20 seconds (at 1 Hz sample rate)
-		static constexpr int kStabilityWindow = 5; // samples to check for re-enable
-		static constexpr float kDriftThreshold = 1.f; // [m]
-
-		void updateBaroLpf(float baro_alt, uint64_t timestamp);
-		void update(const sensor_gps_s &gps, float ekf_amsl, uORB::PublicationMulti<gps_altitude_drift_correction_s> &pub);
-		void reset();
-
-		bool _altitude_good_for_lock{true};
-
-	private:
-		void analyze(uORB::PublicationMulti<gps_altitude_drift_correction_s> &pub);
-		void publishCorrection(uORB::PublicationMulti<gps_altitude_drift_correction_s> &pub, float offset);
-
-		AlphaFilter<float> _baro_lpf;
-		uint64_t _last_baro_ts{0};
-		uint64_t _last_gps_ts{0};
-		float _vel_integral{0.f};
-
-		float _d1[kWindowSize] {}; // ekf_amsl - baro_alt
-		float _d2[kWindowSize] {}; // ekf_amsl - vel_integral
-		int _widx{0};
-		int _wcount{0};
-		uint64_t _last_sample_ts{0};
-		bool _hit_pending{false};
-	};
-
-	GpsAltDriftDetector _gps_alt_drift{};
-	uORB::PublicationMulti<gps_altitude_drift_correction_s> _gps_alt_drift_pub{ORB_ID(gps_altitude_drift_correction)};
+	GnssAltitudeDriftDetector _gnss_altitude_drift_detector;
+	uORB::PublicationMulti<gps_altitude_drift_correction_s> _gnss_altitude_drift_pub{ORB_ID(gps_altitude_drift_correction)};
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_GRAVITY_FUSION)
