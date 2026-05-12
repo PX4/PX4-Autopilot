@@ -31,8 +31,10 @@
  *
  ****************************************************************************/
 
+#if !defined(POSIX_SHM_DISABLED)
 #include <sys/shm.h>
 #include <dirent.h>
+#endif
 #include <stdlib.h>
 
 #include "uORBDeviceNode.hpp"
@@ -154,6 +156,48 @@ int uORB::DeviceNode::fillStatistics(DeviceNodeStatisticsData **first_node, int 
 		last_node = last_node->next;
 	}
 
+#if defined(POSIX_SHM_DISABLED)
+	MappingCache::lock();
+	MappingCache::MappingCacheListItem *cache_item = MappingCache::list_head();
+
+	while (cache_item != nullptr) {
+		DeviceNode *node = static_cast<DeviceNode *>(cache_item->handle);
+
+		// check if already added
+		cur_node = *first_node;
+
+		while (cur_node) {
+			if (cur_node->node == node) {
+				break;
+			}
+
+			cur_node = cur_node->next;
+		}
+
+		if (cur_node) {
+			cache_item = cache_item->next;
+			continue;
+		}
+
+		++num_topics;
+
+		if (!topic_matches_filter(*node, topic_filter, num_filters)) {
+			cache_item = cache_item->next;
+			continue;
+		}
+
+		if (append_statistics_node(first_node, last_node, *node, max_topic_name_length) != PX4_OK) {
+			MappingCache::unlock();
+			return -ENOMEM;
+		}
+
+		cache_item = cache_item->next;
+	}
+
+	MappingCache::unlock();
+	return PX4_OK;
+
+#else
 	DIR *shm_dir = opendir(CONFIG_FS_SHMFS_VFS_PATH);
 
 	if (shm_dir == nullptr) {
@@ -231,6 +275,7 @@ int uORB::DeviceNode::fillStatistics(DeviceNodeStatisticsData **first_node, int 
 
 	closedir(shm_dir);
 	return PX4_OK;
+#endif
 }
 
 void uORB::DeviceNode::cleanupStatisticsData(DeviceNodeStatisticsData *first_node)
@@ -240,7 +285,9 @@ void uORB::DeviceNode::cleanupStatisticsData(DeviceNodeStatisticsData *first_nod
 	while (cur_node) {
 		DeviceNodeStatisticsData *next_node = cur_node->next;
 
+#if !defined(POSIX_SHM_DISABLED)
 		px4_munmap(cur_node->node, sizeof(DeviceNode));
+#endif
 
 		delete cur_node;
 		cur_node = next_node;
@@ -339,7 +386,11 @@ bool uORB::DeviceNode::MappingCache::del(const orb_advert_t &handle)
 			prev->next = item->next;
 		}
 
+#if defined(POSIX_SHM_DISABLED)
+		free((void *)handle);
+#else
 		px4_munmap(handle, node(handle)->get_size());
+#endif
 
 		delete (item);
 	}
@@ -373,6 +424,35 @@ orb_advert_t uORB::DeviceNode::nodeOpen(const ORB_ID id, const uint8_t instance,
 	if (ret != OK) {
 		return handle;
 	}
+
+#if defined(POSIX_SHM_DISABLED)
+
+	if (!create) {
+		return handle;
+	}
+
+	void *ptr = malloc(get_orb_size(id));
+
+	if (ptr == nullptr) {
+		return ORB_ADVERT_INVALID;
+	}
+
+	memset(ptr, 0, get_orb_size(id));
+	handle = ptr;
+
+	// construct the new node in the allocated region
+	new (node(handle)) uORB::DeviceNode(id, instance, nodepath);
+
+	// cache mapping for this process
+	if (!MappingCache::add(handle)) {
+		node(handle)->~DeviceNode();
+		free(ptr);
+		handle = ORB_ADVERT_INVALID;
+	}
+
+	return handle;
+
+#else // !defined(POSIX_SHM_DISABLED)
 
 	// First, try to create the node. This will fail if it already exists
 
@@ -419,6 +499,8 @@ orb_advert_t uORB::DeviceNode::nodeOpen(const ORB_ID id, const uint8_t instance,
 	}
 
 	return handle;
+
+#endif // defined(POSIX_SHM_DISABLED)
 }
 
 int uORB::DeviceNode::nodeClose(orb_advert_t &handle)
@@ -435,7 +517,9 @@ int uORB::DeviceNode::nodeClose(orb_advert_t &handle)
 
 			// Close the Node object
 
+#if !defined(POSIX_SHM_DISABLED)
 			shm_unlink(node(handle)->get_devname());
+#endif
 
 			// Uninitialize the node
 			node(handle)->~DeviceNode();

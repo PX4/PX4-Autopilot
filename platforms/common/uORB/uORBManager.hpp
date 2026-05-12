@@ -43,6 +43,7 @@
 
 #include <uORB/topics/uORBTopics.hpp> // For ORB_ID enum
 #include <stdint.h>
+#include <stdlib.h>
 #include <px4_platform_common/px4_config.h>
 #include <containers/List.hpp>
 
@@ -415,10 +416,18 @@ public:
 		return p;
 	}
 
+#if defined(POSIX_SHM_DISABLED)
+	void *operator new (size_t size)
+	{
+		return malloc(size);
+	}
+
 	void operator delete (void *p)
 	{
-		px4_munmap(p, sizeof(uORB::Manager));
+		free(p);
 	}
+
+#endif
 
 	static bool registerCallback(orb_advert_t &node_handle, class SubscriptionCallback *callback_sub,
 				     hrt_abstime last_update, uint32_t interval_us, uorb_cb_handle_t &cb_handle);

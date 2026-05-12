@@ -32,8 +32,10 @@
  ****************************************************************************/
 
 #include <dirent.h>
+#if !defined(POSIX_SHM_DISABLED)
 #include <sys/mman.h>
 #include <sys/shm.h>
+#endif
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdarg.h>
@@ -97,6 +99,9 @@ px4_sem_t &uORB::Manager::per_process_cb_list_mutex_ref()
 
 void uORB::Manager::cleanup()
 {
+#if defined(POSIX_SHM_DISABLED)
+	return;
+#else
 	// TODO: This is operating system dependent. Works on linux and NuttX
 	DIR *shm_dir = opendir(CONFIG_FS_SHMFS_VFS_PATH);
 	struct dirent *next_file;
@@ -114,11 +119,16 @@ void uORB::Manager::cleanup()
 
 	// Delete manager shm allocations
 	shm_unlink(uORBManagerName);
+#endif
 }
 
 bool uORB::Manager::initialize()
 {
 	if (instance_ref() == nullptr) {
+#if defined(POSIX_SHM_DISABLED)
+		instance_ref() = new uORB::Manager();
+
+#else
 		// Cleanup from previous execution, in case some shm files are left
 		cleanup();
 
@@ -138,6 +148,8 @@ bool uORB::Manager::initialize()
 				instance_ref() = new (ptr) uORB::Manager();
 			}
 		}
+
+#endif
 	}
 
 #if defined(CONFIG_FS_SHMFS_WRPROTECT)
@@ -149,6 +161,14 @@ bool uORB::Manager::initialize()
 
 void uORB::Manager::map_instance()
 {
+	if (instance_ref() != nullptr) {
+		return;
+	}
+
+#if defined(POSIX_SHM_DISABLED)
+	return;
+#else
+
 	if (instance_ref() == nullptr) {
 		// Open the existing manager
 		int shm_fd = shm_open(uORBManagerName, O_RDWR, 0666);
@@ -166,6 +186,8 @@ void uORB::Manager::map_instance()
 	if (instance_ref() == nullptr) {
 		PX4_ERR("FATAL: Can't get uORB manager");
 	}
+
+#endif
 }
 
 bool uORB::Manager::terminate()
