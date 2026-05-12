@@ -1,0 +1,43 @@
+name: Build PX4 Blackpill v1.10.2
+
+on:
+  push:
+    branches: [ "blackpill-v1.10.2" ]
+  pull_request:
+    branches: [ "blackpill-v1.10.2" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+
+    container:
+      image: px4io/px4-dev-nuttx-focal:2021-03-15
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        submodules: 'recursive'
+        fetch-depth: 0
+
+    - name: Set Ownership and Fix Git Safe Directory
+      run: |
+        git config --global --add safe.directory $GITHUB_WORKSPACE
+
+    - name: Configure and Build Firmware
+      run: |
+        # Обход ошибки валидации версии git через PX4_FORCE_VERSION
+        export PX4_FORCE_VERSION="1.10.2"
+        
+        # Предварительная очистка
+        make clean
+        
+        # Запуск сборки таргета px4fmu-v2_default
+        make px4fmu-v2_default
+
+    - name: Upload Firmware Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: px4fmu-v2_blackpill_firmware
+        path: build/px4fmu-v2_default/*.bin
