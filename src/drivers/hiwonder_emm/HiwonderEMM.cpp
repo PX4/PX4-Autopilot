@@ -82,14 +82,10 @@ int HiwonderEMM::init()
 bool HiwonderEMM::updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs,
 				unsigned num_control_groups_updated)
 {
-	uint8_t speed_values[CHANNEL_COUNT];
+	int8_t speed_values[CHANNEL_COUNT];
 
 	for (unsigned i = 0; i < num_outputs && i < CHANNEL_COUNT; i++) {
-		// Mixer output is float in [min, max] = [0, 255] with disarmed/center 128.
-		// Wire format is int8_t on the I2C bus: 0 = stop, +forward, -reverse.
-		// Go via int8_t so negative values wrap correctly (a direct float->uint8_t
-		// cast saturates negatives to 0 on ARM, which would suppress all reverse).
-		speed_values[i] = static_cast<uint8_t>(static_cast<int8_t>(outputs[i] - 128.0f));
+		speed_values[i] = static_cast<int8_t>(outputs[i] - 128.0f);
 	}
 
 	set_motor_speed(speed_values, CHANNEL_COUNT);
@@ -173,7 +169,7 @@ int HiwonderEMM::read_encoder_counts(int32_t *encoder_counts, const uint8_t coun
 	return ret;
 }
 
-int HiwonderEMM::set_motor_speed(const uint8_t *speed_values, const uint8_t count)
+int HiwonderEMM::set_motor_speed(const int8_t *speed_values, const uint8_t count)
 {
 	uint8_t cmd[1 + CHANNEL_COUNT] {};
 	cmd[0] = MOTOR_FIXED_SPEED_ADDR;

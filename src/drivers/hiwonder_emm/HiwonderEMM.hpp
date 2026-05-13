@@ -129,7 +129,7 @@ private:
 	 * @param count Number of speed values provided in the array (should be equal to CHANNEL_COUNT).
 	 * @return OK if the transfer was successful, -errno otherwise.
 	 */
-	int set_motor_speed(const uint8_t *speed_values, const uint8_t count);
+	int set_motor_speed(const int8_t *speed_values, const uint8_t count);
 
 	bool _set_speed_failed{false};
 };
