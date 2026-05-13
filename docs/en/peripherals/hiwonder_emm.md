@@ -46,6 +46,16 @@ In [Actuator Configuration](../config/actuators.md), assign the rover wheel outp
 The output range is fixed in firmware to `0..255` (the EMM's protocol range, internally mapped to a signed `[-128, 127]` speed command — `128` is stop, values below are reverse, values above are forward).
 `EMM_DIS{i}` (disarmed) and `EMM_FAIL{i}` (failsafe) per-channel parameters are user-tunable in the standard range.
 
+## Supported Vehicles
+
+The EMM is used on the reference Hiwonder rover frames:
+
+- `50002` — Hiwonder differential rover
+- `51003` — Hiwonder ackermann rover
+- `52001` — Hiwonder mecanum rover
+
+See [Rovers](../frames_rover/index.md) for vehicle-side configuration.
+
 ## Further Information
 
 - Driver source: [`src/drivers/hiwonder_emm`](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/hiwonder_emm)
