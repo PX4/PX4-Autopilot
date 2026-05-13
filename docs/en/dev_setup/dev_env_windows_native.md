@@ -1,5 +1,7 @@
 # Windows Native Development Environment (CMD/PowerShell)
 
+<Badge type="tip" text="PX4 v1.18" /><Badge type="warning" text="Experimental" />
+
 ::: warning
 This development environment is [community supported and maintained](../advanced/community_supported_dev_env.md).
 It may or may not work with current versions of PX4.
@@ -20,7 +22,7 @@ This environment can be used to build PX4 for:
 ::: info
 Gazebo, Gazebo Classic, and jMAVSim depend on a Linux host (or, for jMAVSim, a JDK + `ant` install) for the simulator process itself.
 You can still drive any of them from a natively-built `px4.exe` by starting the simulator in [WSL2](../dev_setup/dev_env_windows_wsl.md) or on a remote Linux machine and pointing PX4 at that host with `PX4_SIM_HOSTNAME` (or `PX4_SIM_HOST_ADDR`) — `simulator_mavlink` will connect to the external simulator over TCP/UDP.
-What is not wired up natively are the convenience targets that *spawn* the simulator for you (`make px4_sitl gz_x500`, `make px4_sitl jmavsim`, `make px4_sitl gazebo-classic_iris`); on Windows you launch the simulator yourself and then start `px4.exe`.
+What is not wired up natively are the convenience targets that _spawn_ the simulator for you (`make px4_sitl gz_x500`, `make px4_sitl jmavsim`, `make px4_sitl gazebo-classic_iris`); on Windows you launch the simulator yourself and then start `px4.exe`.
 :::
 
 ## Overview
@@ -37,32 +39,39 @@ Both produce a statically linked `build\px4_sitl_default\bin\px4.exe` that you l
 Companion utilities (`px4-commander`, `px4-listener`, etc.) are produced as additional `.exe` files alongside `px4.exe`.
 
 ::: warning
-The PX4 daemon uses a local TCP socket (`127.0.0.1:14680 + instance_id`) on Windows instead of the Unix-domain socket used on Linux/macOS. At the time of writing only `px4-shutdown` is reliably functional; `px4-commander`, `px4-listener`, and the other client `.exe`s currently connect to the server but the server-to-client reply path over Windows TCP loopback does not return output to the caller. This is a known limitation being tracked — for now, drive PX4 from the interactive `pxh>` prompt and reserve the client wrappers for `px4-shutdown`.
+The PX4 daemon uses a local TCP socket (`127.0.0.1:14680 + instance_id`) on Windows instead of the Unix-domain socket used on Linux/macOS.
+At the time of writing only `px4-shutdown` is reliably functional; `px4-commander`, `px4-listener`, and the other client `.exe`s currently connect to the server but the server-to-client reply path over Windows TCP loopback does not return output to the caller.
+This is a known limitation being tracked — for now, drive PX4 from the interactive `pxh>` prompt and reserve the client wrappers for `px4-shutdown`.
 :::
 
 ## Installation
 
-### Before You Start
+### Preconditions
+
+A first-time install takes roughly **30–60 minutes** end-to-end on a typical broadband connection, most of it unattended download time.
+Before you start, you need:
 
 You need:
 
-- _Windows 10_ (21H2 or newer) or _Windows 11_, with the [winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/) command available (it ships with the OS as part of _App Installer_; if `winget` is not recognised in a fresh terminal, install _App Installer_ from the Microsoft Store).
+- _Windows 10_ (21H2 or newer) or _Windows 11_, with the [winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/) command available.
+  This ships with the OS as part of _App Installer_ (if `winget` is not recognised in a fresh terminal, install [App Installer](https://apps.microsoft.com/store/detail/9NBLGGH4NNS1) from the Microsoft Store).
 - About **10 GB** of free disk space for the toolchain (the Visual Studio 2022 Build Tools install dominates).
 - Administrator rights on the machine — the Build Tools installer writes to `C:\Program Files`.
-- A first-time install takes roughly **30–60 minutes** end-to-end on a typical broadband connection, most of it unattended download time.
+- The `git` tool. The [following instructions](#get-the-px4-source-code) install _Git for Windows_ if needed.
 
 The setup script lives inside the PX4 repository, so the source tree must be cloned **before** the toolchain script can be run.
-A working `git` is the only prerequisite for the clone step; everything else (CMake, Ninja, Python, MSVC Build Tools, MSYS2) is installed by the script.
+Note that everything (other than `git`) is installed by the script: CMake, Ninja, Python, MSVC Build Tools, MSYS2, and so on.
 
 ### Choosing a Shell
 
-Windows ships several command-line shells. This guide uses two of them in different situations — the table below shows which to use for each task.
+Windows ships several command-line shells.
+This guide uses two of them in different situations — the table below shows which to use for each task.
 
-| Task                                                         | Shell                                                           | How to open                                                                                                                                            |
-| ------------------------------------------------------------ | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| One-time toolchain install (`Tools\setup\windows.ps1`)       | _Windows PowerShell_ **as Administrator**                       | Press _Start_, type _PowerShell_, right-click _Windows PowerShell_, choose _Run as administrator_.                                                     |
-| Everyday `git`, MinGW builds, running SIH, `.ps1` launchers  | _Windows PowerShell_ (regular, no Administrator)                | Press _Start_, type _PowerShell_, press Enter.                                                                                                         |
-| MSVC builds (`make px4_sitl_default` with the MSVC compiler) | _x64 Native Tools Command Prompt for VS 2022_ (a _CMD_ variant) | After running the setup script: Start menu → _Visual Studio 2022_ → _Visual Studio Tools_ → _VC_ → _x64 Native Tools Command Prompt for VS 2022_.      |
+| Task                                                         | Shell                                                           | How to open                                                                                                                                       |
+| ------------------------------------------------------------ | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| One-time toolchain install (`Tools\setup\windows.ps1`)       | _Windows PowerShell_ **as Administrator**                       | Press _Start_, type _PowerShell_, right-click _Windows PowerShell_, choose _Run as administrator_.                                                |
+| Everyday `git`, MinGW builds, running SIH, `.ps1` launchers  | _Windows PowerShell_ (regular, no Administrator)                | Press _Start_, type _PowerShell_, press Enter.                                                                                                    |
+| MSVC builds (`make px4_sitl_default` with the MSVC compiler) | _x64 Native Tools Command Prompt for VS 2022_ (a _CMD_ variant) | After running the setup script: Start menu → _Visual Studio 2022_ → _Visual Studio Tools_ → _VC_ → _x64 Native Tools Command Prompt for VS 2022_. |
 
 ::: info
 You do **not** need _Git Bash_ or _MSYS2 MinGW64 Shell_ for this guide.
@@ -88,12 +97,15 @@ git clone https://github.com/PX4/PX4-Autopilot.git --recursive
 cd PX4-Autopilot
 ```
 
-`$env:USERPROFILE` is the PowerShell expression for your home directory (`C:\Users\<you>`); `cd` does not print the new path on success — run `pwd` if you want to confirm where you landed. PX4 build commands accept either backslash (`C:\Users\...`) or forward-slash (`C:/Users/...`) paths interchangeably.
+`$env:USERPROFILE` is the PowerShell expression for your home directory (`C:\Users\<you>`); `cd` does not print the new path on success — run `pwd` if you want to confirm where you landed.
+PX4 build commands accept either backslash (`C:\Users\...`) or forward-slash (`C:/Users/...`) paths interchangeably.
 
 ::: warning
 A few caveats about _where_ you clone on Windows 11:
 
-- **OneDrive sync conflict**: the default `Documents` folder is often synchronized by OneDrive, which will fight the build for hundreds of thousands of intermediate object files. Check for the OneDrive cloud icon next to `Documents` in File Explorer, or run `Get-Item $env:USERPROFILE\Documents | Select-Object Target` (a redirected `Documents` has a `Target` set). If yours is synced, clone into a local-only path like `C:\PX4` instead.
+- **OneDrive sync conflict**: the default `Documents` folder is often synchronized by OneDrive, which will fight the build for hundreds of thousands of intermediate object files.
+  Check for the OneDrive cloud icon next to `Documents` in File Explorer, or run `Get-Item $env:USERPROFILE\Documents | Select-Object Target` (a redirected `Documents` has a `Target` set).
+  If yours is synced, clone into a local-only path like `C:\PX4` instead.
 - **No spaces in path**: a few build tools have edge cases with quoted paths — `C:\Users\Some User\Documents\PX4-Autopilot` is risky, while `C:\PX4` or `D:\src\PX4-Autopilot` is safer.
 - **MAX_PATH (260 chars)**: Windows still defaults to 260-char paths and PX4 generates deep nested directories (especially under `external/Install/...`), so keep the source tree shallow.
 
@@ -127,7 +139,8 @@ Set-ExecutionPolicy -Scope Process Bypass
 `Set-ExecutionPolicy -Scope Process Bypass` is safe: `-Scope Process` confines the change to this PowerShell window and is forgotten when you close it, leaving the system-wide policy untouched.
 
 ::: warning
-The Visual Studio 2022 Build Tools installer downloads roughly 4 GB and runs **silently** for **10–15 minutes** — the script will look frozen during this stage but is working. Leave the window open until the script returns to the prompt; closing it mid-install can leave the Build Tools in a broken state that has to be repaired from _Add or remove programs_.
+The Visual Studio 2022 Build Tools installer downloads roughly 4 GB and runs **silently** for **10–15 minutes** — the script will look frozen during this stage but is working.
+Leave the window open until the script returns to the prompt; closing it mid-install can leave the Build Tools in a broken state that has to be repaired from _Add or remove programs_.
 :::
 
 The script uses [winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/) to install:
@@ -188,12 +201,16 @@ set PATH=C:\Program Files\Git\usr\bin;C:\Program Files\Git\bin;%PATH%
 make px4_sitl_default
 ```
 
-The `set PATH=...` line prepends Git Bash's POSIX utilities (`sed`, `awk`, `dirname`, `[`, `ps`) to the dev-shell `PATH`; the PX4 Makefile invokes them and the MSVC dev shell alone does not provide them. Skip the line and the build aborts early with `'sed' is not recognized`.
+The `set PATH=...` line prepends Git Bash's POSIX utilities (`sed`, `awk`, `dirname`, `[`, `ps`) to the dev-shell `PATH`; the PX4 Makefile invokes them and the MSVC dev shell alone does not provide them.
+Skip the line and the build aborts early with `'sed' is not recognized`.
 
-A successful **first** build takes 5–15 minutes depending on the machine and CMake stays silent for the first couple of minutes while it configures the project and downloads upstream dependencies — this is normal, not a hang. The build ends with a line of the form `[NNN/NNN] Linking CXX executable bin\px4.exe`. Subsequent rebuilds in the same shell are incremental and finish in seconds.
+A successful **first** build takes 5–15 minutes depending on the machine; CMake stays silent for the first couple of minutes while it configures the project and downloads upstream dependencies — this is normal, not a hang.
+The build ends with a line of the form `[NNN/NNN] Linking CXX executable bin\px4.exe`.
+Subsequent rebuilds in the same shell are incremental and finish in seconds.
 
 ::: warning
-The _x64 Native Tools Command Prompt_ provides the MSVC compiler but **not** the POSIX utilities the PX4 Makefile depends on. The bundled setup script installs Git for Windows (which ships them under `C:\Program Files\Git\usr\bin`); either prepend that directory to `PATH` as shown above, or start from a shell that already has Git on `PATH` so `sed`, `awk`, `dirname`, `[`, and `ps` resolve.
+The _x64 Native Tools Command Prompt_ provides the MSVC compiler but **not** the POSIX utilities the PX4 Makefile depends on.
+The bundled setup script installs Git for Windows (which ships them under `C:\Program Files\Git\usr\bin`); either prepend that directory to `PATH` as shown above, or start from a shell that already has Git on `PATH` so `sed`, `awk`, `dirname`, `[`, and `ps` resolve.
 :::
 
 ::: info
@@ -239,7 +256,8 @@ The simplest way to launch a quadrotor instance is the same `make` target used o
 make px4_sitl_default sihsim_quadx
 ```
 
-Other airframes are exposed as sibling targets. All SIH variants share the same Windows code path — physics run inside `px4.exe` and no Linux-only helper process is required — so anything that builds also launches natively:
+Other airframes are exposed as sibling targets.
+All SIH variants share the same Windows code path — physics run inside `px4.exe` and no Linux-only helper process is required — so anything that builds also launches natively:
 
 | Vehicle                   | Make target / `PX4_SIM_MODEL` | Status on Windows                                                |
 | ------------------------- | ----------------------------- | ---------------------------------------------------------------- |
@@ -251,7 +269,8 @@ Other airframes are exposed as sibling targets. All SIH variants share the same 
 | Ackermann Rover           | `sihsim_rover_ackermann`      | Experimental.                                                    |
 
 ::: info
-The [SIH Simulation page](../sim_sih/index.md#supported-vehicle-types) lists the hexarotor target as `sihsim_hexa` and the rover target as `sihsim_rover` for brevity, but the actual airframe filenames (and therefore the values that `PX4_SIM_MODEL` and the make targets accept) are `sihsim_hex` and `sihsim_rover_ackermann`. Use the names from the table above when launching `px4.exe` directly.
+The [SIH Simulation page](../sim_sih/index.md#supported-vehicle-types) lists the hexarotor target as `sihsim_hexa` and the rover target as `sihsim_rover` for brevity, but the actual airframe filenames (and therefore the values that `PX4_SIM_MODEL` and the make targets accept) are `sihsim_hex` and `sihsim_rover_ackermann`.
+Use the names from the table above when launching `px4.exe` directly.
 :::
 
 The "Experimental" rating is inherited from the upstream SIH support matrix and refers to vehicle dynamics / controller maturity, not to the Windows port — if a SIH airframe builds it will boot and run on Windows the same way it does on Linux or macOS.
@@ -293,9 +312,10 @@ A healthy first run prints the PX4 ASCII banner, then progresses through `INFO [
 The repeating MAVLink _partner IP_ messages are the normal heartbeat exchange — they are not errors.
 
 Logs land in `log\<YYYY-MM-DD>\<HH_MM_SS>.ulg` **relative to the working directory** of the `px4.exe` process — if you launched it from the repository root, look for the `log\` folder at the repository root; if you used the multi-instance helper below, each instance writes into its own `build\px4_sitl_default\instance_<N>\log\` tree.
-To clean build artefacts, run `make clean` (per-board CMake clean) or `make distclean` (wipe the entire `build\` directory and reset submodules) from the repository root; deleting the `build\px4_sitl_default\` directory by hand has the same effect as the latter for a single board. Per-instance log/parameter directories under `build\px4_sitl_default\instance_<N>\` are not touched by `make clean` — remove them manually when they grow stale.
+To clean build artefacts, run `make clean` (per-board CMake clean) or `make distclean` (wipe the entire `build\` directory and reset submodules) from the repository root; deleting the `build\px4_sitl_default\` directory by hand has the same effect as the latter for a single board.
+Per-instance log/parameter directories under `build\px4_sitl_default\instance_<N>\` are not touched by `make clean` — remove them manually when they grow stale.
 
-To launch multiple instances (e.g. for multi-vehicle testing) use the bundled PowerShell helper, which mirrors `Tools/simulation/sitl_multiple_run.sh`.
+To launch multiple instances (e.g. for multi-vehicle testing), use the bundled PowerShell helper, which mirrors `Tools/simulation/sitl_multiple_run.sh`.
 Run it from the `PX4-Autopilot` repository root so the relative `.\Tools\simulation\` path resolves:
 
 ```sh
@@ -304,10 +324,13 @@ cd PX4-Autopilot
 ```
 
 ::: info
-Up to **3** concurrent instances are validated to run reliably on Windows today. Higher counts (5+) typically see most instances exit silently shortly after `rcS` finishes. This is being tracked in the multi-instance lifecycle work; until that lands, treat 3 as the supported envelope.
+Up to **3** concurrent instances are validated to run reliably on Windows today.
+Higher counts (5+) typically see most instances exit silently shortly after `rcS` finishes.
+This is being tracked in the multi-instance lifecycle work; until that lands, treat 3 as the supported envelope.
 :::
 
-Pass any of the SIH model names from the [vehicle table above](#run-sih-on-native-windows) (e.g. `sihsim_airplane`, `sihsim_standard_vtol`, `sihsim_hex`, `sihsim_rover_ackermann`) via `-SimModel`. To stop every `px4.exe` started by the helper (e.g. when several backgrounded daemon instances are still running), invoke it with `-SitlNum 0`:
+Pass any of the SIH model names from the [vehicle table above](#run-sih-on-native-windows) (e.g. `sihsim_airplane`, `sihsim_standard_vtol`, `sihsim_hex`, `sihsim_rover_ackermann`) via `-SimModel`.
+To stop every `px4.exe` started by the helper (e.g. when several backgrounded daemon instances are still running), invoke it with `-SitlNum 0`:
 
 ```sh
 .\Tools\simulation\sitl_multiple_run.ps1 -SitlNum 0
@@ -374,10 +397,12 @@ Dot-source the wrapper in any future _PowerShell_ session to put `ros2`, `colcon
 `-WithVcvars` is required when `colcon build` has to invoke `cl.exe` — `conda-forge` does not ship MSVC, so a `colcon build` without a sourced `vcvars64.bat` fails with `cl.exe is not recognized`.
 
 ::: warning
-When launching multi-instance PX4 from a session that has activated ROS 2, pass `-w <work_dir>` to each `px4.exe` and pre-create an `etc` junction inside it; otherwise the instances collide on the shared rootfs. Pass YAML payloads that contain whitespace (e.g. to `Start-Process -ArgumentList`) as a single quoted string rather than an inline `{...}` literal — PowerShell flattens the latter and the agent rejects the malformed message.
+When launching multi-instance PX4 from a session that has activated ROS 2, pass `-w <work_dir>` to each `px4.exe` and pre-create an `etc` junction inside it; otherwise the instances collide on the shared rootfs.
+Pass YAML payloads that contain whitespace (e.g. to `Start-Process -ArgumentList`) as a single quoted string rather than an inline `{...}` literal — PowerShell flattens the latter and the agent rejects the malformed message.
 :::
 
-Once ROS 2 is up, the [Micro XRCE-DDS Agent](#building-the-micro-xrce-dds-agent-optional-for-ros-2-dds-bridging) section below builds the bridge that connects PX4 SITL to your ROS 2 graph. See the [uXRCE-DDS middleware page](../middleware/uxrce_dds.md) for the wider workflow, message conventions, and `px4_msgs` setup.
+Once ROS 2 is up, the [Micro XRCE-DDS Agent](#building-the-micro-xrce-dds-agent-optional-for-ros-2-dds-bridging) section below builds the bridge that connects PX4 SITL to your ROS 2 graph.
+See the [uXRCE-DDS middleware page](../middleware/uxrce_dds.md) for the wider workflow, message conventions, and `px4_msgs` setup.
 
 ## Building the Micro-XRCE-DDS Agent (Optional — for ROS 2 / DDS bridging)
 
@@ -405,7 +430,8 @@ All `cmake` commands below must be run from a shell where the MSVC environment i
 
 ### Clone the Agent Repository
 
-Pick a directory outside the `PX4-Autopilot` tree (the agent is independent of PX4 and lives on its own release cadence). The rest of this section assumes `C:\Users\<you>\Documents\Micro-XRCE-DDS-Agent`:
+Pick a directory outside the `PX4-Autopilot` tree (the agent is independent of PX4 and lives on its own release cadence).
+The rest of this section assumes `C:\Users\<you>\Documents\Micro-XRCE-DDS-Agent`:
 
 ```powershell
 $agentRoot = "$env:USERPROFILE\Documents\Micro-XRCE-DDS-Agent"
@@ -430,7 +456,8 @@ cmake -G Ninja -S . -B build `
 cmake --build build --target install
 ```
 
-`-DUAGENT_P2P_PROFILE=OFF` is required: the peer-to-peer profile pulls in the `microxrcedds_client` ExternalProject, whose own ninja recompaction step fails on Windows for the same reason. PX4's `uxrce_dds_client` does not use the P2P feature, so disabling it has no functional impact on the SITL ↔ ROS 2 use case.
+`-DUAGENT_P2P_PROFILE=OFF` is required: the peer-to-peer profile pulls in the `microxrcedds_client` ExternalProject, whose own ninja recompaction step fails on Windows for the same reason.
+PX4's `uxrce_dds_client` does not use the P2P feature, so disabling it has no functional impact on the SITL ↔ ROS 2 use case.
 
 ::: info
 This stage takes around **10 minutes** on a typical workstation — most of it is fastdds, which compiles a large amount of generated IDL code.
@@ -438,11 +465,13 @@ This stage takes around **10 minutes** on a typical workstation — most of it i
 
 The build will report success for the four dependencies and then fail when it reaches the `uagent` step with output similar to:
 
-```
+```sh
 ninja: error: failed recompaction: Permission denied
 ```
 
-**That failure is expected.** Confirm that the four dependency installs landed under `$agentRoot\install\` (`install\include\fastcdr\`, `install\lib\foonathan_memory\`, etc.) before moving on. If those directories are missing, the dependency phase did not actually succeed and re-running Stage 2 will not recover.
+**That failure is expected.**
+Confirm that the four dependency installs landed under `$agentRoot\install\` (`install\include\fastcdr\`, `install\lib\foonathan_memory\`, etc.) before moving on.
+If those directories are missing, the dependency phase did not actually succeed and re-running Stage 2 will not recover.
 
 ### Stage 2 — Build the Agent Standalone
 
@@ -467,7 +496,8 @@ This stage takes under a minute on most machines.
 When Stage 2 finishes, the install tree should contain:
 
 - `install\bin\MicroXRCEAgent.exe` — the agent itself.
-- `install\bin\fastcdr-2.2.dll` and `install\bin\fastdds-3.6.dll` (or whatever the current upstream version numbers are) staged alongside the executable. These are loaded at startup by `MicroXRCEAgent.exe` and the agent will fail to launch with a Windows error dialog if they are missing.
+- `install\bin\fastcdr-2.2.dll` and `install\bin\fastdds-3.6.dll` (or whatever the current upstream version numbers are) staged alongside the executable.
+  These are loaded at startup by `MicroXRCEAgent.exe` and the agent will fail to launch with a Windows error dialog if they are missing.
 
 If the DLLs are not in `install\bin\`, copy them over from `install\lib\` — different upstream tags occasionally install them under `lib\` only.
 
@@ -481,15 +511,20 @@ Start the agent listening on UDP 8888 (the default that PX4's `uxrce_dds_client`
 
 `-v 6` selects the most verbose log level, which is useful while you are first verifying that PX4 connects; lower it (`-v 4` or omit the flag) once everything is working.
 
-Then, in a separate _PowerShell_ window, launch PX4 SITL as usual (`make px4_sitl_default sihsim_quadx`). Within a few seconds, the agent window should print `create_client | session_id: 0x...` and the matching ROS 2 / DDS topics will appear in your DDS subscriber.
+Then, in a separate _PowerShell_ window, launch PX4 SITL as usual (`make px4_sitl_default sihsim_quadx`).
+Within a few seconds, the agent window should print `create_client | session_id: 0x...` and the matching ROS 2 / DDS topics will appear in your DDS subscriber.
 
 For the wider ROS 2 / DDS workflow on top of this connection (workspace layout, `px4_msgs`, namespacing), see the [uXRCE-DDS bridge documentation](../middleware/uxrce_dds.md) — the agent built here is the same binary that those instructions assume, just compiled natively on Windows.
 
 ### Known Limitations
 
-- **Two-stage build is mandatory on Windows.** The upstream superbuild reuses the outer build directory when reconfiguring the `uagent` ExternalProject, and the parent `ninja` process still holds `build.ninja` open at that point. Ninja then fails its recompaction step with `Permission denied` (Windows file-locking semantics — POSIX `unlink()`-while-open does not have an equivalent here). Track upstream progress at [eProsima/Micro-XRCE-DDS-Agent issues](https://github.com/eProsima/Micro-XRCE-DDS-Agent/issues); until a fix lands, the two-stage workaround above is the supported path.
-- **Use the winget-installed Ninja.** The `ninja` package distributed via `pip` reproduces the recompaction failure deterministically even with the workaround applied. `winget install Ninja-build.Ninja` ships a build that handles the lock contention gracefully on the dependency phase, which is what makes the two-stage recipe viable in the first place.
-- **`UAGENT_P2P_PROFILE=ON` is not supported on Windows today.** The peer-to-peer profile triggers a separate, earlier recompaction failure inside the `microxrcedds_client` ExternalProject. PX4's SITL bridge does not use P2P, so leaving it off is safe.
+- **Two-stage build is mandatory on Windows.** The upstream superbuild reuses the outer build directory when reconfiguring the `uagent` ExternalProject, and the parent `ninja` process still holds `build.ninja` open at that point.
+  Ninja then fails its recompaction step with `Permission denied` (Windows file-locking semantics — POSIX `unlink()`-while-open does not have an equivalent here).
+  Track upstream progress at [eProsima/Micro-XRCE-DDS-Agent issues](https://github.com/eProsima/Micro-XRCE-DDS-Agent/issues); until a fix lands, the two-stage workaround above is the supported path.
+- **Use the winget-installed Ninja.** The `ninja` package distributed via `pip` reproduces the recompaction failure deterministically even with the workaround applied.
+  `winget install Ninja-build.Ninja` ships a build that handles the lock contention gracefully on the dependency phase, which is what makes the two-stage recipe viable in the first place.
+- **`UAGENT_P2P_PROFILE=ON` is not supported on Windows today.** The peer-to-peer profile triggers a separate, earlier recompaction failure inside the `microxrcedds_client` ExternalProject.
+  PX4's SITL bridge does not use P2P, so leaving it off is safe.
 
 ## Next Steps
 
@@ -503,13 +538,21 @@ Once you have finished setting up the command-line toolchain:
 
 ### Common Pitfalls
 
-- **A freshly-installed command is _"not recognized"_ in the same shell that ran the setup script.** The setup script updates the user `PATH` for the current process, but Windows does not propagate registry `PATH` changes into shells that were already open. **Close every terminal window and open a new one** — including any IDE-integrated terminals — and the missing command will resolve.
-- **`winget` itself prints _"is not recognized"_.** _App Installer_ is missing or out of date. Open the Microsoft Store, search for _App Installer_, install or update it, then reopen the terminal.
-- **The build appears to hang for several minutes the first time.** CMake configures the project and downloads several upstream dependencies on the first run; that part is silent. Subsequent rebuilds are incremental and complete in seconds.
-- **`pxh>` keeps emitting `INFO [mavlink] partner IP: 127.0.0.1`.** This is the normal MAVLink heartbeat exchange with QGroundControl (or any other connected GCS). It is not an error.
+- **A freshly-installed command is _"not recognized"_ in the same shell that ran the setup script.** The setup script updates the user `PATH` for the current process, but Windows does not propagate registry `PATH` changes into shells that were already open.
+  **Close every terminal window and open a new one** — including any IDE-integrated terminals — and the missing command will resolve.
+- **`winget` itself prints _"is not recognized"_.** _App Installer_ is missing or out of date.
+  Open the Microsoft Store, search for _App Installer_, install or update it, then reopen the terminal.
+- **The build appears to hang for several minutes the first time.** CMake configures the project and downloads several upstream dependencies on the first run; that part is silent.
+  Subsequent rebuilds are incremental and complete in seconds.
+- **`pxh>` keeps emitting `INFO [mavlink] partner IP: 127.0.0.1`.** This is the normal MAVLink heartbeat exchange with QGroundControl (or any other connected GCS).
+  It is not an error.
 - **The first launch of `px4.exe` shows a _Windows Defender Firewall_ prompt.** See [Connecting QGroundControl](#connecting-qgroundcontrol) above.
-- **The `pxh>` prompt won't respond.** From a different PowerShell window, kill all running PX4 instances with `Get-Process px4 -ErrorAction SilentlyContinue | Stop-Process -Force`. The same one-liner cleans up the background instances launched by `Tools\simulation\sitl_multiple_run.ps1`. Passing `-SitlNum 0` to the helper script also works: `.\Tools\simulation\sitl_multiple_run.ps1 -SitlNum 0`.
-- **`PX4 server already running for instance 0` on a fresh launch.** If the previous `px4.exe` was killed forcibly (`Stop-Process -Force`, Task Manager, `CTRL+BREAK`) it may not have unlinked its lock file under `%TEMP%`, so the next launch sees a stale `px4_lock-<N>` and exits. Clear the leftovers and re-launch: `Remove-Item "$env:TEMP\px4_lock-*" -ErrorAction SilentlyContinue`. A graceful shutdown (`shutdown` from `pxh>`, `px4-shutdown.exe`, or `CTRL+C`) removes the lock automatically.
+- **The `pxh>` prompt won't respond.** From a different PowerShell window, kill all running PX4 instances with `Get-Process px4 -ErrorAction SilentlyContinue | Stop-Process -Force`.
+  The same one-liner cleans up the background instances launched by `Tools\simulation\sitl_multiple_run.ps1`.
+  Passing `-SitlNum 0` to the helper script also works: `.\Tools\simulation\sitl_multiple_run.ps1 -SitlNum 0`.
+- **`PX4 server already running for instance 0` on a fresh launch.** If the previous `px4.exe` was killed forcibly (`Stop-Process -Force`, Task Manager, `CTRL+BREAK`) it may not have unlinked its lock file under `%TEMP%`, so the next launch sees a stale `px4_lock-<N>` and exits.
+  Clear the leftovers and re-launch: `Remove-Item "$env:TEMP\px4_lock-*" -ErrorAction SilentlyContinue`.
+  A graceful shutdown (`shutdown` from `pxh>`, `px4-shutdown.exe`, or `CTRL+C`) removes the lock automatically.
 
 ### `make` Not Found
 
