@@ -91,7 +91,7 @@ If a listed parameter is missing from the Firmware see: [Finding/Updating Parame
                         '1': 'Enabled'
                     }
                     # Give def_value an explanatory string (is def_value if no match)
-                    def_val = f"{BOOLEAN_LABELS[def_val]} ({def_val})" if def_val in BOOLEAN_LABELSelse def_val
+def_val = f"{BOOLEAN_LABELS[def_val]} ({def_val})" if def_val in BOOLEAN_LABELS else def_val
 
                     # Format values and their descriptions for display.
                     boolean_values = '**Values:**\n\n'
