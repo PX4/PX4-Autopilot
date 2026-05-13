@@ -93,8 +93,6 @@ void MulticopterLandDetector::_update_topics()
 		_vehicle_thrust_setpoint_last_update = hrt_absolute_time();
 	}
 
-	_vehicle_thrust_setpoint_valid = (hrt_elapsed_time(&_vehicle_thrust_setpoint_last_update) < 1_s);
-
 	vehicle_control_mode_s vehicle_control_mode;
 
 	if (_vehicle_control_mode_sub.update(&vehicle_control_mode)) {
@@ -220,6 +218,8 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 		_hover_thrust_estimate_valid = hover_thrust_estimate_valid;
 	}
 
+	_vehicle_thrust_setpoint_valid = (hrt_elapsed_time(&_vehicle_thrust_setpoint_last_update) < 1_s);
+
 	// low thrust: 30% of throttle range between min and hover, relaxed to 60% if hover thrust estimate available
 	const float thr_pct_hover = _hover_thrust_estimate_valid ? 0.6f : 0.3f;
 	const float hover_thrust = PX4_ISFINITE(_hover_thrust_estimate) ? _hover_thrust_estimate : _params.mpc_thr_hover;
@@ -278,6 +278,8 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 	} else {
 		minimum_thrust_threshold = (_params.minManThrottle + 0.01f);
 	}
+
+	_vehicle_thrust_setpoint_valid = (hrt_elapsed_time(&_vehicle_thrust_setpoint_last_update) < 1_s);
 
 	const bool minimum_thrust_now = _vehicle_thrust_setpoint_valid
 					&& (_vehicle_thrust_setpoint_throttle <= minimum_thrust_threshold);
