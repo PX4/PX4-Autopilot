@@ -4,6 +4,7 @@ DIR="$(dirname $(readlink -f $0))"
 DEFAULT_AUTOPILOT_HOST=10.41.1.1
 DEFAULT_AUTOPILOT_PORT=33333
 DEFAULT_AUTOPILOT_USER=auterion
+EXTERNAL_FIRMWARE_FILES=()
 
 for i in "$@"
 do
@@ -26,6 +27,9 @@ do
         --wifi)
         DEFAULT_AUTOPILOT_HOST=10.41.0.1
         ;;
+        --ext-fw=*)
+        EXTERNAL_FIRMWARE_FILES+=("${i#*=}")
+        ;;
         *)
             # unknown option
         ;;
@@ -42,6 +46,9 @@ ARGUMENTS+=(-d "$AUTOPILOT_HOST")
 ARGUMENTS+=(-p "$AUTOPILOT_PORT")
 ARGUMENTS+=(-u "$AUTOPILOT_USER")
 ARGUMENTS+=(${PX4_BINARY_FILE:+-f "$PX4_BINARY_FILE"})
+for _ext_fw in "${EXTERNAL_FIRMWARE_FILES[@]}"; do
+    ARGUMENTS+=(-x "$_ext_fw")
+done
 ARGUMENTS+=($REVERT_AUTOPILOT_ARGUMENT)
 
 echo "Flashing $AUTOPILOT_HOST ..."

@@ -150,6 +150,14 @@ fi
 
 if [ $USE_ALT_UPDATE_DIRS = yes ]
 then
+	# Check for new CAN-firmware directory
+	if [ -e /fs/microsd/ufw_staging_tmp ]
+	then
+		echo "Updating CAN firmware staging directory"
+		rm -r /fs/microsd/ufw_staging
+		mv /fs/microsd/ufw_staging_tmp /fs/microsd/ufw_staging
+	fi
+
 	# Check for an update of the ext_autostart folder, and replace the old one with it
 	if [ -e /fs/microsd/ext_autostart_new ]
 	then
