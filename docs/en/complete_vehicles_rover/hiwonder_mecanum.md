@@ -15,6 +15,7 @@ Ensure that the parts are compatible, including the ports available on your flig
 :::
 
 The following parts are used in this build:
+
 - Frame: [Hiwonder Mecanum Chassis](https://www.hiwonder.com/products/large-metal-4wd-vehicle-chassis-green)
 - Flight Controller: [Auterion Skynode S](https://auterion.com/product/skynode-s/) (Alternatives: [Flight Controllers](../flight_controller/index.md)).
 - Receiver: [TBS Crossfire Nano RX](https://www.team-blacksheep.com/products/prod:crossfire_nano_rx?srsltid=AfmBOopvPF1mhPRIS11amSwdKf4OFZlt2ibj7XJwu05kVWt4S_L-ZNuD) (Alternatives: [PX4-Compatible Receivers](../getting_started/rc_transmitter_receiver.md#px4-compatible-receivers-compatible_receivers)).
@@ -38,7 +39,8 @@ Many boards will have a dedicated GPS port (which often includes an I2C port) an
 
 ## Wiring and Assembly
 
-The following images shows the wiring of the various components of this build. Missing are the connections from the motors to the motor controller board.
+The following images shows the wiring of the various components of this build.
+Missing are the connections from the motors to the motor controller board.
 
 ![Hiwonder Wiring](../../assets/airframes/rover/hiwonder_rovers/hiwonder_wiring_annotated.png)
 
@@ -59,17 +61,21 @@ Use _QGroundControl_ for rover configuration:
 
 1. [Flash the rover build](../config_rover/index.md#flashing-the-rover-build) onto your flight controller with the following adjustments:
 
-      Navigate to the `rc.board_sensors` file of your board and add the following lines (for Skynode S this would be in [boards/auterion/fmu-v6s/init/rc.board_sensors](https://github.com/PX4/PX4-Autopilot/blob/main/boards/auterion/fmu-v6s/init/rc.board_sensors)):
-      ```sh
-      if param compare HIWONDER_EMM_EN 1
-      then
-         hiwonder_emm start
-      fi
-      ```
-      Also add the following line to the `rover.px4board` file of your board (for Skynode S this would be in [boards/auterion/fmu-v6s/rover.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/auterion/fmu-v6s/rover.px4board)):
-      ```sh
-      CONFIG_DRIVERS_HIWONDER_EMM=y
-      ```
+   Navigate to the `rc.board_sensors` file of your board and add the following lines (for Skynode S this would be in [boards/auterion/fmu-v6s/init/rc.board_sensors](https://github.com/PX4/PX4-Autopilot/blob/main/boards/auterion/fmu-v6s/init/rc.board_sensors)):
+
+   ```sh
+   if param compare HIWONDER_EMM_EN 1
+   then
+      hiwonder_emm start
+   fi
+   ```
+
+   Also add the following line to the `rover.px4board` file of your board (for Skynode S this would be in [boards/auterion/fmu-v6s/rover.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/auterion/fmu-v6s/rover.px4board)):
+
+   ```sh
+   CONFIG_DRIVERS_HIWONDER_EMM=y
+   ```
+
 2. In the [Basic Configuration](../config/index.md) section, select the [Airframe](../config/airframe.md) tab.
 3. Choose **Hiwonder Mecanum** under the **Rover** category (Alternatively you can set the parameter `SYS_AUTOSTART` to `52001`).
 
@@ -78,11 +84,14 @@ Then configure the actuators:
 1. Navigate to [Actuators Configuration & Testing](../config/actuators.md) in QGroundControl.
 1. Select the Hiwonder EMM driver from the list of _Actuator Outputs_.
 
-   Assign the channels to the corresponding motor. The channels are noted on the motor controller board (alternatively randomly assign the channels and use the actuator testing tab to find the correct assignments).
-   Now ensure that the motors are all spinning in the same direction. If that is not the case check the `Rev Range` box on the ones that are spinning in the opposite direction.
+   Assign the channels to the corresponding motor.
+   The channels are noted on the motor controller board (alternatively randomly assign the channels and use the actuator testing tab to find the correct assignments).
+   Now ensure that the motors are all spinning in the same direction.
+   If that is not the case check the `Rev Range` box on the ones that are spinning in the opposite direction.
 
    ![Motor Setup](../../assets/airframes/rover/hiwonder_rovers/hiwonder_mecanum_motors.png)
 
-1. Arm the rover in [Manual Mode](../flight_modes_rover/manual.md#manual-mode) and use the trottle stick to drive forwards. If the rover drives backwards instead, invert the `Rev Range` checkboxes on **all** motors.
+1. Arm the rover in [Manual Mode](../flight_modes_rover/manual.md#manual-mode) and use the trottle stick to drive forwards.
+   If the rover drives backwards instead, invert the `Rev Range` checkboxes on **all** motors.
 
 You have now successfully setup your rover and can start testing all [driving modes](../flight_modes_rover/index.md) PX4 has to offer!

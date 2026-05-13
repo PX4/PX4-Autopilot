@@ -10,11 +10,12 @@ Maintainer volunteers, [contribution](../contribute/index.md) of new features, n
 ![Rovers](../../assets/airframes/rover/hiwonder_rovers/hiwonder_rovers.png)
 
 PX4 provides support for the three most common types of rovers:
-| Rover Type | Steering |
+
+| Rover Type                        | Steering                                                                                                                                                      |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [**Ackermann**](#ackermann) | Direction is controlled by pointing wheels in the direction of travel. This kind of steering is used on most commercial vehicles, including cars, trucks etc. |
-| [**Differential**](#differential) | Direction is controlled by moving the left- and right-side wheels at different speeds. |
-| [**Mecanum**](#mecanum) | Direction is controlled by moving each mecanum wheel individually at different speeds and in different directions. |
+| [**Ackermann**](#ackermann)       | Direction is controlled by pointing wheels in the direction of travel. This kind of steering is used on most commercial vehicles, including cars, trucks etc. |
+| [**Differential**](#differential) | Direction is controlled by moving the left- and right-side wheels at different speeds.                                                                        |
+| [**Mecanum**](#mecanum)           | Direction is controlled by moving each mecanum wheel individually at different speeds and in different directions.                                            |
 
 The supported frames can be seen in [Airframes Reference > Rover](../airframes/airframe_reference.md#rover).
 
@@ -49,7 +50,8 @@ The differential setup also work for rovers with skid or tank steering.
 
 <Badge type="tip" text="PX4 v1.16" /> <Badge type="warning" text="Experimental" />
 
-A Mecanum rover is a type of mobile robot that uses Mecanum wheels to achieve omnidirectional movement. These wheels are unique because they have rollers mounted at a 45-degree angle around their circumference, allowing the rover to move not only forward and backward but also side-to-side and diagonally without needing to rotate first.
+A Mecanum rover is a type of mobile robot that uses Mecanum wheels to achieve omnidirectional movement.
+These wheels are unique because they have rollers mounted at a 45-degree angle around their circumference, allowing the rover to move not only forward and backward but also side-to-side and diagonally without needing to rotate first.
 Each wheel is driven by its own motor, and by controlling the speed and direction of each motor, the rover can move in any direction or spin in place.
 
 ![Mecanum rover](../../assets/airframes/rover/hiwonder_rovers/hiwonder_mecanum.png)
