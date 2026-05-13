@@ -6,8 +6,6 @@ actuator_output:
       channel_label: 'Channel'
       standard_params:
         disarmed: { min: 0, max: 255, default: 128 }
-        min: { min: 0, max: 0, default: 0 }
-        max: { min: 255, max: 255, default: 255 }
         failsafe: { min: 0, max: 255}
       num_channels: 4
 

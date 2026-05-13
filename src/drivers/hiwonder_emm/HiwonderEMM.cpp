@@ -43,6 +43,8 @@ HiwonderEMM::HiwonderEMM() :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default), I2C(DRV_MOTOR_DEVTYPE_HIWONDER_EMM,
 			MODULE_NAME, I2CBUS, I2C_ADDR, 400000)
 {
+	_mixing_output.setAllMinValues(0);
+	_mixing_output.setAllMaxValues(255);
 }
 
 int HiwonderEMM::init()
