@@ -229,41 +229,41 @@ Lockstep cannot be disabled on Gazebo.
 :::
 
 ### Video Streaming
- 
+
 Some models (e.g. `gz_x500_mono_cam`, `gz_x500_gimbal`) include a camera and support video streaming. By default, the stream is published over UDP on port 5600 using the RTP protocol.
- 
+
 #### Prerequisites
- 
+
 GStreamer 1.0 is required. The necessary dependencies are included in the standard PX4 installation scripts for Ubuntu Linux and macOS.
- 
+
 ::: info
 Required packages: `gstreamer1.0-plugins-base`, `gstreamer1.0-plugins-good`, `gstreamer1.0-plugins-bad`, `gstreamer1.0-plugins-ugly`, `libgstreamer-plugins-base1.0-dev`. If missing, install them via `apt` or your system package manager.
 :::
- 
+
 #### Viewing the Video Stream
- 
+
 **QGroundControl (recommended)**
- 
+
 Open **Application Settings > General**, set **Video Source** to _UDP h.264 Video Stream_, and set **UDP Port** to `5600`.
- 
+
 ![QGC Video Streaming Settings for Gazebo](../../assets/simulation/gazebo_classic/qgc_gazebo_video_stream_udp.png)
- 
+
 The Gazebo video feed will then appear in QGroundControl exactly as it would from a real camera.
- 
+
 ![QGC Video Streaming Gazebo Example](../../assets/simulation/gazebo_classic/qgc_gazebo_video_stream_typhoon.jpg)
- 
+
 **GStreamer pipeline**
- 
+
 To view the stream directly from a terminal:
- 
+
 ```sh
 gst-launch-1.0 -v udpsrc port=5600 \
   caps='application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264' \
   ! rtph264depay ! avdec_h264 ! videoconvert ! autovideosink sync=false
 ```
- 
+
 #### Multi-Vehicle Simulation
- 
+
 In a multi-vehicle simulation, each vehicle instance streams to a separate port starting from `5600` — i.e. `5600`, `5601`, `5602`, and so on. If an instance (other than the first, which acts as the Gazebo world host) is restarted, it resumes streaming on its originally assigned port.
 
 #### Advanced Usage
