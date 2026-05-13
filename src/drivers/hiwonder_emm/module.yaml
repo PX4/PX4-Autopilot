@@ -19,3 +19,4 @@ parameters:
             Enable the Hiwonder Encoder Motor Module (EMM) motor driver.
         type: boolean
         default: 0
+        reboot_required: true
