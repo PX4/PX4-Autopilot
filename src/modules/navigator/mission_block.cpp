@@ -1004,7 +1004,7 @@ void MissionBlock::startPrecLand(uint16_t land_precision)
 void MissionBlock::updateAltToAvoidTerrainCollisionAndRepublishTriplet(const mission_item_s &mission_item)
 {
 	// Avoid flying into terrain using the distance sensor. Enable through the parameter NAV_MIN_GND_DIST.
-	// Only active during commanded descents with vz>0 (to prevent climb-aways), excluding landing and VTOL transitions.
+	// Only active during commanded descents with vz>0 (to prevent climb-aways) on position mission items, excluding landing.
 	// It changes the altitude setpoint in the triplet to maintain the current altitude and republish the triplet.
 	// We also change the mission item altitude used for acceptance calculations to prevent getting stuck in a loop.
 
@@ -1014,8 +1014,8 @@ void MissionBlock::updateAltToAvoidTerrainCollisionAndRepublishTriplet(const mis
 
 
 	if (_navigator->get_nav_min_gnd_dist_param() > FLT_EPSILON && _mission_item.nav_cmd != NAV_CMD_LAND
-	    && _mission_item.nav_cmd != NAV_CMD_VTOL_LAND && _mission_item.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION
-	    && _mission_item.nav_cmd != NAV_CMD_IDLE
+	    && _mission_item.nav_cmd != NAV_CMD_VTOL_LAND
+	    && item_contains_position(mission_item)
 	    && _navigator->get_local_position()->dist_bottom_valid
 	    && _navigator->get_local_position()->dist_bottom < _navigator->get_nav_min_gnd_dist_param()
 	    && _navigator->get_local_position()->vz > FLT_EPSILON

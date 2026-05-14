@@ -101,9 +101,12 @@ void Ekf::resetHorizontalPositionTo(const double &new_latitude, const double &ne
 	updateHorizontalPositionResetStatus(delta_horz_pos);
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
-	_ev_pos_b_est.setBias(_ev_pos_b_est.getBias() - delta_horz_pos);
+
+	if (_control_status.flags.ev_pos) {
+		_ev_pos_b_est.setBias(_ev_pos_b_est.getBias() - delta_horz_pos);
+	}
+
 #endif // CONFIG_EKF2_EXTERNAL_VISION
-	//_gps_pos_b_est.setBias(_gps_pos_b_est.getBias() + _state_reset_status.posNE_change);
 
 	_gpos.setLatLonDeg(new_latitude, new_longitude);
 	_output_predictor.resetLatLonTo(new_latitude, new_longitude);

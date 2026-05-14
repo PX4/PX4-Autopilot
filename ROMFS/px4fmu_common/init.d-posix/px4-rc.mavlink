@@ -11,7 +11,13 @@ udp_onboard_gimbal_port_remote=$((13280+px4_instance))
 udp_gcs_port_local=$((18570+px4_instance))
 
 # GCS link
-mavlink start -x -u $udp_gcs_port_local -r 4000000 -f
+mavlink_network_interface_arg=""
+if [ -n "$PX4_NET_INTERFACE" ]; then
+	# Adding  -n $PX4_NET_INTERFACE to bind MAVLink to a specific interface.
+	# And -p to enable broadcasting on that interface, and not be in localhost mode only.
+	mavlink_network_interface_arg="-n $PX4_NET_INTERFACE -p"
+fi
+mavlink start -x -u $udp_gcs_port_local -r 4000000 -f $mavlink_network_interface_arg
 mavlink stream -r 50 -s POSITION_TARGET_LOCAL_NED -u $udp_gcs_port_local
 mavlink stream -r 50 -s LOCAL_POSITION_NED -u $udp_gcs_port_local
 mavlink stream -r 50 -s GLOBAL_POSITION_INT -u $udp_gcs_port_local
@@ -23,19 +29,19 @@ mavlink stream -r 20 -s RC_CHANNELS -u $udp_gcs_port_local
 mavlink stream -r 10 -s OPTICAL_FLOW_RAD -u $udp_gcs_port_local
 
 # API/Offboard link
-mavlink start -x -u $udp_offboard_port_local -r 4000000 -f -m onboard -o $udp_offboard_port_remote
+mavlink start -x -u $udp_offboard_port_local -r 4000000 -f -m onboard -o $udp_offboard_port_remote $mavlink_network_interface_arg
 
 # Onboard link to camera
-mavlink start -x -u $udp_onboard_payload_port_local -r 4000 -f -m onboard -o $udp_onboard_payload_port_remote
+mavlink start -x -u $udp_onboard_payload_port_local -r 4000 -f -m onboard -o $udp_onboard_payload_port_remote $mavlink_network_interface_arg
 
 # Onboard link to gimbal
-mavlink start -x -u $udp_onboard_gimbal_port_local -r 400000 -f -m gimbal -o $udp_onboard_gimbal_port_remote
+mavlink start -x -u $udp_onboard_gimbal_port_local -r 400000 -f -m gimbal -o $udp_onboard_gimbal_port_remote $mavlink_network_interface_arg
 
 # To display for SIH sitl
 if [ "$PX4_SIMULATOR" = "sihsim" ]; then
 	udp_sihsim_port_local=$((19450+px4_instance))
 	udp_sihsim_port_remote=$((19410+px4_instance))
-	mavlink start -x -u $udp_sihsim_port_local -r 400000 -m custom -o $udp_sihsim_port_remote
+	mavlink start -x -u $udp_sihsim_port_local -r 400000 -m custom -o $udp_sihsim_port_remote $mavlink_network_interface_arg
 	mavlink stream -r 200 -s HIL_ACTUATOR_CONTROLS -u  $udp_sihsim_port_local
 	mavlink stream -r 25 -s HIL_STATE_QUATERNION -u  $udp_sihsim_port_local
 fi

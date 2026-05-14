@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,6 +46,7 @@ FailsafeBase::ActionOptions Failsafe::fromNavDllOrRclActParam(int param_value)
 
 	switch (gcs_connection_loss_failsafe_mode(param_value)) {
 	case gcs_connection_loss_failsafe_mode::Disabled:
+	default:
 		options.action = Action::None;
 		break;
 
@@ -74,10 +75,6 @@ FailsafeBase::ActionOptions Failsafe::fromNavDllOrRclActParam(int param_value)
 		options.allow_user_takeover = UserTakeoverAllowed::Never;
 		options.action = Action::Disarm;
 		break;
-
-	default:
-		options.action = Action::None;
-		break;
 	}
 
 	return options;
@@ -93,6 +90,7 @@ FailsafeBase::ActionOptions Failsafe::fromGfActParam(int param_value)
 		break;
 
 	case geofence_violation_action::Warning:
+	default:
 		options.action = Action::Warn;
 		break;
 
@@ -116,10 +114,6 @@ FailsafeBase::ActionOptions Failsafe::fromGfActParam(int param_value)
 	case geofence_violation_action::Land_mode:
 		options.action = Action::Land;
 		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
-		break;
-
-	default:
-		options.action = Action::Warn;
 		break;
 	}
 
@@ -165,8 +159,8 @@ FailsafeBase::ActionOptions Failsafe::fromBatteryWarningActParam(int param_value
 	ActionOptions options{};
 
 	switch (battery_warning) {
-	default:
 	case battery_status_s::WARNING_NONE:
+	default:
 		options.action = Action::None;
 		break;
 
@@ -309,6 +303,7 @@ FailsafeBase::ActionOptions Failsafe::fromHighWindLimitActParam(int param_value)
 		break;
 
 	case command_after_high_wind_failsafe::Warning:
+	default:
 		options.action = Action::Warn;
 		break;
 
@@ -333,10 +328,6 @@ FailsafeBase::ActionOptions Failsafe::fromHighWindLimitActParam(int param_value)
 		options.action = Action::Land;
 		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 		break;
-
-	default:
-		options.action = Action::Warn;
-		break;
 	}
 
 	return options;
@@ -353,6 +344,7 @@ FailsafeBase::ActionOptions Failsafe::fromPosLowActParam(int param_value)
 		break;
 
 	case command_after_pos_low_failsafe::Warning:
+	default:
 		options.action = Action::Warn;
 		break;
 
@@ -376,9 +368,35 @@ FailsafeBase::ActionOptions Failsafe::fromPosLowActParam(int param_value)
 		options.action = Action::Land;
 		options.clear_condition = ClearCondition::WhenConditionClears;
 		break;
+	}
 
+	return options;
+}
+
+FailsafeBase::ActionOptions Failsafe::fromGnssLossActParam(int param_value)
+{
+	ActionOptions options{};
+
+	switch (gps_redundancy_failsafe_mode(param_value)) {
+	case gps_redundancy_failsafe_mode::Warning:
 	default:
 		options.action = Action::Warn;
+		break;
+
+	case gps_redundancy_failsafe_mode::Return_mode:
+		options.action = Action::RTL;
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
+		break;
+
+	case gps_redundancy_failsafe_mode::Land_mode:
+		options.action = Action::Land;
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
+		break;
+
+	case gps_redundancy_failsafe_mode::Terminate:
+		options.allow_user_takeover = UserTakeoverAllowed::Never;
+		options.action = Action::Terminate;
+		options.clear_condition = ClearCondition::Never;
 		break;
 	}
 
@@ -642,6 +660,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 
 	CHECK_FAILSAFE(status_flags, fd_imbalanced_prop, Action::Warn);
 	CHECK_FAILSAFE(status_flags, fd_motor_failure, fromActuatorFailureActParam(_param_com_actuator_failure_act.get()));
+	CHECK_FAILSAFE(status_flags, gnss_lost, fromGnssLossActParam(_param_com_gnssloss_act.get()));
 
 
 
