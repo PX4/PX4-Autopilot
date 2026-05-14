@@ -312,14 +312,19 @@ public:
 
 	void trigger_hagl_failsafe(uint8_t nav_state);
 
-	int set_start_and_plan_path_to_destination(const matrix::Vector2<double> &start, bool start_is_current_position = true)
+	int set_start_and_plan_path_to_destination(const matrix::Vector2<double> &start)
 	{
-		return _geofence.set_start_and_start_path_to_destination(start, start_is_current_position);
+		return _geofence.set_start_and_start_path_to_destination(start);
 	}
 
 	void updateDestinationOfRTLPathPlanner(const matrix::Vector2<double> &destination)
 	{
 		_geofence.updateDestinationForRTLPathPlanner(destination);
+	}
+
+	void savePlannerStartIfNoFenceViolation(const matrix::Vector2<double> &position)
+	{
+		_geofence.savePlannerStartIfNoFenceViolation(position);
 	}
 
 	matrix::Vector2d get_point_at_index(int index) const

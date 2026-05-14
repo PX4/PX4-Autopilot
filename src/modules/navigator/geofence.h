@@ -144,9 +144,9 @@ public:
 
 	bool isHomeRequired();
 
-	int set_start_and_start_path_to_destination(const matrix::Vector2<double> &start, bool start_is_current_position = true)
+	int set_start_and_start_path_to_destination(const matrix::Vector2<double> &start)
 	{
-		return _avoidance_planner.set_start_and_plan_path_to_destination(start, *this, start_is_current_position);
+		return _avoidance_planner.set_start_and_plan_path_to_destination(start, *this);
 	}
 
 	bool plannerStartIsCurrentPosition() const
@@ -157,6 +157,11 @@ public:
 	void updateDestinationForRTLPathPlanner(const matrix::Vector2<double> &destination)
 	{
 		_avoidance_planner.update_destination(destination, *this);
+	}
+
+	void savePlannerStartIfNoFenceViolation(const matrix::Vector2<double> &position)
+	{
+		_avoidance_planner.save_position_if_no_fence_violation(position);
 	}
 
 	const matrix::Vector2d get_point_at_index(int index) const

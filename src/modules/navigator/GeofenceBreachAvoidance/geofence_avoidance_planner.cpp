@@ -73,6 +73,9 @@ void GeofenceAvoidancePlanner::planPath()
 
 bool GeofenceAvoidancePlanner::update_vertices(GeofenceInterface &geofence, float margin)
 {
+	// Polygons are about to change; any previously latched fallback start may no longer be valid.
+	_saved_valid_start = matrix::Vector2<double> {(double)NAN, (double)NAN};
+
 	_polygons_healthy = true;
 	margin = math::max(margin, 1.f); // margin should be non-zero otherwise polygon expansion breaks down
 
@@ -209,11 +212,57 @@ bool GeofenceAvoidancePlanner::lat_lon_within_bounds(const matrix::Vector2<doubl
 	return true;
 }
 
-int GeofenceAvoidancePlanner::set_start_and_plan_path_to_destination(matrix::Vector2d start, GeofenceInterface &geofence,
-		bool start_is_current_position)
+int GeofenceAvoidancePlanner::findBestStartingNode(const matrix::Vector2f &start_local,
+		bool &destination_directly_reachable) const
 {
-	_start_is_current_position = start_is_current_position;
+	destination_directly_reachable = false;
+	float best_cost = INFINITY;
+	int best_index = -1;
 
+	for (int node_idx = 0; node_idx < _polygons.numNodes(); node_idx++) {
+		if (!_polygons.edgeVisible(start_local, node_idx)) {
+			continue;
+		}
+
+		if (node_idx == _polygons.destIndex()) {
+			destination_directly_reachable = true;
+			continue;
+		}
+
+		const float cost = (start_local - _polygons.node(node_idx)).norm() + _best_distance[node_idx];
+
+		if (cost < best_cost) {
+			best_cost = cost;
+			best_index = node_idx;
+		}
+	}
+
+	return best_index;
+}
+
+void GeofenceAvoidancePlanner::save_position_if_no_fence_violation(const matrix::Vector2<double> &position)
+{
+	if (!_polygons_healthy || !position.isAllFinite()) {
+		return;
+	}
+
+	matrix::Vector2f position_local;
+	MapProjection ref{_reference(0), _reference(1)};
+	ref.project(position(0), position(1), position_local(0), position_local(1));
+
+	// "Doesn't violate any fence" (for planner purposes) = at least one polygon node is
+	// edge-visible from this position. If the point were outside an inclusion polygon or
+	// inside an exclusion polygon, every line from it to a polygon vertex would cross a fence.
+	for (int node_idx = 0; node_idx < _polygons.numNodes(); node_idx++) {
+		if (_polygons.edgeVisible(position_local, node_idx)) {
+			_saved_valid_start = position;
+			return;
+		}
+	}
+}
+
+int GeofenceAvoidancePlanner::set_start_and_plan_path_to_destination(matrix::Vector2d start, GeofenceInterface &geofence)
+{
 	if (!_polygons_healthy || !_destination_healthy) {
 		return 0;
 	}
@@ -221,30 +270,32 @@ int GeofenceAvoidancePlanner::set_start_and_plan_path_to_destination(matrix::Vec
 	MapProjection ref{_reference(0), _reference(1)};
 	ref.project(start(0), start(1), _start_local(0), _start_local(1));
 
-	float best_cost = INFINITY;
+	// Try the caller-provided position (typically the vehicle's current position) first.
+	bool destination_directly_reachable = false;
+	_best_starting_index = findBestStartingNode(_start_local, destination_directly_reachable);
+	_start_is_current_position = (_best_starting_index >= 0) || destination_directly_reachable;
 
-	_best_starting_index = -1;
+	// If the provided position has no visible node and the destination isn't directly reachable,
+	// fall back to the most recently latched in-fence position (see save_position_if_no_fence_violation).
+	if (!_start_is_current_position && _saved_valid_start.isAllFinite()) {
+		matrix::Vector2f fallback_local;
+		ref.project(_saved_valid_start(0), _saved_valid_start(1), fallback_local(0), fallback_local(1));
+		const int fallback_best = findBestStartingNode(fallback_local, destination_directly_reachable);
 
-	for (int node_idx = 0; node_idx < _polygons.numNodes(); node_idx++) {
-		// check if node is reachable from this position
-		if (_polygons.edgeVisible(_start_local, node_idx)) {
-
-			if (node_idx == _polygons.destIndex()) {
-				// destination is directly reachable from start: no detour planning needed.
-				// If the vehicle is already at the start, no waypoints at all are needed.
-				// Otherwise we still need the anchor (point 0) so the vehicle flies back into the fence first.
-				_best_starting_index = -1;
-				_num_path_points = 0;
-				return start_is_current_position ? 0 : 1;
-			}
-
-			const float cost = (_start_local - _polygons.node(node_idx)).norm() + _best_distance[node_idx];
-
-			if (cost < best_cost) {
-				best_cost = cost;
-				_best_starting_index = node_idx;
-			}
+		if (fallback_best >= 0 || destination_directly_reachable) {
+			_start_local = fallback_local;
+			_best_starting_index = fallback_best;
+			// _start_is_current_position stays false: the anchor is not where the vehicle is.
 		}
+	}
+
+	if (destination_directly_reachable) {
+		// Destination is directly reachable from the chosen start: no detour planning needed.
+		// If the vehicle is already at the start, no waypoints at all are needed.
+		// Otherwise we still need the anchor (point 0) so the vehicle flies back into the fence first.
+		_best_starting_index = -1;
+		_num_path_points = 0;
+		return _start_is_current_position ? 0 : 1;
 	}
 
 	int current_index = _best_starting_index;
@@ -268,7 +319,8 @@ int GeofenceAvoidancePlanner::set_start_and_plan_path_to_destination(matrix::Vec
 
 	// When the vehicle is already at the start, the start itself is not a waypoint to fly to.
 	// Otherwise the start is the anchor (point 0) the vehicle has to fly back to first.
-	return start_is_current_position ? _num_path_points : _num_path_points + 1;
+	// Use the member here: the fallback path may have flipped it from the caller's value.
+	return _start_is_current_position ? _num_path_points : _num_path_points + 1;
 }
 
 matrix::Vector2d GeofenceAvoidancePlanner::get_point_at_index(int index) const

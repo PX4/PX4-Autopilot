@@ -95,8 +95,23 @@ void RtlDirectMissionLand::on_activation()
 
 	_needs_climbing = false;
 
+	// Reset geofence-avoidance state so a stale index from a previous activation
+	// doesn't cause the avoidance branch to be skipped on re-entry.
+	_num_waypoints_for_geofence_avoidance = 0;
+	_current_geofence_avoidance_index = 0;
+
 	if (hasMissionLandStart()) {
 		_is_current_planned_mission_item_valid = (goToItem(_mission.land_start_index, MissionTraversalType::IgnoreDoJump) == PX4_OK);
+
+		matrix::Vector2d destination = get_first_position_after_land_start_index();
+
+		if (destination.isAllFinite()) {
+			_navigator->updateDestinationOfRTLPathPlanner(destination);
+			// Pass the current vehicle position; the planner falls back to its own latched
+			// in-fence anchor if the current position violates a fence.
+			_num_waypoints_for_geofence_avoidance = _navigator->set_start_and_plan_path_to_destination(
+					matrix::Vector2<double> {_global_pos_sub.get().lat, _global_pos_sub.get().lon});
+		}
 
 		_needs_climbing = checkNeedsToClimb();
 
@@ -115,6 +130,11 @@ void RtlDirectMissionLand::on_activation()
 
 bool RtlDirectMissionLand::setNextMissionItem()
 {
+	// Stay on the same mission item until the geofence-avoidance path is fully consumed.
+	if (_current_geofence_avoidance_index < _num_waypoints_for_geofence_avoidance) {
+		return true;
+	}
+
 	return (goToNextPositionItem() == PX4_OK);
 }
 
@@ -167,6 +187,38 @@ void RtlDirectMissionLand::setActiveMissionItems()
 		pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 
 		new_work_item_type = WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF;
+
+	} else if (_current_geofence_avoidance_index < _num_waypoints_for_geofence_avoidance) {
+
+		// Follow the planned geofence-avoidance path before resuming the mission landing sequence.
+		const int curr_idx = _current_geofence_avoidance_index++;
+		matrix::Vector2d point = _navigator->get_point_at_index(curr_idx);
+
+		if (!point.isAllFinite()) {
+			// Should never happen: fall back to the current position to avoid commanding NaN.
+			point(0) = _global_pos_sub.get().lat;
+			point(1) = _global_pos_sub.get().lon;
+		}
+
+		if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+
+		} else {
+			_mission_item.nav_cmd = NAV_CMD_LOITER_TO_ALT;
+		}
+
+		_mission_item.lat = point(0);
+		_mission_item.lon = point(1);
+		_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+		_mission_item.altitude = _rtl_alt;
+		_mission_item.altitude_is_relative = false;
+		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
+		_mission_item.time_inside = 0.0f;
+		_mission_item.autocontinue = true;
+		_mission_item.origin = ORIGIN_ONBOARD;
+		_mission_item.loiter_radius = _navigator->get_default_loiter_rad();
+
+		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 
 	} else if (item_contains_position(_mission_item)) {
 
@@ -430,4 +482,36 @@ bool RtlDirectMissionLand::checkNeedsToClimb()
 	}
 
 	return needs_climbing;
+}
+
+matrix::Vector2d RtlDirectMissionLand::get_first_position_after_land_start_index()
+{
+	matrix::Vector2d position((double)NAN, (double)NAN);
+
+	if (!hasMissionLandStart()) {
+		return position;
+	}
+
+	int32_t next_mission_item_index{-1};
+	size_t num_found_items{0U};
+	getNextPositionItems(_mission.land_start_index + 1, &next_mission_item_index, num_found_items, 1U);
+
+	if (num_found_items == 0U) {
+		return position;
+	}
+
+	mission_item_s next_position_mission_item{};
+	const dm_item_t mission_dataman_id = static_cast<dm_item_t>(_mission.mission_dataman_id);
+	const bool success = _dataman_cache.loadWait(mission_dataman_id, next_mission_item_index,
+			     reinterpret_cast<uint8_t *>(&next_position_mission_item),
+			     sizeof(next_position_mission_item), MAX_DATAMAN_LOAD_WAIT);
+
+	if (!success) {
+		return position;
+	}
+
+	position(0) = next_position_mission_item.lat;
+	position(1) = next_position_mission_item.lon;
+
+	return position;
 }

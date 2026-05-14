@@ -44,6 +44,7 @@
 #include "rtl_base.h"
 
 #include <lib/rtl/rtl_time_estimator.h>
+#include <matrix/math.hpp>
 
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/home_position.h>
@@ -71,9 +72,19 @@ private:
 	void updateDatamanCache() override;
 	bool checkNeedsToClimb();
 
+	/**
+	 * @brief Get lat/lon of the first position-containing mission item after the DO_LAND_START marker.
+	 *
+	 * @return matrix::Vector2d(lat, lon) of the item, or (NaN, NaN) if no such item exists
+	 *         or the dataman load failed.
+	 */
+	matrix::Vector2d get_first_position_after_land_start_index();
+
 	bool _needs_climbing{false}; 	//< Flag if climbing is required at the start
 	bool _enforce_rtl_alt{false};
 	float _rtl_alt{0.0f};	///< AMSL altitude at which the vehicle should return to the land position
+	int _num_waypoints_for_geofence_avoidance{0};
+	int _current_geofence_avoidance_index{0};
 
 	RtlTimeEstimator _rtl_time_estimator;
 };

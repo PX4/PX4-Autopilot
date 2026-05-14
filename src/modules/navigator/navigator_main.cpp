@@ -1037,14 +1037,6 @@ void Navigator::geofence_breach_check()
 
 		_last_geofence_check = hrt_absolute_time();
 
-		// latch the current position as a valid RTL planner start whenever no fence is violated
-		if (!_geofence_result.geofence_max_dist_triggered && !_geofence_result.geofence_custom_fence_triggered) {
-			_last_valid_position_in_fence = matrix::Vector2<double> {current_latitude, current_longitude};
-			_last_position_was_outside_fence = false;
-
-		} else {
-			_last_position_was_outside_fence = true;
-		}
 
 		_geofence_result.timestamp = hrt_absolute_time();
 		_geofence_result.geofence_action = _geofence.getGeofenceAction();

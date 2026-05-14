@@ -237,13 +237,16 @@ TEST_F(GeofenceAvoidancePlannerTest, StartInsideExclusion)
 	ASSERT_EQ(num_waypoints, 0);
 }
 
-TEST_F(GeofenceAvoidancePlannerTest, StartInsideGeofence)
+TEST_F(GeofenceAvoidancePlannerTest, FallsBackToSavedAnchorWhenStartViolatesFence)
 {
 	using namespace matrix;
-	// Start and destination are both in valid airspace (north of the exclusion zone), so the
-	// destination is directly reachable from the start without any detour.
-	Vector2<double> start(47.3559582, 8.5192064);
+	// `anchor` is in valid airspace (north of the exclusion polygon) and `destination`
+	// sits just next to it so it's directly reachable from there. `inside_exclusion`
+	// is inside the exclusion polygon, i.e. it violates the fence and cannot be used
+	// as a planner start.
+	Vector2<double> anchor(47.3559582, 8.5192064);
 	Vector2<double> destination(47.3560100, 8.5192300);
+	Vector2<double> inside_exclusion(47.3553000, 8.5193000);
 
 	static const Vector2<double> vertices[] = {
 		{47.3552420, 8.5192293},
@@ -256,17 +259,21 @@ TEST_F(GeofenceAvoidancePlannerTest, StartInsideGeofence)
 	_planner.update_vertices(fake, 0.f);
 	_planner.update_destination(destination, fake);
 
-	// Vehicle was outside the fence at plan time, so the start is used as an anchor the
-	// vehicle must fly back to. Even though the destination is directly visible from there,
-	// the path still has to include the anchor as the first (and only) waypoint.
+	// Seed the planner with the anchor as a known-good fallback start.
+	_planner.save_position_if_no_fence_violation(anchor);
+
+	// Plan from a position that violates the fence. The planner should detect that the
+	// provided start has no visible polygon node, fall back to the latched anchor, and
+	// include the anchor as the first (and only) waypoint since the destination is
+	// directly reachable from there.
 	const int num_waypoints =
-		_planner.set_start_and_plan_path_to_destination(start, fake, /*start_is_current_position=*/false);
+		_planner.set_start_and_plan_path_to_destination(inside_exclusion, fake);
 
 	ASSERT_EQ(num_waypoints, 1);
 
 	const Vector2d anchor_wp = _planner.get_point_at_index(0);
-	EXPECT_NEAR(anchor_wp(0), start(0), 1e-3);
-	EXPECT_NEAR(anchor_wp(1), start(1), 1e-3);
+	EXPECT_NEAR(anchor_wp(0), anchor(0), 1e-3);
+	EXPECT_NEAR(anchor_wp(1), anchor(1), 1e-3);
 }
 
 TEST_F(GeofenceAvoidancePlannerTest, NanStartOrDestination)

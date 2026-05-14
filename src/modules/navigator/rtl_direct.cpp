@@ -72,9 +72,11 @@ void RtlDirect::on_activation()
 {
 	_global_pos_sub.update();
 	_vehicle_status_sub.update();
-	const bool start_is_current_position = !_navigator->was_last_position_outside_fence();
+	// Pass the current vehicle position; the planner falls back to its own latched in-fence
+	// anchor if the current position violates a fence (see save_position_if_no_fence_violation).
 	_num_waypoints_for_geofence_avoidance =
-		_navigator->set_start_and_plan_path_to_destination(_navigator->getRtlPlanningStart(), start_is_current_position);
+		_navigator->set_start_and_plan_path_to_destination(
+			matrix::Vector2<double> {_global_pos_sub.get().lat, _global_pos_sub.get().lon});
 
 	_current_geofence_avoidance_index = 0;
 
