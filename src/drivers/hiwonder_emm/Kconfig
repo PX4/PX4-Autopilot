@@ -1,0 +1,5 @@
+menuconfig DRIVERS_HIWONDER_EMM
+	bool "hiwonder_emm"
+	default n
+	---help---
+		Enable support for hiwonder encoder motor module

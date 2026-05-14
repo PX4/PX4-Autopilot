@@ -1,0 +1,22 @@
+module_name: Hiwonder EMM Driver
+
+actuator_output:
+  output_groups:
+    - param_prefix: EMM
+      channel_label: 'Channel'
+      standard_params:
+        disarmed: { min: 0, max: 255, default: 128 }
+        failsafe: { min: 0, max: 255}
+      num_channels: 4
+
+parameters:
+  - group: Hiwonder EMM
+    definitions:
+      HIWONDER_EMM_EN:
+        description:
+          short: Enable the Hiwonder Encoder Motor Module (EMM) motor driver.
+          long: |
+            Enable the Hiwonder Encoder Motor Module (EMM) motor driver.
+        type: boolean
+        default: 0
+        reboot_required: true

@@ -1001,19 +1001,21 @@ void EKF2::initFusionControl()
 
 		const int32_t sens_en = _param_ekf2_sens_en.get();
 
-		_fc.gps.enabled    = sens_en & (1 << SENS_EN_GPS0);
-		_fc.of.enabled     = sens_en & (1 << SENS_EN_OF);
-		_fc.ev.enabled     = sens_en & (1 << SENS_EN_EV);
+		_fc.gps.enabled    = sens_en & SensEn::GPS0;
+		_fc.of.enabled     = sens_en & SensEn::OF;
+		_fc.ev.enabled     = sens_en & SensEn::EV;
+
+		static constexpr SensEn kAgpBits[MAX_AGP_INSTANCES] = {SensEn::AGP0, SensEn::AGP1, SensEn::AGP2, SensEn::AGP3};
 
 		for (uint8_t i = 0; i < MAX_AGP_INSTANCES; i++) {
-			_fc.agp[i].enabled = sens_en & (1 << (SENS_EN_AGP0 + i));
+			_fc.agp[i].enabled = sens_en & kAgpBits[i];
 		}
 
-		_fc.baro.enabled   = sens_en & (1 << SENS_EN_BARO);
-		_fc.rng.enabled    = sens_en & (1 << SENS_EN_RNG);
-		_fc.mag.enabled    = sens_en & (1 << SENS_EN_MAG);
-		_fc.aspd.enabled   = sens_en & (1 << SENS_EN_ASPD);
-		_fc.rngbcn.enabled = sens_en & (1 << SENS_EN_RNGBCN);
+		_fc.baro.enabled   = sens_en & SensEn::BARO;
+		_fc.rng.enabled    = sens_en & SensEn::RNG;
+		_fc.mag.enabled    = sens_en & SensEn::MAG;
+		_fc.aspd.enabled   = sens_en & SensEn::ASPD;
+		_fc.rngbcn.enabled = sens_en & SensEn::RNGBCN;
 	}
 }
 
@@ -1069,25 +1071,27 @@ void EKF2::syncSensEnParam()
 {
 	int32_t sens_en = 0;
 
-	if (_fc.gps.enabled)    { sens_en |= (1 << SENS_EN_GPS0); }
+	if (_fc.gps.enabled)    { sens_en |= SensEn::GPS0; }
 
-	if (_fc.of.enabled)     { sens_en |= (1 << SENS_EN_OF); }
+	if (_fc.of.enabled)     { sens_en |= SensEn::OF; }
 
-	if (_fc.ev.enabled)     { sens_en |= (1 << SENS_EN_EV); }
+	if (_fc.ev.enabled)     { sens_en |= SensEn::EV; }
+
+	static constexpr SensEn kAgpBits[MAX_AGP_INSTANCES] = {SensEn::AGP0, SensEn::AGP1, SensEn::AGP2, SensEn::AGP3};
 
 	for (uint8_t i = 0; i < MAX_AGP_INSTANCES; i++) {
-		if (_fc.agp[i].enabled) { sens_en |= (1 << (SENS_EN_AGP0 + i)); }
+		if (_fc.agp[i].enabled) { sens_en |= kAgpBits[i]; }
 	}
 
-	if (_fc.baro.enabled)   { sens_en |= (1 << SENS_EN_BARO); }
+	if (_fc.baro.enabled)   { sens_en |= SensEn::BARO; }
 
-	if (_fc.rng.enabled)    { sens_en |= (1 << SENS_EN_RNG); }
+	if (_fc.rng.enabled)    { sens_en |= SensEn::RNG; }
 
-	if (_fc.mag.enabled)    { sens_en |= (1 << SENS_EN_MAG); }
+	if (_fc.mag.enabled)    { sens_en |= SensEn::MAG; }
 
-	if (_fc.aspd.enabled)   { sens_en |= (1 << SENS_EN_ASPD); }
+	if (_fc.aspd.enabled)   { sens_en |= SensEn::ASPD; }
 
-	if (_fc.rngbcn.enabled) { sens_en |= (1 << SENS_EN_RNGBCN); }
+	if (_fc.rngbcn.enabled) { sens_en |= SensEn::RNGBCN; }
 
 	_param_ekf2_sens_en.set(sens_en);
 	_param_ekf2_sens_en.commit_no_notification();

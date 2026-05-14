@@ -307,6 +307,7 @@
       - [DroneCAN ESCs](dronecan/escs.md)
         - [PX4 Sapog ESC Firmware](dronecan/sapog.md)
       - [ARK 4IN1 ESC](esc/ark_4in1_esc.md)
+      - [Hiwonder 4Ch Encoder Motor Module](peripherals/hiwonder_emm.md)
       - [Holybro Kotleta](dronecan/holybro_kotleta.md)
       - [Vertiq Motor/ESC Modules](peripherals/vertiq.md)
       - [VESC Project ESCs](peripherals/vesc.md)

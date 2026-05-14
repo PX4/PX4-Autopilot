@@ -131,6 +131,22 @@ parameters:
         1: Allow arming (with warning)
         2: Allow arming (no warning)
       default: 1
+    COM_GNSSLOSS_ACT:
+      description:
+        short: GNSS loss failsafe mode
+        long: |-
+          Action the system takes when a GNSS failure is detected during flight.
+          Triggers when the active GNSS count drops below SYS_HAS_NUM_GNSS (disabled
+          when SYS_HAS_NUM_GNSS=0), or when two receivers report positions inconsistent
+          with their reported accuracy and SYS_HAS_NUM_GNSS=2 (otherwise warning only).
+          Any value above Warning also blocks arming.
+      type: enum
+      values:
+        0: Warning
+        1: Return
+        2: Land
+        3: Terminate
+      default: 0
     COM_ARM_SWISBTN:
       description:
         short: Arm switch is a momentary button
