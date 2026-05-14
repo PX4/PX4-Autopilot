@@ -1542,17 +1542,6 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
 			break;
 
-		case MAV_CMD_COMPONENT_ARM_DISARM:
-			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
-			mission_item->params[0] = (uint16_t)mavlink_mission_item->param1;
-			break;
-
-		case MAV_CMD_DO_AUTOTUNE_ENABLE:
-			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
-			mission_item->params[0] = (uint16_t)mavlink_mission_item->param1;
-			mission_item->params[1] = (uint16_t)mavlink_mission_item->param2;
-			break;
-
 		default:
 			mission_item->nav_cmd = NAV_CMD_INVALID;
 			PX4_DEBUG("Unsupported command %d", mavlink_mission_item->command);
@@ -1641,10 +1630,21 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		case MAV_CMD_DO_SET_ROI_NONE:
 		case MAV_CMD_CONDITION_DELAY:
 		case MAV_CMD_CONDITION_DISTANCE:
-		case MAV_CMD_DO_SET_ACTUATOR:
 		case MAV_CMD_DO_AUTOTUNE_ENABLE:
 		case MAV_CMD_COMPONENT_ARM_DISARM:
 			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
+			break;
+
+		case MAV_CMD_DO_SET_ACTUATOR:
+			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
+
+			// Actuator 5+6 values (params[4]/[5], float -1..1) are encoded with
+			// 1e7 scaling in MISSION_ITEM_INT to preserve fractional precision.
+			if (_int_mode) {
+				mission_item->params[4] *= 1e-7;
+				mission_item->params[5] *= 1e-7;
+			}
+
 			break;
 
 		default:
@@ -1697,8 +1697,15 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 			mavlink_mission_item_int_t *item_int =
 				reinterpret_cast<mavlink_mission_item_int_t *>(mavlink_mission_item);
 
-			item_int->x = round(mission_item->params[4]);
-			item_int->y = round(mission_item->params[5]);
+			if (mission_item->nav_cmd == NAV_CMD_DO_SET_ACTUATOR) {
+				// Actuator 5+6 values are float (-1..1); encode with 1e7 to match parse.
+				item_int->x = round(mission_item->params[4] * 1e7);
+				item_int->y = round(mission_item->params[5] * 1e7);
+
+			} else {
+				item_int->x = round(mission_item->params[4]);
+				item_int->y = round(mission_item->params[5]);
+			}
 
 		} else {
 			mavlink_mission_item->x = (float)mission_item->params[4];
@@ -1736,6 +1743,9 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 		case NAV_CMD_SET_CAMERA_ZOOM:
 		case NAV_CMD_SET_CAMERA_FOCUS:
 		case NAV_CMD_DO_VTOL_TRANSITION:
+		case NAV_CMD_DO_SET_ACTUATOR:
+		case NAV_CMD_COMPONENT_ARM_DISARM:
+		case NAV_CMD_DO_AUTOTUNE_ENABLE:
 			break;
 
 		default:
