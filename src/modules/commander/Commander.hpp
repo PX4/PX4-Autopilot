@@ -337,18 +337,15 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::COM_DISARM_LAND>)  _param_com_disarm_land,
 		(ParamFloat<px4::params::COM_DISARM_PRFLT>) _param_com_disarm_prflt,
-		(ParamBool<px4::params::COM_DISARM_MAN>)    _param_com_disarm_man,
 		(ParamInt<px4::params::COM_DL_LOSS_T>)      _param_com_dl_loss_t,
 		(ParamInt<px4::params::COM_HLDL_LOSS_T>)    _param_com_hldl_loss_t,
 		(ParamBool<px4::params::COM_HOME_EN>)       _param_com_home_en,
 		(ParamBool<px4::params::COM_HOME_IN_AIR>)   _param_com_home_in_air,
 		(ParamBool<px4::params::COM_FORCE_SAFETY>)  _param_com_force_safety,
-		(ParamFloat<px4::params::COM_OBC_LOSS_T>)   _param_com_obc_loss_t,
 		(ParamInt<px4::params::COM_PREARM_MODE>)    _param_com_prearm_mode,
 		(ParamInt<px4::params::COM_RC_OVERRIDE>)    _param_com_rc_override,
 		(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time,
 		(ParamInt<px4::params::COM_FLIGHT_UUID>)    _param_com_flight_uuid,
-		(ParamInt<px4::params::COM_TAKEOFF_ACT>)    _param_com_takeoff_act,
 		(ParamFloat<px4::params::COM_CPU_MAX>)      _param_com_cpu_max,
 		(ParamBool<px4::params::COM_ARM_ON_BOOT>)   _param_com_arm_on_boot,
 		(ParamInt<px4::params::COM_ARM_TRAFF>)      _param_com_arm_traff

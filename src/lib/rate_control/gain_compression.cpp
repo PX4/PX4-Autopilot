@@ -96,6 +96,10 @@ void GainCompression3d::update(const Vector3f &input, const float dt)
 
 float GainCompression::update(const float input, const float dt)
 {
+	if (!PX4_ISFINITE(input)) {
+		return _compression_gain;
+	}
+
 	_hpf = _alpha_hpf * _hpf + _alpha_hpf * (input - _input_prev);
 	_lpf.update(_hpf * _hpf);
 

@@ -32,7 +32,7 @@ This model is designed to excel at [STOL](https://en.wikipedia.org/wiki/STOL) fl
 
 - Легкий доступ до USB-порту Pixhawk та роз'єму для налагодження
 
-- [First Person View (FPV)](https://en.wikipedia.org/wiki/First-person_view_\(radio_control\)) with camera pan mount
+- [First Person View (FPV)](https://en.wikipedia.org/wiki/First-person_view_(radio_control)) with camera pan mount
 
 - Аеродинамічні дані надаються крилом, яке має навісний пітот-статичний модуль
 

@@ -40,3 +40,7 @@ For more information see [Using PX4's Navigation Filter (EKF2) > Correction for 
 The approach works well if the relationship between the error due to static pressure and the velocity varies linearly.
 If the vehicle has a more complex aerodynamic model it will be less effective.
 :::
+
+## 另见
+
+- [OEM/Factory Configuration](../advanced_config/oem.md)

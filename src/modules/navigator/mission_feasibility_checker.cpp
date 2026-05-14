@@ -64,6 +64,8 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission)
 
 	// trivial case: A mission with length zero cannot be valid
 	if ((int)mission.count <= 0) {
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: empty\t");
+		events::send(events::ID("navigator_mis_empty"), {events::Log::Error, events::LogInternal::Info}, "Mission rejected: empty");
 		return false;
 	}
 
@@ -85,6 +87,7 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission)
 		if (!success) {
 			_navigator->get_mission_result()->warning = true;
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
+			logDatamanReadFailure(i, mission.mission_dataman_id);
 			return false;
 		}
 
@@ -125,6 +128,7 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 
 			if (!success) {
 				/* not supposed to happen unless the datamanager can't access the SD card, etc. */
+				logDatamanReadFailure(i, mission.mission_dataman_id);
 				return false;
 			}
 
@@ -151,4 +155,12 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 	}
 
 	return true;
+}
+
+void MissionFeasibilityChecker::logDatamanReadFailure(const size_t mission_item, const uint8_t dataman_id)
+{
+	mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: dataman read failed at item %zu (dm_id=%u)\t", mission_item,
+			     static_cast<unsigned>(dataman_id));
+	events::send<uint16_t, uint8_t>(events::ID("navigator_mis_dm_read_fail"), {events::Log::Error, events::LogInternal::Info},
+					"Mission rejected: dataman read failed at item {1} (dm_id={2})", static_cast<uint16_t>(mission_item), dataman_id);
 }

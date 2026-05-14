@@ -1,6 +1,6 @@
 # Reptile Dragon 2 (RD2) Build
 
-The Reptile Dragon 2 is a twin motor RC airplane specifically designed for efficient FPV [(first person view)](https://en.wikipedia.org/wiki/First-person_view_\(radio_control\)) flying.
+The Reptile Dragon 2 is a twin motor RC airplane specifically designed for efficient FPV [(first person view)](https://en.wikipedia.org/wiki/First-person_view_(radio_control)) flying.
 Being specific for FPV, the RD2 is optimized for easy mounting of cameras, sensors, logic electronics, large batteries, antennas, and other payload components which would be found on a typical FPV airplane.
 This emphasis on payload makes this airplane an ideal candidate for a PX4 installation.
 

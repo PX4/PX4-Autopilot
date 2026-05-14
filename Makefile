@@ -404,7 +404,7 @@ px4_metadata: parameters_metadata airframe_metadata module_documentation extract
 
 # Style
 # --------------------------------------------------------------------
-.PHONY: check_format format check_newlines
+.PHONY: check_format format format_changed check_newlines
 
 check_format:
 	$(call colorecho,'Checking formatting with astyle')
@@ -414,6 +414,10 @@ check_format:
 format:
 	$(call colorecho,'Formatting with astyle')
 	@"$(SRC_DIR)"/Tools/astyle/check_code_style_all.sh --fix
+
+format_changed:
+	$(call colorecho,'Formatting changed files with astyle')
+	@"$(SRC_DIR)"/Tools/astyle/check_code_style_all.sh --fix --diff-only
 
 check_newlines:
 	$(call colorecho,'Checking for missing or duplicate newlines at the end of files')

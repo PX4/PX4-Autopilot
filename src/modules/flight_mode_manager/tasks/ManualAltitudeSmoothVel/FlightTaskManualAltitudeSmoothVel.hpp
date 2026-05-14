@@ -69,5 +69,5 @@ protected:
 				       )
 
 private:
-	bool _terrain_hold_previous{false}; /**< true when vehicle was controlling height above a static ground position in the previous iteration */
+	bool _z_setpoint_from_terrain_prev{false}; /**< parent's _z_setpoint_from_terrain from the previous iteration; used to detect transitions out of terrain-driven Z */
 };

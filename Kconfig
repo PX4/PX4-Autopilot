@@ -202,6 +202,12 @@ menu "File paths"
     config BOARD_PARAM_FILE
         string "Parameter file"
         default "/fs/mtd_params"
+
+    config BOARD_NO_SDCARD
+        bool "Board has no SD card"
+        default n
+        help
+            Disable the SD card arming check for boards without an SD card slot.
 endmenu
 
 menu "drivers"

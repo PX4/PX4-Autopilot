@@ -457,24 +457,8 @@ void MavlinkReceiver::handle_messages_in_gimbal_mode(mavlink_message_t &msg)
 bool
 MavlinkReceiver::evaluate_target_ok(int command, int target_system, int target_component)
 {
-	/* evaluate if this system should accept this command */
-	bool target_ok = false;
-
-	switch (command) {
-
-	case MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES:
-	case MAV_CMD_REQUEST_PROTOCOL_VERSION:
-		/* broadcast and ignore component */
-		target_ok = (target_system == 0) || (target_system == mavlink_system.sysid);
-		break;
-
-	default:
-		target_ok = ((target_system == 0) || (target_system == mavlink_system.sysid))
-			    && ((target_component == mavlink_system.compid) || (target_component == MAV_COMP_ID_ALL));
-		break;
-	}
-
-	return target_ok;
+	return ((target_system == 0) || (target_system == mavlink_system.sysid))
+	       && ((target_component == mavlink_system.compid) || (target_component == MAV_COMP_ID_ALL));
 }
 
 void
@@ -583,24 +567,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		return;
 	}
 
-	// First we handle legacy support requests which were used before we had
-	// the generic MAV_CMD_REQUEST_MESSAGE.
-	if (cmd_mavlink.command == MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES) {
-		result = handle_request_message_command(MAVLINK_MSG_ID_AUTOPILOT_VERSION);
-
-	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_PROTOCOL_VERSION) {
-		result = handle_request_message_command(MAVLINK_MSG_ID_PROTOCOL_VERSION);
-
-	} else if (cmd_mavlink.command == MAV_CMD_GET_HOME_POSITION) {
-		result = handle_request_message_command(MAVLINK_MSG_ID_HOME_POSITION);
-
-	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_FLIGHT_INFORMATION) {
-		result = handle_request_message_command(MAVLINK_MSG_ID_FLIGHT_INFORMATION);
-
-	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_STORAGE_INFORMATION) {
-		result = handle_request_message_command(MAVLINK_MSG_ID_STORAGE_INFORMATION);
-
-	} else if (cmd_mavlink.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
+	if (cmd_mavlink.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
 		if (set_message_interval(
 			    (int)(cmd_mavlink.param1 + 0.5f), cmd_mavlink.param2, cmd_mavlink.param3, cmd_mavlink.param4, vehicle_command.param7)) {
 			result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
@@ -3235,7 +3202,7 @@ void MavlinkReceiver::handle_message_open_drone_id_system(
 	open_drone_id_system_s odid_system{};
 	memset(&odid_system, 0, sizeof(odid_system));
 
-	odid_system.timestamp = hrt_absolute_time();
+	odid_system.timestamp = odid_module.timestamp;
 	memcpy(odid_system.id_or_mac, odid_module.id_or_mac, sizeof(odid_system.id_or_mac));
 	odid_system.operator_location_type = odid_module.operator_location_type;
 	odid_system.classification_type = odid_module.classification_type;
