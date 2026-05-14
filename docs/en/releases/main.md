@@ -53,6 +53,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 ### Safety
 
 - Rotary-wing vehicles now support uncommanded altitude loss detection: if the vehicle descends more than [FD_ALT_LOSS](../advanced_config/parameter_reference.md#FD_ALT_LOSS) meters below its setpoint in altitude-controlled flight, flight termination (and parachute deployment) is triggered. See [Altitude Loss Trigger](../config/safety.md#altitude-loss-trigger). ([PX4-Autopilot#26837](https://github.com/PX4/PX4-Autopilot/pull/26837))
+- [GNSS check failsafe](../config/safety.md#gnss-check-failsafe): new failsafe that monitors the number of usable GNSS receivers with a 3D fix and their position consistency. The required number of receivers is set via [SYS_HAS_NUM_GNSS](../advanced_config/parameter_reference.md#SYS_HAS_NUM_GNSS) and the failsafe action via [COM_GNSSLOSS_ACT](../advanced_config/parameter_reference.md#COM_GNSSLOSS_ACT). ([PX4-Autopilot#26863](https://github.com/PX4/PX4-Autopilot/pull/26863))
 
 ### Estimation
 
@@ -96,7 +97,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 <!-- MOVED THIS TO v1.17
 
-- [PX4 ROS 2 Interface Library](../ros2/px4_ros2_control_interface.md) support for [Fixed Wing lateral/longitudinal setpoint](../ros2/px4_ros2_control_interface.md#fixed-wing-lateral-and-longitudinal-setpoint-fwlaterallongitudinalsetpointtype) (`FwLateralLongitudinalSetpointType`) and [VTOL transitions](../ros2/px4_ros2_control_interface.md#controlling-a-vtol). ([PX4-Autopilot#24056](https://github.com/PX4/PX4-Autopilot/pull/24056)).
+- [PX4 ROS 2 Interface Library](../ros2/px4_ros2_control_interface.md) support for [Fixed Wing lateral/longitudinal setpoint](../ros2/px4_ros2_control_interface.md#fw-lateral-longitudinal-setpoint) (`FwLateralLongitudinalSetpointType`) and [VTOL transitions](../ros2/px4_ros2_control_interface.md#controlling-a-vtol). ([PX4-Autopilot#24056](https://github.com/PX4/PX4-Autopilot/pull/24056)).
 - [PX4 ROS 2 Interface Library](../ros2/px4_ros2_control_interface.md) support for [ROS-based waypoint missions](../ros2/px4_ros2_waypoint_missions.md).
 -->
 

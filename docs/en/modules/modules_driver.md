@@ -432,6 +432,26 @@ gz_bridge <command> [arguments...]
    status        print status info
 ```
 
+## hiwonder_emm
+
+Source: [drivers/hiwonder_emm](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/hiwonder_emm)
+
+### Description
+
+Hiwonder encoder motor module driver for PX4.
+
+### Usage {#hiwonder_emm_usage}
+
+```
+hiwonder_emm <command> [arguments...]
+ Commands:
+   start         Start the task
+
+   stop
+
+   status        print status info
+```
+
 ## ina220
 
 Source: [drivers/power_monitor/ina220](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/power_monitor/ina220)

@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2022-2026 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2025 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,55 +30,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-px4_add_library(health_and_arming_checks
-	Common.cpp
-	HealthAndArmingChecks.cpp
-
-	checks/accelerometerCheck.cpp
-	checks/airspeedCheck.cpp
-	checks/armPermissionCheck.cpp
-	checks/baroCheck.cpp
-	checks/batteryCheck.cpp
-	checks/cpuResourceCheck.cpp
-	checks/distanceSensorChecks.cpp
-	checks/opticalFlowCheck.cpp
-	checks/escCheck.cpp
-	checks/estimatorCheck.cpp
-	checks/failureDetectorCheck.cpp
-	checks/flightTimeCheck.cpp
-	checks/geofenceCheck.cpp
-	checks/gnssRedundancyCheck.cpp
-	checks/gyroCheck.cpp
-	checks/homePositionCheck.cpp
-	checks/imuConsistencyCheck.cpp
-	checks/loggerCheck.cpp
-	checks/magnetometerCheck.cpp
-	checks/manualControlCheck.cpp
-	checks/missionCheck.cpp
-	checks/modeCheck.cpp
-	checks/rallyPointCheck.cpp
-	checks/navigatorCheck.cpp
-	checks/offboardCheck.cpp
-	checks/openDroneIDCheck.cpp
-	checks/parachuteCheck.cpp
-	checks/powerCheck.cpp
-	checks/rcAndDataLinkCheck.cpp
-	checks/rcCalibrationCheck.cpp
-	checks/sdcardCheck.cpp
-	checks/systemCheck.cpp
-	checks/trafficAvoidanceCheck.cpp
-	checks/vtolCheck.cpp
-	checks/windCheck.cpp
-
-	checks/externalChecks.cpp
-)
-set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/esc_check_params.yaml)
-add_dependencies(health_and_arming_checks mode_util)
-target_link_libraries(health_and_arming_checks PRIVATE geo hysteresis)
-
-px4_add_functional_gtest(SRC HealthAndArmingChecksTest.cpp
-	LINKLIBS health_and_arming_checks mode_util
+px4_add_module(
+	MODULE drivers__hiwonder_emm
+	MAIN hiwonder_emm
+	COMPILE_FLAGS
+	SRCS
+		HiwonderEMM.cpp
+		HiwonderEMM.hpp
+	MODULE_CONFIG
+		module.yaml
+	DEPENDS
+		mixer_module
 	)
-
-px4_add_functional_gtest(SRC gnssRedundancyChecksTest.cpp LINKLIBS health_and_arming_checks mode_util)
