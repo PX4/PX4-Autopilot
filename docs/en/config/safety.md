@@ -241,10 +241,10 @@ Triggers on either of:
 At least a warning is emitted, additional failsafe actions can be configured using [COM_GNSSLOSS_ACT](#COM_GNSSLOSS_ACT).
 Loss of a single GPS when none are required is handled by other GPS health checks.
 
-| Parameter                                                                                                   | Description                                                                                                                                                   |
-| ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Parameter                                                                                                   | Description                                                                                                               |
+| ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | <a id="SYS_HAS_NUM_GNSS"></a>[SYS_HAS_NUM_GNSS](../advanced_config/parameter_reference.md#SYS_HAS_NUM_GNSS) | Number of usable GNSS receivers required for arming and flight. If two are required then they also need to be consistent. |
-| <a id="COM_GNSSLOSS_ACT"></a>[COM_GNSSLOSS_ACT](../advanced_config/parameter_reference.md#COM_GNSSLOSS_ACT) | Failsafe action when a GNSS failure is detected. Actions other than a warning also lead to arming being blocked. |
+| <a id="COM_GNSSLOSS_ACT"></a>[COM_GNSSLOSS_ACT](../advanced_config/parameter_reference.md#COM_GNSSLOSS_ACT) | Failsafe action when a GNSS failure is detected. Actions other than a warning also lead to arming being blocked.          |
 
 ## Offboard Loss Failsafe
 
