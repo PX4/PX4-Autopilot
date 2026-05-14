@@ -114,8 +114,6 @@ private:
 
 	uint8_t			_reached_sent_count{0};			///< last time when the vehicle reached a waypoint
 
-	bool			_int_mode{true};			///< Use accurate int32 instead of float
-
 	unsigned		_filesystem_errcount{0};		///< File system error count
 
 	static dm_item_t	_mission_dataman_id;			///< Global Dataman storage ID for active mission
@@ -238,33 +236,31 @@ private:
 
 	void handle_mission_request_list(const mavlink_message_t *msg);
 
-	void handle_mission_request(const mavlink_message_t *msg);
-	void handle_mission_request_int(const mavlink_message_t *msg);
 	void handle_mission_request_both(const mavlink_message_t *msg);
 
 	void handle_mission_count(const mavlink_message_t *msg);
 
 	void handle_mission_item(const mavlink_message_t *msg);
 	void handle_mission_item_int(const mavlink_message_t *msg);
-	void handle_mission_item_both(const mavlink_message_t *msg);
+	void handle_mission_item_both(const mavlink_message_t *msg, bool int_mode);
 
 	void handle_mission_clear_all(const mavlink_message_t *msg);
 
 	/**
-	 * Parse mavlink MISSION_ITEM message to get mission_item_s.
+	 * Parse mavlink MISSION_ITEM(_INT) message to get mission_item_s.
 	 *
 	 * @param mavlink_mission_item pointer to mavlink_mission_item_t or mavlink_mission_item_int_t
-	 *			       depending on _int_mode
+	 * @param int_mode             true if the message is a mavlink_mission_item_int_t
 	 * @param mission_item	       pointer to mission_item to construct
 	 */
-	int parse_mavlink_mission_item(const mavlink_mission_item_t *mavlink_mission_item, struct mission_item_s *mission_item);
+	int parse_mavlink_mission_item(const mavlink_mission_item_t *mavlink_mission_item, bool int_mode,
+				       struct mission_item_s *mission_item);
 
 	/**
-	 * Format mission_item_s as mavlink MISSION_ITEM(_INT) message.
+	 * Format mission_item_s as mavlink MISSION_ITEM_INT message.
 	 *
 	 * @param mission_item:		pointer to the existing mission item
-	 * @param mavlink_mission_item: pointer to mavlink_mission_item_t or mavlink_mission_item_int_t
-	 *				depending on _int_mode.
+	 * @param mavlink_mission_item: pointer to mavlink_mission_item_int_t cast as mavlink_mission_item_t
 	 */
 	int format_mavlink_mission_item(const struct mission_item_s *mission_item,
 					mavlink_mission_item_t *mavlink_mission_item);
