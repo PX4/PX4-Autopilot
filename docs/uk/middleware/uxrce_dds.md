@@ -32,6 +32,11 @@ The [eProsima micro XRCE-DDS _agent_](https://github.com/eProsima/Micro-XRCE-DDS
 
 Код, який хоче підписатися/публікувати до PX4, залежить від коду на стороні клієнта; йому потрібні визначення повідомлень uORB, які збігаються з тими, що були використані для створення клієнта PX4 uXRCE-DDS, щоб він міг інтерпретувати повідомлення.
 
+- For _versioned_ PX4 messages, the [PX4 ROS 2 Message Transition Node](../ros2/px4_ros2_msg_translation_node.md) handles compatibility automatically.
+  This node acts as an agent-side translator, allowing your code to interact with PX4 without requiring strict, manual message synchronization.
+- For unversioned messages, code that needs to publish to PX4 maintains a direct dependency on client-side definitions.
+  In these cases, you must ensure your local uORB message definitions exactly match those used to create the PX4 uXRCE-DDS client, so that the messages can be correctly interpreted.
+
 ## Генерація коду
 
 The PX4 [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client) is generated at build time and included in PX4 firmware by default.
@@ -397,11 +402,14 @@ Note that all the messages from PX4 source code are present in the repository, b
 - If you're using a main or release version of PX4 you can get the message definitions by cloning the interface package [PX4/px4_msgs](https://github.com/PX4/px4_msgs) into your workspace.
 - Якщо ви створюєте або змінюєте повідомлення uORB, вам потрібно вручну оновити повідомлення у вашому робочому просторі з вихідного дерева PX4.
   Generally this means that you would update [dds_topics.yaml](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/uxrce_dds_client/dds_topics.yaml), clone the interface package, and then manually synchronize it by copying the new/modified message definitions from [PX4-Autopilot/msg](https://github.com/PX4/PX4-Autopilot/tree/main/msg) to its `msg` folders.
-  Assuming that PX4-Autopilot is in your home directory `~`, while `px4_msgs` is in `~/px4_ros_com/src/`, then the command might be:
+  Assuming that PX4-Autopilot is in your home directory `~`, while `px4_msgs` is in `~/ros2_px4_ws/src/`, then the command might be:
 
   ```sh
-  rm ~/px4_ros_com/src/px4_msgs/msg/*.msg
-  cp ~/PX4-Autopilot/msg/*.msg ~/px4_ros_com/src/px4_msgs/msg/
+  rm ~/ros2_px4_ws/src/px4_msgs/msg/*.msg
+  rm ~/ros2_px4_ws/src/px4_msgs/srv/*.srv
+  cp ~/PX4-Autopilot/msg/*.msg ~/ros2_px4_ws/src/px4_msgs/msg/
+  cp ~/PX4-Autopilot/msg/versioned/*.msg ~/ros2_px4_ws/src/px4_msgs/msg/
+  cp ~/PX4-Autopilot/srv/*.msg ~/ros2_px4_ws/src/px4_msgs/srv/
   ```
 
   ::: info

@@ -1,0 +1,12 @@
+menuconfig SYSTEMCMDS_MKLITTLEFS
+	bool "mklittlefs"
+	default n
+	---help---
+		Enable support for mklittlefs
+
+menuconfig USER_MKLITTLEFS
+	bool "mklittlefs running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && SYSTEMCMDS_MKLITTLEFS
+	---help---
+		Put mklittlefs in userspace memory

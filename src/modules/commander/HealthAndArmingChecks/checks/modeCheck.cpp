@@ -36,7 +36,15 @@
 void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 {
 	if (!context.isArmed()) {
-		checkArmingRequirement(context, reporter);
+		if (reporter.failsafeFlags().mode_req_prevent_arming & (1u << context.status().nav_state)) {
+			/* EVENT
+			* @description
+			* Switch to another mode first.
+			*/
+			reporter.armingCheckFailure((NavModes)reporter.failsafeFlags().mode_req_prevent_arming, health_component_t::system,
+						    events::ID("check_modes_cannot_takeoff"),
+						    events::Log::Info, "Mode not suitable for arming");
+		}
 	}
 
 	// Failing mode requirements generally also clear the can_run bits which prevents mode switching and
@@ -179,18 +187,5 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 	    && reporter.failsafeFlags().mode_req_wind_and_flight_time_compliance != 0) {
 		// Already reported
 		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_wind_and_flight_time_compliance);
-	}
-}
-
-void ModeChecks::checkArmingRequirement(const Context &context, Report &reporter)
-{
-	if (reporter.failsafeFlags().mode_req_prevent_arming & (1u << context.status().nav_state)) {
-		/* EVENT
-		 * @description
-		 * Switch to another mode first.
-		 */
-		reporter.armingCheckFailure((NavModes)reporter.failsafeFlags().mode_req_prevent_arming, health_component_t::system,
-					    events::ID("check_modes_cannot_takeoff"),
-					    events::Log::Info, "Mode not suitable for arming");
 	}
 }

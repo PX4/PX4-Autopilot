@@ -19,25 +19,21 @@ If you want to download packages (e.g. `sudo apt-get install ros-indigo-ros-tuto
 Перейдіть до свого catkin робочого простору (наприклад, ~/ros_catkin_ws) та змініть ім'я пакетів.
 
 ```sh
-$ cd ~/ros_catkin_ws
-
-$ rosinstall_generator ros_tutorials --rosdistro indigo --deps --wet-only --exclude roslisp --tar > indigo-custom_ros.rosinstall
+cd ~/ros_catkin_ws
+rosinstall_generator ros_tutorials --rosdistro indigo --deps --wet-only --exclude roslisp --tar > indigo-custom_ros.rosinstall
 ```
 
 Далі, оновіть своє робоче середовище з wstool.
 
 ```sh
-$ wstool merge -t src indigo-custom_ros.rosinstall
-
-$ wstool update -t src
+wstool merge -t src indigo-custom_ros.rosinstall
+wstool update -t src
 ```
 
 Далі (досі у вашому робочому середовищі).
 
 ```sh
-$ source /opt/ros/indigo/setup.bash
-
-$ source devel/setup.bash
-
-$ catkin_make
+source /opt/ros/indigo/setup.bash
+source devel/setup.bash
+catkin_make
 ```

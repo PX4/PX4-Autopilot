@@ -32,6 +32,11 @@ The agent itself has no dependency on client-side code and can be built and/or i
 
 Code that wants to subscribe/publish to PX4 does have a dependency on client-side code; it requires uORB message definitions that match those used to create the PX4 uXRCE-DDS client so that it can interpret the messages.
 
+- For _versioned_ PX4 messages, the [PX4 ROS 2 Message Transition Node](../ros2/px4_ros2_msg_translation_node.md) handles compatibility automatically.
+  This node acts as an agent-side translator, allowing your code to interact with PX4 without requiring strict, manual message synchronization.
+- For unversioned messages, code that needs to publish to PX4 maintains a direct dependency on client-side definitions.
+  In these cases, you must ensure your local uORB message definitions exactly match those used to create the PX4 uXRCE-DDS client, so that the messages can be correctly interpreted.
+
 ## Code Generation
 
 The PX4 [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client) is generated at build time and included in PX4 firmware by default.
@@ -397,11 +402,14 @@ Therefore,
 - If you're using a main or release version of PX4 you can get the message definitions by cloning the interface package [PX4/px4_msgs](https://github.com/PX4/px4_msgs) into your workspace.
 - If you're creating or modifying uORB messages you must manually update the messages in your workspace from your PX4 source tree.
   Generally this means that you would update [dds_topics.yaml](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/uxrce_dds_client/dds_topics.yaml), clone the interface package, and then manually synchronize it by copying the new/modified message definitions from [PX4-Autopilot/msg](https://github.com/PX4/PX4-Autopilot/tree/main/msg) to its `msg` folders.
-  Assuming that PX4-Autopilot is in your home directory `~`, while `px4_msgs` is in `~/px4_ros_com/src/`, then the command might be:
+  Assuming that PX4-Autopilot is in your home directory `~`, while `px4_msgs` is in `~/ros2_px4_ws/src/`, then the command might be:
 
   ```sh
-  rm ~/px4_ros_com/src/px4_msgs/msg/*.msg
-  cp ~/PX4-Autopilot/msg/*.msg ~/px4_ros_com/src/px4_msgs/msg/
+  rm ~/ros2_px4_ws/src/px4_msgs/msg/*.msg
+  rm ~/ros2_px4_ws/src/px4_msgs/srv/*.srv
+  cp ~/PX4-Autopilot/msg/*.msg ~/ros2_px4_ws/src/px4_msgs/msg/
+  cp ~/PX4-Autopilot/msg/versioned/*.msg ~/ros2_px4_ws/src/px4_msgs/msg/
+  cp ~/PX4-Autopilot/srv/*.msg ~/ros2_px4_ws/src/px4_msgs/srv/
   ```
 
   ::: info

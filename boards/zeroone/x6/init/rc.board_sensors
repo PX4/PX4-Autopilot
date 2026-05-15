@@ -60,17 +60,17 @@ fi
 if ver hwtypecmp ZeroOneX6000
 then
         # Internal SPI bus icm45686 with SPIX
-	icm45686 -b 2 -s -R 6 start       //X6 & X6 air
+	icm45686 -b 2 -s -R 6 start       # X6 & X6 air
 
-	bmi088 -A -R 4 -s start           //X6
-	bmi088 -G -R 4 -s start           //X6
+	bmi088 -A -R 4 -s start           # X6
+	bmi088 -G -R 4 -s start           # X6
 
 	# Internal SPI bus icm45686 with SPIX
-	icm45686 -b 1 -s -R 8 start       //X6 & X6 air
+	icm45686 -b 1 -s -R 8 start       # X6 & X6 air
 fi
 
 
-if ver hwtypecmp ZeroOneX6001             //X6  PRO
+if ver hwtypecmp ZeroOneX6001             # X6 PRO
 then
 	# Internal SPI bus IIM42653 with SPIX
 	iim42653 -b 2 -s -R 6 start
@@ -82,15 +82,16 @@ then
 	iim42653 -b 1 -s -R 8 start
 fi
 
-
-rm3100 -I -b 4 start
-# Internal magnetometer on I2c
-
-# External compass on GPS1/I2C1 (the 3rd external bus): standard Holybro Pixhawk 4 or CUAV V5 GPS/compass puck (with lights, safety button, and buzzer)
+# External compass on GPS1/I2C1 bus
 ist8310 -X -b 1 -R 10 start
-
 # Internal compass
-ist8310 start -I -a 0x0E -R 12
+if ! rm3100 -I -b 4 start # X6 & X6 PRO & X6 Ultra
+then
+	if ! ist8310 -I -a 0x0E -R 12 start # X6 air
+	then
+		bmm350 -I -b 4 -a 0x15 -R 14 start # X6 air II
+	fi
+fi
 
 # Possible internal Baro
 if param compare SENS_INT_BARO_EN 1

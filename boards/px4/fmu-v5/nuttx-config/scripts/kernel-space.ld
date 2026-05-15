@@ -46,7 +46,6 @@ ENTRY(_stext)
  * code pulled in by libgcc.a requires it (and that code cannot be easily avoided).
  */
 EXTERN(abort)
-EXTERN(_bootdelay_signature)
 /*
  * TODO: Fill in the signature location into TOC from user-space elf
 EXTERN(_main_toc)
@@ -58,12 +57,6 @@ SECTIONS
         _stext = ABSOLUTE(.);
         *(.vectors)
 	. = ALIGN(32);
-	/*
-	This signature provides the bootloader with a way to delay booting
-	*/
-	_bootdelay_signature = ABSOLUTE(.);
-	FILL(0xffecc2925d7d05c5)
-	. += 8;
         /*
         *(.main_toc)
         */

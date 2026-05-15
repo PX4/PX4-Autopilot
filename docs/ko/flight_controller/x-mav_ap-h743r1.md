@@ -26,7 +26,7 @@ It brings you ultimate performance, stability, and reliability in every aspect.
 - 내장 센서 :
   - Accel/Gyro: ICM-42688-P\*2(Version1), BMI270\*2(Version2)
   - Mag: QMC5883P
-  - Barometer: DPS310(Version1),SPL06(Version2)
+  - Barometer: SPL06
 
 ### 인터페이스
 

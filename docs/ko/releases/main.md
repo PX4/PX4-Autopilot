@@ -22,7 +22,8 @@ Update these notes with features that are going to be in `main` (PX4 v1.18 or la
 
 ## Read Before Upgrading
 
-- TBD …
+- Log rotation is now enabled by default. Previously, a single log file grew for the entire flight and old logs were only deleted at boot once free space fell below a fixed 300 MB floor. The logger now caps each log file at [SDLOG_MAX_SIZE](../advanced_config/parameter_reference.md#SDLOG_MAX_SIZE) (new parameter, default `1024` MB) and keeps a configurable percentage of the disk free via [SDLOG_ROTATE](../advanced_config/parameter_reference.md#SDLOG_ROTATE) (new parameter, default `90`, so at least 10% free). Cleanup runs at log start rather than boot, so logs can still be downloaded via FTP before they are deleted. See [Log Cleanup](../dev_log/logging.md#log-cleanup) for details.
+- `SDLOG_DIRS_MAX` behaviour changed: it is now an orthogonal directory-count cap that runs on top of the new space-based cleanup, and the default is `0` (disabled). Previously it enforced a fixed ~300 MB free-space floor even when set to `0`. If you relied on that implicit floor, set [SDLOG_ROTATE](../advanced_config/parameter_reference.md#SDLOG_ROTATE) instead.
 
 Please continue reading for [upgrade instructions](#upgrade-guide).
 
@@ -40,6 +41,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### 공통
 
+- [Remote ID (Open Drone ID) in-flight failsafe](../peripherals/remote_id.md): extended [COM_ARM_ODID](../advanced_config/parameter_reference.md#COM_ARM_ODID) to also trigger a configurable failsafe action (Return, Land, or Terminate) if the Remote ID heartbeat is lost while airborne. Users previously on `COM_ARM_ODID=2` retain the same arming behaviour; set to `3` or higher to enable the in-flight action. ([PX4-Autopilot#27029](https://github.com/PX4/PX4-Autopilot/pull/27029))
 - [QGroundControl Bootloader Update](../advanced_config/bootloader_update.md#qgc-bootloader-update-sys-bl-update) via the [SYS_BL_UPDATE](../advanced_config/parameter_reference.md#SYS_BL_UPDATE) parameter has been re-enabled after being broken for a number of releases. ([PX4-Autopilot#25032: build: romf: fix generation of rc.board_bootloader_upgrade](https://github.com/PX4/PX4-Autopilot/pull/25032)).
 - [Feature: Allow prioritization of manual control inputs based on their instance number in ascending or descending order](../config/manual_control.md#px4-configuration). ([PX4-Autopilot#25602: Ascending and descending manual control input priorities](https://github.com/PX4/PX4-Autopilot/pull/25602)).
 
@@ -47,6 +49,10 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 - Added new flight mode(s): [Altitude Cruise (MC)](../flight_modes_mc/altitude_cruise.md), Altitude Cruise (FW).
   For fixed-wing the mode behaves the same as Altitude mode but you can disable the manual control loss failsafe. ([PX4-Autopilot#25435: Add new flight mode: Altitude Cruise](https://github.com/PX4/PX4-Autopilot/pull/25435)).
+
+### 안전 설정
+
+- Rotary-wing vehicles now support uncommanded altitude loss detection: if the vehicle descends more than [FD_ALT_LOSS](../advanced_config/parameter_reference.md#FD_ALT_LOSS) meters below its setpoint in altitude-controlled flight, flight termination (and parachute deployment) is triggered. See [Altitude Loss Trigger](../config/safety.md#altitude-loss-trigger). ([PX4-Autopilot#26837](https://github.com/PX4/PX4-Autopilot/pull/26837))
 
 ### Estimation
 
@@ -73,6 +79,12 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 ### Debug & Logging
 
 - [Asset Tracking](../debug/asset_tracking.md): Automatic tracking and logging of external device information including vendor name, firmware and hardware version, serial numbers. Currently supports DroneCAN devices. ([PX4-Autopilot#25617](https://github.com/PX4/PX4-Autopilot/pull/25617))
+- Logger: support for small flash storage (e.g. 128 MB W25N NAND on kakuteh7mini, kakuteh7v2, airbrainh743). Logs can now be written directly to an internal littlefs volume instead of requiring an SD card.
+- Logger: reworked log rotation and cleanup. Log rotation is now on by default, and cleanup runs at log start rather than boot so logs can be downloaded via FTP before being deleted.
+  - New [SDLOG_MAX_SIZE](../advanced_config/parameter_reference.md#SDLOG_MAX_SIZE) (default `1024` MB) caps the size of a single log file; once reached, the logger closes the current file and starts a new one.
+  - New [SDLOG_ROTATE](../advanced_config/parameter_reference.md#SDLOG_ROTATE) (default `90`) sets the maximum disk usage percentage. Cleanup guarantees `(100 - SDLOG_ROTATE)%` of the disk stays free at all times, even while writing a new log file. Set `0` to disable space-based cleanup, `100` to allow filling the disk completely.
+  - `SDLOG_DIRS_MAX` is now an orthogonal cap on the number of log directories (default `0` = disabled), on top of the space-based cleanup driven by `SDLOG_ROTATE` and `SDLOG_MAX_SIZE`. SITL defaults to `7`.
+- New `mklittlefs` systemcmd for reformatting a littlefs volume from the NSH console, analogous to `mkfatfs` for FAT filesystems.
 
 ### Ethernet
 
