@@ -127,7 +127,7 @@ private:
 	SyslinkBridge *_bridge;
 	SyslinkMemory *_memory;
 
-	int _params_sub;
+	orb_sub_t _params_sub;
 
 	// Current parameter values
 	int32_t _channel, _rate;
