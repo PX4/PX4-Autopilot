@@ -305,13 +305,11 @@ Syslink::task_main()
 
 	px4_arch_configgpio(GPIO_NRF_TXEN);
 
-	px4_pollfd_struct_t fds[2];
+	struct pollfd fds[1];
 	fds[0].fd = _fd;
 	fds[0].events = POLLIN;
 
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
-	fds[1].fd = _params_sub;
-	fds[1].events = POLLIN;
 
 	int error_counter = 0;
 
@@ -327,7 +325,7 @@ Syslink::task_main()
 	update_params(true);
 
 	while (_task_running) {
-		int poll_ret = px4_poll(fds, 2, 500);
+		int poll_ret = poll(fds, 1, 500);
 
 		/* handle the poll result */
 		if (poll_ret == 0) {
@@ -355,12 +353,16 @@ Syslink::task_main()
 					}
 				}
 			}
+		}
 
-			if (fds[1].revents & POLLIN) {
-				parameter_update_s update;
-				orb_copy(ORB_ID(parameter_update), _params_sub, &update);
-				update_params(false);
-			}
+		/* Check uORB parameter updates separately using orb_check */
+		bool params_updated = false;
+		orb_check(_params_sub, &params_updated);
+
+		if (params_updated) {
+			parameter_update_s update;
+			orb_copy(ORB_ID(parameter_update), _params_sub, &update);
+			update_params(false);
 		}
 
 	}
