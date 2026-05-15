@@ -259,8 +259,9 @@ TEST_F(GeofenceAvoidancePlannerTest, FallsBackToSavedAnchorWhenStartViolatesFenc
 	_planner.update_vertices(fake, 0.f);
 	_planner.update_destination(destination, fake);
 
-	// Seed the planner with the anchor as a known-good fallback start.
-	_planner.save_position_if_no_fence_violation(anchor);
+	// Seed the planner with the anchor as a known-good fallback start by planning from it:
+	// an in-fence start is latched internally as the fallback for future calls.
+	_planner.set_start_and_plan_path_to_destination(anchor, fake);
 
 	// Plan from a position that violates the fence. The planner should detect that the
 	// provided start has no visible polygon node, fall back to the latched anchor, and

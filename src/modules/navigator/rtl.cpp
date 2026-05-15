@@ -186,11 +186,9 @@ void RTL::on_inactive()
 				&& hrt_elapsed_time(&_global_pos_sub.get().timestamp) < 10_s;
 
 		if (global_position_recently_updated) {
-			// Independently latch a fallback start inside the path planner's polygons. The planner uses
-			// a margin-shrunken polygon, so the navigator-side latch above can be inside the actual
-			// fence yet still inside the planner's margin (i.e. unusable as a planner start). Letting
-			// the planner judge against its own polygons gives us a guaranteed-usable anchor.
-			_navigator->savePlannerStartIfNoFenceViolation(matrix::Vector2<double> {_global_pos_sub.get().lat, _global_pos_sub.get().lon});
+			// The planner latches the current position internally as a fallback anchor whenever
+			// it is in-fence (against the planner's margin-shrunken polygons), so a periodic call
+			// here keeps a usable anchor ready for the moment an RTL is triggered.
 			_navigator->set_start_and_plan_path_to_destination(
 				matrix::Vector2<double> {_global_pos_sub.get().lat, _global_pos_sub.get().lon});
 

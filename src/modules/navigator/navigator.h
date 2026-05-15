@@ -322,11 +322,6 @@ public:
 		_geofence.updateDestinationForRTLPathPlanner(destination);
 	}
 
-	void savePlannerStartIfNoFenceViolation(const matrix::Vector2<double> &position)
-	{
-		_geofence.savePlannerStartIfNoFenceViolation(position);
-	}
-
 	matrix::Vector2d get_point_at_index(int index) const
 	{
 		return _geofence.get_point_at_index(index);

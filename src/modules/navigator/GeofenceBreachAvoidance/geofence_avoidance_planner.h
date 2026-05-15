@@ -48,72 +48,6 @@
 static constexpr int kMaxNodes = 100;
 static constexpr int kCircleApproxVertices = 8;
 
-struct PlannedPath {
-	// points[0] is the start (latched valid position); intermediate waypoints follow; destination is not included
-	matrix::Vector2<double> points[kMaxNodes];
-	int num_points{0};
-	int current_index{0};
-
-	PlannedPath()
-	{
-		num_points = 0;
-		current_index = 0;
-	}
-
-	matrix::Vector2d getPoint(int index)
-	{
-		if (index < num_points) {
-			return points[index];
-
-		} else {
-			return matrix::Vector2d{(double)NAN, (double)NAN};
-		}
-	}
-
-	bool hasNextPoint()
-	{
-		return current_index < num_points;
-
-	}
-
-	matrix::Vector2<double> getAndPopCurrentPoint()
-	{
-		if (current_index < num_points) {
-			return points[current_index++];
-
-		} else {
-			return matrix::Vector2d{(double)NAN, (double)NAN};
-		}
-
-	}
-
-	matrix::Vector2d getCurrentPoint()
-	{
-		// returns the current points but does not increase the index
-		if (current_index < num_points) {
-			return points[current_index];
-		}
-
-		return matrix::Vector2d{(double)NAN, (double)NAN};
-
-	}
-};
-
-struct Node {
-	enum Type : uint8_t {
-		START,
-		DESTINATION,
-		VERTEX
-	};
-
-	float best_distance{FLT_MAX};
-	int previous_index{-1};
-	matrix::Vector2f position;
-	Type type{VERTEX};
-	bool visited = false;
-};
-
-
 class GeofenceAvoidancePlanner
 {
 public:
@@ -127,9 +61,11 @@ public:
 	 *
 	 * Pass the vehicle's current position as `start`. The planner first tries to plan from
 	 * there; if no polygon node is visible (i.e. the position lies outside the planner's
-	 * margined polygons), it transparently retries from the most recent latched in-fence
-	 * position (see save_position_if_no_fence_violation). The result of which start was
-	 * actually used is queryable via start_is_current_position().
+	 * margined polygons), it transparently retries from the most recent in-fence position
+	 * that was latched on a prior call. When `start` is itself in-fence it is latched as
+	 * the new fallback for future calls — so calling this periodically with the current
+	 * vehicle position keeps a usable anchor ready the moment one is needed. The result of
+	 * which start was actually used is queryable via start_is_current_position().
 	 *
 	 * @return Number of waypoints the caller should consume from get_point_at_index().
 	 *         When the planner falls back to the saved anchor, index 0 is that anchor; the
@@ -147,23 +83,6 @@ public:
 	bool update_vertices(GeofenceInterface &geofence, float margin = 50.0f);
 
 	void update_destination(const matrix::Vector2d &destination, GeofenceInterface &geofence);
-
-	/**
-	 * @brief Cache a valid planner-start position from the current vehicle position.
-	 *
-	 * Tests the given position against the planner's polygons (which include the planner's
-	 * margin). If the position does not violate any fence — i.e. at least one polygon node
-	 * is edge-visible from it — it is saved as a fallback start. The fallback is then used
-	 * in set_start_and_plan_path_to_destination() whenever the provided start position
-	 * itself has no visible node (e.g. the vehicle is currently outside the fence or within
-	 * the planner's margin of the fence boundary).
-	 *
-	 * Intended to be called periodically (e.g. every navigator iteration) with the current
-	 * vehicle position so a usable anchor is available the moment an RTL is triggered.
-	 *
-	 * @param position lat/lon to test and (if valid) save.
-	 */
-	void save_position_if_no_fence_violation(const matrix::Vector2<double> &position);
 
 private:
 
@@ -192,9 +111,9 @@ private:
 	bool _destination_healthy{false};
 	bool _start_is_current_position{true};
 
-	// Latched fallback planner-start: most recent vehicle position that did not violate any
-	// fence (per save_position_if_no_fence_violation). Used in set_start_and_plan_path_to_destination
-	// when the caller-provided start has no visible node.
+	// Latched fallback planner-start: most recent in-fence position passed to
+	// set_start_and_plan_path_to_destination. Used by subsequent calls when the
+	// caller-provided start has no visible node.
 	matrix::Vector2<double> _saved_valid_start{(double)NAN, (double)NAN};
 
 	perf_counter_t _setup_perf{perf_alloc(PC_ELAPSED, "rtl_planner: setup")};
@@ -206,7 +125,7 @@ private:
 	void update_distances_between_vertices();
 	void planPath();
 
-	bool lat_lon_within_bounds(const matrix::Vector2<double> &lat_lon);
+	bool lat_lon_within_bounds(const matrix::Vector2<double> &lat_lon) const;
 
 	/**
 	 * @brief Search for the best polygon node visible from start_local.

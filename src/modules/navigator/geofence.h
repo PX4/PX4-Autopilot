@@ -159,11 +159,6 @@ public:
 		_avoidance_planner.update_destination(destination, *this);
 	}
 
-	void savePlannerStartIfNoFenceViolation(const matrix::Vector2<double> &position)
-	{
-		_avoidance_planner.save_position_if_no_fence_violation(position);
-	}
-
 	const matrix::Vector2d get_point_at_index(int index) const
 	{
 		return _avoidance_planner.get_point_at_index(index);

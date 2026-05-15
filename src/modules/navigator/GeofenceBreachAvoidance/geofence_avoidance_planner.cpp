@@ -203,7 +203,7 @@ void GeofenceAvoidancePlanner::update_destination(const matrix::Vector2d &destin
 	planPath();
 }
 
-bool GeofenceAvoidancePlanner::lat_lon_within_bounds(const matrix::Vector2<double> &lat_lon)
+bool GeofenceAvoidancePlanner::lat_lon_within_bounds(const matrix::Vector2<double> &lat_lon) const
 {
 	if (lat_lon(0) > 90.0 || lat_lon(0) < -90.0 || lat_lon(1) > 180.0 || lat_lon(1) < -180.0) {
 		return false;
@@ -240,27 +240,6 @@ int GeofenceAvoidancePlanner::findBestStartingNode(const matrix::Vector2f &start
 	return best_index;
 }
 
-void GeofenceAvoidancePlanner::save_position_if_no_fence_violation(const matrix::Vector2<double> &position)
-{
-	if (!_polygons_healthy || !position.isAllFinite()) {
-		return;
-	}
-
-	matrix::Vector2f position_local;
-	MapProjection ref{_reference(0), _reference(1)};
-	ref.project(position(0), position(1), position_local(0), position_local(1));
-
-	// "Doesn't violate any fence" (for planner purposes) = at least one polygon node is
-	// edge-visible from this position. If the point were outside an inclusion polygon or
-	// inside an exclusion polygon, every line from it to a polygon vertex would cross a fence.
-	for (int node_idx = 0; node_idx < _polygons.numNodes(); node_idx++) {
-		if (_polygons.edgeVisible(position_local, node_idx)) {
-			_saved_valid_start = position;
-			return;
-		}
-	}
-}
-
 int GeofenceAvoidancePlanner::set_start_and_plan_path_to_destination(matrix::Vector2d start, GeofenceInterface &geofence)
 {
 	if (!_polygons_healthy || !_destination_healthy) {
@@ -275,8 +254,14 @@ int GeofenceAvoidancePlanner::set_start_and_plan_path_to_destination(matrix::Vec
 	_best_starting_index = findBestStartingNode(_start_local, destination_directly_reachable);
 	_start_is_current_position = (_best_starting_index >= 0) || destination_directly_reachable;
 
+	// If the caller-provided start is in-fence (i.e. findBestStartingNode found at least one
+	// edge-visible polygon node), latch it as the fallback anchor for future calls.
+	if (_start_is_current_position) {
+		_saved_valid_start = start;
+	}
+
 	// If the provided position has no visible node and the destination isn't directly reachable,
-	// fall back to the most recently latched in-fence position (see save_position_if_no_fence_violation).
+	// fall back to the most recently latched in-fence position.
 	if (!_start_is_current_position && _saved_valid_start.isAllFinite()) {
 		matrix::Vector2f fallback_local;
 		ref.project(_saved_valid_start(0), _saved_valid_start(1), fallback_local(0), fallback_local(1));
