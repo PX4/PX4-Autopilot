@@ -114,6 +114,8 @@ private:
 
 	uint8_t			_reached_sent_count{0};			///< last time when the vehicle reached a waypoint
 
+	bool			_deprecated_item_warned{false};		///< Suppress repeated MISSION_ITEM deprecation warnings per transfer
+
 	unsigned		_filesystem_errcount{0};		///< File system error count
 
 	static dm_item_t	_mission_dataman_id;			///< Global Dataman storage ID for active mission

@@ -638,6 +638,11 @@ MavlinkMissionManager::handle_mission_ack(const mavlink_message_t *msg)
 					switch_to_idle_state();
 					_transfer_in_progress = false;
 
+				} else if (wpa.type == MAV_MISSION_UNSUPPORTED) {
+					PX4_WARN("WPM: GCS does not support MISSION_REQUEST_INT, upload failed");
+					switch_to_idle_state();
+					_transfer_in_progress = false;
+
 				} else if (wpa.type != MAV_MISSION_ACCEPTED) {
 					PX4_WARN("Mission ack result was %d", wpa.type);
 				}
@@ -934,6 +939,7 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 			}
 
 			_state = MAVLINK_WPM_STATE_GETLIST;
+			_deprecated_item_warned = false;
 			_transfer_seq = 0;
 			_transfer_count = wpc.count;
 			_transfer_current_seq = -1;
@@ -983,13 +989,18 @@ void
 MavlinkMissionManager::switch_to_idle_state()
 {
 	_state = MAVLINK_WPM_STATE_IDLE;
+	_deprecated_item_warned = false;
 }
 
 
 void
 MavlinkMissionManager::handle_mission_item(const mavlink_message_t *msg)
 {
-	_mavlink.send_statustext_info("WPM: received deprecated MISSION_ITEM, use MISSION_ITEM_INT\t");
+	if (!_deprecated_item_warned) {
+		_mavlink.send_statustext_info("WPM: received deprecated MISSION_ITEM, use MISSION_ITEM_INT\t");
+		_deprecated_item_warned = true;
+	}
+
 	handle_mission_item_both(msg, false);
 }
 
@@ -1333,7 +1344,8 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 	    mavlink_mission_item->frame == MAV_FRAME_GLOBAL_INT ||
 	    mavlink_mission_item->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
 		// This is a mission item with a global coordinate.
-		// Detect int vs float from the frame field — no need for the int_mode parameter here.
+		// For global coordinate frames the frame field determines the format;
+		// int_mode is only needed for MAV_FRAME_MISSION items below.
 		const bool frame_is_int = (mavlink_mission_item->frame == MAV_FRAME_GLOBAL_INT ||
 					   mavlink_mission_item->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT_INT);
 
