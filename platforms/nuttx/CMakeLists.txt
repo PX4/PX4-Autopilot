@@ -360,7 +360,7 @@ else()
 	target_link_libraries(nuttx_c INTERFACE nuttx_drivers)
 	target_link_libraries(nuttx_drivers INTERFACE nuttx_c)
 	target_link_libraries(nuttx_xx INTERFACE nuttx_c)
-	target_link_libraries(nuttx_fs INTERFACE nuttx_c)
+	target_link_libraries(nuttx_fs INTERFACE nuttx_c nuttx_mm)
 
 	target_link_libraries(px4 PRIVATE
 
