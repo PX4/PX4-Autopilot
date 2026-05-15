@@ -1,0 +1,27 @@
+name: Build CubeOrangePlus Rover
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          bash ./Tools/setup/ubuntu.sh --no-sim-tools
+          pip3 install packaging
+
+      - name: Build rover firmware
+        run: make cubepilot_cubeorangeplus_rover
+
+      - name: Upload firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: cubeorangeplus_rover_firmware
+          path: build/cubepilot_cubeorangeplus_rover/cubepilot_cubeorangeplus_rover.px4
