@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -71,8 +71,8 @@ private:
 
 	// set config, recommended settings
 	//
-	// oversampling rate  : single | 2       | 4       | 8       | 16     | 32     | 64      | 128
-	// scale factor(KP/KT): 524288 | 1572864 | 3670016 | 7864320 | 253952 | 516096 | 1040384 | 2088960
+	// oversampling rate  : single | 2 Low Power | 4       | 8       | 16  Standard   | 32     | 64   High Precision  | 128
+	// scale factor(KP/KT): 524288 | 1572864     | 3670016 | 7864320 | 253952         | 516096 | 1040384              | 2088960
 
 	// configuration of pressure measurement rate (PM_RATE) and resolution (PM_PRC)
 	//
@@ -89,7 +89,7 @@ private:
 	// -> 32 measurements per second, 16 oversampling
 	static constexpr uint8_t	_curr_prs_cfg{5 << 4 | 4};
 
-	// configuration of temperature measurment rate (TMP_RATE) and resolution (TMP_PRC)
+	// configuration of temperature measurement rate (TMP_RATE) and resolution (TMP_PRC)
 	//
 	// temperature measurement: internal sensor (in ASIC) | external sensor (in pressure sensor MEMS element)
 	// PM_RATE[7:4]    : 0 | 1 | 2 | 3 | 4  | 5  | 6  | 7   | 8     | 9    | 10   | 11   | 12 | 13 | 14  | 15

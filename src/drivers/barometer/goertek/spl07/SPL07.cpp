@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -173,7 +173,11 @@ SPL07::init()
 	}
 
 	// get calibration and pre process them
-	calibrate();
+	const int calibrate_ret = calibrate();
+
+	if (calibrate_ret != OK) {
+		return calibrate_ret;
+	}
 
 	// set config, recommended settings
 	_interface->set_reg(_curr_prs_cfg, SPL07_ADDR_PRS_CFG);
@@ -183,7 +187,7 @@ SPL07::init()
 
 	// Enable FIFO
 	_interface->set_reg(1 << 2, SPL07_ADDR_CFG_REG);
-	// Continuous pressure and temperature mesasurement.
+	// Continuous pressure and temperature measurement.
 	_interface->set_reg(7, SPL07_ADDR_MEAS_CFG);
 
 	Start();
