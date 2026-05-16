@@ -19,17 +19,23 @@ jobs:
           cd platforms/nuttx/NuttX/nuttx
           git fetch --tags --depth=1
 
-      - name: Apply rover patches from fork
+      - name: Checkout rover patches from fork
+        uses: actions/checkout@v4
+        with:
+          repository: Vetri2425/PX4-Autopilot
+          ref: main
+          path: fork_patches
+
+      - name: Apply rover patches
         run: |
-          BASE=https://raw.githubusercontent.com/Vetri2425/PX4-Autopilot/main
-          curl -sSfL "$BASE/boards/cubepilot/cubeorangeplus/rover.px4board" \
-            -o boards/cubepilot/cubeorangeplus/rover.px4board
-          curl -sSfL "$BASE/src/modules/rover_differential/DifferentialActControl/DifferentialActControl.cpp" \
-            -o src/modules/rover_differential/DifferentialActControl/DifferentialActControl.cpp
-          curl -sSfL "$BASE/src/modules/rover_differential/DifferentialActControl/DifferentialActControl.hpp" \
-            -o src/modules/rover_differential/DifferentialActControl/DifferentialActControl.hpp
-          curl -sSfL "$BASE/src/modules/rover_differential/module.yaml" \
-            -o src/modules/rover_differential/module.yaml
+          cp fork_patches/boards/cubepilot/cubeorangeplus/rover.px4board \
+             boards/cubepilot/cubeorangeplus/rover.px4board
+          cp fork_patches/src/modules/rover_differential/DifferentialActControl/DifferentialActControl.cpp \
+             src/modules/rover_differential/DifferentialActControl/DifferentialActControl.cpp
+          cp fork_patches/src/modules/rover_differential/DifferentialActControl/DifferentialActControl.hpp \
+             src/modules/rover_differential/DifferentialActControl/DifferentialActControl.hpp
+          cp fork_patches/src/modules/rover_differential/module.yaml \
+             src/modules/rover_differential/module.yaml
 
       - name: Install dependencies
         run: |
