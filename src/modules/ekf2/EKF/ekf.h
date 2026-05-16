@@ -56,6 +56,10 @@
 
 #include <ekf_derivation/generated/state.h>
 
+#if defined(CONFIG_EKF2_TERRAIN)
+# include <ekf_derivation/generated/compute_hagl_innov_var.h>
+#endif // CONFIG_EKF2_TERRAIN
+
 #include <uORB/topics/estimator_aid_source1d.h>
 #include <uORB/topics/estimator_aid_source2d.h>
 #include <uORB/topics/estimator_aid_source3d.h>
@@ -108,6 +112,15 @@ public:
 
 	// get the terrain variance
 	float getTerrainVariance() const { return P(State::terrain.idx, State::terrain.idx); }
+
+	// get the variance of the height above ground (HAGL) estimate; accounts for terrain and
+	// vertical position uncertainty as well as their covariance
+	float getHaglVariance() const
+	{
+		float hagl_var = 0.f;
+		sym::ComputeHaglInnovVar(P, 0.f, &hagl_var);
+		return hagl_var;
+	}
 
 #endif // CONFIG_EKF2_TERRAIN
 

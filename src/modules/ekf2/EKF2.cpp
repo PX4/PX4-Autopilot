@@ -1760,7 +1760,7 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 	// Distance to bottom surface (ground) in meters, must be positive
 	lpos.dist_bottom_valid = _ekf.isTerrainEstimateValid() || (_ekf.getHeightSensorRef() == HeightSensor::RANGE);
 	lpos.dist_bottom = math::max(_ekf.getHagl(), 0.f);
-	lpos.dist_bottom_var = _ekf.getTerrainVariance();
+	lpos.dist_bottom_var = _ekf.getHaglVariance();
 	_ekf.get_hagl_reset(&lpos.delta_dist_bottom, &lpos.dist_bottom_reset_counter);
 
 	lpos.dist_bottom_sensor_bitfield = vehicle_local_position_s::DIST_BOTTOM_SENSOR_NONE;
