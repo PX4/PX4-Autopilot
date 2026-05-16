@@ -35,12 +35,12 @@
 
 using namespace time_literals;
 
-ModuleBase::Descriptor RoverDifferential::desc{task_spawn, custom_command, print_usage};
-
 RoverDifferential::RoverDifferential() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
 {
+	_rover_throttle_setpoint_pub.advertise();
+	_rover_steering_setpoint_pub.advertise();
 	updateParams();
 }
 
@@ -53,143 +53,116 @@ bool RoverDifferential::init()
 void RoverDifferential::updateParams()
 {
 	ModuleParams::updateParams();
+
+	if (_param_ro_accel_limit.get() > FLT_EPSILON && _param_ro_max_thr_speed.get() > FLT_EPSILON) {
+		_throttle_body_x_setpoint.setSlewRate(_param_ro_accel_limit.get() / _param_ro_max_thr_speed.get());
+	}
 }
 
 void RoverDifferential::Run()
 {
 	if (_parameter_update_sub.updated()) {
-		parameter_update_s param_update{};
-		_parameter_update_sub.copy(&param_update);
 		updateParams();
-		runSanityChecks();
 	}
+
+	const hrt_abstime timestamp_prev = _timestamp;
+	_timestamp = hrt_absolute_time();
+	_dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 5000_ms) * 1e-6f;
+
+	_differential_pos_control.updatePosControl();
+	_differential_vel_control.updateVelControl();
+	_differential_att_control.updateAttControl();
+	_differential_rate_control.updateRateControl();
 
 	if (_vehicle_control_mode_sub.updated()) {
-		vehicle_control_mode_s vehicle_control_mode{};
-		_vehicle_control_mode_sub.copy(&vehicle_control_mode);
-
-		// Run sanity checks if the control mode changes (Note: This has to be done this way, because the topic is periodically updated at 2 Hz)
-		if (_vehicle_control_mode.flag_control_position_enabled != vehicle_control_mode.flag_control_position_enabled ||
-		    _vehicle_control_mode.flag_control_velocity_enabled != vehicle_control_mode.flag_control_velocity_enabled ||
-		    _vehicle_control_mode.flag_control_attitude_enabled != vehicle_control_mode.flag_control_attitude_enabled ||
-		    _vehicle_control_mode.flag_control_rates_enabled != vehicle_control_mode.flag_control_rates_enabled ||
-		    _vehicle_control_mode.flag_control_allocation_enabled != vehicle_control_mode.flag_control_allocation_enabled) {
-			_vehicle_control_mode = vehicle_control_mode;
-			runSanityChecks();
-			reset();
-
-		} else {
-			_vehicle_control_mode = vehicle_control_mode;
-		}
+		_vehicle_control_mode_sub.copy(&_vehicle_control_mode);
 	}
 
-	if (_vehicle_control_mode.flag_armed && _sanity_checks_passed) {
+	const bool full_manual_mode_enabled = _vehicle_control_mode.flag_control_manual_enabled
+					      && !_vehicle_control_mode.flag_control_position_enabled && !_vehicle_control_mode.flag_control_attitude_enabled
+					      && !_vehicle_control_mode.flag_control_rates_enabled;
 
-		_was_armed = true;
-		generateSetpoints();
-		updateControllers();
+	if (full_manual_mode_enabled) { // Manual mode
+		generateSteeringAndThrottleSetpoint();
+	}
 
-	} else if (_was_armed) { // Reset all controllers and stop the vehicle
-		reset();
-		_differential_act_control.stopVehicle();
-		_was_armed = false;
+	if (_vehicle_control_mode.flag_armed) {
+		generateActuatorSetpoint();
+
 	}
 
 }
 
-void RoverDifferential::generateSetpoints()
+void RoverDifferential::generateSteeringAndThrottleSetpoint()
 {
-	vehicle_status_s vehicle_status{};
-	_vehicle_status_sub.copy(&vehicle_status);
+	manual_control_setpoint_s manual_control_setpoint{};
 
-	switch (vehicle_status.nav_state) {
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
-		_auto_mode.autoControl();
-		break;
-
-	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
-		_offboard_mode.offboardControl();
-		break;
-
-	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
-		_manual_mode.manual();
-		break;
-
-	case vehicle_status_s::NAVIGATION_STATE_ACRO:
-		_manual_mode.acro();
-		break;
-
-	case vehicle_status_s::NAVIGATION_STATE_STAB:
-		_manual_mode.stab();
-		break;
-
-	case vehicle_status_s::NAVIGATION_STATE_POSCTL:
-		_manual_mode.position();
-		break;
-
-	default:
-		break;
-	}
-
-}
-
-void RoverDifferential::updateControllers()
-{
-	if (_vehicle_control_mode.flag_control_position_enabled) {
-		_differential_pos_control.updatePosControl();
-	}
-
-	if (_vehicle_control_mode.flag_control_attitude_enabled) {
-		_differential_att_control.updateAttControl();
-	}
-
-	if (_vehicle_control_mode.flag_control_rates_enabled) {
-		_differential_rate_control.updateRateControl();
-	}
-
-	if (_vehicle_control_mode.flag_control_velocity_enabled) {
-		_differential_speed_control.updateSpeedControl();
-	}
-
-	if (_vehicle_control_mode.flag_control_allocation_enabled) {
-		_differential_act_control.updateActControl();
+	if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
+		rover_steering_setpoint_s rover_steering_setpoint{};
+		rover_steering_setpoint.timestamp = _timestamp;
+		rover_steering_setpoint.normalized_speed_diff = manual_control_setpoint.roll;
+		_rover_steering_setpoint_pub.publish(rover_steering_setpoint);
+		rover_throttle_setpoint_s rover_throttle_setpoint{};
+		rover_throttle_setpoint.timestamp = _timestamp;
+		rover_throttle_setpoint.throttle_body_x = manual_control_setpoint.throttle;
+		rover_throttle_setpoint.throttle_body_y = 0.f;
+		_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
 	}
 }
 
-void RoverDifferential::runSanityChecks()
+void RoverDifferential::generateActuatorSetpoint()
 {
-	if (_vehicle_control_mode.flag_control_rates_enabled && !_differential_rate_control.runSanityChecks()) {
-		_sanity_checks_passed = false;
-		return;
+	if (_rover_throttle_setpoint_sub.updated()) {
+		_rover_throttle_setpoint_sub.copy(&_rover_throttle_setpoint);
 	}
 
-	if (_vehicle_control_mode.flag_control_attitude_enabled && !_differential_att_control.runSanityChecks()) {
-		_sanity_checks_passed = false;
-		return;
+	if (_actuator_motors_sub.updated()) {
+		actuator_motors_s actuator_motors{};
+		_actuator_motors_sub.copy(&actuator_motors);
+		_current_throttle_body_x = (actuator_motors.control[0] + actuator_motors.control[1]) / 2.f;
 	}
 
-	if (_vehicle_control_mode.flag_control_velocity_enabled && !_differential_speed_control.runSanityChecks()) {
-		_sanity_checks_passed = false;
-		return;
+	if (_rover_steering_setpoint_sub.updated()) {
+		_rover_steering_setpoint_sub.copy(&_rover_steering_setpoint);
 	}
 
-	if (_vehicle_control_mode.flag_control_position_enabled && !_differential_pos_control.runSanityChecks()) {
-		_sanity_checks_passed = false;
-		return;
+	actuator_motors_s actuator_motors{};
+	actuator_motors.reversible_flags = _param_r_rev.get();
+	actuator_motors.timestamp = _timestamp;
+
+	const bool full_manual = _vehicle_control_mode.flag_control_manual_enabled
+				  && !_vehicle_control_mode.flag_control_position_enabled
+				  && !_vehicle_control_mode.flag_control_attitude_enabled
+				  && !_vehicle_control_mode.flag_control_rates_enabled;
+
+	if (full_manual && _param_rd_tank_mode.get() == 1) {
+		// Tank mode: CH1 (throttle) -> left motor direct, CH3 (roll) -> right motor direct, no mixing
+		actuator_motors.control[0] = _rover_throttle_setpoint.throttle_body_x;
+		actuator_motors.control[1] = _rover_steering_setpoint.normalized_speed_diff;
+
+	} else {
+		const float throttle_body_x = RoverControl::throttleControl(_throttle_body_x_setpoint,
+					      _rover_throttle_setpoint.throttle_body_x, _current_throttle_body_x, _param_ro_accel_limit.get(),
+					      _param_ro_decel_limit.get(), _param_ro_max_thr_speed.get(), _dt);
+		computeInverseKinematics(throttle_body_x,
+					 _rover_steering_setpoint.normalized_speed_diff).copyTo(actuator_motors.control);
 	}
 
-	_sanity_checks_passed = true;
+	_actuator_motors_pub.publish(actuator_motors);
 }
 
-void RoverDifferential::reset()
+Vector2f RoverDifferential::computeInverseKinematics(float throttle_body_x, const float speed_diff_normalized)
 {
-	_differential_pos_control.reset();
-	_differential_speed_control.reset();
-	_differential_att_control.reset();
-	_differential_rate_control.reset();
-	_manual_mode.reset();
+	float max_motor_command = fabsf(throttle_body_x) + fabsf(speed_diff_normalized);
+
+	if (max_motor_command > 1.0f) { // Prioritize yaw rate if a normalized motor command exceeds limit of 1
+		float excess = fabsf(max_motor_command - 1.0f);
+		throttle_body_x -= sign(throttle_body_x) * excess;
+	}
+
+	// Calculate the left and right wheel speeds
+	return Vector2f(throttle_body_x - speed_diff_normalized,
+			throttle_body_x + speed_diff_normalized);
 }
 
 int RoverDifferential::task_spawn(int argc, char *argv[])
@@ -197,8 +170,8 @@ int RoverDifferential::task_spawn(int argc, char *argv[])
 	RoverDifferential *instance = new RoverDifferential();
 
 	if (instance) {
-		desc.object.store(instance);
-		desc.task_id = task_id_is_work_queue;
+		_object.store(instance);
+		_task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -209,8 +182,8 @@ int RoverDifferential::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	desc.object.store(nullptr);
-	desc.task_id = -1;
+	_object.store(nullptr);
+	_task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -240,5 +213,5 @@ Rover differential module.
 
 extern "C" __EXPORT int rover_differential_main(int argc, char *argv[])
 {
-	return ModuleBase::main(RoverDifferential::desc, argc, argv);
+	return RoverDifferential::main(argc, argv);
 }

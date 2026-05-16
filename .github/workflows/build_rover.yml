@@ -30,10 +30,10 @@ jobs:
         run: |
           cp fork_patches/boards/cubepilot/cubeorangeplus/rover.px4board \
              boards/cubepilot/cubeorangeplus/rover.px4board
-          cp fork_patches/src/modules/rover_differential/DifferentialActControl/DifferentialActControl.cpp \
-             src/modules/rover_differential/DifferentialActControl/DifferentialActControl.cpp
-          cp fork_patches/src/modules/rover_differential/DifferentialActControl/DifferentialActControl.hpp \
-             src/modules/rover_differential/DifferentialActControl/DifferentialActControl.hpp
+          cp fork_patches/src/modules/rover_differential/RoverDifferential.cpp \
+             src/modules/rover_differential/RoverDifferential.cpp
+          cp fork_patches/src/modules/rover_differential/RoverDifferential.hpp \
+             src/modules/rover_differential/RoverDifferential.hpp
           cp fork_patches/src/modules/rover_differential/module.yaml \
              src/modules/rover_differential/module.yaml
 
