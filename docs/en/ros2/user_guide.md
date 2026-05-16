@@ -151,7 +151,8 @@ The agent can be installed onto the companion computer in a [number of ways](../
 Below we show how to build the agent "standalone" from source and connect to a client running on the PX4 simulator.
 
 ::: info Windows native
-The Linux `cmake .. && make && sudo make install` recipe below does not apply on Windows. Build `MicroXRCEAgent.exe` with the two-stage MSVC recipe in [Windows Native Development Environment > Building the Micro-XRCE-DDS Agent](../dev_setup/dev_env_windows_native.md#building-the-micro-xrce-dds-agent-optional-for-ros-2-dds-bridging) and run it from PowerShell with `fastcdr-2.2.dll` / `fastdds-3.6.dll` co-located on `PATH`.
+The Linux `cmake .. && make && sudo make install` recipe below does not apply when using the [Windows Native Development Environment](../dev_setup/dev_env_windows_native.md).
+Build `MicroXRCEAgent.exe` with the two-stage MSVC recipe in [Windows Native Development Environment > Building the Micro-XRCE-DDS Agent](../dev_setup/dev_env_windows_native.md#building-the-micro-xrce-dds-agent-optional-for-ros-2-dds-bridging) and run it from PowerShell with `fastcdr-2.2.dll` / `fastdds-3.6.dll` co-located on `PATH`.
 :::
 
 To setup and start the agent:
@@ -242,7 +243,8 @@ The micro XRCE-DDS agent terminal should also start to show output, as equivalen
 This section shows how to create a ROS 2 workspace hosted in your home directory (modify the commands as needed to put the source code elsewhere).
 
 ::: info Windows native
-On Windows replace `source /opt/ros/<distro>/setup.bash` with `. $env:TEMP\activate_ros2.ps1 -WithVcvars` before running `colcon build` — `conda-forge` ships no MSVC, so `colcon` needs `vcvars64.bat` sourced in the same shell. See [Windows Native Development Environment > ROS 2 Setup on Windows Native](../dev_setup/dev_env_windows_native.md#ros-2-setup-on-windows-native).
+When using the [Windows Native Development Environment](../dev_setup/dev_env_windows_native.md), replace `source /opt/ros/<distro>/setup.bash` with `. $env:TEMP\activate_ros2.ps1 -WithVcvars` before running `colcon build` — `conda-forge` ships no MSVC, so `colcon` needs `vcvars64.bat` sourced in the same shell.
+See [Windows Native Development Environment > ROS 2 Setup on Windows Native](../dev_setup/dev_env_windows_native.md#ros-2-setup-on-windows-native).
 :::
 
 The [px4_ros_com](https://github.com/PX4/px4_ros_com) and [px4_msgs](https://github.com/PX4/px4_msgs) packages are cloned to a workspace folder, and then the `colcon` tool is used to build the workspace.

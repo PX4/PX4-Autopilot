@@ -19,29 +19,30 @@ This environment can be used to build PX4 for:
 - [SIH SITL Simulation](../sim_sih/index.md) — the only simulator whose dynamics run **inside** `px4.exe`, so no external simulator process is needed on Windows.
 - [Pixhawk and other NuttX-based hardware](../dev_setup/building_px4.md#nuttx-pixhawk-based-boards) (NuttX cross-toolchain installed separately).
 
-::: info
-Gazebo, Gazebo Classic, and jMAVSim depend on a Linux host (or, for jMAVSim, a JDK + `ant` install) for the simulator process itself.
-You can still drive any of them from a natively-built `px4.exe` by starting the simulator in [WSL2](../dev_setup/dev_env_windows_wsl.md) or on a remote Linux machine and pointing PX4 at that host with `PX4_SIM_HOSTNAME` (or `PX4_SIM_HOST_ADDR`) — `simulator_mavlink` will connect to the external simulator over TCP/UDP.
-What is not wired up natively are the convenience targets that _spawn_ the simulator for you (`make px4_sitl gz_x500`, `make px4_sitl jmavsim`, `make px4_sitl gazebo-classic_iris`); on Windows you launch the simulator yourself and then start `px4.exe`.
+::: warning
+This development environment does not support Gazebo, Gazebo Classic, jMAVSim, and any other process that relies on Linux "out of the box".
+You can however [run them separately from WSL](#running-non-sih-simulators-from-wsl-or-a-remote-linux-host) and connect to the Windows instance.
 :::
 
 ## Overview
 
 PX4 SITL is built natively on Windows by the same `make px4_sitl_default` entry point that is used on Linux and macOS.
-Two compilers are supported:
-
-- _MSVC_ (Microsoft Visual C++ from Visual Studio 2022 or the Build Tools).
-  This is the path exercised by the [`Windows SITL build` CI workflow](https://github.com/PX4/PX4-Autopilot/blob/main/.github/workflows/compile_windows.yml) on every PR.
-- _MinGW-w64_ (the GCC port shipped with [MSYS2](https://www.msys2.org/)).
-  Useful if you prefer a GCC-style toolchain or want to cross-build the same artifact you would get from a Linux MinGW cross-compile.
-
 Both produce a statically linked `build\px4_sitl_default\bin\px4.exe` that you launch directly from CMD or PowerShell.
 Companion utilities (`px4-commander`, `px4-listener`, etc.) are produced as additional `.exe` files alongside `px4.exe`.
 
-::: warning
-The PX4 daemon uses a local TCP socket (`127.0.0.1:14680 + instance_id`) on Windows instead of the Unix-domain socket used on Linux/macOS.
-At the time of writing only `px4-shutdown` is reliably functional; `px4-commander`, `px4-listener`, and the other client `.exe`s currently connect to the server but the server-to-client reply path over Windows TCP loopback does not return output to the caller.
-This is a known limitation being tracked — for now, drive PX4 from the interactive `pxh>` prompt and reserve the client wrappers for `px4-shutdown`.
+### Choosing the C++ Toolchain
+
+Two compilers are supported:
+
+- **MSVC** (Microsoft Visual C++, from Visual Studio 2022 or the Build Tools) — the default and the path exercised by the [`Windows SITL build` CI workflow](https://github.com/PX4/PX4-Autopilot/blob/main/.github/workflows/compile_windows.yml) on every PR.
+  Pick this if you have no preference: it is the toolchain we trust most on Windows and the one the rest of this guide defaults to.
+- **MinGW-w64** (the GCC port shipped with [MSYS2](https://www.msys2.org/)) — an alternative for users who prefer a GCC-style toolchain, want to reproduce a Linux MinGW cross-build, or want to keep the whole workflow inside plain _PowerShell_ (the MSVC path needs the _x64 Native Tools Command Prompt_).
+
+The [setup script](#install-the-toolchain) installs MSVC by default; pass `-Toolchain MinGW` to install MinGW instead, or `-Toolchain Both` to install both.
+
+::: info
+The PX4 daemon listens on a local TCP socket (`127.0.0.1:14680 + instance_id`) on Windows instead of the Unix-domain socket used on Linux/macOS — functionally equivalent.
+Drive PX4 from the interactive `pxh>` prompt as on Linux, or invoke the per-command client wrappers (`px4-commander`, `px4-listener`, `px4-shutdown`, …) from any separate _PowerShell_ window.
 :::
 
 ## Installation
@@ -89,25 +90,24 @@ If you do not yet have Git for Windows, install it first (the toolchain script w
 winget install --id Git.Git -e --source winget
 ```
 
-Close and reopen the _PowerShell_ window so the new `git` command is on `PATH`, then clone the repository in a directory of your choice (this guide assumes `C:\Users\<you>\Documents`):
+Close and reopen the _PowerShell_ window so the new `git` command is on `PATH`, then clone the repository into a directory you have rights over (for example `C:\PX4` or any local folder you choose):
 
 ```sh
-cd $env:USERPROFILE\Documents
+cd C:\
 git clone https://github.com/PX4/PX4-Autopilot.git --recursive
 cd PX4-Autopilot
 ```
 
-`$env:USERPROFILE` is the PowerShell expression for your home directory (`C:\Users\<you>`); `cd` does not print the new path on success — run `pwd` if you want to confirm where you landed.
-PX4 build commands accept either backslash (`C:\Users\...`) or forward-slash (`C:/Users/...`) paths interchangeably.
+`cd` does not print the new path on success — run `pwd` if you want to confirm where you landed.
+PX4 build commands accept either backslash (`C:\PX4\...`) or forward-slash (`C:/PX4/...`) paths interchangeably.
 
-::: warning
-A few caveats about _where_ you clone on Windows 11:
+::: info
+A few things to keep in mind about _where_ you clone:
 
-- **OneDrive sync conflict**: the default `Documents` folder is often synchronized by OneDrive, which will fight the build for hundreds of thousands of intermediate object files.
-  Check for the OneDrive cloud icon next to `Documents` in File Explorer, or run `Get-Item $env:USERPROFILE\Documents | Select-Object Target` (a redirected `Documents` has a `Target` set).
-  If yours is synced, clone into a local-only path like `C:\PX4` instead.
-- **No spaces in path**: a few build tools have edge cases with quoted paths — `C:\Users\Some User\Documents\PX4-Autopilot` is risky, while `C:\PX4` or `D:\src\PX4-Autopilot` is safer.
-- **MAX_PATH (260 chars)**: Windows still defaults to 260-char paths and PX4 generates deep nested directories (especially under `external/Install/...`), so keep the source tree shallow.
+- **Avoid OneDrive-synchronized folders**: synced trees (the default `Documents` is often one) will fight the build for hundreds of thousands of intermediate object files.
+  Check for the OneDrive cloud icon next to the folder in File Explorer, or run `Get-Item <path> | Select-Object Target` (a redirected folder has a `Target` set); if it is synced, clone into a local-only path instead.
+- **Prefer a path without spaces**: a few build tools have edge cases with quoted paths — `C:\Users\Some User\Documents\PX4-Autopilot` is risky, while `C:\PX4` or `D:\src\PX4-Autopilot` is safer.
+- **Keep the path short**: Windows still defaults to 260-char paths (MAX_PATH) and PX4 generates deep nested directories (especially under `external/Install/...`), so keep the source tree shallow.
 
 :::
 
@@ -138,17 +138,19 @@ Set-ExecutionPolicy -Scope Process Bypass
 
 `Set-ExecutionPolicy -Scope Process Bypass` is safe: `-Scope Process` confines the change to this PowerShell window and is forgotten when you close it, leaving the system-wide policy untouched.
 
-::: warning
+::: info
 The Visual Studio 2022 Build Tools installer downloads roughly 4 GB and runs **silently** for **10–15 minutes** — the script will look frozen during this stage but is working.
 Leave the window open until the script returns to the prompt; closing it mid-install can leave the Build Tools in a broken state that has to be repaired from _Add or remove programs_.
 :::
 
 The script uses [winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/) to install:
 
-- _Git for Windows_, _Python 3.11_, _CMake_, _Ninja_
+- _Python 3.11_, _CMake_, _Ninja_
 - _GNU make_ (via [Chocolatey](https://chocolatey.org/) if it is already installed, otherwise via [ezwinports](https://sourceforge.net/projects/ezwinports/))
 - _Visual Studio 2022 Build Tools_ with the `Desktop development with C++` workload and the Windows 11 SDK
 - The Python build-time packages (`jinja2`, `pyyaml`, `toml`, `numpy`, `packaging`, `jsonschema`, `future`, `empy`, `pyros-genmsg`, `kconfiglib`)
+
+_Git for Windows_ is needed earlier to clone the repository and is left untouched if you already have it.
 
 To install the MSYS2 / MinGW-w64 toolchain instead of (or alongside) MSVC:
 
@@ -182,11 +184,7 @@ If any of them prints _"is not recognized as the name of a cmdlet…"_, see [Com
 
 ## Build PX4 SITL
 
-::: tip
-If you are new to native Windows builds, use the **MSVC** path (the next subsection).
-It is the toolchain exercised by [CI](https://github.com/PX4/PX4-Autopilot/blob/main/.github/workflows/compile_windows.yml) on every PR and the one the bundled setup script installs by default.
-The MinGW-w64 build is offered for users who already prefer GCC, want to reproduce a Linux MinGW cross-compile, or are debugging Windows-specific platform code with `gdb`.
-:::
+Pick the subsection that matches the toolchain you installed (see [Choosing the C++ Toolchain](#choosing-the-c-toolchain) above for the rationale): **MSVC** is the CI-exercised default; **MinGW-w64** is the alternative for GCC-based workflows.
 
 ### MSVC Build
 
@@ -257,23 +255,10 @@ make px4_sitl_default sihsim_quadx
 ```
 
 Other airframes are exposed as sibling targets.
-All SIH variants share the same Windows code path — physics run inside `px4.exe` and no Linux-only helper process is required — so anything that builds also launches natively:
+All SIH variants share the same Windows code path — physics run inside `px4.exe` and no Linux-only helper process is required — so anything that builds also launches natively.
 
-| Vehicle                   | Make target / `PX4_SIM_MODEL` | Status on Windows                                                |
-| ------------------------- | ----------------------------- | ---------------------------------------------------------------- |
-| Quadrotor X               | `sihsim_quadx`                | Stable (the recommended starting point and CI-exercised target). |
-| Hexarotor X               | `sihsim_hex`                  | Experimental (same flight-dynamics caveats as on Linux/macOS).   |
-| Fixed-wing (airplane)     | `sihsim_airplane`             | Experimental.                                                    |
-| Tailsitter VTOL           | `sihsim_xvert`                | Experimental.                                                    |
-| Standard VTOL (QuadPlane) | `sihsim_standard_vtol`        | Experimental.                                                    |
-| Ackermann Rover           | `sihsim_rover_ackermann`      | Experimental.                                                    |
-
-::: info
-The [SIH Simulation page](../sim_sih/index.md#supported-vehicle-types) lists the hexarotor target as `sihsim_hexa` and the rover target as `sihsim_rover` for brevity, but the actual airframe filenames (and therefore the values that `PX4_SIM_MODEL` and the make targets accept) are `sihsim_hex` and `sihsim_rover_ackermann`.
-Use the names from the table above when launching `px4.exe` directly.
-:::
-
-The "Experimental" rating is inherited from the upstream SIH support matrix and refers to vehicle dynamics / controller maturity, not to the Windows port — if a SIH airframe builds it will boot and run on Windows the same way it does on Linux or macOS.
+For the full list of supported vehicles and the corresponding make targets / `PX4_SIM_MODEL` values, see the [SIH Simulation > Supported Vehicle Types](../sim_sih/index.md#supported-vehicle-types) table.
+The "Experimental" rating in that table refers to vehicle dynamics / controller maturity, not to the Windows port — if a SIH airframe builds it boots and runs on Windows the same way it does on Linux or macOS.
 
 If you would rather invoke `px4.exe` directly (e.g. from a shortcut, a debugger, or a script that does not have `make` on `PATH`), set the environment variable yourself.
 You can do this from either _PowerShell_ or _CMD_ — both are shown below; pick whichever shell you already have open.
@@ -344,10 +329,10 @@ What has been validated to work on native Windows today:
 - Mixed speed factors across instances (when running ≤3 of them).
 - MAVLink heartbeat to QGroundControl on `127.0.0.1` (autoconnect).
 - The interactive `pxh>` stdin prompt and `CTRL+C` / `shutdown` graceful exit.
+- `px4-*` client wrappers (`px4-commander`, `px4-listener`, `px4-shutdown`, …) from a separate _PowerShell_ window.
 
 Known limitations (being tracked, not yet fixed):
 
-- `px4-*` client wrappers other than `px4-shutdown` connect but do not return server output (see the Overview admonition).
 - 5+ concurrent instances via `sitl_multiple_run.ps1`; up to 3 is the supported envelope.
 
 ## Connecting QGroundControl
@@ -363,8 +348,14 @@ Tick **Private networks** and click **Allow access** so MAVLink replies from QGC
 
 ## ROS 2 Setup on Windows Native
 
-This section is only relevant if you want to drive PX4 SITL from [ROS 2](../ros2/user_guide.md) on the same Windows host (the agent build in the next section connects PX4 to whatever ROS 2 install you set up here).
+This section is only relevant if you want to drive PX4 SITL from [ROS 2](../ros2/user_guide.md) on the same Windows host using the OSRF Windows binary release.
 If you only need SIH plus QGroundControl, you can skip this section and the next.
+
+::: info
+ROS 2 on Windows is community-supported by OSRF — _not_ a first-class platform like Ubuntu Linux.
+If you would rather run ROS 2 the way it is most commonly used in PX4 workflows, install it under [WSL2](../dev_setup/dev_env_windows_wsl.md) and run your ROS 2 nodes there while `px4.exe` runs natively on Windows; the [agent](#building-the-micro-xrce-dds-agent-optional-for-ros-2-dds-bridging) just needs to be reachable on UDP and works the same either way.
+The instructions below cover the all-native path for users who want to keep everything on the Windows host.
+:::
 
 Starting with **ROS 2 Jazzy**, the OSRF Windows binary release is distributed as a [Pixi](https://pixi.sh/) / `conda-forge` bundle rather than the legacy Visual Studio 2019 + Chocolatey install used for Humble and Iron.
 PX4 ships a helper that wraps the Pixi-based install end-to-end:
@@ -416,12 +407,15 @@ The two-stage build below is a known-good recipe — it produces the same `Micro
 ### Prerequisites
 
 - The same _Visual Studio 2022 Build Tools_ install you already use for `make px4_sitl_default` — no extra components required.
+  The agent build is **MSVC-only**: upstream eProsima targets MSVC on Windows and the MinGW toolchain is not a supported configuration for the agent (PX4 SITL itself still builds fine with MinGW).
 - A real `ninja-build` from `winget install Ninja-build.Ninja` (verified with 1.13.2 or newer).
 
   ::: warning
   Do **not** use the `ninja` package from `pip install ninja`.
   The pip-distributed Ninja triggers the recompaction issue described in [Known Limitations](#known-limitations) deterministically, even if the rest of the workaround is in place.
-  Run `where.exe ninja` from the build shell and confirm the resolved path is `C:\Program Files\Ninja\ninja.exe` (or wherever winget placed it) and **not** something under a Python `Scripts\` directory.
+
+  If you may have previously `pip install`-ed Ninja, run `where.exe ninja` from the build shell first.
+  Whichever directory comes first on `PATH` wins; if a Python `Scripts\ninja.exe` resolves before the winget install, either uninstall the pip version (`python -m pip uninstall ninja`) or move `C:\Program Files\Ninja\` ahead of the Python `Scripts\` directory in your user `PATH`.
   :::
 
 - Git, CMake, and Python 3 — already on `PATH` from the main [Install the Toolchain](#install-the-toolchain) step above; nothing extra to install.
@@ -430,11 +424,11 @@ All `cmake` commands below must be run from a shell where the MSVC environment i
 
 ### Clone the Agent Repository
 
-Pick a directory outside the `PX4-Autopilot` tree (the agent is independent of PX4 and lives on its own release cadence).
-The rest of this section assumes `C:\Users\<you>\Documents\Micro-XRCE-DDS-Agent`:
+Pick a directory outside the `PX4-Autopilot` tree (the agent is independent of PX4 and lives on its own release cadence) — anywhere you have rights over will do.
+The rest of this section uses `$agentRoot` as a placeholder; substitute with your chosen path (e.g. `C:\opt\Micro-XRCE-DDS-Agent`):
 
 ```powershell
-$agentRoot = "$env:USERPROFILE\Documents\Micro-XRCE-DDS-Agent"
+$agentRoot = "C:\opt\Micro-XRCE-DDS-Agent"
 git clone --recursive https://github.com/eProsima/Micro-XRCE-DDS-Agent.git $agentRoot
 cd $agentRoot
 ```
@@ -506,7 +500,7 @@ If the DLLs are not in `install\bin\`, copy them over from `install\lib\` — di
 Start the agent listening on UDP 8888 (the default that PX4's `uxrce_dds_client` connects to) from any _PowerShell_ window — `vcvars64` is **not** required for running, only for building:
 
 ```powershell
-& "$env:USERPROFILE\Documents\Micro-XRCE-DDS-Agent\install\bin\MicroXRCEAgent.exe" udp4 -p 8888 -v 6
+& "$agentRoot\install\bin\MicroXRCEAgent.exe" udp4 -p 8888 -v 6
 ```
 
 `-v 6` selects the most verbose log level, which is useful while you are first verifying that PX4 connects; lower it (`-v 4` or omit the flag) once everything is working.
@@ -525,6 +519,13 @@ For the wider ROS 2 / DDS workflow on top of this connection (workspace layout, 
   `winget install Ninja-build.Ninja` ships a build that handles the lock contention gracefully on the dependency phase, which is what makes the two-stage recipe viable in the first place.
 - **`UAGENT_P2P_PROFILE=ON` is not supported on Windows today.** The peer-to-peer profile triggers a separate, earlier recompaction failure inside the `microxrcedds_client` ExternalProject.
   PX4's SITL bridge does not use P2P, so leaving it off is safe.
+
+## Running Non-SIH Simulators from WSL or a Remote Linux Host
+
+Gazebo, Gazebo Classic, and jMAVSim depend on a Linux host (or, for jMAVSim, a JDK + `ant` install) for the simulator process itself, so the `make px4_sitl gz_x500` / `make px4_sitl jmavsim` / `make px4_sitl gazebo-classic_iris` convenience targets are not wired up natively on Windows.
+
+You can still drive any of them from a natively-built `px4.exe`: start the simulator inside [WSL2](../dev_setup/dev_env_windows_wsl.md) (or on a remote Linux machine), then launch `px4.exe` on the Windows side with `PX4_SIM_HOSTNAME` (or `PX4_SIM_HOST_ADDR`) pointing at that host.
+`simulator_mavlink` will connect to the external simulator over TCP/UDP just like it does on Linux — only the "spawn the simulator for you" wrappers are missing.
 
 ## Next Steps
 
