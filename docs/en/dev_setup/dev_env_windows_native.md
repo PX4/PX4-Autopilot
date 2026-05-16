@@ -34,9 +34,11 @@ Companion utilities (`px4-commander`, `px4-listener`, etc.) are produced as addi
 
 Two compilers are supported:
 
-- **MSVC** (Microsoft Visual C++, from Visual Studio 2022 or the Build Tools) — the default and the path exercised by the [`Windows SITL build` CI workflow](https://github.com/PX4/PX4-Autopilot/blob/main/.github/workflows/compile_windows.yml) on every PR.
-  Pick this if you have no preference: it is the toolchain we trust most on Windows and the one the rest of this guide defaults to.
+- **MSVC** (Microsoft Visual C++, from Visual Studio 2022 or the Build Tools) — the default and the recommended choice on Windows.
+  MSVC is Microsoft's native Windows toolchain: it ships with the Windows SDK, produces binaries against the canonical Windows ABI, and is the toolchain the broader Windows C++ ecosystem (debugger, profilers, libraries) is built and tested against, so it gives the cleanest native Windows experience.
 - **MinGW-w64** (the GCC port shipped with [MSYS2](https://www.msys2.org/)) — an alternative for users who prefer a GCC-style toolchain, want to reproduce a Linux MinGW cross-build, or want to keep the whole workflow inside plain _PowerShell_ (the MSVC path needs the _x64 Native Tools Command Prompt_).
+
+Both are exercised by the [`Windows SITL build` CI workflow](https://github.com/PX4/PX4-Autopilot/blob/main/.github/workflows/compile_windows.yml) on every PR, so a successful CI green confirms both produce a working `px4.exe`.
 
 The [setup script](#install-the-toolchain) installs MSVC by default; pass `-Toolchain MinGW` to install MinGW instead, or `-Toolchain Both` to install both.
 
@@ -184,7 +186,7 @@ If any of them prints _"is not recognized as the name of a cmdlet…"_, see [Com
 
 ## Build PX4 SITL
 
-Pick the subsection that matches the toolchain you installed (see [Choosing the C++ Toolchain](#choosing-the-c-toolchain) above for the rationale): **MSVC** is the CI-exercised default; **MinGW-w64** is the alternative for GCC-based workflows.
+Pick the subsection that matches the toolchain you installed (see [Choosing the C++ Toolchain](#choosing-the-c-toolchain) above for the rationale): **MSVC** is the recommended default on Windows; **MinGW-w64** is the alternative for GCC-based workflows.
 
 ### MSVC Build
 
