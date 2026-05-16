@@ -19,13 +19,11 @@ jobs:
           cd platforms/nuttx/NuttX/nuttx
           git fetch --tags --depth=1
 
-      - name: Add rover board config
-        run: |
-          printf 'CONFIG_MODULES_AIRSPEED_SELECTOR=n\nCONFIG_MODULES_FLIGHT_MODE_MANAGER=n\nCONFIG_MODULES_FW_ATT_CONTROL=n\nCONFIG_MODULES_FW_AUTOTUNE_ATTITUDE_CONTROL=n\nCONFIG_MODULES_FW_POS_CONTROL=n\nCONFIG_MODULES_FW_RATE_CONTROL=n\nCONFIG_MODULES_LANDING_TARGET_ESTIMATOR=n\nCONFIG_MODULES_MC_ATT_CONTROL=n\nCONFIG_MODULES_MC_AUTOTUNE_ATTITUDE_CONTROL=n\nCONFIG_MODULES_MC_HOVER_THRUST_ESTIMATOR=n\nCONFIG_MODULES_MC_POS_CONTROL=n\nCONFIG_MODULES_MC_RATE_CONTROL=n\nCONFIG_MODULES_VTOL_ATT_CONTROL=n\nCONFIG_MODULES_ROVER_ACKERMANN=y\nCONFIG_MODULES_ROVER_DIFFERENTIAL=y\nCONFIG_MODULES_ROVER_MECANUM=y\n' > boards/cubepilot/cubeorangeplus/rover.px4board
-
-      - name: Apply RD_TANK_MODE patch from fork
+      - name: Apply rover patches from fork
         run: |
           BASE=https://raw.githubusercontent.com/Vetri2425/PX4-Autopilot/main
+          curl -sSfL "$BASE/boards/cubepilot/cubeorangeplus/rover.px4board" \
+            -o boards/cubepilot/cubeorangeplus/rover.px4board
           curl -sSfL "$BASE/src/modules/rover_differential/DifferentialActControl/DifferentialActControl.cpp" \
             -o src/modules/rover_differential/DifferentialActControl/DifferentialActControl.cpp
           curl -sSfL "$BASE/src/modules/rover_differential/DifferentialActControl/DifferentialActControl.hpp" \
