@@ -55,3 +55,18 @@ parameters:
         increment: 0.01
         decimal: 3
         default: 1
+
+      RD_TANK_MODE:
+        description:
+            short: Tank steering mode
+            long: |
+              When enabled, RC_MAP_THROTTLE controls the left motor directly and
+              RC_MAP_ROLL controls the right motor directly, bypassing throttle+yaw
+              mixing. Only active in Manual (MANUAL) nav state — AUTO mode is
+              unaffected. Set RC_MAP_THROTTLE=1 and RC_MAP_ROLL=3 to match
+              ArduRover PILOT_STEER_TYPE=1 two-paddle layout. Requires
+              RO_YAW_EXPO=0 and RO_YAW_SUPEXPO=0 (factory defaults).
+        type: int32
+        min: 0
+        max: 1
+        default: 0
