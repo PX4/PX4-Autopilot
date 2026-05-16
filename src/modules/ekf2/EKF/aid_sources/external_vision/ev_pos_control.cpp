@@ -172,7 +172,7 @@ void Ekf::controlEvPosFusion(const imuSample &imu_sample, const extVisionSample 
 			      math::max(_params.ekf2_evp_gate, 1.f));             // innovation gate
 
 	// update the bias estimator before updating the main filter but after
-	// using its current state to compute the vertical position innovation
+	// using its current state to compute the horizontal position innovation
 	if (measurement_valid && quality_sufficient) {
 		_ev_pos_b_est.setMaxStateNoise(Vector2f(sqrtf(measurement_var(0)), sqrtf(measurement_var(1))));
 		_ev_pos_b_est.setProcessNoiseSpectralDensity(_params.ev_hgt_bias_nsd); // TODO
@@ -243,7 +243,7 @@ void Ekf::updateEvPosFusion(const Vector2f &measurement, const Vector2f &measure
 			if (!_control_status.flags.gnss_pos) {
 				ECL_INFO("reset to %s", EV_AID_SRC_NAME);
 				_information_events.flags.reset_pos_to_vision = true;
-				resetHorizontalPositionTo(measurement - _ev_pos_b_est.getBias(), measurement_var);
+				resetHorizontalPositionTo(measurement - _ev_pos_b_est.getBias(), measurement_var + _ev_pos_b_est.getBiasVar());
 				_ev_pos_b_est.setBias(-getLocalHorizontalPosition() + measurement);
 
 			} else {
@@ -266,30 +266,37 @@ void Ekf::updateEvPosFusion(const Vector2f &measurement, const Vector2f &measure
 		aid_src.innovation_rejected = true;
 	}
 
+	// Check if external vision (EV) position fusion has failed to occur within the allowed timeout period.
+        // If it has timed out, velocity drift is no longer constrained, indicating a fusion failure.
 	const bool is_fusion_failing = isTimedOut(aid_src.time_last_fuse, _params.no_aid_timeout_max); // 1 second
 
 	if (is_fusion_failing) {
+
+		// if we havent updated the horizontal position state according to _params.no_aid_timeout_max by any sensors,
+		// our position state is becoming uncertain
 		bool pos_xy_fusion_failing = isTimedOut(_time_last_hor_pos_fuse, _params.no_aid_timeout_max);
 
+
+		// Do we still have resets available and the quality of the measurements is good enought?
 		if ((_nb_ev_pos_reset_available > 0) && quality_sufficient) {
 			// Data seems good, attempt a reset
 			ECL_WARN("%s fusion failing, resetting", EV_AID_SRC_NAME);
 
+			// We are fusing GPS measurements data, and we are fusing our
+			// position state within _params.no_aid_timeout_max
 			if (_control_status.flags.gnss_pos && !pos_xy_fusion_failing) {
-				// reset EV position bias
+				// reset EV position bias: We havent received a EV measurement within the
+				// _params.no_aid_timeout_max time, and thus our bias uncertainty has grown,
+				// and likely drifted from the new measurement. We then set it to ensure our EV measurements
+				// are aligned
 				_ev_pos_b_est.setBias(-Vector2f(getLocalHorizontalPosition()) + measurement);
 
+			// Our position state hasnt been constrained by any sensor measurement.
+			// we thus reset our position state using our EV position measurement
 			} else {
 				_information_events.flags.reset_pos_to_vision = true;
-
-				if (_control_status.flags.gnss_pos) {
-					resetHorizontalPositionTo(measurement - _ev_pos_b_est.getBias(), measurement_var + _ev_pos_b_est.getBiasVar());
-					_ev_pos_b_est.setBias(-getLocalHorizontalPosition() + measurement);
-
-				} else {
-					resetHorizontalPositionTo(measurement - _ev_pos_b_est.getBias(), measurement_var);
-					_ev_pos_b_est.setBias(-getLocalHorizontalPosition() + measurement);
-				}
+				resetHorizontalPositionTo(measurement - _ev_pos_b_est.getBias(), measurement_var + _ev_pos_b_est.getBiasVar());
+				_ev_pos_b_est.setBias(-getLocalHorizontalPosition() + measurement);
 			}
 
 			aid_src.time_last_fuse = _time_delayed_us;
