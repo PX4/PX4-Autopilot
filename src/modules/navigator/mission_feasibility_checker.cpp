@@ -62,10 +62,9 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission)
 	const bool home_valid = _navigator->home_global_position_valid();
 	const bool home_alt_valid = _navigator->home_alt_valid();
 
-	// trivial case: A mission with length zero cannot be valid
+	// An empty mission is the normal "no mission loaded" state, not a rejection: the commander
+	// surfaces auto_mission_missing via arming checks when mission mode is actually requested.
 	if ((int)mission.count <= 0) {
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: empty\t");
-		events::send(events::ID("navigator_mis_empty"), {events::Log::Error, events::LogInternal::Info}, "Mission rejected: empty");
 		return false;
 	}
 
