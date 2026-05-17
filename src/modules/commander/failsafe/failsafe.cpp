@@ -414,7 +414,6 @@ FailsafeBase::ActionOptions Failsafe::fromParachuteActParam(int param_value)
 		break;
 
 	case parachute_unhealthy_failsafe_mode::Warning:
-	case parachute_unhealthy_failsafe_mode::Error:
 		options.action = Action::Warn;
 		options.clear_condition = ClearCondition::WhenConditionClears;
 		break;
@@ -628,7 +627,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	}
 
 	// Parachute system health failsafe
-	CHECK_FAILSAFE(status_flags, parachute_unhealthy, ActionOptions(fromParachuteActParam(_param_com_parachute_act.get())));
+	CHECK_FAILSAFE(status_flags, parachute_unhealthy, ActionOptions(fromParachuteActParam(_param_com_parachute.get())));
 
 	// Remote ID (Open Drone ID) loss failsafe
 	if (state.armed && _param_com_arm_odid.get() >= int32_t(open_drone_id_failsafe_mode::Return_mode)) {

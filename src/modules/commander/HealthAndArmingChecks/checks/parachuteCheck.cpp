@@ -38,64 +38,47 @@ using namespace time_literals;
 
 void ParachuteChecks::checkAndReport(const Context &context, Report &reporter)
 {
-	const int action = _param_com_parachute.get();
+	if (_param_com_parachute.get() < 1) { // COM_PARACHUTE 0 disables the check
+		return;
+	}
 
-	if (action > 0) {
-		reporter.failsafeFlags().parachute_unhealthy =
-			!context.status().parachute_system_present ||
-			!context.status().parachute_system_healthy;
+	reporter.failsafeFlags().parachute_unhealthy = !context.status().parachute_system_present || !context.status().parachute_system_healthy;
 
-		// Values >= 2 block arming; value 1 is warning-only
-		const bool warn_only = (action == 1);
-		const events::Log log_level = warn_only ? events::Log::Warning : events::Log::Error;
-		const NavModes affected_modes = warn_only ? NavModes::None : NavModes::All;
+	if (!context.status().parachute_system_present) {
+		/* EVENT
+		 * @description
+		 * No MAVLink parachute heartbeat detected. Check connection, power, configuration.
+		 *
+		 * <profile name="dev">
+		 * Configured by <param>COM_PARACHUTE</param>
+		 * </profile>
+		 */
+		reporter.healthFailure(NavModes::All, health_component_t::parachute, events::ID("check_parachute_missing"),
+				       events::Log::Error, "Parachute system missing");
 
-		if (!context.status().parachute_system_present) {
-			/* EVENT
-			 * @description
-			 * No MAVLink parachute heartbeat detected. Check connection, power, configuration.
-			 *
-			 * <profile name="dev">
-			 * Configured by <param>COM_PARACHUTE</param>
-			 * </profile>
-			 */
-			reporter.healthFailure(affected_modes, health_component_t::parachute, events::ID("check_parachute_missing"),
-					       log_level, "Parachute system missing");
-
-			if (reporter.mavlink_log_pub()) {
-				if (warn_only) {
-					mavlink_log_warning(reporter.mavlink_log_pub(), "Parachute system missing");
-
-				} else {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Parachute system missing");
-				}
-			}
-
-		} else if (!context.status().parachute_system_healthy) {
-
-			/* EVENT
-			 * @description
-			 * MAVLink parachute system reports unhealthy status.
-			 *
-			 * <profile name="dev">
-			 * Configured by <param>COM_PARACHUTE</param>
-			 * </profile>
-			 */
-			reporter.healthFailure(affected_modes, health_component_t::parachute, events::ID("check_parachute_unhealthy"),
-					       log_level, "Parachute system not ready");
-
-			if (reporter.mavlink_log_pub()) {
-				if (warn_only) {
-					mavlink_log_warning(reporter.mavlink_log_pub(), "Parachute system not ready");
-
-				} else {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Parachute system not ready");
-				}
-			}
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Parachute system missing");
 		}
 
-		if (context.status().parachute_system_present) {
-			reporter.setIsPresent(health_component_t::parachute);
+	} else if (!context.status().parachute_system_healthy) {
+
+		/* EVENT
+		 * @description
+		 * MAVLink parachute system reports unhealthy status.
+		 *
+		 * <profile name="dev">
+		 * Configured by <param>COM_PARACHUTE</param>
+		 * </profile>
+		 */
+		reporter.healthFailure(NavModes::All, health_component_t::parachute, events::ID("check_parachute_unhealthy"),
+				       events::Log::Error, "Parachute system not ready");
+
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Parachute system not ready");
 		}
+	}
+
+	if (context.status().parachute_system_present) {
+		reporter.setIsPresent(health_component_t::parachute);
 	}
 }

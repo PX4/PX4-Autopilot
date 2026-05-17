@@ -288,7 +288,7 @@ The parachute health failsafe is triggered when a [MAVLink parachute](../periphe
 
 | Parameter                                                                                          | Description                                                                                                                                                                                                                                                                                            |
 | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| <a id="COM_PARACHUTE"></a>[COM_PARACHUTE](../advanced_config/parameter_reference.md#COM_PARACHUTE) | Parachute system monitoring and failsafe action. `0`: Disabled (default), `1`: Warning only, `2`: Error only (prevent arming), `3`: Return, `4`: Land.<br><br>On failsafe:<br>- `Error`, `Return`, and `Land` prevent arming.<br>- `Return` and `Land` start the associated action/mode when airborne. |
+| <a id="COM_PARACHUTE"></a>[COM_PARACHUTE](../advanced_config/parameter_reference.md#COM_PARACHUTE) | Parachute system monitoring and failsafe action.<br>`0`: Disabled (default), `1`: [Warning](#act_warn), `2`: [Return](#act_return), `3`: [Land](#act_land).<br><br>- Everything but `Disabled` prevents arming with a failing check.<br>- [Return](#act_return) and [Land](#act_land) start the associated action when a failure happens in-flight. |
 
 ## Quad-chute Failsafe
 

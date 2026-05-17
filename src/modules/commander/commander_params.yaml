@@ -89,8 +89,6 @@ parameters:
         7: 'Prio: RC > MAVL 2 > MAVL 1'
         8: 'Prio: MAVL 2 > MAVL 1 > RC'
       default: 3
-      min: 0
-      max: 8
     COM_DISARM_LAND:
       description:
         short: Time-out for auto disarm after landing
@@ -411,8 +409,6 @@ parameters:
         5: Terminate
         6: Disarm
       default: 0
-      min: 0
-      max: 6
     NAV_RCL_ACT:
       description:
         short: Set manual control loss failsafe mode
@@ -427,8 +423,6 @@ parameters:
         5: Terminate
         6: Disarm
       default: 2
-      min: 1
-      max: 6
     COM_RCL_EXCEPT:
       description:
         short: Manual control loss exceptions
@@ -476,24 +470,18 @@ parameters:
         3: Return mode
         4: Terminate
       default: 0
-      min: 0
-      max: 4
     COM_PARACHUTE:
       description:
-        short: Parachute system monitoring and failsafe action
+        short: Parachute requirement and failsafe
         long: |-
-          Configures whether a MAVLink parachute system is monitored and what action is
-          taken when it reports missing or unhealthy status.
-          From Error onwards the check also blocks arming.
+          Require a MAVLink parachute system for arming and the failsafe action when missing or unhealthy.
       type: enum
       values:
         0: Disabled
-        1: Warning only
-        2: Error (blocks arming)
-        3: Return
-        4: Land
+        1: Warning
+        2: Return
+        3: Land
       default: 0
-      increment: 1
     COM_ARM_CHK_ESCS:
       description:
         short: Enable checks on ESCs that report telemetry
