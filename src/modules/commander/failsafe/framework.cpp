@@ -464,6 +464,10 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 		const ActionOptions &cur_action = _actions[action_idx];
 
 		if (cur_action.valid()) {
+			if (cur_action.action == Action::None) {
+				continue;
+			}
+
 			if (cur_action.allow_user_takeover > allow_user_takeover) {
 				// Use the most restrictive setting among all active actions
 				allow_user_takeover = cur_action.allow_user_takeover;
