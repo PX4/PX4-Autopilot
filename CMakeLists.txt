@@ -172,9 +172,16 @@ include(px4_add_module)
 set(config_module_list)
 set(config_kernel_list)
 
-# Find Python. The call below sets Python3_EXECUTABLE; we then provide
-# PYTHON_EXECUTABLE as a backward-compat alias for the rest of the
-# codebase that still uses the legacy name.
+# find_package(Python3) on macOS defaults to picking the highest-versioned
+# framework Python over PATH and hints, missing the venv where pip
+# installed our requirements. Pin to the project-local .venv when
+# present; otherwise stop at the first location hint and keep macOS
+# frameworks last. PYTHON_EXECUTABLE is bridged below for legacy callers.
+if(NOT DEFINED Python3_EXECUTABLE AND EXISTS "${CMAKE_CURRENT_LIST_DIR}/.venv/bin/python")
+	set(Python3_EXECUTABLE "${CMAKE_CURRENT_LIST_DIR}/.venv/bin/python")
+endif()
+set(Python3_FIND_STRATEGY LOCATION)
+set(Python3_FIND_FRAMEWORK LAST)
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
 # Preserve PYTHON_EXECUTABLE as passed if any (e.g. via -D on command
