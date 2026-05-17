@@ -31,6 +31,7 @@ The boards in this category are:
 - [CORVON 743v1](../flight_controller/corvon_743v1.md)
 - [CORVON 743v2](../flight_controller/corvon_743v2.md)
 - [CORVON v5](../flight_controller/corvon_v5.md)
+- [DAKEFPV H743](../flight_controller/dakefpv_h743.md)
 - [CUAV Nora](../flight_controller/cuav_nora.md) (CUAV X7 variant)
 - [CUAV X25 EVO](../flight_controller/cuav_x25-evo.md)
 - [CUAV X25 SUPER](../flight_controller/cuav_x25-super.md)
