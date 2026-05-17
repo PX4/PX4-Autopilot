@@ -229,6 +229,23 @@ In Fixed-wing, the position estimate is never strictly invalidated as long as we
 
 Note that if there is no horizontal aiding source anymore, the position estimate is invalidated after `EKF2_NOAID_TOUT`, and the standard position loss failsafe applies.
 
+### GNSS Check Failsafe
+
+<Badge type="tip" text="PX4 v1.18" />
+
+Triggers on either of:
+
+- **Count drop**: receivers with a 3D fix drop below [SYS_HAS_NUM_GNSS](#SYS_HAS_NUM_GNSS). No failsafe action when `SYS_HAS_NUM_GNSS=0` (default).
+- **Position divergence**: two receivers disagree beyond their expected separation (configured via [SENS_GPS0_OFFX/Y](../advanced_config/parameter_reference.md#SENS_GPS0_OFFX), [SENS_GPS1_OFFX/Y](../advanced_config/parameter_reference.md#SENS_GPS1_OFFX)) plus reported accuracy. Only triggers a failsafe action if `SYS_HAS_NUM_GNSS=2`.
+
+At least a warning is emitted, additional failsafe actions can be configured using [COM_GNSSLOSS_ACT](#COM_GNSSLOSS_ACT).
+Loss of a single GPS when none are required is handled by other GPS health checks.
+
+| 매개변수                                                                                                                                                                       | 설명                                                                                                                                                        |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="SYS_HAS_NUM_GNSS"></a>[SYS_HAS_NUM_GNSS](../advanced_config/parameter_reference.md#SYS_HAS_NUM_GNSS) | Number of usable GNSS receivers required for arming and flight. If two are required then they also need to be consistent. |
+| <a id="COM_GNSSLOSS_ACT"></a>[COM_GNSSLOSS_ACT](../advanced_config/parameter_reference.md#COM_GNSSLOSS_ACT)                      | Failsafe action when a GNSS failure is detected. Actions other than a warning also lead to arming being blocked.          |
+
 ## 오프 보드 안전 장치
 
 The _Offboard Loss Failsafe_ is triggered if the offboard link is lost while under [Offboard control](../flight_modes/offboard.md).
@@ -339,39 +356,39 @@ If the vehicle descends more than [FD_ALT_LOSS](#FD_ALT_LOSS) meters below the s
 
 ### Motor Failure Trigger
 
-The failure detector can be configured to detect a motor failure while armed (and trigger an associated action) if the ESC current falls outside expected bounds for more than [MOTFAIL_TIME](#MOTFAIL_TIME) seconds.
+The failure detector can be configured to detect a motor failure while armed (and trigger an associated action) if the ESC current falls outside expected threshold for more than [MOTFAIL_TIME](#MOTFAIL_TIME) seconds.
 Motor failures are non-latching: if the failure condition clears, the failure is cleared.
 
 The undercurrent and overcurrent conditions are defined by:
 
 ```text
-undercurrent: {esc current} < {MOTFAIL_C2T} * {motor command [0,1]} - {MOTFAIL_LOW_OFF}
-overcurrent:  {esc current} > {MOTFAIL_C2T} * {motor command [0,1]} + {MOTFAIL_HIGH_OFF}
+undercurrent: {esc current} < {MOTFAIL_C2T} * {motor command [0,1]} - {MOTFAIL_OFF}
+overcurrent:  {esc current} > {MOTFAIL_C2T} * {motor command [0,1]} + {MOTFAIL_OFF}
 ```
 
-| 매개변수                                                                                                                                                  | 설명                                                                                                                                                                                                                                                                                      |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="FD_ACT_EN"></a>[FD_ACT_EN](../advanced_config/parameter_reference.md#FD_ACT_EN)                      | Enable/disable the motor failure trigger completely.                                                                                                                                                                                                                    |
-| <a id="MOTFAIL_C2T"></a>[MOTFAIL_C2T](../advanced_config/parameter_reference.md#MOTFAIL_C2T)                                     | Slope between normalized motor command [0–1] and expected steady-state current (FD_ACT_MOT_C2T at 100%) (A/%). |
-| <a id="MOTFAIL_LOW_OFF"></a>[MOTFAIL_LOW_OFF](../advanced_config/parameter_reference.md#MOTFAIL_LOW_OFF)    | Undercurrent detection threshold offset (A). Subtracted from the expected current to form the lower bound.                                                                                                                           |
-| <a id="MOTFAIL_HIGH_OFF"></a>[MOTFAIL_HIGH_OFF](../advanced_config/parameter_reference.md#MOTFAIL_HIGH_OFF) | Overcurrent detection threshold offset (A). Added to the expected current to form the upper bound.                                                                                                                                   |
-| <a id="MOTFAIL_TIME"></a>[MOTFAIL_TIME](../advanced_config/parameter_reference.md#MOTFAIL_TIME)                                  | Hysteresis time (s) for which the current threshold must remain exceeded before a motor failure is triggered.                                                                                                                                        |
-| <a id="CA_FAILURE_MODE"></a>[CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE)    | Configure to not only warn about a motor failure but remove the first motor that detects a failure from the allocation effectiveness which turns off the motor and tries to operate the vehicle without it until disarming the next time.                               |
+| 매개변수                                                                                                                                               | 설명                                                                                                                                                                                                                                                                                      |
+| -------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="FD_ACT_EN"></a>[FD_ACT_EN](../advanced_config/parameter_reference.md#FD_ACT_EN)                   | Enable/disable the motor failure trigger completely.                                                                                                                                                                                                                    |
+| <a id="MOTFAIL_C2T"></a>[MOTFAIL_C2T](../advanced_config/parameter_reference.md#MOTFAIL_C2T)                                  | Slope between normalized motor command [0–1] and expected steady-state current (FD_ACT_MOT_C2T at 100%) (A/%). |
+| <a id="MOTFAIL_OFF"></a>[MOTFAIL_OFF](../advanced_config/parameter_reference.md#MOTFAIL_OFF)                                  | Under/over-current detection threshold offset (A). Added to the expected current to form the upper bound. Subtracted from the expected current to form the lower bound.                                              |
+|                                                                                                                                                    |                                                                                                                                                                                                                                                                                         |
+| <a id="MOTFAIL_TIME"></a>[MOTFAIL_TIME](../advanced_config/parameter_reference.md#MOTFAIL_TIME)                               | Hysteresis time (s) for which the current threshold must remain exceeded before a motor failure is triggered.                                                                                                                                        |
+| <a id="CA_FAILURE_MODE"></a>[CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) | Configure to not only warn about a motor failure but remove the first motor that detects a failure from the allocation effectiveness which turns off the motor and tries to operate the vehicle without it until disarming the next time.                               |
 
-### 외부 자동 작동 시스템 (ATS)
+### External Automatic Trigger System (ATS)
 
 The [failure detector](#failure-detector), if [enabled](#CBRK_FLIGHTTERM), can also be triggered by an external ATS system.
-외부 작동 시스템은 비행 컨트롤러 포트 AUX5 (또는 AUX 포트가없는 보드의 MAIN5)에 연결되어야 하며 아래의 매개 변수들을 사용하여 설정합니다.
+The external trigger system must be connected to flight controller port AUX5 (or MAIN5 on boards that do not have AUX ports), and is configured using the parameters below.
 
 :::info
 External ATS is required by [ASTM F3322-18](https://webstore.ansi.org/standards/astm/ASTMF332218).
 One example of an ATS device is the [FruityChutes Sentinel Automatic Trigger System (SATS-MINI)](https://fruitychutes.com/uav_rpv_drone_recovery_parachutes/sentinel-automatic-trigger-system).
 :::
 
-| 매개변수                                                                                                                                                                    | 설명                                                                                                                                                                               |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="FD_EXT_ATS_EN"></a>[FD_EXT_ATS_EN](../advanced_config/parameter_reference.md#FD_EXT_ATS_EN)       | AUX5 또는 MAIN5 (보드에 따라 다름)에서 PWM 입력을 활성화하여 외부 자동 작동 시스템 (ATS)에서 안전 장치를 연결합니다. 기본값 : 비활성화 됨. |
-| <a id="FD_EXT_ATS_TRIG"></a>[FD_EXT_ATS_TRIG](../advanced_config/parameter_reference.md#FD_EXT_ATS_TRIG) | 안전장치 연결을 위한 외부 자동 작동 시스템의 PWM 임계치입니다. 기본값: 1900 ms.                                                                              |
+| 매개변수                                                                                                                                                                    | 설명                                                                                                                                                                                                                                     |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="FD_EXT_ATS_EN"></a>[FD_EXT_ATS_EN](../advanced_config/parameter_reference.md#FD_EXT_ATS_EN)       | Enable PWM input on AUX5 or MAIN5 (depending on board) for engaging failsafe from an external automatic trigger system (ATS). Default: Disabled. |
+| <a id="FD_EXT_ATS_TRIG"></a>[FD_EXT_ATS_TRIG](../advanced_config/parameter_reference.md#FD_EXT_ATS_TRIG) | The PWM threshold from external automatic trigger system for engaging failsafe. Default: 1900 ms.                                                                                      |
 
 ## Mission Feasibility Checks
 
@@ -380,13 +397,13 @@ For example, the checks ensures that the first waypoint isn't too far away, and 
 
 As these are not strictly speaking "failsafes" they are documented in [Mission Mode (FW) > Mission Feasibility Checks](../flight_modes_fw/mission.md#mission-feasibility-checks) and [Mission Mode (MC) > Mission Feasibility Checks](../flight_modes_mc/mission.md#mission-feasibility-checks).
 
-## 비상 스위치
+## Emergency Switches
 
 Remote control switches can be configured (as part of _QGroundControl_ [Flight Mode Setup](../config/flight_mode.md)) to allow you to take rapid corrective action in the event of a problem or emergency; for example, to stop all motors, or activate [Return mode](#return-switch).
 
-이 섹션에는 사용 가능한 비상 스위치에 대하여 설명합니다.
+This section lists the available emergency switches.
 
-### 중지 스위치
+### Kill Switch
 
 A kill switch immediately stops all motor outputs — if flying, the vehicle will start to fall!
 
@@ -396,23 +413,23 @@ The motors will restart if the switch is reverted within 5 seconds, after which 
 There is also a [Kill Gesture](#kill-gesture), which cannot be reverted.
 :::
 
-### 시동/비시동 스위치
+### Arm/Disarm Switch
 
 The arm/disarm switch is a _direct replacement_ for the default stick-based arming/disarming mechanism (and serves the same purpose: making sure there is an intentional step involved before the motors start/stop).
-다음과 같은 사유로 기본 메커니즘보다 우선적으로 사용될 수 있습니다.
+It might be used in preference to the default mechanism because:
 
-- 스틱 동작보다 스위치를 선호합니다.
-- 특정 스틱 동작으로 공중에서 실수로 시동/비시동 하는 것을 방지합니다.
-- 지연 시간이 없습니다 (즉시 동작합니다).
+- Of a preference of a switch over a stick motion.
+- It avoids accidentally triggering arming/disarming in-air with a certain stick motion.
+- There is no delay (it reacts immediately).
 
 The arm/disarm switch immediately disarms (stop) motors for those [flight modes](../flight_modes/index.md#flight-modes) that _support disarming in flight_.
-여기에는 다음의 항목들이 포함됩니다.
+This includes:
 
 - _Manual mode_
 - _Acro mode_
 - _Stabilized_
 
-비행중 비시동을 지원하지 않는 모드의 경우 비행 중 스위치가 무시되지만 착륙 후에 사용 가능합니다.
+For modes that do not support disarming in flight, the switch is ignored during flight, but may be used after landing is detected.
 This includes _Position mode_ and autonomous modes (e.g. _Mission_, _Land_ etc.).
 
 :::info
@@ -424,7 +441,7 @@ This includes _Position mode_ and autonomous modes (e.g. _Mission_, _Land_ etc.)
   If the switch positions are reversed, change the sign of the parameter [RC_ARMSWITCH_TH](../advanced_config/parameter_reference.md#RC_ARMSWITCH_TH) (or also change its value to alter the threshold value).
 -->
 
-### 귀환 스위치
+### Return Switch
 
 A return switch can be used to immediately engage [Return mode](../flight_modes/return.md).
 
@@ -445,14 +462,14 @@ Parameters prefixed with `COM_DISARM_` affect disarming behaviour.
 
 ### Auto-Disarming Timeouts
 
-이륙 속도가 너무 느리거나, 착륙 후 기체의 시동을 자동으로 꺼기 위하여 시간 제한을 설정할 수 있습니다(기체의 시동을 꺼면 모터의 전원이 제거되므로 프로펠러가 동작하지 않습니다).
+You can set timeouts to automatically disarm a vehicle if it is too slow to takeoff, and/or after landing (disarming the vehicle removes power to the motors, so the propellers won't spin).
 
 The [relevant parameters](../advanced_config/parameters.md) are shown below:
 
-| 매개변수                                                                                                                                                  | 설명                              |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
-| <a id="COM_DISARM_LAND"></a>[COM_DISARM_LAND](../advanced_config/parameter_reference.md#COM_DISARM_LAND)    | 착륙후 자동 시동 꺼기 대기 시간              |
-| <a id="COM_DISARM_PRFLT"></a>[COM_DISARM_PRFLT](../advanced_config/parameter_reference.md#COM_DISARM_PRFLT) | 기체가 이륙이 너무 더딘 경우 자동 시동 꺼기 대기 시간 |
+| 매개변수                                                                                                                                                  | 설명                                                                         |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| <a id="COM_DISARM_LAND"></a>[COM_DISARM_LAND](../advanced_config/parameter_reference.md#COM_DISARM_LAND)    | Timeout for auto-disarm after landing.                     |
+| <a id="COM_DISARM_PRFLT"></a>[COM_DISARM_PRFLT](../advanced_config/parameter_reference.md#COM_DISARM_PRFLT) | Timeout for auto disarm if vehicle is too slow to takeoff. |
 
 ### Arming Pre-Conditions
 
