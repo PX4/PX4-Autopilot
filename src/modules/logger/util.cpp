@@ -324,8 +324,16 @@ int cleanup_old_logs(const char *log_root_dir, orb_advert_t &mavlink_log_pub,
 	return PX4_OK;
 }
 
-int remove_directory(const char *dir)
+static int remove_directory_recursive(const char *dir, unsigned depth)
 {
+	// Log structure is log/yyyy-mm-dd/file.ulg (2 levels). Cap recursion to prevent stack overflow.
+	static constexpr unsigned MAX_DEPTH = 3;
+
+	if (depth >= MAX_DEPTH) {
+		PX4_DEBUG("Max depth reached: %s", dir);
+		return -1;
+	}
+
 	DIR *d = opendir(dir);
 	size_t dir_len = strlen(dir);
 	struct dirent *p;
@@ -354,7 +362,7 @@ int remove_directory(const char *dir)
 
 			if (!stat(buf, &statbuf)) {
 				if (S_ISDIR(statbuf.st_mode)) {
-					ret2 = remove_directory(buf);
+					ret2 = remove_directory_recursive(buf, depth + 1);
 
 				} else {
 					ret2 = unlink(buf);
@@ -374,6 +382,11 @@ int remove_directory(const char *dir)
 	}
 
 	return ret;
+}
+
+int remove_directory(const char *dir)
+{
+	return remove_directory_recursive(dir, 0);
 }
 
 } //namespace util
