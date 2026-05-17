@@ -162,9 +162,8 @@ private:
 	enum class parachute_unhealthy_failsafe_mode : int32_t {
 		Disabled = 0,
 		Warning = 1,
-		Error = 2,
-		Return = 3,
-		Land = 4,
+		Return = 2,
+		Land = 3,
 	};
 
 	enum class gps_redundancy_failsafe_mode : int32_t {
@@ -228,7 +227,7 @@ private:
 					(ParamInt<px4::params::COM_FLTT_LOW_ACT>) _param_com_fltt_low_act,
 					(ParamInt<px4::params::COM_POS_LOW_ACT>) _param_com_pos_low_act,
 					(ParamInt<px4::params::COM_ARM_ODID>) _param_com_arm_odid,
-					(ParamInt<px4::params::COM_PARACHUTE>) _param_com_parachute_act,
+					(ParamInt<px4::params::COM_PARACHUTE>) _param_com_parachute,
 					(ParamInt<px4::params::COM_GNSSLOSS_ACT>) _param_com_gnssloss_act
 				       );
 
