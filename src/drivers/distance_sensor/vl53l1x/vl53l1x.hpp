@@ -33,8 +33,9 @@
 
 /**
  * @file vl53l1x.hpp
- *
  * Driver for the ST VL53L1X ToF Sensor connected via I2C.
+ * Datasheet: https://www.st.com/resource/en/datasheet/vl53l1x.pdf
+ * API User Manual: https://www.st.com/resource/en/user_manual/um2356-vl53l1x-api-user-manual-stmicroelectronics.pdf
  */
 
 #pragma once
@@ -106,12 +107,11 @@ public:
 		Ok = 0,
 		SigmaFail = 1,
 		SignalFail = 2,
-		RangeValidMinRangeClipped = 3,
 		OutOfBounds = 4,
 		HardwareFail = 5,
-		RangeValidNoUpdate = 6,
 		Wraparound = 7,
-		RoiOutOfBounds = 13
+		ProcessingFail  = 8,
+		RoiOutOfBounds = 14
 	};
 	~VL53L1X() override;
 
@@ -168,9 +168,6 @@ private:
 	int8_t VL53L1X_SetROICenter(uint8_t data);
 	int8_t VL53L1X_SetROI(uint16_t x, uint16_t y);
 
-	math::MedianFilter<float, 3> _distance_filter;
-	int _status_error_count{0};
-	static constexpr int STATUS_HYSTERESIS_MAX = 3;
 	PX4Rangefinder    _px4_rangefinder;
 	Rotation _sensor_orientation{ROTATION_PITCH_270};
 	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com_err")};

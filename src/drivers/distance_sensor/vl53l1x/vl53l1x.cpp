@@ -196,7 +196,7 @@ VL53L1X::~VL53L1X()
 int VL53L1X::collect()
 {
 	uint8_t ret = 0;
-	uint8_t raw_status = 0;
+	uint8_t raw_status = VL53L1X_RANGE_STATUS_OK;
 	uint16_t distance_mm = 0;
 	static constexpr float DOWNWARD_FACING_THETA = -1.57f;
 	static constexpr float RIGHT_PSI = 0.117809725;
@@ -208,7 +208,7 @@ int VL53L1X::collect()
 
 	RangeStatus rangeStatus = static_cast<RangeStatus>(raw_status);
 
-	if ((ret != PX4_OK) | (rangeStatus == RangeStatus::RoiOutOfBounds)) {
+	if ((ret != PX4_OK) || (rangeStatus == RangeStatus::RoiOutOfBounds)) {
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
 		return PX4_ERROR;
@@ -217,16 +217,9 @@ int VL53L1X::collect()
 	int8_t quality = 0;
 
 	if (rangeStatus == RangeStatus::Ok) {
-		if (_status_error_count > 0) { _status_error_count--; }
-
 		quality = 100;
 
-	} else if (rangeStatus == RangeStatus::SigmaFail || rangeStatus == RangeStatus::SignalFail) {
-		_status_error_count++;
-		quality = (_status_error_count < STATUS_HYSTERESIS_MAX) ? 50 : 0;
-
 	} else {
-		_status_error_count = STATUS_HYSTERESIS_MAX;
 		quality = 0;
 	}
 
@@ -250,8 +243,7 @@ int VL53L1X::collect()
 
 	perf_end(_sample_perf);
 
-	float distance_m_raw = distance_mm / 1000.f;
-	float distance_m = _distance_filter.apply(distance_m_raw);
+	float distance_m = distance_mm / 1000.f;
 	float psi = 0.f;
 	float theta = 0.f;
 
