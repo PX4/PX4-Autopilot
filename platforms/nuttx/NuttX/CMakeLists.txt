@@ -181,8 +181,15 @@ function(add_nuttx_dir nuttx_lib nuttx_lib_dir kernel extra target)
 		${CMAKE_CURRENT_SOURCE_DIR}/nuttx/${nuttx_lib_dir}/*.h
 	)
 
+	# Route kernel pass for mm/libc to kbin/; user pass uses bin/ for the
+	# same sources and would otherwise overwrite the kernel objects.
+	set(bindir_arg)
+	if(${kernel} STREQUAL y AND (${nuttx_lib_dir} STREQUAL mm OR ${nuttx_lib_dir} STREQUAL libs/libc))
+		set(bindir_arg BINDIR=kbin)
+	endif()
+
 	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/nuttx/${nuttx_lib_dir}/lib${nuttx_lib}.a
-		COMMAND make -C ${nuttx_lib_dir} --no-print-directory --silent ${nuttx_lib_target} TOPDIR="${NUTTX_DIR}" KERNEL=${kernel} EXTRAFLAGS=${extra}
+		COMMAND make -C ${nuttx_lib_dir} --no-print-directory --silent ${nuttx_lib_target} TOPDIR="${NUTTX_DIR}" KERNEL=${kernel} EXTRAFLAGS=${extra} ${bindir_arg}
 		COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_DIR}/${nuttx_lib_dir}/lib${nuttx_lib}.a ${CMAKE_CURRENT_BINARY_DIR}/nuttx/${nuttx_lib_dir}/lib${nuttx_lib}.a
 		DEPENDS
 			${nuttx_lib_files}
