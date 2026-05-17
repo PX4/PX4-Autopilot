@@ -1,0 +1,24 @@
+#!/bin/sh
+#
+# DAKEFPV H743 board-specific parameter defaults
+#------------------------------------------------------------------------------
+
+# FC board is mounted with IMU facing down — apply ROLL_180 correction
+param set-default SENS_BOARD_ROT 8
+
+# No internal compass — external optional (e.g. Foxeer M10Q on I2C2)
+param set-default SYS_HAS_MAG 0
+param set-default EKF2_MAG_TYPE 5
+
+# No power module connector — disable supply voltage check
+param set-default CBRK_SUPPLY_CHK 894281
+
+# Battery monitoring (PC1 voltage, PC0 current — from board hardware)
+param set-default BAT1_V_DIV 16.0
+param set-default BAT1_A_PER_V 83.3
+
+# GPS on USART1 (ttyS0) — already set via CONFIG_BOARD_SERIAL_GPS1
+# If no GPS connected PX4 will skip GPS fusion silently
+
+# Use RAM backend for dataman (no SD card slot; W25Q128 used for logging only)
+param set-default SYS_DM_BACKEND 1
