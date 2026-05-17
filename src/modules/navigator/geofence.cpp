@@ -645,11 +645,17 @@ Geofence::loadFromFile(const char *filename)
 			bool success = _dataman_client.readSync(write_fence_dataman_id, seq, reinterpret_cast<uint8_t *>(&mission_fence_point),
 								sizeof(mission_fence_point_s));
 
-			if (success) {
-				mission_fence_point.vertex_count = pointCounter;
-				crc32 = crc32_for_fence_point(mission_fence_point, crc32);
-				_dataman_client.writeSync(write_fence_dataman_id, seq, reinterpret_cast<uint8_t *>(&mission_fence_point),
-							  sizeof(mission_fence_point_s));
+			if (!success) {
+				goto error;
+			}
+
+			mission_fence_point.vertex_count = pointCounter;
+			crc32 = crc32_for_fence_point(mission_fence_point, crc32);
+			success = _dataman_client.writeSync(write_fence_dataman_id, seq, reinterpret_cast<uint8_t *>(&mission_fence_point),
+							    sizeof(mission_fence_point_s));
+
+			if (!success) {
+				goto error;
 			}
 		}
 
