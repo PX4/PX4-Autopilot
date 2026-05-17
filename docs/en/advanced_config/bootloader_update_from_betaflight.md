@@ -92,6 +92,7 @@ cuav_nora_bootloader
 cuav_x7pro_bootloader
 cubepilot_cubeorange_bootloader
 holybro_durandal-v1_bootloader
+dakefpv_h743_bootloader
 holybro_kakuteh7_bootloader
 holybro_kakuteh7v2_bootloader
 holybro_kakuteh7mini_bootloader
