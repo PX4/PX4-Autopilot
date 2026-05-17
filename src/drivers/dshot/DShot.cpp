@@ -440,6 +440,22 @@ bool DShot::process_serial_telemetry()
 		return false;
 	}
 
+	// Periodically retry skipped motors when disarmed so channels that came online late
+	// (e.g. ESC power-cycled after boot) can recover. We don't retry while armed to avoid
+	// timeout blips on healthy channels during flight.
+	bool armed = _esc_status.esc_armed_flags != 0;
+
+	if (!armed && _serial_telem_skip_mask != 0
+	    && hrt_elapsed_time(&_serial_telem_last_retry) > SERIAL_TELEM_RETRY_INTERVAL) {
+		_serial_telem_skip_mask = 0;
+
+		for (int i = 0; i < DSHOT_MAX_MOTORS; i++) {
+			_serial_telem_consecutive_timeouts[i] = 0;
+		}
+
+		_serial_telem_last_retry = hrt_absolute_time();
+	}
+
 	bool all_telem_sampled = false;
 
 	if (!_telemetry.commandResponseFinished()) {
@@ -509,7 +525,7 @@ bool DShot::process_serial_telemetry()
 
 				if (_serial_telem_consecutive_timeouts[motor_index] >= SERIAL_TELEM_SKIP_THRESHOLD) {
 					_serial_telem_skip_mask |= (1 << motor_index);
-					PX4_WARN("ESC%d serial telemetry lost, skipping", motor_index + 1);
+					PX4_DEBUG("ESC%d serial telemetry lost, skipping", motor_index + 1);
 				}
 			}
 
@@ -785,6 +801,11 @@ void DShot::handle_configure_actuator(const vehicle_command_s &command)
 	if (function > 1000) {
 		// NOTE: backwards compatibility for QGC - 1101=Motor1, 1102=Motor2, etc
 		function -= 1000;
+
+	} else if (function >= 1 && function <= 16) {
+		// MAVLink standard: ACTUATOR_OUTPUT_FUNCTION_MOTOR1=1 .. MOTOR16=16
+		// PX4 internal:     OutputFunction::Motor1=101 .. Motor12=112
+		function += 100;
 	}
 
 	int motor_index = -1;
@@ -1032,7 +1053,7 @@ bool DShot::initialize_dshot()
 	}
 
 	if (dshot_timer_channels == 0) {
-		PX4_WARN("No channels configured");
+		PX4_INFO("No channels configured");
 		return false;
 	}
 
@@ -1238,6 +1259,7 @@ int DShot::custom_command(int argc, char *argv[])
 
 int DShot::task_spawn(int argc, char *argv[])
 {
+	int ret = PX4_ERROR;
 	DShot *instance = new DShot();
 
 	if (instance) {
@@ -1249,6 +1271,7 @@ int DShot::task_spawn(int argc, char *argv[])
 		}
 
 		PX4_INFO("Exiting");
+		ret = PX4_OK;
 
 	} else {
 		PX4_ERR("alloc failed");
@@ -1258,7 +1281,7 @@ int DShot::task_spawn(int argc, char *argv[])
 	desc.object.store(nullptr);
 	desc.task_id = -1;
 
-	return PX4_ERROR;
+	return ret;
 }
 
 int DShot::print_usage(const char *reason)

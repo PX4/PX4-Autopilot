@@ -229,6 +229,23 @@ In Fixed-wing, the position estimate is never strictly invalidated as long as we
 
 Note that if there is no horizontal aiding source anymore, the position estimate is invalidated after `EKF2_NOAID_TOUT`, and the standard position loss failsafe applies.
 
+### GNSS Check Failsafe
+
+<Badge type="tip" text="PX4 v1.18" />
+
+Triggers on either of:
+
+- **Count drop**: receivers with a 3D fix drop below [SYS_HAS_NUM_GNSS](#SYS_HAS_NUM_GNSS). No failsafe action when `SYS_HAS_NUM_GNSS=0` (default).
+- **Position divergence**: two receivers disagree beyond their expected separation (configured via [SENS_GPS0_OFFX/Y](../advanced_config/parameter_reference.md#SENS_GPS0_OFFX), [SENS_GPS1_OFFX/Y](../advanced_config/parameter_reference.md#SENS_GPS1_OFFX)) plus reported accuracy. Only triggers a failsafe action if `SYS_HAS_NUM_GNSS=2`.
+
+At least a warning is emitted, additional failsafe actions can be configured using [COM_GNSSLOSS_ACT](#COM_GNSSLOSS_ACT).
+Loss of a single GPS when none are required is handled by other GPS health checks.
+
+| Parameter                                                                                                   | Description                                                                                                               |
+| ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| <a id="SYS_HAS_NUM_GNSS"></a>[SYS_HAS_NUM_GNSS](../advanced_config/parameter_reference.md#SYS_HAS_NUM_GNSS) | Number of usable GNSS receivers required for arming and flight. If two are required then they also need to be consistent. |
+| <a id="COM_GNSSLOSS_ACT"></a>[COM_GNSSLOSS_ACT](../advanced_config/parameter_reference.md#COM_GNSSLOSS_ACT) | Failsafe action when a GNSS failure is detected. Actions other than a warning also lead to arming being blocked.          |
+
 ## Offboard Loss Failsafe
 
 The _Offboard Loss Failsafe_ is triggered if the offboard link is lost while under [Offboard control](../flight_modes/offboard.md).
@@ -250,6 +267,18 @@ The relevant parameters are shown below:
 | Parameter                                                                    | Description                                                      |
 | ---------------------------------------------------------------------------- | ---------------------------------------------------------------- |
 | [NAV_TRAFF_AVOID](../advanced_config/parameter_reference.md#NAV_TRAFF_AVOID) | Set the failsafe action: Disabled, Warn, Return mode, Land mode. |
+
+## Remote ID Failsafe
+
+<Badge type="tip" text="PX4 v1.18" />
+
+The Remote ID failsafe is triggered when the [Remote ID (Open Drone ID)](../peripherals/remote_id.md) module is not detected or reports as unhealthy while the vehicle is armed.
+
+The failsafe action and arming behaviour are both configured by the `COM_ARM_ODID` parameter:
+
+| Parameter                                                                                       | Description                                                                                                                                                                                                                                                                                                                                    |
+| ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="COM_ARM_ODID"></a>[COM_ARM_ODID](../advanced_config/parameter_reference.md#COM_ARM_ODID) | Remote ID arming check and in-flight failsafe. `0`: Disabled (default), `1`: Warning only, `2`: Error only (prevents arming), `3`: Return, `4`: Land, `5`: Terminate.<br><br>On failsafe:<br>- `Error`, `Return`, `Land` and `Terminate` prevent arming.<br>- `Return`, `Land` and `Terminate` start the associated action/mode when airborne. |
 
 ## Quad-chute Failsafe
 
@@ -298,6 +327,19 @@ Note that this check is _always enabled on takeoff_, irrespective of the `CBRK_F
 
 The failure detector is active in all vehicle types and modes, except for those where the vehicle is _expected_ to do flips (i.e. [Acro mode (MC)](../flight_modes_mc/acro.md), [Acro mode (FW)](../flight_modes_fw/acro.md), and [Manual (FW)](../flight_modes_fw/manual.md)).
 
+### Altitude Loss Trigger {#altitude-loss-trigger}
+
+<Badge type="tip" text="PX4 v1.18" /> <Badge type="tip" text="MC, VTOL only" />
+
+The failure detector can be configured to trigger if a rotary-wing vehicle loses too much altitude below its commanded setpoint while in an altitude-controlled flight mode (such as [Position mode](../flight_modes_mc/position.md) or [Altitude mode](../flight_modes_mc/altitude.md)).
+
+If the vehicle descends more than [FD_ALT_LOSS](#FD_ALT_LOSS) meters below the setpoint, [flight termination](../advanced_config/flight_termination.md) is triggered, which may deploy a [parachute](../peripherals/parachute.md).
+
+| Parameter                                                                                          | Description                                                                                                                           |
+| -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="FD_ALT_LOSS"></a>[FD_ALT_LOSS](../advanced_config/parameter_reference.md#FD_ALT_LOSS)       | Altitude loss threshold (m). Flight termination is triggered when the vehicle drops this far below the setpoint. Set to 0 to disable. |
+| <a id="FD_ALT_LOSS_T"></a>[FD_ALT_LOSS_T](../advanced_config/parameter_reference.md#FD_ALT_LOSS_T) | Time (s) the vehicle must remain below the threshold before flight termination is triggered.                                          |
+
 ### Attitude Trigger
 
 The failure detector can be configured to trigger if the vehicle attitude exceeds predefined pitch and roll values for longer than a specified time.
@@ -314,22 +356,23 @@ The relevant parameters are shown below:
 
 ### Motor Failure Trigger
 
-The failure detector can be configured to detect a motor failure while armed (and trigger an associated action) in the following conditions:
+The failure detector can be configured to detect a motor failure while armed (and trigger an associated action) if the ESC current falls outside expected threshold for more than [MOTFAIL_TIME](#MOTFAIL_TIME) seconds.
+Motor failures are non-latching: if the failure condition clears, the failure is cleared.
 
-- A 300 ms timeout occurs in telemetry from an ESC that was previously available.
-- The input current in the telemetry of an ESC which was previously positive gets too low for more than [`FD_ACT_MOT_TOUT`](FD_ACT_MOT_TOUT) ms.
-  The "too low" condition is defined by:
+The undercurrent and overcurrent conditions are defined by:
 
-  ```text
-  {esc current} < {parameter FD_ACT_MOT_C2T} * {motor command between 0 and 1}
-  ```
+```text
+undercurrent: {esc current} < {MOTFAIL_C2T} * {motor command [0,1]} - {MOTFAIL_OFF}
+overcurrent:  {esc current} > {MOTFAIL_C2T} * {motor command [0,1]} + {MOTFAIL_OFF}
+```
 
 | Parameter                                                                                                | Description                                                                                                                                                                                                                               |
 | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="FD_ACT_EN"></a>[FD_ACT_EN](../advanced_config/parameter_reference.md#FD_ACT_EN)                   | Enable/disable the motor failure trigger completely.                                                                                                                                                                                      |
-| <a id="FD_ACT_MOT_THR"></a>[FD_ACT_MOT_THR](../advanced_config/parameter_reference.md#FD_ACT_MOT_THR)    | Minimum normalized [0,1] motor command below which motor under current is ignored.                                                                                                                                                        |
-| <a id="FD_ACT_MOT_C2T"></a>[FD_ACT_MOT_C2T](../advanced_config/parameter_reference.md#FD_ACT_MOT_C2T)    | Scale between normalized [0,1] motor command and expected minimally reported current when the rotor is healthy.                                                                                                                           |
-| <a id="FD_ACT_MOT_TOUT"></a>[FD_ACT_MOT_TOUT](../advanced_config/parameter_reference.md#FD_ACT_MOT_TOUT) | Time in milliseconds for which the under current detection condition needs to stay true.                                                                                                                                                  |
+| <a id="MOTFAIL_C2T"></a>[MOTFAIL_C2T](../advanced_config/parameter_reference.md#MOTFAIL_C2T)             | Slope between normalized motor command [0–1] and expected steady-state current (FD_ACT_MOT_C2T at 100%) (A/%).                                                                                                                            |
+| <a id="MOTFAIL_OFF"></a>[MOTFAIL_OFF](../advanced_config/parameter_reference.md#MOTFAIL_OFF)             | Under/over-current detection threshold offset (A). Added to the expected current to form the upper bound. Subtracted from the expected current to form the lower bound.                                                                   |
+|                                                                                                          |
+| <a id="MOTFAIL_TIME"></a>[MOTFAIL_TIME](../advanced_config/parameter_reference.md#MOTFAIL_TIME)          | Hysteresis time (s) for which the current threshold must remain exceeded before a motor failure is triggered.                                                                                                                             |
 | <a id="CA_FAILURE_MODE"></a>[CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) | Configure to not only warn about a motor failure but remove the first motor that detects a failure from the allocation effectiveness which turns off the motor and tries to operate the vehicle without it until disarming the next time. |
 
 ### External Automatic Trigger System (ATS)
@@ -438,9 +481,8 @@ These parameters can be used to set conditions that prevent arming.
 | <a id="COM_ARM_BAT_MIN"></a>[COM_ARM_BAT_MIN](../advanced_config/parameter_reference.md#COM_ARM_BAT_MIN)    | Minimum battery level for arming. `0`: Disabled (default). Values: `0`-`0.9`,                                                                                                                              |
 | <a id="COM_ARM_WO_GPS"></a>[COM_ARM_WO_GPS](../advanced_config/parameter_reference.md#COM_ARM_WO_GPS)       | Enable arming without GPS. `0`: Disabled, `1`: Enabled (default).                                                                                                                                          |
 | <a id="COM_ARM_MIS_REQ"></a>[COM_ARM_MIS_REQ](../advanced_config/parameter_reference.md#COM_ARM_MIS_REQ)    | Require valid mission to arm. `0`: Disabled (default), `1`: Enabled .                                                                                                                                      |
-| <a id="COM_ARM_SDCARD"></a>[COM_ARM_SDCARD](../advanced_config/parameter_reference.md#COM_ARM_SDCARD)       | Require SD card to arm. `0`: Disabled (default), `1`: Warning, `2`: Enabled.                                                                                                                               |
 | <a id="COM_ARM_AUTH_REQ"></a>[COM_ARM_AUTH_REQ](../advanced_config/parameter_reference.md#COM_ARM_AUTH_REQ) | Requires arm authorisation from an external (MAVLink) system. Flag to allow arming (at all). `1`: Enabled, `0`: Disabled (default). Associated configuration parameters are prefixed with `COM_ARM_AUTH_`. |
-| <a id="COM_ARM_ODID"></a>[COM_ARM_ODID](../advanced_config/parameter_reference.md#COM_ARM_ODID)             | Require healthy Remote ID system to arm. `0`: Disabled (default), `1`: Warning, `2`: Enabled.                                                                                                              |
+| <a id="COM_ARM_ODID"></a>[COM_ARM_ODID](../advanced_config/parameter_reference.md#COM_ARM_ODID)             | Remote ID arming check and in-flight failsafe. `0`: Disabled (default), `1`: Warning only, `2`: Error only, `3`: Return, `4`: Land, `5`: Terminate. See [Remote ID Failsafe](#remote-id-failsafe).         |
 
 In addition there are a number of parameters that configure system and sensor limits that make prevent arming if exceeded: [COM_CPU_MAX](../advanced_config/parameter_reference.md#COM_CPU_MAX), [COM_ARM_IMU_ACC](../advanced_config/parameter_reference.md#COM_ARM_IMU_ACC), [COM_ARM_IMU_GYR](../advanced_config/parameter_reference.md#COM_ARM_IMU_GYR), [COM_ARM_MAG_ANG](../advanced_config/parameter_reference.md#COM_ARM_MAG_ANG), [COM_ARM_MAG_STR](../advanced_config/parameter_reference.md#COM_ARM_MAG_STR).
 

@@ -67,6 +67,16 @@ menu "Toolchain"
         help
             Enables Cmake Release for -O3 optimization
 
+    config BOARD_SUPPORT_FORTIFIED_TOOLCHAIN
+        bool "Fortified toolchain support"
+        default n
+        help
+            Enable compatibility with toolchains that define
+            _FORTIFY_SOURCE.
+
+            This switches PX4_DEBUG_OPT_LEVEL from -O0 to -Og. Keep this
+            disabled unless the fortified toolchain requires optimization.
+
     config BOARD_ROMFSROOT
         string "ROMFSROOT"
         default "px4fmu_common"
@@ -192,6 +202,12 @@ menu "File paths"
     config BOARD_PARAM_FILE
         string "Parameter file"
         default "/fs/mtd_params"
+
+    config BOARD_NO_SDCARD
+        bool "Board has no SD card"
+        default n
+        help
+            Disable the SD card arming check for boards without an SD card slot.
 endmenu
 
 menu "drivers"
@@ -208,6 +224,10 @@ endmenu
 
 menu "examples"
 source "src/examples/Kconfig"
+endmenu
+
+menu "templates"
+source "src/templates/Kconfig"
 endmenu
 
 menu "platforms"

@@ -54,7 +54,9 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 		_control_status.flags.mag_aligned_in_flight = false;
 	}
 
-	if (_params.ekf2_mag_type == MagFuseType::NONE) {
+	_fc.mag.available = _params.ekf2_mag_type != static_cast<int32_t>(MagFuseType::NONE);
+
+	if (!_fc.mag.intended()) {
 		stopMagFusion();
 		return;
 	}
@@ -150,9 +152,9 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 				      math::max(_params.ekf2_mag_gate, 1.f)); // innovation gate
 
 		// determine if we should use mag fusion
-		bool continuing_conditions_passing = ((_params.ekf2_mag_type == MagFuseType::INIT)
-						      || (_params.ekf2_mag_type == MagFuseType::AUTO)
-						      || (_params.ekf2_mag_type == MagFuseType::HEADING))
+		bool continuing_conditions_passing = ((_params.ekf2_mag_type == static_cast<int32_t>(MagFuseType::INIT))
+						      || (_params.ekf2_mag_type == static_cast<int32_t>(MagFuseType::AUTO))
+						      || (_params.ekf2_mag_type == static_cast<int32_t>(MagFuseType::HEADING)))
 						     && _control_status.flags.tilt_align
 						     && (_control_status.flags.yaw_align || (!_control_status.flags.ev_yaw && !_control_status.flags.yaw_align))
 						     && mag_sample.mag.longerThan(0.f)
@@ -184,15 +186,16 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 							       && !_control_status.flags.mag_field_disturbed
 							       && !_control_status.flags.ev_yaw
 							       && !_control_status.flags.gnss_yaw
-							       && (!_control_status.flags.yaw_manual || _control_status.flags.mag_aligned_in_flight);
+							       && (!_control_status.flags.yaw_manual || _control_status.flags.mag_aligned_in_flight)
+							       && !_control_status.flags.constant_pos;
 
 			_control_status.flags.mag_3D = common_conditions_passing
-						       && (_params.ekf2_mag_type == MagFuseType::AUTO)
+						       && (_params.ekf2_mag_type == static_cast<int32_t>(MagFuseType::AUTO))
 						       && _control_status.flags.mag_aligned_in_flight;
 
 			_control_status.flags.mag_hdg = common_conditions_passing
-							&& ((_params.ekf2_mag_type == MagFuseType::HEADING)
-							    || (_params.ekf2_mag_type == MagFuseType::AUTO && !_control_status.flags.mag_3D));
+							&& ((_params.ekf2_mag_type == static_cast<int32_t>(MagFuseType::HEADING))
+							    || (_params.ekf2_mag_type == static_cast<int32_t>(MagFuseType::AUTO) && !_control_status.flags.mag_3D));
 		}
 
 		if (_control_status.flags.mag_3D && !_control_status_prev.flags.mag_3D) {
@@ -251,7 +254,7 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 						    && PX4_ISFINITE(_wmm_declination_rad)
 						   ) {
 							// using declination from the world magnetic model
-							fuseDeclination(_wmm_declination_rad, 0.5f, update_all_states, update_tilt);
+							fuseDeclination(_wmm_declination_rad, R_DECL, update_all_states, update_tilt);
 
 						} else if ((_params.ekf2_decl_type & GeoDeclinationMask::SAVE_GEO_DECL)
 							   && PX4_ISFINITE(_params.ekf2_mag_decl) && (fabsf(_params.ekf2_mag_decl) > 0.f)

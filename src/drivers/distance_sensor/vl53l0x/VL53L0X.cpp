@@ -115,6 +115,10 @@ int VL53L0X::collect()
 	uint16_t distance_mm = (val[0] << 8) | val[1];
 	float distance_m = distance_mm / 1000.f;
 
+	if (distance_m > 2.0f) {
+		return PX4_OK;
+	}
+
 	_px4_rangefinder.update(timestamp_sample, distance_m);
 
 	return PX4_OK;

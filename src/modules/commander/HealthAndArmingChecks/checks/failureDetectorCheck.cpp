@@ -100,8 +100,8 @@ void FailureDetectorChecks::checkAndReport(const Context &context, Report &repor
 		}
 	}
 
-	reporter.failsafeFlags().fd_critical_failure = fd_status.fd_roll || fd_status.fd_pitch || fd_status.fd_alt ||
-			fd_status.fd_ext;
+	reporter.failsafeFlags().fd_critical_failure = fd_status.fd_roll || fd_status.fd_pitch || fd_status.fd_ext;
+	reporter.failsafeFlags().fd_alt_loss = fd_status.fd_alt;
 
 	reporter.failsafeFlags().fd_imbalanced_prop = fd_status.fd_imbalanced_prop;
 
@@ -111,7 +111,7 @@ void FailureDetectorChecks::checkAndReport(const Context &context, Report &repor
 		 * Check that all propellers are mounted correctly and are not damaged.
 		 *
 		 * <profile name="dev">
-		 * This check can be configured via <param>FD_IMB_PROP_THR</param> and <param>COM_IMB_PROP_ACT</param> parameters.
+		 * This check can be configured via <param>FD_IMB_PROP_THR</param> parameter.
 		 * </profile>
 		 */
 		reporter.healthFailure(NavModes::All, health_component_t::system, events::ID("check_failure_detector_imbalanced_prop"),

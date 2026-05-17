@@ -504,7 +504,9 @@ bool VectorNav::init()
 	VnError error = E_NONE;
 
 	// change baudrate to max
-	if ((error = VnSensor_changeBaudrate(&_vs, DESIRED_BAUDRATE)) != E_NONE) {
+	error = VnSensor_changeBaudrate(&_vs, DESIRED_BAUDRATE);
+
+	if (error != E_NONE) {
 		PX4_ERR("Error changing baud rate failed: %d", error);
 		VnSensor_disconnect(&_vs);
 		return false;
@@ -513,7 +515,9 @@ bool VectorNav::init()
 	// query the sensor's model number
 	char model_number[30] {};
 
-	if ((error = VnSensor_readModelNumber(&_vs, model_number, sizeof(model_number))) != E_NONE) {
+	error = VnSensor_readModelNumber(&_vs, model_number, sizeof(model_number));
+
+	if (error != E_NONE) {
 		PX4_ERR("Error reading model number %d", error);
 		VnSensor_disconnect(&_vs);
 		return false;
@@ -522,7 +526,9 @@ bool VectorNav::init()
 	// query the sensor's hardware revision
 	uint32_t hardware_revision = 0;
 
-	if ((error = VnSensor_readHardwareRevision(&_vs, &hardware_revision)) != E_NONE) {
+	error = VnSensor_readHardwareRevision(&_vs, &hardware_revision);
+
+	if (error != E_NONE) {
 		PX4_ERR("Error reading HW revision %d", error);
 		VnSensor_disconnect(&_vs);
 		return false;
@@ -531,7 +537,9 @@ bool VectorNav::init()
 	// query the sensor's serial number
 	uint32_t serial_number = 0;
 
-	if ((error = VnSensor_readSerialNumber(&_vs, &serial_number)) != E_NONE) {
+	error = VnSensor_readSerialNumber(&_vs, &serial_number);
+
+	if (error != E_NONE) {
 		PX4_ERR("Error reading serial number %d", error);
 		VnSensor_disconnect(&_vs);
 		return false;
@@ -540,7 +548,9 @@ bool VectorNav::init()
 	// query the sensor's firmware version
 	char firmware_version[30] {};
 
-	if ((error = VnSensor_readFirmwareVersion(&_vs, firmware_version, sizeof(firmware_version))) != E_NONE) {
+	error = VnSensor_readFirmwareVersion(&_vs, firmware_version, sizeof(firmware_version));
+
+	if (error != E_NONE) {
 		PX4_ERR("Error reading firmware version %d", error);
 		VnSensor_disconnect(&_vs);
 		return false;
@@ -623,7 +633,9 @@ bool VectorNav::configure()
 		GPSGROUP_NONE
 	);
 
-	if ((error = VnSensor_writeBinaryOutput1(&_vs, &_binary_output_group_1, true)) != E_NONE) {
+	error = VnSensor_writeBinaryOutput1(&_vs, &_binary_output_group_1, true);
+
+	if (error != E_NONE) {
 
 		// char buffer[128]{};
 		// strFromVnError((char*)buffer, error);
@@ -646,7 +658,9 @@ bool VectorNav::configure()
 		GPSGROUP_NONE
 	);
 
-	if ((error = VnSensor_writeBinaryOutput2(&_vs, &_binary_output_group_2, true)) != E_NONE) {
+	error = VnSensor_writeBinaryOutput2(&_vs, &_binary_output_group_2, true);
+
+	if (error != E_NONE) {
 		PX4_ERR("Error writing binary output 2 %d", error);
 		return false;
 	}
@@ -666,7 +680,9 @@ bool VectorNav::configure()
 		GPSGROUP_NONE
 	);
 
-	if ((error = VnSensor_writeBinaryOutput3(&_vs, &_binary_output_group_3, true)) != E_NONE) {
+	error = VnSensor_writeBinaryOutput3(&_vs, &_binary_output_group_3, true);
+
+	if (error != E_NONE) {
 		PX4_ERR("Error writing binary output 3 %d", error);
 		//return false;
 	}
@@ -719,7 +735,7 @@ void VectorNav::Run()
 		const hrt_abstime time_last_valid_imu_us = _time_last_valid_imu_us.load();
 
 		if (_param_vn_mode.get() == 1) {
-			if ((time_last_valid_imu_us != 0) && (hrt_elapsed_time(&time_last_valid_imu_us) < 3_s))
+			if ((time_last_valid_imu_us != 0) && (hrt_elapsed_time(&time_last_valid_imu_us) < 3_s)) {
 
 				// update sensor_selection if configured in INS mode
 				if ((_px4_accel.get_device_id() != 0) && (_px4_gyro.get_device_id() != 0)) {
@@ -729,6 +745,7 @@ void VectorNav::Run()
 					sensor_selection.timestamp = hrt_absolute_time();
 					_sensor_selection_pub.publish(sensor_selection);
 				}
+			}
 		}
 
 		if ((time_configured_us != 0) && (hrt_elapsed_time(&time_last_valid_imu_us) > 5_s)

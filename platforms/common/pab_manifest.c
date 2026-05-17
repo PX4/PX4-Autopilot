@@ -465,7 +465,8 @@ static px4_hw_mft_list_entry_t mft_lists[] = {
 	{HW_BASE_ID(16),     base_configuration_0, arraySize(base_configuration_0)},   // Auterion Skynode ver 16
 	{HW_BASE_ID(17),     base_configuration_17, arraySize(base_configuration_17)}, // Auterion Skynode ver 17
 	{HW_BASE_ID(18),     base_configuration_18, arraySize(base_configuration_18)}, // Auterion Skynode S ver 18
-	{HW_BASE_ID(19),     base_configuration_19, arraySize(base_configuration_19)}, // Auterion Skynode N
+	{HW_BASE_ID(19),     base_configuration_19, arraySize(base_configuration_19)}, // Auterion Skynode N rev 0
+	{HW_BASE_ID(20),     base_configuration_19, arraySize(base_configuration_19)}, // Auterion Skynode N rev 1
 	{HW_BASE_ID(0x100),  base_configuration_0, arraySize(base_configuration_0)},   // Holybro Pixhawk Jetson Baseboard ver 0x100 Alaised to ID 0
 	{HW_BASE_ID(0x150),  base_configuration_0, arraySize(base_configuration_0)},   // ZeroOne Pixhawk Baseboard ver 0x150
 	{HW_BASE_ID(0x200),  base_configuration_0, arraySize(base_configuration_0)},   // AmovLab Pixhawk Baseboard ver 0x150

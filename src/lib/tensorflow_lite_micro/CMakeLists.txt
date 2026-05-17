@@ -72,25 +72,9 @@ if(CONFIG_LIB_TFLM)
 	${TFLITE_DOWNLOADS_DIR}/cmsis
 	)
 
-	set(TFLM_BUILD_TIMESTAMP ${CMAKE_CURRENT_BINARY_DIR}/tflm_build_complete.timestamp)
-	add_custom_command(
-		OUTPUT ${TFLM_BUILD_TIMESTAMP}
-		COMMAND ${CMAKE_COMMAND} -E copy_if_different
-			${CMAKE_CURRENT_SOURCE_DIR}/generate_cc_arrays.py
-			${CMAKE_CURRENT_SOURCE_DIR}/tflite_micro/tensorflow/lite/micro/tools/generate_cc_arrays.py
-		# TODO maybe change this if building for other architectures
-		COMMAND make -f tensorflow/lite/micro/tools/make/Makefile MICRO_LITE_EXAMPLE_TESTS= MICRO_LITE_BENCHMARKS= MICRO_LITE_TEST_SRCS= MICRO_LITE_INTEGRATION_TESTS= third_party_downloads
-		# Create timestamp file to mark completion
-		COMMAND ${CMAKE_COMMAND} -E touch ${TFLM_BUILD_TIMESTAMP}
-		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tflite_micro
-		COMMENT "Downloading TFLM third party dependencies"
-		DEPENDS git_tflite-micro
-		VERBATIM
-	)
-	add_custom_target(build_tflm_native
-		DEPENDS ${TFLM_BUILD_TIMESTAMP}
-	)
-
+	# Third-party dependencies are vendored in the PX4/tflite-micro fork under
+	# tensorflow/lite/micro/tools/make/downloads/ so no network fetch is needed
+	# at build time. See the px4/vendored-deps branch for details.
 	px4_add_library(tensorflow_lite_micro ${TFLITE_MICRO_SRCS})
 
 	if(CONFIG_BOARD_TOOLCHAIN STREQUAL "arm-none-eabi")
@@ -98,7 +82,7 @@ if(CONFIG_LIB_TFLM)
 	endif()
 
 	target_include_directories(tensorflow_lite_micro PUBLIC ${TFLM_INCLUDE_DIRS})
-	add_dependencies(tensorflow_lite_micro build_tflm_native)
+	add_dependencies(tensorflow_lite_micro git_tflite-micro)
 	target_compile_features(tensorflow_lite_micro PRIVATE cxx_std_17)
 
 	target_compile_options(tensorflow_lite_micro PUBLIC

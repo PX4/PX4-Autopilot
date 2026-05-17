@@ -62,6 +62,7 @@ static constexpr float INH_TO_PA = 249.08f;
 static constexpr int32_t AUAV_LD_05 = 5;
 static constexpr int32_t AUAV_LD_10 = 10;
 static constexpr int32_t AUAV_LD_30 = 30;
+static constexpr int32_t AUAV_LD_60 = 60;
 
 class AUAV_Differential : public AUAV
 {

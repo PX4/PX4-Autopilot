@@ -12,20 +12,18 @@ This approach has the benefit of testing most of the actual flight code on the r
 
 PX4 supports HITL for multicopters (using [jMAVSim](../sim_jmavsim/index.md) or [Gazebo Classic](../sim_gazebo_classic/index.md)) and VTOL (using Gazebo Classic).
 
-<a id="compatible_airframe"></a>
+For a comparison of HITL and SIH on hardware, see [Hardware Simulation](../simulation/hardware.md).
 
-## HITL-Compatible Airframes
+## HITL-Compatible Airframes {#compatible_airframe}
 
 The set of compatible airframes vs simulators is:
 
 | Airframe                                                                                                         | `SYS_AUTOSTART` | Gazebo Classic | jMAVSim |
 | ---------------------------------------------------------------------------------------------------------------- | --------------- | -------------- | ------- |
 | [HIL Quadcopter X](../airframes/airframe_reference.md#copter_simulation_hil_quadcopter_x)                        | 1001            | Y              | Y       |
-| [HIL Standard VTOL QuadPlane](../airframes/airframe_reference.md#vtol_standard_vtol_hil_standard_vtol_quadplane) | 1002            | Y              |
+| [HIL Standard VTOL QuadPlane](../airframes/airframe_reference.md#vtol_standard_vtol_hil_standard_vtol_quadplane) | 1002            | Y              |         |
 
-<a id="simulation_environment"></a>
-
-## HITL Simulation Environment
+## HITL Simulation Environment {#simulation_environment}
 
 With Hardware-in-the-Loop (HITL) simulation the normal PX4 firmware is run on real hardware.
 JMAVSim or Gazebo Classic (running on a development computer) are connected to the flight controller hardware via USB/UART.
@@ -135,8 +133,8 @@ Make sure _QGroundControl_ is not running!
    DONT_RUN=1 make px4_sitl_default gazebo-classic
    ```
 
-1. Open the vehicle model's sdf file (e.g. **Tools/simulation/gazebo-classic/sitl_gazebo-classic/models/iris_hitl/iris_hitl.sdf**).
-1. Replace the `serialDevice` parameter (`/dev/ttyACM0`) if necessary.
+2. Open the vehicle model's sdf file (e.g. **Tools/simulation/gazebo-classic/sitl_gazebo-classic/models/iris_hitl/iris_hitl.sdf**).
+3. Replace the `serialDevice` parameter (`/dev/ttyACM0`) if necessary.
 
    ::: info
    The serial device depends on what port is used to connect the vehicle to the computer (this is usually `/dev/ttyACM0`).
@@ -144,7 +142,7 @@ Make sure _QGroundControl_ is not running!
    The correct device will be the last one shown.
    :::
 
-1. Set up the environment variables:
+4. Set up the environment variables:
 
    ```sh
    source Tools/simulation/gazebo-classic/setup_gazebo.bash $(pwd) $(pwd)/build/px4_sitl_default
@@ -156,7 +154,7 @@ Make sure _QGroundControl_ is not running!
    gazebo Tools/simulation/gazebo-classic/sitl_gazebo-classic/worlds/hitl_iris.world
    ```
 
-1. Start _QGroundControl_.
+5. Start _QGroundControl_.
    It should autoconnect to PX4 and Gazebo Classic.
 
 #### jMAVSim (Quadrotor only)
@@ -166,7 +164,7 @@ Make sure _QGroundControl_ is not running!
 :::
 
 1. Connect the flight controller to the computer and wait for it to boot.
-1. Run jMAVSim in HITL mode:
+2. Run jMAVSim in HITL mode:
 
    ```sh
    ./Tools/simulation/jmavsim/jmavsim_run.sh -q -s -d /dev/ttyACM0 -b 921600 -r 250
@@ -178,7 +176,7 @@ Make sure _QGroundControl_ is not running!
    On Windows (including Cygwin) it would be the COM1 or another port - check the connection in the Windows Device Manager.
    :::
 
-1. Start _QGroundControl_.
+3. Start _QGroundControl_.
    It should autoconnect to PX4 and jMAVSim.
 
 ## Fly an Autonomous Mission in HITL

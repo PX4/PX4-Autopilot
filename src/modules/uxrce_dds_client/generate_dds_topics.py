@@ -102,6 +102,17 @@ def process_message_type(msg_type):
     # topic_simple: eg vehicle_status
     msg_type['topic_simple'] = msg_type['topic'].split('/')[-1]
 
+    # Optional per-publisher QoS options from YAML 'options:' field.
+    # Converts e.g. {cc: block, express: true} -> "cc=block,express=true"
+    opts = msg_type.get('options', None)
+    if opts and isinstance(opts, dict):
+        # Normalize booleans to lowercase strings expected by the parser.
+        msg_type['pub_options_str'] = ','.join(
+            f"{k}={str(v).lower() if isinstance(v, bool) else v}" for k, v in opts.items()
+        )
+    else:
+        msg_type['pub_options_str'] = ''
+
 def process_message_instance(msg_type):
     if 'instance' in msg_type:
         # if instance is given, check if it is a non negative integer
@@ -115,20 +126,18 @@ def process_message_instance(msg_type):
 
 merged_em_globals['namespace'] = namespace
 
-pubs_not_empty = msg_map['publications'] is not None
-if pubs_not_empty:
-    for p in msg_map['publications']:
-        process_message_type(p)
-        process_message_instance(p)
+pubs = msg_map.get('publications') or []
+for p in pubs:
+    process_message_type(p)
+    process_message_instance(p)
 
-merged_em_globals['publications'] = msg_map['publications'] if pubs_not_empty else []
+merged_em_globals['publications'] = pubs
 
-subs_not_empty = msg_map['subscriptions'] is not None
-if subs_not_empty:
-    for s in msg_map['subscriptions']:
-        process_message_type(s)
+subs = msg_map.get('subscriptions') or []
+for s in subs:
+    process_message_type(s)
 
-merged_em_globals['subscriptions'] = msg_map['subscriptions'] if subs_not_empty else []
+merged_em_globals['subscriptions'] = subs
 
 subs_multi = msg_map.get('subscriptions_multi') or []
 for sd in subs_multi:

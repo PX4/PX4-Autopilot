@@ -625,6 +625,28 @@ void EstimatorChecks::checkEstimatorStatusFlags(const Context &context, Report &
 				mavlink_log_critical(reporter.mavlink_log_pub(), "GNSS heading not reliable - Land now!\t");
 			}
 		}
+
+		if (!context.isArmed()
+		    && (hrt_absolute_time() - estimator_status_flags.timestamp < 5_s)
+		    && !estimator_status_flags.cs_yaw_align) {
+
+			const NavModes heading_required_groups = (NavModes)(
+						reporter.failsafeFlags().mode_req_local_position |
+						reporter.failsafeFlags().mode_req_local_position_relaxed |
+						(1u << vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF));
+
+			/* EVENT
+			 * @description
+			 * No heading source has aligned the EKF yaw
+			 */
+			reporter.armingCheckFailure(heading_required_groups, health_component_t::local_position_estimate,
+						    events::ID("check_estimator_heading_no_source"),
+						    events::Log::Error, "No heading reference");
+
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: no heading reference");
+			}
+		}
 	}
 }
 
@@ -635,10 +657,10 @@ void EstimatorChecks::checkGps(const Context &context, Report &reporter, const s
 		 */
 		reporter.armingCheckFailure(NavModes::None, health_component_t::gps,
 					    events::ID("check_estimator_gps_jamming_critical"),
-					    events::Log::Critical, "GPS jamming detected");
+					    events::Log::Warning, "GPS jamming detected");
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "GPS jamming detected\t");
+			mavlink_log_warning(reporter.mavlink_log_pub(), "GPS jamming detected\t");
 		}
 	}
 }

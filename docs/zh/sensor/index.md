@@ -41,7 +41,7 @@ Optional:
   Enables a more accurate position lock than GPS alone, and can be used indoors when no GPS signal is available.
 - [Tachometers (Revolution Counters)](../sensor/tachometers.md) — Only used for logging.
 
-Other optional:
+Primarily for OEMs/Manufacturers:
 
 - [IMU/Compass Factory Calibration](../advanced_config/imu_factory_calibration.md) — Save calibration settings to persistent storage.
 - [Sensor Thermal Compensation](../advanced_config/sensor_thermal_calibration.md) — Compensate sensors for temperature variations.

@@ -59,40 +59,56 @@ public:
 	MavlinkSignControl();
 	~MavlinkSignControl();
 
-	enum PROTO_SIGN {
-		PROTO_SIGN_OPTIONAL = 0,
-		PROTO_SIGN_NON_USB,
-		PROTO_SIGN_ALWAYS
+	/**
+	 * Initialize signing state and read key from file.
+	 * Only enables signing if a valid key exists on the SD card.
+	 */
+	void start(int instance_id, mavlink_status_t *mavlink_status,
+		   mavlink_accept_unsigned_t accept_unsigned_callback);
+
+	enum SetupSigningResult {
+		NOT_SETUP_SIGNING = 0,  ///< Message was not SETUP_SIGNING
+		KEY_ACCEPTED,           ///< New key provisioned successfully
+		SIGNING_DISABLED,       ///< Signing disabled via signed blank key
+		BLANK_KEY_REJECTED      ///< Blank key rejected (unsigned or signing not active)
 	};
 
 	/**
-	 * Initialize signing and read configuration from file
+	 * Checks whether the message is SETUP_SIGNING, and if yes, updates local key.
+	 * Enables or disables signing based on whether the new key is valid.
 	 */
-	void start(int _instance_id, mavlink_status_t *_mavlink_status, mavlink_accept_unsigned_t accept_unsigned_callback);
+	SetupSigningResult check_for_signing(const mavlink_message_t *msg);
 
 	/**
-	 * Checks whether the message is SETUP_SIGNING, and if yes , updates local key
+	 * Reload key from SD card file. Called on the instance's own receiver thread
+	 * when the signing key dirty flag is set by another instance.
 	 */
-	bool check_for_signing(const mavlink_message_t *msg);
+	void reload_key();
 
 	/**
-	 * stores the key and timestamp from memory to file
+	 * Stores the key and timestamp from memory to file
 	 */
 	void write_key_and_timestamp();
 
 	/**
-	 * Checks whether should accept unsigned message for specific sign mode
+	 * Checks whether an unsigned message should be accepted
 	 */
-	bool accept_unsigned(int32_t sign_mode, bool is_usb_uart, uint32_t message_id);
+	bool accept_unsigned(uint32_t message_id);
+
+	bool is_signing_active() const { return _is_signing_initialized; }
 
 	static bool is_array_all_zeros(uint8_t arr[], size_t size);
+
 private:
 	mavlink_signing_t _mavlink_signing {};
+	mavlink_status_t *_mavlink_status{nullptr};
+
+	bool _is_signing_initialized{false};
 
 	/**
-	 * Checks whether the key has been initialized
+	 * Wire or unwire the signing struct into the mavlink status based on key state.
 	 */
-	bool _is_signing_initialized;
+	void _update_signing_state();
 };
 
 

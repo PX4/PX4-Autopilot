@@ -195,7 +195,7 @@ To use MoCap data with EKF2 you will have to [remap](https://wiki.ros.org/roslau
 
 The local/world and world frames used by ROS and PX4 are different.
 
-| 框架    | ROS                                                                 | ROS                                                                                                      |
+| 框架    | PX4                                                                 | ROS                                                                                                      |
 | ----- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | 机体    | FRD (X **F**orward, Y **R**ight, Z **D**own)     | FLU (X **F**orward, Y **L**eft, Z **U**p), usually named `base_link`                  |
 | 世界坐标系 | FRD or NED (X **N**orth, Y **E**ast, Z **D**own) | FLU or ENU (X **E**ast, Y **N**orth, Z **U**p), with the naming being `odom` or `map` |

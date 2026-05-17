@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -198,6 +198,20 @@ void SensorGpsSim::Run()
 
 		sensor_gps.timestamp = hrt_absolute_time();
 		_sensor_gps_pub.publish(sensor_gps);
+
+		const float gps1_offx = _param_gps1_offx.get();
+		const float gps1_offy = _param_gps1_offy.get();
+
+		if (fabsf(gps1_offx) > 0.f || fabsf(gps1_offy) > 0.f) {
+			// Make instance 1 look like a physically distinct receiver
+			device_id.devid_s.address = 1;
+			sensor_gps.device_id = device_id.devid;
+
+			sensor_gps.latitude_deg  = latitude  + (double)gps1_offx / CONSTANTS_RADIUS_OF_EARTH * (180.0 / M_PI);
+			sensor_gps.longitude_deg = longitude + (double)gps1_offy / CONSTANTS_RADIUS_OF_EARTH * (180.0 / M_PI) / cos(latitude * M_PI / 180.0);
+			sensor_gps.timestamp     = hrt_absolute_time();
+			_sensor_gps_pub2.publish(sensor_gps);
+		}
 	}
 
 	perf_end(_loop_perf);

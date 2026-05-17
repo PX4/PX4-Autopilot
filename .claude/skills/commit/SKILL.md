@@ -1,28 +1,34 @@
 ---
 name: commit
 description: Create a conventional commit for PX4 changes
-disable-model-invocation: true
 argument-hint: "[optional: description of changes]"
 allowed-tools: Bash, Read, Glob, Grep
 ---
 
 # PX4 Conventional Commit
 
-Create a git commit: `type(scope): description`
+Create a git commit in conventional-commit format: `type(scope): description`.
 
-**NEVER add Co-Authored-By lines. No Claude attribution in commits.**
+- **type:** `feat`, `fix`, `refactor`, `perf`, `docs`, `style`, `test`,
+  `build`, `ci`, `chore`, `revert`. Append `!` before `:` for breaking changes.
+- **scope:** the module/driver/area affected — derive from the directory
+  path of the changed files (`src/modules/ekf2/` → `ekf2`,
+  `src/drivers/imu/invensense/icm42688p/` → `drivers/icm42688p`,
+  `.github/workflows/` → `ci`).
+- **description:** imperative, concise, ≥5 chars.
 
-Follow [CONTRIBUTING.md](../../CONTRIBUTING.md) for full project conventions.
+**NEVER add Co-Authored-By Claude Code. No Claude attribution.**
 
 ## Steps
 
-1. **Read [CONTRIBUTING.md](../../CONTRIBUTING.md)** for commit message format, types, scopes, and conventions.
-2. Check branch (`git branch --show-current`). If on `main`, create a feature branch. Use `<username>/<description>` format where `<username>` comes from `gh api user --jq .login`. If unavailable, just use `<description>`.
-3. Run `git status` and `git diff --staged`. If nothing staged, ask what to stage.
-4. Follow the commit message convention from CONTRIBUTING.md: pick the correct **type** and **scope**, write a concise imperative description.
-5. Body (if needed): explain **why**, not what.
-6. Run `make format` or `./Tools/astyle/fix_code_style.sh <file>` on changed C/C++ files before committing.
-7. Check if GPG signing is available: `git config --get user.signingkey`. If set, use `git commit -S -s`. Otherwise, use `git commit -s`.
-8. Stage and commit. No `Co-Authored-By`.
+1. Check branch (`git branch --show-current`). If on `main`, create a feature
+   branch `<username>/<description>` where `<username>` comes from
+   `gh api user --jq .login`.
+2. Run `git status` and `git diff --staged`. If nothing staged, ask what to stage.
+3. Run `make format` (or `./Tools/astyle/fix_code_style.sh <file>`) on changed
+   C/C++ files.
+4. Body (if needed): explain **why**, not what.
+5. Check GPG signing: `git config --get user.signingkey`. If set,
+   `git commit -S -s`; else `git commit -s`.
 
 If the user provided arguments, use them as context: $ARGUMENTS

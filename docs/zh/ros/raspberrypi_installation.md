@@ -18,25 +18,21 @@ Follow [this guide](https://wiki.ros.org/ROSberryPi/Installing%20ROS%20Indigo%20
 如果是这样，请按以下步骤操作：转到您的 catkin 工作区（例如 ~/ros_catkin_ws）并更改包的名称。
 
 ```sh
-$ cd ~/ros_catkin_ws
-
-$ rosinstall_generator ros_tutorials --rosdistro indigo --deps --wet-only --exclude roslisp --tar > indigo-custom_ros.rosinstall
+cd ~/ros_catkin_ws
+rosinstall_generator ros_tutorials --rosdistro indigo --deps --wet-only --exclude roslisp --tar > indigo-custom_ros.rosinstall
 ```
 
 接下来，使用 wstool 更新您的工作区。
 
 ```sh
-$ wstool merge -t src indigo-custom_ros.rosinstall
-
-$ wstool update -t src
+wstool merge -t src indigo-custom_ros.rosinstall
+wstool update -t src
 ```
 
 下一步（仍在工作区文件夹中），source 并创建文件。
 
 ```sh
-$ source /opt/ros/indigo/setup.bash
-
-$ source devel/setup.bash
-
-$ catkin_make
+source /opt/ros/indigo/setup.bash
+source devel/setup.bash
+catkin_make
 ```

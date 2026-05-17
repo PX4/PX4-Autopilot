@@ -93,29 +93,27 @@ static inline constexpr timer_io_channels_t initIOTimerChannel(const io_timers_t
 {
 	timer_io_channels_t ret = initIOTimerGPIOInOut(timer, pin);
 
+	ret.timer_channel = (uint8_t)timer.channel;
+
 	switch (timer.channel) {
 	case Timer::Channel1:
 		ret.ccr_offset = STM32_GTIM_CCR1_OFFSET;
 		ret.masks = GTIM_SR_CC1IF | GTIM_SR_CC1OF;
-		ret.timer_channel = 1;
 		break;
 
 	case Timer::Channel2:
 		ret.ccr_offset = STM32_GTIM_CCR2_OFFSET;
 		ret.masks = GTIM_SR_CC2IF | GTIM_SR_CC2OF;
-		ret.timer_channel = 2;
 		break;
 
 	case Timer::Channel3:
 		ret.ccr_offset = STM32_GTIM_CCR3_OFFSET;
 		ret.masks = GTIM_SR_CC3IF | GTIM_SR_CC3OF;
-		ret.timer_channel = 3;
 		break;
 
 	case Timer::Channel4:
 		ret.ccr_offset = STM32_GTIM_CCR4_OFFSET;
 		ret.masks = GTIM_SR_CC4IF | GTIM_SR_CC4OF;
-		ret.timer_channel = 4;
 		break;
 	}
 

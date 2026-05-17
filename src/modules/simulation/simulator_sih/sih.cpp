@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2025 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -78,6 +78,7 @@ void Sih::run()
 	_last_run = task_start;
 	_airspeed_time = task_start;
 	_dist_snsr_time = task_start;
+	_ranging_beacon_time = task_start;
 	_vehicle = static_cast<VehicleType>(constrain(_sih_vtype.get(),
 					    static_cast<int32_t>(VehicleType::First),
 					    static_cast<int32_t>(VehicleType::Last)));
@@ -232,6 +233,12 @@ void Sih::sensor_step()
 		send_dist_snsr(now);
 	}
 
+	// ranging beacon published at 2 Hz (each beacon at 0.5 Hz)
+	if (now - _ranging_beacon_time >= 500_ms) {
+		_ranging_beacon_time = now;
+		send_ranging_beacon(now);
+	}
+
 	publish_ground_truth(now);
 
 	perf_end(_loop_perf);
@@ -245,6 +252,37 @@ void Sih::parameters_updated()
 	_L_PITCH = _sih_l_pitch.get();
 	_KDV = _sih_kdv.get();
 	_KDW = _sih_kdw.get();
+	_F_T_MAX = _sih_f_thrust_max.get();
+	_F_Q_MAX = _sih_f_torque_max.get();
+
+	// update the thruster models
+	for (size_t i = 0; i < NUM_DYN_THRUSTER; i++) {
+		if (_sih_f_ct0.get() > 0.0f && _sih_f_cp0.get() > 0.0f) {
+			_thruster[i] = Thruster(_sih_forward_diameter_inch.get(), _sih_forward_rpm_max.get(),
+						_sih_f_ct0.get(), _sih_f_ct1.get(), _sih_f_ct2.get(),
+						_sih_f_cp0.get(), _sih_f_cp1.get(), _sih_f_cp2.get());
+
+		} else {
+			_thruster[i] = Thruster(_F_T_MAX, _F_Q_MAX);
+		}
+	}
+
+	if (_sih_f_ct0.get() > 0.0f && _sih_f_cp0.get() > 0.0f) {
+		_F_T_MAX = _thruster[0].get_T_max();
+		_F_Q_MAX = _thruster[0].get_Q_max();
+
+		if (fabsf(_F_T_MAX - _sih_f_thrust_max.get()) > 1.0e-5f) {
+			_sih_f_thrust_max.set(_F_T_MAX);
+			_sih_f_thrust_max.commit();
+			PX4_INFO("SIH_F_CT0 > 0, using propeller dynamic model, overriding SIH_F_T_MAX");
+		}
+
+		if (fabsf(_F_Q_MAX - _sih_f_torque_max.get()) > 1.0e-5f) {
+			_sih_f_torque_max.set(_F_Q_MAX);
+			_sih_f_torque_max.commit();
+			PX4_INFO("SIH_F_CP0 > 0, using propeller dynamic model, overriding SIH_F_Q_MAX");
+		}
+	}
 
 	if (!_lpos_ref.isInitialized()
 	    || (fabsf(static_cast<float>(_lpos_ref.getProjectionReferenceLat()) - _sih_lat0.get()) > FLT_EPSILON)
@@ -259,7 +297,7 @@ void Sih::parameters_updated()
 		_lla.setAltitude(_lpos_ref_alt);
 		_p_E = _lla.toEcef();
 
-		const Dcmf R_E2N = computeRotEcefToNed(_lla);
+		const Dcmf R_E2N = _lla.computeRotEcefToNed();
 		_R_N2E = R_E2N.transpose();
 		_v_E = _R_N2E * _v_N;
 
@@ -307,7 +345,11 @@ void Sih::read_motors(const float dt)
 
 void Sih::generate_force_and_torques(const float dt)
 {
+	// air-relative velocity in body frame [m/s]
+	_v_B = _q_E.rotateVectorInverse(_R_N2E * _v_apparent_N);
+
 	if (_vehicle == VehicleType::Quadcopter) {
+
 		_T_B = Vector3f(0.0f, 0.0f, -_T_MAX * (+_u[0] + _u[1] + _u[2] + _u[3]));
 		_Mt_B = Vector3f(_L_ROLL * _T_MAX * (-_u[0] + _u[1] + _u[2] - _u[3]),
 				 _L_PITCH * _T_MAX * (+_u[0] - _u[1] + _u[2] - _u[3]),
@@ -324,37 +366,48 @@ void Sih::generate_force_and_torques(const float dt)
 		       m3    m2
 		          ├1/2┤
 		          ├  1  ┤    */
-		_T_B = Vector3f(0.0f, 0.0f, -_T_MAX * (+_u[0] + _u[1] + _u[2] + _u[3] + _u[4] + _u[5]));
-		_Mt_B = Vector3f(_L_ROLL * _T_MAX * (-.5f * _u[0] - _u[1] - .5f * _u[2] + .5f * _u[3] + _u[4] + .5f * _u[5]),
-				 _L_PITCH * _T_MAX * (M_SQRT3_F / 2.f) * (+_u[0] - _u[2] - _u[3] + _u[5]),
-				 _Q_MAX * (+_u[0] - _u[1] + _u[2] - _u[3] + _u[4] - _u[5]));
+		float u_sq[6];
 
+		for (int i = 0; i < 6; ++i) {
+			u_sq[i] = _u[i] * _u[i]; // quadratic thrust model, keep _u[i] intact for the filter
+		}
+
+		_T_B = Vector3f(0.0f, 0.0f, -_T_MAX * (+u_sq[0] + u_sq[1] + u_sq[2] + u_sq[3] + u_sq[4] + u_sq[5]));
+		_Mt_B = Vector3f(_L_ROLL * _T_MAX * (-.5f * u_sq[0] - u_sq[1] - .5f * u_sq[2] + .5f * u_sq[3] + u_sq[4] + .5f * u_sq[5]),
+				 _L_PITCH * _T_MAX * (M_SQRT3_F / 2.f) * (+u_sq[0] - u_sq[2] - u_sq[3] + u_sq[5]),
+				 _Q_MAX * (+u_sq[0] - u_sq[1] + u_sq[2] - u_sq[3] + u_sq[4] - u_sq[5]));
 		_Fa_E = -_KDV * _R_N2E * _v_apparent_N; // first order drag to slow down the aircraft
 		_Ma_B = -_KDW * _w_B; // first order angular damper
 
 	} else if (_vehicle == VehicleType::FixedWing) {
-		_T_B = Vector3f(_T_MAX * _u[3], 0.0f, 0.0f); 	// forward thruster
-		// _Mt_B = Vector3f(_Q_MAX*_u[3], 0.0f,0.0f); 	// thruster torque
-		_Mt_B = Vector3f();
-		generate_fw_aerodynamics(_u[0], _u[1], _u[2], _u[3]);
+
+		_T[0] = _thruster[0].compute_thrust_from_throttle(_u[3], _v_B(0));
+		_Q[0] = _thruster[0].compute_torque_from_throttle(_u[3], _v_B(0));
+		_T_B = Vector3f(_T[0], 0.0f, 0.0f); 	// forward thruster
+		_Mt_B = Vector3f(_Q[0], 0.0f, 0.0f);	// thruster torque
+		generate_fw_aerodynamics(_u[0], _u[1], _u[2], _T[0]);
 
 	} else if (_vehicle == VehicleType::TailsitterVTOL) {
-		_T_B = Vector3f(0.0f, 0.0f, -_T_MAX * (_u[0] + _u[1]));
-		_Mt_B = Vector3f(_L_ROLL * _T_MAX * (_u[1] - _u[0]), 0.0f, _Q_MAX * (_u[1] - _u[0]));
-		generate_ts_aerodynamics();
 
-		// _Fa_E = -_KDV * _R_N2E * _v_apparent_N; // first order drag to slow down the aircraft
-		// _Ma_B = -_KDW * _w_B; // first order angular damper
+		for (size_t i = 0; i < NUM_DYN_THRUSTER; i++) {
+			_T[i] = _thruster[i].compute_thrust_from_throttle(_u[i], -_v_B(2));
+			_Q[i] = _thruster[i].compute_torque_from_throttle(_u[i], -_v_B(2));
+		}
+
+		_T_B = Vector3f(0.0f, 0.0f, -_T[0] - _T[1]);
+		_Mt_B = Vector3f(_L_ROLL * (_T[1] - _T[0]), 0.0f, _Q[1] - _Q[0]);
+		generate_ts_aerodynamics();
 
 	} else if (_vehicle == VehicleType::StandardVTOL) {
 
-		_T_B = Vector3f(_T_MAX * 2 * _u[7], 0.0f, -_T_MAX * (+_u[0] + _u[1] + _u[2] + _u[3]));
-		_Mt_B = Vector3f(_L_ROLL * _T_MAX * (-_u[0] + _u[1] + _u[2] - _u[3]),
+		_T[0] = _thruster[0].compute_thrust_from_throttle(_u[7], _v_B(0));
+		_Q[0] = _thruster[0].compute_torque_from_throttle(_u[7], _v_B(0));
+		_T_B = Vector3f(_T[0], 0.0f, -_T_MAX * (+_u[0] + _u[1] + _u[2] + _u[3]));
+		_Mt_B = Vector3f(_L_ROLL * _T_MAX * (-_u[0] + _u[1] + _u[2] - _u[3]) + _Q[0],
 				 _L_PITCH * _T_MAX * (+_u[0] - _u[1] + _u[2] - _u[3]),
 				 _Q_MAX * (+_u[0] + _u[1] - _u[2] - _u[3]));
 
-		// thrust 0 because it is already contained in _T_B. in
-		// equations_of_motion they are all summed into sum_of_forces_E
+		// thrust 0 means no propwash on the tail
 		generate_fw_aerodynamics(_u[4], _u[5], _u[6], 0);
 
 	} else if (_vehicle == VehicleType::RoverAckermann) {
@@ -363,21 +416,20 @@ void Sih::generate_force_and_torques(const float dt)
 }
 
 void Sih::generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, const float yaw_cmd,
-				   const float throttle_cmd)
+				   const float thrust_for_prowash)
 {
-	const Vector3f v_B = _q.rotateVectorInverse(_v_apparent_N);
 	const float &alt = _lla.altitude();
 
-	_wing_l.update_aero(v_B, _w_B, alt, roll_cmd * FLAP_MAX);
-	_wing_r.update_aero(v_B, _w_B, alt, -roll_cmd * FLAP_MAX);
+	_wing_l.update_aero(_v_B, _w_B, alt, roll_cmd * FLAP_MAX);
+	_wing_r.update_aero(_v_B, _w_B, alt, -roll_cmd * FLAP_MAX);
 
-	_tailplane.update_aero(v_B, _w_B, alt, -pitch_cmd * FLAP_MAX, _T_MAX * throttle_cmd);
-	_fin.update_aero(v_B, _w_B, alt, yaw_cmd * FLAP_MAX, _T_MAX * throttle_cmd);
-	_fuselage.update_aero(v_B, _w_B, alt);
+	_tailplane.update_aero(_v_B, _w_B, alt, -pitch_cmd * FLAP_MAX, thrust_for_prowash);
+	_fin.update_aero(_v_B, _w_B, alt, yaw_cmd * FLAP_MAX, thrust_for_prowash);
+	_fuselage.update_aero(_v_B, _w_B, alt);
 
 	// sum of aerodynamic forces
 	const Vector3f Fa_B = _wing_l.get_Fa() + _wing_r.get_Fa() + _tailplane.get_Fa() + _fin.get_Fa() + _fuselage.get_Fa() -
-			      _KDV * v_B;
+			      _KDV * _v_B;
 	_Fa_E = _q_E.rotateVector(Fa_B);
 
 	// aerodynamic moments
@@ -386,11 +438,8 @@ void Sih::generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, 
 
 void Sih::generate_ts_aerodynamics()
 {
-	// velocity in body frame [m/s]
-	const Vector3f v_B = _q.rotateVectorInverse(_v_apparent_N);
-
 	// the aerodynamic is resolved in a frame like a standard aircraft (nose-right-belly)
-	Vector3f v_ts = _R_S2B.transpose() * v_B;
+	Vector3f v_ts = _R_S2B.transpose() * _v_B;
 	Vector3f w_ts = _R_S2B.transpose() * _w_B;
 	float altitude = _lpos_ref_alt - _lpos(2);
 
@@ -399,17 +448,17 @@ void Sih::generate_ts_aerodynamics()
 
 	for (int i = 0; i < NB_TS_SEG; i++) {
 		if (i <= NB_TS_SEG / 2) {
-			_ts[i].update_aero(v_ts, w_ts, altitude, _u[5]*TS_DEF_MAX, _T_MAX * _u[1]);
+			_ts[i].update_aero(v_ts, w_ts, altitude, _u[5]*TS_DEF_MAX, _T[1]);
 
 		} else {
-			_ts[i].update_aero(v_ts, w_ts, altitude, -_u[4]*TS_DEF_MAX, _T_MAX * _u[0]);
+			_ts[i].update_aero(v_ts, w_ts, altitude, -_u[4]*TS_DEF_MAX, _T[0]);
 		}
 
 		Fa_ts += _ts[i].get_Fa();
 		Ma_ts += _ts[i].get_Ma();
 	}
 
-	const Vector3f Fa_B = _R_S2B * Fa_ts - _KDV * v_B; 	// sum of aerodynamic forces
+	const Vector3f Fa_B = _R_S2B * Fa_ts - _KDV * _v_B; 	// sum of aerodynamic forces
 	_Fa_E = _q_E.rotateVector(Fa_B);
 	_Ma_B = _R_S2B * Ma_ts - _KDW * _w_B; 	// aerodynamic moments
 }
@@ -571,7 +620,7 @@ void Sih::ecefToNed()
 {
 	_lla = LatLonAlt::fromEcef(_p_E);
 
-	const Dcmf C_SE = computeRotEcefToNed(_lla);
+	const Dcmf C_SE = _lla.computeRotEcefToNed();
 	_R_N2E = C_SE.transpose();
 
 	// Transform velocity to NED frame
@@ -580,22 +629,6 @@ void Sih::ecefToNed()
 
 	_q = Quatf(C_SE) * _q_E;
 	_q.normalize();
-}
-
-Dcmf Sih::computeRotEcefToNed(const LatLonAlt &lla)
-{
-	// Calculate the ECEF to NED coordinate transformation matrix
-	const double cos_lat = cos(lla.latitude_rad());
-	const double sin_lat = sin(lla.latitude_rad());
-	const double cos_lon = cos(lla.longitude_rad());
-	const double sin_lon = sin(lla.longitude_rad());
-
-	const float val[] = {(float)(-sin_lat * cos_lon), (float)(-sin_lat * sin_lon), (float)cos_lat,
-			     (float) - sin_lon, (float)cos_lon, 0.f,
-			     (float)(-cos_lat * cos_lon), (float)(-cos_lat * sin_lon), (float) - sin_lat
-			    };
-
-	return Dcmf(val);
 }
 
 void Sih::reconstruct_sensors_signals(const hrt_abstime &time_now_us)
@@ -676,6 +709,55 @@ void Sih::send_dist_snsr(const hrt_abstime &time_now_us)
 
 	distance_sensor.timestamp = hrt_absolute_time();
 	_distance_snsr_pub.publish(distance_sensor);
+}
+
+void Sih::send_ranging_beacon(const hrt_abstime &time_now_us)
+{
+	if (_lpos_ref.isInitialized()) {
+
+		if (!_beacons_configured) {
+			_beacons_configured = true;
+
+			for (uint8_t i = 0; i < NUM_RANGING_BEACONS; i++) {
+				_lpos_ref.reproject(RANGING_BEACON_OFFSETS[i].north_m, RANGING_BEACON_OFFSETS[i].east_m,
+						    _ranging_beacons[i].lat_deg, _ranging_beacons[i].lon_deg);
+				_ranging_beacons[i].alt_m = _sih_h0.get() + RANGING_BEACON_OFFSETS[i].alt_offset_m;
+			}
+		}
+
+		const RangingBeaconConfig &beacon = _ranging_beacons[_ranging_beacon_idx];
+		const LatLonAlt beacon_lla(beacon.lat_deg, beacon.lon_deg, beacon.alt_m);
+		const matrix::Vector3d beacon_ecef = beacon_lla.toEcef();
+
+		// Compute true range in ECEF
+		const matrix::Vector3d delta_ecef = beacon_ecef - _p_E;
+		const double true_range_m = delta_ecef.norm();
+
+		const float noise_std = _sih_ranging_beacon_noise.get();
+		const float noise_m = (noise_std > 0.f) ? generate_wgn() * noise_std : 0.f;
+		const double measured_range_m = math::max(0.0, true_range_m + static_cast<double>(noise_m));
+
+		ranging_beacon_s msg{};
+		msg.timestamp = hrt_absolute_time();
+		msg.timestamp_sample = time_now_us;
+		msg.beacon_id = _ranging_beacon_idx;
+		msg.range = static_cast<float>(measured_range_m);
+		msg.lat = beacon.lat_deg;
+		msg.lon = beacon.lon_deg;
+		msg.alt = beacon.alt_m;
+		msg.alt_type = 0; // WGS84
+		msg.hacc = 1.0f;
+		msg.vacc = 1.0f;
+		msg.range_accuracy = noise_std;
+		msg.sequence_nr = 0;
+		msg.status = 0;
+		msg.carrier_freq = 0;
+
+		_ranging_beacon_pub.publish(msg);
+
+		// cycle through the beacons
+		_ranging_beacon_idx = (_ranging_beacon_idx + 1) % NUM_RANGING_BEACONS;
+	}
 }
 
 void Sih::publish_ground_truth(const hrt_abstime &time_now_us)
@@ -802,15 +884,21 @@ int Sih::print_status()
 
 	} else if (_vehicle == VehicleType::FixedWing) {
 		PX4_INFO("Fixed-Wing");
+		PX4_INFO("propeller model:");
+		_thruster[0].print_status();
 
 	} else if (_vehicle == VehicleType::TailsitterVTOL) {
 		PX4_INFO("TailSitter");
+		PX4_INFO("propeller model:");
+		_thruster[0].print_status();
 		PX4_INFO("aoa [deg]: %d", (int)(degrees(_ts[4].get_aoa())));
 		PX4_INFO("v segment (m/s)");
 		_ts[4].get_vS().print();
 
 	} else if (_vehicle == VehicleType::StandardVTOL) {
 		PX4_INFO("Standard VTOL");
+		PX4_INFO("pusher propeller model:");
+		_thruster[0].print_status();
 
 	} else if (_vehicle == VehicleType::RoverAckermann) {
 		PX4_INFO("Rover Ackermann");
@@ -832,6 +920,8 @@ int Sih::print_status()
 	(_R_N2E.transpose() * _Fa_E).print();
 	PX4_INFO("Aerodynamic moments body frame (Nm)");
 	_Ma_B.print();
+	PX4_INFO("Thruster forces in body frame (N)");
+	_T_B.print();
 	PX4_INFO("Thruster moments in body frame (Nm)");
 	_Mt_B.print();
 	return 0;

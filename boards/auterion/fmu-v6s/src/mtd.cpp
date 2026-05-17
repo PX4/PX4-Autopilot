@@ -37,15 +37,14 @@
 #include <nuttx/spi/spi.h>
 #include <px4_platform_common/px4_manifest.h>
 
-static const px4_mft_device_t spi4 = {             // FM25V02A on FMUM native: 128K X 8, emulated as (1024 Blocks of 32)
+static const px4_mft_device_t spi4 = {             // MB85RS1MT on FMUM native: 1Mbit, emulated as (1024 Blocks of 32)
 	.bus_type = px4_mft_device_t::SPI,
 	.devid    = SPIDEV_FLASH(0)
 };
-static const px4_mft_device_t i2c4 = {             // 24LC64T   8K 32 X 256
+static const px4_mft_device_t i2c4 = {             // 24LC64T   8K 32 X 256 or 16K for EEPROM only boards
 	.bus_type =  px4_mft_device_t::I2C,
 	.devid    =  PX4_MK_I2C_DEVID(4, 0x50)
 };
-
 
 static const px4_mtd_entry_t fmum_fram = {
 	.device = &spi4,
@@ -59,7 +58,36 @@ static const px4_mtd_entry_t fmum_fram = {
 	},
 };
 
+/* EEPROM layout for EEPROM-only boards (128Kbit, 512 pages x 32B = 16KB). */
+static constexpr uint32_t kEepromParts = 3;
+
 static const px4_mtd_entry_t fmum_eeprom = {
+	.device = &i2c4,
+	.npart = kEepromParts,
+	.partd = {
+		{
+			.type = MTD_MFT_VER,
+			.path = "/fs/mtd_mft_ver",
+			.nblocks = 1
+		},
+		{
+			.type = MTD_MFT_REV,
+			.path = "/fs/mtd_mft_rev",
+			.nblocks = 1
+		},
+		{
+			.type = MTD_NET,
+			.path = "/fs/mtd_net",
+			.nblocks = 1
+		}
+	},
+};
+static_assert(kEepromParts == 3,
+	      "EEPROM partition count changed: update init.c accordingly");
+
+/* EEPROM layout for FRAM boards (64Kbit, 256 pages x 32B = 8KB).
+ * Matches existing layout for backwards compatibility reasons. */
+static const px4_mtd_entry_t fmum_eeprom_fram = {
 	.device = &i2c4,
 	.npart = 5,
 	.partd = {
@@ -81,22 +109,24 @@ static const px4_mtd_entry_t fmum_eeprom = {
 		{
 			.type = MTD_ID,
 			.path = "/fs/mtd_id",
-			.nblocks = 8 // 256 = 32 * 8
+			.nblocks = 8
 		},
 		{
 			.type = MTD_NET,
 			.path = "/fs/mtd_net",
-			.nblocks = 8 // 256 = 32 * 8
+			.nblocks = 8
 		}
 	},
 };
 
 static const px4_mtd_manifest_t board_mtd_config = {
-	.nconfigs   = 2,
-	.entries = {
-		&fmum_fram,
-		&fmum_eeprom
-	}
+	.nconfigs = 1,
+	.entries = { &fmum_eeprom }
+};
+
+static const px4_mtd_manifest_t board_mtd_config_fram = {
+	.nconfigs = 2,
+	.entries = { &fmum_eeprom_fram, &fmum_fram }
 };
 
 static const px4_mft_entry_s mtd_mft = {
@@ -104,20 +134,36 @@ static const px4_mft_entry_s mtd_mft = {
 	.pmft = (void *) &board_mtd_config,
 };
 
+static const px4_mft_entry_s mtd_mft_fram = {
+	.type = MTD,
+	.pmft = (void *) &board_mtd_config_fram,
+};
+
 static const px4_mft_entry_s mft_mft = {
 	.type = MFT,
 	.pmft = (void *) system_query_manifest,
 };
 
+/* Manifest for EEPROM only boards */
 static const px4_mft_s mft = {
 	.nmft = 2,
-	.mfts = {
-		&mtd_mft,
-		&mft_mft,
-	}
+	.mfts = { &mtd_mft, &mft_mft }
 };
+
+/* Manifest for EEPROM + FRAM boards */
+static const px4_mft_s mft_fram = {
+	.nmft = 2,
+	.mfts = { &mtd_mft_fram, &mft_mft }
+};
+
+static const px4_mft_s *g_manifest = &mft;
 
 const px4_mft_s *board_get_manifest(void)
 {
-	return &mft;
+	return g_manifest;
+}
+
+void board_configure_fram()
+{
+	g_manifest = &mft_fram;
 }

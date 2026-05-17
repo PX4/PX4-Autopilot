@@ -342,7 +342,7 @@ PX4-Autopilot/
 │ │ ├── public_key.pub # Public key in hex format
 ```
 
-备注：
+Notes:
 
 - The script will not overwrite any existing keys in the folders.
   It will generate a new public key if the folder only includes a private key.

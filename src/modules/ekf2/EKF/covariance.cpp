@@ -296,10 +296,12 @@ void Ekf::constrainStateVar(const IdxDof &state, float min, float max)
 		} else if (P(i, i) > max) {
 			// Constrain the variance growth by fusing zero innovation as clipping the variance
 			// would artifically increase the correlation between states and destabilize the filter.
+			// constrain_variances=false prevents unbounded recursion via
+			// fuseDirectStateMeasurement -> constrainStateVariances -> constrainStateVar -> here.
 			const float innov = 0.f;
 			const float R = 10.f * P(i, i); // This reduces the variance by ~10% as K = P / (P + R)
 			const float innov_var = P(i, i) + R;
-			fuseDirectStateMeasurement(innov, innov_var, R, i);
+			fuseDirectStateMeasurement(innov, innov_var, R, i, /*constrain_variances=*/false);
 		}
 	}
 }

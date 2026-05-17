@@ -103,7 +103,7 @@ protected:
 	 */
 	virtual int	probe() { return PX4_OK; }
 
-	virtual void set_device_address(int address);
+	virtual void set_device_address(int address, bool log = true);
 
 	/**
 	 * Perform an I2C transaction to the device.

@@ -174,7 +174,7 @@ _MR-VMU-RT1176_ connectors (following [Pixhawk Connector Standard](https://githu
 
 [NXP MR-VMU-RT1176 Baseboard Pinout](https://nxp.gitbook.io/vmu-rt1176/pin-out) (nxp.gitbook.io)
 
-참고:
+Notes:
 
 - The [camera capture pin](../camera/fc_connected_camera.md#camera-capture-configuration) (`PI0`) is pin 2 on the AD&IO port, marked above as `FMU_CAP1`.
 

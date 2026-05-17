@@ -342,6 +342,19 @@ mft_cfg <command> [arguments...]
                  <hwver>, id == revision for <hwrev> )
 ```
 
+## mklittlefs
+
+Source: [systemcmds/mklittlefs](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/mklittlefs)
+
+Format a device with the littlefs filesystem.
+
+### Usage {#mklittlefs_usage}
+
+```
+mklittlefs [arguments...]
+     <device> <mountpoint> Device and mount point (e.g. /dev/mtd0 /fs/flash)
+```
+
 ## mtd
 
 Source: [systemcmds/mtd](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/mtd)
@@ -440,6 +453,7 @@ param <command> [arguments...]
    show          Show parameter values
      [-a]        Show all parameters (not just used)
      [-c]        Show only changed params (unused too)
+     [-l]        Show only locked (read-only) params
      [-q]        quiet mode, print only param value (name needs to be exact)
      [<filter>]  Filter by param name (wildcard at end allowed, eg. sys_*)
 
@@ -484,6 +498,8 @@ param <command> [arguments...]
 
    find          Show index of a param
      <param>     param name
+
+   lock          Lock read-only params (reject future set/reset)
 ```
 
 ## payload_deliverer

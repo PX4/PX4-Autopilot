@@ -76,6 +76,8 @@ static constexpr uint64_t GNSS_YAW_MAX_INTERVAL =
 	1500e3; ///< Maximum allowable time interval between GNSS yaw measurements (uSec)
 static constexpr uint64_t MAG_MAX_INTERVAL      =
 	500e3;  ///< Maximum allowable time interval between magnetic field measurements (uSec)
+static constexpr uint64_t RNGBC_MAX_INTERVAL    =
+	5000e3;  ///< Maximum allowable time interval between ranging beacon measurements (uSec)
 
 // bad accelerometer detection and mitigation
 static constexpr uint64_t BADACC_PROBATION =
@@ -262,6 +264,16 @@ struct auxVelSample {
 };
 #endif // CONFIG_EKF2_AUXVEL
 
+struct rangingBeaconSample {
+	uint64_t    time_us{};     ///< timestamp of the measurement (uSec)
+	uint8_t     beacon_id{};   ///< beacon identifier
+	float       range_m{};     ///< measured range to beacon (m)
+	float       range_var{};   ///< range measurement variance (m^2)
+	double      beacon_lat{};  ///< beacon latitude (degrees)
+	double      beacon_lon{};  ///< beacon longitude (degrees)
+	float       beacon_alt{};  ///< beacon altitude AMSL (m)
+};
+
 struct systemFlagUpdate {
 	uint64_t time_us{};
 	bool at_rest{false};
@@ -270,6 +282,27 @@ struct systemFlagUpdate {
 	bool gnd_effect{false};
 	bool constant_pos{false};
 	bool in_transition{false};
+};
+
+// Runtime fusion control. Populated by EKF2 module, read by EKF core.
+static constexpr uint8_t MAX_AGP_INSTANCES = 4;
+
+struct FusionSensor {
+	bool enabled{false};   // runtime toggleable via MAVLink
+	bool available{false}; // CTRL-param != disabled-value (functions as factory-setting)
+	bool intended() const { return enabled && available; }
+};
+
+struct FusionControl {
+	FusionSensor gps;
+	FusionSensor of;
+	FusionSensor ev;
+	FusionSensor agp[MAX_AGP_INSTANCES];
+	FusionSensor baro;
+	FusionSensor rng;
+	FusionSensor mag;
+	FusionSensor aspd;
+	FusionSensor rngbcn;
 };
 
 struct parameters {
@@ -281,6 +314,7 @@ struct parameters {
 	float ekf2_vel_lim{100.f};              ///< velocity state limit (m/s)
 
 	// measurement source control
+	int32_t ekf2_sens_en{8191};             ///< sensor fusion enable bitmask (EKF2_SENS_EN)
 	int32_t ekf2_hgt_ref{static_cast<int32_t>(HeightSensor::BARO)};
 	int32_t position_sensor_ref{static_cast<int32_t>(PositionSensor::GNSS)};
 
@@ -307,7 +341,7 @@ struct parameters {
 
 #if defined(CONFIG_EKF2_BAROMETER)
 	int32_t ekf2_baro_ctrl {1};
-	float ekf2_baro_delay{0.0f};            ///< barometer height measurement delay relative to the IMU (mSec)
+	float ekf2_baro_delay {0.0f};           ///< barometer height measurement delay relative to the IMU (mSec)
 	float ekf2_baro_noise{2.0f};            ///< observation noise for barometric height fusion (m)
 	float baro_bias_nsd{0.13f};             ///< process noise for barometric height bias estimation (m/s/sqrt(Hz))
 	float ekf2_baro_gate{5.0f};             ///< barometric and GPS height innovation consistency gate size (STD)
@@ -436,7 +470,7 @@ struct parameters {
 	float ekf2_ev_delay{175.0f};            ///< off-board vision measurement delay relative to the IMU (mSec)
 	float ekf2_evv_noise{0.1f};             ///< minimum allowed observation noise for EV velocity fusion (m/sec)
 	float ekf2_evp_noise{0.1f};             ///< minimum allowed observation noise for EV position fusion (m)
-	float ekf2_eva_noise{0.1f};             ///< minimum allowed observation noise for EV attitude fusion (rad/sec)
+	float ekf2_eva_noise{0.1f};             ///< minimum allowed observation noise for EV attitude fusion (rad)
 	int32_t ekf2_ev_qmin{0};                ///< vision minimum acceptable quality integer
 	float ekf2_evv_gate{3.0f};              ///< vision velocity fusion innovation consistency gate size (STD)
 	float ekf2_evp_gate{5.0f};              ///< vision position fusion innovation consistency gate size (STD)
@@ -502,6 +536,14 @@ struct parameters {
 	const float auxvel_noise{0.5f};         ///< minimum observation noise, uses reported noise if greater (m/s)
 	const float auxvel_gate{5.0f};          ///< velocity fusion innovation consistency gate size (STD)
 #endif // CONFIG_EKF2_AUXVEL
+
+#if defined(CONFIG_EKF2_RANGING_BEACON)
+	// ranging beacon fusion
+	int32_t ekf2_rngbc_ctrl{0};            ///< ranging beacon fusion control (0=disabled, 1=enabled)
+	float ekf2_rngbc_delay{0.f};          ///< ranging beacon measurement delay relative to the IMU (mSec)
+	float ekf2_rngbc_noise{1.f};           ///< ranging beacon measurement noise (m)
+	float ekf2_rngbc_gate{5.f};            ///< ranging beacon fusion innovation consistency gate size (STD)
+#endif // CONFIG_EKF2_RANGING_BEACON
 
 };
 
@@ -592,6 +634,8 @@ uint64_t gnss_hgt_fault              :
 		1; ///< 47 - true if GNSS measurements (alt) have been declared faulty and are no longer used
 		uint64_t in_transition 	         : 1; ///< 48 - true if the vehicle is in vtol transition
 		uint64_t heading_observable      : 1; ///< 49 - true when heading is observable
+		uint64_t rngbcn_fusion           : 1; ///< 50 - true when ranging beacon position fusion is active
+
 	} flags;
 	uint64_t value;
 };

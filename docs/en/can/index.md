@@ -37,7 +37,7 @@ The wiring for CAN networks is the same for both DroneCAN and Cyphal/CAN (in fac
 Devices within a network are connected in a _daisy-chain_ in any order (this differs from UARTs peripherals, where you attach just one component per port).
 
 :::warning Don't connect each CAN peripheral to a separate CAN port!
-Unlike UARTs, CAN peripherals are designed to be daisy chained, with additional ports such as `CAN2` used for [redundancy](redundancy).
+Unlike UARTs, CAN peripherals are designed to be daisy chained, with additional ports such as `CAN2` used for [redundancy](#redundancy).
 :::
 
 At either end of the chain, a 120Ω termination resistor should be connected between the two data lines.
@@ -83,7 +83,7 @@ You only _need_ one CAN port to support an arbitrary number of CAN devices using
 Don't connect each CAN peripheral to a separate CAN port!
 :::
 
-Generally you'll daisy all CAN peripherals off a single port, and if there is more than one CAN port, use the second one for [redundancy](redundancy).
+Generally you'll daisy all CAN peripherals off a single port, and if there is more than one CAN port, use the second one for [redundancy](#redundancy).
 If three are three ports, you might use the remaining network for devices that support another CAN protocol.
 
 The documentation for your flight controller should indicate which ports are supported/enabled.
