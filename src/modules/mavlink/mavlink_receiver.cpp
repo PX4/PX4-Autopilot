@@ -60,6 +60,7 @@
 #include "mavlink_command_sender.h"
 #include "mavlink_main.h"
 #include "mavlink_receiver.h"
+#include "mavlink_ext_handler.h"
 
 #include <lib/drivers/device/Device.hpp> // For DeviceId union
 #include <containers/LockGuard.hpp>
@@ -351,6 +352,7 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 #endif
 
 	default:
+		mavlink_ext_handler_dispatch(msg);
 		break;
 	}
 
@@ -1344,6 +1346,8 @@ MavlinkReceiver::handle_message_esc_eeprom(mavlink_message_t *msg)
 	_esc_eeprom_write_pub.publish(eeprom);
 }
 #endif // MAVLINK_MSG_ID_ESC_EEPROM
+
+
 
 void
 MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)

@@ -60,6 +60,7 @@
 #include <uORB/topics/event.h>
 #include "mavlink_receiver.h"
 #include "mavlink_main.h"
+#include "mavlink_ext_stream.h"
 
 #ifdef MAVLINK_UDP
 #include <sys/time.h>
@@ -2539,6 +2540,9 @@ Mavlink::task_main(int argc, char *argv[])
 				}
 			}
 		}
+
+		/* dispatch registered external outbound streams */
+		mavlink_ext_stream_dispatch(static_cast<uint8_t>(get_channel()));
 
 		/* check for ulog streaming messages */
 		if (_mavlink_ulog) {

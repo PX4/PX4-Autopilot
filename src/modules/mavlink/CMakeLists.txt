@@ -124,6 +124,8 @@ px4_add_module(
 		MavlinkStatustextHandler.cpp
 		open_drone_id_translations.cpp
 		tune_publisher.cpp
+		mavlink_ext_handler.cpp
+		mavlink_ext_stream.cpp
 	MODULE_CONFIG
 		module.yaml
 		mavlink_params.yaml
