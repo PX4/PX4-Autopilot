@@ -119,7 +119,7 @@ public:
 	{
 		float hagl_var = 0.f;
 		sym::ComputeHaglInnovVar(P, 0.f, &hagl_var);
-		return hagl_var;
+		return fmaxf(hagl_var, 0.f);
 	}
 
 #endif // CONFIG_EKF2_TERRAIN
