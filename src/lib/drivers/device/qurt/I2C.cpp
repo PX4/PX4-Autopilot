@@ -99,6 +99,10 @@ I2C::init()
 {
 	int ret = PX4_ERROR;
 
+	if (_i2c_fd != -1) {
+		return PX4_OK;
+	}
+
 	if (_config_i2c_bus == NULL) {
 		PX4_ERR("NULL i2c init function");
 		goto out;
