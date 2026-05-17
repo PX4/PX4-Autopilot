@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,354 +31,387 @@
  *
  ****************************************************************************/
 
-/**
- * Driver for the I2C attached INA238
- */
-
 #include "ina238.h"
 
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
 
-INA238::INA238(const I2CSPIDriverConfig &config, int battery_index) :
-	I2C(config),
-	ModuleParams(nullptr),
-	I2CSPIDriver(config),
-	_sample_perf(perf_alloc(PC_ELAPSED, "ina238_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "ina238_com_err")),
-	_collection_errors(perf_alloc(PC_COUNT, "ina238_collection_err")),
-	_battery(battery_index, this, INA238_SAMPLE_INTERVAL_US, battery_status_s::SOURCE_POWER_MODULE)
+using namespace ina238;
+
+INA238::INA238(const I2CSPIDriverConfig &config, int battery_index)
+	: I2C(config),
+	  ModuleParams(nullptr),
+	  I2CSPIDriver(config),
+	  _battery(battery_index, this, SAMPLE_INTERVAL_US, battery_status_s::SOURCE_POWER_MODULE),
+	  _sample_perf(perf_alloc(PC_ELAPSED, "ina238_read")),
+	  _comms_errors(perf_alloc(PC_COUNT, "ina238_com_err")),
+	  _collection_errors(perf_alloc(PC_COUNT, "ina238_collection_err")),
+	  _bad_register_perf(perf_alloc(PC_COUNT, "ina238_bad_register")),
+	  _reinit_perf(perf_alloc(PC_COUNT, "ina238_reinit"))
 {
-	float fvalue = DEFAULT_MAX_CURRENT;
-	_max_current = fvalue;
-	param_t ph = param_find("INA238_CURRENT");
+	float max_current = _param_ina238_current.get();
+	float shunt_resistance = _param_ina238_shunt.get();
 
-	if (ph != PARAM_INVALID && param_get(ph, &fvalue) == PX4_OK) {
-		_max_current = fvalue;
-	}
+	// Pick the ADC range so the device doesn't clip at the configured max current.
+	// Datasheet §8.2.2.1: R_SHUNT * I_MAX < V_SENSE_MAX.
+	const float v_sense_max = shunt_resistance * max_current;
+	const bool use_low_range = (v_sense_max <= ADCRANGE_LOW_V_SENSE);
+	_config_value = use_low_range ? RANGE_LOW : RANGE_HIGH;
 
-	fvalue = DEFAULT_SHUNT;
-	_rshunt = fvalue;
-	ph = param_find("INA238_SHUNT");
+	_current_lsb = max_current / 32768.f; // From datasheet: current_lsb = max_current / 2^15
+	_shunt_calibration = static_cast<uint16_t>(SHUNT_CAL_K * _current_lsb * shunt_resistance);
 
-	if (ph != PARAM_INVALID && param_get(ph, &fvalue) == PX4_OK) {
-		_rshunt = fvalue;
-	}
-
-	// According to page 8.2.2.1, page 33/48 of the INA238 interface datasheet (Rev. A),
-	// the requirement is: R_SHUNT < V_SENSE_MAX / I_MAX
-	// therefore: R_SHUNT * I_MAX < V_SENSE_MAX
-	// and so if V_SENSE_MAX is bigger, we need to use the bigger ADC range to avoid
-	// the device from capping the measured current.
-
-	const float v_sense_max = _rshunt * _max_current;
-
-	if (v_sense_max > INA238_ADCRANGE_LOW_V_SENSE) {
-		_range = INA238_ADCRANGE_HIGH;
-
-	} else {
-		_range = INA238_ADCRANGE_LOW;
-	}
-
-	_current_lsb = _max_current / INA238_DN_MAX;
-	_shunt_calibration = static_cast<uint16_t>(INA238_CONST * _current_lsb * _rshunt);
-
-	if (_range == INA238_ADCRANGE_LOW) {
+	if (use_low_range) {
 		_shunt_calibration *= 4;
 	}
 
-	_register_cfg[0].set_bits = (uint16_t)(_range);
-	_register_cfg[2].set_bits = _shunt_calibration;
-	_register_cfg[2].clear_bits = ~_shunt_calibration;
+	// Continuous conversion, 540us conversion per channel x 3 channels x 64-sample average = 103.7 ms per output sample = ~10Hz
+	_adc_config_value = MODE_TEMP_SHUNT_BUS_CONT | VBUSCT_540US | VSHCT_540US | VTCT_540US | AVERAGES_64;
 
-	// We need to publish immediately, to guarantee that the first instance of the driver publishes to uORB instance 0
-	setConnected(false);
+	// Publish an initial disconnected status so the first instance grabs uORB instance 0 immediately.
 	_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
 
+	// Let the lower I2C layer absorb transient bus errors before we see them.
 	I2C::_retries = 5;
 }
 
 INA238::~INA238()
 {
-	/* free perf counters */
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
 	perf_free(_collection_errors);
-}
-
-int INA238::read(uint8_t address, uint16_t &data)
-{
-	// read desired little-endian value via I2C
-	uint16_t received_bytes;
-	const int ret = transfer(&address, 1, (uint8_t *)&received_bytes, sizeof(received_bytes));
-
-	if (ret == PX4_OK) {
-		data = swap16(received_bytes);
-
-	} else {
-		perf_count(_comms_errors);
-		PX4_DEBUG("i2c::transfer returned %d", ret);
-	}
-
-	return ret;
-}
-
-int INA238::write(uint8_t address, uint16_t value)
-{
-	uint8_t data[3] = {address, ((uint8_t)((value & 0xff00) >> 8)), (uint8_t)(value & 0xff)};
-	return transfer(data, sizeof(data), nullptr, 0);
+	perf_free(_bad_register_perf);
+	perf_free(_reinit_perf);
 }
 
 int INA238::init()
 {
-	int ret = PX4_ERROR;
-
-	/* do I2C init (and probe) first */
 	if (I2C::init() != PX4_OK) {
-		return ret;
+		return PX4_ERROR;
 	}
 
-	ret = Reset();
-
-	if (ret) {
-		return ret;
-	}
-
-	start();
-
-	return 0;
-}
-
-int INA238::force_init()
-{
-	int ret = init();
-
-	start();
-
-	return ret;
-}
-
-int INA238::probe()
-{
-	uint16_t value{0};
-
-	if (RegisterRead(Register::MANUFACTURER_ID, value) != PX4_OK || value != INA238_MFG_ID_TI) {
-		PX4_DEBUG("probe mfgid %d", value);
-		return -1;
-	}
-
-	if (RegisterRead(Register::DEVICE_ID, value) != PX4_OK || (
-		    INA238_DEVICEID(value) != INA238_MFG_DIE
-	    )) {
-		PX4_DEBUG("probe die id %d", value);
-		return -1;
-	}
-
+	_state = State::RESET;
 	return PX4_OK;
 }
 
-int INA238::Reset()
+void INA238::RunImpl()
 {
-	int ret = PX4_ERROR;
+	const hrt_abstime start_time = hrt_absolute_time();
 
-	if (RegisterWrite(Register::CONFIG, (uint16_t)(ADC_RESET_BIT)) != PX4_OK) {
-		return ret;
+	switch (_state) {
+	case State::UNINITIALIZED: {
+			if (init() != PX4_OK) {
+				_battery.updateAndPublishBatteryStatus(start_time);
+				ScheduleDelayed(INIT_RETRY_INTERVAL_US);
+				return;
+			}
+
+			// init() advanced us to State::RESET
+			ScheduleNow();
+			return;
+		}
+
+	case State::RESET: {
+			_battery.setConnected(false);
+			_battery.updateVoltage(0.f);
+			_battery.updateCurrent(-1.f);
+			_battery.updateTemperature(NAN);
+			_battery.updateAndPublishBatteryStatus(start_time);
+
+			if (registerWrite(Register::CONFIG, RST) != PX4_OK) {
+				ScheduleDelayed(INIT_RETRY_INTERVAL_US);
+				return;
+			}
+
+			_state = State::CONFIGURE;
+			ScheduleDelayed(RESET_DELAY_US);
+			return;
+		}
+
+	case State::CONFIGURE: {
+			const bool ok = (probe() == PX4_OK) &&
+					(registerWrite(Register::SHUNT_CAL, _shunt_calibration) == PX4_OK) &&
+					(registerWrite(Register::CONFIG, _config_value) == PX4_OK) &&
+					(registerWrite(Register::ADCCONFIG, _adc_config_value) == PX4_OK);
+
+			if (!ok) {
+				_state = State::RESET;
+				ScheduleDelayed(INIT_RETRY_INTERVAL_US);
+				return;
+			}
+
+			// Communication success
+			_consecutive_failures = 0;
+			_next_reg_to_check = 0;
+			_state = State::MEASURE;
+
+			// Wait one full sample period + some margin
+			ScheduleDelayed(SAMPLE_INTERVAL_US + 5_ms);
+			return;
+		}
+
+	case State::MEASURE: {
+			if (collect() == PX4_OK) {
+				_consecutive_failures = 0;
+
+			} else {
+				perf_count(_collection_errors);
+
+				if (++_consecutive_failures >= MAX_CONSECUTIVE_FAILURES) {
+					perf_count(_reinit_perf);
+					_state = State::RESET;
+					_consecutive_failures = 0;
+					PX4_WARN("consecutive failures, resetting");
+					ScheduleNow();
+					return;
+				}
+			}
+
+			const hrt_abstime elapsed = hrt_elapsed_time(&start_time);
+			const hrt_abstime scheduled_time = elapsed < SAMPLE_INTERVAL_US ? SAMPLE_INTERVAL_US - elapsed : 0;
+
+			ScheduleDelayed(scheduled_time);
+			return;
+		}
 	}
-
-	if (RegisterWrite(Register::SHUNT_CAL, uint16_t(_shunt_calibration)) < 0) {
-		return -3;
-	}
-
-	// Set the CONFIG for max I
-	if (RegisterWrite(Register::CONFIG, (uint16_t) _range) != PX4_OK) {
-		return ret;
-	}
-
-	// Start ADC continous mode here
-	ret = write((uint16_t)_register_cfg[1].reg, (uint16_t)_register_cfg[1].set_bits);
-
-	return ret;
-}
-
-bool INA238::RegisterCheck(const register_config_t &reg_cfg)
-{
-	bool success = true;
-
-	uint16_t reg_value = 0;
-	RegisterRead(reg_cfg.reg, reg_value);
-
-	if (reg_cfg.set_bits && ((reg_value & reg_cfg.set_bits) != reg_cfg.set_bits)) {
-		PX4_DEBUG("0x%02hhX: 0x%02hhX (0x%02hhX not set)", (uint8_t)reg_cfg.reg, reg_value, reg_cfg.set_bits);
-		success = false;
-	}
-
-	if (reg_cfg.clear_bits && ((reg_value & reg_cfg.clear_bits) != 0)) {
-		PX4_DEBUG("0x%02hhX: 0x%02hhX (0x%02hhX not cleared)", (uint8_t)reg_cfg.reg, reg_value, reg_cfg.clear_bits);
-		success = false;
-	}
-
-	return success;
-}
-
-int INA238::RegisterWrite(Register reg, uint16_t value)
-{
-	return write((uint8_t)reg, value);
-}
-int INA238::RegisterRead(Register reg, uint16_t &value)
-{
-	return read((uint8_t)reg, value);
 }
 
 int INA238::collect()
 {
 	perf_begin(_sample_perf);
 
-	if (_parameter_update_sub.updated()) {
-		// Read from topic to clear updated flag
-		parameter_update_s parameter_update;
-		_parameter_update_sub.copy(&parameter_update);
+	// Verify one config register per cycle
+	bool config_ok = checkConfigurationRotating();
 
-		updateParams();
+	if (!config_ok) {
+		perf_count(_bad_register_perf);
+		perf_end(_sample_perf);
+		return PX4_ERROR;
 	}
 
-	// read from the sensor
-	// Note: If the power module is connected backwards, then the values of _current will be negative but otherwise valid.
-	bool success{true};
-	int16_t bus_voltage{0};
-	int16_t current{0};
-	int16_t temperature{0};
+	int16_t bus_voltage = 0;
+	int16_t current = 0;
+	int16_t temperature = 0;
 
-	success = (RegisterRead(Register::VS_BUS, (uint16_t &)bus_voltage) == PX4_OK);
-	success = success && (RegisterRead(Register::CURRENT, (uint16_t &)current) == PX4_OK);
-	success = success && (RegisterRead(Register::DIETEMP, (uint16_t &)temperature) == PX4_OK);
+	const bool reads_ok = (registerRead(Register::VS_BUS, (uint16_t &)bus_voltage) == PX4_OK)
+			      && (registerRead(Register::CURRENT, (uint16_t &)current) == PX4_OK)
+			      && (registerRead(Register::DIETEMP, (uint16_t &)temperature) == PX4_OK);
 
-	if (setConnected(success)) {
-		_battery.updateVoltage(static_cast<float>(bus_voltage * INA238_VSCALE));
-		_battery.updateCurrent(static_cast<float>(current * _current_lsb));
-		_battery.updateTemperature(static_cast<float>(temperature * INA238_TSCALE));
-
+	if (reads_ok) {
+		_battery.setConnected(true);
+		_battery.updateVoltage(static_cast<float>(bus_voltage) * V_LSB);
+		_battery.updateCurrent(static_cast<float>(current) * _current_lsb);
+		_battery.updateTemperature(static_cast<float>(temperature) * T_LSB);
 		_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
-	}
-
-	if (!success || hrt_elapsed_time(&_last_config_check_timestamp) > 100_ms) {
-		// check configuration registers periodically or immediately following any failure
-		if (RegisterCheck(_register_cfg[_checked_register])) {
-			_last_config_check_timestamp = hrt_absolute_time();
-			_checked_register = (_checked_register + 1) % size_register_cfg;
-
-		} else {
-			// register check failed, force reset
-			PX4_DEBUG("register check failed");
-			perf_count(_bad_register_perf);
-			success = false;
-
-			setConnected(false);
-			_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
-		}
 	}
 
 	perf_end(_sample_perf);
+	return reads_ok ? PX4_OK : PX4_ERROR;
+}
 
-	if (success) {
-		return PX4_OK;
+int INA238::probe()
+{
+	uint16_t value = 0;
 
-	} else {
-		PX4_DEBUG("error reading from sensor");
-
+	if (registerRead(Register::MANUFACTURER_ID, value) != PX4_OK || value != MANFID) {
+		PX4_DEBUG("probe mfgid %d", value);
 		return PX4_ERROR;
 	}
+
+	if (registerRead(Register::DEVICE_ID, value) != PX4_OK || deviceId(value) != DIEID) {
+		PX4_DEBUG("probe die id %d", value);
+		return PX4_ERROR;
+	}
+
+	return PX4_OK;
 }
 
-void INA238::start()
+bool INA238::checkConfigurationRotating()
 {
-	ScheduleClear();
+	const struct {
+		Register reg;
+		uint16_t expected;
+	} checks[] = {
+		{ Register::CONFIG, _config_value },
+		{ Register::ADCCONFIG, _adc_config_value },
+		{ Register::SHUNT_CAL, _shunt_calibration },
+	};
 
-	/* reset the report ring and state machine */
-	_collect_phase = false;
+	const auto &check = checks[_next_reg_to_check];
+	uint16_t actual = 0;
 
-	_measure_interval = INA238_CONVERSION_INTERVAL;
+	if (registerRead(check.reg, actual) != PX4_OK) {
+		return false;
+	}
 
-	/* schedule a cycle to start things */
-	ScheduleDelayed(5);
+	if (actual != check.expected) {
+		return false;
+	}
+
+	_next_reg_to_check = (_next_reg_to_check + 1) % (sizeof(checks) / sizeof(checks[0]));
+	return true;
 }
 
-void INA238::RunImpl()
+int INA238::registerRead(Register reg, uint16_t &value)
 {
-	if (_initialized) {
-		if (_collect_phase) {
-			/* perform collection */
-			if (collect() != PX4_OK) {
-				perf_count(_collection_errors);
-				/* if error restart the measurement state machine */
-				ScheduleClear();
-				_initialized = false;
-				ScheduleNow();
-				return;
-			}
+	uint8_t address = static_cast<uint8_t>(reg);
+	uint16_t raw = 0;
 
-			/* next phase is measurement */
-			_collect_phase = true;
+	const int ret = transfer(&address, 1, (uint8_t *)&raw, sizeof(raw));
 
-			if (_measure_interval > INA238_CONVERSION_INTERVAL) {
-				/* schedule a fresh cycle call when we are ready to measure again */
-				ScheduleDelayed(_measure_interval - INA238_CONVERSION_INTERVAL);
-				return;
-			}
-		}
-
-		/* next phase is collection */
-		_collect_phase = true;
-
-		/* schedule a fresh cycle call when the measurement is done */
-		ScheduleDelayed(INA238_CONVERSION_INTERVAL);
+	if (ret == PX4_OK) {
+		value = __builtin_bswap16(raw);
 
 	} else {
-		setConnected(false);
-		_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
-
-		if (init() != PX4_OK) {
-			ScheduleDelayed(INA238_INIT_RETRY_INTERVAL_US);
-
-		} else {
-			_initialized = true;
-			start();
-		}
+		perf_count(_comms_errors);
 	}
+
+	return ret;
 }
 
-bool INA238::setConnected(bool state)
+int INA238::registerWrite(Register reg, uint16_t value)
 {
-	// Filter out brief I2C failures for 2s
-	if (state) {
-		_connected = INA238_SAMPLE_FREQUENCY_HZ * 2;
+	const uint8_t buf[3] = {
+		static_cast<uint8_t>(reg),
+		static_cast<uint8_t>((value >> 8) & 0xff),
+		static_cast<uint8_t>(value & 0xff),
+	};
 
-	} else if (_connected > 0) {
-		_connected--;
+	const int ret = transfer(buf, sizeof(buf), nullptr, 0);
+
+	if (ret != PX4_OK) {
+		perf_count(_comms_errors);
 	}
 
-	if (_connected > 0) {
-		_battery.setConnected(true);
-
-	} else {
-		_battery.setConnected(false);
-		_battery.updateVoltage(0);
-		_battery.updateCurrent(0);
-		_battery.updateTemperature(0);
-	}
-
-	return state;
+	return ret;
 }
 
 void INA238::print_status()
 {
 	I2CSPIDriverBase::print_status();
 
-	if (_initialized) {
-		perf_print_counter(_sample_perf);
-		perf_print_counter(_comms_errors);
+	const char *state_str = "?";
 
-		printf("poll interval:  %u \n", _measure_interval);
+	switch (_state) {
+	case State::UNINITIALIZED:
+		state_str = "UNINITIALIZED";
+		break;
+
+	case State::RESET:
+		state_str = "RESET";
+		break;
+
+	case State::CONFIGURE:
+		state_str = "CONFIGURE";
+		break;
+
+	case State::MEASURE:
+		state_str = "MEASURE";
+		break;
+	}
+
+	PX4_INFO("state: %s", state_str);
+	PX4_INFO("sample interval: %llu us", SAMPLE_INTERVAL_US);
+	perf_print_counter(_sample_perf);
+	perf_print_counter(_comms_errors);
+	perf_print_counter(_collection_errors);
+	perf_print_counter(_bad_register_perf);
+	perf_print_counter(_reinit_perf);
+}
+
+I2CSPIDriverBase *INA238::instantiate(const I2CSPIDriverConfig &config, int /*runtime_instance*/)
+{
+	INA238 *instance = new INA238(config, config.custom1);
+
+	if (instance == nullptr) {
+		PX4_ERR("alloc failed");
+		return nullptr;
+	}
+
+	if (instance->init() == PX4_OK) {
+		instance->ScheduleNow();
+
+	} else if (config.keep_running) {
+		// Driver stays alive even if the device isn't powered yet; RunImpl will retry.
+		PX4_INFO("ina238 init failed on bus %d, will retry every %u ms.", config.bus, static_cast<unsigned>(INIT_RETRY_INTERVAL_US / 1000));
+		instance->ScheduleDelayed(INIT_RETRY_INTERVAL_US);
 
 	} else {
-		PX4_INFO("Device not initialized. Retrying every %d ms until battery is plugged in.",
-			 INA238_INIT_RETRY_INTERVAL_US / 1000);
+		delete instance;
+		return nullptr;
 	}
+
+	return instance;
+}
+
+void INA238::print_usage()
+{
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+Driver for the Texas Instruments INA237 / INA238 power monitor.
+
+Multiple instances can run simultaneously on separate buses or different I2C addresses.
+
+If the device is not powered at startup, pass `-k` (keep_running) and the driver
+will retry initialization every 500 ms so the battery can be plugged in later.
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("ina238", "driver");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x45);
+	PRINT_MODULE_USAGE_PARAMS_I2C_KEEP_RUNNING_FLAG();
+	PRINT_MODULE_USAGE_PARAM_INT('t', 1, 1, 3, "battery index for calibration values (1-3)", true);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+}
+
+extern "C" int ina238_main(int argc, char *argv[])
+{
+	using ThisDriver = INA238;
+	BusCLIArguments cli{true, false};
+	cli.i2c_address = 0x45;
+	cli.default_i2c_frequency = BUS_CLOCK_HZ;
+	cli.support_keep_running = true;
+	cli.custom1 = 1;
+
+	int ch;
+
+	while ((ch = cli.getOpt(argc, argv, "t:")) != EOF) {
+		switch (ch) {
+		case 't':
+			cli.custom1 = static_cast<int>(strtol(cli.optArg(), nullptr, 0));
+
+			if (cli.custom1 < 1 || cli.custom1 > 3) {
+				PX4_ERR("index must be 1-3");
+				return -1;
+			}
+
+			break;
+		}
+	}
+
+	const char *verb = cli.optArg();
+
+	if (!verb) {
+		ThisDriver::print_usage();
+		return -1;
+	}
+
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_POWER_DEVTYPE_INA238);
+
+	if (!strcmp(verb, "start")) {
+		return ThisDriver::module_start(cli, iterator);
+	}
+
+	if (!strcmp(verb, "stop")) {
+		return ThisDriver::module_stop(iterator);
+	}
+
+	if (!strcmp(verb, "status")) {
+		return ThisDriver::module_status(iterator);
+	}
+
+	ThisDriver::print_usage();
+	return -1;
 }
