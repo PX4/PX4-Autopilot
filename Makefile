@@ -181,6 +181,20 @@ define cmake-build
 	@$(eval BUILD_DIR = "$(SRC_DIR)/build/$(1)")
 	@# check if the desired cmake configuration matches the cache then CMAKE_CACHE_CHECK stays empty
 	@$(call cmake-cache-check)
+	@# NuttX builds into the shared submodule trees under platforms/nuttx/NuttX/{nuttx,apps},
+	@# not into build/$(1)/. Recursive make there does not treat PX4 defconfig changes as a
+	@# reason to recompile, so switching board configs links stale objects (e.g. kmm_* from a
+	@# protected build into a flat build). Wipe the submodules when the active target changes,
+	@# mirroring Tools/ci/build_all_runner.sh.
+	@mkdir -p "$(SRC_DIR)/build"
+	@stamp="$(SRC_DIR)/build/.last_target"; \
+	prev=$$(cat "$$stamp" 2>/dev/null || echo ""); \
+	if [ "$$prev" != "$(1)" ]; then \
+		[ -n "$$prev" ] && echo "switching NuttX target $$prev -> $(1): wiping submodule state"; \
+		git -C "$(SRC_DIR)/platforms/nuttx/NuttX/nuttx" clean -dXfq 2>/dev/null || true; \
+		git -C "$(SRC_DIR)/platforms/nuttx/NuttX/apps"  clean -dXfq 2>/dev/null || true; \
+		echo "$(1)" > "$$stamp"; \
+	fi
 	@# make sure to start from scratch when switching from GNU Make to Ninja
 	@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(BUILD_DIR)/Makefile ]; then rm -rf $(BUILD_DIR); fi
 	@# make sure to start from scratch if ninja build file is missing
