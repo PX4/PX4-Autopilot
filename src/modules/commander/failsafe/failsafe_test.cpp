@@ -339,7 +339,7 @@ TEST_F(FailsafeTest, no_delay_for_warn)
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Warn);
 }
 
-TEST_F(FailsafeTest, NoneActionDoesNotRestrictUserTakeover)
+TEST_F(FailsafeTest, none_action_does_not_restrict_user_takeover)
 {
 	FailsafeTester failsafe(nullptr);
 
