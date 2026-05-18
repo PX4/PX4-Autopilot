@@ -20371,7 +20371,8 @@ sensor_gps uORB over Cyphal publication port ID.
 
 DSHOT 3D deadband high.
 
-When the actuator_output is between DSHOT_3D_DEAD_L and DSHOT_3D_DEAD_H, motor will not spin.
+When the actuator_output is in the inclusive range [DSHOT_3D_DEAD_L, DSHOT_3D_DEAD_H], the motor will not spin.
+Setting DSHOT_3D_DEAD_L equal to DSHOT_3D_DEAD_H (e.g. the default 1000) produces a single-point deadband at that value.
 This value is with respect to the mixer_module range (0-1999), not the DSHOT values.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
@@ -20382,7 +20383,8 @@ This value is with respect to the mixer_module range (0-1999), not the DSHOT val
 
 DSHOT 3D deadband low.
 
-When the actuator_output is between DSHOT_3D_DEAD_L and DSHOT_3D_DEAD_H, motor will not spin.
+When the actuator_output is in the inclusive range [DSHOT_3D_DEAD_L, DSHOT_3D_DEAD_H], the motor will not spin.
+Setting DSHOT_3D_DEAD_L equal to DSHOT_3D_DEAD_H (e.g. the default 1000) produces a single-point deadband at that value.
 This value is with respect to the mixer_module range (0-1999), not the DSHOT values.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
