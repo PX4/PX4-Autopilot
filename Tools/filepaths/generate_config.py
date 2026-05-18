@@ -35,6 +35,8 @@ parser.add_argument('--rc-dir', type=str, action='store',
                     help='ROMFS output directory', default=None)
 parser.add_argument('--params-file', type=str, action='store',
                     help='Parameter output file', default=None)
+parser.add_argument('--board-root-path', type=str, action='store',
+                    help='Root path', default=None)
 parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
                     help='Verbose Output')
 
@@ -56,6 +58,6 @@ if rc_filepaths_output_dir is not None:
     if verbose: print("Generating {:}".format(rc_filepath_output_file))
     template = jinja_env.get_template(rc_filepaths_template)
     with open(rc_filepath_output_file, 'w') as fid:
-        fid.write(template.render(constrained_flash=constrained_flash, params_file=args.params_file))
+        fid.write(template.render(constrained_flash=constrained_flash, params_file=args.params_file, board_root_path=args.board_root_path))
 else:
     raise Exception("--rc-dir needs to be specified")
