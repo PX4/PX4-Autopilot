@@ -9,6 +9,8 @@ PX4 does not manufacture this (or any) autopilot. Contact the manufacturer for h
 The _CBUnmanned H753-Stamp_ is a System-on-Module (SoM) flight controller built around the STM32H753 microcontroller.
 It is intended to be mounted on a carrier board that breaks out the I/O and provides power, peripherals, and connectors for a specific vehicle integration.
 
+![CBUnmanned H753-Stamp Pinout](../../assets/flight_controller/cbunmanned_h753-stamp/cbunmanned-h753-stamp-pinout.jpg)
+
 ::: info
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
 :::
@@ -20,14 +22,14 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - **Barometer:** ST LPS22HB (on I2C1)
 - **Storage:** microSD card (SDMMC2)
 - **Interfaces:**
-  - 6x UARTs (TEL1, TEL2, TEL3, GPS1, GPS2, RC) — flow control on TEL1/TEL2/TEL3
+  - 6x user UARTs (TEL1, TEL2, TEL3, GPS1, GPS2, RC) plus a debug console — flow control on TEL1/TEL2/TEL3
   - 2x CAN (UAVCAN)
-  - 2x I2C (external, one per GPS port for compass)
-  - 1x SPI (external, shared with internal IMUs)
+  - 2x external I2C (one per GPS port for compass) and 1x internal I2C (barometer)
+  - 1x external SPI (the dual IMUs are on a separate internal SPI bus)
   - 9x PWM outputs (DShot / Bi-Directional DShot supported)
   - USB
   - Ethernet optional
-- **Power:** Battery voltage and current monitoring via ADC
+- **Power:** Powered from an external regulated 5 V supply (e.g. a BEC on the carrier board). Battery voltage (up to 65 V) and current are monitored via ADC; the voltage sense input is a separate pin behind a voltage divider and does not power the board.
 
 ::: info
 CAN transceivers require a 5 V supply. USB-only power (≈4.5 V after the input diode) is **not** sufficient to operate the CAN bus.
@@ -61,6 +63,21 @@ make cbunmanned_h753-stamp_default
 | USART6 | /dev/ttyS4   | RC          | PC6 / PC7        | —                        |
 | UART7  | /dev/ttyS5   | TEL2        | PE8 / PE7        | PE10 / PE9               |
 | UART8  | /dev/ttyS6   | TEL3        | PE1 / PE0        | PD14 / PD15              |
+
+## PWM Outputs
+
+The board provides 9 PWM outputs, all of which support [DShot](../peripherals/dshot.md) and [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
+
+The outputs are split across 4 timer groups:
+
+| Outputs | Timer  |
+| ------- | ------ |
+| 1, 2, 3 | Timer1 |
+| 4, 5    | Timer2 |
+| 6, 7, 8 | Timer3 |
+| 9       | Timer4 |
+
+All outputs within the same group must use the same protocol and update rate.
 
 ## Debug Port
 
