@@ -2,6 +2,10 @@ name: Build CubeOrangePlus Rover
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+      - 'Vetri2425/**'
 
 jobs:
   build:
@@ -36,6 +40,8 @@ jobs:
              src/modules/rover_differential/RoverDifferential.hpp
           cp fork_patches/src/modules/rover_differential/module.yaml \
              src/modules/rover_differential/module.yaml
+          cp fork_patches/src/modules/land_detector/RoverLandDetector.cpp \
+             src/modules/land_detector/RoverLandDetector.cpp
 
       - name: Install dependencies
         run: |
