@@ -18920,7 +18920,7 @@ parameters.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0        | 4        |           | 0       |      | &nbsp;    |
+| &nbsp; |          |          |           | 0       |      | &nbsp;    |
 
 ### COM_ARMABLE (`INT32`) {#COM_ARMABLE}
 
@@ -19795,16 +19795,20 @@ See COM_OBL_RC_ACT to configure action.
 
 ### COM_PARACHUTE (`INT32`) {#COM_PARACHUTE}
 
-Require MAVLink parachute system to be present and healthy.
+Parachute requirement and failsafe.
+
+Require a MAVLink parachute system for arming and the failsafe action when missing or unhealthy.
 
 **Values:**
 
 - `0`: Disabled
-- `1`: Enabled
+- `1`: Warning
+- `2`: Return
+- `3`: Land
 
-| Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
-| &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; |          |          |           | 0       |      | &nbsp;    |
 
 ### COM_POS_FS_EPH (`FLOAT`) {#COM_POS_FS_EPH}
 
@@ -19966,7 +19970,7 @@ Priority sources are immediately switched to whenever they get valid.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0        | 8        |           | 3       |      | &nbsp;    |
+| &nbsp; |          |          |           | 3       |      | &nbsp;    |
 
 ### COM_RC_LOSS_T (`FLOAT`) {#COM_RC_LOSS_T}
 
@@ -20132,7 +20136,7 @@ action will be executed.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0        | 6        |           | 0       |      | &nbsp;    |
+| &nbsp; |          |          |           | 0       |      | &nbsp;    |
 
 ### NAV_RCL_ACT (`INT32`) {#NAV_RCL_ACT}
 
@@ -20151,7 +20155,7 @@ set by COM_RC_LOSS_T in seconds.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 1        | 6        |           | 2       |      | &nbsp;    |
+| &nbsp; |          |          |           | 2       |      | &nbsp;    |
 
 ## Cyphal
 
