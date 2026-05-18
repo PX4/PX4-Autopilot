@@ -310,10 +310,37 @@ Most DroneCAN nodes require no further setup, unless specifically noted in their
 ## Firmware Update
 
 PX4 can upgrade device firmware over DroneCAN.
-To upgrade the device, all you need to do is copy the firmware binary into the root directory of the flight controller's SD card and reboot.
+On boot the flight controller scans for firmware binaries, migrates them to the firmware directory, and automatically transfers the firmware to any connected node whose version does not match.
 
-Upon boot the flight controller will automatically transfer the firmware onto the device and upgrade it.
-If successful, the firmware binary will be removed from the root directory and there will be a file named **XX.bin** in the **/ufw** directory of the SD card.
+### Placing Firmware Files
+
+Place firmware binaries (`.bin` files with a valid APDescriptor) in one of these locations on the SD card before rebooting:
+
+- **SD card root** (`/fs/microsd/`): Simplest option for manual updates.
+- **Staging directory** (`/fs/microsd/ufw_staging/`): Preferred for remote/programmatic updates. The directory is swapped in atomically at boot, avoiding write conflicts if files are uploaded while the vehicle is running.
+
+On boot, the UAVCAN server scans both locations, reads the board ID from the APDescriptor of each file, and copies it to `/fs/microsd/ufw/<board_id>.bin`. The source file is then deleted. Any connected node whose running version does not match is then flashed over the CAN bus.
+
+### Firmware Database
+
+A flat-file database at `/fs/microsd/ufw/FW.db` maps each board ID filename to the original filename that was installed. Stale entries are removed automatically on every boot. Example entry:
+
+```
+122.bin=122-1.17.63eeff1a.uavcan.bin
+```
+
+### Remote Update
+
+Firmware can be delivered remotely by bundling `.bin` files into an update archive. An external update tool can extract the archive on the target and copy the CAN firmware files into `/fs/microsd/ufw_staging/`. They are then picked up on the next boot.
+
+Before uploading, the tool can read `/fs/microsd/ufw/FW.db` to check which firmware is already installed and skip files that haven't changed, reducing transfer size.
+
+`upload_skynode.sh` handles the bundling via the `--ext-fw` flag (repeatable for multiple nodes):
+
+```
+./Tools/auterion/upload_skynode.sh \
+  --ext-fw=build/auterion_canio_default/auterion_canio_default.uavcan.bin
+```
 
 ## Troubleshooting
 
