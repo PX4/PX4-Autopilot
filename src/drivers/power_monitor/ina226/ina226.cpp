@@ -215,9 +215,11 @@ bool INA226::checkConfigurationRotating()
 	const struct {
 		Register reg;
 		uint16_t expected;
+		uint16_t mask;
 	} checks[] = {
-		{ Register::CONFIGURATION, _config_value },
-		{ Register::CALIBRATION, _calibration },
+		// CONFIGURATION D15 (RST) self-clears; D14:D12 are reserved and D14 reads back as 1.
+		{ Register::CONFIGURATION, _config_value, 0x0FFF },
+		{ Register::CALIBRATION,   _calibration,  0xFFFF },
 	};
 
 	const auto &check = checks[_next_reg_to_check];
@@ -227,7 +229,7 @@ bool INA226::checkConfigurationRotating()
 		return false;
 	}
 
-	if (actual != check.expected) {
+	if ((actual & check.mask) != (check.expected & check.mask)) {
 		return false;
 	}
 
