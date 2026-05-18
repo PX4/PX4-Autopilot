@@ -55,5 +55,6 @@
 
 // Timer DMA assigned in timer_config.cpp
 // TIM2_UP                                        /* DMA1 — M1-M4 DShot */
-// TIM4_UP                                        /* DMA1 — M5-M8 DShot */
-// TIM8_UP                                        /* DMA1 — S3-S4 DShot */
+// TIM1_UP                                        /* DMA1 — M5-M6 DShot */
+// TIM8_UP                                        /* DMA1 — M7-M8 DShot */
+// TIM4_UP                                        /* DMA1 — S1-S4 DShot */
