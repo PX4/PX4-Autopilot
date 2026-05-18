@@ -277,6 +277,8 @@
 
 #define DRV_MOTOR_DEVTYPE_HIWONDER_EMM  0xED
 
+#define DRV_MAG_DEVTYPE_AK09940A        0xF1
+
 #define DRV_DEVTYPE_UNUSED		0xff
 
 #endif /* _DRV_SENSOR_H */

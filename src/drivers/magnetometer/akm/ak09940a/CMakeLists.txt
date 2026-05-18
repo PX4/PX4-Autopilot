@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019-2026 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,6 +31,18 @@
 #
 ############################################################################
 
-add_subdirectory(ak8963)
-add_subdirectory(ak09916)
-add_subdirectory(ak09940a)
+px4_add_module(
+	MODULE drivers__magnetometer__akm__ak09940a
+	MAIN ak09940a
+	COMPILE_FLAGS
+	        #-DDEBUG_BUILD   # uncomment for PX4_DEBUG output
+		#-O0             # uncomment when debugging
+	SRCS
+		AKM_AK09940A_registers.hpp
+		AK09940A.cpp
+		AK09940A.hpp
+		ak09940a_main.cpp
+	DEPENDS
+		drivers_magnetometer
+		px4_work_queue
+	)
