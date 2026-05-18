@@ -53,7 +53,7 @@
 
 namespace AF9838
 {
-extern float g_cli_rate_hz;
+static constexpr float DEFAULT_RATE_HZ = 100.0f;
 static constexpr float LSB_TO_uT = 0.1f;    // micro-Tesla / LSB
 static constexpr float uT_TO_G   = 0.01f;   // µT → Gauss
 static constexpr float ONE_G = 9.80665f;
@@ -65,51 +65,40 @@ static constexpr uint32_t I2C_SPEED           = 100000;           // 100 kHz
 class AF9838_Driver : public device::I2C, public I2CSPIDriver<AF9838_Driver>
 {
 public:
-	AF9838_Driver(const I2CSPIDriverConfig &config);
+    AF9838_Driver(const I2CSPIDriverConfig &config);
 
-	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
+    static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
 
-	int  init() override;
-	int  probe() override;
-	void RunImpl();
-	void start();
-	void stop();
-	void print_status();
-	static void print_usage();
+    int  init() override;
+    int  probe() override;
+    void RunImpl();
+    void start();
+    void stop();
+    void print_status();
+    static void print_usage();
 
 private:
-	orb_advert_t _mavlink_log_pub{nullptr};
-	int8_t _last_accuracy{-1};
+    orb_advert_t _mavlink_log_pub{nullptr};
+    int8_t _last_accuracy{-1};
 
-	using device::I2C::transfer;
-	uint8_t read_reg(uint8_t reg);
-	int     read_block(uint8_t reg, uint8_t *buf, size_t len);
-	int     write_reg(uint8_t reg, uint8_t val);
+    using device::I2C::transfer;
+    uint8_t read_reg(uint8_t reg);
+    int     read_block(uint8_t reg, uint8_t *buf, size_t len);
+    int     write_reg(uint8_t reg, uint8_t val);
 
-	int     soft_reset();
-	int     configure();
-	int     read_measurement();
+    int     soft_reset();
+    int     configure();
+    int     read_measurement();
 
-	hrt_abstime _last_run{0};
-	uint32_t _measure_interval_us{10000};
+    hrt_abstime _last_run{0};
+    uint32_t _measure_interval_us{10000};
 
-	PX4Magnetometer _px4_mag;
-	bool            _running{false};
-	bool _waiting_data{false};
-	hrt_abstime _last_trigger{0};
-	bool            _algo_inited{false};
+    PX4Magnetometer _px4_mag;
+    bool            _running{false};
+    bool _waiting_data{false};
+    hrt_abstime _last_trigger{0};
 
-	static constexpr uint16_t AF9838_MED_FILTER_MAX_NUM = 15;
-	static constexpr uint16_t AF9838_MED_FILTER_NUMBER  = 5;
-
-	uint16_t _mdf_num      = AF9838_MED_FILTER_NUMBER;
-	uint16_t _mdf_init_idx = 0;
-	uint16_t _mdf_data_idx = 0;
-	float    _mdf_data[3][AF9838_MED_FILTER_MAX_NUM] {};
-
-	void af9838_median_filter(float mag[3]);
-
-	uORB::Subscription _accel_sub {ORB_ID(vehicle_acceleration)};
-	hrt_abstime _last_accel_ts{0};
+    uORB::Subscription _accel_sub {ORB_ID(vehicle_acceleration)};
+    hrt_abstime _last_accel_ts{0};
 
 };
