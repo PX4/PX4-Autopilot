@@ -74,7 +74,8 @@ static constexpr unsigned MAVLINK_EXT_STREAM_MAX = 8;
  * @return 0 on success, -1 if table full or msg_id already registered
  */
 int mavlink_ext_stream_register(uint32_t msg_id, const char *name,
-				mavlink_ext_stream_fn fn, void *user_data);
+				mavlink_ext_stream_fn fn, void *user_data,
+				int interval_us = -1);
 
 /**
  * Unregister a previously registered external stream.
@@ -91,3 +92,15 @@ int mavlink_ext_stream_unregister(uint32_t msg_id);
  * @param chan  MAVLink channel to emit on
  */
 void mavlink_ext_stream_dispatch(uint8_t channel);
+
+/**
+ * Set the send interval for a registered external stream.
+ *
+ * Allows integration with SET_MESSAGE_INTERVAL so that QGC/pymavlink
+ * can control OOT stream rates the same way as built-in streams.
+ *
+ * @param msg_id       MAVLink message ID
+ * @param interval_us  Interval in microseconds (-1 = unlimited, 0 = disabled)
+ * @return 0 on success, -1 if not found
+ */
+int mavlink_ext_stream_set_interval(uint32_t msg_id, int interval_us);
