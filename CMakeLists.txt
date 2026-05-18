@@ -452,6 +452,33 @@ if (NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
 		add_subdirectory(${EXTERNAL_MODULES_LOCATION}/src/${external_module} external_modules/${external_module})
 		list(APPEND external_module_paths ${EXTERNAL_MODULES_LOCATION}/src/${external_module})
 	endforeach()
+
+	# external MAVLink dialect: EXTERNAL_MODULES_LOCATION/mavlink/<name>.xml
+	file(GLOB _ext_mavlink_xmls "${EXTERNAL_MODULES_LOCATION}/mavlink/*.xml")
+	if(_ext_mavlink_xmls)
+		list(LENGTH _ext_mavlink_xmls _n_xmls)
+		if(_n_xmls GREATER 1)
+			message(FATAL_ERROR "Multiple MAVLink dialect XMLs found in "
+				"${EXTERNAL_MODULES_LOCATION}/mavlink/. "
+				"Only one external dialect is supported.")
+		endif()
+		list(GET _ext_mavlink_xmls 0 _ext_xml)
+		get_filename_component(_ext_dialect_name "${_ext_xml}" NAME_WE)
+
+		# Copy into mavgen search path (configure_file tracks dependencies)
+		set(_mavlink_defs "${PX4_SOURCE_DIR}/src/modules/mavlink/mavlink/message_definitions/v1.0")
+		configure_file("${_ext_xml}" "${_mavlink_defs}/${_ext_dialect_name}.xml" COPYONLY)
+
+		# Override dialect if currently 'common' (external dialect must include common.xml)
+		if(CONFIG_MAVLINK_DIALECT STREQUAL "common")
+			set(CONFIG_MAVLINK_DIALECT "${_ext_dialect_name}"
+				CACHE STRING "MAVLink dialect (external: ${_ext_dialect_name})" FORCE)
+			message(STATUS "External MAVLink dialect: ${_ext_dialect_name} (auto-set from common)")
+		else()
+			message(STATUS "External MAVLink dialect: ${_ext_dialect_name} "
+				"(CONFIG_MAVLINK_DIALECT=${CONFIG_MAVLINK_DIALECT} kept as-is)")
+		endif()
+	endif()
 endif()
 
 #=============================================================================
