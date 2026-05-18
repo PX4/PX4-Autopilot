@@ -37881,6 +37881,29 @@ This parameter defines the mode of the AFBR Rangefinder.
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 0        | 3        |           | 0       |      | &nbsp;    |
 
+### SENS_AFBR_ROT (`INT32`) {#SENS_AFBR_ROT}
+
+AFBR Rangefinder Orientation.
+
+Mounting orientation of the AFBR-S50 relative to the vehicle body frame.
+
+**Values:**
+
+- `0`: No rotation
+- `1`: Yaw 45°
+- `2`: Yaw 90°
+- `3`: Yaw 135°
+- `4`: Yaw 180°
+- `5`: Yaw 225°
+- `6`: Yaw 270°
+- `7`: Yaw 315°
+- `24`: Pitch 90°
+- `25`: Pitch 270°
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 25       |           | 25      |      | &nbsp;    |
+
 ### SENS_AFBR_S_RATE (`INT32`) {#SENS_AFBR_S_RATE}
 
 AFBR Rangefinder Short Range Rate.
