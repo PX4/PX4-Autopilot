@@ -21,18 +21,19 @@ set +e
 # it wastes flash
 #
 set R /
-set FCONFIG /fs/microsd/etc/config.txt
-set FEXTRAS /fs/microsd/etc/extras.txt
-set FRC /fs/microsd/etc/rc.txt
+# Load default filepaths
+. ${R}etc/init.d/rc.filepaths
+set FCONFIG ${BOARD_ROOT_PATH}/etc/config.txt
+set FEXTRAS ${BOARD_ROOT_PATH}/etc/extras.txt
+set FRC ${BOARD_ROOT_PATH}/etc/rc.txt
 set IOFW "/etc/extras/px4_io-v2_default.bin"
 set LOGGER_ARGS ""
 set LOGGER_BUF 8
-set PARAM_FILE ""
 set PARAM_BACKUP_FILE ""
 set RC_INPUT_ARGS ""
 set STORAGE_AVAILABLE no
 set STORAGE_CHECK yes
-set SDCARD_EXT_PATH /fs/microsd/ext_autostart
+set SDCARD_EXT_PATH ${BOARD_ROOT_PATH}/ext_autostart
 set SDCARD_FORMAT no
 set STARTUP_TUNE 1
 set VEHICLE_TYPE none
@@ -127,8 +128,7 @@ then
 	set USE_PARAM_BACKUPS yes
 	set USE_PARAM_IMPORT_DEBUG yes
 	set USE_ALT_UPDATE_DIRS yes
-	set PARAM_FILE /fs/microsd/params
-	set PARAM_BACKUP_FILE "/fs/microsd/parameters_backup.bson"
+	set PARAM_BACKUP_FILE "${BOARD_ROOT_PATH}/parameters_backup.bson"
 fi
 
 if [ $USE_HARDFAULT_LOG = yes ]
@@ -151,11 +151,11 @@ fi
 if [ $USE_ALT_UPDATE_DIRS = yes ]
 then
 	# Check for an update of the ext_autostart folder, and replace the old one with it
-	if [ -e /fs/microsd/ext_autostart_new ]
+	if [ -e ${BOARD_ROOT_PATH}/ext_autostart_new ]
 	then
 		echo "Updating external autostart files"
 		rm -r $SDCARD_EXT_PATH
-		mv /fs/microsd/ext_autostart_new $SDCARD_EXT_PATH
+		mv ${BOARD_ROOT_PATH}/ext_autostart_new $SDCARD_EXT_PATH
 	fi
 fi
 
@@ -195,12 +195,12 @@ else
 
 		bsondump $PARAM_FILE
 
-		if [ -d "/fs/microsd" ]
+		if [ -d "${BOARD_ROOT_PATH}" ]
 		then
 			if [ $USE_PARAM_IMPORT_DEBUG = yes ]
 			then
 				# save copy of the failed param file for debugging
-				cp $PARAM_FILE /fs/microsd/param_import_fail.bson
+				cp $PARAM_FILE ${BOARD_ROOT_PATH}/param_import_fail.bson
 			fi
 
 			# try importing from backup file
@@ -221,7 +221,7 @@ else
 
 			if [ $USE_PARAM_IMPORT_DEBUG = yes ]
 			then
-				dmesg >> /fs/microsd/param_import_fail.txt &
+				dmesg >> ${BOARD_ROOT_PATH}/param_import_fail.txt &
 			fi
 		fi
 	fi
