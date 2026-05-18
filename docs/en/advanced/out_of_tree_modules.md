@@ -195,9 +195,10 @@ At boot, `rcS` sources it after `rc.board_extras` and before the SD card `extras
 ```
 rcS boot sequence:
 ├── rc.board_extras           # Board-specific init
-├── rc.ext_modules            # External module auto-start (ROMFS, build-time)
 ├── extras.txt                # SD card overrides (runtime)
-└── rc.logging                # Logger start
+├── rc.logging                # Logger start
+└── rc.ext_modules            # External module auto-start (ROMFS, build-time)
 ```
 
+External modules run after the logger, ensuring that any slow hardware initialization (e.g. I2C secure elements) doesn't delay flight logging in a brownout recovery scenario.
 The SD card `extras.txt` remains available as a runtime override for development and testing without reflashing.

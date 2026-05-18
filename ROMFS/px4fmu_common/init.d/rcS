@@ -668,17 +668,6 @@ else
 	unset BOARD_RC_EXTRAS
 
 	#
-	# Optional external module auto-start: rc.ext_modules
-	#
-	set EXT_MODULE_RC ${R}etc/init.d/rc.ext_modules
-	if [ -f $EXT_MODULE_RC ]
-	then
-		echo "External modules: ${EXT_MODULE_RC}"
-		. $EXT_MODULE_RC
-	fi
-	unset EXT_MODULE_RC
-
-	#
 	# Start any custom addons from the sdcard.
 	#
 	if [ -f $FEXTRAS ]
@@ -696,6 +685,17 @@ else
 		. ${RC_LOGGING}
 	fi
 	unset RC_LOGGING
+
+	#
+	# Optional external module auto-start: rc.ext_modules
+	#
+	set EXT_MODULE_RC ${R}etc/init.d/rc.ext_modules
+	if [ -f $EXT_MODULE_RC ]
+	then
+		echo "External modules: ${EXT_MODULE_RC}"
+		. $EXT_MODULE_RC
+	fi
+	unset EXT_MODULE_RC
 
 	#
 	# Start the VTX services.
