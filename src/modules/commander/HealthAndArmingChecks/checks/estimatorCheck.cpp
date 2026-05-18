@@ -109,14 +109,16 @@ void EstimatorChecks::checkAndReport(const Context &context, Report &reporter)
 	}
 
 	if (missing_data && (param_ekf2_en == 1)) {
-		/* EVENT
-		 */
-		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
-					    events::ID("check_estimator_missing_data"),
-					    events::Log::Info, "Waiting for estimator to initialize");
+		if (_estimator_status_sub.advertised()) {
+			/* EVENT
+			 */
+			reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
+						    events::ID("check_estimator_missing_data"),
+						    events::Log::Info, "Waiting for estimator to initialize");
 
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: ekf2 missing data");
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: ekf2 missing data");
+			}
 		}
 
 	} else {
