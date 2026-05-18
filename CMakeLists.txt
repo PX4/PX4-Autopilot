@@ -172,14 +172,26 @@ include(px4_add_module)
 set(config_module_list)
 set(config_kernel_list)
 
-# Find Python
-find_package(PythonInterp 3)
-# We have a custom error message to tell users how to install python3.
-if(NOT PYTHONINTERP_FOUND)
-	message(FATAL_ERROR "Python 3 not found. Please install Python 3:\n"
-		"    Ubuntu: sudo apt install python3 python3-dev python3-pip\n"
-		"    macOS: brew install python")
+# find_package(Python3) on macOS defaults to picking the highest-versioned
+# framework Python over PATH and hints, missing the venv where pip
+# installed our requirements. Pin to the project-local .venv when
+# present; otherwise stop at the first location hint and keep macOS
+# frameworks last. PYTHON_EXECUTABLE is bridged below for legacy callers.
+if(NOT DEFINED Python3_EXECUTABLE AND EXISTS "${CMAKE_CURRENT_LIST_DIR}/.venv/bin/python")
+	set(Python3_EXECUTABLE "${CMAKE_CURRENT_LIST_DIR}/.venv/bin/python")
 endif()
+set(Python3_FIND_STRATEGY LOCATION)
+set(Python3_FIND_FRAMEWORK LAST)
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
+
+# Preserve PYTHON_EXECUTABLE as passed if any (e.g. via -D on command
+# line, or from the top Makefile); or else default to what
+# find_package(Python3) resolved. Promote to a CACHE FILEPATH entry so
+# cmake -L lists it, to avoid spurious reconfiguration.
+if(NOT DEFINED PYTHON_EXECUTABLE OR PYTHON_EXECUTABLE STREQUAL "")
+	set(PYTHON_EXECUTABLE "${Python3_EXECUTABLE}")
+endif()
+set(PYTHON_EXECUTABLE "${PYTHON_EXECUTABLE}" CACHE FILEPATH "Python 3 interpreter" FORCE)
 
 option(PYTHON_COVERAGE "Python code coverage" OFF)
 if(PYTHON_COVERAGE)

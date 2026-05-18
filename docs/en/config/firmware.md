@@ -28,7 +28,7 @@ To install PX4:
    Connect directly to a powered USB port on your machine (do not connect through a USB hub).
    :::
 
-1. Select the **PX4 Pro Stable Release vX.x.x** option to install the latest stable version of PX4 _for your flight controller_ (autodetected).
+1. Select the **PX4 Stable Release vX.x.x** option to install the latest stable version of PX4 _for your flight controller_ (autodetected).
 
    ![Install PX4 default](../../assets/qgc/setup/firmware/firmware_connected_default_px4.png)
 
@@ -53,7 +53,7 @@ Next you will need to specify the [vehicle airframe](../config/airframe.md) (and
 
 To install a different version of PX4:
 
-1. Connect the vehicle as above, and select **PX4 Pro Stable Release vX.x.x**.
+1. Connect the vehicle as above, and select **PX4 Stable Release vX.x.x**.
    ![Install PX4 version](../../assets/qgc/setup/firmware/qgc_choose_firmware.png)
 1. Check **Advanced settings** and select the version from the dropdown list:
    - **Standard Version (stable):** The default version (i.e. no need to use advanced settings to install this!)

@@ -5,7 +5,7 @@ import os
 import re
 import sys
 import time
-from typing import Any, Dict, List, NoReturn, TextIO, Optional
+from typing import Any, Callable, Dict, List, NoReturn, TextIO, Optional
 from types import FrameType
 from . import process_helper as ph
 from .logger_helper import color, colorize
@@ -75,6 +75,7 @@ class Tester:
         self.tester_interface = tester_interface
         self.tests = self.determine_tests(config['tests'], model, case)
         self.active_runners = []
+        self.pre_test_hook: Optional[Callable[[str, str], None]] = None
 
     @staticmethod
     def wildcard_match(pattern: str, potential_match: str) -> bool:
@@ -202,6 +203,9 @@ class Tester:
                     print("Creating log directory: {}"
                           .format(log_dir))
                 os.makedirs(log_dir, exist_ok=True)
+
+                if self.pre_test_hook is not None:
+                    self.pre_test_hook(test['model'], key)
 
                 was_success = self.run_test_case(test, key, log_dir)
 
