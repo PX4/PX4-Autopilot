@@ -1024,6 +1024,20 @@ Start running a mission.
 | 6     |       |            | ?                                                                                  |
 | 7     |       |            | ?                                                                                  |
 
+### VEHICLE_CMD_ACTUATOR_GROUP_TEST (309)
+
+Test groups of related actuators (e.g. all actuators contributing to roll torque).
+
+| Param | Units | Range/Enum                                  | Description |
+| ----- | ----- | ------------------------------------------- | ----------- |
+| 1     |       | [ACTUATOR_TEST_GROUP](#ACTUATOR_TEST_GROUP) | Group       |
+| 2     |       | [-1 : 1]                                    | Value       |
+| 3     |       |                                             | Unused      |
+| 4     |       |                                             | Unused      |
+| 5     |       |                                             | Unused      |
+| 6     |       |                                             | Unused      |
+| 7     |       |                                             | Unused      |
+
 ### VEHICLE_CMD_ACTUATOR_TEST (310)
 
 Actuator testing command.
@@ -1552,6 +1566,18 @@ Change mode by specifying nav_state directly.
 | Name | Type | Value | Description |
 | ---- | ---- | ----- | ----------- |
 
+### ACTUATOR_TEST_GROUP {#ACTUATOR_TEST_GROUP}
+
+| Name                                                                                  | Type    | Value | Description |
+| ------------------------------------------------------------------------------------- | ------- | ----- | ----------- |
+| <a id="#ACTUATOR_TEST_GROUP_ROLL_TORQUE"></a> ACTUATOR_TEST_GROUP_ROLL_TORQUE         | `uint8` | 0     |
+| <a id="#ACTUATOR_TEST_GROUP_PITCH_TORQUE"></a> ACTUATOR_TEST_GROUP_PITCH_TORQUE       | `uint8` | 1     |
+| <a id="#ACTUATOR_TEST_GROUP_YAW_TORQUE"></a> ACTUATOR_TEST_GROUP_YAW_TORQUE           | `uint8` | 2     |
+| <a id="#ACTUATOR_TEST_GROUP_COLLECTIVE_TILT"></a> ACTUATOR_TEST_GROUP_COLLECTIVE_TILT | `uint8` | 3     |
+| <a id="#ACTUATOR_TEST_GROUP_X_THRUST"></a> ACTUATOR_TEST_GROUP_X_THRUST               | `uint8` | 4     |
+| <a id="#ACTUATOR_TEST_GROUP_Y_THRUST"></a> ACTUATOR_TEST_GROUP_Y_THRUST               | `uint8` | 5     |
+| <a id="#ACTUATOR_TEST_GROUP_Z_THRUST"></a> ACTUATOR_TEST_GROUP_Z_THRUST               | `uint8` | 6     |
+
 ## Constants
 
 | Name                                                                                                      | Type     | Value | Description                                                                                           |
@@ -1706,6 +1732,7 @@ uint16 VEHICLE_CMD_DO_SET_STANDARD_MODE=262 # Enable the specified standard MAVL
 uint16 VEHICLE_CMD_GIMBAL_DEVICE_INFORMATION = 283 # Command to ask information about a low level gimbal.
 
 uint16 VEHICLE_CMD_MISSION_START = 300 # Start running a mission. |first_item: the first mission item to run|last_item: the last mission item to run (after this item is run, the mission ends)|
+uint16 VEHICLE_CMD_ACTUATOR_GROUP_TEST = 309 # Test groups of related actuators (e.g. all actuators contributing to roll torque). |[@enum ACTUATOR_TEST_GROUP] Group|[@range -1,1] Value|Unused|Unused|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_ACTUATOR_TEST = 310 # Actuator testing command. |[@range -1,1] value|[s] timeout|Unused|Unused|output function|
 uint16 VEHICLE_CMD_CONFIGURE_ACTUATOR = 311 # Actuator configuration command. |configuration|Unused|Unused|Unused|output function|
 uint16 VEHICLE_CMD_ESC_REQUEST_EEPROM = 312 # Request EEPROM data from an ESC. |ESC Index|Firmware Type|Unused|Unused|Unused|
@@ -1837,6 +1864,15 @@ uint8 GRIPPER_ACTION_GRAB = 1
 # Used as param1 in DO_SET_SAFETY_SWITCH_STATE command.
 uint8 SAFETY_OFF = 0
 uint8 SAFETY_ON = 1
+
+# param1 in VEHICLE_CMD_ACTUATOR_GROUP_TEST (matches MAVLink ACTUATOR_TEST_GROUP enum)
+uint8 ACTUATOR_TEST_GROUP_ROLL_TORQUE = 0
+uint8 ACTUATOR_TEST_GROUP_PITCH_TORQUE = 1
+uint8 ACTUATOR_TEST_GROUP_YAW_TORQUE = 2
+uint8 ACTUATOR_TEST_GROUP_COLLECTIVE_TILT = 3
+uint8 ACTUATOR_TEST_GROUP_X_THRUST = 4
+uint8 ACTUATOR_TEST_GROUP_Y_THRUST = 5
+uint8 ACTUATOR_TEST_GROUP_Z_THRUST = 6
 
 uint8 ORB_QUEUE_LENGTH = 8
 
