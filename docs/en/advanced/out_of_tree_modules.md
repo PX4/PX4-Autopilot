@@ -82,3 +82,122 @@ Any other build target can be used, but the build directory must not yet exist.
 If it already exists, you can also just set the _cmake_ variable in the build folder.
 
 For subsequent incremental builds `EXTERNAL_MODULES_LOCATION` does not need to be specified.
+
+## Out-of-Tree MAVLink Dialect Definitions
+
+External modules can register custom MAVLink dialect XML files for mavgen code generation without modifying PX4 source.
+
+### Registering a Dialect
+
+Call `px4_add_external_mavlink_dialect()` from your module's `CMakeLists.txt`:
+
+```cmake
+px4_add_external_mavlink_dialect(
+    XML ${CMAKE_CURRENT_SOURCE_DIR}/../../mavlink/my_dialect.xml
+)
+```
+
+The dialect XML must `<include>common.xml</include>` so that all standard MAVLink messages remain available.
+The function copies the XML into mavgen's search path and, if `CONFIG_MAVLINK_DIALECT` is `common`, automatically overrides it with your dialect name.
+
+Multiple external dialects from different modules are supported.
+
+### Directory Layout
+
+```
+my_external_module/
+├── mavlink/
+│   └── my_dialect.xml      # Custom MAVLink dialect
+├── src/
+│   ├── CMakeLists.txt       # Calls px4_add_external_mavlink_dialect()
+│   └── modules/
+│       └── my_module/
+```
+
+## External MAVLink Message Handlers and Streams
+
+External modules can register callbacks for custom inbound and outbound MAVLink messages at runtime, without patching `mavlink_receiver.cpp` or `mavlink_main.cpp`.
+
+### Inbound Message Handlers
+
+Register a handler for a custom message ID from your module's `init` or `task_spawn`:
+
+```cpp
+#include <modules/mavlink/mavlink_ext_handler.h>
+
+static bool handle_my_message(const mavlink_message_t *msg, void *user_data)
+{
+    // Decode and process message
+    return true;
+}
+
+// Registration (typically in module init)
+mavlink_ext_handler_register(MAVLINK_MSG_ID_MY_MESSAGE, handle_my_message, this);
+
+// Cleanup (module stop)
+mavlink_ext_handler_unregister(MAVLINK_MSG_ID_MY_MESSAGE);
+```
+
+Registered handlers are invoked from the MAVLink receiver thread's `default` switch case.
+Registration is mutex-protected; dispatch is lock-free.
+
+### Outbound Streams
+
+Register a stream callback to periodically emit custom messages:
+
+```cpp
+#include <modules/mavlink/mavlink_ext_stream.h>
+
+static bool emit_my_message(uint8_t channel, void *user_data)
+{
+    mavlink_my_message_t msg{};
+    // Fill message fields...
+    mavlink_msg_my_message_send_struct((mavlink_channel_t)channel, &msg);
+    return true;
+}
+
+// Register with rate limiting (500000 = 2 Hz)
+mavlink_ext_stream_register(MAVLINK_MSG_ID_MY_MESSAGE, "MY_MESSAGE",
+                            emit_my_message, this, 500000);
+```
+
+The `interval_us` parameter controls rate limiting:
+- `-1`: unlimited (fire every iteration)
+- `0`: disabled
+- `>0`: minimum microseconds between sends
+
+External stream rates can also be controlled at runtime via the standard MAVLink `SET_MESSAGE_INTERVAL` command from QGC or pymavlink:
+
+```cpp
+// Programmatic rate change
+mavlink_ext_stream_set_interval(MAVLINK_MSG_ID_MY_MESSAGE, 1000000); // 1 Hz
+```
+
+## Boot-Time Auto-Start
+
+External modules can declare startup commands that are baked into the firmware ROMFS image at build time, eliminating the need for manual SD card `extras.txt` files.
+
+### Setup
+
+Create `init/rc.ext_modules` in your external module directory:
+
+```sh
+#!/bin/sh
+my_driver start
+my_mavlink_bridge start
+```
+
+When building with `EXTERNAL_MODULES_LOCATION`, PX4's build system automatically copies this file into the ROMFS.
+At boot, `rcS` sources it after `rc.board_extras` and before the SD card `extras.txt`.
+
+### Boot Order
+
+```
+rcS boot sequence:
+├── rc.board_extras           # Board-specific init
+├── rc.ext_modules            # External module auto-start (ROMFS, build-time)
+├── extras.txt                # SD card overrides (runtime)
+└── rc.logging                # Logger start
+```
+
+The SD card `extras.txt` remains available as a runtime override for development and testing without reflashing.
