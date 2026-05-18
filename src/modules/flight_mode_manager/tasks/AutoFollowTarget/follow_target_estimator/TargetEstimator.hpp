@@ -203,7 +203,8 @@ protected:
 	matrix::Vector3f _vel_measurement_old{};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::FLW_TGT_RS>) _param_flw_tgt_rs
+		(ParamFloat<px4::params::FLW_TGT_RS>) _param_flw_tgt_rs,
+		(ParamFloat<px4::params::FLW_TGT_VG>) _param_flw_tgt_vg
 	)
 
 	// Subscriptions

@@ -194,7 +194,7 @@ void TargetEstimator::update_filter_gains(filter_gains_s &filter_gains) const
 	// From alpha-beta-gamma filter equations: G = 1-beta^3
 	// Therefore: beta = (1-Gp)^(1/3) = (1-(1-responsiveness))^(1/3) = (r)^(1/3)
 	const float beta_p = powf((filter_gains.responsiveness), 1.0f / 3.0f);
-	const float beta_v = 0.9f * beta_p; // velocity fusion gain is slightly lower. TODO: individual parameter?
+	const float beta_v = math::constrain(_param_flw_tgt_vg.get(), 0.1f, 1.0f) * beta_p;
 
 	// Estimator gains for horizontal position update
 	filter_gains.G_p = 1.0f - beta_p * beta_p * beta_p;

@@ -12,6 +12,19 @@ parameters:
       min: 0.0
       max: 1.0
       decimal: 2
+    FLW_TGT_VG:
+      description:
+        short: Velocity fusion gain factor in Target Estimator
+        long: |-
+          Scales the velocity filter's beta coefficient relative to the position
+          beta derived from FLW_TGT_RS. Lower values make the velocity estimate
+          smoother but less responsive. At 1.0 position and velocity filters have
+          equal responsiveness.
+      type: float
+      default: 0.9
+      min: 0.1
+      max: 1.0
+      decimal: 2
     FLW_TGT_HT:
       description:
         short: Follow target height
