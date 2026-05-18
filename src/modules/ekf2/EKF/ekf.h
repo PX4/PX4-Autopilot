@@ -96,6 +96,7 @@ public:
 #if defined(CONFIG_EKF2_BAROMETER)
 	const auto &aid_src_baro_hgt() const { return _aid_src_baro_hgt; }
 	const BiasEstimator::status &getBaroBiasEstimatorStatus() const { return _baro_b_est.getStatus(); }
+	float getBaroLpfState() const { return _baro_lpf.getState(); }
 #endif // CONFIG_EKF2_BAROMETER
 
 #if defined(CONFIG_EKF2_TERRAIN)

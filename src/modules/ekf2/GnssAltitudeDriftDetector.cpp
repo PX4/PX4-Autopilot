@@ -33,25 +33,13 @@
 
 #include "GnssAltitudeDriftDetector.hpp"
 
-void GnssAltitudeDriftDetector::updateBaroLpf(float baro_alt, uint64_t timestamp)
-{
-	const float dt = 1e-6f * (timestamp - _last_baro_ts);
+#include <math.h>
 
-	if (_last_baro_ts != 0 && dt < 1.f) {
-		_baro_lpf.update(baro_alt, dt);
-
-	} else {
-		_baro_lpf.reset(baro_alt);
-	}
-
-	_last_baro_ts = timestamp;
-}
-
-void GnssAltitudeDriftDetector::update(const sensor_gps_s &gps, float ekf_amsl)
+void GnssAltitudeDriftDetector::update(const sensor_gps_s &gps, float ekf_amsl, float baro_alt)
 {
 	const bool gps_timeout = (_last_gps_ts != 0) && (gps.timestamp - _last_gps_ts > 500000);
 
-	if (gps_timeout || _last_gps_ts == 0 || _last_baro_ts == 0) {
+	if (gps_timeout || _last_gps_ts == 0) {
 		reset();
 		_last_gps_ts = gps.timestamp;
 		return;
@@ -69,7 +57,7 @@ void GnssAltitudeDriftDetector::update(const sensor_gps_s &gps, float ekf_amsl)
 		return;
 	}
 
-	_d1[_widx] = ekf_amsl - _baro_lpf.getState();
+	_d1[_widx] = ekf_amsl - baro_alt;
 	_d2[_widx] = ekf_amsl - _vel_integral;
 	_widx = (_widx + 1) % kWindowSize;
 

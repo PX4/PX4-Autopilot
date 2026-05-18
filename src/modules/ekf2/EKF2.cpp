@@ -1750,7 +1750,7 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 	lpos.heading_var = _ekf.getYawVar();
 	lpos.delta_heading = Eulerf(delta_q_reset).psi();
 	lpos.heading_good_for_control = _ekf.isYawFinalAlignComplete();
-#if defined(CONFIG_EKF2_GNSS)
+#if defined(CONFIG_EKF2_GNSS) && defined(CONFIG_EKF2_BAROMETER)
 	lpos.altitude_good_for_lock = _gnss_altitude_drift_detector._altitude_good_for_lock;
 #else
 	lpos.altitude_good_for_lock = true;
@@ -2383,10 +2383,6 @@ void EKF2::UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps)
 
 		_ekf.setBaroData(baroSample{airdata.timestamp_sample, airdata.baro_alt_meter, reset});
 
-#if defined(CONFIG_EKF2_GNSS)
-		_gnss_altitude_drift_detector.updateBaroLpf(airdata.baro_alt_meter, airdata.timestamp_sample);
-#endif // CONFIG_EKF2_GNSS
-
 		ekf2_timestamps.vehicle_air_data_timestamp_rel = (int16_t)((int64_t)airdata.timestamp / 100 -
 				(int64_t)ekf2_timestamps.timestamp / 100);
 	}
@@ -2686,12 +2682,14 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 			_last_geoid_height_update_us = gnss_sample.time_us;
 		}
 
+#if defined(CONFIG_EKF2_BAROMETER)
+
 		if (_ekf.control_status_flags().in_air
 		    && _ekf.getHeightSensorRef() == HeightSensor::GNSS
 		    && _ekf.control_status_flags().baro_hgt
 		    && (_param_ekf2_gps_ctrl.get() & static_cast<int32_t>(GnssCtrl::VEL))) {
 
-			_gnss_altitude_drift_detector.update(vehicle_gps_position, _ekf.getLatLonAlt().altitude());
+			_gnss_altitude_drift_detector.update(vehicle_gps_position, _ekf.getLatLonAlt().altitude(), _ekf.getBaroLpfState());
 
 			if (!_gnss_altitude_drift_detector._altitude_good_for_lock) {
 				_ekf.decorrelateAltitudeFromPosition();
@@ -2700,6 +2698,8 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 		} else {
 			_gnss_altitude_drift_detector.reset();
 		}
+
+#endif // CONFIG_EKF2_BAROMETER
 	}
 }
 

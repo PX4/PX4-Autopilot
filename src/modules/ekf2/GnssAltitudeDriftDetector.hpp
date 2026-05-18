@@ -34,7 +34,6 @@
 #pragma once
 
 #include <drivers/drv_hrt.h>
-#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/gnss_altitude_drift.h>
 #include <uORB/topics/sensor_gps.h>
@@ -46,8 +45,7 @@ public:
 	static constexpr int kStabilityWindow = 5; // samples to check for re-enable
 	static constexpr float kDriftThreshold = 1.f; // [m]
 
-	void updateBaroLpf(float baro_alt, uint64_t timestamp);
-	void update(const sensor_gps_s &gps, float ekf_amsl);
+	void update(const sensor_gps_s &gps, float ekf_amsl, float baro_alt);
 	void reset();
 
 	bool _altitude_good_for_lock{true};
@@ -58,8 +56,6 @@ private:
 
 	uORB::PublicationMulti<gnss_altitude_drift_s> _gnss_altitude_drift_pub{ORB_ID(gnss_altitude_drift)};
 
-	AlphaFilter<float> _baro_lpf;
-	hrt_abstime _last_baro_ts{0};
 	hrt_abstime _last_gps_ts{0};
 
 	float _d1[kWindowSize] {}; // ekf_amsl - baro_alt
