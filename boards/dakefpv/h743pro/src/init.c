@@ -235,7 +235,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
                                         if (!ef) {
                                                 ef = fopen(extras, "w");
                                                 if (ef) {
-                                                        fputs("# DAKEFPV H743 extras -- runs at every boot\n", ef);
+                                                        fputs("# DAKEFPV H743 Pro extras -- runs at every boot\n", ef);
                                                         fputs("# Add driver start commands here.\n", ef);
                                                         fclose(ef);
                                                 }
