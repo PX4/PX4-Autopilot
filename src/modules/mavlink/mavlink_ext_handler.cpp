@@ -33,13 +33,6 @@
 
 /**
  * @file mavlink_ext_handler.cpp
- *
- * External MAVLink message handler registry implementation.
- *
- * Uses a simple static array with atomic count for lock-free dispatch.
- * Registration is not thread-safe with itself (callers must not register
- * concurrently), but dispatch is safe to call from the mavlink receiver
- * thread while registration happens from a module init context.
  */
 
 #include "mavlink_bridge_header.h"  // Full mavlink_message_t definition (for ->msgid)
@@ -48,6 +41,7 @@
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/log.h>
 #include <cstring>
+#include <pthread.h>
 
 struct mavlink_ext_handler_entry_t {
 	uint32_t msg_id;
@@ -57,6 +51,7 @@ struct mavlink_ext_handler_entry_t {
 
 static mavlink_ext_handler_entry_t _handlers[MAVLINK_EXT_HANDLER_MAX] {};
 static px4::atomic<unsigned> _handler_count {0};
+static pthread_mutex_t _handler_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 int mavlink_ext_handler_register(uint32_t msg_id, mavlink_ext_handler_fn handler, void *user_data)
 {
@@ -64,24 +59,28 @@ int mavlink_ext_handler_register(uint32_t msg_id, mavlink_ext_handler_fn handler
 		return -1;
 	}
 
+	pthread_mutex_lock(&_handler_mutex);
+
 	unsigned count = _handler_count.load();
 
-	// Check for duplicate
 	for (unsigned i = 0; i < count; i++) {
 		if (_handlers[i].msg_id == msg_id) {
+			pthread_mutex_unlock(&_handler_mutex);
 			return -1;
 		}
 	}
 
 	if (count >= MAVLINK_EXT_HANDLER_MAX) {
+		pthread_mutex_unlock(&_handler_mutex);
 		return -1;
 	}
 
-	// Write entry before publishing count (release semantics via atomic store)
 	_handlers[count].msg_id = msg_id;
 	_handlers[count].handler = handler;
 	_handlers[count].user_data = user_data;
 	_handler_count.store(count + 1);
+
+	pthread_mutex_unlock(&_handler_mutex);
 
 	PX4_INFO("ext_handler: registered msgid %lu (count=%u)", (unsigned long)msg_id, count + 1);
 
@@ -90,21 +89,24 @@ int mavlink_ext_handler_register(uint32_t msg_id, mavlink_ext_handler_fn handler
 
 int mavlink_ext_handler_unregister(uint32_t msg_id)
 {
+	pthread_mutex_lock(&_handler_mutex);
+
 	unsigned count = _handler_count.load();
 
 	for (unsigned i = 0; i < count; i++) {
 		if (_handlers[i].msg_id == msg_id) {
-			// Shift remaining entries down
 			if (i < count - 1) {
 				memmove(&_handlers[i], &_handlers[i + 1],
 					(count - i - 1) * sizeof(mavlink_ext_handler_entry_t));
 			}
 
 			_handler_count.store(count - 1);
+			pthread_mutex_unlock(&_handler_mutex);
 			return 0;
 		}
 	}
 
+	pthread_mutex_unlock(&_handler_mutex);
 	return -1;
 }
 
