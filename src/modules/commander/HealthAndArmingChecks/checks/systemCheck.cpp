@@ -73,34 +73,62 @@ void SystemChecks::checkAndReport(const Context &context, Report &reporter)
 	}
 
 	// Global position required
-	if (!_param_com_arm_wo_gps.get() && !context.isArmed()) {
+	const int32_t arm_wo_gpos = _param_com_arm_wo_gpos.get();
+
+	if (arm_wo_gpos != 2 && !context.isArmed()) {
+		const bool block_arming = (arm_wo_gpos == 0);
+
+		NavModesMessageFail required_modes;
+		events::Log log_level;
+
+		if (block_arming) {
+			required_modes.message_modes = required_modes.fail_modes = NavModes::All;
+			log_level = events::Log::Error;
+
+		} else {
+			// warn only, don't block arming
+			required_modes.message_modes = NavModes::All;
+			required_modes.fail_modes = NavModes::None;
+			log_level = events::Log::Warning;
+		}
+
 		if (reporter.failsafeFlags().global_position_invalid) {
 			/* EVENT
 			 * @description
 			 * <profile name="dev">
-			 * This check can be configured via <param>COM_ARM_WO_GPS</param> parameter.
+			 * This check can be configured via <param>COM_ARM_WO_GPOS</param> parameter.
 			 * </profile>
 			 * The available positioning data is not sufficient to determine the vehicle's global position.
 			 */
-			reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_system_no_global_pos"),
-						    events::Log::Error, "Global position estimate required");
+			reporter.armingCheckFailure(required_modes, health_component_t::system, events::ID("check_system_no_global_pos"),
+						    log_level, "Global position estimate required");
 
 			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Global position estimate required");
+				if (block_arming) {
+					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Global position estimate required");
+
+				} else {
+					mavlink_log_warning(reporter.mavlink_log_pub(), "Preflight Warning: Global position estimate not available");
+				}
 			}
 
 		} else if (reporter.failsafeFlags().home_position_invalid) {
 			/* EVENT
 			 * @description
 			 * <profile name="dev">
-			 * This check can be configured via <param>COM_ARM_WO_GPS</param> parameter.
+			 * This check can be configured via <param>COM_ARM_WO_GPOS</param> parameter.
 			 * </profile>
 			 */
-			reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_system_no_home_pos"),
-						    events::Log::Error, "Home position required");
+			reporter.armingCheckFailure(required_modes, health_component_t::system, events::ID("check_system_no_home_pos"),
+						    log_level, "Home position required");
 
 			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Home position required");
+				if (block_arming) {
+					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Home position required");
+
+				} else {
+					mavlink_log_warning(reporter.mavlink_log_pub(), "Preflight Warning: Home position not available");
+				}
 			}
 		}
 	}

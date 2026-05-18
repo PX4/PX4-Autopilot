@@ -67,9 +67,6 @@ To use dead-reckoning mode, the vehicle must have an alternative source of posit
 To enable the mode:
 
 1. Set [EKF2_GPS_MODE](../advanced_config/parameter_reference.md#EKF2_GPS_MODE) to `1`.
-2. Ensure that GNSS arming checks are enabled (a reliable GNSS signal is required before arming):
-   - [COM_ARM_WO_GPS](../advanced_config/parameter_reference.md#COM_ARM_WO_GPS) - set to `0`
-   - [EKF2_GPS_CHECK](../advanced_config/parameter_reference.md#EKF2_GPS_CHECK) - set to default.
 
 ## See Also
 

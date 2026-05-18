@@ -118,13 +118,13 @@ parameters:
       unit: s
       decimal: 1
       increment: 0.1
-    COM_ARM_WO_GPS:
+    COM_ARM_WO_GPOS:
       description:
-        short: Arming without GNSS configuration
+        short: Arming without global position configuration
         long: |-
-          Configures whether arming is allowed without GNSS, for modes that require a global position
-          (specifically, in those modes when a check defined by EKF2_GPS_CHECK fails).
-          The settings deny arming and warn, allow arming and warn, or silently allow arming.
+          Configures whether arming is allowed without a valid global position estimate (from any source,
+          e.g. GNSS or auxiliary global position).
+          This check is independent from the mode checks (certain modes independently require a global position estimate).
       type: enum
       values:
         0: Deny arming

@@ -233,6 +233,15 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2026-05-15: translate COM_ARM_WO_GPS to COM_ARM_WO_GPOS
+	{
+		if (strcmp("COM_ARM_WO_GPS", node->name) == 0) {
+			strcpy(node->name, "COM_ARM_WO_GPOS");
+			PX4_INFO("migrating %s -> %s", "COM_ARM_WO_GPS", "COM_ARM_WO_GPOS");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
 	// 2026-03-19: translate RC*_REV from float to int32
 	{
 		if ((node->type == bson_type_t::BSON_DOUBLE) && (strncmp("RC", node->name, 2) == 0)
