@@ -608,6 +608,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 
 	} else if (cmd_mavlink.command == MAV_CMD_DO_SET_MODE) {
 		_cmd_pub.publish(vehicle_command);
+		send_ack = false;	//Acknowledgement handled by Commander
 
 	} else if (cmd_mavlink.command == MAV_CMD_DO_AUTOTUNE_ENABLE) {
 
