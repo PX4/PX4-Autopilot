@@ -62,6 +62,7 @@
 #include "mavlink_main.h"
 #include "mavlink_receiver.h"
 #include "mavlink_ext_handler.h"
+#include "mavlink_ext_stream.h"
 
 #ifdef CONFIG_DRIVERS_SERIALPASSTHROUGH
 #include <drivers/serialpassthrough/serialpassthrough.hpp>
@@ -2578,6 +2579,18 @@ MavlinkReceiver::set_message_interval(int msgId, float interval, float param3, f
 		if (stream_name != nullptr) {
 			_mavlink.configure_stream_threadsafe(stream_name, rate);
 			found_id = true;
+
+		} else {
+			// Fallback: check external (OOT) streams
+			int ext_interval_us = (interval > 0.00001f) ? (int)interval : -1;
+
+			if (interval < -0.00001f) {
+				ext_interval_us = 0; // stop
+			}
+
+			if (mavlink_ext_stream_set_interval((uint32_t)msgId, ext_interval_us) == 0) {
+				found_id = true;
+			}
 		}
 	}
 
