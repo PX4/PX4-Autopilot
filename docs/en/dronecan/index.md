@@ -313,7 +313,11 @@ PX4 can upgrade device firmware over DroneCAN.
 To upgrade the device, all you need to do is copy the firmware binary into the root directory of the flight controller's SD card and reboot.
 
 Upon boot the flight controller will automatically transfer the firmware onto the device and upgrade it.
-If successful, the firmware binary will be removed from the root directory and there will be a file named **XX.bin** in the **/ufw** directory of the SD card.
+If successful, the firmware binary will be removed from the root directory and there will be a file named `<board_id>.bin` in the `/ufw` directory of the SD card (where `<board_id>` is the numeric board ID from the firmware's application descriptor).
+
+Alongside each migrated binary, PX4 records the original source filename in `/ufw/FW.db`, with one `<board_id>.bin=<original_filename>` entry per line.
+The index is accessible over MAVLink FTP, allowing external update tools to detect previously-uploaded firmware by its source filename and skip redundant transfers.
+Stale entries (referencing binaries that no longer exist on disk) are pruned automatically on the next boot.
 
 ## Troubleshooting
 

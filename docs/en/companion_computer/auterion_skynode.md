@@ -65,6 +65,33 @@ make px4_fmu-v5x upload_skynode_wifi
 
 ::::
 
+## Bundling CAN Node Firmware
+
+CAN node firmware binaries can be bundled with the FMU firmware in a single upload by invoking `upload_skynode.sh` directly with one or more `--ext-fw=<file>` flags (the flag is repeatable).
+Each file is packaged under `ufw/` inside the upload tarball, staged on the SD card under `/fs/microsd/ufw_staging/`, then migrated to `/fs/microsd/ufw/` during PX4 startup and flashed to the matching CAN node (see [DroneCAN > Firmware Update](../dronecan/index.md#firmware-update)).
+
+:::: tabs
+
+::: tab "Skynode connected via USB"
+
+```
+./Tools/auterion/upload_skynode.sh --ext-fw=path/to/canio-v2.1.0.uavcan.bin --ext-fw=path/to/gps.uavcan.bin
+```
+
+:::
+
+::: tab "Skynode connected via WiFi"
+
+```
+./Tools/auterion/upload_skynode.sh --ext-fw=path/to/canio-v2.1.0.uavcan.bin --ext-fw=path/to/gps.uavcan.bin --wifi
+```
+
+:::
+
+::::
+
+`--ext-fw` can be combined with `--file=<px4_firmware.px4>` to upload FMU firmware and CAN node firmware in the same step.
+
 ## Restoring the Default PX4 Firmware
 
 To reinstall the original Skynode version of PX4 when connected via USB run the following command in the repository:
