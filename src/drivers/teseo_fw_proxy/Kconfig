@@ -1,0 +1,8 @@
+menuconfig DRIVERS_TESEO_FW_PROXY
+	bool "teseo_fw_proxy"
+	default n
+	depends on DRIVERS_UAVCANNODE
+	---help---
+		Mock DroneCAN file.Read -> Teseo X-Loader firmware update proxy.
+		Demonstrates streaming a firmware image from the FC's file server
+		to a Teseo GNSS module without local storage.
