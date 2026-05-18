@@ -82,7 +82,7 @@ int mavlink_ext_handler_register(uint32_t msg_id, mavlink_ext_handler_fn handler
 
 	pthread_mutex_unlock(&_handler_mutex);
 
-	PX4_INFO("ext_handler: registered msgid %lu (count=%u)", (unsigned long)msg_id, count + 1);
+	PX4_DEBUG("ext_handler: registered msgid %lu (count=%u)", (unsigned long)msg_id, count + 1);
 
 	return 0;
 }

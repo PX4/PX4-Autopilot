@@ -45,7 +45,7 @@
 #
 #	Usage:
 #		px4_add_external_mavlink_dialect(
-#			XML ${CMAKE_CURRENT_SOURCE_DIR}/../../mavlink/se05x.xml
+#			XML ${CMAKE_CURRENT_SOURCE_DIR}/../../mavlink/my_dialect.xml
 #		)
 #
 #	Effects:
