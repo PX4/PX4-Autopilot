@@ -34,19 +34,25 @@
 #pragma once
 
 #include <parameters/param.h>
-#include <uORB/Subscription.hpp>
 #include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 
-class SensorGpsFailureInjector
+class GpsFailureInjector
 {
 public:
 	static constexpr int GPS_MAX_INSTANCES = 2;
+	static constexpr uint8_t ALL_INSTANCES = (1u << GPS_MAX_INSTANCES) - 1u;
 
-	SensorGpsFailureInjector();
+	explicit GpsFailureInjector(uint8_t owned_instances = ALL_INSTANCES);
 
 	void update();
+
+	void publish(int instance, sensor_gps_s gps, sensor_gps_s &snapshot,
+		     uORB::PublicationMulti<sensor_gps_s> &pub);
 
 	bool isBlocked(int instance) const { return (_gps_blocked_mask >> instance) & 1u; }
 	bool isStuck(int instance)   const { return (_gps_stuck_mask   >> instance) & 1u; }
@@ -57,6 +63,8 @@ private:
 	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	param_t _param_sys_failure_en{PARAM_INVALID};
+
+	const uint8_t _owned_instances;
 
 	uint8_t _gps_blocked_mask{0};
 	uint8_t _gps_stuck_mask{0};

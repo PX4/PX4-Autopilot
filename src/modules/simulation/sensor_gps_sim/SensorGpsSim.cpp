@@ -198,7 +198,7 @@ void SensorGpsSim::Run()
 		sensor_gps.vel_ned_valid = true;
 		sensor_gps.satellites_used = _sim_gps_used.get();
 
-		publishWithFailures(0, sensor_gps, _last_gps0, _sensor_gps_pub);
+		_failure_injector.publish(0, sensor_gps, _last_gps0, _sensor_gps_pub);
 
 		const float gps1_offx = _param_gps1_offx.get();
 		const float gps1_offy = _param_gps1_offy.get();
@@ -212,32 +212,11 @@ void SensorGpsSim::Run()
 			gps1.latitude_deg  = latitude  + (double)gps1_offx / CONSTANTS_RADIUS_OF_EARTH * (180.0 / M_PI);
 			gps1.longitude_deg = longitude + (double)gps1_offy / CONSTANTS_RADIUS_OF_EARTH * (180.0 / M_PI) / cos(latitude * M_PI / 180.0);
 
-			publishWithFailures(1, gps1, _last_gps1, _sensor_gps_pub2);
+			_failure_injector.publish(1, gps1, _last_gps1, _sensor_gps_pub2);
 		}
 	}
 
 	perf_end(_loop_perf);
-}
-
-void SensorGpsSim::publishWithFailures(int instance, sensor_gps_s gps, sensor_gps_s &snapshot,
-				       uORB::PublicationMulti<sensor_gps_s> &pub)
-{
-	if (!_failure_injector.isBlocked(instance)) {
-		if (_failure_injector.isStuck(instance)) {
-			snapshot.timestamp = hrt_absolute_time();
-			pub.publish(snapshot);
-
-		} else {
-			if (_failure_injector.isWrong(instance)) {
-				gps.latitude_deg  += 1.0;
-				gps.longitude_deg += 1.0;
-			}
-
-			gps.timestamp = hrt_absolute_time();
-			snapshot = gps;
-			pub.publish(gps);
-		}
-	}
 }
 
 int SensorGpsSim::task_spawn(int argc, char *argv[])

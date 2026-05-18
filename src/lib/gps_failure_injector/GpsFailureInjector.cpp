@@ -31,16 +31,17 @@
  *
  ****************************************************************************/
 
-#include "SensorGpsFailureInjector.hpp"
+#include "GpsFailureInjector.hpp"
 
 #include <drivers/drv_hrt.h>
 
-SensorGpsFailureInjector::SensorGpsFailureInjector()
+GpsFailureInjector::GpsFailureInjector(uint8_t owned_instances)
+	: _owned_instances(owned_instances)
 {
 	_param_sys_failure_en = param_find("SYS_FAILURE_EN");
 }
 
-void SensorGpsFailureInjector::update()
+void GpsFailureInjector::update()
 {
 	int32_t sys_failure_en = 0;
 	const bool enabled = _param_sys_failure_en != PARAM_INVALID
@@ -80,9 +81,16 @@ void SensorGpsFailureInjector::update()
 			continue;
 		}
 
-		const uint8_t target_mask = (requested_instance == 0)
-					    ? static_cast<uint8_t>((1u << GPS_MAX_INSTANCES) - 1u)
-					    : static_cast<uint8_t>(1u << (requested_instance - 1));
+		const uint8_t requested_mask = (requested_instance == 0)
+					       ? ALL_INSTANCES
+					       : static_cast<uint8_t>(1u << (requested_instance - 1));
+
+		// Only react to commands that touch instances we own.
+		const uint8_t target_mask = requested_mask & _owned_instances;
+
+		if (target_mask == 0) {
+			continue;
+		}
 
 		bool supported = true;
 		const char *action = nullptr;
@@ -131,5 +139,26 @@ void SensorGpsFailureInjector::update()
 			     vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
 		ack.timestamp = hrt_absolute_time();
 		_command_ack_pub.publish(ack);
+	}
+}
+
+void GpsFailureInjector::publish(int instance, sensor_gps_s gps, sensor_gps_s &snapshot,
+				 uORB::PublicationMulti<sensor_gps_s> &pub)
+{
+	if (!isBlocked(instance)) {
+		if (isStuck(instance)) {
+			snapshot.timestamp = hrt_absolute_time();
+			pub.publish(snapshot);
+
+		} else {
+			if (isWrong(instance)) {
+				gps.latitude_deg  += 1.0;
+				gps.longitude_deg += 1.0;
+			}
+
+			gps.timestamp = hrt_absolute_time();
+			snapshot = gps;
+			pub.publish(gps);
+		}
 	}
 }

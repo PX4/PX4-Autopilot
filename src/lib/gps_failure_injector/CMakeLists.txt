@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2021-2022 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2025 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,16 +31,6 @@
 #
 ############################################################################
 
-px4_add_module(
-	MODULE modules__simulation__sensor_gps_sim
-	MAIN sensor_gps_sim
-	COMPILE_FLAGS
-	SRCS
-		SensorGpsSim.cpp
-		SensorGpsSim.hpp
-	MODULE_CONFIG
-		parameters.yaml
-	DEPENDS
-		gps_failure_injector
-		px4_work_queue
-	)
+px4_add_library(gps_failure_injector
+	GpsFailureInjector.cpp
+)

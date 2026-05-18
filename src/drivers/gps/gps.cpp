@@ -48,6 +48,7 @@
 #include <cstring>
 
 #include <drivers/drv_sensor.h>
+#include <gps_failure_injector/GpsFailureInjector.hpp>
 #include <lib/drivers/device/Device.hpp>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
@@ -218,6 +219,9 @@ private:
 
 	const Instance 			_instance;
 
+	GpsFailureInjector		_failure_injector;
+	sensor_gps_s			_last_sensor_gps{};
+
 	uORB::SubscriptionMultiArray<gps_inject_data_s, gps_inject_data_s::MAX_INSTANCES> _orb_inject_data_sub{ORB_ID::gps_inject_data};
 	uORB::Publication<gps_inject_data_s> _gps_inject_data_pub{ORB_ID(gps_inject_data)};
 	uORB::Publication<gps_dump_s>	     _dump_communication_pub{ORB_ID(gps_dump)};
@@ -323,7 +327,8 @@ GPS::GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interfac
 	_configured_baudrate(configured_baudrate),
 	_mode(mode),
 	_interface(interface),
-	_instance(instance)
+	_instance(instance),
+	_failure_injector(static_cast<uint8_t>(1u << static_cast<int>(instance)))
 {
 	/* store port name */
 	if (path != nullptr) {
@@ -1352,11 +1357,12 @@ GPS::publish()
 {
 	if (_instance == Instance::Main || _is_gps_main_advertised.load()) {
 		_sensor_gps.device_id = get_device_id();
-
 		_sensor_gps.selected_rtcm_instance = _selected_rtcm_instance;
 		_sensor_gps.rtcm_injection_rate = _rtcm_injection_rate;
 
-		_sensor_gps_pub.publish(_sensor_gps);
+		_failure_injector.update();
+		_failure_injector.publish(static_cast<int>(_instance), _sensor_gps, _last_sensor_gps, _sensor_gps_pub);
+
 		// Heading/yaw data can be updated at a lower rate than the other navigation data.
 		// The uORB message definition requires this data to be set to a NAN if no new valid data is available.
 		_sensor_gps.heading = NAN;

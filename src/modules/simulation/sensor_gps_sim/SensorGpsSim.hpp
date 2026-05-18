@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include "SensorGpsFailureInjector.hpp"
+#include <gps_failure_injector/GpsFailureInjector.hpp>
 
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
@@ -72,9 +72,6 @@ public:
 private:
 	void Run() override;
 
-	void publishWithFailures(int instance, sensor_gps_s gps, sensor_gps_s &snapshot,
-				 uORB::PublicationMulti<sensor_gps_s> &pub);
-
 	// generate white Gaussian noise sample with std=1
 	static float generate_wgn();
 
@@ -90,7 +87,7 @@ private:
 
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
-	SensorGpsFailureInjector _failure_injector{};
+	GpsFailureInjector _failure_injector{};
 
 	sensor_gps_s _last_gps0{};
 	sensor_gps_s _last_gps1{};
