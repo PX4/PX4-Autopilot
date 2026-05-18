@@ -625,7 +625,7 @@ void Sih::ecefToNed()
 
 	// Transform velocity to NED frame
 	_v_N = C_SE * _v_E;
-	_v_apparent_N = _v_N + _v_wind_N;
+	_v_apparent_N = _v_N - _v_wind_N;
 
 	_q = Quatf(C_SE) * _q_E;
 	_q.normalize();
@@ -669,8 +669,8 @@ void Sih::send_airspeed(const hrt_abstime &time_now_us)
 	airspeed_s airspeed{};
 	airspeed.timestamp_sample = time_now_us;
 
-	// Assume the pitot tube always points against the wind to not have tailsitter edge cases
-	airspeed.true_airspeed_m_s = fmaxf(0.1f, _v_apparent_N.norm() + generate_wgn() * 0.2f);
+	// for fixed-wing use body-x component (pitot measures forward airspeed); keep magnitude for tailsitter/VTOL
+	airspeed.true_airspeed_m_s = fmaxf(0.1f, (_vehicle == VehicleType::FixedWing ? _v_B(0) : _v_apparent_N.norm()) + generate_wgn() * 0.2f);
 	airspeed.indicated_airspeed_m_s = airspeed.true_airspeed_m_s * sqrtf(_wing_l.get_rho() / RHO);
 	airspeed.confidence = 0.7f;
 	airspeed.timestamp = hrt_absolute_time();
