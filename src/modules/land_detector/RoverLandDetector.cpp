@@ -77,7 +77,8 @@ bool RoverLandDetector::_get_landed_state()
 
 	}
 
-	return !_armed;  // If we are armed we are not landed.
+	// Rovers are always on the ground — they don't fly.
+	return true;
 }
 
 } // namespace land_detector
