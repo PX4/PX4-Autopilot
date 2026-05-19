@@ -88,3 +88,51 @@ parameters:
             num_instances: *max_num_config_instances
             instance_start: 1
             default: [1.0, 1.0, 1.0]
+
+        HEATER${i}_IMAX:
+            description:
+                short: Heater controller ${i} integrator clamp
+                long: |
+                    Limits the maximum (and minimum) contribution of the integrator term to the controller output.
+
+            type: float
+            min: 0.0
+            max: 0.25
+            decimal: 3
+            reboot_required: false
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: [0.25, 0.25, 0.25]
+
+        HEATER${i}_TEMP_SRC:
+            description:
+                short: Temperature source for heater ${i}
+                long: |
+                    Selects the sensor used as the temperature input for heater control.
+                    0 = IMU (sensor_accel temperature), 1 = Hygrometer (sensor_hygrometer temperature).
+
+            type: int32
+            values:
+                0: IMU
+                1: Hygrometer
+            reboot_required: true
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: [0, 0, 0]
+
+        HEATER${i}_NOM_V:
+            description:
+                short: Nominal supply voltage for heater ${i}
+                long: |
+                    Used to limit the PWM duty cycle when the actual supply voltage exceeds this value,
+                    to prevent excess power dissipation. Set to 0 to disable voltage-based limiting.
+
+            type: float
+            unit: V
+            min: 0
+            max: 100.0
+            decimal: 1
+            reboot_required: false
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: [0.0, 0.0, 0.0]
