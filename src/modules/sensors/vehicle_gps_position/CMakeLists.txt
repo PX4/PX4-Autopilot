@@ -38,6 +38,8 @@ px4_add_library(vehicle_gps_position
 	gps_blending.hpp
 	PpsTimeSync.cpp
 	PpsTimeSync.hpp
+	UtcToHrtMapper.cpp
+	UtcToHrtMapper.hpp
 )
 target_link_libraries(vehicle_gps_position
 	PRIVATE

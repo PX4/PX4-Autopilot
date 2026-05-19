@@ -163,7 +163,18 @@ void VehicleGPSPosition::Run()
 				delay_us = _gps_param_slots[i].delay_us;
 			}
 
-			// Apply delay to timestamp_sample if the driver didn't set one
+			// Prefer PVT-UTC-to-HRT mapping when the driver didn't set timestamp_sample but
+			// did provide a valid UTC PVT time. Residual bias is ~min(latency) (a few ms),
+			// vs the ~110 ms SENS_GPS_DELAY fallback below.
+			if (gps_data.timestamp_sample == 0 || gps_data.timestamp_sample == gps_data.timestamp) {
+				const hrt_abstime mapped = _utc_to_hrt_mapper[i].map(gps_data.time_utc_usec, gps_data.timestamp);
+
+				if (mapped > 0) {
+					gps_data.timestamp_sample = mapped;
+				}
+			}
+
+			// Fallback for drivers that don't provide UTC (e.g., no fix yet).
 			if (gps_data.timestamp_sample == 0 || gps_data.timestamp_sample == gps_data.timestamp) {
 				if (delay_us > 0 && gps_data.timestamp > delay_us) {
 					gps_data.timestamp_sample = gps_data.timestamp - delay_us;

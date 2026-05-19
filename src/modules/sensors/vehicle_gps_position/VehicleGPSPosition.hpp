@@ -49,6 +49,7 @@
 
 #include "gps_blending.hpp"
 #include "PpsTimeSync.hpp"
+#include "UtcToHrtMapper.hpp"
 
 using namespace time_literals;
 
@@ -96,6 +97,7 @@ private:
 
 	GpsBlending _gps_blending;
 	PpsTimeSync _pps_time_sync;
+	UtcToHrtMapper _utc_to_hrt_mapper[GPS_MAX_RECEIVERS];
 
 	struct GpsParamSlot {
 		uint32_t device_id{0};
