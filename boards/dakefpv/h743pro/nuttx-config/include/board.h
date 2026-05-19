@@ -61,10 +61,10 @@
 
 /* PLL1: VCO = (8 MHz / 1) * 120 = 960 MHz → P=480, Q=240, R=120 */
 #define STM32_PLLCFG_PLL1CFG    (RCC_PLLCFGR_PLL1VCOSEL_WIDE | \
-                                  RCC_PLLCFGR_PLL1RGE_4_8_MHZ | \
-                                  RCC_PLLCFGR_DIVP1EN | \
-                                  RCC_PLLCFGR_DIVQ1EN | \
-                                  RCC_PLLCFGR_DIVR1EN)
+				  RCC_PLLCFGR_PLL1RGE_4_8_MHZ | \
+				  RCC_PLLCFGR_DIVP1EN | \
+				  RCC_PLLCFGR_DIVQ1EN | \
+				  RCC_PLLCFGR_DIVR1EN)
 #define STM32_PLLCFG_PLL1M      RCC_PLLCKSELR_DIVM1(1)
 #define STM32_PLLCFG_PLL1N      RCC_PLL1DIVR_N1(120)
 #define STM32_PLLCFG_PLL1P      RCC_PLL1DIVR_P1(2)
@@ -78,10 +78,10 @@
 
 /* PLL2: VCO = (8 MHz / 2) * 48 = 192 MHz → P=96, Q=96, R=96 */
 #define STM32_PLLCFG_PLL2CFG    (RCC_PLLCFGR_PLL2VCOSEL_WIDE | \
-                                  RCC_PLLCFGR_PLL2RGE_4_8_MHZ | \
-                                  RCC_PLLCFGR_DIVP2EN | \
-                                  RCC_PLLCFGR_DIVQ2EN | \
-                                  RCC_PLLCFGR_DIVR2EN)
+				  RCC_PLLCFGR_PLL2RGE_4_8_MHZ | \
+				  RCC_PLLCFGR_DIVP2EN | \
+				  RCC_PLLCFGR_DIVQ2EN | \
+				  RCC_PLLCFGR_DIVR2EN)
 #define STM32_PLLCFG_PLL2M      RCC_PLLCKSELR_DIVM2(2)
 #define STM32_PLLCFG_PLL2N      RCC_PLL2DIVR_N2(48)
 #define STM32_PLLCFG_PLL2P      RCC_PLL2DIVR_P2(2)
@@ -95,8 +95,8 @@
 
 /* PLL3: VCO = (8 MHz / 2) * 48 = 192 MHz → Q=48 MHz (USB) */
 #define STM32_PLLCFG_PLL3CFG   (RCC_PLLCFGR_PLL3VCOSEL_WIDE | \
-                                  RCC_PLLCFGR_PLL3RGE_4_8_MHZ | \
-                                  RCC_PLLCFGR_DIVQ3EN)
+				  RCC_PLLCFGR_PLL3RGE_4_8_MHZ | \
+				  RCC_PLLCFGR_DIVQ3EN)
 #define STM32_PLLCFG_PLL3M      RCC_PLLCKSELR_DIVM3(2)
 #define STM32_PLLCFG_PLL3N      RCC_PLL3DIVR_N3(48)
 #define STM32_PLLCFG_PLL3P      RCC_PLL3DIVR_P3(2)
