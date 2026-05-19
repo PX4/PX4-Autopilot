@@ -84,7 +84,7 @@ __END_DECLS
  ************************************************************************************/
 __EXPORT void board_peripheral_reset(int ms)
 {
-        UNUSED(ms);
+	UNUSED(ms);
 }
 
 /************************************************************************************
@@ -100,18 +100,18 @@ __EXPORT void board_peripheral_reset(int ms)
  ************************************************************************************/
 __EXPORT void board_on_reset(int status)
 {
-        for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
-                px4_arch_configgpio(PX4_MAKE_GPIO_INPUT(io_timer_channel_get_as_pwm_input(i)));
-        }
+	for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
+		px4_arch_configgpio(PX4_MAKE_GPIO_INPUT(io_timer_channel_get_as_pwm_input(i)));
+	}
 
-        /*
-         * On resets invoked from system (not boot) ensure we establish a low
-         * output state on PWM pins to disarm the ESC and prevent the reset from potentially
-         * spinning up the motors.
-         */
-        if (status >= 0) {
-                up_mdelay(100);
-        }
+	/*
+	 * On resets invoked from system (not boot) ensure we establish a low
+	 * output state on PWM pins to disarm the ESC and prevent the reset from potentially
+	 * spinning up the motors.
+	 */
+	if (status >= 0) {
+		up_mdelay(100);
+	}
 }
 
 /************************************************************************************
@@ -125,21 +125,21 @@ __EXPORT void board_on_reset(int status)
  ************************************************************************************/
 __EXPORT void stm32_boardinitialize(void)
 {
-        /* Reset PWM first thing */
-        board_on_reset(-1);
+	/* Reset PWM first thing */
+	board_on_reset(-1);
 
-        /* configure LEDs */
-        board_autoled_initialize();
+	/* configure LEDs */
+	board_autoled_initialize();
 
-        /* configure pins */
-        const uint32_t gpio[] = PX4_GPIO_INIT_LIST;
-        px4_gpio_init(gpio, arraySize(gpio));
+	/* configure pins */
+	const uint32_t gpio[] = PX4_GPIO_INIT_LIST;
+	px4_gpio_init(gpio, arraySize(gpio));
 
-        /* configure SPI interfaces */
-        stm32_spiinitialize();
+	/* configure SPI interfaces */
+	stm32_spiinitialize();
 
-        /* configure USB interfaces */
-        stm32_usbinitialize();
+	/* configure USB interfaces */
+	stm32_usbinitialize();
 
 }
 
@@ -163,96 +163,96 @@ __EXPORT void stm32_boardinitialize(void)
  ****************************************************************************/
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
-        /* Need hrt running before using the ADC */
-        px4_platform_init();
+	/* Need hrt running before using the ADC */
+	px4_platform_init();
 
-        /* configure the DMA allocator */
-        if (board_dma_alloc_init() < 0) {
-                syslog(LOG_ERR, "[boot] DMA alloc FAILED\n");
-        }
+	/* configure the DMA allocator */
+	if (board_dma_alloc_init() < 0) {
+		syslog(LOG_ERR, "[boot] DMA alloc FAILED\n");
+	}
 
-        /* initial LED state */
-        drv_led_start();
-        led_off(LED_RED);
-        led_off(LED_BLUE);
+	/* initial LED state */
+	drv_led_start();
+	led_off(LED_RED);
+	led_off(LED_BLUE);
 
-        if (board_hardfault_init(2, true) != 0) {
-                led_on(LED_BLUE);
-        }
+	if (board_hardfault_init(2, true) != 0) {
+		led_on(LED_BLUE);
+	}
 
 #if defined(FLASH_BASED_PARAMS)
-        static sector_descriptor_t params_sector_map[] = {
-                {15, 128 * 1024, 0x081E0000},
-                {0, 0, 0},
-        };
+	static sector_descriptor_t params_sector_map[] = {
+		{15, 128 * 1024, 0x081E0000},
+		{0, 0, 0},
+	};
 
-        /* Initialize the flashfs layer to use heap allocated memory */
-        int result = parameter_flashfs_init(params_sector_map, NULL, 0);
+	/* Initialize the flashfs layer to use heap allocated memory */
+	int result = parameter_flashfs_init(params_sector_map, NULL, 0);
 
-        if (result != OK) {
-                syslog(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
-                led_on(LED_BLUE);
-                return -ENODEV;
-        }
+	if (result != OK) {
+		syslog(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
+		led_on(LED_BLUE);
+		return -ENODEV;
+	}
 
 #endif
 
 #ifdef CONFIG_MTD_W25
-        /* Mount W25Q128 SPI NOR flash (SPI3, CS=PA15) at /fs/microsd */
-        struct spi_dev_s *spi3 = stm32_spibus_initialize(3);
+	/* Mount W25Q128 SPI NOR flash (SPI3, CS=PA15) at /fs/microsd */
+	struct spi_dev_s *spi3 = stm32_spibus_initialize(3);
 
-        if (!spi3) {
-                syslog(LOG_INFO, "[boot] W25: SPI3 init failed\n");
+	if (!spi3) {
+		syslog(LOG_INFO, "[boot] W25: SPI3 init failed\n");
 
-        } else {
-                struct mtd_dev_s *mtd = w25_initialize(spi3);
+	} else {
+		struct mtd_dev_s *mtd = w25_initialize(spi3);
 
-                if (!mtd) {
-                        syslog(LOG_INFO, "[boot] W25: chip not recognised\n");
+		if (!mtd) {
+			syslog(LOG_INFO, "[boot] W25: chip not recognised\n");
 
-                } else {
-                        syslog(LOG_INFO, "[boot] W25: chip ok, registering MTD...\n");
-                        int ret = register_mtddriver("/dev/mtd0", mtd, 0755, NULL);
+		} else {
+			syslog(LOG_INFO, "[boot] W25: chip ok, registering MTD...\n");
+			int ret = register_mtddriver("/dev/mtd0", mtd, 0755, NULL);
 
-                        if (ret < 0 && ret != -EEXIST) {
-                                syslog(LOG_INFO, "[boot] W25: MTD register failed %d\n", ret);
+			if (ret < 0 && ret != -EEXIST) {
+				syslog(LOG_INFO, "[boot] W25: MTD register failed %d\n", ret);
 
-                        } else {
-                                ret = nx_mount("/dev/mtd0", "/fs/microsd", "littlefs", 0, NULL);
+			} else {
+				ret = nx_mount("/dev/mtd0", "/fs/microsd", "littlefs", 0, NULL);
 
-                                if (ret < 0) {
-                                        syslog(LOG_INFO, "[boot] W25: first mount failed %d, formatting...\n", ret);
-                                        ret = nx_mount("/dev/mtd0", "/fs/microsd", "littlefs", 0, "forceformat");
-                                }
+				if (ret < 0) {
+					syslog(LOG_INFO, "[boot] W25: first mount failed %d, formatting...\n", ret);
+					ret = nx_mount("/dev/mtd0", "/fs/microsd", "littlefs", 0, "forceformat");
+				}
 
-                                if (ret == 0) {
-                                        syslog(LOG_INFO, "[boot] W25: mounted at /fs/microsd\n");
+				if (ret == 0) {
+					syslog(LOG_INFO, "[boot] W25: mounted at /fs/microsd\n");
 
-                                        /* Seed extras.txt on first boot if not present */
-                                        mkdir("/fs/microsd/etc", 0755);
-                                        const char *extras = "/fs/microsd/etc/extras.txt";
-                                        FILE *ef = fopen(extras, "r");
-                                        if (!ef) {
-                                                ef = fopen(extras, "w");
-                                                if (ef) {
-                                                        fputs("# DAKEFPV H743 Pro extras -- runs at every boot\n", ef);
-                                                        fputs("# Add driver start commands here.\n", ef);
-                                                        fclose(ef);
-                                                }
-                                        } else {
-                                                fclose(ef);
-                                        }
-                                } else {
-                                        syslog(LOG_INFO, "[boot] W25: mount failed %d\n", ret);
-                                }
-                        }
-                }
-        }
+					/* Seed extras.txt on first boot if not present */
+					mkdir("/fs/microsd/etc", 0755);
+					const char *extras = "/fs/microsd/etc/extras.txt";
+					FILE *ef = fopen(extras, "r");
+					if (!ef) {
+						ef = fopen(extras, "w");
+						if (ef) {
+							fputs("# DAKEFPV H743 Pro extras -- runs at every boot\n", ef);
+							fputs("# Add driver start commands here.\n", ef);
+							fclose(ef);
+						}
+					} else {
+						fclose(ef);
+					}
+				} else {
+					syslog(LOG_INFO, "[boot] W25: mount failed %d\n", ret);
+				}
+			}
+		}
+	}
 
 #endif
 
-        /* Configure the HW based on the manifest */
-        px4_platform_configure();
+	/* Configure the HW based on the manifest */
+	px4_platform_configure();
 
-        return OK;
+	return OK;
 }
