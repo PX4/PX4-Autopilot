@@ -670,7 +670,8 @@ void Sih::send_airspeed(const hrt_abstime &time_now_us)
 	airspeed.timestamp_sample = time_now_us;
 
 	// pitot tube measures forward (body-x) airspeed
-	airspeed.true_airspeed_m_s = fmaxf(0.1f, _v_B(0) + generate_wgn() * 0.2f);
+	const Vector3f v_apparent_B = _q.rotateVectorInverse(_v_apparent_N);
+	airspeed.true_airspeed_m_s = fmaxf(0.1f, v_apparent_B(0) + generate_wgn() * 0.2f);
 	airspeed.indicated_airspeed_m_s = airspeed.true_airspeed_m_s * sqrtf(_wing_l.get_rho() / RHO);
 	airspeed.confidence = 0.7f;
 	airspeed.timestamp = hrt_absolute_time();
