@@ -1,0 +1,15 @@
+#!/bin/sh
+#
+# AMOVLAB FLYCORE specific board sensors init
+#------------------------------------------------------------------------------
+board_adc start
+
+# Internal SPI1 bus BMI088 accel/gyro
+bmi088 -A -R 2 -s start
+bmi088 -G -R 2 -s start
+
+# Internal SPI2 bus ICM42688p
+icm42688p -R 4 -s start
+
+# Internal barometer on SPI1
+ms5611 -s start
