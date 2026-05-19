@@ -1,8 +1,7 @@
 /************************************************************************************
  * nuttx-config/include/board.h
  *
- *   Copyright (C) 2020 Gregory Nutt. All rights reserved.
- *   Authors: David Sidrane <david.sidrane@nscdg.com>
+ *   Copyright (C) 2026 Gregory Nutt. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
