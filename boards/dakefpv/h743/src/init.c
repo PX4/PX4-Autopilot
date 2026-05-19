@@ -232,16 +232,20 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 					mkdir("/fs/microsd/etc", 0755);
 					const char *extras = "/fs/microsd/etc/extras.txt";
 					FILE *ef = fopen(extras, "r");
+
 					if (!ef) {
 						ef = fopen(extras, "w");
+
 						if (ef) {
 							fputs("# DAKEFPV H743 extras -- runs at every boot\n", ef);
 							fputs("# Add driver start commands here.\n", ef);
 							fclose(ef);
 						}
+
 					} else {
 						fclose(ef);
 					}
+
 				} else {
 					syslog(LOG_INFO, "[boot] W25: mount failed %d\n", ret);
 				}
