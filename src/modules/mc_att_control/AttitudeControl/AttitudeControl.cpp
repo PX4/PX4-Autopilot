@@ -58,8 +58,13 @@ void AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_
 	qd_normalized.normalize();
 
 	if (_ref_initialized && dt > 0.f) {
-		// Driven 2nd-order ref model: damping is biased toward the analytical yaw
-		// rate, so a constant yaw command is the equilibrium (no yaw-step transient).
+		// Exact discretisation of the linearised 2nd-order critically damped
+		// ref model in body-frame coords:
+		//   d/dt[e; w] = [0 -1; kKq  -kKomega] [e; w] + [0; kKomega] w_known
+		// Closed-form one-step update is unconditionally stable for any dt:
+		// the symplectic-Euler scheme requires kFFNaturalFreq*dt < 2 and blows
+		// up when the setpoint stream pauses across a mode handoff (e.g. the
+		// ~500 ms gap PX4 produces when OFFBOARD hands off to AUTO_LAND).
 		const Vector3f w_known_in_ref = std::isfinite(yawspeed_setpoint)
 						? _q_ref.inversed().dcm_z() * yawspeed_setpoint
 						: Vector3f{};
@@ -68,10 +73,21 @@ void AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_
 		q_err.canonicalize();
 		const Vector3f e = 2.f * q_err.imag();
 
-		const Vector3f w_dot = kKq * e - kKomega * (_omega_ref - w_known_in_ref);
+		// Discretisation coefficients (repeated eigenvalue at s = -kFFNaturalFreq).
+		const float w_dt   = kFFNaturalFreq * dt;
+		const float emt    = expf(-w_dt);
+		const float a      = (1.f + w_dt) * emt;
+		const float b_neg  = dt * emt;
+		const float gamma  = kKq * dt * emt;
+		const float delta  = (1.f - w_dt) * emt;
 
-		_omega_ref += w_dot * dt;
-		_q_ref = _q_ref * Quatf(AxisAnglef(_omega_ref * dt));
+		const Vector3f w_offset     = _omega_ref - w_known_in_ref;
+		// Exact integral of w(t) over [0, dt], used for the SO(3) rotation.
+		const Vector3f delta_phi    = (1.f - a) * e + b_neg * w_offset + w_known_in_ref * dt;
+		const Vector3f w_offset_new = gamma * e + delta * w_offset;
+
+		_omega_ref = w_offset_new + w_known_in_ref;
+		_q_ref     = _q_ref * Quatf(AxisAnglef(delta_phi));
 		_q_ref.normalize();
 
 	} else {
