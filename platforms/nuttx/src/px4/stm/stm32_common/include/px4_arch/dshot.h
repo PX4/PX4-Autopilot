@@ -37,7 +37,14 @@
 #include <drivers/drv_pwm_output.h>
 #include <stm32_dma.h>
 
-#define DSHOT_MOTOR_PWM_BIT_WIDTH		20u
+// 19, not the more obvious 20, so that ARK FPV's 160 MHz APB1_TIM5_CLKIN
+// divides evenly into DSHOT600/300/150 rates. 160e6 / 600e3 = 266.67 doesn't
+// factor into (PSC+1)·20 cleanly (best is 1.625 µs/bit, +2.5% fast — outside
+// some AM32 builds' decode tolerance). 266 = 14·19, so PSC=13 with WIDTH=19
+// gives 1.6625 µs/bit, +0.25% off spec, accepted by every reasonable ESC.
+// BIT_1=14 (73.7% LOW) and BIT_0=7 (36.8% LOW) under inverted PWM land
+// closer to the BDShot spec (75% / 37.5%) than the prior 70% / 35%.
+#define DSHOT_MOTOR_PWM_BIT_WIDTH		19u
 
 /* Configuration for each timer to setup DShot. Some timers have only one while others have two choices for the stream.
  *
