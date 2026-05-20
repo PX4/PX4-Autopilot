@@ -48,6 +48,7 @@ set(NAVIGATOR_SOURCES
 	rtl.cpp
 	rtl_direct.cpp
 	rtl_direct_mission_land.cpp
+        rtl_geofence_avoidance_helper.cpp
 	rtl_mission_fast.cpp
 	rtl_mission_fast_reverse.cpp
 	takeoff.cpp

@@ -327,6 +327,11 @@ public:
 		return _geofence.get_point_at_index(index);
 	}
 
+	int get_num_geofence_path_waypoints() const
+	{
+		return _geofence.get_num_geofence_path_waypoints();
+	}
+
 	bool geofencePlannerStartIsCurrentPosition() const
 	{
 		return _geofence.plannerStartIsCurrentPosition();

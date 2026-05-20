@@ -75,6 +75,11 @@ public:
 
 	matrix::Vector2d get_point_at_index(int index) const;
 
+	// Number of waypoints in the most recently planned path. Same value that the last call to
+	// set_start_and_plan_path_to_destination() returned. Use this to query the planner state
+	// when the caller did not capture (or has since lost) that return value.
+	int get_num_waypoints() const { return _start_is_current_position ? _num_path_points : _num_path_points + 1; }
+
 	// True if the start passed to the last plan call was the vehicle's current position. False means
 	// planning was anchored to a stored point (e.g. last valid in-fence position when the vehicle is
 	// outside the fence), so the leg from current position to point 0 is unaccounted for in the path.

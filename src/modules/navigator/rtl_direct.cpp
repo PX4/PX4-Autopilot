@@ -44,6 +44,7 @@
 
 #include "rtl_direct.h"
 #include "navigator.h"
+#include "rtl_geofence_avoidance_helper.h"
 #include <px4_platform_common/events.h>
 
 #include <lib/geo/geo.h>
@@ -469,7 +470,10 @@ RtlDirect::RTLState RtlDirect::getActivationState()
 	} else if ((_global_pos_sub.get().alt < _rtl_alt) || _enforce_rtl_alt) {
 		activation_state = RTLState::CLIMBING;
 
-	} else if (_current_geofence_avoidance_index < _num_waypoints_for_geofence_avoidance) {
+	} else if (_navigator->get_num_geofence_path_waypoints() > 0) {
+		// Query the planner directly: when called from calc_rtl_time_estimate() while inactive
+		// the cached _num_waypoints_for_geofence_avoidance is stale (only refreshed in on_activation).
+		// When called from on_activation() the planner and the cached value agree, so this is safe.
 		activation_state = RTLState::AVOID_GEOFENCE;
 
 	} else {
@@ -514,35 +518,18 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 
 		// FALLTHROUGH
 		case RTLState::AVOID_GEOFENCE: {
+				// While RTL is inactive the planner is being re-run from rtl.cpp at 0.5 Hz, so the
+				// cached _num_waypoints_for_geofence_avoidance is stale. Read from the planner and
+				// treat the consumption index as 0 (nothing issued yet). Once active, the cached
+				// values are authoritative.
+				const int num_geofence_wpts = isActive() ? _num_waypoints_for_geofence_avoidance
+							      : _navigator->get_num_geofence_path_waypoints();
+				const int curr_geofence_idx = isActive() ? _current_geofence_avoidance_index : 0;
 
-				// If the path was planned from a stored anchor (vehicle was outside the fence at plan time),
-				// the leg from the current position back to point 0 is unaccounted for in the path itself.
-				// Add it while the vehicle has not yet reached point 0 (index <= 1: not started, or heading there).
-				if (!_navigator->geofencePlannerStartIsCurrentPosition() && _current_geofence_avoidance_index <= 1) {
-					const matrix::Vector2d current_pos{_global_pos_sub.get().lat, _global_pos_sub.get().lon};
-					const matrix::Vector2d first_waypoint = _navigator->get_point_at_index(0);
-
-					matrix::Vector2f direction{};
-					get_vector_to_next_waypoint(current_pos(0), current_pos(1), first_waypoint(0), first_waypoint(1),
-								    &direction(0), &direction(1));
-					const float dist = get_distance_to_next_waypoint(current_pos(0), current_pos(1),
-							   first_waypoint(0), first_waypoint(1));
-
-					_rtl_time_estimator.addDistance(dist, direction, 0.f);
-				}
-
-				// accumulate distances between the path waypoints, which have not been reached yet
-				for (int i = _current_geofence_avoidance_index; i < _num_waypoints_for_geofence_avoidance - 1; ++i) {
-					const matrix::Vector2d start = _navigator->get_point_at_index(i);
-					const matrix::Vector2d end = _navigator->get_point_at_index(i + 1);
-
-					matrix::Vector2f direction{};
-					get_vector_to_next_waypoint(start(0), start(1), end(0), end(1), &direction(0),
-								    &direction(1));
-					const float dist = get_distance_to_next_waypoint(start(0), start(1), end(0), end(1));
-
-					_rtl_time_estimator.addDistance(dist, direction, 0.f);
-				}
+				add_geofence_avoidance_path_distance(_rtl_time_estimator, *_navigator,
+				{_global_pos_sub.get().lat, _global_pos_sub.get().lon},
+				num_geofence_wpts,
+				curr_geofence_idx);
 			}
 
 		// FALLTHROUGH

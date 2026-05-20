@@ -41,6 +41,7 @@
 
 #include "rtl_direct_mission_land.h"
 #include "navigator.h"
+#include "rtl_geofence_avoidance_helper.h"
 
 #include <drivers/drv_hrt.h>
 
@@ -318,9 +319,23 @@ rtl_time_estimate_s RtlDirectMissionLand::calc_rtl_time_estimate()
 			is_in_climbing_submode = checkNeedsToClimb();
 		}
 
+
+		// While RTL is inactive the planner is being re-run (rtl.cpp), so query the planner's
+		// current path length; the consumption index is then 0 because nothing has been issued.
+		// Once active, the planner is frozen at the path latched in on_activation() — use the
+		// cached count and the running consumption index.
+		const int num_geofence_wpts = isActive() ? _num_waypoints_for_geofence_avoidance
+					      : _navigator->get_num_geofence_path_waypoints();
+		const int curr_geofence_idx = isActive() ? _current_geofence_avoidance_index : 0;
+
+		matrix::Vector2d hor_position_at_calculation_point = add_geofence_avoidance_path_distance(
+					_rtl_time_estimator, *_navigator,
+		{_global_pos_sub.get().lat, _global_pos_sub.get().lon},
+		num_geofence_wpts,
+		curr_geofence_idx);
+
 		if (start_item_index >= 0 && start_item_index < static_cast<int32_t>(_mission.count)) {
 			float altitude_at_calculation_point;
-			matrix::Vector2d hor_position_at_calculation_point{_global_pos_sub.get().lat, _global_pos_sub.get().lon};
 
 			if (is_in_climbing_submode) {
 				if (_enforce_rtl_alt) {

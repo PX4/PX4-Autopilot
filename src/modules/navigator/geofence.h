@@ -165,6 +165,11 @@ public:
 
 	}
 
+	int get_num_geofence_path_waypoints() const
+	{
+		return _avoidance_planner.get_num_waypoints();
+	}
+
 	/**
 	 * print Geofence status to the console
 	 */
