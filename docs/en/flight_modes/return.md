@@ -170,11 +170,6 @@ While the return mode is inactive, the autopilot constantly re-calculates a shor
 If the return mode is triggered while the vehicle is violating any geofence, then the vehicle will first fly directly to the most recent recorded location at which it was not violating the geofence.
 If no such point exists, or if the autopilot fails to plan a feasible path (e.g. the destination is located in an exclusion zone), then the vehicle falls back to flying directly to the destination.
 
-::: warning
-The direct-line fallback does not respect the geofence.
-If the vehicle is inside an exclusion zone (or outside an inclusion zone) when return is triggered and no feasible path can be planned, the resulting straight-line flight may continue to violate the fence.
-:::
-
 The following table shows which return types currently support geofence awareness:
 
 | Return Type (RTL_TYPE) | Geofence Awareness |
@@ -188,6 +183,16 @@ The following table shows which return types currently support geofence awarenes
 
 The estimated time for return is based on the current shortest horizontal path to the destination and may change if the geofence is updated
 
+:::
+
+::: warning
+There is no absolute guarantee that the vehicle will not breach a geofence on the return path. Things like path tracking error, wind and other disturbances may cause temporary violation of the geofence.
+It is therefore very important to consider this possibility and especially to review the configured geofence breach action (e.g. [GF_ACTION](../advanced_config/parameter_reference.md#GF_ACTION)).
+:::
+
+::: warning
+Geofence awareness currently supports a maximum of 99 polygon vertices in total (circles count as 8 vertices each).
+If this limit is exceeded, the autopilot falls back to a direct path as described above.
 :::
 
 For the construction of the shortest path between the starting location and the destination, the autopilot uses the vertices of the geofence polygons as intermediate waypoints.
