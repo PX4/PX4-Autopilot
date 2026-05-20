@@ -39979,6 +39979,25 @@ The usb port on the sensor indicates 180deg, opposite usb is forward facing
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; |          |          |           | 0       |      | &nbsp;    |
 
+### VN_IMU_RATE (`INT32`) {#VN_IMU_RATE}
+
+VectorNav IMU output rate.
+
+Rate of the IMU output.
+The VectorNav base rate is 800 Hz. This parameter sets the
+divider, so the effective rate is 800 / divider.
+
+**Values:**
+
+- `1`: 800 Hz
+- `2`: 400 Hz
+- `4`: 200 Hz
+- `8`: 100 Hz
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 1       |      | &nbsp;    |
+
 ### VN_MODE (`INT32`) {#VN_MODE}
 
 VectorNav driver mode.
@@ -39993,6 +40012,21 @@ INS or sensors
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; |          |          |           | 0       |      | &nbsp;    |
+
+### VN_PORT (`INT32`) {#VN_PORT}
+
+VectorNav output port.
+
+Selects which serial port the sensor streams output to.
+
+**Values:**
+
+- `1`: Port 1
+- `2`: Port 2
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 2       |      | &nbsp;    |
 
 ### VOXLPM_SHUNT_BAT (`FLOAT`) {#VOXLPM_SHUNT_BAT}
 
