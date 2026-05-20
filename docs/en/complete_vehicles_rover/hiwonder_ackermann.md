@@ -86,7 +86,7 @@ Use _QGroundControl_ for rover configuration:
 
 1. [Flash the rover build](../config_rover/index.md#flashing-the-rover-build) onto your flight controller with the following adjustments:
 2. In the [Basic Configuration](../config/index.md) section, select the [Airframe](../config/airframe.md) tab.
-3. Choose **Hiwonder Ackermann** under the **Rover** category (Alternatively you can set the parameter `SYS_AUTOSTART` to `51002`).
+3. Choose **Hiwonder Ackermann** under the **Rover** category (Alternatively you can set the parameter `SYS_AUTOSTART` to `51003`).
 
 Then configure the actuators:
 
