@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2023 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2013-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -52,14 +52,20 @@ typedef enum {
 	DM_KEY_FENCE_POINTS_STATE,	///< Persistent fence vertex state
 	DM_KEY_WAYPOINTS_OFFBOARD_0,	///< Mission way point coordinates sent over mavlink
 	DM_KEY_WAYPOINTS_OFFBOARD_1,	///< (alternate between 0 and 1)
-	DM_KEY_MISSION_STATE,			///< Persistent mission state
+	DM_KEY_MISSION_STATE,		///< Persistent mission state
+	DM_KEY_CORRIDOR_NODES_0,	///< Flight corridor graph node storage 0
+	DM_KEY_CORRIDOR_NODES_1,	///< Flight corridor graph node storage 1 (alternate between 0 and 1)
+	DM_KEY_CORRIDOR_NODES_STATE,	///< Persistent flight corridor graph node state
+	DM_KEY_CORRIDOR_EDGES_0,	///< Flight corridor graph edge storage 0
+	DM_KEY_CORRIDOR_EDGES_1,	///< Flight corridor graph edge storage 1 (alternate between 0 and 1)
+	DM_KEY_CORRIDOR_EDGES_STATE,	///< Persistent flight corridor graph edge state
 	DM_KEY_COMPAT,
-	DM_KEY_NUM_KEYS					///< Total number of item types defined
+	DM_KEY_NUM_KEYS			///< Total number of item types defined
 } dm_item_t;
 
 /** Types of function calls supported by the worker task */
 typedef enum {
-	DM_GET_ID = 0,		///< Get dataman client ID
+	DM_GET_ID = 0,			///< Get dataman client ID
 	DM_WRITE,			///< Write index for given item
 	DM_READ,			///< Read index for given item
 	DM_CLEAR,			///< Clear all index for given item
@@ -75,6 +81,10 @@ enum {
 	DM_KEY_WAYPOINTS_OFFBOARD_0_MAX = CONFIG_NUM_MISSION_ITMES_SUPPORTED,
 	DM_KEY_WAYPOINTS_OFFBOARD_1_MAX = CONFIG_NUM_MISSION_ITMES_SUPPORTED,
 	DM_KEY_MISSION_STATE_MAX = 1,
+	DM_KEY_CORRIDOR_NODES_MAX = 128,
+	DM_KEY_CORRIDOR_NODES_STATE_MAX = 1,
+	DM_KEY_CORRIDOR_EDGES_MAX = 256,
+	DM_KEY_CORRIDOR_EDGES_STATE_MAX = 1,
 	DM_KEY_COMPAT_MAX = 1
 };
 
@@ -89,6 +99,12 @@ static const unsigned g_per_item_max_index[DM_KEY_NUM_KEYS] = {
 	DM_KEY_WAYPOINTS_OFFBOARD_0_MAX,
 	DM_KEY_WAYPOINTS_OFFBOARD_1_MAX,
 	DM_KEY_MISSION_STATE_MAX,
+	DM_KEY_CORRIDOR_NODES_MAX,
+	DM_KEY_CORRIDOR_NODES_MAX,
+	DM_KEY_CORRIDOR_NODES_STATE_MAX,
+	DM_KEY_CORRIDOR_EDGES_MAX,
+	DM_KEY_CORRIDOR_EDGES_MAX,
+	DM_KEY_CORRIDOR_EDGES_STATE_MAX,
 	DM_KEY_COMPAT_MAX
 };
 
@@ -102,6 +118,9 @@ constexpr uint32_t MISSION_FENCE_POINT_SIZE = sizeof(struct mission_fence_point_
 constexpr uint32_t MISSION_FENCE_POINT_STATE_SIZE = sizeof(struct mission_stats_entry_s);
 constexpr uint32_t MISSION_ITEM_SIZE = sizeof(struct mission_item_s);
 constexpr uint32_t MISSION_SIZE = sizeof(struct mission_s);
+constexpr uint32_t MISSION_CORRIDOR_NODE_SIZE = sizeof(struct mission_corridor_node_s);
+constexpr uint32_t MISSION_CORRIDOR_EDGE_SIZE = sizeof(struct mission_corridor_edge_s);
+constexpr uint32_t MISSION_CORRIDOR_STATE_SIZE = sizeof(struct mission_stats_entry_s);
 constexpr uint32_t DATAMAN_COMPAT_SIZE = sizeof(struct dataman_compat_s);
 
 /** The table of the size of each item type */
@@ -115,11 +134,17 @@ static constexpr size_t g_per_item_size[DM_KEY_NUM_KEYS] = {
 	MISSION_ITEM_SIZE,
 	MISSION_ITEM_SIZE,
 	MISSION_SIZE,
+	MISSION_CORRIDOR_NODE_SIZE,
+	MISSION_CORRIDOR_NODE_SIZE,
+	MISSION_CORRIDOR_STATE_SIZE,
+	MISSION_CORRIDOR_EDGE_SIZE,
+	MISSION_CORRIDOR_EDGE_SIZE,
+	MISSION_CORRIDOR_STATE_SIZE,
 	DATAMAN_COMPAT_SIZE
 };
 
 /* increment this define whenever a binary incompatible change is performed */
-#define DM_COMPAT_VERSION	5ULL
+#define DM_COMPAT_VERSION	6ULL
 
 #define DM_COMPAT_KEY ((DM_COMPAT_VERSION << 32) + (sizeof(struct mission_item_s) << 24) + \
 		       (sizeof(struct mission_s) << 16) + (sizeof(struct mission_stats_entry_s) << 12) + \

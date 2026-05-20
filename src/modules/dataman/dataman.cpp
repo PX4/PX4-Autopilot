@@ -146,6 +146,12 @@ static constexpr size_t g_per_item_size_with_hdr[DM_KEY_NUM_KEYS] = {
 	g_per_item_size[DM_KEY_WAYPOINTS_OFFBOARD_0] + DM_SECTOR_HDR_SIZE,
 	g_per_item_size[DM_KEY_WAYPOINTS_OFFBOARD_1] + DM_SECTOR_HDR_SIZE,
 	g_per_item_size[DM_KEY_MISSION_STATE] + DM_SECTOR_HDR_SIZE,
+	g_per_item_size[DM_KEY_CORRIDOR_NODES_0] + DM_SECTOR_HDR_SIZE,
+	g_per_item_size[DM_KEY_CORRIDOR_NODES_1] + DM_SECTOR_HDR_SIZE,
+	g_per_item_size[DM_KEY_CORRIDOR_NODES_STATE] + DM_SECTOR_HDR_SIZE,
+	g_per_item_size[DM_KEY_CORRIDOR_EDGES_0] + DM_SECTOR_HDR_SIZE,
+	g_per_item_size[DM_KEY_CORRIDOR_EDGES_1] + DM_SECTOR_HDR_SIZE,
+	g_per_item_size[DM_KEY_CORRIDOR_EDGES_STATE] + DM_SECTOR_HDR_SIZE,
 	g_per_item_size[DM_KEY_COMPAT] + DM_SECTOR_HDR_SIZE
 };
 
@@ -1035,8 +1041,12 @@ dataman_main(int argc, char *argv[])
 
 static_assert(sizeof(dataman_request_s::data) == sizeof(dataman_response_s::data), "request and response data are not the same size");
 static_assert(sizeof(dataman_response_s::data) >= MISSION_SAFE_POINT_SIZE, "mission_item_s can't fit in the response data");
-static_assert(sizeof(dataman_response_s::data) >= MISSION_FENCE_POINT_SIZE, "mission_fance_point_s can't fit in the response data");
+static_assert(sizeof(dataman_response_s::data) >= MISSION_FENCE_POINT_SIZE, "mission_fence_point_s can't fit in the response data");
 static_assert(sizeof(dataman_response_s::data) >= MISSION_ITEM_SIZE, "mission_item_s can't fit in the response data");
 static_assert(sizeof(dataman_response_s::data) >= MISSION_SIZE, "mission_s can't fit in the response data");
+static_assert(sizeof(dataman_response_s::data) >= MISSION_CORRIDOR_NODE_SIZE, "mission_corridor_node_s can't fit in the response data");
+static_assert(sizeof(dataman_response_s::data) >= MISSION_CORRIDOR_EDGE_SIZE, "mission_corridor_edge_s can't fit in the response data");
 static_assert(sizeof(dataman_response_s::data) >= DATAMAN_COMPAT_SIZE, "dataman_compat_s can't fit in the response data");
 static_assert(sizeof(dataman_response_s::data) >= sizeof(hrt_abstime), "hrt_abstime can't fit in the response data");
+/* Without this check, g_per_item_size_with_hdr array not declared in header can have a different size and throw a buffer overrun at runtim */
+static_assert(g_per_item_size_with_hdr[DM_KEY_COMPAT] > 0, "g_per_item_size_with_hdr is missing entries. Add an entry for each DM key");
