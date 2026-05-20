@@ -44,6 +44,8 @@
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/transponder_report.h>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_global_position.h>
 
 using namespace time_literals;
@@ -100,14 +102,18 @@ private:
 
 	void Run() override;
 	void spawn_vehicle(uint8_t index, double lat_ref, double lon_ref);
+	void check_failure_injection();
 	float random_float(float min, float max);
 
 	SimulatedVehicle _vehicles[MAX_VEHICLES]{};
 	hrt_abstime      _last_update{0};
+	bool             _adsb_failed{false};
 
 	uORB::SubscriptionInterval          	_parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription                  	_vehicle_global_position_sub{ORB_ID(vehicle_global_position_groundtruth)};
+	uORB::Subscription                  	_vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Publication<transponder_report_s> _transponder_report_pub{ORB_ID(transponder_report)};
+	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 

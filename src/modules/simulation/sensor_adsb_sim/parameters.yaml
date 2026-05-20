@@ -24,7 +24,7 @@ parameters:
       max: 10
     SIM_ADSB_RADIUS:
       description:
-        short: Radius around ownship within which simulated ADSB aircraft are maintained
+        short: Radius within which simulated ADSB aircraft are kept
         long: |
           Aircraft that fly beyond this radius are re-spawned at a new random
           position within the radius.
@@ -35,7 +35,7 @@ parameters:
       max: 100000.0
     SIM_ADSB_ALT:
       description:
-        short: Altitude of simulated ADSB aircraft (MSL)
+        short: Altitude at which simulated ADSB aircraft are spawned (MSL)
       type: float
       default: 1000.0
       unit: m
