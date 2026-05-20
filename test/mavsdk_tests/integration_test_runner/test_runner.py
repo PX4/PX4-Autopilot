@@ -302,7 +302,9 @@ class Tester:
         self.active_runners = []
 
         if self.config['mode'] == 'sitl':
-            if self.config['simulator'] == 'gazebo':
+            simulator = self.config['simulator']
+
+            if simulator == 'gazebo':
                 # Use RegEx to extract worldname.world from case name
                 match = re.search(r'\((.*?\.world)\)', case)
                 if match:
@@ -344,19 +346,20 @@ class Tester:
                 # out the PX4 (it needs to have data coming in when started),
                 # and can lead to EKF to freak out, or the instance itself
                 # to die unexpectedly.
-                px4_runner = ph.Px4Runner(
-                    os.getcwd(),
-                    log_dir,
-                    test['model'],
-                    case,
-                    self.get_max_speed_factor(test),
-                    self.debugger,
-                    self.verbose,
-                    self.build_dir,
-                    self.tester_interface.rootfs_base_dirname())
-                for env_key in test.get('env', []):
-                    px4_runner.env[env_key] = str(test['env'][env_key])
-                self.active_runners.append(px4_runner)
+            px4_runner = ph.Px4Runner(
+                os.getcwd(),
+                log_dir,
+                test['model'],
+                case,
+                self.get_max_speed_factor(test),
+                self.debugger,
+                self.verbose,
+                self.build_dir,
+                self.tester_interface.rootfs_base_dirname(),
+                simulator)
+            for env_key in test.get('env', []):
+                px4_runner.env[env_key] = str(test['env'][env_key])
+            self.active_runners.append(px4_runner)
 
         self.active_runners.append(self.tester_interface.create_test_runner(
             os.getcwd(),

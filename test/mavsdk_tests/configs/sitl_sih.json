@@ -1,0 +1,36 @@
+{
+    "mode": "sitl",
+    "simulator": "sihsim",
+    "mavlink_connection": "udpin://0.0.0.0:14540",
+    "tests":
+    [
+        {
+            "model": "sihsim_quadx",
+            "vehicle": "sihsim_quadx",
+            "test_filter": "[multicopter],[offboard],[offboard_attitude]",
+            "timeout_min": 10
+        },
+        {
+            "model": "sihsim_quadx",
+            "vehicle": "sihsim_quadx",
+            "test_filter": "[offboard_attitude]",
+            "timeout_min": 10,
+            "env": {
+                "PX4_PARAM_EKF2_EN": 0,
+                "PX4_PARAM_ATT_EN": 1
+            }
+        },
+        {
+            "model": "sihsim_standard_vtol",
+            "vehicle": "sihsim_standard_vtol",
+            "test_filter": "[vtol], [vtol_wind], [vtol_airspeed_fail]",
+            "timeout_min": 10
+        },
+        {
+            "model": "sihsim_xvert",
+            "vehicle": "sihsim_xvert",
+            "test_filter": "[vtol]",
+            "timeout_min": 10
+        }
+    ]
+}
