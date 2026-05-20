@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -219,6 +219,42 @@ struct mission_fence_point_s {
 
 	uint8_t _padding0[5];				/**< padding struct size to alignment boundary  */
 };
+
+/**
+ * Flight corridor graph node.
+ * Corresponds to the DM_KEY_CORRIDOR_NODES_0 dataman item.
+ */
+enum class CorridorNodeType : uint8_t {
+	Waypoint 	= 0, 				/**< regular corridor waypoint */
+	Nest      	= 1, 				/**< nest (home) node */
+	RallyPoint 	= 2, 				/**< acceptable safe landing point */
+};
+
+struct mission_corridor_node_s {
+	double lat;					/**< latitude in degrees */
+	double lon;					/**< longitude in degrees */
+	float alt;					/**< altitude in meters (AMSL) */
+
+	uint8_t type;					/**< CorridorNodeType */
+
+	uint8_t _padding0[3];				/**< padding struct size to alignment boundary  */
+};
+
+static_assert(sizeof(mission_corridor_node_s) == 24, "mission_corridor_node_s size mismatch — check padding");
+
+/**
+ * Flight corridor graph edge (directed).
+ * Corresponds to the DM_KEY_CORRIDOR_EDGES_0 dataman item.
+ * Edges are stored sorted by node_from to allow early-exit linear search.
+ * Direction is node_from -> node_to.
+ */
+struct mission_corridor_edge_s {
+	uint16_t node_from;				/**< index of the source node */
+	uint16_t node_to;				/**< index of the destination node */
+	float static_cost;				/**< pre-combined static cost (risk, terrain, forecast wind, etc.); 0.0f = use Euclidean distance only */
+};
+
+static_assert(sizeof(mission_corridor_edge_s) == 8, "mission_corridor_edge_s size mismatch — check padding");
 
 /**
  * @brief Position and yaw setpoint struct.
