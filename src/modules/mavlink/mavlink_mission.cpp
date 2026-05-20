@@ -1641,8 +1641,8 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			// Actuator 5+6 values (params[4]/[5], float -1..1) are encoded with
 			// 1e7 scaling in MISSION_ITEM_INT to preserve fractional precision.
 			if (_int_mode) {
-				mission_item->params[4] *= 1e-7;
-				mission_item->params[5] *= 1e-7;
+				mission_item->params[4] *= 1e-7f;
+				mission_item->params[5] *= 1e-7f;
 			}
 
 			break;
@@ -1699,8 +1699,8 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 
 			if (mission_item->nav_cmd == NAV_CMD_DO_SET_ACTUATOR) {
 				// Actuator 5+6 values are float (-1..1); encode with 1e7 to match parse.
-				item_int->x = round(mission_item->params[4] * 1e7);
-				item_int->y = round(mission_item->params[5] * 1e7);
+				item_int->x = round(mission_item->params[4] * 1e7f);
+				item_int->y = round(mission_item->params[5] * 1e7f);
 
 			} else {
 				item_int->x = round(mission_item->params[4]);
