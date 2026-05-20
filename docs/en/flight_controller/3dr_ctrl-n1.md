@@ -1,5 +1,7 @@
 # 3DR Control N1 Flight Controller
 
+<Badge type="tip" text="PX4 v1.18" /> 
+
 ::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact [3DR](https://3dr.com/) for hardware support or compliance issues.
@@ -14,13 +16,13 @@ It runs PX4 on the [NuttX](https://nuttx.apache.org/) OS.
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
 :::
 
-::: info
+::: tip
 This flight controller requires a carrier board to work correctly, visit [3DR](https://3dr.com/) for more information.
 :::
 
 ## Key Features
 
-- **Processor:** STMicro STM32H743 Arm Cortex-M7 up to 480 MHz, 1 MB RAM, 2 MB Flash, 8 MB external flash
+- **Processor:** STMicro STM32H743 Arm Cortex-M7 up to 480 MHz, 1 MB RAM, 2 MB flash, 8 MB external flash
 - **Sensors:**
   - 2x InvenSense IIM-42653 IMU (6-DoF)
   - Asahi Kasei AK09940A magnetometer
@@ -64,7 +66,7 @@ The Control N1 uses three Hirose DF40-series board-to-board connectors:
 | J200      | 30   | USART6, FDCAN1, SPI, SWD, miscellaneous                |
 | J300      | 80   | UART7, UART8, FDCAN2, I2C, ADC, Motor outputs CH1–CH12 |
 
-For more information about the pinout visit [3DR Control N1 Pinout Tool](https://docs.3dr.com/autopilots/control-n1/#pinout).
+For more information about the pinout, visit [3DR Control N1 Pinout Tool](https://docs.3dr.com/autopilots/control-n1/#pinout).
 
 ## Serial Port Mapping
 
