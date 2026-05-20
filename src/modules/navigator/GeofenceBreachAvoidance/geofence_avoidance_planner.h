@@ -80,7 +80,7 @@ public:
 	// outside the fence), so the leg from current position to point 0 is unaccounted for in the path.
 	bool start_is_current_position() const { return _start_is_current_position; }
 
-	bool update_vertices(GeofenceInterface &geofence, float margin = 50.0f);
+	bool update_vertices(GeofenceInterface &geofence, float margin = 10.0f);
 
 	void update_destination(const matrix::Vector2d &destination, GeofenceInterface &geofence);
 
