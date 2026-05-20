@@ -238,7 +238,7 @@ private:
 	// because they cannot be part of the shortest path. For convex
 	// inclusion corners or reflex exclusion corners at node B, the path
 	//   (A -> B -> C)
-	// is compared to
+	// is a detour compared to
 	//   (A -> just before B -> just after B -> C)
 	// and so it cannot be globally optimal.
 	bool _node_not_on_optimal_path[kMaxNodes];
