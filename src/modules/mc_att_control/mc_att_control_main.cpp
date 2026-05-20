@@ -101,6 +101,9 @@ MulticopterAttitudeControl::parameters_updated()
 	_attitude_control.setRateLimit(Vector3f(radians(_param_mc_rollrate_max.get()), radians(_param_mc_pitchrate_max.get()),
 						radians(_param_mc_yawrate_max.get())));
 
+	_attitude_control.setRefModelFrequency(_param_mc_ref_w_n.get());
+	_attitude_control.setFeedForwardGain(_param_mc_ref_ff.get());
+
 	// Update from hover thrust parameter if there's no valid estimate in use
 	if (!PX4_ISFINITE(_hover_thrust_estimate)) {
 		_hover_thrust_slew_rate.setForcedValue(_param_mpc_thr_hover.get());

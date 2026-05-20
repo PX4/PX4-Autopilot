@@ -52,6 +52,13 @@ void AttitudeControl::setProportionalGain(const matrix::Vector3f &proportional_g
 	}
 }
 
+void AttitudeControl::setRefModelFrequency(float omega_n)
+{
+	_omega_n = math::max(omega_n, 0.1f);
+	_kq      = _omega_n * _omega_n;
+	_komega  = 2.f * _omega_n;
+}
+
 void AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_setpoint, const float dt)
 {
 	Quatf qd_normalized = qd;
@@ -60,9 +67,9 @@ void AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_
 	if (_ref_initialized && dt > 0.f) {
 		// Exact discretisation of the linearised 2nd-order critically damped
 		// ref model in body-frame coords:
-		//   d/dt[e; w] = [0 -1; kKq  -kKomega] [e; w] + [0; kKomega] w_known
+		//   d/dt[e; w] = [0 -1; w_n^2  -2 w_n] [e; w] + [0; 2 w_n] w_known
 		// Closed-form one-step update is unconditionally stable for any dt:
-		// the symplectic-Euler scheme requires kFFNaturalFreq*dt < 2 and blows
+		// the symplectic-Euler scheme requires _omega_n * dt < 2 and blows
 		// up when the setpoint stream pauses across a mode handoff (e.g. the
 		// ~500 ms gap PX4 produces when OFFBOARD hands off to AUTO_LAND).
 		const Vector3f w_known_in_ref = std::isfinite(yawspeed_setpoint)
@@ -73,12 +80,12 @@ void AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_
 		q_err.canonicalize();
 		const Vector3f e = 2.f * q_err.imag();
 
-		// Discretisation coefficients (repeated eigenvalue at s = -kFFNaturalFreq).
-		const float w_dt   = kFFNaturalFreq * dt;
+		// Discretisation coefficients (repeated eigenvalue at s = -_omega_n).
+		const float w_dt   = _omega_n * dt;
 		const float emt    = expf(-w_dt);
 		const float a      = (1.f + w_dt) * emt;
 		const float b_neg  = dt * emt;
-		const float gamma  = kKq * dt * emt;
+		const float gamma  = _kq * dt * emt;
 		const float delta  = (1.f - w_dt) * emt;
 
 		const Vector3f w_offset     = _omega_ref - w_known_in_ref;
@@ -112,9 +119,10 @@ void AttitudeControl::adaptAttitudeSetpoint(const Quatf &q_delta)
 
 matrix::Vector3f AttitudeControl::update(const Quatf &q) const
 {
-	// FF off (e.g. autotune): P targets the raw setpoint (legacy behavior).
-	// FF on: P targets the reference model's smoothed trajectory.
-	Quatf qd = _ff_enabled ? _q_ref : _attitude_setpoint_q;
+	// FF off (e.g. autotune, or MC_REF_FF=0): P targets the raw setpoint
+	// (legacy behaviour). FF on: P targets the ref model's smoothed trajectory.
+	const bool ff_active = _ff_enabled && (_ff_gain > 0.f);
+	Quatf qd = ff_active ? _q_ref : _attitude_setpoint_q;
 
 	// calculate reduced desired attitude neglecting vehicle's yaw to prioritize roll and pitch
 	const Vector3f e_z = q.dcm_z();
@@ -154,10 +162,11 @@ matrix::Vector3f AttitudeControl::update(const Quatf &q) const
 	// calculate angular rates setpoint
 	Vector3f rate_setpoint = eq.emult(_proportional_gain);
 
-	if (_ff_enabled) {
-		// Feed forward the reference model's angular velocity. _omega_ref lives in
-		// q_ref's body frame; go through world to land in the current body frame.
-		rate_setpoint += q.rotateVectorInverse(_q_ref.rotateVector(_omega_ref));
+	if (ff_active) {
+		// Feed forward the reference model's angular velocity, scaled by _ff_gain.
+		// _omega_ref lives in q_ref's body frame; go through world to land in the
+		// current body frame.
+		rate_setpoint += _ff_gain * q.rotateVectorInverse(_q_ref.rotateVector(_omega_ref));
 	}
 
 	// limit rates

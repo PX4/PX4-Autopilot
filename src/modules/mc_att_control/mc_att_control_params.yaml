@@ -95,6 +95,40 @@ parameters:
       max: 1800.0
       decimal: 1
       increment: 5
+    MC_REF_W_N:
+      description:
+        short: Attitude reference-model natural frequency
+        long: |-
+          Natural frequency of the 2nd-order critically-damped reference model
+          that smooths the attitude setpoint and produces the feed-forward
+          angular rate. Higher values track the raw setpoint more aggressively
+          (less lag, smaller steady-state ramp tracking error) but demand more
+          peak rate from the inner rate loop. The closed-form discretisation
+          makes any value here unconditionally stable; the practical upper
+          limit is set by the rate-loop bandwidth.
+      type: float
+      default: 100.0
+      unit: rad/s
+      min: 1.0
+      max: 200.0
+      decimal: 1
+      increment: 5
+    MC_REF_FF:
+      description:
+        short: Attitude reference-model feed-forward gain
+        long: |-
+          Scaling applied to the ref-model's angular-velocity feed-forward
+          contribution to the rate setpoint. 1 = full FF (default), 0 = FF off
+          (the attitude P-loop targets q_d directly, legacy pre-FF behaviour).
+          Intermediate values blend.
+
+          Set to 0 if the inner rate loop is not tuned to handle the FF demand.
+      type: float
+      default: 1.0
+      min: 0.0
+      max: 1.0
+      decimal: 2
+      increment: 0.1
 - group: Multicopter Position Control
   definitions:
     MC_MAN_TILT_TAU:
