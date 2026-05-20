@@ -67,8 +67,8 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### Simulation
 
-- <Badge type="warning" text="Experimental" />SITL: [Windows Native Development Environment (CMD/PowerShell)](../dev_setup/dev_env_windows_native.md) for building SIH SITL Simulation, Pixhawk and other NuttX-based hardware.
-  Note: Does not _directly_ support Gazebo, JMAVSim, or other tools that rely on Linux.
+- <Badge type="warning" text="Experimental" />SITL: [Windows Native Development Environment (CMD/PowerShell)](../dev_setup/dev_env_windows_native.md) for building PX4 on Windows for SIH SITL simulation, Pixhawk, and other NuttX-based hardware.
+  Note: Does not _directly_ support Gazebo, jMAVSim, or other tools that rely on Linux.
   ([PX4-Autopilot#27297](https://github.com/PX4/PX4-Autopilot/pull/27297)).
 - SIH: Add option to set wind velocity ([PX4-Autopilot#26467](https://github.com/PX4-Autopilot/pull/26467))
 

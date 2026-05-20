@@ -20,15 +20,16 @@ This environment can be used to build PX4 for:
 - [Pixhawk and other NuttX-based hardware](../dev_setup/building_px4.md#nuttx-pixhawk-based-boards) (NuttX cross-toolchain installed separately).
 
 ::: warning
-This development environment does not support Gazebo, Gazebo Classic, jMAVSim, and any other process that relies on Linux "out of the box".
+This development environment does not support Gazebo, Gazebo Classic, jMAVSim, or any other process that relies on Linux "out of the box".
 You can however [run them separately from WSL](#running-non-sih-simulators-from-wsl-or-a-remote-linux-host) and connect to the Windows instance.
 :::
 
 ## Overview
 
-PX4 SITL is built natively on Windows by the same `make px4_sitl_default` entry point that is used on Linux and macOS.
-Both produce a statically linked `build\px4_sitl_default\bin\px4.exe` that you launch directly from CMD or PowerShell.
-Companion utilities (`px4-commander`, `px4-listener`, etc.) are produced as additional `.exe` files alongside `px4.exe`.
+PX4 SITL is built natively on Windows using the same `make` command that is used on Linux and macOS: `make px4_sitl_default`.
+The command builds the executable `build\px4_sitl_default\bin\px4.exe` (just like on the other platforms), which you launch directly from CMD or PowerShell.
+
+Companion utilities (`px4-commander`, `px4-listener`, etc.) are created as additional `.exe` files alongside `px4.exe`.
 
 ### Choosing the C++ Toolchain
 
@@ -38,13 +39,13 @@ Two compilers are supported:
   MSVC is Microsoft's native Windows toolchain: it ships with the Windows SDK, produces binaries against the canonical Windows ABI, and is the toolchain the broader Windows C++ ecosystem (debugger, profilers, libraries) is built and tested against, so it gives the cleanest native Windows experience.
 - **MinGW-w64** (the GCC port shipped with [MSYS2](https://www.msys2.org/)) — an alternative for users who prefer a GCC-style toolchain, want to reproduce a Linux MinGW cross-build, or want to keep the whole workflow inside plain _PowerShell_ (the MSVC path needs the _x64 Native Tools Command Prompt_).
 
-Both are exercised by the [`Windows SITL build` CI workflow](https://github.com/PX4/PX4-Autopilot/blob/main/.github/workflows/compile_windows.yml) on every PR, so a successful CI green confirms both produce a working `px4.exe`.
+Both are tested by the [`Windows SITL build` CI workflow](https://github.com/PX4/PX4-Autopilot/blob/main/.github/workflows/compile_windows.yml) on every PR, so a successful CI run confirms that both produce a working `px4.exe`.
 
 The [setup script](#install-the-toolchain) installs MSVC by default; pass `-Toolchain MinGW` to install MinGW instead, or `-Toolchain Both` to install both.
 
 ::: info
-The PX4 daemon listens on a local TCP socket (`127.0.0.1:14680 + instance_id`) on Windows instead of the Unix-domain socket used on Linux/macOS — functionally equivalent.
-Drive PX4 from the interactive `pxh>` prompt as on Linux, or invoke the per-command client wrappers (`px4-commander`, `px4-listener`, `px4-shutdown`, …) from any separate _PowerShell_ window.
+On Windows, PX4 daemon listens on a local TCP socket (`127.0.0.1:14680 + instance_id`), instead of the Unix-domain socket used on Linux/macOS.
+The behaviour is functionally equivalent — you can drive PX4 from the interactive `pxh>` prompt as on Linux, or invoke the per-command client wrappers (`px4-commander`, `px4-listener`, `px4-shutdown`, …) from any separate _PowerShell_ window.
 :::
 
 ## Installation
@@ -54,64 +55,65 @@ Drive PX4 from the interactive `pxh>` prompt as on Linux, or invoke the per-comm
 A first-time install takes roughly **30–60 minutes** end-to-end on a typical broadband connection, most of it unattended download time.
 Before you start, you need:
 
-You need:
-
 - _Windows 10_ (21H2 or newer) or _Windows 11_, with the [winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/) command available.
   This ships with the OS as part of _App Installer_ (if `winget` is not recognised in a fresh terminal, install [App Installer](https://apps.microsoft.com/store/detail/9NBLGGH4NNS1) from the Microsoft Store).
-- About **10 GB** of free disk space for the toolchain (the Visual Studio 2022 Build Tools install dominates).
+- About **10 GB** of free disk space for the toolchain (most of which is consumed by the Visual Studio 2022 Build Tools).
 - Administrator rights on the machine — the Build Tools installer writes to `C:\Program Files`.
-- The `git` tool. The [following instructions](#get-the-px4-source-code) install _Git for Windows_ if needed.
+- The `git` tool.
+  The instructions in [Get the PX4 Source Code](#get-the-px4-source-code) install _Git for Windows_ if needed.
 
 The setup script lives inside the PX4 repository, so the source tree must be cloned **before** the toolchain script can be run.
 Note that everything (other than `git`) is installed by the script: CMake, Ninja, Python, MSVC Build Tools, MSYS2, and so on.
 
 ### Choosing a Shell
 
-Windows ships several command-line shells.
-This guide uses two of them in different situations — the table below shows which to use for each task.
+This guide uses just two command-line shells — the table below shows which to use for each task.
 
-| Task                                                         | Shell                                                           | How to open                                                                                                                                       |
-| ------------------------------------------------------------ | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| One-time toolchain install (`Tools\setup\windows.ps1`)       | _Windows PowerShell_ **as Administrator**                       | Press _Start_, type _PowerShell_, right-click _Windows PowerShell_, choose _Run as administrator_.                                                |
-| Everyday `git`, MinGW builds, running SIH, `.ps1` launchers  | _Windows PowerShell_ (regular, no Administrator)                | Press _Start_, type _PowerShell_, press Enter.                                                                                                    |
-| MSVC builds (`make px4_sitl_default` with the MSVC compiler) | _x64 Native Tools Command Prompt for VS 2022_ (a _CMD_ variant) | After running the setup script: Start menu → _Visual Studio 2022_ → _Visual Studio Tools_ → _VC_ → _x64 Native Tools Command Prompt for VS 2022_. |
+| Task                                          | Shell                                                           |
+| --------------------------------------------- | --------------------------------------------------------------- |
+| Toolchain install (`Tools\setup\windows.ps1`) | _Windows PowerShell_ **as Administrator**                       |
+| MinGW builds                                  | _Windows PowerShell_ (regular, no Administrator)                |
+| MSVC builds                                   | _x64 Native Tools Command Prompt for VS 2022_ (a _CMD_ variant) |
+| Running SIH, `.ps1` launchers, everyday `git` | _Windows PowerShell_ (regular, no Administrator)                |
 
 ::: info
-You do **not** need _Git Bash_ or _MSYS2 MinGW64 Shell_ for this guide.
-If you have _Git Bash_ installed (it ships with _Git for Windows_), it works for `git` but adds Unix-shell quirks (forward-slash paths, different quoting, no `$env:` syntax) that these instructions are not written against — stick with _PowerShell_ to avoid surprises.
-The setup script generates wrapper `.cmd` shims for the MinGW toolchain so you can build from plain _PowerShell_ without ever opening the _MSYS2_ shell yourself.
+You should not need (or use) _Git Bash_ or _MSYS2 MinGW64 Shell_ for this guide.
+
+- _Git Bash_ works for `git` but adds Unix-shell quirks (forward-slash paths, different quoting, no `$env:` syntax) that these instructions are not written against — stick with _PowerShell_ to avoid surprises.
+- The setup script generates wrapper `.cmd` shims for the MinGW toolchain so you can build from plain _PowerShell_ without ever opening the _MSYS2_ shell yourself.
+
 :::
 
 ### Get the PX4 Source Code
 
-Open a regular _PowerShell_ window (no Administrator needed for this step).
+To get the source code we clone the PX4-Autopilot repository:
 
-If you do not yet have Git for Windows, install it first (the toolchain script will leave any existing install in place):
+1. Open a _PowerShell_ window (Press **Start**, type _PowerShell_, press **Enter**):
+2. Install _Git for Windows_ (if it isn't already installed):
 
-```sh
-winget install --id Git.Git -e --source winget
-```
+   ```sh
+   winget install --id Git.Git -e --source winget
+   ```
 
-Close and reopen the _PowerShell_ window so the new `git` command is on `PATH`, then clone the repository into a directory you have rights over (for example `C:\PX4` or any local folder you choose):
+3. Close and reopen the _PowerShell_ window so the new `git` command is on `PATH`.
+4. Clone the repository into a directory you have rights over (for example `C:\PX4` or any local folder you choose):
 
-```sh
-cd C:\
-git clone https://github.com/PX4/PX4-Autopilot.git --recursive
-cd PX4-Autopilot
-```
+   ```sh
+   cd C:\PX4\
+   git clone https://github.com/PX4/PX4-Autopilot.git --recursive
+   cd PX4-Autopilot
+   ```
 
-`cd` does not print the new path on success — run `pwd` if you want to confirm where you landed.
-PX4 build commands accept either backslash (`C:\PX4\...`) or forward-slash (`C:/PX4/...`) paths interchangeably.
+   ::: details A few things to keep in mind about _where_ you clone
+   - **Keep the path short**: Windows still defaults to 260-char paths (MAX_PATH) and PX4 generates deep nested directories (especially under `external/Install/...`), so keep the source tree shallow.
+   - **Prefer a path without spaces**: a few build tools have edge cases with quoted paths — `C:\Users\Some User\Documents\PX4-Autopilot` is risky, while `C:\PX4` or `D:\src\PX4-Autopilot` is safer.
+   - **Avoid OneDrive-synchronized folders**: synced trees (the default `Documents` is often one) will fight the build for hundreds of thousands of intermediate object files.
+     Check for the OneDrive cloud icon next to the folder in File Explorer, or run `Get-Item <path> | Select-Object Target` (a redirected folder has a `Target` set); if it is synced, clone into a local-only path instead.
 
-::: info
-A few things to keep in mind about _where_ you clone:
+   :::
 
-- **Avoid OneDrive-synchronized folders**: synced trees (the default `Documents` is often one) will fight the build for hundreds of thousands of intermediate object files.
-  Check for the OneDrive cloud icon next to the folder in File Explorer, or run `Get-Item <path> | Select-Object Target` (a redirected folder has a `Target` set); if it is synced, clone into a local-only path instead.
-- **Prefer a path without spaces**: a few build tools have edge cases with quoted paths — `C:\Users\Some User\Documents\PX4-Autopilot` is risky, while `C:\PX4` or `D:\src\PX4-Autopilot` is safer.
-- **Keep the path short**: Windows still defaults to 260-char paths (MAX_PATH) and PX4 generates deep nested directories (especially under `external/Install/...`), so keep the source tree shallow.
-
-:::
+   `cd` does not print the new path on success — run `pwd` if you want to confirm where you landed.
+   PX4 build commands accept either backslash (`C:\PX4\...`) or forward-slash (`C:/PX4/...`) paths interchangeably.
 
 ::: info
 PX4 ships a `.gitattributes` that pins line endings, so no `core.autocrlf` configuration is required.
@@ -125,45 +127,61 @@ git -C PX4-Autopilot config core.autocrlf false
 
 ### Install the Toolchain
 
-The recommended way to install the remaining build dependencies is the bundled setup script.
-The script must be run from an **elevated** _PowerShell_ prompt — the Visual Studio 2022 Build Tools installer requires Administrator privileges to write to `C:\Program Files`, and `winget` will fail mid-script otherwise.
-To open one: press _Start_, type _PowerShell_, then right-click _Windows PowerShell_ and choose _Run as administrator_.
-(The script aborts immediately with an actionable error if it detects a non-elevated shell, so a wrong shell wastes no time.)
-
-From the elevated prompt, change into the freshly cloned `PX4-Autopilot` directory and run:
-
-```sh
-cd PX4-Autopilot
-Set-ExecutionPolicy -Scope Process Bypass
-.\Tools\setup\windows.ps1
-```
-
-`Set-ExecutionPolicy -Scope Process Bypass` is safe: `-Scope Process` confines the change to this PowerShell window and is forgotten when you close it, leaving the system-wide policy untouched.
-
-::: info
-The Visual Studio 2022 Build Tools installer downloads roughly 4 GB and runs **silently** for **10–15 minutes** — the script will look frozen during this stage but is working.
-Leave the window open until the script returns to the prompt; closing it mid-install can leave the Build Tools in a broken state that has to be repaired from _Add or remove programs_.
-:::
-
-The script uses [winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/) to install:
-
-- _Python 3.11_, _CMake_, _Ninja_
-- _GNU make_ (via [Chocolatey](https://chocolatey.org/) if it is already installed, otherwise via [ezwinports](https://sourceforge.net/projects/ezwinports/))
-- _Visual Studio 2022 Build Tools_ with the `Desktop development with C++` workload and the Windows 11 SDK
-- The Python build-time packages (`jinja2`, `pyyaml`, `toml`, `numpy`, `packaging`, `jsonschema`, `future`, `empy`, `pyros-genmsg`, `kconfiglib`)
-
-_Git for Windows_ is needed earlier to clone the repository and is left untouched if you already have it.
-
-To install the MSYS2 / MinGW-w64 toolchain instead of (or alongside) MSVC:
-
-```sh
-.\Tools\setup\windows.ps1 -Toolchain MinGW   # MSYS2 only
-.\Tools\setup\windows.ps1 -Toolchain Both    # both compilers
-```
+The recommended way to install the toolchain is to use the `windows.ps1` setup script:
 
 ::: tip
 Re-running the script is safe — it skips packages that are already installed.
 :::
+
+1. Open _Windows PowerShell_ **as an Administrator**
+   (Press **Start**, type _PowerShell_, right-click _Windows PowerShell_, choose **Run as administrator**).
+
+2. Navigate to your cloned `PX4-Autopilot` directory and run:
+
+   ```sh
+   cd PX4-Autopilot
+   Set-ExecutionPolicy -Scope Process Bypass
+   .\Tools\setup\windows.ps1
+   ```
+
+   ::: info
+   `Set-ExecutionPolicy -Scope Process Bypass` is safe.
+   `-Scope Process` confines the change to this PowerShell window and is forgotten when you close it, leaving the system-wide policy untouched.
+   :::
+
+3. Run the installation script to installed your desired toolchain.
+
+   Visual Studio 2022 Build Tools:
+
+   ```sh
+   .\Tools\setup\windows.ps1
+   ```
+
+   MSYS2 only
+
+   ```sh
+   .\Tools\setup\windows.ps1 -Toolchain MinGW
+   ```
+
+   Both compilers
+
+   ```sh
+   .\Tools\setup\windows.ps1 -Toolchain Both
+   ```
+
+   ::: info
+   The Visual Studio 2022 Build Tools installer downloads roughly 4 GB and runs **silently** for **10–15 minutes** — the script will look frozen during this stage but is working.
+   Leave the window open until the script returns to the prompt; closing it mid-install can leave the Build Tools in a broken state that has to be repaired from _Add or remove programs_.
+   :::
+
+The script uses [winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/) to install:
+
+- _Python 3.11_, _CMake_, _Ninja_
+- _GNU make_ (via [Chocolatey](https://chocolatey.org/) if Chocolatey is already installed, otherwise via [ezwinports](https://sourceforge.net/projects/ezwinports/))
+- _Visual Studio 2022 Build Tools_ with the `Desktop development with C++` workload and the Windows 11 SDK
+- The Python build-time packages (`jinja2`, `pyyaml`, `toml`, `numpy`, `packaging`, `jsonschema`, `future`, `empy`, `pyros-genmsg`, `kconfiglib`)
+
+_Git for Windows_ is needed earlier to clone the repository and is left untouched if you already have it.
 
 ::: info
 The script appends `C:\msys64\mingw64\bin` to your **user** `PATH` and also exposes it in the current PowerShell process, so the MinGW build works in the same shell that ran the setup script.
@@ -186,32 +204,30 @@ If any of them prints _"is not recognized as the name of a cmdlet…"_, see [Com
 
 ## Build PX4 SITL
 
-Pick the subsection that matches the toolchain you installed (see [Choosing the C++ Toolchain](#choosing-the-c-toolchain) above for the rationale): **MSVC** is the recommended default on Windows; **MinGW-w64** is the alternative for GCC-based workflows.
+Pick the subsection that matches the toolchain you installed (see [Choosing the C++ Toolchain](#choosing-the-c-toolchain) above for the rationale).
 
 ### MSVC Build
 
 Open the _x64 Native Tools Command Prompt for VS 2022_ (see the [shell table](#choosing-a-shell) above) — the MSVC compiler is only on `PATH` inside a Visual Studio developer shell.
 If you prefer to keep working in _PowerShell_, you can source the developer environment into an existing window with `vcvars64.bat` instead (see [`cl.exe` Not Found](#cl-exe-not-found-msvc) below).
 
-From the repository root:
+1. Open the _x64 Native Tools Command Prompt for VS 2022_ (**Start** menu > _Visual Studio 2022_ > _Visual Studio Tools_ > VC > **x64 Native Tools Command Prompt for VS 2022**.)
+2. Navigate to the repository root (`PX4-Autopilot`)
+3. Set `PATH` to prepend Git Bash's POSIX utilities (`sed`, `awk`, `dirname`, `[`, `ps`) to the _x64 Native Tools Command Prompt_ `PATH`:
 
-```sh
-cd PX4-Autopilot
-set PATH=C:\Program Files\Git\usr\bin;C:\Program Files\Git\bin;%PATH%
-make px4_sitl_default
-```
+   ```sh
+   set PATH=C:\Program Files\Git\usr\bin;C:\Program Files\Git\bin;%PATH%
+   make px4_sitl_default
+   ```
 
-The `set PATH=...` line prepends Git Bash's POSIX utilities (`sed`, `awk`, `dirname`, `[`, `ps`) to the dev-shell `PATH`; the PX4 Makefile invokes them and the MSVC dev shell alone does not provide them.
-Skip the line and the build aborts early with `'sed' is not recognized`.
+   ::: info
+   The _x64 Native Tools Command Prompt_ provides the MSVC compiler but **not** the POSIX utilities installed with _Git for Windows_ that the PX4 Makefile depends on.
+   This line adds them to the path.
+   :::
 
 A successful **first** build takes 5–15 minutes depending on the machine; CMake stays silent for the first couple of minutes while it configures the project and downloads upstream dependencies — this is normal, not a hang.
 The build ends with a line of the form `[NNN/NNN] Linking CXX executable bin\px4.exe`.
 Subsequent rebuilds in the same shell are incremental and finish in seconds.
-
-::: warning
-The _x64 Native Tools Command Prompt_ provides the MSVC compiler but **not** the POSIX utilities the PX4 Makefile depends on.
-The bundled setup script installs Git for Windows (which ships them under `C:\Program Files\Git\usr\bin`); either prepend that directory to `PATH` as shown above, or start from a shell that already has Git on `PATH` so `sed`, `awk`, `dirname`, `[`, and `ps` resolve.
-:::
 
 ::: info
 The PX4 Makefile picks the Ninja generator when `ninja` is on `PATH` and lets CMake auto-detect `cl.exe` from the developer shell — no `-DCMAKE_TOOLCHAIN_FILE` flag is needed.
@@ -260,7 +276,6 @@ Other airframes are exposed as sibling targets.
 All SIH variants share the same Windows code path — physics run inside `px4.exe` and no Linux-only helper process is required — so anything that builds also launches natively.
 
 For the full list of supported vehicles and the corresponding make targets / `PX4_SIM_MODEL` values, see the [SIH Simulation > Supported Vehicle Types](../sim_sih/index.md#supported-vehicle-types) table.
-The "Experimental" rating in that table refers to vehicle dynamics / controller maturity, not to the Windows port — if a SIH airframe builds it boots and runs on Windows the same way it does on Linux or macOS.
 
 If you would rather invoke `px4.exe` directly (e.g. from a shortcut, a debugger, or a script that does not have `make` on `PATH`), set the environment variable yourself.
 You can do this from either _PowerShell_ or _CMD_ — both are shown below; pick whichever shell you already have open.
@@ -323,7 +338,7 @@ To stop every `px4.exe` started by the helper (e.g. when several backgrounded da
 .\Tools\simulation\sitl_multiple_run.ps1 -SitlNum 0
 ```
 
-### Tested Envelope
+### Tested Configurations
 
 What has been validated to work on native Windows today:
 
@@ -347,6 +362,13 @@ When PX4 SITL runs natively on Windows, [QGroundControl](https://qgroundcontrol.
 On the first launch of `px4.exe`, _Windows Defender Firewall_ raises a per-app prompt titled _Windows Security Alert_ with two checkboxes — _Private networks_ and _Public networks_.
 Tick **Private networks** and click **Allow access** so MAVLink replies from QGC can reach PX4; if you dismiss the prompt, allow it after the fact under **Windows Security > Firewall & network protection > Allow an app through firewall**.
 :::
+
+## Running Non-SIH Simulators from WSL or a Remote Linux Host
+
+Gazebo, Gazebo Classic, and jMAVSim depend on a Linux host (or, for jMAVSim, a JDK + `ant` install) for the simulator process itself, so the `make px4_sitl gz_x500` / `make px4_sitl jmavsim` / `make px4_sitl gazebo-classic_iris` convenience targets are not wired up natively on Windows.
+
+You can still drive any of them from a natively-built `px4.exe`: start the simulator inside [WSL2](../dev_setup/dev_env_windows_wsl.md) (or on a remote Linux machine), then launch `px4.exe` on the Windows side with `PX4_SIM_HOSTNAME` (or `PX4_SIM_HOST_ADDR`) pointing at that host.
+`simulator_mavlink` will connect to the external simulator over TCP/UDP just like it does on Linux — only the "spawn the simulator for you" wrappers are missing.
 
 ## ROS 2 Setup on Windows Native
 
@@ -391,6 +413,9 @@ Dot-source the wrapper in any future _PowerShell_ session to put `ros2`, `colcon
 
 ::: warning
 When launching multi-instance PX4 from a session that has activated ROS 2, pass `-w <work_dir>` to each `px4.exe` and pre-create an `etc` junction inside it; otherwise the instances collide on the shared rootfs.
+:::
+
+::: warning
 Pass YAML payloads that contain whitespace (e.g. to `Start-Process -ArgumentList`) as a single quoted string rather than an inline `{...}` literal — PowerShell flattens the latter and the agent rejects the malformed message.
 :::
 
@@ -522,13 +547,6 @@ For the wider ROS 2 / DDS workflow on top of this connection (workspace layout, 
 - **`UAGENT_P2P_PROFILE=ON` is not supported on Windows today.** The peer-to-peer profile triggers a separate, earlier recompaction failure inside the `microxrcedds_client` ExternalProject.
   PX4's SITL bridge does not use P2P, so leaving it off is safe.
 
-## Running Non-SIH Simulators from WSL or a Remote Linux Host
-
-Gazebo, Gazebo Classic, and jMAVSim depend on a Linux host (or, for jMAVSim, a JDK + `ant` install) for the simulator process itself, so the `make px4_sitl gz_x500` / `make px4_sitl jmavsim` / `make px4_sitl gazebo-classic_iris` convenience targets are not wired up natively on Windows.
-
-You can still drive any of them from a natively-built `px4.exe`: start the simulator inside [WSL2](../dev_setup/dev_env_windows_wsl.md) (or on a remote Linux machine), then launch `px4.exe` on the Windows side with `PX4_SIM_HOSTNAME` (or `PX4_SIM_HOST_ADDR`) pointing at that host.
-`simulator_mavlink` will connect to the external simulator over TCP/UDP just like it does on Linux — only the "spawn the simulator for you" wrappers are missing.
-
 ## Next Steps
 
 Once you have finished setting up the command-line toolchain:
@@ -541,19 +559,44 @@ Once you have finished setting up the command-line toolchain:
 
 ### Common Pitfalls
 
-- **A freshly-installed command is _"not recognized"_ in the same shell that ran the setup script.** The setup script updates the user `PATH` for the current process, but Windows does not propagate registry `PATH` changes into shells that were already open.
+- **A freshly-installed command is _"not recognized"_ in the same shell that ran the setup script.**
+
+  The setup script updates the user `PATH` for the current process, but Windows does not propagate registry `PATH` changes into shells that were already open.
   **Close every terminal window and open a new one** — including any IDE-integrated terminals — and the missing command will resolve.
-- **`winget` itself prints _"is not recognized"_.** _App Installer_ is missing or out of date.
+
+- **`winget` itself prints _"is not recognized"_.**
+
+  _App Installer_ is missing or out of date.
   Open the Microsoft Store, search for _App Installer_, install or update it, then reopen the terminal.
-- **The build appears to hang for several minutes the first time.** CMake configures the project and downloads several upstream dependencies on the first run; that part is silent.
+
+- **MSVC builds abort early with `'sed' is not recognized`**
+
+  The _x64 Native Tools Command Prompt_ provides the MSVC compiler but **not** the POSIX utilities the PX4 Makefile depends on.
+  You need to set the PATH before calling `make px4_sitl_default` (this is covered in the build instructions).
+
+- **The build appears to hang for several minutes the first time.**
+
+  CMake configures the project and downloads several upstream dependencies on the first run; that part is silent.
   Subsequent rebuilds are incremental and complete in seconds.
-- **`pxh>` keeps emitting `INFO [mavlink] partner IP: 127.0.0.1`.** This is the normal MAVLink heartbeat exchange with QGroundControl (or any other connected GCS).
+
+- **`pxh>` keeps emitting `INFO [mavlink] partner IP: 127.0.0.1`.**
+
+  This is the normal MAVLink heartbeat exchange with QGroundControl (or any other connected GCS).
   It is not an error.
-- **The first launch of `px4.exe` shows a _Windows Defender Firewall_ prompt.** See [Connecting QGroundControl](#connecting-qgroundcontrol) above.
-- **The `pxh>` prompt won't respond.** From a different PowerShell window, kill all running PX4 instances with `Get-Process px4 -ErrorAction SilentlyContinue | Stop-Process -Force`.
+
+- **The first launch of `px4.exe` shows a _Windows Defender Firewall_ prompt.**
+
+  See [Connecting QGroundControl](#connecting-qgroundcontrol) above.
+
+- **The `pxh>` prompt won't respond.**
+
+  From a different PowerShell window, kill all running PX4 instances with `Get-Process px4 -ErrorAction SilentlyContinue | Stop-Process -Force`.
   The same one-liner cleans up the background instances launched by `Tools\simulation\sitl_multiple_run.ps1`.
   Passing `-SitlNum 0` to the helper script also works: `.\Tools\simulation\sitl_multiple_run.ps1 -SitlNum 0`.
-- **`PX4 server already running for instance 0` on a fresh launch.** If the previous `px4.exe` was killed forcibly (`Stop-Process -Force`, Task Manager, `CTRL+BREAK`) it may not have unlinked its lock file under `%TEMP%`, so the next launch sees a stale `px4_lock-<N>` and exits.
+
+- **`PX4 server already running for instance 0` on a fresh launch.**
+
+  If the previous `px4.exe` was killed forcibly (`Stop-Process -Force`, Task Manager, `CTRL+BREAK`) it may not have unlinked its lock file under `%TEMP%`, so the next launch sees a stale `px4_lock-<N>` and exits.
   Clear the leftovers and re-launch: `Remove-Item "$env:TEMP\px4_lock-*" -ErrorAction SilentlyContinue`.
   A graceful shutdown (`shutdown` from `pxh>`, `px4-shutdown.exe`, or `CTRL+C`) removes the lock automatically.
 
