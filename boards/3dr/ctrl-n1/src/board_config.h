@@ -46,13 +46,8 @@
 
 /* LEDs */
 #define GPIO_nLED_BL /* PD10 */ (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN10)
-#define GPIO_RGB_S   /* PB1  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN1)
-#define BOARD_SRGBLED_PORT    STM32_GPIOB_ODR
-#define BOARD_SRGBLED_BIT     1
+#define BOARD_LED              0
 
-//#define BOARD_HAS_CONTROL_STATUS_LEDS      1
-//#define BOARD_OVERLOAD_LED     LED_RED
-//#define BOARD_ARMED_STATE_LED  LED_BLUE
 
 /* ADC channels */
 #define PX4_ADC_GPIO  \
@@ -61,7 +56,7 @@
 	/* PC5 */  GPIO_ADC12_INP8
 
 /* Define Channel numbers must match above GPIO pins */
-#define ADC_BATTERY_VOLTAGE_CHANNEL       18 /* PA2 BATT_VOLT_SENS */
+#define ADC_BATTERY_VOLTAGE_CHANNEL       18 /* PA4 BATT_VOLT_SENS */
 #define ADC_BATTERY_CURRENT_CHANNEL       10 /* PC0 BATT_CURRENT_SENS */
 #define ADC_SCALED_V5_CHANNEL             8  /* PC5 VDD_5V_SENS */
 
@@ -71,7 +66,7 @@
 	 (1 << ADC_SCALED_V5_CHANNEL))
 
 
-/* HW has to large of R termination on ADC todo:change when HW value is chosen */
+/* HW has too large of R termination on ADC */
 #define BOARD_ADC_OPEN_CIRCUIT_V     (5.6f)
 
 /* PWM */
@@ -91,7 +86,7 @@
 #define GPIO_OTGFS_VBUS 0
 
 /* High-resolution timer */
-#define HRT_TIMER               12  /* use timer3 for the HRT */
+#define HRT_TIMER               12  /* use timer12 for the HRT */
 #define HRT_TIMER_CHANNEL       1 /* use capture/compare channel 1 */
 
 /* RC Serial port */
@@ -102,7 +97,7 @@
  * this board support the ADC system_power interface, and therefore
  * provides the true logic GPIO BOARD_ADC_xxxx macros.
  */
-#define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(ADC_SCALED_V5_CHANNEL))
+#define BOARD_ADC_USB_CONNECTED (1)
 #define BOARD_ADC_USB_VALID     BOARD_ADC_USB_CONNECTED
 #define BOARD_ADC_SERVO_VALID   (1) /* never powers off the Servo rail */
 

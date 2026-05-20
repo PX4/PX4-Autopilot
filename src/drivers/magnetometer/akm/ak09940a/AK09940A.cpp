@@ -35,11 +35,6 @@
 
 using namespace time_literals;
 
-static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
-{
-	return (msb << 8u) | lsb;
-}
-
 static constexpr int32_t combine(uint8_t hh, uint8_t hm,  uint8_t hl)
 {
 	// Combine into 24-bit word
@@ -117,7 +112,7 @@ int AK09940A::probe()
 
 		if ((WIA1 != Company_ID)) {
 			PX4_DEBUG("unexpected WIA1 0x%02x", WIA1);
-			return PX4_ERROR;
+			continue;
 		}
 
 		switch (static_cast<AKTYPE>(WIA2)) {

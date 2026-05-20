@@ -45,7 +45,6 @@
 namespace AKM_AK09940A
 {
 
-// TODO: move to a central header
 static constexpr uint8_t Bit0 = (1 << 0);
 static constexpr uint8_t Bit1 = (1 << 1);
 static constexpr uint8_t Bit2 = (1 << 2);
@@ -99,7 +98,7 @@ enum ST_BIT : uint8_t {
 
 // ST1
 enum class ST1_BIT : uint8_t {
-	// FNUM[4:1] bits correspond to how maany data sets are into FIFO buffer, up to 0b1000 (8 sets)
+	// FNUM[4:1] bits correspond to how many data sets are in the FIFO buffer, up to 0b1000 (8 sets)
 	FNUM  = Bit4 | Bit3 | Bit2 | Bit1,
 	DRDY  = Bit0, // Data is Ready
 };
@@ -121,7 +120,7 @@ enum class CNTL3_BIT : uint8_t {
 	MODE3_SET       = Bit2 | Bit1,          // “00110”: Continuous measurement mode 3 (50Hz)
 	MODE_SELF_TEST  = Bit4,                 // "10000": Self-test mode
 	MT 		= Bit6 | Bit5,		// Power Drive setting
-	MODE_PWR_DN     = Bit4 | Bit3 | Bit0,   // "00000": Power-down mode
+	MODE3_CLR       = Bit4 | Bit3 | Bit0,   // bits to clear when setting MODE3
 };
 
 // CNTL4

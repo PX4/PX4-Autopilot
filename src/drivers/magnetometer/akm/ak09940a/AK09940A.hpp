@@ -118,14 +118,13 @@ private:
 
 	uint8_t _checked_register{0};
 	static constexpr uint8_t size_register_cfg{1};
-	// TODO: Add the self test configuration
 	register_config_t _register_cfg[size_register_cfg] {
 		// Register          | Set bits, Clear bits
 		{
 			Register::CNTL3,  static_cast<uint8_t>(CNTL3_BIT::MODE3_SET),
-			static_cast<uint8_t>(CNTL3_BIT::MODE_PWR_DN)
+			static_cast<uint8_t>(CNTL3_BIT::MODE3_CLR)
 		}
 	};
 
-	AKTYPE _device;
+	AKTYPE _device{AKTYPE::AK09940A};
 };

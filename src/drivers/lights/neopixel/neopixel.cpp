@@ -107,10 +107,13 @@ int NEOPIXEL::init()
 		return PX4_ERROR;
 	}
 
-	neopixel_init(_leds, _number_of_packages);
+	if (neopixel_init(_leds, _number_of_packages) != PX4_OK) {
+		return PX4_ERROR;
+	}
+
 	neopixel_write(_leds, _number_of_packages);
 	ScheduleNow();
-	return OK;
+	return PX4_OK;
 }
 
 int NEOPIXEL::task_spawn(int argc, char *argv[])
@@ -177,7 +180,7 @@ $ neopixel -n 8
 To drive all available leds.
 )DESCR_STR");
 
-PRINT_MODULE_USAGE_NAME("newpixel", "driver");
+PRINT_MODULE_USAGE_NAME("neopixel", "driver");
 PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 return 0;
 }
