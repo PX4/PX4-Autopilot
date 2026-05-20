@@ -31,6 +31,10 @@ if simulator_sih start; then
 	then
 		sensor_agp_sim start
 	fi
+	if param compare -s SENS_EN_ADSBSIM 1
+	then
+		sensor_adsb_sim start
+	fi
 
 else
 	echo "ERROR [init] simulator_sih failed to start"
