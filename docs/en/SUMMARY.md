@@ -161,6 +161,7 @@
       - [mRo Pixhawk (FMUv3)](flight_controller/mro_pixhawk.md)
         - [mRo (3DR) Pixhawk Wiring Quickstart](assembly/quick_start_pixhawk.md)
     - [Manufacturer-Supported Autopilots](flight_controller/autopilot_manufacturer_supported.md)
+      - [3DR Control N1](flight_controller/3dr_ctrl-n1.md)
       - [Accton Godwit GA1](flight_controller/accton-godwit_ga1.md)
       - [AEDROX AEDROXH7](flight_controller/aedrox_aedroxh7.md)
       - [AirMind MindPX](flight_controller/mindpx.md)
