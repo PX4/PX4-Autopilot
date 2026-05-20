@@ -32,7 +32,8 @@ VectorNav IMU/AHRS, GNSS/INS, and Dual GNSS/INS solutions are available directly
 
 ### Wiring
 
-Connect any unused flight controller serial interface, such as a spare `GPS` or `TELEM` port, to the VectorNav UART2 port (default). If UART1 is used, set [VN_PORT](../advanced_config/parameter_reference.md#VN_PORT) accordingly.
+Connect any unused flight controller serial interface, such as a spare `GPS` or `TELEM` port, to the VectorNav `UART2` port (default).
+If `UART1` is used, set [VN_PORT](../advanced_config/parameter_reference.md#VN_PORT) accordingly.
 
 ### Mounting
 
