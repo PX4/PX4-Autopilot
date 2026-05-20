@@ -802,7 +802,7 @@ msp_osd <command> [arguments...]
    channel       Change VTX channel
 ```
 
-## newpixel
+## neopixel
 
 Source: [drivers/lights/neopixel](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/neopixel)
 
@@ -820,10 +820,10 @@ neopixel -n 8
 
 To drive all available leds.
 
-### Usage {#newpixel_usage}
+### Usage {#neopixel_usage}
 
 ```
-newpixel <command> [arguments...]
+neopixel <command> [arguments...]
  Commands:
    stop
 
