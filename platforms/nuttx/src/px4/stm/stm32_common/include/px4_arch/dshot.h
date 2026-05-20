@@ -36,8 +36,32 @@
 
 #include <drivers/drv_pwm_output.h>
 #include <stm32_dma.h>
+#include <arch/board/board.h>
 
-#define DSHOT_MOTOR_PWM_BIT_WIDTH		20u
+// Pick WIDTH so floor(TIM_CLK / 600000) divides cleanly into it, keeping the
+// prescaler integer. Guard skips F1 IO co-processors (no TIM8, no DSHOT).
+#if defined(STM32_APB1_TIM5_CLKIN) && defined(STM32_APB2_TIM8_CLKIN)
+
+#define _DSHOT600_TICKS_APB1 (STM32_APB1_TIM5_CLKIN / 600000U)
+#define _DSHOT600_TICKS_APB2 (STM32_APB2_TIM8_CLKIN / 600000U)
+
+#if   (_DSHOT600_TICKS_APB1 % 20U == 0U)
+#  define DSHOT_MOTOR_PWM_BIT_WIDTH		20u
+#elif (_DSHOT600_TICKS_APB1 % 19U == 0U)
+#  define DSHOT_MOTOR_PWM_BIT_WIDTH		19u
+#elif (_DSHOT600_TICKS_APB1 % 18U == 0U)
+#  define DSHOT_MOTOR_PWM_BIT_WIDTH		18u
+#else
+#  define DSHOT_MOTOR_PWM_BIT_WIDTH		20u
+#endif
+
+#if (_DSHOT600_TICKS_APB1 % DSHOT_MOTOR_PWM_BIT_WIDTH) != (_DSHOT600_TICKS_APB2 % DSHOT_MOTOR_PWM_BIT_WIDTH)
+#  pragma message "DSHOT bit width: APB1 and APB2 timer clocks emit DSHOT at different rates on this board"
+#endif
+
+#else
+#  define DSHOT_MOTOR_PWM_BIT_WIDTH		20u
+#endif
 
 /* Configuration for each timer to setup DShot. Some timers have only one while others have two choices for the stream.
  *
