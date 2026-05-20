@@ -111,7 +111,7 @@ void FailureDetectorChecks::checkAndReport(const Context &context, Report &repor
 		 * Check that all propellers are mounted correctly and are not damaged.
 		 *
 		 * <profile name="dev">
-		 * This check can be configured via <param>FD_IMB_PROP_THR</param> and <param>COM_IMB_PROP_ACT</param> parameters.
+		 * This check can be configured via <param>FD_IMB_PROP_THR</param> parameter.
 		 * </profile>
 		 */
 		reporter.healthFailure(NavModes::All, health_component_t::system, events::ID("check_failure_detector_imbalanced_prop"),

@@ -3,7 +3,7 @@ import { useData } from 'vitepress'
 const { site } = useData();
 </script>
 
-# PX4 自动驾驶仪用户指南
+# PX4 自动化用户指南
 
 [![Releases](https://img.shields.io/badge/release-main-blue.svg)](https://github.com/PX4/PX4-Autopilot/releases) [![Discuss](https://img.shields.io/badge/discuss-px4-ff69b4.svg)](https://discuss.px4.io//) [![Discord](https://discordapp.com/api/guilds/1022170275984457759/widget.png?style=shield)](https://discord.com/invite/dronecode)
 
@@ -21,11 +21,13 @@ PX4 is an open-source autopilot for drones and autonomous vehicles. It runs on m
 
 </div>
 
+## Try PX4
+
+No hardware needed. Run PX4 in simulation with a single command using [Docker or a .deb package](simulation/px4_simulation_quickstart.md). Connect [QGroundControl](https://qgroundcontrol.com), [MAVSDK](https://mavsdk.mavlink.io/), or [ROS 2](ros2/index.md) and start flying immediately.
+
 ## For Developers
 
-:::tip
-Building on PX4 or extending the platform? Start here: [Development Guide](development/development.md). Set up your [dev environment](dev_setup/config_initial.md), [build from source](dev_setup/building_px4.md), run [SITL simulation](simulation/index.md), or integrate via [ROS 2](ros2/index.md) and [MAVSDK](https://mavsdk.mavlink.io/).
-:::
+Want to modify PX4 or build from source? Start with the [Development Guide](development/development.md): set up your [dev environment](dev_setup/dev_env.md), [build the code](dev_setup/building_px4.md), and run [SITL simulation](simulation/index.md).
 
 ## 入门指南
 

@@ -1,0 +1,16 @@
+#!/bin/sh
+#
+# board specific sensors init
+#------------------------------------------------------------------------------
+
+board_adc start
+
+# Internal x2 ICM-20602
+iim42653 -R 14 -s -b 1 start
+iim42653 -R 14 -s -b 2 start
+
+# Interal DPS310 (barometer)
+dps310 -s -b 6 start
+
+# Internal AK09940A magnetometer
+ak09940a -X -b 1 -R 4 start

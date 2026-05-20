@@ -1,5 +1,33 @@
 # Modules Reference: Magnetometer (Driver)
 
+## af9838
+
+Source: [drivers/magnetometer/voltafield/af9838](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/magnetometer/voltafield/af9838)
+
+### Usage {#af9838_usage}
+
+```
+af9838 <command> [arguments...]
+ Commands:
+   start
+     [-I]        Internal I2C bus(es)
+     [-X]        External I2C bus(es)
+     [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
+                 (default=1))
+     [-f <val>]  bus frequency in kHz
+     [-q]        quiet startup (no message if no device found)
+     [-a <val>]  I2C address
+                 default: 12
+     [-R <val>]  Rotation
+                 default: 0
+     [-r <val>]  Output rate (Hz)
+                 default: 100.0
+
+   stop
+
+   status        print status info
+```
+
 ## ak09916
 
 Source: [drivers/magnetometer/akm/ak09916](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/magnetometer/akm/ak09916)
@@ -8,6 +36,32 @@ Source: [drivers/magnetometer/akm/ak09916](https://github.com/PX4/PX4-Autopilot/
 
 ```
 ak09916 <command> [arguments...]
+ Commands:
+   start
+     [-I]        Internal I2C bus(es)
+     [-X]        External I2C bus(es)
+     [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
+                 (default=1))
+     [-f <val>]  bus frequency in kHz
+     [-q]        quiet startup (no message if no device found)
+     [-a <val>]  I2C address
+                 default: 12
+     [-R <val>]  Rotation
+                 default: 0
+
+   stop
+
+   status        print status info
+```
+
+## ak09940a
+
+Source: [drivers/magnetometer/akm/ak09940a](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/magnetometer/akm/ak09940a)
+
+### Usage {#ak09940a_usage}
+
+```
+ak09940a <command> [arguments...]
  Commands:
    start
      [-I]        Internal I2C bus(es)

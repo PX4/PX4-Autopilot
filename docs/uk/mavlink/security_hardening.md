@@ -37,22 +37,32 @@ See [Message Signing](message_signing.md) for full details.
 
 Steps:
 
-1. Connect the vehicle via **USB** (key provisioning only works over USB).
-2. Provision a 32-byte secret key using the [SETUP_SIGNING](https://mavlink.io/en/messages/common.html#SETUP_SIGNING) message.
-3. Set [MAV_SIGN_CFG](../advanced_config/parameter_reference.md#MAV_SIGN_CFG) to **1** (signing enabled on all links except USB) or **2** (signing on all links including USB).
-4. Provision the same key on all ground control stations and companion computers that need to communicate with the vehicle.
-5. Verify that unsigned messages from unknown sources are rejected.
+1. Connect to the vehicle over a **trusted link** (USB or other secure connection).
+2. Provision a 32-byte secret key using the [SETUP_SIGNING](https://mavlink.io/en/messages/common.html#SETUP_SIGNING) message. This works on any link, but use a trusted one for initial provisioning.
+3. Provision the same key on all ground control stations and companion computers that need to communicate with the vehicle.
+4. Verify that unsigned messages from unknown sources are rejected.
 
 :::info
-`MAV_SIGN_CFG=1` is recommended for most deployments.
-This enforces signing on telemetry radios and network links while allowing unsigned access over USB for maintenance.
-USB connections require physical access to the vehicle, which provides equivalent security to physical key access.
+Once a key is provisioned, signing is enforced automatically on **all links** (including USB).
+Changing or disabling the key requires a signed `SETUP_SIGNING` message.
+Signing changes are rejected while the vehicle is armed.
+Signing can also be disabled by physically removing the key file from the SD card.
 :::
 
 ### 2. Secure Physical Access
 
-- Protect access to the SD card. The signing key is stored at `/mavlink/mavlink-signing-key.bin` and can be read or removed by anyone with physical access.
-- USB connections bypass signing when `MAV_SIGN_CFG=1`. Ensure USB ports are not exposed in deployed configurations.
+- **SD card**: The signing key is stored at `/mavlink/mavlink-signing-key.bin`.
+  Anyone with physical access to the SD card can read, modify, or remove the key file.
+- **USB ports**: USB follows the same signing rules as all other links.
+  When signing is active, USB requires signed messages.
+- **Debug ports (SWD/JTAG)**: If exposed, [Debug Ports](../debug/swd_debug.md) allow full firmware reflash and bypass all software security.
+  Not all vehicles expose debug connectors.
+
+:::warning
+Signing protects all MAVLink links.
+The primary physical attack surface is the SD card (key file extraction or deletion).
+If your threat model includes physical access, secure the SD card slot and debug ports.
+:::
 
 ### 3. Secure Network Links
 
@@ -63,9 +73,19 @@ USB connections require physical access to the vehicle, which provides equivalen
 
 ### 4. Understand the Limitations
 
-- **No encryption**: Message signing provides authentication and integrity, but messages are sent in plaintext. An eavesdropper can read telemetry and commands but cannot forge them.
-- **Allowlisted messages**: A small set of [safety-critical messages](message_signing.md#unsigned-message-allowlist) (RADIO_STATUS, ADSB_VEHICLE, COLLISION) are always accepted unsigned.
-- **Key management**: There is no automatic key rotation. Keys must be reprovisioned manually via USB if compromised.
+- **No encryption**:
+  Message signing provides authentication and integrity, but messages are sent in plaintext.
+  An eavesdropper can read telemetry and commands but cannot forge them.
+- **Allowlisted messages**:
+  A small set of [safety-critical messages](message_signing.md#unsigned-message-allowlist) (`HEARTBEAT`, `RADIO_STATUS`, `ADSB_VEHICLE`, `COLLISION`) are always accepted unsigned on all links.
+  An attacker could spoof these specific messages.
+- **Key management**:
+  There is no automatic key rotation.
+  Keys must be reprovisioned manually via a signed `SETUP_SIGNING` message.
+- **Lost key recovery**:
+  If the signing key is lost on all GCS devices, the only recovery is physical: remove the SD card and delete the key file, or reflash via SWD/JTAG.
+  There is no software-only recovery path.
+  See [Message Signing: Lost Key Recovery](message_signing.md#lost-key-recovery) for details.
 
 ## Integrator Responsibility
 

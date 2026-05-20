@@ -82,6 +82,10 @@ I2C::init()
 {
 	int ret = PX4_ERROR;
 
+	if (_fd >= 0) {
+		return PX4_OK;
+	}
+
 	// Open the actual I2C device
 	char dev_path[16] {};
 	snprintf(dev_path, sizeof(dev_path), "/dev/i2c-%i", get_device_bus());

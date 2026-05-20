@@ -21,13 +21,15 @@ pageClass: is-wide-page
 
 ## Constants
 
-| 参数名                                                                                                                                                             | 类型       | 值  | 描述 |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -- | -- |
-| <a id="#GIMBAL_DEVICE_FLAGS_RETRACT"></a> GIMBAL_DEVICE_FLAGS_RETRACT                            | `uint32` | 1  |    |
-| <a id="#GIMBAL_DEVICE_FLAGS_NEUTRAL"></a> GIMBAL_DEVICE_FLAGS_NEUTRAL                            | `uint32` | 2  |    |
-| <a id="#GIMBAL_DEVICE_FLAGS_ROLL_LOCK"></a> GIMBAL_DEVICE_FLAGS_ROLL_LOCK   | `uint32` | 4  |    |
-| <a id="#GIMBAL_DEVICE_FLAGS_PITCH_LOCK"></a> GIMBAL_DEVICE_FLAGS_PITCH_LOCK | `uint32` | 8  |    |
-| <a id="#GIMBAL_DEVICE_FLAGS_YAW_LOCK"></a> GIMBAL_DEVICE_FLAGS_YAW_LOCK     | `uint32` | 16 |    |
+| 参数名                                                                                                                                                                                                                           | 类型       | 值  | 描述 |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -- | -- |
+| <a id="#GIMBAL_DEVICE_FLAGS_RETRACT"></a> GIMBAL_DEVICE_FLAGS_RETRACT                                                                                          | `uint32` | 1  |    |
+| <a id="#GIMBAL_DEVICE_FLAGS_NEUTRAL"></a> GIMBAL_DEVICE_FLAGS_NEUTRAL                                                                                          | `uint32` | 2  |    |
+| <a id="#GIMBAL_DEVICE_FLAGS_ROLL_LOCK"></a> GIMBAL_DEVICE_FLAGS_ROLL_LOCK                                                                 | `uint32` | 4  |    |
+| <a id="#GIMBAL_DEVICE_FLAGS_PITCH_LOCK"></a> GIMBAL_DEVICE_FLAGS_PITCH_LOCK                                                               | `uint32` | 8  |    |
+| <a id="#GIMBAL_DEVICE_FLAGS_YAW_LOCK"></a> GIMBAL_DEVICE_FLAGS_YAW_LOCK                                                                   | `uint32` | 16 |    |
+| <a id="#GIMBAL_DEVICE_FLAGS_YAW_IN_VEHICLE_FRAME"></a> GIMBAL_DEVICE_FLAGS_YAW_IN_VEHICLE_FRAME | `uint32` | 32 |    |
+| <a id="#GIMBAL_DEVICE_FLAGS_YAW_IN_EARTH_FRAME"></a> GIMBAL_DEVICE_FLAGS_YAW_IN_EARTH_FRAME     | `uint32` | 64 |    |
 
 ## Source Message
 
@@ -48,6 +50,8 @@ uint32 GIMBAL_DEVICE_FLAGS_NEUTRAL = 2
 uint32 GIMBAL_DEVICE_FLAGS_ROLL_LOCK = 4
 uint32 GIMBAL_DEVICE_FLAGS_PITCH_LOCK = 8
 uint32 GIMBAL_DEVICE_FLAGS_YAW_LOCK = 16
+uint32 GIMBAL_DEVICE_FLAGS_YAW_IN_VEHICLE_FRAME = 32
+uint32 GIMBAL_DEVICE_FLAGS_YAW_IN_EARTH_FRAME = 64
 
 float32[4] q
 

@@ -60,7 +60,7 @@ For more information about key expressions, refer to the [rmw_zenoh design docum
 
 Before setting up the Zenoh communication, first make sure that your firmware contains the driver that implements the [`zenoh` driver](../modules/modules_driver.md#zenoh), which provides the implementation of the _PX4 Zenoh-Pico Node_.
 
-You can check if the module is present on your board by searching for the key `CONFIG_MODULES_ZENOH=y` in your board's `default.px4board` KConfig file.
+You can check if the module is present on your board by searching for the key `CONFIG_MODULES_ZENOH=y` in your board's `default.px4board` [KConfig file](../hardware/porting_guide_config.md).
 For example, you can see that the module is present in `px4_fmu-v6xrt` build targets from [/boards/px4/fmu-v6xrt/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6xrt/default.px4board#L91).
 
 If `CONFIG_MODULES_ZENOH=y` is not preset you can add this key to your board configuration and rebuild.
@@ -88,6 +88,11 @@ If present, the module is installed.
 Interoperability with ROS 2 Humble and earlier requires setting `CONFIG_ZENOH_KEY_TYPE_HASH=n` to disable the
 inclusion of the message type hash (RIHS01, as defined in REP-2016) in the Zenoh key expression.
 Note that this will break compatibility with ROS 2 Jazzy and later.
+:::
+
+:::tip
+Per-publisher option overrides can be enabled or disabled at compile time using the `CONFIG_ZENOH_PUB_OPTION_OVERRIDE` KConfig key.
+When this is disabled, PX4 uses only global publisher option parameters, and per-publisher CLI/config overrides are not available.
 :::
 
 ### Enable Zenoh on PX4 Startup
@@ -133,6 +138,21 @@ This folder contains three key files:
 - **`pub.csv`** – Maps **uORB topics to ROS2 topics** (used for publishing).
 - **`sub.csv`** – Maps **ROS2 topics to uORB topics** (used for subscribing).
 
+#### Publisher Options
+
+Zenoh publisher behaviour can be controlled through global PX4 parameters:
+
+- [ZENOH_PUB_CC](../advanced_config/parameter_reference.md#ZENOH_PUB_CC): congestion control (`Drop` or `Block`) - controls what happens when the transport path is congested. `Drop` prefers freshness/latency and may drop messages, while `Block` preserves delivery by applying backpressure to the publisher.
+- [ZENOH_PUB_REL](../advanced_config/parameter_reference.md#ZENOH_PUB_REL): reliability (`Reliable` or `BestEffort`) - selects the Zenoh reliability mode used by the router path and seen by the underlying ROS 2 `rmw_zenoh` transport.
+- [ZENOH_PUB_EXPR](../advanced_config/parameter_reference.md#ZENOH_PUB_EXPR): express mode (`Disabled` or `Enabled`) - when enabled, Zenoh does not wait to batch this operation with others. This usually reduces latency at the cost of higher bandwidth/overhead.
+- [ZENOH_PUB_PRIO](../advanced_config/parameter_reference.md#ZENOH_PUB_PRIO): priority (`RealTime`, `InteractiveHigh`, `InteractiveLow`, `DataHigh`, `Data`, `DataLow`, `Background`) - sets relative message priority for routing/scheduling under load.
+
+These are applied to all Zenoh publishers.
+
+If `CONFIG_ZENOH_PUB_OPTION_OVERRIDE=y`, individual publishers can override one or more global publisher options.
+Default configuration [dds_topics.yaml](../middleware/dds_topics.md) already provides overrides for several publishers.
+Individual publisher options can be overriden through the mapping configuration shown in the next section
+
 ### 4. Modifying Topic Mappings
 
 Zenoh topic mappings define how data flows between PX4's internal uORB topics and external ROS2 topics via Zenoh.
@@ -153,6 +173,25 @@ The main operations and their commands are:
 
   ```sh
   zenoh config add publisher <zenoh_topic> <uorb_topic> [uorb_instance]
+  ```
+
+  When `CONFIG_ZENOH_PUB_OPTION_OVERRIDE=y`, publisher options can also be passed:
+
+  ```sh
+  zenoh config add publisher <zenoh_topic> <uorb_topic> [uorb_instance] [options]
+  ```
+
+  Options are comma-separated `key=value` pairs:
+
+  - `cc=drop|block` (congestion control)
+  - `express=true|false` (batching behaviour)
+  - `prio=real_time|interactive_high|interactive_low|data_high|data|data_low|background` (priority)
+  - `rel=reliable|best_effort` (reliability)
+
+  Example:
+
+  ```sh
+  zenoh config add publisher /fmu/out/vehicle_status vehicle_status 0 "cc=block,express=true,rel=best_effort"
   ```
 
 - Subscribe to a Zenoh topic and forward it to a uORB topic:

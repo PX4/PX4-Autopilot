@@ -98,6 +98,24 @@ SINGLE_COMMENT_MARKERS = {
 }
 
 
+# Diagnostics we never surface as PR review comments. `file not found` from
+# clang-diagnostic-error fires whenever clang-tidy analyzes a header whose
+# including TU is not in the active compile_commands.json (e.g. board-
+# specific NuttX headers against the SITL clang build). It is noise here,
+# not a signal: the build_all_targets CI matrix compiles those headers for
+# real and will fail loudly if an include is actually missing.
+DROPPED_DIAGNOSTIC_PATTERNS = (
+    ('clang-diagnostic-error', 'file not found'),
+)
+
+
+def is_dropped_diagnostic(diag_name, diag_message):
+    for name, needle in DROPPED_DIAGNOSTIC_PATTERNS:
+        if diag_name == name and needle in (diag_message or ''):
+            return True
+    return False
+
+
 # ---------------------------------------------------------------------------
 # Diff-range parsing (adapted from platisd)
 # ---------------------------------------------------------------------------
@@ -265,6 +283,7 @@ def generate_review_comments(clang_tidy_fixes, repository_root,
             result['body'] += '\n```suggestion\n{}```'.format(replacement_text)
         return result
 
+    dropped = 0
     for diag in clang_tidy_fixes['Diagnostics']:
         # Upconvert clang-tidy 8 format to 9+
         if 'DiagnosticMessage' not in diag:
@@ -284,6 +303,10 @@ def generate_review_comments(clang_tidy_fixes, repository_root,
 
         diag_name = diag.get('DiagnosticName', '<unknown>')
         diag_message_msg = diag_message.get('Message', '')
+
+        if is_dropped_diagnostic(diag_name, diag_message_msg):
+            dropped += 1
+            continue
         level = diag.get('Level', 'Warning')
         single_comment_marker = single_comment_markers.get(
             level, single_comment_markers['fallback'])
@@ -426,6 +449,11 @@ def generate_review_comments(clang_tidy_fixes, repository_root,
                     else:
                         print('This warning does not apply to the lines '
                               'changed in this PR')
+
+    if dropped:
+        print('Dropped {} diagnostic(s) matching the ignored-patterns list '
+              '(e.g. clang-diagnostic-error "file not found"); '
+              'build_all_targets covers real missing includes.'.format(dropped))
 
 
 # ---------------------------------------------------------------------------

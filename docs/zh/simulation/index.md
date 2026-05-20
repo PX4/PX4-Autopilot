@@ -27,10 +27,14 @@ See [PX4-Autopilot#23602](https://github.com/PX4/PX4-Autopilot/issues/23602) for
 | 仿真器                                              | 描述                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [Gazebo](../sim_gazebo_gz/index.md)              | Gazebo supersedes [Gazebo Classic](../sim_gazebo_classic/index.md), featuring more advanced rendering, physics and sensor models. It is the only version of Gazebo available from Ubuntu Linux 22.04<br><br>A powerful 3D simulation environment that is particularly suitable for testing object-avoidance and computer vision. 它还可用于 [多工具仿真](../simulation/multi-vehicle-simulation.md)，通常用于 [ROS](../simulation/ros_interface.md)，这是一种用于自动控制的工具集。 <br><br><strong>Supported Vehicles:</strong> Quad, VTOL (Standard, Tailsitter, Tiltroter), Plane, Rovers                                                                                                     |
-| [Gazebo Classic](../sim_gazebo_classic/index.md) | A powerful 3D simulation environment that is particularly suitable for testing object-avoidance and computer vision. It can also be used for [multi-vehicle simulation](../simulation/multi-vehicle-simulation.md) and is commonly used with [ROS](../simulation/ros_interface.md), a collection of tools for automating vehicle control.<br><br>**Supported Vehicles:** Quad ([Iris](../airframes/airframe_reference.md#copter_quadrotor_x_generic_quadcopter)), Hex (Typhoon H480), [Generic Standard VTOL (QuadPlane)](../airframes/airframe_reference.md#vtol_standard_vtol_generic_standard_vtol), Tailsitter, Plane, Rover, Submarine |
 | [SIH](../sim_sih/index.md)                       | A lightweight, headless simulator that runs physics directly inside PX4 as a C++ module (no external dependencies). Headless by default for fastest iteration. Supports ROS 2 via uXRCE-DDS. Can also run on flight controller hardware (`SYS_HITL=2`).<br><br>**Supported Vehicles:** Quad, Hex, Plane, Tailsitter, Standard VTOL, Rover                                                                                                                                                                                                                                                                                      |
+| [Gazebo Classic](../sim_gazebo_classic/index.md) | A powerful 3D simulation environment that is particularly suitable for testing object-avoidance and computer vision. It can also be used for [multi-vehicle simulation](../simulation/multi-vehicle-simulation.md) and is commonly used with [ROS](../simulation/ros_interface.md), a collection of tools for automating vehicle control.<br><br>**Supported Vehicles:** Quad ([Iris](../airframes/airframe_reference.md#copter_quadrotor_x_generic_quadcopter)), Hex (Typhoon H480), [Generic Standard VTOL (QuadPlane)](../airframes/airframe_reference.md#vtol_standard_vtol_generic_standard_vtol), Tailsitter, Plane, Rover, Submarine |
 
 There are also a number of [Community Supported Simulators](../simulation/community_supported_simulators.md).
+
+:::tip
+To run PX4 SITL without setting up a build environment, [pre-built packages and containers](px4_sitl_prebuilt_packages.md) are available.
+:::
 
 ### Simulator Comparison
 
@@ -239,6 +243,52 @@ See [System Startup](../concept/system_startup.md) for more information.
 ### Simulating Failsafes and Sensor/Hardware Failure
 
 [Simulate Failsafes](../simulation/failsafes.md) explains how to trigger safety failsafes like GPS failure and battery drain.
+
+### Environment Configuration
+
+SITL simulation behaviour can be configured using the following environment variables.
+These can be specified inline, before the `make` command, or set for the environment using `export`.
+
+:::info
+For Gazebo-specific environment variables (such as `PX4_GZ_WORLD`, `PX4_GZ_STANDALONE`, etc.), see [Gazebo > Usage/Configuration Options](../sim_gazebo_gz/index.md#usage-configuration-options).
+:::
+
+- `PX4_SIM_SPEED_FACTOR`:
+  Sets the speed factor to run the simulation at faster or slower than realtime.
+  For example, to run Gazebo simulation at two times the speed factor:
+
+  ```sh
+  PX4_SIM_SPEED_FACTOR=2 make px4_sitl gz_x500
+  ```
+
+  For more information see [Run Simulation Faster than Realtime](#simulation_speed).
+
+- `PX4_PARAM_{name}={value}`:
+  Overrides any [PX4 parameter](../advanced_config/parameter_reference.md) for the simulation session.
+  For example, to switch from EKF2 to the attitude estimator:
+
+  ```sh
+  export PX4_PARAM_EKF2_EN=0
+  export PX4_PARAM_ATT_EN=1
+  ```
+
+- `PX4_NET_INTERFACE`:
+  Binds all MAVLink connections to a specific network interface (e.g. `eth0`).
+  This is useful when running simulations in containerized environments (e.g. Docker) or on systems with multiple network interfaces where you need MAVLink traffic to use a particular interface.
+
+  ```sh
+  export PX4_NET_INTERFACE=eth0
+  make px4_sitl gz_x500
+  ```
+
+  Or inline with the make command:
+
+  ```sh
+  PX4_NET_INTERFACE=eth0 make px4_sitl gz_x500
+  ```
+
+  This sets the `-n` flag on all `mavlink start` commands in [/ROMFS/px4fmu_common/init.d-posix/px4-rc.mavlink](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d-posix/px4-rc.mavlink), binding MAVLink to the specified interface.
+  When `PX4_NET_INTERFACE` is not set, MAVLink binds to all interfaces (default behaviour).
 
 ## HITL 仿真环境
 

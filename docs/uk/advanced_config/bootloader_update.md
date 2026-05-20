@@ -208,3 +208,7 @@ This example explains how you can use [QGC Bootloader Update](#qgc-bootloader-up
 Плати, які не є частиною серії [Pixhawk](../flight_controller/pixhawk_series.md), матимуть власні механізми оновлення завантажувача.
 
 Для плат, які передвстановлені за допомогою Betaflight, дивіться [Flash пусковика на системи Betaflight](bootloader_update_from_betaflight.md).
+
+## Дивіться також
+
+- [OEM/Factory Configuration](../advanced_config/oem.md)

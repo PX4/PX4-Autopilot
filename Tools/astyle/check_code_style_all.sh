@@ -36,9 +36,13 @@ fi
 CI="${CI:-false}"
 DIR=$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)
 
-if [[ "$@" == "--fix" ]]; then
-    export PX4_ASTYLE_FIX=1
-fi
+DIFF_ONLY=false
+for arg in "$@"; do
+    case "$arg" in
+        --fix) export PX4_ASTYLE_FIX=1 ;;
+        --diff-only) DIFF_ONLY=true ;;
+    esac
+done
 
 
 # install git pre-commit hook
@@ -59,7 +63,24 @@ if [[ ! -f "$HOOK_FILE" && "$CI" != "true" && $- == *i* ]]; then
 	fi
 fi
 
-${DIR}/files_to_check_code_style.sh | xargs -P 8 -I % ${DIR}/check_code_style.sh %
+FILE_LIST=$(${DIR}/files_to_check_code_style.sh)
+
+if [ "$DIFF_ONLY" = true ]; then
+    # --diff-filter=d: do not list deleted files (no need to format)
+    CHANGED=$(git -C "$DIR/../.." diff --name-only --diff-filter=d HEAD -- '*.c' '*.h' '*.cpp' '*.hpp')
+    if [ -z "$CHANGED" ]; then
+        FILE_LIST=""
+    else
+        FILE_LIST=$(echo "$FILE_LIST" | grep -Fx -f <(echo "$CHANGED") || true)
+    fi
+fi
+
+if [ -z "$FILE_LIST" ]; then
+    echo "No files to check"
+    exit 0
+fi
+
+echo "$FILE_LIST" | xargs -P 8 -I % ${DIR}/check_code_style.sh %
 
 if [ $? -eq 0 ]; then
     echo "Format checks passed"

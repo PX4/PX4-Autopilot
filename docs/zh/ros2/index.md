@@ -16,17 +16,21 @@ ROS的优势在于拥有活跃的开发者生态系统 —— 该生态系统致
 ROS 2 能够实现与 PX4 极深度的集成，你可以在 ROS 2 中创建飞行模式，这些模式与 PX4 内部原生飞行模式毫无区别；同时还能以高速率直接读取和写入 PX4 内部的 uORB 主题。
 （尤其）建议在以下场景中使用：从伴飞计算机进行控制与通信（且低延迟至关重要时）、需借助 Linux 系统的现有库时，或编写新的高级飞行模式时。
 
-ROS 2 与 PX4 之间的通信使用的中间件需实现 [XRCE-DDS protocol](../middleware/uxrce_dds.md).
-这个中间件将以 ROS 2 消息和类型显示 PX4  [uORB messages](../msg_docs/index.md) 会转换为 ROS 2 消息和数据类型，从而切实支持从 ROS 2 工作流与节点直接访问 PX4。
-中间件使用 uORB 消息定义生成代码来序列化和反序列化来处理PX4 的收发消息。
+Communication between ROS 2 and PX4 can leverage two independent middlewares:
+
+- [XRCE-DDS protocol](../middleware/uxrce_dds.md) — Original middleware. More tested and included by default in most PX4 builds.
+- [Zenoh protocol](../middleware/zenoh.md) — Must be manually added and enabled to most PX4 builds.
+
+The middlewares expose PX4 [uORB messages](../msg_docs/index.md) as ROS 2 messages and types, effectively allowing direct access to PX4 from ROS 2 workflows and nodes.
+The middlewares use uORB message definitions to generate code to serialise and deserialise the messages heading in and out of PX4.
 这些相同的消息定义也用于 ROS 2 应用程序中以便能够解析这些消息。
 
 :::info
-ROS 2 也可以使用 [MAVROS](https://github.com/mavlink/mavros/tree/ros2/mavros)而不是 XRCE-DDS连接到 PX4。
+ROS 2 can also connect with PX4 using [MAVROS](https://github.com/mavlink/mavros/tree/ros2/mavros) instead of XRCE-DDS / Zenoh.
 该选项受 MAVROS 项目支持（本文档未对此进行说明）。
 :::
 
-要通过 XRCE-DDS 有效使用 [ROS 2](../ros2/user_guide.md) ，（在撰写本文时）你必须对 PX4 的内部架构及约定有一定了解，而这些架构与约定和 ROS 所使用的存在差异。
+To use the [ROS 2](../ros2/user_guide.md) over XRCE-DDS / Zenoh effectively, you must (at time of writing) have a reasonable understanding of the PX4 internal architecture and conventions, which differ from those used by ROS.
 我们计划近期提供ROS 2 API 以对 PX4 的特性进行封装，并举例说明它们的用途。
 
 ## Topics
@@ -42,4 +46,5 @@ ROS 2 也可以使用 [MAVROS](https://github.com/mavlink/mavros/tree/ros2/mavro
 
 ## 更多信息
 
-- [XRCE-DDS (PX4-ROS 2/DDS Bridge)](../middleware/uxrce_dds.md): PX4 使用中间件链接到 ROS 2。
+- [XRCE-DDS (PX4-ROS 2/DDS Bridge)](../middleware/uxrce_dds.md): PX4 middleware leveranging micro XRCE-DDS for connecting to ROS 2.
+- [Zenoh (PX4 ROS 2)](../middleware/zenoh.md): PX4 middleware leveraging Zenoh pico for connecting to ROS 2.
