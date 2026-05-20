@@ -228,6 +228,7 @@ private:
 		int start_index;
 		int num_vertices;
 		bool is_inclusion;
+		int32_t min_x, max_x, min_y, max_y; // Bouding box
 	};
 
 	int32_t _x_cm[kMaxNodes];
@@ -245,6 +246,9 @@ private:
 	bool intersectsInsideOf(const PolygonInfo &poly,
 				int32_t s_x, int32_t s_y, int32_t e_x, int32_t e_y) const;
 	bool pointInsideInteriorCone(const PolygonInfo &poly, int32_t px, int32_t py, int v) const;
+	void computeBoundingBox(const int start_index, const int num_vertices,
+				int32_t &min_x, int32_t &max_x, int32_t &min_y, int32_t &max_y);
+
 };
 
 /// Convenience for unit tests and one-shot callers: build a transient

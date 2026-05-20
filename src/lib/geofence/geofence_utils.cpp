@@ -120,6 +120,7 @@ bool PlannerPolygons::addPolygon(const matrix::Vector2f *vertices_in, int num_ve
 		setNode(poly.start_index + i, vertex(i) - inward_sign * margin * bisector);
 	}
 
+	computeBoundingBox(poly.start_index, num_vertices, poly.min_x, poly.max_x, poly.min_y, poly.max_y);
 
 	_num_nodes += num_vertices;
 	++_num_polygons;
@@ -172,9 +173,36 @@ bool PlannerPolygons::addApproxCircle(const matrix::Vector2f &center, const floa
 		setNode(poly.start_index + i, p);
 	}
 
+	computeBoundingBox(poly.start_index, num_vertices, poly.min_x, poly.max_x, poly.min_y, poly.max_y);
+
 	_num_nodes += num_vertices;
 	++_num_polygons;
 	return true;
+}
+
+void PlannerPolygons::computeBoundingBox(const int start_index, const int num_vertices,
+		int32_t &min_x, int32_t &max_x, int32_t &min_y, int32_t &max_y)
+{
+
+	// Store the bounding box, so we can do a very cheap check against the
+	// bounding box, and only do the full line-polygon intersection check if
+	// the line intersects the bounding box.
+
+	min_x = max_x = _x_cm[start_index];
+	min_y = max_y = _y_cm[start_index];
+
+	for (int i = 1; i < num_vertices; i++) {
+		const int32_t x = _x_cm[start_index + i];
+		const int32_t y = _y_cm[start_index + i];
+
+		if (x < min_x) { min_x = x; }
+
+		if (x > max_x) { max_x = x; }
+
+		if (y < min_y) { min_y = y; }
+
+		if (y > max_y) { max_y = y; }
+	}
 }
 
 
@@ -290,8 +318,25 @@ bool PlannerPolygons::intersectsInsideOf(const PolygonInfo &poly,
 
 bool PlannerPolygons::intersectsAnyInside(int32_t s_x, int32_t s_y, int32_t e_x, int32_t e_y) const
 {
+	const int32_t seg_min_x = s_x < e_x ? s_x : e_x;
+	const int32_t seg_max_x = s_x > e_x ? s_x : e_x;
+	const int32_t seg_min_y = s_y < e_y ? s_y : e_y;
+	const int32_t seg_max_y = s_y > e_y ? s_y : e_y;
+
 	for (int p = 0; p < _num_polygons; p++) {
-		if (intersectsInsideOf(_polygons[p], s_x, s_y, e_x, e_y)) {
+		const PolygonInfo &poly = _polygons[p];
+
+		if (seg_max_x < poly.min_x || seg_min_x > poly.max_x ||
+		    seg_max_y < poly.min_y || seg_min_y > poly.max_y) {
+			// Segment is entirely outside this polygon.
+			// For exclusion zones: outside = safe, skip.
+			// For inclusion zones: outside = forbidden region, immediate violation.
+			if (poly.is_inclusion) { return true; }
+
+			continue;
+		}
+
+		if (intersectsInsideOf(poly, s_x, s_y, e_x, e_y)) {
 			return true;
 		}
 	}
