@@ -503,6 +503,67 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 	handle_message_command_both(msg, cmd_mavlink, vcmd);
 }
 
+bool
+MavlinkReceiver::command_has_location(uint16_t command)
+{
+	switch (command) {
+	// Supported by PX4 as COMMAND_INT
+	case MAV_CMD_NAV_LAND:                               // 21
+	case MAV_CMD_NAV_TAKEOFF:                            // 22
+	case MAV_CMD_NAV_LAND_LOCAL:                         // 23
+	case MAV_CMD_DO_ORBIT:                               // 34
+	case MAV_CMD_DO_FIGURE_EIGHT:                        // 35
+	case MAV_CMD_NAV_ROI:                                // 80
+	case MAV_CMD_NAV_VTOL_TAKEOFF:                       // 84
+	case MAV_CMD_DO_SET_HOME:                            // 179
+	case MAV_CMD_DO_LAND_START:                          // 189
+	case MAV_CMD_DO_SET_ROI_LOCATION:                    // 195
+	case MAV_CMD_DO_SET_ROI:                             // 201
+	case MAV_CMD_PAYLOAD_PREPARE_DEPLOY:                 // 30001
+	case MAV_CMD_EXTERNAL_POSITION_ESTIMATE:             // 43003
+		return true;
+
+	// Not supported by PX4 as COMMAND_INT (mission items or unimplemented)
+	// case MAV_CMD_NAV_WAYPOINT:                        // 16
+	// case MAV_CMD_NAV_LOITER_UNLIM:                    // 17
+	// case MAV_CMD_NAV_LOITER_TURNS:                    // 18
+	// case MAV_CMD_NAV_LOITER_TIME:                     // 19
+	// case MAV_CMD_NAV_TAKEOFF_LOCAL:                   // 24
+	// case MAV_CMD_NAV_FOLLOW:                          // 25
+	// case MAV_CMD_NAV_LOITER_TO_ALT:                   // 31
+	// case MAV_CMD_NAV_ARC_WAYPOINT:                    // 36
+	// case MAV_CMD_NAV_PATHPLANNING:                    // 81
+	// case MAV_CMD_NAV_SPLINE_WAYPOINT:                 // 82
+	// case MAV_CMD_NAV_VTOL_LAND:                       // 85
+	// case MAV_CMD_NAV_PAYLOAD_PLACE:                   // 94
+	// case MAV_CMD_DO_RETURN_PATH_START:                // 188
+	// case MAV_CMD_DO_REPOSITION:                       // 192
+	// case MAV_CMD_OVERRIDE_GOTO:                       // 252
+	// case MAV_CMD_SET_GUIDED_SUBMODE_CIRCLE:           // 4001
+	// case MAV_CMD_CONDITION_GATE:                      // 4501
+	// case MAV_CMD_NAV_FENCE_RETURN_POINT:              // 5000
+	// case MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION:  // 5001
+	// case MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION:  // 5002
+	// case MAV_CMD_NAV_FENCE_CIRCLE_INCLUSION:          // 5003
+	// case MAV_CMD_NAV_FENCE_CIRCLE_EXCLUSION:          // 5004
+	// case MAV_CMD_NAV_RALLY_POINT:                     // 5100
+	// case MAV_CMD_DO_SET_GLOBAL_ORIGIN:                // 611
+	// case MAV_CMD_WAYPOINT_USER_1:                     // 31000
+	// case MAV_CMD_WAYPOINT_USER_2:                     // 31001
+	// case MAV_CMD_WAYPOINT_USER_3:                     // 31002
+	// case MAV_CMD_WAYPOINT_USER_4:                     // 31003
+	// case MAV_CMD_WAYPOINT_USER_5:                     // 31004
+	// case MAV_CMD_SPATIAL_USER_1:                      // 31005
+	// case MAV_CMD_SPATIAL_USER_2:                      // 31006
+	// case MAV_CMD_SPATIAL_USER_3:                      // 31007
+	// case MAV_CMD_SPATIAL_USER_4:                      // 31008
+	// case MAV_CMD_SPATIAL_USER_5:                      // 31009
+
+	default:
+		return false;
+	}
+}
+
 void
 MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 {
@@ -531,9 +592,28 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 		vcmd.param5 = (double)NAN;
 		vcmd.param6 = (double)NAN;
 
+	} else if (command_has_location(cmd_mavlink.command)
+		   || cmd_mavlink.command == MAV_CMD_DO_SET_ACTUATOR) { // actuator values use 1e7 scaling
+		if (cmd_mavlink.frame == MAV_FRAME_LOCAL_NED
+		    || cmd_mavlink.frame == MAV_FRAME_LOCAL_ENU
+		    || cmd_mavlink.frame == MAV_FRAME_LOCAL_OFFSET_NED
+		    || cmd_mavlink.frame == MAV_FRAME_BODY_NED        // superseded by BODY_FRD
+		    || cmd_mavlink.frame == MAV_FRAME_BODY_OFFSET_NED // superseded by BODY_FRD
+		    || cmd_mavlink.frame == MAV_FRAME_BODY_FRD
+		    || cmd_mavlink.frame == MAV_FRAME_LOCAL_FRD
+		    || cmd_mavlink.frame == MAV_FRAME_LOCAL_FLU) {
+			vcmd.param5 = ((double)cmd_mavlink.x) / 1e4;
+			vcmd.param6 = ((double)cmd_mavlink.y) / 1e4;
+
+		} else {
+			// Global frames, MAV_FRAME_MISSION, and any unrecognised frames
+			vcmd.param5 = ((double)cmd_mavlink.x) / 1e7;
+			vcmd.param6 = ((double)cmd_mavlink.y) / 1e7;
+		}
+
 	} else {
-		vcmd.param5 = ((double)cmd_mavlink.x) / 1e7;
-		vcmd.param6 = ((double)cmd_mavlink.y) / 1e7;
+		vcmd.param5 = (double)cmd_mavlink.x;
+		vcmd.param6 = (double)cmd_mavlink.y;
 	}
 
 	vcmd.param7 = cmd_mavlink.z;
