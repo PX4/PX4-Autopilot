@@ -178,7 +178,7 @@ public:
 	PlannerPolygons() { reset(); }
 
 	// Slot 0 is always reserved for the destination; polygon vertices start at index 1.
-	void reset() { _num_nodes = 1; _x_cm[0] = 0; _y_cm[0] = 0; _num_polygons = 0; }
+	void reset() { _num_nodes = 1; _x_cm[0] = 0; _y_cm[0] = 0; _num_polygons = 0; _node_not_on_optimal_path[0] = false; }
 
 	// Append a polygon:
 	//  - canonicalize orientation,
@@ -233,6 +233,15 @@ private:
 
 	int32_t _x_cm[kMaxNodes];
 	int32_t _y_cm[kMaxNodes];
+
+	// Reduced visibility graph: we can exclude some vertices a priori
+	// because they cannot be part of the shortest path. For convex
+	// inclusion corners or reflex exclusion corners at node B, the path
+	//   (A -> B -> C)
+	// is compared to
+	//   (A -> just before B -> just after B -> C)
+	// and so it cannot be globally optimal.
+	bool _node_not_on_optimal_path[kMaxNodes];
 	int _num_nodes{0};
 
 	PolygonInfo _polygons[kMaxPolygons];

@@ -122,6 +122,19 @@ bool PlannerPolygons::addPolygon(const matrix::Vector2f *vertices_in, int num_ve
 
 	computeBoundingBox(poly.start_index, num_vertices, poly.min_x, poly.max_x, poly.min_y, poly.max_y);
 
+	// In canonical orientation, the node is not possibly on the shortest
+	// path if the vertex curves right or straight (forbidden region >= 180
+	// deg)
+	for (int i = 0; i < num_vertices; i++) {
+		const int prev = poly.start_index + (i + num_vertices - 1) % num_vertices;
+		const int curr = poly.start_index + i;
+		const int next = poly.start_index + (i + 1) % num_vertices;
+		const bool curves_right_or_straight = orient2d(_x_cm[prev], _y_cm[prev],
+						      _x_cm[curr], _y_cm[curr],
+						      _x_cm[next], _y_cm[next]) <= 0;
+		_node_not_on_optimal_path[curr] = curves_right_or_straight;
+	}
+
 	_num_nodes += num_vertices;
 	++_num_polygons;
 	return true;
@@ -174,6 +187,12 @@ bool PlannerPolygons::addApproxCircle(const matrix::Vector2f &center, const floa
 	}
 
 	computeBoundingBox(poly.start_index, num_vertices, poly.min_x, poly.max_x, poly.min_y, poly.max_y);
+
+	// For regular k-gons, all corners are either convex or reflex based on
+	// is_inclusion, so the reduced visibility graph criterion is simplified
+	for (int i = 0; i < num_vertices; i++) {
+		_node_not_on_optimal_path[poly.start_index + i] = is_inclusion_zone;
+	}
 
 	_num_nodes += num_vertices;
 	++_num_polygons;
@@ -358,11 +377,15 @@ bool PlannerPolygons::edgeVisible(int a, int b) const
 {
 	if (a == b) { return false; }
 
+	if (_node_not_on_optimal_path[a] || _node_not_on_optimal_path[b]) { return false; }
+
 	return !intersectsAnyInside(_x_cm[a], _y_cm[a], _x_cm[b], _y_cm[b]);
 }
 
 bool PlannerPolygons::edgeVisible(const matrix::Vector2f &a, int b) const
 {
+	if (_node_not_on_optimal_path[b]) { return false; }
+
 	return !intersectsAnyInside(metersToCm(a(0)), metersToCm(a(1)), _x_cm[b], _y_cm[b]);
 }
 
