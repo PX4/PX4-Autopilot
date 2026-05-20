@@ -67,26 +67,8 @@ For a longer term solution we highly recommend 3d printing mounts that you attac
 
 ## Building the Firmware
 
-You will need to use a custom build, because the motor driver used is not present in firmware by default.
-
-The steps are:
-
-1. Open `rc.board_sensors` file of your board and add the following lines (for Skynode S this would be in [boards/auterion/fmu-v6s/init/rc.board_sensors](https://github.com/PX4/PX4-Autopilot/blob/main/boards/auterion/fmu-v6s/init/rc.board_sensors)):
-
-   ```sh
-   if param compare HIWONDER_EMM_EN 1
-   then
-      hiwonder_emm start
-   fi
-   ```
-
-2. Add the following line to the `rover.px4board` file of your board (for Skynode S this would be in [boards/auterion/fmu-v6s/rover.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/auterion/fmu-v6s/rover.px4board)):
-
-   ```txt
-   CONFIG_DRIVERS_HIWONDER_EMM=y
-   ```
-
-3. Build the firmware for the board
+The Hiwonder EMM motor driver is included by default in many rover builds, but if your board does not ship with it you will need a custom build.
+See [Hiwonder 4-Channel Encoder Motor Module > Building the Firmware](../peripherals/hiwonder_emm.md#building-the-firmware) for instructions.
 
 ## PX4 Configuration
 
