@@ -34,7 +34,7 @@ For this return type the copter:
 - Ascends to the [minimum return altitude](#minimum-return-altitude) (safely above any expected obstacles).
   The vehicle maintains its initial altitude if that is higher than the minimum return altitude.
 - Flies via a constant-altitude path to the safe landing point, which will be the nearest of any rally points and the home position.
-- For some return types, the path is chosen to be the shortest horizontal path that does not breach any geofence (see ...)
+  The path is chosen to be the shortest horizontal path that does not breach any geofence; see [Geofence Awareness](../flight_modes/return.md#geofence_awareness).
 - On arrival at its destination, it rapidly descends to the "descent altitude" ([RTL_DESCEND_ALT](#RTL_DESCEND_ALT)).
 - It waits for a configurable time ([RTL_LAND_DELAY](#RTL_LAND_DELAY)), which may be used for deploying landing gear.
 - Then lands.
