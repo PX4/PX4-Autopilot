@@ -5,7 +5,7 @@
 The _Return_ flight mode is used to _fly a vehicle to safety_ on an unobstructed path to a safe destination, where it can land.
 
 Multicopters use a [home/rally point return type](../flight_modes/return.md#home-rally-point-return-type-rtl-type-0) by default.
-In this return type vehicles ascend to a safe altitude above obstructions if needed, fly directly to the closest safe landing point (a rally point or the home position), descend to the "descent altitude", wait briefly, and then land.
+In this return type vehicles ascend to a safe altitude above obstructions if needed, fly to the closest safe landing point (a rally point or the home position) while chosing a shortest horizontal path which does not breach any geofence, descend to the "descent altitude", wait briefly, and then land.
 The return altitude, descent altitude, and landing delay are normally set to conservative "safe" values, but can be changed if needed.
 
 Multicopter supports the [other PX4 return types](../flight_modes/return.md#return-types-rtl-type), including mission landing, mission path and closest safe destination.
@@ -33,7 +33,8 @@ For this return type the copter:
 
 - Ascends to the [minimum return altitude](#minimum-return-altitude) (safely above any expected obstacles).
   The vehicle maintains its initial altitude if that is higher than the minimum return altitude.
-- Flies via a direct constant-altitude path to the safe landing point, which will be the nearest of any rally points and the home position.
+- Flies via a constant-altitude path to the safe landing point, which will be the nearest of any rally points and the home position.
+- For some return types, the path is chosen to be the shortest horizontal path that does not breach any geofence (see ...)
 - On arrival at its destination, it rapidly descends to the "descent altitude" ([RTL_DESCEND_ALT](#RTL_DESCEND_ALT)).
 - It waits for a configurable time ([RTL_LAND_DELAY](#RTL_LAND_DELAY)), which may be used for deploying landing gear.
 - Then lands.

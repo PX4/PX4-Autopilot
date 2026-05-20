@@ -42,6 +42,36 @@ The following sections explain how to configure the [return type](#return_types)
 
 <a id="return_types"></a>
 
+## Geofence Awareness
+
+For most of the return types (including the default home/rally point return type) the return path is chosen to avoid breaching any user-set geofence.
+While the return mode is in-active, the autopilot constantly re-calculates a shortest horizontal return path which does not enter any exclusion zones and also does not exit any inclusion zones.
+If the return mode is triggered while the vehicle is violating any geofence, then the vehicle will first fly directly to the last recorded location, which did not violate any geofence. If no such point exist, or if the autopilot
+fails to plan a feasible path (e.g. the destination is located in an exclusion zone), then the vehicle will fall back to flying directly to the destination.
+
+The following table shows which return types currently support geofence awareness:
+
+| Return Type (RTL_TYPE) | Geofence Awarenes                                                                                                 |
+| ---------------------- |--------------------|
+| 0 (home/rally point)   | Yes                |
+| 1 (mission landing)    | Yes                |
+| 2 (mission path)       | No                 |
+| 3 (closest safe dest.) | Yes                |
+
+::: info
+The estimated time for return is based on the current shortest horizontal path to the destination and may change if the geofence is updated
+:::
+
+For the construction of the shortest path between the starting location and the destination, the autopilot uses the vertices of the geofence polygons as intermediate waypoints.
+In order to avoid the path being too close to the polygon boundaries, the autopilot constructs a corsponding set of polygons, which are either enlarged (for exclusion zone) or shrunk (for inclusion zones).
+The margin indicated in both images below is currently set to 10m.
+The figure below shows an example of an exclusion zone as well as an inclusion zone.
+
+![Exclusion Zone](../../assets/flying/exclusion.jpg)
+
+
+![Inclusion Zone](../../assets/flying/inclusion.jpg)
+
 ## Return Types (RTL_TYPE)
 
 PX4 provides four alternative approaches for finding an unobstructed path to a safe destination and/or landing, which are set using the [RTL_TYPE](#RTL_TYPE) parameter.

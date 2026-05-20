@@ -33,7 +33,8 @@ In this return type the vehicle:
 - Ascends to a safe minimum return altitude defined by [RTL_RETURN_ALT](#RTL_RETURN_ALT) (safely above any expected obstacles).
   The vehicle maintains its initial altitude if that is higher than the minimum return altitude.
   Note that return altitude cannot be configured using the "cone" parameter in fixed-wing vehicles.
-- Flies via direct constant-altitude path to the destination, which will be the closest of the start of a _mission landing pattern_ and any rally point, or the home location if no mission landing pattern or rally points are defined.
+- Flies via a constant-altitude path to the destination, which will be the closest of the start of a _mission landing pattern_ and any rally point, or the home location if no mission landing pattern or rally points are defined.
+- For some return types, the path is chosen to be the shortest horizontal path that does not breach any geofence (see ...)
 - If the destination is a _mission landing pattern_ it will follow the pattern to land.
 - If the destination is a rally point or home it will descend to the descent altitude, and then loiter or land (depending on landing parameters).
 
