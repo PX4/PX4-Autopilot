@@ -89,6 +89,7 @@ bool PAW3902::Reset()
 	_state = STATE::RESET;
 	DataReadyInterruptDisable();
 	_drdy_timestamp_sample.store(0);
+	_timestamp_sample_last = 0;
 	ScheduleClear();
 	ScheduleNow();
 	return true;
@@ -394,6 +395,15 @@ void PAW3902::RunImpl()
 					break;
 				}
 
+				// override the per-mode default with the actual interval between burst reads
+				// (the chip accumulates delta_x/delta_y until Motion_Burst is read), so the
+				// gyro integration window downstream lines up with what the chip actually saw.
+				if (_timestamp_sample_last != 0 && timestamp_sample > _timestamp_sample_last) {
+					const hrt_abstime dt = timestamp_sample - _timestamp_sample_last;
+					sensor_optical_flow.integration_timespan_us = math::constrain(static_cast<uint32_t>(dt),
+							static_cast<uint32_t>(1000), static_cast<uint32_t>(200000));
+				}
+
 				// motion in burst transfer
 				const bool motion_reported = (buffer.data.Motion & Motion_Bit::MOT);
 
@@ -483,6 +493,10 @@ void PAW3902::RunImpl()
 				_shutter_prev = shutter;
 				_raw_data_sum_prev = buffer.data.RawData_Sum;
 				_quality_prev = buffer.data.SQUAL;
+
+				// chip clears its delta accumulator on every Motion_Burst read,
+				// regardless of whether we publish, so track every successful read.
+				_timestamp_sample_last = timestamp_sample;
 
 			} else {
 				perf_count(_bad_transfer_perf);
