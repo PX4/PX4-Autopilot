@@ -65,40 +65,40 @@ static constexpr uint32_t I2C_SPEED           = 100000;           // 100 kHz
 class AF9838_Driver : public device::I2C, public I2CSPIDriver<AF9838_Driver>
 {
 public:
-    AF9838_Driver(const I2CSPIDriverConfig &config);
+	AF9838_Driver(const I2CSPIDriverConfig &config);
 
-    static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
+	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
 
-    int  init() override;
-    int  probe() override;
-    void RunImpl();
-    void start();
-    void stop();
-    void print_status();
-    static void print_usage();
+	int  init() override;
+	int  probe() override;
+	void RunImpl();
+	void start();
+	void stop();
+	void print_status();
+	static void print_usage();
 
 private:
-    orb_advert_t _mavlink_log_pub{nullptr};
-    int8_t _last_accuracy{-1};
+	orb_advert_t _mavlink_log_pub{nullptr};
+	int8_t _last_accuracy{-1};
 
-    using device::I2C::transfer;
-    uint8_t read_reg(uint8_t reg);
-    int     read_block(uint8_t reg, uint8_t *buf, size_t len);
-    int     write_reg(uint8_t reg, uint8_t val);
+	using device::I2C::transfer;
+	uint8_t read_reg(uint8_t reg);
+	int     read_block(uint8_t reg, uint8_t *buf, size_t len);
+	int     write_reg(uint8_t reg, uint8_t val);
 
-    int     soft_reset();
-    int     configure();
-    int     read_measurement();
+	int     soft_reset();
+	int     configure();
+	int     read_measurement();
 
-    hrt_abstime _last_run{0};
-    uint32_t _measure_interval_us{10000};
+	hrt_abstime _last_run{0};
+	uint32_t _measure_interval_us{10000};
 
-    PX4Magnetometer _px4_mag;
-    bool            _running{false};
-    bool _waiting_data{false};
-    hrt_abstime _last_trigger{0};
+	PX4Magnetometer _px4_mag;
+	bool            _running{false};
+	bool _waiting_data{false};
+	hrt_abstime _last_trigger{0};
 
-    uORB::Subscription _accel_sub {ORB_ID(vehicle_acceleration)};
-    hrt_abstime _last_accel_ts{0};
+	uORB::Subscription _accel_sub {ORB_ID(vehicle_acceleration)};
+	hrt_abstime _last_accel_ts{0};
 
 };
