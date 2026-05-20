@@ -45,8 +45,8 @@ The following sections explain how to configure the [return type](#return_types)
 ## Geofence Awareness
 
 For most of the return types (including the default home/rally point return type) the return path is chosen to avoid breaching any user-set geofence.
-While the return mode is in-active, the autopilot constantly re-calculates a shortest horizontal return path which does not enter any exclusion zones and also does not exit any inclusion zones.
-If the return mode is triggered while the vehicle is violating any geofence, then the vehicle will first fly directly to the last recorded location, which did not violate any geofence. If no such point exist, or if the autopilot
+While the return mode is inactive, the autopilot constantly re-calculates a shortest horizontal return path which does not enter any exclusion zones and also does not exit any inclusion zones.
+If the return mode is triggered while the vehicle is violating any geofence, then the vehicle will first fly directly to the most recent recorded location at which it was not violating the geofence. If no such point exists, or if the autopilot
 fails to plan a feasible path (e.g. the destination is located in an exclusion zone), then the vehicle will fall back to flying directly to the destination.
 
 The following table shows which return types currently support geofence awareness:
@@ -65,7 +65,7 @@ The estimated time for return is based on the current shortest horizontal path t
 :::
 
 For the construction of the shortest path between the starting location and the destination, the autopilot uses the vertices of the geofence polygons as intermediate waypoints.
-In order to avoid the path being too close to the polygon boundaries, the autopilot constructs a corsponding set of polygons, which are either enlarged (for exclusion zone) or shrunk (for inclusion zones).
+In order to avoid the path being too close to the polygon boundaries, the autopilot constructs a corresponding set of polygons, which are either enlarged (for exclusion zones) or shrunk (for inclusion zones).
 The margin indicated in both images below is currently set to 10m.
 The figure below shows an example of an exclusion zone as well as an inclusion zone.
 
