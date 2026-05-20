@@ -5,12 +5,12 @@
 
 board_adc start
 
-# Internal x2 ICM-20602
+# Internal x2 IIM-42653
 iim42653 -R 14 -s -b 1 start
 iim42653 -R 14 -s -b 2 start
 
-# Interal DPS310 (barometer)
+# Internal DPS310 (barometer)
 dps310 -s -b 6 start
 
 # Internal AK09940A magnetometer
-ak09940a -X -b 1 -R 4 start
+ak09940a -I -b 1 -R 4 start

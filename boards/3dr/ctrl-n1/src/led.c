@@ -63,7 +63,10 @@ extern void led_toggle(int led);
 __END_DECLS
 
 static uint32_t g_ledmap[] = {
-	GPIO_nLED_BL    // TODO: Finish remapping the LEDs
+	GPIO_nLED_BL,   // LED_BLUE   (0)
+	0,              // LED_RED    (1) - not present
+	0,              // LED_SAFETY (2) - not present
+	0,              // LED_GREEN  (3) - not present
 };
 
 __EXPORT void led_init(void)
@@ -77,6 +80,8 @@ __EXPORT void led_init(void)
 
 static void phy_set_led(int led, bool state)
 {
+	if (led < 0 || (size_t)led >= sizeof(g_ledmap) / sizeof(g_ledmap[0])) { return; }
+
 	/* Drive Low to switch on */
 	if (g_ledmap[led] != 0) {
 		stm32_gpiowrite(g_ledmap[led], !state);
@@ -85,6 +90,8 @@ static void phy_set_led(int led, bool state)
 
 static bool phy_get_led(int led)
 {
+	if (led < 0 || (size_t)led >= sizeof(g_ledmap) / sizeof(g_ledmap[0])) { return false; }
+
 	/* If Low it is on */
 	if (g_ledmap[led] != 0) {
 		return !stm32_gpioread(g_ledmap[led]);

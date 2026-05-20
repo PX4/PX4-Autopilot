@@ -47,12 +47,12 @@
 /* Clocking *************************************************************************/
 /* The board provides the following clock sources:
  *
- *   X1: 24 MHz crystal for HSE
+ *   X1: 24 MHz external oscillator for HSE
  *
  * So we have these clock source available within the STM32
  *
  *   HSI: 16 MHz RC factory-trimmed internal oscillator
- *   HSE: 24 MHz crystal for HSE
+ *   HSE: 24 MHz external oscillator for HSE
  */
 #define STM32_BOARD_XTAL        24000000ul
 
