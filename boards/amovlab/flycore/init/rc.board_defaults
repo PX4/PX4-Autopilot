@@ -1,6 +1,9 @@
 #!/bin/sh
 #
 # board specific defaults
+#
+# No onboard magnetometer; yaw uses GPS when available unless the user adds
+# an external compass module (see amovlab_flycore.md).
 #------------------------------------------------------------------------------
 
 if ver hwtypecmp FLYCORE0000

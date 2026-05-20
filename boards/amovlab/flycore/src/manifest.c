@@ -73,7 +73,12 @@ static const px4_hw_mft_item_t device_unsupported = {0, 0, 0};
 // List of components on a specific board configuration
 // The index of those components is given by the enum (px4_hw_mft_item_id_t)
 // declared in board_common.h
-static const px4_hw_mft_item_t hw_mft_list_durandal[] = {
+static const px4_hw_mft_item_t hw_mft_list_flycore_v00[] = {
+	{
+		.present     = 0,
+		.mandatory   = 0,
+		.connection  = px4_hw_con_unknown,
+	},
 	{
 		.present     = 1,
 		.mandatory   = 1,
@@ -82,8 +87,8 @@ static const px4_hw_mft_item_t hw_mft_list_durandal[] = {
 };
 
 static px4_hw_mft_list_entry_t mft_lists[] = {
-	//  ver_rev
-	{0x0000, hw_mft_list_durandal, arraySize(hw_mft_list_durandal)},
+	//  ver_rev  FLYCORE HW ver=0 rev=0
+	{0x0000, hw_mft_list_flycore_v00, arraySize(hw_mft_list_flycore_v00)},
 };
 
 /************************************************************************************

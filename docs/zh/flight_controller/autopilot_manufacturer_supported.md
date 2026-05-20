@@ -21,6 +21,7 @@ The boards in this category are:
 - [AEDROX AEDROXH7](../flight_controller/aedrox_aedroxh7.md)
 - [AirMind MindPX](../flight_controller/mindpx.md)
 - [AirMind MindRacer](../flight_controller/mindracer.md)
+- [Amovlab Flycore](../flight_controller/amovlab_flycore.md)
 - [ARK Electronics ARKV6X](../flight_controller/ark_v6x.md) (and [ARK Electronics Pixhawk Autopilot Bus Carrier](../flight_controller/ark_pab.md))
 - [ARK Electronics ARKV6S](../flight_controller/ark_v6s.md)
 - [ARK FPV Flight Controller](../flight_controller/ark_fpv.md)
