@@ -401,7 +401,7 @@ void PAW3902::RunImpl()
 				if (_timestamp_sample_last != 0 && timestamp_sample > _timestamp_sample_last) {
 					const hrt_abstime dt = timestamp_sample - _timestamp_sample_last;
 					sensor_optical_flow.integration_timespan_us = math::constrain(static_cast<uint32_t>(dt),
-							static_cast<uint32_t>(1000), static_cast<uint32_t>(200000));
+							static_cast<uint32_t>(1_ms), static_cast<uint32_t>(200_ms));
 				}
 
 				// motion in burst transfer
