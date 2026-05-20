@@ -360,7 +360,7 @@ static int remove_directory_recursive(const char *dir, unsigned depth)
 
 			snprintf(buf, len, "%s/%s", dir, p->d_name);
 
-			if (!stat(buf, &statbuf)) {
+			if (!lstat(buf, &statbuf)) {
 				if (S_ISDIR(statbuf.st_mode)) {
 					ret2 = remove_directory_recursive(buf, depth + 1);
 
