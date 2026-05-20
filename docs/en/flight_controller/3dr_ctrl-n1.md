@@ -5,10 +5,10 @@ PX4 does not manufacture this (or any) autopilot.
 Contact [3DR](https://3dr.com/) for hardware support or compliance issues.
 :::
 
-![3DR Control N1](../../assets/flight_controller/3dr_ctrl-n1/3dr_ctrl-n1.jpg)
-
 The _3DR Control N1_ is a compact, high-performance, low-profile and lightweight flight controller designed and assembled in USA.
 It runs PX4 on the [NuttX](https://nuttx.apache.org/) OS.
+
+![3DR Control N1](../../assets/flight_controller/3dr_ctrl-n1/3dr_ctrl-n1.jpg)
 
 ::: info
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
@@ -58,10 +58,10 @@ make 3dr_ctrl-n1_default
 
 The Control N1 uses three Hirose DF40-series board-to-board connectors:
 
-| Connector | Pins | Signals |
-| --------- | ---- | ------- |
-| J100      | 30   | USART1, USART2, USART3, UART4, SDMMC, USB |
-| J200      | 30   | USART6, FDCAN1, SPI, SWD, miscellaneous |
+| Connector | Pins | Signals                                                |
+| --------- | ---- | ------------------------------------------------------ |
+| J100      | 30   | USART1, USART2, USART3, UART4, SDMMC, USB              |
+| J200      | 30   | USART6, FDCAN1, SPI, SWD, miscellaneous                |
 | J300      | 80   | UART7, UART8, FDCAN2, I2C, ADC, Motor outputs CH1–CH12 |
 
 For more information about the pinout visit [3DR Control N1 Pinout Tool](https://docs.3dr.com/autopilots/control-n1/#pinout).
