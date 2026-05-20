@@ -203,7 +203,6 @@ These are prefixed with [CAL*MAGx*](../advanced_config/parameter_reference.md#CA
 - [CAL_MAGn_ROT](../advanced_config/parameter_reference.md#CAL_MAG0_ROT) can be used to determine which compasses are internal.
   A compass is internal if `CAL_MAGn_ROT==1`.
 - [CAL_MAGx_PRIO](../advanced_config/parameter_reference.md#CAL_MAG0_PRIO) sets the relative compass priority and can be used to disable a compass.
-  Priority is assigned automatically during calibration (external compasses are preferred over internal ones), so manual configuration is not normally required.
 
 ## Debugging
 
