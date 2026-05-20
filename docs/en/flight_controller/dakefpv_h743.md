@@ -1,5 +1,7 @@
 # DAKEFPV H743
 
+<Badge type="tip" text="PX4 v1.18" />
+
 ::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://www.dakefpv.com/) for hardware support or compliance issues.

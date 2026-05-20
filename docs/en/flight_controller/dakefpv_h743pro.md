@@ -1,6 +1,6 @@
 # DAKEFPV H743 Pro
 
-<Badge type="tip" text="PX4 v1.16" />
+<Badge type="tip" text="PX4 v1.18" />
 
 ::: warning
 PX4 does not manufacture this (or any) autopilot.
