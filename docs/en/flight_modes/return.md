@@ -59,7 +59,9 @@ The following table shows which return types currently support geofence awarenes
 | 3 (closest safe dest.) | Yes                |
 
 ::: info
+
 The estimated time for return is based on the current shortest horizontal path to the destination and may change if the geofence is updated
+
 :::
 
 For the construction of the shortest path between the starting location and the destination, the autopilot uses the vertices of the geofence polygons as intermediate waypoints.
@@ -98,7 +100,8 @@ This is the default return type for a [multicopter](../flight_modes_mc/return.md
 In this return type the vehicle:
 
 - Ascends to a safe [minimum return altitude](#minimum-return-altitude) (above any expected obstacles).
-- Flies via direct path to the home position or a rally point (whichever is closest)
+- Flies to the home position or a rally point (whichever is closest)
+- Tries to take a shortest horizontal path which does not violate any geofence. If it fails to plan such a path, it will fly on a direct line.
 - On [arrival](#loiter-landing-at-destination) descends to "descent altitude" and waits for a configurable time.
   This time may be used to deploy landing gear.
 - Lands or waits (this depends on landing parameters),
@@ -117,7 +120,8 @@ In this return type the vehicle:
 
 - Ascends to a safe [minimum return altitude](#minimum-return-altitude) (above any expected obstacles) if needed.
   The vehicle maintains its initial altitude if that is higher than the minimum return altitude.
-- Flies via direct constant-altitude path to a rally point or the start of a [mission landing pattern](#mission-landing-pattern) (whichever is closest).
+- Flies at constant-altitude to a rally point or the start of a [mission landing pattern](#mission-landing-pattern) (whichever is closest).
+- Tries to take a shortest horizontal path which does not violate any geofence. If it fails to plan such a path, it will fly on a direct line.
   If no mission landing or rally points are defined the vehicle instead returns home via a direct path.
 - If the destination is a mission landing pattern it will follow the pattern to land.
 - If the destination is a rally point or home it will [land or wait](#loiter-landing-at-destination) at descent altitude (depending on landing parameters).
@@ -136,6 +140,10 @@ Rally points, if any, are ignored.
 
 ::: info
 The behaviour is fairly complex because it depends on the flight mode, and whether a mission and mission landing are defined.
+:::
+
+::: info
+This return type does not provide any geofence awareness at any stage.
 :::
 
 Mission _with_ landing pattern:
