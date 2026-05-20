@@ -392,6 +392,10 @@ else
 			sensor_mag_sim start
 			sensor_gps_sim start
 			sensor_agp_sim start
+			if param compare -s SENS_EN_ADSBSIM 1
+			then
+				sensor_adsb_sim start
+			fi
 		fi
 
 	else

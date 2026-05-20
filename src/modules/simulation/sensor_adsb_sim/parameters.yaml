@@ -1,0 +1,43 @@
+module_name: sensor_adsb_sim
+parameters:
+- group: Sensors
+  definitions:
+    SENS_EN_ADSBSIM:
+      description:
+        short: Enable simulated ADSB sensor instance
+      type: enum
+      values:
+        0: Disabled
+        1: Enabled
+      default: 0
+      reboot_required: true
+      min: 0
+      max: 1
+- group: Simulator
+  definitions:
+    SIM_ADSB_COUNT:
+      description:
+        short: Number of simulated ADSB aircraft
+      type: int32
+      default: 10
+      min: 0
+      max: 10
+    SIM_ADSB_RADIUS:
+      description:
+        short: Radius around ownship within which simulated ADSB aircraft are maintained
+        long: |
+          Aircraft that fly beyond this radius are re-spawned at a new random
+          position within the radius.
+      type: float
+      default: 10000.0
+      unit: m
+      min: 100.0
+      max: 100000.0
+    SIM_ADSB_ALT:
+      description:
+        short: Altitude of simulated ADSB aircraft (MSL)
+      type: float
+      default: 1000.0
+      unit: m
+      min: 0.0
+      max: 100000.0
