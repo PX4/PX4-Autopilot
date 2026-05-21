@@ -149,13 +149,6 @@ def is_everything_ready(config: Dict[str, str], build_dir: str) -> bool:
                 print("gzclient process already running\n"
                       "run `killall gzclient` and try again")
                 result = False
-        elif config['simulator'] == 'sihsim':
-            # SIH runs in-process inside PX4; no external simulator to check for.
-            pass
-        else:
-            print("Unknown simulator '{}' in config"
-                  .format(config['simulator']))
-            result = False
 
     if not os.path.isfile(os.path.join(build_dir,
                                        'mavsdk_tests/mavsdk_tests')):
