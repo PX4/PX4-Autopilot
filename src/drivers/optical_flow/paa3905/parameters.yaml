@@ -8,3 +8,19 @@ parameters:
       type: boolean
       default: 0
       reboot_required: true
+    SENS_PAA3905_RES:
+      description:
+        short: PAA3905 resolution register (0x4E)
+        long: |-
+          Sets the chip's RESOLUTION register value (0x4E).
+
+          Higher values give finer angular resolution at the cost of a proportionally
+          lower maximum trackable angular rate. CPI (counts-per-inch) per meter of
+          height scales as 11.914 * (value + 1) / 43, so the default of 42 yields the
+          chip's nominal 11.914 CPI/m and 7.4 rad/s max angular rate. The maximum of
+          255 yields ~71 CPI/m (~6x finer angular resolution, ~1.2 rad/s max rate).
+      type: int32
+      default: 42
+      min: 0
+      max: 255
+      reboot_required: true

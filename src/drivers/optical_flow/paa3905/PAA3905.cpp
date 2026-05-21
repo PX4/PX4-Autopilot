@@ -33,9 +33,54 @@
 
 #include "PAA3905.hpp"
 
+#include <lib/parameters/param.h>
+
+// CPI/m at the chip's default RESOLUTION register value (0x2A); datasheet Figure 3.
+static constexpr float PIXART_RESOLUTION_DEFAULT_CPI_PER_M = 11.914f;
+static constexpr float INCHES_PER_METER = 39.3701f;
+static constexpr uint8_t RESOLUTION_REGISTER_DEFAULT = 0x2A;
+// Max angular rate at the default resolution (datasheet §2.2, Mode 0 & 1).
+static constexpr float MAX_FLOW_RATE_DEFAULT = 7.4f;
+
+// Per-mode SQUAL thresholds below which the chip's motion report is treated as
+// noise (datasheet §7.4.3). Used both for data validity and quality renormalization.
+static constexpr uint8_t SQUAL_THRESHOLD_BRIGHT          = 0x19;
+static constexpr uint8_t SQUAL_THRESHOLD_LOW_LIGHT       = 0x46;
+static constexpr uint8_t SQUAL_THRESHOLD_SUPER_LOW_LIGHT = 0x55;
+
 static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
 {
 	return (msb << 8u) | lsb;
+}
+
+static uint8_t squal_threshold_for_mode(PixArt_PAA3905::Mode mode)
+{
+	switch (mode) {
+	case PixArt_PAA3905::Mode::Bright:        return SQUAL_THRESHOLD_BRIGHT;
+
+	case PixArt_PAA3905::Mode::LowLight:      return SQUAL_THRESHOLD_LOW_LIGHT;
+
+	case PixArt_PAA3905::Mode::SuperLowLight: return SQUAL_THRESHOLD_SUPER_LOW_LIGHT;
+	}
+
+	return SQUAL_THRESHOLD_SUPER_LOW_LIGHT;
+}
+
+// Map raw SQUAL onto the 0–255 range promised by sensor_optical_flow.quality:
+// the per-mode false-motion threshold becomes 0, raw 255 stays 255. Raw SQUAL by
+// itself is mode-dependent (the "good enough" floor is 25/70/85 across the three
+// modes), and downstream consumers — notably EKF2 — weight measurement noise
+// against this field linearly.
+static uint8_t normalize_squal(uint8_t raw_squal, PixArt_PAA3905::Mode mode)
+{
+	const uint8_t threshold = squal_threshold_for_mode(mode);
+
+	if (raw_squal <= threshold) {
+		return 0;
+	}
+
+	const float normalized = (float)(raw_squal - threshold) * 255.f / (float)(255 - threshold);
+	return static_cast<uint8_t>(math::min(normalized, 255.f));
 }
 
 PAA3905::PAA3905(const I2CSPIDriverConfig &config) :
@@ -58,6 +103,24 @@ PAA3905::PAA3905(const I2CSPIDriverConfig &config) :
 	} else {
 		_rotation.identity();
 	}
+
+	int32_t resolution_param = RESOLUTION_REGISTER_DEFAULT;
+	const param_t handle = param_find("SENS_PAA3905_RES");
+
+	if (handle != PARAM_INVALID) {
+		param_get(handle, &resolution_param);
+	}
+
+	_resolution_register = (uint8_t)math::constrain(resolution_param, (int32_t)0, (int32_t)255);
+
+	// Chip resolution scales linearly with (register + 1) (datasheet §8.2.2).
+	const float cpi_per_m = PIXART_RESOLUTION_DEFAULT_CPI_PER_M
+				* (float)(_resolution_register + 1)
+				/ (float)(RESOLUTION_REGISTER_DEFAULT + 1);
+
+	_scale = 1.f / (cpi_per_m * INCHES_PER_METER);
+	_max_flow_rate = MAX_FLOW_RATE_DEFAULT * (float)(RESOLUTION_REGISTER_DEFAULT + 1)
+			 / (float)(_resolution_register + 1);
 }
 
 PAA3905::~PAA3905()
@@ -324,8 +387,8 @@ void PAA3905::RunImpl()
 
 				sensor_optical_flow.error_count = perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf);
 
-				// set specs according to datasheet
-				sensor_optical_flow.max_flow_rate = 7.4f;           // Datasheet: 7.4 rad/s
+				// set specs according to datasheet (max_flow_rate scales with the configured chip resolution)
+				sensor_optical_flow.max_flow_rate = _max_flow_rate; // Datasheet: 7.4 rad/s at default resolution
 				sensor_optical_flow.min_ground_distance = 0.08f;    // Datasheet: 80mm
 				sensor_optical_flow.max_ground_distance = INFINITY; // Datasheet: infinity
 
@@ -355,8 +418,7 @@ void PAA3905::RunImpl()
 					sensor_optical_flow.integration_timespan_us = SAMPLE_INTERVAL_MODE_0;
 					sensor_optical_flow.mode = sensor_optical_flow_s::MODE_BRIGHT;
 
-					// quality < 25 (0x19) and shutter >= 0x00FF80
-					if ((buffer.data.SQUAL < 0x19) && (shutter >= 0x00FF80)) {
+					if ((buffer.data.SQUAL < SQUAL_THRESHOLD_BRIGHT) && (shutter >= 0x00FF80)) {
 						// false motion report, discarding
 						data_valid = false;
 						perf_count(_false_motion_perf);
@@ -368,8 +430,7 @@ void PAA3905::RunImpl()
 					sensor_optical_flow.integration_timespan_us = SAMPLE_INTERVAL_MODE_1;
 					sensor_optical_flow.mode = sensor_optical_flow_s::MODE_LOWLIGHT;
 
-					// quality < 70 (0x46) and shutter >= 0x00FF80
-					if ((buffer.data.SQUAL < 0x46) && (shutter >= 0x00FF80)) {
+					if ((buffer.data.SQUAL < SQUAL_THRESHOLD_LOW_LIGHT) && (shutter >= 0x00FF80)) {
 						// false motion report, discarding
 						data_valid = false;
 						perf_count(_false_motion_perf);
@@ -381,8 +442,7 @@ void PAA3905::RunImpl()
 					sensor_optical_flow.integration_timespan_us = SAMPLE_INTERVAL_MODE_2;
 					sensor_optical_flow.mode = sensor_optical_flow_s::MODE_SUPER_LOWLIGHT;
 
-					// quality < 85 (0x55) and shutter >= 0x025998
-					if ((buffer.data.SQUAL < 0x55) && (shutter >= 0x025998)) {
+					if ((buffer.data.SQUAL < SQUAL_THRESHOLD_SUPER_LOW_LIGHT) && (shutter >= 0x025998)) {
 						// false motion report, discarding
 						data_valid = false;
 						perf_count(_false_motion_perf);
@@ -404,21 +464,18 @@ void PAA3905::RunImpl()
 
 					bool publish = false;
 
+					// Renormalize raw SQUAL onto the sensor_optical_flow.quality contract
+					// (0=worst, 255=best). The per-mode false-motion threshold becomes 0.
+					const uint8_t quality_normalized = normalize_squal(buffer.data.SQUAL, _mode);
+
 					if (motion_reported) {
 						// rotate measurements in yaw from sensor frame to body frame
 						const matrix::Vector3f pixel_flow_rotated = _rotation * matrix::Vector3f{(float)delta_x_raw, (float)delta_y_raw, 0.f};
 
-						// datasheet provides 11.914 CPI (count per inch) scaling per meter of height
-						static constexpr float PIXART_RESOLUTION = 11.914f; // counts per inch (CPI) per meter (from surface)
-						static constexpr float INCHES_PER_METER = 39.3701f;
+						sensor_optical_flow.pixel_flow[0] = pixel_flow_rotated(0) * _scale;
+						sensor_optical_flow.pixel_flow[1] = pixel_flow_rotated(1) * _scale;
 
-						// CPI/m -> radians
-						static constexpr float SCALE = 1.f / (PIXART_RESOLUTION * INCHES_PER_METER);
-
-						sensor_optical_flow.pixel_flow[0] = pixel_flow_rotated(0) * SCALE;
-						sensor_optical_flow.pixel_flow[1] = pixel_flow_rotated(1) * SCALE;
-
-						sensor_optical_flow.quality = buffer.data.SQUAL;
+						sensor_optical_flow.quality = quality_normalized;
 
 						publish = true;
 
@@ -436,7 +493,7 @@ void PAA3905::RunImpl()
 							sensor_optical_flow.pixel_flow[0] = 0;
 							sensor_optical_flow.pixel_flow[1] = 0;
 
-							sensor_optical_flow.quality = buffer.data.SQUAL;
+							sensor_optical_flow.quality = quality_normalized;
 
 							publish = true;
 						}
@@ -507,6 +564,10 @@ bool PAA3905::Configure()
 	ConfigureAutomaticModeSwitching();
 
 	EnableLed();
+
+	// Override the default resolution written by the detection-setting block with
+	// the user-configured value. Bank 0 is selected at the tail of EnableLed().
+	RegisterWrite(Register::Resolution, _resolution_register);
 
 	return true;
 }

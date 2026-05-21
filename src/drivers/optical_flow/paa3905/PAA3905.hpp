@@ -133,6 +133,10 @@ private:
 
 	Mode _mode{Mode::LowLight};
 
+	uint8_t _resolution_register{0x2A}; // SENS_PAA3905_RES, written to chip 0x4E
+	float _scale{0.f};                  // counts -> radians, derived from _resolution_register
+	float _max_flow_rate{7.4f};         // rad/s, scales inversely with resolution
+
 	hrt_abstime _last_write_time{0};
 	hrt_abstime _last_read_time{0};
 };
