@@ -253,16 +253,20 @@ bool PlannerPolygons::pointInsideInteriorCone(const PolygonInfo &poly,
 bool PlannerPolygons::intersectsInsideOf(const PolygonInfo &poly,
 		int32_t s_x, int32_t s_y, int32_t e_x, int32_t e_y) const
 {
-	// Single pass over polygon edges, doing two jobs at once:
-	//   (1) classify the test segment vs each polygon edge -- early-return on
-	//       a proper crossing, wedge-check polygon vertices that sit strictly
-	//       on the open test segment;
-	//   (2) accumulate Sunday's winding-number contribution for the midpoint,
-	//       used (with poly.is_inclusion) to classify the no-crossing
-	//       case as Inside or Outside.
+	// Single pass over polygon edges, doing two jobs:
+	//  (1) classify the test segment vs each polygon edge. early-return on:
+	//       - strict crossings (line segment - polygon edge)
+	//       - interior crossing at vertex
+	//  (2) accumulate midpoint winding contribution -- if (1) is inconclusive,
+	//      this decides if the line is inside or outside
+
 	int wn = 0;
 	bool mid_on_boundary = false;
 
+	// Rather than calculating the midpoint (mid = (s + e)/2) explicitly,
+	// which will lead to rounding error for uneven numbers, we instead
+	// scale all other inputs by two, reducing the range by a factor of two
+	// (2^31 cm = 21400 km -> 2^30 cm = 10700 km)
 	const int32_t twice_mid_x = s_x + e_x;
 	const int32_t twice_mid_y = s_y + e_y;
 
@@ -279,23 +283,16 @@ bool PlannerPolygons::intersectsInsideOf(const PolygonInfo &poly,
 		case SegSegResult::Cross:
 			return true;
 
-		// skip AInsideCD - A from this segment is B from the adjacent segment
-		case SegSegResult::BInsideCD: {
+		// skip AInsideCD - a from this segment is b from the adjacent segment
+		case SegSegResult::BInsideCD:
 
-				// Polygon vertex b is exactly on the interior of the test segment.
-				// Detect if it passes from outside to inside through the inside.
-				//  - If yes, conclusive
-				//  - If no, record that we have grazed a vertex
-				const bool s_inside = pointInsideInteriorCone(poly, s_x, s_y, i);
-				const bool e_inside = pointInsideInteriorCone(poly, e_x, e_y, i);
-
-				if (s_inside || e_inside) {
-					// If either endpoint inside interior cone, interior is crossed
-					return true;
-				}
-
-				break;
+			// Polygon vertex b is exactly on the interior of the test segment.
+			// Return intersecting if it pokes into the polygon interior through vertex b.
+			if (pointInsideInteriorCone(poly, s_x, s_y, i) || pointInsideInteriorCone(poly, e_x, e_y, i)) {
+				return true;
 			}
+
+			break;
 
 		default:
 			break;
@@ -305,14 +302,6 @@ bool PlannerPolygons::intersectsInsideOf(const PolygonInfo &poly,
 		// Ref: Dan Sunday, Inclusion of a Point in a Polygon
 		// https://web.archive.org/web/20130126163405/http://geomalgorithms.com/a03-_inclusion.html
 
-		// Rather than calculating the midpoint (mid = (s + e)/2)
-		// explicitly, which will lead to rounding error for uneven
-		// numbers, we instead scale all other inputs by two, reducing
-		// the range by a factor of two (2^31 cm = 21400 km -> 2^30 cm =
-		// 10700 km)
-
-		// TODO it would be awesome to have this part more readable
-
 		const int side = orient2d(2 * ax, 2 * ay, 2 * bx, 2 * by, twice_mid_x, twice_mid_y);
 
 		if (side == 0) {
@@ -320,8 +309,8 @@ bool PlannerPolygons::intersectsInsideOf(const PolygonInfo &poly,
 			const bool mid_on_open_ab = collinearBetween(2 * ax, 2 * ay, 2 * bx, 2 * by, twice_mid_x, twice_mid_y);
 			const bool mid_is_b = 2 * bx == twice_mid_x && 2 * by == twice_mid_y;
 
+			// Skip point a - a from this segment is b from the adjacent segment
 			if (mid_on_open_ab || mid_is_b) {
-				// Skip point a, it will be b in another iteration and the overall mid_on_boundary flag is still valid
 				mid_on_boundary = true;
 			}
 
@@ -338,11 +327,11 @@ bool PlannerPolygons::intersectsInsideOf(const PolygonInfo &poly,
 		return false;
 	}
 
-	// wn != 0 means the midpoint is in the bounded region. The only place
-	// orientation polarity surfaces.
-	const bool bounded = (wn != 0);
 	// Exclusion: violation when midpoint is inside (bounded). Inclusion: when outside (unbounded).
-	return bounded != poly.is_inclusion;
+	// This is the only place we depart from the inside = left = forbidden canonical orientation,
+	// necessary because of the point membership check.
+	const bool midpoint_in_bounded_inside = (wn != 0);
+	return midpoint_in_bounded_inside != poly.is_inclusion;
 }
 
 bool PlannerPolygons::intersectsAnyInside(int32_t s_x, int32_t s_y, int32_t e_x, int32_t e_y) const
