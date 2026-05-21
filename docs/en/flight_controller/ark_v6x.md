@@ -72,6 +72,10 @@ For pinout of the ARKV6X see the [DS-10 Pixhawk Autopilot Bus Standard](https://
 | UART7  | /dev/ttyS6 | TELEM1        |
 | UART8  | /dev/ttyS7 | GPS2          |
 
+::: info
+The mapping above applies to the running PX4 firmware. The ARKV6X bootloader enables only `UART7` (TELEM1), so when flashing firmware over UART with `px_uploader.py` you must connect to the **TELEM1** port — no other UART will respond in bootloader mode.
+:::
+
 ## Building Firmware
 
 ```sh
