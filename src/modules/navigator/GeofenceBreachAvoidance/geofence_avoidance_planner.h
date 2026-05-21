@@ -71,7 +71,7 @@ public:
 	 *         When the planner falls back to the saved anchor, index 0 is that anchor; the
 	 *         vehicle has to fly to it first.
 	 */
-	int set_start_and_plan_path_to_destination(matrix::Vector2d start, GeofenceInterface &geofence);
+	int set_start_and_plan_path_to_destination(matrix::Vector2d start);
 
 	matrix::Vector2d get_point_at_index(int index) const;
 
@@ -87,7 +87,7 @@ public:
 
 	bool update_vertices(GeofenceInterface &geofence, float margin = 10.0f);
 
-	void update_destination(const matrix::Vector2d &destination, GeofenceInterface &geofence);
+	bool update_destination(const matrix::Vector2d &destination);
 
 private:
 
@@ -128,7 +128,7 @@ private:
 
 	bool update_graph_nodes_without_start_and_destination(GeofenceInterface &geofence, float margin);
 	void update_distances_between_vertices();
-	void planPath();
+	bool planPath();
 
 	bool lat_lon_within_bounds(const matrix::Vector2<double> &lat_lon) const;
 

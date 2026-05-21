@@ -190,8 +190,7 @@ void RTL::on_inactive()
 			// it is in-fence (against the planner's margin-shrunken polygons), so a periodic call
 			// here keeps a usable anchor ready for the moment an RTL is triggered.
 			_navigator->get_geofence_avoidance_planner().set_start_and_plan_path_to_destination(
-				matrix::Vector2<double> {_global_pos_sub.get().lat, _global_pos_sub.get().lon},
-				_navigator->get_geofence());
+				matrix::Vector2<double> {_global_pos_sub.get().lat, _global_pos_sub.get().lon});
 
 		}
 

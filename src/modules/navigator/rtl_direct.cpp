@@ -77,8 +77,7 @@ void RtlDirect::on_activation()
 	// anchor if the current position violates a fence.
 	_num_waypoints_for_geofence_avoidance =
 		_navigator->get_geofence_avoidance_planner().set_start_and_plan_path_to_destination(
-			matrix::Vector2<double> {_global_pos_sub.get().lat, _global_pos_sub.get().lon},
-			_navigator->get_geofence());
+			matrix::Vector2<double> {_global_pos_sub.get().lat, _global_pos_sub.get().lon});
 
 	_current_geofence_avoidance_index = 0;
 
@@ -148,7 +147,7 @@ void RtlDirect::setRtlPosition(const PositionYawSetpoint &rtl_position, const lo
 		_force_heading = false;
 
 		_navigator->get_geofence_avoidance_planner().update_destination(
-			matrix::Vector2d{_destination.lat, _destination.lon}, _navigator->get_geofence());
+			matrix::Vector2d{_destination.lat, _destination.lon});
 
 		_land_approach = sanitizeLandApproach(loiter_pos);
 

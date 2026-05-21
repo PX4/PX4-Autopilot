@@ -108,13 +108,11 @@ void RtlDirectMissionLand::on_activation()
 
 		if (destination.isAllFinite()) {
 			GeofenceAvoidancePlanner &planner = _navigator->get_geofence_avoidance_planner();
-			Geofence &geofence = _navigator->get_geofence();
-			planner.update_destination(destination, geofence);
+			planner.update_destination(destination);
 			// Pass the current vehicle position; the planner falls back to its own latched
 			// in-fence anchor if the current position violates a fence.
 			_num_waypoints_for_geofence_avoidance = planner.set_start_and_plan_path_to_destination(
-					matrix::Vector2<double> {_global_pos_sub.get().lat, _global_pos_sub.get().lon},
-					geofence);
+					matrix::Vector2<double> {_global_pos_sub.get().lat, _global_pos_sub.get().lon});
 		}
 
 		_needs_climbing = checkNeedsToClimb();

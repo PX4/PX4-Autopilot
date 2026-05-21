@@ -55,19 +55,23 @@ static matrix::Vector2f get_vertex_local_position(int poly_index, int vertex_idx
 	return local;
 }
 
-void GeofenceAvoidancePlanner::planPath()
+bool GeofenceAvoidancePlanner::planPath()
 {
+	bool ret = false;
+
 	if (!_polygons_healthy || !_destination_healthy) {
 		// we are not in a state where we can reliably plan a path, return an empty one
-		return;
+		return ret;
 	}
 
 	perf_begin(_plan_path_perf);
 
-	dijkstra::solveBackward(_polygons.numNodes(), _polygons.destIndex(), _distances, true, _best_distance,
-				_next_node_buffer, _visited_buffer);
+	ret = dijkstra::solveBackward(_polygons.numNodes(), _polygons.destIndex(), _distances, true, _best_distance,
+				      _next_node_buffer, _visited_buffer);
 
 	perf_end(_plan_path_perf);
+
+	return ret;
 }
 
 bool GeofenceAvoidancePlanner::update_vertices(GeofenceInterface &geofence, float margin)
@@ -114,8 +118,7 @@ bool GeofenceAvoidancePlanner::update_vertices(GeofenceInterface &geofence, floa
 
 	perf_end(_setup_perf);
 
-	planPath();
-	return true;
+	return planPath();
 }
 
 bool GeofenceAvoidancePlanner::update_graph_nodes_without_start_and_destination(
@@ -173,7 +176,7 @@ void GeofenceAvoidancePlanner::update_distances_between_vertices()
 	perf_end(_setup_distances_perf);
 }
 
-void GeofenceAvoidancePlanner::update_destination(const matrix::Vector2d &destination, GeofenceInterface &geofence)
+bool GeofenceAvoidancePlanner::update_destination(const matrix::Vector2d &destination)
 {
 	if (!destination.isAllFinite() || !lat_lon_within_bounds(destination) || !_polygons_healthy) {
 		_destination_healthy = false;
@@ -199,7 +202,7 @@ void GeofenceAvoidancePlanner::update_destination(const matrix::Vector2d &destin
 	_destination_healthy = true;
 	perf_end(_update_destination_perf);
 
-	planPath();
+	return planPath();
 }
 
 bool GeofenceAvoidancePlanner::lat_lon_within_bounds(const matrix::Vector2<double> &lat_lon) const
@@ -239,7 +242,7 @@ int GeofenceAvoidancePlanner::findBestStartingNode(const matrix::Vector2f &start
 	return best_index;
 }
 
-int GeofenceAvoidancePlanner::set_start_and_plan_path_to_destination(matrix::Vector2d start, GeofenceInterface &geofence)
+int GeofenceAvoidancePlanner::set_start_and_plan_path_to_destination(matrix::Vector2d start)
 {
 	if (!_polygons_healthy || !_destination_healthy) {
 		return 0;
@@ -302,14 +305,14 @@ int GeofenceAvoidancePlanner::set_start_and_plan_path_to_destination(matrix::Vec
 	}
 
 	// When the vehicle is already at the start, the start itself is not a waypoint to fly to.
-	// Otherwise the start is the anchor (point 0) the vehicle has to fly back to first.
+	// Otherwise, the start is the anchor (point 0) the vehicle has to fly back to first.
 	// Use the member here: the fallback path may have flipped it from the caller's value.
 	return _start_is_current_position ? _num_path_points : _num_path_points + 1;
 }
 
 matrix::Vector2d GeofenceAvoidancePlanner::get_point_at_index(int index) const
 {
-	const matrix::Vector2d nan_point{(double)NAN, (double)NAN};
+	matrix::Vector2d nan_point{(double)NAN, (double)NAN};
 
 	// When start_is_current_position == false, the start (anchor) occupies index 0 of the path
 	// and intermediate vertices follow at index 1..N. When true, the start is omitted and the
