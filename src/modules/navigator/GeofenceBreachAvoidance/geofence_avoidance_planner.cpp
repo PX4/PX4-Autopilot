@@ -68,7 +68,6 @@ void GeofenceAvoidancePlanner::planPath()
 				_next_node_buffer, _visited_buffer);
 
 	perf_end(_plan_path_perf);
-	return;
 }
 
 bool GeofenceAvoidancePlanner::update_vertices(GeofenceInterface &geofence, float margin)
