@@ -45,7 +45,6 @@
 #include <uORB/topics/rate_ctrl_status.h>
 
 #include "FALCON/Controllers/RSLQR.hpp"
-#include "FALCON/Controllers/PID.hpp"
 
 class RateControlFalcon
 {

@@ -51,63 +51,13 @@ using namespace matrix;
 void RateControlFalcon::setPidGains(const Vector3f &P, const Vector3f &I, const Vector3f &D)
 {
 
-	// _roll_controller.set_gains(P(0), I(0), D(0));
-	// _pitch_controller.set_gains(P(1), I(1), D(1));
-	// _yaw_controller.set_gains(P(2), I(2), D(2));
-	// _gain_p = P;
-	// _gain_i = I;
-	// _gain_d = D;
+	_gain_p = P;
+	_gain_i = I;
+	_gain_d = D;
 
-	_roll_controller.set_gains(0.2f, 0.00075f, 0.0f);
-	_pitch_controller.set_gains(0.2f, 0.00075f, 0.0f);
-	_yaw_controller.set_gains(0.5f, 0.0075f, 0.0f);
-
-	/* _roll_controller = RSLQR(_gain_p(0), _gain_i(0), 1.0f, -1.0f, _lim_int(0));
-	_pitch_controller = RSLQR(_gain_p(1), _gain_i(1), 1.0f, -1.0f, _lim_int(1));
-	_yaw_controller = RSLQR(_gain_p(2), _gain_i(2), 1.0f, -1.0f, _lim_int(2)); */
-
-
-	//_roll_controller = new RSLQR("roll");
-	//_pitch_controller = new RSLQR("pitch");
-	//_yaw_controller = new RSLQR("yaw");
-
-	// 4/21 4:18  Sluggish, overdamped
-/* 	_roll_controller = RSLQR(0.15500f, 0.75f, 1.0f, -1.0f, _lim_int(0));
-	_pitch_controller = RSLQR(0.15500f, 0.75f, 1.0f, -1.0f, _lim_int(1));
-	_yaw_controller = RSLQR(0.10f, 0.75f, 1.0f, -1.0f, _lim_int(2));
- */
-	// 4:40			Strange Yaw behavior
-	/* _roll_controller 	= RSLQR(0.15500f, 0.75f, 1.0f, -1.0f, _lim_int(0));
-	_pitch_controller 	= RSLQR(0.15500f, 0.75f, 1.0f, -1.0f, _lim_int(1));
-	_yaw_controller 	= RSLQR(0.10f	, 1.25f, 1.0f, -1.0f, _lim_int(2)); */
-
-	// 4:45 Faught back less on yaw
-
-
-
- // 5:10 Death Spiral: Was miuch less responsive in yaw rate. recommend moving kp back to previous value and adjusting integral gain
- //possibly increase the proportional gain. It ended up suddenly spiraling/decending in yaw rate. not sure why
-
-	/* _roll_controller 	= RSLQR(0.15500f, 0.75f, 1.0f, -1.0f, _lim_int(0));
-	_pitch_controller 	= RSLQR(0.15500f, 0.75f, 1.0f, -1.0f, _lim_int(1));
-	_yaw_controller 	= RSLQR(0.010f	, 1.00f, 1.0f, -1.0f, _lim_int(2)); */
-
-	// DAY 2
-
-// Trouble taking off
-/* 	_roll_controller 	= RSLQR(0.15500f, 0.75f, 1.0f, -1.0f, _lim_int(0));
-	_pitch_controller 	= RSLQR(0.15500f, 0.75f, 1.0f, -1.0f, _lim_int(1));
-	_yaw_controller 	= RSLQR(0.150f	, 1.75f, 1.0f, -1.0f, _lim_int(2));
- */
-// Sluggish, slower but more stable
-
-/* _roll_controller = RSLQR(0.15500f, 0.75f, 1.0f, -1.0f, _lim_int(0));
-	_pitch_controller = RSLQR(0.15500f, 0.75f, 1.0f, -1.0f, _lim_int(1));
-	_yaw_controller = RSLQR(0.05f, 0.35f, 1.0f, -1.0f, _lim_int(2)); */
-
-	/* _roll_controller 	= RSLQR(0.15500f, 0.75f	, 1.0f, -1.0f, _lim_int(0));
-	_pitch_controller 	= RSLQR(0.15500f, 0.75f	, 1.0f, -1.0f, _lim_int(1));
-	_yaw_controller 	= RSLQR(0.05f	, 0.5f	, 10.0f, -10.0f, _lim_int(2)); */
+	_roll_controller.set_gains(_gain_p(0), _gain_i(0), _gain_d(0));
+	_pitch_controller.set_gains(_gain_p(1), _gain_i(1), _gain_d(1));
+	_yaw_controller.set_gains(_gain_p(2), _gain_i(2), _gain_d(2));
 
 
 }
@@ -137,44 +87,65 @@ void RateControlFalcon::setNegativeSaturationFlag(size_t axis, bool is_saturated
 Vector3f RateControlFalcon::update(const Vector3f &rate, const Vector3f &rate_sp, const Vector3f &angular_accel,
 			     const float dt, const bool landed)
 {
-
-	//(roll, pitch, yaw)
-	float p = rate(0);
-	float q = rate(1);
-	float r = rate(2);
-
-	float p_sp = rate_sp(0);
-	float q_sp = rate_sp(1);
-	float r_sp = rate_sp(2);
-
-	float p_ang = angular_accel(0);
-	float q_ang = angular_accel(1);
-	float r_ang = angular_accel(2);
-
-	// float p_int_lim = _lim_int(0);
-	// float q_int_lim = _lim_int(1);
-	// float r_int_lim = _lim_int(2);
-
-	float p_int_lim = 10.0;
-	float q_int_lim = 10.0;
-	float r_int_lim = 10.0;
+	// angular rates error
+	Vector3f rate_error = rate_sp - rate;
 
 
 
-	float roll_torque 	= _roll_controller.update(p, p_sp, p_ang, p_int_lim, dt, landed);
-	float pitch_torque 	= _pitch_controller.update(q, q_sp, q_ang, q_int_lim, dt, landed);
-	float yaw_torque 	= _yaw_controller.update(r, r_sp, r_ang, r_int_lim, dt, landed);
+	float roll_torque 	= _roll_controller.update(rate_error(0), _rate_int(0), angular_accel(0));
+	float pitch_torque 	= _pitch_controller.update(rate_error(1), _rate_int(1), angular_accel(1));
+	float yaw_torque 	= _yaw_controller.update(rate_error(2), _rate_int(2), angular_accel(2));
+	Vector3f torque = {roll_torque, pitch_torque, yaw_torque};
 
 
 
-	Vector3f f_torque = {roll_torque, pitch_torque, yaw_torque};
+	// // angular rates error
 
-	std::cout << "TIMESTAMP: " << dt << std::endl;
-	std::cout << "Roll: " << _roll_controller._rate_int<< std::endl;
-	std::cout << "Pitch: " << _pitch_controller._rate_int<< std::endl;
-	std::cout << "Yaw: " << _yaw_controller._rate_int<< std::endl;
+	// // PID control with feed forward
+	// Vector3f torque = _gain_p.emult(rate_error) + _rate_int - _gain_d.emult(angular_accel) + _gain_ff.emult(rate_sp);
 
-	return f_torque;
+	// // update integral only if we are not landed
+	if (!landed) {
+		updateIntegral(rate_error, dt);
+	}
+	// std::cout << (test_torque - torque)(0)/torque(0);
+	// std::cout << (test_torque - torque)(1)/torque(1);
+	// std::cout << (test_torque - torque)(2)/torque(2) << std::endl;
+
+	return torque;
+}
+
+void RateControlFalcon::updateIntegral(Vector3f &rate_error, const float dt)
+{
+
+	for (int i = 0; i < 3; i++) {
+		// prevent further positive control saturation
+		if (_control_allocator_saturation_positive(i)) {
+			rate_error(i) = math::min(rate_error(i), 0.f);
+		}
+
+		// prevent further negative control saturation
+		if (_control_allocator_saturation_negative(i)) {
+			rate_error(i) = math::max(rate_error(i), 0.f);
+		}
+
+		// I term factor: reduce the I gain with increasing rate error.
+		// This counteracts a non-linear effect where the integral builds up quickly upon a large setpoint
+		// change (noticeable in a bounce-back effect after a flip).
+		// The formula leads to a gradual decrease w/o steps, while only affecting the cases where it should:
+		// with the parameter set to 400 degrees, up to 100 deg rate error, i_factor is almost 1 (having no effect),
+		// and up to 200 deg error leads to <25% reduction of I.
+		float i_factor = rate_error(i) / math::radians(400.f);
+		i_factor = math::max(0.0f, 1.f - i_factor * i_factor);
+
+		// Perform the integration using a first order method
+		float rate_i = _rate_int(i) + i_factor * _gain_i(i) * rate_error(i) * dt;
+
+		// do not propagate the result if out of range or invalid
+		if (PX4_ISFINITE(rate_i)) {
+			_rate_int(i) = math::constrain(rate_i, -_lim_int(i), _lim_int(i));
+		}
+	}
 }
 
 
@@ -184,25 +155,3 @@ void RateControlFalcon::getRateControlStatus(rate_ctrl_status_s &rate_ctrl_statu
 	rate_ctrl_status.pitchspeed_integ = _rate_int(1);
 	rate_ctrl_status.yawspeed_integ = _rate_int(2);
 }
-
-/* void RateControlFalcon::exportToCSV(const std::string& filename, const std::vector<float>& data) {
-	std::ifstream infile(filename);
-
-    bool exists = infile.good();
-
-    std::ofstream file(filename, std::ios::app);
-
-    if (!file.is_open()) {
-        throw std::runtime_error("Could not open file");
-    }
-
-    // Write header only if file didn't exist
-    if (!exists) {
-        file << "p,q,r,p_sp,q_sp,r_sp,angular_accel_x,angular_accel_y,angular_accel_z,torque_x,torque_y,torque_z\n";
-    }
-
-    for (const auto& value : data) {
-        file << value << ",";
-    }
-    file << "\n";
-} */
