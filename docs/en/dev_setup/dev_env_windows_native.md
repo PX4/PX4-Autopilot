@@ -350,20 +350,6 @@ To stop every `px4.exe` started by the helper (e.g. when several backgrounded da
 .\Tools\simulation\sitl_multiple_run.ps1 -SitlNum 0
 ```
 
-### Tested Configurations
-
-What has been validated to work on native Windows today:
-
-- Single `px4.exe` instance at any `PX4_SIM_SPEED_FACTOR` (1x and accelerated).
-- Mixed speed factors across instances (when running ≤3 of them).
-- MAVLink heartbeat to QGroundControl on `127.0.0.1` (autoconnect).
-- The interactive `pxh>` stdin prompt and `CTRL+C` / `shutdown` graceful exit.
-- `px4-*` client wrappers (`px4-commander`, `px4-listener`, `px4-shutdown`, …) from a separate _PowerShell_ window.
-
-Known limitations (being tracked, not yet fixed):
-
-- 5+ concurrent instances via `sitl_multiple_run.ps1`; up to 3 is the supported envelope.
-
 ## Connecting QGroundControl
 
 If you don't already have QGroundControl, install it first via the [QGroundControl Daily Build](../dev_setup/qgc_daily_build.md) page — the steps below assume it is already running on the same host.
@@ -384,8 +370,11 @@ You can still drive any of them from a natively-built `px4.exe`: start the simul
 
 ## ROS 2 Setup on Windows Native
 
-This section is only relevant if you want to drive PX4 SITL from [ROS 2](../ros2/user_guide.md) on the same Windows host using the OSRF Windows binary release.
-If you only need SIH plus QGroundControl, you can skip this section and the next.
+::: tip
+Skip this section if you don't need ROS 2.
+:::
+
+This section is relevant if you want to drive PX4 SITL from [ROS 2](../ros2/user_guide.md) on the same Windows host using the OSRF Windows binary release.
 
 ::: info
 ROS 2 on Windows is community-supported by OSRF — _not_ a first-class platform like Ubuntu Linux.
@@ -435,6 +424,10 @@ Once ROS 2 is up, the [Micro XRCE-DDS Agent](#building-the-micro-xrce-dds-agent-
 See the [uXRCE-DDS middleware page](../middleware/uxrce_dds.md) for the wider workflow, message conventions, and `px4_msgs` setup.
 
 ## Building the Micro-XRCE-DDS Agent (Optional — for ROS 2 / DDS bridging)
+
+::: tip
+Skip this section if you don't need ROS 2.
+:::
 
 This section is only relevant if you want to bridge PX4 SITL to ROS 2 (or any other DDS subscriber) via the [uXRCE-DDS middleware](../middleware/uxrce_dds.md).
 The agent is a separate process that PX4's `uxrce_dds_client` connects to over UDP; without it, ROS 2 nodes have no way to see PX4's uORB topics.
@@ -558,6 +551,20 @@ For the wider ROS 2 / DDS workflow on top of this connection (workspace layout, 
   `winget install Ninja-build.Ninja` ships a build that handles the lock contention gracefully on the dependency phase, which is what makes the two-stage recipe viable in the first place.
 - **`UAGENT_P2P_PROFILE=ON` is not supported on Windows today.** The peer-to-peer profile triggers a separate, earlier recompaction failure inside the `microxrcedds_client` ExternalProject.
   PX4's SITL bridge does not use P2P, so leaving it off is safe.
+
+## Tested Configurations
+
+What has been validated to work on native Windows today:
+
+- Single `px4.exe` instance at any `PX4_SIM_SPEED_FACTOR` (1x and accelerated).
+- Mixed speed factors across instances (when running ≤3 of them).
+- MAVLink heartbeat to QGroundControl on `127.0.0.1` (autoconnect).
+- The interactive `pxh>` stdin prompt and `CTRL+C` / `shutdown` graceful exit.
+- `px4-*` client wrappers (`px4-commander`, `px4-listener`, `px4-shutdown`, …) from a separate _PowerShell_ window.
+
+Known limitations (being tracked, not yet fixed):
+
+- 5+ concurrent instances via `sitl_multiple_run.ps1`; up to 3 is the supported envelope.
 
 ## Next Steps
 
