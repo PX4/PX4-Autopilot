@@ -644,6 +644,7 @@ help:
 list_config_targets:
 	@for targ in $(patsubst %_default,%[_default],$(ALL_CONFIG_TARGETS)); do echo $$targ; done
 
+.PHONY: check_nuttx check_linux check_px4 check_nxp
 check_nuttx : $(call make_list,nuttx) \
 	sizes
 
