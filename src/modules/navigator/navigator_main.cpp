@@ -1041,7 +1041,6 @@ void Navigator::geofence_breach_check()
 
 		_last_geofence_check = hrt_absolute_time();
 
-
 		_geofence_result.timestamp = hrt_absolute_time();
 		_geofence_result.geofence_action = _geofence.getGeofenceAction();
 
