@@ -53,7 +53,7 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/sensor_gps.h>
-#include "./GeofenceBreachAvoidance/geofence_avoidance_planner.h"
+#include "./GeofenceBreachAvoidance/geofence_interface.h"
 
 #define GEOFENCE_FILENAME PX4_STORAGEDIR"/etc/geofence.txt"
 
@@ -144,30 +144,16 @@ public:
 
 	bool isHomeRequired();
 
-	int set_start_and_start_path_to_destination(const matrix::Vector2<double> &start)
+	/**
+	 * Returns true once after the polygon set changes (e.g. dataman finished loading a new fence),
+	 * then clears the flag. Navigator polls this to know when to rebuild the avoidance planner's
+	 * vertex graph.
+	 */
+	bool consumeFenceUpdated()
 	{
-		return _avoidance_planner.set_start_and_plan_path_to_destination(start, *this);
-	}
-
-	bool plannerStartIsCurrentPosition() const
-	{
-		return _avoidance_planner.start_is_current_position();
-	}
-
-	void updateDestinationForRTLPathPlanner(const matrix::Vector2<double> &destination)
-	{
-		_avoidance_planner.update_destination(destination, *this);
-	}
-
-	const matrix::Vector2d get_point_at_index(int index) const
-	{
-		return _avoidance_planner.get_point_at_index(index);
-
-	}
-
-	int get_num_geofence_path_waypoints() const
-	{
-		return _avoidance_planner.get_num_waypoints();
+		const bool updated = _planner_vertices_dirty;
+		_planner_vertices_dirty = false;
+		return updated;
 	}
 
 	/**
@@ -189,8 +175,6 @@ private:
 	Navigator   *_navigator{nullptr};
 	PolygonInfo *_polygons{nullptr};
 
-	GeofenceAvoidancePlanner _avoidance_planner{};
-
 	mission_stats_entry_s _stats;
 	DatamanState _dataman_state{DatamanState::UpdateRequestWait};
 	DatamanState _error_state{DatamanState::UpdateRequestWait};
@@ -207,6 +191,7 @@ private:
 	uint32_t _opaque_id{0}; ///< dataman geofence id: if it does not match, the polygon data was updated
 	bool _fence_updated{true};  ///< flag indicating if fence are updated to dataman cache
 	bool _initiate_fence_updated{true}; ///< flag indicating if fence updated is needed
+	bool _planner_vertices_dirty{false}; ///< set when polygons change, consumed by Navigator to rebuild avoidance graph
 
 	uORB::Publication<geofence_status_s> _geofence_status_pub{ORB_ID(geofence_status)};
 

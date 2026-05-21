@@ -939,6 +939,10 @@ void Navigator::run()
 
 		_geofence.run();
 
+		if (_geofence.consumeFenceUpdated()) {
+			_geofence_avoidance_planner.update_vertices(_geofence);
+		}
+
 		perf_end(_loop_perf);
 	}
 }

@@ -40,7 +40,7 @@
 
 matrix::Vector2d add_geofence_avoidance_path_distance(
 	RtlTimeEstimator &estimator,
-	const Navigator &navigator,
+	Navigator &navigator,
 	const matrix::Vector2d &current_position,
 	int num_waypoints,
 	int current_index)
@@ -51,10 +51,12 @@ matrix::Vector2d add_geofence_avoidance_path_distance(
 		return end_position;
 	}
 
-	if (!navigator.geofencePlannerStartIsCurrentPosition() && current_index <= 1) {
+	GeofenceAvoidancePlanner &planner = navigator.get_geofence_avoidance_planner();
+
+	if (!planner.start_is_current_position() && current_index <= 1) {
 		// If the path was planned from a stored anchor (vehicle was outside the fence at plan time),
 		// the leg from the current position back to point 0 is unaccounted for in the path itself.
-		const matrix::Vector2d first_waypoint = navigator.get_point_at_index(0);
+		const matrix::Vector2d first_waypoint = planner.get_point_at_index(0);
 
 		matrix::Vector2f direction{};
 		get_vector_to_next_waypoint(current_position(0), current_position(1),
@@ -69,7 +71,7 @@ matrix::Vector2d add_geofence_avoidance_path_distance(
 	} else if (current_index < num_waypoints) {
 		// Vehicle is mid-leg between geofence waypoints; include the partial leg from the
 		// current position to the next geofence waypoint that the for-loop below picks up from.
-		const matrix::Vector2d next_waypoint = navigator.get_point_at_index(current_index);
+		const matrix::Vector2d next_waypoint = planner.get_point_at_index(current_index);
 
 		matrix::Vector2f direction{};
 		get_vector_to_next_waypoint(current_position(0), current_position(1),
@@ -83,8 +85,8 @@ matrix::Vector2d add_geofence_avoidance_path_distance(
 	}
 
 	for (int i = current_index; i < num_waypoints - 1; ++i) {
-		const matrix::Vector2d start = navigator.get_point_at_index(i);
-		const matrix::Vector2d end = navigator.get_point_at_index(i + 1);
+		const matrix::Vector2d start = planner.get_point_at_index(i);
+		const matrix::Vector2d end = planner.get_point_at_index(i + 1);
 
 		matrix::Vector2f direction{};
 		get_vector_to_next_waypoint(start(0), start(1), end(0), end(1), &direction(0), &direction(1));

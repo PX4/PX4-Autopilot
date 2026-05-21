@@ -49,8 +49,8 @@ class RtlTimeEstimator;
  *
  * Adds, in order:
  *  - The leg from current_position back to point 0, when the path was planned from a stored anchor
- *    (i.e. !navigator.geofencePlannerStartIsCurrentPosition()) and the vehicle has not yet reached
- *    point 0 (current_index <= 1).
+ *    (i.e. !navigator.get_geofence_avoidance_planner().start_is_current_position()) and the vehicle
+ *    has not yet reached point 0 (current_index <= 1).
  *  - Otherwise, the partial leg from current_position to the next geofence waypoint
  *    (the one at current_index), so the for-loop's first leg connects to current_position.
  *  - The remaining inter-waypoint legs from current_index up to num_waypoints - 1.
@@ -64,7 +64,7 @@ class RtlTimeEstimator;
  */
 matrix::Vector2d add_geofence_avoidance_path_distance(
 	RtlTimeEstimator &estimator,
-	const Navigator &navigator,
+	Navigator &navigator,
 	const matrix::Vector2d &current_position,
 	int num_waypoints,
 	int current_index);

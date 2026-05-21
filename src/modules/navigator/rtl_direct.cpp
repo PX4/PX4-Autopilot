@@ -76,8 +76,9 @@ void RtlDirect::on_activation()
 	// Pass the current vehicle position; the planner falls back to its own latched in-fence
 	// anchor if the current position violates a fence.
 	_num_waypoints_for_geofence_avoidance =
-		_navigator->set_start_and_plan_path_to_destination(
-			matrix::Vector2<double> {_global_pos_sub.get().lat, _global_pos_sub.get().lon});
+		_navigator->get_geofence_avoidance_planner().set_start_and_plan_path_to_destination(
+			matrix::Vector2<double> {_global_pos_sub.get().lat, _global_pos_sub.get().lon},
+			_navigator->get_geofence());
 
 	_current_geofence_avoidance_index = 0;
 
@@ -146,7 +147,8 @@ void RtlDirect::setRtlPosition(const PositionYawSetpoint &rtl_position, const lo
 		_destination = rtl_position;
 		_force_heading = false;
 
-		_navigator->updateDestinationOfRTLPathPlanner(matrix::Vector2d{_destination.lat, _destination.lon});
+		_navigator->get_geofence_avoidance_planner().update_destination(
+			matrix::Vector2d{_destination.lat, _destination.lon}, _navigator->get_geofence());
 
 		_land_approach = sanitizeLandApproach(loiter_pos);
 
@@ -266,7 +268,8 @@ void RtlDirect::set_rtl_item()
 	case RTLState::AVOID_GEOFENCE: {
 
 			const int curr_idx = _current_geofence_avoidance_index++;
-			matrix::Vector2d point = _navigator->get_point_at_index(curr_idx);
+			const GeofenceAvoidancePlanner &planner = _navigator->get_geofence_avoidance_planner();
+			matrix::Vector2d point = planner.get_point_at_index(curr_idx);
 
 			if (point.isAllNan()) {
 				// should never happen
@@ -275,7 +278,7 @@ void RtlDirect::set_rtl_item()
 			}
 
 			const matrix::Vector2d prev_point = (curr_idx > 0)
-							    ? _navigator->get_point_at_index(curr_idx - 1)
+							    ? planner.get_point_at_index(curr_idx - 1)
 							    : matrix::Vector2d{_global_pos_sub.get().lat, _global_pos_sub.get().lon};
 
 			float yaw = NAN;
@@ -470,7 +473,7 @@ RtlDirect::RTLState RtlDirect::getActivationState()
 	} else if ((_global_pos_sub.get().alt < _rtl_alt) || _enforce_rtl_alt) {
 		activation_state = RTLState::CLIMBING;
 
-	} else if (_navigator->get_num_geofence_path_waypoints() > 0) {
+	} else if (_navigator->get_geofence_avoidance_planner().get_num_waypoints() > 0) {
 		// Query the planner directly: when called from calc_rtl_time_estimate() while inactive
 		// the cached _num_waypoints_for_geofence_avoidance is stale (only refreshed in on_activation).
 		// When called from on_activation() the planner and the cached value agree, so this is safe.
@@ -523,7 +526,7 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 				// treat the consumption index as 0 (nothing issued yet). Once active, the cached
 				// values are authoritative.
 				const int num_geofence_wpts = isActive() ? _num_waypoints_for_geofence_avoidance
-							      : _navigator->get_num_geofence_path_waypoints();
+							      : _navigator->get_geofence_avoidance_planner().get_num_waypoints();
 				const int curr_geofence_idx = isActive() ? _current_geofence_avoidance_index : 0;
 
 				add_geofence_avoidance_path_distance(_rtl_time_estimator, *_navigator,
@@ -539,7 +542,8 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 				float dist{0.f};
 
 				if (_num_waypoints_for_geofence_avoidance > 0) {
-					const matrix::Vector2d last_point = _navigator->get_point_at_index(_num_waypoints_for_geofence_avoidance);
+					const matrix::Vector2d last_point =
+						_navigator->get_geofence_avoidance_planner().get_point_at_index(_num_waypoints_for_geofence_avoidance);
 					get_vector_to_next_waypoint(last_point(0), last_point(1), land_approach.lat,
 								    land_approach.lon, &direction(0), &direction(1));
 					dist = get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, land_approach.lat, land_approach.lon);

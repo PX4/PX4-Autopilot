@@ -107,11 +107,14 @@ void RtlDirectMissionLand::on_activation()
 		matrix::Vector2d destination = get_first_position_after_land_start_index();
 
 		if (destination.isAllFinite()) {
-			_navigator->updateDestinationOfRTLPathPlanner(destination);
+			GeofenceAvoidancePlanner &planner = _navigator->get_geofence_avoidance_planner();
+			Geofence &geofence = _navigator->get_geofence();
+			planner.update_destination(destination, geofence);
 			// Pass the current vehicle position; the planner falls back to its own latched
 			// in-fence anchor if the current position violates a fence.
-			_num_waypoints_for_geofence_avoidance = _navigator->set_start_and_plan_path_to_destination(
-					matrix::Vector2<double> {_global_pos_sub.get().lat, _global_pos_sub.get().lon});
+			_num_waypoints_for_geofence_avoidance = planner.set_start_and_plan_path_to_destination(
+					matrix::Vector2<double> {_global_pos_sub.get().lat, _global_pos_sub.get().lon},
+					geofence);
 		}
 
 		_needs_climbing = checkNeedsToClimb();
@@ -193,7 +196,7 @@ void RtlDirectMissionLand::setActiveMissionItems()
 
 		// Follow the planned geofence-avoidance path before resuming the mission landing sequence.
 		const int curr_idx = _current_geofence_avoidance_index++;
-		matrix::Vector2d point = _navigator->get_point_at_index(curr_idx);
+		matrix::Vector2d point = _navigator->get_geofence_avoidance_planner().get_point_at_index(curr_idx);
 
 		if (!point.isAllFinite()) {
 			// Should never happen: fall back to the current position to avoid commanding NaN.
@@ -325,7 +328,7 @@ rtl_time_estimate_s RtlDirectMissionLand::calc_rtl_time_estimate()
 		// Once active, the planner is frozen at the path latched in on_activation() — use the
 		// cached count and the running consumption index.
 		const int num_geofence_wpts = isActive() ? _num_waypoints_for_geofence_avoidance
-					      : _navigator->get_num_geofence_path_waypoints();
+					      : _navigator->get_geofence_avoidance_planner().get_num_waypoints();
 		const int curr_geofence_idx = isActive() ? _current_geofence_avoidance_index : 0;
 
 		matrix::Vector2d hor_position_at_calculation_point = add_geofence_avoidance_path_distance(

@@ -55,6 +55,7 @@
 
 #include "navigation.h"
 
+#include "GeofenceBreachAvoidance/geofence_avoidance_planner.h"
 #include "GeofenceBreachAvoidance/geofence_breach_avoidance.h"
 
 #include <uORB/SubscriptionMultiArray.hpp>
@@ -189,6 +190,8 @@ public:
 
 	Geofence &get_geofence() { return _geofence; }
 
+	GeofenceAvoidancePlanner &get_geofence_avoidance_planner() { return _geofence_avoidance_planner; }
+
 	float get_default_loiter_rad() { return fabsf(_param_nav_loiter_rad.get()); }
 	bool get_default_loiter_CCW() { return _param_nav_loiter_rad.get() < -FLT_EPSILON; }
 
@@ -312,31 +315,6 @@ public:
 
 	void trigger_hagl_failsafe(uint8_t nav_state);
 
-	int set_start_and_plan_path_to_destination(const matrix::Vector2<double> &start)
-	{
-		return _geofence.set_start_and_start_path_to_destination(start);
-	}
-
-	void updateDestinationOfRTLPathPlanner(const matrix::Vector2<double> &destination)
-	{
-		_geofence.updateDestinationForRTLPathPlanner(destination);
-	}
-
-	matrix::Vector2d get_point_at_index(int index) const
-	{
-		return _geofence.get_point_at_index(index);
-	}
-
-	int get_num_geofence_path_waypoints() const
-	{
-		return _geofence.get_num_geofence_path_waypoints();
-	}
-
-	bool geofencePlannerStartIsCurrentPosition() const
-	{
-		return _geofence.plannerStartIsCurrentPosition();
-	}
-
 	/**
 	 * Returns the last position that was confirmed to be inside all geofences.
 	 * Used as a fallback RTL planner start when the current position is in violation.
@@ -398,6 +376,7 @@ private:
 
 	Geofence	_geofence;			/**< class that handles the geofence */
 	GeofenceBreachAvoidance _gf_breach_avoidance;
+	GeofenceAvoidancePlanner _geofence_avoidance_planner; /**< RTL/auto path planner that routes around fences (visibility graph + Dijkstra) */
 	hrt_abstime _last_geofence_check{0};
 
 	matrix::Vector2d _last_valid_position_in_fence{static_cast<double>(NAN), static_cast<double>(NAN)};

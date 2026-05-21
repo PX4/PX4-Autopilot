@@ -183,7 +183,7 @@ void Geofence::run()
 
 			_geofence_status_pub.publish(status);
 
-			_avoidance_planner.update_vertices(*this);
+			_planner_vertices_dirty = true;
 		}
 
 		break;
