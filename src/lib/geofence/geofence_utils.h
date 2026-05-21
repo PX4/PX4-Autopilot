@@ -80,16 +80,15 @@ inline int orient2d(int32_t ax, int32_t ay,
 }
 
 /**
- * For a, b, c known to be collinear (orient2d == 0), is c on the closed
- * segment ab?
+ * For a, b, c collinear (orient2d == 0), is c on the open segment ab?
  */
 inline bool collinearBetween(int32_t ax, int32_t ay, int32_t bx, int32_t by, int32_t cx, int32_t cy)
 {
 	if (std::abs(ax - bx) >= std::abs(ay - by)) {
-		return (ax <= cx && cx <= bx) || (bx <= cx && cx <= ax);
+		return (ax < cx && cx < bx) || (bx < cx && cx < ax);
 
 	} else {
-		return (ay <= cy && cy <= by) || (by <= cy && cy <= ay);
+		return (ay < cy && cy < by) || (by < cy && cy < ay);
 	}
 }
 
@@ -141,20 +140,16 @@ inline SegSegResult segmentsIntersect(int32_t ax, int32_t ay, int32_t bx, int32_
 
 	if (!o1 && !o2 && !o3 && !o4) { return SegSegResult::Collinear; }
 
-	// Endpoint strictly on the open interior of the other segment: orient2d
-	// is zero (point on the supporting line), the point lies between the
-	// other two via collinearBetween, and is not coincident with either.
-	if (o3 == 0 && collinearBetween(cx, cy, dx, dy, ax, ay)
-	    && !(ax == cx && ay == cy) && !(ax == dx && ay == dy)) { return SegSegResult::AInsideCD; }
+	// Endpoint strictly on the open interior of the other segment iff:
+	//  - orient2d is zero (point on the supporting line)
+	//  - the point lies strictly between the other two via collinearBetween
+	if (o3 == 0 && collinearBetween(cx, cy, dx, dy, ax, ay)) { return SegSegResult::AInsideCD; }
 
-	if (o4 == 0 && collinearBetween(cx, cy, dx, dy, bx, by)
-	    && !(bx == cx && by == cy) && !(bx == dx && by == dy)) { return SegSegResult::BInsideCD; }
+	if (o4 == 0 && collinearBetween(cx, cy, dx, dy, bx, by)) { return SegSegResult::BInsideCD; }
 
-	if (o1 == 0 && collinearBetween(ax, ay, bx, by, cx, cy)
-	    && !(cx == ax && cy == ay) && !(cx == bx && cy == by)) { return SegSegResult::CInsideAB; }
+	if (o1 == 0 && collinearBetween(ax, ay, bx, by, cx, cy)) { return SegSegResult::CInsideAB; }
 
-	if (o2 == 0 && collinearBetween(ax, ay, bx, by, dx, dy)
-	    && !(dx == ax && dy == ay) && !(dx == bx && dy == by)) { return SegSegResult::DInsideAB; }
+	if (o2 == 0 && collinearBetween(ax, ay, bx, by, dx, dy)) { return SegSegResult::DInsideAB; }
 
 	return SegSegResult::Disjoint;
 }

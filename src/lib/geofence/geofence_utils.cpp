@@ -315,8 +315,15 @@ bool PlannerPolygons::intersectsInsideOf(const PolygonInfo &poly,
 
 		const int side = orient2d(2 * ax, 2 * ay, 2 * bx, 2 * by, twice_mid_x, twice_mid_y);
 
-		if (side == 0 && collinearBetween(2 * ax, 2 * ay, 2 * bx, 2 * by, twice_mid_x, twice_mid_y)) {
-			mid_on_boundary = true;
+		if (side == 0) {
+
+			const bool mid_on_open_ab = collinearBetween(2 * ax, 2 * ay, 2 * bx, 2 * by, twice_mid_x, twice_mid_y);
+			const bool mid_is_b = 2 * bx == twice_mid_x && 2 * by == twice_mid_y;
+
+			if (mid_on_open_ab || mid_is_b) {
+				// Skip point a, it will be b in another iteration and the overall mid_on_boundary flag is still valid
+				mid_on_boundary = true;
+			}
 
 		} else if (2 * ay <= twice_mid_y) {
 			if (2 * by > twice_mid_y && side > 0) { wn++; }
