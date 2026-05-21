@@ -520,14 +520,31 @@ class SerialTransport:
 
     def flush(self) -> None:
         """Flush output buffer."""
-        if self._port is not None:
+        if self._port is None:
+            return
+        # tcdrain() can raise termios.error (a bare OSError) if the device
+        # disappeared mid-flush — common right after a reboot-to-bootloader
+        # when the USB CDC node is being torn down and re-enumerated.
+        try:
             self._port.flush()
+        except (OSError, serial.SerialException) as e:
+            raise ConnectionError(
+                f"Flush failed: {e}", port=self.port_name, operation="flush"
+            )
 
     def reset_buffers(self) -> None:
         """Reset input and output buffers."""
-        if self._port is not None:
+        if self._port is None:
+            return
+        try:
             self._port.reset_input_buffer()
             self._port.reset_output_buffer()
+        except (OSError, serial.SerialException) as e:
+            raise ConnectionError(
+                f"Buffer reset failed: {e}",
+                port=self.port_name,
+                operation="reset_buffers",
+            )
 
     def set_baudrate(self, baudrate: int) -> None:
         """Change baud rate.
@@ -1737,7 +1754,7 @@ class Uploader:
                 port=transport.port_name,
             )
             return True
-        except (ProtocolError, TimeoutError):
+        except (ProtocolError, TimeoutError, ConnectionError):
             pass
 
         # Try rebooting at each baud rate
@@ -1802,8 +1819,10 @@ class Uploader:
                         port=transport.port_name,
                     )
                     return True
-                except (ProtocolError, TimeoutError):
-                    # Board may still be rebooting, wait a bit and retry
+                except (ProtocolError, TimeoutError, ConnectionError):
+                    # Board may still be rebooting, wait a bit and retry.
+                    # ConnectionError covers the USB CDC node briefly going
+                    # away as the bootloader re-enumerates.
                     time.sleep(0.3)
 
         return False
