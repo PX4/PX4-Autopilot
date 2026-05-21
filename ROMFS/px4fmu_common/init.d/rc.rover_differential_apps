@@ -1,8 +1,7 @@
 #!/bin/sh
 # Standard apps for a differential rover.
 
+. ${R}etc/init.d/rc.rover
+
 # Start rover differential module.
 rover_differential start
-
-# Start Land Detector.
-land_detector start rover

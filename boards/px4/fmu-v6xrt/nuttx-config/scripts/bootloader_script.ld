@@ -46,8 +46,6 @@ EXTERN(g_flash_config)
 EXTERN(g_image_vector_table)
 EXTERN(g_boot_data)
 EXTERN(board_get_manifest)
-EXTERN(_bootdelay_signature)
-
 ENTRY(__start)
 
 SECTIONS
@@ -99,12 +97,6 @@ SECTIONS
         _stext = ABSOLUTE(.);
         *(.vectors)
 		. = ALIGN(32);
-		/*
-		This signature provides the bootloader with a way to delay booting
-		*/
-		_bootdelay_signature = ABSOLUTE(.);
-		FILL(0xffecc2925d7d05c5)
-		. += 8;
         *(.text .text.*)
         *(.fixup)
         *(.gnu.warning)

@@ -17,6 +17,7 @@ uint8 SOURCE_PSEUDOLITES = 3 # Pseudolites
 uint8 SOURCE_TERRAIN = 4 # Terrain
 uint8 SOURCE_MAGNETIC = 5 # Magnetic
 uint8 SOURCE_ESTIMATOR = 6 # Estimator
+uint8 SOURCE_LEO = 7 # Low Earth Orbit satellite-based positioning
 
 # lat, lon: required for horizontal position fusion, alt: required for vertical position fusion
 float64 lat # [deg] Latitude in WGS84

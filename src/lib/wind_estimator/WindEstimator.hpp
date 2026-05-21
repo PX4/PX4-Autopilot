@@ -86,12 +86,9 @@ public:
 
 	// unaided, the state uncertainty (diagonal of sqrt(P)) grows by the process noise spectral density every second
 	void set_wind_process_noise_spectral_density(float wind_nsd) { _wind_psd = wind_nsd * wind_nsd; }
-	void set_tas_scale_process_noise_spectral_density(float tas_scale_nsd) { _tas_scale_psd = tas_scale_nsd * tas_scale_nsd; }
 
 	void set_tas_noise(float tas_sigma) { _tas_var = tas_sigma * tas_sigma; }
-	void set_beta_noise(float beta_var) { _beta_var = beta_var * beta_var; }
-	void set_tas_gate(uint8_t gate_size) {_tas_gate = gate_size; }
-	void set_beta_gate(uint8_t gate_size) {_beta_gate = gate_size; }
+
 	void set_scale_init(float scale_init) {_scale_init = 1.f / math::constrain(scale_init, 0.1f, 10.f); }
 
 	void reset_scale_to_init()
@@ -109,11 +106,11 @@ private:
 		INDEX_TAS_SCALE
 	};	///< enum which can be used to access state.
 
-	static constexpr float INITIAL_WIND_ERROR =
+	static constexpr float kInitialWindError =
 		2.5f; // initial uncertainty of each wind state when filter is initialised without airspeed [m/s]
-	static constexpr float INITIAL_BETA_ERROR_DEG =
+	static constexpr float kInitialBetaErrorDeg =
 		15.0f;	// sidelip uncertainty used to initialise the filter with a true airspeed measurement [deg]
-	static constexpr float INITIAL_HEADING_ERROR_DEG =
+	static constexpr float kInitialHeadingErrorDeg =
 		10.0f; // heading uncertainty used to initialise the filter with a true airspeed measurement [deg]
 
 	matrix::Vector3f _state{0.f, 0.f, 1.f};
@@ -127,12 +124,12 @@ private:
 
 	bool _initialised{false};	///< True: filter has been initialised
 
-	float _wind_psd{0.1f};	///< wind process noise power spectral density (m^2/s^4/Hz)
-	float _tas_scale_psd{0.0001f};	///< true airspeed process noise power spectral density (1/s^2/Hz)
-	float _tas_var{1.4f};		///< true airspeed measurement noise variance
-	float _beta_var{0.5f};	///< sideslip measurement noise variance
-	uint8_t _tas_gate{3};	///< airspeed fusion gate size
-	uint8_t _beta_gate{1};	///< sideslip fusion gate size
+	float _wind_psd{0.01f};	///< wind process noise power spectral density (m^2/s^4/Hz), (0.1 m/s^2/sqrt(Hz))^2
+	static constexpr float kTasScalePsd{1e-8f};	///< true airspeed scale process noise power spectral density (1/s^2/Hz), (0.0001 1/s/sqrt(Hz))^2
+	float _tas_var{1.96f};		///< true airspeed measurement noise variance (m/s)^2, (1.4 m/s)^2
+	static constexpr float kBetaVar{0.0225f};	///< sideslip measurement noise variance (rad)^2, (0.15 rad)^2
+	static constexpr uint8_t kTasGate{4};	///< airspeed fusion gate size (SD)
+	static constexpr uint8_t kBetaGate{1};	///< sideslip fusion gate size (SD)
 
 	float _scale_init{1.f};
 

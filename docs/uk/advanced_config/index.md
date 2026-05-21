@@ -7,7 +7,7 @@ This topic lists configuration topics that are not particularly vehicle specific
 - [Finding/Updating Parameters](../advanced_config/parameters.md)
 - [Повний довідник параметрів](../advanced_config/parameter_reference.md)
 
-## Feature configuration
+## Feature Configuration
 
 - [Using PX4's Navigation Filter (EKF2)](../advanced_config/tuning_the_ecl_ekf.md)
 - [GNSS-Denied and Degraded Flight](../advanced_config/gnss_degraded_or_denied_flight.md)
@@ -17,13 +17,9 @@ This topic lists configuration topics that are not particularly vehicle specific
 
 ## OEM/Factory Calibration
 
-- [Заводське калібрування IMU](../advanced_config/imu_factory_calibration.md)
-- [Термокомпенсація датчика](../advanced_config/sensor_thermal_calibration.md)
-- [Компенсація живлення компаса](../advanced_config/compass_power_compensation.md)
-- [Розширена орієнтація контролера](../advanced_config/advanced_flight_controller_orientation_leveling.md)
-- [Накопичення статичного тиску](../advanced_config/static_pressure_buildup.md)
+- [OEM/Factory Configuration](../advanced_config/oem.md)
 
-## Serial port/Ethernet configuration
+## Serial port/Ethernet Configuration
 
 - [Налаштування послідовних портів](../peripherals/serial_configuration.md)
 - [Телеметрія MAVLink (OSD/GCS)](../peripherals/mavlink_peripherals.md)

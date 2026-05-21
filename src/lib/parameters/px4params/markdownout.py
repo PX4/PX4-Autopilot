@@ -85,10 +85,19 @@ If a listed parameter is missing from the Firmware see: [Finding/Updating Parame
                         bitmask_output+=f"- `{bit}`: {bit_text}\n"
                     bitmask_output+='\n\n'
 
-                if is_boolean and def_val=='1':
-                    def_val='Enabled (1)'
-                if is_boolean and def_val=='0':
-                    def_val='Disabled (0)'
+                if is_boolean:
+                    BOOLEAN_LABELS = {
+                        '0': 'Disabled',
+                        '1': 'Enabled'
+                    }
+                    # Give def_value an explanatory string (is def_value if no match)
+                    def_val = f"{BOOLEAN_LABELS[def_val]} ({def_val})" if def_val in BOOLEAN_LABELS else def_val
+
+                    # Format values and their descriptions for display.
+                    boolean_values = '**Values:**\n\n'
+                    for key, label in BOOLEAN_LABELS.items():
+                        boolean_values += f"- `{key}`: {label}\n"
+                    boolean_values += '\n'
 
                 result += f'### {name} (`{type}`)' + ' {#' + name + '}\n\n'
                 if apply_note_board_specific_group:
@@ -99,12 +108,15 @@ If a listed parameter is missing from the Firmware see: [Finding/Updating Parame
                     result += f'{short_desc}\n\n'
                 if long_desc:
                     result += f'{long_desc}\n\n'
+                if is_boolean:
+                    result += boolean_values
                 if enum_codes:
                     result += enum_output
                 if bitmask_list:
                     result += bitmask_output
                 # Format the ranges as a table.
-                result += f"Reboot | minValue | maxValue | increment | default | unit\n--- | --- | --- | --- | --- | ---\n{'&check;' if reboot_required else '&nbsp;' } | {min_val} | {max_val} | {increment} | {def_val} | {unit} | \n\n"
+                is_readonly = param.GetReadonly()
+                result += f"Reboot | minValue | maxValue | increment | default | unit | Read-Only\n--- | --- | --- | --- | --- | --- | ---\n{'&check;' if reboot_required else '&nbsp;' } | {min_val} | {max_val} | {increment} | {def_val} | {unit} | {'&check;' if is_readonly else '&nbsp;'}\n\n"
 
         self.output = result
 

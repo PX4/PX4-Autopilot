@@ -41,6 +41,11 @@ if(NOT CONFIG)
 	else()
 		set(CONFIG "px4_sitl_default" CACHE STRING "desired configuration")
 	endif()
+else()
+	# Promote CONFIG from UNINITIALIZED (set by -D on command line) to STRING
+	# so that cmake -L lists it. The Makefile's cmake-cache-check relies on
+	# finding CONFIG in cmake -L output to avoid unnecessary reconfiguration.
+	set(CONFIG "${CONFIG}" CACHE STRING "desired configuration" FORCE)
 endif()
 
 if(NOT PX4_CONFIG_FILE)

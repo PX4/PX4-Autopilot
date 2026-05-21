@@ -49,7 +49,6 @@ static const size_t N_DIST_SUBS = 4;
 
 // for fault detection
 // chi squared distribution, false alarm probability 0.0001
-// see fault_table.py
 // note skip 0 index so we can use degree of freedom as index
 static const float BETA_TABLE[7] = {0,
 				    8.82050518214,

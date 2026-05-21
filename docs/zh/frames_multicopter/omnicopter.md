@@ -107,7 +107,7 @@ In particular:
 Make sure the motors do not overheat with the changed settings.
 :::
 
-### ROS
+### PX4
 
 - Select a generic multicopter airframe
 - Use an [arming switch](../advanced_config/prearm_arm_disarm.md#arming-button-switch), do not use stick arming

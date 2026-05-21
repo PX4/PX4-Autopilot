@@ -33,7 +33,7 @@ You can also install the environment using shell scripts in the Github project.
 
 1. Make sure you have [Git for Windows](https://git-scm.com/download/win) installed.
 
-2. Clone the repository https://github.com/PX4/windows-toolchain to the location you want to install the toolchain. Default location and naming is achieved by opening the `Git Bash` and executing:
+2. Clone the repository <https://github.com/PX4/windows-toolchain> to the location you want to install the toolchain. Default location and naming is achieved by opening the `Git Bash` and executing:
 
    ```sh
    cd /c/
@@ -53,13 +53,13 @@ The result should be the same as using the scripts or MSI installer.
 The toolchain gets maintained and hence these instructions might not cover every detail of all the future changes.
 :::
 
-1. Create the _folders_: \*\*C:\PX4\*\*, \*\*C:\PX4\toolchain\*\* and \*\*C:\PX4\home\*\*
+1. Create the _folders_: **C:\PX4**, **C:\PX4\toolchain** and **C:\PX4\home**
 
 2. Download the _Cygwin installer_ file [setup-x86_64.exe](https://cygwin.com/setup-x86_64.exe) from the [official Cygwin website](https://cygwin.com/install.html)
 
 3. Run the downloaded setup file
 
-4. In the wizard choose to install into the folder: \*\*C:\PX4\toolchain\cygwin64\*\*
+4. In the wizard choose to install into the folder: **C:\PX4\toolchain\cygwin64**
 
 5. Select to install the default Cygwin base and the newest available version of the following additional packages:
 

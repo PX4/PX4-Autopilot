@@ -9,3 +9,52 @@ parameters:
       default: 0
       min: 0
       max: 232
+    ZENOH_PUB_CC:
+      description:
+        short: Zenoh publisher congestion control (global default)
+      type: int32
+      default: 0
+      min: 0
+      max: 1
+      values:
+        0: Drop
+        1: Block
+      reboot_required: true
+    ZENOH_PUB_REL:
+      description:
+        short: Zenoh publisher reliability (global default)
+      type: int32
+      default: 0
+      min: 0
+      max: 1
+      values:
+        0: Reliable
+        1: BestEffort
+      reboot_required: true
+    ZENOH_PUB_EXPR:
+      description:
+        short: Zenoh publisher express mode (global default)
+      type: int32
+      default: 0
+      min: 0
+      max: 1
+      values:
+        0: Disabled
+        1: Enabled
+      reboot_required: true
+    ZENOH_PUB_PRIO:
+      description:
+        short: Zenoh publisher priority (global default)
+      type: int32
+      default: 5
+      min: 1
+      max: 7
+      values:
+        1: RealTime
+        2: InteractiveHigh
+        3: InteractiveLow
+        4: DataHigh
+        5: Data
+        6: DataLow
+        7: Background
+      reboot_required: true

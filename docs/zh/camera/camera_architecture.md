@@ -8,10 +8,10 @@ See [Camera](../camera/index.md) for information about _using_ cameras.
 
 ## 综述
 
-PX4 integrates with three types of cameras:
+PX4 集成了三种类型的相机：
 
-- [MAVLink cameras](../camera/mavlink_v2_camera.md) that support the [Camera Protocol v2](https://mavlink.io/en/services/camera.html) (**RECOMMENDED**).
-- [Simple MAVLink cameras](../camera/mavlink_v1_camera.md) that support the older [Camera Protocol v1](https://mavlink.io/en/services/camera.html).
+- [MAVLink 相机](../camera/mavlink_v2_camera.md) 支持 [Camera Protocol v2](https://mavlink.io/en/services/camera.html) (**推荐**)。
+- [简单的 MAVLink 摄像头](../camera/mavlink_v1_camera.md) 支持旧的 [Camera Protocol v1](https://mavlink.io/en/services/camera.html)。
 - [Cameras attached to flight controller outputs](../camera/fc_connected_camera.md), which are controlled using the [Camera Protocol v1](https://mavlink.io/en/services/camera.html).
 
 All of these cameras need to respond to MAVLink commands received over MAVLink or found in missions (the specific protocol depends on the camera).
