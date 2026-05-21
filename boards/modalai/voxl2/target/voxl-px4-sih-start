@@ -1,0 +1,124 @@
+#!/bin/sh
+# PX4 commands need the 'px4-' prefix in bash.
+# (px4-alias.sh is expected to be in the PATH)
+. px4-alias.sh
+
+echo -e "\n*************************"
+echo "SIH Simulation Mode"
+echo -e "*************************\n"
+
+# Sleep a little here. A lot happens when the uorb and muorb start
+# and we need to make sure that it all completes successfully to avoid
+# any possible race conditions.
+/bin/sleep 1
+
+# Set up the default sih parameters if the dedicated sih parameter file doesn't exist yet.
+if [ ! -f /data/px4/param/sih_parameters ]; then
+    echo "[INFO] Setting default parameters for PX4 SIH on voxl"
+    . /etc/modalai/voxl-px4-sih-set-default-parameters.config
+    /bin/sync
+# Otherwise load existing sih parameters
+else
+    param select /data/px4/param/sih_parameters
+    param load
+fi
+
+# Start simulated sensor drivers on DSP
+/bin/echo "Starting simulated sensor drivers on DSP"
+qshell simulator_sih start
+qshell sensor_baro_sim start
+qshell sensor_gps_sim start
+qshell sensor_mag_sim start
+qshell pwm_out_sim start
+
+# We do not change the value of SYS_AUTOCONFIG but if it does not
+# show up as used then it is not reported to QGC and we get a
+# missing parameter error. Also, we don't use SYS_AUTOSTART but QGC
+# complains about it as well.
+param touch SYS_AUTOCONFIG
+param touch SYS_AUTOSTART
+
+# Start all of the processing modules on DSP
+qshell sensors start
+qshell ekf2 start
+
+qshell mc_pos_control start
+qshell mc_att_control start
+qshell mc_rate_control start
+qshell mc_hover_thrust_estimator start
+qshell mc_autotune_attitude_control start
+qshell land_detector start multicopter
+
+qshell manual_control start
+qshell control_allocator start
+qshell load_mon start
+qshell rc_update start
+
+qshell commander start
+
+# This is needed for altitude and position hold modes
+qshell flight_mode_manager start
+
+# Start all of the processing modules on the applications processor
+dataman start
+navigator start
+vehicle_air_data_bridge start
+sensor_baro_bridge start
+vehicle_local_position_bridge start
+sih_vio_bridge start
+
+# Start uxrce_dds_client for ros2 offboard messages from agent over localhost
+uxrce_dds_client start -t udp -h 127.0.0.1 -p 8888
+
+# start the onboard fast link to connect to voxl-mavlink-server
+mavlink start -x -u 14556 -o 14557 -r 100000 -n lo -m onboard
+
+# slow down some of the fastest streams
+mavlink stream -u 14556 -s HIGHRES_IMU -r 10
+mavlink stream -u 14556 -s ATTITUDE -r 10
+mavlink stream -u 14556 -s ATTITUDE_QUATERNION -r 10
+mavlink stream -u 14556 -s GLOBAL_POSITION_INT -r 30
+mavlink stream -u 14556 -s SCALED_PRESSURE -r 10
+
+# Increase heartbeat rate so VFC can get faster mode updates
+mavlink stream -u 14556 -s HEARTBEAT -r 10
+
+# start the slow normal mode for voxl-mavlink-server to forward to GCS
+mavlink start -x -u 14558 -o 14559 -r 100000 -n lo
+
+# Start the jmavsim visualization stream. Change -t ip address to your desired endpoint
+# TODO: Should go through voxl-mavlink-server, not just direct like this
+# mavlink start -x -u 14560 -o 14560 -r 4000000 -t 192.168.101.1 -m minimal
+# mavlink stream -u 14560 -s HIL_STATE_QUATERNION -r 200
+
+mavlink boot_complete
+
+# Start logging module. This is done as the last step because any topics
+# marked as optional will only be logged if they have been advertised when
+# this is started. By starting it last it makes sure to see those
+# advertisements as the other modules are starting before it.
+#
+# Set logger mode based on SDLOG_MODE parameter:
+#   0: log when armed until disarm (default)
+#   1: log from boot until disarm
+#   2: log from boot until shutdown
+#   3: log based on AUX1 RC channel
+#   4: log from first armed until shutdown
+LOGGER_ARGS=""
+if param compare SDLOG_MODE 1
+then
+	LOGGER_ARGS="-e"
+fi
+if param compare SDLOG_MODE 2
+then
+	LOGGER_ARGS="-f"
+fi
+if param compare SDLOG_MODE 3
+then
+	LOGGER_ARGS="-x"
+fi
+if param compare SDLOG_MODE 4
+then
+	LOGGER_ARGS="-a"
+fi
+logger start $LOGGER_ARGS

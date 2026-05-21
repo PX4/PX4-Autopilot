@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@red-asuka/vitepress-plugin-tabs": "0.0.4",
-    "lite-youtube-embed": "^0.3.3",
+    "lite-youtube-embed": "^0.3.4",
     "markdown-it-mathjax3": "^4.3.2",
     "medium-zoom": "^1.1.0",
     "open-editor": "^5.0.0",
@@ -26,7 +26,7 @@
     "vue3-tabs-component": "^1.3.7"
   },
   "devDependencies": {
-    "prettier": "^3.2.0"
+    "prettier": "^3.8.3"
   },
   "resolutions": {
     "markdown-it": "^14.1.1",

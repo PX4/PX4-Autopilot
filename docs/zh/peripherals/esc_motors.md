@@ -9,18 +9,20 @@ PX4 supports a number of [common protocols](../esc/esc_protocols.md) for sending
 
 The following list is non-exhaustive.
 
-| ESC Device                     | Protocols                            | Firmwares                | 备注                                                    |
-| ------------------------------ | ------------------------------------ | ------------------------ | ----------------------------------------------------- |
-| [ARK 4IN1 ESC]                 | [Dshot], [PWM]                       | [AM32]                   | Has versions with/without connectors                  |
-| [Holybro Kotleta 20]           | [DroneCAN], [PWM]                    | [PX4 Sapog ESC Firmware] |                                                       |
-| [Vertiq Motor & ESC modules]   | [Dshot], [OneShot], Multishot, [PWM] | Vertiq firmware          | Larger modules support DroneCAN, ESC and Motor in one |
-| [RaccoonLab CAN PWM ESC nodes] | [DroneCAN], Cyphal                   |                          | Cyphal and DroneCAN notes for PWM ESC                 |
-| [VESC ESCs]                    | [DroneCAN], [PWM]                    | VESC project firmware    |                                                       |
-| [Zubax Telega]                 | [DroneCAN], [PWM]                    | Telega-based             | ESC and Motor in one                                  |
+| ESC Device                     | Protocols                            | Firmwares                | 备注                                                                       |
+| ------------------------------ | ------------------------------------ | ------------------------ | ------------------------------------------------------------------------ |
+| [ARK 4IN1 ESC]                 | [Dshot], [PWM]                       | [AM32]                   | Has versions with/without connectors                                     |
+| [Hiwonder 4Ch Encoder Motor]   | I2C                                  |                          | Brushed-DC, 4 channels with encoder feedback (rovers) |
+| [Holybro Kotleta 20]           | [DroneCAN], [PWM]                    | [PX4 Sapog ESC Firmware] |                                                                          |
+| [Vertiq Motor & ESC modules]   | [Dshot], [OneShot], Multishot, [PWM] | Vertiq firmware          | Larger modules support DroneCAN, ESC and Motor in one                    |
+| [RaccoonLab CAN PWM ESC nodes] | [DroneCAN], Cyphal                   |                          | Cyphal and DroneCAN notes for PWM ESC                                    |
+| [VESC ESCs]                    | [DroneCAN], [PWM]                    | VESC project firmware    |                                                                          |
+| [Zubax Telega]                 | [DroneCAN], [PWM]                    | Telega-based             | ESC and Motor in one                                                     |
 
 <!-- Links for table above -->
 
 [ARK 4IN1 ESC]: ../esc/ark_4in1_esc.md
+[Hiwonder 4Ch Encoder Motor]: ../peripherals/hiwonder_emm.md
 [AM32]: https://am32.ca/
 [PX4 Sapog ESC Firmware]: ../dronecan/sapog.md
 [VESC ESCs]: ../peripherals/vesc.md

@@ -89,8 +89,6 @@ parameters:
         7: 'Prio: RC > MAVL 2 > MAVL 1'
         8: 'Prio: MAVL 2 > MAVL 1 > RC'
       default: 3
-      min: 0
-      max: 8
     COM_DISARM_LAND:
       description:
         short: Time-out for auto disarm after landing
@@ -131,6 +129,22 @@ parameters:
         1: Allow arming (with warning)
         2: Allow arming (no warning)
       default: 1
+    COM_GNSSLOSS_ACT:
+      description:
+        short: GNSS loss failsafe mode
+        long: |-
+          Action the system takes when a GNSS failure is detected during flight.
+          Triggers when the active GNSS count drops below SYS_HAS_NUM_GNSS (disabled
+          when SYS_HAS_NUM_GNSS=0), or when two receivers report positions inconsistent
+          with their reported accuracy and SYS_HAS_NUM_GNSS=2 (otherwise warning only).
+          Any value above Warning also blocks arming.
+      type: enum
+      values:
+        0: Warning
+        1: Return
+        2: Land
+        3: Terminate
+      default: 0
     COM_ARM_SWISBTN:
       description:
         short: Arm switch is a momentary button
@@ -139,18 +153,6 @@ parameters:
           1: Arming/disarming triggers when holding the momentary button down like the stick gesture.
       type: boolean
       default: 0
-    COM_DISARM_MAN:
-      description:
-        short: Allow disarming in manual thrust modes
-        long: |-
-          Allow disarming via switch/stick/button on multicopters in manual thrust modes
-
-          0: Disallow disarming when not landed
-          1: Allow disarming in multicopter flight in modes where
-          the thrust is directly controlled by thr throttle stick
-          e.g. Stabilized, Acro
-      type: boolean
-      default: 1
     COM_LOW_BAT_ACT:
       description:
         short: Battery failsafe mode
@@ -179,20 +181,6 @@ parameters:
       min: 0.0
       max: 25.0
       decimal: 1
-    COM_IMB_PROP_ACT:
-      description:
-        short: Imbalanced propeller failsafe mode
-        long: |-
-          Action the system takes when an imbalanced propeller is detected by the failure detector.
-          See also FD_IMB_PROP_THR to set the failure threshold.
-      type: enum
-      values:
-        -1: Disabled
-        0: Warning
-        1: Return
-        2: Land
-      default: 0
-      increment: 1
     COM_OF_LOSS_T:
       description:
         short: Offboard connection loss timeout
@@ -233,17 +221,6 @@ parameters:
         6: Terminate
         7: Disarm
       default: 0
-    COM_OBC_LOSS_T:
-      description:
-        short: Onboard computer connection loss timeout
-        long: Time-out to wait when onboard computer connection is lost before warning
-          about loss connection
-      type: float
-      default: 5.0
-      unit: s
-      min: 0
-      max: 60
-      increment: 0.01
     COM_ARM_IMU_ACC:
       description:
         short: Max accelerometer inconsistency for arming
@@ -416,15 +393,6 @@ parameters:
       default: 0
       volatile: true
       min: 0
-    COM_TAKEOFF_ACT:
-      description:
-        short: Action after TAKEOFF has been accepted
-        long: The mode transition after TAKEOFF has completed successfully.
-      type: enum
-      values:
-        0: Hold
-        1: Mission (if valid)
-      default: 0
     NAV_DLL_ACT:
       description:
         short: Set GCS connection loss failsafe mode
@@ -441,8 +409,6 @@ parameters:
         5: Terminate
         6: Disarm
       default: 0
-      min: 0
-      max: 6
     NAV_RCL_ACT:
       description:
         short: Set manual control loss failsafe mode
@@ -457,8 +423,6 @@ parameters:
         5: Terminate
         6: Disarm
       default: 2
-      min: 1
-      max: 6
     COM_RCL_EXCEPT:
       description:
         short: Manual control loss exceptions
@@ -506,12 +470,17 @@ parameters:
         3: Return mode
         4: Terminate
       default: 0
-      min: 0
-      max: 4
     COM_PARACHUTE:
       description:
-        short: Require MAVLink parachute system to be present and healthy
-      type: boolean
+        short: Parachute requirement and failsafe
+        long: |-
+          Require a MAVLink parachute system for arming and the failsafe action when missing or unhealthy.
+      type: enum
+      values:
+        0: Disabled
+        1: Warning
+        2: Return
+        3: Land
       default: 0
     COM_ARM_CHK_ESCS:
       description:
@@ -575,33 +544,6 @@ parameters:
       default: 1
       min: 0
       max: 4
-    COM_LKDOWN_TKO:
-      description:
-        short: Timeout for detecting a failure after takeoff
-        long: |-
-          A non-zero, positive value specifies the timeframe in seconds within failure detector is allowed to disarm the vehicle
-          if attitude exceeds the limits defined in FD_FAIL_P and FD_FAIL_R.
-          The check is not executed for flight modes that do support acrobatic maneuvers, e.g: Acro (MC/FW) and Manual (FW).
-          A zero or negative value means that the check is disabled.
-      type: float
-      default: 3.0
-      unit: s
-      min: -1.0
-      max: 5.0
-      decimal: 3
-    COM_ARM_SDCARD:
-      description:
-        short: Enable FMU SD card detection check
-        long: |-
-          This check detects if the FMU SD card is missing.
-          Depending on the value of the parameter, the check can be
-          disabled, warn only or deny arming.
-      type: enum
-      values:
-        0: Disabled
-        1: Warning only
-        2: Enforce SD card presence
-      default: 1
     COM_ARM_HFLT_CHK:
       description:
         short: Enable FMU SD card hardfault / watchdog detection check
@@ -612,16 +554,16 @@ parameters:
       default: 1
     COM_ARM_ODID:
       description:
-        short: Enable Drone ID system detection and health check
-        long: |-
-          This check detects if the Open Drone ID system is missing.
-          Depending on the value of the parameter, the check can be
-          disabled, warn only or deny arming.
+        short: Open Drone ID system check and in-flight failsafe
+        long: Actions other than warning also prevent arming.
       type: enum
       values:
         0: Disabled
         1: Warning only
-        2: Enforce Open Drone ID system presence
+        2: Error only
+        3: Return
+        4: Land
+        5: Terminate
       default: 0
     COM_ARM_TRAFF:
       description:

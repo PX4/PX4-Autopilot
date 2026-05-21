@@ -14,13 +14,12 @@
 #   docker run --rm -it --network host \
 #     -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix \
 #     --gpus all px4io/px4-sitl-gazebo:v1.17.0
-
-FROM ubuntu:24.04 AS extract
-COPY px4-gazebo_*.deb /tmp/
-RUN apt-get update && apt-get install -y --no-install-recommends binutils \
-    && dpkg -x /tmp/px4-gazebo_*.deb /staging \
-    && strip /staging/opt/px4-gazebo/bin/px4 \
-    && rm -rf /var/lib/apt/lists/*
+#
+# Persist flight logs on the host (ulog files):
+#   mkdir -p ./px4-logs
+#   docker run --rm -it --network host \
+#     -v $(pwd)/px4-logs:/root/.local/share/px4/rootfs/log \
+#     px4io/px4-sitl-gazebo:v1.17.0
 
 FROM ubuntu:24.04
 LABEL maintainer="PX4 Development Team"
@@ -29,8 +28,8 @@ LABEL description="PX4 SITL with Gazebo Harmonic simulation"
 ENV DEBIAN_FRONTEND=noninteractive
 ENV RUNS_IN_DOCKER=true
 
-# Install Gazebo Harmonic with buildkit cache mounts for apt
-# The --mount=type=cache persists /var/cache/apt and /var/lib/apt across builds
+# Configure the OSRF Gazebo apt repo so Gazebo Harmonic (a Depends: of the
+# px4-gazebo .deb) resolves from it in the install step below.
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update \
@@ -44,13 +43,23 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg \
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" \
         > /etc/apt/sources.list.d/gazebo-stable.list \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends \
-        gz-harmonic
+    && apt-get update
 
-# Install PX4 files from .deb
-COPY --from=extract /staging/opt/px4-gazebo /opt/px4-gazebo
-RUN ln -sf /opt/px4-gazebo/bin/px4-gazebo /usr/bin/px4-gazebo
+# Install px4-gazebo via apt so its Depends (Gazebo Harmonic, OpenCV, GStreamer
+# core libs, gstreamer plugin packages) are resolved automatically. The binary
+# is stripped after install to trim image size (~a few MB).
+COPY px4-gazebo_*.deb /tmp/
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update \
+    && apt-get install -y --no-install-recommends \
+        /tmp/px4-gazebo_*.deb \
+        binutils \
+    && strip /opt/px4-gazebo/bin/px4 \
+    && apt-get purge -y binutils \
+    && apt-get autoremove -y \
+    && rm -f /tmp/px4-gazebo_*.deb \
+    && ln -sf /opt/px4-gazebo/bin/px4-gazebo /usr/bin/px4-gazebo
 
 # Create the DART physics engine symlink (avoids needing the -dev package)
 RUN GZ_PHYSICS_DIR=$(find /usr/lib -maxdepth 3 -type d -name "engine-plugins" -path "*/gz-physics-7/*" 2>/dev/null | head -1) \

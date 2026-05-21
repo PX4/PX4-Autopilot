@@ -78,7 +78,8 @@ protected:
 	StickYaw _stick_yaw{this};
 
 	bool _sticks_data_required = true; ///< let inherited task-class define if it depends on stick data
-	bool _terrain_hold{false}; /**< true when vehicle is controlling height above a static ground position */
+	bool _terrain_hold{false}; /**< MPC_ALT_MODE=2 sub-state: true when latched onto ground distance while stationary. Input to the terrain-following gate. */
+	bool _z_setpoint_from_terrain{false}; /**< Output of _terrainFollowing() for this iteration: true iff it produced a finite _position_setpoint(2). */
 
 	float _velocity_constraint_up{INFINITY};
 	float _velocity_constraint_down{INFINITY};

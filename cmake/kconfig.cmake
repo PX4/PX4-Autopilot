@@ -44,6 +44,10 @@ if(EXISTS ${BOARD_DEFCONFIG})
 			OUTPUT_VARIABLE DUMMY_RESULTS
 		)
 	else()
+		# Non-default labels merge default.px4board + {label}.px4board,
+		# so reconfigure must also trigger on changes to default.px4board.
+		set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${PX4_BOARD_DIR}/default.px4board)
+
 		# Generate boardconfig from default.px4board and {label}.px4board
 		execute_process(
 			COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS}

@@ -121,7 +121,6 @@ public:
 	{
 		_task_should_exit.store(true);
 		_receiver.request_stop();
-		_sign_control.write_key_and_timestamp();
 	}
 
 	void display_status();

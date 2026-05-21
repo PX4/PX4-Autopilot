@@ -65,9 +65,9 @@ uint8 FAULT_FAILED_TO_ARM = 10 # Battery had a problem while arming
 uint8 FAULT_COUNT = 11 # Counter. Keep this as last element
 
 float32 full_charge_capacity_wh # [Wh] Compensated battery capacity
-float32 remaining_capacity_wh # [Wh] Compensated battery capacity remaining
+float32 remaining_capacity_wh # [Wh] [@invalid NaN] Compensated battery capacity remaining
 uint16 over_discharge_count # [-] Number of battery overdischarge
-float32 nominal_voltage # [V] Nominal voltage of the battery pack
+float32 nominal_voltage # [V] [@invalid NaN] Nominal voltage of the battery pack
 
 float32 internal_resistance_estimate # [Ohm] Internal resistance per cell estimate
 float32 ocv_estimate # [V] Open circuit voltage estimate

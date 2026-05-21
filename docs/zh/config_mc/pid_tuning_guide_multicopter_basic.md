@@ -112,11 +112,14 @@ The tuning procedure is:
 
 11. Modify the three PID values using the sliders (for roll rate-tuning these affect `MC_ROLLRATE_K`, `MC_ROLLRATE_I`, `MC_ROLLRATE_D`) and observe the step response again.
     The values are saved to the vehicle as soon as the sliders are moved.
+
     ::: info
     The goal is for the _Response_ curve to match the _Setpoint_ curve as closely as possible (i.e. a fast response without overshoots).
 
 :::
+
     The PID values can be adjusted as follows:
+
     - P (proportional) or K gain:
       - increase this for more responsiveness
       - reduce if the response is overshooting and/or oscillating (up to a certain point increasing the D gain also helps).

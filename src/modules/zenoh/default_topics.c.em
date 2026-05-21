@@ -18,7 +18,7 @@ import os
 
 const char* default_pub_config =
 @[    for pub in publications]@
-	"@(pub['topic']);@(pub['topic_simple']);0\n"
+	"@(pub['topic']);@(pub['topic_simple']);0@[if pub.get('pub_options_str')];@(pub['pub_options_str'])@[end if]\n"
 @[    end for]@
 ;
 

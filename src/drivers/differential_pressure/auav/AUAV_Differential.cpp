@@ -55,6 +55,10 @@ AUAV_Differential::AUAV_Differential(const I2CSPIDriverConfig &config) :
 		_cal_range = 60;
 		break;
 
+	case 4: /* AUAV L60D (+- 60 inH20) */
+		_cal_range = 120;
+		break;
+
 	default:
 		_cal_range = 10; /* Default fallback */
 		break;
@@ -151,7 +155,7 @@ int AUAV_Differential::read_factory_data()
 	int32_t sensor_type = ((char_high - '0') * 10) + (char_low - '0');
 
 	/* Check if the detected sensor type is valid */
-	if (sensor_type != AUAV_LD_05 && sensor_type != AUAV_LD_10 && sensor_type != AUAV_LD_30) {
+	if (sensor_type != AUAV_LD_05 && sensor_type != AUAV_LD_10 && sensor_type != AUAV_LD_30 && sensor_type != AUAV_LD_60) {
 		return PX4_ERROR;
 	}
 

@@ -107,14 +107,19 @@ void FlightTaskManualAltitudeSmoothVel::_setOutputState()
 	_acceleration_setpoint(2) = _smoothing.getCurrentAcceleration();
 	_velocity_setpoint(2) = _smoothing.getCurrentVelocity();
 
-	if (!_terrain_hold) {
-		if (_terrain_hold_previous) {
-			// Reset position setpoint to current position when switching from terrain hold to non-terrain hold
+	if (_z_setpoint_from_terrain) {
+		// Parent class drove the position setpoint from terrain.
+		// Keep smoothing block synchronized to prevent divergence on transitions.
+		_smoothing.setCurrentPosition(_position_setpoint(2));
+
+	} else {
+		if (_z_setpoint_from_terrain_prev) {
+			// Transitioning off terrain-driven Z: reset smoothing to current position
 			_smoothing.setCurrentPosition(_position(2));
 		}
 
 		_position_setpoint(2) = _smoothing.getCurrentPosition();
 	}
 
-	_terrain_hold_previous = _terrain_hold;
+	_z_setpoint_from_terrain_prev = _z_setpoint_from_terrain;
 }

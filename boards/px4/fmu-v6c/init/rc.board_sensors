@@ -25,7 +25,11 @@ fi
 ms5611 -X -b 4 -a 0x77 start
 
 # Internal compass on IMU I2C4 (The same bus is also exposed externally, and therefore marked as external)
-ist8310 -X -b 4 -a 0xc  start
+# Standard FMUv6C uses IST8310; the variant board falls back to RM3100.
+if ! ist8310 -X -b 4 -a 0xc -q start
+then
+	rm3100 -X -b 4 -R 8 start
+fi
 
 # External compass on GPS/I2C1 (the 3rd external bus): standard Holybro Pixhawk 4 or CUAV V5 GPS/compass puck (with lights, safety button, and buzzer)
 ist8310 -X -b 1 -R 10 start
