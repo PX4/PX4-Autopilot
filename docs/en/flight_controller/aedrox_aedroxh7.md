@@ -1,19 +1,19 @@
 # AEDROX AEDROXH7
 
+<Badge type="tip" text="PX4 v1.18" />
+
 ::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://aedrox.com/) for hardware support.
 :::
 
+The AEDROXH7 is an STM32H743-based FPV / racing flight controller from AEDROX.
+
+For full hardware documentation and pinouts, see the [manufacturer documentation](https://aedrox.gitbook.io/docs).
+
 ::: info
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
 :::
-
-The AEDROXH7 is an STM32H743-based FPV / racing flight controller from AEDROX.
-
-Purchase from [aedrox.com](https://www.aedrox.com/).
-
-For full hardware documentation and pinouts, see the [manufacturer documentation](https://aedrox.gitbook.io/docs).
 
 ## Key Features
 
@@ -32,56 +32,61 @@ For full hardware documentation and pinouts, see the [manufacturer documentation
 
 No on-board magnetometer; PX4 runs with `SYS_HAS_MAG=0` and EKF2 gravity fusion enabled by default.
 
+## Where to Buy {#store}
+
+- [aedrox.com](https://www.aedrox.com/).
+
 ## Connectors and Pins
 
 ### UARTs
 
-| Port    | MCU peripheral | Device     | Function                     |
-| ------- | -------------- | ---------- | ---------------------------- |
-| SERIAL1 | USART1         | /dev/ttyS0 | TEL1 (MAVLink)               |
-| SERIAL2 | USART2         | /dev/ttyS1 | GPS1                         |
-| SERIAL3 | USART3         | /dev/ttyS2 | RC input                     |
-| SERIAL4 | UART4          | /dev/ttyS3 | TEL2                         |
-| SERIAL7 | UART7          | /dev/ttyS4 | ESC telemetry (RX only)      |
-| SERIAL8 | UART8          | /dev/ttyS5 | Debug shell (system console) |
+| Port      | MCU peripheral | Device     | Function                     |
+| --------- | -------------- | ---------- | ---------------------------- |
+| `SERIAL1` | USART1         | /dev/ttyS0 | TELEM1 (MAVLink)             |
+| `SERIAL2` | USART2         | /dev/ttyS1 | GPS1                         |
+| `SERIAL3` | USART3         | /dev/ttyS2 | RC input                     |
+| `SERIAL4` | UART4          | /dev/ttyS3 | TELEM2                       |
+| `SERIAL7` | UART7          | /dev/ttyS4 | ESC telemetry (RX only)      |
+| `SERIAL8` | UART8          | /dev/ttyS5 | Debug shell (system console) |
 
-SERIAL7 is wired RX-only by the vendor (intended for ESC telemetry).
-SERIAL8 is the system console at 57600 8N1 (device: `/dev/ttyS5`).
+`SERIAL7` is wired RX-only by the vendor (intended for ESC telemetry).
+`SERIAL8` is the system console at 57600 8N1 (device: `/dev/ttyS5`).
 
-::: note
-The vendor brings SERIAL8 out on the HD VTX connector (intended for DJI / MSP DisplayPort), but the default PX4 config uses it as the system console. To use it for MSP DisplayPort instead, move the console off UART8, then start the [msp_osd](../modules/modules_driver.md#msp-osd) driver on `/dev/ttyS5`.
+::: info
+The vendor brings `SERIAL8` out on the HD VTX connector (intended for DJI / MSP DisplayPort), but the default PX4 config uses it as the system console. To use it for MSP DisplayPort instead, move the console off UART8, then start the [msp_osd](../modules/modules_driver.md#msp-osd) driver on `/dev/ttyS5`.
 :::
 
-### Motor / Servo Outputs
+### PWM Outputs {#pwm_outputs}
 
-8 PWM motor outputs (M1-M8), all DShot and bidirectional-DShot (RPM telemetry) capable.
+8 PWM motor outputs (M1-M8), all [DShot](../peripherals/dshot.md) and [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry) (RPM telemetry) capable.
 
-The M5-M8 motor connector additionally exposes two user-controllable GPIOs (`GPIO1` / `GPIO2`, on PA2 / PA3) alongside the motor signals. Toggle them at runtime with the `gpio` command (see "User GPIOs" below).
+The M5-M8 motor connector additionally exposes two user-controllable GPIOs (`GPIO1` / `GPIO2`, on PA2 / PA3) alongside the motor signals.
+Toggle them at runtime with the `gpio` command (see "User GPIOs" below).
 
 A separate addressable-LED-strip pad is brought out; currently driven as a plain GPIO in this port .
 
 ### Status LEDs
 
-| Silkscreen | MCU pin | Color | Function |
-| ---------- | ------- | ----- | -------- |
-| LED1       | PE2     | Blue  | MCU activity, solid when armed |
-| LED2       | -       | Green | IMU power-supply indicator |
-| LED3       | -       | Green | MCU / baro / OSD power-supply indicator |
+| Silkscreen | MCU pin | Color | Function                                                                     |
+| ---------- | ------- | ----- | ---------------------------------------------------------------------------- |
+| LED1       | PE2     | Blue  | MCU activity, solid when armed                                               |
+| LED2       | -       | Green | IMU power-supply indicator                                                   |
+| LED3       | -       | Green | MCU / baro / OSD power-supply indicator                                      |
 | LED4       | PE5     | Green | MCU activity, blinks based on flight state (preflight / disarmed / failsafe) |
-| LED5       | -       | -     | 10v VTX rail indicator (lit when VTX power is enabled) |
+| LED5       | -       | -     | 10v VTX rail indicator (lit when VTX power is enabled)                       |
 
 ### Other I/O
 
-| Function       | MCU pin | Notes                        |
-| -------------- | ------- | ---------------------------- |
-| Buzzer         | PA7     | Drives an NPN low-side switch, use a basic 2-pin active buzzer (e.g. TMB12A05) |
-| VTX power      | PB1     | Active high                  |
-| Camera switch  | PD15    | Active high, currently hard-coded to camera 1 at boot (no runtime control yet); use `gpio write D15 1` from nsh to switch to camera 2 |
-| PINIO 1 / 2    | PA2 / PA3 | User-controllable GPIOs via `gpio` command |
-| CAN1 silent    | PD12    | Driven low to enable CAN bus  |
-| Battery V sense| PC0     | ADC1 IN10, calibrate `BAT1_V_DIV` per build |
-| Battery I sense| PC1     | ADC1 IN11, calibrate `BAT1_A_PER_V` per ESC, or use DShot telemetry for current (`BAT1_SOURCE`) |
-| USB VBUS sense | PC15    | Non-standard pin for VBUS sense |
+| Function        | MCU pin   | Notes                                                                                                                                 |
+| --------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Buzzer          | PA7       | Drives an NPN low-side switch, use a basic 2-pin active buzzer (e.g. TMB12A05)                                                        |
+| VTX power       | PB1       | Active high                                                                                                                           |
+| Camera switch   | PD15      | Active high, currently hard-coded to camera 1 at boot (no runtime control yet); use `gpio write D15 1` from nsh to switch to camera 2 |
+| PINIO 1 / 2     | PA2 / PA3 | User-controllable GPIOs via `gpio` command                                                                                            |
+| CAN1 silent     | PD12      | Driven low to enable CAN bus                                                                                                          |
+| Battery V sense | PC0       | ADC1 IN10, calibrate `BAT1_V_DIV` per build                                                                                           |
+| Battery I sense | PC1       | ADC1 IN11, calibrate `BAT1_A_PER_V` per ESC, or use DShot telemetry for current (`BAT1_SOURCE`)                                       |
+| USB VBUS sense  | PC15      | Non-standard pin for VBUS sense                                                                                                       |
 
 ### Analog OSD (MAX7456)
 
