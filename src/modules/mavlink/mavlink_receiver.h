@@ -51,6 +51,7 @@
 #include "mavlink_timesync.h"
 #include "tune_publisher.h"
 
+#include <lib/gnss/rtcm.h>
 #include <geo/geo.h>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
@@ -257,6 +258,7 @@ private:
 	void update_rx_stats(const mavlink_message_t &message);
 
 	void publish_hil_battery();
+	void publish_gps_inject_data(const uint8_t *data, size_t len);
 
 	px4::atomic_bool 	_should_exit{false};
 	pthread_t		_thread {};
@@ -369,6 +371,7 @@ private:
 	uORB::PublicationMulti<sensor_baro_s>			_sensor_baro_pub{ORB_ID(sensor_baro)};
 	uORB::PublicationMulti<sensor_gps_s>			_sensor_gps_pub{ORB_ID(sensor_gps)};
 	uORB::PublicationMulti<sensor_optical_flow_s>           _sensor_optical_flow_pub{ORB_ID(sensor_optical_flow)};
+	gnss::GpsRtcmMessageAssembler				_gps_rtcm_message_assembler {};
 
 	// ORB publications (queue length > 1)
 	uORB::Publication<transponder_report_s>  _transponder_report_pub{ORB_ID(transponder_report)};
