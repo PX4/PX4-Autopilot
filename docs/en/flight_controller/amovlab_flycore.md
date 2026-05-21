@@ -1,15 +1,36 @@
 # Amovlab Flycore
 
+<Badge type="tip" text="PX4 v1.18" />
+
 ::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://amovlab.com/) for hardware support or compliance issues.
 :::
 
+<!--
+Insert description
+
+Insert image
+-->
+
 ::: info
 This flight controller is intended for inclusion in the [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md) board list.
 :::
 
-## Sensor and bus configuration
+## Overview
+
+- **MCU:** STM32H743 (Cortex-M7)
+- **Onboard IMU:** Bosch BMI088 (SPI1), InvenSense ICM42688P (SPI2)
+- **Onboard barometer:** MS5611 (SPI1)
+- **PWM:** 10 FMU outputs (no PX4IO coprocessor)
+- **CAN:** dual external CAN (FDCAN1 / FDCAN2)
+- **USB:** product string `AMOVLAB FLYCORE`
+
+## Where to Buy {#store}
+
+TBD
+
+## Sensor and Bus Configuration
 
 The default Flycore PX4 port matches the hardware as shipped:
 
@@ -21,55 +42,48 @@ The default Flycore PX4 port matches the hardware as shipped:
 
 Without an external magnetometer, yaw in flight relies on GPS course when available and other estimator settings as configured in QGroundControl. Plan missions accordingly for GPS-denied operation.
 
-## Overview
-
-- **MCU:** STM32H743 (Cortex-M7)
-- **Onboard IMU:** Bosch BMI088 (SPI1), InvenSense ICM42688P (SPI2)
-- **Onboard barometer:** MS5611 (SPI1)
-- **PWM:** 10 FMU outputs (no PX4IO coprocessor)
-- **CAN:** dual external CAN (FDCAN1 / FDCAN2)
-- **USB:** product string `AMOVLAB FLYCORE`
-
 ## Serial port mapping
 
-| Port   | Device        | `default.px4board` |
-| ------ | ------------- | ------------------ |
-| TELEM1 | `/dev/ttyS0`  | CONFIG_BOARD_SERIAL_TEL1 |
-| TELEM2 | `/dev/ttyS1`  | CONFIG_BOARD_SERIAL_TEL2 |
-| GPS1   | `/dev/ttyS2`  | CONFIG_BOARD_SERIAL_GPS1 |
-| TELEM3 | `/dev/ttyS3`  | CONFIG_BOARD_SERIAL_TEL3 |
-| RC     | `/dev/ttyS4`  | CONFIG_BOARD_SERIAL_RC |
-| GPS2   | `/dev/ttyS5`  | CONFIG_BOARD_SERIAL_GPS2 |
+| Port   | Device       | `default.px4board`       |
+| ------ | ------------ | ------------------------ |
+| TELEM1 | `/dev/ttyS0` | CONFIG_BOARD_SERIAL_TEL1 |
+| TELEM2 | `/dev/ttyS1` | CONFIG_BOARD_SERIAL_TEL2 |
+| GPS1   | `/dev/ttyS2` | CONFIG_BOARD_SERIAL_GPS1 |
+| TELEM3 | `/dev/ttyS3` | CONFIG_BOARD_SERIAL_TEL3 |
+| RC     | `/dev/ttyS4` | CONFIG_BOARD_SERIAL_RC   |
+| GPS2   | `/dev/ttyS5` | CONFIG_BOARD_SERIAL_GPS2 |
 
-## Building firmware
+## Building Firmware
+
+To [build PX4](../dev_setup/building_px4.md) for this target:
 
 ```sh
 make amovlab_flycore_default
 ```
 
-Bootloader:
-
-```sh
-make amovlab_flycore_bootloader
-```
-
-Upload (USB):
+Build an upload via USB:
 
 ```sh
 make amovlab_flycore_default upload
 ```
 
-## Bootloader / board ID
+Build the Bootloader:
+
+```sh
+make amovlab_flycore_bootloader
+```
+
+## Bootloader / Board ID
 
 - **board_id:** 106 (`boards/amovlab/flycore/firmware.prototype`)
 - Bootloader USB product string: `PX4 BL AMOV FLYCORE`
 
-## Default airframe
+## Default Airframe
 
 For hardware type `FLYCORE0000`, `rc.board_defaults` sets `SYS_AUTOSTART` to **4014** (generic multicopter airframe class).
 Adjust the airframe in QGroundControl to match your vehicle.
 
-## Optional external magnetometer
+## Optional External Magnetometer
 
 If you install a GPS/compass module on I2C1 or I2C4, probe the bus (`i2cdetect -b 1` / `i2cdetect -b 4`) and start the matching driver manually, for example:
 
