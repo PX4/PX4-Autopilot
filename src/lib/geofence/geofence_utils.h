@@ -49,8 +49,21 @@ namespace geofence_utils
 
 /**
  * Sign of the signed area of triangle abc -- the fundamental 2D orientation
- * predicate. +1 if c is left of a->b (CCW turn), -1 if right (CW turn),
- * 0 if collinear. Reference: O'Rourke, "Computational Geometry in C", 1.5.
+ * predicate. Returns:
+ *   +1, if c is left of a->b (CCW turn)
+ *   -1, if c is right of a->b (CW turn)
+ *    0, if collinear
+ *
+ * Refs:
+ *
+ * Fundamental ideas, usage of orient2d for higher level geometry:
+ * Lecture Notes on Geometric Robustness, Jonathan Richard Shewchuk
+ * https://perso.uclouvain.be/jean-francois.remacle/LMECA2170/robnotes.pdf
+ *
+ * The fact that in fixed-point orient2d is automatically exact:
+ * Computational Geometry in C, Joseph O'Rourke
+ * https://www.science.smith.edu/~jorourke/books/compgeom.html
+ *
  */
 inline int orient2d(int32_t ax, int32_t ay,
 		    int32_t bx, int32_t by,
@@ -92,8 +105,9 @@ inline bool collinearBetween(int32_t ax, int32_t ay, int32_t bx, int32_t by, int
  *   Collinear   ab and cd lie on the same supporting line (overlap or not)
  *   Disjoint    none of the above
  *
- * Reference: O'Rourke, "Computational Geometry in C" (2nd ed.), SegSegInt,
- * section 1.5.
+ * Ref: SegSegInt implementation from:
+ * Computational Geometry in C, Joseph O'Rourke
+ * https://www.science.smith.edu/~jorourke/books/compgeom.html
  */
 enum class SegSegResult {
 	Disjoint,

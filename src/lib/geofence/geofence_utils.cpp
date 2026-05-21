@@ -83,8 +83,9 @@ bool PlannerPolygons::addPolygon(const matrix::Vector2f *vertices_in, int num_ve
 		return false;
 	}
 
-	// Canonical stored orientation: left normal of each edge points inward for
-	// exclusion (CCW), outward for inclusion (CW) -- flip for inclusion.
+	// Canonical stored orientation: left normal of each edge points into forbidden region, that is:
+	//  - inward for exclusion (CCW)
+	//  - outward for inclusion (CW)
 	const float inward_sign = is_inclusion_zone ? -1.f : 1.f;
 
 	for (int i = 0; i < num_vertices; i++) {
@@ -160,8 +161,8 @@ bool PlannerPolygons::addApproxCircle(const matrix::Vector2f &center, const floa
 	}
 
 	// ensures that the k-gon is, w.r.t the real circle:
-	//  - over-approximation, if exclusion
-	//  - under-approximation, if inclusion
+	//  - over-approximation of circle grown by margin, if exclusion
+	//  - under-approximation of circle shrunk by margin, if inclusion
 	const float k_gon_radius = is_inclusion_zone
 				   ? circle_radius - margin
 				   : circle_radius / cosf(M_PI_F / num_vertices) + margin;
@@ -170,7 +171,7 @@ bool PlannerPolygons::addApproxCircle(const matrix::Vector2f &center, const floa
 		return false;
 	}
 
-	// CCW for exclusion, CW for inclusion — same convention as addPolygon.
+	// Canonical orientation: CCW for exclusion, CW for inclusion
 	const float delta_angle = (is_inclusion_zone ? -1.f : 1.f) * 2.f * M_PI_F / num_vertices;
 
 	PolygonInfo &poly = _polygons[_num_polygons];
@@ -300,7 +301,9 @@ bool PlannerPolygons::intersectsInsideOf(const PolygonInfo &poly,
 			break;
 		}
 
-		// (2) midpoint winding contribution (Sunday)
+		// (2) midpoint winding contribution
+		// Ref: Dan Sunday, Inclusion of a Point in a Polygon
+		// https://web.archive.org/web/20130126163405/http://geomalgorithms.com/a03-_inclusion.html
 
 		// Rather than calculating the midpoint (mid = (s + e)/2)
 		// explicitly, which will lead to rounding error for uneven
