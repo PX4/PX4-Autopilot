@@ -67,8 +67,11 @@ For a longer term solution we highly recommend 3d printing mounts that you attac
 
 ## Building the Firmware
 
-The Hiwonder EMM motor driver is included by default in many rover builds, but if your board does not ship with it you will need a custom build.
-See [Hiwonder 4-Channel Encoder Motor Module > Building the Firmware](../peripherals/hiwonder_emm.md#building-the-firmware) for instructions.
+This frame works with the usual Rover firmware variants on most flight controllers.
+You can use either prebuilt versions or build the firmware yourself (see [Flashing the Rover Build](../config_rover/index.md#flashing-the-rover-build) and [Building Rover](../config_rover/index.md#building-rover) in _Rover Configuration/Tuning_).
+
+A few boards may omit the [`hiwonder_emm` driver](../modules/modules_driver.md#hiwonder_emm) for the [Hiwonder 4-Channel Encoder Motor Module](../peripherals/hiwonder_emm.md) used by this vehicle.
+If your board does not ship with it you will need a custom build — see [Hiwonder 4-Channel Encoder Motor Module > Building the Firmware](../peripherals/hiwonder_emm.md#building-the-firmware) for instructions.
 
 ## PX4 Configuration
 
