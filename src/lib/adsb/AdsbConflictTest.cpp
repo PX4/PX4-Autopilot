@@ -22,6 +22,72 @@ public:
 };
 
 
+TEST_F(AdsbConflictTest, conflictBufferLifecycle)
+{
+	// Verifies the full conflict buffer state machine management cycle without
+	// requiring a running system or uORB.
+
+	TestAdsbConflict adsb;
+	adsb.set_conflict_detection_params(500.f, 500.f, 60, 1);
+
+	const double lat_uav = 32.617013;
+	const double lon_uav = -96.490564;
+	const float  alt_uav = 1000.f;
+	hrt_abstime  now     = 1_s;
+
+	auto inject = [&](uint32_t icao, float distance_m) {
+		double tr_lat, tr_lon;
+		waypoint_from_heading_and_distance(lat_uav, lon_uav, 1.f, distance_m, &tr_lat, &tr_lon);
+		adsb._transponder_report           = {};
+		adsb._transponder_report.icao_address  = icao;
+		adsb._transponder_report.lat           = tr_lat;
+		adsb._transponder_report.lon           = tr_lon;
+		adsb._transponder_report.altitude      = alt_uav;
+		adsb._transponder_report.heading       = 0.f;
+		adsb._transponder_report.hor_velocity  = 90000.f;
+		adsb._transponder_report.ver_velocity  = 0.f;
+		adsb.detect_traffic_conflict(lat_uav, lon_uav, alt_uav, 0.f, 0.f, 0.f);
+		adsb.get_traffic_state(now++);
+	};
+
+	// GIVEN NAVIGATOR_MAX_TRAFFIC aircraft on a collision course
+	// WHEN each report is processed
+	// THEN each is added to the conflict buffer
+	for (uint32_t i = 1; i <= NAVIGATOR_MAX_TRAFFIC; i++) {
+		inject(i, 5.f);
+		EXPECT_EQ(adsb._traffic_state, TRAFFIC_STATE::ADD_CONFLICT);
+	}
+
+	// GIVEN the buffer is now full
+	// WHEN three more conflicting aircraft arrive
+	// THEN they are dropped with BUFFER_FULL — existing entries are not evicted
+	const uint32_t overflow_start = NAVIGATOR_MAX_TRAFFIC + 1;
+	const uint32_t overflow_end   = NAVIGATOR_MAX_TRAFFIC + 3;
+
+	for (uint32_t i = overflow_start; i <= overflow_end; i++) {
+		inject(i, 5.f);
+		EXPECT_EQ(adsb._traffic_state, TRAFFIC_STATE::BUFFER_FULL);
+	}
+
+	// GIVEN four of the known conflicts move out of detection range
+	// WHEN their updated positions are processed
+	// THEN they are removed from the buffer, freeing four slots
+	const uint32_t drain_count = 4;
+
+	for (uint32_t i = 1; i <= drain_count; i++) {
+		inject(i, 5000.f);
+		EXPECT_EQ(adsb._traffic_state, TRAFFIC_STATE::REMOVE_OLD_CONFLICT);
+	}
+
+	// GIVEN four slots are now free
+	// WHEN four new conflicting aircraft arrive (including previously-dropped ones)
+	// THEN they are accepted into the buffer
+	for (uint32_t i = overflow_start; i <= overflow_start + drain_count - 1; i++) {
+		inject(i, 5.f);
+		EXPECT_EQ(adsb._traffic_state, TRAFFIC_STATE::ADD_CONFLICT);
+	}
+}
+
 TEST_F(AdsbConflictTest, detectTrafficConflict)
 {
 	int collision_time_threshold = 60;
