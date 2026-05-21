@@ -20,8 +20,6 @@ af9838 <command> [arguments...]
                  default: 12
      [-R <val>]  Rotation
                  default: 0
-     [-r <val>]  Output rate (Hz)
-                 default: 100.0
 
    stop
 
