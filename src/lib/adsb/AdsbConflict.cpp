@@ -168,8 +168,9 @@ void AdsbConflict::remove_expired_conflicts()
 	}
 }
 
-bool AdsbConflict::handle_traffic_conflict()
+bool AdsbConflict::handle_traffic_conflict(bool vehicle_armed)
 {
+	_vehicle_armed = vehicle_armed;
 	const hrt_abstime now = hrt_absolute_time();
 
 	get_traffic_state(now);
@@ -237,7 +238,14 @@ bool AdsbConflict::send_traffic_warning(int traffic_direction, int traffic_seper
 					char tr_callsign[UTM_CALLSIGN_LENGTH], uint32_t icao_address, hrt_abstime now)
 {
 
-	switch (_conflict_detection_params.traffic_avoidance_mode) {
+	uint8_t effective_mode = _conflict_detection_params.traffic_avoidance_mode;
+
+	if (!_vehicle_armed && _conflict_detection_params.traffic_avoidance_mode >= 2) {
+		// When not armed, only demote actions to warnings
+		effective_mode = 1;
+	}
+
+	switch (effective_mode) {
 
 	case 0: {
 

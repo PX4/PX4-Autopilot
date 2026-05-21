@@ -122,7 +122,7 @@ public:
 
 	transponder_report_s _transponder_report{};
 
-	bool handle_traffic_conflict();
+	bool handle_traffic_conflict(bool vehicle_armed);
 
 	void fake_traffic(const char *const callsign, float distance, float direction, float traffic_heading,
 			  float altitude_diff,
@@ -144,6 +144,7 @@ protected:
 	traffic_buffer_s _traffic_buffer;
 
 private:
+	bool _vehicle_armed{false};
 
 	crosstrack_error_s _crosstrack_error{};
 

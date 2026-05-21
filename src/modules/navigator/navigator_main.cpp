@@ -1308,7 +1308,7 @@ void Navigator::check_traffic()
 			_adsb_conflict.detect_traffic_conflict(get_global_position()->lat, get_global_position()->lon,
 							       get_global_position()->alt, _local_pos.vx, _local_pos.vy, _local_pos.vz);
 
-			if (_adsb_conflict.handle_traffic_conflict()) {
+			if (_adsb_conflict.handle_traffic_conflict(_vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED)) {
 				take_traffic_conflict_action();
 			}
 		}
