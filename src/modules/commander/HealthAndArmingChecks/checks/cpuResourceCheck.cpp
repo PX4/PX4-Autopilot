@@ -50,6 +50,10 @@ void CpuResourceChecks::checkAndReport(const Context &context, Report &reporter)
 		return;
 	}
 
+	if (!_cpuload_sub.advertised()) {
+		return;
+	}
+
 	cpuload_s cpuload;
 
 	if (!_cpuload_sub.copy(&cpuload) || hrt_elapsed_time(&cpuload.timestamp) > 2_s) {

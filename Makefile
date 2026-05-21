@@ -181,6 +181,20 @@ define cmake-build
 	@$(eval BUILD_DIR = "$(SRC_DIR)/build/$(1)")
 	@# check if the desired cmake configuration matches the cache then CMAKE_CACHE_CHECK stays empty
 	@$(call cmake-cache-check)
+	@# NuttX builds into the shared submodule trees under platforms/nuttx/NuttX/{nuttx,apps},
+	@# not into build/$(1)/. Recursive make there does not treat PX4 defconfig changes as a
+	@# reason to recompile, so switching board configs links stale objects (e.g. kmm_* from a
+	@# protected build into a flat build). Wipe the submodules when the active target changes,
+	@# mirroring Tools/ci/build_all_runner.sh.
+	@mkdir -p "$(SRC_DIR)/build"
+	@stamp="$(SRC_DIR)/build/.last_target"; \
+	prev=$$(cat "$$stamp" 2>/dev/null || echo ""); \
+	if [ "$$prev" != "$(1)" ]; then \
+		[ -n "$$prev" ] && echo "switching NuttX target $$prev -> $(1): wiping submodule state"; \
+		git -C "$(SRC_DIR)/platforms/nuttx/NuttX/nuttx" clean -dXfq 2>/dev/null || true; \
+		git -C "$(SRC_DIR)/platforms/nuttx/NuttX/apps"  clean -dXfq 2>/dev/null || true; \
+		echo "$(1)" > "$$stamp"; \
+	fi
 	@# make sure to start from scratch when switching from GNU Make to Ninja
 	@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(BUILD_DIR)/Makefile ]; then rm -rf $(BUILD_DIR); fi
 	@# make sure to start from scratch if ninja build file is missing
@@ -336,10 +350,12 @@ px4io_update:
 	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/fmu-v6c/extras/px4_io-v2_default.bin
 	# cubepilot_io-v2_default
 	cp build/cubepilot_io-v2_default/cubepilot_io-v2_default.bin boards/cubepilot/cubeorange/extras/cubepilot_io-v2_default.bin
+	cp build/cubepilot_io-v2_default/cubepilot_io-v2_default.bin boards/cubepilot/cubeorangeplus/extras/cubepilot_io-v2_default.bin
 	cp build/cubepilot_io-v2_default/cubepilot_io-v2_default.bin boards/cubepilot/cubeyellow/extras/cubepilot_io-v2_default.bin
 	git status
 
 bootloaders_update: \
+	3dr_ctrl-n1_bootloader \
 	3dr_ctrl-zero-h7-oem-revg_bootloader \
 	ark_fmu-v6x_bootloader \
 	ark_fpv_bootloader \

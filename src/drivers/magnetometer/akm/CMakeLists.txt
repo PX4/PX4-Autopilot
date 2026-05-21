@@ -33,3 +33,4 @@
 
 add_subdirectory(ak8963)
 add_subdirectory(ak09916)
+add_subdirectory(ak09940a)

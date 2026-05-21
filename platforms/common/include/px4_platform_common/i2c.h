@@ -84,7 +84,7 @@ public:
 
 	int externalBusIndex() const { return _external_bus_counter; }
 
-	bool external() const { return px4_i2c_bus_external(_bus); }
+	bool external() const { return px4_i2c_bus_external(bus().bus); }
 
 private:
 	const FilterType _filter;
