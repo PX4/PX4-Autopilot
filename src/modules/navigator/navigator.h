@@ -153,7 +153,6 @@ public:
 	 */
 	void check_traffic();
 	void take_traffic_conflict_action();
-	void run_fake_traffic();
 #endif // CONFIG_NAVIGATOR_ADSB
 
 	/**

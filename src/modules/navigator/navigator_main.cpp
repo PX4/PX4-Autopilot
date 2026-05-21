@@ -1288,12 +1288,6 @@ void Navigator::take_traffic_conflict_action()
 	}
 }
 
-void Navigator::run_fake_traffic()
-{
-	_adsb_conflict.run_fake_traffic(get_global_position()->lat, get_global_position()->lon,
-					get_global_position()->alt);
-}
-
 void Navigator::check_traffic()
 {
 	if (_traffic_sub.updated()) {
@@ -1361,11 +1355,6 @@ int Navigator::custom_command(int argc, char *argv[])
 
 #if CONFIG_NAVIGATOR_ADSB
 
-	} else if (!strcmp(argv[0], "fake_traffic")) {
-
-		get_instance<Navigator>(desc)->run_fake_traffic();
-
-		return 0;
 #endif // CONFIG_NAVIGATOR_ADSB
 	}
 
@@ -1718,7 +1707,6 @@ controller.
 	PRINT_MODULE_USAGE_NAME("navigator", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("fencefile", "load a geofence file from SD card, stored at etc/geofence.txt");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("fake_traffic", "publishes 24 fake transponder_report_s uORB messages");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;

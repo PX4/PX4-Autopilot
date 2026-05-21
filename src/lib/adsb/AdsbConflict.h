@@ -124,13 +124,6 @@ public:
 
 	bool handle_traffic_conflict();
 
-	void fake_traffic(const char *const callsign, float distance, float direction, float traffic_heading,
-			  float altitude_diff,
-			  float hor_velocity, float ver_velocity, int emitter_type, uint32_t icao_address, double lat_uav, double lon_uav,
-			  float &alt_uav);
-
-	void run_fake_traffic(double &lat_uav, double &lon_uav, float &alt_uav);
-
 	void remove_expired_conflicts();
 
 	bool _conflict_detected{false};
@@ -146,10 +139,6 @@ protected:
 private:
 
 	crosstrack_error_s _crosstrack_error{};
-
-	transponder_report_s tr{};
-
-	orb_advert_t fake_traffic_report_publisher = orb_advertise(ORB_ID(transponder_report), &tr);
 
 	TRAFFIC_STATE _traffic_state_previous{TRAFFIC_STATE::NO_CONFLICT};
 
