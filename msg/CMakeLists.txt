@@ -281,6 +281,9 @@ set(msg_files
 	versioned/VehicleStatus.msg
 	versioned/VtolVehicleStatus.msg
 	versioned/Wind.msg
+
+	#Custom messages
+	FalconController.msg
 )
 list(SORT msg_files)
 

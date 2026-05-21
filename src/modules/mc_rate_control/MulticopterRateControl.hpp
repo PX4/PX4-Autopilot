@@ -34,6 +34,7 @@
 #pragma once
 
 #include <lib/rate_control_FALCON/rate_control_falcon.hpp>
+#include <lib/rate_control/rate_control.hpp>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>

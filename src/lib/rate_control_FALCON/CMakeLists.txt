@@ -32,13 +32,15 @@
 ############################################################################
 
 px4_add_library(RateControlFalcon
-	FALCON/RSLQR/RSLQR.cpp
-	FALCON/RSLQR/RSLQR.hpp
+	FALCON/Controllers/RSLQR.cpp
+	FALCON/Controllers/RSLQR.hpp
+	FALCON/Controllers/PID.cpp
+	FALCON/Controllers/PID.hpp
 	rate_control_falcon.cpp
 	rate_control_falcon.hpp
 	gain_compression.cpp
 	gain_compression.hpp
-	
+
 
 )
 target_compile_options(RateControlFalcon PRIVATE ${MAX_CUSTOM_OPT_LEVEL})

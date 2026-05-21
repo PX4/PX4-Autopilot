@@ -32,11 +32,12 @@
  ****************************************************************************/
 
 /**
- * @file rate_control.cpp
+ * @file rate_control_falcon.cpp
  */
 
 #include "rate_control_falcon.hpp"
 #include <px4_platform_common/defines.h>
+#include <iostream>
 
 
 
@@ -49,10 +50,17 @@ using namespace matrix;
 
 void RateControlFalcon::setPidGains(const Vector3f &P, const Vector3f &I, const Vector3f &D)
 {
-	// Load bearing variables: LEAVE
-	_gain_p = P;
-	_gain_i = I;
-	_gain_d = D;
+
+	// _roll_controller.set_gains(P(0), I(0), D(0));
+	// _pitch_controller.set_gains(P(1), I(1), D(1));
+	// _yaw_controller.set_gains(P(2), I(2), D(2));
+	// _gain_p = P;
+	// _gain_i = I;
+	// _gain_d = D;
+
+	_roll_controller.set_gains(0.2f, 0.00075f, 0.0f);
+	_pitch_controller.set_gains(0.2f, 0.00075f, 0.0f);
+	_yaw_controller.set_gains(0.5f, 0.0075f, 0.0f);
 
 	/* _roll_controller = RSLQR(_gain_p(0), _gain_i(0), 1.0f, -1.0f, _lim_int(0));
 	_pitch_controller = RSLQR(_gain_p(1), _gain_i(1), 1.0f, -1.0f, _lim_int(1));
@@ -63,11 +71,43 @@ void RateControlFalcon::setPidGains(const Vector3f &P, const Vector3f &I, const 
 	//_pitch_controller = new RSLQR("pitch");
 	//_yaw_controller = new RSLQR("yaw");
 
-	_roll_controller = RSLQR(0.15500f, 0.75f, 1.0f, -1.0f, _lim_int(0));
+	// 4/21 4:18  Sluggish, overdamped
+/* 	_roll_controller = RSLQR(0.15500f, 0.75f, 1.0f, -1.0f, _lim_int(0));
 	_pitch_controller = RSLQR(0.15500f, 0.75f, 1.0f, -1.0f, _lim_int(1));
 	_yaw_controller = RSLQR(0.10f, 0.75f, 1.0f, -1.0f, _lim_int(2));
+ */
+	// 4:40			Strange Yaw behavior
+	/* _roll_controller 	= RSLQR(0.15500f, 0.75f, 1.0f, -1.0f, _lim_int(0));
+	_pitch_controller 	= RSLQR(0.15500f, 0.75f, 1.0f, -1.0f, _lim_int(1));
+	_yaw_controller 	= RSLQR(0.10f	, 1.25f, 1.0f, -1.0f, _lim_int(2)); */
+
+	// 4:45 Faught back less on yaw
 
 
+
+ // 5:10 Death Spiral: Was miuch less responsive in yaw rate. recommend moving kp back to previous value and adjusting integral gain
+ //possibly increase the proportional gain. It ended up suddenly spiraling/decending in yaw rate. not sure why
+
+	/* _roll_controller 	= RSLQR(0.15500f, 0.75f, 1.0f, -1.0f, _lim_int(0));
+	_pitch_controller 	= RSLQR(0.15500f, 0.75f, 1.0f, -1.0f, _lim_int(1));
+	_yaw_controller 	= RSLQR(0.010f	, 1.00f, 1.0f, -1.0f, _lim_int(2)); */
+
+	// DAY 2
+
+// Trouble taking off
+/* 	_roll_controller 	= RSLQR(0.15500f, 0.75f, 1.0f, -1.0f, _lim_int(0));
+	_pitch_controller 	= RSLQR(0.15500f, 0.75f, 1.0f, -1.0f, _lim_int(1));
+	_yaw_controller 	= RSLQR(0.150f	, 1.75f, 1.0f, -1.0f, _lim_int(2));
+ */
+// Sluggish, slower but more stable
+
+/* _roll_controller = RSLQR(0.15500f, 0.75f, 1.0f, -1.0f, _lim_int(0));
+	_pitch_controller = RSLQR(0.15500f, 0.75f, 1.0f, -1.0f, _lim_int(1));
+	_yaw_controller = RSLQR(0.05f, 0.35f, 1.0f, -1.0f, _lim_int(2)); */
+
+	/* _roll_controller 	= RSLQR(0.15500f, 0.75f	, 1.0f, -1.0f, _lim_int(0));
+	_pitch_controller 	= RSLQR(0.15500f, 0.75f	, 1.0f, -1.0f, _lim_int(1));
+	_yaw_controller 	= RSLQR(0.05f	, 0.5f	, 10.0f, -10.0f, _lim_int(2)); */
 
 
 }
@@ -99,32 +139,42 @@ Vector3f RateControlFalcon::update(const Vector3f &rate, const Vector3f &rate_sp
 {
 
 	//(roll, pitch, yaw)
-	float p_sp = rate_sp(0);
-	float q_sp = rate_sp(1);
-	float r_sp = rate_sp(2);
-
 	float p = rate(0);
 	float q = rate(1);
 	float r = rate(2);
 
-	float roll_torque 	= _roll_controller.update(p, p_sp, dt, landed);
-	float pitch_torque 	= _pitch_controller.update(q, q_sp, dt, landed);
-	float yaw_torque 	= _yaw_controller.update(r, r_sp, dt, landed);
+	float p_sp = rate_sp(0);
+	float q_sp = rate_sp(1);
+	float r_sp = rate_sp(2);
 
-	Vector3f torque = {roll_torque, pitch_torque, yaw_torque};
+	float p_ang = angular_accel(0);
+	float q_ang = angular_accel(1);
+	float r_ang = angular_accel(2);
 
-	// Export controller state to CSV for analysis
-	/* if (_logControllerState) {
-		std::vector<float> data = {
-			{rate(0), rate(1), rate(2), 
-			rate_sp(0), rate_sp(1), rate_sp(2), 
-			angular_accel(0), angular_accel(1), angular_accel(2),
-			torque(0), torque(1), torque(2)}
-		};
-		exportToCSV("controller_state.csv", data);
-	} */
-	
-	return torque;
+	// float p_int_lim = _lim_int(0);
+	// float q_int_lim = _lim_int(1);
+	// float r_int_lim = _lim_int(2);
+
+	float p_int_lim = 10.0;
+	float q_int_lim = 10.0;
+	float r_int_lim = 10.0;
+
+
+
+	float roll_torque 	= _roll_controller.update(p, p_sp, p_ang, p_int_lim, dt, landed);
+	float pitch_torque 	= _pitch_controller.update(q, q_sp, q_ang, q_int_lim, dt, landed);
+	float yaw_torque 	= _yaw_controller.update(r, r_sp, r_ang, r_int_lim, dt, landed);
+
+
+
+	Vector3f f_torque = {roll_torque, pitch_torque, yaw_torque};
+
+	std::cout << "TIMESTAMP: " << dt << std::endl;
+	std::cout << "Roll: " << _roll_controller._rate_int<< std::endl;
+	std::cout << "Pitch: " << _pitch_controller._rate_int<< std::endl;
+	std::cout << "Yaw: " << _yaw_controller._rate_int<< std::endl;
+
+	return f_torque;
 }
 
 
@@ -137,7 +187,7 @@ void RateControlFalcon::getRateControlStatus(rate_ctrl_status_s &rate_ctrl_statu
 
 /* void RateControlFalcon::exportToCSV(const std::string& filename, const std::vector<float>& data) {
 	std::ifstream infile(filename);
-   
+
     bool exists = infile.good();
 
     std::ofstream file(filename, std::ios::app);

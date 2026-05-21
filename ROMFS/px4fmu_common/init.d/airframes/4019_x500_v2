@@ -19,8 +19,8 @@ param set-default MC_ROLLRATE_P 0.14
 param set-default MC_PITCHRATE_P 0.14
 param set-default MC_ROLLRATE_I 0.3
 param set-default MC_PITCHRATE_I 0.3
-param set-default MC_ROLLRATE_D 0.004
-param set-default MC_PITCHRATE_D 0.004
+# param set-default MC_ROLLRATE_D 0.004
+# param set-default MC_PITCHRATE_D 0.004
 
 # Square quadrotor X PX4 numbering
 param set-default CA_ROTOR_COUNT 4

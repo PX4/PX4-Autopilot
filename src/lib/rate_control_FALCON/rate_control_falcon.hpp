@@ -44,7 +44,8 @@
 #include <mathlib/mathlib.h>
 #include <uORB/topics/rate_ctrl_status.h>
 
-#include "FALCON/RSLQR/RSLQR.hpp"
+#include "FALCON/Controllers/RSLQR.hpp"
+#include "FALCON/Controllers/PID.hpp"
 
 class RateControlFalcon
 {
@@ -122,9 +123,8 @@ public:
 	 */
 	void getRateControlStatus(rate_ctrl_status_s &rate_ctrl_status);
 
-	// void exportToCSV(const std::string& filename, const std::vector<float>& data);
-
 private:
+	void updateIntegral(matrix::Vector3f &rate_error, const float dt);
 
 	// Gains
 	matrix::Vector3f _gain_p; ///< rate control proportional gain for all axes x, y, z
@@ -136,16 +136,13 @@ private:
 	// States
 	matrix::Vector3f _rate_int; ///< integral term of the rate controller
 
-	// Controllers
-
-	//FALCON_Controller _falcon_controller;
-	RSLQR _roll_controller;
-	RSLQR _pitch_controller;
-	RSLQR _yaw_controller;
-
 	// Feedback from control allocation
 	matrix::Vector<bool, 3> _control_allocator_saturation_negative;
 	matrix::Vector<bool, 3> _control_allocator_saturation_positive;
+	// Controllers
 
-	bool _logControllerState{false};
+	RSLQR _roll_controller = RSLQR(1.0f, -1.0f);
+	RSLQR _pitch_controller = RSLQR(1.0f, -1.0f);
+	RSLQR _yaw_controller = RSLQR(1.0f, -1.0f);
+
 };
