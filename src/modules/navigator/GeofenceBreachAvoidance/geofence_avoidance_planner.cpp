@@ -180,7 +180,7 @@ bool GeofenceAvoidancePlanner::update_destination(const matrix::Vector2d &destin
 {
 	if (!destination.isAllFinite() || !lat_lon_within_bounds(destination) || !_polygons_healthy) {
 		_destination_healthy = false;
-		return;
+		return false;
 	}
 
 	MapProjection ref{_reference(0), _reference(1)};
@@ -188,7 +188,7 @@ bool GeofenceAvoidancePlanner::update_destination(const matrix::Vector2d &destin
 	ref.project(destination(0), destination(1), dest_local(0), dest_local(1));
 
 	if (_destination_healthy && (dest_local - _polygons.getDestination()).norm() < FLT_EPSILON) {
-		return;
+		return false;
 	}
 
 	perf_begin(_update_destination_perf);
