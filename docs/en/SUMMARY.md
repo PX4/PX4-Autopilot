@@ -890,7 +890,6 @@
     - [Integration Testing](test_and_ci/integration_testing.md)
       - [MAVSDK Integration Testing](test_and_ci/integration_testing_mavsdk.md)
       - [PX4 ROS2 Interface Library Integration Testing](test_and_ci/integration_testing_px4_ros2_interface.md)
-      - [ROS 1 Integration Testing](test_and_ci/integration_testing_ros1_mavros.md)
     - [Docker Containers](test_and_ci/docker.md)
     - [Maintenance](test_and_ci/maintenance.md)
 - [Drone Apps & APIs](robotics/index.md)
