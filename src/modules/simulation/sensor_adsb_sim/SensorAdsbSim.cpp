@@ -195,8 +195,8 @@ void SensorAdsbSim::check_failure_injection()
 		bool handled = false;
 		bool supported = false;
 
-		const int failure_unit = static_cast<int>(std::lround(vehicle_command.param1));
-		const int failure_type = static_cast<int>(std::lround(vehicle_command.param2));
+		const int failure_unit = static_cast<int>(lround(vehicle_command.param1));
+		const int failure_type = static_cast<int>(lround(vehicle_command.param2));
 
 		if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_ADSB) {
 			handled = true;
@@ -206,6 +206,7 @@ void SensorAdsbSim::check_failure_injection()
 				PX4_WARN("CMD_INJECT_FAILURE, adsb off");
 				supported = true;
 				_adsb_failed = true;
+
 			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
 				PX4_INFO("CMD_INJECT_FAILURE, adsb ok");
 				supported = true;

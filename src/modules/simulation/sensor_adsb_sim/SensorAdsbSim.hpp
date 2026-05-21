@@ -105,7 +105,7 @@ private:
 	void check_failure_injection();
 	float random_float(float min, float max);
 
-	SimulatedVehicle _vehicles[MAX_VEHICLES]{};
+	SimulatedVehicle _vehicles[MAX_VEHICLES] {};
 	hrt_abstime      _last_update{0};
 	bool             _adsb_failed{false};
 
