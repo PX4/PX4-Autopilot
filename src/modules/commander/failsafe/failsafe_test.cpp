@@ -566,6 +566,9 @@ TEST_F(FailsafeTest, user_termination)
 
 TEST_F(FailsafeTest, fallback_altitude_requires_manual_control)
 {
+	int nav_rcl_act = 2;
+	param_set(param_handle(px4::params::NAV_RCL_ACT), &nav_rcl_act);
+
 	Failsafe failsafe(nullptr);
 
 	failsafe_flags_s failsafe_flags{};
@@ -592,8 +595,42 @@ TEST_F(FailsafeTest, fallback_altitude_requires_manual_control)
 	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
 }
 
+TEST_F(FailsafeTest, fallback_altitude_uses_nav_rcl_act_param)
+{
+	int nav_rcl_act = 5;
+	param_set(param_handle(px4::params::NAV_RCL_ACT), &nav_rcl_act);
+
+	Failsafe failsafe(nullptr);
+
+	failsafe_flags_s failsafe_flags{};
+	mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, failsafe_flags);
+	failsafe_flags.manual_control_signal_lost = true;
+
+	FailsafeBase::State state{};
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_POSCTL;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	hrt_abstime time = 5_s;
+
+	// If arming was allowed without manual control, RC loss is ignored until manual control returns.
+	failsafe.update(time, state, false, false, failsafe_flags);
+
+	state.armed = true;
+	time += 10_ms;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+
+	// Losing position in PosCtl triggers the manual-control fallback, which should use NAV_RCL_ACT.
+	failsafe_flags.local_position_invalid_relaxed = true;
+	time += 10_ms;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Terminate);
+}
+
 TEST_F(FailsafeTest, fallback_stabilized_requires_manual_control)
 {
+	int nav_rcl_act = 2;
+	param_set(param_handle(px4::params::NAV_RCL_ACT), &nav_rcl_act);
+
 	Failsafe failsafe(nullptr);
 
 	failsafe_flags_s failsafe_flags{};
@@ -617,5 +654,7 @@ TEST_F(FailsafeTest, fallback_stabilized_requires_manual_control)
 	failsafe_flags.local_altitude_invalid = true;
 	time += 10_ms;
 	failsafe.update(time, state, false, false, failsafe_flags);
+	// checkModeFallback returns RTL from NAV_RCL_ACT. The framework then cascades RTL -> Land -> Descend
+	// because local altitude loss blocks both AUTO_RTL and AUTO_LAND.
 	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Descend);
 }

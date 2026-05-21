@@ -40,6 +40,13 @@
 
 using namespace time_literals;
 
+static bool manualControlFallbackAction(FailsafeBase::Action action)
+{
+	return action == FailsafeBase::Action::FallbackPosCtrl
+	       || action == FailsafeBase::Action::FallbackAltCtrl
+	       || action == FailsafeBase::Action::FallbackStab;
+}
+
 FailsafeBase::ActionOptions Failsafe::fromNavDllOrRclActParam(int param_value)
 {
 	ActionOptions options{};
@@ -729,14 +736,6 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 			return action;
 		}
 
-		if (action == Action::FallbackPosCtrl || action == Action::FallbackAltCtrl || action == Action::FallbackStab) {
-			// Check if RC is available, if not use the mode specified in NAV_RCL_ACT
-			if (status_flags.manual_control_signal_lost) {
-				ActionOptions rc_loss_action = fromNavDllOrRclActParam(_param_nav_rcl_act.get());
-				action = rc_loss_action.action;
-			}
-
-		}
 	}
 
 	// PosCtrl/PositionSlow -> AltCtrl
@@ -745,13 +744,6 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 	    && !modeCanRun(status_flags, user_intended_mode)) {
 		action = Action::FallbackAltCtrl;
 		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
-
-		// Check if RC is available, if not use the mode specified in NAV_RCL_ACT
-		if (status_flags.manual_control_signal_lost) {
-			ActionOptions rc_loss_action = fromNavDllOrRclActParam(_param_nav_rcl_act.get());
-			action = rc_loss_action.action;
-			return action;
-		}
 	}
 
 	// AltCtrl -> Stabilized
@@ -759,13 +751,10 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 	    && !modeCanRun(status_flags, user_intended_mode)) {
 		action = Action::FallbackStab;
 		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_STAB;
+	}
 
-		// Check if RC is available, if not use the mode specified in NAV_RCL_ACT
-		if (status_flags.manual_control_signal_lost) {
-			ActionOptions rc_loss_action = fromNavDllOrRclActParam(_param_nav_rcl_act.get());
-			action = rc_loss_action.action;
-			return action;
-		}
+	if (status_flags.manual_control_signal_lost && manualControlFallbackAction(action)) {
+		action = manualControlLossFallbackAction();
 	}
 
 	// Last, check can_run for intended mode
