@@ -127,11 +127,13 @@ git -C PX4-Autopilot config core.autocrlf false
 
 ### Install the Toolchain
 
-The recommended way to install the toolchain is to use the `windows.ps1` setup script:
-
 ::: tip
-Re-running the script is safe — it skips packages that are already installed.
+You only need to install the toolchain once: for day to day work you follow the instructions in the [Build PX4 SITL](#build-px4-sitl) section.
+
+But if you decide to, re-running the script is safe as it skips packages that are already installed.
 :::
+
+The recommended way to install the toolchain is to use the `windows.ps1` setup script:
 
 1. Open _Windows PowerShell_ **as an Administrator**
    (Press **Start**, type _PowerShell_, right-click _Windows PowerShell_, choose **Run as administrator**).
@@ -208,8 +210,7 @@ Pick the subsection that matches the toolchain you installed (see [Choosing the 
 
 ### MSVC Build
 
-Open the _x64 Native Tools Command Prompt for VS 2022_ (see the [shell table](#choosing-a-shell) above) — the MSVC compiler is only on `PATH` inside a Visual Studio developer shell.
-If you prefer to keep working in _PowerShell_, you can source the developer environment into an existing window with `vcvars64.bat` instead (see [`cl.exe` Not Found](#cl-exe-not-found-msvc) below).
+To build with MVSC:
 
 1. Open the _x64 Native Tools Command Prompt for VS 2022_ (**Start** menu > _Visual Studio 2022_ > _Visual Studio Tools_ > VC > **x64 Native Tools Command Prompt for VS 2022**.)
 2. Navigate to the repository root (`PX4-Autopilot`)
@@ -233,18 +234,26 @@ Subsequent rebuilds in the same shell are incremental and finish in seconds.
 The PX4 Makefile picks the Ninja generator when `ninja` is on `PATH` and lets CMake auto-detect `cl.exe` from the developer shell — no `-DCMAKE_TOOLCHAIN_FILE` flag is needed.
 :::
 
+::: tip
+If you prefer to keep working in _PowerShell_, you can source the developer environment into an existing window with `vcvars64.bat` instead (see [`cl.exe` Not Found](#cl-exe-not-found-msvc) below).
+:::
+
 ### MinGW-w64 Build
 
-Open a regular _PowerShell_ window (see the [shell table](#choosing-a-shell) above — _not_ the Visual Studio developer shell, and not _MSYS2 MinGW64 Shell_).
-After the setup script finishes with `-Toolchain MinGW`, `C:\msys64\mingw64\bin` is on your user `PATH`, so plain _PowerShell_ can drive the MinGW toolchain through the wrapper `.cmd` shims the toolchain file generates:
+To build with MinGW:
 
-```sh
-cd PX4-Autopilot
-$env:CMAKE_ARGS = "-DCMAKE_TOOLCHAIN_FILE=Toolchain-mingw-w64-x86_64"
-make px4_sitl_default
-```
+1. Open a _PowerShell_ window (_not_ the Visual Studio developer shell, and not _MSYS2 MinGW64 Shell_).
 
-If you ran the setup script in a different window than the one you build from, **close and reopen** the build shell so it picks up the updated user `PATH`.
+   After the setup script finishes with `-Toolchain MinGW`, `C:\msys64\mingw64\bin` is on your user `PATH`, so plain _PowerShell_ can drive the MinGW toolchain through the wrapper `.cmd` shims.
+   If you ran the setup script in a different window than the one you build from, **close and reopen** the build shell so it picks up the updated user `PATH`.
+
+2. Enter the following commands:
+
+   ```sh
+   cd PX4-Autopilot
+   $env:CMAKE_ARGS = "-DCMAKE_TOOLCHAIN_FILE=Toolchain-mingw-w64-x86_64"
+   make px4_sitl_default
+   ```
 
 The MinGW build statically links `libgcc`, `libstdc++`, and `winpthread`, so the resulting `px4.exe` has no MSYS2 runtime dependency.
 
@@ -254,13 +263,14 @@ A successful first build takes 5–15 minutes depending on the machine and ends 
 [2/2] Linking CXX executable bin\px4.exe
 ```
 
-The output is `build\px4_sitl_default\bin\px4.exe` plus the per-command client executables (`build\px4_sitl_default\bin\px4-commander.exe`, etc.).
 Subsequent rebuilds in the same shell are incremental and finish in seconds.
 
-::: info
-You only need to run `Tools\setup\windows.ps1` and pick the developer shell **once** per machine.
-For day-to-day work, just open the developer shell, `cd PX4-Autopilot`, and run `make px4_sitl_default` (or any other make target) — there is no need to re-elevate or re-run the setup script.
-:::
+### Generated Executables
+
+PX4 SIH SITL executables are generated in `build\px4_sitl_default\bin\`.
+This includes the binary for PX4 itself, `px4.exe`, along with the client executables for each of the commands (`px4-commander.exe`, etc.).
+
+For other builds check the appropriate board-specific subfolder of `build\`
 
 ## Run SIH on Native Windows
 
@@ -273,9 +283,16 @@ make px4_sitl_default sihsim_quadx
 ```
 
 Other airframes are exposed as sibling targets.
-All SIH variants share the same Windows code path — physics run inside `px4.exe` and no Linux-only helper process is required — so anything that builds also launches natively.
-
 For the full list of supported vehicles and the corresponding make targets / `PX4_SIM_MODEL` values, see the [SIH Simulation > Supported Vehicle Types](../sim_sih/index.md#supported-vehicle-types) table.
+
+A healthy first run prints the PX4 ASCII banner, then progresses through `INFO [px4] Startup script returned successfully`, opens the `pxh>` prompt, and starts emitting periodic `INFO [mavlink] partner IP: 127.0.0.1` lines once a ground station connects.
+The repeating MAVLink _partner IP_ messages are the normal heartbeat exchange — they are not errors.
+
+Logs land in `log\<YYYY-MM-DD>\<HH_MM_SS>.ulg` **relative to the working directory** of the `px4.exe` process — if you launched it from the repository root, look for the `log\` folder at the repository root; if you used the multi-instance helper below, each instance writes into its own `build\px4_sitl_default\instance_<N>\log\` tree.
+To clean build artifacts, run `make clean` (per-board CMake clean) or `make distclean` (wipe the entire `build\` directory and reset submodules) from the repository root; deleting the `build\px4_sitl_default\` directory by hand has the same effect as the latter for a single board.
+Per-instance log/parameter directories under `build\px4_sitl_default\instance_<N>\` are not touched by `make clean` — remove them manually when they grow stale.
+
+### Running PX4 Directly (after making)
 
 If you would rather invoke `px4.exe` directly (e.g. from a shortcut, a debugger, or a script that does not have `make` on `PATH`), set the environment variable yourself.
 You can do this from either _PowerShell_ or _CMD_ — both are shown below; pick whichever shell you already have open.
@@ -310,12 +327,7 @@ Pass `-d` (daemon mode) before the rootfs path to suppress the `pxh>` prompt —
 The Windows console does not provide tab completion, history navigation with arrow keys, or ANSI line editing — those features rely on Unix terminal APIs that are not available in the native Windows shell loop.
 :::
 
-A healthy first run prints the PX4 ASCII banner, then progresses through `INFO [px4] Startup script returned successfully`, opens the `pxh>` prompt, and starts emitting periodic `INFO [mavlink] partner IP: 127.0.0.1` lines once a ground station connects.
-The repeating MAVLink _partner IP_ messages are the normal heartbeat exchange — they are not errors.
-
-Logs land in `log\<YYYY-MM-DD>\<HH_MM_SS>.ulg` **relative to the working directory** of the `px4.exe` process — if you launched it from the repository root, look for the `log\` folder at the repository root; if you used the multi-instance helper below, each instance writes into its own `build\px4_sitl_default\instance_<N>\log\` tree.
-To clean build artefacts, run `make clean` (per-board CMake clean) or `make distclean` (wipe the entire `build\` directory and reset submodules) from the repository root; deleting the `build\px4_sitl_default\` directory by hand has the same effect as the latter for a single board.
-Per-instance log/parameter directories under `build\px4_sitl_default\instance_<N>\` are not touched by `make clean` — remove them manually when they grow stale.
+### Multiple Instances
 
 To launch multiple instances (e.g. for multi-vehicle testing), use the bundled PowerShell helper, which mirrors `Tools/simulation/sitl_multiple_run.sh`.
 Run it from the `PX4-Autopilot` repository root so the relative `.\Tools\simulation\` path resolves:
