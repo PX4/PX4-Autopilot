@@ -34,6 +34,7 @@
 
 #include "HomePosition.hpp"
 
+#include <float.h>
 #include <math.h>
 
 #include <lib/geo/geo.h>
@@ -351,19 +352,27 @@ void HomePosition::update(bool set_automatically, bool check_if_changed)
 					       && isGpsHorizontalFusionEnabled();
 	}
 
-	// Apply home altitude correction from GNSS altitude drift detection
+	// Apply home altitude correction from GNSS altitude drift detection.
+	// altitude_offset is the cumulative offset since the detector started; applying the
+	// delta against the previously applied total makes this self-healing if a message is missed.
 	if (_param_com_home_en.get() && _gnss_altitude_drift_sub.updated()) {
 		gnss_altitude_drift_s gnss_altitude_drift;
 		_gnss_altitude_drift_sub.copy(&gnss_altitude_drift);
 
-		home_position_s home = _home_position_pub.get();
+		const float delta = gnss_altitude_drift.altitude_offset - _last_applied_gnss_altitude_offset;
 
-		home.alt += gnss_altitude_drift.altitude_offset;
-		home.z -= gnss_altitude_drift.altitude_offset;
-		home.timestamp = hrt_absolute_time();
-		home.manual_home = false;
-		home.update_count = _home_position_pub.get().update_count + 1U;
-		_home_position_pub.update(home);
+		if (fabsf(delta) > FLT_EPSILON) {
+			home_position_s home = _home_position_pub.get();
+
+			home.alt += delta;
+			home.z -= delta;
+			home.timestamp = hrt_absolute_time();
+			home.manual_home = false;
+			home.update_count = home.update_count + 1U;
+			_home_position_pub.update(home);
+
+			_last_applied_gnss_altitude_offset = gnss_altitude_drift.altitude_offset;
+		}
 	}
 
 	const vehicle_local_position_s &lpos = _local_position_sub.get();

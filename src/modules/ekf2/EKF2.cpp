@@ -1751,7 +1751,7 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 	lpos.delta_heading = Eulerf(delta_q_reset).psi();
 	lpos.heading_good_for_control = _ekf.isYawFinalAlignComplete();
 #if defined(CONFIG_EKF2_GNSS) && defined(CONFIG_EKF2_BAROMETER)
-	lpos.altitude_good_for_lock = _gnss_altitude_drift_detector._altitude_good_for_lock;
+	lpos.altitude_good_for_lock = _gnss_altitude_drift_detector.altitudeGoodForLock();
 #else
 	lpos.altitude_good_for_lock = true;
 #endif
@@ -2689,14 +2689,23 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 		    && _ekf.control_status_flags().baro_hgt
 		    && (_param_ekf2_gps_ctrl.get() & static_cast<int32_t>(GnssCtrl::VEL))) {
 
-			_gnss_altitude_drift_detector.update(vehicle_gps_position, _ekf.getLatLonAlt().altitude(), _ekf.getBaroLpfState());
+			_gnss_altitude_drift_detector.update(vehicle_gps_position.timestamp, vehicle_gps_position.vel_d_m_s,
+							     _ekf.getLatLonAlt().altitude(), _ekf.getBaroLpfState());
 
-			if (!_gnss_altitude_drift_detector._altitude_good_for_lock) {
+			if (!_gnss_altitude_drift_detector.altitudeGoodForLock()) {
 				_ekf.decorrelateAltitudeFromPosition();
 			}
 
 		} else {
 			_gnss_altitude_drift_detector.reset();
+		}
+
+		if (_gnss_altitude_drift_detector.correctionUpdated()) {
+			gnss_altitude_drift_s gnss_altitude_drift{};
+			gnss_altitude_drift.timestamp = hrt_absolute_time();
+			gnss_altitude_drift.altitude_offset = _gnss_altitude_drift_detector.accumulatedAltitudeOffset();
+			_gnss_altitude_drift_pub.publish(gnss_altitude_drift);
+			_gnss_altitude_drift_detector.markCorrectionConsumed();
 		}
 
 #endif // CONFIG_EKF2_BAROMETER

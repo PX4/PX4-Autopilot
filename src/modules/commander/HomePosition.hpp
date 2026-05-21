@@ -96,6 +96,7 @@ private:
 	double _gps_alt{0};
 	float _gps_eph{0.f};
 	float _gps_epv{0.f};
+	float _last_applied_gnss_altitude_offset{0.f};
 
 	DEFINE_PARAMETERS(
 		(ParamBool<px4::params::COM_HOME_EN>) _param_com_home_en

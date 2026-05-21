@@ -35,23 +35,23 @@
 
 #include <math.h>
 
-void GnssAltitudeDriftDetector::update(const sensor_gps_s &gps, float ekf_amsl, float baro_alt)
+void GnssAltitudeDriftDetector::update(uint64_t gps_time_us, float gps_vel_d_m_s, float ekf_amsl, float baro_alt)
 {
-	const bool gps_timeout = (_last_gps_ts != 0) && (gps.timestamp - _last_gps_ts > 500000);
+	const bool gps_timeout = (_last_gps_ts != 0) && (gps_time_us - _last_gps_ts > 500000);
 
 	if (gps_timeout || _last_gps_ts == 0) {
 		reset();
-		_last_gps_ts = gps.timestamp;
+		_last_gps_ts = gps_time_us;
 		return;
 	}
 
-	_vel_integral += 1e-6f * (gps.timestamp - _last_gps_ts) * (-gps.vel_d_m_s);
-	_last_gps_ts = gps.timestamp;
+	_vel_integral += 1e-6f * (gps_time_us - _last_gps_ts) * (-gps_vel_d_m_s);
+	_last_gps_ts = gps_time_us;
 
 	// sample at 1Hz normally, or immediately on pending hit
 	const bool sample_due = (_last_sample_ts == 0)
 				|| _hit_pending
-				|| (gps.timestamp >= _last_sample_ts + 1000000);
+				|| (gps_time_us >= _last_sample_ts + 1000000);
 
 	if (!sample_due) {
 		return;
@@ -65,7 +65,7 @@ void GnssAltitudeDriftDetector::update(const sensor_gps_s &gps, float ekf_amsl, 
 		_wcount++;
 	}
 
-	_last_sample_ts = gps.timestamp;
+	_last_sample_ts = gps_time_us;
 
 	if (_wcount > 1) {
 		analyze();
@@ -86,7 +86,7 @@ void GnssAltitudeDriftDetector::analyze()
 
 	// hit pending to filter out single outliers
 	if (hit && _hit_pending) {
-		publishCorrection(_d1[newest] - _d1[oldest]);
+		accumulateCorrection(_d1[newest] - _d1[oldest]);
 		_hit_pending = false;
 		_altitude_good_for_lock = false;
 		_wcount = 1;
@@ -109,19 +109,17 @@ void GnssAltitudeDriftDetector::analyze()
 		const float residual = _d1[newest] - _d1[oldest];
 
 		if (fabsf(residual) > 0.01f) {
-			publishCorrection(residual);
+			accumulateCorrection(residual);
 		}
 
 		_wcount = 1;
 	}
 }
 
-void GnssAltitudeDriftDetector::publishCorrection(float offset)
+void GnssAltitudeDriftDetector::accumulateCorrection(float offset)
 {
-	gnss_altitude_drift_s gnss_altitude_drift{};
-	gnss_altitude_drift.timestamp = hrt_absolute_time();
-	gnss_altitude_drift.altitude_offset = offset;
-	_gnss_altitude_drift_pub.publish(gnss_altitude_drift);
+	_accumulated_offset += offset;
+	_correction_updated = true;
 }
 
 void GnssAltitudeDriftDetector::reset()

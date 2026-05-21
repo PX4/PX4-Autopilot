@@ -33,10 +33,7 @@
 
 #pragma once
 
-#include <drivers/drv_hrt.h>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/gnss_altitude_drift.h>
-#include <uORB/topics/sensor_gps.h>
+#include <stdint.h>
 
 class GnssAltitudeDriftDetector
 {
@@ -45,25 +42,35 @@ public:
 	static constexpr int kStabilityWindow = 5; // samples to check for re-enable
 	static constexpr float kDriftThreshold = 1.f; // [m]
 
-	void update(const sensor_gps_s &gps, float ekf_amsl, float baro_alt);
+	// _vel_integral below is the integral of the GPS reported vertical velocity (NED down),
+	// not the EKF velocity state. It is the drift-independent altitude reference used for
+	// cross-checking against the fused AMSL altitude.
+	void update(uint64_t gps_time_us, float gps_vel_d_m_s, float ekf_amsl, float baro_alt);
 	void reset();
 
-	bool _altitude_good_for_lock{true};
+	bool altitudeGoodForLock() const { return _altitude_good_for_lock; }
+
+	// Cumulative offset since the last reset. Consumers apply the delta against the
+	// previously consumed total so missed messages don't desynchronise.
+	float accumulatedAltitudeOffset() const { return _accumulated_offset; }
+	bool correctionUpdated() const { return _correction_updated; }
+	void markCorrectionConsumed() { _correction_updated = false; }
 
 private:
 	void analyze();
-	void publishCorrection(float offset);
+	void accumulateCorrection(float offset);
 
-	uORB::PublicationMulti<gnss_altitude_drift_s> _gnss_altitude_drift_pub{ORB_ID(gnss_altitude_drift)};
-
-	hrt_abstime _last_gps_ts{0};
+	uint64_t _last_gps_ts{0};
 
 	float _d1[kWindowSize] {}; // ekf_amsl - baro_alt
 	float _d2[kWindowSize] {}; // ekf_amsl - vel_integral
 
 	float _vel_integral{0.f};
+	float _accumulated_offset{0.f};
 	int _wcount{0};
 	int _widx{0};
-	hrt_abstime _last_sample_ts{0};
+	uint64_t _last_sample_ts{0};
 	bool _hit_pending{false};
+	bool _altitude_good_for_lock{true};
+	bool _correction_updated{false};
 };
