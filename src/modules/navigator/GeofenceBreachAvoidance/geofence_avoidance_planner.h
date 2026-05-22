@@ -47,6 +47,10 @@
 
 static constexpr int kMaxNodes = 100;
 static constexpr int kCircleApproxVertices = 8;
+// PlannerPolygons stores positions in int32-cm; a round trip through
+// setDestination/getDestination introduces ~1 cm of noise, well above
+// FLT_EPSILON. This margin must exceed that quantization noise.
+static constexpr float kDestinationCompareMargin = 0.1f;
 
 class GeofenceAvoidancePlanner
 {
