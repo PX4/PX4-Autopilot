@@ -57,13 +57,6 @@ public:
 	AttitudeControl() = default;
 	~AttitudeControl() = default;
 
-	// Default natural frequency of the attitude reference model (rad/s).
-	// Damping ratio is fixed at 1.0 (critical damping, monotonic settling).
-	// Runtime-tunable via setRefModelFrequency() / MC_REF_W_N.
-	static constexpr float kFFNaturalFreqDefault = 100.0f;
-	// Default feed-forward gain (0..1). 1 = full FF, 0 = FF off (legacy P-only).
-	static constexpr float kFFGainDefault = 1.0f;
-
 	/**
 	 * Set proportional attitude control gain
 	 * @param proportional_gain 3D vector containing gains for roll, pitch, yaw
@@ -71,27 +64,13 @@ public:
 	 */
 	void setProportionalGain(const matrix::Vector3f &proportional_gain, const float yaw_weight);
 
-	/**
-	 * Set the reference-model natural frequency [rad/s]. The 2nd-order critically
-	 * damped (zeta=1) ref-model coefficients are recomputed accordingly.
-	 */
+	/// Set the reference-model natural frequency [rad/s] (zeta=1).
 	void setRefModelFrequency(float omega_n);
 
-	float getRefModelFrequency() const { return _omega_n; }
-
-	/**
-	 * Set the feed-forward magnitude scaling [0..1]. 0 disables the FF (the
-	 * proportional attitude law then targets q_d directly, like the pre-FF
-	 * behaviour); 1 is full FF.
-	 */
+	/// Set the FF magnitude scaling [0..1]; 0 disables the FF.
 	void setFeedForwardGain(float gain) { _ff_gain = math::constrain(gain, 0.f, 1.f); }
 
-	float getFeedForwardGain() const { return _ff_gain; }
-
-	/**
-	 * Set per-axis saturation on the FF angular-velocity contribution [rad/s].
-	 * 0 disables the saturation (no cap).
-	 */
+	/// Set per-axis saturation on the FF angular-velocity contribution [rad/s]; 0 = disabled.
 	void setFeedForwardLimit(float limit) { _ff_max = math::max(limit, 0.f); }
 
 	/**
@@ -141,23 +120,15 @@ private:
 
 	matrix::Quatf _attitude_setpoint_q; ///< latest known raw attitude setpoint e.g. from position control
 
-	// Reference model state: a driven 2nd-order system that tracks _attitude_setpoint_q.
-	// The damping term is biased toward the analytical yaw rate setpoint, so the
-	// model's equilibrium is "rotating at the commanded yaw rate" — yielding
-	// near-zero transient on yaw step commands.
-	matrix::Quatf _q_ref;                  ///< reference attitude (smoothed target)
+	matrix::Quatf _q_ref;                  ///< reference attitude tracked by the 2nd-order ref model
 	matrix::Vector3f _omega_ref;           ///< reference body angular velocity (FF output)
-	bool _ref_initialized{false};          ///< false until first valid setpoint received
+	bool _ref_initialized{false};
 
 	bool _ff_enabled{true};
 
-	// Reference-model coefficients. Runtime-tunable via setRefModelFrequency().
-	float _omega_n{kFFNaturalFreqDefault};
-	float _kq{kFFNaturalFreqDefault * kFFNaturalFreqDefault};
-	float _komega{2.f * kFFNaturalFreqDefault};
+	float _omega_n{50.f};                  ///< ref-model natural frequency [rad/s] (MC_REF_W_N)
+	float _kq{_omega_n * _omega_n};        ///< stiffness coefficient, kept in sync with _omega_n
 
-	// FF magnitude scaling. 0..1; 0 = off, 1 = full.
-	float _ff_gain{kFFGainDefault};
-	// Per-axis FF saturation [rad/s]. 0 = disabled.
-	float _ff_max{0.f};
+	float _ff_gain{1.f};                   ///< FF magnitude scaling 0..1 (MC_REF_FF)
+	float _ff_max{0.f};                    ///< per-axis FF rate cap [rad/s]; 0 = disabled (MC_REF_FF_MAX)
 };
