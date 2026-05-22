@@ -44,6 +44,7 @@ set(NAVIGATOR_SOURCES
 	mission_base.cpp
 	mission_block.cpp
 	mission.cpp
+	course.cpp
 	loiter.cpp
 	rtl.cpp
 	rtl_direct.cpp
