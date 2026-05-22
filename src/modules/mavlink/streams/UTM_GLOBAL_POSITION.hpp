@@ -144,6 +144,7 @@ private:
 							|| vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND
 							|| vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION
 							|| vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER
+							|| vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE
 							|| vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF
 							|| vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
 
