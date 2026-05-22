@@ -246,7 +246,7 @@ TEST_F(GeofenceAvoidancePlannerTest, FallsBackToSavedAnchorWhenStartViolatesFenc
 	// as a planner start.
 	Vector2<double> anchor(47.3559582, 8.5192064);
 	Vector2<double> destination(47.3560100, 8.5192300);
-	Vector2<double> inside_exclusion(47.3553000, 8.5193000);
+	Vector2<double> inside_exclusion(47.3553000, 8.5197000);
 
 	static const Vector2<double> vertices[] = {
 		{47.3552420, 8.5192293},
@@ -267,8 +267,7 @@ TEST_F(GeofenceAvoidancePlannerTest, FallsBackToSavedAnchorWhenStartViolatesFenc
 	// provided start has no visible polygon node, fall back to the latched anchor, and
 	// include the anchor as the first (and only) waypoint since the destination is
 	// directly reachable from there.
-	const int num_waypoints =
-		_planner.set_start_and_plan_path_to_destination(inside_exclusion);
+	const int num_waypoints = _planner.set_start_and_plan_path_to_destination(inside_exclusion);
 
 	ASSERT_EQ(num_waypoints, 1);
 
