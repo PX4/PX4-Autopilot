@@ -75,9 +75,9 @@ TEST_F(GeofenceAvoidancePlannerTest, StartEqualsDestination)
 
 	FakeGeofence fake(nullptr, 0, NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
 	_planner.update_vertices(fake, 0.f);
-	_planner.update_destination(point, fake);
+	_planner.update_destination(point);
 
-	const int num_waypoints = _planner.set_start_and_plan_path_to_destination(point, fake);
+	const int num_waypoints = _planner.set_start_and_plan_path_to_destination(point);
 
 	ASSERT_EQ(num_waypoints, 0);
 }
@@ -90,9 +90,9 @@ TEST_F(GeofenceAvoidancePlannerTest, DirectPathNoFence)
 
 	FakeGeofence fake(nullptr, 0, NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
 	_planner.update_vertices(fake, 0.f);
-	_planner.update_destination(destination, fake);
+	_planner.update_destination(destination);
 
-	const int num_waypoints = _planner.set_start_and_plan_path_to_destination(start, fake);
+	const int num_waypoints = _planner.set_start_and_plan_path_to_destination(start);
 
 	ASSERT_EQ(num_waypoints, 0);
 }
@@ -114,9 +114,9 @@ TEST_F(GeofenceAvoidancePlannerTest, PathAroundExclusionZone)
 
 	FakeGeofence fake(vertices, 4, NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION);
 	_planner.update_vertices(fake, 0.f);
-	_planner.update_destination(destination, fake);
+	_planner.update_destination(destination);
 
-	const int num_waypoints = _planner.set_start_and_plan_path_to_destination(start, fake);
+	const int num_waypoints = _planner.set_start_and_plan_path_to_destination(start);
 
 	// start is the current vehicle position, so it is not part of the returned path.
 	// path = vertex 1 + vertex 2 (2 points)
@@ -151,9 +151,9 @@ TEST_F(GeofenceAvoidancePlannerTest, PathInsideInclusionZone)
 
 	FakeGeofence fake(vertices, 6, NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
 	_planner.update_vertices(fake, 0.f);
-	_planner.update_destination(destination, fake);
+	_planner.update_destination(destination);
 
-	const int num_waypoints = _planner.set_start_and_plan_path_to_destination(start, fake);
+	const int num_waypoints = _planner.set_start_and_plan_path_to_destination(start);
 
 	// start is the current vehicle position, so it is not part of the returned path.
 	// path = vertex 5 (1 point)
@@ -182,9 +182,9 @@ TEST_F(GeofenceAvoidancePlannerTest, DestinationOutsideInclusion)
 
 	FakeGeofence fake(vertices, 6, NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
 	_planner.update_vertices(fake, 0.f);
-	_planner.update_destination(destination, fake);
+	_planner.update_destination(destination);
 
-	const int num_waypoints = _planner.set_start_and_plan_path_to_destination(start, fake);
+	const int num_waypoints = _planner.set_start_and_plan_path_to_destination(start);
 
 	ASSERT_EQ(num_waypoints, 0);
 }
@@ -206,9 +206,9 @@ TEST_F(GeofenceAvoidancePlannerTest, DestinationInsideExclusion)
 
 	FakeGeofence fake(vertices, 4, NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION);
 	_planner.update_vertices(fake, 0.f);
-	_planner.update_destination(destination, fake);
+	_planner.update_destination(destination);
 
-	const int num_waypoints = _planner.set_start_and_plan_path_to_destination(start, fake);
+	const int num_waypoints = _planner.set_start_and_plan_path_to_destination(start);
 
 	ASSERT_EQ(num_waypoints, 0);
 }
@@ -230,9 +230,9 @@ TEST_F(GeofenceAvoidancePlannerTest, StartInsideExclusion)
 
 	FakeGeofence fake(vertices, 4, NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION);
 	_planner.update_vertices(fake, 0.f);
-	_planner.update_destination(destination, fake);
+	_planner.update_destination(destination);
 
-	const int num_waypoints = _planner.set_start_and_plan_path_to_destination(start, fake);
+	const int num_waypoints = _planner.set_start_and_plan_path_to_destination(start);
 
 	ASSERT_EQ(num_waypoints, 0);
 }
@@ -257,18 +257,18 @@ TEST_F(GeofenceAvoidancePlannerTest, FallsBackToSavedAnchorWhenStartViolatesFenc
 
 	FakeGeofence fake(vertices, 4, NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION);
 	_planner.update_vertices(fake, 0.f);
-	_planner.update_destination(destination, fake);
+	_planner.update_destination(destination);
 
 	// Seed the planner with the anchor as a known-good fallback start by planning from it:
 	// an in-fence start is latched internally as the fallback for future calls.
-	_planner.set_start_and_plan_path_to_destination(anchor, fake);
+	_planner.set_start_and_plan_path_to_destination(anchor);
 
 	// Plan from a position that violates the fence. The planner should detect that the
 	// provided start has no visible polygon node, fall back to the latched anchor, and
 	// include the anchor as the first (and only) waypoint since the destination is
 	// directly reachable from there.
 	const int num_waypoints =
-		_planner.set_start_and_plan_path_to_destination(inside_exclusion, fake);
+		_planner.set_start_and_plan_path_to_destination(inside_exclusion);
 
 	ASSERT_EQ(num_waypoints, 1);
 
@@ -288,8 +288,8 @@ TEST_F(GeofenceAvoidancePlannerTest, NanStartOrDestination)
 	_planner.update_vertices(fake, 0.f);
 
 	auto plan = [&](const Vector2<double> &s, const Vector2<double> &d) {
-		_planner.update_destination(d, fake);
-		return _planner.set_start_and_plan_path_to_destination(s, fake);
+		_planner.update_destination(d);
+		return _planner.set_start_and_plan_path_to_destination(s);
 	};
 
 	EXPECT_EQ(plan(nan_lat, valid), 0);
@@ -311,8 +311,8 @@ TEST_F(GeofenceAvoidancePlannerTest, LatLonOutOfBounds)
 	_planner.update_vertices(fake, 0.f);
 
 	auto plan = [&](const Vector2<double> &s, const Vector2<double> &d) {
-		_planner.update_destination(d, fake);
-		return _planner.set_start_and_plan_path_to_destination(s, fake);
+		_planner.update_destination(d);
+		return _planner.set_start_and_plan_path_to_destination(s);
 	};
 
 	EXPECT_EQ(plan(lat_too_high, valid), 0);
@@ -346,9 +346,9 @@ TEST_F(GeofenceAvoidancePlannerTest, DuplicateNeighborVertex)
 
 	FakeGeofence fake(vertices, 7, NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
 	_planner.update_vertices(fake, 0.f);
-	_planner.update_destination(destination, fake);
+	_planner.update_destination(destination);
 
-	const int num_waypoints = _planner.set_start_and_plan_path_to_destination(start, fake);
+	const int num_waypoints = _planner.set_start_and_plan_path_to_destination(start);
 
 	// THEN the pathplanner should fail
 	ASSERT_EQ(num_waypoints, 0);
