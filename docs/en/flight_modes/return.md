@@ -185,11 +185,13 @@ It is therefore very important to consider this possibility and especially to re
 The following table shows which return types currently support geofence awareness:
 
 | Return Type (RTL_TYPE) | Geofence Awareness |
-| ---------------------- | ------------------ |
+|------------------------|--------------------|
 | 0 (home/rally point)   | Yes                |
 | 1 (mission landing)    | Yes                |
 | 2 (mission path)       | No                 |
 | 3 (closest safe dest.) | Yes                |
+| 4 (mission path)       | No                 |
+| 5 (rally point only)   | Yes                |
 
 ### Shortest-Path Calculation
 
