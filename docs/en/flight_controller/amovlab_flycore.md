@@ -195,7 +195,7 @@ Power ports:
 
 ::: warning
 The PWM output ports are not powered by the POWER port.
-The output rail must be [separately powered](../assembly/servo_power.md) if it needs to power servos or other hardware.
+The output rail must be [separately powered](../peripherals/pwm_escs_and_servo.md) if it needs to power servos or other hardware.
 This is generally true for VTOL and fixed-wing vehicles, but not necessarily true for multicopters.
 :::
 
@@ -236,7 +236,8 @@ The `RC` port supports SBUS, DSM/DSMX, CRSF, GHST, and PPM receivers.
 The board configuration enables PX4 RC input and maps the RC serial port to `/dev/ttyS4`.
 
 For PPM and S.Bus receivers, a single signal wire carries all channels.
-If your receiver outputs individual PWM signals (one wire per channel) it must be connected via a [PPM encoder](../getting_started/rc_transmitter_receiver.md#pwm-receivers).
+If your receiver outputs individual PWM signals (one wire per channel) it must be connected via a PPM encoder.
+For more information, see [RC receivers](../getting_started/rc_transmitter_receiver.md).
 
 ## GPS & Compass {#gps_compass}
 
