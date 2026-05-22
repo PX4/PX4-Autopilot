@@ -133,12 +133,15 @@ parameters:
       description:
         short: Attitude reference-model feed-forward saturation
         long: |-
-          Per-axis saturation applied to the angular-velocity feed-forward
-          contribution to the rate setpoint. The FF is mainly intended for
-          ramp tracking, where the demanded rate equals the ramp rate and
-          is typically well below this limit. Capping it prevents large FF
-          spikes on step commands from saturating the rate controller and
-          causing integrator wind-up.
+          Per-axis saturation on the angular-velocity feed-forward contribution
+          to the rate setpoint. Prevents the large FF spike that arises on step
+          commands (peak ~ MC_REF_W_N * step_angle / 2.72) from saturating the
+          rate controller and winding up its integrator, without clipping the FF
+          during smooth ramp tracking (where the FF equals the ramp rate).
+
+          A good starting point is 5 * MC_REF_W_N [deg/s]: this preserves the
+          full FF benefit for attitude steps up to roughly 10 deg while clipping
+          the excess on larger steps.
 
           0 disables the saturation (no cap, full FF magnitude).
       type: float
