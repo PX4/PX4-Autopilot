@@ -3,7 +3,7 @@
 The [Hiwonder 4-Channel Encoder Motor Driver](https://www.hiwonder.com/products/4-channel-encoder-motor-driver) is a small I2C motor controller with integrated encoder feedback for up to four brushed DC motors.
 It is well suited to small wheeled rovers (differential, ackermann, or mecanum) where size, weight, and a low channel count make a full-size ESC overkill.
 
-PX4 supports the board via the `hiwonder_emm` I2C driver.
+PX4 supports the board via the [`hiwonder_emm`](../modules/modules_driver#hiwonder-emm) I2C driver.
 
 ## 特性
 
@@ -29,14 +29,41 @@ The driver auto-detects the four channels but the motor type is selected in firm
 The shipped default is `JGB37-520-12V-110RPM`; change [`HiwonderEMM.cpp`](https://github.com/PX4/PX4-Autopilot/blob/main/src/drivers/hiwonder_emm/HiwonderEMM.cpp) (`set_motor_type`) if you use a different model.
 :::
 
+## Building the Firmware
+
+To use the EMM, the `hiwonder_emm` driver must be compiled into the firmware and started on boot.
+
+1. Add the following line to the `rover.px4board` file of your board (for Skynode S this would be in [boards/auterion/fmu-v6s/rover.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/auterion/fmu-v6s/rover.px4board)) so the driver is compiled in:
+
+   ```txt
+   CONFIG_DRIVERS_HIWONDER_EMM=y
+   ```
+
+2. Make sure the driver is started on boot when the [HIWONDER_EMM_EN](../advanced_config/parameter_reference.md#HIWONDER_EMM_EN) parameter is `1`.
+
+   For rover airframes (ackermann, differential, mecanum) this is already done by the shared rover startup script [`rc.rover`](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d/rc.rover), which contains:
+
+   ```sh
+   if param compare HIWONDER_EMM_EN 1
+   then
+      hiwonder_emm start
+   fi
+   ```
+
+   For other airframes that should use the EMM, add the same block to your board's `rc.board_sensors` file (for Skynode S this would be in [boards/auterion/fmu-v6s/init/rc.board_sensors](https://github.com/PX4/PX4-Autopilot/blob/main/boards/auterion/fmu-v6s/init/rc.board_sensors)).
+
+3. Build and flash the firmware for your board.
+
+:::info
+Many flight controllers already enable `CONFIG_DRIVERS_HIWONDER_EMM=y` in their `rover.px4board` configuration, so the default rover build is sufficient and step 1 is not required.
+:::
+
 ## Flight Controller Setup
 
 ### Enable the Driver
 
 Set the [HIWONDER_EMM_EN](../advanced_config/parameter_reference.md#HIWONDER_EMM_EN) parameter to `1` and reboot.
-
-The driver is started automatically by the rover startup script ([`rc.rover`](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d/rc.rover)), which runs for every ackermann, differential, and mecanum airframe.
-It is compiled into builds that enable `CONFIG_DRIVERS_HIWONDER_EMM` in the board configuration.
+On the next boot the driver is started by the startup script (see [Building the Firmware](#building-the-firmware)).
 
 ### Actuator Allocation
 
@@ -45,6 +72,16 @@ In [Actuator Configuration](../config/actuators.md), assign the rover wheel outp
 
 The output range is fixed in firmware to `0..255` (the EMM's protocol range, internally mapped to a signed `[-128, 127]` speed command — `128` is stop, values below are reverse, values above are forward).
 `EMM_DIS{i}` (disarmed) and `EMM_FAIL{i}` (failsafe) per-channel parameters are user-tunable in the standard range.
+
+## 支持的载具
+
+The EMM is used on the reference Hiwonder rover frames:
+
+- `50002` — Hiwonder differential rover
+- `51003` — Hiwonder ackermann rover
+- `52001` — Hiwonder mecanum rover
+
+See [Rovers](../frames_rover/index.md) for vehicle-side configuration.
 
 ## 更多信息
 
