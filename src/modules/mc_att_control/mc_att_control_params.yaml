@@ -102,54 +102,40 @@ parameters:
           Natural frequency of the 2nd-order critically-damped reference model
           that smooths the attitude setpoint and produces the feed-forward
           angular rate. Higher values track the raw setpoint more aggressively
-          (less lag, smaller steady-state ramp tracking error) but demand more
-          peak rate from the inner rate loop. The closed-form discretisation
-          makes any value here unconditionally stable; the practical upper
-          limit is set by the rate-loop bandwidth.
+          (less lag, smaller ramp tracking error) but demand more peak rate
+          from the inner rate loop.
       type: float
-      default: 100.0
+      default: 50.0
       unit: rad/s
       min: 1.0
       max: 200.0
-      decimal: 1
-      increment: 5
+      decimal: 0
+      increment: 1
     MC_REF_FF:
       description:
         short: Attitude reference-model feed-forward gain
         long: |-
           Scaling applied to the ref-model's angular-velocity feed-forward
-          contribution to the rate setpoint. 1 = full FF (default), 0 = FF off
-          (the attitude P-loop targets q_d directly, legacy pre-FF behaviour).
-          Intermediate values blend.
-
-          Set to 0 if the inner rate loop is not tuned to handle the FF demand.
+          contribution to the rate setpoint.
       type: float
       default: 1.0
       min: 0.0
       max: 1.0
       decimal: 2
-      increment: 0.1
+      increment: 0.01
     MC_REF_FF_MAX:
       description:
-        short: Attitude reference-model feed-forward saturation
+        short: Feed-forward angular-rate cap; 0 = disabled
         long: |-
-          Per-axis saturation on the angular-velocity feed-forward contribution
-          to the rate setpoint. Prevents the large FF spike that arises on step
-          commands (peak ~ MC_REF_W_N * step_angle / 2.72) from saturating the
-          rate controller and winding up its integrator, without clipping the FF
-          during smooth ramp tracking (where the FF equals the ramp rate).
-
-          A good starting point is 5 * MC_REF_W_N [deg/s]: this preserves the
-          full FF benefit for attitude steps up to roughly 10 deg while clipping
-          the excess on larger steps.
-
-          0 disables the saturation (no cap, full FF magnitude).
+          Per-axis cap on the angular-velocity feed-forward contribution to the
+          rate setpoint. Size it from the inner rate loop's headroom (e.g. a
+          fraction of MC_*RATE_MAX).
       type: float
-      default: 0.0
+      default: 100.0
       unit: deg/s
       min: 0.0
       max: 1800.0
-      decimal: 1
+      decimal: 0
       increment: 5
 - group: Multicopter Position Control
   definitions:

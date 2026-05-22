@@ -64,8 +64,11 @@ void AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_
 	qd_normalized.normalize();
 
 	if (_ref_initialized && dt > 0.f) {
-		// Exact discretisation of the linearised 2nd-order critically damped ref model
-		// (repeated eigenvalue at s = -_omega_n). Stable for any dt.
+		// 2nd-order critically damped ref model with exact (ZOH) discretisation.
+		// Repeated eigenvalue at s = -_omega_n; unconditionally stable for any dt.
+
+		// Tangent-space inputs: rotate the analytical yaw rate into q_ref's body
+		//    frame, and form the small-angle error vector from q_ref to q_d.
 		const Vector3f w_known_in_ref = std::isfinite(yawspeed_setpoint)
 						? _q_ref.inversed().dcm_z() * yawspeed_setpoint
 						: Vector3f{};
@@ -74,6 +77,7 @@ void AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_
 		q_err.canonicalize();
 		const Vector3f e = 2.f * q_err.imag();
 
+		// Entries of exp(A*dt) for A = [0 -1; _kq -2*_omega_n], using emt = exp(-_omega_n*dt).
 		const float w_dt  = _omega_n * dt;
 		const float emt   = expf(-w_dt);
 		const float a     = (1.f + w_dt) * emt;
@@ -81,10 +85,14 @@ void AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_
 		const float gamma = _kq * dt * emt;
 		const float delta = (1.f - w_dt) * emt;
 
+		// Propagate in tangent space. delta_phi is the integral of omega over [0, dt];
+		//    the w_offset part collapses to e(0) - e(dt) since e_dot = -w_offset.
 		const Vector3f w_offset     = _omega_ref - w_known_in_ref;
 		const Vector3f delta_phi    = (1.f - a) * e + b * w_offset + w_known_in_ref * dt;
 		const Vector3f w_offset_new = gamma * e + delta * w_offset;
 
+		// Lift back to SO(3): undo the offset substitution and apply the integrated
+		//    rotation to q_ref by right-multiplying (body-frame composition).
 		_omega_ref = w_offset_new + w_known_in_ref;
 		_q_ref     = _q_ref * Quatf(AxisAnglef(delta_phi));
 		_q_ref.normalize();
