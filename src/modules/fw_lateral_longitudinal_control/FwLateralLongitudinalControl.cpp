@@ -608,9 +608,14 @@ void FwLateralLongitudinalControl::updateAttitude() {
 		_long_control_state.pitch_rad = euler_angles.theta();
 		_yaw = euler_angles.psi();
 
-		// load factor due to banking
 		const float load_factor_from_bank_angle = 1.0f / max(cosf(euler_angles.phi()), FLT_EPSILON);
+
+		// Used to compensate for higher induced drag during banking
 		_tecs.set_load_factor(load_factor_from_bank_angle);
+		// Used to give underspeed mitigation the correct minimum airspeed
+		_tecs.set_equivalent_airspeed_min(
+			_performance_model.getMinimumCalibratedAirspeed(load_factor_from_bank_angle, _flaps_setpoint)
+		);
 	}
 }
 
