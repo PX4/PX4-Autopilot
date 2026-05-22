@@ -76,11 +76,13 @@ You then need to ensure that the parachute pin will be set to a value that will 
 
 PX4 will trigger a connected and healthy parachute on failsafe by sending the command [MAV_CMD_DO_PARACHUTE](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_PARACHUTE) with the [PARACHUTE_RELEASE](https://mavlink.io/en/messages/common.html#PARACHUTE_ACTION) action.
 
-MAVLink parachute support is enabled by setting the parameter [COM_PARACHUTE=1](../advanced_config/parameter_reference.md#COM_PARACHUTE).
+MAVLink parachute support is enabled by setting the parameter [COM_PARACHUTE](../advanced_config/parameter_reference.md#COM_PARACHUTE) to a non-zero value.
+The parameter also configures the arming check and in-flight failsafe action when the parachute system is missing or unhealthy, see [Parachute Health Failsafe](../config/safety.md#parachute-health-failsafe).
+
 PX4 will then indicate parachute status using the [MAV_SYS_STATUS_RECOVERY_SYSTEM](https://mavlink.io/en/messages/common.html#MAV_SYS_STATUS_RECOVERY_SYSTEM) bit in the [SYS_STATUS](https://mavlink.io/en/messages/common.html#SYS_STATUS) extended onboard control sensors fields:
 
 - `SYS_STATUS.onboard_control_sensors_present_extended`: MAVLink parachute present (based on heartbeat detection).
-- `SYS_STATUS.onboard_control_sensors_enabled_extended`: ?
+- `SYS_STATUS.onboard_control_sensors_enabled_extended`: MAVLink parachute is enabled ([`COM_PARACHUTE > 0`](../advanced_config/parameter_reference.md#COM_PARACHUTE)).
 - `SYS_STATUS.onboard_control_sensors_health_extended`: MAVLink parachute healthy (based on heartbeat detection).
 
 A MAVLink parachute is required to emit a [HEARTBEAT](https://mavlink.io/en/messages/common.html#HEARTBEAT) with `HEARTBEAT.type` of [MAV_TYPE_PARACHUTE](https://mavlink.io/en/messages/common.html#MAV_TYPE_PARACHUTE).
