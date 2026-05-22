@@ -131,6 +131,12 @@ commander <command> [arguments...]
      on|off      [on] to activate safety, [off] to deactivate safety and allow
                  control surface movements
 
+   actuator_group_test Drive a functional actuator group (torque/thrust/tilt)
+                 for a brief preflight check
+     roll|pitch|yaw|tilt|xthrust|ythrust|zthrust Group
+     [value]     Normalized command [-1.0, +1.0]; default 1.0 for torque/tilt,
+                 0.1 for thrust
+
    arm
      [-f]        Force arming (do not run preflight checks)
 
