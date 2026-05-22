@@ -78,6 +78,7 @@
     - [Takeoff Mode (FW)](flight_modes_fw/takeoff.md)
     - [Land Mode (FW)](flight_modes_fw/land.md)
     - [Hold Mode (FW)](flight_modes_fw/hold.md)
+    - [Guided Course Mode (FW)](flight_modes_fw/guided_course.md)
     - [Mission Mode (FW)](flight_modes_fw/mission.md)
     - [Return Mode (FW)](flight_modes_fw/return.md)
     - [Offboard Mode (FW)](flight_modes_fw/offboard.md)
