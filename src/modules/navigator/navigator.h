@@ -192,6 +192,12 @@ public:
 
 	GeofenceAvoidancePlanner &get_geofence_avoidance_planner() { return _geofence_avoidance_planner; }
 
+	/**
+	 * Margin (m) by which the geofence avoidance planner shrinks inclusion
+	 * polygons and expands exclusion polygons.
+	 */
+	float get_geofence_avoidance_margin_for_current_vehicle_type() const;
+
 	float get_default_loiter_rad() { return fabsf(_param_nav_loiter_rad.get()); }
 	bool get_default_loiter_CCW() { return _param_nav_loiter_rad.get() < -FLT_EPSILON; }
 

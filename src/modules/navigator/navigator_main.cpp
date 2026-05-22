@@ -940,7 +940,8 @@ void Navigator::run()
 		_geofence.run();
 
 		if (_geofence.consumeFenceUpdated()) {
-			_geofence_avoidance_planner.update_vertices(_geofence);
+			const float margin = get_geofence_avoidance_margin_for_current_vehicle_type();
+			_geofence_avoidance_planner.update_vertices(_geofence, margin);
 		}
 
 		perf_end(_loop_perf);
@@ -1618,6 +1619,23 @@ bool Navigator::geofence_allows_position(const vehicle_global_position_s &pos)
 	}
 
 	return true;
+}
+
+float Navigator::get_geofence_avoidance_margin_for_current_vehicle_type() const
+{
+	// these margins are purely guessed and merely try to compensate for
+	// the tracking error which can be expected for each vehicle type
+	switch (_vstatus.vehicle_type) {
+	case vehicle_status_s::VEHICLE_TYPE_FIXED_WING:
+		return 50.f;
+
+	case vehicle_status_s::VEHICLE_TYPE_ROVER:
+		return 2.f;
+
+	case vehicle_status_s::VEHICLE_TYPE_ROTARY_WING:
+	default:
+		return 5.f;
+	}
 }
 
 matrix::Vector2<double> Navigator::getRtlPlanningStart()
