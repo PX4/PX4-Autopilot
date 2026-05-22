@@ -89,6 +89,12 @@ public:
 	float getFeedForwardGain() const { return _ff_gain; }
 
 	/**
+	 * Set per-axis saturation on the FF angular-velocity contribution [rad/s].
+	 * 0 disables the saturation (no cap).
+	 */
+	void setFeedForwardLimit(float limit) { _ff_max = math::max(limit, 0.f); }
+
+	/**
 	 * Set hard limit for output rate setpoints
 	 * @param rate_limit [rad/s] 3D vector containing limits for roll, pitch, yaw
 	 */
@@ -152,4 +158,6 @@ private:
 
 	// FF magnitude scaling. 0..1; 0 = off, 1 = full.
 	float _ff_gain{kFFGainDefault};
+	// Per-axis FF saturation [rad/s]. 0 = disabled.
+	float _ff_max{0.f};
 };

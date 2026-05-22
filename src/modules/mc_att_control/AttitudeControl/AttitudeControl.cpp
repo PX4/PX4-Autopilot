@@ -166,7 +166,15 @@ matrix::Vector3f AttitudeControl::update(const Quatf &q) const
 		// Feed forward the reference model's angular velocity, scaled by _ff_gain.
 		// _omega_ref lives in q_ref's body frame; go through world to land in the
 		// current body frame.
-		rate_setpoint += _ff_gain * q.rotateVectorInverse(_q_ref.rotateVector(_omega_ref));
+		Vector3f omega_ff = _ff_gain * q.rotateVectorInverse(_q_ref.rotateVector(_omega_ref));
+
+		if (_ff_max > 0.f) {
+			for (int i = 0; i < 3; i++) {
+				omega_ff(i) = math::constrain(omega_ff(i), -_ff_max, _ff_max);
+			}
+		}
+
+		rate_setpoint += omega_ff;
 	}
 
 	// limit rates

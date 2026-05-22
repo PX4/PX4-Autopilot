@@ -129,6 +129,25 @@ parameters:
       max: 1.0
       decimal: 2
       increment: 0.1
+    MC_REF_FF_MAX:
+      description:
+        short: Attitude reference-model feed-forward saturation
+        long: |-
+          Per-axis saturation applied to the angular-velocity feed-forward
+          contribution to the rate setpoint. The FF is mainly intended for
+          ramp tracking, where the demanded rate equals the ramp rate and
+          is typically well below this limit. Capping it prevents large FF
+          spikes on step commands from saturating the rate controller and
+          causing integrator wind-up.
+
+          0 disables the saturation (no cap, full FF magnitude).
+      type: float
+      default: 0.0
+      unit: deg/s
+      min: 0.0
+      max: 1800.0
+      decimal: 1
+      increment: 5
 - group: Multicopter Position Control
   definitions:
     MC_MAN_TILT_TAU:

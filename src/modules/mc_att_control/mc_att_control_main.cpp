@@ -103,6 +103,7 @@ MulticopterAttitudeControl::parameters_updated()
 
 	_attitude_control.setRefModelFrequency(_param_mc_ref_w_n.get());
 	_attitude_control.setFeedForwardGain(_param_mc_ref_ff.get());
+	_attitude_control.setFeedForwardLimit(math::radians(_param_mc_ref_ff_max.get()));
 
 	// Update from hover thrust parameter if there's no valid estimate in use
 	if (!PX4_ISFINITE(_hover_thrust_estimate)) {
