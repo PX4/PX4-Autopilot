@@ -146,6 +146,7 @@ public:
 	{
 		_attitude_control.setProportionalGain(Vector3f(6.5f, 6.5f, 2.8f), 0.4f);
 		_attitude_control.setRateLimit(Vector3f(10.f, 10.f, 10.f));
+		_attitude_control.setRefModelFrequency(10.f);
 	}
 
 	// Push a constant-rate ramp around the given body axis until the reference model is settled.
@@ -165,9 +166,8 @@ public:
 
 	AttitudeControl _attitude_control;
 
-	static constexpr float kDt = 0.004f;                              // 250 Hz setpoint rate
-	static constexpr float kOmegaN = AttitudeControl::kFFNaturalFreq; // 10 rad/s
-	static constexpr int kSettleSteps = 500;                          // ~ 20 / omega_n, residual < 1e-7
+	static constexpr float kDt = 0.004f;          // 250 Hz setpoint rate
+	static constexpr int kSettleSteps = 500;      // generous settling window for any default omega_n
 };
 
 TEST_F(AttitudeControlFeedforwardTest, ConstantSetpointGivesNoFeedforward)
