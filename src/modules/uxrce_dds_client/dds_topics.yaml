@@ -59,6 +59,9 @@ publications:
   - topic: /fmu/out/vehicle_global_position
     type: px4_msgs::msg::VehicleGlobalPosition
 
+  - topic: /fmu/out/vehicle_land_detected
+    type: px4_msgs::msg::VehicleLandDetected
+
   - topic: /fmu/out/vehicle_gps_position
     type: px4_msgs::msg::SensorGps
 
