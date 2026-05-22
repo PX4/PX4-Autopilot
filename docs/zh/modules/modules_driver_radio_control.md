@@ -17,6 +17,8 @@ crsf_rc <command> [arguments...]
      [-d <val>]  RC device
                  values: <file:dev>, default: /dev/ttyS3
 
+   bind          Send a CRSF bind command (not available on singlewire)
+
    inject        Inject frame data bytes (for testing)
 
    stop
