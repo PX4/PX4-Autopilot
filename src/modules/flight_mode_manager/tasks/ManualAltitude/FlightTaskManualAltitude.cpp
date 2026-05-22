@@ -181,11 +181,6 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 		}
 	}
 
-	// When absolute altitude estimate is drifting, unlock altitude and temporarily use vertical velocity control only
-	if (!_altitude_good_for_lock) {
-		_position_setpoint(2) = _dist_to_ground_lock = NAN;
-	}
-
 	_respectMaxAltitude();
 }
 
@@ -309,6 +304,12 @@ bool FlightTaskManualAltitude::update()
 	_updateConstraintsFromEstimator();
 	_scaleSticks();
 	_updateSetpoints();
+
+	// Unlock altitude on drift; after _updateSetpoints() so smoothing subclasses don't overwrite the NaN.
+	if (!_altitude_good_for_lock) {
+		_position_setpoint(2) = _dist_to_ground_lock = NAN;
+	}
+
 	_constraints.want_takeoff = _checkTakeoff();
 	_max_distance_to_ground = INFINITY;
 
