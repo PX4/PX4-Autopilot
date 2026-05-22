@@ -89,12 +89,15 @@ uint8_t FailsafeBase::update(const hrt_abstime &time_us, const State &state, boo
 	updateStartDelay(time_us - _last_update, action_state.delayed_action != Action::None);
 	updateFailsafeDeferState(time_us, action_state.failsafe_deferred);
 
-	// Notify user if the action is worse than before, or a new warn action got added
-	if (action_state.action > _selected_action || (action_state.action == Action::Warn && _notification_required)) {
+	// Notify about escalation, or about any new subsumed condition as an informational warning
+	if (action_state.action > _selected_action) {
 		notifyUser(state.user_intended_mode, action_state.action, action_state.delayed_action, action_state.cause);
+
+	} else if (_pending_notification_cause != Cause::Count) {
+		notifyUser(state.user_intended_mode, Action::Warn, Action::None, _pending_notification_cause);
 	}
 
-	_notification_required = false;
+	_pending_notification_cause = Cause::Count;
 
 	_last_user_intended_mode = modifyUserIntendedMode(_selected_action, action_state.action,
 				   action_state.updated_user_intended_mode);
@@ -361,9 +364,7 @@ bool FailsafeBase::checkFailsafe(int caller_id, bool last_state_failure, bool cu
 					}
 				}
 
-				if (options.action == Action::Warn) {
-					_notification_required = true;
-				}
+				_pending_notification_cause = options.cause;
 
 				if (options.action >= Action::Hold) { // If not a Fallback
 					_user_takeover_active = false; // Clear takeover
