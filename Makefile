@@ -246,6 +246,12 @@ CONFIG_TARGETS_DEFAULT := $(patsubst %_default,%,$(filter %_default,$(ALL_CONFIG
 $(CONFIG_TARGETS_DEFAULT):
 	@$(call cmake-build,$@_default$(BUILD_DIR_SUFFIX))
 
+# Targets excluded from all_default_targets.
+ALL_DEFAULT_TARGETS_EXCLUDE :=
+
+# modalai_voxl2 requires a proprietary Hexagon toolchain.
+ALL_DEFAULT_TARGETS_EXCLUDE += modalai_voxl2
+
 # Multi-processor boards: build all processor targets together
 # VOXL2 apps processor (default) depends on SLPI DSP being built first
 modalai_voxl2_default: modalai_voxl2_slpi
@@ -253,7 +259,9 @@ modalai_voxl2: modalai_voxl2_slpi
 modalai_voxl2_deb: modalai_voxl2_slpi
 
 all_config_targets: $(ALL_CONFIG_TARGETS)
-all_default_targets: $(CONFIG_TARGETS_DEFAULT)
+
+ALL_DEFAULT_TARGETS := $(filter-out $(ALL_DEFAULT_TARGETS_EXCLUDE),$(CONFIG_TARGETS_DEFAULT))
+all_default_targets: $(ALL_DEFAULT_TARGETS)
 
 # DEB package targets: builds _default config, then runs cpack.
 # Multi-processor boards (e.g. VOXL2) chain companion builds automatically
