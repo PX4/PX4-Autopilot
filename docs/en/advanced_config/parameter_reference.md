@@ -32512,11 +32512,10 @@ Mid point value
 
 ### RC_CHAN_CNT (`INT32`) {#RC_CHAN_CNT}
 
-RC channel count.
+Calibrated RC channel count.
 
-This parameter is used by Ground Station software to save the number
-of channels which were used during RC calibration. It is only meant
-for ground station use.
+Number of channels detected during RC calibration. Must be non-zero
+for RC manual control input to be accepted.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
