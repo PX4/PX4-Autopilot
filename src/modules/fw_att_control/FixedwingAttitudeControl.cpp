@@ -298,7 +298,16 @@ void FixedwingAttitudeControl::Run()
 				const Quatf q_sp(_att_sp.q_d);
 
 				if (q_sp.isAllFinite()) {
-					const Quatf q_current(att.q);
+					Quatf q_current(att.q);
+
+					// Tailsitter: att.q is in the physical frame, but q_sp is in the virtual
+					// FW frame (rotated +90° pitch from physical). The column swap above corrects
+					// _R for rate control but leaves att.q untouched. Align q_current to the
+					// virtual frame so computeAttitudeError operates in a consistent frame.
+					if (_vehicle_status.is_vtol_tailsitter) {
+						q_current *= Quatf(matrix::Eulerf{0.f, M_PI_2_F, 0.f});
+					}
+
 					const Vector3f att_err = computeAttitudeError(q_current, q_sp);
 
 					Vector3f body_rates_setpoint;
