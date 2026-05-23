@@ -46,40 +46,29 @@ void SdCardChecks::checkAndReport(const Context &context, Report &reporter)
 {
 #ifdef PX4_STORAGEDIR
 
-	if (_param_com_arm_sdcard.get() > 0) {
+#ifndef CONFIG_BOARD_NO_SDCARD
+	struct statfs statfs_buf;
 
-		struct statfs statfs_buf;
+	if (!_sdcard_detected && statfs(PX4_STORAGEDIR, &statfs_buf) == 0) {
+		// on NuttX we get a data block count f_blocks and byte count per block f_bsize if an SD card is inserted
+		_sdcard_detected = (statfs_buf.f_blocks > 0) && (statfs_buf.f_bsize > 0);
+	}
 
-		if (!_sdcard_detected && statfs(PX4_STORAGEDIR, &statfs_buf) == 0) {
-			// on NuttX we get a data block count f_blocks and byte count per block f_bsize if an SD card is inserted
-			_sdcard_detected = (statfs_buf.f_blocks > 0) && (statfs_buf.f_bsize > 0);
-		}
+	if (!_sdcard_detected) {
+		/* EVENT
+		 * @description
+		 * Insert an SD Card to the autopilot and reboot the system.
+		 */
+		reporter.armingCheckFailure(NavModes::None, health_component_t::system,
+					    events::ID("check_missing_fmu_sdcard"),
+					    events::Log::Error, "Missing FMU SD Card");
 
-		if (!_sdcard_detected) {
-			NavModes affected_modes{NavModes::None};
-
-			if (_param_com_arm_sdcard.get() == 2) {
-				// disallow arming without sd card
-				affected_modes = NavModes::All;
-			}
-
-			/* EVENT
-			 * @description
-			 * Insert an SD Card to the autopilot and reboot the system.
-			 *
-			 * <profile name="dev">
-			 * This check can be configured via <param>COM_ARM_SDCARD</param> parameter.
-			 * </profile>
-			 */
-			reporter.armingCheckFailure(affected_modes, health_component_t::system,
-						    events::ID("check_missing_fmu_sdcard"),
-						    events::Log::Error, "Missing FMU SD Card");
-
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Missing FMU SD Card");
-			}
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Missing FMU SD Card");
 		}
 	}
+
+#endif // CONFIG_BOARD_NO_SDCARD
 
 #ifdef __PX4_NUTTX
 	// Check for hardfault files

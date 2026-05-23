@@ -73,6 +73,10 @@ bmi088 -G -R 4 -s start
 icm42688p -R 6 -s -b 2 start
 icm42688p -R 14 -s -b 1 start
 
+# Internal SPI bus ICM45686
+icm45686 -R 6 -s -b 2 start
+icm45686 -R 14 -s -b 1 start
+
 # Internal magnetometer on I2c
 rm3100 -I -b 4 start
 

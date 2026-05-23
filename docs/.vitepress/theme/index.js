@@ -52,6 +52,27 @@ export default {
     };
     onMounted(() => {
       initZoom();
+      // Re-scroll to hash after fonts/layout settle. Firefox does not re-scroll
+      // after late layout shifts on huge pages (e.g. parameter_reference), so
+      // the initial anchor jump lands far off. Run only on initial load.
+      if (inBrowser && location.hash) {
+        const id = decodeURIComponent(location.hash.slice(1));
+        const fontsReady = document.fonts?.ready ?? Promise.resolve();
+        const loadReady =
+          document.readyState === "complete"
+            ? Promise.resolve()
+            : new Promise((r) =>
+                window.addEventListener("load", r, { once: true })
+              );
+        Promise.all([fontsReady, loadReady]).then(() => {
+          requestAnimationFrame(() =>
+            requestAnimationFrame(() => {
+              const el = document.getElementById(id);
+              if (el) el.scrollIntoView();
+            })
+          );
+        });
+      }
     });
     watch(
       () => route.path,

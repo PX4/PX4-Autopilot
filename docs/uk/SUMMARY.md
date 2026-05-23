@@ -313,6 +313,7 @@
       - [DroneCAN ESCs](dronecan/escs.md)
         - [PX4 Sapog ESC Firmware](dronecan/sapog.md)
       - [ARK 4IN1 ESC](esc/ark_4in1_esc.md)
+      - [Hiwonder 4Ch Encoder Motor Module](peripherals/hiwonder_emm.md)
       - [Holybro Kotleta](dronecan/holybro_kotleta.md)
       - [Vertiq Motor/ESC Modules](peripherals/vertiq.md)
       - [VESC Project ESCs](peripherals/vesc.md)
@@ -386,6 +387,7 @@
 
   - [Периферія](peripherals/index.md)
     - [ADSB/FLARM/UTM (уникнення трафіку)](peripherals/adsb_flarm.md)
+    - [On-Screen Display (OSD)](peripherals/osd.md)
     - [Парашут](peripherals/parachute.md)
     - [Remote ID](peripherals/remote_id.md)
 
@@ -425,6 +427,8 @@
 
   - [Стандартна конфігурація](config/index.md)
 
+  - [OEM Configuration](advanced_config/oem.md)
+
   - [Розширені налаштування](advanced_config/index.md)
     - [Using PX4's Navigation Filter (EKF2)](advanced_config/tuning_the_ecl_ekf.md)
     - [GNSS-Denied & Degraded Flight](advanced_config/gnss_degraded_or_denied_flight.md)
@@ -450,7 +454,10 @@
       - [Position Tuning](config_rover/position_tuning.md)
     - [Apps & API](flight_modes_rover/api.md)
     - [Complete Vehicles](complete_vehicles_rover/index.md)
-      - [Aion Robotics R1](complete_vehicles_rover/aion_r1.md)
+      - [Hiwonder Ackermann Chassis](complete_vehicles_rover/hiwonder_ackermann.md)
+      - [Hiwonder Tracked Chassis](complete_vehicles_rover/hiwonder_tracked.md)
+      - [Hiwonder Mecanum Chassis](complete_vehicles_rover/hiwonder_mecanum.md)
+      - [Aion Robotics R1 (Discontinued)](complete_vehicles_rover/aion_r1.md)
   - [Submarines (experimental)](frames_sub/index.md)
     - [BlueROV2](frames_sub/bluerov2.md)
   - [Airframes Reference](airframes/airframe_reference.md)
@@ -492,6 +499,7 @@
       - [Gazebo Models Repository](sim_gazebo_gz/gazebo_models.md)
       - [Багатотранспортний Sim](sim_gazebo_gz/multi_vehicle_simulation.md)
     - [SIH Simulation](sim_sih/index.md)
+      - [Hawkeye Visualizer](sim_hawkeye/index.md)
     - [Симуляція Gazebo Classic](sim_gazebo_classic/index.md)
       - [Vehicles](sim_gazebo_classic/vehicles.md)
       - [Worlds](sim_gazebo_classic/worlds.md)
@@ -909,7 +917,6 @@
     - [Integration Testing](test_and_ci/integration_testing.md)
       - [MAVSDK Тестування інтеграції ](test_and_ci/integration_testing_mavsdk.md)
       - [PX4 ROS2 Interface Library Integration Testing](test_and_ci/integration_testing_px4_ros2_interface.md)
-      - [ROS 1 Integration Testing](test_and_ci/integration_testing_ros1_mavros.md)
     - [Докер-контейнер](test_and_ci/docker.md)
     - [Підтримка](test_and_ci/maintenance.md)
 

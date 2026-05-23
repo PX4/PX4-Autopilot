@@ -130,6 +130,70 @@ adis16507 <command> [arguments...]
    status        print status info
 ```
 
+## adis1650x
+
+Source: [drivers/imu/analog_devices/adis1650x](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/analog_devices/adis1650x)
+
+### Usage {#adis1650x_usage}
+
+```
+adis1650x <command> [arguments...]
+ Commands:
+   start
+     [-s]        Internal SPI bus(es)
+     [-S]        External SPI bus(es)
+     [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
+                 (default=1))
+     [-c <val>]  chip-select pin (for internal SPI) or index (for external SPI)
+     [-m <val>]  SPI mode
+     [-f <val>]  bus frequency in kHz
+     [-q]        quiet startup (no message if no device found)
+     [-R <val>]  Rotation
+                 default: 0
+     [-r <val>]  Decimation rate: sample_rate = 2000/(dec_rate+1). 0=2000Hz
+                 1=1000Hz 3=500Hz
+                 default: 1
+     [-F <val>]  Hardware Bartlett FIR filter tap size: 0=bypass 1-6=increasing
+                 strength
+                 default: 0
+
+   stop
+
+   status        print status info
+```
+
+## adis1657x
+
+Source: [drivers/imu/analog_devices/adis1657x](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/analog_devices/adis1657x)
+
+### Usage {#adis1657x_usage}
+
+```
+adis1657x <command> [arguments...]
+ Commands:
+   start
+     [-s]        Internal SPI bus(es)
+     [-S]        External SPI bus(es)
+     [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
+                 (default=1))
+     [-c <val>]  chip-select pin (for internal SPI) or index (for external SPI)
+     [-m <val>]  SPI mode
+     [-f <val>]  bus frequency in kHz
+     [-q]        quiet startup (no message if no device found)
+     [-R <val>]  Rotation
+                 default: 0
+     [-r <val>]  Decimation rate: sample_rate = 2000/(dec_rate+1). 0=2000Hz
+                 1=1000Hz 3=500Hz 19=100Hz
+                 default: 0
+     [-F <val>]  Hardware Bartlett FIR filter tap size: 0=bypass 1-6=increasing
+                 filter strength
+                 default: 0
+
+   stop
+
+   status        print status info
+```
+
 ## adis16607
 
 Source: [drivers/imu/analog_devices/adis16607](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/analog_devices/adis16607)

@@ -161,6 +161,14 @@
   display: inline; /* block by default set by vitepress */
 }
 
+/* Fix deep-link anchor offset under fixed navbar.
+   Also guards against Firefox layout-shift drift on huge pages (e.g. parameter_reference). */
+html {
+  scroll-padding-top: calc(var(--vp-nav-height, 64px) + 16px);
+}
+:target {
+  scroll-margin-top: calc(var(--vp-nav-height, 64px) + 16px);
+}
 
 /**
  * Custom style to hide search on the ome page

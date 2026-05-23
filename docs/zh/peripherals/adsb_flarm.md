@@ -18,7 +18,7 @@ It has been tested with the following devices:
 Any of the devices can be connected to any free/unused serial port on the flight controller.
 Most commonly they are connected to `TELEM2` (if this is not being use for some other purpose).
 
-### PingRX
+### PingRX Pro
 
 The PingRX MAVLink port uses a JST ZHR-4 mating connector with pinout as shown below.
 
@@ -29,8 +29,16 @@ The PingRX MAVLink port uses a JST ZHR-4 mating connector with pinout as shown b
 | 3    | 电源                          | +4 to 6V     |
 | 4（黑） | GND                         | GND          |
 
-The PingRX comes with connector cable that can be attached directly to the TELEM2 port (DF13-6P) on an [mRo Pixhawk](../flight_controller/mro_pixhawk.md).
+The PingRX comes with connector cable that can be attached directly to the `TELEM2` port (DF13-6P) on an [mRo Pixhawk](../flight_controller/mro_pixhawk.md).
 For other ports or boards, you will need to obtain your own cable.
+
+The recommended port configuration for this receiver is:
+
+| 参数                                                                                                                                          | Recommended Value |
+| ------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| [MAV_X_CONFIG](../advanced_config/parameter_reference.md#MAV_1_CONFIG)                            | `TELEM 2`         |
+| [MAV_X_MODE](../advanced_config/parameter_reference.md#MAV_1_MODE)                                | uAvionix          |
+| [MAV_X_RADIO_CTL](../advanced_config/parameter_reference.md#MAV_1_RADIO_CTL) | Disabled          |
 
 ## FLARM
 
@@ -49,19 +57,19 @@ FLARM has an on-board DF-13 6 Pin connector that has an identical pinout to the 
 The TX and RX on the flight controller must be connected to the RX and TX on the FLARM, respectively.
 :::
 
-## 软件配置
+## PX4 配置
 
 ### Port Configuration
 
 The receivers are configured in the same way as any other [MAVLink Peripheral](../peripherals/mavlink_peripherals.md).
-The only _specific_ setup is that the port baud rate must be set to 57600 and the a low-bandwidth profile (`MAV_X_MODE`).
+The recommended configuration for most devices (unless they have device-specific configuration like PingRX) is to connect to `TELEM 2` and [set the parameters](../advanced_config/parameters.md) as shown:
 
-Assuming you have connected the device to the TELEM2 port, [set the parameters](../advanced_config/parameters.md) as shown:
-
-- [MAV_1_CONFIG](../advanced_config/parameter_reference.md#MAV_1_CONFIG) = TELEM 2
-- [MAV_1_MODE](../advanced_config/parameter_reference.md#MAV_1_MODE) = Normal
-- [MAV_1_RATE](../advanced_config/parameter_reference.md#MAV_1_RATE) = 0 (default sending rate for port).
-- [MAV_1_FORWARD](../advanced_config/parameter_reference.md#MAV_1_FORWARD) = Enabled
+| 参数                                                                                                                 | Recommended Value                                    |
+| ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------- |
+| [MAV_X_CONFIG](../advanced_config/parameter_reference.md#MAV_1_CONFIG)   | `TELEM 2`                                            |
+| [MAV_X_MODE](../advanced_config/parameter_reference.md#MAV_1_MODE)       | Normal                                               |
+| [MAV_X_RATE](../advanced_config/parameter_reference.md#MAV_1_RATE)       | 0 (default sending rate for port) |
+| [MAV_X_FORWARD](../advanced_config/parameter_reference.md#MAV_1_FORWARD) | Enabled                                              |
 
 Then reboot the vehicle.
 

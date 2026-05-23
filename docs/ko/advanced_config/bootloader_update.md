@@ -209,3 +209,7 @@ To update the bootloader:
 Boards that are not part of the [Pixhawk Series](../flight_controller/pixhawk_series.md) will have their own mechanisms for bootloader update.
 
 For boards that are preflashed with Betaflight, see [Bootloader Flashing onto Betaflight Systems](bootloader_update_from_betaflight.md).
+
+## See Also
+
+- [OEM/Factory Configuration](../advanced_config/oem.md)

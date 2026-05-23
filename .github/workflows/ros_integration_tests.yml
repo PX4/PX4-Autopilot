@@ -121,7 +121,10 @@ jobs:
       shell: bash
       run: |
         . /opt/px4_ws/install/setup.bash
-        /opt/Micro-XRCE-DDS-Agent/build/MicroXRCEAgent udp4 localhost -p 8888 -v 0 &
+        # The Agent is started (and restarted between tests) by ros_test_runner.py
+        # so DDS graph state from a previous PX4 instance does not leak into the
+        # next test. Make the Agent binary discoverable on PATH.
+        export PATH="/opt/Micro-XRCE-DDS-Agent/build:$PATH"
         test/ros_test_runner.py --verbose --model iris --force-color
       timeout-minutes: 45
 

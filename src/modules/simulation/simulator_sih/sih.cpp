@@ -366,11 +366,16 @@ void Sih::generate_force_and_torques(const float dt)
 		       m3    m2
 		          ├1/2┤
 		          ├  1  ┤    */
-		_T_B = Vector3f(0.0f, 0.0f, -_T_MAX * (+_u[0] + _u[1] + _u[2] + _u[3] + _u[4] + _u[5]));
-		_Mt_B = Vector3f(_L_ROLL * _T_MAX * (-.5f * _u[0] - _u[1] - .5f * _u[2] + .5f * _u[3] + _u[4] + .5f * _u[5]),
-				 _L_PITCH * _T_MAX * (M_SQRT3_F / 2.f) * (+_u[0] - _u[2] - _u[3] + _u[5]),
-				 _Q_MAX * (+_u[0] - _u[1] + _u[2] - _u[3] + _u[4] - _u[5]));
+		float u_sq[6];
 
+		for (int i = 0; i < 6; ++i) {
+			u_sq[i] = _u[i] * _u[i]; // quadratic thrust model, keep _u[i] intact for the filter
+		}
+
+		_T_B = Vector3f(0.0f, 0.0f, -_T_MAX * (+u_sq[0] + u_sq[1] + u_sq[2] + u_sq[3] + u_sq[4] + u_sq[5]));
+		_Mt_B = Vector3f(_L_ROLL * _T_MAX * (-.5f * u_sq[0] - u_sq[1] - .5f * u_sq[2] + .5f * u_sq[3] + u_sq[4] + .5f * u_sq[5]),
+				 _L_PITCH * _T_MAX * (M_SQRT3_F / 2.f) * (+u_sq[0] - u_sq[2] - u_sq[3] + u_sq[5]),
+				 _Q_MAX * (+u_sq[0] - u_sq[1] + u_sq[2] - u_sq[3] + u_sq[4] - u_sq[5]));
 		_Fa_E = -_KDV * _R_N2E * _v_apparent_N; // first order drag to slow down the aircraft
 		_Ma_B = -_KDW * _w_B; // first order angular damper
 
@@ -620,7 +625,7 @@ void Sih::ecefToNed()
 
 	// Transform velocity to NED frame
 	_v_N = C_SE * _v_E;
-	_v_apparent_N = _v_N + _v_wind_N;
+	_v_apparent_N = _v_N - _v_wind_N;
 
 	_q = Quatf(C_SE) * _q_E;
 	_q.normalize();
@@ -664,8 +669,8 @@ void Sih::send_airspeed(const hrt_abstime &time_now_us)
 	airspeed_s airspeed{};
 	airspeed.timestamp_sample = time_now_us;
 
-	// Assume the pitot tube always points against the wind to not have tailsitter edge cases
-	airspeed.true_airspeed_m_s = fmaxf(0.1f, _v_apparent_N.norm() + generate_wgn() * 0.2f);
+	// pitot tube measures forward (body-x) airspeed
+	airspeed.true_airspeed_m_s = fmaxf(0.1f, _v_B(0) + generate_wgn() * 0.2f);
 	airspeed.indicated_airspeed_m_s = airspeed.true_airspeed_m_s * sqrtf(_wing_l.get_rho() / RHO);
 	airspeed.confidence = 0.7f;
 	airspeed.timestamp = hrt_absolute_time();

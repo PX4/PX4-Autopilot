@@ -149,11 +149,15 @@ int EulerNavDriver::print_status()
 {
 	if (_is_initialized)
 	{
-		PX4_INFO("Elapsed time: %llu [us].\n", hrt_elapsed_time(&_statistics.start_time));
-		PX4_INFO("Total bytes received: %lu.\n", _statistics.total_bytes_received);
+		PX4_INFO("Elapsed time: %llu [us].\n",
+			 static_cast<unsigned long long>(hrt_elapsed_time(&_statistics.start_time)));
+		PX4_INFO("Total bytes received: %lu.\n",
+			 static_cast<unsigned long>(_statistics.total_bytes_received));
 		PX4_INFO("Inertial messages received: %lu. Navigation messages received: %lu.\n",
-			_statistics.inertial_message_counter, _statistics.navigation_message_counter);
-		PX4_INFO("Failed CRC count: %lu.\n", _statistics.crc_failures);
+			 static_cast<unsigned long>(_statistics.inertial_message_counter),
+			 static_cast<unsigned long>(_statistics.navigation_message_counter));
+		PX4_INFO("Failed CRC count: %lu.\n",
+			 static_cast<unsigned long>(_statistics.crc_failures));
 
 	}
 	else
@@ -298,7 +302,7 @@ void EulerNavDriver::processDataBuffer()
 
 			if (static_cast<size_t>(bytes_to_retrieve) == _data_buffer.pop_front(bytes + sizeof(CSerialProtocol::SMessageHeader), bytes_to_retrieve))
 			{
-				const uint32_t message_length_in_words{message_length / sizeof(uint32_t)};
+				const uint32_t message_length_in_words{static_cast<uint32_t>(message_length / sizeof(uint32_t))};
 				const uint32_t actual_crc{crc32(_message_storage, message_length_in_words - 1)};
 				const uint32_t expected_crc = _message_storage[message_length_in_words - 1];
 

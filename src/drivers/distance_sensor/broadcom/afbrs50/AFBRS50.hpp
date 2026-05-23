@@ -48,7 +48,7 @@
 class AFBRS50 : public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
-	AFBRS50(const uint8_t device_orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+	AFBRS50();
 	~AFBRS50() override;
 
 	enum class STATE : uint8_t {
@@ -106,6 +106,7 @@ private:
 		(ParamInt<px4::params::SENS_AFBR_S_RATE>) _p_sens_afbr_s_rate,
 		(ParamInt<px4::params::SENS_AFBR_L_RATE>) _p_sens_afbr_l_rate,
 		(ParamInt<px4::params::SENS_AFBR_THRESH>) _p_sens_afbr_thresh,
-		(ParamInt<px4::params::SENS_AFBR_HYSTER>) _p_sens_afbr_hyster
+		(ParamInt<px4::params::SENS_AFBR_HYSTER>) _p_sens_afbr_hyster,
+		(ParamInt<px4::params::SENS_AFBR_ROT>)    _p_sens_afbr_rot
 	);
 };

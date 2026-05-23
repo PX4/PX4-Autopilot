@@ -371,6 +371,7 @@
       - [Servo Gripper](/peripherals/gripper_servo.md)
   - [Peripherals](/peripherals/index.md)
     - [ADSB/FLARM/UTM (Traffic Avoidance)](/peripherals/adsb_flarm.md)
+    - [On-Screen Display (OSD)](/peripherals/osd.md)
     - [Parachute](/peripherals/parachute.md)
     - [Remote ID](/peripherals/remote_id.md)
   - [I2C Peripherals](/sensor_bus/i2c_general.md)

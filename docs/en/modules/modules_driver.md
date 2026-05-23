@@ -432,6 +432,35 @@ gz_bridge <command> [arguments...]
    status        print status info
 ```
 
+## hiwonder_emm
+
+Source: [drivers/hiwonder_emm](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/hiwonder_emm)
+
+### Description
+
+I2C driver for the Hiwonder 4-Channel Encoder Motor Module (EMM), a small motor controller that drives up to
+four brushed DC motors with on-board encoder feedback. Communicates with the EMM on the first external I2C
+bus at address 0x34.
+
+To use this driver, the board configuration must include `CONFIG_DRIVERS_HIWONDER_EMM=y` so the driver is
+compiled into the firmware. At runtime, the driver is enabled by setting the `HIWONDER_EMM_EN` parameter to
+`1` and reboot. It is then started automatically by the rover startup script (`rc.rover`) for ackermann, differential,
+and mecanum rover airframes.
+
+The command to start this driver manually is: `$ hiwonder_emm start`
+
+### Usage {#hiwonder_emm_usage}
+
+```
+hiwonder_emm <command> [arguments...]
+ Commands:
+   start         Start the task
+
+   stop
+
+   status        print status info
+```
+
 ## ina220
 
 Source: [drivers/power_monitor/ina220](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/power_monitor/ina220)
@@ -782,7 +811,7 @@ msp_osd <command> [arguments...]
    channel       Change VTX channel
 ```
 
-## newpixel
+## neopixel
 
 Source: [drivers/lights/neopixel](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/neopixel)
 
@@ -800,10 +829,10 @@ neopixel -n 8
 
 To drive all available leds.
 
-### Usage {#newpixel_usage}
+### Usage {#neopixel_usage}
 
 ```
-newpixel <command> [arguments...]
+neopixel <command> [arguments...]
  Commands:
    stop
 

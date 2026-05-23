@@ -6,11 +6,11 @@
 ## Installs:
 ##	- Common dependencies and tools for building PX4
 ##	- Cross compilers for building hardware targets using NuttX
-##	- Can also install the default simulation provided by the px4-sim homebrew
-##		Formula
+##	- With --sim-tools: Gazebo Harmonic and jMAVSim simulation stack
 ##
-## For more information regarding the Homebrew Formulas see:
-##		https://github.com/PX4/homebrew-px4/
+## Homebrew 4.5+ no longer auto-resolves cross-tap dependencies, so
+## every tap and package is listed explicitly here rather than hidden
+## behind meta-formulae. See PX4/homebrew-px4#104 for background.
 ##
 
 # script directory
@@ -97,10 +97,37 @@ fi
 
 # Optional, but recommended additional simulation tools:
 if [[ $INSTALL_SIM == "--sim-tools" ]]; then
-	if ! brew ls --versions px4-sim > /dev/null; then
-		brew install px4-sim
-	elif [[ $REINSTALL_FORMULAS == "--reinstall" ]]; then
-		brew reinstall px4-sim
+	# Simulation packages. This replaces the px4-sim / px4-sim-gazebo
+	# meta-formulae, which declared cross-tap dependencies that
+	# Homebrew 4.5+ no longer auto-resolves. Same migration pattern as
+	# the toolchain block above. See PX4/homebrew-px4#104 for the
+	# px4-dev precedent.
+	#
+	# osrf/simulation: gz-harmonic (Gazebo Harmonic meta-formula)
+	brew tap osrf/simulation
+
+	PX4_SIM_BREW_PACKAGES=(
+		exiftool
+		glog
+		graphviz
+		gstreamer
+		opencv
+		osrf/simulation/gz-harmonic
+		protobuf
+	)
+
+	if [[ $REINSTALL_FORMULAS == "--reinstall" ]]; then
+		echo "[macos.sh] Re-installing PX4 simulation dependencies"
+		brew reinstall "${PX4_SIM_BREW_PACKAGES[@]}"
+	else
+		echo "[macos.sh] Installing PX4 simulation dependencies"
+		brew install "${PX4_SIM_BREW_PACKAGES[@]}"
+	fi
+
+	# XQuartz is required for Gazebo GUI display on macOS.
+	if ! brew list --cask xquartz &> /dev/null; then
+		echo "[macos.sh] Installing XQuartz (required for Gazebo display)"
+		brew install --cask xquartz
 	fi
 
 	# jMAVSim requires a JDK (Java 17 LTS recommended)

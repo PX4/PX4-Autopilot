@@ -34,6 +34,7 @@
 #pragma once
 
 #include <px4_platform_common/px4_config.h>
+#include <drivers/drv_hrt.h>
 
 #include <uavcan/protocol/dynamic_node_id_server/centralized.hpp>
 #include <uavcan/protocol/file_server.hpp>
@@ -74,6 +75,8 @@ private:
 	void unpackFwFromROMFS(const char *sd_path, const char *romfs_path);
 	void migrateFWFromRoot(const char *sd_path, const char *sd_root_path);
 	int copyFw(const char *dst, const char *src);
+	void updateFwDatabase(const char *fw_path, const char *original_filename);
+	void validateFwDatabase();
 
 	uavcan_posix::dynamic_node_id_server::FileEventTracer _tracer;
 	uavcan_posix::dynamic_node_id_server::FileStorageBackend _storage_backend;

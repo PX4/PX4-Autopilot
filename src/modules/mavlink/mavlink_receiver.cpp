@@ -457,24 +457,8 @@ void MavlinkReceiver::handle_messages_in_gimbal_mode(mavlink_message_t &msg)
 bool
 MavlinkReceiver::evaluate_target_ok(int command, int target_system, int target_component)
 {
-	/* evaluate if this system should accept this command */
-	bool target_ok = false;
-
-	switch (command) {
-
-	case MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES:
-	case MAV_CMD_REQUEST_PROTOCOL_VERSION:
-		/* broadcast and ignore component */
-		target_ok = (target_system == 0) || (target_system == mavlink_system.sysid);
-		break;
-
-	default:
-		target_ok = ((target_system == 0) || (target_system == mavlink_system.sysid))
-			    && ((target_component == mavlink_system.compid) || (target_component == MAV_COMP_ID_ALL));
-		break;
-	}
-
-	return target_ok;
+	return ((target_system == 0) || (target_system == mavlink_system.sysid))
+	       && ((target_component == mavlink_system.compid) || (target_component == MAV_COMP_ID_ALL));
 }
 
 void
@@ -519,6 +503,67 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 	handle_message_command_both(msg, cmd_mavlink, vcmd);
 }
 
+bool
+MavlinkReceiver::command_has_location(uint16_t command)
+{
+	switch (command) {
+	// Supported by PX4 as COMMAND_INT
+	case MAV_CMD_NAV_LAND:                               // 21
+	case MAV_CMD_NAV_TAKEOFF:                            // 22
+	case MAV_CMD_NAV_LAND_LOCAL:                         // 23
+	case MAV_CMD_DO_ORBIT:                               // 34
+	case MAV_CMD_DO_FIGURE_EIGHT:                        // 35
+	case MAV_CMD_NAV_ROI:                                // 80
+	case MAV_CMD_NAV_VTOL_TAKEOFF:                       // 84
+	case MAV_CMD_DO_SET_HOME:                            // 179
+	case MAV_CMD_DO_LAND_START:                          // 189
+	case MAV_CMD_DO_SET_ROI_LOCATION:                    // 195
+	case MAV_CMD_DO_SET_ROI:                             // 201
+	case MAV_CMD_PAYLOAD_PREPARE_DEPLOY:                 // 30001
+	case MAV_CMD_EXTERNAL_POSITION_ESTIMATE:             // 43003
+		return true;
+
+	// Not supported by PX4 as COMMAND_INT (mission items or unimplemented)
+	// case MAV_CMD_NAV_WAYPOINT:                        // 16
+	// case MAV_CMD_NAV_LOITER_UNLIM:                    // 17
+	// case MAV_CMD_NAV_LOITER_TURNS:                    // 18
+	// case MAV_CMD_NAV_LOITER_TIME:                     // 19
+	// case MAV_CMD_NAV_TAKEOFF_LOCAL:                   // 24
+	// case MAV_CMD_NAV_FOLLOW:                          // 25
+	// case MAV_CMD_NAV_LOITER_TO_ALT:                   // 31
+	// case MAV_CMD_NAV_ARC_WAYPOINT:                    // 36
+	// case MAV_CMD_NAV_PATHPLANNING:                    // 81
+	// case MAV_CMD_NAV_SPLINE_WAYPOINT:                 // 82
+	// case MAV_CMD_NAV_VTOL_LAND:                       // 85
+	// case MAV_CMD_NAV_PAYLOAD_PLACE:                   // 94
+	// case MAV_CMD_DO_RETURN_PATH_START:                // 188
+	// case MAV_CMD_DO_REPOSITION:                       // 192
+	// case MAV_CMD_OVERRIDE_GOTO:                       // 252
+	// case MAV_CMD_SET_GUIDED_SUBMODE_CIRCLE:           // 4001
+	// case MAV_CMD_CONDITION_GATE:                      // 4501
+	// case MAV_CMD_NAV_FENCE_RETURN_POINT:              // 5000
+	// case MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION:  // 5001
+	// case MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION:  // 5002
+	// case MAV_CMD_NAV_FENCE_CIRCLE_INCLUSION:          // 5003
+	// case MAV_CMD_NAV_FENCE_CIRCLE_EXCLUSION:          // 5004
+	// case MAV_CMD_NAV_RALLY_POINT:                     // 5100
+	// case MAV_CMD_DO_SET_GLOBAL_ORIGIN:                // 611
+	// case MAV_CMD_WAYPOINT_USER_1:                     // 31000
+	// case MAV_CMD_WAYPOINT_USER_2:                     // 31001
+	// case MAV_CMD_WAYPOINT_USER_3:                     // 31002
+	// case MAV_CMD_WAYPOINT_USER_4:                     // 31003
+	// case MAV_CMD_WAYPOINT_USER_5:                     // 31004
+	// case MAV_CMD_SPATIAL_USER_1:                      // 31005
+	// case MAV_CMD_SPATIAL_USER_2:                      // 31006
+	// case MAV_CMD_SPATIAL_USER_3:                      // 31007
+	// case MAV_CMD_SPATIAL_USER_4:                      // 31008
+	// case MAV_CMD_SPATIAL_USER_5:                      // 31009
+
+	default:
+		return false;
+	}
+}
+
 void
 MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 {
@@ -547,9 +592,28 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 		vcmd.param5 = (double)NAN;
 		vcmd.param6 = (double)NAN;
 
+	} else if (command_has_location(cmd_mavlink.command)
+		   || cmd_mavlink.command == MAV_CMD_DO_SET_ACTUATOR) { // actuator values use 1e7 scaling
+		if (cmd_mavlink.frame == MAV_FRAME_LOCAL_NED
+		    || cmd_mavlink.frame == MAV_FRAME_LOCAL_ENU
+		    || cmd_mavlink.frame == MAV_FRAME_LOCAL_OFFSET_NED
+		    || cmd_mavlink.frame == MAV_FRAME_BODY_NED        // superseded by BODY_FRD
+		    || cmd_mavlink.frame == MAV_FRAME_BODY_OFFSET_NED // superseded by BODY_FRD
+		    || cmd_mavlink.frame == MAV_FRAME_BODY_FRD
+		    || cmd_mavlink.frame == MAV_FRAME_LOCAL_FRD
+		    || cmd_mavlink.frame == MAV_FRAME_LOCAL_FLU) {
+			vcmd.param5 = ((double)cmd_mavlink.x) / 1e4;
+			vcmd.param6 = ((double)cmd_mavlink.y) / 1e4;
+
+		} else {
+			// Global frames, MAV_FRAME_MISSION, and any unrecognised frames
+			vcmd.param5 = ((double)cmd_mavlink.x) / 1e7;
+			vcmd.param6 = ((double)cmd_mavlink.y) / 1e7;
+		}
+
 	} else {
-		vcmd.param5 = ((double)cmd_mavlink.x) / 1e7;
-		vcmd.param6 = ((double)cmd_mavlink.y) / 1e7;
+		vcmd.param5 = (double)cmd_mavlink.x;
+		vcmd.param6 = (double)cmd_mavlink.y;
 	}
 
 	vcmd.param7 = cmd_mavlink.z;
@@ -583,24 +647,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		return;
 	}
 
-	// First we handle legacy support requests which were used before we had
-	// the generic MAV_CMD_REQUEST_MESSAGE.
-	if (cmd_mavlink.command == MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES) {
-		result = handle_request_message_command(MAVLINK_MSG_ID_AUTOPILOT_VERSION);
-
-	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_PROTOCOL_VERSION) {
-		result = handle_request_message_command(MAVLINK_MSG_ID_PROTOCOL_VERSION);
-
-	} else if (cmd_mavlink.command == MAV_CMD_GET_HOME_POSITION) {
-		result = handle_request_message_command(MAVLINK_MSG_ID_HOME_POSITION);
-
-	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_FLIGHT_INFORMATION) {
-		result = handle_request_message_command(MAVLINK_MSG_ID_FLIGHT_INFORMATION);
-
-	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_STORAGE_INFORMATION) {
-		result = handle_request_message_command(MAVLINK_MSG_ID_STORAGE_INFORMATION);
-
-	} else if (cmd_mavlink.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
+	if (cmd_mavlink.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
 		if (set_message_interval(
 			    (int)(cmd_mavlink.param1 + 0.5f), cmd_mavlink.param2, cmd_mavlink.param3, cmd_mavlink.param4, vehicle_command.param7)) {
 			result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
@@ -644,6 +691,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 
 	} else if (cmd_mavlink.command == MAV_CMD_DO_SET_MODE) {
 		_cmd_pub.publish(vehicle_command);
+		send_ack = false;	//Acknowledgement handled by Commander
 
 	} else if (cmd_mavlink.command == MAV_CMD_DO_AUTOTUNE_ENABLE) {
 
@@ -2736,18 +2784,53 @@ MavlinkReceiver::handle_message_gps_rtcm_data(mavlink_message_t *msg)
 	mavlink_gps_rtcm_data_t gps_rtcm_data_msg;
 	mavlink_msg_gps_rtcm_data_decode(msg, &gps_rtcm_data_msg);
 
+	// Drop packets with an invalid payload length
+	if (gps_rtcm_data_msg.len > sizeof(gps_rtcm_data_msg.data)) {
+		return;
+	}
+
+	const hrt_abstime now = hrt_absolute_time();
+	const size_t packet_len = static_cast<size_t>(gps_rtcm_data_msg.len);
+	size_t message_len = 0;
+
+	const uint8_t *message = _gps_rtcm_message_assembler.addPacket(gps_rtcm_data_msg.flags, gps_rtcm_data_msg.data,
+				 packet_len, now, message_len);
+
+	if (message != nullptr) {
+		publish_gps_inject_data(message, message_len);
+
+		// addPacket() can queue at most one deferred message.
+		const uint8_t *deferred_message = _gps_rtcm_message_assembler.takeDeferredMessage(message_len);
+
+		if (deferred_message != nullptr) {
+			publish_gps_inject_data(deferred_message, message_len);
+		}
+	}
+}
+
+void
+MavlinkReceiver::publish_gps_inject_data(const uint8_t *data, size_t len)
+{
 	gps_inject_data_s gps_inject_data_topic{};
+	constexpr uint8_t gps_inject_data_flag_fragmented = 1;
 
-	gps_inject_data_topic.timestamp = hrt_absolute_time();
+	const size_t capacity = sizeof(gps_inject_data_topic.data);
+	// gps_inject_data only carries the transport-level fragmented bit. The
+	// MAVLink fragment/sequence bits are consumed by the assembler above.
+	gps_inject_data_topic.flags = (len > capacity) ? gps_inject_data_flag_fragmented : 0;
 
-	gps_inject_data_topic.len = math::min((int)sizeof(gps_rtcm_data_msg.data),
-					      (int)sizeof(uint8_t) * gps_rtcm_data_msg.len);
-	gps_inject_data_topic.flags = gps_rtcm_data_msg.flags;
-	memcpy(gps_inject_data_topic.data, gps_rtcm_data_msg.data,
-	       math::min((int)sizeof(gps_inject_data_topic.data), (int)sizeof(uint8_t) * gps_inject_data_topic.len));
+	size_t written = 0;
 
-	gps_inject_data_topic.timestamp = hrt_absolute_time();
-	_gps_inject_data_pub.publish(gps_inject_data_topic);
+	// gps_inject_data transports RTCM in 300-byte uORB chunks, so a fully
+	// reassembled RTCM frame may still require multiple publications.
+	while (written < len) {
+		const size_t chunk_len = math::min(len - written, capacity);
+		gps_inject_data_topic.timestamp = hrt_absolute_time();
+		gps_inject_data_topic.len = static_cast<decltype(gps_inject_data_topic.len)>(chunk_len);
+		memcpy(gps_inject_data_topic.data, &data[written], chunk_len);
+		_gps_inject_data_pub.publish(gps_inject_data_topic);
+		written += chunk_len;
+	}
 }
 
 void
@@ -3235,7 +3318,7 @@ void MavlinkReceiver::handle_message_open_drone_id_system(
 	open_drone_id_system_s odid_system{};
 	memset(&odid_system, 0, sizeof(odid_system));
 
-	odid_system.timestamp = hrt_absolute_time();
+	odid_system.timestamp = odid_module.timestamp;
 	memcpy(odid_system.id_or_mac, odid_module.id_or_mac, sizeof(odid_system.id_or_mac));
 	odid_system.operator_location_type = odid_module.operator_location_type;
 	odid_system.classification_type = odid_module.classification_type;
