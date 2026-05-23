@@ -54,12 +54,12 @@ RC controllers will use different sticks for throttle and yaw [based on their mo
   - _Озброєння:_ Ліва педаль вправо, права педаль вниз.
   - _Вимкнення:_ Ліва педаль вліво, права педаль вниз.
 
-Note that by default ([COM_DISARM_MAN](#COM_DISARM_MAN)) you can also disarm in flight using gestures/buttons: you may choose to disable this to avoid accidental disarming.
+Note that disarming in any altitude controlled mode is only possible after landing was detected.
+In manually piloted modes without altitude control, such as Stabilized, Acro, and Manual, it's always possible to disarm using gestures or buttons — even in flight.
 
-| Параметр                                                                                                                                           | Опис                                                                                                                                                                                                    |
-| -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="MAN_ARM_GESTURE"></a>[MAN_ARM_GESTURE](../advanced_config/parameter_reference.md#MAN_ARM_GESTURE) | Enable arm/disarm stick guesture. `0`: Disabled, `1`: Enabled (default).                                             |
-| <a id="COM_DISARM_MAN"></a>[COM_DISARM_MAN](../advanced_config/parameter_reference.md#COM_DISARM_MAN)    | Enable disarming in flight via switch/stick/button in MC manual thrust modes. `0`: Disabled, `1`: Enabled (default). |
+| Параметр                                                                                                                                           | Опис                                                                                                                                                        |
+| -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="MAN_ARM_GESTURE"></a>[MAN_ARM_GESTURE](../advanced_config/parameter_reference.md#MAN_ARM_GESTURE) | Enable arm/disarm stick guesture. `0`: Disabled, `1`: Enabled (default). |
 
 ## Arming Button/Switch {#arm_disarm_switch}
 
@@ -88,10 +88,10 @@ The button should be held down for one second to arm (when disarmed) or disarm (
 За замовчуванням транспортні засоби автоматично вимикаються при посадці або якщо ви заберете занадто багато часу, щоб злітати після озброєння.
 Ця функція налаштовується за допомогою наступних таймаутів.
 
-| Параметр                                                                                                                                              | Опис                                                                                                                                                                                                                 |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="COM_DISARM_LAND"></a>[COM_DISARM_LAND](../advanced_config/parameter_reference.md#COM_DISARM_LAND)    | Час очікування для автоматичного відбрасування після приземлення. За замовчуванням: 2с (значення -1, щоб вимкнути).                               |
-| <a id="COM_DISARM_PRFLT"></a>[COM_DISARM_PRFLT](../advanced_config/parameter_reference.md#COM_DISARM_PRFLT) | Час очікування для автоматичного відбрасування, якщо занадто повільно підйом. За замовчуванням: 10с (<=0, щоб вимкнути). |
+| Параметр                                                                                                                                              | Опис                                                                                                                                                                                   |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="COM_DISARM_LAND"></a>[COM_DISARM_LAND](../advanced_config/parameter_reference.md#COM_DISARM_LAND)    | Час очікування для автоматичного відбрасування після приземлення. За замовчуванням: 2с (значення -1, щоб вимкнути). |
+| <a id="COM_DISARM_PRFLT"></a>[COM_DISARM_PRFLT](../advanced_config/parameter_reference.md#COM_DISARM_PRFLT) | Час очікування для автоматичного відбрасування, якщо занадто повільно підйом. Default: 10s (-1 to disable).         |
 
 ## Auto-Arming on Boot
 

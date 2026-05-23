@@ -161,6 +161,8 @@ void getVehicleControlMode(uint8_t nav_state, uint8_t vehicle_type,
 			vehicle_control_mode.flag_control_allocation_enabled = true;
 		}
 
+		// direct_actuator: no flags set — companion bypasses PX4 controllers and allocator entirely
+
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:

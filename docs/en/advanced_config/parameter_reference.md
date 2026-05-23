@@ -18920,7 +18920,7 @@ parameters.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0        | 4        |           | 0       |      | &nbsp;    |
+| &nbsp; |          |          |           | 0       |      | &nbsp;    |
 
 ### COM_ARMABLE (`INT32`) {#COM_ARMABLE}
 
@@ -19795,16 +19795,20 @@ See COM_OBL_RC_ACT to configure action.
 
 ### COM_PARACHUTE (`INT32`) {#COM_PARACHUTE}
 
-Require MAVLink parachute system to be present and healthy.
+Parachute requirement and failsafe.
+
+Require a MAVLink parachute system for arming and the failsafe action when missing or unhealthy.
 
 **Values:**
 
 - `0`: Disabled
-- `1`: Enabled
+- `1`: Warning
+- `2`: Return
+- `3`: Land
 
-| Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
-| &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; |          |          |           | 0       |      | &nbsp;    |
 
 ### COM_POS_FS_EPH (`FLOAT`) {#COM_POS_FS_EPH}
 
@@ -19966,7 +19970,7 @@ Priority sources are immediately switched to whenever they get valid.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0        | 8        |           | 3       |      | &nbsp;    |
+| &nbsp; |          |          |           | 3       |      | &nbsp;    |
 
 ### COM_RC_LOSS_T (`FLOAT`) {#COM_RC_LOSS_T}
 
@@ -20132,7 +20136,7 @@ action will be executed.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0        | 6        |           | 0       |      | &nbsp;    |
+| &nbsp; |          |          |           | 0       |      | &nbsp;    |
 
 ### NAV_RCL_ACT (`INT32`) {#NAV_RCL_ACT}
 
@@ -20151,7 +20155,7 @@ set by COM_RC_LOSS_T in seconds.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 1        | 6        |           | 2       |      | &nbsp;    |
+| &nbsp; |          |          |           | 2       |      | &nbsp;    |
 
 ## Cyphal
 
@@ -20371,7 +20375,8 @@ sensor_gps uORB over Cyphal publication port ID.
 
 DSHOT 3D deadband high.
 
-When the actuator_output is between DSHOT_3D_DEAD_L and DSHOT_3D_DEAD_H, motor will not spin.
+When the actuator_output is in the inclusive range [DSHOT_3D_DEAD_L, DSHOT_3D_DEAD_H], the motor will not spin.
+Setting DSHOT_3D_DEAD_L equal to DSHOT_3D_DEAD_H (e.g. the default 1000) produces a single-point deadband at that value.
 This value is with respect to the mixer_module range (0-1999), not the DSHOT values.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
@@ -20382,7 +20387,8 @@ This value is with respect to the mixer_module range (0-1999), not the DSHOT val
 
 DSHOT 3D deadband low.
 
-When the actuator_output is between DSHOT_3D_DEAD_L and DSHOT_3D_DEAD_H, motor will not spin.
+When the actuator_output is in the inclusive range [DSHOT_3D_DEAD_L, DSHOT_3D_DEAD_H], the motor will not spin.
+Setting DSHOT_3D_DEAD_L equal to DSHOT_3D_DEAD_H (e.g. the default 1000) produces a single-point deadband at that value.
 This value is with respect to the mixer_module range (0-1999), not the DSHOT values.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
@@ -32506,11 +32512,10 @@ Mid point value
 
 ### RC_CHAN_CNT (`INT32`) {#RC_CHAN_CNT}
 
-RC channel count.
+Calibrated RC channel count.
 
-This parameter is used by Ground Station software to save the number
-of channels which were used during RC calibration. It is only meant
-for ground station use.
+Number of channels detected during RC calibration. Must be non-zero
+for RC manual control input to be accepted.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -37875,6 +37880,29 @@ This parameter defines the mode of the AFBR Rangefinder.
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 0        | 3        |           | 0       |      | &nbsp;    |
 
+### SENS_AFBR_ROT (`INT32`) {#SENS_AFBR_ROT}
+
+AFBR Rangefinder Orientation.
+
+Mounting orientation of the AFBR-S50 relative to the vehicle body frame.
+
+**Values:**
+
+- `0`: No rotation
+- `1`: Yaw 45°
+- `2`: Yaw 90°
+- `3`: Yaw 135°
+- `4`: Yaw 180°
+- `5`: Yaw 225°
+- `6`: Yaw 270°
+- `7`: Yaw 315°
+- `24`: Pitch 90°
+- `25`: Pitch 270°
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 25       |           | 25      |      | &nbsp;    |
+
 ### SENS_AFBR_S_RATE (`INT32`) {#SENS_AFBR_S_RATE}
 
 AFBR Rangefinder Short Range Rate.
@@ -39950,6 +39978,25 @@ The usb port on the sensor indicates 180deg, opposite usb is forward facing
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; |          |          |           | 0       |      | &nbsp;    |
 
+### VN_IMU_RATE (`INT32`) {#VN_IMU_RATE}
+
+VectorNav IMU output rate.
+
+Rate of the IMU output.
+The VectorNav base rate is 800 Hz. This parameter sets the
+divider, so the effective rate is 800 / divider.
+
+**Values:**
+
+- `1`: 800 Hz
+- `2`: 400 Hz
+- `4`: 200 Hz
+- `8`: 100 Hz
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 1       |      | &nbsp;    |
+
 ### VN_MODE (`INT32`) {#VN_MODE}
 
 VectorNav driver mode.
@@ -39964,6 +40011,21 @@ INS or sensors
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; |          |          |           | 0       |      | &nbsp;    |
+
+### VN_PORT (`INT32`) {#VN_PORT}
+
+VectorNav output port.
+
+Selects which serial port the sensor streams output to.
+
+**Values:**
+
+- `1`: Port 1
+- `2`: Port 2
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 2       |      | &nbsp;    |
 
 ### VOXLPM_SHUNT_BAT (`FLOAT`) {#VOXLPM_SHUNT_BAT}
 

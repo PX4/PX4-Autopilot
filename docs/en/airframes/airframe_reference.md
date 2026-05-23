@@ -611,6 +611,10 @@ div.frame_variant td, div.frame_variant th {
  <td><a href="https://docs.px4.io/main/en/complete_vehicles_rover/aion_r1">Aion Robotics R1 UGV</a></td>
  <td>Maintainer: John Doe &lt;john@example.com&gt;<p><code>SYS_AUTOSTART</code> = 50001</p></td>
 </tr>
+<tr id="rover_rover_hiwonder_tracked">
+ <td><a href="https://www.hiwonder.com/products/suspended-shock-absorbing-tracked-chassis?variant=40378709835863">Hiwonder Tracked</a></td>
+ <td>Maintainer: John Doe &lt;john@example.com&gt;<p><code>SYS_AUTOSTART</code> = 50002</p></td>
+</tr>
 <tr id="rover_rover_generic_rover_ackermann">
  <td>Generic Rover Ackermann</td>
  <td>Maintainer: John Doe &lt;john@example.com&gt;<p><code>SYS_AUTOSTART</code> = 51000</p></td>
@@ -623,9 +627,17 @@ div.frame_variant td, div.frame_variant th {
  <td>NXP B3RB Rover Ackermann</td>
  <td>Maintainer: John Doe &lt;john@example.com&gt;<p><code>SYS_AUTOSTART</code> = 51002</p></td>
 </tr>
+<tr id="rover_rover_hiwonder_ackermann">
+ <td><a href="https://www.hiwonder.com/products/ackermann-steering-chassis?variant=40382428348503">Hiwonder Ackermann</a></td>
+ <td>Maintainer: John Doe &lt;john@example.com&gt;<p><code>SYS_AUTOSTART</code> = 51003</p></td>
+</tr>
 <tr id="rover_rover_generic_rover_mecanum">
  <td>Generic Rover Mecanum</td>
  <td>Maintainer: John Doe &lt;john@example.com&gt;<p><code>SYS_AUTOSTART</code> = 52000</p></td>
+</tr>
+<tr id="rover_rover_hiwonder_mecanum">
+ <td><a href="https://www.hiwonder.com/products/large-metal-4wd-vehicle-chassis-green">Hiwonder Mecanum</a></td>
+ <td>Maintainer: John Doe &lt;john@example.com&gt;<p><code>SYS_AUTOSTART</code> = 52001</p></td>
 </tr>
 </tbody>
 </table>

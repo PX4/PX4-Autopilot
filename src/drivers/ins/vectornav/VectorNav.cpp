@@ -619,11 +619,13 @@ bool VectorNav::configure()
 	// VnSensor_readGpsCompassBaseline
 
 
+	const AsyncMode async_mode = (_param_vn_port.get() == 1) ? ASYNCMODE_PORT1 : ASYNCMODE_PORT2;
+
 	// binary output 1: max rate IMU
 	BinaryOutputRegister_initialize(
 		&_binary_output_group_1,
-		ASYNCMODE_PORT2,
-		1, // divider
+		async_mode,
+		(uint32_t)_param_vn_imu_rate.get(),
 		COMMONGROUP_NONE,
 		TIMEGROUP_TIMESTARTUP,
 		(ImuGroup)(IMUGROUP_ACCEL | IMUGROUP_ANGULARRATE),
@@ -647,7 +649,7 @@ bool VectorNav::configure()
 	// binary output 2: medium rate AHRS, INS, baro, mag
 	BinaryOutputRegister_initialize(
 		&_binary_output_group_2,
-		ASYNCMODE_PORT2,
+		async_mode,
 		8, // divider
 		COMMONGROUP_NONE,
 		TIMEGROUP_TIMESTARTUP,
@@ -668,7 +670,7 @@ bool VectorNav::configure()
 	// binary output 3: low rate GNSS
 	BinaryOutputRegister_initialize(
 		&_binary_output_group_3,
-		ASYNCMODE_PORT2,
+		async_mode,
 		80, // divider
 		COMMONGROUP_NONE,
 		TIMEGROUP_TIMESTARTUP,

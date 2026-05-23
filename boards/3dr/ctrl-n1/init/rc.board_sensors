@@ -1,0 +1,16 @@
+#!/bin/sh
+#
+# board specific sensors init
+#------------------------------------------------------------------------------
+
+board_adc start
+
+# Internal x2 IIM-42653
+iim42653 -R 14 -s -b 1 start
+iim42653 -R 14 -s -b 2 start
+
+# Internal DPS310 (barometer)
+dps310 -s -b 6 start
+
+# Internal AK09940A magnetometer
+ak09940a -I -b 1 -R 4 start

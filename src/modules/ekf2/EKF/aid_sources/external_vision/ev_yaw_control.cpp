@@ -45,7 +45,7 @@ void Ekf::controlEvYawFusion(const imuSample &imu_sample, const extVisionSample 
 	static constexpr const char *AID_SRC_NAME = "EV yaw";
 
 	float obs = getEulerYaw(ev_sample.quat);
-	float obs_var = math::max(ev_sample.orientation_var(2), _params.ekf2_eva_noise, sq(0.01f));
+	float obs_var = math::max(ev_sample.orientation_var(2), sq(_params.ekf2_eva_noise), sq(0.01f));
 
 	float innov = wrap_pi(getEulerYaw(_R_to_earth) - obs);
 	float innov_var = 0.f;

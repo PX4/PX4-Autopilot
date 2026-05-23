@@ -42,7 +42,6 @@
 #define VL53L1X_INTER_MEAS_MS				           250 // ms
 #define VL53L1X_SHORT_RANGE			            1  // sub-2 meter distance mode
 #define VL53L1X_LONG_RANGE			            2  // sub-4 meter distance mode
-#define VL53L1X_RANGE_STATUS_OUT_OF_BOUNDS     13 // region of interest out of bounds error
 #define VL53L1X_RANGE_STATUS_OK                 0 // range status ok
 #define VL53L1X_ROI_MID_RIGHT                 231 // ROI middle right of optical center
 #define VL53L1X_ROI_MID_LEFT                  167 // ROI middle left of optical center
@@ -197,7 +196,7 @@ VL53L1X::~VL53L1X()
 int VL53L1X::collect()
 {
 	uint8_t ret = 0;
-	uint8_t rangeStatus = VL53L1X_RANGE_STATUS_OK;
+	uint8_t raw_status = VL53L1X_RANGE_STATUS_OK;
 	uint16_t distance_mm = 0;
 	static constexpr float DOWNWARD_FACING_THETA = -1.57f;
 	static constexpr float RIGHT_PSI = 0.117809725;
@@ -205,12 +204,23 @@ int VL53L1X::collect()
 	perf_begin(_sample_perf);
 
 
-	const int8_t quality = VL53L1X_GetRangeStatus(&rangeStatus);
+	ret = VL53L1X_GetRangeStatus(&raw_status);
 
-	if ((ret != PX4_OK) | (rangeStatus == VL53L1X_RANGE_STATUS_OUT_OF_BOUNDS)) {
+	RangeStatus rangeStatus = static_cast<RangeStatus>(raw_status);
+
+	if ((ret != PX4_OK) || (rangeStatus == RangeStatus::RoiOutOfBounds)) {
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
 		return PX4_ERROR;
+	}
+
+	int8_t quality = 0;
+
+	if (rangeStatus == RangeStatus::Ok) {
+		quality = 100;
+
+	} else {
+		quality = 0;
 	}
 
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
