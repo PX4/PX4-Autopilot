@@ -284,5 +284,5 @@ int SensorGpsSim::print_usage(const char *reason)
 
 extern "C" __EXPORT int sensor_gps_sim_main(int argc, char *argv[])
 {
-	return SensorGpsSim::main(argc, argv);
+	return SensorGpsSim::main(SensorGpsSim::desc, argc, argv);
 }
