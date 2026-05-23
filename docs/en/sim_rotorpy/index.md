@@ -7,12 +7,18 @@ It may or may not work with current versions of PX4.
 See [Toolchain Installation](../dev_setup/dev_env.md) for information about the environments and tools supported by the core development team.
 :::
 
-RotorPy is a Python-based multirotor simulation environment with aerodynamic wrenches, useful for education and research in estimation, planning, and control for UAVs.
+RotorPy is a Python-based multirotor simulation environment with [aerodynamic wrenches](https://arxiv.org/abs/2306.04485), useful for education and research in estimation, planning, and control for UAVs.
 It provides stand-alone classes and a [Gymnasium environment](https://gymnasium.farama.org/).
 
 <lite-youtube videoid="L8-QZgc6Vwk" title="Demo of PX4 with RotorPy simulator"/>
 
-<!-- TODO: add animation gif. -->
+## Why Use RotorPy?
+
+RotorPy simulates the aerodynamic forces and moments acting on a multirotor, along with actuator limits, sensor noise, wind, and obstacles.
+This makes it useful when you want to test estimation, planning, or control algorithms against more realistic vehicle dynamics than a simple point-mass or kinematic simulation.
+
+The Gymnasium interface is useful for reinforcement learning and other Python-based research workflows.
+It lets you connect policies and learning pipelines to a PX4-controlled multirotor simulation without rewriting them around PX4-specific APIs.
 
 ## Installation
 
@@ -88,5 +94,3 @@ def main():
 if __name__ == '__main__':
     main()
 ```
-
-<!-- TODO: Add an example of externally controlled environment -->
