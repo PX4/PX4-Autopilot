@@ -101,8 +101,8 @@ void SensorGpsSim::check_failure_injections()
 		bool handled = false;
 		bool supported = false;
 
-		const int failure_unit = static_cast<int>(vehicle_command.param1 + 0.5f);
-		const int failure_type = static_cast<int>(vehicle_command.param2 + 0.5f);
+		const int failure_unit = static_cast<int>(lroundf(vehicle_command.param1));
+		const int failure_type = static_cast<int>(lroundf(vehicle_command.param2));
 
 		if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_GPS) {
 			handled = true;
