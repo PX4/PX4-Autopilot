@@ -109,11 +109,11 @@ jobs:
             build/px4_sitl_default/tmp_mavsdk_tests/rootfs/log/**/*.ulg
 
       - name: Look at Core files
-        if: failure() && ${{ hashFiles('px4.core') != '' }}
+        if: failure() && hashFiles('px4.core') != ''
         run: gdb build/px4_sitl_default/bin/px4 px4.core -ex "thread apply all bt" -ex "quit"
 
       - name: Upload PX4 coredump
-        if: failure() && ${{ hashFiles('px4.core') != '' }}
+        if: failure() && hashFiles('px4.core') != ''
         uses: actions/upload-artifact@v7
         with:
           name: coredump
