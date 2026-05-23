@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2019-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file ina226.h
+ * @file ina231.h
  *
  */
 
@@ -51,23 +51,17 @@
 
 using namespace time_literals;
 
-/* INA226-specific constants */
-#define INA226_BASEADDR                          0x41 /* 7-bit address */
-#define INA226_MAX_CURRENT                       164.0f   /* 164 Amps */
-#define INA226_SHUNT                             0.0005f  /* Shunt is 500 uOhm */
-#define INA226_DEFAULT_CONFIG  (INA_COMMON_MODE_SHUNT_BUS_CONT | INA_COMMON_VSHCT_588US | INA_COMMON_VBUSCT_588US | INA_COMMON_AVERAGES_64)
+/* INA231-specific constants */
+#define INA231_BASEADDR                          0x44 /* 7-bit address. 8-bit address is 0x88 */
+#define INA231_MAX_CURRENT                       90.0f    /* 90 Amps */
+#define INA231_SHUNT                             0.0005f  /* Shunt is 500 uOhm */
+#define INA231_DEFAULT_CONFIG  (INA_COMMON_MODE_SHUNT_BUS_CONT | INA_COMMON_VSHCT_1100US | INA_COMMON_VBUSCT_1100US | INA_COMMON_AVERAGES_16)
 
-/* INA226-specific probe registers */
-#define INA226_MFG_ID                            (0xfe)
-#define INA226_MFG_DIEID                         (0xff)
-#define INA226_MFG_ID_TI                         (0x5449) // TI
-#define INA226_MFG_DIE                           (0x2260) // INA2260
-
-class INA226 : public device::I2C, public ModuleParams, public I2CSPIDriver<INA226>
+class INA231 : public device::I2C, public ModuleParams, public I2CSPIDriver<INA231>
 {
 public:
-	INA226(const I2CSPIDriverConfig &config, int battery_index);
-	virtual ~INA226();
+	INA231(const I2CSPIDriverConfig &config, int battery_index);
+	virtual ~INA231();
 
 	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
 	static void print_usage();
@@ -109,7 +103,7 @@ private:
 	static int i2c_transfer_wrapper(void *context, const uint8_t *send, unsigned send_len,
 					uint8_t *recv, unsigned recv_len)
 	{
-		return static_cast<INA226 *>(context)->transfer(send, send_len, recv, recv_len);
+		return static_cast<INA231 *>(context)->transfer(send, send_len, recv, recv_len);
 	}
 
 	/**

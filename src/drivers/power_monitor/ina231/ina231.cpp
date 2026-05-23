@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,31 +32,30 @@
  ****************************************************************************/
 
 /**
- * @file ina226.cpp
- * @author David Sidrane <david_s5@usa.net>
+ * @file ina231.cpp
  *
- * Driver for the I2C attached INA226
+ * Driver for the I2C attached INA231
  *
  * Shared register definitions, I2C read/write, and common measurement logic
  * are provided by the ina_common library (src/lib/drivers/ina_common).
  */
 
-#include "ina226.h"
+#include "ina231.h"
 
 
-INA226::INA226(const I2CSPIDriverConfig &config, int battery_index) :
+INA231::INA231(const I2CSPIDriverConfig &config, int battery_index) :
 	I2C(config),
 	ModuleParams(nullptr),
 	I2CSPIDriver(config),
-	_sample_perf(perf_alloc(PC_ELAPSED, "ina226_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "ina226_com_err")),
-	_collection_errors(perf_alloc(PC_COUNT, "ina226_collection_err")),
-	_measure_errors(perf_alloc(PC_COUNT, "ina226_measurement_err")),
+	_sample_perf(perf_alloc(PC_ELAPSED, "ina231_read")),
+	_comms_errors(perf_alloc(PC_COUNT, "ina231_com_err")),
+	_collection_errors(perf_alloc(PC_COUNT, "ina231_collection_err")),
+	_measure_errors(perf_alloc(PC_COUNT, "ina231_measurement_err")),
 	_battery(battery_index, this, INA_COMMON_SAMPLE_INTERVAL_US, battery_status_s::SOURCE_POWER_MODULE),
 	_common(i2c_transfer_wrapper, this, _battery, _sample_perf, _comms_errors)
 {
-	_common.loadParams("INA226_CURRENT", "INA226_SHUNT", "INA226_CONFIG",
-			   INA226_MAX_CURRENT, INA226_SHUNT, INA226_DEFAULT_CONFIG);
+	_common.loadParams("INA231_CURRENT", "INA231_SHUNT", "INA231_CONFIG",
+			   INA231_MAX_CURRENT, INA231_SHUNT, INA231_DEFAULT_CONFIG);
 
 	// We need to publish immediately, to guarantee that the first instance of the driver publishes to uORB instance 0
 	_common.setConnected(false);
@@ -65,7 +64,7 @@ INA226::INA226(const I2CSPIDriverConfig &config, int battery_index) :
 	I2C::_retries = 5;
 }
 
-INA226::~INA226()
+INA231::~INA231()
 {
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
@@ -74,7 +73,7 @@ INA226::~INA226()
 }
 
 int
-INA226::init()
+INA231::init()
 {
 	int ret = PX4_ERROR;
 
@@ -91,7 +90,7 @@ INA226::init()
 }
 
 int
-INA226::force_init()
+INA231::force_init()
 {
 	int ret = init();
 
@@ -101,17 +100,12 @@ INA226::force_init()
 }
 
 int
-INA226::probe()
+INA231::probe()
 {
 	int16_t value{0};
 
-	if (_common.read(INA226_MFG_ID, value) != PX4_OK || value != INA226_MFG_ID_TI) {
-		PX4_DEBUG("probe mfgid %d", value);
-		return -1;
-	}
-
-	if (_common.read(INA226_MFG_DIEID, value) != PX4_OK || value != INA226_MFG_DIE) {
-		PX4_DEBUG("probe die id %d", value);
+	if (_common.read(INA_COMMON_REG_CONFIGURATION, value) != PX4_OK) {
+		PX4_DEBUG("probe failed to read config register");
 		return -1;
 	}
 
@@ -119,7 +113,7 @@ INA226::probe()
 }
 
 void
-INA226::start()
+INA231::start()
 {
 	ScheduleClear();
 
@@ -131,7 +125,7 @@ INA226::start()
 }
 
 void
-INA226::RunImpl()
+INA231::RunImpl()
 {
 	if (_common._initialized) {
 		if (_collect_phase) {
@@ -174,7 +168,7 @@ INA226::RunImpl()
 }
 
 void
-INA226::print_status()
+INA231::print_status()
 {
 	I2CSPIDriverBase::print_status();
 

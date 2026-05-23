@@ -221,6 +221,9 @@ elif [ "$POWER_MANAGER" == "INA226" ]; then
 elif [ "$POWER_MANAGER" == "INA228" ]; then
     /bin/echo "Starting INA228 power monitor"
     qshell ina228 start -X -b 2
+elif [ "$POWER_MANAGER" == "INA231" ]; then
+    /bin/echo "Starting INA231 power monitor"
+    qshell ina231 start -X -b 2
 fi
 
 if [ "$AIRSPEED_SENSOR" == "MS4525DO" ]; then

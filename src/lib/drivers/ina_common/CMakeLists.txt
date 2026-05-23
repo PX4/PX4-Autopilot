@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2026 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,18 +30,5 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE drivers__ina226
-	MAIN ina226
-	COMPILE_FLAGS
-		-Wno-cast-align # TODO: fix and enable
-	SRCS
-		ina226_main.cpp
-		ina226.cpp
-	MODULE_CONFIG
-		ina226_params.yaml
-	DEPENDS
-		battery
-		ina_common
-		px4_work_queue
-	)
+
+px4_add_library(ina_common ina_common.cpp)
