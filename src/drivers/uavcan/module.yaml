@@ -80,6 +80,8 @@ actuator_output:
       function: 'enable'
     - param: 'UAVCAN_BITRATE'
       label: 'Bitrate'
+    - param: 'UAVCAN_FIRST_EC'
+      label: 'ESC Index Offset'
   output_groups:
     - param_prefix: UAVCAN_EC
       group_label: 'ESCs'
