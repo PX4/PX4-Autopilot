@@ -7,6 +7,7 @@ import psutil  # type: ignore
 import signal
 import subprocess
 import sys
+import time
 from mavsdk_tests.integration_test_runner import test_runner, process_helper as ph, logger_helper
 from typing import Any, Dict, List, NoReturn
 
@@ -28,7 +29,7 @@ class MicroXrceAgent:
 
         for name in self._binary_names:
             try:
-                self._proc = subprocess.Popen([name] + 'udp4 -p 8888'.split())
+                self._proc = subprocess.Popen([name] + 'udp4 localhost -p 8888'.split())
             except FileNotFoundError:
                 pass
             else:  # Process was started
@@ -38,6 +39,42 @@ class MicroXrceAgent:
                                'Make sure it is installed and available. '
                                'You can also run it manually before running this script')
 
+    def stop_any_running(self):
+        """Kill any running DDS agent instance, including externally started ones."""
+        # Stop the process we own
+        if self._proc is not None:
+            if self._verbose:
+                print('Stopping micro-xrce-dds-agent (owned process)')
+            self._proc.kill()
+            try:
+                self._proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                pass
+            self._proc = None
+
+        # Also kill any external instances found by name
+        for proc in psutil.process_iter(attrs=['name', 'pid']):
+            if proc.info['name'] in self._binary_names:
+                if self._verbose:
+                    print(f'Stopping micro-xrce-dds-agent (external pid={proc.info["pid"]})')
+                try:
+                    proc.kill()
+                    proc.wait(timeout=5)
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.TimeoutExpired):
+                    pass
+
+    def restart(self):
+        """Restart the DDS agent, killing any existing instance first.
+
+        This clears stale DDS discovery state (lingering publisher entries from
+        a previous PX4 session) that would otherwise cause waitForFMU() Phase 1
+        to pass instantly on a stale publisher, then Phase 2 to time out before
+        the new PX4 instance establishes its DDS connection.
+        """
+        self.stop_any_running()
+        time.sleep(1)  # Allow the OS to release the UDP port before rebinding
+        self.start_process()
+
     def stop_process_if_started(self):
         if self._proc is None:
             return
@@ -45,7 +82,32 @@ class MicroXrceAgent:
         if self._verbose:
             print('Stopping micro-xrce-dds-agent')
         self._proc.kill()
+        try:
+            self._proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            pass
         self._proc = None
+
+
+class RosTester(test_runner.Tester):
+    """Tester subclass that restarts the DDS agent before each test case.
+
+    When multiple test cases run back-to-back, the Micro-XRCE-DDS-Agent retains
+    the previous PX4 session's vehicle_status publisher in the DDS discovery
+    graph briefly after PX4 exits.  The next integration_tests binary calls
+    waitForFMU(node, 10s, 5s): Phase 1 sees the stale publisher and passes
+    instantly; Phase 2 then times out in 5 s because the new PX4 needs ~6 s to
+    establish its DDS connection.  Restarting the agent before each case clears
+    this stale state so Phase 1 waits correctly for the new PX4 publisher.
+    """
+
+    def __init__(self, *args, micro_xrce_agent: MicroXrceAgent, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._micro_xrce_agent = micro_xrce_agent
+
+    def start_runners(self, log_dir: str, test: Dict[str, Any], case: str) -> None:
+        self._micro_xrce_agent.restart()
+        super().start_runners(log_dir, test, case)
 
 
 class TesterInterfaceRos(test_runner.TesterInterface):
@@ -168,7 +230,8 @@ def main() -> NoReturn:
     os.makedirs(args.log_dir, exist_ok=True)
 
     speed_factor = 1  # Not (yet) supported
-    tester = test_runner.Tester(
+    micro_xrce_agent = MicroXrceAgent(args.verbose)
+    tester = RosTester(
         config,
         args.iterations,
         args.abort_early,
@@ -181,14 +244,10 @@ def main() -> NoReturn:
         args.verbose,
         args.upload,
         args.build_dir,
-        tester_interface
+        tester_interface,
+        micro_xrce_agent=micro_xrce_agent,
     )
     signal.signal(signal.SIGINT, tester.sigint_handler)
-
-    # Automatically start & stop the XRCE Agent if not running already
-    micro_xrce_agent = MicroXrceAgent(args.verbose)
-    if not micro_xrce_agent.is_running():
-        micro_xrce_agent.start_process()
 
     try:
         result = tester.run()
