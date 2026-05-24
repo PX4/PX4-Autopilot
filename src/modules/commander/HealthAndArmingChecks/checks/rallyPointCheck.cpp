@@ -46,6 +46,10 @@ void RallyPointChecks::checkAndReport(const Context &context, Report &reporter)
 		return;
 	}
 
+	if (!_rtl_status_sub.advertised()) {
+		return;
+	}
+
 	rtl_status_s rtl_status;
 
 	if (!_rtl_status_sub.copy(&rtl_status) || rtl_status.safe_point_index == UINT8_MAX) {
