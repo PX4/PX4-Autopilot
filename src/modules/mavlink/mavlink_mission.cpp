@@ -1545,6 +1545,7 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		case MAV_CMD_COMPONENT_ARM_DISARM:
 			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
 			mission_item->params[0] = (uint16_t)mavlink_mission_item->param1;
+			mission_item->params[1] = (uint16_t)mavlink_mission_item->param2; // force flag (21196)
 			break;
 
 		case MAV_CMD_DO_AUTOTUNE_ENABLE:
