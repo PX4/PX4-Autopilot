@@ -873,8 +873,16 @@ MissionBase::do_abort_landing()
 	}
 
 	const float alt_landing = get_absolute_altitude_for_item(_mission_item);
-	const float alt_sp = math::max(alt_landing + _navigator->get_landing_abort_min_alt(),
-				       _global_pos_sub.get().alt);
+
+	// Use the landing item's per-item abort altitude (NAV_CMD_LAND param1, carried in time_inside)
+	// if specified, otherwise fall back to the global MIS_LND_ABRT_ALT parameter.
+	float abort_min_alt = _navigator->get_landing_abort_min_alt();
+
+	if (_mission_item.time_inside > FLT_EPSILON) {
+		abort_min_alt = _mission_item.time_inside;
+	}
+
+	const float alt_sp = math::max(alt_landing + abort_min_alt, _global_pos_sub.get().alt);
 
 	// turn current landing waypoint into an indefinite loiter
 	_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
