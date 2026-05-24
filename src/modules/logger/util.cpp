@@ -330,8 +330,8 @@ static int remove_directory_recursive(const char *dir, unsigned depth)
 	static constexpr unsigned MAX_DEPTH = 3;
 
 	if (depth >= MAX_DEPTH) {
-		PX4_DEBUG("Max depth reached: %s", dir);
-		return -1;
+		PX4_WARN("Failed to remove directory '%s': max recursion depth %u reached", dir, MAX_DEPTH);
+		return -ELOOP;
 	}
 
 	DIR *d = opendir(dir);
