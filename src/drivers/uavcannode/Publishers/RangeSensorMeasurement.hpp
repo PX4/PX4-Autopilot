@@ -67,6 +67,22 @@ public:
 		}
 	}
 
+	const orb_metadata *multiInstanceOrbTopic() const override
+	{
+		return uORB::SubscriptionCallbackWorkItem::get_topic();
+	}
+
+	uint8_t multiInstanceIndex() const override
+	{
+		return uORB::SubscriptionCallbackWorkItem::get_instance();
+	}
+
+	UavcanPublisherBase *createForInstance(px4::WorkItem *work_item, uavcan::INode &node,
+					       uint8_t instance) const override
+	{
+		return new RangeSensorMeasurement(work_item, node, instance);
+	}
+
 	void BroadcastAnyUpdates() override
 	{
 		// distance_sensor[] -> uavcan::equipment::range_sensor::Measurement

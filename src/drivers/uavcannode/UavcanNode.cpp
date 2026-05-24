@@ -629,6 +629,16 @@ void UavcanNode::Run()
 
 	_node.spinOnce();
 
+	// Check for newly advertised uORB instances once per second.
+	if (_init_state == Done) {
+		static hrt_abstime last_instance_check{0};
+
+		if (hrt_elapsed_time(&last_instance_check) > 1_s) {
+			last_instance_check = hrt_absolute_time();
+			checkForNewPublisherInstances();
+		}
+	}
+
 	for (auto &publisher : _publisher_list) {
 		publisher->BroadcastAnyUpdates();
 	}
@@ -704,6 +714,60 @@ void UavcanNode::Run()
 	if (_task_should_exit.load()) {
 		ScheduleClear();
 		_instance = nullptr;
+	}
+}
+
+void UavcanNode::checkForNewPublisherInstances()
+{
+	// Collect publishers to add; can't modify _publisher_list while iterating it.
+	static constexpr uint8_t kMaxPending = 8;
+	struct { const UavcanPublisherBase *factory; uint8_t instance; } pending[kMaxPending];
+	uint8_t pending_count = 0;
+
+	for (const auto &publisher : _publisher_list) {
+		const orb_metadata *topic = publisher->multiInstanceOrbTopic();
+
+		if (topic == nullptr) {
+			continue;
+		}
+
+		for (uint8_t i = 0; i < ORB_MULTI_MAX_INSTANCES && pending_count < kMaxPending; i++) {
+			if (orb_exists(topic, i) != 0) {
+				continue;
+			}
+
+			bool found = false;
+
+			for (const auto &existing : _publisher_list) {
+				if (existing->multiInstanceOrbTopic() == topic && existing->multiInstanceIndex() == i) {
+					found = true;
+					break;
+				}
+			}
+
+			if (!found) {
+				for (uint8_t j = 0; j < pending_count; j++) {
+					if (pending[j].factory->multiInstanceOrbTopic() == topic && pending[j].instance == i) {
+						found = true;
+						break;
+					}
+				}
+			}
+
+			if (!found) {
+				pending[pending_count++] = { publisher, i };
+			}
+		}
+	}
+
+	for (uint8_t i = 0; i < pending_count; i++) {
+		UavcanPublisherBase *new_pub = pending[i].factory->createForInstance(this, _node, pending[i].instance);
+
+		if (new_pub) {
+			PX4_INFO("uavcannode: discovered %s[%" PRIu8 "]",
+				 pending[i].factory->multiInstanceOrbTopic()->o_name, pending[i].instance);
+			_publisher_list.add(new_pub);
+		}
 	}
 }
 
