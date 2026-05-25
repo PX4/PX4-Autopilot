@@ -391,6 +391,9 @@ class Tester:
 
     def try_to_run_several_times(self, runner: ph.Runner) -> bool:
         for _ in range(3):
+            if not runner.ready_to_start():
+                return False
+
             runner.start()
 
             if runner.has_started_ok():

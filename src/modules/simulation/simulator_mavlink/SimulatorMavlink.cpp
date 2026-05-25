@@ -195,7 +195,7 @@ void SimulatorMavlink::update_sensors(const hrt_abstime &time, const mavlink_hil
 	}
 
 	// accel
-	if ((sensors.fields_updated & SensorSource::ACCEL) == SensorSource::ACCEL) {
+	if ((sensors.fields_updated & SensorSource::ACCEL_XYZ) == SensorSource::ACCEL_XYZ) {
 		if (sensors.id >= ACCEL_COUNT_MAX) {
 			PX4_ERR("Number of simulated accelerometer %d out of range. Max: %d", sensors.id, ACCEL_COUNT_MAX);
 			return;
@@ -238,7 +238,7 @@ void SimulatorMavlink::update_sensors(const hrt_abstime &time, const mavlink_hil
 	}
 
 	// gyro
-	if ((sensors.fields_updated & SensorSource::GYRO) == SensorSource::GYRO) {
+	if ((sensors.fields_updated & SensorSource::GYRO_XYZ) == SensorSource::GYRO_XYZ) {
 		if (sensors.id >= GYRO_COUNT_MAX) {
 			PX4_ERR("Number of simulated gyroscope %d out of range. Max: %d", sensors.id, GYRO_COUNT_MAX);
 			return;
@@ -281,7 +281,7 @@ void SimulatorMavlink::update_sensors(const hrt_abstime &time, const mavlink_hil
 	}
 
 	// magnetometer
-	if ((sensors.fields_updated & SensorSource::MAG) == SensorSource::MAG) {
+	if ((sensors.fields_updated & SensorSource::MAG_XYZ) == SensorSource::MAG_XYZ) {
 		if (sensors.id >= MAG_COUNT_MAX) {
 			PX4_ERR("Number of simulated magnetometer %d out of range. Max: %d", sensors.id, MAG_COUNT_MAX);
 			return;
@@ -1003,10 +1003,10 @@ void SimulatorMavlink::send_mavlink_message(const mavlink_message_t &aMsg)
 	ssize_t len;
 
 	if (_ip == InternetProtocol::UDP) {
-		len = ::sendto(_fd, buf, bufLen, 0, (struct sockaddr *)&_srcaddr, sizeof(_srcaddr));
+		len = ::sendto(_fd, (const char *)buf, bufLen, 0, (struct sockaddr *)&_srcaddr, sizeof(_srcaddr));
 
 	} else {
-		len = ::send(_fd, buf, bufLen, 0);
+		len = ::send(_fd, (const char *)buf, bufLen, 0);
 	}
 
 	if (len <= 0) {
@@ -1134,7 +1134,18 @@ void SimulatorMavlink::run()
 
 		if (bind(_fd, (struct sockaddr *)&_myaddr, sizeof(_myaddr)) < 0) {
 			PX4_ERR("bind for UDP port %i failed (%i)", _port, errno);
+#ifdef __PX4_WINDOWS
+			// Winsock SOCKETs are kernel handles, not CRT fds — using ::close()
+			// trips the UCRT _close.cpp assertion `(fh >= 0 && (unsigned)fh < (unsigned)_nhandle)`.
+			closesocket(_fd);
+#else
 			::close(_fd);
+#endif
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+			// Unblock the lockstep wait in simulator_mavlink_main so the
+			// rest of the startup script (including shutdown) can run.
+			_has_initialized.store(true);
+#endif
 			return;
 		}
 
@@ -1142,7 +1153,7 @@ void SimulatorMavlink::run()
 
 		while (true) {
 			// Once we receive something, we're most probably good and can carry on.
-			int len = ::recvfrom(_fd, _buf, sizeof(_buf), 0,
+			int len = ::recvfrom(_fd, (char *)_buf, sizeof(_buf), 0,
 					     (struct sockaddr *)&_srcaddr, (socklen_t *)&_addrlen);
 
 			if (len > 0) {
@@ -1181,7 +1192,12 @@ void SimulatorMavlink::run()
 				break;
 
 			} else {
+#ifdef __PX4_WINDOWS
+				// See note above: Winsock SOCKETs need closesocket(), not ::close().
+				closesocket(_fd);
+#else
 				::close(_fd);
+#endif
 				system_usleep(500);
 			}
 		}
@@ -1237,7 +1253,7 @@ void SimulatorMavlink::run()
 
 		if (fds[0].revents & POLLIN) {
 
-			int len = ::recvfrom(_fd, _buf, sizeof(_buf), 0, (struct sockaddr *)&_srcaddr, (socklen_t *)&_addrlen);
+			int len = ::recvfrom(_fd, (char *)_buf, sizeof(_buf), 0, (struct sockaddr *)&_srcaddr, (socklen_t *)&_addrlen);
 
 			if (len > 0) {
 				mavlink_message_t msg;

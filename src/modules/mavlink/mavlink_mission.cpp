@@ -78,6 +78,9 @@ MavlinkMissionManager::MavlinkMissionManager(Mavlink &mavlink) :
 	if (!_dataman_init) {
 		_dataman_init = true;
 
+#if defined(ENABLE_LOCKSTEP_SCHEDULER) && defined(__PX4_WINDOWS)
+		// Avoid blocking MAVLink startup on dataman during Windows lockstep initialization.
+#else
 		mission_s mission_state;
 		bool success = _dataman_client.readSync(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&mission_state),
 							sizeof(mission_s));
@@ -91,6 +94,7 @@ MavlinkMissionManager::MavlinkMissionManager(Mavlink &mavlink) :
 			PX4_WARN("offboard mission init failed");
 		}
 
+#endif
 		update_active_mission(_mission_dataman_id, _count[MAV_MISSION_TYPE_MISSION], _current_seq,
 				      _crc32[MAV_MISSION_TYPE_MISSION], false);
 	}

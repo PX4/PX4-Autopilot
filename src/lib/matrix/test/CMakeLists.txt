@@ -1,6 +1,7 @@
-add_compile_options(
-    -Wno-double-promotion
-    -Wno-float-equal
+px4_add_compile_options_for_compiler(
+    GNU_LIKE
+        -Wno-double-promotion
+        -Wno-float-equal
 )
 
 px4_add_unit_gtest(SRC MatrixAssignmentTest.cpp)

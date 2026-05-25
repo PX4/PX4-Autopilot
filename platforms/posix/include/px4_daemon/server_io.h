@@ -48,5 +48,7 @@ __BEGIN_DECLS
  * @return The FILE* which represents the standard output of the current thread.
  */
 __EXPORT FILE *get_stdout(bool *isatty_);
+__EXPORT void set_stdout_isatty_override(bool isatty_);
+__EXPORT void clear_stdout_isatty_override();
 
 __END_DECLS

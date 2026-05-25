@@ -57,7 +57,16 @@ VotedSensorsUpdate::VotedSensorsUpdate(bool hil_enabled,
 	_sensor_selection_pub.advertise();
 	_sensors_status_imu_pub.advertise();
 
-	if (_hil_enabled) { // HIL has less accurate timing so increase the timeouts a bit
+	// HIL has less accurate timing, and lockstep SITL can advance simulated
+	// time much faster than wall time while shell/status commands are running.
+	const bool use_extended_sensor_timeout =
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+		true;
+#else
+		_hil_enabled;
+#endif
+
+	if (use_extended_sensor_timeout) {
 		_gyro.voter.set_timeout(500000);
 		_accel.voter.set_timeout(500000);
 	}

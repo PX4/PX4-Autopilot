@@ -46,7 +46,18 @@ jobs:
     - name: setup
       run: |
         ./Tools/setup/macos.sh
+        # Make the venv created by macos.sh the active Python for all
+        # subsequent steps. Prepending .venv/bin to PATH alone is not
+        # enough: actions/setup-python exports Python3_ROOT_DIR /
+        # pythonLocation pointing at the hostedtoolcache interpreter,
+        # and find_package(Python3) honours those hints over PATH. The
+        # PX4 Python deps (kconfiglib, empy, etc.) only live in the
+        # venv, so configure fails at the kconfiglib import otherwise.
         echo "${{ github.workspace }}/.venv/bin" >> $GITHUB_PATH
+        echo "VIRTUAL_ENV=${{ github.workspace }}/.venv" >> $GITHUB_ENV
+        echo "Python3_ROOT_DIR=${{ github.workspace }}/.venv" >> $GITHUB_ENV
+        echo "Python_ROOT_DIR=${{ github.workspace }}/.venv" >> $GITHUB_ENV
+        echo "pythonLocation=${{ github.workspace }}/.venv" >> $GITHUB_ENV
 
     - uses: ./.github/actions/setup-ccache
       id: ccache

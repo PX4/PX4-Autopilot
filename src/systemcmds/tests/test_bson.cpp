@@ -53,7 +53,7 @@ static const bool sample_bool = true;
 static const int32_t sample_small_int = 123;
 static const int64_t sample_big_int = (int64_t)INT_MAX + 123LL;
 static const double sample_double = 2.5f;
-static const char *sample_string = "this is a test";
+static const char sample_string[] = "this is a test";
 static const uint8_t sample_data[256] = {0};
 //static const char *sample_filename = "/fs/microsd/bson.test";
 
@@ -175,7 +175,7 @@ decode_callback(bson_decoder_t decoder, bson_node_t node)
 			return 1;
 		}
 
-		char sbuf[len];
+		char sbuf[sizeof(sample_string)];
 
 		if (bson_decoder_copy_data(decoder, sbuf)) {
 			PX4_ERR("FAIL: decoder: string1 copy failed");
@@ -219,7 +219,7 @@ decode_callback(bson_decoder_t decoder, bson_node_t node)
 			return 1;
 		}
 
-		uint8_t dbuf[len];
+		uint8_t dbuf[sizeof(sample_data)];
 
 		if (bson_decoder_copy_data(decoder, dbuf)) {
 			PX4_ERR("FAIL: decoder: data1 copy failed");

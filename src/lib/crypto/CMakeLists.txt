@@ -48,7 +48,9 @@ target_include_directories(monocypher
 )
 
 # There is a one shadow warning in monocypher 3.1.2, ignore it
-target_compile_options(monocypher PRIVATE -Wno-shadow)
+px4_target_compile_options_for_compiler(monocypher PRIVATE
+	GNU_LIKE -Wno-shadow
+)
 
 
 
@@ -97,7 +99,9 @@ target_link_libraries(libtomcrypt
 
 # Fix for erroneous warning on some compilers:
 # "der_encode_asn1_identifier.c:39:18: error: comparison is always false due to limited range of data type"
-target_compile_options(libtomcrypt PRIVATE -Wno-type-limits)
+px4_target_compile_options_for_compiler(libtomcrypt PRIVATE
+	GNU_LIKE -Wno-type-limits
+)
 
 # Re-define memory allocation macros if we are building for
 # memory protected build in nuttx. All allocations happen in

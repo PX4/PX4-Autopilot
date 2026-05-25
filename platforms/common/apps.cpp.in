@@ -2,6 +2,7 @@
 #include <px4_platform_common/time.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/log.h>
+#include <px4_platform_common/exit.h>
 #include <uORB/uORB.h>
 
 #include "apps.h"
@@ -43,9 +44,21 @@ void list_builtins(apps_map_type &apps)
 
 int shutdown_main(int argc, char *argv[])
 {
+	// Reject any leftover positional arguments (e.g. "status", "start", "stop").
+	// shutdown takes no flags or subcommands -- it always tears the daemon
+	// down -- so silently ignoring extra args would terminate the daemon when
+	// the user almost certainly meant a different module (e.g.
+	// "<module> status"). Print usage and exit non-zero instead.
+	if (argc > 1) {
+		PX4_ERR("unrecognized argument: %s", argv[1]);
+		printf("Usage:\n  shutdown\n");
+		return 1;
+	}
+
 	printf("Exiting NOW.\n");
 	uorb_shutdown();
-	system_exit(0);
+	px4_platform_exit(0);
+	return 0;
 }
 
 int list_tasks_main(int argc, char *argv[])

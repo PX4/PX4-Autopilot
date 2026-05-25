@@ -40,6 +40,8 @@
 #include <px4_platform_common/workqueue.h>
 #include <px4_platform_common/shutdown.h>
 #include <px4_platform_common/tasks.h>
+#include <px4_platform_common/time.h>
+#include <px4_platform_common/exit.h>
 
 #include <drivers/drv_hrt.h>
 
@@ -103,6 +105,20 @@ int px4_shutdown_unlock()
 }
 
 #if defined(CONFIG_SCHED_WORKQUEUE) || (!defined(CONFIG_BUILD_FLAT) && defined(CONFIG_LIBC_USRWORK))
+
+#if defined(ENABLE_LOCKSTEP_SCHEDULER) && defined(__PX4_WINDOWS)
+static hrt_abstime shutdown_time_us_now()
+{
+	timespec ts{};
+	system_clock_gettime(CLOCK_MONOTONIC, &ts);
+	return (static_cast<hrt_abstime>(ts.tv_sec) * 1000000ULL) + (static_cast<hrt_abstime>(ts.tv_nsec) / 1000ULL);
+}
+#else
+static hrt_abstime shutdown_time_us_now()
+{
+	return hrt_absolute_time();
+}
+#endif
 
 static struct work_s shutdown_work = {};
 static uint16_t shutdown_counter = 0; ///< count how many times the shutdown worker was executed
@@ -171,7 +187,7 @@ static void shutdown_worker(void *arg)
 		}
 	}
 
-	const hrt_abstime now = hrt_absolute_time();
+	const hrt_abstime now = shutdown_time_us_now();
 	const bool delay_elapsed = (now > shutdown_time_us);
 
 	if (delay_elapsed && ((done && shutdown_lock_counter == 0) || (now > (shutdown_time_us + shutdown_timeout_us)))) {
@@ -206,7 +222,7 @@ static void shutdown_worker(void *arg)
 #elif defined(__PX4_POSIX)
 			// simply exit on posix if real shutdown (poweroff) not available
 			PX4_INFO_RAW("Exiting NOW.");
-			system_exit(0);
+			px4_platform_exit(0);
 #else
 			PX4_PANIC("board shutdown not available");
 #endif
@@ -239,7 +255,7 @@ int px4_reboot_request(reboot_request_t request, uint32_t delay_us)
 		shutdown_args |= SHUTDOWN_ARG_TO_ISP;
 	}
 
-	shutdown_time_us = hrt_absolute_time();
+	shutdown_time_us = shutdown_time_us_now();
 
 	if (delay_us > 0) {
 		shutdown_time_us += delay_us;
@@ -263,7 +279,7 @@ int px4_shutdown_request(uint32_t delay_us)
 
 	shutdown_args |= SHUTDOWN_ARG_IN_PROGRESS;
 
-	shutdown_time_us = hrt_absolute_time();
+	shutdown_time_us = shutdown_time_us_now();
 
 	if (delay_us > 0) {
 		shutdown_time_us += delay_us;

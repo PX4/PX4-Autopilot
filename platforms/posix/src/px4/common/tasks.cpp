@@ -195,7 +195,15 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 		return (rv < 0) ? rv : -rv;
 	}
 
+#ifdef __PX4_WINDOWS
+	/* MinGW winpthreads only supports SCHED_OTHER for unprivileged threads;
+	 * SCHED_FIFO/SCHED_RR require RT permissions that a SITL test run does
+	 * not have. Ignore the requested policy and fall back to SCHED_OTHER. */
+	(void)scheduler;
+	rv = pthread_attr_setschedpolicy(&attr, SCHED_OTHER);
+#else
 	rv = pthread_attr_setschedpolicy(&attr, scheduler);
+#endif
 
 	if (rv != 0) {
 		PX4_ERR("px4_task_spawn_cmd: failed to set sched policy");
@@ -204,7 +212,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 		return (rv < 0) ? rv : -rv;
 	}
 
-#ifdef __PX4_CYGWIN
+#if defined(__PX4_CYGWIN) || defined(__PX4_WINDOWS)
 	/* Priorities on Windows are defined a lot differently */
 	priority = SCHED_PRIORITY_DEFAULT;
 #endif
@@ -329,7 +337,7 @@ void px4_task_exit(int ret)
 
 	pthread_mutex_unlock(&task_mutex);
 
-	pthread_exit((void *)(unsigned long)ret);
+	pthread_exit(reinterpret_cast<void *>(static_cast<intptr_t>(ret)));
 }
 
 int px4_task_kill(px4_task_t id, int sig)

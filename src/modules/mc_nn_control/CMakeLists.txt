@@ -30,11 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-add_compile_options(-Wno-float-equal)
-get_directory_property(FLAGS COMPILE_OPTIONS)
-list(REMOVE_ITEM FLAGS "-Wcast-align")
-set_directory_properties(PROPERTIES COMPILE_OPTIONS "${FLAGS}")
-
 px4_add_module(
 	MODULE mc_nn_control
 	MAIN mc_nn_control
@@ -50,6 +45,11 @@ px4_add_module(
 		tensorflow_lite_micro
 		px4_work_queue
 		mathlib
+)
+px4_target_compile_options_for_compiler(mc_nn_control PRIVATE
+	GNU_LIKE
+		-Wno-cast-align
+		-Wno-float-equal
 )
 target_link_libraries(mc_nn_control PRIVATE tensorflow_lite_micro)
 target_include_directories(mc_nn_control PRIVATE

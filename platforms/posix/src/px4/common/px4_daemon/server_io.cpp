@@ -57,12 +57,22 @@
 
 using namespace px4_daemon;
 
+namespace
+{
+thread_local int stdout_isatty_override = -1;
+}
 
 FILE *get_stdout(bool *isatty_)
 {
+	if (stdout_isatty_override >= 0) {
+		if (isatty_) {
+			*isatty_ = stdout_isatty_override != 0;
+		}
+	}
+
 	// If the server is not running, we are not in a thread that has been started
 	if (!Server::is_running()) {
-		if (isatty_) { *isatty_ = isatty(1); }
+		if (isatty_ && stdout_isatty_override < 0) { *isatty_ = isatty(1); }
 
 		return stdout;
 	}
@@ -74,12 +84,22 @@ FILE *get_stdout(bool *isatty_)
 	// have any thread specific data set and we won't have a pipe to write
 	// stdout to.
 	if (thread_data_ptr == nullptr || thread_data_ptr->thread_stdout == nullptr) {
-		if (isatty_) { *isatty_ = isatty(1); }
+		if (isatty_ && stdout_isatty_override < 0) { *isatty_ = isatty(1); }
 
 		return stdout;
 	}
 
-	if (isatty_) { *isatty_ = thread_data_ptr->is_atty; }
+	if (isatty_ && stdout_isatty_override < 0) { *isatty_ = thread_data_ptr->is_atty; }
 
 	return thread_data_ptr->thread_stdout;
+}
+
+void set_stdout_isatty_override(bool isatty_)
+{
+	stdout_isatty_override = isatty_ ? 1 : 0;
+}
+
+void clear_stdout_isatty_override()
+{
+	stdout_isatty_override = -1;
 }

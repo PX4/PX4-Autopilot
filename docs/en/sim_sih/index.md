@@ -33,11 +33,11 @@ The following vehicle types are supported:
 | Vehicle                                                         | Make Target                              | Status       |
 | --------------------------------------------------------------- | ---------------------------------------- | ------------ |
 | Quadrotor X <Badge type="tip" text="PX4 v1.9" />                | `make px4_sitl_sih sihsim_quadx`         | Stable       |
-| Hexarotor X <Badge type="tip" text="PX4 v1.16" />               | `make px4_sitl_sih sihsim_hexa`          | Experimental |
+| Hexarotor X <Badge type="tip" text="PX4 v1.16" />               | `make px4_sitl_sih sihsim_hex`           | Experimental |
 | Fixed-wing (airplane) <Badge type="tip" text="PX4 v1.13" />     | `make px4_sitl_sih sihsim_airplane`      | Experimental |
 | Tailsitter VTOL <Badge type="tip" text="PX4 v1.13" />           | `make px4_sitl_sih sihsim_xvert`         | Experimental |
 | Standard VTOL (QuadPlane) <Badge type="tip" text="PX4 v1.16" /> | `make px4_sitl_sih sihsim_standard_vtol` | Experimental |
-| Ackermann Rover <Badge type="tip" text="PX4 v1.16" />           | `make px4_sitl_sih sihsim_rover`         | Experimental |
+| Ackermann Rover <Badge type="tip" text="PX4 v1.16" />           | `make px4_sitl_sih sihsim_rover_ackermann` | Experimental |
 
 ::: warning
 Only the quadrotor vehicle type is stable and recommended for development. All other vehicle types (hexarotor, fixed-wing, VTOL, rover) are experimental and may have aerodynamic model or controller interaction issues that produce unrealistic flight behaviour.
@@ -148,6 +148,10 @@ To use SIH with ROS 2:
    MicroXRCEAgent udp4 -p 8888
    ```
 
+::: info Windows native
+On Windows, build `MicroXRCEAgent.exe` with the two-stage MSVC recipe in [Windows Native Development Environment > Building the Micro-XRCE-DDS Agent](../dev_setup/dev_env_windows_native.md#building-the-micro-xrce-dds-agent-optional-for-ros-2-dds-bridging) and run it from PowerShell — the runtime DLLs (`fastcdr-2.2.dll`, `fastdds-3.6.dll`) must sit on `PATH` or next to the executable.
+:::
+
 See [uXRCE-DDS (PX4-ROS 2/DDS Bridge)](../middleware/uxrce_dds.md) for full setup instructions, including agent installation and ROS 2 workspace configuration.
 
 ### Port Reference
@@ -181,6 +185,10 @@ Then use the multi-instance launch script:
 ```sh
 ./Tools/simulation/sitl_multiple_run.sh 3 sihsim_quadx px4_sitl_sih
 ```
+
+::: info Windows native
+On Windows use the PowerShell variant `Tools\simulation\sitl_multiple_run.ps1` instead. Ad-hoc `px4.exe -i N` invocations auto-create per-instance work dirs (no manual `etc` setup needed). See [Windows Native Development Environment](../dev_setup/dev_env_windows_native.md).
+:::
 
 Or launch instances manually:
 

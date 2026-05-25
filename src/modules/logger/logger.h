@@ -399,20 +399,21 @@ private:
 	uORB::SubscriptionInterval			_log_message_sub{ORB_ID(log_message), 20};
 	uORB::SubscriptionInterval			_parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SDLOG_UTC_OFFSET>) _param_sdlog_utc_offset,
-		(ParamInt<px4::params::SDLOG_MAX_SIZE>) _param_sdlog_max_size,
-		(ParamInt<px4::params::SDLOG_ROTATE>) _param_sdlog_rotate,
-		(ParamInt<px4::params::SDLOG_DIRS_MAX>) _param_sdlog_dirs_max,
-		(ParamInt<px4::params::SDLOG_PROFILE>) _param_sdlog_profile,
-		(ParamInt<px4::params::SDLOG_MISSION>) _param_sdlog_mission,
-		(ParamBool<px4::params::SDLOG_BOOT_BAT>) _param_sdlog_boot_bat,
-		(ParamBool<px4::params::SDLOG_UUID>) _param_sdlog_uuid
-#if defined(PX4_CRYPTO)
-		, (ParamInt<px4::params::SDLOG_ALGORITHM>) _param_sdlog_crypto_algorithm,
-		(ParamInt<px4::params::SDLOG_KEY>) _param_sdlog_crypto_key,
-		(ParamInt<px4::params::SDLOG_EXCH_KEY>) _param_sdlog_crypto_exchange_key
-#endif // PX4_CRYPTO
+	DEFINE_PARAMETERS_GROUPED(
+		DEFINE_PARAMETER_GROUP(logging, PARAMETER_GROUP_ALWAYS,
+				       (ParamInt<px4::params::SDLOG_UTC_OFFSET>) _param_sdlog_utc_offset,
+				       (ParamInt<px4::params::SDLOG_MAX_SIZE>) _param_sdlog_max_size,
+				       (ParamInt<px4::params::SDLOG_ROTATE>) _param_sdlog_rotate,
+				       (ParamInt<px4::params::SDLOG_DIRS_MAX>) _param_sdlog_dirs_max,
+				       (ParamInt<px4::params::SDLOG_PROFILE>) _param_sdlog_profile,
+				       (ParamInt<px4::params::SDLOG_MISSION>) _param_sdlog_mission,
+				       (ParamBool<px4::params::SDLOG_BOOT_BAT>) _param_sdlog_boot_bat,
+				       (ParamBool<px4::params::SDLOG_UUID>) _param_sdlog_uuid),
+
+		DEFINE_PARAMETER_GROUP_IF_ENABLED(PX4_CRYPTO, encrypted_logging, PARAMETER_GROUP_FEATURE(PX4_CRYPTO),
+				(ParamInt<px4::params::SDLOG_ALGORITHM>) _param_sdlog_crypto_algorithm,
+				(ParamInt<px4::params::SDLOG_KEY>) _param_sdlog_crypto_key,
+				(ParamInt<px4::params::SDLOG_EXCH_KEY>) _param_sdlog_crypto_exchange_key)
 	)
 };
 

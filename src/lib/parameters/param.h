@@ -472,6 +472,11 @@ __EXPORT void	param_control_autosave(bool enable);
  * Parameter value union.
  */
 union param_value_u {
+#if defined(__cplusplus)
+	constexpr param_value_u() : i {} {}
+	constexpr explicit param_value_u(int32_t value) : i(value) {}
+	constexpr explicit param_value_u(float value) : f(value) {}
+#endif
 	void		*p;
 	int32_t		i;
 	float		f;

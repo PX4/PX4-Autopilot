@@ -36,11 +36,17 @@ if(CONFIG_LIB_CDRSTREAM)
 
 	# CycloneDDS CDR serializer
 	include(${CMAKE_CURRENT_LIST_DIR}/cyclonedds/src/core/cdr/CMakeLists.txt)
-	target_compile_options(cdr PUBLIC
-			       -Wno-cast-align
-			       -Wno-double-promotion
-			       $<$<COMPILE_LANGUAGE:C>:-Wno-implicit-function-declaration -Wno-nested-externs>
-			       -DNDEBUG)
+	target_compile_options(cdr PUBLIC -DNDEBUG)
+	px4_target_compile_options_for_compiler(cdr PUBLIC
+		GNU_LIKE
+			-Wno-cast-align
+			-Wno-double-promotion
+	)
+	px4_target_c_compile_options_for_compiler(cdr PUBLIC
+		GNU_LIKE
+			-Wno-implicit-function-declaration
+			-Wno-nested-externs
+	)
 	px4_add_git_submodule(TARGET git_cyclonedds PATH "cyclonedds")
 	px4_add_git_submodule(TARGET git_rosidl PATH "rosidl")
 	add_dependencies(cdr git_cyclonedds git_rosidl uorb_headers parameters px4_platform)

@@ -48,8 +48,8 @@ jobs:
           PX4_SBOM_DISABLE: 1
         run: make ${{ matrix.check }}
 
-  tests:
-    name: Unit Tests
+  tests-linux:
+    name: Unit Tests (linux)
     runs-on: [runs-on,runner=8cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
     container:
       image: ghcr.io/px4/px4-dev:v1.17.0-rc2
@@ -97,3 +97,105 @@ jobs:
       - name: Check for EKF functional changes
         run: git diff --exit-code
         working-directory: src/modules/ekf2/test/change_indication
+
+  tests-windows:
+    name: Unit Tests (windows-${{ matrix.compiler }})
+    # Native Windows host is required: the gtest binaries under
+    # platforms/posix/src/px4/windows/tests/ exercise the _MSC_VER paths
+    # in the shim headers and the MSVC-only sources (socket_msvc.cpp,
+    # sys/time.cpp, etc.). The shim CMakeLists is gated on WIN32 in
+    # platforms/posix/CMakeLists.txt, so a Linux runner cannot stand in.
+    # The compiler axis covers both native MSVC (cl.exe) and the LLVM
+    # clang-cl.exe driver against the same MSVC headers/CRT so we catch
+    # toolchain-specific shim regressions before they hit the SITL build.
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [msvc, clang-cl]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install Python deps
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          # empy pinned <4: PX4 generators use the empy 3.x Interpreter API
+          # removed in 4.x. Matches Tools/setup/requirements.txt and the
+          # compile_windows workflow.
+          python -m pip install jinja2 pyyaml toml numpy packaging jsonschema future "empy>=3.3,<4" pyros-genmsg kconfiglib
+          # Verify kconfiglib import on the same Python that CMake will
+          # pick so we fail loud here rather than during cmake configure.
+          python -c "import kconfiglib; print(kconfiglib.__file__)"
+
+      - name: Install Ninja
+        uses: seanmiddleditch/gha-setup-ninja@v5
+
+      - name: Enable MSVC environment (x64)
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      # Configure with the px4_sitl_test board, which flips
+      # CMAKE_TESTING=ON and pulls in the Windows shim test subdirectory
+      # via px4_posix_windows_add_tests() (see platforms/posix/CMakeLists.txt).
+      # Pin Python3_ROOT_DIR to the setup-python interpreter so cmake's
+      # find_package(Python3) does not pick the runner image's other Python
+      # where kconfiglib is not installed. The CC/CXX env vars decide which
+      # toolchain CMake picks: empty for native MSVC (the default cl.exe
+      # discovered via vcvars), or clang-cl.exe for the LLVM driver. We
+      # invoke cmake directly here rather than `make px4_sitl_test` so we
+      # only configure and can then build a narrow set of targets next.
+      - name: Configure (px4_sitl_test)
+        shell: pwsh
+        env:
+          CC: ${{ matrix.compiler == 'clang-cl' && 'clang-cl' || '' }}
+          CXX: ${{ matrix.compiler == 'clang-cl' && 'clang-cl' || '' }}
+        run: |
+          cmake -S . -B build/px4_sitl_test -G Ninja `
+            -DCONFIG=px4_sitl_test `
+            -DPython3_ROOT_DIR="$env:pythonLocation" `
+            -DPython3_FIND_STRATEGY=LOCATION
+
+      # Build only the Windows shim gtest binaries. The full test_results
+      # ctest target also pulls in fuzztest and the px4 binary, neither of
+      # which we need to gate the shim layer here. Names are emitted by
+      # px4_add_unit_gtest() with a `unit-` prefix (see cmake/px4_add_gtest.cmake).
+      - name: Build Windows shim unit tests
+        shell: pwsh
+        run: |
+          cmake --build build/px4_sitl_test --target unit-test_windows_shim_headers unit-test_windows_shim_runtime unit-test_windows_shim_poll unit-test_windows_shim_io
+
+      - name: Run Windows shim unit tests
+        shell: pwsh
+        run: |
+          $tests = @(
+            'unit-test_windows_shim_headers',
+            'unit-test_windows_shim_runtime',
+            'unit-test_windows_shim_poll',
+            'unit-test_windows_shim_io'
+          )
+          $failed = $false
+          foreach ($name in $tests) {
+            $exe = Get-ChildItem -Path build\px4_sitl_test -Filter "$name.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($null -eq $exe) {
+              Write-Host "::error::Test binary not found: $name"
+              $failed = $true
+              continue
+            }
+            Write-Host "=== Running $($exe.Name) ==="
+            & $exe.FullName --gtest_color=yes
+            if ($LASTEXITCODE -ne 0) {
+              Write-Host "::error::$name failed with exit $LASTEXITCODE"
+              $failed = $true
+            }
+          }
+          if ($failed) { exit 1 }

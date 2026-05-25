@@ -38,6 +38,7 @@
 
 #include <px4_platform_common/getopt.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 // check if p is a valid option and if the option takes an arg
 static char isvalidopt(char p, const char *options, int *takesarg)
@@ -63,11 +64,16 @@ static char isvalidopt(char p, const char *options, int *takesarg)
 // reorder argv and put non-options at the end
 static int reorder(int argc, char **argv, const char *options)
 {
-	char *tmp_argv[argc];
+	char **tmp_argv = (char **)malloc(sizeof(*tmp_argv) * (size_t)argc);
 	char c;
 	int idx = 1;
 	int tmpidx = 1;
 	int takesarg;
+	int ret = 0;
+
+	if (tmp_argv == NULL) {
+		return 1;
+	}
 
 	// move the options to the front
 	while (idx < argc && argv[idx] != 0) {
@@ -75,7 +81,8 @@ static int reorder(int argc, char **argv, const char *options)
 			c = isvalidopt(argv[idx][1], options, &takesarg);
 
 			if (c == '?') {
-				return 1;
+				ret = 1;
+				goto cleanup;
 			}
 
 			tmp_argv[tmpidx] = argv[idx];
@@ -83,7 +90,8 @@ static int reorder(int argc, char **argv, const char *options)
 
 			if (takesarg) {
 				if (idx + 1 >= argc) { //Error: option takes an argument, but there is no more argument
-					return 1;
+					ret = 1;
+					goto cleanup;
 				}
 
 				tmp_argv[tmpidx] = argv[idx + 1];
@@ -104,7 +112,8 @@ static int reorder(int argc, char **argv, const char *options)
 			c = isvalidopt(argv[idx][1], options, &takesarg);
 
 			if (c == '?') {
-				return c;
+				ret = c;
+				goto cleanup;
 			}
 
 			if (takesarg) {
@@ -124,7 +133,9 @@ static int reorder(int argc, char **argv, const char *options)
 		argv[idx] = tmp_argv[idx];
 	}
 
-	return 0;
+cleanup:
+	free(tmp_argv);
+	return ret;
 }
 
 //

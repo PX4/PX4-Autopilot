@@ -114,7 +114,7 @@ public:
 	/**
 	 * IOCTL control for the subscriber.
 	 */
-	int ioctl(cdev::file_t *filp, int cmd, unsigned long arg) override;
+	int ioctl(cdev::file_t *filp, int cmd, uintptr_t arg) override;
 
 	/**
 	 * Method to publish a data to this node.

@@ -67,7 +67,7 @@ public:
 		_fCut(this, "") // only one parameter, no need to name
 	{
 		for (size_t i = 0; i < M; i++) {
-			_state(i) = 0.0f / 0.0f;
+			_state(i) = static_cast<Type>(NAN);
 		}
 	}
 	virtual ~BlockLowPassVector() = default;

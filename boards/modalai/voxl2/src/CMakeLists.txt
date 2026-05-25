@@ -81,7 +81,9 @@ if("${PX4_PLATFORM}" STREQUAL "qurt")
 
 	add_library(mavlink_common_headers INTERFACE)
 	add_dependencies(mavlink_common_headers mavlink_common_generate)
-	target_compile_options(mavlink_common_headers INTERFACE -Wno-address-of-packed-member -Wno-cast-align)
+	px4_target_compile_options_for_compiler(mavlink_common_headers INTERFACE
+		GNU_LIKE -Wno-address-of-packed-member -Wno-cast-align
+	)
 	target_include_directories(mavlink_common_headers INTERFACE
 		${MAVLINK_LIBRARY_DIR}
 		${MAVLINK_LIBRARY_DIR}/common

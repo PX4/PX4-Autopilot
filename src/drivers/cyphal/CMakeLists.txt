@@ -143,4 +143,6 @@ px4_add_module(
 	)
 
 # libcanard 3.0 introduces this warning, for now no intention to fix it thus we ignore this warning
-set_source_files_properties(${LIBCANARD_DIR}/libcanard/canard.c PROPERTIES COMPILE_FLAGS -Wno-cast-align)
+if(NOT MSVC)
+	set_source_files_properties(${LIBCANARD_DIR}/libcanard/canard.c PROPERTIES COMPILE_FLAGS -Wno-cast-align)
+endif()

@@ -123,14 +123,24 @@ __END_DECLS
 #include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
 
+#if defined(_MSC_VER) && !defined(__clang__)
+# define __px4_log_format(_fmt, _args)
+#elif defined(__PX4_WINDOWS)
+# define __px4_log_format(_fmt, _args) __attribute__((format(gnu_printf, _fmt, _args)))
+#else
+# define __px4_log_format(_fmt, _args) __attribute__((format(printf, _fmt, _args)))
+#endif
+
 __BEGIN_DECLS
 
 __EXPORT extern const char *__px4_log_level_str[_PX4_LOG_LEVEL_PANIC + 1];
 __EXPORT void px4_log_modulename(int level, const char *moduleName, const char *fmt, ...)
-__attribute__((format(printf, 3, 4)));
+__px4_log_format(3, 4);
 __EXPORT void px4_log_raw(int level, const char *fmt, ...)
-__attribute__((format(printf, 2, 3)));
+__px4_log_format(2, 3);
 __EXPORT void px4_log_history(FILE *out);
+__EXPORT int px4_log_modulename_from_text(const char *line);
+__EXPORT void px4_log_write_text(FILE *out, const char *data, size_t length);
 
 #if __GNUC__
 // Allow empty format strings.
@@ -168,8 +178,9 @@ __END_DECLS
 #define __px4__log_end_fmt 		"\n"
 
 #ifdef __PX4_POSIX
-#define PX4_LOG_COLORIZED_OUTPUT //if defined and output is a tty, colorize the output according to the log level
-#endif /* __PX4_POSIX */
+// If defined and output is a tty, colorize the output according to the log level.
+#define PX4_LOG_COLORIZED_OUTPUT
+#endif
 
 
 /****************************************************************************

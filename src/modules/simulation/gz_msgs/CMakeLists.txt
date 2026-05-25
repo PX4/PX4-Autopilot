@@ -19,7 +19,9 @@ if (Protobuf_FOUND)
     )
 
     # Disable double-promotion warning for protobuf-generated code
-    target_compile_options(px4_gz_msgs PRIVATE -Wno-double-promotion)
+    px4_target_compile_options_for_compiler(px4_gz_msgs PRIVATE
+        GNU_LIKE -Wno-double-promotion
+    )
 
     target_include_directories(px4_gz_msgs
         PUBLIC
@@ -28,7 +30,9 @@ if (Protobuf_FOUND)
     )
     target_link_libraries(px4_gz_msgs PUBLIC ${PROTOBUF_LIBRARIES})
     if (Protobuf_VERSION VERSION_LESS "3.8")
-        target_compile_options(px4_gz_msgs PRIVATE -Wno-error=float-equal)
+        px4_target_compile_options_for_compiler(px4_gz_msgs PRIVATE
+            GNU_LIKE -Wno-error=float-equal
+        )
     endif()
 
     # Export the binary dir for other modules

@@ -52,10 +52,21 @@
 
 /* Define PX4_ISFINITE */
 #ifdef __cplusplus
+#if defined(_MSC_VER) && !defined(__clang__)
+#include <cfloat>
+static inline constexpr bool PX4_ISFINITE(float x) { return (x >= -FLT_MAX) && (x <= FLT_MAX); }
+static inline constexpr bool PX4_ISFINITE(double x) { return (x >= -DBL_MAX) && (x <= DBL_MAX); }
+#else
 static inline constexpr bool PX4_ISFINITE(float x) { return __builtin_isfinite(x); }
 static inline constexpr bool PX4_ISFINITE(double x) { return __builtin_isfinite(x); }
+#endif
+#else
+#if defined(_MSC_VER) && !defined(__clang__)
+#include <math.h>
+#define PX4_ISFINITE(x) isfinite(x)
 #else
 #define PX4_ISFINITE(x) __builtin_isfinite(x)
+#endif
 #endif /* __cplusplus */
 
 #if defined(__PX4_NUTTX)
@@ -81,6 +92,12 @@ static inline constexpr bool PX4_ISFINITE(double x) { return __builtin_isfinite(
 #ifndef O_BINARY
 #define O_BINARY 0
 #endif
+
+// S_IRUSR / S_IWUSR / S_IRGRP / ... live in <sys/stat.h>. Most POSIX
+// consumers of this header pull it in transitively via <fcntl.h>, but
+// MinGW's fcntl.h doesn't — include it explicitly so the PX4_O_MODE_*
+// macros below always resolve.
+#include <sys/stat.h>
 
 // mode for open with O_CREAT
 #define PX4_O_MODE_777 (S_IRWXU | S_IRWXG | S_IRWXO)
@@ -109,6 +126,19 @@ __END_DECLS
  ****************************************************************************/
 
 #define OK 0
+// <wingdi.h> defines ERROR as 0 for its GDI error codes and pulls it in
+// transitively from <windows.h>. Undefine before redefining so we match
+// the historical PX4 POSIX semantics.
+#ifdef ERROR
+#undef ERROR
+#endif
+// Windows <winbase.h> also leaks IGNORE (value 0, used by the
+// NEEDED_ACCESS / ServiceControl surface). PX4 uses IGNORE as an enum
+// member in ControlAllocator::FailureMode — drop the Windows macro
+// since no PX4 code consumes the Win32 meaning.
+#ifdef IGNORE
+#undef IGNORE
+#endif
 #define ERROR -1
 #define MAX_RAND 32767
 

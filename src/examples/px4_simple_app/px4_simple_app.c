@@ -56,6 +56,30 @@ __EXPORT int px4_simple_app_main(int argc, char *argv[]);
 
 int px4_simple_app_main(int argc, char *argv[])
 {
+	/* Handle simple command verbs without entering the polling loop. The
+	 * loop below blocks for ~5 s waiting for sensor updates, which would
+	 * otherwise make `px4-px4_simple_app status` (and similar one-shot
+	 * invocations from the pxh shell or external clients) appear to hang
+	 * for the full duration of the example. Return immediately for these
+	 * commands so callers get a prompt response.
+	 */
+	if (argc > 1) {
+		if (strcmp(argv[1], "status") == 0) {
+			PX4_INFO("not running (this example is a one-shot demo; "
+				 "invoke without arguments to run the polling loop)");
+			return 0;
+
+		} else if (strcmp(argv[1], "stop") == 0) {
+			/* Nothing to stop — the example is not a long-running task. */
+			return 0;
+
+		} else if (strcmp(argv[1], "help") == 0 || strcmp(argv[1], "-h") == 0) {
+			PX4_INFO("usage: px4_simple_app [status|stop|help]");
+			PX4_INFO("  no args: run a short demo loop (5 iterations, ~5 s)");
+			return 0;
+		}
+	}
+
 	PX4_INFO("Hello Sky!");
 
 	/* subscribe to vehicle_acceleration topic */

@@ -49,6 +49,11 @@
 #include <limits.h>
 #include <string.h>
 
+#if defined(__PX4_POSIX)
+#include <pthread.h>
+#include <unistd.h>
+#endif
+
 using namespace time_literals;
 
 namespace px4
@@ -274,8 +279,8 @@ WorkQueueManagerRun(int, char **)
 #elif defined(__PX4_POSIX)
 			// On posix system , the desired stacksize round to the nearest multiplier of the system pagesize
 			// It is a requirement of the  pthread_attr_setstacksize* function
-			const unsigned int page_size = sysconf(_SC_PAGESIZE);
-			const size_t stacksize_adj = math::max((int)PTHREAD_STACK_MIN, PX4_STACK_ADJUSTED(wq->stacksize));
+			const size_t page_size = static_cast<size_t>(sysconf(_SC_PAGESIZE));
+			const size_t stacksize_adj = math::max(static_cast<size_t>(PTHREAD_STACK_MIN), static_cast<size_t>(PX4_STACK_ADJUSTED(wq->stacksize)));
 			const size_t stacksize = (stacksize_adj + page_size - (stacksize_adj % page_size));
 #endif
 
@@ -304,6 +309,37 @@ WorkQueueManagerRun(int, char **)
 				PX4_ERR("getting sched param for %s failed (%i)", wq->name, ret_getschedparam);
 			}
 
+#if defined(__PX4_WINDOWS)
+			// Windows-only: winpthreads on MinGW does not allow SCHED_FIFO
+			// for unprivileged threads, so fall back to SCHED_OTHER and
+			// clamp the priority into that policy's valid range. The Linux
+			// path keeps main's byte-exact behavior (try SCHED_FIFO and let
+			// pthread_create end up at the kernel default if it isn't
+			// privileged) — without that, every WQ on a regular Linux
+			// CI runner ends up at SCHED_OTHER priority 0, which subtly
+			// changes producer/consumer ordering in lockstep SITL.
+			int sched_policy = SCHED_FIFO;
+			int ret_setschedpolicy = pthread_attr_setschedpolicy(&attr, sched_policy);
+
+			if (ret_setschedpolicy != 0) {
+				sched_policy = SCHED_OTHER;
+				ret_setschedpolicy = pthread_attr_setschedpolicy(&attr, sched_policy);
+			}
+
+			if (ret_setschedpolicy != 0) {
+				PX4_ERR("failed to set sched policy (%i)", ret_setschedpolicy);
+			}
+
+			const int max_prio = sched_get_priority_max(sched_policy);
+			const int min_prio = sched_get_priority_min(sched_policy);
+			int effective_prio = sched_priority;
+
+			if (effective_prio > max_prio) { effective_prio = max_prio; }
+
+			if (effective_prio < min_prio) { effective_prio = min_prio; }
+
+			param.sched_priority = effective_prio;
+#else
 			// schedule policy FIFO
 			int ret_setschedpolicy = pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
 
@@ -313,6 +349,7 @@ WorkQueueManagerRun(int, char **)
 
 			// priority
 			param.sched_priority = sched_priority;
+#endif
 			int ret_setschedparam = pthread_attr_setschedparam(&attr, &param);
 
 			if (ret_setschedparam != 0) {

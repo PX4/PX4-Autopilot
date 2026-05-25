@@ -48,6 +48,12 @@
 
 /* Define PX4_ISFINITE */
 #ifdef __cplusplus
+#if defined(_MSC_VER) && !defined(__clang__)
+#include <cfloat>
+constexpr bool PX4_ISFINITE(float x) { return (x >= -FLT_MAX) && (x <= FLT_MAX); }
+constexpr bool PX4_ISFINITE(double x) { return (x >= -DBL_MAX) && (x <= DBL_MAX); }
+#else
 constexpr bool PX4_ISFINITE(float x) { return __builtin_isfinite(x); }
 constexpr bool PX4_ISFINITE(double x) { return __builtin_isfinite(x); }
+#endif
 #endif /* __cplusplus */

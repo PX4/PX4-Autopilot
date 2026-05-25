@@ -183,6 +183,10 @@ static param_t param_find_internal(const char *name, bool notification)
 {
 	perf_count(param_find_perf);
 
+	if (name == nullptr || param_info_count == 0) {
+		return PARAM_INVALID;
+	}
+
 	param_t middle;
 	param_t front = 0;
 	param_t last = param_info_count;
@@ -191,7 +195,13 @@ static param_t param_find_internal(const char *name, bool notification)
 
 	while (front <= last) {
 		middle = front + (last - front) / 2;
-		int ret = strcmp(name, param_name(middle));
+		const char *middle_name = param_name(middle);
+
+		if (middle_name == nullptr) {
+			break;
+		}
+
+		int ret = strcmp(name, middle_name);
 
 		if (ret == 0) {
 			if (notification) {

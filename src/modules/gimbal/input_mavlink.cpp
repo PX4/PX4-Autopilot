@@ -826,11 +826,11 @@ InputMavlinkGimbalV2::_process_command(ControlData &control_data, const vehicle_
 		const int param_compid = roundf(vehicle_command.param2);
 
 		uint8_t new_sysid_primary_control = [&]() {
-			switch (param_sysid) {
+			if ((param_sysid >= 0) && (param_sysid <= 255)) {
+				return static_cast<uint8_t>(param_sysid);
+			}
 
-			case 0 ... 255:
-				// Valid new sysid.
-				return (uint8_t) param_sysid;
+			switch (param_sysid) {
 
 			case -1:
 				// leave unchanged
@@ -838,13 +838,13 @@ InputMavlinkGimbalV2::_process_command(ControlData &control_data, const vehicle_
 
 			case -2:
 				// set itself
-				return (uint8_t) _parameters.mav_sysid;
+				return static_cast<uint8_t>(_parameters.mav_sysid);
 
 			case -3:
 
 				// release control if in control
 				if (control_data.sysid_primary_control == vehicle_command.source_system) {
-					return (uint8_t) 0;
+					return static_cast<uint8_t>(0);
 
 				} else {
 					return control_data.sysid_primary_control;
@@ -857,10 +857,11 @@ InputMavlinkGimbalV2::_process_command(ControlData &control_data, const vehicle_
 		}();
 
 		uint8_t new_compid_primary_control = [&]() {
+			if ((param_compid >= 0) && (param_compid <= 255)) {
+				return static_cast<uint8_t>(param_compid);
+			}
+
 			switch (param_compid) {
-			case 0 ... 255:
-				// Valid new compid.
-				return (uint8_t) param_compid;
 
 			case -1:
 				// leave unchanged
@@ -868,13 +869,13 @@ InputMavlinkGimbalV2::_process_command(ControlData &control_data, const vehicle_
 
 			case -2:
 				// set itself
-				return (uint8_t) _parameters.mav_compid;
+				return static_cast<uint8_t>(_parameters.mav_compid);
 
 			case -3:
 
 				// release control if in control
 				if (control_data.compid_primary_control == vehicle_command.source_component) {
-					return (uint8_t) 0;
+					return static_cast<uint8_t>(0);
 
 				} else {
 					return control_data.compid_primary_control;

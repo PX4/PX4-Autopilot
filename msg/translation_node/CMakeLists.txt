@@ -3,6 +3,8 @@ project(translation_node)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic -Wno-unused-parameter -Werror)
+elseif(MSVC)
+  add_compile_options(/W4 /WX /wd4100)
 endif()
 
 # find dependencies
@@ -69,7 +71,11 @@ if(BUILD_TESTING)
           ${TEST_SRC}
   )
   target_include_directories(${PROJECT_NAME}_unit_tests PRIVATE ${CMAKE_CURRENT_LIST_DIR})
-  target_compile_options(${PROJECT_NAME}_unit_tests PRIVATE -Wno-error=sign-compare) # There is a warning from gtest internal
+  if(MSVC)
+    target_compile_options(${PROJECT_NAME}_unit_tests PRIVATE /WX- /wd4018 /wd4389) # There is a warning from gtest internal
+  else()
+    target_compile_options(${PROJECT_NAME}_unit_tests PRIVATE -Wno-error=sign-compare) # There is a warning from gtest internal
+  endif()
   target_link_libraries(${PROJECT_NAME}_unit_tests ${PROJECT_NAME}_lib)
   rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} "rosidl_typesupport_cpp")
   target_link_libraries(${PROJECT_NAME}_unit_tests "${cpp_typesupport_target}")

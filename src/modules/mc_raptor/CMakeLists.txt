@@ -18,4 +18,6 @@ px4_add_module(
 	)
 
 target_compile_features(modules__mc_raptor PRIVATE cxx_std_17)
-target_compile_options(modules__mc_raptor PRIVATE -Wno-unused-result)
+px4_target_compile_options_for_compiler(modules__mc_raptor PRIVATE
+	GNU_LIKE -Wno-unused-result
+)

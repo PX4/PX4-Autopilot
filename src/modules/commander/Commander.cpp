@@ -191,6 +191,21 @@ static bool send_vehicle_command(const uint32_t cmd, const float param1 = NAN, c
 static bool wait_for_vehicle_command_reply(const uint32_t cmd,
 		uORB::SubscriptionData<vehicle_command_ack_s> &vehicle_command_ack_sub)
 {
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+	static constexpr unsigned wait_interval_us = 10000;
+	static constexpr unsigned max_wait_iterations = 500; // 5 s wall time
+
+	for (unsigned i = 0; i < max_wait_iterations; ++i) {
+		if (vehicle_command_ack_sub.update()) {
+			if (vehicle_command_ack_sub.get().command == cmd) {
+				return vehicle_command_ack_sub.get().result == vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+			}
+		}
+
+		system_usleep(wait_interval_us);
+	}
+
+#else
 	hrt_abstime start = hrt_absolute_time();
 
 	while (hrt_absolute_time() - start < 100_ms) {
@@ -203,8 +218,22 @@ static bool wait_for_vehicle_command_reply(const uint32_t cmd,
 		px4_usleep(10000);
 	}
 
+#endif
+
 	return false;
 }
+
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+static bool send_vehicle_command_and_wait_for_reply(const uint32_t cmd, const float param1 = NAN, const float param2 = NAN,
+		const float param3 = NAN,  const float param4 = NAN, const double param5 = static_cast<double>(NAN),
+		const double param6 = static_cast<double>(NAN), const float param7 = NAN)
+{
+	uORB::SubscriptionData<vehicle_command_ack_s> vehicle_command_ack_sub{ORB_ID(vehicle_command_ack)};
+
+	return send_vehicle_command(cmd, param1, param2, param3, param4, param5, param6, param7)
+	       && wait_for_vehicle_command_reply(cmd, vehicle_command_ack_sub);
+}
+#endif
 
 static bool broadcast_vehicle_command(const uint32_t cmd, const float param1 = NAN, const float param2 = NAN,
 				      const float param3 = NAN,  const float param4 = NAN, const double param5 = static_cast<double>(NAN),
@@ -314,6 +343,7 @@ int Commander::custom_command(int argc, char *argv[])
 
 		} else {
 			PX4_ERR("missing argument");
+			return 1;
 		}
 	}
 
@@ -339,7 +369,7 @@ int Commander::custom_command(int argc, char *argv[])
 			send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_SAFETY_SWITCH_STATE, vehicle_command_s::SAFETY_OFF);
 
 		} else {
-			PX4_ERR("invlaid argument, use [on|off]");
+			PX4_ERR("invalid argument, use [on|off]");
 			return 1;
 		}
 
@@ -408,9 +438,15 @@ int Commander::custom_command(int argc, char *argv[])
 			param2 = 21196.f;
 		}
 
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+		send_vehicle_command_and_wait_for_reply(vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM,
+							static_cast<float>(vehicle_command_s::ARMING_ACTION_ARM),
+							param2);
+#else
 		send_vehicle_command(vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM,
 				     static_cast<float>(vehicle_command_s::ARMING_ACTION_ARM),
 				     param2);
+#endif
 
 		return 0;
 	}
@@ -423,9 +459,15 @@ int Commander::custom_command(int argc, char *argv[])
 			param2 = 21196.f;
 		}
 
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+		send_vehicle_command_and_wait_for_reply(vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM,
+							static_cast<float>(vehicle_command_s::ARMING_ACTION_DISARM),
+							param2);
+#else
 		send_vehicle_command(vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM,
 				     static_cast<float>(vehicle_command_s::ARMING_ACTION_DISARM),
 				     param2);
+#endif
 
 		return 0;
 	}
@@ -436,16 +478,26 @@ int Commander::custom_command(int argc, char *argv[])
 		send_vehicle_command(vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF);
 
 		if (wait_for_vehicle_command_reply(vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF, vehicle_command_ack_sub)) {
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+			send_vehicle_command_and_wait_for_reply(vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM,
+								static_cast<float>(vehicle_command_s::ARMING_ACTION_ARM),
+								0.f);
+#else
 			send_vehicle_command(vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM,
 					     static_cast<float>(vehicle_command_s::ARMING_ACTION_ARM),
 					     0.f);
+#endif
 		}
 
 		return 0;
 	}
 
 	if (!strcmp(argv[0], "land")) {
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+		send_vehicle_command_and_wait_for_reply(vehicle_command_s::VEHICLE_CMD_NAV_LAND);
+#else
 		send_vehicle_command(vehicle_command_s::VEHICLE_CMD_NAV_LAND);
+#endif
 
 		return 0;
 	}
@@ -520,12 +572,14 @@ int Commander::custom_command(int argc, char *argv[])
 
 			} else {
 				PX4_ERR("argument %s unsupported.", argv[1]);
+				return 1;
 			}
 
 			return 0;
 
 		} else {
 			PX4_ERR("missing argument");
+			return 1;
 		}
 	}
 
@@ -556,7 +610,7 @@ int Commander::custom_command(int argc, char *argv[])
 
 		} else {
 			PX4_ERR("missing argument");
-			return 0;
+			return 1;
 		}
 	}
 
@@ -571,7 +625,7 @@ int Commander::custom_command(int argc, char *argv[])
 
 		} else {
 			PX4_ERR("missing argument");
-			return 0;
+			return 1;
 		}
 	}
 
@@ -964,7 +1018,14 @@ Commander::handle_command(const vehicle_command_s &cmd)
 							desired_nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND;
 							break;
 
-						case PX4_CUSTOM_SUB_MODE_EXTERNAL1...PX4_CUSTOM_SUB_MODE_EXTERNAL8:
+						case PX4_CUSTOM_SUB_MODE_EXTERNAL1:
+						case PX4_CUSTOM_SUB_MODE_EXTERNAL2:
+						case PX4_CUSTOM_SUB_MODE_EXTERNAL3:
+						case PX4_CUSTOM_SUB_MODE_EXTERNAL4:
+						case PX4_CUSTOM_SUB_MODE_EXTERNAL5:
+						case PX4_CUSTOM_SUB_MODE_EXTERNAL6:
+						case PX4_CUSTOM_SUB_MODE_EXTERNAL7:
+						case PX4_CUSTOM_SUB_MODE_EXTERNAL8:
 							desired_nav_state = vehicle_status_s::NAVIGATION_STATE_EXTERNAL1 + (custom_sub_mode - PX4_CUSTOM_SUB_MODE_EXTERNAL1);
 							break;
 

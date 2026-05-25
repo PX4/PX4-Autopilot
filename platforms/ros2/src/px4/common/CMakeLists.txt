@@ -37,4 +37,6 @@ add_library(px4_layer STATIC
 	${PX4_SOURCE_DIR}/platforms/common/module_base.cpp
 )
 target_compile_definitions(px4_layer PRIVATE MODULE_NAME="px4")
-target_compile_options(px4_layer PRIVATE -Wno-cast-align) # TODO: fix and enable
+px4_target_compile_options_for_compiler(px4_layer PRIVATE
+	GNU_LIKE -Wno-cast-align # TODO: fix and enable
+)

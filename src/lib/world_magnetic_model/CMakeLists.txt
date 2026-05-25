@@ -57,5 +57,8 @@ target_compile_options(world_magnetic_model PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
 
 if(BUILD_TESTING)
 	px4_add_unit_gtest(SRC test_geo_lookup.cpp LINKLIBS world_magnetic_model)
-	target_compile_options(unit-test_geo_lookup PRIVATE ${PX4_DEBUG_OPT_LEVEL} -Wno-double-promotion)
+	target_compile_options(unit-test_geo_lookup PRIVATE ${PX4_DEBUG_OPT_LEVEL})
+	px4_target_compile_options_for_compiler(unit-test_geo_lookup PRIVATE
+		GNU_LIKE -Wno-double-promotion
+	)
 endif()

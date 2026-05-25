@@ -31,11 +31,19 @@
 #
 ############################################################################
 
+set(rc_tests_compile_flags)
+
+if(NOT MSVC)
+	list(APPEND rc_tests_compile_flags
+		-Wno-unused-result
+	)
+endif()
+
 px4_add_module(
 	MODULE lib__rc__rc_tests
 	MAIN rc_tests
 	COMPILE_FLAGS
-		-Wno-unused-result
+		${rc_tests_compile_flags}
 	SRCS
 		RCTest.cpp
 	DEPENDS

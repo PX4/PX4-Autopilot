@@ -73,6 +73,15 @@ typedef int px4_task_t;
 #define SCHED_PRIORITY_MIN sched_get_priority_min(SCHED_FIFO)
 #define SCHED_PRIORITY_DEFAULT (((sched_get_priority_max(SCHED_FIFO) - sched_get_priority_min(SCHED_FIFO)) / 2) + sched_get_priority_min(SCHED_FIFO))
 
+#elif defined(__PX4_WINDOWS)
+
+/* winpthreads maps SCHED_FIFO/SCHED_OTHER onto Win32 thread priorities.
+ * sched_get_priority_{max,min}(SCHED_FIFO) works but returns a narrow
+ * range (15..-15). Use fixed values consistent with the rest of PX4. */
+#define SCHED_PRIORITY_MAX 15
+#define SCHED_PRIORITY_MIN (-15)
+#define SCHED_PRIORITY_DEFAULT 0
+
 #elif defined(__PX4_QURT)
 
 #define SCHED_PRIORITY_MAX 255

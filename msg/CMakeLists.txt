@@ -430,7 +430,11 @@ add_custom_command(
 	)
 
 add_library(uorb_msgs ${uorb_headers} ${msg_out_path}/uORBTopics.hpp ${uorb_sources} ${msg_source_out_path}/uORBTopics.cpp ${uorb_message_fields_cpp_file})
-target_link_libraries(uorb_msgs PRIVATE m)
+
+if(NOT MSVC)
+	target_link_libraries(uorb_msgs PRIVATE m)
+endif()
+
 add_dependencies(uorb_msgs prebuild_targets uorb_headers)
 
 if(CONFIG_LIB_CDRSTREAM)

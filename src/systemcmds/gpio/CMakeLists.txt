@@ -30,11 +30,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+set(gpio_compile_flags
+	-Wno-array-bounds
+)
+
 px4_add_module(
 	MODULE systemcmds__gpio
 	MAIN gpio
 	COMPILE_FLAGS
-		-Wno-array-bounds
+		${gpio_compile_flags}
 	SRCS
 		gpio.cpp
 	DEPENDS

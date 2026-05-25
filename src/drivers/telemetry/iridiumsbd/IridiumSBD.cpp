@@ -266,7 +266,7 @@ void IridiumSBD::test(int argc, char *argv[])
 	schedule_test();
 }
 
-int IridiumSBD::ioctl(struct file *filp, int cmd, unsigned long arg)
+int IridiumSBD::ioctl(struct file *filp, int cmd, uintptr_t arg)
 {
 	switch (cmd) {
 	case FIONREAD: {

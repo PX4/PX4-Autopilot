@@ -40,9 +40,8 @@ add_library(rc
 	dsm.cpp
 	common_rc.cpp
 )
-target_compile_options(rc
-	PRIVATE
-		#-DDEBUG_BUILD
+px4_target_compile_options_for_compiler(rc PRIVATE
+	GNU_LIKE
 		-Wno-unused-result
 )
 target_link_libraries(rc PRIVATE prebuild_targets)

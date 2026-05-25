@@ -66,24 +66,29 @@ px4_add_git_submodule(TARGET git_zenoh-pico PATH "zenoh-pico")
 add_subdirectory(zenoh-pico)
 unset(MESSAGE_QUIET)
 add_dependencies(zenohpico_static git_zenoh-pico px4_platform)
-target_compile_options(zenohpico_static PUBLIC -Wno-cast-align
-			-Wno-narrowing
-			-Wno-stringop-overflow
-			-Wno-stringop-truncation
-			-Wno-unused-result
-			-Wno-type-limits
-			-Wno-unused-variable
-			-Wno-maybe-uninitialized
-			-Wno-conversion
-			-Wno-float-equal)
+px4_target_compile_options_for_compiler(zenohpico_static PUBLIC
+    GNU_LIKE
+        -Wno-cast-align
+        -Wno-narrowing
+        -Wno-stringop-overflow
+        -Wno-stringop-truncation
+        -Wno-unused-result
+        -Wno-type-limits
+        -Wno-unused-variable
+        -Wno-maybe-uninitialized
+        -Wno-conversion
+        -Wno-float-equal
+)
 
-target_compile_options(zenohpico_static PRIVATE -Wno-missing-prototypes)
+px4_target_c_compile_options_for_compiler(zenohpico_static PRIVATE
+    GNU_LIKE -Wno-missing-prototypes
+)
 if(CONFIG_PLATFORM_NUTTX)
-    target_compile_options(zenohpico_static PRIVATE -DUNIX_NO_MULTICAST_IF)
+    target_compile_definitions(zenohpico_static PRIVATE UNIX_NO_MULTICAST_IF)
 endif()
 
 if(CONFIG_ZENOH_SERIAL)
-    target_compile_options(zenohpico_static PRIVATE -DZ_LINK_SERIAL)
+    target_compile_definitions(zenohpico_static PRIVATE Z_LINK_SERIAL)
 endif()
 
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/default_topics.c
@@ -99,6 +104,13 @@ COMMENT "Generating Default config"
 )
 add_custom_target(default_topics_config DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/default_topics.c)
 
+set(zenoh_compile_flags
+	-Wno-pointer-compare
+	-Wno-cast-align
+	-Wno-address-of-packed-member
+	-Wno-double-promotion
+	-Wno-unused
+)
 
 px4_add_module(
 		MODULE modules__zenoh
@@ -126,11 +138,10 @@ px4_add_module(
 			${CMAKE_CURRENT_LIST_DIR}
 			${PX4_BINARY_DIR}/src/modules/zenoh/
 		COMPILE_FLAGS
-			-Wno-pointer-compare
-			-Wno-cast-align
-			-Wno-address-of-packed-member
-			-Wno-double-promotion
-			-Wno-unused
-			-DZENOH_LINUX
-			-D_Bool=int8_t
+			${zenoh_compile_flags}
+)
+
+target_compile_definitions(modules__zenoh PRIVATE
+	ZENOH_LINUX
+	_Bool=int8_t
 )

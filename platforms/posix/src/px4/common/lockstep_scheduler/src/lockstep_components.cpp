@@ -40,7 +40,45 @@
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/tasks.h>
+#include <px4_platform_common/time.h>
 #include <limits.h>
+#include <stdlib.h>
+
+#if defined(__PX4_WINDOWS)
+#include <px4_windows/platform.h>
+
+static uint64_t lockstep_wall_time_us()
+{
+	if (px4_windows_running_under_wine()) {
+		return px4_windows_wine_monotonic_time_us();
+	}
+
+	timespec ts{};
+	system_clock_gettime(CLOCK_MONOTONIC, &ts);
+	return (static_cast<uint64_t>(ts.tv_sec) * 1000000ULL) + (static_cast<uint64_t>(ts.tv_nsec) / 1000ULL);
+}
+
+static uint64_t lockstep_component_wait_budget_us()
+{
+	static const uint64_t wait_budget_us = []() -> uint64_t {
+		const char *speed_factor_env = getenv("PX4_SIM_SPEED_FACTOR");
+
+		if (speed_factor_env != nullptr)
+		{
+			const double speed_factor = strtod(speed_factor_env, nullptr);
+
+			if (speed_factor > 0.) {
+				const uint64_t budget = static_cast<uint64_t>(1000. / speed_factor);
+				return budget < 10ULL ? 10ULL : (budget > 100ULL ? 100ULL : budget);
+			}
+		}
+
+		return 100ULL;
+	}();
+
+	return wait_budget_us;
+}
+#endif // __PX4_WINDOWS
 
 LockstepComponents::LockstepComponents(bool no_cleanup_on_destroy)
 	: _no_cleanup_on_destroy(no_cleanup_on_destroy)
@@ -128,5 +166,41 @@ void LockstepComponents::wait_for_components()
 		return;
 	}
 
+#if defined(__PX4_WINDOWS)
+
+	if (px4_windows_running_under_wine()) {
+		(void)px4_sem_trywait(&_components_sem);
+		return;
+	}
+
+	// Windows-only: winpthreads occasionally drops pthread_cond_broadcast
+	// wakes, which can leave the producer blocked here forever. Use a
+	// short wall-time watchdog so a lost wake caps barrier latency at
+	// ~100 us instead of stalling the simulator. Linux uses the original
+	// blocking wait below because POSIX condition variables on Linux
+	// reliably deliver every broadcast and the blocking path preserves
+	// strict producer/consumer ordering at startup.
+	const uint64_t wait_start_us = lockstep_wall_time_us();
+	const uint64_t max_wait_us = lockstep_component_wait_budget_us();
+	unsigned spin_count = 0;
+
+	while (px4_sem_trywait(&_components_sem) != 0) {
+		if (_components_used_bitset == 0) {
+			return;
+		}
+
+		if ((lockstep_wall_time_us() - wait_start_us) >= max_wait_us) {
+			return;
+		}
+
+		if (++spin_count % 16 == 0) {
+			sched_yield();
+		}
+	}
+
+#else
+
 	while (px4_sem_wait(&_components_sem) != 0) {}
+
+#endif
 }

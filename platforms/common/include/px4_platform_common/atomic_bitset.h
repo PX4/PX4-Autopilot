@@ -45,6 +45,22 @@ public:
 
 	AtomicBitset() = default;
 
+	AtomicBitset(const AtomicBitset &other)
+	{
+		*this = other;
+	}
+
+	AtomicBitset &operator=(const AtomicBitset &other)
+	{
+		if (this != &other) {
+			for (size_t i = 0; i < ARRAY_SIZE; i++) {
+				_data[i].store(other._data[i].load());
+			}
+		}
+
+		return *this;
+	}
+
 	size_t count() const
 	{
 		size_t total = 0;
@@ -65,11 +81,19 @@ public:
 
 	bool operator[](size_t position) const
 	{
+		if (position >= N) {
+			return false;
+		}
+
 		return _data[array_index(position)].load() & element_mask(position);
 	}
 
 	void set(size_t pos, bool val = true)
 	{
+		if (pos >= N) {
+			return;
+		}
+
 		const uint32_t bitmask = element_mask(pos);
 
 		if (val) {
@@ -90,8 +114,8 @@ public:
 
 private:
 	static constexpr uint8_t BITS_PER_ELEMENT = 32;
-	static constexpr size_t ARRAY_SIZE = ((N % BITS_PER_ELEMENT) == 0) ? (N / BITS_PER_ELEMENT) :
-					     (N / BITS_PER_ELEMENT + 1);
+	static constexpr size_t ARRAY_SIZE = (N == 0) ? 1 :
+					     (((N % BITS_PER_ELEMENT) == 0) ? (N / BITS_PER_ELEMENT) : (N / BITS_PER_ELEMENT + 1));
 	static constexpr size_t ALLOCATED_BITS = ARRAY_SIZE * BITS_PER_ELEMENT;
 
 	size_t array_index(size_t position) const { return position / BITS_PER_ELEMENT; }

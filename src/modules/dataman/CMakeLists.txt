@@ -30,11 +30,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
+set(dataman_compile_flags)
+
+if(NOT MSVC)
+	list(APPEND dataman_compile_flags -Wno-cast-align) # TODO: fix and enable
+endif()
+
 px4_add_module(
 	MODULE modules__dataman
 	MAIN dataman
 	COMPILE_FLAGS
-		-Wno-cast-align # TODO: fix and enable
+		${dataman_compile_flags}
 	SRCS
 		dataman.cpp
 	MODULE_CONFIG

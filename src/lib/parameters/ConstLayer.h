@@ -65,7 +65,7 @@ public:
 	param_value_u get(param_t param) const override
 	{
 		if (param >= PARAM_COUNT) {
-			return {0};
+			return param_value_u{};
 		}
 
 		return px4::parameters[param].val;

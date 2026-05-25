@@ -192,6 +192,21 @@ void WorkQueue::Run()
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 
+#if defined(__PX4_WINDOWS)
+
+		// Windows-only: winpthreads occasionally drops pthread_cond_broadcast
+		// wakes, so explicitly hand back lockstep progress after each Run()
+		// pass to keep the simulator advancing even if the broadcast that
+		// would have unblocked the lockstep barrier got lost. Linux POSIX
+		// condition variables deliver every broadcast; calling progress
+		// here on Linux risks signalling readiness before the queue has
+		// actually drained the items the simulator clock is gating on.
+		if (_lockstep_component != -1) {
+			px4_lockstep_progress(_lockstep_component);
+		}
+
+#endif // __PX4_WINDOWS
+
 		if (_q.empty()) {
 			px4_lockstep_unregister_component(_lockstep_component);
 			_lockstep_component = -1;

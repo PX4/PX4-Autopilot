@@ -338,7 +338,11 @@ int led_init()
 
 	if (fd_leds < 0) {
 		// there might not be an LED available, so don't make this an error
+#if defined(__PX4_POSIX)
+		PX4_DEBUG("LED: open %s failed (%i)", LED0_DEVICE_PATH, errno);
+#else
 		PX4_INFO("LED: open %s failed (%i)", LED0_DEVICE_PATH, errno);
+#endif
 		return -errno;
 	}
 

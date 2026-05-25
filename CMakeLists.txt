@@ -174,14 +174,20 @@ set(config_kernel_list)
 
 # find_package(Python3) on macOS defaults to picking the highest-versioned
 # framework Python over PATH and hints, missing the venv where pip
-# installed our requirements. Pin to the project-local .venv when
-# present; otherwise stop at the first location hint and keep macOS
-# frameworks last. PYTHON_EXECUTABLE is bridged below for legacy callers.
+# installed our requirements. On Windows, an MSYS2 mingw64 python on PATH
+# can win over the setup-python interpreter the CI installs deps into. In
+# both cases the wrong interpreter is selected and kconfiglib import in
+# cmake/kconfig.cmake fails. Pin to the project-local .venv when present;
+# otherwise stop at the first location hint and keep macOS frameworks
+# last. PYTHON_EXECUTABLE is bridged below for legacy callers.
 if(NOT DEFINED Python3_EXECUTABLE AND EXISTS "${CMAKE_CURRENT_LIST_DIR}/.venv/bin/python")
 	set(Python3_EXECUTABLE "${CMAKE_CURRENT_LIST_DIR}/.venv/bin/python")
 endif()
 set(Python3_FIND_STRATEGY LOCATION)
 set(Python3_FIND_FRAMEWORK LAST)
+if(DEFINED ENV{VIRTUAL_ENV})
+	set(Python3_FIND_VIRTUALENV FIRST)
+endif()
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
 # Preserve PYTHON_EXECUTABLE as passed if any (e.g. via -D on command
@@ -274,24 +280,45 @@ if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE ${PX4_BUILD_TYPE} CACHE STRING "Build type" FORCE)
 endif()
 
-if(CONFIG_BOARD_SUPPORT_FORTIFIED_TOOLCHAIN)
-	set(PX4_DEBUG_OPT_LEVEL -Og)
-	message(STATUS "fortified toolchain support enabled: PX4_DEBUG_OPT_LEVEL=${PX4_DEBUG_OPT_LEVEL}")
-else()
-	set(PX4_DEBUG_OPT_LEVEL -O0)
-endif()
-
-if((CMAKE_BUILD_TYPE STREQUAL "Debug") OR (CMAKE_BUILD_TYPE STREQUAL "Coverage"))
-	set(MAX_CUSTOM_OPT_LEVEL ${PX4_DEBUG_OPT_LEVEL})
-elseif(CMAKE_BUILD_TYPE MATCHES "Sanitizer")
-	set(MAX_CUSTOM_OPT_LEVEL -O1)
-elseif(CMAKE_BUILD_TYPE MATCHES "Release")
-	set(MAX_CUSTOM_OPT_LEVEL -O3)
-else()
-	if(px4_constrained_flash_build)
-		set(MAX_CUSTOM_OPT_LEVEL -Os)
+if(MSVC)
+	if(CONFIG_BOARD_SUPPORT_FORTIFIED_TOOLCHAIN)
+		set(PX4_DEBUG_OPT_LEVEL /Od)
+		message(STATUS "fortified toolchain support enabled: PX4_DEBUG_OPT_LEVEL=${PX4_DEBUG_OPT_LEVEL}")
 	else()
-		set(MAX_CUSTOM_OPT_LEVEL -O2)
+		set(PX4_DEBUG_OPT_LEVEL /Od)
+	endif()
+
+	if((CMAKE_BUILD_TYPE STREQUAL "Debug") OR (CMAKE_BUILD_TYPE STREQUAL "Coverage"))
+		set(MAX_CUSTOM_OPT_LEVEL ${PX4_DEBUG_OPT_LEVEL})
+	elseif(CMAKE_BUILD_TYPE MATCHES "Release")
+		set(MAX_CUSTOM_OPT_LEVEL /O2)
+	else()
+		if(px4_constrained_flash_build)
+			set(MAX_CUSTOM_OPT_LEVEL /O1)
+		else()
+			set(MAX_CUSTOM_OPT_LEVEL /O2)
+		endif()
+	endif()
+else()
+	if(CONFIG_BOARD_SUPPORT_FORTIFIED_TOOLCHAIN)
+		set(PX4_DEBUG_OPT_LEVEL -Og)
+		message(STATUS "fortified toolchain support enabled: PX4_DEBUG_OPT_LEVEL=${PX4_DEBUG_OPT_LEVEL}")
+	else()
+		set(PX4_DEBUG_OPT_LEVEL -O0)
+	endif()
+
+	if((CMAKE_BUILD_TYPE STREQUAL "Debug") OR (CMAKE_BUILD_TYPE STREQUAL "Coverage"))
+		set(MAX_CUSTOM_OPT_LEVEL ${PX4_DEBUG_OPT_LEVEL})
+	elseif(CMAKE_BUILD_TYPE MATCHES "Sanitizer")
+		set(MAX_CUSTOM_OPT_LEVEL -O1)
+	elseif(CMAKE_BUILD_TYPE MATCHES "Release")
+		set(MAX_CUSTOM_OPT_LEVEL -O3)
+	else()
+		if(px4_constrained_flash_build)
+			set(MAX_CUSTOM_OPT_LEVEL -Os)
+		else()
+			set(MAX_CUSTOM_OPT_LEVEL -O2)
+		endif()
 	endif()
 endif()
 
@@ -308,7 +335,12 @@ endif()
 
 set(package-contact "px4users@googlegroups.com")
 
-set(CMAKE_CXX_STANDARD 17)
+if(MSVC)
+	set(CMAKE_CXX_STANDARD 20)
+else()
+	set(CMAKE_CXX_STANDARD 17)
+endif()
+
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -394,12 +426,94 @@ set(TESTFILTER "" CACHE STRING "Filter string for ctest to selectively only run 
 
 include(px4_add_gtest)
 if(BUILD_TESTING)
-	# Setting FUZZTEST_FUZZING_MODE=on enables ASAN, and is only supported with Clang
-	if (("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang") OR ("${CMAKE_CXX_COMPILER_ID}" MATCHES "AppleClang"))
-		set(FUZZTEST_FUZZING_MODE ON)
+	# fuzztest's CMakeLists hard-fails with FATAL_ERROR on any compiler that
+	# is not GCC, AppleClang, or Clang (test/fuzztest/CMakeLists.txt:30).
+	# Native MSVC (cl.exe) trips that branch directly, and clang-cl (which
+	# fuzztest does configure for) pulls in abseil/re2/fuzztest with
+	# inline SSE intrinsics that the LLVM driver leaves as unresolved
+	# externals against the MSVC link.exe. Skip the fuzztest subdirectory
+	# entirely on either MSVC-driver toolchain and fetch a standalone
+	# googletest so the unit-test targets still get gtest/gtest_main.
+	if(WIN32 AND ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC"
+		      OR "${CMAKE_CXX_SIMULATE_ID}" STREQUAL "MSVC"))
+		set(PX4_HAS_FUZZTEST OFF)
+	else()
+		set(PX4_HAS_FUZZTEST ON)
 	endif()
-	add_subdirectory(test)
-	fuzztest_setup_fuzzing_flags()
+
+	if(PX4_HAS_FUZZTEST)
+		# Setting FUZZTEST_FUZZING_MODE=on enables ASAN, and is only supported with Clang.
+		# clang-cl on Windows uses the MSVC driver: ASAN there is incompatible with the
+		# debug C runtime (/MDd) emitted by CMake's Debug config, so keep fuzzing mode
+		# off on that combination and just compile fuzztest as a plain dependency.
+		if ((("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang") OR ("${CMAKE_CXX_COMPILER_ID}" MATCHES "AppleClang"))
+			AND NOT (WIN32 AND "${CMAKE_CXX_SIMULATE_ID}" STREQUAL "MSVC"))
+			set(FUZZTEST_FUZZING_MODE ON)
+		endif()
+		add_subdirectory(test)
+		fuzztest_setup_fuzzing_flags()
+	else()
+		# MSVC fallback: pull in googletest directly so px4_add_unit_gtest()
+		# targets can still link gtest/gtest_main. Provide no-op stubs for
+		# the fuzztest helpers so existing call sites compile cleanly.
+		include(FetchContent)
+		FetchContent_Declare(
+			googletest
+			GIT_REPOSITORY https://github.com/google/googletest.git
+			GIT_TAG release-1.12.1
+		)
+		# Match the runtime that CMake selects for our targets so gtest can
+		# be linked into the test executables without C-runtime mismatch.
+		set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+		FetchContent_MakeAvailable(googletest)
+
+		# googletest 1.12.1 contains an implicit char8_t -> char32_t
+		# conversion in gtest-printers.h that newer clang-cl flags as
+		# -Wcharacter-conversion (and the Clang frontend defaults
+		# -Werror for it). Older clang-cl on CI does not recognise the
+		# flag and would error with -Werror,-Wunknown-warning-option,
+		# so pair it with -Wno-unknown-warning-option (supported by
+		# every Clang version) to make the suppression a no-op there.
+		# Real cl.exe does not understand either flag, so guard the
+		# whole block on the Clang driver.
+		if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+			set(_px4_gtest_clang_warn_silence
+				-Wno-unknown-warning-option
+				-Wno-character-conversion
+			)
+			if(TARGET gtest)
+				target_compile_options(gtest PRIVATE ${_px4_gtest_clang_warn_silence})
+			endif()
+			if(TARGET gtest_main)
+				target_compile_options(gtest_main PRIVATE ${_px4_gtest_clang_warn_silence})
+			endif()
+		endif()
+
+		function(link_fuzztest name)
+			# fuzztest is unavailable on this toolchain; tests still need a
+			# main(), so wire them to the stock gtest entry point.
+			target_link_libraries(${name} PRIVATE gtest_main)
+		endfunction()
+		function(link_fuzztest_core name)
+			target_link_libraries(${name} PRIVATE gtest_main)
+		endfunction()
+		macro(fuzztest_setup_fuzzing_flags)
+		endmacro()
+
+		# Mirror the test_results plumbing that test/CMakeLists.txt would
+		# otherwise add, minus the fuzztest dependency that we cannot build.
+		if(TESTFILTER)
+			set(TESTFILTERARG "-R")
+		else()
+			set(TESTFILTERARG "")
+		endif()
+		add_custom_target(test_results
+			COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -T Test ${TESTFILTERARG} ${TESTFILTER}
+			USES_TERMINAL
+			COMMENT "Running tests"
+			WORKING_DIRECTORY ${PX4_BINARY_DIR})
+		set_target_properties(test_results PROPERTIES EXCLUDE_FROM_ALL TRUE)
+	endif()
 endif()
 
 #=============================================================================

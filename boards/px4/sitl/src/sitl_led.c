@@ -42,10 +42,14 @@
 #include <stdbool.h>
 
 __BEGIN_DECLS
-extern void led_init(void);
-extern void led_on(int led);
-extern void led_off(int led);
-extern void led_toggle(int led);
+/* MSVC requires the dllexport storage class on the prototype too — a plain
+ * `extern` declaration followed by a `__declspec(dllexport)` definition is
+ * "redefinition; different linkage" (C2375). GCC accepts the visibility
+ * attribute on either side. */
+extern __EXPORT void led_init(void);
+extern __EXPORT void led_on(int led);
+extern __EXPORT void led_off(int led);
+extern __EXPORT void led_toggle(int led);
 __END_DECLS
 
 static bool _led_state[2] = { false, false };

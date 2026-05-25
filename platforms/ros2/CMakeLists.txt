@@ -46,9 +46,10 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/bin)
 # 	src/px4/common/main.cpp
 # )
 
-add_compile_options(
-	-Wno-error
-	-Wno-float-equal # msg generated equality operator
+px4_add_compile_options_for_compiler(
+	GNU_LIKE
+		-Wno-error
+		-Wno-float-equal # msg generated equality operator
 )
 
 include_directories(${PX4_BINARY_DIR})

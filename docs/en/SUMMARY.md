@@ -855,6 +855,7 @@
   - [Community Supported Developer Setup](advanced/community_supported_dev_env.md)
     - [Arch Linux](dev_setup/dev_env_linux_arch.md)
     - [CentOS Linux](dev_setup/dev_env_linux_centos.md)
+    - [Windows Native (CMD/PowerShell)](dev_setup/dev_env_windows_native.md)
     - [Windows VM Toolchain](dev_setup/dev_env_windows_vm.md)
     - [Windows Cygwin Toolchain](dev_setup/dev_env_windows_cygwin.md)
       - [Windows Cygwin Toolchain Maintenance](dev_setup/dev_env_windows_cygwin_packager_setup.md)

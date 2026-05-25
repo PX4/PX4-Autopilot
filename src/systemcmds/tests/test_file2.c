@@ -84,17 +84,24 @@ static int test_corruption(const char *filename, uint32_t write_chunk, uint32_t 
 
 	// create a file of size write_size, in write_chunk blocks
 	uint8_t counter = 0;
+	uint8_t *buffer = (uint8_t *)malloc(write_chunk);
+
+	if (buffer == NULL) {
+		printf("malloc failed for write_chunk=%" PRIu32 "\n", write_chunk);
+		close(fd);
+		return 1;
+	}
 
 	while (ofs < write_size) {
-		uint8_t buffer[write_chunk];
-
 		for (uint16_t j = 0; j < write_chunk; j++) {
 			buffer[j] = get_value(ofs);
 			ofs++;
 		}
 
-		if (write(fd, buffer, sizeof(buffer)) != (int)sizeof(buffer)) {
+		if (write(fd, buffer, write_chunk) != (int)write_chunk) {
 			printf("write failed at offset %" PRIu32 "\n", ofs);
+			free(buffer);
+			close(fd);
 			return 1;
 		}
 
@@ -118,6 +125,7 @@ static int test_corruption(const char *filename, uint32_t write_chunk, uint32_t 
 
 	if (fd == -1) {
 		perror(filename);
+		free(buffer);
 		return 1;
 	}
 
@@ -125,17 +133,16 @@ static int test_corruption(const char *filename, uint32_t write_chunk, uint32_t 
 	ofs = 0;
 
 	while (ofs < write_size) {
-		uint8_t buffer[write_chunk];
-
 		if (counter % 100 == 0) {
 			printf("read ofs=%" PRIu32 "\r", ofs);
 		}
 
 		counter++;
 
-		if (read(fd, buffer, sizeof(buffer)) != (int)sizeof(buffer)) {
+		if (read(fd, buffer, write_chunk) != (int)write_chunk) {
 			printf("read failed at offset %" PRIu32 "\n", ofs);
 			close(fd);
+			free(buffer);
 			return 1;
 		}
 
@@ -143,6 +150,7 @@ static int test_corruption(const char *filename, uint32_t write_chunk, uint32_t 
 			if (buffer[j] != get_value(ofs)) {
 				printf("corruption at ofs=%" PRIu32 " got %" PRIu8 "\n", ofs, buffer[j]);
 				close(fd);
+				free(buffer);
 				return 1;
 			}
 
@@ -156,6 +164,7 @@ static int test_corruption(const char *filename, uint32_t write_chunk, uint32_t 
 
 	printf("read ofs=%" PRIu32 "\n", ofs);
 	close(fd);
+	free(buffer);
 	unlink(filename);
 	printf("All OK\n");
 	return 0;

@@ -86,10 +86,11 @@ add_definitions(
 	-DUAVCAN_PLATFORM=${UAVCAN_PLATFORM}
 )
 
-add_compile_options(
-	-Wno-cast-align # TODO: fix and enable
-	-Wno-deprecated-copy # TODO: fix
-	-Wno-address-of-packed-member
+px4_add_compile_options_for_compiler(
+	GNU_LIKE
+		-Wno-cast-align # TODO: fix and enable
+		-Wno-deprecated-copy # TODO: fix
+		-Wno-address-of-packed-member
 )
 set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE) # silence libuavcan deprecation warning for now (TODO: fix and remove)
 add_subdirectory(${LIBDRONECAN_DIR} libdronecan EXCLUDE_FROM_ALL)

@@ -43,6 +43,8 @@ def generate(xml_file, dest='.', readonly_config=None):
 
     all_param_names = set(p.attrib["name"] for p in params)
     readonly_params = load_readonly_params(readonly_config, all_param_names)
+    volatile_params = [p for p in params if p.attrib.get("volatile") == "true"]
+    readonly_param_names = [p.attrib["name"] for p in params if p.attrib["name"] in readonly_params]
 
     script_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -60,7 +62,10 @@ def generate(xml_file, dest='.', readonly_config=None):
         template = env.get_template(template_file)
         with open(os.path.join(
                 dest, template_file.replace('.jinja','')), 'w') as fid:
-            fid.write(template.render(params=params, readonly_params=readonly_params))
+            fid.write(template.render(
+                params=params,
+                volatile_params=volatile_params,
+                readonly_param_names=readonly_param_names))
 
 if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser()

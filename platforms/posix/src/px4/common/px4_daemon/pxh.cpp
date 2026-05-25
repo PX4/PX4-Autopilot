@@ -49,11 +49,116 @@
 #include <poll.h>
 #include <fcntl.h>
 #include <unistd.h>
+#ifdef __PX4_WINDOWS
+#include <conio.h>
+#include <windows.h>
+#include <px4_windows/platform.h>
+#endif
 
 #include "pxh.h"
 
 namespace px4_daemon
 {
+
+#ifdef __PX4_WINDOWS
+namespace
+{
+
+bool read_windows_console_line(std::string &line)
+{
+	HANDLE stdin_h = GetStdHandle(STD_INPUT_HANDLE);
+
+	if (stdin_h == INVALID_HANDLE_VALUE || stdin_h == nullptr) {
+		return false;
+	}
+
+	line.clear();
+
+	while (true) {
+		char buffer[128] {};
+		DWORD bytes_read = 0;
+
+		if (!ReadFile(stdin_h, buffer, sizeof(buffer), &bytes_read, nullptr)) {
+			return !line.empty();
+		}
+
+		if (bytes_read == 0) {
+			return !line.empty();
+		}
+
+		for (DWORD i = 0; i < bytes_read; ++i) {
+			const char c = buffer[i];
+
+			if (c == '\r') {
+				continue;
+			}
+
+			if (c == '\n') {
+				return true;
+			}
+
+			line.push_back(c);
+		}
+	}
+}
+
+void flush_pending_windows_stdin()
+{
+	px4_windows_restore_console_modes();
+	px4_windows_discard_pending_input();
+	px4_windows_restore_console_modes();
+}
+
+bool stdin_is_windows_console()
+{
+	HANDLE stdin_h = GetStdHandle(STD_INPUT_HANDLE);
+
+	if (stdin_h == INVALID_HANDLE_VALUE || stdin_h == nullptr) {
+		return false;
+	}
+
+	DWORD mode = 0;
+	return GetConsoleMode(stdin_h, &mode) != 0;
+}
+
+bool read_windows_redirected_line(std::string &line)
+{
+	line.clear();
+
+	while (true) {
+		char c = '\0';
+		const ssize_t bytes_read = ::read(STDIN_FILENO, &c, 1);
+
+		if (bytes_read <= 0) {
+			return !line.empty();
+		}
+
+		if (c == '\r') {
+			continue;
+		}
+
+		if (c == '\n') {
+			return true;
+		}
+
+		line.push_back(c);
+	}
+}
+
+} // namespace
+#endif
+
+#ifdef __PX4_WINDOWS
+static SOCKET poll_socket(int fd)
+{
+	return static_cast<SOCKET>(fd);
+}
+#else
+static int poll_socket(int fd)
+{
+	return fd;
+}
+#endif
 
 apps_map_type Pxh::_apps = {};
 Pxh *Pxh::_instance = nullptr;
@@ -124,6 +229,13 @@ int Pxh::process_line(const std::string &line, bool silently_fail)
 
 	} else if (command == "help") {
 		list_builtins(_apps);
+		return 0;
+
+	} else if (command == "exit" || command == "quit") {
+		if (_instance) {
+			_instance->_should_exit = true;
+		}
+
 		return 0;
 
 	} else if (command.length() == 0 || command[0] == '#') {
@@ -199,7 +311,7 @@ void Pxh::run_remote_pxh(int remote_in_fd, int remote_out_fd)
 	// Any data from remote_in_fd will be process as shell commands when an '\n' is received
 	while (!_should_exit) {
 
-		struct pollfd fds[3] { {pipe_stderr, POLLIN}, {pipe_stdout, POLLIN}, {remote_in_fd, POLLIN}};
+		struct pollfd fds[3] { {poll_socket(pipe_stderr), POLLIN}, {poll_socket(pipe_stdout), POLLIN}, {poll_socket(remote_in_fd), POLLIN}};
 
 		if (poll(fds, 3, -1) == -1) {
 			perror("Mavlink Shell Poll Error");
@@ -301,8 +413,61 @@ void Pxh::run_pxh()
 	// Only the local_terminal needed for static calls
 	_instance = this;
 	_local_terminal = true;
+#ifndef __PX4_WINDOWS
 	_setup_term();
+#endif
 
+#ifdef __PX4_WINDOWS
+	_print_prompt();
+	const bool stdin_is_tty = isatty(STDIN_FILENO) != 0;
+	const bool use_console_input = stdin_is_tty && stdin_is_windows_console();
+
+	while (!_should_exit) {
+		std::string line;
+		bool got_line = false;
+
+		if (use_console_input) {
+			got_line = read_windows_console_line(line);
+
+		} else {
+			got_line = read_windows_redirected_line(line);
+		}
+
+		if (!got_line) {
+			if (_should_exit) {
+				flush_pending_windows_stdin();
+				break;
+			}
+
+			clearerr(stdin);
+			usleep(10000);
+			continue;
+		}
+
+		if (_should_exit) {
+			flush_pending_windows_stdin();
+			break;
+		}
+
+		_history.try_to_add(line);
+		_history.reset_to_end();
+
+		if (!stdin_is_tty) {
+			printf("\n");
+		}
+
+		process_line(line, false);
+
+		if (_should_exit) {
+			flush_pending_windows_stdin();
+			break;
+		}
+
+		_print_prompt();
+	}
+
+	return;
+#else
 	std::string mystr;
 	int cursor_position = 0; // position of the cursor from right to left
 	// (0: all the way to the right, mystr.length: all the way to the left)
@@ -310,7 +475,6 @@ void Pxh::run_pxh()
 	_print_prompt();
 
 	while (!_should_exit) {
-
 		int c = getchar();
 		std::string add_string; // string to add at current cursor position
 		bool update_prompt = true;
@@ -330,6 +494,7 @@ void Pxh::run_pxh()
 
 			break;
 
+		case '\r':	// Windows _getch() reports Enter as CR
 		case '\n':	// user hit enter
 			_history.try_to_add(mystr);
 			_history.reset_to_end();
@@ -409,6 +574,8 @@ void Pxh::run_pxh()
 			}
 		}
 	}
+
+#endif
 }
 
 void Pxh::stop()

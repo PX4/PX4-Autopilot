@@ -533,4 +533,21 @@ void px4_lockstep_wait_for_components()
 {
 	lockstep_scheduler.components().wait_for_components();
 }
+#elif defined(__PX4_WINDOWS)
+int px4_usleep(useconds_t usec)
+{
+	// MinGW's usleep/nanosleep round sub-millisecond waits down to an
+	// immediate return under Wine. HRT uses those tiny waits to yield between
+	// timer checks, so force at least one millisecond for non-zero sleeps.
+	if (usec > 0 && usec < 1000) {
+		usec = 1000;
+	}
+
+	return system_usleep(usec);
+}
+
+unsigned int px4_sleep(unsigned int seconds)
+{
+	return system_sleep(seconds);
+}
 #endif

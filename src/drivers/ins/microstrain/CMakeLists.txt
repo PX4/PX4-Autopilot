@@ -42,6 +42,17 @@ set(BUILD_EXAMPLES "OFF" CACHE BOOL "" FORCE)
 set(BUILD_TESTING "OFF" CACHE BOOL "" FORCE)
 add_subdirectory(mip_sdk)
 
+# The mip target lives in a vendored submodule; apply PX4's compiler-specific
+# warning suppressions from the parent so the submodule tree stays clean.
+if(TARGET mip)
+	px4_target_compile_options_for_compiler(mip PRIVATE
+		GNU_LIKE
+			-Wno-shadow
+			-Wno-strict-prototypes
+			-Wno-incompatible-pointer-types
+	)
+endif()
+
 px4_add_module(
 	MODULE drivers__ins__microstrain
 	MAIN microstrain

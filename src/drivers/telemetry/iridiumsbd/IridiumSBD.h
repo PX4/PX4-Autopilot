@@ -139,7 +139,7 @@ public:
 	/*
 	 * Passes everything to CDev
 	 */
-	int ioctl(struct file *filp, int cmd, unsigned long arg);
+	int ioctl(struct file *filp, int cmd, uintptr_t arg);
 
 	static bool can_stop() { return !get_instance<IridiumSBD>(desc)->_cdev_used.load(); }
 

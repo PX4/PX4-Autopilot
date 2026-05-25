@@ -38,13 +38,32 @@
 
 #include "sock_protocol.h"
 
+#include <cstdlib>
+
 namespace px4_daemon
 {
 
+#ifdef __PX4_WINDOWS
+uint16_t get_socket_port(int instance_id)
+{
+	// Keep the local daemon control socket away from the default SITL MAVLink
+	// UDP ranges (for example 14580 + instance is used by px4-rc.mavlink).
+	// Override by setting PX4_DAEMON_PORT if the default collides with another
+	// app embedding PX4.
+	const char *override_port = std::getenv("PX4_DAEMON_PORT");
+
+	if (override_port) {
+		return static_cast<uint16_t>(std::atoi(override_port) + instance_id);
+	}
+
+	return static_cast<uint16_t>(14680 + instance_id);
+}
+#else
 std::string get_socket_path(int instance_id)
 {
 	// TODO: Use /var/run/px4/$instance/sock (or /var/run/user/$UID/... for non-root).
 	return "/tmp/px4-sock-" + std::to_string(instance_id);
 }
+#endif
 
 } // namespace px4_daemon

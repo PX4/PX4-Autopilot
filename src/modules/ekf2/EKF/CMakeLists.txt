@@ -161,4 +161,7 @@ target_link_libraries(ecl_EKF
 		${EKF_LIBS}
 )
 
-target_compile_options(ecl_EKF PRIVATE -fno-associative-math)
+px4_target_compile_options_for_compiler(ecl_EKF PRIVATE
+	GNU_LIKE -fno-associative-math
+	MSVC /fp:precise
+)
