@@ -50,7 +50,21 @@ A precision landing has three phases:
 Search procedures are initiated in the first and second steps, and will run at most [PLD_MAX_SRCH](../advanced_config/parameter_reference.md#PLD_MAX_SRCH) times.
 Landing Phases Flow Diagram
 
-A flow diagram showing the phases can be found in [landing phases flow Diagram](#landing-phases-flow-diagram) below.
+A flow diagram showing the phases can be found in [landing phases flow diagram](#landing-phases-flow-diagram) below.
+
+### Yaw Alignment
+
+Precision landing can optionally align the multicopter's yaw to match the detected target orientation while the vehicle is approaching or descending above the pad.
+Enable this behaviour with [PLD_YAW_EN](#PLD_YAW_EN).
+
+When enabled, PX4 uses the [`vte_orientation`](../msg_docs/VteOrientation.md) topic (published by the [Vision Target Estimator](../advanced_features/vision_target_estimator.md)) to command the yaw setpoint as long as the orientation data remains valid.
+If the orientation feed times out (see [PLD_BTOUT](../advanced_config/parameter_reference.md#PLD_BTOUT)) or the parameter is disabled, yaw control falls back to the default mission behaviour.
+
+::: warning
+Yaw alignment depends on the [Vision Target Estimator](../advanced_features/vision_target_estimator.md), which is not in the default board configurations.
+To use this feature you must [build a firmware that includes the module](../advanced_features/vision_target_estimator.md#building-the-module) and enable it at runtime with [VTE_EN](../advanced_config/parameter_reference.md#VTE_EN)=1 and [VTE_YAW_EN](../advanced_config/parameter_reference.md#VTE_YAW_EN)=1.
+Without this, `vte_orientation` is never published and [PLD_YAW_EN](#PLD_YAW_EN) has no effect.
+:::
 
 ## Initiating a Precision Landing
 
@@ -149,15 +163,18 @@ If `LTEST_MODE` is set to stationary, the target measurements are also used by t
 Other relevant parameters are listed in the parameter reference under [Landing_target estimator](../advanced_config/parameter_reference.md#landing-target-estimator) and [Precision land](../advanced_config/parameter_reference.md#precision-land) parameters.
 Some of the most useful ones are listed below.
 
-| Parameter                                                                                             | Description                                                                                                         |
-| ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| <a id="SENS_EN_IRLOCK"></a>[SENS_EN_IRLOCK](../advanced_config/parameter_reference.md#SENS_EN_IRLOCK) | IR-LOCK Sensor (external I2C). Disable: `0` (default): Enable: `1`).                                                |
-| <a id="LTEST_MODE"></a>[LTEST_MODE](../advanced_config/parameter_reference.md#LTEST_MODE)             | Landing target is moving (`0`) or stationary (`1`). Default is moving.                                              |
-| <a id="PLD_HACC_RAD"></a>[PLD_HACC_RAD](../advanced_config/parameter_reference.md#PLD_HACC_RAD)       | Horizontal acceptance radius, within which the vehicle will start descending. Default is 0.2m.                      |
-| <a id="PLD_BTOUT"></a>[PLD_BTOUT](../advanced_config/parameter_reference.md#PLD_BTOUT)                | Landing Target Timeout, after which the target is assumed lost. Default is 5 seconds.                               |
-| <a id="PLD_FAPPR_ALT"></a>[PLD_FAPPR_ALT](../advanced_config/parameter_reference.md#PLD_FAPPR_ALT)    | Final approach altitude. Default is 0.1 metres.                                                                     |
-| <a id="PLD_MAX_SRCH"></a>[PLD_MAX_SRCH](../advanced_config/parameter_reference.md#PLD_MAX_SRCH)       | Maximum number of search attempts in an required landing.                                                           |
-| <a id="RTL_PLD_MD"></a>[RTL_PLD_MD](../advanced_config/parameter_reference.md#RTL_PLD_MD)             | RTL precision land mode. `0`: disabled, `1`: [Opportunistic](#opportunistic-mode), `2`: [Required](#required-mode). |
+| Parameter                                                                                                   | Description                                                                                                         |
+| ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| <a id="SENS_EN_IRLOCK"></a>[SENS_EN_IRLOCK](../advanced_config/parameter_reference.md#SENS_EN_IRLOCK)       | IR-LOCK Sensor (external I2C). Disable: `0` (default): Enable: `1`).                                                |
+| <a id="LTEST_MODE"></a>[LTEST_MODE](../advanced_config/parameter_reference.md#LTEST_MODE)                   | Landing target is moving (`0`) or stationary (`1`). Default is moving.                                              |
+| <a id="PLD_HACC_RAD"></a>[PLD_HACC_RAD](../advanced_config/parameter_reference.md#PLD_HACC_RAD)             | Horizontal acceptance radius, within which the vehicle will start descending. Default is 0.2m.                      |
+| <a id="PLD_MOVING_T_MIN"></a>[PLD_MOVING_T_MIN](../advanced_config/parameter_reference.md#PLD_MOVING_T_MIN) | Minimum moving-target prediction time for the precision landing setpoint.                                           |
+| <a id="PLD_MOVING_T_MAX"></a>[PLD_MOVING_T_MAX](../advanced_config/parameter_reference.md#PLD_MOVING_T_MAX) | Maximum moving-target prediction time for the precision landing setpoint.                                           |
+| <a id="PLD_BTOUT"></a>[PLD_BTOUT](../advanced_config/parameter_reference.md#PLD_BTOUT)                      | Landing Target Timeout, after which the target is assumed lost. Default is 5 seconds.                               |
+| <a id="PLD_FAPPR_ALT"></a>[PLD_FAPPR_ALT](../advanced_config/parameter_reference.md#PLD_FAPPR_ALT)          | Final approach altitude. Default is 0.1 metres.                                                                     |
+| <a id="PLD_MAX_SRCH"></a>[PLD_MAX_SRCH](../advanced_config/parameter_reference.md#PLD_MAX_SRCH)             | Maximum number of search attempts in a required landing.                                                           |
+| <a id="PLD_YAW_EN"></a>[PLD_YAW_EN](../advanced_config/parameter_reference.md#PLD_YAW_EN)                   | Enable yaw alignment during precision landing when target orientation is available.                                 |
+| <a id="RTL_PLD_MD"></a>[RTL_PLD_MD](../advanced_config/parameter_reference.md#RTL_PLD_MD)                   | RTL precision land mode. `0`: disabled, `1`: [Opportunistic](#opportunistic-mode), `2`: [Required](#required-mode). |
 
 ### IR Beacon Scaling
 
