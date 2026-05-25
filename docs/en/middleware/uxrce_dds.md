@@ -104,11 +104,6 @@ To start the agent with settings for connecting to the uXRCE-DDS client running 
 micro-xrce-dds-agent udp4 -p 8888
 ```
 
-::: info
-At time of writing the stable of version installed from snap connects to PX4 but reports errors creating topics.
-The development version, fetched using `--edge` above, does work.
-:::
-
 ### Build/Run within ROS 2 Workspace
 
 The agent can be built and launched within a ROS 2 workspace (or build standalone and launched from a workspace).

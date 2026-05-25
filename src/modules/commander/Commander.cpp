@@ -346,6 +346,60 @@ int Commander::custom_command(int argc, char *argv[])
 		return 0;
 	}
 
+	if (!strcmp(argv[0], "actuator_group_test")) {
+		if (argc < 2) {
+			PX4_ERR("missing argument");
+			return 1;
+		}
+
+		uint8_t group;
+		float value = 1.f;
+
+		if (!strcmp(argv[1], "roll")) {
+			group = vehicle_command_s::ACTUATOR_TEST_GROUP_ROLL_TORQUE;
+
+		} else if (!strcmp(argv[1], "pitch")) {
+			group = vehicle_command_s::ACTUATOR_TEST_GROUP_PITCH_TORQUE;
+
+		} else if (!strcmp(argv[1], "yaw")) {
+			group = vehicle_command_s::ACTUATOR_TEST_GROUP_YAW_TORQUE;
+
+		} else if (!strcmp(argv[1], "tilt")) {
+			group = vehicle_command_s::ACTUATOR_TEST_GROUP_COLLECTIVE_TILT;
+
+		} else if (!strcmp(argv[1], "xthrust")) {
+			group = vehicle_command_s::ACTUATOR_TEST_GROUP_X_THRUST;
+			value = 0.1f; // For thrust use a lower default to avoid unintended takeoffs
+
+		} else if (!strcmp(argv[1], "ythrust")) {
+			group = vehicle_command_s::ACTUATOR_TEST_GROUP_Y_THRUST;
+			value = 0.1f;
+
+		} else if (!strcmp(argv[1], "zthrust")) {
+			group = vehicle_command_s::ACTUATOR_TEST_GROUP_Z_THRUST;
+			value = -0.1f;
+
+		} else {
+			PX4_ERR("argument %s unsupported.", argv[1]);
+			return 1;
+		}
+
+		if (argc > 2) {
+			char *end;
+			const float user_value = strtof(argv[2], &end);
+
+			if (*end == '\0' && PX4_ISFINITE(user_value)) {
+				value = user_value;
+
+			} else {
+				PX4_WARN("actuator_group_test: value \"%s\" is invalid. Using default %.1f", argv[2], (double) value);
+			}
+		}
+
+		send_vehicle_command(vehicle_command_s::VEHICLE_CMD_ACTUATOR_GROUP_TEST, group, value);
+		return 0;
+	}
+
 	if (!strcmp(argv[0], "arm")) {
 		float param2 = 0.f;
 
@@ -1640,6 +1694,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 	case vehicle_command_s::VEHICLE_CMD_EXTERNAL_ATTITUDE_ESTIMATE:
 	case vehicle_command_s::VEHICLE_CMD_DO_AUTOTUNE_ENABLE:
 	case vehicle_command_s::VEHICLE_CMD_ESTIMATOR_SENSOR_ENABLE:
+	case vehicle_command_s::VEHICLE_CMD_ACTUATOR_GROUP_TEST:
 		/* ignore commands that are handled by other parts of the system */
 		break;
 
@@ -3151,6 +3206,9 @@ The commander module contains the state machine for mode switching and failsafe 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("check", "Run preflight checks");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("safety", "Change prearm safety state");
 	PRINT_MODULE_USAGE_ARG("on|off", "[on] to activate safety, [off] to deactivate safety and allow control surface movements", false);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("actuator_group_test", "Drive a functional actuator group (torque/thrust/tilt) for a brief preflight check");
+	PRINT_MODULE_USAGE_ARG("roll|pitch|yaw|tilt|xthrust|ythrust|zthrust", "Group", false);
+	PRINT_MODULE_USAGE_ARG("value", "Normalized command [-1.0, +1.0]; default 1.0 for torque/tilt, 0.1 for thrust", true);
 	PRINT_MODULE_USAGE_COMMAND("arm");
 	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Force arming (do not run preflight checks)", true);
 	PRINT_MODULE_USAGE_COMMAND("disarm");

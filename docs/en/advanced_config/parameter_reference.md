@@ -28,6 +28,11 @@ Enable ADS7953.
 
 Enable the driver for the ADS7953 board
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -191,6 +196,11 @@ ADSB-Out Ident Configuration.
 
 Enable Identification of Position feature
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -265,6 +275,434 @@ This parameter defines the squawk code. Value should be between 0000 and 7777.
 | &check; | 0        | 7777     |           | 1200    |      | &nbsp;    |
 
 ## Actuator Outputs
+
+### EMM_DIS1 (`INT32`) {#EMM_DIS1}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Hiwonder EMM Driver Channel 1 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 255      |           | 128     |      | &nbsp;    |
+
+### EMM_DIS2 (`INT32`) {#EMM_DIS2}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Hiwonder EMM Driver Channel 2 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 255      |           | 128     |      | &nbsp;    |
+
+### EMM_DIS3 (`INT32`) {#EMM_DIS3}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Hiwonder EMM Driver Channel 3 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 255      |           | 128     |      | &nbsp;    |
+
+### EMM_DIS4 (`INT32`) {#EMM_DIS4}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Hiwonder EMM Driver Channel 4 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 255      |           | 128     |      | &nbsp;    |
+
+### EMM_FAIL1 (`INT32`) {#EMM_FAIL1}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Hiwonder EMM Driver Channel 1 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see EMM_FUNC1).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 255      |           | -1      |      | &nbsp;    |
+
+### EMM_FAIL2 (`INT32`) {#EMM_FAIL2}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Hiwonder EMM Driver Channel 2 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see EMM_FUNC2).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 255      |           | -1      |      | &nbsp;    |
+
+### EMM_FAIL3 (`INT32`) {#EMM_FAIL3}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Hiwonder EMM Driver Channel 3 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see EMM_FUNC3).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 255      |           | -1      |      | &nbsp;    |
+
+### EMM_FAIL4 (`INT32`) {#EMM_FAIL4}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Hiwonder EMM Driver Channel 4 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see EMM_FUNC4).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 255      |           | -1      |      | &nbsp;    |
+
+### EMM_FUNC1 (`INT32`) {#EMM_FUNC1}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Hiwonder EMM Driver Channel 1 Output Function.
+
+Select what should be output on Hiwonder EMM Driver Channel 1.
+
+The default failsafe value is set according to the selected function:
+
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; |          |          |           | 0       |      | &nbsp;    |
+
+### EMM_FUNC2 (`INT32`) {#EMM_FUNC2}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Hiwonder EMM Driver Channel 2 Output Function.
+
+Select what should be output on Hiwonder EMM Driver Channel 2.
+
+The default failsafe value is set according to the selected function:
+
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; |          |          |           | 0       |      | &nbsp;    |
+
+### EMM_FUNC3 (`INT32`) {#EMM_FUNC3}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Hiwonder EMM Driver Channel 3 Output Function.
+
+Select what should be output on Hiwonder EMM Driver Channel 3.
+
+The default failsafe value is set according to the selected function:
+
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; |          |          |           | 0       |      | &nbsp;    |
+
+### EMM_FUNC4 (`INT32`) {#EMM_FUNC4}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Hiwonder EMM Driver Channel 4 Output Function.
+
+Select what should be output on Hiwonder EMM Driver Channel 4.
+
+The default failsafe value is set according to the selected function:
+
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; |          |          |           | 0       |      | &nbsp;    |
+
+### EMM_REV (`INT32`) {#EMM_REV}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Reverse Output Range for Hiwonder EMM Driver.
+
+Allows to reverse the output range for each channel.
+Note: this is only useful for servos.
+
+**Bitmask:**
+
+- `0`: Hiwonder EMM Driver Channel 1
+- `1`: Hiwonder EMM Driver Channel 2
+- `2`: Hiwonder EMM Driver Channel 3
+- `3`: Hiwonder EMM Driver Channel 4
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 15       |           | 0       |      | &nbsp;    |
 
 ### PCA9685_CENT1 (`INT32`) {#PCA9685_CENT1}
 
@@ -17381,6 +17819,11 @@ When unaided, the wind estimate uncertainty (1-sigma, in m/s) increases by this 
 
 Acceleration compensation based on GPS velocity.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -17398,6 +17841,11 @@ Gyro bias limit.
 standalone attitude estimator enable (unsupported).
 
 Enable standalone quaternion based attitude estimator.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -17435,6 +17883,11 @@ GPS coordinates of the vehicle.
 ### ATT_MAG_DECL_A (`INT32`) {#ATT_MAG_DECL_A}
 
 Automatic GPS based declination compensation.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
@@ -17606,6 +18059,11 @@ the drone properly.
 ### MC_AT_EN (`INT32`) {#MC_AT_EN}
 
 Multicopter autotune module enable.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -18232,6 +18690,11 @@ Camera capture feedback.
 
 Enables camera capture feedback
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -18457,7 +18920,7 @@ parameters.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0        | 4        |           | 0       |      | &nbsp;    |
+| &nbsp; |          |          |           | 0       |      | &nbsp;    |
 
 ### COM_ARMABLE (`INT32`) {#COM_ARMABLE}
 
@@ -18511,6 +18974,11 @@ Require arm authorization to arm.
 
 By default off. The default allows to arm the vehicle without a arm authorization.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -18545,6 +19013,11 @@ Enable checks on ESCs that report telemetry.
 If this parameter is set, the system will check ESC's online status and failures.
 This param is specific for ESCs reporting status. It shall be used only if ESCs support telemetry.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -18555,6 +19028,11 @@ Enable FMU SD card hardfault / watchdog detection check.
 
 This check detects if there are hardfault / watchdog files present on the
 SD card. If so, and the parameter is enabled, arming is prevented.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
@@ -18615,6 +19093,11 @@ Require valid mission to arm.
 
 The default allows to arm the vehicle without a valid mission.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -18646,6 +19129,11 @@ When enabled, the vehicle arms automatically once all preflight checks pass afte
 The vehicle will not re-arm after a manual disarm.
 Has no effect if COM_ARMABLE is 0.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -18656,6 +19144,11 @@ Arm switch is a momentary button.
 
 0: Arming/disarming triggers on switch transition.
 1: Arming/disarming triggers when holding the momentary button down like the stick gesture.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -19062,6 +19555,11 @@ Enable force safety.
 
 Force safety when the vehicle disarms
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -19107,6 +19605,11 @@ During missions, the latitude/longitude of the home position is locked and will 
 It will only update once the mission is complete or landed outside of a mission.
 However, the altitude is still being adjusted to correct for GNSS vertical drift in the first 2 minutes after takeoff.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ----------- | ---- | --------- |
 | &check; |          |          |           | Enabled (1) |      | &nbsp;    |
@@ -19118,6 +19621,11 @@ Allows setting the home position after takeoff.
 If set to true, the autopilot is allowed to set its home position after takeoff
 The true home position is back-computed if a local position is estimate if available.
 If no local position is available, home is set to the current position.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -19242,6 +19750,11 @@ Allow external mode registration while armed.
 
 By default disabled for safety reasons
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -19282,11 +19795,20 @@ See COM_OBL_RC_ACT to configure action.
 
 ### COM_PARACHUTE (`INT32`) {#COM_PARACHUTE}
 
-Require MAVLink parachute system to be present and healthy.
+Parachute requirement and failsafe.
 
-| Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
-| &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
+Require a MAVLink parachute system for arming and the failsafe action when missing or unhealthy.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Warning
+- `2`: Return
+- `3`: Land
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; |          |          |           | 0       |      | &nbsp;    |
 
 ### COM_POS_FS_EPH (`FLOAT`) {#COM_POS_FS_EPH}
 
@@ -19448,7 +19970,7 @@ Priority sources are immediately switched to whenever they get valid.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0        | 8        |           | 3       |      | &nbsp;    |
+| &nbsp; |          |          |           | 3       |      | &nbsp;    |
 
 ### COM_RC_LOSS_T (`FLOAT`) {#COM_RC_LOSS_T}
 
@@ -19511,6 +20033,11 @@ Goal:
 Enable throw-start.
 
 Allows to start the vehicle by throwing it into the air.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -19609,7 +20136,7 @@ action will be executed.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0        | 6        |           | 0       |      | &nbsp;    |
+| &nbsp; |          |          |           | 0       |      | &nbsp;    |
 
 ### NAV_RCL_ACT (`INT32`) {#NAV_RCL_ACT}
 
@@ -19628,7 +20155,7 @@ set by COM_RC_LOSS_T in seconds.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 1        | 6        |           | 2       |      | &nbsp;    |
+| &nbsp; |          |          |           | 2       |      | &nbsp;    |
 
 ## Cyphal
 
@@ -19646,6 +20173,11 @@ Cyphal.
 
 0 - Cyphal disabled.
 1 - Enables Cyphal
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ----------- | ---- | --------- |
@@ -19843,7 +20375,8 @@ sensor_gps uORB over Cyphal publication port ID.
 
 DSHOT 3D deadband high.
 
-When the actuator_output is between DSHOT_3D_DEAD_L and DSHOT_3D_DEAD_H, motor will not spin.
+When the actuator_output is in the inclusive range [DSHOT_3D_DEAD_L, DSHOT_3D_DEAD_H], the motor will not spin.
+Setting DSHOT_3D_DEAD_L equal to DSHOT_3D_DEAD_H (e.g. the default 1000) produces a single-point deadband at that value.
 This value is with respect to the mixer_module range (0-1999), not the DSHOT values.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
@@ -19854,7 +20387,8 @@ This value is with respect to the mixer_module range (0-1999), not the DSHOT val
 
 DSHOT 3D deadband low.
 
-When the actuator_output is between DSHOT_3D_DEAD_L and DSHOT_3D_DEAD_H, motor will not spin.
+When the actuator_output is in the inclusive range [DSHOT_3D_DEAD_L, DSHOT_3D_DEAD_H], the motor will not spin.
+Setting DSHOT_3D_DEAD_L equal to DSHOT_3D_DEAD_H (e.g. the default 1000) produces a single-point deadband at that value.
 This value is with respect to the mixer_module range (0-1999), not the DSHOT values.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
@@ -19871,6 +20405,11 @@ Direction 1) 48 is the slowest, 1047 is the fastest.
 Direction 2) 1049 is the slowest, 2047 is the fastest.
 When mixer outputs 1000 or value inside DSHOT 3D deadband, DShot 0 is sent.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -19882,6 +20421,11 @@ Enable Extended DShot Telemetry.
 This parameter enables Extended DShot Telemetry which allows transmission of
 additional telemetry within the eRPM frame. The EDT data is interleaved with
 the eRPM frames at a low rate.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -20493,6 +21037,11 @@ Barometric sensor height aiding.
 
 If this parameter is enabled then the estimator will make use of the barometric height measurements to estimate its height in addition to other height sources (if activated).
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
 | &nbsp; |          |          |           | Enabled (1) |      | &nbsp;    |
@@ -20592,6 +21141,11 @@ Multirotor wind estimation selection.
 
 Activate wind speed estimation using specific-force measurements and a drag model defined by EKF2*BCOEF*[XY] and EKF2_MCOEF. Only use on vehicles that have their thrust aligned with the Z axis and no thrust in the XY plane.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -20617,6 +21171,11 @@ Measurement noise for airspeed fusion.
 ### EKF2_EN (`INT32`) {#EKF2_EN}
 
 EKF2 enable.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
@@ -20757,6 +21316,11 @@ External vision will only be started and fused if the quality metric is above th
 Enable synthetic sideslip fusion.
 
 For reliable wind estimation both sideslip and airspeed fusion (see EKF2_ARSP_THR) should be enabled. Only applies to vehicles in fixed-wing mode or with airspeed fusion active. Note: side slip fusion is currently not supported for tailsitters.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -21019,6 +21583,11 @@ Forward axis with origin relative to vehicle centre of gravity
 
 Verbose logging.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
 | &nbsp; |          |          |           | Enabled (1) |      | &nbsp;    |
@@ -21200,6 +21769,11 @@ Optical flow aiding.
 
 Enable optical flow fusion.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
 | &nbsp; |          |          |           | Enabled (1) |      | &nbsp;    |
@@ -21364,6 +21938,11 @@ This is the ratio of static pressure error to dynamic pressure generated by a wi
 Enable constant position fusion while on ground.
 
 When enabled, constant position fusion is enabled when the vehicle is landeded if position has been initialized but has currently no vel/pos aiding.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -21730,6 +22309,11 @@ Enable synthetic magnetometer Z component measurement.
 
 Use for vehicles where the measured body Z magnetic field is subject to strong magnetic interference. For magnetic heading fusion the magnetometer Z measurement will be replaced by a synthetic value calculated using the knowledge of the 3D magnetic field vector at the location of the drone. Therefore, this parameter will only have an effect if the global position of the drone is known. For 3D mag fusion the magnetometer Z measurement will simply be ignored instead of fusing the synthetic value.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -21834,6 +22418,11 @@ if the vehicle was previously armed and only if the vehicle had RC signal at
 some point. Particularly useful for locating crashed drones without a GPS
 sensor.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -21846,6 +22435,11 @@ Enable/disable event task for displaying the vehicle status using arm-mounted
 LEDs. When enabled and if the vehicle supports it, LEDs will flash
 indicating various vehicle status changes. Currently PX4 has not implemented
 any specific status events.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -21987,6 +22581,11 @@ Enable wheel steering controller.
 Only enabled during automatic runway takeoff and landing.
 In all manual modes the wheel is directly controlled with yaw stick.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -22076,6 +22675,11 @@ Early landing configuration deployment.
 Allows to deploy the landing configuration (flaps, landing airspeed, etc.) already in
 the loiter-down waypoint before the final approach.
 Otherwise is enabled only in the final approach.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -22269,6 +22873,11 @@ Fixed-wing launch detection.
 
 Enables automatic launch detection based on measured acceleration. Use for hand- or catapult-launched vehicles.
 Not compatible with runway takeoff.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -22669,6 +23278,11 @@ Enable automatic lower bound on the NPFG period.
 Avoids limit cycling from a too aggressively tuned period/damping combination.
 If false, also disables upper bound NPFG_PERIOD_UB.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
 | &nbsp; |          |          |           | Enabled (1) |      | &nbsp;    |
@@ -22721,6 +23335,11 @@ to the next waypoint and/or path segment. Should be less than 1.
 Enable automatic upper bound on the NPFG period.
 
 Adapts period to maintain track keeping in variable winds and path curvature.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
@@ -22901,6 +23520,11 @@ Otherwise the pilot commands directly the yaw actuator.
 It is disabled by default because an active yaw rate controller will fight against the
 natural turn coordination of the plane.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -22932,6 +23556,11 @@ the current deviation from the trim airspeed (FW_AIRSPD_TRIM).
 Enable when using aerodynamic control surfaces (e.g.: plane)
 Disable when using rotor wings (e.g.: autogyro)
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
 | &nbsp; |          |          |           | Enabled (1) |      | &nbsp;    |
@@ -22942,6 +23571,11 @@ Enable throttle scale by battery level.
 
 This compensates for voltage drop of the battery over time by attempting to
 normalize performance across the operating range of the battery.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -23030,6 +23664,11 @@ Chose source for manual setting of flaps in manual flight modes.
 ### FW_GC_EN (`INT32`) {#FW_GC_EN}
 
 Enable rate gain compression.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
@@ -23207,6 +23846,11 @@ If set to 1, the airspeed measurement data, if valid, is used in the following c
 - Position controller: airspeed setpoint tracking, takeoff logic
 - VTOL: transition logic
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
 | &nbsp; |          |          |           | Enabled (1) |      | &nbsp;    |
@@ -23283,6 +23927,11 @@ Enable PWM input on for engaging failsafe from an external automatic trigger sys
 
 Enabled on either AUX5 or MAIN5 depending on board.
 External ATS is required by ASTM F3322-18.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -23641,6 +24290,11 @@ To avoid these kind of problems a clean config can be reached by wiping the FLAS
 
 Note: Currently only supported on UBX.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -23671,6 +24325,11 @@ Enable sat info (if available).
 
 Enable publication of satellite info (ORB_ID(satellite_info)) if possible.
 Not available on MTK.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -23743,6 +24402,11 @@ Enables or disables the high sensitivity mode for the u-blox jamming detection
 more sensitive algorithm to detect jamming. Disabling this may reduce false
 positives in electrically noisy environments.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ----------- | ---- | --------- |
 | &check; |          |          |           | Enabled (1) |      | &nbsp;    |
@@ -23803,6 +24467,11 @@ Mode 6 is intended for use with a ground control station (not necessarily an RTK
 
 Enable MSM7 message output for PPK workflow.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -23850,6 +24519,11 @@ from the top).
 PPS capture enable.
 
 Enables the PPS capture module to refine the GPS time from pulses detected on a PWM pin configured as "PPS Input".
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -23923,6 +24597,11 @@ WARNING: This experimental feature may cause flyaways. Use at your own risk.
 Predict the motion of the vehicle and trigger the breach if it is determined that the current trajectory
 would result in a breach happening before the vehicle can make evasive maneuvers.
 The vehicle is then re-routed to a safe hold position (stop for multirotor, loiter for fixed wing).
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -24166,6 +24845,11 @@ Default configuration is for a clockwise turning main rotor and
 positive thrust of the tail rotor is expected to rotate the vehicle clockwise.
 Set this parameter to true if the tail rotor provides thrust in counter-clockwise direction
 which is mostly the case when the main rotor turns counter-clockwise.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -26929,6 +27613,21 @@ Currently only supported in gz simulation and must be coherent with .sdf file an
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | -180.0   | 180.0    |           | -45.0   | deg  | &nbsp;    |
 
+## Hiwonder EMM
+
+### HIWONDER_EMM_EN (`INT32`) {#HIWONDER_EMM_EN}
+
+Enable the Hiwonder Encoder Motor Module (EMM) motor driver.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
+| &check; |          |          |           | Disabled (0) |      | &nbsp;    |
+
 ## Hover Thrust Estimator
 
 ### HTE_ACC_GATE (`FLOAT`) {#HTE_ACC_GATE}
@@ -27019,6 +27718,11 @@ Duration of choking during startup.
 
 Enable internal combustion engine.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -27063,6 +27767,11 @@ Fault detection if it stops in running state.
 Enables restart if a fault is detected during the running state. Otherwise
 commands continues in running state until given an user request off.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
 | &nbsp; |          |          |           | Enabled (1) |      | &nbsp;    |
@@ -27070,6 +27779,11 @@ commands continues in running state until given an user request off.
 ### ICE_STOP_CHOKE (`INT32`) {#ICE_STOP_CHOKE}
 
 Apply choke when stopping engine.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
@@ -27465,6 +28179,11 @@ Barometric pressure altitude z standard deviation.
 ### LPE_EN (`INT32`) {#LPE_EN}
 
 Local position estimator enable (unsupported).
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -27875,6 +28594,11 @@ message is either broadcast or the target is not the autopilot.
 This allows for example a GCS to talk to a camera that is connected to the
 autopilot via MAVLink (on a different link than the GCS).
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ----------- | ---- | --------- |
 | &check; |          |          |           | Enabled (1) |      | &nbsp;    |
@@ -27925,6 +28649,11 @@ If enabled, MAVLink messages will be throttled according to
 `txbuf` field reported by radio_status.
 
 Requires a radio to send the mavlink message RADIO_STATUS.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ----------- | ---- | --------- |
@@ -28038,6 +28767,11 @@ message is either broadcast or the target is not the autopilot.
 This allows for example a GCS to talk to a camera that is connected to the
 autopilot via MAVLink (on a different link than the GCS).
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -28088,6 +28822,11 @@ If enabled, MAVLink messages will be throttled according to
 `txbuf` field reported by radio_status.
 
 Requires a radio to send the mavlink message RADIO_STATUS.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ----------- | ---- | --------- |
@@ -28201,6 +28940,11 @@ message is either broadcast or the target is not the autopilot.
 This allows for example a GCS to talk to a camera that is connected to the
 autopilot via MAVLink (on a different link than the GCS).
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -28251,6 +28995,11 @@ If enabled, MAVLink messages will be throttled according to
 `txbuf` field reported by radio_status.
 
 Requires a radio to send the mavlink message RADIO_STATUS.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ----------- | ---- | --------- |
@@ -28309,6 +29058,11 @@ Forward external setpoint messages.
 If set to 1 incoming external setpoint messages will be directly forwarded
 to the controllers if in offboard control mode
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
 | &nbsp; |          |          |           | Enabled (1) |      | &nbsp;    |
@@ -28320,6 +29074,11 @@ Parameter hash check.
 Disabling the parameter hash check functionality will make the mavlink instance
 stream parameters continuously.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
 | &nbsp; |          |          |           | Enabled (1) |      | &nbsp;    |
@@ -28330,6 +29089,11 @@ Heartbeat message forwarding.
 
 The mavlink heartbeat message will not be forwarded if this parameter is set to 'disabled'.
 The main reason for disabling heartbeats to be forwarded is because they confuse dronekit.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
@@ -28386,6 +29150,11 @@ MAVLink system ID.
 Enable MAVLink forwarding on TELEM2.
 
 TELEM2 on Skynode only.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -28445,6 +29214,11 @@ MAVLink airframe type.
 Use/Accept HIL GPS message even if not in HIL mode.
 
 If set to 1 incoming HIL GPS messages are parsed.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -28510,6 +29284,11 @@ Enable online mag bias calibration.
 This enables continuous calibration of the magnetometers
 before takeoff using gyro data.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ----------- | ---- | --------- |
 | &check; |          |          |           | Enabled (1) |      | &nbsp;    |
@@ -28533,6 +29312,11 @@ Enable arm/disarm stick gesture.
 
 This determines if moving the left stick to the lower right
 arms and to the lower left disarms the vehicle.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
@@ -28712,6 +29496,11 @@ For fixed wing the npfg switch distance is used for horizontal acceptance.
 
 Force VTOL mode takeoff and land.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
 | &nbsp; |          |          |           | Enabled (1) |      | &nbsp;    |
@@ -28758,6 +29547,11 @@ When the data link is lost and this setting is enabled,
 the vehicle will loiter at the position where the last GCS
 heartbeat was received rather than at its current position.
 Only applies to Hold mode during failsafe actions.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -28896,6 +29690,11 @@ If enabled, the HealthAndArmingChecks will verify that for motors, a minimum amo
 level is being consumed.
 Otherwise this indicates an motor failure.
 This check only works for ESCs that report current consumption.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -29396,6 +30195,11 @@ Boolean to allow moving into directions where there is no sensor data (outside F
 
 Only used in Position mode.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -29429,6 +30233,11 @@ Acceleration to tilt coupling.
 Set to decouple tilt from vertical acceleration.
 This provides smoother flight but slightly worse tracking in position and auto modes.
 Unset if accurate position tracking during dynamic maneuvers is more important than a smooth flight.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
@@ -30100,6 +30909,11 @@ If set to a negative value, the existing individual parameters are used.
 
 Enable weathervane.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -30272,6 +31086,11 @@ Enable Raptor flight mode.
 
 When enabled, the Raptor flight mode will be available. Please set MC_RAPTOR_OFFB according to your use case.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -30299,6 +31118,11 @@ Enable Offboard mode replacement.
 When enabled, the Raptor mode will replace the Offboard mode.
 If disabled, the Raptor mode will be available as a separate external mode. In the latter case, Raptor will just hold the position, without requiring external setpoints. When Raptor replaces the Offboard mode, it requires external setpoints to be activated.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -30308,6 +31132,11 @@ If disabled, the Raptor mode will be available as a separate external mode. In t
 Enable verbose output.
 
 When enabled, the Raptor flight mode will print verbose output to the console.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -30324,6 +31153,11 @@ normalize performance across the operating range of the battery. The copter
 should constantly behave as if it was fully charged with reduced max acceleration
 at lower battery percentages. i.e. if hover is at 0.5 throttle at 100% battery,
 it will still be 0.5 at 60% battery.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -30559,6 +31393,11 @@ Can be set to increase the amount of integrator available to counteract disturba
 
 If true the neural network control is automatically started on boot.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
 | &nbsp; |          |          |           | Enabled (1) |      | &nbsp;    |
@@ -30566,6 +31405,11 @@ If true the neural network control is automatically started on boot.
 ### MC_NN_MANL_CTRL (`INT32`) {#MC_NN_MANL_CTRL}
 
 Enable or disable setting the trajectory setpoint with manual control.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ----------- | ---- | --------- |
@@ -30741,6 +31585,11 @@ S.BUS out.
 
 Set to 1 to enable S.BUS version 1 output instead of RSSI.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -30891,6 +31740,11 @@ Crossfire RC telemetry enable.
 
 Crossfire telemetry enable
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -30900,6 +31754,11 @@ Crossfire telemetry enable
 Ghost RC telemetry enable.
 
 Ghost telemetry enable
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -31653,11 +32512,10 @@ Mid point value
 
 ### RC_CHAN_CNT (`INT32`) {#RC_CHAN_CNT}
 
-RC channel count.
+Calibrated RC channel count.
 
-This parameter is used by Ground Station software to save the number
-of channels which were used during RC calibration. It is only meant
-for ground station use.
+Number of channels detected during RC calibration. Must be non-zero
+for RC manual control input to be accepted.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -32942,6 +33800,11 @@ RTL force approach landing.
 
 Only consider RTL point, if it has an approach defined.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -33406,6 +34269,11 @@ Enable use of yaw stick for nudging the wheel during runway ground roll
 This is useful when map, GNSS, or yaw errors on ground are misaligned with what the operator intends for takeoff course.
 Particularly useful for skinny runways or if the wheel servo is a bit off trim.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
 | &nbsp; |          |          |           | Enabled (1) |      | &nbsp;    |
@@ -33459,6 +34327,11 @@ This is the time desired to linearly ramp in takeoff pitch constraints during th
 
 Runway takeoff with landing gear.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -33500,6 +34373,11 @@ If no logging is set the logger will not be started. Set bits true to enable: 0:
 Battery-only Logging.
 
 When enabled, logging will not start from boot if battery power is not detected (e.g. powered via USB on a test bench). This prevents extraneous flight logs from being created during bench testing. Note that this only applies to log-from-boot modes. This has no effect on arm-based modes.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -33629,6 +34507,11 @@ the difference in hours and minutes from Coordinated Universal Time (UTC) for a 
 Log UUID.
 
 If set to 1, add an ID to the log, which uniquely identifies the vehicle
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
@@ -35718,6 +36601,11 @@ Reverse differential pressure sensor readings.
 Reverse the raw measurements of all differential pressure sensors.
 This can be enabled if the sensors have static and dynamic ports swapped.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -35767,6 +36655,11 @@ The sensor may be usable below this height, but accuracy will progressively redu
 Enable external ADS1115 ADC.
 
 If enabled, the internal ADC is not used.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -36127,6 +37020,11 @@ A value of 0 disables the filter.
 
 IMU gyro auto calibration enable.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ----------- | ---- | --------- |
 | &check; |          |          |           | Enabled (1) |      | &nbsp;    |
@@ -36194,6 +37092,11 @@ Minimum notch filter frequency in Hz.
 ### IMU_GYRO_FFT_EN (`INT32`) {#IMU_GYRO_FFT_EN}
 
 IMU gyro FFT enable.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -36909,6 +37812,11 @@ sbgECom driver INS configuration enable.
 Enable SBG Systems INS configuration through sbgECom driver
 on start.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -36971,6 +37879,29 @@ This parameter defines the mode of the AFBR Rangefinder.
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 0        | 3        |           | 0       |      | &nbsp;    |
+
+### SENS_AFBR_ROT (`INT32`) {#SENS_AFBR_ROT}
+
+AFBR Rangefinder Orientation.
+
+Mounting orientation of the AFBR-S50 relative to the vehicle body frame.
+
+**Values:**
+
+- `0`: No rotation
+- `1`: Yaw 45°
+- `2`: Yaw 90°
+- `3`: Yaw 135°
+- `4`: Yaw 180°
+- `5`: Yaw 225°
+- `6`: Yaw 270°
+- `7`: Yaw 315°
+- `24`: Pitch 90°
+- `25`: Pitch 270°
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 25       |           | 25      |      | &nbsp;    |
 
 ### SENS_AFBR_S_RATE (`INT32`) {#SENS_AFBR_S_RATE}
 
@@ -37043,6 +37974,11 @@ actual barometric data rate is still dependent on the sensor.
 Barometer auto calibration.
 
 Automatically calibrate barometer based on the GNSS height
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
@@ -37198,6 +38134,11 @@ Analog Devices ADIS16448 IMU (external SPI).
 
 Analog Devices ADIS16507 IMU (external SPI).
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -37231,6 +38172,11 @@ Enable simulated airspeed sensor instance.
 ### SENS_EN_ASP5033 (`INT32`) {#SENS_EN_ASP5033}
 
 ASP5033 differential pressure sensor (external I2C).
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -37269,6 +38215,11 @@ Enable simulated barometer sensor instance.
 
 SMBUS Smart battery driver BQ40Z50 and BQ40Z80.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -37276,6 +38227,11 @@ SMBUS Smart battery driver BQ40Z50 and BQ40Z80.
 ### SENS_EN_ETSASPD (`INT32`) {#SENS_EN_ETSASPD}
 
 Eagle Tree airspeed sensor (external I2C).
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -37325,6 +38281,11 @@ Enable INA220 Power Monitor.
 
 For systems with an INA220 Power Monitor, this should be set to true
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -37334,6 +38295,11 @@ For systems with an INA220 Power Monitor, this should be set to true
 Enable INA226 Power Monitor.
 
 For systems with an INA226 Power Monitor, this should be set to true
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -37345,6 +38311,11 @@ Enable INA228 Power Monitor.
 
 For systems with an INA228 Power Monitor, this should be set to true
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -37355,6 +38326,11 @@ Enable INA238 Power Monitor.
 
 For systems with an INA238 Power Monitor, this should be set to true
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -37362,6 +38338,11 @@ For systems with an INA238 Power Monitor, this should be set to true
 ### SENS_EN_IRLOCK (`INT32`) {#SENS_EN_IRLOCK}
 
 IR-LOCK Sensor (external I2C).
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -37398,6 +38379,11 @@ Enable simulated magnetometer sensor instance.
 
 Maxbotix Sonar (mb12xx).
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -37405,6 +38391,11 @@ Maxbotix Sonar (mb12xx).
 ### SENS_EN_MCP9808 (`INT32`) {#SENS_EN_MCP9808}
 
 Enable MCP9808 temperature sensor (external I2C).
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -37427,6 +38418,11 @@ Enable Mappydot rangefinder (i2c).
 
 TE MS4515 differential pressure sensor (external I2C).
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -37434,6 +38430,11 @@ TE MS4515 differential pressure sensor (external I2C).
 ### SENS_EN_MS4525DO (`INT32`) {#SENS_EN_MS4525DO}
 
 TE MS4525DO differential pressure sensor (external I2C).
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -37443,6 +38444,11 @@ TE MS4525DO differential pressure sensor (external I2C).
 
 TE MS5525DSO differential pressure sensor (external I2C).
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -37451,6 +38457,11 @@ TE MS5525DSO differential pressure sensor (external I2C).
 
 PAA3905 Optical Flow.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -37458,6 +38469,11 @@ PAA3905 Optical Flow.
 ### SENS_EN_PAW3902 (`INT32`) {#SENS_EN_PAW3902}
 
 PAW3902/PAW3903 Optical Flow.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -37482,6 +38498,11 @@ Run PCF8583 driver automatically
 
 PGA460 Ultrasonic driver (PGA460).
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -37490,6 +38511,11 @@ PGA460 Ultrasonic driver (PGA460).
 
 PMW3901 Optical Flow.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -37497,6 +38523,11 @@ PMW3901 Optical Flow.
 ### SENS_EN_PX4FLOW (`INT32`) {#SENS_EN_PX4FLOW}
 
 PX4 Flow Optical Flow.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -37518,6 +38549,11 @@ Murata SCH16T IMU (external SPI).
 ### SENS_EN_SDP3X (`INT32`) {#SENS_EN_SDP3X}
 
 Sensirion SDP3X differential pressure sensor (external I2C).
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -37592,6 +38628,11 @@ Configure on which serial port to run Lightware SF45 Rangefinder (serial).
 
 SHT3x temperature and hygrometer.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -37599,6 +38640,11 @@ SHT3x temperature and hygrometer.
 ### SENS_EN_SPA06 (`INT32`) {#SENS_EN_SPA06}
 
 Goertek SPA06 Barometer (external I2C).
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -37608,6 +38654,11 @@ Goertek SPA06 Barometer (external I2C).
 
 Goertek SPL06 Barometer (external I2C).
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -37616,6 +38667,11 @@ Goertek SPL06 Barometer (external I2C).
 
 HY-SRF05 / HC-SR05.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -37623,6 +38679,11 @@ HY-SRF05 / HC-SR05.
 ### SENS_EN_TF02PRO (`INT32`) {#SENS_EN_TF02PRO}
 
 TF02 Pro Distance Sensor (i2c).
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -37647,6 +38708,11 @@ Thermal control of sensor temperature.
 Enable TMP102.
 
 Enable the driver for the TMP102 temperature sensor
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -37673,6 +38739,11 @@ TeraRanger Rangefinder (i2c).
 
 VL53L0X Distance Sensor.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -37680,6 +38751,11 @@ VL53L0X Distance Sensor.
 ### SENS_EN_VL53L1X (`INT32`) {#SENS_EN_VL53L1X}
 
 VL53L1X Distance Sensor.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -37690,6 +38766,11 @@ VL53L1X Distance Sensor.
 External I2C probe.
 
 Probe for optional external I2C devices.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
@@ -37955,6 +39036,11 @@ IMU auto calibration.
 
 Automatically initialize IMU (accel/gyro) calibration from bias estimates if available.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
 | &nbsp; |          |          |           | Enabled (1) |      | &nbsp;    |
@@ -37964,6 +39050,11 @@ Automatically initialize IMU (accel/gyro) calibration from bias estimates if ava
 IMU notify clipping.
 
 Notify the user if the IMU is clipping
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
@@ -37987,6 +39078,11 @@ Sensors hub IMU mode.
 Enable internal barometers.
 
 For systems with an external barometer, this should be set to false to make sure that the external is used.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ----------- | ---- | --------- |
@@ -38023,6 +39119,11 @@ Magnetometer auto calibration.
 
 Automatically initialize magnetometer calibration from bias estimate if available.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
 | &nbsp; |          |          |           | Enabled (1) |      | &nbsp;    |
@@ -38032,6 +39133,11 @@ Automatically initialize magnetometer calibration from bias estimate if availabl
 Automatically set external rotations.
 
 During calibration attempt to automatically determine the rotation of external magnetometers.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
@@ -38872,6 +39978,25 @@ The usb port on the sensor indicates 180deg, opposite usb is forward facing
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; |          |          |           | 0       |      | &nbsp;    |
 
+### VN_IMU_RATE (`INT32`) {#VN_IMU_RATE}
+
+VectorNav IMU output rate.
+
+Rate of the IMU output.
+The VectorNav base rate is 800 Hz. This parameter sets the
+divider, so the effective rate is 800 / divider.
+
+**Values:**
+
+- `1`: 800 Hz
+- `2`: 400 Hz
+- `4`: 200 Hz
+- `8`: 100 Hz
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 1       |      | &nbsp;    |
+
 ### VN_MODE (`INT32`) {#VN_MODE}
 
 VectorNav driver mode.
@@ -38886,6 +40011,21 @@ INS or sensors
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; |          |          |           | 0       |      | &nbsp;    |
+
+### VN_PORT (`INT32`) {#VN_PORT}
+
+VectorNav output port.
+
+Selects which serial port the sensor streams output to.
+
+**Values:**
+
+- `1`: Port 1
+- `2`: Port 2
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 2       |      | &nbsp;    |
 
 ### VOXLPM_SHUNT_BAT (`FLOAT`) {#VOXLPM_SHUNT_BAT}
 
@@ -38912,6 +40052,11 @@ Toggle automatic receiver configuration.
 By default, the receiver is automatically configured. Sometimes it may be used for multiple purposes.
 If the offered parameters aren't sufficient, this parameter can be disabled to have full control of the receiver configuration.
 A good way to use this is to enable automatic configuration, let the receiver be configured, and then disable it to make manual adjustments.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ----------- | ---- | --------- |
@@ -38976,6 +40121,11 @@ Setup and expected use of the hardware.
 Whether to overwrite or add to existing logging.
 
 When the receiver is already set up to log data, this decides whether extra logged data should be added or overwrite existing data.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -39109,6 +40259,11 @@ Configure on which serial port to run Secondary GPS port.
 Enable sat info.
 
 Enable publication of satellite info (ORB_ID(satellite_info)) if possible.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -40303,6 +41458,11 @@ RPM capture enable.
 
 Enables the RPM capture module to estimate RPM from pulses detected on a PWM pin configured as "RPM Input".
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -40360,6 +41520,11 @@ Instructions:
 - Reboot the board (plug the power or send a reboot command)
 - Wait until the board comes back up (or at least 2 minutes)
 - If it does not come back, check the file bootlog.txt on the SD card
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -40490,6 +41655,11 @@ If enabled allows MAVLink INJECT_FAILURE commands.
 
 WARNING: the failures can easily cause crashes and are to be used with caution!
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -40503,6 +41673,11 @@ F4 SD variants.
 If disabled, the preflight checks will not check for the presence of a
 barometer.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ----------- | ---- | --------- |
 | &check; |          |          |           | Enabled (1) |      | &nbsp;    |
@@ -40514,6 +41689,11 @@ Control if the vehicle has a GPS.
 Disable this if the system has no GPS.
 If disabled, the sensors hub will not process sensor_gps,
 and GPS will not be available for the rest of the system.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ----------- | ---- | --------- |
@@ -40587,6 +41767,11 @@ When this is enabled all the hardfaults on the SD card are streamed
 over MAVLink. This is useful for cases where the FMU does reset in-flight due
 to a hardfault and the SD card may not survive a crash.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
 | &nbsp; |          |          |           | Enabled (1) |      | &nbsp;    |
@@ -40641,6 +41826,11 @@ Set to 0 to disable, 1 for maximum brightness
 
 Enable stack checking.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
 | &nbsp; |          |          |           | Enabled (1) |      | &nbsp;    |
@@ -40652,6 +41842,11 @@ Enable stack checking.
 Blacksheep telemetry Enable.
 
 If true, the FMU will try to connect to Blacksheep telemetry on start up
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -41323,6 +42518,11 @@ Accelerometer offset temperature ^3 polynomial coefficient - Z axis.
 
 Thermal compensation for accelerometer sensors.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -41650,6 +42850,11 @@ Barometer offset temperature ^5 polynomial coefficient.
 ### TC_B_ENABLE (`INT32`) {#TC_B_ENABLE}
 
 Thermal compensation for barometric pressure sensors.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -42171,6 +43376,11 @@ Gyro rate offset temperature ^3 polynomial coefficient - Z axis.
 
 Thermal compensation for rate gyro sensors.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -42691,6 +43901,11 @@ Magnetometer offset temperature ^3 polynomial coefficient - Z axis.
 
 Thermal compensation for magnetometer sensors.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -42702,6 +43917,11 @@ Thermal compensation for magnetometer sensors.
 Sagetech External Configuration Mode.
 
 Disables auto-configuration mode enabling MXS config through external software.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -42790,6 +44010,11 @@ Enable barometer publication.
 Enables publication of static pressure and static temperature
 from the barometer sensor over UAVCAN.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ----------- | ---- | --------- |
 | &check; |          | 1        |           | Enabled (1) |      | &nbsp;    |
@@ -42797,6 +44022,11 @@ from the barometer sensor over UAVCAN.
 ### CANNODE_PUB_IMU (`INT32`) {#CANNODE_PUB_IMU}
 
 Enable RawIMU pub.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -42809,6 +44039,11 @@ Enable magnetometer publication.
 Enables publication of magnetic field strength
 from the magnetometer sensor over UAVCAN.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ----------- | ---- | --------- |
 | &check; |          | 1        |           | Enabled (1) |      | &nbsp;    |
@@ -42816,6 +44051,11 @@ from the magnetometer sensor over UAVCAN.
 ### CANNODE_PUB_MBD (`INT32`) {#CANNODE_PUB_MBD}
 
 Enable MovingBaselineData publication.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -42825,6 +44065,11 @@ Enable MovingBaselineData publication.
 
 Enable MovingBaselineData subscription.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          | 1        |           | Disabled (0) |      | &nbsp;    |
@@ -42832,6 +44077,11 @@ Enable MovingBaselineData subscription.
 ### CANNODE_SUB_RTCM (`INT32`) {#CANNODE_SUB_RTCM}
 
 Enable RTCM subscription.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -42841,6 +44091,11 @@ Enable RTCM subscription.
 
 CAN built-in bus termination.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &nbsp; |          | 1        |           | Disabled (0) |      | &nbsp;    |
@@ -42848,6 +44103,11 @@ CAN built-in bus termination.
 ### SIM_GZ_EN (`INT32`) {#SIM_GZ_EN}
 
 Simulator Gazebo bridge enable.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -43057,6 +44317,11 @@ publish Arming Status stream.
 Enable UAVCAN Arming Status stream publication
 uavcan::equipment::safety::ArmingStatus
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -43068,6 +44333,11 @@ publish moving baseline data RTCM stream.
 Enable UAVCAN RTCM stream publication
 ardupilot::gnss::MovingBaselineData
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -43078,6 +44348,11 @@ publish RTCM stream.
 
 Enable UAVCAN RTCM stream publication
 uavcan::equipment::gnss::RTCMStream
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -43112,6 +44387,11 @@ uavcan::equipment::air_data::IndicatedAirspeed
 uavcan::equipment::air_data::TrueAirspeed
 uavcan::equipment::air_data::StaticTemperature
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -43123,6 +44403,11 @@ subscription barometer.
 Enable UAVCAN barometer subscription.
 uavcan::equipment::air_data::StaticPressure
 uavcan::equipment::air_data::StaticTemperature
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -43158,6 +44443,11 @@ subscription button.
 Enable UAVCAN button subscription.
 ardupilot::indication::Button
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -43169,6 +44459,11 @@ subscription differential pressure.
 Enable UAVCAN differential pressure subscription.
 uavcan::equipment::air_data::RawAirData
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -43179,6 +44474,11 @@ subscription flow.
 
 Enable UAVCAN optical flow subscription.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -43188,6 +44488,11 @@ Enable UAVCAN optical flow subscription.
 subscription fuel tank.
 
 Enable UAVCAN fuel tank status subscription.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -43202,6 +44507,11 @@ uavcan::equipment::gnss::Fix
 uavcan::equipment::gnss::Fix2
 uavcan::equipment::gnss::Auxiliary
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ----------- | ---- | --------- |
 | &check; |          |          |           | Enabled (1) |      | &nbsp;    |
@@ -43212,6 +44522,11 @@ subscription GPS Relative.
 
 Enable UAVCAN GPS Relative subscription.
 ardupilot::gnss::RelPosHeading
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ----------- | ---- | --------- |
@@ -43224,6 +44539,11 @@ subscription hygrometer.
 Enable UAVCAN hygrometer subscriptions.
 dronecan::sensors::hygrometer::Hygrometer
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -43235,6 +44555,11 @@ subscription ICE.
 Enable UAVCAN internal combustion engine (ICE) subscription.
 uavcan::equipment::ice::reciprocating::Status
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -43245,6 +44570,11 @@ subscription IMU.
 
 Enable UAVCAN IMU subscription.
 uavcan::equipment::ahrs::RawIMU
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -43258,6 +44588,11 @@ Enable UAVCAN mag subscription.
 uavcan::equipment::ahrs::MagneticFieldStrength
 uavcan::equipment::ahrs::MagneticFieldStrength2
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ----------- | ---- | --------- |
 | &check; |          |          |           | Enabled (1) |      | &nbsp;    |
@@ -43268,6 +44603,11 @@ subscription MovingBaselineData.
 
 Enable UAVCAN MovingBaselineData subscription.
 ardupilot::gnss::MovingBaselineData
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
@@ -43280,9 +44620,29 @@ subscription range finder.
 Enable UAVCAN range finder subscription.
 uavcan::equipment::range_sensor::Measurement
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
+
+### UAVCAN_TRACE_EN (`INT32`) {#UAVCAN_TRACE_EN}
+
+UAVCAN event tracing.
+
+Enable logging of UAVCAN events
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default     | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ----------- | ---- | --------- |
+| &check; |          |          |           | Enabled (1) |      | &nbsp;    |
 
 ## UUV Attitude Control
 
@@ -43792,6 +45152,11 @@ Enable serial flow control for UXRCE interface.
 This is used to enable flow control for the serial uXRCE instance.
 Used for reliable high bandwidth communication.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -43867,6 +45232,11 @@ Enable uXRCE-DDS system clock synchronization.
 
 When enabled along with UXRCE_DDS_SYNCT, uxrce_dds_client will set the system clock using the agents UTC timestamp.
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -43876,6 +45246,11 @@ When enabled along with UXRCE_DDS_SYNCT, uxrce_dds_client will set the system cl
 Enable uXRCE-DDS timestamp synchronization.
 
 When enabled, uxrce_dds_client will synchronize the timestamps of the incoming and outgoing messages measuring the offset between the Agent OS time and the PX4 time.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ----------- | ---- | --------- |
@@ -44299,6 +45674,11 @@ This sets the duration during which the MC motors ramp up to the commanded thrus
 Lock control surfaces in hover.
 
 If set to 1 the control surfaces are locked at the disarmed value in multicopter mode.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
@@ -44753,6 +46133,11 @@ VTX pit mode.
 
 VTX pit mode reduces power to the minimum
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -45008,6 +46393,11 @@ Reinitialize the target module's values into the PX4 parameters.
 Setting this value to true will reinitialize PX4's IQUART connected parameters to the value stored on the currently targeted motor.
 This is especially useful if your flight controller powered on before your connected modules
 
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
@@ -45182,6 +46572,11 @@ Enable Zenoh.
 Set true (1) to start the Zenoh driver module (a.k.a the "Zenoh-Pico Node").
 See https://docs.px4.io/main/en/middleware/zenoh and
 https://docs.px4.io/main/en/modules/modules_driver.html#zenoh
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
 
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |

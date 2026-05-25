@@ -12,12 +12,24 @@ That's it — open [QGroundControl](https://qgroundcontrol.com) and fly!
 
 ::: tip
 
-To try [other vehicle types](../sim_sih/#supported-vehicle-types) append the corresponding line below to the command:
+To try [other vehicle types](../sim_sih/#supported-vehicle-types), use the `-e` flag to pass the `PX4_SIM_MODEL` environment variable to the `docker run` command:
+
+Plane
 
 ```sh
--e PX4_SIM_MODEL=sihsim_airplane # Plane
--e PX4_SIM_MODEL=sihsim_standard_vtol # Standard VTOL
--e PX4_SIM_MODEL=sihsim_rover # Ackermann rover
+docker run --rm -it -p 14550:14550/udp -e PX4_SIM_MODEL=sihsim_airplane px4io/px4-sitl:latest
+```
+
+Standard VTOL
+
+```sh
+docker run --rm -it -p 14550:14550/udp -e PX4_SIM_MODEL=sihsim_standard_vtol px4io/px4-sitl:latest
+```
+
+Ackermann rover
+
+```sh
+docker run --rm -it -p 14550:14550/udp -e PX4_SIM_MODEL=sihsim_rover px4io/px4-sitl:latest
 ```
 
 For more information and options see [Container Images](../simulation/px4_sitl_prebuilt_packages.md#container-images) (in _Pre-built SITL Packages_) and [SIH Simulation](../sim_sih/index.md).

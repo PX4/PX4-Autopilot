@@ -173,7 +173,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [OrbTest](OrbTest.md)
 - [OrbTestLarge](OrbTestLarge.md)
 - [OrbTestMedium](OrbTestMedium.md)
-- [OrbitStatus](OrbitStatus.md) — ORBIT_YAW_BEHAVIOUR.
+- [OrbitStatus](OrbitStatus.md) — Orbit status.
 - [ParameterResetRequest](ParameterResetRequest.md) — ParameterResetRequest : Used by the primary to reset one or all parameter value(s) on the remote.
 - [ParameterSetUsedRequest](ParameterSetUsedRequest.md) — ParameterSetUsedRequest : Used by a remote to update the used flag for a parameter on the primary.
 - [ParameterSetValueRequest](ParameterSetValueRequest.md) — ParameterSetValueRequest : Used by a remote or primary to update the value for a parameter at the other end.

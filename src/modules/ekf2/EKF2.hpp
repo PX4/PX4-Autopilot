@@ -407,18 +407,20 @@ private:
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Publication<vehicle_command_ack_s> _vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
-	enum SensEnBit : uint16_t {
-		SENS_EN_GPS0   = 0,
-		SENS_EN_GPS1   = 1,
-		SENS_EN_OF     = 2,
-		SENS_EN_EV     = 3,
-		SENS_EN_AGP0   = 4,
-		// bit: 5-7 reserved for AGP1..3
-		SENS_EN_BARO   = 8,
-		SENS_EN_RNG    = 9,
-		SENS_EN_MAG    = 10,
-		SENS_EN_ASPD   = 11,
-		SENS_EN_RNGBCN = 12,
+	enum SensEn : uint16_t {
+		GPS0   = 1 << 0,
+		GPS1   = 1 << 1,
+		OF     = 1 << 2,
+		EV     = 1 << 3,
+		AGP0   = 1 << 4,
+		AGP1   = 1 << 5,
+		AGP2   = 1 << 6,
+		AGP3   = 1 << 7,
+		BARO   = 1 << 8,
+		RNG    = 1 << 9,
+		MAG    = 1 << 10,
+		ASPD   = 1 << 11,
+		RNGBCN = 1 << 12,
 	};
 	bool _prev_armed{false};
 

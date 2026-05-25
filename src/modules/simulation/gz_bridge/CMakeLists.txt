@@ -32,12 +32,17 @@
 ############################################################################
 
 if(NOT DEFINED ENV{GZ_DISTRO} OR NOT "$ENV{GZ_DISTRO}" STREQUAL "harmonic")
-    find_package(gz-transport NAMES gz-transport gz-transport14 gz-transport13)
+    find_package(gz-transport NAMES gz-transport gz-transport15 gz-transport14 gz-transport13)
 else()
     find_package(gz-transport NAMES gz-transport13)
 endif()
 
 if (gz-transport_FOUND)
+	# gcc-15 spurious -Wmaybe-uninitialized in gz-transport15 FullyQualifiedTopic, will probably be fixed by gazebo in the future
+	if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 15
+		AND gz-transport_VERSION VERSION_GREATER_EQUAL 15)
+		add_compile_options(-Wno-error=maybe-uninitialized)
+	endif()
 	px4_add_git_submodule(TARGET git_gz PATH "${PX4_SOURCE_DIR}/Tools/simulation/gz")
 
 	file(GLOB gz_worlds ${PX4_SOURCE_DIR}/Tools/simulation/gz/worlds/*.sdf)
