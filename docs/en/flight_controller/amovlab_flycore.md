@@ -7,6 +7,8 @@ PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://amovlab.com/) for hardware support or compliance issues.
 :::
 
+![Amovlab Flycore flight controller](../../assets/flight_controller/amovlab_flycore/amovlab_flycore_product.jpg)
+
 ![Amovlab Flycore connector layout](../../assets/flight_controller/amovlab_flycore/amovlab_flycore_pinout.jpg)
 
 The Amovlab Flycore is an STM32H743-based flight controller for PX4-powered vehicles.
@@ -60,7 +62,7 @@ This flight controller is intended for inclusion in the [manufacturer supported]
 
 ## Where to Buy {#store}
 
-TBD
+For purchasing, contact [shudajun@amovauto.com](mailto:shudajun@amovauto.com).
 
 ## Connections
 
