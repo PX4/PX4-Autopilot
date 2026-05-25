@@ -43,7 +43,175 @@
 
 #include "sensors.hpp"
 
+#include <cstring>
+#include <lib/drivers/device/Device.hpp>
+
 ModuleBase::Descriptor Sensors::desc{task_spawn, custom_command, print_usage};
+
+namespace
+{
+
+struct SensorCalibrationSummary {
+	const char *sensor;
+	bool has_rotation;
+};
+
+struct PrintedSensor {
+	const char *sensor;
+	uint32_t device_id;
+};
+
+bool get_calibration_param(const char *sensor, uint8_t instance, const char *cal_type, int32_t &value)
+{
+	char param_name[20] {};
+	snprintf(param_name, sizeof(param_name), "CAL_%s%" PRIu8 "_%s", sensor, instance, cal_type);
+
+	const param_t handle = param_find_no_notification(param_name);
+
+	if (handle == PARAM_INVALID) {
+		return false;
+	}
+
+	return param_get(handle, &value) == PX4_OK;
+}
+
+bool was_printed(const PrintedSensor *printed_sensors, uint8_t printed_sensor_count, const char *sensor,
+		 uint32_t device_id)
+{
+	for (uint8_t i = 0; i < printed_sensor_count; i++) {
+		if ((printed_sensors[i].device_id == device_id) && (strcmp(printed_sensors[i].sensor, sensor) == 0)) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void print_sensor_configuration_row(const char *sensor, uint8_t instance, uint32_t device_id, bool has_rotation,
+				    PrintedSensor *printed_sensors, uint8_t &printed_sensor_count)
+{
+	if (device_id == 0 || was_printed(printed_sensors, printed_sensor_count, sensor, device_id)) {
+		return;
+	}
+
+	const bool external = calibration::DeviceExternal(device_id);
+	int32_t priority = external ? 75 : 50;
+	int32_t rotation = -1;
+	const int8_t calibration_index = calibration::FindCurrentCalibrationIndex(sensor, device_id);
+
+	if (calibration_index >= 0) {
+		get_calibration_param(sensor, calibration_index, "PRIO", priority);
+
+		if (has_rotation) {
+			get_calibration_param(sensor, calibration_index, "ROT", rotation);
+		}
+	}
+
+	char device_description[40] {};
+	device::Device::device_id_print_buffer(device_description, sizeof(device_description), device_id);
+
+	char calibration_description[8] {};
+
+	if (calibration_index >= 0) {
+		snprintf(calibration_description, sizeof(calibration_description), "%" PRId8, calibration_index);
+
+	} else {
+		snprintf(calibration_description, sizeof(calibration_description), "-");
+	}
+
+	char rotation_description[8] {};
+
+	if (has_rotation) {
+		snprintf(rotation_description, sizeof(rotation_description), "%" PRId32, rotation);
+
+	} else {
+		snprintf(rotation_description, sizeof(rotation_description), "-");
+	}
+
+	PX4_INFO_RAW("%-5s %-4" PRIu8 " %-4s %-10" PRIu32 " %-36s %-8" PRId32 " %-8s %-7s\n",
+		     sensor, instance, calibration_description, device_id, device_description, priority,
+		     rotation_description, external ? "External" : "Internal");
+
+	if (printed_sensor_count < MAX_SENSOR_COUNT * 4) {
+		printed_sensors[printed_sensor_count++] = {sensor, device_id};
+	}
+}
+
+void print_sensor_configuration_summary()
+{
+	static constexpr SensorCalibrationSummary sensors[] {
+		{"ACC", true},
+		{"GYRO", true},
+		{"MAG", true},
+		{"BARO", false},
+	};
+
+	PX4_INFO_RAW("Sensor configuration:\n");
+	PX4_INFO_RAW("%-5s %-4s %-4s %-10s %-36s %-8s %-8s %-7s\n",
+		     "Type", "Inst", "Cal", "Device ID", "Bus/Type", "Priority", "Rotation", "Location");
+
+	PrintedSensor printed_sensors[MAX_SENSOR_COUNT * 4] {};
+	uint8_t printed_sensor_count = 0;
+
+	for (uint8_t instance = 0; instance < MAX_SENSOR_COUNT; instance++) {
+		uORB::SubscriptionData<sensor_accel_s> accel_sub{ORB_ID(sensor_accel), instance};
+
+		if (accel_sub.advertised()) {
+			accel_sub.update();
+			print_sensor_configuration_row("ACC", instance, accel_sub.get().device_id, true,
+						       printed_sensors, printed_sensor_count);
+		}
+
+		uORB::SubscriptionData<sensor_gyro_s> gyro_sub{ORB_ID(sensor_gyro), instance};
+
+		if (gyro_sub.advertised()) {
+			gyro_sub.update();
+			print_sensor_configuration_row("GYRO", instance, gyro_sub.get().device_id, true,
+						       printed_sensors, printed_sensor_count);
+		}
+	}
+
+#if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
+
+	for (uint8_t instance = 0; instance < MAX_SENSOR_COUNT; instance++) {
+		uORB::SubscriptionData<sensor_mag_s> mag_sub{ORB_ID(sensor_mag), instance};
+
+		if (mag_sub.advertised()) {
+			mag_sub.update();
+			print_sensor_configuration_row("MAG", instance, mag_sub.get().device_id, true,
+						       printed_sensors, printed_sensor_count);
+		}
+	}
+
+#endif // CONFIG_SENSORS_VEHICLE_MAGNETOMETER
+
+#if defined(CONFIG_SENSORS_VEHICLE_AIR_DATA)
+
+	for (uint8_t instance = 0; instance < MAX_SENSOR_COUNT; instance++) {
+		uORB::SubscriptionData<sensor_baro_s> baro_sub{ORB_ID(sensor_baro), instance};
+
+		if (baro_sub.advertised()) {
+			baro_sub.update();
+			print_sensor_configuration_row("BARO", instance, baro_sub.get().device_id, false,
+						       printed_sensors, printed_sensor_count);
+		}
+	}
+
+#endif // CONFIG_SENSORS_VEHICLE_AIR_DATA
+
+	for (const SensorCalibrationSummary &sensor : sensors) {
+		for (uint8_t calibration_index = 0; calibration_index < MAX_SENSOR_COUNT; calibration_index++) {
+			int32_t device_id = 0;
+
+			if (get_calibration_param(sensor.sensor, calibration_index, "ID", device_id) && device_id != 0) {
+				print_sensor_configuration_row(sensor.sensor, calibration_index, static_cast<uint32_t>(device_id),
+							       sensor.has_rotation, printed_sensors, printed_sensor_count);
+			}
+		}
+	}
+}
+
+} // namespace
 
 Sensors::Sensors(bool hil_enabled) :
 	ModuleParams(nullptr),
@@ -669,6 +837,9 @@ int Sensors::task_spawn(int argc, char *argv[])
 
 int Sensors::print_status()
 {
+	print_sensor_configuration_summary();
+	PX4_INFO_RAW("\n");
+
 	_voted_sensors_update.printStatus();
 
 #if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
