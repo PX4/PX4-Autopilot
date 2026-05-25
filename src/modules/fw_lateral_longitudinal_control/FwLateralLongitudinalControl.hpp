@@ -137,6 +137,7 @@ private:
 	uORB::Publication <tecs_status_s> _tecs_status_pub{ORB_ID(tecs_status)};
 	uORB::PublicationData <flight_phase_estimation_s> _flight_phase_estimation_pub{ORB_ID(flight_phase_estimation)};
 	uORB::Publication <fixed_wing_lateral_status_s> _fixed_wing_lateral_status_pub{ORB_ID(fixed_wing_lateral_status)};
+	uORB::Publication <normalized_unsigned_setpoint_s> _spoilers_setpoint_pub{ORB_ID(spoilers_setpoint)};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off,
@@ -170,7 +171,8 @@ private:
 		(ParamFloat<px4::params::FW_WIND_ARSP_SC>) _param_fw_wind_arsp_sc,
 		(ParamFloat<px4::params::FW_GND_SPD_MIN>) _param_fw_gnd_spd_min,
 		(ParamFloat<px4::params::NPFG_DAMPING>) _param_npfg_damping,
-		(ParamFloat<px4::params::NPFG_PERIOD>) _param_npfg_period
+		(ParamFloat<px4::params::NPFG_PERIOD>) _param_npfg_period,
+		(ParamFloat<px4::params::FW_T_SPOILER_MAX>) _param_fw_t_spoiler_max
 	)
 
 	hrt_abstime _last_time_loop_ran{};

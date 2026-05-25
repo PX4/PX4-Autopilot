@@ -202,3 +202,17 @@ parameters:
       max: 15.0
       decimal: 1
       increment: 0.5
+    FW_T_SPOILER_MAX:
+      description:
+        short: Maximum TECS spoiler setpoint
+        long: |-
+          Upper limit on the spoiler setpoint commanded by TECS when excess energy
+          cannot be dissipated through throttle reduction alone (e.g. ridge soaring).
+          Set to 0 to disable TECS-driven spoiler commands.
+      type: float
+      default: 0.0
+      unit: norm
+      min: 0.0
+      max: 1.0
+      decimal: 2
+      increment: 0.01
