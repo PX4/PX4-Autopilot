@@ -192,6 +192,7 @@ px4_add_module(
 		drivers_rangefinder
 		led
 		mixer_module
+		open_drone_id
 		version
 
 		git_uavcan_dsdl
