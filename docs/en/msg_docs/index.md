@@ -105,6 +105,8 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [EstimatorStatusFlags](EstimatorStatusFlags.md)
 - [FailsafeFlags](FailsafeFlags.md) — Input flags for the failsafe state machine set by the arming & health checks.
 - [FailureDetectorStatus](FailureDetectorStatus.md)
+- [FiducialMarkerPosReport](FiducialMarkerPosReport.md) — Relative position of a precision-landing target detected by a vision pipeline (e.g. an ArUco marker).
+- [FiducialMarkerYawReport](FiducialMarkerYawReport.md) — Yaw of a precision-landing target relative to the NED (North, East, Down) frame, reported by a vision pipeline.
 - [FigureEightStatus](FigureEightStatus.md)
 - [FixedWingLateralGuidanceStatus](FixedWingLateralGuidanceStatus.md) — Fixed Wing Lateral Guidance Status message. Published by fw_pos_control module to report the resultant lateral setpoints and NPFG debug outputs.
 - [FixedWingLateralStatus](FixedWingLateralStatus.md) — Fixed Wing Lateral Status message. Published by the fw_lateral_longitudinal_control module to report the resultant lateral setpoint.
@@ -187,6 +189,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [PowerButtonState](PowerButtonState.md) — power button state notification message.
 - [PowerMonitor](PowerMonitor.md) — power monitor message.
 - [PpsCapture](PpsCapture.md)
+- [PrecLandStatus](PrecLandStatus.md) — Precision-landing runtime status: a single state captures both whether precision landing is active and which phase it is in.
 - [PurePursuitStatus](PurePursuitStatus.md) — Pure pursuit status.
 - [PwmInput](PwmInput.md)
 - [Px4ioStatus](Px4ioStatus.md)
@@ -233,6 +236,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [SensorsStatusImu](SensorsStatusImu.md) — Sensor check metrics. This will be zero for a sensor that's primary or unpopulated.
 - [SystemPower](SystemPower.md)
 - [TakeoffStatus](TakeoffStatus.md) — Status of the takeoff state machine currently just available for multicopters.
+- [TargetGnss](TargetGnss.md) — Landing target GNSS position in WGS84 coordinates, and optional NED velocity, from a target-mounted receiver.
 - [TaskStackInfo](TaskStackInfo.md) — stack information for a single running process.
 - [TecsStatus](TecsStatus.md)
 - [TelemetryStatus](TelemetryStatus.md)
@@ -259,6 +263,12 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [VehicleThrustSetpoint](VehicleThrustSetpoint.md)
 - [VehicleTorqueSetpoint](VehicleTorqueSetpoint.md)
 - [VelocityLimits](VelocityLimits.md) — Velocity and yaw rate limits for a multicopter position slow mode only.
+- [VteAidSource1d](VteAidSource1d.md) — Vision Target Estimator 1D fusion aid-source diagnostics (e.g. yaw).
+- [VteAidSource3d](VteAidSource3d.md) — Vision Target Estimator 3D fusion aid-source diagnostics, one fusion_status per NED axis.
+- [VteBiasInitStatus](VteBiasInitStatus.md) — Diagnostics for the initial GNSS/vision bias averaging phase in the Vision Target Estimator.
+- [VteInput](VteInput.md) — Vehicle inputs fed into the Vision Target Estimator position prediction step, logged for tuning.
+- [VteOrientation](VteOrientation.md) — Vision Target Estimator orientation state, exposing the full yaw filter output with covariances for logging and tuning.
+- [VtePosition](VtePosition.md) — Vision Target Estimator position state, exposing the full per-axis Kalman filter state with covariances for logging and tuning.
 - [Vtx](Vtx.md)
 - [WheelEncoders](WheelEncoders.md)
 - [YawEstimatorStatus](YawEstimatorStatus.md)

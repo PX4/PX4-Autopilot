@@ -172,7 +172,7 @@ Some of the most useful ones are listed below.
 | <a id="PLD_MOVING_T_MAX"></a>[PLD_MOVING_T_MAX](../advanced_config/parameter_reference.md#PLD_MOVING_T_MAX) | Maximum moving-target prediction time for the precision landing setpoint.                                           |
 | <a id="PLD_BTOUT"></a>[PLD_BTOUT](../advanced_config/parameter_reference.md#PLD_BTOUT)                      | Landing Target Timeout, after which the target is assumed lost. Default is 5 seconds.                               |
 | <a id="PLD_FAPPR_ALT"></a>[PLD_FAPPR_ALT](../advanced_config/parameter_reference.md#PLD_FAPPR_ALT)          | Final approach altitude. Default is 0.1 metres.                                                                     |
-| <a id="PLD_MAX_SRCH"></a>[PLD_MAX_SRCH](../advanced_config/parameter_reference.md#PLD_MAX_SRCH)             | Maximum number of search attempts in a required landing.                                                           |
+| <a id="PLD_MAX_SRCH"></a>[PLD_MAX_SRCH](../advanced_config/parameter_reference.md#PLD_MAX_SRCH)             | Maximum number of search attempts in a required landing.                                                            |
 | <a id="PLD_YAW_EN"></a>[PLD_YAW_EN](../advanced_config/parameter_reference.md#PLD_YAW_EN)                   | Enable yaw alignment during precision landing when target orientation is available.                                 |
 | <a id="RTL_PLD_MD"></a>[RTL_PLD_MD](../advanced_config/parameter_reference.md#RTL_PLD_MD)                   | RTL precision land mode. `0`: disabled, `1`: [Opportunistic](#opportunistic-mode), `2`: [Required](#required-mode). |
 
