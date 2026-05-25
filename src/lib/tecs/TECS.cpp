@@ -235,6 +235,11 @@ void TECSControl::initialize(const Setpoint &setpoint, const Input &input, const
 
 	ControlValues ste_rate{_calcThrottleControlSteRate(limit, specific_energy_rate, param)};
 
+	_spoiler_setpoint = math::constrain((limit.STE_rate_min - ste_rate.setpoint) / (-limit.STE_rate_min),
+					    0.0f, param.spoiler_max);
+
+	ste_rate.setpoint = constrain(ste_rate.setpoint, limit.STE_rate_min, limit.STE_rate_max);
+
 	_throttle_setpoint = _calcThrottleControlOutput(limit, ste_rate, param, flag);
 
 	// Debug output
@@ -563,6 +568,15 @@ void TECSControl::_calcThrottleControl(float dt, const STERateLimit &limit,
 	_ste_rate_estimate_filter.setParameters(dt, param.ste_rate_time_const);
 	_ste_rate_estimate_filter.update(STE_rate_estimate_raw);
 	ControlValues ste_rate{_calcThrottleControlSteRate(limit, specific_energy_rates, param)};
+
+	// Spoiler: non-zero when unconstrained STE rate demand exceeds what min throttle can dissipate.
+	// Normalised by |STE_rate_min|: 1.0 = needing one additional min_sink_rate * g of energy removal.
+	_spoiler_setpoint = math::constrain((limit.STE_rate_min - ste_rate.setpoint) / (-limit.STE_rate_min),
+					    0.0f, param.spoiler_max);
+
+	// Constrain STE rate setpoint to achievable range before using it for throttle control.
+	ste_rate.setpoint = constrain(ste_rate.setpoint, limit.STE_rate_min, limit.STE_rate_max);
+
 	// During fast descend, we control airspeed over the pitch control loop. Give minimal thrust as soon as we are descending
 	float throttle_setpoint{param.throttle_min};
 
@@ -600,7 +614,6 @@ TECSControl::ControlValues TECSControl::_calcThrottleControlSteRate(const STERat
 	// The additional normal load factor is given by (1/cos(bank angle) - 1)
 	ste_rate.setpoint += param.load_factor_correction * (param.load_factor - 1.f);
 
-	ste_rate.setpoint = constrain(ste_rate.setpoint, limit.STE_rate_min, limit.STE_rate_max);
 	ste_rate.estimate = _ste_rate_estimate_filter.getState();
 
 	return ste_rate;
