@@ -242,7 +242,6 @@ private:
 	static constexpr float GYRO_BIAS_STDDEV_LIMIT  = 0.05f;   // rad/s ≈ 2.9°/s
 	float _gyro_bias_x{0.f},     _gyro_bias_y{0.f},     _gyro_bias_z{0.f};
 	float _gyro_bias_sum_x{0.f}, _gyro_bias_sum_y{0.f}, _gyro_bias_sum_z{0.f};
-	float _gyro_bias_sum_sq_x{0.f}, _gyro_bias_sum_sq_y{0.f}, _gyro_bias_sum_sq_z{0.f};
 	int   _gyro_bias_count_x{0}, _gyro_bias_count_y{0}, _gyro_bias_count_z{0};
 	bool  _gyro_bias_locked_x{false}, _gyro_bias_locked_y{false}, _gyro_bias_locked_z{false};
 	bool  _gyro_bias_reported{false};
