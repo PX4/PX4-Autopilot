@@ -95,7 +95,6 @@ FwLateralLongitudinalControl::parameters_update()
 	_tecs.set_max_sink_rate(_param_fw_t_sink_max.get());
 	_tecs.set_min_sink_rate(_performance_model.getMinimumSinkRate(_air_density));
 	_tecs.set_equivalent_airspeed_trim(_performance_model.getCalibratedTrimAirspeed());
-	_tecs.set_equivalent_airspeed_min(_performance_model.getMinimumCalibratedAirspeed(getLoadFactor(), _flaps_setpoint));
 	_tecs.set_equivalent_airspeed_max(_performance_model.getMaximumCalibratedAirspeed());
 	_tecs.set_throttle_damp(_param_fw_t_thr_damping.get());
 	_tecs.set_integrator_gain_throttle(_param_fw_t_thr_integ.get());
