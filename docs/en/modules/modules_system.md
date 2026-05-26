@@ -1108,6 +1108,28 @@ uxrce_dds_client <command> [arguments...]
    status        print status info
 ```
 
+## vision_target_estimator
+
+Source: [modules/vision_target_estimator](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/vision_target_estimator)
+
+### Description
+
+Module to estimate the position and orientation of a target using relative sensors.
+
+The module runs periodically on the px4::wq_configurations::vte queue.
+
+### Usage {#vision_target_estimator_usage}
+
+```
+vision_target_estimator <command> [arguments...]
+ Commands:
+   start         Start the background task
+
+   stop
+
+   status        print status info
+```
+
 ## work_queue
 
 Source: [systemcmds/work_queue](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/work_queue)

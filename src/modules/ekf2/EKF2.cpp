@@ -2310,9 +2310,13 @@ void EKF2::UpdateAuxVelSample(ekf2_timestamps_s &ekf2_timestamps)
 	//  - use the landing target pose estimate as another source of velocity data
 	landing_target_pose_s landing_target_pose;
 
+	if (!_param_ekf2_avel_en.get()) {
+		return;
+	}
+
 	if (_landing_target_pose_sub.update(&landing_target_pose)) {
-		// we can only use the landing target if it has a fixed position and  a valid velocity estimate
-		if (landing_target_pose.is_static && landing_target_pose.rel_vel_valid) {
+
+		if (landing_target_pose.rel_vel_ekf2_valid) {
 			// velocity of vehicle relative to target has opposite sign to target relative to vehicle
 			auxVelSample auxvel_sample{
 				.time_us = landing_target_pose.timestamp,
