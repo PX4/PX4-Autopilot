@@ -137,15 +137,16 @@ struct DRefEntry {
 };
 
 
-class SimulatorXPlane : public ModuleParams
+class SimulatorXPlane final : public ModuleParams
 {
 public:
 	static int start(int argc, char *argv[]);
 
+	~SimulatorXPlane();
+
 private:
 	SimulatorXPlane(const char *xplane_ip, uint16_t xplane_port,
 			uint16_t bind_port, const char *model_name);
-	~SimulatorXPlane();
 
 	void run();
 	void send();
