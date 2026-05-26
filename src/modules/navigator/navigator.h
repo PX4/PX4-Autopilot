@@ -56,8 +56,6 @@
 
 #include "navigation.h"
 
-#include "GeofenceBreachAvoidance/geofence_breach_avoidance.h"
-
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/telemetry_status.h>
 
@@ -365,16 +363,15 @@ private:
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	Geofence	_geofence;			/**< class that handles the geofence */
-	GeofenceBreachAvoidance _gf_breach_avoidance;
 	hrt_abstime _last_geofence_check{0};
+	bool _geofence_reposition_sent{false};	/**< true if a reposition triplet has been sent for the current breach */
+	hrt_abstime _time_loitering_after_gf_breach{0};	/**< latches breach state while loitering, prevents reposition center walking */
 
 	bool _navigator_status_updated{false};
 	hrt_abstime _last_navigator_status_publication{0};
 
 	hrt_abstime _wait_for_vehicle_status_timestamp{0}; /**< If non-zero, wait for vehicle_status update before processing next cmd */
 
-	bool		_geofence_reposition_sent{false};		/**< flag if reposition command has been sent for current geofence breach*/
-	hrt_abstime	_time_loitering_after_gf_breach{0};		/**< timestamp of when loitering after a geofence breach was started */
 	bool		_pos_sp_triplet_updated{false};			/**< flags if position SP triplet needs to be published */
 	bool 		_pos_sp_triplet_published_invalid_once{false};	/**< flags if position SP triplet has been published once to UORB */
 	bool		_mission_result_updated{false};			/**< flags if mission result has seen an update */
