@@ -956,10 +956,10 @@ void SimulatorXPlane::publish_gps(hrt_abstime t)
 
 	sensor_gps_s gps{};
 	gps.time_utc_usec         = t;
-	gps.latitude_deg          = _lat_deg;
-	gps.longitude_deg         = _lon_deg;
-	gps.altitude_msl_m        = _alt_m;
-	gps.altitude_ellipsoid_m  = _alt_m;
+	gps.latitude_deg          = (double)_lat_deg;
+	gps.longitude_deg         = (double)_lon_deg;
+	gps.altitude_msl_m        = (double)_alt_m;
+	gps.altitude_ellipsoid_m  = (double)_alt_m;
 	gps.fix_type              = 3;
 	gps.eph                   = 0.5f;
 	gps.epv                   = 0.8f;
