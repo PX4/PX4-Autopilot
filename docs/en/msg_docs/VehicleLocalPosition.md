@@ -51,7 +51,7 @@ Fused local position in NED. The coordinate system origin is the vehicle positio
 | ref_alt                     | `float32`    |              |            | Reference altitude AMSL, (metres)                                                                     |
 | dist_bottom_valid           | `bool`       |              |            | true if distance to bottom surface is valid                                                           |
 | dist_bottom                 | `float32`    |              |            | Distance from from bottom surface to ground, (metres)                                                 |
-| dist_bottom_var             | `float32`    |              |            | terrain estimate variance (m^2)                                                                       |
+| dist_bottom_var             | `float32`    |              |            | height above ground estimate variance (m^2)                                                           |
 | delta_dist_bottom           | `float32`    |              |            | Amount of vertical shift of dist bottom estimate in latest reset [m]                                  |
 | dist_bottom_reset_counter   | `uint8`      |              |            | Index of latest dist bottom estimate reset                                                            |
 | dist_bottom_sensor_bitfield | `uint8`      |              |            | bitfield indicating what type of sensor is used to estimate dist_bottom                               |
@@ -143,7 +143,7 @@ float32 ref_alt				# Reference altitude AMSL, (metres)
 # Distance to surface
 bool dist_bottom_valid			# true if distance to bottom surface is valid
 float32 dist_bottom			# Distance from from bottom surface to ground, (metres)
-float32 dist_bottom_var                 # terrain estimate variance (m^2)
+float32 dist_bottom_var                 # height above ground estimate variance (m^2)
 
 float32 delta_dist_bottom               # Amount of vertical shift of dist bottom estimate in latest reset [m]
 uint8 dist_bottom_reset_counter         # Index of latest dist bottom estimate reset

@@ -37427,14 +37427,6 @@ INA220 Power Monitor Regulator Shunt.
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 1e-09    | 0.1      | 1e-09     | 0.0005  |      | &nbsp;    |
 
-### INA226_CONFIG (`INT32`) {#INA226_CONFIG}
-
-INA226 Power Monitor Config.
-
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 65535    | 1         | 18139   |      | &nbsp;    |
-
 ### INA226_CURRENT (`FLOAT`) {#INA226_CURRENT}
 
 INA226 Power Monitor Max Current.
