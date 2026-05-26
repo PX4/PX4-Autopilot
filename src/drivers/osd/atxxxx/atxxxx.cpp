@@ -240,8 +240,28 @@ OSDatxxxx::add_battery_info(uint8_t pos_x, uint8_t pos_y)
 	char buf[10];
 	int ret = PX4_OK;
 
-	// TODO: show battery symbol based on battery fill level
-	snprintf(buf, sizeof(buf), "%c%5.2f", OSD_SYMBOL_BATT_3, (double)_battery_voltage_v);
+	char batt_symbol = OSD_SYMBOL_BATT_EMPTY;
+
+	if (_battery_remaining >= 0.875f) {
+		batt_symbol = OSD_SYMBOL_BATT_FULL;
+
+	} else if (_battery_remaining >= 0.625f) {
+		batt_symbol = OSD_SYMBOL_BATT_5;
+
+	} else if (_battery_remaining >= 0.375f) {
+		batt_symbol = OSD_SYMBOL_BATT_4;
+
+	} else if (_battery_remaining >= 0.25f) {
+		batt_symbol = OSD_SYMBOL_BATT_3;
+
+	} else if (_battery_remaining >= 0.125f) {
+		batt_symbol = OSD_SYMBOL_BATT_2;
+
+	} else if (_battery_remaining >= 0.f) {
+		batt_symbol = OSD_SYMBOL_BATT_1;
+	}
+
+	snprintf(buf, sizeof(buf), "%c%5.2f", batt_symbol, (double)_battery_voltage_v);
 	buf[sizeof(buf) - 1] = '\0';
 
 	for (int i = 0; buf[i] != '\0'; i++) {
@@ -332,6 +352,7 @@ OSDatxxxx::update_topics()
 		if (battery.connected) {
 			_battery_voltage_v = battery.voltage_v;
 			_battery_discharge_mah = battery.discharged_mah;
+			_battery_remaining = battery.remaining;
 			_battery_valid = true;
 
 		} else {

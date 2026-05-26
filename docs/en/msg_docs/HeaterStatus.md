@@ -21,14 +21,20 @@ pageClass: is-wide-page
 | proportional_value      | `float32` |              |            |
 | integrator_value        | `float32` |              |            |
 | feed_forward_value      | `float32` |              |            |
+| supply_voltage          | `float32` |              |            | Supply voltage (V)                     |
+| heater_current          | `float32` |              |            | Heater current (A)                     |
+| nominal_multiplier      | `float32` |              |            |
 | mode                    | `uint8`   |              |            |
+| temperature_source      | `uint8`   |              |            |
 
 ## Constants
 
-| Name                                | Type    | Value | Description |
-| ----------------------------------- | ------- | ----- | ----------- |
-| <a id="#MODE_GPIO"></a> MODE_GPIO   | `uint8` | 1     |
-| <a id="#MODE_PX4IO"></a> MODE_PX4IO | `uint8` | 2     |
+| Name                                                            | Type    | Value | Description |
+| --------------------------------------------------------------- | ------- | ----- | ----------- |
+| <a id="#MODE_GPIO"></a> MODE_GPIO                               | `uint8` | 1     |
+| <a id="#MODE_PX4IO"></a> MODE_PX4IO                             | `uint8` | 2     |
+| <a id="#TEMPERATURE_SOURCE_IMU"></a> TEMPERATURE_SOURCE_IMU     | `uint8` | 0     |
+| <a id="#TEMPERATURE_SOURCE_HYGRO"></a> TEMPERATURE_SOURCE_HYGRO | `uint8` | 1     |
 
 ## Source Message
 
@@ -54,9 +60,17 @@ float32 proportional_value
 float32 integrator_value
 float32 feed_forward_value
 
+float32 supply_voltage		# Supply voltage (V)
+float32 heater_current		# Heater current (A)
+float32 nominal_multiplier
+
 uint8 MODE_GPIO  = 1
 uint8 MODE_PX4IO = 2
 uint8 mode
+
+uint8 TEMPERATURE_SOURCE_IMU   = 0
+uint8 TEMPERATURE_SOURCE_HYGRO = 1
+uint8 temperature_source
 ```
 
 :::
