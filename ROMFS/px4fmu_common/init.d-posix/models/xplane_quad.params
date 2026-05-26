@@ -1,0 +1,67 @@
+#!/bin/sh
+# Default params for X-Plane 5-inch quadrotor SITL (SYS_AUTOSTART=5011)
+# Sourced by px4-rc.xplanesim after the airframe init script runs.
+# Use 'param set-default' so user-saved params take precedence.
+
+# EKF2 — tuned for X-Plane sensor rates (~100 Hz RREF gyro/accel, ~30 Hz DATA@)
+# (EKF2_GPS_DELAY removed in current PX4; EKF2 picks up GPS delay from
+# timestamps automatically. Leave the value untouched.)
+param set-default EKF2_MULTI_IMU     1
+param set-default SENS_IMU_MODE      1
+param set-default EKF2_ACC_NOISE     0.5
+param set-default EKF2_GYR_NOISE     0.02
+
+# IMU loop rate matched to X-Plane RREF (~80 Hz). The airframe sets 200/400
+# which mismatches the actual sensor rate and stalls gyro-bias / yaw-align
+# convergence (the "rate-σ plateau" — EKF runs faster than fresh samples
+# arrive, so its innovations never close the gate). 100 Hz gives a small
+# headroom over 80 Hz without re-introducing the plateau.
+param set-default IMU_INTEG_RATE     100
+param set-default IMU_GYRO_RATEMAX   100
+
+# ── Fast-boot, ArduPilot-style pre-arm bypass ─────────────────────────────
+# ArduPilot SITL is armable in ~5 s because copter-xplane.parm sets
+# ARMING_CHECK=0 (single switch, all checks off) and EKF3 ships with looser
+# innovation gates. PX4 has no single equivalent; the items below relax the
+# gates that block first-30-s arming on a clean X-Plane bridge.
+
+# GPS health window: default 10 s of continuous healthy GPS before the EKF
+# accepts it. SITL GPS is perfect from t=0, so 1 s is plenty.
+param set-default EKF2_REQ_GPS_H     1.0
+
+# Height reference: baro (= 0). Default 1 (GPS) means height settle waits on
+# the GPS health window above. Baro is published from boot, so picking it as
+# the reference closes the height innovation gate sooner.
+param set-default EKF2_HGT_REF       0
+
+# Loosen the commander pre-arm sensor consistency checks. ArduPilot skips
+# these entirely under ARMING_CHECK=0. PX4 has no master kill switch, so we
+# raise each individual threshold. (COM_ARM_EKF_HGT/YAW don't exist — those
+# gates are hard-coded test_ratio>0.5 in EKF2.cpp; relaxing them needs
+# EKF2_HGT_REF/EKF2_REQ_GPS_H tuning above, not a commander param.)
+param set-default COM_ARM_MAG_ANG    -1
+param set-default COM_ARM_MAG_STR    0
+param set-default COM_ARM_IMU_ACC    1.0
+param set-default COM_ARM_IMU_GYR    1.0
+
+# Speed up the magnetic-field WMM check by disabling it entirely (the bridge
+# generates its mag from the same WMM the EKF would compare against — the
+# check is redundant in SITL and just adds startup latency).
+param set-default EKF2_MAG_CHECK     0
+
+# Attitude / rate controller — REMOVED (2026-05-24).
+# Previous values (MC_ROLL_P=6.0, MC_PITCH_P=6.0) were 20× more aggressive than
+# the airframe's 0.3. Combined with our RREF-based bridge's higher sensor
+# noise (vs the px4xplane plugin's Kalman-smoothed stream), the aggressive
+# gains caused the controller to amplify noise into actuator commands →
+# vehicle diverged on takeoff. Letting airframe's MC_*_P values stand
+# matches the px4xplane-sitl branch's effective tuning, which is the
+# known-stable configuration for this airframe.
+
+# Battery — 4S LiPo
+param set-default BAT1_N_CELLS       4
+param set-default BAT1_V_CHARGED     4.20
+param set-default BAT1_V_EMPTY       3.50
+
+# Throttle / accel hover estimate
+param set-default MPC_THR_HOVER      0.50

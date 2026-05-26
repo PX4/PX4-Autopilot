@@ -1,0 +1,33 @@
+# X-Plane DREF map — 5-inch quadrotor (5011_xplane_quad)
+#
+# PX4 actuator_outputs channel layout (0-indexed):
+#   channel 0 → ROTOR0  FR  CCW  → engine[0]
+#   channel 1 → ROTOR1  RL  CCW  → engine[1]
+#   channel 2 → ROTOR2  FL   CW  → engine[2]
+#   channel 3 → ROTOR3  RR   CW  → engine[3]
+#
+# type "fixed"   : send value always (for X-Plane overrides)
+# type "range"   : send output[channel] * range  (clamped 0..range, for motors)
+# type "angle"   : send output[channel] * range  (output is -1..1, for servos)
+# type "running" : send 1 when armed and output[channel] > 0.01, else 0
+
+{
+    "settings": { "debug": 0 },
+
+    # Disable X-Plane's own joystick/throttle so all inputs come from PX4
+    "sim/operation/override/override_joystick"      : { "type": "fixed", "value": 1 },
+    "sim/operation/override/override_throttles"     : { "type": "fixed", "value": 1 },
+    "sim/operation/override/override_flightcontrol" : { "type": "fixed", "value": 1 },
+
+    # Engine run state (must be 1 for X-Plane to accept ENGN_thro_use)
+    "sim/flightmodel/engine/ENGN_running[0]" : { "type": "running", "channel": 0 },
+    "sim/flightmodel/engine/ENGN_running[1]" : { "type": "running", "channel": 1 },
+    "sim/flightmodel/engine/ENGN_running[2]" : { "type": "running", "channel": 2 },
+    "sim/flightmodel/engine/ENGN_running[3]" : { "type": "running", "channel": 3 },
+
+    # Motor throttle commands (0.0 – 1.0)
+    "sim/flightmodel/engine/ENGN_thro_use[0]" : { "type": "range", "channel": 0, "range": 1.0 },
+    "sim/flightmodel/engine/ENGN_thro_use[1]" : { "type": "range", "channel": 1, "range": 1.0 },
+    "sim/flightmodel/engine/ENGN_thro_use[2]" : { "type": "range", "channel": 2, "range": 1.0 },
+    "sim/flightmodel/engine/ENGN_thro_use[3]" : { "type": "range", "channel": 3, "range": 1.0 }
+}
