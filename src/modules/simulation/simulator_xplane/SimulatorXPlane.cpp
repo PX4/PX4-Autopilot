@@ -422,7 +422,7 @@ void SimulatorXPlane::send_rref_subscribe()
 		uint32_t rate = (i == 0) ? 1 : 100;   // version at 1 Hz, sensors at 100 Hz
 		uint32_t code = (uint32_t)(RREF_VERSION + i);
 		uint8_t  pkt[413];
-		memcpy(pkt,      "RREF\0", 5);
+		strcpy((char *)pkt,      "RREF\0");
 		memcpy(pkt + 5,  &rate,    4);
 		memcpy(pkt + 9,  &code,    4);
 		memset(pkt + 13, 0,        400);
