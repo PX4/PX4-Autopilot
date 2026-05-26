@@ -405,8 +405,8 @@ void SimulatorXPlane::send_dref(const char *name, float value)
 
 void SimulatorXPlane::send_dsel()
 {
-	uint8_t pkt[5 + N_DATA_GROUPS * 4];
-	memcpy(pkt, "DSEL\0", 5);
+	uint8_t pkt[5 + N_DATA_GROUPS * 4 + 1];
+	strcpy((char *)pkt, "DSEL\0");
 	for (size_t i = 0; i < N_DATA_GROUPS; i++) {
 		uint32_t gid = DATA_GROUPS[i];
 		memcpy(pkt + 5 + i * 4, &gid, 4);
