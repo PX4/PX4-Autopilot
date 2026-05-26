@@ -491,11 +491,7 @@ pageClass: is-wide-page
 
             value = " "
             if field.enums:
-                value = ""
-                for enum in field.enums:
-                    value += f"[{enum}](#{enum})"
-                value = value.strip()
-                value = f"{value}"
+                value = ", ".join(f"[{enum}](#{enum})" for enum in field.enums)
             elif field.minValue or field.maxValue:
                 value = f"[{field.minValue if field.minValue else '-'} : {field.maxValue if field.maxValue else '-' }]"
 
