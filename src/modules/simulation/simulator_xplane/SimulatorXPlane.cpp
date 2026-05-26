@@ -63,6 +63,7 @@ static float xplane_wgn()
 
 	if (phase) {
 		float U1, U2;
+
 		do {
 			U1 = (float)rand() / (float)RAND_MAX;
 			U2 = (float)rand() / (float)RAND_MAX;
@@ -70,6 +71,7 @@ static float xplane_wgn()
 			V2 = 2.f * U2 - 1.f;
 			S  = V1 * V1 + V2 * V2;
 		} while (S >= 1.f || fabsf(S) < 1e-8f);
+
 		phase = false;
 		return V1 * sqrtf(-2.f * logf(S) / S);
 	}
@@ -134,6 +136,7 @@ struct MapFields {
 static const char *skip_ws(const char *p)
 {
 	while (*p && isspace((unsigned char)*p)) { p++; }
+
 	return p;
 }
 
@@ -142,14 +145,20 @@ static const char *skip_ws(const char *p)
 static const char *parse_string(const char *p, char *buf, size_t buf_len)
 {
 	if (*p != '"') { return nullptr; }
+
 	p++;
 	size_t i = 0;
+
 	while (*p && *p != '"') {
 		if (*p == '\\') { p++; } // skip escape prefix
+
 		if (i + 1 < buf_len) { buf[i++] = *p; }
+
 		p++;
 	}
+
 	if (*p != '"') { return nullptr; }
+
 	buf[i] = '\0';
 	return p + 1;
 }
@@ -171,21 +180,28 @@ static const char *parse_map_fields(const char *p, MapFields *f)
 	f->channel = -1;
 
 	if (*p != '{') { return nullptr; }
+
 	p++;
 
 	while (true) {
 		p = skip_ws(p);
+
 		if (!*p) { return nullptr; }
+
 		if (*p == '}') { return p + 1; }
+
 		if (*p == ',') { p++; continue; }
 
 		// Parse field name
 		char key[64];
 		p = parse_string(p, key, sizeof(key));
+
 		if (!p) { return nullptr; }
 
 		p = skip_ws(p);
+
 		if (*p != ':') { return nullptr; }
+
 		p++;
 		p = skip_ws(p);
 
@@ -193,17 +209,25 @@ static const char *parse_map_fields(const char *p, MapFields *f)
 		if (*p == '"') {
 			char sval[64];
 			p = parse_string(p, sval, sizeof(sval));
+
 			if (!p) { return nullptr; }
+
 			if (strcmp(key, "type") == 0) {
 				strncpy(f->type, sval, sizeof(f->type) - 1);
 			}
+
 		} else {
 			float num = 0.0f;
 			p = parse_number(p, &num);
+
 			if (!p) { return nullptr; }
-			if      (strcmp(key, "channel") == 0) { f->channel = (int)num; f->has_channel = true; }
+
+			if (strcmp(key, "channel") == 0) { f->channel = (int)num; f->has_channel = true; }
+
 			else if (strcmp(key, "range")   == 0) { f->range   = num;      f->has_range   = true; }
+
 			else if (strcmp(key, "value")   == 0) { f->value   = num;      f->has_value   = true; }
+
 			else if (strcmp(key, "debug")   == 0) { /* handled by caller */ }
 		}
 	}
@@ -218,6 +242,7 @@ bool SimulatorXPlane::load_dref_map(const char *model_name)
 	snprintf(path, sizeof(path), "etc/init.d-posix/models/%s.json", model_name);
 
 	FILE *f = fopen(path, "r");
+
 	if (!f) {
 		PX4_WARN("DREF map not found: %s (using built-in defaults)", path);
 		return false;
@@ -227,10 +252,13 @@ bool SimulatorXPlane::load_dref_map(const char *model_name)
 	fseek(f, 0, SEEK_END);
 	long fsize = ftell(f);
 	fseek(f, 0, SEEK_SET);
+
 	if (fsize <= 0 || fsize > 65536) { fclose(f); return false; }
 
 	char *raw = (char *)malloc((size_t)fsize + 1);
+
 	if (!raw) { fclose(f); return false; }
+
 	size_t nread = fread(raw, 1, (size_t)fsize, f);
 	raw[nread] = '\0';
 	fclose(f);
@@ -244,34 +272,43 @@ bool SimulatorXPlane::load_dref_map(const char *model_name)
 
 	// Parse: expect top-level { "key": { ... }, ... }
 	const char *p = skip_ws(raw);
+
 	if (*p != '{') {
 		PX4_ERR("DREF map: expected '{' at start of %s", path);
 		free(raw);
 		return false;
 	}
+
 	p++;
 
 	int count = 0;
 
 	while (true) {
 		p = skip_ws(p);
+
 		if (!*p) { break; }
+
 		if (*p == '}') { break; }
+
 		if (*p == ',') { p++; continue; }
 
 		// Parse top-level key (dataref name or "settings")
 		char dref_name[256];
 		p = parse_string(p, dref_name, sizeof(dref_name));
+
 		if (!p) { PX4_ERR("DREF map: bad key near char %ld", (long)(p - raw)); break; }
 
 		p = skip_ws(p);
+
 		if (*p != ':') { break; }
+
 		p++;
 		p = skip_ws(p);
 
 		// Parse the value object
 		MapFields fields{};
 		p = parse_map_fields(p, &fields);
+
 		if (!p) { PX4_ERR("DREF map: bad value for '%s'", dref_name); break; }
 
 		// Skip the "settings" pseudo-entry (just read debug flag)
@@ -289,15 +326,19 @@ bool SimulatorXPlane::load_dref_map(const char *model_name)
 			e->type  = DRefEntry::Type::FIXED;
 			e->value = fields.value;
 			e->scale = 0.0f;
+
 		} else if (strcmp(fields.type, "range") == 0) {
 			e->type  = DRefEntry::Type::RANGE;
 			e->scale = fields.has_range ? fields.range : 1.0f;
+
 		} else if (strcmp(fields.type, "angle") == 0) {
 			e->type  = DRefEntry::Type::ANGLE;
 			e->scale = fields.has_range ? fields.range : 1.0f;
+
 		} else if (strcmp(fields.type, "running") == 0) {
 			e->type  = DRefEntry::Type::RUNNING;
 			e->scale = 1.0f;
+
 		} else {
 			PX4_WARN("DREF map: unknown type '%s' for '%s', skipping", fields.type, dref_name);
 			delete e;
@@ -324,11 +365,13 @@ bool SimulatorXPlane::load_dref_map(const char *model_name)
 void SimulatorXPlane::free_dref_map()
 {
 	DRefEntry *e = _drefs;
+
 	while (e) {
 		DRefEntry *next = e->next;
 		delete e;
 		e = next;
 	}
+
 	_drefs   = nullptr;
 	_n_drefs = 0;
 }
@@ -359,6 +402,7 @@ SimulatorXPlane::SimulatorXPlane(const char *xplane_ip, uint16_t xplane_port,
 			{ "sim/flightmodel/engine/ENGN_thro_use[2]",       DRefEntry::Type::RANGE,    2, 1.0f, 0.0f },
 			{ "sim/flightmodel/engine/ENGN_thro_use[3]",       DRefEntry::Type::RANGE,    3, 1.0f, 0.0f },
 		};
+
 		for (const auto &d : defaults) {
 			DRefEntry *e = new DRefEntry{};
 			strncpy(e->name, d.name, sizeof(e->name) - 1);
@@ -376,8 +420,11 @@ SimulatorXPlane::SimulatorXPlane(const char *xplane_ip, uint16_t xplane_port,
 SimulatorXPlane::~SimulatorXPlane()
 {
 	free_dref_map();
+
 	if (_fd >= 0) { ::close(_fd); }
+
 	if (_gps_pub) { delete _gps_pub; }
+
 	perf_free(_perf_interval);
 	g_instance = nullptr;
 }
@@ -387,6 +434,7 @@ SimulatorXPlane::~SimulatorXPlane()
 void SimulatorXPlane::udp_send(const void *data, size_t len)
 {
 	if (_fd < 0) { return; }
+
 	::sendto(_fd, data, len, 0, (struct sockaddr *)&_xplane_addr, sizeof(_xplane_addr));
 }
 
@@ -398,7 +446,9 @@ void SimulatorXPlane::send_dref(const char *name, float value)
 	memcpy(pkt + 5, &value, 4);
 	memset(pkt + 9, 0, 500);
 	size_t nlen = strlen(name);
+
 	if (nlen > 499) { nlen = 499; }
+
 	strcpy((char *)pkt + 9, name);
 	udp_send(pkt, sizeof(pkt));
 }
@@ -407,10 +457,12 @@ void SimulatorXPlane::send_dsel()
 {
 	uint8_t pkt[5 + N_DATA_GROUPS * 4 + 1];
 	strcpy((char *)pkt, "DSEL\0");
+
 	for (size_t i = 0; i < N_DATA_GROUPS; i++) {
 		uint32_t gid = DATA_GROUPS[i];
 		memcpy(pkt + 5 + i * 4, &gid, 4);
 	}
+
 	udp_send(pkt, sizeof(pkt));
 }
 
@@ -427,7 +479,9 @@ void SimulatorXPlane::send_rref_subscribe()
 		memcpy(pkt + 9,  &code,    4);
 		memset(pkt + 13, 0,        400);
 		size_t nlen = strlen(RREF_NAMES[i]);
+
 		if (nlen > 399) { nlen = 399; }
+
 		memcpy(pkt + 13, RREF_NAMES[i], nlen);
 		udp_send(pkt, sizeof(pkt));
 	}
@@ -451,6 +505,7 @@ void SimulatorXPlane::send_actuator_drefs()
 
 	for (DRefEntry *e = _drefs; e; e = e->next) {
 		if (e->type == DRefEntry::Type::FIXED) { continue; }
+
 		if (e->channel < 0 || e->channel >= (int)actuator_outputs_s::NUM_ACTUATOR_OUTPUTS) { continue; }
 
 		const float out = _actuator_outputs.output[e->channel];
@@ -502,32 +557,46 @@ void SimulatorXPlane::handle_rref(const uint8_t *pkt, size_t len)
 				PX4_INFO("X-Plane version %u.%u detected",
 					 _xplane_version / 10000,
 					 (_xplane_version % 10000) / 100);
+
 			} else {
 				_xplane_version = (uint32_t)val;
 			}
+
 			break;
+
 		case RREF_PRAD:  _gyro_x = val;                 _rref_gyro_mask  |= 0x1; imu_updated = true; break;
+
 		case RREF_QRAD:  _gyro_y = val;                 _rref_gyro_mask  |= 0x2; imu_updated = true; break;
+
 		case RREF_RRAD:  _gyro_z = val;                 _rref_gyro_mask  |= 0x4; imu_updated = true; break;
+
 		case RREF_GAXIL: _accel_x = -val * GRAVITY_MSS; _rref_accel_mask |= 0x1; imu_updated = true; break;
+
 		case RREF_GSIDE: _accel_y =  val * GRAVITY_MSS; _rref_accel_mask |= 0x2; imu_updated = true; break;
+
 		case RREF_GNRML: _accel_z = -val * GRAVITY_MSS; _rref_accel_mask |= 0x4; imu_updated = true; break;
 
 		// NED velocity from X-Plane local OpenGL frame: X=east, Y=up, Z=south
 		case RREF_VX:  _vel_e  =  val; _rref_vel_mask |= 0x1; break;
+
 		case RREF_VY:  _vel_d  = -val; _rref_vel_mask |= 0x2; break;
+
 		case RREF_VZ:  _vel_n  = -val; _rref_vel_mask |= 0x4; break;
 
 		// Position via RREF (avoids DATA@ group-20 slot-offset ambiguity)
 		case RREF_LAT: _lat_deg = val; _rref_pos_mask |= 0x1; break;
+
 		case RREF_LON: _lon_deg = val; _rref_pos_mask |= 0x2; break;
+
 		case RREF_ALT: _alt_m   = val; _rref_pos_mask |= 0x4; break; // meters MSL already
 
 		// Attitude via RREF — same approach as the px4xplane plugin (reads
 		// theta/phi/psi as direct datarefs). Decouples us from X-Plane's
 		// per-user "Data Output" group-17 configuration.
 		case RREF_THETA: _pitch_rad = math::radians(val); _rref_att_mask |= 0x1; break;
+
 		case RREF_PHI:   _roll_rad  = math::radians(val); _rref_att_mask |= 0x2; break;
+
 		case RREF_PSI:   _yaw_rad   = math::radians(val); _rref_att_mask |= 0x4; break;
 
 		default: break;
@@ -546,6 +615,7 @@ void SimulatorXPlane::handle_rref(const uint8_t *pkt, size_t len)
 			_gyro_filt_x  = _gyro_x;  _gyro_filt_y  = _gyro_y;  _gyro_filt_z  = _gyro_z;
 			_accel_filt_x = _accel_x; _accel_filt_y = _accel_y; _accel_filt_z = _accel_z;
 			_sensor_filt_initialized = true;
+
 		} else {
 			const float a = SENSOR_LPF_ALPHA;
 			_gyro_filt_x  = a * _gyro_x  + (1.0f - a) * _gyro_filt_x;
@@ -563,20 +633,23 @@ void SimulatorXPlane::handle_rref(const uint8_t *pkt, size_t len)
 		// (σ > 10°/s on some models) which any sensible variance gate would
 		// reject; gating on groundspeed instead lets calibration converge.
 		const bool vel_ok = (_rref_vel_mask == 0x7);
-		const float gs = vel_ok ? sqrtf(_vel_n*_vel_n + _vel_e*_vel_e + _vel_d*_vel_d) : 1e9f;
+		const float gs = vel_ok ? sqrtf(_vel_n * _vel_n + _vel_e * _vel_e + _vel_d * _vel_d) : 1e9f;
 		const bool stationary = vel_ok && (gs < ACCEL_CAL_STATIONARY_VEL);
 
 		auto accumulate_axis = [&](float sample,
-		                           float &sum, int &count,
-		                           float &bias_out, bool &locked) {
+					   float & sum, int &count,
+		float & bias_out, bool & locked) {
 			if (locked) { return; }
+
 			if (!stationary) {
 				// Vehicle moved — restart this axis' window.
 				sum = 0; count = 0;
 				return;
 			}
+
 			sum += sample;
 			count++;
+
 			if (count >= GYRO_BIAS_SAMPLES) {
 				bias_out = sum / count;
 				locked = true;
@@ -584,11 +657,11 @@ void SimulatorXPlane::handle_rref(const uint8_t *pkt, size_t len)
 		};
 		// Calibrate on FILTERED samples so the gate sees the smoothed signal.
 		accumulate_axis(_gyro_filt_x, _gyro_bias_sum_x,
-		                _gyro_bias_count_x, _gyro_bias_x, _gyro_bias_locked_x);
+				_gyro_bias_count_x, _gyro_bias_x, _gyro_bias_locked_x);
 		accumulate_axis(_gyro_filt_y, _gyro_bias_sum_y,
-		                _gyro_bias_count_y, _gyro_bias_y, _gyro_bias_locked_y);
+				_gyro_bias_count_y, _gyro_bias_y, _gyro_bias_locked_y);
 		accumulate_axis(_gyro_filt_z, _gyro_bias_sum_z,
-		                _gyro_bias_count_z, _gyro_bias_z, _gyro_bias_locked_z);
+				_gyro_bias_count_z, _gyro_bias_z, _gyro_bias_locked_z);
 
 		if (!_gyro_bias_reported && _gyro_bias_locked_x
 		    && _gyro_bias_locked_y && _gyro_bias_locked_z) {
@@ -606,16 +679,19 @@ void SimulatorXPlane::handle_rref(const uint8_t *pkt, size_t len)
 		if (!_accel_calibrated && vel_ok) {
 			if (stationary) {
 				_accel_cal_stationary_count++;
+
 				if (_accel_cal_stationary_count >= ACCEL_CAL_WAIT_SAMPLES) {
 					// Use filtered accel for calibration so the magnitude
 					// estimate isn't dominated by X-Plane jitter.
-					const float mag = sqrtf(_accel_filt_x*_accel_filt_x
-					                      + _accel_filt_y*_accel_filt_y
-					                      + _accel_filt_z*_accel_filt_z);
+					const float mag = sqrtf(_accel_filt_x * _accel_filt_x
+								+ _accel_filt_y * _accel_filt_y
+								+ _accel_filt_z * _accel_filt_z);
 					_accel_cal_sum_mag += mag;
 					_accel_cal_count++;
+
 					if (_accel_cal_count >= ACCEL_CAL_SAMPLES) {
 						const float measured = _accel_cal_sum_mag / _accel_cal_count;
+
 						if (measured > 0.1f) {
 							_accel_scale_factor = GRAVITY_MSS / measured;
 							_accel_calibrated = true;
@@ -626,6 +702,7 @@ void SimulatorXPlane::handle_rref(const uint8_t *pkt, size_t len)
 						}
 					}
 				}
+
 			} else {
 				// Aircraft moved before calibration completed — restart.
 				_accel_cal_stationary_count = 0;
@@ -640,6 +717,7 @@ void SimulatorXPlane::handle_rref(const uint8_t *pkt, size_t len)
 
 	if (_rref_pos_mask == 0x7) {
 		_has_pos = true;
+
 		if (t - _t_last_baro >= 40_ms) {
 			publish_baro(t);
 			_t_last_baro = t;
@@ -658,6 +736,7 @@ void SimulatorXPlane::handle_data_at(const uint8_t *pkt, size_t len)
 {
 	_data_pkt_count++;
 	size_t off = 5;
+
 	while (off + 36 <= len) {
 		uint32_t gid;
 		float    d[8];
@@ -674,15 +753,18 @@ void SimulatorXPlane::apply_data_group(uint32_t gid, const float *d)
 
 	switch (gid) {
 	case XP_GRP_GLOAD:
+
 		// Fallback if RREF not yet available. d[5]=g_axil, d[6]=g_side, d[7]=g_nrml
 		if (_rref_accel_mask != 0x7) {
 			_accel_x = -d[5] * GRAVITY_MSS;
 			_accel_y =  d[6] * GRAVITY_MSS;
 			_accel_z = -d[7] * GRAVITY_MSS;
 		}
+
 		break;
 
 	case XP_GRP_ANG_VEL:
+
 		// Fallback if RREF Prad/Qrad/Rrad not yet fully received.
 		// XP11: d[1]=P, d[0]=Q, d[2]=R already in rad/s (different slot order)
 		// XP12: d[0]=P, d[1]=Q, d[2]=R in deg/s (needs radians conversion)
@@ -691,17 +773,21 @@ void SimulatorXPlane::apply_data_group(uint32_t gid, const float *d)
 				_gyro_x = math::radians(d[0]);
 				_gyro_y = math::radians(d[1]);
 				_gyro_z = math::radians(d[2]);
+
 			} else {
 				// XP11 — rad/s, but P/Q slots swapped
 				_gyro_x = d[1];
 				_gyro_y = d[0];
 				_gyro_z = d[2];
 			}
+
 			publish_imu(t);
 		}
+
 		break;
 
 	case XP_GRP_ATTITUDE:
+
 		// Attitude now comes from RREF theta/phi/psi (more reliable than
 		// DATA@ slot-order which varies between X-Plane versions and
 		// per-user network settings). Fallback only if RREF hasn't filled
@@ -714,6 +800,7 @@ void SimulatorXPlane::apply_data_group(uint32_t gid, const float *d)
 			_has_att   = true;
 			publish_mag(t);
 		}
+
 		break;
 
 	default:
@@ -756,7 +843,7 @@ void SimulatorXPlane::publish_imu(hrt_abstime t)
 	// for use by the EKF + rate controller.
 	_vehicle_status_sub.update(&_vehicle_status);
 	const bool armed = (_vehicle_status.arming_state ==
-	                    vehicle_status_s::ARMING_STATE_ARMED);
+			    vehicle_status_s::ARMING_STATE_ARMED);
 
 	float accel_x = _accel_filt_x * _accel_scale_factor;
 	float accel_y = _accel_filt_y * _accel_scale_factor;
@@ -779,16 +866,16 @@ void SimulatorXPlane::publish_imu(hrt_abstime t)
 	// to ≈1 g (no-op until calibration completes).
 	_px4_accel.set_temperature(20.0f);
 	_px4_accel.update(t,
-		accel_x + xplane_wgn() * accel_n,
-		accel_y + xplane_wgn() * accel_n,
-		accel_z + xplane_wgn() * accel_n);
+			  accel_x + xplane_wgn() * accel_n,
+			  accel_y + xplane_wgn() * accel_n,
+			  accel_z + xplane_wgn() * accel_n);
 
 	// Publish FILTERED gyro with bias subtracted (no-op pre-calibration).
 	_px4_gyro.set_temperature(20.0f);
 	_px4_gyro.update(t,
-		gyro_x + xplane_wgn() * gyro_n,
-		gyro_y + xplane_wgn() * gyro_n,
-		gyro_z + xplane_wgn() * gyro_n);
+			 gyro_x + xplane_wgn() * gyro_n,
+			 gyro_y + xplane_wgn() * gyro_n,
+			 gyro_z + xplane_wgn() * gyro_n);
 }
 
 void SimulatorXPlane::update_mag_earth()
@@ -796,9 +883,11 @@ void SimulatorXPlane::update_mag_earth()
 	// Only refresh when we have a real position and either it's the first time
 	// or the vehicle has moved a non-trivial distance (~1 km).
 	if (_rref_pos_mask != 0x7) { return; }
+
 	const float dlat = _lat_deg - _mag_earth_lat;
 	const float dlon = _lon_deg - _mag_earth_lon;
-	if (_mag_earth_valid && (dlat*dlat + dlon*dlon < 1e-4f)) { return; }   // ≈11 km/deg
+
+	if (_mag_earth_valid && (dlat * dlat + dlon * dlon < 1e-4f)) { return; } // ≈11 km/deg
 
 	const float dec_rad = math::radians(get_mag_declination_degrees(_lat_deg, _lon_deg));
 	const float inc_rad = math::radians(get_mag_inclination_degrees(_lat_deg, _lon_deg));
@@ -822,14 +911,15 @@ void SimulatorXPlane::mag_body(float &bx, float &by, float &bz) const
 	const float cr = cosf(r), sr = sinf(r);
 	const float cy = cosf(y), sy = sinf(y);
 	const float mn = _mag_ned_n, me = _mag_ned_e, md = _mag_ned_d;
-	bx = (cp*cy)*mn           + (cp*sy)*me           + (-sp)*md;
-	by = (sr*sp*cy - cr*sy)*mn + (sr*sp*sy + cr*cy)*me + (sr*cp)*md;
-	bz = (cr*sp*cy + sr*sy)*mn + (cr*sp*sy - sr*cy)*me + (cr*cp)*md;
+	bx = (cp * cy) * mn           + (cp * sy) * me           + (-sp) * md;
+	by = (sr * sp * cy - cr * sy) * mn + (sr * sp * sy + cr * cy) * me + (sr * cp) * md;
+	bz = (cr * sp * cy + sr * sy) * mn + (cr * sp * sy - sr * cy) * me + (cr * cp) * md;
 }
 
 void SimulatorXPlane::publish_mag(hrt_abstime t)
 {
 	update_mag_earth();
+
 	if (!_mag_earth_valid) { return; }   // wait for first GPS fix before publishing
 
 	float bx, by, bz;
@@ -840,9 +930,9 @@ void SimulatorXPlane::publish_mag(hrt_abstime t)
 	// EKF2 under-trust mag heading.
 	const float mag_n = 0.0002f;
 	_px4_mag.update(t,
-		bx + xplane_wgn() * mag_n,
-		by + xplane_wgn() * mag_n,
-		bz + xplane_wgn() * mag_n);
+			bx + xplane_wgn() * mag_n,
+			by + xplane_wgn() * mag_n,
+			bz + xplane_wgn() * mag_n);
 }
 
 void SimulatorXPlane::publish_baro(hrt_abstime t)
@@ -861,7 +951,7 @@ void SimulatorXPlane::publish_baro(hrt_abstime t)
 void SimulatorXPlane::publish_gps(hrt_abstime t)
 {
 	if (!_gps_pub) {
-		_gps_pub = new uORB::PublicationMulti<sensor_gps_s>{ORB_ID(sensor_gps)};
+		_gps_pub = new uORB::PublicationMulti<sensor_gps_s> {ORB_ID(sensor_gps)};
 	}
 
 	sensor_gps_s gps{};
@@ -913,12 +1003,13 @@ void SimulatorXPlane::send()
 
 	_actuator_sub = orb_subscribe_multi(ORB_ID(actuator_outputs_sim), 0);
 
-	px4_pollfd_struct_t fds[1]{};
+	px4_pollfd_struct_t fds[1] {};
 	fds[0].fd     = _actuator_sub;
 	fds[0].events = POLLIN;
 
 	while (true) {
 		int pret = px4_poll(fds, 1, 100);
+
 		if (pret <= 0) { continue; }
 
 		if (fds[0].revents & POLLIN) {
@@ -940,12 +1031,13 @@ void SimulatorXPlane::run()
 
 	// ── Open UDP socket ──────────────────────────────────────────────────────
 	_fd = ::socket(AF_INET, SOCK_DGRAM, 0);
+
 	if (_fd < 0) { PX4_ERR("socket: %s", strerror(errno)); return; }
 
 	int opt = 1;
 	setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
-	struct sockaddr_in bind_addr{};
+	struct sockaddr_in bind_addr {};
 	bind_addr.sin_family      = AF_INET;
 	bind_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 	bind_addr.sin_port        = htons(_bind_port);
@@ -984,13 +1076,13 @@ void SimulatorXPlane::run()
 			fd_set rfds;
 			FD_ZERO(&rfds);
 			FD_SET(_fd, &rfds);
-			struct timeval tv{1, 0};   // 1 s timeout
+			struct timeval tv {1, 0};  // 1 s timeout
 			int ret = ::select(_fd + 1, &rfds, nullptr, nullptr, &tv);
 
 			hrt_abstime now = hrt_absolute_time();
 
 			if (ret > 0 && FD_ISSET(_fd, &rfds)) {
-				struct sockaddr_in src{};
+				struct sockaddr_in src {};
 				socklen_t src_len = sizeof(src);
 				ssize_t n = ::recvfrom(_fd, buf, sizeof(buf), 0,
 						       (struct sockaddr *)&src, &src_len);
@@ -1028,6 +1120,7 @@ void SimulatorXPlane::run()
 
 			// Re-subscribe periodically in case X-Plane restarted
 			if (now - _t_last_dsel >= 5_s) { send_dsel();           _t_last_dsel = now; }
+
 			if (now - _t_last_rref >= 5_s) { send_rref_subscribe(); _t_last_rref = now; }
 		}
 	}
@@ -1051,25 +1144,30 @@ void SimulatorXPlane::run()
 		fd_set rfds;
 		FD_ZERO(&rfds);
 		FD_SET(_fd, &rfds);
-		struct timeval tv{0, 10000};
+		struct timeval tv {0, 10000};
 		int ret = ::select(_fd + 1, &rfds, nullptr, nullptr, &tv);
 
 		if (ret > 0 && FD_ISSET(_fd, &rfds)) {
 			ssize_t n = ::recvfrom(_fd, buf, sizeof(buf), 0, nullptr, nullptr);
+
 			if (n >= 5) {
 				// Advance PX4 lockstep clock so hrt_absolute_time() is non-zero
 				struct timespec ts;
 				clock_gettime(CLOCK_MONOTONIC, &ts);
 				px4_clock_settime(CLOCK_MONOTONIC, &ts);
 
-				if      (memcmp(buf, "RREF", 4) == 0) { handle_rref(buf, (size_t)n); }
+				if (memcmp(buf, "RREF", 4) == 0) { handle_rref(buf, (size_t)n); }
+
 				else if (memcmp(buf, "DATA", 4) == 0) { handle_data_at(buf, (size_t)n); }
 			}
 		}
 
 		hrt_abstime now = hrt_absolute_time();
+
 		if (now - _t_last_dsel   >= 5_s) { send_dsel();             _t_last_dsel   = now; }
+
 		if (now - _t_last_rref   >= 5_s) { send_rref_subscribe();   _t_last_rref   = now; }
+
 		if (now - _t_last_fixed  >= 1_s) { send_fixed_drefs();      _t_last_fixed  = now; }
 
 		if (now - _t_last_rate >= 5_s) {
@@ -1108,14 +1206,19 @@ int SimulatorXPlane::start(int argc, char *argv[])
 	const char *model_name  = "xplane_quad";
 
 	for (int i = 3; i < argc - 1; i++) {
-		if      (strcmp(argv[i], "-i") == 0) { xplane_ip   = argv[++i]; }
+		if (strcmp(argv[i], "-i") == 0) { xplane_ip   = argv[++i]; }
+
 		else if (strcmp(argv[i], "-p") == 0) { xplane_port = (uint16_t)atoi(argv[++i]); }
+
 		else if (strcmp(argv[i], "-b") == 0) { bind_port   = (uint16_t)atoi(argv[++i]); }
+
 		else if (strcmp(argv[i], "-m") == 0) { model_name  = argv[++i]; }
 	}
 
 	g_instance = new SimulatorXPlane(xplane_ip, xplane_port, bind_port, model_name);
+
 	if (!g_instance) { PX4_ERR("alloc failed"); return 1; }
+
 	g_instance->run();
 	return 0;
 }

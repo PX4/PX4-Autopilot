@@ -193,8 +193,8 @@ private:
 
 	// ── UDP socket ───────────────────────────────────────────────────────────
 	int                _fd{-1};
-	struct sockaddr_in _xplane_addr{};
-	char               _xplane_ip[32]{};
+	struct sockaddr_in _xplane_addr {};
+	char               _xplane_ip[32] {};
 	uint16_t           _xplane_port{49000};
 	uint16_t           _bind_port{49005};
 
