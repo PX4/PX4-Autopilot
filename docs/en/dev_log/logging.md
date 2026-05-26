@@ -66,7 +66,8 @@ The `<instance>` is optional, and if specified, defines the instance to log.
 If not specified, all instances of the topic are logged.
 To specify `<instance>`, `<interval>` must be specified. It can be set to 0 to log at full rate
 
-The topics in this file replace all of the default logged topics.
+The topics in this file will be added on top of the already selected topics. To just log the topics defined in this file, set [SDLOG_PROFILE=0](../advanced_config/parameter_reference.md#SDLOG_PROFILE).
+If a topic is already included, it will update it's rate.
 
 Example :
 
