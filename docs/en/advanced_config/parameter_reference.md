@@ -36855,6 +36855,16 @@ GRF Sensor Model used to distinush between the GRF250 and GRF500 since both have
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; |          |          |           | 0       |      | &nbsp;    |
 
+### HEATER1_IMAX (`FLOAT`) {#HEATER1_IMAX}
+
+Heater controller 1 integrator clamp.
+
+Limits the maximum (and minimum) contribution of the integrator term to the controller output.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0.0      | 0.25     |           | 0.25    |      | &nbsp;    |
+
 ### HEATER1_IMU_ID (`INT32`) {#HEATER1_IMU_ID}
 
 The ID of the IMU controlled by heater 1.
@@ -36867,6 +36877,17 @@ a valid DEVID must be configured for each heater to ensure a 1:1 mapping between
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; |          |          |           | 0       |      | &nbsp;    |
+
+### HEATER1_NOM_V (`FLOAT`) {#HEATER1_NOM_V}
+
+Nominal supply voltage for heater 1.
+
+Used to limit the PWM duty cycle when the actual supply voltage exceeds this value,
+to prevent excess power dissipation. Set to 0 to disable voltage-based limiting.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 100.0    |           | 0.0     | V    | &nbsp;    |
 
 ### HEATER1_TEMP (`FLOAT`) {#HEATER1_TEMP}
 
@@ -36912,6 +36933,27 @@ The proportional gain determines how quickly the controller responds to temperat
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 0        | 2.0      |           | 1.0     | us/C | &nbsp;    |
 
+### HEATER1_TEMP_SRC (`INT32`) {#HEATER1_TEMP_SRC}
+
+Temperature source for heater 1.
+
+Selects the sensor used as the temperature input for heater control.
+0 = IMU (sensor_accel temperature), 1 = Hygrometer (sensor_hygrometer temperature).
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 0       |      | &nbsp;    |
+
+### HEATER2_IMAX (`FLOAT`) {#HEATER2_IMAX}
+
+Heater controller 2 integrator clamp.
+
+Limits the maximum (and minimum) contribution of the integrator term to the controller output.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0.0      | 0.25     |           | 0.25    |      | &nbsp;    |
+
 ### HEATER2_IMU_ID (`INT32`) {#HEATER2_IMU_ID}
 
 The ID of the IMU controlled by heater 2.
@@ -36924,6 +36966,17 @@ a valid DEVID must be configured for each heater to ensure a 1:1 mapping between
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; |          |          |           | 0       |      | &nbsp;    |
+
+### HEATER2_NOM_V (`FLOAT`) {#HEATER2_NOM_V}
+
+Nominal supply voltage for heater 2.
+
+Used to limit the PWM duty cycle when the actual supply voltage exceeds this value,
+to prevent excess power dissipation. Set to 0 to disable voltage-based limiting.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 100.0    |           | 0.0     | V    | &nbsp;    |
 
 ### HEATER2_TEMP (`FLOAT`) {#HEATER2_TEMP}
 
@@ -36969,6 +37022,27 @@ The proportional gain determines how quickly the controller responds to temperat
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 0        | 2.0      |           | 1.0     | us/C | &nbsp;    |
 
+### HEATER2_TEMP_SRC (`INT32`) {#HEATER2_TEMP_SRC}
+
+Temperature source for heater 2.
+
+Selects the sensor used as the temperature input for heater control.
+0 = IMU (sensor_accel temperature), 1 = Hygrometer (sensor_hygrometer temperature).
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 0       |      | &nbsp;    |
+
+### HEATER3_IMAX (`FLOAT`) {#HEATER3_IMAX}
+
+Heater controller 3 integrator clamp.
+
+Limits the maximum (and minimum) contribution of the integrator term to the controller output.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0.0      | 0.25     |           | 0.25    |      | &nbsp;    |
+
 ### HEATER3_IMU_ID (`INT32`) {#HEATER3_IMU_ID}
 
 The ID of the IMU controlled by heater 3.
@@ -36981,6 +37055,17 @@ a valid DEVID must be configured for each heater to ensure a 1:1 mapping between
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; |          |          |           | 0       |      | &nbsp;    |
+
+### HEATER3_NOM_V (`FLOAT`) {#HEATER3_NOM_V}
+
+Nominal supply voltage for heater 3.
+
+Used to limit the PWM duty cycle when the actual supply voltage exceeds this value,
+to prevent excess power dissipation. Set to 0 to disable voltage-based limiting.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 100.0    |           | 0.0     | V    | &nbsp;    |
 
 ### HEATER3_TEMP (`FLOAT`) {#HEATER3_TEMP}
 
@@ -37025,6 +37110,17 @@ The proportional gain determines how quickly the controller responds to temperat
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 0        | 2.0      |           | 1.0     | us/C | &nbsp;    |
+
+### HEATER3_TEMP_SRC (`INT32`) {#HEATER3_TEMP_SRC}
+
+Temperature source for heater 3.
+
+Selects the sensor used as the temperature input for heater control.
+0 = IMU (sensor_accel temperature), 1 = Hygrometer (sensor_hygrometer temperature).
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 0       |      | &nbsp;    |
 
 ### ILABS_MODE (`INT32`) {#ILABS_MODE}
 
