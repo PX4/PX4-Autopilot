@@ -42,6 +42,7 @@
 
 #pragma once
 
+#include <cstddef>
 #include <math.h>
 #include <float.h>
 
@@ -132,6 +133,12 @@ public:
 	float sumDischarged(float current_a);
 	uint8_t determineWarning(float state_of_charge);
 	void updateDt(const hrt_abstime &timestamp);
+
+	/**
+	 * Compute max-min delta over a cell-voltage array. Cells with value <= 0 are ignored.
+	 * @return Delta in volts, or 0 if no valid cells.
+	 */
+	static float computeMaxCellVoltageDelta(const float *cells, size_t n);
 
 protected:
 	static constexpr float LITHIUM_BATTERY_RECOGNITION_VOLTAGE = 2.1f;

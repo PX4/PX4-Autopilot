@@ -370,6 +370,28 @@ void Battery::computeScale()
 	}
 }
 
+float Battery::computeMaxCellVoltageDelta(const float *cells, size_t n)
+{
+	float v_min = FLT_MAX;
+	float v_max = 0.f;
+
+	for (size_t i = 0; i < n; i++) {
+		const float v = cells[i];
+
+		if (v > 0.f) {
+			if (v < v_min) {
+				v_min = v;
+			}
+
+			if (v > v_max) {
+				v_max = v;
+			}
+		}
+	}
+
+	return (v_max > 0.f && v_min <= v_max) ? (v_max - v_min) : 0.f;
+}
+
 float Battery::computeRemainingTime(float current_a)
 {
 	float time_remaining_s = NAN;
