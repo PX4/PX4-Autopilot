@@ -399,7 +399,7 @@ void SimulatorXPlane::send_dref(const char *name, float value)
 	memset(pkt + 9, 0, 500);
 	size_t nlen = strlen(name);
 	if (nlen > 499) { nlen = 499; }
-	memcpy(pkt + 9, name, nlen);
+	strcpy((char *)pkt + 9, name);
 	udp_send(pkt, sizeof(pkt));
 }
 
