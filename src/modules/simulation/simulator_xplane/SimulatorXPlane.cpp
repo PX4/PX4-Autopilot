@@ -394,7 +394,7 @@ void SimulatorXPlane::send_dref(const char *name, float value)
 {
 	// "DREF\0" (5) + float32_le (4) + 500-byte null-padded name = 509
 	uint8_t pkt[509];
-	memcpy(pkt,     "DREF\0", 5);
+	strcpy((char *)pkt,     "DREF\0");
 	memcpy(pkt + 5, &value, 4);
 	memset(pkt + 9, 0, 500);
 	size_t nlen = strlen(name);
