@@ -43,10 +43,13 @@
 
 #include "sensors.hpp"
 
-#include <cstring>
-#include <lib/drivers/device/Device.hpp>
+#if !defined(CONSTRAINED_FLASH)
+# include <lib/drivers/device/Device.hpp>
+#endif // !CONSTRAINED_FLASH
 
 ModuleBase::Descriptor Sensors::desc{task_spawn, custom_command, print_usage};
+
+#if !defined(CONSTRAINED_FLASH)
 
 namespace
 {
@@ -57,7 +60,6 @@ struct SensorCalibrationSummary {
 };
 
 struct PrintedSensor {
-	const char *sensor;
 	uint32_t device_id;
 };
 
@@ -75,11 +77,10 @@ bool get_calibration_param(const char *sensor, uint8_t instance, const char *cal
 	return param_get(handle, &value) == PX4_OK;
 }
 
-bool was_printed(const PrintedSensor *printed_sensors, uint8_t printed_sensor_count, const char *sensor,
-		 uint32_t device_id)
+bool was_printed(const PrintedSensor *printed_sensors, uint8_t printed_sensor_count, uint32_t device_id)
 {
 	for (uint8_t i = 0; i < printed_sensor_count; i++) {
-		if ((printed_sensors[i].device_id == device_id) && (strcmp(printed_sensors[i].sensor, sensor) == 0)) {
+		if (printed_sensors[i].device_id == device_id) {
 			return true;
 		}
 	}
@@ -90,9 +91,12 @@ bool was_printed(const PrintedSensor *printed_sensors, uint8_t printed_sensor_co
 void print_sensor_configuration_row(const char *sensor, uint8_t instance, uint32_t device_id, bool has_rotation,
 				    PrintedSensor *printed_sensors, uint8_t &printed_sensor_count)
 {
-	if (device_id == 0 || was_printed(printed_sensors, printed_sensor_count, sensor, device_id)) {
+	if (device_id == 0 || was_printed(printed_sensors, printed_sensor_count, device_id)) {
 		return;
 	}
+
+	device::Device::DeviceId id{};
+	id.devid = device_id;
 
 	const bool external = calibration::DeviceExternal(device_id);
 	int32_t priority = external ? 75 : 50;
@@ -106,9 +110,6 @@ void print_sensor_configuration_row(const char *sensor, uint8_t instance, uint32
 			get_calibration_param(sensor, calibration_index, "ROT", rotation);
 		}
 	}
-
-	char device_description[40] {};
-	device::Device::device_id_print_buffer(device_description, sizeof(device_description), device_id);
 
 	char calibration_description[8] {};
 
@@ -128,12 +129,13 @@ void print_sensor_configuration_row(const char *sensor, uint8_t instance, uint32
 		snprintf(rotation_description, sizeof(rotation_description), "-");
 	}
 
-	PX4_INFO_RAW("%-5s %-4" PRIu8 " %-4s %-10" PRIu32 " %-36s %-8" PRId32 " %-8s %-7s\n",
-		     sensor, instance, calibration_description, device_id, device_description, priority,
-		     rotation_description, external ? "External" : "Internal");
+	PX4_INFO_RAW("%-5s %-4" PRIu8 " %-4s %-10" PRIu32 " %-4u %-6u %-8" PRId32 " %-8s %-7s\n",
+		     sensor, instance, calibration_description, device_id, static_cast<unsigned>(id.devid_s.bus),
+		     static_cast<unsigned>(id.devid_s.devtype), priority, rotation_description,
+		     external ? "External" : "Internal");
 
 	if (printed_sensor_count < MAX_SENSOR_COUNT * 4) {
-		printed_sensors[printed_sensor_count++] = {sensor, device_id};
+		printed_sensors[printed_sensor_count++] = {device_id};
 	}
 }
 
@@ -147,8 +149,8 @@ void print_sensor_configuration_summary()
 	};
 
 	PX4_INFO_RAW("Sensor configuration:\n");
-	PX4_INFO_RAW("%-5s %-4s %-4s %-10s %-36s %-8s %-8s %-7s\n",
-		     "Type", "Inst", "Cal", "Device ID", "Bus/Type", "Priority", "Rotation", "Location");
+	PX4_INFO_RAW("%-5s %-4s %-4s %-10s %-4s %-6s %-8s %-8s %-7s\n",
+		     "Type", "Inst", "Cal", "Device ID", "Bus", "DevType", "Priority", "Rotation", "Location");
 
 	PrintedSensor printed_sensors[MAX_SENSOR_COUNT * 4] {};
 	uint8_t printed_sensor_count = 0;
@@ -212,6 +214,8 @@ void print_sensor_configuration_summary()
 }
 
 } // namespace
+
+#endif // !CONSTRAINED_FLASH
 
 Sensors::Sensors(bool hil_enabled) :
 	ModuleParams(nullptr),
@@ -837,8 +841,10 @@ int Sensors::task_spawn(int argc, char *argv[])
 
 int Sensors::print_status()
 {
+#if !defined(CONSTRAINED_FLASH)
 	print_sensor_configuration_summary();
 	PX4_INFO_RAW("\n");
+#endif // !CONSTRAINED_FLASH
 
 	_voted_sensors_update.printStatus();
 
