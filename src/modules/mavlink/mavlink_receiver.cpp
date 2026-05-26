@@ -1952,23 +1952,28 @@ MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
 	}
 
 	battery_status.voltage_v = voltage_sum;
-	battery_status.current_a = (float)(battery_mavlink.current_battery) / 100.0f;
-	battery_status.remaining = (float)battery_mavlink.battery_remaining / 100.0f;
+	battery_status.current_a = (battery_mavlink.current_battery == -1) ?
+				   -1.0f : (float)(battery_mavlink.current_battery) / 100.0f;
+	battery_status.remaining = (battery_mavlink.battery_remaining == -1) ?
+				   -1.0f : (float)battery_mavlink.battery_remaining / 100.0f;
 	battery_status.discharged_mah = (float)battery_mavlink.current_consumed;
 	battery_status.cell_count = cell_count;
-	battery_status.temperature = (float)battery_mavlink.temperature;
+	battery_status.temperature = (battery_mavlink.temperature == INT16_MAX) ?
+				     NAN : (float)battery_mavlink.temperature / 100.0f;
 	battery_status.connected = true;
 
-	// Set the battery warning based on remaining charge.
+	// Set the battery warning based on remaining charge, if available.
 	//  Note: Smallest values must come first in evaluation.
-	if (battery_status.remaining < _param_bat_emergen_thr.get()) {
-		battery_status.warning = battery_status_s::WARNING_EMERGENCY;
+	if (battery_status.remaining >= 0.0f) {
+		if (battery_status.remaining < _param_bat_emergen_thr.get()) {
+			battery_status.warning = battery_status_s::WARNING_EMERGENCY;
 
-	} else if (battery_status.remaining < _param_bat_crit_thr.get()) {
-		battery_status.warning = battery_status_s::WARNING_CRITICAL;
+		} else if (battery_status.remaining < _param_bat_crit_thr.get()) {
+			battery_status.warning = battery_status_s::WARNING_CRITICAL;
 
-	} else if (battery_status.remaining < _param_bat_low_thr.get()) {
-		battery_status.warning = battery_status_s::WARNING_LOW;
+		} else if (battery_status.remaining < _param_bat_low_thr.get()) {
+			battery_status.warning = battery_status_s::WARNING_LOW;
+		}
 	}
 
 	_battery_pub.publish(battery_status);

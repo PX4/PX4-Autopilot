@@ -119,6 +119,7 @@ void Ekf::controlEvYawFusion(const imuSample &imu_sample, const extVisionSample 
 					aid_src.time_last_fuse = _time_delayed_us;
 
 					if (_control_status.flags.in_air) {
+						resetGyroBiasZCov();
 						_nb_ev_yaw_reset_available--;
 					}
 
