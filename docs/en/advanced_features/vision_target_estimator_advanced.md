@@ -282,21 +282,28 @@ When a delayed scalar measurement arrives with timestamp $t_{meas}$:
 2. **Predict**: use the KF model to predict the state $(x_{meas}, P_{meas})$ using $\Delta t = t_{meas} - t_{old}$ (for the orientation filter the control-input term is omitted).
 
    $$
-     x_{meas} = \Phi(\Delta t) x_{old} + G a^{uav}_{old} \\
-     P_{meas} = \Phi(\Delta t)P_{old}\Phi^T(\Delta t) + Q_d(\Delta t)
+   \begin{aligned}
+     x_{meas} &= \Phi(\Delta t)\,x_{old} + G\,a^{uav}_{old} \\
+     P_{meas} &= \Phi(\Delta t)\,P_{old}\,\Phi^T(\Delta t) + Q_d(\Delta t)
+   \end{aligned}
    $$
 
 3. **Innovate**: compute the innovation $y$ and innovation variance $S$:
 
    $$
-   y = z - Hx_{meas} \\
-   S = H P_{meas} H^T + R
+   \begin{aligned}
+   y &= z - H\,x_{meas} \\
+   S &= H\,P_{meas}\,H^T + R
+   \end{aligned}
    $$
 
 4. **Correct**: compute the optimal correction vector:
 
    $$
-     \delta x_{meas} = Ky  \\ \thickspace K = P_{meas} H^T S^{-1}
+   \begin{aligned}
+     \delta x_{meas} &= K\,y \\
+     K &= P_{meas}\,H^T\,S^{-1}
+   \end{aligned}
    $$
 
 5. **Project**: project this correction forward with the state transition matrix $\Phi(\Delta t)$:
@@ -309,9 +316,11 @@ When a delayed scalar measurement arrives with timestamp $t_{meas}$:
    The corrected posterior at $t_{meas}$ is also written back into the history (replacing or inserting a sample at that timestamp), so a second delayed measurement in the same interval replays from the already-corrected state instead of from the stale pre-measurement floor.
 
    $$
-   K_{i} = \Phi(t_{i} - t_{meas})K \\
-   x_{i} = x_{i} + K_{i}y \\
-   P_{i} = P_{i} - K_{i}SK_{i}^T
+   \begin{aligned}
+   K_{i} &= \Phi(t_{i} - t_{meas})\,K \\
+   x_{i} &= x_{i} + K_{i}\,y \\
+   P_{i} &= P_{i} - K_{i}\,S\,K_{i}^T
+   \end{aligned}
    $$
 
 Updating the history buffer keeps it self-consistent for subsequent delayed measurements and provides the practical benefits of a lag-smoother while remaining deterministic (fixed buffer, bounded runtime) and avoiding a full backward smoother over the timeline.
@@ -320,8 +329,10 @@ The state prediction includes the control input, $x_{k+1} = \Phi x_k + G u_k$.
 When projecting the correction forward, the $Gu_{k}$ term does not need to be used explicitly because it cancels out:
 
 $$
-(x'_{k+1} - x_{k+1}) = (\Phi x'_k + G u_k) - (\Phi x_k + G u_k) \\
-\Delta x_{k+1} = \Phi (x'_k - x_k) = \Phi \Delta x_k
+\begin{aligned}
+(x'_{k+1} - x_{k+1}) &= (\Phi\,x'_k + G\,u_k) - (\Phi\,x_k + G\,u_k) \\
+\Delta x_{k+1} &= \Phi\,(x'_k - x_k) = \Phi\,\Delta x_k
+\end{aligned}
 $$
 
 ### OOSM Approximation Assumptions
@@ -329,8 +340,10 @@ $$
 In Algorithm I of _Zhang et al. Optimal Update with Out-of-Sequence Measurements_, the optimal gain for an Out-of-Sequence Measurement (OOSM) depends on $U_{k,d}$, which represents the cross-covariance between the current state $x_k$ and the past-state error $\tilde{x}_{d|k}$:
 
 $$
-\hat{x}_{k|k,d} = \hat{x}_{k|k} + K_d (z_d - H_d \hat{x}_{d|k}) \\
-K_d = U_{k,d} H_d^T S_d^{-1}
+\begin{aligned}
+\hat{x}_{k|k,d} &= \hat{x}_{k|k} + K_d\,(z_d - H_d\,\hat{x}_{d|k}) \\
+K_d &= U_{k,d}\,H_d^T\,S_d^{-1}
+\end{aligned}
 $$
 
 With the optimal recursion Eq. 5:
