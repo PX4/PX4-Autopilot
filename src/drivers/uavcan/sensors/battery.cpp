@@ -45,6 +45,9 @@ UavcanBatteryBridge::UavcanBatteryBridge(uavcan::INode &node, NodeInfoPublisher 
 	_sub_battery(node),
 	_sub_battery_aux(node),
 	_sub_cbat(node),
+	_sub_battery_continuous(node),
+	_sub_battery_periodic(node),
+	_sub_battery_cells(node),
 	_warning(battery_status_s::WARNING_NONE),
 	_last_timestamp(0)
 {
@@ -86,6 +89,27 @@ int UavcanBatteryBridge::init()
 		return res;
 	}
 
+	res = _sub_battery_continuous.start(BatteryContinuousCbBinder(this, &UavcanBatteryBridge::battery_continuous_sub_cb));
+
+	if (res < 0) {
+		PX4_ERR("failed to start uavcan sub: %d", res);
+		return res;
+	}
+
+	res = _sub_battery_periodic.start(BatteryPeriodicCbBinder(this, &UavcanBatteryBridge::battery_periodic_sub_cb));
+
+	if (res < 0) {
+		PX4_ERR("failed to start uavcan sub: %d", res);
+		return res;
+	}
+
+	res = _sub_battery_cells.start(BatteryCellsCbBinder(this, &UavcanBatteryBridge::battery_cells_sub_cb));
+
+	if (res < 0) {
+		PX4_ERR("failed to start uavcan sub: %d", res);
+		return res;
+	}
+
 	return 0;
 }
 
@@ -106,7 +130,8 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 	}
 
 	if (instance >= battery_status_s::MAX_INSTANCES
-	    || _batt_update_mod[instance] == BatteryDataType::CBAT) {
+	    || _batt_update_mod[instance] == BatteryDataType::CBAT
+	    || _batt_update_mod[instance] == BatteryDataType::Multi) {
 		return;
 	}
 
@@ -175,7 +200,8 @@ UavcanBatteryBridge::battery_aux_sub_cb(const uavcan::ReceivedDataStructure<ardu
 
 	if (instance >= battery_status_s::MAX_INSTANCES
 	    || _batt_update_mod[instance] == BatteryDataType::Filter
-	    || _batt_update_mod[instance] == BatteryDataType::CBAT) {
+	    || _batt_update_mod[instance] == BatteryDataType::CBAT
+	    || _batt_update_mod[instance] == BatteryDataType::Multi) {
 		return;
 	}
 
@@ -221,7 +247,8 @@ void UavcanBatteryBridge::cbat_sub_cb(const uavcan::ReceivedDataStructure<cuav::
 	}
 
 	if (instance >= battery_status_s::MAX_INSTANCES
-	    || _batt_update_mod[instance] == BatteryDataType::Filter) {
+	    || _batt_update_mod[instance] == BatteryDataType::Filter
+	    || _batt_update_mod[instance] == BatteryDataType::Multi) {
 		return;
 	}
 
@@ -299,6 +326,221 @@ void UavcanBatteryBridge::cbat_sub_cb(const uavcan::ReceivedDataStructure<cuav::
 		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
 				_node_ids[instance], NodeInfoPublisher::DeviceCapability::BATTERY);
 	}
+}
+
+void
+UavcanBatteryBridge::battery_continuous_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::equipment::power::BatteryContinuous>
+		&msg)
+{
+	using BatteryContinuous = ardupilot::equipment::power::BatteryContinuous;
+
+	uint8_t instance = 0;
+
+	for (instance = 0; instance < battery_status_s::MAX_INSTANCES; instance++) {
+		if (_node_ids[instance] == msg.getSrcNodeID().get() || _node_ids[instance] == 0) {
+			break;
+		}
+	}
+
+	if (instance >= battery_status_s::MAX_INSTANCES
+	    || _batt_update_mod[instance] == BatteryDataType::Filter) {
+		return;
+	}
+
+	// Take ownership of this node_id and suppress legacy battery messages from it.
+	_batt_update_mod[instance] = BatteryDataType::Multi;
+	_node_ids[instance] = msg.getSrcNodeID().get();
+
+	_battery_status[instance].timestamp = hrt_absolute_time();
+	_battery_status[instance].voltage_v = msg.voltage;
+	_battery_status[instance].current_a = msg.current;
+
+	_battery_status[instance].temperature = msg.temperature_cells;
+
+	_battery_status[instance].remaining = msg.state_of_charge / 100.f;
+	_battery_status[instance].discharged_mah = msg.capacity_consumed * 1000.f;
+
+	_battery_status[instance].scale = -1.f;
+	_battery_status[instance].connected = true;
+	_battery_status[instance].source = battery_status_s::SOURCE_EXTERNAL;
+	_battery_status[instance].id = msg.getSrcNodeID().get();
+
+	// use Battery class for time_remaining calculation
+	_battery[instance]->updateDt(_battery_status[instance].timestamp);
+	_battery[instance]->setStateOfCharge(_battery_status[instance].remaining);
+	_battery_status[instance].time_remaining_s =
+		_battery[instance]->computeRemainingTime(fabsf(_battery_status[instance].current_a));
+	_battery_status[instance].current_average_a = _battery[instance]->getCurrentAverage();
+
+	uint16_t faults = 0;
+
+	if (msg.status_flags & BatteryContinuous::STATUS_FLAG_FAULT_OVER_CURRENT) {
+		faults |= (1 << battery_status_s::FAULT_OVER_CURRENT);
+	}
+
+	if (msg.status_flags & BatteryContinuous::STATUS_FLAG_FAULT_OVER_TEMP) {
+		faults |= (1 << battery_status_s::FAULT_OVER_TEMPERATURE);
+	}
+
+	if (msg.status_flags & BatteryContinuous::STATUS_FLAG_FAULT_UNDER_TEMP) {
+		faults |= (1 << battery_status_s::FAULT_UNDER_TEMPERATURE);
+	}
+
+	if (msg.status_flags & BatteryContinuous::STATUS_FLAG_FAULT_INCOMPATIBLE_VOLTAGE) {
+		faults |= (1 << battery_status_s::FAULT_INCOMPATIBLE_VOLTAGE);
+	}
+
+	if (msg.status_flags & BatteryContinuous::STATUS_FLAG_FAULT_INCOMPATIBLE_FIRMWARE) {
+		faults |= (1 << battery_status_s::FAULT_INCOMPATIBLE_FIRMWARE);
+	}
+
+	if (msg.status_flags & BatteryContinuous::STATUS_FLAG_FAULT_INCOMPATIBLE_CELLS_CONFIGURATION) {
+		faults |= (1 << battery_status_s::FAULT_INCOMPATIBLE_MODEL);
+	}
+
+	if (msg.status_flags & (BatteryContinuous::STATUS_FLAG_FAULT_SHORT_CIRCUIT
+				| BatteryContinuous::STATUS_FLAG_FAULT_PROTECTION_SYSTEM
+				| BatteryContinuous::STATUS_FLAG_FAULT_CELL_IMBALANCE
+				| BatteryContinuous::STATUS_FLAG_BAD_BATTERY)) {
+		faults |= (1 << battery_status_s::FAULT_HARDWARE_FAILURE);
+	}
+
+	if (msg.status_flags & BatteryContinuous::STATUS_FLAG_FAULT_UNDER_VOLT) {
+		faults |= (1 << battery_status_s::FAULT_DEEP_DISCHARGE);
+	}
+
+	_battery_status[instance].faults = faults;
+
+	if (faults != 0) {
+		_battery_status[instance].warning = battery_status_s::STATE_UNHEALTHY;
+
+	} else if (msg.status_flags & BatteryContinuous::STATUS_FLAG_CHARGING) {
+		_battery_status[instance].warning = battery_status_s::STATE_CHARGING;
+
+	} else {
+		_battery_status[instance].warning = _battery[instance]->determineWarning(_battery_status[instance].remaining);
+	}
+
+	publish(msg.getSrcNodeID().get(), &_battery_status[instance]);
+
+	if (_node_info_publisher != nullptr) {
+		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
+				msg.getSrcNodeID().get(), NodeInfoPublisher::DeviceCapability::BATTERY);
+	}
+}
+
+void
+UavcanBatteryBridge::battery_periodic_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::equipment::power::BatteryPeriodic>
+		&msg)
+{
+	uint8_t instance = 0;
+
+	for (instance = 0; instance < battery_status_s::MAX_INSTANCES; instance++) {
+		if (_node_ids[instance] == msg.getSrcNodeID().get() || _node_ids[instance] == 0) {
+			break;
+		}
+	}
+
+	if (instance >= battery_status_s::MAX_INSTANCES
+	    || _batt_update_mod[instance] == BatteryDataType::Filter) {
+		return;
+	}
+
+	_batt_update_mod[instance] = BatteryDataType::Multi;
+	_node_ids[instance] = msg.getSrcNodeID().get();
+
+	_battery_status[instance].cell_count = msg.cells_in_series;
+	_battery_status[instance].nominal_voltage = (float)msg.nominal_voltage > FLT_EPSILON ? (float)msg.nominal_voltage : NAN;
+
+	float capacity_mah = 0.f;
+
+	// if the Battery has an full_charge_estimate, use this, otherwise use the design_capacity as a fallback
+	if (PX4_ISFINITE(msg.full_charge_capacity)) {
+		capacity_mah = msg.full_charge_capacity * 1000.f;
+
+	} else if (msg.design_capacity > 0.f) {
+		capacity_mah = msg.design_capacity * 1000.f;
+	}
+
+	_battery_status[instance].capacity = (uint16_t)capacity_mah;
+
+	// if nominal voltage or capacity is not provided, both of them are zero. resulting in a full_charge_capacity_wh of zero
+	_battery_status[instance].full_charge_capacity_wh = capacity_mah * msg.nominal_voltage / 1000.f;
+
+	if (capacity_mah > FLT_EPSILON) { // if neither design_capacity nor full_charge_estimate is provided, use param
+		_battery[instance]->setCapacityMah(_battery_status[instance].capacity);
+	}
+
+	if (msg.cycle_count != UINT16_MAX) {
+		_battery_status[instance].cycle_count = msg.cycle_count;
+	}
+
+	if (msg.state_of_health != UINT8_MAX) {
+		_battery_status[instance].state_of_health = msg.state_of_health;
+	}
+
+	// Parse manufacture_date "DDMMYYYY" ASCII into Day + Month*32 + (Year-1980)*512
+	if (msg.manufacture_date.size() >= 8) {
+		char buf[9] = {};
+
+		for (size_t i = 0; i < 8 && i < msg.manufacture_date.size(); i++) {
+			buf[i] = (char)msg.manufacture_date[i];
+		}
+
+		int day = 0, month = 0, year = 0;
+
+		if (sscanf(buf, "%2d%2d%4d", &day, &month, &year) == 3
+		    && day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 1980) {
+			_battery_status[instance].manufacture_date = (uint16_t)(day + month * 32 + (year - 1980) * 512);
+		}
+	}
+
+	// Publish battery_info on every Periodic message.
+	_battery_info[instance].timestamp = hrt_absolute_time();
+	_battery_info[instance].id = msg.getSrcNodeID().get();
+	memset(_battery_info[instance].serial_number, 0, sizeof(_battery_info[instance].serial_number));
+	memcpy(_battery_info[instance].serial_number, msg.serial_number.begin(),
+	       math::min((size_t)msg.serial_number.size(), sizeof(_battery_info[instance].serial_number) - 1));
+
+	_battery_info_pub[instance].publish(_battery_info[instance]);
+}
+
+void
+UavcanBatteryBridge::battery_cells_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::equipment::power::BatteryCells>
+		&msg)
+{
+	uint8_t instance = 0;
+
+	for (instance = 0; instance < battery_status_s::MAX_INSTANCES; instance++) {
+		if (_node_ids[instance] == msg.getSrcNodeID().get() || _node_ids[instance] == 0) {
+			break;
+		}
+	}
+
+	if (instance >= battery_status_s::MAX_INSTANCES
+	    || _batt_update_mod[instance] == BatteryDataType::Filter) {
+		return;
+	}
+
+	_batt_update_mod[instance] = BatteryDataType::Multi;
+	_node_ids[instance] = msg.getSrcNodeID().get();
+
+	// uORB holds 14 cells; BatteryCells supports more
+	constexpr size_t max_cells = sizeof(_battery_status[0].voltage_cell_v) / sizeof(_battery_status[0].voltage_cell_v[0]);
+
+	// BatteryCells are chunked and provide the start offset in msg.index.
+	for (size_t i = 0; i < msg.voltages.size(); i++) {
+		const size_t cell_idx = msg.index + i;
+
+		if (cell_idx >= max_cells) {
+			break;
+		}
+
+		_battery_status[instance].voltage_cell_v[cell_idx] = msg.voltages[i];
+	}
+
+	_battery_status[instance].max_cell_voltage_delta =
+		Battery::computeMaxCellVoltageDelta(_battery_status[instance].voltage_cell_v, max_cells);
 }
 
 void
