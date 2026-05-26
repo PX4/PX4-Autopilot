@@ -42,6 +42,9 @@
 #include <uORB/topics/battery_status.h>
 #include <uavcan/equipment/power/BatteryInfo.hpp>
 #include <ardupilot/equipment/power/BatteryInfoAux.hpp>
+#include <ardupilot/equipment/power/BatteryContinuous.hpp>
+#include <ardupilot/equipment/power/BatteryPeriodic.hpp>
+#include <ardupilot/equipment/power/BatteryCells.hpp>
 #include <cuav/equipment/power/CBAT.hpp>
 #include <battery/battery.h>
 #include <drivers/drv_hrt.h>
@@ -70,11 +73,15 @@ private:
 		RawAux, // data combination from BatteryInfo and BatteryInfoAux messages
 		Filter, // filter data from BatteryInfo message with Battery library
 		CBAT, // CBAT messages
+		Multi, // multi-message smart battery (e.g. ardupilot BatteryContinuous/Periodic/Cells trio)
 	};
 
 	void battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::power::BatteryInfo> &msg);
 	void battery_aux_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::equipment::power::BatteryInfoAux> &msg);
 	void cbat_sub_cb(const uavcan::ReceivedDataStructure<cuav::equipment::power::CBAT> &msg);
+	void battery_continuous_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::equipment::power::BatteryContinuous> &msg);
+	void battery_periodic_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::equipment::power::BatteryPeriodic> &msg);
+	void battery_cells_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::equipment::power::BatteryCells> &msg);
 	void filterData(const uavcan::ReceivedDataStructure<uavcan::equipment::power::BatteryInfo> &msg, uint8_t instance);
 
 	// Applies any active battery failure injection to _battery_status[instance] before publishing.
@@ -94,9 +101,25 @@ private:
 		(const uavcan::ReceivedDataStructure<cuav::equipment::power::CBAT> &) >
 		CBATCbBinder;
 
+	typedef uavcan::MethodBinder < UavcanBatteryBridge *,
+		void (UavcanBatteryBridge::*)
+		(const uavcan::ReceivedDataStructure<ardupilot::equipment::power::BatteryContinuous> &) >
+		BatteryContinuousCbBinder;
+	typedef uavcan::MethodBinder < UavcanBatteryBridge *,
+		void (UavcanBatteryBridge::*)
+		(const uavcan::ReceivedDataStructure<ardupilot::equipment::power::BatteryPeriodic> &) >
+		BatteryPeriodicCbBinder;
+	typedef uavcan::MethodBinder < UavcanBatteryBridge *,
+		void (UavcanBatteryBridge::*)
+		(const uavcan::ReceivedDataStructure<ardupilot::equipment::power::BatteryCells> &) >
+		BatteryCellsCbBinder;
+
 	uavcan::Subscriber<uavcan::equipment::power::BatteryInfo, BatteryInfoCbBinder> _sub_battery;
 	uavcan::Subscriber<ardupilot::equipment::power::BatteryInfoAux, BatteryInfoAuxCbBinder> _sub_battery_aux;
 	uavcan::Subscriber<cuav::equipment::power::CBAT, CBATCbBinder> _sub_cbat;
+	uavcan::Subscriber<ardupilot::equipment::power::BatteryContinuous, BatteryContinuousCbBinder> _sub_battery_continuous;
+	uavcan::Subscriber<ardupilot::equipment::power::BatteryPeriodic, BatteryPeriodicCbBinder> _sub_battery_periodic;
+	uavcan::Subscriber<ardupilot::equipment::power::BatteryCells, BatteryCellsCbBinder> _sub_battery_cells;
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::BAT_LOW_THR>) _param_bat_low_thr,
