@@ -15,6 +15,14 @@ float32 proportional_value
 float32 integrator_value
 float32 feed_forward_value
 
+float32 supply_voltage		# Supply voltage (V)
+float32 heater_current		# Heater current (A)
+float32 nominal_multiplier
+
 uint8 MODE_GPIO  = 1
 uint8 MODE_PX4IO = 2
 uint8 mode
+
+uint8 TEMPERATURE_SOURCE_IMU   = 0
+uint8 TEMPERATURE_SOURCE_HYGRO = 1
+uint8 temperature_source
