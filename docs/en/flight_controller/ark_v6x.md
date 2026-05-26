@@ -32,7 +32,7 @@ Order From [Ark Electronics](https://arkelectron.com/product/arkv6x/) (US)
 - [STM32H743IIK6 MCU](https://www.st.com/en/microcontrollers-microprocessors/stm32h743ii.html)
   - 480MHz
   - 2MB Flash
-  - 1MB Flash
+  - 1MB RAM
 
 ## Other Features
 
