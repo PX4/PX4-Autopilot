@@ -40,6 +40,7 @@
 
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/airspeed.h>
+#include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/estimator_selector_status.h>
 #include <uORB/topics/estimator_status.h>
@@ -540,10 +541,16 @@ private:
 
 	void update_airspeed()
 	{
-		airspeed_s airspeed;
+		airspeed_validated_s airspeed_validated;
 
-		if (_airspeed_sub.update(&airspeed)) {
-			_airspeed.add_value(airspeed.indicated_airspeed_m_s, _update_rate_filtered);
+		if (_airspeed_validated_sub.update(&airspeed_validated)) {
+			const bool airspeed_from_sensor = airspeed_validated.airspeed_source == airspeed_validated_s::SOURCE_SENSOR_1
+							  || airspeed_validated.airspeed_source == airspeed_validated_s::SOURCE_SENSOR_2
+							  || airspeed_validated.airspeed_source == airspeed_validated_s::SOURCE_SENSOR_3;
+
+			if (airspeed_from_sensor) {
+				_airspeed.add_value(airspeed_validated.calibrated_airspeed_m_s, _update_rate_filtered);
+			}
 		}
 	}
 
@@ -667,6 +674,7 @@ private:
 	uORB::Subscription _vehicle_thrust_setpoint_0_sub{ORB_ID(vehicle_thrust_setpoint), 0};
 	uORB::Subscription _vehicle_thrust_setpoint_1_sub{ORB_ID(vehicle_thrust_setpoint), 1};
 	uORB::Subscription _airspeed_sub{ORB_ID(airspeed)};
+	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
 	uORB::Subscription _attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _attitude_sp_sub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
