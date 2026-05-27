@@ -952,6 +952,9 @@ if __name__ == "__main__":
     versioned_msgs_list = ''
     historic_msgs_list = ''
     unversioned_msgs_list = ''
+    versioned_names = []
+    historic_names = []
+    unversioned_names = []
     msgTypes = set()
 
     for msg_file in msg_files:
@@ -970,16 +973,19 @@ if __name__ == "__main__":
             if message.shortDescription:
                 versioned_msgs_list += f" — {message.shortDescription}"
             versioned_msgs_list += "\n"
+            versioned_names.append(message.name)
         elif "px4_msgs_old" in msg_file:
             historic_msgs_list += f"- [{message.name}]({message.name}.md)"
             if message.shortDescription:
                 historic_msgs_list += f" — {message.shortDescription}"
             historic_msgs_list += "\n"
+            historic_names.append(message.name)
         else:
             unversioned_msgs_list += f"- [{message.name}]({message.name}.md)"
             if message.shortDescription:
                 unversioned_msgs_list += f" — {message.shortDescription}"
             unversioned_msgs_list += "\n"
+            unversioned_names.append(message.name)
     # Write out the index.md file
     index_text=f"""# uORB Message Reference
 
@@ -1011,5 +1017,19 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
     index_file = os.path.join(output_dir, 'index.md')
     with open(index_file, 'w', encoding='utf-8') as content_file:
             content_file.write(index_text)
+
+    fragment_lines = ['    - [uORB Message Reference](msg_docs/index.md)']
+    fragment_lines.append('      - [Versioned](msg_docs/versioned_messages.md)')
+    for name in versioned_names:
+        fragment_lines.append(f'        - [{name}](msg_docs/{name}.md)')
+    fragment_lines.append('        - [Historical](msg_docs/versioned_historical_messages.md)')
+    for name in historic_names:
+        fragment_lines.append(f'          - [{name}]({name}.md)')
+    fragment_lines.append('      - [Unversioned Messages](msg_docs/unversioned_messages.md)')
+    for name in unversioned_names:
+        fragment_lines.append(f'        - [{name}](msg_docs/{name}.md)')
+    fragment_file = os.path.join(output_dir, '_del_summary_fragment.txt')
+    with open(fragment_file, 'w', encoding='utf-8') as f:
+        f.write('\n'.join(fragment_lines) + '\n')
 
     generate_dds_yaml_doc(msg_files)
