@@ -33,7 +33,7 @@ The PingRX MAVLink port uses a JST ZHR-4 mating connector with pinout as shown b
 | Pin     | Signal   | Volt         |
 | ------- | -------- | ------------ |
 | 1 (red) | RX (IN)  | +5V tolerant |
-| 2 (blk) | TX (OUT) |
+| 2 (blk) | TX (OUT) |              |
 | 3 (blk) | Power    | +4 to 6V     |
 | 4 (blk) | GND      | GND          |
 
@@ -127,14 +127,20 @@ Set `DAA_STANDARD = 0` if you want the single-threshold traffic avoidance behavi
 <Badge type="tip" text="PX4 v1.18" />
 
 Use `DAA_STANDARD = 1` if you want staged alerting based on ASTM F3442/F3442M-23 volumes.
+
+<!--
+![volumes](../../assets/advanced/astmf3442.png)
+_Figure 1: Illustration from the ASTM F3442/F3442M − 23 standard showing the near mid-air collision (NMAC) and well clear (WC) safety zones, the NMAC Risk Ratio (RR), and the LoWC risk ratio (LR)._
+-->
+
 PX4 evaluates four conflict levels and maps each level to an action:
 
-| Parameter                                   | Description                                       |
-| ------------------------------------------- | ------------------------------------------------- |
-| <a id="DAA_LVL_LOW_ACT">[DAA_LVL_LOW_ACT]   | Action for the augmented well clear alert volume. |
-| <a id="DAA_LVL_MED_ACT">[DAA_LVL_MED_ACT]   | Action for the augmented NMAC alert volume.       |
-| <a id="DAA_LVL_HIGH_ACT">[DAA_LVL_HIGH_ACT] | Action for Loss of Well Clear (LoWC).             |
-| <a id="DAA_LVL_CRIT_ACT">[DAA_LVL_CRIT_ACT] | Action for Near Mid-Air Collision (NMAC).         |
+| Parameter                                       | Description                                       |
+| ----------------------------------------------- | ------------------------------------------------- |
+| <a id="DAA_LVL_LOW_ACT"></a>[DAA_LVL_LOW_ACT]   | Action for the augmented well clear alert volume. |
+| <a id="DAA_LVL_MED_ACT"></a>[DAA_LVL_MED_ACT]   | Action for the augmented NMAC alert volume.       |
+| <a id="DAA_LVL_HIGH_ACT"></a>[DAA_LVL_HIGH_ACT] | Action for Loss of Well Clear (LoWC).             |
+| <a id="DAA_LVL_CRIT_ACT"></a>[DAA_LVL_CRIT_ACT] | Action for Near Mid-Air Collision (NMAC).         |
 
 [DAA_LVL_LOW_ACT]: ../advanced_config/parameter_reference.md#DAA_LVL_LOW_ACT
 [DAA_LVL_MED_ACT]: ../advanced_config/parameter_reference.md#DAA_LVL_MED_ACT
@@ -144,13 +150,13 @@ PX4 evaluates four conflict levels and maps each level to an action:
 F3442 uses four nested cylindrical alert volumes.
 A conflict level is breached when both the horizontal and vertical separation are inside the combined ownship (the current vehicle) plus traffic volume.
 
-| Item           | Parameters                                 | Meaning                                                                                                 |
-| -------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
-| `CRITICAL`     | [F34_LVL_CRIT_RAD], [F34_LVL_CRIT_HGT]     | Per-aircraft NMAC base radius and vertical bound.                                                       |
-| `HIGH`         | [F34_LVL_HIGH_RAD], [F34_LVL_HIGH_HGT]     | Per-aircraft Well Clear base radius and vertical bound.                                                 |
-| `MEDIUM`       | [F34_LVL_MED_TIME]                         | Expands the NMAC base volume using aircraft speed and the configured time margin.                       |
-| `LOW`          | [F34_LVL_LOW_TIME]                         | Expands the Well Clear base volume using aircraft speed and the configured time margin.                 |
-| Velocity input | [DAA_EN_DFLT_VEL], [DAA_DFLT_VEL]          | Optional fallback vertical speed used by F3442 if traffic velocity is missing or should not be trusted. |
+| Item           | Parameters                             | Meaning                                                                                                 |
+| -------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `CRITICAL`     | [F34_LVL_CRIT_RAD], [F34_LVL_CRIT_HGT] | Per-aircraft NMAC base radius and vertical bound.                                                       |
+| `HIGH`         | [F34_LVL_HIGH_RAD], [F34_LVL_HIGH_HGT] | Per-aircraft Well Clear base radius and vertical bound.                                                 |
+| `MEDIUM`       | [F34_LVL_MED_TIME]                     | Expands the NMAC base volume using aircraft speed and the configured time margin.                       |
+| `LOW`          | [F34_LVL_LOW_TIME]                     | Expands the Well Clear base volume using aircraft speed and the configured time margin.                 |
+| Velocity input | [DAA_EN_DFLT_VEL], [DAA_DFLT_VEL]      | Optional fallback vertical speed used by F3442 if traffic velocity is missing or should not be trusted. |
 
 [F34_LVL_CRIT_RAD]: ../advanced_config/parameter_reference.md#F34_LVL_CRIT_RAD
 [F34_LVL_CRIT_HGT]: ../advanced_config/parameter_reference.md#F34_LVL_CRIT_HGT
