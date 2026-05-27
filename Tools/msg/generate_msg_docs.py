@@ -950,6 +950,7 @@ if __name__ == "__main__":
     msg_files.sort()
 
     versioned_msgs_list = ''
+    historic_msgs_list = ''
     unversioned_msgs_list = ''
     msgTypes = set()
 
@@ -963,12 +964,17 @@ if __name__ == "__main__":
         # Any additional tests that can't be in UORBMessage parser go here.
         message.markdown_out()
 
-        # Categorize as versioned or unversioned
+        # Categorize as versioned, historic versioned, or unversioned
         if "versioned" in msg_file:
             versioned_msgs_list += f"- [{message.name}]({message.name}.md)"
             if message.shortDescription:
                 versioned_msgs_list += f" — {message.shortDescription}"
             versioned_msgs_list += "\n"
+        elif "px4_msgs_old" in msg_file:
+            historic_msgs_list += f"- [{message.name}]({message.name}.md)"
+            if message.shortDescription:
+                historic_msgs_list += f" — {message.shortDescription}"
+            historic_msgs_list += "\n"
         else:
             unversioned_msgs_list += f"- [{message.name}]({message.name}.md)"
             if message.shortDescription:
@@ -990,7 +996,13 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 
 ## Versioned Messages
 
+### Current Versions
+
 {versioned_msgs_list}
+
+### Historic Versions
+
+{historic_msgs_list}
 
 ## Unversioned Messages
 
