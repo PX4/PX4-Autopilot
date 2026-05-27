@@ -133,13 +133,35 @@ The current implementation simply drops the additional fields (including informa
 
 ## Testing/Simulated ADSB Traffic
 
-You can simulate ADS-B traffic for testing.
-Note that this requires that you [Build PX4](../dev_setup/building_px4.md).
-
 ::: info
 Simulated ADS-B traffic can trigger real failsafe actions.
 Use with care in real flight!
 :::
+
+### sensor_adsb_sim
+
+The `sensor_adsb_sim` module publishes continuous ADS-B transponder reports for simulated aircraft around the vehicle.
+It is the recommended way to test traffic avoidance in [Gazebo](../sim_gazebo_gz/index.md) and [SIH](../sim_sih/index.md) simulations.
+
+To enable it, set [SENS_EN_ADSBSIM](../advanced_config/parameter_reference.md#SENS_EN_ADSBSIM) to `1` and reboot the simulator.
+The module starts automatically and begins publishing traffic.
+
+The simulated traffic can be tuned using the following parameters:
+
+| Parameter                                                                                                      | Description                                                                                          |
+| -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| <a id="SENS_EN_ADSBSIM"></a>[SENS_EN_ADSBSIM](../advanced_config/parameter_reference.md#SENS_EN_ADSBSIM)       | Enable simulated ADS-B sensor (`1`: enabled). Requires reboot. Default: `0`.                         |
+| <a id="SIM_ADSB_COUNT"></a>[SIM_ADSB_COUNT](../advanced_config/parameter_reference.md#SIM_ADSB_COUNT)         | Number of simulated aircraft (0–10). Default: `10`.                                                  |
+| <a id="SIM_ADSB_RADIUS"></a>[SIM_ADSB_RADIUS](../advanced_config/parameter_reference.md#SIM_ADSB_RADIUS)       | Radius around the vehicle within which simulated aircraft are maintained (metres). Default: `10000`. |
+| <a id="SIM_ADSB_ALT"></a>[SIM_ADSB_ALT](../advanced_config/parameter_reference.md#SIM_ADSB_ALT)               | Spawn altitude for simulated aircraft (metres MSL). Default: `1000`.                                 |
+
+Each simulated aircraft is assigned a stable ICAO address, spawned at a random bearing and distance within `SIM_ADSB_RADIUS`, and flies at a constant random heading and speed.
+Aircraft that leave the radius or go out of bounds are re-spawned at a new random position.
+
+### navigator fake_traffic
+
+You can also inject a one-shot batch of hardcoded transponder reports using the `navigator fake_traffic` shell command.
+Note that this requires that you [Build PX4](../dev_setup/building_px4.md).
 
 To enable this feature:
 

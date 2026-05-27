@@ -68,6 +68,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 ### Simulation
 
 - SIH: Add option to set wind velocity ([PX4-Autopilot#26467](https://github.com/PX4-Autopilot/pull/26467))
+- [Simulated ADS-B traffic](../peripherals/adsb_flarm.md#sensor_adsb_sim): new `sensor_adsb_sim` module that continuously publishes ADS-B transponder reports for randomised aircraft around the vehicle in SITL and SIH simulations. Enable with `SENS_EN_ADSBSIM=1`. ([PX4-Autopilot#27409](https://github.com/PX4/PX4-Autopilot/pull/27409))
 
 <!-- MOVED THIS TO v1.17
 

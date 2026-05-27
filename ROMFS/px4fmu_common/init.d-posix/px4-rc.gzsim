@@ -199,3 +199,7 @@ if param compare -s SENS_EN_ARSPDSIM 1
 then
 	sensor_airspeed_sim start
 fi
+if param compare -s SENS_EN_ADSBSIM 1
+then
+	sensor_adsb_sim start
+fi
