@@ -72,8 +72,7 @@ bool PlannerPolygons::addPolygon(const matrix::Vector2f *vertices_in, int num_ve
 	};
 
 	PolygonInfo &poly = _polygons[_num_polygons];
-	poly.start_index    = _num_nodes;
-	poly.num_vertices   = num_vertices;
+	poly.start_index  = _num_nodes;
 	poly.is_inclusion = is_inclusion_zone;
 
 	if (margin < -FLT_EPSILON) {
@@ -86,6 +85,8 @@ bool PlannerPolygons::addPolygon(const matrix::Vector2f *vertices_in, int num_ve
 	//  - inward for exclusion (CCW)
 	//  - outward for inclusion (CW)
 	const float inward_sign = is_inclusion_zone ? -1.f : 1.f;
+
+	int out_idx = 0;
 
 	for (int i = 0; i < num_vertices; i++) {
 		const int prev = (i + num_vertices - 1) % num_vertices;
@@ -115,27 +116,68 @@ bool PlannerPolygons::addPolygon(const matrix::Vector2f *vertices_in, int num_ve
 			return false; // antiparallel edges - polygon doubles back
 		}
 
-		bisector /= bisector_len;
-		// Exclusion: expand outward (against inward bisector). Inclusion: shrink inward (along it).
-		setNode(poly.start_index + i, vertex(i) - inward_sign * margin * bisector);
+		const matrix::Vector2f normalized_bisector = bisector / bisector_len;
+
+		// The following bit ensures that:
+		//  - The original edges are moved away from the forbidden interior by `margin`
+		//  - If sharp corners (<60deg) exist, they are "cut off" with a new edge that is
+		//    exactly `margin` away from the original vertex. For this the vertex is replaced
+		//    by two new ones.
+
+		// Direction to move vertices away from the forbidden region.
+		const float step = -inward_sign * margin;
+
+		// Scaling needed wrt the normalised bisector to achieve parallel edges
+		const float offset_scale = 2.f / bisector_len;
+
+		// If we do not have enough space, do not split the vertex.
+		// This never happens if the planner-internal node buffer is 2x the original buffer.
+		const bool space_for_split_vertices = _num_nodes + out_idx + 1 < kMaxNodes;
+
+		// bisector_len = 2*sin(interior angle/2); split when interior angle < 60 deg, i.e. bisector_len < 1.
+		if (bisector_len < 1.0f && space_for_split_vertices) {
+
+			// Sharp corner: cut it off along the line
+			//  - perpendicular to normalized_bisector
+			//  - going through base := vertex(i) + normalized_bisector * step
+
+			const matrix::Vector2f base = vertex(i) + normalized_bisector * step;
+			const matrix::Vector2f perp = {-normalized_bisector(1), normalized_bisector(0)};
+
+			// Construct s such that:
+			//  base + perp*s is on the offset incoming edge
+			//  base - perp*s is on the offset outgoing edge
+			const float e_out_dot_b = edge_out_normalized.dot(normalized_bisector);
+			const float s = step * (n_out.dot(normalized_bisector) - 1.f) / e_out_dot_b;
+
+			setNode(poly.start_index + out_idx++, base + perp * s);
+			setNode(poly.start_index + out_idx++, base - perp * s);
+
+		} else {
+			// Regular corner or no space for split: single bisector vertex displaced by margin / sin(interior angle/2).
+			setNode(poly.start_index + out_idx++, vertex(i) + normalized_bisector * (step * offset_scale));
+		}
 	}
 
-	computeBoundingBox(poly.start_index, num_vertices, poly.min_x, poly.max_x, poly.min_y, poly.max_y);
+	const int num_out = out_idx;
+	poly.num_vertices = num_out;
+
+	computeBoundingBox(poly.start_index, num_out, poly.min_x, poly.max_x, poly.min_y, poly.max_y);
 
 	// In canonical orientation, the node is not possibly on the shortest
 	// path if the vertex curves right or straight (forbidden region >= 180
 	// deg)
-	for (int i = 0; i < num_vertices; i++) {
-		const int prev = poly.start_index + (i + num_vertices - 1) % num_vertices;
+	for (int i = 0; i < num_out; i++) {
+		const int prev = poly.start_index + (i + num_out - 1) % num_out;
 		const int curr = poly.start_index + i;
-		const int next = poly.start_index + (i + 1) % num_vertices;
+		const int next = poly.start_index + (i + 1) % num_out;
 		const bool curves_right_or_straight = orient2d(_x_cm[prev], _y_cm[prev],
 						      _x_cm[curr], _y_cm[curr],
 						      _x_cm[next], _y_cm[next]) <= 0;
 		_node_not_on_optimal_path[curr] = curves_right_or_straight;
 	}
 
-	_num_nodes += num_vertices;
+	_num_nodes += num_out;
 	++_num_polygons;
 	return true;
 }

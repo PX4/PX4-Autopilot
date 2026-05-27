@@ -184,7 +184,7 @@ bool isPolygonCCW(const matrix::Vector2f *vertices, int num_vertices);
 class PlannerPolygons
 {
 public:
-	static constexpr int kMaxNodes = 100;
+	static constexpr int kMaxNodes = 200; // 2x to handle worst-case sharp-corner splits
 	static constexpr int kMaxPolygons = 16;
 
 	PlannerPolygons() { reset(); }

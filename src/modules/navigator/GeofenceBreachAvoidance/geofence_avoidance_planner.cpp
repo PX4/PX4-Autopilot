@@ -80,7 +80,6 @@ bool GeofenceAvoidancePlanner::update_vertices(GeofenceInterface &geofence, floa
 	_saved_valid_start = matrix::Vector2<double> {(double)NAN, (double)NAN};
 
 	_polygons_healthy = true;
-	margin = math::max(margin, 1.f); // margin should be non-zero otherwise polygon expansion breaks down
 
 	const int num_polygons = geofence.getNumPolygons();
 	int num_vertices{0};
@@ -89,7 +88,8 @@ bool GeofenceAvoidancePlanner::update_vertices(GeofenceInterface &geofence, floa
 		PolygonInfo info = geofence.getPolygonInfoByIndex(poly_idx);
 
 		if (info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION || info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION) {
-			num_vertices += info.vertex_count;
+			// Worst case: every vertex is acute and splits into two (see PlannerPolygon::addPolygon)
+			num_vertices += 2 * info.vertex_count;
 
 		} else if (info.fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION || info.fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION) {
 			num_vertices += kCircleApproxVertices;
