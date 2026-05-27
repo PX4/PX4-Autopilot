@@ -61,7 +61,7 @@ constexpr px4_spi_bus_all_hw_t px4_spi_buses_all_hw[BOARD_NUM_SPI_CFG_HW_VERSION
 		initSPIBus(SPI::Bus::SPI1, {
 			initSPIDevice(DRV_IMU_DEVTYPE_IIM42653, SPI::CS{GPIO::PortI, GPIO::Pin9}, SPI::DRDY{GPIO::PortF, GPIO::Pin2}),
 			initSPIDevice(DRV_IMU_DEVTYPE_IIM42652, SPI::CS{GPIO::PortI, GPIO::Pin9}, SPI::DRDY{GPIO::PortF, GPIO::Pin2}),
-		},{GPIO::PortI, GPIO::Pin11}),
+		}, {GPIO::PortI, GPIO::Pin11}),
 		initSPIBus(SPI::Bus::SPI2, {
 			initSPIDevice(DRV_IMU_DEVTYPE_IIM42653, SPI::CS{GPIO::PortH, GPIO::Pin5}, SPI::DRDY{GPIO::PortA, GPIO::Pin10}),
 		}, {GPIO::PortF, GPIO::Pin4}),
