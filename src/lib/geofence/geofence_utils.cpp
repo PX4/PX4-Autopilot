@@ -81,10 +81,6 @@ bool PlannerPolygons::addPolygon(const matrix::Vector2f *vertices_in, int num_ve
 		return false;
 	}
 
-	// Canonical stored orientation: left normal of each edge points into forbidden region, that is:
-	//  - inward for exclusion (CCW)
-	//  - outward for inclusion (CW)
-	const float inward_sign = is_inclusion_zone ? -1.f : 1.f;
 
 	int out_idx = 0;
 
@@ -106,8 +102,9 @@ bool PlannerPolygons::addPolygon(const matrix::Vector2f *vertices_in, int num_ve
 		const matrix::Vector2f edge_out_normalized = edge_out / edge_out_norm;
 
 		// Inward normals of the two adjacent edges.
-		const matrix::Vector2f n_in  = inward_sign * matrix::Vector2f{-edge_in_normalized(1), edge_in_normalized(0)};
-		const matrix::Vector2f n_out = inward_sign * matrix::Vector2f{-edge_out_normalized(1), edge_out_normalized(0)};
+		// Canonical stored orientation: left side = forbidden region, right side = allowed region
+		const matrix::Vector2f n_in  = matrix::Vector2f{-edge_in_normalized(1), edge_in_normalized(0)};
+		const matrix::Vector2f n_out = matrix::Vector2f{-edge_out_normalized(1), edge_out_normalized(0)};
 
 		matrix::Vector2f bisector = n_in + n_out;
 		const float bisector_len  = bisector.length();
@@ -124,9 +121,6 @@ bool PlannerPolygons::addPolygon(const matrix::Vector2f *vertices_in, int num_ve
 		//    exactly `margin` away from the original vertex. For this the vertex is replaced
 		//    by two new ones.
 
-		// Direction to move vertices away from the forbidden region.
-		const float step = -inward_sign * margin;
-
 		// Scaling needed wrt the normalised bisector to achieve parallel edges
 		const float offset_scale = 2.f / bisector_len;
 
@@ -139,23 +133,23 @@ bool PlannerPolygons::addPolygon(const matrix::Vector2f *vertices_in, int num_ve
 
 			// Sharp corner: cut it off along the line
 			//  - perpendicular to normalized_bisector
-			//  - going through base := vertex(i) + normalized_bisector * step
+			//  - going through base := vertex(i) - normalized_bisector * margin
 
-			const matrix::Vector2f base = vertex(i) + normalized_bisector * step;
+			const matrix::Vector2f base = vertex(i) - normalized_bisector * margin;
 			const matrix::Vector2f perp = {-normalized_bisector(1), normalized_bisector(0)};
 
 			// Construct s such that:
 			//  base + perp*s is on the offset incoming edge
 			//  base - perp*s is on the offset outgoing edge
 			const float e_out_dot_b = edge_out_normalized.dot(normalized_bisector);
-			const float s = step * (n_out.dot(normalized_bisector) - 1.f) / e_out_dot_b;
+			const float s = margin * (1.f - n_out.dot(normalized_bisector)) / e_out_dot_b;
 
 			setNode(poly.start_index + out_idx++, base + perp * s);
 			setNode(poly.start_index + out_idx++, base - perp * s);
 
 		} else {
 			// Regular corner or no space for split: single bisector vertex displaced by margin / sin(interior angle/2).
-			setNode(poly.start_index + out_idx++, vertex(i) + normalized_bisector * (step * offset_scale));
+			setNode(poly.start_index + out_idx++, vertex(i) - normalized_bisector * (margin * offset_scale));
 		}
 	}
 
