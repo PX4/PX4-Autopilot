@@ -59,7 +59,6 @@ set(NAVIGATOR_SOURCES
 set(NAVIGATOR_DEPENDS
 	dataman_client
 	geo
-	geofence_utils
 	adsb
 	geofence_breach_avoidance
 	motion_planning
@@ -68,7 +67,8 @@ set(NAVIGATOR_DEPENDS
 
 if(CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE)
 	list(APPEND NAVIGATOR_SOURCES rtl_geofence_avoidance_helper.cpp)
-	list(APPEND NAVIGATOR_DEPENDS geofence_avoidance_planner)
+	# geofence_utils (polygon offsetting / visibility graph) is only used by the planner
+	list(APPEND NAVIGATOR_DEPENDS geofence_utils geofence_avoidance_planner)
 endif()
 
 if(CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF)
