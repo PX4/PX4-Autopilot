@@ -52,21 +52,26 @@ This allows, for example, logging of your own uORB topics.
 
 ### SD Card Configuration
 
-Separately, the list of logged topics can also be customized with a file on the SD card.
-Create a file `etc/logging/logger_topics.txt` on the card with a list of topics (For SITL, it's `build/px4_sitl_default/rootfs/fs/microsd/etc/logging/logger_topics.txt`):
+The list of logged topics can also be customized with a file on the SD card:  `etc/logging/logger_topics.txt` (for SITL, it's `build/px4_sitl_default/rootfs/fs/microsd/etc/logging/logger_topics.txt`).
+
+Each topic to be logged is listed on a separate line, with the following format:
 
 ```plain
 <topic_name> <interval> <instance>
 ```
 
-The `<interval>` is optional, and if specified, defines the minimum interval in ms between two logged messages of this topic.
-If not specified, the topic is logged at full rate.
+Where:
+- `<interval>` (optional).
+  Defines the minimum interval in ms between two logged messages of this topic.
+  If not specified or `0`, the topic is logged at full rate.
+- `<instance>` (optional).
+  Defines the instance to log.
+  NOte that `<interval>` must be specified in order to set `instance`
+  
+  If not specified, all instances of the topic are logged.
 
-The `<instance>` is optional, and if specified, defines the instance to log.
-If not specified, all instances of the topic are logged.
-To specify `<instance>`, `<interval>` must be specified. It can be set to 0 to log at full rate
-
-The topics in this file will be added on top of the already selected topics. To just log the topics defined in this file, set [SDLOG_PROFILE=0](../advanced_config/parameter_reference.md#SDLOG_PROFILE).
+The topics in this file will be added on top of the already selected topics. 
+To just log the topics defined in this file, set [SDLOG_PROFILE=0](../advanced_config/parameter_reference.md#SDLOG_PROFILE).
 If a topic is already included, it will update it's rate.
 
 Example :
@@ -78,7 +83,7 @@ sensor_gyro 200
 sensor_mag 200 1
 ```
 
-This configuration will log sensor_accel 0 at full rate, sensor_accel 1 at 10Hz, all sensor_gyro instances at 5Hz and sensor_mag 1 at 5Hz.
+This configuration will log sensor_accel 0 at full rate, sensor_accel 1 at 10Hz, all `sensor_gyro` instances at 5Hz and `sensor_mag` 1 at 5Hz.
 
 ## Scripts
 
