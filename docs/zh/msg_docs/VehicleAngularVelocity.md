@@ -8,12 +8,12 @@ pageClass: is-wide-page
 
 ## Fields
 
-| 参数名                                   | 类型           | Unit [Frame] | Range/Enum | 描述                                                                                            |
-| ------------------------------------- | ------------ | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------------------------- |
-| timestamp                             | `uint64`     |                                                                  |            | time since system start (microseconds)                                     |
-| timestamp_sample | `uint64`     |                                                                  |            | timestamp of the data sample on which this message is based (microseconds) |
-| xyz                                   | `float32[3]` |                                                                  |            | Bias corrected angular velocity about the FRD body frame XYZ-axis in rad/s                    |
-| xyz_derivative   | `float32[3]` |                                                                  |            | angular acceleration about the FRD body frame XYZ-axis in rad/s^2                             |
+| 参数名                                                                    | 类型           | Unit [Frame] | Range/Enum | 描述                                                                                            |
+| ---------------------------------------------------------------------- | ------------ | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                    | `uint64`     |                                                                  |            | time since system start (microseconds)                                     |
+| <a id="fld_timestamp_sample"></a>timestamp_sample | `uint64`     |                                                                  |            | timestamp of the data sample on which this message is based (microseconds) |
+| <a id="fld_xyz"></a>xyz                                                | `float32[3]` |                                                                  |            | Bias corrected angular velocity about the FRD body frame XYZ-axis in rad/s                    |
+| <a id="fld_xyz_derivative"></a>xyz_derivative     | `float32[3]` |                                                                  |            | angular acceleration about the FRD body frame XYZ-axis in rad/s^2                             |
 
 ## Constants
 

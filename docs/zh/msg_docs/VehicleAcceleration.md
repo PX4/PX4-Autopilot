@@ -8,11 +8,11 @@ pageClass: is-wide-page
 
 ## Fields
 
-| 参数名                                   | 类型           | Unit [Frame] | Range/Enum | 描述                                                                                                         |
-| ------------------------------------- | ------------ | ---------------------------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------- |
-| timestamp                             | `uint64`     |                                                                  |            | time since system start (microseconds)                                                  |
-| timestamp_sample | `uint64`     |                                                                  |            | the timestamp of the raw data (microseconds)                                            |
-| xyz                                   | `float32[3]` |                                                                  |            | Bias corrected acceleration (including gravity) in the FRD body frame XYZ-axis in m/s^2 |
+| 参数名                                                                    | 类型           | Unit [Frame] | Range/Enum | 描述                                                                                                         |
+| ---------------------------------------------------------------------- | ------------ | ---------------------------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                    | `uint64`     |                                                                  |            | time since system start (microseconds)                                                  |
+| <a id="fld_timestamp_sample"></a>timestamp_sample | `uint64`     |                                                                  |            | the timestamp of the raw data (microseconds)                                            |
+| <a id="fld_xyz"></a>xyz                                                | `float32[3]` |                                                                  |            | Bias corrected acceleration (including gravity) in the FRD body frame XYZ-axis in m/s^2 |
 
 ## Source Message
 
