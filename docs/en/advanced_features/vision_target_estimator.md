@@ -117,12 +117,13 @@ If no measurement is fused for a sustained period, the affected filter will coas
 
 ### Module Enable
 
-VTE runs two independent filters: a **position filter** that tracks where the target is relative to the vehicle, and an **orientation filter** that tracks the target yaw.
-See [Estimator overview](#estimator-overview) for how each filter works internally and their respective mathematical model.
+Set [VTE_EN](../advanced_config/parameter_reference.md#VTE_EN)=1 to run the estimator (reboot required).
 
-- Set [VTE_EN](../advanced_config/parameter_reference.md#VTE_EN)=1 to run the estimator (reboot required).
-- [VTE_POS_EN](../advanced_config/parameter_reference.md#VTE_POS_EN) and [VTE_YAW_EN](../advanced_config/parameter_reference.md#VTE_YAW_EN) enable the position and orientation filters individually (reboot required).
-  Both are on by default. Disable the yaw filter if your vision pipeline does not report target heading.
+VTE runs two independent filters: a **position filter** that tracks where the target is relative to the vehicle, and an **orientation filter** that tracks the target yaw. [VTE_POS_EN](../advanced_config/parameter_reference.md#VTE_POS_EN) and [VTE_YAW_EN](../advanced_config/parameter_reference.md#VTE_YAW_EN) enable the position and orientation filters individually (reboot required).
+
+::: info
+  [VTE_YAW_EN](../advanced_config/parameter_reference.md#VTE_YAW_EN) is disabled by default, enable it if your vision pipeline reports a target heading.
+:::
 
 ### Timeouts
 
@@ -143,7 +144,7 @@ Measurements timestamped in the future relative to the latest filter prediction 
 
 [VTE_M_REC_TOUT](../advanced_config/parameter_reference.md#VTE_M_REC_TOUT) and [VTE_M_UPD_TOUT](../advanced_config/parameter_reference.md#VTE_M_UPD_TOUT) decide how long an incoming sample stays usable:
 
-- [VTE_M_REC_TOUT](../advanced_config/parameter_reference.md#VTE_M_REC_TOUT) is the maximum age at which a new measurement is still eligible for fusion
+- [VTE_M_REC_TOUT](../advanced_config/parameter_reference.md#VTE_M_REC_TOUT) is the maximum age at which a new measurement is still eligible for fusion.
 - [VTE_M_UPD_TOUT](../advanced_config/parameter_reference.md#VTE_M_UPD_TOUT) bounds how long a cached observation remains valid inside the filter state.
 
 These are independent of the timeouts above.
@@ -154,7 +155,7 @@ Tune them to the dynamics of your platform and target, not to a fixed value:
 
 If you are unsure, leave the defaults and watch the logs.
 Tracking lag or overshoot on a fast platform usually means these values are too large.
-Legitimate fusions being missed because samples arrive just outside the window means they are too tight.
+Legitimate fusions being missed because samples arrive just outside the window means they are too small.
 
 ### Task Selection
 

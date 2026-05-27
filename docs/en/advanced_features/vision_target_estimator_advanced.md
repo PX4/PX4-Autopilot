@@ -86,7 +86,7 @@ Naive bias initialization is not robust:
 
 The implementation therefore uses two different bias-initialization paths depending on which position source is trusted first.
 
-Open the state machine below if you are debugging a bias that fails to converge, jumps unexpectedly, or stays at zero in cases where you expected averaging to kick in.
+Open the box below if you are debugging a bias that fails to converge, jumps unexpectedly, or stays at zero in cases where you expected averaging to kick in.
 
 ::: details Click to view the bias initialization state machine
 
@@ -316,7 +316,7 @@ See [Outlier Detection](#outlier-detection).
 ### Outlier Detection
 
 The chi-squared gate rejects measurements that disagree strongly with the filter prediction.
-It uses `test_ratio = innov^2 / S` with `S = H P H^T + R`, where `R` is the observation variance.
+It uses `test_ratio = innov² / S` with $S = H P H^T + R$, where $R$ is the observation variance.
 A sample is rejected when `test_ratio` exceeds [VTE_POS_NIS_THRE](../advanced_config/parameter_reference.md#VTE_POS_NIS_THRE) (or [VTE_YAW_NIS_THRE](../advanced_config/parameter_reference.md#VTE_YAW_NIS_THRE) for yaw), and the rejection appears as `STATUS_REJECT_NIS` on the corresponding `vte_aid_*` topic.
 
 How the gate reacts depends on $R$:
