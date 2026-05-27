@@ -11,13 +11,19 @@ param set-default SENS_IMU_MODE      1
 param set-default EKF2_ACC_NOISE     0.5
 param set-default EKF2_GYR_NOISE     0.02
 
-# IMU loop rate matched to X-Plane RREF (~80 Hz). The airframe sets 200/400
+# IMU loop rate matched to X-Plane RREF delivery. The airframe sets 200/400
 # which mismatches the actual sensor rate and stalls gyro-bias / yaw-align
 # convergence (the "rate-σ plateau" — EKF runs faster than fresh samples
-# arrive, so its innovations never close the gate). 100 Hz gives a small
-# headroom over 80 Hz without re-introducing the plateau.
-param set-default IMU_INTEG_RATE     100
-param set-default IMU_GYRO_RATEMAX   100
+# arrive, so its innovations never close the gate, and pre-arm reports
+# "ekf2 missing data" indefinitely).
+#
+# Observed RREF rates by X-Plane version:
+#   X-Plane 12         ~80 Hz   → use 50–80 Hz
+#   X-Plane 11.55      ~58 Hz   → use 50 Hz
+# 50 Hz is the PX4 IMU_INTEG_RATE minimum and gives headroom for any XP
+# version. Raise if you know your RREF runs faster.
+param set-default IMU_INTEG_RATE     50
+param set-default IMU_GYRO_RATEMAX   50
 
 # ── Fast-boot, ArduPilot-style pre-arm bypass ─────────────────────────────
 # ArduPilot SITL is armable in ~5 s because copter-xplane.parm sets
