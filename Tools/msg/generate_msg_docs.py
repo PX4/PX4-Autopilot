@@ -478,6 +478,13 @@ pageClass: is-wide-page
         topicList = " ".join(self.topics)
         markdown += f"**TOPICS:** {topicList}\n\n"
 
+        # Build reverse mapping: enum name → fields that reference it
+        enum_to_fields: dict[str, list[str]] = {}
+        for field in self.fields:
+            if field.enums:
+                for enum_name in field.enums:
+                    enum_to_fields.setdefault(enum_name, []).append(field.name)
+
         # Generate field docs
         markdown += f"## Fields\n\n"
         markdown += "Name | Type | Unit [Frame] | Range/Enum | Description\n"
@@ -497,7 +504,7 @@ pageClass: is-wide-page
 
             description = f" {field.description}" if field.description else ""
             invalid = f" (Invalid: {field.invalidValue}) " if field.invalidValue else ""
-            markdown += f"{field.name} | `{field.type}` |{unit}|{value}|{description}{invalid}\n"
+            markdown += f'<a id="fld_{field.name}"></a>{field.name} | `{field.type}` |{unit}|{value}|{description}{invalid}\n'
 
         # Generate table for command docs
         if len(self.commandConstants) > 0:
@@ -521,6 +528,10 @@ pageClass: is-wide-page
 
             for name, enum in self.enums.items():
                 markdown += f"\n### {name} {{#{name}}}\n\n"
+
+                if name in enum_to_fields:
+                    links = ", ".join(f"[{fn}](#fld_{fn})" for fn in enum_to_fields[name])
+                    markdown += f"Used in field(s): {links}\n\n"
 
                 markdown += "Name | Type | Value | Description\n"
                 markdown += "--- | --- | --- | ---\n"
