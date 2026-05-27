@@ -1,8 +1,21 @@
-# PX4 SITL with X-Plane
+# X-Plane Simulation
 
-Native X-Plane UDP backend for PX4 SITL. The `simulator_xplane` module
-speaks X-Plane's `DATA@` / `RREF` / `DREF` protocol directly — no plugin,
-no MAVLink bridge.
+:::warning
+This simulator is [community supported and maintained](../simulation/community_supported_simulators.md).
+It may or may not work with current versions of PX4.
+
+See [Toolchain Installation](../dev_setup/dev_env.md) for information about the environments and tools supported by the core development team.
+:::
+
+[X-Plane](https://www.x-plane.com/) is a commercial flight simulator widely used for general aviation, with a strong rotor-wing physics model and a built-in UDP data interface.
+
+The `simulator_xplane` module talks to X-Plane directly over UDP using the native `DATA@` / `RREF` / `DREF` protocol — there is no X-Plane plugin and no MAVLink intermediary, so installation is a single PX4 SITL build plus X-Plane itself.
+
+**Supported Vehicles:** Quadrotor (5-inch). Additional X-Plane airframes can be added by dropping a `<model>.json` DREF map and `<model>.params` file under `ROMFS/px4fmu_common/init.d-posix/models/` (see [Adding a New Airframe](#adding-a-new-airframe) below).
+
+::: info
+See [Simulation](../simulation/index.md) for general information about simulators, the simulation environment, and simulation configuration.
+:::
 
 ## How it works
 
@@ -12,20 +25,47 @@ PX4 subscribes to the datarefs it needs at boot. X-Plane streams them
 back at the requested rate. PX4 sends motor/servo commands as `DREF`
 writes. No manual data-output configuration in X-Plane is required.
 
-## Prerequisites
+## Installation
 
-- X-Plane 11 or 12 installed (Linux, macOS, or Windows)
-- PX4-Autopilot source checked out on the same host (or reachable over LAN)
-- A quadrotor aircraft loaded in X-Plane (any model — overrides take
-  control of joystick/throttle/flight surfaces)
+The bridge is built into the standard SITL target, so the only external
+dependency is X-Plane itself.
 
-## Build and run
+1. Install the usual [Development Environment on Ubuntu LTS / Debian Linux](../dev_setup/dev_env_linux_ubuntu.md)
+   (or the macOS / Windows equivalents).
 
-```bash
-cd PX4-Autopilot
+2. Install **X-Plane 11 or 12** from the official source
+   (<https://www.x-plane.com/>). Both Steam and standalone installs work;
+   no X-Plane SDK is required — the bridge uses the built-in UDP
+   interface, not a plugin.
+
+3. Load a quadrotor model in X-Plane. PX4 overrides X-Plane's own joystick
+   and flight-control input, so any quadrotor airframe will do — the
+   model only affects mass, inertia, and visuals.
+
+   A free 5-inch quadrotor model that pairs well with `5011_xplane_quad`:
+   <https://forums.x-plane.org/files/file/100079-quadcopter/>. Unzip into
+   `X-Plane 12/Aircraft/` and select it from **File → Open Aircraft**.
+
+4. Make sure no firewall blocks UDP **49000** (X-Plane control port) or
+   **49005** (PX4 bind port) on the simulation host.
+
+## Running the Simulation
+
+Open a terminal in the root directory of the PX4-Autopilot repository
+and call `make` for the X-Plane target:
+
+```sh
+cd /path/to/PX4-Autopilot
 make px4_sitl xplane_quad
 ```
 
+The supported vehicles and `make` commands are listed below:
+
+| Vehicle                  | Command                       |
+| ------------------------ | ----------------------------- |
+| Quadrotor (5-inch)       | `make px4_sitl xplane_quad`   |
+
+::: info
 The shell script `ROMFS/px4fmu_common/init.d-posix/px4-rc.xplanesim`
 auto-selects the model name from `SYS_AUTOSTART`:
 
@@ -33,15 +73,51 @@ auto-selects the model name from `SYS_AUTOSTART`:
 |---------------|----------------------|
 | 5011          | `xplane_quad`        |
 
-Override with environment variables:
+For the full list of X-Plane build targets run:
 
-```bash
+```sh
+make px4_sitl list_vmd_make_targets | grep xplane_
+```
+:::
+
+### Running PX4 on a different host from X-Plane
+
+Override the bridge's network destination via environment variables:
+
+```sh
 PX4_SIM_HOST_ADDR=192.168.1.50 \
 XPLANE_PORT=49000 \
 XPLANE_BIND_PORT=49005 \
 PX4_SIM_MODEL=xplane_quad \
 make px4_sitl xplane_quad
 ```
+
+## Taking it to the Sky
+
+The `make` command first builds PX4, then launches it. The PX4 shell
+appears like this — press Enter to get the command prompt:
+
+```sh
+INFO  [px4] Calling startup script: /bin/sh etc/init.d-posix/rcS 0
+INFO  [simulator_xplane] X-Plane 12.07 detected
+INFO  [simulator_xplane] Gyro bias locked (X=0.0009 Y=-0.0001 Z=0.0048)
+INFO  [mavlink] mode: Normal, data rate: 4000000 B/s on udp port 18570 remote port 14550
+INFO  [logger] Opened full log file: ./log/2026-05-27/16_42_25.ulg
+INFO  [px4] Startup script returned successfully
+
+pxh>
+```
+
+Once `Gyro bias locked` and `EKF2 estimator started` appear, the vehicle
+is ready to arm. You can bring it into the air with:
+
+```sh
+pxh> commander takeoff
+```
+
+_QGroundControl_ should auto-connect to the simulated vehicle on UDP
+port 18570 and let you fly manually with a joystick, command waypoints,
+or run any other PX4 flight mode.
 
 ## X-Plane setup
 
