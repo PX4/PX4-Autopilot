@@ -321,6 +321,7 @@ bool SimulatorXPlane::load_dref_map(const char *model_name)
 		// Build a DRefEntry
 		DRefEntry *e = new DRefEntry{};
 		strncpy(e->name, dref_name, sizeof(e->name) - 1);
+		e->name[sizeof(e->name) - 1] = '\0';
 		e->channel = (int8_t)fields.channel;
 
 		if (strcmp(fields.type, "fixed") == 0) {
@@ -386,6 +387,7 @@ SimulatorXPlane::SimulatorXPlane(const char *xplane_ip, uint16_t xplane_port,
 	  _bind_port(bind_port)
 {
 	strncpy(_xplane_ip, xplane_ip, sizeof(_xplane_ip) - 1);
+	_xplane_ip[sizeof(_xplane_ip) - 1] = '\0';
 
 	if (!load_dref_map(model_name)) {
 		// Fall back to built-in quad defaults so the module is always usable
@@ -407,6 +409,7 @@ SimulatorXPlane::SimulatorXPlane(const char *xplane_ip, uint16_t xplane_port,
 		for (const auto &d : defaults) {
 			DRefEntry *e = new DRefEntry{};
 			strncpy(e->name, d.name, sizeof(e->name) - 1);
+			e->name[sizeof(e->name) - 1] = '\0';
 			e->type    = d.type;
 			e->channel = (int8_t)d.ch;
 			e->scale   = d.scale;
