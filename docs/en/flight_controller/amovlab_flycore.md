@@ -83,6 +83,9 @@ The board includes the following main external connections:
 - SWD pads
 - UART8 debug console pads
 
+The external peripheral signal connectors use JST GH connectors with 1.25 mm pitch; see [Pinouts](#pinouts) for the connector pin assignments.
+This does not apply to `POWER` (XT30), USB, the SD card slot, RTK antenna interfaces, or the exposed buzzer, SWD, and UART8 debug console pads.
+
 `GPS1` is not exposed as an external connector on the flight controller.
 It is connected internally to the onboard UM982 GNSS module and does not include safety-switch pins or compass I2C lines.
 
