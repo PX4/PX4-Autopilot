@@ -8,10 +8,10 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Назва     | Тип      | Unit [Frame] | Range/Enum | Опис                                                      |
-| --------- | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| timestamp | `uint64` |                                                                  |            | time since system start (microseconds) |
-| triggered | `bool`   |                                                                  |            | Set to true if the event is triggered                     |
+| Назва                               | Тип      | Unit [Frame] | Range/Enum | Опис                                                      |
+| ----------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp | `uint64` |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_triggered"></a>triggered | `bool`   |                                                                  |            | Set to true if the event is triggered                     |
 
 ## Constants
 
