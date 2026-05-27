@@ -86,12 +86,16 @@ Naive bias initialization is not robust:
 
 The implementation therefore uses two different bias-initialization paths depending on which position source is trusted first.
 
-### Prerequisites and Startup Conditions
+Open the state machine below if you are debugging a bias that fails to converge, jumps unexpectedly, or stays at zero in cases where you expected averaging to kick in.
+
+::: details Click to view the bias initialization state machine
+
+#### Prerequisites and Startup Conditions
 
 - **Before the filter starts.** A recent UAV velocity estimate (local or GNSS) must be available. It seeds the $v^{uav}$ state and lets the bias logic align GNSS and vision in time.
 - **Sampling the raw bias.** The raw bias is always evaluated at the vision timestamp `t_vision`. If the most recent GNSS-relative sample is older than vision, it is propagated forward using the UAV velocity. The bias logic therefore uses `pos_rel_gnss(t_vision)`, not the stale stored value.
 
-### Initialization Paths: GNSS-First vs Vision-First
+#### Initialization Paths: GNSS-First vs Vision-First
 
 - **Why the behaviour is asymmetric.**
    - If GNSS is already driving the position state, feeding in raw vision before the bias is ready would mix two frames that can differ by metres.That is why VTE delays vision in the GNSS-first case.
@@ -101,19 +105,21 @@ The implementation therefore uses two different bias-initialization paths depend
 - **Averaging (GNSS-first).** When GNSS is active first and averaging is enabled, vision updates the LPF at the vision rate while GNSS remains the active position source.
   The raw sample is still `pos_rel_gnss(t_vision) - pos_rel_vision`, so the rate mismatch between GNSS and vision does not force the estimator to discard intermediate vision frames.
 
-### Filter Convergence and Exit Criteria
+#### Filter Convergence and Exit Criteria
 
 - **Exit condition.** The LPF is accepted after 5 consecutive raw-bias delta norms stay below [VTE_BIA_AVG_THR](../advanced_config/parameter_reference.md#VTE_BIA_AVG_THR) and at least `2 * tau` has elapsed (`tau = 0.3 s`).
   If neither condition fires, the LPF is also accepted when [VTE_BIA_AVG_TOUT](../advanced_config/parameter_reference.md#VTE_BIA_AVG_TOUT) expires.
 - **Activation after averaging.** Once the LPF is accepted, the state resets via `activateBiasEstimate()`.
   This sets `r = pos_rel_gnss(t_vision) - b_filtered` and `b = b_filtered`.
 
-### Fallbacks and Recovery
+#### Fallbacks and Recovery
 
 - **Stale-GNSS fallback.** If GNSS goes stale during averaging, `selectBiasGnssSample()` fails and VTE intentionally switches to the current vision position while keeping the current filtered bias.
   This is the only bias-initialization branch that does not use `pos_rel_gnss(t_vision)`, because no valid GNSS sample exists anymore.
 - **No re-initialization after recovery.** Once the bias is set for the current estimator run, a temporary vision dropout does not restart the averaging phase.
   When vision returns, the existing bias stays active.
+
+:::
 
 For the runtime tuning of the bias state (how aggressively it follows new observations once activated), see [Tuning the bias state](#tuning-the-bias-state) in the next section.
 
@@ -208,7 +214,9 @@ The tuning sections below reference this rule directly. Set the PSD so the resul
 Because the noise is scaled by `dt` at every predict step, the value is independent of the filter update rate.
 Running the filter at 25 Hz, 50 Hz, or 100 Hz produces the same long-term allowance, so no retuning is required if the rate changes.
 
-::: details Click to expand: dynamic-model process-noise math
+<a id="dynamic-model-process-noise"></a>
+
+::: details Click to view the dynamic-model for the process noise
 
 This section covers the math behind the process-noise parameters.
 You only need it if you want to understand how the spectral densities propagate through the prediction model.
@@ -321,7 +329,13 @@ Raise the floor on the rejecting sensor ([VTE_EVP_NOISE](../advanced_config/para
 Adjust [VTE_POS_NIS_THRE](../advanced_config/parameter_reference.md#VTE_POS_NIS_THRE) and [VTE_YAW_NIS_THRE](../advanced_config/parameter_reference.md#VTE_YAW_NIS_THRE) only once the floors are realistic, and only when a mix of legitimate samples and occasional outliers remains.
 The default 3.84 corresponds to a 5 % false-rejection rate: larger values are more permissive, smaller ones reject more aggressively.
 
-### Tuning the UAV Acceleration Process Noise
+### Noise parameter tuning
+
+Open the worked examples below for per-parameter 1-sigma drift tables, starter values derived from log signals, and symptom/fix tables for the UAV-acceleration, bias, and yaw-rate process-noise parameters.
+
+::: details Click to view parameter tuning examples
+
+#### Tuning the UAV Acceleration Process Noise
 
 [VTE_ACC_D_UNC](../advanced_config/parameter_reference.md#VTE_ACC_D_UNC) (unit: m²/s³, default 0.02) is the PSD of un-modelled UAV acceleration that drives the `vel_uav` state.
 Larger values let measurements pull the state harder between updates.
@@ -347,7 +361,9 @@ Symptoms and fixes (visible on `vte_position.rel_pos` overlaid with the matching
 
 After every change, `vte_aid_*.innovation` should look like zero-mean white noise rather than ramping with one sign or carrying a persistent offset.
 
-### Tuning the Bias State
+<a id="tuning-the-bias-state"></a>
+
+#### Tuning the Bias State
 
 Once the bias is activated, two parameters govern how aggressively the filter lets `vte_position.bias` follow new observations:
 
@@ -378,7 +394,7 @@ Symptoms and fixes:
 `VTE_BIAS_UNC` complements the outlier-rejection gate ([VTE_POS_NIS_THRE](../advanced_config/parameter_reference.md#VTE_POS_NIS_THRE)) and the vision-noise floor ([VTE_EVP_NOISE](../advanced_config/parameter_reference.md#VTE_EVP_NOISE)).
 A well-tuned filter combines all three: a realistic bias variance rate, a sensible NIS threshold, and a vision-noise floor that matches the actual quality of the relative-position sensor.
 
-### Tuning the Yaw Rate
+#### Tuning the Yaw Rate
 
 The yaw filter uses [VTE_YAW_ACC_UNC](../advanced_config/parameter_reference.md#VTE_YAW_ACC_UNC) as the spectral density of white yaw-acceleration noise that drives the yaw-rate state.
 The same [variance-rate rule](#process-noise-variance-rates) applies to yaw-rate growth.
@@ -389,12 +405,18 @@ A value of 0.04 allows an order of magnitude more (about 11.5 deg/s already afte
 Lower [VTE_YAW_ACC_UNC](../advanced_config/parameter_reference.md#VTE_YAW_ACC_UNC) only if your camera is more accurate than the default values.
 If the yaw state ends up oscillating, the [Orientation Filter case study](#orientation-filter-case-study-yaw-oscillation) walks through how overly aggressive yaw tuning amplifies vision noise into a feedback loop, and how trusting the process model more breaks that loop.
 
+:::
+
 ## Time Alignment
 
 Vision and GNSS observations can arrive delayed due to transport and processing latency.
 The position and orientation filters therefore support an **Out-of-Sequence Measurements (OOSM)** approximation which uses a **history-consistent projected correction** strategy.
 
-### OOSM Implementation
+Open the algorithm below if you need the exact six-step recipe (retrieve, predict, innovate, correct, project, apply) used to fuse a delayed sample against the historical state.
+
+<a id="oosm-implementation"></a>
+
+::: details Click to view OOSM algorithm steps
 
 Each filter maintains a fixed-size ring buffer of recent state snapshots spanning roughly the last half second of operation (25 samples ≈ 0.5 s at 50 Hz).
 For the position filter the snapshot stores $(t, x, P, a^{uav})$; for the orientation filter it stores $(t, x, P)$.
@@ -464,13 +486,15 @@ $$
 \end{aligned}
 $$
 
+:::
+
 ### OOSM Approximation Assumptions
 
 Two approximations make the algorithm above tractable on an autopilot.
  - First, the OOSM gain is treated as the standard Kalman gain at the measurement time, propagated forward by the state transition matrix.
 - Second, the past-state estimate is taken from the stored snapshot rather than from a full backward smoother over all intermediate measurements.
 
-::: details Click to expand: OOSM mathematical proofs
+::: details Click to view OOSM mathematical proofs
 
 The notation follows _Zhang et al., Optimal Update with Out-of-Sequence Measurements_.
 
@@ -624,7 +648,9 @@ This keeps the lookahead positive at touchdown so the vehicle keeps tracking the
 ### Gazebo Simulation
 
 The moving-target SITL setup reuses the same `land_pad.sdf` model as the static configuration, so the upstream pipeline (camera, marker plugin, GPS plugin, mavlink bridge) is identical: see [SITL Simulation Pipeline](#sitl-simulation-pipeline) for the static-target walkthrough.
-Build with `CONFIG_VTEST_MOVING=y` so the estimator tracks the target velocity, then edit `Tools/simulation/gazebo-classic/sitl_gazebo-classic/models/land_pad/land_pad.sdf` to enable pad motion through the `libgazebo_random_velocity_plugin.so` plugin:
+Build with `CONFIG_VTEST_MOVING=y` so the estimator tracks the target velocity, then edit `Tools/simulation/gazebo-classic/sitl_gazebo-classic/models/land_pad/land_pad.sdf` to enable pad motion through the `libgazebo_random_velocity_plugin.so` plugin.
+
+::: details Click here for details on how to configure pad motion
 
 - `<initial_velocity>0.5 0 0</initial_velocity>` applies a constant velocity along the pad's X axis at simulation start.
 - `<velocity_factor>0.5</velocity_factor>` scales the magnitude of newly drawn random velocities.
@@ -632,6 +658,8 @@ Build with `CONFIG_VTEST_MOVING=y` so the estimator tracks the target velocity, 
 - `<update_period>500</update_period>` is the period in seconds between new random velocities.
 - `<min_x>`, `<max_x>`, `<min_y>`, `<max_y>` clamp the velocity range per axis.
   Keep `<min_z>0</min_z><max_z>0</max_z>` so the pad stays on the ground.
+
+:::
 
 Tips for a stable touchdown on a moving target in SITL:
 
@@ -644,6 +672,8 @@ Tips for a stable touchdown on a moving target in SITL:
 - **Validate on a static pad first**: build with `CONFIG_VTEST_MOVING=y` but keep `<initial_velocity>0 0 0</initial_velocity>` for the first runs.
   Confirm that the moving-mode filter is well behaved on a static target, then introduce motion.
   This separates filter problems from precision-landing-projection problems.
+
+<a id="log-analysis-and-expected-plots"></a>
 
 ## Log Analysis & Troubleshooting
 
@@ -667,7 +697,9 @@ For example plots of what a healthy and a degraded filter look like, see [Expect
 ### Aid-Source Diagnostics
 
 Every fusion attempt is logged on the corresponding `vte_aid_*` topic.
-The `fusion_status` field records which fusion branch the filter took:
+The `fusion_status` field records which fusion branch the filter.
+
+::: details Click to view details on how to interpret the fusion status
 
 | Value | Status                  | Meaning                                                                                                         | Typical action                                                                                                    |
 | ----- | ----------------------- | --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
@@ -680,6 +712,8 @@ The `fusion_status` field records which fusion branch the filter took:
 | 6     | `STATUS_REJECT_TOO_NEW` | Sample timestamped in the future relative to the latest filter prediction.                                      | Time-sync problem: verify `mavlink_timesync` or the sensor clock.                                                 |
 | 7     | `STATUS_REJECT_STALE`   | Filter history was reset because no prediction had run for longer than the buffer span.                         | Expected after long pauses; otherwise investigate scheduler stalls.                                               |
 | 8     | `STATUS_REJECT_EMPTY`   | History buffer not yet populated when the measurement arrived.                                                  | Expected on the first cycles after the estimator starts; persistent occurrences indicate a startup race.          |
+
+:::
 
 Two additional fields make latency tractable without manual timestamp arithmetic:
 
@@ -694,7 +728,11 @@ Two additional fields make latency tractable without manual timestamp arithmetic
 - Mission position: cached from `navigator_mission_item`, with `position_setpoint_triplet` as a fallback when a valid LAND setpoint is available there first
 - `vehicle_local_position` and `vehicle_attitude` (used for frame transforms and timeout checks)
 
-### What to Look For in Logs
+When analysing a log, the walkthrough below lists the seven cross-checks to run from estimator output back to inputs (observations, innovations, fusion status, time alignment, coordinate transforms, prediction inputs).
+
+<a id="what-to-look-for-in-logs"></a>
+
+::: details Click to view the log analysis list
 
 1. **Estimator output vs. observations**: In all axis directions, overlay the estimator outputs position `vte_position.rel_pos[0]`, `vte_orientation.yaw` with measurement observations `vte_aid_*.observation[0]` (e.g. `vte_aid_fiducial_marker.observation[0]` or the relevant GNSS observation).
    The traces should converge after a short transient.
@@ -729,6 +767,8 @@ Two additional fields make latency tractable without manual timestamp arithmetic
 7. **Prediction inputs**: Use `vte_input` to track the downsampled acceleration and quaternion.
    Compare them to `vehicle_attitude.q` and `vehicle_acceleration` to ensure the estimator sees the expected attitude, especially when diagnosing timestamp mismatches.
 
+:::
+
 ### Troubleshooting Checklist
 
 Start by confirming that the estimator is running (`vision_target_estimator status`) and that the relevant `vte_aid_*` topic is present in the log.
@@ -750,6 +790,8 @@ Enable **debug prints** (`PX4_DEBUG`).
 | No `vte_aid_*` topics in the log             | Sensor not publishing or fusion mask disabled                                                                   | Use `listener` on the raw sensor topic, confirm [VTE_AID_MASK](../advanced_config/parameter_reference.md#VTE_AID_MASK) includes the relevant bit, and rerun the test with the debug task active.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | Estimator never starts                       | Task mask disabled or mission not requesting precision landing                                                  | Set [VTE_TASK_MASK](../advanced_config/parameter_reference.md#VTE_TASK_MASK)=1 (or 3 for continuous debugging) and verify that new measurements arrive with valid timestamps.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 
+<a id="plot-examples"></a>
+
 ## Expected Plot Dashboards
 
 The dashboards below show what a healthy filter looks like, and what to watch when things degrade:
@@ -764,7 +806,7 @@ The dashboards below show what a healthy filter looks like, and what to watch wh
 PlotJuggler (or the PX4 DevTools log viewer) is the easiest way to inspect the estimator as it allows you to group related signals into subplots that share the time axis.
 :::
 
-::: details Click to expand: see colour convention to add new plots
+::: details Click to see colour convention to add new plots
 
 **Adding new plots**: the screenshots in this section use a fixed colour convention so the same family of signals is easy to recognise across dashboards. Re-use it when adding or updating plots:
 
@@ -776,7 +818,9 @@ PlotJuggler (or the PX4 DevTools log viewer) is the easiest way to inspect the e
 
 :::
 
-### Nominal Behaviour
+<a id="nominal-behaviour"></a>
+
+::: details Click to view Nominal Behaviour Plots
 
 **Estimator output and observation consistency**: Quick health check that the fused sensors agree with the estimated state during a real precision-landing approach using vision and the mission landing waypoint as the absolute reference.
 
@@ -866,7 +910,9 @@ With more aggressive values (0.05 rad / 0.04) the filter jumped to follow every 
 The oscillation itself then degraded the next vision samples (motion blur and larger lever-arm effects make yaw harder to estimate), feeding the loop.
 Trusting the process model more (smaller `VTE_YAW_ACC_UNC`) and the observations less (larger `VTE_EVA_NOISE`) breaks that loop: the state stays close to the underlying yaw trend, the drone holds steady, and the observations themselves become cleaner.
 
-### Out-of-Sequence Measurements
+:::
+
+::: details Click to view Out-of-Sequence Measurements (OOSM) plots
 
 <a id="oosm-under-measurement-delay"></a>
 
@@ -889,7 +935,9 @@ Under fast dynamics this kind of latency-induced error grows quickly and can rep
 
 ![VTEST OOSM](../../assets/vision_target_estimator/vtest_oosm.png)
 
-### Filter Robustness
+:::
+
+::: details Click to view filter robustness plots
 
 <a id="smoothing-through-bounded-noise"></a>
 
@@ -1002,7 +1050,9 @@ What to watch in your own logs:
 
 ![VTEST occlusion with GNSS mission](../../assets/vision_target_estimator/vtest_dropout_vision_and_gps_pos_mission.png)
 
-### Precision Landing on a Static Target
+:::
+
+::: details Click to view Precision Landing on a static target plot
 
 **Precision landing alignment**: Compares the precision-landing target with the vehicle position to confirm that the vehicle is actually navigating toward the target.
 Generated from a real precision-landing flight.
@@ -1024,7 +1074,11 @@ If the controller struggles to follow even when the target signal is clean, revi
 
 ![VTEST precision landing](../../assets/vision_target_estimator/vtest_precland.png)
 
-### Moving Target
+:::
+
+<a id="moving-target"></a>
+
+::: details Click to view Moving Target plot
 
 **Moving target precision landing**: Shows how the precision-landing controller projects the setpoint ahead of a moving target, how the lead converges onto the target as altitude drops, and how the moving-target states behave during the descent.
 Generated from a real flight with a camera publishing target estimates at 10 Hz at 640×480 resolution.
@@ -1054,6 +1108,8 @@ What to take away:
 
 ![VTEST moving target landing](../../assets/vision_target_estimator/vtest_moving_target.png)
 
+:::
+
 ## Development and Debugging Tips
 
 A few tips to make iteration on real hardware and SITL easier.
@@ -1064,7 +1120,9 @@ A few tips to make iteration on real hardware and SITL easier.
   The debug bit enables the continuous update of the position and orientation estimators (if enabled via [VTE_YAW_EN](../advanced_config/parameter_reference.md#VTE_YAW_EN) and [VTE_POS_EN](../advanced_config/parameter_reference.md#VTE_POS_EN)).
 - Use shell helpers while iterating: `listener landing_target_pose`, `listener vte_bias_init_status`, `listener vte_aid_fiducial_marker` (or the relevant `vte_aid_*`) to inspect bias averaging and innovations, `listener vte_input 5` for prediction inputs, and `vision_target_estimator status` to ensure both filters are running.
 
-### SITL Simulation Pipeline
+<a id="sitl-simulation-pipeline"></a>
+
+::: details Click to view the guide on SITL Simulation Pipeline
 
 The Gazebo Classic SITL setup produces both VTE inputs (`fiducial_marker_pos_report` and `target_gnss`) end-to-end, so the filter can be tested without real hardware.
 This is also where you should inject extra noise or latency to stress-test the filter.
@@ -1084,7 +1142,11 @@ The pipeline has four stages:
 4. **PX4 side**: `SimulatorMavlink::handle_message_target_relative()` and `handle_message_target_absolute()` decode the mavlink messages back into `fiducial_marker_pos_report` and `target_gnss` (or directly into `landing_target_pose` when `VTE_EN=0`).
    From there the filter sees exactly the same topics it would on real hardware, so anything you tune at the sensor level reproduces faithfully end to end.
 
-### Adding New Measurement Sources
+:::
+
+<a id="adding-new-measurement-sources"></a>
+
+:::: details Click to view the guide on adding new measurement sources
 
 To integrate a new sensor:
 
@@ -1107,7 +1169,9 @@ Reject samples older than [VTE_M_REC_TOUT](../advanced_config/parameter_referenc
 If observations are stored in cache, invalidate it inside `checkMeasurementInputs` when older than [VTE_M_UPD_TOUT](../advanced_config/parameter_reference.md#VTE_M_UPD_TOUT) (`isMeasUpdated(hrt_abstime ts)`).
 :::
 
-### Adding New Tasks
+::::
+
+::: details Click to view the guide on adding new tasks
 
 Add a new `VteTask` when the estimator should only run during a particular mission phase or flight-mode behaviour, or when that behaviour needs its own subscriptions, cached state, or completion logic.
 Do not put that state back into `VisionTargetEst`.
@@ -1131,7 +1195,11 @@ Use this checklist:
 6. **Test lifecycle and cache behaviour**: extend `TEST_VTE_VisionTargetEst.cpp` with coverage for task activation completion, repeated starts, and any cached mission/context data that must survive estimator restarts within the same task.
 7. **Document the operational meaning**: update the overview page, this deep dive, and any feature-specific docs so users understand when the new task is active and which `VTE_TASK_MASK` bit selects it.
 
-### SymForce-Generated Derivations
+:::
+
+<a id="symforce-generated-derivations"></a>
+
+::: details Click to view the guide on SymForce-generated derivations
 
 The Kalman-filter math is not written by hand.
 The symbolic state, prediction model, and covariance update are defined in Python and expanded into C++ by [SymForce](https://symforce.org/), so the C++ that runs on the autopilot always matches the model defined in `derivation.py`.
@@ -1167,7 +1235,14 @@ To change the model, edit `derivation.py` and regenerate.
 If the build fails during regeneration, inspect the CMake output for the SymForce invocation and rerun it manually inside `Position/vtest_derivation/` to catch Python errors.
 After regenerating, rebuild the module to ensure the Jacobians and code stay in sync.
 
+:::
+
 ## Runtime Performance on Hardware
+
+Even with ~500 ms induced latency on every measurement the estimator stays inside its 20 ms loop budget on a Pixhawk 6c.
+Expand below for the full per-counter breakdown (baseline vs. delayed runs).
+
+::: details Click to view Pixhawk 6c performance expectations
 
 The estimator publishes per-section perf counters that can be read at any time on the shell:
 
@@ -1230,7 +1305,7 @@ A few things to keep in mind when interpreting your own numbers:
 - `history_steps` saturates at the buffer depth (`kOosmHistorySize = 25`).
   If you see it pinned at 25 in the logs, the measurement is older than 500 ms and is being rejected as `STATUS_REJECT_TOO_OLD` rather than fused.
 
-Even with ~500 ms induced latency on every measurement the estimator stays inside its 20 ms loop budget on a Pixhawk 6c.
+:::
 
 ## Unit Test Suites
 
