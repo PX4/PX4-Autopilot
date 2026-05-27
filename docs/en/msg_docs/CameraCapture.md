@@ -8,17 +8,17 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name            | Type         | Unit [Frame] | Range/Enum | Description                                                                                              |
-| --------------- | ------------ | ------------ | ---------- | -------------------------------------------------------------------------------------------------------- |
-| timestamp       | `uint64`     |              |            | time since system start (microseconds)                                                                   |
-| timestamp_utc   | `uint64`     |              |            | Capture time in UTC / GPS time                                                                           |
-| seq             | `uint32`     |              |            | Image sequence number                                                                                    |
-| lat             | `float64`    |              |            | Latitude in degrees (WGS84)                                                                              |
-| lon             | `float64`    |              |            | Longitude in degrees (WGS84)                                                                             |
-| alt             | `float32`    |              |            | Altitude (AMSL)                                                                                          |
-| ground_distance | `float32`    |              |            | Altitude above ground (meters)                                                                           |
-| q               | `float32[4]` |              |            | Attitude of the camera relative to NED earth-fixed frame when using a gimbal, otherwise vehicle attitude |
-| result          | `int8`       |              |            | 1 for success, 0 for failure, -1 if camera does not provide feedback                                     |
+| Name                                            | Type         | Unit [Frame] | Range/Enum | Description                                                                                              |
+| ----------------------------------------------- | ------------ | ------------ | ---------- | -------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp             | `uint64`     |              |            | time since system start (microseconds)                                                                   |
+| <a id="fld_timestamp_utc"></a>timestamp_utc     | `uint64`     |              |            | Capture time in UTC / GPS time                                                                           |
+| <a id="fld_seq"></a>seq                         | `uint32`     |              |            | Image sequence number                                                                                    |
+| <a id="fld_lat"></a>lat                         | `float64`    |              |            | Latitude in degrees (WGS84)                                                                              |
+| <a id="fld_lon"></a>lon                         | `float64`    |              |            | Longitude in degrees (WGS84)                                                                             |
+| <a id="fld_alt"></a>alt                         | `float32`    |              |            | Altitude (AMSL)                                                                                          |
+| <a id="fld_ground_distance"></a>ground_distance | `float32`    |              |            | Altitude above ground (meters)                                                                           |
+| <a id="fld_q"></a>q                             | `float32[4]` |              |            | Attitude of the camera relative to NED earth-fixed frame when using a gimbal, otherwise vehicle attitude |
+| <a id="fld_result"></a>result                   | `int8`       |              |            | 1 for success, 0 for failure, -1 if camera does not provide feedback                                     |
 
 ## Source Message
 

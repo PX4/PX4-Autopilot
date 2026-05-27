@@ -13,12 +13,12 @@ Subscribed by: vision_target_estimator (VTEOrientation).
 
 ## Fields
 
-| Name             | Type      | Unit [Frame] | Range/Enum | Description                                                    |
-| ---------------- | --------- | ------------ | ---------- | -------------------------------------------------------------- |
-| timestamp        | `uint64`  | us           |            | Time since system start                                        |
-| timestamp_sample | `uint64`  | us           |            | Timestamp of the raw observation                               |
-| yaw_ned          | `float32` | rad [NED]    |            | Orientation of the target relative to the NED frame [-Pi ; Pi] |
-| yaw_var_ned      | `float32` | rad^2        |            | Orientation uncertainty                                        |
+| Name                                              | Type      | Unit [Frame] | Range/Enum | Description                                                    |
+| ------------------------------------------------- | --------- | ------------ | ---------- | -------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp               | `uint64`  | us           |            | Time since system start                                        |
+| <a id="fld_timestamp_sample"></a>timestamp_sample | `uint64`  | us           |            | Timestamp of the raw observation                               |
+| <a id="fld_yaw_ned"></a>yaw_ned                   | `float32` | rad [NED]    |            | Orientation of the target relative to the NED frame [-Pi ; Pi] |
+| <a id="fld_yaw_var_ned"></a>yaw_var_ned           | `float32` | rad^2        |            | Orientation uncertainty                                        |
 
 ## Source Message
 

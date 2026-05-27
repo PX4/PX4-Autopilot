@@ -13,6 +13,8 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 
 ## Versioned Messages
 
+### Current Versions
+
 - [ActuatorMotors](ActuatorMotors.md) — Motor control message.
 - [ActuatorServos](ActuatorServos.md) — Servo control message.
 - [AirspeedValidated](AirspeedValidated.md) — Validated airspeed.
@@ -50,6 +52,27 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [VehicleStatus](VehicleStatus.md) — Encodes the system state of the vehicle published by commander.
 - [VtolVehicleStatus](VtolVehicleStatus.md) — VEHICLE_VTOL_STATE, should match 1:1 MAVLinks's MAV_VTOL_STATE.
 - [Wind](Wind.md) — Wind estimate (from EKF2).
+
+### Historic Versions
+
+- [AirspeedValidatedV0](AirspeedValidatedV0.md)
+- [ArmingCheckReplyV0](ArmingCheckReplyV0.md)
+- [ArmingCheckRequestV0](ArmingCheckRequestV0.md) — Arming check request.
+- [BatteryStatusV0](BatteryStatusV0.md) — Battery status.
+- [ConfigOverridesV0](ConfigOverridesV0.md) — Configurable overrides by (external) modes or mode executors.
+- [EventV0](EventV0.md) — this message is required here in the msg_old folder because other msg are depending on it. Events interface.
+- [HomePositionV0](HomePositionV0.md) — GPS home position in WGS84 coordinates.
+- [RegisterExtComponentReplyV0](RegisterExtComponentReplyV0.md)
+- [RegisterExtComponentRequestV0](RegisterExtComponentRequestV0.md) — Request to register an external component.
+- [RegisterExtComponentRequestV1](RegisterExtComponentRequestV1.md) — Request to register an external component.
+- [VehicleAttitudeSetpointV0](VehicleAttitudeSetpointV0.md)
+- [VehicleCommandAckV0](VehicleCommandAckV0.md) — Vehicle Command Ackonwledgement uORB message. Used for acknowledging the vehicle command being received. Follows the MAVLink COMMAND_ACK message definition.
+- [VehicleGlobalPositionV0](VehicleGlobalPositionV0.md) — Fused global position in WGS84. This struct contains global position estimation. It is not the raw GPS. measurement (@see vehicle_gps_position). This topic is usually published by the position. estimator, which will take more sources of information into account than just GPS,. e.g. control inputs of the vehicle in a Kalman-filter implementation.
+- [VehicleLocalPositionV0](VehicleLocalPositionV0.md) — Fused local position in NED. The coordinate system origin is the vehicle position at the time when the EKF2-module was started.
+- [VehicleStatusV0](VehicleStatusV0.md) — Encodes the system state of the vehicle published by commander.
+- [VehicleStatusV1](VehicleStatusV1.md) — Encodes the system state of the vehicle published by commander.
+- [VehicleStatusV2](VehicleStatusV2.md) — Encodes the system state of the vehicle published by commander.
+- [VehicleStatusV3](VehicleStatusV3.md) — Encodes the system state of the vehicle published by commander.
 
 ## Unversioned Messages
 
@@ -272,21 +295,3 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [Vtx](Vtx.md)
 - [WheelEncoders](WheelEncoders.md)
 - [YawEstimatorStatus](YawEstimatorStatus.md)
-- [AirspeedValidatedV0](AirspeedValidatedV0.md)
-- [ArmingCheckReplyV0](ArmingCheckReplyV0.md)
-- [ArmingCheckRequestV0](ArmingCheckRequestV0.md) — Arming check request.
-- [BatteryStatusV0](BatteryStatusV0.md) — Battery status.
-- [ConfigOverridesV0](ConfigOverridesV0.md) — Configurable overrides by (external) modes or mode executors.
-- [EventV0](EventV0.md) — this message is required here in the msg_old folder because other msg are depending on it. Events interface.
-- [HomePositionV0](HomePositionV0.md) — GPS home position in WGS84 coordinates.
-- [RegisterExtComponentReplyV0](RegisterExtComponentReplyV0.md)
-- [RegisterExtComponentRequestV0](RegisterExtComponentRequestV0.md) — Request to register an external component.
-- [RegisterExtComponentRequestV1](RegisterExtComponentRequestV1.md) — Request to register an external component.
-- [VehicleAttitudeSetpointV0](VehicleAttitudeSetpointV0.md)
-- [VehicleCommandAckV0](VehicleCommandAckV0.md) — Vehicle Command Ackonwledgement uORB message. Used for acknowledging the vehicle command being received. Follows the MAVLink COMMAND_ACK message definition.
-- [VehicleGlobalPositionV0](VehicleGlobalPositionV0.md) — Fused global position in WGS84. This struct contains global position estimation. It is not the raw GPS. measurement (@see vehicle_gps_position). This topic is usually published by the position. estimator, which will take more sources of information into account than just GPS,. e.g. control inputs of the vehicle in a Kalman-filter implementation.
-- [VehicleLocalPositionV0](VehicleLocalPositionV0.md) — Fused local position in NED. The coordinate system origin is the vehicle position at the time when the EKF2-module was started.
-- [VehicleStatusV0](VehicleStatusV0.md) — Encodes the system state of the vehicle published by commander.
-- [VehicleStatusV1](VehicleStatusV1.md) — Encodes the system state of the vehicle published by commander.
-- [VehicleStatusV2](VehicleStatusV2.md) — Encodes the system state of the vehicle published by commander.
-- [VehicleStatusV3](VehicleStatusV3.md) — Encodes the system state of the vehicle published by commander.

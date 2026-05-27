@@ -10,12 +10,12 @@ GPIO mask and state.
 
 ## Fields
 
-| Name      | Type     | Unit [Frame] | Range/Enum | Description                            |
-| --------- | -------- | ------------ | ---------- | -------------------------------------- |
-| timestamp | `uint64` |              |            | time since system start (microseconds) |
-| device_id | `uint32` |              |            | Device id                              |
-| mask      | `uint32` |              |            | pin mask                               |
-| state     | `uint32` |              |            | pin state mask                         |
+| Name                                | Type     | Unit [Frame] | Range/Enum | Description                            |
+| ----------------------------------- | -------- | ------------ | ---------- | -------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp | `uint64` |              |            | time since system start (microseconds) |
+| <a id="fld_device_id"></a>device_id | `uint32` |              |            | Device id                              |
+| <a id="fld_mask"></a>mask           | `uint32` |              |            | pin mask                               |
+| <a id="fld_state"></a>state         | `uint32` |              |            | pin state mask                         |
 
 ## Source Message
 

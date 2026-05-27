@@ -10,15 +10,15 @@ Trajectory setpoint in NED frame. Input to PID position controller. Needs to be 
 
 ## Fields
 
-| Name         | Type         | Unit [Frame] | Range/Enum | Description                                                |
-| ------------ | ------------ | ------------ | ---------- | ---------------------------------------------------------- |
-| timestamp    | `uint64`     |              |            | time since system start (microseconds)                     |
-| position     | `float32[3]` |              |            | in meters                                                  |
-| velocity     | `float32[3]` |              |            | in meters/second                                           |
-| acceleration | `float32[3]` |              |            | in meters/second^2                                         |
-| jerk         | `float32[3]` |              |            | in meters/second^3 (for logging only)                      |
-| yaw          | `float32`    |              |            | euler angle of desired attitude in radians -PI..+PI        |
-| yawspeed     | `float32`    |              |            | angular velocity around NED frame z-axis in radians/second |
+| Name                                      | Type         | Unit [Frame] | Range/Enum | Description                                                |
+| ----------------------------------------- | ------------ | ------------ | ---------- | ---------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp       | `uint64`     |              |            | time since system start (microseconds)                     |
+| <a id="fld_position"></a>position         | `float32[3]` |              |            | in meters                                                  |
+| <a id="fld_velocity"></a>velocity         | `float32[3]` |              |            | in meters/second                                           |
+| <a id="fld_acceleration"></a>acceleration | `float32[3]` |              |            | in meters/second^2                                         |
+| <a id="fld_jerk"></a>jerk                 | `float32[3]` |              |            | in meters/second^3 (for logging only)                      |
+| <a id="fld_yaw"></a>yaw                   | `float32`    |              |            | euler angle of desired attitude in radians -PI..+PI        |
+| <a id="fld_yawspeed"></a>yawspeed         | `float32`    |              |            | angular velocity around NED frame z-axis in radians/second |
 
 ## Constants
 

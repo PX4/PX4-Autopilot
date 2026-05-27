@@ -13,22 +13,24 @@ pseudolites, visual navigation, or other positioning system.
 
 ## Fields
 
-| Name                  | Type      | Unit [Frame] | Range/Enum        | Description                                                                 |
-| --------------------- | --------- | ------------ | ----------------- | --------------------------------------------------------------------------- |
-| timestamp             | `uint64`  | us           |                   | Time since system start                                                     |
-| timestamp_sample      | `uint64`  | us           |                   | Timestamp of the raw data                                                   |
-| id                    | `uint8`   |              |                   | Unique identifier for the AGP source                                        |
-| source                | `uint8`   |              | [SOURCE](#SOURCE) | Source type of the position data (based on mavlink::GLOBAL_POSITION_SRC)    |
-| lat                   | `float64` | deg          |                   | Latitude in WGS84                                                           |
-| lon                   | `float64` | deg          |                   | Longitude in WGS84                                                          |
-| alt                   | `float32` | m            |                   | Altitude above mean sea level (AMSL) (Invalid: NaN)                         |
-| eph                   | `float32` | m            |                   | Std dev of horizontal position, lower bounded by NOISE param (Invalid: NaN) |
-| epv                   | `float32` | m            |                   | Std dev of vertical position, lower bounded by NOISE param (Invalid: NaN)   |
-| lat_lon_reset_counter | `uint8`   |              |                   | Counter for reset events on horizontal position coordinates                 |
+| Name                                                        | Type      | Unit [Frame] | Range/Enum        | Description                                                                 |
+| ----------------------------------------------------------- | --------- | ------------ | ----------------- | --------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                         | `uint64`  | us           |                   | Time since system start                                                     |
+| <a id="fld_timestamp_sample"></a>timestamp_sample           | `uint64`  | us           |                   | Timestamp of the raw data                                                   |
+| <a id="fld_id"></a>id                                       | `uint8`   |              |                   | Unique identifier for the AGP source                                        |
+| <a id="fld_source"></a>source                               | `uint8`   |              | [SOURCE](#SOURCE) | Source type of the position data (based on mavlink::GLOBAL_POSITION_SRC)    |
+| <a id="fld_lat"></a>lat                                     | `float64` | deg          |                   | Latitude in WGS84                                                           |
+| <a id="fld_lon"></a>lon                                     | `float64` | deg          |                   | Longitude in WGS84                                                          |
+| <a id="fld_alt"></a>alt                                     | `float32` | m            |                   | Altitude above mean sea level (AMSL) (Invalid: NaN)                         |
+| <a id="fld_eph"></a>eph                                     | `float32` | m            |                   | Std dev of horizontal position, lower bounded by NOISE param (Invalid: NaN) |
+| <a id="fld_epv"></a>epv                                     | `float32` | m            |                   | Std dev of vertical position, lower bounded by NOISE param (Invalid: NaN)   |
+| <a id="fld_lat_lon_reset_counter"></a>lat_lon_reset_counter | `uint8`   |              |                   | Counter for reset events on horizontal position coordinates                 |
 
 ## Enums
 
 ### SOURCE {#SOURCE}
+
+Used in field(s): [source](#fld_source)
 
 | Name                                                | Type    | Value | Description                                 |
 | --------------------------------------------------- | ------- | ----- | ------------------------------------------- |
