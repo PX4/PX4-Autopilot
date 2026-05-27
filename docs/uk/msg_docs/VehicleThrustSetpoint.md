@@ -8,11 +8,11 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Назва                                 | Тип          | Unit [Frame] | Range/Enum | Опис                                                                                                |
-| ------------------------------------- | ------------ | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------- |
-| timestamp                             | `uint64`     |                                                                  |            | time since system start (microseconds)                                           |
-| timestamp_sample | `uint64`     |                                                                  |            | timestamp of the data sample on which this message is based (microseconds)       |
-| xyz                                   | `float32[3]` |                                                                  |            | thrust setpoint along X, Y, Z body axis [-1, 1] |
+| Назва                                                                  | Тип          | Unit [Frame] | Range/Enum | Опис                                                                                                |
+| ---------------------------------------------------------------------- | ------------ | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                    | `uint64`     |                                                                  |            | time since system start (microseconds)                                           |
+| <a id="fld_timestamp_sample"></a>timestamp_sample | `uint64`     |                                                                  |            | timestamp of the data sample on which this message is based (microseconds)       |
+| <a id="fld_xyz"></a>xyz                                                | `float32[3]` |                                                                  |            | thrust setpoint along X, Y, Z body axis [-1, 1] |
 
 ## Source Message
 

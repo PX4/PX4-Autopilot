@@ -10,12 +10,12 @@ Velocity and yaw rate limits for a multicopter position slow mode only.
 
 ## Fields
 
-| Назва                                    | Тип       | Unit [Frame] | Range/Enum | Опис                                                      |
-| ---------------------------------------- | --------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| timestamp                                | `uint64`  |                                                                  |            | time since system start (microseconds) |
-| horizontal_velocity | `float32` | m/s                                                              |            |                                                           |
-| vertical_velocity   | `float32` | m/s                                                              |            |                                                           |
-| yaw_rate            | `float32` | rad/s                                                            |            |                                                           |
+| Назва                                                                        | Тип       | Unit [Frame] | Range/Enum | Опис                                                      |
+| ---------------------------------------------------------------------------- | --------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                          | `uint64`  |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_horizontal_velocity"></a>horizontal_velocity | `float32` | m/s                                                              |            |                                                           |
+| <a id="fld_vertical_velocity"></a>vertical_velocity     | `float32` | m/s                                                              |            |                                                           |
+| <a id="fld_yaw_rate"></a>yaw_rate                       | `float32` | rad/s                                                            |            |                                                           |
 
 ## Source Message
 

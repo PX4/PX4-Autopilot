@@ -8,10 +8,10 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Назва                                    | Тип       | Unit [Frame] | Range/Enum | Опис                                                      |
-| ---------------------------------------- | --------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| timestamp                                | `uint64`  |                                                                  |            | time since system start (microseconds) |
-| normalized_setpoint | `float32` | 0, 1                                                             |            |                                                           |
+| Назва                                                                        | Тип       | Unit [Frame] | Range/Enum | Опис                                                      |
+| ---------------------------------------------------------------------------- | --------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                          | `uint64`  |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_normalized_setpoint"></a>normalized_setpoint | `float32` | 0, 1                                                             |            |                                                           |
 
 ## Source Message
 
