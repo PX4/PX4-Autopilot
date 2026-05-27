@@ -55,7 +55,9 @@
 
 #include "navigation.h"
 
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 #include "GeofenceBreachAvoidance/geofence_avoidance_planner.h"
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 #include "GeofenceBreachAvoidance/geofence_breach_avoidance.h"
 
 #include <uORB/SubscriptionMultiArray.hpp>
@@ -190,6 +192,7 @@ public:
 
 	Geofence &get_geofence() { return _geofence; }
 
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 	GeofenceAvoidancePlanner &get_geofence_avoidance_planner() { return _geofence_avoidance_planner; }
 
 	/**
@@ -197,6 +200,7 @@ public:
 	 * polygons and expands exclusion polygons.
 	 */
 	float get_geofence_avoidance_margin_for_current_vehicle_type() const;
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 	float get_default_loiter_rad() { return fabsf(_param_nav_loiter_rad.get()); }
 	bool get_default_loiter_CCW() { return _param_nav_loiter_rad.get() < -FLT_EPSILON; }
@@ -382,8 +386,10 @@ private:
 
 	Geofence	_geofence;			/**< class that handles the geofence */
 	GeofenceBreachAvoidance _gf_breach_avoidance;
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 	GeofenceAvoidancePlanner _geofence_avoidance_planner; /**< RTL/auto path planner that routes around fences (visibility graph + Dijkstra) */
-	hrt_abstime _last_geofence_check{0};
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+	hrt_abstime _last_geofence_check {0};
 
 	matrix::Vector2d _last_valid_position_in_fence{static_cast<double>(NAN), static_cast<double>(NAN)};
 	bool _last_position_was_outside_fence{false};

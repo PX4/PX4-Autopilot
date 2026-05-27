@@ -182,6 +182,7 @@ void RTL::on_inactive()
 	if ((now - _destination_check_time) > 2_s) {
 		_destination_check_time = now;
 		setRtlTypeAndDestination();
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 		const bool global_position_recently_updated = _global_pos_sub.get().timestamp > 0
 				&& hrt_elapsed_time(&_global_pos_sub.get().timestamp) < 10_s;
 
@@ -194,6 +195,7 @@ void RTL::on_inactive()
 
 		}
 
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 		publishRemainingTimeEstimate();
 	}
 

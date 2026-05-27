@@ -44,7 +44,9 @@
 
 #include "rtl_direct.h"
 #include "navigator.h"
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 #include "rtl_geofence_avoidance_helper.h"
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 #include <px4_platform_common/events.h>
 
 #include <lib/geo/geo.h>
@@ -73,6 +75,7 @@ void RtlDirect::on_activation()
 {
 	_global_pos_sub.update();
 	_vehicle_status_sub.update();
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 	// Pass the current vehicle position; the planner falls back to its own latched in-fence
 	// anchor if the current position violates a fence.
 	_num_waypoints_for_geofence_avoidance =
@@ -80,6 +83,7 @@ void RtlDirect::on_activation()
 			matrix::Vector2<double> {_global_pos_sub.get().lat, _global_pos_sub.get().lon});
 
 	_current_geofence_avoidance_index = 0;
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 	parameters_update();
 
@@ -146,8 +150,10 @@ void RtlDirect::setRtlPosition(const PositionYawSetpoint &rtl_position, const lo
 		_destination = rtl_position;
 		_force_heading = false;
 
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 		_navigator->get_geofence_avoidance_planner().update_destination(
 			matrix::Vector2d{_destination.lat, _destination.lon});
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 		_land_approach = sanitizeLandApproach(loiter_pos);
 
@@ -264,6 +270,8 @@ void RtlDirect::set_rtl_item()
 			break;
 		}
 
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+
 	case RTLState::AVOID_GEOFENCE: {
 
 			const int curr_idx = _current_geofence_avoidance_index++;
@@ -296,6 +304,8 @@ void RtlDirect::set_rtl_item()
 			setMoveToPositionMissionItem(_mission_item, pos_yaw_sp);
 			break;
 		}
+
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 	case RTLState::MOVE_TO_LOITER: {
 
@@ -472,11 +482,15 @@ RtlDirect::RTLState RtlDirect::getActivationState()
 	} else if ((_global_pos_sub.get().alt < _rtl_alt) || _enforce_rtl_alt) {
 		activation_state = RTLState::CLIMBING;
 
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+
 	} else if (_navigator->get_geofence_avoidance_planner().get_num_waypoints() > 0) {
 		// Query the planner directly: when called from calc_rtl_time_estimate() while inactive
 		// the cached _num_waypoints_for_geofence_avoidance is stale (only refreshed in on_activation).
 		// When called from on_activation() the planner and the cached value agree, so this is safe.
 		activation_state = RTLState::AVOID_GEOFENCE;
+
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 	} else {
 		activation_state = RTLState::MOVE_TO_LOITER;
@@ -518,8 +532,10 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 				}
 			}
 
+
 		// FALLTHROUGH
 		case RTLState::AVOID_GEOFENCE: {
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 				// While RTL is inactive the planner is being re-run from rtl.cpp at 0.5 Hz, so the
 				// cached _num_waypoints_for_geofence_avoidance is stale. Read from the planner and
 				// treat the consumption index as 0 (nothing issued yet). Once active, the cached
@@ -532,6 +548,7 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 				{_global_pos_sub.get().lat, _global_pos_sub.get().lon},
 				num_geofence_wpts,
 				curr_geofence_idx);
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 			}
 
 		// FALLTHROUGH
@@ -540,6 +557,8 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 
 				float dist{0.f};
 
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+
 				if (_num_waypoints_for_geofence_avoidance > 0) {
 					const matrix::Vector2d last_point =
 						_navigator->get_geofence_avoidance_planner().get_point_at_index(_num_waypoints_for_geofence_avoidance);
@@ -547,7 +566,9 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 								    land_approach.lon, &direction(0), &direction(1));
 					dist = get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, land_approach.lat, land_approach.lon);
 
-				} else {
+				} else
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+				{
 
 					get_vector_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, land_approach.lat,
 								    land_approach.lon, &direction(0), &direction(1));

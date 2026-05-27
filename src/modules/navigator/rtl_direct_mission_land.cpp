@@ -41,7 +41,9 @@
 
 #include "rtl_direct_mission_land.h"
 #include "navigator.h"
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 #include "rtl_geofence_avoidance_helper.h"
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 #include <drivers/drv_hrt.h>
 
@@ -104,6 +106,7 @@ void RtlDirectMissionLand::on_activation()
 	if (hasMissionLandStart()) {
 		_is_current_planned_mission_item_valid = (goToItem(_mission.land_start_index, MissionTraversalType::IgnoreDoJump) == PX4_OK);
 
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 		matrix::Vector2d destination = get_first_position_after_land_start_index();
 
 		if (destination.isAllFinite()) {
@@ -115,6 +118,7 @@ void RtlDirectMissionLand::on_activation()
 					matrix::Vector2<double> {_global_pos_sub.get().lat, _global_pos_sub.get().lon});
 		}
 
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 		_needs_climbing = checkNeedsToClimb();
 
 	} else {
@@ -190,6 +194,8 @@ void RtlDirectMissionLand::setActiveMissionItems()
 
 		new_work_item_type = WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF;
 
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+
 	} else if (_current_geofence_avoidance_index < _num_waypoints_for_geofence_avoidance) {
 
 		// Follow the planned geofence-avoidance path before resuming the mission landing sequence.
@@ -221,6 +227,8 @@ void RtlDirectMissionLand::setActiveMissionItems()
 		_mission_item.loiter_radius = _navigator->get_default_loiter_rad();
 
 		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
+
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 	} else if (item_contains_position(_mission_item)) {
 
@@ -321,6 +329,7 @@ rtl_time_estimate_s RtlDirectMissionLand::calc_rtl_time_estimate()
 		}
 
 
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 		// While RTL is inactive the planner is being re-run (rtl.cpp), so query the planner's
 		// current path length; the consumption index is then 0 because nothing has been issued.
 		// Once active, the planner is frozen at the path latched in on_activation() — use the
@@ -334,6 +343,9 @@ rtl_time_estimate_s RtlDirectMissionLand::calc_rtl_time_estimate()
 		{_global_pos_sub.get().lat, _global_pos_sub.get().lon},
 		num_geofence_wpts,
 		curr_geofence_idx);
+#else
+		matrix::Vector2d hor_position_at_calculation_point {_global_pos_sub.get().lat, _global_pos_sub.get().lon};
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 		if (start_item_index >= 0 && start_item_index < static_cast<int32_t>(_mission.count)) {
 			float altitude_at_calculation_point;

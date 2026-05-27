@@ -55,7 +55,9 @@
 #include <uORB/topics/wind.h>
 
 #include <lib/rtl/rtl_time_estimator.h>
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 #include <navigator/GeofenceBreachAvoidance/geofence_avoidance_planner.h>
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 #include "mission_block.h"
 #include "navigation.h"
 #include "safe_point_land.hpp"

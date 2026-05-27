@@ -48,7 +48,6 @@ set(NAVIGATOR_SOURCES
 	rtl.cpp
 	rtl_direct.cpp
 	rtl_direct_mission_land.cpp
-        rtl_geofence_avoidance_helper.cpp
 	rtl_mission_fast.cpp
 	rtl_mission_fast_reverse.cpp
 	takeoff.cpp
@@ -56,6 +55,21 @@ set(NAVIGATOR_SOURCES
 	precland.cpp
 	mission_feasibility_checker.cpp
 	geofence.cpp)
+
+set(NAVIGATOR_DEPENDS
+	dataman_client
+	geo
+	geofence_utils
+	adsb
+	geofence_breach_avoidance
+	motion_planning
+	mission_feasibility_checker
+	rtl_time_estimator)
+
+if(CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE)
+	list(APPEND NAVIGATOR_SOURCES rtl_geofence_avoidance_helper.cpp)
+	list(APPEND NAVIGATOR_DEPENDS geofence_avoidance_planner)
+endif()
 
 if(CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF)
 	set(NAVIGATOR_SOURCES
@@ -75,13 +89,5 @@ px4_add_module(
 		rtl_params.yaml
 		vtol_takeoff_params.yaml
 	DEPENDS
-		dataman_client
-		geo
-		geofence_utils
-		adsb
-		geofence_breach_avoidance
-		geofence_avoidance_planner
-		motion_planning
-		mission_feasibility_checker
-		rtl_time_estimator
+		${NAVIGATOR_DEPENDS}
 	)
