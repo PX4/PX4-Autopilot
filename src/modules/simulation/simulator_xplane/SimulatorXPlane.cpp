@@ -444,16 +444,20 @@ void SimulatorXPlane::udp_send(const void *data, size_t len)
 
 void SimulatorXPlane::send_dref(const char *name, float value)
 {
-	// "DREF\0" (5) + float32_le (4) + 500-byte null-padded name = 509
+	// X-Plane DREF packet is a fixed-size binary frame, not a C string:
+	//   "DREF\0" (5) + float32_le (4) + 500-byte null-padded name = 509
+	// The embedded \0 in the 5-byte header and the un-terminated name
+	// copy into the pre-zeroed 500-byte field are intentional — NOLINT
+	// suppresses bugprone-not-null-terminated-result for both memcpys.
 	uint8_t pkt[509];
-	memcpy(pkt,     "DREF\0", 5);
+	memcpy(pkt,     "DREF\0", 5);          // NOLINT(bugprone-not-null-terminated-result)
 	memcpy(pkt + 5, &value, 4);
 	memset(pkt + 9, 0, 500);
 	size_t nlen = strlen(name);
 
 	if (nlen > 499) { nlen = 499; }
 
-	memcpy(pkt + 9, name, nlen);
+	memcpy(pkt + 9, name, nlen);           // NOLINT(bugprone-not-null-terminated-result)
 	udp_send(pkt, sizeof(pkt));
 }
 
