@@ -1,6 +1,6 @@
 # Jerk-limited Type Trajectory for Multicopters
 
-The Jerk-limited trajectory type provides smooth motion to setpoint changes (e.g.: for filming, mapping, cargo).
+The Jerk-limited trajectory type provides smooth motion in autonomous flight e.g. for filming, mapping, cargo.
 It generates symmetric smooth S-curves where the jerk and acceleration limits are always guaranteed.
 
 This trajectory type is always enabled in autonomous modes like [Mission mode](../flight_modes_mc/mission.md).
@@ -24,7 +24,7 @@ The resulting velocity profile is often called "S-Curve".
 
 ## Manual Mode
 
-In manual position mode, jerk limiting is only done for the verical axis. A full throttle stick deflection corresponds to [MPC_Z_VEL_MAX_UP](../advanced_config/parameter_reference.md#MPC_Z_VEL_MAX_UP) (upward motion) or [MPC_Z_VEL_MAX_DN](../advanced_config/parameter_reference.md#MPC_Z_VEL_MAX_DN) (downward motion).
+In manual position and altitude mode, jerk limiting is applied only to the vertical axis. Full throttle stick deflection commands the maximum vertical velocity which is [MPC_Z_VEL_MAX_UP](../advanced_config/parameter_reference.md#MPC_Z_VEL_MAX_UP) upwards and [MPC_Z_VEL_MAX_DN](../advanced_config/parameter_reference.md#MPC_Z_VEL_MAX_DN) downwards.
 
 ### Constraints
 
