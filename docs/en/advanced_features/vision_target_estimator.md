@@ -38,60 +38,72 @@ For the experimental moving-target build, see [Moving-target mode](../advanced_f
 
 ## Estimator Overview
 
-This section describes how the filter works internally. It is recommended background reading to understand the underlying mechanics, though it is not strictly required to set up or operate the feature.
+This section describes how the filter works internally.
+It is recommended background reading to understand the underlying mechanics, though it is not strictly required to set up or operate the feature.
 
 ### Architecture and Core Loop
 
 The Vision Target Estimator runs two independent estimators at a fixed 50 Hz:
-* **Position filter:** Tracks where the target is relative to the vehicle. It is structured as three decoupled 1D Kalman filters (one per NED axis).
-* **Orientation filter:** Tracks the target yaw on its own state.
+
+- **Position filter:** Tracks where the target is relative to the vehicle.
+  It is structured as three decoupled 1D Kalman filters (one per NED axis).
+- **Orientation filter:** Tracks the target yaw on its own state.
 
 Each filter alternates between two operations:
-- **Prediction step:** Propagates the state forward using the vehicle motion model.
 
 <a id="dynamic-models"></a>
 
-::: details Click to view the mathematical model
+- **Prediction step:** Propagates the state forward using the vehicle motion model.
 
-The per-axis position state is $x = [ r, v^{uav}, b ]^T$: the relative NED displacement (target minus vehicle), the vehicle velocity, and the offset between the absolute target reference (GNSS or mission waypoint) and the vision-derived target position. Assuming constant NED acceleration input $a^{uav}$ over the integration interval $dt$:
+  ::: details Click to view the mathematical model
 
-$$
-\begin{aligned}
-r_{k+1} &= r_k - dt\thinspace v^{uav}_k - \tfrac{1}{2}\thinspace dt^2\thinspace a^{uav} \\
-v^{uav}_{k+1} &= v^{uav}_k + dt\thinspace a^{uav} \\
-b_{k+1} &= b_k
-\end{aligned}
-$$
+  The per-axis position state is $x = [ r, v^{uav}, b ]^T$: the relative NED displacement (target minus vehicle), the vehicle velocity, and the offset between the absolute target reference (GNSS or mission waypoint) and the vision-derived target position.
+  Assuming constant NED acceleration input $a^{uav}$ over the integration interval $dt$:
 
-Once the bias is known, GNSS can keep the estimate centred on the target even if vision drops out.
+  $$
+  \begin{aligned}
+  r_{k+1} &= r_k - dt\thinspace v^{uav}_k - \tfrac{1}{2}\thinspace dt^2\thinspace a^{uav} \\
+  v^{uav}_{k+1} &= v^{uav}_k + dt\thinspace a^{uav} \\
+  b_{k+1} &= b_k
+  \end{aligned}
+  $$
 
-The yaw filter tracks $x = [ \psi, \dot{\psi} ]^T$ with a constant-rate prediction (yaw wrapped to $[-\pi, \pi]$):
+  Once the bias is known, GNSS can keep the estimate centred on the target even if vision drops out.
 
-$$
-\begin{aligned}
-\psi_{k+1} &= \text{wrap}\negthinspace\left(\psi_k + dt\thinspace\dot{\psi}_k\right) \\
-\dot{\psi}_{k+1} &= \dot{\psi}_k
-\end{aligned}
-$$
+  The yaw filter tracks $x = [ \psi, \dot{\psi} ]^T$ with a constant-rate prediction (yaw wrapped to $[-\pi, \pi]$):
 
-Unknown physical disturbances are modelled as continuous-time Gaussian white noise. The runtime spectral densities ([VTE_ACC_D_UNC](../advanced_config/parameter_reference.md#VTE_ACC_D_UNC), [VTE_BIAS_UNC](../advanced_config/parameter_reference.md#VTE_BIAS_UNC), [VTE_YAW_ACC_UNC](../advanced_config/parameter_reference.md#VTE_YAW_ACC_UNC)) and the initial-variance parameters are listed in [Noise](#noise); for the full derivation see [Dynamic model process noise](../advanced_features/vision_target_estimator_advanced.md#dynamic-model-process-noise).
+  $$
+  \begin{aligned}
+  \psi_{k+1} &= \text{wrap}\negthinspace\left(\psi_k + dt\thinspace\dot{\psi}_k\right) \\
+  \dot{\psi}_{k+1} &= \dot{\psi}_k
+  \end{aligned}
+  $$
 
-For the experimental moving-target mode that adds target velocity and acceleration states, see [Moving-target mode](../advanced_features/vision_target_estimator_advanced.md#moving-target-mode-experimental).
-:::
+  Unknown physical disturbances are modelled as continuous-time Gaussian white noise.
+  The runtime spectral densities ([VTE_ACC_D_UNC](../advanced_config/parameter_reference.md#VTE_ACC_D_UNC), [VTE_BIAS_UNC](../advanced_config/parameter_reference.md#VTE_BIAS_UNC), [VTE_YAW_ACC_UNC](../advanced_config/parameter_reference.md#VTE_YAW_ACC_UNC)) and the initial-variance parameters are listed in [Noise](#noise); for the full derivation see [Dynamic model process noise](../advanced_features/vision_target_estimator_advanced.md#dynamic-model-process-noise).
 
--   **Update step:** Corrects the state whenever a new sensor observation arrives and is accepted for fusion. See [Aid-source diagnostics](#aid-source-diagnostics) to debug the fusion update step.
+  For the experimental moving-target mode that adds target velocity and acceleration states, see [Moving-target mode](../advanced_features/vision_target_estimator_advanced.md#moving-target-mode-experimental).
+  :::
+
+- **Update step:** Corrects the state whenever a new sensor observation arrives and is accepted for fusion.
+  See [Aid-source diagnostics](#aid-source-diagnostics) to debug the fusion update step.
 
 ### Initialization and Task Scheduling
 
-Fusion starts as soon as the filter is initialized. The position filter requires a recent vehicle velocity estimate along with at least one position-like observation to begin. The orientation filter starts immediately upon receiving the first valid vision yaw sample.
+Fusion starts as soon as the filter is initialized.
+The position filter requires a recent vehicle velocity estimate along with at least one position-like observation to begin.
+The orientation filter starts immediately upon receiving the first valid vision yaw sample.
 
-The estimators only run while a runtime **task** is active. Tasks are evaluated in priority order, and the first task whose readiness conditions are satisfied is the one that executes. See [Task Selection](#task-selection) to learn how to select tasks via bitmask.
+The estimators only run while a runtime **task** is active.
+Tasks are evaluated in priority order, and the first task whose readiness conditions are satisfied is the one that executes.
+See [Task Selection](#task-selection) to learn how to select tasks via bitmask.
 
-### Bias Estimation
+### Bias Estimation {#bias-estimation}
 
-The position filter actively estimates the bias between the absolute target reference (GNSS or mission waypoint) and the vision-derived target position. Once this bias is observed, the corrected absolute reference effectively becomes a second relative-position sensor. This allows the vehicle to safely touch down on the target even if vision is briefly lost (e.g., due to motion blur, partial occlusion, or the marker leaving the camera's field of view near the ground). See [Bias Initialisation](#bias-initialisation) and [Noise](#noise) for bias configuration.
-
-<a id="bias-estimation"></a>
+The position filter actively estimates the bias between the absolute target reference (GNSS or mission waypoint) and the vision-derived target position.
+Once this bias is observed, the corrected absolute reference effectively becomes a second relative-position sensor.
+This allows the vehicle to safely touch down on the target even if vision is briefly lost (e.g., due to motion blur, partial occlusion, or the marker leaving the camera's field of view near the ground).
+See [Bias Initialisation](#bias-initialisation) and [Noise](#noise) for bias configuration.
 
 ::: details Click to view the bias initialization logic
 
@@ -103,27 +115,32 @@ The GNSS bias $b$ becomes observable only when both GNSS and vision are availabl
 For the full state-reset rules, the LPF exit condition, and the stale-GNSS fallback, see [Bias initialization design](../advanced_features/vision_target_estimator_advanced.md#bias-initialization-design).
 :::
 
-### Time Alignment (Latency Compensation)
+### Time Alignment (Latency Compensation) {#time-alignment}
 
-<a id="time-alignment"></a>
-
-Vision and GNSS measurements often reach the autopilot with non-negligible transport or processing latency. VTE compensates for this by fusing delayed samples against the predicted state at their *original* timestamp, rather than the current one. This relies on an **Out-of-Sequence Measurements (OOSM)** approximation using a history-consistent projected correction strategy. For buffer sizing and algorithm specifics, see [OOSM Implementation](../advanced_features/vision_target_estimator_advanced.md#oosm-implementation).
+Vision and GNSS measurements often reach the autopilot with non-negligible transport or processing latency.
+VTE compensates for this by fusing delayed samples against the predicted state at their _original_ timestamp, rather than the current one.
+This relies on an **Out-of-Sequence Measurements (OOSM)** approximation using a history-consistent projected correction strategy.
+For buffer sizing and algorithm specifics, see [OOSM Implementation](../advanced_features/vision_target_estimator_advanced.md#oosm-implementation).
 
 ### Fallbacks and Timeouts
 
-If no measurement is fused for a sustained period, the affected filter will coast for a brief window before resetting. Once reset, it will automatically retry as soon as an enabled fusion source becomes available again. See [Timeouts](#timeouts) to configure the duration of these fallback windows.
+If no measurement is fused for a sustained period, the affected filter will coast for a brief window before resetting.
+Once reset, it will automatically retry as soon as an enabled fusion source becomes available again.
+See [Timeouts](#timeouts) to configure the duration of these fallback windows.
 
 ## Configuration
 
 ### Module Enable
 
-Set [VTE_EN](../advanced_config/parameter_reference.md#VTE_EN)=1 to run the estimator (reboot required).
+Set the [VTE_EN](../advanced_config/parameter_reference.md#VTE_EN) parameter `1` to run the estimator (reboot required).
 
-VTE runs two independent filters: a **position filter** that tracks where the target is relative to the vehicle, and an **orientation filter** that tracks the target yaw. [VTE_POS_EN](../advanced_config/parameter_reference.md#VTE_POS_EN) and [VTE_YAW_EN](../advanced_config/parameter_reference.md#VTE_YAW_EN) enable the position and orientation filters individually (reboot required).
+To enable position and/or yaw tracking set the following parameters (then reboot):
 
-::: info
-  [VTE_YAW_EN](../advanced_config/parameter_reference.md#VTE_YAW_EN) is disabled by default, enable it if your vision pipeline reports a target heading.
-:::
+- [VTE_POS_EN](../advanced_config/parameter_reference.md#VTE_POS_EN): Set to `1` to enable position estimation (track the target position relative to the vehicle).
+- [VTE_YAW_EN](../advanced_config/parameter_reference.md#VTE_YAW_EN): Set to `1` to enable orientation estimation (track the target yaw).
+
+  This is disabled by default.
+  Enable it if your vision pipeline reports a target heading.
 
 ### Timeouts
 
@@ -183,7 +200,7 @@ With precision landing enabled but `PLD_YAW_EN` disabled, only the position esti
 | --- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | 0   | Target GNSS position                                                                                                                |
 | 1   | Vehicle GNSS velocity                                                                                                               |
-| 2   | Vision-based relative pose                                                                                                            |
+| 2   | Vision-based relative pose                                                                                                          |
 | 3   | Mission landing waypoint                                                                                                            |
 | 4   | Target GNSS velocity ([moving mode](../advanced_features/vision_target_estimator_advanced.md#moving-target-mode-experimental) only) |
 
@@ -193,13 +210,13 @@ Bit 2 also enables processing of `fiducial_marker_yaw_report` in the orientation
 Each source observes a different combination of states (see the per-source observation models in the details block below), so multiple sources keep the filter robust through momentary dropouts.
 
 - **Vehicle GNSS velocity is important.** Only disable this source when you have a specific reason, for example no GNSS available.
-Without it, vision dropouts cause a visible relative-position drift that snaps back when vision returns.
-The deep dive plots both cases side by side in [Vision dropout behaviour](../advanced_features/vision_target_estimator_advanced.md#vision-dropout-behaviour).
+  Without it, vision dropouts cause a visible relative-position drift that snaps back when vision returns.
+  The deep dive plots both cases side by side in [Vision dropout behaviour](../advanced_features/vision_target_estimator_advanced.md#vision-dropout-behaviour).
 
 - **An absolute reference makes precision landing robust to vision loss.** Fusing an absolute reference (target GNSS or the mission landing waypoint) lets the filter estimate the bias between the absolute frame and the vision frame.
-Once the bias is observed, the corrected absolute observation effectively becomes a second relative-position sensor: the vehicle can still touch down on the target even when vision is no longer available (for example because the marker leaves the camera field of view in the final metres of descent, or because of motion blur or partial occlusion).
-This is especially important for large targets where vision is expected to drop out before touchdown.
-The deep dive analyses this on a real flight in [Vision occlusion during descent](../advanced_features/vision_target_estimator_advanced.md#vision-occlusion-during-descent).
+  Once the bias is observed, the corrected absolute observation effectively becomes a second relative-position sensor: the vehicle can still touch down on the target even when vision is no longer available (for example because the marker leaves the camera field of view in the final metres of descent, or because of motion blur or partial occlusion).
+  This is especially important for large targets where vision is expected to drop out before touchdown.
+  The deep dive analyses this on a real flight in [Vision occlusion during descent](../advanced_features/vision_target_estimator_advanced.md#vision-occlusion-during-descent).
 
 ::: info
 
@@ -217,14 +234,14 @@ For each observation $z$ a one-row Jacobian is formed and applied to a single ax
 Enabled sensors are defined by the [VTE_AID_MASK](../advanced_config/parameter_reference.md#VTE_AID_MASK) bitmask.
 The state symbols used in the `H` column ($r$, $v^{uav}$, $b$, $v^{t}$, $\psi$) are defined in the [Dynamic models](#dynamic-models) block above.
 
-| Source                             | uORB topic                                                                   | H structure                                                           | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| ---------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Target GNSS position               | [`target_gnss`](../msg_docs/TargetGnss.md)                                   | $z = r + b$ once the bias is observable, otherwise $z = r$            | The vehicle GNSS sample is interpolated to the target timestamp using the vehicle velocity so the two receivers share a common epoch. Requires [VTE_AID_MASK](../advanced_config/parameter_reference.md#VTE_AID_MASK) bit 0. Before bias activation, this source is held back if the estimator is already vision-referenced.                                                                                                                                                                                                                                                                                           |
+| Source                             | uORB topic                                                                   | H structure                                                           | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ---------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Target GNSS position               | [`target_gnss`](../msg_docs/TargetGnss.md)                                   | $z = r + b$ once the bias is observable, otherwise $z = r$            | The vehicle GNSS sample is interpolated to the target timestamp using the vehicle velocity so the two receivers share a common epoch. Requires [VTE_AID_MASK](../advanced_config/parameter_reference.md#VTE_AID_MASK) bit 0. Before bias activation, this source is held back if the estimator is already vision-referenced.                                                                                                                                                                                                                                                                                                                                       |
 | Mission landing waypoint           | `navigator_mission_item` with validated `position_setpoint_triplet` fallback | $z = r$                                                               | Provides a fallback absolute reference when target GNSS is unavailable. At precision-land task start VTE caches the logical landing waypoint published by [Navigator](../modules/modules_controller.md#navigator) and keeps using that cached point even after precland rewrites the live triplet. The triplet remains a fallback for modes that do not publish `navigator_mission_item`. Enable [VTE_AID_MASK](../advanced_config/parameter_reference.md#VTE_AID_MASK) bit 3 and avoid combining it with target GNSS because only one GNSS bias can be estimated. Before bias activation, this source is held back if the estimator is already vision-referenced. |
-| Vision pose                        | [`fiducial_marker_pos_report`](../msg_docs/FiducialMarkerPosReport.md)       | $z = r$ after rotating the measurement (`rel_pos`) into NED using `q` | Uses the message variances, lower-bounded by [VTE_EVP_NOISE](../advanced_config/parameter_reference.md#VTE_EVP_NOISE). Recent vision fusions are required for EKF aiding. During the initial GNSS/vision bias averaging phase, valid vision samples update the bias low-pass filter but are not fused into the position state yet. This averaging phase only exists when GNSS became the active reference first.                                                                                                                                                                                                       |
-| Vehicle GNSS velocity              | `sensor_gps`                                                                 | $z = v^{uav}$                                                         | Removes rotation-induced velocity using the vehicle GPS antenna offset parameters (`SENS_GPS0_OFF*`). Enable [VTE_AID_MASK](../advanced_config/parameter_reference.md#VTE_AID_MASK) bit 1.                                                                                                                                                                                                                                                                                                                                                     |
-| Target GNSS velocity (moving mode) | `target_gnss`                                                                | $z = v^{t}$                                                           | Only used by the experimental [Moving-target mode](../advanced_features/vision_target_estimator_advanced.md#moving-target-mode-experimental).                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| Vision yaw                         | [`fiducial_marker_yaw_report`](../msg_docs/FiducialMarkerYawReport.md)       | $z = \psi$                                                            | Only source used by the orientation filter. Requires [VTE_YAW_EN](../advanced_config/parameter_reference.md#VTE_YAW_EN) and [VTE_AID_MASK](../advanced_config/parameter_reference.md#VTE_AID_MASK) bit 2. Variance is taken from the message and lower-bounded by [VTE_EVA_NOISE](../advanced_config/parameter_reference.md#VTE_EVA_NOISE).                                                                                                                                                                                                                                                                            |
+| Vision pose                        | [`fiducial_marker_pos_report`](../msg_docs/FiducialMarkerPosReport.md)       | $z = r$ after rotating the measurement (`rel_pos`) into NED using `q` | Uses the message variances, lower-bounded by [VTE_EVP_NOISE](../advanced_config/parameter_reference.md#VTE_EVP_NOISE). Recent vision fusions are required for EKF aiding. During the initial GNSS/vision bias averaging phase, valid vision samples update the bias low-pass filter but are not fused into the position state yet. This averaging phase only exists when GNSS became the active reference first.                                                                                                                                                                                                                                                   |
+| Vehicle GNSS velocity              | `sensor_gps`                                                                 | $z = v^{uav}$                                                         | Removes rotation-induced velocity using the vehicle GPS antenna offset parameters (`SENS_GPS0_OFF*`). Enable [VTE_AID_MASK](../advanced_config/parameter_reference.md#VTE_AID_MASK) bit 1.                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Target GNSS velocity (moving mode) | `target_gnss`                                                                | $z = v^{t}$                                                           | Only used by the experimental [Moving-target mode](../advanced_features/vision_target_estimator_advanced.md#moving-target-mode-experimental).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Vision yaw                         | [`fiducial_marker_yaw_report`](../msg_docs/FiducialMarkerYawReport.md)       | $z = \psi$                                                            | Only source used by the orientation filter. Requires [VTE_YAW_EN](../advanced_config/parameter_reference.md#VTE_YAW_EN) and [VTE_AID_MASK](../advanced_config/parameter_reference.md#VTE_AID_MASK) bit 2. Variance is taken from the message and lower-bounded by [VTE_EVA_NOISE](../advanced_config/parameter_reference.md#VTE_EVA_NOISE).                                                                                                                                                                                                                                                                                                                        |
 
 All innovation data are published on dedicated topics (`vte_aid_gps_pos_target`, `vte_aid_fiducial_marker`, `vte_aid_ev_yaw`, etc.), making it easy to inspect residuals and test ratios in logs.
 Every fusion attempt is published, including rejections: the per-axis `fusion_status` enum records the outcome (fused immediately, fused via OOSM history replay, rejected by the NIS gate, rejected as too old or too new, etc.), so tuning sessions can isolate time skew, noise mismatch, or buffer staleness without guessing.
@@ -236,8 +253,6 @@ UWB and IRLock are candidates for future development once representative test da
 ::::
 
 ### Noise
-
-<a id="noise"></a>
 
 This section covers how the [Kalman filter](https://en.wikipedia.org/wiki/Kalman_filter) at the heart of VTE weighs sensor measurements against its own prediction.
 Noise parameters set how much trust to place in each input.
@@ -253,32 +268,35 @@ The deep dive walks through what a healthy filter looks like in [Expected Plot D
 - **Initial state variances** ([VTE_POS_UNC_IN](../advanced_config/parameter_reference.md#VTE_POS_UNC_IN), [VTE_VEL_UNC_IN](../advanced_config/parameter_reference.md#VTE_VEL_UNC_IN), [VTE_BIA_UNC_IN](../advanced_config/parameter_reference.md#VTE_BIA_UNC_IN), [VTE_ACC_UNC_IN](../advanced_config/parameter_reference.md#VTE_ACC_UNC_IN), [VTE_YAW_UNC_IN](../advanced_config/parameter_reference.md#VTE_YAW_UNC_IN)) seed the filter at initialization or reset.
   - Lower them only if you see aggressive transients on `vte_position` immediately after activation.
   - Raise them if convergence is very slow.
-  Updates while the estimator is already running take effect on the next start.
+    Updates while the estimator is already running take effect on the next start.
 - **Process noise** ([VTE_ACC_D_UNC](../advanced_config/parameter_reference.md#VTE_ACC_D_UNC), [VTE_BIAS_UNC](../advanced_config/parameter_reference.md#VTE_BIAS_UNC), [VTE_YAW_ACC_UNC](../advanced_config/parameter_reference.md#VTE_YAW_ACC_UNC), and [VTE_ACC_T_UNC](../advanced_config/parameter_reference.md#VTE_ACC_T_UNC) for moving-target builds) controls how fast the predicted state variance grows between measurements, which in turn sets how strongly each new observation moves the filter.
   - Lower them when the state follows per-sample jitter rather than the underlying trend.
   - Raise them when the estimator lags real motion or repeated innovations show that the prediction uncertainty is too optimistic.
   - For a step-by-step recipe with worked examples, see [Balancing process and observation noise](../advanced_features/vision_target_estimator_advanced.md#balancing-process-and-observation-noise).
 - **Sensor noise floors** ([VTE_GPS_P_NOISE](../advanced_config/parameter_reference.md#VTE_GPS_P_NOISE), [VTE_GPS_V_NOISE](../advanced_config/parameter_reference.md#VTE_GPS_V_NOISE), [VTE_EVP_NOISE](../advanced_config/parameter_reference.md#VTE_EVP_NOISE), [VTE_EVA_NOISE](../advanced_config/parameter_reference.md#VTE_EVA_NOISE)) are lower bounds on the per-sample standard deviation each sensor is allowed to report.
   - Do not push these towards zero: a very small floor tells the filter to trust every sample fully, which makes it chase per-sample jitter and can drive the controller into oscillations.
-  The runtime enforces a hard minimum to keep Kalman gains bounded, but the safer practice is to set a realistic floor that matches the actual sensor accuracy.
+    The runtime enforces a hard minimum to keep Kalman gains bounded, but the safer practice is to set a realistic floor that matches the actual sensor accuracy.
   - Raise the floor for a sensor that under-reports its noise (you will see the filter chasing every sample of that sensor in `vte_position` and the corresponding `vte_aid_*.observation`)
   - Do not modify the floor if the reported variance already exceeds the floor.
   - See [Between observation sources](../advanced_features/vision_target_estimator_advanced.md#between-observation-sources) for typical mis-tunes.
 
 :::
 
-### Outlier detection
+### Outlier Detection
 
-Gating thresholds decide which samples to fuse and which to reject as outliers. It is controlled by the position and yaw NIS gates ([VTE_POS_NIS_THRE](../advanced_config/parameter_reference.md#VTE_POS_NIS_THRE), [VTE_YAW_NIS_THRE](../advanced_config/parameter_reference.md#VTE_YAW_NIS_THRE)), which default to a 95% chi-squared confidence interval. There is no need to modify the default unless log analysis shows repeated `fusion_status = STATUS_REJECT_NIS` on valid samples or corrupted samples still passing fusion.
+Gating thresholds decide which samples to fuse and which to reject as outliers.
+It is controlled by the position and yaw NIS gates ([VTE_POS_NIS_THRE](../advanced_config/parameter_reference.md#VTE_POS_NIS_THRE), [VTE_YAW_NIS_THRE](../advanced_config/parameter_reference.md#VTE_YAW_NIS_THRE)), which default to a 95% chi-squared confidence interval.
+There is no need to modify the default unless log analysis shows repeated `fusion_status = STATUS_REJECT_NIS` on valid samples or corrupted samples still passing fusion.
 For the gating logic and tuning workflow, see [Outlier Detection](../advanced_features/vision_target_estimator_advanced.md#outlier-detection).
-
 
 ### Bias Initialisation
 
-**Bias averaging** ([VTE_BIA_AVG_THR](../advanced_config/parameter_reference.md#VTE_BIA_AVG_THR), [VTE_BIA_AVG_TOUT](../advanced_config/parameter_reference.md#VTE_BIA_AVG_TOUT)) only takes effect when GNSS becomes active before vision. The defaults work for typical consumer GNSS plus marker-based vision.
-  See [Bias initialization design](../advanced_features/vision_target_estimator_advanced.md#bias-initialization-design) for the full state-machine behaviour.
-  - Set `VTE_BIA_AVG_TOUT=0` to skip averaging and activate the bias on the first joint sample.
-  - Raise `VTE_BIA_AVG_THR` if a noisy vision pipeline cannot satisfy the stability criterion within the timeout.
+**Bias averaging** ([VTE_BIA_AVG_THR](../advanced_config/parameter_reference.md#VTE_BIA_AVG_THR), [VTE_BIA_AVG_TOUT](../advanced_config/parameter_reference.md#VTE_BIA_AVG_TOUT)) only takes effect when GNSS becomes active before vision.
+The defaults work for typical consumer GNSS plus marker-based vision.
+See [Bias initialization design](../advanced_features/vision_target_estimator_advanced.md#bias-initialization-design) for the full state-machine behaviour.
+
+- Set `VTE_BIA_AVG_TOUT=0` to skip averaging and activate the bias on the first joint sample.
+- Raise `VTE_BIA_AVG_THR` if a noisy vision pipeline cannot satisfy the stability criterion within the timeout.
 
 ### Sensor-specific Settings
 
@@ -319,7 +337,7 @@ These messages are currently in the MAVLink development dialect.
 To make them available in PX4 builds the `CONFIG_MAVLINK_DIALECT="development"` key must be set in the build configuration.
 :::
 
-::: details Click to view MAVLink message specifications (TARGET_RELATIVE, TARGET_ABSOLUTE)
+::: details Click to view MAVLink message integration (TARGET_RELATIVE, TARGET_ABSOLUTE)
 
 **TARGET_RELATIVE (ID 511)**
 
@@ -393,7 +411,8 @@ The ArUco vision observation path implemented in `Tools/simulation/gazebo-classi
 
 - **Pad visibility**: In `Tools/simulation/gazebo-classic/sitl_gazebo-classic/models/land_pad/land_pad.sdf`, increase the visual box size to `1.5 1.5 0.01` so the pad stays in view longer while the vehicle descends.
   If vision still detects the pad too late in the descent, complement this by planning a lower-altitude mission so the marker enters the camera field of view earlier.
-- **Acceptance radius**: If the vehicle hovers above the pad without ever transitioning to descent, raise [PLD_HACC_RAD](../advanced_config/parameter_reference.md#PLD_HACC_RAD). Try 2 m first to confirm the rest of the chain works, then tighten it once the filter is well tuned.
+- **Acceptance radius**: If the vehicle hovers above the pad without ever transitioning to descent, raise [PLD_HACC_RAD](../advanced_config/parameter_reference.md#PLD_HACC_RAD).
+  Try 2 m first to confirm the rest of the chain works, then tighten it once the filter is well tuned.
 - **Mission waypoint bias**: Enable vision and mission position aiding in [VTE_AID_MASK](../advanced_config/parameter_reference.md#VTE_AID_MASK) (set bits 2 and 3, disable bit 0).
   Place the landing waypoint 3 to 4 m away from the pad in QGroundControl to watch the UAV correct towards the pad once it is detected.
   In the logs, observe how the GNSS bias compensates for the distance between the land waypoint and the actual pad.

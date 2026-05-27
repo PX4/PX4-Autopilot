@@ -20,8 +20,8 @@ The module has three layers: a scheduler, a task layer, and two independent esti
 - `tasks/VteTask.h` defines the task interface and the `VTE_TASK_MASK` bit constants.
   A task owns all state that only exists for one VTE use-case, such as subscriptions to external status topics, cached mission setpoints, and end-of-task conditions.
   `VisionTargetEst` polls each enabled task, then activates the first task in the registry whose readiness conditions are satisfied.
-   - `tasks/PrecLandTask.cpp` implements the precision-landing task.
-  It monitors [`prec_land_status`](../msg_docs/PrecLandStatus.md), caches the land waypoint from `navigator_mission_item` (with `position_setpoint_triplet` as a fallback), and completes when precland stops or touchdown is detected.
+  - `tasks/PrecLandTask.cpp` implements the precision-landing task.
+    It monitors [`prec_land_status`](../msg_docs/PrecLandStatus.md), caches the land waypoint from `navigator_mission_item` (with `position_setpoint_triplet` as a fallback), and completes when precland stops or touchdown is detected.
 - `VTEPosition` (`Position/VTEPosition.cpp`) owns the three per-axis position filters.
   It maintains observation buffers, enforces timeouts, and publishes `landing_target_pose`, [`vte_position`](../msg_docs/VtePosition.md), and every `vte_aid_*` innovation topic.
   The state vector is $[r, v^{uav}, b]$ (relative position, vehicle velocity, GNSS-vs-vision bias); see [Dynamic models](../advanced_features/vision_target_estimator.md#dynamic-models).
@@ -92,14 +92,17 @@ Open the box below if you are debugging a bias that fails to converge, jumps une
 
 #### Prerequisites and Startup Conditions
 
-- **Before the filter starts.** A recent UAV velocity estimate (local or GNSS) must be available. It seeds the $v^{uav}$ state and lets the bias logic align GNSS and vision in time.
-- **Sampling the raw bias.** The raw bias is always evaluated at the vision timestamp `t_vision`. If the most recent GNSS-relative sample is older than vision, it is propagated forward using the UAV velocity. The bias logic therefore uses `pos_rel_gnss(t_vision)`, not the stale stored value.
+- **Before the filter starts.** A recent UAV velocity estimate (local or GNSS) must be available.
+  It seeds the $v^{uav}$ state and lets the bias logic align GNSS and vision in time.
+- **Sampling the raw bias.** The raw bias is always evaluated at the vision timestamp `t_vision`.
+  If the most recent GNSS-relative sample is older than vision, it is propagated forward using the UAV velocity.
+  The bias logic therefore uses `pos_rel_gnss(t_vision)`, not the stale stored value.
 
 #### Initialization Paths: GNSS-First vs Vision-First
 
 - **Why the behaviour is asymmetric.**
-   - If GNSS is already driving the position state, feeding in raw vision before the bias is ready would mix two frames that can differ by metres.That is why VTE delays vision in the GNSS-first case.
-   - If vision is already driving the position state, the safer choice is the opposite: keep the trusted vision-based $r$ and solve for the bias immediately when GNSS and vision overlap for the first time.
+  - If GNSS is already driving the position state, feeding in raw vision before the bias is ready would mix two frames that can differ by metres.That is why VTE delays vision in the GNSS-first case.
+  - If vision is already driving the position state, the safer choice is the opposite: keep the trusted vision-based $r$ and solve for the bias immediately when GNSS and vision overlap for the first time.
 - **Immediate activation (vision-first).** When the estimator is already vision-referenced, VTE computes `b = pos_rel_gnss(t_vision) - pos_rel_vision` and keeps `r = pos_rel_vision`.
   The same immediate-activation path is also used when [VTE_BIA_AVG_TOUT](../advanced_config/parameter_reference.md#VTE_BIA_AVG_TOUT) is 0, even if GNSS was active first.
 - **Averaging (GNSS-first).** When GNSS is active first and averaging is enabled, vision updates the LPF at the vision rate while GNSS remains the active position source.
@@ -188,12 +191,12 @@ All process-noise parameters are continuous-time **power spectral densities** (P
 A PSD describes the strength of a continuous white-noise process: it is the variance the noise injects per second into the state it directly drives, with units chosen so that `PSD × time` is the variance of that state.
 See [Spectral density (Wikipedia)](https://en.wikipedia.org/wiki/Spectral_density) for background.
 
-| Parameter                                                                    | Drives directly     | Unit                | What it represents                                                                         |
-| ---------------------------------------------------------------------------- | ------------------- | ------------------- | ------------------------------------------------------------------------------------------ |
-| [VTE_BIAS_UNC](../advanced_config/parameter_reference.md#VTE_BIAS_UNC)       | `bias` (m)          | m²/s                | PSD of the bias random walk                                                                |
-| [VTE_ACC_D_UNC](../advanced_config/parameter_reference.md#VTE_ACC_D_UNC)     | `vel_uav` (m/s)     | m²/s³               | PSD of white acceleration noise on the UAV acceleration input                              |
-| [VTE_YAW_ACC_UNC](../advanced_config/parameter_reference.md#VTE_YAW_ACC_UNC) | `yaw_rate` (rad/s)  | rad²/s³             | PSD of white yaw-acceleration noise                                                        |
-| [VTE_ACC_T_UNC](../advanced_config/parameter_reference.md#VTE_ACC_T_UNC)     | `acc_target` (m/s²) | (m/s²)²/s = m²/s⁵   | PSD of white jerk noise driving the target-acceleration random walk (moving-target builds) |
+| Parameter                                                                    | Drives directly     | Unit              | What it represents                                                                         |
+| ---------------------------------------------------------------------------- | ------------------- | ----------------- | ------------------------------------------------------------------------------------------ |
+| [VTE_BIAS_UNC](../advanced_config/parameter_reference.md#VTE_BIAS_UNC)       | `bias` (m)          | m²/s              | PSD of the bias random walk                                                                |
+| [VTE_ACC_D_UNC](../advanced_config/parameter_reference.md#VTE_ACC_D_UNC)     | `vel_uav` (m/s)     | m²/s³             | PSD of white acceleration noise on the UAV acceleration input                              |
+| [VTE_YAW_ACC_UNC](../advanced_config/parameter_reference.md#VTE_YAW_ACC_UNC) | `yaw_rate` (rad/s)  | rad²/s³           | PSD of white yaw-acceleration noise                                                        |
+| [VTE_ACC_T_UNC](../advanced_config/parameter_reference.md#VTE_ACC_T_UNC)     | `acc_target` (m/s²) | (m/s²)²/s = m²/s⁵ | PSD of white jerk noise driving the target-acceleration random walk (moving-target builds) |
 
 The unit always follows the same rule: it is `[unit of the directly driven state]² / s`.
 The bias is in metres, so its PSD is `m²/s`.
@@ -202,13 +205,16 @@ The YAML may list the same unit in two equivalent forms (for example `m²/s³` a
 
 ::: info
 **Variance-rate rule (key formula).**
-A spectral density is _not_ a velocity. Each predict step adds `spectral_density * dt` to the variance of the directly driven state. The 1-sigma allowance therefore grows with the _square root_ of elapsed time:
+A spectral density is _not_ a velocity.
+Each predict step adds `spectral_density * dt` to the variance of the directly driven state.
+The 1-sigma allowance therefore grows with the _square root_ of elapsed time:
 
 $$
 \sigma(t) = \sqrt{\text{spectral density} \cdot t}
 $$
 
-The tuning sections below reference this rule directly. Set the PSD so the resulting $\sigma(t)$ over a representative interval matches the realistic physical uncertainty.
+The tuning sections below reference this rule directly.
+Set the PSD so the resulting $\sigma(t)$ over a representative interval matches the realistic physical uncertainty.
 :::
 
 Because the noise is scaled by `dt` at every predict step, the value is independent of the filter update rate.
@@ -221,9 +227,7 @@ Running the filter at 25 Hz, 50 Hz, or 100 Hz produces the same long-term allowa
 This section covers the math behind the process-noise parameters.
 You only need it if you want to understand how the spectral densities propagate through the prediction model.
 
-<a id="process-noise-computation"></a>
-
-#### Process Noise Computation
+#### Process Noise Computation {#process-noise-computation}
 
 The deterministic prediction uses the measured inputs to advance the mean state.
 Process noise describes how wrong that prediction might be.
@@ -354,21 +358,25 @@ For example, a trace wandering between -0.05 and +0.10 m/s² in periods of order
 
 Symptoms and fixes (visible on `vte_position.rel_pos` overlaid with the matching `vte_aid_*.observation`):
 
-| Symptom                                                                                              | Likely cause                | Fix                                                                                                                                                                                                                                                  |
-| ---------------------------------------------------------------------------------------------------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Staircase between fusions**: state drifts away from the observation between samples, snaps back at each fusion. | `VTE_ACC_D_UNC` too low.    | Raise `VTE_ACC_D_UNC`. First check `vte_input.acc_xyz` for a persistent bias (attitude/gravity leakage, lever-arm error, real vehicle acceleration); raising process noise does not remove the bias itself.                                          |
-| **State copies the per-sample jitter** of the measurement, vehicle oscillates near the ground.       | `VTE_ACC_D_UNC` too high.   | Lower `VTE_ACC_D_UNC`, or raise the measurement-noise floor of the chased sensor ([VTE_EVP_NOISE](../advanced_config/parameter_reference.md#VTE_EVP_NOISE) for vision, [VTE_GPS_P_NOISE](../advanced_config/parameter_reference.md#VTE_GPS_P_NOISE) for GPS). |
+| Symptom                                                                                                           | Likely cause              | Fix                                                                                                                                                                                                                                                           |
+| ----------------------------------------------------------------------------------------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Staircase between fusions**: state drifts away from the observation between samples, snaps back at each fusion. | `VTE_ACC_D_UNC` too low.  | Raise `VTE_ACC_D_UNC`. First check `vte_input.acc_xyz` for a persistent bias (attitude/gravity leakage, lever-arm error, real vehicle acceleration); raising process noise does not remove the bias itself.                                                   |
+| **State copies the per-sample jitter** of the measurement, vehicle oscillates near the ground.                    | `VTE_ACC_D_UNC` too high. | Lower `VTE_ACC_D_UNC`, or raise the measurement-noise floor of the chased sensor ([VTE_EVP_NOISE](../advanced_config/parameter_reference.md#VTE_EVP_NOISE) for vision, [VTE_GPS_P_NOISE](../advanced_config/parameter_reference.md#VTE_GPS_P_NOISE) for GPS). |
 
 After every change, `vte_aid_*.innovation` should look like zero-mean white noise rather than ramping with one sign or carrying a persistent offset.
 
-<a id="tuning-the-bias-state"></a>
+<a id=""></a>
 
-#### Tuning the Bias State
+#### Tuning the Bias State {#tuning-the-bias-state}
 
 Once the bias is activated, two parameters govern how aggressively the filter lets `vte_position.bias` follow new observations:
 
-- [VTE_BIAS_UNC](../advanced_config/parameter_reference.md#VTE_BIAS_UNC) (unit: m²/s, default 0.001) is the random-walk PSD of the bias state. It controls how much the bias can change between observations once the filter is settled. See the [variance-rate rule](#process-noise-variance-rates).
-- [VTE_BIA_UNC_IN](../advanced_config/parameter_reference.md#VTE_BIA_UNC_IN) (unit: m², default 1.0) is the **initial** bias variance applied at filter initialization and at bias activation. Once fusion has run for a few seconds the runtime covariance is dominated by `VTE_BIAS_UNC`, so this parameter does **not** influence steady-state behaviour. Keep it large so initialization can absorb initial misalignments.
+- [VTE_BIAS_UNC](../advanced_config/parameter_reference.md#VTE_BIAS_UNC) (unit: m²/s, default 0.001) is the random-walk PSD of the bias state.
+  It controls how much the bias can change between observations once the filter is settled.
+  See the [variance-rate rule](#process-noise-variance-rates).
+- [VTE_BIA_UNC_IN](../advanced_config/parameter_reference.md#VTE_BIA_UNC_IN) (unit: m², default 1.0) is the **initial** bias variance applied at filter initialization and at bias activation.
+  Once fusion has run for a few seconds the runtime covariance is dominated by `VTE_BIAS_UNC`, so this parameter does **not** influence steady-state behaviour.
+  Keep it large so initialization can absorb initial misalignments.
 
 The 1-sigma bias change is non-linear in time: `VTE_BIAS_UNC = 0.01` m²/s does _not_ mean the bias can move 10 cm per second.
 
@@ -385,11 +393,11 @@ RTK is even slower.
 
 Symptoms and fixes:
 
-| Symptom                                                                                                                                                          | Likely cause                                                                            | Fix                                                                                                                                                                                                                                                  |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`vte_position.bias` jumps to chase a single bad vision sample** that just passed the [VTE_POS_NIS_THRE](../advanced_config/parameter_reference.md#VTE_POS_NIS_THRE) gate. | `VTE_BIAS_UNC` too high; bias variance dominates the response to vision innovations.    | Lower `VTE_BIAS_UNC`.                                                                                                                                                                                                                                |
-| **`vte_position.bias` never settles** after activation and keeps drifting on a stationary target.                                                                | `VTE_BIAS_UNC` too low; bias variance is too tight to absorb legitimate slow corrections. | Raise `VTE_BIAS_UNC`.                                                                                                                                                                                                                                |
-| Bias activates correctly but corrected GNSS drifts visibly during a vision dropout.                                                                          | `VTE_BIAS_UNC` allows more drift than the real receiver; bias overfit to recent vision. | Lower `VTE_BIAS_UNC`. Combine with a stricter [VTE_POS_NIS_THRE](../advanced_config/parameter_reference.md#VTE_POS_NIS_THRE) or a higher [VTE_EVP_NOISE](../advanced_config/parameter_reference.md#VTE_EVP_NOISE) floor to keep borderline vision samples out of the bias state. |
+| Symptom                                                                                                                                                                     | Likely cause                                                                              | Fix                                                                                                                                                                                                                                                                              |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`vte_position.bias` jumps to chase a single bad vision sample** that just passed the [VTE_POS_NIS_THRE](../advanced_config/parameter_reference.md#VTE_POS_NIS_THRE) gate. | `VTE_BIAS_UNC` too high; bias variance dominates the response to vision innovations.      | Lower `VTE_BIAS_UNC`.                                                                                                                                                                                                                                                            |
+| **`vte_position.bias` never settles** after activation and keeps drifting on a stationary target.                                                                           | `VTE_BIAS_UNC` too low; bias variance is too tight to absorb legitimate slow corrections. | Raise `VTE_BIAS_UNC`.                                                                                                                                                                                                                                                            |
+| Bias activates correctly but corrected GNSS drifts visibly during a vision dropout.                                                                                         | `VTE_BIAS_UNC` allows more drift than the real receiver; bias overfit to recent vision.   | Lower `VTE_BIAS_UNC`. Combine with a stricter [VTE_POS_NIS_THRE](../advanced_config/parameter_reference.md#VTE_POS_NIS_THRE) or a higher [VTE_EVP_NOISE](../advanced_config/parameter_reference.md#VTE_EVP_NOISE) floor to keep borderline vision samples out of the bias state. |
 
 `VTE_BIAS_UNC` complements the outlier-rejection gate ([VTE_POS_NIS_THRE](../advanced_config/parameter_reference.md#VTE_POS_NIS_THRE)) and the vision-noise floor ([VTE_EVP_NOISE](../advanced_config/parameter_reference.md#VTE_EVP_NOISE)).
 A well-tuned filter combines all three: a realistic bias variance rate, a sensible NIS threshold, and a vision-noise floor that matches the actual quality of the relative-position sensor.
@@ -491,7 +499,8 @@ $$
 ### OOSM Approximation Assumptions
 
 Two approximations make the algorithm above tractable on an autopilot.
- - First, the OOSM gain is treated as the standard Kalman gain at the measurement time, propagated forward by the state transition matrix.
+
+- First, the OOSM gain is treated as the standard Kalman gain at the measurement time, propagated forward by the state transition matrix.
 - Second, the past-state estimate is taken from the stored snapshot rather than from a full backward smoother over all intermediate measurements.
 
 ::: details Click to view OOSM mathematical proofs
@@ -554,6 +563,7 @@ The paper's globally optimal update uses the smoothed past-state estimate and co
   $$\tilde{z}_{d|k} = z_d - H_d\,\hat{x}_{d|k}$$
 
   where $\hat{x}_{d|k}$ is the estimate of the state at time $d$ conditioned on all measurements up to time $k$.
+
 - **Optimal covariance.** The innovation covariance $S_d$ in Eq. (4) uses $P_{d|k}$, the error covariance at time $d$ given all data up to $k$.
 
 The current implementation calculates the innovation using a snapshot retrieved from history ($x_{old}$) and predicted to the measurement time ($x_{meas}$).
@@ -717,7 +727,8 @@ The `fusion_status` field records which fusion branch the filter.
 
 Two additional fields make latency tractable without manual timestamp arithmetic:
 
-- `time_since_meas_ms = (time_last_predict - timestamp_sample) * 1e-3`. Negative values mean the measurement is timestamped after the latest prediction (i.e. the filter has not caught up yet).
+- `time_since_meas_ms = (time_last_predict - timestamp_sample) * 1e-3`.
+  Negative values mean the measurement is timestamped after the latest prediction (i.e. the filter has not caught up yet).
 - `history_steps` is non-zero only for `STATUS_FUSED_OOSM` and tells you how many 20 ms snapshots were replayed when projecting the correction forward.
 
 ### Main Input Feeds
@@ -780,15 +791,15 @@ When the debug bit is set the estimator always runs, making it ideal for bench t
 Enable **debug prints** (`PX4_DEBUG`).
 :::
 
-| Symptom                                      | Likely cause                                                                                                    | Remedy                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Vehicle misses the pad or ignores target yaw | Mission land waypoint not set to precision mode or yaw alignment disabled                                       | Configure the landing waypoint for [precision landing](../advanced_features/precland.md#mission) and enable [PLD_YAW_EN](../advanced_config/parameter_reference.md#PLD_YAW_EN). In logs, verify that `trajectory_setpoint.x/y` converges to `landing_target_pose.x_abs/y_abs` and `trajectory_setpoint.yaw` follows `vte_orientation.yaw`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| Frequent innovation rejections               | Incorrect noise floors, miscalibrated measurement variance, or timestamp skew                                   | Read `fusion_status` to find which branch fires. `STATUS_REJECT_NIS` points at the noise floors and the NIS thresholds; see [Outlier Detection](#outlier-detection) for the recipe. `STATUS_REJECT_TOO_OLD` / `STATUS_REJECT_TOO_NEW` point at latency or time-sync. Read `time_since_meas_ms` on the same `vte_aid_*` topic to confirm.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| Bias does not converge                       | No secondary position source, or the GNSS/vision agreement check is too strict for the available vision quality | Enable vision fusion so the filter can observe GNSS bias. In the GNSS-first case, tune [VTE_BIA_AVG_THR](../advanced_config/parameter_reference.md#VTE_BIA_AVG_THR) / [VTE_BIA_AVG_TOUT](../advanced_config/parameter_reference.md#VTE_BIA_AVG_TOUT). See [Bias initialization design](#bias-initialization-design) for the full state machine.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| Orientation estimate drifts                  | Missing yaw measurements or low NIS gate                                                                        | Enable [VTE_YAW_EN](../advanced_config/parameter_reference.md#VTE_YAW_EN) and ensure vision yaw data is present. Increase [VTE_YAW_NIS_THRE](../advanced_config/parameter_reference.md#VTE_YAW_NIS_THRE) if legitimate data is being rejected.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| `rel_pos_valid` toggles during descent       | Position measurements arriving too slowly                                                                       | Increase [VTE_TGT_TOUT](../advanced_config/parameter_reference.md#VTE_TGT_TOUT) or improve the measurement rate so updates remain inside [VTE_M_REC_TOUT](../advanced_config/parameter_reference.md#VTE_M_REC_TOUT).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| No `vte_aid_*` topics in the log             | Sensor not publishing or fusion mask disabled                                                                   | Use `listener` on the raw sensor topic, confirm [VTE_AID_MASK](../advanced_config/parameter_reference.md#VTE_AID_MASK) includes the relevant bit, and rerun the test with the debug task active.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| Estimator never starts                       | Task mask disabled or mission not requesting precision landing                                                  | Set [VTE_TASK_MASK](../advanced_config/parameter_reference.md#VTE_TASK_MASK)=1 (or 3 for continuous debugging) and verify that new measurements arrive with valid timestamps.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Symptom                                      | Likely cause                                                                                                    | Remedy                                                                                                                                                                                                                                                                                                                                          |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Vehicle misses the pad or ignores target yaw | Mission land waypoint not set to precision mode or yaw alignment disabled                                       | Configure the landing waypoint for [precision landing](../advanced_features/precland.md#mission) and enable [PLD_YAW_EN](../advanced_config/parameter_reference.md#PLD_YAW_EN). In logs, verify that `trajectory_setpoint.x/y` converges to `landing_target_pose.x_abs/y_abs` and `trajectory_setpoint.yaw` follows `vte_orientation.yaw`.      |
+| Frequent innovation rejections               | Incorrect noise floors, miscalibrated measurement variance, or timestamp skew                                   | Read `fusion_status` to find which branch fires. `STATUS_REJECT_NIS` points at the noise floors and the NIS thresholds; see [Outlier Detection](#outlier-detection) for the recipe. `STATUS_REJECT_TOO_OLD` / `STATUS_REJECT_TOO_NEW` point at latency or time-sync. Read `time_since_meas_ms` on the same `vte_aid_*` topic to confirm.        |
+| Bias does not converge                       | No secondary position source, or the GNSS/vision agreement check is too strict for the available vision quality | Enable vision fusion so the filter can observe GNSS bias. In the GNSS-first case, tune [VTE_BIA_AVG_THR](../advanced_config/parameter_reference.md#VTE_BIA_AVG_THR) / [VTE_BIA_AVG_TOUT](../advanced_config/parameter_reference.md#VTE_BIA_AVG_TOUT). See [Bias initialization design](#bias-initialization-design) for the full state machine. |
+| Orientation estimate drifts                  | Missing yaw measurements or low NIS gate                                                                        | Enable [VTE_YAW_EN](../advanced_config/parameter_reference.md#VTE_YAW_EN) and ensure vision yaw data is present. Increase [VTE_YAW_NIS_THRE](../advanced_config/parameter_reference.md#VTE_YAW_NIS_THRE) if legitimate data is being rejected.                                                                                                  |
+| `rel_pos_valid` toggles during descent       | Position measurements arriving too slowly                                                                       | Increase [VTE_TGT_TOUT](../advanced_config/parameter_reference.md#VTE_TGT_TOUT) or improve the measurement rate so updates remain inside [VTE_M_REC_TOUT](../advanced_config/parameter_reference.md#VTE_M_REC_TOUT).                                                                                                                            |
+| No `vte_aid_*` topics in the log             | Sensor not publishing or fusion mask disabled                                                                   | Use `listener` on the raw sensor topic, confirm [VTE_AID_MASK](../advanced_config/parameter_reference.md#VTE_AID_MASK) includes the relevant bit, and rerun the test with the debug task active.                                                                                                                                                |
+| Estimator never starts                       | Task mask disabled or mission not requesting precision landing                                                  | Set [VTE_TASK_MASK](../advanced_config/parameter_reference.md#VTE_TASK_MASK)=1 (or 3 for continuous debugging) and verify that new measurements arrive with valid timestamps.                                                                                                                                                                   |
 
 <a id="plot-examples"></a>
 
@@ -808,7 +819,8 @@ PlotJuggler (or the PX4 DevTools log viewer) is the easiest way to inspect the e
 
 ::: details Click to see colour convention to add new plots
 
-**Adding new plots**: the screenshots in this section use a fixed colour convention so the same family of signals is easy to recognise across dashboards. Re-use it when adding or updating plots:
+**Adding new plots**: the screenshots in this section use a fixed colour convention so the same family of signals is easy to recognise across dashboards.
+Re-use it when adding or updating plots:
 
 - Blue (`#1f77b4`): vision aid source (`vte_aid_fiducial_marker.*`)
 - Red (`#d62728`): GNSS aid sources (`vte_aid_gps_pos_target.*`, `vte_aid_gps_pos_mission.*`, `vte_aid_gps_vel_uav.*`, `vte_aid_gps_vel_target.*`)
@@ -852,7 +864,6 @@ What this plot tells you:
 4. **End-of-flight vision loss.**
    Vision stops detecting the target at the end of the trace and `vte_position.cov_rel_pos` starts to climb.
    The corrected GNSS still points to the pad thanks to the latest bias value, so the vehicle keeps tracking it.
-
 
 **Initial bias averaging**: Shows the GNSS/vision bias low-pass filter while the estimator is in the GNSS-first averaging phase.
 The plot was generated with [VTE_BIA_AVG_TOUT](../advanced_config/parameter_reference.md#VTE_BIA_AVG_TOUT)=10s and [VTE_BIA_AVG_THR](../advanced_config/parameter_reference.md#VTE_BIA_AVG_THR)=0.01 so the convergence threshold is never met and the full 10 s averaging window is exercised.
@@ -1020,7 +1031,8 @@ What to take away from this comparison:
 
 **Vision occlusion during descent (real flight)**: Demonstrates the central motivation behind multi-sensor fusion.
 Once the bias between the absolute frame (here the mission landing waypoint) and the vision frame is estimated, the corrected GNSS observation still points at the pad after vision drops out, so the vehicle still lands precisely.
-Generated by removing the vision fusion 5 m above the target during a real precision-landing flight. The drone landed at the center of the target despite the vision loss.
+Generated by removing the vision fusion 5 m above the target during a real precision-landing flight.
+The drone landed at the center of the target despite the vision loss.
 
 The vertical blue line marks the moment vision is stopped, and the vertical red line marks touchdown.
 
