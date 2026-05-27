@@ -6,17 +6,7 @@ no MAVLink bridge.
 
 ## How it works
 
-```
-  ┌────────────────┐   DSEL + RREF requests   ┌────────────────┐
-  │   PX4 SITL     │ ───────────────────────► │    X-Plane     │
-  │ simulator_     │                          │   11 or 12     │
-  │   xplane       │ ◄─────────────────────── │                │
-  │                │   DATA@ + RREF responses │                │
-  │                │ ───────────────────────► │                │
-  └────────────────┘     DREF (actuators)     └────────────────┘
-       127.0.0.1                                    127.0.0.1
-       :49005 (bind)                                :49000 (default)
-```
+![PX4 SITL ↔ X-Plane data flow](px4_sitl_xplane.svg)
 
 PX4 subscribes to the datarefs it needs at boot. X-Plane streams them
 back at the requested rate. PX4 sends motor/servo commands as `DREF`
@@ -42,8 +32,6 @@ auto-selects the model name from `SYS_AUTOSTART`:
 | SYS_AUTOSTART | Model name           |
 |---------------|----------------------|
 | 5011          | `xplane_quad`        |
-| 5010          | `xplane_ehang184`    |
-| 5020          | `xplane_alia250`     |
 
 Override with environment variables:
 

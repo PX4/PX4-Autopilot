@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 520" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">
+  <defs>
+    <marker id="arrR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1f6feb"/>
+    </marker>
+    <marker id="arrL" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M10,0 L0,5 L10,10 z" fill="#9e6a03"/>
+    </marker>
+    <marker id="arrR2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1a7f37"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="440" y="38" text-anchor="middle" font-size="22" font-weight="700" fill="#1f2328">
+    PX4 SITL ↔ X-Plane (xplane_quad simulation)
+  </text>
+  <text x="440" y="62" text-anchor="middle" font-size="13" fill="#57606a">
+    UDP-only bridge — no plugin, no MAVLink intermediary
+  </text>
+
+  <!-- PX4 box -->
+  <rect x="40" y="120" width="280" height="280" rx="14" fill="#ddf4ff" stroke="#0969da" stroke-width="2"/>
+  <text x="180" y="158" text-anchor="middle" font-size="20" font-weight="700" fill="#0550ae">PX4 SITL</text>
+  <text x="180" y="180" text-anchor="middle" font-size="13" fill="#0969da">simulator_xplane module</text>
+
+  <line x1="60" y1="200" x2="300" y2="200" stroke="#0969da" stroke-width="1" stroke-dasharray="3 3" opacity="0.5"/>
+
+  <text x="60" y="225" font-size="12" font-weight="600" fill="#0550ae">Publishes (uORB):</text>
+  <text x="60" y="245" font-size="11" fill="#1f2328" font-family="monospace">sensor_gyro, sensor_accel</text>
+  <text x="60" y="262" font-size="11" fill="#1f2328" font-family="monospace">sensor_mag, sensor_baro</text>
+  <text x="60" y="279" font-size="11" fill="#1f2328" font-family="monospace">sensor_gps, vehicle_attitude</text>
+
+  <text x="60" y="312" font-size="12" font-weight="600" fill="#0550ae">Subscribes (uORB):</text>
+  <text x="60" y="332" font-size="11" fill="#1f2328" font-family="monospace">actuator_outputs</text>
+  <text x="60" y="349" font-size="11" fill="#1f2328" font-family="monospace">vehicle_status (armed?)</text>
+
+  <text x="180" y="382" text-anchor="middle" font-size="12" fill="#57606a">127.0.0.1 : 49005</text>
+
+  <!-- X-Plane box -->
+  <rect x="560" y="120" width="280" height="280" rx="14" fill="#fff8c5" stroke="#9a6700" stroke-width="2"/>
+  <text x="700" y="158" text-anchor="middle" font-size="20" font-weight="700" fill="#7d4e00">X-Plane 11 / 12</text>
+  <text x="700" y="180" text-anchor="middle" font-size="13" fill="#9a6700">flight model + render</text>
+
+  <line x1="580" y1="200" x2="820" y2="200" stroke="#9a6700" stroke-width="1" stroke-dasharray="3 3" opacity="0.5"/>
+
+  <text x="580" y="225" font-size="12" font-weight="600" fill="#7d4e00">RREF outputs (100 Hz):</text>
+  <text x="580" y="245" font-size="11" fill="#1f2328" font-family="monospace">Prad / Qrad / Rrad</text>
+  <text x="580" y="262" font-size="11" fill="#1f2328" font-family="monospace">g_axil / g_side / g_nrml</text>
+  <text x="580" y="279" font-size="11" fill="#1f2328" font-family="monospace">lat / lon / elevation</text>
+
+  <text x="580" y="312" font-size="12" font-weight="600" fill="#7d4e00">DREF inputs (consumed):</text>
+  <text x="580" y="332" font-size="11" fill="#1f2328" font-family="monospace">ENGN_thro_use[0..3]</text>
+  <text x="580" y="349" font-size="11" fill="#1f2328" font-family="monospace">override_joystick = 1</text>
+
+  <text x="700" y="382" text-anchor="middle" font-size="12" fill="#57606a">127.0.0.1 : 49000</text>
+
+  <!-- Arrows between -->
+  <!-- 1: DSEL / RREF subscribe -->
+  <line x1="320" y1="200" x2="560" y2="200" stroke="#1f6feb" stroke-width="2.5" marker-end="url(#arrR)"/>
+  <text x="440" y="190" text-anchor="middle" font-size="13" font-weight="600" fill="#0550ae">DSEL  +  RREF subscribe</text>
+  <text x="440" y="215" text-anchor="middle" font-size="11" fill="#57606a">"DREF\0", "RREF\0" packets — 5 s refresh</text>
+
+  <!-- 2: DATA@ / RREF responses (reverse) -->
+  <line x1="560" y1="270" x2="320" y2="270" stroke="#9e6a03" stroke-width="2.5" marker-end="url(#arrL)"/>
+  <text x="440" y="260" text-anchor="middle" font-size="13" font-weight="600" fill="#7d4e00">DATA@  +  RREF data</text>
+  <text x="440" y="285" text-anchor="middle" font-size="11" fill="#57606a">sensor stream — frame rate</text>
+
+  <!-- 3: DREF (actuator commands) -->
+  <line x1="320" y1="340" x2="560" y2="340" stroke="#1a7f37" stroke-width="2.5" marker-end="url(#arrR2)"/>
+  <text x="440" y="330" text-anchor="middle" font-size="13" font-weight="600" fill="#1a7f37">DREF actuator commands</text>
+  <text x="440" y="355" text-anchor="middle" font-size="11" fill="#57606a">motor / override DREFs — every actuator_outputs tick</text>
+
+  <!-- Below the boxes: configuration sources -->
+  <rect x="40" y="425" width="800" height="70" rx="10" fill="#f6f8fa" stroke="#d0d7de" stroke-width="1"/>
+  <text x="55" y="448" font-size="12" font-weight="700" fill="#1f2328">Per-airframe configuration files:</text>
+
+  <text x="55" y="468" font-size="11" font-family="monospace" fill="#0550ae">5011_xplane_quad</text>
+  <text x="190" y="468" font-size="11" fill="#1f2328">— motor layout, PIDs, MPC params (sets SYS_AUTOSTART=5011)</text>
+
+  <text x="55" y="485" font-size="11" font-family="monospace" fill="#1a7f37">xplane_quad.json</text>
+  <text x="190" y="485" font-size="11" fill="#1f2328">— DREF channel map (actuator output index → X-Plane DREF name)</text>
+</svg>
