@@ -7,12 +7,10 @@ PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://amovlab.com/) for hardware support or compliance issues.
 :::
 
-![Amovlab Flycore flight controller](../../assets/flight_controller/amovlab_flycore/amovlab_flycore_product.jpg)
-
-![Amovlab Flycore connector layout](../../assets/flight_controller/amovlab_flycore/amovlab_flycore_pinout.jpg)
-
 The Amovlab Flycore is an STM32H743-based flight controller for PX4-powered vehicles.
 It integrates a UM982 GNSS module on the primary GPS interface, has dual onboard IMUs, an onboard barometer, 10 FMU PWM outputs, dual CAN, USB, three telemetry ports, an external GPS2 port, an external RC port, a standard SD card slot, and exposed buzzer and SWD pads.
+
+![Amovlab Flycore flight controller](../../assets/flight_controller/amovlab_flycore/amovlab_flycore_product.jpg)
 
 ::: info
 This flight controller is intended for inclusion in the [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md) board list.
@@ -87,6 +85,10 @@ The board includes the following main external connections:
 
 `GPS1` is not exposed as an external connector on the flight controller.
 It is connected internally to the onboard UM982 GNSS module and does not include safety-switch pins or compass I2C lines.
+
+## Schematic Diagram
+
+![Amovlab Flycore connector layout](../../assets/flight_controller/amovlab_flycore/amovlab_flycore_pinout.jpg)
 
 ## Pinouts
 
@@ -212,15 +214,15 @@ For battery and power module configuration see [Battery and Power Module Setup](
 
 ## Serial Port Mapping
 
-| UART   | Device      | Port            | Flow Control |
-| ------ | ----------- | --------------- | :----------: |
-| USART2 | /dev/ttyS0  | `TELEM1`        |      Yes     |
-| USART3 | /dev/ttyS1  | `TELEM2`        |      No      |
-| UART4  | /dev/ttyS2  | `GPS1`          |      No      |
-| UART5  | /dev/ttyS3  | `TELEM3`        |      No      |
-| USART6 | /dev/ttyS4  | `RC`            |      No      |
-| UART7  | /dev/ttyS5  | `GPS2`          |      No      |
-| UART8  | /dev/ttyS6  | `Debug Console` |      No      |
+| UART   | Device     | Port            | Flow Control |
+| ------ | ---------- | --------------- | :----------: |
+| USART2 | /dev/ttyS0 | `TELEM1`        |     Yes      |
+| USART3 | /dev/ttyS1 | `TELEM2`        |      No      |
+| UART4  | /dev/ttyS2 | `GPS1`          |      No      |
+| UART5  | /dev/ttyS3 | `TELEM3`        |      No      |
+| USART6 | /dev/ttyS4 | `RC`            |      No      |
+| UART7  | /dev/ttyS5 | `GPS2`          |      No      |
+| UART8  | /dev/ttyS6 | `Debug Console` |      No      |
 
 `GPS1` is used by the onboard UM982 GNSS module.
 `GPS2` is the external GPS port.
