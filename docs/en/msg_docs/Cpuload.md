@@ -8,11 +8,11 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name      | Type      | Unit [Frame] | Range/Enum | Description                            |
-| --------- | --------- | ------------ | ---------- | -------------------------------------- |
-| timestamp | `uint64`  |              |            | time since system start (microseconds) |
-| load      | `float32` |              |            | processor load from 0 to 1             |
-| ram_usage | `float32` |              |            | RAM usage from 0 to 1                  |
+| Name                                | Type      | Unit [Frame] | Range/Enum | Description                            |
+| ----------------------------------- | --------- | ------------ | ---------- | -------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp | `uint64`  |              |            | time since system start (microseconds) |
+| <a id="fld_load"></a>load           | `float32` |              |            | processor load from 0 to 1             |
+| <a id="fld_ram_usage"></a>ram_usage | `float32` |              |            | RAM usage from 0 to 1                  |
 
 ## Source Message
 

@@ -16,18 +16,18 @@ Unset optional constraints default to vehicle specifications.
 
 ## Fields
 
-| Name                          | Type         | Unit [Frame] | Range/Enum | Description                                          |
-| ----------------------------- | ------------ | ------------ | ---------- | ---------------------------------------------------- |
-| timestamp                     | `uint64`     | us           |            | Time since system start                              |
-| position                      | `float32[3]` | m [NED]      |            | NED local world frame                                |
-| flag_control_heading          | `bool`       |              |            | true if heading is to be controlled                  |
-| heading                       | `float32`    |              |            | (optional) [rad] [-pi,pi] from North                 |
-| flag_set_max_horizontal_speed | `bool`       |              |            | true if setting a non-default horizontal speed limit |
-| max_horizontal_speed          | `float32`    | m/s          |            | (optional) Maximum speed (absolute) in the NE-plane  |
-| flag_set_max_vertical_speed   | `bool`       |              |            | true if setting a non-default vertical speed limit   |
-| max_vertical_speed            | `float32`    | m/s          |            | (optional) Maximum speed (absolute) in the D-axis    |
-| flag_set_max_heading_rate     | `bool`       |              |            | true if setting a non-default heading rate limit     |
-| max_heading_rate              | `float32`    | rad/s        |            | (optional) Maximum heading rate (absolute)           |
+| Name                                                                        | Type         | Unit [Frame] | Range/Enum | Description                                          |
+| --------------------------------------------------------------------------- | ------------ | ------------ | ---------- | ---------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                         | `uint64`     | us           |            | Time since system start                              |
+| <a id="fld_position"></a>position                                           | `float32[3]` | m [NED]      |            | NED local world frame                                |
+| <a id="fld_flag_control_heading"></a>flag_control_heading                   | `bool`       |              |            | true if heading is to be controlled                  |
+| <a id="fld_heading"></a>heading                                             | `float32`    |              |            | (optional) [rad] [-pi,pi] from North                 |
+| <a id="fld_flag_set_max_horizontal_speed"></a>flag_set_max_horizontal_speed | `bool`       |              |            | true if setting a non-default horizontal speed limit |
+| <a id="fld_max_horizontal_speed"></a>max_horizontal_speed                   | `float32`    | m/s          |            | (optional) Maximum speed (absolute) in the NE-plane  |
+| <a id="fld_flag_set_max_vertical_speed"></a>flag_set_max_vertical_speed     | `bool`       |              |            | true if setting a non-default vertical speed limit   |
+| <a id="fld_max_vertical_speed"></a>max_vertical_speed                       | `float32`    | m/s          |            | (optional) Maximum speed (absolute) in the D-axis    |
+| <a id="fld_flag_set_max_heading_rate"></a>flag_set_max_heading_rate         | `bool`       |              |            | true if setting a non-default heading rate limit     |
+| <a id="fld_max_heading_rate"></a>max_heading_rate                           | `float32`    | rad/s        |            | (optional) Maximum heading rate (absolute)           |
 
 ## Constants
 

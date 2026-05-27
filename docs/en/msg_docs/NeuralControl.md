@@ -14,13 +14,13 @@ Subscriber: logger
 
 ## Fields
 
-| Name            | Type          | Unit [Frame] | Range/Enum | Description                                                            |
-| --------------- | ------------- | ------------ | ---------- | ---------------------------------------------------------------------- |
-| timestamp       | `uint64`      | us           |            | Time since system start                                                |
-| observation     | `float32[15]` |              |            | Observation vector (pos error (3), att (6d), lin vel (3), ang vel (3)) |
-| network_output  | `float32[4]`  |              |            | Output from neural network                                             |
-| controller_time | `int32`       | us           |            | Time spent from input to output                                        |
-| inference_time  | `int32`       | us           |            | Time spent for NN inference                                            |
+| Name                                            | Type          | Unit [Frame] | Range/Enum | Description                                                            |
+| ----------------------------------------------- | ------------- | ------------ | ---------- | ---------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp             | `uint64`      | us           |            | Time since system start                                                |
+| <a id="fld_observation"></a>observation         | `float32[15]` |              |            | Observation vector (pos error (3), att (6d), lin vel (3), ang vel (3)) |
+| <a id="fld_network_output"></a>network_output   | `float32[4]`  |              |            | Output from neural network                                             |
+| <a id="fld_controller_time"></a>controller_time | `int32`       | us           |            | Time spent from input to output                                        |
+| <a id="fld_inference_time"></a>inference_time   | `int32`       | us           |            | Time spent for NN inference                                            |
 
 ## Source Message
 

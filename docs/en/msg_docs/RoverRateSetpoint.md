@@ -10,10 +10,10 @@ Rover Rate setpoint.
 
 ## Fields
 
-| Name              | Type      | Unit [Frame] | Range/Enum   | Description             |
-| ----------------- | --------- | ------------ | ------------ | ----------------------- |
-| timestamp         | `uint64`  | us           |              | Time since system start |
-| yaw_rate_setpoint | `float32` | rad/s [NED]  | [-inf : inf] | Yaw rate setpoint       |
+| Name                                                | Type      | Unit [Frame] | Range/Enum   | Description             |
+| --------------------------------------------------- | --------- | ------------ | ------------ | ----------------------- |
+| <a id="fld_timestamp"></a>timestamp                 | `uint64`  | us           |              | Time since system start |
+| <a id="fld_yaw_rate_setpoint"></a>yaw_rate_setpoint | `float32` | rad/s [NED]  | [-inf : inf] | Yaw rate setpoint       |
 
 ## Source Message
 

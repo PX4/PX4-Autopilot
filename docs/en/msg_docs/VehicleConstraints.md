@@ -10,12 +10,12 @@ Local setpoint constraints in NED frame. setting something to NaN means that no 
 
 ## Fields
 
-| Name         | Type      | Unit [Frame] | Range/Enum | Description                                                                 |
-| ------------ | --------- | ------------ | ---------- | --------------------------------------------------------------------------- |
-| timestamp    | `uint64`  |              |            | time since system start (microseconds)                                      |
-| speed_up     | `float32` |              |            | in meters/sec                                                               |
-| speed_down   | `float32` |              |            | in meters/sec                                                               |
-| want_takeoff | `bool`    |              |            | tell the controller to initiate takeoff when idling (ignored during flight) |
+| Name                                      | Type      | Unit [Frame] | Range/Enum | Description                                                                 |
+| ----------------------------------------- | --------- | ------------ | ---------- | --------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp       | `uint64`  |              |            | time since system start (microseconds)                                      |
+| <a id="fld_speed_up"></a>speed_up         | `float32` |              |            | in meters/sec                                                               |
+| <a id="fld_speed_down"></a>speed_down     | `float32` |              |            | in meters/sec                                                               |
+| <a id="fld_want_takeoff"></a>want_takeoff | `bool`    |              |            | tell the controller to initiate takeoff when idling (ignored during flight) |
 
 ## Source Message
 

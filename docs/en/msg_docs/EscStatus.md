@@ -8,19 +8,21 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name               | Type            | Unit [Frame] | Range/Enum                                  | Description                                                     |
-| ------------------ | --------------- | ------------ | ------------------------------------------- | --------------------------------------------------------------- |
-| timestamp          | `uint64`        | us           |                                             | Time since system start                                         |
-| counter            | `uint16`        |              |                                             | Incremented by the writing thread everytime new data is stored  |
-| esc_count          | `uint8`         |              |                                             | Number of connected ESCs                                        |
-| esc_connectiontype | `uint8`         |              | [ESC_CONNECTION_TYPE](#ESC_CONNECTION_TYPE) | How ESCs connected to the system                                |
-| esc_online_flags   | `uint16`        |              |                                             | Bitmask indicating which ESC is online/offline (in motor order) |
-| esc_armed_flags    | `uint16`        |              |                                             | Bitmask indicating which ESC is armed (in motor order)          |
-| esc                | `EscReport[12]` |              |                                             |
+| Name                                                  | Type            | Unit [Frame] | Range/Enum                                  | Description                                                     |
+| ----------------------------------------------------- | --------------- | ------------ | ------------------------------------------- | --------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                   | `uint64`        | us           |                                             | Time since system start                                         |
+| <a id="fld_counter"></a>counter                       | `uint16`        |              |                                             | Incremented by the writing thread everytime new data is stored  |
+| <a id="fld_esc_count"></a>esc_count                   | `uint8`         |              |                                             | Number of connected ESCs                                        |
+| <a id="fld_esc_connectiontype"></a>esc_connectiontype | `uint8`         |              | [ESC_CONNECTION_TYPE](#ESC_CONNECTION_TYPE) | How ESCs connected to the system                                |
+| <a id="fld_esc_online_flags"></a>esc_online_flags     | `uint16`        |              |                                             | Bitmask indicating which ESC is online/offline (in motor order) |
+| <a id="fld_esc_armed_flags"></a>esc_armed_flags       | `uint16`        |              |                                             | Bitmask indicating which ESC is armed (in motor order)          |
+| <a id="fld_esc"></a>esc                               | `EscReport[12]` |              |                                             |
 
 ## Enums
 
 ### ESC_CONNECTION_TYPE {#ESC_CONNECTION_TYPE}
+
+Used in field(s): [esc_connectiontype](#fld_esc_connectiontype)
 
 | Name                                                                  | Type    | Value | Description              |
 | --------------------------------------------------------------------- | ------- | ----- | ------------------------ |

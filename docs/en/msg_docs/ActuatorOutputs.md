@@ -8,11 +8,11 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name      | Type          | Unit [Frame] | Range/Enum | Description                            |
-| --------- | ------------- | ------------ | ---------- | -------------------------------------- |
-| timestamp | `uint64`      |              |            | time since system start (microseconds) |
-| noutputs  | `uint32`      |              |            | valid outputs                          |
-| output    | `float32[16]` |              |            | output data, in natural output units   |
+| Name                                | Type          | Unit [Frame] | Range/Enum | Description                            |
+| ----------------------------------- | ------------- | ------------ | ---------- | -------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp | `uint64`      |              |            | time since system start (microseconds) |
+| <a id="fld_noutputs"></a>noutputs   | `uint32`      |              |            | valid outputs                          |
+| <a id="fld_output"></a>output       | `float32[16]` |              |            | output data, in natural output units   |
 
 ## Constants
 

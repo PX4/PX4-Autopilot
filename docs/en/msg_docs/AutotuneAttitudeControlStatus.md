@@ -15,27 +15,29 @@ The rate_sp field is consumed by the controllers, while the remaining fields (mo
 
 ## Fields
 
-| Name      | Type         | Unit [Frame] | Range/Enum      | Description                                                                       |
-| --------- | ------------ | ------------ | --------------- | --------------------------------------------------------------------------------- |
-| timestamp | `uint64`     | us           |                 | Time since system start                                                           |
-| coeff     | `float32[5]` |              |                 | Coefficients of the identified discrete-time model                                |
-| coeff_var | `float32[5]` |              |                 | Coefficients' variance of the identified discrete-time model                      |
-| fitness   | `float32`    |              |                 | Fitness of the parameter estimate                                                 |
-| innov     | `float32`    | rad/s        |                 | Innovation (residual error between model and measured output)                     |
-| dt_model  | `float32`    | s            |                 | Model sample time used for identification                                         |
-| kc        | `float32`    |              |                 | Proportional rate-loop gain (ideal form)                                          |
-| ki        | `float32`    |              |                 | Integral rate-loop gain (ideal form)                                              |
-| kd        | `float32`    |              |                 | Derivative rate-loop gain (ideal form)                                            |
-| kff       | `float32`    |              |                 | Feedforward rate-loop gain                                                        |
-| att_p     | `float32`    |              |                 | Proportional attitude gain                                                        |
-| rate_sp   | `float32[3]` | rad/s        |                 | Rate setpoint commanded to the attitude controller.                               |
-| u_filt    | `float32`    |              |                 | Filtered input signal (normalized torque setpoint) used in system identification. |
-| y_filt    | `float32`    | rad/s        |                 | Filtered output signal (angular velocity) used in system identification.          |
-| state     | `uint8`      |              | [STATE](#STATE) | Current state of the autotune procedure.                                          |
+| Name                                | Type         | Unit [Frame] | Range/Enum      | Description                                                                       |
+| ----------------------------------- | ------------ | ------------ | --------------- | --------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp | `uint64`     | us           |                 | Time since system start                                                           |
+| <a id="fld_coeff"></a>coeff         | `float32[5]` |              |                 | Coefficients of the identified discrete-time model                                |
+| <a id="fld_coeff_var"></a>coeff_var | `float32[5]` |              |                 | Coefficients' variance of the identified discrete-time model                      |
+| <a id="fld_fitness"></a>fitness     | `float32`    |              |                 | Fitness of the parameter estimate                                                 |
+| <a id="fld_innov"></a>innov         | `float32`    | rad/s        |                 | Innovation (residual error between model and measured output)                     |
+| <a id="fld_dt_model"></a>dt_model   | `float32`    | s            |                 | Model sample time used for identification                                         |
+| <a id="fld_kc"></a>kc               | `float32`    |              |                 | Proportional rate-loop gain (ideal form)                                          |
+| <a id="fld_ki"></a>ki               | `float32`    |              |                 | Integral rate-loop gain (ideal form)                                              |
+| <a id="fld_kd"></a>kd               | `float32`    |              |                 | Derivative rate-loop gain (ideal form)                                            |
+| <a id="fld_kff"></a>kff             | `float32`    |              |                 | Feedforward rate-loop gain                                                        |
+| <a id="fld_att_p"></a>att_p         | `float32`    |              |                 | Proportional attitude gain                                                        |
+| <a id="fld_rate_sp"></a>rate_sp     | `float32[3]` | rad/s        |                 | Rate setpoint commanded to the attitude controller.                               |
+| <a id="fld_u_filt"></a>u_filt       | `float32`    |              |                 | Filtered input signal (normalized torque setpoint) used in system identification. |
+| <a id="fld_y_filt"></a>y_filt       | `float32`    | rad/s        |                 | Filtered output signal (angular velocity) used in system identification.          |
+| <a id="fld_state"></a>state         | `uint8`      |              | [STATE](#STATE) | Current state of the autotune procedure.                                          |
 
 ## Enums
 
 ### STATE {#STATE}
+
+Used in field(s): [state](#fld_state)
 
 | Name                                                                          | Type    | Value | Description                                              |
 | ----------------------------------------------------------------------------- | ------- | ----- | -------------------------------------------------------- |

@@ -151,8 +151,8 @@ commander <command> [arguments...]
 
    mode          Change flight mode
      manual|acro|offboard|stabilized|altctl|posctl|altitude_cruise|position:slow
-                 |auto:mission|auto:loiter|auto:rtl|auto:takeoff|auto:land|auto:
-                 precland|ext1 Flight mode
+                 |auto:mission|auto:loiter|auto:course|auto:rtl|auto:takeoff|aut
+                 o:land|auto:precland|ext1 Flight mode
 
    pair
 

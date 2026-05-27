@@ -13,11 +13,11 @@ Published by the vehicle's allocation and consumed by the actuator output driver
 
 ## Fields
 
-| Name             | Type         | Unit [Frame] | Range/Enum | Description                                                                                                                                                |
-| ---------------- | ------------ | ------------ | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| timestamp        | `uint64`     | us           |            | Time since system start                                                                                                                                    |
-| timestamp_sample | `uint64`     | us           |            | Sampling timestamp of the data this control response is based on                                                                                           |
-| control          | `float32[8]` |              | [-1 : 1]   | Normalized output. 1 means maximum positive position. -1 maximum negative position (if not supported by the output, <0 maps to NaN). NaN maps to disarmed. |
+| Name                                              | Type         | Unit [Frame] | Range/Enum | Description                                                                                                                                                |
+| ------------------------------------------------- | ------------ | ------------ | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp               | `uint64`     | us           |            | Time since system start                                                                                                                                    |
+| <a id="fld_timestamp_sample"></a>timestamp_sample | `uint64`     | us           |            | Sampling timestamp of the data this control response is based on                                                                                           |
+| <a id="fld_control"></a>control                   | `float32[8]` |              | [-1 : 1]   | Normalized output. 1 means maximum positive position. -1 maximum negative position (if not supported by the output, <0 maps to NaN). NaN maps to disarmed. |
 
 ## Constants
 

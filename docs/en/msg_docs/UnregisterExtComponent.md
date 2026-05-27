@@ -8,13 +8,13 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name             | Type       | Unit [Frame] | Range/Enum | Description                                         |
-| ---------------- | ---------- | ------------ | ---------- | --------------------------------------------------- |
-| timestamp        | `uint64`   |              |            | time since system start (microseconds)              |
-| name             | `char[25]` |              |            | either the mode name, or component name             |
-| arming_check_id  | `int8`     |              |            | arming check registration ID (-1 if not registered) |
-| mode_id          | `int8`     |              |            | assigned mode ID (-1 if not registered)             |
-| mode_executor_id | `int8`     |              |            | assigned mode executor ID (-1 if not registered)    |
+| Name                                              | Type       | Unit [Frame] | Range/Enum | Description                                         |
+| ------------------------------------------------- | ---------- | ------------ | ---------- | --------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp               | `uint64`   |              |            | time since system start (microseconds)              |
+| <a id="fld_name"></a>name                         | `char[25]` |              |            | either the mode name, or component name             |
+| <a id="fld_arming_check_id"></a>arming_check_id   | `int8`     |              |            | arming check registration ID (-1 if not registered) |
+| <a id="fld_mode_id"></a>mode_id                   | `int8`     |              |            | assigned mode ID (-1 if not registered)             |
+| <a id="fld_mode_executor_id"></a>mode_executor_id | `int8`     |              |            | assigned mode executor ID (-1 if not registered)    |
 
 ## Constants
 
