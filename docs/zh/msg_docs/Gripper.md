@@ -10,10 +10,10 @@ pageClass: is-wide-page
 
 ## Fields
 
-| 参数名       | 类型       | Unit [Frame] | Range/Enum | 描述                              |
-| --------- | -------- | ---------------------------------------------------------------- | ---------- | ------------------------------- |
-| timestamp | `uint64` |                                                                  |            |                                 |
-| command   | `int8`   |                                                                  |            | Commanded state for the gripper |
+| 参数名                                 | 类型       | Unit [Frame] | Range/Enum | 描述                              |
+| ----------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | ------------------------------- |
+| <a id="fld_timestamp"></a>timestamp | `uint64` |                                                                  |            |                                 |
+| <a id="fld_command"></a>command     | `int8`   |                                                                  |            | Commanded state for the gripper |
 
 ## Constants
 
