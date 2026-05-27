@@ -10,16 +10,16 @@ UAVCAN-MAVLink parameter bridge response type.
 
 ## Fields
 
-| Name        | Type       | Unit [Frame] | Range/Enum | Description                                     |
-| ----------- | ---------- | ------------ | ---------- | ----------------------------------------------- |
-| timestamp   | `uint64`   |              |            | time since system start (microseconds)          |
-| node_id     | `uint8`    |              |            | UAVCAN node ID mapped from MAVLink component ID |
-| param_id    | `char[17]` |              |            | MAVLink/UAVCAN parameter name                   |
-| param_index | `int16`    |              |            | parameter index, if known                       |
-| param_count | `uint16`   |              |            | number of parameters exposed by the node        |
-| param_type  | `uint8`    |              |            | MAVLink parameter type                          |
-| int_value   | `int64`    |              |            | current value if param_type is int-like         |
-| real_value  | `float32`  |              |            | current value if param_type is float-like       |
+| Name                                    | Type       | Unit [Frame] | Range/Enum | Description                                     |
+| --------------------------------------- | ---------- | ------------ | ---------- | ----------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp     | `uint64`   |              |            | time since system start (microseconds)          |
+| <a id="fld_node_id"></a>node_id         | `uint8`    |              |            | UAVCAN node ID mapped from MAVLink component ID |
+| <a id="fld_param_id"></a>param_id       | `char[17]` |              |            | MAVLink/UAVCAN parameter name                   |
+| <a id="fld_param_index"></a>param_index | `int16`    |              |            | parameter index, if known                       |
+| <a id="fld_param_count"></a>param_count | `uint16`   |              |            | number of parameters exposed by the node        |
+| <a id="fld_param_type"></a>param_type   | `uint8`    |              |            | MAVLink parameter type                          |
+| <a id="fld_int_value"></a>int_value     | `int64`    |              |            | current value if param_type is int-like         |
+| <a id="fld_real_value"></a>real_value   | `float32`  |              |            | current value if param_type is float-like       |
 
 ## Source Message
 

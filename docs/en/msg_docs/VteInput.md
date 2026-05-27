@@ -13,13 +13,13 @@ Subscribed by: logger only.
 
 ## Fields
 
-| Name             | Type         | Unit [Frame] | Range/Enum | Description                                                     |
-| ---------------- | ------------ | ------------ | ---------- | --------------------------------------------------------------- |
-| timestamp        | `uint64`     | us           |            | Time since system start                                         |
-| timestamp_sample | `uint64`     | us           |            | Timestamp of the raw input data                                 |
-| acc_xyz          | `float32[3]` | m/s^2 [NED]  |            | Downsampled UAV bias-corrected acceleration (including gravity) |
-| q_att            | `float32[4]` |              |            | Downsampled UAV attitude quaternion (FRD body -> NED earth)     |
-| acc_sample_count | `uint32`     |              |            | Number of raw samples averaged into acc_xyz this cycle          |
+| Name                                              | Type         | Unit [Frame] | Range/Enum | Description                                                     |
+| ------------------------------------------------- | ------------ | ------------ | ---------- | --------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp               | `uint64`     | us           |            | Time since system start                                         |
+| <a id="fld_timestamp_sample"></a>timestamp_sample | `uint64`     | us           |            | Timestamp of the raw input data                                 |
+| <a id="fld_acc_xyz"></a>acc_xyz                   | `float32[3]` | m/s^2 [NED]  |            | Downsampled UAV bias-corrected acceleration (including gravity) |
+| <a id="fld_q_att"></a>q_att                       | `float32[4]` |              |            | Downsampled UAV attitude quaternion (FRD body -> NED earth)     |
+| <a id="fld_acc_sample_count"></a>acc_sample_count | `uint32`     |              |            | Number of raw samples averaged into acc_xyz this cycle          |
 
 ## Source Message
 

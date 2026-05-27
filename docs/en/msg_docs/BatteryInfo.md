@@ -13,11 +13,11 @@ Should be streamed at low rate.
 
 ## Fields
 
-| Name          | Type       | Unit [Frame] | Range/Enum | Description                                                                                |
-| ------------- | ---------- | ------------ | ---------- | ------------------------------------------------------------------------------------------ |
-| timestamp     | `uint64`   | us           |            | Time since system start                                                                    |
-| id            | `uint8`    |              |            | Must match the id in the battery_status message for the same battery                       |
-| serial_number | `char[32]` |              |            | Serial number of the battery pack in ASCII characters, 0 terminated (Invalid: 0 All bytes) |
+| Name                                        | Type       | Unit [Frame] | Range/Enum | Description                                                                                |
+| ------------------------------------------- | ---------- | ------------ | ---------- | ------------------------------------------------------------------------------------------ |
+| <a id="fld_timestamp"></a>timestamp         | `uint64`   | us           |            | Time since system start                                                                    |
+| <a id="fld_id"></a>id                       | `uint8`    |              |            | Must match the id in the battery_status message for the same battery                       |
+| <a id="fld_serial_number"></a>serial_number | `char[32]` |              |            | Serial number of the battery pack in ASCII characters, 0 terminated (Invalid: 0 All bytes) |
 
 ## Source Message
 

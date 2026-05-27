@@ -8,11 +8,11 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name      | Type     | Unit [Frame] | Range/Enum                               | Description                                                               |
-| --------- | -------- | ------------ | ---------------------------------------- | ------------------------------------------------------------------------- |
-| timestamp | `uint64` |              |                                          | time since system start (microseconds)                                    |
-| device_id | `uint32` |              |                                          | unique device ID for the sensor that does not change between power cycles |
-| `float32` |          |              | Temperature provided by sensor (Celsius) |
+| Name                                | Type      | Unit [Frame] | Range/Enum | Description                                                               |
+| ----------------------------------- | --------- | ------------ | ---------- | ------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp | `uint64`  |              |            | time since system start (microseconds)                                    |
+| <a id="fld_device_id"></a>device_id | `uint32`  |              |            | unique device ID for the sensor that does not change between power cycles |
+| <a id="fld_"></a>                   | `float32` |              |            | Temperature provided by sensor (Celsius)                                  |
 
 ## Source Message
 

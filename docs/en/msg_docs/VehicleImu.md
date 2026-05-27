@@ -10,20 +10,20 @@ IMU readings in SI-unit form.
 
 ## Fields
 
-| Name                    | Type         | Unit [Frame] | Range/Enum | Description                                                                                              |
-| ----------------------- | ------------ | ------------ | ---------- | -------------------------------------------------------------------------------------------------------- |
-| timestamp               | `uint64`     |              |            | time since system start (microseconds)                                                                   |
-| timestamp_sample        | `uint64`     |              |            |
-| accel_device_id         | `uint32`     |              |            | Accelerometer unique device ID for the sensor that does not change between power cycles                  |
-| gyro_device_id          | `uint32`     |              |            | Gyroscope unique device ID for the sensor that does not change between power cycles                      |
-| delta_angle             | `float32[3]` |              |            | delta angle about the FRD body frame XYZ-axis in rad over the integration time frame (delta_angle_dt)    |
-| delta_velocity          | `float32[3]` |              |            | delta velocity in the FRD body frame XYZ-axis in m/s over the integration time frame (delta_velocity_dt) |
-| delta_angle_dt          | `uint32`     |              |            | integration period in microseconds                                                                       |
-| delta_velocity_dt       | `uint32`     |              |            | integration period in microseconds                                                                       |
-| delta_angle_clipping    | `uint8`      |              |            | bitfield indicating if there was any gyro clipping (per axis) during the integration time frame          |
-| delta_velocity_clipping | `uint8`      |              |            | bitfield indicating if there was any accelerometer clipping (per axis) during the integration time frame |
-| accel_calibration_count | `uint8`      |              |            | Calibration changed counter. Monotonically increases whenever accelermeter calibration changes.          |
-| gyro_calibration_count  | `uint8`      |              |            | Calibration changed counter. Monotonically increases whenever rate gyro calibration changes.             |
+| Name                                                            | Type         | Unit [Frame] | Range/Enum | Description                                                                                              |
+| --------------------------------------------------------------- | ------------ | ------------ | ---------- | -------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                             | `uint64`     |              |            | time since system start (microseconds)                                                                   |
+| <a id="fld_timestamp_sample"></a>timestamp_sample               | `uint64`     |              |            |
+| <a id="fld_accel_device_id"></a>accel_device_id                 | `uint32`     |              |            | Accelerometer unique device ID for the sensor that does not change between power cycles                  |
+| <a id="fld_gyro_device_id"></a>gyro_device_id                   | `uint32`     |              |            | Gyroscope unique device ID for the sensor that does not change between power cycles                      |
+| <a id="fld_delta_angle"></a>delta_angle                         | `float32[3]` |              |            | delta angle about the FRD body frame XYZ-axis in rad over the integration time frame (delta_angle_dt)    |
+| <a id="fld_delta_velocity"></a>delta_velocity                   | `float32[3]` |              |            | delta velocity in the FRD body frame XYZ-axis in m/s over the integration time frame (delta_velocity_dt) |
+| <a id="fld_delta_angle_dt"></a>delta_angle_dt                   | `uint32`     |              |            | integration period in microseconds                                                                       |
+| <a id="fld_delta_velocity_dt"></a>delta_velocity_dt             | `uint32`     |              |            | integration period in microseconds                                                                       |
+| <a id="fld_delta_angle_clipping"></a>delta_angle_clipping       | `uint8`      |              |            | bitfield indicating if there was any gyro clipping (per axis) during the integration time frame          |
+| <a id="fld_delta_velocity_clipping"></a>delta_velocity_clipping | `uint8`      |              |            | bitfield indicating if there was any accelerometer clipping (per axis) during the integration time frame |
+| <a id="fld_accel_calibration_count"></a>accel_calibration_count | `uint8`      |              |            | Calibration changed counter. Monotonically increases whenever accelermeter calibration changes.          |
+| <a id="fld_gyro_calibration_count"></a>gyro_calibration_count   | `uint8`      |              |            | Calibration changed counter. Monotonically increases whenever rate gyro calibration changes.             |
 
 ## Constants
 

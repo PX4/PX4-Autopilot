@@ -15,21 +15,21 @@ abs_pos_updated / vel_ned_updated tell the estimator which fields in this sample
 
 ## Fields
 
-| Name             | Type      | Unit [Frame] | Range/Enum | Description                                      |
-| ---------------- | --------- | ------------ | ---------- | ------------------------------------------------ |
-| timestamp        | `uint64`  | us           |            | Time since system start                          |
-| timestamp_sample | `uint64`  | us           |            | Timestamp of the raw observation                 |
-| latitude_deg     | `float64` | deg          |            | Latitude, allows centimeter level RTK precision  |
-| longitude_deg    | `float64` | deg          |            | Longitude, allows centimeter level RTK precision |
-| altitude_msl_m   | `float32` | m            |            | Altitude above MSL                               |
-| eph              | `float32` | m            |            | GNSS horizontal position accuracy                |
-| epv              | `float32` | m            |            | GNSS vertical position accuracy                  |
-| abs_pos_updated  | `bool`    |              |            | True if WGS84 position is updated                |
-| vel_n_m_s        | `float32` | m/s          |            | GNSS North velocity                              |
-| vel_e_m_s        | `float32` | m/s          |            | GNSS East velocity                               |
-| vel_d_m_s        | `float32` | m/s          |            | GNSS Down velocity                               |
-| s_acc_m_s        | `float32` | m/s          |            | GNSS speed accuracy estimate                     |
-| vel_ned_updated  | `bool`    |              |            | True if NED velocity is updated                  |
+| Name                                              | Type      | Unit [Frame] | Range/Enum | Description                                      |
+| ------------------------------------------------- | --------- | ------------ | ---------- | ------------------------------------------------ |
+| <a id="fld_timestamp"></a>timestamp               | `uint64`  | us           |            | Time since system start                          |
+| <a id="fld_timestamp_sample"></a>timestamp_sample | `uint64`  | us           |            | Timestamp of the raw observation                 |
+| <a id="fld_latitude_deg"></a>latitude_deg         | `float64` | deg          |            | Latitude, allows centimeter level RTK precision  |
+| <a id="fld_longitude_deg"></a>longitude_deg       | `float64` | deg          |            | Longitude, allows centimeter level RTK precision |
+| <a id="fld_altitude_msl_m"></a>altitude_msl_m     | `float32` | m            |            | Altitude above MSL                               |
+| <a id="fld_eph"></a>eph                           | `float32` | m            |            | GNSS horizontal position accuracy                |
+| <a id="fld_epv"></a>epv                           | `float32` | m            |            | GNSS vertical position accuracy                  |
+| <a id="fld_abs_pos_updated"></a>abs_pos_updated   | `bool`    |              |            | True if WGS84 position is updated                |
+| <a id="fld_vel_n_m_s"></a>vel_n_m_s               | `float32` | m/s          |            | GNSS North velocity                              |
+| <a id="fld_vel_e_m_s"></a>vel_e_m_s               | `float32` | m/s          |            | GNSS East velocity                               |
+| <a id="fld_vel_d_m_s"></a>vel_d_m_s               | `float32` | m/s          |            | GNSS Down velocity                               |
+| <a id="fld_s_acc_m_s"></a>s_acc_m_s               | `float32` | m/s          |            | GNSS speed accuracy estimate                     |
+| <a id="fld_vel_ned_updated"></a>vel_ned_updated   | `bool`    |              |            | True if NED velocity is updated                  |
 
 ## Source Message
 

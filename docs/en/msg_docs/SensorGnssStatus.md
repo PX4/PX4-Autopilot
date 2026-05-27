@@ -10,15 +10,15 @@ Gnss quality indicators.
 
 ## Fields
 
-| Name                    | Type     | Unit [Frame] | Range/Enum                                      | Description                                                               |
-| ----------------------- | -------- | ------------ | ----------------------------------------------- | ------------------------------------------------------------------------- |
-| timestamp               | `uint64` |              |                                                 | time since system start (microseconds)                                    |
-| device_id               | `uint32` |              |                                                 | unique device ID for the sensor that does not change between power cycles |
-| `bool`                  |          |              | Set to true if quality indicators are available |
-| quality_corrections     | `uint8`  |              |                                                 | Corrections quality from 0 to 10, or 255 if not available                 |
-| quality_receiver        | `uint8`  |              |                                                 | Overall receiver operating status from 0 to 10, or 255 if not available   |
-| quality_gnss_signals    | `uint8`  |              |                                                 | Quality of GNSS signals from 0 to 10, or 255 if not available             |
-| quality_post_processing | `uint8`  |              |                                                 | Expected post processing quality from 0 to 10, or 255 if not available    |
+| Name                                                            | Type     | Unit [Frame] | Range/Enum | Description                                                               |
+| --------------------------------------------------------------- | -------- | ------------ | ---------- | ------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                             | `uint64` |              |            | time since system start (microseconds)                                    |
+| <a id="fld_device_id"></a>device_id                             | `uint32` |              |            | unique device ID for the sensor that does not change between power cycles |
+| <a id="fld_"></a>                                               | `bool`   |              |            | Set to true if quality indicators are available                           |
+| <a id="fld_quality_corrections"></a>quality_corrections         | `uint8`  |              |            | Corrections quality from 0 to 10, or 255 if not available                 |
+| <a id="fld_quality_receiver"></a>quality_receiver               | `uint8`  |              |            | Overall receiver operating status from 0 to 10, or 255 if not available   |
+| <a id="fld_quality_gnss_signals"></a>quality_gnss_signals       | `uint8`  |              |            | Quality of GNSS signals from 0 to 10, or 255 if not available             |
+| <a id="fld_quality_post_processing"></a>quality_post_processing | `uint8`  |              |            | Expected post processing quality from 0 to 10, or 255 if not available    |
 
 ## Source Message
 

@@ -14,50 +14,52 @@ Battery instance information is also logged and streamed in MAVLink telemetry.
 
 ## Fields
 
-| Name                         | Type          | Unit [Frame] | Range/Enum                         | Description                                                                                                 |
-| ---------------------------- | ------------- | ------------ | ---------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| timestamp                    | `uint64`      | us           |                                    | Time since system start                                                                                     |
-| connected                    | `bool`        |              |                                    | Whether or not a battery is connected. For power modules this is based on a voltage threshold.              |
-| voltage_v                    | `float32`     | V            |                                    | Battery voltage (Invalid: 0)                                                                                |
-| current_a                    | `float32`     | A            |                                    | Battery current (Invalid: -1)                                                                               |
-| current_average_a            | `float32`     | A            |                                    | Battery current average (for FW average in level flight) (Invalid: -1)                                      |
-| discharged_mah               | `float32`     | mAh          |                                    | Discharged amount (Invalid: -1)                                                                             |
-| remaining                    | `float32`     |              | [0 : 1]                            | Remaining capacity (Invalid: -1)                                                                            |
-| scale                        | `float32`     |              | [1 : -]                            | Scaling factor to compensate for lower actuation power caused by voltage sag (Invalid: -1)                  |
-| time_remaining_s             | `float32`     | s            |                                    | Predicted time remaining until battery is empty under previous averaged load (Invalid: NaN)                 |
-| temperature                  | `float32`     | degC         |                                    | Temperature of the battery (Invalid: NaN)                                                                   |
-| cell_count                   | `uint8`       |              |                                    | Number of cells (Invalid: 0)                                                                                |
-| source                       | `uint8`       |              | [SOURCE](#SOURCE)                  | Battery source                                                                                              |
-| priority                     | `uint8`       |              |                                    | Zero based priority is the connection on the Power Controller V1..Vn AKA BrickN-1                           |
-| capacity                     | `uint16`      | mAh          |                                    | Capacity of the battery when fully charged                                                                  |
-| cycle_count                  | `uint16`      |              |                                    | Number of discharge cycles the battery has experienced                                                      |
-| average_time_to_empty        | `uint16`      | minutes      |                                    | Predicted remaining battery capacity based on the average rate of discharge                                 |
-| manufacture_date             | `uint16`      |              |                                    | Manufacture date, part of serial number of the battery pack. Formatted as: Day + Month×32 + (Year–1980)×512 |
-| state_of_health              | `uint16`      | %            | [0 : 100]                          | State of health. FullChargeCapacity/DesignCapacity                                                          |
-| max_error                    | `uint16`      | %            | [1 : 100]                          | Max error, expected margin of error in the state-of-charge calculation                                      |
-| id                           | `uint8`       |              |                                    | ID number of a battery. Should be unique and consistent for the lifetime of a vehicle. 1-indexed            |
-| interface_error              | `uint16`      |              |                                    | Interface error counter                                                                                     |
-| voltage_cell_v               | `float32[14]` | V            |                                    | Battery individual cell voltages (Invalid: 0)                                                               |
-| max_cell_voltage_delta       | `float32`     | V            |                                    | Max difference between individual cell voltages                                                             |
-| is_powering_off              | `bool`        |              |                                    | Power off event imminent indication, false if unknown                                                       |
-| is_required                  | `bool`        |              |                                    | Set if the battery is explicitly required before arming                                                     |
-| warning                      | `uint8`       |              | [WARNING](#WARNING)[STATE](#STATE) | Current battery warning                                                                                     |
-| faults                       | `uint16`      |              | [FAULT](#FAULT)                    | Smart battery supply status/fault flags (bitmask) for health indication                                     |
-| full_charge_capacity_wh      | `float32`     | Wh           |                                    | Compensated battery capacity                                                                                |
-| remaining_capacity_wh        | `float32`     | Wh           |                                    | Compensated battery capacity remaining (Invalid: NaN)                                                       |
-| over_discharge_count         | `uint16`      |              |                                    | Number of battery overdischarge                                                                             |
-| nominal_voltage              | `float32`     | V            |                                    | Nominal voltage of the battery pack (Invalid: NaN)                                                          |
-| internal_resistance_estimate | `float32`     | Ohm          |                                    | Internal resistance per cell estimate                                                                       |
-| ocv_estimate                 | `float32`     | V            |                                    | Open circuit voltage estimate                                                                               |
-| ocv_estimate_filtered        | `float32`     | V            |                                    | Filtered open circuit voltage estimate                                                                      |
-| volt_based_soc_estimate      | `float32`     |              | [0 : 1]                            | Normalized volt based state of charge estimate                                                              |
-| voltage_prediction           | `float32`     | V            |                                    | Predicted voltage                                                                                           |
-| prediction_error             | `float32`     | V            |                                    | Prediction error                                                                                            |
-| estimation_covariance_norm   | `float32`     |              |                                    | Norm of the covariance matrix                                                                               |
+| Name                                                                      | Type          | Unit [Frame] | Range/Enum                           | Description                                                                                                 |
+| ------------------------------------------------------------------------- | ------------- | ------------ | ------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                       | `uint64`      | us           |                                      | Time since system start                                                                                     |
+| <a id="fld_connected"></a>connected                                       | `bool`        |              |                                      | Whether or not a battery is connected. For power modules this is based on a voltage threshold.              |
+| <a id="fld_voltage_v"></a>voltage_v                                       | `float32`     | V            |                                      | Battery voltage (Invalid: 0)                                                                                |
+| <a id="fld_current_a"></a>current_a                                       | `float32`     | A            |                                      | Battery current (Invalid: -1)                                                                               |
+| <a id="fld_current_average_a"></a>current_average_a                       | `float32`     | A            |                                      | Battery current average (for FW average in level flight) (Invalid: -1)                                      |
+| <a id="fld_discharged_mah"></a>discharged_mah                             | `float32`     | mAh          |                                      | Discharged amount (Invalid: -1)                                                                             |
+| <a id="fld_remaining"></a>remaining                                       | `float32`     |              | [0 : 1]                              | Remaining capacity (Invalid: -1)                                                                            |
+| <a id="fld_scale"></a>scale                                               | `float32`     |              | [1 : -]                              | Scaling factor to compensate for lower actuation power caused by voltage sag (Invalid: -1)                  |
+| <a id="fld_time_remaining_s"></a>time_remaining_s                         | `float32`     | s            |                                      | Predicted time remaining until battery is empty under previous averaged load (Invalid: NaN)                 |
+| <a id="fld_temperature"></a>temperature                                   | `float32`     | degC         |                                      | Temperature of the battery (Invalid: NaN)                                                                   |
+| <a id="fld_cell_count"></a>cell_count                                     | `uint8`       |              |                                      | Number of cells (Invalid: 0)                                                                                |
+| <a id="fld_source"></a>source                                             | `uint8`       |              | [SOURCE](#SOURCE)                    | Battery source                                                                                              |
+| <a id="fld_priority"></a>priority                                         | `uint8`       |              |                                      | Zero based priority is the connection on the Power Controller V1..Vn AKA BrickN-1                           |
+| <a id="fld_capacity"></a>capacity                                         | `uint16`      | mAh          |                                      | Capacity of the battery when fully charged                                                                  |
+| <a id="fld_cycle_count"></a>cycle_count                                   | `uint16`      |              |                                      | Number of discharge cycles the battery has experienced                                                      |
+| <a id="fld_average_time_to_empty"></a>average_time_to_empty               | `uint16`      | minutes      |                                      | Predicted remaining battery capacity based on the average rate of discharge                                 |
+| <a id="fld_manufacture_date"></a>manufacture_date                         | `uint16`      |              |                                      | Manufacture date, part of serial number of the battery pack. Formatted as: Day + Month×32 + (Year–1980)×512 |
+| <a id="fld_state_of_health"></a>state_of_health                           | `uint16`      | %            | [0 : 100]                            | State of health. FullChargeCapacity/DesignCapacity                                                          |
+| <a id="fld_max_error"></a>max_error                                       | `uint16`      | %            | [1 : 100]                            | Max error, expected margin of error in the state-of-charge calculation                                      |
+| <a id="fld_id"></a>id                                                     | `uint8`       |              |                                      | ID number of a battery. Should be unique and consistent for the lifetime of a vehicle. 1-indexed            |
+| <a id="fld_interface_error"></a>interface_error                           | `uint16`      |              |                                      | Interface error counter                                                                                     |
+| <a id="fld_voltage_cell_v"></a>voltage_cell_v                             | `float32[14]` | V            |                                      | Battery individual cell voltages (Invalid: 0)                                                               |
+| <a id="fld_max_cell_voltage_delta"></a>max_cell_voltage_delta             | `float32`     | V            |                                      | Max difference between individual cell voltages                                                             |
+| <a id="fld_is_powering_off"></a>is_powering_off                           | `bool`        |              |                                      | Power off event imminent indication, false if unknown                                                       |
+| <a id="fld_is_required"></a>is_required                                   | `bool`        |              |                                      | Set if the battery is explicitly required before arming                                                     |
+| <a id="fld_warning"></a>warning                                           | `uint8`       |              | [WARNING](#WARNING), [STATE](#STATE) | Current battery warning                                                                                     |
+| <a id="fld_faults"></a>faults                                             | `uint16`      |              | [FAULT](#FAULT)                      | Smart battery supply status/fault flags (bitmask) for health indication                                     |
+| <a id="fld_full_charge_capacity_wh"></a>full_charge_capacity_wh           | `float32`     | Wh           |                                      | Compensated battery capacity                                                                                |
+| <a id="fld_remaining_capacity_wh"></a>remaining_capacity_wh               | `float32`     | Wh           |                                      | Compensated battery capacity remaining (Invalid: NaN)                                                       |
+| <a id="fld_over_discharge_count"></a>over_discharge_count                 | `uint16`      |              |                                      | Number of battery overdischarge                                                                             |
+| <a id="fld_nominal_voltage"></a>nominal_voltage                           | `float32`     | V            |                                      | Nominal voltage of the battery pack (Invalid: NaN)                                                          |
+| <a id="fld_internal_resistance_estimate"></a>internal_resistance_estimate | `float32`     | Ohm          |                                      | Internal resistance per cell estimate                                                                       |
+| <a id="fld_ocv_estimate"></a>ocv_estimate                                 | `float32`     | V            |                                      | Open circuit voltage estimate                                                                               |
+| <a id="fld_ocv_estimate_filtered"></a>ocv_estimate_filtered               | `float32`     | V            |                                      | Filtered open circuit voltage estimate                                                                      |
+| <a id="fld_volt_based_soc_estimate"></a>volt_based_soc_estimate           | `float32`     |              | [0 : 1]                              | Normalized volt based state of charge estimate                                                              |
+| <a id="fld_voltage_prediction"></a>voltage_prediction                     | `float32`     | V            |                                      | Predicted voltage                                                                                           |
+| <a id="fld_prediction_error"></a>prediction_error                         | `float32`     | V            |                                      | Prediction error                                                                                            |
+| <a id="fld_estimation_covariance_norm"></a>estimation_covariance_norm     | `float32`     |              |                                      | Norm of the covariance matrix                                                                               |
 
 ## Enums
 
 ### SOURCE {#SOURCE}
+
+Used in field(s): [source](#fld_source)
 
 | Name                                                  | Type    | Value | Description                                    |
 | ----------------------------------------------------- | ------- | ----- | ---------------------------------------------- |
@@ -66,6 +68,8 @@ Battery instance information is also logged and streamed in MAVLink telemetry.
 | <a id="#SOURCE_ESCS"></a> SOURCE_ESCS                 | `uint8` | 2     | ESCs (via ESC telemetry)                       |
 
 ### WARNING {#WARNING}
+
+Used in field(s): [warning](#fld_warning)
 
 | Name                                              | Type    | Value | Description                                  |
 | ------------------------------------------------- | ------- | ----- | -------------------------------------------- |
@@ -77,12 +81,16 @@ Battery instance information is also logged and streamed in MAVLink telemetry.
 
 ### STATE {#STATE}
 
+Used in field(s): [warning](#fld_warning)
+
 | Name                                          | Type    | Value | Description                                                                                                                                       |
 | --------------------------------------------- | ------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="#STATE_UNHEALTHY"></a> STATE_UNHEALTHY | `uint8` | 6     | Battery is diagnosed to be defective or an error occurred, usage is discouraged / prohibited. Possible causes (faults) are listed in faults field |
 | <a id="#STATE_CHARGING"></a> STATE_CHARGING   | `uint8` | 7     | Battery is charging                                                                                                                               |
 
 ### FAULT {#FAULT}
+
+Used in field(s): [faults](#fld_faults)
 
 | Name                                                                  | Type    | Value | Description                                                                                                    |
 | --------------------------------------------------------------------- | ------- | ----- | -------------------------------------------------------------------------------------------------------------- |

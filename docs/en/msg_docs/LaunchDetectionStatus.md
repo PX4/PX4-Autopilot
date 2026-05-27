@@ -10,11 +10,11 @@ Status of the launch detection state machine (fixed-wing only).
 
 ## Fields
 
-| Name                              | Type     | Unit [Frame] | Range/Enum | Description                                                                                                   |
-| --------------------------------- | -------- | ------------ | ---------- | ------------------------------------------------------------------------------------------------------------- |
-| timestamp                         | `uint64` |              |            | time since system start (microseconds)                                                                        |
-| launch_detection_state            | `uint8`  |              |            |
-| selected_control_surface_disarmed | `bool`   |              |            | flag indicating whether selected actuators should kept disarmed (have to be configured in control allocation) |
+| Name                                                                                | Type     | Unit [Frame] | Range/Enum | Description                                                                                                   |
+| ----------------------------------------------------------------------------------- | -------- | ------------ | ---------- | ------------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                                 | `uint64` |              |            | time since system start (microseconds)                                                                        |
+| <a id="fld_launch_detection_state"></a>launch_detection_state                       | `uint8`  |              |            |
+| <a id="fld_selected_control_surface_disarmed"></a>selected_control_surface_disarmed | `bool`   |              |            | flag indicating whether selected actuators should kept disarmed (have to be configured in control allocation) |
 
 ## Constants
 
