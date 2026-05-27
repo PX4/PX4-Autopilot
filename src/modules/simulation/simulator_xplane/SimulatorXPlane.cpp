@@ -214,6 +214,7 @@ static const char *parse_map_fields(const char *p, MapFields *f)
 
 			if (strcmp(key, "type") == 0) {
 				strncpy(f->type, sval, sizeof(f->type) - 1);
+				f->type[sizeof(f->type) - 1] = '\0';
 			}
 
 		} else {
