@@ -124,12 +124,17 @@ bool PlannerPolygons::addPolygon(const matrix::Vector2f *vertices_in, int num_ve
 		// Scaling needed wrt the normalised bisector to achieve parallel edges
 		const float offset_scale = 2.f / bisector_len;
 
+		// bisector_len = 2*sin(interior angle/2); split when interior angle < 60 deg <=> bisector_len < 1.
+		const bool angle_sharp = bisector_len < 1;
+
+		// If margin zero, do not split - would output the same vertex twice.
+		const bool margin_nonzero = margin > FLT_EPSILON;
+
 		// If we do not have enough space, do not split the vertex.
 		// This never happens if the planner-internal node buffer is 2x the original buffer.
 		const bool space_for_split_vertices = _num_nodes + out_idx + 1 < kMaxNodes;
 
-		// bisector_len = 2*sin(interior angle/2); split when interior angle < 60 deg, i.e. bisector_len < 1.
-		if (bisector_len < 1.0f && space_for_split_vertices) {
+		if (angle_sharp && margin_nonzero && space_for_split_vertices) {
 
 			// Sharp corner: cut it off along the line
 			//  - perpendicular to normalized_bisector
