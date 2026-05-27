@@ -559,23 +559,6 @@ bool LoggedTopics::add_topic_multi(const char *name, uint16_t interval_ms, uint8
 
 bool LoggedTopics::initialize_logged_topics(SDLogProfileMask profile)
 {
-	initialize_configured_topics(profile);
-
-	int ntopics = add_topics_from_file(PX4_STORAGEDIR "/etc/logging/logger_topics.txt");
-
-	if (ntopics > 0) {
-		PX4_INFO("logging %d topics from logger_topics.txt", ntopics);
-
-	} else if ((int32_t)profile == 0) {
-		PX4_WARN("No logging topics added. Using default set");
-		add_default_topics();
-	}
-
-	return _subscriptions.count > 0;
-}
-
-void LoggedTopics::initialize_configured_topics(SDLogProfileMask profile)
-{
 	// load appropriate topics for profile
 	// the order matters: if several profiles add the same topic, the logging rate of the last one will be used
 	if (profile & SDLogProfileMask::DEFAULT) {
@@ -625,4 +608,16 @@ void LoggedTopics::initialize_configured_topics(SDLogProfileMask profile)
 	if (profile & SDLogProfileMask::HIGH_RATE_SENSORS) {
 		add_high_rate_sensors_topics();
 	}
+
+	int ntopics = add_topics_from_file(PX4_STORAGEDIR "/etc/logging/logger_topics.txt");
+
+	if (ntopics > 0) {
+		PX4_INFO("logging %d topics from logger_topics.txt", ntopics);
+
+	} else if ((int32_t)profile == 0) {
+		PX4_WARN("No logging topics added. Using default set");
+		add_default_topics();
+	}
+
+	return _subscriptions.count > 0;
 }
