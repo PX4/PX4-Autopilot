@@ -61,6 +61,13 @@ onMounted(() => {
 });
 </script>
 
+<style scoped>
+.bar {
+  display: flex;
+  align-items: center;
+}
+</style>
+
 <style>
 /*
  * Reposition the dynamic nav within VitePress's content-body flex container.
