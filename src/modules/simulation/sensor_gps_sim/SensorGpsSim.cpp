@@ -45,7 +45,6 @@ SensorGpsSim::SensorGpsSim() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
-	_param_sys_failure_en = param_find("SYS_FAILURE_EN");
 }
 
 SensorGpsSim::~SensorGpsSim()
@@ -244,25 +243,7 @@ void SensorGpsSim::publishWithFailures(int instance, sensor_gps_s gps, sensor_gp
 
 void SensorGpsSim::check_failure_injection()
 {
-	int32_t sys_failure_en = 0;
-	const bool enabled = _param_sys_failure_en != PARAM_INVALID
-			     && param_get(_param_sys_failure_en, &sys_failure_en) == PX4_OK
-			     && sys_failure_en == 1;
-
 	vehicle_command_s vehicle_command;
-
-	if (!enabled) {
-		// Clear any active failures so disabling the param at runtime
-		// stops injection instead of latching the previous state.
-		_gps_blocked_mask = 0;
-		_gps_stuck_mask = 0;
-		_gps_wrong_mask = 0;
-
-		// Drain queued commands so re-enabling doesn't replay them.
-		while (_vehicle_command_sub.update(&vehicle_command)) {}
-
-		return;
-	}
 
 	while (_vehicle_command_sub.update(&vehicle_command)) {
 		const int failure_unit = static_cast<int>(lroundf(vehicle_command.param1));

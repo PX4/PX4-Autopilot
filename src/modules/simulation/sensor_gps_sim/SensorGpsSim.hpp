@@ -34,7 +34,6 @@
 #pragma once
 
 #include <lib/perf/perf_counter.h>
-#include <parameters/param.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
@@ -101,8 +100,6 @@ private:
 	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
-
-	param_t _param_sys_failure_en{PARAM_INVALID};
 
 	uint8_t _gps_blocked_mask{0};
 	uint8_t _gps_stuck_mask{0};
