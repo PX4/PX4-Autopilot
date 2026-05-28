@@ -159,42 +159,7 @@ export default defineConfig({
       */
     },
 
-    nav: [
-      {
-        text: "Dronecode",
-        items: [
-          {
-            text: "PX4",
-            link: "https://px4.io/",
-            ariaLabel: "PX4 website link",
-          },
-          {
-            text: "QGroundControl",
-            link: "http://qgroundcontrol.com/",
-          },
-          {
-            text: "MAVSDK",
-            link: "https://mavsdk.mavlink.io/",
-          },
-          {
-            text: "MAVLINK",
-            link: "https://mavlink.io/en/",
-          },
-          {
-            text: "QGroundControl Guide",
-            link: "https://docs.qgroundcontrol.com/master/en/qgc-user-guide/",
-          },
-          {
-            text: "Dronecode Camera Manager",
-            link: "https://camera-manager.dronecode.org/en/",
-          },
-        ],
-      },
-      {
-        text: "Support",
-        link: "https://docs.px4.io/main/en/contribute/support.html",
-      },
-    ],
+    nav: [],
 
     socialLinks: [
       { icon: "github", link: "https://github.com/PX4/PX4-Autopilot" },

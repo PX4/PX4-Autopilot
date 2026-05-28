@@ -20,7 +20,7 @@ if (inBrowser) {
 // Support redirect plugin
 import Redirect from "./components/Redirect.vue";
 
-import VersionSwitcher from "./components/VersionSwitcher.vue";
+import DynamicNav from "./components/DynamicNav.vue";
 
 // Tabs: https://github.com/Red-Asuka/vitepress-plugin-tabs
 import { Tab, Tabs } from "vue3-tabs-component";
@@ -32,8 +32,8 @@ export default {
   Layout: () => {
     return h(DefaultTheme.Layout, null, {
       // https://vitepress.dev/guide/extending-default-theme#layout-slots
-      "nav-bar-content-before": () => h(VersionSwitcher),
-      "nav-screen-content-after": () => h(VersionSwitcher, { screen: true }),
+      "nav-bar-content-before": () => h(DynamicNav),
+      "nav-screen-content-after": () => h(DynamicNav, { screen: true }),
     });
   },
   enhanceApp({ app, router, siteData }) {
