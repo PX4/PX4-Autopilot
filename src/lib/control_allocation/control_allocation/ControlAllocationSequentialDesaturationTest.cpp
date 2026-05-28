@@ -563,3 +563,143 @@ TEST_F(ControlAllocationSequentialDesaturationTestQuadX, PreviousMixingTestsAirm
 	EXPECT_EQ(allocate(-1.000f, 0.900f, 0.000f, -0.900f), Vector4f(1.000000f, 0.550000f, 0.050000f, 0.500000f)); // 64
 	EXPECT_EQ(allocate(-1.000f, 0.900f, 0.000f, -1.000f), Vector4f(1.000000f, 0.550000f, 0.050000f, 0.500000f)); // 65
 }
+
+
+// Hex fixture covers the QuadX blind spot: with 6 motors at 60-degree intervals the roll/pitch
+// mix matrix is no longer ±0.25 like QuadX, so the 0.2 effectiveness-cutoff inside
+// computeDesaturationGain interacts differently with the per-axis desat passes. Motor failure on
+// hex is also one of the strongest motivations for limited airmode (PR #25138 description).
+class ControlAllocationSequentialDesaturationTestHex : public ::testing::Test
+{
+public:
+	static constexpr uint8_t NUM_ROTORS = 6;
+	using HexVector = Vector<float, NUM_ROTORS>;
+
+	ControlAllocationSequentialDesaturation _control_allocation;
+
+	void SetUp() override
+	{
+		param_control_autosave(false);
+		setAirmodeLimits(0.f, 0.f);
+
+		// Hex geometry: 6 motors at 30, 90, 150, 210, 270, 330 degrees measured clockwise from
+		// +X (forward) toward +Y (right), normalized unit arm length. Alternating moment ratios.
+		// Numbering goes clockwise starting from the front-right sextant.
+		const float positions[NUM_ROTORS][2] = {
+			{ 0.866025f,  0.5f},     // M0  30 deg — front-right
+			{ 0.f,        1.f},      // M1  90 deg — right
+			{-0.866025f,  0.5f},     // M2 150 deg — back-right
+			{-0.866025f, -0.5f},     // M3 210 deg — back-left
+			{ 0.f,       -1.f},      // M4 270 deg — left
+			{ 0.866025f, -0.5f},     // M5 330 deg — front-left
+		};
+
+		ActuatorEffectivenessRotors::Geometry hex_geometry{};
+		hex_geometry.num_rotors = NUM_ROTORS;
+
+		for (int i = 0; i < NUM_ROTORS; ++i) {
+			hex_geometry.rotors[i].position = {positions[i][0], positions[i][1], 0.f};
+			hex_geometry.rotors[i].moment_ratio = (i % 2 == 0) ? 1.f : -1.f;
+			hex_geometry.rotors[i].axis = Vector3f(0.f, 0.f, -1.f);
+			hex_geometry.rotors[i].thrust_coef = 1.f;
+			hex_geometry.rotors[i].tilt_index = -1;
+		}
+
+		ActuatorEffectiveness::Configuration actuator_configuration{};
+		int num_actuators = ActuatorEffectivenessRotors::computeEffectivenessMatrix(
+					    hex_geometry,
+					    actuator_configuration.effectiveness_matrices[0],
+					    actuator_configuration.num_actuators_matrix[0]);
+		EXPECT_EQ(num_actuators, NUM_ROTORS);
+		actuator_configuration.actuatorsAdded(ActuatorType::MOTORS, num_actuators);
+
+		_control_allocation.setEffectivenessMatrix(
+			actuator_configuration.effectiveness_matrices[0],
+			actuator_configuration.trim[0],
+			actuator_configuration.linearization_point[0],
+			actuator_configuration.num_actuators_matrix[0],
+			true);
+	}
+
+	void setAirmodeLimits(const float lim, const float yaw_lim)
+	{
+		param_set(param_find("MC_AIRMODE_LIM"),     &lim);
+		param_set(param_find("MC_AIRMODE_YLIM"), &yaw_lim);
+		_control_allocation.updateParameters();
+	}
+
+	HexVector allocate(float roll, float pitch, float yaw, float thrust)
+	{
+		Vector<float, ControlAllocation::NUM_AXES> control_setpoint{};
+		control_setpoint(ControlAllocation::ControlAxis::ROLL) = roll;
+		control_setpoint(ControlAllocation::ControlAxis::PITCH) = pitch;
+		control_setpoint(ControlAllocation::ControlAxis::YAW) = yaw;
+		control_setpoint(ControlAllocation::ControlAxis::THRUST_Z) = thrust;
+		_control_allocation.setControlSetpoint(control_setpoint);
+		_control_allocation.allocate();
+		return HexVector(_control_allocation.getActuatorSetpoint().slice<NUM_ROTORS, 1>(0, 0));
+	}
+};
+
+constexpr uint8_t ControlAllocationSequentialDesaturationTestHex::NUM_ROTORS;
+
+TEST_F(ControlAllocationSequentialDesaturationTestHex, CollectiveThrust)
+{
+	HexVector expected;
+
+	for (int i = 0; i < NUM_ROTORS; ++i) { expected(i) = 0.5f; }
+
+	EXPECT_EQ(allocate(0.f, 0.f, 0.f, -0.5f), expected);
+}
+
+// Sweep MC_AIRMODE_LIM on a saturating-low input and verify monotonicity. Mirrors the QuadX
+// monotonicity test but with the different mix matrix that hex produces, so a regression in the
+// desaturator that depends on the 0.2 effectiveness cutoff would show here even if QuadX passes.
+TEST_F(ControlAllocationSequentialDesaturationTestHex, AirmodeLimMonotonicity)
+{
+	const float sweep[] = {0.f, 0.05f, 0.10f, 0.15f, 1.f};
+	HexVector prev{};
+
+	for (size_t i = 0; i < sizeof(sweep) / sizeof(sweep[0]); ++i) {
+		setAirmodeLimits(sweep[i], 0.f);
+		HexVector out = allocate(0.5f, 0.f, 0.f, -0.1f);
+
+		if (i > 0) {
+			for (int m = 0; m < NUM_ROTORS; ++m) {
+				EXPECT_GE(out(m), prev(m))
+						<< "non-monotonic at MC_AIRMODE_LIM=" << sweep[i] << " motor=" << m;
+			}
+		}
+
+		prev = out;
+	}
+}
+
+// At yaw_limit=0 with saturating yaw input, the deferred-yaw path uses MINIMUM_YAW_MARGIN to
+// retain some yaw authority near max thrust. Sanity check that the path works on hex (different
+// yaw mix sign pattern than QuadX).
+TEST_F(ControlAllocationSequentialDesaturationTestHex, YawAtFullThrustDisabledHasMargin)
+{
+	setAirmodeLimits(0.f, 0.f);
+	const HexVector out = allocate(0.f, 0.f, 1.f, -1.f);
+
+	// All motors clamped to [0, 1].
+	for (int i = 0; i < NUM_ROTORS; ++i) {
+		EXPECT_GE(out(i), 0.f) << "motor " << i << " below min";
+		EXPECT_LE(out(i), 1.f) << "motor " << i << " above max";
+	}
+
+	// Yaw differential must be non-zero: at least one CW motor must differ from at least one
+	// CCW motor. Otherwise yaw authority is dead and the 15% margin trick failed.
+	float ccw_avg = 0.f; // moment_ratio = +1 → indices 0, 2, 4
+	float cw_avg = 0.f;  // moment_ratio = -1 → indices 1, 3, 5
+
+	for (int i = 0; i < NUM_ROTORS; i += 2) { ccw_avg += out(i); }
+
+	for (int i = 1; i < NUM_ROTORS; i += 2) { cw_avg += out(i); }
+
+	ccw_avg /= 3.f;
+	cw_avg /= 3.f;
+	EXPECT_GT(fabsf(ccw_avg - cw_avg), 0.05f) << "yaw authority lost at full thrust (ccw_avg="
+			<< ccw_avg << " cw_avg=" << cw_avg << ")";
+}
