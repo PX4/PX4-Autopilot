@@ -471,6 +471,7 @@ FwLateralLongitudinalControl::tecs_status_publish(float alt_sp, float equivalent
 	tecs_status.throttle_trim = throttle_trim;
 	tecs_status.underspeed_ratio = _tecs.get_underspeed_ratio();
 	tecs_status.fast_descend_ratio = debug_output.fast_descend;
+	tecs_status.speed_weight = debug_output.control.speed_weight;
 
 	tecs_status.timestamp = timestamp;
 

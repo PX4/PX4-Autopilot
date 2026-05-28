@@ -256,6 +256,7 @@ void TECSControl::initialize(const Setpoint &setpoint, const Input &input, Param
 	_debug_output.pitch_integrator = _pitch_integ_state;
 	_debug_output.altitude_rate_control = control_setpoint.altitude_rate_setpoint;
 	_debug_output.true_airspeed_derivative_control = control_setpoint.tas_rate_setpoint;
+	_debug_output.speed_weight = weight.ske_weighting;
 }
 
 void TECSControl::update(const float dt, const Setpoint &setpoint, const Input &input, Param &param, const Flag &flag)
@@ -420,10 +421,11 @@ void TECSControl::_calcPitchControl(float dt, const Input &input, const Specific
 				    _pitch_setpoint + pitch_increment);
 	_pitch_setpoint = constrain(_pitch_setpoint, param.pitch_min, param.pitch_max);
 
-	//Debug Output
+	// Debug Output
 	_debug_output.energy_balance_rate_estimate = seb_rate.estimate;
 	_debug_output.energy_balance_rate_sp = seb_rate.setpoint;
 	_debug_output.pitch_integrator = _pitch_integ_state;
+	_debug_output.speed_weight = weight.ske_weighting;
 }
 
 TECSControl::ControlValues TECSControl::_calcPitchControlSebRate(const SpecificEnergyWeighting &weight,

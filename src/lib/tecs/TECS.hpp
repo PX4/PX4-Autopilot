@@ -269,6 +269,7 @@ public:
 		float energy_balance_rate_sp;			///< Energy balance rate setpoint [m²/s³].
 		float pitch_integrator;				///< Pitch control integrator state [-].
 		float throttle_integrator;			///< Throttle control integrator state [-].
+		float speed_weight;				///< Speed weight used internally. Differs from param in case of underspeed and fast descend [-].
 	};
 
 	/**
