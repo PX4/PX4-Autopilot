@@ -2,7 +2,7 @@
   <!-- Mobile (nav-screen) layout -->
   <div v-if="screen" class="VPDynamicNav screen">
     <template v-for="(item, i) in nav" :key="i">
-      <a v-if="!item.items" :href="item.link" class="screen-link">{{ item.text }}</a>
+      <a v-if="!item.items" :href="item.link" class="screen-link" @click.prevent="navigate(item.link)">{{ item.text }}</a>
       <div v-else class="screen-group">
         <div class="screen-group-title">{{ item.text }}</div>
         <a
@@ -10,6 +10,7 @@
           :key="sub.link"
           :href="sub.link"
           class="screen-item"
+          @click.prevent="navigate(sub.link)"
         >{{ sub.text }}</a>
       </div>
     </template>
@@ -19,7 +20,7 @@
   <div v-else class="VPDynamicNav bar" ref="containerRef">
     <template v-for="(item, i) in nav" :key="i">
       <!-- Simple link -->
-      <a v-if="!item.items" :href="item.link" class="bar-link">{{ item.text }}</a>
+      <a v-if="!item.items" :href="item.link" class="bar-link" @click.prevent="navigate(item.link)">{{ item.text }}</a>
       <!-- Dropdown group -->
       <div v-else class="bar-group">
         <button
@@ -47,7 +48,7 @@
             :key="sub.link"
             :href="sub.link"
             class="bar-item"
-            @click="openIndex = null"
+            @click.prevent="openIndex = null; navigate(sub.link)"
           >{{ sub.text }}</a>
         </div>
       </div>
@@ -74,6 +75,13 @@ const containerRef = ref(null);
 
 function toggleOpen(i) {
   openIndex.value = openIndex.value === i ? null : i;
+}
+
+// Use window.location.href to bypass VitePress's global click interceptor,
+// which catches same-origin <a> clicks and routes them through Vue Router,
+// causing cross-version navigation to fail silently.
+function navigate(url) {
+  if (inBrowser) window.location.href = url;
 }
 
 function handleClickOutside(e) {
