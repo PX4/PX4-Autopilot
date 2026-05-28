@@ -215,7 +215,7 @@ public:
 	const orb_metadata *get_meta() const { return get_orb_meta(_orb_id); }
 
 	size_t get_size() { return get_orb_size(_orb_id); }
-	static size_t get_orb_size(ORB_ID id) { return sizeof(DeviceNode) + get_orb_meta(id)->o_size * get_orb_meta(id)->o_queue + data_alignment_padding; }
+	static size_t get_orb_size(ORB_ID id) { return sizeof(DeviceNode) + get_orb_meta(id)->o_size * get_orb_meta(id)->o_queue + data_alignment_padding(); }
 
 	ORB_ID id() const { return _orb_id; }
 
@@ -309,29 +309,20 @@ private:
 		};
 
 		// This list is process specific in kernel build and global in in flat
-		static MappingCacheListItem *g_cache;
-		static px4_sem_t g_cache_lock;
-
-		static void init()
-		{
-			static bool initialized = false;
-
-			if (!initialized) {
-				px4_sem_init(&g_cache_lock, 0, 1);
-				initialized = true;
-			}
-		}
+		static void init();
+		static MappingCacheListItem *list_head() { return cache(); }
+		static bool add(const orb_advert_t &handle);
 		static orb_advert_t get(ORB_ID orb_id, uint8_t instance);
 		static orb_advert_t map_node(ORB_ID orb_id, uint8_t instance, int shm_fd);
 		static orb_advert_t map_data(orb_advert_t handle, int shm_fd, bool publisher);
 		static bool del(const orb_advert_t &handle);
+		static void lock();
+		static void unlock();
 
-		static void lock()
-		{
-			init();
-			do {} while (px4_sem_wait(&g_cache_lock) != 0);
-		}
-		static void unlock() { px4_sem_post(&g_cache_lock); }
+	private:
+		static MappingCacheListItem *&cache();
+		static px4_sem_t &cache_lock();
+		static bool &initialized();
 	};
 
 	const uint8_t _instance; /**< orb multi instance identifier */
@@ -354,7 +345,7 @@ private:
 	void _add_subscriber(unsigned *initial_generation);
 
 	inline static DeviceNode *node(const orb_advert_t &handle) { return static_cast<DeviceNode *>(handle); }
-	inline static uint8_t *node_data(const orb_advert_t &handle) { return static_cast<DeviceNode *>(handle)->_data + data_alignment_padding; }
+	inline static uint8_t *node_data(const orb_advert_t &handle) { return static_cast<DeviceNode *>(handle)->_data + data_alignment_padding(); }
 
 	bool _register_callback(SubscriptionCallback *callback_sub, int8_t poll_lock, hrt_abstime last_update,
 				uint32_t interval_us, uorb_cb_handle_t &cb_handle);
@@ -377,7 +368,11 @@ private:
 #else
 	char _devname[orb_maxpath];
 #endif
-	static const unsigned data_alignment_padding;
+	static constexpr unsigned data_alignment_padding()
+	{
+		return sizeof(DeviceNode) % PX4_ARCH_DCACHE_ALIGNMENT != 0 ?
+		       PX4_ARCH_DCACHE_ALIGNMENT - (sizeof(DeviceNode) % PX4_ARCH_DCACHE_ALIGNMENT) : 0;
+	}
 	uint8_t _data[];
 };
 } //namespace uORB

@@ -60,14 +60,39 @@ static const char uORBManagerName[] = "_uORB_Manager";
 pthread_mutex_t uORB::Manager::_communicator_mutex = PTHREAD_MUTEX_INITIALIZER;
 #endif
 
-// This is the per-process lock for callback thread
+namespace
+{
 #ifndef CONFIG_BUILD_FLAT
-int8_t uORB::Manager::per_process_lock = -1;
-pid_t uORB::Manager::per_process_cb_thread = -1;
-List<class uORB::SubscriptionCallback *> uORB::Manager::per_process_cb_list;
-px4_sem_t uORB::Manager::per_process_cb_list_mutex;
+// This is the per-process lock for callback thread
+int8_t g_per_process_lock = -1;
+pid_t g_per_process_cb_thread = -1;
+List<class uORB::SubscriptionCallback *> g_per_process_cb_list;
+px4_sem_t g_per_process_cb_list_mutex;
 
-static int callback_count = 1;
+int callback_count = 1;
+#endif
+}
+
+#ifndef CONFIG_BUILD_FLAT
+int8_t &uORB::Manager::per_process_lock_ref()
+{
+	return g_per_process_lock;
+}
+
+pid_t &uORB::Manager::per_process_cb_thread_ref()
+{
+	return g_per_process_cb_thread;
+}
+
+List<class uORB::SubscriptionCallback *> &uORB::Manager::per_process_cb_list_ref()
+{
+	return g_per_process_cb_list;
+}
+
+px4_sem_t &uORB::Manager::per_process_cb_list_mutex_ref()
+{
+	return g_per_process_cb_list_mutex;
+}
 #endif
 
 void uORB::Manager::cleanup()
@@ -93,8 +118,7 @@ void uORB::Manager::cleanup()
 
 bool uORB::Manager::initialize()
 {
-	if (_Instance == nullptr) {
-
+	if (instance_ref() == nullptr) {
 		// Cleanup from previous execution, in case some shm files are left
 		cleanup();
 
@@ -120,13 +144,12 @@ bool uORB::Manager::initialize()
 	px4_register_boardct_ioctl(_ORBIOCDEVBASE, orb_ioctl);
 #endif
 
-	return _Instance != nullptr;
+	return instance_ref() != nullptr;
 }
 
 void uORB::Manager::map_instance()
 {
-	if (_Instance == nullptr) {
-
+	if (instance_ref() == nullptr) {
 		// Open the existing manager
 		int shm_fd = shm_open(uORBManagerName, O_RDWR, 0666);
 
@@ -140,7 +163,7 @@ void uORB::Manager::map_instance()
 		}
 	}
 
-	if (_Instance == nullptr) {
+	if (instance_ref() == nullptr) {
 		PX4_ERR("FATAL: Can't get uORB manager");
 	}
 }
@@ -454,14 +477,14 @@ int uORB::Manager::orb_poll(orb_poll_struct_t *fds, unsigned int nfds, int timeo
 int8_t
 uORB::Manager::launchCallbackThread()
 {
-	if (px4_sem_init(&per_process_cb_list_mutex, 1, 1) != 0) {
+	if (px4_sem_init(&per_process_cb_list_mutex_ref(), 1, 1) != 0) {
 		PX4_ERR("Can't initialize cb mutex");
 		return -1;
 	}
 
-	per_process_lock = Manager::getThreadLock();
+	per_process_lock_ref() = Manager::getThreadLock();
 
-	if (per_process_lock < 0) {
+	if (per_process_lock_ref() < 0) {
 		PX4_ERR("Out of thread locks\n");
 		return -1;
 	}
@@ -470,22 +493,36 @@ uORB::Manager::launchCallbackThread()
 
 	int priority = sched_get_priority_max(SCHED_FIFO) + px4::wq_configurations::nav_and_controllers.relative_priority + 1;
 
-	if (per_process_cb_thread == -1) {
-		per_process_cb_thread = px4_task_spawn_cmd("orb_callback",
-					SCHED_DEFAULT,
-					priority,
-					PX4_STACK_ADJUSTED(1024),
-					callback_thread,
-					nullptr);
+	if (per_process_cb_thread_ref() == -1) {
+		per_process_cb_thread_ref() = px4_task_spawn_cmd("orb_callback",
+					      SCHED_DEFAULT,
+					      priority,
+					      PX4_STACK_ADJUSTED(1024),
+					      callback_thread,
+					      nullptr);
 
-		if (per_process_cb_thread < 0) {
+		if (per_process_cb_thread_ref() < 0) {
 			PX4_ERR("callback thread creation failed\n");
-			Manager::freeThreadLock(per_process_lock);
+			Manager::freeThreadLock(per_process_lock_ref());
 			return -1;
 		}
 	}
 
-	return per_process_lock;
+	return per_process_lock_ref();
+}
+
+uint8_t
+uORB::Manager::getCallbackLock()
+{
+	int8_t ret = per_process_lock_ref();
+
+	if (ret < 0) {
+		instance_ref()->lock();
+		ret = per_process_lock_ref() >= 0 ? per_process_lock_ref() : launchCallbackThread();
+		instance_ref()->unlock();
+	}
+
+	return ret;
 }
 
 int
@@ -496,13 +533,13 @@ uORB::Manager::callback_thread(int argc, char *argv[])
 	while (true) {
 		/* Sleep here waiting for callbacks, lock as many times as it has been unlocked */
 
-		lockThread(per_process_lock, tmp);
+		lockThread(per_process_lock_ref(), tmp);
 
 		lock_cb_list();
 
 		callback_count -= tmp;
 
-		for (auto sub : per_process_cb_list) {
+		for (auto sub : per_process_cb_list_ref()) {
 			/* Just in cast the callback thread has been starved,
 			 * run all the queued callbacks now
 			 */
@@ -516,8 +553,8 @@ uORB::Manager::callback_thread(int argc, char *argv[])
 		unlock_cb_list();
 	}
 
-	Manager::freeThreadLock(per_process_lock);
-	per_process_lock = -1;
+	Manager::freeThreadLock(per_process_lock_ref());
+	per_process_lock_ref() = -1;
 
 	return 0;
 }
@@ -549,7 +586,7 @@ uORB::Manager::registerCallback(orb_advert_t &node_handle, SubscriptionCallback 
 		// function, it may spin endlessly blocking this
 
 		lock_cb_list();
-		per_process_cb_list.add(callback_sub);
+		per_process_cb_list_ref().add(callback_sub);
 
 		// keep the cb list locked; this prevents the callback thread from trying to access the callback item before it is registered to the device node
 #endif
@@ -558,7 +595,7 @@ uORB::Manager::registerCallback(orb_advert_t &node_handle, SubscriptionCallback 
 #ifndef CONFIG_BUILD_FLAT
 
 		if (!ret) {
-			per_process_cb_list.remove(callback_sub);
+			per_process_cb_list_ref().remove(callback_sub);
 		}
 
 		unlock_cb_list();
@@ -584,7 +621,7 @@ uORB::Manager::unregisterCallback(orb_advert_t &node_handle, SubscriptionCallbac
 	// Remove the callback from the list. This must be done before unregistering from the device node
 	// otherwise the callback thread might try to call an already unregistered cb
 
-	per_process_cb_list.remove(callback_sub);
+	per_process_cb_list_ref().remove(callback_sub);
 
 	// Unregister the callback from the device node and retrieve amount of unhandled callback triggers
 	// The unregister from the node needs to be done callback_thread locked; otherwise we don't know
@@ -697,11 +734,11 @@ int16_t uORB::Manager::process_remote_topic(const char *topic_name)
 		return -1;
 	}
 
-	_Instance->lock();
+	instance_ref()->lock();
 
 	orb_advert_t handle = orb_advertise(meta, nullptr);
 
-	_Instance->unlock();
+	instance_ref()->unlock();
 
 	if (orb_advert_valid(handle)) {
 		PX4_INFO("Advertising remote publisher %s", topic_name);
