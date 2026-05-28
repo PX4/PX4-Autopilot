@@ -33,8 +33,8 @@ const nav = ref(localData.nav);
 onMounted(() => {
   if (!inBrowser) return;
 
-  const cacheKey = theme.value.dynamicNavCacheKey || "vp-dynamic-nav";
   const remoteUrl = theme.value.dynamicNavUrl;
+  const cacheKey = theme.value.dynamicNavCacheKey || remoteUrl || "vp-dynamic-nav";
 
   try {
     const cached = localStorage.getItem(cacheKey);
