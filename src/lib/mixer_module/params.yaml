@@ -2,20 +2,30 @@ module_name: mixer_module
 parameters:
 - group: Mixer Output
   definitions:
-    MC_AIRMODE:
+    MC_AIRMODE_LIM:
       description:
-        short: Multicopter air-mode
+        short: Roll/pitch airmode authority limit
         long: |-
-          The air-mode enables the mixer to increase the total thrust of the multirotor
-          in order to keep attitude and rate control even at low and high throttle.
+          Maximum total-thrust increase the mixer may add to keep roll/pitch authority at
+          low and high throttle, as a fraction [0,1] of actuator range (0 = off, 1 = full).
+          Disable (0) while tuning: it lets an untuned, unstable loop diverge.
+      type: float
+      default: 0.0
+      min: 0.0
+      max: 1.0
+      decimal: 2
+      increment: 0.05
 
-          This function should be disabled during tuning as it will help the controller
-          to diverge if the closed-loop is unstable (i.e. the vehicle is not tuned yet).
-
-          Enabling air-mode for yaw requires the use of an arming switch.
-      type: enum
-      values:
-        0: Disabled
-        1: Roll/Pitch
-        2: Roll/Pitch/Yaw
-      default: 0
+    MC_AIRMODE_YLIM:
+      description:
+        short: Yaw airmode authority limit
+        long: |-
+          Same as MC_AIRMODE_LIM but for yaw. 0 (deferred yaw) is safe with the arm stick
+          gesture; greater than 0 enables yaw air-mode and requires an arming switch
+          (incompatible with MAN_ARM_GESTURE).
+      type: float
+      default: 0.0
+      min: 0.0
+      max: 1.0
+      decimal: 2
+      increment: 0.05
