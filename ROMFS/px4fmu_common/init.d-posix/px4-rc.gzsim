@@ -150,12 +150,45 @@ if [ -n "${PX4_SIM_MODEL#*gz_}" ] && [ -z "${PX4_GZ_MODEL_NAME}" ]; then
 		exit 1
 	fi
 
-	# Set physics parameters for faster-than-realtime simulation if needed
+	# Set physics parameters for faster-than-realtime or slower-than-realtime simulation if needed.
+	# See also https://github.com/PX4/PX4-Autopilot/issues/27480
 	if [ -n "${PX4_SIM_SPEED_FACTOR}" ]; then
 		echo "INFO  [init] Setting simulation speed factor: ${PX4_SIM_SPEED_FACTOR}"
+
+		PHYSICS_MSG=$(timeout 1 ${gz_command} topic -e -t "/world/${PX4_GZ_WORLD}/physics" 2>/dev/null)
+
+		GZ_GRAVITY_X=$(echo "${PHYSICS_MSG}" | awk '/gravity[[:space:]]*\{/{f=1; next} f && /^\}/{exit} f && $1=="x:"{print $2; exit}')
+		GZ_GRAVITY_Y=$(echo "${PHYSICS_MSG}" | awk '/gravity[[:space:]]*\{/{f=1; next} f && /^\}/{exit} f && $1=="y:"{print $2; exit}')
+		GZ_GRAVITY_Z=$(echo "${PHYSICS_MSG}" | awk '/gravity[[:space:]]*\{/{f=1; next} f && /^\}/{exit} f && $1=="z:"{print $2; exit}')
+		MAX_STEP_SIZE=$(echo "${PHYSICS_MSG}" | awk '/^max_step_size:/{print $2; exit}')
+
+		WORLD_SDF="${PX4_GZ_WORLDS}/${PX4_GZ_WORLD}.sdf"
+		if [ -f "${WORLD_SDF}" ]; then
+			if [ -z "${GZ_GRAVITY_X}${GZ_GRAVITY_Y}${GZ_GRAVITY_Z}" ]; then
+				sdf_gravity=$(grep -m1 '<gravity>' "${WORLD_SDF}" 2>/dev/null \
+					| sed -e 's|.*<gravity>||' -e 's|</gravity>.*||')
+				if [ -n "${sdf_gravity}" ]; then
+					GZ_GRAVITY_X=$(echo "${sdf_gravity}" | awk '{print $1}')
+					GZ_GRAVITY_Y=$(echo "${sdf_gravity}" | awk '{print $2}')
+					GZ_GRAVITY_Z=$(echo "${sdf_gravity}" | awk '{print $3}')
+				fi
+			fi
+			if [ -z "${MAX_STEP_SIZE}" ]; then
+				MAX_STEP_SIZE=$(grep -m1 '<max_step_size>' "${WORLD_SDF}" 2>/dev/null \
+					| sed -e 's|.*<max_step_size>||' -e 's|</max_step_size>.*||')
+			fi
+		fi
+
+		GZ_GRAVITY_X=${GZ_GRAVITY_X:-0}
+		GZ_GRAVITY_Y=${GZ_GRAVITY_Y:-0}
+		GZ_GRAVITY_Z=${GZ_GRAVITY_Z:--9.8}
+		MAX_STEP_SIZE=${MAX_STEP_SIZE:-0.004}
+
+		echo "INFO  [init] Preserving physics: gravity=(${GZ_GRAVITY_X}, ${GZ_GRAVITY_Y}, ${GZ_GRAVITY_Z}), max_step_size=${MAX_STEP_SIZE}"
+
 		${gz_command} service -s "/world/${PX4_GZ_WORLD}/set_physics" --reqtype gz.msgs.Physics \
 					--reptype gz.msgs.Boolean --timeout 5000 \
-					--req "real_time_factor: ${PX4_SIM_SPEED_FACTOR}" > /dev/null 2>&1
+					--req "real_time_factor: ${PX4_SIM_SPEED_FACTOR}, max_step_size: ${MAX_STEP_SIZE}, gravity: {x: ${GZ_GRAVITY_X}, y: ${GZ_GRAVITY_Y}, z: ${GZ_GRAVITY_Z}}" > /dev/null 2>&1
 	fi
 
 	# Set up camera to follow the model if requested
