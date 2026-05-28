@@ -159,7 +159,6 @@ export default defineConfig({
       */
     },
 
-    nav: [],
     dynamicNavUrl:
       "https://raw.githubusercontent.com/PX4/PX4-Autopilot/main/docs/.vitepress/navbar.json",
 
