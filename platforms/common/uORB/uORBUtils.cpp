@@ -34,8 +34,16 @@
 #include "uORBUtils.hpp"
 #include <stdio.h>
 #include <errno.h>
+#include <string.h>
 
-int uORB::Utils::node_mkpath(char *buf, const struct orb_metadata *meta, int *instance)
+namespace
+{
+constexpr const char *orb_name_prefix = "_orb_";
+constexpr const char *manager_name_suffix = "_uORB_Manager";
+}
+
+int uORB::Utils::node_mkpath(char *buf, const struct orb_metadata *meta, int *instance,
+			     const char *namespace_prefix)
 {
 	unsigned len;
 
@@ -45,7 +53,7 @@ int uORB::Utils::node_mkpath(char *buf, const struct orb_metadata *meta, int *in
 		index = *instance;
 	}
 
-	len = snprintf(buf, orb_maxpath, "_orb_%s%d", meta->o_name, index);
+	len = snprintf(buf, orb_maxpath, "%s%s%s%d", namespace_prefix, orb_name_prefix, meta->o_name, index);
 
 	if (len >= orb_maxpath) {
 		return -ENAMETOOLONG;
@@ -56,17 +64,40 @@ int uORB::Utils::node_mkpath(char *buf, const struct orb_metadata *meta, int *in
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-int uORB::Utils::node_mkpath(char *buf, const char *orbMsgName)
+int uORB::Utils::node_mkpath(char *buf, const char *orbMsgName, const char *namespace_prefix)
 {
 	unsigned len;
 
 	unsigned index = 0;
 
-	len = snprintf(buf, orb_maxpath, "_orb_%s%d", orbMsgName, index);
+	len = snprintf(buf, orb_maxpath, "%s%s%s%d", namespace_prefix, orb_name_prefix, orbMsgName, index);
 
 	if (len >= orb_maxpath) {
 		return -ENAMETOOLONG;
 	}
 
 	return OK;
+}
+
+int uORB::Utils::manager_mkpath(char *buf, const char *namespace_prefix)
+{
+	const unsigned len = snprintf(buf, orb_maxpath, "%s%s", namespace_prefix, manager_name_suffix);
+
+	if (len >= orb_maxpath) {
+		return -ENAMETOOLONG;
+	}
+
+	return OK;
+}
+
+bool uORB::Utils::is_uorb_node_path(const char *path, const char *namespace_prefix)
+{
+	if (path == nullptr || namespace_prefix == nullptr) {
+		return false;
+	}
+
+	const size_t namespace_len = strlen(namespace_prefix);
+
+	return strncmp(path, namespace_prefix, namespace_len) == 0
+	       && strncmp(path + namespace_len, orb_name_prefix, strlen(orb_name_prefix)) == 0;
 }
