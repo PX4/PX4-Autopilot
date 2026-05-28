@@ -104,9 +104,11 @@
 
 #if defined(CONFIG_EKF2_GNSS)
 # include <uORB/topics/estimator_gps_status.h>
-# include <uORB/topics/gnss_altitude_drift.h>
 # include <uORB/topics/sensor_gps.h>
-# include "GnssAltitudeDriftDetector.hpp"
+# if defined(CONFIG_EKF2_BAROMETER)
+#  include <uORB/topics/gnss_altitude_drift.h>
+#  include "GnssAltitudeDriftDetector.hpp"
+# endif // CONFIG_EKF2_BAROMETER
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
@@ -511,8 +513,10 @@ private:
 	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_gnss_yaw_pub {ORB_ID(estimator_aid_src_gnss_yaw)};
 # endif // CONFIG_EKF2_GNSS_YAW
 
+# if defined(CONFIG_EKF2_BAROMETER)
 	GnssAltitudeDriftDetector _gnss_altitude_drift_detector;
 	uORB::PublicationMulti<gnss_altitude_drift_s> _gnss_altitude_drift_pub{ORB_ID(gnss_altitude_drift)};
+# endif // CONFIG_EKF2_BAROMETER
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_GRAVITY_FUSION)
