@@ -11,6 +11,7 @@ const { site } = useData();
   <div class="custom-block danger">
     <p class="custom-block-title">This page is on a release branch, and hence probably out of date. <a href="https://docs.px4.io/main/en/releases/main.html">See the latest version</a>.</p>
   </div>
+<Redirect to="https://docs.px4.io/main/ko/releases/main" />
 </div>
 
 This contains changes to PX4 `main` branch since the last major release ([PX v1.16](../releases/1.16.md)).
