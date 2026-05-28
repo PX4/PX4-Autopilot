@@ -900,8 +900,9 @@
   - [许可证](/contribute/licenses.md)
 
 - [版本发布](/releases/index.md)
-  - [main (alpha)](/releases/main.md)
-  - [1.16 (stable)](/releases/1.16.md)
+  - [main (alpha)](/https://docs.px4.io/main/en/releases/main)
+  - [1.17 (stable)](/releases/1.17.md)
+  - [1.16](/releases/1.16.md)
   - [1.15](/releases/1.15.md)
   - [1.14](/releases/1.14.md)
   - [1.13](/releases/1.13.md)
