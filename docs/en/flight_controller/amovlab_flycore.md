@@ -83,7 +83,9 @@ The board includes the following main external connections:
 - SWD pads
 - UART8 debug console pads
 
-The external peripheral signal connectors use JST GH connectors with 1.25 mm pitch; see [Pinouts](#pinouts) for the connector pin assignments.
+The external peripheral signal connectors use JST GH connectors with 1.25 mm pitch.
+Flycore uses Pixhawk-style port names for common interfaces such as `TELEM`, `GPS`, `CAN`, `I2C`, and `RC`, but the fitted connectors and pin assignments are board-specific and are not claimed to fully comply with the DS-009 Pixhawk Connector Standard.
+Use the [Pinouts](#pinouts) section as the authoritative connector definition for this board.
 This does not apply to `POWER` (XT30), USB, the SD card slot, RTK antenna interfaces, or the exposed buzzer, SWD, and UART8 debug console pads.
 
 `GPS1` is not exposed as an external connector on the flight controller.
