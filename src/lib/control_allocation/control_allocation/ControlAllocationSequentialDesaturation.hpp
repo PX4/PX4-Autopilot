@@ -76,10 +76,13 @@ private:
 	 *
 	 * @param actuator_sp Actuator setpoint, vector that is modified
 	 * @param desaturation_vector vector that is added to the outputs, e.g. thrust_scale
-	 * @param increase_only if true, only allow to increase (add) a fraction of desaturation_vector
+	 * @param increase_limit fraction in [0,1] of the desaturation gain that is allowed to RAISE
+	 *                       the actuator setpoint. 0 forbids any upward adjustment (legacy "no
+	 *                       airmode"); 1 allows the full unsaturating gain (legacy full airmode).
+	 *                       Intermediate values cap the upward excursion proportionally.
 	 */
 	void desaturateActuators(ActuatorVector &actuator_sp, const ActuatorVector &desaturation_vector,
-				 bool increase_only = false);
+				 float increase_limit = 1.f);
 
 	/**
 	 * Computes the gain k by which desaturation_vector has to be multiplied
@@ -92,19 +95,25 @@ private:
 	/**
 	 * Mix roll, pitch, yaw, thrust and set the actuator setpoint.
 	 *
-	 * @param airmode_rp  If true, allow thrust increases to satisfy roll/pitch.
-	 * @param airmode_yaw If true, mix yaw into the initial accumulation and desaturate
-	 *                    yaw bidirectionally with the same priority structure as roll/pitch.
-	 *                    If false, yaw is added after roll/pitch resolution and desaturated
-	 *                    against an upper bound inflated by MINIMUM_YAW_MARGIN.
+	 * @param roll_pitch_limit fraction in [0,1] of per-actuator headroom the
+	 *                         desaturator may consume to raise thrust in order
+	 *                         to preserve roll/pitch authority.
+	 * @param yaw_limit        fraction in [0,1] for the analogous yaw budget.
+	 *                         When 0, yaw is added after roll/pitch resolution
+	 *                         and desaturated against an upper bound inflated
+	 *                         by MINIMUM_YAW_MARGIN (legacy deferred-yaw path).
+	 *                         When > 0, yaw is mixed into the initial
+	 *                         accumulation and the desaturator's upward gain
+	 *                         is capped by yaw_limit (legacy RPY path at 1).
 	 *
-	 * Legacy equivalence: (false,false) = airmode disabled,
-	 *                     (true, false) = roll/pitch airmode,
-	 *                     (true, true)  = roll/pitch/yaw airmode.
+	 * Legacy equivalence: (0, 0) = airmode disabled,
+	 *                     (1, 0) = roll/pitch airmode,
+	 *                     (1, 1) = roll/pitch/yaw airmode.
 	 */
-	void mix(bool airmode_rp, bool airmode_yaw);
+	void mix(float roll_pitch_limit, float yaw_limit);
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode   ///< air-mode
+		(ParamFloat<px4::params::MC_AIRMODE_LIM>) _param_mc_airmode_lim,         ///< roll/pitch airmode authority limit
+		(ParamFloat<px4::params::MC_AIRMODE_YLIM>) _param_mc_airmode_yaw_lim  ///< yaw airmode authority limit
 	);
 };

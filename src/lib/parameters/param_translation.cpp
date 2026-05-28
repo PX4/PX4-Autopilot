@@ -244,5 +244,27 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2026-05-28: translate MC_AIRMODE enum to MC_AIRMODE_LIM/MC_AIRMODE_YLIM floats
+	{
+		if ((node->type == bson_type_t::BSON_INT32) && (strcmp("MC_AIRMODE", node->name) == 0)) {
+			float lim = 0.f;
+			float yaw_lim = 0.f;
+
+			switch (node->i32) {
+			case 1: lim = 1.f; yaw_lim = 0.f; break;
+
+			case 2: lim = 1.f; yaw_lim = 1.f; break;
+
+			default: lim = 0.f; yaw_lim = 0.f; break;
+			}
+
+			param_set(param_find("MC_AIRMODE_LIM"),     &lim);
+			param_set(param_find("MC_AIRMODE_YLIM"), &yaw_lim);
+			PX4_INFO("migrating MC_AIRMODE=%" PRId32 " -> MC_AIRMODE_LIM=%.2f, MC_AIRMODE_YLIM=%.2f",
+				 node->i32, (double)lim, (double)yaw_lim);
+			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
+		}
+	}
+
 	return param_modify_on_import_ret::PARAM_NOT_MODIFIED;
 }

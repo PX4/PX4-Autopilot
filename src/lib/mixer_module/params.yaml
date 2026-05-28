@@ -4,18 +4,68 @@ parameters:
   definitions:
     MC_AIRMODE:
       description:
-        short: Multicopter air-mode
+        short: '[DEPRECATED] Multicopter air-mode (use MC_AIRMODE_LIM / MC_AIRMODE_YLIM)'
         long: |-
-          The air-mode enables the mixer to increase the total thrust of the multirotor
-          in order to keep attitude and rate control even at low and high throttle.
-
-          This function should be disabled during tuning as it will help the controller
-          to diverge if the closed-loop is unstable (i.e. the vehicle is not tuned yet).
-
-          Enabling air-mode for yaw requires the use of an arming switch.
+          Deprecated. On first boot the value is migrated to MC_AIRMODE_LIM and
+          MC_AIRMODE_YLIM:
+            0 -> (MC_AIRMODE_LIM=0, MC_AIRMODE_YLIM=0)
+            1 -> (MC_AIRMODE_LIM=1, MC_AIRMODE_YLIM=0)
+            2 -> (MC_AIRMODE_LIM=1, MC_AIRMODE_YLIM=1)
+          Will be removed in a future release.
       type: enum
       values:
         0: Disabled
         1: Roll/Pitch
         2: Roll/Pitch/Yaw
       default: 0
+
+    MC_AIRMODE_LIM:
+      description:
+        short: Roll/pitch airmode authority limit
+        long: |-
+          Fraction in [0,1] of per-actuator headroom that the control allocator
+          may consume to raise collective thrust in order to satisfy a roll or
+          pitch demand that would otherwise saturate the actuators.
+
+          0 reproduces the legacy "no airmode" behavior: thrust is never increased
+          to preserve attitude, so attitude commands get cut near minimum thrust.
+
+          1 reproduces full legacy roll/pitch airmode: thrust is increased as much
+          as needed to maintain roll/pitch authority.
+
+          Intermediate values cap the upward thrust excursion at
+          MC_AIRMODE_LIM * (actuator_max - actuator_min) per actuator. Useful
+          for tuning a new airframe (start low, raise as the loop proves stable)
+          and for bounding recovery behavior on faults like a reversed motor.
+      type: float
+      default: 0.0
+      min: 0.0
+      max: 1.0
+      decimal: 2
+      increment: 0.05
+
+    MC_AIRMODE_YLIM:
+      description:
+        short: Yaw airmode authority limit
+        long: |-
+          Fraction in [0,1] of per-actuator headroom that the control allocator
+          may consume to satisfy a yaw demand that would otherwise saturate the
+          actuators.
+
+          0 routes yaw through the legacy deferred path (a fixed 15% margin
+          applies near maximum thrust to keep some yaw response). This is the
+          safe default that preserves the arming-stick-gesture interlock.
+
+          Greater than 0 routes yaw through the priority-sum path with this
+          value as the upward-thrust cap. 1 reproduces full legacy
+          roll/pitch/yaw airmode.
+
+          Yaw airmode > 0 is incompatible with the throttle-and-yaw arming
+          gesture (MAN_ARM_GESTURE = 1) and the safety check will refuse to
+          enable yaw airmode while the gesture is configured.
+      type: float
+      default: 0.0
+      min: 0.0
+      max: 1.0
+      decimal: 2
+      increment: 0.05
