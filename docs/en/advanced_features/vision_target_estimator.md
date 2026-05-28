@@ -86,7 +86,7 @@ Each filter alternates between two operations:
   :::
 
 - **Update step:** Corrects the state whenever a new sensor observation arrives and is accepted for fusion.
-  See [Aid-source diagnostics](#aid-source-diagnostics) to debug the fusion update step.
+  See [Aid-source diagnostics](../advanced_features/vision_target_estimator_advanced.md#aid-source-diagnostics) to debug the fusion update step.
 
 ### Initialization and Task Scheduling
 
@@ -442,7 +442,7 @@ For deeper inspection, the following uORB topics are the most useful entry point
 - `vte_input` records the downsampled NED acceleration and attitude quaternion actually fed to the position prediction step.
 - `vte_bias_init_status` shows raw and filtered GNSS/vision bias while the initial averaging phase is active.
 - Innovations published on `vte_aid_*` topics include the raw measurement, innovation, innovation variance, chi-squared test ratio, the `fusion_status` enum (per-axis on the 3D variant), and Out-of-Sequence Measurements ([OOSM](../advanced_features/vision_target_estimator_advanced.md#oosm-implementation)) diagnostics (`time_since_meas_ms`, `history_steps`).
-  See [aid-source diagnostics](./vision_target_estimator_advanced.md#aid-source-diagnostics) for the full status table.
+  See [aid-source diagnostics](../advanced_features/vision_target_estimator_advanced.md#aid-source-diagnostics) for the full status table.
 
 ## Operational Notes
 

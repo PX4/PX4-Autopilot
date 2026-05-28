@@ -365,8 +365,6 @@ Symptoms and fixes (visible on `vte_position.rel_pos` overlaid with the matching
 
 After every change, `vte_aid_*.innovation` should look like zero-mean white noise rather than ramping with one sign or carrying a persistent offset.
 
-<a id=""></a>
-
 #### Tuning the Bias State {#tuning-the-bias-state}
 
 Once the bias is activated, two parameters govern how aggressively the filter lets `vte_position.bias` follow new observations:
