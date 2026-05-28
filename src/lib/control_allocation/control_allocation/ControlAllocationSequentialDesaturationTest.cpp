@@ -100,8 +100,24 @@ public:
 
 	void setAirmode(const int32_t mode)
 	{
-		param_t param = param_find("MC_AIRMODE");
-		param_set(param, &mode);
+		float lim = 0.f;
+		float yaw_lim = 0.f;
+
+		switch (mode) {
+		case 1: lim = 1.f; yaw_lim = 0.f; break;
+
+		case 2: lim = 1.f; yaw_lim = 1.f; break;
+
+		default: lim = 0.f; yaw_lim = 0.f; break;
+		}
+
+		setAirmodeLimits(lim, yaw_lim);
+	}
+
+	void setAirmodeLimits(const float lim, const float yaw_lim)
+	{
+		param_set(param_find("MC_AIRMODE_LIM"),     &lim);
+		param_set(param_find("MC_AIRMODE_YLIM"), &yaw_lim);
 		_control_allocation.updateParameters();
 	}
 
@@ -263,6 +279,79 @@ TEST_F(ControlAllocationSequentialDesaturationTestQuadX, AirmodeDisabledReducedT
 TEST_F(ControlAllocationSequentialDesaturationTestQuadX, AirmodeDisabledReducedThrustAndPitch)
 {
 	EXPECT_EQ(allocate(0.f, 2.f, 0.f, -3.f), Vector4f(1.f, 0.f, 0.f, 1.f));
+}
+
+// MC_AIRMODE_LIM = 0 (set directly, not via the MC_AIRMODE enum wrapper) must reproduce the
+// airmode-disabled outputs bit-exactly. Cross-checks the float-only API path.
+TEST_F(ControlAllocationSequentialDesaturationTestQuadX, AirmodeLimZeroMatchesDisabled)
+{
+	setAirmodeLimits(0.f, 0.f);
+	EXPECT_EQ(allocate(1.000f, 0.000f, 0.000f, -0.100f), Vector4f(0.f, 0.f, 0.2f, 0.2f));   // row 37
+	EXPECT_EQ(allocate(0.000f, -1.000f, 0.000f, -0.100f), Vector4f(0.f, 0.2f, 0.2f, 0.f));  // row 42
+	EXPECT_EQ(allocate(0.000f, 0.000f, 1.000f, -1.000f), Vector4f(1.f, 0.7f, 1.f, 0.7f));   // row 50
+}
+
+// MC_AIRMODE_LIM = 1 (set directly) must reproduce roll/pitch airmode.
+TEST_F(ControlAllocationSequentialDesaturationTestQuadX, AirmodeLimOneMatchesRP)
+{
+	setAirmodeLimits(1.f, 0.f);
+	EXPECT_EQ(allocate(1.000f, 0.000f, 0.000f, -0.100f), Vector4f(0.f, 0.f, 0.5f, 0.5f));   // row 37
+	EXPECT_EQ(allocate(0.000f, -1.000f, 0.000f, -0.100f), Vector4f(0.f, 0.5f, 0.5f, 0.f));  // row 42
+}
+
+// MC_AIRMODE_LIM = 1, MC_AIRMODE_YLIM = 1 must reproduce roll/pitch/yaw airmode.
+TEST_F(ControlAllocationSequentialDesaturationTestQuadX, AirmodeLimAndYlimOneMatchRPY)
+{
+	setAirmodeLimits(1.f, 1.f);
+	EXPECT_EQ(allocate(1.000f, 1.000f, -1.000f, -0.000f), Vector4f(0.f, 0.f, 0.f, 1.f));    // row 51 RPY
+	EXPECT_EQ(allocate(0.000f, 0.000f, 1.000f, -0.000f), Vector4f(0.5f, 0.f, 0.5f, 0.f));   // row 46 RPY
+}
+
+// Sweep MC_AIRMODE_LIM ∈ {0, 0.05, 0.10, 0.15, 1.0} for the saturating input
+// (roll=1, thrust=-0.1) and verify each motor's output is non-decreasing in the
+// limit. Endpoints match the airmode-disabled and roll/pitch-airmode row 37 values.
+TEST_F(ControlAllocationSequentialDesaturationTestQuadX, AirmodeLimMonotonicity)
+{
+	const float sweep[] = {0.f, 0.05f, 0.10f, 0.15f, 1.f};
+	Vector4f prev{};
+
+	for (size_t i = 0; i < sizeof(sweep) / sizeof(sweep[0]); ++i) {
+		setAirmodeLimits(sweep[i], 0.f);
+		Vector4f out = allocate(1.f, 0.f, 0.f, -0.1f);
+
+		if (i == 0) {
+			EXPECT_EQ(out, Vector4f(0.f, 0.f, 0.2f, 0.2f)); // airmode disabled
+		}
+
+		if (i + 1 == sizeof(sweep) / sizeof(sweep[0])) {
+			EXPECT_EQ(out, Vector4f(0.f, 0.f, 0.5f, 0.5f)); // roll/pitch airmode
+		}
+
+		if (i > 0) {
+			for (int m = 0; m < 4; ++m) {
+				EXPECT_GE(out(m), prev(m)) << "non-monotonic at MC_AIRMODE_LIM=" << sweep[i] << " motor=" << m;
+			}
+		}
+
+		prev = out;
+	}
+}
+
+// The yaw path is structurally different at yaw_limit==0 (deferred path with the hidden
+// 15% MINIMUM_YAW_MARGIN) vs yaw_limit>0 (yaw mixed into the initial accumulation). This is a
+// designed discontinuity — pin both sides to detect anyone "smoothing" them together in a way
+// that breaks either endpoint.
+TEST_F(ControlAllocationSequentialDesaturationTestQuadX, YawLimitDiscontinuityAtZero)
+{
+	setAirmodeLimits(1.f, 0.f);
+	const Vector4f deferred_path = allocate(0.f, 0.f, 1.f, -1.f);
+	EXPECT_EQ(deferred_path, Vector4f(1.f, 0.7f, 1.f, 0.7f)); // 30% yaw via 15% margin trick
+
+	setAirmodeLimits(1.f, FLT_EPSILON);
+	const Vector4f sum_path = allocate(0.f, 0.f, 1.f, -1.f);
+	EXPECT_EQ(sum_path, Vector4f(1.f, 0.5f, 1.f, 0.5f));      // 50% yaw via priority sum
+
+	EXPECT_FALSE(deferred_path == sum_path) << "yaw_limit=0 and yaw_limit>0 must differ";
 }
 
 TEST_F(ControlAllocationSequentialDesaturationTestQuadX, PreviousMixingTestsNoAirmode)
