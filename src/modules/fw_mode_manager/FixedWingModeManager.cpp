@@ -571,7 +571,8 @@ FixedWingModeManager::control_auto(const float control_interval, const Vector2d 
 	move_position_setpoint_for_vtol_transition(current_sp);
 
 	// Course setpoints are handled directly to avoid entering hold mode
-	if (PX4_ISFINITE(current_sp.course)) {
+	if (PX4_ISFINITE(current_sp.course)
+	    && _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE) {
 		control_auto_position(control_interval, curr_pos, ground_speed, pos_sp_prev, current_sp);
 		return;
 	}
@@ -775,7 +776,8 @@ FixedWingModeManager::control_auto_position(const float control_interval, const 
 		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
 {
 	// Course Hold: if a course is explicitly set, navigate along that bearing (ground track)
-	if (PX4_ISFINITE(pos_sp_curr.course)) {
+	if (PX4_ISFINITE(pos_sp_curr.course)
+	    && _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE) {
 		const float target_airspeed = pos_sp_curr.cruising_speed > FLT_EPSILON ? pos_sp_curr.cruising_speed : NAN;
 
 		const Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
