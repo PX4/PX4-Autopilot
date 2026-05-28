@@ -74,8 +74,8 @@ parameters:
         short: Minimum collective thrust in climb rate controlled modes
         long: |-
           Too low thrust leads to loss of roll/pitch/yaw torque control authority.
-          With airmode enabled this parameters can be set to 0
-          while still keeping torque authority (see MC_AIRMODE).
+          With airmode enabled this parameter can be set to 0
+          while still keeping torque authority (see MC_AIRMODE_LIM).
       type: float
       default: 0.12
       unit: norm
