@@ -73,9 +73,18 @@ public:
 
 	/**
 	 * Initialize the singleton. Call this before everything else.
+	 * @param namespace_prefix Shared-memory namespace prefix (empty string for default namespace)
 	 * @return true on success
 	 */
-	static bool initialize();
+	static bool initialize(const char *namespace_prefix = "");
+
+	/**
+	 * Shared-memory namespace prefix currently used by this manager instance.
+	 */
+	static const char *namespace_prefix()
+	{
+		return _namespace_prefix;
+	}
 
 	/**
 	 * Terminate the singleton. Call this after everything else.
@@ -457,12 +466,13 @@ private: // class methods
 	/** Internal method to get a reference to the instance pointer */
 	static uORB::Manager *&instance_ref() { return _Instance; }
 
-	static void cleanup();
+	static void cleanup(const char *namespace_prefix);
 	static int callback_thread(int argc, char *argv[]);
 	static int8_t launchCallbackThread();
 
 private: // data members
 	static inline Manager *_Instance = nullptr;
+	inline static char _namespace_prefix[orb_maxpath] {};
 
 #ifdef CONFIG_ORB_COMMUNICATOR
 	// the communicator channel instance.
