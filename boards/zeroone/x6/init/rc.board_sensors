@@ -115,4 +115,3 @@ fi
 
 unset INA_CONFIGURED
 unset HAVE_PM2
-
