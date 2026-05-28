@@ -28,7 +28,9 @@ param set-default CBRK_SUPPLY_CHK 894281
 param set-default IMU_GYRO_CUTOFF 100
 param set-default IMU_DGYRO_CUTOFF 60
 
-param set-default MC_AIRMODE 2
+param set-default MC_AIRMODE_LIM 1.0
+param set-default MC_AIRMODE_YLIM 1.0
+param set-default MAN_ARM_GESTURE 0 # required for yaw airmode
 param set-default MC_PITCHRATE_D 0.001
 param set-default MC_PITCHRATE_I 0.5
 param set-default MC_PITCHRATE_MAX 600

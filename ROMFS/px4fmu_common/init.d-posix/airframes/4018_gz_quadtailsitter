@@ -72,7 +72,8 @@ param set-default FW_AIRSPD_MIN 14
 param set-default FW_AIRSPD_TRIM 18
 param set-default FW_AIRSPD_MAX 22
 
-param set-default MC_AIRMODE 2
+param set-default MC_AIRMODE_LIM 1.0
+param set-default MC_AIRMODE_YLIM 1.0
 param set-default MAN_ARM_GESTURE 0 # required for yaw airmode
 param set-default MC_ROLL_P 3
 param set-default MC_PITCH_P 3

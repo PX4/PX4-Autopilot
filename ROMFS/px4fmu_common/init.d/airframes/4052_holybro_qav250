@@ -23,7 +23,7 @@ param set-default BAT1_N_CELLS 4
 param set-default IMU_GYRO_CUTOFF 120
 param set-default IMU_DGYRO_CUTOFF 45
 
-param set-default MC_AIRMODE 1
+param set-default MC_AIRMODE_LIM 1.0
 param set-default MC_PITCHRATE_D 0.0012
 param set-default MC_PITCHRATE_I 0.35
 param set-default MC_PITCHRATE_MAX 1200

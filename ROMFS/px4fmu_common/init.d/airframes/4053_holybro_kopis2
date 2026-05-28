@@ -51,7 +51,7 @@ param set-default THR_MDL_FAC 0.35
 param set-default MPC_THR_CURVE 1
 param set-default MPC_THR_HOVER 0.12
 
-param set-default MC_AIRMODE 1
+param set-default MC_AIRMODE_LIM 1.0
 
 param set-default EV_TSK_RC_LOSS 1
 
