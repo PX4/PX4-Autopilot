@@ -92,39 +92,17 @@ private:
 	/**
 	 * Mix roll, pitch, yaw, thrust and set the actuator setpoint.
 	 *
-	 * Desaturation behavior: airmode for roll/pitch:
-	 * thrust is increased/decreased as much as required to meet the demanded roll/pitch.
-	 * Yaw is not allowed to increase the thrust, @see mix_yaw() for the exact behavior.
-	 */
-	void mixAirmodeRP();
-
-	/**
-	 * Mix roll, pitch, yaw, thrust and set the actuator setpoint.
+	 * @param airmode_rp  If true, allow thrust increases to satisfy roll/pitch.
+	 * @param airmode_yaw If true, mix yaw into the initial accumulation and desaturate
+	 *                    yaw bidirectionally with the same priority structure as roll/pitch.
+	 *                    If false, yaw is added after roll/pitch resolution and desaturated
+	 *                    against an upper bound inflated by MINIMUM_YAW_MARGIN.
 	 *
-	 * Desaturation behavior: full airmode for roll/pitch/yaw:
-	 * thrust is increased/decreased as much as required to meet demanded the roll/pitch/yaw,
-	 * while giving priority to roll and pitch over yaw.
+	 * Legacy equivalence: (false,false) = airmode disabled,
+	 *                     (true, false) = roll/pitch airmode,
+	 *                     (true, true)  = roll/pitch/yaw airmode.
 	 */
-	void mixAirmodeRPY();
-
-	/**
-	 * Mix roll, pitch, yaw, thrust and set the actuator setpoint.
-	 *
-	 * Desaturation behavior: no airmode, thrust is NEVER increased to meet the demanded
-	 * roll/pitch/yaw. Instead roll/pitch/yaw is reduced as much as needed.
-	 * Thrust can be reduced to unsaturate the upper side.
-	 * @see mixYaw() for the exact yaw behavior.
-	 */
-	void mixAirmodeDisabled();
-
-	/**
-	 * Mix yaw by updating the actuator setpoint (that already contains roll/pitch/thrust).
-	 *
-	 * Desaturation behavior: thrust is allowed to be decreased up to 15% in order to allow
-	 * some yaw control on the upper end. On the lower end thrust will never be increased,
-	 * but yaw is decreased as much as required.
-	 */
-	void mixYaw();
+	void mix(bool airmode_rp, bool airmode_yaw);
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode   ///< air-mode
