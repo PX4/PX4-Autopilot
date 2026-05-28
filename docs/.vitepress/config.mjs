@@ -160,6 +160,9 @@ export default defineConfig({
     },
 
     nav: [],
+    dynamicNavUrl:
+      "https://raw.githubusercontent.com/PX4/PX4-Autopilot/main/docs/.vitepress/navbar.json",
+    dynamicNavCacheKey: "px4-docs-navbar",
 
     socialLinks: [
       { icon: "github", link: "https://github.com/PX4/PX4-Autopilot" },
