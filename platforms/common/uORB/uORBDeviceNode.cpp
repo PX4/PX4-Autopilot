@@ -60,12 +60,44 @@
 #define CONFIG_FS_SHMFS_VFS_PATH "/dev/shm"
 #endif
 
-// Every subscriber thread has its own list of cached subscriptions
-uORB::DeviceNode::MappingCache::MappingCacheListItem *uORB::DeviceNode::MappingCache::g_cache =
-	nullptr;
+uORB::DeviceNode::MappingCache::MappingCacheListItem *&uORB::DeviceNode::MappingCache::cache()
+{
+	// Every subscriber thread has its own list of cached subscriptions
+	static MappingCacheListItem *g_mapping_cache{nullptr};
+	return g_mapping_cache;
+}
 
-// This lock protects the subscription cache list from concurrent accesses by the threads in the same process
-px4_sem_t uORB::DeviceNode::MappingCache::g_cache_lock;
+px4_sem_t &uORB::DeviceNode::MappingCache::cache_lock()
+{
+	// This lock protects the subscription cache list from concurrent accesses by the threads in the same process
+	static px4_sem_t g_mapping_cache_lock;
+	return g_mapping_cache_lock;
+}
+
+bool &uORB::DeviceNode::MappingCache::initialized()
+{
+	static bool g_mapping_cache_initialized{false};
+	return g_mapping_cache_initialized;
+}
+
+void uORB::DeviceNode::MappingCache::init()
+{
+	if (!initialized()) {
+		px4_sem_init(&cache_lock(), 0, 1);
+		initialized() = true;
+	}
+}
+
+void uORB::DeviceNode::MappingCache::lock()
+{
+	init();
+	do {} while (px4_sem_wait(&cache_lock()) != 0);
+}
+
+void uORB::DeviceNode::MappingCache::unlock()
+{
+	px4_sem_post(&cache_lock());
+}
 
 static bool topic_matches_filter(const uORB::DeviceNode &node, char **topic_filter, int num_filters)
 {
@@ -215,14 +247,11 @@ void uORB::DeviceNode::cleanupStatisticsData(DeviceNodeStatisticsData *first_nod
 	}
 }
 
-const unsigned uORB::DeviceNode::data_alignment_padding = sizeof(uORB::DeviceNode) % PX4_ARCH_DCACHE_ALIGNMENT != 0 ?
-		PX4_ARCH_DCACHE_ALIGNMENT - (sizeof(uORB::DeviceNode) % PX4_ARCH_DCACHE_ALIGNMENT) : 0;
-
 orb_advert_t uORB::DeviceNode::MappingCache::get(ORB_ID orb_id, uint8_t instance)
 {
 	lock();
 
-	MappingCacheListItem *item = g_cache;
+	MappingCacheListItem *item = cache();
 
 	while (item &&
 	       (orb_id != node(item->handle)->id() ||
@@ -233,6 +262,20 @@ orb_advert_t uORB::DeviceNode::MappingCache::get(ORB_ID orb_id, uint8_t instance
 	unlock();
 
 	return item != nullptr ? item->handle : ORB_ADVERT_INVALID;
+}
+
+bool uORB::DeviceNode::MappingCache::add(const orb_advert_t &handle)
+{
+	lock();
+	MappingCacheListItem *item = new MappingCacheListItem{cache(), handle};
+
+	if (item) {
+		cache() = item;
+	}
+
+	unlock();
+
+	return item != nullptr;
 }
 
 orb_advert_t uORB::DeviceNode::MappingCache::map_node(ORB_ID orb_id, uint8_t instance, int shm_fd)
@@ -261,10 +304,10 @@ orb_advert_t uORB::DeviceNode::MappingCache::map_node(ORB_ID orb_id, uint8_t ins
 
 		// Create a list item and add to the beginning of the list
 		handle = ptr;
-		MappingCacheListItem *item = new MappingCacheListItem{g_cache, handle};
+		MappingCacheListItem *item = new MappingCacheListItem{cache(), handle};
 
 		if (item) {
-			g_cache = item;
+			cache() = item;
 		}
 	}
 
@@ -279,7 +322,7 @@ bool uORB::DeviceNode::MappingCache::del(const orb_advert_t &handle)
 
 	lock();
 
-	MappingCacheListItem *item = g_cache;
+	MappingCacheListItem *item = cache();
 
 	while (item &&
 	       handle != item->handle) {
@@ -290,7 +333,7 @@ bool uORB::DeviceNode::MappingCache::del(const orb_advert_t &handle)
 	if (item != nullptr) {
 		if (prev == nullptr) {
 			// Remove the first item
-			g_cache = item->next;
+			cache() = item->next;
 
 		} else {
 			prev->next = item->next;

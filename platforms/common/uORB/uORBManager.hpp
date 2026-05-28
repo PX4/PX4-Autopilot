@@ -88,11 +88,11 @@ public:
 	 */
 	static Manager *get_instance()
 	{
-		if (_Instance == nullptr) {
+		if (instance_ref() == nullptr) {
 			map_instance();
 		}
 
-		return _Instance;
+		return instance_ref();
 	}
 
 	// ==== uORB interface methods ====
@@ -341,18 +341,18 @@ public:
 			return ORB_ADVERT_INVALID;
 		}
 
-		_Instance->lock();
+		instance_ref()->lock();
 		orb_advert_t handle = uORB::DeviceNode::add_subscriber(orb_id, instance, initial_generation, advertise);
-		_Instance->unlock();
+		instance_ref()->unlock();
 
 		return handle;
 	}
 
 	static void orb_remove_internal_subscriber(orb_advert_t &node_handle, bool advertiser)
 	{
-		_Instance->lock();
+		instance_ref()->lock();
 		node(node_handle)->remove_subscriber(node_handle, advertiser);
-		_Instance->unlock();
+		instance_ref()->unlock();
 	}
 
 	static uint8_t orb_get_queue_size(const orb_advert_t &node_handle) {return node(node_handle)->get_queue_size();}
@@ -369,18 +369,7 @@ public:
 	}
 
 #ifndef CONFIG_BUILD_FLAT
-	static uint8_t getCallbackLock()
-	{
-		int8_t ret = per_process_lock;
-
-		if (ret < 0) {
-			_Instance->lock();
-			ret = per_process_lock >= 0 ? per_process_lock : launchCallbackThread();
-			_Instance->unlock();
-		}
-
-		return ret;
-	}
+	static uint8_t getCallbackLock();
 #endif
 
 	static uint8_t orb_get_instance(orb_advert_t &node_handle)
@@ -440,18 +429,18 @@ public:
 	static void lockThread(int idx, unsigned count = 1)
 	{
 		while (count--) {
-			_Instance->g_sem_pool.take(idx);
+			instance_ref()->g_sem_pool.take(idx);
 		}
 	}
 
 	static void unlockThread(int idx)
 	{
-		_Instance->g_sem_pool.release(idx);
+		instance_ref()->g_sem_pool.release(idx);
 	}
 
-	static void freeThreadLock(int i) {_Instance->g_sem_pool.free(i);}
+	static void freeThreadLock(int i) {instance_ref()->g_sem_pool.free(i);}
 
-	static int8_t getThreadLock() {return _Instance->g_sem_pool.reserve();}
+	static int8_t getThreadLock() {return instance_ref()->g_sem_pool.reserve();}
 
 private: // class methods
 	inline static uORB::DeviceNode *node(orb_advert_t handle) {return static_cast<uORB::DeviceNode *>(handle);}
@@ -665,13 +654,13 @@ private: //class methods
 	} g_sem_pool;
 
 #ifndef CONFIG_BUILD_FLAT
-	static void lock_cb_list() { do {} while (px4_sem_wait(&per_process_cb_list_mutex) != 0); }
-	static void unlock_cb_list() { px4_sem_post(&per_process_cb_list_mutex); }
+	static void lock_cb_list() { do {} while (px4_sem_wait(&per_process_cb_list_mutex_ref()) != 0); }
+	static void unlock_cb_list() { px4_sem_post(&per_process_cb_list_mutex_ref()); }
 
-	static int8_t per_process_lock;
-	static pid_t per_process_cb_thread;
-	static List<class SubscriptionCallback *> per_process_cb_list;
-	static px4_sem_t per_process_cb_list_mutex;
+	static int8_t &per_process_lock_ref();
+	static pid_t &per_process_cb_thread_ref();
+	static List<class SubscriptionCallback *> &per_process_cb_list_ref();
+	static px4_sem_t &per_process_cb_list_mutex_ref();
 #endif
 };
 } // namespace uORB
