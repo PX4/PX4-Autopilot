@@ -101,6 +101,17 @@ onUnmounted(() => {
   align-items: center;
 }
 
+/* Separator line matching VitePress's .menu + .translations::before style */
+.bar::before {
+  content: "";
+  display: block;
+  width: 1px;
+  height: 24px;
+  background-color: var(--vp-c-divider);
+  margin-left: 8px;
+  margin-right: 8px;
+}
+
 .bar-trigger {
   display: flex;
   align-items: center;
@@ -191,4 +202,20 @@ onUnmounted(() => {
   background: var(--vp-c-default-soft);
   color: var(--vp-c-brand-1);
 }
+</style>
+
+<style>
+/*
+ * Reposition the desktop version switcher within VitePress's content-body flex
+ * container. The DOM order is: [nav-bar-content-before] [search(flex-grow:1)]
+ * [menu] [translations] [appearance] [social-links] [extra] [nav-bar-content-after].
+ * Without these overrides, the slot content appears to the LEFT of the search
+ * bar. Setting order:3 on the switcher and bumping subsequent items ensures it
+ * renders between the menu items and the language selector.
+ */
+.VPNavBar .content-body .VPVersionSwitcher.bar { order: 3; }
+.VPNavBar .content-body .translations          { order: 4; }
+.VPNavBar .content-body .appearance            { order: 5; }
+.VPNavBar .content-body .social-links          { order: 6; }
+.VPNavBar .content-body .extra                 { order: 7; }
 </style>
