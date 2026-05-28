@@ -8,7 +8,7 @@ import tabsPlugin from "@red-asuka/vitepress-plugin-tabs";
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  title: "PX4 Guide (main)",
+  title: "PX4 Guide (v1.16)",
   description: "PX4 User and Developer Guide",
   base: process.env.BRANCH_NAME
     ? "/" + process.env.BRANCH_NAME + "/"
