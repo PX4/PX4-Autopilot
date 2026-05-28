@@ -43,12 +43,24 @@ class Utils;
 class uORB::Utils
 {
 public:
-	static int node_mkpath(char *buf, const struct orb_metadata *meta, int *instance = nullptr);
+	static int node_mkpath(char *buf, const struct orb_metadata *meta, int *instance = nullptr,
+			       const char *namespace_prefix = "");
 
 	/**
 	 * same as above except this generators the path based on the string.
 	 */
-	static int node_mkpath(char *buf, const char *orbMsgName);
+	static int node_mkpath(char *buf, const char *orbMsgName, const char *namespace_prefix = "");
+
+	/**
+	 * Generate manager shared-memory path.
+	 */
+	static int manager_mkpath(char *buf, const char *namespace_prefix = "");
+
+	/**
+	 * Return true if the shared-memory object name corresponds to a uORB node
+	 * in the active namespace.
+	 */
+	static bool is_uorb_node_path(const char *path, const char *namespace_prefix);
 
 #if defined(NAME_MAX)
 	// Do compile-time length check on systems which support NAME_MAX

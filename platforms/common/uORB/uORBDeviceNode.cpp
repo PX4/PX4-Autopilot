@@ -206,13 +206,11 @@ int uORB::DeviceNode::fillStatistics(DeviceNodeStatisticsData **first_node, int 
 
 	struct dirent *shm = nullptr;
 
-	const char orb_name_prefix[] = "_orb_";
-
 	char orb_name[orb_maxpath];
 
 	while ((shm = readdir(shm_dir)) != nullptr) {
 
-		if (strncmp(orb_name_prefix, shm->d_name, sizeof(orb_name_prefix) - 1) != 0) {
+		if (!uORB::Utils::is_uorb_node_path(shm->d_name, uORB::Manager::namespace_prefix())) {
 			continue;
 		}
 
@@ -221,7 +219,8 @@ int uORB::DeviceNode::fillStatistics(DeviceNodeStatisticsData **first_node, int 
 		while (cur_node) {
 			int instance = cur_node->node->get_instance();
 
-			if (uORB::Utils::node_mkpath(orb_name, cur_node->node->get_meta(), &instance)) {
+			if (uORB::Utils::node_mkpath(orb_name, cur_node->node->get_meta(), &instance,
+						     uORB::Manager::namespace_prefix())) {
 				closedir(shm_dir);
 				PX4_ERR("Can't construct orb name?");
 				return PX4_ERROR;
@@ -414,7 +413,7 @@ orb_advert_t uORB::DeviceNode::nodeOpen(const ORB_ID id, const uint8_t instance,
 
 	char nodepath[orb_maxpath];
 	int inst = instance;
-	int ret = uORB::Utils::node_mkpath(nodepath, get_orb_meta(id), &inst);
+	int ret = uORB::Utils::node_mkpath(nodepath, get_orb_meta(id), &inst, uORB::Manager::namespace_prefix());
 
 	if (ret == -ENAMETOOLONG) {
 		PX4_ERR("Device node name too long! '%s' (max path: %u chars)",
