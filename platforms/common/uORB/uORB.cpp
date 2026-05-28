@@ -46,12 +46,20 @@
 #include <lib/drivers/device/Device.hpp>
 #include <matrix/Quaternion.hpp>
 #include <mathlib/mathlib.h>
+#include <string.h>
 
 #ifdef __PX4_NUTTX
 #include <sys/boardctl.h>
 #endif
 
 static bool initialized = false;
+static char startup_namespace_prefix[uORB::orb_maxpath] {};
+
+void uorb_set_namespace(const char *namespace_prefix)
+{
+	strncpy(startup_namespace_prefix, namespace_prefix, sizeof(startup_namespace_prefix) - 1);
+	startup_namespace_prefix[sizeof(startup_namespace_prefix) - 1] = '\0';
+}
 
 int uorb_start(void)
 {
@@ -61,7 +69,7 @@ int uorb_start(void)
 		return 0;
 	}
 
-	if (!uORB::Manager::initialize()) {
+	if (!uORB::Manager::initialize(startup_namespace_prefix)) {
 		PX4_ERR("uorb manager alloc failed");
 		return -ENOMEM;
 	}

@@ -40,6 +40,7 @@
 #include <sys/stat.h>
 #include <stdarg.h>
 #include <fcntl.h>
+#include <string.h>
 
 #include <px4_platform_common/mmap.h>
 #include <px4_platform_common/px4_config.h>
@@ -55,8 +56,6 @@
 #ifndef CONFIG_FS_SHMFS_VFS_PATH
 #define CONFIG_FS_SHMFS_VFS_PATH "/dev/shm"
 #endif
-
-static const char uORBManagerName[] = "_uORB_Manager";
 
 #ifdef CONFIG_ORB_COMMUNICATOR
 pthread_mutex_t uORB::Manager::_communicator_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -97,43 +96,59 @@ px4_sem_t &uORB::Manager::per_process_cb_list_mutex_ref()
 }
 #endif
 
-void uORB::Manager::cleanup()
+void uORB::Manager::cleanup(const char *namespace_prefix)
 {
 #if defined(POSIX_SHM_DISABLED)
 	return;
 #else
+	char uorb_manager_name[orb_maxpath] {};
+
+	if (uORB::Utils::manager_mkpath(uorb_manager_name, namespace_prefix) != OK) {
+		return;
+	}
+
 	// TODO: This is operating system dependent. Works on linux and NuttX
 	DIR *shm_dir = opendir(CONFIG_FS_SHMFS_VFS_PATH);
+
+	if (shm_dir == nullptr) {
+		return;
+	}
+
 	struct dirent *next_file;
 
 	// Delete all uorb shm allocations
 	while ((next_file = readdir(shm_dir)) != nullptr) {
-		// build the path for each file in the folder
-		if (!strncmp(next_file->d_name, "orb_", 4) ||
-		    !strncmp(next_file->d_name, "_orb_", 5)) {
+		if (uORB::Utils::is_uorb_node_path(next_file->d_name, namespace_prefix)
+		    || strcmp(next_file->d_name, uorb_manager_name) == 0) {
 			shm_unlink(next_file->d_name);
 		}
 	}
 
 	closedir(shm_dir);
-
-	// Delete manager shm allocations
-	shm_unlink(uORBManagerName);
 #endif
 }
 
-bool uORB::Manager::initialize()
+bool uORB::Manager::initialize(const char *namespace_prefix)
 {
+	strncpy(_namespace_prefix, namespace_prefix, sizeof(_namespace_prefix) - 1);
+	_namespace_prefix[sizeof(_namespace_prefix) - 1] = '\0';
+
 	if (instance_ref() == nullptr) {
 #if defined(POSIX_SHM_DISABLED)
 		instance_ref() = new uORB::Manager();
 
 #else
 		// Cleanup from previous execution, in case some shm files are left
-		cleanup();
+		cleanup(namespace_prefix);
+
+		char uorb_manager_name[orb_maxpath] {};
+
+		if (uORB::Utils::manager_mkpath(uorb_manager_name, namespace_prefix) != OK) {
+			return false;
+		}
 
 		// Create a shared memory segment for uORB Manager and initialize a new manager into it
-		int shm_fd = shm_open(uORBManagerName, O_CREAT | O_RDWR, 0666);
+		int shm_fd = shm_open(uorb_manager_name, O_CREAT | O_RDWR, 0666);
 
 		if (shm_fd >= 0) {
 			// If the creation succeeded, set the size
@@ -170,8 +185,14 @@ void uORB::Manager::map_instance()
 #else
 
 	if (instance_ref() == nullptr) {
+		char uorb_manager_name[orb_maxpath] {};
+
+		if (uORB::Utils::manager_mkpath(uorb_manager_name, namespace_prefix()) != OK) {
+			return;
+		}
+
 		// Open the existing manager
-		int shm_fd = shm_open(uORBManagerName, O_RDWR, 0666);
+		int shm_fd = shm_open(uorb_manager_name, O_RDWR, 0666);
 
 		if (shm_fd >= 0) {
 			// mmap the shared memory region
@@ -196,7 +217,7 @@ bool uORB::Manager::terminate()
 	// unlink the SHM, and all the mappings are dropped when the
 	// processes exit
 
-	cleanup();
+	cleanup(namespace_prefix());
 
 	return true;
 }

@@ -120,6 +120,7 @@ __BEGIN_DECLS
 
 int uorb_start(void);
 void uorb_shutdown(void);
+void uorb_set_namespace(const char *namespace_prefix);
 
 /**
  * ORB topic advertiser handle.
