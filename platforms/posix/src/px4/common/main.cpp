@@ -261,6 +261,11 @@ int main(int argc, char **argv)
 			PX4_INFO("instance: %i", instance);
 		}
 
+		if (instance_provided) {
+			const std::string instance_namespace = std::to_string(instance);
+			uorb_set_namespace(instance_namespace.c_str());
+		}
+
 #if defined(PX4_INSTALL_PREFIX)
 
 		// When installed as a .deb package, default to the baked-in install prefix.
