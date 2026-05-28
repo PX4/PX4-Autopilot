@@ -46,17 +46,42 @@ namespace {
 
 constexpr int BAUDRATE = 921600;
 
-// acceleration due to gravity in m/s^2 used in IL INS
-constexpr float GRAVITY_MSS = 9.8106f;
+constexpr float GRAVITY_MSS = 9.8106f;  // acceleration due to gravity in m/s^2 used in IL INS
 
-bool isMessageHeaderCorrect(const InertialLabs::MessageHeader *header) {
+/*
+	Every data message consist of:
+		MessageHeader (6 bytes)
+		Payload
+		Checksum (2 bytes)
+
+	Whole data message size = MessageHeader->msgLen + magicNumber (2 bytes)
+
+	User Defined Data payload consist of:
+		Number of data structures
+		List of data structures ID
+		List of data structures Values
+
+*/
+struct PACKED MessageHeader {
+	uint16_t magicNumber;    // 0x55AA
+	uint8_t  msgType;        // always 1 for INS data
+	uint8_t  msgId;          // always 0x95
+	uint16_t msgLen;         // payload + 6(msgType + msgId + msgLen + checksum). Not included magicNumber
+};
+
+constexpr uint16_t MAGIC_NUMBER = 0x55AA;
+constexpr uint16_t MAGIC_NUMBER_LEN = sizeof(MAGIC_NUMBER);
+constexpr uint16_t MESSAGE_HEADER_LEN = sizeof(MessageHeader);
+constexpr uint16_t MESSAGE_CHECKSUM_LEN = sizeof(uint16_t);
+
+bool isMessageHeaderValid(const MessageHeader *header) {
 	if (!header) {
 		PX4_ERR("Invalid header pointer");
 		return false;
 	}
 
-	return header->packageHeader == 0x55AA && header->msgType == 1 && header->msgId == 0x95 &&
-		(header->msgLen + 2) <= InertialLabs::BUFFER_SIZE;  //< 2 is size of PackageHeader, that not included in msgLen
+	return header->magicNumber == MAGIC_NUMBER && header->msgType == 1 && header->msgId == 0x95 &&
+		(header->msgLen + MAGIC_NUMBER_LEN) <= InertialLabs::BUFFER_SIZE;
 }
 
 // sums the bytes in the supplied buffer, returns that sum mod 0xFFFF
@@ -68,7 +93,7 @@ uint16_t checksum(const uint8_t *data, uint16_t len) {
 	return sum;
 }
 
-uint16_t readPackageChecksum(const uint8_t *checksumByte) {
+uint16_t readMessageChecksum(const uint8_t *checksumByte) {
 	return (checksumByte[1] << 8) | checksumByte[0];
 }
 
@@ -81,8 +106,18 @@ matrix::Vector3f rfuToFrd(const matrix::Vector3f &vector3f) {
 
 namespace InertialLabs {
 
+Sensor::Sensor()
+	: _checksum_fail_perf(perf_alloc(PC_COUNT, MODULE_NAME ": Checksum fails")),
+	  _udd_parse_fail_perf(perf_alloc(PC_COUNT, MODULE_NAME ": UDD parse fails")),
+	  _handle_time_perf(perf_alloc(PC_INTERVAL, MODULE_NAME ": Handle time")) {
+}
+
 Sensor::~Sensor() {
 	deinit();
+
+	perf_free(_checksum_fail_perf);
+	perf_free(_udd_parse_fail_perf);
+	perf_free(_handle_time_perf);
 }
 
 bool Sensor::init(const char *serialDeviceName, void *context, DataHandler dataHandler) {
@@ -152,7 +187,7 @@ bool Sensor::isInitialized() const {
 
 void Sensor::updateData() {
 	while (_processInThread.load()) {
-		bool result = moveValidPackageToBufferStart();
+		bool result = moveValidMessageToBufferStart();
 		if (!result) {
 			continue;
 		}
@@ -166,8 +201,16 @@ void Sensor::updateData() {
 			_dataHandler(_context, &_sensorData);
 		}
 
-		skipPackageInBufferStart();
+		skipMessageInBufferStart();
+		perf_count(_handle_time_perf);
 	}
+}
+
+void Sensor::printStatus()
+{
+	perf_print_counter(_checksum_fail_perf);
+	perf_print_counter(_udd_parse_fail_perf);
+	perf_print_counter(_handle_time_perf);
 }
 
 bool Sensor::initSerialPort(const char *serialDeviceName) {
@@ -220,40 +263,39 @@ bool Sensor::moveToBufferStart(const uint8_t *pos) {
 	return true;
 }
 
-bool Sensor::skipPackageInBufferStart() {
-	const MessageHeader *packageHeader = reinterpret_cast<MessageHeader *>(_buf);
-	if (!isMessageHeaderCorrect(packageHeader)) {
-		PX4_ERR("Incorrect message header in buffer start. Can't skip the package correctly");
+bool Sensor::skipMessageInBufferStart() {
+	const MessageHeader *messageHeader = reinterpret_cast<MessageHeader *>(_buf);
+	if (!isMessageHeaderValid(messageHeader)) {
+		PX4_ERR("Incorrect message header in buffer start. Can't skip the message correctly");
 		return false;
 	}
 
-	const uint8_t *endPackagePos = &_buf[packageHeader->msgLen + 2];
+	const uint8_t *endMessagePos = &_buf[messageHeader->msgLen + MAGIC_NUMBER_LEN];
 
-	return moveToBufferStart(endPackagePos);
+	return moveToBufferStart(endMessagePos);
 }
 
-bool Sensor::movePackageHeaderToBufferStart() {
-	if (_bufOffset < 3) {
-		PX4_WARN("Buffer offset is too small for the package");
+bool Sensor::moveMessageHeaderToBufferStart() {
+	if (_bufOffset <= MAGIC_NUMBER_LEN) {
+		PX4_WARN("Buffer offset is too small for the message");
 		_bufOffset = 0;
 		return false;
 	}
 
-	const uint16_t packageHeader   = 0x55AA;
-	const uint8_t *startPackagePos = (const uint8_t *)memmem(&_buf[1],
-								 _bufOffset - sizeof(packageHeader),
-			 					 &packageHeader,
-								 sizeof(packageHeader));
-	if (!startPackagePos) {
-		PX4_WARN("Can't find the package start in the buffer");
+	const uint8_t *startMessagePos = (const uint8_t *)memmem(&_buf[1],
+								 _bufOffset - MAGIC_NUMBER_LEN,
+			 					 &MAGIC_NUMBER,
+								 MAGIC_NUMBER_LEN);
+	if (!startMessagePos) {
+		PX4_WARN("Can't find the message start in the buffer");
 		_bufOffset = 0;
 		return false;
 	}
 
-	return moveToBufferStart(startPackagePos);
+	return moveToBufferStart(startMessagePos);
 }
 
-bool Sensor::moveValidPackageToBufferStart() {
+bool Sensor::moveValidMessageToBufferStart() {
 	const uint16_t freeBufByteCount = BUFFER_SIZE - _bufOffset;
 	if (freeBufByteCount < sizeof(MessageHeader)) {
 		_bufOffset = 0;
@@ -277,14 +319,14 @@ bool Sensor::moveValidPackageToBufferStart() {
 		return false;
 	}
 
-	const MessageHeader *packageHeader = reinterpret_cast<MessageHeader *>(_buf);
-	if (!isMessageHeaderCorrect(packageHeader)) {
+	const MessageHeader *messageHeader = reinterpret_cast<MessageHeader *>(_buf);
+	if (!isMessageHeaderValid(messageHeader)) {
 		PX4_DEBUG("Message header in the buffer start is incorrect");
-		movePackageHeaderToBufferStart();
+		moveMessageHeaderToBufferStart();
 		return false;
 	}
 
-	const uint16_t fullMessageLength = packageHeader->msgLen + 2;
+	const uint16_t fullMessageLength = messageHeader->msgLen + MAGIC_NUMBER_LEN;
 	if (fullMessageLength > _bufOffset) {
 		_bufOffset = 0;
 		PX4_ERR(
@@ -294,12 +336,13 @@ bool Sensor::moveValidPackageToBufferStart() {
 	}
 
 	// Check checksum
-	const uint16_t calculatedChecksum = checksum(&_buf[2], packageHeader->msgLen - 2);
-	const uint16_t readChecksum       = readPackageChecksum(&_buf[fullMessageLength - 2]);
+	const uint16_t calculatedChecksum = checksum(&_buf[2], messageHeader->msgLen - MESSAGE_CHECKSUM_LEN);
+	const uint16_t readChecksum       = readMessageChecksum(&_buf[messageHeader->msgLen]);
 	if (calculatedChecksum != readChecksum) {
-		PX4_ERR("Invalid package checksum. Calculated checksum: %d. Read checksum: %d", calculatedChecksum,
+		PX4_ERR("Invalid message checksum. Calculated checksum: %d. Read checksum: %d", calculatedChecksum,
 				readChecksum);
 		moveToBufferStart(&_buf[fullMessageLength]);
+		perf_count(_checksum_fail_perf);
 		return false;
 	}
 
@@ -307,20 +350,22 @@ bool Sensor::moveValidPackageToBufferStart() {
 }
 
 bool Sensor::parseUDDPayload() {
-	const MessageHeader *packageHeader = reinterpret_cast<MessageHeader *>(_buf);
+	const MessageHeader *messageHeader = reinterpret_cast<MessageHeader *>(_buf);
 
-	if (!isMessageHeaderCorrect(packageHeader)) {
-		PX4_ERR("Package header in buffer start is incorrect");
+	if (!isMessageHeaderValid(messageHeader)) {
+		PX4_ERR("Message header in buffer start is incorrect");
+		perf_count(_udd_parse_fail_perf);
 		return false;
 	}
 
-	const uint16_t payloadSize = packageHeader->msgLen - 6;
-	const uint8_t *payload     = &_buf[6];
+	const uint16_t payloadSize = messageHeader->msgLen - MESSAGE_HEADER_LEN;
+	const uint8_t *payload     = &_buf[MESSAGE_HEADER_LEN];
 
 	const uint8_t messageCount = payload[0];
 	if (messageCount == 0 || messageCount > payloadSize - 1) {
-		PX4_ERR("Invalid data package. Number of messages or messages data are incorrect");
-		movePackageHeaderToBufferStart();
+		PX4_ERR("Invalid data message. Number of messages or messages data are incorrect");
+		moveMessageHeaderToBufferStart();
+		perf_count(_udd_parse_fail_perf);
 		return false;
 	}
 	// 1 byle for message count + byte list of messages types
@@ -568,10 +613,11 @@ bool Sensor::parseUDDPayload() {
 				break;
 			}
 			default: {
-				PX4_ERR("Unknown message type: %d. Further package parsing result will be incorrect",
+				PX4_ERR("Unknown message type: %d. Further message parsing result will be incorrect",
 				        messageType);
 				messageLength = 0;
-				break;
+				perf_count(_udd_parse_fail_perf);
+				return false;
 			}
 		}
 
