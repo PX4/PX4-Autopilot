@@ -509,16 +509,12 @@ Source: [drivers/power_monitor/ina226](https://github.com/PX4/PX4-Autopilot/tree
 
 ### Опис
 
-Driver for the INA226 power monitor.
+Driver for the Texas Instruments INA226 power monitor.
 
-Multiple instances of this driver can run simultaneously, if each instance has a separate bus OR I2C address.
+Multiple instances can run simultaneously on separate buses or different I2C addresses.
 
-For example, one instance can run on Bus 2, address 0x41, and one can run on Bus 2, address 0x43.
-
-If the INA226 module is not powered, then by default, initialization of the driver will fail. To change this, use
-the -f flag. If this flag is set, then if initialization fails, the driver will keep trying to initialize again
-every 0.5 seconds. With this flag set, you can plug in a battery after the driver starts, and it will work. Without
-this flag set, the battery must be plugged in before starting the driver.
+If the device is not powered at startup, pass `-k` (keep_running) and the driver
+will retry initialization every 500 ms so the battery can be plugged in later.
 
 ### Usage {#ina226_usage}
 
@@ -535,7 +531,7 @@ ina226 <command> [arguments...]
      [-a <val>]  I2C address
                  default: 65
      [-k]        if initialization (probing) fails, keep retrying periodically
-     [-t <val>]  battery index for calibration values (1 or 3)
+     [-t <val>]  battery index for calibration values (1-3)
                  default: 1
 
    stop
@@ -589,16 +585,12 @@ Source: [drivers/power_monitor/ina238](https://github.com/PX4/PX4-Autopilot/tree
 
 ### Опис
 
-Driver for the INA238 power monitor.
+Driver for the Texas Instruments INA237 / INA238 power monitor.
 
-Multiple instances of this driver can run simultaneously, if each instance has a separate bus OR I2C address.
+Multiple instances can run simultaneously on separate buses or different I2C addresses.
 
-For example, one instance can run on Bus 2, address 0x45, and one can run on Bus 2, address 0x45.
-
-If the INA238 module is not powered, then by default, initialization of the driver will fail. To change this, use
-the -f flag. If this flag is set, then if initialization fails, the driver will keep trying to initialize again
-every 0.5 seconds. With this flag set, you can plug in a battery after the driver starts, and it will work. Without
-this flag set, the battery must be plugged in before starting the driver.
+If the device is not powered at startup, pass `-k` (keep_running) and the driver
+will retry initialization every 500 ms so the battery can be plugged in later.
 
 ### Usage {#ina238_usage}
 
@@ -615,7 +607,7 @@ ina238 <command> [arguments...]
      [-a <val>]  I2C address
                  default: 69
      [-k]        if initialization (probing) fails, keep retrying periodically
-     [-t <val>]  battery index for calibration values (1 or 3)
+     [-t <val>]  battery index for calibration values (1-3)
                  default: 1
 
    stop

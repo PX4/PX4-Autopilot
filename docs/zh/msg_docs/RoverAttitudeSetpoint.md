@@ -10,10 +10,10 @@ Rover Attitude Setpoint.
 
 ## Fields
 
-| 参数名                               | 类型        | Unit [Frame] | Range/Enum                                                                       | 描述                      |
-| --------------------------------- | --------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------- | ----------------------- |
-| timestamp                         | `uint64`  | us                                                               |                                                                                  | Time since system start |
-| yaw_setpoint | `float32` | rad [NED]    | [-inf : inf] | Yaw setpoint            |
+| 参数名                                                            | 类型        | Unit [Frame] | Range/Enum                                                                       | 描述                      |
+| -------------------------------------------------------------- | --------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------- | ----------------------- |
+| <a id="fld_timestamp"></a>timestamp                            | `uint64`  | us                                                               |                                                                                  | Time since system start |
+| <a id="fld_yaw_setpoint"></a>yaw_setpoint | `float32` | rad [NED]    | [-inf : inf] | Yaw setpoint            |
 
 ## Source Message
 

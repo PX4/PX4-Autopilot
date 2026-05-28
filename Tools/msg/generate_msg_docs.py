@@ -1022,9 +1022,9 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
     fragment_lines.append('      - [Versioned](msg_docs/versioned_messages.md)')
     for name in versioned_names:
         fragment_lines.append(f'        - [{name}](msg_docs/{name}.md)')
-    fragment_lines.append('        - [Historical](msg_docs/versioned_historical_messages.md)')
+    fragment_lines.append('        - [Historic (old) Versions](msg_docs/versioned_old_messages.md)')
     for name in historic_names:
-        fragment_lines.append(f'          - [{name}]({name}.md)')
+        fragment_lines.append(f'          - [{name}](msg_docs/{name}.md)')
     fragment_lines.append('      - [Unversioned Messages](msg_docs/unversioned_messages.md)')
     for name in unversioned_names:
         fragment_lines.append(f'        - [{name}](msg_docs/{name}.md)')

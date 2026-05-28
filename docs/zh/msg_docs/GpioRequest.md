@@ -10,10 +10,10 @@ Request GPIO mask to be read.
 
 ## Fields
 
-| 参数名                            | 类型       | Unit [Frame] | Range/Enum | 描述                                                        |
-| ------------------------------ | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| timestamp                      | `uint64` |                                                                  |            | time since system start (microseconds) |
-| device_id | `uint32` |                                                                  |            | Device id                                                 |
+| 参数名                                                      | 类型       | Unit [Frame] | Range/Enum | 描述                                                        |
+| -------------------------------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                      | `uint64` |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_device_id"></a>device_id | `uint32` |                                                                  |            | Device id                                                 |
 
 ## Source Message
 

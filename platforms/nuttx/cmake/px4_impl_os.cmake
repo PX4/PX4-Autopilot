@@ -214,6 +214,12 @@ function(px4_os_prebuild_targets)
 
 	if(EXISTS ${PX4_BOARD_DIR}/nuttx-config/${PX4_BOARD_LABEL})
 		set(NUTTX_CONFIG "${PX4_BOARD_LABEL}" CACHE INTERNAL "NuttX config" FORCE)
+	elseif("${PX4_BOARD_LABEL}" MATCHES "^bootloader" AND EXISTS ${PX4_BOARD_DIR}/nuttx-config/bootloader)
+		# Bootloader variants (e.g. bootloader_secureboot) share the
+		# minimal "bootloader" NuttX config; falling back to "nsh"
+		# would silently pull in the full app-style NuttX subsystem
+		# (full heap, fs, net) and overflow the bootloader sector.
+		set(NUTTX_CONFIG "bootloader" CACHE INTERNAL "NuttX config" FORCE)
 	else()
 		set(NUTTX_CONFIG "nsh" CACHE INTERNAL "NuttX config" FORCE)
 	endif()
