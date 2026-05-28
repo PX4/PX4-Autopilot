@@ -364,7 +364,9 @@ bool FailsafeBase::checkFailsafe(int caller_id, bool last_state_failure, bool cu
 					}
 				}
 
-				_pending_notification_cause = options.cause;
+				if (options.action != Action::None) { // If not disabled
+					_pending_notification_cause = options.cause;
+				}
 
 				if (options.action >= Action::Hold) { // If not a Fallback
 					_user_takeover_active = false; // Clear takeover
