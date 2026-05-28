@@ -222,8 +222,9 @@ void InternalCombustionEngineControl::Run()
 				_sub_state = SubState::Run;
 			}
 
-			if (_sub_state == SubState::Idle){
+			if (_sub_state == SubState::Idle) {
 				controlEngineIdle();
+
 			} else {
 				controlEngineRunning(throttle_in);
 			}
@@ -232,6 +233,7 @@ void InternalCombustionEngineControl::Run()
 				_state = State::Stopped;
 				_starting_retry_cycle = 0;
 				PX4_INFO("ICE: Stopped");
+
 			} else if (!_is_engine_running && _param_ice_running_fault_detection.get()) {
 				// without RPM feedback we assume the engine is running after the
 				// starting procedure but only switch state if fault detection is enabled
@@ -241,7 +243,14 @@ void InternalCombustionEngineControl::Run()
 				PX4_WARN("ICE: Running Fault detected");
 				events::send(events::ID("internal_combustion_engine_running_fault"), events::Log::Critical,
 					     "IC engine fault detected");
+
+			} else if (_is_engine_stalling && !_was_engine_stalling) {
+				PX4_WARN("ICE: Engine stalling detected");
+				events::send(events::ID("internal_combustion_engine_stall_warn"), events::Log::Warning,
+					     "IC engine stalling detected");
 			}
+
+			_was_engine_stalling = _is_engine_stalling;
 		}
 
 		break;
@@ -303,6 +312,10 @@ void InternalCombustionEngineControl::rpmSubUpdate(const hrt_abstime now)
 		const float dt = math::min((now - _rpm_timestamp) * 1e-6f, 1.f);
 		_rpm_timestamp = rpm.timestamp;
 		_rpm = rpm.rpm_estimate;
+
+		_is_engine_stalling =
+			(_param_ice_stall_wrn.get() > FLT_EPSILON &&
+			 (now < _rpm_timestamp + 2_s) && _rpm < _param_ice_stall_wrn.get());
 
 		_is_engine_running =
 			(_param_ice_min_run_rpm.get() > FLT_EPSILON &&
