@@ -1,56 +1,67 @@
 #!/bin/sh
-# Rewrite the container's apt sources to prefer the AWS regional Ubuntu
-# mirror that is local to the runs-on instance, while keeping the canonical
-# archive.ubuntu.com as a fallback.
+# Switch the container's apt sources to the AWS regional Ubuntu mirror that is
+# local to the runs-on instance (default), or restore the canonical archive
+# sources that were saved on the way in (--restore).
 #
-# The regional EC2 mirrors are fast and sync aggressively, but can briefly
-# serve a stale package index that references a .deb version no longer on the
-# mirror (e.g. mid-security-update), causing 404s.  Retaining the canonical
-# archive as a fallback URI lets apt recover automatically.
+# Why EC2-only on the happy path: the default archive.ubuntu.com round-robin
+# sometimes serves out-of-sync index files mid-sync, breaking apt-get update
+# with errors like:
+#   File has unexpected size (25378 != 25381). Mirror sync in progress?
+# The Canonical-operated EC2 mirrors are region-local and sync aggressively,
+# eliminating that failure mode.
 #
-# deb822 format (Noble/24.04+): supports space-separated fallback URIs on a
-# single URIs: line — apt tries them in order.
-# Legacy sources.list format (Jammy/22.04): no fallback URI support; we
-# prepend a parallel deb line so both mirrors are consulted.
+# The EC2 mirror can, however, briefly lag in the .deb pool during a package
+# rollout: a freshly-synced index references a .deb not yet replicated to the
+# pool, giving a 404 at install time. Listing both mirrors at once would fix
+# that but re-expose apt-get update to the cross-mirror index skew above. So
+# instead the CI step installs against EC2 and, only if that fails, calls this
+# script with --restore to fall back to the canonical archive and retries --
+# by which point the mirror has usually converged.
 #
 # This script is a no-op outside runs-on, so it is safe to call from any CI
 # job (forks, self-hosted runners, local docker runs, etc.) without changing
 # behavior there.
 #
 # Usage (from a workflow step running inside the container):
-#   ./Tools/ci/use_aws_apt_mirror.sh
+#   ./Tools/ci/use_aws_apt_mirror.sh            # switch to EC2 mirror
+#   ./Tools/ci/use_aws_apt_mirror.sh --restore  # restore canonical archive
 
 set -e
+
+DEB822=/etc/apt/sources.list.d/ubuntu.sources
+LEGACY=/etc/apt/sources.list
 
 if [ -z "$RUNS_ON_AWS_REGION" ]; then
     echo "use_aws_apt_mirror: not running on runs-on (RUNS_ON_AWS_REGION unset), skipping"
     exit 0
 fi
 
-MIRROR="http://${RUNS_ON_AWS_REGION}.ec2.archive.ubuntu.com/ubuntu"
-echo "use_aws_apt_mirror: preferring ${MIRROR} with canonical archive as fallback"
-
-# Noble (24.04+) uses the deb822 format at /etc/apt/sources.list.d/ubuntu.sources.
-# Space-separated URIs are tried in order; the canonical archive is kept as fallback.
-if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then
-    sed -i \
-        -e "s|URIs: http://archive.ubuntu.com/ubuntu|URIs: ${MIRROR} http://archive.ubuntu.com/ubuntu|g" \
-        -e "s|URIs: http://security.ubuntu.com/ubuntu|URIs: ${MIRROR} http://security.ubuntu.com/ubuntu|g" \
-        /etc/apt/sources.list.d/ubuntu.sources
+if [ "$1" = "--restore" ]; then
+    echo "use_aws_apt_mirror: restoring canonical archive sources"
+    [ -f "${DEB822}.canonical" ] && cp "${DEB822}.canonical" "$DEB822"
+    [ -f "${LEGACY}.canonical" ] && cp "${LEGACY}.canonical" "$LEGACY"
+    exit 0
 fi
 
-# Jammy (22.04) and earlier use the legacy /etc/apt/sources.list.
-# The legacy format has no fallback URI syntax, so prepend EC2 mirror deb
-# lines before the original entries.  apt prefers sources listed earlier,
-# so EC2 is tried first; the canonical archive acts as fallback for 404s.
-if [ -f /etc/apt/sources.list ]; then
-    EC2_LINES=$(sed \
+MIRROR="http://${RUNS_ON_AWS_REGION}.ec2.archive.ubuntu.com/ubuntu"
+echo "use_aws_apt_mirror: rewriting apt sources to ${MIRROR}"
+
+# Noble (24.04+) uses the deb822 format at /etc/apt/sources.list.d/ubuntu.sources
+if [ -f "$DEB822" ]; then
+    cp "$DEB822" "${DEB822}.canonical"
+    sed -i \
         -e "s|http://archive.ubuntu.com/ubuntu|${MIRROR}|g" \
         -e "s|http://security.ubuntu.com/ubuntu|${MIRROR}|g" \
-        /etc/apt/sources.list)
-    ORIG_LINES=$(cat /etc/apt/sources.list)
-    printf '%s\n\n# canonical archive (fallback)\n%s\n' \
-        "$EC2_LINES" "$ORIG_LINES" > /etc/apt/sources.list
+        "$DEB822"
+fi
+
+# Jammy (22.04) and earlier use the legacy /etc/apt/sources.list
+if [ -f "$LEGACY" ]; then
+    cp "$LEGACY" "${LEGACY}.canonical"
+    sed -i \
+        -e "s|http://archive.ubuntu.com/ubuntu|${MIRROR}|g" \
+        -e "s|http://security.ubuntu.com/ubuntu|${MIRROR}|g" \
+        "$LEGACY"
 fi
 
 # Add standard Ubuntu mirrors as fallback entries so apt can still resolve

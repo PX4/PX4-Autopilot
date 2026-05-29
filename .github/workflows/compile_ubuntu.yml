@@ -52,7 +52,15 @@ jobs:
         run: ./Tools/ci/use_aws_apt_mirror.sh
 
       - name: Install Deps
-        run: ./Tools/setup/ubuntu.sh
+        run: |
+          # Install against the EC2 mirror; if it fails (e.g. a transient pool-lag
+          # 404 during a package rollout), fall back to the canonical archive and
+          # retry once -- the mirror has usually converged by then.
+          if ! ./Tools/setup/ubuntu.sh; then
+            echo "::warning::apt install failed on EC2 mirror, falling back to canonical archive"
+            ./Tools/ci/use_aws_apt_mirror.sh --restore
+            ./Tools/setup/ubuntu.sh
+          fi
 
       - uses: ./.github/actions/setup-ccache
         id: ccache
