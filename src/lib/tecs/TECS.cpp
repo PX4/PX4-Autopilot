@@ -388,12 +388,10 @@ TECSControl::SpecificEnergyWeighting TECSControl::_updateSpeedAltitudeWeights(co
 	float pitch_speed_weight = constrain(param.pitch_speed_weight, 0.0f, 2.0f);
 
 	// Underspeed or fast descend: interpolate speed weight from nominal
-	// towards max. We take the maximum of the three - this keeps the speed
+	// towards max. We take the maximum of the two - this keeps the speed
 	// weight continuous, even when underspeed and fast descend are combined
 	const float max_ratio = fmaxf(_ratio_undersped, param.fast_descend);
-	const float max_speedweight = max_ratio * 2.0f + (1.0f - max_ratio) * pitch_speed_weight;
-
-	pitch_speed_weight = fmaxf(pitch_speed_weight, max_speedweight);
+	pitch_speed_weight = max_ratio * 2.0f + (1.0f - max_ratio) * pitch_speed_weight;
 
 	if (!flag.airspeed_enabled) { pitch_speed_weight = 0.0f; }
 
