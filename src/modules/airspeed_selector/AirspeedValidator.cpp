@@ -284,38 +284,43 @@ void
 AirspeedValidator::check_first_principle(const uint64_t timestamp, const float throttle_fw, const float throttle_trim,
 		const uint64_t tecs_timestamp, const Quatf &att_q)
 {
-	if (! _first_principle_check_enabled) {
+	const float pitch = matrix::Eulerf(att_q).theta();
+	const hrt_abstime tecs_dt = timestamp - tecs_timestamp; // TECS data is old (TECS not running) if this is large
+
+	const bool inputs_valid = _in_fixed_wing_flight && tecs_dt <= 500_ms && PX4_ISFINITE(_IAS)
+				  && PX4_ISFINITE(throttle_fw) && PX4_ISFINITE(throttle_trim) && PX4_ISFINITE(pitch);
+
+	if (inputs_valid) {
+		const float dt = static_cast<float>(timestamp - _time_last_first_principle_check) * 1e-6f;
+		_time_last_first_principle_check = timestamp;
+
+		// Update the filters whenever inputs are valid, independent of whether the first principle check
+		// is enabled, so that the airspeed derivative is always available in the airspeed_validated topic.
+		if (dt < FLT_EPSILON || dt > 1.f) {
+			// reset if dt is too large
+			_IAS_derivative.reset(0.f);
+			_pitch_filtered.reset(pitch);
+			_time_last_first_principle_check_passing = timestamp;
+
+		} else {
+			// update filters, with different time constant
+			_IAS_derivative.setParameters(dt, 5.f);
+			_pitch_filtered.setParameters(dt, 1.5f);
+
+			_IAS_derivative.update(_IAS);
+			_pitch_filtered.update(pitch);
+		}
+	}
+
+	if (!_first_principle_check_enabled) {
 		_first_principle_check_failed = false;
 		_time_last_first_principle_check_passing = timestamp;
 		return;
 	}
 
-	const float pitch = matrix::Eulerf(att_q).theta();
-	const hrt_abstime tecs_dt = timestamp - tecs_timestamp; // return if TECS data is old (TECS not running)
-
-	if (!_in_fixed_wing_flight || tecs_dt > 500_ms || !PX4_ISFINITE(_IAS) || !PX4_ISFINITE(throttle_fw)
-	    || !PX4_ISFINITE(throttle_trim) || !PX4_ISFINITE(pitch)) {
-		// do not do anything in that case
+	if (!inputs_valid) {
+		// do not run the check without valid inputs
 		return;
-	}
-
-	const float dt = static_cast<float>(timestamp - _time_last_first_principle_check) * 1e-6f;
-	_time_last_first_principle_check = timestamp;
-
-	// update filters
-	if (dt < FLT_EPSILON || dt > 1.f) {
-		// reset if dt is too large
-		_IAS_derivative.reset(0.f);
-		_pitch_filtered.reset(pitch);
-		_time_last_first_principle_check_passing = timestamp;
-
-	} else {
-		// update filters, with different time constant
-		_IAS_derivative.setParameters(dt, 5.f);
-		_pitch_filtered.setParameters(dt, 1.5f);
-
-		_IAS_derivative.update(_IAS);
-		_pitch_filtered.update(pitch);
 	}
 
 	// declare high throttle if more than 5% above trim
