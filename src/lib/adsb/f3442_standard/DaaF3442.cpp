@@ -63,8 +63,8 @@ bool DaaF3442::try_setting_params()
 	const bool latencies_ok = nmac_latency >= 0 && wc_latency >= 0;
 
 	if (!(nmac_ok && wc_ok && ordering_ok && latencies_ok)) {
-		PX4_ERR("F34 param n%d w%d o%d t%d",
-			nmac_ok, wc_ok, ordering_ok, latencies_ok);
+		// Zones must be finite, non-negative and nested (NMAC inside Well-Clear).
+		PX4_ERR("DAA: invalid F3442 parameters");
 		return false;
 	}
 
@@ -79,12 +79,12 @@ bool DaaF3442::try_setting_params()
 bool DaaF3442::is_in_bounds(const matrix::Vector2f &distance, const matrix::Vector2f &bounds)
 {
 	if (!bounds.isAllFinite() || bounds.min() < 0.f) {
-		PX4_ERR("F34 bounds nan/neg");
+		PX4_DEBUG("F34 bounds nan/neg");
 		return false;
 	}
 
 	if (!distance.isAllFinite() || distance.min() < 0.f) {
-		PX4_ERR("F34 dist nan/neg");
+		PX4_DEBUG("F34 dist nan/neg");
 		return false;
 	}
 

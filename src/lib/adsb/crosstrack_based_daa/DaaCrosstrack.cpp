@@ -59,8 +59,7 @@ bool DaaCrosstrack::try_setting_params()
 	const bool collision_time_ok = collision_time >= 0;
 
 	if (!(crosstrack_ok && vertical_ok && collision_time_ok)) {
-		PX4_ERR("CRT: invalid param (xtrack=%d vert=%d time=%d)",
-			crosstrack_ok, vertical_ok, collision_time_ok);
+		PX4_ERR("DAA: invalid crosstrack parameters");
 		return false;
 	}
 

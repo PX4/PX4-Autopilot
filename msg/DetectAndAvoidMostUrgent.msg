@@ -22,4 +22,4 @@ uint8 unique_id_encoding # [-] Namespace used to decode `unique_id`
 
 bool has_action # [-] True if the configured DAA response for this most urgent conflict is stronger than Warn only
 uint8 conflict_level # [-] Conflict level of the current most urgent active conflict
-float32 aircraft_dist # [m] Approximate 3D range to the most urgent traffic aircraft
+float32 aircraft_dist # [m] Approximate 3D range to the most urgent traffic aircraft (9999 when empty)

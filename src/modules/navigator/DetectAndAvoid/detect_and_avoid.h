@@ -78,7 +78,6 @@ static constexpr uint8_t kUtmGuidMsgLength{11}; // Number of chars used to displ
 static constexpr uint8_t kCallsignLength{9};	// 8 + Null terminated
 static constexpr uint8_t kIcaoLength{7};	// 6 + Null terminated
 static constexpr uint8_t kDaaMaxTraffic{5};
-static constexpr uint64_t kIgnoredTrafficNotifTime{2_s};
 static constexpr uint64_t kRemoveStaleConflictsTime{2_s};
 
 // Internal action priority order used for escalation comparisons.
@@ -111,6 +110,15 @@ enum class IgnoreTrafficCause : uint8_t {
 	kFailedInclusion = 3,
 	kFailedToGetLvl = 4,
 	kInvalidIndex = 5
+};
+
+// Selects the message prefix and severity used when a tracked conflict's level changes.
+// The most-urgent conflict drives DAA actions and is reported with
+// level-based severity; secondary conflicts stay informational.
+enum class ConflictNotifyKind : uint8_t {
+	kMostUrgent = 0,	// already tracked most urgent conflict ("DAA Main:")
+	kMostUrgentNew = 1,	// most urgent conflict that appeared this cycle ("DAA New and Main:")
+	kSecondary = 2		// any other tracked conflict ("DAA SEC:")
 };
 
 struct unique_id_s {
@@ -222,10 +230,9 @@ public:
 
 	void get_most_urgent_conflict(conflict_info_s &conflict) const {conflict = _most_urgent_conflict;};
 
-protected:
+private:
 	px4::Array<conflict_info_s, kDaaMaxTraffic> _traffic_buffer{};
 
-private:
 	using new_conflicts_pending_notif_s = px4::Array<unique_id_s, transponder_report_s::ORB_QUEUE_LENGTH>;
 
 #if defined(CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC)
@@ -312,30 +319,14 @@ private:
 
 	/* Handle conflict level */
 
-	/**
-	 * @brief Return the buffer index that best matches @p comp_func, or -1 if the buffer is empty.
-	 *
-	 * @p comp_func returns true when its first argument is "better" than the second.
-	 */
-	template <typename Compare>
-	int find_conflict_idx_in_buffer(Compare comp_func) const
-	{
-		const int buff_size = static_cast<int>(_traffic_buffer.size());
+	// Selects which extreme of the conflict buffer find_conflict_idx_by_priority() returns.
+	enum class ConflictPriority : uint8_t {
+		kMostUrgent,	// is_conflict_more_important: higher conflict level first, ties broken by the smaller distance
+		kLeastUrgent	// is_conflict_less_important: lower conflict level first, ties broken by the larger distance
+	};
 
-		if (buff_size == 0) {
-			return -1;
-		}
-
-		int bestIndex = 0;
-
-		for (int i = 1; i < buff_size; ++i) {
-			if (comp_func(_traffic_buffer[i], _traffic_buffer[bestIndex])) {
-				bestIndex = i;
-			}
-		}
-
-		return bestIndex;
-	}
+	/** @brief Return the index of the most or least urgent buffer entry, or -1 if the buffer is empty. */
+	int find_conflict_idx_by_priority(const ConflictPriority priority) const;
 
 	static bool is_conflict_more_important(const conflict_info_s &new_conflict, const conflict_info_s &base_conflict);
 	static bool is_conflict_less_important(const conflict_info_s &new_conflict, const conflict_info_s &base_conflict);
@@ -399,6 +390,9 @@ private:
 	 *
 	 * Replaces non-finite UAV velocity components with zero so a partially-valid
 	 * pose still produces a fixed-size F3442 check.
+	 *
+	 * @p transponder_report is considered valid, and must be checked prior to calling this function.
+	 * on_active() checks uav_pose_valid_and_updated() and update_conflict_buffer() checks transponder_data_valid().
 	 */
 	bool analyse_transponder_report(transponder_report_s &transponder_report, detect_and_avoid_s &daa_output);
 
@@ -442,13 +436,16 @@ private:
 	void notify_action_on_ground(const NotifyLandedActCause cause);
 
 	/**
-	 * @brief Periodic status message for the most-urgent conflict.
+	 * @brief Notify the operator about a tracked conflict whose level changed (or a periodic
+	 * update of the most-urgent conflict).
 	 *
-	 * When @p new_and_main is true the severity is taken from the conflict level,
-	 * otherwise it is routed through the generic info channel.
+	 * Handles escalation, de-escalation and the "solved" transition for both the most urgent
+	 * ("main") and secondary conflicts. @p kind selects the message prefix and whether the
+	 * severity follows the conflict level. Secondary conflicts emit nothing when the level is
+	 * unchanged; the most-urgent conflict also emits a periodic status at the unchanged level.
 	 */
-	void notify_daa_status(const conflict_info_s &conflict_info, const uint8_t previous_conflict_level,
-			       bool new_and_main = false);
+	void notify_conflict_level(const conflict_info_s &conflict_info, const uint8_t previous_conflict_level,
+				   const ConflictNotifyKind kind);
 
 	void maybe_notify_ignored_traffic(const conflict_info_s &conflict, const IgnoreTrafficCause cause);
 
@@ -460,9 +457,6 @@ private:
 
 	/** @brief Emit the first notification for a newly added conflict. */
 	void notify_new_conflict(const conflict_info_s &conflict_info);
-
-	/** @brief Emit escalation, de-escalation or "solved" notification for a secondary (non-main) conflict. */
-	void notify_existing_traffic(const conflict_info_s &conflict_info, const uint8_t previous_conflict_level);
 
 	/**
 	 * @brief Send @p message_buffer over MAVLink with a severity derived from @p conflict_level.

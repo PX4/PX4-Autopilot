@@ -257,12 +257,13 @@ bool DetectAndAvoid::try_removing_stale_conflicts()
 
 void DetectAndAvoid::reset_most_urgent_conflict()
 {
+	static constexpr float kNoConflictDistance{9999.f};
 	PX4_DEBUG("DAA: reset most urgent buffer to null.");
 	_most_urgent_conflict.unique_id.encoding = detect_and_avoid_s::UNIQUE_ID_ENCODING_ICAO;
 	_most_urgent_conflict.unique_id.id = 0;
 	_most_urgent_conflict.latest_update_timestamp = 0;
 	_most_urgent_conflict.conflict_level = detect_and_avoid_s::DAA_CONFLICT_LVL_NONE;
-	_most_urgent_conflict.aircraft_dist = 9999;
+	_most_urgent_conflict.aircraft_dist = kNoConflictDistance;
 }
 
 void DetectAndAvoid::update_most_urgent_conflict()
@@ -372,7 +373,7 @@ void DetectAndAvoid::notify_if_needed(const new_conflicts_pending_notif_s &new_c
 
 	// Necessary to avoid a double notification when a new conflict is also the main conflict
 	if (main_conflict_pending_notif) {
-		notify_daa_status(_most_urgent_conflict, _prev_most_urgent_conflict_level, true);
+		notify_conflict_level(_most_urgent_conflict, _prev_most_urgent_conflict_level, ConflictNotifyKind::kMostUrgentNew);
 		_time_last_status_notif = hrt_absolute_time();
 	}
 
@@ -400,7 +401,7 @@ void DetectAndAvoid::notify_if_needed(const new_conflicts_pending_notif_s &new_c
 	if (must_notify(_most_urgent_conflict.conflict_level, _time_last_status_notif,
 			static_cast<hrt_abstime>(_daa_notif_state_s) * 1_s,
 			_prev_most_urgent_conflict_level)) {
-		notify_daa_status(_most_urgent_conflict, _prev_most_urgent_conflict_level);
+		notify_conflict_level(_most_urgent_conflict, _prev_most_urgent_conflict_level, ConflictNotifyKind::kMostUrgent);
 
 		_time_last_status_notif = hrt_absolute_time();
 	}
@@ -512,7 +513,7 @@ bool DetectAndAvoid::update_conflict_buffer(new_conflicts_pending_notif_s &new_c
 
 				if (!find_most_urgent_conflict(current_most_urgent_conflict)
 				    || !same_unique_id(current_most_urgent_conflict.unique_id, current_conflict.unique_id)) {
-					notify_existing_traffic(current_conflict, previous_conflict_level);
+					notify_conflict_level(current_conflict, previous_conflict_level, ConflictNotifyKind::kSecondary);
 				}
 			}
 		}
@@ -795,15 +796,7 @@ void DetectAndAvoid::convert_icao_uint32_to_hex_str(uint64_t value, char *buffer
 bool DetectAndAvoid::analyse_transponder_report(transponder_report_s &transponder_report,
 		detect_and_avoid_s &daa_output)
 {
-	if (!uav_pose_valid_and_updated()) {
-		return false;
-	}
 
-	if (!PX4_ISFINITE(transponder_report.lat) || !PX4_ISFINITE(transponder_report.lon)
-	    || !PX4_ISFINITE(transponder_report.altitude)) {
-		PX4_DEBUG("DAA: Invalid traffic pose");
-		return false;
-	}
 
 	// Process uav pose
 	const matrix::Vector2d uav_lat_lon(_navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
@@ -1044,23 +1037,40 @@ bool DetectAndAvoid::pending_new_conflict_notification_exists(const unique_id_s 
 // Helper function for notifying about ignored traffic if necessary
 void DetectAndAvoid::maybe_notify_ignored_traffic(const conflict_info_s &conflict, const IgnoreTrafficCause cause)
 {
+	static constexpr uint64_t kIgnoredTrafficNotifTime{2_s};
+
 	if (must_notify(conflict.conflict_level, _time_last_traffic_ignored, kIgnoredTrafficNotifTime,
 			conflict.conflict_level)) {
 		notify_traffic_ignored(conflict, cause);
 	}
 }
 
-bool DetectAndAvoid::find_most_urgent_conflict(conflict_info_s &most_urgent_conflict) const
+int DetectAndAvoid::find_conflict_idx_by_priority(const ConflictPriority priority) const
 {
-	if (is_buffer_empty()) {
-		return false;
+	const int buff_size = static_cast<int>(_traffic_buffer.size());
+
+	if (buff_size < 1) {
+		return -1;
 	}
 
-	const auto more_important = [](const conflict_info_s & candidate, const conflict_info_s & best) {
-		return DetectAndAvoid::is_conflict_more_important(candidate, best);
-	};
+	int best_idx = 0;
 
-	const int most_urgent_conflict_idx = find_conflict_idx_in_buffer(more_important);
+	for (int i = 1; i < buff_size; ++i) {
+		const bool is_better = (priority == ConflictPriority::kMostUrgent)
+				       ? is_conflict_more_important(_traffic_buffer[i], _traffic_buffer[best_idx])
+				       : is_conflict_less_important(_traffic_buffer[i], _traffic_buffer[best_idx]);
+
+		if (is_better) {
+			best_idx = i;
+		}
+	}
+
+	return best_idx;
+}
+
+bool DetectAndAvoid::find_most_urgent_conflict(conflict_info_s &most_urgent_conflict) const
+{
+	const int most_urgent_conflict_idx = find_conflict_idx_by_priority(ConflictPriority::kMostUrgent);
 
 	// Validate index bounds
 	if (!is_valid_buffer_idx(most_urgent_conflict_idx)) {
@@ -1075,15 +1085,7 @@ bool DetectAndAvoid::find_most_urgent_conflict(conflict_info_s &most_urgent_conf
 
 bool DetectAndAvoid::get_least_urgent_conflict(conflict_info_s &least_urgent_conflict, int &least_urgent_conflict_idx) const
 {
-	if (is_buffer_empty()) {
-		return false;
-	}
-
-	const auto less_important = [](const conflict_info_s & candidate, const conflict_info_s & best) {
-		return DetectAndAvoid::is_conflict_less_important(candidate, best);
-	};
-
-	least_urgent_conflict_idx = find_conflict_idx_in_buffer(less_important);
+	least_urgent_conflict_idx = find_conflict_idx_by_priority(ConflictPriority::kLeastUrgent);
 
 	// Validate index bounds
 	if (!is_valid_buffer_idx(least_urgent_conflict_idx)) {
