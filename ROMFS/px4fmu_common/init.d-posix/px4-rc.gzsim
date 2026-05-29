@@ -64,8 +64,13 @@ else
 	echo "INFO  [init] Standalone PX4 launch, waiting for Gazebo"
 fi
 
-# Wait for Gazebo world to be ready before proceeding
+# Wait for Gazebo world to be ready before proceeding.
+# In standalone mode the world name is not known yet, so discover it from the running gz instance via the clock topic
 check_scene_info() {
+	if [ -z "${PX4_GZ_WORLD}" ]; then
+		PX4_GZ_WORLD=$( ${gz_command} topic -l 2>/dev/null | grep -m 1 -e "^/world/.*/clock" | sed 's/\/world\///g; s/\/clock//g' )
+		[ -z "${PX4_GZ_WORLD}" ] && return 1
+	fi
 	SERVICE_INFO=$(${gz_command} service -i --service "/world/${PX4_GZ_WORLD}/scene/info" 2>&1)
 	if echo "$SERVICE_INFO" | grep -q "Service providers"; then
 		return 0
@@ -155,30 +160,21 @@ if [ -n "${PX4_SIM_MODEL#*gz_}" ] && [ -z "${PX4_GZ_MODEL_NAME}" ]; then
 	if [ -n "${PX4_SIM_SPEED_FACTOR}" ]; then
 		echo "INFO  [init] Setting simulation speed factor: ${PX4_SIM_SPEED_FACTOR}"
 
-		PHYSICS_MSG=$(timeout 1 ${gz_command} topic -e -t "/world/${PX4_GZ_WORLD}/physics" 2>/dev/null)
-
-		GZ_GRAVITY_X=$(echo "${PHYSICS_MSG}" | awk '/gravity[[:space:]]*\{/{f=1; next} f && /^\}/{exit} f && $1=="x:"{print $2; exit}')
-		GZ_GRAVITY_Y=$(echo "${PHYSICS_MSG}" | awk '/gravity[[:space:]]*\{/{f=1; next} f && /^\}/{exit} f && $1=="y:"{print $2; exit}')
-		GZ_GRAVITY_Z=$(echo "${PHYSICS_MSG}" | awk '/gravity[[:space:]]*\{/{f=1; next} f && /^\}/{exit} f && $1=="z:"{print $2; exit}')
-		MAX_STEP_SIZE=$(echo "${PHYSICS_MSG}" | awk '/^max_step_size:/{print $2; exit}')
-
 		WORLD_SDF="${PX4_GZ_WORLDS}/${PX4_GZ_WORLD}.sdf"
 		if [ -f "${WORLD_SDF}" ]; then
-			if [ -z "${GZ_GRAVITY_X}${GZ_GRAVITY_Y}${GZ_GRAVITY_Z}" ]; then
-				sdf_gravity=$(grep -m1 '<gravity>' "${WORLD_SDF}" 2>/dev/null \
-					| sed -e 's|.*<gravity>||' -e 's|</gravity>.*||')
-				if [ -n "${sdf_gravity}" ]; then
-					GZ_GRAVITY_X=$(echo "${sdf_gravity}" | awk '{print $1}')
-					GZ_GRAVITY_Y=$(echo "${sdf_gravity}" | awk '{print $2}')
-					GZ_GRAVITY_Z=$(echo "${sdf_gravity}" | awk '{print $3}')
-				fi
+			sdf_gravity=$(grep -m1 '<gravity>' "${WORLD_SDF}" 2>/dev/null \
+				| sed -e 's|.*<gravity>||' -e 's|</gravity>.*||')
+			if [ -n "${sdf_gravity}" ]; then
+				GZ_GRAVITY_X=$(echo "${sdf_gravity}" | awk '{print $1}')
+				GZ_GRAVITY_Y=$(echo "${sdf_gravity}" | awk '{print $2}')
+				GZ_GRAVITY_Z=$(echo "${sdf_gravity}" | awk '{print $3}')
 			fi
-			if [ -z "${MAX_STEP_SIZE}" ]; then
-				MAX_STEP_SIZE=$(grep -m1 '<max_step_size>' "${WORLD_SDF}" 2>/dev/null \
-					| sed -e 's|.*<max_step_size>||' -e 's|</max_step_size>.*||')
-			fi
+			MAX_STEP_SIZE=$(grep -m1 '<max_step_size>' "${WORLD_SDF}" 2>/dev/null \
+				| sed -e 's|.*<max_step_size>||' -e 's|</max_step_size>.*||')
 		fi
 
+		# Fall back to defaults
+		# will fail for custom greavity worlds in case the PX4_GZ_WORLDS is unset (standalone launch)
 		GZ_GRAVITY_X=${GZ_GRAVITY_X:-0}
 		GZ_GRAVITY_Y=${GZ_GRAVITY_Y:-0}
 		GZ_GRAVITY_Z=${GZ_GRAVITY_Z:--9.8}
