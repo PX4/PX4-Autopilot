@@ -402,7 +402,11 @@ FwLateralLongitudinalControl::getMaxLateralAccelForLoadFactor() const
 	//     load_factor^2 - 1 = (lat_accel/g)^2
 	//     sqrt(load_factor^2 - 1) = lat_accel/g
 	//     g * sqrt(load_factor^2 - 1) = lat_accel
-	return CONSTANTS_ONE_G * sqrtf(math::max(math::sq(load_factor_max) - 1.0f, 0.0f));
+	const float max_lat_accel = CONSTANTS_ONE_G * sqrtf(math::max(math::sq(load_factor_max) - 1.0f, 0.0f));
+
+	// Avoid constraining roll too much on misconfiguration
+	const float min_lat_accel_limit = 1.729177f; // = g * tan(10 deg), increases load factor by 1.5%
+	return fmaxf(max_lat_accel, min_lat_accel_limit);
 }
 
 
