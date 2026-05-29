@@ -83,9 +83,18 @@ private:
 		vehicle_air_data_s vehicle_air_data;
 		_vehicle_air_data_sub.copy(&vehicle_air_data);
 
+		// UTC seconds since 00:00:00 01/06/1980 (GPS epoch). If unknown set to UINT32_MAX.
+		static uint64_t gps_epoch_offset_us = 315'964'800ULL * 1'000'000ULL;
+		uint32_t gps_epoch_time_s = UINT32_MAX;
+
+		if (vehicle_gps_position.time_utc_usec >= gps_epoch_offset_us) {
+			const uint64_t timestamp_s = (vehicle_gps_position.time_utc_usec - gps_epoch_offset_us) / 1'000'000ULL;
+			gps_epoch_time_s = static_cast<uint32_t>(timestamp_s);
+		}
+
 		// Required update for dynamic message is 5 [Hz]
 		mavlink_uavionix_adsb_out_dynamic_t dynamic_msg = {
-			.utcTime = static_cast<uint32_t>(vehicle_gps_position.time_utc_usec / 1000000ULL),
+			.utcTime = gps_epoch_time_s,
 			.gpsLat = static_cast<int32_t>(round(vehicle_gps_position.latitude_deg * 1e7)),
 			.gpsLon = static_cast<int32_t>(round(vehicle_gps_position.longitude_deg * 1e7)),
 			.gpsAlt = static_cast<int32_t>(round(vehicle_gps_position.altitude_ellipsoid_m * 1e3)), // convert [m] to [mm]
