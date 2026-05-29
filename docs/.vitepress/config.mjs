@@ -1,4 +1,5 @@
 import { defineConfig } from "vitepress";
+import navbarData from "./navbar.json";
 const getSidebar = require("./get_sidebar.js");
 
 import openEditor from "open-editor"; // Open file locally via edit
@@ -34,6 +35,9 @@ export default defineConfig({
   cleanUrls: true,
 
   vite: {
+    ssr: {
+      noExternal: ["vp-dynamic-nav"],
+    },
     plugins: [
       {
         // Open file locally via edit
@@ -159,7 +163,9 @@ export default defineConfig({
       */
     },
 
-    nav: [],
+    dynamicNavUrl:
+      "https://raw.githubusercontent.com/PX4/PX4-Autopilot/main/docs/.vitepress/navbar.json",
+    dynamicNavInitial: navbarData.nav,
 
     socialLinks: [
       { icon: "github", link: "https://github.com/PX4/PX4-Autopilot" },
