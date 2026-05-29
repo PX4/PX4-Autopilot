@@ -607,13 +607,13 @@ void FwLateralLongitudinalControl::updateAttitude() {
 		_long_control_state.pitch_rad = euler_angles.theta();
 		_yaw = euler_angles.psi();
 
-		const float load_factor_from_bank_angle = 1.0f / max(cosf(euler_angles.phi()), FLT_EPSILON);
+		_load_factor_from_bank_angle = 1.0f / max(cosf(euler_angles.phi()), FLT_EPSILON);
 
 		// Used to compensate for higher induced drag during banking
-		_tecs.set_load_factor(load_factor_from_bank_angle);
+		_tecs.set_load_factor(_load_factor_from_bank_angle);
 		// Used to give underspeed mitigation the correct minimum airspeed
 		_tecs.set_equivalent_airspeed_min(
-			_performance_model.getMinimumCalibratedAirspeed(load_factor_from_bank_angle, _flaps_setpoint)
+			_performance_model.getMinimumCalibratedAirspeed(_load_factor_from_bank_angle, _flaps_setpoint)
 		);
 	}
 }
@@ -649,7 +649,7 @@ float
 FwLateralLongitudinalControl::adapt_airspeed_setpoint(const float control_interval, float calibrated_airspeed_setpoint,
 		float calibrated_min_airspeed_guidance, float wind_speed)
 {
-	float system_min_airspeed = _performance_model.getMinimumCalibratedAirspeed(getLoadFactor(), _flaps_setpoint);
+	float system_min_airspeed = _performance_model.getMinimumCalibratedAirspeed(_load_factor_from_bank_angle, _flaps_setpoint);
 
 	const float system_max_airspeed = _performance_model.getMaximumCalibratedAirspeed();
 
@@ -851,19 +851,6 @@ void FwLateralLongitudinalControl::updateLongitudinalControlConfiguration(const 
 	} else {
 		_long_configuration.speed_weight = _param_t_spdweight.get();
 	}
-}
-
-float FwLateralLongitudinalControl::getLoadFactor() const
-{
-	float load_factor_from_bank_angle = 1.f;
-
-	const float roll_body = Eulerf(Quatf(_att_sp.q_d)).phi();
-
-	if (PX4_ISFINITE(roll_body)) {
-		load_factor_from_bank_angle = 1.f / math::max(cosf(roll_body), FLT_EPSILON);
-	}
-
-	return load_factor_from_bank_angle;
 }
 
 extern "C" __EXPORT int fw_lat_lon_control_main(int argc, char *argv[])
