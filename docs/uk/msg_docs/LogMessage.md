@@ -10,11 +10,11 @@ A logging message, output with PX4_WARN, PX4_ERR, PX4_INFO.
 
 ## Fields
 
-| Назва     | Тип         | Unit [Frame] | Range/Enum | Опис                                                                        |
-| --------- | ----------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------- |
-| timestamp | `uint64`    |                                                                  |            | time since system start (microseconds)                   |
-| severity  | `uint8`     |                                                                  |            | log level (same as in the linux kernel, starting with 0) |
-| text      | `char[127]` |                                                                  |            |                                                                             |
+| Назва                               | Тип         | Unit [Frame] | Range/Enum | Опис                                                                        |
+| ----------------------------------- | ----------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp | `uint64`    |                                                                  |            | time since system start (microseconds)                   |
+| <a id="fld_severity"></a>severity   | `uint8`     |                                                                  |            | log level (same as in the linux kernel, starting with 0) |
+| <a id="fld_text"></a>text           | `char[127]` |                                                                  |            |                                                                             |
 
 ## Constants
 

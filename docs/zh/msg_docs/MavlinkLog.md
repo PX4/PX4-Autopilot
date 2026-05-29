@@ -8,11 +8,11 @@ pageClass: is-wide-page
 
 ## Fields
 
-| 参数名       | 类型          | Unit [Frame] | Range/Enum | 描述                                                                          |
-| --------- | ----------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------- |
-| timestamp | `uint64`    |                                                                  |            | time since system start (microseconds)                   |
-| text      | `char[127]` |                                                                  |            |                                                                             |
-| severity  | `uint8`     |                                                                  |            | log level (same as in the linux kernel, starting with 0) |
+| 参数名                                 | 类型          | Unit [Frame] | Range/Enum | 描述                                                                          |
+| ----------------------------------- | ----------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp | `uint64`    |                                                                  |            | time since system start (microseconds)                   |
+| <a id="fld_text"></a>text           | `char[127]` |                                                                  |            |                                                                             |
+| <a id="fld_severity"></a>severity   | `uint8`     |                                                                  |            | log level (same as in the linux kernel, starting with 0) |
 
 ## Constants
 

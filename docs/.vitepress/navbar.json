@@ -1,0 +1,28 @@
+{
+  "nav": [
+    {
+      "text": "Dronecode",
+      "items": [
+        { "text": "PX4", "link": "https://px4.io/" },
+        { "text": "QGroundControl", "link": "http://qgroundcontrol.com/" },
+        { "text": "MAVSDK", "link": "https://mavsdk.mavlink.io/" },
+        { "text": "MAVLINK", "link": "https://mavlink.io/en/" },
+        { "text": "QGroundControl Guide", "link": "https://docs.qgroundcontrol.com/master/en/qgc-user-guide/" },
+        { "text": "Dronecode Camera Manager", "link": "https://camera-manager.dronecode.org/en/" }
+      ]
+    },
+    { "text": "Support", "link": "https://docs.px4.io/main/en/contribute/support.html" },
+    {
+      "text": "Version",
+      "items": [
+        { "text": "main", "link": "https://docs.px4.io/main/en/" },
+        { "text": "v1.17 (stable)", "link": "https://docs.px4.io/v1.17/en/" },
+        { "text": "v1.16", "link": "https://docs.px4.io/v1.16/en/" },
+        { "text": "v1.15", "link": "https://docs.px4.io/v1.15/en/" },
+        { "text": "v1.14", "link": "https://docs.px4.io/v1.14/en/" },
+        { "text": "v1.13", "link": "https://docs.px4.io/v1.13/en/" },
+        { "text": "v1.12", "link": "https://docs.px4.io/v1.12/en/" }
+      ]
+    }
+  ]
+}

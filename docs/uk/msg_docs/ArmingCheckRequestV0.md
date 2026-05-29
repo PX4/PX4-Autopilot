@@ -17,10 +17,10 @@ The reply will also include the registration_id for each external component, pro
 
 ## Fields
 
-| Назва                           | Тип      | Unit [Frame] | Range/Enum | Опис                                                                                                              |
-| ------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------- |
-| timestamp                       | `uint64` | us                                                               |            | Time since system start.                                                                          |
-| request_id | `uint8`  |                                                                  |            | Id of this request. Allows correlation with associated ArmingCheckReply messages. |
+| Назва                                                      | Тип      | Unit [Frame] | Range/Enum | Опис                                                                                                              |
+| ---------------------------------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                        | `uint64` | us                                                               |            | Time since system start.                                                                          |
+| <a id="fld_request_id"></a>request_id | `uint8`  |                                                                  |            | Id of this request. Allows correlation with associated ArmingCheckReply messages. |
 
 ## Constants
 
