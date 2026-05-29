@@ -128,12 +128,20 @@ int TF02PRO_UART::init()
 
 	// 1. Send command to set frame rate to 250Hz (0x5A 0x06 0x03 0xFA 0x00 0x5D)
 	const uint8_t cmd_250hz[] = {0x5A, 0x06, 0x03, 0xFA, 0x00, 0x5D};
-	::write(fd, cmd_250hz, sizeof(cmd_250hz));
+
+	if (::write(fd, cmd_250hz, sizeof(cmd_250hz)) != sizeof(cmd_250hz)) {
+		PX4_ERR("write rate cmd failed");
+	}
+
 	usleep(10000); // 10ms delay
 
 	// 2. Send save settings command (0x5A 0x04 0x11 0x6F) so it persists
 	const uint8_t cmd_save[] = {0x5A, 0x04, 0x11, 0x6F};
-	::write(fd, cmd_save, sizeof(cmd_save));
+
+	if (::write(fd, cmd_save, sizeof(cmd_save)) != sizeof(cmd_save)) {
+		PX4_ERR("write save cmd failed");
+	}
+
 	usleep(10000);
 
 	::close(fd);   // closed here, re-opened lazily in Run()
