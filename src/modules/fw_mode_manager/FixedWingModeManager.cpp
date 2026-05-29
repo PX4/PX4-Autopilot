@@ -276,8 +276,8 @@ FixedWingModeManager::get_manual_airspeed_setpoint()
 		// neutral throttle corresponds to last MAV_CMD_DO_CHANGE_SPEED, or trim airspeed if none received
 		const float base_airspeed = PX4_ISFINITE(_commanded_manual_airspeed_setpoint)
 					    ? math::constrain(_commanded_manual_airspeed_setpoint,
-							      _param_fw_airspd_min.get(),
-							      _param_fw_airspd_max.get())
+							    _param_fw_airspd_min.get(),
+							    _param_fw_airspd_max.get())
 					    : _param_fw_airspd_trim.get();
 		return math::interpolateNXY(_manual_control_setpoint_for_airspeed,
 		{-1.f, 0.f, 1.f},
@@ -508,9 +508,20 @@ FixedWingModeManager::set_control_mode_current(const hrt_abstime &now)
 			_yaw_lock_engaged = false;
 		}
 
+		if (previous_position_control_mode != FW_POSCTRL_MODE_MANUAL_POSITION
+		    && previous_position_control_mode != FW_POSCTRL_MODE_MANUAL_ALTITUDE) {
+			// forget any prior MAV_CMD_DO_CHANGE_SPEED override when entering manual airspeed control from outside
+			_commanded_manual_airspeed_setpoint = NAN;
+		}
+
 		_control_mode_current = FW_POSCTRL_MODE_MANUAL_POSITION;
 
 	} else if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_altitude_enabled) {
+		if (previous_position_control_mode != FW_POSCTRL_MODE_MANUAL_POSITION
+		    && previous_position_control_mode != FW_POSCTRL_MODE_MANUAL_ALTITUDE) {
+			// forget any prior MAV_CMD_DO_CHANGE_SPEED override when entering manual airspeed control from outside
+			_commanded_manual_airspeed_setpoint = NAN;
+		}
 
 		_control_mode_current = FW_POSCTRL_MODE_MANUAL_ALTITUDE;
 
