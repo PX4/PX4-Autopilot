@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,72 +32,61 @@
  ****************************************************************************/
 
 /**
- * @file TF02PRO.hpp
+ * @file TF02PRO_UART.hpp
  *
- * Driver for the SRF02 sonar range finder adapted from the Maxbotix sonar range finder driver (srf02).
+ * UART driver for the Benewake TF02 Pro distance sensor.
  */
 
 #pragma once
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/i2c_spi_buses.h>
-#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
-#if defined(CONFIG_I2C)
-#include <drivers/device/i2c.h>
-#endif
+#include <termios.h>
+
 #include <drivers/drv_hrt.h>
 #include <lib/perf/perf_counter.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
+#include <uORB/topics/distance_sensor.h>
 
-/* Configuration Constants */
-#define TF02PRO_BASEADDR			0x10 	// 7-bit address. 8-bit address is 0x20.
+#include "tf02pro_parser.h"
 
-/* Device limits */
-#define TF02PRO_MIN_DISTANCE 			(0.10f)
-#define TF02PRO_MAX_DISTANCE 			(35.00f)
+/* Physical constants — identical to the I2C driver */
+#define TF02PRO_UART_MIN_DISTANCE  (0.10f)
+#define TF02PRO_UART_MAX_DISTANCE  (35.00f)
+#define TF02PRO_DEFAULT_PORT       "/dev/ttyS3"
 
-#define TF02PRO_CONVERSION_INTERVAL 		100000	// 100 ms for one sensor.
+using namespace time_literals;
 
-#if defined(CONFIG_I2C)
-class TF02PRO : public device::I2C, public I2CSPIDriver<TF02PRO>
+class TF02PRO_UART : public px4::ScheduledWorkItem
 {
 public:
-	TF02PRO(const I2CSPIDriverConfig &config);
-	~TF02PRO() override;
+	TF02PRO_UART(const char *port, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+	~TF02PRO_UART() override;
 
-	static void print_usage();
-
-	int init() override;
-	void print_status() override;
-
-	void RunImpl();
+	int  init();
+	void print_info();
 
 private:
-
+	int  collect();
+	void Run() override;
 	void start();
-	int collect();
-	int measure();
-
-	/**
-	 * Test whether the device supported by the driver is present at a
-	 * specific address.
-	 * @param address The I2C bus address to probe.
-	 * @return True if the device is present.
-	 */
-	int probe_address(uint8_t address);
+	void stop();
 
 	PX4Rangefinder _px4_rangefinder;
 
-	int _interval{TF02PRO_CONVERSION_INTERVAL};
+	TF02PRO_PARSE_STATE _parse_state{TF02PRO_PARSE_STATE::STATE0_UNSYNC};
+	uint8_t  _uart_buf[9]{};
+	unsigned _uart_buf_idx{0};
 
-	bool _collect_phase{false};
+	char _port[20]{};
 
-	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com_err")};
-	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED,  MODULE_NAME": read")};
+	// Sensor configured at 250 Hz; poll slightly faster to catch every frame
+	static constexpr int kCONVERSIONINTERVAL{4_ms};
+
+	int         _fd{-1};
+	hrt_abstime _last_read{0};
+
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT,   MODULE_NAME": uart_com_err")};
+	perf_counter_t _sample_perf {perf_alloc(PC_ELAPSED, MODULE_NAME": uart_read")};
 };
-#else
-class TF02PRO
-{
-public:
-	static void print_usage();
-};
-#endif

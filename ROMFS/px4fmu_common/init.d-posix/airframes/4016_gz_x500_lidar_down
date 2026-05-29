@@ -8,3 +8,15 @@
 PX4_SIM_MODEL=${PX4_SIM_MODEL:=x500_lidar_down}
 
 . ${R}etc/init.d-posix/airframes/4001_gz_x500
+
+# GPS-Denied Rangefinder Height Fusion Config
+param set-default EKF2_HGT_REF 2
+param set-default EKF2_RNG_CTRL 1
+param set-default EKF2_GPS_CTRL 0
+param set-default SYS_HAS_GPS 0
+param set-default EKF2_BARO_CTRL 0
+
+# EKF2 External Vision (EV) Config for OpenVINS Bridge V3
+param set-default EKF2_EV_CTRL 9
+param set-default EKF2_EV_NOISE_MD 0
+

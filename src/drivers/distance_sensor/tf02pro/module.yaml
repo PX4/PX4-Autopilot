@@ -1,0 +1,26 @@
+module_name: Benewake TF02 Pro Rangefinder
+serial_config:
+    - command: tf02pro start -d ${SERIAL_DEV}
+      port_config_param:
+        name: SENS_TF02PRO_CFG
+        group: Sensors
+
+parameters:
+    - group: Sensors
+      definitions:
+        SENS_EN_TF02PRO:
+            description:
+                short: TF02 Pro Distance Sensor
+                long: |
+                  Enable/disable the TF02 Pro rangefinder and select the communication interface.
+                  0 = Disabled
+                  1 = I2C (address 0x10, bus selected at startup)
+                  2 = UART (port selected via SENS_TF02PRO_CFG)
+                  Requires reboot after change.
+            type: enum
+            values:
+                0: Disabled
+                1: I2C
+                2: UART
+            default: 0
+            reboot_required: true

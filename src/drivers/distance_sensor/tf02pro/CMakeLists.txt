@@ -29,14 +29,20 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-############################################################################
+
 px4_add_module(
 	MODULE drivers__distance_sensor__tf02pro
 	MAIN tf02pro
 	SRCS
 		TF02PRO.cpp
 		TF02PRO.hpp
+		TF02PRO_UART.cpp
+		TF02PRO_UART.hpp
+		tf02pro_parser.cpp
+		tf02pro_parser.h
 		tf02pro_main.cpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		drivers_rangefinder
 		px4_work_queue

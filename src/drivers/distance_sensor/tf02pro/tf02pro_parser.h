@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,72 +32,39 @@
  ****************************************************************************/
 
 /**
- * @file TF02PRO.hpp
+ * @file tf02pro_parser.h
  *
- * Driver for the SRF02 sonar range finder adapted from the Maxbotix sonar range finder driver (srf02).
+ * Parser for the Benewake TF02 Pro distance sensor.
  */
 
 #pragma once
+#include <stdint.h>
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/i2c_spi_buses.h>
-#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
-#if defined(CONFIG_I2C)
-#include <drivers/device/i2c.h>
-#endif
-#include <drivers/drv_hrt.h>
-#include <lib/perf/perf_counter.h>
-
-/* Configuration Constants */
-#define TF02PRO_BASEADDR			0x10 	// 7-bit address. 8-bit address is 0x20.
-
-/* Device limits */
-#define TF02PRO_MIN_DISTANCE 			(0.10f)
-#define TF02PRO_MAX_DISTANCE 			(35.00f)
-
-#define TF02PRO_CONVERSION_INTERVAL 		100000	// 100 ms for one sensor.
-
-#if defined(CONFIG_I2C)
-class TF02PRO : public device::I2C, public I2CSPIDriver<TF02PRO>
-{
-public:
-	TF02PRO(const I2CSPIDriverConfig &config);
-	~TF02PRO() override;
-
-	static void print_usage();
-
-	int init() override;
-	void print_status() override;
-
-	void RunImpl();
-
-private:
-
-	void start();
-	int collect();
-	int measure();
-
-	/**
-	 * Test whether the device supported by the driver is present at a
-	 * specific address.
-	 * @param address The I2C bus address to probe.
-	 * @return True if the device is present.
-	 */
-	int probe_address(uint8_t address);
-
-	PX4Rangefinder _px4_rangefinder;
-
-	int _interval{TF02PRO_CONVERSION_INTERVAL};
-
-	bool _collect_phase{false};
-
-	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com_err")};
-	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED,  MODULE_NAME": read")};
+enum class TF02PRO_PARSE_STATE {
+	STATE0_UNSYNC = 0,
+	STATE1_SYNC_1,          // received first 0x59
+	STATE2_SYNC_2,          // received second 0x59
+	STATE3_GOT_DIST_L,      // byte[2] Dist_L collected
+	STATE4_GOT_DIST_H,      // byte[3] Dist_H collected
+	STATE5_GOT_STRENGTH_L,  // byte[4] Strength_L collected
+	STATE6_GOT_STRENGTH_H,  // byte[5] Strength_H collected
+	STATE7_GOT_TEMP_L,      // byte[6] Temp_L collected
+	STATE8_GOT_TEMP_H,      // byte[7] Temp_H collected
+	STATE9_GOT_CHECKSUM     // byte[8] checksum validated; ready to re-sync
 };
-#else
-class TF02PRO
-{
-public:
-	static void print_usage();
-};
-#endif
+
+/**
+ * Parse one byte of the TF02 Pro 9-byte binary stream.
+ *
+ * Frame layout: 0x59 0x59 Dist_L Dist_H Str_L Str_H Temp_L Temp_H Checksum
+ * Checksum = lower 8 bits of (sum of bytes 0..7).
+ *
+ * @param c       incoming byte
+ * @param buf     9-byte working buffer (caller-owned, persistent across calls)
+ * @param buf_idx pointer to current buffer index (reset on frame complete or error)
+ * @param state   pointer to parser state (persistent across calls)
+ * @param dist    output: distance in metres (valid only when returns 0)
+ * @return 0 on valid complete frame, -1 otherwise
+ */
+int tf02pro_parse(uint8_t c, uint8_t *buf, unsigned *buf_idx,
+		  TF02PRO_PARSE_STATE *state, float *dist);

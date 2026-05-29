@@ -33,6 +33,8 @@
 
 #include "TF02PRO.hpp"
 
+#if defined(CONFIG_I2C)
+
 /**
  * @brief Construct a new TF02PRO::TF02PRO object
  *
@@ -193,3 +195,5 @@ void TF02PRO::print_status()
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 }
+
+#endif
