@@ -584,13 +584,17 @@ void ModeManagement::printStatus() const
 void ModeManagement::updateActiveConfigOverrides(uint8_t nav_state, config_overrides_s &overrides_in_out)
 {
 	const int executor_in_charge = modeExecutorInCharge();
-	const bool activation = (nav_state != _last_overrides_nav_state)
-				|| (executor_in_charge != _last_overrides_executor_in_charge);
+	const bool nav_state_activation = (nav_state != _last_overrides_nav_state);
+	const bool executor_activation = (executor_in_charge != _last_overrides_executor_in_charge);
 
-	if (activation) {
+	if (nav_state_activation) {
 		_last_overrides_nav_state = nav_state;
+		_last_overrides_nav_state_change_us = hrt_absolute_time();
+	}
+
+	if (executor_activation) {
 		_last_overrides_executor_in_charge = executor_in_charge;
-		_last_overrides_change_us = hrt_absolute_time();
+		_last_overrides_executor_change_us = hrt_absolute_time();
 	}
 
 	config_overrides_s current_overrides;
@@ -601,12 +605,12 @@ void ModeManagement::updateActiveConfigOverrides(uint8_t nav_state, config_overr
 		// Refuse cached overrides that predate the current activation; publish safe
 		// defaults until a fresh update arrives.
 		const bool stale = (mode.overrides.timestamp == 0)
-				   || (mode.overrides.timestamp + 10_ms < _last_overrides_change_us);
+				   || (mode.overrides.timestamp + 10_ms < _last_overrides_nav_state_change_us);
 
 		if (stale) {
 			current_overrides = {};
 
-			if (activation) {
+			if (nav_state_activation) {
 				PX4_DEBUG("External mode %i: stale config_overrides on activation, using safe defaults", nav_state);
 			}
 
@@ -622,10 +626,10 @@ void ModeManagement::updateActiveConfigOverrides(uint8_t nav_state, config_overr
 	if (_mode_executors.valid(executor_in_charge)) {
 		const config_overrides_s &executor_overrides = _mode_executors.executor(executor_in_charge).overrides;
 		const bool stale = (executor_overrides.timestamp == 0)
-				   || (executor_overrides.timestamp + 10_ms < _last_overrides_change_us);
+				   || (executor_overrides.timestamp + 10_ms < _last_overrides_executor_change_us);
 
 		if (stale) {
-			if (activation) {
+			if (executor_activation) {
 				PX4_DEBUG("Mode executor %i: stale config_overrides on activation, ignoring", executor_in_charge);
 			}
 
