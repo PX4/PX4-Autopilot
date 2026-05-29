@@ -282,8 +282,13 @@ void FwLateralLongitudinalControl::Run()
 			}
 
 			lateral_accel_sp = getCorrectedLateralAccelSetpoint(lateral_accel_sp, now);
-			lateral_accel_sp = math::constrain(lateral_accel_sp, -_lateral_configuration.lateral_accel_max,
-							   _lateral_configuration.lateral_accel_max);
+
+			const float lateral_accel_max = math::min(
+								_lateral_configuration.lateral_accel_max,
+								getMaxLateralAccelForLoadFactor()
+							);
+
+			lateral_accel_sp = math::constrain(lateral_accel_sp, -lateral_accel_max, lateral_accel_max);
 			roll_sp = mapLateralAccelerationToRollAngle(lateral_accel_sp);
 
 			fixed_wing_lateral_status_s fixed_wing_lateral_status{};
@@ -367,6 +372,39 @@ void FwLateralLongitudinalControl::updateControllerConfiguration(hrt_abstime tim
 		}
 	}
 }
+
+float
+FwLateralLongitudinalControl::getMaxLateralAccelForLoadFactor() const
+{
+	// Tighten the lateral acceleration (≈ bank angle) limit to not exceed
+	// the maximum load factor.
+
+	// There is no user given maximium load factor but the airspeed limits
+	// imply one: If the min CAS (compensated for weight ratio, bank angle,
+	// flaps setpoint, air density) is above the max airspeed then the given
+	// load factor is not flyable (without exceeding max airspeed).
+
+	const float min_cas_unitload = _performance_model.getMinimumCalibratedAirspeed(1.0f, _flaps_setpoint);
+	const float max_cas = _performance_model.getMaximumCalibratedAirspeed();
+
+	// from getMinimumCalibratedAirspeed:
+	//     min_cas(load_factor) = min_cas_unitload * sqrt(load_factor) = max_cas
+	// solve min_cas(load_factor) = max_cas for the load_factor:
+	//     min_cas_unitload * sqrt(load_factor) = max_cas
+	//     sqrt(load_factor) = max_cas / min_cas_unitload
+	//     load_factor = (max_cas / min_cas_unitload)^2
+	const float load_factor_max = math::sq(max_cas / math::max(min_cas_unitload, FLT_EPSILON));
+
+	// In a coordinated turn at bank angle phi:
+	//     load_factor = 1/cos(phi)
+	//     lat_accel/g = tan(phi)
+	// Pythagoras says: load_factor^2 = 1^2 + (lat_accel/g)^2, which we solve for lat_accel:
+	//     load_factor^2 - 1 = (lat_accel/g)^2
+	//     sqrt(load_factor^2 - 1) = lat_accel/g
+	//     g * sqrt(load_factor^2 - 1) = lat_accel
+	return CONSTANTS_ONE_G * sqrtf(math::max(math::sq(load_factor_max) - 1.0f, 0.0f));
+}
+
 
 uint8_t
 FwLateralLongitudinalControl::tecs_update_pitch_throttle(const float control_interval, float alt_sp, float airspeed_sp,

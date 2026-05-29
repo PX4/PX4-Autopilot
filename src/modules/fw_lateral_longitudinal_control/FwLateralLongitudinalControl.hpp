@@ -250,6 +250,8 @@ private:
 
 	float getLoadFactor() const;
 
+	float getMaxLateralAccelForLoadFactor() const;
+
 	/**
 	 * @brief Returns an adapted calibrated airspeed setpoint
 	 *
