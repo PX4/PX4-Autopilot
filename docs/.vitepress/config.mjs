@@ -35,6 +35,9 @@ export default defineConfig({
   cleanUrls: true,
 
   vite: {
+    ssr: {
+      noExternal: ["vp-dynamic-nav"],
+    },
     plugins: [
       {
         // Open file locally via edit
