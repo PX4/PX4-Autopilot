@@ -202,6 +202,10 @@ private:
 
 	uint8_t _last_served_nav_state{0xff};
 	hrt_abstime _last_served_change_us{0};
+
+	uint8_t _last_overrides_nav_state{0xff};
+	int _last_overrides_executor_in_charge{ModeExecutors::AUTOPILOT_EXECUTOR_ID};
+	hrt_abstime _last_overrides_change_us{0};
 };
 
 #else /* CONSTRAINED_FLASH */

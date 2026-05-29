@@ -583,32 +583,65 @@ void ModeManagement::printStatus() const
 
 void ModeManagement::updateActiveConfigOverrides(uint8_t nav_state, config_overrides_s &overrides_in_out)
 {
+	const int executor_in_charge = modeExecutorInCharge();
+	const bool activation = (nav_state != _last_overrides_nav_state)
+				|| (executor_in_charge != _last_overrides_executor_in_charge);
+
+	if (activation) {
+		_last_overrides_nav_state = nav_state;
+		_last_overrides_executor_in_charge = executor_in_charge;
+		_last_overrides_change_us = hrt_absolute_time();
+	}
+
 	config_overrides_s current_overrides;
 
 	if (_modes.valid(nav_state)) {
-		current_overrides = _modes.mode(nav_state).overrides;
+		const Modes::Mode &mode = _modes.mode(nav_state);
+
+		// Refuse cached overrides that predate the current activation; publish safe
+		// defaults until a fresh update arrives.
+		const bool stale = (mode.overrides.timestamp == 0)
+				   || (mode.overrides.timestamp + 10_ms < _last_overrides_change_us);
+
+		if (stale) {
+			current_overrides = {};
+
+			if (activation) {
+				PX4_DEBUG("External mode %i: stale config_overrides on activation, using safe defaults", nav_state);
+			}
+
+		} else {
+			current_overrides = mode.overrides;
+		}
 
 	} else {
 		current_overrides = {};
 	}
 
 	// Apply the overrides from executors on top (executors take precedence)
-	const int executor_in_charge = modeExecutorInCharge();
-
 	if (_mode_executors.valid(executor_in_charge)) {
 		const config_overrides_s &executor_overrides = _mode_executors.executor(executor_in_charge).overrides;
+		const bool stale = (executor_overrides.timestamp == 0)
+				   || (executor_overrides.timestamp + 10_ms < _last_overrides_change_us);
 
-		if (executor_overrides.disable_auto_disarm) {
-			current_overrides.disable_auto_disarm = true;
-		}
+		if (stale) {
+			if (activation) {
+				PX4_DEBUG("Mode executor %i: stale config_overrides on activation, ignoring", executor_in_charge);
+			}
 
-		if (executor_overrides.disable_auto_set_home) {
-			current_overrides.disable_auto_set_home = true;
-		}
+		} else {
+			if (executor_overrides.disable_auto_disarm) {
+				current_overrides.disable_auto_disarm = true;
+			}
 
-		if (executor_overrides.defer_failsafes) {
-			current_overrides.defer_failsafes = true;
-			current_overrides.defer_failsafes_timeout_s = executor_overrides.defer_failsafes_timeout_s;
+			if (executor_overrides.disable_auto_set_home) {
+				current_overrides.disable_auto_set_home = true;
+			}
+
+			if (executor_overrides.defer_failsafes) {
+				current_overrides.defer_failsafes = true;
+				current_overrides.defer_failsafes_timeout_s = executor_overrides.defer_failsafes_timeout_s;
+			}
 		}
 	}
 
@@ -658,6 +691,7 @@ void ModeManagement::checkConfigOverrides()
 			if (_mode_executors.valid(override_request.source_id)) {
 				ModeExecutors::ModeExecutor &executor = _mode_executors.executor(override_request.source_id);
 				memcpy(&executor.overrides, &override_request, sizeof(executor.overrides));
+				executor.overrides.timestamp = hrt_absolute_time();
 				static_assert(sizeof(executor.overrides) == sizeof(override_request), "size mismatch");
 			}
 
@@ -667,6 +701,7 @@ void ModeManagement::checkConfigOverrides()
 			if (_modes.valid(override_request.source_id)) {
 				Modes::Mode &mode = _modes.mode(override_request.source_id);
 				memcpy(&mode.overrides, &override_request, sizeof(mode.overrides));
+				mode.overrides.timestamp = hrt_absolute_time();
 			}
 
 			break;
