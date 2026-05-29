@@ -174,7 +174,7 @@ These parameters use the same action scale:
 `0`: Disabled, `1`: Warn only, `2`: Return, `3`: Land, `4`: Hold, `5`: Terminate.
 
 Most users can start with the default F3442 volume parameters and tune them only if needed.
-See [Detect and Avoid > F3442 Mode](../advanced_features/detect_and_avoid.md#f3442-mode) and [Detect and Avoid > F3442 Volume Appendix](../advanced_features/detect_and_avoid.md#f3442-volume-appendix).
+See [Detect and Avoid > F3442 Mode](../advanced_features/detect_and_avoid.md#f3442-mode), which also includes the zone-computation equations.
 
 ### Arming Check
 
