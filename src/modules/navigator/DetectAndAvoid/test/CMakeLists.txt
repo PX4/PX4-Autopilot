@@ -31,26 +31,17 @@
 #
 ############################################################################
 
-set(adsb_srcs
-	AdsbConflict.cpp
-)
+# Let the test sources include the module headers (detect_and_avoid.h) and the
+# parent navigator headers (navigator.h, mission.h) without relative paths.
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../..)
 
+# Common tests run for whichever conflict standard is built.
+px4_add_functional_gtest(SRC detect_and_avoid_test.cpp LINKLIBS detect_and_avoid)
+
+# Standard-specific tests follow the standard selected at build time.
 if(CONFIG_NAVIGATOR_ADSB_F3442)
-	list(APPEND adsb_srcs f3442_standard/DaaF3442.cpp)
+	px4_add_functional_gtest(SRC detect_and_avoid_f3442_test.cpp LINKLIBS detect_and_avoid)
 else()
-	list(APPEND adsb_srcs crosstrack_based_daa/DaaCrosstrack.cpp)
-endif()
-
-px4_add_library(adsb ${adsb_srcs})
-set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/parameters.yaml)
-
-target_link_libraries(adsb PUBLIC geo)
-
-
-px4_add_functional_gtest(SRC AdsbConflictTest.cpp LINKLIBS adsb)
-
-if(CONFIG_NAVIGATOR_ADSB_F3442)
-	px4_add_functional_gtest(SRC f3442_standard/DaaF3442Test.cpp LINKLIBS adsb)
-else()
-	px4_add_functional_gtest(SRC crosstrack_based_daa/DaaCrosstrackTest.cpp LINKLIBS adsb)
+	px4_add_functional_gtest(SRC detect_and_avoid_crosstrack_test.cpp LINKLIBS detect_and_avoid)
 endif()

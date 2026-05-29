@@ -60,10 +60,14 @@ protected:
 	{
 		param_control_autosave(false);
 		param_reset_all();
+#if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
 		set_f3442_params(20.f, 10.f, 100.f, 50.f, 30, 40);
+#else
 		set_crosstrack_params(500.f, 500.f, 60);
+#endif // CONFIG_NAVIGATOR_ADSB_F3442
 	}
 
+#if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
 	void set_f3442_params(float nmac_radius, float nmac_height, float wc_radius,
 			      float wc_height, int nmac_latency_s, int wc_latency_s)
 	{
@@ -74,6 +78,7 @@ protected:
 		param_set(param_handle(px4::params::F34_LVL_MED_TIME), &nmac_latency_s);
 		param_set(param_handle(px4::params::F34_LVL_LOW_TIME), &wc_latency_s);
 	}
+#endif // CONFIG_NAVIGATOR_ADSB_F3442
 
 	void set_crosstrack_params(float horizontal_separation_m,
 				   float vertical_separation_m, int collision_time_s)
@@ -100,20 +105,6 @@ protected:
 		return report;
 	}
 };
-
-// WHY: Standard selection is the top-level safety switch for the ADS-B conflict library.
-// WHAT: Accept the supported standards and reject an unknown value before any conflict calculations run.
-TEST_F(AdsbConflictTest, RejectsUnknownDaaStandard)
-{
-	// GIVEN: A fresh ADS-B conflict wrapper before any standard is selected.
-	AdsbConflict adsb_conflict;
-
-	// WHEN: The caller selects each supported standard and then an unknown one.
-	// THEN: Only the supported standards are accepted.
-	EXPECT_TRUE(adsb_conflict.try_setting_DAA_standard(detect_and_avoid_s::DAA_STANDARD_F3442));
-	EXPECT_TRUE(adsb_conflict.try_setting_DAA_standard(detect_and_avoid_s::DAA_STANDARD_CROSSTRACK));
-	EXPECT_FALSE(adsb_conflict.try_setting_DAA_standard(99));
-}
 
 // WHY: The library normalizes raw transponder and ownship data before delegating to a DAA standard.
 // WHAT: Convert representative traffic and ownship inputs and verify the packed
@@ -179,10 +170,9 @@ TEST_F(AdsbConflictTest, ConvertsTrafficAndOwnshipState)
 // WHAT: Feed non-finite coordinates and velocities into `handle_traffic()` and verify the library rejects them.
 TEST_F(AdsbConflictTest, RejectsNonFiniteCoordinatesAndVelocities)
 {
-	// GIVEN: F3442 mode with an otherwise valid traffic encounter.
+	// GIVEN: The built DAA standard with an otherwise valid traffic encounter.
 	AdsbConflict adsb_conflict;
 	const RelativeTrafficScenario valid_traffic{200.f, math::radians(90.f), 0.f, uav_heading_, 30.f, 0.f};
-	ASSERT_TRUE(adsb_conflict.try_setting_DAA_standard(detect_and_avoid_s::DAA_STANDARD_F3442));
 
 	detect_and_avoid_s daa_output{};
 	transponder_report_s report = create_relative_report(valid_traffic);
@@ -210,6 +200,7 @@ TEST_F(AdsbConflictTest, RejectsNonFiniteCoordinatesAndVelocities)
 	EXPECT_FALSE(adsb_conflict.handle_traffic(uav_lat_lon_, uav_alt_, uav_heading_, matrix::Vector3f(0.f, nan, 0.f), report, daa_output));
 }
 
+#if !defined(CONFIG_NAVIGATOR_ADSB_F3442) || !CONFIG_NAVIGATOR_ADSB_F3442
 // WHY: Crosstrack mode depends on finite headings, and the wrapper must block invalid values before delegating.
 // WHAT: Select crosstrack mode, inject NaN headings on both the traffic and ownship sides, and verify
 // `handle_traffic()` fails.
@@ -218,7 +209,6 @@ TEST_F(AdsbConflictTest, CrosstrackRejectsNonFiniteHeadings)
 	// GIVEN: Crosstrack mode with a valid approaching encounter.
 	AdsbConflict adsb_conflict;
 	const RelativeTrafficScenario approaching_traffic{200.f, math::radians(90.f), 0.f, math::radians(270.f), 30.f, 0.f};
-	ASSERT_TRUE(adsb_conflict.try_setting_DAA_standard(detect_and_avoid_s::DAA_STANDARD_CROSSTRACK));
 
 	detect_and_avoid_s daa_output{};
 	transponder_report_s report = create_relative_report(approaching_traffic);
@@ -233,60 +223,53 @@ TEST_F(AdsbConflictTest, CrosstrackRejectsNonFiniteHeadings)
 	// THEN: Crosstrack processing rejects the encounter.
 	EXPECT_FALSE(adsb_conflict.handle_traffic(uav_lat_lon_, uav_alt_, uav_heading_, stationary_uav_vel_ned_, report, daa_output));
 }
+#endif // !CONFIG_NAVIGATOR_ADSB_F3442
 
 // WHY: `try_updating_params()` is the last line of defense against invalid runtime tuning.
-// WHAT: Select each supported standard, validate a good parameter set, then
-// break a required parameter and confirm the update is rejected.
-TEST_F(AdsbConflictTest, UsesSelectedStandardForParamValidation)
+// WHAT: Validate a good parameter set for the built standard, then break a required parameter and confirm the update is rejected.
+TEST_F(AdsbConflictTest, UsesBuiltStandardForParamValidation)
 {
-	// GIVEN: A wrapper that can switch between F3442 and crosstrack validation rules.
+	// GIVEN: A wrapper using the standard selected at build time.
 	AdsbConflict adsb_conflict;
 	constexpr float invalid_bound{-1.f};
 
-	// WHEN: F3442 is selected with valid parameters, then a required bound is made invalid.
-	ASSERT_TRUE(adsb_conflict.try_setting_DAA_standard(detect_and_avoid_s::DAA_STANDARD_F3442));
+	// WHEN: The built standard starts with valid parameters.
 	EXPECT_TRUE(adsb_conflict.try_updating_params());
+
+#if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
 	set_f3442_params(invalid_bound, 10.f, 100.f, 50.f, 30, 40);
-	EXPECT_FALSE(adsb_conflict.try_updating_params());
-
-	// WHEN: Crosstrack is selected with valid parameters, then a required bound is made invalid.
-	set_f3442_params(20.f, 10.f, 100.f, 50.f, 30, 40);
-	ASSERT_TRUE(adsb_conflict.try_setting_DAA_standard(detect_and_avoid_s::DAA_STANDARD_CROSSTRACK));
-	EXPECT_TRUE(adsb_conflict.try_updating_params());
+#else
 	set_crosstrack_params(invalid_bound, 500.f, 60);
+#endif // CONFIG_NAVIGATOR_ADSB_F3442
 
-	// THEN: Each standard validates against its own parameter set.
+	// THEN: The built standard validates against its own parameter set.
 	EXPECT_FALSE(adsb_conflict.try_updating_params());
 }
 
-// WHY: `AdsbConflict` owns standard dispatch and output forwarding, not the detailed math inside each standard.
-// WHAT: Evaluate the same encounter in F3442 and crosstrack modes and verify the wrapper publishes the selected standard's result.
-TEST_F(AdsbConflictTest, DelegatesToSelectedStandardAndForwardsOutput)
+// WHY: `AdsbConflict` owns output forwarding, not the detailed math inside the built standard.
+// WHAT: Evaluate one representative encounter and verify the wrapper publishes the built standard's result.
+TEST_F(AdsbConflictTest, DelegatesToBuiltStandardAndForwardsOutput)
 {
-	// GIVEN: One encounter that both standards classify differently.
+	// GIVEN: One representative encounter for the built standard.
 	AdsbConflict adsb_conflict;
 	const RelativeTrafficScenario approaching_traffic{19.f, math::radians(90.f), 9.f, math::radians(270.f), 5.f, 0.f};
 	const transponder_report_s report = create_relative_report(approaching_traffic);
 
 	detect_and_avoid_s daa_output{};
 
-	// WHEN: F3442 is selected.
-	ASSERT_TRUE(adsb_conflict.try_setting_DAA_standard(detect_and_avoid_s::DAA_STANDARD_F3442));
+	// WHEN: The encounter is processed.
 	ASSERT_TRUE(adsb_conflict.try_updating_params());
 	ASSERT_TRUE(adsb_conflict.handle_traffic(uav_lat_lon_, uav_alt_, uav_heading_, stationary_uav_vel_ned_, report, daa_output));
 
+#if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
 	// THEN: The wrapper publishes the delegated F3442 result.
 	EXPECT_EQ(daa_output.conflict_level, detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL);
 	EXPECT_NEAR(daa_output.aircraft_dist_hor, approaching_traffic.distance_m, 0.1f);
 	EXPECT_NEAR(daa_output.aircraft_dist_vert, approaching_traffic.altitude_offset_m, 0.1f);
-
-	// WHEN: Crosstrack is selected for the same encounter.
-	ASSERT_TRUE(adsb_conflict.try_setting_DAA_standard(detect_and_avoid_s::DAA_STANDARD_CROSSTRACK));
-	ASSERT_TRUE(adsb_conflict.try_updating_params());
-	ASSERT_TRUE(adsb_conflict.handle_traffic(uav_lat_lon_, uav_alt_, uav_heading_, stationary_uav_vel_ned_, report, daa_output));
-
+#else
 	// THEN: The wrapper publishes the delegated crosstrack result instead.
 	EXPECT_EQ(daa_output.conflict_level, detect_and_avoid_s::DAA_CONFLICT_LVL_HIGH);
 	EXPECT_NEAR(daa_output.aircraft_dist_vert, approaching_traffic.altitude_offset_m, 0.1f);
 	EXPECT_LT(fabsf(daa_output.aircraft_dist_hor), 500.f);
+#endif // CONFIG_NAVIGATOR_ADSB_F3442
 }

@@ -37,6 +37,9 @@ DAA supports two conflict models:
 - `F3442` mode evaluates traffic against four alert volumes designed to comply with the ASTM F3442 standard.
   Use it when you want staged alerting and per-level actions.
 
+The conflict model is selected at build time: `CONFIG_NAVIGATOR_ADSB` builds Crosstrack and `CONFIG_NAVIGATOR_ADSB_F3442` builds F3442.
+If both are enabled, F3442 is used.
+
 At runtime DAA can:
 
 - Process queued traffic reports from [`transponder_report`](../msg_docs/TransponderReport.md).
@@ -52,7 +55,7 @@ Each navigator cycle, DAA:
 1. Reads all queued `transponder_report` messages for that cycle.
    - Rejects invalid or stale traffic reports.
    - Filters self-detections using ownship ICAO, ADS-B callsign, and UAS ID.
-2. Evaluates the conflict with the selected DAA standard.
+2. Evaluates the conflict with the built DAA standard.
    - Publishes the per-traffic result on [`detect_and_avoid`](../msg_docs/DetectAndAvoid.md).
 3. Updates the active-conflict buffer and selects the most urgent conflict.
    - Publishes the most urgent conflict summary on [`detect_and_avoid_most_urgent`](../msg_docs/DetectAndAvoidMostUrgent.md).
@@ -67,7 +70,7 @@ Conflict priority is determined by:
 
 ### Crosstrack Mode
 
-Set [DAA_STANDARD](../advanced_config/parameter_reference.md#DAA_STANDARD) to `0`.
+This mode is used by firmware built without `CONFIG_NAVIGATOR_ADSB_F3442`.
 
 This mode provides a single actionable threshold for track-crossing traffic.
 It evaluates the traffic geometry using three gates.
@@ -166,7 +169,7 @@ Action mapping is defined by `NAV_TRAFF_AVOID`:
 
 ### F3442 Mode
 
-Set [DAA_STANDARD](../advanced_config/parameter_reference.md#DAA_STANDARD) to `1`.
+This mode is used by firmware built with `CONFIG_NAVIGATOR_ADSB_F3442`.
 
 This mode is based on the ASTM F3442/F3442M-23 standard, which defines performance targets for avoiding Near Mid-Air Collision (NMAC) events and maintaining Well Clear (WC) distances from other aircraft.
 
@@ -321,7 +324,7 @@ If a breached inner level is configured as `Disabled`, DAA safely falls back to 
 
 ## Automated Actions
 
-`NAV_TRAFF_AVOID` and `DAA_LVL_*_ACT` allow to configure automated actions for the Crosstrack and the F3442 standard respectively.
+The action parameter depends on the DAA standard selected at build time: `NAV_TRAFF_AVOID` for Crosstrack builds and `DAA_LVL_*_ACT` for F3442 builds.
 
 The DAA action parameters use these values:
 
@@ -340,7 +343,7 @@ $$
 
 ::: info
 
-Changing `NAV_TRAFF_AVOID` or `DAA_LVL_*_ACT` at runtime does not re-evaluate already buffered conflicts.
+Changing the action parameter for the built standard at runtime does not re-evaluate already buffered conflicts.
 The updated setting is used on later conflict transitions, and automatic mode changes are only issued on escalation.
 
 :::
@@ -468,6 +471,7 @@ DAA also removes conflicts that stop receiving updates after [DAA_TRAFF_TOUT](..
 
 For the operator-facing setup flow, see [ADS-B/FLARM/UTM Receivers > Configure Traffic Avoidance](../peripherals/adsb_flarm.md#configure-traffic-avoidance).
 On this page, parameters are described where their behavior matters: `NAV_TRAFF_*` in [Crosstrack Mode](#crosstrack-mode), `F34_LVL_*`, `DAA_LVL_*_ACT`, `DAA_EN_DFLT_VEL`, and `DAA_DFLT_VEL` in [F3442 Mode](#f3442-mode), [DAA_NOTIF_STATE](../advanced_config/parameter_reference.md#DAA_NOTIF_STATE) in [Operator Messages](#operator-messages), [DAA_TRAFF_TOUT](../advanced_config/parameter_reference.md#DAA_TRAFF_TOUT) in [Traffic Inputs and Identification](#traffic-inputs-and-identification), and ownship ADS-B identification parameters in the same traffic-input section.
+F3442-specific parameters are only present in firmware built with `CONFIG_NAVIGATOR_ADSB_F3442`.
 
 ## Telemetry and Logging
 
@@ -566,8 +570,8 @@ Scenario guide:
   Use this to confirm that repeated updates from one target are not generating excessive notifications (expect a period of [DAA_NOTIF_STATE](../advanced_config/parameter_reference.md#DAA_NOTIF_STATE)).
 - `spam_new`: Publishes `10` different ICAO identities, one per second, with fixed distances chosen to fill the `5`-entry conflict buffer, evict the least urgent items deterministically, and exercise ignored-traffic throttling once the buffer is full.
 - `flags`: Publishes one aircraft with valid position, altitude, heading, and callsign, but with the velocity-valid flag intentionally cleared.
-  In `F3442` mode the report is still accepted because only coordinates and altitude are mandatory; the missing traffic velocity is treated as zero, and if [DAA_EN_DFLT_VEL](../advanced_config/parameter_reference.md#DAA_EN_DFLT_VEL) is enabled the vertical speed is replaced by [DAA_DFLT_VEL](../advanced_config/parameter_reference.md#DAA_DFLT_VEL).
-  In `Crosstrack` mode the same report is rejected because velocity is required there.
+  In F3442 builds the report is still accepted because only coordinates and altitude are mandatory; the missing traffic velocity is treated as zero, and if [DAA_EN_DFLT_VEL](../advanced_config/parameter_reference.md#DAA_EN_DFLT_VEL) is enabled the vertical speed is replaced by [DAA_DFLT_VEL](../advanced_config/parameter_reference.md#DAA_DFLT_VEL).
+  In Crosstrack builds the same report is rejected because velocity is required there.
 - `queue_fill`: Runs three consecutive batches of `ORB_QUEUE_LENGTH` reports.
   Batch 1 repeats the same close critical aircraft for the full queue length.
   Batch 2 publishes new lower-priority conflicts that get progressively closer so each one is accepted while the original aircraft remains the most urgent.
@@ -593,7 +597,7 @@ The sequences below assume the default F3442 configuration.
 
 ::: details Click here to view default configuration
 
-- [DAA_STANDARD](../advanced_config/parameter_reference.md#DAA_STANDARD) = `F3442`
+- Firmware built with `CONFIG_NAVIGATOR_ADSB_F3442`
 - [DAA_LVL_LOW_ACT](../advanced_config/parameter_reference.md#DAA_LVL_LOW_ACT) = `Warn only`
 - [DAA_LVL_MED_ACT](../advanced_config/parameter_reference.md#DAA_LVL_MED_ACT) = `Warn only`
 - [DAA_LVL_HIGH_ACT](../advanced_config/parameter_reference.md#DAA_LVL_HIGH_ACT) = `Warn only`
@@ -762,5 +766,6 @@ To add a new standard end-to-end:
 1. Implement a new class with `calculate_daa_stats()` and define its runtime parameter validation.
 2. Decide which `aircraft_state_s` fields are mandatory for that standard and enforce those requirements in the wrapper path (`AdsbConflict::handle_traffic()`) and inside the standard itself if it can be called directly.
    In particular, decide whether the due-north fallback for `velocity_ned` without traffic heading is acceptable, or whether the standard requires the true traffic track direction.
-3. Add a new `DAA_STANDARD_*` enum value in `msg/DetectAndAvoid.msg`, update the `DAA_STANDARD` parameter metadata, add the class as a `AdsbConflict` member, and update the `AdsbConflict` switch statements that select the standard, run `calculate_daa_stats()`, and refresh parameters.
-4. Add unit tests for both the standard math and the outer `AdsbConflict` validation path, then update this documentation with the standard-specific data requirements, parameters, and action semantics.
+3. Add a build-time config and CMake selection for the standard, including any standard-specific parameter metadata only when that config is enabled.
+4. Add the class to `AdsbConflict` and update the compile-time branches that validate inputs, run `calculate_daa_stats()`, and refresh parameters.
+5. Add unit tests for both the standard math and the outer `AdsbConflict` validation path, then update this documentation with the standard-specific data requirements, parameters, and action semantics.

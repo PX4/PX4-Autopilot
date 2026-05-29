@@ -89,11 +89,14 @@ bool AdsbConflict::handle_traffic(const matrix::Vector2d &uav_lat_lon, const flo
 		return false;
 	}
 
-	if (_daa_standard == detect_and_avoid_s::DAA_STANDARD_CROSSTRACK
-	    && (!PX4_ISFINITE(uav_heading) || !PX4_ISFINITE(transponder_report.heading))) {
+#if !defined(CONFIG_NAVIGATOR_ADSB_F3442) || !CONFIG_NAVIGATOR_ADSB_F3442
+
+	if (!PX4_ISFINITE(uav_heading) || !PX4_ISFINITE(transponder_report.heading)) {
 		PX4_DEBUG("DAA lib: Invalid heading, Early return");
 		return false;
 	}
+
+#endif // !CONFIG_NAVIGATOR_ADSB_F3442
 
 	// Process input data
 	aircraft_state_s uav_state{};
@@ -115,45 +118,10 @@ bool AdsbConflict::handle_traffic(const matrix::Vector2d &uav_lat_lon, const flo
 uint8_t AdsbConflict::calculate_daa_stats(const aircraft_state_s &uav_state, const aircraft_state_s &traffic_state,
 		daa_stats_s &daa_stats)
 {
-	switch (_daa_standard) {
-	case detect_and_avoid_s::DAA_STANDARD_CROSSTRACK: {
-			return _daaCrosstrack.calculate_daa_stats(uav_state, traffic_state, daa_stats);
-		}
-
-	case detect_and_avoid_s::DAA_STANDARD_F3442: {
-			return _daaF3442.calculate_daa_stats(uav_state, traffic_state, daa_stats);
-		}
-
-	default: {
-			break;
-		}
-	}
-
-	return detect_and_avoid_s::DAA_CONFLICT_LVL_NONE;
-}
-
-bool AdsbConflict::try_setting_DAA_standard(const uint8_t standard)
-{
-	switch (standard) {
-	case detect_and_avoid_s::DAA_STANDARD_F3442:
-	case detect_and_avoid_s::DAA_STANDARD_CROSSTRACK:
-		_daa_standard = standard;
-		return true;
-
-	default:
-		PX4_DEBUG("DAA: Invalid Standard.");
-		return false;
-	}
+	return _daa.calculate_daa_stats(uav_state, traffic_state, daa_stats);
 }
 
 bool AdsbConflict::try_updating_params()
 {
-	switch (_daa_standard) {
-	case detect_and_avoid_s::DAA_STANDARD_CROSSTRACK:
-		return _daaCrosstrack.try_setting_params();
-
-	case detect_and_avoid_s::DAA_STANDARD_F3442:
-	default:
-		return _daaF3442.try_setting_params();
-	}
+	return _daa.try_setting_params();
 }

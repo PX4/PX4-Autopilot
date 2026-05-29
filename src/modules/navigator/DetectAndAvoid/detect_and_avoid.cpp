@@ -114,11 +114,14 @@ void DetectAndAvoid::updateParams()
 	ModuleParams::updateParams();
 	_daa_enabled = _param_daa_en.get();
 	_daa_notif_state_s = math::max<int32_t>(0, _param_daa_notif_state.get());
+#if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
 	_daa_lvl_low_action_param = _param_daa_lvl_low_act.get();
 	_daa_lvl_med_action_param = _param_daa_lvl_med_act.get();
 	_daa_lvl_high_action_param = _param_daa_lvl_high_act.get();
 	_daa_lvl_crit_action_param = _param_daa_lvl_crit_act.get();
+#else
 	_nav_traff_avoid_mode = _param_nav_traff_avoid.get();
+#endif // CONFIG_NAVIGATOR_ADSB_F3442
 }
 
 void DetectAndAvoid::on_inactivation()
@@ -148,18 +151,12 @@ void DetectAndAvoid::on_activation()
 		return;
 	}
 
-	_active_daa_standard = _param_daa_standard.get();
-	const uint8_t daa_standard = _active_daa_standard;
-
-	const bool standard_ok = daa_standard == detect_and_avoid_s::DAA_STANDARD_CROSSTRACK
-				 || daa_standard == detect_and_avoid_s::DAA_STANDARD_F3442;
-
-	if (!standard_ok || !_adsb_traffic.try_setting_DAA_standard(daa_standard) || !try_setting_lib_params()) {
+	if (!try_setting_lib_params()) {
 		failed_activation();
 		return;
 	}
 
-	PX4_DEBUG("DAA: init ok (std %u)", daa_standard);
+	PX4_DEBUG("DAA: init ok");
 	_is_activated = true;
 }
 
@@ -829,11 +826,15 @@ bool DetectAndAvoid::analyse_transponder_report(transponder_report_s &transponde
 	}
 
 	// Over-write transponder vertical velocity if requested
+#if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
+
 	if (_param_daa_en_dflt_vel.get()) {
 		// If velocity is zero, assume positive velocity i.e. aircraft going up
 		const float velocity_sign = (transponder_report.ver_velocity >= 0) ? 1.f : -1.f;
 		transponder_report.ver_velocity = velocity_sign * _param_daa_dflt_vel.get();
 	}
+
+#endif // CONFIG_NAVIGATOR_ADSB_F3442
 
 	return _adsb_traffic.handle_traffic(uav_lat_lon, uav_alt, uav_heading, uav_vel_NED, transponder_report, daa_output);
 }
@@ -879,11 +880,14 @@ bool DetectAndAvoid::transponder_data_valid(const transponder_report_s &transpon
 		return false;
 	}
 
-	if (_active_daa_standard == detect_and_avoid_s::DAA_STANDARD_CROSSTRACK
-	    && !PX4_ISFINITE(transponder_report.heading)) {
+#if !defined(CONFIG_NAVIGATOR_ADSB_F3442) || !CONFIG_NAVIGATOR_ADSB_F3442
+
+	if (!PX4_ISFINITE(transponder_report.heading)) {
 		PX4_DEBUG("DAA: transponder data rejected, invalid heading.");
 		return false;
 	}
+
+#endif // !CONFIG_NAVIGATOR_ADSB_F3442
 
 	const hrt_abstime timeout_us = static_cast<hrt_abstime>(_param_daa_traff_tout.get()) * 1_s;
 
@@ -897,30 +901,13 @@ bool DetectAndAvoid::transponder_data_valid(const transponder_report_s &transpon
 
 bool DetectAndAvoid::transponder_flags_valid(const uint16_t flags) const
 {
-	uint16_t required_flags;
+	uint16_t required_flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS |
+				  transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE;
 
-	switch (_active_daa_standard) {
-	case detect_and_avoid_s::DAA_STANDARD_CROSSTRACK: {
-
-			required_flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS |
-					 transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING |
-					 transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY |
-					 transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE;
-			break;
-		}
-
-	case detect_and_avoid_s::DAA_STANDARD_F3442: {
-
-			required_flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS |
-					 transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE;
-			break;
-		}
-
-	default: {
-			PX4_DEBUG("DAA: invalid standard");
-			return false;
-		}
-	}
+#if !defined(CONFIG_NAVIGATOR_ADSB_F3442) || !CONFIG_NAVIGATOR_ADSB_F3442
+	required_flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING |
+			  transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY;
+#endif // !CONFIG_NAVIGATOR_ADSB_F3442
 
 	return ((flags & required_flags) == required_flags);
 }
@@ -1105,10 +1092,7 @@ DaaAction DetectAndAvoid::get_action_from_conflict_level(const uint8_t conflict_
 		return DaaAction::kDisabled;
 	}
 
-	if (_active_daa_standard != detect_and_avoid_s::DAA_STANDARD_F3442) {
-		return action_param_to_daa_action(_nav_traff_avoid_mode);
-	}
-
+#if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
 	// F3442 zones are nested from CRITICAL to LOW. If the action for the
 	// breached zone is disabled, fall back to the next larger breached zone.
 	DaaAction requested_action;
@@ -1146,6 +1130,9 @@ DaaAction DetectAndAvoid::get_action_from_conflict_level(const uint8_t conflict_
 	}
 
 	return DaaAction::kDisabled;
+#else
+	return action_param_to_daa_action(_nav_traff_avoid_mode);
+#endif // CONFIG_NAVIGATOR_ADSB_F3442
 }
 
 DaaAction DetectAndAvoid::action_param_to_daa_action(const int32_t action_param)

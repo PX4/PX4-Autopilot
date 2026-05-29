@@ -27,6 +27,16 @@ menuconfig NAVIGATOR_ADSB
 	---help---
 		Add support for acting on ADSB transponder_report or ADSB_VEHICLE MAVLink messages.
 		Actions are warnings, Loiter, Land and RTL without climb.
+		By default this builds the crosstrack-based DAA standard. If
+		NAVIGATOR_ADSB_F3442 is also enabled, the F3442 standard is built instead.
+
+menuconfig NAVIGATOR_ADSB_F3442
+	bool "Use ASTM F3442 traffic conflict evaluation"
+	default n
+	depends on NAVIGATOR_ADSB
+	---help---
+		Build the ASTM F3442-based Detect and Avoid standard instead of
+		the crosstrack-based traffic avoidance standard.
 
 menuconfig NAVIGATOR_GEOFENCE_AVOIDANCE
 	bool "Include geofence avoidance path planning for RTL"

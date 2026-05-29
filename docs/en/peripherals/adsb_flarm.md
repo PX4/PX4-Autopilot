@@ -85,12 +85,17 @@ You will now find a new parameter called [SER_TEL2_BAUD](../advanced_config/para
 
 ### Configure Traffic Avoidance
 
-PX4 supports two distinct detect-and-avoidance modes:
+PX4 supports two distinct detect-and-avoidance modes.
+The mode is selected when the firmware is built:
 
-- **Crosstrack mode** raises one conflict level and action when the current vehicle is close to the traffic's predicted track, vertically close, and within a configured collision-time threshold.
+- **Crosstrack mode** is built with `CONFIG_NAVIGATOR_ADSB`.
+  It raises one conflict level and action when the current vehicle is close to the traffic's predicted track, vertically close, and within a configured collision-time threshold.
   This is the avoidance mode historically supported by PX4.
-- **F3442 mode** evaluates traffic against four alert volumes with corresponding distinct actions.
+- **F3442 mode** is built with `CONFIG_NAVIGATOR_ADSB_F3442`.
+  It evaluates traffic against four alert volumes with corresponding distinct actions.
   It provides avoidance management that complies with the _ASTM F3442 standard_.
+
+If both are enabled, F3442 is used.
 
 For the detailed behavior of each conflict model, see [Detect and Avoid > Conflict Standards](../advanced_features/detect_and_avoid.md#conflict-standards) and [Detect and Avoid > Automated Actions](../advanced_features/detect_and_avoid.md#automated-actions).
 
@@ -101,14 +106,12 @@ Start by setting these parameters:
 | Parameter                               | Description                                             |
 | --------------------------------------- | ------------------------------------------------------- |
 | <a id="DAA_EN"></a>[DAA_EN]             | Enables or disables DAA.                                |
-| <a id="DAA_STANDARD"></a>[DAA_STANDARD] | Select the DAA mode: `0` = `Crosstrack`, `1` = `F3442`. |
 
 [DAA_EN]: ../advanced_config/parameter_reference.md#DAA_EN
-[DAA_STANDARD]: ../advanced_config/parameter_reference.md#DAA_STANDARD
 
 #### Crosstrack
 
-Set `DAA_STANDARD = 0` if you want the single-threshold traffic avoidance behavior.
+Use firmware built without `CONFIG_NAVIGATOR_ADSB_F3442` if you want the single-threshold traffic avoidance behavior.
 
 | Parameter                                       | Description                                                                                                                                   |
 | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -126,7 +129,7 @@ Set `DAA_STANDARD = 0` if you want the single-threshold traffic avoidance behavi
 
 <Badge type="tip" text="PX4 v1.18" />
 
-Use `DAA_STANDARD = 1` if you want staged alerting based on ASTM F3442/F3442M-23 volumes.
+Use firmware built with `CONFIG_NAVIGATOR_ADSB_F3442` if you want staged alerting based on ASTM F3442/F3442M-23 volumes.
 
 <!--
 ![volumes](../../assets/advanced/astmf3442.png)
@@ -167,7 +170,7 @@ A conflict level is breached when both the horizontal and vertical separation ar
 [DAA_EN_DFLT_VEL]: ../advanced_config/parameter_reference.md#DAA_EN_DFLT_VEL
 [DAA_DFLT_VEL]: ../advanced_config/parameter_reference.md#DAA_DFLT_VEL
 
-Changing `NAV_TRAFF_AVOID` or `DAA_LVL_*_ACT` at runtime does not re-evaluate already buffered conflicts.
+Changing the action parameter for the built standard at runtime does not re-evaluate already buffered conflicts.
 The updated setting is used on later conflict transitions, and automatic mode changes are only issued on escalation.
 
 These parameters use the same action scale:

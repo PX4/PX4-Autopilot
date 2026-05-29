@@ -508,26 +508,30 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::DAA_EN>) _param_daa_en,
-		(ParamFloat<px4::params::DAA_DFLT_VEL>) _param_daa_dflt_vel,
-		(ParamInt<px4::params::DAA_EN_DFLT_VEL>) _param_daa_en_dflt_vel,
-		(ParamInt<px4::params::DAA_STANDARD>) _param_daa_standard,
 		(ParamInt<px4::params::DAA_NOTIF_STATE>) _param_daa_notif_state,
 		(ParamInt<px4::params::DAA_TRAFF_TOUT>) _param_daa_traff_tout,
+#if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
+		(ParamFloat<px4::params::DAA_DFLT_VEL>) _param_daa_dflt_vel,
+		(ParamInt<px4::params::DAA_EN_DFLT_VEL>) _param_daa_en_dflt_vel,
 		(ParamInt<px4::params::DAA_LVL_LOW_ACT>) _param_daa_lvl_low_act,
 		(ParamInt<px4::params::DAA_LVL_MED_ACT>) _param_daa_lvl_med_act,
 		(ParamInt<px4::params::DAA_LVL_HIGH_ACT>) _param_daa_lvl_high_act,
 		(ParamInt<px4::params::DAA_LVL_CRIT_ACT>) _param_daa_lvl_crit_act,
+#else
 		(ParamInt<px4::params::NAV_TRAFF_AVOID>) _param_nav_traff_avoid,
+#endif // CONFIG_NAVIGATOR_ADSB_F3442
 		(ParamInt<px4::params::ADSB_ICAO_ID>)		_vehicle_adsb_icao,
 		(ParamInt<px4::params::ADSB_ICAO_ID_2>)		_vehicle_adsb_icao_2,
 		(ParamInt<px4::params::ADSB_CALLSIGN_1>)		_vehicle_adsb_callsign_1,
 		(ParamInt<px4::params::ADSB_CALLSIGN_2>)		_vehicle_adsb_callsign_2
 	)
 
-	uint8_t _active_daa_standard{detect_and_avoid_s::DAA_STANDARD_F3442};
-	int32_t _daa_lvl_low_action_param{1};
+#if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
+	int32_t _daa_lvl_low_action_param {1};
 	int32_t _daa_lvl_med_action_param{1};
 	int32_t _daa_lvl_high_action_param{1};
 	int32_t _daa_lvl_crit_action_param{1};
-	int32_t _nav_traff_avoid_mode{1};
+#else
+	int32_t _nav_traff_avoid_mode {1};
+#endif // CONFIG_NAVIGATOR_ADSB_F3442
 };

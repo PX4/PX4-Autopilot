@@ -37,8 +37,11 @@
 #include <stdint.h>
 
 #include <lib/geo/geo.h>
+#if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
 #include "f3442_standard/DaaF3442.h"
+#else
 #include "crosstrack_based_daa/DaaCrosstrack.h"
+#endif
 #include "DaaHelper.h"
 #include <matrix/math.hpp>
 
@@ -56,9 +59,6 @@ public:
 	AdsbConflict() = default;
 	~AdsbConflict() = default;
 
-	/** @brief Pick the active DAA standard. Returns false if @p standard is unknown. */
-	bool try_setting_DAA_standard(const uint8_t standard);
-
 	/** @brief Fill an aircraft_state_s from a raw transponder report. */
 	void transponder_report_to_aircraft_state(const transponder_report_s &transponder_report,
 			aircraft_state_s &traffic_state);
@@ -67,21 +67,21 @@ public:
 	void uav_state_to_aircraft_state(const matrix::Vector2d &uav_lat_lon, const float uav_alt, const float uav_heading,
 					 const matrix::Vector3f &uav_vel_ned, aircraft_state_s &uav_state);
 
-	/** @brief Using the active standard compute the traffic conflict level. */
+	/** @brief Using the built DAA standard compute the traffic conflict level. */
 	uint8_t calculate_daa_stats(const aircraft_state_s &uav_state, const aircraft_state_s &traffic_state,
 				    daa_stats_s &daa_stats);
 
 	/**
-	 * @brief Validate the ownship + transponder inputs and run them through the active standard.
+	 * @brief Validate the ownship + transponder inputs and run them through the built standard.
 	 *
-	 * Returns false on non-finite inputs or when the active standard needs a heading
+	 * Returns false on non-finite inputs or when the built standard needs a heading
 	 * that the report does not provide.
 	 */
 	bool handle_traffic(const matrix::Vector2d &uav_lat_lon, const float uav_alt,
 			    const float uav_heading,
 			    const matrix::Vector3f &uav_vel_ned, const transponder_report_s &transponder_report, detect_and_avoid_s &daa_output);
 
-	/** @brief Refresh the active standard's parameter cache. Returns false on any invalid value. */
+	/** @brief Refresh the built standard's parameter cache. Returns false on any invalid value. */
 	bool try_updating_params();
 
 private:
@@ -94,8 +94,9 @@ private:
 	 */
 	static matrix::Vector3f velocity_ned_from_transponder_report(const transponder_report_s &transponder_report);
 
-	DaaF3442 _daaF3442;
-	DaaCrosstrack _daaCrosstrack;
-
-	uint8_t _daa_standard{detect_and_avoid_s::DAA_STANDARD_F3442};
+#if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
+	DaaF3442 _daa;
+#else
+	DaaCrosstrack _daa;
+#endif
 };

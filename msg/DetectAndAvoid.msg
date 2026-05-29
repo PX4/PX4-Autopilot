@@ -17,9 +17,6 @@ uint8 DAA_CONFLICT_LVL_MEDIUM = 2
 uint8 DAA_CONFLICT_LVL_HIGH = 3
 uint8 DAA_CONFLICT_LVL_CRITICAL = 4
 
-uint8 DAA_STANDARD_CROSSTRACK = 0
-uint8 DAA_STANDARD_F3442 = 1 # ASTM F3442/F3442M-based conflict evaluation
-
 uint8 UNIQUE_ID_ENCODING_ICAO = 0 # `unique_id` contains an ICAO address
 uint8 UNIQUE_ID_ENCODING_ADSB_CALLSIGN = 1 # `unique_id` contains an ADS-B callsign packed into a `uint64`
 uint8 UNIQUE_ID_ENCODING_UAS_ID = 2 # `unique_id` contains the reduced tail bytes of a UAS ID

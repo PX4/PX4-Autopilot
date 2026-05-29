@@ -45,8 +45,13 @@ px4_add_library(detect_and_avoid ${detect_and_avoid_srcs})
 
 set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/detect_and_avoid_params.yaml)
 
+if(CONFIG_NAVIGATOR_ADSB_F3442)
+	set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/detect_and_avoid_f3442_params.yaml)
+endif()
+
 target_link_libraries(detect_and_avoid PUBLIC adsb modules__navigator modules__dataman)
 
+# The functional tests drive use the fake-traffic injector
 if(CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC)
-	px4_add_functional_gtest(SRC detect_and_avoid_test.cpp LINKLIBS detect_and_avoid)
+	add_subdirectory(test)
 endif()
