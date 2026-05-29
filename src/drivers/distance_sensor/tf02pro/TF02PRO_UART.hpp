@@ -76,10 +76,10 @@ private:
 	PX4Rangefinder _px4_rangefinder;
 
 	TF02PRO_PARSE_STATE _parse_state{TF02PRO_PARSE_STATE::STATE0_UNSYNC};
-	uint8_t  _uart_buf[9]{};
+	uint8_t  _uart_buf[9] {};
 	unsigned _uart_buf_idx{0};
 
-	char _port[20]{};
+	char _port[20] {};
 
 	// Sensor configured at 250 Hz; poll slightly faster to catch every frame
 	static constexpr int kCONVERSIONINTERVAL{4_ms};

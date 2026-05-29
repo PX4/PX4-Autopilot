@@ -140,6 +140,7 @@ extern "C" __EXPORT int tf02pro_main(int argc, char *argv[])
 	// changed to Disabled after a UART instance was already started.
 	if (tf02pro::g_dev_uart != nullptr) {
 		if (!strcmp(verb, "stop"))   { return tf02pro::uart_stop(); }
+
 		if (!strcmp(verb, "status")) { return tf02pro::uart_status(); }
 	}
 
@@ -151,6 +152,7 @@ extern "C" __EXPORT int tf02pro_main(int argc, char *argv[])
 		if (!strcmp(verb, "start")) {
 			PX4_WARN("Driver disabled via SENS_EN_TF02PRO parameter.");
 		}
+
 		return PX4_OK;
 	}
 
@@ -167,9 +169,11 @@ extern "C" __EXPORT int tf02pro_main(int argc, char *argv[])
 			case 'R':
 				rotation = (uint8_t)atoi(myoptarg);
 				break;
+
 			case 'd':
 				dev_path = myoptarg;
 				break;
+
 			default:
 				PX4_WARN("Unknown option!");
 				return PX4_ERROR;
@@ -184,7 +188,9 @@ extern "C" __EXPORT int tf02pro_main(int argc, char *argv[])
 		const char *uart_verb = argv[myoptind];
 
 		if (!strcmp(uart_verb, "start"))  { return tf02pro::uart_start(dev_path, rotation); }
+
 		if (!strcmp(uart_verb, "stop"))   { return tf02pro::uart_stop(); }
+
 		if (!strcmp(uart_verb, "status")) { return tf02pro::uart_status(); }
 
 		TF02PRO::print_usage();
@@ -204,6 +210,7 @@ extern "C" __EXPORT int tf02pro_main(int argc, char *argv[])
 			case 'R':
 				cli.rotation = (Rotation)atoi(cli.optArg());
 				break;
+
 			case 'd':
 				/* ignored in I2C mode */
 				break;
@@ -220,7 +227,9 @@ extern "C" __EXPORT int tf02pro_main(int argc, char *argv[])
 		BusInstanceIterator iterator(MODULE_NAME, cli, DRV_DIST_DEVTYPE_TF02PRO);
 
 		if (!strcmp(i2c_verb, "start"))  { return ThisDriver::module_start(cli, iterator); }
+
 		if (!strcmp(i2c_verb, "stop"))   { return ThisDriver::module_stop(iterator); }
+
 		if (!strcmp(i2c_verb, "status")) { return ThisDriver::module_status(iterator); }
 
 		ThisDriver::print_usage();

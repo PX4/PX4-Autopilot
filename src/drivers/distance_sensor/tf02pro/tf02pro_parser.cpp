@@ -47,26 +47,31 @@ int tf02pro_parse(uint8_t c, uint8_t *buf, unsigned *buf_idx,
 	switch (*state) {
 
 	case TF02PRO_PARSE_STATE::STATE9_GOT_CHECKSUM:
-		// Fall through — re-sync immediately after a completed frame
+
+	// Fall through — re-sync immediately after a completed frame
 	case TF02PRO_PARSE_STATE::STATE0_UNSYNC:
 		if (c == 0x59) {
 			*state    = TF02PRO_PARSE_STATE::STATE1_SYNC_1;
 			buf[0]    = c;
 			*buf_idx  = 1;
+
 		} else {
 			*state   = TF02PRO_PARSE_STATE::STATE0_UNSYNC;
 			*buf_idx = 0;
 		}
+
 		break;
 
 	case TF02PRO_PARSE_STATE::STATE1_SYNC_1:
 		if (c == 0x59) {
 			*state = TF02PRO_PARSE_STATE::STATE2_SYNC_2;
 			buf[(*buf_idx)++] = c;   // buf[1] = 0x59
+
 		} else {
 			*state   = TF02PRO_PARSE_STATE::STATE0_UNSYNC;
 			*buf_idx = 0;
 		}
+
 		break;
 
 	case TF02PRO_PARSE_STATE::STATE2_SYNC_2:         // collect Dist_L → buf[2]
@@ -100,31 +105,32 @@ int tf02pro_parse(uint8_t c, uint8_t *buf, unsigned *buf_idx,
 		break;
 
 	case TF02PRO_PARSE_STATE::STATE8_GOT_TEMP_H: {   // receive + validate checksum (byte[8])
-		uint8_t cksm = 0;
-		for (int i = 0; i < 8; i++) {
-			cksm += buf[i];
-		}
+			uint8_t cksm = 0;
 
-		if (c == cksm) {
-			uint16_t distance_cm = (uint16_t)buf[3] << 8 | buf[2];
-			uint16_t strength    = (uint16_t)buf[5] << 8 | buf[4];
-
-			// Both filters from the existing I2C collect()
-			if (strength >= 60u && distance_cm < 4500u) {
-				*dist = distance_cm * 1e-2f;
-				ret   = 0;
+			for (int i = 0; i < 8; i++) {
+				cksm += buf[i];
 			}
 
-			*state = TF02PRO_PARSE_STATE::STATE9_GOT_CHECKSUM;
+			if (c == cksm) {
+				uint16_t distance_cm = (uint16_t)buf[3] << 8 | buf[2];
+				uint16_t strength    = (uint16_t)buf[5] << 8 | buf[4];
 
-		} else {
-			// Checksum mismatch — discard frame, attempt re-sync
-			*state = TF02PRO_PARSE_STATE::STATE0_UNSYNC;
+				// Both filters from the existing I2C collect()
+				if (strength >= 60u && distance_cm < 4500u) {
+					*dist = distance_cm * 1e-2f;
+					ret   = 0;
+				}
+
+				*state = TF02PRO_PARSE_STATE::STATE9_GOT_CHECKSUM;
+
+			} else {
+				// Checksum mismatch — discard frame, attempt re-sync
+				*state = TF02PRO_PARSE_STATE::STATE0_UNSYNC;
+			}
+
+			*buf_idx = 0;
+			break;
 		}
-
-		*buf_idx = 0;
-		break;
-	}
 
 	} // end switch
 

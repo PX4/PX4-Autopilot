@@ -54,7 +54,7 @@ int main()
 	std::cout << "[INFO] Starting TF02 Pro Parser Unit Tests..." << std::endl;
 
 	TF02PRO_PARSE_STATE state = TF02PRO_PARSE_STATE::STATE0_UNSYNC;
-	uint8_t buf[9]{};
+	uint8_t buf[9] {};
 	unsigned buf_idx = 0;
 	float distance = -1.0f;
 
@@ -112,16 +112,19 @@ int main()
 		int result = -1;
 
 		std::cout << "[DEBUG] Test 3 byte-by-byte states:" << std::endl;
+
 		for (int i = 0; i < 9; i++) {
 			result = tf02pro_parse(weak_frame[i], buf, &buf_idx, &state, &distance);
-			std::cout << "  Byte " << i << " (" << std::hex << (int)weak_frame[i] 
-			          << "): state=" << std::dec << (int)state 
-			          << ", buf_idx=" << buf_idx << std::endl;
+			std::cout << "  Byte " << i << " (" << std::hex << (int)weak_frame[i]
+				  << "): state=" << std::dec << (int)state
+				  << ", buf_idx=" << buf_idx << std::endl;
 		}
 
 		std::cout << "  Result: " << result << std::endl;
 		std::cout << "  Buffer content: ";
-		for (int i = 0; i < 9; i++) std::cout << std::hex << (int)buf[i] << " ";
+
+		for (int i = 0; i < 9; i++) { std::cout << std::hex << (int)buf[i] << " "; }
+
 		std::cout << std::dec << std::endl;
 
 		assert(result == -1); // Checksum matches, but strength < 60 -> filtered

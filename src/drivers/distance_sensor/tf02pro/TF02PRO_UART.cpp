@@ -154,7 +154,7 @@ int TF02PRO_UART::collect()
 		return 0;
 	}
 
-	uint8_t readbuf[9]{};
+	uint8_t readbuf[9] {};
 	int64_t read_elapsed = hrt_elapsed_time(&_last_read);
 	int     ret          = 0;
 	float   distance_m   = -1.0f;
