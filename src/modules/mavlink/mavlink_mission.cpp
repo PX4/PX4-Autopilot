@@ -60,9 +60,12 @@ using matrix::wrap_2pi;
 dm_item_t MavlinkMissionManager::_mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
 dm_item_t MavlinkMissionManager::_safepoint_dataman_id = DM_KEY_SAFE_POINTS_0;
 dm_item_t MavlinkMissionManager::_fence_dataman_id = DM_KEY_FENCE_POINTS_0;
+uint8_t MavlinkMissionManager::_corridor_dataman_id = 0;
+uint16_t MavlinkMissionManager::_corridor_node_count = 0;
+uint16_t MavlinkMissionManager::_corridor_edge_count = 0;
 bool MavlinkMissionManager::_dataman_init = false;
-uint16_t MavlinkMissionManager::_count[3] = { 0, 0, 0 };
-uint32_t MavlinkMissionManager::_crc32[3] = { 0, 0, 0 };
+uint16_t MavlinkMissionManager::_count[4] = { 0, 0, 0, 0 };
+uint32_t MavlinkMissionManager::_crc32[4] = { 0, 0, 0, 0 };
 int32_t MavlinkMissionManager::_current_seq = 0;
 bool MavlinkMissionManager::_transfer_in_progress = false;
 constexpr uint16_t MavlinkMissionManager::MAX_COUNT[];
@@ -86,6 +89,7 @@ MavlinkMissionManager::MavlinkMissionManager(Mavlink &mavlink) :
 			init_offboard_mission(mission_state);
 			load_geofence_stats();
 			load_safepoint_stats();
+			load_corridor_stats();
 
 		} else {
 			PX4_WARN("offboard mission init failed");
@@ -98,6 +102,7 @@ MavlinkMissionManager::MavlinkMissionManager(Mavlink &mavlink) :
 	_my_mission_dataman_id = _mission_dataman_id;
 	_my_fence_dataman_id = _fence_dataman_id;
 	_my_safepoint_dataman_id = _safepoint_dataman_id;
+	_my_corridor_dataman_id = _corridor_dataman_id;
 }
 
 void
@@ -148,6 +153,32 @@ MavlinkMissionManager::load_safepoint_stats()
 	return success;
 }
 
+bool
+MavlinkMissionManager::load_corridor_stats()
+{
+	mission_stats_entry_s stats;
+	bool success = _dataman_client.readSync(DM_KEY_CORRIDOR_NODES_STATE, 0,
+						reinterpret_cast<uint8_t *>(&stats), sizeof(mission_stats_entry_s));
+
+	if (success) {
+		_corridor_node_count = stats.num_items;
+		_corridor_dataman_id = (stats.dataman_id == DM_KEY_CORRIDOR_NODES_0) ? 0 : 1;
+		_my_corridor_dataman_id = _corridor_dataman_id;
+		_crc32[MAV_MISSION_TYPE_CORRIDOR] = stats.opaque_id;
+	}
+
+	mission_stats_entry_s edge_stats;
+	bool edge_success = _dataman_client.readSync(DM_KEY_CORRIDOR_EDGES_STATE, 0,
+			    reinterpret_cast<uint8_t *>(&edge_stats), sizeof(mission_stats_entry_s));
+
+	if (edge_success) {
+		_corridor_edge_count = edge_stats.num_items;
+	}
+
+	_count[MAV_MISSION_TYPE_CORRIDOR] = _corridor_node_count + _corridor_edge_count;
+	return success && edge_success;
+}
+
 /**
  * Publish mission topic to notify navigator about changes.
  */
@@ -167,11 +198,13 @@ MavlinkMissionManager::update_active_mission(dm_item_t mission_dataman_id, uint1
 	mission.mission_dataman_id = mission_dataman_id;
 	mission.fence_dataman_id = _fence_dataman_id;
 	mission.safepoint_dataman_id = _safepoint_dataman_id;
+	mission.corridor_dataman_id = _corridor_dataman_id;
 	mission.count = count;
 	mission.current_seq = seq;
 	mission.mission_id = _crc32[MAV_MISSION_TYPE_MISSION];
 	mission.geofence_id = _crc32[MAV_MISSION_TYPE_FENCE];
 	mission.safe_points_id = _crc32[MAV_MISSION_TYPE_RALLY];
+	mission.corridor_graph_id = _crc32[MAV_MISSION_TYPE_CORRIDOR];
 	mission.land_start_index = _land_start_marker;
 	mission.land_index = _land_marker;
 
@@ -259,6 +292,50 @@ MavlinkMissionManager::update_safepoint_count(dm_item_t safepoint_dataman_id, un
 	return PX4_OK;
 }
 
+int
+MavlinkMissionManager::update_corridor_count(uint8_t corridor_dataman_id, unsigned node_count,
+		unsigned edge_count, uint32_t crc32)
+{
+	_corridor_dataman_id = corridor_dataman_id;
+	_my_corridor_dataman_id = corridor_dataman_id;
+	_corridor_node_count = node_count;
+	_corridor_edge_count = edge_count;
+
+	dm_item_t node_dm_key = (corridor_dataman_id == 0) ? DM_KEY_CORRIDOR_NODES_0 : DM_KEY_CORRIDOR_NODES_1;
+	dm_item_t edge_dm_key = (corridor_dataman_id == 0) ? DM_KEY_CORRIDOR_EDGES_0 : DM_KEY_CORRIDOR_EDGES_1;
+
+	mission_stats_entry_s stats;
+	stats.num_items = node_count;
+	stats.opaque_id = crc32;
+	stats.dataman_id = node_dm_key;
+
+	bool success = _dataman_client.writeSync(DM_KEY_CORRIDOR_NODES_STATE, 0,
+			reinterpret_cast<uint8_t *>(&stats), sizeof(mission_stats_entry_s));
+
+	stats.num_items = edge_count;
+	stats.dataman_id = edge_dm_key;
+	success = _dataman_client.writeSync(DM_KEY_CORRIDOR_EDGES_STATE, 0,
+					    reinterpret_cast<uint8_t *>(&stats), sizeof(mission_stats_entry_s)) && success;
+
+	if (success) {
+		_count[MAV_MISSION_TYPE_CORRIDOR] = node_count + edge_count;
+		_crc32[MAV_MISSION_TYPE_CORRIDOR] = crc32;
+
+	} else {
+		if (_filesystem_errcount++ < FILESYSTEM_ERRCOUNT_NOTIFY_LIMIT) {
+			_mavlink.send_statustext_critical("Mission storage: Unable to write to microSD\t");
+			events::send(events::ID("mavlink_mission_storage_write_failure4"), events::Log::Critical,
+				     "Mission: Unable to write to storage");
+		}
+
+		return PX4_ERROR;
+	}
+
+	update_active_mission(_mission_dataman_id, _count[MAV_MISSION_TYPE_MISSION], _current_seq,
+			      _crc32[MAV_MISSION_TYPE_MISSION], false);
+	return PX4_OK;
+}
+
 void
 MavlinkMissionManager::send_mission_ack(uint8_t sysid, uint8_t compid, uint8_t type, uint32_t opaque_id)
 {
@@ -289,6 +366,7 @@ MavlinkMissionManager::send_mission_current(uint16_t seq)
 	wpc.mission_id = _crc32[MAV_MISSION_TYPE_MISSION];
 	wpc.fence_id = _crc32[MAV_MISSION_TYPE_FENCE];
 	wpc.rally_points_id = _crc32[MAV_MISSION_TYPE_RALLY];
+	wpc.corridor_id = _crc32[MAV_MISSION_TYPE_CORRIDOR];
 	mavlink_msg_mission_current_send_struct(_mavlink.get_channel(), &wpc);
 
 	PX4_DEBUG("WPM: Send MISSION_CURRENT seq %d", seq);
@@ -353,6 +431,36 @@ MavlinkMissionManager::send_mission_item(uint8_t sysid, uint8_t compid, uint16_t
 								sizeof(mission_item_s));
 		}
 		break;
+
+	case MAV_MISSION_TYPE_CORRIDOR: {
+			dm_item_t node_key = (_corridor_dataman_id == 0) ? DM_KEY_CORRIDOR_NODES_0 : DM_KEY_CORRIDOR_NODES_1;
+			dm_item_t edge_key = (_corridor_dataman_id == 0) ? DM_KEY_CORRIDOR_EDGES_0 : DM_KEY_CORRIDOR_EDGES_1;
+
+			if (seq < _corridor_node_count) {
+				mission_corridor_node_s node{};
+				read_success = _dataman_client.readSync(node_key, seq,
+									reinterpret_cast<uint8_t *>(&node), sizeof(mission_corridor_node_s));
+				mission_item.nav_cmd = MAV_CMD_NAV_CORRIDOR_NODE;
+				mission_item.frame = MAV_FRAME_GLOBAL;
+				mission_item.lat = node.lat;
+				mission_item.lon = node.lon;
+				mission_item.altitude = node.alt;
+				mission_item.params[0] = node.type;
+
+			} else {
+				mission_corridor_edge_s edge{};
+				read_success = _dataman_client.readSync(edge_key, seq - _corridor_node_count,
+									reinterpret_cast<uint8_t *>(&edge), sizeof(mission_corridor_edge_s));
+				mission_item.nav_cmd = MAV_CMD_NAV_CORRIDOR_EDGE;
+				mission_item.frame = MAV_FRAME_GLOBAL;
+				mission_item.params[0] = edge.node_from;
+				mission_item.params[1] = edge.node_to;
+				mission_item.params[2] = edge.static_cost;
+			}
+
+			break;
+		}
+
 
 	default:
 		_mavlink.send_statustext_critical("Received unknown mission type, abort.\t");
@@ -964,6 +1072,10 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 							       0);
 					break;
 
+				case MAV_MISSION_TYPE_CORRIDOR:
+					update_corridor_count(_corridor_dataman_id ^ 1, 0, 0, 0);
+					break;
+
 				default:
 					PX4_ERR("mission type %u not handled", _mission_type);
 					break;
@@ -990,6 +1102,13 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 			case MAV_MISSION_TYPE_RALLY:
 				_transfer_dataman_id = (_safepoint_dataman_id == DM_KEY_SAFE_POINTS_0 ? DM_KEY_SAFE_POINTS_1 :
 							DM_KEY_SAFE_POINTS_0);	// use inactive storage for transmission
+				break;
+
+			case MAV_MISSION_TYPE_CORRIDOR:
+				_transfer_corridor_dataman_id = _corridor_dataman_id ^ 1;
+				_transfer_node_count = 0;
+				_transfer_edge_count = 0;
+				_transfer_corridor_nest_count = 0;
 				break;
 
 			default:
@@ -1126,6 +1245,154 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 				events::send(events::ID("mavlink_mission_mis_item_busy"), events::Log::Error,
 					     "Ignoring mission item, busy");
 				send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
+				return;
+			}
+
+			// Corridor items bypass parse_mavlink_mission_item — edge items have no frame/location
+			if (_mission_type == MAV_MISSION_TYPE_CORRIDOR) {
+				_transfer_current_crc32 = crc32_for_mission_item(wp, _transfer_current_crc32);
+
+				dm_item_t node_key = (_transfer_corridor_dataman_id == 0) ? DM_KEY_CORRIDOR_NODES_0 : DM_KEY_CORRIDOR_NODES_1;
+				dm_item_t edge_key = (_transfer_corridor_dataman_id == 0) ? DM_KEY_CORRIDOR_EDGES_0 : DM_KEY_CORRIDOR_EDGES_1;
+				bool write_failed = false;
+
+				// MISSION_ITEM (float) and MISSION_ITEM_INT (int32) share the same layout
+				// except for the x/y fields. wp was decoded as float above, so in int mode
+				// decode the int variant to avoid reinterpreting the lat/lon int32 as float.
+				double item_lat;
+				double item_lon;
+				float item_alt = wp.z;
+				float item_param1 = wp.param1;
+				float item_param2 = wp.param2;
+				float item_param3 = wp.param3;
+
+				if (_int_mode) {
+					mavlink_mission_item_int_t wpi;
+					mavlink_msg_mission_item_int_decode(msg, &wpi);
+					item_lat = (double)wpi.x * 1e-7;
+					item_lon = (double)wpi.y * 1e-7;
+					item_alt = wpi.z;
+					item_param1 = wpi.param1;
+					item_param2 = wpi.param2;
+					item_param3 = wpi.param3;
+
+				} else {
+					// float mode: x/y are already in degrees
+					item_lat = wp.x;
+					item_lon = wp.y;
+				}
+
+				if (wp.command == MAV_CMD_NAV_CORRIDOR_NODE) {
+					// Nodes must precede edges: edges form a contiguous block after the
+					// nodes so the indexing of the nodes is consistent.
+					if (_transfer_edge_count > 0) {
+						PX4_ERR("corridor upload rejected: node at seq %u after an edge (nodes must precede edges)", wp.seq);
+						_mavlink.send_statustext_critical("Corridor graph rejected: nodes must precede edges\t");
+						send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_INVALID);
+						switch_to_idle_state();
+						_transfer_in_progress = false;
+						return;
+					}
+
+					mission_corridor_node_s node{};
+					node.lat  = item_lat;
+					node.lon  = item_lon;
+					node.alt  = item_alt;
+					node.type = (uint8_t)item_param1;
+					write_failed = !_dataman_client.writeSync(node_key, _transfer_node_count,
+							reinterpret_cast<uint8_t *>(&node), sizeof(mission_corridor_node_s));
+
+					if (!write_failed) {
+						_transfer_node_count++;
+
+						if (node.type == (uint8_t)CorridorNodeType::Nest) {
+							_transfer_corridor_nest_count++;
+						}
+					}
+
+				} else if (wp.command == MAV_CMD_NAV_CORRIDOR_EDGE) {
+					mission_corridor_edge_s edge{};
+					edge.node_from   = (uint16_t)item_param1;
+					edge.node_to     = (uint16_t)item_param2;
+					edge.static_cost = item_param3;
+
+					// Edges must reference already-uploaded nodes. Because all nodes
+					// precede all edges, _transfer_node_count is final here; this also
+					// rejects an edge sent before any node (its indices are out of range).
+					if (edge.node_from >= _transfer_node_count || edge.node_to >= _transfer_node_count) {
+						PX4_ERR("corridor upload rejected: edge %" PRIu16 "->%" PRIu16 " references node >= count %" PRIu16,
+							edge.node_from, edge.node_to, _transfer_node_count);
+						_mavlink.send_statustext_critical("Corridor graph rejected: edge references unknown node\t");
+						send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_INVALID);
+						switch_to_idle_state();
+						_transfer_in_progress = false;
+						return;
+					}
+
+					write_failed = !_dataman_client.writeSync(edge_key, _transfer_edge_count,
+							reinterpret_cast<uint8_t *>(&edge), sizeof(mission_corridor_edge_s));
+
+					if (!write_failed) { _transfer_edge_count++; }
+
+				} else {
+					send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_INVALID);
+					switch_to_idle_state();
+					_transfer_in_progress = false;
+					return;
+				}
+
+				if (write_failed) {
+					_mavlink.send_statustext_critical("Unable to write on micro SD\t");
+					events::send(events::ID("mavlink_mission_corridor_storage_failure"), events::Log::Error,
+						     "Mission: unable to write corridor item to storage");
+					send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
+					switch_to_idle_state();
+					_transfer_in_progress = false;
+					return;
+				}
+
+				_transfer_seq = wp.seq + 1;
+
+				if (_transfer_seq == _transfer_count) {
+					// A non-empty corridor graph must define exactly one nest (Home node).
+					// An empty graph (no nodes) is a valid "clear", so it is exempt. Reject
+					// otherwise: the just-written buffer is left uncommitted (we skip
+					// update_corridor_count), so the active graph is untouched.
+					if (_transfer_node_count > 0 && _transfer_corridor_nest_count != 1) {
+						PX4_ERR("corridor upload rejected: graph must have exactly one nest, got %" PRIu16,
+							_transfer_corridor_nest_count);
+						_mavlink.send_statustext_critical("Corridor graph rejected: needs exactly one nest\t");
+						events::send<uint16_t>(events::ID("mavlink_mission_corridor_nest_count"), events::Log::Error,
+								       "Corridor graph rejected: must have exactly one nest, got {1}",
+								       _transfer_corridor_nest_count);
+						send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_INVALID);
+						switch_to_idle_state();
+						_transfer_in_progress = false;
+						return;
+					}
+
+					int ret;
+
+					if (_transfer_current_crc32 != _crc32[MAV_MISSION_TYPE_CORRIDOR]) {
+						ret = update_corridor_count(_transfer_corridor_dataman_id,
+									    _transfer_node_count, _transfer_edge_count,
+									    _transfer_current_crc32);
+
+					} else {
+						PX4_INFO("corridor upload: graph unchanged (crc=%" PRIu32 "), skipping dataman write", _transfer_current_crc32);
+						ret = PX4_OK;
+					}
+
+					switch_to_idle_state();
+					send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid,
+							 ret == PX4_OK ? MAV_MISSION_ACCEPTED : MAV_MISSION_ERROR,
+							 _transfer_current_crc32);
+					_transfer_in_progress = false;
+
+				} else {
+					send_mission_request(_transfer_partner_sysid, _transfer_partner_compid, _transfer_seq);
+				}
+
 				return;
 			}
 
@@ -1366,6 +1633,10 @@ MavlinkMissionManager::handle_mission_clear_all(const mavlink_message_t *msg)
 							     DM_KEY_SAFE_POINTS_0, 0, 0);
 				break;
 
+			case MAV_MISSION_TYPE_CORRIDOR:
+				ret = update_corridor_count(_corridor_dataman_id ^ 1, 0, 0, 0);
+				break;
+
 			case MAV_MISSION_TYPE_ALL:
 				_land_start_marker = -1;
 				_land_marker = -1;
@@ -1375,6 +1646,7 @@ MavlinkMissionManager::handle_mission_clear_all(const mavlink_message_t *msg)
 							    0, 0);
 				ret = update_safepoint_count(_safepoint_dataman_id == DM_KEY_SAFE_POINTS_0 ? DM_KEY_SAFE_POINTS_1 :
 							     DM_KEY_SAFE_POINTS_0, 0, 0) || ret;
+				ret = update_corridor_count(_corridor_dataman_id ^ 1, 0, 0, 0) || ret;
 				break;
 
 			default:
@@ -1838,6 +2110,16 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 		case MAV_CMD_NAV_RALLY_POINT:
 			break;
 
+		case MAV_CMD_NAV_CORRIDOR_NODE:
+			mavlink_mission_item->param1 = mission_item->params[0];   // node type
+			break;
+
+		case MAV_CMD_NAV_CORRIDOR_EDGE:
+			mavlink_mission_item->param1 = mission_item->params[0];   // node_from
+			mavlink_mission_item->param2 = mission_item->params[1];   // node_to
+			mavlink_mission_item->param3 = mission_item->params[2];   // static_cost
+			break;
+
 
 		default:
 			return PX4_ERROR;
@@ -1899,6 +2181,11 @@ void MavlinkMissionManager::check_active_mission()
 		if ((_mission_sub.get().safe_points_id != _crc32[MAV_MISSION_TYPE_RALLY])
 		    || (_my_safepoint_dataman_id != (dm_item_t) _mission_sub.get().safepoint_dataman_id)) {
 			load_safepoint_stats();
+		}
+
+		if ((_mission_sub.get().corridor_graph_id != _crc32[MAV_MISSION_TYPE_CORRIDOR])
+		    || (_my_corridor_dataman_id != _mission_sub.get().corridor_dataman_id)) {
+			load_corridor_stats();
 		}
 
 		if ((_mission_sub.get().mission_id != _crc32[MAV_MISSION_TYPE_MISSION])

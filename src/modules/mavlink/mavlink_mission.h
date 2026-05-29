@@ -121,21 +121,30 @@ private:
 	static dm_item_t	_mission_dataman_id;			///< Global Dataman storage ID for active mission
 	static dm_item_t 	_safepoint_dataman_id; 			///< Global dataman storage id for active safepoints
 	static dm_item_t 	_fence_dataman_id; 			///< Global dataman storage id for active geofence
+	static uint8_t		_corridor_dataman_id;			///< Global dataman storage id for active corridor graph buffer
 	dm_item_t		_my_mission_dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_0};		///< class Dataman storage ID for mission
 	dm_item_t		_my_safepoint_dataman_id{DM_KEY_SAFE_POINTS_0};			///< class Dataman storage ID for safepoints
 	dm_item_t		_my_fence_dataman_id{DM_KEY_FENCE_POINTS_0};			///< class Dataman storage ID for geofence
+	uint8_t			_my_corridor_dataman_id{0};					///< Per-instance snapshot for change detection
 
 	static bool		_dataman_init;				///< Dataman initialized
 
-	static uint16_t		_count[3];				///< Count of items in (active) mission for each MAV_MISSION_TYPE
-	static uint32_t		_crc32[3];				///< Checksum of items in (active) mission for each MAV_MISSION_TYPE
+	static uint16_t		_count[4];				///< Count of items in (active) mission for each MAV_MISSION_TYPE
+	static uint32_t		_crc32[4];				///< Checksum of items in (active) mission for each MAV_MISSION_TYPE
 	static int32_t		_current_seq;				///< Current item sequence in active mission
+
+	static uint16_t		_corridor_node_count;			///< Nodes in active corridor graph
+	static uint16_t		_corridor_edge_count;			///< Edges in active corridor graph
 
 	int32_t			_last_reached{-1};			///< Last reached waypoint in active mission (-1 means nothing reached)
 
 	dm_item_t		_transfer_dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_1};	///< Dataman storage ID for current transmission
+	uint8_t			_transfer_corridor_dataman_id{0};			///< Buffer index (0/1) for current corridor upload
 
 	uint16_t		_transfer_count{0};			///< Items count in current transmission
+	uint16_t		_transfer_node_count{0};		///< Corridor graph node count in current transmission
+	uint16_t		_transfer_edge_count{0};		///< Corridor graph edge count in current transmission
+	uint16_t		_transfer_corridor_nest_count{0};	///< Corridor graph nest (Home) node count in current transmission
 	uint32_t		_transfer_current_crc32{0};		///< Current CRC32 checksum of current transmission
 	uint16_t		_transfer_seq{0};			///< Item sequence in current transmission
 
@@ -166,7 +175,8 @@ private:
 	static constexpr uint16_t	MAX_COUNT[] = {
 		DM_KEY_WAYPOINTS_OFFBOARD_0_MAX,
 		DM_KEY_FENCE_POINTS_MAX,
-		DM_KEY_SAFE_POINTS_MAX
+		DM_KEY_SAFE_POINTS_MAX,
+		DM_KEY_CORRIDOR_NODES_MAX + DM_KEY_CORRIDOR_EDGES_MAX
 	};	/**< Maximum number of mission items for each type
 					(fence & safe points use the first item for the stats) */
 
@@ -194,11 +204,18 @@ private:
 	/** store the safepoint count to dataman */
 	int update_safepoint_count(dm_item_t safepoint_dataman_id, unsigned count, uint32_t crc32);
 
+	/** store the corridor graph counts to dataman */
+	int update_corridor_count(uint8_t corridor_dataman_id, unsigned node_count, unsigned edge_count,
+				  uint32_t crc32);
+
 	/** load geofence stats from dataman */
 	bool load_geofence_stats();
 
 	/** load safe point stats from dataman */
 	bool load_safepoint_stats();
+
+	/** load corridor graph stats from dataman */
+	bool load_corridor_stats();
 
 	/**
 	 *  @brief Sends an waypoint ack message
