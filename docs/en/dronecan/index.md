@@ -340,12 +340,13 @@ Example entry:
 
 ### Remote Update
 
-Firmware can be delivered remotely by bundling `.bin` files into an update archive.
-An external update tool can extract the archive on the target and copy the CAN firmware files into `/fs/microsd/ufw_staging/`. They are then picked up on the next boot.
+Firmware can be delivered remotely via an update archive — a bundle (e.g. a `.zip` or `.tar`) containing one or more `.bin` files for the target CAN nodes.
+An external update tool extracts the archive on the companion/host computer and copies the `.bin` files into `/fs/microsd/ufw_staging/`, where they are picked up on the next boot.
 
 Before uploading, the tool can read `/fs/microsd/ufw/FW.db` to check which firmware is already installed and skip files that haven't changed, reducing transfer size.
 
-`upload_skynode.sh` handles the bundling via the `--ext-fw` flag (repeatable for multiple nodes):
+[`Tools/auterion/upload_skynode.sh`] is a working example of this workflow.
+It bundles CAN firmware into an update archive using the `--ext-fw` flag (repeatable for multiple firmware files):
 
 ```sh
 ./Tools/auterion/upload_skynode.sh \
