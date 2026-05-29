@@ -263,6 +263,10 @@ ControlAllocator::update_effectiveness_source()
 			tmp = new ActuatorEffectivenessSpacecraft(this);
 			break;
 
+		case EffectivenessSource::AIRSHIP:
+			tmp = new ActuatorEffectivenessAirship(this);
+			break;
+
 		case EffectivenessSource::ROVER_ACKERMANN: // Unreachable: Rover startup scripts don't load control_allocator. Controllers publish actuator_outputs directly.
 		case EffectivenessSource::ROVER_DIFFERENTIAL:
 		case EffectivenessSource::ROVER_MECANUM:

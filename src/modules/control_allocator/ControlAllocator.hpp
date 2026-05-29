@@ -49,6 +49,7 @@
 #include <ActuatorEffectivenessFixedWing.hpp>
 #include <ActuatorEffectivenessMCTilt.hpp>
 #include <ActuatorEffectivenessCustom.hpp>
+#include <ActuatorEffectivenessAirship.hpp>
 #include <ActuatorEffectivenessUUV.hpp>
 #include <ActuatorEffectivenessHelicopter.hpp>
 #include <ActuatorEffectivenessHelicopterCoaxial.hpp>
@@ -173,6 +174,7 @@ private:
 		HELICOPTER_COAXIAL = 12,
 		ROVER_MECANUM = 13,
 		SPACECRAFT_2D = 14,
+		AIRSHIP = 16,
 	};
 
 	enum class FailureMode {
