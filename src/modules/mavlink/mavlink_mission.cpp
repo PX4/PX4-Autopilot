@@ -1488,6 +1488,9 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			mission_item->force_heading = (mavlink_mission_item->param1 > 0);
 			mission_item->loiter_radius = mavlink_mission_item->param2;
 			mission_item->loiter_exit_xtrack = (mavlink_mission_item->param4 > 0);
+			// MAV_CMD_NAV_LOITER_TO_ALT has no yaw field. Leave yaw unspecified so multicopters don't
+			// use the zero-initialized default as an unintended north-facing heading setpoint.
+			mission_item->yaw = NAN;
 			break;
 
 		case MAV_CMD_NAV_ROI:
