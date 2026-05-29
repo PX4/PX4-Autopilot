@@ -507,11 +507,6 @@ bool Logger::initialize_topics()
 	// get the logging profile
 	SDLogProfileMask sdlog_profile = (SDLogProfileMask)_param_sdlog_profile.get();
 
-	if ((int32_t)sdlog_profile == 0) {
-		PX4_WARN("No logging profile selected. Using default set");
-		sdlog_profile = SDLogProfileMask::DEFAULT;
-	}
-
 	LoggedTopics logged_topics;
 	logged_topics.set_rate_factor(_rate_factor);
 
