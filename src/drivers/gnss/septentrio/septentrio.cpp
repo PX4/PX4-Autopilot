@@ -1723,7 +1723,7 @@ void SeptentrioDriver::publish_rtcm_corrections(uint8_t *data, size_t len)
 	moving_baseline.timestamp = hrt_absolute_time();
 	moving_baseline.device_id = get_device_id();
 
-	const size_t capacity = sizeof(moving_baseline.data) / sizeof(moving_baseline.data[0]);
+	const size_t capacity = sizeof(moving_baseline.data);
 	moving_baseline.flags = (len > capacity) ? 1 : 0; // LSB: 1=fragmented
 
 	size_t written = 0;
