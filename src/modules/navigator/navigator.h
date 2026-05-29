@@ -41,6 +41,7 @@
 
 #pragma once
 
+#include "corridor_graph.h"
 #include "geofence.h"
 #include "land.h"
 #include "precland.h"
@@ -187,7 +188,8 @@ public:
 
 	bool home_global_position_valid() { return (_home_pos.valid_alt && _home_pos.valid_hpos); }
 
-	Geofence &get_geofence() { return _geofence; }
+	Geofence      &get_geofence()       { return _geofence; }
+	CorridorGraph &get_corridor_graph() { return _corridor_graph; }
 
 	float get_default_loiter_rad() { return fabsf(_param_nav_loiter_rad.get()); }
 	bool get_default_loiter_CCW() { return _param_nav_loiter_rad.get() < -FLT_EPSILON; }
@@ -363,6 +365,7 @@ private:
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	Geofence	_geofence;			/**< class that handles the geofence */
+	CorridorGraph	_corridor_graph;		/**< flight corridor graph plan component */
 	GeofenceBreachAvoidance _gf_breach_avoidance;
 	hrt_abstime _last_geofence_check{0};
 

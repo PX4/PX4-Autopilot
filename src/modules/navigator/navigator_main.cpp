@@ -71,6 +71,7 @@ Navigator::Navigator() :
 	ModuleParams(nullptr),
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
 	_geofence(this),
+	_corridor_graph(this),
 	_gf_breach_avoidance(this),
 	_mission(this),
 	_loiter(this),
@@ -176,6 +177,7 @@ void Navigator::run()
 
 	uint32_t geofence_id{0};
 	uint32_t safe_points_id{0};
+	uint32_t corridor_graph_id{0};
 
 	/* rate-limit position subscription to 20 Hz / 50 ms */
 	orb_set_interval(_local_pos_sub, 50);
@@ -212,6 +214,11 @@ void Navigator::run()
 			if (mission.safe_points_id != safe_points_id) {
 				safe_points_id = mission.safe_points_id;
 				_rtl.updateSafePoints(safe_points_id);
+			}
+
+			if (mission.corridor_graph_id != corridor_graph_id) {
+				corridor_graph_id = mission.corridor_graph_id;
+				_corridor_graph.updateGraph();
 			}
 		}
 
@@ -938,6 +945,7 @@ void Navigator::run()
 		publish_distance_sensor_mode_request();
 
 		_geofence.run();
+		_corridor_graph.run();
 
 		perf_end(_loop_perf);
 	}
