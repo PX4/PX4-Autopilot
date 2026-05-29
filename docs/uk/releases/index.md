@@ -2,7 +2,8 @@
 
 Перелік PX4 реліз, вони містять список змін, що відбулися в кожному релізі, пояснення включених функцій, виправлень, застарілих та оновлень.
 
-- [main](../releases/main.md) (changes since v1.16)
+- [main](https://docs.px4.io/main/uk/releases/main) (changes since v1.17)
+- [v1.17](../releases/1.17.md)
 - [v1.16](../releases/1.16.md)
 - [v1.15](../releases/1.15.md)
 - [v1.14](../releases/1.14.md)

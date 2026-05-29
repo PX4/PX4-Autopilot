@@ -20,18 +20,15 @@ if (inBrowser) {
 // Support redirect plugin
 import Redirect from "./components/Redirect.vue";
 
+import { createDynamicNav } from "vp-dynamic-nav";
+
 // Tabs: https://github.com/Red-Asuka/vitepress-plugin-tabs
 import { Tab, Tabs } from "vue3-tabs-component";
 import "@red-asuka/vitepress-plugin-tabs/dist/style.css";
 
 /** @type {import('vitepress').Theme} */
 export default {
-  extends: DefaultTheme,
-  Layout: () => {
-    return h(DefaultTheme.Layout, null, {
-      // https://vitepress.dev/guide/extending-default-theme#layout-slots
-    });
-  },
+  extends: createDynamicNav(DefaultTheme),
   enhanceApp({ app, router, siteData }) {
     app.component("Redirect", Redirect); //Redirect plugin
     //Tabs: https://github.com/Red-Asuka/vitepress-plugin-tabs
