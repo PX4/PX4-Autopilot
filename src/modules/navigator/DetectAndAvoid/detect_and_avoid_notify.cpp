@@ -367,10 +367,11 @@ void DetectAndAvoid::notify_action_on_ground(const NotifyLandedActCause cause)
 	mavlink_log_critical(&_mavlink_log_pub, "DAA do not %s until air conflict solved!\t", blocked_action);
 	/* EVENT
 	 * @description
-	 * - cause: {1}
+	 * Resolve the air-traffic conflict before flight. The severity reflects whether the vehicle is
+	 * already armed (critical) or still disarmed (warning).
 	 */
-	events::send<uint8_t>(events::ID("navigator_traffic_ground_conflict"), log_level,
-			      "DAA: resolve air-traffic conflict before flight", static_cast<uint8_t>(cause));
+	events::send(events::ID("navigator_traffic_ground_conflict"), log_level,
+		     "DAA: resolve air-traffic conflict before flight");
 }
 
 void DetectAndAvoid::notify_new_action(const conflict_info_s &conflict_info, const DaaAction action)
