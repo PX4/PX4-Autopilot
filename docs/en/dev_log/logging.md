@@ -52,7 +52,7 @@ This allows, for example, logging of your own uORB topics.
 
 ### SD Card Configuration
 
-The list of logged topics can also be customized with a file on the SD card:  `etc/logging/logger_topics.txt` (for SITL, it's `build/px4_sitl_default/rootfs/fs/microsd/etc/logging/logger_topics.txt`).
+The list of logged topics can also be customized with a file on the SD card: `etc/logging/logger_topics.txt` (for SITL, it's `build/px4_sitl_default/rootfs/fs/microsd/etc/logging/logger_topics.txt`).
 
 Each topic to be logged is listed on a separate line, with the following format:
 
@@ -61,16 +61,17 @@ Each topic to be logged is listed on a separate line, with the following format:
 ```
 
 Where:
+
 - `<interval>` (optional).
   Defines the minimum interval in ms between two logged messages of this topic.
   If not specified or `0`, the topic is logged at full rate.
 - `<instance>` (optional).
   Defines the instance to log.
   NOte that `<interval>` must be specified in order to set `instance`
-  
+
   If not specified, all instances of the topic are logged.
 
-The topics in this file will be added on top of the already selected topics. 
+The topics in this file will be added on top of the already selected topics.
 To just log the topics defined in this file, set [SDLOG_PROFILE=0](../advanced_config/parameter_reference.md#SDLOG_PROFILE).
 If a topic is already included, it will update it's rate.
 
