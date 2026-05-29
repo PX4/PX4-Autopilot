@@ -39,7 +39,7 @@
 
 #include <lib/drivers/device/Device.hpp>
 #include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/rtcm_corrections.h>
+#include <uORB/topics/rtcm_data.h>
 
 namespace uavcannode
 {
@@ -91,14 +91,14 @@ private:
 		// Route each source node to its own rtcm_corrections instance. Independent CAN
 		// sources (e.g. a fixed base plus another rover's MSM output) must not interleave
 		// on a single instance, or the consumer's per-instance stale-link selection breaks.
-		uORB::PublicationMulti<rtcm_corrections_s> *pub = publicationForNode(source_node_id);
+		uORB::PublicationMulti<rtcm_data_s> *pub = publicationForNode(source_node_id);
 
 		if (pub == nullptr) {
 			// More distinct sources than rtcm_corrections instances: drop.
 			return;
 		}
 
-		rtcm_corrections_s corrections{};
+		rtcm_data_s corrections{};
 
 		corrections.len = msg.data.size();
 
@@ -106,7 +106,7 @@ private:
 
 		corrections.timestamp = hrt_absolute_time();
 
-		union device::Device::DeviceId device_id;
+		union device::Device::DeviceId device_id {};
 
 		device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_UAVCAN;
 		device_id.devid_s.address = source_node_id;
@@ -119,7 +119,7 @@ private:
 
 	// Map a CAN source node ID to a stable rtcm_corrections publication, one uORB
 	// instance per source node. Returns nullptr once every instance is claimed.
-	uORB::PublicationMulti<rtcm_corrections_s> *publicationForNode(uint8_t node_id)
+	uORB::PublicationMulti<rtcm_data_s> *publicationForNode(uint8_t node_id)
 	{
 		for (auto &source : _sources) {
 			if (source.assigned && source.node_id == node_id) {
@@ -139,13 +139,13 @@ private:
 	}
 
 	struct SourcePublication {
-		uORB::PublicationMulti<rtcm_corrections_s> pub{ORB_ID(rtcm_corrections)};
+		uORB::PublicationMulti<rtcm_data_s> pub{ORB_ID(rtcm_corrections)};
 		uint8_t node_id{0};
 		bool assigned{false};
 	};
 
 	// One publication per source node, capped at the topic's instance count so we never
 	// advertise an instance the consumer's SubscriptionMultiArray cannot read.
-	SourcePublication _sources[rtcm_corrections_s::MAX_INSTANCES] {};
+	SourcePublication _sources[rtcm_data_s::MAX_INSTANCES] {};
 };
 } // namespace uavcannode

@@ -56,7 +56,7 @@
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/time.h>
 #include <lib/systemlib/mavlink_log.h>
-#include <uORB/topics/rtcm_corrections.h>
+#include <uORB/topics/rtcm_data.h>
 #include <uORB/topics/sensor_gps.h>
 
 #include "util.h"
@@ -1718,7 +1718,7 @@ void SeptentrioDriver::publish_rtcm_corrections(uint8_t *data, size_t len)
 	// The only path into this function is the moving-base Secondary decoding RTCM from its
 	// receiver (see _rtcm_decoder allocation in the constructor), so the output is always
 	// moving-baseline data intended for the rover.
-	rtcm_moving_baseline_s moving_baseline{};
+	rtcm_data_s moving_baseline{};
 
 	moving_baseline.timestamp = hrt_absolute_time();
 	moving_baseline.device_id = get_device_id();

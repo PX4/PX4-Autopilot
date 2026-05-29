@@ -2923,7 +2923,7 @@ MavlinkReceiver::handle_message_gps_rtcm_data(mavlink_message_t *msg)
 void
 MavlinkReceiver::publish_rtcm_corrections(const uint8_t *data, size_t len)
 {
-	rtcm_corrections_s rtcm_corrections_topic{};
+	rtcm_data_s rtcm_corrections_topic{};
 	constexpr uint8_t rtcm_corrections_flag_fragmented = 1;
 
 	const size_t capacity = sizeof(rtcm_corrections_topic.data);

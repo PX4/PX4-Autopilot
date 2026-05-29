@@ -34,7 +34,7 @@
 #ifndef GPS_RTCM_DATA_HPP
 #define GPS_RTCM_DATA_HPP
 
-#include <uORB/topics/rtcm_corrections.h>
+#include <uORB/topics/rtcm_data.h>
 
 class MavlinkStreamGPSRTCMData : public MavlinkStream
 {
@@ -59,7 +59,7 @@ private:
 
 	bool send() override
 	{
-		rtcm_corrections_s corrections;
+		rtcm_data_s corrections;
 		bool sent = false;
 
 		while ((_mavlink->get_free_tx_buf() >= get_size()) && _rtcm_corrections_sub.update(&corrections)) {

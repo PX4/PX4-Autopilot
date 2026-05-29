@@ -39,7 +39,7 @@
 
 #include <lib/drivers/device/Device.hpp>
 #include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/rtcm_moving_baseline.h>
+#include <uORB/topics/rtcm_data.h>
 
 namespace uavcannode
 {
@@ -71,7 +71,7 @@ public:
 	void BroadcastAnyUpdates() override
 	{
 		// rtcm_moving_baseline -> ardupilot::gnss::MovingBaselineData
-		rtcm_moving_baseline_s moving_baseline = {};
+		rtcm_data_s moving_baseline = {};
 
 		unsigned last_generation = uORB::SubscriptionCallbackWorkItem::get_last_generation();
 		bool updated = false;

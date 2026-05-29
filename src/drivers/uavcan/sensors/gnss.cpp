@@ -626,12 +626,12 @@ void UavcanGnssBridge::update()
 }
 
 // Drains a uORB RTCM source and forwards each message to `forward(data, len)`.
-// Handles stale-link switchover across instances via `last_injection_time`.
+// Handles stale-link switchover across instances via `last_injection_time`. Per-message
+// side effects (CAN publish, perf counting, rate accounting) live in `forward`.
 template <typename T, uint8_t N, typename Forward>
 static void drain_rtcm_to_can(uORB::SubscriptionMultiArray<T, N> &subs,
 			      uint8_t &selected_instance,
 			      hrt_abstime &last_injection_time,
-			      unsigned &rate_message_count,
 			      Forward forward)
 {
 	const hrt_abstime now = hrt_absolute_time();
@@ -660,7 +660,6 @@ static void drain_rtcm_to_can(uORB::SubscriptionMultiArray<T, N> &subs,
 		if (updated) {
 			num_injections++;
 			forward(msg.data, msg.len);
-			++rate_message_count;
 			last_injection_time = hrt_absolute_time();
 		}
 
@@ -685,7 +684,8 @@ void UavcanGnssBridge::handleInjectDataTopic()
 {
 	const hrt_abstime now = hrt_absolute_time();
 
-	// measure RTCM update rate every 5 seconds
+	// Measure the fixed-base corrections injection rate every 5 seconds (moving-baseline forwarding
+	// is tracked separately via _moving_baseline_data_pub_perf, so it is excluded here).
 	if (now > _last_rate_measurement + 5_s) {
 		float dt = (now - _last_rate_measurement) / 1e6f;
 		_rtcm_injection_rate = _rtcm_injection_rate_message_count / dt;
@@ -694,14 +694,13 @@ void UavcanGnssBridge::handleInjectDataTopic()
 	}
 
 	if (_publish_rtcm_stream) {
-		drain_rtcm_to_can(_rtcm_corrections_sub, _selected_rtcm_instance,
-				  _last_rtcm_injection_time, _rtcm_injection_rate_message_count,
-		[this](const uint8_t *data, size_t len) { PublishRTCMStream(data, len); });
+		drain_rtcm_to_can(_rtcm_corrections_sub, _selected_rtcm_instance, _last_rtcm_injection_time,
+		[this](const uint8_t *data, size_t len) { PublishRTCMStream(data, len); _rtcm_injection_rate_message_count++; });
 	}
 
 	if (_publish_moving_baseline_data) {
 		drain_rtcm_to_can(_rtcm_moving_baseline_sub, _selected_moving_baseline_instance,
-				  _last_moving_baseline_injection_time, _rtcm_injection_rate_message_count,
+				  _last_moving_baseline_injection_time,
 		[this](const uint8_t *data, size_t len) { PublishMovingBaselineData(data, len); });
 	}
 }

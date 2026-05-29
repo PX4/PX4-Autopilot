@@ -39,7 +39,7 @@
 
 #include <lib/drivers/device/Device.hpp>
 #include <uORB/Publication.hpp>
-#include <uORB/topics/rtcm_moving_baseline.h>
+#include <uORB/topics/rtcm_data.h>
 
 namespace uavcannode
 {
@@ -83,7 +83,7 @@ private:
 	{
 		// Don't republish a message from ourselves
 		if (msg.getSrcNodeID().get() != getNode().getNodeID().get()) {
-			rtcm_moving_baseline_s moving_baseline{};
+			rtcm_data_s moving_baseline{};
 
 			moving_baseline.len = msg.data.size();
 
@@ -91,7 +91,7 @@ private:
 
 			moving_baseline.timestamp = hrt_absolute_time();
 
-			union device::Device::DeviceId device_id;
+			union device::Device::DeviceId device_id {};
 
 			device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_UAVCAN;
 			device_id.devid_s.address = msg.getSrcNodeID().get();
@@ -103,6 +103,6 @@ private:
 		}
 	}
 
-	uORB::Publication<rtcm_moving_baseline_s> _rtcm_moving_baseline_pub{ORB_ID(rtcm_moving_baseline)};
+	uORB::Publication<rtcm_data_s> _rtcm_moving_baseline_pub{ORB_ID(rtcm_moving_baseline)};
 };
 } // namespace uavcannode

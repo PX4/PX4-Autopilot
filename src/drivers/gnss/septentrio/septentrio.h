@@ -55,8 +55,7 @@
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/sensor_gnss_status.h>
 #include <uORB/topics/gps_dump.h>
-#include <uORB/topics/rtcm_corrections.h>
-#include <uORB/topics/rtcm_moving_baseline.h>
+#include <uORB/topics/rtcm_data.h>
 #include <drivers/drv_hrt.h>
 #include <lib/drivers/device/Device.hpp>
 #include <lib/parameters/param.h>
@@ -775,10 +774,10 @@ private:
 	uORB::PublicationMulti<sensor_gps_s>           _sensor_gps_pub {ORB_ID(sensor_gps)};           		///< uORB publication for gps position
 	uORB::PublicationMulti<sensor_gnss_status_s>   _sensor_gnss_status_pub {ORB_ID(sensor_gnss_status)};	///< uORB publication for gnss status
 	uORB::Publication<gps_dump_s>                  _gps_dump_pub {ORB_ID(gps_dump)};              		///< uORB publication for dump GPS data
-	uORB::Publication<rtcm_moving_baseline_s>      _rtcm_moving_baseline_pub {ORB_ID(rtcm_moving_baseline)}; ///< uORB publication for moving-baseline RTCM output
+	uORB::Publication<rtcm_data_s>      _rtcm_moving_baseline_pub {ORB_ID(rtcm_moving_baseline)}; ///< uORB publication for moving-baseline RTCM output
 	uORB::PublicationMulti<satellite_info_s>       _satellite_info_pub {ORB_ID(satellite_info)};   		///< uORB publication for satellite info
-	uORB::SubscriptionMultiArray<rtcm_corrections_s, rtcm_corrections_s::MAX_INSTANCES> _rtcm_corrections_sub {ORB_ID::rtcm_corrections}; ///< uORB subscription for external RTCM corrections
-	uORB::SubscriptionMultiArray<rtcm_moving_baseline_s, rtcm_moving_baseline_s::MAX_INSTANCES> _rtcm_moving_baseline_sub {ORB_ID::rtcm_moving_baseline}; ///< uORB subscription for moving-baseline RTCM input
+	uORB::SubscriptionMultiArray<rtcm_data_s, rtcm_data_s::MAX_INSTANCES> _rtcm_corrections_sub {ORB_ID::rtcm_corrections}; ///< uORB subscription for external RTCM corrections
+	uORB::SubscriptionMultiArray<rtcm_data_s, rtcm_data_s::MAX_INSTANCES> _rtcm_moving_baseline_sub {ORB_ID::rtcm_moving_baseline}; ///< uORB subscription for moving-baseline RTCM input
 
 	failure_injection::Config _failure_config;
 	failure_injection::Stuck<sensor_gps_s> _stuck;
