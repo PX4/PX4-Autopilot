@@ -387,16 +387,15 @@ TECSControl::SpecificEnergyWeighting TECSControl::_updateSpeedAltitudeWeights(co
 	// Calculate the weight applied to control of specific kinetic energy error
 	float pitch_speed_weight = constrain(param.pitch_speed_weight, 0.0f, 2.0f);
 
-	if (_ratio_undersped > FLT_EPSILON && flag.airspeed_enabled) {
-		pitch_speed_weight = _ratio_undersped * 2.0f + (1.0f - _ratio_undersped) * pitch_speed_weight;
+	// Underspeed or fast descend: interpolate speed weight from nominal
+	// towards max. We take the maximum of the three - this keeps the speed
+	// weight continuous, even when underspeed and fast descend are combined
+	const float max_ratio = fmaxf(_ratio_undersped, param.fast_descend);
+	const float max_speedweight = max_ratio * 2.0f + (1.0f - max_ratio) * pitch_speed_weight;
 
-	} else if (!flag.airspeed_enabled) {
-		pitch_speed_weight = 0.0f;
+	pitch_speed_weight = fmaxf(pitch_speed_weight, max_speedweight);
 
-	} else if (param.fast_descend > FLT_EPSILON) {
-		pitch_speed_weight = param.fast_descend * 2.0f + (1.0f - param.fast_descend) * pitch_speed_weight;
-
-	}
+	if (!flag.airspeed_enabled) { pitch_speed_weight = 0.0f; }
 
 	weight.spe_weighting = constrain(2.0f - pitch_speed_weight, 0.f, 2.f);
 	weight.ske_weighting = constrain(pitch_speed_weight, 0.f, 2.f);
