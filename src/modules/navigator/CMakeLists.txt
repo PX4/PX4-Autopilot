@@ -68,7 +68,8 @@ set(NAVIGATOR_SOURCES
 	land.cpp
 	precland.cpp
 	mission_feasibility_checker.cpp
-	geofence.cpp)
+	geofence.cpp
+	corridor_graph.cpp)
 
 set(NAVIGATOR_DEPENDS
 	dataman_client

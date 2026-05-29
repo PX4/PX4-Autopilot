@@ -134,6 +134,7 @@ Navigator::Navigator() :
 	ModuleParams(nullptr),
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
 	_geofence(this),
+	_corridor_graph(this),
 	_mission(this),
 	_loiter(this),
 	_takeoff(this),
@@ -251,6 +252,7 @@ void Navigator::run()
 	fds[3].events = POLLIN;
 
 	uint32_t geofence_id{0};
+	uint32_t corridor_graph_id{0};
 	mission_s mission{};
 	bool mission_received{false};
 	hrt_abstime last_navigator_update{0};
@@ -299,8 +301,12 @@ void Navigator::run()
 					geofence_id = mission.geofence_id;
 					_geofence.updateFence();
 				}
-			}
 
+				if (mission.corridor_graph_id != corridor_graph_id) {
+					corridor_graph_id = mission.corridor_graph_id;
+					_corridor_graph.updateGraph();
+				}
+			}
 		}
 
 		if (mission_received) {
@@ -1104,6 +1110,7 @@ void Navigator::run()
 		publish_distance_sensor_mode_request();
 
 		_geofence.run();
+		_corridor_graph.run();
 
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
