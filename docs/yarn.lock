@@ -1671,10 +1671,10 @@ vitepress@^1.6.3:
     vite "^5.4.14"
     vue "^3.5.13"
 
-vp-dynamic-nav@^0.0.1:
-  version "0.0.1"
-  resolved "https://registry.yarnpkg.com/vp-dynamic-nav/-/vp-dynamic-nav-0.0.1.tgz#4e3f803343d3457a262b5498b06ed2c6172da247"
-  integrity sha512-7FnKerBRMsqfVLWKPrm7sFFhFIXEbMJY6X1HJ17CvrEacL1al1UXFfXcMB+Vi9o0xdHOMU0e7N6kQQXAfjyLRA==
+vp-dynamic-nav@0.0.3:
+  version "0.0.3"
+  resolved "https://registry.yarnpkg.com/vp-dynamic-nav/-/vp-dynamic-nav-0.0.3.tgz#2b796d1be069c502fc2e4b42fd4c1437c66b80b0"
+  integrity sha512-qkDeki7TA21bhA12uiR0kEWZHVqeFusza3/XsGjD75Ht6qUoDOS/+YrCPyw9+6Zm+5/BvzK7j0jpDXPwW20m3g==
 
 vue3-tabs-component@^1.3.7:
   version "1.3.7"
