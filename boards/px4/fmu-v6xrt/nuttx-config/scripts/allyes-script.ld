@@ -34,7 +34,7 @@
 
 MEMORY
 {
-  flash (rx)  : ORIGIN = 0x30020000, LENGTH = 4M-128K /* We have 64M but we do not want to wait to program it all */
+  flash (rx)  : ORIGIN = 0x30020000, LENGTH = 5M-128K /* We have 64M but we do not want to wait to program it all */
   sram  (rwx) : ORIGIN = 0x20240000, LENGTH = 2M-256k-512k
   itcm  (rwx) : ORIGIN = 0x00000000, LENGTH = 256K   /* TODO FlexRAM partition */
   dtcm  (rwx) : ORIGIN = 0x20000000, LENGTH = 256K
