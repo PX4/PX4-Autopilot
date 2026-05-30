@@ -70,8 +70,8 @@ static constexpr float kDfltF34LvlCriticalRad = 150.f;
 static constexpr float kDfltF34LvlCriticalHgt = 30.f;
 static constexpr float kDfltF34LvlHighRad = 600.f;
 static constexpr float kDfltF34LvlHighHgt = 80.f;
-static constexpr int kDfltF34LvlMediumTime = 30.f;
-static constexpr int kDfltF34LvlLowTime = 30.f;
+static constexpr int kDfltF34LvlMediumTime = 30;
+static constexpr int kDfltF34LvlLowTime = 30;
 
 static constexpr float kDfltDaaDfltVel = 5.f;
 static constexpr int kDfltDaaEnDfltVel = 1;
@@ -158,9 +158,6 @@ class DetectAndAvoidTest : public ::testing::Test
 {
 
 protected:
-
-	DetectAndAvoidTest() {}
-	~DetectAndAvoidTest() override {}
 
 	void SetUp() override
 	{
@@ -288,6 +285,14 @@ public:
 		_parameter_update_pub.publish(update);
 	}
 
+	// Copy a callsign into a transponder report, always leaving the field null-terminated.
+	// Centralizes the strncpy + terminator pattern so individual tests cannot get the bounds wrong.
+	void set_report_callsign(transponder_report_s &tr, const char *callsign)
+	{
+		strncpy(tr.callsign, callsign, sizeof(tr.callsign) - 1);
+		tr.callsign[sizeof(tr.callsign) - 1] = '\0';
+	}
+
 	transponder_report_s create_transponder_report(const uint32_t icao_address, const char *callsign, const double lat,
 			const double lon, const float altitude, const float hor_velocity, const float ver_velocity,
 			const uint16_t flags)
@@ -305,8 +310,7 @@ public:
 		tr.emitter_type = 1;
 		tr.tslc = 1;
 		tr.flags = flags;
-		strncpy(&tr.callsign[0], callsign, sizeof(tr.callsign) - 1);
-		tr.callsign[sizeof(tr.callsign) - 1] = '\0';
+		set_report_callsign(tr, callsign);
 		return tr;
 	}
 

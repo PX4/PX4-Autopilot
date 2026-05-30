@@ -190,8 +190,7 @@ TEST_F(DetectAndAvoidTest, SelfDetection)
 		navigator->get_detect_and_avoid()->updateParams();
 
 		tr.icao_address = 0; // Invalid ICAO
-		strncpy(&tr.callsign[0], callsign, sizeof(tr.callsign) - 1);
-		tr.callsign[sizeof(tr.callsign) - 1] = 0;
+		set_report_callsign(tr, callsign);
 		tr.flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN;
 
 		navigator->get_detect_and_avoid()->get_unique_id(tr, unique_id);
@@ -214,8 +213,7 @@ TEST_F(DetectAndAvoidTest, SelfDetection)
 	navigator->get_detect_and_avoid()->updateParams();
 
 	tr.icao_address = own_icao;
-	strncpy(&tr.callsign[0], callsign, sizeof(tr.callsign) - 1);
-	tr.callsign[sizeof(tr.callsign) - 1] = 0;
+	set_report_callsign(tr, callsign);
 	tr.flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN;
 
 	navigator->get_detect_and_avoid()->get_unique_id(tr, unique_id);
@@ -231,8 +229,7 @@ TEST_F(DetectAndAvoidTest, SelfDetection)
 	navigator->get_detect_and_avoid()->updateParams();
 
 	tr.icao_address = own_icao_2;
-	strncpy(&tr.callsign[0], callsign, sizeof(tr.callsign) - 1);
-	tr.callsign[sizeof(tr.callsign) - 1] = 0;
+	set_report_callsign(tr, callsign);
 	tr.flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN;
 
 	navigator->get_detect_and_avoid()->get_unique_id(tr, unique_id);
@@ -273,8 +270,7 @@ TEST_F(DetectAndAvoidTest, SelfDetection)
 	// WHEN: Traffic provides no usable identity fields.
 	transponder_report_s tr_no_id{};
 	tr_no_id.icao_address = 0;
-	strncpy(&tr_no_id.callsign[0], callsign, sizeof(tr_no_id.callsign) - 1);
-	tr_no_id.callsign[sizeof(tr.callsign) - 1] = 0;
+	set_report_callsign(tr_no_id, callsign);
 	tr_no_id.flags = 0;
 
 	// THEN: No unique identifier can be extracted.

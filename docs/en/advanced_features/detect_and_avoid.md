@@ -176,8 +176,9 @@ This mode is based on the ASTM F3442/F3442M-23 standard, which defines performan
 - **NMAC** is defined as coming within 100 ft (30 m) vertically and 500 ft (153 m) horizontally from other aircraft.
 - **Loss of Well Clear (LoWC)** is defined more conservatively at 250 ft (76 m) vertically and 2000 ft (610 m) horizontally from other aircraft.
 
-![volumes](../../assets/advanced/astmf3442.png)
-_Figure 1: Illustration from the ASTM F3442/F3442M − 23 standard showing the near mid-air collision (NMAC) and well clear (WC) safety zones, the NMAC Risk Ratio (RR), and the LoWC risk ratio (LR)._
+PX4 places one protective zone around the ownship and an identical zone around each detected aircraft, so the radius and height parameters below are defined _per aircraft_.
+A conflict is raised when the two zones touch, which means the separation that triggers it is the **sum of both zones**.
+For two identical aircraft that is simply twice the configured value, which is why the critical radius defaults to roughly half of the NMAC horizontal distance ([F34_LVL_CRIT_RAD](../advanced_config/parameter_reference.md#F34_LVL_CRIT_RAD) = `77 m`, giving `2 × 77 m ≈ 153 m`).
 
 #### Conflict Levels
 
@@ -190,8 +191,7 @@ F3442 is evaluated in four severity levels and returns the first breached level 
 | `MEDIUM`       | Augmented NMAC                | NMAC bounds expanded using [F34_LVL_MED_TIME](../advanced_config/parameter_reference.md#F34_LVL_MED_TIME)                                                      | [DAA_LVL_MED_ACT](../advanced_config/parameter_reference.md#DAA_LVL_MED_ACT)   |
 | `LOW`          | Augmented WC                  | WC bounds expanded using [F34_LVL_LOW_TIME](../advanced_config/parameter_reference.md#F34_LVL_LOW_TIME)                                                        | [DAA_LVL_LOW_ACT](../advanced_config/parameter_reference.md#DAA_LVL_LOW_ACT)   |
 
-The F3442 check is symmetric and conservative.
-The implementation compares the current aircraft separation against combined ownship-plus-traffic bounds and expands the augmented levels using absolute horizontal and vertical speed magnitudes from both aircraft.
+The check is symmetric and conservative: the augmented `MEDIUM` and `LOW` levels enlarge each aircraft's zone in proportion to its horizontal and vertical speed (scaled by [F34_LVL_MED_TIME](../advanced_config/parameter_reference.md#F34_LVL_MED_TIME) and [F34_LVL_LOW_TIME](../advanced_config/parameter_reference.md#F34_LVL_LOW_TIME)), so faster traffic is flagged earlier.
 
 ::: details Click here to view the F3442 zone computations
 
@@ -315,7 +315,7 @@ The conflict evaluation order remains `CRITICAL`, `HIGH`, `MEDIUM`, then `LOW`.
 - **Optional:** Traffic velocity.
   - If missing, F3442 is evaluated assuming zero traffic horizontal/vertical speed.
   - If [DAA_EN_DFLT_VEL](../advanced_config/parameter_reference.md#DAA_EN_DFLT_VEL) is enabled, the traffic vertical speed is replaced by [DAA_DFLT_VEL](../advanced_config/parameter_reference.md#DAA_DFLT_VEL) (preserving the reported sign if known, otherwise assuming positive climb).
-- **Not required:** Heading is not required because the zones around each aircraft are symmetric to be conservative and account for unexpected course changes.
+- **Not required:** Heading is not used. Each aircraft is wrapped in a symmetric zone, which is conservative and covers unexpected course changes.
 
 #### Actions
 
@@ -350,7 +350,7 @@ The updated setting is used on later conflict transitions, and automatic mode ch
 
 #### Conflict-to-Action Mapping
 
-- `Crosstrack` only publishes `HIGH` conficts, so its requested action comes directly from [NAV_TRAFF_AVOID](../advanced_config/parameter_reference.md#NAV_TRAFF_AVOID).
+- `Crosstrack` only publishes `HIGH` conflicts, so its requested action comes directly from [NAV_TRAFF_AVOID](../advanced_config/parameter_reference.md#NAV_TRAFF_AVOID).
 - `F3442` maps each conflict level through its corresponding `DAA_LVL_*_ACT` parameter.
 - In `F3442`, if the most severe breached level is configured as `Disabled`, PX4 falls back to the next broader breached level with an enabled action. The fallback search is `CRITICAL -> HIGH -> MEDIUM -> LOW`.
 
