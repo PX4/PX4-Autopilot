@@ -12,3 +12,6 @@ param set-default BAT1_V_DIV 16.0
 param set-default BAT1_A_PER_V 83.3
 
 # GPS on USART1 (ttyS0) — already set via CONFIG_BOARD_SERIAL_GPS1
+
+# Digital FPV camera / MSP DisplayPort OSD on TELEM3 (ttyS3)
+param set-default MSP_OSD_CONFIG 103
