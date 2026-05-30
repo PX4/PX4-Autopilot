@@ -1,12 +1,17 @@
-uint64 timestamp          # time since system start (microseconds)
-uint64 timestamp_sample   # time of data sample (microseconds)
+# Gas concentration
+#
+# Provides gas concentration measurements from a gas sensor, including concentration, temperature, and gas type.
+# Used for environmental monitoring and reporting to the operator.
 
-uint32 device_id          # unique device ID for the sensor that does not change between power cycles
+uint64 timestamp # [us] Time since system start
+uint64 timestamp_sample # [us] Time of data sample
 
-float32 concentration_ppm # gas concentration in parts per million (ppm)
-float32 temperature       # sensor temperature (Celsius)
+uint32 device_id # [-] Unique device ID for the sensor that does not change between power cycles
 
-uint8 gas_type            # gas type identifier reported by the sensor
+float32 concentration_ppm # [ppm] Gas concentration
+float32 temperature # [degC] Sensor temperature
+
+uint8 gas_type # [@enum GAS_TYPE] Gas type identifier reported by the sensor
 
 uint8 GAS_TYPE_O2  = 1
 uint8 GAS_TYPE_CO  = 2
