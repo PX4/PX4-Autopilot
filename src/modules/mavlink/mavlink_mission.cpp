@@ -1471,9 +1471,8 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 
 		case MAV_CMD_NAV_LAND:
 			mission_item->nav_cmd = NAV_CMD_LAND;
-			// param1 is the minimum abort altitude above the landing point (0 = use the
-			// MIS_LND_ABRT_ALT default). Carry it in the otherwise-unused time_inside field.
-			mission_item->time_inside = mavlink_mission_item->param1;
+			// param1 is the minimum abort altitude above the landing point (0 = use the MIS_LND_ABRT_ALT default).
+			mission_item->land_abort_min_alt = mavlink_mission_item->param1;
 			mission_item->yaw = wrap_2pi(math::radians(mavlink_mission_item->param4));
 			mission_item->land_precision = mavlink_mission_item->param2;
 			break;
@@ -1804,7 +1803,7 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 			break;
 
 		case NAV_CMD_LAND:
-			mavlink_mission_item->param1 = mission_item->time_inside; // minimum abort altitude (0 = default)
+			mavlink_mission_item->param1 = mission_item->land_abort_min_alt; // minimum abort altitude (0 = default)
 			mavlink_mission_item->param2 = mission_item->land_precision;
 			mavlink_mission_item->param4 = math::degrees(mission_item->yaw);
 			break;
