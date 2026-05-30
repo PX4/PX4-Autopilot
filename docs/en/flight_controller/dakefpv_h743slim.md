@@ -74,19 +74,19 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ## Serial Port Mapping
 
-| UART   | Device     | PX4 default |
-| ------ | ---------- | ----------- |
-| USART1 | /dev/ttyS0 | GPS1        |
-| USART2 | /dev/ttyS1 | TELEM1      |
-| USART3 | /dev/ttyS2 | TELEM2      |
-| USART6 | /dev/ttyS3 | TELEM3      |
-| UART5  | /dev/ttyS4 | RC input    |
-| UART7  | /dev/ttyS5 | TELEM4      |
-| UART4  | /dev/ttyS6 | Available   |
-| UART8  | /dev/ttyS7 | Available   |
+| UART   | Device     | PX4 default    |
+| ------ | ---------- | -------------- |
+| USART1 | /dev/ttyS0 | GPS1           |
+| USART2 | /dev/ttyS1 | TELEM1         |
+| USART3 | /dev/ttyS2 | TELEM2         |
+| UART4  | /dev/ttyS3 | TELEM3         |
+| UART5  | /dev/ttyS4 | RC input       |
+| USART6 | /dev/ttyS5 | TELEM4         |
+| UART7  | /dev/ttyS6 | System console |
+| UART8  | /dev/ttyS7 | GPS2           |
 
 ::: info
-UART4 is on PB8/PB9. PD0/PD1 are used by CAN1.
+UART4 (TELEM3) is on PB8/PB9. PD0/PD1 are used by CAN1.
 :::
 
 ## PWM Output Groups

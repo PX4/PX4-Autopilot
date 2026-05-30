@@ -49,18 +49,18 @@ It features dual ICM-42688P IMUs, an SPL06 barometer, an AT7456E OSD, 16 MB onbo
 
 ## Serial Port Mapping
 
-| UART   | Device     | PX4 default | DMA   |
-| ------ | ---------- | ----------- | ----- |
-| USART1 | /dev/ttyS0 | GPS1        | RX+TX |
-| USART2 | /dev/ttyS1 | TELEM1      | —     |
-| USART3 | /dev/ttyS2 | TELEM2      | —     |
-| USART6 | /dev/ttyS3 | TELEM3      | RX+TX |
-| UART5  | /dev/ttyS4 | RC input    | RX+TX |
-| UART7  | /dev/ttyS5 | TELEM4      | RX+TX |
-| UART4  | —          | Available   | —     |
-| UART8  | —          | Available   | —     |
+| UART   | Device     | PX4 default    | DMA   |
+| ------ | ---------- | -------------- | ----- |
+| USART1 | /dev/ttyS0 | GPS1           | RX+TX |
+| USART2 | /dev/ttyS1 | TELEM1         | —     |
+| USART3 | /dev/ttyS2 | TELEM2         | —     |
+| UART4  | /dev/ttyS3 | TELEM3         | RX+TX |
+| UART5  | /dev/ttyS4 | RC input       | RX+TX |
+| USART6 | /dev/ttyS5 | TELEM4         | RX+TX |
+| UART7  | /dev/ttyS6 | System console | —     |
+| UART8  | /dev/ttyS7 | GPS2           | —     |
 
-All four assigned UARTs use full-duplex DMA (DMA2). USART2 and USART3 are interrupt-driven (ArduPilot marks them NODMA). UART4/UART8 have no current assignment.
+TELEM3 (UART4, `/dev/ttyS3`) is on PD0/PD1 and is the default MSP DisplayPort / digital-VTX port. DMA (DMA2) is allocated to the always-active links — GPS1, TELEM3, RC input and TELEM4; TELEM1, TELEM2, GPS2 and the system console are interrupt-driven.
 
 ## PWM Output Groups
 
