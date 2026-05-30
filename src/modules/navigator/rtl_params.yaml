@@ -150,6 +150,9 @@ parameters:
     RTL_APPR_FORCE:
       description:
         short: RTL force approach landing
-        long: Only consider RTL point, if it has an approach defined.
+        long: |-
+          Only consider RTL point, if it has a valid (finite position/altitude) VTOL approach loiter.
+          A VTOL approach loiter is a loiter circle attached to the rally point or home
+          that the vehicle uses to descend before transitioning.
       type: boolean
       default: 0

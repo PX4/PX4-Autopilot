@@ -34,7 +34,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ## Other changes
 
-- RTL_MISSION_FAST and RTL_MISSION_FAST_REVERSE now skip DO_JUMP commands (loops). ([PX4-Autopilot#26993: fix(navigator): goToNextPositionItem skip loops when required](https://github.com/PX4/PX4-Autopilot/pull/26993))
+- Fast mission Return modes ([RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) = 2 and 4) now skip `DO_JUMP` commands (loops) while following the mission path. ([PX4-Autopilot#26993: fix(navigator): goToNextPositionItem skip loops when required](https://github.com/PX4/PX4-Autopilot/pull/26993))
 
 ### Hardware Support
 

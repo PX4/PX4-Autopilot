@@ -92,7 +92,8 @@ In this return type the vehicle:
 - If the destination is a mission landing pattern it will follow the pattern to land.
 - If the destination is a rally point or home it will [land or wait](#loiter-landing-at-destination) at descent altitude (depending on landing parameters).
   By default an MC or VTOL in MC mode will land, and a fixed-wing vehicle circles at the descent altitude.
-  A VTOL in FW mode can first fly a VTOL approach loiter associated with that destination; if several are defined, PX4 chooses the most wind-aligned one.
+  A VTOL in FW mode can first fly a _VTOL approach loiter_ associated with that destination. A _VTOL approach loiter_ is a loiter circle attached to the rally point or home that the vehicle uses to descend before transitioning.
+  If several approach loiters are defined for the destination, PX4 chooses the most wind-aligned one.
   It then aligns its heading to the destination point, transitions to MC mode, and lands.
 
 ::: info
