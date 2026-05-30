@@ -205,11 +205,11 @@ enum class SBFOutputFrequency : int32_t {
  * Tracker for messages received by the driver.
 */
 struct MessageTracker {
-	bool dop {false};
-	bool pvt_geodetic {false};
-	bool vel_cov_geodetic {false};
-	bool att_euler {false};
-	bool att_cov_euler {false};
+	hrt_abstime dop {0};
+	hrt_abstime pvt_geodetic {0};
+	hrt_abstime vel_cov_geodetic {0};
+	hrt_abstime att_euler {0};
+	hrt_abstime att_cov_euler {0};
 };
 
 /**
@@ -674,6 +674,14 @@ private:
 	void reset_gps_state_message();
 
 	/**
+	 * @brief Initialize the message tracker by setting all tracked message timestamps to the current time.
+	 *
+	 * This prevents false health-check failures immediately after (re-)configuration by treating all messages
+	 * as freshly received.
+	*/
+	void initialize_message_tracker();
+
+	/**
 	 * @brief Get the parameter with the given name into `value`.
 	 *
 	 * @param name The name of the parameter.
@@ -767,8 +775,7 @@ private:
 	uint32_t    _current_interval_bytes_written {0};   ///< Nr of bytes written to the receiver in the current measurement interval
 	uint32_t    _last_interval_bytes_read {0};         ///< Nr of bytes read from the receiver in the last measurement interval
 	uint32_t    _current_interval_bytes_read {0};      ///< Nr of bytes read from the receiver in the current measurement interval
-	MessageTracker _last_interval_messages {};         ///< Messages encountered in the last measurement interval
-	MessageTracker _current_interval_messages {};      ///< Messages encountered in the current measurement interval
+	MessageTracker _message_tracker {};      	   ///< Tracks the last reception time of important messages for monitoring whether the receiver is configured correctly and healthy
 };
 
 } // namespace septentrio

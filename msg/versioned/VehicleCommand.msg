@@ -128,6 +128,8 @@ uint32 VEHICLE_CMD_PX4_INTERNAL_START = 65537 # Start of PX4 internal only vehic
 uint32 VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN = 100000 # Sets the GPS coordinates of the vehicle local origin (0,0,0) position. |Unused|Unused|Unused|Unused|Latitude (WGS-84)|Longitude (WGS-84)|[m] Altitude (AMSL from GNSS, positive above ground)|
 uint32 VEHICLE_CMD_SET_NAV_STATE = 100001 # Change mode by specifying nav_state directly. |nav_state|Unused|Unused|Unused|Unused|Unused|Unused|
 
+uint16 VEHICLE_CMD_GUIDED_CHANGE_HEADING = 43002 # Change heading/course. param1: heading type (0=course-over-ground, 1=heading). param2: target [deg]. param3: max rate [deg/s]. |Heading type (HEADING_TYPE enum)|[deg] Target bearing [0..360]|[deg/s] Max rate of change|Unused|Unused|Unused|Unused|
+
 uint8 VEHICLE_MOUNT_MODE_RETRACT = 0 # Load and keep safe position (Roll,Pitch,Yaw) from permanent memory and stop stabilization.
 uint8 VEHICLE_MOUNT_MODE_NEUTRAL = 1 # Load and keep neutral position (Roll,Pitch,Yaw) from permanent memory.
 uint8 VEHICLE_MOUNT_MODE_MAVLINK_TARGETING = 2 # Load neutral position and start MAVLink Roll,Pitch,Yaw control with stabilization.

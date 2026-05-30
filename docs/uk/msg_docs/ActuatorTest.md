@@ -8,13 +8,13 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Назва                           | Тип       | Unit [Frame] | Range/Enum | Опис                                                                                                                       |
-| ------------------------------- | --------- | ---------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------- |
-| timestamp                       | `uint64`  |                                                                  |            | time since system start (microseconds)                                                                  |
-| action                          | `uint8`   |                                                                  |            | one of ACTION\_\*                                                                                    |
-| function                        | `uint16`  |                                                                  |            | actuator output function                                                                                                   |
-| value                           | `float32` |                                                                  |            | range: [-1, 1], where 1 means maximum positive output, |
-| timeout_ms | `uint32`  |                                                                  |            | timeout in ms after which to exit test mode (if 0, do not time out)                                     |
+| Назва                                                      | Тип       | Unit [Frame] | Range/Enum | Опис                                                                                                                       |
+| ---------------------------------------------------------- | --------- | ---------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                        | `uint64`  |                                                                  |            | time since system start (microseconds)                                                                  |
+| <a id="fld_action"></a>action                              | `uint8`   |                                                                  |            | one of ACTION\_\*                                                                                    |
+| <a id="fld_function"></a>function                          | `uint16`  |                                                                  |            | actuator output function                                                                                                   |
+| <a id="fld_value"></a>value                                | `float32` |                                                                  |            | range: [-1, 1], where 1 means maximum positive output, |
+| <a id="fld_timeout_ms"></a>timeout_ms | `uint32`  |                                                                  |            | timeout in ms after which to exit test mode (if 0, do not time out)                                     |
 
 ## Constants
 

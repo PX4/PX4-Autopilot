@@ -102,6 +102,9 @@ public:
 	 */
 	void initialize_mission_topics(MissionLogType mission_log_type);
 
+	/**
+	 * Add topic subscriptions based on the profile configuration and additional topics from SD card
+	 */
 	bool initialize_logged_topics(SDLogProfileMask profile);
 
 	const RequestedSubscriptionArray &subscriptions() const { return _subscriptions; }
@@ -159,11 +162,6 @@ private:
 	 * @param interval limit rate if >0 [ms], otherwise log as fast as the topic is updated.
 	 */
 	void add_mission_topic(const char *name, uint16_t interval_ms = 0);
-
-	/**
-	 * Add topic subscriptions based on the profile configuration
-	 */
-	void initialize_configured_topics(SDLogProfileMask profile);
 
 	void add_default_topics();
 	void add_estimator_replay_topics();

@@ -29,6 +29,7 @@ this file is only used in the position_setpoint triple as a dependency.
 | <a id="fld_loiter_pattern"></a>loiter_pattern                                         | `uint8`   |              |            | loitern pattern to follow                                                                         |
 | <a id="fld_acceptance_radius"></a>acceptance_radius                                   | `float32` |              |            | horizontal acceptance_radius (meters)                                                             |
 | <a id="fld_alt_acceptance_radius"></a>alt_acceptance_radius                           | `float32` |              |            | vertical acceptance radius, only used for fixed wing guidance, NAN = let guidance choose (meters) |
+| <a id="fld_course"></a>course                                                         | `float32` | rad          |            | desired course (bearing) over ground, NaN = unused                                                |
 | <a id="fld_cruising_speed"></a>cruising_speed                                         | `float32` |              |            | the generally desired cruising speed (not a hard constraint)                                      |
 | <a id="fld_gliding_enabled"></a>gliding_enabled                                       | `bool`    |              |            | commands the vehicle to glide if the capability is available (fixed wing only)                    |
 | <a id="fld_cruising_throttle"></a>cruising_throttle                                   | `float32` |              |            | the generally desired cruising throttle (not a hard constraint), only has an effect for rover     |
@@ -88,6 +89,7 @@ uint8 	loiter_pattern		# loitern pattern to follow
 float32 acceptance_radius   # horizontal acceptance_radius (meters)
 float32 alt_acceptance_radius # vertical acceptance radius, only used for fixed wing guidance, NAN = let guidance choose (meters)
 
+float32 course			# [rad] desired course (bearing) over ground, NaN = unused
 float32 cruising_speed		# the generally desired cruising speed (not a hard constraint)
 bool gliding_enabled		# commands the vehicle to glide if the capability is available (fixed wing only)
 float32 cruising_throttle	# the generally desired cruising throttle (not a hard constraint), only has an effect for rover

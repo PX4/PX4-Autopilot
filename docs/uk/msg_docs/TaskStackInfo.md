@@ -10,11 +10,11 @@ stack information for a single running process.
 
 ## Fields
 
-| Назва                           | Тип        | Unit [Frame] | Range/Enum | Опис                                                      |
-| ------------------------------- | ---------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| timestamp                       | `uint64`   |                                                                  |            | time since system start (microseconds) |
-| stack_free | `uint16`   |                                                                  |            |                                                           |
-| task_name  | `char[24]` |                                                                  |            |                                                           |
+| Назва                                                      | Тип        | Unit [Frame] | Range/Enum | Опис                                                      |
+| ---------------------------------------------------------- | ---------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                        | `uint64`   |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_stack_free"></a>stack_free | `uint16`   |                                                                  |            |                                                           |
+| <a id="fld_task_name"></a>task_name   | `char[24]` |                                                                  |            |                                                           |
 
 ## Constants
 
