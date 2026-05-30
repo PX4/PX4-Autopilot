@@ -19,4 +19,3 @@ param set-default EKF2_BARO_CTRL 0
 # EKF2 External Vision (EV) Config for OpenVINS Bridge V3
 param set-default EKF2_EV_CTRL 9
 param set-default EKF2_EV_NOISE_MD 0
-
