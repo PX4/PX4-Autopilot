@@ -3,3 +3,18 @@ menuconfig DRIVERS_HEATER
 	default n
 	---help---
 		Enable support for heater
+
+if DRIVERS_HEATER
+
+config HEATER_FAST_UPDATE_MODE
+	bool "Enable fast update mode"
+	default n
+	---help---
+		When enabled, the heater will use the last known temperature reading
+		for up to a defined threshold if no new temperature update is received. This allows
+		faster update time compared to the default behavior where the heater
+		waits idle for an entire control period on each missed update.
+		After a certain time without a valid update, the heater is turned off for
+		safety reasons and remains off until a new temperature reading is received.
+
+endif # DRIVERS_HEATER

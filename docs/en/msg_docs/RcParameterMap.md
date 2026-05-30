@@ -8,16 +8,16 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name        | Type         | Unit [Frame] | Range/Enum | Description                                                                                       |
-| ----------- | ------------ | ------------ | ---------- | ------------------------------------------------------------------------------------------------- |
-| timestamp   | `uint64`     |              |            | time since system start (microseconds)                                                            |
-| valid       | `bool[3]`    |              |            | true for RC-Param channels which are mapped to a param                                            |
-| param_index | `int32[3]`   |              |            | corresponding param index, this field is ignored if set to -1, in this case param_id will be used |
-| param_id    | `char[51]`   |              |            | MAP_NCHAN \* (ID_LEN + 1) chars, corresponding param id, null terminated                          |
-| scale       | `float32[3]` |              |            | scale to map the RC input [-1, 1] to a parameter value                                            |
-| value0      | `float32[3]` |              |            | initial value around which the parameter value is changed                                         |
-| value_min   | `float32[3]` |              |            | minimal parameter value                                                                           |
-| value_max   | `float32[3]` |              |            | minimal parameter value                                                                           |
+| Name                                    | Type         | Unit [Frame] | Range/Enum | Description                                                                                       |
+| --------------------------------------- | ------------ | ------------ | ---------- | ------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp     | `uint64`     |              |            | time since system start (microseconds)                                                            |
+| <a id="fld_valid"></a>valid             | `bool[3]`    |              |            | true for RC-Param channels which are mapped to a param                                            |
+| <a id="fld_param_index"></a>param_index | `int32[3]`   |              |            | corresponding param index, this field is ignored if set to -1, in this case param_id will be used |
+| <a id="fld_param_id"></a>param_id       | `char[51]`   |              |            | MAP_NCHAN \* (ID_LEN + 1) chars, corresponding param id, null terminated                          |
+| <a id="fld_scale"></a>scale             | `float32[3]` |              |            | scale to map the RC input [-1, 1] to a parameter value                                            |
+| <a id="fld_value0"></a>value0           | `float32[3]` |              |            | initial value around which the parameter value is changed                                         |
+| <a id="fld_value_min"></a>value_min     | `float32[3]` |              |            | minimal parameter value                                                                           |
+| <a id="fld_value_max"></a>value_max     | `float32[3]` |              |            | minimal parameter value                                                                           |
 
 ## Constants
 

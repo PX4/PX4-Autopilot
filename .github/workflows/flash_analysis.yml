@@ -17,10 +17,6 @@ on:
     paths-ignore:
       - 'docs/**'
 
-env:
-  MIN_FLASH_POS_DIFF_FOR_COMMENT: 50
-  MIN_FLASH_NEG_DIFF_FOR_COMMENT: -50
-
 jobs:
   analyze_flash:
     name: Analyzing ${{ matrix.target }}
@@ -159,27 +155,12 @@ jobs:
       V6X-SUMMARY-MAP-PERC: ${{ fromJSON(fromJSON(needs.analyze_flash.outputs.px4_fmu-v6x-bloaty-summary-map).vm-percentage) }}
     if: github.event.pull_request
     steps:
-      - name: Find Comment
-        uses: peter-evans/find-comment@v4
-        id: fc
-        with:
-          issue-number: ${{ github.event.pull_request.number }}
-          comment-author: 'github-actions[bot]'
-          body-includes: '<!-- pr-comment-poster:flash-analysis -->'
-
       - name: Set Build Time
         id: bt
         run: |
           echo "timestamp=$(date +'%Y-%m-%dT%H:%M:%S')" >> $GITHUB_OUTPUT
 
       - name: Write pr-comment artifact
-        # This can't be moved to the job-level conditions, as GH actions don't allow a job-level if condition to access the env.
-        if: |
-          steps.fc.outputs.comment-id != '' ||
-          env.V5X-SUMMARY-MAP-ABS >= fromJSON(env.MIN_FLASH_POS_DIFF_FOR_COMMENT) ||
-          env.V5X-SUMMARY-MAP-ABS <= fromJSON(env.MIN_FLASH_NEG_DIFF_FOR_COMMENT) ||
-          env.V6X-SUMMARY-MAP-ABS >= fromJSON(env.MIN_FLASH_POS_DIFF_FOR_COMMENT) ||
-          env.V6X-SUMMARY-MAP-ABS <= fromJSON(env.MIN_FLASH_NEG_DIFF_FOR_COMMENT)
         run: |
           mkdir -p pr-comment
           cat > pr-comment/manifest.json <<EOF
@@ -212,12 +193,6 @@ jobs:
           PR_COMMENT_BODY_EOF
 
       - name: Upload pr-comment artifact
-        if: |
-          steps.fc.outputs.comment-id != '' ||
-          env.V5X-SUMMARY-MAP-ABS >= fromJSON(env.MIN_FLASH_POS_DIFF_FOR_COMMENT) ||
-          env.V5X-SUMMARY-MAP-ABS <= fromJSON(env.MIN_FLASH_NEG_DIFF_FOR_COMMENT) ||
-          env.V6X-SUMMARY-MAP-ABS >= fromJSON(env.MIN_FLASH_POS_DIFF_FOR_COMMENT) ||
-          env.V6X-SUMMARY-MAP-ABS <= fromJSON(env.MIN_FLASH_NEG_DIFF_FOR_COMMENT)
         uses: actions/upload-artifact@v7
         with:
           name: pr-comment

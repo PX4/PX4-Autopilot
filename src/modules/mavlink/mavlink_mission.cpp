@@ -1464,9 +1464,10 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			mission_item->force_heading = (mavlink_mission_item->param2 > 0);
 			mission_item->loiter_radius = mavlink_mission_item->param3;
 			mission_item->loiter_exit_xtrack = (mavlink_mission_item->param4 > 0);
-			// Yaw is only valid for multicopter but we set it always because
-			// it's just ignored for fixedwing.
-			mission_item->yaw = wrap_2pi(math::radians(mavlink_mission_item->param4));
+			// Per the MAVLink spec param4 selects the loiter-circle exit cross-track behavior
+			// (forward-only vehicles), not a yaw setpoint. Don't derive a heading from it, so
+			// multicopters keep their current heading instead of being forced to ~param4 degrees.
+			mission_item->yaw = NAN;
 			break;
 
 		case MAV_CMD_NAV_LAND:
@@ -1487,6 +1488,9 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			mission_item->force_heading = (mavlink_mission_item->param1 > 0);
 			mission_item->loiter_radius = mavlink_mission_item->param2;
 			mission_item->loiter_exit_xtrack = (mavlink_mission_item->param4 > 0);
+			// MAV_CMD_NAV_LOITER_TO_ALT has no yaw field. Leave yaw unspecified so multicopters don't
+			// use the zero-initialized default as an unintended north-facing heading setpoint.
+			mission_item->yaw = NAN;
 			break;
 
 		case MAV_CMD_NAV_ROI:

@@ -10,23 +10,23 @@ GPS home position in WGS84 coordinates.
 
 ## Fields
 
-| Name         | Type      | Unit [Frame] | Range/Enum | Description                                        |
-| ------------ | --------- | ------------ | ---------- | -------------------------------------------------- |
-| timestamp    | `uint64`  |              |            | time since system start (microseconds)             |
-| lat          | `float64` |              |            | Latitude in degrees                                |
-| lon          | `float64` |              |            | Longitude in degrees                               |
-| alt          | `float32` |              |            | Altitude in meters (AMSL)                          |
-| x            | `float32` |              |            | X coordinate in meters                             |
-| y            | `float32` |              |            | Y coordinate in meters                             |
-| z            | `float32` |              |            | Z coordinate in meters                             |
-| roll         | `float32` |              |            | Pitch angle in radians                             |
-| pitch        | `float32` |              |            | Roll angle in radians                              |
-| yaw          | `float32` |              |            | Yaw angle in radians                               |
-| valid_alt    | `bool`    |              |            | true when the altitude has been set                |
-| valid_hpos   | `bool`    |              |            | true when the latitude and longitude have been set |
-| valid_lpos   | `bool`    |              |            | true when the local position (xyz) has been set    |
-| manual_home  | `bool`    |              |            | true when home position was set manually           |
-| update_count | `uint32`  |              |            | update counter of the home position                |
+| Name                                      | Type      | Unit [Frame] | Range/Enum | Description                                        |
+| ----------------------------------------- | --------- | ------------ | ---------- | -------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp       | `uint64`  |              |            | time since system start (microseconds)             |
+| <a id="fld_lat"></a>lat                   | `float64` |              |            | Latitude in degrees                                |
+| <a id="fld_lon"></a>lon                   | `float64` |              |            | Longitude in degrees                               |
+| <a id="fld_alt"></a>alt                   | `float32` |              |            | Altitude in meters (AMSL)                          |
+| <a id="fld_x"></a>x                       | `float32` |              |            | X coordinate in meters                             |
+| <a id="fld_y"></a>y                       | `float32` |              |            | Y coordinate in meters                             |
+| <a id="fld_z"></a>z                       | `float32` |              |            | Z coordinate in meters                             |
+| <a id="fld_roll"></a>roll                 | `float32` |              |            | Pitch angle in radians                             |
+| <a id="fld_pitch"></a>pitch               | `float32` |              |            | Roll angle in radians                              |
+| <a id="fld_yaw"></a>yaw                   | `float32` |              |            | Yaw angle in radians                               |
+| <a id="fld_valid_alt"></a>valid_alt       | `bool`    |              |            | true when the altitude has been set                |
+| <a id="fld_valid_hpos"></a>valid_hpos     | `bool`    |              |            | true when the latitude and longitude have been set |
+| <a id="fld_valid_lpos"></a>valid_lpos     | `bool`    |              |            | true when the local position (xyz) has been set    |
+| <a id="fld_manual_home"></a>manual_home   | `bool`    |              |            | true when home position was set manually           |
+| <a id="fld_update_count"></a>update_count | `uint32`  |              |            | update counter of the home position                |
 
 ## Constants
 

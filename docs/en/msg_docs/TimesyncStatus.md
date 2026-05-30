@@ -8,14 +8,14 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name             | Type     | Unit [Frame] | Range/Enum | Description                                                                |
-| ---------------- | -------- | ------------ | ---------- | -------------------------------------------------------------------------- |
-| timestamp        | `uint64` |              |            | time since system start (microseconds)                                     |
-| source_protocol  | `uint8`  |              |            | timesync source                                                            |
-| remote_timestamp | `uint64` |              |            | remote system timestamp (microseconds)                                     |
-| observed_offset  | `int64`  |              |            | raw time offset directly observed from this timesync packet (microseconds) |
-| estimated_offset | `int64`  |              |            | smoothed time offset between companion system and PX4 (microseconds)       |
-| round_trip_time  | `uint32` |              |            | round trip time of this timesync packet (microseconds)                     |
+| Name                                              | Type     | Unit [Frame] | Range/Enum | Description                                                                |
+| ------------------------------------------------- | -------- | ------------ | ---------- | -------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp               | `uint64` |              |            | time since system start (microseconds)                                     |
+| <a id="fld_source_protocol"></a>source_protocol   | `uint8`  |              |            | timesync source                                                            |
+| <a id="fld_remote_timestamp"></a>remote_timestamp | `uint64` |              |            | remote system timestamp (microseconds)                                     |
+| <a id="fld_observed_offset"></a>observed_offset   | `int64`  |              |            | raw time offset directly observed from this timesync packet (microseconds) |
+| <a id="fld_estimated_offset"></a>estimated_offset | `int64`  |              |            | smoothed time offset between companion system and PX4 (microseconds)       |
+| <a id="fld_round_trip_time"></a>round_trip_time   | `uint32` |              |            | round trip time of this timesync packet (microseconds)                     |
 
 ## Constants
 

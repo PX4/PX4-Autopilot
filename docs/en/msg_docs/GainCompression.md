@@ -8,12 +8,12 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name                | Type         | Unit [Frame] | Range/Enum | Description                                                         |
-| ------------------- | ------------ | ------------ | ---------- | ------------------------------------------------------------------- |
-| timestamp           | `uint64`     |              |            | Time since system start (microseconds)                              |
-| compression_gains   | `float32[3]` | [FRD]        | [0 : 1]    | Multiplicative gain to modify the output of the controller per axis |
-| spectral_damper_hpf | `float32[3]` | [FRD]        |            | Squared output of spectral damper high-pass filter                  |
-| spectral_damper_out | `float32[3]` | [FRD]        |            | Spectral damper output squared                                      |
+| Name                                                    | Type         | Unit [Frame] | Range/Enum | Description                                                         |
+| ------------------------------------------------------- | ------------ | ------------ | ---------- | ------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                     | `uint64`     |              |            | Time since system start (microseconds)                              |
+| <a id="fld_compression_gains"></a>compression_gains     | `float32[3]` | [FRD]        | [0 : 1]    | Multiplicative gain to modify the output of the controller per axis |
+| <a id="fld_spectral_damper_hpf"></a>spectral_damper_hpf | `float32[3]` | [FRD]        |            | Squared output of spectral damper high-pass filter                  |
+| <a id="fld_spectral_damper_out"></a>spectral_damper_out | `float32[3]` | [FRD]        |            | Spectral damper output squared                                      |
 
 ## Source Message
 

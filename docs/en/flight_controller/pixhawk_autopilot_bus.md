@@ -22,6 +22,7 @@ The flight controllers and baseports listed here are expected to be compliant wi
 ## PAB Compatible Flight Controllers
 
 - [ARK Electronics ARKV6X](../flight_controller/ark_v6x.md)
+- [ARK Electronics ARKV6S](../flight_controller/ark_v6s.md)
 - [Holybro Pixhawk 5X (FMUv5X)](../flight_controller/pixhawk5x.md)
 - [Holybro Pixhawk 6X (FMUv6X)](../flight_controller/pixhawk6x.md)
 - [CUAV Pixhawk V6X (FMUv6X)](../flight_controller/cuav_pixhawk_v6x.md)

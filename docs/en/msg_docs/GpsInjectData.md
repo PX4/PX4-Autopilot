@@ -8,13 +8,13 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name      | Type         | Unit [Frame] | Range/Enum | Description                                                               |
-| --------- | ------------ | ------------ | ---------- | ------------------------------------------------------------------------- |
-| timestamp | `uint64`     |              |            | time since system start (microseconds)                                    |
-| device_id | `uint32`     |              |            | unique device ID for the sensor that does not change between power cycles |
-| len       | `uint16`     |              |            | length of data                                                            |
-| flags     | `uint8`      |              |            | LSB: 1=fragmented across multiple uORB publications                       |
-| data      | `uint8[300]` |              |            | data chunk to write to GPS device (RTCM message)                          |
+| Name                                | Type         | Unit [Frame] | Range/Enum | Description                                                               |
+| ----------------------------------- | ------------ | ------------ | ---------- | ------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp | `uint64`     |              |            | time since system start (microseconds)                                    |
+| <a id="fld_device_id"></a>device_id | `uint32`     |              |            | unique device ID for the sensor that does not change between power cycles |
+| <a id="fld_len"></a>len             | `uint16`     |              |            | length of data                                                            |
+| <a id="fld_flags"></a>flags         | `uint8`      |              |            | LSB: 1=fragmented across multiple uORB publications                       |
+| <a id="fld_data"></a>data           | `uint8[300]` |              |            | data chunk to write to GPS device (RTCM message)                          |
 
 ## Constants
 
