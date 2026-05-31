@@ -91,7 +91,7 @@ private:
 
 				// timestamp: 32 bit Unix Timestamp in seconds since 00:00:00 01/01/2019.
 				// Timestamp not available is indicated by 0.
-				static uint64_t utc_offset_us = 1'546'300'800ULL * 1'000'000ULL;
+				static constexpr uint64_t utc_offset_us = 1'546'300'800ULL * 1'000'000ULL;
 
 				if (vehicle_gps_position.time_utc_usec >= utc_offset_us) {
 					const uint64_t timestamp_s = (vehicle_gps_position.time_utc_usec - utc_offset_us) / 1'000'000ULL;
