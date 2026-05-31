@@ -201,6 +201,7 @@ private:
 	vehicle_attitude_setpoint_s _att_sp{};
 	bool _landed{false};
 	float _can_run_factor{0.f};
+	float _load_factor_from_bank_angle{1.f};
 	SlewRate<float> _airspeed_slew_rate_controller;
 
 	perf_counter_t _loop_perf; // loop performance counter
@@ -247,8 +248,6 @@ private:
 	void updateLongitudinalControlConfiguration(const longitudinal_control_configuration_s &configuration_in);
 
 	void updateControllerConfiguration(hrt_abstime now);
-
-	float getLoadFactor() const;
 
 	/**
 	 * @brief Returns an adapted calibrated airspeed setpoint
