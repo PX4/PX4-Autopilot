@@ -106,66 +106,6 @@ protected:
 	}
 };
 
-// WHY: The library normalizes raw transponder and ownship data before delegating to a DAA standard.
-// WHAT: Convert representative traffic and ownship inputs and verify the packed
-// aircraft state matches the expected geometry and NED velocity conventions.
-TEST_F(AdsbConflictTest, ConvertsTrafficAndOwnshipState)
-{
-	// GIVEN: Representative traffic and ownship inputs in their raw public formats.
-	AdsbConflict adsb_conflict;
-	const float nan = std::numeric_limits<float>::quiet_NaN();
-
-	transponder_report_s report{};
-	report.lat = 46.52342;
-	report.lon = 6.524234;
-	report.altitude = 432.1f;
-	report.heading = math::radians(60.f);
-	report.hor_velocity = 23.f;
-	report.ver_velocity = -4.f;
-	const float expected_traffic_velocity_n_m_s = cosf(report.heading) * report.hor_velocity;
-	const float expected_traffic_velocity_e_m_s = sinf(report.heading) * report.hor_velocity;
-	const float expected_traffic_velocity_d_m_s = -report.ver_velocity;
-
-	// WHEN: The wrapper converts the traffic report into its normalized aircraft state.
-	aircraft_state_s traffic_state{};
-	adsb_conflict.transponder_report_to_aircraft_state(report, traffic_state);
-
-	// THEN: The traffic geometry is preserved and its velocity is converted into NED.
-	EXPECT_DOUBLE_EQ(traffic_state.lat_lon(0), report.lat);
-	EXPECT_DOUBLE_EQ(traffic_state.lat_lon(1), report.lon);
-	EXPECT_FLOAT_EQ(traffic_state.altitude, report.altitude);
-	EXPECT_FLOAT_EQ(traffic_state.heading, report.heading);
-	EXPECT_FLOAT_EQ(traffic_state.velocity_ned(0), expected_traffic_velocity_n_m_s);
-	EXPECT_FLOAT_EQ(traffic_state.velocity_ned(1), expected_traffic_velocity_e_m_s);
-	EXPECT_FLOAT_EQ(traffic_state.velocity_ned(2), expected_traffic_velocity_d_m_s);
-
-	// WHEN: Traffic speed is valid but heading is unavailable.
-	report.heading = nan;
-	adsb_conflict.transponder_report_to_aircraft_state(report, traffic_state);
-
-	// THEN: The wrapper preserves the speed magnitudes with a due-north fallback so heading-agnostic standards still work.
-	EXPECT_FLOAT_EQ(traffic_state.velocity_ned(0), report.hor_velocity);
-	EXPECT_FLOAT_EQ(traffic_state.velocity_ned(1), 0.f);
-	EXPECT_FLOAT_EQ(traffic_state.velocity_ned(2), expected_traffic_velocity_d_m_s);
-
-	// WHEN: Ownship state is converted from local NED velocity components.
-	const matrix::Vector2d uav_lat_lon{46.6, 6.6};
-	const matrix::Vector3f uav_velocity_ned_m_s{3.f, 4.f, 2.f};
-	constexpr float uav_alt = 500.f;
-	const float uav_heading = math::radians(135.f);
-	aircraft_state_s uav_state{};
-	adsb_conflict.uav_state_to_aircraft_state(uav_lat_lon, uav_alt, uav_heading, uav_velocity_ned_m_s, uav_state);
-
-	// THEN: Ownship geometry and NED velocity are preserved exactly.
-	EXPECT_DOUBLE_EQ(uav_state.lat_lon(0), uav_lat_lon(0));
-	EXPECT_DOUBLE_EQ(uav_state.lat_lon(1), uav_lat_lon(1));
-	EXPECT_FLOAT_EQ(uav_state.altitude, uav_alt);
-	EXPECT_FLOAT_EQ(uav_state.heading, uav_heading);
-	EXPECT_FLOAT_EQ(uav_state.velocity_ned(0), uav_velocity_ned_m_s(0));
-	EXPECT_FLOAT_EQ(uav_state.velocity_ned(1), uav_velocity_ned_m_s(1));
-	EXPECT_FLOAT_EQ(uav_state.velocity_ned(2), uav_velocity_ned_m_s(2));
-}
-
 // WHY: Input validation must fail closed so NaNs and infinities never reach the conflict algorithms.
 // WHAT: Feed non-finite coordinates and velocities into `handle_traffic()` and verify the library rejects them.
 TEST_F(AdsbConflictTest, RejectsNonFiniteCoordinatesAndVelocities)

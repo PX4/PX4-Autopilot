@@ -19,7 +19,7 @@ parameters:
     DAA_TRAFF_TOUT:
       description:
         short: DAA stale conflict timeout
-        long: Time after which a conflict is removed from the buffer if no new data arrived.
+        long: Conflict age before removal.
       type: int32
       default: 20
       unit: s

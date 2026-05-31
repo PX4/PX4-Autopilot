@@ -36,38 +36,6 @@
 
 #include <uORB/topics/transponder_report.h>
 
-#include <float.h>
-
-matrix::Vector3f AdsbConflict::velocity_ned_from_transponder_report(const transponder_report_s &transponder_report)
-{
-	if (!PX4_ISFINITE(transponder_report.heading)) {
-		return matrix::Vector3f(transponder_report.hor_velocity, 0.f, -transponder_report.ver_velocity);
-	}
-
-	return matrix::Vector3f(cosf(transponder_report.heading) * transponder_report.hor_velocity,
-				sinf(transponder_report.heading) * transponder_report.hor_velocity,
-				-transponder_report.ver_velocity);
-}
-
-void AdsbConflict::transponder_report_to_aircraft_state(const transponder_report_s &transponder_report,
-		aircraft_state_s &traffic_state)
-{
-	traffic_state.lat_lon = matrix::Vector2d(transponder_report.lat, transponder_report.lon);
-	traffic_state.altitude = transponder_report.altitude;
-	traffic_state.heading = transponder_report.heading;
-	traffic_state.velocity_ned = velocity_ned_from_transponder_report(transponder_report);
-}
-
-void AdsbConflict::uav_state_to_aircraft_state(const matrix::Vector2d &uav_lat_lon, const float uav_alt,
-		const float uav_heading,
-		const matrix::Vector3f &uav_vel_ned, aircraft_state_s &uav_state)
-{
-	uav_state.lat_lon = uav_lat_lon;
-	uav_state.altitude = uav_alt;
-	uav_state.heading = uav_heading;
-	uav_state.velocity_ned = uav_vel_ned;
-}
-
 bool AdsbConflict::handle_traffic(const matrix::Vector2d &uav_lat_lon, const float uav_alt,
 				  const float uav_heading,
 				  const matrix::Vector3f &uav_vel_ned, const transponder_report_s &transponder_report, detect_and_avoid_s &daa_output)
@@ -100,25 +68,34 @@ bool AdsbConflict::handle_traffic(const matrix::Vector2d &uav_lat_lon, const flo
 
 	// Process input data
 	aircraft_state_s uav_state{};
-	uav_state_to_aircraft_state(uav_lat_lon, uav_alt, uav_heading, uav_vel_ned, uav_state);
+	uav_state.lat_lon = uav_lat_lon;
+	uav_state.altitude = uav_alt;
+	uav_state.heading = uav_heading;
+	uav_state.velocity_ned = uav_vel_ned;
 
 	aircraft_state_s traffic_state{};
-	transponder_report_to_aircraft_state(transponder_report, traffic_state);
+	traffic_state.lat_lon = matrix::Vector2d(transponder_report.lat, transponder_report.lon);
+	traffic_state.altitude = transponder_report.altitude;
+	traffic_state.heading = transponder_report.heading;
+
+	if (PX4_ISFINITE(transponder_report.heading)) {
+		traffic_state.velocity_ned = matrix::Vector3f(
+						     cosf(transponder_report.heading) * transponder_report.hor_velocity,
+						     sinf(transponder_report.heading) * transponder_report.hor_velocity,
+						     -transponder_report.ver_velocity);
+
+	} else {
+		traffic_state.velocity_ned = matrix::Vector3f(transponder_report.hor_velocity, 0.f, -transponder_report.ver_velocity);
+	}
 
 	// Use DAA standard to detect traffic
 	daa_stats_s daa_stats{};
-	daa_output.conflict_level = calculate_daa_stats(uav_state, traffic_state, daa_stats);
+	daa_output.conflict_level = _daa.calculate_daa_stats(uav_state, traffic_state, daa_stats);
 	daa_output.aircraft_dist_hor = daa_stats.aircraft_dist_hor;
 	daa_output.aircraft_dist_vert = daa_stats.aircraft_dist_vert;
 	daa_output.expected_min_dist_time = daa_stats.expected_min_dist_time_sec;
 
 	return true;
-}
-
-uint8_t AdsbConflict::calculate_daa_stats(const aircraft_state_s &uav_state, const aircraft_state_s &traffic_state,
-		daa_stats_s &daa_stats)
-{
-	return _daa.calculate_daa_stats(uav_state, traffic_state, daa_stats);
 }
 
 bool AdsbConflict::try_updating_params()

@@ -63,8 +63,6 @@ set(msg_files
 	DebugKeyValue.msg
 	DebugValue.msg
 	DebugVect.msg
-	DetectAndAvoid.msg
-	DetectAndAvoidMostUrgent.msg
 	DeviceInformation.msg
 	DifferentialPressure.msg
 	DistanceSensor.msg
@@ -290,6 +288,12 @@ set(msg_files
 	versioned/Wind.msg
 )
 list(SORT msg_files)
+
+if(CONFIG_NAVIGATOR_ADSB)
+	list(APPEND msg_files
+		DetectAndAvoid.msg
+		DetectAndAvoidMostUrgent.msg)
+endif()
 
 if(CONFIG_MODULES_VISION_TARGET_ESTIMATOR)
 	list(APPEND msg_files

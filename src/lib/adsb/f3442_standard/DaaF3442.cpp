@@ -68,8 +68,8 @@ bool DaaF3442::try_setting_params()
 		return false;
 	}
 
-	_nmac_bounds = nmac_bounds;
-	_wc_bounds = wc_bounds;
+	_nmac_bounds_m = nmac_bounds;
+	_wc_bounds_m = wc_bounds;
 	_aug_nmac_latency_s = static_cast<float>(nmac_latency);
 	_aug_wc_latency_s = static_cast<float>(wc_latency);
 
@@ -118,19 +118,19 @@ uint8_t DaaF3442::calculate_conflict_level(const matrix::Vector2f &distance,
 	// Hierarchy is imposed using early returns: CRITICAL <= HIGH <= MEDIUM <= LOW
 
 	// Multiply by two because both aircraft have their respective NMAC bounds
-	if (is_in_bounds(distance, 2.f * _nmac_bounds)) {
+	if (is_in_bounds(distance, 2.f * _nmac_bounds_m)) {
 		PX4_DEBUG("F3442: NMAC breach");
 		return detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL;
 	}
 
 	// Multiply by two because both aircraft have their respective WC bounds
-	if (is_in_bounds(distance, 2.f * _wc_bounds)) {
+	if (is_in_bounds(distance, 2.f * _wc_bounds_m)) {
 		PX4_DEBUG("F3442: WC breach");
 		return detect_and_avoid_s::DAA_CONFLICT_LVL_HIGH;
 	}
 
 	matrix::Vector2f aug_nmac_bounds;
-	calculate_augmented_boundaries(_nmac_bounds, uav_vel_hor_vert, traffic_vel, _aug_nmac_latency_s, aug_nmac_bounds);
+	calculate_augmented_boundaries(_nmac_bounds_m, uav_vel_hor_vert, traffic_vel, _aug_nmac_latency_s, aug_nmac_bounds);
 
 	if (is_in_bounds(distance, aug_nmac_bounds)) {
 		PX4_DEBUG("F3442: AUG_NMAC breach");
@@ -138,7 +138,7 @@ uint8_t DaaF3442::calculate_conflict_level(const matrix::Vector2f &distance,
 	}
 
 	matrix::Vector2f aug_wc_bounds;
-	calculate_augmented_boundaries(_wc_bounds, uav_vel_hor_vert, traffic_vel, _aug_wc_latency_s, aug_wc_bounds);
+	calculate_augmented_boundaries(_wc_bounds_m, uav_vel_hor_vert, traffic_vel, _aug_wc_latency_s, aug_wc_bounds);
 
 	if (is_in_bounds(distance, aug_wc_bounds)) {
 		PX4_DEBUG("F3442: AUG_WC breach");
@@ -150,7 +150,8 @@ uint8_t DaaF3442::calculate_conflict_level(const matrix::Vector2f &distance,
 
 uint8_t DaaF3442::calculate_daa_stats(const aircraft_state_s &uav_state, const aircraft_state_s &traffic_state, daa_stats_s &daa_stats)
 {
-	float horizontal_dist, vertical_dist;
+	float horizontal_dist{0.f};
+	float vertical_dist{0.f};
 	get_distance_to_point_global_wgs84(uav_state.lat_lon(0), uav_state.lat_lon(1), uav_state.altitude,
 					   traffic_state.lat_lon(0), traffic_state.lat_lon(1), traffic_state.altitude, &horizontal_dist, &vertical_dist);
 

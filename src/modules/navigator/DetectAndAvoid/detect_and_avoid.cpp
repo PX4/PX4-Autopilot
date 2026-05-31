@@ -114,14 +114,6 @@ void DetectAndAvoid::updateParams()
 	ModuleParams::updateParams();
 	_daa_enabled = _param_daa_en.get();
 	_daa_notif_state_s = math::max<int32_t>(0, _param_daa_notif_state.get());
-#if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
-	_daa_lvl_low_action_param = _param_daa_lvl_low_act.get();
-	_daa_lvl_med_action_param = _param_daa_lvl_med_act.get();
-	_daa_lvl_high_action_param = _param_daa_lvl_high_act.get();
-	_daa_lvl_crit_action_param = _param_daa_lvl_crit_act.get();
-#else
-	_nav_traff_avoid_mode = _param_nav_traff_avoid.get();
-#endif // CONFIG_NAVIGATOR_ADSB_F3442
 }
 
 void DetectAndAvoid::on_inactivation()
@@ -129,16 +121,6 @@ void DetectAndAvoid::on_inactivation()
 	PX4_DEBUG("DAA inactivation");
 	reset();
 	publish_most_urgent_conflict();
-}
-
-void DetectAndAvoid::failed_activation()
-{
-	_is_activated = false;
-	publish_most_urgent_conflict();
-
-	mavlink_log_critical(&_mavlink_log_pub, "DAA fail. No traffic info.\t");
-	events::send(events::ID("navigator_traffic_init_failed"), events::Log::Critical,
-		     "DAA init failed");
 }
 
 void DetectAndAvoid::on_activation()
@@ -151,8 +133,13 @@ void DetectAndAvoid::on_activation()
 		return;
 	}
 
-	if (!try_setting_lib_params()) {
-		failed_activation();
+	if (!_adsb_traffic.try_updating_params()) {
+		_is_activated = false;
+		publish_most_urgent_conflict();
+
+		mavlink_log_critical(&_mavlink_log_pub, "DAA fail. No traffic info.\t");
+		events::send(events::ID("navigator_traffic_init_failed"), events::Log::Critical,
+			     "DAA init failed");
 		return;
 	}
 
@@ -194,7 +181,9 @@ void DetectAndAvoid::on_active()
 	process_fake_traffic();
 #endif // CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC
 
-	if (try_removing_stale_conflicts()) {
+	const bool must_check_stale = has_elapsed(_time_last_buffer_clean, kRemoveStaleConflictsTime);
+
+	if (must_check_stale && stale_conflicts_removed()) {
 		update_most_urgent_conflict();
 		most_urgent_conflict_updated = true;
 	}
@@ -243,15 +232,6 @@ void DetectAndAvoid::publish_most_urgent_conflict()
 	_detect_and_avoid_most_urgent_pub.publish(daa_status);
 }
 
-bool DetectAndAvoid::try_removing_stale_conflicts()
-{
-	if (!has_elapsed(_time_last_buffer_clean, kRemoveStaleConflictsTime)) {
-		return false;
-	}
-
-	return stale_conflicts_removed();
-}
-
 void DetectAndAvoid::reset_most_urgent_conflict()
 {
 	static constexpr float kNoConflictDistance{9999.f};
@@ -265,7 +245,7 @@ void DetectAndAvoid::reset_most_urgent_conflict()
 
 void DetectAndAvoid::update_most_urgent_conflict()
 {
-	if (is_buffer_empty()) {
+	if (_traffic_buffer.empty()) {
 		PX4_DEBUG("DAA: update_most_urgent_conflict empty buffer.");
 		reset_most_urgent_conflict();
 		return;
@@ -301,18 +281,6 @@ bool DetectAndAvoid::eval_conflict_escalation_action(const DaaAction requested_a
 	}
 
 	return true;
-}
-
-void DetectAndAvoid::publish_and_notify_action(const DaaAction requested_action)
-{
-	// Publish action even if _previous_action == requested_action because _previous_action does not necessarily match the vehicle_status
-	PX4_DEBUG("DAA: publish action %d", (int)requested_action);
-	publish_action_command(requested_action);
-
-	// Avoid spamming if the vehicle command does not go through
-	if (_previous_action != requested_action) {
-		notify_new_action(_most_urgent_conflict, requested_action);
-	}
 }
 
 void DetectAndAvoid::evaluate_and_publish_action()
@@ -351,7 +319,15 @@ void DetectAndAvoid::evaluate_and_publish_action()
 	}
 
 	if (conflict_escalated && eval_conflict_escalation_action(requested_action)) {
-		publish_and_notify_action(requested_action);
+		// Publish even if _previous_action == requested_action: it may not match vehicle_status.
+		PX4_DEBUG("DAA: publish action %d", (int)requested_action);
+		publish_action_command(requested_action);
+
+		// Avoid spamming if the vehicle command does not go through.
+		if (_previous_action != requested_action) {
+			notify_new_action(_most_urgent_conflict, requested_action);
+		}
+
 		_previous_action = requested_action;
 		return;
 	}
@@ -459,7 +435,10 @@ bool DetectAndAvoid::update_conflict_buffer(new_conflicts_pending_notif_s &new_c
 
 		// Calculate conflict info e.g. transform horizontal and vertical dist to overall distance to minimize the buffer size.
 		conflict_info_s current_conflict {};
-		process_daa_output(daa_output, unique_id, transponder_report.timestamp, current_conflict);
+		current_conflict.unique_id = unique_id;
+		current_conflict.latest_update_timestamp = transponder_report.timestamp;
+		current_conflict.conflict_level = daa_output.conflict_level;
+		current_conflict.aircraft_dist = hypotf(daa_output.aircraft_dist_hor, daa_output.aircraft_dist_vert);
 
 		// Publish DAA data for logging and preflight checks
 		daa_output.unique_id = unique_id.id;
@@ -585,14 +564,14 @@ bool DetectAndAvoid::is_self_detection(const unique_id_s &unique_id) const
 
 bool DetectAndAvoid::get_unique_id(const transponder_report_s &report, unique_id_s &unique_id) const
 {
-	if (is_icao_valid(report.icao_address)) {
+	if (report.icao_address != 0) {
 		PX4_DEBUG("DAA: Unique ID encoding: ICAO.");
 		unique_id.id = static_cast<uint64_t>(report.icao_address);
 		unique_id.encoding = detect_and_avoid_s::UNIQUE_ID_ENCODING_ICAO;
 		return true;
 	}
 
-	if (is_callsign_valid(report.flags)) {
+	if (report.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN) {
 		PX4_DEBUG("DAA: Unique ID encoding: Callsign.");
 		unique_id.id = callsign_to_uint64(report.callsign);
 		unique_id.encoding = detect_and_avoid_s::UNIQUE_ID_ENCODING_ADSB_CALLSIGN;
@@ -605,7 +584,16 @@ bool DetectAndAvoid::get_unique_id(const transponder_report_s &report, unique_id
 		}
 	}
 
-	if (is_uas_id_valid(report.uas_id)) {
+	bool uas_id_valid = false;
+
+	for (int i = 0; i < PX4_GUID_BYTE_LENGTH; ++i) {
+		if (report.uas_id[i] != 0) {
+			uas_id_valid = true;
+			break;
+		}
+	}
+
+	if (uas_id_valid) {
 		PX4_DEBUG("DAA: Unique ID encoding: UAS id.");
 		unique_id.id = last_uas_id_bytes_to_uint64(report.uas_id);
 		unique_id.encoding = detect_and_avoid_s::UNIQUE_ID_ENCODING_UAS_ID;
@@ -621,21 +609,6 @@ bool DetectAndAvoid::get_unique_id(const transponder_report_s &report, unique_id
 
 	return false;
 }
-
-bool DetectAndAvoid::is_uas_id_valid(const uint8_t uas_id[PX4_GUID_BYTE_LENGTH]) const
-{
-	if (uas_id == nullptr) {
-		return false;
-	}
-
-	for (int i = 0; i < PX4_GUID_BYTE_LENGTH; ++i) {
-		if (uas_id[i] != 0) {
-			return true;
-		}
-	}
-
-	return false;
-};
 
 void DetectAndAvoid::convert_unique_id_to_string(const unique_id_s &unique_id, char *buffer, size_t buffer_size) const
 {
@@ -665,25 +638,23 @@ void DetectAndAvoid::convert_unique_id_to_string(const unique_id_s &unique_id, c
 	}
 }
 
-bool DetectAndAvoid::is_null_terminated(const char *array, size_t max_length)
-{
-	if (array == nullptr) {
-		return false;
-	}
-
-	for (size_t i = 0; i < max_length; ++i) {
-		if (array[i] == '\0') {
-			return true;
-		}
-	}
-
-	return false;
-}
-
 // Converts a callsign to a uint64_t
 uint64_t DetectAndAvoid::callsign_to_uint64(const char callsign[kCallsignLength])
 {
-	if (!is_null_terminated(callsign, kCallsignLength)) {
+	if (callsign == nullptr) {
+		return 0;
+	}
+
+	bool null_terminated = false;
+
+	for (size_t i = 0; i < kCallsignLength; ++i) {
+		if (callsign[i] == '\0') {
+			null_terminated = true;
+			break;
+		}
+	}
+
+	if (!null_terminated) {
 		return 0;
 	}
 
@@ -875,7 +846,15 @@ bool DetectAndAvoid::transponder_data_valid(const transponder_report_s &transpon
 		return false;
 	}
 
-	if (!transponder_flags_valid(transponder_report.flags)) {
+	uint16_t required_flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS |
+				  transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE;
+
+#if !defined(CONFIG_NAVIGATOR_ADSB_F3442) || !CONFIG_NAVIGATOR_ADSB_F3442
+	required_flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING |
+			  transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY;
+#endif // !CONFIG_NAVIGATOR_ADSB_F3442
+
+	if ((transponder_report.flags & required_flags) != required_flags) {
 		PX4_DEBUG("DAA: transponder data rejected, missing flags.");
 		return false;
 	}
@@ -899,28 +878,6 @@ bool DetectAndAvoid::transponder_data_valid(const transponder_report_s &transpon
 	return true;
 }
 
-bool DetectAndAvoid::transponder_flags_valid(const uint16_t flags) const
-{
-	uint16_t required_flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS |
-				  transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE;
-
-#if !defined(CONFIG_NAVIGATOR_ADSB_F3442) || !CONFIG_NAVIGATOR_ADSB_F3442
-	required_flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING |
-			  transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY;
-#endif // !CONFIG_NAVIGATOR_ADSB_F3442
-
-	return ((flags & required_flags) == required_flags);
-}
-
-void DetectAndAvoid::process_daa_output(const detect_and_avoid_s &daa_output, const unique_id_s &unique_id,
-					const uint64_t timestamp, conflict_info_s &current_conflict)
-{
-	current_conflict.unique_id = unique_id;
-	current_conflict.latest_update_timestamp = timestamp;
-	current_conflict.conflict_level = daa_output.conflict_level;
-	current_conflict.aircraft_dist = hypotf(daa_output.aircraft_dist_hor, daa_output.aircraft_dist_vert);
-}
-
 bool DetectAndAvoid::handle_existing_conflict(const conflict_info_s &current_conflict, const int current_conflict_idx)
 {
 	const uint8_t current_conflict_level = current_conflict.conflict_level;
@@ -938,21 +895,23 @@ bool DetectAndAvoid::handle_existing_conflict(const conflict_info_s &current_con
 		return true;
 	}
 
-	if (!try_updating_conflict_in_buffer(current_conflict_idx, current_conflict)) {
+	if (!is_valid_buffer_idx(current_conflict_idx)) {
+		PX4_ERR("DAA: bad update idx");
 		PX4_DEBUG("DAA: failed to update buffer");
 		maybe_notify_ignored_traffic(current_conflict, IgnoreTrafficCause::kFailedUpdate); // Notify if action requests it
 		return false;
 	}
 
+	_traffic_buffer[current_conflict_idx] = current_conflict;
 	return true; // Existing conflict updated in buffer with new data
 }
 
 bool DetectAndAvoid::handle_new_conflict(const conflict_info_s &current_conflict,
 		const new_conflicts_pending_notif_s &new_conflicts_pending_notif)
 {
-	if (!is_buffer_full()) {
-		if (!try_adding_conflict_to_buffer(current_conflict)) {
-			PX4_DEBUG("DAA: failed to add to buffer");
+	if (static_cast<int>(_traffic_buffer.size()) < kDaaMaxTraffic) {
+		if (!_traffic_buffer.push_back(current_conflict)) {
+			PX4_ERR("DAA: new conflict, add to full buffer");
 			maybe_notify_ignored_traffic(current_conflict, IgnoreTrafficCause::kFailedInclusion); // Notify if action requests it
 			return false;
 		}
@@ -961,14 +920,15 @@ bool DetectAndAvoid::handle_new_conflict(const conflict_info_s &current_conflict
 	}
 
 	// If buffer is full, determine action based on conflict urgency
-	conflict_info_s least_urgent_conflict;
-	int least_urgent_conflict_idx;
+	const int least_urgent_conflict_idx = find_conflict_idx_by_priority(ConflictPriority::kLeastUrgent);
 
-	if (!get_least_urgent_conflict(least_urgent_conflict, least_urgent_conflict_idx)) {
+	if (!is_valid_buffer_idx(least_urgent_conflict_idx)) {
 		PX4_DEBUG("DAA: buf full, no least urgent");
 		maybe_notify_ignored_traffic(current_conflict, IgnoreTrafficCause::kFailedToGetLvl); // Notify if action requests it
 		return false;
 	}
+
+	const conflict_info_s &least_urgent_conflict = _traffic_buffer[least_urgent_conflict_idx];
 
 	// If new traffic is the least important, ignore it
 	if (is_conflict_less_important(current_conflict, least_urgent_conflict)) {
@@ -1000,8 +960,10 @@ bool DetectAndAvoid::handle_new_conflict(const conflict_info_s &current_conflict
 	}
 
 	// Try adding conflict to buffer
-	if (!try_adding_conflict_to_buffer(current_conflict)) {
-		PX4_DEBUG("DAA: failed to add conflict despite clearing space in buffer, new conflict conflict ignored.");
+	if ((static_cast<int>(_traffic_buffer.size()) >= kDaaMaxTraffic)
+	    || !_traffic_buffer.push_back(current_conflict)) {
+		PX4_ERR("DAA: new conflict try to add to full buffer");
+		PX4_DEBUG("DAA: failed to add conflict despite clearing space in buffer, new conflict ignored.");
 		maybe_notify_ignored_traffic(current_conflict, IgnoreTrafficCause::kFailedInclusion);
 		return false;
 	}
@@ -1070,21 +1032,6 @@ bool DetectAndAvoid::find_most_urgent_conflict(conflict_info_s &most_urgent_conf
 	return true;
 }
 
-bool DetectAndAvoid::get_least_urgent_conflict(conflict_info_s &least_urgent_conflict, int &least_urgent_conflict_idx) const
-{
-	least_urgent_conflict_idx = find_conflict_idx_by_priority(ConflictPriority::kLeastUrgent);
-
-	// Validate index bounds
-	if (!is_valid_buffer_idx(least_urgent_conflict_idx)) {
-		PX4_ERR("DAA: no least urgent conflict");
-		return false;
-	}
-
-	least_urgent_conflict = _traffic_buffer[least_urgent_conflict_idx];
-
-	return true;
-}
-
 DaaAction DetectAndAvoid::get_action_from_conflict_level(const uint8_t conflict_level) const
 {
 	if (conflict_level < detect_and_avoid_s::DAA_CONFLICT_LVL_LOW
@@ -1099,7 +1046,7 @@ DaaAction DetectAndAvoid::get_action_from_conflict_level(const uint8_t conflict_
 
 	switch (conflict_level) {
 	case detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL:
-		requested_action = action_param_to_daa_action(_daa_lvl_crit_action_param);
+		requested_action = action_param_to_daa_action(_param_daa_lvl_crit_act.get());
 
 		if (requested_action != DaaAction::kDisabled) {
 			return requested_action;
@@ -1108,7 +1055,7 @@ DaaAction DetectAndAvoid::get_action_from_conflict_level(const uint8_t conflict_
 	// FALLTHROUGH
 
 	case detect_and_avoid_s::DAA_CONFLICT_LVL_HIGH:
-		requested_action = action_param_to_daa_action(_daa_lvl_high_action_param);
+		requested_action = action_param_to_daa_action(_param_daa_lvl_high_act.get());
 
 		if (requested_action != DaaAction::kDisabled) {
 			return requested_action;
@@ -1117,7 +1064,7 @@ DaaAction DetectAndAvoid::get_action_from_conflict_level(const uint8_t conflict_
 	// FALLTHROUGH
 
 	case detect_and_avoid_s::DAA_CONFLICT_LVL_MEDIUM:
-		requested_action = action_param_to_daa_action(_daa_lvl_med_action_param);
+		requested_action = action_param_to_daa_action(_param_daa_lvl_med_act.get());
 
 		if (requested_action != DaaAction::kDisabled) {
 			return requested_action;
@@ -1126,12 +1073,12 @@ DaaAction DetectAndAvoid::get_action_from_conflict_level(const uint8_t conflict_
 	// FALLTHROUGH
 
 	case detect_and_avoid_s::DAA_CONFLICT_LVL_LOW:
-		return action_param_to_daa_action(_daa_lvl_low_action_param);
+		return action_param_to_daa_action(_param_daa_lvl_low_act.get());
 	}
 
 	return DaaAction::kDisabled;
 #else
-	return action_param_to_daa_action(_nav_traff_avoid_mode);
+	return action_param_to_daa_action(_param_nav_traff_avoid.get());
 #endif // CONFIG_NAVIGATOR_ADSB_F3442
 }
 
@@ -1301,20 +1248,9 @@ bool DetectAndAvoid::stale_conflicts_removed()
 	return nb_conflicts_removed > 0;
 }
 
-bool DetectAndAvoid::try_updating_conflict_in_buffer(const int conflict_idx, const conflict_info_s &conflict)
-{
-	if (is_buffer_empty() || !is_valid_buffer_idx(conflict_idx)) {
-		PX4_ERR("DAA: bad update idx");
-		return false;
-	}
-
-	_traffic_buffer[conflict_idx] = conflict;
-	return true;
-}
-
 bool DetectAndAvoid::try_removing_conflict_from_buffer(const int conflict_idx, conflict_info_s &removed_conflict)
 {
-	if (is_buffer_empty() || !is_valid_buffer_idx(conflict_idx)) {
+	if (_traffic_buffer.empty() || !is_valid_buffer_idx(conflict_idx)) {
 		PX4_ERR("DAA: bad remove idx");
 		return false;
 	}
@@ -1322,17 +1258,6 @@ bool DetectAndAvoid::try_removing_conflict_from_buffer(const int conflict_idx, c
 	// Output removed conflict for notification
 	removed_conflict = _traffic_buffer[conflict_idx];
 	_traffic_buffer.remove(conflict_idx);
-	return true;
-}
-
-bool DetectAndAvoid::try_adding_conflict_to_buffer(const conflict_info_s &conflict)
-{
-	if (is_buffer_full()) {
-		PX4_ERR("DAA: add to full buffer");
-		return false;
-	}
-
-	_traffic_buffer.push_back(conflict);
 	return true;
 }
 

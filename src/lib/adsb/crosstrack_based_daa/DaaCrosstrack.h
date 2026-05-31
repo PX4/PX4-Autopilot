@@ -74,9 +74,9 @@ public:
 	bool try_setting_params();
 
 private:
-	float _crosstrack_separation{500};
-	float _vertical_separation{500};
-	int _collision_time_threshold{60};
+	float _crosstrack_separation_m{500};
+	float _vertical_separation_m{500};
+	int _collision_time_threshold_s{60};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::NAV_TRAFF_A_VER>) _param_nav_traff_a_ver,

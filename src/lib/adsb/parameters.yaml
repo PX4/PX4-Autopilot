@@ -30,8 +30,8 @@ parameters:
       reboot_required: true
     ADSB_ICAO_ID:
       description:
-        short: ADSB-Out ICAO configuration.
-        long: Defines the ICAO ID of the vehicle. Use -1 to disable.
+        short: ADSB-Out ICAO ID
+        long: Vehicle ICAO ID. Use -1 to disable.
       type: int32
       default: -1
       reboot_required: true
@@ -39,8 +39,8 @@ parameters:
       max: 16777215
     ADSB_ICAO_ID_2:
       description:
-        short: ADSB-Out secondary ICAO configuration.
-        long: Defines the secondary ICAO ID of the vehicle. Use -1 to disable.
+        short: ADSB-Out secondary ICAO ID
+        long: Secondary vehicle ICAO ID. Use -1 to disable.
       type: int32
       default: -1
       reboot_required: true

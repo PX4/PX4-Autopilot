@@ -100,8 +100,8 @@ private:
 	// Per-aircraft half-zones (radius, height). They match the parameter defaults and the ASTM
 	// F3442 zones once doubled in calculate_conflict_level(): NMAC = 2 x (153 m, 31 m),
 	// Well-Clear = 2 x (610 m, 77 m). Overwritten by try_setting_params() on activation.
-	matrix::Vector2f _nmac_bounds{77, 16};
-	matrix::Vector2f _wc_bounds{305, 39};
+	matrix::Vector2f _nmac_bounds_m{77, 16};
+	matrix::Vector2f _wc_bounds_m{305, 39};
 	float _aug_nmac_latency_s{33};
 	float _aug_wc_latency_s{33};
 

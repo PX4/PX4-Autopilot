@@ -198,24 +198,6 @@ bool get_script_step(const fake_traffic_script_step_s(&script)[N], const uint8_t
 	return true;
 }
 
-bool get_scripted_fake_traffic_step(const DetectAndAvoid::FakeTraffMode mode, const uint8_t step_idx,
-				    fake_traffic_script_step_s &step)
-{
-	switch (mode) {
-	case DetectAndAvoid::FakeTraffMode::kUniqueIds:
-		return get_script_step(kUniqueIdScript, step_idx, step);
-
-	case DetectAndAvoid::FakeTraffMode::kSpamNew:
-		return get_script_step(kSpamNewScript, step_idx, step);
-
-	case DetectAndAvoid::FakeTraffMode::kFlags:
-		return get_script_step(kFlagsScript, step_idx, step);
-
-	default:
-		return false;
-	}
-}
-
 bool get_queue_fill_step(const uint8_t report_idx, fake_traffic_script_step_s &step)
 {
 	constexpr uint8_t batch_count = 3;
@@ -308,9 +290,13 @@ bool get_fake_traffic_step(const DetectAndAvoid::FakeTraffMode mode, const uint8
 {
 	switch (mode) {
 	case DetectAndAvoid::FakeTraffMode::kUniqueIds:
+		return get_script_step(kUniqueIdScript, step_idx, step);
+
 	case DetectAndAvoid::FakeTraffMode::kSpamNew:
+		return get_script_step(kSpamNewScript, step_idx, step);
+
 	case DetectAndAvoid::FakeTraffMode::kFlags:
-		return get_scripted_fake_traffic_step(mode, step_idx, step);
+		return get_script_step(kFlagsScript, step_idx, step);
 
 	case DetectAndAvoid::FakeTraffMode::kEscalation: {
 			static constexpr uint8_t kStepCount = 30;

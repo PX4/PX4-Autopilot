@@ -63,9 +63,9 @@ bool DaaCrosstrack::try_setting_params()
 		return false;
 	}
 
-	_crosstrack_separation = crosstrack_sep;
-	_vertical_separation = vertical_sep;
-	_collision_time_threshold = collision_time;
+	_crosstrack_separation_m = crosstrack_sep;
+	_vertical_separation_m = vertical_sep;
+	_collision_time_threshold_s = collision_time;
 	return true;
 }
 
@@ -78,7 +78,8 @@ uint8_t DaaCrosstrack::calculate_daa_stats(const aircraft_state_s &uav_state, co
 		return detect_and_avoid_s::DAA_CONFLICT_LVL_NONE;
 	}
 
-	float d_hor, d_vert;
+	float d_hor{0.f};
+	float d_vert{0.f};
 	get_distance_to_point_global_wgs84(uav_state.lat_lon(0), uav_state.lat_lon(1), uav_state.altitude,
 					   traffic_state.lat_lon(0), traffic_state.lat_lon(1), traffic_state.altitude, &d_hor, &d_vert);
 
@@ -87,7 +88,8 @@ uint8_t DaaCrosstrack::calculate_daa_stats(const aircraft_state_s &uav_state, co
 	// Predict until the vehicle would have passed this system at its current speed
 	const float prediction_distance = d_hor + kTrafficToUavDistanceExtension;
 
-	double end_lat, end_lon;
+	double end_lat{0.0};
+	double end_lon{0.0};
 	waypoint_from_heading_and_distance(traffic_state.lat_lon(0), traffic_state.lat_lon(1),
 					   traffic_state.heading, prediction_distance, &end_lat, &end_lon);
 
@@ -100,10 +102,10 @@ uint8_t DaaCrosstrack::calculate_daa_stats(const aircraft_state_s &uav_state, co
 
 	const bool cs_distance_conflict_threshold = line_distance_valid
 			&& (!crosstrack_error.past_end)
-			&& (fabsf(crosstrack_error.distance) < _crosstrack_separation);
+			&& (fabsf(crosstrack_error.distance) < _crosstrack_separation_m);
 
 	const float vertical_separation = fabsf(uav_state.altitude - traffic_state.altitude);
-	const bool _crosstrack_separation_check = (vertical_separation < _vertical_separation);
+	const bool _crosstrack_separation_check = (vertical_separation < _vertical_separation_m);
 
 	bool collision_time_check = false;
 
@@ -112,7 +114,7 @@ uint8_t DaaCrosstrack::calculate_daa_stats(const aircraft_state_s &uav_state, co
 
 	if (relative_uav_traffic_speed > FLT_EPSILON) {
 		time_to_collsion =  d_xyz / relative_uav_traffic_speed;
-		collision_time_check = (time_to_collsion < _collision_time_threshold);
+		collision_time_check = (time_to_collsion < _collision_time_threshold_s);
 	}
 
 	daa_stats.aircraft_dist_hor = line_distance_valid ? crosstrack_error.distance : d_hor;

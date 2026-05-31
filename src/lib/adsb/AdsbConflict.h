@@ -59,18 +59,6 @@ public:
 	AdsbConflict() = default;
 	~AdsbConflict() = default;
 
-	/** @brief Fill an aircraft_state_s from a raw transponder report. */
-	void transponder_report_to_aircraft_state(const transponder_report_s &transponder_report,
-			aircraft_state_s &traffic_state);
-
-	/** @brief Fill an aircraft_state_s from the ownship pose and NED velocity. */
-	void uav_state_to_aircraft_state(const matrix::Vector2d &uav_lat_lon, const float uav_alt, const float uav_heading,
-					 const matrix::Vector3f &uav_vel_ned, aircraft_state_s &uav_state);
-
-	/** @brief Using the built DAA standard compute the traffic conflict level. */
-	uint8_t calculate_daa_stats(const aircraft_state_s &uav_state, const aircraft_state_s &traffic_state,
-				    daa_stats_s &daa_stats);
-
 	/**
 	 * @brief Validate the ownship + transponder inputs and run them through the built standard.
 	 *
@@ -85,15 +73,6 @@ public:
 	bool try_updating_params();
 
 private:
-	/**
-	 * @brief Convert traffic speed from a transponder report into a NED velocity vector.
-	 *
-	 * If the report heading is not finite, the horizontal speed is returned in the north direction
-	 * so heading-agnostic standards can still use the speed magnitude. Standards that depend on the
-	 * actual traffic track direction must require a finite heading separately.
-	 */
-	static matrix::Vector3f velocity_ned_from_transponder_report(const transponder_report_s &transponder_report);
-
 #if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
 	DaaF3442 _daa;
 #else

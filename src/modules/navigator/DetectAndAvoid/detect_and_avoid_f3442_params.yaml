@@ -5,9 +5,7 @@ parameters:
     DAA_DFLT_VEL:
       description:
         short: Default vertical speed of other aircraft
-        long: |-
-          The vertical speed reported by transponder modules cannot always be trusted.
-          If DAA_EN_DFLT_VEL is enabled, overwrite the other aircraft's reported vertical velocity and use DAA_DFLT_VEL.
+        long: Used when DAA_EN_DFLT_VEL is enabled.
       type: float
       default: 10.0
       unit: m/s
@@ -16,18 +14,16 @@ parameters:
     DAA_EN_DFLT_VEL:
       description:
         short: Ignore reported vertical speed of other aircraft
-        long: If enabled, ignore the other aircraft's reported vertical velocity and use DAA_DFLT_VEL.
+        long: Use DAA_DFLT_VEL instead of reported traffic vertical speed.
       type: boolean
       default: 1
       reboot_required: true
     DAA_LVL_LOW_ACT:
       description:
-        short: Low conflict level action
+        short: Low conflict action
         long: |-
-          Trigger an automated action if the low conflict level is breached.
-          This parameter is used only when CONFIG_NAVIGATOR_ADSB_F3442 is enabled.
-          Changing this parameter at runtime does not re-evaluate conflicts that are already buffered.
-          The updated action is only applied on later conflict transitions, and automatic mode changes are only issued on conflict escalation.
+          Action requested when the low conflict level is reached.
+          Runtime changes apply on later conflict level transitions.
       type: enum
       values:
         0: Disabled
@@ -41,12 +37,10 @@ parameters:
       max: 5
     DAA_LVL_MED_ACT:
       description:
-        short: Medium conflict level action
+        short: Medium conflict action
         long: |-
-          Trigger an automated action if the medium conflict level is breached.
-          This parameter is used only when CONFIG_NAVIGATOR_ADSB_F3442 is enabled.
-          Changing this parameter at runtime does not re-evaluate conflicts that are already buffered.
-          The updated action is only applied on later conflict transitions, and automatic mode changes are only issued on conflict escalation.
+          Action requested when the medium conflict level is reached.
+          Runtime changes apply on later conflict level transitions.
       type: enum
       values:
         0: Disabled
@@ -60,12 +54,10 @@ parameters:
       max: 5
     DAA_LVL_HIGH_ACT:
       description:
-        short: High conflict level action
+        short: High conflict action
         long: |-
-          Trigger an automated action if the high conflict level is breached.
-          This parameter is used only when CONFIG_NAVIGATOR_ADSB_F3442 is enabled.
-          Changing this parameter at runtime does not re-evaluate conflicts that are already buffered.
-          The updated action is only applied on later conflict transitions, and automatic mode changes are only issued on conflict escalation.
+          Action requested when the high conflict level is reached.
+          Runtime changes apply on later conflict level transitions.
       type: enum
       values:
         0: Disabled
@@ -79,12 +71,10 @@ parameters:
       max: 5
     DAA_LVL_CRIT_ACT:
       description:
-        short: Critical conflict level action
+        short: Critical conflict action
         long: |-
-          Trigger an automated action if the critical conflict level is breached.
-          This parameter is used only when CONFIG_NAVIGATOR_ADSB_F3442 is enabled.
-          Changing this parameter at runtime does not re-evaluate conflicts that are already buffered.
-          The updated action is only applied on later conflict transitions, and automatic mode changes are only issued on conflict escalation.
+          Action requested when the critical conflict level is reached.
+          Runtime changes apply on later conflict level transitions.
       type: enum
       values:
         0: Disabled
@@ -98,11 +88,8 @@ parameters:
       max: 5
     F34_LVL_CRIT_RAD:
       description:
-        short: F3442 critical conflict cylinder radius
-        long: |-
-          In the F3442 standard, the critical conflict level corresponds to the Near Mid-Air Collision (NMAC) volume.
-          If two aircraft NMAC zones overlap, the action defined in DAA_LVL_CRIT_ACT is triggered.
-          In the F3442 standard, an NMAC occurs when two aircraft come within 100 ft (30 m) vertically and 500 ft (153 m) horizontally of each other while in flight.
+        short: F3442 NMAC cylinder radius
+        long: Per-aircraft half-zone.
       type: float
       default: 77.0
       unit: m
@@ -110,11 +97,8 @@ parameters:
       reboot_required: true
     F34_LVL_CRIT_HGT:
       description:
-        short: F3442 critical conflict cylinder height
-        long: |-
-          In the F3442 standard, the critical conflict level corresponds to the Near Mid-Air Collision (NMAC) volume.
-          If two aircraft NMAC zones overlap, the action defined in DAA_LVL_CRIT_ACT is triggered.
-          In the F3442 standard, an NMAC occurs when two aircraft come within 100 ft (30 m) vertically and 500 ft (153 m) horizontally of each other while in flight.
+        short: F3442 NMAC cylinder height
+        long: Per-aircraft half-zone.
       type: float
       default: 16.0
       unit: m
@@ -122,11 +106,8 @@ parameters:
       reboot_required: true
     F34_LVL_HIGH_RAD:
       description:
-        short: F3442 high conflict cylinder radius
-        long: |-
-          In the F3442 standard, the high conflict level corresponds to the Well Clear (WC) volume.
-          If two aircraft WC zones overlap, the action defined in DAA_LVL_HIGH_ACT is triggered.
-          In the F3442 standard, a loss of Well Clear occurs when two aircraft come within 250 ft (76 m) vertically and 2000 ft (610 m) horizontally of each other while in flight.
+        short: F3442 well-clear cylinder radius
+        long: Per-aircraft half-zone.
       type: float
       default: 305.0
       unit: m
@@ -134,11 +115,8 @@ parameters:
       reboot_required: true
     F34_LVL_HIGH_HGT:
       description:
-        short: F3442 high conflict cylinder height
-        long: |-
-          In the F3442 standard, the high conflict level corresponds to the Well Clear (WC) volume.
-          If two aircraft WC zones overlap, the action defined in DAA_LVL_HIGH_ACT is triggered.
-          In the F3442 standard, a loss of Well Clear occurs when two aircraft come within 250 ft (76 m) vertically and 2000 ft (610 m) horizontally of each other while in flight.
+        short: F3442 well-clear cylinder height
+        long: Per-aircraft half-zone.
       type: float
       default: 39.0
       unit: m
@@ -146,16 +124,8 @@ parameters:
       reboot_required: true
     F34_LVL_MED_TIME:
       description:
-        short: Latency time for the medium conflict cylinder
-        long: |-
-          The latency time is designed to ensure the DAA system has time to avoid an NMAC breach.
-          It is used to calculate the medium conflict cylinder:
-          ```
-          radius = F34_LVL_CRIT_RAD + aircraft speed * F34_LVL_MED_TIME
-          height = F34_LVL_CRIT_HGT + aircraft speed * F34_LVL_MED_TIME
-          ```
-
-          If two aircraft zones overlap, the action defined in DAA_LVL_MED_ACT is triggered.
+        short: Medium conflict latency time
+        long: Expands NMAC bounds by aircraft speed times this value.
       type: int32
       default: 33
       unit: s
@@ -163,16 +133,8 @@ parameters:
       reboot_required: true
     F34_LVL_LOW_TIME:
       description:
-        short: Latency time for the low conflict cylinder
-        long: |-
-          The latency time is designed to ensure the DAA system has time to avoid a WC breach.
-          It is used to calculate the low conflict cylinder:
-          ```
-          radius = F34_LVL_HIGH_RAD + aircraft speed * F34_LVL_LOW_TIME
-          height = F34_LVL_HIGH_HGT + aircraft speed * F34_LVL_LOW_TIME
-          ```
-
-          If two aircraft zones overlap, the action defined in DAA_LVL_LOW_ACT is triggered.
+        short: Low conflict latency time
+        long: Expands well-clear bounds by aircraft speed times this value.
       type: int32
       default: 33
       unit: s

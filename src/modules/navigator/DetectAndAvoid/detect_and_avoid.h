@@ -274,19 +274,11 @@ private:
 	/** @brief Empty the buffer and reset all derived conflict state and timers. */
 	void clear_conflicts();
 
-	/* Activation */
-
-	/** @brief Mark the module as failed, publish empty status and send a critical event. */
-	void failed_activation();
-
 	bool _is_activated{false};
 	bool _daa_enabled{false};
 	int32_t _daa_notif_state_s{20};
 
 	/* Handle traffic buffer */
-
-	/** @brief Rate-limited entry point that drops timed-out conflicts. */
-	bool try_removing_stale_conflicts();
 
 	/**
 	 * @brief Pull queued transponder reports and update the conflict buffer.
@@ -314,8 +306,6 @@ private:
 	bool stale_conflicts_removed();
 
 	bool try_removing_conflict_from_buffer(const int conflict_idx, conflict_info_s &removed_conflict);
-	bool try_adding_conflict_to_buffer(const conflict_info_s &conflict);
-	bool try_updating_conflict_in_buffer(const int conflict_idx, const conflict_info_s &conflict);
 
 	/* Handle conflict level */
 
@@ -334,9 +324,6 @@ private:
 	/** @brief Get the highest-priority conflict in the buffer, or false if empty. */
 	bool find_most_urgent_conflict(conflict_info_s &most_urgent_conflict) const;
 
-	/** @brief Get the lowest-priority conflict in the buffer (used to pick which conflict to remove from the buffer). */
-	bool get_least_urgent_conflict(conflict_info_s &least_urgent_conflict, int &least_urgent_idx) const;
-
 	/** @brief Recompute @c _most_urgent_conflict from the current buffer state. */
 	void update_most_urgent_conflict();
 
@@ -352,8 +339,6 @@ private:
 	 * Splits in-air escalation, in-air de-escalation, and on-ground warnings.
 	 */
 	void evaluate_and_publish_action();
-
-	void publish_and_notify_action(const DaaAction requested_action);
 
 	/** @brief Convert a DAA action into the matching vehicle_command and publish it. */
 	void publish_action_command(const DaaAction requested_action);
@@ -399,14 +384,8 @@ private:
 	/** @brief True if the latest global and local position fixes are finite and recent enough. */
 	bool uav_pose_valid_and_updated() const;
 
-	/** @brief True if the transponder flags carry every field the active standard needs. */
-	bool transponder_flags_valid(const uint16_t flags) const;
-
 	/** @brief True if the report has finite coords/altitude, the required flags, and a recent timestamp. */
 	bool transponder_data_valid(const transponder_report_s &transponder_report) const;
-
-	void process_daa_output(const detect_and_avoid_s &daa_output, const unique_id_s &unique_id, const uint64_t timestamp,
-				conflict_info_s &current_conflict);
 
 	/* Timers to avoid spamming */
 	hrt_abstime _time_last_buffer_clean{0};
@@ -470,11 +449,6 @@ private:
 	/* Helper functions */
 	bool conflict_lvl_requires_warning(const uint8_t conflict_level) const;
 	inline bool is_valid_buffer_idx(const int idx) const {return idx >= 0 && idx < static_cast<int>(_traffic_buffer.size());};
-	inline bool is_buffer_empty() const {return _traffic_buffer.empty();};
-	inline bool is_buffer_full() const {return static_cast<int>(_traffic_buffer.size()) >= kDaaMaxTraffic;};
-	static inline bool is_icao_valid(const uint32_t icao) {return icao != 0;};
-	static inline bool is_callsign_valid(const uint16_t flags) {return flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN;};
-	bool is_uas_id_valid(const uint8_t uas_id[PX4_GUID_BYTE_LENGTH]) const;
 
 	int find_unique_id_in_buffer(const unique_id_s &target_unique_id) const;
 
@@ -483,7 +457,6 @@ private:
 
 	void convert_unique_id_to_string(const unique_id_s &unique_id, char *buffer, size_t buffer_size) const;
 	static void convert_uas_id_uint64_to_str(const uint64_t uas_id_int, char uas_id_char_arr[kUtmGuidMsgLength]);
-	static bool is_null_terminated(const char *array, size_t max_length);
 	static bool same_unique_id(const unique_id_s &lhs, const unique_id_s &rhs);
 	static bool pending_new_conflict_notification_exists(const unique_id_s &target_unique_id,
 			const new_conflicts_pending_notif_s &new_conflicts_pending_notif);
@@ -504,8 +477,6 @@ private:
 	/** @brief Translate the user-facing action param value into the internal DaaAction enum. */
 	static DaaAction action_param_to_daa_action(int32_t action_param);
 
-	bool try_setting_lib_params() {return _adsb_traffic.try_updating_params();};
-
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::DAA_EN>) _param_daa_en,
 		(ParamInt<px4::params::DAA_NOTIF_STATE>) _param_daa_notif_state,
@@ -520,18 +491,9 @@ private:
 #else
 		(ParamInt<px4::params::NAV_TRAFF_AVOID>) _param_nav_traff_avoid,
 #endif // CONFIG_NAVIGATOR_ADSB_F3442
-		(ParamInt<px4::params::ADSB_ICAO_ID>)		_vehicle_adsb_icao,
-		(ParamInt<px4::params::ADSB_ICAO_ID_2>)		_vehicle_adsb_icao_2,
-		(ParamInt<px4::params::ADSB_CALLSIGN_1>)		_vehicle_adsb_callsign_1,
-		(ParamInt<px4::params::ADSB_CALLSIGN_2>)		_vehicle_adsb_callsign_2
+		(ParamInt<px4::params::ADSB_ICAO_ID>) _vehicle_adsb_icao,
+		(ParamInt<px4::params::ADSB_ICAO_ID_2>) _vehicle_adsb_icao_2,
+		(ParamInt<px4::params::ADSB_CALLSIGN_1>) _vehicle_adsb_callsign_1,
+		(ParamInt<px4::params::ADSB_CALLSIGN_2>) _vehicle_adsb_callsign_2
 	)
-
-#if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
-	int32_t _daa_lvl_low_action_param {1};
-	int32_t _daa_lvl_med_action_param{1};
-	int32_t _daa_lvl_high_action_param{1};
-	int32_t _daa_lvl_crit_action_param{1};
-#else
-	int32_t _nav_traff_avoid_mode {1};
-#endif // CONFIG_NAVIGATOR_ADSB_F3442
 };

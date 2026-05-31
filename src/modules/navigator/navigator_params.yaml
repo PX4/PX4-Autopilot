@@ -68,10 +68,8 @@ parameters:
       description:
         short: Set traffic avoidance action
         long: |-
-          Sets the action PX4 requests when crosstrack traffic avoidance detects a conflict.
-          Available actions are Disabled, Warn only, Return mode, Land mode, Position Hold mode, and Terminate.
-          Changing this parameter at runtime does not re-evaluate conflicts that are already buffered.
-          The updated action is only applied on later conflict transitions, and automatic mode changes are only issued on conflict escalation.
+          Action requested for a crosstrack traffic conflict.
+          Runtime changes apply on later conflict level transitions.
       type: enum
       values:
         0: Disabled
@@ -85,8 +83,7 @@ parameters:
       max: 5
     NAV_TRAFF_A_HOR:
       description:
-        short: Set NAV TRAFFIC AVOID horizontal distance
-        long: Defines a crosstrack horizontal distance
+        short: Crosstrack conflict horizontal distance
       type: float
       default: 500
       unit: m
@@ -94,7 +91,7 @@ parameters:
       reboot_required: true
     NAV_TRAFF_A_VER:
       description:
-        short: Set NAV TRAFFIC AVOID vertical distance
+        short: Crosstrack conflict vertical distance
       type: float
       default: 500
       unit: m
