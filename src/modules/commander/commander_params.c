@@ -98,18 +98,19 @@ PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f);
 PARAM_DEFINE_INT32(COM_DL_LOSS_T, 10);
 
 /**
- * Position-wait iterations limit
+ * Position-wait timeout
  *
- * Maximum number of Commander run-loop iterations to wait for a position
- * solution before falling back to ALTCTL when a position-requiring mode
- * (e.g. Position Control) is requested but no position fix is yet available.
+ * Maximum number of seconds to wait for a position solution before falling
+ * back to ALTCTL when a position-requiring mode (e.g. Position Control) is
+ * requested but no position fix is yet available.
  *
  * @group Commander
- * @min 500
- * @max 1000
+ * @unit s
+ * @min 5
+ * @max 120
  * @increment 1
  */
-PARAM_DEFINE_INT32(COM_POS_WAIT_LIM, 500);
+PARAM_DEFINE_INT32(COM_POS_WAIT_LIM, 10);
 
 /**
  * High Latency Datalink loss time threshold

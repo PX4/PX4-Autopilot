@@ -43,6 +43,7 @@ UserModeIntention::UserModeIntention(const vehicle_status_s &vehicle_status,
 {
 	///////add by naor ////////////////
 	_param_pos_wait_limit = param_find("COM_POS_WAIT_LIM");
+	_param_ekf_ctrl = param_find("EKF2_IMU_CTRL");
 	///////add by naor ////////////////
 }
 
@@ -76,11 +77,11 @@ bool UserModeIntention::change(uint8_t user_intended_nav_state, ModeChangeSource
 		// If change failed because position is not yet valid, park the request.
 		// tick() will retry once position has been stable for POS_STABLE_THRESHOLD iterations.
 		if (!allow_change && modeRequiresPosition(user_intended_nav_state)) {
-			_pending_nav_state = user_intended_nav_state;
-			_pos_wait_count    = 0;
-			int32_t limit = 10;
+			_pending_nav_state   = user_intended_nav_state;
+			_pos_wait_start_us   = hrt_absolute_time();
+			int32_t limit = 30;
 			param_get(_param_pos_wait_limit, &limit);
-			PX4_INFO("Mode %d requires position - waiting up to %d iterations for solution", user_intended_nav_state, (int)limit);
+			PX4_INFO("Mode %d requires position - waiting up to %d s for solution", user_intended_nav_state, (int)limit);
 			// Signal immediately that we are trying to enter a position mode.
 			publish_formic_state_machine(true);
 		}
@@ -97,7 +98,7 @@ bool UserModeIntention::change(uint8_t user_intended_nav_state, ModeChangeSource
 		///////add by naor ////////////////
 		// A successful explicit change cancels any pending position-wait.
 		_pending_nav_state = UINT8_MAX;
-		_pos_wait_count    = 0;
+		_pos_wait_start_us = 0;
 
 		// Publish let_update_ev: true when entering a position mode, false otherwise.
 		publish_formic_state_machine(modeRequiresPosition(user_intended_nav_state));
@@ -130,7 +131,10 @@ bool UserModeIntention::modeRequiresPosition(uint8_t nav_state) const
 void UserModeIntention::tick()
 {
 	///////add by naor ////////////////
-	if (_ev_yaw_sub.updated()) {
+	int32_t ekf_ctrl = 0;
+	param_get(_param_ekf_ctrl, &ekf_ctrl);
+
+	if (_ev_yaw_sub.updated() && (ekf_ctrl != 0)) {
 		_ev_yaw_sub.copy(&_ev_yaw);
 	}
 
@@ -142,25 +146,31 @@ void UserModeIntention::tick()
 
 	const bool pos_ok = _health_and_arming_checks.canRun(_pending_nav_state);
 
-	if (pos_ok && ev_yaw_available && _ev_yaw.fused) {
-		PX4_INFO("Position available - switching to pending mode %d after %d iterations", _pending_nav_state, _pos_wait_count);
+	// Only require EV yaw fused when EV is actually being used (EKF2_IMU_CTRL != 0 and EV data arriving).
+	// If position comes from GPS or another non-EV source, ev_yaw_available is false and we skip the EV gate.
+	const bool need_ev_yaw = (ekf_ctrl != 0) && ev_yaw_available;
+	const bool ev_yaw_ok   = !need_ev_yaw || _ev_yaw.fused;
+
+	if (pos_ok && ev_yaw_ok) {
+		const float elapsed_s = hrt_elapsed_time(&_pos_wait_start_us) * 1e-6f;
+		PX4_INFO("Position available - switching to pending mode %d after %.1f s", _pending_nav_state, (double)elapsed_s);
 		const uint8_t mode = _pending_nav_state;
 		_pending_nav_state = UINT8_MAX;
 
-		_pos_wait_count    = 0;
+		_pos_wait_start_us = 0;
 		change(mode, ModeChangeSource::User, false, true);
 		publish_formic_state_machine(true);
 
 	} else {
-		_pos_wait_count++;
 		publish_formic_state_machine(true);
 
-		int32_t limit = 200;
-		param_get(_param_pos_wait_limit, &limit);
+		int32_t limit_s = 30;
+		param_get(_param_pos_wait_limit, &limit_s);
+		const hrt_abstime limit_us = (hrt_abstime)limit_s * 1_s;
 
-		if (_pos_wait_count >= (int)limit) {
+		if (hrt_elapsed_time(&_pos_wait_start_us) >= limit_us) {
 			_pending_nav_state = UINT8_MAX;
-			_pos_wait_count    = 0;
+			_pos_wait_start_us = 0;
 			change(vehicle_status_s::NAVIGATION_STATE_ALTCTL, ModeChangeSource::User, false, true);
 			publish_formic_state_machine(false);
 		}
@@ -175,7 +185,7 @@ void UserModeIntention::onFailsafeNavState(uint8_t actual_nav_state)
 	// are no longer useful and cancel any pending position-wait.
 	if (!modeRequiresPosition(actual_nav_state)) {
 		_pending_nav_state = UINT8_MAX;
-		_pos_wait_count    = 0;
+		_pos_wait_start_us = 0;
 		publish_formic_state_machine(false);
 	}
 }

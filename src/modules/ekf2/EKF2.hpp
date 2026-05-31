@@ -487,7 +487,6 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamBool<px4::params::EKF2_LOG_VERBOSE>) _param_ekf2_log_verbose,
-		(ParamBool<px4::params::EKF2_EV_POS_ONLY>) _param_ekf2_ev_pos_only,
 		(ParamExtInt<px4::params::EKF2_PREDICT_US>) _param_ekf2_predict_us,
 		(ParamExtFloat<px4::params::EKF2_DELAY_MAX>) _param_ekf2_delay_max,
 		(ParamExtInt<px4::params::EKF2_IMU_CTRL>) _param_ekf2_imu_ctrl,

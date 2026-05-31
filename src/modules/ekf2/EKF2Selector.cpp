@@ -880,3 +880,32 @@ void EKF2Selector::PrintStatus()
 			 (_selected_instance == i) ? "*" : "");
 	}
 }
+
+
+
+
+// void EKF2Selector::update_heading_for_instance(uint8_t a, uint8_t b)
+// {
+// 	// Take the heading from instance a and apply it to instance b.
+// 	if (a >= EKF2_MAX_INSTANCES || b >= EKF2_MAX_INSTANCES) {
+// 		return;
+// 	}
+// 	vehicle_attitude_s att{};
+
+// 	if (!_instance[a].estimator_attitude_sub.copy(&att) || att.timestamp == 0) {
+// 		return;
+// 	}
+// 	const float yaw =  matrix::Eulerf(Quatf(att.q)).psi();
+// 	vehicle_command_s cmd{};
+// 	cmd.command          = vehicle_command_s::VEHICLE_CMD_EXTERNAL_ATTITUDE_ESTIMATE;
+// 	cmd.param3           = math::degrees(yaw); // heading in degrees
+// 	cmd.param7           = 5.f;                // accuracy in degrees
+// 	cmd.target_component = b + 1;              // 1-based: targets only instance b
+// 	cmd.timestamp        = hrt_absolute_time();
+// 	_vehicle_command_pub.publish(cmd);
+// }
+
+
+
+
+

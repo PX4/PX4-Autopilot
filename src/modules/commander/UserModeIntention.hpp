@@ -127,9 +127,10 @@ private:
 	bool _had_mode_change{false}; ///< true if there was a mode change call since the last getHadModeChangeAndClear()
 
 	///////add by naor ////////////////
-	param_t _param_pos_wait_limit{PARAM_INVALID}; ///< handle for COM_POS_WAIT_LIM parameter
+	param_t _param_pos_wait_limit{PARAM_INVALID}; ///< handle for COM_POS_WAIT_LIM parameter (seconds)
+	param_t _param_ekf_ctrl{PARAM_INVALID}; ///< handle for EKF2_IMU_CTRL parameter, used to check if EKF2 is enabled before subscribing to EV yaw
 	uint8_t _pending_nav_state{UINT8_MAX};        ///< mode waiting for position lock (UINT8_MAX = none)
-	int     _pos_wait_count{0};                   ///< total iterations waited since the pending request was parked
+	hrt_abstime _pos_wait_start_us{0};            ///< hrt timestamp when the pending request was parked (0 = not active)
 	uORB::Subscription _ev_yaw_sub{ORB_ID(estimator_aid_src_ev_yaw)}; ///< EV yaw aid source
 	estimator_aid_source1d_s _ev_yaw{};           ///< last received EV yaw aid data (timestamp==0 means never received)
 	uORB::Publication<formic_state_machine_s> _formic_state_machine_pub{ORB_ID(formic_state_machine)}; ///< Formic state machine publisher

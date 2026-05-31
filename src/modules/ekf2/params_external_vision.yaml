@@ -112,9 +112,3 @@ parameters:
       default: 0.0
       unit: m
       decimal: 3
-    EKF2_EV_POS_ONLY:
-      description:
-        short: Update EKF at position measurement rate
-        long: If set to true, the EKF will only be updated when a new position measurement is available. This can be used to reduce the computational load when fusing high rate vision velocity measurements.
-      type: boolean
-      default: 0
