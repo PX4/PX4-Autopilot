@@ -113,7 +113,7 @@ private:
 		};
 
 		if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-			dynamic_msg.state |= ~UAVIONIX_ADSB_OUT_DYNAMIC_STATE_ON_GROUND;
+			dynamic_msg.state &= ~UAVIONIX_ADSB_OUT_DYNAMIC_STATE_ON_GROUND;
 		}
 
 		mavlink_msg_uavionix_adsb_out_dynamic_send_struct(_mavlink->get_channel(), &dynamic_msg);
