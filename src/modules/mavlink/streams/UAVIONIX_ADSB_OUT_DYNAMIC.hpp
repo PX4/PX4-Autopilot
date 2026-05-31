@@ -84,7 +84,7 @@ private:
 		_vehicle_air_data_sub.copy(&vehicle_air_data);
 
 		// UTC seconds since 00:00:00 01/06/1980 (GPS epoch). If unknown set to UINT32_MAX.
-		static uint64_t gps_epoch_offset_us = 315'964'800ULL * 1'000'000ULL;
+		static constexpr uint64_t gps_epoch_offset_us = 315'964'800ULL * 1'000'000ULL;
 		uint32_t gps_epoch_time_s = UINT32_MAX;
 
 		if (vehicle_gps_position.time_utc_usec >= gps_epoch_offset_us) {
