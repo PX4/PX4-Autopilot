@@ -1839,6 +1839,10 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 		case MAV_CMD_NAV_RALLY_POINT:
 			break;
 
+		case MAV_CMD_COMPONENT_ARM_DISARM:
+			mavlink_mission_item->param1 = mission_item->params[0];
+			mavlink_mission_item->param2 = mission_item->params[1];
+			break;
 
 		default:
 			return PX4_ERROR;
