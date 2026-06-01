@@ -513,7 +513,7 @@ void Navigator::run()
 
 						rep->next.valid = false;
 
-					_time_loitering_after_gf_breach = 0; // a manual reposition unlatches the post-breach loiter state
+						_time_loitering_after_gf_breach = 0; // a manual reposition unlatches the post-breach loiter state
 
 					} else {
 						mavlink_log_critical(&_mavlink_log_pub, "Altitude change is outside geofence\t");
