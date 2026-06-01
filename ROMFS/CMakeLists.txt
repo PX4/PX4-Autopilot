@@ -85,8 +85,14 @@ endif()
 if(PX4_ETHERNET)
 	set(added_arguments ${added_arguments} --ethernet)
 endif()
-# Check if board has an rc.board_airframes file to filter airframes
+# Check if board has an rc.board_airframes file to filter airframes.
+# A label-specific list (rc.board_airframes_<label>, e.g. rc.board_airframes_rover)
+# overrides the board-wide default (rc.board_airframes), so a single board can ship
+# a different airframe set per .px4board target.
 set(board_airframes_file "${PX4_BOARD_DIR}/init/rc.board_airframes")
+if(EXISTS "${PX4_BOARD_DIR}/init/rc.board_airframes_${LABEL}")
+	set(board_airframes_file "${PX4_BOARD_DIR}/init/rc.board_airframes_${LABEL}")
+endif()
 set(airframes_whitelist "")
 if(EXISTS "${board_airframes_file}")
 	message(STATUS "ROMFS: Using board-specific airframes list: ${board_airframes_file}")
