@@ -380,16 +380,16 @@ FwLateralLongitudinalControl::getMaxLateralAccelForLoadFactor() const
 	// the maximum load factor.
 
 	// There is no user given maximium load factor but the airspeed limits
-	// imply one: If the min CAS (compensated for weight ratio, bank angle,
-	// flaps setpoint, air density) is above the max airspeed then the given
+	// imply one: If the min CAS (FW_AIRSPD_MIN compensated for bank angle,
+	// weight ratio, flaps setpoint) is above FW_AIRSPD_MAX, then the given
 	// load factor is not flyable (without exceeding max airspeed).
 
 	const float min_cas_unitload = _performance_model.getMinimumCalibratedAirspeed(1.0f, _flaps_setpoint);
 	const float max_cas = _performance_model.getMaximumCalibratedAirspeed();
 
-	// from getMinimumCalibratedAirspeed:
-	//     min_cas(load_factor) = min_cas_unitload * sqrt(load_factor) = max_cas
-	// solve min_cas(load_factor) = max_cas for the load_factor:
+	// From getMinimumCalibratedAirspeed:
+	//     min_cas(load_factor) = min_cas_unitload * sqrt(load_factor)
+	// Set this equal to max_cas and solve for the load_factor:
 	//     min_cas_unitload * sqrt(load_factor) = max_cas
 	//     sqrt(load_factor) = max_cas / min_cas_unitload
 	//     load_factor = (max_cas / min_cas_unitload)^2
