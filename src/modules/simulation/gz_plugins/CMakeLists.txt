@@ -33,6 +33,12 @@
 
 project(px4_gz_plugins)
 
+# jsoncppConfig.cmake on Ubuntu 22.04 declares cmake_policy(VERSION 3.0),
+# which CMake 4.x no longer accepts. Set the minimum to suppress the error.
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "4.0")
+    set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
+endif()
+
 if(NOT DEFINED ENV{GZ_DISTRO} OR NOT "$ENV{GZ_DISTRO}"  STREQUAL "harmonic")
     find_package(gz-transport NAMES gz-transport gz-transport14 gz-transport13)
     find_package(gz-sim NAMES gz-sim gz-sim9 gz-sim8)
