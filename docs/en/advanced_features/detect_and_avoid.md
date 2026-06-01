@@ -429,16 +429,22 @@ DAA chooses one identifier per traffic report in this order:
 2. ADS-B callsign
 3. UAS ID
 
-DAA stores both the `unique_id` value and the `unique_id_encoding`.
-That means an ICAO address and a callsign can encode to the same integer and still remain separate traffic entries, because the encoding type is part of the key.
+The selected identifier is published on both `detect_and_avoid` and `detect_and_avoid_most_urgent` as:
 
-::: details Click here to view how DAA encodes and decodes each identifier source
+- `unique_id`: the encoded 64-bit identifier value
+- `unique_id_encoding`: `ICAO`, `ADSB_CALLSIGN`, or `UAS_ID`
 
-| Identifier source | Accepted if                                                                           | How DAA encodes it internally                                                                                                                                                                                                                                                                          | How DAA decodes or displays it                                                                                                           |
-| ----------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| ICAO address      | `icao_address != 0`                                                                   | Stored directly in the low bits of `unique_id` with `UNIQUE_ID_ENCODING_ICAO`                                                                                                                                                                                                                          | Converted to a 6-character uppercase hexadecimal string                                                                                  |
-| ADS-B callsign    | `PX4_ADSB_FLAGS_VALID_CALLSIGN` is set and the `callsign[9]` field is null-terminated | Packs up to 8 callsign characters into a `uint64`. Byte `0` is the first character. Bytes `0-3` correspond to [ADSB_CALLSIGN_1](../advanced_config/parameter_reference.md#ADSB_CALLSIGN_1) and bytes `4-7` correspond to [ADSB_CALLSIGN_2](../advanced_config/parameter_reference.md#ADSB_CALLSIGN_2). | Unpacks the bytes back into a string and stops at the first `\0`                                                                         |
-| UAS ID            | Any non-zero byte is present in `uas_id[18]`                                          | Packs the last 8 bytes of the 18-byte `uas_id` into a `uint64` with `UNIQUE_ID_ENCODING_UAS_ID`                                                                                                                                                                                                        | Converts the reduced internal value back to bytes for comparison and renders a shortened hexadecimal string in warnings and debug output |
+The encoding is part of the traffic key.
+That means an ICAO address and a callsign can encode to the same integer and still remain separate traffic entries.
+To decode a logged `unique_id` back into an ICAO address, callsign, or shortened UAS ID, see [Identifying the aircraft](#identifying-the-aircraft), which includes a Python helper.
+
+::: details Click here to view how DAA accepts and encodes each identifier source
+
+| Identifier source | Accepted if                                                                           | Stored value                                                                                                                                                                                                                                                                                           |
+| ----------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ICAO address      | `icao_address != 0`                                                                   | Stored directly in the low bits of `unique_id` with `UNIQUE_ID_ENCODING_ICAO`                                                                                                                                                                                                                          |
+| ADS-B callsign    | `PX4_ADSB_FLAGS_VALID_CALLSIGN` is set and the `callsign[9]` field is null-terminated | Packs up to 8 callsign characters into a `uint64`. Byte `0` is the first character. Bytes `0-3` correspond to [ADSB_CALLSIGN_1](../advanced_config/parameter_reference.md#ADSB_CALLSIGN_1) and bytes `4-7` correspond to [ADSB_CALLSIGN_2](../advanced_config/parameter_reference.md#ADSB_CALLSIGN_2). |
+| UAS ID            | Any non-zero byte is present in `uas_id[18]`                                          | Packs the last 8 bytes of the 18-byte `uas_id` into a `uint64` with `UNIQUE_ID_ENCODING_UAS_ID`                                                                                                                                                                                                        |
 
 :::
 
@@ -458,11 +464,6 @@ Self-filtering uses:
 - [ADSB_CALLSIGN_2](../advanced_config/parameter_reference.md#ADSB_CALLSIGN_2): last 4 characters of the same ownship ADS-B callsign.
 
 `ADSB_CALLSIGN_1` and `ADSB_CALLSIGN_2` together define one 8-character callsign, and both halves must match for callsign-based self-filtering. By contrast, `ADSB_ICAO_ID` and `ADSB_ICAO_ID_2` are two separate ICAO addresses that DAA checks independently.
-
-The selected identifier is published back out on both `detect_and_avoid` and `detect_and_avoid_most_urgent` using:
-
-- `unique_id`: the encoded 64-bit identifier value
-- `unique_id_encoding`: `ICAO`, `ADSB_CALLSIGN`, or `UAS_ID`
 
 DAA also removes conflicts that stop receiving updates after [DAA_TRAFF_TOUT](../advanced_config/parameter_reference.md#DAA_TRAFF_TOUT).
 
@@ -504,11 +505,11 @@ Messages are emitted immediately when a conflict level changes, and periodically
 
 Every conflict message refers to one traffic aircraft and reuses the same handful of fields.
 
-::: details Click here to view the the fields used in events
+::: details Click here to view the fields used in events
 
 #### `<ID>`: the traffic identifier
 
-DAA tracks each aircraft by a single identifier, chosen per report in priority order: ICAO address first, then ADS-B callsign, then a shortened UAS ID.
+DAA tracks each aircraft by the identifier selected in [Traffic Inputs and Identification](#traffic-inputs-and-identification).
 The two channels show that identifier differently:
 
 - In **STATUSTEXT** it is already decoded to a readable string: a 6-character ICAO hex such as `6E9F7B`, an up-to-8-character callsign such as `LX00777A`, or a shortened UAS-ID hex such as `eaebecedee`.
@@ -516,7 +517,7 @@ The two channels show that identifier differently:
   The same integer, together with its `unique_id_encoding`, is also published on the [`detect_and_avoid`](../msg_docs/DetectAndAvoid.md) and [`detect_and_avoid_most_urgent`](../msg_docs/DetectAndAvoidMostUrgent.md) topics.
 
 To turn that integer back into a readable identifier (for example an ICAO address) you need the encoding and the matching decode rule.
-The full per-source encode and decode rules live in [Traffic Inputs and Identification](#traffic-inputs-and-identification), and a worked example with code is in [Analysing a Conflict Using the Logs](#analysing-a-conflict-using-the-logs).
+A worked example with code is in [Identifying the aircraft](#identifying-the-aircraft).
 
 #### `<N>`: the conflict level
 
@@ -628,12 +629,14 @@ Decode the integer according to the encoding:
 | `1` (`ADSB_CALLSIGN`) | ADS-B callsign      | bytes little-endian, byte `0` is the first character, stop at first `\0`   |
 | `2` (`UAS_ID`)        | shortened UAS ID    | low bytes as hex; the displayed string uses the low 5 bytes (10 hex chars) |
 
-The encode and decode rules behind this table are described in full in [Traffic Inputs and Identification](#traffic-inputs-and-identification).
+The selection and storage rules behind this table are described in [Traffic Inputs and Identification](#traffic-inputs-and-identification).
 
-::: details Click here to view a python script example on how to decode `unique_id` (the 64-bit integer)
+::: details Click here to view a Python script example on how to decode `unique_id` (the 64-bit integer)
 The following helper applies the same conversion DAA uses to build the STATUSTEXT string, so its output matches what you saw live:
 
 ```python
+import argparse
+
 def decode_daa_id(unique_id: int, encoding: int) -> str:
     if encoding == 0:  # ICAO
         return f"{unique_id & 0xFFFFFF:06X}"
@@ -648,9 +651,40 @@ def decode_daa_id(unique_id: int, encoding: int) -> str:
     if encoding == 2:  # UAS ID (shortened, low 5 bytes shown)
         return "".join(f"{(unique_id >> (8 * i)) & 0xFF:02x}" for i in range(5))
     return "unknown"
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Decode a DAA ID based on its encoding type.")
+
+    parser.add_argument("unique_id", type=int, help="The 64-bit unique ID")
+    parser.add_argument(
+        "encoding",
+        type=int,
+        choices=[0, 1, 2],
+        help="Encoding type: 0 (ICAO), 1 (ADS-B), or 2 (UAS ID)",
+    )
+
+    args = parser.parse_args()
+
+    print(decode_daa_id(args.unique_id, args.encoding))
 ```
 
-For example, an event identifier of `7249787` with encoding `0` decodes to the ICAO address `6E9F7B`.
+Example 1: Decoding an ICAO address (encoding `0`): the integer `7249787` decodes to the 6-character hex ICAO address `6E9F7B`.
+
+```bash
+python3 decode_daa.py 7249787 0
+```
+
+Example 2: Decoding an ADS-B callsign (encoding `1`): the integer `827736405` is the packed ASCII representation of the callsign `UAV1`.
+
+```bash
+python3 decode_daa.py 827736405 1
+```
+
+Example 3: Decoding a UAS ID (encoding `2`): the integer `737869762868` is unpacked into the shortened 10-character hex string `341177ccab`.
+
+```bash
+python3 decode_daa.py 737869762868 2
+```
 
 :::
 
