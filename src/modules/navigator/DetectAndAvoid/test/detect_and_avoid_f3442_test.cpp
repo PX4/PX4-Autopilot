@@ -85,8 +85,7 @@ TEST_F(DetectAndAvoidTest, OnInactivationRepublishesClearedMostUrgentState)
 	sync_navigator_topics();
 	drain_detect_and_avoid_most_urgent_topic();
 
-	breach_distances_s breach_dist;
-	get_DFLT_breach_distances(uav_vel, hor_velocity, breach_dist);
+	const breach_distances_s breach_dist = get_DFLT_breach_distances(uav_vel, hor_velocity);
 
 	const float critical_distance = breach_dist.nmac_hor - 1.f;
 	const float critical_alt_diff = breach_dist.nmac_vert - 1.f;
@@ -132,8 +131,7 @@ TEST_F(DetectAndAvoidTest, FailedActivationPublishesBenignNoConflictOutput)
 	sync_navigator_topics();
 	drain_detect_and_avoid_most_urgent_topic();
 
-	breach_distances_s breach_dist;
-	get_DFLT_breach_distances(uav_vel, hor_velocity, breach_dist);
+	const breach_distances_s breach_dist = get_DFLT_breach_distances(uav_vel, hor_velocity);
 
 	const float critical_distance = breach_dist.nmac_hor - 1.f;
 	const float critical_alt_diff = breach_dist.nmac_vert - 1.f;
@@ -193,8 +191,8 @@ TEST_F(DetectAndAvoidTest, DefaultVelocity)
 	EXPECT_EQ(navigator->get_local_position()->vy, uav_vel(1));
 	EXPECT_EQ(navigator->get_local_position()->vz, uav_vel(2));
 	EXPECT_FALSE(navigator->get_land_detected()->landed);
-	EXPECT_TRUE(navigator->get_vstatus()->arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-	EXPECT_TRUE(navigator->get_vstatus()->nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
+	EXPECT_EQ(navigator->get_vstatus()->arming_state, vehicle_status_s::ARMING_STATE_ARMED);
+	EXPECT_EQ(navigator->get_vstatus()->nav_state, vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
 	EXPECT_EQ(navigator->get_global_position()->lat, lat_uav);
 	EXPECT_EQ(navigator->get_global_position()->lon, lon_uav);
 	EXPECT_EQ(navigator->get_global_position()->alt, alt_uav);
@@ -206,10 +204,10 @@ TEST_F(DetectAndAvoidTest, DefaultVelocity)
 			1, lat_uav, lon_uav,
 			alt_uav);
 	navigator->check_traffic();
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
+	conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 
 	// THEN: The encounter stays out of conflict.
-	EXPECT_TRUE(conflict.conflict_level == detect_and_avoid_s::DAA_CONFLICT_LVL_NONE);
+	EXPECT_EQ(conflict.conflict_level, detect_and_avoid_s::DAA_CONFLICT_LVL_NONE);
 
 	// WHEN: Default traffic vertical velocity handling is disabled before re-activation.
 	PX4_DEBUG("F_TEST DAA: Default vel disabled.");
@@ -225,10 +223,10 @@ TEST_F(DetectAndAvoidTest, DefaultVelocity)
 			1, lat_uav, lon_uav,
 			alt_uav);
 	navigator->check_traffic();
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
+	conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 
 	// THEN: The same encounter escalates into the augmented NMAC level.
-	EXPECT_TRUE(conflict.conflict_level == detect_and_avoid_s::DAA_CONFLICT_LVL_MEDIUM);
+	EXPECT_EQ(conflict.conflict_level, detect_and_avoid_s::DAA_CONFLICT_LVL_MEDIUM);
 }
 
 // WHY: The nominal flow needs to cover self-detection, conflict prioritization, de-escalation, and final buffer cleanup.
@@ -250,8 +248,8 @@ TEST_F(DetectAndAvoidTest, BasicBehavior)
 	EXPECT_EQ(navigator->get_local_position()->vy, uav_vel(1));
 	EXPECT_EQ(navigator->get_local_position()->vz, uav_vel(2));
 	EXPECT_FALSE(navigator->get_land_detected()->landed);
-	EXPECT_TRUE(navigator->get_vstatus()->arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-	EXPECT_TRUE(navigator->get_vstatus()->nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
+	EXPECT_EQ(navigator->get_vstatus()->arming_state, vehicle_status_s::ARMING_STATE_ARMED);
+	EXPECT_EQ(navigator->get_vstatus()->nav_state, vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
 	EXPECT_EQ(navigator->get_global_position()->lat, lat_uav);
 	EXPECT_EQ(navigator->get_global_position()->lon, lon_uav);
 	EXPECT_EQ(navigator->get_global_position()->alt, alt_uav);
@@ -264,10 +262,10 @@ TEST_F(DetectAndAvoidTest, BasicBehavior)
 
 	// WHEN: No traffic has been processed yet.
 	navigator->check_traffic();
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
+	conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 
 	// THEN: The most urgent conflict starts at none.
-	EXPECT_TRUE(conflict.conflict_level == detect_and_avoid_s::DAA_CONFLICT_LVL_NONE);
+	EXPECT_EQ(conflict.conflict_level, detect_and_avoid_s::DAA_CONFLICT_LVL_NONE);
 
 	// GIVEN: Self identifiers are configured for both primary and secondary ICAO encodings.
 	const uint32_t own_icao = 10436515;
@@ -279,8 +277,7 @@ TEST_F(DetectAndAvoidTest, BasicBehavior)
 	set_default_uav_state(lat_uav, lon_uav, alt_uav, uav_vel);
 	sync_navigator_topics();
 
-	breach_distances_s breach_dist;
-	get_DFLT_breach_distances(uav_vel, hor_velocity, breach_dist);
+	const breach_distances_s breach_dist = get_DFLT_breach_distances(uav_vel, hor_velocity);
 
 	// NMAC breach:
 	const float in_nmac_distance = breach_dist.nmac_hor - 1;
@@ -317,10 +314,10 @@ TEST_F(DetectAndAvoidTest, BasicBehavior)
 				hor_velocity,
 				ver_velocity, 1, lat_uav, lon_uav, alt_uav);
 	});
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
+	conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 
 	// THEN: Self detections do not create conflicts.
-	EXPECT_TRUE(conflict.conflict_level == detect_and_avoid_s::DAA_CONFLICT_LVL_NONE);
+	EXPECT_EQ(conflict.conflict_level, detect_and_avoid_s::DAA_CONFLICT_LVL_NONE);
 
 	PX4_DEBUG("---- F_TEST DAA: own secondary icao");
 	publish_traffic_and_check([&]() {
@@ -328,8 +325,8 @@ TEST_F(DetectAndAvoidTest, BasicBehavior)
 				hor_velocity,
 				ver_velocity, 1, lat_uav, lon_uav, alt_uav);
 	});
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
-	EXPECT_TRUE(conflict.conflict_level == detect_and_avoid_s::DAA_CONFLICT_LVL_NONE);
+	conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
+	EXPECT_EQ(conflict.conflict_level, detect_and_avoid_s::DAA_CONFLICT_LVL_NONE);
 
 	// WHEN: A critical NMAC breach is introduced.
 	const uint32_t icao_ddfa0a1 = 14545057;
@@ -339,8 +336,8 @@ TEST_F(DetectAndAvoidTest, BasicBehavior)
 				in_nmac_alt_diff, hor_velocity,
 				ver_velocity, 1, lat_uav, lon_uav, alt_uav);
 	});
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
-	EXPECT_TRUE(conflict.conflict_level == detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL);
+	conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
+	EXPECT_EQ(conflict.conflict_level, detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL);
 	EXPECT_EQ(conflict.aircraft_dist, in_nmac_overall_dist);
 	EXPECT_EQ(conflict.unique_id.id, icao_ddfa0a1);
 
@@ -351,9 +348,9 @@ TEST_F(DetectAndAvoidTest, BasicBehavior)
 			hor_velocity,
 			ver_velocity, 1, lat_uav, lon_uav, alt_uav);
 	navigator->check_traffic();
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
-	EXPECT_TRUE(conflict.conflict_level ==
-		    detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL); // DDF0A1 conflict is still the most important
+	conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
+	EXPECT_EQ(conflict.conflict_level,
+		  detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL); // DDF0A1 conflict is still the most important
 	EXPECT_EQ(conflict.aircraft_dist, in_nmac_overall_dist);
 	EXPECT_EQ(conflict.unique_id.id, icao_ddfa0a1);
 
@@ -364,8 +361,8 @@ TEST_F(DetectAndAvoidTest, BasicBehavior)
 				no_conflict_alt_diff,
 				hor_velocity, ver_velocity, 1, lat_uav, lon_uav, alt_uav);
 	});
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
-	EXPECT_TRUE(conflict.conflict_level == detect_and_avoid_s::DAA_CONFLICT_LVL_HIGH);
+	conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
+	EXPECT_EQ(conflict.conflict_level, detect_and_avoid_s::DAA_CONFLICT_LVL_HIGH);
 	EXPECT_EQ(conflict.aircraft_dist, in_wc_overall_dist);
 	EXPECT_EQ(conflict.unique_id.id, icao_6e9f7b);
 
@@ -375,8 +372,8 @@ TEST_F(DetectAndAvoidTest, BasicBehavior)
 			no_more_wc_alt_diff,
 			hor_velocity, ver_velocity, 1, lat_uav, lon_uav, alt_uav);
 	navigator->check_traffic();
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
-	EXPECT_TRUE(conflict.conflict_level == detect_and_avoid_s::DAA_CONFLICT_LVL_MEDIUM);
+	conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
+	EXPECT_EQ(conflict.conflict_level, detect_and_avoid_s::DAA_CONFLICT_LVL_MEDIUM);
 	EXPECT_EQ(conflict.aircraft_dist, no_more_wc_overall_dist);
 	EXPECT_EQ(conflict.unique_id.id, icao_6e9f7b);
 
@@ -386,8 +383,8 @@ TEST_F(DetectAndAvoidTest, BasicBehavior)
 			no_more_aug_nmac_alt_diff,
 			hor_velocity, ver_velocity, 1, lat_uav, lon_uav, alt_uav);
 	navigator->check_traffic();
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
-	EXPECT_TRUE(conflict.conflict_level == detect_and_avoid_s::DAA_CONFLICT_LVL_LOW);
+	conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
+	EXPECT_EQ(conflict.conflict_level, detect_and_avoid_s::DAA_CONFLICT_LVL_LOW);
 	EXPECT_EQ(conflict.aircraft_dist, no_more_aug_nmac_overall_dist);
 	EXPECT_EQ(conflict.unique_id.id, icao_6e9f7b);
 
@@ -397,10 +394,10 @@ TEST_F(DetectAndAvoidTest, BasicBehavior)
 			no_conflict_alt_diff,
 			hor_velocity, ver_velocity, 1, lat_uav, lon_uav, alt_uav);
 	navigator->check_traffic();
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
+	conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 
 	// THEN: The conflict buffer fully de-escalates back to none.
-	EXPECT_TRUE(conflict.conflict_level == detect_and_avoid_s::DAA_CONFLICT_LVL_NONE);
+	EXPECT_EQ(conflict.conflict_level, detect_and_avoid_s::DAA_CONFLICT_LVL_NONE);
 }
 
 // WHY: F3442 conflict zones are nested, so a disabled inner-zone action must fall back to the next enabled breached zone.
@@ -425,8 +422,7 @@ TEST_F(DetectAndAvoidTest, DisabledHigherPriorityConflictFallsBackToEnabledZone)
 	set_default_uav_state(lat_uav, lon_uav, alt_uav, uav_vel);
 	sync_navigator_topics();
 
-	breach_distances_s breach_dist;
-	get_DFLT_breach_distances(uav_vel, hor_velocity, breach_dist);
+	const breach_distances_s breach_dist = get_DFLT_breach_distances(uav_vel, hor_velocity);
 
 	const float in_nmac_distance = breach_dist.nmac_hor - 1.f;
 	const float in_nmac_alt_diff = breach_dist.nmac_vert - 1.f;
@@ -437,8 +433,7 @@ TEST_F(DetectAndAvoidTest, DisabledHigherPriorityConflictFallsBackToEnabledZone)
 				hor_velocity, ver_velocity, 1, lat_uav, lon_uav, alt_uav);
 	});
 
-	conflict_info_s conflict;
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
+	conflict_info_s conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 	EXPECT_EQ(conflict.conflict_level, kDaaConflictLvlCritical);
 	check_highest_conflict(kDaaConflictLvlCritical, true);
 
@@ -462,8 +457,7 @@ TEST_F(DetectAndAvoidTest, ResetClearsTrafficBuffer)
 	set_default_uav_state(lat_uav, lon_uav, alt_uav, uav_vel);
 	sync_navigator_topics();
 
-	breach_distances_s breach_dist;
-	get_DFLT_breach_distances(uav_vel, hor_velocity, breach_dist);
+	const breach_distances_s breach_dist = get_DFLT_breach_distances(uav_vel, hor_velocity);
 
 	const uint32_t critical_traffic_icao = 14545057;
 	const float in_nmac_distance = breach_dist.nmac_hor - 1.f;
@@ -475,8 +469,7 @@ TEST_F(DetectAndAvoidTest, ResetClearsTrafficBuffer)
 				in_nmac_alt_diff, hor_velocity, ver_velocity, 1, lat_uav, lon_uav, alt_uav);
 	});
 
-	conflict_info_s conflict;
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
+	conflict_info_s conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 	ASSERT_EQ(conflict.unique_id.id, critical_traffic_icao);
 	ASSERT_EQ(conflict.conflict_level, kDaaConflictLvlCritical);
 
@@ -496,7 +489,7 @@ TEST_F(DetectAndAvoidTest, ResetClearsTrafficBuffer)
 				low_conflict_alt_diff, hor_velocity, ver_velocity, 1, lat_uav, lon_uav, alt_uav);
 	});
 
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
+	conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 
 	// THEN: The old critical conflict is gone and only the new traffic remains.
 	EXPECT_EQ(conflict.unique_id.id, low_traffic_icao);
@@ -518,8 +511,7 @@ TEST_F(DetectAndAvoidTest, ProcessesAllQueuedTrafficReports)
 	set_default_uav_state(lat_uav, lon_uav, alt_uav, uav_vel);
 	sync_navigator_topics();
 
-	breach_distances_s breach_dist;
-	get_DFLT_breach_distances(uav_vel, hor_velocity, breach_dist);
+	const breach_distances_s breach_dist = get_DFLT_breach_distances(uav_vel, hor_velocity);
 
 	const uint32_t critical_traffic_icao = 14545057;
 	const uint32_t low_traffic_icao = 7249787;
@@ -536,8 +528,7 @@ TEST_F(DetectAndAvoidTest, ProcessesAllQueuedTrafficReports)
 				low_conflict_alt_diff, hor_velocity, ver_velocity, 1, lat_uav, lon_uav, alt_uav);
 	});
 
-	conflict_info_s conflict;
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
+	conflict_info_s conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 
 	// THEN: The queue is drained completely and the critical conflict still wins.
 	EXPECT_EQ(conflict.unique_id.id, critical_traffic_icao);
@@ -566,8 +557,7 @@ TEST_F(DetectAndAvoidTest, AcceptsTrafficOnZeroLatitude)
 	// WHEN: Traffic is published with that zero-latitude coordinate.
 	publish_transponder_report_and_check(tr);
 
-	conflict_info_s conflict;
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
+	conflict_info_s conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 
 	// THEN: The valid equatorial coordinate is processed as a real conflict.
 	EXPECT_EQ(conflict.unique_id.id, traffic_icao);
@@ -589,8 +579,7 @@ TEST_F(DetectAndAvoidTest, RuntimeDisableAndReenableUpdatesState)
 	set_default_uav_state(lat_uav, lon_uav, alt_uav, uav_vel);
 	sync_navigator_topics();
 
-	breach_distances_s breach_dist;
-	get_DFLT_breach_distances(uav_vel, hor_velocity, breach_dist);
+	const breach_distances_s breach_dist = get_DFLT_breach_distances(uav_vel, hor_velocity);
 
 	const float critical_distance = breach_dist.nmac_hor - 1.f;
 	const float critical_alt_diff = breach_dist.nmac_vert - 1.f;
@@ -602,8 +591,7 @@ TEST_F(DetectAndAvoidTest, RuntimeDisableAndReenableUpdatesState)
 				hor_velocity, ver_velocity, 1, lat_uav, lon_uav, alt_uav);
 	});
 
-	conflict_info_s conflict;
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
+	conflict_info_s conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 	ASSERT_EQ(conflict.conflict_level, kDaaConflictLvlCritical);
 
 	// WHEN: The feature is disabled at runtime and a parameter update is published.
@@ -640,7 +628,7 @@ TEST_F(DetectAndAvoidTest, RuntimeDisableAndReenableUpdatesState)
 				hor_velocity, ver_velocity, 1, lat_uav, lon_uav, alt_uav);
 	});
 
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
+	conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 
 	// THEN: Disabling clears the published state and re-enabling restores normal processing.
 	EXPECT_EQ(conflict.conflict_level, kDaaConflictLvlCritical);
@@ -670,8 +658,7 @@ TEST_F(DetectAndAvoidTest, NegativeNotificationIntervalIsClampedToZero)
 	sync_navigator_topics();
 	drain_mavlink_logs();
 
-	breach_distances_s breach_dist;
-	get_DFLT_breach_distances(uav_vel, hor_velocity, breach_dist);
+	const breach_distances_s breach_dist = get_DFLT_breach_distances(uav_vel, hor_velocity);
 	const float critical_distance = breach_dist.nmac_hor - 1.f;
 	const float critical_alt_diff = breach_dist.nmac_vert - 1.f;
 
@@ -711,8 +698,7 @@ TEST_F(DetectAndAvoidTest, FirstLandedWarningIsImmediateWithPositiveInterval)
 	sync_navigator_topics();
 	drain_mavlink_logs();
 
-	breach_distances_s breach_dist;
-	get_DFLT_breach_distances(uav_vel, hor_velocity, breach_dist);
+	const breach_distances_s breach_dist = get_DFLT_breach_distances(uav_vel, hor_velocity);
 	const float critical_distance = breach_dist.nmac_hor - 1.f;
 	const float critical_alt_diff = breach_dist.nmac_vert - 1.f;
 
@@ -747,8 +733,7 @@ TEST_F(DetectAndAvoidTest, RuntimeF3442ActionUpdateAppliesOnNextEscalationOnly)
 
 	while (_vehicle_command_sub.update()) {}
 
-	breach_distances_s breach_dist;
-	get_DFLT_breach_distances(uav_vel, hor_velocity, breach_dist);
+	const breach_distances_s breach_dist = get_DFLT_breach_distances(uav_vel, hor_velocity);
 
 	const float medium_distance = breach_dist.aug_nmac_hor - 1.f;
 	const float medium_alt_diff = breach_dist.aug_nmac_vert - 1.f;
@@ -805,8 +790,7 @@ TEST_F(DetectAndAvoidTest, ClearsConflictStateWhenOwnshipDataGoesStale)
 	set_default_uav_state(lat_uav, lon_uav, alt_uav, uav_vel);
 	sync_navigator_topics();
 
-	breach_distances_s breach_dist;
-	get_DFLT_breach_distances(uav_vel, hor_velocity, breach_dist);
+	const breach_distances_s breach_dist = get_DFLT_breach_distances(uav_vel, hor_velocity);
 	const float critical_distance = breach_dist.nmac_hor - 1.f;
 	const float critical_alt_diff = breach_dist.nmac_vert - 1.f;
 
@@ -816,8 +800,7 @@ TEST_F(DetectAndAvoidTest, ClearsConflictStateWhenOwnshipDataGoesStale)
 				critical_alt_diff, hor_velocity, ver_velocity, 1, lat_uav, lon_uav, alt_uav);
 	});
 
-	conflict_info_s conflict;
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
+	conflict_info_s conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 	ASSERT_EQ(conflict.conflict_level, kDaaConflictLvlCritical);
 
 	drain_detect_and_avoid_most_urgent_topic();
@@ -834,7 +817,7 @@ TEST_F(DetectAndAvoidTest, ClearsConflictStateWhenOwnshipDataGoesStale)
 
 	wait_until([&]() {
 		navigator->check_traffic();
-		navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
+		conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 		return conflict.conflict_level == kDaaConflictLvlNone && _detect_and_avoid_most_urgent_sub.updated();
 	});
 
@@ -864,8 +847,7 @@ TEST_F(DetectAndAvoidTest, DifferentEncodingsDoNotShareBufferSlot)
 	drain_detect_and_avoid_topic();
 	drain_detect_and_avoid_most_urgent_topic();
 
-	breach_distances_s breach_dist;
-	get_DFLT_breach_distances(uav_vel, hor_velocity, breach_dist);
+	const breach_distances_s breach_dist = get_DFLT_breach_distances(uav_vel, hor_velocity);
 
 	const char colliding_callsign[] = "ABC";
 	const uint64_t colliding_unique_id = navigator->get_detect_and_avoid()->callsign_to_uint64(colliding_callsign);
@@ -887,8 +869,7 @@ TEST_F(DetectAndAvoidTest, DifferentEncodingsDoNotShareBufferSlot)
 				hor_velocity, ver_velocity, 1, lat_uav, lon_uav, alt_uav);
 	});
 
-	conflict_info_s conflict;
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
+	conflict_info_s conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 	ASSERT_EQ(conflict.unique_id.encoding, detect_and_avoid_s::UNIQUE_ID_ENCODING_ICAO);
 	ASSERT_EQ(conflict.unique_id.id, colliding_icao);
 	ASSERT_EQ(conflict.conflict_level, kDaaConflictLvlCritical);
@@ -907,7 +888,7 @@ TEST_F(DetectAndAvoidTest, DifferentEncodingsDoNotShareBufferSlot)
 				hor_velocity, ver_velocity, 1, lat_uav, lon_uav, alt_uav);
 	});
 
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
+	conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 	ASSERT_EQ(conflict.unique_id.encoding, detect_and_avoid_s::UNIQUE_ID_ENCODING_ICAO);
 	ASSERT_EQ(conflict.unique_id.id, colliding_icao);
 	ASSERT_EQ(conflict.conflict_level, kDaaConflictLvlCritical);
@@ -919,7 +900,7 @@ TEST_F(DetectAndAvoidTest, DifferentEncodingsDoNotShareBufferSlot)
 				hor_velocity, ver_velocity, 1, lat_uav, lon_uav, alt_uav);
 	});
 
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
+	conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 
 	// THEN: The callsign traffic remains in its own slot and becomes the most urgent entry.
 	EXPECT_EQ(conflict.unique_id.encoding, detect_and_avoid_s::UNIQUE_ID_ENCODING_ADSB_CALLSIGN);
@@ -946,8 +927,7 @@ TEST_F(DetectAndAvoidTest, NewMostUrgentConflictUsesCombinedNotification)
 	sync_navigator_topics();
 	drain_mavlink_logs();
 
-	breach_distances_s breach_dist;
-	get_DFLT_breach_distances(uav_vel, hor_velocity, breach_dist);
+	const breach_distances_s breach_dist = get_DFLT_breach_distances(uav_vel, hor_velocity);
 
 	const float critical_distance = breach_dist.nmac_hor - 1.f;
 	const float critical_alt_diff = breach_dist.nmac_vert - 1.f;
@@ -978,8 +958,7 @@ TEST_F(DetectAndAvoidTest, NewMostUrgentConflictSameLevelStillNotifiesAsMain)
 	set_default_uav_state(lat_uav, lon_uav, alt_uav, uav_vel);
 	sync_navigator_topics();
 
-	breach_distances_s breach_dist;
-	get_DFLT_breach_distances(uav_vel, hor_velocity, breach_dist);
+	const breach_distances_s breach_dist = get_DFLT_breach_distances(uav_vel, hor_velocity);
 
 	const float far_critical_distance = breach_dist.nmac_hor - 1.f;
 	const float close_critical_distance = breach_dist.nmac_hor - 10.f;
@@ -999,8 +978,7 @@ TEST_F(DetectAndAvoidTest, NewMostUrgentConflictSameLevelStillNotifiesAsMain)
 				hor_velocity, ver_velocity, 1, lat_uav, lon_uav, alt_uav);
 	});
 
-	conflict_info_s conflict;
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
+	conflict_info_s conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 	ASSERT_EQ(conflict.unique_id.id, 7249787u);
 	ASSERT_EQ(conflict.conflict_level, kDaaConflictLvlCritical);
 
@@ -1026,8 +1004,7 @@ TEST_F(DetectAndAvoidTest, MostUrgentEscalationDoesNotSendSecondaryNotification)
 	set_default_uav_state(lat_uav, lon_uav, alt_uav, uav_vel);
 	sync_navigator_topics();
 
-	breach_distances_s breach_dist;
-	get_DFLT_breach_distances(uav_vel, hor_velocity, breach_dist);
+	const breach_distances_s breach_dist = get_DFLT_breach_distances(uav_vel, hor_velocity);
 
 	const float medium_distance = breach_dist.wc_hor + 1.f;
 	const float medium_alt_diff = breach_dist.wc_vert + 1.f;
@@ -1055,8 +1032,7 @@ TEST_F(DetectAndAvoidTest, MostUrgentEscalationDoesNotSendSecondaryNotification)
 				hor_velocity, ver_velocity, 1, lat_uav, lon_uav, alt_uav);
 	});
 
-	conflict_info_s conflict;
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
+	conflict_info_s conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 	ASSERT_EQ(conflict.unique_id.id, 14545057u);
 	ASSERT_EQ(conflict.conflict_level, kDaaConflictLvlHigh);
 
@@ -1081,8 +1057,7 @@ TEST_F(DetectAndAvoidTest, MostUrgentDeescalationDoesNotSendSecondaryNotificatio
 	set_default_uav_state(lat_uav, lon_uav, alt_uav, uav_vel);
 	sync_navigator_topics();
 
-	breach_distances_s breach_dist;
-	get_DFLT_breach_distances(uav_vel, hor_velocity, breach_dist);
+	const breach_distances_s breach_dist = get_DFLT_breach_distances(uav_vel, hor_velocity);
 
 	const float critical_distance = breach_dist.nmac_hor - 1.f;
 	const float critical_alt_diff = breach_dist.nmac_vert - 1.f;
@@ -1110,8 +1085,7 @@ TEST_F(DetectAndAvoidTest, MostUrgentDeescalationDoesNotSendSecondaryNotificatio
 				hor_velocity, ver_velocity, 1, lat_uav, lon_uav, alt_uav);
 	});
 
-	conflict_info_s conflict;
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
+	conflict_info_s conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 	ASSERT_EQ(conflict.unique_id.id, 14545057u);
 	ASSERT_EQ(conflict.conflict_level, kDaaConflictLvlHigh);
 
@@ -1136,8 +1110,7 @@ TEST_F(DetectAndAvoidTest, SecondaryConflictResolutionSendsSecondaryNotification
 	set_default_uav_state(lat_uav, lon_uav, alt_uav, uav_vel);
 	sync_navigator_topics();
 
-	breach_distances_s breach_dist;
-	get_DFLT_breach_distances(uav_vel, hor_velocity, breach_dist);
+	const breach_distances_s breach_dist = get_DFLT_breach_distances(uav_vel, hor_velocity);
 
 	const float critical_distance = breach_dist.nmac_hor - 1.f;
 	const float critical_alt_diff = breach_dist.nmac_vert - 1.f;
@@ -1166,8 +1139,7 @@ TEST_F(DetectAndAvoidTest, SecondaryConflictResolutionSendsSecondaryNotification
 				hor_velocity, ver_velocity, 1, lat_uav, lon_uav, alt_uav);
 	});
 
-	conflict_info_s conflict;
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
+	conflict_info_s conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 	ASSERT_EQ(conflict.unique_id.id, 14545057u);
 	ASSERT_EQ(conflict.conflict_level, kDaaConflictLvlCritical);
 
@@ -1192,8 +1164,7 @@ TEST_F(DetectAndAvoidTest, IgnoredTrafficNotificationIsThrottled)
 	set_default_uav_state(lat_uav, lon_uav, alt_uav, uav_vel);
 	sync_navigator_topics();
 
-	breach_distances_s breach_dist;
-	get_DFLT_breach_distances(uav_vel, hor_velocity, breach_dist);
+	const breach_distances_s breach_dist = get_DFLT_breach_distances(uav_vel, hor_velocity);
 
 	const float buffer_distance = breach_dist.aug_nmac_hor + 1.f;
 	const float buffer_alt_diff = breach_dist.aug_nmac_vert + 1.f;
@@ -1269,8 +1240,8 @@ TEST_F(DetectAndAvoidTest, BufferFull)
 	EXPECT_EQ(navigator->get_local_position()->vy, uav_vel(1));
 	EXPECT_EQ(navigator->get_local_position()->vz, uav_vel(2));
 	EXPECT_FALSE(navigator->get_land_detected()->landed);
-	EXPECT_TRUE(navigator->get_vstatus()->arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-	EXPECT_TRUE(navigator->get_vstatus()->nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
+	EXPECT_EQ(navigator->get_vstatus()->arming_state, vehicle_status_s::ARMING_STATE_ARMED);
+	EXPECT_EQ(navigator->get_vstatus()->nav_state, vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
 	EXPECT_EQ(navigator->get_global_position()->lat, lat_uav);
 	EXPECT_EQ(navigator->get_global_position()->lon, lon_uav);
 	EXPECT_EQ(navigator->get_global_position()->alt, alt_uav);
@@ -1283,13 +1254,12 @@ TEST_F(DetectAndAvoidTest, BufferFull)
 
 	// WHEN: No traffic has been processed yet.
 	navigator->check_traffic();
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
+	conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 
 	// THEN: The most urgent conflict starts at none.
-	EXPECT_TRUE(conflict.conflict_level == detect_and_avoid_s::DAA_CONFLICT_LVL_NONE);
+	EXPECT_EQ(conflict.conflict_level, detect_and_avoid_s::DAA_CONFLICT_LVL_NONE);
 
-	breach_distances_s breach_dist;
-	get_DFLT_breach_distances(uav_vel, hor_velocity, breach_dist);
+	const breach_distances_s breach_dist = get_DFLT_breach_distances(uav_vel, hor_velocity);
 
 	// Priority 0, NMAC breach:
 	const uint32_t prio_0_icao_96CD13 = 9882899;
@@ -1366,8 +1336,8 @@ TEST_F(DetectAndAvoidTest, BufferFull)
 			prio_6_in_aug_wc_alt_diff,
 			hor_velocity, ver_velocity, 1, lat_uav, lon_uav, alt_uav);
 	navigator->check_traffic();
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
-	EXPECT_TRUE(conflict.conflict_level == prio_6_conflict_level);
+	conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
+	EXPECT_EQ(conflict.conflict_level, prio_6_conflict_level);
 	EXPECT_EQ(conflict.aircraft_dist, prio_6_in_aug_wc_overall_dist);
 	EXPECT_EQ(conflict.unique_id.id, prio_6_icao_2F1BF1);
 
@@ -1379,8 +1349,8 @@ TEST_F(DetectAndAvoidTest, BufferFull)
 			prio_5_in_aug_nmac_alt_diff,
 			hor_velocity, ver_velocity, 1, lat_uav, lon_uav, alt_uav);
 	navigator->check_traffic();
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
-	EXPECT_TRUE(conflict.conflict_level == prio_5_conflict_level);
+	conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
+	EXPECT_EQ(conflict.conflict_level, prio_5_conflict_level);
 	EXPECT_EQ(conflict.aircraft_dist, prio_5_in_aug_nmac_overall_dist);
 	EXPECT_EQ(conflict.unique_id.id, prio_5_icao_4F74EE);
 
@@ -1392,8 +1362,8 @@ TEST_F(DetectAndAvoidTest, BufferFull)
 			prio_4_in_aug_nmac_alt_diff,
 			hor_velocity, ver_velocity, 1, lat_uav, lon_uav, alt_uav);
 	navigator->check_traffic();
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
-	EXPECT_TRUE(conflict.conflict_level == prio_4_conflict_level);
+	conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
+	EXPECT_EQ(conflict.conflict_level, prio_4_conflict_level);
 	EXPECT_EQ(conflict.aircraft_dist, prio_4_in_aug_nmac_overall_dist);
 	EXPECT_EQ(conflict.unique_id.id, prio_4_icao_BAF2B4);
 
@@ -1405,8 +1375,8 @@ TEST_F(DetectAndAvoidTest, BufferFull)
 			prio_3_in_wc_alt_diff,
 			hor_velocity, ver_velocity, 1, lat_uav, lon_uav, alt_uav);
 	navigator->check_traffic();
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
-	EXPECT_TRUE(conflict.conflict_level == prio_3_conflict_level);
+	conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
+	EXPECT_EQ(conflict.conflict_level, prio_3_conflict_level);
 	EXPECT_EQ(conflict.aircraft_dist, prio_3_in_wc_overall_dist);
 	EXPECT_EQ(conflict.unique_id.id, prio_3_icao_32A475);
 
@@ -1418,8 +1388,8 @@ TEST_F(DetectAndAvoidTest, BufferFull)
 			prio_2_in_wc_alt_diff,
 			hor_velocity, ver_velocity, 1, lat_uav, lon_uav, alt_uav);
 	navigator->check_traffic();
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
-	EXPECT_TRUE(conflict.conflict_level == prio_2_conflict_level);
+	conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
+	EXPECT_EQ(conflict.conflict_level, prio_2_conflict_level);
 	EXPECT_EQ(conflict.aircraft_dist, prio_2_in_wc_overall_dist);
 	EXPECT_EQ(conflict.unique_id.id, prio_2_icao_36A887);
 
@@ -1434,11 +1404,11 @@ TEST_F(DetectAndAvoidTest, BufferFull)
 			prio_7_in_aug_wc_alt_diff,
 			hor_velocity, ver_velocity, 1, lat_uav, lon_uav, alt_uav);
 	navigator->check_traffic();
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
+	conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 
 	// THEN: The existing buffer contents are preserved because the new traffic is less urgent.
 	// Buffer [6, 5, 4, 3, 2]
-	EXPECT_TRUE(conflict.conflict_level == prio_2_conflict_level);
+	EXPECT_EQ(conflict.conflict_level, prio_2_conflict_level);
 	EXPECT_EQ(conflict.aircraft_dist, prio_2_in_wc_overall_dist);
 	EXPECT_EQ(conflict.unique_id.id, prio_2_icao_36A887);
 
@@ -1451,11 +1421,11 @@ TEST_F(DetectAndAvoidTest, BufferFull)
 			prio_0_in_nmac_alt_diff,
 			hor_velocity, ver_velocity, 1, lat_uav, lon_uav, alt_uav);
 	navigator->check_traffic();
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
+	conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 
 	// THEN: The weakest buffered conflict is removed and priority 0 becomes most urgent.
 	// Buffer: [5, 4, 3, 2, 0]
-	EXPECT_TRUE(conflict.conflict_level == prio_0_conflict_level);
+	EXPECT_EQ(conflict.conflict_level, prio_0_conflict_level);
 	EXPECT_EQ(conflict.aircraft_dist, prio_0_in_nmac_overall_dist);
 	EXPECT_EQ(conflict.unique_id.id, prio_0_icao_96CD13);
 
@@ -1468,11 +1438,11 @@ TEST_F(DetectAndAvoidTest, BufferFull)
 			prio_1_in_nmac_alt_diff,
 			hor_velocity, ver_velocity, 1, lat_uav, lon_uav, alt_uav);
 	navigator->check_traffic();
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
+	conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 
 	// THEN: Priority 0 remains most urgent while the buffer reorders around it.
 	// Buffer: [4, 3, 2, 1, 0]
-	EXPECT_TRUE(conflict.conflict_level == prio_0_conflict_level);
+	EXPECT_EQ(conflict.conflict_level, prio_0_conflict_level);
 	EXPECT_EQ(conflict.aircraft_dist, prio_0_in_nmac_overall_dist);
 	EXPECT_EQ(conflict.unique_id.id, prio_0_icao_96CD13);
 
@@ -1485,11 +1455,11 @@ TEST_F(DetectAndAvoidTest, BufferFull)
 			prio_8_no_conflict_alt_diff,
 			hor_velocity, ver_velocity, 1, lat_uav, lon_uav, alt_uav);
 	navigator->check_traffic();
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
+	conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 
 	// THEN: Priority 1 becomes the new most urgent conflict.
 	// Buffer: [4, 3, 2, 1]
-	EXPECT_TRUE(conflict.conflict_level == prio_1_conflict_level);
+	EXPECT_EQ(conflict.conflict_level, prio_1_conflict_level);
 	EXPECT_EQ(conflict.aircraft_dist, prio_1_in_nmac_overall_dist);
 	EXPECT_EQ(conflict.unique_id.id, prio_1_icao_A72BC8);
 
@@ -1502,11 +1472,11 @@ TEST_F(DetectAndAvoidTest, BufferFull)
 			prio_7_in_aug_wc_alt_diff,
 			hor_velocity, ver_velocity, 1, lat_uav, lon_uav, alt_uav);
 	navigator->check_traffic();
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
+	conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 
 	// THEN: The added low-priority traffic does not affect the top conflict.
 	// Buffer: [7, 4, 3, 2, 1]
-	EXPECT_TRUE(conflict.conflict_level == prio_1_conflict_level);
+	EXPECT_EQ(conflict.conflict_level, prio_1_conflict_level);
 	EXPECT_EQ(conflict.aircraft_dist, prio_1_in_nmac_overall_dist);
 	EXPECT_EQ(conflict.unique_id.id, prio_1_icao_A72BC8);
 
@@ -1519,9 +1489,9 @@ TEST_F(DetectAndAvoidTest, BufferFull)
 			prio_8_no_conflict_alt_diff,
 			hor_velocity, ver_velocity, 1, lat_uav, lon_uav, alt_uav);
 	navigator->check_traffic();
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
+	conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 	// Buffer: [7, 4, 2, 1]
-	EXPECT_TRUE(conflict.conflict_level == prio_1_conflict_level);
+	EXPECT_EQ(conflict.conflict_level, prio_1_conflict_level);
 	EXPECT_EQ(conflict.aircraft_dist, prio_1_in_nmac_overall_dist);
 	EXPECT_EQ(conflict.unique_id.id, prio_1_icao_A72BC8);
 
@@ -1533,9 +1503,9 @@ TEST_F(DetectAndAvoidTest, BufferFull)
 			prio_8_no_conflict_alt_diff,
 			hor_velocity, ver_velocity, 1, lat_uav, lon_uav, alt_uav);
 	navigator->check_traffic();
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
+	conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 	// Buffer: [7, 4, 1]
-	EXPECT_TRUE(conflict.conflict_level == prio_1_conflict_level);
+	EXPECT_EQ(conflict.conflict_level, prio_1_conflict_level);
 	EXPECT_EQ(conflict.aircraft_dist, prio_1_in_nmac_overall_dist);
 	EXPECT_EQ(conflict.unique_id.id, prio_1_icao_A72BC8);
 
@@ -1547,9 +1517,9 @@ TEST_F(DetectAndAvoidTest, BufferFull)
 			prio_8_no_conflict_alt_diff,
 			hor_velocity, ver_velocity, 1, lat_uav, lon_uav, alt_uav);
 	navigator->check_traffic();
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
+	conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 	// Buffer: [7, 4]
-	EXPECT_TRUE(conflict.conflict_level == prio_4_conflict_level);
+	EXPECT_EQ(conflict.conflict_level, prio_4_conflict_level);
 	EXPECT_EQ(conflict.aircraft_dist, prio_4_in_aug_nmac_overall_dist);
 	EXPECT_EQ(conflict.unique_id.id, prio_4_icao_BAF2B4);
 
@@ -1561,9 +1531,9 @@ TEST_F(DetectAndAvoidTest, BufferFull)
 			prio_8_no_conflict_alt_diff,
 			hor_velocity, ver_velocity, 1, lat_uav, lon_uav, alt_uav);
 	navigator->check_traffic();
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
+	conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 	// Buffer: [7]
-	EXPECT_TRUE(conflict.conflict_level == prio_7_conflict_level);
+	EXPECT_EQ(conflict.conflict_level, prio_7_conflict_level);
 	EXPECT_EQ(conflict.aircraft_dist, prio_7_in_aug_wc_overall_dist);
 	EXPECT_EQ(conflict.unique_id.id, prio_7_icao_6F0C1B);
 
@@ -1575,11 +1545,11 @@ TEST_F(DetectAndAvoidTest, BufferFull)
 			prio_8_no_conflict_alt_diff,
 			hor_velocity, ver_velocity, 1, lat_uav, lon_uav, alt_uav);
 	navigator->check_traffic();
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
+	conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 
 	// THEN: The buffer returns to an empty no-conflict state.
 	// Buffer: []
-	EXPECT_TRUE(conflict.conflict_level == detect_and_avoid_s::DAA_CONFLICT_LVL_NONE);
+	EXPECT_EQ(conflict.conflict_level, detect_and_avoid_s::DAA_CONFLICT_LVL_NONE);
 
 	check_highest_conflict(conflict.conflict_level,
 			       navigator->get_detect_and_avoid()->conflict_lvl_requires_action(conflict.conflict_level));

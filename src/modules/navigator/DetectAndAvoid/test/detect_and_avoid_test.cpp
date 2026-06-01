@@ -112,8 +112,7 @@ TEST_F(DetectAndAvoidTest, StopFakeTrafficCancelsPendingScript)
 
 	navigator->check_traffic();
 
-	conflict_info_s conflict;
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
+	conflict_info_s conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 
 	EXPECT_EQ(conflict.conflict_level, kDaaConflictLvlNone);
 
@@ -147,8 +146,7 @@ TEST_F(DetectAndAvoidTest, RejectsNonFiniteTrafficAltitude)
 	// THEN: No output is published and no conflict is buffered.
 	EXPECT_FALSE(_detect_and_avoid_sub.update());
 
-	conflict_info_s conflict;
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
+	conflict_info_s conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 	EXPECT_EQ(conflict.conflict_level, kDaaConflictLvlNone);
 }
 
@@ -193,18 +191,18 @@ TEST_F(DetectAndAvoidTest, SelfDetection)
 		set_report_callsign(tr, callsign);
 		tr.flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN;
 
-		navigator->get_detect_and_avoid()->get_unique_id(tr, unique_id);
+		unique_id = navigator->get_detect_and_avoid()->get_unique_id(tr);
 
 		// THEN: Matching callsigns are recognized as self-detections.
-		EXPECT_TRUE(unique_id.encoding == detect_and_avoid_s::UNIQUE_ID_ENCODING_ADSB_CALLSIGN);
-		EXPECT_TRUE(unique_id.id == callsign_64);
+		EXPECT_EQ(unique_id.encoding, detect_and_avoid_s::UNIQUE_ID_ENCODING_ADSB_CALLSIGN);
+		EXPECT_EQ(unique_id.id, callsign_64);
 		EXPECT_TRUE(navigator->get_detect_and_avoid()->is_self_detection(unique_id));
 	}
 
 	// WHEN: The primary ICAO address is configured as ownship.
 	const uint32_t own_icao = 6593425;
 	tr.icao_address = own_icao;
-	navigator->get_detect_and_avoid()->get_unique_id(tr, unique_id);
+	unique_id = navigator->get_detect_and_avoid()->get_unique_id(tr);
 
 	// THEN: With the default disabled primary ICAO parameter, real traffic is not treated as ownship.
 	EXPECT_FALSE(navigator->get_detect_and_avoid()->is_self_detection(unique_id));
@@ -216,11 +214,11 @@ TEST_F(DetectAndAvoidTest, SelfDetection)
 	set_report_callsign(tr, callsign);
 	tr.flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN;
 
-	navigator->get_detect_and_avoid()->get_unique_id(tr, unique_id);
+	unique_id = navigator->get_detect_and_avoid()->get_unique_id(tr);
 
 	// THEN: Matching primary ICAO traffic is treated as self-detection.
-	EXPECT_TRUE(unique_id.encoding == detect_and_avoid_s::UNIQUE_ID_ENCODING_ICAO);
-	EXPECT_TRUE(unique_id.id == own_icao);
+	EXPECT_EQ(unique_id.encoding, detect_and_avoid_s::UNIQUE_ID_ENCODING_ICAO);
+	EXPECT_EQ(unique_id.id, own_icao);
 	EXPECT_TRUE(navigator->get_detect_and_avoid()->is_self_detection(unique_id));
 
 	// WHEN: The secondary ICAO address is configured as ownship.
@@ -232,11 +230,11 @@ TEST_F(DetectAndAvoidTest, SelfDetection)
 	set_report_callsign(tr, callsign);
 	tr.flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN;
 
-	navigator->get_detect_and_avoid()->get_unique_id(tr, unique_id);
+	unique_id = navigator->get_detect_and_avoid()->get_unique_id(tr);
 
 	// THEN: Matching secondary ICAO traffic is also treated as self-detection.
-	EXPECT_TRUE(unique_id.encoding == detect_and_avoid_s::UNIQUE_ID_ENCODING_ICAO);
-	EXPECT_TRUE(unique_id.id == own_icao_2);
+	EXPECT_EQ(unique_id.encoding, detect_and_avoid_s::UNIQUE_ID_ENCODING_ICAO);
+	EXPECT_EQ(unique_id.id, own_icao_2);
 	EXPECT_TRUE(navigator->get_detect_and_avoid()->is_self_detection(unique_id));
 
 	// WHEN: The traffic report carries only a UAS ID.
@@ -248,11 +246,12 @@ TEST_F(DetectAndAvoidTest, SelfDetection)
 	px4_guid_t px4_guid {};
 	board_get_px4_guid(px4_guid);
 	memcpy(tr_uas_id.uas_id, px4_guid, sizeof(px4_guid));
-	EXPECT_TRUE(navigator->get_detect_and_avoid()->get_unique_id(tr_uas_id, unique_id));
+	unique_id = navigator->get_detect_and_avoid()->get_unique_id(tr_uas_id);
+	ASSERT_NE(unique_id.id, 0u);
 
 	// THEN: On boards with a UUID, the local UAS ID is recognized as self.
-	EXPECT_TRUE(unique_id.encoding == detect_and_avoid_s::UNIQUE_ID_ENCODING_UAS_ID);
-	EXPECT_TRUE(unique_id.id == navigator->get_detect_and_avoid()->last_uas_id_bytes_to_uint64(tr_uas_id.uas_id));
+	EXPECT_EQ(unique_id.encoding, detect_and_avoid_s::UNIQUE_ID_ENCODING_UAS_ID);
+	EXPECT_EQ(unique_id.id, navigator->get_detect_and_avoid()->last_uas_id_bytes_to_uint64(tr_uas_id.uas_id));
 	EXPECT_TRUE(navigator->get_detect_and_avoid()->is_self_detection(unique_id));
 #else
 
@@ -260,10 +259,11 @@ TEST_F(DetectAndAvoidTest, SelfDetection)
 		tr_uas_id.uas_id[i] = 0xe0 + i;
 	}
 
-	EXPECT_TRUE(navigator->get_detect_and_avoid()->get_unique_id(tr_uas_id, unique_id));
+	unique_id = navigator->get_detect_and_avoid()->get_unique_id(tr_uas_id);
+	ASSERT_NE(unique_id.id, 0u);
 
 	// THEN: Without a board UUID, an arbitrary UAS ID is not considered self.
-	EXPECT_TRUE(unique_id.encoding == detect_and_avoid_s::UNIQUE_ID_ENCODING_UAS_ID);
+	EXPECT_EQ(unique_id.encoding, detect_and_avoid_s::UNIQUE_ID_ENCODING_UAS_ID);
 	EXPECT_FALSE(navigator->get_detect_and_avoid()->is_self_detection(unique_id));
 #endif
 
@@ -274,7 +274,8 @@ TEST_F(DetectAndAvoidTest, SelfDetection)
 	tr_no_id.flags = 0;
 
 	// THEN: No unique identifier can be extracted.
-	EXPECT_FALSE(navigator->get_detect_and_avoid()->get_unique_id(tr_no_id, unique_id));
+	const unique_id_s no_id = navigator->get_detect_and_avoid()->get_unique_id(tr_no_id);
+	EXPECT_EQ(no_id.id, 0u);
 }
 
 // WHY: Callsign packing and unpacking must round-trip cleanly so buffer keys and operator-facing messages stay consistent.
@@ -305,7 +306,7 @@ TEST_F(DetectAndAvoidTest, ReversibleCallsign)
 		const uint64_t final_uint = navigator->get_detect_and_avoid()->callsign_to_uint64(recovered);
 
 		// THEN: The encoding round-trips without changing the packed value.
-		EXPECT_TRUE(callsign_uint == final_uint);
+		EXPECT_EQ(callsign_uint, final_uint);
 
 		// Only debug print once
 		if (i == 0) {
@@ -329,7 +330,7 @@ TEST_F(DetectAndAvoidTest, ReversibleCallsign)
 	callsign_non_null[8] = 1;
 
 	// THEN: The helper rejects the malformed input.
-	EXPECT_TRUE(navigator->get_detect_and_avoid()->callsign_to_uint64(callsign_non_null) == 0);
+	EXPECT_EQ(navigator->get_detect_and_avoid()->callsign_to_uint64(callsign_non_null), 0u);
 }
 
 // WHY: Callsigns are stored as bytes, so high-bit characters must only affect their own byte slot and never sign-extend across the uint64_t key.
@@ -408,7 +409,7 @@ TEST_F(DetectAndAvoidTest, ReversibleUasId)
 
 		// THEN: The packed representation preserves the trailing GUID bytes exactly.
 		for (int k = 0; k < kIdEncodingNbBytes; ++k) {
-			EXPECT_TRUE(uas_id[PX4_GUID_BYTE_LENGTH - kIdEncodingNbBytes + k] == recovered[k]);
+			EXPECT_EQ(uas_id[PX4_GUID_BYTE_LENGTH - kIdEncodingNbBytes + k], recovered[k]);
 
 			if (i == 0) {
 				PX4_DEBUG(" Byte %d/%d: uas == %d == %d == recovered", PX4_GUID_BYTE_LENGTH - kIdEncodingNbBytes + k + 1,
@@ -428,7 +429,7 @@ TEST_F(DetectAndAvoidTest, ReversibleUasId)
 	const uint64_t zero_uas_id_uint = navigator->get_detect_and_avoid()->last_uas_id_bytes_to_uint64(
 			zero_uas_id); // Converts last kIdEncodingNbBytes bytes
 
-	ASSERT_TRUE(zero_uas_id_uint == 0);
+	ASSERT_EQ(zero_uas_id_uint, 0u);
 
 	// WHEN: The zero value is unpacked again.
 	uint8_t zero_recovered[kIdEncodingNbBytes];
@@ -436,7 +437,7 @@ TEST_F(DetectAndAvoidTest, ReversibleUasId)
 
 	// THEN: The unpacked trailing bytes remain zeroed.
 	for (int k = 0; k < kIdEncodingNbBytes; ++k) {
-		EXPECT_TRUE(0 == zero_recovered[k]);
+		EXPECT_EQ(zero_recovered[k], 0u);
 	}
 }
 

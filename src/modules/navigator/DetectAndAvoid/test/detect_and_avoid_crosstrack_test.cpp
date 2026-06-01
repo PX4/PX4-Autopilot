@@ -160,8 +160,7 @@ TEST_F(DetectAndAvoidTest, CrosstrackRejectsNonFiniteTrafficHeading)
 		// THEN: No detect_and_avoid output is published and no conflict is buffered.
 		EXPECT_FALSE(_detect_and_avoid_sub.update());
 
-		conflict_info_s conflict;
-		navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
+		conflict_info_s conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 		EXPECT_EQ(conflict.conflict_level, kDaaConflictLvlNone);
 	}
 }
@@ -200,7 +199,6 @@ TEST_F(DetectAndAvoidTest, HoveringCrosstrackRejectsNonFiniteOwnshipHeading)
 	// THEN: No output is published and no conflict is buffered because ownship yaw is not finite.
 	EXPECT_FALSE(_detect_and_avoid_sub.update());
 
-	conflict_info_s conflict;
-	navigator->get_detect_and_avoid()->get_most_urgent_conflict(conflict);
+	conflict_info_s conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 	EXPECT_EQ(conflict.conflict_level, kDaaConflictLvlNone);
 }

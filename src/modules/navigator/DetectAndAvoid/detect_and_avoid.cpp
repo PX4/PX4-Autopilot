@@ -291,8 +291,8 @@ void DetectAndAvoid::evaluate_and_publish_action()
 
 	const bool conflict_escalated = _most_urgent_conflict.conflict_level > _prev_most_urgent_conflict_level;
 
-	DaaAction requested_action = get_action_from_conflict_level(_most_urgent_conflict.conflict_level);
-	PX4_DEBUG("DAA: Conflict %s,attempt to publish action %d",  conflict_escalated ? "escalation" : "reduction",
+	const DaaAction requested_action = get_action_from_conflict_level(_most_urgent_conflict.conflict_level);
+	PX4_DEBUG("DAA: Conflict %s, attempt to publish action %d",  conflict_escalated ? "escalation" : "reduction",
 		  (int)requested_action);
 
 	if (_navigator->get_land_detected()->landed) {
@@ -302,14 +302,10 @@ void DetectAndAvoid::evaluate_and_publish_action()
 			return;
 		}
 
-		NotifyLandedActCause cause;
-
-		if (_navigator->get_vstatus()->arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-			cause = NotifyLandedActCause::kConflictAndArmed;
-
-		} else {
-			cause = NotifyLandedActCause::kConflictAndDisarmed;
-		}
+		const NotifyLandedActCause cause =
+			(_navigator->get_vstatus()->arming_state == vehicle_status_s::ARMING_STATE_ARMED)
+			? NotifyLandedActCause::kConflictAndArmed
+			: NotifyLandedActCause::kConflictAndDisarmed;
 
 		if (has_elapsed(_time_last_landed_warning, static_cast<hrt_abstime>(_daa_notif_state_s) * 1_s)) {
 			notify_action_on_ground(cause);
@@ -399,15 +395,15 @@ bool DetectAndAvoid::update_conflict_buffer(new_conflicts_pending_notif_s &new_c
 		}
 
 		// Get unique ID, priority: ICAO > Callsign > UAS_ID
-		unique_id_s unique_id;
+		const unique_id_s unique_id = get_unique_id(transponder_report);
 
-		if (!get_unique_id(transponder_report, unique_id)) {
-			PX4_DEBUG("DAA: No valid unique ID, early return");
+		if (unique_id.id == 0) {
+			PX4_DEBUG("DAA: No valid unique ID, skipping report");
 			continue;
 		}
 
 		if (is_self_detection(unique_id)) {
-			PX4_DEBUG("DAA: Self detection, early return.");
+			PX4_DEBUG("DAA: Self detection, skipping report.");
 			continue;
 		}
 
@@ -421,11 +417,11 @@ bool DetectAndAvoid::update_conflict_buffer(new_conflicts_pending_notif_s &new_c
 		detect_and_avoid_s daa_output;
 
 		if (!analyse_transponder_report(transponder_report, daa_output)) {
-			PX4_DEBUG("DAA: Failed to analyse transponder data, early return.");
+			PX4_DEBUG("DAA: Failed to analyse transponder data, skipping report.");
 			continue;
 		}
 
-		// Check if current icao exists in the buffer
+		// Check if current id exists in the buffer
 		const int current_conflict_idx = find_unique_id_in_buffer(unique_id);
 		const bool new_conflict = (current_conflict_idx == -1);
 
@@ -562,26 +558,29 @@ bool DetectAndAvoid::is_self_detection(const unique_id_s &unique_id) const
 	return false;
 }
 
-bool DetectAndAvoid::get_unique_id(const transponder_report_s &report, unique_id_s &unique_id) const
+unique_id_s DetectAndAvoid::get_unique_id(const transponder_report_s &report) const
 {
 	if (report.icao_address != 0) {
 		PX4_DEBUG("DAA: Unique ID encoding: ICAO.");
-		unique_id.id = static_cast<uint64_t>(report.icao_address);
-		unique_id.encoding = detect_and_avoid_s::UNIQUE_ID_ENCODING_ICAO;
-		return true;
+		return {
+			static_cast<uint64_t>(report.icao_address),
+			detect_and_avoid_s::UNIQUE_ID_ENCODING_ICAO
+		};
 	}
 
 	if (report.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN) {
 		PX4_DEBUG("DAA: Unique ID encoding: Callsign.");
-		unique_id.id = callsign_to_uint64(report.callsign);
-		unique_id.encoding = detect_and_avoid_s::UNIQUE_ID_ENCODING_ADSB_CALLSIGN;
+		const uint64_t callsign_id = callsign_to_uint64(report.callsign);
 
-		if (!unique_id.id) {
-			PX4_DEBUG("DAA: Failed to convert callsign to uint64.");
-
-		} else {
-			return true;
+		if (callsign_id != 0) {
+			return {
+				callsign_id,
+				detect_and_avoid_s::UNIQUE_ID_ENCODING_ADSB_CALLSIGN
+			};
 		}
+
+		// Fall back to the UAS-ID encoding below.
+		PX4_DEBUG("DAA: Failed to convert callsign to uint64.");
 	}
 
 	bool uas_id_valid = false;
@@ -595,19 +594,19 @@ bool DetectAndAvoid::get_unique_id(const transponder_report_s &report, unique_id
 
 	if (uas_id_valid) {
 		PX4_DEBUG("DAA: Unique ID encoding: UAS id.");
-		unique_id.id = last_uas_id_bytes_to_uint64(report.uas_id);
-		unique_id.encoding = detect_and_avoid_s::UNIQUE_ID_ENCODING_UAS_ID;
+		const uint64_t uas_id = last_uas_id_bytes_to_uint64(report.uas_id);
 
-		if (!unique_id.id) {
-			PX4_DEBUG("DAA: Failed to convert uas_id to uint64.");
-			return false;
-
-		} else {
-			return true;
+		if (uas_id != 0) {
+			return {
+				uas_id,
+				detect_and_avoid_s::UNIQUE_ID_ENCODING_UAS_ID
+			};
 		}
+
+		PX4_DEBUG("DAA: Failed to convert uas_id to uint64.");
 	}
 
-	return false;
+	return {};
 }
 
 void DetectAndAvoid::convert_unique_id_to_string(const unique_id_s &unique_id, char *buffer, size_t buffer_size) const
@@ -773,16 +772,10 @@ bool DetectAndAvoid::analyse_transponder_report(transponder_report_s &transponde
 	matrix::Vector3f uav_vel_NED(local_position.vx, local_position.vy, local_position.vz);
 
 	// Set infinite velocities to zero to at least detect the fixed-size boundaries in the F3442
-	if (!PX4_ISFINITE(uav_vel_NED(0))) {
-		uav_vel_NED(0) = 0.f;
-	}
-
-	if (!PX4_ISFINITE(uav_vel_NED(1))) {
-		uav_vel_NED(1) = 0.f;
-	}
-
-	if (!PX4_ISFINITE(uav_vel_NED(2))) {
-		uav_vel_NED(2) = 0.f;
+	for (int i = 0; i < 3; ++i) {
+		if (!PX4_ISFINITE(uav_vel_NED(i))) {
+			uav_vel_NED(i) = 0.f;
+		}
 	}
 
 	static constexpr float kMinGroundSpeedForCourseHeading{0.5f};

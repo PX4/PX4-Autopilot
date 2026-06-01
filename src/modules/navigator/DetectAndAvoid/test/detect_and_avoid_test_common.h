@@ -206,9 +206,9 @@ public:
 		float aug_wc_vert;
 	};
 
-	void get_DFLT_breach_distances(const matrix::Vector3f uav_vel, const float traffic_hor_vel,
-				       breach_distances_s &breach_distance)
+	breach_distances_s get_DFLT_breach_distances(const matrix::Vector3f uav_vel, const float traffic_hor_vel)
 	{
+		breach_distances_s breach_distance{};
 
 		const float uav_hor_vel = uav_vel.xy().norm();
 
@@ -231,6 +231,7 @@ public:
 						     traffic_hor_vel) + fabsf(uav_hor_vel));
 		breach_distance.aug_wc_vert = 2 * kDfltF34LvlHighHgt + kDfltF34LvlLowTime * (fabsf(
 						      kDfltDaaDfltVel) + fabsf(uav_vel(2)));
+		return breach_distance;
 	}
 #endif // CONFIG_NAVIGATOR_ADSB_F3442
 
@@ -469,29 +470,29 @@ public:
 		for (const uint8_t nav_state : states_enable_hold) {
 			publish_vehicle_status(nav_state, arming_state);
 			sync_navigator_topics(navigator_instance);
-			ASSERT_TRUE(navigator_instance->get_detect_and_avoid()->eval_conflict_escalation_action(action) ==
-				    expected_outcome.hold_allowed);
+			ASSERT_EQ(navigator_instance->get_detect_and_avoid()->eval_conflict_escalation_action(action),
+				  expected_outcome.hold_allowed);
 		}
 
 		for (const uint8_t nav_state : states_enable_rtl) {
 			publish_vehicle_status(nav_state, arming_state);
 			sync_navigator_topics(navigator_instance);
-			ASSERT_TRUE(navigator_instance->get_detect_and_avoid()->eval_conflict_escalation_action(action) ==
-				    expected_outcome.rtl_allowed);
+			ASSERT_EQ(navigator_instance->get_detect_and_avoid()->eval_conflict_escalation_action(action),
+				  expected_outcome.rtl_allowed);
 		}
 
 		for (const uint8_t nav_state : states_enable_land) {
 			publish_vehicle_status(nav_state, arming_state);
 			sync_navigator_topics(navigator_instance);
-			ASSERT_TRUE(navigator_instance->get_detect_and_avoid()->eval_conflict_escalation_action(action) ==
-				    expected_outcome.land_allowed);
+			ASSERT_EQ(navigator_instance->get_detect_and_avoid()->eval_conflict_escalation_action(action),
+				  expected_outcome.land_allowed);
 		}
 
 		for (const uint8_t nav_state : states_enable_termination) {
 			publish_vehicle_status(nav_state, arming_state);
 			sync_navigator_topics(navigator_instance);
-			ASSERT_TRUE(navigator_instance->get_detect_and_avoid()->eval_conflict_escalation_action(action) ==
-				    expected_outcome.terminate_allowed);
+			ASSERT_EQ(navigator_instance->get_detect_and_avoid()->eval_conflict_escalation_action(action),
+				  expected_outcome.terminate_allowed);
 		}
 
 		for (const uint8_t nav_state : states_never_enable) {
@@ -508,8 +509,8 @@ public:
 		}
 
 		const detect_and_avoid_most_urgent_s &daa_status = _detect_and_avoid_most_urgent_sub.get();
-		ASSERT_TRUE(daa_status.conflict_level == conflict_level);
-		ASSERT_TRUE(daa_status.has_action == action_required);
+		ASSERT_EQ(daa_status.conflict_level, conflict_level);
+		ASSERT_EQ(daa_status.has_action, action_required);
 	}
 
 	void expect_empty_most_urgent_status(const detect_and_avoid_most_urgent_s &status)

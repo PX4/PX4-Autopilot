@@ -151,7 +151,7 @@ public:
 	/** @brief Clear all DAA state (buffer, last action, timestamps). */
 	void reset();
 
-	bool is_activated() const { return _is_activated;};
+	bool is_activated() const { return _is_activated; }
 
 	/** @brief Refresh cached parameter values. */
 	void updateParams() override;
@@ -193,8 +193,8 @@ public:
 	/** @brief True if the report's unique ID matches ownship (ICAO, callsign or UAS-ID). */
 	bool is_self_detection(const unique_id_s &unique_id) const;
 
-	/** @brief Pick the best available identifier from a report (ICAO first, then callsign, then UAS-ID). */
-	bool get_unique_id(const transponder_report_s &report, unique_id_s &unique_id) const;
+	/** @brief Pick the best available identifier from a report, or id=0 if none is usable. */
+	unique_id_s get_unique_id(const transponder_report_s &report) const;
 
 	/* Actions */
 
@@ -228,7 +228,7 @@ public:
 			  float alt_uav = 300, uint16_t flags = 63);
 #endif // CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC
 
-	void get_most_urgent_conflict(conflict_info_s &conflict) const {conflict = _most_urgent_conflict;};
+	conflict_info_s get_most_urgent_conflict() const { return _most_urgent_conflict; }
 
 private:
 	px4::Array<conflict_info_s, kDaaMaxTraffic> _traffic_buffer{};
