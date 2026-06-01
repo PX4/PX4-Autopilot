@@ -145,7 +145,7 @@ void spix_sync_channel_init(unsigned channel)
 {
 	/* Only initialize used channels */
 
-	if (spix_sync_channels[channel].timer_channel) {
+	if (spix_sync_channels[channel].gpio_out) {
 
 		unsigned timer = spix_sync_channels[channel].timer_index;
 
@@ -156,22 +156,22 @@ void spix_sync_channel_init(unsigned channel)
 
 		/* configure the channel */
 		switch (spix_sync_channels[channel].timer_channel) {
-		case 1:
+		case 0:
 			rCCMR1(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR1_OC1M_SHIFT) | GTIM_CCMR1_OC1PE;
 			rCCER(timer) |= polarity | GTIM_CCER_CC1E;
 			break;
 
-		case 2:
+		case 1:
 			rCCMR1(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR1_OC2M_SHIFT) | GTIM_CCMR1_OC2PE;
 			rCCER(timer) |= polarity | GTIM_CCER_CC2E;
 			break;
 
-		case 3:
+		case 2:
 			rCCMR2(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR2_OC3M_SHIFT) | GTIM_CCMR2_OC3PE;
 			rCCER(timer) |= polarity | GTIM_CCER_CC3E;
 			break;
 
-		case 4:
+		case 3:
 			rCCMR2(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR2_OC4M_SHIFT) | GTIM_CCMR2_OC4PE;
 			rCCER(timer) |= polarity | GTIM_CCER_CC4E;
 			break;
@@ -205,19 +205,19 @@ spix_sync_servo_set(unsigned channel, uint8_t  cvalue)
 
 
 	switch (spix_sync_channels[channel].timer_channel) {
-	case 1:
+	case 0:
 		rCCR1(timer) = value;
 		break;
 
-	case 2:
+	case 1:
 		rCCR2(timer) = value;
 		break;
 
-	case 3:
+	case 2:
 		rCCR3(timer) = value;
 		break;
 
-	case 4:
+	case 3:
 		rCCR4(timer) = value;
 		break;
 
@@ -239,25 +239,25 @@ unsigned spix_sync_servo_get(unsigned channel)
 
 	/* test timer for validity */
 	if ((spix_sync_timers[timer].base == 0) ||
-	    (spix_sync_channels[channel].timer_channel == 0)) {
+	    (spix_sync_channels[channel].gpio_out == 0)) {
 		return 0;
 	}
 
 	/* configure the channel */
 	switch (spix_sync_channels[channel].timer_channel) {
-	case 1:
+	case 0:
 		value = rCCR1(timer);
 		break;
 
-	case 2:
+	case 1:
 		value = rCCR2(timer);
 		break;
 
-	case 3:
+	case 2:
 		value = rCCR3(timer);
 		break;
 
-	case 4:
+	case 3:
 		value = rCCR4(timer);
 		break;
 	}

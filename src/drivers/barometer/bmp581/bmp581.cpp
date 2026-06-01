@@ -137,8 +137,12 @@ int BMP581::collect()
 
 	perf_begin(_sample_perf);
 
-	/* this should be fairly close to the end of the conversion, so the best approximation of the time */
-	const hrt_abstime timestamp_sample = hrt_absolute_time();
+	/* Correct for measurement integration delay: the pressure was
+	 * integrated over the preceding measurement_time window, so the
+	 * effective sample midpoint is half the measurement time before now. */
+	const hrt_abstime now = hrt_absolute_time();
+	const hrt_abstime half_meas = get_measurement_time() / 2;
+	const hrt_abstime timestamp_sample = (now > half_meas) ? (now - half_meas) : now;
 
 	int_status = get_interrupt_status();
 
@@ -709,6 +713,10 @@ int BMP581::get_sensor_data(bmp5_sensor_data *sensor_data)
 		raw_data_p = (uint32_t)((uint32_t)(reg_data[5] << 16) | (uint16_t)(reg_data[4] << 8) | reg_data[3]);
 		/* Division by 2^6(whose equivalent value is 64) is performed to get pressure data in Pa */
 		sensor_data->pressure = (float)(raw_data_p / 64.0);
+
+		if (sensor_data->pressure < BMP5_PRESSURE_MIN_PA || sensor_data->pressure > BMP5_PRESSURE_MAX_PA) {
+			return PX4_ERROR;
+		}
 
 	} else {
 		sensor_data->pressure = 0.0;

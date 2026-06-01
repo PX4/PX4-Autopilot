@@ -32,3 +32,4 @@ PX4 will store the data to `/fs/mtd_caldata`, creating the file if necessary.
 ## Подальша інформація
 
 - [Посібник користувача з QGroundControl > Датчики](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/sensors_px4.html)
+- [OEM/Factory Configuration](../advanced_config/oem.md)

@@ -52,6 +52,8 @@ bool cs_gnss_vel                # 44 - true if GNSS velocity measurement fusion 
 bool cs_gnss_fault              # 45 - true if GNSS true if GNSS measurements (lat, lon, vel) have been declared faulty
 bool cs_yaw_manual              # 46 - true if yaw has been set manually
 bool cs_gnss_hgt_fault          # 47 - true if GNSS true if GNSS measurements (alt) have been declared faulty
+bool cs_in_transition           # 48 - true if the vehicle is in vtol transition
+bool cs_heading_observable      # 49 - true when heading is observable
 
 # fault status
 uint32 fault_status_changes   # number of filter fault status (fs) changes

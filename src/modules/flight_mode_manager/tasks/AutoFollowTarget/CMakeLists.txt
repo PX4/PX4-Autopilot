@@ -36,6 +36,7 @@ add_subdirectory(follow_target_estimator)
 px4_add_library(FlightTaskAutoFollowTarget
 	FlightTaskAutoFollowTarget.cpp
 )
+set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/follow_target_params.yaml)
 
 target_link_libraries(FlightTaskAutoFollowTarget PUBLIC FlightTaskAuto follow_target_estimator)
 target_include_directories(FlightTaskAutoFollowTarget PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

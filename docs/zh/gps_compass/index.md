@@ -64,7 +64,7 @@ PX4 also supports [Real Time Kinematic (RTK)](../gps_compass/rtk_gps.md) and **P
 [Hb Micro M8N]: https://holybro.com/products/micro-m8n-gps
 [CubePilot Here2]: ../gps_compass/gps_hex_here2.md
 
-备注：
+Notes:
 
 - ✓ or a specific part number indicate that a features is supported, while ✘ or empty show that the feature is not supported.
   "?" indicates "unknown".

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # run multiple instances of the 'px4' binary, with the gazebo SITL simulation
 # It assumes px4 is already built, with 'make px4_sitl_default sitl_gazebo-classic'
 

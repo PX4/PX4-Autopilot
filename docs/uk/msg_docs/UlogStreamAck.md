@@ -10,10 +10,10 @@ Ack a previously sent ulog_stream message that had. the NEED_ACK flag set.
 
 ## Fields
 
-| Назва                             | Тип      | Unit [Frame] | Range/Enum | Опис                                                      |
-| --------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| timestamp                         | `uint64` |                                                                  |            | time since system start (microseconds) |
-| msg_sequence | `uint16` |                                                                  |            |                                                           |
+| Назва                                                          | Тип      | Unit [Frame] | Range/Enum | Опис                                                      |
+| -------------------------------------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                            | `uint64` |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_msg_sequence"></a>msg_sequence | `uint16` |                                                                  |            |                                                           |
 
 ## Constants
 

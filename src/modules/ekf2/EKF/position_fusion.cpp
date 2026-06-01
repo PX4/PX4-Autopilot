@@ -101,9 +101,12 @@ void Ekf::resetHorizontalPositionTo(const double &new_latitude, const double &ne
 	updateHorizontalPositionResetStatus(delta_horz_pos);
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
-	_ev_pos_b_est.setBias(_ev_pos_b_est.getBias() - delta_horz_pos);
+
+	if (_control_status.flags.ev_pos) {
+		_ev_pos_b_est.setBias(_ev_pos_b_est.getBias() - delta_horz_pos);
+	}
+
 #endif // CONFIG_EKF2_EXTERNAL_VISION
-	//_gps_pos_b_est.setBias(_gps_pos_b_est.getBias() + _state_reset_status.posNE_change);
 
 	_gpos.setLatLonDeg(new_latitude, new_longitude);
 	_output_predictor.resetLatLonTo(new_latitude, new_longitude);
@@ -201,13 +204,25 @@ void Ekf::resetAltitudeTo(const float new_altitude, float new_vert_pos_var)
 	updateVerticalPositionResetStatus(delta_z);
 
 #if defined(CONFIG_EKF2_BAROMETER)
-	_baro_b_est.setBias(_baro_b_est.getBias() + delta_z);
+
+	if (_control_status.flags.baro_hgt) {
+		_baro_b_est.setBias(_baro_b_est.getBias() + delta_z);
+	}
+
 #endif // CONFIG_EKF2_BAROMETER
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
-	_ev_hgt_b_est.setBias(_ev_hgt_b_est.getBias() - delta_z);
+
+	if (_control_status.flags.ev_hgt) {
+		_ev_hgt_b_est.setBias(_ev_hgt_b_est.getBias() - delta_z);
+	}
+
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 #if defined(CONFIG_EKF2_GNSS)
-	_gps_hgt_b_est.setBias(_gps_hgt_b_est.getBias() + delta_z);
+
+	if (_control_status.flags.gps_hgt) {
+		_gps_hgt_b_est.setBias(_gps_hgt_b_est.getBias() + delta_z);
+	}
+
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_TERRAIN)

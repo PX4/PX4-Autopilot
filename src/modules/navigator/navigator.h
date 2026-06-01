@@ -41,6 +41,7 @@
 
 #pragma once
 
+#include "course.h"
 #include "geofence.h"
 #include "land.h"
 #include "precland.h"
@@ -56,6 +57,9 @@
 #include "navigation.h"
 
 #include "GeofenceBreachAvoidance/geofence_breach_avoidance.h"
+
+#include <uORB/SubscriptionMultiArray.hpp>
+#include <uORB/topics/telemetry_status.h>
 
 #if CONFIG_NAVIGATOR_ADSB
 #include <lib/adsb/AdsbConflict.h>
@@ -95,7 +99,7 @@ using namespace time_literals;
 /**
  * Number of navigation modes that need on_active/on_inactive calls
  */
-#define NAVIGATOR_MODE_ARRAY_SIZE 8
+#define NAVIGATOR_MODE_ARRAY_SIZE 9
 
 class Navigator : public ModuleBase, public ModuleParams
 {
@@ -173,6 +177,9 @@ public:
 	vehicle_status_s            *get_vstatus() { return &_vstatus; }
 
 	PrecLand *get_precland() { return &_precland; } /**< allow others, e.g. Mission, to use the precision land block */
+	Course *get_course() { return &_course; }
+
+	const PositionYawSetpoint &get_last_pos_with_gcs_heartbeat() const { return _last_pos_with_gcs_heartbeat; }
 
 	const vehicle_roi_s &get_vroi() { return _vroi; }
 
@@ -381,6 +388,7 @@ private:
 	Land		_land;			/**< class for handling land commands */
 	PrecLand	_precland;			/**< class for handling precision land commands */
 	RTL 		_rtl;				/**< class that handles RTL */
+	Course		_course;			/**< class that handles course */
 #if CONFIG_NAVIGATOR_ADSB
 	AdsbConflict 	_adsb_conflict;			/**< class that handles ADSB conflict avoidance */
 	traffic_buffer_s _traffic_buffer{};
@@ -401,6 +409,9 @@ private:
 	float _mission_throttle{NAN};
 
 	bool _is_capturing_images{false}; // keep track if we need to stop capturing images
+
+	uORB::SubscriptionMultiArray<telemetry_status_s> _telemetry_status_subs{ORB_ID::telemetry_status};
+	PositionYawSetpoint _last_pos_with_gcs_heartbeat{(double)NAN, (double)NAN, NAN, NAN};
 
 
 	// timer to trigger a delayed set gimbal neutral command

@@ -5,7 +5,7 @@ PX4 supports DroneCAN compliant ESCs.
 ## Supported ESC
 
 :::info
-[Supported ESCs](../peripherals/esc_motors#supported-esc) in _ESCs & Motors_ may include additional devices that are not listed below.
+[Supported ESCs](../peripherals/esc_motors.md#supported-esc) in _ESCs & Motors_ may include additional devices that are not listed below.
 :::
 
 The following articles have specific hardware/firmware information:

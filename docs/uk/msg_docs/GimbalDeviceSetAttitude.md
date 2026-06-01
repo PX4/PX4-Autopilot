@@ -8,26 +8,28 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Назва                                                        | Тип          | Unit [Frame] | Range/Enum | Опис                                                      |
-| ------------------------------------------------------------ | ------------ | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| timestamp                                                    | `uint64`     |                                                                  |            | time since system start (microseconds) |
-| target_system                           | `uint8`      |                                                                  |            |                                                           |
-| target_component                        | `uint8`      |                                                                  |            |                                                           |
-| flags                                                        | `uint16`     |                                                                  |            |                                                           |
-| q                                                            | `float32[4]` |                                                                  |            |                                                           |
-| angular_velocity_x | `float32`    |                                                                  |            |                                                           |
-| angular_velocity_y | `float32`    |                                                                  |            |                                                           |
-| angular_velocity_z | `float32`    |                                                                  |            |                                                           |
+| Назва                                                                                           | Тип          | Unit [Frame] | Range/Enum | Опис                                                      |
+| ----------------------------------------------------------------------------------------------- | ------------ | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                                             | `uint64`     |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_target_system"></a>target_system                                | `uint8`      |                                                                  |            |                                                           |
+| <a id="fld_target_component"></a>target_component                          | `uint8`      |                                                                  |            |                                                           |
+| <a id="fld_flags"></a>flags                                                                     | `uint16`     |                                                                  |            |                                                           |
+| <a id="fld_q"></a>q                                                                             | `float32[4]` |                                                                  |            |                                                           |
+| <a id="fld_angular_velocity_x"></a>angular_velocity_x | `float32`    |                                                                  |            |                                                           |
+| <a id="fld_angular_velocity_y"></a>angular_velocity_y | `float32`    |                                                                  |            |                                                           |
+| <a id="fld_angular_velocity_z"></a>angular_velocity_z | `float32`    |                                                                  |            |                                                           |
 
 ## Constants
 
-| Назва                                                                                                                                                           | Тип      | Значення | Опис |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- | ---- |
-| <a id="#GIMBAL_DEVICE_FLAGS_RETRACT"></a> GIMBAL_DEVICE_FLAGS_RETRACT                            | `uint32` | 1        |      |
-| <a id="#GIMBAL_DEVICE_FLAGS_NEUTRAL"></a> GIMBAL_DEVICE_FLAGS_NEUTRAL                            | `uint32` | 2        |      |
-| <a id="#GIMBAL_DEVICE_FLAGS_ROLL_LOCK"></a> GIMBAL_DEVICE_FLAGS_ROLL_LOCK   | `uint32` | 4        |      |
-| <a id="#GIMBAL_DEVICE_FLAGS_PITCH_LOCK"></a> GIMBAL_DEVICE_FLAGS_PITCH_LOCK | `uint32` | 8        |      |
-| <a id="#GIMBAL_DEVICE_FLAGS_YAW_LOCK"></a> GIMBAL_DEVICE_FLAGS_YAW_LOCK     | `uint32` | 16       |      |
+| Назва                                                                                                                                                                                                                         | Тип      | Значення | Опис |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- | ---- |
+| <a id="#GIMBAL_DEVICE_FLAGS_RETRACT"></a> GIMBAL_DEVICE_FLAGS_RETRACT                                                                                          | `uint32` | 1        |      |
+| <a id="#GIMBAL_DEVICE_FLAGS_NEUTRAL"></a> GIMBAL_DEVICE_FLAGS_NEUTRAL                                                                                          | `uint32` | 2        |      |
+| <a id="#GIMBAL_DEVICE_FLAGS_ROLL_LOCK"></a> GIMBAL_DEVICE_FLAGS_ROLL_LOCK                                                                 | `uint32` | 4        |      |
+| <a id="#GIMBAL_DEVICE_FLAGS_PITCH_LOCK"></a> GIMBAL_DEVICE_FLAGS_PITCH_LOCK                                                               | `uint32` | 8        |      |
+| <a id="#GIMBAL_DEVICE_FLAGS_YAW_LOCK"></a> GIMBAL_DEVICE_FLAGS_YAW_LOCK                                                                   | `uint32` | 16       |      |
+| <a id="#GIMBAL_DEVICE_FLAGS_YAW_IN_VEHICLE_FRAME"></a> GIMBAL_DEVICE_FLAGS_YAW_IN_VEHICLE_FRAME | `uint32` | 32       |      |
+| <a id="#GIMBAL_DEVICE_FLAGS_YAW_IN_EARTH_FRAME"></a> GIMBAL_DEVICE_FLAGS_YAW_IN_EARTH_FRAME     | `uint32` | 64       |      |
 
 ## Source Message
 
@@ -48,6 +50,8 @@ uint32 GIMBAL_DEVICE_FLAGS_NEUTRAL = 2
 uint32 GIMBAL_DEVICE_FLAGS_ROLL_LOCK = 4
 uint32 GIMBAL_DEVICE_FLAGS_PITCH_LOCK = 8
 uint32 GIMBAL_DEVICE_FLAGS_YAW_LOCK = 16
+uint32 GIMBAL_DEVICE_FLAGS_YAW_IN_VEHICLE_FRAME = 32
+uint32 GIMBAL_DEVICE_FLAGS_YAW_IN_EARTH_FRAME = 64
 
 float32[4] q
 

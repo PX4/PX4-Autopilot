@@ -32,6 +32,7 @@
 ############################################################################
 
 px4_add_library(led led.cpp)
+set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/led_params.yaml)
 target_compile_options(led
 	PRIVATE -Wno-implicit-fallthrough # TODO: fix and remove
 )

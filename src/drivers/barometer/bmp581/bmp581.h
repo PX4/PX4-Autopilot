@@ -101,6 +101,10 @@
 #define BMP5_DEEP_ENABLED		(0)
 #define BMP5_DEEP_DISABLED              (1)
 
+/* Pressure operating range (Pa) */
+#define BMP5_PRESSURE_MIN_PA            (30000.0f)
+#define BMP5_PRESSURE_MAX_PA            (125000.0f)
+
 /* ODR settings */
 #define BMP5_ODR_50_HZ                  (0x0F)
 #define BMP5_ODR_05_HZ                  (0x18)

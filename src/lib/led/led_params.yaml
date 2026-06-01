@@ -1,0 +1,11 @@
+module_name: led
+parameters:
+- group: System
+  definitions:
+    SYS_RGB_MAXBRT:
+      description:
+        short: RGB Led brightness limit
+        long: Set to 0 to disable, 1 for maximum brightness
+      type: float
+      default: 1.0
+      unit: '%'

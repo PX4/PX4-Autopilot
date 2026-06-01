@@ -1,0 +1,154 @@
+module_name: uuv_att_control
+parameters:
+- group: UUV Attitude Control
+  definitions:
+    UUV_ROLL_P:
+      description:
+        short: Roll proportional gain
+      type: float
+      default: 4.0
+      decimal: 2
+    UUV_ROLL_D:
+      description:
+        short: Roll differential gain
+      type: float
+      default: 1.5
+      decimal: 2
+    UUV_PITCH_P:
+      description:
+        short: Pitch proportional gain
+      type: float
+      default: 4.0
+      decimal: 2
+    UUV_PITCH_D:
+      description:
+        short: Pitch differential gain
+      type: float
+      default: 2.0
+      decimal: 2
+    UUV_YAW_P:
+      description:
+        short: Yawh proportional gain
+      type: float
+      default: 4.0
+      decimal: 2
+    UUV_YAW_D:
+      description:
+        short: Yaw differential gain
+      type: float
+      default: 2.0
+      decimal: 2
+    UUV_SGM_ROLL:
+      description:
+        short: Roll gain for manual inputs in attitude control mode
+      type: float
+      default: 0.5
+      min: 0.0
+      decimal: 2
+    UUV_SGM_PITCH:
+      description:
+        short: Pitch gain for manual inputs in attitude control mode
+      type: float
+      default: 0.5
+      min: 0.0
+      decimal: 2
+    UUV_SGM_YAW:
+      description:
+        short: Yaw gain for manual inputs in attitude control mode
+      type: float
+      default: 0.5
+      min: 0.0
+      decimal: 2
+    UUV_SGM_THRTL:
+      description:
+        short: Throttle gain for manual inputs in attitude control mode
+      type: float
+      default: 0.1
+      min: 0.0
+      decimal: 2
+    UUV_RGM_ROLL:
+      description:
+        short: Roll gain for manual inputs in rate control mode
+      type: float
+      default: 100.0
+      min: 0.0
+      decimal: 2
+    UUV_RGM_PITCH:
+      description:
+        short: Pitch gain for manual inputs in rate control mode
+      type: float
+      default: 100.0
+      min: 0.0
+      decimal: 2
+    UUV_RGM_YAW:
+      description:
+        short: Yaw gain for manual inputs in rate control mode
+      type: float
+      default: 100.0
+      min: 0.0
+      decimal: 2
+    UUV_RGM_THRTL:
+      description:
+        short: Throttle gain for manual inputs in rate control mode
+      type: float
+      default: 10.0
+      min: 0.0
+      decimal: 2
+    UUV_MGM_ROLL:
+      description:
+        short: Roll gain for manual inputs in manual control mode
+      type: float
+      default: 0.05
+      min: 0.0
+      decimal: 2
+    UUV_MGM_PITCH:
+      description:
+        short: Pitch gain for manual inputs in manual control mode
+      type: float
+      default: 0.05
+      min: 0.0
+      decimal: 2
+    UUV_MGM_YAW:
+      description:
+        short: Yaw gain for manual inputs in manual control mode
+      type: float
+      default: 0.05
+      min: 0.0
+      decimal: 2
+    UUV_MGM_THRTL:
+      description:
+        short: Throttle gain for manual inputs in manual control mode
+      type: float
+      default: 0.1
+      min: 0.0
+      decimal: 2
+    UUV_TORQUE_SAT:
+      description:
+        short: UUV Torque setpoint Saturation
+      type: float
+      default: 0.3
+      min: 0.0
+      max: 1.0
+      decimal: 2
+    UUV_THRUST_SAT:
+      description:
+        short: UUV Thrust setpoint Saturation
+      type: float
+      default: 0.1
+      min: 0.0
+      max: 1.0
+      decimal: 2
+    UUV_SP_MAX_AGE:
+      description:
+        short: Maximum time (in seconds) before resetting setpoint
+      type: float
+      default: 2.0
+    UUV_STICK_MODE:
+      description:
+        short: UUV stick input mode
+        long: Stick mode selector (0=Heave/sway control, roll/pitch leveled; 1=Pitch/roll
+          control)
+      type: int32
+      default: 0
+      min: 0
+      max: 1

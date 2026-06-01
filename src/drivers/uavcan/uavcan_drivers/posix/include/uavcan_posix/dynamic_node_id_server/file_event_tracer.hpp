@@ -37,10 +37,13 @@ class FileEventTracer : public uavcan::dynamic_node_id_server::IEventTracer
 	typedef uavcan::MakeString<MaxPathLength>::Type PathString;
 
 	PathString path_;
+	bool initialized_ = false;
 
 protected:
 	virtual void onEvent(uavcan::dynamic_node_id_server::TraceCode code, uavcan::int64_t argument)
 	{
+		if (!initialized_) { return; }
+
 		using namespace std;
 
 		timespec ts = timespec();               // If clock_gettime() fails, zero time will be used
@@ -89,6 +92,8 @@ public:
 			if (fd >= 0) {
 				(void)close(fd);
 			}
+
+			initialized_ = true;
 		}
 
 		return rv;

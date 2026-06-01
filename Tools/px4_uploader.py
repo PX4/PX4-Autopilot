@@ -198,10 +198,10 @@ class BootloaderCommand(IntEnum):
     GET_OTP = 0x2A  # rev4+, get a word from OTP area
     GET_SN = 0x2B  # rev4+, get a word from SN area
     GET_CHIP = 0x2C  # rev5+, get chip version
-    SET_BOOT_DELAY = 0x2D  # rev5+, set boot delay
     GET_CHIP_DES = 0x2E  # rev5+, get chip description in ASCII
     GET_VERSION = 0x2F  # rev5+, get bootloader version in ASCII
     REBOOT = 0x30
+    VERIFY_SIG = 0x39  # verify signature of programmed image (secure boot)
     CHIP_FULL_ERASE = 0x40  # Full erase of flash, rev6+
 
 
@@ -259,6 +259,7 @@ PX4_USB_IDS: list[tuple[int, int, str]] = [
     (0x0483, 0x5740, "STMicroelectronics Virtual COM Port"),  # Generic ST bootloader
     (0x1209, 0x5740, "Generic STM32"),
     (0x1209, 0x5741, "ArduPilot"),
+    (0x3185, 0x003C, "ARK FMU v6s"),
     (0x3185, 0x0039, "ARK FMU v6x"),
     (0x3185, 0x003A, "ARK Pi6x"),
     (0x3185, 0x003B, "ARK FPV"),
@@ -294,6 +295,7 @@ class Firmware:
     image: bytes = field(init=False)
     image_size: int = field(init=False)
     image_maxsize: int = field(init=False)
+    image_signed: bool = field(init=False)
     description: dict = field(init=False)
 
     def __post_init__(self):
@@ -331,6 +333,7 @@ class Firmware:
         self.board_revision = self.description.get("board_revision", 0)
         self.image_size = self.description["image_size"]
         self.image_maxsize = self.description["image_maxsize"]
+        self.image_signed = bool(self.description.get("image_signed", False))
 
         # Decompress image
         try:
@@ -520,14 +523,31 @@ class SerialTransport:
 
     def flush(self) -> None:
         """Flush output buffer."""
-        if self._port is not None:
+        if self._port is None:
+            return
+        # tcdrain() can raise termios.error (a bare OSError) if the device
+        # disappeared mid-flush — common right after a reboot-to-bootloader
+        # when the USB CDC node is being torn down and re-enumerated.
+        try:
             self._port.flush()
+        except (OSError, serial.SerialException) as e:
+            raise ConnectionError(
+                f"Flush failed: {e}", port=self.port_name, operation="flush"
+            )
 
     def reset_buffers(self) -> None:
         """Reset input and output buffers."""
-        if self._port is not None:
+        if self._port is None:
+            return
+        try:
             self._port.reset_input_buffer()
             self._port.reset_output_buffer()
+        except (OSError, serial.SerialException) as e:
+            raise ConnectionError(
+                f"Buffer reset failed: {e}",
+                port=self.port_name,
+                operation="reset_buffers",
+            )
 
     def set_baudrate(self, baudrate: int) -> None:
         """Change baud rate.
@@ -1148,19 +1168,80 @@ class BootloaderProtocol:
         else:
             self.verify_read(firmware, progress_callback)
 
-    def set_boot_delay(self, delay_ms: int) -> None:
-        """Set boot delay in flash (v5+).
+    def verify_signature(self, image_signed: bool) -> None:
+        """Ask the bootloader to verify the signature of the programmed image.
+
+        Always call this — the bootloader is the source of truth for whether
+        signature verification is required, not the host. If the bootloader
+        was built without BOOTLOADER_USE_SECURITY it returns INVALID and
+        we proceed normally; if it does verify, we surface a clean error
+        before REBOOT instead of letting the device silently stay in BL.
 
         Args:
-            delay_ms: Boot delay in milliseconds
+            image_signed: True if the firmware metadata claimed the image
+                is signed. Used only to upgrade the "bootloader doesn't
+                support secure boot" warning into an error: a signed image
+                being uploaded to a non-secure bootloader is a config
+                mismatch worth flagging loudly.
+
+        Raises:
+            ProtocolError: If the bootloader reports the signature is bad,
+                or if a signed image was sent to a non-secure bootloader.
         """
-        if self.bl_rev < 5:
-            logger.warning("Boot delay requires bootloader v5+")
+        logger.info("Verifying image signature")
+        self._send_command(BootloaderCommand.VERIFY_SIG)
+        self.transport.flush()
+
+        # ed25519 verification over a multi-megabyte image runs a full
+        # SHA-512 over every byte in flash, which on a slow-clocked H7
+        # bootloader with monocypher can comfortably exceed the default
+        # serial timeout. Give the response a generous window.
+        try:
+            insync = self.transport.recv(1, timeout=3.0)
+        except TimeoutError:
+            # Old bootloader from before VERIFY_SIG existed: no response,
+            # just silently dropped the byte. Treat as "no secure boot
+            # support" and continue. The downside is that a signed image
+            # going to a really old bootloader won't be caught here.
+            logger.debug("VERIFY_SIG timed out; assuming pre-secureboot bootloader")
             return
 
-        self._send_command(BootloaderCommand.SET_BOOT_DELAY, struct.pack("b", delay_ms))
-        self._get_sync()
-        logger.info(f"Boot delay set to {delay_ms}ms")
+        if insync[0] != BootloaderResponse.INSYNC:
+            raise ProtocolError(
+                f"Expected INSYNC (0x{BootloaderResponse.INSYNC:02X}), "
+                f"got 0x{insync[0]:02X}",
+                port=self.transport.port_name,
+                operation="verify_signature",
+            )
+
+        result = self.transport.recv(1)
+        if result[0] == BootloaderResponse.OK:
+            logger.info("Signature verification passed")
+            return
+        if result[0] == BootloaderResponse.FAILED:
+            if image_signed:
+                msg = ("Signature does not verify against any trusted key "
+                       "in the bootloader.")
+            else:
+                msg = ("Secure bootloader rejected an unsigned image. "
+                       "Build with CONFIG_BOARD_SECUREBOOT or flash a "
+                       "non-secure bootloader.")
+            raise ProtocolError(msg, port=self.transport.port_name)
+        if result[0] == BootloaderResponse.INVALID:
+            if image_signed:
+                raise ProtocolError(
+                    "Image is marked signed but the bootloader has no "
+                    "secure boot support.",
+                    port=self.transport.port_name,
+                )
+            logger.debug("Bootloader has no secure boot; skipping verification")
+            return
+
+        raise ProtocolError(
+            f"Unexpected VERIFY_SIG response: 0x{result[0]:02X}",
+            port=self.transport.port_name,
+            operation="verify_signature",
+        )
 
     def reboot(self) -> None:
         """Reboot into the application.
@@ -1569,7 +1650,6 @@ class UploaderConfig:
     baud_flightstack: list[int] = field(default_factory=lambda: [57600])
     force: bool = False
     force_erase: bool = False
-    boot_delay: Optional[int] = None
     use_protocol_splitter: bool = False
     retry_count: int = 3
     windowed: bool = False
@@ -1676,7 +1756,10 @@ class Uploader:
                 last_error = e
                 continue
             except UploadError as e:
-                logger.error(f"Upload failed on {port}: {e}")
+                # Don't log here: we re-raise and the top-level handler
+                # in main() will print the error message. Logging here
+                # too produces duplicate user-facing output.
+                logger.debug(f"Upload failed on {port}: {e}")
                 last_error = e
                 raise
 
@@ -1752,7 +1835,7 @@ class Uploader:
                 port=transport.port_name,
             )
             return True
-        except (ProtocolError, TimeoutError):
+        except (ProtocolError, TimeoutError, ConnectionError):
             pass
 
         # Try rebooting at each baud rate
@@ -1817,8 +1900,10 @@ class Uploader:
                         port=transport.port_name,
                     )
                     return True
-                except (ProtocolError, TimeoutError):
-                    # Board may still be rebooting, wait a bit and retry
+                except (ProtocolError, TimeoutError, ConnectionError):
+                    # Board may still be rebooting, wait a bit and retry.
+                    # ConnectionError covers the USB CDC node briefly going
+                    # away as the bootloader re-enumerates.
                     time.sleep(0.3)
 
         return False
@@ -1924,9 +2009,21 @@ class Uploader:
         # Verify
         protocol.verify(firmware, progress_callback=progress.update_verify)
 
-        # Set boot delay if requested
-        if self.config.boot_delay is not None:
-            protocol.set_boot_delay(self.config.boot_delay)
+        # Always ask the bootloader to verify the signature before reboot.
+        # The bootloader is the source of truth for whether secure boot
+        # is enabled — non-secure bootloaders return INVALID and we just
+        # proceed. Reporting a bad signature here is much more actionable
+        # than letting the device silently stay in the bootloader.
+        # The progress bar above uses carriage-return overwrites and
+        # leaves the cursor on the same line; drop to a fresh line so
+        # any verify-step output doesn't clobber the progress bar.
+        if not self.config.json_output:
+            print()
+            if firmware.image_signed:
+                print("Verifying image signature...", end="", flush=True)
+        protocol.verify_signature(firmware.image_signed)
+        if not self.config.json_output and firmware.image_signed:
+            print(" passed")
 
         # Reboot and show summary
         protocol.reboot()
@@ -2010,9 +2107,6 @@ Examples:
         help="Force full chip erase (v6+ bootloader)",
     )
     parser.add_argument(
-        "--boot-delay", type=int, help="Boot delay in milliseconds to store in flash"
-    )
-    parser.add_argument(
         "--use-protocol-splitter-format",
         action="store_true",
         help="Use protocol splitter framing for reboot commands",
@@ -2068,7 +2162,6 @@ Examples:
         baud_flightstack=baud_flightstack,
         force=args.force,
         force_erase=args.force_erase,
-        boot_delay=args.boot_delay,
         use_protocol_splitter=args.use_protocol_splitter_format,
         windowed=args.windowed,
         noninteractive=args.noninteractive or args.noninteractive_json,

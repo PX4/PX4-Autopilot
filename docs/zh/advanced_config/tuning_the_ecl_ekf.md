@@ -407,6 +407,16 @@ See also [Fault Detection](https://youtu.be/CMGQJNPiTJg?si=sFtdf4AQbcOH8-u8) in 
 - **替代来源**: 航位推算模式通过在允许重置之前要求没有替代导航源，提供了增强的保护。
 - **启动漏洞**: 初始错误 GNSS 数据无法自动检测；需要操作员干预和手动位置校正。
 
+#### Ground Position Lock
+
+When a vehicle equipped with dead-reckoning sensors (e.g. airspeed for fixed-wing, or optical flow) is sitting on the ground before takeoff, those sensors provide little to no aiding — airspeed and optical flow measurements are unreliable at rest. In this case, the EKF relies on _constant position fusion_ (fusing a synthetic position measurement at the last known position) to prevent the estimate from drifting. However, this is only active when the vehicle is detected as stationary, so handling the vehicle or starting the engine can interrupt it.
+
+To counter this, [EKF2_POS_LOCK](../advanced_config/parameter_reference.md#EKF2_POS_LOCK) can be enabled to force constant position fusion to run while landed and the global horizontal position has already been initialized.
+
+:::note
+`EKF2_POS_LOCK` has no effect in flight.
+:::
+
 ### 测距仪
 
 [测距仪](../sensor/rangefinders.md) 对地距离由单状态滤波器使用，用于估计地形相对于高度基准的垂直位置。

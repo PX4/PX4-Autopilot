@@ -148,6 +148,8 @@ px4_add_module(
 		UavcanNode.hpp
 		UavcanNodeParamManager.hpp
 		UavcanNodeParamManager.cpp
+	MODULE_CONFIG
+		uavcannode_params.yaml
 	DEPENDS
 		arch_watchdog_iwdg
 		px4_uavcan_dsdlc

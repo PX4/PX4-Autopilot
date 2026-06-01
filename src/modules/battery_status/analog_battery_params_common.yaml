@@ -1,0 +1,13 @@
+module_name: battery_status
+parameters:
+- group: Battery Calibration
+  definitions:
+    BAT_V_OFFS_CURR:
+      description:
+        short: Offset in volt as seen by the ADC input of the current sensor
+        long: |-
+          This offset will be subtracted before calculating the battery
+          current based on the voltage.
+      type: float
+      default: 0.0
+      decimal: 8

@@ -1,0 +1,10 @@
+module_name: asp5033
+parameters:
+- group: Sensors
+  definitions:
+    SENS_EN_ASP5033:
+      description:
+        short: ASP5033 differential pressure sensor (external I2C)
+      type: boolean
+      default: 0
+      reboot_required: true

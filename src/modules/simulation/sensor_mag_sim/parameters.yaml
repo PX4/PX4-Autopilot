@@ -1,0 +1,35 @@
+module_name: sensor_mag_sim
+parameters:
+- group: Sensors
+  definitions:
+    SENS_EN_MAGSIM:
+      description:
+        short: Enable simulated magnetometer sensor instance
+      type: enum
+      values:
+        0: Disabled
+        1: Enabled
+      default: 0
+      reboot_required: true
+      min: 0
+      max: 1
+- group: Simulator
+  definitions:
+    SIM_MAG_OFFSET_X:
+      description:
+        short: simulated magnetometer X offset
+      type: float
+      default: 0.0
+      unit: gauss
+    SIM_MAG_OFFSET_Y:
+      description:
+        short: simulated magnetometer Y offset
+      type: float
+      default: 0.0
+      unit: gauss
+    SIM_MAG_OFFSET_Z:
+      description:
+        short: simulated magnetometer Z offset
+      type: float
+      default: 0.0
+      unit: gauss

@@ -116,7 +116,8 @@ void UavcanRangefinderBridge::range_sub_cb(const
 		quality = 100;
 	}
 
-	rangefinder->update(hrt_absolute_time(), msg.range, quality);
+	const hrt_abstime timestamp_sample = (msg.timestamp.usec > 0) ? msg.timestamp.usec : hrt_absolute_time();
+	rangefinder->update(timestamp_sample, msg.range, quality);
 
 	// Register device capability if not already done
 	if (_node_info_publisher != nullptr) {

@@ -1,7 +1,7 @@
 # Середовище розробки Arch Linux
 
 :::warning
-This development environment is [community supported and maintained](../advanced/community_supported_dev_env).
+This development environment is [community supported and maintained](../advanced/community_supported_dev_env.md).
 Це може працювати або не працювати з поточними версіями PX4.
 
 Дивіться [Встановлення інструментарію](../dev_setup/dev_env.md) для інформації про середовища та інструменти, що підтримуються основною командою розробників.

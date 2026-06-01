@@ -119,10 +119,11 @@ else
 	param set SYS_AUTOCONFIG 1
 fi
 
-if param compare SYS_AUTOCONFIG 1
+# To trigger a parameter reset during boot SYS_AUTOCONFIG was set to 1 before
+if param greater SYS_AUTOCONFIG 0
 then
-	# Reset params except Airframe, RC calibration, sensor calibration, flight modes, total flight time, and next flight UUID.
-	param reset_all SYS_AUTOSTART RC* CAL_* COM_FLTMODE* LND_FLIGHT* TC_* COM_FLIGHT*
+	# Reset parameters except airframe, parameter version, sensor calibration, total flight time, flight UUID
+	param reset_all SYS_AUTOSTART SYS_PARAM_VER CAL_* LND_FLIGHT* TC_* COM_FLIGHT*
 	set AUTOCNF yes
 fi
 
@@ -197,10 +198,6 @@ if [ -n "$PX4_SIM_SPEED_FACTOR" ]; then
 	COM_OF_LOSS_T_LONGER=$(echo "$PX4_SIM_SPEED_FACTOR * 1.0" | bc)
 	echo "COM_OF_LOSS_T set to $COM_OF_LOSS_T_LONGER"
 	param set COM_OF_LOSS_T $COM_OF_LOSS_T_LONGER
-
-	COM_OBC_LOSS_T_LONGER=$(echo "$PX4_SIM_SPEED_FACTOR * 5.0" | bc)
-	echo "COM_OBC_LOSS_T set to $COM_OBC_LOSS_T_LONGER"
-	param set COM_OBC_LOSS_T $COM_OBC_LOSS_T_LONGER
 fi
 
 # Autostart ID
@@ -248,7 +245,7 @@ fi
 
 load_mon start
 
-if param compare SIM_BAT_ENABLE 1
+if param greater SIM_BAT_DRAIN 0
 then
 	battery_simulator start
 fi

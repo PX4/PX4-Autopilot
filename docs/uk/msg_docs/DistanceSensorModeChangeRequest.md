@@ -8,10 +8,10 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Назва                                                    | Тип      | Unit [Frame] | Range/Enum | Опис                                                      |
-| -------------------------------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| timestamp                                                | `uint64` |                                                                  |            | time since system start (microseconds) |
-| request_on_off | `uint8`  |                                                                  |            | request to disable/enable the distance sensor             |
+| Назва                                                                                   | Тип      | Unit [Frame] | Range/Enum | Опис                                                      |
+| --------------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                                     | `uint64` |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_request_on_off"></a>request_on_off | `uint8`  |                                                                  |            | request to disable/enable the distance sensor             |
 
 ## Constants
 

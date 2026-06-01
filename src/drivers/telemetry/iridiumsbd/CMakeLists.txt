@@ -39,5 +39,6 @@ px4_add_module(
 		IridiumSBD.h
 	MODULE_CONFIG
 		module.yaml
+		iridiumsbd_params.yaml
 	DEPENDS
 	)

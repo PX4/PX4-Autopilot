@@ -1,0 +1,78 @@
+module_name: mc_pos_control
+parameters:
+- group: Multicopter Position Control
+  definitions:
+    MPC_THR_HOVER:
+      description:
+        short: Vertical thrust required to hover
+        long: |-
+          Mapped to center throttle stick in Stabilized mode (see MPC_THR_CURVE).
+          Used for initialization of the hover thrust estimator.
+          The estimated hover thrust is used as base for zero vertical acceleration in altitude control.
+          The hover thrust is important for land detection to work correctly.
+      type: float
+      default: 0.5
+      unit: norm
+      min: 0.1
+      max: 0.8
+      decimal: 2
+      increment: 0.01
+    MPC_THR_XY_MARG:
+      description:
+        short: Horizontal thrust margin
+        long: |-
+          Margin that is kept for horizontal control when higher priority vertical thrust is saturated.
+          To avoid completely starving horizontal control with high vertical error.
+      type: float
+      default: 0.3
+      unit: norm
+      min: 0
+      max: 0.5
+      decimal: 2
+      increment: 0.01
+    MPC_VEL_LP:
+      description:
+        short: Velocity low pass cutoff frequency
+        long: A value of 0 disables the filter.
+      type: float
+      default: 0.0
+      unit: Hz
+      min: 0
+      max: 50
+      decimal: 1
+      increment: 0.5
+    MPC_VEL_NF_FRQ:
+      description:
+        short: Velocity notch filter frequency
+        long: |-
+          The center frequency for the 2nd order notch filter on the velocity.
+          A value of 0 disables the filter.
+      type: float
+      default: 0.0
+      unit: Hz
+      min: 0
+      max: 50
+      decimal: 1
+      increment: 0.5
+    MPC_VEL_NF_BW:
+      description:
+        short: Velocity notch filter bandwidth
+        long: A value of 0 disables the filter.
+      type: float
+      default: 5.0
+      unit: Hz
+      min: 0
+      max: 50
+      decimal: 1
+      increment: 0.5
+    MPC_VELD_LP:
+      description:
+        short: Velocity derivative low pass cutoff frequency
+        long: A value of 0 disables the filter.
+      type: float
+      default: 5.0
+      unit: Hz
+      min: 0
+      max: 50
+      decimal: 1
+      increment: 0.5

@@ -1,0 +1,114 @@
+module_name: uuv_pos_control
+parameters:
+- group: UUV Attitude Control
+  definitions:
+    UUV_HGT_P:
+      description:
+        short: Height proportional gain
+      type: float
+      default: 1.0
+      decimal: 2
+    UUV_HGT_D:
+      description:
+        short: Height differential gain
+      type: float
+      default: 1.0
+      decimal: 2
+    UUV_HGT_I:
+      description:
+        short: Height integrational gain
+      type: float
+      default: 0.2
+      decimal: 2
+    UUV_HGT_I_SPD:
+      description:
+        short: sum speed of error for integrational gain
+      type: float
+      default: 1.0
+      decimal: 2
+    UUV_HGT_STR:
+      description:
+        short: Height change strength from manual input
+      type: float
+      default: 1.0
+      decimal: 2
+    UUV_HGT_MAX_DIFF:
+      description:
+        short: Max height error from manual input
+        long: maximum Height distance controlled by manual input. Diff between actual
+          and desired Height cannot be higher than that
+      type: float
+      default: 0.3
+      decimal: 2
+    UUV_HGT_B_UP:
+      description:
+        short: Height rc-button up
+      type: int32
+      default: 11
+      min: 0
+      max: 16
+    UUV_HGT_B_DOWN:
+      description:
+        short: Height rc-button down
+      type: int32
+      default: 12
+      min: 0
+      max: 16
+- group: UUV Position Control
+  definitions:
+    UUV_GAIN_X_P:
+      description:
+        short: Gain of P controller X
+      type: float
+      default: 1.0
+    UUV_GAIN_Y_P:
+      description:
+        short: Gain of P controller Y
+      type: float
+      default: 1.0
+    UUV_GAIN_Z_P:
+      description:
+        short: Gain of P controller Z
+      type: float
+      default: 1.0
+    UUV_GAIN_X_D:
+      description:
+        short: Gain of D controller X
+      type: float
+      default: 0.2
+    UUV_GAIN_Y_D:
+      description:
+        short: Gain of D controller Y
+      type: float
+      default: 0.2
+    UUV_GAIN_Z_D:
+      description:
+        short: Gain of D controller Z
+      type: float
+      default: 0.2
+    UUV_STAB_MODE:
+      description:
+        short: Stabilization mode(1) or Position Control(0)
+      type: enum
+      values:
+        0: Tracks previous attitude setpoint
+        1: Tracks horizontal attitude (allows yaw change)
+      default: 1
+    UUV_POS_STICK_DB:
+      description:
+        short: Deadband for changing position setpoint
+      type: float
+      default: 0.1
+    UUV_PGM_VEL:
+      description:
+        short: Gain for position control velocity setpoint update
+      type: float
+      default: 0.5
+    UUV_POS_MODE:
+      description:
+        short: Stabilization mode(1) or Position Control(0)
+      type: enum
+      values:
+        0: Moves position setpoint in world frame
+        1: Moves position setpoint in body frame
+      default: 1

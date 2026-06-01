@@ -127,19 +127,18 @@ bool PWMOut::update_pwm_out_state(bool on)
 	return true;
 }
 
-bool PWMOut::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
-			   unsigned num_outputs, unsigned num_control_groups_updated)
+bool PWMOut::updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	/* output to the servos */
 	if (_pwm_initialized) {
 		for (size_t i = 0; i < num_outputs; i++) {
 			if (!_mixing_output.isFunctionSet(i)) {
 				// do not run any signal on disabled channels
-				outputs[i] = 0;
+				outputs[i] = 0.f;
 			}
 
 			if (_pwm_mask & (1 << i)) {
-				up_pwm_servo_set(i, outputs[i]);
+				up_pwm_servo_set(i, static_cast<uint16_t>(lroundf(outputs[i])));
 			}
 		}
 	}

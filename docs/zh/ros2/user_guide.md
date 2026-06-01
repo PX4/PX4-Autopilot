@@ -137,7 +137,7 @@ make px4_sitl
 2. 一些Python 依赖关系也必须安装 (使用 **`pip`** 或 **`apt`**):
 
    ```sh
-   pip install --user -U empty==3.3.4 pyros-genmsg setuptools
+   pip install --user -U empy==3.3.4 pyros-genmsg setuptools
    ```
 
 ### 配置微型 XRCE-DDS 代理与客户端
@@ -435,7 +435,7 @@ subscription_ = this->create_subscription<0>("/fmu/out/sensor_combined", qos,
 
 ROS与 PX4所使用的本地 / 世界坐标系和机体坐标系存在差异。
 
-| 框架    | ROS                                                                 | ROS                                                              |
+| 框架    | PX4                                                                 | ROS                                                              |
 | ----- | ------------------------------------------------------------------- | ---------------------------------------------------------------- |
 | 机体    | FRD (X **F**orward, Y **R**ight, Z **D**own)     | FLU (X **F**orward, Y **L**eft, Z **U**p)     |
 | 世界坐标系 | FRD or NED (X **N**orth, Y **E**ast, Z **D**own) | FLU 或 ENU (X **E**ast, Y **N**orth, Z **U**p) |

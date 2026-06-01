@@ -1,0 +1,100 @@
+module_name: temperature_compensation
+parameters:
+- group: Thermal Compensation
+  definitions:
+    TC_M3_ID:
+      description:
+        short: ID of Magnetometer that the calibration is for
+      category: System
+      type: int32
+      default: 0
+    TC_M3_X3_0:
+      description:
+        short: Magnetometer offset temperature ^3 polynomial coefficient - X axis
+      category: System
+      type: float
+      default: 0.0
+    TC_M3_X3_1:
+      description:
+        short: Magnetometer offset temperature ^3 polynomial coefficient - Y axis
+      category: System
+      type: float
+      default: 0.0
+    TC_M3_X3_2:
+      description:
+        short: Magnetometer offset temperature ^3 polynomial coefficient - Z axis
+      category: System
+      type: float
+      default: 0.0
+    TC_M3_X2_0:
+      description:
+        short: Magnetometer offset temperature ^2 polynomial coefficient - X axis
+      category: System
+      type: float
+      default: 0.0
+    TC_M3_X2_1:
+      description:
+        short: Magnetometer offset temperature ^2 polynomial coefficient - Y axis
+      category: System
+      type: float
+      default: 0.0
+    TC_M3_X2_2:
+      description:
+        short: Magnetometer offset temperature ^2 polynomial coefficient - Z axis
+      category: System
+      type: float
+      default: 0.0
+    TC_M3_X1_0:
+      description:
+        short: Magnetometer offset temperature ^1 polynomial coefficient - X axis
+      category: System
+      type: float
+      default: 0.0
+    TC_M3_X1_1:
+      description:
+        short: Magnetometer offset temperature ^1 polynomial coefficient - Y axis
+      category: System
+      type: float
+      default: 0.0
+    TC_M3_X1_2:
+      description:
+        short: Magnetometer offset temperature ^1 polynomial coefficient - Z axis
+      category: System
+      type: float
+      default: 0.0
+    TC_M3_X0_0:
+      description:
+        short: Magnetometer offset temperature ^0 polynomial coefficient - X axis
+      category: System
+      type: float
+      default: 0.0
+    TC_M3_X0_1:
+      description:
+        short: Magnetometer offset temperature ^0 polynomial coefficient - Y axis
+      category: System
+      type: float
+      default: 0.0
+    TC_M3_X0_2:
+      description:
+        short: Magnetometer offset temperature ^0 polynomial coefficient - Z axis
+      category: System
+      type: float
+      default: 0.0
+    TC_M3_TREF:
+      description:
+        short: Magnetometer calibration reference temperature
+      category: System
+      type: float
+      default: 25.0
+    TC_M3_TMIN:
+      description:
+        short: Magnetometer calibration minimum temperature
+      category: System
+      type: float
+      default: 0.0
+    TC_M3_TMAX:
+      description:
+        short: Magnetometer calibration maximum temperature
+      category: System
+      type: float
+      default: 100.0

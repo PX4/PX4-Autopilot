@@ -33,14 +33,67 @@ the [Airframe Reference](../airframes/airframe_reference.md#vectored-6-dof-uuv):
 - **MAIN7:** motor 7 CCW, stern starboard vertical, propeller CW
 - **MAIN8:** motor 8 CCW, stern port vertical, propeller CCW
 
+## Basic Control Axes
+
+For underwater vehicles, motion is defined in terms of body axes:
+
+- **Surge:** forward/back motion - translation along the body X axis.
+- **Sway:** left/right motion - translation along the body Y axis.
+- **Heave:** up/down motion - translation along the body Z axis.
+- **Yaw:** rotation about the (vertical) body Z axis.
+
+### Stick Mapping (Mode 2)
+
+The mapping below illustrates the default joystick behavior:
+
+- **Pitch stick (forward/back):** surge
+- **Roll stick (left/right):** sway
+- **Throttle stick (up/down):** heave
+- **Yaw stick (left/right):** yaw
+
+![RC Basic Commands](../../assets/flying/rc_mode2_mc_position_mode.png)
+
 ## Manual Modes
 
-| Режим     | Опис                                                                                                                                                 |
-| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Manual    | Direct manual control of yaw and thrust.                                                                                             |
-| Acro      | Manual control of yaw/thrust, but keeps roll/pitch zero                                                                                              |
-| Altitude  | Manual control of x/y thrust and yaw. Control of height with PID, manually controlled by user. Keeps roll/pitch zero |
-| Положення | Controls x/y/z and yaw. Manually controlled by user. Keeps roll/pitch zero                                           |
+The following manual and assisted modes are currently supported on BlueROV2 Heavy:
+
+| Режим      | Опис                                                                                                                                                                        |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Manual     | Direct manual control of thrust and yaw.                                                                                                                    |
+| Stabilized | Manual control of thurst and yaw with roll/pitch stabilization.                                                                                             |
+| Acro       | Manual control of yaw-rate and direct thrust commands with roll/pitch stabilization.                                                                        |
+| Altitude   | Manual control of x/y thrust and yaw. Control of height with PID, manually controlled by user. Keeps roll/pitch stabilized. |
+| Положення  | Controls x, y, z and yaw with position hold when sticks are released. Keeps roll/pitch stabilized.                                          |
+
+## Joystick Stick Mode
+
+BlueROV2 supports two joystick mappings for manual control, selected using the
+[UUV_STICK_MODE](../advanced_config/parameter_reference.md#UUV_STICK_MODE) parameter.
+
+By default, `UUV_STICK_MODE` is set to `0`, which enables the UUV stick mapping intended for vectored underwater vehicles.
+
+### UUV_STICK_MODE = 0 (default)
+
+This mode is intended for normal BlueROV2 operation.
+In `Manual`, `Stabilized`, and `Acro` modes, the sticks command:
+
+- **Pitch stick:** surge - moving stick up -> moving forward, +X translation in body frame.
+- **Roll stick:** sway - moving stick right -> moving sideways right, +Y translation in body frame.
+- **Throttle stick:** heave - moving stick up -> moving upwards, -Z translation in body frame (note the Z axis points Down of the vehicle in PX4).
+- **Yaw stick:** yaw - moving stick right -> yawing to the right, +Z rotation in body frame.
+
+In this mode, roll and pitch are kept level rather than commanded directly.
+
+### UUV_STICK_MODE = 1
+
+This mode enables the legacy multicopter-style stick mapping for `Manual`, `Stabilized`, and `Acro` modes:
+
+- **Throttle stick:** surge - moving stick up -> moving forward, +X translation in body frame.
+- **Roll stick:** roll - moving stick right -> rolling to the right side, +X rotation in body frame.
+- **Pitch stick:** pitch - moving stick up -> pitching down, -X translation in body frame (note signs are switched to follow PX4 standard).
+- **Yaw stick:** yaw - moving stick right -> yawing to the right, +Z rotation in body frame.
+
+This mode is mainly provided for compatibility with older setups and user preference.
 
 ## Конфігурація планера
 

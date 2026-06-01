@@ -158,7 +158,7 @@ int Voxl2IO::load_params(voxl2_io_params_t *params)
 
 	// PWM output functions
 	//0: disabled, 1: constant min, 2: constant max
-	//101-112: motors, 201-208: servos, 402: RC Roll, 403: RC Pitch, 404: RC Throttle,
+	//101-112: motors, 201-215: servos, 402: RC Roll, 403: RC Pitch, 404: RC Throttle,
 	//405: RC Yaw, 406: RC Flaps, 407-412: RC AUX 1-6, 420-422: Gimbal RPY
 	param_get(param_find("VOXL2_IO_FUNC1"),  &params->function_map[0]);
 	param_get(param_find("VOXL2_IO_FUNC2"),  &params->function_map[1]);
@@ -301,8 +301,7 @@ int Voxl2IO::handle_uart_passthru()
 	return num_writes;
 }
 
-bool Voxl2IO::updateOutputs(uint16_t outputs[input_rc_s::RC_INPUT_MAX_CHANNELS],
-			    unsigned num_outputs, unsigned num_control_groups_updated)
+bool Voxl2IO::updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	// Stop Mixer while ESCs are being calibrated
 	if (_outputs_disabled) {
@@ -326,11 +325,11 @@ bool Voxl2IO::updateOutputs(uint16_t outputs[input_rc_s::RC_INPUT_MAX_CHANNELS],
 			outputs[i] = 0;
 		}
 
-		if (outputs[i]) {
+		if (outputs[i] > 0.5f) {
 			_pwm_on = true;
 		}
 
-		output_cmds[i] = ((uint32_t)outputs[i]) * MIXER_OUTPUT_TO_CMD_SCALE;  //convert to ns
+		output_cmds[i] = static_cast<uint32_t>(lroundf(outputs[i] * MIXER_OUTPUT_TO_CMD_SCALE)); //convert to ns
 	}
 
 	Command cmd;
@@ -347,9 +346,9 @@ bool Voxl2IO::updateOutputs(uint16_t outputs[input_rc_s::RC_INPUT_MAX_CHANNELS],
 
 	//if (_pwm_on && _debug){
 	if (_debug) {
-		PX4_INFO("Mixer outputs: [%u, %u, %u, %u, %u, %u, %u, %u]",
-			 outputs[0], outputs[1], outputs[2], outputs[3],
-			 outputs[4], outputs[5], outputs[6], outputs[7]);
+		PX4_INFO("Mixer outputs: [%.0f, %.0f, %.0f, %.0f, %.0f, %.0f, %.0f, %.0f]",
+			 (double)outputs[0], (double)outputs[1], (double)outputs[2], (double)outputs[3],
+			 (double)outputs[4], (double)outputs[5], (double)outputs[6], (double)outputs[7]);
 	}
 
 	perf_count(_output_update_perf);

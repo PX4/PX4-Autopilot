@@ -87,6 +87,11 @@ public:
 
 	void operator=(const LatLonAlt &lla)
 	{
+		// Protect against self-assignment
+		if (this == &lla) {
+			return;
+		}
+
 		_latitude_rad = lla.latitude_rad();
 		_longitude_rad = lla.longitude_rad();
 		_altitude = lla.altitude();
@@ -97,6 +102,9 @@ public:
 	 * with respect to an inertial frame and resolved in the navigation frame
 	 */
 	matrix::Vector3f computeAngularRateNavFrame(const matrix::Vector3f &v_ned) const;
+
+	// Compute the ECEF to NED coordinate transformation matrix at the current position
+	matrix::Dcmf computeRotEcefToNed() const;
 
 	struct Wgs84 {
 		static constexpr double equatorial_radius = 6378137.0;

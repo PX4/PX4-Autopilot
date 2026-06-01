@@ -8,11 +8,11 @@ pageClass: is-wide-page
 
 ## Fields
 
-| 参数名       | 类型        | Unit [Frame] | Range/Enum | 描述                                                        |
-| --------- | --------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| timestamp | `uint64`  |                                                                  |            | time since system start (microseconds) |
-| ind       | `int8`    |                                                                  |            | index of debug variable                                   |
-| value     | `float32` |                                                                  |            | the value to send as debug output                         |
+| 参数名                                 | 类型        | Unit [Frame] | Range/Enum | 描述                                                        |
+| ----------------------------------- | --------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp | `uint64`  |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_ind"></a>ind             | `int8`    |                                                                  |            | index of debug variable                                   |
+| <a id="fld_value"></a>value         | `float32` |                                                                  |            | the value to send as debug output                         |
 
 ## Source Message
 

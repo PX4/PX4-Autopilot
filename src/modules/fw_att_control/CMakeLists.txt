@@ -38,10 +38,11 @@ px4_add_module(
 		FixedwingAttitudeControl.cpp
 		FixedwingAttitudeControl.hpp
 
-		fw_pitch_controller.cpp
-		fw_roll_controller.cpp
 		fw_wheel_controller.cpp
-		fw_yaw_controller.cpp
+	MODULE_CONFIG
+		fw_att_control_params.yaml
 	DEPENDS
 		px4_work_queue
 	)
+
+px4_add_unit_gtest(SRC FixedwingAttitudeControlTest.cpp LINKLIBS modules__fw_att_control)

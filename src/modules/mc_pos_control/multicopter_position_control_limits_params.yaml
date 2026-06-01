@@ -1,0 +1,105 @@
+module_name: mc_pos_control
+parameters:
+- group: Multicopter Position Control
+  definitions:
+    MPC_XY_VEL_MAX:
+      description:
+        short: Maximum horizontal velocity
+        long: |-
+          Absolute maximum for all velocity controlled modes.
+          Any higher value is truncated.
+      type: float
+      default: 12.0
+      unit: m/s
+      min: 0
+      max: 20
+      decimal: 1
+      increment: 1
+    MPC_Z_VEL_MAX_UP:
+      description:
+        short: Maximum ascent velocity
+        long: |-
+          Absolute maximum for all climb rate controlled modes.
+          In manually piloted modes full stick deflection commands this velocity.
+
+          For default autonomous velocity see MPC_Z_V_AUTO_UP
+      type: float
+      default: 3.0
+      unit: m/s
+      min: 0.5
+      max: 8
+      increment: 0.1
+      decimal: 1
+    MPC_Z_VEL_MAX_DN:
+      description:
+        short: Maximum descent velocity
+        long: |-
+          Absolute maximum for all climb rate controlled modes.
+          In manually piloted modes full stick deflection commands this velocity.
+
+          For default autonomous velocity see MPC_Z_V_AUTO_UP
+      type: float
+      default: 1.5
+      unit: m/s
+      min: 0.5
+      max: 4
+      increment: 0.1
+      decimal: 1
+    MPC_TILTMAX_AIR:
+      description:
+        short: Maximum tilt angle in air
+        long: |-
+          Absolute maximum for all velocity or acceleration controlled modes.
+          Any higher value is truncated.
+      type: float
+      default: 45.0
+      unit: deg
+      min: 20
+      max: 89
+      decimal: 0
+      increment: 1
+    MPC_TILTMAX_LND:
+      description:
+        short: Maximum tilt during inital takeoff ramp
+        long: Tighter tilt limit during takeoff to avoid tip over.
+      type: float
+      default: 12.0
+      unit: deg
+      min: 5
+      max: 89
+      decimal: 0
+      increment: 1
+    MPC_THR_MIN:
+      description:
+        short: Minimum collective thrust in climb rate controlled modes
+        long: |-
+          Too low thrust leads to loss of roll/pitch/yaw torque control authority.
+          With airmode enabled this parameters can be set to 0
+          while still keeping torque authority (see MC_AIRMODE).
+      type: float
+      default: 0.12
+      unit: norm
+      min: 0.05
+      max: 0.5
+      decimal: 2
+      increment: 0.01
+    MPC_THR_MAX:
+      description:
+        short: Maximum collective thrust in climb rate controlled modes
+        long: Limit allowed thrust e.g. for indoor test of overpowered vehicle.
+      type: float
+      default: 1.0
+      unit: norm
+      min: 0
+      max: 1
+      decimal: 2
+      increment: 0.05
+    MPC_ACC_DECOUPLE:
+      description:
+        short: Acceleration to tilt coupling
+        long: |-
+          Set to decouple tilt from vertical acceleration.
+          This provides smoother flight but slightly worse tracking in position and auto modes.
+          Unset if accurate position tracking during dynamic maneuvers is more important than a smooth flight.
+      type: boolean
+      default: 1

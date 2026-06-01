@@ -1,0 +1,20 @@
+__max_num_config_instances: &max_num_config_instances 1
+
+module_name: ADS7128
+
+parameters:
+  - group: ADC
+    definitions:
+      ADC_ADS7128_REFV:
+        description:
+            short: Applied reference Voltage.
+            long: |
+                The voltage applied to the ADS7128 board as reference
+        type: float
+        unit: V
+        min: 2.35
+        max: 5.5
+        decimal: 2
+        increment: 0.01
+        reboot_required: true
+        default: 3.3

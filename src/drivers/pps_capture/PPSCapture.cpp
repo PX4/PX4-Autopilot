@@ -48,6 +48,7 @@
 ModuleBase::Descriptor PPSCapture::desc{task_spawn, custom_command, print_usage};
 
 PPSCapture::PPSCapture() :
+	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
 	_pps_capture_pub.advertise();
@@ -117,9 +118,16 @@ void PPSCapture::Run()
 
 	sensor_gps_s sensor_gps;
 
-	if (_sensor_gps_sub.update(&sensor_gps)) {
-		_last_gps_utc_timestamp = sensor_gps.time_utc_usec;
-		_last_gps_timestamp = sensor_gps.timestamp;
+	const uint32_t gps_device_id = static_cast<uint32_t>(_param_pps_cap_gps_id.get());
+
+	for (auto &sub : _sensor_gps_subs) {
+		if (sub.update(&sensor_gps)) {
+			if (gps_device_id == 0 || sensor_gps.device_id == gps_device_id) {
+				_last_gps_utc_timestamp = sensor_gps.time_utc_usec;
+				_last_gps_timestamp = sensor_gps.timestamp;
+				break;
+			}
+		}
 	}
 
 	pps_capture_s pps_capture;

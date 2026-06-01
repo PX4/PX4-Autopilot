@@ -36,15 +36,17 @@
 #include <drivers/drv_hrt.h>
 #include <px4_arch/micro_hal.h>
 #include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/pps_capture.h>
 #include <uORB/topics/sensor_gps.h>
 
 using namespace time_literals;
 
-class PPSCapture : public ModuleBase, public px4::ScheduledWorkItem
+class PPSCapture : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 	static Descriptor desc;
@@ -71,16 +73,23 @@ public:
 private:
 	void Run() override;
 
+	static constexpr int GPS_MAX_RECEIVERS = 2;
+
 	int _channel{-1};
 	uint32_t _pps_capture_gpio{0};
-	uORB::Publication<pps_capture_s>	_pps_capture_pub{ORB_ID(pps_capture)};
-	uORB::Subscription								_sensor_gps_sub{ORB_ID(sensor_gps)};
-	orb_advert_t											_mavlink_log_pub{nullptr};
 
-	hrt_abstime _hrt_timestamp{0};
+	uORB::Publication<pps_capture_s> _pps_capture_pub{ORB_ID(pps_capture)};
+	uORB::SubscriptionMultiArray<sensor_gps_s, GPS_MAX_RECEIVERS> _sensor_gps_subs{ORB_ID::sensor_gps};
+	orb_advert_t _mavlink_log_pub{nullptr};
+
+	hrt_abstime	_hrt_timestamp{0};
 
 	hrt_abstime	_last_gps_timestamp{0};
-	uint64_t		_last_gps_utc_timestamp{0};
-	uint8_t			_pps_rate_exceeded_counter{0};
-	px4::atomic<bool>			_pps_rate_failure{false};
+	uint64_t _last_gps_utc_timestamp{0};
+	uint8_t _pps_rate_exceeded_counter{0};
+	px4::atomic<bool> _pps_rate_failure{false};
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::PPS_CAP_GPS_ID>) _param_pps_cap_gps_id
+	)
 };

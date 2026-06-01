@@ -228,7 +228,7 @@ led_pwm_channel_init(unsigned channel)
 {
 	/* Only initialize used channels */
 
-	if (led_pwm_channels[channel].timer_channel) {
+	if (led_pwm_channels[channel].gpio_out) {
 		unsigned timer = led_pwm_channels[channel].timer_index;
 
 		irqstate_t flags = px4_enter_critical_section();
@@ -239,7 +239,7 @@ led_pwm_channel_init(unsigned channel)
 
 		/* configure the channel */
 
-		uint32_t chan = led_pwm_channels[channel].timer_channel - 1;
+		uint32_t chan = led_pwm_channels[channel].timer_channel;
 
 		uint16_t rvalue = REG(timer, S32K1XX_FTM_CNSC_OFFSET(chan));
 		rvalue &= ~CnSC_RESET;
@@ -275,7 +275,7 @@ led_pwm_servo_set(unsigned channel, uint8_t  cvalue)
 		value--;
 	}
 
-	REG(timer, S32K1XX_FTM_CNV_OFFSET(led_pwm_channels[channel].timer_channel - 1)) = value;
+	REG(timer, S32K1XX_FTM_CNV_OFFSET(led_pwm_channels[channel].timer_channel)) = value;
 
 	return 0;
 }
@@ -291,11 +291,11 @@ unsigned led_pwm_servo_get(unsigned channel)
 
 	/* test timer for validity */
 	if ((led_pwm_timers[timer].base == 0) ||
-	    (led_pwm_channels[channel].timer_channel == 0)) {
+	    (led_pwm_channels[channel].gpio_out == 0)) {
 		return value;
 	}
 
-	value = REG(timer, S32K1XX_FTM_CNV_OFFSET(led_pwm_channels[channel].timer_channel - 1));
+	value = REG(timer, S32K1XX_FTM_CNV_OFFSET(led_pwm_channels[channel].timer_channel));
 	unsigned period = led_pwm_timer_get_period(timer);
 	return ((value + 1) * 255 / period);
 }

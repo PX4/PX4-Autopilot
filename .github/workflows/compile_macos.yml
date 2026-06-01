@@ -19,49 +19,51 @@ concurrency:
 jobs:
   build:
     runs-on: macos-latest
-    strategy:
-      matrix:
-        config: [
-          px4_fmu-v5_default,
-          px4_sitl
-          ]
     steps:
     - name: install Python 3.10
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: "3.10"
 
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
+
+    - name: Cache - Restore Homebrew Packages
+      uses: actions/cache@v5
+      with:
+        path: ~/Library/Caches/Homebrew/downloads
+        key: macos-homebrew-${{ runner.arch }}-${{ hashFiles('Tools/setup/macos.sh') }}
+        restore-keys: |
+          macos-homebrew-${{ runner.arch }}-
+
+    - name: Cache - Restore pip Packages
+      uses: actions/cache@v5
+      with:
+        path: ~/Library/Caches/pip
+        key: macos-pip-${{ runner.arch }}-${{ hashFiles('Tools/setup/requirements.txt') }}
+        restore-keys: |
+          macos-pip-${{ runner.arch }}-
 
     - name: setup
       run: |
         ./Tools/setup/macos.sh
+        echo "${{ github.workspace }}/.venv/bin" >> $GITHUB_PATH
 
-    - name: Prepare ccache timestamp
-      id: ccache_cache_timestamp
-      shell: cmake -P {0}
-      run: |
-        string(TIMESTAMP current_date "%Y-%m-%d-%H;%M;%S" UTC)
-        file(APPEND "$ENV{GITHUB_OUTPUT}" "timestamp=${current_date}\n")
-    - name: ccache cache files
-      uses: actions/cache@v4
+    - uses: ./.github/actions/setup-ccache
+      id: ccache
       with:
-        path: ~/.ccache
-        key: macos_${{matrix.config}}-ccache-${{steps.ccache_cache_timestamp.outputs.timestamp}}
-        restore-keys: macos_${{matrix.config}}-ccache-
-    - name: setup ccache
-      run: |
-          mkdir -p ~/.ccache
-          echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
-          echo "compression = true" >> ~/.ccache/ccache.conf
-          echo "compression_level = 6" >> ~/.ccache/ccache.conf
-          echo "max_size = 40M" >> ~/.ccache/ccache.conf
-          echo "hash_dir = false" >> ~/.ccache/ccache.conf
-          ccache -s
-          ccache -z
+        cache-key-prefix: ccache-macos
+        max-size: 200M
 
-    - name: make ${{matrix.config}}
-      run: |
-          ccache -z
-          make ${{matrix.config}}
-          ccache -s
+    - name: Build px4_sitl
+      run: make px4_sitl
+
+    - name: Cache - Stats after px4_sitl
+      run: ccache -s
+
+    - name: Build px4_fmu-v5_default
+      run: make px4_fmu-v5_default
+
+    - uses: ./.github/actions/save-ccache
+      if: always()
+      with:
+        cache-primary-key: ${{ steps.ccache.outputs.cache-primary-key }}

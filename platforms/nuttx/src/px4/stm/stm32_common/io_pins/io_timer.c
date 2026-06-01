@@ -357,7 +357,7 @@ int io_timer_validate_channel_index(unsigned channel)
 {
 	int rv = -EINVAL;
 
-	if (channel < MAX_TIMER_IO_CHANNELS && timer_io_channels[channel].timer_channel != 0) {
+	if (channel < MAX_TIMER_IO_CHANNELS) {
 
 		unsigned timer = timer_io_channels[channel].timer_index;
 
@@ -606,7 +606,7 @@ int io_timer_set_dshot_burst_mode(uint8_t timer, unsigned dshot_pwm_freq, uint8_
 		rEGR(timer)  = ATIM_EGR_UG;
 
 		// find the lowest channel index for the timer (they are not necessarily in ascending order)
-		unsigned lowest_timer_channel = 4;
+		unsigned lowest_timer_channel = 3;
 		uint32_t first_channel_index = io_timers_channel_mapping.element[timer].first_channel_index;
 		uint32_t last_channel_index = first_channel_index + io_timers_channel_mapping.element[timer].channel_count;
 
@@ -619,13 +619,13 @@ int io_timer_set_dshot_burst_mode(uint8_t timer, unsigned dshot_pwm_freq, uint8_
 		uint32_t start_ccr_register = 0;
 
 		switch (lowest_timer_channel) {
-		case 1: start_ccr_register = TIM_DMABASE_CCR1; break;
+		case 0: start_ccr_register = TIM_DMABASE_CCR1; break;
 
-		case 2: start_ccr_register = TIM_DMABASE_CCR2; break;
+		case 1: start_ccr_register = TIM_DMABASE_CCR2; break;
 
-		case 3: start_ccr_register = TIM_DMABASE_CCR3; break;
+		case 2: start_ccr_register = TIM_DMABASE_CCR3; break;
 
-		case 4: start_ccr_register = TIM_DMABASE_CCR4; break;
+		case 3: start_ccr_register = TIM_DMABASE_CCR4; break;
 		}
 
 		rDCR(timer)  = start_ccr_register | tim_dma_burst_length;
@@ -934,9 +934,9 @@ int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 
 		/* configure the channel */
 
-		uint32_t shifts = timer_io_channels[channel].timer_channel - 1;
+		uint32_t shifts = timer_io_channels[channel].timer_channel;
 
-		/* Map shifts timer channel 1-4 to 0-3 */
+		/* Map shifts timer channel 0-3 */
 
 		uint32_t ccmr_offset = STM32_GTIM_CCMR1_OFFSET + ((shifts >> 1)  * sizeof(uint32_t));
 		uint32_t ccr_offset = STM32_GTIM_CCR1_OFFSET + (shifts * sizeof(uint32_t));
@@ -1047,7 +1047,7 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 	for (int chan_index = 0; masks != 0 && chan_index < MAX_TIMER_IO_CHANNELS; chan_index++) {
 		if (masks & (1 << chan_index)) {
 			masks &= ~(1 << chan_index);
-			uint32_t shifts = timer_io_channels[chan_index].timer_channel - 1;
+			uint32_t shifts = timer_io_channels[chan_index].timer_channel;
 			uint32_t timer = channels_timer(chan_index);
 			action_cache[timer].base  = io_timers[timer].base;
 			action_cache[timer].ccer_clearbits |= CCER_C1_INIT << (shifts * CCER_C1_NUM_BITS);

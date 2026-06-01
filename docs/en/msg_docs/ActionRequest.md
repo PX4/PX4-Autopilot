@@ -14,16 +14,18 @@ Request are published by `manual_control` and subscribed by the `commander` and 
 
 ## Fields
 
-| Name      | Type     | Unit [Frame] | Range/Enum        | Description                                                                                                                                                      |
-| --------- | -------- | ------------ | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| timestamp | `uint64` | us           |                   | Time since system start                                                                                                                                          |
-| action    | `uint8`  |              | [ACTION](#ACTION) | Requested action                                                                                                                                                 |
-| source    | `uint8`  |              | [SOURCE](#SOURCE) | Request trigger type, such as a switch, button or gesture                                                                                                        |
-| mode      | `uint8`  |              |                   | Requested mode. Only applies when `action` is `ACTION_SWITCH_MODE`. Values for this field are defined by the `vehicle_status_s::NAVIGATION_STATE_*` enumeration. |
+| Name                                | Type     | Unit [Frame] | Range/Enum        | Description                                                                                                                                                      |
+| ----------------------------------- | -------- | ------------ | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp | `uint64` | us           |                   | Time since system start                                                                                                                                          |
+| <a id="fld_action"></a>action       | `uint8`  |              | [ACTION](#ACTION) | Requested action                                                                                                                                                 |
+| <a id="fld_source"></a>source       | `uint8`  |              | [SOURCE](#SOURCE) | Request trigger type, such as a switch, button or gesture                                                                                                        |
+| <a id="fld_mode"></a>mode           | `uint8`  |              |                   | Requested mode. Only applies when `action` is `ACTION_SWITCH_MODE`. Values for this field are defined by the `vehicle_status_s::NAVIGATION_STATE_*` enumeration. |
 
 ## Enums
 
 ### ACTION {#ACTION}
+
+Used in field(s): [action](#fld_action)
 
 | Name                                                                                      | Type    | Value | Description                                                           |
 | ----------------------------------------------------------------------------------------- | ------- | ----- | --------------------------------------------------------------------- |
@@ -38,6 +40,8 @@ Request are published by `manual_control` and subscribed by the `commander` and 
 | <a id="#ACTION_TERMINATION"></a> ACTION_TERMINATION                                       | `uint8` | 8     | Irreversibly output failsafe values on all outputs, trigger parachute |
 
 ### SOURCE {#SOURCE}
+
+Used in field(s): [source](#fld_source)
 
 | Name                                                    | Type    | Value | Description                                                     |
 | ------------------------------------------------------- | ------- | ----- | --------------------------------------------------------------- |

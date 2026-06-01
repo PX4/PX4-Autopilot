@@ -15,14 +15,21 @@ else
        bmi055 -G -R 4 -s start
 fi
 
-# Internal SPI bus ICM42688p
-icm42688p -R 6 -s start
+# Internal SPI bus IMU (probe-based: LSM6DSV or ICM42688P on same CS)
+if ! icm42688p -R 6 -s -q start
+then
+    lsm6dsv -R 26 -s start
+fi
 
 # Internal barometer on I2C4 (The same bus is also exposed externally, and therefore marked as external)
 ms5611 -X -b 4 -a 0x77 start
 
 # Internal compass on IMU I2C4 (The same bus is also exposed externally, and therefore marked as external)
-ist8310 -X -b 4 -a 0xc  start
+# Standard FMUv6C uses IST8310; the variant board falls back to RM3100.
+if ! ist8310 -X -b 4 -a 0xc -q start
+then
+	rm3100 -X -b 4 -R 8 start
+fi
 
 # External compass on GPS/I2C1 (the 3rd external bus): standard Holybro Pixhawk 4 or CUAV V5 GPS/compass puck (with lights, safety button, and buzzer)
 ist8310 -X -b 1 -R 10 start

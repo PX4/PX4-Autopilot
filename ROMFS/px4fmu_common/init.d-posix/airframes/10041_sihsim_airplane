@@ -44,7 +44,8 @@ param set-default PWM_MAIN_FUNC2 202
 param set-default PWM_MAIN_FUNC3 203
 param set-default PWM_MAIN_FUNC4 101
 
-param set-default EKF2_GPS_DELAY 0
+param set-default SENS_GPS0_DELAY 0
+param set-default SENS_GPS1_DELAY 0
 
 # Rate controllers
 param set-default FW_RR_P 0.0500

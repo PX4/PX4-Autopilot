@@ -107,7 +107,7 @@ public:
 	void setReturnAltMin(bool min) { _enforce_rtl_alt = min; }
 	void setRtlAlt(float alt) {_rtl_alt = alt;};
 
-	void setRtlPosition(PositionYawSetpoint position, loiter_point_s loiter_pos);
+	void setRtlPosition(const PositionYawSetpoint &position, const loiter_point_s &loiter_pos);
 
 	bool isLanding() { return (_rtl_state != RTLState::IDLE) && (_rtl_state >= RTLState::LOITER_DOWN);};
 
@@ -145,7 +145,7 @@ private:
 	 * @brief sanitize land_approach
 	 *
 	 */
-	loiter_point_s sanitizeLandApproach(loiter_point_s land_approach) const;
+	loiter_point_s sanitizeLandApproach(const loiter_point_s &land_approach) const;
 
 	/**
 	 * Check for parameter changes and update them if needed.

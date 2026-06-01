@@ -72,6 +72,10 @@ MulticopterNeuralNetworkControl::MulticopterNeuralNetworkControl() :
 
 MulticopterNeuralNetworkControl::~MulticopterNeuralNetworkControl()
 {
+	delete _interpreter;
+	_interpreter = nullptr;
+	_input_tensor = nullptr;
+	_output_tensor = nullptr;
 	perf_free(_loop_perf);
 }
 
@@ -88,6 +92,14 @@ bool MulticopterNeuralNetworkControl::init()
 
 int MulticopterNeuralNetworkControl::InitializeNetwork()
 {
+	if (_interpreter != nullptr) {
+		delete _interpreter;
+		_interpreter = nullptr;
+	}
+
+	_input_tensor = nullptr;
+	_output_tensor = nullptr;
+
 	// Initialize the neural network
 	const tflite::Model *control_model = ::tflite::GetModel(control_net_tflite);
 
@@ -103,11 +115,18 @@ int MulticopterNeuralNetworkControl::InitializeNetwork()
 	static uint8_t tensor_arena[kTensorArenaSize];
 	_interpreter = new tflite::MicroInterpreter(control_model, resolver, tensor_arena, kTensorArenaSize);
 
+	if (_interpreter == nullptr) {
+		PX4_ERR("interpreter alloc failed");
+		return -1;
+	}
+
 	// Allocate memory for the model's tensors
 	TfLiteStatus allocate_status = _interpreter->AllocateTensors();
 
 	if (allocate_status != kTfLiteOk) {
 		PX4_ERR("AllocateTensors() failed");
+		delete _interpreter;
+		_interpreter = nullptr;
 		return -1;
 	}
 
@@ -115,6 +134,8 @@ int MulticopterNeuralNetworkControl::InitializeNetwork()
 
 	if (_input_tensor == nullptr) {
 		PX4_ERR("Input tensor is null");
+		delete _interpreter;
+		_interpreter = nullptr;
 		return -1;
 	}
 

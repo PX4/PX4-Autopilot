@@ -60,7 +60,7 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 			}
 		}
 
-		const Vector3f pos_offset_body = _params.gps_pos_body - _params.imu_pos_body;
+		const Vector3f pos_offset_body = gps_sample.pos_body - _params.imu_pos_body;
 		const Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
 		const float gnss_alt = gps_sample.alt + pos_offset_earth(2);
 

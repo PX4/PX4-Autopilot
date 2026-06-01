@@ -94,14 +94,13 @@ public:
 	void print_info();
 
 	/** @see OutputModuleInterface */
-	bool updateOutputs(uint16_t outputs[MAX_ACTUATORS],
-			   unsigned num_outputs, unsigned num_control_groups_updated) override;
+	bool updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 	/**
 	* @brief Used to package and transmit controls via IQUART
 	* @param outputs The output throttles calculated by the mixer
 	*/
-	void OutputControls(uint16_t outputs[MAX_ACTUATORS]);
+	void OutputControls(float outputs[MAX_ACTUATORS]);
 
 private:
 

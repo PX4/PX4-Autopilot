@@ -645,7 +645,7 @@ int uORBTest::UnitTest::test_wrap_around()
 	}
 #define CHECK_COPY(i_got, i_correct) \
 	orb_copy(ORB_ID(orb_test_medium_wrap_around), sfd, &u); \
-	if (i_got != i_correct) { \
+	if ((i_got) != (i_correct)) { \
 		return test_fail("got wrong element from the queue (got %i, should be %i)", i_got, i_correct); \
 	}
 
@@ -875,7 +875,7 @@ int uORBTest::UnitTest::test_queue()
 	}
 #define CHECK_COPY(i_got, i_correct) \
 	orb_copy(ORB_ID(orb_test_medium_queue), sfd, &u); \
-	if (i_got != i_correct) { \
+	if ((i_got) != (i_correct)) { \
 		return test_fail("got wrong element from the queue (got %i, should be %i)", i_got, i_correct); \
 	}
 

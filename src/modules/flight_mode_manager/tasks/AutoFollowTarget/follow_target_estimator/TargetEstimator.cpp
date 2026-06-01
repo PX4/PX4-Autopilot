@@ -225,7 +225,7 @@ bool TargetEstimator::measurement_can_be_fused(const Vector3f &current_measureme
 	// return measurement_valid;
 }
 
-void TargetEstimator::measurement_update(follow_target_s follow_target)
+void TargetEstimator::measurement_update(const follow_target_s &follow_target)
 {
 	_fusion_count++;
 	// Decompose follow_target message into the individual measurements for position and velocity

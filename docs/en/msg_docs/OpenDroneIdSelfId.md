@@ -8,12 +8,12 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name             | Type        | Unit [Frame] | Range/Enum | Description |
-| ---------------- | ----------- | ------------ | ---------- | ----------- |
-| timestamp        | `uint64`    |              |            |
-| id_or_mac        | `uint8[20]` |              |            |
-| description_type | `uint8`     |              |            |
-| description      | `char[23]`  |              |            |
+| Name                                              | Type        | Unit [Frame] | Range/Enum | Description |
+| ------------------------------------------------- | ----------- | ------------ | ---------- | ----------- |
+| <a id="fld_timestamp"></a>timestamp               | `uint64`    |              |            |
+| <a id="fld_id_or_mac"></a>id_or_mac               | `uint8[20]` |              |            |
+| <a id="fld_description_type"></a>description_type | `uint8`     |              |            |
+| <a id="fld_description"></a>description           | `char[23]`  |              |            |
 
 ## Source Message
 

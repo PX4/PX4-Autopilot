@@ -8,16 +8,16 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name                 | Type       | Unit [Frame] | Range/Enum | Description                                  |
-| -------------------- | ---------- | ------------ | ---------- | -------------------------------------------- |
-| timestamp            | `uint64`   |              |            | time since system start (microseconds)       |
-| request_id           | `uint64`   |              |            | ID from the request                          |
-| name                 | `char[25]` |              |            | name from the request                        |
-| px4_ros2_api_version | `uint16`   |              |            |
-| success              | `bool`     |              |            |
-| arming_check_id      | `int8`     |              |            | arming check registration ID (-1 if invalid) |
-| mode_id              | `int8`     |              |            | assigned mode ID (-1 if invalid)             |
-| mode_executor_id     | `int8`     |              |            | assigned mode executor ID (-1 if invalid)    |
+| Name                                                      | Type       | Unit [Frame] | Range/Enum | Description                                  |
+| --------------------------------------------------------- | ---------- | ------------ | ---------- | -------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                       | `uint64`   |              |            | time since system start (microseconds)       |
+| <a id="fld_request_id"></a>request_id                     | `uint64`   |              |            | ID from the request                          |
+| <a id="fld_name"></a>name                                 | `char[25]` |              |            | name from the request                        |
+| <a id="fld_px4_ros2_api_version"></a>px4_ros2_api_version | `uint16`   |              |            |
+| <a id="fld_success"></a>success                           | `bool`     |              |            |
+| <a id="fld_arming_check_id"></a>arming_check_id           | `int8`     |              |            | arming check registration ID (-1 if invalid) |
+| <a id="fld_mode_id"></a>mode_id                           | `int8`     |              |            | assigned mode ID (-1 if invalid)             |
+| <a id="fld_mode_executor_id"></a>mode_executor_id         | `int8`     |              |            | assigned mode executor ID (-1 if invalid)    |
 
 ## Constants
 

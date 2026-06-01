@@ -10,13 +10,13 @@ This message is used to dump the raw gps communication to the log.
 
 ## Fields
 
-| Name      | Type        | Unit [Frame] | Range/Enum | Description                                              |
-| --------- | ----------- | ------------ | ---------- | -------------------------------------------------------- |
-| timestamp | `uint64`    |              |            | time since system start (microseconds)                   |
-| instance  | `uint8`     |              |            | Instance of GNSS receiver                                |
-| device_id | `uint32`    |              |            |
-| len       | `uint8`     |              |            | length of data, MSB bit set = message to the gps device, |
-| data      | `uint8[79]` |              |            | data to write to the log                                 |
+| Name                                | Type        | Unit [Frame] | Range/Enum | Description                                              |
+| ----------------------------------- | ----------- | ------------ | ---------- | -------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp | `uint64`    |              |            | time since system start (microseconds)                   |
+| <a id="fld_instance"></a>instance   | `uint8`     |              |            | Instance of GNSS receiver                                |
+| <a id="fld_device_id"></a>device_id | `uint32`    |              |            |
+| <a id="fld_len"></a>len             | `uint8`     |              |            | length of data, MSB bit set = message to the gps device, |
+| <a id="fld_data"></a>data           | `uint8[79]` |              |            | data to write to the log                                 |
 
 ## Constants
 

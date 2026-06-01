@@ -42,6 +42,8 @@
 
 void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 {
+	_fc.rng.available = (_params.ekf2_rng_ctrl != static_cast<int32_t>(RngCtrl::DISABLED));
+
 	static constexpr const char *HGT_SRC_NAME = "RNG";
 
 	bool rng_data_ready = false;
@@ -127,8 +129,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 			aid_src.innovation_rejected = false;
 		}
 
-		const bool continuing_conditions_passing = ((_params.ekf2_rng_ctrl == static_cast<int32_t>(RngCtrl::ENABLED))
-				|| (_params.ekf2_rng_ctrl == static_cast<int32_t>(RngCtrl::CONDITIONAL)))
+		const bool continuing_conditions_passing = _fc.rng.intended()
 				&& _control_status.flags.tilt_align
 				&& measurement_valid;
 

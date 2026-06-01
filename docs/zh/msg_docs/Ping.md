@@ -8,15 +8,15 @@ pageClass: is-wide-page
 
 ## Fields
 
-| 参数名                                  | 类型        | Unit [Frame] | Range/Enum | 描述                                                        |
-| ------------------------------------ | --------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| timestamp                            | `uint64`  |                                                                  |            | time since system start (microseconds) |
-| ping_time       | `uint64`  |                                                                  |            | Timestamp of the ping packet                              |
-| ping_sequence   | `uint32`  |                                                                  |            | Sequence number of the ping packet                        |
-| dropped_packets | `uint32`  |                                                                  |            | Number of dropped ping packets                            |
-| rtt_ms          | `float32` |                                                                  |            | Round trip time (in ms)                |
-| system_id       | `uint8`   |                                                                  |            | System ID of the remote system                            |
-| component_id    | `uint8`   |                                                                  |            | Component ID of the remote system                         |
+| 参数名                                                                  | 类型        | Unit [Frame] | Range/Enum | 描述                                                        |
+| -------------------------------------------------------------------- | --------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                  | `uint64`  |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_ping_time"></a>ping_time             | `uint64`  |                                                                  |            | Timestamp of the ping packet                              |
+| <a id="fld_ping_sequence"></a>ping_sequence     | `uint32`  |                                                                  |            | Sequence number of the ping packet                        |
+| <a id="fld_dropped_packets"></a>dropped_packets | `uint32`  |                                                                  |            | Number of dropped ping packets                            |
+| <a id="fld_rtt_ms"></a>rtt_ms                   | `float32` |                                                                  |            | Round trip time (in ms)                |
+| <a id="fld_system_id"></a>system_id             | `uint8`   |                                                                  |            | System ID of the remote system                            |
+| <a id="fld_component_id"></a>component_id       | `uint8`   |                                                                  |            | Component ID of the remote system                         |
 
 ## Source Message
 

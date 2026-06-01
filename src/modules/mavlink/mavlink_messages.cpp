@@ -70,6 +70,9 @@
 #include "streams/COMPONENT_METADATA.hpp"
 #include "streams/DISTANCE_SENSOR.hpp"
 #include "streams/EFI_STATUS.hpp"
+#if defined(MAVLINK_MSG_ID_ESTIMATOR_SENSOR_FUSION_STATUS)
+#include "streams/ESTIMATOR_SENSOR_FUSION_STATUS.hpp"
+#endif
 #include "streams/ESC_INFO.hpp"
 #include "streams/ESC_STATUS.hpp"
 #include "streams/ESTIMATOR_STATUS.hpp"
@@ -133,6 +136,10 @@
 #ifdef MAVLINK_MSG_ID_AVAILABLE_MODES // Only defined if development.xml is used
 #include "streams/AVAILABLE_MODES.hpp"
 #include "streams/CURRENT_MODE.hpp"
+#endif
+
+#ifdef MAVLINK_MSG_ID_ESC_EEPROM // Only defined if development.xml is used
+#include "streams/ESC_EEPROM.hpp"
 #endif
 
 #if !defined(CONSTRAINED_FLASH)
@@ -336,6 +343,9 @@ static const StreamListItem streams_list[] = {
 #if defined(ESTIMATOR_STATUS_HPP)
 	create_stream_list_item<MavlinkStreamEstimatorStatus>(),
 #endif // ESTIMATOR_STATUS_HPP
+#if defined(ESTIMATOR_SENSOR_FUSION_STATUS_HPP)
+	create_stream_list_item<MavlinkStreamEstimatorSensorFusionStatus>(),
+#endif // ESTIMATOR_SENSOR_FUSION_STATUS_HPP
 #if defined(VIBRATION_HPP)
 	create_stream_list_item<MavlinkStreamVibration>(),
 #endif // VIBRATION_HPP
@@ -466,6 +476,9 @@ static const StreamListItem streams_list[] = {
 #if defined(ESC_STATUS_HPP)
 	create_stream_list_item<MavlinkStreamESCStatus>(),
 #endif // ESC_STATUS_HPP
+#if defined(ESC_EEPROM_HPP)
+	create_stream_list_item<MavlinkStreamEscEeprom>(),
+#endif // ESC_EEPROM_HPP
 #if defined(AUTOPILOT_VERSION_HPP)
 	create_stream_list_item<MavlinkStreamAutopilotVersion>(),
 #endif // AUTOPILOT_VERSION_HPP

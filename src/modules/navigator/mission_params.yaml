@@ -1,0 +1,115 @@
+module_name: navigator
+parameters:
+- group: Mission
+  definitions:
+    MIS_TAKEOFF_ALT:
+      description:
+        short: Default take-off altitude
+        long: |-
+          This is the relative altitude the system will take off to
+          if not otherwise specified.
+      type: float
+      default: 2.5
+      unit: m
+      min: 0
+      decimal: 1
+      increment: 0.5
+    MIS_TKO_LAND_REQ:
+      description:
+        short: Mission takeoff/landing required
+        long: |-
+          Specifies if a mission has to contain a takeoff and/or mission landing.
+          Validity of configured takeoffs/landings is checked independently of the setting here.
+      type: enum
+      values:
+        0: No requirements
+        1: Require a takeoff
+        2: Require a landing
+        3: Require a takeoff and a landing
+        4: Require both a takeoff and a landing, or neither
+        5: Same as previous when landed, in-air require landing only if no valid VTOL
+          approach is present
+      default: 0
+    MIS_DIST_1WP:
+      description:
+        short: Maximal horizontal distance from Home to first waypoint
+        long: |-
+          There will be a warning message if the current waypoint is more distant than MIS_DIST_1WP from Home.
+          Has no effect on mission validity.
+          Set a value of zero or less to disable.
+      type: float
+      default: 10000
+      unit: m
+      min: -1
+      max: 100000
+      decimal: 1
+      increment: 100
+    MIS_MNT_YAW_CTL:
+      description:
+        short: Enable gimbal yaw control in missions
+        long: |-
+          Enable yaw control of the mount. (Only affects multicopters and ROI mission items)
+
+          If enabled, yaw commands will be sent to the mount and the vehicle will follow its heading towards the flight direction.
+          If disabled, the vehicle will yaw towards the ROI.
+      type: enum
+      values:
+        0: Disable
+        1: Enable
+      default: 0
+      min: 0
+      max: 1
+    MIS_YAW_TMT:
+      description:
+        short: Waypoint heading timeout
+        long: |-
+          Time in seconds we wait on reaching target heading at a waypoint if it is forced
+
+          If set > 0 it will ignore the target heading for normal waypoint acceptance. If the
+          waypoint forces the heading the timeout will matter. For example on VTOL forwards transition.
+          Mainly useful for VTOLs that have less yaw authority and might not reach target
+          yaw in wind. Disabled by default.
+      type: float
+      default: -1.0
+      unit: s
+      min: -1
+      max: 20
+      decimal: 1
+      increment: 1
+    MIS_YAW_ERR:
+      description:
+        short: Max yaw error in degrees needed for waypoint heading acceptance
+      type: float
+      default: 12.0
+      unit: deg
+      min: 0
+      max: 90
+      decimal: 1
+      increment: 1
+    MIS_LND_ABRT_ALT:
+      description:
+        short: Landing abort min altitude
+        long: |-
+          Minimum altitude above landing point that the vehicle will climb to after an aborted landing.
+          Then vehicle will loiter in this altitude until further command is received.
+          Only applies to fixed-wing vehicles.
+      type: int32
+      default: 30
+      unit: m
+      min: 0
+    MIS_COMMAND_TOUT:
+      description:
+        short: Timeout to allow the payload to execute the mission command
+        long: |-
+          Ensure:
+          gripper: NAV_CMD_DO_GRIPPER
+          has released before continuing mission.
+          winch: CMD_DO_WINCH
+          has delivered before continuing mission.
+          gimbal: CMD_DO_GIMBAL_MANAGER_PITCHYAW
+          has reached the commanded orientation before beginning to take pictures.
+      type: float
+      default: 0.0
+      unit: s
+      min: 0
+      decimal: 1

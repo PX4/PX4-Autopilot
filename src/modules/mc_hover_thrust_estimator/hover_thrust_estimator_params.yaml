@@ -1,0 +1,84 @@
+module_name: mc_hover_thrust_estimator
+parameters:
+- group: Hover Thrust Estimator
+  definitions:
+    HTE_HT_NOISE:
+      description:
+        short: Hover thrust process noise
+        long: |-
+          Reduce to make the hover thrust estimate
+          more stable, increase if the real hover thrust
+          is expected to change quickly over time.
+      type: float
+      default: 0.0036
+      decimal: 4
+      min: 0.0001
+      max: 1.0
+      unit: normalized_thrust/s
+    HTE_ACC_GATE:
+      description:
+        short: Gate size for acceleration fusion
+        long: |-
+          Sets the number of standard deviations used
+          by the innovation consistency test.
+      type: float
+      default: 3.0
+      decimal: 1
+      min: 1.0
+      max: 10.0
+      unit: SD
+    HTE_HT_ERR_INIT:
+      description:
+        short: 1-sigma initial hover thrust uncertainty
+        long: |-
+          Sets the number of standard deviations used
+          by the innovation consistency test.
+      type: float
+      default: 0.1
+      decimal: 3
+      min: 0.0
+      max: 1.0
+      unit: normalized_thrust
+    HTE_VXY_THR:
+      description:
+        short: Horizontal velocity threshold for sensitivity reduction
+        long: |-
+          Above this speed, the measurement noise is linearly increased
+          to reduce the sensitivity of the estimator from biased measurement.
+
+          Set to a low value on vehicles with large lifting surfaces.
+      type: float
+      default: 10.0
+      decimal: 1
+      min: 1.0
+      max: 20.0
+      unit: m/s
+    HTE_VZ_THR:
+      description:
+        short: Vertical velocity threshold for sensitivity reduction
+        long: |-
+          Above this speed, the measurement noise is linearly increased
+          to reduce the sensitivity of the estimator from biased measurement.
+
+          Set to a low value on vehicles affected by air drag when climbing or descending.
+      type: float
+      default: 2.0
+      decimal: 1
+      min: 1.0
+      max: 10.0
+      unit: m/s
+    HTE_THR_RANGE:
+      description:
+        short: Max deviation from MPC_THR_HOVER
+        long: |-
+          Defines the range of the hover thrust estimate around MPC_THR_HOVER.
+          A value of 0.2 with MPC_THR_HOVER at 0.5 results in a range of [0.3, 0.7].
+
+          Set to a large value if the vehicle operates in varying physical conditions that
+          affect the required hover thrust strongly (e.g. differently sized payloads).
+      type: float
+      default: 0.2
+      decimal: 2
+      min: 0.01
+      max: 0.4
+      unit: normalized_thrust

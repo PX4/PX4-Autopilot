@@ -8,17 +8,17 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name                | Type         | Unit [Frame] | Range/Enum | Description                                                       |
-| ------------------- | ------------ | ------------ | ---------- | ----------------------------------------------------------------- |
-| timestamp           | `uint64`     |              |            | time since system start (microseconds)                            |
-| timestamp_sample    | `uint64`     |              |            | the timestamp of the raw data (microseconds)                      |
-| yaw_composite       | `float32`    |              |            | composite yaw from GSF (rad)                                      |
-| yaw_variance        | `float32`    |              |            | composite yaw variance from GSF (rad^2)                           |
-| yaw_composite_valid | `bool`       |              |            |
-| yaw                 | `float32[5]` |              |            | yaw estimate for each model in the filter bank (rad)              |
-| innov_vn            | `float32[5]` |              |            | North velocity innovation for each model in the filter bank (m/s) |
-| innov_ve            | `float32[5]` |              |            | East velocity innovation for each model in the filter bank (m/s)  |
-| weight              | `float32[5]` |              |            | weighting for each model in the filter bank                       |
+| Name                                                    | Type         | Unit [Frame] | Range/Enum | Description                                                       |
+| ------------------------------------------------------- | ------------ | ------------ | ---------- | ----------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                     | `uint64`     |              |            | time since system start (microseconds)                            |
+| <a id="fld_timestamp_sample"></a>timestamp_sample       | `uint64`     |              |            | the timestamp of the raw data (microseconds)                      |
+| <a id="fld_yaw_composite"></a>yaw_composite             | `float32`    |              |            | composite yaw from GSF (rad)                                      |
+| <a id="fld_yaw_variance"></a>yaw_variance               | `float32`    |              |            | composite yaw variance from GSF (rad^2)                           |
+| <a id="fld_yaw_composite_valid"></a>yaw_composite_valid | `bool`       |              |            |
+| <a id="fld_yaw"></a>yaw                                 | `float32[5]` |              |            | yaw estimate for each model in the filter bank (rad)              |
+| <a id="fld_innov_vn"></a>innov_vn                       | `float32[5]` |              |            | North velocity innovation for each model in the filter bank (m/s) |
+| <a id="fld_innov_ve"></a>innov_ve                       | `float32[5]` |              |            | East velocity innovation for each model in the filter bank (m/s)  |
+| <a id="fld_weight"></a>weight                           | `float32[5]` |              |            | weighting for each model in the filter bank                       |
 
 ## Source Message
 

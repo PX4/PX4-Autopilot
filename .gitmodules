@@ -115,3 +115,6 @@
 [submodule "libmodal-pipe"]
 	path = boards/modalai/voxl2/src/lib/mpa/libmodal-pipe
 	url = https://gitlab.com/voxl-public/voxl-sdk/core-libs/libmodal-pipe.git
+[submodule "src/modules/simulation/gz_plugins/optical_flow/PX4-OpticalFlow"]
+	path = src/modules/simulation/gz_plugins/optical_flow/PX4-OpticalFlow
+	url = https://github.com/PX4/PX4-OpticalFlow.git

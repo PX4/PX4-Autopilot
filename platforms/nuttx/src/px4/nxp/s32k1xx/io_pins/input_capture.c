@@ -110,7 +110,7 @@ static void input_capture_chan_handler(void *context, const io_timers_t *timer, 
 
 	channel_stats[chan_index].edges++;
 	channel_stats[chan_index].last_time = isrs_time - (isrs_rcnt - capture);
-	uint32_t overflow = _REG32(timer, S32K1XX_FTM_CNSC_OFFSET(chan->timer_channel - 1)) & FTM_CNSC_CHF;
+	uint32_t overflow = _REG32(timer, S32K1XX_FTM_CNSC_OFFSET(chan->timer_channel)) & FTM_CNSC_CHF;
 
 	if (overflow) {
 
@@ -157,7 +157,7 @@ int up_input_capture_set(unsigned channel, input_capture_edge edge, capture_filt
 		/* This register selects the filter value for the inputs of channels.
 		   Channels 4, 5, 6 and 7 do not have an input filter.
 		*/
-		if (filter && timer_io_channels[channel].timer_channel - 1 > 3) {
+		if (filter && timer_io_channels[channel].timer_channel > 3) {
 			return -EINVAL;
 		}
 
@@ -200,7 +200,7 @@ int up_input_capture_get_filter(unsigned channel, capture_filter_t *filter)
 
 		rv = -EINVAL;
 
-		if (timer_io_channels[channel].timer_channel - 1 <= 3) {
+		if (timer_io_channels[channel].timer_channel <= 3) {
 			rv = -ENXIO;
 
 			/* Any pins in capture mode */
@@ -213,22 +213,22 @@ int up_input_capture_get_filter(unsigned channel, capture_filter_t *filter)
 
 				switch (timer_io_channels[channel].timer_channel) {
 
-				case 1:
+				case 0:
 					rvalue = rFILTER(timer) & FTM_FILTER_CH0FVAL_MASK;
 					*filter = (rvalue >> FTM_FILTER_CH0FVAL_SHIFT);
 					break;
 
-				case 2:
+				case 1:
 					rvalue = rFILTER(timer) & FTM_FILTER_CH1FVAL_MASK;
 					*filter = (rvalue >> FTM_FILTER_CH1FVAL_SHIFT);
 					break;
 
-				case 3:
+				case 2:
 					rvalue = rFILTER(timer) & FTM_FILTER_CH2FVAL_MASK;
 					*filter = (rvalue >> FTM_FILTER_CH2FVAL_SHIFT);
 					break;
 
-				case 4:
+				case 3:
 					rvalue = rFILTER(timer) & FTM_FILTER_CH3FVAL_MASK;
 					*filter = (rvalue >> FTM_FILTER_CH3FVAL_SHIFT);
 					break;
@@ -266,27 +266,27 @@ int up_input_capture_set_filter(unsigned channel,  capture_filter_t filter)
 
 			switch (timer_io_channels[channel].timer_channel) {
 
-			case 1:
+			case 0:
 				rvalue = rFILTER(timer) & ~FTM_FILTER_CH0FVAL_MASK;
 				rvalue |= (filter << FTM_FILTER_CH0FVAL_SHIFT);
 				rFILTER(timer) = rvalue;
 				break;
 
-			case 2:
+			case 1:
 				rvalue = rFILTER(timer) & ~FTM_FILTER_CH1FVAL_MASK;
 				rvalue |= (filter << FTM_FILTER_CH1FVAL_SHIFT);
 				rFILTER(timer) = rvalue;
 				break;
 
-			case 3:
+			case 2:
 				rvalue = rFILTER(timer) & ~FTM_FILTER_CH2FVAL_MASK;
 				rvalue |= (filter << FTM_FILTER_CH2FVAL_SHIFT);
 				rFILTER(timer) = rvalue;
 				break;
 
-			case 4:
-				rvalue = rFILTER(timer) & ~FTM_FILTER_CH2FVAL_MASK;
-				rvalue |= (filter << FTM_FILTER_CH2FVAL_SHIFT);
+			case 3:
+				rvalue = rFILTER(timer) & ~FTM_FILTER_CH3FVAL_MASK;
+				rvalue |= (filter << FTM_FILTER_CH3FVAL_SHIFT);
 				rFILTER(timer) = rvalue;
 				break;
 
@@ -316,7 +316,7 @@ int up_input_capture_get_trigger(unsigned channel,  input_capture_edge *edge)
 			rv = OK;
 
 			uint32_t timer = timer_io_channels[channel].timer_index;
-			uint16_t rvalue = _REG32(timer, S32K1XX_FTM_CNSC_OFFSET(timer_io_channels[channel].timer_channel - 1));
+			uint16_t rvalue = _REG32(timer, S32K1XX_FTM_CNSC_OFFSET(timer_io_channels[channel].timer_channel));
 			rvalue &= (FTM_CNSC_MSB | FTM_CNSC_MSA);
 
 			switch (rvalue) {
@@ -377,10 +377,10 @@ int up_input_capture_set_trigger(unsigned channel,  input_capture_edge edge)
 
 			uint32_t timer = timer_io_channels[channel].timer_index;
 			irqstate_t flags = px4_enter_critical_section();
-			uint32_t rvalue = _REG32(timer, S32K1XX_FTM_CNSC_OFFSET(timer_io_channels[channel].timer_channel - 1));
+			uint32_t rvalue = _REG32(timer, S32K1XX_FTM_CNSC_OFFSET(timer_io_channels[channel].timer_channel));
 			rvalue &= (FTM_CNSC_MSB | FTM_CNSC_MSA);
 			rvalue |=  edge_bits;
-			_REG32(timer, S32K1XX_FTM_CNSC_OFFSET(timer_io_channels[channel].timer_channel - 1)) = rvalue;
+			_REG32(timer, S32K1XX_FTM_CNSC_OFFSET(timer_io_channels[channel].timer_channel)) = rvalue;
 			px4_leave_critical_section(flags);
 			rv = OK;
 		}

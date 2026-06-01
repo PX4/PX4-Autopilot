@@ -46,8 +46,8 @@ jobs:
       source_changed: ${{ steps.changes.outputs.source }}
       docs_changed: ${{ steps.changes.outputs.docs }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
+      - uses: actions/checkout@v6
+      - uses: dorny/paths-filter@v4
         id: changes
         with:
           filters: |
@@ -70,22 +70,19 @@ jobs:
       contents: read
     runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
     container:
-      image: px4io/px4-dev:v1.17.0-beta1
+      image: ghcr.io/px4/px4-dev:v1.17.0-rc2
     steps:
-      - uses: runs-on/action@v1
-
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: runs-on/action@v2
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           submodules: recursive
-
-      - name: Git ownership workaround
+      - name: Configure Git Safe Directory
         run: git config --system --add safe.directory '*'
 
       - name: Cache Restore - ccache
         id: cache-ccache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: ~/.ccache
           key: ccache-docs-metadata-${{ github.sha }}
@@ -104,7 +101,7 @@ jobs:
           CCACHE_DIR: ~/.ccache
 
       - name: Cache Save - ccache
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         if: always()
         with:
           path: ~/.ccache
@@ -116,7 +113,7 @@ jobs:
           CCACHE_DIR: ~/.ccache
 
       - name: Upload metadata artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pr-metadata
           path: docs/
@@ -132,12 +129,12 @@ jobs:
       contents: write
     runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
     container:
-      image: px4io/px4-dev:v1.17.0-beta1
+      image: ghcr.io/px4/px4-dev:v1.17.0-rc2
     steps:
-      - uses: runs-on/action@v1
+      - uses: runs-on/action@v2
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           submodules: recursive
@@ -148,7 +145,7 @@ jobs:
 
       - name: Cache Restore - ccache
         id: cache-ccache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: ~/.ccache
           key: ccache-docs-metadata-${{ github.sha }}
@@ -167,7 +164,7 @@ jobs:
           CCACHE_DIR: ~/.ccache
 
       - name: Cache Save - ccache
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         if: always()
         with:
           path: ~/.ccache
@@ -213,25 +210,24 @@ jobs:
     if: always() && (github.event_name == 'pull_request')
     permissions:
       contents: read
-      pull-requests: write
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
 
       - name: Download metadata artifact
         if: needs.pr-metadata-regen.result == 'success'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: pr-metadata
           path: docs/
 
       - name: Get changed doc files
         id: changed-files
-        uses: tj-actions/changed-files@v46.0.5
+        uses: tj-actions/changed-files@v47
         with:
           json: true
           write_output_files: true
@@ -248,13 +244,13 @@ jobs:
           cat ./logs/prFiles.json
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
 
       - name: Run filtered link checker (changed files)
         run: |
-          npm -g install markdown_link_checker_sc@0.0.138
+          npm -g install markdown_link_checker_sc@0.0.144
           if [ "$(jq length ./logs/prFiles.json)" -gt 0 ]; then
             markdown_link_checker_sc \
               -r "$GITHUB_WORKSPACE" \
@@ -281,15 +277,35 @@ jobs:
             > ./logs/link-check-results.md || true
           cat ./logs/link-check-results.md
 
-      - name: Post PR comment with link check results
-        if: github.event.pull_request.head.repo.full_name == github.repository
-        uses: marocchino/sticky-pull-request-comment@v2
+      - name: Prepare pr-comment artifact
+        id: prepare-pr-comment
+        run: |
+          if [ ! -s ./logs/filtered-link-check-results.md ]; then
+            echo "No link-check results file; skipping pr-comment artifact."
+            echo "prepared=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          mkdir -p pr-comment
+          cp ./logs/filtered-link-check-results.md pr-comment/body.md
+          cat > pr-comment/manifest.json <<EOF
+          {
+            "pr_number": ${{ github.event.pull_request.number }},
+            "marker": "<!-- pr-comment-poster:docs-link-check -->",
+            "mode": "upsert"
+          }
+          EOF
+          echo "prepared=true" >> "$GITHUB_OUTPUT"
+
+      - name: Upload pr-comment artifact
+        if: steps.prepare-pr-comment.outputs.prepared == 'true'
+        uses: actions/upload-artifact@v7
         with:
-          header: flaws
-          path: ./logs/filtered-link-check-results.md
+          name: pr-comment
+          path: pr-comment/
+          retention-days: 1
 
       - name: Upload link check results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: link-check-results
           path: logs/
@@ -313,16 +329,14 @@ jobs:
       branchname: ${{ steps.set-branch.outputs.branchname }}
       releaseversion: ${{ steps.set-version.outputs.releaseversion }}
     steps:
-      - uses: runs-on/action@v1
-
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: runs-on/action@v2
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
 
       - name: Download metadata artifact (PR)
         if: github.event_name == 'pull_request' && needs.pr-metadata-regen.result == 'success'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: pr-metadata
           path: docs/
@@ -346,7 +360,7 @@ jobs:
           echo "releaseversion=$version" >> $GITHUB_OUTPUT
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: npm
@@ -365,7 +379,7 @@ jobs:
           npm run docs:sitemap
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: px4_docs_build
           path: docs/.vitepress/dist/
@@ -387,7 +401,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download Artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: px4_docs_build
           path: ~/_book

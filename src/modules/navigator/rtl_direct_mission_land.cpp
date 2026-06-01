@@ -96,7 +96,7 @@ void RtlDirectMissionLand::on_activation()
 	_needs_climbing = false;
 
 	if (hasMissionLandStart()) {
-		_is_current_planned_mission_item_valid = (goToItem(_mission.land_start_index, false) == PX4_OK);
+		_is_current_planned_mission_item_valid = (goToItem(_mission.land_start_index, MissionTraversalType::IgnoreDoJump) == PX4_OK);
 
 		_needs_climbing = checkNeedsToClimb();
 
@@ -115,7 +115,7 @@ void RtlDirectMissionLand::on_activation()
 
 bool RtlDirectMissionLand::setNextMissionItem()
 {
-	return (goToNextPositionItem(true) == PX4_OK);
+	return (goToNextPositionItem() == PX4_OK);
 }
 
 void RtlDirectMissionLand::setActiveMissionItems()

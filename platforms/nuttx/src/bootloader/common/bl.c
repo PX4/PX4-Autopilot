@@ -104,12 +104,13 @@
 #define PROTO_GET_OTP               0x2a    // read a byte from OTP at the given address
 #define PROTO_GET_SN                0x2b    // read a word from UDID area ( Serial)  at the given address
 #define PROTO_GET_CHIP              0x2c    // read chip version (MCU IDCODE)
-#define PROTO_SET_DELAY             0x2d    // set minimum boot delay
+#define PROTO_SET_DELAY             0x2d    // set boot delay (deprecated; always NACKed)
 #define PROTO_GET_CHIP_DES          0x2e    // read chip version In ASCII
 #define PROTO_GET_VERSION           0x2f    // read version
 #define PROTO_BOOT                  0x30    // boot the application
 #define PROTO_DEBUG                 0x31    // emit debug information - format not defined
 #define PROTO_SET_BAUD              0x33    // set baud rate on uart
+#define PROTO_VERIFY_SIG            0x39    // verify the signature of the programmed image
 
 // Reserved for external flash programming
 // #define PROTO_EXTF_ERASE         0x34  // Erase sectors from external flash
@@ -1021,48 +1022,86 @@ bootloader(unsigned timeout)
 			}
 			break;
 
-#ifdef BOOT_DELAY_ADDRESS
+		case PROTO_SET_DELAY:
+			/*
+			 * Boot delay used to let the bootloader pause before
+			 * starting the app by writing a signature next to the
+			 * vector table. It never worked correctly on modern
+			 * FMUs (signature was placed past where the bootloader
+			 * looked, H7 flash granularity prevented single-word
+			 * writes, and the flash cache never flushed the write),
+			 * so it has been removed. NACK so a client that still
+			 * sends it gets a clear rejection instead of silent
+			 * fake success.
+			 */
+			goto cmd_bad;
 
-		case PROTO_SET_DELAY: {
-				/*
-				  Allow for the bootloader to setup a
-				  boot delay signature which tells the
-				  board to delay for at least a
-				  specified number of seconds on boot.
-				 */
-				int v = cin_wait(100);
+		// verify the signature of the programmed image
+		//
+		// command:     VERIFY_SIG/EOC
+		// reply:     INSYNC/OK         if image verifies
+		// reply:     INSYNC/FAILED     if TOC is missing or signature check fails
+		// reply:     INSYNC/INVALID    if the bootloader was built without
+		//                              BOOTLOADER_USE_SECURITY
+		//
+		// The uploader is expected to call this after GET_CRC and before
+		// BOOT, and only when the firmware metadata claims the image is
+		// signed. Running it always would add unnecessary verification time
+		// (and fail noisily) on bootloaders or images that are not secure.
+		case PROTO_VERIFY_SIG:
+			if (!wait_for_eoc(2)) {
+				goto cmd_bad;
+			}
 
-				if (v < 0) {
-					goto cmd_bad;
-				}
+#ifdef BOOTLOADER_USE_SECURITY
 
-				uint8_t boot_delay = v & 0xFF;
+			/* Only accept VERIFY_SIG at the same point in the upload
+			 * state machine where we would accept BOOT — i.e. after
+			 * PROG_MULTI + GET_CRC have been issued in the right order.
+			 */
+			if (first_word != 0xffffffff && (bl_state & STATE_ALLOWS_REBOOT) != STATE_ALLOWS_REBOOT) {
+				goto cmd_bad;
+			}
 
-				if (boot_delay > BOOT_DELAY_MAX) {
-					goto cmd_bad;
-				}
+			/* During PROG_MULTI the first word of the app was held in a
+			 * RAM variable instead of written to flash, to prevent a
+			 * partial upload from becoming bootable. Signature
+			 * verification has to hash the actual image, so we have to
+			 * commit that word to flash first. This mirrors the first
+			 * half of the BOOT handler below.
+			 */
+			if (first_word != 0xffffffff) {
+				flash_func_write_word(APP_VECTOR_OFFSET, first_word);
 
-				// expect EOC
-				if (!wait_for_eoc(2)) {
-					goto cmd_bad;
-				}
-
-				uint32_t sig1 = flash_func_read_word(BOOT_DELAY_ADDRESS);
-				uint32_t sig2 = flash_func_read_word(BOOT_DELAY_ADDRESS + 4);
-
-				if (sig1 != BOOT_DELAY_SIGNATURE1 ||
-				    sig2 != BOOT_DELAY_SIGNATURE2) {
-					goto cmd_bad;
-				}
-
-				uint32_t value = (BOOT_DELAY_SIGNATURE1 & 0xFFFFFF00) | boot_delay;
-				flash_func_write_word(BOOT_DELAY_ADDRESS, value);
-
-				if (flash_func_read_word(BOOT_DELAY_ADDRESS) != value) {
+				if (flash_func_read_word(APP_VECTOR_OFFSET) != first_word) {
 					goto cmd_fail;
 				}
+
+				first_word = 0xffffffff;
 			}
+
+			{
+				const image_toc_entry_t *toc_entries;
+				uint8_t toc_len;
+
+				crypto_init();
+
+				if (!find_toc(&toc_entries, &toc_len) ||
+				    !verify_app(0, toc_entries)) {
+					crypto_deinit();
+					goto cmd_fail;
+				}
+
+				crypto_deinit();
+			}
+
 			break;
+#else
+			/* Signature verification not compiled in — tell the host we
+			 * don't know this opcode so it can warn the user instead of
+			 * silently assuming the image is trusted.
+			 */
+			goto cmd_bad;
 #endif
 
 		// finalise programming and boot the system

@@ -8,11 +8,11 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name             | Type         | Unit [Frame] | Range/Enum | Description                                                                |
-| ---------------- | ------------ | ------------ | ---------- | -------------------------------------------------------------------------- |
-| timestamp        | `uint64`     |              |            | time since system start (microseconds)                                     |
-| timestamp_sample | `uint64`     |              |            | timestamp of the data sample on which this message is based (microseconds) |
-| xyz              | `float32[3]` |              |            | torque setpoint about X, Y, Z body axis (normalized)                       |
+| Name                                              | Type         | Unit [Frame] | Range/Enum | Description                                                                |
+| ------------------------------------------------- | ------------ | ------------ | ---------- | -------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp               | `uint64`     |              |            | time since system start (microseconds)                                     |
+| <a id="fld_timestamp_sample"></a>timestamp_sample | `uint64`     |              |            | timestamp of the data sample on which this message is based (microseconds) |
+| <a id="fld_xyz"></a>xyz                           | `float32[3]` |              |            | torque setpoint about X, Y, Z body axis (normalized)                       |
 
 ## Source Message
 

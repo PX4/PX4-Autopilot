@@ -37,4 +37,6 @@ px4_add_module(
 		# -DDEBUG_BUILD
 	SRCS
 		cdcacm_autostart.cpp
+	MODULE_CONFIG
+		cdcacm_autostart_params.yaml
 	)

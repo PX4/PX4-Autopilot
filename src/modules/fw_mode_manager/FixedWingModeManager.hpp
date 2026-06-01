@@ -258,7 +258,7 @@ private:
 	float _pitch{0.0f}; // [rad] current pitch angle from attitude
 	float _throttle{0.0f}; // [0-1] last set throttle
 
-	float _body_acceleration_x{0.f};
+	float _body_acceleration_norm{0.f};
 	float _body_velocity_x{0.f};
 
 	MapProjection _global_local_proj_ref{};
@@ -418,7 +418,7 @@ private:
 	void controlAutoFigureEight(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed,
 				    const position_setpoint_s &pos_sp_curr);
 
-	void publishFigureEightStatus(const position_setpoint_s pos_sp);
+	void publishFigureEightStatus(const position_setpoint_s &pos_sp);
 #endif // CONFIG_FIGURE_OF_EIGHT
 
 	// Update our local parameter cache.
@@ -672,7 +672,7 @@ private:
 	 */
 	void set_control_mode_current(const hrt_abstime &now);
 
-	void publishOrbitStatus(const position_setpoint_s pos_sp);
+	void publishOrbitStatus(const position_setpoint_s &pos_sp);
 
 	float getMaxRollAngleNearGround(const float altitude, const float terrain_altitude) const;
 

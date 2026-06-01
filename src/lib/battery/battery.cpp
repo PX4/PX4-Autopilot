@@ -87,6 +87,9 @@ Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us, 
 	snprintf(param_name, sizeof(param_name), "BAT%d_SOURCE", _index);
 	_param_handles.source = param_find(param_name);
 
+	snprintf(param_name, sizeof(param_name), "BAT%d_I_OVERWRITE", _index);
+	_param_handles.i_overwrite = param_find(param_name);
+
 	_param_handles.low_thr = param_find("BAT_LOW_THR");
 	_param_handles.crit_thr = param_find("BAT_CRIT_THR");
 	_param_handles.emergen_thr = param_find("BAT_EMERGEN_THR");
@@ -103,7 +106,13 @@ void Battery::updateVoltage(const float voltage_v)
 
 void Battery::updateCurrent(const float current_a)
 {
-	_current_a = current_a;
+	// Overwrite the measured current if current overwrite is defined and vehicle is unarmed
+	if (!_armed && _params.i_overwrite > FLT_EPSILON) {
+		_current_a = _params.i_overwrite;
+
+	} else {
+		_current_a = current_a;
+	}
 }
 
 void Battery::updateTemperature(const float temperature_c)
@@ -144,6 +153,15 @@ void Battery::updateBatteryStatus(const hrt_abstime &timestamp)
 	if (_connected && _battery_initialized) {
 		_warning = determineWarning(_state_of_charge);
 	}
+
+	if (_vehicle_status_sub.updated()) {
+		vehicle_status_s vehicle_status;
+
+		if (_vehicle_status_sub.copy(&vehicle_status)) {
+			_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+			_vehicle_status_is_fw = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+		}
+	}
 }
 
 battery_status_s Battery::getBatteryStatus()
@@ -166,6 +184,8 @@ battery_status_s Battery::getBatteryStatus()
 	battery_status.warning = _warning;
 	battery_status.timestamp = hrt_absolute_time();
 	battery_status.faults = determineFaults();
+	battery_status.remaining_capacity_wh = NAN; // not measured by dumb power module; smart-battery drivers overwrite
+	battery_status.nominal_voltage = NAN;        // not measured by dumb power module; smart-battery drivers overwrite
 	battery_status.internal_resistance_estimate = _internal_resistance_estimate;
 	battery_status.ocv_estimate = _voltage_v + _internal_resistance_estimate * _params.n_cells * _current_a;
 	battery_status.ocv_estimate_filtered = _ocv_filter_v.getState();
@@ -201,8 +221,9 @@ void Battery::updateDt(const hrt_abstime &timestamp)
 
 float Battery::sumDischarged(float current_a)
 {
-	if (_dt > FLT_EPSILON) {
+	if (_dt > FLT_EPSILON && fabsf(current_a + 1.f) > FLT_EPSILON) {
 		// mAh since last loop: (current[A] * 1000 = [mA]) * (dt[s] / 3600 = [h])
+		// current = -1 means invalid current measurement
 		_discharged_mah_loop = (current_a * 1e3f) * (_dt / 3600.f);
 		_discharged_mah += _discharged_mah_loop;
 	}
@@ -352,29 +373,18 @@ void Battery::computeScale()
 float Battery::computeRemainingTime(float current_a)
 {
 	float time_remaining_s = NAN;
-	bool reset_current_avg_filter = false;
-
-	if (_vehicle_status_sub.updated()) {
-		vehicle_status_s vehicle_status;
-
-		if (_vehicle_status_sub.copy(&vehicle_status)) {
-			_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-
-			if (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING && !_vehicle_status_is_fw) {
-				reset_current_avg_filter = true;
-			}
-
-			_vehicle_status_is_fw = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
-		}
-	}
 
 	_flight_phase_estimation_sub.update();
 
+	bool reset_filter_transition_now = !_vehicle_status_was_fw && _vehicle_status_is_fw;
+
 	// reset filter if not feasible, negative or we did a VTOL transition to FW mode
 	if (!PX4_ISFINITE(_current_average_filter_a.getState()) || _current_average_filter_a.getState() < FLT_EPSILON
-	    || reset_current_avg_filter) {
+	    || reset_filter_transition_now) {
 		_current_average_filter_a.reset(_params.bat_avrg_current);
 	}
+
+	_vehicle_status_was_fw = _vehicle_status_is_fw;
 
 	if (_armed && PX4_ISFINITE(current_a)) {
 		// For FW only update when we are in level flight
@@ -411,6 +421,7 @@ void Battery::updateParams()
 	param_get(_param_handles.crit_thr, &_params.crit_thr);
 	param_get(_param_handles.emergen_thr, &_params.emergen_thr);
 	param_get(_param_handles.bat_avrg_current, &_params.bat_avrg_current);
+	param_get(_param_handles.i_overwrite, &_params.i_overwrite);
 
 	float capacity{0.f};
 	param_get(_param_handles.capacity, &capacity);

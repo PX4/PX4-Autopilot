@@ -49,7 +49,7 @@ void Ekf::controlEvPosFusion(const imuSample &imu_sample, const extVisionSample 
 					   || (_control_status_prev.flags.yaw_align != _control_status.flags.yaw_align);
 
 	// determine if we should use EV position aiding
-	bool continuing_conditions_passing = (_params.ekf2_ev_ctrl & static_cast<int32_t>(EvCtrl::HPOS))
+	bool continuing_conditions_passing = _fc.ev.enabled && (_params.ekf2_ev_ctrl & static_cast<int32_t>(EvCtrl::HPOS))
 					     && _control_status.flags.tilt_align
 					     && PX4_ISFINITE(ev_sample.pos(0))
 					     && PX4_ISFINITE(ev_sample.pos(1));
@@ -101,13 +101,11 @@ void Ekf::controlEvPosFusion(const imuSample &imu_sample, const extVisionSample 
 			pos = R_ev_to_ekf * ev_sample.pos - pos_offset_earth;
 			pos_cov = R_ev_to_ekf * matrix::diag(ev_sample.position_var) * R_ev_to_ekf.transpose();
 
-			// increase minimum variance to include EV orientation variance
-			// TODO: do this properly
-			const float orientation_var_max = ev_sample.orientation_var.max();
-
-			for (int i = 0; i < 2; i++) {
-				pos_cov(i, i) = math::max(pos_cov(i, i), orientation_var_max);
-			}
+			// Position variance contribution from orientation uncertainty: δp = δθ × p
+			pos_cov(0, 0) += sq(ev_sample.pos(2)) * ev_sample.orientation_var(1)   // pitch
+					 + sq(ev_sample.pos(1)) * ev_sample.orientation_var(2);   // yaw
+			pos_cov(1, 1) += sq(ev_sample.pos(0)) * ev_sample.orientation_var(2)   // yaw
+					 + sq(ev_sample.pos(2)) * ev_sample.orientation_var(0);   // roll
 
 			if (_control_status.flags.gnss_pos) {
 				_ev_pos_b_est.setFusionActive();

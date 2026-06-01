@@ -8,11 +8,11 @@ pageClass: is-wide-page
 
 ## Fields
 
-| 参数名                                                                                                  | 类型        | Unit [Frame] | Range/Enum | 描述                                                                                                                                                                  |
-| ---------------------------------------------------------------------------------------------------- | --------- | ---------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| timestamp                                                                                            | `uint64`  |                                                                  |            | time since system start (microseconds)                                                                                                           |
-| collective_tilt_normalized_setpoint   | `float32` |                                                                  |            | Collective tilt angle of motors of tiltrotor, 0: vertical, 1: horizontal [0, 1] |
-| collective_thrust_normalized_setpoint | `float32` |                                                                  |            | Collective thrust setpoint [0, 1]                                                                               |
+| 参数名                                                                                                                                                        | 类型        | Unit [Frame] | Range/Enum | 描述                                                                                                                                                                  |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ---------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                                                                                                        | `uint64`  |                                                                  |            | time since system start (microseconds)                                                                                                           |
+| <a id="fld_collective_tilt_normalized_setpoint"></a>collective_tilt_normalized_setpoint     | `float32` |                                                                  |            | Collective tilt angle of motors of tiltrotor, 0: vertical, 1: horizontal [0, 1] |
+| <a id="fld_collective_thrust_normalized_setpoint"></a>collective_thrust_normalized_setpoint | `float32` |                                                                  |            | Collective thrust setpoint [0, 1]                                                                               |
 
 ## Source Message
 

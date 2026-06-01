@@ -169,7 +169,7 @@ PX4 boards up to FMUv5X (before STM32H7) used the [PX4 bootloader](https://githu
 ## Оновлення завантажувача FMUv2
 
 Якщо _QGroundControl_ встановлює ціль FMUv2 (див. консоль під час встановлення), і у вас є новіша плата, вам може знадобитися оновити завантажувальник, щоб мати доступ до всієї пам'яті на вашому контролері польоту.
-This example explains how you can use [QGC Bootloader Update](qgc-bootloader-update-sys-bl-update) to update the bootloader.
+This example explains how you can use [QGC Bootloader Update](#qgc-bootloader-update-sys-bl-update) to update the bootloader.
 
 :::info
 Ранні контролери польоту FMUv2 [Pixhawk-series](../flight_controller/pixhawk_series.md#fmu_versions) мали [апаратну проблему](../flight_controller/silicon_errata.md#fmuv2-pixhawk-silicon-errata), яка обмежувала їх використання 1 Мб флеш-пам’яті.
@@ -208,3 +208,7 @@ This example explains how you can use [QGC Bootloader Update](qgc-bootloader-upd
 Плати, які не є частиною серії [Pixhawk](../flight_controller/pixhawk_series.md), матимуть власні механізми оновлення завантажувача.
 
 Для плат, які передвстановлені за допомогою Betaflight, дивіться [Flash пусковика на системи Betaflight](bootloader_update_from_betaflight.md).
+
+## Дивіться також
+
+- [OEM/Factory Configuration](../advanced_config/oem.md)

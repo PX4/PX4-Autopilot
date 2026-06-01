@@ -81,6 +81,8 @@ private:
 
 	bool _collect_phase{false};
 
+	hrt_abstime _measure_start_time{0};
+
 	perf_counter_t _sample_perf;
 	perf_counter_t _measure_perf;
 	perf_counter_t _comms_errors;
