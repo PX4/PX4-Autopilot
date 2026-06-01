@@ -92,9 +92,10 @@ In this return type the vehicle:
 - If the destination is a mission landing pattern it will follow the pattern to land.
 - If the destination is a rally point or home it will [land or wait](#loiter-landing-at-destination) at descent altitude (depending on landing parameters).
   By default an MC or VTOL in MC mode will land, and a fixed-wing vehicle circles at the descent altitude.
-  A VTOL in FW mode can first fly a _VTOL approach loiter_ associated with that destination. A _VTOL approach loiter_ is a loiter circle attached to the rally point or home that the vehicle uses to descend before transitioning.
+  A VTOL in FW mode can first fly a _VTOL approach loiter_ associated with that destination. A _VTOL approach loiter_ is a loiter circle attached to the rally point or home that the vehicle uses to descend to the approach altitude.
   If several approach loiters are defined for the destination, PX4 chooses the most wind-aligned one.
-  It then aligns its heading to the destination point, transitions to MC mode, and lands.
+  It then flies from the approach loiter to the destination point, transitions to MC mode at the destination, and lands.
+  The approach loiter is not the back-transition point: if it is far from the rally point or home location, the VTOL remains in FW mode after the loiter and back-transitions only when it reaches the return destination.
 
 ::: info
 Fixed wing vehicles commonly also set [MIS_TKO_LAND_REQ](#MIS_TKO_LAND_REQ) to _require_ a mission landing pattern.
@@ -200,7 +201,8 @@ The default landing configuration is vehicle dependent:
 - Fixed-wing vehicles use a return mode with a [mission landing pattern](#mission-landing-pattern), as this enables automated landing.
   If not using a mission landing, the default configuration is to loiter indefinitely, so the user can take over and manually land.
 - VTOLs in MC mode fly and land exactly as a multicopter.
-- VTOLS in FW mode head towards the landing point, transition to MC mode, and then land on the destination.
+- VTOLs in FW mode head towards the landing point, transition to MC mode, and then land on the destination.
+  If a VTOL approach loiter is defined for a rally point or home location, the vehicle uses that loiter to reach the approach altitude, then flies to the destination before back-transitioning.
 
 ## Mission Landing Pattern
 
