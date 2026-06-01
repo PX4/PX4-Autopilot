@@ -47,15 +47,40 @@ If returning as a fixed-wing, the vehicle:
   A mission landing pattern for a VTOL vehicle consists of a [MAV_CMD_DO_LAND_START](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_LAND_START), one or more position waypoints, and a [MAV_CMD_NAV_VTOL_LAND](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_VTOL_LAND).
 
 - If the destination is a rally point or home it will:
-  - Fly to the _VTOL approach loiter_ associated with that landing location, if one is defined. A _VTOL approach loiter_ is a loiter circle attached to the rally point or home that the vehicle uses to descend to the approach altitude.
+  - Fly to the _VTOL approach loiter_ associated with that landing location, if one is defined.
+    A _VTOL approach loiter_ is a [MAV_CMD_NAV_LOITER_TO_ALT](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LOITER_TO_ALT) item that the vehicle uses to descend to the approach altitude.
     If several approach loiters are defined for that location, PX4 chooses the one that best matches the estimated wind at the landing point.
+
+    ::: details Click here to view how to define VTOL approach loiters
+
+    When uploading VTOL approach loiters through MAVLink, upload them as rally/safe-point mission items (`MAV_MISSION_TYPE_RALLY`), not as normal mission items.
+    The [MAV_CMD_NAV_RALLY_POINT](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_RALLY_POINT) item must come first, followed by one or more `MAV_CMD_NAV_LOITER_TO_ALT` items that define the approach loiters for that rally point.
+    The next `MAV_CMD_NAV_RALLY_POINT` starts a new landing-location block.
+    For each `MAV_CMD_NAV_LOITER_TO_ALT` item, `x/y/z` define the loiter center and approach altitude, and `param2` defines the loiter radius used by RTL.
+    If `param2` is unset or zero, PX4 falls back to [RTL_LOITER_RAD](#RTL_LOITER_RAD).
+
+    For example, a rally upload with one rally point and two possible approach loiters would use:
+
+    | Sequence | Command                                                                                           | Purpose                     | Key fields                                                             |
+    | -------- | ------------------------------------------------------------------------------------------------- | --------------------------- | ---------------------------------------------------------------------- |
+    | 0        | [MAV_CMD_NAV_RALLY_POINT](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_RALLY_POINT)     | Landing location            | `x/y/z`: rally latitude, longitude, altitude                           |
+    | 1        | [MAV_CMD_NAV_LOITER_TO_ALT](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LOITER_TO_ALT) | First VTOL approach loiter  | `x/y/z`: loiter latitude, longitude, altitude; `param2`: loiter radius |
+    | 2        | [MAV_CMD_NAV_LOITER_TO_ALT](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LOITER_TO_ALT) | Second VTOL approach loiter | `x/y/z`: loiter latitude, longitude, altitude; `param2`: loiter radius |
+
+    In `MISSION_ITEM_INT`/`MISSION_COUNT`, set `mission_type` to `MAV_MISSION_TYPE_RALLY` for all these items.
+
+    ::: info
+    - PX4 will scan the loiter items after the selected rally point and choose one approach loiter based on the estimated wind; it will not fly all of them.
+
+    - The approach loiter is not the back-transition point.
+      If the selected approach loiter is far from the rally point or home location, the vehicle remains in fixed-wing mode after the loiter, flies to the destination at the approach altitude, and only then back-transitions for landing.
+
+    :::
+
   - Loiter/spiral down to the approach altitude, or to [RTL_DESCEND_ALT](#RTL_DESCEND_ALT) above the destination if no approach altitude is defined.
   - Circle for a short time, as defined by [RTL_LAND_DELAY](#RTL_LAND_DELAY).
   - Fly from the approach loiter to the return destination (the rally point or home location).
   - Transition to MC mode at the destination and land.
-
-    The approach loiter is not the back-transition point.
-    If the selected approach loiter is far from the rally point or home location, the vehicle remains in fixed-wing mode after the loiter, flies to the destination at the approach altitude, and only then back-transitions for landing.
 
     Note that [NAV_FORCE_VT](../advanced_config/parameter_reference.md#NAV_FORCE_VT) is ignored: the vehicle will always land as a multicopter for these destinations.
 
