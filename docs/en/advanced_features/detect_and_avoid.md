@@ -630,6 +630,8 @@ Decode the integer according to the encoding:
 | `2` (`UAS_ID`)        | shortened UAS ID    | low bytes as hex; the displayed string uses the low 5 bytes (10 hex chars) |
 
 The encode and decode rules behind this table are described in full in [Traffic Inputs and Identification](#traffic-inputs-and-identification).
+
+::: details Click here to view a python script example on how to decode `unique_id` (the 64-bit integer)
 The following helper applies the same conversion DAA uses to build the STATUSTEXT string, so its output matches what you saw live:
 
 ```python
@@ -650,6 +652,8 @@ def decode_daa_id(unique_id: int, encoding: int) -> str:
 ```
 
 For example, an event identifier of `7249787` with encoding `0` decodes to the ICAO address `6E9F7B`.
+
+:::
 
 ### Turning an ICAO address into a real aircraft
 
@@ -700,6 +704,8 @@ Run these scenarios with a valid vehicle position, because the synthetic reports
 The command schedules a deterministic synthetic traffic sequence and returns immediately.
 DAA then publishes the scripted `transponder_report` samples from its normal update loop around the current ownship latitude, longitude, and altitude.
 
+::: details Click here for more details on each fake traffic scenario
+
 Scenario guide:
 
 - `unique_ids`: Publishes three isolated four-step approach sequences: about `1500 m`, `800 m`, `200 m`, then `5000 m` to clear the conflict.
@@ -718,6 +724,8 @@ Scenario guide:
   Batch 2 publishes new lower-priority conflicts that get progressively closer so each one is accepted while the original aircraft remains the most urgent.
   Batch 3 starts even closer and then gets farther away so only the first `4` entries replace the existing lower-priority traffic and the rest are ignored.
   Use this to confirm DAA drains one full queued `transponder_report` burst per `check_traffic()` call and preserves the correct final priority order after each batch.
+
+:::
 
 What to watch while running a scenario:
 
@@ -869,6 +877,8 @@ Notes:
 
 At the library level, a DAA standard is a class that consumes one ownship state plus one traffic state and returns both a conflict level and reporting metrics.
 
+::: details Click here to view an in depth guide on how to add a new standard
+
 ```cpp
 class DaaNewStandard : public ModuleParams
 {
@@ -883,7 +893,7 @@ public:
 };
 ```
 
-The shared input and output contracts are:
+The shared input and output are:
 
 - `aircraft_state_s` input fields:
   - `lat_lon`: ownship or traffic latitude/longitude in degrees.
@@ -910,3 +920,5 @@ To add a new standard end-to-end:
 3. Add a build-time config and CMake selection for the standard, including any standard-specific parameter metadata only when that config is enabled.
 4. Add the class to `AdsbConflict` and update the compile-time branches that validate inputs, run `calculate_daa_stats()`, and refresh parameters.
 5. Add unit tests for both the standard math and the outer `AdsbConflict` validation path, then update this documentation with the standard-specific data requirements, parameters, and action semantics.
+
+:::
