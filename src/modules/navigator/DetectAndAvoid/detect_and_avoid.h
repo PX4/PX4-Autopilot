@@ -477,6 +477,9 @@ private:
 	/** @brief Translate the user-facing action param value into the internal DaaAction enum. */
 	static DaaAction action_param_to_daa_action(int32_t action_param);
 
+	/** @brief Inverse of action_param_to_daa_action: report actions with the parameter numbering. */
+	static uint8_t daa_action_to_action_param(DaaAction action);
+
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::DAA_EN>) _param_daa_en,
 		(ParamInt<px4::params::DAA_NOTIF_STATE>) _param_daa_notif_state,

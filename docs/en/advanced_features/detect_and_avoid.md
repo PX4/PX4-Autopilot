@@ -25,7 +25,7 @@ Use this page for understanding:
 
 - The detailed behavior of [Conflict Standards](#conflict-standards)
 - Action selection and preflight behavior in [Automated Actions](#automated-actions) and [Arming, Preflight, and Ground Behavior](#arming-preflight-and-ground-behavior)
-- Message, logging, and test details in [Operator Messages](#operator-messages) and [Testing and Simulation](#testing-and-simulation)
+- Message, logging, and test details in [Operator Messages](#operator-messages), [Analysing a Conflict Using the Logs](#analysing-a-conflict-using-the-logs), and [Testing and Simulation](#testing-and-simulation)
 - Extension guidance in [Adding a New Standard](#adding-a-new-standard)
 
 ## Overview
@@ -430,7 +430,7 @@ DAA chooses one identifier per traffic report in this order:
 2. ADS-B callsign
 3. UAS ID
 
-DAA stores both the `unique_id` value and the `unique_id_encoding` namespace.
+DAA stores both the `unique_id` value and the `unique_id_encoding`.
 That means an ICAO address and a callsign can encode to the same integer and still remain separate traffic entries, because the encoding type is part of the key.
 
 ::: details Click here to view how DAA encodes and decodes each identifier source
@@ -492,12 +492,82 @@ These topics are useful for:
 
 ## Operator Messages
 
-DAA emits PX4 [`mavlink_log`](../msg_docs/MavlinkLog.md) records for the operator in addition to publishing the uORB topics above.
-The MAVLink module forwards those records on its `STATUSTEXT` stream as MAVLink [`STATUSTEXT`](https://mavlink.io/en/messages/common.html#STATUSTEXT) messages to connected ground stations.
-Most DAA operator notifications are also sent through the PX4 [Events Interface](../concept/events_interface.md).
-In general, messages are emitted immediately if the conflict level changed and periodically for the most urgent conflict only.
+DAA talks to the operator on two channels at the same time:
 
-::: details Click here to view the message families and timing
+- **MAVLink STATUSTEXT** is the short, human-readable line such as `DAA Main: 6E9F7B lvl UP 3. 199 m.`.
+  PX4 emits these as [`mavlink_log`](../msg_docs/MavlinkLog.md) records, and the MAVLink module forwards them on its `STATUSTEXT` stream as MAVLink [`STATUSTEXT`](https://mavlink.io/en/messages/common.html#STATUSTEXT) messages to connected ground stations.
+  The identifier is already decoded into a readable string here, so this is the easiest channel to read while flying.
+- **PX4 Events** carry the same information through the [Events Interface](../concept/events_interface.md), but as structured data: a fixed event ID plus numeric arguments (identifier, conflict level, distance, cause, notification kind).
+
+Messages are emitted immediately when a conflict level changes, and periodically for the most urgent conflict only (the period is [DAA_NOTIF_STATE](../advanced_config/parameter_reference.md#DAA_NOTIF_STATE)).
+
+### Reading the message fields
+
+Every conflict message refers to one traffic aircraft and reuses the same handful of fields.
+
+::: details Click here to view the the fields used in events
+
+#### `<ID>`: the traffic identifier
+
+DAA tracks each aircraft by a single identifier, chosen per report in priority order: ICAO address first, then ADS-B callsign, then a shortened UAS ID.
+The two channels show that identifier differently:
+
+- In **STATUSTEXT** it is already decoded to a readable string: a 6-character ICAO hex such as `6E9F7B`, an up-to-8-character callsign such as `LX00777A`, or a shortened UAS-ID hex such as `eaebecedee`.
+- In **events** it is the raw 64-bit integer (`unique_id`) that DAA stores internally.
+  The same integer, together with its `unique_id_encoding`, is also published on the [`detect_and_avoid`](../msg_docs/DetectAndAvoid.md) and [`detect_and_avoid_most_urgent`](../msg_docs/DetectAndAvoidMostUrgent.md) topics.
+
+To turn that integer back into a readable identifier (for example an ICAO address) you need the encoding and the matching decode rule.
+The full per-source encode and decode rules live in [Traffic Inputs and Identification](#traffic-inputs-and-identification), and a worked example with code is in [Analysing a Conflict Using the Logs](#analysing-a-conflict-using-the-logs).
+
+#### `<N>`: the conflict level
+
+The level is the same integer used on the uORB topics:
+
+| `<N>` | Level      | F3442 meaning          |
+| ----- | ---------- | ---------------------- |
+| `0`   | `NONE`     | no conflict or cleared |
+| `1`   | `LOW`      | augmented Well Clear   |
+| `2`   | `MEDIUM`   | augmented NMAC         |
+| `3`   | `HIGH`     | Loss of Well Clear     |
+| `4`   | `CRITICAL` | NMAC                   |
+
+Crosstrack builds only ever publish `HIGH` (`3`).
+See [Conflict Levels](#conflict-levels) for the full F3442 definitions.
+In the main and secondary messages, the words `UP` and `DOWN` tell you whether the level just increased or decreased.
+
+#### `<dist>`: distance to the traffic
+
+The straight-line 3D range to that aircraft in meters, computed from the horizontal and vertical separation ($\sqrt{d_{hor}^2 + d_{vert}^2}$).
+
+#### Notification kind (events only)
+
+The `navigator_traffic_conflict_update` event carries a _notification kind_ argument that says which conflict the update is about.
+It matches the prefix used in the STATUSTEXT line:
+
+| Notification kind | STATUSTEXT prefix   | Meaning                                                                |
+| ----------------- | ------------------- | ---------------------------------------------------------------------- |
+| `0`               | `DAA Main:`         | update for the conflict that is already the most urgent                |
+| `1`               | `DAA New and Main:` | a conflict that appeared this cycle and is also now the most urgent    |
+| `2`               | `DAA SEC:`          | a secondary (non-primary) tracked conflict that is not the most urgent |
+
+#### Action code (events only)
+
+The `navigator_traffic_action` event reports which automatic response was triggered, using the same numbering as the `NAV_TRAFF_AVOID` / `DAA_LVL_*_ACT` parameters:
+
+| Action code | Action      |
+| ----------- | ----------- |
+| `1`         | `Warn only` |
+| `2`         | `Return`    |
+| `3`         | `Land`      |
+| `4`         | `Hold`      |
+| `5`         | `Terminate` |
+
+`0` (`Disabled`) never appears, because no event is emitted when there is no response.
+See [Automated Actions](#automated-actions) for the full action parameter convention.
+
+:::
+
+::: details Click here to view the message families and notification timing
 
 - **New conflict:** `DAA New <ID> lvl <N>. <dist> m.`: emitted after the current `check_traffic()` queue drain completes when a new warning-level conflict remains in the active buffer but is not the current most urgent conflict.
 - **Main conflict:**
@@ -525,9 +595,80 @@ In general, messages are emitted immediately if the conflict level changed and p
 - **Actions:** `DAA <ID>: Hold!`, `Return!`, `Land!`, `Terminate!`, and the on-ground `DAA do not arm until air conflict solved!` / `DAA do not takeoff until air conflict solved!` warnings only appear when a conflict level is configured with an automatic action stronger than `Warn only`. The default DAA parameters are warn-only so by default these action messages are not emitted.
 - **No more conflicts:** `DAA all conflicts solved.`: emitted immediately when the most urgent conflict clears and no warning-level conflicts remain.
 
-Note: `<ID>` is the chosen unique identifier for that traffic item: ICAO if present, otherwise ADS-B callsign, otherwise a shortened UAS ID.
+The shared fields `<ID>`, `<N>`, and `<dist>`, plus the cause numbers above, are explained in [Reading the message fields](#reading-the-message-fields).
+To turn a logged or event identifier back into an ICAO address, callsign, or UAS ID, see [Analysing a Conflict Using the Logs](#analysing-a-conflict-using-the-logs).
 
 :::
+
+## Analysing a Conflict Using the Logs
+
+After a flight you can reconstruct exactly what DAA saw and did from the default log.
+This is the recommended way to investigate a conflict, because the logged topics carry the full identifier, encoding, geometry, and timing that the short operator messages only summarize.
+
+### What to look at
+
+- [`detect_and_avoid_most_urgent`](../msg_docs/DetectAndAvoidMostUrgent.md): the single conflict that drove the DAA status and any automatic action or prearm block.
+  Start here to find the worst moment of the encounter (highest `conflict_level`, smallest `aircraft_dist`) and whether `has_action` was set.
+- [`detect_and_avoid`](../msg_docs/DetectAndAvoid.md): one sample per processed traffic report, with the per-aircraft `conflict_level` and the horizontal, vertical, and time geometry.
+  Use it to follow one specific aircraft over time.
+- [`transponder_report`](../msg_docs/TransponderReport.md): the raw input.
+  Match it by timestamp to see the traffic's reported position, altitude, velocity, heading, and validity flags, plus the original `icao_address`, `callsign`, and `uas_id` fields before encoding.
+- Navigator state and commander messages: confirm whether a requested action actually changed the flight mode.
+
+You can open the log in [Flight Review](../log/flight_review.md) or plot these topics directly.
+Live, the same topics can be inspected from the shell with `listener detect_and_avoid` and `listener detect_and_avoid_most_urgent`.
+
+### Identifying the aircraft
+
+Both DAA topics publish `unique_id` (the 64-bit integer) and `unique_id_encoding` (the type of ID).
+Decode the integer according to the encoding:
+
+| `unique_id_encoding`  | Source              | How to decode                                                              |
+| --------------------- | ------------------- | -------------------------------------------------------------------------- |
+| `0` (`ICAO`)          | ICAO 24-bit address | low 24 bits formatted as 6 uppercase hex digits                            |
+| `1` (`ADSB_CALLSIGN`) | ADS-B callsign      | bytes little-endian, byte `0` is the first character, stop at first `\0`   |
+| `2` (`UAS_ID`)        | shortened UAS ID    | low bytes as hex; the displayed string uses the low 5 bytes (10 hex chars) |
+
+The encode and decode rules behind this table are described in full in [Traffic Inputs and Identification](#traffic-inputs-and-identification).
+The following helper applies the same conversion DAA uses to build the STATUSTEXT string, so its output matches what you saw live:
+
+```python
+def decode_daa_id(unique_id: int, encoding: int) -> str:
+    if encoding == 0:  # ICAO
+        return f"{unique_id & 0xFFFFFF:06X}"
+    if encoding == 1:  # ADS-B callsign
+        out = bytearray()
+        for i in range(8):
+            byte = (unique_id >> (8 * i)) & 0xFF
+            if byte == 0:
+                break
+            out.append(byte)
+        return out.decode("ascii", "replace")
+    if encoding == 2:  # UAS ID (shortened, low 5 bytes shown)
+        return "".join(f"{(unique_id >> (8 * i)) & 0xFF:02x}" for i in range(5))
+    return "unknown"
+```
+
+For example, an event identifier of `7249787` with encoding `0` decodes to the ICAO address `6E9F7B`.
+
+### Turning an ICAO address into a real aircraft
+
+When the encoding is `ICAO`, the decoded 6-digit hex (for example `6E9F7B`) is the aircraft's 24-bit ICAO address: the same value the aircraft broadcasts over ADS-B and Mode S.
+It is globally unique and tied to the airframe's registration, so you can look it up in an aircraft registry to find the tail number, type, and operator.
+
+This is how you confirm whether the intruder was, for instance, a helicopter, a general-aviation aircraft, or even your own second transponder.
+If it turns out to be ownship, update the self-filtering parameters described in [Traffic Inputs and Identification](#traffic-inputs-and-identification).
+
+### Summary
+
+A typical investigation:
+
+1. In `detect_and_avoid_most_urgent`, find when `conflict_level` peaked and `aircraft_dist` was smallest, and note `unique_id` and `unique_id_encoding`.
+2. Decode the identifier; if it is an ICAO address, look up the aircraft.
+3. In `detect_and_avoid`, follow that identifier to see how the horizontal, vertical, and time separation evolved and how the level escalated.
+4. Cross-check `transponder_report` at the same timestamps for the raw geometry and validity flags.
+   Missing velocity or heading changes how the standard evaluates the conflict (see the data requirements for [F3442 Mode](#f3442-mode) or [Crosstrack Mode](#crosstrack-mode)).
+5. Confirm in the navigator and commander messages whether the configured action ran and whether the resulting mode change matched expectations.
 
 ## Testing and Simulation
 

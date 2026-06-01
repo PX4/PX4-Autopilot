@@ -179,8 +179,8 @@ void DetectAndAvoid::notify_traffic_ignored(const conflict_info_s &conflict_info
 	/* EVENT
 	* @description
 	* - ID: {1}
-	* - Cause: {2}
-	* - Conflict level: {3}
+	* - cause: {2} (0:buffer full, 1:update failed, 2:removal failed, 3:insert failed, 4:level lookup failed, 5:invalid index)
+	* - conflict level: {3}
 	*/
 	events::send<uint64_t, uint8_t, uint8_t>(events::ID("navigator_traffic_ignore"), events::Log::Warning,
 			"DAA: ignored",
@@ -202,9 +202,9 @@ void DetectAndAvoid::notify_traffic_removed(const conflict_info_s &conflict_info
 	/* EVENT
 	* @description
 	* - ID: {1}
-	* - Cause: {2}
-	* - Conflict level: {3}
-	* - Last update timestamp: {4} s
+	* - cause: {2} (0:stale, 1:buffer full)
+	* - conflict level: {3}
+	* - last seen: {4} s ago
 	*/
 	events::send<uint64_t, uint8_t, uint8_t, float>(events::ID("navigator_traffic_remove"), events::Log::Warning,
 			"DAA: removed",
@@ -301,9 +301,9 @@ void DetectAndAvoid::notify_conflict_level(const conflict_info_s &conflict_info,
 	 * @description
 	 * - ID: {1}
 	 * - conflict level: {2}
-	 * - previous conflict level: {3}
+	 * - previous level: {3}
 	 * - distance: {4m}
-	 * - notification kind: {5}
+	 * - kind: {5} (0:main, 1:new+main, 2:secondary)
 	 */
 	events::send<uint64_t, uint8_t, uint8_t, uint32_t, uint8_t>(events::ID("navigator_traffic_conflict_update"),
 			log_level, "DAA conflict update",
@@ -365,11 +365,6 @@ void DetectAndAvoid::notify_action_on_ground(const NotifyLandedActCause cause)
 	}
 
 	mavlink_log_critical(&_mavlink_log_pub, "DAA do not %s until air conflict solved!\t", blocked_action);
-	/* EVENT
-	 * @description
-	 * Resolve the air-traffic conflict before flight. The severity reflects whether the vehicle is
-	 * already armed (critical) or still disarmed (warning).
-	 */
 	events::send(events::ID("navigator_traffic_ground_conflict"), log_level,
 		     "DAA: resolve air-traffic conflict before flight");
 }
@@ -429,11 +424,11 @@ void DetectAndAvoid::notify_new_action(const conflict_info_s &conflict_info, con
 	/* EVENT
 	 * @description
 	 * - ID: {1}
-	 * - action: {2}
+	 * - action: {2} (1:warn, 2:return, 3:land, 4:hold, 5:terminate)
 	 * - conflict level: {3}
 	 * - distance: {4m}
 	 */
 	events::send<uint64_t, uint8_t, uint8_t, uint32_t>(events::ID("navigator_traffic_action"), log_level,
 			"DAA automated action",
-			conflict_info.unique_id.id, static_cast<uint8_t>(action), conflict_level, aircraft_dist);
+			conflict_info.unique_id.id, daa_action_to_action_param(action), conflict_level, aircraft_dist);
 }

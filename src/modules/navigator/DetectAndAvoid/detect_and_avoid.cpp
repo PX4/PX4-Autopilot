@@ -1108,6 +1108,34 @@ DaaAction DetectAndAvoid::action_param_to_daa_action(const int32_t action_param)
 	}
 }
 
+uint8_t DetectAndAvoid::daa_action_to_action_param(const DaaAction action)
+{
+	// Inverse of action_param_to_daa_action. Operator messages report actions with the same
+	// numbering as the NAV_TRAFF_AVOID / DAA_LVL_*_ACT parameters, not the internal severity ladder.
+	switch (action) {
+	case DaaAction::kDisabled:
+		return 0;
+
+	case DaaAction::kWarnOnly:
+		return 1;
+
+	case DaaAction::kReturnMode:
+		return 2;
+
+	case DaaAction::kLandMode:
+		return 3;
+
+	case DaaAction::kPositionHoldMode:
+		return 4;
+
+	case DaaAction::kTerminate:
+		return 5;
+
+	default:
+		return 0;
+	}
+}
+
 void DetectAndAvoid::publish_action_command(const DaaAction requested_action)
 {
 	vehicle_command_s vcmd = {};
