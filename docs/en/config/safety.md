@@ -156,7 +156,7 @@ Note that the failsafe action will only trigger once the vehicle has already bre
  - The loiter radius [NAV_LOITER_RAD](../advanced_config/parameter_reference.md#NAV_LOITER_RAD), for FW
  - The stopping distance (`v^2 / 2a` with v=[MPC_XY_VEL_MAX](../advanced_config/parameter_reference.md#MPC_XY_VEL_MAX), a=[MPC_ACC_HOR_MAX](../advanced_config/parameter_reference.md#MPC_ACC_HOR_MAX)), for MC
 
-This margin should be higher than the nominal value to account for possible tailwind, position uncertainty, attitude tracking delay, etc.
+Use a margin above those nominal values to account for possible tailwind, position uncertainty, attitude tracking delay, etc.
 
 ![Safety - Geofence (QGC)](../../assets/qgc/setup/safety/safety_geofencge.png)
 
