@@ -45,7 +45,6 @@
 #include <lib/geofence/geofence_utils.h>
 #include "geofence_interface.h"
 
-static constexpr int kMaxNodes = 200; // 2x to handle worst-case sharp-corner splits
 static constexpr int kCircleApproxVertices = 8;
 
 class GeofenceAvoidancePlanner
@@ -91,7 +90,8 @@ public:
 
 private:
 
-	static constexpr int num_distances_in_graph = (kMaxNodes) * (kMaxNodes - 1) / 2;
+	static constexpr int kMaxNodes = geofence_utils::PlannerPolygons::kMaxNodes;
+	static constexpr int num_distances_in_graph = kMaxNodes * (kMaxNodes - 1) / 2;
 
 	float _best_distance[kMaxNodes];
 	float _distances[num_distances_in_graph];
