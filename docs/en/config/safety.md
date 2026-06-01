@@ -158,7 +158,7 @@ Note that the failsafe action will only trigger once the vehicle has already bre
 
 Use a margin above those nominal values to account for possible tailwind, position uncertainty, attitude tracking delay, etc.
 
-![Safety - Geofence (QGC)](../../assets/qgc/setup/safety/safety_geofencge.png)
+![Safety - Geofence (QGC)](../../assets/qgc/setup/safety/safety_geofence.png)
 
 :::tip
 PX4 separately supports more complicated Geofence geometries with multiple arbitrary polygonal and circular inclusion and exclusion areas: [Flying > Geofence](../flying/geofence.md).
