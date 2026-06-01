@@ -58,6 +58,7 @@
 #endif
 
 #include "mavlink_command_sender.h"
+#include "mavlink_command_params.h"
 #include "mavlink_main.h"
 #include "mavlink_receiver.h"
 
@@ -669,6 +670,21 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		}
 
 		return;
+	}
+
+	const int command_invalid = mavlink_cmd_params::check_params(cmd_mavlink.command, false,
+				    vehicle_command.param1, vehicle_command.param2,
+				    vehicle_command.param3, vehicle_command.param4,
+				    vehicle_command.param5, vehicle_command.param6, vehicle_command.param7);
+
+	if (command_invalid > 0) {
+		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command,
+			    vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED);
+		return;
+	}
+
+	if (command_invalid < 0) {
+		PX4_DEBUG("MAV_CMD %u not in param validation table", (unsigned)cmd_mavlink.command);
 	}
 
 	if (cmd_mavlink.command == MAV_CMD_SET_MESSAGE_INTERVAL) {

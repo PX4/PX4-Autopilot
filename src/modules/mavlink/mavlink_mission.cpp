@@ -42,6 +42,7 @@
 
 #include "mavlink_mission.h"
 #include "mavlink_main.h"
+#include "mavlink_command_params.h"
 
 #include <lib/geo/geo.h>
 #include <systemlib/err.h>
@@ -1442,6 +1443,22 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			mission_item->altitude_is_relative = true;
 		}
 
+		// Reject populated params that this command does not support.
+		// p5-7 are lat/lon/alt for global-frame items; pass 0.0 to skip checking them.
+		{
+			const int bad = mavlink_cmd_params::check_params(mavlink_mission_item->command, true,
+					mavlink_mission_item->param1, mavlink_mission_item->param2,
+					mavlink_mission_item->param3, mavlink_mission_item->param4);
+
+			if (bad > 0) {
+				return MAV_MISSION_INVALID_PARAM1 + (bad - 1);
+			}
+
+			if (bad < 0) {
+				PX4_DEBUG("MAV_CMD %u not in param validation table", (unsigned)mavlink_mission_item->command);
+			}
+		}
+
 		// Depending on the received MAV_CMD_* (MAVLink Commands), assign the corresponding
 		// NAV_CMD value to the mission item's nav_cmd.
 		switch (mavlink_mission_item->command) {
@@ -1570,6 +1587,24 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 	} else if (mavlink_mission_item->frame == MAV_FRAME_MISSION) {
 
 		// This is a mission item with no coordinates
+
+		// Reject populated params that this command does not support.
+		// For MAV_FRAME_MISSION items x/y/z are command data, not coordinates.
+		{
+			const int bad = mavlink_cmd_params::check_params(mavlink_mission_item->command, true,
+					mavlink_mission_item->param1, mavlink_mission_item->param2,
+					mavlink_mission_item->param3, mavlink_mission_item->param4,
+					(float)mavlink_mission_item->x, (float)mavlink_mission_item->y,
+					mavlink_mission_item->z);
+
+			if (bad > 0) {
+				return MAV_MISSION_INVALID_PARAM1 + (bad - 1);
+			}
+
+			if (bad < 0) {
+				PX4_DEBUG("MAV_CMD %u not in param validation table", (unsigned)mavlink_mission_item->command);
+			}
+		}
 
 		mission_item->params[0] = mavlink_mission_item->param1;
 		mission_item->params[1] = mavlink_mission_item->param2;
