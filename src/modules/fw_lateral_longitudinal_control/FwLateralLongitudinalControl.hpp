@@ -249,6 +249,8 @@ private:
 
 	void updateControllerConfiguration(hrt_abstime now);
 
+	float getMaxLateralAccelForLoadFactor() const;
+
 	/**
 	 * @brief Returns an adapted calibrated airspeed setpoint
 	 *
