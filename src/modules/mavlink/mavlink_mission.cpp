@@ -558,8 +558,22 @@ MavlinkMissionManager::send()
 	}
 
 	/* check for timed-out operations */
-	if (_state == MAVLINK_WPM_STATE_GETLIST && (_time_last_sent > 0)
-	    && hrt_elapsed_time(&_time_last_sent) > MAVLINK_MISSION_RETRY_TIMEOUT_DEFAULT) {
+	if (_state != MAVLINK_WPM_STATE_IDLE && (_time_last_recv > 0)
+	    && hrt_elapsed_time(&_time_last_recv) > MAVLINK_MISSION_PROTOCOL_TIMEOUT_DEFAULT) {
+
+		_mavlink.send_statustext_critical("Mission sync timeout\t");
+		events::send(events::ID("mavlink_mission_sync_timeout"), events::Log::Error,
+			     "Mission sync timeout, aborting transfer");
+
+		PX4_DEBUG("WPM: Last operation (state=%d) timed out, changing state to MAVLINK_WPM_STATE_IDLE", _state);
+
+		switch_to_idle_state();
+
+		// since we are giving up, reset this state also, so another request can be started.
+		_transfer_in_progress = false;
+
+	} else if (_state == MAVLINK_WPM_STATE_GETLIST && (_time_last_sent > 0)
+		   && hrt_elapsed_time(&_time_last_sent) > MAVLINK_MISSION_RETRY_TIMEOUT_DEFAULT) {
 
 		// try to request item again after timeout
 		send_mission_request(_transfer_partner_sysid, _transfer_partner_compid, _transfer_seq);
@@ -572,20 +586,6 @@ MavlinkMissionManager::send()
 		PX4_DEBUG("WPM: SENDLIST resending MISSION_COUNT (no MISSION_ACK received yet)");
 		send_mission_count(_transfer_partner_sysid, _transfer_partner_compid, _transfer_count, _mission_type,
 				   get_current_mission_type_crc());
-
-	} else if (_state != MAVLINK_WPM_STATE_IDLE && (_time_last_recv > 0)
-		   && hrt_elapsed_time(&_time_last_recv) > MAVLINK_MISSION_PROTOCOL_TIMEOUT_DEFAULT) {
-
-		_mavlink.send_statustext_critical("Mission sync timeout\t");
-		events::send(events::ID("mavlink_mission_sync_timeout"), events::Log::Error,
-			     "Mission sync timeout, aborting transfer");
-
-		PX4_DEBUG("WPM: Last operation (state=%d) timed out, changing state to MAVLINK_WPM_STATE_IDLE", _state);
-
-		switch_to_idle_state();
-
-		// since we are giving up, reset this state also, so another request can be started.
-		_transfer_in_progress = false;
 
 	} else if (_state == MAVLINK_WPM_STATE_IDLE) {
 		// reset flags
@@ -736,9 +736,9 @@ MavlinkMissionManager::handle_mission_request_list(const mavlink_message_t *msg)
 	mavlink_msg_mission_request_list_decode(msg, &wprl);
 
 	if (CHECK_SYSID_COMPID_MISSION(wprl)) {
-		const bool maybe_completed = (_transfer_seq == current_item_count());
+		const bool maybe_completed = (_state == MAVLINK_WPM_STATE_SENDLIST) && (_transfer_seq == current_item_count());
 
-		// If all mission items have been sent and a new mission request list comes in, we can proceed even if  MISSION_ACK was
+		// If all mission items have been sent and a new mission request list comes in, we can proceed even if MISSION_ACK was
 		// never received. This could happen on a quick reconnect that doesn't trigger MAVLINK_MISSION_PROTOCOL_TIMEOUT_DEFAULT
 		if (maybe_completed) {
 			switch_to_idle_state();
@@ -1464,9 +1464,10 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			mission_item->force_heading = (mavlink_mission_item->param2 > 0);
 			mission_item->loiter_radius = mavlink_mission_item->param3;
 			mission_item->loiter_exit_xtrack = (mavlink_mission_item->param4 > 0);
-			// Yaw is only valid for multicopter but we set it always because
-			// it's just ignored for fixedwing.
-			mission_item->yaw = wrap_2pi(math::radians(mavlink_mission_item->param4));
+			// Per the MAVLink spec param4 selects the loiter-circle exit cross-track behavior
+			// (forward-only vehicles), not a yaw setpoint. Don't derive a heading from it, so
+			// multicopters keep their current heading instead of being forced to ~param4 degrees.
+			mission_item->yaw = NAN;
 			break;
 
 		case MAV_CMD_NAV_LAND:
@@ -1487,6 +1488,9 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			mission_item->force_heading = (mavlink_mission_item->param1 > 0);
 			mission_item->loiter_radius = mavlink_mission_item->param2;
 			mission_item->loiter_exit_xtrack = (mavlink_mission_item->param4 > 0);
+			// MAV_CMD_NAV_LOITER_TO_ALT has no yaw field. Leave yaw unspecified so multicopters don't
+			// use the zero-initialized default as an unintended north-facing heading setpoint.
+			mission_item->yaw = NAN;
 			break;
 
 		case MAV_CMD_NAV_ROI:

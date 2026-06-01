@@ -10,15 +10,15 @@ Trajectory setpoint in NED frame. Input to position controller.
 
 ## Fields
 
-| 参数名                                   | 类型           | Unit [Frame] | Range/Enum | 描述                                                        |
-| ------------------------------------- | ------------ | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| timestamp                             | `uint64`     |                                                                  |            | time since system start (microseconds) |
-| 位置                                    | `float32[3]` |                                                                  |            | in meters                                                 |
-| 速度                                    | `float32[3]` |                                                                  |            | in meters/second                                          |
-| acceleration                          | `float32[3]` |                                                                  |            | in meters/second^2                                        |
-| jerk                                  | `float32[3]` |                                                                  |            | in meters/second^3 (for logging only)  |
-| quaternion                            | `float32[4]` |                                                                  |            | unit quaternion                                           |
-| angular_velocity | `float32[3]` |                                                                  |            | angular velocity in radians/second                        |
+| 参数名                                                                    | 类型           | Unit [Frame] | Range/Enum | 描述                                                        |
+| ---------------------------------------------------------------------- | ------------ | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                    | `uint64`     |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_position"></a>position                                      | `float32[3]` |                                                                  |            | in meters                                                 |
+| <a id="fld_velocity"></a>velocity                                      | `float32[3]` |                                                                  |            | in meters/second                                          |
+| <a id="fld_acceleration"></a>acceleration                              | `float32[3]` |                                                                  |            | in meters/second^2                                        |
+| <a id="fld_jerk"></a>jerk                                              | `float32[3]` |                                                                  |            | in meters/second^3 (for logging only)  |
+| <a id="fld_quaternion"></a>quaternion                                  | `float32[4]` |                                                                  |            | unit quaternion                                           |
+| <a id="fld_angular_velocity"></a>angular_velocity | `float32[3]` |                                                                  |            | angular velocity in radians/second                        |
 
 ## Source Message
 

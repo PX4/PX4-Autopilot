@@ -13,20 +13,22 @@ Follows the MAVLink COMMAND_ACK message definition
 
 ## Fields
 
-| Name             | Type     | Unit [Frame]                | Range/Enum                                | Description                                                                                                                                 |
-| ---------------- | -------- | --------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| timestamp        | `uint64` | us                          |                                           | time since system start                                                                                                                     |
-| command          | `uint32` |                             |                                           | Command that is being acknowledged                                                                                                          |
-| result           | `uint8`  |                             | [VEHICLE_CMD_RESULT](#VEHICLE_CMD_RESULT) | Command result                                                                                                                              |
-| result_param1    | `uint8`  |                             |                                           | Can be set with the reason why the command was denied, or the progress percentage when result is MAV_RESULT_IN_PROGRESS (%)                 |
-| result_param2    | `int32`  | enum ARM_AUTH_DENIED_REASON |                                           | Additional parameter of the result, example: which parameter of MAV_CMD_NAV_WAYPOINT caused it to be denied, or what ARM_AUTH_DENIED_REASON |
-| target_system    | `uint8`  |                             |                                           | Target system                                                                                                                               |
-| target_component | `uint16` |                             |                                           | Target component / mode executor                                                                                                            |
-| from_external    | `bool`   |                             |                                           | Indicates if the command came from an external source                                                                                       |
+| Name                                              | Type     | Unit [Frame]                | Range/Enum                                | Description                                                                                                                                 |
+| ------------------------------------------------- | -------- | --------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp               | `uint64` | us                          |                                           | time since system start                                                                                                                     |
+| <a id="fld_command"></a>command                   | `uint32` |                             |                                           | Command that is being acknowledged                                                                                                          |
+| <a id="fld_result"></a>result                     | `uint8`  |                             | [VEHICLE_CMD_RESULT](#VEHICLE_CMD_RESULT) | Command result                                                                                                                              |
+| <a id="fld_result_param1"></a>result_param1       | `uint8`  |                             |                                           | Can be set with the reason why the command was denied, or the progress percentage when result is MAV_RESULT_IN_PROGRESS (%)                 |
+| <a id="fld_result_param2"></a>result_param2       | `int32`  | enum ARM_AUTH_DENIED_REASON |                                           | Additional parameter of the result, example: which parameter of MAV_CMD_NAV_WAYPOINT caused it to be denied, or what ARM_AUTH_DENIED_REASON |
+| <a id="fld_target_system"></a>target_system       | `uint8`  |                             |                                           | Target system                                                                                                                               |
+| <a id="fld_target_component"></a>target_component | `uint16` |                             |                                           | Target component / mode executor                                                                                                            |
+| <a id="fld_from_external"></a>from_external       | `bool`   |                             |                                           | Indicates if the command came from an external source                                                                                       |
 
 ## Enums
 
 ### VEHICLE_CMD_RESULT {#VEHICLE_CMD_RESULT}
+
+Used in field(s): [result](#fld_result)
 
 | Name                                                                                            | Type    | Value | Description                                          |
 | ----------------------------------------------------------------------------------------------- | ------- | ----- | ---------------------------------------------------- |

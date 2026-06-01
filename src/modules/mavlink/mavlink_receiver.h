@@ -51,6 +51,7 @@
 #include "mavlink_timesync.h"
 #include "tune_publisher.h"
 
+#include <lib/gnss/rtcm.h>
 #include <geo/geo.h>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
@@ -125,7 +126,23 @@
 # include <uORB/topics/debug_vect.h>
 #endif // !CONSTRAINED_FLASH
 
+# if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+#  include <uORB/topics/fiducial_marker_pos_report.h>
+#  include <uORB/topics/fiducial_marker_yaw_report.h>
+#  include <uORB/topics/target_gnss.h>
+# endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+
 using namespace time_literals;
+
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+enum class TargetAbsoluteSensorCapability : uint8_t {
+	kPosition = (1 << 0),
+	kVelocity = (1 << 1),
+	kAcceleration = (1 << 2),
+	kAttitude = (1 << 3),
+	kRates = (1 << 4),
+};
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 class Mavlink;
 
@@ -171,6 +188,7 @@ private:
 	void handle_message_command_ack(mavlink_message_t *msg);
 	void handle_message_command_int(mavlink_message_t *msg);
 	void handle_message_command_long(mavlink_message_t *msg);
+	bool command_has_location(uint16_t command);
 	void handle_message_distance_sensor(mavlink_message_t *msg);
 	void handle_message_follow_target(mavlink_message_t *msg);
 	void handle_message_generator_status(mavlink_message_t *msg);
@@ -228,6 +246,12 @@ private:
 	void handle_message_debug_vect(mavlink_message_t *msg);
 	void handle_message_named_value_float(mavlink_message_t *msg);
 #endif // !CONSTRAINED_FLASH
+
+# if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	void handle_message_target_relative(mavlink_message_t *msg);
+	void handle_message_target_absolute(mavlink_message_t *msg);
+# endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+
 	void handle_message_request_event(mavlink_message_t *msg);
 
 	void CheckHeartbeats(const hrt_abstime &t, bool force = false);
@@ -256,6 +280,7 @@ private:
 	void update_rx_stats(const mavlink_message_t &message);
 
 	void publish_hil_battery();
+	void publish_gps_inject_data(const uint8_t *data, size_t len);
 
 	px4::atomic_bool 	_should_exit{false};
 	pthread_t		_thread {};
@@ -357,6 +382,14 @@ private:
 	uORB::Publication<debug_vect_s>				_debug_vect_pub{ORB_ID(debug_vect)};
 #endif // !CONSTRAINED_FLASH
 
+# if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	uORB::Publication<fiducial_marker_pos_report_s>			_fiducial_marker_pos_report_pub {ORB_ID(fiducial_marker_pos_report)};
+	uORB::Publication<fiducial_marker_yaw_report_s>			_fiducial_marker_yaw_report_pub{ORB_ID(fiducial_marker_yaw_report)};
+	uORB::Publication<target_gnss_s>		_target_gnss_pub{ORB_ID(target_gnss)};
+	param_t _param_vte_en{PARAM_INVALID};
+	hrt_abstime _vte_en_invalid_warn_last{0};
+# endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+
 	// ORB publications (multi)
 	uORB::PublicationMulti<distance_sensor_s>		_distance_sensor_pub{ORB_ID(distance_sensor)};
 	uORB::PublicationMulti<aux_global_position_s>		_aux_global_position_pub{ORB_ID(aux_global_position)};
@@ -368,6 +401,7 @@ private:
 	uORB::PublicationMulti<sensor_baro_s>			_sensor_baro_pub{ORB_ID(sensor_baro)};
 	uORB::PublicationMulti<sensor_gps_s>			_sensor_gps_pub{ORB_ID(sensor_gps)};
 	uORB::PublicationMulti<sensor_optical_flow_s>           _sensor_optical_flow_pub{ORB_ID(sensor_optical_flow)};
+	gnss::GpsRtcmMessageAssembler				_gps_rtcm_message_assembler {};
 
 	// ORB publications (queue length > 1)
 	uORB::Publication<transponder_report_s>  _transponder_report_pub{ORB_ID(transponder_report)};

@@ -533,13 +533,38 @@ uint8_t ModeManagement::getNavStateDisplay(uint8_t nav_state) const
 	}
 }
 
-bool ModeManagement::updateControlMode(uint8_t nav_state, vehicle_control_mode_s &control_mode) const
+bool ModeManagement::updateControlMode(uint8_t nav_state, vehicle_control_mode_s &control_mode)
 {
 	bool ret = false;
 
+	const bool activation = (nav_state != _last_served_nav_state);
+
+	if (activation) {
+		_last_served_nav_state = nav_state;
+		_last_served_change_us = hrt_absolute_time();
+	}
+
 	if (nav_state >= Modes::FIRST_EXTERNAL_NAV_STATE && nav_state <= Modes::LAST_EXTERNAL_NAV_STATE) {
 		if (_modes.valid(nav_state)) {
-			control_mode = _modes.mode(nav_state).config_control_setpoint;
+			const Modes::Mode &mode = _modes.mode(nav_state);
+
+			// Refuse a cached config_control_setpoints entry that predates the current
+			// activation of this nav_state; publish safe defaults until a fresh one arrives.
+			const bool stale = (mode.config_control_setpoint.timestamp == 0)
+					   || (mode.config_control_setpoint.timestamp + 10_ms < _last_served_change_us);
+
+			if (stale) {
+				Modes::Mode::setControlModeDefaults(control_mode);
+
+				if (activation) {
+					PX4_DEBUG("External mode %i: stale config_control_setpoints on activation, using safe defaults",
+						  nav_state);
+				}
+
+			} else {
+				control_mode = mode.config_control_setpoint;
+			}
+
 			ret = true;
 
 		} else {
@@ -606,7 +631,9 @@ bool ModeManagement::checkConfigControlSetpointUpdates()
 
 	while (_config_control_setpoints_sub.update(&config_control_setpoint) && --max_updates >= 0) {
 		if (_modes.valid(config_control_setpoint.source_id)) {
-			_modes.mode(config_control_setpoint.source_id).config_control_setpoint = config_control_setpoint;
+			Modes::Mode &mode = _modes.mode(config_control_setpoint.source_id);
+			mode.config_control_setpoint = config_control_setpoint;
+			mode.config_control_setpoint.timestamp = hrt_absolute_time();
 			had_update = true;
 
 		} else {

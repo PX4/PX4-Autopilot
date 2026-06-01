@@ -8,13 +8,13 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name      | Type       | Unit [Frame] | Range/Enum | Description                            |
-| --------- | ---------- | ------------ | ---------- | -------------------------------------- |
-| timestamp | `uint64`   |              |            | time since system start (microseconds) |
-| name      | `char[10]` |              |            | max. 10 characters as key / name       |
-| x         | `float32`  |              |            | x value                                |
-| y         | `float32`  |              |            | y value                                |
-| z         | `float32`  |              |            | z value                                |
+| Name                                | Type       | Unit [Frame] | Range/Enum | Description                            |
+| ----------------------------------- | ---------- | ------------ | ---------- | -------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp | `uint64`   |              |            | time since system start (microseconds) |
+| <a id="fld_name"></a>name           | `char[10]` |              |            | max. 10 characters as key / name       |
+| <a id="fld_x"></a>x                 | `float32`  |              |            | x value                                |
+| <a id="fld_y"></a>y                 | `float32`  |              |            | y value                                |
+| <a id="fld_z"></a>z                 | `float32`  |              |            | z value                                |
 
 ## Source Message
 

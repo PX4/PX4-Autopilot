@@ -10,10 +10,10 @@ power button state notification message.
 
 ## Fields
 
-| Назва     | Тип      | Unit [Frame] | Range/Enum | Опис                                                      |
-| --------- | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| timestamp | `uint64` |                                                                  |            | time since system start (microseconds) |
-| event     | `uint8`  |                                                                  |            | one of PWR_BUTTON_STATE_\*           |
+| Назва                               | Тип      | Unit [Frame] | Range/Enum | Опис                                                      |
+| ----------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp | `uint64` |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_event"></a>event         | `uint8`  |                                                                  |            | one of PWR_BUTTON_STATE_\*           |
 
 ## Constants
 

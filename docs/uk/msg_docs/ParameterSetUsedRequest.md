@@ -10,10 +10,10 @@ ParameterSetUsedRequest : Used by a remote to update the used flag for a paramet
 
 ## Fields
 
-| Назва                                | Тип      | Unit [Frame] | Range/Enum | Опис |
-| ------------------------------------ | -------- | ---------------------------------------------------------------- | ---------- | ---- |
-| timestamp                            | `uint64` |                                                                  |            |      |
-| parameter_index | `uint16` |                                                                  |            |      |
+| Назва                                                                | Тип      | Unit [Frame] | Range/Enum | Опис |
+| -------------------------------------------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | ---- |
+| <a id="fld_timestamp"></a>timestamp                                  | `uint64` |                                                                  |            |      |
+| <a id="fld_parameter_index"></a>parameter_index | `uint16` |                                                                  |            |      |
 
 ## Constants
 

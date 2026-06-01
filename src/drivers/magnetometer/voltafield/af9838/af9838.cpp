@@ -31,62 +31,8 @@
  ****************************************************************************/
 #include "af9838.hpp"
 
-#ifdef VTC_DRIVER_MED_FILTER
-void AF9838_Driver::af9838_median_filter(float *mag)
-{
-	uint16_t i, j, k;
-	float mft_tmp[3][MED_FILTER_MAX_NUM];
-	float tmp;
-
-	if (_mdf_init_idx < _mdf_num) {
-		for (i = 0; i < 3; i++) {
-			_mdf_data[i][_mdf_init_idx] = mag[i];
-		}
-
-		_mdf_init_idx++;
-		return;
-
-	} else {
-		for (i = 0; i < 3; i++) {
-			_mdf_data[i][_mdf_data_idx] = mag[i];
-		}
-	}
-
-	if (++_mdf_data_idx >= _mdf_num) {
-		_mdf_data_idx = 0;
-	}
-
-	for (i = 0; i < 3; i++) {
-		for (j = 0; j < _mdf_num; j++) {
-			mft_tmp[i][j] = _mdf_data[i][j];
-		}
-	}
-
-	for (i = 0; i < 3; i++) {
-		for (j = 0; j < (_mdf_num - 1); j++) {
-			for (k = 0; k < (_mdf_num - 1 - j); k++) {
-				if (mft_tmp[i][k] < mft_tmp[i][k + 1]) {
-					tmp = mft_tmp[i][k];
-					mft_tmp[i][k] = mft_tmp[i][k + 1];
-					mft_tmp[i][k + 1] = tmp;
-				}
-			}
-		}
-	}
-
-	for (i = 0; i < 3; i++) {
-		mag[i] = mft_tmp[i][(uint16_t)((_mdf_num - 1) / 2)];
-	}
-}
-#endif
-
-
 using namespace AF9838;
 using namespace time_literals;
-
-
-float AF9838::g_cli_rate_hz = 100.0f;
-
 
 AF9838_Driver::AF9838_Driver(const I2CSPIDriverConfig &config)
 	: device::I2C(config),
@@ -159,7 +105,7 @@ int AF9838_Driver::init()
 		return PX4_ERROR;
 	}
 
-	float hz = g_cli_rate_hz;
+	float hz = AF9838::DEFAULT_RATE_HZ;
 
 	if (hz < 1.f) { hz = 1.f; }
 
@@ -268,14 +214,6 @@ void AF9838_Driver::RunImpl()
 				mx_uT = rx * AF9838::LSB_TO_uT;
 				my_uT = ry * AF9838::LSB_TO_uT;
 				mz_uT = rz * AF9838::LSB_TO_uT;
-
-#ifdef VTC_DRIVER_MED_FILTER
-				float mag_uT[3] = { mx_uT, my_uT, mz_uT };
-				af9838_median_filter(mag_uT);
-				mx_uT = mag_uT[0];
-				my_uT = mag_uT[1];
-				mz_uT = mag_uT[2];
-#endif
 
 				mx_G = mx_uT * AF9838::uT_TO_G;
 				my_G = my_uT * AF9838::uT_TO_G;

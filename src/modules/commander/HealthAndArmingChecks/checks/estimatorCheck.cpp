@@ -628,9 +628,11 @@ void EstimatorChecks::checkEstimatorStatusFlags(const Context &context, Report &
 			}
 		}
 
+		// Only require a heading reference when a global origin is set (i.e. global ops are intended)
 		if (!context.isArmed()
 		    && (hrt_absolute_time() - estimator_status_flags.timestamp < 5_s)
-		    && !estimator_status_flags.cs_yaw_align) {
+		    && !estimator_status_flags.cs_yaw_align
+		    && lpos.xy_global) {
 
 			const NavModes heading_required_groups = (NavModes)(
 						reporter.failsafeFlags().mode_req_local_position |

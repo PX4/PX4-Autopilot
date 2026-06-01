@@ -18920,7 +18920,7 @@ parameters.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0        | 4        |           | 0       |      | &nbsp;    |
+| &nbsp; |          |          |           | 0       |      | &nbsp;    |
 
 ### COM_ARMABLE (`INT32`) {#COM_ARMABLE}
 
@@ -19795,16 +19795,20 @@ See COM_OBL_RC_ACT to configure action.
 
 ### COM_PARACHUTE (`INT32`) {#COM_PARACHUTE}
 
-Require MAVLink parachute system to be present and healthy.
+Parachute requirement and failsafe.
+
+Require a MAVLink parachute system for arming and the failsafe action when missing or unhealthy.
 
 **Values:**
 
 - `0`: Disabled
-- `1`: Enabled
+- `1`: Warning
+- `2`: Return
+- `3`: Land
 
-| Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
-| &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; |          |          |           | 0       |      | &nbsp;    |
 
 ### COM_POS_FS_EPH (`FLOAT`) {#COM_POS_FS_EPH}
 
@@ -19966,7 +19970,7 @@ Priority sources are immediately switched to whenever they get valid.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0        | 8        |           | 3       |      | &nbsp;    |
+| &nbsp; |          |          |           | 3       |      | &nbsp;    |
 
 ### COM_RC_LOSS_T (`FLOAT`) {#COM_RC_LOSS_T}
 
@@ -20132,7 +20136,7 @@ action will be executed.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0        | 6        |           | 0       |      | &nbsp;    |
+| &nbsp; |          |          |           | 0       |      | &nbsp;    |
 
 ### NAV_RCL_ACT (`INT32`) {#NAV_RCL_ACT}
 
@@ -20151,7 +20155,7 @@ set by COM_RC_LOSS_T in seconds.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 1        | 6        |           | 2       |      | &nbsp;    |
+| &nbsp; |          |          |           | 2       |      | &nbsp;    |
 
 ## Cyphal
 
@@ -21026,6 +21030,23 @@ Auxiliary Velocity Estimate delay relative to IMU measurements.
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 0        | 300      |           | 5       | ms   | &nbsp;    |
+
+### EKF2_AVEL_EN (`INT32`) {#EKF2_AVEL_EN}
+
+Fuse the landing-target relative velocity as auxiliary velocity.
+
+When enabled, EKF2 fuses the relative velocity published in landing_target_pose
+(vx_rel, vy_rel) as a horizontal auxiliary velocity measurement. The data is
+only fused when landing_target_pose.rel_vel_ekf2_valid is true.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
+| &nbsp; |          |          |           | Enabled (1) |      | &nbsp;    |
 
 ### EKF2_BARO_CTRL (`INT32`) {#EKF2_BARO_CTRL}
 
@@ -31680,6 +31701,28 @@ Maximum number of times to search for the landing target if it is lost during th
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 100      |           | 3       |      | &nbsp;    |
 
+### PLD_MOVING_T_MAX (`FLOAT`) {#PLD_MOVING_T_MAX}
+
+Maximum moving-target prediction time.
+
+When the landing target is moving, precision land aims at the estimated future
+target position after a constrained prediction time. This sets the maximum time.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.1      | 60       |           | 3.0     | s    | &nbsp;    |
+
+### PLD_MOVING_T_MIN (`FLOAT`) {#PLD_MOVING_T_MIN}
+
+Minimum moving-target prediction time.
+
+When the landing target is moving, precision land aims at the estimated future
+target position after a constrained prediction time. This sets the minimum time.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.1      | 30       |           | 2.0     | s    | &nbsp;    |
+
 ### PLD_SRCH_ALT (`FLOAT`) {#PLD_SRCH_ALT}
 
 Search altitude.
@@ -31699,6 +31742,21 @@ Time allowed to search for the landing target before falling back to normal land
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0.0      | 100      | 0.1       | 10.0    | s    | &nbsp;    |
+
+### PLD_YAW_EN (`INT32`) {#PLD_YAW_EN}
+
+Set to true to control yaw while landing.
+
+Control the orientation when landing. The orientation comes from the topic vte_orientation.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
+| &nbsp; | 0        | 1        |           | Disabled (0) |      | &nbsp;    |
 
 ## Pure Pursuit
 
@@ -32508,11 +32566,10 @@ Mid point value
 
 ### RC_CHAN_CNT (`INT32`) {#RC_CHAN_CNT}
 
-RC channel count.
+Calibrated RC channel count.
 
-This parameter is used by Ground Station software to save the number
-of channels which were used during RC calibration. It is only meant
-for ground station use.
+Number of channels detected during RC calibration. Must be non-zero
+for RC manual control input to be accepted.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -36798,6 +36855,16 @@ GRF Sensor Model used to distinush between the GRF250 and GRF500 since both have
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; |          |          |           | 0       |      | &nbsp;    |
 
+### HEATER1_IMAX (`FLOAT`) {#HEATER1_IMAX}
+
+Heater controller 1 integrator clamp.
+
+Limits the maximum (and minimum) contribution of the integrator term to the controller output.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0.0      | 0.25     |           | 0.25    |      | &nbsp;    |
+
 ### HEATER1_IMU_ID (`INT32`) {#HEATER1_IMU_ID}
 
 The ID of the IMU controlled by heater 1.
@@ -36810,6 +36877,17 @@ a valid DEVID must be configured for each heater to ensure a 1:1 mapping between
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; |          |          |           | 0       |      | &nbsp;    |
+
+### HEATER1_NOM_V (`FLOAT`) {#HEATER1_NOM_V}
+
+Nominal supply voltage for heater 1.
+
+Used to limit the PWM duty cycle when the actual supply voltage exceeds this value,
+to prevent excess power dissipation. Set to 0 to disable voltage-based limiting.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 100.0    |           | 0.0     | V    | &nbsp;    |
 
 ### HEATER1_TEMP (`FLOAT`) {#HEATER1_TEMP}
 
@@ -36855,6 +36933,27 @@ The proportional gain determines how quickly the controller responds to temperat
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 0        | 2.0      |           | 1.0     | us/C | &nbsp;    |
 
+### HEATER1_TEMP_SRC (`INT32`) {#HEATER1_TEMP_SRC}
+
+Temperature source for heater 1.
+
+Selects the sensor used as the temperature input for heater control.
+0 = IMU (sensor_accel temperature), 1 = Hygrometer (sensor_hygrometer temperature).
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 0       |      | &nbsp;    |
+
+### HEATER2_IMAX (`FLOAT`) {#HEATER2_IMAX}
+
+Heater controller 2 integrator clamp.
+
+Limits the maximum (and minimum) contribution of the integrator term to the controller output.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0.0      | 0.25     |           | 0.25    |      | &nbsp;    |
+
 ### HEATER2_IMU_ID (`INT32`) {#HEATER2_IMU_ID}
 
 The ID of the IMU controlled by heater 2.
@@ -36867,6 +36966,17 @@ a valid DEVID must be configured for each heater to ensure a 1:1 mapping between
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; |          |          |           | 0       |      | &nbsp;    |
+
+### HEATER2_NOM_V (`FLOAT`) {#HEATER2_NOM_V}
+
+Nominal supply voltage for heater 2.
+
+Used to limit the PWM duty cycle when the actual supply voltage exceeds this value,
+to prevent excess power dissipation. Set to 0 to disable voltage-based limiting.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 100.0    |           | 0.0     | V    | &nbsp;    |
 
 ### HEATER2_TEMP (`FLOAT`) {#HEATER2_TEMP}
 
@@ -36912,6 +37022,27 @@ The proportional gain determines how quickly the controller responds to temperat
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 0        | 2.0      |           | 1.0     | us/C | &nbsp;    |
 
+### HEATER2_TEMP_SRC (`INT32`) {#HEATER2_TEMP_SRC}
+
+Temperature source for heater 2.
+
+Selects the sensor used as the temperature input for heater control.
+0 = IMU (sensor_accel temperature), 1 = Hygrometer (sensor_hygrometer temperature).
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 0       |      | &nbsp;    |
+
+### HEATER3_IMAX (`FLOAT`) {#HEATER3_IMAX}
+
+Heater controller 3 integrator clamp.
+
+Limits the maximum (and minimum) contribution of the integrator term to the controller output.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0.0      | 0.25     |           | 0.25    |      | &nbsp;    |
+
 ### HEATER3_IMU_ID (`INT32`) {#HEATER3_IMU_ID}
 
 The ID of the IMU controlled by heater 3.
@@ -36924,6 +37055,17 @@ a valid DEVID must be configured for each heater to ensure a 1:1 mapping between
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; |          |          |           | 0       |      | &nbsp;    |
+
+### HEATER3_NOM_V (`FLOAT`) {#HEATER3_NOM_V}
+
+Nominal supply voltage for heater 3.
+
+Used to limit the PWM duty cycle when the actual supply voltage exceeds this value,
+to prevent excess power dissipation. Set to 0 to disable voltage-based limiting.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 100.0    |           | 0.0     | V    | &nbsp;    |
 
 ### HEATER3_TEMP (`FLOAT`) {#HEATER3_TEMP}
 
@@ -36968,6 +37110,17 @@ The proportional gain determines how quickly the controller responds to temperat
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 0        | 2.0      |           | 1.0     | us/C | &nbsp;    |
+
+### HEATER3_TEMP_SRC (`INT32`) {#HEATER3_TEMP_SRC}
+
+Temperature source for heater 3.
+
+Selects the sensor used as the temperature input for heater control.
+0 = IMU (sensor_accel temperature), 1 = Hygrometer (sensor_hygrometer temperature).
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 0       |      | &nbsp;    |
 
 ### ILABS_MODE (`INT32`) {#ILABS_MODE}
 
@@ -37273,14 +37426,6 @@ INA220 Power Monitor Regulator Shunt.
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 1e-09    | 0.1      | 1e-09     | 0.0005  |      | &nbsp;    |
-
-### INA226_CONFIG (`INT32`) {#INA226_CONFIG}
-
-INA226 Power Monitor Config.
-
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 65535    | 1         | 18139   |      | &nbsp;    |
 
 ### INA226_CURRENT (`FLOAT`) {#INA226_CURRENT}
 
@@ -37876,6 +38021,29 @@ This parameter defines the mode of the AFBR Rangefinder.
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 0        | 3        |           | 0       |      | &nbsp;    |
+
+### SENS_AFBR_ROT (`INT32`) {#SENS_AFBR_ROT}
+
+AFBR Rangefinder Orientation.
+
+Mounting orientation of the AFBR-S50 relative to the vehicle body frame.
+
+**Values:**
+
+- `0`: No rotation
+- `1`: Yaw 45°
+- `2`: Yaw 90°
+- `3`: Yaw 135°
+- `4`: Yaw 180°
+- `5`: Yaw 225°
+- `6`: Yaw 270°
+- `7`: Yaw 315°
+- `24`: Pitch 90°
+- `25`: Pitch 270°
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 25       |           | 25      |      | &nbsp;    |
 
 ### SENS_AFBR_S_RATE (`INT32`) {#SENS_AFBR_S_RATE}
 
@@ -39952,6 +40120,25 @@ The usb port on the sensor indicates 180deg, opposite usb is forward facing
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; |          |          |           | 0       |      | &nbsp;    |
 
+### VN_IMU_RATE (`INT32`) {#VN_IMU_RATE}
+
+VectorNav IMU output rate.
+
+Rate of the IMU output.
+The VectorNav base rate is 800 Hz. This parameter sets the
+divider, so the effective rate is 800 / divider.
+
+**Values:**
+
+- `1`: 800 Hz
+- `2`: 400 Hz
+- `4`: 200 Hz
+- `8`: 100 Hz
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 1       |      | &nbsp;    |
+
 ### VN_MODE (`INT32`) {#VN_MODE}
 
 VectorNav driver mode.
@@ -39966,6 +40153,21 @@ INS or sensors
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; |          |          |           | 0       |      | &nbsp;    |
+
+### VN_PORT (`INT32`) {#VN_PORT}
+
+VectorNav output port.
+
+Selects which serial port the sensor streams output to.
+
+**Values:**
+
+- `1`: Port 1
+- `2`: Port 2
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 2       |      | &nbsp;    |
 
 ### VOXLPM_SHUNT_BAT (`FLOAT`) {#VOXLPM_SHUNT_BAT}
 
@@ -46502,6 +46704,382 @@ The encoder angle at which theta is zero. Adjust this number to change the locat
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; |          |          |           | 0       |      | &nbsp;    |
+
+## Vision Target Estimator
+
+### VTE_ACC_D_UNC (`FLOAT`) {#VTE_ACC_D_UNC}
+
+UAV acceleration white-noise power spectral density.
+
+White-noise PSD on the UAV acceleration input. The
+1-sigma vel_uav change allowed over a time t is sqrt(VTE_ACC_D_UNC \* t).
+
+This is a variance rate, not a per-step variance; the value is independent
+of the filter update rate. Higher values let the filter follow new
+measurements more tightly and reject fewer outliers.
+
+Unit: m^2/s^3.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0001   |          |           | 0.02    |      | &nbsp;    |
+
+### VTE_ACC_T_UNC (`FLOAT`) {#VTE_ACC_T_UNC}
+
+Target acceleration random-walk process noise.
+
+Process-noise spectral density of the target acceleration random walk
+(moving-target builds only). The 1-sigma target-acceleration change over a
+time t is sqrt(VTE_ACC_T_UNC \* t) (e.g. for the 0.1 default, ~0.32 m/s^2
+after 1 s, ~1.0 m/s^2 after 10 s).
+
+This is a variance rate, not a linear rate of change; the value is
+independent of the filter update rate. Higher values let the filter follow
+target manoeuvres more aggressively and accept more outliers.
+
+Unit: ((m/s^2)^2)/s.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.01     |          |           | 0.1     |      | &nbsp;    |
+
+### VTE_ACC_UNC_IN (`FLOAT`) {#VTE_ACC_UNC_IN}
+
+Initial target absolute acceleration uncertainty.
+
+Initial variance of the relative target acceleration in x, y, and z directions
+(moving-target builds only).
+Changes while the estimator is running are picked up immediately by the module but only take effect
+the next time the estimator initializes or resets.
+Once the filter is running, the steady-state target-acceleration variance is
+governed by VTE_ACC_T_UNC and the measurement updates, so this parameter does
+not influence runtime behaviour.
+
+| Reboot | minValue | maxValue | increment | default | unit      | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | --------- | --------- |
+| &nbsp; | 0.001    |          |           | 0.1     | (m/s^2)^2 | &nbsp;    |
+
+### VTE_AID_MASK (`INT32`) {#VTE_AID_MASK}
+
+Integer bitmask controlling data fusion and aiding methods.
+
+Set bits in the following positions to enable:
+0 : Set to true to use the target's GNSS position data if available. (+1)
+1 : Set to true to use the UAV GNSS velocity data if available. (+2)
+2 : Set to true to use the target relative position from vision-based data if available. (+4)
+3 : Set to true to use the mission land point. Ignored if target GNSS position enabled. (+8)
+4 : Set to true to use the target GNSS velocity if available. (+16)
+
+**Bitmask:**
+
+- `0`: target GNSS position
+- `1`: UAV GNSS velocity
+- `2`: vision relative position
+- `3`: mission position
+- `4`: target GNSS velocity
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 31       |           | 14      |      | &nbsp;    |
+
+### VTE_BIAS_UNC (`FLOAT`) {#VTE_BIAS_UNC}
+
+Bias random-walk process noise.
+
+Process-noise spectral density of the GPS/vision bias random walk. The
+1-sigma expected bias change over a time t is sqrt(VTE_BIAS_UNC \* t) (e.g.
+for the 0.001 default, ~3 cm after 1 s, ~10 cm after 10 s, ~32 cm after
+100 s).
+
+This is a variance rate, not a linear drift rate; the value is independent
+of the filter update rate. Higher values let the bias follow new
+observations more aggressively; lower values keep it stiff. Tune to match
+the realistic physical drift of the absolute reference (typically a few
+centimetres over tens of seconds for consumer GNSS, less for RTK).
+
+Unit: m^2/s.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0001   |          |           | 0.001   |      | &nbsp;    |
+
+### VTE_BIA_AVG_THR (`FLOAT`) {#VTE_BIA_AVG_THR}
+
+Initial GNSS/vision bias averaging threshold.
+
+When the GNSS/vision bias first becomes observable while the estimator is still referenced to GNSS,
+VTE low-pass filters the first GNSS/vision bias samples before activating the bias estimate.
+The LPF exit requires consecutive raw bias samples to stay within this threshold and for the LPF
+to have run for at least 2 \* tau, or until VTE_BIA_AVG_TOUT elapses.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      |          |           | 0.3     | m    | &nbsp;    |
+
+### VTE_BIA_AVG_TOUT (`FLOAT`) {#VTE_BIA_AVG_TOUT}
+
+Initial GNSS/vision bias averaging timeout.
+
+Maximum time spent averaging the initial GNSS bias before activating it once GNSS and vision
+are jointly observable while the estimator is still referenced to GNSS. During that phase, valid
+vision samples keep updating the LPF. While the current GNSS-relative measurement stays valid,
+it can be propagated with the UAV velocity estimate to match the vision timestamp. If that GNSS
+sample is no longer valid, averaging stops, the current vision position is used, and the current
+LPF bias is activated.
+
+Set to 0 to disable averaging and activate the bias immediately.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      |          |           | 1.0     | s    | &nbsp;    |
+
+### VTE_BIA_UNC_IN (`FLOAT`) {#VTE_BIA_UNC_IN}
+
+Initial GPS bias uncertainty.
+
+Initial variance of the bias between the GPS on the target and the GPS on the drone.
+Changes while the estimator is running are picked up immediately by the module but only take effect
+the next time the estimator initializes or resets.
+Once the filter is running, the steady-state bias variance is governed by VTE_BIAS_UNC
+and the measurement updates, so this parameter does not influence runtime behaviour.
+Keep it large so initialization can absorb initial misalignments.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.001    |          |           | 1.0     | m^2  | &nbsp;    |
+
+### VTE_BTOUT (`FLOAT`) {#VTE_BTOUT}
+
+Vision target timeout.
+
+Time after which the target is considered lost without any new fused measurements. When this timeout expires, the estimator is reset and can restart immediately once an enabled fusion source is available.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      | 50       | 0.5       | 3.0     | s    | &nbsp;    |
+
+### VTE_EN (`INT32`) {#VTE_EN}
+
+Vision Target Estimator module enable.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default     | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ----------- | ---- | --------- |
+| &check; |          |          |           | Enabled (1) |      | &nbsp;    |
+
+### VTE_EVA_NOISE (`FLOAT`) {#VTE_EVA_NOISE}
+
+Minimum standard deviation for vision yaw observations.
+
+Lower bound on the standard deviation used when fusing the vision yaw
+observation. The estimator squares this value and clamps the per-sample
+observation variance to max(reported_variance, VTE_EVA_NOISE^2). The floor only
+takes effect when the sensor under-reports its own noise.
+The default of ~0.07 rad (4 deg) is a reasonable starting point for marker-based
+yaw detection. Lowering it makes the filter trust each yaw sample more, which
+can cause the controller to chase the resulting setpoint changes and oscillate.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.05     |          |           | 0.07    | rad  | &nbsp;    |
+
+### VTE_EVP_NOISE (`FLOAT`) {#VTE_EVP_NOISE}
+
+Minimum standard deviation for vision relative-position observations.
+
+Lower bound on the standard deviation used when fusing the vision relative
+position. The estimator squares this value and clamps the per-sample
+observation variance to max(reported_variance, VTE_EVP_NOISE^2). The floor only
+takes effect when the sensor under-reports its own noise.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.01     |          |           | 0.1     | m    | &nbsp;    |
+
+### VTE_GPS_P_NOISE (`FLOAT`) {#VTE_GPS_P_NOISE}
+
+Minimum standard deviation for GPS position observations.
+
+Lower bound on the standard deviation used when fusing GPS position (target or
+mission landing waypoint). The estimator squares this value and clamps the
+per-sample observation variance to max(reported_variance, VTE_GPS_P_NOISE^2).
+The floor only takes effect when the sensor under-reports its own noise.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.01     | 10.0     |           | 0.5     | m    | &nbsp;    |
+
+### VTE_GPS_V_NOISE (`FLOAT`) {#VTE_GPS_V_NOISE}
+
+Minimum standard deviation for GPS velocity observations.
+
+Lower bound on the standard deviation used when fusing GPS velocity. The
+estimator squares this value and clamps the per-sample observation variance
+to max(reported_variance, VTE_GPS_V_NOISE^2). The floor only takes effect when
+the sensor under-reports its own noise; if the reported variance is already
+above the floor, this parameter has no effect.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.01     | 5.0      |           | 0.3     | m/s  | &nbsp;    |
+
+### VTE_M_REC_TOUT (`FLOAT`) {#VTE_M_REC_TOUT}
+
+Measurement recent timeout.
+
+Time window for considering a raw measurement as recent and eligible for fusion.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      | 10       | 0.05      | 1.0     | s    | &nbsp;    |
+
+### VTE_M_UPD_TOUT (`FLOAT`) {#VTE_M_UPD_TOUT}
+
+Measurement updated timeout.
+
+Maximum allowed age of a retained measurement before it is discarded from the estimator's cache.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      | 5        | 0.01      | 0.1     | s    | &nbsp;    |
+
+### VTE_POS_EN (`INT32`) {#VTE_POS_EN}
+
+Vision Target Estimator module enable position estimation.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default     | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ----------- | ---- | --------- |
+| &check; |          |          |           | Enabled (1) |      | &nbsp;    |
+
+### VTE_POS_NIS_THRE (`FLOAT`) {#VTE_POS_NIS_THRE}
+
+Normalized innovation squared threshold for the position estimator.
+
+Lower values mean that more measurements will be rejected. Null hypothesis H0: the innovation is
+consistent with the innovation covariance matrix. Values of 0.46, 1.64, 2.71, 3.84, 6.63, and 10.83
+correspond to 50%, 20%, 10%, 5%, 1%, and 0.1% probability respectively that H0 is incorrectly rejected.
+The confidence interval is computed from the chi-squared distribution.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.46     | 10.83    |           | 3.84    |      | &nbsp;    |
+
+### VTE_POS_UNC_IN (`FLOAT`) {#VTE_POS_UNC_IN}
+
+Initial target and drone relative position uncertainty.
+
+Initial variance of the relative target position in x, y, and z direction.
+Changes while the estimator is running are picked up immediately by the module but only take effect
+the next time the estimator initializes or resets.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.001    |          |           | 0.5     | m^2  | &nbsp;    |
+
+### VTE_TASK_MASK (`INT32`) {#VTE_TASK_MASK}
+
+Integer bitmask controlling the tasks of the target estimator.
+
+Set bits in the following positions to enable:
+0 : Set to true to use the vision target estimator for precision landing. (+1)
+1 : DEBUG, always active. (+2)
+
+**Bitmask:**
+
+- `0`: precision landing
+- `1`: DEBUG, always active
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 3        |           | 1       |      | &nbsp;    |
+
+### VTE_TGT_TOUT (`FLOAT`) {#VTE_TGT_TOUT}
+
+Target validity timeout.
+
+Maximum time without any fused measurements before the published relative pose/yaw is flagged invalid.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      | 50       | 0.25      | 2.0     | s    | &nbsp;    |
+
+### VTE_VEL_UNC_IN (`FLOAT`) {#VTE_VEL_UNC_IN}
+
+Initial target and drone relative velocity uncertainty.
+
+Initial variance of the relative target velocity in x, y, and z directions.
+Changes while the estimator is running are picked up immediately by the module but only take effect
+the next time the estimator initializes or resets.
+
+| Reboot | minValue | maxValue | increment | default | unit    | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ------- | --------- |
+| &nbsp; | 0.001    |          |           | 0.5     | (m/s)^2 | &nbsp;    |
+
+### VTE_YAW_ACC_UNC (`FLOAT`) {#VTE_YAW_ACC_UNC}
+
+Yaw acceleration white-noise power spectral density.
+
+White-noise PSD on the yaw acceleration driving the
+yaw-rate state. The 1-sigma yaw-rate change allowed over a time t is
+sqrt(VTE_YAW_ACC_UNC \* t) (e.g. for the 0.004 default, ~3.6 deg/s after 1 s,
+~11.5 deg/s after 10 s).
+
+This is a variance rate, not a per-step variance; the value is independent
+of the filter update rate. Higher values let the filter follow rapid
+heading changes; lower values smooth the yaw estimate aggressively.
+
+Unit: rad^2/s^3.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      |          |           | 0.004   |      | &nbsp;    |
+
+### VTE_YAW_EN (`INT32`) {#VTE_YAW_EN}
+
+Vision Target Estimator module enable orientation estimation.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
+| &check; |          |          |           | Disabled (0) |      | &nbsp;    |
+
+### VTE_YAW_NIS_THRE (`FLOAT`) {#VTE_YAW_NIS_THRE}
+
+Normalized innovation squared threshold for the orientation estimator.
+
+Lower values mean that more measurements will be rejected. Null hypothesis H0: the innovation is
+consistent with the innovation covariance matrix. Values of 0.46, 1.64, 2.71, 3.84, 6.63, and 10.83
+correspond to 50%, 20%, 10%, 5%, 1%, and 0.1% probability respectively that H0 is incorrectly rejected.
+The confidence interval is computed from the chi-squared distribution.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.46     | 10.83    |           | 3.84    |      | &nbsp;    |
+
+### VTE_YAW_UNC_IN (`FLOAT`) {#VTE_YAW_UNC_IN}
+
+Initial orientation uncertainty.
+
+Initial variance of the target orientation yaw in rad^2.
+Changes while the estimator is running are picked up immediately by the module but only take effect
+the next time the estimator initializes or resets.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.001    |          |           | 1.0     |      | &nbsp;    |
 
 ## Zenoh
 

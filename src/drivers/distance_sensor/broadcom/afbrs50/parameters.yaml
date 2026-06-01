@@ -56,3 +56,23 @@ parameters:
       unit: m
       min: 1
       max: 10
+    SENS_AFBR_ROT:
+      description:
+        short: AFBR Rangefinder Orientation
+        long: Mounting orientation of the AFBR-S50 relative to the vehicle body frame.
+      type: enum
+      values:
+        0: No rotation
+        1: "Yaw 45\xB0"
+        2: "Yaw 90\xB0"
+        3: "Yaw 135\xB0"
+        4: "Yaw 180\xB0"
+        5: "Yaw 225\xB0"
+        6: "Yaw 270\xB0"
+        7: "Yaw 315\xB0"
+        24: "Pitch 90\xB0"
+        25: "Pitch 270\xB0"
+      default: 25
+      reboot_required: true
+      min: 0
+      max: 25

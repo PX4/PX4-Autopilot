@@ -346,6 +346,60 @@ int Commander::custom_command(int argc, char *argv[])
 		return 0;
 	}
 
+	if (!strcmp(argv[0], "actuator_group_test")) {
+		if (argc < 2) {
+			PX4_ERR("missing argument");
+			return 1;
+		}
+
+		uint8_t group;
+		float value = 1.f;
+
+		if (!strcmp(argv[1], "roll")) {
+			group = vehicle_command_s::ACTUATOR_TEST_GROUP_ROLL_TORQUE;
+
+		} else if (!strcmp(argv[1], "pitch")) {
+			group = vehicle_command_s::ACTUATOR_TEST_GROUP_PITCH_TORQUE;
+
+		} else if (!strcmp(argv[1], "yaw")) {
+			group = vehicle_command_s::ACTUATOR_TEST_GROUP_YAW_TORQUE;
+
+		} else if (!strcmp(argv[1], "tilt")) {
+			group = vehicle_command_s::ACTUATOR_TEST_GROUP_COLLECTIVE_TILT;
+
+		} else if (!strcmp(argv[1], "xthrust")) {
+			group = vehicle_command_s::ACTUATOR_TEST_GROUP_X_THRUST;
+			value = 0.1f; // For thrust use a lower default to avoid unintended takeoffs
+
+		} else if (!strcmp(argv[1], "ythrust")) {
+			group = vehicle_command_s::ACTUATOR_TEST_GROUP_Y_THRUST;
+			value = 0.1f;
+
+		} else if (!strcmp(argv[1], "zthrust")) {
+			group = vehicle_command_s::ACTUATOR_TEST_GROUP_Z_THRUST;
+			value = -0.1f;
+
+		} else {
+			PX4_ERR("argument %s unsupported.", argv[1]);
+			return 1;
+		}
+
+		if (argc > 2) {
+			char *end;
+			const float user_value = strtof(argv[2], &end);
+
+			if (*end == '\0' && PX4_ISFINITE(user_value)) {
+				value = user_value;
+
+			} else {
+				PX4_WARN("actuator_group_test: value \"%s\" is invalid. Using default %.1f", argv[2], (double) value);
+			}
+		}
+
+		send_vehicle_command(vehicle_command_s::VEHICLE_CMD_ACTUATOR_GROUP_TEST, group, value);
+		return 0;
+	}
+
 	if (!strcmp(argv[0], "arm")) {
 		float param2 = 0.f;
 
@@ -434,6 +488,10 @@ int Commander::custom_command(int argc, char *argv[])
 			} else if (!strcmp(argv[1], "auto:loiter")) {
 				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_AUTO,
 						     PX4_CUSTOM_SUB_MODE_AUTO_LOITER);
+
+			} else if (!strcmp(argv[1], "auto:course")) {
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_AUTO,
+						     PX4_CUSTOM_SUB_MODE_GUIDED_COURSE);
 
 			} else if (!strcmp(argv[1], "auto:rtl")) {
 				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_AUTO,
@@ -818,11 +876,19 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED);
 
 			} else {
-				if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER, getSourceFromCommand(cmd))) {
+				// If already in course mode, stay in course mode (navigator handles any altitude update)
+				// Only switch to loiter if a specific lat/lon target is given, or we are not in course mode.
+				const bool has_position_target = PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6);
+				const bool in_course_mode = _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE;
+				const uint8_t target_state = (in_course_mode && !has_position_target)
+							     ? vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE
+							     : vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
+
+				if (_user_mode_intention.change(target_state, getSourceFromCommand(cmd))) {
 					cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 				} else {
-					printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
+					printRejectMode(target_state);
 					cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 				}
 			}
@@ -830,20 +896,23 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_DO_CHANGE_ALTITUDE: {
+			// Accept only in modes where the navigator handles altitude changes in-place.
+			// No mode switching: if the current mode doesn't support it, deny.
+			const uint8_t nav_state = _vehicle_status.nav_state;
 
-			// Just switch the flight mode here, the navigator takes care of
-			// doing something sensible with the coordinates. Its designed
-			// to not require navigator and command to receive / process
-			// the data at the exact same time.
-
-			if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER)) {
+			if (nav_state == vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE
+			    || nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) {
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
-				printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
-				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
 			}
+		}
+		break;
 
+	case vehicle_command_s::VEHICLE_CMD_GUIDED_CHANGE_HEADING: {
+			// Navigator handles this command: it acks ACCEPTED when
+			// the vehicle is in course mode with a valid position, DENIED otherwise.
 		}
 		break;
 
@@ -908,6 +977,10 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 						case PX4_CUSTOM_SUB_MODE_AUTO_PRECLAND:
 							desired_nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND;
+							break;
+
+						case PX4_CUSTOM_SUB_MODE_GUIDED_COURSE:
+							desired_nav_state = vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE;
 							break;
 
 						case PX4_CUSTOM_SUB_MODE_EXTERNAL1...PX4_CUSTOM_SUB_MODE_EXTERNAL8:
@@ -1640,6 +1713,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 	case vehicle_command_s::VEHICLE_CMD_EXTERNAL_ATTITUDE_ESTIMATE:
 	case vehicle_command_s::VEHICLE_CMD_DO_AUTOTUNE_ENABLE:
 	case vehicle_command_s::VEHICLE_CMD_ESTIMATOR_SENSOR_ENABLE:
+	case vehicle_command_s::VEHICLE_CMD_ACTUATOR_GROUP_TEST:
 		/* ignore commands that are handled by other parts of the system */
 		break;
 
@@ -3151,6 +3225,9 @@ The commander module contains the state machine for mode switching and failsafe 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("check", "Run preflight checks");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("safety", "Change prearm safety state");
 	PRINT_MODULE_USAGE_ARG("on|off", "[on] to activate safety, [off] to deactivate safety and allow control surface movements", false);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("actuator_group_test", "Drive a functional actuator group (torque/thrust/tilt) for a brief preflight check");
+	PRINT_MODULE_USAGE_ARG("roll|pitch|yaw|tilt|xthrust|ythrust|zthrust", "Group", false);
+	PRINT_MODULE_USAGE_ARG("value", "Normalized command [-1.0, +1.0]; default 1.0 for torque/tilt, 0.1 for thrust", true);
 	PRINT_MODULE_USAGE_COMMAND("arm");
 	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Force arming (do not run preflight checks)", true);
 	PRINT_MODULE_USAGE_COMMAND("disarm");
@@ -3159,7 +3236,7 @@ The commander module contains the state machine for mode switching and failsafe 
 	PRINT_MODULE_USAGE_COMMAND("land");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("transition", "VTOL transition");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("mode", "Change flight mode");
-	PRINT_MODULE_USAGE_ARG("manual|acro|offboard|stabilized|altctl|posctl|altitude_cruise|position:slow|auto:mission|auto:loiter|auto:rtl|auto:takeoff|auto:land|auto:precland|ext1",
+	PRINT_MODULE_USAGE_ARG("manual|acro|offboard|stabilized|altctl|posctl|altitude_cruise|position:slow|auto:mission|auto:loiter|auto:course|auto:rtl|auto:takeoff|auto:land|auto:precland|ext1",
 			"Flight mode", false);
 	PRINT_MODULE_USAGE_COMMAND("pair");
 	PRINT_MODULE_USAGE_COMMAND("termination");

@@ -8,15 +8,15 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name         | Type        | Unit [Frame] | Range/Enum | Description                            |
-| ------------ | ----------- | ------------ | ---------- | -------------------------------------- |
-| timestamp    | `uint64`    |              |            | time since system start (microseconds) |
-| client_id    | `uint8`     |              |            |
-| request_type | `uint8`     |              |            | id/read/write/clear                    |
-| item         | `uint8`     |              |            | dm_item_t                              |
-| index        | `uint32`    |              |            |
-| data         | `uint8[56]` |              |            |
-| status       | `uint8`     |              |            |
+| Name                                      | Type        | Unit [Frame] | Range/Enum | Description                            |
+| ----------------------------------------- | ----------- | ------------ | ---------- | -------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp       | `uint64`    |              |            | time since system start (microseconds) |
+| <a id="fld_client_id"></a>client_id       | `uint8`     |              |            |
+| <a id="fld_request_type"></a>request_type | `uint8`     |              |            | id/read/write/clear                    |
+| <a id="fld_item"></a>item                 | `uint8`     |              |            | dm_item_t                              |
+| <a id="fld_index"></a>index               | `uint32`    |              |            |
+| <a id="fld_data"></a>data                 | `uint8[56]` |              |            |
+| <a id="fld_status"></a>status             | `uint8`     |              |            |
 
 ## Constants
 

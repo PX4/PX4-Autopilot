@@ -8,10 +8,10 @@ pageClass: is-wide-page
 
 ## Fields
 
-| 参数名                                                      | 类型       | Unit [Frame] | Range/Enum | 描述                                                        |
-| -------------------------------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| timestamp                                                | `uint64` |                                                                  |            | time since system start (microseconds) |
-| request_on_off | `uint8`  |                                                                  |            | request to disable/enable the distance sensor             |
+| 参数名                                                                                     | 类型       | Unit [Frame] | Range/Enum | 描述                                                        |
+| --------------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                                     | `uint64` |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_request_on_off"></a>request_on_off | `uint8`  |                                                                  |            | request to disable/enable the distance sensor             |
 
 ## Constants
 

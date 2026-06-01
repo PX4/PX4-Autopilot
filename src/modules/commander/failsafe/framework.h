@@ -275,7 +275,7 @@ private:
 	failsafe_flags_s _last_status_flags{};
 	Action _selected_action{Action::None};
 	bool _user_takeover_active{false};
-	bool _notification_required{false};
+	Cause _pending_notification_cause{Cause::Count};
 
 	bool _defer_failsafes{false};
 	hrt_abstime _defer_timeout{0};

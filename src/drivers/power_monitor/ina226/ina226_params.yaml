@@ -9,16 +9,6 @@ parameters:
       type: boolean
       default: 0
       reboot_required: true
-    INA226_CONFIG:
-      description:
-        short: INA226 Power Monitor Config
-      type: int32
-      default: 18139
-      min: 0
-      max: 65535
-      decimal: 1
-      increment: 1
-      reboot_required: true
     INA226_CURRENT:
       description:
         short: INA226 Power Monitor Max Current

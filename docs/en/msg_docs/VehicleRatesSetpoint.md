@@ -8,14 +8,14 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name           | Type         | Unit [Frame] | Range/Enum | Description                                              |
-| -------------- | ------------ | ------------ | ---------- | -------------------------------------------------------- |
-| timestamp      | `uint64`     |              |            | time since system start (microseconds)                   |
-| roll           | `float32`    | rad/s        |            | roll rate setpoint                                       |
-| pitch          | `float32`    | rad/s        |            | pitch rate setpoint                                      |
-| yaw            | `float32`    | rad/s        |            | yaw rate setpoint                                        |
-| thrust_body    | `float32[3]` |              |            | Normalized thrust command in body NED frame [-1,1]       |
-| reset_integral | `bool`       |              |            | Reset roll/pitch/yaw integrals (navigation logic change) |
+| Name                                          | Type         | Unit [Frame] | Range/Enum | Description                                              |
+| --------------------------------------------- | ------------ | ------------ | ---------- | -------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp           | `uint64`     |              |            | time since system start (microseconds)                   |
+| <a id="fld_roll"></a>roll                     | `float32`    | rad/s        |            | roll rate setpoint                                       |
+| <a id="fld_pitch"></a>pitch                   | `float32`    | rad/s        |            | pitch rate setpoint                                      |
+| <a id="fld_yaw"></a>yaw                       | `float32`    | rad/s        |            | yaw rate setpoint                                        |
+| <a id="fld_thrust_body"></a>thrust_body       | `float32[3]` |              |            | Normalized thrust command in body NED frame [-1,1]       |
+| <a id="fld_reset_integral"></a>reset_integral | `bool`       |              |            | Reset roll/pitch/yaw integrals (navigation logic change) |
 
 ## Constants
 

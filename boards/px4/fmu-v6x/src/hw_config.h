@@ -122,4 +122,17 @@
 #  define BOOT_DEVICES_FILTER_ONUSB USB0_DEV|SERIAL0_DEV|SERIAL1_DEV
 #endif
 
+/* Secure-boot variant: when the bootloader build pulls in crypto
+ * support (CONFIG_BOARD_CRYPTO=y -> PX4_CRYPTO), enable signature
+ * verification in the bootloader and tell it where to find the TOC
+ * the app linker reserves. The matching app variant
+ * (px4_fmu-v6x_secureboot) places the TOC at the same offset.
+ */
+#if defined(PX4_CRYPTO)
+#include <px4_platform_common/crypto_algorithms.h>
+#define BOOTLOADER_USE_SECURITY        1
+#define BOOTLOADER_SIGNING_ALGORITHM   CRYPTO_ED25519
+#define BOARD_IMAGE_TOC_OFFSET         0x800
+#endif
+
 #endif /* HW_CONFIG_H_ */

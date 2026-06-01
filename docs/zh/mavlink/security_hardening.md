@@ -92,7 +92,7 @@ If your threat model includes physical access, secure the SD card slot and debug
 PX4 is open-source flight controller firmware used by manufacturers and system integrators to build commercial and custom drone platforms.
 
 Securing the communication links for a specific deployment is the responsibility of the system integrator.
-其中包括：
+This includes:
 
 - Choosing appropriate radio hardware and link security
 - Enabling and managing MAVLink message signing

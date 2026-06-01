@@ -10,28 +10,29 @@ this file is only used in the position_setpoint triple as a dependency.
 
 ## Fields
 
-| Name                               | Type      | Unit [Frame] | Range/Enum | Description                                                                                       |
-| ---------------------------------- | --------- | ------------ | ---------- | ------------------------------------------------------------------------------------------------- |
-| timestamp                          | `uint64`  |              |            | time since system start (microseconds)                                                            |
-| valid                              | `bool`    |              |            | true if setpoint is valid                                                                         |
-| type                               | `uint8`   |              |            | setpoint type to adjust behavior of position controller                                           |
-| vx                                 | `float32` |              |            | local velocity setpoint in m/s in NED                                                             |
-| vy                                 | `float32` |              |            | local velocity setpoint in m/s in NED                                                             |
-| vz                                 | `float32` |              |            | local velocity setpoint in m/s in NED                                                             |
-| lat                                | `float64` |              |            | latitude, in deg                                                                                  |
-| lon                                | `float64` |              |            | longitude, in deg                                                                                 |
-| alt                                | `float32` |              |            | altitude AMSL, in m                                                                               |
-| yaw                                | `float32` |              |            | yaw (only in hover), in rad [-PI..PI), NaN = leave to flight task                                 |
-| loiter_radius                      | `float32` | m            | [0 : INF]  | loiter major axis radius                                                                          |
-| loiter_minor_radius                | `float32` | m            | [0 : INF]  | loiter minor axis radius (used for non-circular loiter shapes)                                    |
-| loiter_direction_counter_clockwise | `bool`    |              |            | loiter direction is clockwise by default and can be changed using this field                      |
-| loiter_orientation                 | `float32` | rad          | [-pi : pi] | orientation of the major axis with respect to true north                                          |
-| loiter_pattern                     | `uint8`   |              |            | loitern pattern to follow                                                                         |
-| acceptance_radius                  | `float32` |              |            | horizontal acceptance_radius (meters)                                                             |
-| alt_acceptance_radius              | `float32` |              |            | vertical acceptance radius, only used for fixed wing guidance, NAN = let guidance choose (meters) |
-| cruising_speed                     | `float32` |              |            | the generally desired cruising speed (not a hard constraint)                                      |
-| gliding_enabled                    | `bool`    |              |            | commands the vehicle to glide if the capability is available (fixed wing only)                    |
-| cruising_throttle                  | `float32` |              |            | the generally desired cruising throttle (not a hard constraint), only has an effect for rover     |
+| Name                                                                                  | Type      | Unit [Frame] | Range/Enum | Description                                                                                       |
+| ------------------------------------------------------------------------------------- | --------- | ------------ | ---------- | ------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                                   | `uint64`  |              |            | time since system start (microseconds)                                                            |
+| <a id="fld_valid"></a>valid                                                           | `bool`    |              |            | true if setpoint is valid                                                                         |
+| <a id="fld_type"></a>type                                                             | `uint8`   |              |            | setpoint type to adjust behavior of position controller                                           |
+| <a id="fld_vx"></a>vx                                                                 | `float32` |              |            | local velocity setpoint in m/s in NED                                                             |
+| <a id="fld_vy"></a>vy                                                                 | `float32` |              |            | local velocity setpoint in m/s in NED                                                             |
+| <a id="fld_vz"></a>vz                                                                 | `float32` |              |            | local velocity setpoint in m/s in NED                                                             |
+| <a id="fld_lat"></a>lat                                                               | `float64` |              |            | latitude, in deg                                                                                  |
+| <a id="fld_lon"></a>lon                                                               | `float64` |              |            | longitude, in deg                                                                                 |
+| <a id="fld_alt"></a>alt                                                               | `float32` |              |            | altitude AMSL, in m                                                                               |
+| <a id="fld_yaw"></a>yaw                                                               | `float32` |              |            | yaw (only in hover), in rad [-PI..PI), NaN = leave to flight task                                 |
+| <a id="fld_loiter_radius"></a>loiter_radius                                           | `float32` | m            | [0 : INF]  | loiter major axis radius                                                                          |
+| <a id="fld_loiter_minor_radius"></a>loiter_minor_radius                               | `float32` | m            | [0 : INF]  | loiter minor axis radius (used for non-circular loiter shapes)                                    |
+| <a id="fld_loiter_direction_counter_clockwise"></a>loiter_direction_counter_clockwise | `bool`    |              |            | loiter direction is clockwise by default and can be changed using this field                      |
+| <a id="fld_loiter_orientation"></a>loiter_orientation                                 | `float32` | rad          | [-pi : pi] | orientation of the major axis with respect to true north                                          |
+| <a id="fld_loiter_pattern"></a>loiter_pattern                                         | `uint8`   |              |            | loitern pattern to follow                                                                         |
+| <a id="fld_acceptance_radius"></a>acceptance_radius                                   | `float32` |              |            | horizontal acceptance_radius (meters)                                                             |
+| <a id="fld_alt_acceptance_radius"></a>alt_acceptance_radius                           | `float32` |              |            | vertical acceptance radius, only used for fixed wing guidance, NAN = let guidance choose (meters) |
+| <a id="fld_course"></a>course                                                         | `float32` | rad          |            | desired course (bearing) over ground, NaN = unused                                                |
+| <a id="fld_cruising_speed"></a>cruising_speed                                         | `float32` |              |            | the generally desired cruising speed (not a hard constraint)                                      |
+| <a id="fld_gliding_enabled"></a>gliding_enabled                                       | `bool`    |              |            | commands the vehicle to glide if the capability is available (fixed wing only)                    |
+| <a id="fld_cruising_throttle"></a>cruising_throttle                                   | `float32` |              |            | the generally desired cruising throttle (not a hard constraint), only has an effect for rover     |
 
 ## Constants
 
@@ -88,6 +89,7 @@ uint8 	loiter_pattern		# loitern pattern to follow
 float32 acceptance_radius   # horizontal acceptance_radius (meters)
 float32 alt_acceptance_radius # vertical acceptance radius, only used for fixed wing guidance, NAN = let guidance choose (meters)
 
+float32 course			# [rad] desired course (bearing) over ground, NaN = unused
 float32 cruising_speed		# the generally desired cruising speed (not a hard constraint)
 bool gliding_enabled		# commands the vehicle to glide if the capability is available (fixed wing only)
 float32 cruising_throttle	# the generally desired cruising throttle (not a hard constraint), only has an effect for rover

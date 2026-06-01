@@ -157,6 +157,7 @@ add_custom_command(
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/filepaths/generate_config.py
 		--rc-dir ${romfs_gen_root_dir}/init.d
 		--params-file ${CONFIG_BOARD_PARAM_FILE}
+		--board-root-path ${CONFIG_BOARD_ROOT_PATH}
 	COMMAND ${CMAKE_COMMAND} -E touch ${romfs_copy_stamp}
 	WORKING_DIRECTORY ${romfs_gen_root_dir}
 	DEPENDS ${romfs_tar_file}

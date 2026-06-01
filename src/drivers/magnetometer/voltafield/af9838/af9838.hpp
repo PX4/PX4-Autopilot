@@ -53,7 +53,7 @@
 
 namespace AF9838
 {
-extern float g_cli_rate_hz;
+static constexpr float DEFAULT_RATE_HZ = 100.0f;
 static constexpr float LSB_TO_uT = 0.1f;    // micro-Tesla / LSB
 static constexpr float uT_TO_G   = 0.01f;   // µT → Gauss
 static constexpr float ONE_G = 9.80665f;
@@ -97,17 +97,6 @@ private:
 	bool            _running{false};
 	bool _waiting_data{false};
 	hrt_abstime _last_trigger{0};
-	bool            _algo_inited{false};
-
-	static constexpr uint16_t AF9838_MED_FILTER_MAX_NUM = 15;
-	static constexpr uint16_t AF9838_MED_FILTER_NUMBER  = 5;
-
-	uint16_t _mdf_num      = AF9838_MED_FILTER_NUMBER;
-	uint16_t _mdf_init_idx = 0;
-	uint16_t _mdf_data_idx = 0;
-	float    _mdf_data[3][AF9838_MED_FILTER_MAX_NUM] {};
-
-	void af9838_median_filter(float mag[3]);
 
 	uORB::Subscription _accel_sub {ORB_ID(vehicle_acceleration)};
 	hrt_abstime _last_accel_ts{0};

@@ -8,28 +8,28 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name                      | Type         | Unit [Frame] | Range/Enum | Description                                                               |
-| ------------------------- | ------------ | ------------ | ---------- | ------------------------------------------------------------------------- |
-| timestamp                 | `uint64`     |              |            | time since system start (microseconds)                                    |
-| accel_device_id           | `uint32`     |              |            | unique device ID for the sensor that does not change between power cycles |
-| gyro_device_id            | `uint32`     |              |            | unique device ID for the sensor that does not change between power cycles |
-| accel_clipping            | `uint32[3]`  |              |            | total clipping per axis                                                   |
-| gyro_clipping             | `uint32[3]`  |              |            | total clipping per axis                                                   |
-| accel_error_count         | `uint32`     |              |            |
-| gyro_error_count          | `uint32`     |              |            |
-| accel_rate_hz             | `float32`    |              |            |
-| gyro_rate_hz              | `float32`    |              |            |
-| accel_raw_rate_hz         | `float32`    |              |            | full raw sensor sample rate (Hz)                                          |
-| gyro_raw_rate_hz          | `float32`    |              |            | full raw sensor sample rate (Hz)                                          |
-| accel_vibration_metric    | `float32`    |              |            | high frequency vibration level in the accelerometer data (m/s/s)          |
-| gyro_vibration_metric     | `float32`    |              |            | high frequency vibration level in the gyro data (rad/s)                   |
-| delta_angle_coning_metric | `float32`    |              |            | average IMU delta angle coning correction (rad^2)                         |
-| mean_accel                | `float32[3]` |              |            | average accelerometer readings since last publication                     |
-| mean_gyro                 | `float32[3]` |              |            | average gyroscope readings since last publication                         |
-| var_accel                 | `float32[3]` |              |            | accelerometer variance since last publication                             |
-| var_gyro                  | `float32[3]` |              |            | gyroscope variance since last publication                                 |
-| temperature_accel         | `float32`    |              |            |
-| temperature_gyro          | `float32`    |              |            |
+| Name                                                                | Type         | Unit [Frame] | Range/Enum | Description                                                               |
+| ------------------------------------------------------------------- | ------------ | ------------ | ---------- | ------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                 | `uint64`     |              |            | time since system start (microseconds)                                    |
+| <a id="fld_accel_device_id"></a>accel_device_id                     | `uint32`     |              |            | unique device ID for the sensor that does not change between power cycles |
+| <a id="fld_gyro_device_id"></a>gyro_device_id                       | `uint32`     |              |            | unique device ID for the sensor that does not change between power cycles |
+| <a id="fld_accel_clipping"></a>accel_clipping                       | `uint32[3]`  |              |            | total clipping per axis                                                   |
+| <a id="fld_gyro_clipping"></a>gyro_clipping                         | `uint32[3]`  |              |            | total clipping per axis                                                   |
+| <a id="fld_accel_error_count"></a>accel_error_count                 | `uint32`     |              |            |
+| <a id="fld_gyro_error_count"></a>gyro_error_count                   | `uint32`     |              |            |
+| <a id="fld_accel_rate_hz"></a>accel_rate_hz                         | `float32`    |              |            |
+| <a id="fld_gyro_rate_hz"></a>gyro_rate_hz                           | `float32`    |              |            |
+| <a id="fld_accel_raw_rate_hz"></a>accel_raw_rate_hz                 | `float32`    |              |            | full raw sensor sample rate (Hz)                                          |
+| <a id="fld_gyro_raw_rate_hz"></a>gyro_raw_rate_hz                   | `float32`    |              |            | full raw sensor sample rate (Hz)                                          |
+| <a id="fld_accel_vibration_metric"></a>accel_vibration_metric       | `float32`    |              |            | high frequency vibration level in the accelerometer data (m/s/s)          |
+| <a id="fld_gyro_vibration_metric"></a>gyro_vibration_metric         | `float32`    |              |            | high frequency vibration level in the gyro data (rad/s)                   |
+| <a id="fld_delta_angle_coning_metric"></a>delta_angle_coning_metric | `float32`    |              |            | average IMU delta angle coning correction (rad^2)                         |
+| <a id="fld_mean_accel"></a>mean_accel                               | `float32[3]` |              |            | average accelerometer readings since last publication                     |
+| <a id="fld_mean_gyro"></a>mean_gyro                                 | `float32[3]` |              |            | average gyroscope readings since last publication                         |
+| <a id="fld_var_accel"></a>var_accel                                 | `float32[3]` |              |            | accelerometer variance since last publication                             |
+| <a id="fld_var_gyro"></a>var_gyro                                   | `float32[3]` |              |            | gyroscope variance since last publication                                 |
+| <a id="fld_temperature_accel"></a>temperature_accel                 | `float32`    |              |            |
+| <a id="fld_temperature_gyro"></a>temperature_gyro                   | `float32`    |              |            |
 
 ## Source Message
 
