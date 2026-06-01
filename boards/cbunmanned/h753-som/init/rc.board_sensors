@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# CBUnmanned H753-Stamp specific board sensors init
+# CBUnmanned H753-SOM specific board sensors init
 #------------------------------------------------------------------------------
 
 board_adc start

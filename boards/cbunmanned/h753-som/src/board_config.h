@@ -34,7 +34,7 @@
 /**
  * @file board_config.h
  *
- * CBUnmanned H753-Stamp internal definitions
+ * CBUnmanned H753-SOM internal definitions
  */
 
 #pragma once

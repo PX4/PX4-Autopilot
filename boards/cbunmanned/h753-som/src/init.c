@@ -34,7 +34,7 @@
 /**
  * @file init.c
  *
- * CBUnmanned H753-Stamp board-specific early startup code.
+ * CBUnmanned H753-SOM board-specific early startup code.
  */
 
 #include "board_config.h"

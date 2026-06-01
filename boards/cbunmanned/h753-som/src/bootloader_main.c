@@ -34,7 +34,7 @@
 /**
  * @file bootloader_main.c
  *
- * CBUnmanned H753-Stamp bootloader entry point.
+ * CBUnmanned H753-SOM bootloader entry point.
  */
 
 #include "board_config.h"

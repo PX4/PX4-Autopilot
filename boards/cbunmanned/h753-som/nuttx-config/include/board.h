@@ -44,7 +44,7 @@
 #include "stm32_sdmmc.h"
 
 /* Clocking *************************************************************************/
-/* The CBUnmanned H753-Stamp provides the following clock sources:
+/* The CBUnmanned H753-SOM provides the following clock sources:
  *
  *   X1: 16 MHz crystal for HSE
  *

@@ -1,4 +1,4 @@
-# CBUnmanned H753-Stamp
+# CBUnmanned H753-SOM
 
 <Badge type="tip" text="PX4 v1.18" />
 
@@ -6,10 +6,10 @@
 PX4 does not manufacture this (or any) autopilot. Contact the manufacturer for hardware support or compliance issues.
 :::
 
-The _CBUnmanned H753-Stamp_ is a System-on-Module (SoM) flight controller built around the STM32H753 microcontroller.
+The _CBUnmanned H753-SOM_ is a System-on-Module (SoM) flight controller built around the STM32H753 microcontroller.
 It is intended to be mounted on a carrier board that breaks out the I/O and provides power, peripherals, and connectors for a specific vehicle integration.
 
-![CBUnmanned H753-Stamp Pinout](../../assets/flight_controller/cbunmanned_h753-stamp/cbunmanned-h753-stamp-pinout.jpg)
+![CBUnmanned H753-SOM Pinout](../../assets/flight_controller/cbunmanned_h753-som/cbunmanned-h753-som-pinout.jpg)
 
 ::: info
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
@@ -49,7 +49,7 @@ It is pre-built and automatically installed by _QGroundControl_ when appropriate
 To [build PX4](../dev_setup/building_px4.md) for this target from source:
 
 ```sh
-make cbunmanned_h753-stamp_default
+make cbunmanned_h753-som_default
 ```
 
 ## Serial Port Mapping
@@ -88,6 +88,6 @@ The system console runs on UART5 (PC12 / PD2). USB CDC ACM is auto-started and p
 ## PX4 Bootloader Update
 
 Boards that ship without the PX4 bootloader must have it flashed before PX4 firmware can be installed.
-Download the [cbunmanned_h753-stamp_bootloader.bin](https://github.com/PX4/PX4-Autopilot/blob/main/boards/cbunmanned/h753-stamp/extras/cbunmanned_h753-stamp_bootloader.bin) bootloader binary and follow the [DFU Bootloader Update](../advanced_config/bootloader_update_from_betaflight.md#dfu-bootloader-update) instructions.
+Download the [cbunmanned_h753-som_bootloader.bin](https://github.com/PX4/PX4-Autopilot/blob/main/boards/cbunmanned/h753-som/extras/cbunmanned_h753-som_bootloader.bin) bootloader binary and follow the [DFU Bootloader Update](../advanced_config/bootloader_update_from_betaflight.md#dfu-bootloader-update) instructions.
 
 Once the PX4 bootloader is flashed, firmware can be installed normally via _QGroundControl_.

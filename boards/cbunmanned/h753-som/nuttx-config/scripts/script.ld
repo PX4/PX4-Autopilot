@@ -1,5 +1,5 @@
 /****************************************************************************
- * scripts/bootloader_script.ld
+ * scripts/script.ld
  *
  *   Copyright (C) 2026 CBUnmanned Ltd. All rights reserved.
  *
@@ -32,22 +32,38 @@
  *
  ****************************************************************************/
 
-/* The CBUnmanned H753-Stamp uses an STM32H753VI with 2048Kb of main FLASH.
- * The bootloader uses the first sector of flash, which is 128K in length.
+/* The CBUnmanned H753-SOM uses an STM32H753VI with 2048Kb of main FLASH.
+ * The flash memory is partitioned into 16 sectors of 128Kb each:
+ *
+ *   Sector 0  (128K): Bootloader
+ *   Sectors 1-14 (1792K): Firmware
+ *   Sector 15 (128K): Flash-based parameter storage
+ *
+ * The STM32H753VI has 1024Kb of data SRAM:
+ *
+ *   128Kb DTCM-RAM at 0x20000000
+ *    64Kb ITCM-RAM at 0x00000000
+ *   512Kb AXI SRAM at 0x24000000
+ *   128Kb SRAM1 at 0x30000000
+ *   128Kb SRAM2 at 0x30020000
+ *    32Kb SRAM3 at 0x30040000
+ *    64Kb SRAM4 at 0x38000000
+ *     4Kb Backup RAM at 0x38800000
  */
 
 MEMORY
 {
-	itcm  (rwx) : ORIGIN = 0x00000000, LENGTH =   64K
-	flash (rx)  : ORIGIN = 0x08000000, LENGTH =  128K
-	dtcm1 (rwx) : ORIGIN = 0x20000000, LENGTH =   64K
-	dtcm2 (rwx) : ORIGIN = 0x20010000, LENGTH =   64K
-	sram  (rwx) : ORIGIN = 0x24000000, LENGTH =  512K
-	sram1 (rwx) : ORIGIN = 0x30000000, LENGTH =  128K
-	sram2 (rwx) : ORIGIN = 0x30020000, LENGTH =  128K
-	sram3 (rwx) : ORIGIN = 0x30040000, LENGTH =   32K
-	sram4 (rwx) : ORIGIN = 0x38000000, LENGTH =   64K
-	bbram (rwx) : ORIGIN = 0x38800000, LENGTH =    4K
+	ITCM_RAM  (rwx) : ORIGIN = 0x00000000, LENGTH =   64K
+	FLASH      (rx) : ORIGIN = 0x08020000, LENGTH = 1792K
+
+	DTCM1_RAM (rwx) : ORIGIN = 0x20000000, LENGTH =   64K
+	DTCM2_RAM (rwx) : ORIGIN = 0x20010000, LENGTH =   64K
+	AXI_SRAM  (rwx) : ORIGIN = 0x24000000, LENGTH =  512K /* D1 domain AXI bus */
+	SRAM1     (rwx) : ORIGIN = 0x30000000, LENGTH =  128K /* D2 domain AHB bus */
+	SRAM2     (rwx) : ORIGIN = 0x30020000, LENGTH =  128K /* D2 domain AHB bus */
+	SRAM3     (rwx) : ORIGIN = 0x30040000, LENGTH =   32K /* D2 domain AHB bus */
+	SRAM4     (rwx) : ORIGIN = 0x38000000, LENGTH =   64K /* D3 domain */
+	BKPRAM    (rwx) : ORIGIN = 0x38800000, LENGTH =    4K
 }
 
 OUTPUT_ARCH(arm)
@@ -85,7 +101,7 @@ SECTIONS
 		*(.gnu.linkonce.r.*)
 		_etext = ABSOLUTE(.);
 
-	} > flash
+	} > FLASH
 
 	/*
 	 * Init functions (static constructors and the like)
@@ -94,17 +110,17 @@ SECTIONS
 		_sinit = ABSOLUTE(.);
 		KEEP(*(.init_array .init_array.*))
 		_einit = ABSOLUTE(.);
-	} > flash
+	} > FLASH
 
 
 	.ARM.extab : {
 		*(.ARM.extab*)
-	} > flash
+	} > FLASH
 
 	__exidx_start = ABSOLUTE(.);
 	.ARM.exidx : {
 		*(.ARM.exidx*)
-	} > flash
+	} > FLASH
 	__exidx_end = ABSOLUTE(.);
 
 	_eronly = ABSOLUTE(.);
@@ -115,7 +131,12 @@ SECTIONS
 		*(.gnu.linkonce.d.*)
 		CONSTRUCTORS
 		_edata = ABSOLUTE(.);
-	} > sram AT > flash
+
+		/* Pad out last section as the STM32H7 Flash write size is 256 bits. 32 bytes */
+		. = ALIGN(16);
+		FILL(0xffff)
+		. += 16;
+	} > AXI_SRAM AT > FLASH  = 0xffff
 
 	.bss : {
 		_sbss = ABSOLUTE(.);
@@ -124,7 +145,16 @@ SECTIONS
 		*(COMMON)
 		. = ALIGN(4);
 		_ebss = ABSOLUTE(.);
-	} > sram
+	} > AXI_SRAM
+
+	/* Emit the the D3 power domain section for locating BDMA data */
+
+	.sram4_reserve (NOLOAD) :
+	{
+		*(.sram4)
+		. = ALIGN(4);
+		_sram4_heap_start = ABSOLUTE(.);
+	} > SRAM4
 
 	/* Stabs debugging sections. */
 	.stab 0 : { *(.stab) }
