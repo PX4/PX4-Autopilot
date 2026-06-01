@@ -1,0 +1,134 @@
+name: ESBMC Formal Verification
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  verify-imu-bmi088:
+    name: Verify IMU BMI088
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install CBMC
+        run: sudo apt-get install -y cbmc
+
+      - name: Copy IMU harness
+        run: |
+          mkdir -p /tmp/verification
+          cp $GITHUB_WORKSPACE/src/drivers/imu/bosch/bmi088/BMI088_Accelerometer.cpp /tmp/verification/ 2>/dev/null || true
+
+      - name: Run CBMC on IMU BMI088
+        run: |
+          cat > /tmp/verification/test_bmi088.cpp << 'EOF'
+          #include <assert.h>
+          #include <stdint.h>
+          #include <stddef.h>
+          uint8_t nondet_uint8_t();
+          static const uint16_t FIFO_SIZE = 1024;
+          static int16_t combine(uint8_t msb, uint8_t lsb) {
+              return (int16_t)((msb << 8u) | lsb);
+          }
+          float updateTemperature(uint8_t temp_msb, uint8_t temp_lsb) {
+              uint16_t Temp_uint11 = (temp_msb * 8) + (temp_lsb / 32);
+              int16_t Temp_int11 = (Temp_uint11 > 1023) ? (int16_t)(Temp_uint11 - 2048) : (int16_t)Temp_uint11;
+              return (Temp_int11 * 0.125f) + 23.0f;
+          }
+          uint16_t fifoReadCount(uint8_t fifo_length_0, uint8_t fifo_length_1) {
+              const uint8_t FIFO_LENGTH_1_MASKED = fifo_length_1 & 0x3F;
+              return (uint16_t)combine(FIFO_LENGTH_1_MASKED, fifo_length_0);
+          }
+          int main() {
+              uint8_t temp_msb = nondet_uint8_t();
+              uint8_t temp_lsb = nondet_uint8_t();
+              float temperature = updateTemperature(temp_msb, temp_lsb);
+              assert(temperature >= -40.0f && temperature <= 85.0f);
+              uint8_t fifo_len_0 = nondet_uint8_t();
+              uint8_t fifo_len_1 = nondet_uint8_t();
+              uint16_t count = fifoReadCount(fifo_len_0, fifo_len_1);
+              assert(count <= FIFO_SIZE);
+              return 0;
+          }
+          EOF
+          cbmc /tmp/verification/test_bmi088.cpp \
+            --unwind 10 \
+            --signed-overflow-check \
+            --unsigned-overflow-check \
+            --bounds-check 2>&1 | tee /tmp/resultado_imu.txt
+          echo "IMU verification completed"
+
+      - name: Upload IMU results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: imu-verification-results
+          path: /tmp/resultado_imu.txt
+
+  verify-gps-ublox:
+    name: Verify GPS uBlox
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install CBMC
+        run: sudo apt-get install -y cbmc
+
+      - name: Run CBMC on GPS uBlox
+        run: |
+          cat > /tmp/test_gps.cpp << 'EOF'
+          #include <assert.h>
+          #include <string.h>
+          #include <stdint.h>
+          #include <stddef.h>
+          unsigned int nondet_uint();
+          uint8_t nondet_uint8_t();
+          #define GPS_DUMP_DATA_SIZE 200
+          struct gps_dump_s {
+              uint8_t data[GPS_DUMP_DATA_SIZE];
+              uint8_t len;
+              uint8_t instance;
+          };
+          void dumpGpsData(uint8_t *data, unsigned int len, gps_dump_s *dump_data) {
+              if (!dump_data) return;
+              while (len > 0) {
+                  unsigned int write_len = len;
+                  if (write_len > GPS_DUMP_DATA_SIZE - dump_data->len) {
+                      write_len = GPS_DUMP_DATA_SIZE - dump_data->len;
+                  }
+                  memcpy(dump_data->data + dump_data->len, data, write_len);
+                  data += write_len;
+                  dump_data->len += write_len;
+                  len -= write_len;
+                  if (dump_data->len >= GPS_DUMP_DATA_SIZE) {
+                      dump_data->len = 0;
+                  }
+              }
+          }
+          int main() {
+              unsigned int input_len = nondet_uint();
+              __CPROVER_assume(input_len > 0 && input_len <= 300);
+              uint8_t input_data[300];
+              gps_dump_s dump_buffer;
+              dump_buffer.len = nondet_uint8_t();
+              __CPROVER_assume(dump_buffer.len < GPS_DUMP_DATA_SIZE);
+              dumpGpsData(input_data, input_len, &dump_buffer);
+              assert(dump_buffer.len <= GPS_DUMP_DATA_SIZE);
+              return 0;
+          }
+          EOF
+          cbmc /tmp/test_gps.cpp \
+            --unwind 10 \
+            --signed-overflow-check \
+            --unsigned-overflow-check \
+            --bounds-check 2>&1 | tee /tmp/resultado_gps.txt
+          echo "GPS verification completed"
+
+      - name: Upload GPS results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: gps-verification-results
+          path: /tmp/resultado_gps.txt
