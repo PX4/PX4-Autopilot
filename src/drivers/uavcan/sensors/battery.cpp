@@ -37,6 +37,19 @@
 #include <px4_defines.h>
 #include <px4_platform_common/log.h>
 
+// Pre-shifted bitmask helpers for battery_status_s fault flags.
+#define FAULT_DEEP_DISCHARGE_FLAG      (1 << battery_status_s::FAULT_DEEP_DISCHARGE)
+#define FAULT_SPIKES_FLAG              (1 << battery_status_s::FAULT_SPIKES)
+#define FAULT_CELL_FAIL_FLAG           (1 << battery_status_s::FAULT_CELL_FAIL)
+#define FAULT_OVER_CURRENT_FLAG        (1 << battery_status_s::FAULT_OVER_CURRENT)
+#define FAULT_OVER_TEMPERATURE_FLAG    (1 << battery_status_s::FAULT_OVER_TEMPERATURE)
+#define FAULT_UNDER_TEMPERATURE_FLAG   (1 << battery_status_s::FAULT_UNDER_TEMPERATURE)
+#define FAULT_INCOMPATIBLE_VOLTAGE_FLAG   (1 << battery_status_s::FAULT_INCOMPATIBLE_VOLTAGE)
+#define FAULT_INCOMPATIBLE_FIRMWARE_FLAG  (1 << battery_status_s::FAULT_INCOMPATIBLE_FIRMWARE)
+#define FAULT_INCOMPATIBLE_MODEL_FLAG  (1 << battery_status_s::FAULT_INCOMPATIBLE_MODEL)
+#define FAULT_HARDWARE_FAILURE_FLAG    (1 << battery_status_s::FAULT_HARDWARE_FAILURE)
+#define FAULT_FAILED_TO_ARM_FLAG       (1 << battery_status_s::FAULT_FAILED_TO_ARM)
+
 const char *const UavcanBatteryBridge::NAME = "battery";
 
 UavcanBatteryBridge::UavcanBatteryBridge(uavcan::INode &node, NodeInfoPublisher *node_info_publisher) :
@@ -297,19 +310,19 @@ void UavcanBatteryBridge::cbat_sub_cb(const uavcan::ReceivedDataStructure<cuav::
 	uint16_t faults = 0;
 
 	if (msg.status_flags & cuav::equipment::power::CBAT::STATUS_FLAG_OVERLOAD) {
-		faults |= (1 << battery_status_s::FAULT_OVER_CURRENT);
+		faults |= FAULT_OVER_CURRENT_FLAG;
 	}
 
 	if (msg.status_flags & cuav::equipment::power::CBAT::STATUS_FLAG_BAD_BATTERY) {
-		faults |= (1 << battery_status_s::FAULT_HARDWARE_FAILURE);
+		faults |= FAULT_HARDWARE_FAILURE_FLAG;
 	}
 
 	if (msg.status_flags & cuav::equipment::power::CBAT::STATUS_FLAG_TEMP_HOT) {
-		faults |= (1 << battery_status_s::FAULT_OVER_TEMPERATURE);
+		faults |= FAULT_OVER_TEMPERATURE_FLAG;
 	}
 
 	if (msg.status_flags & cuav::equipment::power::CBAT::STATUS_FLAG_TEMP_COLD) {
-		faults |= (1 << battery_status_s::FAULT_UNDER_TEMPERATURE);
+		faults |= FAULT_UNDER_TEMPERATURE_FLAG;
 	}
 
 	_battery_status[instance].faults = faults;
@@ -375,38 +388,38 @@ UavcanBatteryBridge::battery_continuous_sub_cb(const uavcan::ReceivedDataStructu
 	uint16_t faults = 0;
 
 	if (msg.status_flags & BatteryContinuous::STATUS_FLAG_FAULT_OVER_CURRENT) {
-		faults |= (1 << battery_status_s::FAULT_OVER_CURRENT);
+		faults |= FAULT_OVER_CURRENT_FLAG;
 	}
 
 	if (msg.status_flags & BatteryContinuous::STATUS_FLAG_FAULT_OVER_TEMP) {
-		faults |= (1 << battery_status_s::FAULT_OVER_TEMPERATURE);
+		faults |= FAULT_OVER_TEMPERATURE_FLAG;
 	}
 
 	if (msg.status_flags & BatteryContinuous::STATUS_FLAG_FAULT_UNDER_TEMP) {
-		faults |= (1 << battery_status_s::FAULT_UNDER_TEMPERATURE);
+		faults |= FAULT_UNDER_TEMPERATURE_FLAG;
 	}
 
 	if (msg.status_flags & BatteryContinuous::STATUS_FLAG_FAULT_INCOMPATIBLE_VOLTAGE) {
-		faults |= (1 << battery_status_s::FAULT_INCOMPATIBLE_VOLTAGE);
+		faults |= FAULT_INCOMPATIBLE_VOLTAGE_FLAG;
 	}
 
 	if (msg.status_flags & BatteryContinuous::STATUS_FLAG_FAULT_INCOMPATIBLE_FIRMWARE) {
-		faults |= (1 << battery_status_s::FAULT_INCOMPATIBLE_FIRMWARE);
+		faults |= FAULT_INCOMPATIBLE_FIRMWARE_FLAG;
 	}
 
 	if (msg.status_flags & BatteryContinuous::STATUS_FLAG_FAULT_INCOMPATIBLE_CELLS_CONFIGURATION) {
-		faults |= (1 << battery_status_s::FAULT_INCOMPATIBLE_MODEL);
+		faults |= FAULT_INCOMPATIBLE_MODEL_FLAG;
 	}
 
 	if (msg.status_flags & (BatteryContinuous::STATUS_FLAG_FAULT_SHORT_CIRCUIT
 				| BatteryContinuous::STATUS_FLAG_FAULT_PROTECTION_SYSTEM
 				| BatteryContinuous::STATUS_FLAG_FAULT_CELL_IMBALANCE
 				| BatteryContinuous::STATUS_FLAG_BAD_BATTERY)) {
-		faults |= (1 << battery_status_s::FAULT_HARDWARE_FAILURE);
+		faults |= FAULT_HARDWARE_FAILURE_FLAG;
 	}
 
 	if (msg.status_flags & BatteryContinuous::STATUS_FLAG_FAULT_UNDER_VOLT) {
-		faults |= (1 << battery_status_s::FAULT_DEEP_DISCHARGE);
+		faults |= FAULT_DEEP_DISCHARGE_FLAG;
 	}
 
 	_battery_status[instance].faults = faults;
