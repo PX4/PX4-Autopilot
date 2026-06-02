@@ -33,26 +33,27 @@
 
 #pragma once
 
+#include <lib/failure_injection/FailureInjection.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/Publication.hpp>
 #include <uORB/topics/esc_status.h>
-#include <uORB/topics/vehicle_command_ack.h>
-#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/failure_injection.h>
 
 class FailureInjector
 {
 public:
-	FailureInjector();
+	FailureInjector() = default;
 
 	void update();
 
 	void manipulateEscStatus(esc_status_s &status);
 	uint32_t getMotorStopMask() { return _motor_stop_mask; }
 private:
-	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
-	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
+	// Rebuild the motor masks from the active failure_injection configuration.
+	void rebuildMasks();
 
-	bool _failure_injection_enabled = false;
+	uORB::Subscription _failure_injection_sub{ORB_ID(failure_injection)};
+	failure_injection::Config _failure_config;
+
 	uint32_t _motor_stop_mask{};
 	uint32_t _esc_telemetry_blocked_mask{};
 	uint32_t _esc_telemetry_wrong_mask{};
