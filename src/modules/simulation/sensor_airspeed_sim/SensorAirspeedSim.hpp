@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include <lib/failure_injection/FailureInjection.hpp>
 #include <lib/perf/perf_counter.h>
 #include <math.h>
 #include <mathlib/mathlib.h>
@@ -45,10 +46,9 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/differential_pressure.h>
+#include <uORB/topics/failure_injection.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_command.h>
-#include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 
@@ -79,7 +79,7 @@ public:
 
 	bool init();
 
-	void check_failure_injection();
+	void updateFailureConfig();
 
 private:
 	void Run() override;
@@ -94,10 +94,11 @@ private:
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position_groundtruth)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position_groundtruth)};
-	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
+	uORB::Subscription _failure_injection_sub{ORB_ID(failure_injection)};
 
 	uORB::PublicationMulti<differential_pressure_s> _differential_pressure_pub{ORB_ID(differential_pressure)};
-	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
+
+	failure_injection::Config _failure_config;
 
 	bool _airspeed_disconnected{false};
 	bool _airspeed_stuck{false};

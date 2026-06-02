@@ -111,7 +111,7 @@ void SensorAirspeedSim::Run()
 	if (_vehicle_local_position_sub.updated() && _vehicle_global_position_sub.updated()
 	    && _vehicle_attitude_sub.updated()) {
 
-		check_failure_injection();
+		updateFailureConfig();
 
 		if (!_airspeed_disconnected) {
 
@@ -172,59 +172,27 @@ void SensorAirspeedSim::Run()
 	perf_end(_loop_perf);
 }
 
-void SensorAirspeedSim::check_failure_injection()
+void SensorAirspeedSim::updateFailureConfig()
 {
-	vehicle_command_s vehicle_command;
+	if (_failure_injection_sub.updated()) {
+		failure_injection_s failure_injection;
+		_failure_injection_sub.copy(&failure_injection);
+		_failure_config.set(failure_injection);
+	}
 
-	while (_vehicle_command_sub.update(&vehicle_command)) {
-		if (vehicle_command.command != vehicle_command_s::VEHICLE_CMD_INJECT_FAILURE) {
-			continue;
+	const failure_injection::Mode mode = _failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_AIRSPEED, 1);
+
+	_airspeed_disconnected = (mode == failure_injection::Mode::Off);
+	_airspeed_stuck = (mode == failure_injection::Mode::Stuck);
+
+	if (mode == failure_injection::Mode::Wrong) {
+		// Simulate pitot blockage: start the ramp on the rising edge and keep it running.
+		if (_airspeed_blocked_timestamp == 0) {
+			_airspeed_blocked_timestamp = hrt_absolute_time();
 		}
 
-		bool handled = false;
-		bool supported = false;
-
-		const int failure_unit = static_cast<int>(std::lround(vehicle_command.param1));
-		const int failure_type = static_cast<int>(std::lround(vehicle_command.param2));
-
-		if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_AIRSPEED) {
-
-			handled = true;
-
-			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
-				PX4_WARN("CMD_INJECT_FAILURE, airspeed off");
-				supported = true;
-				_airspeed_disconnected = true;
-
-			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_STUCK) {
-				PX4_WARN("CMD_INJECT_FAILURE, airspeed stuck");
-				supported = true;
-				_airspeed_stuck = true;
-
-			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_WRONG) {
-				PX4_WARN("CMD_INJECT_FAILURE, airspeed wrong (simulate pitot blockage)");
-				supported = true;
-				_airspeed_blocked_timestamp = hrt_absolute_time();
-
-			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
-				PX4_INFO("CMD_INJECT_FAILURE, airspeed ok");
-				supported = true;
-				_airspeed_disconnected = false;
-				_airspeed_stuck = false;
-				_airspeed_blocked_timestamp = 0;
-			}
-		}
-
-		if (handled) {
-			vehicle_command_ack_s ack{};
-			ack.command = vehicle_command.command;
-			ack.from_external = false;
-			ack.result = supported ?
-				     vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED :
-				     vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
-			ack.timestamp = hrt_absolute_time();
-			_command_ack_pub.publish(ack);
-		}
+	} else {
+		_airspeed_blocked_timestamp = 0;
 	}
 }
 
