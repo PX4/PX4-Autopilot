@@ -46,6 +46,7 @@
 #include "land.h"
 #include "precland.h"
 #include "loiter.h"
+#include "mission_route_cache.h"
 #include "mission.h"
 #include "navigator_mode.h"
 #include "rtl.h"
@@ -180,6 +181,7 @@ public:
 	uint8_t                      get_takeoff_state() { return _takeoff_status_sub.get().takeoff_state; }
 	vehicle_local_position_s    *get_local_position() { return &_local_pos; }
 	vehicle_status_s            *get_vstatus() { return &_vstatus; }
+	MissionRouteCache           *get_mission_route_cache() { return &_mission_route_cache; }
 
 	PrecLand *get_precland() { return &_precland; } /**< allow others, e.g. Mission, to use the precision land block */
 	Course *get_course() { return &_course; }
@@ -399,6 +401,7 @@ private:
 	bool 		_pos_sp_triplet_published_invalid_once{false};	/**< flags if position SP triplet has been published once to UORB */
 	bool		_mission_result_updated{false};			/**< flags if mission result has seen an update */
 
+	MissionRouteCache _mission_route_cache;
 	Mission		_mission;			/**< class that handles the missions */
 	Loiter		_loiter;			/**< class that handles loiter */
 	Takeoff		_takeoff;			/**< class for handling takeoff commands */

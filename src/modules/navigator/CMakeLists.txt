@@ -34,6 +34,16 @@
 add_subdirectory(MissionFeasibility)
 add_subdirectory(RTLPlanner)
 
+px4_add_library(navigator_mission_route_planner
+	mission_route_types.cpp
+	mission_route_provider.cpp
+	mission_route_projection.cpp
+	mission_route_goal.cpp
+	mission_route_planner.cpp
+)
+
+target_link_libraries(navigator_mission_route_planner PUBLIC geo)
+
 if(BUILD_TESTING)
 	add_subdirectory(test)
 endif()
@@ -41,6 +51,7 @@ endif()
 set(NAVIGATOR_SOURCES
 	navigator_main.cpp
 	navigator_mode.cpp
+	mission_route_cache.cpp
 	mission_base.cpp
 	mission_block.cpp
 	mission.cpp
@@ -63,6 +74,7 @@ set(NAVIGATOR_DEPENDS
 	adsb
 	motion_planning
 	mission_feasibility_checker
+	navigator_mission_route_planner
 	rtl_time_estimator)
 
 if(CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE)
