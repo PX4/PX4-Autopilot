@@ -245,6 +245,10 @@ fi
 
 load_mon start
 
+# Failure injection manager: sole subscriber to vehicle_command INJECT_FAILURE,
+# publishes the failure_injection topic consumed by the apply-sites.
+failure_injection_manager start
+
 if param greater SIM_BAT_DRAIN 0
 then
 	battery_simulator start
