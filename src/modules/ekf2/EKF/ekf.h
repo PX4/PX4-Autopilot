@@ -100,6 +100,7 @@ public:
 #if defined(CONFIG_EKF2_BAROMETER)
 	const auto &aid_src_baro_hgt() const { return _aid_src_baro_hgt; }
 	const BiasEstimator::status &getBaroBiasEstimatorStatus() const { return _baro_b_est.getStatus(); }
+	float getBaroLpfState() const { return _baro_lpf.getState(); }
 #endif // CONFIG_EKF2_BAROMETER
 
 #if defined(CONFIG_EKF2_TERRAIN)
@@ -460,6 +461,8 @@ public:
 		_control_status.flags.mag_heading_consistent = false;
 		_control_status.flags.yaw_manual = true;
 	}
+
+	void decorrelateAltitudeFromPosition() { P.uncorrelateCovariance<1>(State::pos.idx + 2); }
 
 	void updateParameters();
 

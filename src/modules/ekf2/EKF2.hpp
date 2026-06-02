@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015-2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -105,6 +105,10 @@
 #if defined(CONFIG_EKF2_GNSS)
 # include <uORB/topics/estimator_gps_status.h>
 # include <uORB/topics/sensor_gps.h>
+# if defined(CONFIG_EKF2_BAROMETER)
+#  include <uORB/topics/gnss_altitude_drift.h>
+#  include "GnssAltitudeDriftDetector.hpp"
+# endif // CONFIG_EKF2_BAROMETER
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
@@ -510,6 +514,11 @@ private:
 	hrt_abstime _status_gnss_yaw_pub_last {0};
 	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_gnss_yaw_pub {ORB_ID(estimator_aid_src_gnss_yaw)};
 # endif // CONFIG_EKF2_GNSS_YAW
+
+# if defined(CONFIG_EKF2_BAROMETER)
+	GnssAltitudeDriftDetector _gnss_altitude_drift_detector;
+	uORB::PublicationMulti<gnss_altitude_drift_s> _gnss_altitude_drift_pub{ORB_ID(gnss_altitude_drift)};
+# endif // CONFIG_EKF2_BAROMETER
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_GRAVITY_FUSION)

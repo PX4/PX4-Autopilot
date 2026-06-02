@@ -133,7 +133,7 @@ private:
 
 	/**
 	 * Distance to ground during terrain following.
-	 * If user does not demand velocity change in D-direction and the vehcile
+	 * If user does not demand velocity change in D-direction and the vehicle
 	 * is in terrain-following mode, then height to ground will be locked to
 	 * _dist_to_ground_lock.
 	 */
