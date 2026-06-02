@@ -34,3 +34,8 @@
 px4_add_library(arch_board_romapi
 	imxrt_romapi.c
 )
+
+target_compile_options(arch_board_romapi PRIVATE
+    -O1
+    -fno-builtin   # disable builtin functions
+)
