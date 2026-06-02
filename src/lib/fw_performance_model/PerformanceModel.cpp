@@ -218,6 +218,31 @@ bool PerformanceModel::runSanityChecks() const
 		ret = false;
 	}
 
+	const float max_bank_loadfactor = 1 / cosf(math::radians(_param_fw_r_lim.get()));
+	const float min_airspd_at_max_bank = getMinimumCalibratedAirspeed(max_bank_loadfactor, /*flaps_setpoint = */0.0f);
+
+	if (min_airspd_at_max_bank > _param_fw_airspd_max.get()) {
+
+		// Flying the maximum bank angle requires an airspeed above FW_AIRSPD_MAX.
+		// To mitigate, choose between these (or a combination):
+		//  - Allow higher airspeeds (formula from getMinimumCalibratedAirspeed):
+		//      FW_AIRSPD_MAX >= FW_AIRSPD_MIN * sqrt(WEIGHT_GROSS/WEIGHT_BASE) * sqrt(1/cos(FW_R_LIM))
+		//  - Decrease max bank angle (same inequality, solved for FW_R_LIM):
+		//      FW_R_LIM <= acos((FW_AIRSPD_MIN/FW_AIRSPD_MAX)**2 * (WEIGHT_GROSS/WEIGHT_BASE))
+		// If flying with a range of weight ratios, take the worst case (heaviest) for both these formulas.
+
+		/* EVENT
+		 * @description
+		 * - <param>FW_AIRSPD_MIN</param>: {1:.1}
+		 * - <param>FW_AIRSPD_MAX</param>: {2:.1}
+		 * - <param>FW_R_LIM</param>: {3:.1}
+		 */
+		events::send<float, float, float>(events::ID("fixedwing_position_control_conf_invalid_maxbank_infeasible"), events::Log::Error,
+						  "Invalid configuration: Maximum bank angle not feasible",
+						  _param_fw_airspd_min.get(), _param_fw_airspd_max.get(), _param_fw_r_lim.get());
+		ret = false;
+	}
+
 	return ret;
 
 }
