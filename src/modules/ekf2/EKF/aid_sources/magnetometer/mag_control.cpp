@@ -380,7 +380,8 @@ bool Ekf::checkHaglYawResetReq() const
 		// Check if height has increased sufficiently to be away from ground magnetic anomalies
 		// and request a yaw reset if not already requested.
 		static constexpr float mag_anomalies_max_hagl = 1.5f;
-		return isHeightAboveGroundEstimateValid() && (getHagl() > mag_anomalies_max_hagl);
+		const bool above_mag_anomalies = (getTerrainVPos() + _gpos.altitude()) > mag_anomalies_max_hagl;
+		return above_mag_anomalies;
 	}
 
 #endif // CONFIG_EKF2_TERRAIN
