@@ -60,3 +60,44 @@ menuconfig NAVIGATOR_ADSB_FAKE_TRAFFIC
 	---help---
 		Adds the `navigator fake_traffic` shell command and the scripted scenarios
 		used to validate the Detect and Avoid pipeline without a real transponder.
+		Add support for acting on ADSB transponder_report or ADSB_VEHICLE MAVLink messages.
+		Actions are warnings, Loiter, Land and RTL without climb.
+
+config RTL_MISSION_CACHE_SIZE
+	int "Maximum number of mission items cached for route planning"
+	default 100 if BOARD_TESTING
+	default 0
+	range 0 1000
+	depends on MODULES_NAVIGATOR
+	---help---
+		Maximum number of mission items reserved in RAM for full-route planning helpers.
+		Set this to 0 to disable the route-mission cache on boards that have not been sized for the extra RAM.
+		Each reserved cached item uses approximately 76 bytes of heap for the lifetime of Navigator,
+		so the cache costs roughly 76 * CONFIG_RTL_MISSION_CACHE_SIZE bytes. The upper bound mirrors the
+		largest supported mission (CONFIG_NUM_MISSION_ITMES_SUPPORTED).
+
+config RTL_SAFE_POINT_BATCH_SIZE
+	int "Maximum rally points scored per mission-route planning batch"
+	default 64 if BOARD_TESTING
+	default 1
+	range 1 255
+	depends on MODULES_NAVIGATOR
+	---help---
+		Number of rally (safe) points held in the fixed-size projection batch buffer that the
+		route planner scores in a single scan of the mission route.
+
+		When more eligible rally points are configured than fit in one batch, the planner
+		evaluates them in successive batches, re-scanning the full mission route once per batch,
+		and keeps the lowest-cost safe point across all batches (no rally point is skipped).
+		A larger value trades RAM for fewer mission passes when many rally points are configured;
+		boards with spare RAM can raise it so all rally points fit in a single pass.
+
+		The projection batch is allocated in static RAM and is the larger hidden cost: it reserves
+		roughly sizeof(ProjectionReference) * CONFIG_RTL_SAFE_POINT_BATCH_SIZE bytes (about 370 bytes
+		per slot, i.e. ~24 KB at a batch size of 64).
+
+		The default is 1 so that boards which leave route planning disabled (CONFIG_RTL_MISSION_CACHE_SIZE=0)
+		do not pay the full batch RAM cost; boards that enable route planning should raise it.
+
+		The configured batch size must stay <= 255 because the batch counters and
+		indices are stored in uint8_t.
