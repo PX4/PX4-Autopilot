@@ -309,10 +309,9 @@ void RtlDirect::set_rtl_item()
 
 	case RTLState::MOVE_TO_LOITER: {
 
-			const loiter_point_s current_destination = _land_approach;
 			PositionYawSetpoint pos_yaw_sp {
-				.lat = current_destination.lat,
-				.lon = current_destination.lon,
+				.lat = _land_approach.lat,
+				.lon = _land_approach.lon,
 				.alt = _rtl_alt,
 			};
 
@@ -320,7 +319,7 @@ void RtlDirect::set_rtl_item()
 			// can be displayed on groundstation and the WP is accepted once within loiter radius
 			if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 				pos_yaw_sp.yaw = NAN;
-				setLoiterHoldMissionItem(_mission_item, pos_yaw_sp, 0.f, current_destination.loiter_radius_m);
+				setLoiterHoldMissionItem(_mission_item, pos_yaw_sp, 0.f, _land_approach.loiter_radius_m);
 
 			} else {
 				// already set final yaw if close to destination and weather vane is disabled
@@ -555,7 +554,8 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 		case RTLState::MOVE_TO_LOITER: {
 				matrix::Vector2f direction{};
 
-				float dist{0.f};
+				float dist = get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon,
+						land_approach.lat, land_approach.lon);
 
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
@@ -564,7 +564,6 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 						_navigator->get_geofence_avoidance_planner().get_point_at_index(_num_waypoints_for_geofence_avoidance);
 					get_vector_to_next_waypoint(last_point(0), last_point(1), land_approach.lat,
 								    land_approach.lon, &direction(0), &direction(1));
-					dist = get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, land_approach.lat, land_approach.lon);
 
 				} else
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
@@ -572,7 +571,6 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 
 					get_vector_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, land_approach.lat,
 								    land_approach.lon, &direction(0), &direction(1));
-					dist = get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, land_approach.lat, land_approach.lon);
 				}
 
 
