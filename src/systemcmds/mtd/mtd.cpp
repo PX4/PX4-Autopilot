@@ -228,6 +228,54 @@ int mtd_readtest(const mtd_instance_s &instance)
 	return 0;
 }
 
+/* rwtest for bypass_ftl: talk to the MTD partition directly without BCH to avoid overhead. */
+static ssize_t mtd_part_brwtest(FAR struct mtd_dev_s *part, ssize_t expected_size)
+{
+	FAR struct mtd_geometry_s geo;
+
+	if (MTD_IOCTL(part, MTDIOC_GEOMETRY, (unsigned long)((uintptr_t)&geo)) < 0) {
+		PX4_ERR("Failed to get partition geometry");
+		return -1;
+	}
+
+	FAR uint8_t *v = new uint8_t[geo.blocksize];
+	FAR uint8_t *v2 = new uint8_t[geo.blocksize];
+	off_t nblocks = expected_size / geo.blocksize;
+	ssize_t count = 0;
+
+	for (off_t block = 0; block < nblocks; block++) {
+		if (MTD_BREAD(part, block, 1, v) != 1) {
+			PX4_ERR("bread failed at block %ld", (long)block);
+			count = -1;
+			break;
+		}
+
+		if (MTD_BWRITE(part, block, 1, v) != 1) {
+			PX4_ERR("bwrite failed at block %ld", (long)block);
+			count = -1;
+			break;
+		}
+
+		if (MTD_BREAD(part, block, 1, v2) != 1) {
+			PX4_ERR("bread failed at block %ld", (long)block);
+			count = -1;
+			break;
+		}
+
+		if (memcmp(v, v2, geo.blocksize) != 0) {
+			PX4_ERR("memcmp failed at block %ld", (long)block);
+			count = -1;
+			break;
+		}
+
+		count += geo.blocksize;
+	}
+
+	delete[] v;
+	delete[] v2;
+	return count;
+}
+
 /*
   rwtest is useful during startup to validate the device is
   responding on the bus for both reads and writes. It reads data in
@@ -239,9 +287,6 @@ int mtd_rwtest(const mtd_instance_s &instance)
 	uint8_t v[32], v2[32];
 
 	for (uint8_t i = 0; i < instance.n_partitions_current; i++) {
-		ssize_t count = 0;
-		off_t offset = 0;
-
 		ssize_t expected_size = px4_mtd_get_partition_size(&instance, instance.partition_names[i]);
 
 		if (expected_size == 0) {
@@ -251,88 +296,98 @@ int mtd_rwtest(const mtd_instance_s &instance)
 
 		printf("rwtest %s testing %zd bytes\n", instance.partition_names[i], expected_size);
 
-		bool run = true;
-
-		while (run) {
-
-			int fd = open(instance.partition_names[i], O_RDWR);
-
-			if (fd == -1) {
-				PX4_ERR("Failed to open partition");
+		if (instance.partition_bypass_ftl[i]) {
+			if (mtd_part_brwtest(instance.part_dev[i], expected_size) != expected_size) {
 				return 1;
 			}
 
-			if (read(fd, v, sizeof(v)) != sizeof(v)) {
-				PX4_ERR("read failed");
-				close(fd);
+		} else {
+			ssize_t count = 0;
+			off_t offset = 0;
+
+			bool run = true;
+
+			while (run) {
+
+				int fd = open(instance.partition_names[i], O_RDWR);
+
+				if (fd == -1) {
+					PX4_ERR("Failed to open partition");
+					return 1;
+				}
+
+				if (read(fd, v, sizeof(v)) != sizeof(v)) {
+					PX4_ERR("read failed");
+					close(fd);
+					return 1;
+				}
+
+				count += sizeof(v);
+
+				if (lseek(fd, offset, SEEK_SET) != offset) {
+					PX4_ERR("seek failed");
+					close(fd);
+					return 1;
+				}
+
+				if (write(fd, v, sizeof(v)) != sizeof(v)) {
+					PX4_ERR("write failed");
+					close(fd);
+					return 1;
+				}
+
+				//sync and close to discard data from the Block Device buffer
+				if (OK != fsync(fd)) {
+					PX4_ERR("Failed to fsync");
+					close(fd);
+					return 1;
+				}
+
+				if (OK != close(fd)) {
+					PX4_ERR("Failed to close partition");
+					return 1;
+				}
+
+				fd = open(instance.partition_names[i], O_RDONLY);
+
+				if (fd == -1) {
+					PX4_ERR("Failed to open partition");
+					return 1;
+				}
+
+				if (lseek(fd, offset, SEEK_SET) != offset) {
+					PX4_ERR("seek failed");
+					close(fd);
+					return 1;
+				}
+
+				if (read(fd, v2, sizeof(v2)) != sizeof(v2)) {
+					PX4_ERR("read failed");
+					close(fd);
+					return 1;
+				}
+
+				if (OK != close(fd)) {
+					PX4_ERR("Failed to close partition");
+					return 1;
+				}
+
+				if (memcmp(v, v2, sizeof(v2)) != 0) {
+					PX4_ERR("memcmp failed");
+					return 1;
+				}
+
+				offset += sizeof(v);
+
+				if (count >= expected_size) {
+					run = false;
+				}
+			}
+
+			if (count != expected_size) {
+				PX4_ERR("Failed to read partition - got %zd/%zd bytes", count, expected_size);
 				return 1;
 			}
-
-			count += sizeof(v);
-
-			if (lseek(fd, offset, SEEK_SET) != offset) {
-				PX4_ERR("seek failed");
-				close(fd);
-				return 1;
-			}
-
-			if (write(fd, v, sizeof(v)) != sizeof(v)) {
-				PX4_ERR("write failed");
-				close(fd);
-				return 1;
-			}
-
-			//sync and close to discard data from the Block Device buffer
-			if (OK != fsync(fd)) {
-				PX4_ERR("Failed to fsync");
-				close(fd);
-				return 1;
-			}
-
-			if (OK != close(fd)) {
-				PX4_ERR("Failed to close partition");
-				return 1;
-			}
-
-			fd = open(instance.partition_names[i], O_RDONLY);
-
-			if (fd == -1) {
-				PX4_ERR("Failed to open partition");
-				return 1;
-			}
-
-			if (lseek(fd, offset, SEEK_SET) != offset) {
-				PX4_ERR("seek failed");
-				close(fd);
-				return 1;
-			}
-
-			if (read(fd, v2, sizeof(v2)) != sizeof(v2)) {
-				PX4_ERR("read failed");
-				close(fd);
-				return 1;
-			}
-
-			if (OK != close(fd)) {
-				PX4_ERR("Failed to close partition");
-				return 1;
-			}
-
-			if (memcmp(v, v2, sizeof(v2)) != 0) {
-				PX4_ERR("memcmp failed");
-				return 1;
-			}
-
-			offset += sizeof(v);
-
-			if (count >= expected_size) {
-				run = false;
-			}
-		}
-
-		if (count != expected_size) {
-			PX4_ERR("Failed to read partition - got %zd/%zd bytes", count, expected_size);
-			return 1;
 		}
 	}
 
