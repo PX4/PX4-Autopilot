@@ -54,15 +54,15 @@ make cbunmanned_h753-som_default
 
 ## Serial Port Mapping
 
-| UART   | Device       | PX4 Default | Pins (TX / RX)   | Flow Control (CTS / RTS) |
-| ------ | ------------ | ----------- | ---------------- | ------------------------ |
-| USART2 | /dev/ttyS0   | TEL1        | PD5 / PA3        | PA0 / PD4                |
-| USART3 | /dev/ttyS1   | GPS1        | PD8 / PD9        | —                        |
-| UART4  | /dev/ttyS2   | GPS2        | PC10 / PC11      | —                        |
-| UART5  | /dev/ttyS3   | Console     | PC12 / PD2       | —                        |
-| USART6 | /dev/ttyS4   | RC          | PC6 / PC7        | —                        |
-| UART7  | /dev/ttyS5   | TEL2        | PE8 / PE7        | PE10 / PE9               |
-| UART8  | /dev/ttyS6   | TEL3        | PE1 / PE0        | PD14 / PD15              |
+| UART   | Device     | PX4 Default | Pins (TX / RX) | Flow Control (CTS / RTS) |
+| ------ | ---------- | ----------- | -------------- | ------------------------ |
+| USART2 | /dev/ttyS0 | TEL1        | PD5 / PA3      | PA0 / PD4                |
+| USART3 | /dev/ttyS1 | GPS1        | PD8 / PD9      | —                        |
+| UART4  | /dev/ttyS2 | GPS2        | PC10 / PC11    | —                        |
+| UART5  | /dev/ttyS3 | Console     | PC12 / PD2     | —                        |
+| USART6 | /dev/ttyS4 | RC          | PC6 / PC7      | —                        |
+| UART7  | /dev/ttyS5 | TEL2        | PE8 / PE7      | PE10 / PE9               |
+| UART8  | /dev/ttyS6 | TEL3        | PE1 / PE0      | PD14 / PD15              |
 
 ## PWM Outputs
 
