@@ -85,6 +85,11 @@ if (gz-transport_FOUND)
 	target_include_directories(modules__simulation__gz_bridge PUBLIC px4_gz_msgs)
 	target_link_libraries(modules__simulation__gz_bridge PUBLIC px4_gz_msgs)
 
+	# TODO: remove once gz-msgs uses resize() instead of deprecated Resize() (protobuf >= 5.26)
+	if (APPLE)
+		target_compile_options(modules__simulation__gz_bridge PRIVATE -Wno-deprecated-declarations)
+	endif()
+
 	include(ExternalProject)
 	ExternalProject_Add(gz
 		SOURCE_DIR ${PX4_SOURCE_DIR}/Tools/simulation/gz
