@@ -202,13 +202,13 @@ public:
 	float get_geofence_avoidance_margin_for_current_vehicle_type() const;
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
-	float get_default_loiter_rad() { return fabsf(_param_nav_loiter_rad.get()); }
+	float get_default_loiter_rad() const { return fabsf(_param_nav_loiter_rad.get()); }
 	bool get_default_loiter_CCW() { return _param_nav_loiter_rad.get() < -FLT_EPSILON; }
 
 	/**
 	 * Returns the default acceptance radius defined by the parameter
 	 */
-	float get_default_acceptance_radius();
+	float get_default_acceptance_radius() const;
 
 	/**
 	 * Get the acceptance radius

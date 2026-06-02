@@ -1163,7 +1163,7 @@ void Navigator::publish_position_setpoint_triplet()
 	_pos_sp_triplet_updated = false;
 }
 
-float Navigator::get_default_acceptance_radius()
+float Navigator::get_default_acceptance_radius() const
 {
 	return _param_nav_acc_rad.get();
 }
@@ -1632,14 +1632,12 @@ float Navigator::get_geofence_avoidance_margin_for_current_vehicle_type() const
 	// the tracking error which can be expected for each vehicle type
 	switch (_vstatus.vehicle_type) {
 	case vehicle_status_s::VEHICLE_TYPE_FIXED_WING:
-		return 50.f;
+		return get_default_loiter_rad();
 
 	case vehicle_status_s::VEHICLE_TYPE_ROVER:
-		return 2.f;
-
 	case vehicle_status_s::VEHICLE_TYPE_ROTARY_WING:
 	default:
-		return 5.f;
+		return 2.0f * get_default_acceptance_radius();
 	}
 }
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
