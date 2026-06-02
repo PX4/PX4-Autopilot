@@ -184,6 +184,20 @@ bool isPolygonCCW(const matrix::Vector2f *vertices, int num_vertices);
 class PlannerPolygons
 {
 public:
+
+	// Note: when significantly increasing this kMaxNodes it is worth
+	// reconsidering the graph representation.
+	//
+	// Currently we store a cost matrix of size kMaxNodes^2.
+	//
+	// A list of edges (node_a, node_b, cost)_i would be more space
+	// efficient. Then it would pay to make the graph as sparse as possible,
+	// by excluding all edges that are not bitangent [*]. Currently we
+	// exclude only the nodes where no edges can possibly be bitangent (see
+	// construction of _node_not_on_optimal_path).
+	//
+	// * Stephen LaValle, 2006: Planning Algorithms, 6.2.4 - Shortest-Path Roadmaps
+
 	static constexpr int kMaxNodes = 200; // 2x to handle worst-case sharp-corner splits
 	static constexpr int kMaxPolygons = 16;
 
@@ -194,7 +208,7 @@ public:
 
 	// Append a polygon:
 	//  - canonicalize orientation,
-	//  - optionally offset each vertex outward (exclusion) or inward (inclusion) by `margin` meters
+	//  - offset each vertex outward (exclusion) or inward (inclusion) by `margin` meters,
 	//  - quantize to cm, append as nodes.
 	// Returns false on budget overflow, fewer than 3 vertices, or a
 	// degenerate edge/antiparallel corner when margin != 0.
@@ -259,8 +273,8 @@ private:
 	PolygonInfo _polygons[kMaxPolygons];
 	int _num_polygons{0};
 
-	/// Write float-metre coordinates into an existing node slot (used internally by
-	/// addPolygon, addApproxCircle, and setDestination).
+	// Write float-metre coordinates into an existing node slot (used internally by
+	// addPolygon, addApproxCircle, and setDestination).
 	void setNode(int idx, const matrix::Vector2f &p);
 
 	bool intersectsAnyInside(int32_t s_x, int32_t s_y, int32_t e_x, int32_t e_y) const;
@@ -272,8 +286,8 @@ private:
 
 };
 
-/// Convenience for unit tests and one-shot callers: build a transient
-/// PlannerPolygons with the given polygon and query the segment.
+// Convenience for unit tests and one-shot callers: build a transient
+// PlannerPolygons with the given polygon and query the segment.
 inline bool lineSegmentIntersectsPolygon(const matrix::Vector2f &start, const matrix::Vector2f &end,
 		const matrix::Vector2f *vertices, int num_vertices, bool is_inclusion_zone)
 {

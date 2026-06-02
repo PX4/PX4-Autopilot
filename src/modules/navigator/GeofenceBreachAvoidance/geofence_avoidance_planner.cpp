@@ -134,6 +134,7 @@ bool GeofenceAvoidancePlanner::update_graph_nodes_without_start_and_destination(
 
 		if (info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION || info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION) {
 
+			// Could skip this local copy and pass e.g. a reference to geofence into addPolygon, so it could access directly
 			matrix::Vector2f local_in[info.vertex_count];
 
 			for (int vertex_idx = 0; vertex_idx < info.vertex_count; vertex_idx++) {

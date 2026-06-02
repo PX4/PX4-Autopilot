@@ -57,6 +57,8 @@ bool PlannerPolygons::addPolygon(const matrix::Vector2f *vertices_in, int num_ve
 	if (num_vertices < 3
 	    || _num_polygons >= kMaxPolygons
 	    || _num_nodes + num_vertices > kMaxNodes) {
+		// TODO: reject any polygon whose vertices are outside the usable fixed-point range,
+		// i.e. if any entries are >= 2^30 cm
 		return false;
 	}
 
@@ -307,6 +309,7 @@ bool PlannerPolygons::intersectsInsideOf(const PolygonInfo &poly,
 	// which will lead to rounding error for uneven numbers, we instead
 	// scale all other inputs by two, reducing the range by a factor of two
 	// (2^31 cm = 21400 km -> 2^30 cm = 10700 km)
+	// TODO: when adding any polygons, return a clear error code when this range is exceeded
 	const int32_t twice_mid_x = s_x + e_x;
 	const int32_t twice_mid_y = s_y + e_y;
 
