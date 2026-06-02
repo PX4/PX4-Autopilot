@@ -1036,24 +1036,24 @@ bootloader(unsigned timeout)
 			 */
 			goto cmd_bad;
 
+#ifdef BOOTLOADER_USE_SECURITY
+
 		// verify the signature of the programmed image
 		//
 		// command:     VERIFY_SIG/EOC
 		// reply:     INSYNC/OK         if image verifies
 		// reply:     INSYNC/FAILED     if TOC is missing or signature check fails
-		// reply:     INSYNC/INVALID    if the bootloader was built without
-		//                              BOOTLOADER_USE_SECURITY
 		//
-		// The uploader is expected to call this after GET_CRC and before
-		// BOOT, and only when the firmware metadata claims the image is
-		// signed. Running it always would add unnecessary verification time
-		// (and fail noisily) on bootloaders or images that are not secure.
+		// A bootloader built without BOOTLOADER_USE_SECURITY has no VERIFY_SIG
+		// case at all, so the opcode falls through to the default handler and
+		// is rejected like any other unknown command (INSYNC/INVALID). That
+		// keeps a non-secure bootloader byte-for-byte equivalent to an older
+		// one for this opcode, so the uploader's unconditional probe never
+		// disturbs the command stream before BOOT.
 		case PROTO_VERIFY_SIG:
 			if (!wait_for_eoc(2)) {
 				goto cmd_bad;
 			}
-
-#ifdef BOOTLOADER_USE_SECURITY
 
 			/* Only accept VERIFY_SIG at the same point in the upload
 			 * state machine where we would accept BOOT — i.e. after
@@ -1096,12 +1096,6 @@ bootloader(unsigned timeout)
 			}
 
 			break;
-#else
-			/* Signature verification not compiled in — tell the host we
-			 * don't know this opcode so it can warn the user instead of
-			 * silently assuming the image is trusted.
-			 */
-			goto cmd_bad;
 #endif
 
 		// finalise programming and boot the system
