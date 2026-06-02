@@ -19,6 +19,7 @@ The boards in this category are:
 - [ARK Electronics ARKV6S](../flight_controller/ark_v6s.md)
 - [ARK FPV Flight Controller](../flight_controller/ark_fpv.md)
 - [ARK Pi6X Flow Flight Controller](../flight_controller/ark_pi6x.md)
+- [CBUnmanned H753-SOM](../flight_controller/cbunmanned_h753-som.md)
 - [CORVON 743v1](../flight_controller/corvon_743v1.md)
 - [CUAV Nora](../flight_controller/cuav_nora.md) (CUAV X7 variant)
 - [CUAV V5+](../flight_controller/cuav_v5_plus.md) (FMUv5)
