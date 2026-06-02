@@ -133,7 +133,6 @@ set(msg_files
 	MagWorkerData.msg
 	ManualControlSwitches.msg
 	MavlinkLog.msg
-	naor_debug.msg
 	DebugFlag.msg
 	MavlinkTunnel.msg
 	MessageFormatRequest.msg
@@ -277,7 +276,8 @@ set(msg_files
 	versioned/Wind.msg
 	ddsFlag.msg
 	totalArmTime.msg
-	FormicVioStatus.msg
+	FormicEvStateMachine.msg
+	FormicVioJetson.msg
 	FormicStateMachine.msg
 )
 list(SORT msg_files)

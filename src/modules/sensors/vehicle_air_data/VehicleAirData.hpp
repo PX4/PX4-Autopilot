@@ -130,6 +130,10 @@ private:
 	float _last_data[MAX_SENSOR_COUNT] {};
 	bool _advertised[MAX_SENSOR_COUNT] {};
 
+	// state for numerical differentiation of the published barometric altitude
+	float _last_baro_alt_meter{NAN};
+	hrt_abstime _last_baro_alt_timestamp{0};
+
 	float _sensor_diff[MAX_SENSOR_COUNT] {}; // filtered differences between sensor instances
 
 	uint8_t _priority[MAX_SENSOR_COUNT] {};

@@ -125,10 +125,6 @@ publications:
   type: px4_msgs::msg::VehicleLocalPositionSetpoint
   rate_limit: 50
 
-# - topic: /fmu/out/sensor_gps
-#   type: px4_msgs::msg::SensorGps
-#   rate_limit: 50
-
 - topic: /fmu/out/formic/debug_flag
   type: px4_msgs::msg::DebugFlag
   rate_limit: 30
@@ -136,6 +132,10 @@ publications:
 - topic: /fmu/out/camera_trigger
   type: px4_msgs::msg::CameraTrigger
   rate_limit: 100
+
+- topic: /fmu/out/formic_ev_state_machine
+  type: px4_msgs::msg::FormicEvStateMachine
+  rate_limit: 10
 
 # Create uORB::Publication
 subscriptions:
@@ -190,13 +190,13 @@ subscriptions:
 - topic: /fmu/in/vehicle_attitude_setpoint
   type: px4_msgs::msg::VehicleAttitudeSetpoint
 
-# - topic: /fmu/in/vehicle_mocap_odometry
-#   type: px4_msgs::msg::VehicleOdometry
-
 - topic: /fmu/in/vehicle_rates_setpoint
   type: px4_msgs::msg::VehicleRatesSetpoint
 
-- topic: /fmu/in/vehicle_visual_odometry
+# - topic: /fmu/in/vehicle_visual_odometry
+#   type: px4_msgs::msg::VehicleOdometry
+
+- topic: /fmu/in/formic_odom
   type: px4_msgs::msg::VehicleOdometry
 
 - topic: /fmu/in/vehicle_command
@@ -208,8 +208,8 @@ subscriptions:
 - topic: /fmu/in/formic/debug_flag
   type: px4_msgs::msg::DebugFlag
 
-- topic: /fmu/in/formic_vio_status
-  type: px4_msgs::msg::FormicVioStatus
+- topic: /fmu/in/formic_vio_jetson
+  type: px4_msgs::msg::FormicVioJetson
 
 # - topic: /fmu/in/vehicle_torque_setpoint
 #   type: px4_msgs::msg::VehicleTorqueSetpoint

@@ -622,10 +622,9 @@ else
 	formic_logger_flag start
 
 	#
-	# Start the formic sync module (controlled by FM_SYNC_SEL parameter).
-	# Set FM_SYNC_SEL to 0 (disabled), 1 (TX), or 2 (RX) in QGC.
+	# Start the formic watchdog EV module.
 	#
-	formic_sync start
+	formic_watchdog_ev start
 
 	#
 	# Start the flip after crash module.

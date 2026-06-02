@@ -1,0 +1,4 @@
+menuconfig MODULES_FORMIC_WATCHDOG_EV
+	bool "formic watchdog ev"
+	default n
+
