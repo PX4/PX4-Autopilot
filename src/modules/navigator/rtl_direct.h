@@ -174,8 +174,6 @@ private:
 	loiter_point_s _land_approach;
 	float _rtl_alt{0.0f}; ///< AMSL altitude at which the vehicle should transit to the destination
 
-	int _num_waypoints_for_geofence_avoidance{0}; ///< number of waypoints to be used for geofence avoidance in RTL
-	int _current_geofence_avoidance_index{0};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RTL_DESCEND_ALT>) _param_rtl_descend_alt,

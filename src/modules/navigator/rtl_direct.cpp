@@ -77,12 +77,9 @@ void RtlDirect::on_activation()
 	_vehicle_status_sub.update();
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 	// Pass the current vehicle position; the planner falls back to its own latched in-fence
-	// anchor if the current position violates a fence.
-	_num_waypoints_for_geofence_avoidance =
-		_navigator->get_geofence_avoidance_planner().set_start_and_plan_path_to_destination(
-			matrix::Vector2<double> {_global_pos_sub.get().lat, _global_pos_sub.get().lon});
-
-	_current_geofence_avoidance_index = 0;
+	// anchor if the current position violates a fence. Resets the path cursor to 0.
+	_navigator->get_geofence_avoidance_planner().updateStartAndFillPath(
+		matrix::Vector2<double> {_global_pos_sub.get().lat, _global_pos_sub.get().lon});
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 	parameters_update();
@@ -101,8 +98,7 @@ void RtlDirect::on_activation()
 				       "RTL: start return at {1m_v} ({2m_v} above destination)",
 				       (int32_t)ceilf(_rtl_alt), (int32_t)ceilf(_rtl_alt - _destination.alt));
 
-	// send out message only for the first point
-	if (_num_waypoints_for_geofence_avoidance > 0) {
+	if (_navigator->get_geofence_avoidance_planner().hasMore()) {
 		mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: avoiding geofence\t");
 		events::send(events::ID("rtl_avoiding_geofence"), events::Log::Info, "RTL: avoiding geofence");
 	}
@@ -151,7 +147,7 @@ void RtlDirect::setRtlPosition(const PositionYawSetpoint &rtl_position, const lo
 		_force_heading = false;
 
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
-		_navigator->get_geofence_avoidance_planner().update_destination(
+		_navigator->get_geofence_avoidance_planner().updateDestination(
 			matrix::Vector2d{_destination.lat, _destination.lon});
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
@@ -174,23 +170,16 @@ void RtlDirect::_updateRtlState()
 	RTLState new_state{RTLState::IDLE};
 
 	switch (_rtl_state) {
-	case RTLState::CLIMBING:
-		if (_current_geofence_avoidance_index < _num_waypoints_for_geofence_avoidance) {
-			new_state = RTLState::AVOID_GEOFENCE;
-
-		} else {
-			new_state = RTLState::MOVE_TO_LOITER;
+	case RTLState::CLIMBING: {
+			const bool has_avoidance = _navigator->get_geofence_avoidance_planner().hasMore();
+			new_state = has_avoidance ? RTLState::AVOID_GEOFENCE : RTLState::MOVE_TO_LOITER;
+			break;
 		}
-
-		break;
 
 	case RTLState::AVOID_GEOFENCE:
-		if (_current_geofence_avoidance_index <  _num_waypoints_for_geofence_avoidance) {
-			new_state = RTLState::AVOID_GEOFENCE;
-
-		} else {
-			new_state = RTLState::MOVE_TO_LOITER;
-		}
+		// advanceWaypoint() was called in set_rtl_item() when the current waypoint was issued.
+		new_state = _navigator->get_geofence_avoidance_planner().hasMore()
+			    ? RTLState::AVOID_GEOFENCE : RTLState::MOVE_TO_LOITER;
 
 		break;
 
@@ -273,25 +262,22 @@ void RtlDirect::set_rtl_item()
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 	case RTLState::AVOID_GEOFENCE: {
+			GeofenceAvoidancePlanner &planner = _navigator->get_geofence_avoidance_planner();
+			matrix::Vector2d point = planner.getCurrentWaypoint();
+			const matrix::Vector2d next_point = planner.getNextWaypoint();
+			planner.advanceWaypoint();
 
-			const int curr_idx = _current_geofence_avoidance_index++;
-			const GeofenceAvoidancePlanner &planner = _navigator->get_geofence_avoidance_planner();
-			matrix::Vector2d point = planner.get_point_at_index(curr_idx);
-
-			if (point.isAllNan()) {
+			if (!point.isAllFinite()) {
 				// should never happen
 				point(0) = _land_approach.lat;
 				point(1) = _land_approach.lon;
 			}
 
-			const matrix::Vector2d prev_point = (curr_idx > 0)
-							    ? planner.get_point_at_index(curr_idx - 1)
-							    : matrix::Vector2d{_global_pos_sub.get().lat, _global_pos_sub.get().lon};
-
 			float yaw = NAN;
 
-			if (!_param_wv_en.get() && prev_point.isAllFinite() && point.isAllFinite()) {
-				yaw = get_bearing_to_next_waypoint(prev_point(0), prev_point(1), point(0), point(1));
+			if (!_param_wv_en.get() && point.isAllFinite()) {
+				yaw = get_bearing_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon,
+								   point(0), point(1));
 			}
 
 			PositionYawSetpoint pos_yaw_sp {
@@ -302,6 +288,22 @@ void RtlDirect::set_rtl_item()
 			};
 
 			setMoveToPositionMissionItem(_mission_item, pos_yaw_sp);
+
+			// Populate next setpoint so the controller can blend the corner.
+			pos_sp_triplet->next.valid = true;
+			pos_sp_triplet->next.alt = _rtl_alt;
+			pos_sp_triplet->next.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+
+			if (next_point.isAllFinite()) {
+				pos_sp_triplet->next.lat = next_point(0);
+				pos_sp_triplet->next.lon = next_point(1);
+
+			} else {
+				// Last avoidance waypoint -- land approach is next.
+				pos_sp_triplet->next.lat = _land_approach.lat;
+				pos_sp_triplet->next.lon = _land_approach.lon;
+			}
+
 			break;
 		}
 
@@ -483,10 +485,7 @@ RtlDirect::RTLState RtlDirect::getActivationState()
 
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
-	} else if (_navigator->get_geofence_avoidance_planner().get_num_waypoints() > 0) {
-		// Query the planner directly: when called from calc_rtl_time_estimate() while inactive
-		// the cached _num_waypoints_for_geofence_avoidance is stale (only refreshed in on_activation).
-		// When called from on_activation() the planner and the cached value agree, so this is safe.
+	} else if (_navigator->get_geofence_avoidance_planner().hasMore()) {
 		activation_state = RTLState::AVOID_GEOFENCE;
 
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
@@ -522,6 +521,10 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 
 		const float loiter_altitude = min(land_approach.height_m, _rtl_alt);
 
+		// Endpoint of the geofence-avoidance path; updated in the AVOID_GEOFENCE case and
+		// used by the MOVE_TO_LOITER case to compute approach direction from the last detour point.
+		matrix::Vector2d geofence_path_end{_global_pos_sub.get().lat, _global_pos_sub.get().lon};
+
 		// Sum up time estimate for various segments of the landing procedure
 		switch (start_state_for_estimate) {
 		case RTLState::CLIMBING: {
@@ -535,44 +538,20 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 		// FALLTHROUGH
 		case RTLState::AVOID_GEOFENCE: {
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
-				// While RTL is inactive the planner is being re-run from rtl.cpp at 0.5 Hz, so the
-				// cached _num_waypoints_for_geofence_avoidance is stale. Read from the planner and
-				// treat the consumption index as 0 (nothing issued yet). Once active, the cached
-				// values are authoritative.
-				const int num_geofence_wpts = isActive() ? _num_waypoints_for_geofence_avoidance
-							      : _navigator->get_geofence_avoidance_planner().get_num_waypoints();
-				const int curr_geofence_idx = isActive() ? _current_geofence_avoidance_index : 0;
-
-				add_geofence_avoidance_path_distance(_rtl_time_estimator, *_navigator,
-				{_global_pos_sub.get().lat, _global_pos_sub.get().lon},
-				num_geofence_wpts,
-				curr_geofence_idx);
+				geofence_path_end = add_geofence_avoidance_path_distance(_rtl_time_estimator,
+						    _navigator->get_geofence_avoidance_planner(),
+				{_global_pos_sub.get().lat, _global_pos_sub.get().lon});
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 			}
 
 		// FALLTHROUGH
 		case RTLState::MOVE_TO_LOITER: {
 				matrix::Vector2f direction{};
+				get_vector_to_next_waypoint(geofence_path_end(0), geofence_path_end(1),
+							    land_approach.lat, land_approach.lon, &direction(0), &direction(1));
 
 				float dist = get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon,
 						land_approach.lat, land_approach.lon);
-
-#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
-
-				if (_num_waypoints_for_geofence_avoidance > 0) {
-					const matrix::Vector2d last_point =
-						_navigator->get_geofence_avoidance_planner().get_point_at_index(_num_waypoints_for_geofence_avoidance);
-					get_vector_to_next_waypoint(last_point(0), last_point(1), land_approach.lat,
-								    land_approach.lon, &direction(0), &direction(1));
-
-				} else
-#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
-				{
-
-					get_vector_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, land_approach.lat,
-								    land_approach.lon, &direction(0), &direction(1));
-				}
-
 
 				if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 					dist = max(0.f, dist - land_approach.loiter_radius_m);

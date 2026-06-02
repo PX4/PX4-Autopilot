@@ -40,31 +40,22 @@
 #pragma once
 
 #include <matrix/math.hpp>
+#include "GeofenceBreachAvoidance/geofence_avoidance_planner.h"
 
-class Navigator;
 class RtlTimeEstimator;
 
 /**
- * @brief Accumulate the remaining horizontal legs of the geofence-avoidance path into the estimator.
+ * @brief Accumulate the remaining geofence-avoidance legs into the time estimator.
  *
- * Adds, in order:
- *  - The leg from current_position back to point 0, when the path was planned from a stored anchor
- *    (i.e. !navigator.get_geofence_avoidance_planner().start_is_current_position()) and the vehicle
- *    has not yet reached point 0 (current_index <= 1).
- *  - Otherwise, the partial leg from current_position to the next geofence waypoint
- *    (the one at current_index), so the for-loop's first leg connects to current_position.
- *  - The remaining inter-waypoint legs from current_index up to num_waypoints - 1.
+ * Iterates from the planner's current cursor position to the end of the materialized path,
+ * adding each leg from current_position (or the previous waypoint) to the next waypoint.
  *
- * @param estimator         Time estimator to accumulate distances into.
- * @param navigator         Navigator providing geofence path points.
- * @param current_position  Vehicle's current global position (lat, lon).
- * @param num_waypoints     Number of points in the geofence-avoidance path.
- * @param current_index     Index of the next geofence path point to consume.
- * @return Horizontal position at the end of the accumulated path, or current_position if no path is active.
+ * @param estimator        Time estimator to accumulate distances into.
+ * @param planner          The geofence avoidance planner (read-only).
+ * @param current_position Vehicle's current global position (lat, lon).
+ * @return Horizontal position at the end of the path, or current_position if the path is empty.
  */
 matrix::Vector2d add_geofence_avoidance_path_distance(
 	RtlTimeEstimator &estimator,
-	Navigator &navigator,
-	const matrix::Vector2d &current_position,
-	int num_waypoints,
-	int current_index);
+	const GeofenceAvoidancePlanner &planner,
+	const matrix::Vector2d &current_position);

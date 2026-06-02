@@ -33,68 +33,29 @@
 
 #include "rtl_geofence_avoidance_helper.h"
 
-#include "navigator.h"
-
 #include <lib/geo/geo.h>
 #include <lib/rtl/rtl_time_estimator.h>
 
 matrix::Vector2d add_geofence_avoidance_path_distance(
 	RtlTimeEstimator &estimator,
-	Navigator &navigator,
-	const matrix::Vector2d &current_position,
-	int num_waypoints,
-	int current_index)
+	const GeofenceAvoidancePlanner &planner,
+	const matrix::Vector2d &current_position)
 {
-	matrix::Vector2d end_position = current_position;
-
-	if (num_waypoints <= 0) {
-		return end_position;
+	if (!planner.hasMore()) {
+		return current_position;
 	}
 
-	GeofenceAvoidancePlanner &planner = navigator.get_geofence_avoidance_planner();
+	matrix::Vector2d from = current_position;
 
-	if (!planner.start_is_current_position() && current_index <= 1) {
-		// If the path was planned from a stored anchor (vehicle was outside the fence at plan time),
-		// the leg from the current position back to point 0 is unaccounted for in the path itself.
-		const matrix::Vector2d first_waypoint = planner.get_point_at_index(0);
+	for (int i = planner.getPathCursor(); i < planner.get_num_waypoints(); i++) {
+		const matrix::Vector2d to = planner.waypointAtIndex(i);
 
 		matrix::Vector2f direction{};
-		get_vector_to_next_waypoint(current_position(0), current_position(1),
-					    first_waypoint(0), first_waypoint(1),
-					    &direction(0), &direction(1));
-		const float dist = get_distance_to_next_waypoint(current_position(0), current_position(1),
-				   first_waypoint(0), first_waypoint(1));
+		get_vector_to_next_waypoint(from(0), from(1), to(0), to(1), &direction(0), &direction(1));
+		estimator.addDistance(get_distance_to_next_waypoint(from(0), from(1), to(0), to(1)), direction, 0.f);
 
-		estimator.addDistance(dist, direction, 0.f);
-		end_position = first_waypoint;
-
-	} else if (current_index < num_waypoints) {
-		// Vehicle is mid-leg between geofence waypoints; include the partial leg from the
-		// current position to the next geofence waypoint that the for-loop below picks up from.
-		const matrix::Vector2d next_waypoint = planner.get_point_at_index(current_index);
-
-		matrix::Vector2f direction{};
-		get_vector_to_next_waypoint(current_position(0), current_position(1),
-					    next_waypoint(0), next_waypoint(1),
-					    &direction(0), &direction(1));
-		const float dist = get_distance_to_next_waypoint(current_position(0), current_position(1),
-				   next_waypoint(0), next_waypoint(1));
-
-		estimator.addDistance(dist, direction, 0.f);
-		end_position = next_waypoint;
+		from = to;
 	}
 
-	for (int i = current_index; i < num_waypoints - 1; ++i) {
-		const matrix::Vector2d start = planner.get_point_at_index(i);
-		const matrix::Vector2d end = planner.get_point_at_index(i + 1);
-
-		matrix::Vector2f direction{};
-		get_vector_to_next_waypoint(start(0), start(1), end(0), end(1), &direction(0), &direction(1));
-		const float dist = get_distance_to_next_waypoint(start(0), start(1), end(0), end(1));
-
-		estimator.addDistance(dist, direction, 0.f);
-		end_position = end;
-	}
-
-	return end_position;
+	return from;
 }

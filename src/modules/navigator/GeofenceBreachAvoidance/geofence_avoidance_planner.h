@@ -70,23 +70,35 @@ public:
 	 *         When the planner falls back to the saved anchor, index 0 is that anchor; the
 	 *         vehicle has to fly to it first.
 	 */
-	int set_start_and_plan_path_to_destination(matrix::Vector2d start);
+	int updateStartAndFillPath(matrix::Vector2d start);
 
-	matrix::Vector2d get_point_at_index(int index) const;
+	// --- Cursor-based path-following interface ---
+	// Call set_start_and_plan_path_to_destination() first to plan; it resets the cursor to 0.
 
-	// Number of waypoints in the most recently planned path. Same value that the last call to
-	// set_start_and_plan_path_to_destination() returned. Use this to query the planner state
-	// when the caller did not capture (or has since lost) that return value.
-	int get_num_waypoints() const { return _start_is_current_position ? _num_path_points : _num_path_points + 1; }
+	// True while there are waypoints left to fly.
+	bool hasMore() const { return _path_cursor < _path_length; }
 
-	// True if the start passed to the last plan call was the vehicle's current position. False means
-	// planning was anchored to a stored point (e.g. last valid in-fence position when the vehicle is
-	// outside the fence), so the leg from current position to point 0 is unaccounted for in the path.
-	bool start_is_current_position() const { return _start_is_current_position; }
+	// The waypoint to fly to now. NaN if hasMore() is false.
+	matrix::Vector2d getCurrentWaypoint() const;
 
-	bool update_vertices(GeofenceInterface &geofence, float margin = 10.0f);
+	// The waypoint after current (for populating triplet.next). NaN if current is the last.
+	matrix::Vector2d getNextWaypoint() const;
 
-	bool update_destination(const matrix::Vector2d &destination);
+	// Mark current waypoint reached; advance to next. No-op when hasMore() is false.
+	void advanceWaypoint() { if (_path_cursor < _path_length) { ++_path_cursor; } }
+
+	// Number of waypoints to fly.
+	int get_num_waypoints() const { return _path_length; }
+
+	// 0-indexed access to waypoints. Primarily used by time estimators.
+	matrix::Vector2d waypointAtIndex(int index) const;
+
+	// Current cursor position (0-indexed).
+	int getPathCursor() const { return _path_cursor; }
+
+	bool updateGraphFromGeofence(GeofenceInterface &geofence, float margin = 10.0f);
+
+	bool updateDestination(const matrix::Vector2d &destination);
 
 private:
 
@@ -98,27 +110,24 @@ private:
 	int _next_node_buffer[kMaxNodes];
 	bool _visited_buffer[kMaxNodes];
 
-	int _best_starting_index{-1};
-	int _num_path_points{0};
-
-	matrix::Vector2f _start_local;
+	// Stored flat path. Worst case: 1 anchor + kMaxNodes DAG vertices.
+	matrix::Vector2d _path[kMaxNodes + 1];
+	int _path_length{0};
+	int _path_cursor{0};
 
 	matrix::Vector2<double> _reference; // lat/lon anchor of the local frame
 
-	// Cached, read-only fence representation. _polygons owns the master
-	// node buffer (polygon vertices + circle k-gon approximation vertices +
-	// destination). Built once per `update_vertices` (= geofence geometry
-	// change); reused by every line-violates-fence query during distance
-	// setup, destination updates, and start-anchor selection.
+	// Cached fence representation.
+	//  - Stores polygons plus safety margin in fixed-point (for robust geometry calculations)
+	//  - Abstracts away geometry, provides edge cost between any two nodes
+	//  - Updated on updateGraphFromGeofence (through updatePolygonsFromGeofence), otherwise read only
 	geofence_utils::PlannerPolygons _polygons;
 
 	bool _polygons_healthy{false};
 	bool _destination_healthy{false};
-	bool _start_is_current_position{true};
 
-	// Latched fallback planner-start: most recent in-fence position passed to
-	// set_start_and_plan_path_to_destination. Used by subsequent calls when the
-	// caller-provided start has no visible node.
+	// Most recent in-fence position passed to updateStartAndFillPath. Used
+	// by subsequent calls as fallback when we have breached a geofence.
 	matrix::Vector2<double> _saved_valid_start{(double)NAN, (double)NAN};
 
 	perf_counter_t _setup_perf{perf_alloc(PC_ELAPSED, "rtl_planner: setup")};
@@ -126,11 +135,12 @@ private:
 	perf_counter_t _update_destination_perf{perf_alloc(PC_ELAPSED, "rtl_planner: update destination")};
 	perf_counter_t _plan_path_perf{perf_alloc(PC_ELAPSED, "rtl_planner: plan path")};
 
-	bool update_graph_nodes_without_start_and_destination(GeofenceInterface &geofence, float margin);
-	void update_distances_between_vertices();
+	bool updatePolygonsFromGeofence(GeofenceInterface &geofence, float margin);
+	void updateEdgeCosts();
 	bool planPath();
 
-	bool lat_lon_within_bounds(const matrix::Vector2<double> &lat_lon) const;
+
+	bool latLonWithinBounds(const matrix::Vector2<double> &lat_lon) const;
 
 	/**
 	 * @brief Search for the best polygon node visible from start_local.

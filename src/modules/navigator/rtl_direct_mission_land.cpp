@@ -98,11 +98,6 @@ void RtlDirectMissionLand::on_activation()
 
 	_needs_climbing = false;
 
-	// Reset geofence-avoidance state so a stale index from a previous activation
-	// doesn't cause the avoidance branch to be skipped on re-entry.
-	_num_waypoints_for_geofence_avoidance = 0;
-	_current_geofence_avoidance_index = 0;
-
 	if (hasMissionLandStart()) {
 		_is_current_planned_mission_item_valid = (goToItem(_mission.land_start_index, MissionTraversalType::IgnoreDoJump) == PX4_OK);
 
@@ -111,11 +106,16 @@ void RtlDirectMissionLand::on_activation()
 
 		if (destination.isAllFinite()) {
 			GeofenceAvoidancePlanner &planner = _navigator->get_geofence_avoidance_planner();
-			planner.update_destination(destination);
+			planner.updateDestination(destination);
 			// Pass the current vehicle position; the planner falls back to its own latched
-			// in-fence anchor if the current position violates a fence.
-			_num_waypoints_for_geofence_avoidance = planner.set_start_and_plan_path_to_destination(
-					matrix::Vector2<double> {_global_pos_sub.get().lat, _global_pos_sub.get().lon});
+			// in-fence anchor if the current position violates a fence. Resets the path cursor.
+			planner.updateStartAndFillPath(
+				matrix::Vector2<double> {_global_pos_sub.get().lat, _global_pos_sub.get().lon});
+
+		} else {
+			// No mission position to plan towards -- clear any stale path from a previous activation.
+			_navigator->get_geofence_avoidance_planner().updateStartAndFillPath(
+				matrix::Vector2<double> {_global_pos_sub.get().lat, _global_pos_sub.get().lon});
 		}
 
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
@@ -136,11 +136,14 @@ void RtlDirectMissionLand::on_activation()
 
 bool RtlDirectMissionLand::setNextMissionItem()
 {
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+
 	// Stay on the same mission item until the geofence-avoidance path is fully consumed.
-	if (_current_geofence_avoidance_index < _num_waypoints_for_geofence_avoidance) {
+	if (_navigator->get_geofence_avoidance_planner().hasMore()) {
 		return true;
 	}
 
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 	return (goToNextPositionItem() == PX4_OK);
 }
 
@@ -196,23 +199,19 @@ void RtlDirectMissionLand::setActiveMissionItems()
 
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
-	} else if (_current_geofence_avoidance_index < _num_waypoints_for_geofence_avoidance) {
+	} else if (_navigator->get_geofence_avoidance_planner().hasMore()) {
 
 		// Follow the planned geofence-avoidance path before resuming the mission landing sequence.
-		const int curr_idx = _current_geofence_avoidance_index++;
-		matrix::Vector2d point = _navigator->get_geofence_avoidance_planner().get_point_at_index(curr_idx);
+		GeofenceAvoidancePlanner &planner = _navigator->get_geofence_avoidance_planner();
+		matrix::Vector2d point = planner.getCurrentWaypoint();
+		const matrix::Vector2d next_point = planner.getNextWaypoint();
+		planner.advanceWaypoint();
 
 		if (!point.isAllFinite()) {
 			// Should never happen: fall back to the current position to avoid commanding NaN.
+			// TODO: report error and fall back to RTLing straight
 			point(0) = _global_pos_sub.get().lat;
 			point(1) = _global_pos_sub.get().lon;
-		}
-
-		if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-
-		} else {
-			_mission_item.nav_cmd = NAV_CMD_LOITER_TO_ALT;
 		}
 
 		_mission_item.lat = point(0);
@@ -227,6 +226,13 @@ void RtlDirectMissionLand::setActiveMissionItems()
 		_mission_item.loiter_radius = _navigator->get_default_loiter_rad();
 
 		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
+
+		// Populate next setpoint for smooth corner blending.
+		pos_sp_triplet->next.valid = true;
+		pos_sp_triplet->next.alt = _rtl_alt;
+		pos_sp_triplet->next.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+		pos_sp_triplet->next.lat = next_point.isAllFinite() ? next_point(0) : point(0);
+		pos_sp_triplet->next.lon = next_point.isAllFinite() ? next_point(1) : point(1);
 
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
@@ -330,19 +336,10 @@ rtl_time_estimate_s RtlDirectMissionLand::calc_rtl_time_estimate()
 
 
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
-		// While RTL is inactive the planner is being re-run (rtl.cpp), so query the planner's
-		// current path length; the consumption index is then 0 because nothing has been issued.
-		// Once active, the planner is frozen at the path latched in on_activation() — use the
-		// cached count and the running consumption index.
-		const int num_geofence_wpts = isActive() ? _num_waypoints_for_geofence_avoidance
-					      : _navigator->get_geofence_avoidance_planner().get_num_waypoints();
-		const int curr_geofence_idx = isActive() ? _current_geofence_avoidance_index : 0;
-
 		matrix::Vector2d hor_position_at_calculation_point = add_geofence_avoidance_path_distance(
-					_rtl_time_estimator, *_navigator,
-		{_global_pos_sub.get().lat, _global_pos_sub.get().lon},
-		num_geofence_wpts,
-		curr_geofence_idx);
+					_rtl_time_estimator,
+					_navigator->get_geofence_avoidance_planner(),
+		{_global_pos_sub.get().lat, _global_pos_sub.get().lon});
 #else
 		matrix::Vector2d hor_position_at_calculation_point {_global_pos_sub.get().lat, _global_pos_sub.get().lon};
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE

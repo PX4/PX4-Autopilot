@@ -83,8 +83,6 @@ private:
 	bool _needs_climbing{false}; 	//< Flag if climbing is required at the start
 	bool _enforce_rtl_alt{false};
 	float _rtl_alt{0.0f};	///< AMSL altitude at which the vehicle should return to the land position
-	int _num_waypoints_for_geofence_avoidance{0};
-	int _current_geofence_avoidance_index{0};
 
 	RtlTimeEstimator _rtl_time_estimator;
 };

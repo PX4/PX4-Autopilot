@@ -74,7 +74,7 @@ bool GeofenceAvoidancePlanner::planPath()
 	return ret;
 }
 
-bool GeofenceAvoidancePlanner::update_vertices(GeofenceInterface &geofence, float margin)
+bool GeofenceAvoidancePlanner::updateGraphFromGeofence(GeofenceInterface &geofence, float margin)
 {
 	// Polygons are about to change; any previously latched fallback start may no longer be valid.
 	_saved_valid_start = matrix::Vector2<double> {(double)NAN, (double)NAN};
@@ -84,6 +84,7 @@ bool GeofenceAvoidancePlanner::update_vertices(GeofenceInterface &geofence, floa
 	const int num_polygons = geofence.getNumPolygons();
 	int num_vertices{0};
 
+	// Before copying the information, sanity check if we have space
 	for (int poly_idx = 0; poly_idx < num_polygons; poly_idx++) {
 		PolygonInfo info = geofence.getPolygonInfoByIndex(poly_idx);
 
@@ -98,20 +99,20 @@ bool GeofenceAvoidancePlanner::update_vertices(GeofenceInterface &geofence, floa
 
 	if (num_vertices == 0 || num_vertices > kMaxNodes - 1) { // -1 to reserve the destination slot
 		_polygons_healthy = false;
-		return false;
+		return false; // TODO return a more specific error
 	}
 
 	perf_begin(_setup_perf);
 
 	_reference = geofence.getPolygonVertexByIndex(0, 0);
 
-	if (!update_graph_nodes_without_start_and_destination(geofence, margin)) {
+	if (!updatePolygonsFromGeofence(geofence, margin)) {
 		_polygons_healthy = false;
 		perf_cancel(_setup_perf);
 		return false;
 	}
 
-	update_distances_between_vertices();
+	updateEdgeCosts();
 
 	// invalidate destination to force a refresh on the next update_destination()
 	_destination_healthy = false;
@@ -121,7 +122,7 @@ bool GeofenceAvoidancePlanner::update_vertices(GeofenceInterface &geofence, floa
 	return planPath();
 }
 
-bool GeofenceAvoidancePlanner::update_graph_nodes_without_start_and_destination(
+bool GeofenceAvoidancePlanner::updatePolygonsFromGeofence(
 	GeofenceInterface &geofence, float margin)
 {
 	const int num_polygons = geofence.getNumPolygons();
@@ -162,7 +163,7 @@ bool GeofenceAvoidancePlanner::update_graph_nodes_without_start_and_destination(
 	return true;
 }
 
-void GeofenceAvoidancePlanner::update_distances_between_vertices()
+void GeofenceAvoidancePlanner::updateEdgeCosts()
 {
 	perf_begin(_setup_distances_perf);
 
@@ -177,9 +178,9 @@ void GeofenceAvoidancePlanner::update_distances_between_vertices()
 	perf_end(_setup_distances_perf);
 }
 
-bool GeofenceAvoidancePlanner::update_destination(const matrix::Vector2d &destination)
+bool GeofenceAvoidancePlanner::updateDestination(const matrix::Vector2d &destination)
 {
-	if (!destination.isAllFinite() || !lat_lon_within_bounds(destination) || !_polygons_healthy) {
+	if (!destination.isAllFinite() || !latLonWithinBounds(destination) || !_polygons_healthy) {
 		_destination_healthy = false;
 		return false;
 	}
@@ -198,6 +199,8 @@ bool GeofenceAvoidancePlanner::update_destination(const matrix::Vector2d &destin
 	perf_begin(_update_destination_perf);
 	_polygons.setDestination(dest_local);
 
+	// Destination changed -- update only the edge costs involving the destination
+	// All other edge costs stay the same, so no full updateEdgeCosts
 	for (int graph_idx = 1; graph_idx < _polygons.numNodes(); graph_idx++) {
 		const size_t dist_idx = dijkstra::symmetricPairIndex(graph_idx, _polygons.destIndex(), _polygons.numNodes());
 		_distances[dist_idx] = _polygons.edgeCost(graph_idx, _polygons.destIndex());
@@ -209,7 +212,7 @@ bool GeofenceAvoidancePlanner::update_destination(const matrix::Vector2d &destin
 	return planPath();
 }
 
-bool GeofenceAvoidancePlanner::lat_lon_within_bounds(const matrix::Vector2<double> &lat_lon) const
+bool GeofenceAvoidancePlanner::latLonWithinBounds(const matrix::Vector2<double> &lat_lon) const
 {
 	if (lat_lon(0) > 90.0 || lat_lon(0) < -90.0 || lat_lon(1) > 180.0 || lat_lon(1) < -180.0) {
 		return false;
@@ -246,112 +249,94 @@ int GeofenceAvoidancePlanner::findBestStartingNode(const matrix::Vector2f &start
 	return best_index;
 }
 
-int GeofenceAvoidancePlanner::set_start_and_plan_path_to_destination(matrix::Vector2d start)
+int GeofenceAvoidancePlanner::updateStartAndFillPath(matrix::Vector2d start)
 {
+	// Populate _path so consumers can blindly follow it:
+	//  - append the saved valid start (anchor) if the current `start` is outside the fence
+	//  - then fill the RTL return path by walking the DAG produced by the dijkstra solver
+
+	int path_index = 0;  // points to the first empty slot, increment after writing
+
 	if (!_polygons_healthy || !_destination_healthy) {
+		_path_length = 0;
+		_path_cursor = 0;
 		return 0;
 	}
 
 	MapProjection ref{_reference(0), _reference(1)};
-	ref.project(start(0), start(1), _start_local(0), _start_local(1));
+	matrix::Vector2f start_local;
+	ref.project(start(0), start(1), start_local(0), start_local(1));
 
-	// Try the caller-provided position (typically the vehicle's current position) first.
-	bool destination_directly_reachable = false;
-	_best_starting_index = findBestStartingNode(_start_local, destination_directly_reachable);
-	_start_is_current_position = (_best_starting_index >= 0) || destination_directly_reachable;
+	// Try the caller provided position (typically the vehicle's current position) first.
+	bool direct_path_feasible = false;
+	int best_starting_index = findBestStartingNode(start_local, direct_path_feasible);
+	const bool path_feasible = best_starting_index >= 0 || direct_path_feasible;
 
-	// If the caller-provided start is in-fence (i.e. findBestStartingNode found at least one
-	// edge-visible polygon node), latch it as the fallback anchor for future calls.
-	if (_start_is_current_position) {
+	// If the start is legal (i.e. findBestStartingNode found at least one
+	// edge-visible polygon node), save it for future calls.
+	if (path_feasible) {
 		_saved_valid_start = start;
 	}
 
 	// If the provided position has no visible node and the destination isn't directly reachable,
-	// fall back to the most recently latched in-fence position.
-	if (!_start_is_current_position && _saved_valid_start.isAllFinite()) {
+	// fall back to the most recently saved in-fence position.
+	if (!path_feasible && _saved_valid_start.isAllFinite()) {
 		matrix::Vector2f fallback_local;
 		ref.project(_saved_valid_start(0), _saved_valid_start(1), fallback_local(0), fallback_local(1));
-		const int fallback_best = findBestStartingNode(fallback_local, destination_directly_reachable);
+		const int fallback_best = findBestStartingNode(fallback_local, direct_path_feasible);
 
-		if (fallback_best >= 0 || destination_directly_reachable) {
-			_start_local = fallback_local;
-			_best_starting_index = fallback_best;
-			// _start_is_current_position stays false: the anchor is not where the vehicle is.
+		if (fallback_best >= 0 || direct_path_feasible) {
+			start_local = fallback_local;
+			best_starting_index = fallback_best;
 		}
 	}
 
-	if (destination_directly_reachable) {
-		// Destination is directly reachable from the chosen start: no detour planning needed.
-		// If the vehicle is already at the start, no waypoints at all are needed.
-		// Otherwise we still need the anchor (point 0) so the vehicle flies back into the fence first.
-		_best_starting_index = -1;
-		_num_path_points = 0;
-		return _start_is_current_position ? 0 : 1;
+	// Start with the last valid start if outside the fence and a path exists.
+	// EXCEPT when no path was found (no point flying to an out-of-fence position).
+	const bool start_with_anchor = !path_feasible && (best_starting_index >= 0 || direct_path_feasible);
+
+	if (start_with_anchor) {
+		ref.reproject(start_local(0), start_local(1), _path[path_index](0), _path[path_index](1));
+		path_index++;
 	}
 
-	int current_index = _best_starting_index;
-	_num_path_points = 0;
+	if (!direct_path_feasible && best_starting_index >= 0) {
+		int node = best_starting_index;
 
-	if (current_index < 0) {
-		// no reachable path to destination
-		return 0;
-	}
+		for (int idx = 0; idx < _polygons.numNodes(); idx++) {
+			const int next = _next_node_buffer[node];
+			const matrix::Vector2f p = _polygons.node(node);
+			ref.reproject(p(0), p(1), _path[path_index](0), _path[path_index](1));
+			path_index++;
 
-	for (int idx = 0; idx < _polygons.numNodes(); idx++) {
-		int next = _next_node_buffer[current_index];
-		_num_path_points++;
+			if (next == _polygons.destIndex() || next < 0) {
+				break;
+			}
 
-		if (next == _polygons.destIndex() || next < 0) {
-			break;
+			node = next;
 		}
-
-		current_index = next;
 	}
 
-	// When the vehicle is already at the start, the start itself is not a waypoint to fly to.
-	// Otherwise, the start is the anchor (point 0) the vehicle has to fly back to first.
-	// Use the member here: the fallback path may have flipped it from the caller's value.
-	return _start_is_current_position ? _num_path_points : _num_path_points + 1;
+	_path_length = path_index;
+	_path_cursor = 0;
+	return path_index;
 }
 
-matrix::Vector2d GeofenceAvoidancePlanner::get_point_at_index(int index) const
+matrix::Vector2d GeofenceAvoidancePlanner::waypointAtIndex(int index) const
 {
-	matrix::Vector2d nan_point{(double)NAN, (double)NAN};
-
-	// When start_is_current_position == false, the start (anchor) occupies index 0 of the path
-	// and intermediate vertices follow at index 1..N. When true, the start is omitted and the
-	// intermediate vertices start at index 0.
-	const int anchor_offset = _start_is_current_position ? 0 : 1;
-	const int total_points = _num_path_points + anchor_offset;
-
-	if (index < 0 || index >= total_points) {
-		return nan_point;
+	if (index < 0 || index >= _path_length) {
+		return matrix::Vector2d{(double)NAN, (double)NAN};
 	}
 
-	if (anchor_offset == 1 && index == 0) {
-		matrix::Vector2d start_global;
-		MapProjection ref{_reference(0), _reference(1)};
-		ref.reproject(_start_local(0), _start_local(1), start_global(0), start_global(1));
-		return start_global;
-	}
+	return _path[index];
+}
 
-	if (_best_starting_index < 0) {
-		return nan_point;
-	}
+matrix::Vector2d GeofenceAvoidancePlanner::getCurrentWaypoint() const
+{
+	return hasMore() ? _path[_path_cursor] : matrix::Vector2d{(double)NAN, (double)NAN};
+}
 
-	int next = _best_starting_index;
-
-	for (int i = 0; i < index - anchor_offset; i++) {
-		next = _next_node_buffer[next];
-	}
-
-	if (next < 0 || next >= _polygons.numNodes()) {
-		return nan_point;
-	}
-
-	matrix::Vector2d global;
-	MapProjection ref{_reference(0), _reference(1)};
-	const matrix::Vector2f p = _polygons.node(next);
-	ref.reproject(p(0), p(1), global(0), global(1));
-	return global;
+matrix::Vector2d GeofenceAvoidancePlanner::getNextWaypoint() const
+{
+	return (_path_cursor + 1 < _path_length) ? _path[_path_cursor + 1] : matrix::Vector2d{(double)NAN, (double)NAN};
 }

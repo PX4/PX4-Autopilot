@@ -943,7 +943,7 @@ void Navigator::run()
 
 		if (_geofence.consumeFenceUpdated()) {
 			const float margin = get_geofence_avoidance_margin_for_current_vehicle_type();
-			_geofence_avoidance_planner.update_vertices(_geofence, margin);
+			_geofence_avoidance_planner.updateGraphFromGeofence(_geofence, margin);
 		}
 
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
