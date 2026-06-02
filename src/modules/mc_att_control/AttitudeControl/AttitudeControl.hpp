@@ -114,6 +114,15 @@ public:
 	const matrix::Quatf &getReferenceAttitude() const { return _q_ref; }
 
 private:
+	/**
+	 * Advance the 2nd-order reference model by one step toward the desired attitude
+	 * using an exact (ZOH) discretization, updating _q_ref and _omega_ref.
+	 * @param qd normalized desired attitude setpoint
+	 * @param yawspeed_setpoint [rad/s] yaw feed forward angular rate in world frame
+	 * @param dt [s] time since previous setpoint (> 0)
+	 */
+	void propagateReferenceModel(const matrix::Quatf &qd, const float yawspeed_setpoint, const float dt);
+
 	matrix::Vector3f _proportional_gain;
 	matrix::Vector3f _rate_limit;
 	float _yaw_w{0.f}; ///< yaw weight [0,1] to deprioritize compared to roll and pitch

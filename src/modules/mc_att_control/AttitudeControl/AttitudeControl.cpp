@@ -41,6 +41,10 @@
 
 using namespace matrix;
 
+static __attribute__((noinline)) Quatf qmul(const Quatf &a, const Quatf &b) { return a * b; }
+static __attribute__((noinline)) Quatf qinv(const Quatf &q) { return q.inversed(); }
+static __attribute__((noinline)) Vector3f qzaxis(const Quatf &q) { return q.dcm_z(); }
+
 void AttitudeControl::setProportionalGain(const matrix::Vector3f &proportional_gain, const float yaw_weight)
 {
 	_proportional_gain = proportional_gain;
@@ -64,38 +68,7 @@ void AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_
 	qd_normalized.normalize();
 
 	if (_ref_initialized && dt > 0.f) {
-		// 2nd-order critically damped ref model with exact (ZOH) discretisation.
-		// Repeated eigenvalue at s = -_omega_n; unconditionally stable for any dt.
-
-		// Tangent-space inputs: rotate the analytical yaw rate into q_ref's body
-		//    frame, and form the small-angle error vector from q_ref to q_d.
-		const Vector3f w_known_in_ref = std::isfinite(yawspeed_setpoint)
-						? _q_ref.inversed().dcm_z() * yawspeed_setpoint
-						: Vector3f{};
-
-		Quatf q_err = _q_ref.inversed() * qd_normalized;
-		q_err.canonicalize();
-		const Vector3f e = 2.f * q_err.imag();
-
-		// Entries of exp(A*dt) for A = [0 -1; _kq -2*_omega_n], using emt = exp(-_omega_n*dt).
-		const float w_dt  = _omega_n * dt;
-		const float emt   = expf(-w_dt);
-		const float a     = (1.f + w_dt) * emt;
-		const float b     = dt * emt;
-		const float gamma = _kq * dt * emt;
-		const float delta = (1.f - w_dt) * emt;
-
-		// Propagate in tangent space. delta_phi is the integral of omega over [0, dt];
-		//    the w_offset part collapses to e(0) - e(dt) since e_dot = -w_offset.
-		const Vector3f w_offset     = _omega_ref - w_known_in_ref;
-		const Vector3f delta_phi    = (1.f - a) * e + b * w_offset + w_known_in_ref * dt;
-		const Vector3f w_offset_new = gamma * e + delta * w_offset;
-
-		// Lift back to SO(3): undo the offset substitution and apply the integrated
-		//    rotation to q_ref by right-multiplying (body-frame composition).
-		_omega_ref = w_offset_new + w_known_in_ref;
-		_q_ref     = _q_ref * Quatf(AxisAnglef(delta_phi));
-		_q_ref.normalize();
+		propagateReferenceModel(qd_normalized, yawspeed_setpoint, dt);
 
 	} else {
 		// First call (or dt out of range): snap reference to the current setpoint.
@@ -107,13 +80,50 @@ void AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_
 	_attitude_setpoint_q = qd_normalized;
 }
 
+void AttitudeControl::propagateReferenceModel(const Quatf &qd, const float yawspeed_setpoint, const float dt)
+{
+	// 2nd-order critically damped ref model with exact (ZOH) discretisation.
+	// Repeated eigenvalue at s = -_omega_n; unconditionally stable for any dt.
+
+	// Tangent-space inputs: rotate the analytical yaw rate into q_ref's body
+	//    frame, and form the small-angle error vector from q_ref to q_d.
+	const Quatf q_ref_inv = qinv(_q_ref);
+	const Vector3f w_known_in_ref = std::isfinite(yawspeed_setpoint)
+					? qzaxis(q_ref_inv) * yawspeed_setpoint
+					: Vector3f{};
+
+	Quatf q_err = qmul(q_ref_inv, qd);
+	q_err.canonicalize();
+	const Vector3f e = 2.f * q_err.imag();
+
+	// Entries of exp(A*dt) for A = [0 -1; _kq -2*_omega_n], using emt = exp(-_omega_n*dt).
+	const float w_dt  = _omega_n * dt;
+	const float emt   = expf(-w_dt);
+	const float a     = (1.f + w_dt) * emt;
+	const float b     = dt * emt;
+	const float gamma = _kq * dt * emt;
+	const float delta = (1.f - w_dt) * emt;
+
+	// Propagate in tangent space. delta_phi is the integral of omega over [0, dt];
+	//    the w_offset part collapses to e(0) - e(dt) since e_dot = -w_offset.
+	const Vector3f w_offset     = _omega_ref - w_known_in_ref;
+	const Vector3f delta_phi    = (1.f - a) * e + b * w_offset + w_known_in_ref * dt;
+	const Vector3f w_offset_new = gamma * e + delta * w_offset;
+
+	// Lift back to SO(3): undo the offset substitution and apply the integrated
+	//    rotation to q_ref by right-multiplying (body-frame composition).
+	_omega_ref = w_offset_new + w_known_in_ref;
+	_q_ref     = qmul(_q_ref, Quatf(AxisAnglef(delta_phi)));
+	_q_ref.normalize();
+}
+
 void AttitudeControl::adaptAttitudeSetpoint(const Quatf &q_delta)
 {
-	_attitude_setpoint_q = q_delta * _attitude_setpoint_q;
+	_attitude_setpoint_q = qmul(q_delta, _attitude_setpoint_q);
 	_attitude_setpoint_q.normalize();
 	// Apply the same world-frame delta to the reference attitude. _omega_ref is in
 	// the reference body frame and physically invariant under a world relabeling.
-	_q_ref = q_delta * _q_ref;
+	_q_ref = qmul(q_delta, _q_ref);
 	_q_ref.normalize();
 }
 
@@ -124,8 +134,8 @@ matrix::Vector3f AttitudeControl::update(const Quatf &q) const
 	Quatf qd = ff_active ? _q_ref : _attitude_setpoint_q;
 
 	// calculate reduced desired attitude neglecting vehicle's yaw to prioritize roll and pitch
-	const Vector3f e_z = q.dcm_z();
-	const Vector3f e_z_d = qd.dcm_z();
+	const Vector3f e_z = qzaxis(q);
+	const Vector3f e_z_d = qzaxis(qd);
 	Quatf qd_red(e_z, e_z_d);
 
 	if (fabsf(qd_red(1)) > (1.f - 1e-5f) || fabsf(qd_red(2)) > (1.f - 1e-5f)) {
@@ -142,7 +152,7 @@ matrix::Vector3f AttitudeControl::update(const Quatf &q) const
 
 	// With a full desired attitude given by: qd = qd_red * qd_dyaw, extract the delta yaw component.
 	// By definition, the delta yaw quaternion has the form (cos(angle/2), 0, 0, sin(angle/2))
-	Quatf qd_dyaw = qd_red.inversed() * qd;
+	Quatf qd_dyaw = qmul(qinv(qd_red), qd);
 	qd_dyaw.canonicalize();
 	// catch numerical problems with the domain of acosf and asinf
 	qd_dyaw(0) = math::constrain(qd_dyaw(0), -1.f, 1.f);
@@ -152,7 +162,7 @@ matrix::Vector3f AttitudeControl::update(const Quatf &q) const
 	qd = qd_red * Quatf(cosf(_yaw_w * acosf(qd_dyaw(0))), 0.f, 0.f, sinf(_yaw_w * asinf(qd_dyaw(3))));
 
 	// quaternion attitude control law, qe is rotation from q to qd
-	const Quatf qe = q.inversed() * qd;
+	const Quatf qe = qmul(qinv(q), qd);
 
 	// using sin(alpha/2) scaled rotation axis as attitude error (see quaternion definition by axis angle)
 	// also taking care of the antipodal unit quaternion ambiguity
@@ -163,7 +173,7 @@ matrix::Vector3f AttitudeControl::update(const Quatf &q) const
 
 	if (ff_active) {
 		// Rotate _omega_ref from q_ref's body frame into the current body frame.
-		Vector3f omega_ff = _ff_gain * q.rotateVectorInverse(_q_ref.rotateVector(_omega_ref));
+		Vector3f omega_ff = _ff_gain * qmul(qinv(q), _q_ref).rotateVector(_omega_ref);
 
 		if (_ff_max > 0.f) {
 			for (int i = 0; i < 3; i++) {
