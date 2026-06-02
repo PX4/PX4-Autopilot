@@ -94,7 +94,7 @@ static constexpr float kUnreachable = INFINITY;
  *         false otherwise. A `true` return does not imply that goal is
  *         reachable from any particular node — check best_cost[i] for that.
  */
-bool solveBackward(int num_nodes, int goal, const float *cost, bool symmetric,
+bool solveBackward(const int num_nodes, const int goal, const float *cost, const bool symmetric,
 		   float *best_cost, int *next_node, bool *visited);
 
 } // namespace dijkstra

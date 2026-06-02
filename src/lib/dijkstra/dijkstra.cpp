@@ -36,7 +36,7 @@
 namespace dijkstra
 {
 
-bool solveBackward(int num_nodes, int goal, const float *cost, bool symmetric,
+bool solveBackward(const int num_nodes, const int goal, const float *cost, const bool symmetric,
 		   float *best_cost, int *next_node, bool *visited)
 {
 	if (num_nodes <= 0 || goal < 0 || goal >= num_nodes
@@ -71,7 +71,6 @@ bool solveBackward(int num_nodes, int goal, const float *cost, bool symmetric,
 
 			// Edge v -> u. For asymmetric layout, look up the (v, u) entry directly.
 			// For symmetric packed upper-triangular: index by (min(v,u), max(v,u)).
-			// `symmetric` is loop-invariant; the compiler is expected to unswitch.
 			float edge;
 
 			if (symmetric) {
