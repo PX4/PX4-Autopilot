@@ -49,6 +49,7 @@ typedef struct  {
 	const px4_mtd_types_t   type;
 	const char              *path;
 	const uint32_t          nblocks;
+	const bool              bypass_ftl;
 } px4_mtd_part_t;
 
 typedef struct  {
