@@ -46,8 +46,10 @@ fi
 #
 # - osx-cross/arm: arm-gcc-bin@13 (ARM cross-compiler)
 # - PX4/px4:       fastdds, genromfs, kconfig-frontends (PX4-specific)
+# - discoteq/discoteq: flock (required by NuttX apps archive step)
 brew tap osx-cross/arm
 brew tap PX4/px4
+brew tap discoteq/discoteq
 
 # Package list. This replaces the px4-dev meta-formula, which is kept
 # as a deprecated no-op upstream. See PX4/homebrew-px4 for history.
@@ -63,6 +65,7 @@ PX4_BREW_PACKAGES=(
 	ncurses
 	ninja
 	osx-cross/arm/arm-gcc-bin@13
+	flock
 	python
 	python-tk
 )
