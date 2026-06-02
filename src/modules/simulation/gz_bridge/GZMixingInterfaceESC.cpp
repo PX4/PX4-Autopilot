@@ -78,9 +78,9 @@ bool GZMixingInterfaceESC::updateOutputs(float outputs[MAX_ACTUATORS], unsigned 
 	if (active_output_count > 0) {
 		gz::msgs::Actuators rotor_velocity_message;
 #if GOOGLE_PROTOBUF_VERSION >= 4022000
-	rotor_velocity_message.mutable_velocity()->resize(active_output_count, 0);
+		rotor_velocity_message.mutable_velocity()->resize(active_output_count, 0);
 #else
-	rotor_velocity_message.mutable_velocity()->Resize(active_output_count, 0);
+		rotor_velocity_message.mutable_velocity()->Resize(active_output_count, 0);
 #endif
 
 		for (unsigned i = 0; i < active_output_count; i++) {
