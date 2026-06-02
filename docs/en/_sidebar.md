@@ -470,6 +470,7 @@
     - [Parameters & Configs](/advanced/parameters_and_configurations.md)
     - [Events Interface](/concept/events_interface.md)
     - [Flight Modes](/concept/flight_modes.md)
+    - [Mission Route Planning Infrastructure](/concept/mission_route_planning.md)
     - [Flight Tasks](/concept/flight_tasks.md)
     - [Control Allocation](/concept/control_allocation.md)
     - [PWM limit state machine](/concept/pwm_limit.md)

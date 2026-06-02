@@ -43,6 +43,9 @@
 
 using namespace time_literals;
 
+class DatamanClientTestPeer;
+class DatamanCacheTestPeer;
+
 class DatamanClient
 {
 public:
@@ -155,6 +158,7 @@ public:
 	void abortCurrentOperation();
 
 private:
+	friend class DatamanClientTestPeer;
 
 	enum class State {
 		Idle,
@@ -254,6 +258,16 @@ public:
 	bool writeWait(dm_item_t item, uint32_t index, uint8_t *buffer, uint32_t length, hrt_abstime timeout = 5000_ms);
 
 	/**
+	 * @brief Update a cached item in-place without issuing a new dataman request.
+	 *
+	 * This is intended for callers that already wrote the authoritative value through
+	 * another path and need to keep a second DatamanCache instance coherent.
+	 *
+	 * @return true if the requested item was already cached and has been updated.
+	 */
+	bool updateCachedItem(dm_item_t item, uint32_t index, const uint8_t *buffer, uint32_t length);
+
+	/**
 	 * @brief Updates the dataman cache by checking for responses from the DatamanClient and processing them.
 	 *
 	 * If there are items in the cache, this function will call the DatamanClient's 'update()' function to check for responses.
@@ -281,6 +295,7 @@ public:
 	int size() const { return _num_items; }
 
 private:
+	friend class DatamanCacheTestPeer;
 
 	enum class State {
 		Idle,
