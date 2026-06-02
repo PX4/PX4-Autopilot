@@ -286,18 +286,4 @@ inline bool lineSegmentIntersectsPolygon(const matrix::Vector2f &start, const ma
 	return !polys.edgeVisible(start, end);
 }
 
-
-/**
- * Map the upper triangular matrix WITHOUT the diagonal into a flat array. Caller must ensure i != j.
- *
- *
- * Required array size is num_nodes * (num_nodes - 1) / 2.
- *
- * @param i          first node index, in [0, num_nodes)
- * @param j          second node index, in [0, num_nodes), must differ from i
- * @param num_nodes  total number of nodes
- * @return flat array index in [0, num_nodes * (num_nodes - 1) / 2)
- */
-size_t symmetricPairIndex(size_t i, size_t j, size_t num_nodes);
-
 } // namespace geofence_utils

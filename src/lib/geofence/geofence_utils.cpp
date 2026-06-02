@@ -454,18 +454,4 @@ bool isPolygonCCW(const matrix::Vector2f *vertices, int num_vertices)
 	return signed_area_2x > 0.f;
 }
 
-
-size_t symmetricPairIndex(size_t i, size_t j, size_t num_nodes)
-{
-	// Pack the strict upper triangle (i < j) of an N x N symmetric matrix into a flat array.
-	// https://stackoverflow.com/questions/27086195/linear-index-upper-triangular-matrix
-	if (i > j) {
-		const size_t tmp = i;
-		i = j;
-		j = tmp;
-	}
-
-	return i * (2 * num_nodes - i - 1) / 2 + (j - i - 1);
-}
-
 } // namespace geofence_utils

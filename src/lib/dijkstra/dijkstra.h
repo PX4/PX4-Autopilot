@@ -45,7 +45,6 @@
  *   2. As long as both stay fixed, querying the path from any new start `s` is
  *      a constant-time table lookup followed by a forward walk:
  *         u = s; while (u != goal) { emit(u); u = next_node[u]; }
- *      No re-planning, no backtracking, no temporary buffers.
  *
  * Two cost-matrix layouts are supported, selected by the `symmetric` flag:
  *
@@ -53,9 +52,7 @@
  *     `cost[i * num_nodes + j]` is the cost of the directed edge i -> j.
  *
  *   - Symmetric (symmetric = true): packed upper triangle, no diagonal.
- *     Buffer length is N*(N-1)/2 floats. The cost of the (undirected) edge
- *     between i and j (i != j) is at:
- *         offset(i, j) = a*(2*N - a - 1)/2 + (b - a - 1),  where a = min(i,j), b = max(i,j)
+ *     Buffer length is N*(N-1)/2 floats and indexed according to symmetricPairIndex.
  *     Self-loops are not stored; Dijkstra ignores them anyway.
  *
  * Entries equal to +INFINITY or NaN are treated as missing edges. Negative
@@ -65,12 +62,38 @@
 #pragma once
 
 #include <math.h>
+#include <stddef.h>
 
 namespace dijkstra
 {
 
 /** Sentinel cost for unreachable nodes / missing edges. */
 static constexpr float kUnreachable = INFINITY;
+
+/**
+ * Map the strict upper triangle (without the diagonal) of an N x N symmetric
+ * matrix into a flat array. The cost of the undirected edge between i and j is
+ * stored once, at this index.
+ *
+ * Required array length is num_nodes * (num_nodes - 1) / 2.
+ *
+ * https://stackoverflow.com/questions/27086195/linear-index-upper-triangular-matrix
+ *
+ * @param i          first node index, in [0, num_nodes)
+ * @param j          second node index, in [0, num_nodes), must differ from i
+ * @param num_nodes  total number of nodes
+ * @return flat array index in [0, num_nodes * (num_nodes - 1) / 2)
+ */
+inline size_t symmetricPairIndex(size_t i, size_t j, const size_t num_nodes)
+{
+	if (i > j) {
+		const size_t tmp = i;
+		i = j;
+		j = tmp;
+	}
+
+	return i * (2 * num_nodes - i - 1) / 2 + (j - i - 1);
+}
 
 /**
  * Compute backward shortest paths from every node to `goal`.

@@ -70,13 +70,11 @@ bool solveBackward(const int num_nodes, const int goal, const float *cost, const
 			}
 
 			// Edge v -> u. For asymmetric layout, look up the (v, u) entry directly.
-			// For symmetric packed upper-triangular: index by (min(v,u), max(v,u)).
+			// For symmetric packed upper-triangular: index by the unordered pair {v, u}.
 			float edge;
 
 			if (symmetric) {
-				const int a = v < u ? v : u;
-				const int b = v < u ? u : v;
-				edge = cost[a * (2 * num_nodes - a - 1) / 2 + (b - a - 1)];
+				edge = cost[symmetricPairIndex(v, u, num_nodes)];
 
 			} else {
 				edge = cost[v * num_nodes + u];

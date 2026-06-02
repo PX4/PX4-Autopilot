@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
+#include <cstdlib>
 #include <math.h>
 #include "dijkstra.h"
 
@@ -284,4 +285,39 @@ TEST(DijkstraTest, ForwardWalkReachesGoal)
 
 		EXPECT_EQ(u, 4) << "did not reach goal from " << start;
 	}
+}
+
+TEST(DijkstraTest, SymmetricPairIndex)
+{
+	// create a NxN matrix and fill with random data. Then pack the upper triangle into a 1D array.
+	// Then loop through the upper triangle and read the values from the array using  symmetricPairIndex
+	// and verify that the values match.
+	constexpr size_t N = 21;
+	constexpr size_t kPairs = N * (N - 1) / 2;
+
+	float matrix[N][N];
+	float packed[kPairs];
+	std::srand(42);
+	size_t idx = 0;
+
+	for (size_t i = 0; i < N; ++i) {
+		for (size_t j = i + 1; j < N; ++j) {
+			matrix[i][j] = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
+			matrix[j][i] = matrix[i][j]; // symmetric matrix
+			packed[idx++] = matrix[i][j];
+		}
+	}
+
+	size_t counter = 0;
+
+	for (size_t i = 0; i < N; ++i) {
+		for (size_t j = i + 1; j < N; ++j) {
+			counter++;
+			EXPECT_FLOAT_EQ(matrix[i][j], packed[dijkstra::symmetricPairIndex(i, j, N)]);
+			EXPECT_FLOAT_EQ(matrix[i][j], packed[dijkstra::symmetricPairIndex(j, i, N)]);
+		}
+	}
+
+	// verify that we have the expected number of pairs
+	EXPECT_EQ(counter, kPairs);
 }

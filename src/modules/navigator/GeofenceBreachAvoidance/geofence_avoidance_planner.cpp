@@ -168,7 +168,7 @@ void GeofenceAvoidancePlanner::update_distances_between_vertices()
 	// Polygon vertices occupy indices 1..numNodes()-1; destination is at 0.
 	for (int i = 1; i < _polygons.numNodes(); i++) {
 		for (int j = i + 1; j < _polygons.numNodes(); j++) {
-			const size_t idx = geofence_utils::symmetricPairIndex(i, j, _polygons.numNodes());
+			const size_t idx = dijkstra::symmetricPairIndex(i, j, _polygons.numNodes());
 			_distances[idx] = _polygons.edgeCost(i, j);
 		}
 	}
@@ -198,7 +198,7 @@ bool GeofenceAvoidancePlanner::update_destination(const matrix::Vector2d &destin
 	_polygons.setDestination(dest_local);
 
 	for (int graph_idx = 1; graph_idx < _polygons.numNodes(); graph_idx++) {
-		const size_t dist_idx = geofence_utils::symmetricPairIndex(graph_idx, _polygons.destIndex(), _polygons.numNodes());
+		const size_t dist_idx = dijkstra::symmetricPairIndex(graph_idx, _polygons.destIndex(), _polygons.numNodes());
 		_distances[dist_idx] = _polygons.edgeCost(graph_idx, _polygons.destIndex());
 	}
 
