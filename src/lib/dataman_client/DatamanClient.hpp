@@ -173,6 +173,8 @@ private:
 	/* Synchronous response/request handler */
 	bool syncHandler(const dataman_request_s &request, dataman_response_s &response,
 			 const hrt_abstime &start_time, hrt_abstime timeout);
+	/* Drain any queued stale replies before a new request starts. */
+	void clearPendingResponse();
 
 	State _state{State::Idle};
 	Request _active_request{};
@@ -292,6 +294,7 @@ private:
 		State cache_state;
 	};
 
+	void resetCacheState();
 	inline void changeUpdateIndex();
 
 	Item *_items{nullptr};
