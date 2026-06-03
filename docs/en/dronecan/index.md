@@ -331,27 +331,43 @@ Any connected node whose running version does not match is then flashed over the
 ### Firmware Database
 
 A flat-file database at `/fs/microsd/ufw/FW.db` maps each board ID to the original firmware filename that was installed.
-Stale entries are removed automatically on every boot.
+This may be queried by external tools to determine current firmware versions.
+
 Example entry:
 
 ```txt
 122.bin=122-1.17.63eeff1a.uavcan.bin
 ```
 
+Entries are removed on boot if their corresponding firmware is not present.
+
 ### Remote Update
 
-Firmware can be delivered remotely via an update archive — a bundle (e.g. a `.zip` or `.tar`) containing one or more `.bin` files for the target CAN nodes.
-An external update tool extracts the archive on the companion/host computer and copies the `.bin` files into `/fs/microsd/ufw_staging/`, where they are picked up on the next boot.
+Remote updates can be made by uploading the corresponding bin files to `/fs/microsd/ufw_staging/`.
+PX4 will then update firmware on next boot.
 
-Before uploading, the tool can read `/fs/microsd/ufw/FW.db` to check which firmware is already installed and skip files that haven't changed, reducing transfer size.
+This approach enables efficient mass-update of binaries from archives (`.zip` or `.tar` that contains `.bin` files for the target CAN nodes).
+Tools can:
 
-[`Tools/auterion/upload_skynode.sh`] is a working example of this workflow.
-It bundles CAN firmware into an update archive using the `--ext-fw` flag (repeatable for multiple firmware files):
+1. Read the PX4 firmware database to determine what firmware is present
+2. Extract the more-recent versions of matching firmware to the staging directory
+
+PX4 does not provide such tools.
+
+::: info
+Auterion uses a form of this workflow to update CAN firmware to SkyNode based devices.
+The `upload_skynode.sh` script with multiple `--ext-fw` flags is used to bundle a number of firmware files and upload them to a directory on the companion-computer part.
 
 ```sh
 ./Tools/auterion/upload_skynode.sh \
   --ext-fw=build/auterion_canio_default/auterion_canio_default.uavcan.bin
+  --ext-fw=build/auterion_canio_default/another_default.uavcan.bin
+  ...
+  --ext-fw=build/auterion_canio_default/some_other_default.uavcan.bin
 ```
+
+Another tool then checks the firmware database and extracts just the relevant files to the PX4 firmware staging area.
+:::
 
 ## Troubleshooting
 
