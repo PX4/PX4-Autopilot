@@ -33,9 +33,6 @@
 
 #include "parachuteCheck.hpp"
 
-
-using namespace time_literals;
-
 void ParachuteChecks::checkAndReport(const Context &context, Report &reporter)
 {
 	if (_param_com_parachute.get() < 1) { // COM_PARACHUTE 0 disables the check
