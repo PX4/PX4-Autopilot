@@ -52,21 +52,28 @@ _Developers_ can further configure what information is logged via the [logger](.
 
 ### Конфігурація SD-карти
 
-Окремо, список зареєстрованих тем також може бути налаштований за допомогою файлу на картці SD.
-Create a file `etc/logging/logger_topics.txt` on the card with a list of topics (For SITL, it's `build/px4_sitl_default/rootfs/fs/microsd/etc/logging/logger_topics.txt`):
+The list of logged topics can also be customized with a file on the SD card:  `etc/logging/logger_topics.txt` (for SITL, it's `build/px4_sitl_default/rootfs/fs/microsd/etc/logging/logger_topics.txt`).
+
+Each topic to be logged is listed on a separate line, with the following format:
 
 ```plain
 <topic_name> <interval> <instance>
 ```
 
-The `<interval>` is optional, and if specified, defines the minimum interval in ms between two logged messages of this topic.
-Якщо не вказано, тема реєструється з повною швидкістю.
+Де:
 
-The `<instance>` is optional, and if specified, defines the instance to log.
-Якщо не вказано, всі екземпляри теми реєструються.
-To specify `<instance>`, `<interval>` must be specified. Може бути встановлено на 0 для реєстрації з повною швидкістю
+- `<interval>` (optional).
+  Defines the minimum interval in ms between two logged messages of this topic.
+  If not specified or `0`, the topic is logged at full rate.
+- `<instance>` (optional).
+  Defines the instance to log.
+  NOte that `<interval>` must be specified in order to set `instance`
 
-Теми в цьому файлі замінюють всі теми за замовчуванням, які були зареєстровані.
+  Якщо не вказано, всі екземпляри теми реєструються.
+
+The topics in this file will be added on top of the already selected topics.
+To just log the topics defined in this file, set [SDLOG_PROFILE=0](../advanced_config/parameter_reference.md#SDLOG_PROFILE).
+If a topic is already included, it will update it's rate.
 
 Приклади :
 
@@ -77,7 +84,7 @@ sensor_gyro 200
 sensor_mag 200 1
 ```
 
-Ця конфігурація буде реєструвати sensor_accel 0 з повною швидкістю, sensor_accel 1 з частотою 10 Гц, всі екземпляри sensor_gyro з частотою 5 Гц та sensor_mag 1 з частотою 5 Гц.
+This configuration will log sensor_accel 0 at full rate, sensor_accel 1 at 10Hz, all `sensor_gyro` instances at 5Hz and `sensor_mag` 1 at 5Hz.
 
 ## Скрипти
 
