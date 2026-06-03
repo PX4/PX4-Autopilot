@@ -104,19 +104,13 @@ void RtlDirectMissionLand::on_activation()
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 		matrix::Vector2d destination = get_first_position_after_land_start_index();
 
-		if (destination.isAllFinite()) {
-			GeofenceAvoidancePlanner &planner = _navigator->get_geofence_avoidance_planner();
-			planner.updateDestination(destination);
-			// Pass the current vehicle position; the planner falls back to its own latched
-			// in-fence anchor if the current position violates a fence. Resets the path cursor.
-			planner.updateStartAndFillPath(
-				matrix::Vector2<double> {_global_pos_sub.get().lat, _global_pos_sub.get().lon});
+		GeofenceAvoidancePlanner &planner = _navigator->get_geofence_avoidance_planner();
 
-		} else {
-			// No mission position to plan towards -- clear any stale path from a previous activation.
-			_navigator->get_geofence_avoidance_planner().updateStartAndFillPath(
-				matrix::Vector2<double> {_global_pos_sub.get().lat, _global_pos_sub.get().lon});
+		if (destination.isAllFinite()) {
+			planner.updateDestination(destination);
 		}
+
+		planner.updateStartAndFillPath({_global_pos_sub.get().lat, _global_pos_sub.get().lon});
 
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 		_needs_climbing = checkNeedsToClimb();
