@@ -79,9 +79,11 @@ bool GZMixingInterfaceWheel::updateOutputs(float outputs[MAX_ACTUATORS], unsigne
 		auto *vel = wheel_velocity_message.mutable_velocity();
 		vel->Clear();
 		vel->Reserve(active_output_count);
+
 		for (unsigned i = 0; i < active_output_count; i++) {
-		    vel->Add(static_cast<double>(outputs[i]));
+			vel->Add(static_cast<double>(outputs[i]));
 		}
+
 		if (_actuators_pub.Valid()) {
 			return _actuators_pub.Publish(wheel_velocity_message);
 		}
