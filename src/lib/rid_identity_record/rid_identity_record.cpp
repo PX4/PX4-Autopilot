@@ -84,6 +84,7 @@ static void ensure_initialized()
 	}
 }
 
+#if defined(CONFIG_BOARD_ODID_RID_IDENTITY)
 static const char *verify_error_to_string(rid_identity_verify_error err)
 {
 	switch (err) {
@@ -121,6 +122,7 @@ static const char *verify_error_to_string(rid_identity_verify_error err)
 		return "unknown";
 	}
 }
+#endif
 
 } // namespace
 

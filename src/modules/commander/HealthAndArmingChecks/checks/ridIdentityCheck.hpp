@@ -44,7 +44,9 @@ public:
 	void checkAndReport(const Context &context, Report &reporter) override;
 
 private:
+#if defined(CONFIG_BOARD_ODID_RID_IDENTITY)
 	bool _state_initialized{false};
 	bool _last_unhealthy{false};
 	bool _last_hil{false};
+#endif
 };
