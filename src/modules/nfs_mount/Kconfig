@@ -1,0 +1,5 @@
+menuconfig MODULES_NFS_MOUNT
+	bool "nfs_mount"
+	default n
+	---help---
+		Enable support for NFS client mounting
