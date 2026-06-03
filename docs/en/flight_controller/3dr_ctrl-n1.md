@@ -63,11 +63,11 @@ make 3dr_ctrl-n1_default
 
 The Control N1 uses three Hirose DF40-series board-to-board connectors:
 
-| Connector | Pins | Part Number                   | Signals                                                |
-| --------- | ---- | ----------------------------- | ------------------------------------------------------ |
-| J100      | 30   | DF40HC(3.5)-30DS-0.4V(51)    | USART1, USART2, USART3, UART4, SDMMC, USB, ALARM       |
-| J200      | 30   | DF40HC(3.5)-30DS-0.4V(51)    | USART6, FDCAN1, SPI, SWD, LED, BRD_EN                  |
-| J300      | 80   | DF40HC(3.5)-80DS-0.4V(51)    | UART7, UART8, FDCAN2, I2C, ADC, Motor outputs CH1–CH12 |
+| Connector | Pins | Part Number               | Signals                                                |
+| --------- | ---- | ------------------------- | ------------------------------------------------------ |
+| J100      | 30   | DF40HC(3.5)-30DS-0.4V(51) | USART1, USART2, USART3, UART4, SDMMC, USB, ALARM       |
+| J200      | 30   | DF40HC(3.5)-30DS-0.4V(51) | USART6, FDCAN1, SPI, SWD, LED, BRD_EN                  |
+| J300      | 80   | DF40HC(3.5)-80DS-0.4V(51) | UART7, UART8, FDCAN2, I2C, ADC, Motor outputs CH1–CH12 |
 
 ## Pinout
 
@@ -116,14 +116,14 @@ Select and assign your preferred protocol in QGroundControl during initial setup
 The Control N1 is designed to be used with a carrier board.
 The following carrier boards are available from 3DR:
 
-| Board | Description |
-| ----- | ----------- |
-| [CB1 Cuby](https://docs.3dr.com/autopilots/carrier-boards/r0026-cb1-cuby) | Compact square form factor |
-| [CB2 Longy](https://docs.3dr.com/autopilots/carrier-boards/r0027-cb2-longy) | Thin form factor for space-constrained builds |
-| [CB3 FPV](https://docs.3dr.com/autopilots/carrier-boards/r0033-cb3-fpv) | Optimized for FPV platforms |
-| [CB4 Wing](https://docs.3dr.com/autopilots/carrier-boards/r0036-cb4-wing) | Fixed-wing and VTOL applications |
-| [CN1 Prototyping Board](https://docs.3dr.com/autopilots/carrier-boards/r0037-cn1-prototyping-board) | Full signal access for development |
-| [CN1 to CZ OEM Adapter](https://docs.3dr.com/autopilots/carrier-boards/r0034-cn1-to-czoem-adapter) | Adapter for Control Zero OEM carrier boards |
+| Board                                                                                               | Description                                   |
+| --------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| [CB1 Cuby](https://docs.3dr.com/autopilots/carrier-boards/r0026-cb1-cuby)                           | Compact square form factor                    |
+| [CB2 Longy](https://docs.3dr.com/autopilots/carrier-boards/r0027-cb2-longy)                         | Thin form factor for space-constrained builds |
+| [CB3 FPV](https://docs.3dr.com/autopilots/carrier-boards/r0033-cb3-fpv)                             | Optimized for FPV platforms                   |
+| [CB4 Wing](https://docs.3dr.com/autopilots/carrier-boards/r0036-cb4-wing)                           | Fixed-wing and VTOL applications              |
+| [CN1 Prototyping Board](https://docs.3dr.com/autopilots/carrier-boards/r0037-cn1-prototyping-board) | Full signal access for development            |
+| [CN1 to CZ OEM Adapter](https://docs.3dr.com/autopilots/carrier-boards/r0034-cn1-to-czoem-adapter)  | Adapter for Control Zero OEM carrier boards   |
 
 The image below shows the pinout of the CB2 Longy as a reference for connector layout and signal assignment.
 
