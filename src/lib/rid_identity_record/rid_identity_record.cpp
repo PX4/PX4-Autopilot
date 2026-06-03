@@ -38,7 +38,6 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/log.h>
 
-#include <algorithm>
 #include <errno.h>
 #include <stdio.h>
 #include <stddef.h>
@@ -347,10 +346,13 @@ extern "C" {
 			"OPEN_DRONE_ID_ARM_STATUS",
 		};
 
-		const size_t protected_stream_count = sizeof(protected_streams) / sizeof(protected_streams[0]);
-		return std::any_of(protected_streams, protected_streams + protected_stream_count, [stream_name](const char *name) {
-			return strcmp(stream_name, name) == 0;
-		});
+		for (const char *name : protected_streams) { // NOLINT(readability-use-anyofallof): avoid <algorithm> dependency for constrained toolchains.
+			if (strcmp(stream_name, name) == 0) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	bool rid_identity_mavlink_msg_stop_denied(uint16_t msg_id)
