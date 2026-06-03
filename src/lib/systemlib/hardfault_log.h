@@ -38,6 +38,7 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_arch/micro_hal.h>
 #include <systemlib/px4_macros.h>
+#include <nuttx/irq.h>
 
 /****************************************************************************
  * Pre-processor Definitions
