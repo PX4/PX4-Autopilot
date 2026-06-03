@@ -75,7 +75,12 @@ bool GZMixingInterfaceWheel::updateOutputs(float outputs[MAX_ACTUATORS], unsigne
 
 	if (active_output_count > 0) {
 		gz::msgs::Actuators wheel_velocity_message;
+		// resize() added and Resize() deprecated in protobuf edition 35 (PROTOBUF_VERSION 5035000)
+#if defined(PROTOBUF_VERSION) && PROTOBUF_VERSION >= 5035000
+		wheel_velocity_message.mutable_velocity()->resize(active_output_count, 0);
+#else
 		wheel_velocity_message.mutable_velocity()->Resize(active_output_count, 0);
+#endif
 
 		for (unsigned i = 0; i < active_output_count; i++) {
 			// Offsetting the output allows for negative values despite unsigned integer to reverse the wheels

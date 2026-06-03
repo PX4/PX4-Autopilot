@@ -77,7 +77,12 @@ bool GZMixingInterfaceESC::updateOutputs(float outputs[MAX_ACTUATORS], unsigned 
 
 	if (active_output_count > 0) {
 		gz::msgs::Actuators rotor_velocity_message;
+		// resize() added and Resize() deprecated in protobuf edition 35 (PROTOBUF_VERSION 5035000)
+#if defined(PROTOBUF_VERSION) && PROTOBUF_VERSION >= 5035000
+		rotor_velocity_message.mutable_velocity()->resize(active_output_count, 0);
+#else
 		rotor_velocity_message.mutable_velocity()->Resize(active_output_count, 0);
+#endif
 
 		for (unsigned i = 0; i < active_output_count; i++) {
 			rotor_velocity_message.set_velocity(i, static_cast<double>(outputs[i]));
