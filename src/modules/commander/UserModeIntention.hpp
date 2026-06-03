@@ -38,7 +38,8 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/estimator_aid_source1d.h>
-#include <uORB/topics/formic_state_machine.h>
+#include <uORB/topics/formic_pos_req.h>
+#include <uORB/topics/formic_ev_state_machine.h>	
 
 #include "HealthAndArmingChecks/HealthAndArmingChecks.hpp"
 
@@ -113,7 +114,7 @@ private:
 	///////add by naor ////////////////
 	// Returns true if nav_state is one that requires local or global position.
 	bool modeRequiresPosition(uint8_t nav_state) const;
-	void publish_formic_state_machine(bool let_update_ev);
+	void publish_formic_pos_req(bool pos_requested);
 	///////add by naor ////////////////
 
 	const vehicle_status_s &_vehicle_status;
@@ -131,8 +132,7 @@ private:
 	param_t _param_ekf_ctrl{PARAM_INVALID}; ///< handle for EKF2_IMU_CTRL parameter, used to check if EKF2 is enabled before subscribing to EV yaw
 	uint8_t _pending_nav_state{UINT8_MAX};        ///< mode waiting for position lock (UINT8_MAX = none)
 	hrt_abstime _pos_wait_start_us{0};            ///< hrt timestamp when the pending request was parked (0 = not active)
-	uORB::Subscription _ev_yaw_sub{ORB_ID(estimator_aid_src_ev_yaw)}; ///< EV yaw aid source
-	estimator_aid_source1d_s _ev_yaw{};           ///< last received EV yaw aid data (timestamp==0 means never received)
-	uORB::Publication<formic_state_machine_s> _formic_state_machine_pub{ORB_ID(formic_state_machine)}; ///< Formic state machine publisher
+	uORB::Publication<formic_pos_req_s> _formic_pos_req_pub{ORB_ID(formic_pos_req)}; ///< Formic position request publisher
+	uORB::Subscription _formic_ev_state_machine_sub{ORB_ID(formic_ev_state_machine)}; ///< Sub to check if EV yaw is fused (used when EKF2_IMU_CTRL has EV yaw enabled)
 	///////add by naor ////////////////
 };

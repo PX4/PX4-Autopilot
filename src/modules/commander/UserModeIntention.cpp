@@ -83,7 +83,7 @@ bool UserModeIntention::change(uint8_t user_intended_nav_state, ModeChangeSource
 			param_get(_param_pos_wait_limit, &limit);
 			PX4_INFO("Mode %d requires position - waiting up to %d s for solution", user_intended_nav_state, (int)limit);
 			// Signal immediately that we are trying to enter a position mode.
-			publish_formic_state_machine(true);
+			publish_formic_pos_req(true);
 		}
 		///////add by naor ////////////////
 	}
@@ -101,7 +101,7 @@ bool UserModeIntention::change(uint8_t user_intended_nav_state, ModeChangeSource
 		_pos_wait_start_us = 0;
 
 		// Publish let_update_ev: true when entering a position mode, false otherwise.
-		publish_formic_state_machine(modeRequiresPosition(user_intended_nav_state));
+		publish_formic_pos_req(modeRequiresPosition(user_intended_nav_state));
 		///////add by naor ////////////////
 
 		// Special case termination state: even though this mode prevents arming,
@@ -134,24 +134,24 @@ void UserModeIntention::tick()
 	int32_t ekf_ctrl = 0;
 	param_get(_param_ekf_ctrl, &ekf_ctrl);
 
-	if (_ev_yaw_sub.updated() && (ekf_ctrl != 0)) {
-		_ev_yaw_sub.copy(&_ev_yaw);
-	}
-
-	const bool ev_yaw_available = (_ev_yaw.timestamp != 0);
 
 	if (_pending_nav_state == UINT8_MAX) {
 		return;
+	}
+
+	bool valid_pos = false;
+	if (_formic_ev_state_machine_sub.updated()) {
+		formic_ev_state_machine_s watchdog_ev{};
+		_formic_ev_state_machine_sub.copy(&watchdog_ev);
+		valid_pos = watchdog_ev.status == 3; // pipline_status::VALID_POS
+
 	}
 
 	const bool pos_ok = _health_and_arming_checks.canRun(_pending_nav_state);
 
 	// Only require EV yaw fused when EV is actually being used (EKF2_IMU_CTRL != 0 and EV data arriving).
 	// If position comes from GPS or another non-EV source, ev_yaw_available is false and we skip the EV gate.
-	const bool need_ev_yaw = (ekf_ctrl != 0) && ev_yaw_available;
-	const bool ev_yaw_ok   = !need_ev_yaw || _ev_yaw.fused;
-
-	if (pos_ok && ev_yaw_ok) {
+	if (pos_ok && valid_pos) {
 		const float elapsed_s = hrt_elapsed_time(&_pos_wait_start_us) * 1e-6f;
 		PX4_INFO("Position available - switching to pending mode %d after %.1f s", _pending_nav_state, (double)elapsed_s);
 		const uint8_t mode = _pending_nav_state;
@@ -159,10 +159,10 @@ void UserModeIntention::tick()
 
 		_pos_wait_start_us = 0;
 		change(mode, ModeChangeSource::User, false, true);
-		publish_formic_state_machine(true);
+		publish_formic_pos_req(true);
 
 	} else {
-		publish_formic_state_machine(true);
+		publish_formic_pos_req(true);
 
 		int32_t limit_s = 30;
 		param_get(_param_pos_wait_limit, &limit_s);
@@ -172,7 +172,7 @@ void UserModeIntention::tick()
 			_pending_nav_state = UINT8_MAX;
 			_pos_wait_start_us = 0;
 			change(vehicle_status_s::NAVIGATION_STATE_ALTCTL, ModeChangeSource::User, false, true);
-			publish_formic_state_machine(false);
+			publish_formic_pos_req(false);
 		}
 	}
 }
@@ -186,18 +186,19 @@ void UserModeIntention::onFailsafeNavState(uint8_t actual_nav_state)
 	if (!modeRequiresPosition(actual_nav_state)) {
 		_pending_nav_state = UINT8_MAX;
 		_pos_wait_start_us = 0;
-		publish_formic_state_machine(false);
+		publish_formic_pos_req(false);
 	}
 }
 
-void UserModeIntention::publish_formic_state_machine(bool let_update_ev)
+void UserModeIntention::publish_formic_pos_req(bool pos_requested)
 {
-	formic_state_machine_s formic_state_machine{};
-	formic_state_machine.timestamp = hrt_absolute_time();
-	formic_state_machine.let_update_ev = let_update_ev;
-	_formic_state_machine_pub.publish(formic_state_machine);
+	formic_pos_req_s pos_req{};
+	pos_req.pos_req = pos_requested;
+	_formic_pos_req_pub.publish(pos_req);
+
+
 }
-///////add by naor ////////////////
+	///////add by naor ////////////////
 
 void UserModeIntention::onDisarm()
 {

@@ -278,7 +278,7 @@ set(msg_files
 	totalArmTime.msg
 	FormicEvStateMachine.msg
 	FormicVioJetson.msg
-	FormicStateMachine.msg
+	FormicPosReq.msg
 )
 list(SORT msg_files)
 
