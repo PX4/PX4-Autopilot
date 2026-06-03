@@ -942,7 +942,7 @@ void Navigator::run()
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 		if (_geofence.consumeFenceUpdated()) {
-			const float margin = get_geofence_avoidance_margin_for_current_vehicle_type();
+			const float margin = geofence_avoidance_margin();
 			_geofence_avoidance_planner.updateGraphFromGeofence(_geofence, margin);
 		}
 
@@ -1626,10 +1626,11 @@ bool Navigator::geofence_allows_position(const vehicle_global_position_s &pos)
 }
 
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
-float Navigator::get_geofence_avoidance_margin_for_current_vehicle_type() const
+float Navigator::geofence_avoidance_margin() const
 {
-	// these margins are purely guessed and merely try to compensate for
-	// the tracking error which can be expected for each vehicle type
+	// These margins should be above the horizontal tracking error that can be expected for each vehicle type.
+	// If re-using the enlarged polygons for a predictive geofence failsafe feature, additionally ensure
+	// that the margin is large enough to turn around / stop / carry out the desired failsafe action in time.
 	switch (_vstatus.vehicle_type) {
 	case vehicle_status_s::VEHICLE_TYPE_FIXED_WING:
 		return get_default_loiter_rad();
@@ -1641,18 +1642,6 @@ float Navigator::get_geofence_avoidance_margin_for_current_vehicle_type() const
 	}
 }
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
-
-matrix::Vector2<double> Navigator::getRtlPlanningStart()
-{
-	// geofence_breach_check() latches the current position into _last_valid_position_in_fence
-	// whenever no fence is violated, so the stored value is either the current position
-	// (if inside all fences) or the last known good one.
-	if (_last_valid_position_in_fence.isAllFinite()) {
-		return _last_valid_position_in_fence;
-	}
-
-	return matrix::Vector2<double> {_global_pos.lat, _global_pos.lon};
-}
 
 void Navigator::preproject_stop_point(double &lat, double &lon)
 {

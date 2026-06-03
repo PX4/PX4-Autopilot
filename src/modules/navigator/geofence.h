@@ -171,7 +171,6 @@ private:
 		Error
 	};
 
-
 	Navigator   *_navigator{nullptr};
 	PolygonInfo *_polygons{nullptr};
 
@@ -235,7 +234,7 @@ private:
 
 	PolygonInfo getPolygonInfoByIndex(int index) override { return _polygons[index]; }
 
-	matrix::Vector2<double> getPolygonVertexByIndex(int poly_idx, int idx) override;
+	matrix::Vector2<double>getPolygonVertexByIndex(int poly_idx, int idx) override;
 
 	int getNumPolygons() const override { return _num_polygons; }
 

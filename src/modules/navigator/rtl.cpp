@@ -182,20 +182,19 @@ void RTL::on_inactive()
 	if ((now - _destination_check_time) > 2_s) {
 		_destination_check_time = now;
 		setRtlTypeAndDestination();
+
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
-		const bool global_position_recently_updated = _global_pos_sub.get().timestamp > 0
-				&& hrt_elapsed_time(&_global_pos_sub.get().timestamp) < 10_s;
+		const bool gpos_recent = _global_pos_sub.get().timestamp > 0 && hrt_elapsed_time(&_global_pos_sub.get().timestamp) < 10_s;
 
-		if (global_position_recently_updated) {
-			// The planner latches the current position internally as a fallback anchor whenever
-			// it is in-fence (against the planner's margin-shrunken polygons), so a periodic call
-			// here keeps a usable anchor ready for the moment an RTL is triggered.
+		if (gpos_recent) {
+			// Periodically update plan, so that when entering RTL it is immediately available.
 			_navigator->get_geofence_avoidance_planner().updateStartAndFillPath(
-				matrix::Vector2<double> {_global_pos_sub.get().lat, _global_pos_sub.get().lon});
-
+				matrix::Vector2d(_global_pos_sub.get().lat, _global_pos_sub.get().lon)
+			);
 		}
 
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+
 		publishRemainingTimeEstimate();
 	}
 

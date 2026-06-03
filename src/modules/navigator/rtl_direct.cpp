@@ -521,9 +521,9 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 
 		const float loiter_altitude = min(land_approach.height_m, _rtl_alt);
 
-		// Endpoint of the geofence-avoidance path; updated in the AVOID_GEOFENCE case and
-		// used by the MOVE_TO_LOITER case to compute approach direction from the last detour point.
-		matrix::Vector2d geofence_path_end{_global_pos_sub.get().lat, _global_pos_sub.get().lon};
+		// If geofence avoidance, this is set to the last waypoint.
+		// Otherwise, we move directly from vehicle position to loiter.
+		matrix::Vector2d pos_before_loiter{_global_pos_sub.get().lat, _global_pos_sub.get().lon};
 
 		// Sum up time estimate for various segments of the landing procedure
 		switch (start_state_for_estimate) {
@@ -538,7 +538,7 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 		// FALLTHROUGH
 		case RTLState::AVOID_GEOFENCE: {
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
-				geofence_path_end = add_geofence_avoidance_path_distance(_rtl_time_estimator,
+				pos_before_loiter = add_geofence_avoidance_path_distance(_rtl_time_estimator,
 						    _navigator->get_geofence_avoidance_planner(),
 				{_global_pos_sub.get().lat, _global_pos_sub.get().lon});
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
@@ -547,17 +547,16 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 		// FALLTHROUGH
 		case RTLState::MOVE_TO_LOITER: {
 				matrix::Vector2f direction{};
-				get_vector_to_next_waypoint(geofence_path_end(0), geofence_path_end(1),
+				get_vector_to_next_waypoint(pos_before_loiter(0), pos_before_loiter(1),
 							    land_approach.lat, land_approach.lon, &direction(0), &direction(1));
 
-				float dist = get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon,
-						land_approach.lat, land_approach.lon);
+				float move_to_land_dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, land_approach.lat, land_approach.lon)};
 
 				if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
-					dist = max(0.f, dist - land_approach.loiter_radius_m);
+					move_to_land_dist = max(0.f, move_to_land_dist - land_approach.loiter_radius_m);
 				}
 
-				_rtl_time_estimator.addDistance(dist, direction, 0.f);
+				_rtl_time_estimator.addDistance(move_to_land_dist, direction, 0.f);
 			}
 
 		// FALLTHROUGH

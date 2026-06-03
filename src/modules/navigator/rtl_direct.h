@@ -56,7 +56,7 @@
 
 #include <lib/rtl/rtl_time_estimator.h>
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
-#include <navigator/GeofenceBreachAvoidance/geofence_avoidance_planner.h>
+#include "GeofenceBreachAvoidance/geofence_avoidance_planner.h"
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 #include "mission_block.h"
 #include "navigation.h"
@@ -173,7 +173,6 @@ private:
 	PositionYawSetpoint _destination{(double)NAN, (double)NAN, NAN, NAN}; ///< the RTL position to fly to
 	loiter_point_s _land_approach;
 	float _rtl_alt{0.0f}; ///< AMSL altitude at which the vehicle should transit to the destination
-
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RTL_DESCEND_ALT>) _param_rtl_descend_alt,

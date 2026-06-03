@@ -86,7 +86,9 @@ Geofence::Geofence(Navigator *navigator) :
 
 Geofence::~Geofence()
 {
-	delete[] _polygons;
+	if (_polygons) {
+		delete[](_polygons);
+	}
 }
 
 void Geofence::run()
@@ -250,7 +252,7 @@ void Geofence::_updateFence()
 						memcpy(new_polygons, _polygons, sizeof(PolygonInfo) * _num_polygons);
 					}
 
-					delete[] _polygons;
+					delete[](_polygons);
 					_polygons = new_polygons;
 
 				} else {
@@ -722,10 +724,7 @@ void Geofence::printStatus()
 		 total_num_vertices);
 }
 
-
-
-
-matrix::Vector2<double>  Geofence::getPolygonVertexByIndex(int poly_idx, int idx)
+matrix::Vector2<double>Geofence::getPolygonVertexByIndex(int poly_idx, int idx)
 {
 	PolygonInfo info = _polygons[poly_idx];
 

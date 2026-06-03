@@ -199,7 +199,7 @@ public:
 	 * Margin (m) by which the geofence avoidance planner shrinks inclusion
 	 * polygons and expands exclusion polygons.
 	 */
-	float get_geofence_avoidance_margin_for_current_vehicle_type() const;
+	float geofence_avoidance_margin() const;
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 	float get_default_loiter_rad() const { return fabsf(_param_nav_loiter_rad.get()); }
@@ -325,15 +325,6 @@ public:
 
 	void trigger_hagl_failsafe(uint8_t nav_state);
 
-	/**
-	 * Returns the last position that was confirmed to be inside all geofences.
-	 * Used as a fallback RTL planner start when the current position is in violation.
-	 * Falls back to the current position if no valid position has ever been latched.
-	 */
-	matrix::Vector2<double> getRtlPlanningStart();
-
-	bool was_last_position_outside_fence() const { return _last_position_was_outside_fence; }
-
 private:
 
 	int _local_pos_sub{-1};
@@ -390,9 +381,6 @@ private:
 	GeofenceAvoidancePlanner _geofence_avoidance_planner; /**< RTL/auto path planner that routes around fences (visibility graph + Dijkstra) */
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 	hrt_abstime _last_geofence_check {0};
-
-	matrix::Vector2d _last_valid_position_in_fence{static_cast<double>(NAN), static_cast<double>(NAN)};
-	bool _last_position_was_outside_fence{false};
 
 	bool _navigator_status_updated{false};
 	hrt_abstime _last_navigator_status_publication{0};
