@@ -3,7 +3,7 @@
 <img src="../../assets/site/position_fixed.svg" title="Position required (e.g. GPS)" width="30px" />
 
 _Guided Course mode_ maintains a constant ground track (course), altitude, and airspeed without any manual stick input.
-The operator controls the vehicle entirely via [GCS commands](#in-flight-commands), making it the guided equivalent of [Position mode](../flight_modes_fw/position.md).
+The operator controls the vehicle entirely using [GCS commands](#supported-commands), making it the guided equivalent of [Position mode](../flight_modes_fw/position.md).
 
 :::tip
 This mode is suited to situations where an operator wants to guide a fixed-wing vehicle from a GCS without manual control.

@@ -64,10 +64,12 @@ public:
 	float getYaw() const { return _positions(2); }
 	float getThrottleZeroCentered() const { return _positions(3); }
 
-	float getRollExpo(float expo = .6f) const { return math::expo_deadzone(getRoll(), expo, _param_man_deadzone.get()); }
-	float getPitchExpo(float expo = .6f) const { return math::expo_deadzone(getPitch(), expo, _param_man_deadzone.get()); }
-	float getYawExpo(float expo = .6f) const { return math::expo_deadzone(getYaw(), expo, _param_man_deadzone.get()); }
-	float getThrottleZeroCenteredExpo(float expo = .6f) const { return math::expo_deadzone(getThrottleZeroCentered(), expo, _param_man_deadzone.get()); }
+	float getRollExpo(float expo = .6f) const { return expoDeadzone(getRoll(), expo, _param_man_deadzone.get()); }
+	float getPitchExpo(float expo = .6f) const { return expoDeadzone(getPitch(), expo, _param_man_deadzone.get()); }
+	float getYawExpo(float expo = .6f) const { return expoDeadzone(getYaw(), expo, _param_man_deadzone.get()); }
+	float getThrottleZeroCenteredExpo(float expo = .6f) const { return expoDeadzone(getThrottleZeroCentered(), expo, _param_man_deadzone.get()); }
+
+	static float expoDeadzone(float value, float expo, float deadzone);
 
 	const matrix::Vector2f getPitchRoll() { return {getPitch(), getRoll()}; }
 	const matrix::Vector2f getPitchRollExpo() { return {getPitchExpo(), getRollExpo()}; }
