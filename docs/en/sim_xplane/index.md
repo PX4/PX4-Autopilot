@@ -23,11 +23,11 @@ PX4 includes X-Plane SITL airframes for the following vehicles:
 | QuadTailsitter | VTOL tailsitter | `make px4_sitl_default xplane_qtailsitter` |
 
 The matching X-Plane aircraft files and bridge configuration are distributed by the px4xplane project.
-Custom X-Plane aircraft can also be integrated when there is a matching PX4 airframe and px4xplane bridge configuration.
+Additional X-Plane aircraft or vehicle models can also be integrated when PX4 has a matching SITL-capable control path and px4xplane can map the required actuator outputs to writable X-Plane datarefs.
 
 ## Installation
 
-1. Install the [PX4 development environment](../dev_setup/dev_env.md).
+1. Install the [PX4 development environment](../dev_setup/dev_env.md) on the machine, container, or WSL2 environment that will run PX4 SITL.
 2. Install X-Plane 11 or X-Plane 12.
 3. Download the latest OS-specific px4xplane release package from the [px4xplane releases page](https://github.com/alireza787b/px4xplane/releases).
 4. The release package is an archive, not an installer.
@@ -48,15 +48,16 @@ PX4 connects to the X-Plane bridge on TCP port `4560`.
 The default host is `localhost`, which is suitable when PX4 and X-Plane run on the same Linux or macOS machine.
 
 For Windows, the usual setup is X-Plane running natively on Windows and PX4 running in WSL2.
-In that case, set `PX4_SIM_HOSTNAME` in the WSL2 shell to the Windows host IP before starting PX4:
+In that case, set `PX4_SIM_HOSTNAME` in the WSL2 shell to the Windows host IP before starting PX4.
+This variable is set on the PX4/SITL side and points to the host where X-Plane and the px4xplane plugin are running:
 
 ```sh
 export PX4_SIM_HOSTNAME=$(ip route | awk '/default/ {print $3; exit}')
 ```
 
 Then start the desired PX4 target from the same shell.
-If PX4 runs in Docker or on another computer, set `PX4_SIM_HOSTNAME` to the IP address where X-Plane and the px4xplane plugin are running.
-Make sure TCP port `4560` is allowed by the host firewall.
+If PX4 runs in Docker or on another computer, set `PX4_SIM_HOSTNAME` to the reachable IP address or hostname of the X-Plane machine instead.
+Make sure inbound TCP port `4560` is allowed by the firewall on the X-Plane host.
 
 ## Running SITL
 
@@ -83,6 +84,7 @@ To add another X-Plane aircraft:
 4. Tune the PX4 parameters from ULog data and X-Plane truth logs.
 
 See the [px4xplane custom airframe guide](https://github.com/alireza787b/px4xplane/blob/master/docs/custom-airframe-config.md) for bridge configuration details.
+For X-Plane-side aircraft design and dataref mapping, see the official [Plane Maker manual](https://developer.x-plane.com/manuals/planemaker/index.html) and [X-Plane datarefs reference](https://developer.x-plane.com/datarefs/).
 
 ## Troubleshooting
 
