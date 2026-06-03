@@ -83,7 +83,12 @@ private:
 	void start();
 	void stop();
 
-	PX4Rangefinder	_px4_rangefinder;
+	obstacle_distance_s 			_obstacle_distance{};
+	uORB::Publication<obstacle_distance_s>	_obstacle_distance_pub{ORB_ID(obstacle_distance)};	/**< obstacle_distance publication */
+
+	static constexpr uint8_t 	BIN_COUNT = sizeof(obstacle_distance_s::distances) / sizeof(
+				obstacle_distance_s::distances[0]);
+
 
 	Serial *_uart = nullptr; ///< UART interface to ASDT1
 	char _linebuf[10] {};
@@ -99,6 +104,8 @@ private:
 
 	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com_err")};
 	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
+
+	unsigned int _baud = 112500; // ASDT1 default baud rate
 
 	float range_min = 0.0f;    // in mm
 	float range_max = 50000.0f; // in mm

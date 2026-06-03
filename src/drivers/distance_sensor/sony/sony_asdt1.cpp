@@ -59,14 +59,26 @@ AS_DT1::AS_DT1(const char *device, uint8_t rotation):
 	device_id.devid_s.devtype = DRV_DIST_DEVTYPE_ASDT1;
 	device_id.devid_s.bus_type = device::Device::DeviceBusType_SERIAL;
 
-	// uint8_t bus_num = atoi(&_device[strlen(_device) - 1]); // Assuming '/dev/ttySx'
-	//
-	// if (bus_num < 10) {
-	// 	device_id.devid_s.bus = bus_num;
-	// }
+	uint8_t bus_num = atoi(&_device[strlen(_device) - 1]); // Assuming '/dev/ttySx'
 
-	_px4_rangefinder.set_device_id(device_id.devid);
-	_px4_rangefinder.set_rangefinder_type(distance_sensor_s::MAV_DISTANCE_SENSOR_LASER);
+	if (bus_num < 10) {
+		device_id.devid_s.bus = bus_num;
+	}
+
+
+
+	obstacle_distance.frame = obstacle_distance_s::MAV_FRAME_BODY_FRD;
+	_obstacle_distance.sensor_type = obstacle_distance_s::MAV_DISTANCE_SENSOR_LASER;
+	_obstacle_distance.increment = 5; // THIS NEEDS TO BE CHANGED
+	_obstacle_distance.min_distance = 5; // THIS NEEDS TO BE CHANGED
+	_obstacle_distance.max_distance = 10; // THIS NEEDS TO BE CHANGED
+	_obstacle_distance.angle_offset = 0; // THIS NEEDS TO BE CHANGED
+
+	for (uint32_t i = 0 ; i < BIN_COUNT; i++) { // Initialize all distances to max (no obstacle)
+		_obstacle_distance.distances[i] = UINT16_MAX;
+	}
+
+
 	// Initialize with 2 rows (index 0 and 1)
 	// points.resize(2);
 	// Reserve space for 576 points each
@@ -112,9 +124,14 @@ AS_DT1::AS_DT1(const char *device, uint8_t rotation):
 AS_DT1::~AS_DT1()
 {
 
-	if (_uart.isOpen()) {
-		_uart.close();
-	}
+	// if (_uart.isOpen()) {
+	// 	_uart.close();
+	// }
+
+	stop();
+	perf_free(_comms_errors);
+	perf_free(_sample_perf);
+
 }
 int AS_DT1::init()
 {
