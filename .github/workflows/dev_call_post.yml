@@ -43,64 +43,58 @@ jobs:
         id: prs
         run: |
           SINCE=${{ steps.dates.outputs.week_ago }}
+          BASE="https://github.com/PX4/PX4-Autopilot"
 
-          MERGED=$(gh pr list --repo PX4/PX4-Autopilot \
-            --state merged \
-            --search "merged:>=${SINCE}" \
-            --json number,title,author,url \
-            --limit 50)
+          MERGED_COUNT=$(gh pr list --repo PX4/PX4-Autopilot \
+            --state merged --search "merged:>=${SINCE}" \
+            --json number --limit 50 | jq 'length')
 
-          NEEDS_REVIEW=$(gh pr list --repo PX4/PX4-Autopilot \
-            --state open \
-            --search "review:none created:>=${SINCE}" \
-            --json number,title,author,url \
-            --limit 20)
+          REVIEW_COUNT=$(gh pr list --repo PX4/PX4-Autopilot \
+            --state open --search "review:none created:>=${SINCE}" \
+            --json number --limit 20 | jq 'length')
 
-          echo "$MERGED" | jq -r '
-            if length == 0 then "- None this week"
-            else .[] |
-              "- [#\(.number) \(.title)](\(.url)) by @\(.author.login)"
-            end' > /tmp/merged_prs.md
+          if [ "$MERGED_COUNT" = "0" ]; then
+            echo "- None this week" > /tmp/merged_prs.md
+          else
+            echo "[${MERGED_COUNT} PRs merged this week →](${BASE}/pulls?q=is:pr+is:merged+merged:>=${SINCE})" > /tmp/merged_prs.md
+          fi
 
-          echo "$NEEDS_REVIEW" | jq -r '
-            if length == 0 then "- None pending"
-            else .[] |
-              "- [#\(.number) \(.title)](\(.url)) by @\(.author.login)"
-            end' > /tmp/review_prs.md
+          if [ "$REVIEW_COUNT" = "0" ]; then
+            echo "- None pending" > /tmp/review_prs.md
+          else
+            echo "[${REVIEW_COUNT} PRs awaiting review →](${BASE}/pulls?q=is:pr+is:open+review:none+created:>=${SINCE})" > /tmp/review_prs.md
+          fi
 
-          echo "merged_count=$(echo "$MERGED" | jq 'length')" >> "$GITHUB_OUTPUT"
-          echo "review_count=$(echo "$NEEDS_REVIEW" | jq 'length')" >> "$GITHUB_OUTPUT"
+          echo "merged_count=${MERGED_COUNT}" >> "$GITHUB_OUTPUT"
+          echo "review_count=${REVIEW_COUNT}" >> "$GITHUB_OUTPUT"
 
       - name: Fetch new issues (last 7 days)
         id: issues
         run: |
           SINCE=${{ steps.dates.outputs.week_ago }}
+          BASE="https://github.com/PX4/PX4-Autopilot"
 
-          BUGS=$(gh issue list --repo PX4/PX4-Autopilot \
-            --state all \
-            --search "created:>=${SINCE} label:bug" \
-            --json number,title,url \
-            --limit 20)
+          BUG_COUNT=$(gh issue list --repo PX4/PX4-Autopilot \
+            --state all --search "created:>=${SINCE} label:bug" \
+            --json number --limit 20 | jq 'length')
 
-          OTHER=$(gh issue list --repo PX4/PX4-Autopilot \
-            --state all \
-            --search "created:>=${SINCE} -label:bug" \
-            --json number,title,url \
-            --limit 20)
+          OTHER_COUNT=$(gh issue list --repo PX4/PX4-Autopilot \
+            --state all --search "created:>=${SINCE} -label:bug" \
+            --json number --limit 20 | jq 'length')
 
-          echo "$BUGS" | jq -r '
-            if length == 0 then "- No new bugs"
-            else .[] |
-              "- [#\(.number) \(.title)](\(.url))"
-            end' > /tmp/bug_issues.md
+          if [ "$BUG_COUNT" = "0" ]; then
+            echo "- No new bugs" > /tmp/bug_issues.md
+          else
+            echo "[${BUG_COUNT} new bug reports →](${BASE}/issues?q=is:issue+created:>=${SINCE}+label:bug)" > /tmp/bug_issues.md
+          fi
 
-          echo "$OTHER" | jq -r '
-            if length == 0 then "- None"
-            else .[] |
-              "- [#\(.number) \(.title)](\(.url))"
-            end' > /tmp/other_issues.md
+          if [ "$OTHER_COUNT" = "0" ]; then
+            echo "- None" > /tmp/other_issues.md
+          else
+            echo "[${OTHER_COUNT} new issues →](${BASE}/issues?q=is:issue+created:>=${SINCE}+-label:bug)" > /tmp/other_issues.md
+          fi
 
-          echo "bug_count=$(echo "$BUGS" | jq 'length')" >> "$GITHUB_OUTPUT"
+          echo "bug_count=${BUG_COUNT}" >> "$GITHUB_OUTPUT"
 
       - name: Fetch Dev Call labeled items
         id: dev_call
