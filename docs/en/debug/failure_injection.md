@@ -61,6 +61,10 @@ where:
 - _instance number_ (optional): Instance number of affected sensor.
   0 (default) indicates all sensors of specified type.
 
+::: info
+The simulated GPS (SITL) implements only the `off`, `stuck`, and `wrong` failure modes; the other failure types have no effect on it.
+:::
+
 ## MAVSDK Failure Plugin
 
 The [MAVSDK failure plugin](https://mavsdk.mavlink.io/main/en/cpp/api_reference/classmavsdk_1_1_failure.html) can be used to programmatically inject failures.
