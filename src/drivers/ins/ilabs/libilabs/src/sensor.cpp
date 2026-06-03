@@ -33,6 +33,8 @@
 
 #include "sensor.h"
 
+#include <mathlib/math/Limits.hpp>
+
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/time.h>
 
@@ -45,7 +47,6 @@
 namespace {
 
 constexpr int BAUDRATE = 921600;
-
 constexpr float GRAVITY_MSS = 9.8106f;  // acceleration due to gravity in m/s^2 used in IL INS
 
 /*
@@ -187,7 +188,7 @@ bool Sensor::isInitialized() const {
 
 void Sensor::updateData() {
 	while (_processInThread.load()) {
-		bool result = moveValidMessageToBufferStart();
+		bool result = readData();
 		if (!result) {
 			continue;
 		}
@@ -201,7 +202,7 @@ void Sensor::updateData() {
 			_dataHandler(_context, &_sensorData);
 		}
 
-		skipMessageInBufferStart();
+		_bufOffset = 0;
 		perf_count(_handle_time_perf);
 	}
 }
@@ -241,107 +242,68 @@ bool Sensor::initSerialPort(const char *serialDeviceName) {
 	return true;
 }
 
-bool Sensor::moveToBufferStart(const uint8_t *pos) {
-	if (!pos) {
-		PX4_ERR("Invalid position pointer");
-		return false;
-	}
-
-	const uint16_t bytesFromBufferStart = pos - _buf;
-	if (bytesFromBufferStart > BUFFER_SIZE) {
-		PX4_ERR("Invalid position pointer");
-		return false;
-	}
-
-	if (_bufOffset < bytesFromBufferStart) {
-		PX4_ERR("Buffer offset less than bytes diff need to move");
-		return false;
-	}
-
-	memmove(_buf, pos, _bufOffset - bytesFromBufferStart);
-	_bufOffset -= bytesFromBufferStart;
-	return true;
-}
-
-bool Sensor::skipMessageInBufferStart() {
+bool Sensor::readData()
+{
 	const MessageHeader *messageHeader = reinterpret_cast<MessageHeader *>(_buf);
-	if (!isMessageHeaderValid(messageHeader)) {
-		PX4_ERR("Incorrect message header in buffer start. Can't skip the message correctly");
-		return false;
+
+	uint16_t n = BUFFER_SIZE - _bufOffset;
+
+	if (_bufOffset < MESSAGE_HEADER_LEN) {
+		n = math::min<uint16_t>(n, uint32_t(MESSAGE_HEADER_LEN - _bufOffset));
+	} else {
+		if (!isMessageHeaderValid(messageHeader)) {
+			moveMessageHeaderToBufferStart();
+			return false;
+		}
+
+		if (_bufOffset > messageHeader->msgLen + MAGIC_NUMBER_LEN) {
+			moveMessageHeaderToBufferStart();
+			return false;
+		}
+
+		// Here header is correct
+		const uint16_t bytesTillMessageEnd = messageHeader->msgLen + MAGIC_NUMBER_LEN - _bufOffset;
+		n = math::min<uint16_t>(n, bytesTillMessageEnd);
 	}
 
-	const uint8_t *endMessagePos = &_buf[messageHeader->msgLen + MAGIC_NUMBER_LEN];
-
-	return moveToBufferStart(endMessagePos);
-}
-
-bool Sensor::moveMessageHeaderToBufferStart() {
-	if (_bufOffset <= MAGIC_NUMBER_LEN) {
-		PX4_WARN("Buffer offset is too small for the message");
-		_bufOffset = 0;
-		return false;
-	}
-
-	const uint8_t *startMessagePos = (const uint8_t *)memmem(&_buf[1],
-								 _bufOffset - MAGIC_NUMBER_LEN,
-			 					 &MAGIC_NUMBER,
-								 MAGIC_NUMBER_LEN);
-	if (!startMessagePos) {
-		PX4_WARN("Can't find the message start in the buffer");
-		_bufOffset = 0;
-		return false;
-	}
-
-	return moveToBufferStart(startMessagePos);
-}
-
-bool Sensor::moveValidMessageToBufferStart() {
-	const uint16_t freeBufByteCount = BUFFER_SIZE - _bufOffset;
-	if (freeBufByteCount < sizeof(MessageHeader)) {
-		_bufOffset = 0;
-		PX4_DEBUG("Buffer free space not enough for the message header. Buffer was cleaned");
-		return false;
-	}
-
-	const ssize_t nRead = _serial->readAtLeast(&_buf[_bufOffset], freeBufByteCount, freeBufByteCount, 500);
-	if (nRead != freeBufByteCount) {
-		PX4_ERR("Can't read requested data from the serial device. Bytes requested: %d. Bytes read: %d",
-				freeBufByteCount, static_cast<int>(nRead));
-		_bufOffset = 0;
+	ssize_t nRead = _serial->readAtLeast(&_buf[_bufOffset], n, n, 500);
+	if (nRead != ssize_t(n)) {
+		// PX4_ERR("Can't read requested data from the serial device. Bytes requested: %d. Bytes read: %d",
+		// 		n, static_cast<int>(nRead));
+		moveMessageHeaderToBufferStart();
 		return false;
 	}
 
 	_bufOffset += nRead;
 
-	if (_bufOffset > BUFFER_SIZE) {
-		PX4_ERR("Buffer read bytes: %d. Buffer size: %d. Offset will be reseted", _bufOffset, BUFFER_SIZE);
-		_bufOffset = 0;
-		return false;
-	}
-
-	const MessageHeader *messageHeader = reinterpret_cast<MessageHeader *>(_buf);
 	if (!isMessageHeaderValid(messageHeader)) {
-		PX4_DEBUG("Message header in the buffer start is incorrect");
 		moveMessageHeaderToBufferStart();
 		return false;
 	}
 
-	const uint16_t fullMessageLength = messageHeader->msgLen + MAGIC_NUMBER_LEN;
-	if (fullMessageLength > _bufOffset) {
-		_bufOffset = 0;
-		PX4_ERR(
-			"The message was not read in full. This situation is not healthy. Is the buffer size enough?\n"
-			"Message was removed and buffer offset was reseted");
-		return false;
+	const uint16_t fullMessageLen = messageHeader->msgLen + MAGIC_NUMBER_LEN;
+	if (_bufOffset < fullMessageLen) {
+		// Try to read least message data
+		n = fullMessageLen - _bufOffset;
+
+		nRead = _serial->readAtLeast(&_buf[_bufOffset], n, n, 500);
+		if (nRead != ssize_t(n)) {
+			// PX4_ERR("Can't read requested data from the serial device. Bytes requested: %d. Bytes read: %d",
+			// 		n, static_cast<int>(nRead));
+			moveMessageHeaderToBufferStart();
+			return false;
+		}
+
+		_bufOffset += nRead;
 	}
 
 	// Check checksum
 	const uint16_t calculatedChecksum = checksum(&_buf[2], messageHeader->msgLen - MESSAGE_CHECKSUM_LEN);
 	const uint16_t readChecksum       = readMessageChecksum(&_buf[messageHeader->msgLen]);
 	if (calculatedChecksum != readChecksum) {
-		PX4_ERR("Invalid message checksum. Calculated checksum: %d. Read checksum: %d", calculatedChecksum,
-				readChecksum);
-		moveToBufferStart(&_buf[fullMessageLength]);
+		// PX4_ERR("Invalid message checksum. Calculated checksum: %d. Read checksum: %d", calculatedChecksum,
+		// 		readChecksum);
+		moveMessageHeaderToBufferStart();
 		perf_count(_checksum_fail_perf);
 		return false;
 	}
@@ -349,11 +311,41 @@ bool Sensor::moveValidMessageToBufferStart() {
 	return true;
 }
 
+bool Sensor::moveMessageHeaderToBufferStart()
+{
+	if (!_bufOffset) {
+		// PX4_WARN("ILAB: Buffer is empty");
+		return false;
+	}
+
+	if (_bufOffset <= MAGIC_NUMBER_LEN) {
+		// PX4_WARN("Buffer offset is too small for the package");
+		_bufOffset = 0;
+		return false;
+	}
+
+	const uint8_t *startPackagePos = (const uint8_t *)memmem(&_buf[1],
+								 _bufOffset - MAGIC_NUMBER_LEN,
+								 &MAGIC_NUMBER,
+								 MAGIC_NUMBER_LEN);
+	if (!startPackagePos)
+	{
+		// PX4_WARN("ILAB: Can't find the package start in the buffer");
+		_bufOffset = 0;
+		return false;
+	}
+
+	const uint16_t bytesFromBufferStart = startPackagePos - _buf;
+	memmove(_buf, startPackagePos, _bufOffset - bytesFromBufferStart);
+	_bufOffset -= bytesFromBufferStart;
+	return true;
+}
+
 bool Sensor::parseUDDPayload() {
 	const MessageHeader *messageHeader = reinterpret_cast<MessageHeader *>(_buf);
 
 	if (!isMessageHeaderValid(messageHeader)) {
-		PX4_ERR("Message header in buffer start is incorrect");
+		// PX4_ERR("Message header in buffer start is incorrect");
 		perf_count(_udd_parse_fail_perf);
 		return false;
 	}
@@ -363,7 +355,7 @@ bool Sensor::parseUDDPayload() {
 
 	const uint8_t messageCount = payload[0];
 	if (messageCount == 0 || messageCount > payloadSize - 1) {
-		PX4_ERR("Invalid data message. Number of messages or messages data are incorrect");
+		// PX4_ERR("Invalid data message. Number of messages or messages data are incorrect");
 		moveMessageHeaderToBufferStart();
 		perf_count(_udd_parse_fail_perf);
 		return false;
@@ -613,8 +605,8 @@ bool Sensor::parseUDDPayload() {
 				break;
 			}
 			default: {
-				PX4_ERR("Unknown message type: %d. Further message parsing result will be incorrect",
-				        messageType);
+				// PX4_ERR("Unknown message type: %d. Further message parsing result will be incorrect",
+				//         messageType);
 				messageLength = 0;
 				perf_count(_udd_parse_fail_perf);
 				return false;

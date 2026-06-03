@@ -44,7 +44,7 @@
 
 namespace InertialLabs {
 
-constexpr uint16_t BUFFER_SIZE{512};
+constexpr uint16_t BUFFER_SIZE{250};
 
 class Sensor {
 public:
@@ -75,11 +75,9 @@ private:
 	}
 
 	bool initSerialPort(const char *serialDeviceName);
-	bool moveToBufferStart(const uint8_t *pos);
-	bool skipMessageInBufferStart();
-	bool moveMessageHeaderToBufferStart();
-	bool moveValidMessageToBufferStart();
 
+	bool readData();
+	bool moveMessageHeaderToBufferStart();
 	bool parseUDDPayload();
 
 private:
