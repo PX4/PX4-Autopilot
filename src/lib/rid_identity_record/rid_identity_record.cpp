@@ -38,6 +38,7 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/log.h>
 
+#include <algorithm>
 #include <errno.h>
 #include <stdio.h>
 #include <stddef.h>
@@ -129,7 +130,7 @@ static const char *verify_error_to_string(rid_identity_verify_error err)
 extern "C" {
 
 #if defined(CONFIG_BOARD_ODID_RID_IDENTITY)
-	int board_get_mfguid(uint8_t *mfgid);
+	__attribute__((weak)) int board_get_mfguid(uint8_t *mfgid);
 #endif
 
 	bool rid_identity_compute_uid_hash(const uint8_t *sn, size_t sn_len,
@@ -277,6 +278,11 @@ extern "C" {
 
 		uint8_t mfguid[RID_UID_BYTE_LENGTH] {};
 
+		if (board_get_mfguid == nullptr) {
+			PX4_WARN("RID identity board mfguid API unavailable on this target");
+			return false;
+		}
+
 		const int mfguid_len = board_get_mfguid(mfguid);
 
 		if (mfguid_len < static_cast<int>(RID_UID_BYTE_LENGTH)) {
@@ -341,13 +347,10 @@ extern "C" {
 			"OPEN_DRONE_ID_ARM_STATUS",
 		};
 
-		for (const char *name : protected_streams) {
-			if (strcmp(stream_name, name) == 0) {
-				return true;
-			}
-		}
-
-		return false;
+		const size_t protected_stream_count = sizeof(protected_streams) / sizeof(protected_streams[0]);
+		return std::any_of(protected_streams, protected_streams + protected_stream_count, [stream_name](const char *name) {
+			return strcmp(stream_name, name) == 0;
+		});
 	}
 
 	bool rid_identity_mavlink_msg_stop_denied(uint16_t msg_id)
