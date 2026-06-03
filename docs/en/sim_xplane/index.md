@@ -8,6 +8,7 @@ See [Toolchain Installation](../dev_setup/dev_env.md) for information about the 
 
 [X-Plane](https://www.x-plane.com/) can be used with PX4 for [Software-In-The-Loop (SITL)](../simulation/index.md#sitl-simulation-environment) simulation through the community-supported [px4xplane](https://github.com/alireza787b/px4xplane) bridge plugin.
 PX4 runs as the flight controller, while X-Plane provides the vehicle dynamics, visual scene, and simulated sensor inputs.
+The px4xplane bridge is an X-Plane plugin: it runs inside X-Plane, accepts PX4's simulator MAVLink connection, publishes simulated sensors to PX4, and writes PX4 actuator outputs to X-Plane datarefs.
 
 ## Supported Vehicles
 
@@ -22,27 +23,32 @@ PX4 includes X-Plane SITL airframes for the following vehicles:
 | QuadTailsitter | VTOL tailsitter | `make px4_sitl_default xplane_qtailsitter` |
 
 The matching X-Plane aircraft files and bridge configuration are distributed by the px4xplane project.
+Custom X-Plane aircraft can also be integrated when there is a matching PX4 airframe and px4xplane bridge configuration.
 
 ## Installation
 
 1. Install the [PX4 development environment](../dev_setup/dev_env.md).
 2. Install X-Plane 11 or X-Plane 12.
-3. Download a px4xplane release from the [px4xplane releases page](https://github.com/alireza787b/px4xplane/releases).
-4. Install the bridge plugin into:
+3. Download the latest OS-specific px4xplane release package from the [px4xplane releases page](https://github.com/alireza787b/px4xplane/releases).
+4. The release package is an archive, not an installer.
+   Extract it and copy the complete `px4xplane` plugin folder into:
 
    ```sh
    X-Plane/Resources/plugins/px4xplane
    ```
 
-5. Install the matching X-Plane aircraft and bridge configuration from the release package.
+5. Copy the matching X-Plane aircraft folders from the same extracted package into an X-Plane aircraft directory.
+   Keep the packaged `64/config.ini` with the `px4xplane` plugin unless the release notes say otherwise.
+
+The [px4xplane build and installation guide](https://github.com/alireza787b/px4xplane/blob/master/docs/BUILD.md#installation) has more detail on the plugin folder layout.
 
 ## Network Setup
 
 PX4 connects to the X-Plane bridge on TCP port `4560`.
 The default host is `localhost`, which is suitable when PX4 and X-Plane run on the same Linux or macOS machine.
 
-For Windows, the usual setup is X-Plane running natively on Windows and PX4 running in WSL.
-In that case, set `PX4_SIM_HOSTNAME` in the WSL shell to the Windows host IP before starting PX4:
+For Windows, the usual setup is X-Plane running natively on Windows and PX4 running in WSL2.
+In that case, set `PX4_SIM_HOSTNAME` in the WSL2 shell to the Windows host IP before starting PX4:
 
 ```sh
 export PX4_SIM_HOSTNAME=$(ip route | awk '/default/ {print $3; exit}')
