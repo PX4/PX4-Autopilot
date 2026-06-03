@@ -152,9 +152,12 @@ The _Geofence Failsafe_ is triggered when the drone breaches a "virtual" perimet
 In its simplest form, the perimeter is set up as a cylinder centered around the home position.
 If the vehicle moves outside the radius or above the altitude the specified _Failsafe Action_ will trigger.
 
-Note that the failsafe action will only trigger once the vehicle has already breached the geofence. If you have a strict no-fly zone for safety or legal reasons, set [GF_ACTION](../advanced_config/parameter_reference.md#GF_ACTION) to `Hold` and include a safety margin in your geofences. The margin should be at least:
- - The loiter radius [NAV_LOITER_RAD](../advanced_config/parameter_reference.md#NAV_LOITER_RAD), for FW
- - The stopping distance (`v^2 / 2a` with v=[MPC_XY_VEL_MAX](../advanced_config/parameter_reference.md#MPC_XY_VEL_MAX), a=[MPC_ACC_HOR_MAX](../advanced_config/parameter_reference.md#MPC_ACC_HOR_MAX)), for MC
+Note that the failsafe action will only trigger once the vehicle has already breached the geofence.
+If you have a strict no-fly zone for safety or legal reasons, set [GF_ACTION](../advanced_config/parameter_reference.md#GF_ACTION) to `Hold` and include a safety margin in your geofences.
+The margin should be at least:
+
+- **Fixed-Wing**: The loiter radius [NAV_LOITER_RAD](../advanced_config/parameter_reference.md#NAV_LOITER_RAD).
+- **Multicopter**: The stopping distance (`v^2 / 2a` with `v`=[MPC_XY_VEL_MAX](../advanced_config/parameter_reference.md#MPC_XY_VEL_MAX) and `a`=[MPC_ACC_HOR_MAX](../advanced_config/parameter_reference.md#MPC_ACC_HOR_MAX)).
 
 Use a margin above those nominal values to account for possible tailwind, position uncertainty, attitude tracking delay, etc.
 
@@ -179,10 +182,10 @@ Due to the inherent danger of this, this function is disabled using [CBRK_FLIGHT
 
 The following settings also apply, but are not displayed in the QGC UI.
 
-| Setting                                                            | Parameter                                                                    | Description                                                                                                                                         |
-| ------------------------------------------------------------------ | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="GF_SOURCE"></a>Geofence source                              | [GF_SOURCE](../advanced_config/parameter_reference.md#GF_SOURCE)             | Set whether position source is estimated global position or direct from the GPS device.                                                             |
-| <a id="CBRK_FLIGHTTERM"></a>Circuit breaker for flight termination | [CBRK_FLIGHTTERM](../advanced_config/parameter_reference.md#CBRK_FLIGHTTERM) | Enables/Disables flight termination action (disabled by default).                                                                                   |
+| Setting                                                            | Parameter                                                                    | Description                                                                             |
+| ------------------------------------------------------------------ | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| <a id="GF_SOURCE"></a>Geofence source                              | [GF_SOURCE](../advanced_config/parameter_reference.md#GF_SOURCE)             | Set whether position source is estimated global position or direct from the GPS device. |
+| <a id="CBRK_FLIGHTTERM"></a>Circuit breaker for flight termination | [CBRK_FLIGHTTERM](../advanced_config/parameter_reference.md#CBRK_FLIGHTTERM) | Enables/Disables flight termination action (disabled by default).                       |
 
 ## Position Estimation Failsafes
 
