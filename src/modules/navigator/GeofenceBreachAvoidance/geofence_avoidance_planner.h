@@ -55,20 +55,17 @@ public:
 
 
 	/**
-	 * @brief Plan a path from `start` to the previously-set destination, falling back to a
-	 *        saved in-fence anchor if `start` itself violates the fences.
+	 * Fill the path from `start` to the destination. If `start` is
+	 * breaching a (margin-expanded) geofence, start with the last
+	 * non-breaching vehicle position.
 	 *
-	 * Pass the vehicle's current position as `start`. The planner first tries to plan from
-	 * there; if no polygon node is visible (i.e. the position lies outside the planner's
-	 * margined polygons), it transparently retries from the most recent in-fence position
-	 * that was latched on a prior call. When `start` is itself in-fence it is latched as
-	 * the new fallback for future calls — so calling this periodically with the current
-	 * vehicle position keeps a usable anchor ready the moment one is needed. The result of
-	 * which start was actually used is queryable via start_is_current_position().
+	 * Does not re-plan - that only happens after updateGraphFromGeofence
+	 * and updateDestination.
 	 *
-	 * @return Number of waypoints the caller should consume from get_point_at_index().
-	 *         When the planner falls back to the saved anchor, index 0 is that anchor; the
-	 *         vehicle has to fly to it first.
+	 * The resulting path is available for external consumers through
+	 * getCurrentWaypoint, getNextWaypoint, advanceWaypoint.
+	 *
+	 * @return Number of waypoints in the path. Only used in tests.
 	 */
 	int updateStartAndFillPath(matrix::Vector2d start);
 

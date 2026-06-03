@@ -89,7 +89,7 @@ bool GeofenceAvoidancePlanner::updateGraphFromGeofence(GeofenceInterface &geofen
 		PolygonInfo info = geofence.getPolygonInfoByIndex(poly_idx);
 
 		if (info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION || info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION) {
-			// Worst case: every vertex is acute and splits into two (see PlannerPolygon::addPolygon)
+			// Worst case: every vertex is acute and splits into two (see PlannerPolygons::addPolygon)
 			num_vertices += 2 * info.vertex_count;
 
 		} else if (info.fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION || info.fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION) {
@@ -114,7 +114,7 @@ bool GeofenceAvoidancePlanner::updateGraphFromGeofence(GeofenceInterface &geofen
 
 	updateEdgeCosts();
 
-	// invalidate destination to force a refresh on the next update_destination()
+	// invalidate destination to force a refresh on the next updateDestination()
 	_destination_healthy = false;
 
 	perf_end(_setup_perf);
