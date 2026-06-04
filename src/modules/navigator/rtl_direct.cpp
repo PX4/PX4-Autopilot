@@ -98,10 +98,14 @@ void RtlDirect::on_activation()
 				       "RTL: start return at {1m_v} ({2m_v} above destination)",
 				       (int32_t)ceilf(_rtl_alt), (int32_t)ceilf(_rtl_alt - _destination.alt));
 
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+
 	if (_navigator->get_geofence_avoidance_planner().hasMore()) {
 		mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: avoiding geofence\t");
 		events::send(events::ID("rtl_avoiding_geofence"), events::Log::Info, "RTL: avoiding geofence");
 	}
+
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 }
 
 void RtlDirect::on_active()
