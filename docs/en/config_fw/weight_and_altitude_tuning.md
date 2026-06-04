@@ -98,7 +98,7 @@ $$\text{Lift} = mg = \frac{1}{2} \rho V^2 S C_L$$
 
 rearranging this equation for airspeed gives:
 
-$$V = \sqrt{\frac{2mg}{\rho S C_D}}$$
+$$V = \sqrt{\frac{2mg}{\rho S C_L}}$$
 
 From this equation we see that if we assume a constant angle of attack (which we generally desire), the vehicle weight affects airspeed with a square root relation.
 Therefore, the airspeed limits mentioned above are all scaled using the square root of the weight ratio.
