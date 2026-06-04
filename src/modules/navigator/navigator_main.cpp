@@ -252,6 +252,7 @@ void Navigator::run()
 
 		_land_detected_sub.update(&_land_detected);
 		_position_controller_status_sub.update();
+		_fw_lateral_guidance_status_sub.update();
 		_home_pos_sub.update(&_home_pos);
 
 		// Handle Vehicle commands
@@ -1288,13 +1289,23 @@ float Navigator::get_cruising_throttle()
 float Navigator::get_acceptance_radius()
 {
 	float acceptance_radius = get_default_acceptance_radius(); // the value specified in the parameter NAV_ACC_RAD
-	const position_controller_status_s &pos_ctrl_status = _position_controller_status_sub.get();
 
 	// for fixed-wing and rover, return the max of NAV_ACC_RAD and the controller acceptance radius (e.g. navigation switch distance)
-	if (_vstatus.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
-	    && PX4_ISFINITE(pos_ctrl_status.acceptance_radius) && pos_ctrl_status.timestamp != 0) {
+	if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 
-		acceptance_radius = math::max(acceptance_radius, pos_ctrl_status.acceptance_radius);
+		const fixed_wing_lateral_guidance_status_s &fw_guidance_status = _fw_lateral_guidance_status_sub.get();
+
+		if (PX4_ISFINITE(fw_guidance_status.switch_distance) && fw_guidance_status.timestamp != 0) {
+			acceptance_radius = math::max(acceptance_radius, fw_guidance_status.switch_distance);
+		}
+
+	} else if (_vstatus.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+
+		const position_controller_status_s &pos_ctrl_status = _position_controller_status_sub.get();
+
+		if (PX4_ISFINITE(pos_ctrl_status.acceptance_radius) && pos_ctrl_status.timestamp != 0) {
+			acceptance_radius = math::max(acceptance_radius, pos_ctrl_status.acceptance_radius);
+		}
 	}
 
 	return acceptance_radius;
