@@ -1,5 +1,5 @@
 /************************************************************************************
- * nuttx-configs/px4_fmu-v6c/include/board.h
+ * boards/amovlab/flycore/nuttx-config/include/board.h
  *
  *   Copyright (C) 2016-2019 Gregory Nutt. All rights reserved.
  *   Authors: David Sidrane <david.sidrane@nscdg.com>
@@ -55,7 +55,7 @@
  ************************************************************************************/
 
 /* Clocking *************************************************************************/
-/* The px4_fmu-v6C  board provides the following clock sources:
+/* The Amovlab Flycore board provides the following clock sources:
  *
  *   X1: 16 MHz crystal for HSE
  *
@@ -308,7 +308,7 @@
 #define STM32_SDMMC_CLKCR_EDGE      STM32_SDMMC_CLKCR_NEGEDGE
 
 /* LED definitions ******************************************************************/
-/* The PX4 FMUV6C board has three, LED_GREEN a Green LED, LED_BLUE a Blue LED and
+/* The Amovlab Flycore board has three, LED_GREEN a Green LED, LED_BLUE a Blue LED and
  * LED_RED a Red LED, that can be controlled by software.
  *
  * If CONFIG_ARCH_LEDS is not defined, then the user can control the LEDs in any way.
@@ -318,7 +318,7 @@
 /* LED index values for use with board_userled() */
 
 /* LED definitions ******************************************************************/
-/* The px4_fmu-v6c board has three, LED_GREEN a Green LED, LED_BLUE a Blue LED and
+/* The Amovlab Flycore board has three, LED_GREEN a Green LED, LED_BLUE a Blue LED and
  * LED_RED a Red LED, that can be controlled by software.
  *
  * If CONFIG_ARCH_LEDS is not defined, then the user can control the LEDs in any way.

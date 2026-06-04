@@ -316,7 +316,7 @@ make amovlab_flycore_bootloader
 
 ## Default Airframe
 
-For hardware type `FLYCORE0000`, `rc.board_defaults` sets `SYS_AUTOSTART` to **4014** (generic multicopter airframe class).
+For hardware type `FLYCORE000000`, `rc.board_defaults` sets `SYS_AUTOSTART` to **4014** (generic multicopter airframe class).
 
 Adjust the airframe in QGroundControl to match your vehicle.
 

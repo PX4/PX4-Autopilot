@@ -34,7 +34,7 @@
  *
  ****************************************************************************/
 
-/* The PX4 FMUV6C uses an STM32H753II has 2048Kb of main FLASH memory.
+/* The Amovlab Flycore uses an STM32H743VI and has 2048Kb of main FLASH memory.
  * The flash memory is partitioned into a User Flash memory and a System
  * Flash memory. Each of these memories has two banks:
  *
@@ -50,7 +50,7 @@
  *
  *   3) User option bytes for user configuration, only in Bank 1.
  *
- * In the STM32H743II, two different boot spaces can be selected through
+ * In the STM32H743VI, two different boot spaces can be selected through
  * the BOOT pin and the boot base address programmed in the BOOT_ADD0 and
  * BOOT_ADD1 option bytes:
  *
@@ -59,11 +59,11 @@
  *   2) BOOT=1: Boot address defined by user option byte BOOT_ADD1[15:0].
  *      ST programmed value: System bootloader at 0x1FF0:0000
  *
- * The PX4 FMUV6C has a test point on board, the BOOT0 pin is at ground so by
- * default, the STM32 will boot to address 0x0800:0000 in FLASH unless the test
- * point is pulled to 3.3V.then the boot will be from 0x1FF0:0000
+ * The Amovlab Flycore has BOOT0 held at ground, so by default the STM32 will
+ * boot to address 0x0800:0000 in FLASH unless the BOOT0 test point is pulled to
+ * 3.3V. Then the boot will be from 0x1FF0:0000.
  *
- * The STM32H743II also has 1024Kb of data SRAM.
+ * The STM32H743VI also has 1024Kb of data SRAM.
  * SRAM is split up into several blocks and into three power domains:
  *
  *   1) TCM SRAMs are dedicated to the Cortex-M7 and are accessible with

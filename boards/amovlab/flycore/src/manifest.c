@@ -62,7 +62,7 @@
 typedef struct {
 	uint32_t                hw_ver_rev; /* the version and revision */
 	const px4_hw_mft_item_t *mft;       /* The first entry */
-	uint32_t                entries;    /* the lenght of the list */
+	uint32_t                entries;    /* the length of the list */
 } px4_hw_mft_list_entry_t;
 
 typedef px4_hw_mft_list_entry_t *px4_hw_mft_list_entry;
@@ -75,11 +75,19 @@ static const px4_hw_mft_item_t device_unsupported = {0, 0, 0};
 // declared in board_common.h
 static const px4_hw_mft_item_t hw_mft_list_flycore_v00[] = {
 	{
+		// PX4_MFT_PX4IO
 		.present     = 0,
 		.mandatory   = 0,
 		.connection  = px4_hw_con_unknown,
 	},
 	{
+		// PX4_MFT_USB
+		.present     = 1,
+		.mandatory   = 1,
+		.connection  = px4_hw_con_onboard,
+	},
+	{
+		// PX4_MFT_CAN2
 		.present     = 1,
 		.mandatory   = 1,
 		.connection  = px4_hw_con_onboard,

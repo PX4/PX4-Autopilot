@@ -6,7 +6,7 @@
 # an external compass module (see amovlab_flycore.md).
 #------------------------------------------------------------------------------
 
-if ver hwtypecmp FLYCORE0000
+if ver hwtypecmp FLYCORE000000
 then
 	param set-default SYS_AUTOSTART 4014
 fi

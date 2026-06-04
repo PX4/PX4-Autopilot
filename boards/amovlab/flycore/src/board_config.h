@@ -109,14 +109,6 @@
 #define HW_INFO_INIT_PREFIX    "FLYCORE"
 
 
-/* HEATER
- * PWM in future
- */
-#define GPIO_HEATER_OUTPUT
-#define HEATER_NUM 1
-#define GPIO_HEATER1_OUTPUT  /* PA10 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN10)
-#define HEATER1_OUTPUT_EN(on_true)	       px4_arch_gpiowrite(GPIO_HEATER1_OUTPUT, (on_true))
-
 /* PWM	*/
 #define DIRECT_PWM_OUTPUT_CHANNELS   10
 #define BOARD_NUM_IO_TIMERS           5
@@ -145,7 +137,7 @@
 #define HRT_TIMER_CHANNEL       2  /* use capture/compare channel 2 */
 
 /* RC Serial port */
-#define HRT_PPM_CHANNEL         /* T8C3 */  3  /* use capture/compare channel 1 */
+#define HRT_PPM_CHANNEL         /* T8C3 */  3  /* use capture/compare channel 3 */
 #define GPIO_PPM_IN             /* PC8 T8C3 */ GPIO_TIM8_CH3IN_1
 
 #define RC_SERIAL_PORT          "/dev/ttyS4"
@@ -186,7 +178,6 @@
 		GPIO_CAN1_RX,                     \
 		GPIO_CAN2_TX,                     \
 		GPIO_CAN2_RX,			  \
-		GPIO_HEATER1_OUTPUT,              \
 		GPIO_TONE_ALARM_IDLE,             \
 		GPIO_VDD_5V_RC_EN, 		  \
 		GPIO_OTGFS_VBUS,		  \
