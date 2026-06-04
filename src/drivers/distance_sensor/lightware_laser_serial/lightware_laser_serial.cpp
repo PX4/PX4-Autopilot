@@ -33,12 +33,14 @@
 
 #include "lightware_laser_serial.hpp"
 
+#include <errno.h>
 #include <inttypes.h>
-#include <fcntl.h>
-#include <termios.h>
+#include <stdlib.h>
+#include <string.h>
 
 /* Configuration Constants */
 #define LW_TAKE_RANGE_REG		'd'
+static constexpr uint32_t LW_READ_TIMEOUT_MS {10};
 
 LightwareLaserSerial::LightwareLaserSerial(const char *port, uint8_t rotation) :
 	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(port)),
@@ -148,7 +150,7 @@ int LightwareLaserSerial::measure()
 {
 	// Send the command to begin a measurement.
 	char cmd = LW_TAKE_RANGE_REG;
-	int ret = ::write(_fd, &cmd, 1);
+	int ret = _uart.write(&cmd, sizeof(cmd));
 
 	if (ret != sizeof(cmd)) {
 		perf_count(_comms_errors);
@@ -172,7 +174,7 @@ int LightwareLaserSerial::collect()
 
 	/* read from the sensor (uart buffer) */
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
-	int ret = ::read(_fd, &readbuf[0], readlen);
+	int ret = _uart.readAtLeast(reinterpret_cast<uint8_t *>(&readbuf[0]), readlen, 1, LW_READ_TIMEOUT_MS);
 
 	if (ret < 0) {
 		PX4_DEBUG("read err: %d", ret);
@@ -188,7 +190,7 @@ int LightwareLaserSerial::collect()
 		}
 
 	} else if (ret == 0) {
-		return -EAGAIN;
+		return -ETIMEDOUT;
 	}
 
 	_last_read = hrt_absolute_time();
@@ -256,64 +258,38 @@ void LightwareLaserSerial::start()
 void LightwareLaserSerial::stop()
 {
 	ScheduleClear();
+	_uart.close();
 }
 
 void LightwareLaserSerial::Run()
 {
-	/* fds initialized? */
-	if (_fd < 0) {
-		/* open fd */
-		_fd = ::open(_port, O_RDWR | O_NOCTTY | O_NONBLOCK);
-
-		if (_fd < 0) {
-			PX4_ERR("open failed (%i)", errno);
+	if (!_uart.isOpen()) {
+		if (!_uart.setPort(_port)) {
+			PX4_ERR("failed to configure port %s", _port);
 			return;
 		}
 
-		struct termios uart_config;
-
-		int termios_state;
-
-		/* fill the struct for the new configuration */
-		tcgetattr(_fd, &uart_config);
-
-		/* clear ONLCR flag (which appends a CR for every LF) */
-		uart_config.c_oflag &= ~ONLCR;
-
-		/* no parity, one stop bit */
-		uart_config.c_cflag &= ~(CSTOPB | PARENB);
-
-		/* if distance sensor model is SF11/C, then set baudrate 115200, else 9600 */
 		int32_t hw_model = 0;
 
 		param_get(param_find("SENS_EN_SF0X"), &hw_model);
 
-		unsigned speed;
+		const uint32_t baudrate = (hw_model >= 5) ? 115200 : 9600;
 
-		if (hw_model >= 5) {
-			speed = B115200;
-
-		} else {
-			speed = B9600;
+		if (!_uart.setBaudrate(baudrate)) {
+			PX4_ERR("failed to set baudrate %" PRIu32 " on %s", baudrate, _port);
+			return;
 		}
 
-		/* set baud rate */
-		if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
-			PX4_ERR("CFG: %d ISPD", termios_state);
-		}
-
-		if ((termios_state = cfsetospeed(&uart_config, speed)) < 0) {
-			PX4_ERR("CFG: %d OSPD", termios_state);
-		}
-
-		if ((termios_state = tcsetattr(_fd, TCSANOW, &uart_config)) < 0) {
-			PX4_ERR("baud %d ATTR", termios_state);
+		if (!_uart.open()) {
+			PX4_ERR("failed to open %s", _port);
+			_uart.close();
+			return;
 		}
 
 		// LW20: Enable serial mode by sending some characters
 		if (hw_model == 8) {
 			const char *data = "www\r\n";
-			(void)!::write(_fd, data, strlen(data));
+			(void)_uart.write(data, strlen(data));
 		}
 	}
 
