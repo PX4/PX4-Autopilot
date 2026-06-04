@@ -941,9 +941,16 @@ void Navigator::run()
 
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
-		if (_geofence.consumeFenceUpdated()) {
-			const float margin = geofence_avoidance_margin();
+		const bool fence_updated = _geofence.consumeFenceUpdated();
+		const float margin = geofence_avoidance_margin();
+
+		// Margin is baked into polygons, so a margin change (VTOL transition,
+		// param change) requires rebuilding the polygons.
+		const bool margin_changed = fabsf(margin - _last_geofence_avoidance_margin) > FLT_EPSILON;
+
+		if (fence_updated || margin_changed) {
 			_geofence_avoidance_planner.updateGraphFromGeofence(_geofence, margin);
+			_last_geofence_avoidance_margin = margin;
 		}
 
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE

@@ -379,6 +379,7 @@ private:
 	GeofenceBreachAvoidance _gf_breach_avoidance;
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 	GeofenceAvoidancePlanner _geofence_avoidance_planner; /**< RTL/auto path planner that routes around fences (visibility graph + Dijkstra) */
+	float _last_geofence_avoidance_margin{NAN}; /**< margin used for the last polygon rebuild; rebuild when it changes (e.g. vehicle type switch) */
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 	hrt_abstime _last_geofence_check {0};
 
