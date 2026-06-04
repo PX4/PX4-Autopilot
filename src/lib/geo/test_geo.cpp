@@ -215,7 +215,7 @@ TEST_F(GeoTest, waypoint_from_line_and_negative_distance)
 	EXPECT_DOUBLE_EQ(lon_start, lon_target);
 }
 
-TEST_F(GeoTest, get_distance_to_arc_outside_sector)
+TEST_F(GeoTest, getDistanceToArcOutsideSector)
 {
 	// GIVEN: an arc at a mid-latitude (so the longitude cosine scaling matters), sweeping from
 	// due-North of the center (start) to due-East (end).
@@ -259,7 +259,7 @@ TEST_F(GeoTest, get_distance_to_arc_outside_sector)
 	EXPECT_TRUE(err.past_end);
 }
 
-TEST_F(GeoTest, get_distance_to_arc_inside_sector)
+TEST_F(GeoTest, getDistanceToArcInsideSector)
 {
 	// GIVEN: an arc sweeping from due-North (start) to due-East (end) of the center
 	const double lat_center = 47.0;
@@ -295,7 +295,7 @@ TEST_F(GeoTest, get_distance_to_arc_inside_sector)
 	EXPECT_FALSE(err.past_end);
 }
 
-TEST_F(GeoTest, get_distance_to_arc_negative_sweep)
+TEST_F(GeoTest, getDistanceToArcNegativeSweep)
 {
 	// GIVEN: the same NE-quadrant arc, but defined from due-East (start) sweeping negatively to North (end)
 	const double lat_center = 47.0;
