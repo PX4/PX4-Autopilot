@@ -35870,7 +35870,8 @@ Return mode destination and flight path (home location, rally point, mission lan
 
 RTL force approach landing.
 
-Only consider RTL point, if it has an approach defined.
+Only consider home/rally RTL points that have a VTOL approach loiter.
+A VTOL approach loiter is a MAV_CMD_NAV_LOITER_TO_ALT item with finite position and altitude.
 
 **Values:**
 
