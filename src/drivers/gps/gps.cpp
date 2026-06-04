@@ -723,9 +723,9 @@ void GPS::drainMovingBaseline()
 
 void GPS::handleInjectDataTopic()
 {
-	// shouldInjectRTCMCorrections() is false until the receiver is configured, which also keeps us
-	// from writing to the device mid-configuration.
-	if (!_helper->shouldInjectRTCMCorrections()) {
+	// receiverReady() is false until the receiver is configured, which keeps us from writing to the
+	// device mid-configuration.
+	if (!_helper->receiverReady()) {
 		return;
 	}
 
@@ -1545,12 +1545,12 @@ GPS::publishSatelliteInfo()
 
 // Chunk an RTCM byte stream into a uORB message and publish it. RTCM frames larger than the
 // message payload are split across consecutive publications (flags LSB = fragmented). Templated
-// on the message type so only the destination struct is placed on the stack.
-template <typename T, typename PubT>
+// on the publication so the same code serves both the corrections and moving-baseline topics.
+template <typename PubT>
 static void publish_rtcm_chunks(PubT &pub, const uint8_t *data, size_t len, hrt_abstime timestamp,
 				uint32_t device_id)
 {
-	T msg{};
+	rtcm_data_s msg{};
 	msg.timestamp = timestamp;
 	msg.device_id = device_id;
 
@@ -1578,10 +1578,10 @@ GPS::publishRTCMCorrections(uint8_t *data, size_t len)
 	// external corrections). Route it to a dedicated topic so downstream consumers can tell it
 	// apart from fixed-base RTCM.
 	if (_helper && _helper->isMovingBase()) {
-		publish_rtcm_chunks<rtcm_data_s>(_rtcm_moving_baseline_pub, data, len, timestamp, device_id);
+		publish_rtcm_chunks(_rtcm_moving_baseline_pub, data, len, timestamp, device_id);
 
 	} else {
-		publish_rtcm_chunks<rtcm_data_s>(_rtcm_corrections_pub, data, len, timestamp, device_id);
+		publish_rtcm_chunks(_rtcm_corrections_pub, data, len, timestamp, device_id);
 	}
 }
 
