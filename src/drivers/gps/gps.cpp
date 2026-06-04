@@ -253,14 +253,12 @@ private:
 	unsigned			_num_bytes_read{0}; 				///< counter for number of read bytes from the UART (within update interval)
 	unsigned			_rate_reading{0}; 				///< reading rate in B/s
 	hrt_abstime			_last_rtcm_injection_time{0};			///< time of last RTCM corrections injection
-	hrt_abstime			_last_moving_baseline_injection_time{0};	///< time of last moving-baseline injection
 	uint8_t				_selected_rtcm_instance{0};			///< uorb instance that is being used for RTCM corrections
-	uint8_t				_selected_moving_baseline_instance{0};		///< uorb instance used for moving-baseline RTCM input
 
 	const Instance 			_instance;
 
 	uORB::SubscriptionMultiArray<rtcm_data_s, rtcm_data_s::MAX_INSTANCES> _rtcm_corrections_sub{ORB_ID::rtcm_corrections};
-	uORB::SubscriptionMultiArray<rtcm_data_s, rtcm_data_s::MAX_INSTANCES> _rtcm_moving_baseline_sub{ORB_ID::rtcm_moving_baseline};
+	uORB::Subscription _rtcm_moving_baseline_sub{ORB_ID(rtcm_moving_baseline)};
 	uORB::PublicationMulti<rtcm_data_s> _rtcm_corrections_pub{ORB_ID(rtcm_corrections)};
 	uORB::Publication<rtcm_data_s> _rtcm_moving_baseline_pub{ORB_ID(rtcm_moving_baseline)};
 	uORB::Publication<gps_dump_s>	     _dump_communication_pub{ORB_ID(gps_dump)};
@@ -324,12 +322,15 @@ private:
 	void handleInjectDataTopic();
 
 	/**
-	 * Drain an RTCM source (rtcm_corrections or rtcm_moving_baseline) into its own RTCM parser.
-	 * Selects an active instance if the current one goes stale.
+	 * Drain the multi-instance rtcm_corrections subscription into its RTCM parser, selecting an
+	 * active instance if the current one goes stale.
 	 */
-	template <typename T, uint8_t N>
-	void drainRtcmSubscriptions(uORB::SubscriptionMultiArray<T, N> &subs, uint8_t &selected_instance,
-				    hrt_abstime &last_injection_time, gnss::Rtcm3Parser &parser);
+	void drainRtcmCorrections();
+
+	/**
+	 * Drain the single-publisher rtcm_moving_baseline subscription into its RTCM parser.
+	 */
+	void drainMovingBaseline();
 
 	/**
 	 * Inject all complete RTCM frames reassembled in a parser into the receiver, counting each
@@ -635,26 +636,25 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 	return ret;
 }
 
-template <typename T, uint8_t N>
-void GPS::drainRtcmSubscriptions(uORB::SubscriptionMultiArray<T, N> &subs, uint8_t &selected_instance,
-				 hrt_abstime &last_injection_time, gnss::Rtcm3Parser &parser)
+void GPS::drainRtcmCorrections()
 {
+	// rtcm_corrections may have several sources (MAVLink plus CAN nodes), one uORB instance each.
+	rtcm_data_s msg;
 	bool already_copied = false;
-	T msg;
 
 	const hrt_abstime now = hrt_absolute_time();
 
 	// If there has not been a valid RTCM message for a while, try to switch to a different RTCM link
-	if (now > last_injection_time + 5_s) {
-		for (int instance = 0; instance < subs.size(); instance++) {
-			if (subs[instance].advertised() && subs[instance].copy(&msg)) {
+	if (now > _last_rtcm_injection_time + 5_s) {
+		for (int instance = 0; instance < _rtcm_corrections_sub.size(); instance++) {
+			if (_rtcm_corrections_sub[instance].advertised() && _rtcm_corrections_sub[instance].copy(&msg)) {
 				/* Don't select the own RTCM instance. In case it has a lower
 				 * instance number, it will be selected and will be rejected
 				 * later in the code, resulting in no RTCM injection at all.
 				 */
 				if (msg.device_id != get_device_id() && now < msg.timestamp + 5_s) {
 					already_copied = true;
-					selected_instance = instance;
+					_selected_rtcm_instance = instance;
 					break;
 				}
 			}
@@ -662,28 +662,24 @@ void GPS::drainRtcmSubscriptions(uORB::SubscriptionMultiArray<T, N> &subs, uint8
 	}
 
 	bool updated = already_copied;
-
-	// Limit maximum number of injections per call so a burst can't starve the driver loop.
-	const size_t max_num_injections = T::ORB_QUEUE_LENGTH;
 	size_t num_injections = 0;
 
+	// Limit maximum number of injections per call so a burst can't starve the driver loop.
 	do {
 		if (updated) {
 			num_injections++;
 
 			// Prevent injection of data from self
 			if (msg.device_id != get_device_id()) {
-				size_t added = parser.addData(msg.data, msg.len);
-
-				if (added < msg.len) {
+				if (_rtcm_corrections_parser.addData(msg.data, msg.len) < msg.len) {
 					perf_count(_rtcm_buffer_full_perf);
 				}
 
-				last_injection_time = hrt_absolute_time();
+				_last_rtcm_injection_time = hrt_absolute_time();
 			}
 		}
 
-		auto &sub = subs[selected_instance];
+		auto &sub = _rtcm_corrections_sub[_selected_rtcm_instance];
 		const unsigned last_generation = sub.get_last_generation();
 
 		updated = sub.update(&msg);
@@ -692,7 +688,37 @@ void GPS::drainRtcmSubscriptions(uORB::SubscriptionMultiArray<T, N> &subs, uint8
 			PX4_WARN("%s lost, generation %u -> %u", sub.get_topic()->o_name,
 				 last_generation, sub.get_last_generation());
 		}
-	} while (updated && num_injections < max_num_injections);
+	} while (updated && num_injections < rtcm_data_s::ORB_QUEUE_LENGTH);
+}
+
+void GPS::drainMovingBaseline()
+{
+	// rtcm_moving_baseline has a single publisher (instance 0), so there is no stale-link instance
+	// selection - just drain the queue into the parser.
+	rtcm_data_s msg;
+	size_t num_injections = 0;
+
+	while (num_injections < rtcm_data_s::ORB_QUEUE_LENGTH) {
+		const unsigned last_generation = _rtcm_moving_baseline_sub.get_last_generation();
+
+		if (!_rtcm_moving_baseline_sub.update(&msg)) {
+			break;
+		}
+
+		num_injections++;
+
+		if (_rtcm_moving_baseline_sub.get_last_generation() != last_generation + 1) {
+			PX4_WARN("%s lost, generation %u -> %u", _rtcm_moving_baseline_sub.get_topic()->o_name,
+				 last_generation, _rtcm_moving_baseline_sub.get_last_generation());
+		}
+
+		// Prevent injection of data from self
+		if (msg.device_id != get_device_id()) {
+			if (_rtcm_moving_baseline_parser.addData(msg.data, msg.len) < msg.len) {
+				perf_count(_rtcm_buffer_full_perf);
+			}
+		}
+	}
 }
 
 void GPS::handleInjectDataTopic()
@@ -707,18 +733,16 @@ void GPS::handleInjectDataTopic()
 	// receiver can use these - including a UART2 moving-base rover, whose baseline arrives in
 	// hardware but which still wants fixed-base corrections over its main link. Reassemble and inject
 	// them through their own parser before touching the moving-baseline stream.
-	drainRtcmSubscriptions(_rtcm_corrections_sub, _selected_rtcm_instance, _last_rtcm_injection_time,
-			       _rtcm_corrections_parser);
+	drainRtcmCorrections();
 	injectRtcmFrames(_rtcm_corrections_parser, _rtcm_corrections_injection_perf);
 
 	// Moving-baseline RTCM (RTCM 4072 etc.) from a peer moving-base GPS. Only a heading rover that
 	// receives the baseline through the flight controller (UART1 / CAN) injects it here; a UART2
-	// rover gets it in hardware and a moving base produces it. Its own stale-link timer keeps
-	// corrections failover from being suppressed by moving-baseline traffic (and vice versa), and a
-	// separate parser keeps the two byte streams from interleaving into corrupt frames.
+	// rover gets it in hardware and a moving base produces it. Single publisher, so no instance
+	// selection - and a separate parser keeps the two byte streams from interleaving into corrupt
+	// frames.
 	if (_helper->shouldInjectMovingBaseline()) {
-		drainRtcmSubscriptions(_rtcm_moving_baseline_sub, _selected_moving_baseline_instance,
-				       _last_moving_baseline_injection_time, _rtcm_moving_baseline_parser);
+		drainMovingBaseline();
 		injectRtcmFrames(_rtcm_moving_baseline_parser, _rtcm_moving_baseline_injection_perf);
 	}
 }

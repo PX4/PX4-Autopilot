@@ -50,6 +50,7 @@
 #include <uORB/uORB.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
+#include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/satellite_info.h>
 #include <uORB/topics/sensor_gps.h>
@@ -528,11 +529,15 @@ private:
 	void handle_inject_data_topic();
 
 	/**
-	 * @brief Drain an RTCM source (rtcm_corrections or rtcm_moving_baseline) and write to the receiver.
+	 * @brief Drain the multi-instance rtcm_corrections subscription and write to the receiver,
+	 * selecting an active instance if the current one goes stale.
 	 */
-	template <typename T, uint8_t N>
-	void drain_rtcm_subscriptions(uORB::SubscriptionMultiArray<T, N> &subs, uint8_t &selected_instance,
-				      hrt_abstime &last_injection_time);
+	void drain_rtcm_corrections();
+
+	/**
+	 * @brief Drain the single-publisher rtcm_moving_baseline subscription and write to the receiver.
+	 */
+	void drain_moving_baseline();
 
 	/**
 	 * @brief Send data to the receiver, such as RTCM injections.
@@ -562,12 +567,12 @@ private:
 	bool first_gps_uorb_message_created() const;
 
 	/**
-	 * @brief Publish RTCM corrections.
+	 * @brief Publish moving-baseline RTCM produced by the Secondary moving base for the rover.
 	 *
 	 * @param data: The raw data to publish
 	 * @param len: The size of `data`
 	 */
-	void publish_rtcm_corrections(uint8_t *data, size_t len);
+	void publish_moving_baseline(uint8_t *data, size_t len);
 
 	/**
 	 * @brief Dump gps communication.
@@ -732,9 +737,7 @@ private:
 	device::Serial                         _uart {};                                                     ///< Serial UART port for communication with the receiver
 	char                                   _port[20] {};                                                 ///< The path of the used serial device
 	hrt_abstime                            _last_rtcm_injection_time {0};                                ///< Time of last RTCM corrections injection
-	hrt_abstime                            _last_moving_baseline_injection_time {0};                     ///< Time of last moving-baseline injection
 	uint8_t                                _selected_rtcm_instance {0};                                  ///< uORB instance that is being used for RTCM corrections
-	uint8_t                                _selected_moving_baseline_instance {0};                       ///< uORB instance used for moving-baseline RTCM input
 	uint8_t                                _spoofing_state {0};                                          ///< Receiver spoofing state
 	uint8_t                                _jamming_state {0};                                           ///< Receiver jamming state
 	bool                                   _time_synced {false};                                         ///< Receiver time in sync with GPS time
@@ -777,7 +780,7 @@ private:
 	uORB::Publication<rtcm_data_s>      _rtcm_moving_baseline_pub {ORB_ID(rtcm_moving_baseline)}; ///< uORB publication for moving-baseline RTCM output
 	uORB::PublicationMulti<satellite_info_s>       _satellite_info_pub {ORB_ID(satellite_info)};   		///< uORB publication for satellite info
 	uORB::SubscriptionMultiArray<rtcm_data_s, rtcm_data_s::MAX_INSTANCES> _rtcm_corrections_sub {ORB_ID::rtcm_corrections}; ///< uORB subscription for external RTCM corrections
-	uORB::SubscriptionMultiArray<rtcm_data_s, rtcm_data_s::MAX_INSTANCES> _rtcm_moving_baseline_sub {ORB_ID::rtcm_moving_baseline}; ///< uORB subscription for moving-baseline RTCM input
+	uORB::Subscription _rtcm_moving_baseline_sub {ORB_ID(rtcm_moving_baseline)}; ///< uORB subscription for moving-baseline RTCM input (single publisher)
 
 	failure_injection::Config _failure_config;
 	failure_injection::Stuck<sensor_gps_s> _stuck;

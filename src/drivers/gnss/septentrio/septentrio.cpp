@@ -1438,7 +1438,7 @@ int SeptentrioDriver::process_message()
 	}
 	case DecodingStatus::RTCMv3: {
 		SEP_TRACE_PARSING("Processing RTCMv3 message");
-		publish_rtcm_corrections(_rtcm_decoder->message(), _rtcm_decoder->received_bytes());
+		publish_moving_baseline(_rtcm_decoder->message(), _rtcm_decoder->received_bytes());
 		break;
 	}
 	}
@@ -1626,22 +1626,21 @@ int SeptentrioDriver::set_baudrate(uint32_t baud)
 	}
 }
 
-template <typename T, uint8_t N>
-void SeptentrioDriver::drain_rtcm_subscriptions(uORB::SubscriptionMultiArray<T, N> &subs, uint8_t &selected_instance,
-		hrt_abstime &last_injection_time)
+void SeptentrioDriver::drain_rtcm_corrections()
 {
+	// rtcm_corrections may have several sources (MAVLink plus CAN nodes), one uORB instance each.
+	rtcm_data_s msg;
 	bool already_copied = false;
-	T msg;
 
 	const hrt_abstime now = hrt_absolute_time();
 
 	// If there has not been a valid RTCM message for a while, try to switch to a different RTCM link
-	if (now > last_injection_time + 5_s) {
-		for (int instance = 0; instance < subs.size(); instance++) {
-			if (subs[instance].advertised() && subs[instance].copy(&msg)) {
+	if (now > _last_rtcm_injection_time + 5_s) {
+		for (int instance = 0; instance < _rtcm_corrections_sub.size(); instance++) {
+			if (_rtcm_corrections_sub[instance].advertised() && _rtcm_corrections_sub[instance].copy(&msg)) {
 				if (msg.device_id != get_device_id() && now < msg.timestamp + 5_s) {
 					already_copied = true;
-					selected_instance = instance;
+					_selected_rtcm_instance = instance;
 					break;
 				}
 			}
@@ -1649,8 +1648,6 @@ void SeptentrioDriver::drain_rtcm_subscriptions(uORB::SubscriptionMultiArray<T, 
 	}
 
 	bool updated = already_copied;
-
-	const size_t max_num_injections = T::ORB_QUEUE_LENGTH;
 	size_t num_injections = 0;
 
 	do {
@@ -1661,26 +1658,41 @@ void SeptentrioDriver::drain_rtcm_subscriptions(uORB::SubscriptionMultiArray<T, 
 			if (msg.device_id != get_device_id()) {
 				write(msg.data, msg.len);
 				++_current_interval_rtcm_injections;
-				last_injection_time = hrt_absolute_time();
+				_last_rtcm_injection_time = hrt_absolute_time();
 			}
 		}
 
-		updated = subs[selected_instance].update(&msg);
-	} while (updated && num_injections < max_num_injections);
+		updated = _rtcm_corrections_sub[_selected_rtcm_instance].update(&msg);
+	} while (updated && num_injections < rtcm_data_s::ORB_QUEUE_LENGTH);
+}
+
+void SeptentrioDriver::drain_moving_baseline()
+{
+	// rtcm_moving_baseline has a single publisher (instance 0); no stale-link selection needed.
+	rtcm_data_s msg;
+	size_t num_injections = 0;
+
+	while (num_injections < rtcm_data_s::ORB_QUEUE_LENGTH && _rtcm_moving_baseline_sub.update(&msg)) {
+		num_injections++;
+
+		// Prevent injection of data from self
+		if (msg.device_id != get_device_id()) {
+			write(msg.data, msg.len);
+			++_current_interval_rtcm_injections;
+		}
+	}
 }
 
 void SeptentrioDriver::handle_inject_data_topic()
 {
 	// Fixed-base RTCM corrections (from MAVLink GPS_RTCM_DATA, UAVCAN RTCMStream).
 	// Both the moving-base (Secondary) and the rover (Main) can benefit from external RTCM.
-	drain_rtcm_subscriptions(_rtcm_corrections_sub, _selected_rtcm_instance, _last_rtcm_injection_time);
+	drain_rtcm_corrections();
 
-	// Moving-baseline RTCM is only consumed by the rover (Main instance) in a moving-base setup. It
-	// uses its own stale-link timer so corrections failover is not suppressed by moving-baseline
-	// traffic (and vice versa).
+	// Moving-baseline RTCM is only consumed by the rover (Main instance) in a moving-base setup.
+	// Single publisher, so no instance selection - just drain it into the receiver.
 	if (_receiver_setup == ReceiverSetup::MovingBase && _instance == Instance::Main) {
-		drain_rtcm_subscriptions(_rtcm_moving_baseline_sub, _selected_moving_baseline_instance,
-					 _last_moving_baseline_injection_time);
+		drain_moving_baseline();
 	}
 }
 
@@ -1713,7 +1725,7 @@ bool SeptentrioDriver::first_gps_uorb_message_created() const
 	return _sensor_gps.timestamp != 0;
 }
 
-void SeptentrioDriver::publish_rtcm_corrections(uint8_t *data, size_t len)
+void SeptentrioDriver::publish_moving_baseline(uint8_t *data, size_t len)
 {
 	// The only path into this function is the moving-base Secondary decoding RTCM from its
 	// receiver (see _rtcm_decoder allocation in the constructor), so the output is always

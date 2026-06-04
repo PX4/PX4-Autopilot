@@ -103,6 +103,8 @@ private:
 			  const uint8_t spoofing_state);
 
 	void handleInjectDataTopic();
+	void drainRtcmCorrections();
+	void drainMovingBaseline();
 	bool PublishRTCMStream(const uint8_t *data, size_t data_len);
 	bool PublishMovingBaselineData(const uint8_t *data, size_t data_len);
 
@@ -148,11 +150,9 @@ private:
 	float		_last_gnss_auxiliary_vdop{0.0f};
 
 	uORB::SubscriptionMultiArray<rtcm_data_s, rtcm_data_s::MAX_INSTANCES> _rtcm_corrections_sub{ORB_ID::rtcm_corrections};
-	uORB::SubscriptionMultiArray<rtcm_data_s, rtcm_data_s::MAX_INSTANCES> _rtcm_moving_baseline_sub{ORB_ID::rtcm_moving_baseline};
+	uORB::Subscription _rtcm_moving_baseline_sub{ORB_ID(rtcm_moving_baseline)};
 	hrt_abstime		_last_rtcm_injection_time{0};	///< time of last rtcm injection
-	hrt_abstime		_last_moving_baseline_injection_time{0};	///< time of last moving-baseline injection
 	uint8_t			_selected_rtcm_instance{0};	///< uorb instance that is being used for RTCM corrections
-	uint8_t			_selected_moving_baseline_instance{0};	///< uorb instance used for moving-baseline input
 
 	uORB::Publication<gps_dump_s> _gps_dump_pub{ORB_ID(gps_dump)}; // For PPK
 

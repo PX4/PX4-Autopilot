@@ -625,26 +625,22 @@ void UavcanGnssBridge::update()
 	handleInjectDataTopic();
 }
 
-// Drains a uORB RTCM source and forwards each message to `forward(data, len)`.
-// Handles stale-link switchover across instances via `last_injection_time`. Per-message
-// side effects (CAN publish, perf counting, rate accounting) live in `forward`.
-template <typename T, uint8_t N, typename Forward>
-static void drain_rtcm_to_can(uORB::SubscriptionMultiArray<T, N> &subs,
-			      uint8_t &selected_instance,
-			      hrt_abstime &last_injection_time,
-			      Forward forward)
+// Drains rtcm_corrections (fixed-base RTCM from a GCS over MAVLink, or CAN nodes) to
+// uavcan::RTCMStream. Several sources may be active (one uORB instance each); switch to a
+// different instance if the selected one goes stale.
+void UavcanGnssBridge::drainRtcmCorrections()
 {
 	const hrt_abstime now = hrt_absolute_time();
 
 	bool already_copied = false;
-	T msg;
+	rtcm_data_s msg;
 
-	if (now > last_injection_time + 5_s) {
-		for (int instance = 0; instance < subs.size(); instance++) {
-			if (subs[instance].advertised() && subs[instance].copy(&msg)) {
+	if (now > _last_rtcm_injection_time + 5_s) {
+		for (int instance = 0; instance < _rtcm_corrections_sub.size(); instance++) {
+			if (_rtcm_corrections_sub[instance].advertised() && _rtcm_corrections_sub[instance].copy(&msg)) {
 				if (now < msg.timestamp + 5_s) {
 					already_copied = true;
-					selected_instance = instance;
+					_selected_rtcm_instance = instance;
 					break;
 				}
 			}
@@ -652,18 +648,17 @@ static void drain_rtcm_to_can(uORB::SubscriptionMultiArray<T, N> &subs,
 	}
 
 	bool updated = already_copied;
-
-	const size_t max_num_injections = T::ORB_QUEUE_LENGTH;
 	size_t num_injections = 0;
 
 	do {
 		if (updated) {
 			num_injections++;
-			forward(msg.data, msg.len);
-			last_injection_time = hrt_absolute_time();
+			PublishRTCMStream(msg.data, msg.len);
+			_rtcm_injection_rate_message_count++;
+			_last_rtcm_injection_time = hrt_absolute_time();
 		}
 
-		auto &sub = subs[selected_instance];
+		auto &sub = _rtcm_corrections_sub[_selected_rtcm_instance];
 		const unsigned last_generation = sub.get_last_generation();
 
 		updated = sub.update(&msg);
@@ -672,14 +667,37 @@ static void drain_rtcm_to_can(uORB::SubscriptionMultiArray<T, N> &subs,
 			PX4_WARN("%s lost, generation %u -> %u", sub.get_topic()->o_name,
 				 last_generation, sub.get_last_generation());
 		}
-	} while (updated && num_injections < max_num_injections);
+	} while (updated && num_injections < rtcm_data_s::ORB_QUEUE_LENGTH);
 }
 
-// This drains rtcm_corrections (fixed-base RTCM from GCS/CAN) to uavcan::RTCMStream,
-// and rtcm_moving_baseline (moving-base RTCM 4072 from a peer GPS) to
-// ardupilot::MovingBaselineData. Each topic maps to its own CAN publisher — the
-// two streams are kept separate so fixed-base corrections are not mirrored onto
-// the moving-baseline CAN message.
+// Drains rtcm_moving_baseline (moving-base RTCM 4072 from a peer GPS) to
+// ardupilot::MovingBaselineData. Single publisher (instance 0), so no stale-link selection.
+void UavcanGnssBridge::drainMovingBaseline()
+{
+	rtcm_data_s msg;
+	size_t num_injections = 0;
+
+	while (num_injections < rtcm_data_s::ORB_QUEUE_LENGTH) {
+		const unsigned last_generation = _rtcm_moving_baseline_sub.get_last_generation();
+
+		if (!_rtcm_moving_baseline_sub.update(&msg)) {
+			break;
+		}
+
+		num_injections++;
+
+		if (_rtcm_moving_baseline_sub.get_last_generation() != last_generation + 1) {
+			PX4_WARN("%s lost, generation %u -> %u", _rtcm_moving_baseline_sub.get_topic()->o_name,
+				 last_generation, _rtcm_moving_baseline_sub.get_last_generation());
+		}
+
+		PublishMovingBaselineData(msg.data, msg.len);
+	}
+}
+
+// The two RTCM streams use separate CAN publishers: fixed-base corrections go to
+// uavcan::RTCMStream and moving-baseline RTCM to ardupilot::MovingBaselineData, so corrections
+// are never mirrored onto the moving-baseline message.
 void UavcanGnssBridge::handleInjectDataTopic()
 {
 	const hrt_abstime now = hrt_absolute_time();
@@ -694,14 +712,11 @@ void UavcanGnssBridge::handleInjectDataTopic()
 	}
 
 	if (_publish_rtcm_stream) {
-		drain_rtcm_to_can(_rtcm_corrections_sub, _selected_rtcm_instance, _last_rtcm_injection_time,
-		[this](const uint8_t *data, size_t len) { PublishRTCMStream(data, len); _rtcm_injection_rate_message_count++; });
+		drainRtcmCorrections();
 	}
 
 	if (_publish_moving_baseline_data) {
-		drain_rtcm_to_can(_rtcm_moving_baseline_sub, _selected_moving_baseline_instance,
-				  _last_moving_baseline_injection_time,
-		[this](const uint8_t *data, size_t len) { PublishMovingBaselineData(data, len); });
+		drainMovingBaseline();
 	}
 }
 
