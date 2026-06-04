@@ -36,7 +36,7 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-namespace AS_DT1
+namespace sony_as_dt1
 {
 
 AS_DT1 *g_dev{nullptr};
@@ -135,26 +135,26 @@ extern "C" __EXPORT int sony_asdt1_main(int argc, char *argv[])
 			break;
 
 		default:
-			AS_DT1::usage();
+			sony_as_dt1::usage();
 			return -1;
 		}
 	}
 
 	if (myoptind >= argc) {
-		AS_DT1::usage();
+		sony_as_dt1::usage();
 		return -1;
 	}
 
 	if (!strcmp(argv[myoptind], "start")) {
-		return AS_DT1::start(device_path);
+		return sony_as_dt1::start(device_path);
 
 	} else if (!strcmp(argv[myoptind], "stop")) {
-		return AS_DT1::stop();
+		return sony_as_dt1::stop();
 
 	} else if (!strcmp(argv[myoptind], "status")) {
-		return AS_DT1::status();
+		return sony_as_dt1::status();
 	}
 
-	AS_DT1::usage();
+	sony_as_dt1::usage();
 	return -1;
 }

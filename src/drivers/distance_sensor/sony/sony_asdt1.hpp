@@ -41,16 +41,15 @@
 
 #pragma once
 
-#include <termios.h>
 
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_sensor.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/Serial.hpp>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
-#include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/obstacle_distance.h>
 
 #include <matrix/matrix/math.hpp>
 #include "matrix/Vector2.hpp"
@@ -66,17 +65,24 @@ using matrix::Vector;
 class AS_DT1 : public px4::ScheduledWorkItem
 {
 public:
-	AS_DT1(const char *device, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+	AS_DT1(const char *device);
 	virtual ~AS_DT1();
 
 	int init();
 
 	void print_info();
 
-	bool writeCommand(const std::string &data);
+	int writeCommand(const uint8_t *data, size_t length);
 
 private:
+	enum class ParserState {
+		FindBegin,
+		ReadPayload,
+		FindEnd,
+	};
+
 	int collect();
+	int process_frame(const uint8_t *frame, size_t length);
 
 	void Run() override;
 
@@ -88,24 +94,34 @@ private:
 
 	static constexpr uint8_t 	BIN_COUNT = sizeof(obstacle_distance_s::distances) / sizeof(
 				obstacle_distance_s::distances[0]);
+	static constexpr size_t		READ_BUFFER_SIZE{1024};
+	static constexpr uint8_t		MAX_READS_PER_COLLECT{17};
+	static constexpr size_t		ASDT1_RAW_FRAME_SIZE{8640};
+	static constexpr size_t		ASDT1_MAX_BACKLOG{ASDT1_RAW_FRAME_SIZE * 2};
 
 
-	Serial *_uart = nullptr; ///< UART interface to ASDT1
-	char _linebuf[10] {};
+	Serial _uart{}; ///< UART interface to ASDT1
 	char _device[20] {}; ///< device / serial port path
 
-	matrix::Vector3f points;
 	matrix::Vector<int, MPDATASIZE> xyDataTbl;
 	static constexpr int kCONVERSIONINTERVAL{9_ms};
 
 	unsigned int _linebuf_index{0};
+	uint8_t _frame_buffer[ASDT1_RAW_FRAME_SIZE] {};
+	size_t _frame_buffer_len{0};
+	uint8_t _latest_frame[ASDT1_RAW_FRAME_SIZE] {};
+	size_t _latest_frame_len{0};
+	bool _have_latest_frame{false};
+	ParserState _parser_state{ParserState::FindBegin};
+	size_t _begin_match_index{0};
+	size_t _end_match_index{0};
 
 	hrt_abstime _last_read{0};
 
 	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com_err")};
 	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
 
-	unsigned int _baud = 112500; // ASDT1 default baud rate
+	unsigned int _baud = 921600; // ASDT1 default baud rate
 
 	float range_min = 0.0f;    // in mm
 	float range_max = 50000.0f; // in mm
