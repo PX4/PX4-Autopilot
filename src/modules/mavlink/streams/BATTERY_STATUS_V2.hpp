@@ -109,10 +109,10 @@ private:
 				}
 
 				if (battery_status.connected && fabsf(battery_status.remaining + 1.f) > FLT_EPSILON) {
-					bat_msg.percent_remaining = static_cast<uint8_t>(roundf(battery_status.remaining * 1e2f));
+					bat_msg.state_of_charge = battery_status.remaining * 1e2f;
 
 				} else {
-					bat_msg.percent_remaining = UINT8_MAX;
+					bat_msg.state_of_charge = float(NAN);
 				}
 
 				bat_msg.status_flags = get_status_flags(battery_status);
