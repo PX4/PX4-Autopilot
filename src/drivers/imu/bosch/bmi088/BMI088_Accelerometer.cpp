@@ -608,7 +608,7 @@ void BMI088_Accelerometer::UpdateTemperature()
 	float temperature = (Temp_int11 * 0.125f) + 23.f; // Temp_int11 * 0.125°C/LSB + 23°C
 
 	if (PX4_ISFINITE(temperature)) {
-		// Validar faixa operacional conforme datasheet seção 1.1
+		// Clamp to operational temperature range per datasheet section 5.3.7
 		if (temperature < -40.0f) {
 			temperature = -40.0f;
 			PX4_WARN("BMI088: Temperature below operational range, clamped to -40°C");
