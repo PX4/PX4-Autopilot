@@ -1662,7 +1662,15 @@ void SeptentrioDriver::drain_rtcm_corrections()
 			}
 		}
 
-		updated = _rtcm_corrections_sub[_selected_rtcm_instance].update(&msg);
+		auto &sub = _rtcm_corrections_sub[_selected_rtcm_instance];
+		const unsigned last_generation = sub.get_last_generation();
+
+		updated = sub.update(&msg);
+
+		if (updated && sub.get_last_generation() != last_generation + 1) {
+			PX4_WARN("%s lost, generation %u -> %u", sub.get_topic()->o_name,
+				 last_generation, sub.get_last_generation());
+		}
 	} while (updated && num_injections < rtcm_data_s::ORB_QUEUE_LENGTH);
 }
 
@@ -1672,8 +1680,19 @@ void SeptentrioDriver::drain_moving_baseline()
 	rtcm_data_s msg;
 	size_t num_injections = 0;
 
-	while (num_injections < rtcm_data_s::ORB_QUEUE_LENGTH && _rtcm_moving_baseline_sub.update(&msg)) {
+	while (num_injections < rtcm_data_s::ORB_QUEUE_LENGTH) {
+		const unsigned last_generation = _rtcm_moving_baseline_sub.get_last_generation();
+
+		if (!_rtcm_moving_baseline_sub.update(&msg)) {
+			break;
+		}
+
 		num_injections++;
+
+		if (_rtcm_moving_baseline_sub.get_last_generation() != last_generation + 1) {
+			PX4_WARN("%s lost, generation %u -> %u", _rtcm_moving_baseline_sub.get_topic()->o_name,
+				 last_generation, _rtcm_moving_baseline_sub.get_last_generation());
+		}
 
 		// Prevent injection of data from self
 		if (msg.device_id != get_device_id()) {
