@@ -217,43 +217,106 @@ TEST_F(GeoTest, waypoint_from_line_and_negative_distance)
 
 TEST_F(GeoTest, get_distance_to_arc_outside_sector)
 {
-	// GIVEN: an arc centered at a mid-latitude (so the longitude cosine scaling
-	// matters), sweeping from due-North of the center (start) to due-East (end).
+	// GIVEN: an arc at a mid-latitude (so the longitude cosine scaling matters), sweeping from
+	// due-North of the center (start) to due-East (end).
 	const double lat_center = 47.0;
 	const double lon_center = 8.0;
 	const float radius = 10000.f;            // [m]
 	const float arc_start_bearing = 0.f;     // start point due North of the center
 	const float arc_sweep = M_PI_F / 2.f;    // end point due East of the center
-
-	// Endpoints placed with the same equirectangular approximation the implementation
-	// uses: 1 deg latitude ~= 111111 m, 1 deg longitude ~= 111111 m * cos(latitude).
-	const double meters_per_deg = 111111.0;
-	const double radius_m = static_cast<double>(radius);
+	const double mpd = 111111.0;
 	const double cos_lat = cos(math::radians(lat_center));
-	const double lat_start = lat_center + radius_m / meters_per_deg;
-	const double lon_start = lon_center;
-	const double lat_end = lat_center;
-	const double lon_end = lon_center + radius_m / (meters_per_deg * cos_lat);
+
+	// The implementation locates the endpoints with an equirectangular approximation; mirror it so we
+	// can predict which endpoint is nearer and at what distance.
+	auto endpoint = [&](double bearing, double & lat, double & lon) {
+		lat = lat_center + static_cast<double>(radius) * cos(bearing) / mpd;
+		lon = lon_center + static_cast<double>(radius) * sin(bearing) / (mpd * cos_lat);
+	};
+	double lat_start, lon_start, lat_end, lon_end;
+	endpoint(static_cast<double>(arc_start_bearing), lat_start, lon_start);
+	endpoint(static_cast<double>(arc_start_bearing + arc_sweep), lat_end, lon_end);
 
 	crosstrack_error_s err{};
+	double lat_v, lon_v;
 
-	// WHEN: the vehicle sits exactly on the arc start point (outside the sector)
-	get_distance_to_arc(&err, lat_start, lon_start, lat_center, lon_center, radius, arc_start_bearing, arc_sweep);
-	// THEN: the crosstrack distance is ~zero and we are not past the end
-	EXPECT_NEAR(err.distance, 0.f, 0.1f);
+	// WHEN: the vehicle is outside the wedge on the start side (0.5 rad before the start bearing)
+	waypoint_from_heading_and_distance(lat_center, lon_center, arc_start_bearing - 0.5f, radius, &lat_v, &lon_v);
+	get_distance_to_arc(&err, lat_v, lon_v, lat_center, lon_center, radius, arc_start_bearing, arc_sweep);
+	// THEN: the result is the distance to the nearer (start) endpoint, not past the end
+	EXPECT_LT(get_distance_to_next_waypoint(lat_v, lon_v, lat_start, lon_start),
+		  get_distance_to_next_waypoint(lat_v, lon_v, lat_end, lon_end));
+	EXPECT_NEAR(err.distance, get_distance_to_next_waypoint(lat_v, lon_v, lat_start, lon_start), 0.5f);
 	EXPECT_FALSE(err.past_end);
 
-	// WHEN: the vehicle sits exactly on the arc end point (outside the sector)
-	get_distance_to_arc(&err, lat_end, lon_end, lat_center, lon_center, radius, arc_start_bearing, arc_sweep);
-	// THEN: the crosstrack distance is ~zero and we are past the end
-	EXPECT_NEAR(err.distance, 0.f, 0.1f);
+	// WHEN: the vehicle is outside the wedge on the end side (0.5 rad past the end bearing)
+	waypoint_from_heading_and_distance(lat_center, lon_center, arc_start_bearing + arc_sweep + 0.5f, radius, &lat_v, &lon_v);
+	get_distance_to_arc(&err, lat_v, lon_v, lat_center, lon_center, radius, arc_start_bearing, arc_sweep);
+	// THEN: the result is the distance to the nearer (end) endpoint, past the end
+	EXPECT_LT(get_distance_to_next_waypoint(lat_v, lon_v, lat_end, lon_end),
+		  get_distance_to_next_waypoint(lat_v, lon_v, lat_start, lon_start));
+	EXPECT_NEAR(err.distance, get_distance_to_next_waypoint(lat_v, lon_v, lat_end, lon_end), 0.5f);
 	EXPECT_TRUE(err.past_end);
+}
 
-	// WHEN: the vehicle is offset radially outward from the start point
-	const double lat_offset = 500.0 / meters_per_deg;
-	get_distance_to_arc(&err, lat_start + lat_offset, lon_start, lat_center, lon_center, radius, arc_start_bearing,
-			    arc_sweep);
-	// THEN: the crosstrack distance equals the distance to the (nearer) start point
-	EXPECT_NEAR(err.distance, get_distance_to_next_waypoint(lat_start + lat_offset, lon_start, lat_start, lon_start), 0.1f);
+TEST_F(GeoTest, get_distance_to_arc_inside_sector)
+{
+	// GIVEN: an arc sweeping from due-North (start) to due-East (end) of the center
+	const double lat_center = 47.0;
+	const double lon_center = 8.0;
+	const float radius = 10000.f;
+	const float arc_start_bearing = 0.f;
+	const float arc_sweep = M_PI_F / 2.f;
+	const float mid_bearing = arc_start_bearing + arc_sweep / 2.f;   // pi/4, inside the wedge
+
+	crosstrack_error_s err{};
+	double lat_v, lon_v;
+
+	// WHEN: the vehicle is exactly on the arc (on the circle, inside the wedge). This is the case the
+	// previous in-sector logic mis-classified and reported kilometers off.
+	waypoint_from_heading_and_distance(lat_center, lon_center, mid_bearing, radius, &lat_v, &lon_v);
+	get_distance_to_arc(&err, lat_v, lon_v, lat_center, lon_center, radius, arc_start_bearing, arc_sweep);
+	// THEN: distance to the arc is ~zero
+	EXPECT_NEAR(err.distance, 0.f, 1.f);
 	EXPECT_FALSE(err.past_end);
+
+	// WHEN: the vehicle is inside the circle, within the wedge (half a radius from the center)
+	waypoint_from_heading_and_distance(lat_center, lon_center, mid_bearing, radius / 2.f, &lat_v, &lon_v);
+	get_distance_to_arc(&err, lat_v, lon_v, lat_center, lon_center, radius, arc_start_bearing, arc_sweep);
+	// THEN: the distance is the radial gap to the arc (~radius/2)
+	EXPECT_NEAR(err.distance, radius / 2.f, 1.f);
+	EXPECT_FALSE(err.past_end);
+
+	// WHEN: the vehicle is outside the circle, within the wedge (1.5 radius from the center)
+	waypoint_from_heading_and_distance(lat_center, lon_center, mid_bearing, 1.5f * radius, &lat_v, &lon_v);
+	get_distance_to_arc(&err, lat_v, lon_v, lat_center, lon_center, radius, arc_start_bearing, arc_sweep);
+	// THEN: the distance is again the radial gap (~radius/2)
+	EXPECT_NEAR(err.distance, radius / 2.f, 1.f);
+	EXPECT_FALSE(err.past_end);
+}
+
+TEST_F(GeoTest, get_distance_to_arc_negative_sweep)
+{
+	// GIVEN: the same NE-quadrant arc, but defined from due-East (start) sweeping negatively to North (end)
+	const double lat_center = 47.0;
+	const double lon_center = 8.0;
+	const float radius = 10000.f;
+	const float arc_start_bearing = M_PI_F / 2.f;
+	const float arc_sweep = -M_PI_F / 2.f;
+
+	crosstrack_error_s err{};
+	double lat_v, lon_v;
+
+	// WHEN: the vehicle is on the arc midpoint (bearing pi/4 from the center) -> in sector
+	waypoint_from_heading_and_distance(lat_center, lon_center, M_PI_F / 4.f, radius, &lat_v, &lon_v);
+	get_distance_to_arc(&err, lat_v, lon_v, lat_center, lon_center, radius, arc_start_bearing, arc_sweep);
+	// THEN: distance to the arc is ~zero
+	EXPECT_NEAR(err.distance, 0.f, 1.f);
+	EXPECT_FALSE(err.past_end);
+
+	// WHEN: the vehicle is due South of the center, far outside the wedge -> out of sector
+	waypoint_from_heading_and_distance(lat_center, lon_center, M_PI_F, radius, &lat_v, &lon_v);
+	get_distance_to_arc(&err, lat_v, lon_v, lat_center, lon_center, radius, arc_start_bearing, arc_sweep);
+	// THEN: it is NOT treated as on the arc (the old negative-sweep sector math returned ~zero here)
+	EXPECT_GT(err.distance, radius);
 }
