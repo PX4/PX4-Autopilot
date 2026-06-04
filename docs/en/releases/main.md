@@ -90,7 +90,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### VTOL
 
-- Return mode: VTOLs returning in fixed-wing mode now use the approach loiter associated with the selected home/rally landing location (instead of home) to choose the most wind-aligned valid approach if several are defined. ([PX4-Autopilot#27004: fix(navigator): rtl compute wind angle to select best land approach based on rally point location instead of home location](https://github.com/PX4/PX4-Autopilot/pull/27004))
+- TBD
 
 ### Fixed-wing
 
