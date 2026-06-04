@@ -1,6 +1,6 @@
 module_name: Sony ASDT1 Rangefinder
 serial_config:
-    - command: asdt1 start -d ${SERIAL_DEV}
+    - command: sony_asdt1 start -d ${SERIAL_DEV}
       port_config_param:
         name: SENS_ASDT1_CFG
         group: Sensors

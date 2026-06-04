@@ -104,9 +104,7 @@ private:
 	char _device[20] {}; ///< device / serial port path
 
 	matrix::Vector<int, MPDATASIZE> xyDataTbl;
-	static constexpr int kCONVERSIONINTERVAL{9_ms};
 
-	unsigned int _linebuf_index{0};
 	uint8_t _frame_buffer[ASDT1_RAW_FRAME_SIZE] {};
 	size_t _frame_buffer_len{0};
 	uint8_t _latest_frame[ASDT1_RAW_FRAME_SIZE] {};

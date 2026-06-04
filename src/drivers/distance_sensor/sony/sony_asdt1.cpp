@@ -50,21 +50,21 @@
 AS_DT1::AS_DT1(const char *device):
 	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(device))
 {
-	// store port name
-	strncpy(_device, device, sizeof(_device) - 1);
+	// // store port name
+	// strncpy(_device, device, sizeof(_device) - 1);
 
-	// enforce null termination
-	_device[sizeof(_device) - 1] = '\0';
+	// // enforce null termination
+	// _device[sizeof(_device) - 1] = '\0';
 
-	device::Device::DeviceId device_id;
-	device_id.devid_s.devtype = DRV_DIST_DEVTYPE_ASDT1;
-	device_id.devid_s.bus_type = device::Device::DeviceBusType_SERIAL;
+	// device::Device::DeviceId device_id;
+	// device_id.devid_s.devtype = DRV_DIST_DEVTYPE_ASDT1;
+	// device_id.devid_s.bus_type = device::Device::DeviceBusType_SERIAL;
 
-	uint8_t bus_num = atoi(&_device[strlen(_device) - 1]); // Assuming '/dev/ttySx'
+	// uint8_t bus_num = atoi(&_device[strlen(_device) - 1]); // Assuming '/dev/ttySx'
 
-	if (bus_num < 10) {
-		device_id.devid_s.bus = bus_num;
-	}
+	// if (bus_num < 10) {
+	// 	device_id.devid_s.bus = bus_num;
+	// }
 
 
 
@@ -136,8 +136,7 @@ AS_DT1::~AS_DT1()
 }
 int AS_DT1::init()
 {
-	start();
-	return PX4_OK;
+	return start();
 }
 
 
@@ -146,24 +145,24 @@ void AS_DT1::print_info()
 {
 
 }
-void AS_DT1::start()
+int AS_DT1::start()
 {
 	if (!_uart.setPort(_device)) {
 		PX4_ERR("failed to set serial port %s", _device);
 		perf_count(_comms_errors);
-		return;
+		return PX4_ERROR;
 	}
 
 	if (!_uart.setBaudrate(_baud)) {
 		PX4_ERR("failed to set UART %lu baud", static_cast<unsigned long>(_baud));
 		perf_count(_comms_errors);
-		return;
+		return PX4_ERROR;
 	}
 
 	if (!_uart.isOpen() && !_uart.open()) {
 		PX4_ERR("failed to open AS-DT1 on %s", _device);
 		perf_count(_comms_errors);
-		return;
+		return PX4_ERROR;
 	}
 
 	_uart.flush();
@@ -171,11 +170,12 @@ void AS_DT1::start()
 	if (writeCommand((const uint8_t *)"t\r", 2) != PX4_OK) { // Start streaming frames to read
 		PX4_ERR("failed to write command to AS-DT1");
 		perf_count(_comms_errors);
-		return;
+		return PX4_ERROR;
 	}
 
 	// The AS-DT1 streams frames; poll faster than the nominal frame period so the UART buffer is drained.
 	ScheduleOnInterval(7_ms);
+	return PX4_OK;
 }
 
 void AS_DT1::Run()
@@ -183,6 +183,7 @@ void AS_DT1::Run()
 	if (!_uart.isOpen()) {
 		PX4_ERR("serial port is not open");
 		perf_count(_comms_errors);
+		ScheduleClear();
 		return;
 	}
 
@@ -329,12 +330,14 @@ int AS_DT1::collect()
 		}
 	}
 
-	perf_end(_sample_perf);
 
 	if (_have_latest_frame) {
 		process_frame(_latest_frame, _latest_frame_len);
 		_have_latest_frame = false;
 	}
+
+	perf_end(_sample_perf);
+
 
 	return (received_data || backlog_flushed) ? PX4_OK : -EAGAIN;
 }
