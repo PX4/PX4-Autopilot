@@ -52,6 +52,7 @@
 #include <gtest/gtest.h>
 
 #include "mission_base.h"
+#include "support/vector_mission_item_store.h"
 
 #include <lib/parameters/param.h>
 #include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
@@ -105,36 +106,24 @@ public:
 
 	bool loadMissionItemFromCache(int32_t index, mission_item_s &mission_item) override
 	{
-		for (int32_t failed_index : _load_failure_indices) {
-			if (failed_index == index) {
-				return false;
-			}
-		}
-
-		if (index < 0 || index >= static_cast<int32_t>(_items.size())) {
-			return false;
-		}
-
-		mission_item = _items[static_cast<size_t>(index)];
-		return true;
+		return _mission_store.loadItem(index, mission_item);
 	}
 
 	void loadTestMission(const std::vector<mission_item_s> &items)
 	{
-		_items = items;
-		_mission.count = static_cast<int32_t>(items.size());
+		_mission_store.setItems(items);
+		_mission.count = static_cast<int32_t>(_mission_store.itemCount());
 		_mission.current_seq = 0;
-		clearLoadFailures();
 	}
 
 	void setLoadFailureIndices(std::initializer_list<int32_t> indices)
 	{
-		_load_failure_indices.assign(indices.begin(), indices.end());
+		_mission_store.setLoadFailureIndices(indices);
 	}
 
 	void clearLoadFailures()
 	{
-		_load_failure_indices.clear();
+		_mission_store.clearLoadFailures();
 	}
 
 	void setCurrentSequence(int32_t current_seq)
@@ -157,8 +146,7 @@ public:
 	using MissionBase::MissionTraversalType;
 
 private:
-	std::vector<mission_item_s> _items;
-	std::vector<int32_t> _load_failure_indices;
+	navigator_test::VectorMissionItemStore _mission_store{};
 };
 
 class IgnoreDoJumpMissionBaseTestPeer : public MissionBaseTestPeer
@@ -202,7 +190,8 @@ static mission_item_s makeVtolTransitionItem(int transition_mode)
 	return item;
 }
 
-class MissionBaseTraversalTest : public ::testing::Test
+template<typename TestPeer>
+class MissionBaseTraversalTestBase : public ::testing::Test
 {
 protected:
 	static void SetUpTestSuite()
@@ -212,21 +201,11 @@ protected:
 
 	static void TearDownTestSuite() {}
 
-	MissionBaseTestPeer mission_base{};
+	TestPeer mission_base{};
 };
 
-class IgnoreDoJumpMissionBaseTraversalTest : public ::testing::Test
-{
-protected:
-	static void SetUpTestSuite()
-	{
-		(void)navigatorDatamanRuntime();
-	}
-
-	static void TearDownTestSuite() {}
-
-	IgnoreDoJumpMissionBaseTestPeer mission_base{};
-};
+class MissionBaseTraversalTest : public MissionBaseTraversalTestBase<MissionBaseTestPeer> {};
+class IgnoreDoJumpMissionBaseTraversalTest : public MissionBaseTraversalTestBase<IgnoreDoJumpMissionBaseTestPeer> {};
 
 // WHY: getNonJumpItem is used to find the next mission item.
 // WHAT: A non-DO_JUMP item is returned unchanged.
