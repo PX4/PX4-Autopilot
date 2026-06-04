@@ -738,6 +738,11 @@ void GPS::dumpGpsData(const uint8_t *data, size_t len, gps_dump_comm_mode_t mode
 	while (len > 0) {
 		size_t write_len = len;
 
+		// Guard against unsigned underflow: if len is already at or beyond buffer size, stop
+		if (dump_data->len >= sizeof(dump_data->data)) {
+			break;
+		}
+
 		if (write_len > sizeof(dump_data->data) - dump_data->len) {
 			write_len = sizeof(dump_data->data) - dump_data->len;
 		}
