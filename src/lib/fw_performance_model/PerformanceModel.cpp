@@ -238,7 +238,7 @@ bool PerformanceModel::runSanityChecks() const
 		 * - <param>FW_R_LIM</param>: {3:.1}
 		 */
 		events::send<float, float, float>(events::ID("fixedwing_position_control_conf_invalid_maxbank_infeasible"), events::Log::Error,
-						  "Invalid configuration: Maximum bank angle not feasible",
+						  "Invalid configuration: FW_AIRSPD_MAX too low to sustain max bank angle",
 						  _param_fw_airspd_min.get(), _param_fw_airspd_max.get(), _param_fw_r_lim.get());
 		ret = false;
 	}
