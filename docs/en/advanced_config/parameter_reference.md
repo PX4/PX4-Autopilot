@@ -31521,7 +31521,7 @@ Heading behavior in autonomous modes.
 Acceptance Radius.
 
 Default acceptance radius, overridden by acceptance radius of waypoint if set.
-For fixed wing the npfg switch distance is used for horizontal acceptance.
+For fixed-wing and rovers, the high level controllers output their own acceptance radius. Those values are used instead only when above this parameter.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
