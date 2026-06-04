@@ -339,10 +339,11 @@ int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, double lat_
 		double start_disp_y = (double)radius * cos((double)arc_start_bearing);
 		double end_disp_x = (double)radius * sin((double)wrap_pi(arc_start_bearing + arc_sweep));
 		double end_disp_y = (double)radius * cos((double)wrap_pi(arc_start_bearing + arc_sweep));
-		double lon_start = lon_now + start_disp_x / 111111.0;
-		double lat_start = lat_now + start_disp_y * cos(lat_now) / 111111.0;
-		double lon_end = lon_now + end_disp_x / 111111.0;
-		double lat_end = lat_now + end_disp_y * cos(lat_now) / 111111.0;
+		const double cos_lat_center = cos(math::radians(lat_center));
+		double lon_start = lon_center + start_disp_x / (111111.0 * cos_lat_center);
+		double lat_start = lat_center + start_disp_y / 111111.0;
+		double lon_end = lon_center + end_disp_x / (111111.0 * cos_lat_center);
+		double lat_end = lat_center + end_disp_y / 111111.0;
 		float dist_to_start = get_distance_to_next_waypoint(lat_now, lon_now, lat_start, lon_start);
 		float dist_to_end = get_distance_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
 

@@ -214,3 +214,46 @@ TEST_F(GeoTest, waypoint_from_line_and_negative_distance)
 	EXPECT_FLOAT_EQ(lat_start - lat_offset, lat_target);
 	EXPECT_DOUBLE_EQ(lon_start, lon_target);
 }
+
+TEST_F(GeoTest, get_distance_to_arc_outside_sector)
+{
+	// GIVEN: an arc centered at a mid-latitude (so the longitude cosine scaling
+	// matters), sweeping from due-North of the center (start) to due-East (end).
+	const double lat_center = 47.0;
+	const double lon_center = 8.0;
+	const float radius = 10000.f;            // [m]
+	const float arc_start_bearing = 0.f;     // start point due North of the center
+	const float arc_sweep = M_PI_F / 2.f;    // end point due East of the center
+
+	// Endpoints placed with the same equirectangular approximation the implementation
+	// uses: 1 deg latitude ~= 111111 m, 1 deg longitude ~= 111111 m * cos(latitude).
+	const double meters_per_deg = 111111.0;
+	const double radius_m = static_cast<double>(radius);
+	const double cos_lat = cos(math::radians(lat_center));
+	const double lat_start = lat_center + radius_m / meters_per_deg;
+	const double lon_start = lon_center;
+	const double lat_end = lat_center;
+	const double lon_end = lon_center + radius_m / (meters_per_deg * cos_lat);
+
+	crosstrack_error_s err{};
+
+	// WHEN: the vehicle sits exactly on the arc start point (outside the sector)
+	get_distance_to_arc(&err, lat_start, lon_start, lat_center, lon_center, radius, arc_start_bearing, arc_sweep);
+	// THEN: the crosstrack distance is ~zero and we are not past the end
+	EXPECT_NEAR(err.distance, 0.f, 0.1f);
+	EXPECT_FALSE(err.past_end);
+
+	// WHEN: the vehicle sits exactly on the arc end point (outside the sector)
+	get_distance_to_arc(&err, lat_end, lon_end, lat_center, lon_center, radius, arc_start_bearing, arc_sweep);
+	// THEN: the crosstrack distance is ~zero and we are past the end
+	EXPECT_NEAR(err.distance, 0.f, 0.1f);
+	EXPECT_TRUE(err.past_end);
+
+	// WHEN: the vehicle is offset radially outward from the start point
+	const double lat_offset = 500.0 / meters_per_deg;
+	get_distance_to_arc(&err, lat_start + lat_offset, lon_start, lat_center, lon_center, radius, arc_start_bearing,
+			    arc_sweep);
+	// THEN: the crosstrack distance equals the distance to the (nearer) start point
+	EXPECT_NEAR(err.distance, get_distance_to_next_waypoint(lat_start + lat_offset, lon_start, lat_start, lon_start), 0.1f);
+	EXPECT_FALSE(err.past_end);
+}
