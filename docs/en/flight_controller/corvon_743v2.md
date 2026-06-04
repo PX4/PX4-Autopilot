@@ -4,13 +4,13 @@
 
 :::warning
 PX4 does not manufacture this (or any) autopilot.
-Contact the manufacturer for hardware support or compliance issues.
+Contact the [manufacturer](https://corvon.tech) for hardware support or compliance issues.
 :::
 
 The _CORVON 743v2_ is a flight controller designed by Feikong Technology Co., Ltd under the CORVON brand.
 It builds on the [CORVON 743v1](corvon_743v1.md) platform with significantly upgraded sensor and connectivity options: dual high-grade IMUs (ICM-42688P + BMI088), a high-precision BMP581 barometer, a dedicated DJI O4 Air Unit connector, an onboard Bluetooth module with a ceramic antenna, and dual analog battery monitoring channels.
 
-The board uses [Pixhawk Autopilot Standard Connections](https://docs.px4.io/main/en/flight_controller/autopilot_pixhawk_standard.html).
+The board uses [Pixhawk Autopilot Standard Connections](../flight_controller/autopilot_pixhawk_standard.md).
 
 <img src="../../assets/flight_controller/corvon_743v2/corvon_743v2_top.jpg" width="300px" title="CORVON 743v2 Top Baseboard" /> <img src="../../assets/flight_controller/corvon_743v2/corvon_743v2_bottom.jpg" width="300px" title="CORVON 743v2 Bottom Interfaces" />
 
@@ -68,6 +68,10 @@ The board provides **two independent analog battery monitoring channels**:
 - **BAT2** - Auxiliary `B2V` / `B2I` solder pads for a second / redundant battery pack, sensed on `ADC1_INP4` (voltage) and `ADC1_INP8` (current).
 
 Both channels feed PX4's standard analog battery driver with a default 21.2 voltage divider and 40 A/V current ratio, supporting up to 10S LiPo batteries out of the box.
+
+::: info
+The board does not expose the 5V rail / `system_power` sensing pins that PX4's commander power checks expect, so `CBRK_SUPPLY_CHK` (894281) is set by default to bypass the power supply and battery health checks used for arming and failsafe decisions. BAT1/BAT2 voltage and current monitoring is unaffected.
+:::
 
 ## Connectors & Pinouts
 
@@ -130,6 +134,22 @@ Both the receive line (`RX6`, internally invert-capable for SBUS) and the transm
 - FPort, Spektrum DSM, Graupner SUMD, and others
 
 Configure the receiver protocol with the relevant `RC_*_PRT_CFG` parameter from QGroundControl, pointing it at the `RC` slot.
+
+### PWM Output Groups
+
+The 12 PWM outputs are organized into four timer groups. Channels in the same group must use the same output rate and DShot mode:
+
+| Group | Timer | Channels | Default Protocol |
+| ----- | ----- | -------- | ---------------- |
+| 1     | TIM1  | M1–M4    | DShot600         |
+| 2     | TIM3  | M5–M6    | DShot600         |
+| 3     | TIM4  | M7–M10   | DShot600         |
+| 4     | TIM12 | M11–M12  | PWM only (servo / gimbal) |
+
+M1–M9 support BDShot telemetry readback; M10 is DShot-only because `TIM4_CH4` has no input-capture DMA channel on STM32H7. Bidirectional DShot can be enabled by setting `PWM_MAIN_TIM0..2` to a BDShot value (`-6` BDShot600, `-7` BDShot300, `-8` BDShot150) in QGroundControl.
+
+Channels within the same group need to use the same output rate.
+If any channel in a group uses DShot then all channels in the group need to use DShot.
 
 ### Bluetooth Telemetry (Pre-configured)
 
