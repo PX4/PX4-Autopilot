@@ -103,6 +103,14 @@ $$V = \\sqrt{\\frac{2mg}{\\rho S C_D }}$$
 From this equation we see that if we assume a constant angle of attack (which we generally desire), the vehicle weight affects airspeed with a square root relation.
 Therefore, the airspeed limits mentioned above are all scaled using the square root of the weight ratio.
 
+### Effect of Bank Angle on Airspeed Limits
+
+Flying a coordinated, level turn at bank angle $\phi$ increases the load factor by $\frac{1}{\cos{\phi}}$. This is similar to the added load factor due to weight (section above), and thus the stall, minimum, and trim airspeeds are increased by an additional factor of $\sqrt{\frac{1}{\cos{\phi}}}$.
+
+The maximum airspeed ([FW_AIRSPD_MAX](../advanced_config/parameter_reference.md#FW_AIRSPD_MAX)) is _not_ compensated in this way, as it can represent structural limits of the airframe.
+
+It can be that at maximum bank angle [FW_R_LIM](../advanced_config/parameter_reference.md#FW_R_LIM), the maximum airspeed is _lower_ than the minimum airspeed (compensated for weight ratio and bank angle). This means the allowed airspeed range is empty at that bank angle. If a system is configured like this, a warning on the ground station is shown.
+
 ### Effect of Density on Maximum Climb Rate
 
 The maximum climb rate is set using [FW_T_CLMB_MAX](../advanced_config/parameter_reference.md#FW_T_CLMB_MAX).
