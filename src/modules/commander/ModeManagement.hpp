@@ -174,7 +174,8 @@ public:
 
 	bool currentModeAcceptsOffboardSetpoints(uint8_t nav_state) const;
 
-	void updateActiveConfigOverrides(uint8_t nav_state, config_overrides_s &overrides_in_out);
+	void updateActiveConfigOverrides(uint8_t previous_nav_state, uint8_t nav_state, int previous_executor_in_charge,
+					 config_overrides_s &overrides_in_out);
 
 private:
 	bool checkConfigControlSetpointUpdates();
@@ -202,9 +203,6 @@ private:
 
 	uint8_t _last_served_nav_state{0xff};
 	hrt_abstime _last_served_change_us{0};
-
-	uint8_t _last_overrides_nav_state{0xff};
-	int _last_overrides_executor_in_charge{ModeExecutors::AUTOPILOT_EXECUTOR_ID};
 };
 
 #else /* CONSTRAINED_FLASH */
@@ -248,7 +246,8 @@ public:
 		return nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD;
 	}
 
-	void updateActiveConfigOverrides(uint8_t nav_state, config_overrides_s &overrides_in_out) { }
+	void updateActiveConfigOverrides(uint8_t previous_nav_state, uint8_t nav_state, int previous_executor_in_charge,
+					 config_overrides_s &overrides_in_out) { }
 
 private:
 };

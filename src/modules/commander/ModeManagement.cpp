@@ -581,24 +581,17 @@ void ModeManagement::printStatus() const
 	_mode_executors.printStatus(modeExecutorInCharge());
 }
 
-void ModeManagement::updateActiveConfigOverrides(uint8_t nav_state, config_overrides_s &overrides_in_out)
+void ModeManagement::updateActiveConfigOverrides(uint8_t previous_nav_state, uint8_t nav_state, int previous_executor_in_charge,
+		config_overrides_s &overrides_in_out)
 {
-	const int executor_in_charge = modeExecutorInCharge();
-
-	if (nav_state != _last_overrides_nav_state) {
-		if (_modes.valid(_last_overrides_nav_state)) {
-			_modes.mode(_last_overrides_nav_state).overrides = {};
-		}
-
-		_last_overrides_nav_state = nav_state;
+	if (previous_nav_state != nav_state && _modes.valid(previous_nav_state)) {
+		_modes.mode(previous_nav_state).overrides = {};
 	}
 
-	if (executor_in_charge != _last_overrides_executor_in_charge) {
-		if (_mode_executors.valid(_last_overrides_executor_in_charge)) {
-			_mode_executors.executor(_last_overrides_executor_in_charge).overrides = {};
-		}
+	const int executor_in_charge = modeExecutorInCharge();
 
-		_last_overrides_executor_in_charge = executor_in_charge;
+	if (previous_executor_in_charge != executor_in_charge && _mode_executors.valid(previous_executor_in_charge)) {
+		_mode_executors.executor(previous_executor_in_charge).overrides = {};
 	}
 
 	config_overrides_s current_overrides;
