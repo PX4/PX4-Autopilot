@@ -83,6 +83,11 @@ bool Sticks::checkAndUpdateStickInputs()
 	return _input_available;
 }
 
+float Sticks::expoDeadzone(float value, float expo, float deadzone)
+{
+	return math::expo(math::deadzone(value, deadzone), expo);
+}
+
 void Sticks::limitStickUnitLengthXY(Vector2f &v)
 {
 	const float vl = v.length();

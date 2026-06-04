@@ -17,7 +17,7 @@ Make sure all parts are compatible with your flight controller's ports, and adju
 Alternatives are listed in:
 
 - [Flight Controllers](../flight_controller/index.md)
-- [PX4-Compatible Receivers](../getting_started/rc_transmitter_receiver.md#px4-compatible-receivers-compatible_receivers)
+- [PX4-Compatible Receivers](../getting_started/rc_transmitter_receiver.md#compatible_receivers)
 - [Data Links](../data_links/index.md)
 - [Global Navigation Satellite Systems (GNSS)](../gps_compass/index.md#supported-gnss) or [RTK GNSS](../gps_compass/rtk_gps.md)
 
@@ -76,7 +76,7 @@ For a longer term solution we highly recommend 3d printing mounts that you attac
 This frame works with the usual Rover firmware variants on most flight controllers.
 You can use either prebuilt versions or build the firmware yourself (see [Flashing the Rover Build](../config_rover/index.md#flashing-the-rover-build) and [Building Rover](../config_rover/index.md#building-rover) in _Rover Configuration/Tuning_).
 
-A few boards may omit the [`hiwonder_emm` driver](../modules/modules_driver.md#hiwonder_emm) for the [Hiwonder 4-Channel Encoder Motor Module](../peripherals/hiwonder_emm.md) used by this vehicle.
+A few boards may omit the [`hiwonder_emm` driver](../modules/modules_driver.md#hiwonder-emm) for the [Hiwonder 4-Channel Encoder Motor Module](../peripherals/hiwonder_emm.md) used by this vehicle.
 If your board does not ship with it you will need a custom build — see [Hiwonder 4-Channel Encoder Motor Module > Building the Firmware](../peripherals/hiwonder_emm.md#building-the-firmware) for instructions.
 
 ## Конфігурація PX4

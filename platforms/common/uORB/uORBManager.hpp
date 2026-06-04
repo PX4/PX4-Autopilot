@@ -482,6 +482,9 @@ public:
 
 private: // class methods
 
+	/** Internal method to get a reference to the instance pointer */
+	static uORB::Manager *&instance_ref() { return _Instance; }
+
 	/**
 	 * Common implementation for orb_advertise and orb_subscribe.
 	 *
@@ -491,7 +494,7 @@ private: // class methods
 	int node_open(const struct orb_metadata *meta, bool advertiser, int *instance = nullptr);
 
 private: // data members
-	static Manager *_Instance;
+	static inline Manager *_Instance = nullptr;
 
 #ifdef CONFIG_ORB_COMMUNICATOR
 	// the communicator channel instance.

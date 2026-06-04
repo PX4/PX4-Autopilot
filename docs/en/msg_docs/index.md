@@ -55,6 +55,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 
 ### Historic Versions
 
+- [ActuatorServosV0](ActuatorServosV0.md) — Servo control message.
 - [AirspeedValidatedV0](AirspeedValidatedV0.md)
 - [ArmingCheckReplyV0](ArmingCheckReplyV0.md)
 - [ArmingCheckRequestV0](ArmingCheckRequestV0.md) — Arming check request.
