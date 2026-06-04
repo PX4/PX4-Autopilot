@@ -276,9 +276,12 @@ void Navigator::run()
 				publish_vehicle_command_ack(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_REPOSITION
-				   && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-				// only update the reposition setpoint if armed, as it otherwise won't get executed until the vehicle switches to loiter,
-				// which can lead to dangerous and unexpected behaviors (see loiter.cpp, there is an if(armed) in there too)
+				   && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED
+				   && (((uint32_t)cmd.param2 & 1) != 0
+				       || _vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER)) {
+				// Only apply the reposition setpoint when armed and either a mode switch into Hold was requested
+				// (CHANGE_MODE flag) or we're already in Hold. Otherwise a later switch into Hold could execute a
+				// stale setpoint (loiter.cpp applies it within a 500ms window).
 
 				// Wait for vehicle_status before handling the next command, otherwise the setpoint could be overwritten
 				_wait_for_vehicle_status_timestamp = hrt_absolute_time();
