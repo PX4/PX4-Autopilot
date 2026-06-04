@@ -61,40 +61,41 @@ bool GZMixingInterfaceWheel::init(const std::string &model_name)
 }
 
 bool GZMixingInterfaceWheel::updateOutputs(float outputs[MAX_ACTUATORS],
-                                           unsigned num_outputs,
-                                           unsigned num_control_groups_updated)
+		unsigned num_outputs,
+		unsigned num_control_groups_updated)
 {
-    unsigned active_output_count = 0;
+	unsigned active_output_count = 0;
 
-    for (unsigned i = 0; i < num_outputs; i++) {
-        if (_mixing_output.isFunctionSet(i)) {
-            active_output_count++;
-        } else {
-            break;
-        }
-    }
+	for (unsigned i = 0; i < num_outputs; i++) {
+		if (_mixing_output.isFunctionSet(i)) {
+			active_output_count++;
 
-    if (active_output_count > 0) {
-        gz::msgs::Actuators wheel_velocity_message;
+		} else {
+			break;
+		}
+	}
 
-        auto *vel = wheel_velocity_message.mutable_velocity();
-        vel->Clear();
-        vel->Reserve(active_output_count);
+	if (active_output_count > 0) {
+		gz::msgs::Actuators wheel_velocity_message;
 
-        // Offsetting the output allows for negative values despite unsigned integer to reverse the wheels
-        static constexpr double output_offset = 100.0;
+		auto *vel = wheel_velocity_message.mutable_velocity();
+		vel->Clear();
+		vel->Reserve(active_output_count);
 
-        for (unsigned i = 0; i < active_output_count; i++) {
-            double scaled_output = static_cast<double>(outputs[i]) - output_offset;
-            vel->Add(scaled_output);
-        }
+		// Offsetting the output allows for negative values despite unsigned integer to reverse the wheels
+		static constexpr double output_offset = 100.0;
 
-        if (_actuators_pub.Valid()) {
-            return _actuators_pub.Publish(wheel_velocity_message);
-        }
-    }
+		for (unsigned i = 0; i < active_output_count; i++) {
+			double scaled_output = static_cast<double>(outputs[i]) - output_offset;
+			vel->Add(scaled_output);
+		}
 
-    return false;
+		if (_actuators_pub.Valid()) {
+			return _actuators_pub.Publish(wheel_velocity_message);
+		}
+	}
+
+	return false;
 }
 
 void GZMixingInterfaceWheel::Run()
