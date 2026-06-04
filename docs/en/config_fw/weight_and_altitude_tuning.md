@@ -105,7 +105,7 @@ Therefore, the airspeed limits mentioned above are all scaled using the square r
 
 ### Effect of Bank Angle on Airspeed Limits
 
-Flying a coordinated, level turn at bank angle $\phi$ increases the load factor by $\frac{1}{\cos{\phi}}$. This is similar to the added load factor due to weight (section above), and thus the stall, minimum, and trim airspeeds are increased by an additional factor of $\sqrt{\frac{1}{\cos{\phi}}}$.
+Flying a coordinated, level turn at bank angle $\phi$ increases the load factor by $\frac{1}{\cos{\phi}}$. This is similar to the added load factor due to weight (section above), and thus the stall and minimum airspeeds are increased by an additional factor of $\sqrt{\frac{1}{\cos{\phi}}}$.
 
 The maximum airspeed ([FW_AIRSPD_MAX](../advanced_config/parameter_reference.md#FW_AIRSPD_MAX)) is _not_ compensated in this way, as it can represent structural limits of the airframe.
 
