@@ -255,6 +255,10 @@ int GeofenceAvoidancePlanner::updateStartAndFillPath(matrix::Vector2d start)
 	//  - append the saved valid start (anchor) if the current `start` is outside the fence
 	//  - then fill the RTL return path by walking the DAG produced by the dijkstra solver
 
+	// Could also avoid storing _path entirely and build it ad-hoc from _next_node_buffer.
+	// Pro: less state, easier implementation of replanning on fence change during RTL
+	// Con: introduces a lot of new edge cases (safe anchoring / replanning conflict somewhat)
+
 	int path_index = 0;  // points to the first empty slot, increment after writing
 
 	if (!_polygons_healthy || !_destination_healthy) {
