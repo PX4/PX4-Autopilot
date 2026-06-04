@@ -466,7 +466,9 @@ uint16_t BMI088_Accelerometer::FIFOReadCount()
 	const uint8_t FIFO_LENGTH_0 = fifo_len_buf[2];        // fifo_byte_counter[7:0]
 	const uint8_t FIFO_LENGTH_1 = fifo_len_buf[3] & 0x3F; // fifo_byte_counter[13:8]
 
-	return combine(FIFO_LENGTH_1, FIFO_LENGTH_0);
+	// Clamp to physical FIFO size per datasheet section 4.9.3 (1024 bytes max)
+	const uint16_t fifo_count = combine(FIFO_LENGTH_1, FIFO_LENGTH_0);
+	return math::min(fifo_count, static_cast<uint16_t>(1024U));
 }
 
 bool BMI088_Accelerometer::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
