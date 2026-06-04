@@ -5,17 +5,9 @@ This enables easier testing of [safety failsafe](../config/safety.md) behaviour,
 
 Failure injection is disabled by default, and can be enabled using the [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN) parameter.
 
-:::warning
-Failure injection still in development.
-At time of writing (PX4 v1.14):
-
-- Support may vary by failure type and between simulatiors and real vehicle.
-- It requires support in the simulator.
-  It is supported in Gazebo Classic
-- Many failure types are not broadly implemented.
-  In those cases the command will return with an "unsupported" message.
-
-:::
+Failure injection also needs to be supported by your simulator, so the set of supported failures depends on the simulator backend.
+All `MAV_CMD_INJECT_FAILURE` commands are handled internaly by the failure-injection module, which acknowledges each command and republishes the active failures for the sensor/actuator simulators to apply.
+Commands for combinations that are not implemented are acknowledged as "unsupported". here its important to know, than if it is supported by one endpoint, it is considered supported. that doesnt necessarly mean that your simulator supports it
 
 ## Failure System Command
 
@@ -72,19 +64,19 @@ It is used in [PX4 Integration Testing](../test_and_ci/integration_testing_mavsd
 
 The plugin API is a direct mapping of the failure command shown above, with a few additional error signals related to the connection.
 
-## Example: RC signal
+## Example: GPS
 
-To simulate losing RC signal without having to turn off your RC controller:
+To test the GPS failsafe by stopping GPS:
 
 1. Enable the [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN) parameter.
 2. Enter the following commands on the MAVLink console or SITL _pxh shell_:
 
    ```sh
-   # Fail RC (turn publishing off)
-   failure rc_signal off
+   # Stop GPS publishing
+   failure gps off
 
-   # Restart RC publishing
-   failure rc_signal ok
+   # Restart GPS publishing
+   failure gps ok
    ```
 
 ## Example: Motor
