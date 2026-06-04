@@ -195,17 +195,26 @@ void RtlDirectMissionLand::setActiveMissionItems()
 
 	} else if (_navigator->get_geofence_avoidance_planner().hasMore()) {
 
-		// Follow the planned geofence-avoidance path before resuming the mission landing sequence.
 		GeofenceAvoidancePlanner &planner = _navigator->get_geofence_avoidance_planner();
 		matrix::Vector2d point = planner.getCurrentWaypoint();
 		const matrix::Vector2d next_point = planner.getNextWaypoint();
+		const bool is_first_waypoint = 0 == planner.getPathCursor();
 		planner.advanceWaypoint();
+		const bool is_last_waypoint = !planner.hasMore();
 
 		if (!point.isAllFinite()) {
-			// Should never happen: fall back to the current position to avoid commanding NaN.
-			// TODO: report error and fall back to RTLing straight
+			// Should never happen, fall back to RTLing straight.
+			// TODO: report error
 			point(0) = _global_pos_sub.get().lat;
 			point(1) = _global_pos_sub.get().lon;
+		}
+
+		// Line following only between points on the path, not when flying to the first point
+		if (is_first_waypoint || is_last_waypoint) {
+			pos_sp_triplet->previous.valid = false;
+
+		} else {
+			pos_sp_triplet->previous = current_setpoint_copy;
 		}
 
 		_mission_item.lat = point(0);
@@ -221,7 +230,6 @@ void RtlDirectMissionLand::setActiveMissionItems()
 
 		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 
-		// Populate next setpoint for smooth corner blending.
 		pos_sp_triplet->next.valid = true;
 		pos_sp_triplet->next.alt = _rtl_alt;
 		pos_sp_triplet->next.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
@@ -331,9 +339,8 @@ rtl_time_estimate_s RtlDirectMissionLand::calc_rtl_time_estimate()
 
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 		matrix::Vector2d hor_position_at_calculation_point = add_geofence_avoidance_path_distance(
-					_rtl_time_estimator,
-					_navigator->get_geofence_avoidance_planner(),
-		{_global_pos_sub.get().lat, _global_pos_sub.get().lon});
+					_rtl_time_estimator, _navigator->get_geofence_avoidance_planner(), {_global_pos_sub.get().lat, _global_pos_sub.get().lon}
+				);
 #else
 		matrix::Vector2d hor_position_at_calculation_point {_global_pos_sub.get().lat, _global_pos_sub.get().lon};
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE

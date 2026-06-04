@@ -262,13 +262,17 @@ void RtlDirect::set_rtl_item()
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 	case RTLState::AVOID_GEOFENCE: {
+
 			GeofenceAvoidancePlanner &planner = _navigator->get_geofence_avoidance_planner();
 			matrix::Vector2d point = planner.getCurrentWaypoint();
 			const matrix::Vector2d next_point = planner.getNextWaypoint();
+			const bool is_first_waypoint = 0 == planner.getPathCursor();
 			planner.advanceWaypoint();
+			const bool is_last_waypoint = !planner.hasMore();
 
 			if (!point.isAllFinite()) {
-				// should never happen
+				// Should never happen, fall back to RTLing straight.
+				// TODO: report error
 				point(0) = _land_approach.lat;
 				point(1) = _land_approach.lon;
 			}
@@ -289,7 +293,14 @@ void RtlDirect::set_rtl_item()
 
 			setMoveToPositionMissionItem(_mission_item, pos_yaw_sp);
 
-			// Populate next setpoint so the controller can blend the corner.
+			// Line following only between points on the path, not when flying to the first point
+			if (is_first_waypoint || is_last_waypoint) {
+				pos_sp_triplet->previous.valid = false;
+
+			} else {
+				pos_sp_triplet->previous = pos_sp_triplet->current;
+			}
+
 			pos_sp_triplet->next.valid = true;
 			pos_sp_triplet->next.alt = _rtl_alt;
 			pos_sp_triplet->next.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
