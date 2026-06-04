@@ -10,10 +10,10 @@ Servo trims, added as offset to servo outputs.
 
 ## Fields
 
-| 명칭        | 형식           | Unit [Frame] | Range/Enum | 설명                                                                                 |
-| --------- | ------------ | ---------------------------------------------------------------- | ---------- | ---------------------------------------------------------------------------------- |
-| timestamp | `uint64`     |                                                                  |            | time since system start (microseconds)                          |
-| trim      | `float32[8]` |                                                                  |            | range: [-1, 1] |
+| 명칭                                  | 형식           | Unit [Frame] | Range/Enum | 설명                                                                                 |
+| ----------------------------------- | ------------ | ---------------------------------------------------------------- | ---------- | ---------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp | `uint64`     |                                                                  |            | time since system start (microseconds)                          |
+| <a id="fld_trim"></a>trim           | `float32[8]` |                                                                  |            | range: [-1, 1] |
 
 ## Constants
 

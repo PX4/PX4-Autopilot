@@ -10,11 +10,11 @@ A logging message, output with PX4_WARN, PX4_ERR, PX4_INFO.
 
 ## Fields
 
-| 명칭        | 형식          | Unit [Frame] | Range/Enum | 설명                                                                          |
-| --------- | ----------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------- |
-| timestamp | `uint64`    |                                                                  |            | time since system start (microseconds)                   |
-| severity  | `uint8`     |                                                                  |            | log level (same as in the linux kernel, starting with 0) |
-| text      | `char[127]` |                                                                  |            |                                                                             |
+| 명칭                                  | 형식          | Unit [Frame] | Range/Enum | 설명                                                                          |
+| ----------------------------------- | ----------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp | `uint64`    |                                                                  |            | time since system start (microseconds)                   |
+| <a id="fld_severity"></a>severity   | `uint8`     |                                                                  |            | log level (same as in the linux kernel, starting with 0) |
+| <a id="fld_text"></a>text           | `char[127]` |                                                                  |            |                                                                             |
 
 ## Constants
 
