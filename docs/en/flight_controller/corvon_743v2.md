@@ -3,7 +3,8 @@
 <Badge type="tip" text="PX4 v1.18" />
 
 :::warning
-PX4 does not manufacture this (or any) autopilot. Contact the manufacturer for hardware support or compliance issues.
+PX4 does not manufacture this (or any) autopilot.
+Contact the manufacturer for hardware support or compliance issues.
 :::
 
 The _CORVON 743v2_ is a flight controller designed by Feikong Technology Co., Ltd under the CORVON brand.
@@ -11,7 +12,7 @@ It builds on the [CORVON 743v1](corvon_743v1.md) platform with significantly upg
 
 The board uses [Pixhawk Autopilot Standard Connections](https://docs.px4.io/main/en/flight_controller/autopilot_pixhawk_standard.html).
 
-<img src="../../assets/flight_controller/corvon_743v2/corvon_743v2_top.jpg" width="400px" title="CORVON 743v2 Top Baseboard" /> <img src="../../assets/flight_controller/corvon_743v2/corvon_743v2_bottom.jpg" width="400px" title="CORVON 743v2 Bottom Interfaces" />
+<img src="../../assets/flight_controller/corvon_743v2/corvon_743v2_top.jpg" width="300px" title="CORVON 743v2 Top Baseboard" /> <img src="../../assets/flight_controller/corvon_743v2/corvon_743v2_bottom.jpg" width="300px" title="CORVON 743v2 Bottom Interfaces" />
 
 ::: info
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
@@ -72,7 +73,7 @@ Both channels feed PX4's standard analog battery driver with a default 21.2 volt
 
 The following image shows the physical connector and solder-pad layout, with the labels used in this document and in the firmware's `default.px4board`:
 
-<img src="../../assets/flight_controller/corvon_743v2/CORVON743V2_PortsConnection.png" width="800px" title="CORVON 743v2 Ports & Connectors" />
+![CORVON 743v2 Ports & Connectors](../../assets/flight_controller/corvon_743v2/corvon743v2_portsconnection.png)
 
 The board exposes the following connectors and solder pads:
 
@@ -91,28 +92,31 @@ The board exposes the following connectors and solder pads:
 
 The next image shows the individual solder-pad signal assignments on both the top and bottom of the board for advanced wiring (GPIO breakouts, ADC pads, etc.):
 
-<img src="../../assets/flight_controller/corvon_743v2/CORVON743V2_Pads.png" width="800px" title="CORVON 743v2 Solder Pad Map" />
+![CORVON 743v2 Solder Pad Map](../../assets/flight_controller/corvon_743v2/corvon743v2_pads.png)
 
 ### Standard Serial Port Mapping
 
-| Physical UART | PCB Silk Label  | PX4 Slot (QGC) | Default Usage                                |
-| ------------- | --------------- | -------------- | -------------------------------------------- |
-| USART1        | `TELEM1`        | TELEM 1        | MAVLink                                      |
-| USART2        | `04-AIR`        | -              | DJI O4 Air Unit (MSP DisplayPort)            |
-| USART3        | `GPS`           | GPS 1          | GPS (plus external compass on shared I²C)    |
-| UART4         | `TELEM2`        | TELEM 2        | MAVLink (Companion Link)                     |
-| UART5         | `UART5`         | **TELEM 3**    | User Auxiliary                               |
-| USART6        | `RCIN`          | RC             | RC Input (SBUS / CRSF / ELRS)                |
-| UART7         | `UART7`         | **UART 6**     | ESC Telemetry                                |
-| UART8         | (onboard BT)    | TELEM 4        | Bluetooth MAVLink @ 115200 (pre-configured)  |
+| Physical UART | PCB Silk Label | PX4 Slot (QGC) | Default Usage                               |
+| ------------- | -------------- | -------------- | ------------------------------------------- |
+| USART1        | `TELEM1`       | TELEM 1        | MAVLink                                     |
+| USART2        | `04-AIR`       | -              | DJI O4 Air Unit (MSP DisplayPort)           |
+| USART3        | `GPS`          | GPS 1          | GPS (plus external compass on shared I²C)   |
+| UART4         | `TELEM2`       | TELEM 2        | MAVLink (Companion Link)                    |
+| UART5         | `UART5`        | **TELEM 3**    | User Auxiliary                              |
+| USART6        | `RCIN`         | RC             | RC Input (SBUS / CRSF / ELRS)               |
+| UART7         | `UART7`        | **UART 6**     | ESC Telemetry                               |
+| UART8         | (onboard BT)   | TELEM 4        | Bluetooth MAVLink @ 115200 (pre-configured) |
 
 ::: tip
-The silk labels `UART5` and `UART7` on the PCB refer to the STM32H743's physical UART numbers. In QGroundControl these ports appear as `TELEM 3` and `UART 6` respectively, because of PX4's internal serial-slot abstraction. When assigning a service in QGroundControl, look up the silk label in the **PCB Silk Label** column to find the corresponding **PX4 Slot** name.
+The silk labels `UART5` and `UART7` on the PCB refer to the STM32H743's physical UART numbers.
+In QGroundControl these ports appear as `TELEM 3` and `UART 6` respectively, because of PX4's internal serial-slot abstraction.
+When assigning a service in QGroundControl, look up the silk label in the **PCB Silk Label** column to find the corresponding **PX4 Slot** name.
 :::
 
 ### Debug Port
 
-The board features a **4-pin SWD Debug** interface (SWCLK / SWDIO / 3V3 / GND) for hardware debugging. There is no dedicated NSH console UART; the NSH console is exposed over USB CDC out of the box and is available via QGroundControl's MAVLink Console.
+The board features a **4-pin SWD Debug** interface (SWCLK / SWDIO / 3V3 / GND) for hardware debugging.
+There is no dedicated NSH console UART; the NSH console is exposed over USB CDC out of the box and is available via QGroundControl's MAVLink Console.
 
 ### RC Input
 
@@ -129,7 +133,8 @@ Configure the receiver protocol with the relevant `RC_*_PRT_CFG` parameter from 
 
 ### Bluetooth Telemetry (Pre-configured)
 
-The board has an onboard Bluetooth module with a ceramic antenna, wired internally to UART8. The factory firmware pre-binds MAVLink instance 2 to this port at **115200 baud with no flow control**, so the link works out of the box: just pair the board from a phone or tablet GCS - no QGroundControl parameter changes required.
+The board has an onboard Bluetooth module with a ceramic antenna, wired internally to `UART8`.
+The factory firmware pre-binds MAVLink instance 2 to this port at **115200 baud with no flow control**, so the link works out of the box: just pair the board from a phone or tablet GCS - no QGroundControl parameter changes required.
 
 ## Building / Loading Firmware
 
@@ -144,4 +149,5 @@ To [build PX4](../dev_setup/building_px4.md) for this target from source:
 make corvon_743v2_default
 ```
 
-Initial firmware flashing can be done over USB via QGroundControl. The bootloader status follows the standard generic PX4 LED indications (Red = Bootloader / Error, Blue = Active / Activity, Green = Powered).
+Initial firmware flashing can be done over USB via QGroundControl.
+The bootloader status follows the standard generic PX4 LED indications (Red = Bootloader / Error, Blue = Active / Activity, Green = Powered).
