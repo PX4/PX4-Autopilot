@@ -1299,7 +1299,7 @@ float Navigator::get_acceptance_radius()
 			acceptance_radius = math::max(acceptance_radius, fw_guidance_status.switch_distance);
 		}
 
-	} else if (_vstatus.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+	} else if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) {
 
 		const position_controller_status_s &pos_ctrl_status = _position_controller_status_sub.get();
 
