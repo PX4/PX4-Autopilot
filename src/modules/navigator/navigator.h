@@ -72,6 +72,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/distance_sensor_mode_change_request.h>
+#include <uORB/topics/fixed_wing_lateral_guidance_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/gimbal_manager_set_attitude.h>
 #include <uORB/topics/home_position.h>
@@ -321,6 +322,7 @@ private:
 	int _vehicle_status_sub{-1};
 
 	uORB::SubscriptionData<position_controller_status_s>	_position_controller_status_sub{ORB_ID(position_controller_status)};
+	uORB::SubscriptionData<fixed_wing_lateral_guidance_status_s> _fw_lateral_guidance_status_sub{ORB_ID(fixed_wing_lateral_guidance_status)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 

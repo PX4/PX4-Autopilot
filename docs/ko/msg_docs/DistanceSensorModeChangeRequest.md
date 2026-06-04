@@ -8,10 +8,10 @@ pageClass: is-wide-page
 
 ## Fields
 
-| 명칭                                                       | 형식       | Unit [Frame] | Range/Enum | 설명                                                        |
-| -------------------------------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| timestamp                                                | `uint64` |                                                                  |            | time since system start (microseconds) |
-| request_on_off | `uint8`  |                                                                  |            | request to disable/enable the distance sensor             |
+| 명칭                                                                                      | 형식       | Unit [Frame] | Range/Enum | 설명                                                        |
+| --------------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                                     | `uint64` |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_request_on_off"></a>request_on_off | `uint8`  |                                                                  |            | request to disable/enable the distance sensor             |
 
 ## Constants
 

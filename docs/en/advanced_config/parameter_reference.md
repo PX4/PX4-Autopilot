@@ -31419,6 +31419,8 @@ Landing abort min altitude.
 
 Minimum altitude above landing point that the vehicle will climb to after an aborted landing.
 Then vehicle will loiter in this altitude until further command is received.
+Used as the default when the landing mission item does not specify its own abort altitude
+(MAV_CMD_NAV_LAND param1).
 Only applies to fixed-wing vehicles.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
@@ -31519,7 +31521,7 @@ Heading behavior in autonomous modes.
 Acceptance Radius.
 
 Default acceptance radius, overridden by acceptance radius of waypoint if set.
-For fixed wing the npfg switch distance is used for horizontal acceptance.
+For fixed-wing and rovers, the high level controllers output their own acceptance radius. Those values are used instead only when above this parameter.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -35868,7 +35870,8 @@ Return mode destination and flight path (home location, rally point, mission lan
 
 RTL force approach landing.
 
-Only consider RTL point, if it has an approach defined.
+Only consider home/rally RTL points that have a VTOL approach loiter.
+A VTOL approach loiter is a MAV_CMD_NAV_LOITER_TO_ALT item with finite position and altitude.
 
 **Values:**
 

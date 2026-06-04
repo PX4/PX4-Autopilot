@@ -1,15 +1,9 @@
 # 멀티콥터 저크 제한 유형 궤적
 
-저크 제한 궤적 유형은 사용자 스틱 입력 또는 미션 변경 (예 : 촬영, 매핑,화물)에 응답하여 부드러운 동작을 제공합니다.
+The Jerk-limited trajectory type provides smooth motion in autonomous flight e.g. for filming, mapping, cargo.
 저크와 가속 제한이 항상 보장되는 부드러운 대칭 S-커브를 생성합니다.
 
-This trajectory type is always enabled in [Mission mode](../flight_modes_mc/mission.md).
-To enable it in [Position mode](../flight_modes_mc/position.md) set the parameter [MPC_POS_MODE](../advanced_config/parameter_reference.md#MPC_POS_MODE) to `Smoothed velocity`.
-
-:::info
-The jerk-limited type is not used _by default_ in position mode.
-더 빠른 응답이 필요한 기체(예 : 레이서 쿼드)에는 적합하지 않을 수 있습니다.
-:::
+This trajectory type is always enabled in autonomous modes like [Mission mode](../flight_modes_mc/mission.md).
 
 ## 궤적 생성기
 
@@ -30,16 +24,11 @@ The constraints `jMax`, `aMax` are configurable by the user via parameters and c
 
 ## 수동 모드
 
-In manual position mode, the sticks are mapped to velocity where a full XY-stick deflection corresponds to [MPC_VEL_MANUAL](../advanced_config/parameter_reference.md#MPC_VEL_MANUAL) and a full Z-stick deflection corresponds to [MPC_Z_VEL_MAX_UP](../advanced_config/parameter_reference.md#MPC_Z_VEL_MAX_UP) (upward motion) or [MPC_Z_VEL_MAX_DN](../advanced_config/parameter_reference.md#MPC_Z_VEL_MAX_DN) (downward motion).
+In manual position and altitude mode, jerk limiting is applied only to the vertical axis. Full throttle stick deflection commands the maximum vertical velocity which is [MPC_Z_VEL_MAX_UP](../advanced_config/parameter_reference.md#MPC_Z_VEL_MAX_UP) upwards and [MPC_Z_VEL_MAX_DN](../advanced_config/parameter_reference.md#MPC_Z_VEL_MAX_DN) downwards.
 
 ### 제약 조건
 
-XY 평면
-
-- `jMax`: [MPC_JERK_MAX](../advanced_config/parameter_reference.md#MPC_JERK_MAX)
-- `aMax`: [MPC_ACC_HOR_MAX](../advanced_config/parameter_reference.md#MPC_ACC_HOR_MAX)
-
-Z축
+Z-axis
 
 - `jMax`: [MPC_JERK_MAX](../advanced_config/parameter_reference.md#MPC_JERK_MAX)
 - `aMax` (upward motion): [MPC_ACC_UP_MAX](../advanced_config/parameter_reference.md#MPC_ACC_UP_MAX)

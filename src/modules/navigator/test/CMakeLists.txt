@@ -34,3 +34,4 @@
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
 
 px4_add_functional_gtest(SRC test_mission_base.cpp LINKLIBS modules__navigator)
+px4_add_functional_gtest(SRC test_RTL.cpp LINKLIBS modules__navigator)
