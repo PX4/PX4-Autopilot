@@ -92,7 +92,7 @@ TEST_F(GeoTest, projectReproject)
 	EXPECT_FLOAT_EQ(lon, lon_new);
 }
 
-TEST_F(GeoTest, reproject_nan_prevention)
+TEST_F(GeoTest, ReprojectNanPrevention)
 {
 	// GIVEN: A reference point very close to the North Pole using the fixture's 'proj' object
 	proj.initReference(89.9999, 0.0, 0ULL);
@@ -107,7 +107,7 @@ TEST_F(GeoTest, reproject_nan_prevention)
 	EXPECT_FALSE(std::isnan(lon));
 }
 
-TEST_F(GeoTest, vector_to_next_waypoint_fast_antimeridian)
+TEST_F(GeoTest, VectorToNextWaypointFastAntimeridian)
 {
 	// GIVEN: A starting point at +179 (East) and a target at -179 (West)
 	double lat_now = 0.0;
@@ -127,7 +127,7 @@ TEST_F(GeoTest, vector_to_next_waypoint_fast_antimeridian)
 	EXPECT_GT(v_e, 0.0f);       // Eastward velocity should be Greater Than (GT) zero
 }
 
-TEST_F(GeoTest, distance_to_line_before_start)
+TEST_F(GeoTest, DistanceToLineBeforeStart)
 {
 	struct crosstrack_error_s ct_error;
 
@@ -139,7 +139,7 @@ TEST_F(GeoTest, distance_to_line_before_start)
 	EXPECT_FALSE(ct_error.past_end);
 }
 
-TEST_F(GeoTest, distance_to_line_past_end)
+TEST_F(GeoTest, DistanceToLinePastEnd)
 {
 	struct crosstrack_error_s ct_error;
 
@@ -151,7 +151,7 @@ TEST_F(GeoTest, distance_to_line_past_end)
 	EXPECT_FALSE(ct_error.past_start);
 }
 
-TEST_F(GeoTest, waypoint_distance_and_bearing)
+TEST_F(GeoTest, WaypointDistanceAndBearing)
 {
 	// GIVEN: Starting at the equator (0,0) and moving exactly 1 degree North.
 	double lat_now = 0.0;
@@ -171,7 +171,7 @@ TEST_F(GeoTest, waypoint_distance_and_bearing)
 	EXPECT_FLOAT_EQ(bearing, 0.0f);
 }
 
-TEST_F(GeoTest, add_vector_to_global)
+TEST_F(GeoTest, AddVectorToGlobal)
 {
 	// GIVEN: Starting at the equator and moving 1000 meters straight North.
 	double lat_now = 0.0;
@@ -189,7 +189,7 @@ TEST_F(GeoTest, add_vector_to_global)
 	EXPECT_DOUBLE_EQ(lon_res, 0.0);
 }
 
-TEST_F(GeoTest, vector_to_next_waypoint_standard)
+TEST_F(GeoTest, VectorToNextWaypointStandard)
 {
 	// 1. STANDARD VECTOR: Moving 1 degree North from the equator
 	float v_n = 0.0f;
@@ -201,7 +201,7 @@ TEST_F(GeoTest, vector_to_next_waypoint_standard)
 	EXPECT_FLOAT_EQ(v_e, 0.0f);            // East velocity should be perfectly zero
 }
 
-TEST_F(GeoTest, distance_to_point_global_spherical_absolute)
+TEST_F(GeoTest, DistanceToPointGlobalSphericalAbsolute)
 {
 	// 2. SPHERICAL DISTANCE: The WGS84 haversine rename
 	float dist_xy = 0.0f;
@@ -216,7 +216,7 @@ TEST_F(GeoTest, distance_to_point_global_spherical_absolute)
 	EXPECT_NEAR(total_dist, expected_xy, 1.0f);
 }
 
-TEST_F(GeoTest, mavlink_local_distance)
+TEST_F(GeoTest, MavlinkLocalDistance)
 {
 	// 3. MAVLINK LOCAL: A standard 3D Pythagorean theorem test
 	float dist_xy = 0.0f;
@@ -231,7 +231,7 @@ TEST_F(GeoTest, mavlink_local_distance)
 	EXPECT_FLOAT_EQ(dist_z, 12.0f); // Vertical distance is exactly 12
 }
 
-TEST_F(GeoTest, map_projection_absolute)
+TEST_F(GeoTest, MapProjectionAbsolute)
 {
 	// 4. MAP PROJECTION: Verifying absolute output, not just round-trip invertibility
 	MapProjection ref{};
