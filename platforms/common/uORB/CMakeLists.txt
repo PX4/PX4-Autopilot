@@ -47,6 +47,7 @@ set(SRCS_COMMON
 	PublicationMulti.hpp
 	Subscription.cpp
 	Subscription.hpp
+	SubscriptionCallback.cpp
 	SubscriptionCallback.hpp
 	SubscriptionInterval.cpp
 	SubscriptionInterval.hpp
