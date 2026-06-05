@@ -110,4 +110,66 @@ bool Subscription::ChangeInstance(uint8_t instance)
 	return false;
 }
 
+Subscription::Subscription(ORB_ID id, uint8_t instance) :
+	_orb_id(id),
+	_instance(instance)
+{
+	subscribe();
+}
+
+Subscription::Subscription(const orb_metadata *meta, uint8_t instance) :
+	_orb_id((meta == nullptr) ? ORB_ID::INVALID : static_cast<ORB_ID>(meta->o_id)),
+	_instance(instance)
+{
+	subscribe();
+}
+
+Subscription::Subscription(const Subscription &other) : _orb_id(other._orb_id), _instance(other._instance) {}
+
+Subscription::Subscription(const Subscription &&other) noexcept : _orb_id(other._orb_id), _instance(other._instance) {}
+
+Subscription &Subscription::operator=(const Subscription &other)
+{
+	// Check for self-assignment
+	if (this == &other) {
+		return *this;
+	}
+
+	unsubscribe();
+	_orb_id = other._orb_id;
+	_instance = other._instance;
+	return *this;
+}
+
+Subscription &Subscription::operator=(Subscription &&other) noexcept
+{
+	unsubscribe();
+	_orb_id = other._orb_id;
+	_instance = other._instance;
+	return *this;
+}
+
+Subscription::~Subscription()
+{
+	unsubscribe();
+}
+
+bool Subscription::advertised()
+{
+	if (subscribe()) {
+		return Manager::is_advertised(_node);
+	}
+
+	return false;
+}
+
+bool Subscription::updated()
+{
+	if (subscribe()) {
+		return Manager::updates_available(_node, _last_generation);
+	}
+
+	return false;
+}
+
 } // namespace uORB
