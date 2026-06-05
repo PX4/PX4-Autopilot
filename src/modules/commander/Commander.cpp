@@ -868,14 +868,9 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			// to not require navigator and command to receive / process
 			// the data at the exact same time.
 
-			const uint32_t change_mode_flags = uint32_t(cmd.param2);
-			const bool mode_switch_not_requested = (change_mode_flags & 1) == 0;
-			const bool unsupported_bits_set = (change_mode_flags & ~1) != 0;
+			const bool change_mode_requested = (uint32_t(cmd.param2) & 1) != 0;
 
-			if (mode_switch_not_requested || unsupported_bits_set) {
-				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED);
-
-			} else {
+			if (change_mode_requested) {
 				// If already in course mode, stay in course mode (navigator handles any altitude update)
 				// Only switch to loiter if a specific lat/lon target is given, or we are not in course mode.
 				const bool has_position_target = PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6);
@@ -891,6 +886,14 @@ Commander::handle_command(const vehicle_command_s &cmd)
 					printRejectMode(target_state);
 					cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 				}
+
+			} else if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) {
+				// No mode switch requested: reposition the current hold setpoint in place.
+				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
+			} else {
+				// Supported, but no mode switch requested and not in hold: nothing to act on.
+				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
 			}
 		}
 		break;
@@ -2490,6 +2493,7 @@ void Commander::handleAutoDisarm()
 bool Commander::handleModeIntentionAndFailsafe()
 {
 	const uint8_t prev_nav_state = _vehicle_status.nav_state;
+	const int prev_executor_in_charge = _vehicle_status.executor_in_charge;
 	const FailsafeBase::Action prev_failsafe_action = _failsafe.selectedAction();
 	const uint8_t prev_failsafe_defer_state = _vehicle_status.failsafe_defer_state;
 
@@ -2544,7 +2548,8 @@ bool Commander::handleModeIntentionAndFailsafe()
 		_vehicle_status.nav_state_timestamp = hrt_absolute_time();
 	}
 
-	_mode_management.updateActiveConfigOverrides(_vehicle_status.nav_state, _config_overrides);
+	_mode_management.updateActiveConfigOverrides(prev_nav_state, _vehicle_status.nav_state, prev_executor_in_charge,
+			_config_overrides);
 
 	// Apply failsafe deferring & get the current state
 	_failsafe.deferFailsafes(_config_overrides.defer_failsafes, _config_overrides.defer_failsafes_timeout_s);

@@ -537,6 +537,7 @@ MavlinkReceiver::command_has_location(uint16_t command)
 	case MAV_CMD_NAV_VTOL_TAKEOFF:                       // 84
 	case MAV_CMD_DO_SET_HOME:                            // 179
 	case MAV_CMD_DO_LAND_START:                          // 189
+	case MAV_CMD_DO_REPOSITION:                          // 192
 	case MAV_CMD_DO_SET_ROI_LOCATION:                    // 195
 	case MAV_CMD_DO_SET_ROI:                             // 201
 	case MAV_CMD_PAYLOAD_PREPARE_DEPLOY:                 // 30001
@@ -557,7 +558,6 @@ MavlinkReceiver::command_has_location(uint16_t command)
 	// case MAV_CMD_NAV_VTOL_LAND:                       // 85
 	// case MAV_CMD_NAV_PAYLOAD_PLACE:                   // 94
 	// case MAV_CMD_DO_RETURN_PATH_START:                // 188
-	// case MAV_CMD_DO_REPOSITION:                       // 192
 	// case MAV_CMD_OVERRIDE_GOTO:                       // 252
 	// case MAV_CMD_SET_GUIDED_SUBMODE_CIRCLE:           // 4001
 	// case MAV_CMD_CONDITION_GATE:                      // 4501
@@ -731,11 +731,11 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 
 				switch (vehicle_status.vehicle_type) {
 				case vehicle_status_s::VEHICLE_TYPE_FIXED_WING:
-					has_module = param_find("FW_AT_APPLY");
+					has_module = param_find("FW_AT_APPLY") != PARAM_INVALID;
 					break;
 
 				case vehicle_status_s::VEHICLE_TYPE_ROTARY_WING:
-					has_module = param_find("MC_AT_APPLY");
+					has_module = param_find("MC_AT_APPLY") != PARAM_INVALID;
 					break;
 
 				default:

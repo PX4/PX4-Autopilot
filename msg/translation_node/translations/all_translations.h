@@ -6,6 +6,7 @@
 
 #include <translation_util.h>
 
+#include "translation_actuator_servos_v1.h"
 #include "translation_airspeed_validated_v1.h"
 #include "translation_aux_global_position_v1.h"
 #include "translation_arming_check_reply_v1.h"

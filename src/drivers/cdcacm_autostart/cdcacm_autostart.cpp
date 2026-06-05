@@ -44,6 +44,7 @@ extern int serdis_main(int c, char **argv);
 __END_DECLS
 
 #include <px4_platform_common/shutdown.h>
+#include <px4_platform_common/posix.h>
 
 ModuleBase::Descriptor CdcAcmAutostart::desc{task_spawn, custom_command, print_usage};
 

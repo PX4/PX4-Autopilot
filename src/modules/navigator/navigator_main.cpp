@@ -252,6 +252,7 @@ void Navigator::run()
 
 		_land_detected_sub.update(&_land_detected);
 		_position_controller_status_sub.update();
+		_fw_lateral_guidance_status_sub.update();
 		_home_pos_sub.update(&_home_pos);
 
 		// Handle Vehicle commands
@@ -276,9 +277,12 @@ void Navigator::run()
 				publish_vehicle_command_ack(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_REPOSITION
-				   && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-				// only update the reposition setpoint if armed, as it otherwise won't get executed until the vehicle switches to loiter,
-				// which can lead to dangerous and unexpected behaviors (see loiter.cpp, there is an if(armed) in there too)
+				   && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED
+				   && (((uint32_t)cmd.param2 & 1) != 0
+				       || _vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER)) {
+				// Only apply the reposition setpoint when armed and either a mode switch into Hold was requested
+				// (CHANGE_MODE flag) or we're already in Hold. Otherwise a later switch into Hold could execute a
+				// stale setpoint (loiter.cpp applies it within a 500ms window).
 
 				// Wait for vehicle_status before handling the next command, otherwise the setpoint could be overwritten
 				_wait_for_vehicle_status_timestamp = hrt_absolute_time();
@@ -1285,13 +1289,23 @@ float Navigator::get_cruising_throttle()
 float Navigator::get_acceptance_radius()
 {
 	float acceptance_radius = get_default_acceptance_radius(); // the value specified in the parameter NAV_ACC_RAD
-	const position_controller_status_s &pos_ctrl_status = _position_controller_status_sub.get();
 
 	// for fixed-wing and rover, return the max of NAV_ACC_RAD and the controller acceptance radius (e.g. navigation switch distance)
-	if (_vstatus.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
-	    && PX4_ISFINITE(pos_ctrl_status.acceptance_radius) && pos_ctrl_status.timestamp != 0) {
+	if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 
-		acceptance_radius = math::max(acceptance_radius, pos_ctrl_status.acceptance_radius);
+		const fixed_wing_lateral_guidance_status_s &fw_guidance_status = _fw_lateral_guidance_status_sub.get();
+
+		if (PX4_ISFINITE(fw_guidance_status.switch_distance) && fw_guidance_status.timestamp != 0) {
+			acceptance_radius = math::max(acceptance_radius, fw_guidance_status.switch_distance);
+		}
+
+	} else if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) {
+
+		const position_controller_status_s &pos_ctrl_status = _position_controller_status_sub.get();
+
+		if (PX4_ISFINITE(pos_ctrl_status.acceptance_radius) && pos_ctrl_status.timestamp != 0) {
+			acceptance_radius = math::max(acceptance_radius, pos_ctrl_status.acceptance_radius);
+		}
 	}
 
 	return acceptance_radius;
